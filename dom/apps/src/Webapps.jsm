@@ -22,6 +22,8 @@ Cu.import("resource://gre/modules/SystemMessagePermissionsChecker.jsm");
 Cu.import("resource://gre/modules/AppDownloadManager.jsm");
 Cu.import("resource://gre/modules/WebappOSUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
+Cu.import("resource://gre/modules/Task.jsm");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 #ifdef MOZ_WIDGET_GONK
 XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
@@ -31,7 +33,9 @@ XPCOMUtils.defineLazyGetter(this, "libcutils", function() {
 #endif
 
 function debug(aMsg) {
-  
+#ifdef MOZ_DEBUG
+  dump("-*- Webapps.jsm : " + aMsg + "\n");
+#endif
 }
 
 function supportUseCurrentProfile() {
@@ -1228,10 +1232,6 @@ this.DOMApplicationRegistry = {
       return;
     }
 
-    let app = this.webapps[download.appId];
-    app.progress = 0;
-    app.installState = download.previousState;
-    app.downloading = false;
     this._saveApps((function() {
       this.broadcastMessage("Webapps:UpdateState", {
         app: {
@@ -1340,7 +1340,7 @@ this.DOMApplicationRegistry = {
           origin: app.origin,
           installOrigin: app.installOrigin,
           downloadSize: app.downloadSize
-        }, isUpdate, function(aId, aManifest) {
+        }, isUpdate).then(function([aId, aManifest]) {
           
           
           let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
@@ -1386,7 +1386,6 @@ this.DOMApplicationRegistry = {
 
     
     this.getManifestFor(aManifestURL, (function(aOldManifest) {
-      debug("Old manifest: " + JSON.stringify(aOldManifest));
       
       let tmpDir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
       let manFile = tmpDir.clone();
@@ -1425,7 +1424,6 @@ this.DOMApplicationRegistry = {
 
       
       this.getManifestFor(aManifestURL, (function(aData) {
-        debug("New manifest: " + JSON.stringify(aData));
         app.downloading = false;
         app.downloadAvailable = false;
         app.downloadSize = 0;
@@ -1513,54 +1511,8 @@ this.DOMApplicationRegistry = {
       AppDownloadManager.add(aApp.manifestURL, download);
 
       cacheUpdate.addObserver(new AppcacheObserver(aApp), false);
+
     }).bind(this));
-  },
-
-  
-  computeFileHash: function computeFileHash(aFile, aCallback) {
-    const CHUNK_SIZE = 16384;
-
-    
-    function toHexString(charCode) {
-      return ("0" + charCode.toString(16)).slice(-2);
-    }
-
-    let hasher = Cc["@mozilla.org/security/hash;1"]
-                   .createInstance(Ci.nsICryptoHash);
-    
-    hasher.init(hasher.MD5);
-
-    OS.File.open(aFile.path, { read: true }).then(
-      function opened(file) {
-        let readChunk = function readChunk() {
-          file.read(CHUNK_SIZE).then(
-            function readSuccess(array) {
-              hasher.update(array, array.length);
-              if (array.length == CHUNK_SIZE) {
-                readChunk();
-              } else {
-                file.close();
-                
-                let hash = hasher.finish(false);
-                
-                aCallback([toHexString(hash.charCodeAt(i)) for (i in hash)]
-                          .join(""));
-              }
-            },
-            function readError() {
-              debug("Error reading " + aFile.path);
-              aCallback(null);
-            }
-          );
-        }
-
-        readChunk();
-      },
-      function openError() {
-        debug("Error opening " + aFile.path);
-        aCallback(null);
-      }
-    );
   },
 
   
@@ -2183,130 +2135,51 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     let packageDownload = this.queuedPackageDownload[aManifestURL];
     if (packageDownload) {
       let manifest = packageDownload.manifest;
-      let appObject = packageDownload.app;
+      let newApp = packageDownload.app;
       let installSuccessCallback = packageDownload.callback;
 
       delete this.queuedPackageDownload[aManifestURL];
 
-      this.downloadPackage(manifest, appObject, false, (function(aId, aManifest) {
-        
-        let app = DOMApplicationRegistry.webapps[aId];
-        let zipFile = FileUtils.getFile("TmpD", ["webapps", aId, "application.zip"], true);
-        let dir = this._getAppDir(aId);
-        zipFile.moveTo(dir, "application.zip");
-        let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
-        try {
-          tmpDir.remove(true);
-        } catch(e) { }
-
-        
-        
-        let manFile = dir.clone();
-        manFile.append("manifest.webapp");
-        this._writeFile(manFile, JSON.stringify(aManifest), function() { });
-        if (this._manifestCache[aId]) {
-          delete this._manifestCache[aId];
-        }
-
-        
-        app.installState = "installed";
-        app.downloading = false;
-        app.downloadAvailable = false;
-        this._saveApps((function() {
-          this.updateAppHandlers(null, aManifest, appObject);
-          this.broadcastMessage("Webapps:AddApp", { id: aId, app: appObject });
-          Services.obs.notifyObservers(null, "webapps-installed",
-            JSON.stringify({ manifestURL: appObject.manifestURL }));
-
-          if (supportUseCurrentProfile()) {
-            
-            PermissionsInstaller.installPermissions({
-              manifest: aManifest,
-              origin: appObject.origin,
-              manifestURL: appObject.manifestURL
-            }, true);
-          }
-
-          this.updateDataStore(this.webapps[aId].localId, appObject.origin,
-                               appObject.manifestURL, aManifest);
-
-          this.broadcastMessage("Webapps:UpdateState", {
-            app: app,
-            manifest: aManifest,
-            manifestURL: appObject.manifestURL
-          });
-          this.broadcastMessage("Webapps:FireEvent", {
-            eventType: ["downloadsuccess", "downloadapplied"],
-            manifestURL: appObject.manifestURL
-          });
-          if (installSuccessCallback) {
-            installSuccessCallback(aManifest, zipFile.path);
-          }
-        }).bind(this));
-      }).bind(this));
+      this.downloadPackage(manifest, newApp, false).then(
+        this._onDownloadPackage.bind(this, newApp, installSuccessCallback)
+      );
     }
   },
 
-  confirmInstall: function(aData, aProfileDir, aInstallSuccessCallback) {
-    let isReinstall = false;
+  _setupApp: function(aData, aId) {
     let app = aData.app;
-    app.removable = true;
-
-    let id = this._appIdForManifestURL(app.manifestURL);
-    let localId = this.getAppLocalIdByManifestURL(app.manifestURL);
 
     
-    if (id) {
-      isReinstall = true;
-      let dir = this._getAppDir(id);
-      try {
-        dir.remove(true);
-      } catch(e) {
-      }
-    } else {
-      id = this.makeAppId();
-      localId = this._nextLocalId();
-    }
-    app.id = id;
+    app.removable = true;
 
-    let manifestName = "manifest.webapp";
     if (aData.isPackage) {
       
-      app.origin = "app://" + id;
-
-      
-      
-      manifestName = "update.webapp";
+      app.origin = "app://" + aId;
     }
 
-    let appObject = AppsUtils.cloneAppObject(app);
-    appObject.appStatus = app.appStatus || Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+    app.id = aId;
+    app.installTime = Date.now();
+    app.lastUpdateCheck = Date.now();
 
-    appObject.installTime = app.installTime = Date.now();
-    appObject.lastUpdateCheck = app.lastUpdateCheck = Date.now();
+    return app;
+  },
 
-    appObject.id = id;
-    appObject.localId = localId;
-    appObject.basePath = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true).path;
-    let dir = this._getAppDir(id);
-    let manFile = dir.clone();
-    manFile.append(manifestName);
-    let jsonManifest = aData.isPackage ? app.updateManifest : app.manifest;
-    this._writeFile(manFile, JSON.stringify(jsonManifest), function() { });
+  _cloneApp: function(aData, aNewApp, aManifest, aId, aLocalId) {
+    let appObject = AppsUtils.cloneAppObject(aNewApp);
+    appObject.appStatus =
+      aNewApp.appStatus || Ci.nsIPrincipal.APP_STATUS_INSTALLED;
 
-    let manifest = new ManifestHelper(jsonManifest, app.origin);
-
-    if (manifest.appcache_path) {
+    if (aManifest.appcache_path) {
       appObject.installState = "pending";
       appObject.downloadAvailable = true;
       appObject.downloading = true;
       appObject.downloadSize = 0;
       appObject.readyToApplyDownload = false;
-    } else if (manifest.package_path) {
+    } else if (aManifest.package_path) {
       appObject.installState = "pending";
       appObject.downloadAvailable = true;
       appObject.downloading = true;
-      appObject.downloadSize = manifest.size;
+      appObject.downloadSize = aManifest.size;
       appObject.readyToApplyDownload = false;
     } else {
       appObject.installState = "installed";
@@ -2315,12 +2188,60 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
       appObject.readyToApplyDownload = false;
     }
 
-    appObject.name = manifest.name;
-    appObject.csp = manifest.csp || "";
-    appObject.role = manifest.role || "";
-
+    appObject.localId = aLocalId;
+    appObject.basePath =
+      FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true).path;
+    appObject.name = aManifest.name;
+    appObject.csp = aManifest.csp || "";
+    appObject.role = aManifest.role || "";
     appObject.installerAppId = aData.appId;
     appObject.installerIsBrowser = aData.isBrowser;
+
+    return appObject;
+  },
+
+  _writeManifestFile: function(aId, aIsPackage, aJsonManifest) {
+    debug("_writeManifestFile");
+    let dir = this._getAppDir(aId);
+    let manFile = dir.clone();
+
+    
+    let manifestName = aIsPackage ? "update.webapp" : "manifest.webapp";
+    manFile.append(manifestName);
+    this._writeFile(manFile, JSON.stringify(aJsonManifest), function() { });
+  },
+
+  confirmInstall: function(aData, aProfileDir, aInstallSuccessCallback) {
+    debug("confirmInstall");
+
+    let origin = Services.io.newURI(aData.app.origin, null, null);
+    let id = this._appIdForManifestURL(aData.app.manifestURL);
+    let manifestURL = origin.resolve(aData.app.manifestURL);
+    let localId = this.getAppLocalIdByManifestURL(manifestURL);
+
+    let isReinstall = false;
+
+    
+    if (id) {
+      isReinstall = true;
+      let dir = this._getAppDir(id);
+      try {
+        dir.remove(true);
+      } catch(e) { }
+    } else {
+      id = this.makeAppId();
+      localId = this._nextLocalId();
+    }
+
+    let app = this._setupApp(aData, id);
+
+    let jsonManifest = aData.isPackage ? app.updateManifest : app.manifest;
+    this._writeManifestFile(id, aData.isPackage, jsonManifest);
+
+    debug("app.origin: " + app.origin);
+    let manifest = new ManifestHelper(jsonManifest, app.origin);
+
+    let appObject = this._cloneApp(aData, app, manifest, id, localId);
 
     this.webapps[id] = appObject;
 
@@ -2328,22 +2249,25 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     
     if (!aData.isPackage) {
       if (supportUseCurrentProfile()) {
-        PermissionsInstaller.installPermissions({ origin: appObject.origin,
-                                                  manifestURL: appObject.manifestURL,
-                                                  manifest: jsonManifest },
-                                                isReinstall, (function() {
-          this.uninstall(aData, aData.mm);
-        }).bind(this));
+        PermissionsInstaller.installPermissions(
+          {
+            origin: appObject.origin,
+            manifestURL: appObject.manifestURL,
+            manifest: jsonManifest
+          },
+          isReinstall,
+          this.uninstall.bind(this, aData, aData.mm)
+        );
       }
 
       this.updateDataStore(this.webapps[id].localId,  this.webapps[id].origin,
                            this.webapps[id].manifestURL, jsonManifest);
     }
 
-    ["installState", "downloadAvailable",
-     "downloading", "downloadSize", "readyToApplyDownload"].forEach(function(aProp) {
-      aData.app[aProp] = appObject[aProp];
-     });
+    for each (let prop in ["installState", "downloadAvailable", "downloading",
+                           "downloadSize", "readyToApplyDownload"]) {
+      aData.app[prop] = appObject[prop];
+    }
 
     if (manifest.appcache_path) {
       this.queuedDownload[app.manifestURL] = {
@@ -2396,6 +2320,75 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     }
   },
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _onDownloadPackage: function(aNewApp, aInstallSuccessCallback,
+                               [aId, aManifest]) {
+    debug("_onDownloadPackage");
+    
+    let app = this.webapps[aId];
+    let zipFile =
+      FileUtils.getFile("TmpD", ["webapps", aId, "application.zip"], true);
+    let dir = this._getAppDir(aId);
+    zipFile.moveTo(dir, "application.zip");
+    let tmpDir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
+    try {
+      tmpDir.remove(true);
+    } catch(e) { }
+
+    
+    let manFile = dir.clone();
+    manFile.append("manifest.webapp");
+    this._writeFile(manFile, JSON.stringify(aManifest), function() { });
+    
+    app.installState = "installed";
+    app.downloading = false;
+    app.downloadAvailable = false;
+    this._saveApps((function() {
+      this.updateAppHandlers(null, aManifest, aNewApp);
+      this.broadcastMessage("Webapps:AddApp", { id: aId, app: aNewApp });
+      Services.obs.notifyObservers(null, "webapps-installed",
+        JSON.stringify({ manifestURL: aNewApp.manifestURL }));
+
+      if (supportUseCurrentProfile()) {
+        
+        PermissionsInstaller.installPermissions({
+          manifest: aManifest,
+          origin: aNewApp.origin,
+          manifestURL: aNewApp.manifestURL
+        }, true);
+      }
+
+      this.updateDataStore(this.webapps[aId].localId, aNewApp.origin,
+                           aNewApp.manifestURL, aManifest);
+
+      this.broadcastMessage("Webapps:UpdateState", {
+        app: app,
+        manifest: aManifest,
+        manifestURL: aNewApp.manifestURL
+      });
+      this.broadcastMessage("Webapps:FireEvent", {
+        eventType: ["downloadsuccess", "downloadapplied"],
+        manifestURL: aNewApp.manifestURL
+      });
+      if (aInstallSuccessCallback) {
+        aInstallSuccessCallback(aManifest, zipFile.path);
+      }
+    }).bind(this));
+  },
+
   _nextLocalId: function() {
     let id = Services.prefs.getIntPref("dom.mozApps.maxLocalId") + 1;
 
@@ -2422,10 +2415,8 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
   },
 
   _saveApps: function(aCallback) {
-    this._writeFile(this.appsFile, JSON.stringify(this.webapps, null, 2), function() {
-      if (aCallback)
-        aCallback();
-    });
+    this._writeFile(this.appsFile, JSON.stringify(this.webapps, null, 2),
+                    aCallback);
   },
 
   
@@ -2473,7 +2464,7 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     }).bind(this));
   },
 
-  downloadPackage: function(aManifest, aApp, aIsUpdate, aOnSuccess) {
+  downloadPackage: function(aManifest, aNewApp, aIsUpdate, aOnSuccess) {
     
     
     
@@ -2483,126 +2474,29 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
     
     
 
-    debug("downloadPackage " + JSON.stringify(aApp));
-
-    let fullPackagePath = aManifest.fullPackagePath();
-
     
-    
+    let id = this._appIdForManifestURL(aNewApp.manifestURL);
+    let oldApp = this.webapps[id];
 
-    let isLocalFileInstall =
-      Services.io.extractScheme(fullPackagePath) === 'file';
+    return Task.spawn((function*() {
+      yield this._ensureSufficientStorage(aNewApp);
 
-    let id = this._appIdForManifestURL(aApp.manifestURL);
-    let app = this.webapps[id];
-
-    let self = this;
-    
-    function cleanup(aError) {
-      debug("Cleanup: " + aError);
-      let dir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
-      try {
-        dir.remove(true);
-      } catch (e) { }
-
-      let download = AppDownloadManager.get(aApp.manifestURL);
-      app.downloading = false;
+      let fullPackagePath = aManifest.fullPackagePath();
 
       
       
-      
-      
-      app.installState = download ? download.previousState
-                                  : aIsUpdate ? "installed"
-                                  : "pending";
+      let isLocalFileInstall =
+        Services.io.extractScheme(fullPackagePath) === 'file';
 
-      if (app.staged) {
-        delete app.staged;
-      }
+      debug("About to download " + fullPackagePath);
 
-      self._saveApps(function() {
-        self.broadcastMessage("Webapps:UpdateState", {
-          app: app,
-          error: aError,
-          manifestURL: aApp.manifestURL
-        });
-        self.broadcastMessage("Webapps:FireEvent", {
-          eventType: "downloaderror",
-          manifestURL:  aApp.manifestURL
-        });
-      });
-      AppDownloadManager.remove(aApp.manifestURL);
-    }
+      let requestChannel = this._getRequestChannel(fullPackagePath,
+                                                   isLocalFileInstall,
+                                                   oldApp,
+                                                   aNewApp);
 
-    function sendProgressEvent(aProgress) {
-      self.broadcastMessage("Webapps:UpdateState", {
-        app: {
-          progress: aProgress
-        },
-        manifestURL: aApp.manifestURL
-      });
-      self.broadcastMessage("Webapps:FireEvent", {
-        eventType: "progress",
-        manifestURL: aApp.manifestURL
-      });
-    }
-
-    
-    
-    
-    function checkForStoreIdMatch(aStoreId, aStoreVersion) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-
-      
-      let appId = self.getAppLocalIdByStoreId(aStoreId);
-      let isInstalled = appId != Ci.nsIScriptSecurityManager.NO_APP_ID;
-      if (aIsUpdate) {
-        let isDifferent = app.localId !== appId;
-        let isPending = app.storeId.indexOf(STORE_ID_PENDING_PREFIX) == 0;
-
-        if ((!isInstalled && !isPending) || (isInstalled && isDifferent)) {
-          throw "WRONG_APP_STORE_ID";
-        }
-
-        if (!isPending && (app.storeVersion >= aStoreVersion)) {
-          throw "APP_STORE_VERSION_ROLLBACK";
-        }
-
-      } else if (isInstalled) {
-        throw "WRONG_APP_STORE_ID";
-      }
-    }
-
-    function download() {
-      debug("About to download " + aManifest.fullPackagePath());
-
-      let requestChannel;
-      if (isLocalFileInstall) {
-        requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
-                                .QueryInterface(Ci.nsIFileChannel);
-      } else {
-        requestChannel = NetUtil.newChannel(aManifest.fullPackagePath())
-                                .QueryInterface(Ci.nsIHttpChannel);
-        requestChannel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
-      }
-
-      if (app.packageEtag && !isLocalFileInstall) {
-        debug("Add If-None-Match header: " + app.packageEtag);
-        requestChannel.setRequestHeader("If-None-Match", app.packageEtag, false);
-      }
-
-      AppDownloadManager.add(aApp.manifestURL,
+      AppDownloadManager.add(
+        aNewApp.manifestURL,
         {
           channel: requestChannel,
           appId: id,
@@ -2610,401 +2504,46 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
         }
       );
 
-      let lastProgressTime = 0;
+      
+      oldApp.downloading = true;
 
-      requestChannel.notificationCallbacks = {
-        QueryInterface: function notifQI(aIID) {
-          if (aIID.equals(Ci.nsISupports)          ||
-              aIID.equals(Ci.nsIProgressEventSink) ||
-              aIID.equals(Ci.nsILoadContext))
-            return this;
+      
+      
+      
+      oldApp.installState = aIsUpdate ? "updating" : "pending";
 
-          throw Cr.NS_ERROR_NO_INTERFACE;
-        },
-        getInterface: function notifGI(aIID) {
-          return this.QueryInterface(aIID);
-        },
-        onProgress: function notifProgress(aRequest, aContext,
-                                           aProgress, aProgressMax) {
-          app.progress = aProgress;
-          let now = Date.now();
-          if (now - lastProgressTime > MIN_PROGRESS_EVENT_DELAY) {
-            debug("onProgress: " + aProgress + "/" + aProgressMax);
-            sendProgressEvent(aProgress);
-            lastProgressTime = now;
-            self._saveApps();
-          }
-        },
-        onStatus: function notifStatus(aRequest, aContext, aStatus, aStatusArg) { },
+      
+      oldApp.progress = 0;
 
+      let zipFile = yield this._getPackage(requestChannel, id, oldApp, aNewApp);
+      let hash = yield this._computeFileHash(zipFile.path);
+
+      let responseStatus = requestChannel.responseStatus;
+      let oldPackage = (responseStatus == 304 || hash == oldApp.packageHash);
+
+      if (oldPackage) {
+        debug("package's etag or hash unchanged; sending 'applied' event");
         
-        appId: app.installerAppId,
-        isInBrowserElement: app.installerIsBrowser,
-        usePrivateBrowsing: false,
-        isContent: false,
-        associatedWindow: null,
-        topWindow : null,
-        isAppOfType: function(appType) {
-          throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-        }
+        
+        this._sendAppliedEvent(aNewApp, oldApp, id);
+        return;
       }
 
-      
-      app.downloading = true;
-      
-      
-      
-      app.installState = aIsUpdate ? "updating" : "pending";
+      let newManifest = yield this._openAndReadPackage(zipFile, oldApp, aNewApp,
+              isLocalFileInstall, aIsUpdate, aManifest, requestChannel, hash);
 
-      
-      app.progress = 0;
+      AppDownloadManager.remove(aNewApp.manifestURL);
 
-      
-      let zipFile = FileUtils.getFile("TmpD",
-                                      ["webapps", id, "application.zip"], true);
+      return [id, newManifest];
 
-      
-      let outputStream = Cc["@mozilla.org/network/file-output-stream;1"]
-                           .createInstance(Ci.nsIFileOutputStream);
-      
-      outputStream.init(zipFile, 0x02 | 0x08 | 0x20, parseInt("0664", 8), 0);
-      let bufferedOutputStream = Cc['@mozilla.org/network/buffered-output-stream;1']
-                                   .createInstance(Ci.nsIBufferedOutputStream);
-      bufferedOutputStream.init(outputStream, 1024);
+    }).bind(this)).then(
+      aOnSuccess,
+      this._revertDownloadPackage.bind(this, id, oldApp, aNewApp, aIsUpdate)
+    );
+  },
 
-      
-      let listener = Cc["@mozilla.org/network/simple-stream-listener;1"]
-                       .createInstance(Ci.nsISimpleStreamListener);
-      listener.init(bufferedOutputStream, {
-        onStartRequest: function(aRequest, aContext) {
-          
-        },
-
-        onStopRequest: function(aRequest, aContext, aStatusCode) {
-          debug("onStopRequest " + aStatusCode);
-          bufferedOutputStream.close();
-          outputStream.close();
-
-          if (!Components.isSuccessCode(aStatusCode)) {
-            cleanup("NETWORK_ERROR");
-            return;
-          }
-
-          
-          
-          let responseStatus = requestChannel.responseStatus;
-          if (responseStatus >= 400 && responseStatus <= 599) {
-            
-            app.downloadAvailable = false;
-            cleanup("NETWORK_ERROR");
-            return;
-          }
-
-          self.computeFileHash(zipFile, function onHashComputed(aHash) {
-            debug("packageHash=" + aHash);
-            let newPackage = (responseStatus != 304) &&
-                             (aHash != app.packageHash);
-
-            if (!newPackage) {
-              
-              
-              app.downloading = false;
-              app.downloadAvailable = false;
-              app.downloadSize = 0;
-              app.installState = "installed";
-              app.readyToApplyDownload = false;
-              if (app.staged && app.staged.manifestHash) {
-                
-                
-                
-                app.manifestHash = app.staged.manifestHash;
-                app.etag = app.staged.etag || app.etag;
-                app.staged = {};
-                
-                let dirPath = self._getAppDir(id).path;
-
-                
-                OS.File.move(OS.Path.join(dirPath, "staged-update.webapp"),
-                             OS.Path.join(dirPath, "update.webapp"));
-              }
-
-              
-              self._saveApps(function() {
-                self.broadcastMessage("Webapps:UpdateState", {
-                  app: app,
-                  manifestURL: aApp.manifestURL
-                });
-                self.broadcastMessage("Webapps:FireEvent", {
-                  manifestURL: aApp.manifestURL,
-                  eventType: ["downloadsuccess", "downloadapplied"]
-                });
-              });
-              let file = FileUtils.getFile("TmpD", ["webapps", id], false);
-              if (file && file.exists()) {
-                file.remove(true);
-              }
-              return;
-            }
-
-            let certdb;
-            try {
-              certdb = Cc["@mozilla.org/security/x509certdb;1"]
-                         .getService(Ci.nsIX509CertDB);
-            } catch (e) {
-              
-              app.downloadAvailable = false;
-              cleanup("CERTDB_ERROR");
-              return;
-            }
-
-            certdb.openSignedJARFileAsync(zipFile, function(aRv, aZipReader) {
-              let zipReader;
-              try {
-                let isSigned;
-                if (Components.isSuccessCode(aRv)) {
-                  isSigned = true;
-                  zipReader = aZipReader;
-                } else if (aRv == Cr.NS_ERROR_FILE_CORRUPTED) {
-                  throw "APP_PACKAGE_CORRUPTED";
-                } else if (aRv != Cr.NS_ERROR_SIGNED_JAR_NOT_SIGNED) {
-                  throw "INVALID_SIGNATURE";
-                } else {
-                  isSigned = false;
-                  zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
-                                .createInstance(Ci.nsIZipReader);
-                  zipReader.open(zipFile);
-                }
-
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                let signedAppOriginsStr =
-                  Services.prefs.getCharPref(
-                    "dom.mozApps.signed_apps_installable_from");
-                
-                
-                let isSignedAppOrigin = (isSigned && isLocalFileInstall) ||
-                                         signedAppOriginsStr.split(",").
-                                               indexOf(aApp.installOrigin) > -1;
-                if (!isSigned && isSignedAppOrigin) {
-                  
-                  
-                  throw "INVALID_SIGNATURE";
-                } else if (isSigned && !isSignedAppOrigin) {
-                  
-                  
-                  
-                  
-                  
-                  throw "INSTALL_FROM_DENIED";
-                }
-
-                if (!zipReader.hasEntry("manifest.webapp")) {
-                  throw "MISSING_MANIFEST";
-                }
-
-                let istream = zipReader.getInputStream("manifest.webapp");
-
-                
-                let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-                                  .createInstance(Ci.nsIScriptableUnicodeConverter);
-                converter.charset = "UTF-8";
-
-                let manifest = JSON.parse(converter.ConvertToUnicode(NetUtil.readInputStreamToString(istream,
-                                                                     istream.available()) || ""));
-
-                if (!AppsUtils.checkManifest(manifest, app)) {
-                  throw "INVALID_MANIFEST";
-                }
-
-                
-                
-                
-                
-                if (aIsUpdate) {
-                  
-                  
-                  AppsUtils.ensureSameAppName(aManifest._manifest, manifest,
-                                              app);
-                }
-
-                if (!AppsUtils.compareManifests(manifest,
-                                                aManifest._manifest)) {
-                  throw "MANIFEST_MISMATCH";
-                }
-
-                if (!AppsUtils.checkInstallAllowed(manifest, aApp.installOrigin)) {
-                  throw "INSTALL_FROM_DENIED";
-                }
-
-                
-                let maxStatus = isSigned || isLocalFileInstall
-                                   ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
-                                   : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
-
-                if (AppsUtils.getAppManifestStatus(manifest) > maxStatus) {
-                  throw "INVALID_SECURITY_LEVEL";
-                }
-                app.appStatus = AppsUtils.getAppManifestStatus(manifest);
-
-                
-                if (aIsUpdate) {
-                  if (!app.staged) {
-                    app.staged = { };
-                  }
-                  try {
-                    app.staged.packageEtag =
-                      requestChannel.getResponseHeader("Etag");
-                  } catch(e) { }
-                  app.staged.packageHash = aHash;
-                  app.staged.appStatus =
-                    AppsUtils.getAppManifestStatus(manifest);
-                } else {
-                  try {
-                    app.packageEtag = requestChannel.getResponseHeader("Etag");
-                  } catch(e) { }
-                  app.packageHash = aHash;
-                  app.appStatus = AppsUtils.getAppManifestStatus(manifest);
-                }
-
-                
-                if (isSigned &&
-                    app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
-                    manifest.origin !== undefined) {
-
-                  let uri;
-                  try {
-                    uri = Services.io.newURI(manifest.origin, null, null);
-                  } catch(e) {
-                    throw "INVALID_ORIGIN";
-                  }
-
-                  if (uri.scheme != "app") {
-                    throw "INVALID_ORIGIN";
-                  }
-
-                  if (aIsUpdate) {
-                    
-                    if (uri.prePath != app.origin) {
-                      throw "INVALID_ORIGIN_CHANGE";
-                    }
-                    
-                    
-                    
-                  } else {
-                    debug("Setting origin to " + uri.prePath +
-                          " for " + app.manifestURL);
-                    let newId = uri.prePath.substring(6); 
-
-                    if (newId in self.webapps) {
-                      throw "DUPLICATE_ORIGIN";
-                    }
-                    app.origin = uri.prePath;
-
-                    app.id = newId;
-                    self.webapps[newId] = app;
-                    delete self.webapps[id];
-
-                    
-                    [DIRECTORY_NAME, "TmpD"].forEach(function(aDir) {
-                        let parent = FileUtils.getDir(aDir,
-                          ["webapps"], true, true);
-                        let dir = FileUtils.getDir(aDir,
-                          ["webapps", id], true, true);
-                        dir.moveTo(parent, newId);
-                    });
-
-                    
-                    self.broadcastMessage("Webapps:RemoveApp", { id: id });
-                    self.broadcastMessage("Webapps:AddApp", { id: newId,
-                                                              app: app });
-                  }
-                }
-
-                
-                if (isSigned) {
-                  let idsStream;
-                  try {
-                    idsStream = zipReader.getInputStream("META-INF/ids.json");
-                  } catch (e) {
-                    throw zipReader.hasEntry("META-INF/ids.json")
-                          ? e
-                          : "MISSING_IDS_JSON";
-                  }
-                  let ids =
-                    JSON.parse(
-                      converter.ConvertToUnicode(
-                        NetUtil.readInputStreamToString(
-                          idsStream, idsStream.available()) || ""));
-                  if ((!ids.id) || !Number.isInteger(ids.version) ||
-                      (ids.version <= 0)) {
-                     throw "INVALID_IDS_JSON";
-                  }
-                  let storeId = aApp.installOrigin + "#" + ids.id;
-                  checkForStoreIdMatch(storeId, ids.version);
-                  app.storeId = storeId;
-                  app.storeVersion = ids.version;
-                }
-
-                if (aOnSuccess) {
-                  aOnSuccess(app.id, manifest);
-                }
-              } catch (e) {
-                
-                
-                
-                
-                
-                if (app.installState !== "pending") {
-                  app.downloadAvailable = false;
-                }
-                if (typeof e == 'object') {
-                  Cu.reportError("Error while reading package:" + e);
-                  cleanup("INVALID_PACKAGE");
-                } else {
-                  cleanup(e);
-                }
-              } finally {
-                AppDownloadManager.remove(aApp.manifestURL);
-                if (zipReader)
-                  zipReader.close();
-              }
-            });
-          });
-        }
-      });
-
-      requestChannel.asyncOpen(listener, null);
-
-      
-      sendProgressEvent(0);
-    };
-
-    let checkDownloadSize = function (freeBytes) {
-       if (freeBytes) {
-         debug("Free storage: " + freeBytes + ". Download size: " +
-               aApp.downloadSize);
-         if (freeBytes <=
-             aApp.downloadSize + AppDownloadManager.MIN_REMAINING_FREESPACE) {
-           cleanup("INSUFFICIENT_STORAGE");
-           return;
-         }
-       }
-       download();
-    };
+  _ensureSufficientStorage: function(aNewApp) {
+    let deferred = Promise.defer();
 
     let navigator = Services.wm.getMostRecentWindow("navigator:browser")
                             .navigator;
@@ -3016,29 +2555,639 @@ onInstallSuccessAck: function onInstallSuccessAck(aManifestURL,
 
     if (deviceStorage) {
       let req = deviceStorage.freeSpace();
-      req.onsuccess = req.onerror = function statResult(e) {
-        
-        
-        if (!e.target.result) {
-          download();
-          return;
-        }
-
+      req.onsuccess = req.onerror = e => {
         let freeBytes = e.target.result;
-        checkDownloadSize(freeBytes);
+        let sufficientStorage = this._checkDownloadSize(freeBytes, aNewApp);
+        if (sufficientStorage) {
+          deferred.resolve();
+        } else {
+          deferred.reject("INSUFFICIENT_STORAGE");
+        }
       }
     } else {
+      debug("No deviceStorage");
+      
       
       let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps"], true, true);
       try {
-        checkDownloadSize(dir.diskSpaceAvailable);
+        let sufficientStorage = this._checkDownloadSize(dir.diskSpaceAvailable,
+                                                        aNewApp);
+        if (sufficientStorage) {
+          deferred.resolve();
+        } else {
+          deferred.reject("INSUFFICIENT_STORAGE");
+        }
       } catch(ex) {
         
         
         
-        download();
+        
+        deferred.resolve();
       }
     }
+
+    return deferred.promise;
+  },
+
+  _checkDownloadSize: function(aFreeBytes, aNewApp) {
+    if (aFreeBytes) {
+      debug("Free storage: " + aFreeBytes + ". Download size: " +
+            aNewApp.downloadSize);
+      if (aFreeBytes <=
+          aNewApp.downloadSize + AppDownloadManager.MIN_REMAINING_FREESPACE) {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  _getRequestChannel: function(aFullPackagePath, aIsLocalFileInstall, aOldApp,
+                               aNewApp) {
+    let requestChannel;
+
+    if (aIsLocalFileInstall) {
+      requestChannel = NetUtil.newChannel(aFullPackagePath)
+                              .QueryInterface(Ci.nsIFileChannel);
+    } else {
+      requestChannel = NetUtil.newChannel(aFullPackagePath)
+                              .QueryInterface(Ci.nsIHttpChannel);
+      requestChannel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
+    }
+
+    if (aOldApp.packageEtag && !aIsLocalFileInstall) {
+      debug("Add If-None-Match header: " + aOldApp.packageEtag);
+      requestChannel.setRequestHeader("If-None-Match", aOldApp.packageEtag,
+                                      false);
+    }
+
+    let lastProgressTime = 0;
+
+    requestChannel.notificationCallbacks = {
+      QueryInterface: function(aIID) {
+        if (aIID.equals(Ci.nsISupports)          ||
+            aIID.equals(Ci.nsIProgressEventSink) ||
+            aIID.equals(Ci.nsILoadContext))
+          return this;
+        throw Cr.NS_ERROR_NO_INTERFACE;
+      },
+      getInterface: function(aIID) {
+        return this.QueryInterface(aIID);
+      },
+      onProgress: (function(aRequest, aContext, aProgress, aProgressMax) {
+        aOldApp.progress = aProgress;
+        let now = Date.now();
+        if (now - lastProgressTime > MIN_PROGRESS_EVENT_DELAY) {
+          debug("onProgress: " + aProgress + "/" + aProgressMax);
+          this._sendDownloadProgressEvent(aNewApp, aProgress);
+          lastProgressTime = now;
+          this._saveApps();
+        }
+      }).bind(this),
+      onStatus: function(aRequest, aContext, aStatus, aStatusArg) { },
+
+      
+      appId: aOldApp.installerAppId,
+      isInBrowserElement: aOldApp.installerIsBrowser,
+      usePrivateBrowsing: false,
+      isContent: false,
+      associatedWindow: null,
+      topWindow : null,
+      isAppOfType: function(appType) {
+        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+      }
+    };
+
+    return requestChannel;
+  },
+
+  _sendDownloadProgressEvent: function(aNewApp, aProgress) {
+    this.broadcastMessage("Webapps:UpdateState", {
+      app: {
+        progress: aProgress
+      },
+      manifestURL: aNewApp.manifestURL
+    });
+    this.broadcastMessage("Webapps:FireEvent", {
+      eventType: "progress",
+      manifestURL: aNewApp.manifestURL
+    });
+  },
+
+  _getPackage: function(aRequestChannel, aId, aOldApp, aNewApp) {
+    let deferred = Promise.defer();
+
+    
+    let zipFile =
+      FileUtils.getFile("TmpD", ["webapps", aId, "application.zip"], true);
+
+    
+    let outputStream = Cc["@mozilla.org/network/file-output-stream;1"]
+                         .createInstance(Ci.nsIFileOutputStream);
+    
+    outputStream.init(zipFile, 0x02 | 0x08 | 0x20, parseInt("0664", 8), 0);
+    let bufferedOutputStream =
+      Cc['@mozilla.org/network/buffered-output-stream;1']
+        .createInstance(Ci.nsIBufferedOutputStream);
+    bufferedOutputStream.init(outputStream, 1024);
+
+    
+    let listener = Cc["@mozilla.org/network/simple-stream-listener;1"]
+                     .createInstance(Ci.nsISimpleStreamListener);
+
+    listener.init(bufferedOutputStream, {
+      onStartRequest: function(aRequest, aContext) {
+        
+      },
+
+      onStopRequest: function(aRequest, aContext, aStatusCode) {
+        bufferedOutputStream.close();
+        outputStream.close();
+
+        if (!Components.isSuccessCode(aStatusCode)) {
+          deferred.reject("NETWORK_ERROR");
+          return;
+        }
+
+        
+        
+        let responseStatus = aRequestChannel.responseStatus;
+        if (responseStatus >= 400 && responseStatus <= 599) {
+          
+          aOldApp.downloadAvailable = false;
+          deferred.reject("NETWORK_ERROR");
+          return;
+        }
+
+        deferred.resolve(zipFile);
+      }
+    });
+    aRequestChannel.asyncOpen(listener, null);
+
+    
+    this._sendDownloadProgressEvent(aNewApp, 0);
+
+    return deferred.promise;
+  },
+
+  
+
+
+
+
+
+
+  _computeFileHash: function(aFilePath) {
+    return Task.spawn(function*() {
+      let hasher = Cc["@mozilla.org/security/hash;1"]
+                     .createInstance(Ci.nsICryptoHash);
+      
+      hasher.init(hasher.MD5);
+
+      const CHUNK_SIZE = 16384;
+
+      
+      function toHexString(charCode) {
+        return ("0" + charCode.toString(16)).slice(-2);
+      }
+
+      let file;
+      try {
+        file = yield OS.File.open(aFilePath, { read: true });
+      } catch(e) {
+        debug("Error opening " + aFilePath + ": " + e);
+        return null;
+      }
+
+      try {
+        let array;
+        do {
+          array = yield file.read(CHUNK_SIZE);
+          hasher.update(array, array.length);
+        } while (array.length == CHUNK_SIZE);
+      } catch(e) {
+        debug("Error reading " + aFilePath + ": " + e);
+        return null;
+      }
+
+      yield file.close();
+
+      
+      let data = hasher.finish(false);
+      
+      let hash = [toHexString(data.charCodeAt(i)) for (i in data)].join("");
+      debug("File hash computed: " + hash);
+
+      return hash;
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _sendAppliedEvent: function(aNewApp, aOldApp, aId) {
+    aOldApp.downloading = false;
+    aOldApp.downloadAvailable = false;
+    aOldApp.downloadSize = 0;
+    aOldApp.installState = "installed";
+    aOldApp.readyToApplyDownload = false;
+    if (aOldApp.staged && aOldApp.staged.manifestHash) {
+      
+      
+      
+      aOldApp.manifestHash = aOldApp.staged.manifestHash;
+      aOldApp.etag = aOldApp.staged.etag || aOldApp.etag;
+      aOldApp.staged = {};
+      
+      let dirPath = this._getAppDir(aId).path;
+
+      
+      OS.File.move(OS.Path.join(dirPath, "staged-update.webapp"),
+                   OS.Path.join(dirPath, "update.webapp"));
+    }
+
+    
+    this._saveApps((function() {
+      this.broadcastMessage("Webapps:UpdateState", {
+        app: aOldApp,
+        manifestURL: aNewApp.manifestURL
+      });
+      this.broadcastMessage("Webapps:FireEvent", {
+        manifestURL: aNewApp.manifestURL,
+        eventType: ["downloadsuccess", "downloadapplied"]
+      });
+    }).bind(this));
+    let file = FileUtils.getFile("TmpD", ["webapps", aId], false);
+    if (file && file.exists()) {
+      file.remove(true);
+    }
+  },
+
+  _openAndReadPackage: function(aZipFile, aOldApp, aNewApp, aIsLocalFileInstall,
+                                aIsUpdate, aManifest, aRequestChannel, aHash) {
+    return Task.spawn((function*() {
+      let zipReader, isSigned, newManifest;
+
+      try {
+        [zipReader, isSigned] = yield this._openPackage(aZipFile, aOldApp);
+        newManifest = yield this._readPackage(aOldApp, aNewApp,
+                aIsLocalFileInstall, aIsUpdate, aManifest, aRequestChannel,
+                aHash, zipReader, isSigned);
+      } catch (e) {
+        debug("package open/read error: " + e);
+        
+        
+        
+        
+        
+        if (aOldApp.installState !== "pending") {
+          aOldApp.downloadAvailable = false;
+        }
+        if (typeof e == 'object') {
+          Cu.reportError("Error while reading package:" + e);
+          throw "INVALID_PACKAGE";
+        } else {
+          throw e;
+        }
+      } finally {
+        if (zipReader) {
+          zipReader.close();
+        }
+      }
+
+      return newManifest;
+
+    }).bind(this));
+  },
+
+  _openPackage: function(aZipFile, aApp) {
+    return Task.spawn((function*() {
+      let certDb;
+      try {
+        certDb = Cc["@mozilla.org/security/x509certdb;1"]
+                   .getService(Ci.nsIX509CertDB);
+      } catch (e) {
+        debug("nsIX509CertDB error: " + e);
+        
+        aApp.downloadAvailable = false;
+        throw "CERTDB_ERROR";
+      }
+
+      let [result, zipReader] = yield this._openSignedPackage(aZipFile, certDb);
+
+      let isSigned;
+
+      if (Components.isSuccessCode(result)) {
+        isSigned = true;
+      } else if (result == Cr.NS_ERROR_FILE_CORRUPTED) {
+        throw "APP_PACKAGE_CORRUPTED";
+      } else if (result != Cr.NS_ERROR_SIGNED_JAR_NOT_SIGNED) {
+        throw "INVALID_SIGNATURE";
+      } else {
+        isSigned = false;
+        zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                      .createInstance(Ci.nsIZipReader);
+        zipReader.open(aZipFile);
+      }
+
+      return [zipReader, isSigned];
+
+    }).bind(this));
+  },
+
+  _openSignedPackage: function(aZipFile, aCertDb) {
+    let deferred = Promise.defer();
+
+    aCertDb.openSignedJARFileAsync(
+       aZipFile,
+       function(aRv, aZipReader) {
+         deferred.resolve([aRv, aZipReader]);
+       }
+    );
+
+    return deferred.promise;
+  },
+
+  _readPackage: function(aOldApp, aNewApp, aIsLocalFileInstall, aIsUpdate,
+                         aManifest, aRequestChannel, aHash, aZipReader,
+                         aIsSigned) {
+    this._checkSignature(aNewApp, aIsSigned, aIsLocalFileInstall);
+
+    if (!aZipReader.hasEntry("manifest.webapp")) {
+      throw "MISSING_MANIFEST";
+    }
+
+    let istream = aZipReader.getInputStream("manifest.webapp");
+
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                      .createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
+
+    let newManifest = JSON.parse(converter.ConvertToUnicode(
+          NetUtil.readInputStreamToString(istream, istream.available()) || ""));
+
+    if (!AppsUtils.checkManifest(newManifest, aOldApp)) {
+      throw "INVALID_MANIFEST";
+    }
+
+    
+    
+    
+    
+    if (aIsUpdate) {
+      
+      
+      AppsUtils.ensureSameAppName(aManifest._manifest, newManifest, aOldApp);
+    }
+
+    if (!AppsUtils.compareManifests(newManifest, aManifest._manifest)) {
+      throw "MANIFEST_MISMATCH";
+    }
+
+    if (!AppsUtils.checkInstallAllowed(newManifest, aNewApp.installOrigin)) {
+      throw "INSTALL_FROM_DENIED";
+    }
+
+    
+    let maxStatus = aIsSigned || aIsLocalFileInstall
+                    ? Ci.nsIPrincipal.APP_STATUS_PRIVILEGED
+                    : Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+
+    if (AppsUtils.getAppManifestStatus(newManifest) > maxStatus) {
+      throw "INVALID_SECURITY_LEVEL";
+    }
+
+    aOldApp.appStatus = AppsUtils.getAppManifestStatus(newManifest);
+
+    this._saveEtag(aIsUpdate, aOldApp, aRequestChannel, aHash, newManifest);
+    this._checkOrigin(aIsSigned, aOldApp, newManifest, aIsUpdate);
+    this._getIds(aIsSigned, aZipReader, converter, aNewApp, aOldApp, aIsUpdate);
+
+    return newManifest;
+  },
+
+  _checkSignature: function(aApp, aIsSigned, aIsLocalFileInstall) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    let signedAppOriginsStr =
+      Services.prefs.getCharPref("dom.mozApps.signed_apps_installable_from");
+    
+    
+    let isSignedAppOrigin = (aIsSigned && aIsLocalFileInstall) ||
+                             signedAppOriginsStr.split(",").
+                                   indexOf(aApp.installOrigin) > -1;
+    if (!aIsSigned && isSignedAppOrigin) {
+      
+      
+      throw "INVALID_SIGNATURE";
+    } else if (aIsSigned && !isSignedAppOrigin) {
+      
+      
+      
+      
+      
+      throw "INSTALL_FROM_DENIED";
+    }
+  },
+
+  _saveEtag: function(aIsUpdate, aOldApp, aRequestChannel, aHash, aManifest) {
+    
+    if (aIsUpdate) {
+      if (!aOldApp.staged) {
+        aOldApp.staged = { };
+      }
+      try {
+        aOldApp.staged.packageEtag = aRequestChannel.getResponseHeader("Etag");
+      } catch(e) { }
+      aOldApp.staged.packageHash = aHash;
+      aOldApp.staged.appStatus = AppsUtils.getAppManifestStatus(aManifest);
+    } else {
+      try {
+        aOldApp.packageEtag = aRequestChannel.getResponseHeader("Etag");
+      } catch(e) { }
+      aOldApp.packageHash = aHash;
+      aOldApp.appStatus = AppsUtils.getAppManifestStatus(aManifest);
+    }
+  },
+
+  _checkOrigin: function(aIsSigned, aOldApp, aManifest, aIsUpdate) {
+    
+    if (aIsSigned &&
+        aOldApp.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
+        aManifest.origin !== undefined) {
+      let uri;
+      try {
+        uri = Services.io.newURI(aManifest.origin, null, null);
+      } catch(e) {
+        throw "INVALID_ORIGIN";
+      }
+      if (uri.scheme != "app") {
+        throw "INVALID_ORIGIN";
+      }
+
+      if (aIsUpdate) {
+        
+        if (uri.prePath != app.origin) {
+          throw "INVALID_ORIGIN_CHANGE";
+        }
+        
+        
+        
+      } else {
+        debug("Setting origin to " + uri.prePath +
+              " for " + app.manifestURL);
+        let newId = uri.prePath.substring(6); 
+        if (newId in this.webapps) {
+          throw "DUPLICATE_ORIGIN";
+        }
+        aOldApp.origin = uri.prePath;
+        
+        aOldApp.id = newId;
+        this.webapps[newId] = aOldApp;
+        delete this.webapps[aId];
+        
+        [DIRECTORY_NAME, "TmpD"].forEach(function(aDir) {
+          let parent = FileUtils.getDir(aDir, ["webapps"], true, true);
+          let dir = FileUtils.getDir(aDir, ["webapps", aId], true, true);
+          dir.moveTo(parent, newId);
+        });
+        
+        this.broadcastMessage("Webapps:RemoveApp", { id: aId });
+        this.broadcastMessage("Webapps:AddApp", { id: newId,
+                                                  app: aOldApp });
+      }
+    }
+  },
+
+  _getIds: function(aIsSigned, aZipReader, aConverter, aNewApp, aOldApp,
+                    aIsUpdate) {
+    
+    if (aIsSigned) {
+      let idsStream;
+      try {
+        idsStream = aZipReader.getInputStream("META-INF/ids.json");
+      } catch (e) {
+        throw aZipReader.hasEntry("META-INF/ids.json")
+               ? e
+               : "MISSING_IDS_JSON";
+      }
+
+      let ids = JSON.parse(aConverter.ConvertToUnicode(NetUtil.
+             readInputStreamToString( idsStream, idsStream.available()) || ""));
+      if ((!ids.id) || !Number.isInteger(ids.version) ||
+          (ids.version <= 0)) {
+         throw "INVALID_IDS_JSON";
+      }
+      let storeId = aNewApp.installOrigin + "#" + ids.id;
+      this._checkForStoreIdMatch(aIsUpdate, aOldApp, storeId, ids.version);
+      aOldApp.storeId = storeId;
+      aOldApp.storeVersion = ids.version;
+    }
+  },
+
+  
+  
+  
+  _checkForStoreIdMatch: function(aIsUpdate, aNewApp, aStoreId, aStoreVersion) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    let appId = this.getAppLocalIdByStoreId(aStoreId);
+    let isInstalled = appId != Ci.nsIScriptSecurityManager.NO_APP_ID;
+    if (aIsUpdate) {
+      let isDifferent = aNewApp.localId !== appId;
+      let isPending = aNewApp.storeId.indexOf(STORE_ID_PENDING_PREFIX) == 0;
+
+      if ((!isInstalled && !isPending) || (isInstalled && isDifferent)) {
+        throw "WRONG_APP_STORE_ID";
+      }
+
+      if (!isPending && (aNewApp.storeVersion >= aStoreVersion)) {
+        throw "APP_STORE_VERSION_ROLLBACK";
+      }
+
+    } else if (isInstalled) {
+      throw "WRONG_APP_STORE_ID";
+    }
+  },
+
+  
+  _revertDownloadPackage: function(aId, aOldApp, aNewApp, aIsUpdate, aError) {
+    debug("Cleanup: " + aError + "\n" + aError.stack);
+    let dir = FileUtils.getDir("TmpD", ["webapps", aId], true, true);
+    try {
+      dir.remove(true);
+    } catch (e) { }
+
+    
+    
+    
+    if (aOldApp.isCanceling) {
+      delete aOldApp.isCanceling;
+      return;
+    }
+
+    let download = AppDownloadManager.get(aNewApp.manifestURL);
+    aOldApp.downloading = false;
+
+    
+    
+    
+    
+    aOldApp.installState = download ? download.previousState
+                                    : aIsUpdate ? "installed"
+                                                : "pending";
+
+    if (aOldApp.staged) {
+      delete aOldApp.staged;
+    }
+
+    this._saveApps((function() {
+      this.broadcastMessage("Webapps:UpdateState", {
+        app: aOldApp,
+        error: aError,
+        manifestURL: aNewApp.manifestURL
+      });
+      this.broadcastMessage("Webapps:FireEvent", {
+        eventType: "downloaderror",
+        manifestURL:  aNewApp.manifestURL
+      });
+    }).bind(this));
+    AppDownloadManager.remove(aNewApp.manifestURL);
   },
 
   doUninstall: function(aData, aMm) {
