@@ -36,6 +36,13 @@ class nsIPrincipal;
 namespace mozilla {
 
 class MediaDecoder;
+class MediaChannelStatistics;
+
+template<>
+struct HasDangerousPublicDestructor<MediaChannelStatistics>
+{
+  static const bool value = true;
+};
 
 
 

@@ -193,6 +193,8 @@ class AudioInitTask;
 
 class AudioStream MOZ_FINAL
 {
+  virtual ~AudioStream();
+
 public:
   
   
@@ -214,7 +216,6 @@ public:
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(AudioStream)
   AudioStream();
-  virtual ~AudioStream();
 
   enum LatencyRequest {
     HighLatency,
