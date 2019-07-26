@@ -870,9 +870,10 @@ protected:
 private:
     nsCString         mForcedCharset;
     nsCString         mParentCharset;
+    int32_t           mParentCharsetSource;
+    nsCOMPtr<nsIPrincipal> mParentCharsetPrincipal;
     nsTObserverArray<nsWeakPtr> mPrivacyObservers;
     nsTObserverArray<nsWeakPtr> mReflowObservers;
-    int32_t           mParentCharsetSource;
     nsCString         mOriginalUriString;
 
     

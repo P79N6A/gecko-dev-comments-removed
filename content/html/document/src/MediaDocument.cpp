@@ -21,6 +21,7 @@
 #include "nsDocElementCreatedNotificationRunner.h"
 #include "mozilla/Services.h"
 #include "nsServiceManagerUtils.h"
+#include "nsIPrincipal.h"
 
 namespace mozilla {
 namespace dom {
@@ -156,11 +157,6 @@ MediaDocument::StartDocumentLoad(const char*         aCommand,
   
   
   
-  
-  
-  
-  
-  
     
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
 
@@ -168,27 +164,16 @@ MediaDocument::StartDocumentLoad(const char*         aCommand,
   NS_ENSURE_TRUE(docShell, NS_OK); 
 
   nsAutoCString charset;
+  int32_t source;
+  nsCOMPtr<nsIPrincipal> principal;
   
-  docShell->GetParentCharset(charset);
+  docShell->GetParentCharset(charset, &source, getter_AddRefs(principal));
 
-  if (charset.IsEmpty() || charset.Equals("UTF-8")) {
-    nsCOMPtr<nsIContentViewer> cv;
-    docShell->GetContentViewer(getter_AddRefs(cv));
-
-    
-    NS_ENSURE_TRUE(cv, NS_OK); 
-    nsCOMPtr<nsIMarkupDocumentViewer> muCV = do_QueryInterface(cv);
-    if (muCV) {
-      muCV->GetPrevDocCharacterSet(charset);   
-      if (charset.Equals("UTF-8") || charset.IsEmpty()) {
-        muCV->GetDefaultCharacterSet(charset); 
-      }
-    } 
-  }
-
-  if (!charset.IsEmpty() && !charset.Equals("UTF-8")) {
+  if (!charset.IsEmpty() &&
+      !charset.Equals("UTF-8") &&
+      NodePrincipal()->Equals(principal)) {
+    SetDocumentCharacterSetSource(source);
     SetDocumentCharacterSet(charset);
-    mCharacterSetSource = kCharsetFromUserDefault;
   }
 
   return NS_OK;

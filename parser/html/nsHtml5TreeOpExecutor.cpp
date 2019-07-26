@@ -221,39 +221,6 @@ nsHtml5TreeOpExecutor::SetDocumentCharsetAndSource(nsACString& aCharset, int32_t
     mDocument->SetDocumentCharacterSetSource(aCharsetSource);
     mDocument->SetDocumentCharacterSet(aCharset);
   }
-  if (mDocShell) {
-    
-    
-    
-    
-    nsCOMPtr<nsIMarkupDocumentViewer> mucv;
-    nsCOMPtr<nsIContentViewer> cv;
-    mDocShell->GetContentViewer(getter_AddRefs(cv));
-    if (cv) {
-      mucv = do_QueryInterface(cv);
-    } else {
-      
-      
-      
-      if (!mDocShell) {
-    	  return;
-      }
-      nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
-      mDocShell->GetSameTypeParent(getter_AddRefs(parentAsItem));
-      nsCOMPtr<nsIDocShell> parent(do_QueryInterface(parentAsItem));
-      if (parent) {
-        nsCOMPtr<nsIContentViewer> parentContentViewer;
-        nsresult rv =
-          parent->GetContentViewer(getter_AddRefs(parentContentViewer));
-        if (NS_SUCCEEDED(rv) && parentContentViewer) {
-          mucv = do_QueryInterface(parentContentViewer);
-        }
-      }
-    }
-    if (mucv) {
-      mucv->SetPrevDocCharacterSet(aCharset);
-    }
-  }
 }
 
 nsISupports*

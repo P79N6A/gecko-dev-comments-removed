@@ -777,52 +777,6 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   
-  nsCOMPtr<nsIContentViewer> newCV;
-  newDocShell->GetContentViewer(getter_AddRefs(newCV));
-  nsCOMPtr<nsIMarkupDocumentViewer> newMuCV = do_QueryInterface(newCV);
-  if (newMuCV) {
-    nsCOMPtr<nsIDocShellTreeItem> parentItem;
-    GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
-
-    if (aCalledFromJS) {
-      nsCOMPtr<nsIDocShellTreeItem> callerItem = GetCallerTreeItem(parentItem);
-      nsCOMPtr<nsPIDOMWindow> callerWin = do_GetInterface(callerItem);
-      if (callerWin) {
-        nsCOMPtr<nsIDocument> doc = callerWin->GetExtantDoc();
-        if (doc) {
-          newMuCV->SetDefaultCharacterSet(doc->GetDocumentCharacterSet());
-        }
-      }
-    }
-    else {
-      nsCOMPtr<nsIDocShell> parentDocshell = do_QueryInterface(parentItem);
-      
-      if (parentDocshell) {
-        nsCOMPtr<nsIContentViewer> parentCV;
-        parentDocshell->GetContentViewer(getter_AddRefs(parentCV));
-        nsCOMPtr<nsIMarkupDocumentViewer> parentMuCV =
-          do_QueryInterface(parentCV);
-        if (parentMuCV) {
-          nsAutoCString charset;
-          nsresult res = parentMuCV->GetDefaultCharacterSet(charset);
-          if (NS_SUCCEEDED(res)) {
-            newMuCV->SetDefaultCharacterSet(charset);
-          }
-          res = parentMuCV->GetPrevDocCharacterSet(charset);
-          if (NS_SUCCEEDED(res)) {
-            newMuCV->SetPrevDocCharacterSet(charset);
-          }
-        }
-      }
-    }
-  }
-
-  
-  
-  
-  
-  
-  
   
   nsCOMPtr<nsIPrincipal> subjectPrincipal;
   if (NS_FAILED(sm->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal)))) {

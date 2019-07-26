@@ -111,8 +111,8 @@ function viewSource(url)
           var arrayArgComponents = arg.split('=');
           if (arrayArgComponents) {
             
+            
             charset = arrayArgComponents[1];
-            gBrowser.markupDocumentViewer.defaultCharacterSet = charset;
           }
         }
       } catch (ex) {

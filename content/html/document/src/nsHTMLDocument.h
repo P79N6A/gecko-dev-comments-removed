@@ -311,15 +311,10 @@ protected:
   static void TryCacheCharset(nsICachingChannel* aCachingChannel,
                                 int32_t& aCharsetSource,
                                 nsACString& aCharset);
-  
   void TryParentCharset(nsIDocShell*  aDocShell,
-                        nsIDocument* aParentDocument,
                         int32_t& charsetSource, nsACString& aCharset);
   static void TryWeakDocTypeDefault(int32_t& aCharsetSource,
                                     nsACString& aCharset);
-  static void TryDefaultCharset(nsIMarkupDocumentViewer* aMarkupDV,
-                                int32_t& aCharsetSource,
-                                nsACString& aCharset);
 
   
   virtual void SetDocumentCharacterSet(const nsACString& aCharSetID) MOZ_OVERRIDE;
