@@ -651,6 +651,11 @@ public class GeckoLayerClient
     }
 
     
+    public boolean isFullScreen() {
+        return mView.isFullScreen();
+    }
+
+    
     public void setAnimationTarget(ImmutableViewportMetrics metrics) {
         if (mGeckoIsReady) {
             
