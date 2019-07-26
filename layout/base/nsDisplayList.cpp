@@ -681,16 +681,18 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
 
   metrics.mScrollId = aScrollId;
 
+  
+  
   nsIPresShell* presShell = presContext->GetPresShell();
-  if (metrics.mScrollId == FrameMetrics::ROOT_SCROLL_ID) {
+  if (aScrollFrame == presShell->GetRootScrollFrame()) {
     metrics.mResolution = ParentLayerToLayerScale(presShell->GetXResolution(),
                                                   presShell->GetYResolution());
   } else {
-    
-    
     metrics.mResolution = ParentLayerToLayerScale(1.0f);
   }
 
+  
+  
   metrics.mCumulativeResolution = LayoutDeviceToLayerScale(1.0f);
   nsIPresShell* curPresShell = presShell;
   while (curPresShell != nullptr) {
@@ -700,15 +702,6 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     nsPresContext* parentContext = curPresShell->GetPresContext()->GetParentPresContext();
     curPresShell = parentContext ? parentContext->GetPresShell() : nullptr;
   }
-#ifdef MOZ_WIDGET_ANDROID
-  if (presContext->IsRootContentDocument() && aScrollFrame == presShell->GetRootScrollFrame()) {
-    
-    
-    
-    
-    metrics.mResolution.scale = metrics.mCumulativeResolution.scale;
-  }
-#endif
 
   metrics.mDevPixelsPerCSSPixel = CSSToLayoutDeviceScale(
     (float)nsPresContext::AppUnitsPerCSSPixel() / auPerDevPixel);
