@@ -166,7 +166,7 @@ NS_INTERFACE_MAP_BEGIN(GroupRuleRuleList)
   NS_INTERFACE_MAP_ENTRY(nsICSSRuleList)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCSSRuleList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSGroupRuleRuleList)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CSSRuleList)
 NS_INTERFACE_MAP_END
 
 
@@ -201,9 +201,6 @@ GroupRuleRuleList::IndexedGetter(uint32_t aIndex, bool& aFound)
 
 } 
 } 
-
-
-DOMCI_DATA(CSSGroupRuleRuleList, css::GroupRuleRuleList)
 
 
 
