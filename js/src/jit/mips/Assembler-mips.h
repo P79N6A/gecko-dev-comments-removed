@@ -732,7 +732,7 @@ class Assembler : public AssemblerShared
 
     
     
-    void writeDataRelocation(const ImmGCPtr &ptr) {
+    void writeDataRelocation(ImmGCPtr ptr) {
         if (ptr.value)
             dataRelocations_.writeUnsigned(nextOffset().getOffset());
     }
