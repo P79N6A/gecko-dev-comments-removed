@@ -244,7 +244,8 @@ gfxPlatformFontList::InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
  
 struct ReadFaceNamesData {
     ReadFaceNamesData(gfxPlatformFontList *aFontList, TimeStamp aStartTime)
-        : mFontList(aFontList), mStartTime(aStartTime), mTimedOut(false)
+        : mFontList(aFontList), mStartTime(aStartTime), mTimedOut(false),
+          mFirstChar(0)
     {}
 
     gfxPlatformFontList *mFontList;
@@ -253,7 +254,7 @@ struct ReadFaceNamesData {
 
     
     
-    nsString mFirstChar;
+    char16_t mFirstChar;
 };
 
 gfxFontEntry*
@@ -265,8 +266,7 @@ gfxPlatformFontList::SearchFamiliesForFaceName(const nsAString& aFaceName)
     ReadFaceNamesData faceNameListsData(this, start);
 
     
-    faceNameListsData.mFirstChar.Assign(aFaceName.CharAt(0));
-    ToLowerCase(faceNameListsData.mFirstChar);
+    faceNameListsData.mFirstChar = ToLowerCase(aFaceName.CharAt(0));
     mFontFamilies.Enumerate(gfxPlatformFontList::ReadFaceNamesProc,
                             &faceNameListsData);
     lookup = FindFaceName(aFaceName);
@@ -299,14 +299,10 @@ gfxPlatformFontList::ReadFaceNamesProc(nsStringHashKey::KeyType aKey,
     gfxPlatformFontList *fc = data->mFontList;
 
     
-    if (!(data->mFirstChar.IsEmpty())) {
-        char16_t firstChar = aKey.CharAt(0);
-        nsAutoString firstCharStr(&firstChar, 1);
-        ToLowerCase(firstCharStr);
-        if (!firstCharStr.Equals(data->mFirstChar)) {
-            return PL_DHASH_NEXT;
-        }
+    if (data->mFirstChar && ToLowerCase(aKey.CharAt(0)) != data->mFirstChar) {
+        return PL_DHASH_NEXT;
     }
+
     aFamilyEntry->ReadFaceNames(fc, fc->NeedFullnamePostscriptNames());
 
     TimeDuration elapsed = TimeStamp::Now() - data->mStartTime;
