@@ -27,15 +27,21 @@ public:
 
   
   void Update(NSColor* aColor);
+  
+  
+  void DoneWithRetarget();
+  
+  
   void Done();
 
 private:
   static NSColor* GetNSColorFromHexString(const nsAString& aColor);
   static void GetHexStringFromNSColor(NSColor* aColor, nsAString& aResult);
 
+  static NSColorPanelWrapper* sColorPanelWrapper;
+
   nsString             mTitle;
   nsString             mColor;
-  NSColorPanelWrapper* mColorPanel;
   nsCOMPtr<nsIColorPickerShownCallback> mCallback;
 };
 
