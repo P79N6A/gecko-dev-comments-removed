@@ -4,6 +4,7 @@
 
 
 #include "XMLStylesheetProcessingInstruction.h"
+#include "mozilla/dom/XMLStylesheetProcessingInstructionBinding.h"
 #include "nsNetUtil.h"
 
 DOMCI_NODE_DATA(XMLStylesheetProcessingInstruction,
@@ -38,6 +39,14 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 XMLStylesheetProcessingInstruction::~XMLStylesheetProcessingInstruction()
 {
+}
+
+JSObject*
+XMLStylesheetProcessingInstruction::WrapNode(JSContext *aCx, JSObject *aScope,
+                                             bool *aTriedToWrap)
+{
+  return XMLStylesheetProcessingInstructionBinding::Wrap(aCx, aScope, this,
+                                                         aTriedToWrap);
 }
 
 
