@@ -72,6 +72,8 @@ public:
 
     const nsCString& TranslationLog() const { return mTranslationLog; }
 
+    const nsString& TranslatedSource() const { return mTranslatedSource; }
+
     WebGLContext *GetParentObject() const {
         return Context();
     }
@@ -87,6 +89,7 @@ protected:
     GLuint mGLName;
     GLenum mType;
     nsString mSource;
+    nsString mTranslatedSource;
     nsCString mTranslationLog; 
     bool mNeedsTranslation;
     nsTArray<WebGLMappedIdentifier> mAttributes;

@@ -3306,6 +3306,8 @@ WebGLContext::CompileShader(WebGLShader *shader)
             translatedSrc.SetLength(len);
             ShGetObjectCode(compiler, translatedSrc.BeginWriting());
 
+            CopyASCIItoUTF16(translatedSrc, shader->mTranslatedSource);
+
             const char *ts = translatedSrc.get();
 
 #ifdef WEBGL2_BYPASS_ANGLE
@@ -3324,6 +3326,8 @@ WebGLContext::CompileShader(WebGLShader *shader)
             
             
             gl->fShaderSource(shadername, 1, &s, nullptr);
+
+            CopyASCIItoUTF16(s, shader->mTranslatedSource);
         }
 
         shader->SetTranslationSuccess();
@@ -3617,8 +3621,7 @@ WebGLContext::GetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype)
 void
 WebGLContext::GetShaderSource(WebGLShader *shader, nsAString& retval)
 {
-    if (IsContextLost())
-    {
+    if (IsContextLost()) {
         retval.SetIsVoid(true);
         return;
     }
@@ -3649,6 +3652,20 @@ WebGLContext::ShaderSource(WebGLShader *shader, const nsAString& source)
     shader->SetSource(source);
 
     shader->SetNeedsTranslation();
+}
+
+void
+WebGLContext::GetShaderTranslatedSource(WebGLShader *shader, nsAString& retval)
+{
+    if (IsContextLost()) {
+        retval.SetIsVoid(true);
+        return;
+    }
+
+    if (!ValidateObject("getShaderTranslatedSource: shader", shader))
+        return;
+
+    retval.Assign(shader->TranslatedSource());
 }
 
 GLenum WebGLContext::CheckedTexImage2D(GLenum target,
