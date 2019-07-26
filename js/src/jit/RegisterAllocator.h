@@ -341,17 +341,6 @@ class RegisterAllocator
         return getMoveGroupAfter(pos.ins());
     }
 
-    size_t findFirstNonCallSafepoint(CodePosition from) const
-    {
-        size_t i = 0;
-        for (; i < graph.numNonCallSafepoints(); i++) {
-            const LInstruction *ins = graph.getNonCallSafepoint(i);
-            if (from <= inputOf(ins))
-                break;
-        }
-        return i;
-    }
-
     CodePosition minimalDefEnd(LInstruction *ins) {
         
         
