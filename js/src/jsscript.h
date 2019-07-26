@@ -521,7 +521,7 @@ class JSScript : public js::gc::Cell
     uint16_t        version;    
 
   public:
-    uint16_t        ndefaults;  
+    uint16_t        funLength;  
 
     uint16_t        nfixed;     
 

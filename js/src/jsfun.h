@@ -43,7 +43,7 @@ class JSFunction : public JSObject
         SELF_HOSTED_CTOR = 0x0200,  
 
         HAS_REST         = 0x0400,  
-        HAS_DEFAULTS     = 0x0800,  
+        
         INTERPRETED_LAZY = 0x1000,  
         ARROW            = 0x2000,  
         SH_WRAPPABLE     = 0x4000,  
@@ -117,7 +117,6 @@ class JSFunction : public JSObject
     bool isSelfHostedBuiltin()      const { return flags & SELF_HOSTED; }
     bool isSelfHostedConstructor()  const { return flags & SELF_HOSTED_CTOR; }
     bool hasRest()                  const { return flags & HAS_REST; }
-    bool hasDefaults()              const { return flags & HAS_DEFAULTS; }
     bool isWrappable()              const {
         JS_ASSERT_IF(flags & SH_WRAPPABLE, isSelfHostedBuiltin());
         return flags & SH_WRAPPABLE;
@@ -168,11 +167,6 @@ class JSFunction : public JSObject
     
     void setHasRest() {
         flags |= HAS_REST;
-    }
-
-    
-    void setHasDefaults() {
-        flags |= HAS_DEFAULTS;
     }
 
     void setIsSelfHostedBuiltin() {
