@@ -4364,6 +4364,10 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
   nsIFrame* scrolledFrame =
     NS_NewBlockFormattingContext(mPresShell, styleContext);
 
+  
+  
+  aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
+
   nsFrameItems blockItem;
   ConstructBlock(aState, scrolledContentStyle->StyleDisplay(), content,
                  newFrame, newFrame, scrolledContentStyle,
@@ -4375,7 +4379,6 @@ nsCSSFrameConstructor::ConstructScrollableBlock(nsFrameConstructorState& aState,
                "Scrollframe's frameItems should be exactly the scrolled frame");
   FinishBuildingScrollFrame(newFrame, scrolledFrame);
 
-  aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
   return newFrame;
 }
 
