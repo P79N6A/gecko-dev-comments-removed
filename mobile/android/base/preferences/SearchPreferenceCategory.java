@@ -16,6 +16,7 @@ import org.json.JSONObject;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
 
 public class SearchPreferenceCategory extends CustomListCategory implements GeckoEventListener {
     public static final String LOGTAG = "SearchPrefCategory";
@@ -81,7 +82,7 @@ public class SearchPreferenceCategory extends CustomListCategory implements Geck
                     JSONObject engineJSON = engines.getJSONObject(i);
                     final String engineName = engineJSON.getString("name");
 
-                    SearchEnginePreference enginePreference = new SearchEnginePreference(getContext(), this);
+                    final SearchEnginePreference enginePreference = new SearchEnginePreference(getContext(), this);
                     enginePreference.setSearchEngineFromJSON(engineJSON);
                     enginePreference.setOnPreferenceClickListener(new OnPreferenceClickListener() {
                         @Override
@@ -100,7 +101,12 @@ public class SearchPreferenceCategory extends CustomListCategory implements Geck
                         
                         
                         
-                        enginePreference.setIsDefault(true);
+                        ThreadUtils.postToUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                enginePreference.setIsDefault(true);
+                            }
+                        });
                         mDefaultReference = enginePreference;
                     }
                 } catch (JSONException e) {
