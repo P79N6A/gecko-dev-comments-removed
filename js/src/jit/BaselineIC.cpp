@@ -4234,7 +4234,9 @@ ICGetElemNativeCompiler::generateStubCode(MacroAssembler &masm)
     }
 
     
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
 
     
     masm.branchPtr(Assembler::NotEqual, nameAddr, strExtract, &failure);
@@ -4477,7 +4479,9 @@ ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
 
     
 #if JS_HAS_NO_SUCH_METHOD
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
     if (isCallElem_) {
         Label afterNoSuchMethod;
         Label skipNoSuchMethod;
@@ -4607,7 +4611,9 @@ ICGetElem_Arguments::Compiler::generateStubCode(MacroAssembler &masm)
     
     
 #if JS_HAS_NO_SUCH_METHOD
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
 #endif
 
     Label failure;
@@ -6378,7 +6384,9 @@ ICGetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
 
     leaveStubFrame(masm, true);
 
@@ -6562,7 +6570,9 @@ ICGetPropNativeCompiler::generateStubCode(MacroAssembler &masm)
     BaseIndex result(holderReg, scratch, TimesOne);
 
 #if JS_HAS_NO_SUCH_METHOD
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
     if (isCallProp_) {
         
         Label afterNoSuchMethod;
@@ -7298,7 +7308,9 @@ ICSetProp_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
 
     
     
+#ifdef DEBUG
     entersStubFrame_ = true;
+#endif
 
     leaveStubFrame(masm, true);
 
