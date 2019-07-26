@@ -3529,7 +3529,7 @@ nsCycleCollector::Collect(ccType aCCType,
 
   ++mResults.mNumSlices;
 
-  bool finished = false;
+  bool continueSlice = true;
   do {
     switch (mIncrementalPhase) {
       case IdlePhase:
@@ -3539,6 +3539,14 @@ nsCycleCollector::Collect(ccType aCCType,
       case GraphBuildingPhase:
         PrintPhase("MarkRoots");
         MarkRoots(aBudget);
+
+        
+        
+        
+        
+        
+        
+        continueSlice = aBudget.isUnlimited() || mResults.mNumSlices < 3;
         break;
       case ScanAndCollectWhitePhase:
         
@@ -3553,10 +3561,13 @@ nsCycleCollector::Collect(ccType aCCType,
       case CleanupPhase:
         PrintPhase("CleanupAfterCollection");
         CleanupAfterCollection();
-        finished = true;
+        continueSlice = false;
         break;
     }
-  } while (!aBudget.checkOverBudget() && !finished);
+    if (continueSlice) {
+      continueSlice = !aBudget.checkOverBudget();
+    }
+  } while (continueSlice);
 
   
   
