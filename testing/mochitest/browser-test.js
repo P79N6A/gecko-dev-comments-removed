@@ -1,4 +1,5 @@
 
+
 var gTimeoutSeconds = 30;
 var gConfig;
 
@@ -364,7 +365,12 @@ Tester.prototype = {
           .getService(Ci.nsIXULRuntime)
           .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT)
       {
-        this.MemoryStats.dump((l) => { this.dumper.dump(l + "\n"); });
+        this.MemoryStats.dump((l) => { this.dumper.dump(l + "\n"); },
+                              this.currentTestIndex,
+                              this.currentTest.path,
+                              gConfig.dumpOutputDirectory,
+                              gConfig.dumpAboutMemoryAfterTest,
+                              gConfig.dumpDMDAfterTest);
       }
 
       
