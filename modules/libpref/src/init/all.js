@@ -3931,6 +3931,9 @@ pref("dom.battery.enabled", true);
 pref("dom.image.srcset.enabled", false);
 
 
+pref("dom.image.picture.enabled", false);
+
+
 pref("dom.sms.enabled", false);
 
 
