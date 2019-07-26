@@ -425,5 +425,21 @@ bool SPSExit(JSContext *cx, HandleScript script)
     return true;
 }
 
+bool OperatorIn(JSContext *cx, HandleValue key, HandleObject obj, JSBool *out)
+{
+    RootedValue dummy(cx); 
+    RootedId id(cx);
+    if (!FetchElementId(cx, obj, key, id.address(), &dummy))
+        return false;
+
+    RootedObject obj2(cx);
+    RootedShape prop(cx);
+    if (!JSObject::lookupGeneric(cx, obj, id, &obj2, &prop))
+        return false;
+
+    *out = !!prop;
+    return true;
+}
+
 } 
 } 
