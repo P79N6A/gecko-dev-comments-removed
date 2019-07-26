@@ -27,10 +27,9 @@ nsSVGElement::StringInfo SVGAltGlyphElement::sStringInfo[1] =
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED4(SVGAltGlyphElement, SVGAltGlyphElementBase,
+NS_IMPL_ISUPPORTS_INHERITED3(SVGAltGlyphElement, SVGAltGlyphElementBase,
                              nsIDOMNode, nsIDOMElement,
-                             nsIDOMSVGElement,
-                             nsIDOMSVGURIReference)
+                             nsIDOMSVGElement)
 
 
 
@@ -45,16 +44,6 @@ SVGAltGlyphElement::SVGAltGlyphElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGAltGlyphElement)
-
-
-
-
-
-NS_IMETHODIMP SVGAltGlyphElement::GetHref(nsIDOMSVGAnimatedString * *aHref)
-{
-  *aHref = Href().get();
-  return NS_OK;
-}
 
 already_AddRefed<nsIDOMSVGAnimatedString>
 SVGAltGlyphElement::Href()

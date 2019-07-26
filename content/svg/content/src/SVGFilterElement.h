@@ -6,7 +6,6 @@
 #ifndef mozilla_dom_SVGFilterElement_h
 #define mozilla_dom_SVGFilterElement_h
 
-#include "nsIDOMSVGURIReference.h"
 #include "nsSVGEnum.h"
 #include "nsSVGElement.h"
 #include "nsSVGIntegerPair.h"
@@ -26,8 +25,7 @@ namespace dom {
 class SVGAnimatedLength;
 
 class SVGFilterElement : public SVGFilterElementBase,
-                         public nsIDOMSVGElement,
-                         public nsIDOMSVGURIReference
+                         public nsIDOMSVGElement
 {
   friend class ::nsSVGFilterFrame;
   friend class ::nsAutoFilterInstance;
@@ -42,7 +40,6 @@ public:
   
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_NSIDOMSVGURIREFERENCE
 
   
   NS_FORWARD_NSIDOMNODE_TO_NSINODE
