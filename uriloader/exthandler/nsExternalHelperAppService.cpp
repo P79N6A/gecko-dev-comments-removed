@@ -1838,7 +1838,6 @@ nsExternalAppHandler::OnSaveComplete(nsIBackgroundFileSaver *aSaver,
   
   
   
-  
   if (mTransfer) {
     rv = NotifyTransfer();
     NS_ENSURE_SUCCESS(rv, rv);
@@ -1898,9 +1897,28 @@ NS_IMETHODIMP nsExternalAppHandler::GetSuggestedFileName(nsAString& aSuggestedFi
   return NS_OK;
 }
 
-nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
+nsresult nsExternalAppHandler::CreateTransfer()
 {
+  MOZ_ASSERT(NS_IsMainThread(), "Must create transfer on main thread");
+  
+  
+  
+  
+  
+  mDialog = nullptr;
+  if (!mDialogProgressListener) {
+    NS_WARNING("The dialog should nullify the dialog progress listener");
+  }
   nsresult rv;
+
+  
+  
+  
+  
+  nsCOMPtr<nsITransfer> transfer = do_CreateInstance(
+    NS_TRANSFER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   nsCOMPtr<nsIURI> target;
   rv = NS_NewFileURI(getter_AddRefs(target), mFinalFileDestination);
@@ -1908,7 +1926,7 @@ nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
 
   nsCOMPtr<nsIChannel> channel = do_QueryInterface(mRequest);
 
-  rv = aTransfer->Init(mSourceUrl, target, EmptyString(),
+  rv = transfer->Init(mSourceUrl, target, EmptyString(),
                        mMimeInfo, mTimeDownloadStarted, mTempFile, this,
                        channel && NS_UsePrivateBrowsing(channel));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1927,43 +1945,34 @@ nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
     }
   }
 
-  return rv;
-}
-
-nsresult nsExternalAppHandler::CreateTransfer()
-{
   
   
   
   
-  
-  mDialog = nullptr;
-  if (!mDialogProgressListener) {
-    NS_WARNING("The dialog should nullify the dialog progress listener");
+  if (mCanceled) {
+    return NS_OK;
   }
-  nsresult rv;
-
-  
-  
-  mTransfer = do_CreateInstance(NS_TRANSFER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = InitializeDownload(mTransfer);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = mTransfer->OnStateChange(nullptr, mRequest,
+  rv = transfer->OnStateChange(nullptr, mRequest,
     nsIWebProgressListener::STATE_START |
     nsIWebProgressListener::STATE_IS_REQUEST |
     nsIWebProgressListener::STATE_IS_NETWORK, NS_OK);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  if (mStopRequestIssued && !mSaver) {
-    return NotifyTransfer();
+  if (mCanceled) {
+    return NS_OK;
   }
 
   mRequest = nullptr;
+  
+  mTransfer = transfer;
+  transfer = nullptr;
+
+  
+  
+  
+  if (mStopRequestIssued && !mSaver && mTransfer) {
+    return NotifyTransfer();
+  }
 
   return rv;
 }
@@ -2094,7 +2103,12 @@ nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
 
   
   
-  CreateTransfer();
+  rv = CreateTransfer();
+  
+  if (NS_FAILED(rv)) {
+    Cancel(rv);
+    return rv;
+  }
 
   
   
@@ -2173,7 +2187,10 @@ NS_IMETHODIMP nsExternalAppHandler::LaunchWithApplication(nsIFile * aApplication
   {
     mFinalFileDestination = do_QueryInterface(fileToUse);
     
-    CreateTransfer();
+    rv = CreateTransfer();
+    if (NS_FAILED(rv)) {
+      Cancel(rv);
+    }
   }
   else
   {

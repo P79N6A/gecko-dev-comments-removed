@@ -336,13 +336,13 @@ protected:
 
 
 
-  void RetargetLoadNotifications(nsIRequest *request); 
+  void RetargetLoadNotifications(nsIRequest *request);
   
 
 
 
-  nsresult CreateTransfer();
 
+  nsresult CreateTransfer();
 
   
 
@@ -390,11 +390,6 @@ protected:
 
   bool GetNeverAskFlagFromPref(const char * prefName, const char * aContentType);
 
-  
-
-
-  nsresult InitializeDownload(nsITransfer*);
-  
   
 
 
