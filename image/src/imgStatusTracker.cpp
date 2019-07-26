@@ -13,6 +13,9 @@
 #include "ImageLogging.h"
 #include "RasterImage.h"
 
+#include "mozilla/Util.h"
+#include "mozilla/Assertions.h"
+
 using namespace mozilla::image;
 
 static nsresult
@@ -262,6 +265,28 @@ imgStatusTracker::EmulateRequestFinished(imgRequestProxy* aProxy,
   if (!(mState & stateRequestStopped)) {
     aProxy->OnStopRequest(true);
   }
+}
+
+void
+imgStatusTracker::AddConsumer(imgRequestProxy* aConsumer)
+{
+  mConsumers.AppendElementUnlessExists(aConsumer);
+}
+
+
+bool
+imgStatusTracker::RemoveConsumer(imgRequestProxy* aConsumer, nsresult aStatus,
+                                 bool aOnlySendStopRequest)
+{
+  
+  bool removed = mConsumers.RemoveElement(aConsumer);
+  
+
+  
+  
+  if (removed)
+    EmulateRequestFinished(aConsumer, aStatus, aOnlySendStopRequest);
+  return removed;
 }
 
 void

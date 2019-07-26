@@ -21,6 +21,7 @@ class Image;
 
 
 #include "nsCOMPtr.h"
+#include "nsTObserverArray.h"
 #include "nsIRunnable.h"
 #include "nscore.h"
 
@@ -84,6 +85,24 @@ public:
   
   
   void EmulateRequestFinished(imgRequestProxy* proxy, nsresult aStatus);
+
+  
+  
+  void AddConsumer(imgRequestProxy* aConsumer);
+  bool RemoveConsumer(imgRequestProxy* aConsumer, nsresult aStatus, bool aOnlySendStopRequest);
+  size_t ConsumerCount() const { return mConsumers.Length(); };
+
+  
+  
+  
+  bool FirstConsumerIs(imgRequestProxy* aConsumer) {
+    return mConsumers.SafeElementAt(0, nullptr) == aConsumer;
+  }
+
+  
+  const nsTObserverArray<imgRequestProxy*>& GetConsumers() { return mConsumers; };
+
+  void AdoptConsumers(imgStatusTracker* aTracker) { mConsumers = aTracker->mConsumers; }
 
   
   
@@ -160,6 +179,10 @@ private:
   uint32_t mState;
   uint32_t mImageStatus;
   bool mHadLastPart;
+
+  
+  
+  nsTObserverArray<imgRequestProxy*> mConsumers;
 };
 
 #endif
