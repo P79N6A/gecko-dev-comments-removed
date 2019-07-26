@@ -167,7 +167,7 @@ class ScopeObject : public JSObject
     inline JSObject &enclosingScope() const {
         return getReservedSlot(SCOPE_CHAIN_SLOT).toObject();
     }
-    inline void setEnclosingScope(HandleObject obj);
+    void setEnclosingScope(HandleObject obj);
 
     
 
@@ -176,12 +176,15 @@ class ScopeObject : public JSObject
 
 
     inline const Value &aliasedVar(ScopeCoordinate sc);
+
     inline void setAliasedVar(JSContext *cx, ScopeCoordinate sc, PropertyName *name, const Value &v);
 
     
-    static inline size_t offsetOfEnclosingScope();
+    static size_t offsetOfEnclosingScope() {
+        return getFixedSlotOffset(SCOPE_CHAIN_SLOT);
+    }
 
-    static inline size_t enclosingScopeSlot() {
+    static size_t enclosingScopeSlot() {
         return SCOPE_CHAIN_SLOT;
     }
 };
@@ -211,21 +214,34 @@ class CallObject : public ScopeObject
     static CallObject *createForStrictEval(JSContext *cx, AbstractFramePtr frame);
 
     
-    inline bool isForEval() const;
+    bool isForEval() const {
+        JS_ASSERT(getReservedSlot(CALLEE_SLOT).isObjectOrNull());
+        JS_ASSERT_IF(getReservedSlot(CALLEE_SLOT).isObject(),
+                     getReservedSlot(CALLEE_SLOT).toObject().is<JSFunction>());
+        return getReservedSlot(CALLEE_SLOT).isNull();
+    }
 
     
 
 
 
-    inline JSFunction &callee() const;
+    JSFunction &callee() const {
+        return getReservedSlot(CALLEE_SLOT).toObject().as<JSFunction>();
+    }
 
     
-    inline const Value &aliasedVar(AliasedFormalIter fi);
+    const Value &aliasedVar(AliasedFormalIter fi) {
+        return getSlot(fi.scopeSlot());
+    }
+
     inline void setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name, const Value &v);
 
     
-    static inline size_t offsetOfCallee();
-    static inline size_t calleeSlot() {
+    static size_t offsetOfCallee() {
+        return getFixedSlotOffset(CALLEE_SLOT);
+    }
+
+    static size_t calleeSlot() {
         return CALLEE_SLOT;
     }
 };
@@ -258,7 +274,9 @@ class NestedScopeObject : public ScopeObject
 
   public:
     
-    uint32_t stackDepth() const;
+    uint32_t stackDepth() const {
+        return getReservedSlot(DEPTH_SLOT).toPrivateUint32();
+    }
 };
 
 class WithObject : public NestedScopeObject
@@ -278,10 +296,14 @@ class WithObject : public NestedScopeObject
     create(JSContext *cx, HandleObject proto, HandleObject enclosing, uint32_t depth);
 
     
-    JSObject &withThis() const;
+    JSObject &withThis() const {
+        return getReservedSlot(THIS_SLOT).toObject();
+    }
 
     
-    JSObject &object() const;
+    JSObject &object() const {
+        return *JSObject::getProto();
+    }
 };
 
 class BlockObject : public NestedScopeObject
@@ -293,19 +315,30 @@ class BlockObject : public NestedScopeObject
     static Class class_;
 
     
-    inline uint32_t slotCount() const;
+    uint32_t slotCount() const {
+        return propertyCount();
+    }
 
     
 
 
 
 
-    unsigned slotToLocalIndex(const Bindings &bindings, unsigned slot);
-    unsigned localIndexToSlot(const Bindings &bindings, uint32_t i);
+    unsigned slotToLocalIndex(const Bindings &bindings, unsigned slot) {
+        JS_ASSERT(slot < RESERVED_SLOTS + slotCount());
+        return bindings.numVars() + stackDepth() + (slot - RESERVED_SLOTS);
+    }
+
+    unsigned localIndexToSlot(const Bindings &bindings, uint32_t i) {
+        return RESERVED_SLOTS + (i - (bindings.numVars() + stackDepth()));
+    }
 
   protected:
     
-    inline const Value &slotValue(unsigned i);
+    const Value &slotValue(unsigned i) {
+        return getSlotRef(RESERVED_SLOTS + i);
+    }
+
     inline void setSlotValue(unsigned i, const Value &v);
 };
 
@@ -315,7 +348,9 @@ class StaticBlockObject : public BlockObject
     static StaticBlockObject *create(JSContext *cx);
 
     
-    inline JSObject *enclosingStaticScope() const;
+    JSObject *enclosingStaticScope() const {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    }
 
     
 
@@ -327,19 +362,25 @@ class StaticBlockObject : public BlockObject
 
 
 
-    bool containsVarAtDepth(uint32_t depth);
+    bool containsVarAtDepth(uint32_t depth) {
+        return depth >= stackDepth() && depth < stackDepth() + slotCount();
+    }
 
     
 
 
 
-    bool isAliased(unsigned i);
+    bool isAliased(unsigned i) {
+        return slotValue(i).isTrue();
+    }
 
     
 
 
 
-    bool needsClone();
+    bool needsClone() {
+        return !slotValue(0).isFalse();
+    }
 
     
 
@@ -353,7 +394,10 @@ class StaticBlockObject : public BlockObject
 
 
     void setDefinitionParseNode(unsigned i, frontend::Definition *def);
-    frontend::Definition *maybeDefinitionParseNode(unsigned i);
+    frontend::Definition *maybeDefinitionParseNode(unsigned i) {
+        Value v = slotValue(i);
+        return v.isUndefined() ? NULL : reinterpret_cast<frontend::Definition *>(v.toPrivate());
+    }
 
     
 
@@ -375,11 +419,17 @@ class ClonedBlockObject : public BlockObject
                                      AbstractFramePtr frame);
 
     
-    StaticBlockObject &staticBlock() const;
+    StaticBlockObject &staticBlock() const {
+        return getProto()->as<StaticBlockObject>();
+    }
 
     
-    const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
-    void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
+    const Value &var(unsigned i, MaybeCheckAliasing checkAliasing = CHECK_ALIASING) {
+        JS_ASSERT_IF(checkAliasing, staticBlock().isAliased(i));
+        return slotValue(i);
+    }
+
+    void setVar(unsigned i, const Value &v, MaybeCheckAliasing checkAliasing = CHECK_ALIASING);
 
     
     void copyUnaliasedValues(AbstractFramePtr frame);
@@ -652,5 +702,47 @@ JSObject::is<js::DebugScopeObject>() const
     extern bool js_IsDebugScopeSlow(JSObject *obj);
     return getClass() == &js::ObjectProxyClass && js_IsDebugScopeSlow(const_cast<JSObject*>(this));
 }
+
+template<>
+inline bool
+JSObject::is<js::ClonedBlockObject>() const
+{
+    return is<js::BlockObject>() && !!getProto();
+}
+
+template<>
+inline bool
+JSObject::is<js::StaticBlockObject>() const
+{
+    return is<js::BlockObject>() && !getProto();
+}
+
+inline JSObject *
+JSObject::enclosingScope()
+{
+    return is<js::ScopeObject>()
+           ? &as<js::ScopeObject>().enclosingScope()
+           : is<js::DebugScopeObject>()
+           ? &as<js::DebugScopeObject>().enclosingScope()
+           : getParent();
+}
+
+namespace js {
+
+inline const Value &
+ScopeObject::aliasedVar(ScopeCoordinate sc)
+{
+    JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
+    return getSlot(sc.slot);
+}
+
+inline StaticBlockObject *
+StaticBlockObject::enclosingBlock() const
+{
+    JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    return obj && obj->is<StaticBlockObject>() ? &obj->as<StaticBlockObject>() : NULL;
+}
+
+} 
 
 #endif
