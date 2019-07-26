@@ -12,10 +12,28 @@
 #include <assert.h>
 #include <commctrl.h>
 #include <windowsx.h>
+#include <algorithm>
 #include <sstream>
+#include <vector>
 
 namespace mozilla {
 namespace plugins {
+
+struct WinInfo
+{
+  WinInfo(HWND aHwnd, POINT& aPos, SIZE& aSize)
+    :hwnd(aHwnd)
+  {
+    pos.x = aPos.x;
+    pos.y = aPos.y;
+    size.cx = aSize.cx;
+    size.cy = aSize.cy;
+  }
+  HWND  hwnd;
+  POINT pos;
+  SIZE  size;
+};
+typedef std::vector<WinInfo> WinInfoVec;
 
 PluginHangUIChild* PluginHangUIChild::sSelf = nullptr;
 const int PluginHangUIChild::kExpectedMinimumArgc = 10;
@@ -124,6 +142,95 @@ PluginHangUIChild::SHangUIDlgProc(HWND aDlgHandle, UINT aMsgCode,
   return FALSE;
 }
 
+void
+PluginHangUIChild::ResizeButtons()
+{
+  
+  UINT ids[] = { IDC_STOP, IDC_CONTINUE };
+  UINT numIds = sizeof(ids)/sizeof(ids[0]);
+
+  
+  bool needResizing = false;
+  SIZE idealSize = {0};
+  WinInfoVec winInfo;
+  for (UINT i = 0; i < numIds; ++i) {
+    HWND wnd = GetDlgItem(mDlgHandle, ids[i]);
+    if (!wnd) {
+      return;
+    }
+
+    
+    RECT curRect;
+    if (!GetWindowRect(wnd, &curRect)) {
+      return;
+    }
+
+    
+    POINT pt;
+    pt.x = curRect.left;
+    pt.y = curRect.top;
+    if (!ScreenToClient(mDlgHandle, &pt)) {
+      return;
+    }
+
+    
+    RECT margins;
+    if (!Button_GetTextMargin(wnd, &margins)) {
+      return;
+    }
+
+    
+    SIZE curSize;
+    curSize.cx = curRect.right - curRect.left;
+    curSize.cy = curRect.bottom - curRect.top;
+
+    
+    SIZE size = {0};
+    if (!Button_GetIdealSize(wnd, &size)) {
+      return;
+    }
+    size.cx += margins.left + margins.right;
+    size.cy += margins.top + margins.bottom;
+
+    
+    idealSize.cx = std::max(idealSize.cx, size.cx);
+    idealSize.cy = std::max(idealSize.cy, size.cy);
+
+    
+    if (idealSize.cx > curSize.cx) {
+      needResizing = true;
+    }
+
+    
+    
+    winInfo.push_back(WinInfo(wnd, pt, curSize));
+  }
+
+  if (!needResizing) {
+    return;
+  }
+
+  
+  int deltaX = 0;
+  HDWP hwp = BeginDeferWindowPos((int) winInfo.size());
+  if (!hwp) {
+    return;
+  }
+  for (WinInfoVec::const_iterator itr = winInfo.begin();
+       itr != winInfo.end(); ++itr) {
+    
+    
+    deltaX += idealSize.cx - itr->size.cx;
+    hwp = DeferWindowPos(hwp, itr->hwnd, NULL, itr->pos.x - deltaX, itr->pos.y,
+                         idealSize.cx, itr->size.cy,
+                         SWP_NOZORDER | SWP_NOACTIVATE);
+    if (!hwp) {
+      return;
+    }
+  }
+  EndDeferWindowPos(hwp);
+}
+
 INT_PTR
 PluginHangUIChild::HangUIDlgProc(HWND aDlgHandle, UINT aMsgCode, WPARAM aWParam,
                                  LPARAM aLParam)
@@ -144,6 +251,7 @@ PluginHangUIChild::HangUIDlgProc(HWND aDlgHandle, UINT aMsgCode, WPARAM aWParam,
       SetDlgItemText(aDlgHandle, IDC_NOFUTURE, mNoFutureText);
       SetDlgItemText(aDlgHandle, IDC_CONTINUE, mWaitBtnText);
       SetDlgItemText(aDlgHandle, IDC_STOP, mKillBtnText);
+      ResizeButtons();
       HANDLE icon = LoadImage(NULL, IDI_QUESTION, IMAGE_ICON, 0, 0,
                               LR_DEFAULTSIZE | LR_SHARED);
       if (icon) {
