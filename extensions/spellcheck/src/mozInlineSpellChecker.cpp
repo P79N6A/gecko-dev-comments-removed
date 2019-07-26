@@ -486,6 +486,30 @@ private:
 };
 
 
+class InitEditorSpellCheckCallback MOZ_FINAL : public nsIEditorSpellCheckCallback
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  explicit InitEditorSpellCheckCallback(mozInlineSpellChecker* aSpellChecker)
+    : mSpellChecker(aSpellChecker) {}
+
+  NS_IMETHOD EditorSpellCheckDone()
+  {
+    return mSpellChecker ? mSpellChecker->EditorSpellCheckInited() : NS_OK;
+  }
+
+  void Cancel()
+  {
+    mSpellChecker = nullptr;
+  }
+
+private:
+  nsRefPtr<mozInlineSpellChecker> mSpellChecker;
+};
+NS_IMPL_ISUPPORTS1(InitEditorSpellCheckCallback, nsIEditorSpellCheckCallback)
+
+
 NS_INTERFACE_MAP_BEGIN(mozInlineSpellChecker)
   NS_INTERFACE_MAP_ENTRY(nsIInlineSpellChecker)
   NS_INTERFACE_MAP_ENTRY(nsIEditActionListener)
@@ -566,6 +590,39 @@ nsresult mozInlineSpellChecker::Cleanup(bool aDestroyingFrames)
 
     rv = UnregisterEventListeners();
   }
+
+  
+  
+  
+  
+  
+  
+  
+
+  nsCOMPtr<nsIEditor> editor = do_QueryReferent(mEditor);
+  if (mPendingSpellCheck) {
+    
+    mPendingSpellCheck = nullptr;
+    mPendingInitEditorSpellCheckCallback->Cancel();
+    mPendingInitEditorSpellCheckCallback = nullptr;
+    ChangeNumPendingSpellChecks(-1, editor);
+  }
+
+  
+  
+  mDisabledAsyncToken++;
+
+  if (mNumPendingUpdateCurrentDictionary > 0) {
+    
+    ChangeNumPendingSpellChecks(-mNumPendingUpdateCurrentDictionary, editor);
+    mNumPendingUpdateCurrentDictionary = 0;
+  }
+  if (mNumPendingSpellChecks > 0) {
+    
+    
+    ChangeNumPendingSpellChecks(-mNumPendingSpellChecks, editor);
+  }
+
   mEditor = nullptr;
 
   return rv;
@@ -674,76 +731,13 @@ mozInlineSpellChecker::GetEnableRealTimeSpell(bool* aEnabled)
 }
 
 
-class InitEditorSpellCheckCallback MOZ_FINAL : public nsIEditorSpellCheckCallback
-{
-public:
-  NS_DECL_ISUPPORTS
-
-  explicit InitEditorSpellCheckCallback(mozInlineSpellChecker* aSpellChecker)
-    : mSpellChecker(aSpellChecker) {}
-
-  NS_IMETHOD EditorSpellCheckDone()
-  {
-    return mSpellChecker ? mSpellChecker->EditorSpellCheckInited() : NS_OK;
-  }
-
-  void Cancel()
-  {
-    mSpellChecker = nullptr;
-  }
-
-private:
-  nsRefPtr<mozInlineSpellChecker> mSpellChecker;
-};
-NS_IMPL_ISUPPORTS1(InitEditorSpellCheckCallback, nsIEditorSpellCheckCallback)
-
-
 
 NS_IMETHODIMP
 mozInlineSpellChecker::SetEnableRealTimeSpell(bool aEnabled)
 {
   if (!aEnabled) {
     mSpellCheck = nullptr;
-
-    
-    nsCOMPtr<nsIEditor> editor = do_QueryReferent(mEditor);
-
-    nsresult rv = Cleanup(false);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    if (mPendingSpellCheck) {
-      
-      mPendingSpellCheck = nullptr;
-      mPendingInitEditorSpellCheckCallback->Cancel();
-      mPendingInitEditorSpellCheckCallback = nullptr;
-      ChangeNumPendingSpellChecks(-1, editor);
-    }
-
-    
-    
-    mDisabledAsyncToken++;
-
-    if (mNumPendingUpdateCurrentDictionary > 0) {
-      
-      ChangeNumPendingSpellChecks(-mNumPendingUpdateCurrentDictionary, editor);
-      mNumPendingUpdateCurrentDictionary = 0;
-    }
-    if (mNumPendingSpellChecks > 0) {
-      
-      
-      ChangeNumPendingSpellChecks(-mNumPendingSpellChecks, editor);
-    }
-
-    return rv;
+    return Cleanup(false);
   }
 
   if (mSpellCheck) {
