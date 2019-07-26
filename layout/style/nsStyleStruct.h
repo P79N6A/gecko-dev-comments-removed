@@ -1132,13 +1132,7 @@ struct nsStylePosition {
   
   
   bool HeightDependsOnContainer() const
-    {
-      return mHeight.GetUnit() == eStyleUnit_Auto || 
-        HeightCoordDependsOnContainer(mHeight);
-    }
-
-  
-  
+    { return HeightCoordDependsOnContainer(mHeight); }
   bool MinHeightDependsOnContainer() const
     { return HeightCoordDependsOnContainer(mMinHeight); }
   bool MaxHeightDependsOnContainer() const
@@ -1152,7 +1146,10 @@ struct nsStylePosition {
 private:
   static bool WidthCoordDependsOnContainer(const nsStyleCoord &aCoord);
   static bool HeightCoordDependsOnContainer(const nsStyleCoord &aCoord)
-    { return aCoord.HasPercent(); }
+  {
+    return aCoord.GetUnit() == eStyleUnit_Auto || 
+           aCoord.HasPercent();
+  }
 };
 
 struct nsStyleTextOverflowSide {

@@ -3409,17 +3409,7 @@ CSSValue*
 nsComputedDOMStyle::DoGetMinHeight()
 {
   nsROCSSPrimitiveValue *val = GetROCSSPrimitiveValue();
-  nsStyleCoord minHeight = StylePosition()->mMinHeight;
-
-  if (eStyleUnit_Auto == minHeight.GetUnit()) {
-    
-    
-    
-    
-    minHeight.SetCoordValue(0);
-  }
-
-  SetValueToCoord(val, minHeight, true,
+  SetValueToCoord(val, StylePosition()->mMinHeight, true,
                   &nsComputedDOMStyle::GetCBContentHeight);
   return val;
 }
