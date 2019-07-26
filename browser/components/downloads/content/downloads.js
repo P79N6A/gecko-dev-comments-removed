@@ -137,7 +137,11 @@ const DownloadsPanel = {
     
     
     
-    Services.downloads;
+    if (DownloadsCommon.useJSTransfer) {
+      DownloadsCommon.initializeAllDataLinks();
+    } else {
+      Services.downloads;
+    }
 
     
     
@@ -1339,11 +1343,7 @@ const DownloadsViewController = {
   {
     
     if (aCommand == "downloadsCmd_clearList") {
-      if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-        return Services.downloads.canCleanUpPrivate;
-      } else {
-        return Services.downloads.canCleanUp;
-      }
+      return DownloadsCommon.getData(window).canRemoveFinished;
     }
 
     
@@ -1390,11 +1390,7 @@ const DownloadsViewController = {
   commands: {
     downloadsCmd_clearList: function DVC_downloadsCmd_clearList()
     {
-      if (PrivateBrowsingUtils.isWindowPrivate(window)) {
-        Services.downloads.cleanUpPrivate();
-      } else {
-        Services.downloads.cleanUp();
-      }
+      DownloadsCommon.getData(window).removeFinished();
     }
   }
 };
