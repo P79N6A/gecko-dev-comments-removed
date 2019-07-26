@@ -225,7 +225,7 @@ var Scratchpad = {
         this._previousLocation != this.gBrowser.contentWindow.location.href) {
       let contentWindow = this.gBrowser.selectedBrowser.contentWindow;
       this._contentSandbox = new Cu.Sandbox(contentWindow,
-        { sandboxPrototype: contentWindow, wantXrays: false, 
+        { sandboxPrototype: contentWindow, wantXrays: false,
           sandboxName: 'scratchpad-content'});
       this._contentSandbox.__SCRATCHPAD__ = this;
 
@@ -260,7 +260,7 @@ var Scratchpad = {
     if (!this._chromeSandbox ||
         this.browserWindow != this._previousBrowserWindow) {
       this._chromeSandbox = new Cu.Sandbox(this.browserWindow,
-        { sandboxPrototype: this.browserWindow, wantXrays: false, 
+        { sandboxPrototype: this.browserWindow, wantXrays: false,
           sandboxName: 'scratchpad-chrome'});
       this._chromeSandbox.__SCRATCHPAD__ = this;
       addDebuggerToGlobal(this._chromeSandbox);
@@ -688,6 +688,18 @@ var Scratchpad = {
             file.initWithPath(filePath);
           }
 
+          if (!file.exists()) {
+            this.notificationBox.appendNotification(
+              this.strings.GetStringFromName("fileNoLongerExists.notification"),
+              "file-no-longer-exists",
+              null,
+              this.notificationBox.PRIORITY_WARNING_HIGH,
+              null);
+
+            this.clearFiles(aIndex, 1);
+            return;
+          }
+
           this.setFilename(file.path);
           this.importFromFile(file, false);
           this.setRecentFile(file);
@@ -832,6 +844,23 @@ var Scratchpad = {
   
 
 
+
+
+
+
+
+  clearFiles: function SP_clearFile(aIndex, aLength)
+  {
+    let filePaths = this.getRecentFiles();
+    let branch = Services.prefs.
+                 getBranch("devtools.scratchpad.");
+    filePaths.splice(aIndex, aLength);
+    branch.setCharPref("recentFilePaths", JSON.stringify(filePaths));
+  },
+
+  
+
+
   clearRecentFiles: function SP_clearRecentFiles()
   {
     Services.prefs.clearUserPref("devtools.scratchpad.recentFilePaths");
@@ -859,11 +888,8 @@ var Scratchpad = {
 
       let filePaths = this.getRecentFiles();
       if (maxRecent < filePaths.length) {
-        let branch = Services.prefs.
-                     getBranch("devtools.scratchpad.");
         let diff = filePaths.length - maxRecent;
-        filePaths.splice(0, diff);
-        branch.setCharPref("recentFilePaths", JSON.stringify(filePaths));
+        this.clearFiles(0, diff);
       }
     }
   },
@@ -1217,8 +1243,13 @@ var Scratchpad = {
     }
 
     this.resetContext();
-    this.gBrowser.selectedBrowser.removeEventListener("load",
-        this._reloadAndRunEvent, true);
+
+    
+    if (this._reloadAndRunEvent) {
+      this.gBrowser.selectedBrowser.removeEventListener("load",
+          this._reloadAndRunEvent, true);
+    }
+
     this.editor.removeEventListener(SourceEditor.EVENTS.DIRTY_CHANGED,
                                     this._onDirtyChanged);
     PreferenceObserver.uninit();
