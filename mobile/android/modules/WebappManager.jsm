@@ -189,7 +189,7 @@ this.WebappManager = {
   },
 
   autoInstall: function(aData) {
-    let oldApp = DOMApplicationRegistry.getAppByManifestURL(aData.manifestUrl);
+    let oldApp = DOMApplicationRegistry.getAppByManifestURL(aData.manifestURL);
     if (oldApp) {
       
       this._autoUpdate(aData, oldApp);
@@ -203,7 +203,7 @@ this.WebappManager = {
       }
     };
 
-    let origin = Services.io.newURI(aData.manifestUrl, null, null).prePath;
+    let origin = Services.io.newURI(aData.manifestURL, null, null).prePath;
 
     let message = aData.request || {
       app: {
@@ -222,7 +222,7 @@ this.WebappManager = {
     
     
     
-    message.app.manifestURL = aData.manifestUrl;
+    message.app.manifestURL = aData.manifestURL;
     message.app.manifest = aData.manifest;
     message.app.apkPackageName = aData.apkPackageName;
     message.profilePath = aData.profilePath;
