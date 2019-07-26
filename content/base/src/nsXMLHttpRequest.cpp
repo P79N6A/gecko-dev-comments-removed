@@ -3827,3 +3827,120 @@ nsXMLHttpRequestXPCOMifier::GetInterface(const nsIID & aIID, void **aResult)
 
   return mXHR->GetInterface(aIID, aResult);
 }
+
+namespace mozilla {
+
+ArrayBufferBuilder::ArrayBufferBuilder()
+  : mRawContents(nullptr),
+    mDataPtr(nullptr),
+    mCapacity(0),
+    mLength(0)
+{
+}
+
+ArrayBufferBuilder::~ArrayBufferBuilder()
+{
+  reset();
+}
+
+void
+ArrayBufferBuilder::reset()
+{
+  if (mRawContents) {
+    JS_free(nullptr, mRawContents);
+  }
+  mRawContents = mDataPtr = nullptr;
+  mCapacity = mLength = 0;
+}
+
+bool
+ArrayBufferBuilder::setCapacity(uint32_t aNewCap)
+{
+  if (!JS_ReallocateArrayBufferContents(nullptr, aNewCap, &mRawContents, &mDataPtr)) {
+    return false;
+  }
+
+  mCapacity = aNewCap;
+  if (mLength > aNewCap) {
+    mLength = aNewCap;
+  }
+
+  return true;
+}
+
+bool
+ArrayBufferBuilder::append(const uint8_t *aNewData, uint32_t aDataLen,
+                           uint32_t aMaxGrowth)
+{
+  if (mLength + aDataLen > mCapacity) {
+    uint32_t newcap;
+    
+    if (!aMaxGrowth || mCapacity < aMaxGrowth) {
+      newcap = mCapacity * 2;
+    } else {
+      newcap = mCapacity + aMaxGrowth;
+    }
+
+    
+    if (newcap < mLength + aDataLen) {
+      newcap = mLength + aDataLen;
+    }
+
+    
+    if (newcap < mCapacity) {
+      return false;
+    }
+
+    if (!setCapacity(newcap)) {
+      return false;
+    }
+  }
+
+  
+  MOZ_ASSERT(!areOverlappingRegions(aNewData, aDataLen, mDataPtr + mLength,
+                                    aDataLen));
+
+  memcpy(mDataPtr + mLength, aNewData, aDataLen);
+  mLength += aDataLen;
+
+  return true;
+}
+
+JSObject*
+ArrayBufferBuilder::getArrayBuffer(JSContext* aCx)
+{
+  
+  
+  if (mCapacity > mLength || mLength == 0) {
+    if (!setCapacity(mLength)) {
+      return nullptr;
+    }
+  }
+
+  JSObject* obj = JS_NewArrayBufferWithContents(aCx, mRawContents);
+  if (!obj) {
+    return nullptr;
+  }
+
+  mRawContents = mDataPtr = nullptr;
+  mLength = mCapacity = 0;
+
+  return obj;
+}
+
+ bool
+ArrayBufferBuilder::areOverlappingRegions(const uint8_t* aStart1,
+                                          uint32_t aLength1,
+                                          const uint8_t* aStart2,
+                                          uint32_t aLength2)
+{
+  const uint8_t* end1 = aStart1 + aLength1;
+  const uint8_t* end2 = aStart2 + aLength2;
+
+  const uint8_t* max_start = aStart1 > aStart2 ? aStart1 : aStart2;
+  const uint8_t* min_end   = end1 < end2 ? end1 : end2;
+
+  return max_start < min_end;
+}
+
+} 
