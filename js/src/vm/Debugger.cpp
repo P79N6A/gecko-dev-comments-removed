@@ -1528,7 +1528,7 @@ Debugger::sweepAll(FreeOp *fop)
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
         Debugger *dbg = Debugger::fromLinks(p);
 
-        if (!IsObjectMarked(&dbg->object)) {
+        if (IsObjectAboutToBeFinalized(&dbg->object)) {
             
 
 
@@ -1544,7 +1544,7 @@ Debugger::sweepAll(FreeOp *fop)
         GlobalObjectSet &debuggees = (*c)->getDebuggees();
         for (GlobalObjectSet::Enum e(debuggees); !e.empty(); e.popFront()) {
             GlobalObject *global = e.front();
-            if (!IsObjectMarked(&global))
+            if (IsObjectAboutToBeFinalized(&global))
                 detachAllDebuggersFromGlobal(fop, global, &e);
             else if (global != e.front())
                 e.rekeyFront(global);

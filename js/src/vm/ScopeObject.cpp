@@ -1559,7 +1559,7 @@ DebugScopes::sweep()
 
 
     for (MissingScopeMap::Enum e(missingScopes); !e.empty(); e.popFront()) {
-        if (!IsObjectMarked(e.front().value.unsafeGet()))
+        if (IsObjectAboutToBeFinalized(e.front().value.unsafeGet()))
             e.removeFront();
     }
 
@@ -1571,7 +1571,7 @@ DebugScopes::sweep()
 
 
 
-        if (!IsObjectMarked(&scope)) {
+        if (IsObjectAboutToBeFinalized(&scope)) {
             e.removeFront();
             continue;
         }
@@ -1583,7 +1583,7 @@ DebugScopes::sweep()
 
         if (JSGenerator *gen = fp->maybeSuspendedGenerator(rt)) {
             JS_ASSERT(gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
-            if (!IsObjectMarked(&gen->obj)) {
+            if (IsObjectAboutToBeFinalized(&gen->obj)) {
                 e.removeFront();
                 continue;
             }

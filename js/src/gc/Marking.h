@@ -64,6 +64,20 @@ namespace gc {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #define DeclMarker(base, type)                                                                    \
 void Mark##base(JSTracer *trc, EncapsulatedPtr<type> *thing, const char *name);                   \
 void Mark##base##Root(JSTracer *trc, type **thingp, const char *name);                            \
@@ -71,7 +85,9 @@ void Mark##base##Unbarriered(JSTracer *trc, type **thingp, const char *name);   
 void Mark##base##Range(JSTracer *trc, size_t len, HeapPtr<type> *thing, const char *name);        \
 void Mark##base##RootRange(JSTracer *trc, size_t len, type **thing, const char *name);            \
 bool Is##base##Marked(type **thingp);                                                             \
-bool Is##base##Marked(EncapsulatedPtr<type> *thingp);
+bool Is##base##Marked(EncapsulatedPtr<type> *thingp);                                             \
+bool Is##base##AboutToBeFinalized(type **thingp);                                                 \
+bool Is##base##AboutToBeFinalized(EncapsulatedPtr<type> *thingp);
 
 DeclMarker(BaseShape, BaseShape)
 DeclMarker(BaseShape, UnownedBaseShape)
@@ -163,6 +179,9 @@ MarkTypeRoot(JSTracer *trc, types::Type *v, const char *name);
 
 bool
 IsValueMarked(Value *v);
+
+bool
+IsValueAboutToBeFinalized(Value *v);
 
 
 
@@ -262,6 +281,9 @@ Mark(JSTracer *trc, HeapPtr<ion::IonCode> *code, const char *name)
 bool
 IsCellMarked(Cell **thingp);
 
+bool
+IsCellAboutToBeFinalized(Cell **thing);
+
 inline bool
 IsMarked(EncapsulatedValue *v)
 {
@@ -282,11 +304,31 @@ IsMarked(EncapsulatedPtrScript *scriptp)
     return IsScriptMarked(scriptp);
 }
 
+inline bool
+IsAboutToBeFinalized(EncapsulatedValue *v)
+{
+    if (!v->isMarkable())
+        return false;
+    return IsValueAboutToBeFinalized(v->unsafeGet());
+}
+
+inline bool
+IsAboutToBeFinalized(EncapsulatedPtrObject *objp)
+{
+    return IsObjectAboutToBeFinalized(objp);
+}
+
+inline bool
+IsAboutToBeFinalized(EncapsulatedPtrScript *scriptp)
+{
+    return IsScriptAboutToBeFinalized(scriptp);
+}
+
 #ifdef JS_ION
 
 
 inline bool
-IsMarked(const js::ion::VMFunction **vmfunc)
+IsAboutToBeFinalized(const js::ion::VMFunction **vmfunc)
 {
     
 
@@ -296,7 +338,7 @@ IsMarked(const js::ion::VMFunction **vmfunc)
 }
 
 inline bool
-IsMarked(ReadBarriered<js::ion::IonCode> code)
+IsAboutToBeFinalized(ReadBarriered<js::ion::IonCode> code)
 {
     return IsIonCodeMarked(code.unsafeGet());
 }

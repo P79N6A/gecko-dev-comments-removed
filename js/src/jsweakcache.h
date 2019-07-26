@@ -42,9 +42,9 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
             
             
             Key k(e.front().key);
-            bool isKeyMarked = gc::IsMarked(&k);
+            bool isKeyDying = gc::IsAboutToBeFinalized(&k);
 
-            if (!isKeyMarked || !gc::IsMarked(e.front().value)) {
+            if (isKeyDying || gc::IsAboutToBeFinalized(e.front().value)) {
                 e.removeFront();
             } else {
                 
@@ -60,8 +60,8 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             Key k(r.front().key);
 
-            JS_ASSERT(gc::IsMarked(&k));
-            JS_ASSERT(gc::IsMarked(r.front().value));
+            JS_ASSERT(!gc::IsAboutToBeFinalized(&k));
+            JS_ASSERT(!gc::IsAboutToBeFinalized(r.front().value));
 
             
             JS_ASSERT(k == r.front().key);
