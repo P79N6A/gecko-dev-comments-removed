@@ -15,6 +15,8 @@
 #include "VMFunctions.h"
 #include "IonFrames-inl.h"
 
+#include "jsopcodeinlines.h"
+
 using namespace js;
 using namespace js::ion;
 
@@ -331,10 +333,43 @@ BaselineCompiler::emitUseCountIncrement()
     return true;
 }
 
+bool
+BaselineCompiler::emitDebugTrap()
+{
+    JS_ASSERT(debugMode_);
+
+    bool enabled = script->stepModeEnabled() || script->hasBreakpointsAt(pc);
+
+    
+    frame.syncStack(0);
+    if (!addPCMappingEntry())
+        return false;
+
+    
+    IonCode *handler = cx->compartment->ionCompartment()->debugTrapHandler(cx);
+    mozilla::DebugOnly<CodeOffsetLabel> offset = masm.toggledCall(handler, enabled);
+
+#ifdef DEBUG
+    
+    PCMappingEntry &entry = pcMappingEntries_[pcMappingEntries_.length() - 1];
+    JS_ASSERT((&offset)->offset() == entry.nativeOffset);
+#endif
+
+    
+    ICEntry icEntry(pc - script->code);
+    icEntry.setReturnOffset(masm.currentOffset());
+    if (!icEntries_.append(icEntry))
+        return false;
+
+    return true;
+}
+
 MethodStatus
 BaselineCompiler::emitBody()
 {
     JS_ASSERT(pc == script->code);
+
+    SrcNoteLineScanner scanner(script->notes(), script->lineno);
 
     while (true) {
         SPEW_OPCODE();
@@ -351,6 +386,13 @@ BaselineCompiler::emitBody()
         frame.assertValidState(pc);
 
         masm.bind(labelOf(pc));
+
+        if (debugMode_) {
+            
+            scanner.advanceTo(pc - script->code);
+            if (scanner.isLineHeader() && !emitDebugTrap())
+                return Method_Error;
+        }
 
         switch (op) {
           default:

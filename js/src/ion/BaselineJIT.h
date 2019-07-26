@@ -127,6 +127,11 @@ struct BaselineScript
     PCMappingEntry &pcMappingEntry(size_t index);
     void copyPCMappingEntries(const PCMappingEntry *entries);
     uint8_t *nativeCodeForPC(HandleScript script, jsbytecode *pc);
+
+    
+    
+    
+    void toggleDebugTraps(UnrootedScript script, jsbytecode *pc);
 };
 
 inline bool IsBaselineEnabled(JSContext *cx)

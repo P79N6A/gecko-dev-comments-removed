@@ -13,6 +13,7 @@
 #include "ion/IonSpewer.h"
 #include "ion/Bailouts.h"
 #include "ion/VMFunctions.h"
+#include "ion/arm/BaselineHelpers-arm.h"
 
 using namespace js;
 using namespace js::ion;
@@ -636,3 +637,49 @@ IonRuntime::generatePreBarrier(JSContext *cx, MIRType type)
     return linker.newCode(cx);
 }
 
+typedef bool (*HandleDebugTrapFn)(JSContext *, BaselineFrame *, uint8_t *, JSBool *);
+static const VMFunction HandleDebugTrapInfo = FunctionInfo<HandleDebugTrapFn>(HandleDebugTrap);
+
+IonCode *
+IonRuntime::generateDebugTrapHandler(JSContext *cx)
+{
+    MacroAssembler masm;
+
+    Register scratch1 = r0;
+    Register scratch2 = r1;
+
+    
+    masm.mov(r11, scratch1);
+    masm.subPtr(Imm32(BaselineFrame::Size()), scratch1);
+
+    
+    EmitEnterStubFrame(masm, scratch2);
+
+    IonCompartment *ion = cx->compartment->ionCompartment();
+    IonCode *code = ion->getVMWrapper(HandleDebugTrapInfo);
+    if (!code)
+        return NULL;
+
+    masm.push(lr);
+    masm.push(scratch1);
+    EmitCallVM(code, masm);
+
+    EmitLeaveStubFrame(masm);
+
+    
+    
+    
+    Label forcedReturn;
+    masm.branchTest32(Assembler::NonZero, ReturnReg, ReturnReg, &forcedReturn);
+    masm.mov(lr, pc);
+
+    masm.bind(&forcedReturn);
+    masm.loadValue(Address(r11, BaselineFrame::reverseOffsetOfReturnValue()),
+                   JSReturnOperand);
+    masm.mov(r11, sp);
+    masm.pop(r11);
+    masm.ret();
+
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
