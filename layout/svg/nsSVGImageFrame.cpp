@@ -561,6 +561,7 @@ nsSVGImageListener::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect
     return NS_ERROR_FAILURE;
 
   if (aType == imgINotificationObserver::LOAD_COMPLETE) {
+    mFrame->InvalidateFrame();
     nsSVGEffects::InvalidateRenderingObservers(mFrame);
     nsSVGUtils::ScheduleReflowSVG(mFrame);
   }
@@ -569,11 +570,13 @@ nsSVGImageListener::Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect
     
     
     nsSVGEffects::InvalidateRenderingObservers(mFrame);
+    mFrame->InvalidateFrame();
   }
 
   if (aType == imgINotificationObserver::SIZE_AVAILABLE) {
     
     aRequest->GetImage(getter_AddRefs(mFrame->mImageContainer));
+    mFrame->InvalidateFrame();
     nsSVGEffects::InvalidateRenderingObservers(mFrame);
     nsSVGUtils::ScheduleReflowSVG(mFrame);
   }
