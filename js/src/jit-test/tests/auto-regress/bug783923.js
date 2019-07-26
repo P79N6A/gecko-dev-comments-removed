@@ -1,4 +1,6 @@
 
 
 
-print(ParallelArray());
+
+if (getBuildConfiguration().parallelJS)
+  print(ParallelArray());

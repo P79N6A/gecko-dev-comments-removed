@@ -1,14 +1,18 @@
 
 
 
-function TestCase(n, d, e, a) {};
-function reportCompare() {
-  var testcase = new TestCase("x", 0);
+if (getBuildConfiguration().parallelJS) {
+  function TestCase(n, d, e, a) {};
+  function reportCompare() {
+    var testcase = new TestCase("x", 0);
+  }
+  reportCompare();
+  TestCase = ParallelArray;
+  gczeal(6);
+  try {
+    reportCompare();
+  } catch(exc1) {}
+  reportCompare();
+} else {
+  throw new RangeError();
 }
-reportCompare();
-TestCase = ParallelArray;
-gczeal(6);
-try {
-reportCompare();
-} catch(exc1) {}
-reportCompare();

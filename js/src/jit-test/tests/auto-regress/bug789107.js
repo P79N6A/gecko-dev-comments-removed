@@ -1,4 +1,7 @@
 
 
 
-ParallelArray().watch("shape", function() {})
+
+if (getBuildConfiguration().parallelJS) {
+  ParallelArray().watch("shape", function() {})
+}
