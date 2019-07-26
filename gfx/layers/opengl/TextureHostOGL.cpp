@@ -17,7 +17,6 @@
 #include "gfx2DGlue.h"                  
 #include "gfxImageSurface.h"            
 #include "gfxReusableSurfaceWrapper.h"  
-#include "ipc/AutoOpenSurface.h"        
 #include "mozilla/gfx/2D.h"             
 #include "mozilla/gfx/BaseSize.h"       
 #include "mozilla/layers/CompositorOGL.h"  

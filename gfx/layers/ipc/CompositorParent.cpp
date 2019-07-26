@@ -9,7 +9,6 @@
 #include <stdint.h>                     
 #include <map>                          
 #include <utility>                      
-#include "AutoOpenSurface.h"            
 #include "LayerTransactionParent.h"     
 #include "RenderTrace.h"                
 #include "base/message_loop.h"          
@@ -313,12 +312,7 @@ bool
 CompositorParent::RecvMakeSnapshot(const SurfaceDescriptor& aInSnapshot,
                                    SurfaceDescriptor* aOutSnapshot)
 {
-  AutoOpenSurface opener(OPEN_READ_WRITE, aInSnapshot);
-  gfx::IntSize size = opener.Size();
-  
-  
-  RefPtr<DrawTarget> target =
-    gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(opener.Get(), size);
+  RefPtr<DrawTarget> target = GetDrawTargetForDescriptor(aInSnapshot);
   ForceComposeToTarget(target);
   *aOutSnapshot = aInSnapshot;
   return true;
