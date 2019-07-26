@@ -49,6 +49,8 @@ const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
 const PREF_APP_UPDATE_SERVICE_ENABLED     = "app.update.service.enabled";
 const PREF_APP_UPDATE_SERVICE_ERRORS      = "app.update.service.errors";
 const PREF_APP_UPDATE_SERVICE_MAX_ERRORS  = "app.update.service.maxErrors";
+const PREF_APP_UPDATE_SOCKET_ERRORS       = "app.update.socket.maxErrors";
+const PREF_APP_UPDATE_RETRY_TIMEOUT       = "app.update.socket.retryTimeout";
 
 const PREF_APP_DISTRIBUTION               = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION       = "distribution.version";
@@ -163,6 +165,13 @@ const UPDATE_WINDOW_NAME      = "Update:Wizard";
 
 
 const DEFAULT_SERVICE_MAX_ERRORS = 10;
+
+
+
+const DEFAULT_SOCKET_MAX_ERRORS = 10;
+
+
+const DEFAULT_UPDATE_RETRY_TIMEOUT = 2000;
 
 var gLocale     = null;
 
@@ -1537,6 +1546,7 @@ const UpdateServiceFactory = {
 
 
 function UpdateService() {
+  LOG("Creating UpdateService");
   Services.obs.addObserver(this, "xpcom-shutdown", false);
 }
 
@@ -1560,6 +1570,16 @@ UpdateService.prototype = {
   
 
 
+  _consecutiveSocketErrors: 0,
+
+  
+
+
+  _retryTimer: null,
+
+  
+
+
 
 
 
@@ -1577,6 +1597,10 @@ UpdateService.prototype = {
       break;
     case "xpcom-shutdown":
       Services.obs.removeObserver(this, "xpcom-shutdown");
+
+      if (this._retryTimer) {
+        this._retryTimer.cancel();
+      }
 
       this.pauseDownload();
       
@@ -1904,7 +1928,7 @@ UpdateService.prototype = {
         "another background check");
 
     
-    this.notify(null);
+    this._attemptResume();
   },
 
   
@@ -1949,6 +1973,32 @@ UpdateService.prototype = {
     }
   },
 
+
+  
+
+
+  _attemptResume: function AUS_attemptResume() {
+    LOG("UpdateService:_attemptResume")
+    
+    if (this._downloader && this._downloader._patch &&
+        this._downloader._patch.state == STATE_DOWNLOADING &&
+        this._downloader._update) {
+      LOG("UpdateService:_attemptResume - _patch.state: " +
+          this._downloader._patch.state);
+      
+      writeStatusFile(getUpdatesDir(), STATE_DOWNLOADING);
+      var status = this.downloadUpdate(this._downloader._update,
+                                       this._downloader.background);
+      LOG("UpdateService:_attemptResume - downloadUpdate status: " + status);
+      if (status == STATE_NONE) {
+        cleanupActiveUpdate();
+      }
+      return; 
+    }
+
+    this.backgroundChecker.checkForUpdates(this, false);
+  },
+
   
 
 
@@ -1956,8 +2006,10 @@ UpdateService.prototype = {
 
   notify: function AUS_notify(timer) {
     
-    if (this.isDownloading || this._downloader && this._downloader.patchIsStaged)
-      return;
+    if (this.isDownloading ||
+        this._downloader && this._downloader.patchIsStaged) {
+      return; 
+    }
 
     this.backgroundChecker.checkForUpdates(this, false);
   },
@@ -2365,7 +2417,7 @@ UpdateService.prototype = {
     }
     
     update.previousAppVersion = Services.appinfo.version;
-    this._downloader = new Downloader(background);
+    this._downloader = new Downloader(background, this);
     return this._downloader.downloadUpdate(update);
   },
 
@@ -2805,6 +2857,7 @@ Checker.prototype = {
 
 
   checkForUpdates: function UC_checkForUpdates(listener, force) {
+    LOG("Checker: checkForUpdates, force: " + force);
     if (!listener)
       throw Cr.NS_ERROR_NULL_POINTER;
 
@@ -3030,8 +3083,12 @@ Checker.prototype = {
 
 
 
-function Downloader(background) {
+
+
+function Downloader(background, updateService) {
+  LOG("Creating Downloader");
   this.background = background;
+  this.updateService = updateService;
 }
 Downloader.prototype = {
   
@@ -3060,6 +3117,7 @@ Downloader.prototype = {
 
 
   cancel: function Downloader_cancel(cancelError) {
+    LOG("Downloader: cancel");
     if (cancelError === undefined) {
       cancelError = Cr.NS_BINDING_ABORTED;
     }
@@ -3085,15 +3143,19 @@ Downloader.prototype = {
 
 
   _verifyDownload: function Downloader__verifyDownload() {
+    LOG("Downloader:_verifyDownload called");
     if (!this._request)
       return false;
 
     var destination = this._request.destination;
 
     
-    if (destination.fileSize != this._patch.size)
+    if (destination.fileSize != this._patch.size) {
+      LOG("Downloader:_verifyDownload downloaded size != expected size.");
       return false;
+    }
 
+    LOG("Downloader:_verifyDownload downloaded size == expected size.");
     var fileStream = Cc["@mozilla.org/network/file-input-stream;1"].
                      createInstance(Ci.nsIFileInputStream);
     fileStream.init(destination, FileUtils.MODE_RDONLY, FileUtils.PERMS_FILE, 0);
@@ -3119,7 +3181,13 @@ Downloader.prototype = {
 
     fileStream.close();
 
-    return digest == this._patch.hashValue.toLowerCase();
+    if (digest == this._patch.hashValue.toLowerCase()) {
+      LOG("Downloader:_verifyDownload hashes match.");
+      return true;
+    }
+
+    LOG("Downloader:_verifyDownload hashes do not match. ");
+    return false;
   },
 
   
@@ -3232,6 +3300,7 @@ Downloader.prototype = {
 
 
   downloadUpdate: function Downloader_downloadUpdate(update) {
+    LOG("UpdateService:_downloadUpdate");
     if (!update)
       throw Cr.NS_ERROR_NULL_POINTER;
 
@@ -3373,6 +3442,7 @@ Downloader.prototype = {
       if (listener instanceof Ci.nsIProgressEventSink)
         listener.onProgress(request, context, progress, maxProgress);
     }
+    this.updateService._consecutiveSocketErrors = 0;
   },
 
   
@@ -3417,7 +3487,16 @@ Downloader.prototype = {
     
     var state = this._patch.state;
     var shouldShowPrompt = false;
+    var shouldRegisterOnlineObserver = false;
+    var shouldRetrySoon = false;
     var deleteActiveUpdate = false;
+    var retryTimeout = getPref("getIntPref", PREF_APP_UPDATE_RETRY_TIMEOUT,
+                               DEFAULT_UPDATE_RETRY_TIMEOUT);
+    var maxFail = getPref("getIntPref", PREF_APP_UPDATE_SOCKET_ERRORS,
+                          DEFAULT_SOCKET_MAX_ERRORS);
+    LOG("Downloader:onStopRequest - status: " + status + ", " +
+        "current fail: " + this.updateService._consecutiveSocketErrors + ", " +
+        "max fail: " + maxFail + ", " + "retryTimeout: " + retryTimeout);
     if (Components.isSuccessCode(status)) {
       if (this._verifyDownload()) {
         state = shouldUseService() ? STATE_PENDING_SVC : STATE_PENDING
@@ -3451,10 +3530,28 @@ Downloader.prototype = {
         
         cleanUpUpdatesDir();
       }
-    }
-    else if (status != Cr.NS_BINDING_ABORTED &&
-             status != Cr.NS_ERROR_ABORT &&
-             status != Cr.NS_ERROR_DOCUMENT_NOT_CACHED) {
+    } else if (status == Cr.NS_ERROR_OFFLINE) {
+      
+      
+      
+      
+      LOG("Downloader:onStopRequest - offline, register online observer: true");
+      shouldRegisterOnlineObserver = true;
+      deleteActiveUpdate = false;
+    
+    
+    
+    
+    } else if ((status == Cr.NS_ERROR_NET_TIMEOUT ||
+                status == Cr.NS_ERROR_CONNECTION_REFUSED ||
+                status == Cr.NS_ERROR_NET_RESET) &&
+               this.updateService._consecutiveSocketErrors < maxFail) {
+      LOG("Downloader:onStopRequest - socket error, shouldRetrySoon: true");
+      shouldRetrySoon = true;
+      deleteActiveUpdate = false;
+    } else if (status != Cr.NS_BINDING_ABORTED &&
+               status != Cr.NS_ERROR_ABORT &&
+               status != Cr.NS_ERROR_DOCUMENT_NOT_CACHED) {
       LOG("Downloader:onStopRequest - non-verification failure");
       
       state = STATE_DOWNLOAD_FAILED;
@@ -3484,10 +3581,15 @@ Downloader.prototype = {
     }
     um.saveUpdates();
 
-    var listeners = this._listeners.concat();
-    var listenerCount = listeners.length;
-    for (var i = 0; i < listenerCount; ++i)
-      listeners[i].onStopRequest(request, context, status);
+    
+    
+    if (!shouldRetrySoon && !shouldRegisterOnlineObserver) {
+      var listeners = this._listeners.concat();
+      var listenerCount = listeners.length;
+      for (var i = 0; i < listenerCount; ++i) {
+        listeners[i].onStopRequest(request, context, status);
+      }
+    }
 
     this._request = null;
 
@@ -3552,8 +3654,23 @@ Downloader.prototype = {
         applyUpdateInBackground(this._update);
     }
 
-    
-    this._update = null;
+    if (shouldRegisterOnlineObserver) {
+      LOG("Downloader:onStopRequest - Registering online observer");
+      this.updateService._registerOnlineObserver();
+    } else if (shouldRetrySoon) {
+      LOG("Downloader:onStopRequest - Retrying soon");
+      this.updateService._consecutiveSocketErrors++;
+      if (this.updateService._retryTimer) {
+        this.updateService._retryTimer.cancel();
+      }
+      this.updateService._retryTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+      this.updateService._retryTimer.initWithCallback(function() {
+        this._attemptResume();
+      }.bind(this.updateService), retryTimeout, Ci.nsITimer.TYPE_ONE_SHOT);
+    } else {
+      
+      this._update = null;
+    }
   },
 
   
