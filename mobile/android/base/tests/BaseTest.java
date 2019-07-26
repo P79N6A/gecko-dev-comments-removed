@@ -873,4 +873,27 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
 
         return null;
     }
+
+    
+
+
+    abstract class TestCase implements Runnable {
+        
+
+
+
+
+        protected abstract void test() throws Exception;
+
+        @Override
+        public void run() {
+            try {
+                test();
+            } catch (Exception e) {
+                mAsserter.ok(false,
+                             "Test " + this.getClass().getName() + " threw exception: " + e,
+                             "");
+            }
+        }
+    }
 }

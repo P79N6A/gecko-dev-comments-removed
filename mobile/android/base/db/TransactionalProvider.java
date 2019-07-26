@@ -7,6 +7,7 @@ package org.mozilla.gecko.db;
 import org.mozilla.gecko.db.BrowserContract.CommonColumns;
 import org.mozilla.gecko.db.BrowserContract.SyncColumns;
 import org.mozilla.gecko.db.PerProfileDatabases.DatabaseHelperFactory;
+import org.mozilla.gecko.mozglue.RobocopTarget;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -115,6 +116,17 @@ public abstract class TransactionalProvider<T extends SQLiteOpenHelper> extends 
         return mDatabases.getDatabaseHelperForProfile(profile, isTest(uri)).getWritableDatabase();
     }
 
+    
+
+
+
+
+
+
+    @RobocopTarget
+    public SQLiteDatabase getWritableDatabaseForTesting(Uri uri) {
+        return getWritableDatabase(uri);
+    }
 
     
 
