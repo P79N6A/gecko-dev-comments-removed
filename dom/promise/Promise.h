@@ -215,6 +215,13 @@ private:
                     JS::MutableHandle<JS::Value> aValue);
 
   
+  bool
+  ArgumentToJSValue(bool aArgument,
+                    JSContext* aCx,
+                    JSObject* aScope,
+                    JS::MutableHandle<JS::Value> aValue);
+
+  
   
   template <class T>
   typename EnableIf<IsBaseOf<nsWrapperCache, T>::value &&
