@@ -99,7 +99,11 @@ bool OpenPrivilegedProcessHandle(ProcessId pid, ProcessHandle* handle) {
 }
 
 void CloseProcessHandle(ProcessHandle process) {
-  CloseHandle(process);
+  
+  
+  
+  BOOL ok = CloseHandle(process);
+  DCHECK(ok);
 }
 
 

@@ -42,7 +42,7 @@ class TimerExpiredTask : public Task, public base::ObjectWatcher::Delegate {
     
     watcher_.StopWatching();
 
-    CloseHandle(process_);
+    base::CloseProcessHandle(process_);
     process_ = NULL;
   }
 
@@ -85,13 +85,13 @@ void ProcessWatcher::EnsureProcessTerminated(base::ProcessHandle process
 
   if (!force) {
     WaitForSingleObject(process, INFINITE);
-    CloseHandle(process);
+    base::CloseProcessHandle(process);
     return;
   }
 
   
   if (WaitForSingleObject(process, 0) == WAIT_OBJECT_0) {
-    CloseHandle(process);
+    base::CloseProcessHandle(process);
     return;
   }
 
