@@ -172,6 +172,60 @@ this.Promise = Object.freeze({
     PromiseWalker.completePromise(promise, STATUS_REJECTED, aReason);
     return promise;
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  every: function (aValues)
+  {
+    if (!Array.isArray(aValues)) {
+      throw new Error("Promise.every() expects an array of promises or values.");
+    }
+
+    if (!aValues.length) {
+      return Promise.resolve(undefined);
+    }
+
+    let countdown = aValues.length;
+    let deferred = Promise.defer();
+    let resolutionValues = new Array(countdown);
+
+    function checkForCompletion(aValue, aIndex) {
+      resolutionValues[aIndex] = aValue;
+
+      if (--countdown === 0) {
+        deferred.resolve(resolutionValues);
+      }
+    }
+
+    for (let i = 0; i < aValues.length; i++) {
+      let index = i;
+      let value = aValues[i];
+      let resolve = val => checkForCompletion(val, index);
+
+      if (value && typeof(value.then) == "function") {
+        value.then(resolve, deferred.reject);
+      } else {
+        
+        resolve(value);
+      }
+    }
+
+    return deferred.promise;
+  },
 });
 
 
