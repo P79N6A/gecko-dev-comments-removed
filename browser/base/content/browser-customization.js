@@ -11,16 +11,16 @@
 let CustomizationHandler = {
   handleEvent: function(aEvent) {
     switch(aEvent.type) {
-      case "CustomizationStart":
-        this._customizationStart();
+      case "customizationstarting":
+        this._customizationStarting();
         break;
-      case "CustomizationEnd":
-        this._customizationEnd(aEvent.detail);
+      case "customizationending":
+        this._customizationEnding(aEvent.detail);
         break;
     }
   },
 
-  _customizationStart: function() {
+  _customizationStarting: function() {
     
     let menubar = document.getElementById("main-menubar");
     for (let childNode of menubar.childNodes)
@@ -41,7 +41,7 @@ let CustomizationHandler = {
     TabsInTitlebar.allowedBy("customizing-toolbars", false);
   },
 
-  _customizationEnd: function(aDetails) {
+  _customizationEnding: function(aDetails) {
     
     if (aDetails.changed) {
       gURLBar = document.getElementById("urlbar");
