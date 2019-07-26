@@ -131,25 +131,22 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
   return lineThickness;
 }
 
-NS_IMETHODIMP
+void
 nsMathMLmfracFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                      const nsRect&           aDirtyRect,
                                      const nsDisplayListSet& aLists)
 {
   
   
-  nsresult rv = nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsMathMLContainerFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
   
   
   
   if (mIsBevelled) {
-    rv = DisplaySlash(aBuilder, this, mLineRect, mLineThickness, aLists);
+    DisplaySlash(aBuilder, this, mLineRect, mLineThickness, aLists);
   } else {
-    rv = DisplayBar(aBuilder, this, mLineRect, aLists);
+    DisplayBar(aBuilder, this, mLineRect, aLists);
   }
-
-  return rv;
 }
 
  nsresult
@@ -588,15 +585,15 @@ void nsDisplayMathMLSlash::Paint(nsDisplayListBuilder* aBuilder,
   gfxCtx->Fill();
 }
 
-nsresult
+void
 nsMathMLmfracFrame::DisplaySlash(nsDisplayListBuilder* aBuilder,
                                  nsIFrame* aFrame, const nsRect& aRect,
                                  nscoord aThickness,
                                  const nsDisplayListSet& aLists) {
   if (!aFrame->GetStyleVisibility()->IsVisible() || aRect.IsEmpty())
-    return NS_OK;
+    return;
 
-  return aLists.Content()->AppendNewToTop(new (aBuilder)
-      nsDisplayMathMLSlash(aBuilder, aFrame, aRect, aThickness,
-                           NS_MATHML_IS_RTL(mPresentationData.flags)));
+  aLists.Content()->AppendNewToTop(new (aBuilder)
+    nsDisplayMathMLSlash(aBuilder, aFrame, aRect, aThickness,
+                         NS_MATHML_IS_RTL(mPresentationData.flags)));
 }

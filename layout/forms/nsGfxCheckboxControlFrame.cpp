@@ -96,7 +96,7 @@ nsGfxCheckboxControlFrame::AccessibleType()
 #endif
 
 
-NS_IMETHODIMP
+void
 nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                             const nsRect&           aDirtyRect,
                                             const nsDisplayListSet& aLists)
@@ -105,10 +105,10 @@ nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if ((!IsChecked() && !IsIndeterminate()) || !IsVisibleForPainting(aBuilder))
-    return NS_OK;   
+    return;   
     
   if (IsThemed())
-    return NS_OK; 
+    return; 
 
   aLists.Content()->AppendNewToTop(new (aBuilder)
     nsDisplayGeneric(aBuilder, this,
@@ -116,7 +116,6 @@ nsGfxCheckboxControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                      ? PaintIndeterminateMark : PaintCheckMark,
                      "CheckedCheckbox",
                      nsDisplayItem::TYPE_CHECKED_CHECKBOX));
-  return NS_OK;
 }
 
 

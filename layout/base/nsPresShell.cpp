@@ -4868,13 +4868,13 @@ PresShell::RenderSelection(nsISelection* aSelection,
                              aScreenRect);
 }
 
-nsresult
+void
 PresShell::AddPrintPreviewBackgroundItem(nsDisplayListBuilder& aBuilder,
                                          nsDisplayList&        aList,
                                          nsIFrame*             aFrame,
                                          const nsRect&         aBounds)
 {
-  return aList.AppendNewToBottom(new (&aBuilder)
+  aList.AppendNewToBottom(new (&aBuilder)
     nsDisplaySolidColor(&aBuilder, aFrame, aBounds, NS_RGB(115, 115, 115)));
 }
 
@@ -4896,15 +4896,16 @@ AddCanvasBackgroundColor(const nsDisplayList& aList, nsIFrame* aCanvasFrame,
   return false;
 }
 
-nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
-                                                 nsDisplayList&        aList,
-                                                 nsIFrame*             aFrame,
-                                                 const nsRect&         aBounds,
-                                                 nscolor               aBackstopColor,
-                                                 uint32_t              aFlags)
+void
+PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
+                                        nsDisplayList&        aList,
+                                        nsIFrame*             aFrame,
+                                        const nsRect&         aBounds,
+                                        nscolor               aBackstopColor,
+                                        uint32_t              aFlags)
 {
   if (aBounds.IsEmpty()) {
-    return NS_OK;
+    return;
   }
   
   
@@ -4914,12 +4915,12 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
   
   if (!(aFlags & nsIPresShell::FORCE_DRAW) &&
       !nsCSSRendering::IsCanvasFrame(aFrame)) {
-    return NS_OK;
+    return;
   }
 
   nscolor bgcolor = NS_ComposeColors(aBackstopColor, mCanvasBackgroundColor);
   if (NS_GET_A(bgcolor) == 0)
-    return NS_OK;
+    return;
 
   
   
@@ -4932,13 +4933,13 @@ nsresult PresShell::AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
       nsCanvasFrame* canvasFrame = do_QueryFrame(sf->GetScrolledFrame());
       if (canvasFrame && canvasFrame->IsVisibleForPainting(&aBuilder)) {
         if (AddCanvasBackgroundColor(aList, canvasFrame, bgcolor))
-          return NS_OK;
+          return;
       }
     }
   }
 
-  return aList.AppendNewToBottom(
-      new (&aBuilder) nsDisplaySolidColor(&aBuilder, aFrame, aBounds, bgcolor));
+  aList.AppendNewToBottom(
+    new (&aBuilder) nsDisplaySolidColor(&aBuilder, aFrame, aBounds, bgcolor));
 }
 
 static bool IsTransparentContainerElement(nsPresContext* aPresContext)

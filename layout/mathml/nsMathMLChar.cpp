@@ -1752,7 +1752,7 @@ void nsDisplayMathMLCharDebug::Paint(nsDisplayListBuilder* aBuilder,
 #endif
 
 
-nsresult
+void
 nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
                       nsIFrame*               aForFrame,
                       const nsDisplayListSet& aLists,
@@ -1769,7 +1769,7 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
   }
 
   if (!styleContext->GetStyleVisibility()->IsVisible())
-    return NS_OK;
+    return;
 
   
   
@@ -1801,7 +1801,6 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
                                   aIndex,
                                   aSelectedRect &&
                                   !aSelectedRect->IsEmpty()));
-  return NS_OK;
 }
 
 void

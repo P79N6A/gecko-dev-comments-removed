@@ -363,9 +363,9 @@ protected:
 
 
 
-  nsresult DisplayBar(nsDisplayListBuilder* aBuilder,
-                      nsIFrame* aFrame, const nsRect& aRect,
-                      const nsDisplayListSet& aLists);
+  void DisplayBar(nsDisplayListBuilder* aBuilder,
+                  nsIFrame* aFrame, const nsRect& aRect,
+                  const nsDisplayListSet& aLists);
 
   
   nsPresentationData mPresentationData;

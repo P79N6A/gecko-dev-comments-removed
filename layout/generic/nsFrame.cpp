@@ -1399,28 +1399,28 @@ void nsDisplaySelectionOverlay::Paint(nsDisplayListBuilder* aBuilder,
 
 
 
-nsresult
+void
 nsFrame::DisplaySelectionOverlay(nsDisplayListBuilder*   aBuilder,
                                  nsDisplayList*          aList,
                                  uint16_t                aContentType)
 {
   if (!IsSelected() || !IsVisibleForPainting(aBuilder))
-    return NS_OK;
+    return;
     
   nsPresContext* presContext = PresContext();
   nsIPresShell *shell = presContext->PresShell();
   if (!shell)
-    return NS_OK;
+    return;
 
   int16_t displaySelection = shell->GetSelectionFlags();
   if (!(displaySelection & aContentType))
-    return NS_OK;
+    return;
 
   const nsFrameSelection* frameSelection = GetConstFrameSelection();
   int16_t selectionValue = frameSelection->GetDisplaySelection();
 
   if (selectionValue <= nsISelectionController::SELECTION_HIDDEN)
-    return NS_OK; 
+    return; 
 
   nsIContent *newContent = mContent->GetParent();
 
@@ -1435,7 +1435,7 @@ nsFrame::DisplaySelectionOverlay(nsDisplayListBuilder*   aBuilder,
   
   details = frameSelection->LookUpSelection(newContent, offset, 1, false);
   if (!details)
-    return NS_OK;
+    return;
   
   bool normal = false;
   while (details) {
@@ -1449,47 +1449,43 @@ nsFrame::DisplaySelectionOverlay(nsDisplayListBuilder*   aBuilder,
 
   if (!normal && aContentType == nsISelectionDisplay::DISPLAY_IMAGES) {
     
-    return NS_OK;
+    return;
   }
 
   aList->AppendNewToTop(new (aBuilder)
     nsDisplaySelectionOverlay(aBuilder, this, selectionValue));
-  return NS_OK;
 }
 
-nsresult
+void
 nsFrame::DisplayOutlineUnconditional(nsDisplayListBuilder*   aBuilder,
                                      const nsDisplayListSet& aLists)
 {
   if (GetStyleOutline()->GetOutlineStyle() == NS_STYLE_BORDER_STYLE_NONE)
-    return NS_OK;
-    
+    return;
+
   aLists.Outlines()->AppendNewToTop(
     new (aBuilder) nsDisplayOutline(aBuilder, this));
-  return NS_OK;
 }
 
-nsresult
+void
 nsFrame::DisplayOutline(nsDisplayListBuilder*   aBuilder,
                         const nsDisplayListSet& aLists)
 {
   if (!IsVisibleForPainting(aBuilder))
-    return NS_OK;
+    return;
 
   DisplayOutlineUnconditional(aBuilder, aLists);
-  return NS_OK;
 }
 
-nsresult
+void
 nsIFrame::DisplayCaret(nsDisplayListBuilder* aBuilder,
                        const nsRect& aDirtyRect, nsDisplayList* aList)
 {
   if (!IsVisibleForPainting(aBuilder))
-    return NS_OK;
+    return;
 
   aList->AppendNewToTop(
     new (aBuilder) nsDisplayCaret(aBuilder, this, aBuilder->GetCaret()));
-  return NS_OK;
 }
 
 nscolor
@@ -1499,11 +1495,11 @@ nsIFrame::GetCaretColorAt(int32_t aOffset)
   return GetStyleColor()->mColor;
 }
 
-nsresult
-nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
-                                        const nsDisplayListSet& aLists,
-                                        bool                    aForceBackground,
-                                        nsDisplayBackgroundImage**   aBackground)
+void
+nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*       aBuilder,
+                                        const nsDisplayListSet&     aLists,
+                                        bool                        aForceBackground,
+                                        nsDisplayBackgroundImage** aBackground)
 {
   *aBackground = nullptr;
 
@@ -1516,11 +1512,9 @@ nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                                          aLists.BorderBackground(),
                                                          aBackground);
   }
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
                                         const nsDisplayListSet& aLists,
                                         bool                    aForceBackground)
@@ -1529,7 +1523,7 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
   
   
   if (!IsVisibleForPainting(aBuilder))
-    return NS_OK;
+    return;
 
   nsCSSShadowArray* shadows = GetStyleBorder()->mBoxShadow;
   if (shadows && shadows->HasShadowWithInset(false)) {
@@ -1553,7 +1547,6 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
   }
 
   DisplayOutlineUnconditional(aBuilder, aLists);
-  return NS_OK;
 }
 
 inline static bool IsSVGContentWithCSSClip(const nsIFrame *aFrame)
@@ -1718,7 +1711,7 @@ nsIFrame::OverflowClip(nsDisplayListBuilder*   aBuilder,
   return wrapper.WrapLists(aBuilder, this, aFromSet, aToSet);
 }
 
-static nsresult
+static void
 BuildDisplayListWithOverflowClip(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
     const nsRect& aDirtyRect, const nsDisplayListSet& aSet,
     const nsRect& aClipRect, const nscoord aClipRadii[8])
@@ -1727,7 +1720,6 @@ BuildDisplayListWithOverflowClip(nsDisplayListBuilder* aBuilder, nsIFrame* aFram
   aFrame->BuildDisplayList(aBuilder, aDirtyRect, set);
   aBuilder->DisplayCaret(aFrame, aDirtyRect, aSet.Content());
   aFrame->OverflowClip(aBuilder, set, aSet, aClipRect, aClipRadii);
-  return NS_OK;
 }
 
 #ifdef DEBUG
@@ -1851,17 +1843,17 @@ WrapPreserve3DList(nsIFrame* aFrame, nsDisplayListBuilder* aBuilder, nsDisplayLi
   return rv;
 }
 
-nsresult
+void
 nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
                                              const nsRect&         aDirtyRect,
                                              nsDisplayList*        aList) {
   if (GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
-    return NS_OK;
+    return;
 
   
   
   if (IsFrameOfType(eReplaced) && !IsVisibleForPainting(aBuilder))
-    return NS_OK;
+    return;
 
   nsRect clipPropClip;
   const nsStyleDisplay* disp = GetStyleDisplay();
@@ -1873,7 +1865,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       !aBuilder->WillComputePluginGeometry() &&
       !nsLayoutUtils::HasAnimationsForCompositor(mContent,
                                                  eCSSProperty_opacity)) {
-    return NS_OK;
+    return;
   }
 
   bool applyClipPropClipping =
@@ -1906,7 +1898,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
         dirtyRect.SetEmpty();
       }
       if (!Preserves3DChildren() && !dirtyRect.Intersects(GetVisualOverflowRectRelativeToSelf())) {
-        return NS_OK;
+        return;
       }
     }
     inTransform = true;
@@ -2011,10 +2003,8 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
       (!resultList.IsEmpty() || usingSVGEffects)) {
     nsDisplayClipPropWrapper wrapper(clipPropClip);
     nsDisplayItem* item = wrapper.WrapList(aBuilder, this, &resultList);
-    if (!item)
-      return NS_ERROR_OUT_OF_MEMORY;
     
-    resultList.AppendToTop(item);
+    resultList.AppendNewToTop(item);
   }
   
 
@@ -2057,7 +2047,6 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   }
 
   aList->AppendToTop(&resultList);
-  return NS_OK;
 }
 
 static bool
@@ -2067,7 +2056,7 @@ IsRootScrollFrameActive(nsIPresShell* aPresShell)
   return sf && sf->IsScrollingActive();
 }
 
-nsresult
+void
 nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
                                    nsIFrame*               aChild,
                                    const nsRect&           aDirtyRect,
@@ -2076,11 +2065,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   if (aBuilder->IsBackgroundOnly())
-    return NS_OK;
+    return;
 
   nsIFrame* child = aChild;
   if (child->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
-    return NS_OK;
+    return;
   
   bool isSVG = (child->GetStateBits() & NS_FRAME_SVG_LAYOUT);
 
@@ -2109,14 +2098,14 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     
     if (!child || nsLayoutUtils::IsPopup(child) ||
         (child->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT))
-      return NS_OK;
+      return;
     
     
     
     childType = nullptr;
     
     if (child->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
-      return NS_OK;
+      return;
     nsRect* savedDirty = static_cast<nsRect*>
       (child->Properties().Get(nsDisplayListBuilder::OutOfFlowDirtyRectProperty()));
     if (savedDirty) {
@@ -2145,7 +2134,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       aBuilder->GetSelectedFramesOnly() &&
       child->IsLeaf() &&
       !aChild->IsSelected()) {
-    return NS_OK;
+    return;
   }
 
   if (aBuilder->GetIncludeAllOutOfFlows() &&
@@ -2163,7 +2152,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     if (child != aBuilder->GetIgnoreScrollFrame()) {
       nsRect childDirty;
       if (!childDirty.IntersectRect(dirty, child->GetVisualOverflowRect()))
-        return NS_OK;
+        return;
       
       
       
@@ -2179,7 +2168,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   if (IsThemed(ourDisp) &&
       !PresContext()->GetTheme()->WidgetIsContainer(ourDisp->mAppearance))
-    return NS_OK;
+    return;
 
   
   
@@ -2238,7 +2227,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 #ifdef DEBUG
     DisplayDebugBorders(aBuilder, child, aLists);
 #endif
-    return NS_OK;
+    return;
   }
   
   nsDisplayList list;
@@ -2336,7 +2325,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   
   
   aLists.PositionedDescendants()->AppendToTop(&extraPositionedDescendants);
-  return NS_OK;
 }
 
 void

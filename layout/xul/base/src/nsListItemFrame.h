@@ -19,9 +19,9 @@ public:
 
   
   
-  NS_IMETHOD BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
-                                         const nsRect&           aDirtyRect,
-                                         const nsDisplayListSet& aLists);
+  virtual void BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
+                                           const nsRect&           aDirtyRect,
+                                           const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   virtual nsSize GetPrefSize(nsBoxLayoutState& aState) MOZ_OVERRIDE;
 
