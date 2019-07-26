@@ -135,11 +135,8 @@ void
 RestyleTracker::DoProcessRestyles()
 {
   PROFILER_LABEL("CSS", "ProcessRestyles");
-  
-  
-  mRestyleManager->PresContext()->FrameConstructor()->BeginUpdate();
 
-  mRestyleManager->SetInStyleRefresh(true);
+  mRestyleManager->BeginProcessingRestyles();
 
   
   while (mPendingRestyles.Count()) {
@@ -239,17 +236,7 @@ RestyleTracker::DoProcessRestyles()
     }
   }
 
-  mRestyleManager->FlushOverflowChangedTracker();
-
-  
-  
-  mRestyleManager->SetInStyleRefresh(false);
-
-  mRestyleManager->PresContext()->FrameConstructor()->EndUpdate();
-
-#ifdef DEBUG
-  mRestyleManager->PresContext()->PresShell()->VerifyStyleTree();
-#endif
+  mRestyleManager->EndProcessingRestyles();
 }
 
 bool

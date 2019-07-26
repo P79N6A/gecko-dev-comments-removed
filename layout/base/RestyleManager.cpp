@@ -1372,6 +1372,32 @@ RestyleManager::ProcessPendingRestyles()
 }
 
 void
+RestyleManager::BeginProcessingRestyles()
+{
+  
+  
+  mPresContext->FrameConstructor()->BeginUpdate();
+
+  mInStyleRefresh = true;
+}
+
+void
+RestyleManager::EndProcessingRestyles()
+{
+  FlushOverflowChangedTracker();
+
+  
+  
+  mInStyleRefresh = false;
+
+  mPresContext->FrameConstructor()->EndUpdate();
+
+#ifdef DEBUG
+  mPresContext->PresShell()->VerifyStyleTree();
+#endif
+}
+
+void
 RestyleManager::PostRestyleEventCommon(Element* aElement,
                                        nsRestyleHint aRestyleHint,
                                        nsChangeHint aMinChangeHint,

@@ -148,6 +148,12 @@ public:
   
   
   
+  void BeginProcessingRestyles();
+  void EndProcessingRestyles();
+
+  
+  
+  
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   
@@ -177,11 +183,6 @@ public:
   void PostRestyleEventForLazyConstruction()
   {
     PostRestyleEventInternal(true);
-  }
-
-  void SetInStyleRefresh(bool aInStyleRefresh)
-  {
-    mInStyleRefresh = aInStyleRefresh;
   }
 
   void FlushOverflowChangedTracker()
