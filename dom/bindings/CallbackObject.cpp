@@ -209,6 +209,13 @@ CallbackObject::CallSetup::~CallSetup()
 {
   
   
+  
+  
+  
+  mAc.destroyIfConstructed();
+
+  
+  
   if (mCx) {
     bool dealtWithPendingException = false;
     if ((mCompartment && mExceptionHandling == eRethrowContentExceptions) ||
@@ -231,13 +238,33 @@ CallbackObject::CallSetup::~CallSetup()
       
       
       
-      nsJSUtils::ReportPendingException(mCx);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      JS::Rooted<JSObject*> oldGlobal(mCx, JS::CurrentGlobalOrNull(mCx));
+      MOZ_ASSERT(oldGlobal, "How can we not have a global here??");
+      bool saved = JS_SaveFrameChain(mCx);
+      
+      
+      {
+        JSAutoCompartment ac(mCx, oldGlobal);
+        MOZ_ASSERT(!JS::DescribeScriptedCaller(mCx),
+                   "Our comment above about JS_SaveFrameChain having been "
+                   "called is a lie?");
+        JS_ReportPendingException(mCx);
+      }
+      if (saved) {
+        JS_RestoreFrameChain(mCx);
+      }
     }
   }
-
-  
-  
-  mAc.destroyIfConstructed();
 
   mAutoIncumbentScript.destroyIfConstructed();
   mAutoEntryScript.destroyIfConstructed();

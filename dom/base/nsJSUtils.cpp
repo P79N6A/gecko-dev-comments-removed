@@ -105,6 +105,17 @@ nsJSUtils::ReportPendingException(JSContext *aContext)
   if (JS_IsExceptionPending(aContext)) {
     bool saved = JS_SaveFrameChain(aContext);
     {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
       nsIScriptContext* scx = GetScriptContextFromJSContext(aContext);
       JS::Rooted<JSObject*> scope(aContext);
       scope = scx ? scx->GetWindowProxy()

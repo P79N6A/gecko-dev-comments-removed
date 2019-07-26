@@ -78,6 +78,10 @@ public:
   
   
   
+  
+  
+  
+  
   void ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn);
   void ReportJSException(JSContext* cx);
   

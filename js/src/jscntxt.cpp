@@ -1172,6 +1172,8 @@ JSContext::saveFrameChain()
 void
 JSContext::restoreFrameChain()
 {
+    JS_ASSERT(enterCompartmentDepth_ == 0); 
+                                            
     SavedFrameChain sfc = savedFrameChains_.popCopy();
     setCompartment(sfc.compartment);
     enterCompartmentDepth_ = sfc.enterCompartmentCount;
