@@ -272,12 +272,6 @@ pref("media.mediasource.enabled", false);
 #ifdef MOZ_WEBSPEECH
 pref("media.webspeech.recognition.enable", false);
 #endif
-#ifdef MOZ_WEBM_ENCODER
-pref("media.encoder.webm.enabled", true);
-#endif
-#ifdef MOZ_OMX_ENCODER
-pref("media.encoder.omx.enabled", true);
-#endif
 
 
 pref("media.webaudio.enabled", true);
@@ -4246,6 +4240,9 @@ pref("dom.w3c_touch_events.enabled", 2);
 
 
 pref("dom.w3c_pointer_events.enabled", false);
+
+
+pref("layout.css.touch_action.enabled", false);
 
 
 pref("browser.dom.window.dump.enabled", false);

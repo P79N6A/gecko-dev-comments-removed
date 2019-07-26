@@ -1794,6 +1794,7 @@ struct nsStyleDisplay {
   uint8_t mClipFlags;           
   uint8_t mOrient;              
   uint8_t mMixBlendMode;        
+  uint8_t mTouchAction;         
 
   
   
