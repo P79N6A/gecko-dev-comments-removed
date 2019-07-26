@@ -129,9 +129,8 @@ NS_IMETHODIMP SplitElementTxn::UndoTransaction(void)
   }
 
   
-  nsresult result = mEditor->JoinNodesImpl(mExistingRightNode->AsDOMNode(),
-                                           mNewLeftNode->AsDOMNode(),
-                                           mParent->AsDOMNode());
+  nsresult rv = mEditor->JoinNodesImpl(mExistingRightNode, mNewLeftNode,
+                                       mParent);
 #ifdef DEBUG
   if (gNoisy) 
   { 
@@ -140,7 +139,7 @@ NS_IMETHODIMP SplitElementTxn::UndoTransaction(void)
            static_cast<void*>(mExistingRightNode.get()));
     if (gNoisy) {mEditor->DebugDumpContent(); } 
   }
-  if (NS_SUCCEEDED(result))
+  if (NS_SUCCEEDED(rv))
   {
     if (gNoisy)
     {
@@ -150,7 +149,7 @@ NS_IMETHODIMP SplitElementTxn::UndoTransaction(void)
   }
 #endif
 
-  return result;
+  return rv;
 }
 
 
