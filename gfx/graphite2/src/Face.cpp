@@ -25,7 +25,6 @@
 
 
 #include <cstring>
-#include <algorithm>
 #include "graphite2/Segment.h"
 #include "inc/CmapCache.h"
 #include "inc/debug.h"
@@ -54,7 +53,7 @@ Face::Face(const void* appFaceHandle, const gr_face_ops & ops)
   m_descent(0)
 {
     memset(&m_ops, 0, sizeof m_ops);
-    memcpy(&m_ops, &ops, std::min(sizeof m_ops, ops.size));
+    memcpy(&m_ops, &ops, min(sizeof m_ops, ops.size));
 }
 
 

@@ -34,6 +34,10 @@ namespace graphite2 {
 
 
 
+
+
+
+
 class sparse
 {
 public:
@@ -64,6 +68,7 @@ public:
 	operator bool () const throw();
 	mapped_type 	operator [] (const key_type k) const throw();
 
+	size_t capacity() const throw();
 	size_t size()     const throw();
 
 	size_t _sizeof() const throw();
@@ -137,11 +142,16 @@ sparse::operator bool () const throw()
 	return m_array.map != 0;
 }
 
+inline
+size_t sparse::size() const throw()
+{
+    return m_nchunks*SIZEOF_CHUNK;
+}
 
 inline
 size_t sparse::_sizeof() const throw()
 {
-	return sizeof(sparse) + size()*sizeof(mapped_type) + m_nchunks*sizeof(chunk);
+	return sizeof(sparse) + capacity()*sizeof(mapped_type) + m_nchunks*sizeof(chunk);
 }
 
 } 

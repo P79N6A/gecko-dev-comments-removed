@@ -25,14 +25,7 @@
 
 
 #include <cstring>
-
-
-
 #include "inc/FileFace.h"
-
-
-
-
 
 
 #ifndef GRAPHITE2_NFILEFACE
