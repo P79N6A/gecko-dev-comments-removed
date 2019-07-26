@@ -360,10 +360,13 @@ public:
 
       NS_ASSERTION(NS_IsMainThread(), "Only create MediaManager on main thread");
       nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
-      obs->AddObserver(sSingleton, "xpcom-shutdown", false);
-      obs->AddObserver(sSingleton, "getUserMedia:response:allow", false);
-      obs->AddObserver(sSingleton, "getUserMedia:response:deny", false);
-      obs->AddObserver(sSingleton, "getUserMedia:revoke", false);
+      if (obs) {
+        obs->AddObserver(sSingleton, "xpcom-shutdown", false);
+        obs->AddObserver(sSingleton, "getUserMedia:response:allow", false);
+        obs->AddObserver(sSingleton, "getUserMedia:response:deny", false);
+        obs->AddObserver(sSingleton, "getUserMedia:revoke", false);
+      }
+      
     }
     return sSingleton;
   }
