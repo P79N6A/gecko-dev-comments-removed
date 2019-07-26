@@ -270,6 +270,14 @@ public:
   
   double GetContentsScaleFactor();
 
+  static bool InPluginCall() { return gInPluginCalls > 0; }
+  static void BeginPluginCall() { ++gInPluginCalls; }
+  static void EndPluginCall()
+  {
+    NS_ASSERTION(InPluginCall(), "Must be in plugin call");
+    --gInPluginCalls;
+  }
+
 protected:
 
   nsresult GetTagType(nsPluginTagType *result);
@@ -364,6 +372,8 @@ private:
 
   
   bool mHaveJavaC2PJSObjectQuirk;
+
+  static uint32_t gInPluginCalls;
 };
 
 #endif 

@@ -186,12 +186,20 @@ enum eNPPStreamTypeInternal {
 
 static NS_DEFINE_IID(kMemoryCID, NS_MEMORY_CID);
 
+PRIntervalTime NS_NotifyBeginPluginCall()
+{
+  nsNPAPIPluginInstance::BeginPluginCall();
+  return PR_IntervalNow();
+}
+
 
 
 
 
 void NS_NotifyPluginCall(PRIntervalTime startTime) 
 {
+  nsNPAPIPluginInstance::EndPluginCall();
+
   PRIntervalTime endTime = PR_IntervalNow() - startTime;
   nsCOMPtr<nsIObserverService> notifyUIService =
     mozilla::services::GetObserverService();
