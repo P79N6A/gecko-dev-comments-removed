@@ -14,6 +14,9 @@ Cu.import("resource://gre/modules/SharedPreferences.jsm");
 Cu.import("resource://gre/modules/Messaging.jsm");
 
 
+const PREFS_PANEL_AUTH_PREFIX = "home_panels_auth_";
+
+
 function resolveGeckoURI(aURI) {
   if (!aURI)
     throw "Can't resolve an empty uri";
@@ -363,6 +366,14 @@ let HomePanels = (function () {
         type: "HomePanels:Update",
         panel: _generatePanel(id)
       });
+    },
+
+    setAuthenticated: function(id, isAuthenticated) {
+      _assertPanelExists(id);
+
+      let authKey = PREFS_PANEL_AUTH_PREFIX + id;
+      let sharedPrefs = new SharedPreferences();
+      sharedPrefs.setBoolPref(authKey, isAuthenticated);
     }
   });
 })();
