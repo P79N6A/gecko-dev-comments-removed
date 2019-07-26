@@ -1311,6 +1311,35 @@ HasOwnProperty(JSContext *cx, LookupGenericOp lookup,
 
 typedef JSObject *(*ClassInitializerOp)(JSContext *cx, JS::HandleObject obj);
 
+
+bool
+GetBuiltinConstructor(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject objp);
+
+bool
+GetBuiltinPrototype(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject objp);
+
+const Class *
+ProtoKeyToClass(JSProtoKey key);
+
+JSObject *
+GetBuiltinPrototypePure(GlobalObject *global, JSProtoKey protoKey);
+
+extern bool
+SetClassAndProto(JSContext *cx, HandleObject obj,
+                 const Class *clasp, Handle<TaggedProto> proto, bool *succeeded);
+
+
+
+
+
+
+
+bool
+FindClassObject(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp);
+
+extern bool
+FindClassPrototype(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp);
+
 } 
 
 
@@ -1331,31 +1360,6 @@ extern const char js_lookupSetter_str[];
 
 extern bool
 js_PopulateObject(JSContext *cx, js::HandleObject newborn, js::HandleObject props);
-
-
-
-
-extern bool
-js_GetClassObject(js::ExclusiveContext *cx, JSProtoKey key,
-                  js::MutableHandleObject objp);
-
-extern bool
-js_GetClassPrototype(js::ExclusiveContext *cx, JSProtoKey key,
-                     js::MutableHandleObject objp);
-
-
-
-
-
-
-
-bool
-js_FindClassObject(js::ExclusiveContext *cx, js::MutableHandleObject protop,
-                   const js::Class *clasp);
-
-extern bool
-js_FindClassPrototype(js::ExclusiveContext *cx, js::MutableHandleObject protop,
-                      const js::Class *clasp);
 
 
 namespace js {
@@ -1617,16 +1621,6 @@ js_InferFlags(JSContext *cx, unsigned defaultFlags);
 
 
 namespace js {
-
-const Class *
-ProtoKeyToClass(JSProtoKey key);
-
-JSObject *
-GetClassPrototypePure(GlobalObject *global, JSProtoKey protoKey);
-
-extern bool
-SetClassAndProto(JSContext *cx, HandleObject obj,
-                 const Class *clasp, Handle<TaggedProto> proto, bool *succeeded);
 
 extern JSObject *
 NonNullObject(JSContext *cx, const Value &v);

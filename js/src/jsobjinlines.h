@@ -871,10 +871,17 @@ GetClassProtoKey(const js::Class *clasp)
 inline bool
 FindProto(ExclusiveContext *cx, const js::Class *clasp, MutableHandleObject proto)
 {
-    if (!js_FindClassPrototype(cx, proto, clasp))
+    if (!FindClassPrototype(cx, proto, clasp))
         return false;
-    if (!proto && !js_GetClassPrototype(cx, JSProto_Object, proto))
-        return false;
+
+    if (!proto) {
+        
+        
+        
+        
+        JS_ASSERT(JSCLASS_CACHED_PROTO_KEY(clasp) == JSProto_Null);
+        return GetBuiltinPrototype(cx, JSProto_Object, proto);
+    }
     return true;
 }
 

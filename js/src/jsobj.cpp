@@ -2641,13 +2641,11 @@ js_InitClass(JSContext *cx, HandleObject obj, JSObject *protoProto_,
 
 
 
-
-
-
     JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
     if (key != JSProto_Null &&
         !protoProto &&
-        !js_GetClassPrototype(cx, JSProto_Object, &protoProto)) {
+        !GetBuiltinPrototype(cx, JSProto_Object, &protoProto))
+    {
         return nullptr;
     }
 
@@ -3245,30 +3243,26 @@ MaybeResolveConstructor(ExclusiveContext *cxArg, Handle<GlobalObject*> global, J
 }
 
 bool
-js_GetClassObject(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject objp)
+js::GetBuiltinConstructor(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject objp)
 {
     MOZ_ASSERT(key != JSProto_Null);
     Rooted<GlobalObject*> global(cx, cx->global());
     if (!MaybeResolveConstructor(cx, global, key))
         return false;
 
-    Value v = global->getConstructor(key);
-    if (v.isObject())
-        objp.set(&v.toObject());
+    objp.set(&global->getConstructor(key).toObject());
     return true;
 }
 
 bool
-js_GetClassPrototype(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject protop)
+js::GetBuiltinPrototype(ExclusiveContext *cx, JSProtoKey key, MutableHandleObject protop)
 {
     MOZ_ASSERT(key != JSProto_Null);
     Rooted<GlobalObject*> global(cx, cx->global());
     if (!MaybeResolveConstructor(cx, global, key))
         return false;
 
-    Value v = global->getPrototype(key);
-    if (v.isObject())
-        protop.set(&v.toObject());
+    protop.set(&global->getPrototype(key).toObject());
     return true;
 }
 
@@ -3309,26 +3303,19 @@ JS::IdentifyStandardInstanceOrPrototype(JSObject *obj)
 }
 
 bool
-js_FindClassObject(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp)
+js::FindClassObject(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp)
 {
-    MOZ_ASSERT(clasp);
     JSProtoKey protoKey = GetClassProtoKey(clasp);
-    RootedId id(cx);
     if (protoKey != JSProto_Null) {
         JS_ASSERT(JSProto_Null < protoKey);
         JS_ASSERT(protoKey < JSProto_LIMIT);
-        RootedObject cobj(cx);
-        if (!js_GetClassObject(cx, protoKey, protop))
-            return false;
-        if (cobj)
-            return true;
-        id = NameToId(ClassName(protoKey, cx));
-    } else {
-        JSAtom *atom = Atomize(cx, clasp->name, strlen(clasp->name));
-        if (!atom)
-            return false;
-        id = AtomToId(atom);
+        return GetBuiltinConstructor(cx, protoKey, protop);
     }
+
+    JSAtom *atom = Atomize(cx, clasp->name, strlen(clasp->name));
+    if (!atom)
+        return false;
+    RootedId id(cx, AtomToId(atom));
 
     RootedObject pobj(cx);
     RootedShape shape(cx);
@@ -5465,7 +5452,7 @@ js::IsDelegateOfObject(JSContext *cx, HandleObject protoObj, JSObject* obj, bool
 }
 
 JSObject *
-js::GetClassPrototypePure(GlobalObject *global, JSProtoKey protoKey)
+js::GetBuiltinPrototypePure(GlobalObject *global, JSProtoKey protoKey)
 {
     JS_ASSERT(JSProto_Null <= protoKey);
     JS_ASSERT(protoKey < JSProto_LIMIT);
@@ -5484,19 +5471,15 @@ js::GetClassPrototypePure(GlobalObject *global, JSProtoKey protoKey)
 
 
 bool
-js_FindClassPrototype(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp)
+js::FindClassPrototype(ExclusiveContext *cx, MutableHandleObject protop, const Class *clasp)
 {
     protop.set(nullptr);
     JSProtoKey protoKey = GetClassProtoKey(clasp);
-    if (protoKey != JSProto_Null) {
-        if (!js_GetClassPrototype(cx, protoKey, protop))
-            return false;
-        if (protop)
-            return true;
-    }
+    if (protoKey != JSProto_Null)
+        return GetBuiltinPrototype(cx, protoKey, protop);
 
     RootedObject ctor(cx);
-    if (!js_FindClassObject(cx, &ctor, clasp))
+    if (!FindClassObject(cx, &ctor, clasp))
         return false;
 
     if (ctor && ctor->is<JSFunction>()) {

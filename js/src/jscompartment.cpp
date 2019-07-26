@@ -354,12 +354,10 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
     AutoDisableProxyCheck adpc(cx->runtime());
 
     
-
-
-
-
-
-
+    
+    
+    
+    
     HandleObject global = cx->global();
     RootedObject objGlobal(cx, &obj->global());
     JS_ASSERT(global);
@@ -382,15 +380,17 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
 
     
     if (obj->is<StopIterationObject>()) {
+        
+        
         RootedObject stopIteration(cx);
-        if (!js_GetClassObject(cx, JSProto_StopIteration, &stopIteration))
+        if (!GetBuiltinConstructor(cx, JSProto_StopIteration, &stopIteration))
             return false;
         obj.set(stopIteration);
         return true;
     }
 
     
-
+    
     JS_CHECK_CHROME_RECURSION(cx, return false);
     if (cb->preWrap) {
         obj.set(cb->preWrap(cx, global, obj, flags));
@@ -436,9 +436,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleObject obj, HandleObject existin
         return false;
 
     
-
-
-
+    
     JS_ASSERT(Wrapper::wrappedObject(obj) == &key.get().toObject());
 
     return putWrapper(cx, key, ObjectValue(*obj));
