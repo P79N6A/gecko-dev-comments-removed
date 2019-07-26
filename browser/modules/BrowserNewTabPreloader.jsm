@@ -332,7 +332,7 @@ HiddenBrowser.prototype = {
     
     let mm = aTab.linkedBrowser.messageManager;
     let scripts = win.messageManager.getDelayedFrameScripts();
-    Array.forEach(scripts, script => mm.loadFrameScript(script, true));
+    Array.forEach(scripts, ([script, runGlobal]) => mm.loadFrameScript(script, true, runGlobal));
 
     
     this._removeBrowser();
