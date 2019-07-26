@@ -2986,7 +2986,11 @@ var XPIProvider = {
         Prefs.getBoolPref(PREF_INSTALL_DISTRO_ADDONS, true))
       updateDatabase = this.installDistributionAddons(manifests) || updateDatabase;
 
+    
+    let telemetryCaptureTime = new Date();
     let state = this.getInstallLocationStates();
+    let telemetry = Services.telemetry;
+    telemetry.getHistogramById("CHECK_ADDONS_MODIFIED_MS").add(new Date() - telemetryCaptureTime);
 
     if (!updateDatabase) {
       
