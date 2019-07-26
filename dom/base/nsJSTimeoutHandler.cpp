@@ -245,16 +245,32 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
       NS_ENSURE_SUCCESS(rv, rv);
 
       if (csp) {
-        bool allowsEval;
-        
-        
-        rv = csp->GetAllowsEval(&allowsEval);
+        bool allowsEval = true;
+        bool reportViolation = false;
+        rv = csp->GetAllowsEval(&reportViolation, &allowsEval);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        if (!allowsEval) {
-          ::JS_ReportError(cx, "call to %s blocked by CSP",
-                            *aIsInterval ? kSetIntervalStr : kSetTimeoutStr);
+        if (reportViolation) {
+          
+          NS_NAMED_LITERAL_STRING(scriptSample, "call to eval() or related function blocked by CSP");
 
+          
+          uint32_t lineNum = 0;
+          const char *fileName;
+          nsAutoCString aFileName;
+          if (nsJSUtils::GetCallingLocation(cx, &fileName, &lineNum)) {
+            aFileName.Assign(fileName);
+          } else {
+            aFileName.Assign("unknown");
+          }
+
+          csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_EVAL,
+                                  NS_ConvertUTF8toUTF16(aFileName),
+                                  scriptSample,
+                                  lineNum);
+        }
+
+        if (!allowsEval) {
           
           return NS_ERROR_DOM_TYPE_ERR;
         }

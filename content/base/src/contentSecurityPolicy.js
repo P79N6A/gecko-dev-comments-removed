@@ -128,11 +128,19 @@ ContentSecurityPolicy.prototype = {
     return this._policy.toString();
   },
 
-  get allowsInlineScript() {
+  getAllowsInlineScript: function(shouldReportViolation) {
+    
+    shouldReportViolation.value = !this._policy.allowsInlineScripts;
+
+    
     return this._reportOnlyMode || this._policy.allowsInlineScripts;
   },
 
-  get allowsEval() {
+  getAllowsEval: function(shouldReportViolation) {
+    
+    shouldReportViolation.value = !this._policy.allowsEvalInScripts;
+
+    
     return this._reportOnlyMode || this._policy.allowsEvalInScripts;
   },
 

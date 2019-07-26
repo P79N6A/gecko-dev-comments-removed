@@ -45,7 +45,6 @@ function makeReportHandler(testpath, message, expectedJSON) {
     for (var i in expectedJSON)
       do_check_eq(expectedJSON[i], reportObj['csp-report'][i]);
 
-    
     testsToFinish--;
     httpServer.registerPathHandler(testpath, null);
     if (testsToFinish < 1)
@@ -55,7 +54,12 @@ function makeReportHandler(testpath, message, expectedJSON) {
   };
 }
 
-function makeTest(id, expectedJSON, callback) {
+
+
+
+
+
+function makeTest(id, expectedJSON, useReportOnlyPolicy, callback) {
   testsToFinish++;
   do_test_pending();
 
@@ -80,6 +84,9 @@ function makeTest(id, expectedJSON, callback) {
   csp.refinePolicy(policy, selfuri, false);
 
   
+  if (useReportOnlyPolicy) csp.reportOnlyMode = true;
+
+  
   var handler = makeReportHandler("/test" + id, "Test " + id, expectedJSON);
   httpServer.registerPathHandler("/test" + id, handler);
 
@@ -96,32 +103,82 @@ function run_test() {
   httpServer.start(REPORT_SERVER_PORT);
 
   
-  makeTest(0, {"blocked-uri": "self"},
+  makeTest(0, {"blocked-uri": "self"}, false,
       function(csp) {
-        if(!csp.allowsInlineScript) {
-          
-          csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
-                                  selfuri.asciiSpec,
-                                  "script sample",
-                                  0);
-        }
+        let inlineOK = true, oReportViolation = {};
+        inlineOK = csp.getAllowsInlineScript(oReportViolation);
+
+        
+        do_check_false(inlineOK);
+        
+        do_check_true(oReportViolation.value);
+
+        
+        csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                selfuri.asciiSpec,
+                                "script sample",
+                                0);
       });
 
-  makeTest(1, {"blocked-uri": "self"},
+  
+  makeTest(1, {"blocked-uri": "self"}, false,
       function(csp) {
-        if(!csp.allowsEval) {
-          
-          csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
-                                  selfuri.asciiSpec,
-                                  "script sample",
-                                  1);
-        }
+        let evalOK = true, oReportViolation = {};
+        evalOK = csp.getAllowsEval(oReportViolation);
+
+        
+        do_check_false(evalOK);
+        
+        do_check_true(oReportViolation.value);
+
+        
+        csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                selfuri.asciiSpec,
+                                "script sample",
+                                1);
       });
 
-  makeTest(2, {"blocked-uri": "http://blocked.test/foo.js"},
+  makeTest(2, {"blocked-uri": "http://blocked.test/foo.js"}, false,
       function(csp) {
+        
         csp.shouldLoad(Ci.nsIContentPolicy.TYPE_SCRIPT,
                       NetUtil.newURI("http://blocked.test/foo.js"),
                       null, null, null, null);
+      });
+
+  
+  makeTest(3, {"blocked-uri": "self"}, true,
+      function(csp) {
+        let inlineOK = true, oReportViolation = {};
+        inlineOK = csp.getAllowsInlineScript(oReportViolation);
+
+        
+        do_check_true(inlineOK);
+        
+        do_check_true(oReportViolation.value);
+
+        
+        csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                selfuri.asciiSpec,
+                                "script sample",
+                                3);
+      });
+
+  
+  makeTest(4, {"blocked-uri": "self"}, true,
+      function(csp) {
+        let evalOK = true, oReportViolation = {};
+        evalOK = csp.getAllowsEval(oReportViolation);
+
+        
+        do_check_true(evalOK);
+        
+        do_check_true(oReportViolation.value);
+
+        
+        csp.logViolationDetails(Ci.nsIContentSecurityPolicy.VIOLATION_TYPE_INLINE_SCRIPT,
+                                selfuri.asciiSpec,
+                                "script sample",
+                                4);
       });
 }

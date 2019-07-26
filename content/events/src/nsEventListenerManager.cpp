@@ -669,11 +669,12 @@ nsEventListenerManager::SetEventHandler(nsIAtom *aName,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (csp) {
-      bool inlineOK;
-      rv = csp->GetAllowsInlineScript(&inlineOK);
+      bool inlineOK = true;
+      bool reportViolations = false;
+      rv = csp->GetAllowsInlineScript(&reportViolations, &inlineOK);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      if ( !inlineOK ) {
+      if (reportViolations) {
         
         nsIURI* uri = doc->GetDocumentURI();
         nsAutoCString asciiSpec;
@@ -693,6 +694,10 @@ nsEventListenerManager::SetEventHandler(nsIAtom *aName,
                                  NS_ConvertUTF8toUTF16(asciiSpec),
                                  scriptSample,
                                  0);
+      }
+
+      
+      if (!inlineOK) {
         return NS_OK;
       }
     }

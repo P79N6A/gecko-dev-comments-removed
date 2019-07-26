@@ -168,22 +168,27 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     rv = principal->GetCsp(getter_AddRefs(csp));
     NS_ENSURE_SUCCESS(rv, rv);
     if (csp) {
-		bool allowsInline;
-		rv = csp->GetAllowsInlineScript(&allowsInline);
-		NS_ENSURE_SUCCESS(rv, rv);
+        bool allowsInline = true;
+        bool reportViolations = false;
+        rv = csp->GetAllowsInlineScript(&reportViolations, &allowsInline);
+        NS_ENSURE_SUCCESS(rv, rv);
 
-      if (!allowsInline) {
-          
-          nsCOMPtr<nsIURI> uri;
-          principal->GetURI(getter_AddRefs(uri));
-          nsAutoCString asciiSpec;
-          uri->GetAsciiSpec(asciiSpec);
-		  csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
-								   NS_ConvertUTF8toUTF16(asciiSpec),
-								   NS_ConvertUTF8toUTF16(mURL),
-                                   0);
+        if (reportViolations) {
+            
+            nsCOMPtr<nsIURI> uri;
+            principal->GetURI(getter_AddRefs(uri));
+            nsAutoCString asciiSpec;
+            uri->GetAsciiSpec(asciiSpec);
+            csp->LogViolationDetails(nsIContentSecurityPolicy::VIOLATION_TYPE_INLINE_SCRIPT,
+                                     NS_ConvertUTF8toUTF16(asciiSpec),
+                                     NS_ConvertUTF8toUTF16(mURL),
+                                     0);
+        }
+
+        
+        if (!allowsInline) {
           return NS_ERROR_DOM_RETVAL_UNDEFINED;
-      }
+        }
     }
 
     
