@@ -3428,7 +3428,7 @@ nsGlobalWindow::GetOpener(nsIDOMWindow** aOpener)
   }
 
   
-  if (nsContentUtils::IsCallerTrustedForRead()) {
+  if (nsContentUtils::IsCallerChrome()) {
     NS_ADDREF(*aOpener = opener);
     return NS_OK;
   }

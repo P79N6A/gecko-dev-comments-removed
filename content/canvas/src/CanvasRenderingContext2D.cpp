@@ -3894,7 +3894,7 @@ CanvasRenderingContext2D::DrawWindow(nsIDOMWindow* window, double x,
   
   
   
-  if (!nsContentUtils::IsCallerTrustedForRead()) {
+  if (!nsContentUtils::IsCallerChrome()) {
     
     
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -3995,7 +3995,7 @@ CanvasRenderingContext2D::AsyncDrawXULElement(nsIDOMXULElement* elem,
   
   
   
-  if (!nsContentUtils::IsCallerTrustedForRead()) {
+  if (!nsContentUtils::IsCallerChrome()) {
     
     
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
@@ -4132,7 +4132,7 @@ CanvasRenderingContext2D::GetImageData(JSContext* aCx, double aSx,
   
   
   if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
-      !nsContentUtils::IsCallerTrustedForRead())
+      !nsContentUtils::IsCallerChrome())
   {
     
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
