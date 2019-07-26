@@ -1,0 +1,65 @@
+
+
+
+
+#include "nsIDOMEventListener.h"
+#include "MediaEngine.h"
+#include "ImageContainer.h"
+#include "nsITimer.h"
+#include "mozilla/Monitor.h"
+
+namespace mozilla {
+
+class MediaEngineTabVideoSource : public MediaEngineVideoSource, nsIDOMEventListener, nsITimerCallback {
+  public:
+    NS_DECL_THREADSAFE_ISUPPORTS
+    NS_DECL_NSIDOMEVENTLISTENER
+    NS_DECL_NSITIMERCALLBACK
+    MediaEngineTabVideoSource();
+    ~MediaEngineTabVideoSource() { free(mData); }
+    virtual void GetName(nsAString_internal&);
+    virtual void GetUUID(nsAString_internal&);
+    virtual nsresult Allocate(const mozilla::MediaEnginePrefs&);
+    virtual nsresult Deallocate();
+    virtual nsresult Start(mozilla::SourceMediaStream*, mozilla::TrackID);
+    virtual nsresult Snapshot(uint32_t, nsIDOMFile**);
+    virtual void NotifyPull(mozilla::MediaStreamGraph*, mozilla::SourceMediaStream*, mozilla::TrackID, mozilla::StreamTime, mozilla::TrackTicks&);
+    virtual nsresult Stop(mozilla::SourceMediaStream*, mozilla::TrackID);
+    virtual nsresult Config(bool, uint32_t, bool, uint32_t, bool, uint32_t);
+    virtual bool IsFake();
+    void Draw();
+
+    class StartRunnable : public nsRunnable {
+    public:
+      StartRunnable(MediaEngineTabVideoSource *videoSource) : mVideoSource(videoSource) {}
+      NS_IMETHOD Run();
+      nsRefPtr<MediaEngineTabVideoSource> mVideoSource;
+    };
+
+    class StopRunnable : public nsRunnable {
+    public:
+    StopRunnable(MediaEngineTabVideoSource *videoSource) : mVideoSource(videoSource) {}
+      NS_IMETHOD Run();
+      nsRefPtr<MediaEngineTabVideoSource> mVideoSource;
+    };
+
+    class InitRunnable : public nsRunnable {
+    public:
+    InitRunnable(MediaEngineTabVideoSource *videoSource) : mVideoSource(videoSource) {}
+      NS_IMETHOD Run();
+      nsRefPtr<MediaEngineTabVideoSource> mVideoSource;
+    };
+
+private:
+    int mBufW;
+    int mBufH;
+    int mTimePerFrame;
+    unsigned char *mData;
+    nsCOMPtr<nsIDOMWindow> mWindow;
+    nsRefPtr<layers::CairoImage> mImage;
+    nsCOMPtr<nsITimer> mTimer;
+    nsAutoString mName, mUuid;
+    Monitor mMonitor;
+  };
+
+}
