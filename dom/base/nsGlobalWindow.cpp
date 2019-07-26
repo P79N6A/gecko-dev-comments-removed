@@ -212,6 +212,7 @@
 #include "nsITabChild.h"
 #include "nsIDOMMediaQueryList.h"
 #include "mozilla/dom/DOMJSClass.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 #ifdef MOZ_WEBSPEECH
 #include "mozilla/dom/SpeechSynthesis.h"
@@ -11212,9 +11213,9 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
       
       
       
-      nsCxPusher pusher;
+      Maybe<AutoSystemCaller> asc;
       if (!aContentModal) {
-        pusher.PushNull();
+        asc.construct();
       }
 
 

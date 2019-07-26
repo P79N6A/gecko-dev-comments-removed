@@ -36,10 +36,11 @@
 #include "SandboxPrivate.h"
 #include "nsJSPrincipals.h"
 #include "nsContentUtils.h"
-#include "nsCxPusher.h"
+#include "mozilla/dom/ScriptSettings.h"
 
 using mozilla::AutoSafeJSContext;
 using mozilla::AutoPushJSContext;
+using mozilla::dom::AutoSystemCaller;
 
 
 
@@ -3004,8 +3005,7 @@ jsdService::EnterNestedEventLoop (jsdINestCallback *callback, uint32_t *_rval)
     
     
     nsresult rv = NS_OK;
-    nsCxPusher pusher;
-    pusher.PushNull();
+    AutoSystemCaller asc;
     uint32_t nestLevel = ++mNestedLoopLevel;
     nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
 
