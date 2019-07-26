@@ -94,6 +94,9 @@ using mozilla::plugins::PluginModuleParent;
 #ifdef XP_WIN
 #include <windows.h>
 #include "nsWindowsHelpers.h"
+#ifdef ACCESSIBILITY
+#include "mozilla/a11y/Compatibility.h"
+#endif
 #endif
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -254,11 +257,24 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     return false;
   }
 
+#ifdef ACCESSIBILITY
+  
+  
+  bool useA11yPref = false;
+#endif
+
 #ifdef XP_WIN
+  useA11yPref =  a11y::Compatibility::IsJAWS();
+
   
   
   if (aPluginTag->mIsFlashPlugin && IsVistaOrLater()) {
+#ifdef ACCESSIBILITY
+    if (!useA11yPref)
+      return true;
+#else
     return true;
+#endif
   }
 #endif
 
@@ -289,6 +305,11 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 #endif
 #else
   nsAutoCString prefGroupKey("dom.ipc.plugins.enabled.");
+#endif
+
+#ifdef ACCESSIBILITY
+  if (useA11yPref)
+    prefGroupKey.AssignLiteral("dom.ipc.plugins.enabled.a11y.");
 #endif
 
   
@@ -345,6 +366,9 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
     Preferences::GetBool("dom.ipc.plugins.enabled.ppc", false);
 #endif
 #else
+#ifdef ACCESSIBILITY
+    useA11yPref ? Preferences::GetBool("dom.ipc.plugins.enabled.a11y", false) :
+#endif
     Preferences::GetBool("dom.ipc.plugins.enabled", false);
 #endif
   }
