@@ -641,7 +641,10 @@ nsGonkCameraControl::SetParameter(uint32_t aKey,
 
   if (!length) {
     
-    mParams.set(key, "(0,0,0,0,0)");
+    {
+      RwAutoLockWrite lock(mRwLock);
+      mParams.set(key, "(0,0,0,0,0)");
+    }
     PushParameters();
     return;
   }
@@ -1230,7 +1233,10 @@ nsGonkCameraControl::SetPreviewSize(uint32_t aWidth, uint32_t aHeight)
   uint32_t delta;
   Size size;
 
-  mParams.getSupportedPreviewSizes(previewSizes);
+  {
+    RwAutoLockRead lock(mRwLock);
+    mParams.getSupportedPreviewSizes(previewSizes);
+  }
 
   if (!aWidth && !aHeight) {
     
@@ -1274,7 +1280,10 @@ nsGonkCameraControl::SetPreviewSize(uint32_t aWidth, uint32_t aHeight)
 
   mWidth = bestWidth;
   mHeight = bestHeight;
-  mParams.setPreviewSize(mWidth, mHeight);
+  {
+    RwAutoLockWrite lock(mRwLock);
+    mParams.setPreviewSize(mWidth, mHeight);
+  }
   PushParameters();
 }
 
@@ -1306,16 +1315,19 @@ nsGonkCameraControl::SetupVideoMode(const nsAString& aProfile)
   const size_t SIZE = 256;
   char buffer[SIZE];
 
-  mParams.setPreviewSize(width, height);
-  mParams.setPreviewFrameRate(fps);
+  {
+    RwAutoLockWrite lock(mRwLock);
+    mParams.setPreviewSize(width, height);
+    mParams.setPreviewFrameRate(fps);
 
-  
+    
 
 
 
 
-  snprintf(buffer, SIZE, "%dx%d", width, height);
-  mParams.set("record-size", buffer);
+    snprintf(buffer, SIZE, "%dx%d", width, height);
+    mParams.set("record-size", buffer);
+  }
 
   
   PushParameters();
@@ -1607,10 +1619,14 @@ nsGonkCameraControl::GetVideoSizes(nsTArray<idl::CameraSize>& aVideoSizes)
   aVideoSizes.Clear();
 
   android::Vector<Size> sizes;
-  mParams.getSupportedVideoSizes(sizes);
-  if (sizes.size() == 0) {
-    DOM_CAMERA_LOGI("Camera doesn't support video independent of the preview\n");
-    mParams.getSupportedPreviewSizes(sizes);
+  {
+    RwAutoLockRead lock(mRwLock);
+
+    mParams.getSupportedVideoSizes(sizes);
+    if (sizes.size() == 0) {
+      DOM_CAMERA_LOGI("Camera doesn't support video independent of the preview\n");
+      mParams.getSupportedPreviewSizes(sizes);
+    }
   }
 
   if (sizes.size() == 0) {
