@@ -11,6 +11,7 @@
 #include "jsprf.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsDOMJSUtils.h"
 #include "nsLayoutStatics.h"
 #include "xpcpublic.h"
 
@@ -829,6 +830,36 @@ CycleCollectedJSRuntime::BeginCycleCollection(nsCycleCollectionNoteRootCallback 
   return NS_OK;
 }
 
+
+
+
+
+
+bool
+CycleCollectedJSRuntime::UsefulToMergeZones() const
+{
+  JSContext* iter = nullptr;
+  JSContext* cx;
+  while ((cx = JS_ContextIterator(mJSRuntime, &iter))) {
+    
+    
+    
+    nsIScriptContext* scx = GetScriptContextFromJSContext(cx);
+    JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
+    if (!global || !js::GetObjectParent(global)) {
+      continue;
+    }
+    
+    global = JS_ObjectToInnerObject(cx, global);
+    MOZ_ASSERT(!js::GetObjectParent(global));
+    if (JS::GCThingIsMarkedGray(global) &&
+        !js::IsSystemCompartment(js::GetObjectCompartment(global))) {
+      return true;
+    }
+  }
+  return false;
+}
+
 void
 CycleCollectedJSRuntime::FixWeakMappingGrayBits() const
 {
@@ -840,4 +871,57 @@ bool
 CycleCollectedJSRuntime::NeedCollect() const
 {
   return !js::AreGCGrayBitsValid(mJSRuntime);
+}
+
+void
+CycleCollectedJSRuntime::Collect(uint32_t aReason) const
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  MOZ_ASSERT(aReason < JS::gcreason::NUM_REASONS);
+  JS::gcreason::Reason gcreason = static_cast<JS::gcreason::Reason>(aReason);
+
+  JS::PrepareForFullGC(mJSRuntime);
+  JS::GCForReason(mJSRuntime, gcreason);
 }

@@ -248,55 +248,7 @@ nsXPConnect::NeedCollect()
 void
 nsXPConnect::Collect(uint32_t reason)
 {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    MOZ_ASSERT(reason < JS::gcreason::NUM_REASONS);
-    JS::gcreason::Reason gcreason = (JS::gcreason::Reason)reason;
-
-    JSRuntime *rt = GetRuntime()->Runtime();
-    JS::PrepareForFullGC(rt);
-    JS::GCForReason(rt, gcreason);
+    return GetRuntime()->Collect(reason);
 }
 
 NS_IMETHODIMP
@@ -342,34 +294,10 @@ nsXPConnect::NotifyEnterMainThread()
     mRuntime->NotifyEnterMainThread();
 }
 
-
-
-
-
-
 bool
 nsXPConnect::UsefulToMergeZones()
 {
-    JSContext *iter = nullptr;
-    JSContext *cx;
-    while ((cx = JS_ContextIterator(GetRuntime()->Runtime(), &iter))) {
-        
-        
-        
-        nsIScriptContext *scx = GetScriptContextFromJSContext(cx);
-        JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
-        if (!global || !js::GetObjectParent(global)) {
-            continue;
-        }
-        
-        global = JS_ObjectToInnerObject(cx, global);
-        MOZ_ASSERT(!js::GetObjectParent(global));
-        if (JS::GCThingIsMarkedGray(global) &&
-            !js::IsSystemCompartment(js::GetObjectCompartment(global))) {
-            return true;
-        }
-    }
-    return false;
+    return GetRuntime()->UsefulToMergeZones();
 }
 
 nsCycleCollectionParticipant *

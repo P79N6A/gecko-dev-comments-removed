@@ -507,10 +507,10 @@ public:
     virtual void NotifyEnterMainThread(); 
     virtual nsresult BeginCycleCollection(nsCycleCollectionNoteRootCallback &cb); 
     virtual nsCycleCollectionParticipant *GetParticipant(); 
-    virtual bool UsefulToMergeZones();
+    virtual bool UsefulToMergeZones(); 
     virtual void FixWeakMappingGrayBits(); 
     virtual bool NeedCollect(); 
-    virtual void Collect(uint32_t reason);
+    virtual void Collect(uint32_t reason); 
 
     
     static nsCycleCollectionParticipant *JSContextParticipant();
