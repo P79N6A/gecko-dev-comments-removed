@@ -753,8 +753,13 @@ function makeDReportMap(aJSONReports)
 
     
     
+    
+    
     let strippedProcess = jr.process.replace(/pid \d+/, "pid NNN");
     let strippedPath = jr.path.replace(/0x[0-9A-Fa-f]+/, "0xNNN");
+    strippedPath = strippedPath.replace(
+      /moz-nullprincipal:{........-....-....-....-............}/,
+      "moz-nullprincipal:{NNNNNNNN-NNNN-NNNN-NNNN-NNNNNNNNNNNN}");
     let processPath = strippedProcess + kProcessPathSep + strippedPath;
 
     let rOld = dreportMap[processPath];
