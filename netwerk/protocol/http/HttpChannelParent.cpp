@@ -48,16 +48,17 @@ HttpChannelParent::HttpChannelParent(PBrowserParent* iframeEmbedding,
   , mLoadContext(aLoadContext)
 {
   
-  nsIHttpProtocolHandler* handler;
-  CallGetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http", &handler);
-  MOZ_ASSERT(handler);
+  nsCOMPtr<nsIHttpProtocolHandler> dummyInitializer =
+    do_GetService(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX "http");
+
+  MOZ_ASSERT(gHttpHandler);
+  mHttpHandler = gHttpHandler;
 
   mTabParent = static_cast<mozilla::dom::TabParent*>(iframeEmbedding);
 }
 
 HttpChannelParent::~HttpChannelParent()
 {
-  gHttpHandler->Release();
 }
 
 void
