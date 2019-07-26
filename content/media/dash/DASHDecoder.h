@@ -164,6 +164,14 @@ public:
 
   
   
+  uint32_t GetNumSubsegmentLoads() {
+    ReentrantMonitorConditionallyEnter mon(!OnDecodeThread(),
+                                           GetReentrantMonitor());
+    return mVideoSubsegmentLoads.Length();
+  }
+
+  
+  
   int32_t GetRepIdxForVideoSubsegmentLoad(int32_t aSubsegmentIdx)
   {
     NS_ASSERTION(0 <= aSubsegmentIdx, "Subsegment index should not be negative.");

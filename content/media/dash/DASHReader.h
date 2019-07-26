@@ -238,6 +238,16 @@ private:
 
     
     
+    bool IsEmpty() const
+    {
+      NS_ASSERTION(mReader->GetDecoder(), "Decoder is null!");
+      if (!mReader->GetDecoder()->OnDecodeThread()) {
+        mReader->GetDecoder()->GetReentrantMonitor().AssertCurrentThreadIn();
+      }
+      return mSubReaderList.IsEmpty();
+    }
+    
+    
     
     nsRefPtr<DASHRepReader>& operator[](uint32_t i)
     {

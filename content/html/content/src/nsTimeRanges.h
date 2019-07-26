@@ -25,6 +25,9 @@ public:
   void Add(double aStart, double aEnd);
 
   
+  double GetFinalEndTime();
+
+  
   void Normalize();
 
 private:
