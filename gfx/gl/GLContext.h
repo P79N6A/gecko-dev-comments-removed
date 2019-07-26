@@ -62,7 +62,6 @@ namespace android {
 namespace mozilla {
     namespace gfx {
         class SharedSurface;
-        class DataSourceSurface;
         struct SurfaceCaps;
     }
 
@@ -880,39 +879,14 @@ public:
 
 
 
-    ShaderProgramType UploadImageDataToTexture(unsigned char* aData,
-                                               int32_t aStride,
-                                               gfxASurface::gfxImageFormat aFormat,
-                                               const nsIntRegion& aDstRegion,
-                                               GLuint& aTexture,
-                                               bool aOverwrite = false,
-                                               bool aPixelBuffer = false,
-                                               GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
-                                               GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
-
-    
-
-
     ShaderProgramType UploadSurfaceToTexture(gfxASurface *aSurface,
                                              const nsIntRegion& aDstRegion,
                                              GLuint& aTexture,
                                              bool aOverwrite = false,
                                              const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
                                              bool aPixelBuffer = false,
-                                             GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
-                                             GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
+                                             GLenum aTextureUnit = LOCAL_GL_TEXTURE0);
 
-    
-
-
-    ShaderProgramType UploadSurfaceToTexture(gfx::DataSourceSurface *aSurface,
-                                             const nsIntRegion& aDstRegion,
-                                             GLuint& aTexture,
-                                             bool aOverwrite = false,
-                                             const nsIntPoint& aSrcPoint = nsIntPoint(0, 0),
-                                             bool aPixelBuffer = false,
-                                             GLenum aTextureUnit = LOCAL_GL_TEXTURE0,
-                                             GLenum aTextureTarget = LOCAL_GL_TEXTURE_2D);
 
     void TexImage2D(GLenum target, GLint level, GLint internalformat,
                     GLsizei width, GLsizei height, GLsizei stride,

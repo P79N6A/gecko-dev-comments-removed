@@ -22,7 +22,6 @@
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
 #include "mozilla/layers/LayersTypes.h"
-#include "mozilla/RefPtr.h"
 
 
 class   nsFontMetrics;
@@ -47,9 +46,6 @@ class Composer2D;
 class CompositorChild;
 class LayerManager;
 class PLayerTransactionChild;
-}
-namespace gfx {
-class DrawTarget;
 }
 }
 
@@ -96,8 +92,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xa2900e47, 0x0021, 0x441c, \
-  { 0x9e, 0x94, 0xd5, 0x61, 0x5a, 0x31, 0x5d, 0x7a } }
+{ 0x5b9152, 0x56c8, 0x4a2d, \
+  { 0x94, 0x9e, 0xec, 0xf5, 0x3, 0x83, 0x3d, 0x48 } }
 
 
 
@@ -1195,31 +1191,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
-
-    
-
-
-
-
-
-    virtual mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() = 0;
-
-    
-
-
-
-
-
-
-    virtual void EndRemoteDrawing() = 0;
-
-    
-
-
-
-
-
-    virtual void CleanupRemoteDrawing() = 0;
 
     
 

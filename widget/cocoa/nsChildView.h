@@ -84,12 +84,11 @@ class nsChildView;
 class nsCocoaWindow;
 union nsPluginPort;
 
-namespace {
-class GLPresenter;
-class RectTextureImage;
+namespace mozilla {
+namespace gl {
+class TextureImage;
 }
 
-namespace mozilla {
 namespace layers {
 class GLManager;
 }
@@ -573,10 +572,6 @@ public:
     return nsCocoaUtils::DevPixelsToCocoaPoints(aRect, BackingScaleFactor());
   }
 
-  mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() MOZ_OVERRIDE;
-  void EndRemoteDrawing() MOZ_OVERRIDE;
-  void CleanupRemoteDrawing() MOZ_OVERRIDE;
-
 protected:
 
   void              ReportMoveEvent();
@@ -595,10 +590,7 @@ protected:
     return widget.forget();
   }
 
-  void DoRemoteComposition(const nsIntRect& aRenderRect);
-
   
-  void DrawWindowOverlay(mozilla::layers::GLManager* aManager, nsIntRect aRect);
   void MaybeDrawResizeIndicator(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
   void MaybeDrawRoundedCorners(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
   void MaybeDrawTitlebar(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
@@ -606,6 +598,10 @@ protected:
   
   
   void UpdateTitlebarImageBuffer();
+
+  
+  
+  void UpdateTitlebarImage(mozilla::layers::GLManager* aManager, const nsIntRect& aRect);
 
   nsIntRect RectContainingTitlebarControls();
 
@@ -644,13 +640,14 @@ protected:
   
   nsIntRegion mUpdatedTitlebarRegion;
 
-  mozilla::RefPtr<mozilla::gfx::DrawTarget> mTitlebarImageBuffer;
+  nsRefPtr<gfxQuartzSurface> mTitlebarImageBuffer;
 
   
-  nsAutoPtr<RectTextureImage> mResizerImage;
-  nsAutoPtr<RectTextureImage> mCornerMaskImage;
-  nsAutoPtr<RectTextureImage> mTitlebarImage;
-  nsAutoPtr<RectTextureImage> mBasicCompositorImage;
+  bool                  mFailedResizerImage;
+  bool                  mFailedCornerMaskImage;
+  nsRefPtr<mozilla::gl::TextureImage> mResizerImage;
+  nsRefPtr<mozilla::gl::TextureImage> mCornerMaskImage;
+  nsRefPtr<mozilla::gl::TextureImage> mTitlebarImage;
 
   
   
@@ -669,10 +666,6 @@ protected:
 
   NP_CGContext          mPluginCGContext;
   nsIPluginInstanceOwner* mPluginInstanceOwner; 
-
-  
-  
-  nsAutoPtr<GLPresenter> mGLPresenter;
 
   static uint32_t sLastInputEventCount;
 };
