@@ -8,19 +8,19 @@
 
 
 
-function gen_test()
+function test_task()
 {
   try {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield undefined;
+    yield task_resetState();
 
     
     
     DownloadsCommon.getData(window).panelHasShownBefore = false;
 
-    prepareForPanelOpen();
+    let promise = promisePanelOpened();
     DownloadsCommon.getData(window)._notifyDownloadEvent("start");
-    yield undefined;
+    yield promise;
 
     
     DownloadsPanel.hidePanel();
@@ -30,27 +30,24 @@ function gen_test()
 
     
     
-    panelShouldNotOpen();
-    DownloadsCommon.getData(window)._notifyDownloadEvent("start");
-    yield waitFor(2);
-  } catch(e) {
-    ok(false, e);
+    let originalOnPopupShown = DownloadsPanel.onPopupShown;
+    DownloadsPanel.onPopupShown = function () {
+      originalOnPopupShown.apply(this, arguments);
+      ok(false, "Should not have opened the downloads panel.");
+    };
+
+    try {
+      DownloadsCommon.getData(window)._notifyDownloadEvent("start");
+
+      
+      let deferTimeout = Promise.defer();
+      setTimeout(deferTimeout.resolve, 2000);
+      yield deferTimeout.promise;
+    } finally {
+      DownloadsPanel.onPopupShown = originalOnPopupShown;
+    }
   } finally {
     
-    for (let yy in gen_resetState(DownloadsCommon.getData(window))) yield undefined;
+    yield task_resetState();
   }
-}
-
-
-
-
-
-function panelShouldNotOpen()
-{
-  
-  let originalOnViewLoadCompleted = DownloadsPanel.onViewLoadCompleted;
-  DownloadsPanel.onViewLoadCompleted = function () {
-    DownloadsPanel.onViewLoadCompleted = originalOnViewLoadCompleted;
-    ok(false, "Should not have opened the downloads panel.");
-  };
 }
