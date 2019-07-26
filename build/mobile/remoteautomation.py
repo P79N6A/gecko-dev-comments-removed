@@ -5,7 +5,6 @@
 import time
 import re
 import os
-import automationutils
 import tempfile
 import shutil
 import subprocess
@@ -133,8 +132,8 @@ class RemoteAutomation(Automation):
                 
                 return True
             self._devicemanager.getDirectory(remoteCrashDir, dumpDir)
-            crashed = automationutils.checkForCrashes(dumpDir, symbolsPath,
-                                            self.lastTestSeen)
+            crashed = Automation.checkForCrashes(self, dumpDir, symbolsPath)
+
         finally:
             try:
                 shutil.rmtree(dumpDir)
