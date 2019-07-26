@@ -38,6 +38,10 @@ public:
 
   virtual const nsAString&
   GetRootName() const MOZ_OVERRIDE;
+
+  virtual bool
+  IsSafeFile(nsIFile* aFile) const MOZ_OVERRIDE;
+
 private:
   virtual
   ~DeviceStorageFileSystem();
@@ -48,6 +52,7 @@ private:
   
   
   nsString mLocalRootPath;
+  nsString mNormalizedLocalRootPath;
   nsDOMDeviceStorage* mDeviceStorage;
 };
 
