@@ -675,7 +675,7 @@ js::XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enc
                .setSelfHostingMode(!!(scriptBits & (1 << SelfHosted)));
         RootedScriptSource sourceObject(cx);
         if (scriptBits & (1 << OwnSource)) {
-            ScriptSource *ss = cx->new_<ScriptSource>(xdr->originPrincipals());
+            ScriptSource *ss = cx->new_<ScriptSource>();
             if (!ss)
                 return false;
             ScriptSourceHolder ssHolder(ss);
@@ -687,6 +687,8 @@ js::XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enc
 
 
             CompileOptions options(cx);
+            options.setOriginPrincipals(xdr->originPrincipals());
+            ss->initFromOptions(cx, options);
             sourceObject = ScriptSourceObject::create(cx, ss, options);
             if (!sourceObject)
                 return false;
@@ -1732,6 +1734,78 @@ ScriptSource::performXDR(XDRState<mode> *xdr)
     return true;
 }
 
+
+
+
+
+
+static char *
+FormatIntroducedFilename(ExclusiveContext *cx, const char *filename, unsigned lineno,
+                         const char *introducer)
+{
+    
+    
+    
+    
+    
+    
+    char linenoBuf[15];
+    size_t filenameLen = strlen(filename);
+    size_t linenoLen = JS_snprintf(linenoBuf, 15, "%u", lineno);
+    size_t introducerLen = strlen(introducer);
+    size_t len = filenameLen                    +
+                 6     +
+                 linenoLen                      +
+                 3        +
+                 introducerLen                  +
+                 1 ;
+    char *formatted = cx->pod_malloc<char>(len);
+    if (!formatted)
+        return nullptr;
+    mozilla::DebugOnly<size_t> checkLen = JS_snprintf(formatted, len, "%s line %s > %s",
+                                                      filename, linenoBuf, introducer);
+    JS_ASSERT(checkLen == len - 1);
+
+    return formatted;
+}
+
+bool
+ScriptSource::initFromOptions(ExclusiveContext *cx, const ReadOnlyCompileOptions &options)
+{
+    JS_ASSERT(!filename_);
+    JS_ASSERT(!introducerFilename_);
+
+    originPrincipals_ = options.originPrincipals();
+    if (originPrincipals_)
+        JS_HoldPrincipals(originPrincipals_);
+
+    introductionType_ = options.introductionType;
+    introductionOffset_ = options.introductionOffset;
+
+    if (options.hasIntroductionInfo) {
+        JS_ASSERT(options.introductionType != nullptr);
+        const char *filename = options.filename() ? options.filename() : "<unknown>";
+        char *formatted = FormatIntroducedFilename(cx, filename, options.introductionLineno,
+                                                   options.introductionType);
+        if (!formatted)
+            return false;
+        filename_ = formatted;
+    } else if (options.filename()) {
+        if (!setFilename(cx, options.filename()))
+            return false;
+    }
+
+    if (options.introducerFilename()) {
+        introducerFilename_ = js_strdup(cx, options.introducerFilename());
+        if (!introducerFilename_)
+            return false;
+    } else {
+        introducerFilename_ = filename_;
+    }
+
+    return true;
+}
+
 bool
 ScriptSource::setFilename(ExclusiveContext *cx, const char *filename)
 {
@@ -1770,48 +1844,6 @@ ScriptSource::displayURL()
 {
     JS_ASSERT(hasDisplayURL());
     return displayURL_;
-}
-
-bool
-ScriptSource::setIntroducedFilename(ExclusiveContext *cx,
-                                    const char *callerFilename, unsigned callerLineno,
-                                    const char *introductionType, const char *introducerFilename)
-{
-    JS_ASSERT(!filename_);
-    JS_ASSERT(!introducerFilename_);
-
-    introductionType_ = introductionType;
-
-    if (introducerFilename) {
-        introducerFilename_ = js_strdup(cx, introducerFilename);
-        if (!introducerFilename_)
-            return false;
-    }
-
-    
-    
-    
-    char linenoBuf[15];
-    size_t filenameLen = strlen(callerFilename);
-    size_t linenoLen = JS_snprintf(linenoBuf, 15, "%u", callerLineno);
-    size_t introductionTypeLen = strlen(introductionType);
-    size_t len = filenameLen                    +
-                 6     +
-                 linenoLen                      +
-                 3        +
-                 introductionTypeLen            +
-                 1 ;
-    filename_ = cx->pod_malloc<char>(len);
-    if (!filename_)
-        return false;
-    mozilla::DebugOnly<size_t> checkLen = JS_snprintf(filename_, len, "%s line %s > %s",
-                                                      callerFilename, linenoBuf, introductionType);
-    JS_ASSERT(checkLen == len - 1);
-
-    if (!introducerFilename_)
-        introducerFilename_ = filename_;
-
-    return true;
 }
 
 bool
