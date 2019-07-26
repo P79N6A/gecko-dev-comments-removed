@@ -184,7 +184,11 @@
 
 
 
-#define SK_SUPPORT_GPU 1
+#ifdef USE_SKIA_GPU
+    #define SK_SUPPORT_GPU 1
+#else
+    #define SK_SUPPORT_GPU 0
+#endif
 
 
 
