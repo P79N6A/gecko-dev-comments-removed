@@ -293,7 +293,11 @@ this.PushService = {
         Services.obs.removeObserver(this, "profile-change-teardown");
         this._shutdown();
         break;
-      case "network-active-changed":
+      case "network-active-changed":         
+      case "network:offline-status-changed": 
+        
+        
+        
         if (this._udpServer) {
           this._udpServer.close();
         }
@@ -301,11 +305,15 @@ this.PushService = {
         this._shutdownWS();
 
         
-        this._db.getAllChannelIDs(function(channelIDs) {
-          if (channelIDs.length > 0) {
-            this._beginWSSetup();
-          }
-        }.bind(this));
+        
+        if (aTopic === "network-active-changed" || aData === "online") {
+          
+          this._db.getAllChannelIDs(function(channelIDs) {
+            if (channelIDs.length > 0) {
+              this._beginWSSetup();
+            }
+          }.bind(this));
+        }
         break;
       case "nsPref:changed":
         if (aData == "services.push.serverURL") {
@@ -419,7 +427,15 @@ this.PushService = {
     
     
     
-    Services.obs.addObserver(this, "network-active-changed", false);
+    
+    
+    
+    
+    
+    
+    
+    
+    Services.obs.addObserver(this, this._getNetworkStateChangeEventName(), false);
 
     this._db = new PushDB(this);
 
@@ -473,7 +489,7 @@ this.PushService = {
   _shutdown: function() {
     debug("_shutdown()");
 
-    Services.obs.removeObserver(this, "network-active-changed");
+    Services.obs.removeObserver(this, this._getNetworkStateChangeEventName());
     Services.obs.removeObserver(this, "webapps-uninstall", false);
 
     if (this._db) {
@@ -1425,6 +1441,16 @@ this.PushService = {
       mnc: 0,
       ip: undefined
     };
+  },
+
+  
+  _getNetworkStateChangeEventName: function() {
+    try {
+      Cc["@mozilla.org/network/manager;1"].getService(Ci.nsINetworkManager);
+      return "network-active-changed";
+    } catch (e) {
+      return "network:offline-status-changed";
+    }
   }
 }
 
