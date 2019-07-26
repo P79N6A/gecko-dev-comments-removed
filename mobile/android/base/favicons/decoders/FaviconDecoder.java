@@ -89,14 +89,14 @@ public class FaviconDecoder {
         LoadFaviconResult result;
         if (isDecodableByAndroid(buffer, offset)) {
             result = new LoadFaviconResult();
-            result.mOffset = offset;
-            result.mLength = length;
-            result.mIsICO = false;
+            result.offset = offset;
+            result.length = length;
+            result.isICO = false;
 
             
             
-            result.mBitmapsDecoded = new SingleBitmapIterator(BitmapUtils.decodeByteArray(buffer, offset, length));
-            result.mFaviconBytes = buffer;
+            result.bitmapsDecoded = new SingleBitmapIterator(BitmapUtils.decodeByteArray(buffer, offset, length));
+            result.faviconBytes = buffer;
 
             return result;
         }
@@ -193,10 +193,10 @@ public class FaviconDecoder {
 
 
     static class SingleBitmapIterator implements Iterator<Bitmap> {
-        private Bitmap mBitmap;
+        private Bitmap bitmap;
 
         public SingleBitmapIterator(Bitmap b) {
-            mBitmap = b;
+            bitmap = b;
         }
 
         
@@ -207,22 +207,22 @@ public class FaviconDecoder {
 
 
         public Bitmap peek() {
-            return mBitmap;
+            return bitmap;
         }
 
         @Override
         public boolean hasNext() {
-            return mBitmap != null;
+            return bitmap != null;
         }
 
         @Override
         public Bitmap next() {
-            if (mBitmap == null) {
+            if (bitmap == null) {
                 throw new NoSuchElementException("Element already returned from SingleBitmapIterator.");
             }
 
-            Bitmap ret = mBitmap;
-            mBitmap = null;
+            Bitmap ret = bitmap;
+            bitmap = null;
             return ret;
         }
 

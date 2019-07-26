@@ -136,10 +136,10 @@ public class SearchEnginePreference extends CustomListPreference {
                 
                 
                 
-                if (Favicons.sLargestFaviconSize == 0) {
+                if (Favicons.largestFaviconSize == 0) {
                     desiredWidth = 128;
                 } else {
-                    desiredWidth = Favicons.sLargestFaviconSize;
+                    desiredWidth = Favicons.largestFaviconSize;
                 }
             }
 

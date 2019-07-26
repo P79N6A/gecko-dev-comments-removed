@@ -21,15 +21,15 @@ import java.util.Iterator;
 public class LoadFaviconResult {
     private static final String LOGTAG = "LoadFaviconResult";
 
-    byte[] mFaviconBytes;
-    int mOffset;
-    int mLength;
+    byte[] faviconBytes;
+    int offset;
+    int length;
 
-    boolean mIsICO;
-    Iterator<Bitmap> mBitmapsDecoded;
+    boolean isICO;
+    Iterator<Bitmap> bitmapsDecoded;
 
     public Iterator<Bitmap> getBitmaps() {
-        return mBitmapsDecoded;
+        return bitmapsDecoded;
     }
 
     
@@ -40,17 +40,17 @@ public class LoadFaviconResult {
 
     public byte[] getBytesForDatabaseStorage() {
         
-        if (mOffset != 0 || mLength != mFaviconBytes.length) {
-            final byte[] normalised = new byte[mLength];
-            System.arraycopy(mFaviconBytes, mOffset, normalised, 0, mLength);
-            mOffset = 0;
-            mFaviconBytes = normalised;
+        if (offset != 0 || length != faviconBytes.length) {
+            final byte[] normalised = new byte[length];
+            System.arraycopy(faviconBytes, offset, normalised, 0, length);
+            offset = 0;
+            faviconBytes = normalised;
         }
 
         
         
-        if (!mIsICO) {
-            Bitmap favicon = ((FaviconDecoder.SingleBitmapIterator) mBitmapsDecoded).peek();
+        if (!isICO) {
+            Bitmap favicon = ((FaviconDecoder.SingleBitmapIterator) bitmapsDecoded).peek();
             byte[] data = null;
             ByteArrayOutputStream stream = new ByteArrayOutputStream();
 
@@ -68,7 +68,7 @@ public class LoadFaviconResult {
         
         
         
-        return mFaviconBytes;
+        return faviconBytes;
     }
 
 }

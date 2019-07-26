@@ -14,21 +14,21 @@ import java.util.Collections;
 public class FaviconsForURL {
     private static final String LOGTAG = "FaviconForURL";
 
-    private volatile int mDominantColor = -1;
+    private volatile int dominantColor = -1;
 
-    final long mDownloadTimestamp;
-    final ArrayList<FaviconCacheElement> mFavicons;
+    final long downloadTimestamp;
+    final ArrayList<FaviconCacheElement> favicons;
 
-    public final boolean mHasFailed;
+    public final boolean hasFailed;
 
     public FaviconsForURL(int size) {
         this(size, false);
     }
 
-    public FaviconsForURL(int size, boolean hasFailed) {
-        mHasFailed = hasFailed;
-        mDownloadTimestamp = System.currentTimeMillis();
-        mFavicons = new ArrayList<FaviconCacheElement>(size);
+    public FaviconsForURL(int size, boolean failed) {
+        hasFailed = failed;
+        downloadTimestamp = System.currentTimeMillis();
+        favicons = new ArrayList<FaviconCacheElement>(size);
     }
 
     public FaviconCacheElement addSecondary(Bitmap favicon, int imageSize) {
@@ -42,19 +42,19 @@ public class FaviconsForURL {
     private FaviconCacheElement addInternal(Bitmap favicon, boolean isPrimary, int imageSize) {
         FaviconCacheElement c = new FaviconCacheElement(favicon, isPrimary, imageSize, this);
 
-        int index = Collections.binarySearch(mFavicons, c);
+        int index = Collections.binarySearch(favicons, c);
 
         
         
         if (index >= 0) {
-            return mFavicons.get(index);
+            return favicons.get(index);
         }
 
         
         
         index++;
         index = -index;
-        mFavicons.add(index, c);
+        favicons.add(index, c);
 
         return c;
     }
@@ -70,7 +70,7 @@ public class FaviconsForURL {
         
         FaviconCacheElement dummy = new FaviconCacheElement(null, false, targetSize, null);
 
-        int index = Collections.binarySearch(mFavicons, dummy);
+        int index = Collections.binarySearch(favicons, dummy);
 
         
         
@@ -86,7 +86,7 @@ public class FaviconsForURL {
         
         
         
-        if (index == mFavicons.size()) {
+        if (index == favicons.size()) {
             index = -1;
         }
 
@@ -106,14 +106,14 @@ public class FaviconsForURL {
 
 
     public FaviconCacheElement getNextPrimary(final int fromIndex) {
-        final int numIcons = mFavicons.size();
+        final int numIcons = favicons.size();
 
         int searchIndex = fromIndex;
         while (searchIndex < numIcons) {
-            FaviconCacheElement element = mFavicons.get(searchIndex);
+            FaviconCacheElement element = favicons.get(searchIndex);
 
-            if (element.mIsPrimary) {
-                if (element.mInvalidated) {
+            if (element.isPrimary) {
+                if (element.invalidated) {
                     
                     
                     
@@ -128,10 +128,10 @@ public class FaviconsForURL {
         
         searchIndex = fromIndex - 1;
         while (searchIndex >= 0) {
-            FaviconCacheElement element = mFavicons.get(searchIndex);
+            FaviconCacheElement element = favicons.get(searchIndex);
 
-            if (element.mIsPrimary) {
-                if (element.mInvalidated) {
+            if (element.isPrimary) {
+                if (element.invalidated) {
                     return null;
                 }
                 return element;
@@ -148,17 +148,17 @@ public class FaviconsForURL {
 
 
     public int ensureDominantColor() {
-        if (mDominantColor == -1) {
+        if (dominantColor == -1) {
             
-            for (FaviconCacheElement element : mFavicons) {
-                if (!element.mInvalidated) {
-                    mDominantColor = BitmapUtils.getDominantColor(element.mFaviconPayload);
-                    return mDominantColor;
+            for (FaviconCacheElement element : favicons) {
+                if (!element.invalidated) {
+                    dominantColor = BitmapUtils.getDominantColor(element.faviconPayload);
+                    return dominantColor;
                 }
             }
-            mDominantColor = 0xFFFFFF;
+            dominantColor = 0xFFFFFF;
         }
 
-        return mDominantColor;
+        return dominantColor;
     }
 }

@@ -22,7 +22,7 @@ import org.mozilla.gecko.favicons.decoders.LoadFaviconResult;
 import org.mozilla.gecko.util.GeckoJarReader;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
-import static org.mozilla.gecko.favicons.Favicons.sContext;
+import static org.mozilla.gecko.favicons.Favicons.context;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -53,21 +53,21 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
     
     private static final int DEFAULT_FAVICON_BUFFER_SIZE = 25000;
 
-    private static AtomicInteger mNextFaviconLoadId = new AtomicInteger(0);
-    private int mId;
-    private String mPageUrl;
-    private String mFaviconUrl;
-    private OnFaviconLoadedListener mListener;
-    private int mFlags;
+    private static AtomicInteger nextFaviconLoadId = new AtomicInteger(0);
+    private int id;
+    private String pageUrl;
+    private String faviconURL;
+    private OnFaviconLoadedListener listener;
+    private int flags;
 
-    private final boolean mOnlyFromLocal;
+    private final boolean onlyFromLocal;
 
     
-    protected int mTargetWidth;
-    private LinkedList<LoadFaviconTask> mChainees;
-    private boolean mIsChaining;
+    protected int targetWidth;
+    private LinkedList<LoadFaviconTask> chainees;
+    private boolean isChaining;
 
-    static AndroidHttpClient sHttpClient = AndroidHttpClient.newInstance(GeckoAppShell.getGeckoInterface().getDefaultUAString());
+    static AndroidHttpClient httpClient = AndroidHttpClient.newInstance(GeckoAppShell.getGeckoInterface().getDefaultUAString());
 
     public LoadFaviconTask(Handler backgroundThreadHandler,
                            String pageUrl, String faviconUrl, int flags,
@@ -76,33 +76,33 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
     }
     public LoadFaviconTask(Handler backgroundThreadHandler,
                            String pageUrl, String faviconUrl, int flags,
-                           OnFaviconLoadedListener aListener, int targetSize, boolean fromLocal) {
+                           OnFaviconLoadedListener listener, int targetWidth, boolean onlyFromLocal) {
         super(backgroundThreadHandler);
 
-        mId = mNextFaviconLoadId.incrementAndGet();
+        id = nextFaviconLoadId.incrementAndGet();
 
-        mPageUrl = pageUrl;
-        mFaviconUrl = faviconUrl;
-        mListener = aListener;
-        mFlags = flags;
-        mTargetWidth = targetSize;
-        mOnlyFromLocal = fromLocal;
+        this.pageUrl = pageUrl;
+        this.faviconURL = faviconUrl;
+        this.listener = listener;
+        this.flags = flags;
+        this.targetWidth = targetWidth;
+        this.onlyFromLocal = onlyFromLocal;
     }
 
     
     private LoadFaviconResult loadFaviconFromDb() {
-        ContentResolver resolver = sContext.getContentResolver();
-        return BrowserDB.getFaviconForFaviconUrl(resolver, mFaviconUrl);
+        ContentResolver resolver = context.getContentResolver();
+        return BrowserDB.getFaviconForFaviconUrl(resolver, faviconURL);
     }
 
     
     private void saveFaviconToDb(final byte[] encodedFavicon) {
-        if ((mFlags & FLAG_PERSIST) == 0) {
+        if ((flags & FLAG_PERSIST) == 0) {
             return;
         }
 
-        ContentResolver resolver = sContext.getContentResolver();
-        BrowserDB.updateFaviconForUrl(resolver, mPageUrl, encodedFavicon, mFaviconUrl);
+        ContentResolver resolver = context.getContentResolver();
+        BrowserDB.updateFaviconForUrl(resolver, pageUrl, encodedFavicon, faviconURL);
     }
 
     
@@ -121,7 +121,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         HttpGet request = new HttpGet(faviconURI);
-        HttpResponse response = sHttpClient.execute(request);
+        HttpResponse response = httpClient.execute(request);
         if (response == null) {
             return null;
         }
@@ -172,7 +172,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         if (uri.startsWith("jar:jar:")) {
             Log.d(LOGTAG, "Fetching favicon from JAR.");
             try {
-                return GeckoJarReader.getBitmap(sContext.getResources(), uri);
+                return GeckoJarReader.getBitmap(context.getResources(), uri);
             } catch (Exception e) {
                 
                 Log.w(LOGTAG, "Error fetching favicon from JAR.", e);
@@ -287,27 +287,27 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
         
         
-        if (TextUtils.isEmpty(mFaviconUrl)) {
+        if (TextUtils.isEmpty(faviconURL)) {
             
-            storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(mPageUrl);
+            storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(pageUrl);
 
             
             if (storedFaviconUrl == null) {
-                storedFaviconUrl = Favicons.getFaviconURLForPageURL(mPageUrl);
+                storedFaviconUrl = Favicons.getFaviconURLForPageURL(pageUrl);
                 if (storedFaviconUrl != null) {
                     
-                    Favicons.putFaviconURLForPageURLInCache(mPageUrl, storedFaviconUrl);
+                    Favicons.putFaviconURLForPageURLInCache(pageUrl, storedFaviconUrl);
                 }
             }
 
             
             if (storedFaviconUrl != null) {
-                mFaviconUrl = storedFaviconUrl;
+                faviconURL = storedFaviconUrl;
             } else {
                 
-                mFaviconUrl = Favicons.guessDefaultFaviconURL(mPageUrl);
+                faviconURL = Favicons.guessDefaultFaviconURL(pageUrl);
 
-                if (TextUtils.isEmpty(mFaviconUrl)) {
+                if (TextUtils.isEmpty(faviconURL)) {
                     return null;
                 }
                 isUsingDefaultURL = true;
@@ -316,7 +316,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
         
         
-        if (Favicons.isFailedFavicon(mFaviconUrl)) {
+        if (Favicons.isFailedFavicon(faviconURL)) {
             return null;
         }
 
@@ -329,10 +329,10 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         
         synchronized(loadsInFlight) {
             
-            LoadFaviconTask existingTask = loadsInFlight.get(mFaviconUrl);
+            LoadFaviconTask existingTask = loadsInFlight.get(faviconURL);
             if (existingTask != null && !existingTask.isCancelled()) {
                 existingTask.chainTasks(this);
-                mIsChaining = true;
+                isChaining = true;
 
                 
                 
@@ -341,7 +341,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
             
             
-            loadsInFlight.put(mFaviconUrl, this);
+            loadsInFlight.put(faviconURL, this);
         }
 
         if (isCancelled()) {
@@ -354,20 +354,20 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             return pushToCacheAndGetResult(loadedBitmaps);
         }
 
-        if (mOnlyFromLocal || isCancelled()) {
+        if (onlyFromLocal || isCancelled()) {
             return null;
         }
 
         
-        image = fetchJARFavicon(mFaviconUrl);
+        image = fetchJARFavicon(faviconURL);
         if (imageIsValid(image)) {
             
-            Favicons.putFaviconInMemCache(mFaviconUrl, image);
+            Favicons.putFaviconInMemCache(faviconURL, image);
             return image;
         }
 
         try {
-            loadedBitmaps = downloadFavicon(new URI(mFaviconUrl));
+            loadedBitmaps = downloadFavicon(new URI(faviconURL));
         } catch (URISyntaxException e) {
             Log.e(LOGTAG, "The provided favicon URL is not valid");
             return null;
@@ -381,7 +381,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         if (isUsingDefaultURL) {
-            Favicons.putFaviconInFailedCache(mFaviconUrl);
+            Favicons.putFaviconInFailedCache(faviconURL);
             return null;
         }
 
@@ -390,16 +390,16 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         
-        final String guessed = Favicons.guessDefaultFaviconURL(mPageUrl);
+        final String guessed = Favicons.guessDefaultFaviconURL(pageUrl);
         if (guessed == null) {
-            Favicons.putFaviconInFailedCache(mFaviconUrl);
+            Favicons.putFaviconInFailedCache(faviconURL);
             return null;
         }
 
         image = fetchJARFavicon(guessed);
         if (imageIsValid(image)) {
             
-            Favicons.putFaviconInMemCache(mFaviconUrl, image);
+            Favicons.putFaviconInMemCache(faviconURL, image);
             return image;
         }
 
@@ -428,8 +428,8 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
 
     private Bitmap pushToCacheAndGetResult(LoadFaviconResult loadedBitmaps) {
-        Favicons.putFaviconsInMemCache(mFaviconUrl, loadedBitmaps.getBitmaps());
-        Bitmap result = Favicons.getSizedFaviconFromCache(mFaviconUrl, mTargetWidth);
+        Favicons.putFaviconsInMemCache(faviconURL, loadedBitmaps.getBitmaps());
+        Bitmap result = Favicons.getSizedFaviconFromCache(faviconURL, targetWidth);
         return result;
     }
 
@@ -441,7 +441,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
     @Override
     protected void onPostExecute(Bitmap image) {
-        if (mIsChaining) {
+        if (isChaining) {
             return;
         }
 
@@ -450,7 +450,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
         synchronized (loadsInFlight) {
             
-            loadsInFlight.remove(mFaviconUrl);
+            loadsInFlight.remove(faviconURL);
         }
 
         
@@ -463,8 +463,8 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         
 
         
-        if (mChainees != null) {
-            for (LoadFaviconTask t : mChainees) {
+        if (chainees != null) {
+            for (LoadFaviconTask t : chainees) {
                 
                 
                 t.processResult(image);
@@ -473,35 +473,35 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
     }
 
     private void processResult(Bitmap image) {
-        Favicons.removeLoadTask(mId);
+        Favicons.removeLoadTask(id);
         Bitmap scaled = image;
 
         
-        if (mTargetWidth != -1 && image != null &&  image.getWidth() != mTargetWidth) {
-            scaled = Favicons.getSizedFaviconFromCache(mFaviconUrl, mTargetWidth);
+        if (targetWidth != -1 && image != null &&  image.getWidth() != targetWidth) {
+            scaled = Favicons.getSizedFaviconFromCache(faviconURL, targetWidth);
         }
 
-        Favicons.dispatchResult(mPageUrl, mFaviconUrl, scaled, mListener);
+        Favicons.dispatchResult(pageUrl, faviconURL, scaled, listener);
     }
 
     @Override
     protected void onCancelled() {
-        Favicons.removeLoadTask(mId);
+        Favicons.removeLoadTask(id);
 
         synchronized(loadsInFlight) {
             
             
-            final LoadFaviconTask primary = loadsInFlight.get(mFaviconUrl);
+            final LoadFaviconTask primary = loadsInFlight.get(faviconURL);
             if (primary == this) {
-                loadsInFlight.remove(mFaviconUrl);
+                loadsInFlight.remove(faviconURL);
                 return;
             }
             if (primary == null) {
                 
                 return;
             }
-            if (primary.mChainees != null) {
-              primary.mChainees.remove(this);
+            if (primary.chainees != null) {
+              primary.chainees.remove(this);
             }
         }
 
@@ -518,15 +518,15 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
 
 
     private void chainTasks(LoadFaviconTask aChainee) {
-        if (mChainees == null) {
-            mChainees = new LinkedList<LoadFaviconTask>();
+        if (chainees == null) {
+            chainees = new LinkedList<LoadFaviconTask>();
         }
 
-        mChainees.add(aChainee);
+        chainees.add(aChainee);
     }
 
     int getId() {
-        return mId;
+        return id;
     }
 
     static void closeHTTPClient() {
@@ -534,8 +534,8 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         
         
         if (ThreadUtils.isOnBackgroundThread()) {
-            if (sHttpClient != null) {
-                sHttpClient.close();
+            if (httpClient != null) {
+                httpClient.close();
             }
             return;
         }

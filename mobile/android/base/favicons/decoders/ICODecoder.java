@@ -10,7 +10,6 @@ import org.mozilla.gecko.gfx.BitmapUtils;
 
 import android.util.SparseArray;
 
-import java.util.Collection;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
@@ -79,20 +78,20 @@ public class ICODecoder implements Iterable<Bitmap> {
     public static final int ICO_ICONDIRENTRY_LENGTH_BYTES = 16;
 
     
-    private byte[] mDecodand;
+    private byte[] decodand;
 
     
-    private int mOffset;
-    private int mLen;
+    private int offset;
+    private int len;
 
-    private IconDirectoryEntry[] mIconDirectory;
-    private boolean mIsValid;
-    private boolean mHasDecoded;
+    private IconDirectoryEntry[] iconDirectory;
+    private boolean isValid;
+    private boolean hasDecoded;
 
-    public ICODecoder(byte[] buffer, int offset, int len) {
-        mDecodand = buffer;
-        mOffset = offset;
-        mLen = len;
+    public ICODecoder(byte[] decodand, int offset, int len) {
+        this.decodand = decodand;
+        this.offset = offset;
+        this.len = len;
     }
 
     
@@ -102,32 +101,32 @@ public class ICODecoder implements Iterable<Bitmap> {
 
 
     private boolean decodeIconDirectoryAndPossiblyPrune() {
-        mHasDecoded = true;
+        hasDecoded = true;
 
         
-        if (mOffset + mLen > mDecodand.length) {
+        if (offset + len > decodand.length) {
             return false;
         }
 
         
-        if (mLen < ICO_HEADER_LENGTH_BYTES) {
-            return false;
-        }
-
-        
-        
-        if (mDecodand[mOffset] != 0 ||
-            mDecodand[mOffset + 1] != 0 ||
-            mDecodand[mOffset + 2] != 1 ||
-            mDecodand[mOffset + 3] != 0) {
+        if (len < ICO_HEADER_LENGTH_BYTES) {
             return false;
         }
 
         
         
+        if (decodand[offset] != 0 ||
+            decodand[offset + 1] != 0 ||
+            decodand[offset + 2] != 1 ||
+            decodand[offset + 3] != 0) {
+            return false;
+        }
+
         
-        int numEncodedImages = (mDecodand[mOffset + 4] & 0xFF) |
-                               (mDecodand[mOffset + 5] & 0xFF) << 8;
+        
+        
+        int numEncodedImages = (decodand[offset + 4] & 0xFF) |
+                               (decodand[offset + 5] & 0xFF) << 8;
 
 
         
@@ -139,12 +138,12 @@ public class ICODecoder implements Iterable<Bitmap> {
 
         
         
-        if (mLen < headerAndDirectorySize) {
+        if (len < headerAndDirectorySize) {
             return false;
         }
 
         
-        int bufferIndex = mOffset + ICO_HEADER_LENGTH_BYTES;
+        int bufferIndex = offset + ICO_HEADER_LENGTH_BYTES;
 
         
         
@@ -157,35 +156,35 @@ public class ICODecoder implements Iterable<Bitmap> {
 
         for (int i = 0; i < numEncodedImages; i++, bufferIndex += ICO_ICONDIRENTRY_LENGTH_BYTES) {
             
-            IconDirectoryEntry newEntry = IconDirectoryEntry.createFromBuffer(mDecodand, mOffset, mLen, bufferIndex);
-            newEntry.mIndex = i;
+            IconDirectoryEntry newEntry = IconDirectoryEntry.createFromBuffer(decodand, offset, len, bufferIndex);
+            newEntry.index = i;
 
-            if (newEntry.mIsErroneous) {
+            if (newEntry.isErroneous) {
                 continue;
             }
 
-            if (newEntry.mWidth > Favicons.sLargestFaviconSize) {
+            if (newEntry.width > Favicons.largestFaviconSize) {
                 
                 
                 
-                if (newEntry.mWidth >= minimumMaximum) {
+                if (newEntry.width >= minimumMaximum) {
                     continue;
                 }
 
                 
                 preferenceArray.delete(minimumMaximum);
 
-                minimumMaximum = newEntry.mWidth;
+                minimumMaximum = newEntry.width;
             }
 
-            IconDirectoryEntry oldEntry = preferenceArray.get(newEntry.mWidth);
+            IconDirectoryEntry oldEntry = preferenceArray.get(newEntry.width);
             if (oldEntry == null) {
-                preferenceArray.put(newEntry.mWidth, newEntry);
+                preferenceArray.put(newEntry.width, newEntry);
                 continue;
             }
 
             if (oldEntry.compareTo(newEntry) < 0) {
-                preferenceArray.put(newEntry.mWidth, newEntry);
+                preferenceArray.put(newEntry.width, newEntry);
             }
         }
 
@@ -197,24 +196,24 @@ public class ICODecoder implements Iterable<Bitmap> {
         }
 
         
-        mIconDirectory = new IconDirectoryEntry[count];
+        iconDirectory = new IconDirectoryEntry[count];
 
         
         int retainedSpace = ICO_HEADER_LENGTH_BYTES;
 
         for (int i = 0; i < count; i++) {
             IconDirectoryEntry e = preferenceArray.valueAt(i);
-            retainedSpace += ICO_ICONDIRENTRY_LENGTH_BYTES + e.mPayloadSize;
-            mIconDirectory[i] = e;
+            retainedSpace += ICO_ICONDIRENTRY_LENGTH_BYTES + e.payloadSize;
+            iconDirectory[i] = e;
         }
 
-        mIsValid = true;
+        isValid = true;
 
         
-        mDecodand[mOffset + 4] = (byte) mIconDirectory.length;
-        mDecodand[mOffset + 5] = (byte) (mIconDirectory.length >>> 8);
+        decodand[offset + 4] = (byte) iconDirectory.length;
+        decodand[offset + 5] = (byte) (iconDirectory.length >>> 8);
 
-        if ((mLen - retainedSpace) > COMPACT_THRESHOLD) {
+        if ((len - retainedSpace) > COMPACT_THRESHOLD) {
             compactingCopy(retainedSpace);
         }
 
@@ -228,19 +227,19 @@ public class ICODecoder implements Iterable<Bitmap> {
         byte[] buf = new byte[spaceRetained];
 
         
-        System.arraycopy(mDecodand, mOffset, buf, 0, ICO_HEADER_LENGTH_BYTES);
+        System.arraycopy(decodand, offset, buf, 0, ICO_HEADER_LENGTH_BYTES);
 
         int headerPtr = ICO_HEADER_LENGTH_BYTES;
 
-        int payloadPtr = ICO_HEADER_LENGTH_BYTES + (mIconDirectory.length * ICO_ICONDIRENTRY_LENGTH_BYTES);
+        int payloadPtr = ICO_HEADER_LENGTH_BYTES + (iconDirectory.length * ICO_ICONDIRENTRY_LENGTH_BYTES);
 
         int ind = 0;
-        for (IconDirectoryEntry entry : mIconDirectory) {
+        for (IconDirectoryEntry entry : iconDirectory) {
             
-            System.arraycopy(mDecodand, mOffset + entry.getOffset(), buf, headerPtr, ICO_ICONDIRENTRY_LENGTH_BYTES);
+            System.arraycopy(decodand, offset + entry.getOffset(), buf, headerPtr, ICO_ICONDIRENTRY_LENGTH_BYTES);
 
             
-            System.arraycopy(mDecodand, mOffset + entry.mPayloadOffset, buf, payloadPtr, entry.mPayloadSize);
+            System.arraycopy(decodand, offset + entry.payloadOffset, buf, payloadPtr, entry.payloadSize);
 
             
             buf[headerPtr + 12] = (byte) payloadPtr;
@@ -248,17 +247,17 @@ public class ICODecoder implements Iterable<Bitmap> {
             buf[headerPtr + 14] = (byte) (payloadPtr >>> 16);
             buf[headerPtr + 15] = (byte) (payloadPtr >>> 24);
 
-            entry.mPayloadOffset = payloadPtr;
-            entry.mIndex = ind;
+            entry.payloadOffset = payloadPtr;
+            entry.index = ind;
 
-            payloadPtr += entry.mPayloadSize;
+            payloadPtr += entry.payloadSize;
             headerPtr += ICO_ICONDIRENTRY_LENGTH_BYTES;
             ind++;
         }
 
-        mDecodand = buf;
-        mOffset = 0;
-        mLen = spaceRetained;
+        decodand = buf;
+        offset = 0;
+        len = spaceRetained;
     }
 
     
@@ -269,16 +268,16 @@ public class ICODecoder implements Iterable<Bitmap> {
 
 
     public Bitmap decodeBitmapAtIndex(int index) {
-        final IconDirectoryEntry iconDirEntry = mIconDirectory[index];
+        final IconDirectoryEntry iconDirEntry = iconDirectory[index];
 
-        if (iconDirEntry.mPayloadIsPNG) {
+        if (iconDirEntry.payloadIsPNG) {
             
-            return BitmapUtils.decodeByteArray(mDecodand, mOffset + iconDirEntry.mPayloadOffset, iconDirEntry.mPayloadSize);
+            return BitmapUtils.decodeByteArray(decodand, offset + iconDirEntry.payloadOffset, iconDirEntry.payloadSize);
         }
 
         
         
-        byte[] decodeTarget = new byte[ICO_HEADER_LENGTH_BYTES + ICO_ICONDIRENTRY_LENGTH_BYTES + iconDirEntry.mPayloadSize];
+        byte[] decodeTarget = new byte[ICO_HEADER_LENGTH_BYTES + ICO_ICONDIRENTRY_LENGTH_BYTES + iconDirEntry.payloadSize];
 
         
         decodeTarget[2] = 1;
@@ -287,11 +286,11 @@ public class ICODecoder implements Iterable<Bitmap> {
         decodeTarget[4] = 1;
 
         
-        System.arraycopy(mDecodand, mOffset + iconDirEntry.getOffset(), decodeTarget, ICO_HEADER_LENGTH_BYTES, ICO_ICONDIRENTRY_LENGTH_BYTES);
+        System.arraycopy(decodand, offset + iconDirEntry.getOffset(), decodeTarget, ICO_HEADER_LENGTH_BYTES, ICO_ICONDIRENTRY_LENGTH_BYTES);
 
         
         final int singlePayloadOffset =  ICO_HEADER_LENGTH_BYTES + ICO_ICONDIRENTRY_LENGTH_BYTES;
-        System.arraycopy(mDecodand, mOffset + iconDirEntry.mPayloadOffset, decodeTarget, singlePayloadOffset, iconDirEntry.mPayloadSize);
+        System.arraycopy(decodand, offset + iconDirEntry.payloadOffset, decodeTarget, singlePayloadOffset, iconDirEntry.payloadSize);
 
         
         decodeTarget[ICO_HEADER_LENGTH_BYTES + 12] = (byte) singlePayloadOffset;
@@ -311,12 +310,12 @@ public class ICODecoder implements Iterable<Bitmap> {
     @Override
     public ICOIterator iterator() {
         
-        if (mHasDecoded && !mIsValid) {
+        if (hasDecoded && !isValid) {
             return null;
         }
 
         
-        if (!mHasDecoded) {
+        if (!hasDecoded) {
             if (!decodeIconDirectoryAndPossiblyPrune()) {
                 return null;
             }
@@ -339,11 +338,11 @@ public class ICODecoder implements Iterable<Bitmap> {
 
         LoadFaviconResult result = new LoadFaviconResult();
 
-        result.mBitmapsDecoded = bitmaps;
-        result.mFaviconBytes = mDecodand;
-        result.mOffset = mOffset;
-        result.mLength = mLen;
-        result.mIsICO = true;
+        result.bitmapsDecoded = bitmaps;
+        result.faviconBytes = decodand;
+        result.offset = offset;
+        result.length = len;
+        result.isICO = true;
 
         return result;
     }
@@ -356,12 +355,12 @@ public class ICODecoder implements Iterable<Bitmap> {
 
         @Override
         public boolean hasNext() {
-            return mIndex < mIconDirectory.length;
+            return mIndex < iconDirectory.length;
         }
 
         @Override
         public Bitmap next() {
-            if (mIndex > mIconDirectory.length) {
+            if (mIndex > iconDirectory.length) {
                 throw new NoSuchElementException("No more elements in this ICO.");
             }
             return decodeBitmapAtIndex(mIndex++);
@@ -369,10 +368,10 @@ public class ICODecoder implements Iterable<Bitmap> {
 
         @Override
         public void remove() {
-            if (mIconDirectory[mIndex] == null) {
+            if (iconDirectory[mIndex] == null) {
                 throw new IllegalStateException("Remove already called for element " + mIndex);
             }
-            mIconDirectory[mIndex] = null;
+            iconDirectory[mIndex] = null;
         }
     }
 }
