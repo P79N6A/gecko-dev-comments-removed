@@ -868,8 +868,10 @@ WebAudioDecodeJob::OnFailure(ErrorCode aErrorCode)
 
   
   
-  ErrorResult rv;
-  mFailureCallback->Call(rv);
+  if (mFailureCallback) {
+    ErrorResult rv;
+    mFailureCallback->Call(rv);
+  }
 
   mContext->RemoveFromDecodeQueue(this);
 }
