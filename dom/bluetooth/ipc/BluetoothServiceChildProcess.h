@@ -185,14 +185,6 @@ private:
   virtual bool
   IsEnabledInternal() MOZ_OVERRIDE;
 
-  
-  virtual nsresult
-  GetDevicePropertiesInternal(const BluetoothSignal& aSignal) MOZ_OVERRIDE;
-
-  
-  virtual nsresult
-  PrepareAdapterInternal() MOZ_OVERRIDE;
-
   bool
   IsSignalRegistered(const nsAString& aNodeName) {
     return !!mBluetoothSignalObserverTable.Get(aNodeName);

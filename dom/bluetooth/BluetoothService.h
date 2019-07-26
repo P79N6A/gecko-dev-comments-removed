@@ -165,16 +165,6 @@ public:
 
 
 
-  virtual nsresult
-  GetDevicePropertiesInternal(const BluetoothSignal& aSignal) = 0;
-
-  
-
-
-
-
-
-
 
 
   virtual nsresult
@@ -246,9 +236,6 @@ public:
   SetAuthorizationInternal(const nsAString& aDeviceAddress, bool aAllow,
                            BluetoothReplyRunnable* aRunnable) = 0;
 
-  virtual nsresult
-  PrepareAdapterInternal() = 0;
-
   virtual void
   Connect(const nsAString& aDeviceAddress,
           uint16_t aProfileId,
@@ -298,6 +285,9 @@ public:
 
   void
   RemoveObserverFromTable(const nsAString& key);
+
+  void
+  DispatchToCommandThread(nsRunnable* aRunnable);
 
 protected:
   BluetoothService()
