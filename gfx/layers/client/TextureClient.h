@@ -254,10 +254,6 @@ public:
   void MarkInvalid() { mValid = false; }
 
   
-  
-  virtual void OnActorDestroy() {}
-
-  
 
 
 
@@ -397,11 +393,6 @@ public:
   ISurfaceAllocator* GetAllocator() const;
 
   ipc::Shmem& GetShmem() { return mShmem; }
-
-  virtual void OnActorDestroy() MOZ_OVERRIDE
-  {
-    mShmem = ipc::Shmem();
-  }
 
 protected:
   ipc::Shmem mShmem;
@@ -578,8 +569,6 @@ public:
   }
 
   virtual gfxContentType GetContentType() = 0;
-
-  void OnActorDestroy();
 
 protected:
   DeprecatedTextureClient(CompositableForwarder* aForwarder,
