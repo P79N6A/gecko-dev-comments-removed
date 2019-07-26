@@ -344,6 +344,21 @@ struct Prefable {
   T* specs;
 };
 
+struct NativeProperties
+{
+  Prefable<JSFunctionSpec>* staticMethods;
+  jsid* staticMethodIds;
+  JSFunctionSpec* staticMethodsSpecs;
+  Prefable<JSFunctionSpec>* methods;
+  jsid* methodIds;
+  JSFunctionSpec* methodsSpecs;
+  Prefable<JSPropertySpec>* attributes;
+  jsid* attributeIds;
+  JSPropertySpec* attributeSpecs;
+  Prefable<ConstantSpec>* constants;
+  jsid* constantIds;
+  ConstantSpec* constantSpecs;
+};
 
 
 
@@ -388,10 +403,9 @@ CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
                        unsigned ctorNargs, const DOMClass* domClass,
-                       Prefable<JSFunctionSpec>* methods,
-                       Prefable<JSPropertySpec>* properties,
-                       Prefable<ConstantSpec>* constants,
-                       Prefable<JSFunctionSpec>* staticMethods, const char* name);
+                       const NativeProperties* properties,
+                       const NativeProperties* chromeProperties,
+                       const char* name);
 
 template <class T>
 inline bool
@@ -1178,34 +1192,14 @@ public:
 bool
 XrayResolveProperty(JSContext* cx, JSObject* wrapper, jsid id,
                     JSPropertyDescriptor* desc,
-                    
-                    Prefable<JSFunctionSpec>* methods,
-                    jsid* methodIds,
-                    JSFunctionSpec* methodSpecs,
-                    size_t methodCount,
-                    Prefable<JSPropertySpec>* attributes,
-                    jsid* attributeIds,
-                    JSPropertySpec* attributeSpecs,
-                    size_t attributeCount,
-                    Prefable<ConstantSpec>* constants,
-                    jsid* constantIds,
-                    ConstantSpec* constantSpecs,
-                    size_t constantCount);
+                    const NativeProperties* nativeProperties,
+                    const NativeProperties* chromeOnlyNativeProperties);
 
 bool
-XrayEnumerateProperties(JS::AutoIdVector& props,
-                        Prefable<JSFunctionSpec>* methods,
-                        jsid* methodIds,
-                        JSFunctionSpec* methodSpecs,
-                        size_t methodCount,
-                        Prefable<JSPropertySpec>* attributes,
-                        jsid* attributeIds,
-                        JSPropertySpec* attributeSpecs,
-                        size_t attributeCount,
-                        Prefable<ConstantSpec>* constants,
-                        jsid* constantIds,
-                        ConstantSpec* constantSpecs,
-                        size_t constantCount);
+XrayEnumerateProperties(JSObject* wrapper,
+                        JS::AutoIdVector& props,
+                        const NativeProperties* nativeProperties,
+                        const NativeProperties* chromeOnlyNativeProperties);
 
 
 template<class T>
