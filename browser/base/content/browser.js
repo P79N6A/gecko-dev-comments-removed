@@ -1265,7 +1265,7 @@ var gBrowserInit = {
 
     gBrowser.addEventListener("pageshow", function(event) {
       
-      if (event.target == content.document)
+      if (content && event.target == content.document)
         setTimeout(pageShowEventHandlers, 0, event);
     }, true);
 
