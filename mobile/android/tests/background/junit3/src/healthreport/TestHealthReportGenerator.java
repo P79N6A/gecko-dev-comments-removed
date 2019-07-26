@@ -463,21 +463,21 @@ public class TestHealthReportGenerator extends FakeProfileTestCase {
     }
 
     
-    final MockDatabaseEnvironment v2env = storage.getEnvironment();
-    v2env.mockInit("27.0a1");
-    v2env.appLocale = v2env.osLocale = "en_us";
-    v2env.acceptLangSet = 1;
+    final MockDatabaseEnvironment v3env = storage.getEnvironment();
+    v3env.mockInit("31.0a1");
+    v3env.appLocale = v3env.osLocale = "en_us";
+    v3env.acceptLangSet = 1;
 
-    final int v2ID = v2env.register();
-    assertFalse(v1ID == v2ID);
-    final Cursor c2 = db.query("environments", cols, "id = " + v2ID, null, null, null, null);
+    final int v3ID = v3env.register();
+    assertFalse(v1ID == v3ID);
+    final Cursor c2 = db.query("environments", cols, "id = " + v3ID, null, null, null, null);
     String v2envHash;
     try {
       assertTrue(c2.moveToFirst());
       assertEquals(1, c2.getCount());
 
-      assertEquals(v2ID, c2.getInt(0));
-      assertEquals(2,    c2.getInt(1));
+      assertEquals(v3ID, c2.getInt(0));
+      assertEquals(3,    c2.getInt(1));
 
       v2envHash = c2.getString(2);
       assertNotNull(v2envHash);
@@ -495,16 +495,16 @@ public class TestHealthReportGenerator extends FakeProfileTestCase {
     SparseArray<Environment> envs = storage.getEnvironmentRecordsByID();
 
     JSONObject oldEnv = HealthReportGenerator.jsonify(envs.get(v1ID), null).getJSONObject("org.mozilla.appInfo.appinfo");
-    JSONObject newEnv = HealthReportGenerator.jsonify(envs.get(v2ID), null).getJSONObject("org.mozilla.appInfo.appinfo");
+    JSONObject newEnv = HealthReportGenerator.jsonify(envs.get(v3ID), null).getJSONObject("org.mozilla.appInfo.appinfo");
 
     
     
     
-    JSONObject newVsOld = HealthReportGenerator.jsonify(envs.get(v2ID), envs.get(v1ID)).getJSONObject("org.mozilla.appInfo.appinfo");
+    JSONObject newVsOld = HealthReportGenerator.jsonify(envs.get(v3ID), envs.get(v1ID)).getJSONObject("org.mozilla.appInfo.appinfo");
 
     
     
-    JSONObject oldVsNew = HealthReportGenerator.jsonify(envs.get(v1ID), envs.get(v2ID)).getJSONObject("org.mozilla.appInfo.appinfo");
+    JSONObject oldVsNew = HealthReportGenerator.jsonify(envs.get(v1ID), envs.get(v3ID)).getJSONObject("org.mozilla.appInfo.appinfo");
     assertEquals(2, oldEnv.getInt("_v"));
     assertEquals(3, newEnv.getInt("_v"));
     assertEquals(2, oldVsNew.getInt("_v"));

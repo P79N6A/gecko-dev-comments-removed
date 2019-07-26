@@ -429,7 +429,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
 
       db.execSQL("ALTER TABLE environments ADD COLUMN addonsID INTEGER REFERENCES addons(id) ON DELETE RESTRICT");
 
-      createAddonsEnvironmentsView(db);
+      
     }
 
     private void upgradeDatabaseFrom3To4(SQLiteDatabase db) {
@@ -455,7 +455,7 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
     }
 
     private void upgradeDatabaseFrom5to6(SQLiteDatabase db) {
-      db.execSQL("DROP VIEW environments_with_addons");
+      db.execSQL("DROP VIEW IF EXISTS environments_with_addons");
 
       
       db.execSQL("ALTER TABLE environments ADD COLUMN version INTEGER DEFAULT 1");
@@ -467,11 +467,10 @@ public class HealthReportDatabaseStorage implements HealthReportStorage {
       db.execSQL("ALTER TABLE environments ADD COLUMN acceptLangSet INTEGER DEFAULT 0");
 
       
-      createAddonsEnvironmentsView(db);
     }
 
     private void upgradeDatabaseFrom6to7(SQLiteDatabase db) {
-      db.execSQL("DROP VIEW environments_with_addons");
+      db.execSQL("DROP VIEW IF EXISTS environments_with_addons");
 
       
       db.execSQL("ALTER TABLE environments ADD COLUMN hasHardwareKeyboard INTEGER DEFAULT 0");
