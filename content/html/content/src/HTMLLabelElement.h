@@ -11,12 +11,13 @@
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
+#include "nsIDOMHTMLLabelElement.h"
 
 namespace mozilla {
 namespace dom {
 
 class HTMLLabelElement MOZ_FINAL : public nsGenericHTMLFormElement,
-                                   public nsIDOMHTMLElement
+                                   public nsIDOMHTMLLabelElement
 {
 public:
   HTMLLabelElement(already_AddRefed<nsINodeInfo> aNodeInfo)
@@ -36,6 +37,9 @@ public:
 
   
   NS_FORWARD_NSIDOMELEMENT_TO_GENERIC
+
+  
+  NS_DECL_NSIDOMHTMLLABELELEMENT
 
   
   NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC

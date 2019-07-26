@@ -7,6 +7,7 @@
 #define mozilla_dom_HTMLMeterElement_h
 
 #include "mozilla/Attributes.h"
+#include "nsIDOMHTMLMeterElement.h"
 #include "nsGenericHTMLElement.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
@@ -18,7 +19,7 @@ namespace mozilla {
 namespace dom {
 
 class HTMLMeterElement MOZ_FINAL : public nsGenericHTMLElement,
-                                   public nsIDOMHTMLElement
+                                   public nsIDOMHTMLMeterElement
 {
 public:
   HTMLMeterElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -36,6 +37,9 @@ public:
   
   NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
 
+  
+  NS_DECL_NSIDOMHTMLMETERELEMENT
+
   virtual nsEventStates IntrinsicState() const MOZ_OVERRIDE;
 
   nsresult Clone(nsINodeInfo* aNodeInfo, nsINode** aResult) const MOZ_OVERRIDE;
@@ -51,42 +55,42 @@ public:
   double Value() const;
   void SetValue(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::value, aValue);
+    aRv = SetValue(aValue);
   }
 
   
   double Min() const;
   void SetMin(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::min, aValue);
+    aRv = SetMin(aValue);
   }
 
   
   double Max() const;
   void SetMax(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::max, aValue);
+    aRv = SetMax(aValue);
   }
 
   
   double Low() const;
   void SetLow(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::low, aValue);
+    aRv = SetLow(aValue);
   }
 
   
   double High() const;
   void SetHigh(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::high, aValue);
+    aRv = SetHigh(aValue);
   }
 
   
   double Optimum() const;
   void SetOptimum(double aValue, ErrorResult& aRv)
   {
-    aRv = SetDoubleAttr(nsGkAtoms::optimum, aValue);
+    aRv = SetOptimum(aValue);
   }
 
 protected:

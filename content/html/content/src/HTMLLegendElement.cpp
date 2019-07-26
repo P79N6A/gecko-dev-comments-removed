@@ -25,12 +25,29 @@ NS_IMPL_RELEASE_INHERITED(HTMLLegendElement, Element)
 
 
 
-NS_INTERFACE_MAP_BEGIN(HTMLLegendElement)
+NS_INTERFACE_TABLE_HEAD(HTMLLegendElement)
   NS_HTML_CONTENT_INTERFACES(nsGenericHTMLElement)
+  NS_INTERFACE_TABLE_INHERITED1(HTMLLegendElement, nsIDOMHTMLLegendElement)
+  NS_INTERFACE_TABLE_TO_MAP_SEGUE
 NS_ELEMENT_INTERFACE_MAP_END
 
 
+
+
+
 NS_IMPL_ELEMENT_CLONE(HTMLLegendElement)
+
+
+NS_IMETHODIMP
+HTMLLegendElement::GetForm(nsIDOMHTMLFormElement** aForm)
+{
+  Element* form = GetFormElement();
+
+  return form ? CallQueryInterface(form, aForm) : NS_OK;
+}
+
+
+NS_IMPL_STRING_ATTR(HTMLLegendElement, Align, align)
 
 
 static const nsAttrValue::EnumTable kAlignTable[] = {
