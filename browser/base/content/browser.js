@@ -3448,6 +3448,21 @@ var XULBrowserWindow = {
     LinkTargetDisplay.update();
   },
 
+  showTooltip: function (x, y, tooltip) {
+    
+    
+    let elt = document.getElementById("remoteBrowserTooltip");
+    elt.label = tooltip;
+
+    let anchor = gBrowser.selectedBrowser;
+    elt.openPopupAtScreen(anchor.boxObject.screenX + x, anchor.boxObject.screenY + y, false, null);
+  },
+
+  hideTooltip: function () {
+    let elt = document.getElementById("remoteBrowserTooltip");
+    elt.hidePopup();
+  },
+
   updateStatusField: function () {
     var text, type, types = ["overLink"];
     if (this._busyUI)
