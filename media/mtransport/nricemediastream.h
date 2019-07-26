@@ -104,7 +104,6 @@ struct NrIceCandidatePair {
   NrIceCandidate local;
   NrIceCandidate remote;
   
-  std::string codeword;
 };
 
 
