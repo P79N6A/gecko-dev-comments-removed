@@ -202,14 +202,14 @@ class JSFunction : public JSObject
         flags |= EXPR_CLOSURE;
     }
 
-    JSAtom *atom() const { return hasGuessedAtom() ? NULL : atom_.get(); }
-    js::PropertyName *name() const { return hasGuessedAtom() || !atom_ ? NULL : atom_->asPropertyName(); }
+    JSAtom *atom() const { return hasGuessedAtom() ? nullptr : atom_.get(); }
+    js::PropertyName *name() const { return hasGuessedAtom() || !atom_ ? nullptr : atom_->asPropertyName(); }
     void initAtom(JSAtom *atom) { atom_.init(atom); }
     JSAtom *displayAtom() const { return atom_; }
 
     void setGuessedAtom(JSAtom *atom) {
-        JS_ASSERT(atom_ == NULL);
-        JS_ASSERT(atom != NULL);
+        JS_ASSERT(atom_ == nullptr);
+        JS_ASSERT(atom != nullptr);
         JS_ASSERT(!hasGuessedAtom());
         atom_ = atom;
         flags |= HAS_GUESSED_ATOM;
@@ -269,7 +269,7 @@ class JSFunction : public JSObject
         if (isInterpretedLazy()) {
             JS::RootedFunction self(cx, this);
             if (!createScriptForLazilyInterpretedFunction(cx, self))
-                return NULL;
+                return nullptr;
             JS_ASSERT(self->hasScript());
             return self->u.i.s.script_;
         }
@@ -355,7 +355,7 @@ class JSFunction : public JSObject
     }
 
     JSNative maybeNative() const {
-        return isInterpreted() ? NULL : native();
+        return isInterpreted() ? nullptr : native();
     }
 
     JSParallelNative parallelNative() const {
@@ -364,7 +364,7 @@ class JSFunction : public JSObject
     }
 
     JSParallelNative maybeParallelNative() const {
-        return hasParallelNative() ? parallelNative() : NULL;
+        return hasParallelNative() ? parallelNative() : nullptr;
     }
 
     void initNative(js::Native native, const JSJitInfo *jitinfo) {

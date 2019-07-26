@@ -198,7 +198,7 @@ struct JSFunctionSpecWithHelp {
 #define JS_FN_HELP(name,call,nargs,flags,usage,help)                          \
     {name, call, nargs, (flags) | JSPROP_ENUMERATE | JSFUN_STUB_GSOPS, usage, help}
 #define JS_FS_HELP_END                                                        \
-    {NULL, NULL, 0, 0, NULL, NULL}
+    {nullptr, nullptr, 0, 0, nullptr, nullptr}
 
 extern JS_FRIEND_API(bool)
 JS_DefineFunctionsWithHelp(JSContext *cx, JSObject *obj, const JSFunctionSpecWithHelp *fs);
@@ -1405,7 +1405,7 @@ struct JSJitInfo {
 };
 
 #define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{NULL},0,0,JSJitInfo::OpType_None,false,false,false,JSVAL_TYPE_MISSING,op}
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,JSVAL_TYPE_MISSING,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
@@ -1570,7 +1570,7 @@ class JS_FRIEND_API(AutoCTypesActivityCallback) {
     void DoEndCallback() {
         if (callback) {
             callback(cx, endType);
-            callback = NULL;
+            callback = nullptr;
         }
     }
 };
