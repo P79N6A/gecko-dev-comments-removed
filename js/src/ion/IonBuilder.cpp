@@ -2417,7 +2417,7 @@ IonBuilder::lookupSwitch(JSOp op, jssrcnote *sn)
 
     
     CFGState state = CFGState::LookupSwitch(exitpc);
-    if (!state.lookupswitch.bodies->init(bodyBlocks.length()))
+    if (!state.lookupswitch.bodies || !state.lookupswitch.bodies->init(bodyBlocks.length()))
         return ControlStatus_Error;
 
     
