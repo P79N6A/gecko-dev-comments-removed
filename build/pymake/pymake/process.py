@@ -6,6 +6,7 @@ parsing command lines into argv and making sure that no shell magic is being use
 
 import multiprocessing
 import subprocess, shlex, re, logging, sys, traceback, os, imp, glob
+from collections import deque
 
 subprocess._cleanup = lambda: None
 import command, util
@@ -439,7 +440,7 @@ class ParallelContext(object):
         self.exit = False
 
         self.processpool = multiprocessing.Pool(processes=jcount)
-        self.pending = [] 
+        self.pending = deque() 
         self.running = [] 
 
         self._allcontexts.add(self)
@@ -452,7 +453,7 @@ class ParallelContext(object):
 
     def run(self):
         while len(self.pending) and len(self.running) < self.jcount:
-            cb, args, kwargs = self.pending.pop(0)
+            cb, args, kwargs = self.pending.popleft()
             cb(*args, **kwargs)
 
     def defer(self, cb, *args, **kwargs):
