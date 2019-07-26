@@ -1035,7 +1035,7 @@ AttachFinishedCompilations(JSContext *cx)
 
             if (success) {
                 if (script->hasIonScript())
-                    mjit::ReleaseScriptCodeFromVM(cx, script);
+                    mjit::DisableScriptCodeForIon(script, script->ionScript()->osrPc());
             } else {
                 
                 

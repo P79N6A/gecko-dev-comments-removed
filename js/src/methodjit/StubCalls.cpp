@@ -801,7 +801,25 @@ stubs::TriggerIonCompile(VMFrame &f)
     RootedScript script(f.cx, f.script());
 
     if (ion::js_IonOptions.parallelCompilation) {
-        JS_ASSERT(!script->ion);
+        if (script->hasIonScript()) {
+            
+
+
+
+
+            ExpandInlineFrames(f.cx->compartment);
+            Recompiler::clearStackReferences(f.cx->runtime->defaultFreeOp(), script);
+            f.jit()->destroyChunk(f.cx->runtime->defaultFreeOp(), f.chunkIndex(),
+                                   false);
+            return;
+        }
+
+        
+
+
+
+        if (!script->canIonCompile() || script->isIonCompilingOffThread())
+            return;
 
         jsbytecode *osrPC = f.regs.pc;
         if (*osrPC != JSOP_LOOPENTRY)

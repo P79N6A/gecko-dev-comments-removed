@@ -595,6 +595,7 @@ namespace mjit {
 
 struct InlineFrame;
 struct CallSite;
+struct CompileTrigger;
 
 struct NativeMapEntry {
     size_t          bcOff;  
@@ -655,6 +656,7 @@ struct JITChunk
 
     uint32_t        nInlineFrames;
     uint32_t        nCallSites;
+    uint32_t        nCompileTriggers;
     uint32_t        nRootedTemplates;
     uint32_t        nRootedRegExps;
     uint32_t        nMonitoredBytecodes;
@@ -685,6 +687,7 @@ struct JITChunk
     NativeMapEntry *nmap() const;
     js::mjit::InlineFrame *inlineFrames() const;
     js::mjit::CallSite *callSites() const;
+    js::mjit::CompileTrigger *compileTriggers() const;
     JSObject **rootedTemplates() const;
     RegExpShared **rootedRegExps() const;
 
@@ -932,8 +935,10 @@ ReleaseScriptCode(FreeOp *fop, JSScript *script)
 }
 
 
+
+
 void
-ReleaseScriptCodeFromVM(JSContext *cx, JSScript *script);
+DisableScriptCodeForIon(JSScript *script, jsbytecode *osrPC);
 
 
 void
@@ -973,6 +978,25 @@ struct CallSite
 
     bool isTrap() const {
         return rejoin == REJOIN_TRAP;
+    }
+};
+
+
+
+struct CompileTrigger
+{
+    uint32_t pcOffset;
+
+    
+    
+    
+    JSC::CodeLocationJump inlineJump;
+    JSC::CodeLocationLabel stubLabel;
+
+    void initialize(uint32_t pcOffset, JSC::CodeLocationJump inlineJump, JSC::CodeLocationLabel stubLabel) {
+        this->pcOffset = pcOffset;
+        this->inlineJump = inlineJump;
+        this->stubLabel = stubLabel;
     }
 };
 
