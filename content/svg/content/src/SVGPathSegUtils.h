@@ -7,6 +7,7 @@
 #define MOZILLA_SVGPATHSEGUTILS_H__
 
 #include "gfxPoint.h"
+#include "mozilla/gfx/Point.h"
 #include "nsDebug.h"
 #include "nsMemory.h"
 
@@ -46,6 +47,8 @@ static const unsigned short PATHSEG_CURVETO_QUADRATIC_SMOOTH_REL = 19;
 
 struct SVGPathTraversalState
 {
+  typedef gfx::Point Point;
+
   enum TraversalMode {
     eUpdateAll,
     eUpdateOnlyStartAndCurrentPos
@@ -62,17 +65,17 @@ struct SVGPathTraversalState
 
   bool ShouldUpdateLengthAndControlPoints() { return mode == eUpdateAll; }
 
-  gfxPoint start; 
+  Point start; 
 
-  gfxPoint pos;   
+  Point pos;   
 
-  gfxPoint cp1;   
-                  
-                  
+  Point cp1;   
+               
+               
 
-  gfxPoint cp2;   
-                  
-                  
+  Point cp2;   
+               
+               
 
   float length;   
 
