@@ -1156,8 +1156,10 @@ pref("devtools.tilt.outro_transition", true);
 
 
 
+
 pref("devtools.scratchpad.recentFilesMax", 10);
 pref("devtools.scratchpad.showTrailingSpace", false);
+pref("devtools.scratchpad.enableCodeFolding", true);
 
 
 pref("devtools.styleeditor.enabled", true);
