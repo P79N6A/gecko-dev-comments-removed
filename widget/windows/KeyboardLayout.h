@@ -369,6 +369,15 @@ private:
     return (aMessage == WM_SYSCHAR || aMessage == WM_SYSDEADCHAR);
   }
   bool IsFollowedByDeadCharMessage() const;
+
+  
+
+
+
+
+
+
+
   bool GetFollowingCharMessage(MSG& aCharMsg) const;
 
   
