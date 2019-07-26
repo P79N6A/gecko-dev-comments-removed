@@ -474,10 +474,16 @@ bool CC_SIPCCService::isStarted()
 	return bStarted;
 }
 
+
+
+
 CC_DevicePtr CC_SIPCCService::getActiveDevice()
 {
     return CC_SIPCCDevice::wrap(CCAPI_Device_getDeviceID());
 }
+
+
+
 
 vector<CC_DevicePtr> CC_SIPCCService::getDevices()
 {
@@ -492,6 +498,9 @@ vector<CC_DevicePtr> CC_SIPCCService::getDevices()
     return devices;
 }
 
+
+
+
 AudioControlPtr CC_SIPCCService::getAudioControl ()
 {
 	if(audioControlWrapper != NULL)
@@ -504,6 +513,9 @@ AudioControlPtr CC_SIPCCService::getAudioControl ()
 		return audioControlWrapper;
 	}
 }
+
+
+
 
 VideoControlPtr CC_SIPCCService::getVideoControl ()
 {
@@ -536,6 +548,9 @@ void CC_SIPCCService::applyLoggingMask (int newMask)
         *(_maskedLoggingEntriesArray[i]) = (loggingMask >> i) & 0x1;
     }
 }
+
+
+
 
 void CC_SIPCCService::endAllActiveCalls()
 {
@@ -588,6 +603,8 @@ void CC_SIPCCService::onDeviceEvent(ccapi_device_event_e type, cc_device_handle_
         return;
     }
 
+    mozilla::MutexAutoLock lock(_self->m_lock);
+
     CC_SIPCCDevicePtr devicePtr = CC_SIPCCDevice::wrap(handle);
     if (devicePtr == NULL)
     {
@@ -615,6 +632,8 @@ void CC_SIPCCService::onFeatureEvent(ccapi_device_event_e type, cc_deviceinfo_re
          CSFLogErrorS( logTag, "CC_SIPCCService::_self is NULL. Unable to notify observers of device event.");
          return;
      }
+
+     mozilla::MutexAutoLock lock(_self->m_lock);
 
      cc_device_handle_t hDevice = CCAPI_Device_getDeviceID();
      CC_DevicePtr devicePtr = CC_SIPCCDevice::wrap(hDevice);
@@ -644,6 +663,8 @@ void CC_SIPCCService::onLineEvent(ccapi_line_event_e eventType, cc_lineid_t line
         return;
     }
 
+    mozilla::MutexAutoLock lock(_self->m_lock);
+
     CC_LinePtr linePtr = CC_SIPCCLine::wrap(line);
     if (linePtr == NULL)
     {
@@ -670,6 +691,8 @@ void CC_SIPCCService::onCallEvent(ccapi_call_event_e eventType, cc_call_handle_t
         CSFLogErrorS( logTag, "CC_SIPCCService::_self is NULL. Unable to notify observers of call event.");
         return;
     }
+
+    mozilla::MutexAutoLock lock(_self->m_lock);
 
     CC_SIPCCCallPtr callPtr = CC_SIPCCCall::wrap(handle);
     if (callPtr == NULL)
@@ -714,7 +737,7 @@ void CC_SIPCCService::removeCCObserver ( CC_Observer * observer )
 
 void CC_SIPCCService::notifyDeviceEventObservers (ccapi_device_event_e eventType, CC_DevicePtr devicePtr, CC_DeviceInfoPtr info)
 {
-	mozilla::MutexAutoLock lock(m_lock);
+  
 	set<CC_Observer*>::const_iterator it = ccObservers.begin();
 	for ( ; it != ccObservers.end(); it++ )
     {
@@ -724,7 +747,7 @@ void CC_SIPCCService::notifyDeviceEventObservers (ccapi_device_event_e eventType
 
 void CC_SIPCCService::notifyFeatureEventObservers (ccapi_device_event_e eventType, CC_DevicePtr devicePtr, CC_FeatureInfoPtr info)
 {
-	mozilla::MutexAutoLock lock(m_lock);
+  
 	set<CC_Observer*>::const_iterator it = ccObservers.begin();
 	for ( ; it != ccObservers.end(); it++ )
     {
@@ -734,7 +757,7 @@ void CC_SIPCCService::notifyFeatureEventObservers (ccapi_device_event_e eventTyp
 
 void CC_SIPCCService::notifyLineEventObservers (ccapi_line_event_e eventType, CC_LinePtr linePtr, CC_LineInfoPtr info)
 {
-	mozilla::MutexAutoLock lock(m_lock);
+  
 	set<CC_Observer*>::const_iterator it = ccObservers.begin();
 	for ( ; it != ccObservers.end(); it++ )
     {
@@ -744,13 +767,17 @@ void CC_SIPCCService::notifyLineEventObservers (ccapi_line_event_e eventType, CC
 
 void CC_SIPCCService::notifyCallEventObservers (ccapi_call_event_e eventType, CC_CallPtr callPtr, CC_CallInfoPtr info)
 {
-	mozilla::MutexAutoLock lock(m_lock);
+  
 	set<CC_Observer*>::const_iterator it = ccObservers.begin();
 	for ( ; it != ccObservers.end(); it++ )
     {
 	    (*it)->onCallEvent(eventType, callPtr, info);
     }
 }
+
+
+
+
 
 
 
@@ -769,6 +796,9 @@ void CC_SIPCCService::registerStream(cc_call_handle_t call, int streamId, bool i
     }
 }
 
+
+
+
 void CC_SIPCCService::deregisterStream(cc_call_handle_t call, int streamId)
 {
 	
@@ -782,6 +812,9 @@ void CC_SIPCCService::deregisterStream(cc_call_handle_t call, int streamId)
         CSFLogErrorS( logTag, "deregisterStream(), No call found for deallocated Stream:" << streamId);
     }
 }
+
+
+
 
 void CC_SIPCCService::dtmfBurst(int digit, int direction, int duration)
 {
@@ -832,6 +865,9 @@ void CC_SIPCCService::dtmfBurst(int digit, int direction, int duration)
 	    }
     }
 }
+
+
+
 
 void CC_SIPCCService::sendIFrame(cc_call_handle_t call_handle)
 {
@@ -885,6 +921,9 @@ bool CC_SIPCCService::isValidDSCPValue(int value)
 void CC_SIPCCService::onVideoModeChanged( bool enable )
 {
 }
+
+
+
 
 void CC_SIPCCService::onKeyFrameRequested( int stream )
 
