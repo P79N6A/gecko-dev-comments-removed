@@ -358,8 +358,6 @@ class TestManifest(SandboxDerived):
 
         
         
-        
-        
         'installs',
 
         
