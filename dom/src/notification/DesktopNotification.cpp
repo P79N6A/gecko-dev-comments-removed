@@ -119,13 +119,15 @@ DesktopNotification::PostDesktopNotification()
   
   nsString uniqueName = NS_LITERAL_STRING("desktop-notification:");
   uniqueName.AppendInt(sCount++);
+  nsIPrincipal* principal = GetOwner()->GetDoc()->NodePrincipal();
   return alerts->ShowAlertNotification(mIconURL, mTitle, mDescription,
                                        true,
                                        uniqueName,
                                        mObserver,
                                        uniqueName,
                                        NS_LITERAL_STRING("auto"),
-                                       EmptyString());
+                                       EmptyString(),
+                                       principal);
 }
 
 DesktopNotification::DesktopNotification(const nsAString & title,
