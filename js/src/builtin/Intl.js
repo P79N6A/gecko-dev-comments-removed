@@ -21,6 +21,21 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 function toASCIIUpperCase(s) {
     assert(typeof s === "string", "toASCIIUpperCase");
 
@@ -393,7 +408,12 @@ var oldStyleLanguageTagMappings = {
 
 
 function DefaultLocale() {
-    var localeOfLastResort = "und";
+    
+    
+    
+    
+    
+    var localeOfLastResort = "en-GB";
 
     var locale = RuntimeDefaultLocale();
     if (!IsStructurallyValidLanguageTag(locale))
@@ -853,14 +873,6 @@ function GetNumberOption(options, property, minimum, maximum, fallback) {
 
 
 
-var runtimeAvailableLocales = (function () {
-    var o = std_Object_create(null);
-    o[RuntimeDefaultLocale()] = true;
-    return addOldStyleLanguageTags(o);
-}());
-
-
-
 
 
 
@@ -1103,25 +1115,27 @@ function Intl_Collator_supportedLocalesOf(locales ) {
 var collatorInternalProperties = {
     sortLocaleData: collatorSortLocaleData,
     searchLocaleData: collatorSearchLocaleData,
-    availableLocales: runtimeAvailableLocales, 
+    availableLocales: addOldStyleLanguageTags(intl_Collator_availableLocales()),
     relevantExtensionKeys: ["co", "kn"]
 };
 
 
 function collatorSortLocaleData(locale) {
-    
+    var collations = intl_availableCollations(locale);
+    callFunction(std_Array_unshift, collations, null);
     return {
-        co: [null],
+        co: collations,
         kn: ["false", "true"]
     };
 }
 
 
 function collatorSearchLocaleData(locale) {
-    
     return {
         co: [null],
         kn: ["false", "true"],
+        
+        
         sensitivity: "variant"
     };
 }
@@ -1139,7 +1153,7 @@ function collatorCompareToBind(x, y) {
     
     var X = ToString(x);
     var Y = ToString(y);
-    return CompareStrings(this, X, Y);
+    return intl_CompareStrings(this, X, Y);
 }
 
 
@@ -1168,23 +1182,6 @@ function Intl_Collator_compare_get() {
 
     
     return internals.boundCompare;
-}
-
-
-
-
-
-
-
-
-
-
-function CompareStrings(collator, x, y) {
-    assert(typeof x === "string", "CompareStrings");
-    assert(typeof y === "string", "CompareStrings");
-
-    
-    return x.localeCompare(y);
 }
 
 
@@ -1412,15 +1409,41 @@ function Intl_NumberFormat_supportedLocalesOf(locales ) {
 
 var numberFormatInternalProperties = {
     localeData: numberFormatLocaleData,
-    availableLocales: runtimeAvailableLocales, 
+    availableLocales: addOldStyleLanguageTags(intl_NumberFormat_availableLocales()),
     relevantExtensionKeys: ["nu"]
 };
 
 
-function numberFormatLocaleData(locale) {
+function getNumberingSystems(locale) {
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    var defaultNumberingSystem = intl_numberingSystem(locale);
+    return [
+        defaultNumberingSystem,
+        "arab", "arabext", "bali", "beng", "deva",
+        "fullwide", "gujr", "guru", "hanidec", "khmr",
+        "knda", "laoo", "latn", "limb", "mlym",
+        "mong", "mymr", "orya", "tamldec", "telu",
+        "thai", "tibt"
+    ];
+}
+
+
+function numberFormatLocaleData(locale) {
     return {
-        nu: ["latn"]
+        nu: getNumberingSystems(locale)
     };
 }
 
@@ -1436,7 +1459,7 @@ function numberFormatFormatToBind(value) {
 
     
     var x = ToNumber(value);
-    return FormatNumber(this, x);
+    return intl_FormatNumber(this, x);
 }
 
 
@@ -1462,21 +1485,6 @@ function Intl_NumberFormat_format_get() {
     }
     
     return internals.boundFormat;
-}
-
-
-
-
-
-
-
-
-
-function FormatNumber(numberFormat, x) {
-    assert(typeof x === "number", "FormatNumber");
-
-    
-    return x.toLocaleString();
 }
 
 
