@@ -1467,115 +1467,6 @@ nsNSSComponent::InitializeCRLUpdateTimer()
   return NS_OK;
 }
 
-#ifdef XP_MACOSX
-void
-nsNSSComponent::TryCFM2MachOMigration(nsIFile *cfmPath, nsIFile *machoPath)
-{
-  
-  
-  
-  
-  
-  
-
-  NS_NAMED_LITERAL_CSTRING(cstr_key3db, "key3.db");
-  NS_NAMED_LITERAL_CSTRING(cstr_cert7db, "cert7.db");
-  NS_NAMED_LITERAL_CSTRING(cstr_cert8db, "cert8.db");
-  NS_NAMED_LITERAL_CSTRING(cstr_keydatabase3, "Key Database3");
-  NS_NAMED_LITERAL_CSTRING(cstr_certificate7, "Certificates7");
-  NS_NAMED_LITERAL_CSTRING(cstr_certificate8, "Certificates8");
-
-  bool bExists;
-  nsresult rv;
-
-  nsCOMPtr<nsIFile> macho_key3db;
-  rv = machoPath->Clone(getter_AddRefs(macho_key3db));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  macho_key3db->AppendNative(cstr_key3db);
-  rv = macho_key3db->Exists(&bExists);
-  if (NS_FAILED(rv) || bExists) {
-    return;
-  }
-
-  nsCOMPtr<nsIFile> macho_cert7db;
-  rv = machoPath->Clone(getter_AddRefs(macho_cert7db));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  macho_cert7db->AppendNative(cstr_cert7db);
-  rv = macho_cert7db->Exists(&bExists);
-  if (NS_FAILED(rv) || bExists) {
-    return;
-  }
-
-  nsCOMPtr<nsIFile> macho_cert8db;
-  rv = machoPath->Clone(getter_AddRefs(macho_cert8db));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  macho_cert8db->AppendNative(cstr_cert8db);
-  rv = macho_cert7db->Exists(&bExists);
-  if (NS_FAILED(rv) || bExists) {
-    return;
-  }
-
-  
-
-  nsCOMPtr<nsIFile> cfm_key3;
-  rv = cfmPath->Clone(getter_AddRefs(cfm_key3));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  cfm_key3->AppendNative(cstr_keydatabase3);
-  rv = cfm_key3->Exists(&bExists);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (bExists) {
-    cfm_key3->CopyToFollowingLinksNative(machoPath, cstr_key3db);
-  }
-
-  nsCOMPtr<nsIFile> cfm_cert7;
-  rv = cfmPath->Clone(getter_AddRefs(cfm_cert7));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  cfm_cert7->AppendNative(cstr_certificate7);
-  rv = cfm_cert7->Exists(&bExists);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (bExists) {
-    cfm_cert7->CopyToFollowingLinksNative(machoPath, cstr_cert7db);
-  }
-
-  nsCOMPtr<nsIFile> cfm_cert8;
-  rv = cfmPath->Clone(getter_AddRefs(cfm_cert8));
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  cfm_cert8->AppendNative(cstr_certificate8);
-  rv = cfm_cert8->Exists(&bExists);
-  if (NS_FAILED(rv)) {
-    return;
-  }
-
-  if (bExists) {
-    cfm_cert8->CopyToFollowingLinksNative(machoPath, cstr_cert8db);
-  }
-}
-#endif
-
 static void configureMD5(bool enabled)
 {
   if (enabled) { 
@@ -1644,28 +1535,6 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
     }
     else
     {
-
-  
-
-  #if defined(XP_MACOSX)
-    
-    
-    nsCOMPtr<nsIFile> cfmSecurityPath;
-    cfmSecurityPath = profilePath; 
-    cfmSecurityPath->AppendNative(NS_LITERAL_CSTRING("Security"));
-  #endif
-
-  #if defined(XP_MACOSX)
-    
-    
-    
-    rv = cfmSecurityPath->GetParent(getter_AddRefs(profilePath));
-    if (NS_FAILED(rv)) {
-      nsPSMInitPanic::SetPanic();
-      return rv;
-    }
-  #endif
-
     const char *dbdir_override = getenv("MOZPSM_NSSDBDIR_OVERRIDE");
     if (dbdir_override && strlen(dbdir_override)) {
       profileStr = dbdir_override;
@@ -1688,12 +1557,6 @@ nsNSSComponent::InitializeNSS(bool showWarningBox)
 
     hashTableCerts = PL_NewHashTable( 0, certHashtable_keyHash, certHashtable_keyCompare,
       certHashtable_valueCompare, 0, 0 );
-
-  #if defined(XP_MACOSX)
-    
-    
-    TryCFM2MachOMigration(cfmSecurityPath, profilePath);
-  #endif
 
 #ifndef NSS_NO_LIBPKIX
     rv = mPrefBranch->GetBoolPref("security.use_libpkix_verification", &globalConstFlagUsePKIXVerification);
