@@ -1005,8 +1005,14 @@ nsHttpChannel::CallOnStartRequest()
     }
 
     LOG(("  calling mListener->OnStartRequest\n"));
-    nsresult rv = mListener->OnStartRequest(this, mListenerContext);
-    if (NS_FAILED(rv)) return rv;
+    nsresult rv;
+    if (mListener) {
+        nsresult rv = mListener->OnStartRequest(this, mListenerContext);
+        if (NS_FAILED(rv))
+            return rv;
+    } else {
+        NS_WARNING("OnStartRequest skipped because of null listener");
+    }
 
     
     rv = ApplyContentConversions();
@@ -5194,7 +5200,11 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
             MOZ_ASSERT(NS_FAILED(status), "should have a failure code here");
             
             
-            mListener->OnStartRequest(this, mListenerContext);
+            if (mListener) {
+                mListener->OnStartRequest(this, mListenerContext);
+            } else {
+                NS_WARNING("OnStartRequest skipped because of null listener");
+            }
         }
 
         
