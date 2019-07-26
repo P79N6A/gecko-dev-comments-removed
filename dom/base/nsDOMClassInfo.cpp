@@ -4423,7 +4423,7 @@ nsDOMClassInfo::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                            JSObject *obj, jsid id, uint32_t flags,
                            JSObject **objp, bool *_retval)
 {
-  if (id == sConstructor_id && !(flags & JSRESOLVE_ASSIGNING)) {
+  if (id == sConstructor_id) {
     return ResolveConstructor(cx, obj, objp);
   }
 
@@ -4907,7 +4907,7 @@ nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
                                           JSHandleId id, unsigned flags,
                                           JSMutableHandleObject objp)
 {
-  if ((flags & JSRESOLVE_ASSIGNING) || !JSID_IS_STRING(id)) {
+  if (!JSID_IS_STRING(id)) {
     
     return JS_TRUE;
   }
@@ -6732,13 +6732,11 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  if (!(flags & JSRESOLVE_ASSIGNING)) {
-    
-    
-    
-    if (sConstructor_id == id) {
-      return ResolveConstructor(cx, obj, objp);
-    }
+  
+  
+  
+  if (sConstructor_id == id) {
+    return ResolveConstructor(cx, obj, objp);
   }
 
   if (!my_context || !my_context->IsContextInitialized()) {
@@ -6783,7 +6781,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     return NS_OK;
   }
 
-  if (sTop_id == id && !(flags & JSRESOLVE_ASSIGNING)) {
+  if (sTop_id == id) {
     nsCOMPtr<nsIDOMWindow> top;
     rv = win->GetScriptableTop(getter_AddRefs(top));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -7194,7 +7192,7 @@ nsNavigatorSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                           JSObject *obj, jsid id, uint32_t flags,
                           JSObject **objp, bool *_retval)
 {
-  if (!JSID_IS_STRING(id) || (flags & JSRESOLVE_ASSIGNING)) {
+  if (!JSID_IS_STRING(id)) {
     return NS_OK;
   }
 
@@ -8388,12 +8386,6 @@ JSBool
 nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id,
                                         unsigned flags, JSMutableHandleObject objp)
 {
-  if (flags & JSRESOLVE_ASSIGNING) {
-    
-
-    return JS_TRUE;
-  }
-
   js::RootedValue v(cx);
 
   if (sItem_id == id || sNamedItem_id == id) {
