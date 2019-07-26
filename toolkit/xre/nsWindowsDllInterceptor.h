@@ -402,8 +402,24 @@ protected:
 
         continue;
       } 
-        
-      if (origBytes[nBytes] == 0x41) {
+      if (origBytes[nBytes] == 0x0f) {
+        nBytes++;
+        if (origBytes[nBytes] == 0x1f) {
+          
+          nBytes++;
+          if ((origBytes[nBytes] & 0xc0) == 0x40 &&
+              (origBytes[nBytes] & 0x7) == 0x04) {
+            nBytes += 3;
+          } else {
+            return;
+          }
+        } else if (origBytes[nBytes] == 0x05) {
+          
+          nBytes++;
+        } else {
+          return;
+        }
+      } else if (origBytes[nBytes] == 0x41) {
         
         nBytes++;
 
@@ -460,6 +476,13 @@ protected:
             
             return;
           }
+        } else if (origBytes[nBytes] == 0xc7) {
+          
+          if (origBytes[nBytes + 1] & 0xf8 == 0x40) {
+            nBytes += 6;
+          } else {
+            return;
+          }
         } else {
           
           return;
@@ -468,6 +491,12 @@ protected:
         
         nBytes++;
       } else if (origBytes[nBytes] == 0x90) {
+        
+        nBytes++;
+      } else if (origBytes[nBytes] == 0xb8) {
+        
+        nBytes += 5;
+      } else if (origBytes[nBytes] == 0xc3) {
         
         nBytes++;
       } else if (origBytes[nBytes] == 0xe9) {
