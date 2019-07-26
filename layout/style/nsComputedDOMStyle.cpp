@@ -417,6 +417,15 @@ nsComputedDOMStyle::GetPropertyValue(const nsAString& aPropertyName,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsComputedDOMStyle::GetAuthoredPropertyValue(const nsAString& aPropertyName,
+                                             nsAString& aReturn)
+{
+  
+  
+  return GetPropertyValue(aPropertyName, aReturn);
+}
+
 
 already_AddRefed<nsStyleContext>
 nsComputedDOMStyle::GetStyleContextForElement(Element* aElement,
