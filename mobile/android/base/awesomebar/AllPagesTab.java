@@ -628,6 +628,18 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
         yesButton.setOnClickListener(listener);
         noButton.setOnClickListener(listener);
 
+        
+        
+        final View promptContainer = mSuggestionsOptInPrompt.findViewById(R.id.prompt_container);
+        promptContainer.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (hasFocus) {
+                    yesButton.requestFocus();
+                }
+            }
+        });
+
         mSuggestionsOptInPrompt.setVisibility(View.GONE);
         ((LinearLayout)getView()).addView(mSuggestionsOptInPrompt, 0);
     }
