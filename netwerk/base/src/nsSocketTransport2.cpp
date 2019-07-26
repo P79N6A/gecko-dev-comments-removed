@@ -1414,48 +1414,13 @@ nsSocketTransport::GetFD_Locked()
 }
 
 void
-STS_PRCloseOnSocketTransport(PRFileDesc *fd)
-{
-  
-  
-
-  class thunkPRClose : public nsRunnable
-  {
-  public:
-    thunkPRClose(PRFileDesc *fd) : mFD(fd) {}
-
-    NS_IMETHOD Run() {
-      PR_Close(mFD);
-      return NS_OK;
-    }
-  private:
-    PRFileDesc *mFD;
-  };
-
-  if (gSocketTransportService) {
-    
-    
-    
-    gSocketTransportService->Dispatch(new thunkPRClose(fd), NS_DISPATCH_NORMAL);
-  } else {
-    
-    NS_ASSERTION(gSocketTransportService, "No STS service");
-  }
-}
-
-void
 nsSocketTransport::ReleaseFD_Locked(PRFileDesc *fd)
 {
     NS_ASSERTION(mFD == fd, "wrong fd");
 
     if (--mFDref == 0) {
-        if (PR_GetCurrentThread() == gSocketThread) {
-            SOCKET_LOG(("nsSocketTransport: calling PR_Close [this=%x]\n", this));
-            PR_Close(mFD);
-        } else {
-            
-            STS_PRCloseOnSocketTransport(mFD);
-        }
+        SOCKET_LOG(("nsSocketTransport: calling PR_Close [this=%x]\n", this));
+        PR_Close(mFD);
         mFD = nullptr;
     }
 }
