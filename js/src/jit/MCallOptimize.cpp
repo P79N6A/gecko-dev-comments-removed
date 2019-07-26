@@ -1462,7 +1462,11 @@ IonBuilder::inlineForkJoinGetSlice(CallInfo &callInfo)
     
     MOZ_ASSERT(callInfo.argc() == 1 && !callInfo.constructing());
     MOZ_ASSERT(callInfo.getArg(0)->type() == MIRType_Int32);
-    MOZ_ASSERT(getInlineReturnType() == MIRType_Int32);
+
+    
+    
+    if (getInlineReturnType() != MIRType_Int32)
+        return InliningStatus_NotInlined;
 
     callInfo.setImplicitlyUsedUnchecked();
 
