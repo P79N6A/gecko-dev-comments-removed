@@ -173,6 +173,17 @@ class FileCopier(FileRegistry):
         
         
         
+        
+        try:
+            os.makedirs(destination)
+        except OSError as e:
+            if e.errno != errno.EEXIST:
+                raise
+
+        
+        
+        
+        
 
         required_dirs = set()
         dest_files = set()
