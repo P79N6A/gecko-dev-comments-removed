@@ -32,6 +32,7 @@ import android.view.View;
 import android.view.ViewGroup;
 
 public class HomePager extends ViewPager {
+
     private static final int LOADER_ID_CONFIG = 0;
 
     private final Context mContext;
@@ -50,9 +51,6 @@ public class HomePager extends ViewPager {
 
     
     private final Drawable mOriginalBackground;
-
-    
-    private String mCurrentPanelSession;
 
     
     
@@ -208,9 +206,6 @@ public class HomePager extends ViewPager {
     public void unload() {
         mLoaded = false;
         setAdapter(null);
-
-        
-        stopCurrentPanelTelemetrySession();
         Telemetry.stopUISession(TelemetryContract.Session.HOME);
     }
 
@@ -370,10 +365,6 @@ public class HomePager extends ViewPager {
             if (mHomeBanner != null) {
                 mHomeBanner.setActive(position == mDefaultPageIndex);
             }
-
-            
-            final String newPanelId = ((HomeAdapter) getAdapter()).getPanelIdAtPosition(position);
-            startNewPanelTelemetrySession(newPanelId);
         }
 
         @Override
@@ -389,30 +380,5 @@ public class HomePager extends ViewPager {
 
         @Override
         public void onPageScrollStateChanged(int state) { }
-    }
-
-    
-
-
-
-
-
-
-    private void startNewPanelTelemetrySession(String panelId) {
-        
-        stopCurrentPanelTelemetrySession();
-
-        mCurrentPanelSession = TelemetryContract.Session.HOME_PANEL + panelId;
-        Telemetry.startUISession(mCurrentPanelSession);
-    }
-
-    
-
-
-    private void stopCurrentPanelTelemetrySession() {
-        if (mCurrentPanelSession != null) {
-            Telemetry.stopUISession(mCurrentPanelSession);
-            mCurrentPanelSession = null;
-        }
     }
 }
