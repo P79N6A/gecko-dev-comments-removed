@@ -612,6 +612,7 @@ ICStubCompiler::guardProfilingEnabled(MacroAssembler &masm, Register scratch, La
     JS_ASSERT(kind == ICStub::Call_Scripted      || kind == ICStub::Call_AnyScripted     ||
               kind == ICStub::Call_Native        || kind == ICStub::GetProp_CallScripted ||
               kind == ICStub::GetProp_CallNative || kind == ICStub::GetProp_CallListBaseNative ||
+              kind == ICStub::Call_ScriptedApplyArguments ||
               kind == ICStub::GetProp_CallListBaseWithGenerationNative ||
               kind == ICStub::SetProp_CallScripted || kind == ICStub::SetProp_CallNative);
 
@@ -6528,6 +6529,41 @@ ICSetProp_CallNative::Compiler::generateStubCode(MacroAssembler &masm)
 
 
 static bool
+TryAttachFunApplyStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsbytecode *pc,
+                      HandleValue thisv, uint32_t argc, Value *argv)
+{
+    if (argc != 2)
+        return true;
+
+    if (!thisv.isObject() || !thisv.toObject().isFunction())
+        return true;
+    RootedFunction target(cx, thisv.toObject().toFunction());
+
+    
+    if (argv[1].isMagic(JS_OPTIMIZED_ARGUMENTS) && !script->needsArgsObj()) {
+        if (target->hasScript() &&
+            (target->nonLazyScript()->hasBaselineScript() ||
+             target->nonLazyScript()->hasIonScript()) &&
+            !stub->hasStub(ICStub::Call_ScriptedApplyArguments))
+        {
+            IonSpew(IonSpew_BaselineIC, "  Generating Call_ScriptedApplyArguments stub");
+
+            ICCall_ScriptedApplyArguments::Compiler compiler(
+                cx, stub->fallbackMonitorStub()->firstMonitorStub(), pc - script->code);
+            ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!newStub)
+                return false;
+
+            stub->addNewStub(newStub);
+            return true;
+        }
+
+        
+    }
+    return true;
+}
+
+static bool
 TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsbytecode *pc,
                   JSOp op, uint32_t argc, Value *vp, bool constructing, bool useNewType)
 {
@@ -6599,25 +6635,31 @@ TryAttachCallStub(JSContext *cx, ICCall_Fallback *stub, HandleScript script, jsb
     }
 
     if (fun->isNative() && (!constructing || (constructing && fun->isNativeConstructor()))) {
-
         
         JS_ASSERT(!stub->nativeStubsAreGeneralized());
 
-        if (stub->nativeStubCount() >= ICCall_Fallback::MAX_NATIVE_STUBS) {
-            IonSpew(IonSpew_BaselineIC, "  Too many Call_Native stubs. TODO: add Call_AnyNative!");
+        
+        if (op == JSOP_FUNAPPLY && fun->maybeNative() == js_fun_apply) {
+            if (!TryAttachFunApplyStub(cx, stub, script, pc, thisv, argc, vp + 2))
+                return false;
+        } else {
+            if (stub->nativeStubCount() >= ICCall_Fallback::MAX_NATIVE_STUBS) {
+                IonSpew(IonSpew_BaselineIC,
+                        "  Too many Call_Native stubs. TODO: add Call_AnyNative!");
+                return true;
+            }
+
+            IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)",
+                    fun.get(), constructing ? "yes" : "no");
+            ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
+                                             fun, constructing, pc - script->code);
+            ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!newStub)
+                return false;
+
+            stub->addNewStub(newStub);
             return true;
         }
-
-        IonSpew(IonSpew_BaselineIC, "  Generating Call_Native stub (fun=%p, cons=%s)", fun.get(),
-                constructing ? "yes" : "no");
-        ICCall_Native::Compiler compiler(cx, stub->fallbackMonitorStub()->firstMonitorStub(),
-                                         fun, constructing, pc - script->code);
-        ICStub *newStub = compiler.getStub(compiler.getStubSpace(script));
-        if (!newStub)
-            return false;
-
-        stub->addNewStub(newStub);
-        return true;
     }
 
     return true;
@@ -6743,6 +6785,91 @@ ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, GeneralRegisterSet r
         masm.jump(&loop);
     }
     masm.bind(&done);
+}
+
+Register
+ICCallStubCompiler::guardFunApply(MacroAssembler &masm, GeneralRegisterSet regs, Register argcReg,
+                                  bool checkNative, Label *failure)
+{
+    
+    masm.branch32(Assembler::NotEqual, argcReg, Imm32(2), failure);
+
+    
+    
+
+    
+    Address secondArgSlot(BaselineStackReg, ICStackValueOffset);
+    masm.branchTestMagic(Assembler::NotEqual, secondArgSlot, failure);
+
+    
+    masm.branchTest32(Assembler::NonZero,
+                      Address(BaselineFrameReg, BaselineFrame::reverseOffsetOfFlags()),
+                      Imm32(BaselineFrame::HAS_ARGS_OBJ),
+                      failure);
+
+    
+    
+
+    
+    ValueOperand val = regs.takeAnyValue();
+    Address calleeSlot(BaselineStackReg, ICStackValueOffset + (3 * sizeof(Value)));
+    masm.loadValue(calleeSlot, val);
+
+    masm.branchTestObject(Assembler::NotEqual, val, failure);
+    Register callee = masm.extractObject(val, ExtractTemp1);
+
+    masm.branchTestObjClass(Assembler::NotEqual, callee, regs.getAny(), &FunctionClass, failure);
+    masm.loadPtr(Address(callee, JSFunction::offsetOfNativeOrScript()), callee);
+
+    masm.branchPtr(Assembler::NotEqual, callee, ImmWord((void*) js_fun_apply), failure);
+
+    
+    
+    Address thisSlot(BaselineStackReg, ICStackValueOffset + (2 * sizeof(Value)));
+    masm.loadValue(thisSlot, val);
+
+    masm.branchTestObject(Assembler::NotEqual, val, failure);
+    Register target = masm.extractObject(val, ExtractTemp1);
+    regs.add(val);
+    regs.takeUnchecked(target);
+
+    masm.branchTestObjClass(Assembler::NotEqual, target, regs.getAny(), &FunctionClass, failure);
+
+    if (checkNative) {
+        masm.branchIfInterpreted(target, failure);
+    } else {
+        masm.branchIfFunctionHasNoScript(target, failure);
+        Register temp = regs.takeAny();
+        masm.loadPtr(Address(target, JSFunction::offsetOfNativeOrScript()), temp);
+        masm.loadBaselineOrIonRaw(temp, temp, SequentialExecution, failure);
+        regs.add(temp);
+    }
+    return target;
+}
+
+void
+ICCallStubCompiler::pushCallerArguments(MacroAssembler &masm, GeneralRegisterSet regs)
+{
+    
+    
+    Register startReg = regs.takeAny();
+    Register endReg = regs.takeAny();
+    masm.loadPtr(Address(BaselineFrameReg, 0), startReg);
+    masm.loadPtr(Address(startReg, BaselineFrame::offsetOfNumActualArgs()), endReg);
+    masm.addPtr(Imm32(BaselineFrame::offsetOfArg(0)), startReg);
+    JS_ASSERT(sizeof(Value) == 8);
+    masm.lshiftPtr(Imm32(3), endReg);
+    masm.addPtr(startReg, endReg);
+
+    
+    Label copyDone;
+    Label copyStart;
+    masm.bind(&copyStart);
+    masm.branchPtr(Assembler::Equal, endReg, startReg, &copyDone);
+    masm.subPtr(Imm32(sizeof(Value)), endReg);
+    masm.pushValue(Address(endReg, 0));
+    masm.jump(&copyStart);
+    masm.bind(&copyDone);
 }
 
 typedef bool (*DoCallFallbackFn)(JSContext *, BaselineFrame *, ICCall_Fallback *,
@@ -7157,6 +7284,116 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     
     masm.bind(&exception);
     masm.handleException();
+
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+bool
+ICCall_ScriptedApplyArguments::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    GeneralRegisterSet regs(availableGeneralRegs(0));
+
+    Register argcReg = R0.scratchReg();
+    regs.take(argcReg);
+    regs.takeUnchecked(BaselineTailCallReg);
+    regs.takeUnchecked(ArgumentsRectifierReg);
+
+    
+    
+    
+
+    Register target = guardFunApply(masm, regs, argcReg, false, &failure);
+    if (regs.has(target)) {
+        regs.take(target);
+    } else {
+        
+        
+        Register targetTemp = regs.takeAny();
+        masm.movePtr(target, targetTemp);
+        target = targetTemp;
+    }
+
+    
+    enterStubFrame(masm, regs.getAny());
+
+    
+    
+    
+
+    
+    
+
+    
+    pushCallerArguments(masm, regs);
+
+    
+    
+    
+    
+    
+    
+
+    
+    masm.pushValue(Address(BaselineFrameReg, STUB_FRAME_SIZE + sizeof(Value)));
+
+    
+    
+    Register scratch = regs.takeAny();
+    EmitCreateStubFrameDescriptor(masm, scratch);
+
+    masm.loadPtr(Address(BaselineFrameReg, 0), argcReg);
+    masm.loadPtr(Address(argcReg, BaselineFrame::offsetOfNumActualArgs()), argcReg);
+    masm.Push(argcReg);
+    masm.Push(target);
+    masm.Push(scratch);
+
+    
+    masm.load16ZeroExtend(Address(target, offsetof(JSFunction, nargs)), scratch);
+    masm.loadPtr(Address(target, JSFunction::offsetOfNativeOrScript()), target);
+    masm.loadBaselineOrIonRaw(target, target, SequentialExecution, NULL);
+
+    
+    Label noUnderflow;
+    masm.branch32(Assembler::AboveOrEqual, argcReg, scratch, &noUnderflow);
+    {
+        
+        JS_ASSERT(ArgumentsRectifierReg != target);
+        JS_ASSERT(ArgumentsRectifierReg != argcReg);
+
+        IonCode *argumentsRectifier =
+            cx->compartment->ionCompartment()->getArgumentsRectifier(SequentialExecution);
+
+        masm.movePtr(ImmGCPtr(argumentsRectifier), target);
+        masm.loadPtr(Address(target, IonCode::offsetOfCode()), target);
+        masm.mov(argcReg, ArgumentsRectifierReg);
+    }
+    masm.bind(&noUnderflow);
+    regs.add(argcReg);
+
+    
+    
+    {
+        Label skipProfilerUpdate;
+        Register pcIdx = regs.getAny();
+        JS_ASSERT(pcIdx != ArgumentsRectifierReg);
+        JS_ASSERT(pcIdx != target);
+        guardProfilingEnabled(masm, scratch, &skipProfilerUpdate);
+
+        masm.load32(Address(BaselineStubReg, ICCall_ScriptedApplyArguments::offsetOfPCOffset()),
+                    pcIdx);
+        masm.spsUpdatePCIdx(&cx->runtime->spsProfiler, pcIdx, scratch);
+
+        masm.bind(&skipProfilerUpdate);
+    }
+    
+    masm.callIon(target);
+    leaveStubFrame(masm, true);
+
+    
+    EmitEnterTypeMonitorIC(masm);
 
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
