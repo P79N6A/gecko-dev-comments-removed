@@ -44,6 +44,8 @@ class AudioClock
     
     
     bool GetPreservesPitch();
+    
+    int64_t GetWritten();
   private:
     
     
@@ -129,6 +131,16 @@ public:
   virtual void Drain() = 0;
 
   
+  virtual nsresult Start() = 0;
+
+  
+  virtual bool IsStarted() = 0;
+
+  
+  
+  virtual int64_t GetWritten();
+
+  
   virtual void Pause() = 0;
 
   
@@ -171,6 +183,8 @@ protected:
   
   int mOutRate;
   int mChannels;
+  
+  int64_t mWritten;
   AudioClock mAudioClock;
   nsAutoPtr<soundtouch::SoundTouch> mTimeStretcher;
 };
