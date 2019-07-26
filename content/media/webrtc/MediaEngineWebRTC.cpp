@@ -221,6 +221,20 @@ MediaEngineWebRTC::EnumerateAudioDevices(nsTArray<nsRefPtr<MediaEngineAudioSourc
   
   MutexAutoLock lock(mMutex);
 
+#ifdef MOZ_WIDGET_ANDROID
+  jobject context = mozilla::AndroidBridge::Bridge()->GetGlobalContextRef();
+
+  
+  JavaVM *jvm = mozilla::AndroidBridge::Bridge()->GetVM();
+
+  JNIEnv *env;
+  jvm->AttachCurrentThread(&env, NULL);
+
+  webrtc::VoiceEngine::SetAndroidObjects(jvm, (void*)context);
+
+  env->DeleteGlobalRef(context);
+#endif
+
   if (!mVoiceEngine) {
     mVoiceEngine = webrtc::VoiceEngine::Create();
     if (!mVoiceEngine) {
