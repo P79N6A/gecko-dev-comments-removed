@@ -1386,12 +1386,13 @@ StyleRule::Clone() const
  nsIDOMCSSRule*
 StyleRule::GetDOMRule()
 {
-  if (!GetStyleSheet()) {
-    
-    
-    return nullptr;
-  }
   if (!mDOMRule) {
+    if (!GetStyleSheet()) {
+      
+      
+      
+      return nullptr;
+    }
     mDOMRule = new DOMCSSStyleRule(this);
     NS_ADDREF(mDOMRule);
   }
