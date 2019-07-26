@@ -998,18 +998,6 @@ LivemarkLoadListener.prototype = {
   },
 
   
-  notifyCertProblem: function LLL_certProblem(aSocketInfo, aStatus, aTargetSite)
-  {
-    return true;
-  },
-
-  
-  notifySSLError: function LLL_SSLError(aSocketInfo, aError, aTargetSite)
-  {
-    return true;
-  },
-
-  
   getInterface: function LLL_getInterface(aIID)
   {
     return this.QueryInterface(aIID);
@@ -1020,8 +1008,6 @@ LivemarkLoadListener.prototype = {
     Ci.nsIFeedResultListener
   , Ci.nsIStreamListener
   , Ci.nsIRequestObserver
-  , Ci.nsIBadCertListener2
-  , Ci.nsISSLErrorListener
   , Ci.nsIInterfaceRequestor
   ])
 }

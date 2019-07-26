@@ -113,24 +113,12 @@ PROT_XMLFetcher.prototype = {
   },
 
   
-  notifyCertProblem: function(socketInfo, status, targetSite) {
-    return true;
-  },
-
-  
-  notifySSLError: function(socketInfo, error, targetSite) {
-    return true;
-  },
-
-  
   getInterface: function(iid) {
     return this.QueryInterface(iid);
   },
 
   QueryInterface: function(iid) {
-    if (!iid.equals(Components.interfaces.nsIBadCertListener2) &&
-        !iid.equals(Components.interfaces.nsISSLErrorListener) &&
-        !iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
+    if (!iid.equals(Components.interfaces.nsIInterfaceRequestor) &&
         !iid.equals(Components.interfaces.nsISupports))
       throw Components.results.NS_ERROR_NO_INTERFACE;
     return this;

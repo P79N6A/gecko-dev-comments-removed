@@ -210,16 +210,6 @@ BadCertHandler.prototype = {
   },
 
   
-  notifyCertProblem: function(socketInfo, status, targetSite) {
-    return true;
-  },
-
-  
-  notifySSLError: function(socketInfo, error, targetSite) {
-    return true;
-  },
-
-  
   getInterface: function(iid) {
     return this.QueryInterface(iid);
   },
@@ -227,8 +217,6 @@ BadCertHandler.prototype = {
   
   QueryInterface: function(iid) {
     if (!iid.equals(Ci.nsIChannelEventSink) &&
-        !iid.equals(Ci.nsIBadCertListener2) &&
-        !iid.equals(Ci.nsISSLErrorListener) &&
         !iid.equals(Ci.nsIInterfaceRequestor) &&
         !iid.equals(Ci.nsISupports))
       throw Cr.NS_ERROR_NO_INTERFACE;

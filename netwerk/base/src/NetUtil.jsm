@@ -110,9 +110,6 @@ this.NetUtil = {
 
 
 
-
-
-
     asyncFetch: function NetUtil_asyncOpen(aSource, aCallback)
     {
         if (!aSource || !aCallback) {
@@ -153,13 +150,6 @@ this.NetUtil = {
         let channel = aSource;
         if (!(channel instanceof Ci.nsIChannel)) {
             channel = this.newChannel(aSource);
-        }
-
-        
-        
-        if (!channel.notificationCallbacks) {
-          
-          channel.notificationCallbacks = new BadCertHandler(true);
         }
 
         channel.asyncOpen(listener, null);
@@ -339,9 +329,3 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyServiceGetter(this, "ioUtil", "@mozilla.org/io-util;1",
                                    "nsIIOUtil");
-
-XPCOMUtils.defineLazyGetter(this, "BadCertHandler", function () {
-  var obj = {};
-  Cu.import("resource://gre/modules/CertUtils.jsm", obj);
-  return obj.BadCertHandler;
-});
