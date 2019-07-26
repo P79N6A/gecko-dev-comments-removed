@@ -508,7 +508,14 @@ protected:
         return NS_ERROR_FAILURE;
     }
 
-protected:
+    
+    
+    
+    
+    
+    
+    hb_blob_t* GetTableFromFontData(const void* aFontData, uint32_t aTableTag);
+
     
     
     
