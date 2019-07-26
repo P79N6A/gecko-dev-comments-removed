@@ -152,9 +152,9 @@ public:
   
   nsMenuFrame* Enter(mozilla::WidgetGUIEvent* aEvent);
 
-  virtual void SetParent(nsContainerFrame* aParent) MOZ_OVERRIDE;
+  
+  nsMenuParent* GetMenuParent() const;
 
-  virtual nsMenuParent *GetMenuParent() { return mMenuParent; }
   const nsAString& GetRadioGroupName() { return mGroupName; }
   nsMenuType GetMenuType() { return mType; }
   nsMenuPopupFrame* GetPopup();
@@ -170,8 +170,16 @@ public:
 
   
 
-  bool IsOnMenuBar() { return mMenuParent && mMenuParent->IsMenuBar(); }
-  bool IsOnActiveMenuBar() { return IsOnMenuBar() && mMenuParent->IsActive(); }
+  bool IsOnMenuBar() const
+  {
+    nsMenuParent* menuParent = GetMenuParent();
+    return menuParent && menuParent->IsMenuBar();
+  }
+  bool IsOnActiveMenuBar() const
+  {
+    nsMenuParent* menuParent = GetMenuParent();
+    return menuParent && menuParent->IsMenuBar() && menuParent->IsActive();
+  }
   virtual bool IsOpen();
   virtual bool IsMenu();
   nsMenuListType GetParentMenuListType();
@@ -190,7 +198,11 @@ public:
 
   
   
-  bool IsOnMenu() { return mMenuParent && mMenuParent->IsMenu(); }
+  bool IsOnMenu() const
+  {
+    nsMenuParent* menuParent = GetMenuParent();
+    return menuParent && menuParent->IsMenu();
+  }
   void SetIsMenu(bool aIsMenu) { mIsMenu = aIsMenu; }
 
 #ifdef DEBUG_FRAME_DUMP
@@ -223,11 +235,6 @@ protected:
 
 
   void DestroyPopupList();
-
-  
-  
-  
-  void InitMenuParent(nsIFrame* aParent);
 
   
   
@@ -267,8 +274,6 @@ protected:
   bool mChecked;              
   bool mIgnoreAccelTextChange; 
   nsMenuType mType;
-
-  nsMenuParent* mMenuParent; 
 
   
   nsRefPtr<nsMenuTimerMediator> mTimerMediator;
