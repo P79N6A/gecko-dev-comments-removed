@@ -534,6 +534,15 @@ final class GeckoEditable
         }
         final int seqnoWhenPosted = ++mGeckoUpdateSeqno;
 
+        
+
+
+        if (!mActionQueue.isEmpty() &&
+            mActionQueue.peek().mType == Action.TYPE_EVENT) {
+            Selection.setSelection(mText, start, end);
+            return;
+        }
+
         geckoPostToUI(new Runnable() {
             public void run() {
                 mActionQueue.syncWithGecko();
