@@ -11,7 +11,8 @@
 #include "mozilla/TimeStamp.h"
 
 
-#define NATIVE_EVENT_STARVATION_LIMIT mozilla::TimeDuration::FromSeconds(1)
+
+#define NATIVE_EVENT_STARVATION_LIMIT 1
 
 
 

@@ -110,7 +110,7 @@ nsAppShell::Init()
   LSPAnnotate();
 #endif
 
-  mLastNativeEventScheduled = TimeStamp::Now();
+  mLastNativeEventScheduled = TimeStamp::NowLoRes();
 
   if (!sMsgId)
     sMsgId = RegisterWindowMessageW(kAppShellEventId);
@@ -205,7 +205,7 @@ nsAppShell::ScheduleNativeEventCallback()
   NS_ADDREF_THIS(); 
   
   
-  mLastNativeEventScheduled = TimeStamp::Now();
+  mLastNativeEventScheduled = TimeStamp::NowLoRes();
   ::PostMessage(mEventWnd, sMsgId, 0, reinterpret_cast<LPARAM>(this));
 }
 
@@ -251,8 +251,11 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
 
   
   
-  if ((TimeStamp::Now() - mLastNativeEventScheduled) >
-      NATIVE_EVENT_STARVATION_LIMIT) {
+  static const mozilla::TimeDuration nativeEventStarvationLimit =
+    mozilla::TimeDuration::FromSeconds(NATIVE_EVENT_STARVATION_LIMIT);
+
+  if ((TimeStamp::NowLoRes() - mLastNativeEventScheduled) >
+      nativeEventStarvationLimit) {
     ScheduleNativeEventCallback();
   }
   
