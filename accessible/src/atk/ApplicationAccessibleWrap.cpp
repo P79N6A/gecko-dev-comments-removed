@@ -529,37 +529,47 @@ ApplicationAccessibleWrap::ApplicationAccessibleWrap():
       } else {
           MAI_LOG_DEBUG(("Fail to load lib: %s\n", sGail.libName));
       }
+  }
+}
 
-      MAI_LOG_DEBUG(("Mozilla Atk Implementation initializing\n"));
 
-      
-      g_type_class_unref(g_type_class_ref(MAI_TYPE_UTIL));
 
-      
-      PR_SetEnv("NO_AT_BRIDGE=0");
 
-      
-      rv = LoadGtkModule(sAtkBridge);
-      if (NS_SUCCEEDED(rv)) {
-          (*sAtkBridge.init)();
-      } else {
-          MAI_LOG_DEBUG(("Fail to load lib: %s\n", sAtkBridge.libName));
-      }
 
-      if (!sToplevel_event_hook_added) {
-        sToplevel_event_hook_added = true;
-        sToplevel_show_hook =
-          g_signal_add_emission_hook(g_signal_lookup("show", GTK_TYPE_WINDOW),
-            0, toplevel_event_watcher,
-            reinterpret_cast<gpointer>(nsIAccessibleEvent::EVENT_SHOW), NULL);
-        sToplevel_hide_hook =
-          g_signal_add_emission_hook(g_signal_lookup("hide", GTK_TYPE_WINDOW),
-            0, toplevel_event_watcher,
-            reinterpret_cast<gpointer>(nsIAccessibleEvent::EVENT_HIDE), NULL);
-      }
+
+void
+nsAccessNodeWrap::InitAccessibility()
+{
+  if (!ShouldA11yBeEnabled())
+    return;
+
+  
+  g_type_class_unref(g_type_class_ref(MAI_TYPE_UTIL));
+
+  
+  PR_SetEnv("NO_AT_BRIDGE=0");
+  nsresult rv = LoadGtkModule(sAtkBridge);
+  if (NS_SUCCEEDED(rv)) {
+    (*sAtkBridge.init)();
+  } else {
+    MAI_LOG_DEBUG(("Fail to load lib: %s\n", sAtkBridge.libName));
   }
 
+  if (!sToplevel_event_hook_added) {
+    sToplevel_event_hook_added = true;
+    sToplevel_show_hook =
+      g_signal_add_emission_hook(g_signal_lookup("show", GTK_TYPE_WINDOW),
+                                 0, toplevel_event_watcher,
+                                 reinterpret_cast<gpointer>(nsIAccessibleEvent::EVENT_SHOW),
+                                 NULL);
+    sToplevel_hide_hook =
+      g_signal_add_emission_hook(g_signal_lookup("hide", GTK_TYPE_WINDOW), 0,
+                                 toplevel_event_watcher,
+                                 reinterpret_cast<gpointer>(nsIAccessibleEvent::EVENT_HIDE),
+                                 NULL);
+  }
 }
+
 
 ApplicationAccessibleWrap::~ApplicationAccessibleWrap()
 {
