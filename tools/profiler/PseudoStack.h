@@ -85,26 +85,6 @@ static inline uint32_t sMin(uint32_t l, uint32_t r) {
 
 class StackEntry : public js::ProfileEntry
 {
-public:
-
-  bool isCopyLabel() const volatile {
-    return !((uintptr_t)stackAddress() & 0x1);
-  }
-
-  void setStackAddressCopy(void *sparg, bool copy) volatile {
-    
-    
-    
-    
-    
-    if (copy) {
-      setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sparg) & ~NoCopyBit));
-    } else {
-      setStackAddress(reinterpret_cast<void*>(
-                        reinterpret_cast<uintptr_t>(sparg) | NoCopyBit));
-    }
-  }
 };
 
 class ProfilerMarkerPayload;
@@ -375,11 +355,18 @@ public:
       return;
     }
 
+    volatile StackEntry &entry = mStack[mStackPointer];
+
     
     
-    mStack[mStackPointer].setLabel(aName);
-    mStack[mStackPointer].setStackAddressCopy(aStackAddress, aCopy);
-    mStack[mStackPointer].setLine(line);
+    entry.setLabel(aName);
+    entry.setCppFrame(aStackAddress, line);
+
+    
+    if (aCopy)
+      entry.setFlag(js::ProfileEntry::FRAME_LABEL_COPY);
+    else
+      entry.unsetFlag(js::ProfileEntry::FRAME_LABEL_COPY);
 
     
     STORE_SEQUENCER();
