@@ -476,9 +476,6 @@ pref("view_source.editor.args", "");
 pref("plain_text.wrap_long_lines", false);
 
 
-pref("nglayout.events.dispatchLeftClickOnly", true);
-
-
 pref("nglayout.enable_drag_images", true);
 
 
@@ -822,10 +819,12 @@ pref("javascript.options.strict.debug",     true);
 pref("javascript.options.baselinejit.content", true);
 pref("javascript.options.baselinejit.chrome",  true);
 pref("javascript.options.ion.content",      true);
+pref("javascript.options.ion.chrome",       false);
 pref("javascript.options.asmjs",            true);
 pref("javascript.options.ion.parallel_compilation", true);
 pref("javascript.options.jit_hardening", true);
-pref("javascript.options.typeinference", true);
+pref("javascript.options.typeinference.content", true);
+pref("javascript.options.typeinference.chrome", false);
 
 
 
