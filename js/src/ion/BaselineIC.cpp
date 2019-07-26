@@ -3531,6 +3531,12 @@ TryAttachGetElemStub(JSContext *cx, HandleScript script, ICGetElem_Fallback *stu
         return true;
     }
 
+    
+    
+    
+    if (!obj->isNative() && !obj->isTypedArray())
+        stub->noteNonNativeAccess();
+
     return true;
 }
 
@@ -5947,6 +5953,16 @@ ICGetProp_ArgumentsLength::Compiler::generateStubCode(MacroAssembler &masm)
     masm.bind(&failure);
     EmitStubGuardFailure(masm);
     return true;
+}
+
+void
+BaselineScript::noteAccessedGetter(uint32_t pcOffset)
+{
+    ICEntry &entry = icEntryFromPCOffset(pcOffset);
+    ICFallbackStub *stub = entry.fallbackStub();
+
+    if (stub->isGetProp_Fallback())
+        stub->toGetProp_Fallback()->noteAccessedGetter();
 }
 
 
