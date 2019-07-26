@@ -62,6 +62,22 @@ this.SessionFile = {
 
 
 
+
+
+
+
+
+
+
+
+
+  gatherTelemetry: function(aData) {
+    return SessionFileInternal.gatherTelemetry(aData);
+  },
+  
+
+
+
   writeLoadStateOnceAfterStartup: function (aLoadState) {
     SessionFileInternal.writeLoadStateOnceAfterStartup(aLoadState);
   },
@@ -122,6 +138,14 @@ let SessionFileInternal = {
     });
   },
 
+  gatherTelemetry: function(aStateString) {
+    return Task.spawn(function() {
+      let msg = yield SessionWorker.post("gatherTelemetry", [aStateString]);
+      this._recordTelemetry(msg.telemetry);
+      throw new Task.Result(msg.telemetry);
+    }.bind(this));
+  },
+
   write: function (aData) {
     if (this._isClosed) {
       return Promise.reject(new Error("SessionFile is closed"));
@@ -177,8 +201,18 @@ let SessionFileInternal = {
   },
 
   _recordTelemetry: function(telemetry) {
-    for (let histogramId in telemetry){
-      Telemetry.getHistogramById(histogramId).add(telemetry[histogramId]);
+    for (let id of Object.keys(telemetry)){
+      let value = telemetry[id];
+      let samples = [];
+      if (Array.isArray(value)) {
+        samples.push(...value);
+      } else {
+        samples.push(value);
+      }
+      let histogram = Telemetry.getHistogramById(id);
+      for (let sample of samples) {
+        histogram.add(sample);
+      }
     }
   }
 };
@@ -196,9 +230,12 @@ let SessionWorker = (function () {
           
           if (error instanceof PromiseWorker.WorkerError) {
             throw OS.File.Error.fromMsg(error.data);
-          } else {
-            throw error;
           }
+          
+          if (error instanceof ErrorEvent) {
+            throw new Error(error.message, error.filename, error.lineno);
+          }
+          throw error;
         }
       );
     }

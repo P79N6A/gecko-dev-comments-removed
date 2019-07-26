@@ -35,7 +35,8 @@ const OBSERVING = [
   "quit-application-requested", "quit-application-granted",
   "browser-lastwindow-close-granted",
   "quit-application", "browser:purge-session-history",
-  "browser:purge-domain-data"
+  "browser:purge-domain-data",
+  "gather-telemetry",
 ];
 
 
@@ -586,6 +587,9 @@ let SessionStoreInternal = {
         break;
       case "nsPref:changed": 
         this.onPrefChange(aData);
+        break;
+      case "gather-telemetry":
+        this.onGatherTelemetry();
         break;
     }
   },
@@ -1455,6 +1459,16 @@ let SessionStoreInternal = {
     
     
     this.saveStateDelayed(aWindow);
+  },
+
+  onGatherTelemetry: function() {
+    
+    
+    Services.obs.removeObserver(this, "gather-telemetry");
+    this.fillTabCachesAsynchronously().then(function() {
+      let stateString = SessionStore.getBrowserState();
+      return SessionFile.gatherTelemetry(stateString);
+    });
   },
 
   

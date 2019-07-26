@@ -3,7 +3,7 @@
 
 "use strict";
 
-const INITIAL_VALUE = "initial-value-" + Date.now();
+const INITIAL_VALUE = "browser_broadcast.js-initial-value-" + Date.now();
 
 
 
