@@ -316,7 +316,7 @@ let CustomizableUIInternal = {
         
         
         if (!currentNode.hasAttribute("removable")) {
-          currentNode.setAttribute("removable", this.isWidgetRemovable(id));
+          currentNode.setAttribute("removable", this.isWidgetRemovable(currentNode));
         }
 
         currentNode = currentNode.nextSibling;
@@ -358,7 +358,7 @@ let CustomizableUIInternal = {
         
         
         if (node.id) {
-          if (this.isWidgetRemovable(node.id)) {
+          if (this.isWidgetRemovable(node)) {
             if (palette) {
               palette.appendChild(node);
             } else {
@@ -1696,11 +1696,23 @@ let CustomizableUIInternal = {
     }
   },
 
-  isWidgetRemovable: function(aWidgetId) {
-    let provider = this.getWidgetProvider(aWidgetId);
+  
+
+
+
+  isWidgetRemovable: function(aWidget) {
+    let widgetId;
+    let widgetNode;
+    if (typeof aWidget == "string") {
+      widgetId = aWidget;
+    } else {
+      widgetId = aWidget.id;
+      widgetNode = aWidget;
+    }
+    let provider = this.getWidgetProvider(widgetId);
 
     if (provider == CustomizableUI.PROVIDER_API) {
-      return gPalette.get(aWidgetId).removable;
+      return gPalette.get(widgetId).removable;
     }
 
     if (provider == CustomizableUI.PROVIDER_XUL) {
@@ -1710,16 +1722,18 @@ let CustomizableUIInternal = {
         return true;
       }
 
+      if (!widgetNode) {
+        
+        let [window,] = [...gBuildWindows][0];
+        [, widgetNode] = this.getWidgetNode(widgetId, window);
+      }
       
-      let [window,] = [...gBuildWindows][0];
-      let [, node] = this.getWidgetNode(aWidgetId, window);
       
       
-      
-      if (!node) {
+      if (!widgetNode) {
         return true;
       }
-      return node.getAttribute("removable") == "true";
+      return widgetNode.getAttribute("removable") == "true";
     }
 
     
