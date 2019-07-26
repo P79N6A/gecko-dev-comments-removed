@@ -1028,10 +1028,16 @@ XPCConvert::JSObject2NativeInterface(void** dest, HandleObject src,
     
 
     nsXPCWrappedJS* wrapper;
-    nsresult rv = nsXPCWrappedJS::GetNewOrUsed(src, *iid, aOuter, &wrapper);
+    nsresult rv = nsXPCWrappedJS::GetNewOrUsed(src, *iid, &wrapper);
     if (pErr)
         *pErr = rv;
     if (NS_SUCCEEDED(rv) && wrapper) {
+        
+        
+        
+        if (aOuter)
+            wrapper->SetAggregatedNativeObject(aOuter);
+
         
         
         
@@ -1184,8 +1190,7 @@ XPCConvert::JSValToXPCException(MutableHandleValue s,
                 
                 nsXPCWrappedJS* jswrapper;
                 nsresult rv =
-                    nsXPCWrappedJS::GetNewOrUsed(obj, NS_GET_IID(nsIException),
-                                                 nullptr, &jswrapper);
+                    nsXPCWrappedJS::GetNewOrUsed(obj, NS_GET_IID(nsIException), &jswrapper);
                 if (NS_FAILED(rv))
                     return rv;
 
