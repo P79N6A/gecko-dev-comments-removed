@@ -90,6 +90,10 @@ var ContextMenuHandler = {
       case "paste":
         this._onPaste();
         break;
+
+      case "copy-image-contents":
+        this._onCopyImage();
+        break;
     }
   },
 
@@ -132,6 +136,7 @@ var ContextMenuHandler = {
         state.types.push("image");
         state.label = state.mediaURL = popupNode.currentURI.spec;
         imageUrl = state.mediaURL;
+        this._target = popupNode;
 
         
         
@@ -230,16 +235,16 @@ var ContextMenuHandler = {
         state.string = content.getSelection().toString();
         state.types.push("copy");
         state.types.push("selected-text");
-        } else {
-          
-          if (state.types.indexOf("image") == -1 &&
-              state.types.indexOf("media") == -1 &&
-              state.types.indexOf("video") == -1 &&
-              state.types.indexOf("link") == -1 &&
-              state.types.indexOf("input-text") == -1) {
-            state.types.push("content-text");
-          }
+      } else {
+        
+        if (state.types.indexOf("image") == -1 &&
+            state.types.indexOf("media") == -1 &&
+            state.types.indexOf("video") == -1 &&
+            state.types.indexOf("link") == -1 &&
+            state.types.indexOf("input-text") == -1) {
+          state.types.push("content-text");
         }
+      }
     }
 
     
@@ -276,6 +281,10 @@ var ContextMenuHandler = {
       }
     }
     this.reset();
+  },
+
+  _onCopyImage: function _onCopyImage() {
+    Util.copyImageToClipboard(this._target);
   },
 
   

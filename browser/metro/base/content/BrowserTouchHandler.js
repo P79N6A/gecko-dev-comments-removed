@@ -20,6 +20,8 @@ const BrowserTouchHandler = {
 
   
   onContentContextMenu: function onContentContextMenu(aMessage) {
+    
+    
     let contextInfo = { name: aMessage.name,
                         json: aMessage.json,
                         target: aMessage.target };
