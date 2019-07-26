@@ -193,7 +193,10 @@
 #include "mozilla/Telemetry.h"
 #include "nsISecurityUITelemetry.h"
 
-#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+#include "nsIAppShellService.h"
+#include "nsAppShellCID.h"
+#else
 #include "nsIPrivateBrowsingService.h"
 #endif
 
@@ -220,9 +223,9 @@ static uint32_t gNumberOfPrivateDocShells = 0;
 
 
 #ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-static const uint32_t kNumberOfAlwaysOpenPrivateDocShells = 1; 
+static uint32_t gNumberOfAlwaysOpenPrivateDocShells = 0; 
 #else
-static const uint32_t kNumberOfAlwaysOpenPrivateDocShells = 0;
+static const uint32_t gNumberOfAlwaysOpenPrivateDocShells = 0;
 #endif
 
 
@@ -689,10 +692,26 @@ ConvertLoadTypeToNavigationType(uint32_t aLoadType)
 static nsISHEntry* GetRootSHEntry(nsISHEntry *entry);
 
 static void
+AdjustAlwaysOpenPrivateDocShellCount()
+{
+#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
+    nsCOMPtr<nsIAppShellService> appShell
+      (do_GetService(NS_APPSHELLSERVICE_CONTRACTID));
+    bool hasHiddenPrivateWindow = false;
+    if (appShell) {
+      appShell->GetHasHiddenPrivateWindow(&hasHiddenPrivateWindow);
+    }
+    gNumberOfAlwaysOpenPrivateDocShells = hasHiddenPrivateWindow ? 1 : 0;
+#endif
+}
+
+static void
 IncreasePrivateDocShellCount()
 {
+    AdjustAlwaysOpenPrivateDocShellCount();
+
     gNumberOfPrivateDocShells++;
-    if (gNumberOfPrivateDocShells > kNumberOfAlwaysOpenPrivateDocShells + 1 ||
+    if (gNumberOfPrivateDocShells > gNumberOfAlwaysOpenPrivateDocShells + 1 ||
         XRE_GetProcessType() != GeckoProcessType_Content) {
         return;
     }
@@ -704,9 +723,11 @@ IncreasePrivateDocShellCount()
 static void
 DecreasePrivateDocShellCount()
 {
+    AdjustAlwaysOpenPrivateDocShellCount();
+
     MOZ_ASSERT(gNumberOfPrivateDocShells > 0);
     gNumberOfPrivateDocShells--;
-    if (gNumberOfPrivateDocShells == kNumberOfAlwaysOpenPrivateDocShells)
+    if (gNumberOfPrivateDocShells == gNumberOfAlwaysOpenPrivateDocShells)
     {
         if (XRE_GetProcessType() == GeckoProcessType_Content) {
             mozilla::dom::ContentChild* cc = mozilla::dom::ContentChild::GetSingleton();
@@ -8651,8 +8672,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         return NS_ERROR_FAILURE;
     }
 
-    NS_ENSURE_STATE(!HasUnloadedParent());
-
     rv = CheckLoadingPermissions();
     if (NS_FAILED(rv)) {
         return rv;
@@ -12441,24 +12460,4 @@ nsDocShell::GetAsyncPanZoomEnabled(bool* aOut)
     }
     *aOut = false;
     return NS_OK;
-}
-
-bool
-nsDocShell::HasUnloadedParent()
-{
-    nsCOMPtr<nsIDocShellTreeItem> currentTreeItem = this;
-    while (currentTreeItem) {
-        nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
-        currentTreeItem->GetParent(getter_AddRefs(parentTreeItem));
-        nsCOMPtr<nsIDocShell> parent = do_QueryInterface(parentTreeItem);
-        if (parent) {
-            bool inUnload = false;
-            parent->GetIsInUnload(&inUnload);
-            if (inUnload) {
-                return true;
-            }
-        }
-        currentTreeItem.swap(parentTreeItem);
-    }
-    return false;
 }
