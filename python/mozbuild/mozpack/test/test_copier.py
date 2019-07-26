@@ -88,6 +88,34 @@ class TestFileRegistry(MatchTestTemplate, unittest.TestCase):
         self.add('foo/.foo')
         self.assertTrue(self.registry.contains('foo/.foo'))
 
+    def test_registry_paths(self):
+        self.registry = FileRegistry()
+
+        
+        
+        self.registry.add('foo', GeneratedFile('foo'))
+        self.assertRaises(ErrorMessage, self.registry.add, 'foo/bar',
+                          GeneratedFile('foobar'))
+
+        
+        self.registry.add('bar/baz', GeneratedFile('barbaz'))
+        self.assertRaises(ErrorMessage, self.registry.add, 'bar',
+                          GeneratedFile('bar'))
+
+        
+        self.registry.add('bar/zot', GeneratedFile('barzot'))
+        self.assertRaises(ErrorMessage, self.registry.add, 'bar',
+                          GeneratedFile('bar'))
+
+        
+        self.registry.remove('bar/baz')
+        self.assertRaises(ErrorMessage, self.registry.add, 'bar',
+                          GeneratedFile('bar'))
+
+        
+        self.registry.remove('bar/zot')
+        self.registry.add('bar/zot', GeneratedFile('barzot'))
+
 
 class TestFileCopier(TestWithTmpDir):
     def all_dirs(self, base):
