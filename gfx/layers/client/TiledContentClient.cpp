@@ -8,6 +8,7 @@
 #include "ClientTiledThebesLayer.h"     
 #include "GeckoProfiler.h"              
 #include "ClientLayerManager.h"         
+#include "CompositorChild.h"            
 #include "gfxContext.h"                 
 #include "gfxPlatform.h"                
 #include "gfxRect.h"                    
@@ -77,8 +78,8 @@ namespace layers {
 TiledContentClient::TiledContentClient(ClientTiledThebesLayer* aThebesLayer,
                                        ClientLayerManager* aManager)
   : CompositableClient(aManager->AsShadowForwarder())
-  , mTiledBuffer(aThebesLayer, aManager)
-  , mLowPrecisionTiledBuffer(aThebesLayer, aManager)
+  , mTiledBuffer(aThebesLayer, aManager, &mSharedFrameMetricsHelper)
+  , mLowPrecisionTiledBuffer(aThebesLayer, aManager, &mSharedFrameMetricsHelper)
 {
   MOZ_COUNT_CTOR(TiledContentClient);
 
@@ -101,11 +102,138 @@ TiledContentClient::LockCopyAndWrite(TiledBufferType aType)
   buffer->ClearPaintedRegion();
 }
 
+SharedFrameMetricsHelper::SharedFrameMetricsHelper()
+  : mLastProgressiveUpdateWasLowPrecision(false)
+  , mProgressiveUpdateWasInDanger(false)
+{
+  MOZ_COUNT_CTOR(SharedFrameMetricsHelper);
+}
+
+SharedFrameMetricsHelper::~SharedFrameMetricsHelper()
+{
+  MOZ_COUNT_DTOR(SharedFrameMetricsHelper);
+}
+
+static inline bool
+FuzzyEquals(float a, float b) {
+  return (fabsf(a - b) < 1e-6);
+}
+
+bool
+SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
+    ContainerLayer* aLayer,
+    bool aHasPendingNewThebesContent,
+    bool aLowPrecision,
+    ScreenRect& aCompositionBounds,
+    CSSToScreenScale& aZoom)
+{
+  MOZ_ASSERT(aLayer);
+
+  CompositorChild* compositor = CompositorChild::Get();
+
+  if (!compositor) {
+    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
+    return false;
+  }
+
+  const FrameMetrics& contentMetrics = aLayer->GetFrameMetrics();
+  FrameMetrics compositorMetrics;
+
+  if (!compositor->LookupCompositorFrameMetrics(contentMetrics.mScrollId,
+                                                compositorMetrics)) {
+    FindFallbackContentFrameMetrics(aLayer, aCompositionBounds, aZoom);
+    return false;
+  }
+
+  aCompositionBounds = ScreenRect(compositorMetrics.mCompositionBounds);
+  aZoom = compositorMetrics.mZoom;
+
+  
+  
+  if (aLowPrecision && !mLastProgressiveUpdateWasLowPrecision) {
+    
+    if (!mProgressiveUpdateWasInDanger) {
+      return true;
+    }
+    mProgressiveUpdateWasInDanger = false;
+  }
+  mLastProgressiveUpdateWasLowPrecision = aLowPrecision;
+
+  
+  
+  if (!FuzzyEquals(compositorMetrics.mZoom.scale, contentMetrics.mZoom.scale)) {
+    return true;
+  }
+
+  
+  
+  
+  
+  if (fabsf(contentMetrics.mScrollOffset.x - compositorMetrics.mScrollOffset.x) <= 2 &&
+      fabsf(contentMetrics.mScrollOffset.y - compositorMetrics.mScrollOffset.y) <= 2 &&
+      fabsf(contentMetrics.mDisplayPort.x - compositorMetrics.mDisplayPort.x) <= 2 &&
+      fabsf(contentMetrics.mDisplayPort.y - compositorMetrics.mDisplayPort.y) <= 2 &&
+      fabsf(contentMetrics.mDisplayPort.width - compositorMetrics.mDisplayPort.width) <= 2 &&
+      fabsf(contentMetrics.mDisplayPort.height - compositorMetrics.mDisplayPort.height)) {
+    return false;
+  }
+
+  
+  
+  if (!aLowPrecision && !mProgressiveUpdateWasInDanger) {
+    if (AboutToCheckerboard(contentMetrics, compositorMetrics)) {
+      mProgressiveUpdateWasInDanger = true;
+      return true;
+    }
+  }
+
+  
+  
+  if (aLowPrecision && !aHasPendingNewThebesContent) {
+    return true;
+  }
+
+  return false;
+}
+
+void
+SharedFrameMetricsHelper::FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
+                                                          ScreenRect& aCompositionBounds,
+                                                          CSSToScreenScale& aZoom) {
+  if (!aLayer) {
+    return;
+  }
+
+  ContainerLayer* layer = aLayer;
+  const FrameMetrics* contentMetrics = &(layer->GetFrameMetrics());
+
+  
+  while (layer && contentMetrics->mCompositionBounds.IsEmpty()) {
+    layer = layer->GetParent();
+    contentMetrics = layer ? &(layer->GetFrameMetrics()) : contentMetrics;
+  }
+
+  MOZ_ASSERT(!contentMetrics->mCompositionBounds.IsEmpty());
+
+  aCompositionBounds = ScreenRect(contentMetrics->mCompositionBounds);
+  aZoom = contentMetrics->mZoom;
+  return;
+}
+
+bool
+SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetrics,
+                                                 const FrameMetrics& aCompositorMetrics)
+{
+  return !aContentMetrics.mDisplayPort.Contains(aCompositorMetrics.CalculateCompositedRectInCssPixels() - aCompositorMetrics.mScrollOffset);
+}
+
 BasicTiledLayerBuffer::BasicTiledLayerBuffer(ClientTiledThebesLayer* aThebesLayer,
-                                             ClientLayerManager* aManager)
+                                             ClientLayerManager* aManager,
+                                             SharedFrameMetricsHelper* aHelper)
   : mThebesLayer(aThebesLayer)
   , mManager(aManager)
   , mLastPaintOpaque(false)
+  , mSharedFrameMetricsHelper(aHelper)
 {
 }
 
@@ -193,7 +321,8 @@ BasicTiledLayerBuffer::GetSurfaceDescriptorTiles()
 
  BasicTiledLayerBuffer
 BasicTiledLayerBuffer::OpenDescriptor(ISurfaceAllocator *aAllocator,
-                                      const SurfaceDescriptorTiles& aDescriptor)
+                                      const SurfaceDescriptorTiles& aDescriptor,
+                                      SharedFrameMetricsHelper* aHelper)
 {
   return BasicTiledLayerBuffer(aAllocator,
                                aDescriptor.validRegion(),
@@ -201,7 +330,8 @@ BasicTiledLayerBuffer::OpenDescriptor(ISurfaceAllocator *aAllocator,
                                aDescriptor.tiles(),
                                aDescriptor.retainedWidth(),
                                aDescriptor.retainedHeight(),
-                               aDescriptor.resolution());
+                               aDescriptor.resolution(),
+                               aHelper);
 }
 
 void
@@ -474,9 +604,25 @@ BasicTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInvali
   
   ScreenRect compositionBounds;
   CSSToScreenScale zoom;
-  if (mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
-                                          compositionBounds, zoom,
-                                          !drawingLowPrecision)) {
+#if defined(MOZ_WIDGET_ANDROID)
+  bool abortPaint = mManager->ProgressiveUpdateCallback(!staleRegion.Contains(aInvalidRegion),
+                                                        compositionBounds, zoom,
+                                                        !drawingLowPrecision);
+#else
+  MOZ_ASSERT(mSharedFrameMetricsHelper);
+
+  ContainerLayer* parent = mThebesLayer->AsLayer()->GetParent();
+
+  bool abortPaint =
+    mSharedFrameMetricsHelper->UpdateFromCompositorFrameMetrics(
+      parent,
+      !staleRegion.Contains(aInvalidRegion),
+      drawingLowPrecision,
+      compositionBounds,
+      zoom);
+#endif
+
+  if (abortPaint) {
     
     
     

@@ -52,6 +52,18 @@ CompositorChild::Destroy()
   SendStop();
 }
 
+bool
+CompositorChild::LookupCompositorFrameMetrics(const FrameMetrics::ViewID aId,
+                                              FrameMetrics& aFrame)
+{
+  SharedFrameMetricsData* data = mFrameMetricsTable.Get(aId);
+  if (data) {
+    data->CopyFrameMetrics(&aFrame);
+    return true;
+  }
+  return false;
+}
+
  PCompositorChild*
 CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
 {
@@ -73,7 +85,7 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
   return sCompositor = child.forget().get();
 }
 
- PCompositorChild*
+ CompositorChild*
 CompositorChild::Get()
 {
   
@@ -131,6 +143,80 @@ CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
     NewRunnableMethod(this, &CompositorChild::Release));
 }
 
+bool
+CompositorChild::RecvSharedCompositorFrameMetrics(
+    const mozilla::ipc::SharedMemoryBasic::Handle& metrics,
+    const CrossProcessMutexHandle& handle,
+    const uint32_t& aAPZCId)
+{
+  SharedFrameMetricsData* data = new SharedFrameMetricsData(metrics, handle, aAPZCId);
+  mFrameMetricsTable.Put(data->GetViewID(), data);
+  return true;
+}
+
+bool
+CompositorChild::RecvReleaseSharedCompositorFrameMetrics(
+    const ViewID& aId,
+    const uint32_t& aAPZCId)
+{
+  SharedFrameMetricsData* data = mFrameMetricsTable.Get(aId);
+  
+  
+  
+  if (data && (data->GetAPZCId() == aAPZCId)) {
+    mFrameMetricsTable.Remove(aId);
+  }
+  return true;
+}
+
+CompositorChild::SharedFrameMetricsData::SharedFrameMetricsData(
+    const ipc::SharedMemoryBasic::Handle& metrics,
+    const CrossProcessMutexHandle& handle,
+    const uint32_t& aAPZCId) :
+    mBuffer(nullptr),
+    mMutex(nullptr),
+    mAPZCId(aAPZCId)
+{
+  mBuffer = new ipc::SharedMemoryBasic(metrics);
+  mBuffer->Map(sizeof(FrameMetrics));
+  mMutex = new CrossProcessMutex(handle);
+  MOZ_COUNT_CTOR(SharedFrameMetricsData);
+}
+
+CompositorChild::SharedFrameMetricsData::~SharedFrameMetricsData()
+{
+  
+  
+  delete mMutex;
+  delete mBuffer;
+  MOZ_COUNT_DTOR(SharedFrameMetricsData);
+}
+
+void
+CompositorChild::SharedFrameMetricsData::CopyFrameMetrics(FrameMetrics* aFrame)
+{
+  FrameMetrics* frame = static_cast<FrameMetrics*>(mBuffer->memory());
+  MOZ_ASSERT(frame);
+  mMutex->Lock();
+  *aFrame = *frame;
+  mMutex->Unlock();
+}
+
+FrameMetrics::ViewID
+CompositorChild::SharedFrameMetricsData::GetViewID()
+{
+  FrameMetrics* frame = static_cast<FrameMetrics*>(mBuffer->memory());
+  MOZ_ASSERT(frame);
+  
+  
+  return frame->mScrollId;
+}
+
+uint32_t
+CompositorChild::SharedFrameMetricsData::GetAPZCId()
+{
+  return mAPZCId;
+}
 
 } 
 } 

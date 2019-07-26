@@ -168,6 +168,47 @@ struct BasicTiledLayerPaintData {
 class ClientTiledThebesLayer;
 class ClientLayerManager;
 
+class SharedFrameMetricsHelper
+{
+public:
+  SharedFrameMetricsHelper();
+  ~SharedFrameMetricsHelper();
+
+  
+
+
+
+
+
+
+  bool UpdateFromCompositorFrameMetrics(ContainerLayer* aLayer,
+                                        bool aHasPendingNewThebesContent,
+                                        bool aLowPrecision,
+                                        ScreenRect& aCompositionBounds,
+                                        CSSToScreenScale& aZoom);
+
+  
+
+
+
+
+  void FindFallbackContentFrameMetrics(ContainerLayer* aLayer,
+                                       ScreenRect& aCompositionBounds,
+                                       CSSToScreenScale& aZoom);
+  
+
+
+
+
+
+
+  bool AboutToCheckerboard(const FrameMetrics& aContentMetrics,
+                           const FrameMetrics& aCompositorMetrics);
+private:
+  bool mLastProgressiveUpdateWasLowPrecision;
+  bool mProgressiveUpdateWasInDanger;
+};
+
 
 
 
@@ -181,11 +222,13 @@ class BasicTiledLayerBuffer
 
 public:
   BasicTiledLayerBuffer(ClientTiledThebesLayer* aThebesLayer,
-                        ClientLayerManager* aManager);
+                        ClientLayerManager* aManager,
+                        SharedFrameMetricsHelper* aHelper);
   BasicTiledLayerBuffer()
     : mThebesLayer(nullptr)
     , mManager(nullptr)
     , mLastPaintOpaque(false)
+    , mSharedFrameMetricsHelper(nullptr)
   {}
 
   BasicTiledLayerBuffer(ISurfaceAllocator* aAllocator,
@@ -194,8 +237,10 @@ public:
                         const InfallibleTArray<TileDescriptor>& aTiles,
                         int aRetainedWidth,
                         int aRetainedHeight,
-                        float aResolution)
+                        float aResolution,
+                        SharedFrameMetricsHelper* aHelper)
   {
+    mSharedFrameMetricsHelper = aHelper;
     mValidRegion = aValidRegion;
     mPaintedRegion = aPaintedRegion;
     mRetainedWidth = aRetainedWidth;
@@ -249,7 +294,8 @@ public:
   SurfaceDescriptorTiles GetSurfaceDescriptorTiles();
 
   static BasicTiledLayerBuffer OpenDescriptor(ISurfaceAllocator* aAllocator,
-                                              const SurfaceDescriptorTiles& aDescriptor);
+                                              const SurfaceDescriptorTiles& aDescriptor,
+                                              SharedFrameMetricsHelper* aHelper);
 
 protected:
   BasicTiledLayerTile ValidateTile(BasicTiledLayerTile aTile,
@@ -283,6 +329,7 @@ private:
   nsRefPtr<gfxImageSurface>     mSinglePaintBuffer;
   RefPtr<gfx::DrawTarget>       mSinglePaintDrawTarget;
   nsIntPoint                    mSinglePaintBufferOffset;
+  SharedFrameMetricsHelper*  mSharedFrameMetricsHelper;
 
   BasicTiledLayerTile ValidateTileInternal(BasicTiledLayerTile aTile,
                                            const nsIntPoint& aTileOrigin,
@@ -341,6 +388,7 @@ public:
   void LockCopyAndWrite(TiledBufferType aType);
 
 private:
+  SharedFrameMetricsHelper mSharedFrameMetricsHelper;
   BasicTiledLayerBuffer mTiledBuffer;
   BasicTiledLayerBuffer mLowPrecisionTiledBuffer;
 };
