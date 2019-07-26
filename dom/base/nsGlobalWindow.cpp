@@ -6370,8 +6370,23 @@ JSObject* nsGlobalWindow::CallerGlobal()
     return nullptr;
   }
 
-  return JS_GetScriptedGlobal(cx);
+  
+  
+  
+  
+  
+  
+  
+  
+  JSObject *scriptedGlobal = JS_GetScriptedGlobal(cx);
+  JSObject *cxGlobal = JS_GetGlobalForScopeChain(cx);
+  if (!xpc::AccessCheck::subsumes(cxGlobal, scriptedGlobal)) {
+    NS_WARNING("Something nasty is happening! Applying countermeasures...");
+    return cxGlobal;
+  }
+  return scriptedGlobal;
 }
+
 
 nsGlobalWindow*
 nsGlobalWindow::CallerInnerWindow()

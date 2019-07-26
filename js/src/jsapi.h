@@ -2218,6 +2218,15 @@ JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetScriptedGlobal(JSContext *cx);
 
