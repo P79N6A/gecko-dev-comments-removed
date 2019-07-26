@@ -3491,6 +3491,7 @@ class JS_FRIEND_API(ReadOnlyCompileOptions)
         werrorOption(false),
         asmJSOption(false),
         forceAsync(false),
+        installedFile(false),
         sourcePolicy(SAVE_SOURCE),
         introductionType(nullptr),
         introductionLineno(0),
@@ -3530,6 +3531,7 @@ class JS_FRIEND_API(ReadOnlyCompileOptions)
     bool werrorOption;
     bool asmJSOption;
     bool forceAsync;
+    bool installedFile;  
     enum SourcePolicy {
         NO_SOURCE,
         LAZY_SOURCE,
@@ -4885,8 +4887,15 @@ typedef void
 
 
 
+
+
+
+
+
+
 typedef bool
-(* OpenAsmJSCacheEntryForWriteOp)(HandleObject global, const jschar *begin, const jschar *end,
+(* OpenAsmJSCacheEntryForWriteOp)(HandleObject global, bool installed,
+                                  const jschar *begin, const jschar *end,
                                   size_t size, uint8_t **memory, intptr_t *handle);
 typedef void
 (* CloseAsmJSCacheEntryForWriteOp)(HandleObject global, size_t size, uint8_t *memory,
