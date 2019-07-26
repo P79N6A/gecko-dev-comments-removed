@@ -280,7 +280,8 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         nsIXPConnect *xpc = nsContentUtils::XPConnect();
 
         nsCOMPtr<nsIXPConnectJSObjectHolder> sandbox;
-        rv = xpc->CreateSandbox(cx, principal, getter_AddRefs(sandbox));
+        
+        rv = xpc->CreateSandbox(cx, nullptr, getter_AddRefs(sandbox));
         NS_ENSURE_SUCCESS(rv, rv);
 
         
