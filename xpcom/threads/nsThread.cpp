@@ -4,9 +4,17 @@
 
 
 
+#include "nsThread.h"
+
+#include "base/message_loop.h"
+
+
+#ifdef LOG
+#undef LOG
+#endif
+
 #include "mozilla/ReentrantMonitor.h"
 #include "nsMemoryPressure.h"
-#include "nsThread.h"
 #include "nsThreadManager.h"
 #include "nsIClassInfoImpl.h"
 #include "nsIProgrammingLanguage.h"
@@ -214,6 +222,7 @@ public:
   } 
   NS_IMETHOD Run() {
     mThread->mShutdownContext = mShutdownContext;
+    MessageLoop::current()->Quit();
     return NS_OK;
   }
 private:
@@ -241,28 +250,32 @@ nsThread::ThreadFunc(void *arg)
   event->Run();  
   event = nullptr;
 
-  
-  while (!self->ShuttingDown())
-    NS_ProcessNextEvent(self);
+  { 
+    nsAutoPtr<MessageLoop> loop(
+      new MessageLoop(MessageLoop::TYPE_MOZILLA_NONMAINTHREAD));
 
-  
-  
-  
-  
-  
-  while (true) {
-    {
-      MutexAutoLock lock(self->mLock);
-      if (!self->mEvents.HasPendingEvent()) {
-        
-        
-        
-        
-        self->mEventsAreDoomed = true;
-        break;
+    
+    loop->Run();
+
+    
+    
+    
+    
+    
+    while (true) {
+      {
+        MutexAutoLock lock(self->mLock);
+        if (!self->mEvents.HasPendingEvent()) {
+          
+          
+          
+          
+          self->mEventsAreDoomed = true;
+          break;
+        }
       }
+      NS_ProcessPendingEvents(self);
     }
-    NS_ProcessPendingEvents(self);
   }
 
   

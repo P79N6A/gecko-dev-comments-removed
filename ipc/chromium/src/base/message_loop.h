@@ -203,12 +203,17 @@ public:
   
   
   
+  
+  
+  
+  
   enum Type {
     TYPE_DEFAULT,
     TYPE_UI,
     TYPE_IO,
     TYPE_MOZILLA_CHILD,
-    TYPE_MOZILLA_UI
+    TYPE_MOZILLA_UI,
+    TYPE_MOZILLA_NONMAINTHREAD
   };
 
   
