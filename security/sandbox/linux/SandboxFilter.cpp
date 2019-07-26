@@ -3,12 +3,17 @@
 
 
 
+
+#include "SandboxFilter.h"
+
 #include "linux_seccomp.h"
 #include "linux_syscalls.h"
 
+#include "mozilla/ArrayUtils.h"
 
+#include <errno.h>
 
-
+namespace mozilla {
 
 
 #if defined(__arm__)
@@ -295,3 +300,26 @@
   ALLOW_SYSCALL(exit_group), \
   ALLOW_SYSCALL(exit)
 
+static struct sock_filter seccomp_filter[] = {
+  VALIDATE_ARCHITECTURE,
+  EXAMINE_SYSCALL,
+  SECCOMP_WHITELIST,
+#ifdef MOZ_CONTENT_SANDBOX_REPORTER
+  TRAP_PROCESS,
+#else
+  KILL_PROCESS,
+#endif
+};
+
+static struct sock_fprog seccomp_prog = {
+  (unsigned short)MOZ_ARRAY_LENGTH(seccomp_filter),
+  seccomp_filter,
+};
+
+const sock_fprog*
+GetSandboxFilter()
+{
+  return &seccomp_prog;
+}
+
+}
