@@ -23,18 +23,15 @@
 
 namespace js {
 
+struct WorkerThread;
 struct AsmJSParallelTask;
-
+struct ParseTask;
 namespace ion {
   class IonBuilder;
 }
 
 #if defined(JS_THREADSAFE) && defined(JS_ION)
 # define JS_WORKER_THREADS
-
-struct WorkerThread;
-struct AsmJSParallelTask;
-struct ParseTask;
 
 
 class WorkerThreadState
@@ -308,6 +305,27 @@ PauseOffThreadParsing();
 
 void
 ResumeOffThreadParsing();
+
+#ifdef JS_ION
+struct AsmJSParallelTask
+{
+    LifoAlloc lifo;         
+    void *func;             
+    ion::MIRGenerator *mir; 
+    ion::LIRGraph *lir;     
+    unsigned compileTime;
+
+    AsmJSParallelTask(size_t defaultChunkSize)
+      : lifo(defaultChunkSize), func(NULL), mir(NULL), lir(NULL), compileTime(0)
+    { }
+
+    void init(void *func, ion::MIRGenerator *mir) {
+        this->func = func;
+        this->mir = mir;
+        this->lir = NULL;
+    }
+};
+#endif
 
 struct ParseTask
 {

@@ -1,0 +1,63 @@
+
+
+
+
+
+
+#ifndef ion_AsmJSLink_h
+#define ion_AsmJSLink_h
+
+#include "jsapi.h"
+
+namespace js {
+
+#ifdef JS_ION
+
+
+
+extern JSFunction *
+NewAsmJSModuleFunction(JSContext *cx, JSFunction *originalFun, HandleObject moduleObj);
+
+
+extern bool
+IsAsmJSModuleNative(JSNative native);
+
+
+
+extern JSBool
+IsAsmJSModule(JSContext *cx, unsigned argc, JS::Value *vp);
+
+
+
+extern JSBool
+IsAsmJSFunction(JSContext *cx, unsigned argc, JS::Value *vp);
+
+#else 
+
+inline bool
+IsAsmJSModuleNative(JSNative native)
+{
+    return false;
+}
+
+inline JSBool
+IsAsmJSFunction(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().set(BooleanValue(false));
+    return true;
+}
+
+inline JSBool
+IsAsmJSModule(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    args.rval().set(BooleanValue(false));
+    return true;
+}
+
+#endif 
+
+} 
+
+#endif 

@@ -13,7 +13,6 @@
 #include "jsinfer.h"
 
 #include "gc/Heap.h"
-#include "ion/AsmJS.h"
 #include "ion/IonTypes.h"
 
 namespace JSC {
@@ -23,6 +22,9 @@ namespace JSC {
 class JSScript;
 
 namespace js {
+
+class AsmJSModule;
+
 namespace ion {
 
 
@@ -144,6 +146,19 @@ class SafepointWriter;
 class SafepointIndex;
 class OsiIndex;
 class IonCache;
+
+
+
+struct DependentAsmJSModuleExit
+{
+    const AsmJSModule *module;
+    size_t exitIndex;
+
+    DependentAsmJSModuleExit(const AsmJSModule *module, size_t exitIndex)
+      : module(module),
+        exitIndex(exitIndex)
+    { }
+};
 
 
 struct IonScript

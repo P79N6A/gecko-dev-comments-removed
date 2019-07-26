@@ -14,6 +14,7 @@
 #include "jsscript.h"
 
 #include "gc/Marking.h"
+#include "ion/AsmJS.h"
 #include "ion/IonMacroAssembler.h"
 #if defined(JS_ION_PERF)
 # include "ion/PerfSpewer.h"
@@ -767,18 +768,17 @@ class AsmJSModule
 
 
 
+extern JSObject *
+NewAsmJSModuleObject(JSContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
 
-extern AsmJSModule &
-AsmJSModuleObjectToModule(JSObject *obj);
 
 extern bool
 IsAsmJSModuleObject(JSObject *obj);
 
-extern JSObject &
-AsmJSModuleObject(JSFunction *moduleFun);
 
-extern void
-SetAsmJSModuleObject(JSFunction *moduleFun, JSObject *moduleObj);
+
+extern AsmJSModule &
+AsmJSModuleObjectToModule(JSObject *obj);
 
 }  
 
