@@ -727,6 +727,21 @@ DeviceManagerD3D9::VerifyReadyForRendering()
   
   
   if (hr == D3DERR_DEVICELOST) {
+    HMONITOR hMonitorWindow;
+    hMonitorWindow = MonitorFromWindow(mFocusWnd, MONITOR_DEFAULTTOPRIMARY);
+    if (hMonitorWindow != mDeviceMonitor) {
+      
+
+
+      
+
+
+
+
+
+
+      return DeviceMustRecreate;
+    }
     return DeviceRetry;
   }
   if (hr == D3DERR_DEVICENOTRESET) {
