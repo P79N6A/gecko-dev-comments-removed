@@ -913,9 +913,6 @@ AsyncChannel::ProcessGoodbyeMessage()
     
     
     mChannelState = ChannelClosing;
-
-    printf("NOTE: %s process received `Goodbye', closing down\n",
-           mChild ? "child" : "parent");
 }
 
 
