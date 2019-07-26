@@ -2650,6 +2650,43 @@ BaselineCompiler::emit_JSOP_DEBUGLEAVEBLOCK()
     return callVM(DebugLeaveBlockInfo);
 }
 
+typedef bool (*EnterWithFn)(JSContext *, BaselineFrame *, HandleValue, Handle<StaticWithObject *>);
+static const VMFunction EnterWithInfo = FunctionInfo<EnterWithFn>(jit::EnterWith);
+
+bool
+BaselineCompiler::emit_JSOP_ENTERWITH()
+{
+    StaticWithObject &withObj = script->getObject(pc)->as<StaticWithObject>();
+
+    
+    frame.popRegsAndSync(1);
+
+    
+    prepareVMCall();
+    masm.loadBaselineFramePtr(BaselineFrameReg, R1.scratchReg());
+
+    pushArg(ImmGCPtr(&withObj));
+    pushArg(R0);
+    pushArg(R1.scratchReg());
+
+    return callVM(EnterWithInfo);
+}
+
+typedef bool (*LeaveWithFn)(JSContext *, BaselineFrame *);
+static const VMFunction LeaveWithInfo = FunctionInfo<LeaveWithFn>(jit::LeaveWith);
+
+bool
+BaselineCompiler::emit_JSOP_LEAVEWITH()
+{
+    
+    prepareVMCall();
+
+    masm.loadBaselineFramePtr(BaselineFrameReg, R0.scratchReg());
+    pushArg(R0.scratchReg());
+
+    return callVM(LeaveWithInfo);
+}
+
 typedef bool (*GetAndClearExceptionFn)(JSContext *, MutableHandleValue);
 static const VMFunction GetAndClearExceptionInfo =
     FunctionInfo<GetAndClearExceptionFn>(GetAndClearException);
