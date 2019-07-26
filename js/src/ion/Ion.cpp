@@ -919,6 +919,9 @@ CompileBackEnd(MIRGenerator *mir)
     if (mir->shouldCancel("DCE"))
         return NULL;
 
+    
+    
+
     if (js_IonOptions.edgeCaseAnalysis) {
         EdgeCaseAnalysis edgeCaseAnalysis(mir, graph);
         if (!edgeCaseAnalysis.analyzeLate())

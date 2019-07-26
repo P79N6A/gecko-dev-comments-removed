@@ -591,43 +591,53 @@ NeedNegativeZeroCheck(MDefinition *def)
     
     for (MUseIterator use = def->usesBegin(); use != def->usesEnd(); use++) {
         if (use->node()->isResumePoint())
-            return true;
+            continue;
 
         MDefinition *use_def = use->node()->toDefinition();
         switch (use_def->op()) {
           case MDefinition::Op_Add: {
             
-            
-            
-            
-            
-            MDefinition *operand = use_def->getOperand(0);
-            if (operand == def) {
-                operand = use_def->getOperand(1);
 
+            
+            
+            
+            MDefinition *first = use_def->getOperand(0);
+            MDefinition *second = use_def->getOperand(1);
+            if (first->id() > second->id()) {
+                MDefinition *temp = first;
+                first = second;
+                second = temp;
+            }
+
+            if (def == first) {
                 
                 
-                if (operand == def)
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                switch (second->op()) {
+                  case MDefinition::Op_Constant:
+                  case MDefinition::Op_BitAnd:
+                  case MDefinition::Op_BitOr:
+                  case MDefinition::Op_BitXor:
+                  case MDefinition::Op_BitNot:
+                  case MDefinition::Op_Lsh:
+                  case MDefinition::Op_Rsh:
+                    break;
+                  default:
                     return true;
+                }
             }
 
             
             
-            if (operand->isMul()) {
-                MMul *mul = operand->toMul();
-                if (!mul->canBeNegativeZero())
-                    return true;
-            } else if (operand->isDiv()) {
-                MDiv *div = operand->toDiv();
-                if (!div->canBeNegativeZero())
-                    return true;
-            } else if (operand->isToInt32()) {
-                MToInt32 *int32 = operand->toToInt32();
-                if (!int32->canBeNegativeZero())
-                    return true;
-            } else if (operand->isPhi()) {
-                return true;
-            }
+            
             break;
           }
           case MDefinition::Op_StoreElement:
