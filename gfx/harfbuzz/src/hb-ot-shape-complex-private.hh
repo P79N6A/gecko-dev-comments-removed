@@ -185,6 +185,20 @@ hb_ot_shape_complex_categorize (const hb_ot_shape_planner_t *planner)
       return &_hb_ot_complex_shaper_thai;
 
 
+#if 0
+    
+
+
+
+
+
+
+    
+    case HB_SCRIPT_HANGUL:
+
+      return &_hb_ot_complex_shaper_hangul;
+#endif
+
 
     
 
