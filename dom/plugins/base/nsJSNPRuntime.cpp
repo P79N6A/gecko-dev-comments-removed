@@ -571,7 +571,7 @@ nsJSObjWrapper::NP_Invalidate(NPObject *npobj)
 
   if (jsnpobj && jsnpobj->mJSObj) {
     
-    js_RemoveRoot(sJSRuntime, &jsnpobj->mJSObj);
+    JS_RemoveObjectRootRT(sJSRuntime, &jsnpobj->mJSObj);
 
     if (sJSObjWrappers.ops) {
       
