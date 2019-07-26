@@ -2,7 +2,6 @@
 
 
 
-#include "prtypes.h"
 #include <stdint.h>
 
 namespace mozilla {
