@@ -22,6 +22,8 @@ function setSnappedViewstate() {
 
   
   ContentAreaObserver._updateViewState("snapped");
+  ContentAreaObserver._dispatchBrowserEvent("SizeChanged");
+  yield waitForMessage("Content:SetWindowSize:Complete", browser.messageManager);
 
   
   yield waitForMs(0);
@@ -43,6 +45,7 @@ function setPortraitViewstate() {
     browser.style.borderBottom = (fullHeight - maxPortraitHeight) + "px solid gray";
 
   ContentAreaObserver._updateViewState("portrait");
+  ContentAreaObserver._dispatchBrowserEvent("SizeChanged");
 
   
   yield waitForMs(0);
@@ -50,6 +53,8 @@ function setPortraitViewstate() {
 
 function restoreViewstate() {
   ContentAreaObserver._updateViewState("landscape");
+  ContentAreaObserver._dispatchBrowserEvent("SizeChanged");
+
   ok(isLandscapeMode(), "restoreViewstate should restore landscape mode.");
 
   Browser.selectedBrowser.style.removeProperty("border-right");
