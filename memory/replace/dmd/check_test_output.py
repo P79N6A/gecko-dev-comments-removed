@@ -29,7 +29,7 @@ def main():
     
 
     if (len(sys.argv) != 3):
-        print("usage:", sys.argv[0], "<srcdir> <test-output>")
+        print("usage:", sys.argv[0], "<topsrcdir> <test.dmd>")
         sys.exit(1)
 
     srcdir = sys.argv[1]
@@ -69,16 +69,13 @@ def main():
     
     
     
-    
-    
-    
 
     print("filtering output to", filtered_name)
 
     with open(fixed_name, "r") as fin, \
          open(filtered_name, "w") as fout:
 
-        test_frame_re = re.compile(r".*(RunTestMode\w*).*(DMD.cpp)")
+        test_frame_re = re.compile(r".*(DMD.cpp)")
 
         for line in fin:
             if re.match(r" (Allocated at|Reported( again)? at)", line):
@@ -86,14 +83,17 @@ def main():
                 print(line, end='', file=fout)
 
                 
+                
+                seen_DMD_frame = False
                 for frame in fin:
                     if re.match(r"   ", frame):
                         m = test_frame_re.match(frame)
                         if m:
-                            print("   ...", m.group(1), "...", m.group(2),
-                                  file=fout)
+                            seen_DMD_frame = True
                     else:
                         
+                        if seen_DMD_frame:
+                            print("   ... DMD.cpp", file=fout)
                         print(frame, end='', file=fout)
                         break
 
@@ -103,19 +103,8 @@ def main():
                 line2 = fin.next()
                 line3 = fin.next()
                 line4 = fin.next()
-                frame = fin.next()
+                line5 = fin.next()
                 line6 = fin.next()
-                m = test_frame_re.match(frame)
-                if m:
-                    
-                    
-                    print(re.sub(r"record \d+ of \d+", "record M of N", line),
-                          end='', file=fout)
-                    print(line2, end='', file=fout)
-                    print(line3, end='', file=fout)
-                    print(line4, end='', file=fout)
-                    print("   ...", m.group(1), "...", m.group(2), file=fout)
-                    print(line6, end='', file=fout)
 
             else:
                 
