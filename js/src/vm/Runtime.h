@@ -1262,9 +1262,9 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::ScriptAndCountsVector *scriptAndCountsVector;
 
     
-    js::Value           NaNValue;
-    js::Value           negativeInfinityValue;
-    js::Value           positiveInfinityValue;
+    const js::Value     NaNValue;
+    const js::Value     negativeInfinityValue;
+    const js::Value     positiveInfinityValue;
 
     js::PropertyName    *emptyString;
 
