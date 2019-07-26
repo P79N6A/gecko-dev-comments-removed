@@ -371,10 +371,18 @@
 
 
 
+
+
+
+
+
+
 #ifdef MOZ_CLANG_PLUGIN
 # define MOZ_MUST_OVERRIDE __attribute__((annotate("moz_must_override")))
+# define MOZ_STACK_CLASS __attribute__((annotate("moz_stack_class")))
 #else
 # define MOZ_MUST_OVERRIDE
+# define MOZ_STACK_CLASS
 #endif 
 
 #endif 
