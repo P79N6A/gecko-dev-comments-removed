@@ -96,8 +96,11 @@ Tester.prototype = {
     Services.obs.addObserver(this, "chrome-document-global-created", false);
     Services.obs.addObserver(this, "content-document-global-created", false);
     this._globalProperties = Object.keys(window);
-    this._globalPropertyWhitelist = ["navigator", "constructor", "Application",
-      "__SS_tabsToRestore", "__SSi", "webConsoleCommandController",
+    this._globalPropertyWhitelist = [
+      "navigator", "constructor", "top",
+      "Application",
+      "__SS_tabsToRestore", "__SSi",
+      "webConsoleCommandController",
     ];
 
     if (this.tests.length)
@@ -251,6 +254,13 @@ Tester.prototype = {
       }
 
       Object.keys(window).forEach(function (prop) {
+        if (parseInt(prop) == prop) {
+          
+          
+          
+          
+          return;
+        }
         if (this._globalProperties.indexOf(prop) == -1) {
           this._globalProperties.push(prop);
           if (this._globalPropertyWhitelist.indexOf(prop) == -1)
