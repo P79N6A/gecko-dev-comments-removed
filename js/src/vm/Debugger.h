@@ -464,7 +464,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     static void resultToCompletion(JSContext *cx, bool ok, const Value &rv,
-                                   JSTrapStatus *status, Value *value);
+                                   JSTrapStatus *status, MutableHandleValue value);
 
     
 
