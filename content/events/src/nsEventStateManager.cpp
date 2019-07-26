@@ -1188,7 +1188,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         break;
       }
 
-      WidgetWheelEvent* wheelEvent = static_cast<WidgetWheelEvent*>(aEvent);
+      WidgetWheelEvent* wheelEvent = aEvent->AsWheelEvent();
       WheelPrefs::GetInstance()->ApplyUserPrefsToDelta(wheelEvent);
 
       
@@ -1599,8 +1599,7 @@ nsEventStateManager::DispatchCrossProcessEvent(WidgetEvent* aEvent,
     return remote->SendRealKeyEvent(*aEvent->AsKeyboardEvent());
   }
   case NS_WHEEL_EVENT: {
-    WidgetWheelEvent* wheelEvent = static_cast<WidgetWheelEvent*>(aEvent);
-    return remote->SendMouseWheelEvent(*wheelEvent);
+    return remote->SendMouseWheelEvent(*aEvent->AsWheelEvent());
   }
   case NS_TOUCH_EVENT: {
     
@@ -3391,7 +3390,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         break;
       }
 
-      WidgetWheelEvent* wheelEvent = static_cast<WidgetWheelEvent*>(aEvent);
+      WidgetWheelEvent* wheelEvent = aEvent->AsWheelEvent();
       switch (WheelPrefs::GetInstance()->ComputeActionFor(wheelEvent)) {
         case WheelPrefs::ACTION_SCROLL: {
           
