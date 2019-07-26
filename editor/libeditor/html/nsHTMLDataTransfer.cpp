@@ -676,7 +676,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
         {
           
           
-          selNode = GetNodeLocation(wsRunObj.mStartReasonNode, &selOffset);
+          selNode = GetNodeLocation(GetAsDOMNode(wsRunObj.mStartReasonNode), &selOffset);
           
           nsWSRunObject wsRunObj(this, selNode, selOffset);
           wsRunObj.PriorVisibleNode(selNode, selOffset, address_of(visNode),
@@ -687,7 +687,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
           } else if (visType == WSType::special) {
             
             
-            selNode = GetNodeLocation(wsRunObj.mStartReasonNode, &selOffset);
+            selNode = GetNodeLocation(GetAsDOMNode(wsRunObj.mStartReasonNode), &selOffset);
             ++selOffset;
           }
         }

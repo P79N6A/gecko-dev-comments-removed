@@ -378,33 +378,33 @@ class MOZ_STACK_CLASS nsWSRunObject
     
     
     
-    nsCOMPtr<nsIDOMNode> mNode;           
-    int32_t mOffset;                      
+    nsCOMPtr<nsINode> mNode;           
+    int32_t mOffset;                   
     
     
-    bool    mPRE;                         
-    nsCOMPtr<nsIDOMNode> mStartNode;      
-    int32_t mStartOffset;                 
-    WSType mStartReason;                  
-    nsCOMPtr<nsIDOMNode> mStartReasonNode;
+    bool    mPRE;                      
+    nsCOMPtr<nsINode> mStartNode;      
+    int32_t mStartOffset;              
+    WSType mStartReason;               
+    nsCOMPtr<nsINode> mStartReasonNode;
     
-    nsCOMPtr<nsIDOMNode> mEndNode;        
-    int32_t mEndOffset;                   
-    WSType mEndReason;                    
-    nsCOMPtr<nsIDOMNode> mEndReasonNode;  
+    nsCOMPtr<nsINode> mEndNode;        
+    int32_t mEndOffset;                
+    WSType mEndReason;                 
+    nsCOMPtr<nsINode> mEndReasonNode;  
     
-    nsCOMPtr<nsIDOMNode> mFirstNBSPNode;  
-    int32_t mFirstNBSPOffset;             
+    nsCOMPtr<nsINode> mFirstNBSPNode;  
+    int32_t mFirstNBSPOffset;          
     
-    nsCOMPtr<nsIDOMNode> mLastNBSPNode;   
-    int32_t mLastNBSPOffset;              
+    nsCOMPtr<nsINode> mLastNBSPNode;   
+    int32_t mLastNBSPOffset;           
     
-    nsCOMArray<nsIDOMNode> mNodeArray;
+    nsCOMArray<nsINode> mNodeArray;    
     
-    WSFragment *mStartRun;                
-    WSFragment *mEndRun;                  
+    WSFragment *mStartRun;             
+    WSFragment *mEndRun;               
     
-    nsHTMLEditor *mHTMLEditor;            
+    nsHTMLEditor *mHTMLEditor;         
     
     friend class nsHTMLEditRules;  
     friend class nsHTMLEditor;     
