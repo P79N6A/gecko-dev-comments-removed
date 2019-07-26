@@ -70,11 +70,21 @@ public:
   virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
   void FireOfflineCompletionEvent();
 
+  
+  
+  double ExtraCurrentTime();
+
+  
+  void SetIsOnlyNodeForContext(bool aIsOnlyNode);
+
 private:
   bool CheckAudioChannelPermissions(AudioChannel aValue);
   void CreateAudioChannelAgent();
 
   void SetCanPlay(bool aCanPlay);
+
+  void NotifyStableState();
+  void ScheduleStableStateNotification();
 
   SelfReference<AudioDestinationNode> mOfflineRenderingRef;
   uint32_t mFramesToProduce;
@@ -83,8 +93,16 @@ private:
 
   
   AudioChannel mAudioChannel;
+<<<<<<< /home/roc/mozilla-central/content/media/webaudio/AudioDestinationNode.h
   bool mIsOffline;
   bool mHasFinished;
+=======
+
+  TimeStamp mStartedBlockingDueToBeingOnlyNode;
+  double mExtraCurrentTime;
+  double mExtraCurrentTimeSinceLastStartedBlocking;
+  bool mExtraCurrentTimeUpdatedSinceLastStableState;
+>>>>>>> /tmp/AudioDestinationNode.h~other.MvuUBx
 };
 
 }

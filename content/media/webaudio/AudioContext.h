@@ -246,6 +246,12 @@ public:
   AudioChannel MozAudioChannelType() const;
   void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
+  void UpdateNodeCount(int32_t aDelta);
+
+  
+  
+  double ExtraCurrentTime() const;
+
 private:
   void RemoveFromDecodeQueue(WebAudioDecodeJob* aDecodeJob);
   void ShutdownDecoder();
@@ -272,6 +278,8 @@ private:
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
   
   uint32_t mNumberOfChannels;
+  
+  int32_t mNodeCount;
   bool mIsOffline;
   bool mIsStarted;
   bool mIsShutDown;
