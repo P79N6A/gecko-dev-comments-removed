@@ -50,6 +50,7 @@ BackCert::Init()
       
       switch (ext->id.data[2]) {
         case 14: out = &dummyEncodedSubjectKeyIdentifier; break; 
+        case 19: out = &encodedBasicConstraints; break;
         case 35: out = &dummyEncodedAuthorityKeyIdentifier; break; 
       }
     } else if (ext->id.len == 9 &&
@@ -182,6 +183,13 @@ BuildForward(TrustDomain& trustDomain,
       trustLevel != TrustDomain::InheritsTrust) {
     
     return Fail(FatalError, PR_INVALID_STATE_ERROR);
+  }
+
+  rv = CheckExtensions(subject, endEntityOrCA,
+                       trustLevel == TrustDomain::TrustAnchor,
+                       subCACount);
+  if (rv != Success) {
+    return rv;
   }
 
   if (trustLevel == TrustDomain::TrustAnchor) {

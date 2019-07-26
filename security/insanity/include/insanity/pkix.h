@@ -26,6 +26,7 @@ namespace insanity { namespace pkix {
 SECStatus BuildCertChain(TrustDomain& trustDomain,
                          CERTCertificate* cert,
                          PRTime time,
+             KeyUsages requiredKeyUsagesIfPresent,
                   ScopedCERTCertList& results);
 
 

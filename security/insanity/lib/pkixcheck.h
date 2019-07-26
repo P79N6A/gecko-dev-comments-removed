@@ -25,6 +25,11 @@ namespace insanity { namespace pkix {
 
 Result CheckTimes(const CERTCertificate* cert, PRTime time);
 
+Result CheckExtensions(BackCert& certExt,
+                       EndEntityOrCA endEntityOrCA,
+                       bool isTrustAnchor,
+                       unsigned int depth);
+
 } } 
 
 #endif 
