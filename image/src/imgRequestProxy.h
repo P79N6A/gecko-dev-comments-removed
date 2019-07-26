@@ -8,7 +8,7 @@
 #define imgRequestProxy_h__
 
 #include "imgIRequest.h"
-#include "imgIDecoderObserver.h"
+#include "imgINotificationObserver.h"
 #include "nsISecurityInfoProvider.h"
 
 #include "nsIRequestObserver.h"
@@ -59,7 +59,7 @@ public:
   
   nsresult Init(imgStatusTracker* aStatusTracker,
                 nsILoadGroup *aLoadGroup,
-                nsIURI* aURI, imgIDecoderObserver *aObserver);
+                nsIURI* aURI, imgINotificationObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
                                                
@@ -199,7 +199,7 @@ private:
   
   
   
-  imgIDecoderObserver* mListener;
+  imgINotificationObserver* mListener;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
   nsLoadFlags mLoadFlags;
