@@ -69,6 +69,22 @@ exports.exec = function(execSpec) {
 
 
 
+
+let resourceDirName = function(path) {
+  let index = path.lastIndexOf("/");
+  if (index == -1) {
+    return ".";
+  }
+  while (index >= 0 && path[index] == "/") {
+    --index;
+  }
+  return path.slice(0, index + 1);
+};
+
+
+
+
+
 exports.staticRequire = function(requistingModule, name) {
   var deferred = promise.defer();
 
@@ -76,7 +92,7 @@ exports.staticRequire = function(requistingModule, name) {
     deferred.resolve('');
   }
   else {
-    var filename = OS.Path.dirname(requistingModule.id) + '/' + name;
+    var filename = resourceDirName(requistingModule.id) + '/' + name;
     filename = filename.replace(/\/\.\//g, '/');
     filename = 'resource://gre/modules/devtools/' + filename;
 
