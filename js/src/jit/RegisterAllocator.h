@@ -339,24 +339,36 @@ class RegisterAllocator
         return mir->alloc();
     }
 
-    static CodePosition outputOf(uint32_t pos) {
+    CodePosition outputOf(uint32_t pos) const {
+        
+        
+        
+        if (insData[pos].ins()->isPhi()) {
+            while (insData[pos + 1].ins()->isPhi())
+                ++pos;
+        }
         return CodePosition(pos, CodePosition::OUTPUT);
     }
-    static CodePosition outputOf(const LInstruction *ins) {
+    CodePosition outputOf(const LInstruction *ins) const {
         return outputOf(ins->id());
     }
-    static CodePosition inputOf(uint32_t pos) {
+    CodePosition inputOf(uint32_t pos) const {
+        
+        
+        
+        if (insData[pos].ins()->isPhi()) {
+            while (pos > 0 && insData[pos - 1].ins()->isPhi())
+                --pos;
+        }
         return CodePosition(pos, CodePosition::INPUT);
     }
-    static CodePosition inputOf(const LInstruction *ins) {
-        
-        JS_ASSERT(!ins->isPhi());
+    CodePosition inputOf(const LInstruction *ins) const {
         return inputOf(ins->id());
     }
-    static CodePosition entryOf(const LBlock *block) {
+    CodePosition entryOf(const LBlock *block) {
         return inputOf(block->firstId());
     }
-    static CodePosition exitOf(const LBlock *block) {
+    CodePosition exitOf(const LBlock *block) {
         return outputOf(block->lastId());
     }
 
@@ -384,6 +396,8 @@ class RegisterAllocator
 
         return outputOf(ins);
     }
+
+    void dumpInstructions();
 };
 
 static inline AnyRegister
