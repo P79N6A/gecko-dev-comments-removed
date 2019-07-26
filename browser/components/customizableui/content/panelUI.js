@@ -167,12 +167,13 @@ const PanelUI = {
         
       case "popuphiding":
         
-      case "popuphidden": {
+      case "popuphidden":
         this._updatePanelButton(aEvent.target);
         break;
-      }
       case "mousedown":
-        
+        if (aEvent.button == 0)
+          this.toggle(aEvent);
+        break;
       case "keypress":
         this.toggle(aEvent);
         break;
