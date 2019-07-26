@@ -1108,13 +1108,47 @@ HyperTextAccessible::GetTextAfterOffset(int32_t aOffset,
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  if (aBoundaryType == BOUNDARY_CHAR) {
-    GetCharAt(aOffset, eGetAfter, aText, aStartOffset, aEndOffset);
-    return NS_OK;
-  }
+  int32_t offset = ConvertMagicOffset(aOffset);
+  if (offset < 0)
+    return NS_ERROR_INVALID_ARG;
 
-  return GetTextHelper(eGetAfter, aBoundaryType, aOffset,
-                       aStartOffset, aEndOffset, aText);
+  switch (aBoundaryType) {
+    case BOUNDARY_CHAR:
+      GetCharAt(aOffset, eGetAfter, aText, aStartOffset, aEndOffset);
+      return NS_OK;
+
+    case BOUNDARY_WORD_START:
+      
+      *aStartOffset = FindWordBoundary(offset, eDirNext, eStartWord);
+      *aEndOffset = FindWordBoundary(*aStartOffset, eDirNext, eStartWord);
+      return GetText(*aStartOffset, *aEndOffset, aText);
+
+    case BOUNDARY_WORD_END:
+      
+      
+      
+      if (offset == 0) {
+        *aStartOffset = FindWordBoundary(offset, eDirNext, eEndWord);
+        *aEndOffset = FindWordBoundary(*aStartOffset, eDirNext, eEndWord);
+      } else {
+        *aEndOffset = FindWordBoundary(offset, eDirNext, eEndWord);
+        *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eEndWord);
+        if (*aStartOffset != offset) {
+          *aStartOffset = *aEndOffset;
+          *aEndOffset = FindWordBoundary(*aStartOffset, eDirNext, eEndWord);
+        }
+      }
+      return GetText(*aStartOffset, *aEndOffset, aText);
+
+    case BOUNDARY_LINE_START:
+    case BOUNDARY_LINE_END:
+    case BOUNDARY_ATTRIBUTE_RANGE:
+      return GetTextHelper(eGetAfter, aBoundaryType, aOffset,
+                           aStartOffset, aEndOffset, aText);
+
+    default:
+      return NS_ERROR_INVALID_ARG;
+  }
 }
 
 
