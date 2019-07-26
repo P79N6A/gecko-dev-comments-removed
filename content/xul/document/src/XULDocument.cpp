@@ -3660,18 +3660,14 @@ XULDocument::ExecuteScript(nsIScriptContext * aContext,
 
     NS_ENSURE_TRUE(mScriptGlobalObject, NS_ERROR_NOT_INITIALIZED);
 
-    if (!aContext->GetScriptsEnabled())
-        return NS_OK;
-
     
     nsAutoMicroTask mt;
     JSContext *cx = aContext->GetNativeContext();
     AutoCxPusher pusher(cx);
     JS::Rooted<JSObject*> global(cx, mScriptGlobalObject->GetGlobalJSObject());
-    
-    if (global) {
-      JS::ExposeObjectToActiveJS(global);
-    }
+    NS_ENSURE_TRUE(global, NS_ERROR_FAILURE);
+    NS_ENSURE_TRUE(nsContentUtils::GetSecurityManager()->ScriptAllowed(global), NS_OK);
+    JS::ExposeObjectToActiveJS(global);
     xpc_UnmarkGrayScript(aScriptObject);
     JSAutoCompartment ac(cx, global);
     JS::Rooted<JS::Value> unused(cx);
