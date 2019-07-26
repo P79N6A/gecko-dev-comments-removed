@@ -793,6 +793,16 @@ class LInstructionHelper : public LInstruction
         temps_[index] = a;
     }
 
+    
+    const LAllocation *input() {
+        JS_ASSERT(numOperands() == 1);
+        return getOperand(0);
+    }
+    const LDefinition *output() {
+        JS_ASSERT(numDefs() == 1);
+        return getDef(0);
+    }
+
     virtual void printInfo(FILE *fp) {
         printOperands(fp);
     }
