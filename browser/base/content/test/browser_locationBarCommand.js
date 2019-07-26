@@ -9,6 +9,12 @@ let gFocusManager = Cc["@mozilla.org/focus-manager;1"].
 
 function test() {
   waitForExplicitFinish();
+
+  registerCleanupFunction(function () {
+    Services.prefs.clearUserPref("browser.altClickSave");
+  });
+  Services.prefs.setBoolPref("browser.altClickSave", true);
+
   runAltLeftClickTest();
 }
 
@@ -26,9 +32,9 @@ function runAltLeftClickTest() {
 }
 
 function runShiftLeftClickTest() {
-  let listener = new WindowListener("chrome://browser/content/browser.xul", function(aWindow) {
+  let listener = new WindowListener(getBrowserURL(), function(aWindow) {
     Services.wm.removeListener(listener);
-    addPageShowListener(aWindow.gBrowser, function() {
+    addPageShowListener(aWindow.gBrowser.selectedBrowser, function() {
       info("URL should be loaded in a new window");
       is(gURLBar.value, "", "Urlbar reverted to original value");       
       is(gFocusManager.focusedElement, null, "There should be no focused element");
@@ -37,7 +43,7 @@ function runShiftLeftClickTest() {
 
       aWindow.close();
       runNextTest();
-    });
+    }, "http://example.com/");
   });
   Services.wm.addListener(listener);
 
@@ -55,7 +61,7 @@ function runNextTest() {
   info("Running test: " + test.desc);
   
   let tab = gBrowser.selectedTab = gBrowser.addTab(test.startValue);
-  addPageShowListener(gBrowser, function() {
+  addPageShowListener(gBrowser.selectedBrowser, function() {
     triggerCommand(test.click, test.event);
     test.check(tab);
 
@@ -157,10 +163,13 @@ function checkNewTab(aTab) {
   isnot(gBrowser.selectedTab, aTab, "New URL was loaded in a new tab");
 }
 
-function addPageShowListener(aBrowser, aFunc) {
-  aBrowser.selectedBrowser.addEventListener("pageshow", function loadListener() {
-    aBrowser.selectedBrowser.removeEventListener("pageshow", loadListener, false);
-    aFunc();
+function addPageShowListener(browser, cb, expectedURL) {
+  browser.addEventListener("pageshow", function pageShowListener() {
+    info("pageshow: " + browser.currentURI.spec);
+    if (expectedURL && browser.currentURI.spec != expectedURL)
+      return; 
+    browser.removeEventListener("pageshow", pageShowListener, false);
+    cb();
   });
 }
 
