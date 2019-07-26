@@ -251,24 +251,7 @@ SVGDocumentWrapper::OnStopRequest(nsIRequest* aRequest, nsISupports* ctxt,
 {
   if (mListener) {
     mListener->OnStopRequest(aRequest, ctxt, status);
-    
-    
-    
-    
-    
-    nsCOMPtr<nsIParser> parser = do_QueryInterface(mListener);
-    while (!parser->IsComplete()) {
-      parser->CancelParsingEvents();
-      parser->ContinueInterruptedParsing();
-    }
-    
-    FlushLayout();
     mListener = nullptr;
-
-    
-    
-    
-    mViewer->LoadComplete(NS_OK);
   }
 
   return NS_OK;
@@ -416,6 +399,15 @@ SVGDocumentWrapper::FlushLayout()
   if (presShell) {
     presShell->FlushPendingNotifications(Flush_Layout);
   }
+}
+
+nsIDocument*
+SVGDocumentWrapper::GetDocument()
+{
+  if (!mViewer)
+    return nullptr;
+
+  return mViewer->GetDocument(); 
 }
 
 SVGSVGElement*

@@ -70,6 +70,11 @@ public:
   
 
 
+  nsIDocument* GetDocument();
+
+  
+
+
 
   mozilla::dom::SVGSVGElement* GetRootSVGElem();
 
@@ -90,15 +95,6 @@ public:
 
   inline nsresult  GetPresShell(nsIPresShell** aPresShell)
     { return mViewer->GetPresShell(aPresShell); }
-
-  
-
-
-
-
-
-
-  inline bool      ParsedSuccessfully()  { return !!GetRootSVGElem(); }
 
   
 
@@ -140,6 +136,11 @@ public:
   void StopAnimation();
   void ResetAnimation();
 
+  
+
+
+  void FlushLayout();
+
 private:
   nsresult SetupViewer(nsIRequest *aRequest,
                        nsIContentViewer** aViewer,
@@ -147,8 +148,6 @@ private:
   void     DestroyViewer();
   void     RegisterForXPCOMShutdown();
   void     UnregisterForXPCOMShutdown();
-
-  void     FlushLayout();
 
   nsCOMPtr<nsIContentViewer>  mViewer;
   nsCOMPtr<nsILoadGroup>      mLoadGroup;

@@ -95,6 +95,123 @@ protected:
   VectorImage* mVectorImage;   
 };
 
+class SVGParseCompleteListener MOZ_FINAL : public nsStubDocumentObserver {
+public:
+  NS_DECL_ISUPPORTS
+
+  SVGParseCompleteListener(nsIDocument* aDocument,
+                           VectorImage* aImage)
+    : mDocument(aDocument)
+    , mImage(aImage)
+  {
+    NS_ABORT_IF_FALSE(mDocument, "Need an SVG document");
+    NS_ABORT_IF_FALSE(mImage, "Need an image");
+
+    mDocument->AddObserver(this);
+  }
+
+  ~SVGParseCompleteListener()
+  { 
+    if (mDocument) {
+      
+      
+      
+      Cancel();
+    }
+  }
+
+  void EndLoad(nsIDocument* aDocument) MOZ_OVERRIDE
+  {
+    NS_ABORT_IF_FALSE(aDocument == mDocument, "Got EndLoad for wrong document?");
+
+    
+    
+    nsRefPtr<SVGParseCompleteListener> kungFuDeathGroup(this);
+
+    mImage->OnSVGDocumentParsed();
+  }
+
+  void Cancel()
+  {
+    NS_ABORT_IF_FALSE(mDocument, "Duplicate call to Cancel");
+    mDocument->RemoveObserver(this);
+    mDocument = nullptr;
+  }
+
+private:
+  nsCOMPtr<nsIDocument> mDocument;
+  VectorImage* mImage; 
+};
+
+NS_IMPL_ISUPPORTS1(SVGParseCompleteListener, nsIDocumentObserver)
+
+class SVGLoadEventListener MOZ_FINAL : public nsIDOMEventListener {
+public:
+  NS_DECL_ISUPPORTS
+
+  SVGLoadEventListener(nsIDocument* aDocument,
+                       VectorImage* aImage)
+    : mDocument(aDocument)
+    , mImage(aImage)
+  {
+    NS_ABORT_IF_FALSE(mDocument, "Need an SVG document");
+    NS_ABORT_IF_FALSE(mImage, "Need an image");
+
+    mDocument->AddEventListener(NS_LITERAL_STRING("MozSVGAsImageDocumentLoad"), this, true, false);
+    mDocument->AddEventListener(NS_LITERAL_STRING("SVGAbort"), this, true, false);
+    mDocument->AddEventListener(NS_LITERAL_STRING("SVGError"), this, true, false);
+  }
+
+  ~SVGLoadEventListener()
+  {
+    if (mDocument) {
+      
+      
+      
+      Cancel();
+    }
+  }
+
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE
+  {
+    NS_ABORT_IF_FALSE(mDocument, "Need an SVG document. Received multiple events?");
+
+    
+    
+    nsRefPtr<SVGLoadEventListener> kungFuDeathGroup(this);
+
+    nsAutoString eventType;
+    aEvent->GetType(eventType);
+    NS_ABORT_IF_FALSE(eventType.EqualsLiteral("MozSVGAsImageDocumentLoad")  ||
+                      eventType.EqualsLiteral("SVGAbort")                   ||
+                      eventType.EqualsLiteral("SVGError"),
+                      "Received unexpected event");
+
+    if (eventType.EqualsLiteral("MozSVGAsImageDocumentLoad")) {
+      mImage->OnSVGDocumentLoaded();
+    } else {
+      mImage->OnSVGDocumentError();
+    }
+
+    return NS_OK;
+  }
+
+  void Cancel()
+  {
+    NS_ABORT_IF_FALSE(mDocument, "Duplicate call to Cancel");
+    mDocument->RemoveEventListener(NS_LITERAL_STRING("MozSVGAsImageDocumentLoad"), this, true);
+    mDocument->RemoveEventListener(NS_LITERAL_STRING("SVGAbort"), this, true);
+    mDocument->RemoveEventListener(NS_LITERAL_STRING("SVGError"), this, true);
+    mDocument = nullptr;
+  }
+
+private:
+  nsCOMPtr<nsIDocument> mDocument;
+  VectorImage* mImage; 
+};
+
+NS_IMPL_ISUPPORTS1(SVGLoadEventListener, nsIDOMEventListener)
+
 
 class SVGDrawingCallback : public gfxDrawingCallback {
 public:
@@ -673,9 +790,27 @@ VectorImage::OnStartRequest(nsIRequest* aRequest, nsISupports* aCtxt)
   if (NS_FAILED(rv)) {
     mSVGDocumentWrapper = nullptr;
     mError = true;
+    return rv;
   }
 
-  return rv;
+  
+  
+  
+  if (mStatusTracker) {
+    mStatusTracker->GetDecoderObserver()->OnStartDecode();
+  }
+
+  
+  
+  
+  
+  
+  
+  nsIDocument* document = mSVGDocumentWrapper->GetDocument();
+  mLoadEventListener = new SVGLoadEventListener(document, this);
+  mParseCompleteListener = new SVGParseCompleteListener(document, this);
+
+  return NS_OK;
 }
 
 
@@ -688,18 +823,52 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
   if (mError)
     return NS_ERROR_FAILURE;
 
-  NS_ABORT_IF_FALSE(!mIsFullyLoaded && !mHaveAnimations,
-                    "these flags shouldn't get set until OnStopRequest. "
-                    "Duplicate calls to OnStopRequest?");
+  return mSVGDocumentWrapper->OnStopRequest(aRequest, aCtxt, aStatus);
+}
 
-  nsresult rv = mSVGDocumentWrapper->OnStopRequest(aRequest, aCtxt, aStatus);
-  if (!mSVGDocumentWrapper->ParsedSuccessfully()) {
+void
+VectorImage::OnSVGDocumentParsed()
+{
+  NS_ABORT_IF_FALSE(mParseCompleteListener, "Should have the parse complete listener");
+  NS_ABORT_IF_FALSE(mLoadEventListener, "Should have the load event listener");
+
+  if (!mSVGDocumentWrapper->GetRootSVGElem()) {
     
     
     
-    mError = true;
-    return rv;
+    
+    OnSVGDocumentError();
   }
+}
+
+void
+VectorImage::CancelAllListeners()
+{
+  NS_ABORT_IF_FALSE(mParseCompleteListener, "Should have the parse complete listener");
+  NS_ABORT_IF_FALSE(mLoadEventListener, "Should have the load event listener");
+
+  if (mParseCompleteListener) {
+    mParseCompleteListener->Cancel();
+    mParseCompleteListener = nullptr;
+  }
+  if (mLoadEventListener) {
+    mLoadEventListener->Cancel();
+    mLoadEventListener = nullptr;
+  }
+}
+
+void
+VectorImage::OnSVGDocumentLoaded()
+{
+  NS_ABORT_IF_FALSE(mSVGDocumentWrapper->GetRootSVGElem(), "Should have parsed successfully");
+  NS_ABORT_IF_FALSE(!mIsFullyLoaded && !mHaveAnimations,
+                    "These flags shouldn't get set until OnSVGDocumentLoaded. "
+                    "Duplicate calls to OnSVGDocumentLoaded?");
+
+  CancelAllListeners();
+
+  
+  mSVGDocumentWrapper->FlushLayout();
 
   mIsFullyLoaded = true;
   mHaveAnimations = mSVGDocumentWrapper->IsAnimated();
@@ -709,17 +878,31 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
 
   
   if (mStatusTracker) {
-    
     imgDecoderObserver* observer = mStatusTracker->GetDecoderObserver();
-    observer->OnStartContainer();
 
+    observer->OnStartContainer(); 
     observer->FrameChanged(&nsIntRect::GetMaxSizedIntRect());
     observer->OnStopFrame();
-    observer->OnStopDecode(NS_OK);
+    observer->OnStopDecode(NS_OK); 
   }
-  EvaluateAnimation();
 
-  return rv;
+  EvaluateAnimation();
+}
+
+void
+VectorImage::OnSVGDocumentError()
+{
+  CancelAllListeners();
+
+  
+  
+  
+  mError = true;
+
+  if (mStatusTracker) {
+    
+    mStatusTracker->GetDecoderObserver()->OnStopDecode(NS_ERROR_FAILURE);
+  }
 }
 
 

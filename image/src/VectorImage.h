@@ -23,6 +23,8 @@ namespace image {
 
 class SVGDocumentWrapper;
 class SVGRootRenderingObserver;
+class SVGLoadEventListener;
+class SVGParseCompleteListener;
 
 class VectorImage : public ImageResource,
                     public nsIStreamListener
@@ -59,6 +61,13 @@ public:
   
   void InvalidateObserver();
 
+  
+  void OnSVGDocumentParsed();
+
+  
+  void OnSVGDocumentLoaded();
+  void OnSVGDocumentError();
+
 protected:
   VectorImage(imgStatusTracker* aStatusTracker = nullptr, nsIURI* aURI = nullptr);
 
@@ -67,8 +76,12 @@ protected:
   virtual bool     ShouldAnimate();
 
 private:
+  void CancelAllListeners();
+
   nsRefPtr<SVGDocumentWrapper>       mSVGDocumentWrapper;
   nsRefPtr<SVGRootRenderingObserver> mRenderingObserver;
+  nsRefPtr<SVGLoadEventListener>     mLoadEventListener;
+  nsRefPtr<SVGParseCompleteListener> mParseCompleteListener;
 
   nsIntRect      mRestrictedRegion;       
                                           
