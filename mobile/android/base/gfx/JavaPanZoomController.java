@@ -81,6 +81,9 @@ class JavaPanZoomController
         WAITING_LISTENERS, 
 
 
+        AUTOSCROLL,     
+
+
     }
 
     private final PanZoomTarget mTarget;
@@ -229,6 +232,11 @@ class JavaPanZoomController
             case MotionEvent.ACTION_SCROLL: return handlePointerScroll(event);
             }
             break;
+        case InputDevice.SOURCE_CLASS_JOYSTICK:
+            switch (event.getAction() & MotionEvent.ACTION_MASK) {
+            case MotionEvent.ACTION_MOVE: return handleJoystickScroll(event);
+            }
+            break;
         }
         return false;
     }
@@ -340,6 +348,7 @@ class JavaPanZoomController
             mTarget.forceRedraw();
             
         case FLING:
+        case AUTOSCROLL:
         case BOUNCE:
         case NOTHING:
         case WAITING_LISTENERS:
@@ -362,6 +371,7 @@ class JavaPanZoomController
 
         switch (mState) {
         case FLING:
+        case AUTOSCROLL:
         case BOUNCE:
         case WAITING_LISTENERS:
             
@@ -409,6 +419,7 @@ class JavaPanZoomController
 
         switch (mState) {
         case FLING:
+        case AUTOSCROLL:
         case BOUNCE:
         case WAITING_LISTENERS:
             
@@ -468,6 +479,43 @@ class JavaPanZoomController
 
             scrollBy(scrollX * MAX_SCROLL, scrollY * MAX_SCROLL);
             bounce();
+            return true;
+        }
+        return false;
+    }
+
+    private float normalizeJoystick(float value, InputDevice.MotionRange range) {
+        
+        
+        
+        if (Math.abs(value) < 1e-2) {
+            return 0;
+        }
+        
+        return value * MAX_SCROLL;
+    }
+
+    
+    
+    private boolean handleJoystickScroll(MotionEvent event) {
+        float velocityX = normalizeJoystick(event.getX(0), event.getDevice().getMotionRange(MotionEvent.AXIS_X));
+        float velocityY = normalizeJoystick(event.getY(0), event.getDevice().getMotionRange(MotionEvent.AXIS_Y));
+
+        if (velocityX == 0 && velocityY == 0) {
+            if (mState == PanZoomState.AUTOSCROLL) {
+                bounce(); 
+                return true;
+            }
+            return false;
+        }
+
+        if (mState == PanZoomState.NOTHING) {
+            setState(PanZoomState.AUTOSCROLL);
+            startAnimationTimer(new AutoscrollRunnable());
+        }
+        if (mState == PanZoomState.AUTOSCROLL) {
+            mX.setAutoscrollVelocity(velocityX);
+            mY.setAutoscrollVelocity(velocityY);
             return true;
         }
         return false;
@@ -597,7 +645,7 @@ class JavaPanZoomController
     
     private void startAnimationTimer(final AnimationRunnable runnable) {
         if (mAnimationTimer != null) {
-            Log.e(LOGTAG, "Attempted to start a new fling without canceling the old one!");
+            Log.e(LOGTAG, "Attempted to start a new timer without canceling the old one!");
             stopAnimationTimer();
         }
 
@@ -677,6 +725,17 @@ class JavaPanZoomController
         
         protected final void terminate() {
             mAnimationTerminated = true;
+        }
+    }
+
+    private class AutoscrollRunnable extends AnimationRunnable {
+        protected void animateFrame() {
+            if (mState != PanZoomState.AUTOSCROLL) {
+                finishAnimation();
+                return;
+            }
+
+            updatePosition();
         }
     }
 

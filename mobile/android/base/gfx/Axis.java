@@ -135,7 +135,7 @@ abstract class Axis {
     private boolean mDisableSnap;           
     private float mDisplacement;
 
-    private FlingStates mFlingState;        
+    private FlingStates mFlingState = FlingStates.STOPPED; 
 
     protected abstract float getOrigin();
     protected abstract float getViewportLength();
@@ -339,7 +339,7 @@ abstract class Axis {
         if (mFlingState == FlingStates.PANNING)
             mDisplacement += (mLastTouchPos - mTouchPos) * getEdgeResistance(false);
         else
-            mDisplacement += mVelocity;
+            mDisplacement += mVelocity * getEdgeResistance(false);
 
         
         
@@ -360,5 +360,13 @@ abstract class Axis {
         float d = mDisplacement;
         mDisplacement = 0.0f;
         return d;
+    }
+
+    void setAutoscrollVelocity(float velocity) {
+        if (mFlingState != FlingStates.STOPPED) {
+            Log.e(LOGTAG, "Setting autoscroll velocity while in a fling is not allowed!");
+            return;
+        }
+        mVelocity = velocity;
     }
 }
