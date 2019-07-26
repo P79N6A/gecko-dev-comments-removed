@@ -676,7 +676,7 @@ SpdySession3::GenerateSettings()
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
   LOG3(("SpdySession3::GenerateSettings %p\n", this));
 
-  static const uint32_t maxDataLen = 4 + 2 * 8; 
+  static const uint32_t maxDataLen = 4 + 3 * 8; 
   EnsureBuffer(mOutputQueueBuffer, mOutputQueueUsed + 8 + maxDataLen,
                mOutputQueueUsed, mOutputQueueSize);
   char *packet = mOutputQueueBuffer.get() + mOutputQueueUsed;
@@ -691,6 +691,13 @@ SpdySession3::GenerateSettings()
   
   
   
+  
+
+  
+  
+  packet[15 + 8 * numberOfEntries] = SETTINGS_TYPE_MAX_CONCURRENT;
+  
+  numberOfEntries++;
 
   nsRefPtr<nsHttpConnectionInfo> ci;
   uint32_t cwnd = 0;
