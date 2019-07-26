@@ -452,6 +452,8 @@ private:
     
     CancelableTask* mTapHoldTimer;
     
+    bool mAppPackageFileDescriptorRecved;
+    
     nsAutoTArray<nsAutoPtr<CachedFileDescriptorInfo>, 1>
         mCachedFileDescriptorInfos;
     float mOldViewportWidth;
