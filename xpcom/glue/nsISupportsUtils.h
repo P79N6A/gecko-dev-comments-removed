@@ -11,6 +11,7 @@
 #include "nsError.h"
 #include "nsDebug.h"
 #include "nsISupportsImpl.h"
+#include "mozilla/TypeTraits.h"
 
 
 
@@ -128,9 +129,15 @@ inline
 nsresult
 CallQueryInterface( T* aSource, DestinationType** aDestination )
 {
+    
+    
+    static_assert(!mozilla::IsSame<T, DestinationType>::value ||
+                  mozilla::IsSame<DestinationType, nsISupports>::value,
+                  "don't use CallQueryInterface for compile-time-determinable casts");
+
     NS_PRECONDITION(aSource, "null parameter");
     NS_PRECONDITION(aDestination, "null parameter");
-    
+
     return aSource->QueryInterface(NS_GET_TEMPLATE_IID(DestinationType),
                                    reinterpret_cast<void**>(aDestination));
 }
