@@ -218,11 +218,46 @@ HTMLFieldSetElement::AddElement(nsGenericHTMLFormElement* aElement)
   mDependentElements.AppendElement(aElement);
 
   
+  
+  HTMLFieldSetElement* fieldSet = FromContent(aElement);
+  if (fieldSet) {
+    if (fieldSet->mInvalidElementsCount > 0) {
+      
+      
+      
+      
+      
+      UpdateValidity(false);
+      mInvalidElementsCount += fieldSet->mInvalidElementsCount - 1;
+    }
+    return;
+  }
+
+  
   nsCOMPtr<nsIConstraintValidation> cvElmt = do_QueryObject(aElement);
   if (cvElmt &&
       cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
     UpdateValidity(false);
   }
+
+#if DEBUG
+  int32_t debugInvalidElementsCount = 0;
+  for (uint32_t i = 0; i < mDependentElements.Length(); i++) {
+    HTMLFieldSetElement* fieldSet = FromContent(mDependentElements[i]);
+    if (fieldSet) {
+      debugInvalidElementsCount += fieldSet->mInvalidElementsCount;
+      continue;
+    }
+    nsCOMPtr<nsIConstraintValidation>
+      cvElmt = do_QueryObject(mDependentElements[i]);
+    if (cvElmt &&
+        cvElmt->IsCandidateForConstraintValidation() &&
+        !(cvElmt->IsValid())) {
+      debugInvalidElementsCount += 1;
+    }
+  }
+  MOZ_ASSERT(debugInvalidElementsCount == mInvalidElementsCount);
+#endif
 }
 
 void
@@ -231,11 +266,45 @@ HTMLFieldSetElement::RemoveElement(nsGenericHTMLFormElement* aElement)
   mDependentElements.RemoveElement(aElement);
 
   
+  
+  HTMLFieldSetElement* fieldSet = FromContent(aElement);
+  if (fieldSet) {
+    if (fieldSet->mInvalidElementsCount > 0) {
+      
+      
+      
+      
+      mInvalidElementsCount -= fieldSet->mInvalidElementsCount - 1;
+      UpdateValidity(true);
+    }
+    return;
+  }
+
+  
   nsCOMPtr<nsIConstraintValidation> cvElmt = do_QueryObject(aElement);
   if (cvElmt &&
       cvElmt->IsCandidateForConstraintValidation() && !cvElmt->IsValid()) {
     UpdateValidity(true);
   }
+
+#if DEBUG
+  int32_t debugInvalidElementsCount = 0;
+  for (uint32_t i = 0; i < mDependentElements.Length(); i++) {
+    HTMLFieldSetElement* fieldSet = FromContent(mDependentElements[i]);
+    if (fieldSet) {
+      debugInvalidElementsCount += fieldSet->mInvalidElementsCount;
+      continue;
+    }
+    nsCOMPtr<nsIConstraintValidation>
+      cvElmt = do_QueryObject(mDependentElements[i]);
+    if (cvElmt &&
+        cvElmt->IsCandidateForConstraintValidation() &&
+        !(cvElmt->IsValid())) {
+      debugInvalidElementsCount += 1;
+    }
+  }
+  MOZ_ASSERT(debugInvalidElementsCount == mInvalidElementsCount);
+#endif
 }
 
 void
