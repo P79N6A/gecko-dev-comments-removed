@@ -143,6 +143,34 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   return true;
 }
 
+
+
+static void
+AppendUnquotedFamilyName(const nsAString& aFamilyName, nsAString& aResult)
+{
+  const char16_t *p, *p_end;
+  aFamilyName.BeginReading(p);
+  aFamilyName.EndReading(p_end);
+
+   bool moreThanOne = false;
+   while (p < p_end) {
+     const char16_t* identStart = p;
+     while (++p != p_end && *p != ' ')
+        ;
+
+     nsDependentSubstring ident(identStart, p);
+     if (!ident.IsEmpty()) {
+       if (moreThanOne) {
+         aResult.Append(' ');
+       }
+       nsStyleUtil::AppendEscapedCSSIdent(ident, aResult);
+       moreThanOne = true;
+     }
+
+     ++p;
+  }
+}
+
  void
 nsStyleUtil::AppendEscapedCSSFontFamilyList(
   const mozilla::FontFamilyList& aFamilyList,
@@ -157,9 +185,7 @@ nsStyleUtil::AppendEscapedCSSFontFamilyList(
     const FontFamilyName& name = fontlist[i];
     switch (name.mType) {
       case eFamily_named:
-        
-        
-        aResult.Append(name.mName);
+        AppendUnquotedFamilyName(name.mName, aResult);
         break;
       case eFamily_named_quoted:
         AppendEscapedCSSString(name.mName, aResult);
