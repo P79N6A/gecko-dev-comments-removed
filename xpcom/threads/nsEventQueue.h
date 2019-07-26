@@ -60,7 +60,7 @@ private:
     return !mHead || (mHead == mTail && mOffsetHead == mOffsetTail);
   }
 
-  enum { EVENTS_PER_PAGE = 250 };
+  enum { EVENTS_PER_PAGE = 255 };
 
   
 
@@ -68,6 +68,9 @@ private:
     struct Page *mNext;
     nsIRunnable *mEvents[EVENTS_PER_PAGE];
   };
+
+  static_assert((sizeof(Page) & (sizeof(Page) - 1)) == 0,
+                "sizeof(Page) should be a power of two to avoid heap slop.");
 
   static Page *NewPage() {
     return static_cast<Page *>(calloc(1, sizeof(Page)));
