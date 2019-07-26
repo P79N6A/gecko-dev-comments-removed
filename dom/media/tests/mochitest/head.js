@@ -41,7 +41,7 @@ function runTest(aCallback, desktopSupportedOnly) {
 
 
 
-function unexpectedCallbackAndFinish(obj) {
-  ok(false, "Unexpected error callback with " + obj);
+function unexpectedCallbackAndFinish(aObj) {
+  ok(false, "Unexpected error callback with " + aObj);
   SimpleTest.finish();
 }
