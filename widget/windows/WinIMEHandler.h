@@ -39,6 +39,17 @@ public:
   
 
 
+  static bool IsComposing();
+
+  
+
+
+
+  static bool IsComposingOn(nsWindow* aWindow);
+
+  
+
+
 
 
   static bool IsDoingKakuteiUndo(HWND aWnd);

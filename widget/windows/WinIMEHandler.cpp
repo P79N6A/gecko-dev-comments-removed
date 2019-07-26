@@ -70,6 +70,32 @@ IMEHandler::ProcessMessage(nsWindow* aWindow, UINT aMessage,
                                         aRetValue, aEatMessage);
 }
 
+
+bool
+IMEHandler::IsComposing()
+{
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    return nsTextStore::IsComposing();
+  }
+#endif 
+
+  return nsIMM32Handler::IsComposing();
+}
+
+
+bool
+IMEHandler::IsComposingOn(nsWindow* aWindow)
+{
+#ifdef NS_ENABLE_TSF
+  if (sIsInTSFMode) {
+    return nsTextStore::IsComposingOn(aWindow);
+  }
+#endif 
+
+  return nsIMM32Handler::IsComposingOn(aWindow);
+}
+
 #ifdef DEBUG
 
 bool

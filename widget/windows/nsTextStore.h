@@ -168,6 +168,16 @@ public:
     return sTsfThreadMgr != nullptr;
   }
 
+  static bool     IsComposing()
+  {
+    return (sTsfTextStore && sTsfTextStore->mCompositionView != nullptr);
+  }
+
+  static bool     IsComposingOn(nsWindowBase* aWidget)
+  {
+    return (IsComposing() && sTsfTextStore->mWidget == aWidget);
+  }
+
 #ifdef DEBUG
   
   static bool     CurrentKeyboardLayoutHasIME();
