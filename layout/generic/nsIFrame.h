@@ -2236,6 +2236,23 @@ public:
 
 
 
+  static void* LayerIsPrerenderedDataKey() { 
+    return &sLayerIsPrerenderedDataKey;
+  }
+  static uint8_t sLayerIsPrerenderedDataKey;
+
+   
+
+
+
+
+  bool TryUpdateTransformOnly();
+
+  
+
+
+
+
 
 
 
