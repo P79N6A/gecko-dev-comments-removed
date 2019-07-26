@@ -27,13 +27,13 @@
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <float.h>
 
 namespace WebCore {
 
 
 
 
-#include <float.h>
 #if defined(XP_WIN) && defined(_MSC_VER)
 #define HAVE_DENORMAL
 #endif
