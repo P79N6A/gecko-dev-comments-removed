@@ -26,12 +26,14 @@
 #include "thread_wrapper.h"
 #include "event_wrapper.h"
 
+#include "AndroidJNIWrapper.h"
+
 namespace webrtc
 {
 
 
+
 JavaVM* AudioDeviceAndroidJni::globalJvm = NULL;
-JNIEnv* AudioDeviceAndroidJni::globalJNIEnv = NULL;
 jobject AudioDeviceAndroidJni::globalContext = NULL;
 jclass AudioDeviceAndroidJni::globalScClass = NULL;
 
@@ -45,62 +47,54 @@ jclass AudioDeviceAndroidJni::globalScClass = NULL;
 
 WebRtc_Word32 AudioDeviceAndroidJni::SetAndroidAudioDeviceObjects(
     void* javaVM,
-    void* env,
     void* context) {
-  __android_log_print(ANDROID_LOG_DEBUG, "WEBRTC", "JNI:%s", __FUNCTION__);
+  WEBRTC_TRACE(kTraceMemory, kTraceAudioDevice, -1,
+               "%s called", __FUNCTION__);
 
   
   globalJvm = reinterpret_cast<JavaVM*>(javaVM);
+  JNIEnv* env = NULL;
 
-  if (env) {
-    globalJNIEnv = reinterpret_cast<JNIEnv*>(env);
+  
+  if (globalJvm && !globalScClass) {
+      if (globalJvm->GetEnv((void**)&env, JNI_VERSION_1_4) != JNI_OK) {
+      WEBRTC_TRACE(webrtc::kTraceError, webrtc::kTraceAudioDevice, -1,
+                   "%s: could not get Java environment", __FUNCTION__);
+      return -1;
+    }
+    globalJvm->AttachCurrentThread(&env, NULL);
+
     
-    jclass javaScClassLocal = globalJNIEnv->FindClass(
-        "org/webrtc/voiceengine/WebRTCAudioDevice");
-    if (!javaScClassLocal) {
+    globalScClass = jsjni_GetGlobalClassRef(AudioCaptureClass);
+    if (!globalScClass) {
       WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
                    "%s: could not find java class", __FUNCTION__);
       return -1; 
     }
 
-    
-    
-    globalScClass = reinterpret_cast<jclass> (
-        globalJNIEnv->NewGlobalRef(javaScClassLocal));
-    if (!globalScClass) {
-      WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
-                   "%s: could not create reference", __FUNCTION__);
-      return -1;
-    }
-
-    globalContext = globalJNIEnv->NewGlobalRef(
+    globalContext = env->NewGlobalRef(
         reinterpret_cast<jobject>(context));
     if (!globalContext) {
       WEBRTC_TRACE(kTraceError, kTraceAudioDevice, -1,
                    "%s: could not create context reference", __FUNCTION__);
       return -1;
     }
-
-    
-    globalJNIEnv->DeleteLocalRef(javaScClassLocal);
   }
   else { 
     WEBRTC_TRACE(kTraceStateInfo, kTraceAudioDevice, -1,
                  "%s: env is NULL, assuming deinit", __FUNCTION__);
 
-    if (!globalJNIEnv) {
+    if (!env) {
       WEBRTC_TRACE(kTraceWarning, kTraceAudioDevice, -1,
                    "%s: saved env already NULL", __FUNCTION__);
       return 0;
     }
 
-    globalJNIEnv->DeleteGlobalRef(globalScClass);
+    env->DeleteGlobalRef(globalScClass);
     globalScClass = reinterpret_cast<jclass>(NULL);
 
-    globalJNIEnv->DeleteGlobalRef(globalContext);
+    env->DeleteGlobalRef(globalContext);
     globalContext = reinterpret_cast<jobject>(NULL);
-
-    globalJNIEnv = reinterpret_cast<JNIEnv*>(NULL);
   }
 
   return 0;
@@ -2211,7 +2205,7 @@ WebRtc_Word32 AudioDeviceAndroidJni::InitJavaResources()
     }
 
     WEBRTC_TRACE(kTraceDebug, kTraceAudioDevice, _id,
-                 "construct object", __FUNCTION__);
+                 "%s: construct object", __FUNCTION__);
 
     
     jobject javaScObjLocal = env->NewObject(_javaScClass, cid);
