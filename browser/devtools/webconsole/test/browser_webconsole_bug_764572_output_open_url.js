@@ -125,6 +125,7 @@ function testOnNetActivity_command() {
 
 function onTabOpen(aTab) {
   waitForSuccess({
+    timeout: 10000,
     name: "complete to initialize the opening tab",
     validatorFn: function()
     {
@@ -137,7 +138,11 @@ function onTabOpen(aTab) {
       gBrowser.removeTab(aTab);
       executeSoon(testOnNetActivity_contextmenu);
     },
-    failureFn: testOnNetActivity_contextmenu,
+    failureFn: function()
+    {
+      info("new tab currentURI " + aTab.linkedBrowser.currentURI.spec);
+      testOnNetActivity_contextmenu();
+    },
   });
 }
 
