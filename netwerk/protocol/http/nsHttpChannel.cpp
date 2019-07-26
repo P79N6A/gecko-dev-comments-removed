@@ -2181,6 +2181,7 @@ nsHttpChannel::ProcessPartialContent()
         if (NS_FAILED(rv)) return rv;
 
         mCachedContentIsPartial = false;
+        mConcurentCacheAccess = 0;
 
         
         
@@ -5140,8 +5141,6 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         }
     }
 
-    mIsPending = false;
-
     
     if (mCacheEntry && mCachePump &&
         mConcurentCacheAccess && contentComplete) {
@@ -5181,6 +5180,7 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         }
     }
 
+    mIsPending = false;
     mStatus = status;
 
     
