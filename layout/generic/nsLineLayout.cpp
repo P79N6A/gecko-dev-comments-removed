@@ -2456,7 +2456,7 @@ nsLineLayout::ApplyFrameJustification(PerSpanData* aPSD, FrameJustificationState
     
     if (!pfd->GetFlag(PFD_ISBULLET)) {
       nscoord dw = 0;
-      WritingMode lineWM = aPSD->mWritingMode;
+      WritingMode lineWM = mRootSpan->mWritingMode;
 
       pfd->mBounds.IStart(lineWM) += deltaICoord;
 
