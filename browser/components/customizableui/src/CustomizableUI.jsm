@@ -88,18 +88,11 @@ let gPanelsForWindow = new WeakMap();
 
 let gSeenWidgets = new Set();
 
-
-
-
-
-
-
-
-
-
-
-
-
+let gSavedState = null;
+let gRestoring = false;
+let gDirty = false;
+let gInBatchStack = 0;
+let gResetting = false;
 
 
 
@@ -277,7 +270,7 @@ let CustomizableUIInternal = {
     this.endBatchUpdate(true);
   },
 
-  registerToolbar: function(aToolbar, aIsOverlayed) {
+  registerToolbar: function(aToolbar) {
     this.beginBatchUpdate();
     let document = aToolbar.ownerDocument;
     let area = aToolbar.id;
@@ -299,30 +292,12 @@ let CustomizableUIInternal = {
       placements = gPlacements.get(area);
     }
 
-    
-    
-    
-    if (aIsOverlayed) {
-      gDirtyAreaCache.add(area);
-    }
-
     if (areaProperties.has("overflowable")) {
       aToolbar.overflowable = new OverflowableToolbar(aToolbar);
     }
 
     this.registerBuildArea(area, aToolbar);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    if (gDirtyAreaCache.has(area)) {
-      this.buildArea(area, placements, aToolbar);
-    }
+    this.buildArea(area, placements, aToolbar);
     aToolbar.setAttribute("currentset", placements.join(","));
     this.endBatchUpdate();
   },
@@ -1105,7 +1080,7 @@ let CustomizableUIInternal = {
     return null;
   },
 
-  addWidgetToArea: function(aWidgetId, aArea, aPosition, aInitialAdd) {
+  addWidgetToArea: function(aWidgetId, aArea, aPosition) {
     if (!gAreas.has(aArea)) {
       throw new Error("Unknown customization area: " + aArea);
     }
@@ -1160,12 +1135,6 @@ let CustomizableUIInternal = {
       widget.currentPosition = aPosition;
     }
 
-    
-    
-    if (!aInitialAdd) {
-      gDirtyAreaCache.add(aArea);
-    }
-
     gDirty = true;
     this.saveState();
 
@@ -1196,7 +1165,6 @@ let CustomizableUIInternal = {
 
     gDirty = true;
     this.saveState();
-    gDirtyAreaCache.add(oldPlacement.area);
 
     this.notifyListeners("onWidgetRemoved", aWidgetId, oldPlacement.area);
   },
@@ -1234,8 +1202,6 @@ let CustomizableUIInternal = {
     }
 
     gDirty = true;
-    gDirtyAreaCache.add(oldPlacement.area);
-
     this.saveState();
 
     this.notifyListeners("onWidgetMoved", aWidgetId, oldPlacement.area,
@@ -1273,7 +1239,6 @@ let CustomizableUIInternal = {
     }
 
     gSeenWidgets = new Set(gSavedState.seen || []);
-    gDirtyAreaCache = new Set(gSavedState.dirtyAreaCache || []);
   },
 
   restoreStateForArea: function(aArea, aLegacyState) {
@@ -1311,7 +1276,7 @@ let CustomizableUIInternal = {
       let defaults = gAreas.get(aArea).get("defaultPlacements");
       if (defaults) {
         for (let id of defaults)
-          this.addWidgetToArea(id, aArea, null, true);
+          this.addWidgetToArea(id, aArea);
       }
       gDirty = false;
     }
@@ -1335,8 +1300,7 @@ let CustomizableUIInternal = {
       return;
     }
     let state = { placements: gPlacements,
-                  seen: gSeenWidgets,
-                  dirtyAreaCache: gDirtyAreaCache };
+                  seen: gSeenWidgets };
 
     LOG("Saving state.");
     let serialized = JSON.stringify(state, this.serializerHelper);
@@ -1685,7 +1649,6 @@ let CustomizableUIInternal = {
 
     
     gPlacements = new Map();
-    gDirtyAreaCache = new Set();
     
     gSavedState = null;
     
