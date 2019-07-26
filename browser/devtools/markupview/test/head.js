@@ -174,6 +174,23 @@ function getContainerForRawNode(nodeOrSelector, {markup}) {
 
 
 
+function waitForChildrenUpdated({markup}) {
+  info("Waiting for queued children updates to be handled");
+  let def = promise.defer();
+  markup._waitForChildren().then(() => {
+    executeSoon(def.resolve);
+  });
+  return def.promise;
+}
+
+
+
+
+
+
+
+
+
 function hoverContainer(nodeOrSelector, inspector) {
   info("Hovering over the markup-container for node " + nodeOrSelector);
   let highlit = inspector.toolbox.once("node-highlight");
@@ -351,4 +368,16 @@ function searchUsingSelectorSearch(selector, inspector) {
   field.focus();
   field.value = selector;
   EventUtils.sendKey("return", inspector.panelWin);
+}
+
+
+
+
+
+
+
+function wait(ms) {
+  let def = promise.defer();
+  content.setTimeout(def.resolve, ms);
+  return def.promise;
 }

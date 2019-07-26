@@ -824,9 +824,15 @@ MarkupView.prototype = {
 
 
 
-  setNodeExpanded: function(aNode, aExpanded) {
+
+
+  setNodeExpanded: function(aNode, aExpanded, aExpandDescendants) {
     if (aExpanded) {
-      this.expandNode(aNode);
+      if (aExpandDescendants) {
+        this.expandAll(aNode);
+      } else {
+        this.expandNode(aNode);
+      }
     } else {
       this.collapseNode(aNode);
     }
@@ -1413,7 +1419,7 @@ MarkupContainer.prototype = {
   _onToggle: function(event) {
     this.markup.navigate(this);
     if(this.hasChildren) {
-      this.markup.setNodeExpanded(this.node, !this.expanded);
+      this.markup.setNodeExpanded(this.node, !this.expanded, event.altKey);
     }
     event.stopPropagation();
   },
