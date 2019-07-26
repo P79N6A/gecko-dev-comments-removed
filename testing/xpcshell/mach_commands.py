@@ -125,6 +125,11 @@ class MachCommands(MozbuildObject):
     @CommandArgument('--shuffle', '-s', action='store_true',
         help='Randomize the execution order of tests.')
     def run_xpcshell_test(self, **params):
+        
+        
+        
+        self._ensure_state_subdir_exists('.')
+
         xpcshell = self._spawn(XPCShellRunner)
         xpcshell.run_test(**params)
 
