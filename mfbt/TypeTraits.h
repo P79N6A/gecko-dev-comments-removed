@@ -9,6 +9,8 @@
 #ifndef mozilla_TypeTraits_h
 #define mozilla_TypeTraits_h
 
+#include "mozilla/Types.h"
+
 
 
 
@@ -112,6 +114,31 @@ struct IsFloatingPointHelper
 template<typename T>
 struct IsFloatingPoint
   : detail::IsFloatingPointHelper<typename RemoveCV<T>::Type>
+{};
+
+namespace detail {
+
+template<typename T>
+struct IsArrayHelper : FalseType {};
+
+template<typename T, decltype(sizeof(1)) N>
+struct IsArrayHelper<T[N]> : TrueType {};
+
+template<typename T>
+struct IsArrayHelper<T[]> : TrueType {};
+
+} 
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsArray : detail::IsArrayHelper<typename RemoveCV<T>::Type>
 {};
 
 
