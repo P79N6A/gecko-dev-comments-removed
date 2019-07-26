@@ -69,6 +69,8 @@ public:
   using nsDocument::GetLocation;
 
 protected:
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope) MOZ_OVERRIDE;
+
   
   
   
