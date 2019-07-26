@@ -103,6 +103,7 @@ Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", downloadMo
 Components.utils.import("resource://gre/modules/DownloadPaths.jsm");
 Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
 Components.utils.import("resource://gre/modules/Downloads.jsm");
+Components.utils.import("resource://gre/modules/FileUtils.jsm");
 Components.utils.import("resource://gre/modules/Task.jsm");
 
 
@@ -216,7 +217,8 @@ nsUnknownContentTypeDialog.prototype = {
 
         if (autodownload) {
           
-          let defaultFolder = yield Downloads.getPreferredDownloadsDirectory();
+          let preferredDir = yield Downloads.getPreferredDownloadsDirectory();
+          let defaultFolder = new FileUtils.File(preferredDir);
 
           try {
             result = this.validateLeafName(defaultFolder, aDefaultFile, aSuggestedFileExtension);
@@ -276,7 +278,8 @@ nsUnknownContentTypeDialog.prototype = {
       
       
       
-      picker.displayDirectory = yield Downloads.getPreferredDownloadsDirectory();
+      let preferredDir = yield Downloads.getPreferredDownloadsDirectory();
+      picker.displayDirectory = new FileUtils.File(preferredDir);
 
       gDownloadLastDir.getFileAsync(aLauncher.source, function LastDirCallback(lastDir) {
         if (lastDir && isUsableDirectory(lastDir))
