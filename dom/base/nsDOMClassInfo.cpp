@@ -3162,7 +3162,7 @@ GetDocument(JSObject *obj)
 JSBool
 nsWindowSH::GlobalScopePolluterNewResolve(JSContext *cx, JSHandleObject obj,
                                           JSHandleId id, unsigned flags,
-                                          JSMutableHandleObject objp)
+                                          JS::MutableHandle<JSObject*> objp)
 {
   if (!JSID_IS_STRING(id)) {
     
@@ -6381,7 +6381,7 @@ nsHTMLDocumentSH::DocumentAllGetProperty(JSContext *cx, JSHandleObject obj_,
 
 JSBool
 nsHTMLDocumentSH::DocumentAllNewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id,
-                                        unsigned flags, JSMutableHandleObject objp)
+                                        unsigned flags, JS::MutableHandle<JSObject*> objp)
 {
   JS::RootedValue v(cx);
 
@@ -6539,7 +6539,7 @@ nsHTMLDocumentSH::DocumentAllHelperGetProperty(JSContext *cx, JSHandleObject obj
 JSBool
 nsHTMLDocumentSH::DocumentAllHelperNewResolve(JSContext *cx, JSHandleObject obj,
                                               JSHandleId id, unsigned flags,
-                                              JSMutableHandleObject objp)
+                                              JS::MutableHandle<JSObject*> objp)
 {
   if (nsDOMClassInfo::sAll_id == id) {
     
@@ -6565,7 +6565,7 @@ nsHTMLDocumentSH::DocumentAllHelperNewResolve(JSContext *cx, JSHandleObject obj,
 JSBool
 nsHTMLDocumentSH::DocumentAllTagsNewResolve(JSContext *cx, JSHandleObject obj,
                                             JSHandleId id, unsigned flags,
-                                            JSMutableHandleObject objp)
+                                            JS::MutableHandle<JSObject*> objp)
 {
   if (JSID_IS_STRING(id)) {
     nsDocument *doc = GetDocument(obj);

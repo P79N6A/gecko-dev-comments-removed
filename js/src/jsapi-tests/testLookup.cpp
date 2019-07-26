@@ -51,7 +51,7 @@ static JSClass DocumentAllClass = {
 
 JSBool
 document_resolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
-                 JSMutableHandleObject objp)
+                 JS::MutableHandleObject objp)
 {
     
     JS::RootedValue v(cx);

@@ -151,7 +151,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     bool DoNewResolve(JSContext* aCx, JSHandleObject aObject, JSHandleId aId,
-                      unsigned aFlags, JSMutableHandleObject aObjp);
+                      unsigned aFlags, JS::MutableHandle<JSObject*> aObjp);
 
     
     nsIDocument* GetContentDocument();

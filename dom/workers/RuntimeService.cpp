@@ -571,7 +571,7 @@ BEGIN_WORKERS_NAMESPACE
 
 JSBool
 ResolveWorkerClasses(JSContext* aCx, JSHandleObject aObj, JSHandleId aId, unsigned aFlags,
-                     JSMutableHandleObject aObjp)
+                     JS::MutableHandle<JSObject*> aObjp)
 {
   AssertIsOnMainThread();
 
