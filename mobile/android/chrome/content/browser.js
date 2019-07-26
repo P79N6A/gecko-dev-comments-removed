@@ -6011,18 +6011,15 @@ var PermissionsHelper = {
                          "allowed" : "denied";
           let valueString = Strings.browser.GetStringFromName(typeStrings[valueKey]);
 
-          
-          
-          let setting = Strings.browser.formatStringFromName("siteSettings.labelToValue",
-                                                             [ label, valueString ], 2);
           permissions.push({
             type: type,
-            setting: setting
+            setting: label,
+            value: valueString
           });
         }
 
         
-        this._currentPermissions = permissions; 
+        this._currentPermissions = permissions;
 
         let host;
         try {

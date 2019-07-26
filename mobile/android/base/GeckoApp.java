@@ -27,6 +27,7 @@ import org.json.JSONObject;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -82,10 +83,12 @@ import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityManager;
 import android.widget.AbsoluteLayout;
+import android.widget.CheckBox;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.RelativeLayout;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -1115,7 +1118,7 @@ abstract public class GeckoApp
 
         View customTitleView = getLayoutInflater().inflate(R.layout.site_setting_title, null);
         ((TextView) customTitleView.findViewById(R.id.title)).setText(R.string.site_settings_title);
-        ((TextView) customTitleView.findViewById(R.id.host)).setText(aHost);        
+        ((TextView) customTitleView.findViewById(R.id.host)).setText(aHost);
         builder.setCustomTitle(customTitleView);
 
         
@@ -1123,24 +1126,32 @@ abstract public class GeckoApp
         if (aPermissions.length() == 0) {
             builder.setMessage(R.string.site_settings_no_settings);
         } else {
-            
-            
-            CharSequence[] items = new CharSequence[aPermissions.length()];
-            boolean[] states = new boolean[aPermissions.length()];
+
+            ArrayList <HashMap<String, String>> itemList = new ArrayList <HashMap<String, String>>();
             for (int i = 0; i < aPermissions.length(); i++) {
                 try {
-                    items[i] = aPermissions.getJSONObject(i).getString("setting");
-                    
-                    states[i] = true;
+                    JSONObject permObj = aPermissions.getJSONObject(i);
+                    HashMap<String, String> map = new HashMap<String, String>();
+                    map.put("setting", permObj.getString("setting"));
+                    map.put("value", permObj.getString("value"));
+                    itemList.add(map);
                 } catch (JSONException e) {
                     Log.w(LOGTAG, "Exception populating settings items.", e);
                 }
             }
-            builder.setMultiChoiceItems(items, states, new DialogInterface.OnMultiChoiceClickListener(){
-                public void onClick(DialogInterface dialog, int item, boolean state) {
-                    
-                }
-            });
+
+            
+            
+            builder.setSingleChoiceItems(new SimpleAdapter(
+                GeckoApp.this,
+                itemList,
+                R.layout.site_setting_item,
+                new String[] { "setting", "value" },
+                new int[] { R.id.setting, R.id.value }
+                ), -1, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) { }
+                });
+
             builder.setPositiveButton(R.string.site_settings_clear, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int id) {
                     ListView listView = ((AlertDialog) dialog).getListView();
@@ -1148,12 +1159,12 @@ abstract public class GeckoApp
 
                     
                     JSONArray permissionsToClear = new JSONArray();
-                    for (int i = 0; i < checkedItemPositions.size(); i++) {
-                        boolean checked = checkedItemPositions.get(i);
-                        if (checked)
+                    for (int i = 0; i < checkedItemPositions.size(); i++)
+                        if (checkedItemPositions.get(i))
                             permissionsToClear.put(i);
-                    }
-                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Permissions:Clear", permissionsToClear.toString()));
+
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent(
+                        "Permissions:Clear", permissionsToClear.toString()));
                 }
             });
         }
@@ -1161,12 +1172,21 @@ abstract public class GeckoApp
         builder.setNegativeButton(R.string.site_settings_cancel, new DialogInterface.OnClickListener(){
             public void onClick(DialogInterface dialog, int id) {
                 dialog.cancel();
-            }            
+            }
         });
 
         mMainHandler.post(new Runnable() {
             public void run() {
-                builder.create().show();
+                Dialog dialog = builder.create();
+                dialog.show();
+
+                ListView listView = ((AlertDialog) dialog).getListView();
+                if (listView != null) {
+                    listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
+                    int listSize = listView.getAdapter().getCount();
+                    for (int i = 0; i < listSize; i++)
+                        listView.setItemChecked(i, true);
+                }
             }
         });
     }
