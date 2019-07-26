@@ -363,15 +363,6 @@ void ThreadProfile::BuildJSObject(Builder& b,
     }
 
     switch (entry.mTagName) {
-      case 's':
-        sample = b.CreateObject();
-        b.DefineProperty(sample, "name", tagStringData);
-        frames = b.CreateArray();
-        b.DefineProperty(sample, "frames", frames);
-        b.ArrayPush(samples, sample);
-        
-        markers = nullptr;
-        break;
       case 'm':
         {
           if (sample) {
@@ -411,6 +402,15 @@ void ThreadProfile::BuildJSObject(Builder& b,
           }
         }
         break;
+      case 's':
+        sample = b.CreateObject();
+        b.DefineProperty(sample, "name", tagStringData);
+        frames = b.CreateArray();
+        b.DefineProperty(sample, "frames", frames);
+        b.ArrayPush(samples, sample);
+        
+        markers = nullptr;
+        
       case 'c':
       case 'l':
         {
