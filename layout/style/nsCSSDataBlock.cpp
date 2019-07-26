@@ -17,7 +17,7 @@
 #include "nsStyleContext.h"
 #include "nsIDocument.h"
 
-namespace css = mozilla::css;
+using namespace mozilla;
 
 
 
