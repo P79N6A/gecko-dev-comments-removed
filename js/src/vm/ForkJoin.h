@@ -210,6 +210,7 @@ struct ForkJoinSlice
 #ifdef JS_THREADSAFE
     
     static unsigned ThreadPrivateIndex;
+    static bool TLSInitialized;
 #endif
 
 #ifdef JS_THREADSAFE
