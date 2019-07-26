@@ -1,13 +1,13 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
+/*
+ * JS math package.
+ */
 
 #include "mozilla/Constants.h"
 #include "mozilla/FloatingPoint.h"
@@ -67,7 +67,7 @@ static JSConstDoubleSpec math_constants[] = {
 MathCache::MathCache() {
     memset(table, 0, sizeof(table));
 
-    
+    /* See comments in lookup(). */
     JS_ASSERT(MOZ_DOUBLE_IS_NEGATIVE_ZERO(-0.0));
     JS_ASSERT(!MOZ_DOUBLE_IS_NEGATIVE_ZERO(+0.0));
     JS_ASSERT(hash(-0.0) != hash(+0.0));
@@ -82,10 +82,10 @@ MathCache::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf)
 Class js::MathClass = {
     js_Math_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Math),
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
+    JS_PropertyStub,         /* addProperty */
+    JS_PropertyStub,         /* delProperty */
+    JS_PropertyStub,         /* getProperty */
+    JS_StrictPropertyStub,   /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub
@@ -180,13 +180,13 @@ static inline double JS_FASTCALL
 math_atan2_kernel(double x, double y)
 {
 #if defined(_MSC_VER)
-    
-
-
-
-
-
-
+    /*
+     * MSVC's atan2 does not yield the result demanded by ECMA when both x
+     * and y are infinite.
+     * - The result is a multiple of pi/4.
+     * - The sign of x determines the sign of the result.
+     * - The sign of y determines the multiplicator, 1 or 3.
+     */
     if (MOZ_DOUBLE_IS_INFINITE(x) && MOZ_DOUBLE_IS_INFINITE(y)) {
         double z = js_copysign(M_PI / 4, x);
         if (y < 0)
@@ -428,14 +428,14 @@ js::powi(double x, int y)
         n >>= 1;
         if (n == 0) {
             if (y < 0) {
-                
-                
-                
-                
+                // Unfortunately, we have to be careful when p has reached
+                // infinity in the computation, because sometimes the higher
+                // internal precision in the pow() implementation would have
+                // given us a finite p. This happens very rarely.
 
                 double result = 1.0 / p;
                 return (result == 0 && MOZ_DOUBLE_IS_INFINITE(p))
-                       ? pow(x, static_cast<double>(y))  
+                       ? pow(x, static_cast<double>(y))  // Avoid pow(double, int).
                        : result;
             }
 
@@ -448,10 +448,10 @@ js::powi(double x, int y)
 double
 js::ecmaPow(double x, double y)
 {
-    
-
-
-
+    /*
+     * Because C99 and ECMA specify different behavior for pow(),
+     * we need to wrap the libm call to make it ECMA compliant.
+     */
     if (!MOZ_DOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0))
         return js_NaN;
     return pow(x, y);
@@ -468,10 +468,10 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
     }
     if (!ToNumber(cx, vp[2], &x) || !ToNumber(cx, vp[3], &y))
         return JS_FALSE;
-    
-
-
-
+    /*
+     * Special case for square roots. Note that pow(x, 0.5) != sqrt(x)
+     * when x = -0.0, so we have to guard for this.
+     */
     if (MOZ_DOUBLE_IS_FINITE(x) && x != 0.0) {
         if (y == 0.5) {
             vp->setNumber(sqrt(x));
@@ -482,17 +482,17 @@ js_math_pow(JSContext *cx, unsigned argc, Value *vp)
             return JS_TRUE;
         }
     }
-    
+    /* pow(x, +-0) is always 1, even for x = NaN. */
     if (y == 0) {
         vp->setInt32(1);
         return JS_TRUE;
     }
 
-    
-
-
-
-
+    /*
+     * Use powi if the exponent is an integer or an integer-valued double.
+     * We don't have to check for NaN since a comparison with NaN is always
+     * false.
+     */
     if (int32_t(y) == y)
         z = powi(x, int32_t(y));
     else
@@ -507,9 +507,9 @@ static const int64_t RNG_ADDEND = 0xBLL;
 static const int64_t RNG_MASK = (1LL << 48) - 1;
 static const double RNG_DSCALE = double(1LL << 53);
 
-
-
-
+/*
+ * Math.random() support, lifted from java.util.Random.java.
+ */
 extern void
 random_setSeed(int64_t *rngSeed, int64_t seed)
 {
@@ -519,12 +519,12 @@ random_setSeed(int64_t *rngSeed, int64_t seed)
 void
 js_InitRandom(JSContext *cx)
 {
-    
-
-
-
-
-
+    /*
+     * Set the seed from current time. Since we have a RNG per context and we often bring
+     * up several contexts at the same time, we xor in some additional values, namely
+     * the context and its successor. We don't just use the context because it might be
+     * possible to reverse engineer the context pointer if one guesses the time right.
+     */
     random_setSeed(&cx->rngSeed, (PRMJ_Now() / 1000) ^ int64_t(cx) ^ int64_t(cx->link.next));
 }
 
@@ -553,7 +553,7 @@ math_random(JSContext *cx, unsigned argc, Value *vp)
     return JS_TRUE;
 }
 
-JSBool 
+JSBool /* ES5 15.8.2.15. */
 js_math_round(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
@@ -573,7 +573,7 @@ js_math_round(JSContext *cx, unsigned argc, Value *vp)
         return true;
     }
 
-    
+    /* Some numbers are so big that adding 0.5 would give the wrong number */
     if (MOZ_DOUBLE_EXPONENT(x) >= 52) {
         args.rval().setNumber(x);
         return true;
@@ -656,7 +656,7 @@ js::math_tan(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 math_toSource(JSContext *cx, unsigned argc, Value *vp)
 {
-    vp->setString(CLASS_NAME(cx, Math));
+    vp->setString(cx->runtime->atomState.MathAtom);
     return JS_TRUE;
 }
 #endif
