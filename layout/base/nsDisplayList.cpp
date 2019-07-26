@@ -766,6 +766,13 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
         nsIWidget* widget = view->GetWidget();
+#ifdef MOZ_WIDGET_ANDROID
+        
+        
+        if (!widget) {
+          widget = rootFrame->GetNearestWidget();
+        }
+#endif
         if (widget) {
           nsIntRect bounds;
           widget->GetBounds(bounds);
