@@ -39,13 +39,13 @@ ToUintWidth(double d)
                   "ResultType must be an unsigned type");
 
     uint64_t bits = mozilla::BitwiseCast<uint64_t>(d);
-    unsigned DoubleExponentShift = mozilla::FloatingPoint<double>::ExponentShift;
+    unsigned DoubleExponentShift = mozilla::FloatingPoint<double>::kExponentShift;
 
     
     
     int_fast16_t exp =
-        int_fast16_t((bits & mozilla::FloatingPoint<double>::ExponentBits) >> DoubleExponentShift) -
-        int_fast16_t(mozilla::FloatingPoint<double>::ExponentBias);
+        int_fast16_t((bits & mozilla::FloatingPoint<double>::kExponentBits) >> DoubleExponentShift) -
+        int_fast16_t(mozilla::FloatingPoint<double>::kExponentBias);
 
     
     
@@ -104,7 +104,7 @@ ToUintWidth(double d)
     }
 
     
-    return (bits & mozilla::FloatingPoint<double>::SignBit) ? ~result + 1 : result;
+    return (bits & mozilla::FloatingPoint<double>::kSignBit) ? ~result + 1 : result;
 }
 
 template<typename ResultType>

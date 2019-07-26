@@ -92,19 +92,19 @@ struct IsNullPointer { static const bool value = false; };
 
 
 #ifdef MOZ_HAVE_CXX11_NULLPTR
-  
-  namespace mozilla {
-  typedef decltype(nullptr) NullptrT;
-  template<>
-  struct IsNullPointer<decltype(nullptr)> { static const bool value = true; };
-  }
+
+namespace mozilla {
+typedef decltype(nullptr) NullptrT;
+template<>
+struct IsNullPointer<decltype(nullptr)> { static const bool value = true; };
+}
 #  undef MOZ_HAVE_CXX11_NULLPTR
 #elif MOZ_IS_GCC
 #  define nullptr __null
-  
-  
-  
-  namespace mozilla { typedef void* NullptrT; }
+
+
+
+namespace mozilla { typedef void* NullptrT; }
 #else
 #  error "No compiler support for nullptr or its emulation."
 #endif

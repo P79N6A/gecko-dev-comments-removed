@@ -35,13 +35,13 @@
 #include <stddef.h>
 
 extern "C" {
-  
 
 
-  void __asan_poison_memory_region(void const volatile *addr, size_t size)
-    __attribute__((visibility("default")));
-  void __asan_unpoison_memory_region(void const volatile *addr, size_t size)
-    __attribute__((visibility("default")));
+
+void __asan_poison_memory_region(void const volatile *addr, size_t size)
+  __attribute__((visibility("default")));
+void __asan_unpoison_memory_region(void const volatile *addr, size_t size)
+  __attribute__((visibility("default")));
 
 #define MOZ_MAKE_MEM_NOACCESS(addr, size) \
   __asan_poison_memory_region((addr), (size))

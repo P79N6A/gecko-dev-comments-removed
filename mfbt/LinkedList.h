@@ -53,6 +53,10 @@
 
 
 
+
+
+
+
 #ifndef mozilla_LinkedList_h
 #define mozilla_LinkedList_h
 
@@ -72,7 +76,7 @@ class LinkedList;
 template<typename T>
 class LinkedListElement
 {
-    
+  
 
 
 
@@ -106,377 +110,372 @@ class LinkedListElement
 
 
 
-  private:
-    LinkedListElement* next;
-    LinkedListElement* prev;
-    const bool isSentinel;
+private:
+  LinkedListElement* mNext;
+  LinkedListElement* mPrev;
+  const bool mIsSentinel;
 
-  public:
-    LinkedListElement()
-      : next(MOZ_THIS_IN_INITIALIZER_LIST()),
-        prev(MOZ_THIS_IN_INITIALIZER_LIST()),
-        isSentinel(false)
-    { }
+public:
+  LinkedListElement()
+    : mNext(MOZ_THIS_IN_INITIALIZER_LIST()),
+      mPrev(MOZ_THIS_IN_INITIALIZER_LIST()),
+      mIsSentinel(false)
+  { }
 
-    LinkedListElement(LinkedListElement<T>&& other)
-      : isSentinel(other.isSentinel)
-    {
-      if (!other.isInList()) {
-        next = this;
-        prev = this;
-        return;
-      }
-
-      MOZ_ASSERT(other.next->prev == &other);
-      MOZ_ASSERT(other.prev->next == &other);
-
-      
-
-
-
-      next = other.next;
-      prev = other.prev;
-
-      next->prev = this;
-      prev->next = this;
-
-      
-
-
-
-      other.next = &other;
-      other.prev = &other;
+  LinkedListElement(LinkedListElement<T>&& other)
+    : mIsSentinel(other.mIsSentinel)
+  {
+    if (!other.isInList()) {
+      mNext = this;
+      mPrev = this;
+      return;
     }
 
-    ~LinkedListElement() {
-      if (!isSentinel && isInList())
-        remove();
-    }
+    MOZ_ASSERT(other.mNext->mPrev == &other);
+    MOZ_ASSERT(other.mPrev->mNext == &other);
 
     
 
 
 
-    T* getNext() {
-      return next->asT();
-    }
-    const T* getNext() const {
-      return next->asT();
-    }
+    mNext = other.mNext;
+    mPrev = other.mPrev;
+
+    mNext->mPrev = this;
+    mPrev->mNext = this;
 
     
 
 
 
-    T* getPrevious() {
-      return prev->asT();
-    }
-    const T* getPrevious() const {
-      return prev->asT();
-    }
+    other.mNext = &other;
+    other.mPrev = &other;
+  }
 
-    
-
-
-
-    void setNext(T* elem) {
-      MOZ_ASSERT(isInList());
-      setNextUnsafe(elem);
-    }
-
-    
-
-
-
-
-    void setPrevious(T* elem) {
-      MOZ_ASSERT(isInList());
-      setPreviousUnsafe(elem);
-    }
-
-    
-
-
-
-    void remove() {
-      MOZ_ASSERT(isInList());
-
-      prev->next = next;
-      next->prev = prev;
-      next = this;
-      prev = this;
-    }
-
-    
-
-
-
-    void removeFrom(const LinkedList<T>& list) {
-      list.assertContains(asT());
+  ~LinkedListElement()
+  {
+    if (!mIsSentinel && isInList()) {
       remove();
     }
+  }
 
-    
-
-
-    bool isInList() const {
-      MOZ_ASSERT((next == this) == (prev == this));
-      return next != this;
-    }
-
-  private:
-    friend class LinkedList<T>;
-
-    enum NodeKind {
-      NODE_KIND_NORMAL,
-      NODE_KIND_SENTINEL
-    };
-
-    explicit LinkedListElement(NodeKind nodeKind)
-      : next(MOZ_THIS_IN_INITIALIZER_LIST()),
-        prev(MOZ_THIS_IN_INITIALIZER_LIST()),
-        isSentinel(nodeKind == NODE_KIND_SENTINEL)
-    { }
-
-    
+  
 
 
 
-    T* asT() {
-      if (isSentinel)
-        return nullptr;
+  T* getNext()             { return mNext->asT(); }
+  const T* getNext() const { return mNext->asT(); }
 
-      return static_cast<T*>(this);
-    }
-    const T* asT() const {
-      if (isSentinel)
-        return nullptr;
-
-      return static_cast<const T*>(this);
-    }
-
-    
+  
 
 
 
-    void setNextUnsafe(T* elem) {
-      LinkedListElement *listElem = static_cast<LinkedListElement*>(elem);
-      MOZ_ASSERT(!listElem->isInList());
+  T* getPrevious()             { return mPrev->asT(); }
+  const T* getPrevious() const { return mPrev->asT(); }
 
-      listElem->next = this->next;
-      listElem->prev = this;
-      this->next->prev = listElem;
-      this->next = listElem;
-    }
-
-    
+  
 
 
 
-    void setPreviousUnsafe(T* elem) {
-      LinkedListElement<T>* listElem = static_cast<LinkedListElement<T>*>(elem);
-      MOZ_ASSERT(!listElem->isInList());
+  void setNext(T* aElem)
+  {
+    MOZ_ASSERT(isInList());
+    setNextUnsafe(aElem);
+  }
 
-      listElem->next = this;
-      listElem->prev = this->prev;
-      this->prev->next = listElem;
-      this->prev = listElem;
-    }
+  
 
-  private:
-    LinkedListElement& operator=(const LinkedListElement<T>& other) MOZ_DELETE;
-    LinkedListElement(const LinkedListElement<T>& other) MOZ_DELETE;
+
+
+
+  void setPrevious(T* aElem)
+  {
+    MOZ_ASSERT(isInList());
+    setPreviousUnsafe(aElem);
+  }
+
+  
+
+
+
+  void remove()
+  {
+    MOZ_ASSERT(isInList());
+
+    mPrev->mNext = mNext;
+    mNext->mPrev = mPrev;
+    mNext = this;
+    mPrev = this;
+  }
+
+  
+
+
+
+  void removeFrom(const LinkedList<T>& aList)
+  {
+    aList.assertContains(asT());
+    remove();
+  }
+
+  
+
+
+  bool isInList() const
+  {
+    MOZ_ASSERT((mNext == this) == (mPrev == this));
+    return mNext != this;
+  }
+
+private:
+  friend class LinkedList<T>;
+
+  enum NodeKind {
+    NODE_KIND_NORMAL,
+    NODE_KIND_SENTINEL
+  };
+
+  explicit LinkedListElement(NodeKind nodeKind)
+    : mNext(MOZ_THIS_IN_INITIALIZER_LIST()),
+      mPrev(MOZ_THIS_IN_INITIALIZER_LIST()),
+      mIsSentinel(nodeKind == NODE_KIND_SENTINEL)
+  { }
+
+  
+
+
+
+  T* asT()
+  {
+    return mIsSentinel ? nullptr : static_cast<T*>(this);
+  }
+  const T* asT() const
+  {
+    return mIsSentinel ? nullptr : static_cast<const T*>(this);
+  }
+
+  
+
+
+
+  void setNextUnsafe(T* aElem)
+  {
+    LinkedListElement *listElem = static_cast<LinkedListElement*>(aElem);
+    MOZ_ASSERT(!listElem->isInList());
+
+    listElem->mNext = this->mNext;
+    listElem->mPrev = this;
+    this->mNext->mPrev = listElem;
+    this->mNext = listElem;
+  }
+
+  
+
+
+
+  void setPreviousUnsafe(T* aElem)
+  {
+    LinkedListElement<T>* listElem = static_cast<LinkedListElement<T>*>(aElem);
+    MOZ_ASSERT(!listElem->isInList());
+
+    listElem->mNext = this;
+    listElem->mPrev = this->mPrev;
+    this->mPrev->mNext = listElem;
+    this->mPrev = listElem;
+  }
+
+private:
+  LinkedListElement& operator=(const LinkedListElement<T>& aOther) MOZ_DELETE;
+  LinkedListElement(const LinkedListElement<T>& aOther) MOZ_DELETE;
 };
 
 template<typename T>
 class LinkedList
 {
-  private:
-    LinkedListElement<T> sentinel;
+private:
+  LinkedListElement<T> sentinel;
 
-  public:
-    LinkedList() : sentinel(LinkedListElement<T>::NODE_KIND_SENTINEL) { }
+public:
+  LinkedList() : sentinel(LinkedListElement<T>::NODE_KIND_SENTINEL) { }
 
-    LinkedList(LinkedList<T>&& other)
-      : sentinel(mozilla::Move(other.sentinel))
-    { }
+  LinkedList(LinkedList<T>&& aOther)
+    : sentinel(mozilla::Move(aOther.sentinel))
+  { }
 
-    ~LinkedList() {
-      MOZ_ASSERT(isEmpty());
-    }
+  ~LinkedList() { MOZ_ASSERT(isEmpty()); }
 
+  
+
+
+  void insertFront(T* aElem)
+  {
     
+    sentinel.setNextUnsafe(aElem);
+  }
+
+  
 
 
-    void insertFront(T* elem) {
-      
-      sentinel.setNextUnsafe(elem);
+  void insertBack(T* aElem)
+  {
+    sentinel.setPreviousUnsafe(aElem);
+  }
+
+  
+
+
+  T* getFirst()             { return sentinel.getNext(); }
+  const T* getFirst() const { return sentinel.getNext(); }
+
+  
+
+
+  T* getLast()             { return sentinel.getPrevious(); }
+  const T* getLast() const { return sentinel.getPrevious(); }
+
+  
+
+
+
+  T* popFirst()
+  {
+    T* ret = sentinel.getNext();
+    if (ret) {
+      static_cast<LinkedListElement<T>*>(ret)->remove();
     }
+    return ret;
+  }
 
-    
+  
 
 
-    void insertBack(T* elem) {
-      sentinel.setPreviousUnsafe(elem);
+
+  T* popLast()
+  {
+    T* ret = sentinel.getPrevious();
+    if (ret) {
+      static_cast<LinkedListElement<T>*>(ret)->remove();
     }
+    return ret;
+  }
 
-    
+  
 
 
-    T* getFirst() {
-      return sentinel.getNext();
+  bool isEmpty() const
+  {
+    return !sentinel.isInList();
+  }
+
+  
+
+
+
+
+
+  void clear()
+  {
+    while (popFirst()) {
+      continue;
     }
-    const T* getFirst() const {
-      return sentinel.getNext();
+  }
+
+  
+
+
+
+
+
+  size_t sizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const
+  {
+    size_t n = 0;
+    for (const T* t = getFirst(); t; t = t->getNext()) {
+      n += aMallocSizeOf(t);
     }
+    return n;
+  }
 
-    
-
-
-    T* getLast() {
-      return sentinel.getPrevious();
-    }
-    const T* getLast() const {
-      return sentinel.getPrevious();
-    }
-
-    
+  
 
 
+  size_t sizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
+  {
+    return aMallocSizeOf(this) + sizeOfExcludingThis(aMallocSizeOf);
+  }
 
-    T* popFirst() {
-      T* ret = sentinel.getNext();
-      if (ret)
-        static_cast<LinkedListElement<T>*>(ret)->remove();
-      return ret;
-    }
-
-    
+  
 
 
 
-    T* popLast() {
-      T* ret = sentinel.getPrevious();
-      if (ret)
-        static_cast<LinkedListElement<T>*>(ret)->remove();
-      return ret;
-    }
-
-    
-
-
-    bool isEmpty() const {
-      return !sentinel.isInList();
-    }
-
-    
-
-
-
-
-
-    void clear() {
-      while (popFirst())
-        continue;
-    }
-
-    
-
-
-
-
-
-    size_t sizeOfExcludingThis(MallocSizeOf mallocSizeOf) const {
-      size_t n = 0;
-      for (const T* t = getFirst(); t; t = t->getNext())
-        n += mallocSizeOf(t);
-      return n;
-    }
-
-    
-
-
-    size_t sizeOfIncludingThis(MallocSizeOf mallocSizeOf) const {
-      return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
-    }
-
-    
-
-
-
-    void debugAssertIsSane() const {
+  void debugAssertIsSane() const
+  {
 #ifdef DEBUG
-      const LinkedListElement<T>* slow;
-      const LinkedListElement<T>* fast1;
-      const LinkedListElement<T>* fast2;
+    const LinkedListElement<T>* slow;
+    const LinkedListElement<T>* fast1;
+    const LinkedListElement<T>* fast2;
 
-      
-
-
-
-      for (slow = sentinel.next,
-           fast1 = sentinel.next->next,
-           fast2 = sentinel.next->next->next;
-           slow != &sentinel && fast1 != &sentinel && fast2 != &sentinel;
-           slow = slow->next, fast1 = fast2->next, fast2 = fast1->next)
-      {
-        MOZ_ASSERT(slow != fast1);
-        MOZ_ASSERT(slow != fast2);
-      }
-
-      
-      for (slow = sentinel.prev,
-           fast1 = sentinel.prev->prev,
-           fast2 = sentinel.prev->prev->prev;
-           slow != &sentinel && fast1 != &sentinel && fast2 != &sentinel;
-           slow = slow->prev, fast1 = fast2->prev, fast2 = fast1->prev)
-      {
-        MOZ_ASSERT(slow != fast1);
-        MOZ_ASSERT(slow != fast2);
-      }
-
-      
+    
 
 
 
-      for (const LinkedListElement<T>* elem = sentinel.next;
-           elem != &sentinel;
-           elem = elem->next)
-      {
-        MOZ_ASSERT(!elem->isSentinel);
-      }
+    for (slow = sentinel.mNext,
+         fast1 = sentinel.mNext->mNext,
+         fast2 = sentinel.mNext->mNext->mNext;
+         slow != &sentinel && fast1 != &sentinel && fast2 != &sentinel;
+         slow = slow->mNext, fast1 = fast2->mNext, fast2 = fast1->mNext) {
+      MOZ_ASSERT(slow != fast1);
+      MOZ_ASSERT(slow != fast2);
+    }
 
-      
-      const LinkedListElement<T>* prev = &sentinel;
-      const LinkedListElement<T>* cur = sentinel.next;
-      do {
-          MOZ_ASSERT(cur->prev == prev);
-          MOZ_ASSERT(prev->next == cur);
+    
+    for (slow = sentinel.mPrev,
+         fast1 = sentinel.mPrev->mPrev,
+         fast2 = sentinel.mPrev->mPrev->mPrev;
+         slow != &sentinel && fast1 != &sentinel && fast2 != &sentinel;
+         slow = slow->mPrev, fast1 = fast2->mPrev, fast2 = fast1->mPrev) {
+      MOZ_ASSERT(slow != fast1);
+      MOZ_ASSERT(slow != fast2);
+    }
 
-          prev = cur;
-          cur = cur->next;
-      } while (cur != &sentinel);
+    
+
+
+
+    for (const LinkedListElement<T>* elem = sentinel.mNext;
+         elem != &sentinel;
+         elem = elem->mNext) {
+      MOZ_ASSERT(!elem->mIsSentinel);
+    }
+
+    
+    const LinkedListElement<T>* prev = &sentinel;
+    const LinkedListElement<T>* cur = sentinel.mNext;
+    do {
+        MOZ_ASSERT(cur->mPrev == prev);
+        MOZ_ASSERT(prev->mNext == cur);
+
+        prev = cur;
+        cur = cur->mNext;
+    } while (cur != &sentinel);
 #endif 
-    }
+  }
 
-  private:
-    friend class LinkedListElement<T>;
+private:
+  friend class LinkedListElement<T>;
 
-    void assertContains(const T* t) const {
+  void assertContains(const T* aValue) const {
 #ifdef DEBUG
-      for (const T* elem = getFirst();
-           elem;
-           elem = elem->getNext())
-      {
-        if (elem == t)
-          return;
+    for (const T* elem = getFirst(); elem; elem = elem->getNext()) {
+      if (elem == aValue) {
+        return;
       }
-      MOZ_CRASH("element wasn't found in this list!");
-#endif
     }
+    MOZ_CRASH("element wasn't found in this list!");
+#endif
+  }
 
-    LinkedList& operator=(const LinkedList<T>& other) MOZ_DELETE;
-    LinkedList(const LinkedList<T>& other) MOZ_DELETE;
+  LinkedList& operator=(const LinkedList<T>& aOther) MOZ_DELETE;
+  LinkedList(const LinkedList<T>& aOther) MOZ_DELETE;
 };
 
 } 

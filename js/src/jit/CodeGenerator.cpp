@@ -8814,7 +8814,7 @@ CodeGenerator::emitAssertRangeD(const Range *r, FloatRegister input, FloatRegist
     
 
     if (!r->hasInt32Bounds() && !r->canBeInfiniteOrNaN() &&
-        r->exponent() < FloatingPoint<double>::ExponentBias)
+        r->exponent() < FloatingPoint<double>::kExponentBias)
     {
         
         Label exponentLoOk;

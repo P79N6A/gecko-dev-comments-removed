@@ -70,46 +70,47 @@ namespace detail {
 
 class GuardObjectNotifier
 {
-  private:
-    bool* statementDone;
+private:
+  bool* mStatementDone;
 
-  public:
-    GuardObjectNotifier() : statementDone(nullptr) { }
+public:
+  GuardObjectNotifier() : mStatementDone(nullptr) { }
 
-    ~GuardObjectNotifier() {
-      *statementDone = true;
-    }
+  ~GuardObjectNotifier() { *mStatementDone = true; }
 
-    void setStatementDone(bool* statementIsDone) {
-      statementDone = statementIsDone;
-    }
+  void setStatementDone(bool* aStatementIsDone)
+  {
+    mStatementDone = aStatementIsDone;
+  }
 };
 
 class GuardObjectNotificationReceiver
 {
-  private:
-    bool statementDone;
+private:
+  bool mStatementDone;
 
-  public:
-    GuardObjectNotificationReceiver() : statementDone(false) { }
+public:
+  GuardObjectNotificationReceiver() : mStatementDone(false) { }
 
-    ~GuardObjectNotificationReceiver() {
-      
-
-
-
-
-      MOZ_ASSERT(statementDone);
-    }
-
-    void init(const GuardObjectNotifier& constNotifier) {
-      
+  ~GuardObjectNotificationReceiver() {
+    
 
 
 
-      GuardObjectNotifier& notifier = const_cast<GuardObjectNotifier&>(constNotifier);
-      notifier.setStatementDone(&statementDone);
-    }
+
+    MOZ_ASSERT(mStatementDone);
+  }
+
+  void init(const GuardObjectNotifier& aConstNotifier)
+  {
+    
+
+
+
+    GuardObjectNotifier& notifier =
+      const_cast<GuardObjectNotifier&>(aConstNotifier);
+    notifier.setStatementDone(&mStatementDone);
+  }
 };
 
 } 

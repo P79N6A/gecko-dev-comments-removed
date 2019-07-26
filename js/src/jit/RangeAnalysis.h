@@ -120,10 +120,10 @@ class Range : public TempObject {
     
     
     
-    static const uint16_t MaxTruncatableExponent = mozilla::FloatingPoint<double>::ExponentShift;
+    static const uint16_t MaxTruncatableExponent = mozilla::FloatingPoint<double>::kExponentShift;
 
     
-    static const uint16_t MaxFiniteExponent = mozilla::FloatingPoint<double>::ExponentBias;
+    static const uint16_t MaxFiniteExponent = mozilla::FloatingPoint<double>::kExponentBias;
 
     
     

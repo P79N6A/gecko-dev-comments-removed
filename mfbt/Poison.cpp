@@ -42,24 +42,24 @@ uintptr_t gMozillaPoisonSize;
 
 #ifdef _WIN32
 static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
+ReserveRegion(uintptr_t aRegion, uintptr_t aSize)
 {
-  return VirtualAlloc((void *)region, size, MEM_RESERVE, PAGE_NOACCESS);
+  return VirtualAlloc((void *)aRegion, aSize, MEM_RESERVE, PAGE_NOACCESS);
 }
 
 static void
-ReleaseRegion(void *region, uintptr_t size)
+ReleaseRegion(void *aRegion, uintptr_t aSize)
 {
-  VirtualFree(region, size, MEM_RELEASE);
+  VirtualFree(aRegion, aSize, MEM_RELEASE);
 }
 
 static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
+ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
 {
   SYSTEM_INFO sinfo;
   GetSystemInfo(&sinfo);
-  if (region >= (uintptr_t)sinfo.lpMaximumApplicationAddress &&
-      region + size >= (uintptr_t)sinfo.lpMaximumApplicationAddress) {
+  if (aRegion >= (uintptr_t)sinfo.lpMaximumApplicationAddress &&
+      aRegion + aSize >= (uintptr_t)sinfo.lpMaximumApplicationAddress) {
     return true;
   } else {
     return false;
@@ -78,7 +78,7 @@ GetDesiredRegionSize()
 
 #elif defined(__OS2__)
 static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
+ReserveRegion(uintptr_t aRegion, uintptr_t aSize)
 {
   
   
@@ -86,13 +86,13 @@ ReserveRegion(uintptr_t region, uintptr_t size)
 }
 
 static void
-ReleaseRegion(void *region, uintptr_t size)
+ReleaseRegion(void *aRegion, uintptr_t aSize)
 {
   return;
 }
 
 static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
+ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
 {
   
   
@@ -113,21 +113,23 @@ GetDesiredRegionSize()
 #include "mozilla/TaggedAnonymousMemory.h"
 
 static void *
-ReserveRegion(uintptr_t region, uintptr_t size)
+ReserveRegion(uintptr_t aRegion, uintptr_t aSize)
 {
-  return MozTaggedAnonymousMmap(reinterpret_cast<void*>(region), size, PROT_NONE, MAP_PRIVATE|MAP_ANON, -1, 0, "poison");
+  return MozTaggedAnonymousMmap(reinterpret_cast<void*>(aRegion), aSize,
+                                PROT_NONE, MAP_PRIVATE|MAP_ANON, -1, 0,
+                                "poison");
 }
 
 static void
-ReleaseRegion(void *region, uintptr_t size)
+ReleaseRegion(void *aRegion, uintptr_t aSize)
 {
-  munmap(region, size);
+  munmap(aRegion, aSize);
 }
 
 static bool
-ProbeRegion(uintptr_t region, uintptr_t size)
+ProbeRegion(uintptr_t aRegion, uintptr_t aSize)
 {
-  if (madvise(reinterpret_cast<void*>(region), size, MADV_NORMAL)) {
+  if (madvise(reinterpret_cast<void*>(aRegion), aSize, MADV_NORMAL)) {
     return true;
   } else {
     return false;
@@ -157,42 +159,42 @@ ReservePoisonArea(uintptr_t rgnsize)
     return
       (((uintptr_t(0x7FFFFFFFu) << 31) << 1 | uintptr_t(0xF0DEAFFFu))
        & ~(rgnsize-1));
-
-  } else {
-    
-    uintptr_t candidate = (0xF0DEAFFF & ~(rgnsize-1));
-    void *result = ReserveRegion(candidate, rgnsize);
-    if (result == (void *)candidate) {
-      
-      return candidate;
-    }
-
-    
-    
-    if (ProbeRegion(candidate, rgnsize)) {
-      
-      if (result != RESERVE_FAILED)
-        ReleaseRegion(result, rgnsize);
-      return candidate;
-    }
-
-    
-    
-    if (result != RESERVE_FAILED) {
-      return uintptr_t(result);
-    }
-
-    
-    
-    result = ReserveRegion(0, rgnsize);
-    if (result != RESERVE_FAILED) {
-      return uintptr_t(result);
-    }
-
-    
-    MOZ_CRASH();
-    return 0;
   }
+
+  
+  uintptr_t candidate = (0xF0DEAFFF & ~(rgnsize-1));
+  void *result = ReserveRegion(candidate, rgnsize);
+  if (result == (void *)candidate) {
+    
+    return candidate;
+  }
+
+  
+  
+  if (ProbeRegion(candidate, rgnsize)) {
+    
+    if (result != RESERVE_FAILED) {
+      ReleaseRegion(result, rgnsize);
+    }
+    return candidate;
+  }
+
+  
+  
+  if (result != RESERVE_FAILED) {
+    return uintptr_t(result);
+  }
+
+  
+  
+  result = ReserveRegion(0, rgnsize);
+  if (result != RESERVE_FAILED) {
+    return uintptr_t(result);
+  }
+
+  
+  MOZ_CRASH();
+  return 0;
 }
 
 void
@@ -201,8 +203,8 @@ mozPoisonValueInit()
   gMozillaPoisonSize = GetDesiredRegionSize();
   gMozillaPoisonBase = ReservePoisonArea(gMozillaPoisonSize);
 
-  if (gMozillaPoisonSize == 0) 
+  if (gMozillaPoisonSize == 0) { 
     return;
-
-  gMozillaPoisonValue = gMozillaPoisonBase + gMozillaPoisonSize/2 - 1;
+  }
+  gMozillaPoisonValue = gMozillaPoisonBase + gMozillaPoisonSize / 2 - 1;
 }
