@@ -452,7 +452,7 @@ GuessPhiType(MPhi *phi)
         }
         if (type == MIRType_None) {
             type = in->type();
-            if (in->isConstant())
+            if (in->canProduceFloat32())
                 convertibleToFloat32 = true;
             continue;
         }
@@ -461,17 +461,14 @@ GuessPhiType(MPhi *phi)
             if (in->resultTypeSet() && in->resultTypeSet()->empty())
                 continue;
 
-            if (IsFloatType(type) && IsFloatType(in->type())) {
-                
-                type = MIRType_Float32;
-            } else if (convertibleToFloat32 && in->type() == MIRType_Float32) {
+            if (convertibleToFloat32 && in->type() == MIRType_Float32) {
                 
                 
                 type = MIRType_Float32;
             } else if (IsNumberType(type) && IsNumberType(in->type())) {
                 
                 type = MIRType_Double;
-                convertibleToFloat32 &= in->isConstant();
+                convertibleToFloat32 &= in->canProduceFloat32();
             } else {
                 return MIRType_Value;
             }
@@ -511,7 +508,9 @@ TypeAnalyzer::propagateSpecialization(MPhi *phi)
         }
         if (use->type() != phi->type()) {
             
-            if (IsFloatType(use->type()) && IsFloatType(phi->type())) {
+            if ((use->type() == MIRType_Int32 && use->canProduceFloat32() && phi->type() == MIRType_Float32) ||
+                (phi->type() == MIRType_Int32 && phi->canProduceFloat32() && use->type() == MIRType_Float32))
+            {
                 if (!respecialize(use, MIRType_Float32))
                     return false;
                 continue;
