@@ -3614,6 +3614,10 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     JSScript *targetScript = target->nonLazyScript();
 
     
+    if (targetScript->shouldInline)
+        return true;
+
+    
     if (IsSmallFunction(targetScript)) {
         if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth) {
             IonSpew(IonSpew_Inlining, "%s:%d - Vetoed: exceeding allowed inline depth",

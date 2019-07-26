@@ -284,6 +284,8 @@ intrinsic_DecompileArg(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+
 static JSBool
 intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -304,6 +306,12 @@ intrinsic_SetScriptHints(JSContext *cx, unsigned argc, Value *vp)
         return false;
     if (ToBoolean(propv))
         funScript->shouldCloneAtCallsite = true;
+
+    id = AtomToId(Atomize(cx, "inline", strlen("inline")));
+    if (!JSObject::getGeneric(cx, flags, flags, id, &propv))
+        return false;
+    if (ToBoolean(propv))
+        funScript->shouldInline = true;
 
     args.rval().setUndefined();
     return true;
