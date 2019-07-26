@@ -23,9 +23,6 @@
 SimpleTest.waitForExplicitFinish();
 
 function runTest() {
-  browserElementTestHelpers.setEnabledPref(true);
-  browserElementTestHelpers.addPermissionForUrl('http://foobar.com');
-
   var iframe = document.createElement('iframe');
   SpecialPowers.wrap(iframe).mozbrowser = true;
   document.body.appendChild(iframe);
@@ -42,6 +39,8 @@ function runTest() {
   iframe.src = browserElementTestHelpers.emptyPage1;
 }
 
+browserElementTestHelpers.setEnabledPref(true);
+SpecialPowers.removePermission("browser", document);
 addEventListener('testready', runTest);
 
 </script>
