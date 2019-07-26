@@ -139,12 +139,10 @@ function PreviewController(win, tab) {
   this.win = win;
   this.tab = tab;
   this.linkedBrowser = tab.linkedBrowser;
+  this.preview = this.win.createTabPreview(this);
 
   this.linkedBrowser.addEventListener("MozAfterPaint", this, false);
   this.tab.addEventListener("TabAttrModified", this, false);
-
-  
-  XPCOMUtils.defineLazyGetter(this, "preview", function () this.win.previewFromTab(this.tab));
 
   XPCOMUtils.defineLazyGetter(this, "canvasPreview", function () {
     let canvas = this.win.win.document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
@@ -452,13 +450,22 @@ TabWindow.prototype = {
   
   newTab: function (tab) {
     let controller = new PreviewController(this, tab);
+    
+    this.previews.splice(tab._tPos, 0, controller.preview);
+    AeroPeek.addPreview(controller.preview);
+    
+    
+    controller.updateTitleAndTooltip();
+  },
+
+  createTabPreview: function (controller) {
     let docShell = this.win
                   .QueryInterface(Ci.nsIInterfaceRequestor)
                   .getInterface(Ci.nsIWebNavigation)
                   .QueryInterface(Ci.nsIDocShell);
     let preview = AeroPeek.taskbar.createTaskbarTabPreview(docShell, controller);
     preview.visible = AeroPeek.enabled;
-    preview.active = this.tabbrowser.selectedTab == tab;
+    preview.active = this.tabbrowser.selectedTab == controller.tab;
     
     getFaviconAsImage(null, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
       
@@ -467,12 +474,7 @@ TabWindow.prototype = {
         preview.icon = img;
     });
 
-    
-    this.previews.splice(tab._tPos, 0, preview);
-    AeroPeek.addPreview(preview);
-    
-    
-    controller.updateTitleAndTooltip();
+    return preview;
   },
 
   
