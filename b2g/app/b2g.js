@@ -861,15 +861,6 @@ pref("dom.mozDownloads.enabled", true);
 pref("dom.downloads.max_retention_days", 7);
 
 
-
-
-
-
-
-
-pref("security.exthelperapp.disable_background_handling", true);
-
-
 pref("osfile.reset_worker_delay", 5000);
 
 
@@ -881,7 +872,7 @@ pref("apz.pan_repaint_interval", 16);
 
 
 
-pref("apz.max_velocity_pixels_per_ms", "6.0");
+pref("apz.max_velocity_pixels_per_inch", "0.0375");
 
 
 

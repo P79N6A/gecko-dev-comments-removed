@@ -8,6 +8,7 @@
 #include <math.h>                       
 #include <algorithm>                    
 #include "AsyncPanZoomController.h"     
+#include "mozilla/layers/APZCTreeManager.h" 
 #include "FrameMetrics.h"               
 #include "mozilla/Attributes.h"         
 #include "mozilla/Preferences.h"        
@@ -84,7 +85,7 @@ Axis::Axis(AsyncPanZoomController* aAsyncPanZoomController)
 void Axis::UpdateWithTouchAtDevicePoint(int32_t aPos, const TimeDuration& aTimeDelta) {
   float newVelocity = mAxisLocked ? 0 : (mPos - aPos) / aTimeDelta.ToMilliseconds();
   if (gfxPrefs::APZMaxVelocity() > 0.0f) {
-    newVelocity = std::min(newVelocity, gfxPrefs::APZMaxVelocity());
+    newVelocity = std::min(newVelocity, gfxPrefs::APZMaxVelocity() * APZCTreeManager::GetDPI());
   }
 
   mVelocity = newVelocity;
