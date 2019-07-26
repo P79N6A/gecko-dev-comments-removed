@@ -64,6 +64,46 @@ nsIContentParent::DeallocPJavaScriptParent(PJavaScriptParent* aParent)
   return true;
 }
 
+bool
+nsIContentParent::CanOpenBrowser(const IPCTabContext& aContext)
+{
+  const IPCTabAppBrowserContext& appBrowser = aContext.appBrowserContext();
+
+  
+  
+  
+  
+  if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
+    NS_ERROR("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
+    return false;
+  }
+
+  const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
+  TabParent* opener = static_cast<TabParent*>(popupContext.openerParent());
+  if (!opener) {
+    NS_ERROR("Got null opener from child; aborting AllocPBrowserParent.");
+    return false;
+  }
+
+  
+  
+  
+  if (!popupContext.isBrowserElement() && opener->IsBrowserElement()) {
+    NS_ERROR("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
+    return false;
+  }
+
+  MaybeInvalidTabContext tc(aContext);
+  if (!tc.IsValid()) {
+    NS_ERROR(nsPrintfCString("Child passed us an invalid TabContext.  (%s)  "
+                             "Aborting AllocPBrowserParent.",
+                             tc.GetInvalidReason()).get());
+    return false;
+  }
+
+  return true;
+}
+
 PBrowserParent*
 nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
                                       const uint32_t& aChromeFlags,
@@ -76,40 +116,12 @@ nsIContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
   unused << aIsForApp;
   unused << aIsForBrowser;
 
-  const IPCTabAppBrowserContext& appBrowser = aContext.appBrowserContext();
-
-  
-  
-  
-  
-  if (appBrowser.type() != IPCTabAppBrowserContext::TPopupIPCTabContext) {
-    NS_ERROR("Unexpected IPCTabContext type.  Aborting AllocPBrowserParent.");
-    return nullptr;
-  }
-
-  const PopupIPCTabContext& popupContext = appBrowser.get_PopupIPCTabContext();
-  TabParent* opener = static_cast<TabParent*>(popupContext.openerParent());
-  if (!opener) {
-    NS_ERROR("Got null opener from child; aborting AllocPBrowserParent.");
-    return nullptr;
-  }
-
-  
-  
-  
-  if (!popupContext.isBrowserElement() && opener->IsBrowserElement()) {
-    NS_ERROR("Child trying to escalate privileges!  Aborting AllocPBrowserParent.");
+  if (!CanOpenBrowser(aContext)) {
     return nullptr;
   }
 
   MaybeInvalidTabContext tc(aContext);
-  if (!tc.IsValid()) {
-    NS_ERROR(nsPrintfCString("Child passed us an invalid TabContext.  (%s)  "
-                             "Aborting AllocPBrowserParent.",
-                             tc.GetInvalidReason()).get());
-    return nullptr;
-  }
-
+  MOZ_ASSERT(tc.IsValid());
   TabParent* parent = new TabParent(this, tc.GetTabContext(), aChromeFlags);
 
   
