@@ -67,4 +67,7 @@ else if (isTabPBSupported) {
   };
 }
 
+
+module.exports = {};
+
 require('test').run(exports);
