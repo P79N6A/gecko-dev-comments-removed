@@ -5,33 +5,22 @@
 #ifndef nsIContent_h___
 #define nsIContent_h___
 
-#include "nsCOMPtr.h" 
-#include "nsStringGlue.h"
-#include "nsCaseTreatment.h"
-#include "nsChangeHint.h"
-#include "nsINode.h"
-#include "nsIDocument.h" 
-#include "nsCSSProperty.h"
+#include "nsCaseTreatment.h" 
+#include "nsCOMPtr.h"        
+#include "nsIDocument.h"     
+#include "nsINode.h"         
 
 
+class nsAString;
 class nsIAtom;
-class nsIDOMEvent;
-class nsIContent;
-class nsEventListenerManager;
 class nsIURI;
 class nsRuleWalker;
 class nsAttrValue;
 class nsAttrName;
 class nsTextFragment;
-class nsIDocShell;
 class nsIFrame;
-class nsISMILAttr;
-class nsIDOMCSSStyleDeclaration;
 
 namespace mozilla {
-namespace css {
-class StyleRule;
-} 
 namespace widget {
 struct IMEState;
 } 

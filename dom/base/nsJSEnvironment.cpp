@@ -4,6 +4,7 @@
 
 
 
+#include "nsDOMError.h"
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptObjectPrincipal.h"

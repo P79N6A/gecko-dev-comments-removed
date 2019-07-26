@@ -18,6 +18,8 @@ AndroidSystemColors nsLookAndFeel::mSystemColors;
 bool nsLookAndFeel::mInitializedShowPassword = false;
 bool nsLookAndFeel::mShowPassword = true;
 
+static const PRUnichar UNICODE_BULLET = 0x2022;
+
 nsLookAndFeel::nsLookAndFeel()
     : nsXPLookAndFeel()
 {
@@ -478,4 +480,12 @@ nsLookAndFeel::GetPasswordMaskDelayImpl()
 {
   
   return 1500;
+}
+
+
+PRUnichar
+nsLookAndFeel::GetPasswordCharacterImpl()
+{
+  
+  return UNICODE_BULLET;
 }

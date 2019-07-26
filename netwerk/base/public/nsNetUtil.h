@@ -1254,8 +1254,11 @@ NS_LoadPersistentPropertiesFromURISpec(nsIPersistentProperties **result,
 
 
 
-inline void
-NS_QueryNotificationCallbacks(nsIChannel   *channel,
+
+
+
+template <class T> inline void
+NS_QueryNotificationCallbacks(T            *channel,
                               const nsIID  &iid,
                               void        **result)
 {
@@ -1279,8 +1282,11 @@ NS_QueryNotificationCallbacks(nsIChannel   *channel,
 }
 
 
-template <class T> inline void
-NS_QueryNotificationCallbacks(nsIChannel  *channel,
+
+
+
+template <class C, class T> inline void
+NS_QueryNotificationCallbacks(C           *channel,
                               nsCOMPtr<T> &result)
 {
     NS_QueryNotificationCallbacks(channel, NS_GET_TEMPLATE_IID(T),

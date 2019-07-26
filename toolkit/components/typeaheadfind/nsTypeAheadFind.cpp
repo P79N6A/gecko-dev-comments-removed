@@ -1115,7 +1115,7 @@ nsTypeAheadFind::IsRangeVisible(nsIPresShell *aPresShell,
   
   
   nsFrameIterator frameTraversal(aPresContext, frame,
-                                 eLeaf, FrameIteratorFlags::FLAG_NONE);
+                                 eLeaf, nsFrameIterator::FLAG_NONE);
 
   while (rectVisibility == nsRectVisibility_kAboveViewport) {
     frameTraversal.Next();

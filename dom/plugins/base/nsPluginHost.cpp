@@ -2201,7 +2201,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
     
     
     if (!nsNPAPIPlugin::RunPluginOOP(pluginTag)) {
-      if (nsPluginTag *duplicate = HaveSamePlugin(pluginTag)) {
+      if (HaveSamePlugin(pluginTag)) {
         continue;
       }
     }

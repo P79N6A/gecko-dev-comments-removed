@@ -3682,10 +3682,8 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, gcreason::Reason gcReaso
 
 
 
-        if (rt->gcIsFull) {
+        if (rt->gcIsFull)
             SweepScriptFilenames(rt);
-            ScriptSource::sweep(rt);
-        }
 
         
 

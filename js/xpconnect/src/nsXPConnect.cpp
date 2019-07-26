@@ -742,20 +742,6 @@ xpc_TryUnmarkWrappedGrayObject(nsISupports* aWrappedJS)
     }
 }
 
-static bool
-WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
-{
-    XPCWrappedNativeProto *proto = wrapper->GetProto();
-    if (proto && proto->ClassIsMainThreadOnly())
-        return false;
-
-    
-    
-    
-    nsXPCOMCycleCollectionParticipant* participant;
-    return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
-}
-
 static inline void
 DescribeGCThing(bool isMarked, void *p, JSGCTraceKind traceKind,
                 nsCycleCollectionTraversalCallback &cb)
@@ -873,53 +859,26 @@ TraverseGCThing(TraverseSelect ts, void *p, JSGCTraceKind traceKind,
                 nsCycleCollectionTraversalCallback &cb)
 {
     MOZ_ASSERT(traceKind == js_GetGCThingTraceKind(p));
-    JSObject *obj = nullptr;
-    js::Class *clasp = nullptr;
-
-    
-    
-    
-    
-    
-    
-    bool dontTraverse = false;
-    bool markJSObject = false;
-    if (traceKind == JSTRACE_OBJECT) {
-        obj = static_cast<JSObject*>(p);
-        clasp = js::GetObjectClass(obj);
-
-        if (clasp == &XPC_WN_Tearoff_JSClass) {
-            XPCWrappedNative *wrapper =
-                static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(js::GetObjectParent(obj)));
-            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
-        } else if (IS_WRAPPER_CLASS(clasp) && IS_WN_WRAPPER_OBJECT(obj)) {
-            XPCWrappedNative *wrapper =
-                static_cast<XPCWrappedNative*>(xpc_GetJSPrivate(obj));
-            dontTraverse = WrapperIsNotMainThreadOnly(wrapper);
-            markJSObject = dontTraverse && wrapper->HasExternalReference();
-        }
-    }
-
-    bool isMarked = markJSObject || !xpc_IsGrayGCThing(p);
+    bool isMarkedGray = xpc_IsGrayGCThing(p);
 
     if (ts == TRAVERSE_FULL)
-        DescribeGCThing(isMarked, p, traceKind, cb);
+        DescribeGCThing(!isMarkedGray, p, traceKind, cb);
 
     
     
     
     
-    if (isMarked && !cb.WantAllTraces())
+    if (!isMarkedGray && !cb.WantAllTraces())
         return;
 
     if (ts == TRAVERSE_FULL)
         NoteGCThingJSChildren(nsXPConnect::GetRuntimeInstance()->GetJSRuntime(),
                               p, traceKind, cb);
  
-    if (traceKind != JSTRACE_OBJECT || dontTraverse)
-        return;
-
-    NoteGCThingXPCOMChildren(clasp, obj, cb);
+    if (traceKind == JSTRACE_OBJECT) {
+        JSObject *obj = static_cast<JSObject*>(p);
+        NoteGCThingXPCOMChildren(js::GetObjectClass(obj), obj, cb);
+    }
 }
 
 NS_METHOD

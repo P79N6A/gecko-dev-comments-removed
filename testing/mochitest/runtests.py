@@ -208,6 +208,12 @@ class MochitestOptions(optparse.OptionParser):
                            "This directory will be deleted after the tests are finished")
     defaults["profilePath"] = tempfile.mkdtemp()
 
+    self.add_option("--testing-modules-dir", action = "store",
+                    type = "string", dest = "testingModulesDir",
+                    help = "Directory where testing-only JS modules are "
+                           "located.")
+    defaults["testingModulesDir"] = None
+
     self.add_option("--use-vmware-recording",
                     action = "store_true", dest = "vmwareRecording",
                     help = "enables recording while the application is running "
@@ -323,6 +329,34 @@ See <http://mochikit.com/doc/html/MochiKit/Logging.html> for details on the logg
 
     if options.webapprtContent and options.webapprtChrome:
       self.error("Only one of --webapprt-content and --webapprt-chrome may be given.")
+
+    
+    
+    
+    
+    
+    
+    if options.testingModulesDir is None:
+      possible = os.path.join(os.getcwd(), os.path.pardir, 'modules')
+
+      if os.path.isdir(possible):
+        options.testingModulesDir = possible
+
+    
+    
+    if options.testingModulesDir is not None:
+      options.testingModulesDir = os.path.normpath(options.testingModulesDir)
+
+      if not os.path.isabs(options.testingModulesDir):
+        options.testingModulesDir = os.path.abspath(testingModulesDir)
+
+      if not os.path.isdir(options.testingModulesDir):
+        self.error('--testing-modules-dir not a directory: %s' %
+          options.testingModulesDir)
+
+      options.testingModulesDir = options.testingModulesDir.replace('\\', '/')
+      if options.testingModulesDir[-1] != '/':
+        options.testingModulesDir += '/'
 
     return options
 
@@ -805,6 +839,10 @@ toolbar#nav-bar {
         if self.automation.IS_WIN32:
           chrometestDir = "file:///" + chrometestDir.replace("\\", "/")
         manifestFile.write("content mochitests %s contentaccessible=yes\n" % chrometestDir)
+
+      if options.testingModulesDir is not None:
+        manifestFile.write("resource testing-common file:///%s\n" %
+          options.testingModulesDir)
 
     
     jarDir = "mochijar"
