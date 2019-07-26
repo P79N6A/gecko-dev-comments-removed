@@ -279,7 +279,7 @@ const ContentPanning = {
       this._activationTimer.cancel();
     }
 
-    if (this.panning) {
+    if (this.panning && docShell.asyncPanZoomEnabled === false) {
       
       
       evt.stopPropagation();
