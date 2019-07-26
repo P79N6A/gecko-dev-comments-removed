@@ -137,6 +137,21 @@ PodArrayCopy(T (&dst)[N], const T (&src)[N])
 
 
 
+
+
+template<typename T>
+MOZ_ALWAYS_INLINE static void
+PodMove(T* dst, const T* src, size_t nelem)
+{
+  MOZ_ASSERT(nelem <= SIZE_MAX / sizeof(T),
+             "trying to move an impossible number of elements");
+  memmove(dst, src, nelem * sizeof(T));
+}
+
+
+
+
+
 template<typename T>
 MOZ_ALWAYS_INLINE static bool
 PodEqual(const T* one, const T* two, size_t len)
