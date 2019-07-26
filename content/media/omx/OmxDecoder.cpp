@@ -411,7 +411,7 @@ bool OmxDecoder::TryLoad() {
     const char* audioMime;
     sp<MetaData> meta = mAudioTrack->getFormat();
 
-    if (meta->findCString(kKeyMIMEType, &audioMime) && !strcasecmp(audioMime, AUDIO_MP3)) {
+    if (mIsMp3) {
       
       
       
