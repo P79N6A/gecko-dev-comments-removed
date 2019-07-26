@@ -116,6 +116,34 @@ MacroAssemblerARM::convertDoubleToInt32(const FloatRegister &src, const Register
     }
 }
 
+
+
+
+void
+MacroAssemblerARM::convertFloat32ToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
+{
+    
+    
+    
+    ma_vcvt_F32_I32(src, ScratchFloatReg);
+    
+    ma_vxfer(ScratchFloatReg, dest);
+    ma_vcvt_I32_F32(ScratchFloatReg, ScratchFloatReg);
+    ma_vcmp_f32(src, ScratchFloatReg);
+    as_vmrs(pc);
+    ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
+
+    if (negativeZeroCheck) {
+        ma_cmp(dest, Imm32(0));
+        
+        
+        
+        as_vxfer(dest, InvalidReg, src, FloatToCore, Assembler::Equal, 0);
+        ma_cmp(dest, Imm32(0x80000000), Assembler::Equal);
+        ma_b(fail, Assembler::Equal);
+    }
+}
+
 void
 MacroAssemblerARM::convertFloatToDouble(const FloatRegister &src, const FloatRegister &dest) {
     as_vcvt(VFPRegister(dest), VFPRegister(src).singleOverlay());
@@ -1484,6 +1512,11 @@ void
 MacroAssemblerARM::ma_vcmp(FloatRegister src1, FloatRegister src2, Condition cc)
 {
     as_vcmp(VFPRegister(src1), VFPRegister(src2), cc);
+}
+void
+MacroAssemblerARM::ma_vcmp_f32(FloatRegister src1, FloatRegister src2, Condition cc)
+{
+    as_vcmp(VFPRegister(src1).singleOverlay(), VFPRegister(src2).singleOverlay(), cc);
 }
 void
 MacroAssemblerARM::ma_vcmpz(FloatRegister src1, Condition cc)

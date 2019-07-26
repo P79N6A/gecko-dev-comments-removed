@@ -2849,9 +2849,7 @@ class MAsmJSUnsignedToDouble
 
 
 
-class MToInt32
-  : public MUnaryInstruction,
-    public NoFloatPolicy<0>
+class MToInt32 : public MUnaryInstruction
 {
     bool canBeNegativeZero_;
 
@@ -2891,9 +2889,9 @@ class MToInt32
     }
     void computeRange();
 
-    TypePolicy *typePolicy() {
-        return this;
-    }
+#ifdef DEBUG
+    bool isConsistentFloat32Use() const { return true; }
+#endif
 };
 
 

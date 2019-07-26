@@ -2676,6 +2676,23 @@ class LDoubleToInt32 : public LInstructionHelper<1, 1, 0>
 
 
 
+class LFloat32ToInt32 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(Float32ToInt32)
+
+    LFloat32ToInt32(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    MToInt32 *mir() const {
+        return mir_->toToInt32();
+    }
+};
+
+
+
+
 class LTruncateDToInt32 : public LInstructionHelper<1, 1, 1>
 {
   public:
