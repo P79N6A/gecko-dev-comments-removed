@@ -10,20 +10,12 @@ import android.view.TouchDelegate;
 import android.view.MotionEvent;
 import android.view.View;
 
-import java.util.ArrayList;
-import java.util.List;
-
 
 
 
 
 
 public class TailTouchDelegate extends TouchDelegate {
-    
-    private TouchDelegate mDelegate;
-
-    
-    private List<TouchDelegate> mDelegates;
 
     
 
@@ -33,18 +25,6 @@ public class TailTouchDelegate extends TouchDelegate {
 
     public TailTouchDelegate(Rect bounds, View delegateView) {
         super(bounds, delegateView);
-        mDelegates = new ArrayList<TouchDelegate>();
-        mDelegates.add(new TouchDelegate(bounds, delegateView));
-    }
-
-    
-
-
-
-
-
-    public void add(Rect bounds, View delegateView) {
-        mDelegates.add(new TouchDelegate(bounds, delegateView));
     }
 
     @Override 
@@ -52,23 +32,16 @@ public class TailTouchDelegate extends TouchDelegate {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 
-                for (TouchDelegate delegate : mDelegates) {
-                    if (delegate.onTouchEvent(event)) {
-                        mDelegate = delegate;
-                        return true;
-                    }
-
+                if (!super.onTouchEvent(event)) {
                     MotionEvent cancelEvent = MotionEvent.obtain(event);
                     cancelEvent.setAction(MotionEvent.ACTION_CANCEL);
-                    delegate.onTouchEvent(cancelEvent);
-                    mDelegate = null;
-                }
-                return false;
-            default:
-                if (mDelegate != null)
-                    return mDelegate.onTouchEvent(event);
-                else
+                    super.onTouchEvent(cancelEvent);
                     return false;
+                } else {
+                    return true;
+                }
+            default:
+                return super.onTouchEvent(event);
         }
     }
 }
