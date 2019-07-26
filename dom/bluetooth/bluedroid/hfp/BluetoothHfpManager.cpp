@@ -321,6 +321,18 @@ Call::Call()
 }
 
 void
+Call::Set(const nsAString& aNumber, const bool aIsOutgoing)
+{
+  mNumber = aNumber;
+  mDirection = (aIsOutgoing) ? BTHF_CALL_DIRECTION_OUTGOING :
+                               BTHF_CALL_DIRECTION_INCOMING;
+  
+  if (aNumber.Length() && aNumber[0] == '+') {
+    mType = BTHF_CALL_ADDRTYPE_INTERNATIONAL;
+  }
+}
+
+void
 Call::Reset()
 {
   mState = nsITelephonyProvider::CALL_STATE_DISCONNECTED;
@@ -1129,14 +1141,8 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
     return;
   }
 
-  mCurrentCallArray[aCallIndex].mNumber = aNumber;
-  mCurrentCallArray[aCallIndex].mDirection = (aIsOutgoing) ?
-                                              BTHF_CALL_DIRECTION_OUTGOING :
-                                              BTHF_CALL_DIRECTION_INCOMING;
   
-  if (aNumber.Length() && aNumber[0] == '+') {
-    mCurrentCallArray[aCallIndex].mType = BTHF_CALL_ADDRTYPE_INTERNATIONAL;
-  }
+  mCurrentCallArray[aCallIndex].Set(aNumber, aIsOutgoing);
 
   
   UpdatePhoneCIND(aCallIndex);
@@ -1194,12 +1200,7 @@ BluetoothHfpManager::UpdateSecondNumber(const nsAString& aNumber)
 
   
   
-  mCdmaSecondCall.mDirection = BTHF_CALL_DIRECTION_INCOMING;
-
-  mCdmaSecondCall.mNumber = aNumber;
-  if (aNumber[0] == '+') {
-    mCdmaSecondCall.mType = BTHF_CALL_ADDRTYPE_INTERNATIONAL;
-  }
+  mCdmaSecondCall.Set(aNumber, false);
 
   
   
