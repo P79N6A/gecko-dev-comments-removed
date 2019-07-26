@@ -53,9 +53,6 @@ DOMCI_CLASS(CRMFObject)
 DOMCI_CLASS(Crypto)
 
 
-DOMCI_CLASS(CSSRect)
-
-
 DOMCI_CLASS(ChromeWindow)
 
 #ifdef MOZ_XUL
