@@ -414,11 +414,11 @@ struct HasDangerousPublicDestructor
 }
 
 #if defined(__clang__)
-#  if MOZ_USING_LIBCXX && __has_include(<type_traits>)
-#    define MOZ_HAVE_STD_IS_DESTRUCTIBLE
-#  else
-#    define MOZ_CAN_USE_IS_DESTRUCTIBLE_FALLBACK
-#  endif
+   
+   
+   
+   
+#  define MOZ_CAN_USE_IS_DESTRUCTIBLE_FALLBACK
 #elif defined(__GNUC__)
    
 #  if MOZ_USING_LIBSTDCXX && MOZ_GCC_VERSION_AT_LEAST(4, 8, 0)
