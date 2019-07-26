@@ -19,7 +19,5 @@
 #endif
 <!ENTITY % aboutHomeDTD SYSTEM "chrome:
 %aboutHomeDTD;
-<!ENTITY % debuggerDTD SYSTEM "chrome:
-%debuggerDTD;
 ]>
 

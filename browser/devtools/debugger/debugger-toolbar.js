@@ -81,6 +81,21 @@ ToolbarView.prototype = {
 
 
 
+
+  showResumeWarning: function(aPausedUrl) {
+    let label = L10N.getFormatStr("resumptionOrderPanelTitle", aPausedUrl);
+    let descriptionNode = document.getElementById("resumption-panel-desc");
+    descriptionNode.setAttribute("value", label);
+
+    this._resumeOrderPanel.openPopup(this._resumeButton);
+  },
+
+  
+
+
+
+
+
   toggleResumeButtonState: function(aState) {
     
     if (aState == "paused") {
@@ -92,19 +107,6 @@ ToolbarView.prototype = {
       this._resumeButton.removeAttribute("checked");
       this._resumeButton.setAttribute("tooltiptext", this._pauseTooltip);
     }
-  },
-
-  
-
-
-
-
-
-
-  showResumeWarning: function(aPausedUrl) {
-    let label = L10N.getFormatStr("resumptionOrderPanelTitle", [aPausedUrl]);
-    document.getElementById("resumption-panel-desc").textContent = label;
-    this._resumeOrderPanel.openPopup(this._resumeButton);
   },
 
   
@@ -248,8 +250,10 @@ OptionsView.prototype = {
 
 
   _togglePauseOnExceptions: function() {
-    DebuggerController.activeThread.pauseOnExceptions(Prefs.pauseOnExceptions =
-      this._pauseOnExceptionsItem.getAttribute("checked") == "true");
+    let pref = Prefs.pauseOnExceptions =
+      this._pauseOnExceptionsItem.getAttribute("checked") == "true";
+
+    DebuggerController.activeThread.pauseOnExceptions(pref);
   },
 
   
@@ -264,16 +268,20 @@ OptionsView.prototype = {
 
 
   _toggleShowVariablesOnlyEnum: function() {
-    DebuggerView.Variables.onlyEnumVisible = Prefs.variablesOnlyEnumVisible =
+    let pref = Prefs.variablesOnlyEnumVisible =
       this._showVariablesOnlyEnumItem.getAttribute("checked") == "true";
+
+    DebuggerView.Variables.onlyEnumVisible = pref;
   },
 
   
 
 
   _toggleShowVariablesFilterBox: function() {
-    DebuggerView.Variables.searchEnabled = Prefs.variablesSearchboxVisible =
+    let pref = Prefs.variablesSearchboxVisible =
       this._showVariablesFilterBoxItem.getAttribute("checked") == "true";
+
+    DebuggerView.Variables.searchEnabled = pref;
   },
 
   
@@ -282,6 +290,7 @@ OptionsView.prototype = {
   _toggleShowOriginalSource: function() {
     function reconfigure() {
       window.removeEventListener("Debugger:OptionsPopupHidden", reconfigure, false);
+
       
       window.setTimeout(function() {
         DebuggerController.reconfigureThread(pref);
@@ -299,8 +308,8 @@ OptionsView.prototype = {
   _pauseOnExceptionsItem: null,
   _showPanesOnStartupItem: null,
   _showVariablesOnlyEnumItem: null,
-  _showOriginalSourceItem: null,
-  _showVariablesFilterBoxItem: null
+  _showVariablesFilterBoxItem: null,
+  _showOriginalSourceItem: null
 };
 
 
@@ -345,9 +354,6 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
 
 
   _onSelect: function() {
-    if (!this.refresh()) {
-      return;
-    }
     
   },
 
@@ -366,7 +372,6 @@ create({ constructor: ChromeGlobalsView, proto: MenuContainer.prototype }, {
 function StackFramesView() {
   dumpn("StackFramesView was instantiated");
 
-  this._framesCache = new Map(); 
   this._onStackframeRemoved = this._onStackframeRemoved.bind(this);
   this._onSelect = this._onSelect.bind(this);
   this._onScroll = this._onScroll.bind(this);
@@ -426,7 +431,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
     let menuEntry = this._createMenuEntry.apply(this, arguments);
 
     
-    let stackframeItem = this.push(frameView, {
+    this.push(frameView, {
       index: 0, 
       attachment: {
         popup: menuEntry,
@@ -440,8 +445,6 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
       
       finalize: this._onStackframeRemoved
     });
-
-    this._framesCache.set(aDepth, stackframeItem);
   },
 
   
@@ -449,7 +452,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
   set selectedDepth(aDepth) {
-    this.selectedItem = this._framesCache.get(aDepth);
+    this.selectedItem = (aItem) => aItem.attachment.depth == aDepth;
   },
 
   
@@ -559,28 +562,13 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  _destroyMenuEntry: function(aMenuEntry) {
-    dumpn("Destroying context menu: " +
-      aMenuEntry.command.id + " & " + aMenuEntry.menuitem.id);
-
-    let command = aMenuEntry.command;
-    let menuitem = aMenuEntry.menuitem;
-    command.parentNode.removeChild(command);
-    menuitem.parentNode.removeChild(menuitem);
-  },
-
-  
-
-
-
-
-
   _onStackframeRemoved: function(aItem) {
     dumpn("Finalizing stackframe item: " + aItem);
 
-    let { popup, depth } = aItem.attachment;
-    this._destroyMenuEntry(popup);
-    this._framesCache.delete(depth);
+    
+    let contextItem = aItem.attachment.popup;
+    contextItem.command.remove();
+    contextItem.menuitem.remove();
   },
 
   
@@ -592,6 +580,8 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
       
       gStackFrames.selectFrame(stackframeItem.attachment.depth);
 
+      
+      
       for (let otherItem in this) {
         if (otherItem != stackframeItem) {
           otherItem.attachment.popup.menuitem.removeAttribute("checked");
@@ -618,6 +608,8 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
   _afterScroll: function() {
+    
+    
     let list = this.node._list;
     let scrollPosition = list.scrollPosition;
     let scrollWidth = list.scrollWidth;
@@ -633,7 +625,6 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
     }
   },
 
-  _framesCache: null,
   _commandset: null,
   _menupopup: null,
   _scrollTimeout: null
@@ -821,7 +812,9 @@ FilterView.prototype = {
     if (globalFlagIndex != 0 && functionFlagIndex != 0 && variableFlagIndex != 0) {
       let fileEnd = lineFlagIndex != -1
         ? lineFlagIndex
-        : tokenFlagIndex != -1 ? tokenFlagIndex : rawLength;
+        : tokenFlagIndex != -1
+          ? tokenFlagIndex
+          : rawLength;
 
       let lineEnd = tokenFlagIndex != -1
         ? tokenFlagIndex
@@ -1114,7 +1107,7 @@ FilterView.prototype = {
         DebuggerView.editor.focus();
         this.clearSearch();
       } else {
-        DebuggerView.FilteredSources[["focusNext", "focusPrev"][action]]();
+        DebuggerView.FilteredSources[["selectNext", "selectPrev"][action]]();
       }
       this._prevSearchedFile = file;
       return;
@@ -1125,7 +1118,7 @@ FilterView.prototype = {
       if (isReturnKey && (isDifferentToken || DebuggerView.GlobalSearch.hidden)) {
         DebuggerView.GlobalSearch.performSearch(token);
       } else {
-        DebuggerView.GlobalSearch[["focusNextMatch", "focusPrevMatch"][action]]();
+        DebuggerView.GlobalSearch[["selectNext", "selectPrev"][action]]();
       }
       this._prevSearchedToken = token;
       return;
@@ -1136,7 +1129,7 @@ FilterView.prototype = {
       if (isReturnKey && (isDifferentToken || DebuggerView.FilteredFunctions.hidden)) {
         DebuggerView.FilteredFunctions.performSearch(token);
       } else if (!isReturnKey) {
-        DebuggerView.FilteredFunctions[["focusNext", "focusPrev"][action]]();
+        DebuggerView.FilteredFunctions[["selectNext", "selectPrev"][action]]();
       } else {
         DebuggerView.FilteredFunctions.clearView();
         DebuggerView.editor.focus();
@@ -1285,10 +1278,9 @@ FilterView.prototype = {
 
 function FilteredSourcesView() {
   dumpn("FilteredSourcesView was instantiated");
-  ResultsPanelContainer.call(this);
 
-  this.onClick = this.onClick.bind(this);
-  this.onSelect = this.onSelect.bind(this);
+  this._onClick = this._onClick.bind(this);
+  this._onSelect = this._onSelect.bind(this);
 }
 
 create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototype }, {
@@ -1299,6 +1291,8 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
     dumpn("Initializing the FilteredSourcesView");
 
     this.anchor = document.getElementById("searchbox");
+    this.node.addEventListener("select", this._onSelect, false);
+    this.node.addEventListener("click", this._onClick, false);
   },
 
   
@@ -1307,6 +1301,8 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   destroy: function() {
     dumpn("Destroying the FilteredSourcesView");
 
+    this.node.removeEventListener("select", this._onSelect, false);
+    this.node.removeEventListener("click", this._onClick, false);
     this.anchor = null;
   },
 
@@ -1328,8 +1324,8 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
     let visibleItems = DebuggerView.Sources.visibleItems;
     let displayedItems = visibleItems.slice(0, RESULTS_PANEL_MAX_RESULTS);
 
+    
     for (let item of displayedItems) {
-      
       let trimmedLabel = SourceUtils.trimUrlLength(item.label);
       let trimmedValue = SourceUtils.trimUrlLength(item.value, 0, "start");
       let locationItem = this.push([trimmedLabel, trimmedValue], {
@@ -1342,7 +1338,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
     }
 
     
-    this.select(0);
+    this.selectedIndex = 0;
 
     
     this.hidden = this.itemCount == 0;
@@ -1351,10 +1347,10 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
   
 
 
-  onClick: function(e) {
+  _onClick: function(e) {
     let locationItem = this.getItemForElement(e.target);
     if (locationItem) {
-      this.select(locationItem);
+      this.selectedItem = locationItem;
       DebuggerView.Filtering.clearSearch();
     }
   },
@@ -1365,8 +1361,7 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
 
 
 
-  onSelect: function(e) {
-    let locationItem = this.getItemForElement(e.target);
+  _onSelect: function({ detail: locationItem }) {
     if (locationItem) {
       DebuggerView.updateEditor(locationItem.attachment.fullValue, 0);
     }
@@ -1378,11 +1373,10 @@ create({ constructor: FilteredSourcesView, proto: ResultsPanelContainer.prototyp
 
 function FilteredFunctionsView() {
   dumpn("FilteredFunctionsView was instantiated");
-  ResultsPanelContainer.call(this);
 
   this._performFunctionSearch = this._performFunctionSearch.bind(this);
-  this.onClick = this.onClick.bind(this);
-  this.onSelect = this.onSelect.bind(this);
+  this._onClick = this._onClick.bind(this);
+  this._onSelect = this._onSelect.bind(this);
 }
 
 create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.prototype }, {
@@ -1393,6 +1387,8 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
     dumpn("Initializing the FilteredFunctionsView");
 
     this.anchor = document.getElementById("searchbox");
+    this.node.addEventListener("select", this._onSelect, false);
+    this.node.addEventListener("click", this._onClick, false);
   },
 
   
@@ -1401,6 +1397,8 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   destroy: function() {
     dumpn("Destroying the FilteredFunctionsView");
 
+    this.node.removeEventListener("select", this._onSelect, false);
+    this.node.removeEventListener("click", this._onClick, false);
     this.anchor = null;
   },
 
@@ -1562,17 +1560,19 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
     }
 
     
-    this.select(0);
+    this.selectedIndex = 0;
+
+    
     this.hidden = this.itemCount == 0;
   },
 
   
 
 
-  onClick: function(e) {
+  _onClick: function(e) {
     let functionItem = this.getItemForElement(e.target);
     if (functionItem) {
-      this.select(functionItem);
+      this.selectedItem = functionItem;
       DebuggerView.Filtering.clearSearch();
     }
   },
@@ -1580,8 +1580,7 @@ create({ constructor: FilteredFunctionsView, proto: ResultsPanelContainer.protot
   
 
 
-  onSelect: function(e) {
-    let functionItem = this.getItemForElement(e.target);
+  _onSelect: function({ detail: functionItem }) {
     if (functionItem) {
       let sourceUrl = functionItem.attachment.sourceUrl;
       let scriptOffset = functionItem.attachment.scriptOffset;

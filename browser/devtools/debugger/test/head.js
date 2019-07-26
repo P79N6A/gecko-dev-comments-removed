@@ -192,35 +192,12 @@ function debug_tab_pane(aURL, aOnDebugging, aBeforeTabAdded) {
   });
 }
 
-function debug_remote(aURL, aOnDebugging, aBeforeTabAdded) {
-  
-  if (aBeforeTabAdded) {
-    aBeforeTabAdded();
-  }
-
-  let tab = addTab(aURL, function() {
-    let debuggee = tab.linkedBrowser.contentWindow.wrappedJSObject;
-
-    info("Opening Remote Debugger");
-    let win = DebuggerUI.toggleRemoteDebugger();
-
-    
-    win.panelWin.gClient.addOneTimeListener("resumed", function() {
-      info("Remote Debugger has started");
-      win._dbgwin.DebuggerView.Variables.lazyEmpty = false;
-      win._dbgwin.DebuggerView.Variables.lazyAppend = false;
-      win._dbgwin.DebuggerView.Variables.lazyExpand = false;
-      aOnDebugging(tab, debuggee, win);
-    });
-  });
-}
-
 function debug_chrome(aURL, aOnClosing, aOnDebugging) {
   let tab = addTab(aURL, function() {
     let debuggee = tab.linkedBrowser.contentWindow.wrappedJSObject;
 
     info("Opening Browser Debugger");
-    let win = DebuggerUI.toggleChromeDebugger(aOnClosing, function(process) {
+    let win = BrowserDebuggerProcess.init(aOnClosing, function(process) {
 
       
       info("Browser Debugger has started");

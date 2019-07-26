@@ -53,7 +53,7 @@ const STR = Services.strings.createBundle(DBG_STRINGS_URI);
 
 
 this.VariablesView = function VariablesView(aParentNode, aFlags = {}) {
-  this._store = [];
+  this._store = []; 
   this._itemsByElement = new WeakMap();
   this._prevHierarchy = new Map();
   this._currHierarchy = new Map();

@@ -373,6 +373,8 @@ this.MenuItem = function MenuItem(aAttachment, aContents = []) {
     this._value = aValue + "";
     this._description = (aDescription || "") + "";
   }
+
+  XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
 };
 
 MenuItem.prototype = {
@@ -398,15 +400,15 @@ MenuItem.prototype = {
     let item = new MenuItem(aOptions.attachment);
 
     
+    this._entangleItem(item, this._target.appendChild(aElement));
+
+    
     if (aOptions.attributes) {
-      this.setAttributes(aOptions.attributes);
+      aOptions.attributes.forEach(e => item._target.setAttribute(e[0], e[1]));
     }
     if (aOptions.finalize) {
       item.finalize = aOptions.finalize;
     }
-
-    
-    this._entangleItem(item, this._target.appendChild(aElement));
 
     
     return item;
@@ -429,50 +431,12 @@ MenuItem.prototype = {
   
 
 
-  markSelected: function() {
-    if (!this._target) {
-      return;
-    }
-    this._target.classList.add("selected");
-  },
-
-  
-
-
-  markDeselected: function() {
-    if (!this._target) {
-      return;
-    }
-    this._target.classList.remove("selected");
-  },
-
-  
-
-
-
-
-
-
-
-  setAttributes: function(aAttributes, aElement = this._target) {
-    for (let [name, value] of aAttributes) {
-      aElement.setAttribute(name, value);
-    }
-  },
-
-  
-
-
 
 
 
 
 
   _entangleItem: function(aItem, aElement) {
-    if (!this._itemsByElement) {
-      this._itemsByElement = new Map(); 
-    }
-
     this._itemsByElement.set(aElement, aItem);
     aItem._target = aElement;
   },
@@ -620,6 +584,8 @@ MenuContainer.prototype = {
 
 
 
+
+
   push: function(aContents, aOptions = {}) {
     let item = new MenuItem(aOptions.attachment, aContents);
 
@@ -691,6 +657,16 @@ MenuContainer.prototype = {
     }
     this._container.removeChild(aItem._target);
     this._untangleItem(aItem);
+  },
+
+  
+
+
+
+
+
+  removeAt: function(aIndex) {
+    this.remove(this.getItemAtIndex(aIndex));
   },
 
   
@@ -865,7 +841,7 @@ MenuContainer.prototype = {
 
   containsLabel: function(aLabel) {
     return this._itemsByLabel.has(aLabel) ||
-           this._stagedItems.some(function({item}) item._label == aLabel);
+           this._stagedItems.some(({ item }) => item._label == aLabel);
   },
 
   
@@ -879,10 +855,11 @@ MenuContainer.prototype = {
 
   containsValue: function(aValue) {
     return this._itemsByValue.has(aValue) ||
-           this._stagedItems.some(function({item}) item._value == aValue);
+           this._stagedItems.some(({ item }) => item._value == aValue);
   },
 
   
+
 
 
 
@@ -942,6 +919,12 @@ MenuContainer.prototype = {
 
   set selectedItem(aItem) {
     
+    
+    if (typeof aItem == "function") {
+      aItem = this.getItemForPredicate(aItem);
+    }
+
+    
     let targetElement = aItem ? aItem._target : null;
     let prevElement = this._container.selectedItem;
 
@@ -957,6 +940,10 @@ MenuContainer.prototype = {
     }
     this._container.selectedItem = targetElement;
     ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
+
+    
+    
+    this.refresh();
   },
 
   
@@ -1202,6 +1189,29 @@ MenuContainer.prototype = {
 
 
 
+  getItemForPredicate: function(aPredicate, aOwner = this) {
+    for (let [element, item] of aOwner._itemsByElement) {
+      let match;
+      if (aPredicate(item) && !element.hidden) {
+        match = item;
+      } else {
+        match = this.getItemForPredicate(aPredicate, item);
+      }
+      if (match) {
+        return match;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
   indexOfItem: function(aItem) {
     return this._indexOfElement(aItem._target);
   },
@@ -1412,7 +1422,7 @@ MenuContainer.prototype = {
       aItem._target.focus();
     }
     if (aOptions.attributes) {
-      aItem.setAttributes(aOptions.attributes, aItem._target);
+      aOptions.attributes.forEach(e => aItem._target.setAttribute(e[0], e[1]));
     }
     if (aOptions.finalize) {
       aItem.finalize = aOptions.finalize;
@@ -1565,9 +1575,6 @@ MenuContainer.prototype = {
 
 MenuItem.prototype.__iterator__ =
 MenuContainer.prototype.__iterator__ = function() {
-  if (!this._itemsByElement) {
-    return;
-  }
   for (let [, item] of this._itemsByElement) {
     yield item;
   }
