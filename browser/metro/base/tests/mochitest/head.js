@@ -540,6 +540,25 @@ function synthesizeNativeMouseMUp(aElement, aOffsetX, aOffsetY) {
 
 
 
+
+
+function logicalCoordsForElement (aElement, aX, aY) {
+  let coords = { x: null, y: null };
+  let rect = aElement.getBoundingClientRect();
+
+  coords.x = isNaN(aX) ? rect.left + (rect.width / 2) : rect.left + aX;
+  coords.y = isNaN(aY) ? rect.top + (rect.height / 2) : rect.top + aY;
+
+  return coords;
+}
+
+
+
+
+
+
+
+
 function sendContextMenuClick(aX, aY) {
   let mediator = Components.classes["@mozilla.org/appshell/window-mediator;1"]
                             .getService(Components.interfaces.nsIWindowMediator);
@@ -568,8 +587,8 @@ function sendContextMenuClickToWindow(aWindow, aX, aY) {
 function sendContextMenuClickToElement(aWindow, aElement, aX, aY) {
   let utils = aWindow.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
                       .getInterface(Components.interfaces.nsIDOMWindowUtils);
-  let rect = aElement.getBoundingClientRect();
-  utils.sendMouseEventToWindow("contextmenu", rect.left + aX, rect.top + aY, 2, 1, 0, true,
+  let coords = logicalCoordsForElement(aElement, aX, aY);
+  utils.sendMouseEventToWindow("contextmenu", coords.x, coords.y, 2, 1, 0, true,
                                 1, Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH);
 }
 
@@ -596,8 +615,8 @@ function sendTap(aWindow, aX, aY) {
 }
 
 function sendElementTap(aWindow, aElement, aX, aY) {
-  let rect = aElement.getBoundingClientRect();
-  EventUtils.synthesizeMouseAtPoint(rect.left + aX, rect.top + aY, {
+  let coords = logicalCoordsForElement(aElement, aX, aY);
+  EventUtils.synthesizeMouseAtPoint(coords.x, coords.y, {
       clickCount: 1,
       inputSource: Ci.nsIDOMMouseEvent.MOZ_SOURCE_TOUCH
     }, aWindow);
