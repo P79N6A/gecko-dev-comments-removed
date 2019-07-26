@@ -909,11 +909,6 @@ public:
 
   
   
-  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
-  AsyncPanZoomController* GetAsyncPanZoomController();
-
-  
-  
   AnimationArray& GetAnimations() { return mAnimations; }
   InfallibleTArray<AnimData>& GetAnimationData() { return mAnimationData; }
 
@@ -1381,6 +1376,9 @@ protected:
 
 class ContainerLayer : public Layer {
 public:
+
+  ~ContainerLayer();
+
   
 
 
@@ -1417,6 +1415,12 @@ public:
       Mutated();
     }
   }
+
+  
+  
+  
+  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
+  AsyncPanZoomController* GetAsyncPanZoomController();
 
   void SetPreScale(float aXScale, float aYScale)
   {
@@ -1503,20 +1507,7 @@ protected:
   void DidInsertChild(Layer* aLayer);
   void DidRemoveChild(Layer* aLayer);
 
-  ContainerLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData),
-      mFirstChild(nullptr),
-      mLastChild(nullptr),
-      mPreXScale(1.0f),
-      mPreYScale(1.0f),
-      mInheritedXScale(1.0f),
-      mInheritedYScale(1.0f),
-      mUseIntermediateSurface(false),
-      mSupportsComponentAlphaChildren(false),
-      mMayHaveReadbackChild(false)
-  {
-    mContentFlags = 0; 
-  }
+  ContainerLayer(LayerManager* aManager, void* aImplData);
 
   
 
@@ -1534,6 +1525,7 @@ protected:
   Layer* mFirstChild;
   Layer* mLastChild;
   FrameMetrics mFrameMetrics;
+  nsRefPtr<AsyncPanZoomController> mAPZC;
   float mPreXScale;
   float mPreYScale;
   
