@@ -27,9 +27,11 @@ loop.Client = (function($) {
 
 
 
-    requestCallUrl: function(simplepushUrl, cb) {
+
+
+    requestCallUrl: function(nickname, cb) {
       var endpoint = this.settings.baseApiUrl + "/call-url/",
-          reqData = {simplepushUrl: simplepushUrl};
+          reqData  = {callerId: nickname};
 
       function validate(callUrlData) {
         if (typeof callUrlData !== "object" ||
