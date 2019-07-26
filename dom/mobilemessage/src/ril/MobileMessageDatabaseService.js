@@ -1009,11 +1009,19 @@ MobileMessageDatabaseService.prototype = {
       aMessage.receiver = self;
     } else if (aMessage.type == "mms") {
       let receivers = aMessage.receivers;
-      if (!receivers.length) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (receivers.length >= 2) {
         
-        
-        receivers.push(self ? self : "myself");
-      } else {
         
         
         let slicedReceivers = receivers.slice();
