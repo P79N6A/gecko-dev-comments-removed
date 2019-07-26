@@ -66,14 +66,14 @@ nsCSSProps::kParserVariantTable[eCSSProperty_COUNT_no_shorthands] = {
 
 #define MASK_END_VALUE  (-1)
 
-MOZ_BEGIN_ENUM_CLASS(nsParsingStatus, int32_t)
+MOZ_BEGIN_ENUM_CLASS(CSSParseResult, int32_t)
   
   Ok,
   
   NotFound,
   
   Error
-MOZ_END_ENUM_CLASS(nsParsingStatus)
+MOZ_END_ENUM_CLASS(CSSParseResult)
 
 namespace {
 
@@ -655,7 +655,7 @@ protected:
   
   bool ParseGridLineNames(nsCSSValue& aValue);
   bool ParseGridTrackBreadth(nsCSSValue& aValue);
-  nsParsingStatus ParseGridTrackSize(nsCSSValue& aValue);
+  CSSParseResult ParseGridTrackSize(nsCSSValue& aValue);
   bool ParseGridAutoColumnsRows(nsCSSProperty aPropID);
 
   
@@ -7027,33 +7027,33 @@ CSSParserImpl::ParseGridTrackBreadth(nsCSSValue& aValue)
 }
 
 
-nsParsingStatus
+CSSParseResult
 CSSParserImpl::ParseGridTrackSize(nsCSSValue& aValue)
 {
   
   if (ParseGridTrackBreadth(aValue) ||
       ParseVariant(aValue, VARIANT_AUTO, nullptr)) {
-    return nsParsingStatus::Ok;
+    return CSSParseResult::Ok;
   }
 
   
   if (!GetToken(true)) {
-    return nsParsingStatus::NotFound;
+    return CSSParseResult::NotFound;
   }
   if (!(eCSSToken_Function == mToken.mType &&
         mToken.mIdent.LowerCaseEqualsLiteral("minmax"))) {
     UngetToken();
-    return nsParsingStatus::NotFound;
+    return CSSParseResult::NotFound;
   }
   nsCSSValue::Array* func = aValue.InitFunction(eCSSKeyword_minmax, 2);
   if (ParseGridTrackBreadth(func->Item(1)) &&
       ExpectSymbol(',', true) &&
       ParseGridTrackBreadth(func->Item(2)) &&
       ExpectSymbol(')', true)) {
-    return nsParsingStatus::Ok;
+    return CSSParseResult::Ok;
   }
   SkipUntil(')');
-  return nsParsingStatus::Error;
+  return CSSParseResult::Error;
 }
 
 bool
@@ -7061,7 +7061,7 @@ CSSParserImpl::ParseGridAutoColumnsRows(nsCSSProperty aPropID)
 {
   nsCSSValue value;
   if (ParseVariant(value, VARIANT_INHERIT, nullptr) ||
-      ParseGridTrackSize(value) == nsParsingStatus::Ok) {
+      ParseGridTrackSize(value) == CSSParseResult::Ok) {
     AppendValue(aPropID, value);
     return true;
   }
@@ -7075,7 +7075,7 @@ CSSParserImpl::ParseGridTrackListWithFirstLineNames(nsCSSValue& aValue,
   nsAutoPtr<nsCSSValueList> firstTrackSizeItem(new nsCSSValueList);
 
   
-  if (ParseGridTrackSize(firstTrackSizeItem->mValue) != nsParsingStatus::Ok) {
+  if (ParseGridTrackSize(firstTrackSizeItem->mValue) != CSSParseResult::Ok) {
     
     
     return false;
@@ -7091,11 +7091,11 @@ CSSParserImpl::ParseGridTrackListWithFirstLineNames(nsCSSValue& aValue,
 
     
     nsCSSValue trackSize;
-    nsParsingStatus result = ParseGridTrackSize(trackSize);
-    if (result == nsParsingStatus::Error) {
+    CSSParseResult result = ParseGridTrackSize(trackSize);
+    if (result == CSSParseResult::Error) {
       return false;
     }
-    if (result == nsParsingStatus::NotFound) {
+    if (result == CSSParseResult::NotFound) {
       
       break;
     }
@@ -7362,11 +7362,11 @@ CSSParserImpl::ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames)
     rowsItem->mNext = new nsCSSValueList;
     rowsItem = rowsItem->mNext;
     
-    nsParsingStatus result = ParseGridTrackSize(rowsItem->mValue);
-    if (result == nsParsingStatus::Error) {
+    CSSParseResult result = ParseGridTrackSize(rowsItem->mValue);
+    if (result == CSSParseResult::Error) {
       return false;
     }
-    if (result == nsParsingStatus::NotFound) {
+    if (result == CSSParseResult::NotFound) {
       rowsItem->mValue.SetAutoValue();
     }
 
@@ -7468,17 +7468,17 @@ CSSParserImpl::ParseGridShorthandAutoProps()
 {
   nsCSSValue autoColumnsValue;
   nsCSSValue autoRowsValue;
-  nsParsingStatus result = ParseGridTrackSize(autoColumnsValue);
-  if (result == nsParsingStatus::Error) {
+  CSSParseResult result = ParseGridTrackSize(autoColumnsValue);
+  if (result == CSSParseResult::Error) {
     return false;
   }
-  if (result == nsParsingStatus::NotFound) {
+  if (result == CSSParseResult::NotFound) {
     autoColumnsValue.SetAutoValue();
     autoRowsValue.SetAutoValue();
   } else {
     if (!ExpectSymbol('/', true)) {
       autoRowsValue.SetAutoValue();
-    } else if (ParseGridTrackSize(autoRowsValue) != nsParsingStatus::Ok) {
+    } else if (ParseGridTrackSize(autoRowsValue) != CSSParseResult::Ok) {
       return false;
     }
   }
