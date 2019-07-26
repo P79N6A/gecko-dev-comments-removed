@@ -1375,22 +1375,15 @@ public class BrowserToolbar extends GeckoRelativeLayout
         setButtonEnabled(mBack, enabled);
     }
 
-    public void updateForwardButton(final boolean enabled) {
-        if (mForward.isEnabled() == enabled)
-            return;
-
-        
-        
-        setButtonEnabled(mForward, enabled);
-
+    private void animateForwardButton(final boolean visible) {
         if (mForward.getVisibility() != View.VISIBLE)
             return;
 
         
         
         MarginLayoutParams fwdParams = (MarginLayoutParams) mForward.getLayoutParams();
-        if ((fwdParams.leftMargin > mDefaultForwardMargin && enabled) ||
-            (fwdParams.leftMargin == mDefaultForwardMargin && !enabled)) {
+        if ((fwdParams.leftMargin > mDefaultForwardMargin && visible) ||
+            (fwdParams.leftMargin == mDefaultForwardMargin && !visible)) {
             return;
         }
 
@@ -1401,7 +1394,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mForwardAnim.addPropertyAnimationListener(new PropertyAnimator.PropertyAnimationListener() {
             @Override
             public void onPropertyAnimationStart() {
-                if (!enabled) {
+                if (!visible) {
                     
                     
                     MarginLayoutParams layoutParams =
@@ -1421,7 +1414,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
             @Override
             public void onPropertyAnimationEnd() {
-                if (enabled) {
+                if (visible) {
                     MarginLayoutParams layoutParams =
                         (MarginLayoutParams) mUrlDisplayContainer.getLayoutParams();
                     layoutParams.leftMargin = mUrlBarViewOffset;
@@ -1435,7 +1428,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
                 }
 
                 MarginLayoutParams layoutParams = (MarginLayoutParams) mForward.getLayoutParams();
-                layoutParams.leftMargin = mDefaultForwardMargin + (mForward.isEnabled() ? width : 0);
+                layoutParams.leftMargin = mDefaultForwardMargin + (visible ? width : 0);
                 ViewHelper.setTranslationX(mForward, 0);
 
                 requestLayout();
@@ -1443,8 +1436,18 @@ public class BrowserToolbar extends GeckoRelativeLayout
             }
         });
 
-        prepareForwardAnimation(mForwardAnim, enabled, width);
+        prepareForwardAnimation(mForwardAnim, visible, width);
         mForwardAnim.start();
+    }
+
+    public void updateForwardButton(boolean enabled) {
+        if (mForward.isEnabled() == enabled)
+            return;
+
+        
+        
+        setButtonEnabled(mForward, enabled);
+        animateForwardButton(enabled);
     }
 
     private void prepareForwardAnimation(PropertyAnimator anim, boolean enabled, int width) {
