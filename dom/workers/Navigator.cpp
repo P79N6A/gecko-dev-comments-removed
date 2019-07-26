@@ -49,6 +49,47 @@ WorkerNavigator::WrapObject(JSContext* aCx)
   return WorkerNavigatorBinding_workers::Wrap(aCx, this);
 }
 
+
+
+
+class DataStoreAddEventListenerRunnable : public WorkerMainThreadRunnable
+{
+  nsMainThreadPtrHandle<DataStore> mBackingStore;
+  DataStoreChangeEventProxy* mEventProxy;
+
+protected:
+  virtual bool
+  MainThreadRun() MOZ_OVERRIDE
+  {
+    AssertIsOnMainThread();
+
+    
+    if (NS_FAILED(mBackingStore->AddEventListener(NS_LITERAL_STRING("change"),
+                                                  mEventProxy,
+                                                  false,
+                                                  false,
+                                                  2))) {
+      MOZ_ASSERT(false, "failed to add event listener!");
+      return false;
+    }
+
+    return true;
+  }
+
+public:
+  DataStoreAddEventListenerRunnable(
+    WorkerPrivate* aWorkerPrivate,
+    const nsMainThreadPtrHandle<DataStore>& aBackingStore,
+    DataStoreChangeEventProxy* aEventProxy)
+    : WorkerMainThreadRunnable(aWorkerPrivate)
+    , mBackingStore(aBackingStore)
+    , mEventProxy(aEventProxy)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+  }
+};
+
 #define WORKER_DATA_STORES_TAG JS_SCTAG_USER_MIN
 
 static JSObject*
@@ -76,10 +117,22 @@ GetDataStoresStructuredCloneCallbacksRead(JSContext* aCx,
     return nullptr;
   }
 
-  
   nsRefPtr<WorkerDataStore> workerStore =
     new WorkerDataStore(workerPrivate->GlobalScope());
   nsMainThreadPtrHandle<DataStore> backingStore = dataStoreholder;
+
+  
+  nsRefPtr<DataStoreChangeEventProxy> eventProxy =
+    new DataStoreChangeEventProxy(workerPrivate, workerStore);
+
+  
+  nsRefPtr<DataStoreAddEventListenerRunnable> runnable =
+    new DataStoreAddEventListenerRunnable(workerPrivate,
+                                          backingStore,
+                                          eventProxy);
+  runnable->Dispatch(aCx);
+
+  
   workerStore->SetBackingDataStore(backingStore);
 
   JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));

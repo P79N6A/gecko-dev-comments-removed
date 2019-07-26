@@ -7,6 +7,7 @@
 
 #include "mozilla/dom/DataStore.h"
 #include "mozilla/dom/DataStoreCursor.h"
+#include "mozilla/dom/DataStoreChangeEvent.h"
 #include "mozilla/dom/DataStoreBinding.h"
 #include "mozilla/dom/DataStoreImplBinding.h"
 
@@ -707,6 +708,182 @@ WorkerDataStore::SetBackingDataStore(
   mBackingStore = aBackingStore;
 }
 
+void
+WorkerDataStore::SetDataStoreChangeEventProxy(
+  DataStoreChangeEventProxy* aEventProxy)
+{
+  mEventProxy = aEventProxy;
+}
 
+
+class DispatchDataStoreChangeEventRunnable : public WorkerRunnable
+{
+public:
+  DispatchDataStoreChangeEventRunnable(
+    DataStoreChangeEventProxy* aDataStoreChangeEventProxy,
+    DataStoreChangeEvent* aEvent)
+    : WorkerRunnable(aDataStoreChangeEventProxy->GetWorkerPrivate(),
+                     WorkerThreadUnchangedBusyCount)
+    , mDataStoreChangeEventProxy(aDataStoreChangeEventProxy)
+  {
+    AssertIsOnMainThread();
+    MOZ_ASSERT(mDataStoreChangeEventProxy);
+
+    aEvent->GetRevisionId(mRevisionId);
+    aEvent->GetId(mId);
+    aEvent->GetOperation(mOperation);
+    aEvent->GetOwner(mOwner);
+  }
+
+  virtual bool
+  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) MOZ_OVERRIDE
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    aWorkerPrivate->AssertIsOnWorkerThread();
+    MOZ_ASSERT(aWorkerPrivate == mWorkerPrivate);
+
+    MOZ_ASSERT(mDataStoreChangeEventProxy);
+
+    nsRefPtr<WorkerDataStore> workerStore =
+      mDataStoreChangeEventProxy->GetWorkerStore();
+
+    DataStoreChangeEventInit eventInit;
+    eventInit.mBubbles = false;
+    eventInit.mCancelable = false;
+    eventInit.mRevisionId = mRevisionId;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    eventInit.mId = mId;
+
+    eventInit.mOperation = mOperation;
+    eventInit.mOwner = mOwner;
+
+    nsRefPtr<DataStoreChangeEvent> event =
+      DataStoreChangeEvent::Constructor(workerStore,
+                                        NS_LITERAL_STRING("change"),
+                                        eventInit);
+
+    workerStore->DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+    return true;
+  }
+
+protected:
+  ~DispatchDataStoreChangeEventRunnable()
+  {}
+
+private:
+  nsRefPtr<DataStoreChangeEventProxy> mDataStoreChangeEventProxy;
+
+  nsString mRevisionId;
+  Nullable<OwningStringOrUnsignedLong> mId;
+  nsString mOperation;
+  nsString mOwner;
+};
+
+DataStoreChangeEventProxy::DataStoreChangeEventProxy(
+  WorkerPrivate* aWorkerPrivate,
+  WorkerDataStore* aWorkerStore)
+  : mWorkerPrivate(aWorkerPrivate)
+  , mWorkerStore(aWorkerStore)
+  , mCleanedUp(false)
+  , mCleanUpLock("cleanUpLock")
+{
+  MOZ_ASSERT(mWorkerPrivate);
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT(mWorkerStore);
+
+  
+  
+  mWorkerStore->SetDataStoreChangeEventProxy(this);
+
+  
+  
+  if (!mWorkerPrivate->AddFeature(mWorkerPrivate->GetJSContext(), this)) {
+    MOZ_ASSERT(false, "cannot add the worker feature!");
+    return;
+  }
+}
+
+WorkerPrivate*
+DataStoreChangeEventProxy::GetWorkerPrivate() const
+{
+  
+  
+  MOZ_ASSERT(!mCleanedUp);
+
+  return mWorkerPrivate;
+}
+
+WorkerDataStore*
+DataStoreChangeEventProxy::GetWorkerStore() const
+{
+  return mWorkerStore;
+}
+
+
+
+NS_IMPL_ISUPPORTS(DataStoreChangeEventProxy, nsIDOMEventListener)
+
+NS_IMETHODIMP
+DataStoreChangeEventProxy::HandleEvent(nsIDOMEvent* aEvent)
+{
+  AssertIsOnMainThread();
+
+  MutexAutoLock lock(mCleanUpLock);
+  
+  if (mCleanedUp) {
+    return NS_OK;
+  }
+
+  nsRefPtr<DataStoreChangeEvent> event =
+    static_cast<DataStoreChangeEvent*>(aEvent);
+
+  nsRefPtr<DispatchDataStoreChangeEventRunnable> runnable =
+    new DispatchDataStoreChangeEventRunnable(this, event);
+
+  {
+    AutoSafeJSContext cx;
+    JSAutoRequest ar(cx);
+    runnable->Dispatch(cx);
+  }
+
+  return NS_OK;
+}
+
+
+
+bool
+DataStoreChangeEventProxy::Notify(JSContext* aCx, Status aStatus)
+{
+  MutexAutoLock lock(mCleanUpLock);
+
+  
+  
+  if (mCleanedUp) {
+    return true;
+  }
+
+  MOZ_ASSERT(mWorkerPrivate);
+  mWorkerPrivate->AssertIsOnWorkerThread();
+  MOZ_ASSERT(mWorkerPrivate->GetJSContext() == aCx);
+
+  
+  
+  if (aStatus >= Canceling) {
+    mWorkerStore = nullptr;
+    mWorkerPrivate->RemoveFeature(aCx, this);
+    mCleanedUp = true;
+  }
+
+  return true;
+}
 
 END_WORKERS_NAMESPACE
