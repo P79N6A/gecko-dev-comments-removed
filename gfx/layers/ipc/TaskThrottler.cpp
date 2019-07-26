@@ -45,11 +45,11 @@ TaskThrottler::TaskComplete(const TimeStamp& aTimeStamp)
 
   
   
-  if (mDurations.Length() >= mMaxDurations) {
-    mDurations.RemoveElementAt(0);
-  }
-  if (mMaxDurations) {
-    mDurations.AppendElement(aTimeStamp - mStartTime);
+  if (mMaxDurations > 0) {
+      if (mDurations.Length() >= mMaxDurations) {
+          mDurations.RemoveElementAt(0);
+      }
+      mDurations.AppendElement(aTimeStamp - mStartTime);
   }
 
   if (mQueuedTask) {
