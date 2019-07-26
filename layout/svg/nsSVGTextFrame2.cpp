@@ -413,6 +413,28 @@ TruncateTo(nsTArray<T>& aArrayToTruncate, const nsTArray<U>& aReferenceArray)
 
 
 
+
+
+
+
+
+
+static nsSVGTextFrame2*
+FrameIfAnonymousChildReflowed(nsSVGTextFrame2* aFrame)
+{
+  NS_PRECONDITION(aFrame, "aFrame must not be null");
+  nsIFrame* kid = aFrame->GetFirstPrincipalChild();
+  if (NS_SUBTREE_DIRTY(kid)) {
+    MOZ_ASSERT(false, "should have already reflowed the anonymous block child");
+    return nullptr;
+  }
+  return aFrame;
+}
+
+
+
+
+
 namespace mozilla {
 
 
@@ -1616,6 +1638,10 @@ private:
 uint32_t
 TextFrameIterator::UndisplayedCharacters() const
 {
+  MOZ_ASSERT(!(mRootFrame->GetFirstPrincipalChild() &&
+               NS_SUBTREE_DIRTY(mRootFrame->GetFirstPrincipalChild())),
+             "should have already reflowed the anonymous block child");
+
   if (!mCurrentFrame) {
     return mRootFrame->mTrailingUndisplayedCharacters;
   }
@@ -1755,7 +1781,7 @@ public:
   TextRenderedRunIterator(nsSVGTextFrame2* aSVGTextFrame,
                           RenderedRunFilter aFilter = eAllFrames,
                           nsIFrame* aSubtree = nullptr)
-    : mFrameIterator(aSVGTextFrame, aSubtree),
+    : mFrameIterator(FrameIfAnonymousChildReflowed(aSVGTextFrame), aSubtree),
       mFilter(aFilter),
       mTextElementCharIndex(0),
       mFrameStartTextElementCharIndex(0),
@@ -1777,7 +1803,7 @@ public:
   TextRenderedRunIterator(nsSVGTextFrame2* aSVGTextFrame,
                           RenderedRunFilter aFilter,
                           nsIContent* aSubtree)
-    : mFrameIterator(aSVGTextFrame, aSubtree),
+    : mFrameIterator(FrameIfAnonymousChildReflowed(aSVGTextFrame), aSubtree),
       mFilter(aFilter),
       mTextElementCharIndex(0),
       mFrameStartTextElementCharIndex(0),
@@ -1968,10 +1994,15 @@ TextRenderedRunIterator::Next()
 TextRenderedRun
 TextRenderedRunIterator::First()
 {
+  if (!mFrameIterator.Current()) {
+    return TextRenderedRun();
+  }
+
   if (Root()->mPositions.IsEmpty()) {
     mFrameIterator.Close();
     return TextRenderedRun();
   }
+
   
   
   mTextElementCharIndex = mFrameIterator.UndisplayedCharacters();
@@ -2265,7 +2296,7 @@ CharIterator::CharIterator(nsSVGTextFrame2* aSVGTextFrame,
                            CharIterator::CharacterFilter aFilter,
                            nsIContent* aSubtree)
   : mFilter(aFilter),
-    mFrameIterator(aSVGTextFrame, aSubtree),
+    mFrameIterator(FrameIfAnonymousChildReflowed(aSVGTextFrame), aSubtree),
     mFrameForTrimCheck(nullptr),
     mTrimmedOffset(0),
     mTrimmedLength(0),
