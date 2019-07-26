@@ -286,7 +286,8 @@ def run_test(test, prefix, options):
 
 def check_output(out, err, rc, test):
     if test.expect_error:
-        return test.expect_error in err
+        
+        return test.expect_error in err and rc == 3
 
     for line in out.split('\n'):
         if line.startswith('Trace stats check failed'):
