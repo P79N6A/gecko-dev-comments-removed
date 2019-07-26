@@ -134,7 +134,14 @@ public:
 
 
   virtual nsSize GetScrollPositionClampingScrollPortSize() const = 0;
+  
 
+
+  virtual gfxSize GetResolution() const = 0;
+  
+
+
+  virtual void SetResolution(const gfxSize& aResolution) = 0;
   
 
 

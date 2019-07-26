@@ -2882,6 +2882,7 @@ function Tab(aURL, aParams) {
   this.lastTouchedAt = Date.now();
   this._zoom = 1.0;
   this._drawZoom = 1.0;
+  this._restoreZoom = false;
   this._fixedMarginLeft = 0;
   this._fixedMarginTop = 0;
   this._fixedMarginRight = 0;
@@ -3486,6 +3487,7 @@ Tab.prototype = {
 
     let win = this.browser.contentWindow;
     win.scrollTo(x, y);
+    this.saveSessionZoom(aViewport.zoom);
 
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
@@ -3535,12 +3537,13 @@ Tab.prototype = {
   getViewport: function() {
     let screenW = gScreenWidth - gViewportMargins.left - gViewportMargins.right;
     let screenH = gScreenHeight - gViewportMargins.top - gViewportMargins.bottom;
+    let zoom = this.restoredSessionZoom() || this._zoom;
 
     let viewport = {
       width: screenW,
       height: screenH,
-      cssWidth: screenW / this._zoom,
-      cssHeight: screenH / this._zoom,
+      cssWidth: screenW / zoom,
+      cssHeight: screenH / zoom,
       pageLeft: 0,
       pageTop: 0,
       pageRight: screenW,
@@ -3548,13 +3551,13 @@ Tab.prototype = {
       
       cssPageLeft: 0,
       cssPageTop: 0,
-      cssPageRight: screenW / this._zoom,
-      cssPageBottom: screenH / this._zoom,
+      cssPageRight: screenW / zoom,
+      cssPageBottom: screenH / zoom,
       fixedMarginLeft: this._fixedMarginLeft,
       fixedMarginTop: this._fixedMarginTop,
       fixedMarginRight: this._fixedMarginRight,
       fixedMarginBottom: this._fixedMarginBottom,
-      zoom: this._zoom,
+      zoom: zoom,
     };
 
     
@@ -4186,6 +4189,9 @@ Tab.prototype = {
       tabID: this.id,
     };
 
+    
+    this._restoreZoom = aMessage != "New";
+
     if (aParams) {
       if ("url" in aParams)
         message.url = aParams.url;
@@ -4196,6 +4202,22 @@ Tab.prototype = {
     }
 
     sendMessageToJava(message);
+  },
+
+  saveSessionZoom: function(aZoom) {
+    let cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    cwu.setResolution(aZoom / window.devicePixelRatio, aZoom / window.devicePixelRatio);
+  },
+
+  restoredSessionZoom: function() {
+    if (!this._restoreZoom) {
+      return null;
+    }
+
+    let cwu = this.browser.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    let res = {x: {}, y: {}};
+    cwu.getResolution(res.x, res.y);
+    return res.x.value * window.devicePixelRatio;
   },
 
   OnHistoryNewEntry: function(aUri) {
@@ -4322,8 +4344,11 @@ Tab.prototype = {
     
     
     
-    let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
-    let zoom = (aInitialLoad && metadata.defaultZoom) ? metadata.defaultZoom : this.clampZoom(this._zoom * zoomScale);
+    let zoom = this.restoredSessionZoom() || metadata.defaultZoom;
+    if (!zoom || !aInitialLoad) {
+      let zoomScale = (screenW * oldBrowserWidth) / (aOldScreenWidth * viewportW);
+      zoom = this.clampZoom(this._zoom * zoomScale);
+    }
     this.setResolution(zoom, false);
     this.setScrollClampingSize(zoom);
 
@@ -4459,7 +4484,8 @@ Tab.prototype = {
           
           
           this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
-          this.setResolution(gScreenWidth / this.browserWidth, false);
+          let zoom = this.restoredSessionZoom() || gScreenWidth / this.browserWidth;
+          this.setResolution(zoom, true);
           ViewportHandler.updateMetadata(this, true);
 
           

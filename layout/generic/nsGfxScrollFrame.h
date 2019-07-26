@@ -163,6 +163,9 @@ public:
   
   nsRect GetScrollRange(nscoord aWidth, nscoord aHeight) const;
   nsSize GetScrollPositionClampingScrollPortSize() const;
+  gfxSize GetResolution() const;
+  void SetResolution(const gfxSize& aResolution);
+
 protected:
   nsRect GetScrollRangeForClamping() const;
 
@@ -207,7 +210,7 @@ public:
   nsSize GetLineScrollAmount() const;
   nsSize GetPageScrollAmount() const;
 
-  nsPresState* SaveState();
+  nsPresState* SaveState() const;
   void RestoreState(nsPresState* aState);
 
   nsIFrame* GetScrolledFrame() const { return mScrolledFrame; }
@@ -347,6 +350,9 @@ public:
   
   
   nsPoint mLastPos;
+
+  
+  gfxSize mResolution;
 
   nsExpirationState mActivityExpirationState;
 
@@ -576,6 +582,12 @@ public:
   }
   virtual nsSize GetScrollPositionClampingScrollPortSize() const MOZ_OVERRIDE {
     return mHelper.GetScrollPositionClampingScrollPortSize();
+  }
+  virtual gfxSize GetResolution() const MOZ_OVERRIDE {
+    return mHelper.GetResolution();
+  }
+  virtual void SetResolution(const gfxSize& aResolution) MOZ_OVERRIDE {
+    return mHelper.SetResolution(aResolution);
   }
   virtual nsSize GetLineScrollAmount() const MOZ_OVERRIDE {
     return mHelper.GetLineScrollAmount();
@@ -886,6 +898,12 @@ public:
   }
   virtual nsSize GetScrollPositionClampingScrollPortSize() const MOZ_OVERRIDE {
     return mHelper.GetScrollPositionClampingScrollPortSize();
+  }
+  virtual gfxSize GetResolution() const MOZ_OVERRIDE {
+    return mHelper.GetResolution();
+  }
+  virtual void SetResolution(const gfxSize& aResolution) MOZ_OVERRIDE {
+    return mHelper.SetResolution(aResolution);
   }
   virtual nsSize GetLineScrollAmount() const MOZ_OVERRIDE {
     return mHelper.GetLineScrollAmount();
