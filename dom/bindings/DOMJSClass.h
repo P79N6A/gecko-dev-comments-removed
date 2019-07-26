@@ -18,6 +18,11 @@
 
 
 
+#define DOM_XRAY_EXPANDO_SLOT 1
+
+
+
+
 #define DOM_PROTOTYPE_SLOT (JSCLASS_GLOBAL_SLOT_COUNT + 1)
 
 

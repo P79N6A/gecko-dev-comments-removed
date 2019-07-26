@@ -856,6 +856,8 @@ MOZ_STATIC_ASSERT(prototypes::MaxProtoChainLength == 3,
 
 DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   {
+    
+    
     "DedicatedWorkerGlobalScope",
     JSCLASS_DOM_GLOBAL | JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(3) | JSCLASS_NEW_RESOLVE,
