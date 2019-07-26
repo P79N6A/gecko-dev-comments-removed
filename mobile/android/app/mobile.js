@@ -662,6 +662,10 @@ pref("accessibility.accessfu.utterance", 1);
 pref("accessibility.accessfu.skip_empty_images", true);
 
 
+
+pref("network.tickle-wifi.enabled", true);
+
+
 pref("network.manage-offline-status", true);
 
 

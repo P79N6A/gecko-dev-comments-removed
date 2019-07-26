@@ -866,6 +866,12 @@ pref("security.fileuri.strict_origin_policy", true);
 pref("network.allow-experiments", true);
 
 
+
+pref("network.tickle-wifi.enabled", false);
+pref("network.tickle-wifi.duration", 400);
+pref("network.tickle-wifi.delay", 16);
+
+
 pref("network.disable.ipc.security", false);
 
 
