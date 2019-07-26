@@ -1681,11 +1681,20 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
     
     
     
+
+    if (mFrameMetrics.mCompositionBounds.width == aLayerMetrics.mCompositionBounds.width &&
+        mFrameMetrics.mDevPixelsPerCSSPixel == aLayerMetrics.mDevPixelsPerCSSPixel) {
+      float parentResolutionChange = aLayerMetrics.GetParentResolution().scale
+                                   / mFrameMetrics.GetParentResolution().scale;
+      mFrameMetrics.mZoom.scale *= parentResolutionChange;
+    } else {
+      
+      
+      mFrameMetrics.mZoom.scale = aLayerMetrics.mZoom.scale;
+      mFrameMetrics.mDevPixelsPerCSSPixel.scale = aLayerMetrics.mDevPixelsPerCSSPixel.scale;
+    }
     mFrameMetrics.mScrollableRect = aLayerMetrics.mScrollableRect;
     mFrameMetrics.mCompositionBounds = aLayerMetrics.mCompositionBounds;
-    float parentResolutionChange = aLayerMetrics.GetParentResolution().scale
-                                 / mFrameMetrics.GetParentResolution().scale;
-    mFrameMetrics.mZoom.scale *= parentResolutionChange;
     mFrameMetrics.mResolution = aLayerMetrics.mResolution;
     mFrameMetrics.mCumulativeResolution = aLayerMetrics.mCumulativeResolution;
     mFrameMetrics.mHasScrollgrab = aLayerMetrics.mHasScrollgrab;
