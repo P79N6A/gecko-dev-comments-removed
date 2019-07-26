@@ -245,7 +245,7 @@ class nsCookieService : public nsICookieService
 
 
 
-  static void AppUninstallObserverInit();
+  static void AppClearDataObserverInit();
 
   protected:
     void                          PrefChanged(nsIPrefBranch *aPrefBranch);
