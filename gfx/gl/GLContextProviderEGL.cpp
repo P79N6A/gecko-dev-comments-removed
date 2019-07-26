@@ -799,8 +799,7 @@ GLContextEGL::CreateEGLPixmapOffscreenContext(const gfxIntSize& size)
 
 already_AddRefed<GLContext>
 GLContextProviderEGL::CreateOffscreen(const gfxIntSize& size,
-                                      const SurfaceCaps& caps,
-                                      ContextFlags flags)
+                                      const SurfaceCaps& caps)
 {
     if (!sEGLLibrary.EnsureInitialized()) {
         return nullptr;
@@ -823,7 +822,7 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& size,
 
 
 GLContext *
-GLContextProviderEGL::GetGlobalContext(const ContextFlags)
+GLContextProviderEGL::GetGlobalContext()
 {
     return nullptr;
 }

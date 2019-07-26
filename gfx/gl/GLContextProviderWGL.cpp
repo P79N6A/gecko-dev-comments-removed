@@ -222,12 +222,10 @@ WGLLibrary::EnsureInitialized()
 
     mInitialized = true;
 
-    ContextFlags flag = ContextFlagsNone;
-
     
     
     
-    if (GLContextProviderWGL::GetGlobalContext(flag) == nullptr) {
+    if (GLContextProviderWGL::GetGlobalContext() == nullptr) {
         mInitialized = false;
         return false;
     }
@@ -400,9 +398,9 @@ GLContextWGL::ResizeOffscreen(const gfx::IntSize& aNewSize)
 }
 
 static GLContextWGL *
-GetGlobalContextWGL(const ContextFlags aFlags = ContextFlagsNone)
+GetGlobalContextWGL()
 {
-    return static_cast<GLContextWGL*>(GLContextProviderWGL::GetGlobalContext(aFlags));
+    return static_cast<GLContextWGL*>(GLContextProviderWGL::GetGlobalContext());
 }
 
 already_AddRefed<GLContext>
@@ -559,10 +557,10 @@ CreatePBufferOffscreenContext(const gfxIntSize& aSize,
 }
 
 static already_AddRefed<GLContextWGL>
-CreateWindowOffscreenContext(ContextFlags aFlags)
+CreateWindowOffscreenContext()
 {
     
-    GLContextWGL *shareContext = GetGlobalContextWGL(aFlags);
+    GLContextWGL *shareContext = GetGlobalContextWGL();
     if (!shareContext) {
         return nullptr;
     }
@@ -609,8 +607,7 @@ CreateWindowOffscreenContext(ContextFlags aFlags)
 
 already_AddRefed<GLContext>
 GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
-                                      const SurfaceCaps& caps,
-                                      ContextFlags flags)
+                                      const SurfaceCaps& caps)
 {
     if (!sWGLLib.EnsureInitialized()) {
         return nullptr;
@@ -629,7 +626,7 @@ GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
 
     
     if (!glContext) {
-        glContext = CreateWindowOffscreenContext(flags);
+        glContext = CreateWindowOffscreenContext();
     }
 
     if (!glContext ||
@@ -647,7 +644,7 @@ GLContextProviderWGL::CreateOffscreen(const gfxIntSize& size,
 static nsRefPtr<GLContextWGL> gGlobalContext;
 
 GLContext *
-GLContextProviderWGL::GetGlobalContext(const ContextFlags flags)
+GLContextProviderWGL::GetGlobalContext()
 {
     if (!sWGLLib.EnsureInitialized()) {
         return nullptr;
