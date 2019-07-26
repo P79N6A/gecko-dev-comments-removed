@@ -177,6 +177,10 @@ let gInitialPages = [
 
 XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #ifdef XP_WIN
+  
+  if (gMultiProcessBrowser)
+    return null;
+
   const WINTASKBAR_CONTRACTID = "@mozilla.org/windows-taskbar;1";
   if (WINTASKBAR_CONTRACTID in Cc &&
       Cc[WINTASKBAR_CONTRACTID].getService(Ci.nsIWinTaskbar).available) {
@@ -1127,11 +1131,8 @@ var gBrowserInit = {
     gBrowser.mPanelContainer.addEventListener("PreviewBrowserTheme", LightWeightThemeWebInstaller, false, true);
     gBrowser.mPanelContainer.addEventListener("ResetBrowserThemePreview", LightWeightThemeWebInstaller, false, true);
 
-    
-    if (!gMultiProcessBrowser) {
-      if (Win7Features)
-        Win7Features.onOpenWindow();
-    }
+    if (Win7Features)
+      Win7Features.onOpenWindow();
 
    
     window.addEventListener("fullscreen", onFullScreen, true);
@@ -3406,8 +3407,7 @@ var XULBrowserWindow = {
     return this.reloadCommand = document.getElementById("Browser:Reload");
   },
   get statusTextField () {
-    delete this.statusTextField;
-    return this.statusTextField = document.getElementById("statusbar-display");
+    return gBrowser.getStatusPanel();
   },
   get isImage () {
     delete this.isImage;
@@ -3424,7 +3424,6 @@ var XULBrowserWindow = {
     
     delete this.stopCommand;
     delete this.reloadCommand;
-    delete this.statusTextField;
     delete this.statusText;
   },
 

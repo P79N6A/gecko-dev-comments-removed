@@ -151,6 +151,7 @@ pref("browser.display.focus_ring_style", 1);
 pref("browser.helperApps.alwaysAsk.force",  false);
 pref("browser.helperApps.neverAsk.saveToDisk", "");
 pref("browser.helperApps.neverAsk.openFile", "");
+pref("browser.helperApps.deleteTempFileOnExit", false);
 
 #ifdef XP_WIN
 
@@ -4397,3 +4398,6 @@ pref("dom.forms.inputmode", false);
 #else
 pref("dom.forms.inputmode", true);
 #endif
+
+
+pref("dom.inter-app-communication-api.enabled", false);
