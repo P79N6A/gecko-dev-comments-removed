@@ -1136,6 +1136,7 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, uint32_t patlen, 
 static JSBool
 str_contains(JSContext *cx, unsigned argc, Value *vp)
 {
+    AssertCanGC();
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
@@ -1144,95 +1145,97 @@ str_contains(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    Rooted<JSLinearString *> patstr(cx, ArgToRootedString(cx, args, 0));
-    if (!patstr)
+    Rooted<JSLinearString*> searchStr(cx, ArgToRootedString(cx, args, 0));
+    if (!searchStr)
         return false;
 
     
-    uint32_t textlen = str->length();
-    const jschar *text = str->getChars(cx);
-    if (!text)
-        return false;
-
-    
-    SkipRoot skip(cx, &text);
-
+    uint32_t pos = 0;
     if (args.hasDefined(1)) {
-        
-        double posDouble;
-        if (!ToInteger(cx, args[1], &posDouble))
-            return false;
-
-        
-        uint32_t delta = uint32_t(Min(double(textlen), Max(0.0, posDouble)));
-        text += delta;
-        textlen -= delta;
-    }
-
-    
-    uint32_t patlen = patstr->length();
-    const jschar *pat = patstr->chars();
-
-    
-    args.rval().setBoolean(StringMatch(text, textlen, pat, patlen) >= 0);
-    return true;
-}
-
-static JSBool
-str_indexOf(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-    RootedString str(cx, ThisToStringForStringProto(cx, args));
-    if (!str)
-        return false;
-
-    JSLinearString *patstr = ArgToRootedString(cx, args, 0);
-    if (!patstr)
-        return false;
-
-    uint32_t textlen = str->length();
-    const jschar *text = str->getChars(cx);
-    if (!text)
-        return false;
-
-    uint32_t patlen = patstr->length();
-    const jschar *pat = patstr->chars();
-    SkipRoot skipPat(cx, &pat);
-
-    uint32_t start;
-    if (args.length() > 1) {
         if (args[1].isInt32()) {
             int i = args[1].toInt32();
-            if (i <= 0) {
-                start = 0;
-            } else if (uint32_t(i) > textlen) {
-                start = textlen;
-                textlen = 0;
-            } else {
-                start = i;
-                text += start;
-                textlen -= start;
-            }
+            pos = (i < 0) ? 0U : uint32_t(i);
         } else {
             double d;
             if (!ToInteger(cx, args[1], &d))
                 return false;
-            if (d <= 0) {
-                start = 0;
-            } else if (d > textlen) {
-                start = textlen;
-                textlen = 0;
-            } else {
-                start = (int)d;
-                text += start;
-                textlen -= start;
-            }
+            pos = uint32_t(Min(Max(d, 0.0), double(UINT32_MAX)));
         }
-    } else {
-        start = 0;
     }
 
-    int match = StringMatch(text, textlen, pat, patlen);
+    AutoAssertNoGC nogc;
+
+    
+    uint32_t textLen = str->length();
+    const jschar *textChars = str->getChars(cx);
+    if (!textChars)
+        return false;
+
+    
+    uint32_t start = Min(Max(pos, 0U), textLen);
+
+    
+    uint32_t searchLen = searchStr->length();
+    const jschar *searchChars = searchStr->chars();
+
+    
+    textChars += start;
+    textLen -= start;
+    int match = StringMatch(textChars, textLen, searchChars, searchLen);
+    args.rval().setBoolean(match != -1);
+    return true;
+}
+
+
+static JSBool
+str_indexOf(JSContext *cx, unsigned argc, Value *vp)
+{
+    AssertCanGC();
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    
+    RootedString str(cx, ThisToStringForStringProto(cx, args));
+    if (!str)
+        return false;
+
+    
+    Rooted<JSLinearString*> searchStr(cx, ArgToRootedString(cx, args, 0));
+    if (!searchStr)
+        return false;
+
+    
+    uint32_t pos = 0;
+    if (args.hasDefined(1)) {
+        if (args[1].isInt32()) {
+            int i = args[1].toInt32();
+            pos = (i < 0) ? 0U : uint32_t(i);
+        } else {
+            double d;
+            if (!ToInteger(cx, args[1], &d))
+                return false;
+            pos = uint32_t(Min(Max(d, 0.0), double(UINT32_MAX)));
+        }
+    }
+
+    AutoAssertNoGC nogc;
+
+    
+    uint32_t textLen = str->length();
+    const jschar *textChars = str->getChars(cx);
+    if (!textChars)
+        return false;
+
+    
+    uint32_t start = Min(Max(pos, 0U), textLen);
+
+    
+    uint32_t searchLen = searchStr->length();
+    const jschar *searchChars = searchStr->chars();
+
+    
+    textChars += start;
+    textLen -= start;
+    int match = StringMatch(textChars, textLen, searchChars, searchLen);
     args.rval().setInt32((match == -1) ? -1 : start + match);
     return true;
 }
@@ -1318,6 +1321,7 @@ str_lastIndexOf(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 str_startsWith(JSContext *cx, unsigned argc, Value *vp)
 {
+    AssertCanGC();
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
@@ -1326,37 +1330,47 @@ str_startsWith(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    Rooted<JSLinearString *> patstr(cx, ArgToRootedString(cx, args, 0));
-    if (!patstr)
+    Rooted<JSLinearString*> searchStr(cx, ArgToRootedString(cx, args, 0));
+    if (!searchStr)
         return false;
 
     
-    uint32_t textlen = str->length();
-    const jschar *text = str->getChars(cx);
-    if (!text)
-        return false;
-
-    
-    SkipRoot skip(cx, &text);
-
+    uint32_t pos = 0;
     if (args.hasDefined(1)) {
-        
-        double posDouble;
-        if (!ToInteger(cx, args[1], &posDouble))
-            return false;
+        if (args[1].isInt32()) {
+            int i = args[1].toInt32();
+            pos = (i < 0) ? 0U : uint32_t(i);
+        } else {
+            double d;
+            if (!ToInteger(cx, args[1], &d))
+                return false;
+            pos = uint32_t(Min(Max(d, 0.0), double(UINT32_MAX)));
+        }
+    }
 
-        
-        uint32_t position = Min(double(textlen), Max(0.0, posDouble));
-        text += position;
-        textlen -= position;
+    AutoAssertNoGC nogc;
+
+    
+    uint32_t textLen = str->length();
+    const jschar *textChars = str->getChars(cx);
+    if (!textChars)
+        return false;
+
+    
+    uint32_t start = Min(Max(pos, 0U), textLen);
+
+    
+    uint32_t searchLen = searchStr->length();
+    const jschar *searchChars = searchStr->chars();
+
+    
+    if (searchLen + start < searchLen || searchLen + start > textLen) {
+        args.rval().setBoolean(false);
+        return true;
     }
 
     
-    uint32_t patlen = patstr->length();
-    const jschar *pat = patstr->chars();
-
-    
-    args.rval().setBoolean(textlen >= patlen && PodEqual(text, pat, patlen));
+    args.rval().setBoolean(PodEqual(textChars + start, searchChars, searchLen));
     return true;
 }
 
@@ -1364,6 +1378,7 @@ str_startsWith(JSContext *cx, unsigned argc, Value *vp)
 static JSBool
 str_endsWith(JSContext *cx, unsigned argc, Value *vp)
 {
+    AssertCanGC();
     CallArgs args = CallArgsFromVp(argc, vp);
 
     
@@ -1372,35 +1387,52 @@ str_endsWith(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    Rooted<JSLinearString *> patstr(cx, ArgToRootedString(cx, args, 0));
-    if (!patstr)
+    Rooted<JSLinearString *> searchStr(cx, ArgToRootedString(cx, args, 0));
+    if (!searchStr)
         return false;
 
     
-    uint32_t textlen = str->length();
-    const jschar *text = str->getChars(cx);
-    if (!text)
-        return false;
+    uint32_t textLen = str->length();
 
     
-    SkipRoot skip(cx, &text);
-
+    uint32_t pos = textLen;
     if (args.hasDefined(1)) {
-        
-        double endPosDouble;
-        if (!ToInteger(cx, args[1], &endPosDouble))
-            return false;
+        if (args[1].isInt32()) {
+            int i = args[1].toInt32();
+            pos = (i < 0) ? 0U : uint32_t(i);
+        } else {
+            double d;
+            if (!ToInteger(cx, args[1], &d))
+                return false;
+            pos = uint32_t(Min(Max(d, 0.0), double(UINT32_MAX)));
+        }
+    }
 
-        
-        textlen = Min(double(textlen), Max(0.0, endPosDouble));
+    AutoAssertNoGC nogc;
+
+    
+    const jschar *textChars = str->getChars(cx);
+    if (!textChars)
+        return false;
+
+    
+    uint32_t end = Min(Max(pos, 0U), textLen);
+
+    
+    uint32_t searchLen = searchStr->length();
+    const jschar *searchChars = searchStr->chars();
+
+    
+    if (searchLen > end) {
+        args.rval().setBoolean(false);
+        return true;
     }
 
     
-    uint32_t patlen = patstr->length();
-    const jschar *pat = patstr->chars();
+    uint32_t start = end - searchLen;
 
     
-    args.rval().setBoolean(textlen >= patlen && PodEqual(text + textlen - patlen, pat, patlen));
+    args.rval().setBoolean(PodEqual(textChars + start, searchChars, searchLen));
     return true;
 }
 
