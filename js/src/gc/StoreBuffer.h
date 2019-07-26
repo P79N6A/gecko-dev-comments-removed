@@ -13,6 +13,8 @@
 # error "Generational GC requires exact rooting."
 #endif
 
+#include "mozilla/ReentrancyGuard.h"
+
 #include "jsalloc.h"
 #include "jsgc.h"
 #include "jsobj.h"
@@ -77,6 +79,7 @@ class StoreBuffer
     class MonoTypeBuffer
     {
         friend class StoreBuffer;
+        friend class mozilla::ReentrancyGuard;
 
         StoreBuffer *owner;
 
@@ -97,8 +100,10 @@ class StoreBuffer
 
         EdgeSet duplicates;
 
+        bool entered;
+
         MonoTypeBuffer(StoreBuffer *owner)
-          : owner(owner), base(NULL), pos(NULL), top(NULL)
+          : owner(owner), base(NULL), pos(NULL), top(NULL), entered(false)
         {
             duplicates.init();
         }
@@ -125,6 +130,7 @@ class StoreBuffer
 
         
         void put(const T &v) {
+            mozilla::ReentrancyGuard g(*this);
             JS_ASSERT(!owner->inParallelSection());
 
             
@@ -180,6 +186,7 @@ class StoreBuffer
     class GenericBuffer
     {
         friend class StoreBuffer;
+        friend class mozilla::ReentrancyGuard;
 
         StoreBuffer *owner;
 
@@ -187,8 +194,10 @@ class StoreBuffer
         uint8_t *pos;  
         uint8_t *top;  
 
+        bool entered;
+
         GenericBuffer(StoreBuffer *owner)
-          : owner(owner)
+          : owner(owner), base(NULL), pos(NULL), top(NULL), entered(false)
         {}
 
         GenericBuffer &operator=(const GenericBuffer& other) MOZ_DELETE;
@@ -202,6 +211,7 @@ class StoreBuffer
 
         template <typename T>
         void put(const T &t) {
+            mozilla::ReentrancyGuard g(*this);
             JS_ASSERT(!owner->inParallelSection());
 
             
