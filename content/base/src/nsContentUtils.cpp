@@ -4639,6 +4639,16 @@ nsContentUtils::GetAccelKeyCandidates(nsIDOMKeyEvent* aDOMKeyEvent,
         aCandidates.AppendElement(key);
       }
     }
+
+    
+    
+    
+    
+    if (nativeKeyEvent->mCodeNameIndex == CODE_NAME_INDEX_Space &&
+        nativeKeyEvent->charCode != static_cast<uint32_t>(' ')) {
+      nsShortcutCandidate spaceKey(static_cast<uint32_t>(' '), false);
+      aCandidates.AppendElement(spaceKey);
+    }
   } else {
     uint32_t charCode;
     aDOMKeyEvent->GetCharCode(&charCode);
@@ -4680,6 +4690,14 @@ nsContentUtils::GetAccessKeyCandidates(WidgetKeyboardEvent* aNativeKeyEvent,
       if (aCandidates.IndexOf(ch[j]) == aCandidates.NoIndex)
         aCandidates.AppendElement(ch[j]);
     }
+  }
+  
+  
+  
+  
+  if (aNativeKeyEvent->mCodeNameIndex == CODE_NAME_INDEX_Space &&
+      aNativeKeyEvent->charCode != static_cast<uint32_t>(' ')) {
+    aCandidates.AppendElement(static_cast<uint32_t>(' '));
   }
   return;
 }
