@@ -496,7 +496,7 @@ Service::shutdown()
 sqlite3_vfs *ConstructTelemetryVFS();
 
 #ifdef MOZ_STORAGE_MEMORY
-#  include "jemalloc.h"
+#  include "mozmemory.h"
 
 namespace {
 
@@ -535,7 +535,7 @@ static int sqliteMemSize(void *p)
 
 static int sqliteMemRoundup(int n)
 {
-  n = je_malloc_usable_size_in_advance(n);
+  n = malloc_good_size(n);
 
   
   
