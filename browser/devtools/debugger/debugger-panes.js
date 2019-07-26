@@ -1724,6 +1724,11 @@ SourceResults.prototype = {
   
 
 
+  alwaysExpand: true,
+
+  
+
+
 
   get expanded() this._target.resultsContainer.hasAttribute("open"),
 
@@ -1795,7 +1800,8 @@ SourceResults.prototype = {
     aElementNode.resultsHeader = resultsHeader;
     aElementNode.resultsContainer = resultsContainer;
 
-    if (aExpandFlag && aMatchCount < GLOBAL_SEARCH_EXPAND_MAX_RESULTS) {
+    if ((aExpandFlag || this.alwaysExpand) &&
+         aMatchCount < GLOBAL_SEARCH_EXPAND_MAX_RESULTS) {
       this.expand();
     }
 
