@@ -4175,7 +4175,8 @@ def getMaybeWrapValueFuncForType(type):
             return "MaybeWrapObjectOrNullValue"
         return "MaybeWrapObjectValue"
     
-    if type.isSpiderMonkeyInterface():
+    
+    if type.isSpiderMonkeyInterface() or type.isDictionary() or type.isSequence():
         if type.nullable():
             return "MaybeWrapNonDOMObjectOrNullValue"
         return "MaybeWrapNonDOMObjectValue"
@@ -5118,7 +5119,8 @@ if (!${obj}) {
                    (self.returnType.isGeckoInterface() and
                     self.descriptor.getDescriptor(self.returnType.unroll().inner.identifier.name).nativeOwnership == 'owned'))
 
-        if self.idlNode.isAttr() and self.idlNode.slotIndex is not None:
+        setSlot = self.idlNode.isAttr() and self.idlNode.slotIndex is not None
+        if setSlot:
             
             
             
@@ -5129,26 +5131,14 @@ if (!${obj}) {
             
             if (self.idlNode.getExtendedAttribute("Cached") and
                 self.descriptor.wrapperCache):
-                preserveWrapper = "  PreserveWrapper(self);\n"
+                preserveWrapper = "PreserveWrapper(self);\n"
             else:
                 preserveWrapper = ""
             successCode = (
-                "// Be careful here: Have to wrap the value into the\n"
-                "// compartment of reflector before storing, since we might\n"
-                "// be coming in via Xrays and the value is already in the\n"
-                "// caller compartment.\n"
-                "{ // Scope for tempVal\n"
-                "  JS::Rooted<JS::Value> tempVal(cx, args.rval());\n"
-                "  JSAutoCompartment ac(cx, reflector);\n"
-                "  if (!%s(cx, &tempVal)) {\n"
-                "    return false;\n"
-                "  }\n"
-                "  js::SetReservedSlot(reflector, %s, tempVal);\n"
+                "js::SetReservedSlot(reflector, %s, args.rval());\n"
                 "%s"
-                "}\n"
-                "return true;" %
-                (getMaybeWrapValueFuncForType(self.idlNode.type),
-                 memberReservedSlot(self.idlNode), preserveWrapper))
+                "break;" %
+                (memberReservedSlot(self.idlNode), preserveWrapper))
         else:
             successCode = None
 
@@ -5158,14 +5148,28 @@ if (!${obj}) {
                                  'successCode': successCode,
                                  }
         try:
-            return wrapForType(self.returnType, self.descriptor,
-                               resultTemplateValues)
+            wrapCode = CGGeneric(wrapForType(self.returnType, self.descriptor,
+                                             resultTemplateValues))
         except MethodNotNewObjectError, err:
             assert not returnsNewObject
             raise TypeError("%s being returned from non-NewObject method or property %s.%s" %
                             (err.typename,
                              self.descriptor.interface.identifier.name,
                              self.idlNode.identifier.name))
+        if setSlot:
+            
+            
+            
+            wrapCode = CGWrapper(
+                CGIndenter(wrapCode),
+                pre=("do { // block we break out of when done wrapping\n"
+                     "  // Make sure we wrap and store in the slot in reflector's compartment\n"
+                     "  JSAutoCompartment ac(cx, reflector);\n"),
+                post=("\n} while (0);\n"
+                      "// And now make sure args.rval() is in the caller compartment\n"
+                      "return %s(cx, args.rval());" %
+                      getMaybeWrapValueFuncForType(self.idlNode.type)))
+        return wrapCode.define()
 
     def getErrorReport(self):
         jsImplemented = ""
