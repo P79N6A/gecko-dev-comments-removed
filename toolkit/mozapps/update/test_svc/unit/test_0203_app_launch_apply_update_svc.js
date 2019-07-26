@@ -32,7 +32,7 @@ const MAX_TIMEOUT_RUNS = 300;
 
 
 
-const APP_TIMER_TIMEOUT = 20000;
+const APP_TIMER_TIMEOUT = 120000;
 
 Components.utils.import("resource://gre/modules/ctypes.jsm");
 
