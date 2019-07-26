@@ -29,14 +29,14 @@ bool NS_IsMainThread();
 extern NS_TLS mozilla::threads::ID gTLSThreadID;
 #ifdef MOZ_ASAN
 
-MOZ_ASAN_BLACKLIST static
+MOZ_ASAN_BLACKLIST bool NS_IsMainThread();
 #else
 inline
-#endif
 bool NS_IsMainThread()
 {
   return gTLSThreadID == mozilla::threads::Main;
 }
+#endif
 #else
 
 

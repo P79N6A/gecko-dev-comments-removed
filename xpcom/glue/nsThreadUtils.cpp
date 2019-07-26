@@ -122,7 +122,15 @@ NS_IsMainThread()
   return TlsGetValue(gTLSThreadIDIndex) == (void*) mozilla::threads::Main;
 }
 #elif defined(MOZILLA_INTERNAL_API) && defined(NS_TLS)
+#ifdef MOZ_ASAN
 
+bool NS_IsMainThread()
+{
+  return gTLSThreadID == mozilla::threads::Main;
+}
+#else
+
+#endif
 #else
 #ifdef MOZILLA_INTERNAL_API
 bool NS_IsMainThread()
