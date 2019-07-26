@@ -6,6 +6,7 @@
 
 
 
+#define _GNU_SOURCE
 #include <Python.h>
 #include <errno.h>
 #include <stdlib.h>
