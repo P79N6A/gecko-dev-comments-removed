@@ -3,7 +3,7 @@
 
 function runTests() {
   
-  setLinks("0,1,2,3,4,5,6,7,8");
+  yield setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks("");
 
   yield addNewTabPageTab();
@@ -12,6 +12,8 @@ function runTests() {
   yield addNewTabPageTab();
   gBrowser.removeTab(firstTab);
 
-  cw.gToolbar.hide();
-  ok(cw.gGrid.node.hasAttribute("page-disabled"), "page is disabled");
+  ok(NewTabUtils.allPages.enabled, "page is enabled");
+  NewTabUtils.allPages.enabled = false;
+  ok(getGrid().node.hasAttribute("page-disabled"), "page is disabled");
+  NewTabUtils.allPages.enabled = true;
 }

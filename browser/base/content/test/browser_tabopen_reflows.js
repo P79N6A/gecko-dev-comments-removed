@@ -33,12 +33,17 @@ const EXPECTED_REFLOWS = [
     "onxbltransitionend@chrome://browser/content/tabbrowser.xml|"
 ];
 
+const PREF_PRELOAD = "browser.newtab.preload";
+
 
 
 
 
 function test() {
   waitForExplicitFinish();
+
+  Services.prefs.setBoolPref(PREF_PRELOAD, false);
+  registerCleanupFunction(() => Services.prefs.clearUserPref(PREF_PRELOAD));
 
   
   docShell.addWeakReflowObserver(observer);

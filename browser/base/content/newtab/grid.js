@@ -31,6 +31,9 @@ let gGrid = {
   get sites() [cell.site for each (cell in this.cells)],
 
   
+  get ready() !!this._node,
+
+  
 
 
 

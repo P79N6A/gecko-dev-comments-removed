@@ -50,7 +50,10 @@ let gPage = {
 
 
   update: function Page_update() {
-    gGrid.refresh();
+    
+    if (gGrid.ready) {
+      gGrid.refresh();
+    }
   },
 
   

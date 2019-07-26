@@ -227,7 +227,10 @@ function addNewTabPageTab() {
         executeSoon(TestRunner.next);
       });
     } else {
-      TestRunner.next();
+      
+      
+      
+      executeSoon(TestRunner.next);
     }
   }
 
