@@ -2658,36 +2658,7 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
         
         
         
-        bool breakHere = boundary || invalid;
-
-        if (!breakHere) {
-            
-            if (sizeof(T) == sizeof(uint8_t)) {
-                
-                if (length >= gfxShapedWord::kMaxLength) {
-                    breakHere = true;
-                }
-            } else {
-                
-                if (length >= gfxShapedWord::kMaxLength - 15) {
-                    if (!NS_IS_LOW_SURROGATE(ch)) {
-                        if (!IsClusterExtender(ch)) {
-                            breakHere = true;
-                        }
-                    }
-                    if (!breakHere && length >= gfxShapedWord::kMaxLength - 3) {
-                        if (!NS_IS_LOW_SURROGATE(ch)) {
-                            breakHere = true;
-                        }
-                    }
-                    if (!breakHere && length >= gfxShapedWord::kMaxLength) {
-                        breakHere = true;
-                    }
-                }
-            }
-        }
-
-        if (!breakHere) {
+        if (!boundary && !invalid) {
             if (!IsChar8Bit(ch)) {
                 wordIs8Bit = false;
             }
@@ -2699,7 +2670,18 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
         
         
         
-        if (length > 0) {
+        
+        if (length > gfxShapedWord::kMaxLength) {
+            bool ok = ShapeFragmentWithoutWordCache(aContext,
+                                                    text + wordStart,
+                                                    aRunStart + wordStart,
+                                                    length,
+                                                    aRunScript,
+                                                    aTextRun);
+            if (!ok) {
+                return false;
+            }
+        } else if (length > 0) {
             uint32_t wordFlags = flags;
             
             
@@ -2749,24 +2731,20 @@ gfxFont::SplitAndInitTextRun(gfxContext *aContext,
             break;
         }
 
-        if (invalid) {
-            
-            
-            if (ch == '\t') {
-                aTextRun->SetIsTab(aRunStart + i);
-            } else if (ch == '\n') {
-                aTextRun->SetIsNewline(aRunStart + i);
-            }
-            hash = 0;
-            wordStart = i + 1;
-            wordIs8Bit = true;
-            continue;
-        }
+        NS_ASSERTION(invalid,
+                     "how did we get here except via an invalid char?");
 
         
-        hash = HashMix(0, ch);
-        wordStart = i;
-        wordIs8Bit = IsChar8Bit(ch);
+        
+        if (ch == '\t') {
+            aTextRun->SetIsTab(aRunStart + i);
+        } else if (ch == '\n') {
+            aTextRun->SetIsNewline(aRunStart + i);
+        }
+
+        hash = 0;
+        wordStart = i + 1;
+        wordIs8Bit = true;
     }
 
     return true;
