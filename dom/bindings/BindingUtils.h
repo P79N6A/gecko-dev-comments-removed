@@ -211,8 +211,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
   }
 
   
-  
-  return JS_IsArrayObject(cx, obj) || JS_IsTypedArrayObject(obj);
+  return !JS_ObjectIsDate(cx, obj) && !JS_ObjectIsRegExp(cx, obj);
 }
 
 inline bool
