@@ -803,9 +803,6 @@ class JSScript : public js::gc::Cell
     inline void clearAnalysis();
     inline js::analyze::ScriptAnalysis *analysis();
 
-    
-    bool isShortRunning();
-
     inline void clearPropertyReadTypes();
 
     inline js::GlobalObject &global() const;

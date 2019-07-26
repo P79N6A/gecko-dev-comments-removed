@@ -1351,26 +1351,6 @@ LinearScanAllocator::UnhandledQueue::enqueueForward(LiveInterval *after, LiveInt
     insertBefore(*i, interval);
 }
 
-
-
-
-void
-LinearScanAllocator::UnhandledQueue::enqueueAtHead(LiveInterval *interval)
-{
-#ifdef DEBUG
-    
-    
-    if (!empty()) {
-        LiveInterval *back = peekBack();
-        JS_ASSERT(back->start() >= interval->start());
-        JS_ASSERT_IF(back->start() == interval->start(),
-                     back->requirement()->priority() >= interval->requirement()->priority());
-    }
-#endif
-
-    pushBack(interval);
-}
-
 void
 LinearScanAllocator::UnhandledQueue::assertSorted()
 {

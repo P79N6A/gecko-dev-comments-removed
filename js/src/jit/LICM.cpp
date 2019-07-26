@@ -64,7 +64,6 @@ class Loop
     bool isInLoop(MDefinition *ins);
     bool isBeforeLoop(MDefinition *ins);
     bool isLoopInvariant(MInstruction *ins);
-    bool isLoopInvariant(MDefinition *ins);
 
     
     
@@ -351,15 +350,6 @@ Loop::isLoopInvariant(MInstruction *ins)
     }
 
     return true;
-}
-
-bool
-Loop::isLoopInvariant(MDefinition *ins)
-{
-    if (!isInLoop(ins))
-        return true;
-
-    return ins->isInstruction() && isLoopInvariant(ins->toInstruction());
 }
 
 bool

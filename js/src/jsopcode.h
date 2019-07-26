@@ -451,8 +451,6 @@ class Sprinter
     char *stringAt(ptrdiff_t off) const;
     
     char &operator[](size_t off);
-    
-    bool empty() const;
 
     
 
@@ -460,8 +458,6 @@ class Sprinter
 
 
     char *reserve(size_t len);
-    
-    char *reserveAndClear(size_t len);
 
     
 
@@ -474,13 +470,7 @@ class Sprinter
     
     int printf(const char *fmt, ...);
 
-    
-    void setOffset(const char *end);
-    void setOffset(ptrdiff_t off);
-
-    
     ptrdiff_t getOffset() const;
-    ptrdiff_t getOffsetOf(const char *string) const;
 
     
 

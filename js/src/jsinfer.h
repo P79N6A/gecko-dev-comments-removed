@@ -535,8 +535,6 @@ class TypeSet
 
 
     bool isSubset(TypeSet *other);
-    bool isSubsetIgnorePrimitives(TypeSet *other);
-    bool intersectionEmpty(TypeSet *other);
 
     inline StackTypeSet *toStackTypeSet();
     inline HeapTypeSet *toHeapTypeSet();
@@ -649,12 +647,6 @@ class StackTypeSet : public TypeSet
 
 
     bool filtersType(const StackTypeSet *other, Type type) const;
-
-    
-
-
-
-    bool knownNonStringPrimitive();
 
     enum DoubleConversion {
         
@@ -1438,8 +1430,6 @@ struct TypeCompartment
     void sweep(FreeOp *fop);
     void sweepShapes(FreeOp *fop);
     void sweepCompilerOutputs(FreeOp *fop, bool discardConstraints);
-
-    void maybePurgeAnalysis(JSContext *cx, bool force = false);
 
     void finalizeObjects();
 };
