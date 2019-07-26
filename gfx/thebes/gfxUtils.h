@@ -40,8 +40,15 @@ public:
 
 
 
-    static void PremultiplyDataSurface(DataSourceSurface *aSurface);
-    static mozilla::TemporaryRef<DataSourceSurface> UnpremultiplyDataSurface(DataSourceSurface* aSurface);
+    static bool PremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                       DataSourceSurface* destSurf);
+    static bool UnpremultiplyDataSurface(DataSourceSurface* srcSurf,
+                                         DataSourceSurface* destSurf);
+
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreatePremultipliedDataSurface(DataSourceSurface* srcSurf);
+    static mozilla::TemporaryRef<DataSourceSurface>
+      CreateUnpremultipliedDataSurface(DataSourceSurface* srcSurf);
 
     static void ConvertBGRAtoRGBA(uint8_t* aData, uint32_t aLength);
 
