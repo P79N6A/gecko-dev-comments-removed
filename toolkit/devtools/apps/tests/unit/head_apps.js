@@ -98,7 +98,6 @@ function do_get_webappsdir() {
   coreAppsDir.append("test_coreapps");
   if (!coreAppsDir.exists())
     coreAppsDir.create(Ci.nsIFile.DIRECTORY_TYPE, parseInt("755", 8));
-  var tmpDir = Services.dirsvc.get("TmpD", Ci.nsILocalFile);
 
   
   
@@ -111,7 +110,6 @@ function do_get_webappsdir() {
       else if (prop == "coreAppsDir") {
         return coreAppsDir.clone();
       }
-      return tmpDir.clone();
       throw Cr.NS_ERROR_FAILURE;
     },
     QueryInterface: function(iid) {
