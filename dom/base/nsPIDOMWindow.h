@@ -612,6 +612,7 @@ public:
                  const nsAString& aOptions, nsIDOMWindow **_retval) = 0;
 
   void AddAudioContext(mozilla::dom::AudioContext* aAudioContext);
+  void RemoveAudioContext(mozilla::dom::AudioContext* aAudioContext);
   void MuteAudioContexts();
   void UnmuteAudioContexts();
 
@@ -708,7 +709,7 @@ protected:
   nsCOMPtr<nsIContent> mFocusedNode;
 
   
-  nsTArray<nsRefPtr<mozilla::dom::AudioContext> > mAudioContexts;
+  nsTArray<mozilla::dom::AudioContext*> mAudioContexts; 
 
   
   
