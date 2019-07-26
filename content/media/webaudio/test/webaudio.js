@@ -90,6 +90,12 @@ function getEmptyBuffer(context, length) {
 
 
 
+
+
+
+
+
+
 function runTest()
 {
   function done() {
@@ -120,7 +126,9 @@ function runTest()
            "Correct number of channels for expected buffer " + i);
         expectedFrames += expectedBuffers[i].length;
       }
-      is(expectedFrames, gTest.length, "Correct number of expected frames");
+      if (gTest.length && !gTest.createExpectedBuffers) {
+        is(expectedFrames, gTest.length, "Correct number of expected frames");
+      }
 
       if (gTest.createGraphAsync) {
         gTest.createGraphAsync(context, function(nodeToInspect) {
