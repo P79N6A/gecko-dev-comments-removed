@@ -3423,51 +3423,6 @@ nsLayoutUtils::ComputeHeightDependentValue(
   return 0;
 }
 
- void
-nsLayoutUtils::MarkDescendantsDirty(nsIFrame *aSubtreeRoot)
-{
-  nsAutoTArray<nsIFrame*, 4> subtrees;
-  subtrees.AppendElement(aSubtreeRoot);
-
-  
-  
-  do {
-    nsIFrame *subtreeRoot = subtrees.ElementAt(subtrees.Length() - 1);
-    subtrees.RemoveElementAt(subtrees.Length() - 1);
-
-    
-    
-    
-    
-    nsAutoTArray<nsIFrame*, 32> stack;
-    stack.AppendElement(subtreeRoot);
-
-    do {
-      nsIFrame *f = stack.ElementAt(stack.Length() - 1);
-      stack.RemoveElementAt(stack.Length() - 1);
-
-      f->MarkIntrinsicWidthsDirty();
-
-      if (f->GetType() == nsGkAtoms::placeholderFrame) {
-        nsIFrame *oof = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
-        if (!nsLayoutUtils::IsProperAncestorFrame(subtreeRoot, oof)) {
-          
-          subtrees.AppendElement(oof);
-        }
-      }
-
-      nsIFrame::ChildListIterator lists(f);
-      for (; !lists.IsDone(); lists.Next()) {
-        nsFrameList::Enumerator childFrames(lists.CurrentList());
-        for (; !childFrames.AtEnd(); childFrames.Next()) {
-          nsIFrame* kid = childFrames.get();
-          stack.AppendElement(kid);
-        }
-      }
-    } while (stack.Length() != 0);
-  } while (subtrees.Length() != 0);
-}
-
 #define MULDIV(a,b,c) (nscoord(int64_t(a) * int64_t(b) / int64_t(c)))
 
  nsSize
