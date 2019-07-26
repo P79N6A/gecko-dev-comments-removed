@@ -4,6 +4,9 @@
 
 
 #include "TextureHostBasic.h"
+#ifdef MOZ_X11
+#include "TextureHostX11.h"
+#endif
 #include "MacIOSurfaceTextureHostBasic.h"
 
 using namespace mozilla::gl;
@@ -22,6 +25,13 @@ CreateTextureHostBasic(const SurfaceDescriptor& aDesc,
     const SurfaceDescriptorMacIOSurface& desc =
       aDesc.get_SurfaceDescriptorMacIOSurface();
     RefPtr<TextureHost> result = new MacIOSurfaceTextureHostBasic(aFlags, desc);
+    return result;
+  }
+#endif
+#ifdef MOZ_X11
+  if (aDesc.type() == SurfaceDescriptor::TSurfaceDescriptorX11) {
+    const SurfaceDescriptorX11& desc = aDesc.get_SurfaceDescriptorX11();
+    RefPtr<TextureHost> result = new TextureHostX11(aFlags, desc);
     return result;
   }
 #endif
