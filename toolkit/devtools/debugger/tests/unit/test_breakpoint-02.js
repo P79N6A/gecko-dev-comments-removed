@@ -27,12 +27,12 @@ function run_test()
 
 function test_breakpoint_running()
 {
-  let path = getFilePath('test_breakpoint-02.js');
-  let location = { url: path, line: gDebuggee.line0 + 2};
-
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +
                  "var a = 1;\n" +  
                  "var b = 2;\n");  
+
+  let path = getFilePath('test_breakpoint-02.js');
+  let location = { url: path, line: gDebuggee.line0 + 2};
 
   
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
@@ -43,7 +43,7 @@ function test_breakpoint_running()
   gThreadClient.setBreakpoint(location, function(aResponse) {
     
     
-    do_check_eq(aResponse.error, "noScript");
+    do_check_neq(aResponse.error, "noScript");
 
     do_execute_soon(function() {
       finishClient(gClient);
