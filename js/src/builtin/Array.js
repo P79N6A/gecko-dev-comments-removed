@@ -677,36 +677,23 @@ function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
     var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
 
     
-    var usingIterator = items["@@iterator"];
-    if (usingIterator !== undefined) {
+    if (items["@@iterator"] !== undefined) {
         
         var A = IsConstructor(C) ? new C() : [];
-
-        
-        var iterator = callFunction(usingIterator, items);
 
         
         var k = 0;
 
         
-        
-        
-        var next;
-        while (true) {
-            
-            next = iterator.next();
-            if (!IsObject(next))
-                ThrowError(JSMSG_NEXT_RETURNED_PRIMITIVE);
-            if (next.done)
-                break;  
-            var nextValue = next.value;
-
+        for (var nextValue of items) {
             
             var mappedValue = mapping ? callFunction(mapfn, thisArg, nextValue, k) : nextValue;
 
             
             _DefineDataProperty(A, k++, mappedValue, attrs);
         }
+
+        
     } else {
         
         
