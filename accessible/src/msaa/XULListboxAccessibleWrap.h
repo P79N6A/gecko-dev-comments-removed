@@ -22,16 +22,13 @@ class XULListboxAccessibleWrap : public XULListboxAccessible,
                                  public ia2AccessibleTable
 {
 public:
-  XULListboxAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-    XULListboxAccessible(aContent, aDoc), ia2AccessibleTable(this) {}
+  XULListboxAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc);
 
   
   DECL_IUNKNOWN_INHERITED
 
   
   NS_DECL_ISUPPORTS_INHERITED
-
-  virtual void Shutdown() MOZ_OVERRIDE;
 };
 
 
