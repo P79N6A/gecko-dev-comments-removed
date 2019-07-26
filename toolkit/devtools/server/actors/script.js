@@ -115,34 +115,10 @@ BreakpointStore.prototype = {
 
 
 
-  getBreakpoint: function BS_getBreakpoint(aLocation) {
-    let { url, line, column } = aLocation;
-    dbg_assert(url != null);
-    dbg_assert(line != null);
-
-    var foundBreakpoint = this.hasBreakpoint(aLocation);
-    if (foundBreakpoint == null) {
-      throw new Error("No breakpoint at url = " + url
-          + ", line = " + line
-          + ", column = " + column);
-    }
-
-    return foundBreakpoint;
-  },
-
-  
 
 
 
-
-
-
-
-
-
-
-
-  hasBreakpoint: function BS_hasBreakpoint(aLocation) {
+  getBreakpoint: function BS_getBreakpoint(aLocation, aShouldThrow=true) {
     let { url, line, column } = aLocation;
     dbg_assert(url != null);
     dbg_assert(line != null);
@@ -153,7 +129,11 @@ BreakpointStore.prototype = {
       
       return bp;
     }
-
+    if (aShouldThrow) {
+      throw new Error("No breakpoint at url = " + url
+                      + ", line = " + line
+                      + ", column = " + column);
+    }
     return null;
   },
 
@@ -1098,8 +1078,7 @@ ThreadActor.prototype = {
       }
     }
     if (found) {
-      let existingBp = this.breakpointStore.hasBreakpoint(actualLocation);
-
+      let existingBp = this.breakpointStore.getBreakpoint(actualLocation, false);
       if (existingBp && existingBp.actor) {
         
 
