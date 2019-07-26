@@ -421,8 +421,7 @@ class JitCompartment
     
     
     
-    typedef HashSet<PreBarrieredScript, DefaultHasher<PreBarrieredScript>, SystemAllocPolicy>
-        ScriptSet;
+    typedef HashSet<PreBarrieredScript> ScriptSet;
     ScriptSet *activeParallelEntryScripts_;
 
     JitCode *generateStringConcatStub(JSContext *cx, ExecutionMode mode);
