@@ -26,12 +26,6 @@ class BooleanObject : public JSObject
 
     static inline BooleanObject *create(JSContext *cx, bool b);
 
-    
-
-
-
-    static inline BooleanObject *createWithProto(JSContext *cx, bool b, JSObject &proto);
-
     bool unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toBoolean();
     }

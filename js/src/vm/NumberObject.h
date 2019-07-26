@@ -26,12 +26,6 @@ class NumberObject : public JSObject
 
     static inline NumberObject *create(JSContext *cx, double d);
 
-    
-
-
-
-    static inline NumberObject *createWithProto(JSContext *cx, double d, JSObject &proto);
-
     double unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toNumber();
     }

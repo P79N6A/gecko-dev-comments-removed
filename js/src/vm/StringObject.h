@@ -27,12 +27,6 @@ class StringObject : public JSObject
 
     static inline StringObject *create(JSContext *cx, HandleString str);
 
-    
-
-
-
-    static inline StringObject *createWithProto(JSContext *cx, HandleString str, JSObject &proto);
-
     JSString *unbox() const {
         return getFixedSlot(PRIMITIVE_VALUE_SLOT).toString();
     }
