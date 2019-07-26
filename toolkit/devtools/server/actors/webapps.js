@@ -947,8 +947,7 @@ WebappsActor.prototype = {
     let manifestURL;
     switch(event.type) {
       case "appwillopen":
-        let frame = event.target;
-        manifestURL = frame.getAttribute("mozapp")
+        manifestURL = event.detail.manifestURL;
 
         
         
