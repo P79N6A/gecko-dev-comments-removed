@@ -6,6 +6,7 @@ package org.mozilla.gecko.tests;
 
 import java.util.Map;
 
+import org.mozilla.gecko.AppConstants;
 import org.mozilla.gecko.Assert;
 import org.mozilla.gecko.FennecInstrumentationTestRunner;
 import org.mozilla.gecko.FennecMochitestAssert;
@@ -21,20 +22,35 @@ public abstract class BaseRobocopTest extends ActivityInstrumentationTestCase2<A
         TALOS
     }
 
-    protected static final String TARGET_PACKAGE_ID = "org.mozilla.gecko";
     protected Assert mAsserter;
     protected String mLogFile;
 
     protected Map<?, ?> mConfig;
     protected String mRootPath;
 
-    public BaseRobocopTest(Class<Activity> activityClass) {
-        super(activityClass);
+    
+
+
+
+
+
+
+
+
+    @SuppressWarnings("unchecked")
+    public BaseRobocopTest() {
+        this((Class<Activity>) AppConstants.BROWSER_INTENT_CLASS);
     }
 
-    @SuppressWarnings("deprecation")
-    public BaseRobocopTest(String targetPackageId, Class<Activity> activityClass) {
-        super(targetPackageId, activityClass);
+    
+
+
+
+
+
+
+    protected BaseRobocopTest(Class<Activity> activityClass) {
+        super(activityClass);
     }
 
     
