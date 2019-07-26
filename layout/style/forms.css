@@ -811,6 +811,16 @@ input[type=range][orient=vertical] {
 
 
 
+input[type=range]::-moz-focus-outer {
+  border: 1px dotted black;
+}
+
+
+
+
+
+
+
 
 
 
