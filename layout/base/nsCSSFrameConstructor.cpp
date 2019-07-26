@@ -3432,8 +3432,6 @@ nsCSSFrameConstructor::FindInputData(Element* aElement,
     SIMPLE_INT_CREATE(NS_FORM_INPUT_PASSWORD, NS_NewTextControlFrame),
     
     SIMPLE_INT_CREATE(NS_FORM_INPUT_NUMBER, NS_NewTextControlFrame),
-    
-    SIMPLE_INT_CREATE(NS_FORM_INPUT_DATE, NS_NewTextControlFrame),
     { NS_FORM_INPUT_SUBMIT,
       FCDATA_WITH_WRAPPING_BLOCK(0, NS_NewGfxButtonControlFrame,
                                  nsCSSAnonBoxes::buttonContent) },
@@ -8114,6 +8112,11 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
                  (hint & nsChangeHint_NeedReflow),
                  "Reflow hint bits set without actually asking for a reflow");
 
+    
+    if (frame && !propTable->Get(frame, ChangeListProperty())) {
+      continue;
+    }
+
     if (frame && frame->GetContent() != content) {
       
       
@@ -8121,12 +8124,6 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList,
       if (!(hint & nsChangeHint_ReconstructFrame)) {
         continue;
       }
-    }
-
-    
-    if (frame) {
-      if (!propTable->Get(frame, ChangeListProperty()))
-        continue;
     }
 
     if ((hint & nsChangeHint_AddOrRemoveTransform) && frame &&
