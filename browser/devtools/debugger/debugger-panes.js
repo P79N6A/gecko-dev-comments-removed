@@ -101,7 +101,10 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
   _onClick: function DVSF__onClick(e) {
     let item = this.getItemForElement(e.target);
-    DebuggerController.StackFrames.selectFrame(item.attachment.depth);
+    if (item) {
+      
+      DebuggerController.StackFrames.selectFrame(item.attachment.depth);
+    }
   },
 
   
@@ -512,6 +515,10 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
   _onClick: function DVB__onClick(e) {
     let breakpointItem = this.getItemForElement(e.target);
+    if (!breakpointItem) {
+      
+      return;
+    }
     let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
 
     DebuggerView.updateEditor(url, line, { noDebug: true });
@@ -522,12 +529,16 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
   _onCheckboxClick: function DVB__onCheckboxClick(e) {
+    let breakpointItem = this.getItemForElement(e.target);
+    if (!breakpointItem) {
+      
+      return;
+    }
+    let { sourceLocation: url, lineNumber: line, enabled } = breakpointItem.attachment;
+
     
     e.preventDefault();
     e.stopPropagation();
-
-    let breakpointItem = this.getItemForElement(e.target);
-    let { sourceLocation: url, lineNumber: line, enabled } = breakpointItem.attachment;
 
     this[enabled
       ? "disableBreakpoint"
