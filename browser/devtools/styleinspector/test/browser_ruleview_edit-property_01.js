@@ -8,7 +8,7 @@
 
 
 
-let TEST_URL = 'url("' + TEST_URL_ROOT + 'test-image.png")';
+let TEST_URL = 'url("' + TEST_URL_ROOT + 'doc_test_image.png")';
 let PAGE_CONTENT = [
   '<style type="text/css">',
   '  #testid {',

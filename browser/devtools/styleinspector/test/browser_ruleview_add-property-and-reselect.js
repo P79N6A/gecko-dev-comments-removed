@@ -7,7 +7,7 @@
 
 
 
-const TEST_URI = TEST_URL_ROOT + "browser_bug705707_is_content_stylesheet.html";
+const TEST_URI = TEST_URL_ROOT + "doc_content_stylesheet.html";
 
 let test = asyncTest(function*() {
   yield addTab(TEST_URI);
