@@ -19,13 +19,19 @@ from collections import (
 def ensure_parent_dir(file):
     '''Ensures the directory parent to the given file exists'''
     dir = os.path.dirname(file)
-    if not dir or os.path.exists(dir):
+    if not dir:
         return
+
     try:
         os.makedirs(dir)
     except OSError as error:
         if error.errno != errno.EEXIST:
             raise
+
+    if not os.access(dir, os.W_OK):
+        umask = os.umask(0077)
+        os.umask(umask)
+        os.chmod(dir, 0777 & ~umask)
 
 
 class FileRegistry(object):
@@ -168,12 +174,24 @@ class FileCopier(FileRegistry):
         directory_remove_count = 0
 
         for f in actual_dest_files - dest_files:
+            
+            if os.name == 'nt' and not os.access(f, os.W_OK):
+                
+                
+                os.chmod(f, 0600)
+
             os.remove(f)
             file_remove_count += 1
+
         for root, dirs, files in os.walk(destination):
-            if not files and not dirs:
-                os.removedirs(root)
-                directory_remove_count += 1
+            if files or dirs:
+                continue
+
+            
+            
+            os.chmod(root, 0700)
+            os.removedirs(root)
+            directory_remove_count += 1
 
         return FileCopyResult(removed_files_count=file_remove_count,
             removed_directories_count=directory_remove_count)
