@@ -25,6 +25,18 @@ XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
                                   "resource://gre/modules/NetUtil.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this,
+                                   "ChromeRegistry",
+                                   "@mozilla.org/chrome/chrome-registry;1",
+                                   "nsIChromeRegistry");
+XPCOMUtils.defineLazyServiceGetter(this,
+                                   "ResProtocolHandler",
+                                   "@mozilla.org/network/protocol;1?name=resource",
+                                   "nsIResProtocolHandler");
+
+const nsIFile = Components.Constructor("@mozilla.org/file/local;1", "nsIFile",
+                                       "initWithPath");
+
 const PREF_DB_SCHEMA                  = "extensions.databaseSchema";
 const PREF_INSTALL_CACHE              = "extensions.installCache";
 const PREF_BOOTSTRAP_ADDONS           = "extensions.bootstrappedAddons";
@@ -1514,6 +1526,123 @@ var XPIProvider = {
 
 
 
+  _addURIMapping: function XPI__addURIMapping(aID, aFile) {
+    try {
+      
+      
+      let uri = this._resolveURIToFile(getURIForResourceInFile(aFile, "."));
+      if (!uri) {
+        throw new Error("Cannot resolve");
+      }
+      this._ensureURIMappings();
+      this._uriMappings[aID] = uri.spec;
+    }
+    catch (ex) {
+      WARN("Failed to add URI mapping", ex);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _ensureURIMappings: function XPI__ensureURIMappings() {
+    if (this._uriMappings) {
+      return;
+    }
+    
+    this._uriMappings = Object.create(null);
+
+    
+    let enabled = Object.create(null);
+    for (let a of this.enabledAddons.split(",")) {
+      a = decodeURIComponent(a.split(":")[0]);
+      enabled[a] = null;
+    }
+
+    let cache = JSON.parse(Prefs.getCharPref(PREF_INSTALL_CACHE, "[]"));
+    for (let loc of cache) {
+      for (let [id, val] in Iterator(loc.addons)) {
+        if (!(id in enabled)) {
+          continue;
+        }
+        let file = new nsIFile(val.descriptor);
+        let spec = Services.io.newFileURI(file).spec;
+        this._uriMappings[id] = spec;
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _resolveURIToFile: function XPI__resolveURIToFile(aURI) {
+    switch (aURI.scheme) {
+      case "jar":
+      case "file":
+        if (aURI instanceof Ci.nsIJARURI) {
+          return this._resolveURIToFile(aURI.JARFile);
+        }
+        return aURI;
+
+      case "chrome":
+        aURI = ChromeRegistry.convertChromeURL(aURI);
+        return this._resolveURIToFile(aURI);
+
+      case "resource":
+        aURI = Services.io.newURI(ResProtocolHandler.resolveURI(aURI), null,
+                                  null);
+        return this._resolveURIToFile(aURI);
+
+      case "view-source":
+        aURI = Services.io.newURI(aURI.path, null, null);
+        return this._resolveURIToFile(aURI);
+
+      case "about":
+        if (aURI.spec == "about:blank") {
+          
+          return null;
+        }
+
+        let chan;
+        try {
+          chan = Services.io.newChannelFromURI(aURI);
+        }
+        catch (ex) {
+          return null;
+        }
+        
+        if (chan.URI.equals(aURI)) {
+          return null;
+        }
+        
+        
+        
+        return this._resolveURIToFile(chan.URI.clone());
+
+      default:
+        return null;
+    }
+  },
+
+  
+
+
+
+
+
+
 
 
 
@@ -1731,6 +1860,9 @@ var XPIProvider = {
 
     
     this.extensionsActive = false;
+
+    
+    delete this._uriMappings;
 
     if (gLazyObjectsLoaded) {
       XPIDatabase.shutdown(function shutdownCallback() {
@@ -3370,6 +3502,34 @@ var XPIProvider = {
 
 
 
+
+  mapURIToAddonID: function XPI_mapURIToAddonID(aURI) {
+    this._ensureURIMappings();
+    let resolved = this._resolveURIToFile(aURI);
+    if (!resolved) {
+      return null;
+    }
+    resolved = resolved.spec;
+    for (let [id, spec] in Iterator(this._uriMappings)) {
+      if (resolved.startsWith(spec)) {
+        return id;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
   addonChanged: function XPI_addonChanged(aId, aType, aPendingRestart) {
     
     if (aType != "theme")
@@ -3721,6 +3881,9 @@ var XPIProvider = {
 
     let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
                  createInstance(Ci.mozIJSSubScriptLoader);
+
+    
+    this._addURIMapping(aId, aFile);
 
     try {
       

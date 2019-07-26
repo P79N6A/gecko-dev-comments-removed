@@ -56,6 +56,14 @@ amManager.prototype = {
   
 
 
+  mapURIToAddonID: function AMC_mapURIToAddonID(uri, id) {
+    id.value = AddonManager.mapURIToAddonID(uri);
+    return !!id.value;
+  },
+
+  
+
+
   isInstallEnabled: function AMC_isInstallEnabled(aMimetype, aReferer) {
     return AddonManager.isInstallEnabled(aMimetype);
   },
@@ -201,7 +209,8 @@ amManager.prototype = {
       return gSingleton.QueryInterface(aIid);
     }
   },
-  QueryInterface: XPCOMUtils.generateQI([Ci.amIWebInstaller,
+  QueryInterface: XPCOMUtils.generateQI([Ci.amIAddonManager,
+                                         Ci.amIWebInstaller,
                                          Ci.nsITimerCallback,
                                          Ci.nsIObserver])
 };

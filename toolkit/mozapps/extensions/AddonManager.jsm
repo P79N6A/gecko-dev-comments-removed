@@ -1462,6 +1462,35 @@ var AddonManagerInternal = {
 
 
 
+
+
+
+
+
+  mapURIToAddonID: function AMI_mapURIToAddonID(aURI) {
+    if (!(aURI instanceof Ci.nsIURI)) {
+      throw Components.Exception("aURI is not a nsIURI",
+                                 Cr.NS_ERROR_INVALID_ARG);
+    }
+    
+    let providers = this.providers.slice(0);
+    for (let provider of providers) {
+      var id = callProvider(provider, "mapURIToAddonID", null, aURI);
+      if (id !== null) {
+        return id;
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
   isInstallEnabled: function AMI_isInstallEnabled(aMimetype) {
     if (!gStarted)
       throw Components.Exception("AddonManager is not initialized",
@@ -2338,6 +2367,10 @@ this.AddonManager = {
 
   getAllInstalls: function AM_getAllInstalls(aCallback) {
     AddonManagerInternal.getAllInstalls(aCallback);
+  },
+
+  mapURIToAddonID: function AM_mapURIToAddonID(aURI) {
+    return AddonManagerInternal.mapURIToAddonID(aURI);
   },
 
   isInstallEnabled: function AM_isInstallEnabled(aType) {
