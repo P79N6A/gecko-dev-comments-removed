@@ -374,7 +374,6 @@ let DebuggerView = {
 
 
 
-
   _setEditorSource: function(aSource, aFlags={}) {
     
     if (this._editorSource.url == aSource.url && !aFlags.force) {
@@ -425,7 +424,6 @@ let DebuggerView = {
   },
 
   
-
 
 
 
