@@ -641,6 +641,10 @@ pref("plugins.update.notifyUser", false);
 pref("plugins.click_to_play", true);
 
 
+pref("plugin.default.state", 1);
+pref("plugin.state.flash", 2);
+
+
 pref("plugins.notifyMissingFlash", true);
 
 #ifdef XP_WIN
