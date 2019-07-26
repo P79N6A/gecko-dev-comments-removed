@@ -1058,6 +1058,14 @@ pref("network.IDN_show_punycode", false);
 
 
 
+
+
+
+
+
+pref("network.IDN.restriction_profile", "moderate");
+
+
 pref("network.IDN.whitelist.ac", true);
 pref("network.IDN.whitelist.ar", true);
 pref("network.IDN.whitelist.at", true);
