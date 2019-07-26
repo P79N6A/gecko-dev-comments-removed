@@ -21,6 +21,7 @@ class nsAHttpSegmentWriter;
 class nsHttpTransaction;
 class nsHttpPipeline;
 class nsHttpRequestHead;
+class nsHttpConnectionInfo;
 
 
 
@@ -133,6 +134,9 @@ public:
     virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
     
+    virtual nsHttpConnectionInfo *ConnectionInfo() = 0;
+
+    
     virtual bool ResponseTimeoutEnabled() const;
     virtual PRIntervalTime ResponseTimeout();
 
@@ -174,6 +178,7 @@ public:
     nsresult ReadSegments(nsAHttpSegmentReader *, uint32_t, uint32_t *); \
     nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *); \
     void     Close(nsresult reason);                                    \
+    nsHttpConnectionInfo *ConnectionInfo();                             \
     void     SetProxyConnectFailed();                                   \
     nsHttpRequestHead *RequestHead();                                   \
     uint32_t Http1xTransactionCount();                                  \

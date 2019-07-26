@@ -32,8 +32,6 @@ public:
                       uint32_t caps);
   ~NullHttpTransaction();
 
-  nsHttpConnectionInfo *ConnectionInfo() { return mConnectionInfo; }
-
   
   bool IsNullTransaction() MOZ_OVERRIDE MOZ_FINAL { return true; }
   bool ResponseTimeoutEnabled() const MOZ_OVERRIDE MOZ_FINAL {return true; }
