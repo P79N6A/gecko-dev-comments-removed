@@ -5319,21 +5319,10 @@ EmitLabel(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
     JSAtom *atom = pn->pn_atom;
 
     jsatomid index;
     if (!bce->makeAtomIndex(atom, &index))
-        return false;
-
-    ParseNode *pn2 = pn->expr();
-    SrcNoteType noteType = (pn2->isKind(PNK_STATEMENTLIST) ||
-                            (pn2->isKind(PNK_LEXICALSCOPE) &&
-                             pn2->expr()->isKind(PNK_STATEMENTLIST)))
-                           ? SRC_LABELBRACE
-                           : SRC_LABEL;
-    ptrdiff_t noteIndex = NewSrcNote2(cx, bce, noteType, ptrdiff_t(index));
-    if (noteIndex < 0)
         return false;
 
     ptrdiff_t top = EmitJump(cx, bce, JSOP_LABEL, 0);
@@ -5344,20 +5333,13 @@ EmitLabel(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     StmtInfoBCE stmtInfo(cx);
     PushStatementBCE(bce, &stmtInfo, STMT_LABEL, bce->offset());
     stmtInfo.label = atom;
-    if (!EmitTree(cx, bce, pn2))
+    if (!EmitTree(cx, bce, pn->expr()))
         return false;
     if (!PopStatementBCE(cx, bce))
         return false;
 
     
     SetJumpOffsetAt(bce, top);
-
-    
-    if (noteType == SRC_LABELBRACE) {
-        if (NewSrcNote(cx, bce, SRC_ENDBRACE) < 0 || Emit1(cx, bce, JSOP_NOP) < 0)
-            return false;
-    }
-
     return true;
 }
 

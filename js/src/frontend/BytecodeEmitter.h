@@ -279,8 +279,6 @@ enum SrcNoteType {
     SRC_ASSIGNOP    = 8,        
     SRC_COND        = 9,        
     SRC_HIDDEN      = 11,       
-    SRC_LABEL       = 13,       
-    SRC_LABELBRACE  = 14,       
     SRC_ENDBRACE    = 15,       
     SRC_BREAK2LABEL = 16,       
     SRC_CONT2LABEL  = 17,       
