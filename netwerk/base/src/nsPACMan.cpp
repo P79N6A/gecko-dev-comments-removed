@@ -368,6 +368,7 @@ nsPACMan::LoadPACFromURI(const nsCString &spec)
   mLoader = loader;
   if (!spec.IsEmpty()) {
     mPACURISpec = spec;
+    mPACURIRedirectSpec.Truncate();
     mLoadFailureCount = 0;  
   }
 
@@ -658,9 +659,19 @@ nsPACMan::AsyncOnChannelRedirect(nsIChannel *oldChannel, nsIChannel *newChannel,
   nsCOMPtr<nsIURI> pacURI;
   if (NS_FAILED((rv = newChannel->GetURI(getter_AddRefs(pacURI)))))
       return rv;
-  rv = pacURI->GetSpec(mPACURISpec);
+
+  rv = pacURI->GetSpec(mPACURIRedirectSpec);
   if (NS_FAILED(rv))
       return rv;
+
+  LOG(("nsPACMan redirect from original %s to redirected %s\n",
+       mPACURISpec.get(), mPACURIRedirectSpec.get()));
+
+  
+  
+  
+  
+  
 
   callback->OnRedirectVerifyCallback(NS_OK);
   return NS_OK;
