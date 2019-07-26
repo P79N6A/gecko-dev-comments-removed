@@ -259,6 +259,9 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         return self.remoteTmpDir
 
     def setupPluginsDir(self):
+        if not os.path.isdir(self.pluginsPath):
+            return None
+
         
         self.setupTempDir()
 

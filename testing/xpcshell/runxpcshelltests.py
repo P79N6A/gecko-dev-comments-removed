@@ -238,11 +238,15 @@ class XPCShellTests(object):
         if self.debuggerInfo:
             self.xpcsCmd = [self.debuggerInfo["path"]] + self.debuggerInfo["args"] + self.xpcsCmd
 
-        if self.pluginsPath:
-            self.pluginsDir = self.setupPluginsDir()
+        
+        
+        
+        if not self.pluginsPath:
+            self.pluginsPath = os.path.join(self.appPath, 'plugins')
+
+        self.pluginsDir = self.setupPluginsDir()
+        if self.pluginsDir:
             self.xpcsCmd.extend(['-p', self.pluginsDir])
-        else:
-            self.pluginsDir = None
 
     def buildTestPath(self):
         """
@@ -294,6 +298,9 @@ class XPCShellTests(object):
                 list(sanitize_list(test['tail'], 'tail')))
 
     def setupPluginsDir(self):
+        if not os.path.isdir(self.pluginsPath):
+            return None
+
         pluginsDir = mkdtemp()
         
         
