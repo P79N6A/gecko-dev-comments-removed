@@ -112,6 +112,7 @@ let gRestoring = false;
 let gDirty = false;
 let gInBatchStack = 0;
 let gResetting = false;
+let gUndoResetting = false;
 
 
 
@@ -522,6 +523,8 @@ let CustomizableUIInternal = {
         this.insertWidgetBefore(node, currentNode, container, aArea);
         if (gResetting) {
           this.notifyListeners("onWidgetReset", node, container);
+        } else if (gUndoResetting) {
+          this.notifyListeners("onWidgetUndoMove", node, container);
         }
       }
 
@@ -2172,6 +2175,8 @@ let CustomizableUIInternal = {
         gUIStateBeforeReset.drawInTitlebar == null) {
       return;
     }
+    gUndoResetting = true;
+
     let uiCustomizationState = gUIStateBeforeReset.uiCustomizationState;
     let drawInTitlebar = gUIStateBeforeReset.drawInTitlebar;
 
@@ -2191,6 +2196,8 @@ let CustomizableUIInternal = {
       }
       this._rebuildRegisteredAreas();
     }
+
+    gUndoResetting = false;
   },
 
   _clearPreviousUIState: function() {
@@ -2427,6 +2434,11 @@ this.CustomizableUI = {
   get PANEL_COLUMN_COUNT() 3,
 
   
+
+
+
+
+
 
 
 
