@@ -1392,6 +1392,13 @@ BluetoothHfpManager::HandleCallStateChanged(uint32_t aCallIndex,
     return;
   }
 
+  
+  
+  
+  if (aCallIndex == UINT32_MAX) {
+    return;
+  }
+
   while (aCallIndex >= mCurrentCallArray.Length()) {
     Call call;
     mCurrentCallArray.AppendElement(call);
