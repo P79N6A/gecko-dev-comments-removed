@@ -19,7 +19,13 @@ class nsIThreadPool;
 namespace mozilla {
 
 class MediaResource;
-class AsyncReadRequestState;
+class AsyncReadRequest;
+
+
+
+
+
+
 
 
 
@@ -66,9 +72,18 @@ public:
   STDMETHODIMP Write(const BYTE *, ULONG, ULONG *);
 
   
-  void PerformRead(IMFAsyncResult* aResult, AsyncReadRequestState* aRequestState);
-
+  
+  
+  void ProcessReadRequest(IMFAsyncResult* aResult,
+                          AsyncReadRequest* aRequestState);
 private:
+
+  
+  
+  nsresult Read(AsyncReadRequest* aRequestState);
+
+  
+  bool IsEOS();
 
   
   
@@ -76,7 +91,15 @@ private:
 
   
   
-  MediaResource* mResource;
+  
+  
+  ReentrantMonitor mResourceMonitor;
+
+  
+  
+  
+  
+  nsRefPtr<MediaResource> mResource;
 
   
   

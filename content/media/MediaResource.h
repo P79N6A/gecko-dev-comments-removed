@@ -193,6 +193,9 @@ inline MediaByteRange::MediaByteRange(TimestampedMediaByteRange& aByteRange)
 class MediaResource
 {
 public:
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaResource)
+
   virtual ~MediaResource() {}
 
   
@@ -323,6 +326,10 @@ public:
   virtual nsresult ReadFromCache(char* aBuffer,
                                  int64_t aOffset,
                                  uint32_t aCount) = 0;
+  
+  
+  
+  virtual bool IsTransportSeekable() = 0;
 
   
 
@@ -494,6 +501,7 @@ public:
   virtual bool    IsDataCachedToEndOfResource(int64_t aOffset);
   virtual bool    IsSuspendedByCache(MediaResource** aActiveResource);
   virtual bool    IsSuspended();
+  virtual bool    IsTransportSeekable() MOZ_OVERRIDE;
 
   class Listener MOZ_FINAL : public nsIStreamListener,
                              public nsIInterfaceRequestor,
@@ -598,6 +606,10 @@ protected:
 
   
   bool mByteRangeFirstOpen;
+
+  
+  
+  bool mIsTransportSeekable;
 
   
   

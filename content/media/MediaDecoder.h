@@ -946,7 +946,7 @@ public:
   nsCOMPtr<MediaDecoderStateMachine> mDecoderStateMachine;
 
   
-  nsAutoPtr<MediaResource> mResource;
+  nsRefPtr<MediaResource> mResource;
 
   
   
