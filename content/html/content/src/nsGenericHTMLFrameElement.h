@@ -80,7 +80,7 @@ protected:
   {
   public:
     TitleChangedListener(nsGenericHTMLFrameElement *aElement,
-                         nsIDOMEventTarget *aChromeHandler);
+                         mozilla::dom::EventTarget *aChromeHandler);
 
     
     void Unregister();
