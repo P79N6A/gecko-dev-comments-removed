@@ -1540,19 +1540,7 @@ public:
 
 
 
-
-
-
-
-
-  static ViewportInfo GetViewportInfo(nsIDocument* aDocument,
-                                      uint32_t aDisplayWidth,
-                                      uint32_t aDisplayHeight);
-
-  
-
-
-  static double GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget);
+  static ViewportInfo GetViewportInfo(nsIDocument* aDocument);
 
   
   

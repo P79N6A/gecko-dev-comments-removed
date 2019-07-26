@@ -12,8 +12,6 @@
 #include "jsdbgapi.h"
 #include "jsfriendapi.h"
 
-#include "math.h"
-
 #include "Layers.h"
 #include "nsJSUtils.h"
 #include "nsCOMPtr.h"
@@ -5085,7 +5083,7 @@ static void ProcessViewportToken(nsIDocument *aDocument,
 
 
 ViewportInfo
-nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, uint32_t aDisplayHeight)
+nsContentUtils::GetViewportInfo(nsIDocument *aDocument)
 {
   ViewportInfo ret;
   ret.defaultZoom = 1.0;
@@ -5175,37 +5173,36 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, 
   }
 
   
-  nsIWidget *widget = WidgetForDocument(aDocument);
-  double pixelRatio = widget ? GetDevicePixelsPerMetaViewportPixel(widget) : 1.0;
-  scaleFloat *= pixelRatio;
-  scaleMinFloat *= pixelRatio;
-  scaleMaxFloat *= pixelRatio;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  uint32_t width, height;
-  if (autoSize) {
-    
-    
-    width = aDisplayWidth / pixelRatio;
-    height = aDisplayHeight / pixelRatio;
-  } else {
-    nsresult widthErrorCode, heightErrorCode;
-    width = widthStr.ToInteger(&widthErrorCode);
-    height = heightStr.ToInteger(&heightErrorCode);
+  
+  
+  
+  nsresult result;
+  int32_t screenLeft, screenTop, screenWidth, screenHeight;
+  nsCOMPtr<nsIScreenManager> screenMgr =
+    do_GetService("@mozilla.org/gfx/screenmanager;1", &result);
 
-    
-    
-    bool validWidth = (!widthStr.IsEmpty() && NS_SUCCEEDED(widthErrorCode) && width > 0);
-    bool validHeight = (!heightStr.IsEmpty() && NS_SUCCEEDED(heightErrorCode) && height > 0);
-    if (!validWidth) {
-      if (validHeight) {
-        width = (uint32_t) ((height * aDisplayWidth) / aDisplayHeight);
-      } else {
-        width = Preferences::GetInt("browser.viewport.desktopWidth",
-            kViewportDefaultScreenWidth);
-      }
-    }
-    if (!validHeight) {
-      height = (uint32_t) ((width * aDisplayHeight) / aDisplayWidth);
+  nsCOMPtr<nsIScreen> screen;
+  screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
+  screen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
+
+  uint32_t width = widthStr.ToInteger(&errorCode);
+  if (NS_FAILED(errorCode)) {
+    if (autoSize) {
+      width = screenWidth;
+    } else {
+      width = Preferences::GetInt("browser.viewport.desktopWidth", 0);
     }
   }
 
@@ -5215,7 +5212,19 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, 
   
   
   if (scaleStr.IsEmpty() && !widthStr.IsEmpty()) {
-    scaleFloat = NS_MAX(scaleFloat, ((float)aDisplayWidth) / (float)width);
+    scaleFloat = NS_MAX(scaleFloat, (float)(screenWidth/width));
+  }
+
+  uint32_t height = heightStr.ToInteger(&errorCode);
+
+  if (NS_FAILED(errorCode)) {
+    height = width * ((float)screenHeight / screenWidth);
+  }
+
+  
+  
+  if (widthStr.IsEmpty() && !heightStr.IsEmpty()) {
+    width = (uint32_t) ((height * screenWidth) / screenHeight);
   }
 
   height = NS_MIN(height, kViewportMaxHeight);
@@ -5224,11 +5233,11 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, 
   
   
   if (!scaleStr.IsEmpty() && NS_SUCCEEDED(scaleErrorCode)) {
-    width = NS_MAX(width, (uint32_t)(aDisplayWidth / scaleFloat));
-    height = NS_MAX(height, (uint32_t)(aDisplayHeight / scaleFloat));
+    width = NS_MAX(width, (uint32_t)(screenWidth / scaleFloat));
+    height = NS_MAX(height, (uint32_t)(screenHeight / scaleFloat));
   } else if (!maxScaleStr.IsEmpty() && NS_SUCCEEDED(scaleMaxErrorCode)) {
-    width = NS_MAX(width, (uint32_t)(aDisplayWidth / scaleMaxFloat));
-    height = NS_MAX(height, (uint32_t)(aDisplayHeight / scaleMaxFloat));
+    width = NS_MAX(width, (uint32_t)(screenWidth / scaleMaxFloat));
+    height = NS_MAX(height, (uint32_t)(screenHeight / scaleMaxFloat));
   }
 
   bool allowZoom = true;
@@ -5249,24 +5258,6 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument, uint32_t aDisplayWidth, 
   ret.maxZoom = scaleMaxFloat;
   ret.autoSize = autoSize;
   return ret;
-}
-
-
-double
-nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
-{
-  int prefValue = Preferences::GetInt("browser.viewport.scaleRatio", 0);
-  if (prefValue > 0)
-    return double(prefValue) / 100.0;
-
-  float dpi = aWidget->GetDPI();
-  if (dpi < 200.0) 
-    return 1.0;
-  else if (dpi < 300.0) 
-    return 1.5;
-
-  
-  return floor(dpi / 150.0);
 }
 
 
