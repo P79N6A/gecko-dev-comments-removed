@@ -3354,14 +3354,13 @@ function updateEditUIVisibility()
   
   
   
-  
-  
   gEditUIVisible = editMenuPopupState == "showing" ||
                    editMenuPopupState == "open" ||
                    contextMenuPopupState == "showing" ||
                    contextMenuPopupState == "open" ||
                    placesContextMenuPopupState == "showing" ||
-                   placesContextMenuPopupState == "open";
+                   placesContextMenuPopupState == "open" ||
+                   document.getElementById("edit-controls") ? true : false;
 
   
   
