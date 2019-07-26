@@ -6622,7 +6622,7 @@ nsBlockFrame::RenumberLists(nsPresContext* aPresContext)
   }
 
   
-  nsBlockFrame* block = (nsBlockFrame*) FirstInFlow();
+  nsBlockFrame* block = static_cast<nsBlockFrame*>(FirstInFlow());
   return RenumberListsInBlock(aPresContext, block, &ordinal, 0, increment);
 }
 
