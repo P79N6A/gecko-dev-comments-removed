@@ -7,6 +7,8 @@
 #define MOZILLA_GFX_TOOLS_H_
 
 #include "Types.h"
+#include "Point.h"
+#include <math.h>
 #if defined(_MSC_VER) && (_MSC_VER < 1600)
 #define hypotf _hypotf
 #endif
@@ -44,6 +46,20 @@ FuzzyEqual(Float aA, Float aB, Float aErr)
     return true;
   }
   return false;
+}
+
+static inline void
+NudgeToInteger(float *aVal)
+{
+  float r = floorf(*aVal + 0.5f);
+  
+  
+  
+  
+  
+  if (FuzzyEqual(r, *aVal, r == 0.0f ? 1e-6f : fabs(r*1e-6f))) {
+    *aVal = r;
+  }
 }
 
 static inline Float
