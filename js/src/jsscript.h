@@ -569,9 +569,6 @@ class JSScript : public js::gc::Cell
     bool            funHasExtensibleScope:1;       
     bool            funNeedsDeclEnvObject:1;       
     bool            funHasAnyAliasedFormal:1;      
-    bool            warnedAboutTwoArgumentEval:1; 
-
-
     bool            warnedAboutUndefinedProp:1; 
 
 
