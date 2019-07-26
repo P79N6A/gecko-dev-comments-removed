@@ -23,6 +23,8 @@
 #include "nsFrameManagerBase.h"
 #include "nsIContent.h"
 
+class nsContainerFrame;
+
 namespace mozilla {
 
 
@@ -112,14 +114,14 @@ public:
   NS_HIDDEN_(void) ClearAllUndisplayedContentIn(nsIContent* aParentContent);
 
   
-  NS_HIDDEN_(nsresult) AppendFrames(nsIFrame*       aParentFrame,
-                                    ChildListID     aListID,
-                                    nsFrameList&    aFrameList);
+  NS_HIDDEN_(nsresult) AppendFrames(nsContainerFrame* aParentFrame,
+                                    ChildListID       aListID,
+                                    nsFrameList&      aFrameList);
 
-  NS_HIDDEN_(nsresult) InsertFrames(nsIFrame*       aParentFrame,
-                                    ChildListID     aListID,
-                                    nsIFrame*       aPrevFrame,
-                                    nsFrameList&    aFrameList);
+  NS_HIDDEN_(nsresult) InsertFrames(nsContainerFrame* aParentFrame,
+                                    ChildListID       aListID,
+                                    nsIFrame*         aPrevFrame,
+                                    nsFrameList&      aFrameList);
 
   NS_HIDDEN_(nsresult) RemoveFrame(ChildListID     aListID,
                                    nsIFrame*       aOldFrame);
