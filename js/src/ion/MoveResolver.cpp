@@ -24,6 +24,8 @@ MoveResolver::resetState()
 bool
 MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
 {
+    
+    JS_ASSERT(!(from == to));
     PendingMove *pm = movePool_.allocate();
     if (!pm)
         return false;
