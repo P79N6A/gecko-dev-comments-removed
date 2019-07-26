@@ -9,6 +9,8 @@
 #include "gfxContext.h"                 
 #include "nsDebug.h"                    
 #include "nsTraceRefcnt.h"              
+#include "mozilla/gfx/Types.h"
+
 class gfxASurface;
 
 namespace mozilla {
@@ -44,7 +46,7 @@ public:
   BasicImplData() : mHidden(false),
     mClipToVisibleRegion(false),
     mDrawAtomically(false),
-    mOperator(gfxContext::OPERATOR_OVER)
+    mOperator(gfx::CompositionOp::OP_OVER)
   {
     MOZ_COUNT_CTOR(BasicImplData);
   }
@@ -59,7 +61,9 @@ public:
 
 
 
-  virtual void Paint(gfxContext* aContext, Layer* aMaskLayer) {}
+  virtual void Paint(gfx::DrawTarget* aTarget,
+                     gfx::SourceSurface* aMaskSurface) {}
+  virtual void DeprecatedPaint(gfxContext* aContext, Layer* aMaskLayer) {}
 
   
 
@@ -94,14 +98,19 @@ public:
 
 
 
-  void SetOperator(gfxContext::GraphicsOperator aOperator)
+  void SetOperator(gfx::CompositionOp aOperator)
   {
-    NS_ASSERTION(aOperator == gfxContext::OPERATOR_OVER ||
-                 aOperator == gfxContext::OPERATOR_SOURCE,
+    NS_ASSERTION(aOperator == gfx::CompositionOp::OP_OVER ||
+                 aOperator == gfx::CompositionOp::OP_SOURCE,
                  "Bad composition operator");
     mOperator = aOperator;
   }
-  gfxContext::GraphicsOperator GetOperator() const { return mOperator; }
+
+  gfx::CompositionOp GetOperator() const { return mOperator; }
+  gfxContext::GraphicsOperator DeprecatedGetOperator() const
+  {
+    return gfx::ThebesOp(mOperator);
+  }
 
   
 
@@ -123,7 +132,7 @@ protected:
   bool mHidden;
   bool mClipToVisibleRegion;
   bool mDrawAtomically;
-  gfxContext::GraphicsOperator mOperator;
+  gfx::CompositionOp mOperator;
 };
 
 } 

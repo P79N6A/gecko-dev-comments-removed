@@ -18,6 +18,7 @@
 #include "GraphicsFilter.h"             
 #include "gfxPoint.h"                   
 #include "gfxRect.h"                    
+#include "gfx2DGlue.h"
 #include "mozilla/Assertions.h"         
 #include "mozilla/DebugOnly.h"          
 #include "mozilla/EventForwards.h"      
@@ -786,7 +787,7 @@ public:
     }
   }
 
-  void SetMixBlendMode(gfxContext::GraphicsOperator aMixBlendMode)
+  void SetMixBlendMode(gfx::CompositionOp aMixBlendMode)
   {
     if (mMixBlendMode != aMixBlendMode) {
       MOZ_LAYERS_LOG_IF_SHADOWABLE(this, ("Layer::Mutated(%p) MixBlendMode", this));
@@ -795,6 +796,11 @@ public:
     }
   }
   
+  void DeprecatedSetMixBlendMode(gfxContext::GraphicsOperator aMixBlendMode)
+  {
+    SetMixBlendMode(gfx::CompositionOpForOp(aMixBlendMode));
+  }
+
   void SetForceIsolatedGroup(bool aForceIsolatedGroup)
   {
     if(mForceIsolatedGroup != aForceIsolatedGroup) {
@@ -1033,7 +1039,7 @@ public:
 
   
   float GetOpacity() { return mOpacity; }
-  gfxContext::GraphicsOperator GetMixBlendMode() const { return mMixBlendMode; }
+  gfx::CompositionOp GetMixBlendMode() const { return mMixBlendMode; }
   const nsIntRect* GetClipRect() { return mUseClipRect ? &mClipRect : nullptr; }
   uint32_t GetContentFlags() { return mContentFlags; }
   const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
@@ -1207,7 +1213,8 @@ public:
   
 
 
-  gfxContext::GraphicsOperator GetEffectiveMixBlendMode();
+  gfx::CompositionOp GetEffectiveMixBlendMode();
+  gfxContext::GraphicsOperator DeprecatedGetEffectiveMixBlendMode();
   
   
 
@@ -1408,7 +1415,7 @@ protected:
   AnimationArray mAnimations;
   InfallibleTArray<AnimData> mAnimationData;
   float mOpacity;
-  gfxContext::GraphicsOperator mMixBlendMode;
+  gfx::CompositionOp mMixBlendMode;
   bool mForceIsolatedGroup;
   nsIntRect mClipRect;
   nsIntRect mTileSourceRect;
