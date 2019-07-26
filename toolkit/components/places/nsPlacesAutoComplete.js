@@ -214,9 +214,12 @@ function safePrefGetter(aPrefBranch, aName, aDefault) {
 
 
 
-function AutoCompleteStatementCallbackWrapper(aCallback,
+
+
+function AutoCompleteStatementCallbackWrapper(aAutocomplete, aCallback,
                                               aDBConnection)
 {
+  this._autocomplete = aAutocomplete;
   this._callback = aCallback;
   this._db = aDBConnection;
 }
@@ -239,9 +242,9 @@ AutoCompleteStatementCallbackWrapper.prototype = {
   {
     
     
-    let callback = this._callback;
-    if (!callback.isSearchComplete() && callback.isPendingSearch(this._handle)) {
-      callback.handleCompletion.apply(callback, arguments);
+    if (!this._autocomplete.isSearchComplete() &&
+        this._autocomplete.isPendingSearch(this._handle)) {
+      this._callback.handleCompletion.apply(this._callback, arguments);
     }
   },
 
@@ -270,6 +273,7 @@ AutoCompleteStatementCallbackWrapper.prototype = {
     Ci.mozIStorageStatementCallback,
   ])
 };
+
 
 
 
@@ -761,7 +765,7 @@ nsPlacesAutoComplete.prototype = {
     
 
     
-    let wrapper = new AutoCompleteStatementCallbackWrapper(this, this._db);
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, this, this._db);
     this._pendingQuery = wrapper.executeAsync(aQueries);
   },
 
@@ -1256,6 +1260,7 @@ nsPlacesAutoComplete.prototype = {
 
 
 
+
 function urlInlineComplete()
 {
   this._loadPrefs(true);
@@ -1277,14 +1282,14 @@ urlInlineComplete.prototype = {
     return this.__db;
   },
 
-  __syncQuery: null,
+  __hostQuery: null,
 
-  get _syncQuery()
+  get _hostQuery()
   {
-    if (!this.__syncQuery) {
+    if (!this.__hostQuery) {
       
       
-      this.__syncQuery = this._db.createStatement(
+      this.__hostQuery = this._db.createAsyncStatement(
           "/* do not warn (bug no): could index on (typed,frecency) but not worth it */ "
         + "SELECT host || '/', prefix || host || '/' "
         + "FROM moz_hosts "
@@ -1295,15 +1300,15 @@ urlInlineComplete.prototype = {
         + "LIMIT 1"
       );
     }
-    return this.__syncQuery;
+    return this.__hostQuery;
   },
 
-  __asyncQuery: null,
+  __urlQuery: null,
 
-  get _asyncQuery()
+  get _urlQuery()
   {
-    if (!this.__asyncQuery) {
-      this.__asyncQuery = this._db.createAsyncStatement(
+    if (!this.__urlQuery) {
+      this.__urlQuery = this._db.createAsyncStatement(
           "/* do not warn (bug no): can't use an index */ "
         + "SELECT h.url "
         + "FROM moz_places h "
@@ -1317,7 +1322,7 @@ urlInlineComplete.prototype = {
         + "LIMIT 1"
       );
     }
-    return this.__asyncQuery;
+    return this.__urlQuery;
   },
 
   
@@ -1342,12 +1347,11 @@ urlInlineComplete.prototype = {
       0, this._originalSearchString.length - this._currentSearchString.length
     ).toLowerCase();
 
-    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
-                 createInstance(Ci.nsIAutoCompleteSimpleResult);
-    result.setSearchString(aSearchString);
-    result.setTypeAheadResult(true);
+    this._result = Cc["@mozilla.org/autocomplete/simple-result;1"].
+                   createInstance(Ci.nsIAutoCompleteSimpleResult);
+    this._result.setSearchString(aSearchString);
+    this._result.setTypeAheadResult(true);
 
-    this._result = result;
     this._listener = aListener;
 
     
@@ -1370,60 +1374,74 @@ urlInlineComplete.prototype = {
     }
 
     
-    let query = this._syncQuery;
-    query.params.search_string = this._currentSearchString.toLowerCase();
-
-    
     let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
-    if (lastSlashIndex == -1) {
-      var hasDomainResult = false;
-      var domain, untrimmedDomain;
-      TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
-      try {
-        
-        
-        
-        hasDomainResult = query.executeStep();
-        if (hasDomainResult) {
-          domain = query.getString(0);
-          untrimmedDomain = query.getString(1);
-        }
-      } finally {
-        query.reset();
-      }
-      TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
 
-      if (hasDomainResult) {
-        
-        
-        
-        if (untrimmedDomain &&
-            !untrimmedDomain.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
-          untrimmedDomain = null;
-        }
-
-        
-        
-        result.appendMatch(this._strippedPrefix + domain, untrimmedDomain);
-
+    let maybeSearchURL = () => {
+      
+      
+      if (lastSlashIndex < this._currentSearchString.length - 1)
+        this._queryURL();
+      else
         this._finishSearch();
-        return;
-      }
-    }
+    };
 
     
-    
-    
-
-    
-    
-    
-    if (lastSlashIndex == -1 ||
-        lastSlashIndex == this._currentSearchString.length - 1) {
-      this._finishSearch();
+    if (lastSlashIndex != -1) {
+      maybeSearchURL();
       return;
     }
 
+    
+    let query = this._hostQuery;
+    query.params.search_string = this._currentSearchString.toLowerCase();
+    
+    TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
+    let ac = this;
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+      _hasResult: false,
+      handleResult: function (aResultSet) {
+        this._hasResult = true;
+        let row = aResultSet.getNextRow();
+        let trimmedHost = row.getResultByIndex(0);
+        let untrimmedHost = row.getResultByIndex(1);
+        
+        
+        if (untrimmedHost &&
+            !untrimmedHost.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+          untrimmedHost = null;
+        }
+
+        
+        
+        ac._result.appendMatch(ac._strippedPrefix + trimmedHost, untrimmedHost);
+
+        
+        
+      },
+
+      handleError: function (aError) {
+        Components.utils.reportError(
+          "URL Inline Complete: An async statement encountered an " +
+          "error: " + aError.result + ", '" + aError.message + "'");
+      },
+
+      handleCompletion: function (aReason) {
+        TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
+        if (this._hasResult)
+          ac._finishSearch();
+        else
+          maybeSearchURL();
+      }
+    }, this._db);
+    this._pendingQuery = wrapper.executeAsync([query]);
+  },
+
+  
+
+
+
+  _queryURL: function UIC__queryURL()
+  {
     
     
     let pathIndex =
@@ -1435,7 +1453,7 @@ urlInlineComplete.prototype = {
 
     
     
-    let query = this._asyncQuery;
+    let query = this._urlQuery;
     let (params = query.params) {
       params.matchBehavior = MATCH_BEGINNING_CASE_SENSITIVE;
       params.searchBehavior = Ci.mozIPlacesAutoComplete["BEHAVIOR_URL"];
@@ -1443,7 +1461,53 @@ urlInlineComplete.prototype = {
     }
 
     
-    let wrapper = new AutoCompleteStatementCallbackWrapper(this, this._db);
+    let ac = this;
+    let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
+      handleResult: function(aResultSet) {
+        let row = aResultSet.getNextRow();
+        let value = row.getResultByIndex(0);
+        let url = fixupSearchText(value);
+
+        let prefix = value.slice(0, value.length - stripPrefix(value).length);
+
+        
+        let separatorIndex = url.slice(ac._currentSearchString.length)
+                                .search(/[\/\?\#]/);
+        if (separatorIndex != -1) {
+          separatorIndex += ac._currentSearchString.length;
+          if (url[separatorIndex] == "/") {
+            separatorIndex++; 
+          }
+          url = url.slice(0, separatorIndex);
+        }
+
+        
+        
+        
+        let untrimmedURL = prefix + url;
+        if (untrimmedURL &&
+            !untrimmedURL.toLowerCase().contains(ac._originalSearchString.toLowerCase())) {
+          untrimmedURL = null;
+         }
+
+        
+        
+        ac._result.appendMatch(ac._strippedPrefix + url, untrimmedURL);
+
+        
+        
+      },
+
+      handleError: function(aError) {
+        Components.utils.reportError(
+          "URL Inline Complete: An async statement encountered an " +
+          "error: " + aError.result + ", '" + aError.message + "'");
+      },
+
+      handleCompletion: function(aReason) {
+        ac._finishSearch();
+      }
+    }, this._db);
     this._pendingQuery = wrapper.executeAsync([query]);
   },
 
@@ -1492,56 +1556,6 @@ urlInlineComplete.prototype = {
   
   
 
-  handleResult: function UIC_handleResult(aResultSet)
-  {
-    let row = aResultSet.getNextRow();
-    let value = row.getResultByIndex(0);
-    let url = fixupSearchText(value);
-
-    let prefix = value.slice(0, value.length - stripPrefix(value).length);
-
-    
-    let separatorIndex = url.slice(this._currentSearchString.length)
-                            .search(/[\/\?\#]/);
-    if (separatorIndex != -1) {
-      separatorIndex += this._currentSearchString.length;
-      if (url[separatorIndex] == "/") {
-        separatorIndex++; 
-      }
-      url = url.slice(0, separatorIndex);
-    }
-
-    
-    
-    
-    let untrimmedURL = prefix + url;
-    if (untrimmedURL &&
-        !untrimmedURL.toLowerCase().contains(this._originalSearchString.toLowerCase())) {
-      untrimmedURL = null;
-     }
-
-    
-    
-    this._result.appendMatch(this._strippedPrefix + url, untrimmedURL);
-
-    
-    
-  },
-
-  handleError: function UIC_handleError(aError)
-  {
-    Components.utils.reportError("URL Inline Complete: An async statement encountered an " +
-                                 "error: " + aError.result + ", '" + aError.message + "'");
-  },
-
-  handleCompletion: function UIC_handleCompletion(aReason)
-  {
-    this._finishSearch();
-  },
-
-  
-  
-
   observe: function UIC_observe(aSubject, aTopic, aData)
   {
     if (aTopic == kTopicShutdown) {
@@ -1571,8 +1585,8 @@ urlInlineComplete.prototype = {
   {
     
     let stmts = [
-      "__syncQuery",
-      "__asyncQuery",
+      "__hostQuery",
+      "__urlQuery",
     ];
     for (let i = 0; i < stmts.length; i++) {
       
@@ -1636,7 +1650,6 @@ urlInlineComplete.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch,
     Ci.nsIAutoCompleteSearchDescriptor,
-    Ci.mozIStorageStatementCallback,
     Ci.nsIObserver,
     Ci.nsISupportsWeakReference,
   ])
