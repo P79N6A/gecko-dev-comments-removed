@@ -121,6 +121,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
 
 XPCOMUtils.defineLazyModuleGetter(this, "console",
   "resource://gre/modules/devtools/Console.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "GlobalState",
+  "resource:///modules/sessionstore/GlobalState.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
   "resource:///modules/sessionstore/Messenger.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "RecentWindow",
@@ -312,6 +314,8 @@ let SessionStoreInternal = {
 
   
   _loadState: STATE_STOPPED,
+
+  _globalState: new GlobalState(),
 
   
   
@@ -821,7 +825,7 @@ let SessionStoreInternal = {
 
           
           
-          GlobalState.setFromState(aInitialState);
+          this._globalState.setFromState(aInitialState);
 
           let overwrite = this._isCmdLineEmpty(aWindow, aInitialState);
           let options = {firstWindow: true, overwriteTabs: overwrite};
@@ -850,7 +854,7 @@ let SessionStoreInternal = {
 
       
       
-      GlobalState.setFromState(this._deferredInitialState);
+      this._globalState.setFromState(this._deferredInitialState);
 
       this._restoreCount = this._deferredInitialState.windows ?
         this._deferredInitialState.windows.length : 0;
@@ -1550,7 +1554,7 @@ let SessionStoreInternal = {
 
     
     
-    GlobalState.setFromState(state);
+    this._globalState.setFromState(state);
 
     
     this.restoreWindow(window, state, {overwriteTabs: true});
@@ -1855,16 +1859,16 @@ let SessionStoreInternal = {
   },
 
   getGlobalValue: function ssi_getGlobalValue(aKey) {
-    return GlobalState.get(aKey);
+    return this._globalState.get(aKey);
   },
 
   setGlobalValue: function ssi_setGlobalValue(aKey, aStringValue) {
-    GlobalState.set(aKey, aStringValue);
+    this._globalState.set(aKey, aStringValue);
     this.saveStateDelayed();
   },
 
   deleteGlobalValue: function ssi_deleteGlobalValue(aKey) {
-    GlobalState.delete(aKey);
+    this._globalState.delete(aKey);
     this.saveStateDelayed();
   },
 
@@ -1917,7 +1921,7 @@ let SessionStoreInternal = {
 
     
     
-    GlobalState.setFromState(lastSessionState);
+    this._globalState.setFromState(lastSessionState);
 
     
     for (let i = 0; i < lastSessionState.windows.length; i++) {
@@ -2236,7 +2240,7 @@ let SessionStoreInternal = {
       _closedWindows: lastClosedWindowsCopy,
       session: session,
       scratchpads: scratchpads,
-      global: GlobalState.state
+      global: this._globalState.getState()
     };
 
     
@@ -3824,64 +3828,5 @@ let LastSession = {
       this._state = null;
       Services.obs.notifyObservers(null, NOTIFY_LAST_SESSION_CLEARED, null);
     }
-  }
-};
-
-
-
-
-let GlobalState = {
-
-  
-  state: {},
-
-  
-
-
-  clear: function() {
-    this.state = {};
-  },
-
-  
-
-
-
-
-
-
-  get: function(aKey) {
-    return this.state[aKey] || "";
-  },
-
-  
-
-
-
-
-
-  set: function(aKey, aStringValue) {
-    this.state[aKey] = aStringValue;
-  },
-
-  
-
-
-
-
-
-  delete: function(aKey) {
-    delete this.state[aKey];
-  },
-
-  
-
-
-
-
-
-
-
-  setFromState: function (aState) {
-    this.state = (aState && aState.global) || {};
   }
 };
