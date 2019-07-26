@@ -3540,6 +3540,14 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
       JS::Rooted<JSObject*> global(cx);
       bool defineOnXray = xpc::WrapperFactory::IsXrayWrapper(obj);
       if (defineOnXray) {
+        
+        
+        
+        if (name_struct->mConstructorEnabled &&
+            !(*name_struct->mConstructorEnabled)(cx, obj)) {
+          return NS_OK;
+        }
+
         global = js::CheckedUnwrap(obj,  false);
         if (!global) {
           return NS_ERROR_DOM_SECURITY_ERR;
@@ -3551,34 +3559,34 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
 
       
       
-      
-      if (name_struct->mConstructorEnabled &&
-          !(*name_struct->mConstructorEnabled)(cx, global)) {
+      bool defineOnGlobal = !name_struct->mConstructorEnabled ||
+        (*name_struct->mConstructorEnabled)(cx, global);
+
+      if (!defineOnGlobal && !defineOnXray) {
         return NS_OK;
       }
 
-      bool enabled;
-      JS::Rooted<JSObject*> interfaceObject(cx, define(cx, global, id, &enabled));
-      if (enabled) {
-        if (!interfaceObject) {
+      JS::Rooted<JSObject*> interfaceObject(cx, define(cx, global, id,
+                                                       defineOnGlobal));
+      if (!interfaceObject) {
+        return NS_ERROR_FAILURE;
+      }
+
+      if (defineOnXray) {
+        
+        ac.destroy();
+        if (!JS_WrapObject(cx, interfaceObject.address()) ||
+            !JS_DefinePropertyById(cx, obj, id,
+                                   JS::ObjectValue(*interfaceObject), JS_PropertyStub,
+                                   JS_StrictPropertyStub, 0)) {
           return NS_ERROR_FAILURE;
         }
 
-        if (defineOnXray) {
-          
-          ac.destroy();
-          if (!JS_WrapObject(cx, interfaceObject.address()) ||
-              !JS_DefinePropertyById(cx, obj, id,
-                                     JS::ObjectValue(*interfaceObject), JS_PropertyStub,
-                                     JS_StrictPropertyStub, 0)) {
-            return NS_ERROR_FAILURE;
-          }
-        }
-
-        *did_resolve = true;
-
-        return NS_OK;
       }
+
+      *did_resolve = true;
+
+      return NS_OK;
     }
   }
 
