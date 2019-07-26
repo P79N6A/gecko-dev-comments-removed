@@ -513,7 +513,9 @@ private:
   
   MediaManager();
 
-  ~MediaManager() {}
+  ~MediaManager() {
+    delete mBackend;
+  }
 
   nsresult MediaCaptureWindowStateInternal(nsIDOMWindow* aWindow, bool* aVideo,
                                            bool* aAudio);
@@ -528,11 +530,11 @@ private:
 
   Mutex mMutex;
   
-  RefPtr<MediaEngine> mBackend;
+  MediaEngine* mBackend;
 
   static StaticRefPtr<MediaManager> sSingleton;
 
-#ifdef MOZ_B2G_CAMERA
+#ifdef MOZ_WIDGET_GONK
   nsRefPtr<nsDOMCameraManager> mCameraManager;
 #endif
 };

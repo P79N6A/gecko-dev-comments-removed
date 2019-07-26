@@ -41,7 +41,7 @@
 #include "MediaEngineWebRTC.h"
 #endif
 
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
 #include "MediaPermissionGonk.h"
 #endif
 
@@ -756,7 +756,7 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
-    , mBackend(nullptr)
+    , mBackendChosen(false)
     , mManager(MediaManager::GetInstance())
   {}
 
@@ -778,11 +778,15 @@ public:
     , mListener(aListener)
     , mPrefs(aPrefs)
     , mDeviceChosen(false)
+    , mBackendChosen(true)
     , mBackend(aBackend)
     , mManager(MediaManager::GetInstance())
   {}
 
   ~GetUserMediaRunnable() {
+    if (mBackendChosen) {
+      delete mBackend;
+    }
   }
 
   NS_IMETHOD
@@ -790,15 +794,14 @@ public:
   {
     NS_ASSERTION(!NS_IsMainThread(), "Don't call on main thread");
 
-    MediaEngine* backend = mBackend;
     
-    if (!backend) {
-      backend = mManager->GetBackend(mWindowID);
+    if (!mBackendChosen) {
+      mBackend = mManager->GetBackend(mWindowID);
     }
 
     
     if (!mDeviceChosen) {
-      nsresult rv = SelectDevice(backend);
+      nsresult rv = SelectDevice();
       if (rv != NS_OK) {
         return rv;
       }
@@ -870,10 +873,10 @@ public:
   }
 
   nsresult
-  SelectDevice(MediaEngine* backend)
+  SelectDevice()
   {
     if (mConstraints.mPicture || mConstraints.mVideo) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
+      ScopedDeletePtr<SourceSet> sources (GetSources(mBackend,
           mConstraints.mVideom, &MediaEngine::EnumerateVideoDevices));
 
       if (!sources->Length()) {
@@ -887,7 +890,7 @@ public:
     }
 
     if (mConstraints.mAudio) {
-      ScopedDeletePtr<SourceSet> sources (GetSources(backend,
+      ScopedDeletePtr<SourceSet> sources (GetSources(mBackend,
           mConstraints.mAudiom, &MediaEngine::EnumerateAudioDevices));
 
       if (!sources->Length()) {
@@ -981,8 +984,9 @@ private:
   MediaEnginePrefs mPrefs;
 
   bool mDeviceChosen;
+  bool mBackendChosen;
 
-  RefPtr<MediaEngine> mBackend;
+  MediaEngine* mBackend;
   nsRefPtr<MediaManager> mManager; 
 };
 
@@ -1262,7 +1266,7 @@ MediaManager::GetUserMedia(JSContext* aCx, bool aPrivileged,
     
     
     (void) MediaManager::Get();
-#ifdef MOZ_B2G
+#ifdef MOZ_WIDGET_GONK
     
     (void) MediaPermissionManager::GetInstance();
 #endif 
@@ -1411,11 +1415,11 @@ MediaManager::GetBackend(uint64_t aWindowId)
   MutexAutoLock lock(mMutex);
   if (!mBackend) {
 #if defined(MOZ_WEBRTC)
-#ifndef MOZ_B2G_CAMERA
+  #ifndef MOZ_B2G_CAMERA
     mBackend = new MediaEngineWebRTC(mPrefs);
-#else
+  #else
     mBackend = new MediaEngineWebRTC(mCameraManager, aWindowId);
-#endif
+  #endif
 #else
     mBackend = new MediaEngineDefault();
 #endif
