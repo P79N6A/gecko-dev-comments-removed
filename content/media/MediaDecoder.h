@@ -228,6 +228,12 @@ static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
 
+
+
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
 class MediaDecoder : public nsIObserver,
                      public AbstractMediaDecoder
 {
