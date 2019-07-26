@@ -1925,7 +1925,6 @@ Parser<ParseHandler>::functionDef(HandlePropertyName funName, const TokenStream:
     
     
     
-    handler.setFunctionBody(pn, null());
     bool initiallyStrict = pc->sc->strict;
     bool becameStrict;
     if (!functionArgsAndBody(pn, fun, funName, startOffset, type, kind, initiallyStrict,
