@@ -1135,25 +1135,30 @@ void AsyncPanZoomController::RequestContentRepaint() {
   }
 
   SendAsyncScrollEvent();
+  ScheduleContentRepaint(mFrameMetrics);
+}
 
+void
+AsyncPanZoomController::ScheduleContentRepaint(FrameMetrics &aFrameMetrics) {
   
   
   
   nsRefPtr<GeckoContentController> controller = GetGeckoContentController();
   if (controller) {
-    APZC_LOG_FM(mFrameMetrics, "%p requesting content repaint", this);
+    APZC_LOG_FM(aFrameMetrics, "%p requesting content repaint", this);
 
-    LogRendertraceRect("requested displayport", "yellow", newDisplayPort);
+    LogRendertraceRect("requested displayport", "yellow",
+        aFrameMetrics.mDisplayPort + aFrameMetrics.mScrollOffset);
 
     mPaintThrottler.PostTask(
       FROM_HERE,
       NewRunnableMethod(controller.get(),
                         &GeckoContentController::RequestContentRepaint,
-                        mFrameMetrics),
+                        aFrameMetrics),
       GetFrameTime());
   }
-  mFrameMetrics.mPresShellId = mLastContentPaintMetrics.mPresShellId;
-  mLastPaintRequestMetrics = mFrameMetrics;
+  aFrameMetrics.mPresShellId = mLastContentPaintMetrics.mPresShellId;
+  mLastPaintRequestMetrics = aFrameMetrics;
 }
 
 void
@@ -1411,12 +1416,11 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
     }
 
     targetZoom.scale = clamped(targetZoom.scale, localMinZoom.scale, localMaxZoom.scale);
+    mEndZoomToMetrics = mFrameMetrics;
     mEndZoomToMetrics.mZoom = targetZoom;
 
     
-    FrameMetrics metricsAfterZoom = mFrameMetrics;
-    metricsAfterZoom.mZoom = mEndZoomToMetrics.mZoom;
-    CSSRect rectAfterZoom = metricsAfterZoom.CalculateCompositedRectInCssPixels();
+    CSSRect rectAfterZoom = mEndZoomToMetrics.CalculateCompositedRectInCssPixels();
 
     
     
@@ -1431,10 +1435,19 @@ void AsyncPanZoomController::ZoomToRect(CSSRect aRect) {
 
     mStartZoomToMetrics = mFrameMetrics;
     mEndZoomToMetrics.mScrollOffset = aRect.TopLeft();
+    mEndZoomToMetrics.mDisplayPort =
+      CalculatePendingDisplayPort(mEndZoomToMetrics,
+                                  gfx::Point(0,0),
+                                  gfx::Point(0,0),
+                                  0);
 
     mAnimationStartTime = GetFrameTime();
 
     ScheduleComposite();
+
+    
+    
+    ScheduleContentRepaint(mEndZoomToMetrics);
   }
 }
 
