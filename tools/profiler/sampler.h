@@ -49,42 +49,95 @@
 #ifndef SAMPLER_H
 #define SAMPLER_H
 
+#include "jsfriendapi.h"
+#include "mozilla/NullPtr.h"
+#include "mozilla/TimeStamp.h"
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
+#ifndef MOZ_ENABLE_PROFILER_SPS
 
-#include "sps_sampler.h"
+
+
+
+#define PROFILER_LABEL(name_space, info) do {} while (0)
+
+
+
+
+
+#define PROFILER_LABEL_PRINTF(name_space, info, format, ...) do {} while (0)
+
+
+
+
+
+#define PROFILER_MARKER(info) do {} while (0)
+
+
+#define PROFILER_MAIN_THREAD_LABEL(name_space, info) do {} while (0)
+#define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, format, ...) do {} while (0)
+
+
+
+
+static inline void profiler_init() {};
+
+
+
+
+static inline void profiler_shutdown() {};
+
+
+
+
+
+
+
+
+
+static inline void profiler_start(int aProfileEntries, int aInterval,
+                              const char** aFeatures, uint32_t aFeatureCount) {}
+
+
+
+static inline void profiler_stop() {}
+
+static inline bool profiler_is_active() { return false; }
+
+
+static inline void profiler_responsinveness(const TimeStamp& aTime) {}
+
+
+static inline double* profiler_get_responsiveness() { return nullptr; }
+
+
+static inline void profile_set_frame_number(int frameNumber) {}
+
+
+static inline char* profiler_get_profile() { return nullptr; }
+
+
+static inline JSObject* profiler_get_profile_object() { return nullptr; }
+
+
+
+static inline char** profiler_get_features() { return nullptr; }
+
+
+
+
+static inline void profiler_print_location() {}
+
+
+
+
+static inline void profiler_lock() {}
+
+
+static inline void profiler_unlock() {}
 
 #else
 
-
-
-#define SAMPLER_INIT()
-#define SAMPLER_SHUTDOWN()
-#define SAMPLER_START(entries, interval, features, featureCount)
-#define SAMPLER_STOP()
-#define SAMPLER_IS_ACTIVE() false
-#define SAMPLER_SAVE()
-
-#define SAMPLER_GET_PROFILE() NULL
-#define SAMPLER_GET_PROFILE_DATA(ctx) NULL
-#define SAMPLER_RESPONSIVENESS(time) NULL
-#define SAMPLER_FRAME_NUMBER(frameNumber)
-#define SAMPLER_GET_RESPONSIVENESS() NULL
-#define SAMPLER_GET_FEATURES() NULL
-#define SAMPLE_LABEL(name_space, info)
-
-
-
-
-#define SAMPLE_LABEL_PRINTF(name_space, info, format, ...)
-#define SAMPLE_LABEL_FN(name_space, info)
-#define SAMPLE_MARKER(info)
-#define SAMPLE_MAIN_THREAD_LABEL_PRINTF(name_space, info, format, ...)
-#define SAMPLE_MAIN_THREAD_LABEL_FN(name_space, info)
-#define SAMPLE_MAIN_THREAD_MARKER(info)
-
-
-#define SAMPLER_PRINT_LOCATION()
+#include "sps_sampler.h"
 
 #endif
 
