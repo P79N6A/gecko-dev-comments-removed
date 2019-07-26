@@ -46,12 +46,6 @@ bool AddAccessToKernelObject(HANDLE handle, WELL_KNOWN_SID_TYPE known_sid,
 bool GetUserSidString(std::wstring* user_sid);
 
 
-
-
-
-bool GetLogonSessionOnlyDACL(SECURITY_DESCRIPTOR** security_descriptor);
-
-
 bool IsShiftPressed();
 
 
