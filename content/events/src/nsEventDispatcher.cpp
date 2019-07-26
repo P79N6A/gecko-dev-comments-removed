@@ -277,7 +277,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   aVisitor.mEvent->mFlags.mInCapturePhase = true;
   aVisitor.mEvent->mFlags.mInBubblingPhase = false;
   while (item->mChild) {
-    if ((!(aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) ||
+    if ((!aVisitor.mEvent->mFlags.mNoContentDispatch ||
          item->ForceContentDispatch()) &&
         !aVisitor.mEvent->mFlags.mPropagationStopped) {
       item->HandleEvent(aVisitor, aFlags & NS_EVENT_CAPTURE_MASK,
@@ -305,7 +305,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   
   aVisitor.mEvent->mFlags.mInBubblingPhase = true;
   if (!aVisitor.mEvent->mFlags.mPropagationStopped &&
-      (!(aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) ||
+      (!aVisitor.mEvent->mFlags.mNoContentDispatch ||
        item->ForceContentDispatch())) {
     
     
@@ -331,7 +331,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     }
 
     if (aVisitor.mEvent->mFlags.mBubbles || newTarget) {
-      if ((!(aVisitor.mEvent->flags & NS_EVENT_FLAG_NO_CONTENT_DISPATCH) ||
+      if ((!aVisitor.mEvent->mFlags.mNoContentDispatch ||
            item->ForceContentDispatch()) &&
           !aVisitor.mEvent->mFlags.mPropagationStopped) {
         item->HandleEvent(aVisitor, aFlags & NS_EVENT_BUBBLE_MASK,
