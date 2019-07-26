@@ -26,6 +26,12 @@
 
 class nsIWidget;
 
+namespace mozilla {
+namespace gfx {
+class SourceSurface;
+}
+}
+
 
 class nsAutoRetainCocoaObject {
 public:
@@ -102,7 +108,9 @@ struct KeyBindingsCommand
 
 class nsCocoaUtils
 {
-  public:
+  typedef mozilla::gfx::SourceSurface SourceSurface;
+
+public:
 
   
   
@@ -226,7 +234,8 @@ class nsCocoaUtils
 
 
 
-  static nsresult CreateCGImageFromSurface(gfxImageSurface *aFrame, CGImageRef *aResult);
+  static nsresult CreateCGImageFromSurface(SourceSurface* aSurface,
+                                           CGImageRef* aResult);
   
   
 
