@@ -203,7 +203,11 @@ public:
 
 
 
-    virtual mozilla::RefPtr<mozilla::gfx::SourceSurface>
+
+
+
+
+    static mozilla::RefPtr<mozilla::gfx::SourceSurface>
       GetSourceSurfaceForSurface(mozilla::gfx::DrawTarget *aTarget, gfxASurface *aSurface);
 
     static void ClearSourceSurfaceForSurface(gfxASurface *aSurface);
