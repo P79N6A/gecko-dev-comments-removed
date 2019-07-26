@@ -447,8 +447,7 @@ protected:
 
 
 
-  Listener* SetEventHandlerInternal(JS::Handle<JSObject*> aScopeGlobal,
-                                    nsIAtom* aName,
+  Listener* SetEventHandlerInternal(nsIAtom* aName,
                                     const nsAString& aTypeString,
                                     const nsEventHandler& aHandler,
                                     bool aPermitUntrustedEvents);
