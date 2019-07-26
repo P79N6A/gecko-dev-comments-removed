@@ -2509,13 +2509,13 @@ MNewArray::shouldUseVM() const
 {
     JS_ASSERT(count() < JSObject::NELEMENTS_LIMIT);
 
-    size_t maxArraySlots =
-        gc::GetGCKindSlots(gc::FINALIZE_OBJECT_LAST) - ObjectElements::VALUES_PER_HEADER;
+    size_t arraySlots =
+        gc::GetGCKindSlots(templateObject()->tenuredGetAllocKind()) - ObjectElements::VALUES_PER_HEADER;
 
     
     
     
-    bool allocating = isAllocating() && count() > maxArraySlots;
+    bool allocating = isAllocating() && count() > arraySlots;
 
     return templateObject()->hasSingletonType() || allocating;
 }
