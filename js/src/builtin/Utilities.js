@@ -28,6 +28,13 @@
 #define TO_UINT32(x) (x >>> 0)
 
 
+#ifdef DEBUG
+#define assert(b, info) if (!b) AssertionFailed(info);
+#else
+#define assert(b, info)
+#endif
+
+
 var std_isFinite = isFinite;
 var std_isNaN = isNaN;
 var std_Array_indexOf = ArrayIndexOf;
@@ -140,13 +147,4 @@ function IsObject(v) {
     
     return (typeof v === "object" && v !== null) ||
            (typeof v === "undefined" && v !== undefined);
-}
-
-
-
-
-
-function assert(b, info) {
-    if (!b)
-        AssertionFailed(info);
 }
