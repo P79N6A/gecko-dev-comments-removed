@@ -63,8 +63,8 @@ private:
   uint64_t mLayersId;
 };
 
-class CompositorParent MOZ_FINAL : public PCompositorParent,
-                                   public ShadowLayersManager
+class CompositorParent : public PCompositorParent,
+                         public ShadowLayersManager
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
 
@@ -242,7 +242,7 @@ public:
 
   static bool IsInCompositorThread();
 
-private:
+protected:
   
   virtual ~CompositorParent();
 
