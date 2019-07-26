@@ -2319,6 +2319,7 @@ WebConsoleFrame.prototype = {
     let bodyNode = this.document.createElementNS(XUL_NS, "description");
     bodyNode.flex = 1;
     bodyNode.classList.add("webconsole-msg-body");
+    bodyNode.classList.add("devtools-monospace");
 
     
     let body = aBody;
@@ -2365,6 +2366,8 @@ WebConsoleFrame.prototype = {
     
     let timestampNode = this.document.createElementNS(XUL_NS, "label");
     timestampNode.classList.add("webconsole-timestamp");
+    timestampNode.classList.add("devtools-monospace");
+
     let timestamp = aTimeStamp || Date.now();
     let timestampString = l10n.timestampString(timestamp);
     timestampNode.setAttribute("value", timestampString);
@@ -2589,6 +2592,7 @@ WebConsoleFrame.prototype = {
     locationNode.setAttribute("tooltiptext", aSourceURL);
     locationNode.classList.add("webconsole-location");
     locationNode.classList.add("text-link");
+    locationNode.classList.add("devtools-monospace");
 
     
     locationNode.addEventListener("click", () => {
