@@ -430,19 +430,20 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
       continue;
     }
 
-    double numIterations = animation.numIterations() != -1 ?
-      animation.numIterations() : NS_IEEEPositiveInfinity();
+    AnimationTiming timing;
+    timing.mIterationDuration = animation.duration();
+    timing.mIterationCount = animation.numIterations() != -1 ?
+                             animation.numIterations() :
+                             NS_IEEEPositiveInfinity();
+    timing.mDirection = animation.direction();
+    
+    
+    
+    
+    timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
+
     double positionInIteration =
-      ElementAnimations::GetPositionInIteration(
-        elapsedDuration,
-        animation.duration(),
-        numIterations,
-        animation.direction(),
-        
-        
-        
-        
-        NS_STYLE_ANIMATION_FILL_MODE_BOTH);
+      ElementAnimations::GetPositionInIteration(elapsedDuration, timing);
 
     NS_ABORT_IF_FALSE(0.0 <= positionInIteration &&
                       positionInIteration <= 1.0,

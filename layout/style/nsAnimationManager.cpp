@@ -51,10 +51,7 @@ ElementAnimationsPropertyDtor(void           *aObject,
 
 double
 ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
-                                          TimeDuration aIterationDuration,
-                                          double aIterationCount,
-                                          uint32_t aDirection,
-                                          uint8_t aFillMode,
+                                          const AnimationTiming& aTiming,
                                           ElementAnimation* aAnimation,
                                           ElementAnimations* aEa,
                                           EventArray* aEventsToDispatch)
@@ -63,9 +60,9 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
 
   
   
-  double currentIterationCount = aElapsedDuration / aIterationDuration;
+  double currentIterationCount = aElapsedDuration / aTiming.mIterationDuration;
   bool dispatchStartOrIteration = false;
-  if (currentIterationCount >= aIterationCount) {
+  if (currentIterationCount >= aTiming.mIterationCount) {
     if (aAnimation) {
       
       if (aAnimation->mLastNotification !=
@@ -76,15 +73,15 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
         aEventsToDispatch->AppendElement(ei);
       }
     }
-    if (aFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
-        aFillMode != NS_STYLE_ANIMATION_FILL_MODE_FORWARDS) {
+    if (aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
+        aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_FORWARDS) {
       
       return -1;
     }
-    currentIterationCount = aIterationCount;
+    currentIterationCount = aTiming.mIterationCount;
   } else if (currentIterationCount < 0.0) {
-    if (aFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
-        aFillMode != NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS) {
+    if (aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
+        aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS) {
       
       return -1;
     }
@@ -97,7 +94,7 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   
   NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
   double whichIteration = floor(currentIterationCount);
-  if (whichIteration == aIterationCount && whichIteration != 0.0) {
+  if (whichIteration == aTiming.mIterationCount && whichIteration != 0.0) {
     
     
     
@@ -106,7 +103,7 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
   double positionInIteration = currentIterationCount - whichIteration;
 
   bool thisIterationReverse = false;
-  switch (aDirection) {
+  switch (aTiming.mDirection) {
     case NS_STYLE_ANIMATION_DIRECTION_NORMAL:
       thisIterationReverse = false;
       break;
@@ -177,12 +174,10 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
+      AnimationTiming timing = anim->mTiming;
+      timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
       double positionInIteration =
-        GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                               anim->mTiming.mIterationDuration,
-                               anim->mTiming.mIterationCount,
-                               anim->mTiming.mDirection,
-                               NS_STYLE_ANIMATION_FILL_MODE_BOTH);
+        GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime), timing);
 
       
       
@@ -234,10 +229,7 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
       
       double positionInIteration =
         GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                               anim->mTiming.mIterationDuration,
-                               anim->mTiming.mIterationCount,
-                               anim->mTiming.mDirection,
-                               anim->mTiming.mFillMode);
+                               anim->mTiming);
       
       
       
@@ -344,11 +336,7 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     }
 
     GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                           anim->mTiming.mIterationDuration,
-                           anim->mTiming.mIterationCount,
-                           anim->mTiming.mDirection,
-                           anim->mTiming.mFillMode,
-                           anim, this, &aEventsToDispatch);
+                           anim->mTiming, anim, this, &aEventsToDispatch);
   }
 }
 

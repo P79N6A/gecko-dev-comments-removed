@@ -71,10 +71,7 @@ struct ElementAnimations MOZ_FINAL
   
   
   static double GetPositionInIteration(TimeDuration aElapsedDuration,
-                                       TimeDuration aIterationDuration,
-                                       double aIterationCount,
-                                       uint32_t aDirection,
-                                       uint8_t aFillMode,
+                                       const mozilla::AnimationTiming& aTiming,
                                        mozilla::ElementAnimation* aAnimation =
                                          nullptr,
                                        ElementAnimations* aEa = nullptr,
