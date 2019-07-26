@@ -168,6 +168,20 @@ var gSnifferTests = [
 ];
 
 
+var gInvalidTests = [
+  { name:"invalid-m0c0.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-m0c3.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-m1c0.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-m1c9.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-m2c0.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-m2c1.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-cmap-short.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-cmap-s0c0.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-cmap-s0c2.opus", type:"audio/ogg; codecs=opus"},
+  { name:"invalid-cmap-s1c2.opus", type:"audio/ogg; codecs=opus"},
+];
+
+
 
 
 function fileUriToSrc(path, mustExist) {
