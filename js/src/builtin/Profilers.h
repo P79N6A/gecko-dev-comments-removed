@@ -13,6 +13,12 @@
 
 #include "jstypes.h"
 
+#ifdef XP_WIN
+typedef int pid_t;
+#else
+#include <unistd.h>
+#endif
+
 
 
 
@@ -25,7 +31,7 @@
 
 
 extern JS_PUBLIC_API(bool)
-JS_StartProfiling(const char *profileName);
+JS_StartProfiling(const char *profileName, pid_t pid);
 
 
 
