@@ -720,6 +720,8 @@ TelemetryPing.prototype = {
   },
 
   addToPendingPings: function addToPendingPings(file, stream) {
+    let success = false;
+
     try {
       let string = NetUtil.readInputStreamToString(stream, stream.available(), { charset: "UTF-8" });
       stream.close();
@@ -734,11 +736,14 @@ TelemetryPing.prototype = {
           this._pingLoadsCompleted == this._pingsLoaded) {
         Services.obs.notifyObservers(null, "telemetry-test-load-complete", null);
       }
+      success = true;
     } catch (e) {
       
       stream.close();           
       file.remove(true);
     }
+    let success_histogram = Telemetry.getHistogramById("READ_SAVED_PING_SUCCESS");
+    success_histogram.add(success);
   },
 
   loadHistograms: function loadHistograms(file, sync) {
