@@ -416,10 +416,7 @@ public:
     }
     else {
       
-      
-      uint32_t length;
-      PRUnichar* chars = UTF8ToNewUnicode(result, &length);
-      aResult.Adopt(chars, length);
+      CopyASCIItoUTF16(result, aResult);
     }
   }
   void GetAllResponseHeaders(nsString& aResponseHeaders);
