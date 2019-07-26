@@ -442,6 +442,8 @@ MediaEngineWebRTCVideoSource::Init()
   mDeviceName[0] = '\0'; 
   mUniqueId[0] = '\0';
 
+  (void) mFps; 
+
   LOG((__FUNCTION__));
   if (mVideoEngine == NULL) {
     return;
