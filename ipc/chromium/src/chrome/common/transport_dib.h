@@ -17,10 +17,6 @@
 #include "chrome/common/x11_util.h"
 #endif
 
-namespace gfx {
-class Size;
-}
-
 
 
 
