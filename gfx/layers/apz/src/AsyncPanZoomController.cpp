@@ -300,6 +300,20 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |

@@ -249,13 +249,29 @@ bool
 SharedFrameMetricsHelper::AboutToCheckerboard(const FrameMetrics& aContentMetrics,
                                               const FrameMetrics& aCompositorMetrics)
 {
-  CSSRect painted =
-        (aContentMetrics.mCriticalDisplayPort.IsEmpty() ? aContentMetrics.mDisplayPort : aContentMetrics.mCriticalDisplayPort)
-        + aContentMetrics.GetScrollOffset();
   
   
-  painted.Inflate(0.01f);
-  CSSRect showing = CSSRect(aCompositorMetrics.GetScrollOffset(), aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
+  
+  
+  CSSRect painted = (aContentMetrics.mCriticalDisplayPort.IsEmpty()
+                      ? aContentMetrics.mDisplayPort
+                      : aContentMetrics.mCriticalDisplayPort)
+                    + aContentMetrics.GetScrollOffset();
+  painted.Inflate(CSSMargin::FromAppUnits(nsMargin(1, 1, 1, 1)));
+
+  
+  
+  CSSRect showing = CSSRect(aCompositorMetrics.GetScrollOffset(),
+                            aCompositorMetrics.CalculateBoundedCompositedSizeInCssPixels());
+  showing.Inflate(LayerSize(gfxPrefs::APZDangerZoneX(), gfxPrefs::APZDangerZoneY())
+                  / aCompositorMetrics.LayersPixelsPerCSSPixel());
+
+  
+  
+  
+  painted = painted.Intersect(aContentMetrics.mScrollableRect);
+  showing = showing.Intersect(aContentMetrics.mScrollableRect);
+
   return !painted.Contains(showing);
 }
 
