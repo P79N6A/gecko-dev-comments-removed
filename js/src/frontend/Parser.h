@@ -361,11 +361,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
   private:
     Parser *thisForCtor() { return this; }
 
-    
-
-
-
-    Node atomNode(ParseNodeKind kind, JSOp op);
+    Node stringLiteral();
 
     inline bool abortIfSyntaxParser();
 
