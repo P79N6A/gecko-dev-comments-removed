@@ -1353,6 +1353,16 @@ SourceScripts.prototype = {
   _onLoadSourceFinished:
   function SS__onLoadSourceFinished(aScriptUrl, aSourceText, aContentType, aOptions) {
     let element = DebuggerView.Scripts.getScriptByLocation(aScriptUrl);
+
+    
+    
+    
+    
+    
+    if (!element) {
+      return;
+    }
+
     let script = element.getUserData("sourceScript");
 
     script.loaded = true;
