@@ -135,6 +135,14 @@ AudioChannelService::UnregisterType(AudioChannelType aType,
   
   
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
+    
+    
+    if (aType == AUDIO_CHANNEL_CONTENT &&
+        mActiveContentChildIDs.Contains(aChildID) &&
+        (!mActiveContentChildIDsFrozen &&
+          mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IndexOf(aChildID) == -1)) {
+      mActiveContentChildIDs.RemoveElement(aChildID);
+    }
     SendAudioChannelChangedNotification();
     Notify();
   }
@@ -292,7 +300,11 @@ AudioChannelService::SendAudioChannelChangedNotification()
     }
 
     
-    else if (!mActiveContentChildIDs.IsEmpty()) {
+    
+    
+    else if (!mActiveContentChildIDs.IsEmpty() &&
+             mChannelCounters[AUDIO_CHANNEL_INT_CONTENT_HIDDEN].IndexOf(
+             mActiveContentChildIDs[0]) != -1) {
       higher = AUDIO_CHANNEL_CONTENT;
     }
   }
