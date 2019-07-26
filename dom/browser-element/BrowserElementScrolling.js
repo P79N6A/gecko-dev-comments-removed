@@ -2,6 +2,9 @@
 
 
 
+
+
+
 const ContentPanning = {
   init: function cp_init() {
     ['mousedown', 'mouseup', 'mousemove'].forEach(function(type) {
@@ -184,6 +187,7 @@ const ContentPanning = {
     let target;
     let isScrolling = false;
     let oldX, oldY, newX, newY;
+    let win, doc, htmlNode, bodyNode;
 
     function doScroll(node, delta) {
       if (node instanceof Ci.nsIDOMHTMLElement) {
@@ -192,12 +196,32 @@ const ContentPanning = {
         node.scrollTop += delta.y;
         newX = node.scrollLeft, newY = node.scrollTop;
         return (newX != oldX || newY != oldY);
-      } else {
+      } else if (node instanceof Ci.nsIDOMWindow) {
+        win = node;
+        doc = win.document;
+
+        
+        
+        if (doc instanceof Ci.nsIDOMHTMLDocument) {
+          htmlNode = doc.documentElement;
+          bodyNode = doc.body;
+          if (win.getComputedStyle(htmlNode, null).overflowX == "hidden" ||
+              win.getComputedStyle(bodyNode, null).overflowX == "hidden") {
+            delta.x = 0;
+          }
+          if (win.getComputedStyle(htmlNode, null).overflowY == "hidden" ||
+              win.getComputedStyle(bodyNode, null).overflowY == "hidden") {
+            delta.y = 0;
+          }
+        }
         oldX = node.scrollX, oldY = node.scrollY;
         node.scrollBy(delta.x, delta.y);
         newX = node.scrollX, newY = node.scrollY;
         return (newX != oldX || newY != oldY);
       }
+      
+      
+      return false;
     };
 
     function scroll(delta) {
