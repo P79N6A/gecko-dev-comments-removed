@@ -38,6 +38,7 @@ let Keyboard = {
   init: function keyboardInit() {
     Services.obs.addObserver(this, 'in-process-browser-or-app-frame-shown', false);
     Services.obs.addObserver(this, 'remote-browser-frame-shown', false);
+    Services.obs.addObserver(this, 'oop-frameloader-crashed', false);
 
     for (let name of this._messageNames)
       ppmm.addMessageListener('Keyboard:' + name, this);
@@ -46,18 +47,26 @@ let Keyboard = {
   observe: function keyboardObserve(subject, topic, data) {
     let frameLoader = subject.QueryInterface(Ci.nsIFrameLoader);
     let mm = frameLoader.messageManager;
-    mm.addMessageListener('Forms:Input', this);
-    mm.addMessageListener('Forms:SelectionChange', this);
 
-    
-    
-    try {
-       if (Services.prefs.getBoolPref("dom.ipc.tabs.disabled") === true) {
-         mm.loadFrameScript(kFormsFrameScript, true);
-       }
-     } catch (e) {
-       dump('Error loading ' + kFormsFrameScript + ' as frame script: ' + e + '\n');
-     }
+    if (topic == 'oop-frameloader-crashed') {
+      if (this.messageManager == mm) {
+        
+        
+        ppmm.broadcastAsyncMessage('Keyboard:FocusChange', { 'type': 'blur' });
+      }
+    } else {
+      mm.addMessageListener('Forms:Input', this);
+
+      
+      
+      try {
+         if (Services.prefs.getBoolPref("dom.ipc.tabs.disabled") === true) {
+           mm.loadFrameScript(kFormsFrameScript, true);
+        }
+      } catch (e) {
+         dump('Error loading ' + kFormsFrameScript + ' as frame script: ' + e + '\n');
+      }
+    }
   },
 
   receiveMessage: function keyboardReceiveMessage(msg) {
