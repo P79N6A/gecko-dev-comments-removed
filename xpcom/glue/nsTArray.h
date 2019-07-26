@@ -374,6 +374,9 @@ public:
   }
 };
 
+template <class E> class InfallibleTArray;
+template <class E> class FallibleTArray;
+
 
 
 
@@ -461,6 +464,20 @@ public:
   template<typename Allocator>
   explicit nsTArray(const nsTArray<E, Allocator>& other) {
     AppendElements(other);
+  }
+
+  
+  
+  template<typename Allocator>
+  operator const nsTArray<E, Allocator>&() const {
+    return *reinterpret_cast<const nsTArray<E, Allocator>*>(this);
+  }
+  
+  operator const InfallibleTArray<E>&() const {
+    return *reinterpret_cast<const InfallibleTArray<E>*>(this);
+  }
+  operator const FallibleTArray<E>&() const {
+    return *reinterpret_cast<const FallibleTArray<E>*>(this);
   }
 
   
