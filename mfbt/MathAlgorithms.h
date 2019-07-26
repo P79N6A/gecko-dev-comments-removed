@@ -25,8 +25,8 @@ EuclidGCD(IntegerType a, IntegerType b)
 {
   
   
-  MOZ_ASSERT(a > 0);
-  MOZ_ASSERT(b > 0);
+  MOZ_ASSERT(a > IntegerType(0));
+  MOZ_ASSERT(b > IntegerType(0));
 
   while (a != b) {
     if (a > b) {

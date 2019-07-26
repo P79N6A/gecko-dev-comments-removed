@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsRangeFrame.h"
 
@@ -63,16 +63,16 @@ nsRangeFrame::Init(nsIContent*       aContent,
                    nsContainerFrame* aParent,
                    nsIFrame*         aPrevInFlow)
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+  // B2G's AsyncPanZoomController::ReceiveInputEvent handles touch events
+  // without checking whether the out-of-process document that it controls
+  // will handle them, unless it has been told that the document might do so.
+  // This is for perf reasons, otherwise it has to wait for the event to be
+  // round-tripped to the other process and back, delaying panning, etc.
+  // We must call SetHasTouchEventListeners() in order to get APZC to wait
+  // until the event has been round-tripped and check whether it has been
+  // handled, otherwise B2G will end up panning the document when the user
+  // tries to drag our thumb.
+  //
   nsIPresShell* presShell = PresContext()->GetPresShell();
   if (presShell) {
     nsIDocument* document = presShell->GetDocument();
@@ -115,7 +115,7 @@ nsRangeFrame::MakeAnonymousDiv(Element** aResult,
   nsCOMPtr<nsIDocument> doc = mContent->GetDocument();
   nsRefPtr<Element> resultElement = doc->CreateHTMLElement(nsGkAtoms::div);
 
-  
+  // Associate the pseudo-element with the anonymous child.
   nsRefPtr<nsStyleContext> newStyleContext =
     PresContext()->StyleSet()->ResolvePseudoElementStyle(mContent->AsElement(),
                                                          aPseudoType,
@@ -135,19 +135,19 @@ nsRangeFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
 {
   nsresult rv;
 
-  
+  // Create the ::-moz-range-track pseuto-element (a div):
   rv = MakeAnonymousDiv(getter_AddRefs(mTrackDiv),
                         nsCSSPseudoElements::ePseudo_mozRangeTrack,
                         aElements);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Create the ::-moz-range-progress pseudo-element (a div):
   rv = MakeAnonymousDiv(getter_AddRefs(mProgressDiv),
                         nsCSSPseudoElements::ePseudo_mozRangeProgress,
                         aElements);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
+  // Create the ::-moz-range-thumb pseudo-element (a div):
   rv = MakeAnonymousDiv(getter_AddRefs(mThumbDiv),
                         nsCSSPseudoElements::ePseudo_mozRangeThumb,
                         aElements);
@@ -187,8 +187,8 @@ nsDisplayRangeFocusRing::GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap)
   *aSnap = false;
   nsRect rect(ToReferenceFrame(), Frame()->GetSize());
 
-  
-  
+  // We want to paint as if specifying a border for ::-moz-focus-outer
+  // specifies an outline for our frame, so inflate by the border widths:
   nsStyleContext* styleContext =
     static_cast<nsRangeFrame*>(mFrame)->mOuterFocusStyle;
   MOZ_ASSERT(styleContext, "We only exist if mOuterFocusStyle is non-null");
@@ -217,13 +217,13 @@ nsRangeFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 {
   if (IsThemed()) {
     DisplayBorderBackgroundOutline(aBuilder, aLists);
-    
-    
-    
-    
-    
-    
-    
+    // Only create items for the thumb. Specifically, we do not want
+    // the track to paint, since *our* background is used to paint
+    // the track, and we don't want the unthemed track painting over
+    // the top of the themed track.
+    // This logic is copied from
+    // nsContainerFrame::BuildDisplayListForNonBlockChildren as
+    // called by BuildDisplayListForInline.
     nsIFrame* thumb = mThumbDiv->GetPrimaryFrame();
     if (thumb) {
       nsDisplayListSet set(aLists, aLists.Content());
@@ -233,32 +233,32 @@ nsRangeFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     BuildDisplayListForInline(aBuilder, aDirtyRect, aLists);
   }
 
-  
+  // Draw a focus outline if appropriate:
 
   if (!aBuilder->IsForPainting() ||
       !IsVisibleForPainting(aBuilder)) {
-    
-    
+    // we don't want the focus ring item for hit-testing or if the item isn't
+    // in the area being [re]painted
     return;
   }
 
   EventStates eventStates = mContent->AsElement()->State();
   if (eventStates.HasState(NS_EVENT_STATE_DISABLED) ||
       !eventStates.HasState(NS_EVENT_STATE_FOCUSRING)) {
-    return; 
+    return; // can't have focus or doesn't match :-moz-focusring
   }
 
   if (!mOuterFocusStyle ||
       !mOuterFocusStyle->StyleBorder()->HasBorder()) {
-    
-    
+    // no ::-moz-focus-outer specified border (how style specifies a focus ring
+    // for range)
     return;
   }
 
   const nsStyleDisplay *disp = StyleDisplay();
   if (IsThemed(disp) &&
       PresContext()->GetTheme()->ThemeDrawsFocusForWidget(disp->mAppearance)) {
-    return; 
+    return; // the native theme displays its own visual indication of focus
   }
 
   aLists.Content()->AppendNewToTop(
@@ -325,8 +325,8 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
                                      nsHTMLReflowMetrics&     aDesiredSize,
                                      const nsHTMLReflowState& aReflowState)
 {
-  
-  
+  // The width/height of our content box, which is the available width/height
+  // for our anonymous content:
   nscoord rangeFrameContentBoxWidth = aReflowState.ComputedWidth();
   nscoord rangeFrameContentBoxHeight = aReflowState.ComputedHeight();
   if (rangeFrameContentBoxHeight == NS_AUTOHEIGHT) {
@@ -335,32 +335,32 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
 
   nsIFrame* trackFrame = mTrackDiv->GetPrimaryFrame();
 
-  if (trackFrame) { 
+  if (trackFrame) { // display:none?
 
-    
-    
-    
-    
-    
-    
+    // Position the track:
+    // The idea here is that we allow content authors to style the width,
+    // height, border and padding of the track, but we ignore margin and
+    // positioning properties and do the positioning ourself to keep the center
+    // of the track's border box on the center of the nsRangeFrame's content
+    // box.
 
     nsHTMLReflowState trackReflowState(aPresContext, aReflowState, trackFrame,
                                        nsSize(aReflowState.ComputedWidth(),
                                               NS_UNCONSTRAINEDSIZE));
 
-    
-    
-    
+    // Find the x/y position of the track frame such that it will be positioned
+    // as described above. These coordinates are with respect to the
+    // nsRangeFrame's border-box.
     nscoord trackX = rangeFrameContentBoxWidth / 2;
     nscoord trackY = rangeFrameContentBoxHeight / 2;
 
-    
+    // Account for the track's border and padding (we ignore its margin):
     trackX -= trackReflowState.ComputedPhysicalBorderPadding().left +
                 trackReflowState.ComputedWidth() / 2;
     trackY -= trackReflowState.ComputedPhysicalBorderPadding().top +
                 trackReflowState.ComputedHeight() / 2;
 
-    
+    // Make relative to our border box instead of our content box:
     trackX += aReflowState.ComputedPhysicalBorderPadding().left;
     trackY += aReflowState.ComputedPhysicalBorderPadding().top;
 
@@ -376,13 +376,13 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
 
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
 
-  if (thumbFrame) { 
+  if (thumbFrame) { // display:none?
     nsHTMLReflowState thumbReflowState(aPresContext, aReflowState, thumbFrame,
                                        nsSize(aReflowState.ComputedWidth(),
                                               NS_UNCONSTRAINEDSIZE));
 
-    
-    
+    // Where we position the thumb depends on its size, so we first reflow
+    // the thumb at {0,0} to obtain its size, then position it afterwards.
 
     nsReflowStatus frameStatus;
     nsHTMLReflowMetrics thumbDesiredSize(aReflowState);
@@ -398,15 +398,15 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
 
   nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
 
-  if (rangeProgressFrame) { 
+  if (rangeProgressFrame) { // display:none?
     nsHTMLReflowState progressReflowState(aPresContext, aReflowState,
                                           rangeProgressFrame,
                                           nsSize(aReflowState.ComputedWidth(),
                                                  NS_UNCONSTRAINEDSIZE));
 
-    
-    
-    
+    // We first reflow the range-progress frame at {0,0} to obtain its
+    // unadjusted dimensions, then we adjust it to so that the appropriate edge
+    // ends at the thumb.
 
     nsReflowStatus frameStatus;
     nsHTMLReflowMetrics progressDesiredSize(aReflowState);
@@ -490,7 +490,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
       LayoutDeviceIntPoint::ToUntyped(absPoint), this);
 
   if (point == nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)) {
-    
+    // We don't want to change the current value for this error state.
     return static_cast<dom::HTMLInputElement*>(mContent)->GetValueAsDecimal();
   }
 
@@ -498,7 +498,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
   nsSize thumbSize;
 
   if (IsThemed()) {
-    
+    // We need to get the size of the thumb from the theme.
     nsPresContext *presContext = PresContext();
     nsRefPtr<nsRenderingContext> tmpCtx =
       presContext->PresShell()->CreateReferenceRenderingContext();
@@ -512,7 +512,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
     MOZ_ASSERT(thumbSize.width > 0 && thumbSize.height > 0);
   } else {
     nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
-    if (thumbFrame) { 
+    if (thumbFrame) { // diplay:none?
       thumbSize = thumbFrame->GetSize();
     }
   }
@@ -526,7 +526,7 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
     nscoord posAtStart = rangeContentRect.x + thumbSize.width/2;
     nscoord posAtEnd = posAtStart + traversableDistance;
     nscoord posOfPoint = mozilla::clamped(point.x, posAtStart, posAtEnd);
-    fraction = Decimal(posOfPoint - posAtStart) / traversableDistance;
+    fraction = Decimal(posOfPoint - posAtStart) / Decimal(traversableDistance);
     if (StyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
       fraction = Decimal(1) - fraction;
     }
@@ -538,12 +538,12 @@ nsRangeFrame::GetValueAtEventPoint(WidgetGUIEvent* aEvent)
     nscoord posAtStart = rangeContentRect.y + thumbSize.height/2;
     nscoord posAtEnd = posAtStart + traversableDistance;
     nscoord posOfPoint = mozilla::clamped(point.y, posAtStart, posAtEnd);
-    
-    
-    fraction = Decimal(1) - Decimal(posOfPoint - posAtStart) / traversableDistance;
+    // For a vertical range, the top (posAtStart) is the highest value, so we
+    // subtract the fraction from 1.0 to get that polarity correct.
+    fraction = Decimal(1) - Decimal(posOfPoint - posAtStart) / Decimal(traversableDistance);
   }
 
-  MOZ_ASSERT(fraction >= 0 && fraction <= 1);
+  MOZ_ASSERT(fraction >= Decimal(0) && fraction <= Decimal(1));
   return minimum + fraction * range;
 }
 
@@ -551,12 +551,12 @@ void
 nsRangeFrame::UpdateForValueChange()
 {
   if (NS_SUBTREE_DIRTY(this)) {
-    return; 
+    return; // we're going to be updated when we reflow
   }
   nsIFrame* rangeProgressFrame = mProgressDiv->GetPrimaryFrame();
   nsIFrame* thumbFrame = mThumbDiv->GetPrimaryFrame();
   if (!rangeProgressFrame && !thumbFrame) {
-    return; 
+    return; // diplay:none?
   }
   if (rangeProgressFrame) {
     DoUpdateRangeProgressFrame(rangeProgressFrame, GetSize());
@@ -565,8 +565,8 @@ nsRangeFrame::UpdateForValueChange()
     DoUpdateThumbPosition(thumbFrame, GetSize());
   }
   if (IsThemed()) {
-    
-    
+    // We don't know the exact dimensions or location of the thumb when native
+    // theming is applied, so we just repaint the entire range.
     InvalidateFrame();
   }
 
@@ -586,13 +586,13 @@ nsRangeFrame::DoUpdateThumbPosition(nsIFrame* aThumbFrame,
 {
   MOZ_ASSERT(aThumbFrame);
 
-  
-  
-  
-  
-  
-  
-  
+  // The idea here is that we want to position the thumb so that the center
+  // of the thumb is on an imaginary line drawn from the middle of one edge
+  // of the range frame's content box to the middle of the opposite edge of
+  // its content box (the opposite edges being the left/right edge if the
+  // range is horizontal, or else the top/bottom edges if the range is
+  // vertical). How far along this line the center of the thumb is placed
+  // depends on the value of the range.
 
   nsMargin borderAndPadding = GetUsedBorderAndPadding();
   nsPoint newPosition(borderAndPadding.left, borderAndPadding.top);
@@ -605,7 +605,7 @@ nsRangeFrame::DoUpdateThumbPosition(nsIFrame* aThumbFrame,
   double fraction = GetValueAsFractionOfRange();
   MOZ_ASSERT(fraction >= 0.0 && fraction <= 1.0);
 
-  
+  // We are called under Reflow, so we need to pass IsHorizontal a valid rect.
   nsSize frameSizeOverride(aRangeSize.width, aRangeSize.height);
   if (IsHorizontal(&frameSizeOverride)) {
     if (thumbSize.width < rangeContentBoxSize.width) {
@@ -635,14 +635,14 @@ nsRangeFrame::DoUpdateRangeProgressFrame(nsIFrame* aRangeProgressFrame,
 {
   MOZ_ASSERT(aRangeProgressFrame);
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // The idea here is that we want to position the ::-moz-range-progress
+  // pseudo-element so that the center line running along its length is on the
+  // corresponding center line of the nsRangeFrame's content box. In the other
+  // dimension, we align the "start" edge of the ::-moz-range-progress
+  // pseudo-element's border-box with the corresponding edge of the
+  // nsRangeFrame's content box, and we size the progress element's border-box
+  // to have a length of GetValueAsFractionOfRange() times the nsRangeFrame's
+  // content-box size.
 
   nsMargin borderAndPadding = GetUsedBorderAndPadding();
   nsSize progSize = aRangeProgressFrame->GetSize();
@@ -656,7 +656,7 @@ nsRangeFrame::DoUpdateRangeProgressFrame(nsIFrame* aRangeProgressFrame,
   double fraction = GetValueAsFractionOfRange();
   MOZ_ASSERT(fraction >= 0.0 && fraction <= 1.0);
 
-  
+  // We are called under Reflow, so we need to pass IsHorizontal a valid rect.
   nsSize frameSizeOverride(aRangeSize.width, aRangeSize.height);
   if (IsHorizontal(&frameSizeOverride)) {
     nscoord progLength = NSToCoordRound(fraction * rangeContentBoxSize.width);
@@ -687,21 +687,21 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
         aAttribute == nsGkAtoms::min ||
         aAttribute == nsGkAtoms::max ||
         aAttribute == nsGkAtoms::step) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      // We want to update the position of the thumb, except in one special
+      // case: If the value attribute is being set, it is possible that we are
+      // in the middle of a type change away from type=range, under the
+      // SetAttr(..., nsGkAtoms::value, ...) call in HTMLInputElement::
+      // HandleTypeChange. In that case the HTMLInputElement's type will
+      // already have changed, and if we call UpdateForValueChange()
+      // we'll fail the asserts under that call that check the type of our
+      // HTMLInputElement. Given that we're changing away from being a range
+      // and this frame will shortly be destroyed, there's no point in calling
+      // UpdateForValueChange() anyway.
       MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
       bool typeIsRange = static_cast<dom::HTMLInputElement*>(mContent)->GetType() ==
                            NS_FORM_INPUT_RANGE;
-      
-      
+      // If script changed the <input>'s type before setting these attributes
+      // then we don't need to do anything since we are going to be reframed.
       if (typeIsRange) {
         UpdateForValueChange();
       }
@@ -721,20 +721,20 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                               nsSize aPadding, bool aShrinkWrap)
 {
   nscoord oneEm = NSToCoordRound(StyleFont()->mFont.size *
-                                 nsLayoutUtils::FontSizeInflationFor(this)); 
+                                 nsLayoutUtils::FontSizeInflationFor(this)); // 1em
 
-  
-  
+  // frameSizeOverride values just gets us to fall back to being horizontal
+  // (the actual values are irrelevant, as long as width > height):
   nsSize frameSizeOverride(10,1);
   bool isHorizontal = IsHorizontal(&frameSizeOverride);
 
   nsSize autoSize;
 
-  
-  
-  
-  
-  
+  // nsFrame::ComputeSize calls GetMinimumWidgetSize to prevent us from being
+  // given too small a size when we're natively themed. If we're themed, we set
+  // our "thickness" dimension to zero below and rely on that
+  // GetMinimumWidgetSize check to correct that dimension to the natural
+  // thickness of a slider in the current theme.
 
   if (isHorizontal) {
     autoSize.width = LONG_SIDE_TO_SHORT_SIDE_RATIO * oneEm;
@@ -750,29 +750,29 @@ nsRangeFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
 nscoord
 nsRangeFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
-  
-  
-  
+  // nsFrame::ComputeSize calls GetMinimumWidgetSize to prevent us from being
+  // given too small a size when we're natively themed. If we aren't native
+  // themed, we don't mind how small we're sized.
   return nscoord(0);
 }
 
 nscoord
 nsRangeFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 {
-  
+  // frameSizeOverride values just gets us to fall back to being horizontal:
   nsSize frameSizeOverride(10,1);
   bool isHorizontal = IsHorizontal(&frameSizeOverride);
 
   if (!isHorizontal && IsThemed()) {
-    
-    
-    
-    
+    // nsFrame::ComputeSize calls GetMinimumWidgetSize to prevent us from being
+    // given too small a size when we're natively themed. We return zero and
+    // depend on that correction to get our "natuaral" width when we're a
+    // vertical slider.
     return 0;
   }
 
   nscoord prefWidth = NSToCoordRound(StyleFont()->mFont.size *
-                                     nsLayoutUtils::FontSizeInflationFor(this)); 
+                                     nsLayoutUtils::FontSizeInflationFor(this)); // 1em
 
   if (isHorizontal) {
     prefWidth *= LONG_SIDE_TO_SHORT_SIDE_RATIO;
@@ -854,9 +854,9 @@ nsRangeFrame::GetPseudoElement(nsCSSPseudoElements::Type aType)
 nsStyleContext*
 nsRangeFrame::GetAdditionalStyleContext(int32_t aIndex) const
 {
-  
-  
-  
+  // We only implement this so that SetAdditionalStyleContext will be
+  // called if style changes that would change the -moz-focus-outer
+  // pseudo-element have occurred.
   return aIndex == 0 ? mOuterFocusStyle : nullptr;
 }
 
@@ -867,6 +867,6 @@ nsRangeFrame::SetAdditionalStyleContext(int32_t aIndex,
   MOZ_ASSERT(aIndex == 0,
              "GetAdditionalStyleContext is handling other indexes?");
 
-  
+  // The -moz-focus-outer pseudo-element's style has changed.
   mOuterFocusStyle = aStyleContext;
 }

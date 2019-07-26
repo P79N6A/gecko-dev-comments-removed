@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-w idth: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
+/* A set abstraction for enumeration values. */
 
 #ifndef mozilla_RollingMean_h_
 #define mozilla_RollingMean_h_
@@ -16,15 +16,15 @@
 
 namespace mozilla {
 
-
-
-
-
-
-
-
-
-
+/**
+ * RollingMean<T> calculates a rolling mean of the values it is given. It
+ * accumulates the total as values are added and removed. The second type
+ * argument S specifies the type of the total. This may need to be a bigger
+ * type in order to maintain that the sum of all values in the average doesn't
+ * exceed the maximum input value.
+ *
+ * WARNING: Float types are not supported due to rounding errors.
+ */
 template<typename T, typename S>
 class RollingMean
 {
@@ -39,7 +39,7 @@ class RollingMean
                   "floating-point types are unsupported due to rounding "
                   "errors");
 
-    RollingMean(size_t aMaxValues)
+    explicit RollingMean(size_t aMaxValues)
       : mInsertIndex(0),
         mMaxValues(aMaxValues),
         mTotal(0)
@@ -57,9 +57,9 @@ class RollingMean
       return *this;
     }
 
-    
-
-
+    /**
+     * Insert a value into the rolling mean.
+     */
     bool insert(T aValue) {
       MOZ_ASSERT(mValues.length() <= mMaxValues);
 
@@ -76,9 +76,9 @@ class RollingMean
       return true;
     }
 
-    
-
-
+    /**
+     * Calculate the rolling mean.
+     */
     T mean() {
       MOZ_ASSERT(!empty());
       return T(mTotal / mValues.length());
@@ -88,9 +88,9 @@ class RollingMean
       return mValues.empty();
     }
 
-    
-
-
+    /**
+     * Remove all values from the rolling mean.
+     */
     void clear() {
       mValues.clear();
       mInsertIndex = 0;
@@ -102,6 +102,6 @@ class RollingMean
     }
 };
 
-} 
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_RollingMean_h_
