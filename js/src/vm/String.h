@@ -519,6 +519,9 @@ class JSString : public js::gc::BarrieredCell<JSString>
     void operator=(const JSString &other) MOZ_DELETE;
 };
 
+
+static const bool EnableLatin1Strings = false;
+
 class JSRope : public JSString
 {
     template <typename CharT>
@@ -998,9 +1001,6 @@ class JSAtom : public JSFlatString
 JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
 
 namespace js {
-
-
-extern bool EnableLatin1Strings;
 
 
 
