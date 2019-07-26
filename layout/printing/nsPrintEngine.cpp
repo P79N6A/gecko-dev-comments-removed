@@ -2133,9 +2133,11 @@ nsPrintEngine::SetRootView(
     parentView = GetParentViewForRoot();
   }
 
-  if (aPO->mPresShell->GetViewManager()->GetRootView()) {
+  if (aPO->mViewManager->GetRootView()) {
     
-    rootView = aPO->mPresShell->GetRootFrame()->GetView();
+    rootView = aPO->mViewManager->GetRootView();
+    
+    aPO->mViewManager->RemoveChild(rootView);
     reinterpret_cast<nsView*>(rootView)->SetParent(reinterpret_cast<nsView*>(parentView));
   } else {
     
