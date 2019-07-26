@@ -22,8 +22,11 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CacheIndexIterator)
 
   CacheIndexIterator(CacheIndex *aIndex, bool aAddNew);
+
+protected:
   virtual ~CacheIndexIterator();
 
+public:
   
   
   
