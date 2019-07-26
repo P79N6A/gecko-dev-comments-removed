@@ -1564,6 +1564,8 @@ class Assembler
     
     
     void flush() {
+        JS_ASSERT(!isFinished);
+        m_buffer.flushPool();
         return;
     }
 
