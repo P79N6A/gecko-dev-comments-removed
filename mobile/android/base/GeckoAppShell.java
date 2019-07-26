@@ -293,7 +293,6 @@ public class GeckoAppShell
     }
 
     public static void runGecko(String apkPath, String args, String url, String type) {
-        Looper.prepare();
 
         
         GeckoAppShell.nativeInit();
