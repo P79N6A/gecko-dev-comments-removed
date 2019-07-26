@@ -108,12 +108,10 @@ nsSVGPathGeometryFrame::AttributeChanged(int32_t         aNameSpaceID,
 {
   if (aNameSpaceID == kNameSpaceID_None &&
       (static_cast<nsSVGPathGeometryElement*>
-                  (mContent)->AttributeDefinesGeometry(aAttribute))) {
+                  (mContent)->AttributeDefinesGeometry(aAttribute) ||
+       aAttribute == nsGkAtoms::transform)) {
     nsSVGUtils::InvalidateBounds(this, false);
     nsSVGUtils::ScheduleReflowSVG(this);
-  } else if (aAttribute == nsGkAtoms::transform) {
-    
-    SchedulePaint();
   }
   return NS_OK;
 }

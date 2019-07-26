@@ -190,8 +190,7 @@ nsSVGImageFrame::AttributeChanged(int32_t         aNameSpaceID,
       return NS_OK;
     }
     else if (aAttribute == nsGkAtoms::preserveAspectRatio) {
-      
-      SchedulePaint();
+      nsSVGUtils::InvalidateBounds(this);
       return NS_OK;
     }
   }
