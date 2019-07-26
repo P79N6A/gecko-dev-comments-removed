@@ -100,7 +100,9 @@ Sanitizer.prototype = {
         Services.perms.removeAll();
 
         
-        Services.contentPrefs.removeGroupedPrefs(null);
+        Cc["@mozilla.org/content-pref/service;1"]
+          .getService(Ci.nsIContentPrefService2)
+          .removeAllDomains(null);
 
         
         
