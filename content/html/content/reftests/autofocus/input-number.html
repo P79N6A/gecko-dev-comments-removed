@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+
+
+  <head>
+    <meta charset="utf-8">
+    <script>
+
+function focusHandler() {
+  setTimeout(function() {
+    document.documentElement.removeAttribute('class');
+  }, 0);
+}
+
+    </script>
+  </head>
+  <body>
+    <input type="number" autofocus onfocus="focusHandler();"
+           style="-moz-appearance: none;">
+    
+    <div style="display:block; position:absolute; background-color:black; width:200px; height:100px; top:0px; left:100px;">
+  </body>
+</html>
+

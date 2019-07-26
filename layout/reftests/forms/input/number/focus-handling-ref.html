@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+
+
+  <head>
+    <meta charset="utf-8">
+    <script>
+
+function end() {
+  setTimeout(function() {
+    document.documentElement.className = "";
+  }, 0);
+}
+
+    </script>
+  </head>
+  <body>
+    <input style="-moz-appearance:none;"><br>
+    <input autofocus onfocus="end();"
+           style="-moz-appearance:none;">
+    
+    <div style="display:block; position:absolute; background-color:black; width:200px; height:100px; top:0px; left:100px;">
+  </body>
+</html>
