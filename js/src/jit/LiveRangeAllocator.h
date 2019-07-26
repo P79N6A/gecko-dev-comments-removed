@@ -686,8 +686,16 @@ class LiveRangeAllocator : protected RegisterAllocator
 
         
         CodePosition start = interval->start();
-        if (interval->index() == 0 && !reg->isTemp())
+        if (interval->index() == 0 && !reg->isTemp()) {
+#ifdef CHECK_OSIPOINT_REGISTERS
+            
+            
+            
+            if (LSafepoint *safepoint = reg->ins()->safepoint())
+                safepoint->addClobberedRegister(a->toRegister());
+#endif
             start = start.next();
+        }
 
         size_t i = findFirstNonCallSafepoint(start);
         for (; i < graph.numNonCallSafepoints(); i++) {
@@ -707,7 +715,7 @@ class LiveRangeAllocator : protected RegisterAllocator
 
 #ifdef CHECK_OSIPOINT_REGISTERS
             if (reg->isTemp())
-                safepoint->addTempRegister(a->toRegister());
+                safepoint->addClobberedRegister(a->toRegister());
 #endif
         }
     }

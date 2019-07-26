@@ -563,8 +563,10 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
     
     
     
+    
+    
     RegisterSet liveRegs = safepoint->liveRegs();
-    liveRegs = RegisterSet::Intersect(liveRegs, RegisterSet::Not(safepoint->tempRegs()));
+    liveRegs = RegisterSet::Intersect(liveRegs, RegisterSet::Not(safepoint->clobberedRegs()));
 
     VerifyOp op(masm, &failure);
     HandleRegisterDump<VerifyOp>(op, masm, liveRegs, scratch, allRegs.getAny());

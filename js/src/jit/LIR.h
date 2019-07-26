@@ -989,7 +989,7 @@ class LSafepoint : public TempObject
 #ifdef CHECK_OSIPOINT_REGISTERS
     
     
-    RegisterSet tempRegs_;
+    RegisterSet clobberedRegs_;
 #endif
 
     
@@ -1052,12 +1052,12 @@ class LSafepoint : public TempObject
         return liveRegs_;
     }
 #ifdef CHECK_OSIPOINT_REGISTERS
-    void addTempRegister(AnyRegister reg) {
-        tempRegs_.addUnchecked(reg);
+    void addClobberedRegister(AnyRegister reg) {
+        clobberedRegs_.addUnchecked(reg);
         assertInvariants();
     }
-    const RegisterSet &tempRegs() const {
-        return tempRegs_;
+    const RegisterSet &clobberedRegs() const {
+        return clobberedRegs_;
     }
 #endif
     void addGcRegister(Register reg) {
