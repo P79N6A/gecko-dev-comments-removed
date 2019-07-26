@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsReadConfig_h
+#define nsReadConfig_h
+
 #include "nsCOMPtr.h"
 #include "nsIReadConfig.h"
 #include "nsIAutoConfig.h"
@@ -33,3 +36,5 @@ class nsReadConfig : public nsIReadConfig,
 private:
         nsCOMPtr<nsIAutoConfig> mAutoConfig;
 };
+
+#endif

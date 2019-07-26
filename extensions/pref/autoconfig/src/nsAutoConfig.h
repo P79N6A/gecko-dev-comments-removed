@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsAutoConfig_h
+#define nsAutoConfig_h
+
 #include "nsIAutoConfig.h"
 #include "nsITimer.h"
 #include "nsIFile.h"
@@ -46,3 +49,5 @@ class nsAutoConfig : public nsIAutoConfig,
         nsCOMPtr<nsITimer> mTimer;
         nsCString mConfigURL;
 };
+
+#endif
