@@ -156,8 +156,7 @@ void NetdClient::OnLineRead(int aFd, nsDependentCSubstring& aMessage)
   
   
   int responseCode = strtol(aMessage.Data(), nullptr, 10);
-  
-  if (!errno && responseCode < 600) {
+  if (!errno) {
     NetdCommand* response = new NetdCommand();
     
     response->mSize = aMessage.Length();
