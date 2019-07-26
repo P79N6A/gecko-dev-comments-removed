@@ -43,9 +43,6 @@ DOMCI_CLASS(CSSMozDocumentRule)
 DOMCI_CLASS(CSSSupportsRule)
 
 
-DOMCI_CLASS(SVGNumber)
-
-
 DOMCI_CLASS(WindowUtils)
 
 

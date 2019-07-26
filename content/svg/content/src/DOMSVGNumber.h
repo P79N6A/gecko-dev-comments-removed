@@ -9,20 +9,12 @@
 #include "DOMSVGNumberList.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIDOMSVGNumber.h"
 #include "nsTArray.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/ErrorResult.h"
+#include "nsWrapperCache.h"
 
 class nsSVGElement;
-
-
-
-
-
-
-#define MOZILLA_DOMSVGNUMBER_IID \
-  { 0x2CA92412, 0x2E1F, 0x4DDB, \
-    { 0xA1, 0x6C, 0x52, 0xB3, 0xB5, 0x82, 0x27, 0x0D } }
 
 #define MOZ_SVG_LIST_INDEX_BIT_COUNT 27 // supports > 134 million list items
 
@@ -41,15 +33,14 @@ namespace mozilla {
 
 
 
-class DOMSVGNumber MOZ_FINAL : public nsIDOMSVGNumber
+class DOMSVGNumber MOZ_FINAL : public nsISupports
+                             , public nsWrapperCache
 {
   friend class AutoChangeNumberNotifier;
 
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGNUMBER_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGNumber)
-  NS_DECL_NSIDOMSVGNUMBER
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGNumber)
 
   
 
@@ -63,7 +54,7 @@ public:
 
 
 
-  DOMSVGNumber();
+  explicit DOMSVGNumber(nsISupports* aParent);
 
   ~DOMSVGNumber() {
     
@@ -78,7 +69,7 @@ public:
 
 
   DOMSVGNumber* Clone() {
-    DOMSVGNumber *clone = new DOMSVGNumber();
+    DOMSVGNumber *clone = new DOMSVGNumber(mParent);
     clone->mValue = ToSVGNumber();
     return clone;
   }
@@ -128,6 +119,23 @@ public:
 
   float ToSVGNumber();
 
+  nsISupports* GetParentObject()
+  {
+    return mParent;
+  }
+
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  static already_AddRefed<DOMSVGNumber>
+  Constructor(const dom::GlobalObject& aGlobal, ErrorResult& aRv);
+
+  static already_AddRefed<DOMSVGNumber>
+  Constructor(const dom::GlobalObject& aGlobal, float aValue, ErrorResult& aRv);
+
+  float Value();
+
+  void SetValue(float aValue, ErrorResult& aRv);
+
 private:
 
   nsSVGElement* Element() {
@@ -154,6 +162,7 @@ private:
 #endif
 
   nsRefPtr<DOMSVGNumberList> mList;
+  nsCOMPtr<nsISupports> mParent;
 
   
   
@@ -165,8 +174,6 @@ private:
   
   float mValue;
 };
-
-NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGNumber, MOZILLA_DOMSVGNUMBER_IID)
 
 } 
 
