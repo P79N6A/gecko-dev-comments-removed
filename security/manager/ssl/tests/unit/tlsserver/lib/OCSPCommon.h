@@ -11,33 +11,33 @@
 #include "certt.h"
 #include "seccomon.h"
 
-enum OCSPStapleResponseType
+enum OCSPResponseType
 {
-  OSRTNull = 0,
-  OSRTGood,             
-  OSRTRevoked,          
-  OSRTUnknown,          
-  OSRTGoodOtherCert,    
-  OSRTGoodOtherCA,      
-  OSRTExpired,          
-  OSRTExpiredFreshCA,   
-  OSRTNone,             
-  OSRTEmpty,            
-  OSRTMalformed,        
-  OSRTSrverr,           
-  OSRTTryLater,         
-  OSRTNeedsSig,         
-  OSRTUnauthorized      
+  ORTNull = 0,
+  ORTGood,             
+  ORTRevoked,          
+  ORTUnknown,          
+  ORTGoodOtherCert,    
+  ORTGoodOtherCA,      
+  ORTExpired,          
+  ORTExpiredFreshCA,   
+  ORTNone,             
+  ORTEmpty,            
+  ORTMalformed,        
+  ORTSrverr,           
+  ORTTryLater,         
+  ORTNeedsSig,         
+  ORTUnauthorized      
 };
 
 struct OCSPHost
 {
   const char *mHostName;
-  OCSPStapleResponseType mOSRT;
+  OCSPResponseType mORT;
 };
 
 SECItemArray *
-GetOCSPResponseForType(OCSPStapleResponseType aOSRT, CERTCertificate *aCert,
+GetOCSPResponseForType(OCSPResponseType aORT, CERTCertificate *aCert,
                        PLArenaPool *aArena);
 
 #endif 
