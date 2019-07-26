@@ -592,7 +592,7 @@ IonCacheGetProperty::attachCallGetter(JSContext *cx, IonScript *ion, JSObject *o
 
     
     
-    masm.setFramePushed(script->ionScript()->frameSize());
+    masm.setFramePushed(ion->frameSize());
 
     
     types::StackTypeSet *outputTypes = script->analysis()->pushedTypes(pc, 0);
