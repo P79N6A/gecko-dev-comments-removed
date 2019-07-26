@@ -80,11 +80,13 @@ HRTFDatabaseLoader::~HRTFDatabaseLoader()
     waitForLoaderThreadCompletion();
     m_hrtfDatabase.reset();
 
-    
-    s_loaderMap->RemoveEntry(m_databaseSampleRate);
-    if (s_loaderMap->Count() == 0) {
-        delete s_loaderMap;
-        s_loaderMap = nullptr;
+    if (s_loaderMap) {
+        
+        s_loaderMap->RemoveEntry(m_databaseSampleRate);
+        if (s_loaderMap->Count() == 0) {
+            delete s_loaderMap;
+            s_loaderMap = nullptr;
+        }
     }
 }
 
@@ -142,25 +144,31 @@ static void databaseLoaderEntry(void* threadData)
 void HRTFDatabaseLoader::load()
 {
     MOZ_ASSERT(!NS_IsMainThread());
-    if (!m_hrtfDatabase.get()) {
-        
-        m_hrtfDatabase = HRTFDatabase::create(m_databaseSampleRate);
-    }
+    MOZ_ASSERT(!m_hrtfDatabase.get(), "Called twice");
+    
+    m_hrtfDatabase = HRTFDatabase::create(m_databaseSampleRate);
+    
+    Release();
 }
 
 void HRTFDatabaseLoader::loadAsynchronously()
 {
     MOZ_ASSERT(NS_IsMainThread());
+    MOZ_ASSERT(m_refCnt, "Must not be called before a reference is added");
+
+    
+    
+    AddRef();
 
     MutexAutoLock locker(m_threadLock);
     
-    if (!m_hrtfDatabase.get() && !m_databaseLoaderThread) {
-        
-        m_databaseLoaderThread =
-            PR_CreateThread(PR_USER_THREAD, databaseLoaderEntry, this,
-                            PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
-                            PR_JOINABLE_THREAD, 0);
-    }
+    MOZ_ASSERT(!m_hrtfDatabase.get() && !m_databaseLoaderThread,
+               "Called twice");
+    
+    m_databaseLoaderThread =
+        PR_CreateThread(PR_USER_THREAD, databaseLoaderEntry, this,
+                        PR_PRIORITY_NORMAL, PR_GLOBAL_THREAD,
+                        PR_JOINABLE_THREAD, 0);
 }
 
 bool HRTFDatabaseLoader::isLoaded() const
@@ -180,4 +188,24 @@ void HRTFDatabaseLoader::waitForLoaderThreadCompletion()
     m_databaseLoaderThread = nullptr;
 }
 
+PLDHashOperator
+HRTFDatabaseLoader::shutdownEnumFunc(LoaderByRateEntry *entry, void* unused)
+{
+    
+    entry->mLoader->waitForLoaderThreadCompletion();
+    return PLDHashOperator::PL_DHASH_NEXT;
+}
+
+void HRTFDatabaseLoader::shutdown()
+{
+    MOZ_ASSERT(NS_IsMainThread());
+    if (s_loaderMap) {
+        
+        
+        nsTHashtable<LoaderByRateEntry>* loaderMap = s_loaderMap;
+        s_loaderMap = nullptr;
+        loaderMap->EnumerateEntries(shutdownEnumFunc, nullptr);
+        delete loaderMap;
+    }
+}
 } 

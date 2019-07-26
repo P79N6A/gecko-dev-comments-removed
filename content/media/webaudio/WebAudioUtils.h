@@ -210,6 +210,8 @@ struct WebAudioUtils {
     
     return IntType(f);
   }
+
+  static void Shutdown();
 };
 
 }
