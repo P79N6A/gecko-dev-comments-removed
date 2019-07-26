@@ -122,8 +122,6 @@ nsViewManager::~nsViewManager()
   mPresShell = nullptr;
 }
 
-NS_IMPL_ISUPPORTS1(nsViewManager, nsViewManager)
-
 
 
 NS_IMETHODIMP nsViewManager::Init(nsDeviceContext* aContext)
