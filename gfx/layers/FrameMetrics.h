@@ -54,6 +54,7 @@ public:
     , mMayHaveTouchListeners(false)
     , mPresShellId(-1)
     , mIsRoot(false)
+    , mHasScrollgrab(false)
   {}
 
   
@@ -256,6 +257,9 @@ public:
 
   
   bool mIsRoot;
+
+  
+  bool mHasScrollgrab;
 };
 
 
