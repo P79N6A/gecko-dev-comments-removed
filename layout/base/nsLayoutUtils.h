@@ -10,6 +10,7 @@
 #include "nsChangeHint.h"
 #include "nsAutoPtr.h"
 #include "nsFrameList.h"
+#include "mozilla/layout/FrameChildList.h"
 #include "nsThreadUtils.h"
 #include "nsIPrincipal.h"
 #include "GraphicsFilter.h"
@@ -1902,8 +1903,11 @@ public:
 
 
 
+
   static void UnionChildOverflow(nsIFrame* aFrame,
-                                 nsOverflowAreas& aOverflowAreas);
+                                 nsOverflowAreas& aOverflowAreas,
+                                 mozilla::layout::FrameChildListIDs aSkipChildLists =
+                                     mozilla::layout::FrameChildListIDs());
 
   
 
