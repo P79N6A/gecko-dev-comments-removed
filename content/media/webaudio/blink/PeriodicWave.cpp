@@ -164,8 +164,8 @@ void PeriodicWave::createBandLimitedTables(const float* realData, const float* i
     for (unsigned rangeIndex = 0; rangeIndex < m_numberOfRanges; ++rangeIndex) {
         
         FFTBlock frame(fftSize);
-        float* realP = new float[halfSize];
-        float* imagP = new float[halfSize];
+        nsAutoArrayPtr<float> realP(new float[halfSize]);
+        nsAutoArrayPtr<float> imagP(new float[halfSize]);
 
         
         float scale = fftSize;
