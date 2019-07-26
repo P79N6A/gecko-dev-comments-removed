@@ -701,6 +701,7 @@ function MetricsStorageSqliteBackend(connection) {
   this._log = Log4Moz.repository.getLogger("Services.Metrics.MetricsStorage");
 
   this._connection = connection;
+  this._enabledWALCheckpointPages = null;
 
   
   this._typesByID = new Map();
@@ -1138,8 +1139,15 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
       self._log.info("Journal mode is " + journalMode);
 
       if (journalMode == "wal") {
-        yield self._connection.execute("PRAGMA wal_autocheckpoint=" +
-                                       Math.ceil(self.MAX_WAL_SIZE_KB * 1024 / pageSize));
+        self._enabledWALCheckpointPages =
+          Math.ceil(self.MAX_WAL_SIZE_KB * 1024 / pageSize);
+
+        self._log.info("WAL auto checkpoint pages: " +
+                       self._enabledWALCheckpointPages);
+
+        
+        
+        yield self.setAutoCheckpoint(0);
       } else {
         if (journalMode != "truncate") {
          
@@ -1150,6 +1158,8 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
         
         yield self._connection.execute("PRAGMA synchronous=FULL");
       }
+
+      let doCheckpoint = false;
 
       
       yield self._connection.executeTransaction(function ensureSchema(conn) {
@@ -1163,6 +1173,7 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
           }
 
           self._connection.schemaVersion = 1;
+          doCheckpoint = true;
         } else if (schema != 1) {
           throw new Error("Unknown database schema: " + schema);
         } else {
@@ -1203,6 +1214,8 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
             self._typesByName.set(type, id);
           }
         });
+
+        doCheckpoint = true;
       }
 
       
@@ -1233,6 +1246,14 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
         self._fieldsByInfo.set([measurementID, fieldName].join(":"), fieldID);
         self._fieldsByMeasurement.get(measurementID).add(fieldID);
       });
+
+      
+      
+      if (doCheckpoint) {
+        yield self.checkpoint();
+      }
+
+      yield self.setAutoCheckpoint(1);
     });
   },
 
@@ -1287,8 +1308,28 @@ MetricsStorageSqliteBackend.prototype = Object.freeze({
 
 
   checkpoint: function () {
+    if (!this._enabledWALCheckpointPages) {
+      return CommonUtils.laterTickResolvingPromise();
+    }
+
     return this.enqueueOperation(function checkpoint() {
+      this._log.info("Performing manual WAL checkpoint.");
       return this._connection.execute("PRAGMA wal_checkpoint");
+    }.bind(this));
+  },
+
+  setAutoCheckpoint: function (on) {
+    
+    
+    if (!this._enabledWALCheckpointPages) {
+      return CommonUtils.laterTickResolvingPromise();
+    }
+
+    let val = on ? this._enabledWALCheckpointPages : 0;
+
+    return this.enqueueOperation(function setWALCheckpoint() {
+      this._log.info("Setting WAL auto checkpoint to " + val);
+      return this._connection.execute("PRAGMA wal_autocheckpoint=" + val);
     }.bind(this));
   },
 
