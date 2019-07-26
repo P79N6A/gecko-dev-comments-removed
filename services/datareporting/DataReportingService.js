@@ -128,16 +128,6 @@ DataReportingService.prototype = Object.freeze({
         this._os.removeObserver(this, "sessionstore-windows-restored");
         this._os.addObserver(this, "quit-application", false);
 
-        
-        
-        
-        
-        
-        if (this.sessionRecorder) {
-          CommonUtils.nextTick(this.sessionRecorder.recordStartupFields,
-                               this.sessionRecorder);
-        }
-
         this.policy.startPolling();
 
         
