@@ -284,6 +284,16 @@ ContentHostTexture::Dump(FILE* aFile,
 }
 #endif
 
+static inline void
+AddWrappedRegion(const nsIntRegion& aInput, nsIntRegion& aOutput,
+                 const nsIntSize& aSize, const nsIntPoint& aShift)
+{
+  nsIntRegion tempRegion;
+  tempRegion.And(nsIntRect(aShift, aSize), aInput);
+  tempRegion.MoveBy(-aShift);
+  aOutput.Or(aOutput, tempRegion);
+}
+
 bool
 ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
                                         const nsIntRegion& aUpdated,
@@ -301,26 +311,38 @@ ContentHostSingleBuffered::UpdateThebes(const ThebesBufferData& aData,
   nsIntRegion destRegion(aUpdated);
   destRegion.MoveBy(-aData.rect().TopLeft());
 
-  
-  destRegion.MoveBy(aData.rotation());
-
-  IntSize size = aData.rect().Size().ToIntSize();
-  nsIntRect destBounds = destRegion.GetBounds();
-  destRegion.MoveBy((destBounds.x >= size.width) ? -size.width : 0,
-                    (destBounds.y >= size.height) ? -size.height : 0);
-
-  
-  
-  if((destBounds.x % size.width) + destBounds.width > size.width ||
-     (destBounds.y % size.height) + destBounds.height > size.height)
-  {
-    NS_ERROR("updated region lies across rotation boundaries!");
+  if (!aData.rect().Contains(aUpdated.GetBounds()) ||
+      aData.rotation().x > aData.rect().width ||
+      aData.rotation().y > aData.rect().height) {
+    NS_ERROR("Invalid update data");
     return false;
   }
 
-  mTextureHost->Updated(&destRegion);
+  
+  
+  
+  
+
+  
+  destRegion.MoveBy(aData.rotation());
+
+  nsIntSize bufferSize = aData.rect().Size();
+
+  
+  nsIntRegion finalRegion;
+  finalRegion.And(nsIntRect(nsIntPoint(), bufferSize), destRegion);
+
+  
+  
+  AddWrappedRegion(destRegion, finalRegion, bufferSize, nsIntPoint(aData.rect().width, 0));
+  AddWrappedRegion(destRegion, finalRegion, bufferSize, nsIntPoint(aData.rect().width, aData.rect().height));
+  AddWrappedRegion(destRegion, finalRegion, bufferSize, nsIntPoint(0, aData.rect().height));
+
+  MOZ_ASSERT(nsIntRect(0, 0, aData.rect().width, aData.rect().height).Contains(finalRegion.GetBounds()));
+
+  mTextureHost->Updated(&finalRegion);
   if (mTextureHostOnWhite) {
-    mTextureHostOnWhite->Updated(&destRegion);
+    mTextureHostOnWhite->Updated(&finalRegion);
   }
   mInitialised = true;
 
