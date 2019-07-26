@@ -95,7 +95,7 @@ var FeedHandler = {
     var feedURI = makeURI(href, document.characterSet);
     
     
-    if (/^https?$/.test(feedURI.scheme))
+    if (/^https?/.test(feedURI.scheme))
       href = "feed:" + href;
     this.loadFeed(href, event);
   },

@@ -50,7 +50,7 @@ function onTabPinned() {
 
       
       
-      ok(iconSrc.startsWith("moz-anno:favicon:"),
+      ok(/^moz-anno:favicon:/.test(iconSrc),
          "The icon url starts with moz-anno:favicon so the default fav icon would be displayed");
 
       

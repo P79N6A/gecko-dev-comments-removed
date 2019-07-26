@@ -8,7 +8,7 @@ var gSafeBrowsing = {
   setReportPhishingMenu: function() {
 
     
-    var isPhishingPage = content.document.documentURI.startsWith("about:blocked?e=phishingBlocked");
+    var isPhishingPage = /^about:blocked\?e=phishingBlocked/.test(content.document.documentURI);
 
     
     document.getElementById("menu_HelpPopup_reportPhishingtoolmenu")

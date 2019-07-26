@@ -1874,7 +1874,7 @@ var gApplicationsPane = {
     
     
 
-    if (/^https?$/.test(uri.scheme) && this._prefSvc.getBoolPref("browser.chrome.favicons"))
+    if (/^https?/.test(uri.scheme) && this._prefSvc.getBoolPref("browser.chrome.favicons"))
       return uri.prePath + "/favicon.ico";
 
     return "";
