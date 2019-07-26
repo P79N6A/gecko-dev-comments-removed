@@ -606,17 +606,8 @@ ArenaHeader::getThingSize() const
 
 struct ChunkTrailer
 {
-    
-    uint32_t        location;
-
-#if JS_BITS_PER_WORD == 64
-    uint32_t        padding;
-#endif
-
     JSRuntime       *runtime;
 };
-
-static_assert(sizeof(ChunkTrailer) == 2 * sizeof(uintptr_t), "ChunkTrailer size is incorrect.");
 
 
 struct ChunkInfo
@@ -632,7 +623,7 @@ struct ChunkInfo
 
 
 
-    char            padding[20];
+    char            padding[16];
 #endif
 
     
