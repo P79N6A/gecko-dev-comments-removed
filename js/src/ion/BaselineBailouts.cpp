@@ -464,6 +464,8 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     IonSpew(IonSpew_BaselineBailouts, "      FrameSize=%d", (int) frameSize);
     blFrame->setFrameSize(frameSize);
 
+    uint32_t flags = 0;
+
     
     JSObject *scopeChain = NULL;
     if (iter.bailoutKind() == Bailout_ArgumentCheck) {
@@ -474,18 +476,22 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
         iter.skip();
     } else {
         Value v = iter.read();
-        if (v.isObject())
+        if (v.isObject()) {
             scopeChain = &v.toObject();
-        else
+            if (fun && fun->isHeavyweight())
+                flags |= BaselineFrame::HAS_CALL_OBJ;
+        } else {
             JS_ASSERT(v.isUndefined());
-        
 
-        
-        if (!scopeChain) {
-            if (fun)
-                scopeChain = fun->environment();
-            else
-                scopeChain = &(script->global());
+            
+            
+            
+            if (iter.pcOffset() != 0) {
+                if (fun)
+                    scopeChain = fun->environment();
+                else
+                    scopeChain = &(script->global());
+            }
         }
     }
     IonSpew(IonSpew_BaselineBailouts, "      ScopeChain=%p", scopeChain);
@@ -493,7 +499,7 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     
 
     
-    blFrame->setFlags(0);
+    blFrame->setFlags(flags);
 
     
     
