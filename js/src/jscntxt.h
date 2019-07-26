@@ -1535,8 +1535,6 @@ struct JSContext : js::ContextFriendFields,
   private:
     
     JSVersion           defaultVersion;      
-    JSVersion           versionOverride;     
-    bool                hasVersionOverride;
 
     
     bool                throwing;            
@@ -1647,48 +1645,13 @@ struct JSContext : js::ContextFriendFields,
 
   public:
     
-
-
-
-    inline bool canSetDefaultVersion() const;
-
-    
-    inline void overrideVersion(JSVersion newVersion);
-
-    
     void setDefaultVersion(JSVersion version) {
         defaultVersion = version;
     }
 
-    void clearVersionOverride() { hasVersionOverride = false; }
     JSVersion getDefaultVersion() const { return defaultVersion; }
-    bool isVersionOverridden() const { return hasVersionOverride; }
-
-    JSVersion getVersionOverride() const {
-        JS_ASSERT(isVersionOverridden());
-        return versionOverride;
-    }
 
     
-
-
-
-    inline bool maybeOverrideVersion(JSVersion newVersion);
-
-    
-
-
-
-    void maybeMigrateVersionOverride() {
-        JS_ASSERT(stack.empty());
-        if (JS_UNLIKELY(isVersionOverridden())) {
-            defaultVersion = versionOverride;
-            clearVersionOverride();
-        }
-    }
-
-    
-
 
 
 
