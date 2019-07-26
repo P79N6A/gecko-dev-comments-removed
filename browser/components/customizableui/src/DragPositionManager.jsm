@@ -126,7 +126,7 @@ AreaPositionManager.prototype = {
 
 
 
-  insertPlaceholder: function(aContainer, aBefore, aWide, aSize) {
+  insertPlaceholder: function(aContainer, aBefore, aWide, aSize, aIsFromThisArea) {
     let isShifted = false;
     let shiftDown = aWide;
     for (let child of aContainer.children) {
@@ -157,7 +157,7 @@ AreaPositionManager.prototype = {
         if (this.__moveDown) {
           shiftDown = true;
         }
-        if (!this._lastPlaceholderInsertion) {
+        if (aIsFromThisArea && !this._lastPlaceholderInsertion) {
           child.setAttribute("notransition", "true");
         }
         
@@ -167,7 +167,8 @@ AreaPositionManager.prototype = {
         child.style.transform = "";
       }
     }
-    if (aContainer.lastChild && !this._lastPlaceholderInsertion) {
+    if (aContainer.lastChild && aIsFromThisArea &&
+        !this._lastPlaceholderInsertion) {
       
       aContainer.lastChild.getBoundingClientRect();
       
