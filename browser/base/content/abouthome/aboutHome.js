@@ -138,8 +138,8 @@ const SEARCH_ENGINES = {
 
 
 const DEFAULT_SNIPPETS_URLS = [
-  "http://www.mozilla.com/firefox/features/?WT.mc_ID=default1"
-, "https://addons.mozilla.org/firefox/?src=snippet&WT.mc_ID=default2"
+  "https://www.mozilla.org/firefox/features/?utm_source=snippet&utm_medium=snippet&utm_campaign=default+feature+snippet"
+, "https://addons.mozilla.org/firefox/?utm_source=snippet&utm_medium=snippet&utm_campaign=addons"
 ];
 
 const SNIPPETS_UPDATE_INTERVAL_MS = 86400000; 
