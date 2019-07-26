@@ -794,7 +794,8 @@ MacroAssembler::generateBailoutTail(Register scratch, Register bailoutInfo)
         makeFrameDescriptor(temp, JitFrame_BaselineJS);
         push(temp);
         push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
-        enterFakeExitFrame();
+        
+        enterFakeExitFrame(IonExitFrameLayout::BareToken());
 
         
         Label noMonitor;

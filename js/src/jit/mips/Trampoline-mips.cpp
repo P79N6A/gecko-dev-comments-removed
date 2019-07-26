@@ -238,7 +238,8 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.storePtr(scratch, Address(StackPointer, sizeof(uintptr_t))); 
         masm.storePtr(zero, Address(StackPointer, 0)); 
 
-        masm.enterFakeExitFrame();
+        
+        masm.enterFakeExitFrame(IonExitFrameLayout::BareToken());
 
         masm.reserveStack(2 * sizeof(uintptr_t));
         masm.storePtr(framePtr, Address(StackPointer, sizeof(uintptr_t))); 
