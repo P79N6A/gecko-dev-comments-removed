@@ -18,18 +18,27 @@ namespace widget {
 uint32_t
 ContentHelper::GetTouchActionFromFrame(nsIFrame* aFrame)
 {
-  if (!aFrame || !aFrame->GetContent() || !aFrame->GetContent()->GetPrimaryFrame()) {
-    
+  
+  if (!aFrame) {
     return NS_STYLE_TOUCH_ACTION_AUTO;
   }
 
-  if (!aFrame->IsFrameOfType(nsIFrame::eSVG) && !aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
-    
-    
+  
+  
+  bool isNonReplacedInlineElement = aFrame->IsFrameOfType(nsIFrame::eLineParticipant);
+  if (isNonReplacedInlineElement) {
     return NS_STYLE_TOUCH_ACTION_AUTO;
   }
 
-  return (aFrame->GetContent()->GetPrimaryFrame()->StyleDisplay()->mTouchAction);
+  const nsStyleDisplay* disp = aFrame->StyleDisplay();
+  bool isTableElement = disp->IsInnerTableStyle() &&
+                        disp->mDisplay != NS_STYLE_DISPLAY_TABLE_CELL &&
+                        disp->mDisplay != NS_STYLE_DISPLAY_TABLE_CAPTION;
+  if (isTableElement) {
+    return NS_STYLE_TOUCH_ACTION_AUTO;
+  }
+
+  return disp->mTouchAction;
 }
 
 void
