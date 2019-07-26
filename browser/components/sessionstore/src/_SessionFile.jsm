@@ -203,13 +203,15 @@ let SessionFileInternal = {
   },
 
   read: function () {
-    return SessionWorker.post("read").then(msg => msg.ok);
+    return SessionWorker.post("read").then(msg => {
+      this._recordTelemetry(msg.telemetry);
+      return msg.ok;
+    });
   },
 
   write: function (aData, aOptions) {
     let refObj = {};
     return TaskUtils.spawn(function task() {
-      TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_MS", refObj);
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
@@ -218,11 +220,10 @@ let SessionFileInternal = {
         TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
         
-        yield promise;
-        TelemetryStopwatch.finish("FX_SESSION_RESTORE_WRITE_FILE_MS", refObj);
+        let msg = yield promise;
+        this._recordTelemetry(msg.telemetry);
       } catch (ex) {
         TelemetryStopwatch.cancel("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
-        TelemetryStopwatch.cancel("FX_SESSION_RESTORE_WRITE_FILE_MS", refObj);
         Cu.reportError("Could not write session state file " + this.path
                        + ": " + ex);
       }
@@ -230,7 +231,10 @@ let SessionFileInternal = {
   },
 
   writeLoadStateOnceAfterStartup: function (aLoadState) {
-    return SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]);
+    return SessionWorker.post("writeLoadStateOnceAfterStartup", [aLoadState]).then(msg => {
+      this._recordTelemetry(msg.telemetry);
+      return msg;
+    });
   },
 
   createBackupCopy: function (ext) {
@@ -243,6 +247,12 @@ let SessionFileInternal = {
 
   wipe: function () {
     return SessionWorker.post("wipe");
+  },
+
+  _recordTelemetry: function(telemetry) {
+    for (let histogramId in telemetry){
+      Telemetry.getHistogramById(histogramId).add(telemetry[histogramId]);
+    }
   }
 };
 
