@@ -106,7 +106,7 @@ class JS_PUBLIC_API(AutoGCRooter) {
         PARSER =       -3, 
         SHAPEVECTOR =  -4, 
         IDARRAY =      -6, 
-        DESCVECTOR =   -7, 
+        DESCRIPTORS =  -7, 
         VALVECTOR =   -10, 
         IDVECTOR =    -13, 
         OBJVECTOR =   -14, 
