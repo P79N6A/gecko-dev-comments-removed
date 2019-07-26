@@ -966,7 +966,14 @@ TypeScript::MonitorAssign(JSContext *cx, HandleObject obj, jsid id)
         uint32_t i;
         if (js_IdIsIndex(id, &i))
             return;
-        MarkTypeObjectUnknownProperties(cx, obj->type());
+
+        
+        
+        
+        TypeObject* type = obj->type();
+        if (type->getPropertyCount() < 8)
+            return;
+        MarkTypeObjectUnknownProperties(cx, type);
     }
 }
 
