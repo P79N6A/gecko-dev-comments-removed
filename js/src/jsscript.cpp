@@ -1750,7 +1750,8 @@ AllocScriptData(JSContext *cx, size_t size)
     if (!data)
         return NULL;
 
-    JS_ASSERT(size_t(data) % sizeof(Value) == 0);
+    
+    JS_ASSERT(size == 0 || size_t(data) % sizeof(Value) == 0);
     return data;
 }
 
