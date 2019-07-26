@@ -570,6 +570,7 @@ PendingLookup::AddRedirects(nsIArray* aRedirects)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
+    
     nsCString spec;
     rv = uri->GetSpec(spec);
     NS_ENSURE_SUCCESS(rv, rv);
