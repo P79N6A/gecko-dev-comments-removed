@@ -10,16 +10,13 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
-Cu.import("resource://gre/modules/devtools/Console.jsm");
-Cu.import("resource://gre/modules/AddonManager.jsm");
 
 let EXPORTED_SYMBOLS = ["ProfilerController"];
 
-XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
-  "resource:///modules/devtools/gDevTools.jsm");
-
-XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
-  "resource://gre/modules/devtools/dbg-server.jsm");
+XPCOMUtils.defineLazyGetter(this, "DebuggerServer", function () {
+  Cu.import("resource://gre/modules/devtools/dbg-server.jsm");
+  return DebuggerServer;
+});
 
 
 
@@ -27,24 +24,18 @@ XPCOMUtils.defineLazyModuleGetter(this, "DebuggerServer",
 
 
 const sharedData = {
+  startTime: 0,
   data: new WeakMap(),
-  controllers: new WeakMap(),
 };
 
 
 
 
-function makeProfile(name, def={}) {
-  if (def.timeStarted == null)
-    def.timeStarted = null;
-
-  if (def.timeEnded == null)
-    def.timeEnded = null;
-
+function makeProfile(name) {
   return {
     name: name,
-    timeStarted: def.timeStarted,
-    timeEnded: def.timeEnded
+    timeStarted: null,
+    timeEnded: null
   };
 }
 
@@ -59,6 +50,10 @@ function getProfiles(target) {
   return sharedData.data.get(target);
 }
 
+function getCurrentTime() {
+  return (new Date()).getTime() - sharedData.startTime;
+}
+
 
 
 
@@ -67,14 +62,9 @@ function getProfiles(target) {
 
 
 function ProfilerController(target) {
-  if (sharedData.controllers.has(target)) {
-    return sharedData.controllers.get(target);
-  }
-
   this.target = target;
   this.client = target.client;
   this.isConnected = false;
-  this.consoleProfiles = [];
 
   addTarget(target);
 
@@ -84,8 +74,6 @@ function ProfilerController(target) {
     this.isConnected = true;
     this.actor = target.form.profilerActor;
   }
-
-  sharedData.controllers.set(target, this);
 };
 
 ProfilerController.prototype = {
@@ -117,146 +105,16 @@ ProfilerController.prototype = {
 
 
 
-
-
-
-  onConsoleEvent: function (type, data, panel) {
-    let name = data.extra.name;
-
-    let profileStart = () => {
-      if (name && this.profiles.has(name))
-        return;
-
-      
-      
-      let profile = panel.createProfile(name);
-      profile.start((name, cb) => cb());
-
-      
-      this.profiles.set(profile.name, makeProfile(profile.name, {
-        timeStarted: data.extra.currentTime
-      }));
-      this.consoleProfiles.push(profile.name);
-    };
-
-    let profileEnd = () => {
-      if (!name && !this.consoleProfiles.length)
-        return;
-
-      if (!name)
-        name = this.consoleProfiles.pop();
-      else
-        this.consoleProfiles.filter((n) => n !== name);
-
-      if (!this.profiles.has(name))
-        return;
-
-      let profile = this.profiles.get(name);
-      if (!this.isProfileRecording(profile))
-        return;
-
-      let profileData = data.extra.profile;
-      profile.timeEnded = data.extra.currentTime;
-
-      profileData.threads = profileData.threads.map((thread) => {
-        let samples = thread.samples.filter((sample) => {
-          return sample.time >= profile.timeStarted;
-        });
-
-        return { samples: samples };
-      });
-
-      let ui = panel.getProfileByName(name);
-      ui.data = profileData;
-      ui.parse(profileData, () => panel.emit("parsed"));
-      ui.stop((name, cb) => cb());
-    };
-
-    if (type === "profile")
-      profileStart();
-
-    if (type === "profileEnd")
-      profileEnd();
-  },
-
-  
-
-
-
-
-
-
-
-  connect: function (cb=function(){}) {
+  connect: function (cb) {
     if (this.isConnected) {
       return void cb();
-    }
-
-    
-    
-    
-    
-
-    let register = () => {
-      let data = { events: ["console-api-profiler"] };
-
-      
-      
-      
-      
-      
-      
-
-      AddonManager.getAddonByID("jid0-edalmuivkozlouyij0lpdx548bc@jetpack", (addon) => {
-        if (addon && !addon.userDisabled && !addon.softDisabled)
-          return void cb();
-
-        this.request("registerEventNotifications", data, (resp) => {
-          this.client.addListener("eventNotification", (type, resp) => {
-            let toolbox = gDevTools.getToolbox(this.target);
-            if (toolbox == null)
-              return;
-
-            let panel = toolbox.getPanel("jsprofiler");
-            if (panel)
-              return void this.onConsoleEvent(resp.subject.action, resp.data, panel);
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-            toolbox.once("jsprofiler-ready", (_, panel) => {
-              dump("\n\n\nCHOO HOOO MOTHERFUCKERS (" + resp.subject.action + ")\n\n\n");
-              this.onConsoleEvent(resp.subject.action, resp.data, panel);
-            });
-
-            toolbox.loadTool("jsprofiler");
-          });
-        });
-
-        cb();
-      });
-    };
-
-    if (this.target.root) {
-      this.actor = this.target.root.profilerActor;
-      this.isConnected = true;
-      return void register();
     }
 
     this.client.listTabs((resp) => {
       this.actor = resp.profilerActor;
       this.isConnected = true;
-      register();
-    });
+      cb();
+    })
   },
 
   
@@ -286,9 +144,7 @@ ProfilerController.prototype = {
 
 
   isActive: function (cb) {
-    this.request("isActive", {}, (resp) => {
-      cb(resp.error, resp.isActive, resp.currentTime);
-    });
+    this.request("isActive", {}, (resp) => cb(resp.error, resp.isActive));
   },
 
   
@@ -307,7 +163,6 @@ ProfilerController.prototype = {
     }
 
     let profile = makeProfile(name);
-    this.consoleProfiles.push(name);
     this.profiles.set(name, profile);
 
     
@@ -315,9 +170,9 @@ ProfilerController.prototype = {
       return void cb();
     }
 
-    this.isActive((err, isActive, currentTime) => {
+    this.isActive((err, isActive) => {
       if (isActive) {
-        profile.timeStarted = currentTime;
+        profile.timeStarted = getCurrentTime();
         return void cb();
       }
 
@@ -332,7 +187,8 @@ ProfilerController.prototype = {
           return void cb(resp.error);
         }
 
-        profile.timeStarted = 0;
+        sharedData.startTime = (new Date()).getTime();
+        profile.timeStarted = getCurrentTime();
         cb();
       });
     });
@@ -367,7 +223,7 @@ ProfilerController.prototype = {
       }
 
       let data = resp.profile;
-      profile.timeEnded = resp.currentTime;
+      profile.timeEnded = getCurrentTime();
 
       
       
