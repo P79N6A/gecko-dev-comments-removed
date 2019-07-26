@@ -11110,8 +11110,8 @@ nsDocShell::AddURIVisit(nsIURI* aURI,
         
         
         else if (aResponseStatus != 408 &&
-                 (aResponseStatus >= 400 && aResponseStatus <= 501 ||
-                  aResponseStatus == 505)) {
+                 ((aResponseStatus >= 400 && aResponseStatus <= 501) ||
+                   aResponseStatus == 505)) {
             visitURIFlags |= IHistory::UNRECOVERABLE_ERROR;
         }
 
