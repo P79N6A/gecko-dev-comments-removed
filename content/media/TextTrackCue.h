@@ -86,7 +86,6 @@ public:
 
   void SetStartTime(double aStartTime)
   {
-    
     if (mStartTime == aStartTime)
       return;
 
@@ -101,7 +100,6 @@ public:
 
   void SetEndTime(double aEndTime)
   {
-    
     if (mEndTime == aEndTime)
       return;
 
@@ -128,10 +126,15 @@ public:
     aVertical = mVertical;
   }
 
-  void SetVertical(const nsAString& aVertical)
+  void SetVertical(const nsAString& aVertical, ErrorResult& aRv)
   {
     if (mVertical == aVertical)
       return;
+
+    if (!aVertical.EqualsLiteral("rl") && !aVertical.EqualsLiteral("lr") && !aVertical.IsEmpty()){
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return;
+    }
 
     mReset = true;
     mVertical = aVertical;
@@ -170,11 +173,16 @@ public:
     return mPosition;
   }
 
-  void SetPosition(int32_t aPosition)
+  void SetPosition(int32_t aPosition, ErrorResult& aRv)
   {
     
     if (mPosition == aPosition)
       return;
+
+    if (aPosition > 100 || aPosition < 0){
+      aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+      return;
+    }
 
     mReset = true;
     mPosition = aPosition;
@@ -186,14 +194,15 @@ public:
     return mSize;
   }
 
-  void SetSize(int32_t aSize)
+  void SetSize(int32_t aSize, ErrorResult& aRv)
   {
     if (mSize == aSize) {
       return;
     }
 
     if (aSize < 0 || aSize > 100) {
-      
+      aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
+      return;
     }
 
     mReset = true;
@@ -223,7 +232,6 @@ public:
 
   void SetText(const nsAString& aText)
   {
-    
     if (mText == aText)
       return;
 
