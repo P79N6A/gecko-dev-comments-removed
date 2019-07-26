@@ -429,6 +429,9 @@ HyperTextAccessible::FindOffset(uint32_t aOffset, nsDirection aDirection,
                                 nsSelectionAmount aAmount,
                                 EWordMovementType aWordMovementType)
 {
+  NS_ASSERTION(aDirection == eDirPrevious || aAmount != eSelectBeginLine,
+               "eSelectBeginLine should only be used with eDirPrevious");
+
   
   HyperTextAccessible* text = this;
   Accessible* child = nullptr;
@@ -448,21 +451,31 @@ HyperTextAccessible::FindOffset(uint32_t aOffset, nsDirection aDirection,
       HTMLLIAccessible* li = text->AsHTMLListItem();
       if (child == li->Bullet()) {
         
-        if (aDirection == eDirPrevious)
-          return text != this ? TransformOffset(text, 0, false) : 0;
-
-        if (aAmount == eSelectEndLine || aAmount == eSelectLine) {
-          if (text != this)
-            return TransformOffset(text, 1, true);
-
-          
-          
-          return aOffset + 1 < CharacterCount() ?
-            FindOffset(aOffset + 1, aDirection, aAmount, aWordMovementType) : 1;
-        }
-
         
-        return text != this ? TransformOffset(text, 1, true) : 1;
+        if (text != this) {
+          return aDirection == eDirPrevious ?
+            TransformOffset(text, 0, false) :
+            TransformOffset(text, 1, true);
+        }
+        if (aDirection == eDirPrevious)
+          return 0;
+
+        uint32_t nextOffset = GetChildOffset(1);
+        if (nextOffset == 0)
+          return 0;
+
+        switch (aAmount) {
+          case eSelectLine:
+          case eSelectEndLine:
+            
+            
+            return nextOffset < CharacterCount() ?
+              FindOffset(nextOffset, aDirection, aAmount, aWordMovementType) :
+              nextOffset;
+
+          default:
+            return nextOffset;
+        }
       }
     }
 
@@ -521,8 +534,12 @@ HyperTextAccessible::FindOffset(uint32_t aOffset, nsDirection aDirection,
       return 0;
 
     
-    if (IsHTMLListItem() && aAmount == eSelectBeginLine && hyperTextOffset == 1)
-      return 0;
+    if (IsHTMLListItem() && aAmount == eSelectBeginLine &&
+        hyperTextOffset > 0) {
+      Accessible* prevOffsetChild = GetChildAtOffset(hyperTextOffset - 1);
+      if (prevOffsetChild == AsHTMLListItem()->Bullet())
+        return 0;
+    }
   }
 
   return hyperTextOffset;
