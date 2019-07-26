@@ -6553,7 +6553,12 @@ RilObject.prototype[REQUEST_VOICE_RADIO_TECH] = function REQUEST_VOICE_RADIO_TEC
   let radioTech = this.context.Buf.readInt32List();
   this._processRadioTech(radioTech[0]);
 };
-RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = null;
+RilObject.prototype[REQUEST_SET_UICC_SUBSCRIPTION] = function REQUEST_SET_UICC_SUBSCRIPTION(length, options) {
+  
+  if (this._attachDataRegistration) {
+    this.setDataRegistration({attach: true});
+  }
+};
 RilObject.prototype[REQUEST_SET_DATA_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_UICC_SUBSCRIPTION] = null;
 RilObject.prototype[REQUEST_GET_DATA_SUBSCRIPTION] = null;
