@@ -1436,13 +1436,8 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
     bool collectAccesses(MIRGenerator &gen) {
-#ifdef JS_CPU_ARM
-        if (!module_->addBoundsChecks(gen.asmBoundsChecks()))
-            return false;
-#else
         if (!module_->addHeapAccesses(gen.heapAccesses()))
             return false;
-#endif
         if (!globalAccesses_.appendAll(gen.globalAccesses()))
             return false;
         return true;
@@ -1591,24 +1586,19 @@ class MOZ_STACK_CLASS ModuleCompiler
 
         
 #ifdef JS_CPU_ARM
+        
+        
+        for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
+            AsmJSHeapAccess &access = module_->heapAccess(i);
+            access.setOffset(masm_.actualOffset(access.offset()));
+        }
         JS_ASSERT(globalAccesses_.length() == 0);
-        
-        
-        module_->convertBoundsChecksToActualOffset(masm_);
-
 #else
-
         for (unsigned i = 0; i < globalAccesses_.length(); i++) {
             AsmJSGlobalAccess access = globalAccesses_[i];
             masm_.patchAsmJSGlobalAccess(access.offset, code, codeBytes, access.globalDataOffset);
         }
 #endif
-        
-        
-        for (unsigned i = 0; i < module_->numHeapAccesses(); i++) {
-            AsmJSHeapAccess &access = module_->heapAccess(i);
-            access.updateOffset(masm_.actualOffset(access.offset()));
-        }
 
         *module = module_.forget();
 
