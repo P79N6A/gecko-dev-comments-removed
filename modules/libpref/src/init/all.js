@@ -1983,11 +1983,7 @@ pref("plugins.click_to_play", false);
 
 
 
-#ifdef EARLY_BETA_OR_EARLIER
-pref("plugins.enumerable_names", "Java,Nexus Personal,QuickTime,Shockwave");
-#else
 pref("plugins.enumerable_names", "*");
-#endif
 
 
 pref("plugin.default.state", 2);
