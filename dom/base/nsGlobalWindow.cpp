@@ -11854,9 +11854,8 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);
     JS::Rooted<JSObject*> global(entryScript.cx(), FastGetGlobalJSObject());
-    nsJSUtils::EvaluateOptions evalOptions;
     nsJSUtils::EvaluateString(entryScript.cx(), nsDependentString(script),
-                              global, options, evalOptions, nullptr);
+                              global, options);
   } else {
     
     nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));

@@ -315,8 +315,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         nsJSUtils::EvaluateOptions evalOptions;
         evalOptions.setCoerceToString(true);
         rv = nsJSUtils::EvaluateString(cx, NS_ConvertUTF8toUTF16(script),
-                                       globalJSObject, options, evalOptions,
-                                       v.address());
+                                       globalJSObject, options, evalOptions, &v);
 
         
         

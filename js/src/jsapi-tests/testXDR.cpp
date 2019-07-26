@@ -136,7 +136,7 @@ JSScript *createScriptViaXDR(JSPrincipals *orig, int testCase)
     }
 
     JS::RootedValue v(cx);
-    bool ok = JS_ExecuteScript(cx, global, script, v.address());
+    bool ok = JS_ExecuteScript(cx, global, script, &v);
     if (!ok || !v.isObject())
         return nullptr;
     JS::RootedObject funobj(cx, &v.toObject());
@@ -172,7 +172,7 @@ BEGIN_TEST(testXDR_bug506491)
 
     
     JS::RootedValue v2(cx);
-    CHECK(JS_ExecuteScript(cx, global, script, v2.address()));
+    CHECK(JS_ExecuteScript(cx, global, script, &v2));
 
     
     JS_GC(rt);
@@ -197,7 +197,7 @@ BEGIN_TEST(testXDR_bug516827)
     CHECK(script);
 
     
-    CHECK(JS_ExecuteScript(cx, global, script, nullptr));
+    CHECK(JS_ExecuteScript(cx, global, script));
     return true;
 }
 END_TEST(testXDR_bug516827)

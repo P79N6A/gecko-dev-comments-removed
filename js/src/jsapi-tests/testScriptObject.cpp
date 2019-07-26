@@ -27,7 +27,7 @@ struct ScriptObjectFixture : public JSAPITest {
 
         
         JS::RootedValue result(cx);
-        CHECK(JS_ExecuteScript(cx, global, script, result.address()));
+        CHECK(JS_ExecuteScript(cx, global, script, &result));
 
         return true;
     }
