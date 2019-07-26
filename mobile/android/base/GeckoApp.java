@@ -1569,6 +1569,8 @@ abstract public class GeckoApp
             LayerView layerView = (LayerView) findViewById(R.id.layer_view);
             layerView.initializeView(GeckoAppShell.getEventDispatcher());
             mLayerView = layerView;
+            
+            GeckoAppShell.notifyIMEEnabled(GeckoEditableListener.IME_STATE_DISABLED, "", "", "", false);
         }
     }
 
