@@ -88,6 +88,11 @@ gfxSVGGlyphs::CompareIndexEntries(const void *aKey, const void *aEntry)
 gfxSVGGlyphsDocument *
 gfxSVGGlyphs::FindOrCreateGlyphsDocument(uint32_t aGlyphId)
 {
+    if (uint16_t(mHeader->mVersion) != 0) {
+        
+        return nullptr;
+    }
+
     IndexEntry *entry = (IndexEntry*)bsearch(&aGlyphId, mIndex,
                                              uint16_t(mHeader->mIndexLength),
                                              sizeof(IndexEntry),
