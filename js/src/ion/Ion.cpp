@@ -679,10 +679,8 @@ ion::ToggleBarriers(JSCompartment *comp, bool needs)
 }
 
 static bool
-TestCompiler(IonBuilder &builder, MIRGraph &graph)
+BuildMIR(IonBuilder &builder, MIRGraph &graph)
 {
-    IonSpewNewFunction(&graph, builder.script);
-
     if (!builder.build())
         return false;
     IonSpewPass("BuildSSA");
@@ -793,6 +791,12 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
     IonSpewPass("Bounds Check Elimination");
     AssertGraphCoherency(graph);
 
+    return true;
+}
+
+static bool
+GenerateCode(IonBuilder &builder, MIRGraph &graph)
+{
     LIRGraph lir(graph);
     LIRGenerator lirgen(&builder, graph, lir);
     if (!lirgen.generate())
@@ -816,13 +820,28 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
         return false;
     
 
+    return true;
+}
+
+ bool
+TestCompiler(IonBuilder &builder, MIRGraph &graph)
+{
+    IonSpewNewFunction(&graph, builder.script);
+
+    if (!BuildMIR(builder, graph))
+        return false;
+
+    if (!GenerateCode(builder, graph))
+        return false;
+
     IonSpewEndFunction();
 
     return true;
 }
 
+template <bool Compiler(IonBuilder &, MIRGraph &)>
 static bool
-IonCompile(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode *osrPc)
+IonCompile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing)
 {
     TempAllocator temp(&cx->tempLifoAlloc());
     IonContext ictx(cx, &temp);
@@ -831,8 +850,7 @@ IonCompile(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode *osrPc)
         return false;
 
     MIRGraph graph(temp);
-    JSFunction *fun = fp->isFunctionFrame() ? fp->fun() : NULL;
-    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(script, fun, osrPc, fp->isConstructing());
+    CompileInfo *info = cx->tempLifoAlloc().new_<CompileInfo>(script, fun, osrPc, constructing);
     if (!info)
         return false;
 
@@ -847,7 +865,7 @@ IonCompile(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecode *osrPc)
     AutoCompilerRoots roots(script->compartment()->rt);
 
     IonBuilder builder(cx, temp, graph, &oracle, *info);
-    if (!TestCompiler(builder, graph)) {
+    if (!Compiler(builder, graph)) {
         IonSpew(IonSpew_Abort, "IM Compilation failed.");
         return false;
     }
@@ -866,12 +884,6 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
-    if (fp->script()->needsArgsObj()) {
-        
-        IonSpew(IonSpew_Abort, "frame has argsobj");
-        return false;
-    }
-
     if (fp->isGeneratorFrame()) {
         
         IonSpew(IonSpew_Abort, "generator frame");
@@ -885,12 +897,27 @@ CheckFrame(StackFrame *fp)
 
     
     
-    if (fp->isFunctionFrame() && fp->numActualArgs() >= SNAPSHOT_MAX_NARGS) {
+    if (fp->isFunctionFrame() &&
+        (fp->numActualArgs() >= SNAPSHOT_MAX_NARGS ||
+         fp->numActualArgs() > js_IonOptions.maxStackArgs))
+    {
         IonSpew(IonSpew_Abort, "too many actual args");
         return false;
     }
 
-    if (!fp->script()->compileAndGo) {
+    return true;
+}
+
+static bool
+CheckScript(JSScript *script)
+{
+    if (script->needsArgsObj()) {
+        
+        IonSpew(IonSpew_Abort, "script has argsobj");
+        return false;
+    }
+
+    if (!script->compileAndGo) {
         IonSpew(IonSpew_Abort, "not compile-and-go");
         return false;
     }
@@ -921,24 +948,19 @@ CheckScriptSize(JSScript *script)
     return true;
 }
 
+template <bool Compiler(IonBuilder &, MIRGraph &)>
 static MethodStatus
-Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
+Compile(JSContext *cx, JSScript *script, JSFunction *fun, jsbytecode *osrPc, bool constructing)
 {
     JS_ASSERT(ion::IsEnabled(cx));
     JS_ASSERT_IF(osrPc != NULL, (JSOp)*osrPc == JSOP_LOOPENTRY);
-
-    
-    if (fp->hasArgs() && fp->numActualArgs() > js_IonOptions.maxStackArgs) {
-        IonSpew(IonSpew_Abort, "Ignore compilation due huge number of arguments of %s:%d", script->filename, script->lineno);
-        return Method_Skipped;
-    }
 
     if (cx->compartment->debugMode()) {
         IonSpew(IonSpew_Abort, "debugging");
         return Method_CantCompile;
     }
 
-    if (!CheckFrame(fp) || !CheckScriptSize(script)) {
+    if (!CheckScript(script) || !CheckScriptSize(script)) {
         IonSpew(IonSpew_Abort, "Aborted compilation of %s:%d", script->filename, script->lineno);
         return Method_CantCompile;
     }
@@ -959,7 +981,7 @@ Compile(JSContext *cx, JSScript *script, js::StackFrame *fp, jsbytecode *osrPc)
             return Method_Skipped;
     }
 
-    if (!IonCompile(cx, script, fp, osrPc))
+    if (!IonCompile<Compiler>(cx, script, fun, osrPc, constructing))
         return Method_CantCompile;
 
     
@@ -987,7 +1009,14 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
         return Method_Skipped;
 
     
-    MethodStatus status = Compile(cx, script, fp, pc);
+    if (!CheckFrame(fp)) {
+        ForbidCompilation(script);
+        return Method_CantCompile;
+    }
+
+    
+    JSFunction *fun = fp->isFunctionFrame() ? fp->fun() : NULL;
+    MethodStatus status = Compile<TestCompiler>(cx, script, fun, pc, false);
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(script);
@@ -1032,7 +1061,14 @@ ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp, bool newType)
     }
 
     
-    MethodStatus status = Compile(cx, script, fp, NULL);
+    if (!CheckFrame(fp)) {
+        ForbidCompilation(script);
+        return Method_CantCompile;
+    }
+
+    
+    JSFunction *fun = fp->isFunctionFrame() ? fp->fun() : NULL;
+    MethodStatus status = Compile<TestCompiler>(cx, script, fun, NULL, fp->isConstructing());
     if (status != Method_Compiled) {
         if (status == Method_CantCompile)
             ForbidCompilation(script);
