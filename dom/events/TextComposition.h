@@ -12,6 +12,7 @@
 #include "nsIWidget.h"
 #include "nsTArray.h"
 #include "nsThreadUtils.h"
+#include "nsPresContext.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 
@@ -66,6 +67,11 @@ public:
 
   nsresult NotifyIME(widget::NotificationToIME aNotification);
 
+  
+
+
+  uint32_t OffsetOfTargetClause() const { return mCompositionTargetOffset; }
+
 private:
   
   
@@ -83,6 +89,12 @@ private:
   nsString mLastData;
 
   
+  uint32_t mCompositionStartOffset;
+  
+  
+  uint32_t mCompositionTargetOffset;
+
+  
   bool mIsSynthesizedForTests;
 
   
@@ -95,6 +107,11 @@ private:
   void DispatchEvent(WidgetGUIEvent* aEvent,
                      nsEventStatus* aStatus,
                      nsDispatchingCallback* aCallBack);
+
+  
+
+
+  void NotityUpdateComposition(WidgetGUIEvent* aEvent);
 
   
 

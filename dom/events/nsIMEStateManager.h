@@ -20,6 +20,7 @@ class nsISelection;
 
 namespace mozilla {
 class TextCompositionArray;
+class TextComposition;
 } 
 
 
@@ -93,6 +94,11 @@ public:
                                        mozilla::WidgetEvent* aEvent,
                                        nsEventStatus* aStatus,
                                        nsDispatchingCallback* aCallBack);
+
+  
+
+
+  static mozilla::TextComposition* GetTextComposition(nsIWidget* aWidget);
 
   
 
