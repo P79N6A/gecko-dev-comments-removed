@@ -135,6 +135,8 @@ public:
   void StartAnimation();
   void StopAnimation();
   void ResetAnimation();
+  float GetCurrentTime();
+  void SetCurrentTime(float aTime);
 
   
 
