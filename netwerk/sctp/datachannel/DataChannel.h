@@ -51,6 +51,7 @@ class DataChannelConnection;
 class DataChannel;
 class DataChannelOnMessageAvailable;
 
+
 class BufferedMsg
 {
 public:
@@ -61,6 +62,32 @@ public:
   struct sctp_sendv_spa *mSpa;
   const char *mData;
   uint32_t mLength;
+};
+
+
+
+class QueuedDataMessage
+{
+public:
+  QueuedDataMessage(uint16_t stream, uint32_t ppid,
+             const void *data, size_t length)
+    : mStream(stream)
+    , mPpid(ppid)
+    , mLength(length)
+  {
+    mData = static_cast<char *>(moz_xmalloc(length)); 
+    memcpy(mData, data, length);
+  }
+
+  ~QueuedDataMessage()
+  {
+    moz_free(mData);
+  }
+
+  uint16_t mStream;
+  uint32_t mPpid;
+  size_t   mLength;
+  char     *mData;
 };
 
 
@@ -200,6 +227,8 @@ private:
                      uint32_t len);
   int32_t SendMsgCommon(uint16_t stream, const nsACString &aMsg, bool isBinary);
 
+  void DeliverQueuedData(uint16_t stream);
+
   already_AddRefed<DataChannel> OpenFinish(already_AddRefed<DataChannel> channel);
 
   void StartDefer();
@@ -241,6 +270,8 @@ private:
   bool mAllocateEven;
   nsAutoTArray<nsRefPtr<DataChannel>,16> mStreams;
   nsDeque mPending; 
+  
+  nsTArray<nsAutoPtr<QueuedDataMessage> > mQueuedData;
 
   
   nsAutoTArray<uint16_t,4> mStreamsResetting;

@@ -1039,6 +1039,33 @@ DataChannelConnection::HandleOpenRequestMessage(const struct rtcweb_datachannel_
                             this, channel));
 
   LOG(("%s: deferring sending ON_CHANNEL_OPEN for %p", __FUNCTION__, channel.get()));
+
+  
+  
+  
+  DeliverQueuedData(stream);
+}
+
+void
+DataChannelConnection::DeliverQueuedData(uint16_t stream)
+{
+  mLock.AssertCurrentThreadOwns();
+
+  uint32_t i = 0;
+  while (i < mQueuedData.Length()) {
+    
+    if (mQueuedData[i]->mStream == stream) {
+      LOG(("Delivering queued data for stream %u, length %u",
+           stream, mQueuedData[i]->mLength));
+      
+      HandleDataMessage(mQueuedData[i]->mPpid,
+                        mQueuedData[i]->mData, mQueuedData[i]->mLength,
+                        mQueuedData[i]->mStream);
+      mQueuedData.RemoveElementAt(i);
+      continue; 
+    }
+    i++;
+  }
 }
 
 void
@@ -1062,8 +1089,21 @@ DataChannelConnection::HandleDataMessage(uint32_t ppid,
   channel = FindChannelByStream(stream);
 
   
-  NS_ENSURE_TRUE_VOID(channel);
-  NS_ENSURE_TRUE_VOID(channel->mState != CONNECTING);
+  if (!channel) {
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    LOG(("Queuing data for stream %u, length %u", stream, length));
+    mQueuedData.AppendElement(new QueuedDataMessage(stream, ppid, data, length));
+    return;
+  }
 
   
   NS_ENSURE_TRUE_VOID(channel->mState != CLOSED);
@@ -1723,6 +1763,13 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   }
   mStreams[stream] = channel;
   channel->mStream = stream;
+
+#ifdef TEST_QUEUED_DATA
+  
+  channel->mState = OPEN;
+  channel->mReady = true;
+  SendMsgInternal(channel, "Help me!", 8, DATA_CHANNEL_PPID_DOMSTRING);
+#endif
 
   if (!SendOpenRequestMessage(channel->mLabel, stream,
                               !!(channel->mFlags & DATA_CHANNEL_FLAG_OUT_OF_ORDER_ALLOWED),
