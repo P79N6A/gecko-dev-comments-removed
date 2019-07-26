@@ -1526,6 +1526,42 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
                         aBGClipRect, aLayer);
 }
 
+void
+nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
+                                     nsRenderingContext& aRenderingContext,
+                                     nsIFrame* aForFrame,
+                                     const nsRect& aDirtyRect,
+                                     const nsRect& aBorderArea,
+                                     uint32_t aFlags)
+{
+  SAMPLE_LABEL("nsCSSRendering", "PaintBackgroundColor");
+  NS_PRECONDITION(aForFrame,
+                  "Frame is expected to be provided to PaintBackground");
+
+  nsStyleContext *sc;
+  if (!FindBackground(aPresContext, aForFrame, &sc)) {
+    
+    
+    
+    
+    
+    if (!aForFrame->GetStyleDisplay()->mAppearance) {
+      return;
+    }
+
+    nsIContent* content = aForFrame->GetContent();
+    if (!content || content->GetParent()) {
+      return;
+    }
+
+    sc = aForFrame->GetStyleContext();
+  }
+
+  PaintBackgroundColorWithSC(aPresContext, aRenderingContext, aForFrame,
+                             aDirtyRect, aBorderArea, sc,
+                             *aForFrame->GetStyleBorder(), aFlags);
+}
+
 static bool
 IsOpaqueBorderEdge(const nsStyleBorder& aBorder, mozilla::css::Side aSide)
 {
@@ -2407,8 +2443,7 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   const nsStyleBackground *bg = aBackgroundSC->GetStyleBackground();
-  if (drawBackgroundColor && aLayer >= 0 &&
-      static_cast<uint32_t>(aLayer) != bg->mImageCount - 1) {
+  if (drawBackgroundColor && aLayer >= 0) {
     drawBackgroundColor = false;
   }
 
@@ -2567,6 +2602,99 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
       }
     }
   }
+}
+
+void
+nsCSSRendering::PaintBackgroundColorWithSC(nsPresContext* aPresContext,
+                                           nsRenderingContext& aRenderingContext,
+                                           nsIFrame* aForFrame,
+                                           const nsRect& aDirtyRect,
+                                           const nsRect& aBorderArea,
+                                           nsStyleContext* aBackgroundSC,
+                                           const nsStyleBorder& aBorder,
+                                           uint32_t aFlags)
+{
+  NS_PRECONDITION(aForFrame,
+                  "Frame is expected to be provided to PaintBackground");
+
+  
+  
+  const nsStyleDisplay* displayData = aForFrame->GetStyleDisplay();
+  if (displayData->mAppearance) {
+    nsITheme *theme = aPresContext->GetTheme();
+    if (theme && theme->ThemeSupportsWidget(aPresContext, aForFrame,
+                                            displayData->mAppearance)) {
+      NS_ERROR("Shouldn't be trying to paint a background color if we are themed!");
+      return;
+    }
+  }
+
+  NS_ASSERTION(!IsCanvasFrame(aForFrame), "Should not be trying to paint a background color for canvas frames!");
+
+  
+  
+  bool drawBackgroundImage;
+  bool drawBackgroundColor;
+
+  nscolor bgColor = DetermineBackgroundColor(aPresContext,
+                                             aBackgroundSC,
+                                             aForFrame,
+                                             drawBackgroundImage,
+                                             drawBackgroundColor);
+
+  NS_ASSERTION(drawBackgroundColor, "Should not be trying to paint a background color if we don't have one");
+
+  
+  gfxContext *ctx = aRenderingContext.ThebesContext();
+  nscoord appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
+
+  
+  gfxCornerSizes bgRadii;
+  bool haveRoundedCorners;
+  {
+    nscoord radii[8];
+    nsSize frameSize = aForFrame->GetSize();
+    if (&aBorder == aForFrame->GetStyleBorder() &&
+        frameSize == aBorderArea.Size()) {
+      haveRoundedCorners = aForFrame->GetBorderRadii(radii);
+    } else {
+      haveRoundedCorners = nsIFrame::ComputeBorderRadii(aBorder.mBorderRadius,
+                                   frameSize, aBorderArea.Size(),
+                                   aForFrame->GetSkipSides(), radii);
+    }
+    if (haveRoundedCorners)
+      ComputePixelRadii(radii, appUnitsPerPixel, &bgRadii);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  const nsStyleBackground *bg = aBackgroundSC->GetStyleBackground();
+  uint8_t currentBackgroundClip = bg->BottomLayer().mClip;
+  bool isSolidBorder =
+    (aFlags & PAINTBG_WILL_PAINT_BORDER) && IsOpaqueBorder(aBorder);
+  if (isSolidBorder && currentBackgroundClip == NS_STYLE_BG_CLIP_BORDER) {
+    
+    
+    
+    currentBackgroundClip = haveRoundedCorners ?
+      NS_STYLE_BG_CLIP_MOZ_ALMOST_PADDING : NS_STYLE_BG_CLIP_PADDING;
+  }
+
+  BackgroundClipState clipState;
+  GetBackgroundClip(ctx, currentBackgroundClip, aForFrame, aBorderArea,
+                    aDirtyRect, haveRoundedCorners, bgRadii, appUnitsPerPixel,
+                    &clipState);
+
+  ctx->SetColor(gfxRGBA(bgColor));
+
+  gfxContextAutoSaveRestore autoSR;
+  DrawBackgroundColor(clipState, ctx, haveRoundedCorners, appUnitsPerPixel);
 }
 
 static inline bool
