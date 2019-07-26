@@ -228,6 +228,10 @@ public:
 
   virtual unsigned short SendingHeight() = 0;
 
+  virtual unsigned int SendingMaxFs() = 0;
+
+  virtual unsigned int SendingMaxFr() = 0;
+
   
 
 
