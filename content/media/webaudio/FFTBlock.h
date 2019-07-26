@@ -23,13 +23,21 @@ public:
     , mIFFT(nullptr)
     , mFFTSize(aFFTSize)
   {
+    MOZ_COUNT_CTOR(FFTBlock);
     mOutputBuffer.SetLength(aFFTSize / 2 + 1);
     PodZero(mOutputBuffer.Elements(), aFFTSize / 2 + 1);
   }
   ~FFTBlock()
   {
+    MOZ_COUNT_DTOR(FFTBlock);
     Clear();
   }
+
+  
+  
+  static FFTBlock*
+  CreateInterpolatedBlock(const FFTBlock& block0,
+                          const FFTBlock& block1, double interp);
 
   void PerformFFT(const float* aData)
   {
@@ -70,6 +78,9 @@ public:
     Clear();
   }
 
+  
+  double ExtractAverageGroupDelay();
+
   uint32_t FFTSize() const
   {
     return mFFTSize;
@@ -84,6 +95,9 @@ public:
   }
 
 private:
+  FFTBlock(const FFTBlock& other) MOZ_DELETE;
+  void operator=(const FFTBlock& other) MOZ_DELETE;
+
   void EnsureFFT()
   {
     if (!mFFT) {
@@ -102,8 +116,10 @@ private:
     free(mIFFT);
     mFFT = mIFFT = nullptr;
   }
+  void AddConstantGroupDelay(double sampleFrameDelay);
+  void InterpolateFrequencyComponents(const FFTBlock& block0,
+                                      const FFTBlock& block1, double interp);
 
-private:
   kiss_fftr_cfg mFFT, mIFFT;
   nsTArray<kiss_fft_cpx> mOutputBuffer;
   uint32_t mFFTSize;
