@@ -1520,6 +1520,11 @@ var FlyoutPanelsUI = {
     AboutPanelUI.init();
     PreferencesPanelView.init();
     SyncPanelUI.init();
+
+    
+    window.addEventListener("deactivate", function(window) {
+      FlyoutPanelsUI.hide();
+    });
   },
 
   hide: function() {
