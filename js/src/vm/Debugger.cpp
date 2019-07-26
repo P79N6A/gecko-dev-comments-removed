@@ -487,19 +487,21 @@ Debugger::hasAnyLiveHooks() const
 }
 
 JSTrapStatus
-Debugger::slowPathOnEnterFrame(JSContext *cx, MutableHandleValue vp)
+Debugger::slowPathOnEnterFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp)
 {
     
     AutoValueVector triggered(cx);
     Handle<GlobalObject*> global = cx->global();
 
+#ifdef DEBUG
     ScriptFrameIter iter(cx);
-    JS_ASSERT(!iter.done());
+    JS_ASSERT(iter.abstractFramePtr() == frame);
+#endif
 
     if (GlobalObject::DebuggerVector *debuggers = global->getDebuggers()) {
         for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
             Debugger *dbg = *p;
-            JS_ASSERT(dbg->observesFrame(iter.abstractFramePtr()));
+            JS_ASSERT(dbg->observesFrame(frame));
             if (dbg->observesEnterFrame() && !triggered.append(ObjectValue(*dbg->toJSObject())))
                 return JSTRAP_ERROR;
         }
@@ -527,21 +529,23 @@ DebuggerFrame_freeStackIterData(FreeOp *fop, RawObject obj);
 
 
 bool
-Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
+Debugger::slowPathOnLeaveFrame(JSContext *cx, AbstractFramePtr frame, bool frameOk)
 {
+#ifdef DEBUG
     ScriptFrameIter iter(cx);
-    JS_ASSERT(!iter.done());
+    JS_ASSERT(iter.abstractFramePtr() == frame);
+#endif
 
     Handle<GlobalObject*> global = cx->global();
 
     
     JSTrapStatus status;
     RootedValue value(cx);
-    Debugger::resultToCompletion(cx, frameOk, iter.returnValue(), &status, &value);
+    Debugger::resultToCompletion(cx, frameOk, frame.returnValue(), &status, &value);
 
     
     AutoObjectVector frames(cx);
-    for (FrameRange r(iter.abstractFramePtr(), global); !r.empty(); r.popFront()) {
+    for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
         if (!frames.append(r.frontFrame())) {
             cx->clearPendingException();
             return false;
@@ -593,7 +597,7 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
 
 
 
-    for (FrameRange r(iter.abstractFramePtr(), global); !r.empty(); r.popFront()) {
+    for (FrameRange r(frame, global); !r.empty(); r.popFront()) {
         RootedObject frameobj(cx, r.frontFrame());
         Debugger *dbg = r.frontDebugger();
         JS_ASSERT(dbg == Debugger::fromChildJSObject(frameobj));
@@ -602,28 +606,28 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
 
         
         if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-            !iter.script()->changeStepModeCount(cx, -1))
+            !frame.script()->changeStepModeCount(cx, -1))
         {
             status = JSTRAP_ERROR;
             
         }
 
-        dbg->frames.remove(iter.abstractFramePtr());
+        dbg->frames.remove(frame);
     }
 
     
 
 
 
-    if (iter.isEvalFrame()) {
-        RootedScript script(cx, iter.script());
+    if (frame.isEvalFrame()) {
+        RootedScript script(cx, frame.script());
         script->clearBreakpointsIn(cx->runtime->defaultFreeOp(), NULL, NULL);
     }
 
     
     switch (status) {
       case JSTRAP_RETURN:
-        iter.setReturnValue(value);
+        frame.setReturnValue(value);
         return true;
 
       case JSTRAP_THROW:
