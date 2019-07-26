@@ -1502,6 +1502,17 @@ ContentParent::ContentParent(mozIApplication* aApp,
         }
     }
 
+#ifdef MOZ_CONTENT_SANDBOX
+    
+    
+    
+    
+    
+    
+    if (aOSPrivileges != base::PRIVILEGES_INHERIT) {
+        SendSetProcessPrivileges(base::PRIVILEGES_INHERIT);
+    }
+#endif
 }
 
 #ifdef MOZ_NUWA_PROCESS
