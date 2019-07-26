@@ -178,10 +178,6 @@
 
 
 
-#if defined(DEBUG_jst) || defined(DEBUG_timeless)
-#define DEBUG_xpc_hacker
-#endif
-
 #if defined(DEBUG_xpc_hacker)
 #define XPC_DUMP_AT_SHUTDOWN
 #define XPC_TRACK_WRAPPER_STATS
@@ -193,12 +189,6 @@
 #if defined(DEBUG_jst)
 #define XPC_ASSERT_CLASSINFO_CLAIMS
 #endif
-
-
-#endif
-
-#if defined(DEBUG_dbaron) || defined(DEBUG_bzbarsky) 
-#define XPC_DUMP_AT_SHUTDOWN
 #endif
 
 

@@ -1238,12 +1238,10 @@ NS_IMPL_ISUPPORTS1(nsXPCFunctionThisTranslator, nsIXPCFunctionThisTranslator)
 
 nsXPCFunctionThisTranslator::nsXPCFunctionThisTranslator()
 {
-  
 }
 
 nsXPCFunctionThisTranslator::~nsXPCFunctionThisTranslator()
 {
-  
 }
 
 
