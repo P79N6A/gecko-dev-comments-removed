@@ -288,6 +288,10 @@ private:
   nsEventStatus ProcessTouchEvent(const WidgetTouchEvent& touchEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetTouchEvent* aOutEvent);
   nsEventStatus ProcessMouseEvent(const WidgetMouseEvent& mouseEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetMouseEvent* aOutEvent);
   nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid, WidgetInputEvent* aOutEvent);
+  void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
+                                        bool aAllowZoom,
+                                        const CSSToScreenScale& aMinScale,
+                                        const CSSToScreenScale& aMaxScale);
 
   
 

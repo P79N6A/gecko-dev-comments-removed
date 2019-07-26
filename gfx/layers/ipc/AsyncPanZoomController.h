@@ -133,8 +133,16 @@ public:
 
 
   void UpdateZoomConstraints(bool aAllowZoom,
-                             const mozilla::CSSToScreenScale& aMinScale,
-                             const mozilla::CSSToScreenScale& aMaxScale);
+                             const CSSToScreenScale& aMinScale,
+                             const CSSToScreenScale& aMaxScale);
+
+  
+
+
+
+  void GetZoomConstraints(bool* aAllowZoom,
+                          CSSToScreenScale* aMinScale,
+                          CSSToScreenScale* aMaxScale);
 
   
 
@@ -599,8 +607,8 @@ private:
   
   
   bool mAllowZoom;
-  mozilla::CSSToScreenScale mMinZoom;
-  mozilla::CSSToScreenScale mMaxZoom;
+  CSSToScreenScale mMinZoom;
+  CSSToScreenScale mMaxZoom;
 
   
   

@@ -189,13 +189,22 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         
         aParent = apzc;
 
-        if (newApzc && apzc->IsRootForLayersId()) {
-          
-          
-          
+        if (newApzc) {
           bool allowZoom;
           CSSToScreenScale minZoom, maxZoom;
-          if (state->mController->GetRootZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
+          if (apzc->IsRootForLayersId()) {
+            
+            
+            
+            if (state->mController->GetRootZoomConstraints(&allowZoom, &minZoom, &maxZoom)) {
+              apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
+            }
+          } else {
+            
+            
+            
+            
+            apzc->GetParent()->GetZoomConstraints(&allowZoom, &minZoom, &maxZoom);
             apzc->UpdateZoomConstraints(allowZoom, minZoom, maxZoom);
           }
         }
@@ -585,8 +594,28 @@ APZCTreeManager::UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
                                        const CSSToScreenScale& aMaxScale)
 {
   nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(aGuid);
-  if (apzc) {
-    apzc->UpdateZoomConstraints(aAllowZoom, aMinScale, aMaxScale);
+  
+  
+  if (apzc && apzc->IsRootForLayersId()) {
+    MonitorAutoLock lock(mTreeLock);
+    UpdateZoomConstraintsRecursively(apzc.get(), aAllowZoom, aMinScale, aMaxScale);
+  }
+}
+
+void
+APZCTreeManager::UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
+                                                  bool aAllowZoom,
+                                                  const CSSToScreenScale& aMinScale,
+                                                  const CSSToScreenScale& aMaxScale)
+{
+  mTreeLock.AssertCurrentThreadOwns();
+
+  aApzc->UpdateZoomConstraints(aAllowZoom, aMinScale, aMaxScale);
+  for (AsyncPanZoomController* child = aApzc->GetLastChild(); child; child = child->GetPrevSibling()) {
+    
+    if (!child->IsRootForLayersId()) {
+      UpdateZoomConstraintsRecursively(child, aAllowZoom, aMinScale, aMaxScale);
+    }
   }
 }
 
