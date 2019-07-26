@@ -84,18 +84,6 @@ function test_socket_shutdown()
     }
   };
 
-  
-  transport.onDataAvailable = makeInfallible(function DT_onDataAvailable(aRequest, aContext,
-                                             aStream, aOffset, aCount) {
-    do_print("onDataAvailable. offset: "+aOffset+", count: "+aCount);
-    let buf = NetUtil.readInputStreamToString(aStream, aStream.available());
-    transport._incoming += buf;
-    do_print("Read form stream("+buf.length+"): "+buf);
-    while (transport._processIncoming()) {
-      do_print("Look ma, I'm looping!");
-    };
-  }, "DebuggerTransport.prototype.onDataAvailable");
-
   do_print("Initializing input stream at " + new Date().toTimeString());
   transport.ready();
 }
@@ -124,39 +112,5 @@ function try_open_listener()
     
     port = Math.floor(Math.random() * (65000 - 2000 + 1)) + 2000;
     try_open_listener();
-  }
-}
-
-
-
-function makeInfallible(aHandler, aName) {
-  if (!aName)
-    aName = aHandler.name;
-
-  return function () {
-    try {
-      return aHandler.apply(this, arguments);
-    } catch (ex) {
-      let msg = "Handler function ";
-      if (aName) {
-        msg += aName + " ";
-      }
-      msg += "threw an exception: " + DevToolsUtils.safeErrorString(ex);
-      if (ex.stack) {
-        msg += "\nCall stack:\n" + ex.stack;
-      }
-
-      do_print(msg + "\n");
-
-      if (Cu.reportError) {
-        
-
-
-
-
-        Cu.reportError(msg);
-      }
-      return undefined;
-    }
   }
 }

@@ -313,6 +313,19 @@ exports.dumpn = function dumpn(str) {
 
 exports.dumpn.wantLogging = false;
 
+
+
+
+exports.dumpv = function(msg) {
+  if (exports.dumpv.wantVerbose) {
+    exports.dumpn(msg);
+  }
+};
+
+
+
+exports.dumpv.wantVerbose = false;
+
 exports.dbg_assert = function dbg_assert(cond, e) {
   if (!cond) {
     return e;
