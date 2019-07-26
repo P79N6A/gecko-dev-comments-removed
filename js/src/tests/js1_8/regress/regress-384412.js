@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 384412;
 var summary = 'Exercise frame handling code';
 var actual = '';
@@ -57,38 +56,6 @@ function test()
   s = "no exception";
   try { g.close(); } catch (e) { s = e + ""; };
   expect("TypeError: yield from closing generator " + f.toSource(), s);
-
-
-
-
-
-  t = <xml><eins><name>ich</name></eins><eins><name>joki</name></eins></xml>;
-
-
-  expect(<eins><name>joki</name></eins>, t.eins.(name == "joki"));
-  expect(t.eins, t.eins.(t.eins.(true)));
-  expect(t.(false), t.eins.(false).(true));
-
-
-  f = (function() { t.eins.(yield true); });
-  g = f();
-  s = "no exception";
-  try { g.next(); } catch (e) { s = e + ""; }
-  expect("no exception", s);
-
-
-  f = (function() { t.eins.(true); });
-  expect(undefined, f());
-
-
-  f = (function() {
-      try {
-        return "hallo";
-      } finally {
-        t.eins.(true);
-      }
-    });
-  expect("hallo", f());
 
 
 
@@ -169,7 +136,6 @@ function test()
     });
   expect(["a1", "a2", "a3", "b1", "b2", "b3", "c1", "c2", "c3"] + "",
          ([a + b for (a in 'abc') for (b in '123')]) + "");
-  expect("", ([x for (x in <x/>)]) + "");
 
 
 

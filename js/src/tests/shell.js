@@ -165,14 +165,7 @@ function printBugNumber (num)
 
 function toPrinted(value)
 {
-  if (typeof value == "xml") 
-  {
-    value = value.toXMLString();
-  } 
-  else 
-  {
-    value = String(value);
-  }
+  value = String(value);
   value = value.replace(/\\n/g, 'NL')
                .replace(/\n/g, 'NL')
                .replace(/\\r/g, 'CR')
@@ -615,8 +608,7 @@ function optionsClear() {
     if (optionName &&
         optionName != "methodjit" &&
         optionName != "methodjit_always" &&
-        optionName != "ion" &&
-        optionName != "allow_xml")
+        optionName != "ion")
     {
       options(optionName);
     }

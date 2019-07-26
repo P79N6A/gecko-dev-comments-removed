@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 479353;
 var summary = 'Do not assert: (uint32_t)(index_) < atoms_->length';
 var actual = '';
@@ -17,7 +16,7 @@ function f(code)
 {
   (eval("(function(){" + code + "});"))();
 }
-x = <z/>;
+x = {};
 f("y = this;");
 f("x, y; for each (let x in [arguments]) {}");
 

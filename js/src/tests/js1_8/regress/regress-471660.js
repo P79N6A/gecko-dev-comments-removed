@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 471660;
 var summary = 'TM: Do not assert: !(fp->flags & JSFRAME_POP_BLOCKS)';
 var actual = '';
@@ -23,7 +22,7 @@ function test()
 
   jit(true);
 
-  y = <x/>;
+  y = {"a":1};
 
   for (var w = 0; w < 5; ++w) {
 

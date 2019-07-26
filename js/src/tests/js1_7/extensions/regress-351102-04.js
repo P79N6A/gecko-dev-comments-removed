@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 351102;
 var summary = 'try/catch-guard/finally GC issues';
 var actual = '';
@@ -24,7 +23,7 @@ function test()
   var f;
   try
   {
-    try { @foo } catch([] if gc()) { }
+    try { foo() } catch([] if gc()) { }
   }
   catch(ex)
   {
@@ -33,3 +32,4 @@ function test()
 
   exitFunc ('test');
 }
+

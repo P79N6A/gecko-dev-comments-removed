@@ -18,9 +18,6 @@ check(this);
 check(Math);
 check(function () {});
 check(Proxy.create({enumerate: function () { return []; }}));
-check(<element/>);
-check(new Namespace("x"));
-check(new QName("x", "y"));
 
 
 check({get x() { throw new Error("fail"); }});

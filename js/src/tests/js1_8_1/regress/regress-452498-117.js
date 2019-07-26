@@ -1,5 +1,4 @@
 
-03
 
 
 
@@ -61,7 +60,7 @@ function test()
 
   try
   {
-    (function(){([]) ((function(q) { return q; })for (each in *))})();
+    (function(){([]) ((function(q) { return q; })for (each in [1,2]))})();
   }
   catch(ex)
   {
@@ -81,10 +80,6 @@ function test()
 
 
   uneval(function(){for(var [arguments] = ({ get y(){} }) in y ) (x);});
-
-
-
-  uneval(function(){([] for ([,,]in <><y/></>));});
 
 
 

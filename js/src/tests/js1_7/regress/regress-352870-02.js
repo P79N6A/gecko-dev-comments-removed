@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 352870;
 var summary = 'Do not assert for crazy huge testcases';
 var actual = '';
@@ -26,7 +25,7 @@ function test()
   try
   {
     switch(4) { case [(let (y = [].j(5)) ({}))
-                      for (p in ([1,2,3,4].g).v({},((w).y(z, <x/>))))]: }  }
+                      for (p in ([1,2,3,4].g).v({},((w).y(z, [1]))))]: }  }
   catch(ex)
   {
     actual = ex + '';

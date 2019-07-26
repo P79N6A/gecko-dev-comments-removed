@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';
@@ -45,19 +44,6 @@ function test()
   catch(ex)
   {
   }
-
-
-
-
-  "" + (function(){L:if (*::*){ var x } function x(){}})
-
-
-
-    "" + (function(){if (*::*){ var x } function x(){}})
-
-
-
-    "" + (function(){{<y/>; throw <z/>;for(var x = [] in false) return } function x(){}})
 
 
 

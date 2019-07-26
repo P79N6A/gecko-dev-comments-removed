@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 471373;
 var summary = 'TM: do not assert: (size_t)(regs.pc - script->code) < script->length';
 var actual = '';
@@ -29,7 +28,7 @@ function test()
   jit(true);
 
   function g() {
-    var x = <x/>;
+    var x = {};
     for (var b = 0; b < 2; ++b) {
       yield x;
       for (var c = 0; c < 10;++c) {

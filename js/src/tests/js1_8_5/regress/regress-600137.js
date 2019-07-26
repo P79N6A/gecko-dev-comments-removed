@@ -4,7 +4,6 @@
 
 
 
-
 if (typeof evalcx == 'function') {
     var src = 'try {\n' +
     '    for (var [e] = /x/ in d) {\n' +
@@ -13,7 +12,7 @@ if (typeof evalcx == 'function') {
     '} catch (e) {}\n' +
     'try {\n' +
     '    let(x = Object.freeze(this, /x/))\n' +
-    '    e = * .toString\n' +
+    '    e = {}.toString\n' +
     '    function y() {}\n' +
     '} catch (e) {}';
 

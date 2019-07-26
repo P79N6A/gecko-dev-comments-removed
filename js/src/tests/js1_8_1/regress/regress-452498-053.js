@@ -6,7 +6,6 @@
 
 
 
-
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';
@@ -41,7 +40,7 @@ function test()
 
   try
   {
-    @foo; 0;
+    true; 0;
   }
   catch(ex)
   {
@@ -62,7 +61,7 @@ function test()
 
   try
   {
-    if (true && @foo) ;
+    if (true && foo) ;
   }
   catch(ex)
   {

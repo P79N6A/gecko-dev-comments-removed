@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 465460;
 var summary = 'TM: valueOf in a loop: do not assert';
 var actual = '';
@@ -27,7 +26,7 @@ function test()
 
   try
   {
-    e = <x/>; for (j=0;j<3;++j) { 3 | e; } "PASS";
+    e = {}; for (j=0;j<3;++j) { 3 | e; } "PASS";
   }
   catch(ex)
   {

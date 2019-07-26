@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 476653;
 var summary = 'Do not crash @ QuoteString';
 var actual = '';
@@ -25,7 +24,7 @@ for each (let x in [new String('q'), '', /x/, '', /x/]) {
 }
 try
 {
-  this.(z);
+  this.f(z);
 }
 catch(ex)
 {

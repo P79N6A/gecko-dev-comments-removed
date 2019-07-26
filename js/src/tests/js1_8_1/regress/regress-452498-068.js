@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';
@@ -20,16 +19,6 @@ function test()
   enterFunc ('test');
   printBugNumber(BUGNUMBER);
   printStatus (summary);
-
-
-
-  try
-  {
-    eval("*;", (3/0 ? function(id) { return id } : <><x><y/></x></>));
-  }
-  catch(ex)
-  {
-  }
 
 
 

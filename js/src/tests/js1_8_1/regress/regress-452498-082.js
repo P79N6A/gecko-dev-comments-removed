@@ -4,7 +4,6 @@
 
 
 
-
 var BUGNUMBER = 452498;
 var summary = 'TM: upvar2 regression tests';
 var actual = '';
@@ -30,11 +29,6 @@ function test()
 
 
   var f = new Function("new function x(){ return x |= function(){} } ([], function(){})");
-  "" + f;
-
-
-
-  var f = new Function("for(let [] = [0]; (y) = *; new (*::*)()) {}");
   "" + f;
 
 
