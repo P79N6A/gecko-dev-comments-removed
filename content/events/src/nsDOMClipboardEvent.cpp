@@ -4,7 +4,6 @@
 
 
 #include "nsDOMClipboardEvent.h"
-#include "nsClientRect.h"
 #include "nsDOMDataTransfer.h"
 #include "nsIClipboard.h"
 

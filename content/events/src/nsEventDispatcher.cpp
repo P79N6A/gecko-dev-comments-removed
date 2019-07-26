@@ -5,7 +5,6 @@
 
 
 #include "nsEventDispatcher.h"
-#include "nsDOMEvent.h"
 #include "nsPresContext.h"
 #include "nsEventListenerManager.h"
 #include "nsContentUtils.h"
@@ -15,7 +14,6 @@
 #include <new>
 #include "nsINode.h"
 #include "nsPIDOMWindow.h"
-#include "nsFrameLoader.h"
 #include "nsDOMTouchEvent.h"
 #include "GeckoProfiler.h"
 #include "GeneratedEvents.h"

@@ -29,6 +29,7 @@
 #include "nsSVGUtils.h"  
 #include "Orientation.h"
 #include "SVGDocumentWrapper.h"
+#include "nsIDOMEventListener.h"
 
 namespace mozilla {
 
