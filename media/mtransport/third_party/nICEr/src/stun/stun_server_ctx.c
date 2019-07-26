@@ -255,7 +255,7 @@ int nr_stun_server_process_request(nr_stun_server_ctx *ctx, nr_socket *sock, cha
 #ifndef USE_STUN_PEDANTIC
         
 
-        nr_stun_form_error_response(req, res, 400, "Bad Request");
+        nr_stun_form_error_response(req, res, 400, "Bad Request - Failed to decode request");
         ABORT(R_ALREADY);
 #endif 
         ABORT(R_REJECTED);
@@ -267,7 +267,7 @@ int nr_stun_server_process_request(nr_stun_server_ctx *ctx, nr_socket *sock, cha
 #ifndef USE_STUN_PEDANTIC
         
 
-        nr_stun_form_error_response(req, res, 400, "Bad Request");
+        nr_stun_form_error_response(req, res, 400, "Bad Request - Section 7.3 check failed");
         ABORT(R_ALREADY);
 #endif 
         ABORT(R_REJECTED);
@@ -281,7 +281,7 @@ int nr_stun_server_process_request(nr_stun_server_ctx *ctx, nr_socket *sock, cha
 #ifndef USE_STUN_PEDANTIC
         
 
-        nr_stun_form_error_response(req, res, 400, "Bad Request");
+        nr_stun_form_error_response(req, res, 400, "Bad Request - Unsupported message type");
         ABORT(R_ALREADY);
 #endif 
         ABORT(R_REJECTED);
