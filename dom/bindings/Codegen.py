@@ -2508,7 +2508,7 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         sequenceType = typeName.define()
         if nullable:
             typeName = CGTemplatedType("Nullable", typeName)
-            arrayRef = "${declName}.Value()"
+            arrayRef = "const_cast<Nullable<" + sequenceType + " >& >(${declName}).SetValue()"
         else:
             arrayRef = "${declName}"
         
