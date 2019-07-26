@@ -131,6 +131,7 @@ OnSharedPreferenceChangeListener
 
 
     private Locale lastLocale = Locale.getDefault();
+    private boolean localeSwitchingIsEnabled;
 
     private void updateActionBarTitle(int title) {
         if (Build.VERSION.SDK_INT >= 14) {
@@ -269,6 +270,9 @@ OnSharedPreferenceChangeListener
         checkLocale();
 
         
+        localeSwitchingIsEnabled = BrowserLocaleManager.getInstance().isEnabled();
+
+        
         
         
         
@@ -397,6 +401,18 @@ OnSharedPreferenceChangeListener
     public void onBuildHeaders(List<Header> target) {
         if (onIsMultiPane()) {
             loadHeadersFromResource(R.xml.preference_headers, target);
+
+            
+            
+            
+            if (!localeSwitchingIsEnabled) {
+                for (Header header : target) {
+                    if (header.id == R.id.pref_header_language) {
+                        target.remove(header);
+                        break;
+                    }
+                }
+            }
         }
     }
 
@@ -564,6 +580,17 @@ OnSharedPreferenceChangeListener
     private void setupPreferences(PreferenceGroup preferences, ArrayList<String> prefs) {
         for (int i = 0; i < preferences.getPreferenceCount(); i++) {
             Preference pref = preferences.getPreference(i);
+
+            
+            
+            
+            if (!localeSwitchingIsEnabled &&
+                "preferences_locale".equals(pref.getExtras().getString("resource", null))) {
+                preferences.removePreference(pref);
+                i--;
+                continue;
+            }
+
             String key = pref.getKey();
             if (pref instanceof PreferenceGroup) {
                 
