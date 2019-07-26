@@ -108,7 +108,7 @@ protected:
 
   nsRefPtr<AudioContext> mContext;
   
-  nsAutoTArray<JSObject*,2> mJSChannels;
+  AutoFallibleTArray<JSObject*,2> mJSChannels;
 
   
   
