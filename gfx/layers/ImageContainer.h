@@ -26,8 +26,60 @@
 #include "nsSize.h"                     
 #include "nsTArray.h"                   
 #include "mozilla/Atomics.h"
+#include "nsThreadUtils.h"
+
+#ifndef XPCOM_GLUE_AVOID_NSPR
+
+
+
+
+
+
+
+
+
+
+
 
 class nsMainThreadSurfaceRef;
+
+template <>
+class nsAutoRefTraits<nsMainThreadSurfaceRef> {
+public:
+  typedef gfxASurface* RawRef;
+
+  
+
+
+  class SurfaceReleaser : public nsRunnable {
+  public:
+    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    NS_IMETHOD Run() {
+      mRef->Release();
+      return NS_OK;
+    }
+    RawRef mRef;
+  };
+
+  static RawRef Void() { return nullptr; }
+  static void Release(RawRef aRawRef)
+  {
+    if (NS_IsMainThread()) {
+      aRawRef->Release();
+      return;
+    }
+    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
+    NS_DispatchToMainThread(runnable);
+  }
+  static void AddRef(RawRef aRawRef)
+  {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "Can only add a reference on the main thread");
+    aRawRef->AddRef();
+  }
+};
+
+#endif
 
 #ifdef XP_WIN
 struct ID3D10Texture2D;
