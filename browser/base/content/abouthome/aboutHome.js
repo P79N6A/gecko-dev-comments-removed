@@ -170,10 +170,6 @@ window.addEventListener("pageshow", function () {
   window.gObserver.observe(document.documentElement, { attributes: true });
   fitToWidth();
   window.addEventListener("resize", fitToWidth);
-
-  
-  var event = new CustomEvent('AboutHomeLoad', {bubbles:true});
-  document.dispatchEvent(event);
 });
 
 window.addEventListener("pagehide", function() {
