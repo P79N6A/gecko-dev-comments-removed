@@ -5257,17 +5257,13 @@ nsHttpChannel::RetargetDeliveryTo(nsIEventTarget* aNewTarget)
     nsCOMPtr<nsIThreadRetargetableRequest> retargetableCachePump;
     nsCOMPtr<nsIThreadRetargetableRequest> retargetableTransactionPump;
     if (mCachePump) {
-        
-        rv = mCachePump->QueryInterface(NS_GET_IID(nsIThreadRetargetableRequest),
-                                        getter_AddRefs(retargetableCachePump));
+        retargetableCachePump = do_QueryObject(mCachePump);
         
         MOZ_ASSERT(retargetableCachePump);
         rv = retargetableCachePump->RetargetDeliveryTo(aNewTarget);
     }
     if (NS_SUCCEEDED(rv) && mTransactionPump) {
-        
-        rv = mTransactionPump->QueryInterface(NS_GET_IID(nsIThreadRetargetableRequest),
-                                              getter_AddRefs(retargetableTransactionPump));
+        retargetableTransactionPump = do_QueryObject(mTransactionPump);
         
         MOZ_ASSERT(retargetableTransactionPump);
         rv = retargetableTransactionPump->RetargetDeliveryTo(aNewTarget);
