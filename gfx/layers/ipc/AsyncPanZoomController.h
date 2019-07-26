@@ -543,7 +543,7 @@ private:
   
   TimeStamp mLastSampleTime;
   
-  int32_t mLastEventTime;
+  uint32_t mLastEventTime;
 
   
   
