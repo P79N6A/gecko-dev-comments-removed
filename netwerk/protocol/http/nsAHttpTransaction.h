@@ -125,6 +125,11 @@ public:
     virtual bool IsNullTransaction() { return false; }
 
     
+    
+    
+    virtual nsHttpTransaction *QueryHttpTransaction() { return nullptr; }
+
+    
     virtual nsILoadGroupConnectionInfo *LoadGroupConnectionInfo() { return nullptr; }
 
     
