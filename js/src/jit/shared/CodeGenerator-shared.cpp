@@ -70,10 +70,8 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, Mac
         
         if (StackKeptAligned || gen->needsInitialStackAlignment()) {
             unsigned alignmentAtCall = AlignmentAtAsmJSPrologue + frameDepth_;
-            if (unsigned rem = alignmentAtCall % StackAlignment) {
-                frameInitialAdjustment_ = StackAlignment - rem;
-                frameDepth_ += frameInitialAdjustment_;
-            }
+            if (unsigned rem = alignmentAtCall % StackAlignment)
+                frameDepth_ += StackAlignment - rem;
         }
 
         
