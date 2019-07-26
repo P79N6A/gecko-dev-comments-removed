@@ -736,17 +736,14 @@ MakeFilename(const char *aPrefix, const nsAString &aIdentifier,
                             getpid(), aSuffix);
 }
 
- nsresult
-nsMemoryInfoDumper::OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
+static nsresult
+OpenTempFile(const nsACString &aFilename, nsIFile* *aFile)
 {
 #ifdef ANDROID
   
   
-  if (!*aFile) {
-    char *env = PR_GetEnv("DOWNLOADS_DIRECTORY");
-    if (env) {
-      NS_NewNativeLocalFile(nsCString(env),  true, aFile);
-    }
+  if (char *env = PR_GetEnv("DOWNLOADS_DIRECTORY")) {
+    NS_NewNativeLocalFile(nsCString(env),  true, aFile);
   }
 #endif
   nsresult rv;

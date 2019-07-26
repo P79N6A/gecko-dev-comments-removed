@@ -29,15 +29,6 @@ public:
 public:
   static void Initialize();
 
-  
-
-
-
-
-
-
-  static nsresult OpenTempFile(const nsACString &aFilename, nsIFile* *aFile);
-
 private:
   static nsresult
   DumpMemoryReportsToFileImpl(const nsAString& aIdentifier);
