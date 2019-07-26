@@ -215,6 +215,18 @@ gfxXlibSurface::CreateSimilarSurface(gfxContentType aContent,
 }
 
 void
+gfxXlibSurface::Finish()
+{
+#if !defined(MOZ_PLATFORM_MAEMO)
+    if (mGLXPixmap) {
+        gl::sDefGLXLib.DestroyPixmap(mGLXPixmap);
+        mGLXPixmap = None;
+    }
+#endif
+    gfxASurface::Finish();
+}
+
+void
 gfxXlibSurface::DoSizeQuery()
 {
     
@@ -511,6 +523,14 @@ GLXPixmap
 gfxXlibSurface::GetGLXPixmap()
 {
     if (!mGLXPixmap) {
+#ifdef DEBUG
+        
+        
+        
+        cairo_surface_has_show_text_glyphs(CairoSurface());
+        NS_ASSERTION(CairoStatus() != CAIRO_STATUS_SURFACE_FINISHED,
+            "GetGLXPixmap called after surface finished");
+#endif
         mGLXPixmap = gl::sDefGLXLib.CreatePixmap(this);
     }
     return mGLXPixmap;
