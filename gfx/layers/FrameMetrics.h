@@ -191,7 +191,7 @@ public:
   
   
   
-  mozilla::CSSPoint mScrollOffset;
+  CSSPoint mScrollOffset;
 
   
   
@@ -208,7 +208,7 @@ public:
   
   
   
-  mozilla::CSSRect mScrollableRect;
+  CSSRect mScrollableRect;
 
   
   

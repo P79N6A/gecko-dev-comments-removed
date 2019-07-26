@@ -839,7 +839,7 @@ void AsyncPanZoomController::SetPageRect(const CSSRect& aCSSPageRect) {
   
   
   
-  metrics.mContentRect = LayerRect::FromCSSRectRoundOut(aCSSPageRect, resolution);
+  metrics.mContentRect = LayerRect::FromCSSRectRoundOut(aCSSPageRect, resolution, resolution);
   metrics.mScrollableRect = aCSSPageRect;
 
   mFrameMetrics = metrics;
@@ -916,7 +916,7 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
 
   gfxSize resolution = CalculateResolution(aFrameMetrics);
   CSSIntRect compositionBounds = LayerIntRect::ToCSSIntRectRoundIn(
-    aFrameMetrics.mCompositionBounds, resolution);
+    aFrameMetrics.mCompositionBounds, resolution.width, resolution.height);
   CSSRect scrollableRect = aFrameMetrics.mScrollableRect;
 
   
@@ -1007,7 +1007,7 @@ AsyncPanZoomController::CalculateCompositedRectInCssPixels(const FrameMetrics& a
 {
   gfxSize resolution = CalculateResolution(aMetrics);
   CSSIntRect rect = LayerIntRect::ToCSSIntRectRoundIn(
-    aMetrics.mCompositionBounds, resolution);
+    aMetrics.mCompositionBounds, resolution.width, resolution.height);
   return CSSRect(rect);
 }
 
@@ -1364,7 +1364,7 @@ void AsyncPanZoomController::ZoomToRect(const gfxRect& aRect) {
         (currentZoom.width == mMaxZoom && targetZoom >= mMaxZoom) ||
         (currentZoom.width == localMinZoom && targetZoom <= localMinZoom)) {
       CSSIntRect cssCompositionBounds = LayerIntRect::ToCSSIntRectRoundIn(
-        compositionBounds, resolution);
+        compositionBounds, resolution.width, resolution.height);
 
       float y = scrollOffset.y;
       float newHeight =
