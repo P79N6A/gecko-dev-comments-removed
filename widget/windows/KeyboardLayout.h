@@ -385,12 +385,22 @@ private:
   
 
 
+  bool CanComputeVirtualKeyCodeFromScanCode() const;
+
+  
+
+
   uint8_t ComputeVirtualKeyCodeFromScanCode() const;
 
   
 
 
   uint8_t ComputeVirtualKeyCodeFromScanCodeEx() const;
+
+  
+
+
+  uint16_t ComputeScanCodeExFromVirtualKeyCode(UINT aVirtualKeyCode) const;
 
   
 
@@ -566,12 +576,7 @@ public:
 
 
 
-
-
-
-
-  static CodeNameIndex ConvertScanCodeToCodeNameIndex(UINT aScanCode,
-                                                      UINT aVirtualKeyCode);
+  static CodeNameIndex ConvertScanCodeToCodeNameIndex(UINT aScanCode);
 
   HKL GetLayout() const
   {

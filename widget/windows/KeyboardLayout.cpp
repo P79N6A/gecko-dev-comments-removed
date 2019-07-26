@@ -40,6 +40,11 @@
 #include <winable.h>
 #endif
 
+
+#ifndef MAPVK_VK_TO_VSC_EX
+#define MAPVK_VK_TO_VSC_EX (4)
+#endif
+
 namespace mozilla {
 namespace widget {
 
@@ -584,15 +589,25 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
   mKeyboardLayout = keyboardLayout->GetLayout();
   mScanCode = WinUtils::GetScanCode(mMsg.lParam);
   mIsExtended = WinUtils::IsExtendedScanCode(mMsg.lParam);
-  
-  
-  bool canComputeVirtualKeyCodeFromScanCode =
-    (!mIsExtended || IsVistaOrLater());
   switch (mMsg.message) {
     case WM_KEYDOWN:
     case WM_SYSKEYDOWN:
     case WM_KEYUP:
     case WM_SYSKEYUP: {
+      
+      
+      
+      
+      
+      
+      if (!mScanCode) {
+        uint16_t scanCodeEx = ComputeScanCodeExFromVirtualKeyCode(mMsg.wParam);
+        if (scanCodeEx) {
+          mScanCode = static_cast<uint8_t>(scanCodeEx & 0xFF);
+          uint8_t extended = static_cast<uint8_t>((scanCodeEx & 0xFF00) >> 8);
+          mIsExtended = (extended == 0xE0) || (extended == 0xE1);
+        }
+      }
       
       
       if (mMsg.wParam == VK_PROCESSKEY) {
@@ -648,7 +663,7 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
         break;
       }
 
-      if (!canComputeVirtualKeyCodeFromScanCode) {
+      if (!CanComputeVirtualKeyCodeFromScanCode()) {
         
         
         
@@ -682,8 +697,6 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
       
       
       
-      
-      
       switch (mOriginalVirtualKeyCode) {
         case VK_CONTROL:
           if (mVirtualKeyCode != VK_LCONTROL &&
@@ -713,7 +726,11 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     case WM_SYSCHAR:
       
       
-      if (!canComputeVirtualKeyCodeFromScanCode) {
+      
+
+      
+      
+      if (!CanComputeVirtualKeyCodeFromScanCode()) {
         break;
       }
       mVirtualKeyCode = mOriginalVirtualKeyCode =
@@ -732,11 +749,9 @@ NativeKey::NativeKey(nsWindowBase* aWidget,
     keyboardLayout->ConvertNativeKeyCodeToDOMKeyCode(mOriginalVirtualKeyCode);
   mKeyNameIndex =
     keyboardLayout->ConvertNativeKeyCodeToKeyNameIndex(mOriginalVirtualKeyCode);
-  
-  
   mCodeNameIndex =
     KeyboardLayout::ConvertScanCodeToCodeNameIndex(
-      mIsExtended ? (0xE000 | mScanCode) : mScanCode, mOriginalVirtualKeyCode);
+      GetScanCodeWithExtendedFlag());
 
   keyboardLayout->InitNativeKey(*this, mModKeyState);
 
@@ -875,6 +890,18 @@ NativeKey::GetKeyLocation() const
   }
 }
 
+bool
+NativeKey::CanComputeVirtualKeyCodeFromScanCode() const
+{
+  
+  if (IsVistaOrLater()) {
+    return true;
+  }
+  
+  
+  return !mIsExtended;
+}
+
 uint8_t
 NativeKey::ComputeVirtualKeyCodeFromScanCode() const
 {
@@ -885,11 +912,21 @@ NativeKey::ComputeVirtualKeyCodeFromScanCode() const
 uint8_t
 NativeKey::ComputeVirtualKeyCodeFromScanCodeEx() const
 {
-  
-  
-  NS_ENSURE_TRUE(!mIsExtended || IsVistaOrLater(), 0);
+  if (NS_WARN_IF(!CanComputeVirtualKeyCodeFromScanCode())) {
+    return 0;
+  }
   return static_cast<uint8_t>(
            ::MapVirtualKeyEx(GetScanCodeWithExtendedFlag(), MAPVK_VSC_TO_VK_EX,
+                             mKeyboardLayout));
+}
+
+uint16_t
+NativeKey::ComputeScanCodeExFromVirtualKeyCode(UINT aVirtualKeyCode) const
+{
+  return static_cast<uint16_t>(
+           ::MapVirtualKeyEx(aVirtualKeyCode,
+                             IsVistaOrLater() ? MAPVK_VK_TO_VSC_EX :
+                                                MAPVK_VK_TO_VSC,
                              mKeyboardLayout));
 }
 
@@ -2629,8 +2666,7 @@ KeyboardLayout::ConvertNativeKeyCodeToKeyNameIndex(uint8_t aVirtualKey) const
 
 
 CodeNameIndex
-KeyboardLayout::ConvertScanCodeToCodeNameIndex(UINT aScanCode,
-                                               UINT aVirtualKeyCode)
+KeyboardLayout::ConvertScanCodeToCodeNameIndex(UINT aScanCode)
 {
   switch (aScanCode) {
 
@@ -2641,49 +2677,6 @@ KeyboardLayout::ConvertScanCodeToCodeNameIndex(UINT aScanCode,
 
 #undef NS_NATIVE_KEY_TO_DOM_CODE_NAME_INDEX
 
-    
-    
-    case 0xE000:
-      switch (aVirtualKeyCode) {
-        case VK_BROWSER_BACK:
-          return CODE_NAME_INDEX_BrowserBack;
-        case VK_BROWSER_FAVORITES:
-          return CODE_NAME_INDEX_BrowserFavorites;
-        case VK_BROWSER_FORWARD:
-          return CODE_NAME_INDEX_BrowserForward;
-        case VK_BROWSER_HOME:
-          return CODE_NAME_INDEX_BrowserHome;
-        case VK_BROWSER_REFRESH:
-          return CODE_NAME_INDEX_BrowserRefresh;
-        case VK_BROWSER_SEARCH:
-          return CODE_NAME_INDEX_BrowserSearch;
-        case VK_BROWSER_STOP:
-          return CODE_NAME_INDEX_BrowserStop;
-        case VK_LAUNCH_APP1: 
-          return CODE_NAME_INDEX_LaunchApp1;
-        case VK_LAUNCH_APP2: 
-          return CODE_NAME_INDEX_LaunchApp2;
-        case VK_LAUNCH_MAIL:
-          return CODE_NAME_INDEX_LaunchMail;
-        case VK_LAUNCH_MEDIA_SELECT:
-          return CODE_NAME_INDEX_MediaSelect;
-        case VK_MEDIA_PLAY_PAUSE:
-          return CODE_NAME_INDEX_MediaPlayPause;
-        case VK_MEDIA_STOP:
-          return CODE_NAME_INDEX_MediaStop;
-        case VK_MEDIA_NEXT_TRACK:
-          return CODE_NAME_INDEX_MediaTrackNext;
-        case VK_MEDIA_PREV_TRACK:
-          return CODE_NAME_INDEX_MediaTrackPrevious;
-        case VK_VOLUME_MUTE:
-          return CODE_NAME_INDEX_VolumeMute;
-        case VK_VOLUME_DOWN:
-          return CODE_NAME_INDEX_VolumeDown;
-        case VK_VOLUME_UP:
-          return CODE_NAME_INDEX_VolumeUp;
-        default:
-          return CODE_NAME_INDEX_UNKNOWN;
-      }
     default:
       return CODE_NAME_INDEX_UNKNOWN;
   }
