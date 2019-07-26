@@ -280,12 +280,14 @@ nsContentDLF::CreateInstanceForDocument(nsISupports* aContainer,
                                         const char *aCommand,
                                         nsIContentViewer** aContentViewer)
 {
+  MOZ_ASSERT(aDocument);
+
   nsCOMPtr<nsIContentViewer> contentViewer = NS_NewContentViewer();
 
   
-  nsresult rv = contentViewer->LoadStart(aDocument);
+  contentViewer->LoadStart(aDocument);
   contentViewer.forget(aContentViewer);
-  return rv;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -404,9 +406,9 @@ nsContentDLF::CreateDocument(const char* aCommand,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = contentViewer->LoadStart(doc);
+  contentViewer->LoadStart(doc);
   contentViewer.forget(aContentViewer);
-  return rv;
+  return NS_OK;
 }
 
 nsresult
@@ -444,9 +446,9 @@ nsContentDLF::CreateXULDocument(const char* aCommand,
   
 
 
-  rv = contentViewer->LoadStart(doc);
+  contentViewer->LoadStart(doc);
   contentViewer.forget(aContentViewer);
-  return rv;
+  return NS_OK;
 }
 
 bool nsContentDLF::IsImageContentType(const char* aContentType) {

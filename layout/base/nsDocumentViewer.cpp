@@ -551,20 +551,18 @@ nsDocumentViewer::~nsDocumentViewer()
 
 
 
-NS_IMETHODIMP
-nsDocumentViewer::LoadStart(nsISupports *aDoc)
+ void
+nsDocumentViewer::LoadStart(nsIDocument* aDocument)
 {
-  nsresult rv = NS_OK;
+  MOZ_ASSERT(aDocument);
+
   if (!mDocument) {
-    mDocument = do_QueryInterface(aDoc, &rv);
-  }
-  else if (mDocument == aDoc) {
+    mDocument = aDocument;
+  } else if (mDocument == aDocument) {
     
     
     PrepareToStartLoad();
   }
-
-  return rv;
 }
 
 nsresult
