@@ -729,6 +729,14 @@ IonScript::purgeCaches(JSCompartment *c)
     
     
     
+    
+    
+    if (invalidated())
+        return;
+
+    
+    
+    
     js::ion::IonContext ictx(NULL, c, NULL);
     AutoFlushCache afc("purgeCaches");
     for (size_t i = 0; i < numCaches(); i++)
@@ -1481,6 +1489,13 @@ InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
         if (!invalidateAll && !script->ion->invalidated())
             continue;
 
+        IonScript *ionScript = script->ion;
+
+        
+        
+        
+        ionScript->purgeCaches(script->compartment());
+
         
         
         
@@ -1502,7 +1517,6 @@ InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
         
         
 
-        IonScript *ionScript = script->ion;
         ionScript->incref();
 
         const SafepointIndex *si = ionScript->getSafepointIndex(it.returnAddressToFp());
