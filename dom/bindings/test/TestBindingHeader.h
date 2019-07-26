@@ -429,6 +429,11 @@ public:
   void ExerciseTypedefInterfaces3(TestInterface&);
 
   
+  static void StaticMethod(nsISupports*, bool);
+  static bool StaticAttribute(nsISupports*);
+  static void SetStaticAttribute(nsISupports*, bool);
+
+  
   int32_t AttrWithLenientThis();
   void SetAttrWithLenientThis(int32_t);
   uint32_t UnforgeableAttr();
