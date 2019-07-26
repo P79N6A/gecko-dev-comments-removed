@@ -2335,6 +2335,9 @@ js::CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, 
 {
     
 
+    
+    JS_ASSERT(!src->sourceObject()->isMarked(gc::GRAY));
+
     uint32_t nconsts   = src->hasConsts()   ? src->consts()->length   : 0;
     uint32_t nobjects  = src->hasObjects()  ? src->objects()->length  : 0;
     uint32_t nregexps  = src->hasRegexps()  ? src->regexps()->length  : 0;

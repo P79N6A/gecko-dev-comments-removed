@@ -6,6 +6,8 @@
 #ifndef nsXBLMaybeCompiled_h__
 #define nsXBLMaybeCompiled_h__
 
+#include "js/GCAPI.h"
+
 
 
 
@@ -39,6 +41,16 @@ public:
   }
 
   JSObject* GetJSFunction() const
+  {
+    MOZ_ASSERT(IsCompiled(), "Attempt to get uncompiled function as compiled");
+    if (mCompiled) {
+      JS::ExposeObjectToActiveJS(mCompiled);
+    }
+    return mCompiled;
+  }
+
+  
+  JSObject* GetJSFunctionPreserveColor() const
   {
     MOZ_ASSERT(IsCompiled(), "Attempt to get uncompiled function as compiled");
     return mCompiled;
@@ -122,6 +134,7 @@ public:
   bool IsCompiled() const { return extract()->IsCompiled(); }
   UncompiledT* GetUncompiled() const { return extract()->GetUncompiled(); }
   JSObject* GetJSFunction() const { return extract()->GetJSFunction(); }
+  JSObject* GetJSFunctionPreserveColor() const { return extract()->GetJSFunctionPreserveColor(); }
 
   void SetUncompiled(UncompiledT* source) {
     wrapper().set(nsXBLMaybeCompiled<UncompiledT>(source));
