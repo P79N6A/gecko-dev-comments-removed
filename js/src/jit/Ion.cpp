@@ -1740,9 +1740,14 @@ CheckScript(JSContext *cx, JSScript *script, bool osr)
 
 
 
-static const uint32_t MAX_OFF_THREAD_SCRIPT_SIZE = 100000;
-static const uint32_t MAX_MAIN_THREAD_SCRIPT_SIZE = 2000;
+static const uint32_t MAX_OFF_THREAD_SCRIPT_SIZE = 100 * 1000;
+static const uint32_t MAX_MAIN_THREAD_SCRIPT_SIZE = 2 * 1000;
 static const uint32_t MAX_MAIN_THREAD_LOCALS_AND_ARGS = 256;
+
+
+
+static const uint32_t MAX_DOM_WORKER_SCRIPT_SIZE = 16 * 1000;
+static const uint32_t MAX_DOM_WORKER_LOCALS_AND_ARGS = 2048;
 
 static MethodStatus
 CheckScriptSize(JSContext *cx, JSScript* script)
@@ -1757,6 +1762,21 @@ CheckScriptSize(JSContext *cx, JSScript* script)
     }
 
     uint32_t numLocalsAndArgs = analyze::TotalSlots(script);
+    if (cx->runtime()->isWorkerRuntime()) {
+        
+        
+        
+        JS_ASSERT(!OffThreadIonCompilationEnabled(cx->runtime()));
+
+        if (script->length > MAX_DOM_WORKER_SCRIPT_SIZE ||
+            numLocalsAndArgs > MAX_DOM_WORKER_LOCALS_AND_ARGS)
+        {
+            return Method_CantCompile;
+        }
+
+        return Method_Compiled;
+    }
+
     if (script->length > MAX_MAIN_THREAD_SCRIPT_SIZE ||
         numLocalsAndArgs > MAX_MAIN_THREAD_LOCALS_AND_ARGS)
     {
