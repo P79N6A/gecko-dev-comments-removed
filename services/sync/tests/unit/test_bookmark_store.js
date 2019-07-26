@@ -384,6 +384,24 @@ add_test(function test_reparentOrphans() {
   }
 });
 
+
+
+add_test(function test_empty_query_doesnt_die() {
+  let record = new BookmarkQuery("bookmarks", "8xoDGqKrXf1P");
+  record.folderName    = "";
+  record.queryId       = "";
+  record.parentName    = "Toolbar";
+  record.parentid      = "toolbar";
+
+  
+  store.applyIncoming(record);
+
+  delete record.folderName;
+  store.applyIncoming(record);
+  
+  run_next_test();
+});
+
 function run_test() {
   initTestLogging('Trace');
   run_next_test();

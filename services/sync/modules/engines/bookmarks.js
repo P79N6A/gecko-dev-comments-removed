@@ -434,7 +434,7 @@ BookmarksStore.prototype = {
   preprocessTagQuery: function preprocessTagQuery(record) {
     if (record.type != "query" ||
         record.bmkUri == null ||
-        record.folderName == null)
+        !record.folderName)
       return;
     
     
@@ -496,6 +496,13 @@ BookmarksStore.prototype = {
       this._log.debug("Processing special node: " + record.id);
       
       this._childrenToOrder[record.id] = record.children;
+      return;
+    }
+
+    
+    if (record.type == "query" &&
+        !record.bmkUri) {
+      this._log.warn("Skipping malformed query bookmark: " + record.id);
       return;
     }
 
