@@ -2050,8 +2050,8 @@ RangeAnalysis::addRangeAssertions()
     for (ReversePostorderIterator iter(graph_.rpoBegin()); iter != graph_.rpoEnd(); iter++) {
         MBasicBlock *block = *iter;
 
-        for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
-            MInstruction *ins = *iter;
+        for (MDefinitionIterator iter(block); iter; iter++) {
+            MDefinition *ins = *iter;
 
             
             if (!IsNumberType(ins->type()) &&
@@ -2072,9 +2072,16 @@ RangeAnalysis::addRangeAssertions()
             
             
             
-            MInstructionIterator insertIter = iter;
-            while (insertIter->isBeta())
+            MInstructionIterator insertIter = ins->isPhi()
+                                            ? block->begin()
+                                            : block->begin(ins->toInstruction());
+            while (insertIter->isBeta() ||
+                   insertIter->isInterruptCheck() ||
+                   insertIter->isInterruptCheckPar() ||
+                   insertIter->isConstant())
+            {
                 insertIter++;
+            }
 
             if (*insertIter == *iter)
                 block->insertAfter(*insertIter,  guard);
