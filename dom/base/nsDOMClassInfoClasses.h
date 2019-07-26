@@ -48,6 +48,7 @@ DOMCI_CLASS(XSLTProcessor)
 
 DOMCI_CLASS(XPathExpression)
 DOMCI_CLASS(XPathNSResolver)
+DOMCI_CLASS(XPathResult)
 
 
 DOMCI_CLASS(Storage)
@@ -58,7 +59,6 @@ DOMCI_CLASS(File)
 
 DOMCI_CLASS(ModalContentWindow)
 
-DOMCI_CLASS(MozMobileMessageManager)
 DOMCI_CLASS(MozSmsMessage)
 DOMCI_CLASS(MozMmsMessage)
 DOMCI_CLASS(MozSmsFilter)
