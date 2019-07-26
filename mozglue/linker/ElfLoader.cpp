@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <cstdlib>
+#include <cstdio>
 #include <dlfcn.h>
 #include <unistd.h>
 #include <algorithm>
@@ -95,11 +96,11 @@ __wrap_dladdr(void *addr, Dl_info *info)
 int
 __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data)
 {
-  if (ElfLoader::Singleton.dbg == NULL)
+  if (ElfLoader::Singleton.dbg)
     return -1;
 
-  for (ElfLoader::r_debug::iterator it = ElfLoader::Singleton.dbg->begin();
-       it < ElfLoader::Singleton.dbg->end(); ++it) {
+  for (ElfLoader::DebuggerHelper::iterator it = ElfLoader::Singleton.dbg.begin();
+       it < ElfLoader::Singleton.dbg.end(); ++it) {
     dl_phdr_info info;
     info.dlpi_addr = reinterpret_cast<Elf::Addr>(it->l_addr);
     info.dlpi_name = it->l_name;
@@ -317,7 +318,7 @@ ElfLoader::Register(LibHandle *handle)
 {
   handles.push_back(handle);
   if (dbg && !handle->IsSystemElf())
-    dbg->Add(static_cast<CustomElf *>(handle));
+    dbg.Add(static_cast<CustomElf *>(handle));
 }
 
 void
@@ -328,7 +329,7 @@ ElfLoader::Forget(LibHandle *handle)
     debug("ElfLoader::Forget(%p [\"%s\"])", reinterpret_cast<void *>(handle),
                                             handle->GetPath());
     if (dbg && !handle->IsSystemElf())
-      dbg->Remove(static_cast<CustomElf *>(handle));
+      dbg.Remove(static_cast<CustomElf *>(handle));
     handles.erase(it);
   } else {
     debug("ElfLoader::Forget(%p [\"%s\"]): Handle not found",
@@ -433,8 +434,7 @@ ElfLoader::DestructorCaller::Call()
   }
 }
 
-void
-ElfLoader::InitDebugger()
+ElfLoader::DebuggerHelper::DebuggerHelper(): dbg(NULL)
 {
   
 
@@ -582,6 +582,68 @@ ElfLoader::InitDebugger()
 
 
 
+class EnsureWritable
+{
+public:
+  template <typename T>
+  EnsureWritable(T *&ptr)
+  {
+    prot = getProt((uintptr_t) &ptr);
+    if (prot == -1)
+      MOZ_CRASH();
+    
+
+    page = (void*)((uintptr_t) &ptr & PAGE_MASK);
+    if (!(prot & PROT_WRITE))
+      mprotect(page, PAGE_SIZE, prot | PROT_WRITE);
+  }
+
+  ~EnsureWritable()
+  {
+    if (!(prot & PROT_WRITE))
+      mprotect(page, PAGE_SIZE, prot);
+  }
+
+private:
+  int getProt(uintptr_t addr)
+  {
+    
+
+    int result = 0;
+    AutoCloseFILE f(fopen("/proc/self/maps", "r"));
+    while (f) {
+      unsigned long long startAddr, endAddr;
+      char perms[5];
+      if (fscanf(f, "%llx-%llx %4s %*1024[^\n] ", &startAddr, &endAddr, perms) != 3)
+        return -1;
+      if (addr < startAddr || addr >= endAddr)
+        continue;
+      if (perms[0] == 'r')
+        result |= PROT_READ;
+      else if (perms[0] != '-')
+        return -1;
+      if (perms[1] == 'w')
+        result |= PROT_WRITE;
+      else if (perms[1] != '-')
+        return -1;
+      if (perms[2] == 'x')
+        result |= PROT_EXEC;
+      else if (perms[2] != '-')
+        return -1;
+      return result;
+    }
+    return -1;
+  }
+
+  int prot;
+  void *page;
+};
+
+
+
+
+
+
 
 
 
@@ -594,34 +656,48 @@ ElfLoader::InitDebugger()
 
 
 void
-ElfLoader::r_debug::Add(ElfLoader::link_map *map)
+ElfLoader::DebuggerHelper::Add(ElfLoader::link_map *map)
 {
-  if (!r_brk)
+  if (!dbg->r_brk)
     return;
-  r_state = RT_ADD;
-  r_brk();
+  dbg->r_state = r_debug::RT_ADD;
+  dbg->r_brk();
   map->l_prev = NULL;
-  map->l_next = r_map;
-  r_map->l_prev = map;
-  r_map = map;
-  r_state = RT_CONSISTENT;
-  r_brk();
+  map->l_next = dbg->r_map;
+  if (!firstAdded) {
+    firstAdded = map;
+    
+
+    EnsureWritable w(dbg->r_map->l_prev);
+    dbg->r_map->l_prev = map;
+  } else
+    dbg->r_map->l_prev = map;
+  dbg->r_map = map;
+  dbg->r_state = r_debug::RT_CONSISTENT;
+  dbg->r_brk();
 }
 
 void
-ElfLoader::r_debug::Remove(ElfLoader::link_map *map)
+ElfLoader::DebuggerHelper::Remove(ElfLoader::link_map *map)
 {
-  if (!r_brk)
+  if (!dbg->r_brk)
     return;
-  r_state = RT_DELETE;
-  r_brk();
-  if (r_map == map)
-    r_map = map->l_next;
+  dbg->r_state = r_debug::RT_DELETE;
+  dbg->r_brk();
+  if (dbg->r_map == map)
+    dbg->r_map = map->l_next;
   else
     map->l_prev->l_next = map->l_next;
-  map->l_next->l_prev = map->l_prev;
-  r_state = RT_CONSISTENT;
-  r_brk();
+  if (map == firstAdded) {
+    firstAdded = map->l_prev;
+    
+
+    EnsureWritable w(map->l_next->l_prev);
+    map->l_next->l_prev = map->l_prev;
+  } else
+    map->l_next->l_prev = map->l_prev;
+  dbg->r_state = r_debug::RT_CONSISTENT;
+  dbg->r_brk();
 }
 
 SEGVHandler::SEGVHandler()

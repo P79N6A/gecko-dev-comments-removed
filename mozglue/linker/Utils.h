@@ -93,6 +93,16 @@ typedef mozilla::Scoped<AutoCloseFDTraits> AutoCloseFD;
 
 
 
+struct AutoCloseFILETraits
+{
+  typedef FILE *type;
+  static FILE *empty() { return NULL; }
+  static void release(FILE *f) { fclose(f); }
+};
+typedef mozilla::Scoped<AutoCloseFILETraits> AutoCloseFILE;
+
+
+
 
 
 

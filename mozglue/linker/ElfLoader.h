@@ -286,7 +286,6 @@ protected:
   const char *lastError;
 
 private:
-  ElfLoader() { InitDebugger(); }
   ~ElfLoader();
 
   
@@ -368,7 +367,7 @@ private:
   ZipCollection zips;
 
   
-  class r_debug;
+  class DebuggerHelper;
 public:
   
   struct link_map {
@@ -380,7 +379,7 @@ public:
     const void *l_ld;
 
   private:
-    friend class ElfLoader::r_debug;
+    friend class ElfLoader::DebuggerHelper;
     
     link_map *l_next, *l_prev;
   };
@@ -389,8 +388,39 @@ private:
   
 
 
-  class r_debug {
+  struct r_debug {
+    
+    int r_version;
+
+    
+    link_map *r_map;
+
+    
+
+
+    void (*r_brk)(void);
+
+    
+
+    enum {
+      RT_CONSISTENT, 
+      RT_ADD,        
+      RT_DELETE      
+    } r_state;
+  };
+
+  
+
+  class DebuggerHelper
+  {
   public:
+    DebuggerHelper();
+
+    operator bool()
+    {
+      return dbg;
+    }
+
     
     void Add(link_map *map);
 
@@ -416,10 +446,10 @@ private:
       {
         if (other.item == NULL)
           return item ? true : false;
-        MOZ_NOT_REACHED("r_debug::iterator::operator< called with something else than r_debug::end()");
+        MOZ_NOT_REACHED("DebuggerHelper::iterator::operator< called with something else than DebuggerHelper::end()");
       }
     protected:
-      friend class r_debug;
+      friend class DebuggerHelper;
       iterator(const link_map *item): item(item) { }
 
     private:
@@ -428,7 +458,7 @@ private:
 
     iterator begin() const
     {
-      return iterator(r_map);
+      return iterator(dbg ? dbg->r_map : NULL);
     }
 
     iterator end() const
@@ -437,32 +467,11 @@ private:
     }
 
   private:
-    
-    int r_version;
-
-    
-    struct link_map *r_map;
-
-    
-
-
-    void (*r_brk)(void);
-
-    
-
-    enum {
-      RT_CONSISTENT, 
-      RT_ADD,        
-      RT_DELETE      
-    } r_state;
+    r_debug *dbg;
+    link_map *firstAdded;
   };
   friend int __wrap_dl_iterate_phdr(dl_phdr_cb callback, void *data);
-  r_debug *dbg;
-
-  
-
-
-  void InitDebugger();
+  DebuggerHelper dbg;
 };
 
 #endif 
