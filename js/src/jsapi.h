@@ -2833,10 +2833,6 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun);
 
 
 
-#define JS_NewRuntime       JS_Init
-#define JS_DestroyRuntime   JS_Finish
-#define JS_LockRuntime      JS_Lock
-#define JS_UnlockRuntime    JS_Unlock
 
 typedef enum JSUseHelperThreads
 {
@@ -2846,9 +2842,6 @@ typedef enum JSUseHelperThreads
 
 extern JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads);
-
-
-#define JS_CommenceRuntimeShutDown(rt) ((void) 0)
 
 extern JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt);
@@ -4866,18 +4859,6 @@ JS_CompileUCScriptForPrincipals(JSContext *cx, JSObject *obj,
                                 const jschar *chars, size_t length,
                                 const char *filename, unsigned lineno);
 
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8File(JSContext *cx, JSObject *obj, const char *filename);
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandle(JSContext *cx, JSObject *obj, const char *filename,
-                         FILE *fh);
-
-extern JS_PUBLIC_API(JSScript *)
-JS_CompileUTF8FileHandleForPrincipals(JSContext *cx, JSObject *obj,
-                                      const char *filename, FILE *fh,
-                                      JSPrincipals *principals);
-
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalFromScript(JSScript *script);
 
@@ -5381,10 +5362,6 @@ JS_UndependString(JSContext *cx, JSString *str);
 JS_PUBLIC_API(JSBool)
 JS_DecodeBytes(JSContext *cx, const char *src, size_t srclen, jschar *dst,
                size_t *dstlenp);
-
-JS_PUBLIC_API(JSBool)
-JS_DecodeUTF8(JSContext *cx, const char *src, size_t srclen, jschar *dst,
-              size_t *dstlenp);
 
 
 
