@@ -1072,9 +1072,8 @@ let CustomizableUIInternal = {
 
       
       
-      if (aWidget.type == "view" &&
-          (aWidget.onViewShowing || aWidget.onViewHiding)) {
-        LOG("Widget " + aWidget.id + " has a view with showing and hiding events. Auto-registering event handlers.");
+      if (aWidget.type == "view") {
+        LOG("Widget " + aWidget.id + " has a view. Auto-registering event handlers.");
         let viewNode = aDocument.getElementById(aWidget.viewId);
 
         if (viewNode) {
