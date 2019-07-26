@@ -1610,7 +1610,9 @@ public:
             return rv;
         }
 
-        nsCacheService::SetDiskSmartSize();
+        
+        
+        nsCacheService::gService->SetDiskSmartSize_Locked();
 
         if (nsCacheService::gService->mObserver->PermittedToSmartSize(branch, false)) {
             rv = branch->SetIntPref(DISK_CACHE_CAPACITY_PREF, MAX_CACHE_SIZE);
