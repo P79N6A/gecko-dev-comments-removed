@@ -107,19 +107,19 @@ public class GLController {
 
         mServerSurfaceValid = true;
 
-        createCompositor();
+        updateCompositor();
     }
 
-    void createCompositor() {
+    void updateCompositor() {
         ThreadUtils.assertOnUiThread();
-        Log.w(LOGTAG, "GLController::createCompositor with mCompositorCreated=" + mCompositorCreated);
+        Log.w(LOGTAG, "GLController::updateCompositor with mCompositorCreated=" + mCompositorCreated);
 
         if (mCompositorCreated) {
             
             
             
             resumeCompositor(mWidth, mHeight);
-            Log.w(LOGTAG, "done GLController::createCompositor with compositor resume");
+            Log.w(LOGTAG, "done GLController::updateCompositor with compositor resume");
             return;
         }
 
@@ -130,7 +130,7 @@ public class GLController {
         if (GeckoThread.checkLaunchState(GeckoThread.LaunchState.GeckoRunning)) {
             GeckoAppShell.sendEventToGeckoSync(GeckoEvent.createCompositorCreateEvent(mWidth, mHeight));
         }
-        Log.w(LOGTAG, "done GLController::createCompositor");
+        Log.w(LOGTAG, "done GLController::updateCompositor");
     }
 
     void compositorCreated() {
