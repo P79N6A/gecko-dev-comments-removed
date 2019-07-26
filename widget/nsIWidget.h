@@ -13,7 +13,6 @@
 
 #include "nsEvent.h"
 #include "nsCOMPtr.h"
-#include "nsITheme.h"
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
@@ -110,6 +109,17 @@ typedef void* nsNativeWidget;
 #define NS_STYLE_WINDOW_SHADOW_MENU             2
 #define NS_STYLE_WINDOW_SHADOW_TOOLTIP          3
 #define NS_STYLE_WINDOW_SHADOW_SHEET            4
+
+
+
+
+
+enum nsTransparencyMode {
+  eTransparencyOpaque = 0,  
+  eTransparencyTransparent, 
+  eTransparencyGlass,       
+  eTransparencyBorderlessGlass 
+};
 
 
 

@@ -34,13 +34,6 @@ class nsIWidget;
 #define NS_THEMERENDERER_CID \
 { 0xd930e29b, 0x6909, 0x44e5, { 0xab, 0x4b, 0xaf, 0x10, 0xd6, 0x92, 0x37, 0x5 } }
 
-enum nsTransparencyMode {
-  eTransparencyOpaque = 0,  
-  eTransparencyTransparent, 
-  eTransparencyGlass,       
-  eTransparencyBorderlessGlass 
-};
-
 
 
 
