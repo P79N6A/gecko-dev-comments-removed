@@ -2825,6 +2825,15 @@ MacroAssemblerARMCompat::floor(FloatRegister input, Register output, Label *bail
     bind(&fin);
 }
 
+CodeOffsetLabel
+MacroAssemblerARMCompat::toggledJump(bool enabled, Label *label)
+{
+    
+    
+    CodeOffsetLabel ret(nextOffset().getOffset());
+    ma_b(label);
+    return ret;
+}
 
 void
 MacroAssemblerARMCompat::round(FloatRegister input, Register output, Label *bail, FloatRegister tmp)

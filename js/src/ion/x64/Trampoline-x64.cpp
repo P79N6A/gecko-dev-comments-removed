@@ -64,7 +64,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     const Register reg_code  = IntArgReg0;
     const Register reg_argc  = IntArgReg1;
     const Register reg_argv  = IntArgReg2;
-    const Register reg_frame = IntArgReg3;
+    JS_ASSERT(OsrFrameReg == IntArgReg3);
 
 #if defined(_WIN64)
     const Operand token  = Operand(rbp, 16 + ShadowStackSpace);
@@ -140,9 +140,6 @@ IonCompartment::generateEnterJIT(JSContext *cx)
 
 
     masm.subq(rsp, r14);
-
-    
-    JS_ASSERT(OsrFrameReg == IntArgReg3);
 
     
     masm.makeFrameDescriptor(r14, IonFrame_Entry);

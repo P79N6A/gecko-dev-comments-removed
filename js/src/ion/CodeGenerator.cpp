@@ -374,7 +374,7 @@ CodeGenerator::visitStoreSlotV(LStoreSlotV *store)
     const ValueOperand value = ToValue(store, LStoreSlotV::Value);
 
     if (store->mir()->needsBarrier())
-       masm.emitPreBarrier(Address(base, offset), MIRType_Value);
+       emitPreBarrier(Address(base, offset), MIRType_Value);
 
     masm.storeValue(value, Address(base, offset));
     return true;
@@ -1732,6 +1732,9 @@ CodeGenerator::emitArrayPopShift(LInstruction *lir, const MArrayPopShift *mir, R
     }
 
     
+    masm.branchTestNeedsBarrier(Assembler::NonZero, lengthTemp, ool->entry());
+
+    
     masm.loadPtr(Address(obj, JSObject::offsetOfElements()), elementsTemp);
     masm.load32(Address(elementsTemp, ObjectElements::offsetOfLength()), lengthTemp);
 
@@ -1929,9 +1932,14 @@ CodeGenerator::visitIteratorStart(LIteratorStart *lir)
 
     
     
-    if (gen->cx->compartment->needsBarrier()) {
-        masm.branchPtr(Assembler::NotEqual, Address(niTemp, offsetof(NativeIterator, obj)),
-                       obj, ool->entry());
+    {
+        Label noBarrier;
+        masm.branchTestNeedsBarrier(Assembler::Zero, temp1, &noBarrier);
+
+        Address objAddr(niTemp, offsetof(NativeIterator, obj));
+        masm.branchPtr(Assembler::NotEqual, objAddr, obj, ool->entry());
+
+        masm.bind(&noBarrier);
     }
 
     
@@ -2105,7 +2113,8 @@ CodeGenerator::generate()
     script->ion = IonScript::New(cx, graph.localSlotCount(), scriptFrameSize, snapshots_.size(),
                                  bailouts_.length(), graph.numConstants(),
                                  safepointIndices_.length(), osiIndices_.length(),
-                                 cacheList_.length(), safepoints_.size());
+                                 cacheList_.length(), barrierOffsets_.length(),
+                                 safepoints_.size());
     if (!script->ion)
         return false;
     invalidateEpilogueData_.fixup(&masm);
@@ -2136,11 +2145,21 @@ CodeGenerator::generate()
         script->ion->copyOsiIndices(&osiIndices_[0], masm);
     if (cacheList_.length())
         script->ion->copyCacheEntries(&cacheList_[0], masm);
+    if (barrierOffsets_.length())
+        script->ion->copyPrebarrierEntries(&barrierOffsets_[0], masm);
     if (safepoints_.size())
         script->ion->copySafepoints(&safepoints_);
 
     linkAbsoluteLabels();
+
     
+    
+    
+    
+#ifdef JS_CPU_ARM
+    bool needsBarrier = cx->compartment->needsBarrier();
+    script->ion->toggleBarriers(needsBarrier);
+#endif
     return true;
 }
 
@@ -2295,7 +2314,7 @@ CodeGenerator::visitStoreFixedSlotV(LStoreFixedSlotV *ins)
 
     Address address(obj, JSObject::getFixedSlotOffset(slot));
     if (ins->mir()->needsBarrier())
-        masm.emitPreBarrier(address, MIRType_Value);
+        emitPreBarrier(address, MIRType_Value);
 
     masm.storeValue(value, address);
 
@@ -2317,7 +2336,7 @@ CodeGenerator::visitStoreFixedSlotT(LStoreFixedSlotT *ins)
 
     Address address(obj, JSObject::getFixedSlotOffset(slot));
     if (ins->mir()->needsBarrier())
-        masm.emitPreBarrier(address, MIRType_Value);
+        emitPreBarrier(address, MIRType_Value);
 
     masm.storeConstantOrRegister(nvalue, address);
 

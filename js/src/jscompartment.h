@@ -3,6 +3,8 @@
 
 
 
+
+
 #ifndef jscompartment_h___
 #define jscompartment_h___
 
@@ -97,6 +99,10 @@ struct JSCompartment
     }
 
     void setNeedsBarrier(bool needs);
+
+    static size_t OffsetOfNeedsBarrier() {
+        return offsetof(JSCompartment, needsBarrier_);
+    }
 
     js::GCMarker *barrierTracer() {
         JS_ASSERT(needsBarrier_);

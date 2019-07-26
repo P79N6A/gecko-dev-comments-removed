@@ -188,6 +188,9 @@ class IonCache
     IonCache() { PodZero(this); }
 
     void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+    
+    
+    void reset();
 
     CodeLocationJump lastJump() const { return lastJump_; }
     CodeLocationLabel cacheLabel() const { return cacheLabel_; }
