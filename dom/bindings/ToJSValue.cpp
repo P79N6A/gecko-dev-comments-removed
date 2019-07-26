@@ -5,6 +5,7 @@
 
 
 #include "mozilla/dom/ToJSValue.h"
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/Exceptions.h"
 #include "nsAString.h"
 #include "nsContentUtils.h"
