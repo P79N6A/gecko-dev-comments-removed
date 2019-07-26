@@ -4034,10 +4034,7 @@ nsContinuingTextFrame::DestroyFrom(nsIFrame* aDestructRoot)
   
   
   
-  if ((GetStateBits() & TEXT_IN_TEXTRUN_USER_DATA) ||
-      (GetStateBits() & TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA) ||
-      (!mPrevContinuation &&
-       !(GetStateBits() & TEXT_STYLE_MATCHES_PREV_CONTINUATION)) ||
+  if (IsInTextRunUserData() ||
       (mPrevContinuation &&
        mPrevContinuation->StyleContext() != StyleContext())) {
     ClearTextRuns();
@@ -4343,6 +4340,17 @@ nsTextFrame::ClearTextRun(nsTextFrame* aStartContinuation,
     
     gTextRuns->RemoveFromCache(textRun);
     delete textRun;
+  }
+}
+
+void
+nsTextFrame::DisconnectTextRuns()
+{
+  MOZ_ASSERT(!IsInTextRunUserData(),
+             "Textrun mentions this frame in its user data so we can't just disconnect");
+  mTextRun = nullptr;
+  if ((GetStateBits() & TEXT_HAS_FONT_INFLATION)) {
+    Properties().Delete(UninflatedTextRunProperty());
   }
 }
 
@@ -7355,8 +7363,12 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
   return false;
 }
 
+
+
+
+
 static void
-RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
+RemoveEmptyInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
 {
   NS_PRECONDITION(aFrame != aFirstToNotRemove, "This will go very badly");
   
@@ -7382,16 +7394,18 @@ RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* lastRemoved = aFirstToNotRemove->GetPrevContinuation();
 
-  
-  
-  
-  
-  
-  
-  aFrame->ClearTextRuns();
-  if (aFrame != lastRemoved) {
+  for (nsTextFrame* f = aFrame; f != aFirstToNotRemove;
+       f = static_cast<nsTextFrame*>(f->GetNextContinuation())) {
     
-    static_cast<nsTextFrame*>(lastRemoved)->ClearTextRuns();
+    
+    
+    
+    
+    if (f->IsInTextRunUserData()) {
+      f->ClearTextRuns();
+    } else {
+      f->DisconnectTextRuns();
+    }
   }
 
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
@@ -7500,15 +7514,8 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
         
         framesToRemove = f;
       }
-
-      
-      
-      
-      if (f->StyleContext() == f->GetPrevContinuation()->StyleContext()) {
-        f->AddStateBits(TEXT_STYLE_MATCHES_PREV_CONTINUATION);
-      }
     } else if (framesToRemove) {
-      RemoveInFlows(framesToRemove, f);
+      RemoveEmptyInFlows(framesToRemove, f);
       framesToRemove = nullptr;
     }
     f = next;
@@ -7519,7 +7526,7 @@ nsTextFrame::SetLength(int32_t aLength, nsLineLayout* aLineLayout,
   if (framesToRemove) {
     
     
-    RemoveInFlows(framesToRemove, f);
+    RemoveEmptyInFlows(framesToRemove, f);
   }
 
 #ifdef DEBUG

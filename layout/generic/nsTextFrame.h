@@ -468,6 +468,10 @@ public:
   gfxTextRun* GetUninflatedTextRun();
   void SetTextRun(gfxTextRun* aTextRun, TextRunType aWhichTextRun,
                   float aInflation);
+  bool IsInTextRunUserData() const {
+    return GetStateBits() &
+      (TEXT_IN_TEXTRUN_USER_DATA | TEXT_IN_UNINFLATED_TEXTRUN_USER_DATA);
+  }
   
 
 
@@ -491,6 +495,11 @@ public:
       ClearTextRun(nullptr, nsTextFrame::eNotInflated);
     }
   }
+
+  
+
+
+  void DisconnectTextRuns();
 
   
   
