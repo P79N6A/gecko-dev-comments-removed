@@ -77,6 +77,14 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
+    static const unsigned MAX_ARGS_LENGTH = 20000;
+
+    if (fp->isNonEvalFunctionFrame() && fp->numActualArgs() > MAX_ARGS_LENGTH) {
+        
+        IonSpew(IonSpew_BaselineAbort, "Too many arguments (%u)", fp->numActualArgs());
+        return false;
+    }
+
     return true;
 }
 
