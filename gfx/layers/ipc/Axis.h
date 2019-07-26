@@ -154,17 +154,6 @@ public:
 
 
 
-
-  Overscroll ScaleWillOverscroll(float aScale, float aFocus);
-
-  
-
-
-
-
-
-
-
   float ScaleWillOverscrollAmount(float aScale, float aFocus);
 
   

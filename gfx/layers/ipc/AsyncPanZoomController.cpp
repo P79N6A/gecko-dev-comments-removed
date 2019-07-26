@@ -662,40 +662,11 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
                           realMinZoom.scale / userZoom.scale,
                           realMaxZoom.scale / userZoom.scale);
 
-      switch (mX.ScaleWillOverscroll(spanRatio, cssFocusPoint.x))
-      {
-        case Axis::OVERSCROLL_NONE:
-          break;
-        case Axis::OVERSCROLL_MINUS:
-        case Axis::OVERSCROLL_PLUS:
-          neededDisplacement.x = -mX.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.x);
-          break;
-        case Axis::OVERSCROLL_BOTH:
-          
-          
-          
-          
-          doScale = false;
-          break;
-      }
-    }
+      
+      
+      neededDisplacement.x = -mX.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.x);
+      neededDisplacement.y = -mY.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.y);
 
-    if (doScale) {
-      switch (mY.ScaleWillOverscroll(spanRatio, cssFocusPoint.y))
-      {
-        case Axis::OVERSCROLL_NONE:
-          break;
-        case Axis::OVERSCROLL_MINUS:
-        case Axis::OVERSCROLL_PLUS:
-          neededDisplacement.y = -mY.ScaleWillOverscrollAmount(spanRatio, cssFocusPoint.y);
-          break;
-        case Axis::OVERSCROLL_BOTH:
-          doScale = false;
-          break;
-      }
-    }
-
-    if (doScale) {
       ScaleWithFocus(spanRatio, cssFocusPoint);
 
       if (neededDisplacement != CSSPoint()) {
