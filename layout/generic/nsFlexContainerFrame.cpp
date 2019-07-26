@@ -286,7 +286,12 @@ public:
   nscoord GetCrossSize() const     { return mCrossSize;  }
   nscoord GetCrossPosition() const { return mCrossPosn; }
 
-  nscoord GetAscent() const        { return mAscent; }
+  
+  
+  
+  
+  nscoord GetBaselineOffsetFromOuterCrossStart(
+            AxisOrientationType aCrossAxis) const;
 
   float GetShareOfFlexWeightSoFar() const { return mShareOfFlexWeightSoFar; }
 
@@ -963,6 +968,37 @@ FlexItem::FlexItem(nsIFrame* aChildFrame,
   }
 }
 
+nscoord
+FlexItem::GetBaselineOffsetFromOuterCrossStart(
+  AxisOrientationType aCrossAxis) const
+{
+  
+  
+  
+  
+  
+  MOZ_ASSERT(!IsAxisHorizontal(aCrossAxis),
+             "Only expecting to be doing baseline computations when the "
+             "cross axis is vertical");
+ 
+  nscoord marginTopToBaseline = mAscent + mMargin.top;
+
+  if (aCrossAxis == eAxis_TB) {
+    
+    
+    return marginTopToBaseline;
+  }
+
+  
+  
+  
+  
+  nscoord outerCrossSize = mCrossSize +
+    GetMarginBorderPaddingSizeInAxis(aCrossAxis);
+
+  return outerCrossSize - marginTopToBaseline;
+}
+
 uint32_t
 FlexItem::GetNumAutoMarginsInAxis(AxisOrientationType aAxis) const
 {
@@ -1127,10 +1163,6 @@ public:
   nscoord GetCrossStartToFurthestBaseline() { return mCrossStartToFurthestBaseline; }
 
 private:
-  
-  
-  nscoord GetBaselineOffsetFromCrossStart(const FlexItem& aItem) const;
-
   nscoord mLineCrossSize;
 
   
@@ -1749,7 +1781,8 @@ SingleLineCrossAxisPositionTracker::
       
       
 
-      nscoord crossStartToBaseline = GetBaselineOffsetFromCrossStart(curItem);
+      nscoord crossStartToBaseline =
+        curItem.GetBaselineOffsetFromOuterCrossStart(mAxis);
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       
@@ -1772,19 +1805,6 @@ SingleLineCrossAxisPositionTracker::
   mLineCrossSize = std::max(mCrossStartToFurthestBaseline +
                             crossEndToFurthestBaseline,
                             largestOuterCrossSize);
-}
-
-nscoord
-SingleLineCrossAxisPositionTracker::
-  GetBaselineOffsetFromCrossStart(const FlexItem& aItem) const
-{
-  Side crossStartSide = kAxisOrientationToSidesMap[mAxis][eAxisEdge_Start];
-
-  
-  
-  
-  return NSCoordSaturatingAdd(aItem.GetAscent(),
-                              aItem.GetMarginComponentForSide(crossStartSide));
 }
 
 void
@@ -1893,13 +1913,13 @@ SingleLineCrossAxisPositionTracker::
                        "using uninitialized baseline offset (or working with "
                        "content that has bogus huge values)");
       MOZ_ASSERT(mCrossStartToFurthestBaseline >=
-                 GetBaselineOffsetFromCrossStart(aItem),
+                 aItem.GetBaselineOffsetFromOuterCrossStart(mAxis),
                  "failed at finding largest ascent");
 
       
       
       mPosition += (mCrossStartToFurthestBaseline -
-                    GetBaselineOffsetFromCrossStart(aItem));
+                    aItem.GetBaselineOffsetFromOuterCrossStart(mAxis));
       break;
     default:
       NS_NOTREACHED("Unexpected align-self value");
