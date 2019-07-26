@@ -482,7 +482,7 @@ protected:
 
 
 
-  void ScheduleContentRepaint(FrameMetrics &aFrameMetrics);
+  void RequestContentRepaint(FrameMetrics& aFrameMetrics);
 
   
 
