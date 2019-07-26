@@ -2,6 +2,8 @@
 
 
 
+#ifndef MERGED_COMPARTMENT
+
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 this.EXPORTED_SYMBOLS = [
@@ -10,12 +12,16 @@ this.EXPORTED_SYMBOLS = [
   "TokenAuthenticatedRESTRequest"
 ];
 
+#endif
+
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://services-crypto/utils.js");
 Cu.import("resource://services-common/log4moz.js");
 Cu.import("resource://services-common/preferences.js");
 Cu.import("resource://services-common/utils.js");
+
+XPCOMUtils.defineLazyModuleGetter(this, "CryptoUtils",
+                                  "resource://services-crypto/utils.js");
 
 const Prefs = new Preferences("services.common.rest.");
 

@@ -2,9 +2,13 @@
 
 
 
+#ifndef MERGED_COMPARTMENT
+
 this.EXPORTED_SYMBOLS = ["Async"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
+
+#endif
 
 
 const CB_READY = {};
