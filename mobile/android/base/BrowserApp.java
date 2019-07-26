@@ -1657,7 +1657,7 @@ abstract public class BrowserApp extends GeckoApp
     private void hideWebContent() {
         
         
-        mLayerView.setVisibility(View.INVISIBLE);
+        mLayerView.hide();
     }
 
     
@@ -1684,7 +1684,7 @@ abstract public class BrowserApp extends GeckoApp
         mHideWebContentOnAnimationEnd = false;
 
         
-        mLayerView.setVisibility(View.VISIBLE);
+        mLayerView.show();
 
         if (mHomePager != null) {
             mHomePager.hide();
