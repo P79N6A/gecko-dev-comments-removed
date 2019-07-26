@@ -37,6 +37,11 @@ RenderFrameChild::AllocPLayerTransactionChild()
 {
   LayerTransactionChild* c = new LayerTransactionChild();
   c->AddIPDLReference();
+  
+  
+  
+  
+  c->SetHasNoCompositor();
   return c;
 }
 
