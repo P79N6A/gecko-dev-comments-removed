@@ -38,16 +38,18 @@ using mozilla::plugins::PluginInstanceParent;
 #include "mozilla/unused.h"
 
 #include "LayerManagerOGL.h"
-#include "BasicLayers.h"
 #ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
 #endif
 #ifdef MOZ_ENABLE_D3D10_LAYER
 #include "LayerManagerD3D10.h"
 #endif
+#include "mozilla/layers/CompositorParent.h"
+#include "ClientLayerManager.h"
 
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
+#include "mozilla/gfx/2D.h"
 
 extern "C" {
 #define PIXMAN_DONT_DEFINE_STDINT
@@ -126,11 +128,11 @@ nsIntRegion nsWindow::GetRegionToPaint(bool aForceFullRepaint,
   }
 
   HRGN paintRgn = ::CreateRectRgn(0, 0, 0, 0);
-  if (paintRgn != NULL) {
+  if (paintRgn != nullptr) {
     int result = GetRandomRgn(aDC, paintRgn, SYSRGN);
     if (result == 1) {
       POINT pt = {0,0};
-      ::MapWindowPoints(NULL, mWnd, &pt, 1);
+      ::MapWindowPoints(nullptr, mWnd, &pt, 1);
       ::OffsetRgn(paintRgn, pt.x, pt.y);
     }
     nsIntRegion rgn(WinUtils::ConvertHRGNToRegion(paintRgn));
@@ -176,7 +178,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   
   
   
-  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() && mPainting)
+  if (mozilla::ipc::MessageChannel::IsSpinLoopActive() && mPainting)
     return false;
 
   if (mWindowType == eWindowType_plugin) {
@@ -208,20 +210,24 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
       NS_WARNING("Plugin failed to subclass our window");
     }
 
-    ValidateRect(mWnd, NULL);
+    ValidateRect(mWnd, nullptr);
     return true;
   }
 
-  nsIWidgetListener* listener = GetPaintListener();
-  if (listener) {
-    listener->WillPaintWindow(this);
-  }
-  
-  listener = GetPaintListener();
-  if (!listener)
-    return false;
+  ClientLayerManager *clientLayerManager =
+      (GetLayerManager()->GetBackendType() == LAYERS_CLIENT)
+      ? static_cast<ClientLayerManager*>(GetLayerManager())
+      : nullptr;
 
-  bool result = true;
+  if (clientLayerManager && mCompositorParent &&
+      !mBounds.IsEqualEdges(mLastPaintBounds))
+  {
+    
+    
+    mCompositorParent->ScheduleRenderOnCompositorThread();
+  }
+  mLastPaintBounds = mBounds;
+
   PAINTSTRUCT ps;
 
 #ifdef MOZ_XUL
@@ -243,8 +249,8 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   mPainting = true;
 
 #ifdef WIDGET_DEBUG_OUTPUT
-  HRGN debugPaintFlashRegion = NULL;
-  HDC debugPaintFlashDC = NULL;
+  HRGN debugPaintFlashRegion = nullptr;
+  HDC debugPaintFlashDC = nullptr;
 
   if (debug_WantPaintFlashing())
   {
@@ -262,9 +268,33 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
 #ifdef MOZ_XUL
   bool forceRepaint = aDC || (eTransparencyTransparent == mTransparencyMode);
 #else
-  bool forceRepaint = NULL != aDC;
+  bool forceRepaint = nullptr != aDC;
 #endif
   nsIntRegion region = GetRegionToPaint(forceRepaint, ps, hDC);
+
+  if (clientLayerManager && mCompositorParent) {
+    
+    
+    clientLayerManager->SetNeedsComposite(true);
+    clientLayerManager->SendInvalidRegion(region);
+  }
+
+  nsIWidgetListener* listener = GetPaintListener();
+  if (listener) {
+    listener->WillPaintWindow(this);
+  }
+  
+  listener = GetPaintListener();
+  if (!listener) {
+    return false;
+  }
+
+  if (clientLayerManager && mCompositorParent && clientLayerManager->NeedsComposite()) {
+    mCompositorParent->ScheduleRenderOnCompositorThread();
+    clientLayerManager->SetNeedsComposite(false);
+  }
+
+  bool result = true;
   if (!region.IsEmpty() && listener)
   {
     
@@ -299,10 +329,10 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
               IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D))
           {
             if (!mD2DWindowSurface) {
-              gfxASurface::gfxContentType content = gfxASurface::CONTENT_COLOR;
+              gfxContentType content = GFX_CONTENT_COLOR;
 #if defined(MOZ_XUL)
               if (mTransparencyMode != eTransparencyOpaque) {
-                content = gfxASurface::CONTENT_COLOR_ALPHA;
+                content = GFX_CONTENT_COLOR_ALPHA;
               }
 #endif
               mD2DWindowSurface = new gfxD2DSurface(mWnd, content);
@@ -344,7 +374,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
             targetSurfaceImage = new gfxImageSurface(sSharedSurfaceData.get(),
                                                      surfaceSize,
                                                      surfaceSize.width * 4,
-                                                     gfxASurface::ImageFormatRGB24);
+                                                     gfxImageFormatRGB24);
 
             if (targetSurfaceImage && !targetSurfaceImage->CairoStatus()) {
               targetSurfaceImage->SetDeviceOffset(gfxPoint(-ps.rcPaint.left, -ps.rcPaint.top));
@@ -357,7 +387,19 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
             return false;
           }
 
-          nsRefPtr<gfxContext> thebesContext = new gfxContext(targetSurface);
+          nsRefPtr<gfxContext> thebesContext;
+          if (gfxPlatform::GetPlatform()->SupportsAzureContentForType(mozilla::gfx::BACKEND_CAIRO)) {
+            RECT paintRect;
+            ::GetClientRect(mWnd, &paintRect);
+            RefPtr<mozilla::gfx::DrawTarget> dt =
+              gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(targetSurface,
+                                                                     mozilla::gfx::IntSize(paintRect.right - paintRect.left,
+                                                                                           paintRect.bottom - paintRect.top));
+            thebesContext = new gfxContext(dt);
+          } else {
+            thebesContext = new gfxContext(targetSurface);
+          }
+
           if (IsRenderMode(gfxWindowsPlatform::RENDER_DIRECT2D)) {
             const nsIntRect* r;
             for (nsIntRegionRectIterator iter(region);
@@ -546,9 +588,8 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
         break;
 #endif
       case LAYERS_CLIENT:
-        
+        result = listener->PaintWindow(this, region);
         break;
-
       default:
         NS_ERROR("Unknown layers backend used!");
         break;
@@ -586,7 +627,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   if (listener)
     listener->DidPaintWindow();
 
-  if (aNestingLevel == 0 && ::GetUpdateRect(mWnd, NULL, false)) {
+  if (aNestingLevel == 0 && ::GetUpdateRect(mWnd, nullptr, false)) {
     OnPaint(aDC, 1);
   }
 
@@ -638,7 +679,7 @@ nsresult nsWindowGfx::CreateIcon(imgIContainer *aContainer,
     NS_ENSURE_ARG(aScaledSize.width > 0);
     NS_ENSURE_ARG(aScaledSize.height > 0);
     
-    dest = new gfxImageSurface(aScaledSize, gfxASurface::ImageFormatARGB32);
+    dest = new gfxImageSurface(aScaledSize, gfxImageFormatARGB32);
     if (!dest)
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -695,7 +736,7 @@ uint8_t* nsWindowGfx::Data32BitTo1Bit(uint8_t* aImageData,
   
   uint8_t* outData = (uint8_t*)PR_Calloc(outBpr, aHeight);
   if (!outData)
-    return NULL;
+    return nullptr;
 
   int32_t *imageRow = (int32_t*)aImageData;
   for (uint32_t curRow = 0; curRow < aHeight; curRow++) {
@@ -736,7 +777,7 @@ HBITMAP nsWindowGfx::DataToBitmap(uint8_t* aImageData,
                                   uint32_t aHeight,
                                   uint32_t aDepth)
 {
-  HDC dc = ::GetDC(NULL);
+  HDC dc = ::GetDC(nullptr);
 
   if (aDepth == 32) {
     
@@ -764,7 +805,7 @@ HBITMAP nsWindowGfx::DataToBitmap(uint8_t* aImageData,
                                    aImageData,
                                    reinterpret_cast<CONST BITMAPINFO*>(&head),
                                    DIB_RGB_COLORS);
-    ::ReleaseDC(NULL, dc);
+    ::ReleaseDC(nullptr, dc);
     return bmp;
   }
 
@@ -794,6 +835,6 @@ HBITMAP nsWindowGfx::DataToBitmap(uint8_t* aImageData,
   }
 
   HBITMAP bmp = ::CreateDIBitmap(dc, &head, CBM_INIT, aImageData, &bi, DIB_RGB_COLORS);
-  ::ReleaseDC(NULL, dc);
+  ::ReleaseDC(nullptr, dc);
   return bmp;
 }

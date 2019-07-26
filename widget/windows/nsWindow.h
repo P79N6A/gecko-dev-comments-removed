@@ -18,12 +18,15 @@
 #include "nsToolkit.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsEvent.h"
 #include "gfxWindowsSurface.h"
 #include "nsWindowDbg.h"
 #include "cairo.h"
 #include "nsITimer.h"
+#include "nsRegion.h"
+#include "mozilla/EventForwards.h"
+#include "mozilla/MouseEvents.h"
 #include "mozilla/TimeStamp.h"
+#include "nsMargin.h"
 
 #ifdef CAIRO_HAS_D2D_SURFACE
 #include "gfxD2DSurface.h"
@@ -52,6 +55,7 @@
 class nsNativeDragTarget;
 class nsIRollupListener;
 class nsIFile;
+class nsIntRegion;
 class imgIContainer;
 
 namespace mozilla {
@@ -83,8 +87,13 @@ public:
   friend class nsWindowGfx;
 
   
-  virtual void InitEvent(nsGUIEvent& aEvent, nsIntPoint* aPoint = nullptr) MOZ_OVERRIDE;
-  virtual bool DispatchWindowEvent(nsGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual void InitEvent(mozilla::WidgetGUIEvent& aEvent,
+                         nsIntPoint* aPoint = nullptr) MOZ_OVERRIDE;
+  virtual bool DispatchWindowEvent(mozilla::WidgetGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual bool DispatchKeyboardEvent(mozilla::WidgetGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual bool DispatchScrollEvent(mozilla::WidgetGUIEvent* aEvent) MOZ_OVERRIDE;
+  virtual nsWindowBase* GetParentWindowBase(bool aIncludeOwner) MOZ_OVERRIDE;
+  virtual bool IsTopLevelWidget() MOZ_OVERRIDE { return mIsTopWidgetWindow; }
 
   
   NS_IMETHOD              Create(nsIWidget *aParent,
@@ -104,7 +113,9 @@ public:
   NS_IMETHOD              Move(double aX, double aY);
   NS_IMETHOD              Resize(double aWidth, double aHeight, bool aRepaint);
   NS_IMETHOD              Resize(double aX, double aY, double aWidth, double aHeight, bool aRepaint);
-  NS_IMETHOD              BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical);
+  NS_IMETHOD              BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
+                                          int32_t aHorizontal,
+                                          int32_t aVertical);
   NS_IMETHOD              PlaceBehind(nsTopLevelWidgetZPlacement aPlacement, nsIWidget *aWidget, bool aActivate);
   NS_IMETHOD              SetSizeMode(int32_t aMode);
   NS_IMETHOD              Enable(bool aState);
@@ -131,7 +142,8 @@ public:
   NS_IMETHOD              SetIcon(const nsAString& aIconSpec);
   virtual nsIntPoint      WidgetToScreenOffset();
   virtual nsIntSize       ClientToWindowSize(const nsIntSize& aClientSize);
-  NS_IMETHOD              DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus);
+  NS_IMETHOD              DispatchEvent(mozilla::WidgetGUIEvent* aEvent,
+                                        nsEventStatus& aStatus);
   NS_IMETHOD              EnableDragDrop(bool aEnable);
   NS_IMETHOD              CaptureMouse(bool aCapture);
   NS_IMETHOD              CaptureRollupEvents(nsIRollupListener * aListener,
@@ -187,6 +199,8 @@ public:
   NS_IMETHOD              GetNonClientMargins(nsIntMargin &margins);
   NS_IMETHOD              SetNonClientMargins(nsIntMargin &margins);
   void                    SetDrawsInTitlebar(bool aState);
+  mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() MOZ_OVERRIDE;
+  virtual void            EndRemoteDrawing() MOZ_OVERRIDE;
 
   
 
@@ -194,9 +208,10 @@ public:
   virtual bool            DispatchMouseEvent(uint32_t aEventType, WPARAM wParam,
                                              LPARAM lParam,
                                              bool aIsContextMenuKey = false,
-                                             int16_t aButton = nsMouseEvent::eLeftButton,
+                                             int16_t aButton = mozilla::WidgetMouseEvent::eLeftButton,
                                              uint16_t aInputSource = nsIDOMMouseEvent::MOZ_SOURCE_MOUSE);
-  virtual bool            DispatchWindowEvent(nsGUIEvent*event, nsEventStatus &aStatus);
+  virtual bool            DispatchWindowEvent(mozilla::WidgetGUIEvent* aEvent,
+                                              nsEventStatus& aStatus);
   void                    DispatchPendingEvents();
   bool                    DispatchPluginEvent(UINT aMessage,
                                               WPARAM aWParam,
@@ -227,8 +242,7 @@ public:
 
 
   virtual bool            AutoErase(HDC dc);
-  nsIntPoint*             GetLastPoint() { return &mLastPoint; }
-  bool                    IsTopLevelWidget() { return mIsTopWidgetWindow; }
+
   
 
 
@@ -274,9 +288,11 @@ public:
 
   bool                    const DestroyCalled() { return mDestroyCalled; }
 
-  virtual mozilla::layers::LayersBackend GetPreferredCompositorBackend() { return mozilla::layers::LAYERS_D3D11; }
+  virtual void GetPreferredCompositorBackends(nsTArray<mozilla::layers::LayersBackend>& aHints);
 
 protected:
+
+  virtual void WindowUsesOMTC() MOZ_OVERRIDE;
 
   
   
@@ -351,13 +367,12 @@ protected:
 
 
   virtual void            OnDestroy();
-  virtual bool            OnMove(int32_t aX, int32_t aY);
   virtual bool            OnResize(nsIntRect &aWindowRect);
   bool                    OnGesture(WPARAM wParam, LPARAM lParam);
   bool                    OnTouch(WPARAM wParam, LPARAM lParam);
   bool                    OnHotKey(WPARAM wParam, LPARAM lParam);
   bool                    OnPaint(HDC aDC, uint32_t aNestingLevel);
-  void                    OnWindowPosChanged(WINDOWPOS *wp, bool& aResult);
+  void                    OnWindowPosChanged(WINDOWPOS* wp);
   void                    OnWindowPosChanging(LPWINDOWPOS& info);
   void                    OnSysColorChanged();
 
@@ -511,6 +526,9 @@ protected:
 
   
   HDC                   mPaintDC; 
+  HDC                   mCompositeDC; 
+
+  nsIntRect             mLastPaintBounds;
 
 #ifdef CAIRO_HAS_D2D_SURFACE
   nsRefPtr<gfxD2DSurface>    mD2DWindowSurface; 

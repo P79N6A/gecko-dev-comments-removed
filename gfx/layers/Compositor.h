@@ -15,6 +15,7 @@
 #include "mozilla/layers/CompositorTypes.h"  
 #include "mozilla/layers/LayersTypes.h"  
 #include "nsTraceRefcnt.h"              
+#include "nsRegion.h"
 
 
 
@@ -300,7 +301,15 @@ public:
 
 
 
-  virtual void BeginFrame(const gfx::Rect* aClipRectIn,
+
+
+
+
+
+
+
+  virtual void BeginFrame(const nsIntRegion& aInvalidRegion,
+                          const gfx::Rect* aClipRectIn,
                           const gfxMatrix& aTransform,
                           const gfx::Rect& aRenderBounds,
                           gfx::Rect* aClipRectOut = nullptr,

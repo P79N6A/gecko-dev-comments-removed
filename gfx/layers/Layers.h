@@ -1223,6 +1223,7 @@ public:
 
 
   const nsIntRegion& GetInvalidRegion() { return mInvalidRegion; }
+  const void SetInvalidRegion(const nsIntRegion& aRect) { mInvalidRegion = aRect; }
 
   
 
