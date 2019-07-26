@@ -168,6 +168,13 @@ struct BidiParagraphData {
     return paraLevel;
   }
 
+  nsBidiDirection GetDirection()
+  {
+    nsBidiDirection dir;
+    mBidiEngine->GetDirection(&dir);
+    return dir;
+  }
+
   nsresult CountRuns(int32_t *runCount){ return mBidiEngine->CountRuns(runCount); }
 
   nsresult GetLogicalRun(int32_t aLogicalStart, 
@@ -672,6 +679,27 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
 #endif
 #endif
 #endif
+
+  if (runCount == 1 && frameCount == 1 &&
+      aBpd->mParagraphDepth == 0 && aBpd->GetDirection() == NSBIDI_LTR &&
+      aBpd->GetParaLevel() == 0) {
+    
+    
+    
+    
+    
+    nsIFrame* frame = aBpd->FrameAt(0);
+    if (frame != NS_BIDI_CONTROL_FRAME &&
+        !frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()) &&
+        !frame->Properties().Get(nsIFrame::BaseLevelProperty())) {
+#ifdef DEBUG
+#ifdef NOISY_BIDI
+      printf("early return for single direction frame %p\n", (void*)frame);
+#endif
+#endif
+      return NS_OK;
+    }
+  }
 
   nsIFrame* firstFrame = nullptr;
   nsIFrame* lastFrame = nullptr;
