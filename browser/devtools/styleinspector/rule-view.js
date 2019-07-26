@@ -1283,13 +1283,13 @@ CssRuleView.prototype = {
   {
     
     if (this.isEditing || !this._elementStyle) {
-      return;
+      return promise.resolve(null);
     }
 
     this._clearRules();
 
     
-    this._populate();
+    return this._populate();
   },
 
   _populate: function() {
