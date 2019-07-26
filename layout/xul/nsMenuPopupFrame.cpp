@@ -240,12 +240,10 @@ nsMenuPopupFrame::CreateWidgetForView(nsView* aView)
 
   if (!mInContentShell) {
     
-    bool isDragPopup = false;
     if (mPopupType == ePopupTypePanel &&
         mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                               nsGkAtoms::drag, eIgnoreCase)) {
       widgetData.mIsDragPopup = true;
-      isDragPopup = true;
     }
 
     
