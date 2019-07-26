@@ -99,35 +99,40 @@ ProfilerActor.prototype = {
     return { unregistered: unregistered }
   },
   observe: makeInfallible(function(aSubject, aTopic, aData) {
-    function unWrapper(obj) {
-      if (obj && typeof obj == "object" && ("wrappedJSObject" in obj)) {
-        obj = obj.wrappedJSObject;
-        if (("wrappedJSObject" in obj) && (obj.wrappedJSObject == obj)) {
-          
+    
 
 
 
 
 
-          delete obj.wrappedJSObject;
-          return { unwrapped: obj,
-                   fixup: function() {
-                     this.unwrapped.wrappedJSObject = this.unwrapped;
-                   }
-                 }
-        }
+
+
+
+
+
+
+
+
+
+    function cycleBreaker(key, value) {
+      if (key === 'wrappedJSObject') {
+        return undefined;
       }
-      return { unwrapped: obj, fixup: function() { } }
+      return value;
     }
-    var subject = unWrapper(aSubject);
-    var data = unWrapper(aData);
+
+    
+
+
+
+    aSubject = (aSubject && aSubject.wrappedJSObject) || aSubject;
+    aData    = (aData    && aData.wrappedJSObject)    || aData;
+
     this.conn.send({ from: this.actorID,
                      type: "eventNotification",
                      event: aTopic,
-                     subject: subject.unwrapped,
-                     data: data.unwrapped });
-    data.fixup();
-    subject.fixup();
+                     subject: JSON.parse(JSON.stringify(aSubject, cycleBreaker)),
+                     data:    JSON.parse(JSON.stringify(aData,    cycleBreaker)) });
   }, "ProfilerActor.prototype.observe"),
 };
 
