@@ -476,6 +476,19 @@ MetroInput::OnPointerPressedCallback()
   }
 }
 
+void
+MetroInput::AddPointerMoveDataToRecognizer(UI::Core::IPointerEventArgs* aArgs)
+{
+  
+  
+  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented) {
+    WRL::ComPtr<Foundation::Collections::IVector<UI::Input::PointerPoint*>>
+        pointerPoints;
+    aArgs->GetIntermediatePoints(pointerPoints.GetAddressOf());
+    mGestureRecognizer->ProcessMoveEvents(pointerPoints.Get());
+  }
+}
+
 
 
 
@@ -499,10 +512,7 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   if (deviceType !=
           Devices::Input::PointerDeviceType::PointerDeviceType_Touch) {
     OnPointerNonTouch(currentPoint.Get());
-    WRL::ComPtr<Foundation::Collections::IVector<UI::Input::PointerPoint*>>
-        pointerPoints;
-    aArgs->GetIntermediatePoints(pointerPoints.GetAddressOf());
-    mGestureRecognizer->ProcessMoveEvents(pointerPoints.Get());
+    AddPointerMoveDataToRecognizer(aArgs);
     return S_OK;
   }
 
@@ -524,6 +534,8 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
   
   
   if (!HasPointMoved(touch, currentPoint.Get())) {
+    
+    AddPointerMoveDataToRecognizer(aArgs);
     return S_OK;
   }
 
@@ -552,16 +564,9 @@ MetroInput::OnPointerMoved(UI::Core::ICoreWindow* aSender,
     InitTouchEventTouchList(touchEvent);
     DispatchAsyncTouchEventWithCallback(touchEvent, &MetroInput::OnFirstPointerMoveCallback);
     mIsFirstTouchMove = false;
-  } else {
-    
-    
-    if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented) {
-      WRL::ComPtr<Foundation::Collections::IVector<UI::Input::PointerPoint*>>
-          pointerPoints;
-      aArgs->GetIntermediatePoints(pointerPoints.GetAddressOf());
-      mGestureRecognizer->ProcessMoveEvents(pointerPoints.Get());
-    }
   }
+
+  AddPointerMoveDataToRecognizer(aArgs);
 
   return S_OK;
 }
@@ -575,6 +580,8 @@ MetroInput::OnFirstPointerMoveCallback()
   
   if (mTouchMoveDefaultPrevented) {
     mWidget->ApzContentConsumingTouch();
+    
+    mGestureRecognizer->CompleteGesture();
   } else if (!mTouchMoveDefaultPrevented && !mTouchStartDefaultPrevented) {
     mWidget->ApzContentIgnoringTouch();
   }
@@ -633,7 +640,7 @@ MetroInput::OnPointerReleased(UI::Core::ICoreWindow* aSender,
 
   
   
-  if (!mTouchStartDefaultPrevented) {
+  if (!mTouchStartDefaultPrevented && !mTouchMoveDefaultPrevented) {
     mGestureRecognizer->ProcessUpEvent(currentPoint.Get());
   }
 
