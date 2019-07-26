@@ -517,6 +517,8 @@ nsWindow::SetInputContext(const InputContext& aContext,
 NS_IMETHODIMP_(InputContext)
 nsWindow::GetInputContext()
 {
+    
+    mInputContext.mNativeIMEContext = nullptr;
     return mInputContext;
 }
 
