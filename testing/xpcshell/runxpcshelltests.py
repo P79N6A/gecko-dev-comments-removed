@@ -684,6 +684,8 @@ class XPCShellTests(object):
         
         self.env["XPCOM_DEBUG_BREAK"] = "stack-and-abort"
         
+        self.env["MOZ_CRASHREPORTER"] = "1"
+        
         self.env["MOZ_CRASHREPORTER_NO_REPORT"] = "1"
         
         

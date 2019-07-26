@@ -1,70 +1,10 @@
 function run_test()
 {
-  if (!("@mozilla.org/toolkit/crash-reporter;1" in Components.classes)) {
-    dump("INFO | test_crashreporter.js | Can't test crashreporter in a non-libxul build.\n");
-    return;
-  }
-
   dump("INFO | test_crashreporter.js | Get crashreporter service.\n");
   var cr = Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
                      .getService(Components.interfaces.nsICrashReporter);
   do_check_neq(cr, null);
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  do_check_true(cr.enabled);
-  
-  cr.enabled = true;
   do_check_true(cr.enabled);
 
   try {
@@ -140,25 +80,6 @@ function run_test()
   
   cr.appendAppNotesToCrashReport("additional testData4");
 
-  
-
-
-
-
-
-
-
-
-
-  
-
-
-
-  
-  dump("INFO | test_crashreporter.js | Reset crashreporter to its initial state.\n");
-  
-  cr.enabled = true;
-  do_check_true(cr.enabled);
   cr.minidumpPath = cwd;
   do_check_eq(cr.minidumpPath.path, cwd.path);
 }

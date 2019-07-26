@@ -13,11 +13,9 @@ let crashReporter =
     .getService(Components.interfaces.nsICrashReporter);
 
 
-
 let processType = Components.classes["@mozilla.org/xre/runtime;1"].
       getService(Components.interfaces.nsIXULRuntime).processType;
 if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
-  crashReporter.enabled = true;
   crashReporter.minidumpPath = _tmpd;
 }
 

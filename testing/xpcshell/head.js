@@ -78,15 +78,12 @@ catch (e) { }
 
 
 
-try { 
+try {
   if (runningInParent &&
       "@mozilla.org/toolkit/crash-reporter;1" in Components.classes) {
-    
-    
     let (crashReporter =
           Components.classes["@mozilla.org/toolkit/crash-reporter;1"]
           .getService(Components.interfaces.nsICrashReporter)) {
-      crashReporter.enabled = true;
       crashReporter.minidumpPath = do_get_tempdir();
     }
   }
