@@ -34,7 +34,7 @@ class FilePickerResultHandler implements ActivityResultHandler {
     private static final String LOGTAG = "GeckoFilePickerResultHandler";
 
     protected final Queue<String> mFilePickerResult;
-    protected final ActivityHandlerHelper.ResultHandler mHandler;
+    protected final FilePicker.ResultHandler mHandler;
 
     
     
@@ -46,7 +46,7 @@ class FilePickerResultHandler implements ActivityResultHandler {
     }
 
     
-    public FilePickerResultHandler(ActivityHandlerHelper.ResultHandler handler) {
+    public FilePickerResultHandler(FilePicker.ResultHandler handler) {
         mFilePickerResult = null;
         mHandler = handler;
     }
@@ -136,10 +136,6 @@ class FilePickerResultHandler implements ActivityResultHandler {
             if (cursor.moveToFirst()) {
                 String res = cursor.getString(cursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATA));
                 sendResult(res);
-            } else {
-                final FragmentActivity fa = (FragmentActivity) GeckoAppShell.getGeckoInterface().getActivity();
-                final LoaderManager lm = fa.getSupportLoaderManager();
-                lm.initLoader(cursor.hashCode(), null, new FileLoaderCallbacks(mUri));
             }
         }
 
