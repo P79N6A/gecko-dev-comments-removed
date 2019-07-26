@@ -390,6 +390,62 @@ BacktrackingAllocator::groupAndQueueRegisters()
 static const size_t MAX_ATTEMPTS = 2;
 
 bool
+BacktrackingAllocator::tryAllocateFixed(LiveInterval *interval, bool *success,
+                                        bool *pfixed, LiveInterval **pconflicting)
+{
+    
+    if (!interval->requirement()->allocation().isRegister()) {
+        IonSpew(IonSpew_RegAlloc, "stack allocation requirement");
+        interval->setAllocation(interval->requirement()->allocation());
+        *success = true;
+        return true;
+    }
+
+    AnyRegister reg = interval->requirement()->allocation().toRegister();
+    return tryAllocateRegister(registers[reg.code()], interval, success, pfixed, pconflicting);
+}
+
+bool
+BacktrackingAllocator::tryAllocateNonFixed(LiveInterval *interval, bool *success,
+                                           bool *pfixed, LiveInterval **pconflicting)
+{
+    
+    
+    
+    
+    
+    if (interval->hint()->kind() == Requirement::FIXED) {
+        AnyRegister reg = interval->hint()->allocation().toRegister();
+        if (!tryAllocateRegister(registers[reg.code()], interval, success, pfixed, pconflicting))
+            return false;
+        if (*success)
+            return true;
+    }
+
+    
+    if (interval->requirement()->kind() == Requirement::NONE) {
+        spill(interval);
+        *success = true;
+        return true;
+    }
+
+    if (!*pconflicting || minimalInterval(interval)) {
+        
+        
+        for (size_t i = 0; i < AnyRegister::Total; i++) {
+            if (!tryAllocateRegister(registers[i], interval, success, pfixed, pconflicting))
+                return false;
+            if (*success)
+                return true;
+        }
+    }
+
+    
+    JS_ASSERT(!*success);
+    return true;
+}
+
+bool
 BacktrackingAllocator::processInterval(LiveInterval *interval)
 {
     if (IonSpewEnabled(IonSpew_RegAlloc)) {
@@ -426,50 +482,24 @@ BacktrackingAllocator::processInterval(LiveInterval *interval)
     LiveInterval *conflict;
     for (size_t attempt = 0;; attempt++) {
         if (canAllocate) {
-            
-            if (interval->requirement()->kind() == Requirement::FIXED &&
-                !interval->requirement()->allocation().isRegister())
-            {
-                IonSpew(IonSpew_RegAlloc, "stack allocation requirement");
-                interval->setAllocation(interval->requirement()->allocation());
-                return true;
-            }
-
+            bool success = false;
             fixed = false;
             conflict = nullptr;
 
             
-            
-            
-            
-            
-            if (interval->hint()->kind() == Requirement::FIXED) {
-                AnyRegister reg = interval->hint()->allocation().toRegister();
-                bool success;
-                if (!tryAllocateRegister(registers[reg.code()], interval, &success, &fixed, &conflict))
+            if (interval->requirement()->kind() == Requirement::FIXED) {
+                if (!tryAllocateFixed(interval, &success, &fixed, &conflict))
                     return false;
-                if (success)
-                    return true;
+            } else {
+                if (!tryAllocateNonFixed(interval, &success, &fixed, &conflict))
+                    return false;
             }
 
             
-            if (interval->requirement()->kind() == Requirement::NONE) {
-                spill(interval);
+            if (success)
                 return true;
-            }
 
-            if (!conflict || minimalInterval(interval)) {
-                
-                
-                for (size_t i = 0; i < AnyRegister::Total; i++) {
-                    bool success;
-                    if (!tryAllocateRegister(registers[i], interval, &success, &fixed, &conflict))
-                        return false;
-                    if (success)
-                        return true;
-                }
-            }
-
+            
             
             if (attempt < MAX_ATTEMPTS &&
                 !fixed &&
@@ -659,12 +689,8 @@ BacktrackingAllocator::tryAllocateRegister(PhysicalRegister &r, LiveInterval *in
     if (reg->isDouble() != r.reg.isFloat())
         return true;
 
-    if (interval->requirement()->kind() == Requirement::FIXED) {
-        if (interval->requirement()->allocation() != LAllocation(r.reg)) {
-            IonSpew(IonSpew_RegAlloc, "%s does not match fixed requirement", r.reg.name());
-            return true;
-        }
-    }
+    JS_ASSERT_IF(interval->requirement()->kind() == Requirement::FIXED,
+                 interval->requirement()->allocation() == LAllocation(r.reg));
 
     for (size_t i = 0; i < interval->numRanges(); i++) {
         AllocatedRange range(interval, interval->getRange(i)), existing;
