@@ -165,6 +165,7 @@ public:
         mMaxCubeMapTextureSize(0),
         mMaxTextureImageSize(0),
         mMaxRenderbufferSize(0),
+        mNeedsTextureSizeChecks(false),
         mWorkAroundDriverBugs(true)
 #ifdef DEBUG
         , mGLError(LOCAL_GL_NO_ERROR)
@@ -341,6 +342,7 @@ public:
         VendorATI,
         VendorQualcomm,
         VendorImagination,
+        VendorNouveau,
         VendorOther
     };
 
@@ -1581,12 +1583,13 @@ protected:
     GLint mMaxCubeMapTextureSize;
     GLint mMaxTextureImageSize;
     GLint mMaxRenderbufferSize;
+    bool mNeedsTextureSizeChecks;
     bool mWorkAroundDriverBugs;
 
     bool IsTextureSizeSafeToPassToDriver(GLenum target, GLsizei width, GLsizei height) const {
-#ifdef XP_MACOSX
-        if (mWorkAroundDriverBugs &&
-            mVendor == VendorIntel) {
+        if (mNeedsTextureSizeChecks) {
+            
+            
             
             
             
@@ -1598,7 +1601,6 @@ protected:
                               : mMaxTextureSize;
             return width <= maxSize && height <= maxSize;
         }
-#endif
         return true;
     }
 

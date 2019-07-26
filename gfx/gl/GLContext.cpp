@@ -295,7 +295,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
                 "NVIDIA",
                 "ATI",
                 "Qualcomm",
-                "Imagination"
+                "Imagination",
+                "nouveau"
         };
         mVendor = VendorOther;
         for (int i = 0; i < VendorOther; ++i) {
@@ -519,6 +520,15 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             mMaxCubeMapTextureSize = NS_MIN(mMaxCubeMapTextureSize, 512);
             
             mMaxRenderbufferSize   = NS_MIN(mMaxRenderbufferSize,   4096);
+            mNeedsTextureSizeChecks = true;
+        }
+#endif
+#ifdef MOZ_X11
+        if (mWorkAroundDriverBugs &&
+            mVendor == VendorNouveau) {
+            
+            mMaxCubeMapTextureSize = NS_MIN(mMaxCubeMapTextureSize, 2048);
+            mNeedsTextureSizeChecks = true;
         }
 #endif
 
