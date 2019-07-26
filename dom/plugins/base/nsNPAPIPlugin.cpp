@@ -1506,11 +1506,6 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
   NS_ABORT_IF_FALSE(obj,
     "JS_ObjectToInnerObject should never return null with non-null input.");
 
-  
-  JS::Value vec[] = { OBJECT_TO_JSVAL(obj), JSVAL_NULL };
-  JS::AutoArrayRooter tvr(cx, ArrayLength(vec), vec);
-  JS::Value *rval = &vec[1];
-
   if (result) {
     
     VOID_TO_NPVARIANT(*result);
@@ -1563,12 +1558,13 @@ _evaluate(NPP npp, NPObject* npobj, NPString *script, NPVariant *result)
   JS::CompileOptions options(cx);
   options.setFileAndLine(spec, 0)
          .setVersion(JSVERSION_DEFAULT);
+  JS::Rooted<JS::Value> rval(cx);
   nsresult rv = scx->EvaluateString(utf16script, obj, options,
                                      false,
-                                    rval);
+                                    rval.address());
 
   return NS_SUCCEEDED(rv) &&
-         (!result || JSValToNPVariant(npp, cx, *rval, result));
+         (!result || JSValToNPVariant(npp, cx, rval, result));
 }
 
 bool NP_CALLBACK
