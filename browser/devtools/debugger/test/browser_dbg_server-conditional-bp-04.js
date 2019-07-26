@@ -58,7 +58,7 @@ function test() {
   function setDummyConditional(aClient) {
     
     
-    aClient.condition = "";
+    return gBreakpoints.updateCondition(aClient.location, '');
   }
 
   function toggleBreakpoint() {
