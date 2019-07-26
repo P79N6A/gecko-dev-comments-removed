@@ -7,6 +7,7 @@
 #include "jsfriendapi.h"
 #include "jsprf.h"
 #include "nsCOMPtr.h"
+#include "WrapperFactory.h"
 #include "xpcprivate.h"
 #include "XPCInlines.h"
 #include "XPCQuickStubs.h"
@@ -531,14 +532,28 @@ getWrapper(JSContext *cx,
     
     
     if (js::IsWrapper(obj)) {
-        obj = js::CheckedUnwrap(obj,  false);
+        JSObject* inner = js::CheckedUnwrap(obj,  false);
 
         
         
         
-        if (!obj)
+        
+        
+        
+        
+        
+        
+        if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(obj)))
+            inner = js::UncheckedUnwrap(obj);
+
+        
+        
+        
+        if (!inner)
             return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
-        MOZ_ASSERT(!js::IsWrapper(obj));
+        MOZ_ASSERT(!js::IsWrapper(inner));
+
+        obj = inner;
     }
 
     

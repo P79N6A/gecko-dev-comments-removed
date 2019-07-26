@@ -993,6 +993,9 @@ XPCConvert::JSObject2NativeInterface(void** dest, HandleObject src,
         
         
         
+        
+        
+        
         if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(src)))
             inner = js::UncheckedUnwrap(src);
         if (!inner) {
