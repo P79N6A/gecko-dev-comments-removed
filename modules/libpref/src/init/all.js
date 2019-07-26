@@ -761,9 +761,6 @@ pref("dom.forms.color", false);
 pref("dom.sysmsg.enabled", false);
 
 
-pref("dom.workers.mem.gc_allocation_threshold_mb", 30);
-
-
 #ifndef XP_WIN
 pref("content.sink.pending_event_mode", 0);
 #endif
