@@ -381,9 +381,6 @@ var BrowserApp = {
     
     Cu.import("resource://gre/modules/Webapps.jsm");
     DOMApplicationRegistry.allAppsLaunchable = true;
-
-    
-    Cu.import("resource://gre/modules/AppsUtils.jsm");
 #else
     WebappsUI.init();
 #endif
