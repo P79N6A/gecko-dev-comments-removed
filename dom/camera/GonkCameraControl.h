@@ -104,7 +104,7 @@ protected:
   uint32_t                  mDiscardedFrameCount;
 
   android::MediaProfiles*   mMediaProfiles;
-  android::GonkRecorder*    mRecorder;
+  nsRefPtr<android::GonkRecorder> mRecorder;
 
   
   nsRefPtr<GonkRecorderProfileManager> mProfileManager;
