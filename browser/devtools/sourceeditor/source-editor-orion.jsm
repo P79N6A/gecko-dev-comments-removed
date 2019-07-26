@@ -1231,6 +1231,7 @@ SourceEditor.prototype = {
     
     
     if (matchingIndex == -1 || matchingIndex > caretOffset) {
+      matchingIndex = -1;
       let text = this.getText();
       let closingOffset = text.indexOf("}", caretOffset);
       while (closingOffset > -1) {
@@ -1241,16 +1242,32 @@ SourceEditor.prototype = {
         }
         closingOffset = text.indexOf("}", closingOffset + 1);
       }
+      
+      
+      if (matchingIndex == -1) {
+        let lastClosingOffset = text.lastIndexOf("}", caretOffset);
+        while (lastClosingOffset > -1) {
+          let closingMatchingIndex =
+            this._getMatchingBracketIndex(lastClosingOffset);
+          if (closingMatchingIndex < caretOffset &&
+              closingMatchingIndex != -1) {
+            matchingIndex = closingMatchingIndex;
+            break;
+          }
+          lastClosingOffset = text.lastIndexOf("}", lastClosingOffset - 1);
+        }
+      }
     }
 
     if (matchingIndex > -1) {
-      this.setCaretOffset(matchingIndex);
+      this.setCaretOffset(matchingIndex + 1);
     }
 
     return true;
   },
 
   
+
 
 
 
@@ -1271,6 +1288,7 @@ SourceEditor.prototype = {
     
     
     if (matchingIndex == -1 || matchingIndex < caretOffset) {
+      matchingIndex = -1;
       let text = this.getText();
       let openingOffset = text.lastIndexOf("{", caretOffset);
       while (openingOffset > -1) {
@@ -1280,6 +1298,20 @@ SourceEditor.prototype = {
           break;
         }
         openingOffset = text.lastIndexOf("{", openingOffset - 1);
+      }
+      
+      
+      if (matchingIndex == -1) {
+        let nextOpeningIndex = text.indexOf("{", caretOffset + 1);
+        while (nextOpeningIndex > -1) {
+          let openingMatchingIndex =
+            this._getMatchingBracketIndex(nextOpeningIndex);
+          if (openingMatchingIndex > caretOffset) {
+            matchingIndex = openingMatchingIndex;
+            break;
+          }
+          nextOpeningIndex = text.indexOf("{", nextOpeningIndex + 1);
+        }
       }
     }
 
