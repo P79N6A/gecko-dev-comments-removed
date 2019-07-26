@@ -300,6 +300,11 @@ const CustomizableWidgets = [{
 
         let item;
         if (node.localName == "menuseparator") {
+          
+          
+          if (!fragment.lastChild || fragment.lastChild.localName == "menuseparator") {
+            continue;
+          }
           item = doc.createElementNS(kNSXUL, "menuseparator");
         } else if (node.localName == "menuitem") {
           item = doc.createElementNS(kNSXUL, "toolbarbutton");
