@@ -421,6 +421,12 @@ nsGonkCameraControl::Set(uint32_t aKey, const nsAString& aValue)
       
       mAutoFlashModeOverridden = false;
       break;
+
+    case CAMERA_PARAM_SCENEMODE:
+      
+      
+      mParams.Set(CAMERA_PARAM_SCENEMODE_HDR_RETURNNORMALPICTURE, false);
+      break;
   }
 
   return PushParameters();
