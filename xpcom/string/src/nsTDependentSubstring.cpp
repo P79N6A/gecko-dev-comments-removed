@@ -4,40 +4,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
-nsTDependentSubstring_CharT::Rebind( const substring_type& str, PRUint32 startPos, PRUint32 length )
+nsTDependentSubstring_CharT::Rebind( const substring_type& str, uint32_t startPos, uint32_t length )
   {
     
     Finalize();
@@ -48,7 +16,7 @@ nsTDependentSubstring_CharT::Rebind( const substring_type& str, PRUint32 startPo
       startPos = strLength;
 
     mData = const_cast<char_type*>(str.Data()) + startPos;
-    mLength = NS_MIN(length, strLength - startPos);
+    mLength = XPCOM_MIN(length, strLength - startPos);
 
     SetDataFlags(F_NONE);
   }

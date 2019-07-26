@@ -233,7 +233,7 @@ bool nsVoidArray::GrowArrayBy(int32_t aGrowBy)
     
     if (GetArraySize() >= kMaxGrowArrayBy)
     {
-      newCapacity = GetArraySize() + NS_MAX(kMaxGrowArrayBy,aGrowBy);
+      newCapacity = GetArraySize() + XPCOM_MAX(kMaxGrowArrayBy,aGrowBy);
       newSize = SIZEOF_IMPL(newCapacity);
     }
     else
