@@ -144,8 +144,6 @@ protected:
 
 
 
-
-
   int mChannels;
   int mSamplingRate;
   bool mInitialized;
