@@ -41,6 +41,82 @@
 
 
 
+#if (defined(__POWERPC__) || defined(__powerpc__))
+#if defined(__linux__)
+#include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
+#include <elf.h>
+#include <linux/auxvec.h>
+#include <asm/cputable.h>
+
+static inline qcms_bool have_altivec() {
+	static int available = -1;
+	int new_avail = 0;
+        ElfW(auxv_t) auxv;
+	ssize_t count;
+	int fd, i;
+
+	if (available != -1)
+		return (available != 0 ? true : false);
+
+	fd = open("/proc/self/auxv", O_RDONLY);
+	if (fd < 0)
+		goto out;
+	do {
+		count = read(fd, &auxv, sizeof(auxv));
+		if (count < 0)
+			goto out_close;
+
+		if (auxv.a_type == AT_HWCAP) {
+			new_avail = !!(auxv.a_un.a_val & PPC_FEATURE_HAS_ALTIVEC);
+			goto out_close;
+		}
+	} while (auxv.a_type != AT_NULL);
+
+out_close:
+	close(fd);
+out:
+	available = new_avail;
+	return (available != 0 ? true : false);
+}
+#elif defined(__APPLE__) && defined(__MACH__)
+#include <sys/sysctl.h>
+
+
+
+
+
+static inline qcms_bool have_altivec() {
+	int sels[2] = {CTL_HW, HW_VECTORUNIT};
+	static int available = -1;
+	size_t len = sizeof(available);
+	int err;
+
+	if (available != -1)
+		return (available != 0 ? true : false);
+
+	err = sysctl(sels, 2, &available, &len, NULL, 0);
+
+	if (err == 0)
+		if (available != 0)
+			return true;
+
+	return false;
+}
+#elif defined(__ALTIVEC__) || defined(__APPLE_ALTIVEC__)
+#define have_altivec() true
+#else
+#define have_altivec() false
+#endif
+#endif 
+
+
+
+
+
+
+
 
 
 
@@ -1192,6 +1268,14 @@ qcms_transform* qcms_transform_create(
 			    else
 				    transform->transform_fn = qcms_transform_data_rgba_out_lut_sse1;
 #endif
+		    } else
+#endif
+#if (defined(__POWERPC__) || defined(__powerpc__))
+		    if (have_altivec()) {
+			    if (in_type == QCMS_DATA_RGB_8)
+				    transform->transform_fn = qcms_transform_data_rgb_out_lut_altivec;
+			    else
+				    transform->transform_fn = qcms_transform_data_rgba_out_lut_altivec;
 		    } else
 #endif
 			{
