@@ -128,7 +128,7 @@ class linked_ptr {
   
   
   T* release() {
-    link_.depart();
+    bool last = link_.depart();
     T* v = value_;
     value_ = NULL;
     return v;

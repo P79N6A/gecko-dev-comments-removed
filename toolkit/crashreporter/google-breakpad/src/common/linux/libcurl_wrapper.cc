@@ -1,39 +1,42 @@
+// Copyright (c) 2009, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+#include <curl/curl.h>
+#include <curl/easy.h>
 #include <dlfcn.h>
 
 #include <iostream>
 #include <string>
 
 #include "common/linux/libcurl_wrapper.h"
-#include "common/using_std_string.h"
+
+using std::string;
 
 namespace google_breakpad {
 LibcurlWrapper::LibcurlWrapper()
@@ -57,12 +60,12 @@ LibcurlWrapper::LibcurlWrapper()
   return;
 }
 
-bool LibcurlWrapper::SetProxy(const string& proxy_host,
-                              const string& proxy_userpwd) {
+bool LibcurlWrapper::SetProxy(const std::string& proxy_host,
+                              const std::string& proxy_userpwd) {
   if (!init_ok_) {
     return false;
   }
-  
+  // Set proxy information if necessary.
   if (!proxy_host.empty()) {
     (*easy_setopt_)(curl_, CURLOPT_PROXY, proxy_host.c_str());
   } else {
@@ -79,13 +82,13 @@ bool LibcurlWrapper::SetProxy(const string& proxy_host,
   return true;
 }
 
-bool LibcurlWrapper::AddFile(const string& upload_file_path,
-                             const string& basename) {
+bool LibcurlWrapper::AddFile(const std::string& upload_file_path,
+                             const std::string& basename) {
   if (!init_ok_) {
     return false;
   }
   std::cout << "Adding " << upload_file_path << " to form upload.";
-  
+  // Add form file.
   (*formadd_)(&formpost_, &lastptr_,
               CURLFORM_COPYNAME, basename.c_str(),
               CURLFORM_FILE, upload_file_path.c_str(),
@@ -94,23 +97,23 @@ bool LibcurlWrapper::AddFile(const string& upload_file_path,
   return true;
 }
 
-
+// Callback to get the response data from server.
 static size_t WriteCallback(void *ptr, size_t size,
                             size_t nmemb, void *userp) {
   if (!userp)
     return 0;
 
-  string *response = reinterpret_cast<string *>(userp);
+  std::string *response = reinterpret_cast<std::string *>(userp);
   size_t real_size = size * nmemb;
   response->append(reinterpret_cast<char *>(ptr), real_size);
   return real_size;
 }
 
-bool LibcurlWrapper::SendRequest(const string& url,
-                                 const std::map<string, string>& parameters,
-                                 string* server_response) {
+bool LibcurlWrapper::SendRequest(const std::string& url,
+                                 const std::map<std::string, std::string>& parameters,
+                                 std::string* server_response) {
   (*easy_setopt_)(curl_, CURLOPT_URL, url.c_str());
-  std::map<string, string>::const_iterator iter = parameters.begin();
+  std::map<std::string, std::string>::const_iterator iter = parameters.begin();
   for (; iter != parameters.end(); ++iter)
     (*formadd_)(&formpost_, &lastptr_,
                 CURLFORM_COPYNAME, iter->first.c_str(),
@@ -169,7 +172,7 @@ bool LibcurlWrapper::Init() {
     return false;
   }
 
-  
+  // Disable 100-continue header.
   char buf[] = "Expect:";
 
   headerlist_ = (*slist_append_)(headerlist_, buf);

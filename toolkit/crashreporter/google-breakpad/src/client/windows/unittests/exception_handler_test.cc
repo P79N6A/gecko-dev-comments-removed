@@ -33,20 +33,12 @@
 #include <objbase.h>
 #include <shellapi.h>
 
-#include <string>
-
 #include "../../../breakpad_googletest_includes.h"
-#include "../../../../common/windows/string_utils-inl.h"
-#include "../../../../google_breakpad/processor/minidump.h"
 #include "../crash_generation/crash_generation_server.h"
 #include "../handler/exception_handler.h"
 #include "dump_analysis.h"  
 
 namespace {
-
-using std::wstring;
-using namespace google_breakpad;
-
 const wchar_t kPipeName[] = L"\\\\.\\pipe\\BreakpadCrashTest\\TestCaseServer";
 const char kSuccessIndicator[] = "success";
 const char kFailureIndicator[] = "failure";
@@ -79,13 +71,6 @@ class ExceptionHandlerTest : public ::testing::Test {
       void *dump_context,
       const google_breakpad::ClientInfo *client_info,
       const std::wstring *dump_path);
-
-  static bool DumpCallback(const wchar_t* dump_path,
-                           const wchar_t* minidump_id,
-                           void* context,
-                           EXCEPTION_POINTERS* exinfo,
-                           MDRawAssertionInfo* assertion,
-                           bool succeeded);
 
   static std::wstring dump_file;
   static std::wstring full_dump_file;
@@ -134,28 +119,13 @@ BOOL ExceptionHandlerTest::DoesPathExist(const TCHAR *path_name) {
   return TRUE;
 }
 
-
 void ExceptionHandlerTest::ClientDumpCallback(
     void *dump_context,
     const google_breakpad::ClientInfo *client_info,
-    const wstring *dump_path) {
+    const std::wstring *dump_path) {
   dump_file = *dump_path;
   
   full_dump_file = dump_file.substr(0, dump_file.length() - 4) + L"-full.dmp";
-}
-
-
-bool ExceptionHandlerTest::DumpCallback(const wchar_t* dump_path,
-                    const wchar_t* minidump_id,
-                    void* context,
-                    EXCEPTION_POINTERS* exinfo,
-                    MDRawAssertionInfo* assertion,
-                    bool succeeded) {
-  dump_file = dump_path;
-  dump_file += L"\\";
-  dump_file += minidump_id;
-  dump_file += L".dmp";
-    return succeeded;
 }
 
 void ExceptionHandlerTest::DoCrashInvalidParameter() {
@@ -218,10 +188,10 @@ TEST_F(ExceptionHandlerTest, InvalidParameterMiniDumpTest) {
 
   
   ASSERT_TRUE(DoesPathExist(temp_path_));
-  wstring dump_path(temp_path_);
+  std::wstring dump_path(temp_path_);
   google_breakpad::CrashGenerationServer server(
-      kPipeName, NULL, NULL, NULL, ClientDumpCallback, NULL, NULL, NULL, NULL,
-      NULL, true, &dump_path);
+      kPipeName, NULL, NULL, NULL, ClientDumpCallback, NULL, NULL, NULL, true,
+      &dump_path);
 
   ASSERT_TRUE(dump_file.empty() && full_dump_file.empty());
 
@@ -289,10 +259,10 @@ TEST_F(ExceptionHandlerTest, PureVirtualCallMiniDumpTest) {
 
   
   ASSERT_TRUE(DoesPathExist(temp_path_));
-  wstring dump_path(temp_path_);
+  std::wstring dump_path(temp_path_);
   google_breakpad::CrashGenerationServer server(
-      kPipeName, NULL, NULL, NULL, ClientDumpCallback, NULL, NULL, NULL, NULL,
-      NULL, true, &dump_path);
+      kPipeName, NULL, NULL, NULL, ClientDumpCallback, NULL, NULL, NULL, true,
+      &dump_path);
 
   ASSERT_TRUE(dump_file.empty() && full_dump_file.empty());
 
@@ -352,125 +322,4 @@ TEST_F(ExceptionHandlerTest, PureVirtualCallMiniDumpTest) {
   EXPECT_FALSE(mini.HasStream(TokenStream));
   EXPECT_FALSE(full.HasStream(TokenStream));
 }
-
-
-
-TEST_F(ExceptionHandlerTest, WriteMinidumpTest) {
-  ExceptionHandler handler(temp_path_,
-                           NULL,
-                           DumpCallback,
-                           NULL,
-                           ExceptionHandler::HANDLER_ALL);
-  ASSERT_TRUE(handler.WriteMinidump());
-  ASSERT_FALSE(dump_file.empty());
-
-  string minidump_filename;
-  ASSERT_TRUE(WindowsStringUtils::safe_wcstombs(dump_file,
-                                                &minidump_filename));
-
-  
-  Minidump minidump(minidump_filename);
-  ASSERT_TRUE(minidump.Read());
-  
 }
-
-
-TEST_F(ExceptionHandlerTest, AdditionalMemory) {
-  SYSTEM_INFO si;
-  GetSystemInfo(&si);
-  const u_int32_t kMemorySize = si.dwPageSize;
-
-  
-  u_int8_t* memory = new u_int8_t[kMemorySize];
-  const uintptr_t kMemoryAddress = reinterpret_cast<uintptr_t>(memory);
-  ASSERT_TRUE(memory);
-
-  
-  for (u_int32_t i = 0; i < kMemorySize; ++i) {
-    memory[i] = i % 255;
-  }
-
-  ExceptionHandler handler(temp_path_,
-                           NULL,
-                           DumpCallback,
-                           NULL,
-                           ExceptionHandler::HANDLER_ALL);
-
-  
-  handler.RegisterAppMemory(memory, kMemorySize);
-  ASSERT_TRUE(handler.WriteMinidump());
-  ASSERT_FALSE(dump_file.empty());
-
-  string minidump_filename;
-  ASSERT_TRUE(WindowsStringUtils::safe_wcstombs(dump_file,
-                                                &minidump_filename));
-
-  
-  Minidump minidump(minidump_filename);
-  ASSERT_TRUE(minidump.Read());
-
-  MinidumpMemoryList* dump_memory_list = minidump.GetMemoryList();
-  ASSERT_TRUE(dump_memory_list);
-  const MinidumpMemoryRegion* region =
-    dump_memory_list->GetMemoryRegionForAddress(kMemoryAddress);
-  ASSERT_TRUE(region);
-
-  EXPECT_EQ(kMemoryAddress, region->GetBase());
-  EXPECT_EQ(kMemorySize, region->GetSize());
-
-  
-  EXPECT_EQ(0, memcmp(region->GetMemory(), memory, kMemorySize));
-
-  delete[] memory;
-}
-
-
-
-TEST_F(ExceptionHandlerTest, AdditionalMemoryRemove) {
-  SYSTEM_INFO si;
-  GetSystemInfo(&si);
-  const u_int32_t kMemorySize = si.dwPageSize;
-
-  
-  u_int8_t* memory = new u_int8_t[kMemorySize];
-  const uintptr_t kMemoryAddress = reinterpret_cast<uintptr_t>(memory);
-  ASSERT_TRUE(memory);
-
-  
-  for (u_int32_t i = 0; i < kMemorySize; ++i) {
-    memory[i] = i % 255;
-  }
-
-  ExceptionHandler handler(temp_path_,
-                           NULL,
-                           DumpCallback,
-                           NULL,
-                           ExceptionHandler::HANDLER_ALL);
-
-  
-  handler.RegisterAppMemory(memory, kMemorySize);
-
-  
-  handler.UnregisterAppMemory(memory);
-
-  ASSERT_TRUE(handler.WriteMinidump());
-  ASSERT_FALSE(dump_file.empty());
-
-  string minidump_filename;
-  ASSERT_TRUE(WindowsStringUtils::safe_wcstombs(dump_file,
-                                                &minidump_filename));
-
-  
-  Minidump minidump(minidump_filename);
-  ASSERT_TRUE(minidump.Read());
-
-  MinidumpMemoryList* dump_memory_list = minidump.GetMemoryList();
-  ASSERT_TRUE(dump_memory_list);
-  const MinidumpMemoryRegion* region =
-    dump_memory_list->GetMemoryRegionForAddress(kMemoryAddress);
-  EXPECT_FALSE(region);
-
-  delete[] memory;
-}
-
-}  

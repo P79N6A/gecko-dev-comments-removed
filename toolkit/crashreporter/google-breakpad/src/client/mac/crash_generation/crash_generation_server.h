@@ -65,9 +65,9 @@ class CrashGenerationServer {
 
   typedef void (*OnClientExitingCallback)(void *context,
                                           const ClientInfo &client_info);
-  
   typedef bool (*FilterCallback)(void *context);
 
+  
   
   
   

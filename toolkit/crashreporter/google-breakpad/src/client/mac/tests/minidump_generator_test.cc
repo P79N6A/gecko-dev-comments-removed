@@ -41,9 +41,9 @@
 
 #include "breakpad_googletest_includes.h"
 #include "client/mac/handler/minidump_generator.h"
+#include "client/mac/tests/auto_tempdir.h"
 #include "client/mac/tests/spawn_child_process.h"
 #include "common/mac/MachIPC.h"
-#include "common/tests/auto_tempdir.h"
 #include "google_breakpad/processor/minidump.h"
 
 namespace google_breakpad {
@@ -88,8 +88,8 @@ static void *Junk(void* data) {
 
 TEST_F(MinidumpGeneratorTest, InProcess) {
   MinidumpGenerator generator;
-  string dump_filename =
-      MinidumpGenerator::UniqueNameInDirectory(tempDir.path(), NULL);
+  string dump_filename = MinidumpGenerator::UniqueNameInDirectory(tempDir.path,
+                                                                  NULL);
 
   
   
@@ -179,8 +179,8 @@ TEST_F(MinidumpGeneratorTest, OutOfProcess) {
 
   
   MinidumpGenerator generator(child_task, MACH_PORT_NULL);
-  string dump_filename =
-      MinidumpGenerator::UniqueNameInDirectory(tempDir.path(), NULL);
+  string dump_filename = MinidumpGenerator::UniqueNameInDirectory(tempDir.path,
+                                                                  NULL);
   ASSERT_TRUE(generator.Write(dump_filename.c_str()));
 
   
@@ -258,8 +258,8 @@ TEST_F(MinidumpGeneratorTest, CrossArchitectureDump) {
 
   
   MinidumpGenerator generator(child_task, MACH_PORT_NULL);
-  string dump_filename =
-      MinidumpGenerator::UniqueNameInDirectory(tempDir.path(), NULL);
+  string dump_filename = MinidumpGenerator::UniqueNameInDirectory(tempDir.path,
+                                                                  NULL);
   ASSERT_TRUE(generator.Write(dump_filename.c_str()));
 
   

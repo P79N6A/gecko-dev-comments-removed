@@ -39,12 +39,10 @@
 #define PROCESSOR_WINDOWS_FRAME_INFO_H__
 
 #include <string.h>
-#include <stdlib.h>
 
 #include <string>
 #include <vector>
 
-#include "common/using_std_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 #include "processor/logging.h"
 #include "processor/tokenize.h"
@@ -73,8 +71,7 @@ struct WindowsFrameInfo {
     STACK_INFO_UNKNOWN = -1
   };
 
-  WindowsFrameInfo() : type_(STACK_INFO_UNKNOWN),
-                     valid(VALID_NONE),
+  WindowsFrameInfo() : valid(VALID_NONE),
                      prolog_size(0),
                      epilog_size(0),
                      parameter_size(0),
@@ -84,17 +81,15 @@ struct WindowsFrameInfo {
                      allocates_base_pointer(0),
                      program_string() {}
 
-  WindowsFrameInfo(StackInfoTypes type,
-                 u_int32_t set_prolog_size,
+  WindowsFrameInfo(u_int32_t set_prolog_size,
                  u_int32_t set_epilog_size,
                  u_int32_t set_parameter_size,
                  u_int32_t set_saved_register_size,
                  u_int32_t set_local_size,
                  u_int32_t set_max_stack_size,
                  int set_allocates_base_pointer,
-                 const string set_program_string)
-      : type_(type),
-        valid(VALID_ALL),
+                 const std::string set_program_string)
+      : valid(VALID_ALL),
         prolog_size(set_prolog_size),
         epilog_size(set_epilog_size),
         parameter_size(set_parameter_size),
@@ -108,7 +103,7 @@ struct WindowsFrameInfo {
   
   
   
-  static WindowsFrameInfo *ParseFromString(const string string,
+  static WindowsFrameInfo *ParseFromString(const std::string string,
                                            int &type,
                                            u_int64_t &rva,
                                            u_int64_t &code_size) {
@@ -144,8 +139,7 @@ struct WindowsFrameInfo {
       allocates_base_pointer = strtoul(tokens[10], NULL, 16);
     }
 
-    return new WindowsFrameInfo(static_cast<StackInfoTypes>(type),
-                                prolog_size,
+    return new WindowsFrameInfo(prolog_size,
                                 epilog_size,
                                 parameter_size,
                                 saved_register_size,
@@ -157,7 +151,6 @@ struct WindowsFrameInfo {
 
   
   void CopyFrom(const WindowsFrameInfo &that) {
-    type_ = that.type_;
     valid = that.valid;
     prolog_size = that.prolog_size;
     epilog_size = that.epilog_size;
@@ -172,12 +165,9 @@ struct WindowsFrameInfo {
   
   
   void Clear() {
-    type_ = STACK_INFO_UNKNOWN;
     valid = VALID_NONE;
     program_string.erase();
   }
-
-  StackInfoTypes type_;
 
   
   
@@ -196,7 +186,7 @@ struct WindowsFrameInfo {
   
   
   bool allocates_base_pointer;
-  string program_string;
+  std::string program_string;
 };
 
 }  

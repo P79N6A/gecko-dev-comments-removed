@@ -1,40 +1,37 @@
+// Copyright (c) 2009, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <string>
+// Unit test for crash dump uploader.
 
 #include "common/linux/google_crashdump_uploader.h"
 #include "common/linux/libcurl_wrapper.h"
 #include "breakpad_googletest_includes.h"
-#include "common/using_std_string.h"
 
 namespace google_breakpad {
 
@@ -44,14 +41,14 @@ using ::testing::_;
 class MockLibcurlWrapper : public LibcurlWrapper {
  public:
   MOCK_METHOD0(Init, bool());
-  MOCK_METHOD2(SetProxy, bool(const string& proxy_host,
-                              const string& proxy_userpwd));
-  MOCK_METHOD2(AddFile, bool(const string& upload_file_path,
-                             const string& basename));
+  MOCK_METHOD2(SetProxy, bool(const std::string& proxy_host,
+                              const std::string& proxy_userpwd));
+  MOCK_METHOD2(AddFile, bool(const std::string& upload_file_path,
+                             const std::string& basename));
   MOCK_METHOD3(SendRequest,
-               bool(const string& url,
-                    const std::map<string, string>& parameters,
-                    string* server_response));
+               bool(const std::string& url,
+                    const std::map<std::string, std::string>& parameters,
+                    std::string* server_response));
 };
 
 class GoogleCrashdumpUploaderTest : public ::testing::Test {
@@ -76,7 +73,7 @@ TEST_F(GoogleCrashdumpUploaderTest, InitFailsCausesUploadFailure) {
 }
 
 TEST_F(GoogleCrashdumpUploaderTest, TestSendRequestHappensWithValidParameters) {
-  
+  // Create a temp file
   char tempfn[80] = "/tmp/googletest-upload-XXXXXX";
   int fd = mkstemp(tempfn);
   ASSERT_NE(fd, -1);
@@ -123,7 +120,7 @@ TEST_F(GoogleCrashdumpUploaderTest, InvalidPathname) {
 }
 
 TEST_F(GoogleCrashdumpUploaderTest, TestRequiredParametersMustBePresent) {
-  
+  // Test with empty product name.
   GoogleCrashdumpUploader uploader("",
                                    "1.0",
                                    "AAA-BBB",
@@ -137,7 +134,7 @@ TEST_F(GoogleCrashdumpUploaderTest, TestRequiredParametersMustBePresent) {
                                    "");
   ASSERT_FALSE(uploader.Upload());
 
-  
+  // Test with empty product version.
   GoogleCrashdumpUploader uploader1("product",
                                     "",
                                     "AAA-BBB",
@@ -152,7 +149,7 @@ TEST_F(GoogleCrashdumpUploaderTest, TestRequiredParametersMustBePresent) {
 
   ASSERT_FALSE(uploader1.Upload());
 
-  
+  // Test with empty client GUID.
   GoogleCrashdumpUploader uploader2("product",
                                     "1.0",
                                     "",

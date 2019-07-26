@@ -1,31 +1,31 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Copyright (c) 2009, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #ifndef GOOGLE_BREAKPAD_COMMON_MEMORY_H_
 #define GOOGLE_BREAKPAD_COMMON_MEMORY_H_
@@ -41,16 +41,16 @@
 #define sys_munmap munmap
 #define MAP_ANONYMOUS MAP_ANON
 #else
-#include "third_party/lss/linux_syscall_support.h"
+#include "common/linux/linux_syscall_support.h"
 #endif
 
 namespace google_breakpad {
 
-
-
-
-
-
+// This is very simple allocator which fetches pages from the kernel directly.
+// Thus, it can be used even when the heap may be corrupted.
+//
+// There is no free operation. The pages are only freed when the object is
+// destroyed.
 class PageAllocator {
  public:
   PageAllocator()
@@ -121,8 +121,8 @@ class PageAllocator {
   }
 
   struct PageHeader {
-    PageHeader *next;  
-    unsigned num_pages;  
+    PageHeader *next;  // pointer to the start of the next set of pages.
+    unsigned num_pages;  // the number of pages in this set.
   };
 
   const unsigned page_size_;
@@ -131,10 +131,10 @@ class PageAllocator {
   unsigned page_offset_;
 };
 
-
-
-
-
+// A wasteful vector is like a normal std::vector, except that it's very much
+// simplier and it allocates memory from a PageAllocator. It's wasteful
+// because, when resizing, it always allocates a whole new array since the
+// PageAllocator doesn't support realloc.
 template<class T>
 class wasteful_vector {
  public:
@@ -143,18 +143,6 @@ class wasteful_vector {
         a_((T*) allocator->Alloc(sizeof(T) * size_hint)),
         allocated_(size_hint),
         used_(0) {
-  }
-
-  T& back() {
-    return a_[used_ - 1];
-  }
-
-  const T& back() const {
-    return a_[used_ - 1];
-  }
-
-  bool empty() const {
-    return used_ == 0;
   }
 
   void push_back(const T& new_element) {
@@ -168,7 +156,7 @@ class wasteful_vector {
   }
 
   void resize(unsigned sz, T c = T()) {
-    
+    // No need to test "sz >= 0", as "sz" is unsigned.
     if (sz <= used_) {
       used_ = sz;
     } else {
@@ -203,16 +191,16 @@ class wasteful_vector {
   }
 
   PageAllocator *const allocator_;
-  T *a_;  
-  unsigned allocated_;  
-  unsigned used_;  
+  T *a_;  // pointer to an array of |allocated_| elements.
+  unsigned allocated_;  // size of |a_|, in elements.
+  unsigned used_;  // number of used slots in |a_|.
 };
 
-}  
+}  // namespace google_breakpad
 
 inline void* operator new(size_t nbytes,
                           google_breakpad::PageAllocator& allocator) {
    return allocator.Alloc(nbytes);
 }
 
-#endif  
+#endif  // GOOGLE_BREAKPAD_COMMON_MEMORY_H_

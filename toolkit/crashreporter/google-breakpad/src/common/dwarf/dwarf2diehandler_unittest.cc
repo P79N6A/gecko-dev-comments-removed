@@ -32,15 +32,9 @@
 
 
 
-#include <string>
-#include <utility>
-
 #include "breakpad_googletest_includes.h"
 
 #include "common/dwarf/dwarf2diehandler.h"
-#include "common/using_std_string.h"
-
-using std::make_pair;
 
 using ::testing::_;
 using ::testing::ContainerEq;

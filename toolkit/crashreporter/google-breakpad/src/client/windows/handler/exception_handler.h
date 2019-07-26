@@ -65,9 +65,9 @@
 
 #pragma warning( disable : 4530 )
 
-#include <list>
 #include <string>
 #include <vector>
+#include <list>
 
 #include "client/windows/common/ipc_protocol.h"
 #include "client/windows/crash_generation/crash_generation_client.h"
@@ -82,16 +82,10 @@ using std::wstring;
 
 
 struct AppMemory {
+  AppMemory(ULONG64 ptr, ULONG length) : ptr(ptr), length(length) {}
+
   ULONG64 ptr;
   ULONG length;
-
-  bool operator==(const struct AppMemory& other) const {
-    return ptr == other.ptr;
-  }
-
-  bool operator==(const void* other) const {
-    return ptr == reinterpret_cast<ULONG64>(other);
-  }
 };
 typedef std::list<AppMemory> AppMemoryList;
 
@@ -206,9 +200,6 @@ class ExceptionHandler {
   }
 
   
-  bool RequestUpload(DWORD crash_id);
-
-  
   
   bool WriteMinidump();
 
@@ -223,14 +214,20 @@ class ExceptionHandler {
 
   
   
+  static bool WriteMinidump(const wstring &dump_path,
+                            bool write_exception_stream,
+                            MinidumpCallback callback, void* callback_context);
+
+  
+  
   
   
   
   static bool WriteMinidumpForChild(HANDLE child,
                                     DWORD child_blamed_thread,
-                                    const wstring& dump_path,
+                                    const wstring &dump_path,
                                     MinidumpCallback callback,
-                                    void* callback_context);
+                                    void *callback_context);
 
   
   
@@ -249,8 +246,12 @@ class ExceptionHandler {
 
   
   
-  void RegisterAppMemory(void* ptr, size_t length);
-  void UnregisterAppMemory(void* ptr);
+  void RegisterAppMemory(void *ptr, size_t length);
+  void UnregisterAppMemory(void *ptr);
+
+  
+  
+  static LONG WINAPI HandleException(EXCEPTION_POINTERS* exinfo);
 
  private:
   friend class AutoExceptionHandler;
@@ -282,10 +283,6 @@ class ExceptionHandler {
 
   
   static DWORD WINAPI ExceptionHandlerThreadMain(void* lpParameter);
-
-  
-  
-  static LONG WINAPI HandleException(EXCEPTION_POINTERS* exinfo);
 
 #if _MSC_VER >= 1400  
   
@@ -345,6 +342,7 @@ class ExceptionHandler {
                                             EXCEPTION_POINTERS* exinfo,
                                             MDRawAssertionInfo* assertion,
                                             HANDLE process,
+                                            DWORD processId,
                                             bool write_requester_stream);
 
   

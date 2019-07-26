@@ -1,54 +1,50 @@
+// Copyright (c) 2010 Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Original author: Jim Blandy <jimb@mozilla.com> <jimb@red-bean.com>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <vector>
+// dwarf_line_to_module.cc: Unit tests for google_breakpad::DwarfLineToModule.
 
 #include "breakpad_googletest_includes.h"
 #include "common/dwarf_line_to_module.h"
-
-using std::vector;
 
 using google_breakpad::DwarfLineToModule;
 using google_breakpad::Module;
 using google_breakpad::Module;
 
-TEST(SimpleModule, One) {
+TEST(Simple, One) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("file1", 0x30bf0f27, 0, 0, 0);
-  h.AddLine(0x6fd126fbf74f2680LL, 0x63c9a14cf556712bLL, 0x30bf0f27,
+  h.AddLine(0x6fd126fbf74f2680LL, 0x63c9a14cf556712bLL, 0x30bf0f27, 
             0x4c090cbf, 0x1cf9fe0d);
 
   vector<Module::File *> files;
@@ -63,7 +59,7 @@ TEST(SimpleModule, One) {
   EXPECT_EQ(0x4c090cbf, lines[0].number);
 }
 
-TEST(SimpleModule, Many) {
+TEST(Simple, Many) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -198,14 +194,14 @@ TEST(Filenames, StrangeDirectoryAndFile) {
   EXPECT_STREQ("/", lines[0].file->name.c_str());
 }
 
-
-
-TEST(ModuleErrors, DirectoryZero) {
+// We should silently ignore attempts to define directory number zero,
+// since that is always the compilation directory.
+TEST(Errors, DirectoryZero) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
 
-  h.DefineDir("directory0", 0); 
+  h.DefineDir("directory0", 0); // should be ignored
   h.DefineFile("relative", 1, 0, 0, 0);
 
   h.AddLine(1, 1, 1, 0, 0);
@@ -214,38 +210,38 @@ TEST(ModuleErrors, DirectoryZero) {
   EXPECT_STREQ("relative", lines[0].file->name.c_str());
 }
 
-
-
-TEST(ModuleErrors, BadFileNumber) {
+// We should refuse to add lines with bogus file numbers. We should
+// produce only one warning, however.
+TEST(Errors, BadFileNumber) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("relative", 1, 0, 0, 0);
-  h.AddLine(1, 1, 2, 0, 0); 
-  h.AddLine(2, 1, 2, 0, 0); 
+  h.AddLine(1, 1, 2, 0, 0); // bad file number
+  h.AddLine(2, 1, 2, 0, 0); // bad file number (no duplicate warning)
 
   EXPECT_EQ(0U, lines.size());
 }
 
-
-
-TEST(ModuleErrors, BadDirectoryNumber) {
+// We should treat files with bogus directory numbers as relative to
+// the compilation unit.
+TEST(Errors, BadDirectoryNumber) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
 
   h.DefineDir("directory1", 1);
-  h.DefineFile("baddirnumber1", 1, 2, 0, 0); 
-  h.DefineFile("baddirnumber2", 2, 2, 0, 0); 
+  h.DefineFile("baddirnumber1", 1, 2, 0, 0); // bad directory number
+  h.DefineFile("baddirnumber2", 2, 2, 0, 0); // bad dir number (no warning)
   h.AddLine(1, 1, 1, 0, 0);
 
   ASSERT_EQ(1U, lines.size());
   EXPECT_STREQ("baddirnumber1", lines[0].file->name.c_str());
 }
 
-
-TEST(ModuleErrors, EmptyLine) {
+// We promise not to report empty lines.
+TEST(Errors, EmptyLine) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -256,9 +252,9 @@ TEST(ModuleErrors, EmptyLine) {
   ASSERT_EQ(0U, lines.size());
 }  
 
-
-
-TEST(ModuleErrors, BigLine) {
+// We are supposed to clip lines that extend beyond the end of the
+// address space.
+TEST(Errors, BigLine) {
   Module m("name", "os", "architecture", "id");
   vector<Module::Line> lines;
   DwarfLineToModule h(&m, &lines);
@@ -270,10 +266,10 @@ TEST(ModuleErrors, BigLine) {
   EXPECT_EQ(1U, lines[0].size);
 }  
 
-
-
-
-
+// The 'Omitted' tests verify that we correctly omit line information
+// for code in sections that the linker has dropped. See "GNU
+// toolchain omitted sections support" at the top of the
+// DwarfLineToModule class.
 
 TEST(Omitted, DroppedThenGood) {
   Module m("name", "os", "architecture", "id");
@@ -281,8 +277,8 @@ TEST(Omitted, DroppedThenGood) {
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("filename1", 1, 0, 0, 0);
-  h.AddLine(0,  10, 1, 83816211, 0);   
-  h.AddLine(20, 10, 1, 13059195, 0);   
+  h.AddLine(0,  10, 1, 83816211, 0);   // should be omitted
+  h.AddLine(20, 10, 1, 13059195, 0);   // should be recorded
 
   ASSERT_EQ(1U, lines.size());
   EXPECT_EQ(13059195, lines[0].number);
@@ -294,8 +290,8 @@ TEST(Omitted, GoodThenDropped) {
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("filename1", 1, 0, 0, 0);
-  h.AddLine(0x9dd6a372, 10, 1, 41454594, 0);   
-  h.AddLine(0,  10, 1, 44793413, 0);           
+  h.AddLine(0x9dd6a372, 10, 1, 41454594, 0);   // should be recorded
+  h.AddLine(0,  10, 1, 44793413, 0);           // should be omitted
 
   ASSERT_EQ(1U, lines.size());
   EXPECT_EQ(41454594, lines[0].number);
@@ -307,13 +303,13 @@ TEST(Omitted, Mix1) {
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("filename1", 1, 0, 0, 0);
-  h.AddLine(0x679ed72f,  10,   1, 58932642, 0);   
-  h.AddLine(0xdfb5a72d,  10,   1, 39847385, 0);   
-  h.AddLine(0,           0x78, 1, 23053829, 0);   
-  h.AddLine(0x78,        0x6a, 1, 65317783, 0);   
-  h.AddLine(0x78 + 0x6a, 0x2a, 1, 77601423, 0);   
-  h.AddLine(0x9fe0cea5,  10,   1, 91806582, 0);   
-  h.AddLine(0x7e41a109,  10,   1, 56169221, 0);   
+  h.AddLine(0x679ed72f,  10,   1, 58932642, 0);   // should be recorded
+  h.AddLine(0xdfb5a72d,  10,   1, 39847385, 0);   // should be recorded
+  h.AddLine(0,           0x78, 1, 23053829, 0);   // should be omitted
+  h.AddLine(0x78,        0x6a, 1, 65317783, 0);   // should be omitted
+  h.AddLine(0x78 + 0x6a, 0x2a, 1, 77601423, 0);   // should be omitted
+  h.AddLine(0x9fe0cea5,  10,   1, 91806582, 0);   // should be recorded
+  h.AddLine(0x7e41a109,  10,   1, 56169221, 0);   // should be recorded
 
   ASSERT_EQ(4U, lines.size());
   EXPECT_EQ(58932642, lines[0].number);
@@ -328,14 +324,14 @@ TEST(Omitted, Mix2) {
   DwarfLineToModule h(&m, &lines);
 
   h.DefineFile("filename1", 1, 0, 0, 0);
-  h.AddLine(0,           0xf2, 1, 58802211, 0);   
-  h.AddLine(0xf2,        0xb9, 1, 78958222, 0);   
-  h.AddLine(0xf2 + 0xb9, 0xf7, 1, 64861892, 0);   
-  h.AddLine(0x4e4d271e,  9,    1, 67355743, 0);   
-  h.AddLine(0xdfb5a72d,  30,   1, 23365776, 0);   
-  h.AddLine(0,           0x64, 1, 76196762, 0);   
-  h.AddLine(0x64,        0x33, 1, 71066611, 0);   
-  h.AddLine(0x64 + 0x33, 0xe3, 1, 61749337, 0);   
+  h.AddLine(0,           0xf2, 1, 58802211, 0);   // should be omitted
+  h.AddLine(0xf2,        0xb9, 1, 78958222, 0);   // should be omitted
+  h.AddLine(0xf2 + 0xb9, 0xf7, 1, 64861892, 0);   // should be omitted
+  h.AddLine(0x4e4d271e,  9,    1, 67355743, 0);   // should be recorded
+  h.AddLine(0xdfb5a72d,  30,   1, 23365776, 0);   // should be recorded
+  h.AddLine(0,           0x64, 1, 76196762, 0);   // should be omitted
+  h.AddLine(0x64,        0x33, 1, 71066611, 0);   // should be omitted
+  h.AddLine(0x64 + 0x33, 0xe3, 1, 61749337, 0);   // should be omitted
 
   ASSERT_EQ(2U, lines.size());
   EXPECT_EQ(67355743, lines[0].number);

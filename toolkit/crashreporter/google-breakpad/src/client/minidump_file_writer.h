@@ -55,16 +55,6 @@ template<typename MDType> class TypedMDRVA;
 
 
 
-
-
-
-
-
-
-
-
-
-
 class MinidumpFileWriter {
 public:
   
@@ -79,14 +69,6 @@ public:
   
   bool Open(const char *path);
 
-  
-  
-  
-  
-  
-  void SetFile(const int file);
-
-  
   
   
   bool Close();
@@ -126,9 +108,6 @@ public:
 
   
   int file_;
-
-  
-  bool close_file_when_destroyed_;
 
   
   MDRVA position_;
@@ -172,8 +151,7 @@ class UntypedMDRVA {
 
   
   inline MDLocationDescriptor location() const {
-    MDLocationDescriptor location = { static_cast<u_int32_t>(size_),
-                                      position_ };
+    MDLocationDescriptor location = { static_cast<u_int32_t>(size_), position_ };
     return location;
   }
 

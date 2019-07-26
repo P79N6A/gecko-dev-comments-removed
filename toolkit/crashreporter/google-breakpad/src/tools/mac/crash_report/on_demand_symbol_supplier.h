@@ -61,16 +61,6 @@ class OnDemandSymbolSupplier : public SymbolSupplier {
                                      const SystemInfo *system_info,
                                      string *symbol_file,
                                      string *symbol_data);
-  
-  
-  virtual SymbolResult GetCStringSymbolData(const CodeModule *module,
-                                            const SystemInfo *system_info,
-                                            string *symbol_file,
-                                            char **symbol_data);
-
-  
-  virtual void FreeSymbolData(const CodeModule *module);
-
  protected:
   
   string search_dir_;
@@ -79,9 +69,6 @@ class OnDemandSymbolSupplier : public SymbolSupplier {
   
   
   map<string, string> module_file_map_;
-
-  
-  map<string, char *> memory_buffers_;
 
   
   

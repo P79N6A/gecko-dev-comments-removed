@@ -33,11 +33,11 @@
 #include <list>
 #include <string>
 #include "client/windows/common/ipc_protocol.h"
+#include "client/windows/crash_generation/client_info.h"
 #include "client/windows/crash_generation/minidump_generator.h"
 #include "processor/scoped_ptr.h"
 
 namespace google_breakpad {
-class ClientInfo;
 
 
 
@@ -58,9 +58,6 @@ class CrashGenerationServer {
 
   typedef void (*OnClientExitedCallback)(void* context,
                                          const ClientInfo* client_info);
-
-  typedef void (*OnClientUploadRequestCallback)(void* context,
-                                                const DWORD crash_id);
 
   
   
@@ -89,14 +86,11 @@ class CrashGenerationServer {
                         void* dump_context,
                         OnClientExitedCallback exit_callback,
                         void* exit_context,
-                        OnClientUploadRequestCallback upload_request_callback,
-                        void* upload_context,
                         bool generate_dumps,
                         const std::wstring* dump_path);
 
   ~CrashGenerationServer();
 
-  
   
   
   
@@ -106,9 +100,6 @@ class CrashGenerationServer {
   
   
   enum IPCServerState {
-    
-    IPC_SERVER_STATE_UNINITIALIZED,
-
     
     IPC_SERVER_STATE_ERROR,
 
@@ -190,7 +181,10 @@ class CrashGenerationServer {
   static void CALLBACK OnClientEnd(void* context, BOOLEAN timer_or_wait);
 
   
-  void HandleClientProcessExit(ClientInfo* client_info);
+  static DWORD WINAPI CleanupClient(void* context);
+
+  
+  void DoCleanup(ClientInfo* client_info);
 
   
   bool AddClient(ClientInfo* client_info);
@@ -199,22 +193,7 @@ class CrashGenerationServer {
   bool GenerateDump(const ClientInfo& client, std::wstring* dump_path);
 
   
-  
-  
-  void EnterErrorState();
-
-  
-  
-  
-  void EnterStateImmediately(IPCServerState state);
-
-  
-  
-  
-  void EnterStateWhenSignaled(IPCServerState state);
-
-  
-  CRITICAL_SECTION sync_;
+  CRITICAL_SECTION clients_sync_;
 
   
   std::list<ClientInfo*> clients_;
@@ -253,12 +232,6 @@ class CrashGenerationServer {
   void* exit_context_;
 
   
-  OnClientUploadRequestCallback upload_request_callback_;
-
-  
-  void* upload_context_;
-
-  
   bool generate_dumps_;
 
   
@@ -268,10 +241,10 @@ class CrashGenerationServer {
   
   
   
-  IPCServerState server_state_;
+  volatile IPCServerState server_state_;
 
   
-  bool shutting_down_;
+  volatile bool shutting_down_;
 
   
   OVERLAPPED overlapped_;
@@ -281,6 +254,10 @@ class CrashGenerationServer {
 
   
   ClientInfo* client_info_;
+
+  
+  
+  volatile LONG cleanup_item_count_;
 
   
   CrashGenerationServer(const CrashGenerationServer& crash_server);

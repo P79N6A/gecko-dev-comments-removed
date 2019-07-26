@@ -79,10 +79,6 @@ class StackwalkerAMD64 : public Stackwalker {
 
   
   
-  StackFrameAMD64 *GetCallerByStackScan(const vector<StackFrame *> &frames);
-
-  
-  
   const MDRawContextAMD64 *context_;
 
   

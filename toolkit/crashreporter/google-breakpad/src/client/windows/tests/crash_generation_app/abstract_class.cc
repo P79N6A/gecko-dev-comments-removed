@@ -27,7 +27,7 @@
 
 
 
-#include "client/windows/tests/crash_generation_app/abstract_class.h"
+#include "precompile.h"
 
 namespace google_breakpad {
 

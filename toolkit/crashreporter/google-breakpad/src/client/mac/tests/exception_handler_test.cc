@@ -29,15 +29,14 @@
 
 
 
-#include <pthread.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
 #include "breakpad_googletest_includes.h"
 #include "client/mac/handler/exception_handler.h"
+#include "client/mac/tests/auto_tempdir.h"
 #include "common/mac/MachIPC.h"
-#include "common/tests/auto_tempdir.h"
 #include "google_breakpad/processor/minidump.h"
 
 namespace google_breakpad {
@@ -64,7 +63,6 @@ using testing::Test;
 
 class ExceptionHandlerTest : public Test {
  public:
-  void InProcessCrash(bool aborting);
   AutoTempDir tempDir;
   string lastDumpName;
 };
@@ -76,13 +74,8 @@ static void Crasher() {
   fprintf(stdout, "A = %d", *a);
 }
 
-static void AbortCrasher() {
-  fprintf(stdout, "Going to crash...\n");
-  abort();
-}
-
-static void SoonToCrash(void(*crasher)()) {
-  crasher();
+static void SoonToCrash() {
+  Crasher();
 }
 
 static bool MDCallback(const char *dump_dir, const char *file_name,
@@ -100,7 +93,7 @@ static bool MDCallback(const char *dump_dir, const char *file_name,
   return true;
 }
 
-void ExceptionHandlerTest::InProcessCrash(bool aborting) {
+TEST_F(ExceptionHandlerTest, InProcess) {
   
   int fds[2];
   ASSERT_EQ(0, pipe(fds));
@@ -109,9 +102,9 @@ void ExceptionHandlerTest::InProcessCrash(bool aborting) {
   if (pid == 0) {
     
     close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
+    ExceptionHandler eh(tempDir.path, NULL, MDCallback, &fds[1], true, NULL);
     
-    SoonToCrash(aborting ? &AbortCrasher : &Crasher);
+    SoonToCrash();
     
     exit(1);
   }
@@ -134,18 +127,8 @@ void ExceptionHandlerTest::InProcessCrash(bool aborting) {
   EXPECT_EQ(0, WEXITSTATUS(ret));
 }
 
-TEST_F(ExceptionHandlerTest, InProcess) {
-  InProcessCrash(false);
-}
-
-#if TARGET_OS_IPHONE
-TEST_F(ExceptionHandlerTest, InProcessAbort) {
-  InProcessCrash(true);
-}
-#endif
-
-static bool DumpNameMDCallback(const char *dump_dir, const char *file_name,
-                               void *context, bool success) {
+static bool ChildMDCallback(const char *dump_dir, const char *file_name,
+			    void *context, bool success) {
   ExceptionHandlerTest *self = reinterpret_cast<ExceptionHandlerTest*>(context);
   if (dump_dir && file_name) {
     self->lastDumpName = dump_dir;
@@ -154,49 +137,6 @@ static bool DumpNameMDCallback(const char *dump_dir, const char *file_name,
     self->lastDumpName += ".dmp";
   }
   return true;
-}
-
-TEST_F(ExceptionHandlerTest, WriteMinidump) {
-  ExceptionHandler eh(tempDir.path(), NULL, DumpNameMDCallback, this, true,
-                      NULL);
-  ASSERT_TRUE(eh.WriteMinidump());
-
-  
-  ASSERT_FALSE(lastDumpName.empty());
-  struct stat st;
-  ASSERT_EQ(0, stat(lastDumpName.c_str(), &st));
-  ASSERT_LT(0, st.st_size);
-
-  
-  Minidump minidump(lastDumpName);
-  ASSERT_TRUE(minidump.Read());
-
-  MinidumpException* exception = minidump.GetException();
-  EXPECT_FALSE(exception);
-}
-
-TEST_F(ExceptionHandlerTest, WriteMinidumpWithException) {
-  ExceptionHandler eh(tempDir.path(), NULL, DumpNameMDCallback, this, true,
-                      NULL);
-  ASSERT_TRUE(eh.WriteMinidump(true));
-
-  
-  ASSERT_FALSE(lastDumpName.empty());
-  struct stat st;
-  ASSERT_EQ(0, stat(lastDumpName.c_str(), &st));
-  ASSERT_LT(0, st.st_size);
-
-  
-  Minidump minidump(lastDumpName);
-  ASSERT_TRUE(minidump.Read());
-
-  MinidumpException* exception = minidump.GetException();
-  ASSERT_TRUE(exception);
-  const MDRawExceptionStream* raw_exception = exception->exception();
-  ASSERT_TRUE(raw_exception);
-
-  EXPECT_EQ(MD_EXCEPTION_MAC_BREAKPOINT,
-            raw_exception->exception_record.exception_code);
 }
 
 TEST_F(ExceptionHandlerTest, DumpChildProcess) {
@@ -245,10 +185,10 @@ TEST_F(ExceptionHandlerTest, DumpChildProcess) {
 
   
   bool result = ExceptionHandler::WriteMinidumpForChild(child_task,
-                                                        child_thread,
-                                                        tempDir.path(),
-                                                        DumpNameMDCallback,
-                                                        this);
+							child_thread,
+							tempDir.path,
+							ChildMDCallback,
+							this);
   ASSERT_EQ(true, result);
 
   
@@ -285,7 +225,7 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemory) {
   pid_t pid = fork();
   if (pid == 0) {
     close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
+    ExceptionHandler eh(tempDir.path, NULL, MDCallback, &fds[1], true, NULL);
     
     char* memory =
       reinterpret_cast<char*>(mmap(NULL,
@@ -301,7 +241,7 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemory) {
     
     
     memcpy(memory + kOffset, instructions, sizeof(instructions));
-
+    
     
     typedef void (*void_function)(void);
     void_function memory_function =
@@ -347,7 +287,20 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemory) {
   ASSERT_TRUE(context);
 
   u_int64_t instruction_pointer;
-  ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
+  switch (context->GetContextCPU()) {
+  case MD_CONTEXT_X86:
+    instruction_pointer = context->GetContextX86()->eip;
+    break;
+  case MD_CONTEXT_AMD64:
+    instruction_pointer = context->GetContextAMD64()->rip;
+    break;
+  case MD_CONTEXT_ARM:
+    instruction_pointer = context->GetContextARM()->iregs[15];
+    break;
+  default:
+    FAIL() << "Unknown context CPU: " << context->GetContextCPU();
+    break;
+  }
 
   MinidumpMemoryRegion* region =
     memory_list->GetMemoryRegionForAddress(instruction_pointer);
@@ -384,7 +337,7 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
   pid_t pid = fork();
   if (pid == 0) {
     close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
+    ExceptionHandler eh(tempDir.path, NULL, MDCallback, &fds[1], true, NULL);
     
     char* memory =
       reinterpret_cast<char*>(mmap(NULL,
@@ -446,7 +399,20 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryMinBound) {
   ASSERT_TRUE(context);
 
   u_int64_t instruction_pointer;
-  ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
+  switch (context->GetContextCPU()) {
+  case MD_CONTEXT_X86:
+    instruction_pointer = context->GetContextX86()->eip;
+    break;
+  case MD_CONTEXT_AMD64:
+    instruction_pointer = context->GetContextAMD64()->rip;
+    break;
+  case MD_CONTEXT_ARM:
+    instruction_pointer = context->GetContextARM()->iregs[15];
+    break;
+  default:
+    FAIL() << "Unknown context CPU: " << context->GetContextCPU();
+    break;
+  }
 
   MinidumpMemoryRegion* region =
     memory_list->GetMemoryRegionForAddress(instruction_pointer);
@@ -483,7 +449,7 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
   pid_t pid = fork();
   if (pid == 0) {
     close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
+    ExceptionHandler eh(tempDir.path, NULL, MDCallback, &fds[1], true, NULL);
     
     char* memory =
       reinterpret_cast<char*>(mmap(NULL,
@@ -545,7 +511,20 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryMaxBound) {
   ASSERT_TRUE(context);
 
   u_int64_t instruction_pointer;
-  ASSERT_TRUE(context->GetInstructionPointer(&instruction_pointer));
+  switch (context->GetContextCPU()) {
+  case MD_CONTEXT_X86:
+    instruction_pointer = context->GetContextX86()->eip;
+    break;
+  case MD_CONTEXT_AMD64:
+    instruction_pointer = context->GetContextAMD64()->rip;
+    break;
+  case MD_CONTEXT_ARM:
+    instruction_pointer = context->GetContextARM()->iregs[15];
+    break;
+  default:
+    FAIL() << "Unknown context CPU: " << context->GetContextCPU();
+    break;
+  }
 
   MinidumpMemoryRegion* region =
     memory_list->GetMemoryRegionForAddress(instruction_pointer);
@@ -573,7 +552,7 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryNullPointer) {
   pid_t pid = fork();
   if (pid == 0) {
     close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
+    ExceptionHandler eh(tempDir.path, NULL, MDCallback, &fds[1], true, NULL);
     
     typedef void (*void_function)(void);
     void_function memory_function =
@@ -613,65 +592,6 @@ TEST_F(ExceptionHandlerTest, InstructionPointerMemoryNullPointer) {
   ASSERT_TRUE(exception);
   ASSERT_TRUE(memory_list);
   ASSERT_EQ((unsigned int)1, memory_list->region_count());
-}
-
-static void *Junk(void *) {
-  sleep(1000000);
-  return NULL;
-}
-
-
-
-TEST_F(ExceptionHandlerTest, MemoryListMultipleThreads) {
-  
-  int fds[2];
-  ASSERT_EQ(0, pipe(fds));
-
-  pid_t pid = fork();
-  if (pid == 0) {
-    close(fds[0]);
-    ExceptionHandler eh(tempDir.path(), NULL, MDCallback, &fds[1], true, NULL);
-
-    
-    pthread_t junk_thread;
-    if (pthread_create(&junk_thread, NULL, Junk, NULL) == 0)
-      pthread_detach(junk_thread);
-
-    
-    Crasher();
-
-    
-    exit(1);
-  }
-  
-  ASSERT_NE(-1, pid);
-  close(fds[1]);
-
-  
-  close(fds[1]);
-  char minidump_file[PATH_MAX];
-  ssize_t nbytes = read(fds[0], minidump_file, sizeof(minidump_file));
-  ASSERT_NE(0, nbytes);
-  
-  struct stat st;
-  ASSERT_EQ(0, stat(minidump_file, &st));
-  ASSERT_LT(0, st.st_size);
-
-  
-  int ret;
-  ASSERT_EQ(pid, waitpid(pid, &ret, 0));
-  EXPECT_NE(0, WIFEXITED(ret));
-  EXPECT_EQ(0, WEXITSTATUS(ret));
-
-  
-  Minidump minidump(minidump_file);
-  ASSERT_TRUE(minidump.Read());
-
-  MinidumpMemoryList* memory_list = minidump.GetMemoryList();
-  ASSERT_TRUE(memory_list);
-  
-  
-  ASSERT_EQ((unsigned int)3, memory_list->region_count());
 }
 
 }

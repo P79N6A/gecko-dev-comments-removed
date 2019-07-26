@@ -37,17 +37,18 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <sys/ucontext.h>
 
+#include "client/linux/android_ucontext.h"
 #include "client/linux/crash_generation/crash_generation_client.h"
-#include "client/linux/handler/minidump_descriptor.h"
 #include "client/linux/minidump_writer/minidump_writer.h"
-#include "common/using_std_string.h"
 #include "google_breakpad/common/minidump_format.h"
 #include "processor/scoped_ptr.h"
 
+struct sigaction;
+
 namespace google_breakpad {
 
+class ExceptionHandler;
 
 
 
@@ -102,8 +103,9 @@ class ExceptionHandler {
   
   
   
-  typedef bool (*MinidumpCallback)(const MinidumpDescriptor& descriptor,
-                                   void* context,
+  typedef bool (*MinidumpCallback)(const char *dump_path,
+                                   const char *minidump_id,
+                                   void *context,
                                    bool succeeded);
 
   
@@ -123,23 +125,30 @@ class ExceptionHandler {
   
   
   
-  
-  
-  
-  ExceptionHandler(const MinidumpDescriptor& descriptor,
-                   FilterCallback filter,
-                   MinidumpCallback callback,
+  ExceptionHandler(const std::string &dump_path,
+                   FilterCallback filter, MinidumpCallback callback,
                    void *callback_context,
+                   bool install_handler);
+
+  
+  
+  
+  
+  
+  ExceptionHandler(const std::string& dump_path,
+                   FilterCallback filter, MinidumpCallback callback,
+                   void* callback_context,
                    bool install_handler,
                    const int server_fd);
+
   ~ExceptionHandler();
 
-  const MinidumpDescriptor& minidump_descriptor() const {
-    return minidump_descriptor_;
-  }
-
-  void set_minidump_descriptor(const MinidumpDescriptor& descriptor) {
-    minidump_descriptor_ = descriptor;
+  
+  std::string dump_path() const { return dump_path_; }
+  void set_dump_path(const std::string &dump_path) {
+    dump_path_ = dump_path;
+    dump_path_c_ = dump_path_.c_str();
+    UpdateNextID();
   }
 
   void set_crash_handler(HandlerCallback callback) {
@@ -148,22 +157,22 @@ class ExceptionHandler {
 
   
   
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   bool WriteMinidump();
 
   
   
-  static bool WriteMinidump(const string& dump_path,
+  bool WriteMinidump(bool write_exception_stream);
+
+  
+  
+  static bool WriteMinidump(const std::string &dump_path,
+                            MinidumpCallback callback,
+                            void *callback_context);
+
+  
+  
+  static bool WriteMinidump(const std::string &dump_path,
+                            bool write_exception_stream,
                             MinidumpCallback callback,
                             void* callback_context);
 
@@ -180,9 +189,9 @@ class ExceptionHandler {
   
   static bool WriteMinidumpForChild(pid_t child,
                                     pid_t child_blamed_thread,
-                                    const string& dump_path,
+                                    const std::string &dump_path,
                                     MinidumpCallback callback,
-                                    void* callback_context);
+                                    void *callback_context);
 
   
   
@@ -204,7 +213,7 @@ class ExceptionHandler {
   
   
   
-  void AddMappingInfo(const string& name,
+  void AddMappingInfo(const std::string& name,
                       const u_int8_t identifier[sizeof(MDGUID)],
                       uintptr_t start_address,
                       size_t mapping_size,
@@ -212,24 +221,20 @@ class ExceptionHandler {
 
   
   
-  void RegisterAppMemory(void* ptr, size_t length);
+  void RegisterAppMemory(void *ptr, size_t length);
+  void UnregisterAppMemory(void *ptr);
 
-  
-  void UnregisterAppMemory(void* ptr);
-
-  
-  bool SimulateSignalDelivery(int sig);
  private:
-  
-  static bool InstallHandlersLocked();
-  
-  static void RestoreHandlersLocked();
-
+  void Init(const std::string &dump_path,
+            const int server_fd);
+  bool InstallHandlers();
+  void UninstallHandlers();
   void PreresolveSymbols();
   bool GenerateDump(CrashContext *context);
   void SendContinueSignalToChild();
   void WaitForContinueSignal();
 
+  void UpdateNextID();
   static void SignalHandler(int sig, siginfo_t* info, void* uc);
   bool HandleSignal(int sig, siginfo_t* info, void* uc);
   static int ThreadEntry(void* arg);
@@ -242,15 +247,30 @@ class ExceptionHandler {
 
   scoped_ptr<CrashGenerationClient> crash_generation_client_;
 
-  MinidumpDescriptor minidump_descriptor_;
+  std::string dump_path_;
+  std::string next_minidump_path_;
+  std::string next_minidump_id_;
 
+  
+  
+  
+  const char* dump_path_c_;
+  const char* next_minidump_path_c_;
+  const char* next_minidump_id_c_;
+
+  const bool handler_installed_;
   HandlerCallback crash_handler_;
 
   
   
   
   static std::vector<ExceptionHandler*> *handler_stack_;
+  
+  static unsigned handler_stack_index_;
   static pthread_mutex_t handler_stack_mutex_;
+
+  
+  std::vector<std::pair<int, struct sigaction *> > old_handlers_;
 
   
   
@@ -261,11 +281,11 @@ class ExceptionHandler {
 
   
   
-  MappingList mapping_list_;
+  MappingList mapping_info_;
 
   
   
-  AppMemoryList app_memory_list_;
+  AppMemoryList app_memory_info_;
 };
 
 }  

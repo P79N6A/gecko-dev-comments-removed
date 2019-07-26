@@ -67,141 +67,6 @@ class AutoStackClearer {
 
 
 template<typename ValueType>
-bool PostfixEvaluator<ValueType>::EvaluateToken(
-    const string &token,
-    const string &expression,
-    DictionaryValidityType *assigned) {
-  
-  
-  
-  enum BinaryOperation {
-    BINARY_OP_NONE = 0,
-    BINARY_OP_ADD,
-    BINARY_OP_SUBTRACT,
-    BINARY_OP_MULTIPLY,
-    BINARY_OP_DIVIDE_QUOTIENT,
-    BINARY_OP_DIVIDE_MODULUS,
-    BINARY_OP_ALIGN
-  };
-
-  BinaryOperation operation = BINARY_OP_NONE;
-  if (token == "+")
-    operation = BINARY_OP_ADD;
-  else if (token == "-")
-    operation = BINARY_OP_SUBTRACT;
-  else if (token == "*")
-    operation = BINARY_OP_MULTIPLY;
-  else if (token == "/")
-    operation = BINARY_OP_DIVIDE_QUOTIENT;
-  else if (token == "%")
-    operation = BINARY_OP_DIVIDE_MODULUS;
-  else if (token == "@")
-    operation = BINARY_OP_ALIGN;
-
-  if (operation != BINARY_OP_NONE) {
-    
-    ValueType operand1 = ValueType();
-    ValueType operand2 = ValueType();
-    if (!PopValues(&operand1, &operand2)) {
-      BPLOG(ERROR) << "Could not PopValues to get two values for binary "
-                      "operation " << token << ": " << expression;
-      return false;
-    }
-
-    
-    ValueType result;
-    switch (operation) {
-      case BINARY_OP_ADD:
-        result = operand1 + operand2;
-        break;
-      case BINARY_OP_SUBTRACT:
-        result = operand1 - operand2;
-        break;
-      case BINARY_OP_MULTIPLY:
-        result = operand1 * operand2;
-        break;
-      case BINARY_OP_DIVIDE_QUOTIENT:
-        result = operand1 / operand2;
-        break;
-      case BINARY_OP_DIVIDE_MODULUS:
-        result = operand1 % operand2;
-        break;
-      case BINARY_OP_ALIGN:
-	result =
-	  operand1 & (static_cast<ValueType>(-1) ^ (operand2 - 1));
-        break;
-      case BINARY_OP_NONE:
-        
-        
-        BPLOG(ERROR) << "Not reached!";
-        return false;
-        break;
-    }
-
-    
-    PushValue(result);
-  } else if (token == "^") {
-    
-    if (!memory_) {
-      BPLOG(ERROR) << "Attempt to dereference without memory: " <<
-                      expression;
-      return false;
-    }
-
-    ValueType address;
-    if (!PopValue(&address)) {
-      BPLOG(ERROR) << "Could not PopValue to get value to derefence: " <<
-                      expression;
-      return false;
-    }
-
-    ValueType value;
-    if (!memory_->GetMemoryAtAddress(address, &value)) {
-      BPLOG(ERROR) << "Could not dereference memory at address " <<
-                      HexString(address) << ": " << expression;
-      return false;
-    }
-
-    PushValue(value);
-  } else if (token == "=") {
-    
-    ValueType value;
-    if (!PopValue(&value)) {
-      BPLOG(INFO) << "Could not PopValue to get value to assign: " <<
-                     expression;
-      return false;
-    }
-
-    
-    
-    
-    string identifier;
-    if (PopValueOrIdentifier(NULL, &identifier) != POP_RESULT_IDENTIFIER) {
-      BPLOG(ERROR) << "PopValueOrIdentifier returned a value, but an "
-                      "identifier is needed to assign " <<
-                      HexString(value) << ": " << expression;
-      return false;
-    }
-    if (identifier.empty() || identifier[0] != '$') {
-      BPLOG(ERROR) << "Can't assign " << HexString(value) << " to " <<
-                      identifier << ": " << expression;
-      return false;
-    }
-
-    (*dictionary_)[identifier] = value;
-    if (assigned)
-      (*assigned)[identifier] = true;
-  } else {
-    
-    
-    
-    
-    stack_.push_back(token);
-  }
-  return true;
-}
-
-template<typename ValueType>
 bool PostfixEvaluator<ValueType>::EvaluateInternal(
     const string &expression,
     DictionaryValidityType *assigned) {
@@ -212,18 +77,121 @@ bool PostfixEvaluator<ValueType>::EvaluateInternal(
     
     
     
-    
-    
-    if (token.size() > 1 && token[0] == '=') {
-      if (!EvaluateToken("=", expression, assigned)) {
+    enum BinaryOperation {
+      BINARY_OP_NONE = 0,
+      BINARY_OP_ADD,
+      BINARY_OP_SUBTRACT,
+      BINARY_OP_MULTIPLY,
+      BINARY_OP_DIVIDE_QUOTIENT,
+      BINARY_OP_DIVIDE_MODULUS
+    };
+
+    BinaryOperation operation = BINARY_OP_NONE;
+    if (token == "+")
+      operation = BINARY_OP_ADD;
+    else if (token == "-")
+      operation = BINARY_OP_SUBTRACT;
+    else if (token == "*")
+      operation = BINARY_OP_MULTIPLY;
+    else if (token == "/")
+      operation = BINARY_OP_DIVIDE_QUOTIENT;
+    else if (token == "%")
+      operation = BINARY_OP_DIVIDE_MODULUS;
+
+    if (operation != BINARY_OP_NONE) {
+      
+      ValueType operand1, operand2;
+      if (!PopValues(&operand1, &operand2)) {
+        BPLOG(ERROR) << "Could not PopValues to get two values for binary "
+                        "operation " << token << ": " << expression;
         return false;
       }
 
-      if (!EvaluateToken(token.substr(1), expression, assigned)) {
+      
+      ValueType result;
+      switch (operation) {
+        case BINARY_OP_ADD:
+          result = operand1 + operand2;
+          break;
+        case BINARY_OP_SUBTRACT:
+          result = operand1 - operand2;
+          break;
+        case BINARY_OP_MULTIPLY:
+          result = operand1 * operand2;
+          break;
+        case BINARY_OP_DIVIDE_QUOTIENT:
+          result = operand1 / operand2;
+          break;
+        case BINARY_OP_DIVIDE_MODULUS:
+          result = operand1 % operand2;
+          break;
+        case BINARY_OP_NONE:
+          
+          
+          BPLOG(ERROR) << "Not reached!";
+          return false;
+          break;
+      }
+
+      
+      PushValue(result);
+    } else if (token == "^") {
+      
+      if (!memory_) {
+        BPLOG(ERROR) << "Attempt to dereference without memory: " <<
+                        expression;
         return false;
       }
-    } else if (!EvaluateToken(token, expression, assigned)) {
-      return false;
+
+      ValueType address;
+      if (!PopValue(&address)) {
+        BPLOG(ERROR) << "Could not PopValue to get value to derefence: " <<
+                        expression;
+        return false;
+      }
+
+      ValueType value;
+      if (!memory_->GetMemoryAtAddress(address, &value)) {
+        BPLOG(ERROR) << "Could not dereference memory at address " <<
+                        HexString(address) << ": " << expression;
+        return false;
+      }
+
+      PushValue(value);
+    } else if (token == "=") {
+      
+      ValueType value;
+      if (!PopValue(&value)) {
+        BPLOG(ERROR) << "Could not PopValue to get value to assign: " <<
+                        expression;
+        return false;
+      }
+
+      
+      
+      
+      string identifier;
+      if (PopValueOrIdentifier(NULL, &identifier) != POP_RESULT_IDENTIFIER) {
+        BPLOG(ERROR) << "PopValueOrIdentifier returned a value, but an "
+                        "identifier is needed to assign " <<
+                        HexString(value) << ": " << expression;
+        return false;
+      }
+      if (identifier.empty() || identifier[0] != '$') {
+        BPLOG(ERROR) << "Can't assign " << HexString(value) << " to " <<
+                        identifier << ": " << expression;
+        return false;
+      }
+
+      (*dictionary_)[identifier] = value;
+      if (assigned)
+        (*assigned)[identifier] = true;
+    } else {
+      
+      
+      
+      
+      stack_.push_back(token);
     }
   }
 
@@ -244,7 +212,7 @@ bool PostfixEvaluator<ValueType>::Evaluate(const string &expression,
   
   if (stack_.empty())
     return true;
-
+    
   BPLOG(ERROR) << "Incomplete execution: " << expression;
   return false;
 }
@@ -263,7 +231,7 @@ bool PostfixEvaluator<ValueType>::EvaluateForValue(const string &expression,
     BPLOG(ERROR) << "Expression yielded bad number of results: "
                  << "'" << expression << "'";
     return false;
-  }
+  } 
 
   return PopValue(result);
 }
@@ -289,7 +257,7 @@ PostfixEvaluator<ValueType>::PopValueOrIdentifier(
   
   
   istringstream token_stream(token);
-  ValueType literal = ValueType();
+  ValueType literal;
   bool negative;
   if (token_stream.peek() == '-') {
     negative = true;
@@ -315,7 +283,7 @@ PostfixEvaluator<ValueType>::PopValueOrIdentifier(
 
 template<typename ValueType>
 bool PostfixEvaluator<ValueType>::PopValue(ValueType *value) {
-  ValueType literal = ValueType();
+  ValueType literal;
   string token;
   PopResult result;
   if ((result = PopValueOrIdentifier(&literal, &token)) == POP_RESULT_FAIL) {
@@ -331,7 +299,7 @@ bool PostfixEvaluator<ValueType>::PopValue(ValueType *value) {
     if (iterator == dictionary_->end()) {
       
       
-      BPLOG(INFO) << "Identifier " << token << " not in dictionary";
+      BPLOG(ERROR) << "Identifier " << token << " not in dictionary";
       return false;
     }
 

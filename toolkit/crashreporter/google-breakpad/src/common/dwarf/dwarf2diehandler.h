@@ -157,12 +157,10 @@
 #define COMMON_DWARF_DWARF2DIEHANDLER_H__
 
 #include <stack>
-#include <string>
 
 #include "common/dwarf/types.h"
 #include "common/dwarf/dwarf2enums.h"
 #include "common/dwarf/dwarf2reader.h"
-#include "common/using_std_string.h"
 
 namespace dwarf2reader {
 
@@ -356,7 +354,7 @@ class DIEDispatcher: public Dwarf2Handler {
   
   
   
-  std::stack<HandlerStack> die_handlers_;
+  stack<HandlerStack> die_handlers_;
 
   
   

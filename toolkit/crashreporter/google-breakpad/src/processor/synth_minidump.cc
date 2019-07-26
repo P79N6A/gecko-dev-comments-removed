@@ -170,25 +170,6 @@ Context::Context(const Dump &dump, const MDRawContextX86 &context)
   assert(Size() == sizeof(MDRawContextX86));
 }
 
-Context::Context(const Dump &dump, const MDRawContextARM &context)
-  : Section(dump) {
-  
-  assert((context.context_flags & MD_CONTEXT_ARM) ||
-         (context.context_flags & MD_CONTEXT_ARM_OLD));
-  
-  assert(dump.endianness() == kLittleEndian);
-  D32(context.context_flags);
-  for (int i = 0; i < MD_CONTEXT_ARM_GPR_COUNT; ++i)
-    D32(context.iregs[i]);
-  D32(context.cpsr);
-  D64(context.float_save.fpscr);
-  for (int i = 0; i < MD_FLOATINGSAVEAREA_ARM_FPR_COUNT; ++i)
-    D64(context.float_save.regs[i]);
-  for (int i = 0; i < MD_FLOATINGSAVEAREA_ARM_FPEXTRA_COUNT; ++i)
-    D32(context.float_save.extra[i]);
-  assert(Size() == sizeof(MDRawContextARM));
-}
-
 Thread::Thread(const Dump &dump,
                u_int32_t thread_id, const Memory &stack, const Context &context,
                u_int32_t suspend_count, u_int32_t priority_class,
@@ -250,28 +231,7 @@ const MDVSFixedFileInfo Module::stock_version_info = {
   MD_VSFIXEDFILEINFO_FILE_SUBTYPE_UNKNOWN, 
   0,                                    
   0                                     
-};
-
-Exception::Exception(const Dump &dump,
-                     const Context &context,
-                     u_int32_t thread_id,
-                     u_int32_t exception_code,
-                     u_int32_t exception_flags,
-                     u_int64_t exception_address)
-  : Stream(dump, MD_EXCEPTION_STREAM) {
-  D32(thread_id);
-  D32(0);  
-  D32(exception_code);
-  D32(exception_flags);
-  D64(0);  
-  D64(exception_address);
-  D32(0);  
-  D32(0);  
-  for (int i = 0; i < MD_EXCEPTION_MAXIMUM_PARAMETERS; ++i)
-    D64(0);  
-  context.CiteLocationIn(this);
-  assert(Size() == sizeof(MDRawExceptionStream));
-}
+};  
 
 Dump::Dump(u_int64_t flags,
            Endianness endianness,

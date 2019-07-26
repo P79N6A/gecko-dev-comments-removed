@@ -40,9 +40,9 @@
 
 #include <string>
 
-#include "common/using_std_string.h"
-
 namespace google_breakpad {
+
+using std::string;
 
 
 
@@ -50,10 +50,6 @@ namespace google_breakpad {
 
 class Language {
  public:
-  
-  
-  virtual ~Language() {}
-
   
   
   

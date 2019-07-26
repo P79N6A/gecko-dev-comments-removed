@@ -77,10 +77,6 @@ class CrashGenerationClient {
   
   bool Register();
 
-  
-  
-  bool RequestUpload(DWORD crash_id);
-
   bool RequestDump(EXCEPTION_POINTERS* ex_info,
                    MDRawAssertionInfo* assert_info);
 

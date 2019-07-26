@@ -1,47 +1,47 @@
+// Copyright (c) 2010, Google Inc.
+// All rights reserved.
+//
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions are
+// met:
+//
+//     * Redistributions of source code must retain the above copyright
+// notice, this list of conditions and the following disclaimer.
+//     * Redistributions in binary form must reproduce the above
+// copyright notice, this list of conditions and the following disclaimer
+// in the documentation and/or other materials provided with the
+// distribution.
+//     * Neither the name of Google Inc. nor the names of its
+// contributors may be used to endorse or promote products derived from
+// this software without specific prior written permission.
+//
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+// A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+// OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+// SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+// LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+// DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+// THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+// (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+// OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+// Original author: Jim Blandy <jimb@mozilla.com> <jimb@red-bean.com>
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// test_assembler_unittest.cc: Unit tests for google_breakpad::TestAssembler.
 
 #include <string>
 #include <string.h>
 
 #include "breakpad_googletest_includes.h"
 #include "common/test_assembler.h"
-#include "common/using_std_string.h"
 
 using google_breakpad::test_assembler::Label;
 using google_breakpad::test_assembler::Section;
 using google_breakpad::test_assembler::kBigEndian;
 using google_breakpad::test_assembler::kLittleEndian;
+using std::string;
 using testing::Test;
 
 TEST(ConstructLabel, Simple) {
@@ -74,9 +74,9 @@ TEST(ConstructLabel, Copy) {
   EXPECT_EQ(0U, v);
 }
 
-
-
-
+// The left-hand-side of a label assignment can be either
+// unconstrained, related, or known. The right-hand-side can be any of
+// those, or an integer.
 TEST(Assignment, UnconstrainedToUnconstrained) {
   Label l, m;
   l = m;
@@ -337,36 +337,36 @@ TEST(IsKnownOffsetFrom, Related) {
   EXPECT_TRUE(l.IsKnownOffsetFrom(m));
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Test the construction of chains of related labels, and the
+// propagation of values through them.
+//
+// Although the relations between labels are supposed to behave
+// symmetrically --- that is, 'a = b' should put a and b in
+// indistinguishable states --- there's a distinction made internally
+// between the target (a) and the source (b).
+// 
+// So there are five test axes to cover:
+//
+// - Do we construct the chain with assignment ("Assign") or with constructors
+//   ("Construct")?
+//
+// - Do we set the value of the label at the start of the chain
+//   ("Start") or the label at the end ("End")?
+//
+// - Are we testing the propagation of a relationship between variable
+//   values ("Relation"), or the propagation of a known constant value
+//   ("Value")?
+//
+// - Do we set the value before building the chain ("Before") or after
+//   the chain has been built ("After")?
+//
+// - Do we add new relationships to the end of the existing chain
+//   ("Forward") or to the beginning ("Backward")?
+//
+// Of course, "Construct" and "Backward" can't be combined, which
+// eliminates eight combinations, and "Construct", "End", and "Before"
+// can't be combined, which eliminates two more, so there are are 22
+// combinations, not 32.
 
 TEST(LabelChain, AssignStartRelationBeforeForward) {
   Label a, b, c, d;
@@ -663,7 +663,7 @@ TEST(LabelTree, Related) {
 TEST(EquationDeathTest, EqualConstants) {
   Label m = 0x0d3962f280f07d24ULL;
   Label n = 0x0d3962f280f07d24ULL;
-  m = n; 
+  m = n; // no death expected
 }
 
 TEST(EquationDeathTest, EqualIndirectConstants) {
@@ -671,7 +671,7 @@ TEST(EquationDeathTest, EqualIndirectConstants) {
   Label n;
   Label o = n;
   n = 0xa347f1e5238fe6a1ULL;
-  n = m; 
+  n = m; // no death expected
 }
 
 TEST(EquationDeathTest, ConstantClash) {
@@ -688,22 +688,22 @@ TEST(EquationDeathTest, IndirectConstantClash) {
   ASSERT_DEATH(m = n, "addend_ == addend");
 }
 
-
-
-
+// Assigning to a related label may free the next Binding on its
+// chain. This test always passes; it is interesting to memory
+// checkers and coverage analysis.
 TEST(LabelReferenceCount, AssignmentFree) {
   Label l;
   {
     Label m;
     l = m;
   }
-  
+  // This should free m's Binding.
   l = 0xca8bae92f0376d4fULL;
   ASSERT_EQ(0xca8bae92f0376d4fULL, l.Value());
 }
 
-
-
+// Finding the value of a label may free the Binding it refers to. This test
+// always passes; it is interesting to memory checkers and coverage analysis.
 TEST(LabelReferenceCount, FindValueFree) {
   Label l;
   {
@@ -711,11 +711,11 @@ TEST(LabelReferenceCount, FindValueFree) {
     l = m;
     m = n;
     n = 0x7a0b0c576672daafULL;
-    
-    
+    // At this point, l's Binding refers to m's Binding, which refers
+    // to n's binding.
   }
-  
-  
+  // Now, l is the only reference keeping the three Bindings alive.
+  // Resolving its value should free l's and m's original bindings.
   ASSERT_EQ(0x7a0b0c576672daafULL, l.Value());
 }
 
@@ -727,7 +727,7 @@ TEST(ConstructSection, WithEndian) {
   Section s(kBigEndian);
 }
 
-
+// A fixture class for TestAssembler::Section tests.
 class SectionFixture {
  public:
   Section section;
@@ -1608,7 +1608,7 @@ TEST_F(GetContents, ClearsReferences) {
   l = 42;
   ASSERT_TRUE(section.GetContents(&contents));
   ASSERT_BYTES(contents, I1(42));
-  ASSERT_TRUE(section.GetContents(&contents)); 
+  ASSERT_TRUE(section.GetContents(&contents)); // should not die
 }
 
 class Miscellanea: public SectionFixture, public Test { };
@@ -1621,7 +1621,7 @@ TEST_F(Miscellanea, Clear) {
   section.Clear();
   EXPECT_EQ(0U, section.Size());
   l = 0x8d231bf0U;
-  ASSERT_TRUE(section.GetContents(&contents)); 
+  ASSERT_TRUE(section.GetContents(&contents)); // should not die
 }
 
 TEST_F(Miscellanea, Align) {

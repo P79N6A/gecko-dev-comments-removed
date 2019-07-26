@@ -28,217 +28,11 @@
 
 
 #include "client/windows/crash_generation/minidump_generator.h"
-
-#include <assert.h>
-#include <avrfsdk.h>
-
-#include <algorithm>
-#include <iterator>
-#include <list>
-#include <vector>
-
+#include <cassert>
 #include "client/windows/common/auto_critical_section.h"
 #include "common/windows/guid_string.h"
 
 using std::wstring;
-
-namespace {
-
-
-
-
-class HandleTraceData {
- public:
-  HandleTraceData();
-  ~HandleTraceData();
-
-  
-  
-  bool CollectHandleData(HANDLE process_handle,
-                         EXCEPTION_POINTERS* exception_pointers);
-
-  
-  
-  
-  bool GetUserStream(MINIDUMP_USER_STREAM* user_stream);
-
- private:
-  
-  
-  static bool ReadExceptionCode(HANDLE process_handle,
-                                EXCEPTION_POINTERS* exception_pointers,
-                                DWORD* exception_code);
-
-  
-  static ULONG CALLBACK RecordHandleOperations(void* resource_description,
-                                               void* enumeration_context,
-                                               ULONG* enumeration_level);
-
-  
-  
-  typedef BOOL (WINAPI* VerifierEnumerateResourceType)(
-      HANDLE Process,
-      ULONG Flags,
-      ULONG ResourceType,
-      AVRF_RESOURCE_ENUMERATE_CALLBACK ResourceCallback,
-      PVOID EnumerationContext);
-
-  
-  HMODULE verifier_module_;
-
-  
-  VerifierEnumerateResourceType enumerate_resource_;
-
-  
-  ULONG64 handle_;
-
-  
-  std::list<AVRF_HANDLE_OPERATION> operations_;
-
-  
-  std::vector<char> stream_;
-};
-
-HandleTraceData::HandleTraceData()
-    : verifier_module_(NULL),
-      enumerate_resource_(NULL),
-      handle_(NULL) {
-}
-
-HandleTraceData::~HandleTraceData() {
-  if (verifier_module_) {
-    FreeLibrary(verifier_module_);
-  }
-}
-
-bool HandleTraceData::CollectHandleData(
-    HANDLE process_handle,
-    EXCEPTION_POINTERS* exception_pointers) {
-  DWORD exception_code;
-  if (!ReadExceptionCode(process_handle, exception_pointers, &exception_code)) {
-    return false;
-  }
-
-  
-  
-  
-  if (exception_code != STATUS_INVALID_HANDLE) {
-    return true;
-  }
-
-  
-  verifier_module_ = LoadLibrary(TEXT("verifier.dll"));
-  if (!verifier_module_) {
-    return false;
-  }
-
-  enumerate_resource_ = reinterpret_cast<VerifierEnumerateResourceType>(
-      GetProcAddress(verifier_module_, "VerifierEnumerateResource"));
-  if (!enumerate_resource_) {
-    return false;
-  }
-
-  
-  
-  
-  
-  if (enumerate_resource_(process_handle,
-                          0,
-                          AvrfResourceHandleTrace,
-                          &RecordHandleOperations,
-                          this) != ERROR_SUCCESS) {
-    
-    return true;
-  }
-
-  
-  std::list<AVRF_HANDLE_OPERATION>::iterator i = operations_.begin();
-  std::list<AVRF_HANDLE_OPERATION>::iterator i_end = operations_.end();
-  while (i != i_end) {
-    if (i->Handle == handle_) {
-      ++i;
-    } else {
-      i = operations_.erase(i);
-    }
-  }
-
-  
-  stream_.resize(sizeof(MINIDUMP_HANDLE_OPERATION_LIST) +
-      sizeof(AVRF_HANDLE_OPERATION) * operations_.size());
-
-  MINIDUMP_HANDLE_OPERATION_LIST* stream_data =
-      reinterpret_cast<MINIDUMP_HANDLE_OPERATION_LIST*>(
-          &stream_.front());
-  stream_data->SizeOfHeader = sizeof(MINIDUMP_HANDLE_OPERATION_LIST);
-  stream_data->SizeOfEntry = sizeof(AVRF_HANDLE_OPERATION);
-  stream_data->NumberOfEntries = static_cast<ULONG32>(operations_.size());
-  stream_data->Reserved = 0;
-  std::copy(operations_.begin(),
-            operations_.end(),
-            stdext::checked_array_iterator<AVRF_HANDLE_OPERATION*>(
-                reinterpret_cast<AVRF_HANDLE_OPERATION*>(stream_data + 1),
-                operations_.size()));
-
-  return true;
-}
-
-bool HandleTraceData::GetUserStream(MINIDUMP_USER_STREAM* user_stream) {
-  if (stream_.empty()) {
-    return false;
-  } else {
-    user_stream->Type = HandleOperationListStream;
-    user_stream->BufferSize = static_cast<ULONG>(stream_.size());
-    user_stream->Buffer = &stream_.front();
-    return true;
-  }
-}
-
-bool HandleTraceData::ReadExceptionCode(
-    HANDLE process_handle,
-    EXCEPTION_POINTERS* exception_pointers,
-    DWORD* exception_code) {
-  EXCEPTION_POINTERS pointers;
-  if (!ReadProcessMemory(process_handle,
-                         exception_pointers,
-                         &pointers,
-                         sizeof(pointers),
-                         NULL)) {
-    return false;
-  }
-
-  if (!ReadProcessMemory(process_handle,
-                         pointers.ExceptionRecord,
-                         exception_code,
-                         sizeof(*exception_code),
-                         NULL)) {
-    return false;
-  }
-
-  return true;
-}
-
-ULONG CALLBACK HandleTraceData::RecordHandleOperations(
-    void* resource_description,
-    void* enumeration_context,
-    ULONG* enumeration_level) {
-  AVRF_HANDLE_OPERATION* description =
-      reinterpret_cast<AVRF_HANDLE_OPERATION*>(resource_description);
-  HandleTraceData* self =
-      reinterpret_cast<HandleTraceData*>(enumeration_context);
-
-  
-  if (description->OperationType == OperationDbBADREF) {
-    self->handle_ = description->Handle;
-  }
-
-  
-  self->operations_.push_back(*description);
-
-  *enumeration_level = HeapEnumerationEverything;
-  return ERROR_SUCCESS;
-}
-
-}  
 
 namespace google_breakpad {
 
@@ -369,8 +163,7 @@ bool MinidumpGenerator::WriteMinidump(HANDLE process_handle,
   }
 
   
-  
-  MINIDUMP_USER_STREAM user_stream_array[3];
+  MINIDUMP_USER_STREAM user_stream_array[2];
   user_stream_array[0].Type = MD_BREAKPAD_INFO_STREAM;
   user_stream_array[0].BufferSize = sizeof(breakpad_info);
   user_stream_array[0].Buffer = &breakpad_info;
@@ -414,39 +207,6 @@ bool MinidumpGenerator::WriteMinidump(HANDLE process_handle,
     ++user_streams.UserStreamCount;
   }
 
-  
-  
-  
-  HandleTraceData handle_trace_data;
-  if (exception_pointers && (dump_type & MiniDumpWithHandleData) == 0) {
-    if (!handle_trace_data.CollectHandleData(process_handle,
-                                             exception_pointers)) {
-      CloseHandle(dump_file);
-      if (full_dump_file != INVALID_HANDLE_VALUE)
-        CloseHandle(full_dump_file);
-      return false;
-    }
-  }
-
-  bool result_full_memory = true;
-  if (full_memory_dump) {
-    result_full_memory = write_dump(
-        process_handle,
-        process_id,
-        full_dump_file,
-        static_cast<MINIDUMP_TYPE>((dump_type & (~MiniDumpNormal))
-                                    | MiniDumpWithHandleData),
-        exception_pointers ? &dump_exception_info : NULL,
-        &user_streams,
-        NULL) != FALSE;
-  }
-
-  
-  if (handle_trace_data.GetUserStream(
-          &user_stream_array[user_streams.UserStreamCount])) {
-    ++user_streams.UserStreamCount;
-  }
-
   bool result_minidump = write_dump(
       process_handle,
       process_id,
@@ -456,6 +216,18 @@ bool MinidumpGenerator::WriteMinidump(HANDLE process_handle,
       exception_pointers ? &dump_exception_info : NULL,
       &user_streams,
       NULL) != FALSE;
+
+  bool result_full_memory = true;
+  if (full_memory_dump) {
+    result_full_memory = write_dump(
+        process_handle,
+        process_id,
+        full_dump_file,
+        static_cast<MINIDUMP_TYPE>(dump_type & (~MiniDumpNormal)),
+        exception_pointers ? &dump_exception_info : NULL,
+        &user_streams,
+        NULL) != FALSE;
+  }
 
   bool result = result_minidump && result_full_memory;
 

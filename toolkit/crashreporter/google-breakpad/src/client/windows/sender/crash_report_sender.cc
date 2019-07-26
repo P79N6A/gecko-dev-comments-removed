@@ -75,7 +75,8 @@ ReportResult CrashReportSender::SendCrashReport(
   if (result) {
     ReportSent(today);
     return RESULT_SUCCEEDED;
-  } else if (http_response >= 400 && http_response < 500) {
+  } else if (http_response == 400) {  
+                                      
     return RESULT_REJECTED;
   } else {
     return RESULT_FAILED;

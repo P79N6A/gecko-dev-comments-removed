@@ -67,8 +67,6 @@
 namespace google_breakpad {
 
 
-template<class, class> class ContainedRangeMapSerializer;
-
 template<typename AddressType, typename EntryType>
 class ContainedRangeMap {
  public:
@@ -105,9 +103,6 @@ class ContainedRangeMap {
   void Clear();
 
  private:
-  friend class ContainedRangeMapSerializer<AddressType, EntryType>;
-  friend class ModuleComparer;
-
   
   
   typedef std::map<AddressType, ContainedRangeMap *> AddressToRangeMap;

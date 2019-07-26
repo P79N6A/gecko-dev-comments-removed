@@ -64,8 +64,6 @@
 
 
 
-
-
 #ifndef PROCESSOR_POSTFIX_EVALUATOR_H__
 #define PROCESSOR_POSTFIX_EVALUATOR_H__
 
@@ -74,11 +72,10 @@
 #include <string>
 #include <vector>
 
-#include "common/using_std_string.h"
-
 namespace google_breakpad {
 
 using std::map;
+using std::string;
 using std::vector;
 
 class MemoryRegion;
@@ -153,10 +150,6 @@ class PostfixEvaluator {
   
   bool EvaluateInternal(const string &expression,
                         DictionaryValidityType *assigned);
-
-  bool EvaluateToken(const string &token,
-                     const string &expression,
-                     DictionaryValidityType *assigned);
 
   
   
