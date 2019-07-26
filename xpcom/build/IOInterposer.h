@@ -27,8 +27,10 @@ public:
     OpFSync = (1 << 3),
     OpStat = (1 << 4),
     OpClose = (1 << 5),
+    OpNextStage = (1 << 6), 
     OpWriteFSync = (OpWrite | OpFSync),
-    OpAll = (OpCreateOrOpen | OpRead | OpWrite | OpFSync | OpStat | OpClose)
+    OpAll = (OpCreateOrOpen | OpRead | OpWrite | OpFSync | OpStat | OpClose),
+    OpAllWithStaging = (OpAll | OpNextStage)
   };
 
   
@@ -63,6 +65,11 @@ public:
     {
       return mOperation;
     }
+
+    
+
+
+    const char* ObservedOperationString() const;
 
     
     TimeStamp Start() const
@@ -150,34 +157,9 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-class IOInterposer MOZ_FINAL
+namespace IOInterposer
 {
   
-  IOInterposer();
-public:
-
-  
-
-
-
-
-
-
-
-
-
-  static bool Init();
-
-  
 
 
 
@@ -188,13 +170,8 @@ public:
 
 
 
-  static void Clear();
 
-  
-
-
-
-  static void Disable();
+  bool Init();
 
   
 
@@ -207,43 +184,13 @@ public:
 
 
 
-
-
-
-
-
-
-
-
-
-  static void Report(IOInterposeObserver::Observation& aObservation);
+  void Clear();
 
   
 
 
 
-
-  static bool IsObservedOperation(IOInterposeObserver::Operation aOp);
-
-  
-
-
-
-
-
-  static void Register(IOInterposeObserver::Operation aOp,
-                       IOInterposeObserver* aObserver);
-
-  
-
-
-
-
-
-
-
-  static void Unregister(IOInterposeObserver::Operation aOp,
-                         IOInterposeObserver* aObserver);
+  void Disable();
 
   
 
@@ -256,7 +203,56 @@ public:
 
 
 
-  static void
+
+
+
+
+
+
+
+
+
+  void Report(IOInterposeObserver::Observation& aObservation);
+
+  
+
+
+
+
+  bool IsObservedOperation(IOInterposeObserver::Operation aOp);
+
+  
+
+
+
+
+
+  void Register(IOInterposeObserver::Operation aOp,
+                IOInterposeObserver* aObserver);
+
+  
+
+
+
+
+
+
+
+  void Unregister(IOInterposeObserver::Operation aOp,
+                  IOInterposeObserver* aObserver);
+
+  
+
+
+
+
+
+
+
+
+
+
+  void
   RegisterCurrentThread(bool aIsMainThread = false);
 
   
@@ -264,9 +260,16 @@ public:
 
 
 
-  static void
+  void
   UnregisterCurrentThread();
-};
+
+  
+
+
+
+  void
+  EnteringNextStage();
+} 
 
 class IOInterposerInit
 {
