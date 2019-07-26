@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.mozilla.gecko.BrowserLocaleManager;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.background.common.log.Logger;
 import org.mozilla.gecko.sync.repositories.NullCursorException;
@@ -239,6 +240,8 @@ public class CommandProcessor {
     }
   }
 
+  private static volatile boolean didUpdateLocale = false;
+
   @SuppressWarnings("deprecation")
   public static void displayURI(final List<String> args, final Context context) {
     
@@ -250,6 +253,13 @@ public class CommandProcessor {
     String title = null;
     if (args.size() == 3) {
       title = args.get(2);
+    }
+
+    
+    
+    if (!didUpdateLocale) {
+      BrowserLocaleManager.getInstance().getAndApplyPersistedLocale(context);
+      didUpdateLocale = true;
     }
 
     final String ns = Context.NOTIFICATION_SERVICE;

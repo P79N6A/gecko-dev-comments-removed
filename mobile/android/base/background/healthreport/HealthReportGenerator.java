@@ -39,9 +39,13 @@ public class HealthReportGenerator {
 
 
 
+
+
+
   public JSONObject generateDocument(long since, long lastPingTime, String profilePath) throws JSONException {
     Logger.info(LOG_TAG, "Generating FHR document from " + since + "; last ping " + lastPingTime);
     Logger.pii(LOG_TAG, "Generating for profile " + profilePath);
+
     ProfileInformationCache cache = new ProfileInformationCache(profilePath);
     if (!cache.restoreUnlessInitialized()) {
       Logger.warn(LOG_TAG, "Not enough profile information to compute current environment.");
