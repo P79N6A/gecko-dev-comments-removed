@@ -23,6 +23,10 @@ static const unsigned MP4_MIN_BYTES_COUNT = 12;
 
 static const uint32_t MAX_BYTES_SNIFFED = 512;
 
+
+
+static const uint32_t MAX_BYTES_SNIFFED_MP3 = 320 * 144 / 32 + 1 + 4;
+
 NS_IMPL_ISUPPORTS1(nsMediaSniffer, nsIContentSniffer)
 
 nsMediaSniffer::nsMediaSnifferEntry nsMediaSniffer::sSnifferEntries[] = {
@@ -142,7 +146,8 @@ nsMediaSniffer::GetMIMETypeFromContent(nsIRequest* aRequest,
     return NS_OK;
   }
 
-  if (MatchesMP3(aData, clampedLength)) {
+  
+  if (MatchesMP3(aData, std::min(aLength, MAX_BYTES_SNIFFED_MP3))) {
     aSniffedType.AssignLiteral(AUDIO_MP3);
     return NS_OK;
   }
