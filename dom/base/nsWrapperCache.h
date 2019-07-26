@@ -160,6 +160,12 @@ public:
   bool IsBlack();
 
   
+
+
+
+  bool IsBlackAndDoesNotNeedTracing(nsISupports* aThis);
+
+  
   void SetPreservingWrapper(bool aPreserve)
   {
     if(aPreserve) {
