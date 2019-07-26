@@ -2435,6 +2435,19 @@ void ContentEnumFunc(const RuleValue& value, nsCSSSelector* aSelector,
   if (selector->IsPseudoElement()) {
     PseudoElementRuleProcessorData* pdata =
       static_cast<PseudoElementRuleProcessorData*>(data);
+    if (!pdata->mPseudoElement && selector->mPseudoClassList) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      return;
+    }
     if (!StateSelectorMatches(pdata->mPseudoElement, aSelector, nodeContext,
                               data->mTreeMatchContext)) {
       return;
