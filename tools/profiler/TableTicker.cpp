@@ -530,6 +530,9 @@ void TableTicker::InplaceTick(TickSample* sample)
 
   PseudoStack* stack = currThreadProfile.GetPseudoStack();
   bool recordSample = true;
+#if defined(XP_WIN)
+  bool powerSample = false;
+#endif
 
   
 
@@ -542,6 +545,13 @@ void TableTicker::InplaceTick(TickSample* sample)
       currThreadProfile.addTag(ProfileEntry('m', marker));
     }
     stack->updateGeneration(currThreadProfile.GetGenerationID());
+
+#if defined(XP_WIN)
+    if (mProfilePower) {
+      mIntelPowerGadget->TakeSample();
+      powerSample = true;
+    }
+#endif
 
     if (mJankOnly) {
       
@@ -587,6 +597,12 @@ void TableTicker::InplaceTick(TickSample* sample)
     TimeDuration delta = sample->timestamp - sStartTime;
     currThreadProfile.addTag(ProfileEntry('t', delta.ToMilliseconds()));
   }
+
+#if defined(XP_WIN)
+  if (powerSample) {
+    currThreadProfile.addTag(ProfileEntry('p', mIntelPowerGadget->GetTotalPackagePowerInWatts()));
+  }
+#endif
 
   if (sLastFrameNumber != sFrameNumber) {
     currThreadProfile.addTag(ProfileEntry('f', sFrameNumber));

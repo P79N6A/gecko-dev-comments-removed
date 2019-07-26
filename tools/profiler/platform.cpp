@@ -606,6 +606,10 @@ const char** mozilla_sampler_get_features()
     "privacy",
     
     "mainthreadio",
+#if defined(XP_WIN)
+    
+    "power",
+#endif
     NULL
   };
 
