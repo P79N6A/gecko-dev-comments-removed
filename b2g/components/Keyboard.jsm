@@ -49,6 +49,30 @@ let Keyboard = {
   },
 
   receiveMessage: function keyboardReceiveMessage(msg) {
+    
+    
+    if (msg.name != 'Forms:Input') {
+      let mm;
+      try {
+        mm = msg.target.QueryInterface(Ci.nsIFrameLoaderOwner)
+                       .frameLoader.messageManager;
+      } catch(e) {
+        mm = msg.target;
+      }
+
+      
+      if (!mm) {
+        dump("!! No message manager found for " + msg.name);
+        return;
+      }
+
+      if (!mm.assertPermission("keyboard")) {
+        dump("Keyboard message " + msg.name +
+        " from a content process with no 'keyboard' privileges.");
+        return;
+      }
+    }
+
     switch (msg.name) {
       case 'Forms:Input':
         this.handleFormsInput(msg);
