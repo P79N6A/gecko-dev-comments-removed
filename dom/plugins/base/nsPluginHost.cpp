@@ -3170,14 +3170,20 @@ nsPluginHost::StopPluginInstance(nsNPAPIPluginInstance* aInstance)
         nsPluginTag* pluginTag = TagForPlugin(oldestInstance->GetPlugin());
         oldestInstance->Destroy();
         mInstances.RemoveElement(oldestInstance);
-        OnPluginInstanceDestroyed(pluginTag);
+        
+        if (pluginTag) {          
+          OnPluginInstanceDestroyed(pluginTag);
+        }
       }
     }
   } else {
     nsPluginTag* pluginTag = TagForPlugin(aInstance->GetPlugin());
     aInstance->Destroy();
     mInstances.RemoveElement(aInstance);
-    OnPluginInstanceDestroyed(pluginTag);
+    
+    if (pluginTag) {      
+      OnPluginInstanceDestroyed(pluginTag);
+    }
   }
 
   return NS_OK;
