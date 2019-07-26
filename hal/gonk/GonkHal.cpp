@@ -1057,7 +1057,10 @@ EnsureKernelLowMemKillerParamsSet()
   nsAutoCString adjParams;
   nsAutoCString minfreeParams;
 
-  for (int i = 0; i < NUM_PROCESS_PRIORITY; i++) {
+  int32_t lowerBoundOfNextOomScoreAdj = OOM_SCORE_ADJ_MIN - 1;
+  int32_t lowerBoundOfNextKillUnderMB = 0;
+
+  for (int i = NUM_PROCESS_PRIORITY - 1; i >= 0; i--) {
     
     
 
@@ -1080,10 +1083,18 @@ EnsureKernelLowMemKillerParamsSet()
     }
 
     
+    
+    MOZ_ASSERT(oomScoreAdj > lowerBoundOfNextOomScoreAdj);
+    MOZ_ASSERT(killUnderMB > lowerBoundOfNextKillUnderMB);
+
+    
     adjParams.AppendPrintf("%d,", OomAdjOfOomScoreAdj(oomScoreAdj));
 
     
     minfreeParams.AppendPrintf("%d,", killUnderMB * 1024 * 1024 / PAGE_SIZE);
+
+    lowerBoundOfNextOomScoreAdj = oomScoreAdj;
+    lowerBoundOfNextKillUnderMB = killUnderMB;
   }
 
   
