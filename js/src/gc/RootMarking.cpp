@@ -794,7 +794,7 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 
 
         for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next())
-            c->mark(trc);
+            c->markRoots(trc);
 
         
 
