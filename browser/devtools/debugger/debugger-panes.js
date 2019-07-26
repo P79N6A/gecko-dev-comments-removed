@@ -1455,8 +1455,12 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
   _onFetchSourcesFinished: function DVGS__onFetchSourcesFinished() {
+    if (!this._sourcesCount) {
+      return;
+    }
     
     this._performGlobalSearch();
+    this._sourcesCount = 0;
   },
 
   

@@ -713,7 +713,7 @@ FilterView.prototype = {
 
   clearSearch: function DVF_clearSearch() {
     this._searchbox.value = "";
-    this._onSearch();
+    this._searchboxPanel.hidePopup();
   },
 
   
@@ -767,6 +767,9 @@ FilterView.prototype = {
         view.setUnavailable();
       }
     }
+    
+    DebuggerView.FilteredSources.syncFileSearch();
+
     this._prevSearchedFile = aFile;
   },
 
@@ -830,6 +833,7 @@ FilterView.prototype = {
     
     if (isGlobal) {
       DebuggerView.GlobalSearch.scheduleSearch(token);
+      this._prevSearchedToken = token;
       return;
     }
 
@@ -837,6 +841,7 @@ FilterView.prototype = {
     
     if (isVariable) {
       DebuggerView.Variables.scheduleSearch(token);
+      this._prevSearchedToken = token;
       return;
     }
 
@@ -854,8 +859,15 @@ FilterView.prototype = {
     e.char = String.fromCharCode(e.charCode);
 
     let [file, line, token, isGlobal, isVariable] = this.searchboxInfo;
-    let isDifferentToken, isReturnKey, action = -1;
+    let isFileSearch, isLineSearch, isDifferentToken, isReturnKey;
+    let action = -1;
 
+    if (file && !line && !token) {
+      isFileSearch = true;
+    }
+    if (line && !token) {
+      isLineSearch = true;
+    }
     if (this._prevSearchedToken != token) {
       isDifferentToken = true;
     }
@@ -890,12 +902,26 @@ FilterView.prototype = {
       DebuggerView.editor.focus();
       return;
     }
-    if (action == -1 || (token.length == 0 && line == 0)) {
+    if (action == -1 || (!file && !line && !token)) {
+      DebuggerView.FilteredSources.hidden = true;
       return;
     }
 
     e.preventDefault();
     e.stopPropagation();
+
+    
+    if (isFileSearch) {
+      if (isReturnKey) {
+        DebuggerView.FilteredSources.hidden = true;
+        DebuggerView.editor.focus();
+        this.clearSearch();
+      } else {
+        DebuggerView.FilteredSources[["focusNext", "focusPrev"][action]]();
+      }
+      this._prevSearchedFile = file;
+      return;
+    }
 
     
     if (isGlobal) {
@@ -912,6 +938,7 @@ FilterView.prototype = {
     if (isVariable) {
       if (isReturnKey && isDifferentToken) {
         DebuggerView.Variables.performSearch(token);
+      } else {
         DebuggerView.Variables.expandFirstSearchResults();
       }
       this._prevSearchedToken = token;
@@ -919,7 +946,7 @@ FilterView.prototype = {
     }
 
     
-    if (!isReturnKey && token.length == 0 && line > 0) {
+    if (isLineSearch && !isReturnKey) {
       line += action == 0 ? 1 : -1;
       let lineCount = DebuggerView.editor.getLineCount();
       let lineTarget = line < 1 ? 1 : line > lineCount ? lineCount : line;
@@ -1022,8 +1049,171 @@ FilterView.prototype = {
 
 
 
+function FilteredSourcesView() {
+  MenuContainer.call(this);
+  this._onClick = this._onClick.bind(this);
+}
+
+create({ constructor: FilteredSourcesView, proto: MenuContainer.prototype }, {
+  
+
+
+  initialize: function DVFS_initialize() {
+    dumpn("Initializing the FilteredSourcesView");
+
+    let panel = this._panel = document.createElement("panel");
+    panel.id = "filtered-sources-panel";
+    panel.setAttribute("noautofocus", "true");
+    panel.setAttribute("position", FILTERED_SOURCES_POPUP_POSITION);
+    document.documentElement.appendChild(panel);
+
+    this._searchbox = document.getElementById("searchbox");
+    this._container = new StackList(panel);
+
+    this._container.itemFactory = this._createItemView;
+    this._container.itemType = "vbox";
+    this._container.addEventListener("click", this._onClick, false);
+  },
+
+  
+
+
+  destroy: function DVFS_destroy() {
+    dumpn("Destroying the FilteredSourcesView");
+    document.documentElement.removeChild(this._panel);
+    this._container.removeEventListener("click", this._onClick, false);
+  },
+
+  
+
+
+
+  set hidden(aFlag) {
+    if (aFlag) {
+      this._container._parent.hidePopup();
+    } else {
+      this._container._parent.openPopup(this._searchbox);
+    }
+  },
+
+  
+
+
+  syncFileSearch: function DVFS_syncFileSearch() {
+    this.empty();
+
+    
+    
+    if (!DebuggerView.Filtering.searchedFile ||
+        !DebuggerView.Sources.visibleItems.length) {
+      this.hidden = true;
+      return;
+    }
+
+    
+    let visibleItems = DebuggerView.Sources.visibleItems;
+    let displayedItems = visibleItems.slice(0, FILTERED_SOURCES_MAX_RESULTS);
+
+    for (let item of displayedItems) {
+      
+      let trimmedLabel = SourceUtils.trimUrlLength(item.label);
+      let trimmedValue = SourceUtils.trimUrlLength(item.value);
+
+      let locationItem = this.push(trimmedLabel, trimmedValue, {
+        forced: true,
+        relaxed: true,
+        unsorted: true,
+        attachment: {
+          fullLabel: item.label,
+          fullValue: item.value
+        }
+      });
+
+      let element = locationItem.target;
+      element.className = "dbg-source-item list-item";
+      element.labelNode.className = "dbg-source-item-name plain";
+      element.valueNode.className = "dbg-source-item-details plain";
+    }
+
+    this._updateSelection(this.getItemAtIndex(0));
+    this.hidden = false;
+  },
+
+  
+
+
+  focusNext: function DVFS_focusNext() {
+    let nextIndex = this.selectedIndex + 1;
+    if (nextIndex >= this.totalItems) {
+      nextIndex = 0;
+    }
+    this._updateSelection(this.getItemAtIndex(nextIndex));
+  },
+
+  
+
+
+  focusPrev: function DVFS_focusPrev() {
+    let prevIndex = this.selectedIndex - 1;
+    if (prevIndex < 0) {
+      prevIndex = this.totalItems - 1;
+    }
+    this._updateSelection(this.getItemAtIndex(prevIndex));
+  },
+
+  
+
+
+  _onClick: function DVFS__onClick(e) {
+    let locationItem = this.getItemForElement(e.target);
+    if (locationItem) {
+      this._updateSelection(locationItem);
+    }
+  },
+
+  
+
+
+
+
+
+  _updateSelection: function DVFS__updateSelection(aItem) {
+    this.selectedItem = aItem;
+    DebuggerView.Filtering._target.selectedValue = aItem.attachment.fullValue;
+  },
+
+  
+
+
+
+
+
+
+
+  _createItemView: function DVFS__createItemView(aElementNode, aLabel, aValue) {
+    let labelNode = document.createElement("label");
+    let valueNode = document.createElement("label");
+
+    labelNode.setAttribute("value", aLabel);
+    valueNode.setAttribute("value", aValue);
+
+    aElementNode.appendChild(labelNode);
+    aElementNode.appendChild(valueNode);
+
+    aElementNode.labelNode = labelNode;
+    aElementNode.valueNode = valueNode;
+  },
+
+  _panel: null,
+  _searchbox: null
+});
+
+
+
+
 DebuggerView.Toolbar = new ToolbarView();
 DebuggerView.Options = new OptionsView();
 DebuggerView.ChromeGlobals = new ChromeGlobalsView();
 DebuggerView.Sources = new SourcesView();
 DebuggerView.Filtering = new FilterView();
+DebuggerView.FilteredSources = new FilteredSourcesView();
