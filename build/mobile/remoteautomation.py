@@ -121,10 +121,17 @@ class RemoteAutomation(Automation):
         javaException = self.checkForJavaException(logcat)
         if javaException:
             return True
+
+        
+        
+        if not self.CRASHREPORTER:
+            return False
+
         try:
             dumpDir = tempfile.mkdtemp()
             remoteCrashDir = self._remoteProfile + '/minidumps/'
             if not self._devicemanager.dirExists(remoteCrashDir):
+                
                 
                 
                 
