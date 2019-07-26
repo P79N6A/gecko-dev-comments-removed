@@ -4,7 +4,7 @@
 
 
 #include <string.h>
-#include "prbit.h"
+#include "mozilla/MathAlgorithms.h"
 #include "nsSupportsArray.h"
 #include "nsSupportsArrayEnumerator.h"
 #include "nsIObjectInputStream.h"
@@ -129,7 +129,7 @@ void nsSupportsArray::GrowArrayBy(int32_t aGrowBy)
     
     
     if (newSize & (newSize - 1))
-      newSize = 1u << PR_CeilingLog2(newSize);
+      newSize = 1u << mozilla::CeilingLog2(newSize);
 
     newCount = newSize / sizeof(mArray[0]);
   }

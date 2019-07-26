@@ -3,12 +3,12 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
 #include "mozilla/MemoryReporting.h"
 #include <stdlib.h>
 
 #include "nsVoidArray.h"
 #include "nsQuickSort.h"
-#include "prbit.h"
 #include "nsISupportsImpl.h" 
 #include "nsAlgorithm.h"
 
@@ -239,7 +239,7 @@ bool nsVoidArray::GrowArrayBy(int32_t aGrowBy)
     }
     else
     {
-      PR_CEILING_LOG2(newSize, newSize);
+      newSize = mozilla::CeilingLog2(newSize);
       newCapacity = CAPACITYOF_IMPL(1u << newSize);
     }
   }
