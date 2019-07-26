@@ -183,6 +183,7 @@
 #include "nsIObserver.h"
 #include "nsAutoPtr.h"
 #include "MediaResource.h"
+#include "mozilla/gfx/Rect.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "mozilla/TimeStamp.h"
 #include "MediaStreamGraph.h"
@@ -351,6 +352,8 @@ public:
   
 
   struct DecodedStreamData {
+    typedef gfx::IntSize IntSize;
+
     DecodedStreamData(MediaDecoder* aDecoder,
                       int64_t aInitialTime, SourceMediaStream* aStream);
     ~DecodedStreamData();
@@ -375,7 +378,7 @@ public:
     
     
     nsRefPtr<layers::Image> mLastVideoImage;
-    gfxIntSize mLastVideoImageDisplaySize;
+    IntSize mLastVideoImageDisplaySize;
     
     
     bool mStreamInitialized;
