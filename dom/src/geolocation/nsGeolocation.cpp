@@ -1461,7 +1461,7 @@ Geolocation::RegisterRequestWithPrompt(nsGeolocationRequest* request)
 
     
     
-    TabChild* child = GetTabChildFrom(window->GetDocShell());
+    TabChild* child = TabChild::GetFrom(window->GetDocShell());
     if (!child) {
       return false;
     }

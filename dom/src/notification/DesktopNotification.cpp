@@ -161,7 +161,7 @@ DesktopNotification::Init()
 
     
     
-    TabChild* child = GetTabChildFrom(GetOwner()->GetDocShell());
+    TabChild* child = TabChild::GetFrom(GetOwner()->GetDocShell());
 
     
     

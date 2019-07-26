@@ -279,7 +279,7 @@ DocAccessibleWrap::DoInitialUpdate()
     
     if (mDocFlags & eTabDocument) {
       mozilla::dom::TabChild* tabChild =
-        mozilla::dom::GetTabChildFrom(mDocumentNode->GetShell());
+        mozilla::dom::TabChild::GetFrom(mDocumentNode->GetShell());
 
       a11y::RootAccessible* rootDocument = RootAccessible();
 

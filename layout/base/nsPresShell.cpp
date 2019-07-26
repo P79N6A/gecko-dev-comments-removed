@@ -4978,7 +4978,7 @@ void PresShell::UpdateCanvasBackground()
     mCanvasBackgroundColor = GetDefaultBackgroundColorToDraw();
   }
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    if (TabChild* tabChild = GetTabChildFrom(this)) {
+    if (TabChild* tabChild = TabChild::GetFrom(this)) {
       tabChild->SetBackgroundColor(mCanvasBackgroundColor);
     }
   }
@@ -5471,7 +5471,7 @@ public:
         !mFrame || !mShell) {
       return;
     }
-    TabChild* tabChild = GetTabChildFrom(mShell);
+    TabChild* tabChild = TabChild::GetFrom(mShell);
     if (!tabChild || !tabChild->GetUpdateHitRegion()) {
       return;
     }
@@ -9420,7 +9420,7 @@ PresShell::SetIsActive(bool aIsActive)
   
   
   
-  if (TabChild* tab = GetTabChildFrom(this)) {
+  if (TabChild* tab = TabChild::GetFrom(this)) {
     if (aIsActive) {
       tab->MakeVisible();
       if (!mIsZombie) {
@@ -9561,7 +9561,7 @@ nsIPresShell::RecomputeFontSizeInflationEnabled()
 
   
   if (!FontSizeInflationForceEnabled()) {
-    if (TabChild* tab = GetTabChildFrom(this)) {
+    if (TabChild* tab = TabChild::GetFrom(this)) {
       
       
       if (!tab->IsAsyncPanZoomEnabled()) {

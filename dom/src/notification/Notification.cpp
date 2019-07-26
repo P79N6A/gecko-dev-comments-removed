@@ -140,7 +140,7 @@ NotificationPermissionRequest::Run()
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     
     
-    TabChild* child = GetTabChildFrom(mWindow->GetDocShell());
+    TabChild* child = TabChild::GetFrom(mWindow->GetDocShell());
     if (!child) {
       return NS_ERROR_NOT_AVAILABLE;
     }
