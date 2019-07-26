@@ -327,8 +327,10 @@ public class LayerView extends FrameLayout implements Tabs.OnTabsChangedListener
         }
     }
 
-    @RobocopTarget
-    public GeckoLayerClient getLayerClient() { return mLayerClient; }
+    
+    GeckoLayerClient getLayerClient() { return mLayerClient; }
+    public Object getLayerClientObject() { return mLayerClient; }
+
     public PanZoomController getPanZoomController() { return mPanZoomController; }
     public LayerMarginsAnimator getLayerMarginsAnimator() { return mMarginsAnimator; }
 
