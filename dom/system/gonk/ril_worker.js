@@ -2394,11 +2394,32 @@ let RIL = {
           command.locationInfo = command.event.locationInfo;
         }
         break;
+      case STK_EVENT_TYPE_MT_CALL:
+        command.deviceId = {
+          sourceId: STK_DEVICE_ID_NETWORK,
+          destinationId: STK_DEVICE_ID_SIM
+        };
+        command.transactionId = 0;
+        command.address = command.eventData.number;
+        break;
+      case STK_EVENT_TYPE_CALL_DISCONNECTED:
+        command.cause = command.eventData.error;
+      case STK_EVENT_TYPE_CALL_CONNECTED:  
+        command.deviceId = {
+          sourceId: (command.eventData.isIssuedByRemote ?
+                     STK_DEVICE_ID_NETWORK : STK_DEVICE_ID_ME),
+          destinationId: STK_DEVICE_ID_SIM
+        };
+        command.transactionId = 0;
+        break;
     }
     this.sendICCEnvelopeCommand(command);
   },
 
   
+
+
+
 
 
 
@@ -2423,7 +2444,15 @@ let RIL = {
                     (options.locationInfo.gsmCellId > 0xffff ?
                       TLV_LOCATION_INFO_UMTS_SIZE :
                       TLV_LOCATION_INFO_GSM_SIZE) :
-                    0);
+                    0) +
+                 (options.transactionId ? 3 : 0) +
+                 (options.address ?
+                  1 + 
+                  ComprehensionTlvHelper.getSizeOfLengthOctets(
+                    Math.ceil(options.address.length/2) + 1) + 
+                  Math.ceil(options.address.length/2) + 1 
+                  : 0) +
+                 (options.cause ? 4 : 0);
     let size = (2 + berLen) * 2;
 
     Buf.writeUint32(size);
@@ -2475,6 +2504,29 @@ let RIL = {
     
     if (options.locationInfo) {
       ComprehensionTlvHelper.writeLocationInfoTlv(options.locationInfo);
+    }
+
+    
+    if (options.transactionId) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_TRANSACTION_ID |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      GsmPDUHelper.writeHexOctet(1);
+      GsmPDUHelper.writeHexOctet(options.transactionId);
+    }
+
+    
+    if (options.address) {
+      GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_ADDRESS |
+                                 COMPREHENSIONTLV_FLAG_CR);
+      ComprehensionTlvHelper.writeLength(
+        Math.ceil(options.address.length/2) + 1 
+      );
+      GsmPDUHelper.writeDiallingNumber(options.address);
+    }
+
+    
+    if (options.cause) {
+      ComprehensionTlvHelper.writeCauseTlv(options.cause);
     }
 
     Buf.writeUint32(0);
@@ -6957,6 +7009,75 @@ let ComprehensionTlvHelper = {
       
       GsmPDUHelper.writeHexOctet((loc.gsmCellId >> 8) & 0xff);
       GsmPDUHelper.writeHexOctet(loc.gsmCellId & 0xff);
+    }
+  },
+
+  
+
+
+
+
+
+  writeCauseTlv: function writeCauseTlv(geckoError) {
+    let cause = -1;
+    for (let errorNo in RIL_ERROR_TO_GECKO_ERROR) {
+      if (geckoError == RIL_ERROR_TO_GECKO_ERROR[errorNo]) {
+        cause = errorNo;
+        break;
+      }
+    }
+    cause = (cause == -1) ? ERROR_SUCCESS : cause;
+
+    GsmPDUHelper.writeHexOctet(COMPREHENSIONTLV_TAG_CAUSE |
+                               COMPREHENSIONTLV_FLAG_CR);
+    GsmPDUHelper.writeHexOctet(2);  
+
+    
+    GsmPDUHelper.writeHexOctet(0x60);
+
+    
+    
+    
+    
+    GsmPDUHelper.writeHexOctet(0x80 | cause);
+  },
+
+  getSizeOfLengthOctets: function getSizeOfLengthOctets(length) {
+    if (length >= 0x10000) {
+      return 4; 
+    } else if (length >= 0x100) {
+      return 3; 
+    } else if (length >= 0x80) {
+      return 2; 
+    } else {
+      return 1; 
+    }
+  },
+
+  writeLength: function writeLength(length) {
+    
+    
+    
+    
+    
+    
+    
+    if (length < 0x80) {
+      GsmPDUHelper.writeHexOctet(length);
+    } else if (0x80 <= length && length < 0x100) {
+      GsmPDUHelper.writeHexOctet(0x81);
+      GsmPDUHelper.writeHexOctet(length);
+    } else if (0x100 <= length && length < 0x10000) {
+      GsmPDUHelper.writeHexOctet(0x82);
+      GsmPDUHelper.writeHexOctet((length >> 8) & 0xff);
+      GsmPDUHelper.writeHexOctet(length & 0xff);
+    } else if (0x10000 <= length && length < 0x1000000) {
+      GsmPDUHelper.writeHexOctet(0x83);
+      GsmPDUHelper.writeHexOctet((length >> 16) & 0xff);
+      GsmPDUHelper.writeHexOctet((length >> 8) & 0xff);
+      GsmPDUHelper.writeHexOctet(length & 0xff);
+    } else {
+      throw new Error("Invalid length value :" + length);
     }
   },
 };
