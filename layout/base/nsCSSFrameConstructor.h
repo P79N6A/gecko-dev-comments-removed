@@ -927,7 +927,6 @@ private:
       
       inline bool SkipItemsWantingParentType(ParentType aParentType);
 
-#ifdef MOZ_FLEXBOX
       
       
       
@@ -939,7 +938,6 @@ private:
       
       inline bool SkipItemsThatDontNeedAnonFlexItem(
         const nsFrameConstructorState& aState);
-#endif 
 
       
       
@@ -1057,9 +1055,7 @@ private:
 
     
     
-#ifdef MOZ_FLEXBOX
     bool NeedsAnonFlexItem(const nsFrameConstructorState& aState);
-#endif 
 
     
     
@@ -1137,11 +1133,9 @@ private:
 
 
 
-#ifdef MOZ_FLEXBOX
   void CreateNeededAnonFlexItems(nsFrameConstructorState& aState,
                                     FrameConstructionItemList& aItems,
                                     nsIFrame* aParentFrame);
-#endif 
 
   
 

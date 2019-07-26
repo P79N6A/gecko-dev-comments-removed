@@ -362,7 +362,6 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
   
   
   
-#ifdef MOZ_FLEXBOX
   if (!aSkipFlexItemStyleFixup && mParent) {
     const nsStyleDisplay* parentDisp = mParent->StyleDisplay();
     if ((parentDisp->mDisplay == NS_STYLE_DISPLAY_FLEX ||
@@ -401,7 +400,6 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
       }
     }
   }
-#endif 
 
   
   StyleUserInterface();

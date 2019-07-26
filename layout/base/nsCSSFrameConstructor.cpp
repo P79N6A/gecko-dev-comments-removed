@@ -101,9 +101,7 @@
 #include "nsIDOMXULDocument.h"
 #include "nsIXULDocument.h"
 #endif
-#ifdef MOZ_FLEXBOX
 #include "nsFlexContainerFrame.h"
-#endif
 #ifdef ACCESSIBILITY
 #include "nsAccessibilityService.h"
 #endif
@@ -349,7 +347,6 @@ static int32_t FFWC_recursions=0;
 static int32_t FFWC_nextInFlows=0;
 #endif
 
-#ifdef MOZ_FLEXBOX
 
 static inline bool
 IsAnonymousFlexItem(const nsIFrame* aFrame)
@@ -357,7 +354,6 @@ IsAnonymousFlexItem(const nsIFrame* aFrame)
   const nsIAtom* pseudoType = aFrame->StyleContext()->GetPseudo();
   return pseudoType == nsCSSAnonBoxes::anonymousFlexItem;
 }
-#endif 
 
 static inline nsIFrame*
 GetFieldSetBlockFrame(nsIFrame* aFieldsetFrame)
@@ -4285,12 +4281,10 @@ nsCSSFrameConstructor::FindDisplayData(const nsStyleDisplay* aDisplay,
     { NS_STYLE_DISPLAY_INLINE,
       FULL_CTOR_FCDATA(FCDATA_IS_INLINE | FCDATA_IS_LINE_PARTICIPANT,
                        &nsCSSFrameConstructor::ConstructInline) },
-#ifdef MOZ_FLEXBOX
     { NS_STYLE_DISPLAY_FLEX,
       FCDATA_DECL(FCDATA_MAY_NEED_SCROLLFRAME, NS_NewFlexContainerFrame) },
     { NS_STYLE_DISPLAY_INLINE_FLEX,
       FCDATA_DECL(FCDATA_MAY_NEED_SCROLLFRAME, NS_NewFlexContainerFrame) },
-#endif 
     { NS_STYLE_DISPLAY_TABLE,
       FULL_CTOR_FCDATA(0, &nsCSSFrameConstructor::ConstructTable) },
     { NS_STYLE_DISPLAY_INLINE_TABLE,
@@ -9153,7 +9147,6 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     }
   }
 
-#ifdef MOZ_FLEXBOX
   
   
   
@@ -9200,7 +9193,6 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
                                         true);
     return true;
   }
-#endif 
 
 #ifdef MOZ_XUL
   if (aFrame->GetType() == nsGkAtoms::popupSetFrame) {
@@ -9474,7 +9466,6 @@ nsCSSFrameConstructor::sPseudoParentData[eParentTypeCount] = {
   }
 };
 
-#ifdef MOZ_FLEXBOX
 void
 nsCSSFrameConstructor::CreateNeededAnonFlexItems(
   nsFrameConstructorState& aState,
@@ -9590,7 +9581,6 @@ nsCSSFrameConstructor::CreateNeededAnonFlexItems(
     iter.InsertItem(newItem);
   } while (!iter.IsDone());
 }
-#endif 
 
 
 
@@ -9812,11 +9802,9 @@ nsCSSFrameConstructor::ConstructFramesFromItemList(nsFrameConstructorState& aSta
 
   CreateNeededTablePseudos(aState, aItems, aParentFrame);
 
-#ifdef MOZ_FLEXBOX
   if (aParentFrame->GetType() == nsGkAtoms::flexContainerFrame) {
     CreateNeededAnonFlexItems(aState, aItems, aParentFrame);
   }
-#endif 
 
 #ifdef DEBUG
   for (FCItemIterator iter(aItems); !iter.IsDone(); iter.Next()) {
@@ -11314,7 +11302,6 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
 
   nsIFrame* nextSibling = ::GetInsertNextSibling(aFrame, aPrevSibling);
 
-#ifdef MOZ_FLEXBOX
   
   
   if (aFrame->GetType() == nsGkAtoms::flexContainerFrame) {
@@ -11372,7 +11359,6 @@ nsCSSFrameConstructor::WipeContainingBlock(nsFrameConstructorState& aState,
     
     
   }
-#endif 
 
   
   ParentType parentType = GetParentType(aFrame);
@@ -12223,7 +12209,6 @@ Iterator::SkipItemsWantingParentType(ParentType aParentType)
   return false;
 }
 
-#ifdef MOZ_FLEXBOX
 bool
 nsCSSFrameConstructor::FrameConstructionItem::
   NeedsAnonFlexItem(const nsFrameConstructorState& aState)
@@ -12274,7 +12259,6 @@ Iterator::SkipItemsThatDontNeedAnonFlexItem(
   }
   return false;
 }
-#endif 
 
 inline bool
 nsCSSFrameConstructor::FrameConstructionItemList::

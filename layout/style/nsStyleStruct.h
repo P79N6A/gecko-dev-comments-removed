@@ -1098,11 +1098,8 @@ struct nsStylePosition {
   nsStyleCoord  mHeight;                
   nsStyleCoord  mMinHeight;             
   nsStyleCoord  mMaxHeight;             
-#ifdef MOZ_FLEXBOX
   nsStyleCoord  mFlexBasis;             
-#endif 
   uint8_t       mBoxSizing;             
-#ifdef MOZ_FLEXBOX
   uint8_t       mAlignItems;            
   uint8_t       mAlignSelf;             
   uint8_t       mFlexDirection;         
@@ -1110,7 +1107,6 @@ struct nsStylePosition {
   int32_t       mOrder;                 
   float         mFlexGrow;              
   float         mFlexShrink;            
-#endif 
   nsStyleCoord  mZIndex;                
 
   bool WidthDependsOnContainer() const
@@ -1642,9 +1638,7 @@ struct nsStyleDisplay {
 
   bool IsBlockOutsideStyle() const {
     return NS_STYLE_DISPLAY_BLOCK == mDisplay ||
-#ifdef MOZ_FLEXBOX
            NS_STYLE_DISPLAY_FLEX == mDisplay ||
-#endif 
            NS_STYLE_DISPLAY_LIST_ITEM == mDisplay ||
            NS_STYLE_DISPLAY_TABLE == mDisplay;
   }
@@ -1654,9 +1648,7 @@ struct nsStyleDisplay {
            NS_STYLE_DISPLAY_INLINE_BLOCK == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_TABLE == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_BOX == aDisplay ||
-#ifdef MOZ_FLEXBOX
            NS_STYLE_DISPLAY_INLINE_FLEX == aDisplay ||
-#endif 
            NS_STYLE_DISPLAY_INLINE_GRID == aDisplay ||
            NS_STYLE_DISPLAY_INLINE_STACK == aDisplay;
   }

@@ -3820,7 +3820,6 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
   bool isFlexItem = IsFlexItem();
   bool isHorizontalFlexItem = false;
  
-#ifdef MOZ_FLEXBOX
   if (isFlexItem) {
     
     
@@ -3852,7 +3851,6 @@ nsFrame::ComputeSize(nsRenderingContext *aRenderingContext,
       }
     }
   }
-#endif 
 
   
 

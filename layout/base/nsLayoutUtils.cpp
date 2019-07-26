@@ -118,14 +118,12 @@ typedef FrameMetrics::ViewID ViewID;
 
 static ViewID sScrollIdCounter = FrameMetrics::START_SCROLL_ID;
 
-#ifdef MOZ_FLEXBOX
 
 
 static int32_t sIndexOfFlexInDisplayTable;
 static int32_t sIndexOfInlineFlexInDisplayTable;
 
 static bool sAreFlexKeywordIndicesInitialized = false;
-#endif 
 
 typedef nsDataHashtable<nsUint64HashKey, nsIContent*> ContentMap;
 static ContentMap* sContentMap = nullptr;
@@ -140,7 +138,6 @@ static ContentMap& GetContentMap() {
 
 
 
-#ifdef MOZ_FLEXBOX
 static int
 FlexboxEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
 {
@@ -178,7 +175,6 @@ FlexboxEnabledPrefChangeCallback(const char* aPrefName, void* aClosure)
 
   return 0;
 }
-#endif 
 
 template <class AnimationsOrTransitions>
 static AnimationsOrTransitions*
@@ -3066,7 +3062,6 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
   bool isFlexItem = aFrame->IsFlexItem();
   bool isHorizontalFlexItem = false;
 
-#ifdef MOZ_FLEXBOX
   if (isFlexItem) {
     
     
@@ -3098,8 +3093,6 @@ nsLayoutUtils::ComputeSizeWithIntrinsicDimensions(
       }
     }
   }
-#endif 
-
 
   
   
@@ -4958,11 +4951,9 @@ nsLayoutUtils::Initialize()
   Preferences::AddBoolVarCache(&sInvalidationDebuggingIsEnabled,
                                "nglayout.debug.invalidation");
 
-#ifdef MOZ_FLEXBOX
   Preferences::RegisterCallback(FlexboxEnabledPrefChangeCallback,
                                 FLEXBOX_ENABLED_PREF_NAME);
   FlexboxEnabledPrefChangeCallback(FLEXBOX_ENABLED_PREF_NAME, nullptr);
-#endif 
 }
 
 
@@ -4974,10 +4965,8 @@ nsLayoutUtils::Shutdown()
     sContentMap = nullptr;
   }
 
-#ifdef MOZ_FLEXBOX
   Preferences::UnregisterCallback(FlexboxEnabledPrefChangeCallback,
                                   FLEXBOX_ENABLED_PREF_NAME);
-#endif 
 }
 
 

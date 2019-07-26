@@ -841,7 +841,6 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       AppendValueToString(subprops[1], aValue);
       break;
     }
-#ifdef MOZ_FLEXBOX
     case eCSSProperty_flex: {
       
       const nsCSSProperty* subprops =
@@ -854,7 +853,6 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       AppendValueToString(subprops[2], aValue);
       break;
     }
-#endif 
     case eCSSProperty__moz_transform: {
       
       const nsCSSProperty* subprops =

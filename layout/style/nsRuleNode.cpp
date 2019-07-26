@@ -135,9 +135,7 @@ nsRuleNode::EnsureBlockDisplay(uint8_t& display)
   case NS_STYLE_DISPLAY_TABLE :
   case NS_STYLE_DISPLAY_BLOCK :
   case NS_STYLE_DISPLAY_LIST_ITEM :
-#ifdef MOZ_FLEXBOX
   case NS_STYLE_DISPLAY_FLEX :
-#endif 
     
     
     
@@ -150,12 +148,10 @@ nsRuleNode::EnsureBlockDisplay(uint8_t& display)
     display = NS_STYLE_DISPLAY_TABLE;
     break;
 
-#ifdef MOZ_FLEXBOX
   case NS_STYLE_DISPLAY_INLINE_FLEX:
     
     display = NS_STYLE_DISPLAY_FLEX;
     break;
-#endif 
 
   default :
     
@@ -6631,7 +6627,6 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               SETDSC_ENUMERATED, parentPos->mBoxSizing,
               NS_STYLE_BOX_SIZING_CONTENT, 0, 0, 0, 0);
 
-#ifdef MOZ_FLEXBOX
   
   SetDiscrete(*aRuleData->ValueForAlignItems(),
               pos->mAlignItems, canStoreInRuleTree,
@@ -6721,7 +6716,6 @@ nsRuleNode::ComputePositionData(void* aStartStruct,
               pos->mJustifyContent, canStoreInRuleTree,
               SETDSC_ENUMERATED, parentPos->mJustifyContent,
               NS_STYLE_JUSTIFY_CONTENT_FLEX_START, 0, 0, 0, 0);
-#endif 
 
   
   const nsCSSValue* zIndexValue = aRuleData->ValueForZIndex();
