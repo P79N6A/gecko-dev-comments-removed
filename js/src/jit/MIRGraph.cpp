@@ -1141,7 +1141,7 @@ MBasicBlock::inheritPhis(MBasicBlock *header)
     for (size_t slot = 0; slot < stackDepth; slot++) {
         MDefinition *exitDef = getSlot(slot);
         MDefinition *loopDef = headerRp->getOperand(slot);
-        if (!loopDef->isPhi()) {
+        if (loopDef->block() != header) {
             MOZ_ASSERT(loopDef->block()->id() < header->id());
             MOZ_ASSERT(loopDef == exitDef);
             continue;
@@ -1177,7 +1177,7 @@ MBasicBlock::inheritPhisFromBackedge(MBasicBlock *backedge, bool *hadTypeChange)
 
         
         MDefinition *loopDef = entryResumePoint()->getOperand(slot);
-        if (!loopDef->isPhi()) {
+        if (loopDef->block() != this) {
             
             
             
