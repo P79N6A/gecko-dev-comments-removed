@@ -241,6 +241,14 @@ BrowserRootActor.prototype = {
 
   preNest: function BRA_preNest() {
     
+    let e = windowMediator.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.suppressEventHandling(true);
+      windowUtils.suspendTimeouts();
+    }
   },
 
   
@@ -248,6 +256,14 @@ BrowserRootActor.prototype = {
 
   postNest: function BRA_postNest(aNestData) {
     
+    let e = windowMediator.getEnumerator(null);
+    while (e.hasMoreElements()) {
+      let win = e.getNext();
+      let windowUtils = win.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+      windowUtils.resumeTimeouts();
+      windowUtils.suppressEventHandling(false);
+    }
   },
 
   
