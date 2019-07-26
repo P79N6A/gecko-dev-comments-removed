@@ -630,7 +630,7 @@ MetroWidget::DeliverNextScrollEvent()
 
 
 bool
-MetroWidget::DispatchKeyboardEvent(nsGUIEvent* aEvent)
+MetroWidget::DispatchKeyboardEvent(WidgetGUIEvent* aEvent)
 {
   MOZ_ASSERT(aEvent);
   WidgetKeyboardEvent* oldKeyEvent = static_cast<WidgetKeyboardEvent*>(aEvent);
@@ -1207,7 +1207,7 @@ void MetroWidget::UserActivity()
 
 
 void
-MetroWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
+MetroWidget::InitEvent(WidgetGUIEvent& event, nsIntPoint* aPoint)
 {
   if (!aPoint) {
     event.refPoint.x = event.refPoint.y = 0;
@@ -1219,7 +1219,7 @@ MetroWidget::InitEvent(nsGUIEvent& event, nsIntPoint* aPoint)
 }
 
 bool
-MetroWidget::DispatchWindowEvent(nsGUIEvent* aEvent)
+MetroWidget::DispatchWindowEvent(WidgetGUIEvent* aEvent)
 {
   MOZ_ASSERT(aEvent);
   nsEventStatus status = nsEventStatus_eIgnore;
@@ -1228,7 +1228,7 @@ MetroWidget::DispatchWindowEvent(nsGUIEvent* aEvent)
 }
 
 NS_IMETHODIMP
-MetroWidget::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus)
+MetroWidget::DispatchEvent(WidgetGUIEvent* event, nsEventStatus & aStatus)
 {
   if (event->IsInputDerivedEvent()) {
     UserActivity();

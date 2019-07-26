@@ -100,7 +100,7 @@ public:
 
 
 
-    bool TryCapture(const nsGUIEvent& aEvent);
+    bool TryCapture(const WidgetGUIEvent& aEvent);
 
     void Destroy();
 

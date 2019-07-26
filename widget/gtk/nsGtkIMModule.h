@@ -274,7 +274,7 @@ protected:
     nsresult DeleteText(const int32_t aOffset, const uint32_t aNChars);
 
     
-    void InitEvent(nsGUIEvent& aEvent);
+    void InitEvent(mozilla::WidgetGUIEvent& aEvent);
 
     
     void PrepareToDestroyContext(GtkIMContext *aContext);

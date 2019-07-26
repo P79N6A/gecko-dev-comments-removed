@@ -207,6 +207,7 @@ nsNativeDragTarget::ProcessDrag(uint32_t     aEventType,
   if (aEventType != NS_DRAGDROP_DROP) {
     
     
+    
     bool canDrop;
     currSession->GetCanDrop(&canDrop);
     if (!canDrop) {

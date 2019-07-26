@@ -154,7 +154,7 @@ public:
                        nsIFrame::Cursor& aCursor) MOZ_OVERRIDE;
 
   NS_IMETHOD HandleEvent(nsPresContext* aPresContext,
-                         nsGUIEvent* aEvent,
+                         mozilla::WidgetGUIEvent* aEvent,
                          nsEventStatus* aEventStatus) MOZ_OVERRIDE;
 
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
@@ -402,7 +402,9 @@ protected:
   
   
   
-  void ComputeDropPosition(nsGUIEvent* aEvent, int32_t* aRow, int16_t* aOrient,
+  void ComputeDropPosition(mozilla::WidgetGUIEvent* aEvent,
+                           int32_t* aRow,
+                           int16_t* aOrient,
                            int16_t* aScrollLines);
 
   

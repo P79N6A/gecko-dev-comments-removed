@@ -108,9 +108,9 @@ public:
                                            const nsDisplayListSet& aLists) MOZ_OVERRIDE;
                                          
   
-  NS_IMETHOD HandleEvent(nsPresContext* aPresContext, 
-                         nsGUIEvent*     aEvent,
-                         nsEventStatus*  aEventStatus) MOZ_OVERRIDE;
+  NS_IMETHOD HandleEvent(nsPresContext* aPresContext,
+                         mozilla::WidgetGUIEvent* aEvent,
+                         nsEventStatus* aEventStatus) MOZ_OVERRIDE;
 
   NS_IMETHOD  AppendFrames(ChildListID     aListID,
                            nsFrameList&    aFrameList) MOZ_OVERRIDE;
@@ -144,7 +144,7 @@ public:
   
   
   
-  nsMenuFrame* Enter(nsGUIEvent* aEvent);
+  nsMenuFrame* Enter(mozilla::WidgetGUIEvent* aEvent);
 
   virtual void SetParent(nsIFrame* aParent) MOZ_OVERRIDE;
 
@@ -234,7 +234,7 @@ protected:
   void BuildAcceleratorText(bool aNotify);
 
   
-  void Execute(nsGUIEvent *aEvent);
+  void Execute(mozilla::WidgetGUIEvent *aEvent);
 
   
   NS_IMETHOD AttributeChanged(int32_t aNameSpaceID,
@@ -245,9 +245,10 @@ protected:
   bool SizeToPopup(nsBoxLayoutState& aState, nsSize& aSize);
 
   bool ShouldBlink();
-  void StartBlinking(nsGUIEvent *aEvent, bool aFlipChecked);
+  void StartBlinking(mozilla::WidgetGUIEvent* aEvent, bool aFlipChecked);
   void StopBlinking();
-  void CreateMenuCommandEvent(nsGUIEvent *aEvent, bool aFlipChecked);
+  void CreateMenuCommandEvent(mozilla::WidgetGUIEvent* aEvent,
+                              bool aFlipChecked);
   void PassMenuCommandEventToPopupManager();
 
 protected:

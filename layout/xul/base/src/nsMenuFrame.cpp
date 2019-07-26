@@ -390,9 +390,9 @@ nsMenuFrame::BuildDisplayListForChildren(nsDisplayListBuilder*   aBuilder,
 }
 
 NS_IMETHODIMP
-nsMenuFrame::HandleEvent(nsPresContext* aPresContext, 
-                         nsGUIEvent*     aEvent,
-                         nsEventStatus*  aEventStatus)
+nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
+                         WidgetGUIEvent* aEvent,
+                         nsEventStatus* aEventStatus)
 {
   NS_ENSURE_ARG_POINTER(aEventStatus);
   if (nsEventStatus_eConsumeNoDefault == *aEventStatus ||
@@ -787,7 +787,7 @@ nsMenuFrame::SetDebug(nsBoxLayoutState& aState, nsIFrame* aList, bool aDebug)
 
 
 nsMenuFrame*
-nsMenuFrame::Enter(nsGUIEvent *aEvent)
+nsMenuFrame::Enter(WidgetGUIEvent* aEvent)
 {
   if (IsDisabled()) {
 #ifdef XP_WIN
@@ -1166,7 +1166,7 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
 }
 
 void
-nsMenuFrame::Execute(nsGUIEvent *aEvent)
+nsMenuFrame::Execute(WidgetGUIEvent* aEvent)
 {
   
   bool needToFlipChecked = false;
@@ -1198,7 +1198,7 @@ nsMenuFrame::ShouldBlink()
 }
 
 void
-nsMenuFrame::StartBlinking(nsGUIEvent *aEvent, bool aFlipChecked)
+nsMenuFrame::StartBlinking(WidgetGUIEvent* aEvent, bool aFlipChecked)
 {
   StopBlinking();
   CreateMenuCommandEvent(aEvent, aFlipChecked);
@@ -1237,7 +1237,7 @@ nsMenuFrame::StopBlinking()
 }
 
 void
-nsMenuFrame::CreateMenuCommandEvent(nsGUIEvent *aEvent, bool aFlipChecked)
+nsMenuFrame::CreateMenuCommandEvent(WidgetGUIEvent* aEvent, bool aFlipChecked)
 {
   
   

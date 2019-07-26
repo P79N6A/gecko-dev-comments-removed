@@ -1640,7 +1640,7 @@ nsImageFrame::GetContentForEvent(nsEvent* aEvent,
 
 NS_IMETHODIMP
 nsImageFrame::HandleEvent(nsPresContext* aPresContext,
-                          nsGUIEvent* aEvent,
+                          WidgetGUIEvent* aEvent,
                           nsEventStatus* aEventStatus)
 {
   NS_ENSURE_ARG_POINTER(aEventStatus);

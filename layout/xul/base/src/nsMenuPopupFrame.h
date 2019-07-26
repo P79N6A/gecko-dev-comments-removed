@@ -215,7 +215,7 @@ public:
   
   
   
-  nsMenuFrame* Enter(nsGUIEvent* aEvent);
+  nsMenuFrame* Enter(mozilla::WidgetGUIEvent* aEvent);
 
   nsPopupType PopupType() const { return mPopupType; }
   bool IsMenu() MOZ_OVERRIDE { return mPopupType == ePopupTypeMenu; }

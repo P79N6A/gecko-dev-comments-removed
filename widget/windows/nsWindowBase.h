@@ -40,20 +40,21 @@ public:
 
 
 
-  virtual void InitEvent(nsGUIEvent& aEvent, nsIntPoint* aPoint = nullptr) = 0;
+  virtual void InitEvent(mozilla::WidgetGUIEvent& aEvent,
+                         nsIntPoint* aPoint = nullptr) = 0;
 
   
 
 
 
-  virtual bool DispatchWindowEvent(nsGUIEvent* aEvent) = 0;
+  virtual bool DispatchWindowEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
 
   
 
 
 
 
-  virtual bool DispatchKeyboardEvent(nsGUIEvent* aEvent) = 0;
+  virtual bool DispatchKeyboardEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
 
   
 

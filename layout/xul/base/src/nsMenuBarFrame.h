@@ -80,7 +80,7 @@ public:
 
   
   
-  nsMenuFrame* Enter(nsGUIEvent* aEvent);
+  nsMenuFrame* Enter(mozilla::WidgetGUIEvent* aEvent);
 
   
   nsMenuFrame* FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent);

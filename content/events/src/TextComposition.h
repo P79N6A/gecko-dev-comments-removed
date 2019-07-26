@@ -33,7 +33,7 @@ class TextComposition MOZ_FINAL
 public:
   TextComposition(nsPresContext* aPresContext,
                   nsINode* aNode,
-                  nsGUIEvent* aEvent);
+                  WidgetGUIEvent* aEvent);
 
   TextComposition(const TextComposition& aOther);
 
@@ -92,7 +92,7 @@ private:
 
 
 
-  void DispatchEvent(nsGUIEvent* aEvent,
+  void DispatchEvent(WidgetGUIEvent* aEvent,
                      nsEventStatus* aStatus,
                      nsDispatchingCallback* aCallBack);
 

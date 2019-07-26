@@ -121,8 +121,9 @@ public:
 
 
 
-  void DispatchEvent(nsGUIEvent *aEvent,
-      nsView* aViewTarget, nsEventStatus* aStatus);
+  void DispatchEvent(mozilla::WidgetGUIEvent *aEvent,
+                     nsView* aViewTarget,
+                     nsEventStatus* aStatus);
 
   
 

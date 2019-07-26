@@ -337,7 +337,7 @@ public:
 
 
 
-  bool DispatchEvent(nsGUIEvent& aEvent);
+  bool DispatchEvent(WidgetGUIEvent& aEvent);
 
   
 
