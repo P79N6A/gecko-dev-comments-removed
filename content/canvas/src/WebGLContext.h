@@ -1180,10 +1180,10 @@ protected:
     nsTArray<nsRefPtr<WebGLExtensionBase> > mExtensions;
 
     
-    bool IsExtensionEnabled(WebGLExtensionID ext);
+    bool IsExtensionEnabled(WebGLExtensionID ext) const;
 
     
-    bool IsExtensionSupported(WebGLExtensionID ext);
+    bool IsExtensionSupported(WebGLExtensionID ext) const;
 
     nsTArray<WebGLenum> mCompressedTextureFormats;
 
