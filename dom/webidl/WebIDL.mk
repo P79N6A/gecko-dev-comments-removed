@@ -35,7 +35,6 @@ webidl_files = \
   Element.webidl \
   EventHandler.webidl \
   EventListener.webidl \
-  EventSource.webidl \
   EventTarget.webidl \
   File.webidl \
   FileHandle.webidl \
@@ -45,6 +44,7 @@ webidl_files = \
   Function.webidl \
   GainNode.webidl \
   HTMLCollection.webidl \
+  HTMLDivElement.webidl \
   HTMLElement.webidl \
   HTMLOptionsCollection.webidl \
   HTMLPropertiesCollection.webidl \
@@ -53,7 +53,6 @@ webidl_files = \
   Node.webidl \
   NodeFilter.webidl \
   NodeList.webidl \
-  PaintRequest.webidl \
   PaintRequestList.webidl \
   PannerNode.webidl \
   Performance.webidl \

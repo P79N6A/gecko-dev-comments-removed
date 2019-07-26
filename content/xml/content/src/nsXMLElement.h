@@ -16,6 +16,7 @@ public:
   nsXMLElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     : mozilla::dom::Element(aNodeInfo)
   {
+    SetIsDOMBinding();
   }
 
   
@@ -51,7 +52,9 @@ public:
   
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo);
 
-
+protected:
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
+                             bool *aTriedToWrap) MOZ_OVERRIDE;
 };
 
 #endif 
