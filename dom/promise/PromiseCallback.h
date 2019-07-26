@@ -13,8 +13,6 @@
 namespace mozilla {
 namespace dom {
 
-class PromiseResolver;
-
 
 
 class PromiseCallback : public nsISupports
@@ -35,8 +33,7 @@ public:
 
   
   static PromiseCallback*
-  Factory(PromiseResolver* aNextResolver, AnyCallback* aCallback,
-          Task aTask);
+  Factory(Promise* aNextPromise, AnyCallback* aCallback, Task aTask);
 };
 
 
@@ -51,12 +48,11 @@ public:
 
   void Call(const Optional<JS::Handle<JS::Value> >& aValue) MOZ_OVERRIDE;
 
-  WrapperPromiseCallback(PromiseResolver* aNextResolver,
-                         AnyCallback* aCallback);
+  WrapperPromiseCallback(Promise* aNextPromise, AnyCallback* aCallback);
   ~WrapperPromiseCallback();
 
 private:
-  nsRefPtr<PromiseResolver> mNextResolver;
+  nsRefPtr<Promise> mNextPromise;
   nsRefPtr<AnyCallback> mCallback;
 };
 
@@ -90,11 +86,11 @@ public:
 
   void Call(const Optional<JS::Handle<JS::Value> >& aValue) MOZ_OVERRIDE;
 
-  ResolvePromiseCallback(PromiseResolver* aResolver);
+  ResolvePromiseCallback(Promise* aPromise);
   ~ResolvePromiseCallback();
 
 private:
-  nsRefPtr<PromiseResolver> mResolver;
+  nsRefPtr<Promise> mPromise;
 };
 
 
@@ -108,11 +104,11 @@ public:
 
   void Call(const Optional<JS::Handle<JS::Value> >& aValue) MOZ_OVERRIDE;
 
-  RejectPromiseCallback(PromiseResolver* aResolver);
+  RejectPromiseCallback(Promise* aPromise);
   ~RejectPromiseCallback();
 
 private:
-  nsRefPtr<PromiseResolver> mResolver;
+  nsRefPtr<Promise> mPromise;
 };
 
 } 
