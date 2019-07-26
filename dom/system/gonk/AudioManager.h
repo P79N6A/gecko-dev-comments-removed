@@ -42,12 +42,11 @@ class AudioManager : public nsIAudioManager
                    , public nsIObserver
 {
 public:
+  static already_AddRefed<AudioManager> GetInstance();
+
   NS_DECL_ISUPPORTS
   NS_DECL_NSIAUDIOMANAGER
   NS_DECL_NSIOBSERVER
-
-  AudioManager();
-  ~AudioManager();
 
   
   
@@ -74,6 +73,9 @@ private:
                                     const char* aTopic,
                                     const nsCString aAddress);
   void HandleAudioChannelProcessChanged();
+
+  AudioManager();
+  ~AudioManager();
 };
 
 } 
