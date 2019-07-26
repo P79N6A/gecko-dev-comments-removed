@@ -26,6 +26,7 @@
 #include "mozilla/Likely.h"
 
 using namespace xpc;
+using namespace mozilla;
 
 bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache)
@@ -1819,6 +1820,15 @@ XPCWrappedNative::GetWrappedNativeOfJSObject(JSContext* cx,
 
     
     
+    
+    
+    
+    Maybe<JSAutoCompartment> mac;
+    if (cx)
+        mac.construct(cx, obj);
+
+    
+    
 
     if (funobj) {
         JSObject* funObjParent = js::UnwrapObject(js::GetObjectParent(funobj));
@@ -1846,6 +1856,10 @@ XPCWrappedNative::GetWrappedNativeOfJSObject(JSContext* cx,
     }
 
   restart:
+    if (cx) {
+        mac.destroy();
+        mac.construct(cx, obj);
+    }
     for (cur = obj; cur; ) {
         
         js::Class* clazz;
