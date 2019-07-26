@@ -611,8 +611,7 @@ nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
   nsCOMArray<nsIPropertyElement> props;
 
   
-  if (!props.SetCapacity(mTable.entryCount))
-    return NS_ERROR_OUT_OF_MEMORY;
+  props.SetCapacity(mTable.entryCount);
 
   
   uint32_t n =

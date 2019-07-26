@@ -221,8 +221,7 @@ nsMimeTypeArray::GetMimeTypes()
         }
       }
       
-      if (!mMimeTypeArray.SetCapacity(pluginMimeTypeCount))
-        return NS_ERROR_OUT_OF_MEMORY;
+      mMimeTypeArray.SetCapacity(pluginMimeTypeCount);
 
       mPluginMimeTypeCount = pluginMimeTypeCount;
       mInited = true;
