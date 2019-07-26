@@ -136,18 +136,6 @@ XMLUtils::splitQName(const nsAString& aName, nsIAtom** aPrefix,
     return NS_OK;
 }
 
-const nsDependentSubstring XMLUtils::getLocalPart(const nsAString& src)
-{
-    
-    int32_t idx = src.FindChar(':');
-    if (idx == kNotFound) {
-        return Substring(src, 0, src.Length());
-    }
-
-    NS_ASSERTION(idx > 0, "This QName looks invalid.");
-    return Substring(src, idx + 1, src.Length() - (idx + 1));
-}
-
 
 
 

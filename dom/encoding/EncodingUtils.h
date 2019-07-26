@@ -28,23 +28,6 @@ public:
 
 
 
-  static uint32_t IdentifyDataOffset(const char* aData,
-                                     const uint32_t aLength,
-                                     nsACString& aRetval);
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
   static bool FindEncodingForLabel(const nsACString& aLabel,
                                    nsACString& aOutEncoding);
 

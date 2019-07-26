@@ -638,17 +638,6 @@ public:
 
 
 
-  virtual nsLinkState GetLinkState() const
-  {
-    return eLinkState_NotLink;
-  }
-
-  
-
-
-
-
-
 
   virtual already_AddRefed<nsIURI> GetHrefURI() const
   {
