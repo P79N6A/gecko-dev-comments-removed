@@ -1064,10 +1064,20 @@ let SessionStoreInternal = {
         
         PrivacyFilter.filterPrivateTabs(winData);
 
-        let hasSingleTabToSave =
-          winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]);
+        
+        let hasSaveableTabs = winData.tabs.some(this._shouldSaveTabState);
 
-        if (hasSingleTabToSave || winData.tabs.length > 1) {
+        
+        
+        
+        
+        
+        
+        let isLastWindow =
+          Object.keys(this._windows).length == 1 &&
+          !this._closedWindows.some(win => win._shouldRestore || false);
+
+        if (hasSaveableTabs || isLastWindow) {
           
           delete winData.busy;
 
