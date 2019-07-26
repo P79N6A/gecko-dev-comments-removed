@@ -32,7 +32,7 @@ else
   gDelayTestDriverEnd = true;
 
   
-  window.alert();
+  window.showModalDialog();
   actual = 'No Error';
 }
 
