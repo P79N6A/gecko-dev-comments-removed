@@ -19,9 +19,9 @@ class nsIURI;
 #define NS_FORM_ENCTYPE_TEXTPLAIN  2
 
 
-#define NS_IFORM_IID    \
-{ 0x27f1ff6c, 0xeb78, 0x405b, \
- { 0xa6, 0xeb, 0xf0, 0xce, 0xa8, 0x30, 0x85, 0x58 } }
+#define NS_IFORM_IID \
+{ 0x5e8464c8, 0x015d, 0x4cf9, \
+  { 0x92, 0xc9, 0xa6, 0xb3, 0x30, 0x8f, 0x60, 0x9d } }
 
 
 
@@ -49,17 +49,6 @@ public:
 
 
   NS_IMETHOD_(uint32_t) GetElementCount() const = 0;
-
-  
-
-
-
-
-
-
-
-
-  NS_IMETHOD_(already_AddRefed<nsISupports>) ResolveName(const nsAString& aName) = 0;
 
   
 

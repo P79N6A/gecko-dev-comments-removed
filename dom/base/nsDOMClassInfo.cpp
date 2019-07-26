@@ -7171,32 +7171,6 @@ nsHTMLDocumentSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
 
 
 
-
-nsresult
-nsHTMLFormElementSH::FindNamedItem(nsIForm *aForm, jsid id,
-                                   nsISupports **aResult,
-                                   nsWrapperCache **aCache)
-{
-  nsDependentJSString name(id);
-
-  *aResult = aForm->ResolveName(name).get();
-  
-  *aCache = nullptr;
-
-  if (!*aResult) {
-    nsCOMPtr<nsIContent> content(do_QueryInterface(aForm));
-
-    nsCOMPtr<nsIHTMLDocument> html_doc =
-      do_QueryInterface(content->GetDocument());
-
-    if (html_doc && content) {
-      *aResult = html_doc->ResolveName(name, content, aCache).get();
-    }
-  }
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP
 nsHTMLFormElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
                                 JSContext *cx, JSObject *obj, jsid id,
@@ -7208,10 +7182,11 @@ nsHTMLFormElementSH::NewResolve(nsIXPConnectWrappedNative *wrapper,
       (!ObjectIsNativeWrapper(cx, obj) ||
        xpc::WrapperFactory::XrayWrapperNotShadowing(obj, id))) {
     nsCOMPtr<nsIForm> form(do_QueryWrappedNative(wrapper, obj));
-    nsCOMPtr<nsISupports> result;
-    nsWrapperCache *cache;
 
-    FindNamedItem(form, id, getter_AddRefs(result), &cache);
+    nsDependentJSString name(id);
+    nsWrapperCache* cache;
+    nsCOMPtr<nsISupports> result =
+      static_cast<nsHTMLFormElement*>(form.get())->FindNamedItem(name, &cache);
 
     if (result) {
       JSAutoRequest ar(cx);
@@ -7237,10 +7212,10 @@ nsHTMLFormElementSH::GetProperty(nsIXPConnectWrappedNative *wrapper,
 
   if (JSID_IS_STRING(id)) {
     
-    nsCOMPtr<nsISupports> result;
-    nsWrapperCache *cache;
-
-    FindNamedItem(form, id, getter_AddRefs(result), &cache);
+    nsDependentJSString name(id);
+    nsWrapperCache* cache;
+    nsCOMPtr<nsISupports> result =
+      static_cast<nsHTMLFormElement*>(form.get())->FindNamedItem(name, &cache);
 
     if (result) {
       

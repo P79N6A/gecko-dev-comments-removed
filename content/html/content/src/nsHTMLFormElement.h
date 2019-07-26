@@ -57,7 +57,6 @@ public:
   
   NS_IMETHOD_(nsIFormControl*) GetElementAt(int32_t aIndex) const;
   NS_IMETHOD_(uint32_t) GetElementCount() const;
-  NS_IMETHOD_(already_AddRefed<nsISupports>) ResolveName(const nsAString& aName);
   NS_IMETHOD_(int32_t) IndexOfControl(nsIFormControl* aControl);
   NS_IMETHOD_(nsIFormControl*) GetDefaultSubmitElement() const;
 
@@ -240,6 +239,13 @@ public:
 
   bool HasEverTriedInvalidSubmit() const { return mEverTriedInvalidSubmit; }
 
+  
+
+
+
+  already_AddRefed<nsISupports>
+  FindNamedItem(const nsAString& aName, nsWrapperCache** aCache);
+
 protected:
   void PostPasswordEvent();
   void EventHandled() { mFormPasswordEvent = nullptr; }
@@ -325,6 +331,7 @@ protected:
                                  bool aEarlyNotify);
 
   
+
 
 
   already_AddRefed<nsISupports> DoResolveName(const nsAString& aName, bool aFlushContent);
