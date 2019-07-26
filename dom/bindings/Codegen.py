@@ -1956,6 +1956,9 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
     assert(not isDefinitelyObject or defaultValue is None)
 
     
+    assert not isDefinitelyObject or not isNullOrUndefined
+
+    
     
     def onFailureNotAnObject(failureCode):
         return CGWrapper(CGGeneric(
@@ -1995,8 +1998,14 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
 
     
     
-    def wrapObjectTemplate(templateBody, isDefinitelyObject, type,
-                           codeToSetNull, failureCode=None):
+    def wrapObjectTemplate(templateBody, type, codeToSetNull, failureCode=None):
+        if isNullOrUndefined:
+            assert type.nullable()
+            
+            
+            
+            return "%s;" % codeToSetNull
+
         if not isDefinitelyObject:
             
             
@@ -2107,8 +2116,7 @@ for (uint32_t i = 0; i < length; ++i) {
                     ))).define()
 
         templateBody += "\n}"
-        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type,
+        templateBody = wrapObjectTemplate(templateBody, type,
                                           "const_cast< %s & >(${declName}).SetNull()" % mutableTypeName.define())
         return (templateBody, typeName, None, isOptional)
 
@@ -2427,8 +2435,8 @@ for (uint32_t i = 0; i < length; ++i) {
             
             templateBody += "${declName} = tmp;"
 
-        templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, "${declName} = NULL",
+        templateBody = wrapObjectTemplate(templateBody, type,
+                                          "${declName} = NULL",
                                           failureCode)
 
         declType = CGGeneric(declType)
@@ -2483,7 +2491,7 @@ for (uint32_t i = 0; i < length; ++i) {
             template += "%s = ${holderName}.addr();" % nullableTarget
         elif not isOptional:
             template += "${declName} = ${holderName}.addr();"
-        template = wrapObjectTemplate(template, isDefinitelyObject, type,
+        template = wrapObjectTemplate(template, type,
                                       "%s = NULL" % nullableTarget,
                                       failureCode)
 
@@ -2626,7 +2634,7 @@ for (uint32_t i = 0; i < length; ++i) {
                 "} else {\n"
                 "%s"
                 "}" % CGIndenter(onFailureNotCallable(failureCode)).define(),
-                isDefinitelyObject, type,
+                type,
                 "${declName} = nullptr",
                 failureCode)
         return (template, declType, None, isOptional)
@@ -2649,7 +2657,7 @@ for (uint32_t i = 0; i < length; ++i) {
             raise TypeError("Can't handle member 'object'; need to sort out "
                             "rooting issues")
         template = wrapObjectTemplate("${declName} = &${val}.toObject();",
-                                      isDefinitelyObject, type,
+                                      type,
                                       "${declName} = NULL",
                                       failureCode)
         if type.nullable():
