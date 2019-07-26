@@ -4974,16 +4974,20 @@ nsContentUtils::SetDataTransferInEvent(WidgetDragEvent* aDragEvent)
   nsCOMPtr<nsIDragSession> dragSession = GetDragSession();
   NS_ENSURE_TRUE(dragSession, NS_OK); 
 
-  nsCOMPtr<nsIDOMDataTransfer> initialDataTransfer;
-  dragSession->GetDataTransfer(getter_AddRefs(initialDataTransfer));
-  if (!initialDataTransfer) {
+  nsCOMPtr<nsIDOMDataTransfer> dataTransfer;
+  nsCOMPtr<DataTransfer> initialDataTransfer;
+  dragSession->GetDataTransfer(getter_AddRefs(dataTransfer));
+  if (dataTransfer) {
+    initialDataTransfer = do_QueryInterface(dataTransfer);
+    if (!initialDataTransfer) {
+      return NS_ERROR_FAILURE;
+    }
+  } else {
     
     
     
     
-    initialDataTransfer = new DataTransfer(aDragEvent->message, true, -1);
-
-    NS_ENSURE_TRUE(initialDataTransfer, NS_ERROR_OUT_OF_MEMORY);
+    initialDataTransfer = new DataTransfer(aDragEvent->target, aDragEvent->message, true, -1);
 
     
     dragSession->SetDataTransfer(initialDataTransfer);
@@ -4996,7 +5000,7 @@ nsContentUtils::SetDataTransferInEvent(WidgetDragEvent* aDragEvent)
   }
 
   
-  initialDataTransfer->Clone(aDragEvent->message, aDragEvent->userCancelled,
+  initialDataTransfer->Clone(aDragEvent->target, aDragEvent->message, aDragEvent->userCancelled,
                              isCrossDomainSubFrameDrop,
                              getter_AddRefs(aDragEvent->dataTransfer));
   NS_ENSURE_TRUE(aDragEvent->dataTransfer, NS_ERROR_OUT_OF_MEMORY);

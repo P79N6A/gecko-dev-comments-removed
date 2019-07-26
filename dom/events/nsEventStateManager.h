@@ -737,7 +737,7 @@ protected:
 
 
 
-  void DetermineDragTarget(nsPresContext* aPresContext,
+  void DetermineDragTarget(nsPIDOMWindow* aWindow,
                            nsIContent* aSelectionTarget,
                            mozilla::dom::DataTransfer* aDataTransfer,
                            nsISelection** aSelection,

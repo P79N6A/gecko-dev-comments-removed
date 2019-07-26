@@ -86,8 +86,6 @@ DOMCI_CLASS(MozMobileConnection)
 
 DOMCI_CLASS(CSSFontFaceRule)
 
-DOMCI_CLASS(DataTransfer)
-
 DOMCI_CLASS(EventListenerInfo)
 
 DOMCI_CLASS(ContentFrameMessageManager)
