@@ -49,6 +49,8 @@ const {LongStringActor, ShortLongString} = require("devtools/server/actors/strin
 const promise = require("sdk/core/promise");
 const object = require("sdk/util/object");
 const events = require("sdk/event/core");
+const { Unknown } = require("sdk/platform/xpcom");
+const { Class } = require("sdk/core/heritage");
 
 Cu.import("resource://gre/modules/Services.jsm");
 
@@ -573,6 +575,51 @@ let traversalMethod = {
 
 
 
+
+
+
+
+
+
+
+
+var ProgressListener = Class({
+  extends: Unknown,
+  interfaces: ["nsIWebProgressListener", "nsISupportsWeakReference"],
+
+  initialize: function(webProgress) {
+    Unknown.prototype.initialize.call(this);
+    this.webProgress = webProgress;
+    this.webProgress.addProgressListener(this);
+  },
+
+  destroy: function() {
+    this.webProgress.removeProgressListener(this);
+  },
+
+  onStateChange: makeInfallible(function stateChange(progress, request, flag, status) {
+    let isWindow = flag & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
+    let isDocument = flag & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT;
+    if (!(isWindow || isDocument)) {
+      return;
+    }
+
+    if (isDocument && (flag & Ci.nsIWebProgressListener.STATE_START)) {
+      events.emit(this, "windowchange-start", progress.DOMWindow);
+    }
+    if (isWindow && (flag & Ci.nsIWebProgressListener.STATE_STOP)) {
+      events.emit(this, "windowchange-stop", progress.DOMWindow);
+    }
+  }),
+  onProgressChange: function() {},
+  onSecurityChange: function() {},
+  onStatusChange: function() {},
+  onLocationChange: function() {},
+});
+
+
+
+
 var WalkerActor = protocol.ActorClass({
   typeName: "domwalker",
 
@@ -587,7 +634,7 @@ var WalkerActor = protocol.ActorClass({
 
 
 
-  initialize: function(conn, document, options) {
+  initialize: function(conn, document, webProgress, options) {
     protocol.Actor.prototype.initialize.call(this, conn);
     this.rootDoc = document;
     this._refMap = new Map();
@@ -599,6 +646,13 @@ var WalkerActor = protocol.ActorClass({
     this._orphaned = new Set();
 
     this.onMutations = this.onMutations.bind(this);
+    this.onFrameLoad = this.onFrameLoad.bind(this);
+    this.onFrameUnload = this.onFrameUnload.bind(this);
+
+    this.progressListener = ProgressListener(webProgress);
+
+    events.on(this.progressListener, "windowchange-start", this.onFrameUnload);
+    events.on(this.progressListener, "windowchange-stop", this.onFrameLoad);
 
     
     
@@ -619,6 +673,7 @@ var WalkerActor = protocol.ActorClass({
 
   destroy: function() {
     protocol.Actor.prototype.destroy.call(this);
+    this.progressListener.destroy();
     this.rootDoc = null;
   },
 
@@ -1146,8 +1201,44 @@ var WalkerActor = protocol.ActorClass({
     if (needEvent) {
       events.emit(this, "new-mutations");
     }
-  }
+  },
 
+  onFrameLoad: function(window) {
+    let frame = window.frameElement;
+    let frameActor = this._refMap.get(frame);
+    if (!frameActor) {
+      return;
+    }
+    let needEvent = this._pendingMutations.length === 0;
+    this._pendingMutations.push({
+      type: "frameLoad",
+      target: frameActor.actorID,
+      added: [],
+      removed: []
+    });
+
+    if (needEvent) {
+      events.emit(this, "new-mutations");
+    }
+  },
+
+  onFrameUnload: function(window) {
+    let doc = window.document;
+    let documentActor = this._refMap.get(doc);
+    if (!documentActor) {
+      return;
+    }
+
+    let needEvent = this._pendingMutations.length === 0;
+    this._pendingMutations.push({
+      type: "documentUnload",
+      target: documentActor.actorID
+    });
+    this.releaseNode(documentActor);
+    if (needEvent) {
+      events.emit(this, "new-mutations");
+    }
+  }
 });
 
 
@@ -1215,7 +1306,7 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
         let targetID = change.target;
         let targetFront = this.get(targetID);
         if (!targetFront) {
-          console.error("Got a mutation for an unexpected actor: " + targetID);
+          console.trace("Got a mutation for an unexpected actor: " + targetID + ", please file a bug on bugzilla.mozilla.org!");
           continue;
         }
 
@@ -1257,6 +1348,20 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
           emittedMutation.added = addedFronts;
           emittedMutation.removed = removedFronts;
           targetFront._form.numChildren = change.numChildren;
+        } else if (change.type === "frameLoad") {
+          
+          
+          
+          for (let child of targetFront.treeChildren()) {
+            if (child.nodeType === Ci.nsIDOMNode.DOCUMENT_NODE) {
+              console.trace("Got an unexpected frameLoad in the inspector, please file a bug on bugzilla.mozilla.org!");
+            }
+          }
+        } else if (change.type === "documentUnload") {
+          
+          
+          emittedMutation.target = targetFront.actorID;
+          targetFront.destroy();
         } else {
           targetFront.updateMutation(change);
         }
@@ -1310,10 +1415,11 @@ var InspectorActor = protocol.ActorClass({
     } else if (tabActor.browser instanceof Ci.nsIDOMElement) {
       this.window = tabActor.browser.contentWindow;
     }
+    this.webProgress = tabActor._tabbrowser;
   },
 
   getWalker: method(function(options={}) {
-    return WalkerActor(this.conn, this.window.document, options);
+    return WalkerActor(this.conn, this.window.document, this.webProgress, options);
   }, {
     request: {},
     response: {
