@@ -689,11 +689,48 @@ public:
   
 
 
+
   mozilla::LogicalRect GetLogicalRect(nscoord aContainerWidth) const {
-    return mozilla::LogicalRect(GetWritingMode(), GetRect(), aContainerWidth);
+    return GetLogicalRect(GetWritingMode(), aContainerWidth);
   }
   mozilla::LogicalPoint GetLogicalPosition(nscoord aContainerWidth) const {
-    return GetLogicalRect(aContainerWidth).Origin(GetWritingMode());
+    return GetLogicalPosition(GetWritingMode(), aContainerWidth);
+  }
+  mozilla::LogicalSize GetLogicalSize() const {
+    return GetLogicalSize(GetWritingMode());
+  }
+  mozilla::LogicalRect GetLogicalRect(mozilla::WritingMode aWritingMode,
+                                      nscoord aContainerWidth) const {
+    return mozilla::LogicalRect(aWritingMode, GetRect(), aContainerWidth);
+  }
+  mozilla::LogicalPoint GetLogicalPosition(mozilla::WritingMode aWritingMode,
+                                           nscoord aContainerWidth) const {
+    return GetLogicalRect(aWritingMode, aContainerWidth).Origin(aWritingMode);
+  }
+  mozilla::LogicalSize GetLogicalSize(mozilla::WritingMode aWritingMode) const {
+    return mozilla::LogicalSize(aWritingMode, GetSize());
+  }
+  nscoord IStart(nscoord aContainerWidth) const {
+    return IStart(GetWritingMode(), aContainerWidth);
+  }
+  nscoord IStart(mozilla::WritingMode aWritingMode,
+                 nscoord aContainerWidth) const {
+    return GetLogicalPosition(aWritingMode, aContainerWidth).I(aWritingMode);
+  }
+  nscoord BStart(nscoord aContainerWidth) const {
+    return BStart(GetWritingMode(), aContainerWidth);
+  }
+  nscoord BStart(mozilla::WritingMode aWritingMode,
+                 nscoord aContainerWidth) const {
+    return GetLogicalPosition(aWritingMode, aContainerWidth).B(aWritingMode);
+  }
+  nscoord ISize() const { return ISize(GetWritingMode()); }
+  nscoord ISize(mozilla::WritingMode aWritingMode) const {
+    return GetLogicalSize(aWritingMode).ISize(aWritingMode);
+  }
+  nscoord BSize() const { return BSize(GetWritingMode()); }
+  nscoord BSize(mozilla::WritingMode aWritingMode) const {
+    return GetLogicalSize(aWritingMode).BSize(aWritingMode);
   }
 
   
@@ -715,17 +752,16 @@ public:
   
 
 
-  void SetRectFromLogicalRect(const mozilla::LogicalRect& aRect,
-                              nscoord aContainerWidth) {
-    SetRectFromLogicalRect(GetWritingMode(), aRect, aContainerWidth);
+  void SetRect(const mozilla::LogicalRect& aRect, nscoord aContainerWidth) {
+    SetRect(GetWritingMode(), aRect, aContainerWidth);
   }
   
 
 
 
-  void SetRectFromLogicalRect(mozilla::WritingMode aWritingMode,
-                              const mozilla::LogicalRect& aRect,
-                              nscoord aContainerWidth) {
+  void SetRect(mozilla::WritingMode aWritingMode,
+               const mozilla::LogicalRect& aRect,
+               nscoord aContainerWidth) {
     SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
   }
   void SetSize(const nsSize& aSize) {
