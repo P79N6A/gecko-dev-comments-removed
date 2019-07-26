@@ -813,7 +813,7 @@ this.UITour = {
 
       
       
-      if (maxDimension / minDimension <= 2.1) {
+      if (maxDimension / minDimension <= 3.0) {
         highlightHeight = highlightWidth = maxDimension;
         highlighter.style.borderRadius = "100%";
       } else {
