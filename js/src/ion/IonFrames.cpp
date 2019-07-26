@@ -254,27 +254,29 @@ IonFrameIterator::operator++()
     return *this;
 }
 
+uintptr_t *
+IonFrameIterator::spillBase() const
+{
+    
+    
+    
+    
+    return reinterpret_cast<uintptr_t *>(fp() - ionScript()->frameSize());
+}
+
 MachineState
 IonFrameIterator::machineState() const
 {
     SafepointReader reader(ionScript(), safepoint());
-
-    GeneralRegisterSet gcRegs = reader.gcSpills();
-    GeneralRegisterSet allRegs = reader.allSpills();
+    uintptr_t *spill = spillBase();
 
     
     
     
     
-    uintptr_t *spillBase = reinterpret_cast<uintptr_t *>(fp()) + ionScript()->frameSize();
-
     MachineState machine;
-    for (GeneralRegisterIterator iter(allRegs); iter.more(); iter++, spillBase++) {
-        Register reg = *iter;
-        if (!gcRegs.has(reg))
-            continue;
-        machine.setRegisterLocation(reg, spillBase);
-    }
+    for (GeneralRegisterIterator iter(reader.allSpills()); iter.more(); iter++)
+        machine.setRegisterLocation(*iter, --spill);
 
     return machine;
 }
@@ -448,10 +450,6 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     SafepointReader safepoint(ionScript, si);
 
     
-    JS_ASSERT(safepoint.gcSpills().empty());
-    JS_ASSERT(safepoint.allSpills().empty());
-
-    
     
     uint32 slot;
     while (safepoint.getGcSlot(&slot)) {
@@ -462,6 +460,13 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     while (safepoint.getValueSlot(&slot)) {
         Value *v = (Value *)layout->slotRef(slot);
         gc::MarkValueRoot(trc, v, "ion-gc-slot");
+    }
+
+    uintptr_t *spill = frame.spillBase();
+    GeneralRegisterSet gcRegs = safepoint.gcSpills();
+    for (GeneralRegisterIterator iter(safepoint.allSpills()); iter.more(); iter++) {
+        if (gcRegs.has(*iter))
+            gc::MarkThingOrValueRoot(trc, --spill, "ion-gc-spill");
     }
 }
 

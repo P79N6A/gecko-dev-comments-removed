@@ -977,21 +977,19 @@ class LSafepoint : public TempObject
     SlotList &gcSlots() {
         return gcSlots_;
     }
+
     
     
-    
-    
-    RegisterSet restRegs() const {
-        RegisterSet gc = RegisterSet(gcRegs(), FloatRegisterSet());
+    RegisterSet spillRegs() const {
         RegisterSet wrapper =
             RegisterSet(GeneralRegisterSet(Registers::WrapperMask),
                         FloatRegisterSet(FloatRegisters::WrapperMask));
-        RegisterSet rest =
-            RegisterSet::Intersect(RegisterSet::Intersect(wrapper, liveRegs()),
-                                   RegisterSet::Not(gc));
-
-        return rest;
+        RegisterSet spills =
+            RegisterSet::Union(RegisterSet::Intersect(wrapper, liveRegs()),
+                               RegisterSet(gcRegs(), FloatRegisterSet()));
+        return spills;
     }
+
 #ifdef JS_NUNBOX32
     bool addValueSlot(uint32 slot) {
         return valueSlots_.append(slot);

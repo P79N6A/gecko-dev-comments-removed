@@ -105,13 +105,9 @@ void
 MacroAssembler::PushRegsInMask(RegisterSet set)
 {
     size_t diff = 0;
-    for (AnyRegisterIterator iter(set); iter.more(); iter++) {
-        AnyRegister reg = *iter;
-        if (reg.isFloat())
-            diff += sizeof(double);
-        else
-            diff += STACK_SLOT_SIZE;
-    }
+    diff += set.gprs().size() * STACK_SLOT_SIZE;
+    diff += set.fpus().size() * sizeof(double);
+
     
     
     reserveStack(diff);

@@ -163,6 +163,7 @@ class IonFrameIterator
     
     const OsiIndex *osiIndex() const;
 
+    uintptr_t *spillBase() const;
     MachineState machineState() const;
 };
 
