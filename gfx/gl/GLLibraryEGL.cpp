@@ -9,7 +9,6 @@
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
 #include "nsPrintfCString.h"
-#include "nsWindowsHelpers.h"
 #include "prenv.h"
 #include "GLContext.h"
 #include "gfxPrefs.h"
@@ -113,14 +112,7 @@ GLLibraryEGL::EnsureInitialized()
 #ifndef MOZ_D3DCOMPILER_DLL
 #error MOZ_D3DCOMPILER_DLL should have been defined by the Makefile
 #endif
-        
-        
-        
-        
-        if (!LoadLibrarySystem32(L"d3dcompiler_47.dll")) {
-            
-            LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_DLL)));
-        }
+        LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_DLL)));
         
 
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libGLESv2.dll"));
