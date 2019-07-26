@@ -92,7 +92,15 @@ EventEmitter.prototype = {
       
       if (originalListeners === this._eventEmitterListeners.get(aEvent) ||
           this._eventEmitterListeners.get(aEvent).some(function(l) l === listener)) {
-        listener.apply(null, arguments);
+        try {
+          listener.apply(null, arguments);
+        }
+        catch (ex) {
+          
+          let msg = ex + ": " + ex.stack;
+          Components.utils.reportError(msg);
+          dump(msg + "\n");
+        }
       }
     }
   },

@@ -8,6 +8,7 @@ const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import('resource://gre/modules/XPCOMUtils.jsm');
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource:///modules/devtools/EventEmitter.jsm");
 Cu.import("resource:///modules/devtools/gDevTools.jsm");
 
@@ -34,15 +35,78 @@ this.EXPORTED_SYMBOLS = [ "Toolbox" ];
 
 
 
+Promise.promised = (function() {
+  
+  
+  
+
+  var call = Function.call;
+  var concat = Array.prototype.concat;
+
+  
+  
+  function execute(args) { return call.apply(call, args); }
+
+  
+  
+  function promisedConcat(promises, unknown) {
+    return promises.then(function(values) {
+      return Promise.resolve(unknown).then(function(value) {
+        return values.concat([ value ]);
+      });
+    });
+  }
+
+  return function promised(f, prototype) {
+    
 
 
 
 
-this.Toolbox = function Toolbox(target, hostType, selectedTool) {
+
+
+
+
+
+
+
+    return function promised() {
+      
+      return concat.apply([ f, this ], arguments).
+          
+          reduce(promisedConcat, Promise.resolve([], prototype)).
+          
+          then(execute);
+    };
+  };
+})();
+
+
+
+
+
+
+Promise.all = Promise.promised(Array);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+this.Toolbox = function Toolbox(target, selectedTool, hostType) {
   this._target = target;
   this._toolPanels = new Map();
 
-  this._onLoad = this._onLoad.bind(this);
   this._toolRegistered = this._toolRegistered.bind(this);
   this._toolUnregistered = this._toolUnregistered.bind(this);
   this.destroy = this.destroy.bind(this);
@@ -108,14 +172,26 @@ Toolbox.prototype = {
   
 
 
+  getPanel: function TBOX_getPanel(id) {
+    return this.getToolPanels().get(id);
+  },
+
+  
+
+
+
+
+  getCurrentPanel: function TBOX_getCurrentPanel() {
+    return this.getToolPanels().get(this.currentToolId);
+  },
+
+  
+
+
 
 
   get target() {
     return this._target;
-  },
-
-  set target(value) {
-    this._target = value;
   },
 
   
@@ -124,10 +200,6 @@ Toolbox.prototype = {
 
   get hostType() {
     return this._host.type;
-  },
-
-  set hostType(value) {
-    this._switchToHost(value);
   },
 
   
@@ -159,12 +231,32 @@ Toolbox.prototype = {
 
 
   open: function TBOX_open() {
-    this._host.once("ready", function(event, iframe) {
-      iframe.addEventListener("DOMContentLoaded", this._onLoad, true);
+    let deferred = Promise.defer();
+
+    this._host.open().then(function(iframe) {
+      let onload = function() {
+        iframe.removeEventListener("DOMContentLoaded", onload, true);
+
+        this.isReady = true;
+
+        let closeButton = this.doc.getElementById("toolbox-close");
+        closeButton.addEventListener("command", this.destroy, true);
+
+        this._buildDockButtons();
+        this._buildTabs();
+        this._buildButtons(this.frame);
+
+        this.selectTool(this._defaultToolId).then(function(panel) {
+          this.emit("ready");
+          deferred.resolve();
+        }.bind(this));
+      }.bind(this);
+
+      iframe.addEventListener("DOMContentLoaded", onload, true);
       iframe.setAttribute("src", this._URL);
     }.bind(this));
 
-    this._host.open();
+    return deferred.promise;
   },
 
   
@@ -190,31 +282,11 @@ Toolbox.prototype = {
       button.id = "toolbox-dock-" + position;
       button.className = "toolbox-dock-button";
       button.addEventListener("command", function(position) {
-        this.hostType = position;
+        this.switchHost(position);
       }.bind(this, position));
 
       dockBox.appendChild(button);
     }
-  },
-
-  
-
-
-  _onLoad: function TBOX_onLoad() {
-    this.frame.removeEventListener("DOMContentLoaded", this._onLoad, true);
-    this.isReady = true;
-
-    let closeButton = this.doc.getElementById("toolbox-close");
-    closeButton.addEventListener("command", this.destroy, true);
-
-    this._buildDockButtons();
-
-    this._buildTabs();
-    this._buildButtons(this.frame);
-
-    this.selectTool(this._defaultToolId);
-
-    this.emit("ready");
   },
 
   
@@ -296,6 +368,8 @@ Toolbox.prototype = {
 
 
   selectTool: function TBOX_selectTool(id) {
+    let deferred = Promise.defer();
+
     if (!this.isReady) {
       throw new Error("Can't select tool, wait for toolbox 'ready' event");
     }
@@ -336,21 +410,17 @@ Toolbox.prototype = {
 
       let boundLoad = function() {
         iframe.removeEventListener("DOMContentLoaded", boundLoad, true);
-        let panel = definition.build(iframe.contentWindow, this);
-        this._toolPanels.set(id, panel);
 
-        let panelReady = function() {
+        definition.build(iframe.contentWindow, this).then(function(panel) {
+          this._toolPanels.set(id, panel);
+
           this.emit(id + "-ready", panel);
           this.emit("select", id);
           this.emit(id + "-selected", panel);
           gDevTools.emit(id + "-ready", this, panel);
-        }.bind(this);
 
-        if (panel.isReady) {
-          panelReady();
-        } else {
-          panel.once("ready", panelReady);
-        }
+          deferred.resolve(panel);
+        }.bind(this));
       }.bind(this);
 
       iframe.addEventListener("DOMContentLoaded", boundLoad, true);
@@ -361,12 +431,15 @@ Toolbox.prototype = {
       if (panel) {
         this.emit("select", id);
         this.emit(id + "-selected", panel);
+        deferred.resolve(panel);
       }
     }
 
     Services.prefs.setCharPref(this._prefs.LAST_TOOL, id);
 
     this._currentToolId = id;
+
+    return deferred.promise;
   },
 
   
@@ -398,16 +471,15 @@ Toolbox.prototype = {
 
 
 
-  _switchToHost: function TBOX_switchToHost(hostType) {
+  switchHost: function TBOX_switchHost(hostType) {
     if (hostType == this._host.type) {
       return;
     }
 
     let newHost = this._createHost(hostType);
-
-    newHost.once("ready", function(event, iframe) {
+    return newHost.open().then(function(iframe) {
       
-      iframe.QueryInterface(Components.interfaces.nsIFrameLoaderOwner);
+      iframe.QueryInterface(Ci.nsIFrameLoaderOwner);
       iframe.swapFrameLoaders(this.frame);
 
       this._host.off("window-closed", this.destroy);
@@ -421,8 +493,6 @@ Toolbox.prototype = {
 
       this.emit("host-changed");
     }.bind(this));
-
-    newHost.open();
   },
 
   
@@ -504,26 +574,38 @@ Toolbox.prototype = {
 
 
   destroy: function TBOX_destroy() {
-    if (this._destroyed) {
-      return;
+    
+    
+    if (this._destroyer) {
+      return this._destroyer;
     }
+
+    let outstanding = [];
 
     
     if (this._target && this._target.isRemote) {
-      this._target.destroy();
+      outstanding.push(this._target.destroy());
     }
     this._target = null;
 
     for (let [id, panel] of this._toolPanels) {
-      panel.destroy();
+      outstanding.push(panel.destroy());
     }
 
-    this._host.destroy();
+    outstanding.push(this._host.destroy());
 
     gDevTools.off("tool-registered", this._toolRegistered);
     gDevTools.off("tool-unregistered", this._toolUnregistered);
 
-    this._destroyed = true;
-    this.emit("destroyed");
+    this._destroyer = Promise.all(outstanding);
+    this._destroyer.then(function() {
+      this.emit("destroyed");
+    }.bind(this));
+
+    return this._destroyer.then(function() {
+      
+      
+      return undefined;
+    });
   }
 };

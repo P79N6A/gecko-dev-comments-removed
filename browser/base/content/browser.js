@@ -16,7 +16,9 @@ var gPrevCharset = null;
 var gProxyFavIcon = null;
 var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
+var gDownloadMgr = null;
 var gContextMenu = null; 
+var gStartupRan = false;
 
 #ifndef XP_MACOSX
 var gEditUIVisible = true;
@@ -991,7 +993,6 @@ var gBrowserInit = {
 
     
     gBrowser.addEventListener("PluginBindingAttached", gPluginHandler, true, true);
-    gBrowser.addEventListener("PluginScripted",        gPluginHandler, true);
     gBrowser.addEventListener("PluginCrashed",         gPluginHandler, true);
     gBrowser.addEventListener("PluginOutdated",        gPluginHandler, true);
 
@@ -1180,7 +1181,7 @@ var gBrowserInit = {
     this._boundDelayedStartup = this._delayedStartup.bind(this, uriToLoad, mustLoadSidebar);
     window.addEventListener("MozAfterPaint", this._boundDelayedStartup);
 
-    this._loadHandled = true;
+    gStartupRan = true;
   },
 
   _cancelDelayedStartup: function () {
@@ -1318,16 +1319,13 @@ var gBrowserInit = {
 #endif
 
     
-    let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
-    ss.init(window);
-
-    
-    if (ss.canRestoreLastSession
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-        && !PrivateBrowsingUtils.isWindowPrivate(window)
-#endif
-        )
-      goSetCommandEnabled("Browser:RestoreLastSession", true);
+    try {
+      Cc["@mozilla.org/browser/sessionstore;1"]
+        .getService(Ci.nsISessionStore)
+        .init(window);
+    } catch (ex) {
+      dump("nsSessionStore could not be initialized: " + ex + "\n");
+    }
 
     PlacesToolbarHelper.init();
 
@@ -1341,7 +1339,8 @@ var gBrowserInit = {
     
     
     setTimeout(function() {
-      Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+      gDownloadMgr = Cc["@mozilla.org/download-manager;1"].
+                     getService(Ci.nsIDownloadManager);
 
 #ifdef XP_WIN
       if (Win7Features) {
@@ -1462,7 +1461,7 @@ var gBrowserInit = {
     }
 
     
-    gDevTools.registerBrowserWindow(window);
+    gDevToolsBrowser.registerBrowserWindow(window);
 
     let appMenuButton = document.getElementById("appmenu-button");
     let appMenuPopup = document.getElementById("appmenu-popup");
@@ -1503,10 +1502,10 @@ var gBrowserInit = {
     
     
     
-    if (!this._loadHandled)
+    if (!gStartupRan)
       return;
 
-    gDevTools.forgetBrowserWindow(window);
+    gDevToolsBrowser.forgetBrowserWindow(window);
 
     
     
@@ -1645,8 +1644,6 @@ var gBrowserInit = {
       }
     }
 
-    SocialUI.nonBrowserWindowInit();
-
     this._delayedStartupTimeoutId = setTimeout(this.nonBrowserWindowDelayedStartup.bind(this), 0);
   },
 
@@ -1666,6 +1663,8 @@ var gBrowserInit = {
     
     gSyncUI.init();
 #endif
+
+    gStartupRan = true;
   },
 
   nonBrowserWindowShutdown: function() {
@@ -2463,11 +2462,7 @@ function BrowserOnAboutPageLoad(document) {
 
     let ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
              getService(Components.interfaces.nsISessionStore);
-    if (ss.canRestoreLastSession
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-        && !PrivateBrowsingUtils.isWindowPrivate(window)
-#endif
-        )
+    if (ss.canRestoreLastSession)
       document.getElementById("launcher").setAttribute("session", "true");
 
     
@@ -4527,7 +4522,6 @@ var TabsProgressListener = {
         
         aBrowser._clickToPlayDoorhangerShown = false;
         aBrowser._clickToPlayPluginsActivated = false;
-        aBrowser._pluginScriptedState = PLUGIN_SCRIPTED_STATE_NONE;
       }
       FullZoom.onLocationChange(aLocationURI, false, aBrowser);
     }
@@ -6877,6 +6871,140 @@ var gIdentityHandler = {
   }
 };
 
+let DownloadMonitorPanel = {
+  
+  
+
+  _panel: null,
+  _activeStr: null,
+  _pausedStr: null,
+  _lastTime: Infinity,
+  _listening: false,
+
+  get DownloadUtils() {
+    delete this.DownloadUtils;
+    Cu.import("resource://gre/modules/DownloadUtils.jsm", this);
+    return this.DownloadUtils;
+  },
+
+  
+  
+
+  
+
+
+  init: function DMP_init() {
+    
+    this._panel = document.getElementById("download-monitor");
+
+    
+    this._activeStr = gNavigatorBundle.getString("activeDownloads1");
+    this._pausedStr = gNavigatorBundle.getString("pausedDownloads1");
+
+    gDownloadMgr.addListener(this);
+    this._listening = true;
+
+    this.updateStatus();
+  },
+
+  uninit: function DMP_uninit() {
+    if (this._listening)
+      gDownloadMgr.removeListener(this);
+  },
+
+  inited: function DMP_inited() {
+    return this._panel != null;
+  },
+
+  
+
+
+  updateStatus: function DMP_updateStatus() {
+    if (!this.inited())
+      return;
+
+    let numActive = gDownloadMgr.activeDownloadCount;
+
+    
+    if (numActive == 0) {
+      this._panel.hidden = true;
+      this._lastTime = Infinity;
+
+      return;
+    }
+
+    
+    let numPaused = 0;
+    let maxTime = -Infinity;
+    let dls = gDownloadMgr.activeDownloads;
+    while (dls.hasMoreElements()) {
+      let dl = dls.getNext();
+      if (dl.state == gDownloadMgr.DOWNLOAD_DOWNLOADING) {
+        
+        if (dl.speed > 0 && dl.size > 0)
+          maxTime = Math.max(maxTime, (dl.size - dl.amountTransferred) / dl.speed);
+        else
+          maxTime = -1;
+      }
+      else if (dl.state == gDownloadMgr.DOWNLOAD_PAUSED)
+        numPaused++;
+    }
+
+    
+    let timeLeft;
+    [timeLeft, this._lastTime] =
+      this.DownloadUtils.getTimeLeft(maxTime, this._lastTime);
+
+    
+    let numDls = numActive - numPaused;
+    let status = this._activeStr;
+
+    
+    if (numDls == 0) {
+      numDls = numPaused;
+      status = this._pausedStr;
+    }
+
+    
+    
+    status = PluralForm.get(numDls, status);
+    status = status.replace("#1", numDls);
+    status = status.replace("#2", timeLeft);
+
+    
+    this._panel.label = status;
+    this._panel.hidden = false;
+  },
+
+  
+  
+
+  
+
+
+  onProgressChange: function() {
+    this.updateStatus();
+  },
+
+  
+
+
+  onDownloadStateChange: function() {
+    this.updateStatus();
+  },
+
+  onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus, aDownload) {
+  },
+
+  onSecurityChange: function(aWebProgress, aRequest, aState, aDownload) {
+  },
+
+  
+  
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadProgressListener]),
+};
+
 function getNotificationBox(aWindow) {
   var foundBrowser = gBrowser.getBrowserForDocument(aWindow.document);
   if (foundBrowser)
@@ -7298,7 +7426,7 @@ var TabContextMenu = {
 XPCOMUtils.defineLazyModuleGetter(this, "gDevTools",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "DevToolsXULCommands",
+XPCOMUtils.defineLazyModuleGetter(this, "gDevToolsBrowser",
                                   "resource:///modules/devtools/gDevTools.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {

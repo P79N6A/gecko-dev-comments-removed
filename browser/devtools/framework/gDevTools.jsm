@@ -4,13 +4,13 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = [ "gDevTools", "DevTools", "DevToolsXULCommands" ];
+this.EXPORTED_SYMBOLS = [ "gDevTools", "DevTools", "gDevToolsBrowser" ];
 
-const Cu = Components.utils;
-const Ci = Components.interfaces;
+const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/commonjs/promise/core.js");
 Cu.import("resource:///modules/devtools/EventEmitter.jsm");
 Cu.import("resource:///modules/devtools/ToolDefinitions.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Toolbox",
@@ -31,18 +31,11 @@ this.DevTools = function DevTools() {
   
   this.destroy = this.destroy.bind(this);
 
-  this._trackedBrowserWindows = new Set();
-
-  
-  this._updateMenuCheckbox = this._updateMenuCheckbox.bind(this);
-
   new EventEmitter(this);
 
   Services.obs.addObserver(this.destroy, "quit-application", false);
 
   
-
-
   for (let definition of defaultTools) {
     this.registerTool(definition);
   }
@@ -80,10 +73,8 @@ DevTools.prototype = {
     }
 
     toolDefinition.killswitch = toolDefinition.killswitch ||
-      "devtools." + toolId + ".enabled";
+        "devtools." + toolId + ".enabled";
     this._tools.set(toolId, toolDefinition);
-
-    this._addToolToWindows(toolDefinition);
 
     this.emit("tool-registered", toolId);
   },
@@ -97,8 +88,6 @@ DevTools.prototype = {
 
   unregisterTool: function DT_unregisterTool(toolId) {
     this._tools.delete(toolId);
-
-    this._removeToolFromWindows(toolId);
 
     this.emit("tool-unregistered", toolId);
   },
@@ -143,29 +132,72 @@ DevTools.prototype = {
 
 
 
-  openToolbox: function DT_openToolbox(target, hostType, defaultToolId) {
-    if (this._toolboxes.has(target)) {
+
+
+
+
+  showToolbox: function(target, toolId, hostType) {
+    let deferred = Promise.defer();
+
+    let toolbox = this._toolboxes.get(target);
+    if (toolbox) {
+
+      let promise = (hostType != null && toolbox.hostType != hostType) ?
+          toolbox.switchHost(hostType) :
+          Promise.resolve(null);
+
+      if (toolId != null && toolbox.currentToolId != toolId) {
+        promise = promise.then(function() {
+          return toolbox.selectTool(toolId);
+        });
+      }
+
+      return promise.then(function() {
+        return toolbox;
+      });
+    }
+    else {
       
-      return this._toolboxes.get(target);
+      toolbox = new Toolbox(target, toolId, hostType);
+
+      this._toolboxes.set(target, toolbox);
+
+      toolbox.once("destroyed", function() {
+        this._toolboxes.delete(target);
+        this.emit("toolbox-destroyed", target);
+      }.bind(this));
+
+      
+      
+      if (toolId != null) {
+        toolbox.once(toolId + "-ready", function(event, panel) {
+          this.emit("toolbox-ready", toolbox);
+          deferred.resolve(toolbox);
+        }.bind(this));
+        toolbox.open();
+      }
+      else {
+        toolbox.open().then(function() {
+          deferred.resolve(toolbox);
+          this.emit("toolbox-ready", toolbox);
+        }.bind(this));
+      }
     }
 
-    let tb = new Toolbox(target, hostType, defaultToolId);
+    return deferred.promise;
+  },
 
-    this._toolboxes.set(target, tb);
-    tb.once("destroyed", function() {
-      this._toolboxes.delete(target);
-      this._updateMenuCheckbox();
-      this.emit("toolbox-destroyed", target);
-    }.bind(this));
+  
 
-    tb.once("ready", function() {
-      this.emit("toolbox-ready", tb);
-      this._updateMenuCheckbox();
-    }.bind(this));
 
-    tb.open();
 
-    return tb;
+
+
+
+
+
+  getToolbox: function DT_getToolbox(target) {
+    return this._toolboxes.get(target);
   },
 
   
@@ -176,31 +208,39 @@ DevTools.prototype = {
     if (toolbox == null) {
       return;
     }
-    toolbox.destroy();
+    return toolbox.destroy();
   },
 
   
 
 
+  destroy: function() {
+    Services.obs.removeObserver(this.destroy, "quit-application");
 
-
-
-
-
-
-
-
-
-  openToolboxForTab: function DT_openToolboxForTab(target, toolId) {
-    let tb = this.getToolboxForTarget(target);
-
-    if (tb) {
-      tb.selectTool(toolId);
-    } else {
-      tb = this.openToolbox(target, null, toolId);
-    }
-    return tb;
+    delete this._trackedBrowserWindows;
+    delete this._toolboxes;
   },
+};
+
+
+
+
+
+
+
+let gDevTools = new DevTools();
+this.gDevTools = gDevTools;
+
+
+
+
+
+let gDevToolsBrowser = {
+  
+
+
+
+  _trackedBrowserWindows: new Set(),
 
   
 
@@ -209,57 +249,18 @@ DevTools.prototype = {
 
   toggleToolboxCommand: function(gBrowser, toolId=null) {
     let target = TargetFactory.forTab(gBrowser.selectedTab);
-    this.toggleToolboxForTarget(target, toolId);
+    let toolbox = gDevTools.getToolbox(target);
+
+    return toolbox && (toolId == null || toolId == toolbox.currentToolId) ?
+        toolbox.destroy() :
+        gDevTools.showToolbox(target, toolId);
   },
 
   
 
 
-
-
-
-
-
-  toggleToolboxForTarget: function DT_toggleToolboxForTarget(target, toolId) {
-    let tb = this.getToolboxForTarget(target);
-
-    if (tb  ) {
-      tb.destroy();
-    } else {
-      this.openToolboxForTab(target, toolId);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  getToolboxForTarget: function DT_getToolboxForTarget(target) {
-    return this._toolboxes.get(target);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  getPanelForTarget: function DT_getPanelForTarget(toolId, target) {
-    let toolbox = this.getToolboxForTarget(target);
-    if (!toolbox) {
-      return undefined;
-    }
-    return toolbox.getToolPanels().get(toolId);
+  openConnectScreen: function(gBrowser) {
+    gBrowser.selectedTab = gBrowser.addTab("chrome://browser/content/devtools/connect.xhtml");
   },
 
   
@@ -269,11 +270,12 @@ DevTools.prototype = {
 
 
   registerBrowserWindow: function DT_registerBrowserWindow(win) {
-    this._trackedBrowserWindows.add(win);
-    this._addAllToolsToMenu(win.document);
+    gDevToolsBrowser._trackedBrowserWindows.add(win);
+    gDevToolsBrowser._addAllToolsToMenu(win.document);
 
     let tabContainer = win.document.getElementById("tabbrowser-tabs")
-    tabContainer.addEventListener("TabSelect", this._updateMenuCheckbox, false);
+    tabContainer.addEventListener("TabSelect",
+                                  gDevToolsBrowser._updateMenuCheckbox, false);
   },
 
   
@@ -283,8 +285,8 @@ DevTools.prototype = {
 
 
   _addToolToWindows: function DT_addToolToWindows(toolDefinition) {
-    for (let win of this._trackedBrowserWindows) {
-      this._addToolToMenu(toolDefinition, win.document);
+    for (let win of gDevToolsBrowser._trackedBrowserWindows) {
+      gDevToolsBrowser._addToolToMenu(toolDefinition, win.document);
     }
   },
 
@@ -301,8 +303,8 @@ DevTools.prototype = {
     let fragAppMenuItems = doc.createDocumentFragment();
     let fragMenuItems = doc.createDocumentFragment();
 
-    for (let [key, toolDefinition] of this._tools) {
-      let frags = this._addToolToMenu(toolDefinition, doc, true);
+    for (let [key, toolDefinition] of gDevTools._tools) {
+      let frags = gDevToolsBrowser._addToolToMenu(toolDefinition, doc, true);
 
       if (!frags) {
         return;
@@ -361,7 +363,7 @@ DevTools.prototype = {
     let cmd = doc.createElement("command");
     cmd.id = "Tools:" + id;
     cmd.setAttribute("oncommand",
-        'gDevTools.toggleToolboxCommand(gBrowser, "' + id + '");');
+        'gDevToolsBrowser.toggleToolboxCommand(gBrowser, "' + id + '");');
 
     let key = null;
     if (toolDefinition.key) {
@@ -375,7 +377,7 @@ DevTools.prototype = {
       }
 
       key.setAttribute("oncommand",
-          'gDevTools.toggleToolboxCommand(gBrowser, "' + id + '");');
+          'gDevToolsBrowser.toggleToolboxCommand(gBrowser, "' + id + '");');
       key.setAttribute("modifiers", toolDefinition.modifiers);
     }
 
@@ -431,12 +433,12 @@ DevTools.prototype = {
 
 
   _updateMenuCheckbox: function DT_updateMenuCheckbox() {
-    for (let win of this._trackedBrowserWindows) {
+    for (let win of gDevToolsBrowser._trackedBrowserWindows) {
 
       let hasToolbox = false;
       if (TargetFactory.isKnownTab(win.gBrowser.selectedTab)) {
         let target = TargetFactory.forTab(win.gBrowser.selectedTab);
-        if (this._toolboxes.has(target)) {
+        if (gDevTools._toolboxes.has(target)) {
           hasToolbox = true;
         }
       }
@@ -457,8 +459,8 @@ DevTools.prototype = {
 
 
   _removeToolFromWindows: function DT_removeToolFromWindows(toolId) {
-    for (let win of this._trackedBrowserWindows) {
-      this._removeToolFromMenu(toolId, win.document);
+    for (let win of gDevToolsBrowser._trackedBrowserWindows) {
+      gDevToolsBrowser._removeToolFromMenu(toolId, win.document);
     }
   },
 
@@ -481,13 +483,6 @@ DevTools.prototype = {
 
     let bc = doc.getElementById("devtoolsMenuBroadcaster_" + toolId);
     bc.parentNode.removeChild(bc);
-
-    
-
-
-
-
-
   },
 
   
@@ -498,14 +493,14 @@ DevTools.prototype = {
 
 
   forgetBrowserWindow: function DT_forgetBrowserWindow(win) {
-    if (!this._tools) {
+    if (!gDevToolsBrowser._trackedBrowserWindows) {
       return;
     }
 
-    this._trackedBrowserWindows.delete(win);
+    gDevToolsBrowser._trackedBrowserWindows.delete(win);
 
     
-    for (let [target, toolbox] of this._toolboxes) {
+    for (let [target, toolbox] of gDevTools._toolboxes) {
       if (toolbox.frame.ownerDocument.defaultView == win) {
         toolbox.destroy();
       }
@@ -513,34 +508,29 @@ DevTools.prototype = {
 
     let tabContainer = win.document.getElementById("tabbrowser-tabs")
     tabContainer.removeEventListener("TabSelect",
-                                     this._updateMenuCheckbox, false);
+                                     gDevToolsBrowser._updateMenuCheckbox, false);
   },
 
   
 
 
   destroy: function() {
-    Services.obs.removeObserver(this.destroy, "quit-application");
-
-    delete this._trackedBrowserWindows;
-    delete this._tools;
-    delete this._toolboxes;
-  },
-};
-
-
-
-
-
-
-
-this.gDevTools = new DevTools();
-
-
-
-
-this.DevToolsXULCommands = {
-  openConnectScreen: function(gBrowser) {
-    gBrowser.selectedTab = gBrowser.addTab("chrome://browser/content/devtools/connect.xhtml");
+    Services.obs.removeObserver(gDevToolsBrowser.destroy, "quit-application");
+    delete gDevToolsBrowser._trackedBrowserWindows;
   },
 }
+this.gDevToolsBrowser = gDevToolsBrowser;
+
+gDevTools.on("tool-registered", function(ev, toolId) {
+  let toolDefinition = gDevTools._tools.get(toolId);
+  gDevToolsBrowser._addToolToWindows(toolDefinition);
+});
+
+gDevTools.on("tool-unregistered", function(ev, toolId) {
+  gDevToolsBrowser._removeToolFromWindows(toolId);
+});
+
+gDevTools.on("toolbox-ready", gDevToolsBrowser._updateMenuCheckbox);
+gDevTools.on("toolbox-destroyed", gDevToolsBrowser._updateMenuCheckbox);
+
+Services.obs.addObserver(gDevToolsBrowser.destroy, "quit-application", false);
