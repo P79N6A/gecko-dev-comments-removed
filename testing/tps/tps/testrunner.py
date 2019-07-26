@@ -60,7 +60,7 @@ class TPSTestRunner(object):
                             'browser.warnOnQuit': False,
                             
                             'extensions.autoDisableScopes': 10,
-                            'extensions.getAddons.get.url': 'http://127.0.0.1:4567/en-US/firefox/api/%API_VERSION%/search/guid:%IDS%',
+                            'extensions.getAddons.get.url': 'http://127.0.0.1:4567/addons/api/%IDS%.xml',
                             'extensions.update.enabled'    : False,
                             
                             'extensions.update.notifyUser' : False,
