@@ -1439,6 +1439,8 @@ RadioInterfaceLayer.prototype = {
     if (!options.requestStatusReport) {
       
       delete this._sentSmsEnvelopes[message.envelopeId];
+    } else {
+      options.sms = sms;
     }
 
     options.request.notifyMessageSent(sms);
