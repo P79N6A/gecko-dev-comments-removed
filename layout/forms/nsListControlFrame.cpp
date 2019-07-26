@@ -595,15 +595,14 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
   return nsHTMLScrollFrame::Reflow(aPresContext, aDesiredSize, state, aStatus);
 }
 
-nsGfxScrollFrameInner::ScrollbarStyles
+ScrollbarStyles
 nsListControlFrame::GetScrollbarStyles() const
 {
   
   
   int32_t verticalStyle = IsInDropDownMode() ? NS_STYLE_OVERFLOW_AUTO
     : NS_STYLE_OVERFLOW_SCROLL;
-  return nsGfxScrollFrameInner::ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN,
-                                                verticalStyle);
+  return ScrollbarStyles(NS_STYLE_OVERFLOW_HIDDEN, verticalStyle);
 }
 
 bool
