@@ -49,13 +49,9 @@ public:
   
   
   
-  
-  
   virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
                         const dom::AudioChannelType aAudioStreamType) = 0;
 
-  
-  
   
   virtual void Shutdown() = 0;
 
@@ -72,8 +68,6 @@ public:
   
   virtual void SetVolume(double aVolume) = 0;
 
-  
-  
   
   virtual void Drain() = 0;
 
@@ -94,8 +88,6 @@ public:
   
   virtual bool IsPaused() = 0;
 
-  
-  
   
   
   virtual int32_t GetMinWriteSize() = 0;

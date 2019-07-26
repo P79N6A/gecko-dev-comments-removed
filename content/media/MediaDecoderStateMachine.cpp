@@ -975,34 +975,10 @@ void MediaDecoderStateMachine::AudioLoop()
     channels = mInfo.mAudioChannels;
     rate = mInfo.mAudioRate;
     NS_ASSERTION(audioStartTime != -1, "Should have audio start time by now");
-  }
 
-  
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<AudioStream> audioStream = AudioStream::AllocateStream();
-  
-  
-  AudioChannelType audioChannelType;
-  {
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    audioChannelType = mDecoder->GetAudioChannelType();
-  }
-  audioStream->Init(channels, rate, audioChannelType);
+    mAudioStream = AudioStream::AllocateStream();
+    mAudioStream->Init(channels, rate, mDecoder->GetAudioChannelType());
 
-  {
-    
-    
-    
-    
-    
-    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mAudioStream = audioStream;
     volume = mVolume;
     mAudioStream->SetVolume(volume);
   }
@@ -1041,9 +1017,6 @@ void MediaDecoderStateMachine::AudioLoop()
       setVolume = volume != mVolume;
       volume = mVolume;
 
-      
-      
-      
       if (IsPlaying() && mAudioStream->IsPaused()) {
         mAudioStream->Resume();
       }
@@ -1156,6 +1129,7 @@ void MediaDecoderStateMachine::AudioLoop()
     
     
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    mAudioStream->Shutdown();
     mAudioStream = nullptr;
     mEventManager.Clear();
     if (!mAudioCaptured) {
@@ -1165,11 +1139,6 @@ void MediaDecoderStateMachine::AudioLoop()
       mDecoder->GetReentrantMonitor().NotifyAll();
     }
   }
-
-  
-  
-  audioStream->Shutdown();
-  audioStream = nullptr;
 
   LOG(PR_LOG_DEBUG, ("%p Audio stream finished playing, audio thread exit", mDecoder.get()));
 }
@@ -2182,19 +2151,16 @@ int64_t
 MediaDecoderStateMachine::GetAudioClock()
 {
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
+  
+  
+  
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   if (!HasAudio() || mAudioCaptured)
     return -1;
-  
-  
-  
   if (!mAudioStream) {
     
     return mAudioStartTime;
   }
-  
-  
-  
   int64_t t = mAudioStream->GetPosition();
   return (t == -1) ? -1 : t + mAudioStartTime;
 }
