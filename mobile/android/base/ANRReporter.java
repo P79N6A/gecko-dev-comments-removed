@@ -203,8 +203,14 @@ public final class ANRReporter extends BroadcastReceiver
     
     private static boolean isGeckoTraces(String pkgName, File tracesFile) {
         try {
+            final String END_OF_PACKAGE_NAME = "([^a-zA-Z0-9_]|$)";
             
-            Pattern pkgPattern = Pattern.compile(Pattern.quote(pkgName) + "([^a-zA-Z0-9_]|$)");
+            Pattern pkgPattern = Pattern.compile(Pattern.quote(pkgName) + END_OF_PACKAGE_NAME);
+            Pattern mangledPattern = null;
+            if (!GeckoAppInfo.getMangledPackageName().equals(pkgName)) {
+                mangledPattern = Pattern.compile(Pattern.quote(
+                    GeckoAppInfo.getMangledPackageName()) + END_OF_PACKAGE_NAME);
+            }
             if (DEBUG) {
                 Log.d(LOGTAG, "trying to match package: " + pkgName);
             }
@@ -217,6 +223,10 @@ public final class ANRReporter extends BroadcastReceiver
                         Log.d(LOGTAG, "identifying line: " + String.valueOf(line));
                     }
                     if (pkgPattern.matcher(line).find()) {
+                        
+                        return true;
+                    }
+                    if (mangledPattern != null && mangledPattern.matcher(line).find()) {
                         
                         return true;
                     }
