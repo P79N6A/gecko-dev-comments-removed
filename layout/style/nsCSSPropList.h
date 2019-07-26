@@ -1695,7 +1695,7 @@ CSS_PROP_POSITION(
     VARIANT_HN,
     nullptr,
     offsetof(nsStylePosition, mFlexGrow),
-    eStyleAnimType_float) 
+    eStyleAnimType_float)
 CSS_PROP_POSITION(
     flex-shrink,
     flex_shrink,
@@ -1709,7 +1709,7 @@ CSS_PROP_POSITION(
     VARIANT_HN,
     nullptr,
     offsetof(nsStylePosition, mFlexShrink),
-    eStyleAnimType_float) 
+    eStyleAnimType_float)
 CSS_PROP_POSITION(
     flex-wrap,
     flex_wrap,
