@@ -617,7 +617,19 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
 void
 BasicCompositor::EndFrame()
 {
+  
   mRenderTarget->mDrawTarget->PopClip();
+
+  if (gfxPlatform::GetPlatform()->WidgetUpdateFlashing()) {
+    float r = float(rand()) / RAND_MAX;
+    float g = float(rand()) / RAND_MAX;
+    float b = float(rand()) / RAND_MAX;
+    
+    mRenderTarget->mDrawTarget->FillRect(ToRect(mInvalidRegion.GetBounds()),
+                                         ColorPattern(Color(r, g, b, 0.2f)));
+  }
+
+  
   mRenderTarget->mDrawTarget->PopClip();
 
   
