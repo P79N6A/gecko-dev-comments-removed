@@ -466,20 +466,26 @@ nsImageLoadingContent::FrameDestroyed(nsIFrame* aFrame)
   mFrameCreateCalled = false;
 
   
+  nsPresContext* presContext = GetFramePresContext();
   if (mCurrentRequest) {
-    nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(),
+    nsLayoutUtils::DeregisterImageRequest(presContext,
                                           mCurrentRequest,
                                           &mCurrentRequestRegistered);
   }
 
   if (mPendingRequest) {
-    nsLayoutUtils::DeregisterImageRequest(GetFramePresContext(),
+    nsLayoutUtils::DeregisterImageRequest(presContext,
                                           mPendingRequest,
                                           &mPendingRequestRegistered);
   }
 
   UntrackImage(mCurrentRequest);
   UntrackImage(mPendingRequest);
+
+  nsIPresShell* presShell = presContext ? presContext->PresShell() : nullptr;
+  if (presShell) {
+    presShell->RemoveImageFromVisibleList(this);
+  }
 
   if (aFrame->HasAnyStateBits(NS_FRAME_IN_POPUP)) {
     
