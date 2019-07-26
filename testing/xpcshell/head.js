@@ -1232,9 +1232,6 @@ function add_test(func) {
 }
 
 
-let _Task;
-
-
 
 
 
@@ -1272,13 +1269,11 @@ let _Task;
 
 
 function add_task(func) {
-  if (!_Task) {
-    let ns = {};
-    _Task = Components.utils.import("resource://gre/modules/Task.jsm", ns).Task;
-  }
-
   _gTests.push([true, func]);
 }
+let _Task = Components.utils.import("resource://gre/modules/Task.jsm", {}).Task;
+_Task.Debugging.maintainStack = true;
+
 
 
 
