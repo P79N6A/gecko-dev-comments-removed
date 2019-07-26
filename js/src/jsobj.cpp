@@ -4902,49 +4902,6 @@ MaybeReportUndeclaredVarAssignment(JSContext *cx, JSString *propname)
 }
 
 bool
-js::ReportIfUndeclaredVarAssignment(JSContext *cx, HandleString propname)
-{
-    {
-        jsbytecode *pc;
-        JSScript *script = cx->currentScript(&pc, JSContext::ALLOW_CROSS_COMPARTMENT);
-        if (!script)
-            return true;
-
-        
-        
-        if (!script->strict() && !cx->options().extraWarnings())
-            return true;
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-        MOZ_ASSERT(*pc != JSOP_NAME);
-        MOZ_ASSERT(*pc != JSOP_GETGNAME);
-        if (*pc != JSOP_SETNAME && *pc != JSOP_SETGNAME)
-            return true;
-    }
-
-    JSAutoByteString bytes(cx, propname);
-    return !!bytes &&
-           JS_ReportErrorFlagsAndNumber(cx,
-                                        JSREPORT_WARNING | JSREPORT_STRICT |
-                                        JSREPORT_STRICT_MODE_ERROR,
-                                        js_GetErrorMessage, nullptr,
-                                        JSMSG_UNDECLARED_VAR, bytes.ptr());
-}
-
-bool
 JSObject::reportReadOnly(ThreadSafeContext *cxArg, jsid id, unsigned report)
 {
     if (cxArg->isForkJoinContext())
