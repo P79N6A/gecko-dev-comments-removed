@@ -343,7 +343,7 @@ class JSFunction : public JSObject
     
     JSFunction* originalFunction() {
         if (this->hasScript() && this->nonLazyScript()->isCallsiteClone()) {
-            return this->nonLazyScript()->originalFunction();
+            return this->nonLazyScript()->donorFunction();
         } else {
             return this;
         }
