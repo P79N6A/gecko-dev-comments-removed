@@ -3714,6 +3714,9 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozAlarms.enabled", false);
 
 
+pref("dom.mozNetworkStats.enabled", false);
+
+
 pref("dom.mozSettings.enabled", false);
 pref("dom.mozPermissionSettings.enabled", false);
 
