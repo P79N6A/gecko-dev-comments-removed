@@ -101,6 +101,37 @@ PodCopy(T* dst, const T* src, size_t nelem)
   }
 }
 
+template<typename T>
+MOZ_ALWAYS_INLINE static void
+PodCopy(volatile T* dst, const volatile T* src, size_t nelem)
+{
+  MOZ_ASSERT(dst != src);
+  MOZ_ASSERT_IF(src < dst,
+                PointerRangeSize(src, static_cast<const volatile T*>(dst)) >= nelem);
+  MOZ_ASSERT_IF(dst < src,
+                PointerRangeSize(static_cast<const volatile T*>(dst), src) >= nelem);
+
+  
+
+
+
+
+
+  for (const volatile T* srcend = src + nelem; src < srcend; src++, dst++)
+    *dst = *src;
+}
+
+
+
+
+
+template <class T, size_t N>
+static void
+PodArrayCopy(T (&dst)[N], const T (&src)[N])
+{
+  PodCopy(dst, src, N);
+}
+
 
 
 
