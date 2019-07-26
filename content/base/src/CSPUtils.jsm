@@ -64,21 +64,20 @@ const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
 const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
 
 
-const R_PATH       = new RegExp("(\\/(([a-zA-Z0-9\\-\\_]+)\\/?)*)", 'i');
-
-
-const R_FILE       = new RegExp("(\\/([a-zA-Z0-9\\-\\_]+)\\.([a-zA-Z]+))", 'i');
-
-
-const R_HOSTSRC    = new RegExp ("^((((" + R_SCHEME.source + "\\:\\/\\/)?("
+const R_HOSTSRC    = new RegExp ("^((" + R_SCHEME.source + "\\:\\/\\/)?("
                                          + R_HOST.source + ")"
-                                         + R_PORT.source + "?)"
-                                         + R_PATH.source + "?)"
-                                         + R_FILE.source + "?)$", 'i');
+                                         + R_PORT.source + "?)$", 'i');
+
+function STRIP_INPUTDELIM(re) {
+  return re.replace(/(^\^)|(\$$)/g, "");
+}
 
 
 
-const R_EXTHOSTSRC = new RegExp ("^" + R_HOSTSRC.source + "\\/[:print:]+$", 'i');
+const R_VCHAR_EXCEPT = new RegExp("[!-+--:<-~]"); 
+const R_EXTHOSTSRC   = new RegExp ("^" + STRIP_INPUTDELIM(R_HOSTSRC.source)
+                                       + "\\/"
+                                       + R_VCHAR_EXCEPT.source + "*$", 'i');
 
 
 const R_KEYWORDSRC = new RegExp ("^('self'|'unsafe-inline'|'unsafe-eval')$", 'i');
@@ -99,6 +98,7 @@ const R_HASHSRC    = new RegExp ("^'" + R_HASH_ALGOS.source + "-" + R_BASE64.sou
 
 const R_SOURCEEXP  = new RegExp (R_SCHEMESRC.source + "|" +
                                    R_HOSTSRC.source + "|" +
+                                R_EXTHOSTSRC.source + "|" +
                                 R_KEYWORDSRC.source + "|" +
                                   R_NONCESRC.source + "|" +
                                    R_HASHSRC.source,  'i');
@@ -1393,6 +1393,12 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     }
 
     
+    
+    if (R_EXTHOSTSRC.test(aStr)) {
+      var extHostMatch = R_EXTHOSTSRC.exec(aStr);
+      aStr = extHostMatch[1];
+    }
+
     var hostMatch = R_HOSTSRC.exec(aStr);
     if (!hostMatch) {
       cspError(aCSPRep, CSPLocalizer.getFormatStr("couldntParseInvalidSource",
@@ -1400,24 +1406,20 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
       return null;
     }
     
-    if (schemeMatch)
+    if (schemeMatch) {
       hostMatch = R_HOSTSRC.exec(aStr.substring(schemeMatch[0].length + 3));
-
-    
-    
-    hostMatch[0] = hostMatch[0].replace(R_FILE, "");
-    hostMatch[0] = hostMatch[0].replace(R_PATH, "");
+    }
 
     var portMatch = R_PORT.exec(hostMatch);
-
     
-    if (portMatch)
+    if (portMatch) {
       hostMatch = R_HOSTSRC.exec(hostMatch[0].substring(0, hostMatch[0].length - portMatch[0].length));
+    }
 
     sObj._host = CSPHost.fromString(hostMatch[0]);
     if (!portMatch) {
       
-      defPort = Services.io.getProtocolHandler(sObj._scheme).defaultPort;
+      var defPort = Services.io.getProtocolHandler(sObj._scheme).defaultPort;
       if (!defPort) {
         cspError(aCSPRep,
                  CSPLocalizer.getFormatStr("couldntParseInvalidSource",
@@ -1440,12 +1442,14 @@ CSPSource.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
   }
 
   
-  if (R_NONCESRC.test(aStr))
+  if (R_NONCESRC.test(aStr)) {
     return CSPNonceSource.fromString(aStr, aCSPRep);
+  }
 
   
-  if (R_HASHSRC.test(aStr))
+  if (R_HASHSRC.test(aStr)) {
     return CSPHashSource.fromString(aStr, aCSPRep);
+  }
 
   
   if (aStr.toLowerCase() === "'self'") {
