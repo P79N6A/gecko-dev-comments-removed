@@ -244,6 +244,11 @@
     z-index: -1;
   }
 
+  
+  #navigator-toolbox:not(:-moz-lwtheme) {
+    overflow-y: hidden;
+  }
+
   #main-window[sizemode=normal] .tabbrowser-arrowscrollbox > .arrowscrollbox-scrollbox > .scrollbox-innerbox:not(:-moz-lwtheme) {
     position: relative;
   }
