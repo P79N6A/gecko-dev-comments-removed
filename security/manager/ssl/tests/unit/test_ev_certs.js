@@ -21,6 +21,8 @@ let certList = [
   
   'int-ev-valid',
   'ev-valid',
+  'ev-valid-anypolicy-int',
+  'int-ev-valid-anypolicy-int',
   'no-ocsp-url-cert', 
                       
 
@@ -136,6 +138,17 @@ function add_tests_in_mode(useMozillaPKIX)
     ocspResponder.stop(run_next_test);
   });
 
+
+  add_test(function () {
+    clearOCSPCache();
+
+    let ocspResponder = start_ocsp_responder(
+                          isDebugBuild ? ["int-ev-valid-anypolicy-int", "ev-valid-anypolicy-int"]
+                                       : ["ev-valid-anypolicy-int"]);
+    check_ee_for_ev("ev-valid-anypolicy-int", isDebugBuild);
+    ocspResponder.stop(run_next_test);
+  });
+
   add_test(function() {
     clearOCSPCache();
     let ocspResponder = start_ocsp_responder(["non-ev-root"]);
@@ -205,6 +218,7 @@ function add_tests_in_mode(useMozillaPKIX)
                                      : SEC_ERROR_EXTENSION_NOT_FOUND));
   });
 
+
   
   add_test(function () {
     clearOCSPCache();
@@ -231,6 +245,7 @@ function add_tests_in_mode(useMozillaPKIX)
       failingOcspResponder.stop(run_next_test);
     });
   });
+
 }
 
 
@@ -258,3 +273,4 @@ function check_no_ocsp_requests(cert_name, expected_error) {
   do_check_eq(identityInfo.isExtendedValidation, false);
   ocspResponder.stop(run_next_test);
 }
+
