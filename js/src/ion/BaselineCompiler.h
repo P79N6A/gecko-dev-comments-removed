@@ -125,6 +125,9 @@ class BaselineCompiler : public BaselineCompilerSpecific
     FixedList<Label>            labels_;
     HeapLabel *                 return_;
 
+    
+    CodeOffsetLabel prologueOffset_;
+
     Label *labelOf(jsbytecode *pc) {
         return &labels_[pc - script->code];
     }

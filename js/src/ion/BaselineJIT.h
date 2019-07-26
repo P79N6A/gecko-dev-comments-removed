@@ -108,6 +108,9 @@ struct BaselineScript
     ICStubSpace optimizedStubSpace_;
 
     
+    uint32_t prologueOffset_;
+
+    
     
     bool active_;
 
@@ -122,9 +125,10 @@ struct BaselineScript
 
   public:
     
-    BaselineScript();
+    BaselineScript(uint32_t prologueOffset);
 
-    static BaselineScript *New(JSContext *cx, size_t icEntries, size_t pcMappingEntries);
+    static BaselineScript *New(JSContext *cx, uint32_t prologueOffset, size_t icEntries,
+                               size_t pcMappingEntries);
     static void Trace(JSTracer *trc, BaselineScript *script);
     static void Destroy(FreeOp *fop, BaselineScript *script);
 
@@ -140,6 +144,10 @@ struct BaselineScript
     }
     void resetActive() {
         active_ = false;
+    }
+
+    uint32_t prologueOffset() const {
+        return prologueOffset_;
     }
 
     ICEntry *icEntryList() {

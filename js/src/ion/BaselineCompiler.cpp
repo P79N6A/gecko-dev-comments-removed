@@ -120,7 +120,12 @@ BaselineCompiler::compile()
 
     JS_ASSERT(!script->hasBaselineScript());
 
-    BaselineScript *baselineScript = BaselineScript::New(cx, icEntries_.length(), pcMappingEntries_.length());
+    prologueOffset_.fixup(&masm);
+    uint32_t prologueOffset = uint32_t(prologueOffset_.offset());
+
+    BaselineScript *baselineScript = BaselineScript::New(cx, prologueOffset,
+                                                         icEntries_.length(),
+                                                         pcMappingEntries_.length());
     if (!baselineScript)
         return Method_Error;
     script->baseline = baselineScript;
@@ -204,6 +209,10 @@ BaselineCompiler::emitPrologue()
     masm.moveValue(UndefinedValue(), R0);
     for (size_t i = 0; i < frame.nlocals(); i++)
         masm.pushValue(R0);
+
+    
+    
+    prologueOffset_ = masm.currentOffset();
 
     
     
