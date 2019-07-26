@@ -552,6 +552,10 @@ pref("pdfjs.firstRun", false);
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
+#ifdef NIGHTLY_BUILD
+pref("shumway.disabled", true);
+#endif
+
 
 
 

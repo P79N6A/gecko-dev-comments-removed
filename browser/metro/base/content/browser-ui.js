@@ -115,6 +115,9 @@ var BrowserUI = {
     SettingsCharm.init();
     NavButtonSlider.init();
     SelectionHelperUI.init();
+#ifdef NIGHTLY_BUILD
+    ShumwayUtils.init();
+#endif
 
     
     
