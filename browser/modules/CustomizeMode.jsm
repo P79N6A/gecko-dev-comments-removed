@@ -63,6 +63,11 @@ CustomizeMode.prototype = {
 
     
     
+    
+    window.PanelUI.ensureRegistered();
+
+    
+    
     let tabViewDeck = document.getElementById("tab-view-deck");
     tabViewDeck.addEventListener("keypress", this, false);
     

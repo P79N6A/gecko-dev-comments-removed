@@ -131,7 +131,7 @@ const PanelUI = {
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
       case "popupshowing":
-        CustomizableUI.registerMenuPanel(this.contents);
+        this.ensureRegistered();
         let cstyle = window.getComputedStyle(this.viewStack, null);
         this.container.style.height = cstyle.getPropertyValue("height");
         this.container.style.width = cstyle.getPropertyValue("width");
@@ -145,6 +145,16 @@ const PanelUI = {
         break;
       }
     }
+  },
+
+  
+
+
+
+
+
+  ensureRegistered: function() {
+    CustomizableUI.registerMenuPanel(this.contents);
   },
 
   
