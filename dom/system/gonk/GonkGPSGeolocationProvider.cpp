@@ -481,8 +481,22 @@ GonkGPSGeolocationProvider::SetReferenceLocation()
       nsCOMPtr<nsIDOMMozMobileCellInfo> cell;
       voice->GetCell(getter_AddRefs(cell));
       if (cell) {
-        cell->GetGsmLocationAreaCode(&location.u.cellID.lac);
-        cell->GetGsmCellId(&location.u.cellID.cid);
+        int32_t lac;
+        int64_t cid;
+
+        cell->GetGsmLocationAreaCode(&lac);
+        
+        
+        if (lac >= 0x0 && lac <= 0xffff) {
+          location.u.cellID.lac = lac;
+        }
+
+        cell->GetGsmCellId(&cid);
+        
+        
+        if (cid >= 0x0 && cid <= 0xffffffff) {
+          location.u.cellID.cid = cid;
+        }
       }
     }
     if (mAGpsRilInterface) {
