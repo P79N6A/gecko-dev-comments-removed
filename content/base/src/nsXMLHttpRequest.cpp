@@ -3826,9 +3826,11 @@ nsXMLHttpRequest::GetInterface(const nsIID & aIID, void **aResult)
 
     
     
-    if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
-      showPrompt = false;
-    }
+    
+
+
+
+
 
     
     if (showPrompt) {
