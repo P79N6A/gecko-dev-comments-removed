@@ -308,6 +308,30 @@ DoGetElemFallback(JSContext *cx, ICGetElem_Fallback *stub, HandleValue lhs, Hand
     if (!GetElementMonitored(cx, lhs, rhs, res))
         return false;
 
+    if (stub->numOptimizedStubs() >= ICGetElem_Fallback::MAX_OPTIMIZED_STUBS) {
+        
+        
+        return true;
+    }
+
+    
+    if (!lhs.isObject())
+        return true;
+
+    RootedObject obj(cx, &lhs.toObject());
+    if (obj->isDenseArray() && rhs.isInt32()) {
+        
+        if (stub->hasStub(ICStub::GetElem_Dense))
+            return true;
+
+        ICGetElem_Dense::Compiler compiler(cx);
+        ICStub *denseStub = compiler.getStub();
+        if (!denseStub)
+            return false;
+
+        stub->addNewStub(denseStub);
+    }
+
     return true;
 }
 
@@ -328,6 +352,45 @@ ICGetElem_Fallback::Compiler::generateStubCode(MacroAssembler &masm)
     masm.push(BaselineStubReg);
 
     return callVM(DoGetElemFallbackInfo, masm);
+}
+
+bool
+ICGetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+    masm.branchTestInt32(Assembler::NotEqual, R1, &failure);
+
+    RootedShape shape(cx, GetDenseArrayShape(cx, cx->global()));
+    if (!shape)
+        return false;
+
+    
+    Register obj = masm.extractObject(R0, ExtractTemp0);
+    masm.branchTestObjShape(Assembler::NotEqual, obj, shape, &failure);
+
+    
+    GeneralRegisterSet regs(availableGeneralRegs(2));
+    Register scratchReg = regs.takeAny();
+    masm.loadPtr(Address(obj, JSObject::offsetOfElements()), scratchReg);
+
+    
+    Register key = masm.extractInt32(R1, ExtractTemp1);
+
+    
+    Address initLength(scratchReg, ObjectElements::offsetOfInitializedLength());
+    masm.branch32(Assembler::BelowOrEqual, initLength, key, &failure);
+
+    
+    BaseIndex element(scratchReg, key, TimesEight);
+    masm.branchTestMagic(Assembler::Equal, element, &failure);
+    masm.loadValue(element, R0);
+    EmitReturnFromIC(masm);
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
 }
 
 
@@ -369,7 +432,8 @@ DoCallFallback(JSContext *cx, ICCall_Fallback *stub, uint32_t argc, Value *vp, M
 void
 ICCallStubCompiler::pushCallArguments(MacroAssembler &masm, Register argcReg)
 {
-    GeneralRegisterSet regs(availableGeneralRegs());
+    GeneralRegisterSet regs(availableGeneralRegs(0));
+    regs.take(BaselineTailCallReg);
     regs.take(argcReg);
 
     
