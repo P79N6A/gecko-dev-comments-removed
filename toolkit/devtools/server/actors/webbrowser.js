@@ -670,6 +670,12 @@ TabActor.prototype = {
       return;
     }
 
+    
+    
+    if (this._attached) {
+      this.threadActor._tabClosed = true;
+    }
+
     if (this._detach()) {
       this.conn.send({ from: this.actorID,
                        type: "tabDetached" });
