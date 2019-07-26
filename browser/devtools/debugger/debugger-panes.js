@@ -812,7 +812,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   _fetchSources: function DVGS__fetchSources(aFetchCallback, aFetchedCallback, aLocations) {
     
-    if (this._cache.size() == aLocations.length) {
+    if (this._cache.size == aLocations.length) {
       aFetchedCallback();
       return;
     }
@@ -840,7 +840,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
     this._cache.set(aLocation, aContents);
 
     
-    if (this._cache.size() == this._sourcesCount) {
+    if (this._cache.size == this._sourcesCount) {
       this._onFetchSourcesFinished();
     }
   },
@@ -1151,7 +1151,7 @@ GlobalResults.prototype = {
   
 
 
-  get itemCount() this._store.size(),
+  get itemCount() this._store.size,
 
   _store: null
 };
