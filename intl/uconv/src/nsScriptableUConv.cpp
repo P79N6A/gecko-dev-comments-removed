@@ -4,15 +4,13 @@
 
 
 #include "nsString.h"
-#include "nsReadableUtils.h"
-#include "nsIServiceManager.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIScriptableUConv.h"
 #include "nsScriptableUConv.h"
 #include "nsIStringStream.h"
-#include "nsCRT.h"
 #include "nsComponentManagerUtils.h"
 #include "nsCharsetAlias.h"
+#include "nsServiceManagerUtils.h"
 
 
 NS_IMPL_ISUPPORTS1(nsScriptableUnicodeConverter, nsIScriptableUnicodeConverter)

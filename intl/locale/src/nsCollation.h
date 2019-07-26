@@ -9,10 +9,10 @@
 
 
 #include "nsICollation.h"
-#include "nsICharsetConverterManager.h"
 #include "nsCOMPtr.h"
 #include "mozilla/Attributes.h"
 
+class nsIUnicodeEncoder;
 
 
 

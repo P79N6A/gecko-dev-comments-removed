@@ -3,10 +3,8 @@
 
 
 
-#include "nsUCConstructors.h"
 #include "nsUTF16ToUnicode.h"
 #include "nsCharTraits.h"
-#include <string.h>
 
 enum {
   STATE_NORMAL = 0,

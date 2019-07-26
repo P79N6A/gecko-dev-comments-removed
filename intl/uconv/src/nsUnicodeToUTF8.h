@@ -7,6 +7,7 @@
 #define nsUnicodeToUTF8_h___
 
 #include "mozilla/Attributes.h"
+#include "nsIUnicodeEncoder.h"
 
 
 

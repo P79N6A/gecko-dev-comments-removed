@@ -3,8 +3,10 @@
 
 
 
-#include "nsComplexBreaker.h"
 #include <Carbon/Carbon.h>
+#include <stdint.h>
+#include "nsDebug.h"
+#include "nscore.h"
 
 void
 NS_GetComplexLineBreaks(const PRUnichar* aText, uint32_t aLength,

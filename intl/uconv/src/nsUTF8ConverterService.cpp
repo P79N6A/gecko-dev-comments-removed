@@ -5,13 +5,11 @@
 
 
 #include "nsString.h"
-#include "nsIUnicodeEncoder.h"
 #include "nsICharsetConverterManager.h"
-#include "nsReadableUtils.h"
-#include "nsIServiceManager.h"
 #include "nsUTF8ConverterService.h"
 #include "nsEscape.h"
 #include "nsAutoPtr.h"
+#include "nsServiceManagerUtils.h"
 
 NS_IMPL_ISUPPORTS1(nsUTF8ConverterService, nsIUTF8ConverterService)
 

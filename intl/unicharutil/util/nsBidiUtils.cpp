@@ -4,8 +4,6 @@
 
 
 #include "nsBidiUtils.h"
-#include "nsCharTraits.h"
-#include "nsUnicodeProperties.h"
 
 #define ARABIC_TO_HINDI_DIGIT_INCREMENT (START_HINDI_DIGITS - START_ARABIC_DIGITS)
 #define PERSIAN_TO_HINDI_DIGIT_INCREMENT (START_HINDI_DIGITS - START_FARSI_DIGITS)

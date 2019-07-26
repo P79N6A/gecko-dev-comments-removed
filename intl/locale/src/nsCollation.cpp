@@ -3,14 +3,13 @@
 
 
 
-#include "nsIPlatformCharset.h"
-#include "nsIServiceManager.h"
-#include "nsIComponentManager.h"
 #include "nsCollation.h"
 #include "nsCollationCID.h"
 #include "nsUnicharUtils.h"
 #include "prmem.h"
-#include "nsReadableUtils.h"
+#include "nsIUnicodeEncoder.h"
+#include "nsICharsetConverterManager.h"
+#include "nsServiceManagerUtils.h"
 
 
 

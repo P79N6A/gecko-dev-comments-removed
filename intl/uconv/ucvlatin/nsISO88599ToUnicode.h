@@ -6,7 +6,9 @@
 #ifndef nsISO88599ToUnicode_h___
 #define nsISO88599ToUnicode_h___
 
-#include "nsCP1254ToUnicode.h"
+#include "nsID.h"
+
+class nsISupports;
 
 
 nsresult

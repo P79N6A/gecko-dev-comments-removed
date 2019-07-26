@@ -6,7 +6,9 @@
 #ifndef nsUnicodeToEUCJP_h___
 #define nsUnicodeToEUCJP_h___
 
-#include "nsISupports.h"
+#include "nsID.h"
+
+class nsISupports;
 
 
 

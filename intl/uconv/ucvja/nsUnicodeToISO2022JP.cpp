@@ -4,7 +4,6 @@
 
 
 #include "nsUnicodeToISO2022JP.h"
-#include "nsIComponentManager.h"
 #include "nsUCVJADll.h"
 #include "nsUnicodeEncodeHelper.h"
 

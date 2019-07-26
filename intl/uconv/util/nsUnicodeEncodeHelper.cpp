@@ -4,8 +4,8 @@
 
 
 #include "unicpriv.h"
-#include "nsIUnicodeEncoder.h"
 #include "nsUnicodeEncodeHelper.h"
+#include "nsDebug.h"
 
 
 

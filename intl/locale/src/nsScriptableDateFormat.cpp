@@ -3,15 +3,12 @@
 
 
 
-#include "nsIServiceManager.h"
-#include "nsIComponentManager.h"
-#include "nsLocaleCID.h"
 #include "nsILocaleService.h"
 #include "nsDateTimeFormatCID.h"
 #include "nsIDateTimeFormat.h"
 #include "nsIScriptableDateFormat.h"
-#include "nsCRT.h"
-#include "nsReadableUtils.h"
+#include "nsCOMPtr.h"
+#include "nsServiceManagerUtils.h"
 
 static NS_DEFINE_CID(kLocaleServiceCID, NS_LOCALESERVICE_CID);
 static NS_DEFINE_CID(kDateTimeFormatCID, NS_DATETIMEFORMAT_CID);

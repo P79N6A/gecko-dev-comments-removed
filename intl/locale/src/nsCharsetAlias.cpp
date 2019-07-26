@@ -8,14 +8,8 @@
 #include "nsCharsetAlias.h"
 
 
-#include "nsEncoderDecoderUtils.h"
 #include "nsCharsetConverterManager.h"
 
-
-#include "nsIPlatformCharset.h"
-
-#include "nsReadableUtils.h"
-#include "nsUnicharUtils.h"
 #include "nsUConvPropertySearch.h"
 
 using namespace mozilla;

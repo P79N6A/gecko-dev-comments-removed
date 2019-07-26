@@ -3,15 +3,13 @@
 
 
 
-#include "nsIComponentManager.h"
 #include "nsLanguageAtomService.h"
 #include "nsICharsetConverterManager.h"
 #include "nsILocaleService.h"
-#include "nsXPIDLString.h"
 #include "nsUnicharUtils.h"
-#include "nsIServiceManager.h"
 #include "nsIAtom.h"
 #include "mozilla/Services.h"
+#include "nsServiceManagerUtils.h"
 
 NS_IMPL_ISUPPORTS1(nsLanguageAtomService, nsILanguageAtomService)
 

@@ -4,10 +4,10 @@
 
 
 
-#include "nsAlgorithm.h"
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
 #include "mozilla/SSE.h"
+#include "nsCharTraits.h"
 #include <algorithm>
 
 #define UNICODE_BYTE_ORDER_MARK    0xFEFF

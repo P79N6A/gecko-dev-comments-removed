@@ -6,7 +6,10 @@
 #ifndef nsUnicodeToCP1252_h___
 #define nsUnicodeToCP1252_h___
 
-#include "nsISupports.h"
+#include "nsID.h"
+
+class nsISupports;
+
 
 
 #define NS_UNICODETOCP1252_CID \

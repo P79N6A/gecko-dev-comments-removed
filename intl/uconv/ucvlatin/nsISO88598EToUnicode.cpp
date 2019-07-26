@@ -3,7 +3,6 @@
 
 
 
-#include "nsUCConstructors.h"
 #include "nsISO88598ToUnicode.h"
 #include "nsISO88598EToUnicode.h"
 

@@ -3,8 +3,6 @@
 
 
 
-#include "nsAlgorithm.h"
-#include "nsIComponentManager.h"
 #include "nsUCSupport.h"
 #include "nsUnicodeDecodeHelper.h"
 #include "nsUnicodeEncodeHelper.h"

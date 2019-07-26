@@ -20,8 +20,9 @@
 #ifndef nsUnicodeToCP850_h___
 #define nsUnicodeToCP850_h___
 
-#include "nsISupports.h"
+#include "nsID.h"
 
+class nsISupports;
 
 
 

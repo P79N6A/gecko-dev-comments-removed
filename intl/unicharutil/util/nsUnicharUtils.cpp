@@ -4,16 +4,11 @@
 
 
 #include "nsUnicharUtils.h"
-#include "nsUnicharUtilCIID.h"
-
-#include "nsCRT.h"
-#include "nsICaseConversion.h"
-#include "nsServiceManagerUtils.h"
 #include "nsXPCOMStrings.h"
 #include "nsUTF8Utils.h"
 #include "nsUnicodeProperties.h"
-#include "nsHashKeys.h"
 #include "mozilla/Likely.h"
+#include "mozilla/HashFunctions.h"
 
 
 

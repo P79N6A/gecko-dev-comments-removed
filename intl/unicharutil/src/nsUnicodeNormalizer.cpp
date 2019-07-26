@@ -51,15 +51,11 @@
 
 
 
-#include <stdlib.h>
 #include <string.h>
 
-#include "nsUnicharUtils.h"
 #include "nsMemory.h"
-#include "nsCRT.h"
 #include "nsUnicodeNormalizer.h"
 #include "nsString.h"
-#include "nsReadableUtils.h"
 
 NS_IMPL_ISUPPORTS1(nsUnicodeNormalizer, nsIUnicodeNormalizer)
 

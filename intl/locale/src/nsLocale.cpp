@@ -4,13 +4,9 @@
 
 
 #include "nsString.h"
-#include "nsReadableUtils.h"
 #include "nsISupports.h"
 #include "nsILocale.h"
 #include "nsLocale.h"
-#include "nsLocaleCID.h"
-#include "nsCOMPtr.h"
-#include "nsVoidArray.h"
 #include "nsMemory.h"
 #include "nsCRT.h"
 

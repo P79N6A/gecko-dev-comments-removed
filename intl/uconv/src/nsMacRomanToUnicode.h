@@ -6,7 +6,9 @@
 #ifndef nsMacRomanToUnicode_h___
 #define nsMacRomanToUnicode_h___
 
-#include "nsISupports.h"
+#include "nsID.h"
+
+class nsISupports;
 
 
 

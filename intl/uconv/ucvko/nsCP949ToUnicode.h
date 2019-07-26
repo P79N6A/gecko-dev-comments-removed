@@ -6,7 +6,9 @@
 #ifndef nsCP949ToUnicode_h___
 #define nsCP949ToUnicode_h___
 
-#include "nsISupports.h"
+#include "nsID.h"
+
+class nsISupports;
 
 
 

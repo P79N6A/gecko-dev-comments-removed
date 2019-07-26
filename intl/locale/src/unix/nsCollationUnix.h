@@ -12,6 +12,7 @@
 #include "nsCollation.h"  
 #include "plstr.h"
 #include "mozilla/Attributes.h"
+#include "nsString.h"
 
 
 

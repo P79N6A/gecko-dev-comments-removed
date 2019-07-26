@@ -4,9 +4,6 @@
 
 
 #include "mozilla/ModuleUtils.h"
-#include "nsCOMPtr.h"
-#include "nsICategoryManager.h"
-#include "nsIServiceManager.h"
 
 #include "nsCharDetConstructors.h"
 
