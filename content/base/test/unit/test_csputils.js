@@ -141,15 +141,6 @@ test(
     do_check_true( h2.permits("a.b.c")); 
   });
 
-test(
-    function test_CSPHost_intersectWith() {
-      var h = CSPHost.fromString("*.b.c");
-      
-      do_check_eq("*.a.b.c", h.intersectWith(CSPHost.fromString("*.a.b.c")).toString());
-
-      
-      do_check_eq(null, h.intersectWith(CSPHost.fromString("*.d.e")));
-    });
 
 
 
@@ -315,42 +306,6 @@ test(
       do_check_true(wildcardHostSourceList.permits("http://somerandom.foo.com"));
       
       do_check_false(wildcardHostSourceList.permits("http://barbaz.com"));
-    });
-
-test(
-    function test_CSPSourceList_intersect() {
-      
-      
-      
-      var nullSourceList = CSPSourceList.fromString("'none'");
-      var simpleSourceList = CSPSourceList.fromString("http://a.com");
-      var doubleSourceList = CSPSourceList.fromString("https://foo.com http://bar.com:88");
-      var singleFooSourceList = CSPSourceList.fromString("https://foo.com");
-      var allSourceList = CSPSourceList.fromString("*");
-
-      
-      do_check_true(nullSourceList.intersectWith(simpleSourceList).isNone());
-      
-      do_check_true(nullSourceList.intersectWith(doubleSourceList).isNone());
-      
-      do_check_true(nullSourceList.intersectWith(allSourceList).isNone());
-
-      
-      do_check_equivalent(allSourceList.intersectWith(simpleSourceList),
-                          simpleSourceList);
-      
-      do_check_equivalent(allSourceList.intersectWith(doubleSourceList),
-                          doubleSourceList);
-
-      
-      do_check_true(simpleSourceList.intersectWith(doubleSourceList).isNone());
-
-      
-      do_check_equivalent(singleFooSourceList,
-                          doubleSourceList.intersectWith(singleFooSourceList));
-
-      
-
     });
 
 
