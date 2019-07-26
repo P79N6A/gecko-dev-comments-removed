@@ -1919,7 +1919,6 @@ IonBuilder::inlineBoundFunction(CallInfo &nativeCallInfo, JSFunction *target)
          return InliningStatus_NotInlined;
 
     JSFunction *scriptedTarget = &(target->getBoundFunctionTarget()->as<JSFunction>());
-    JSRuntime *runtime = scriptedTarget->runtimeFromMainThread();
 
     
     
@@ -1930,17 +1929,17 @@ IonBuilder::inlineBoundFunction(CallInfo &nativeCallInfo, JSFunction *target)
         return InliningStatus_NotInlined;
     }
 
-    if (gc::IsInsideNursery(runtime, scriptedTarget))
+    if (gc::IsInsideNursery(scriptedTarget))
         return InliningStatus_NotInlined;
 
     for (size_t i = 0; i < target->getBoundFunctionArgumentCount(); i++) {
         const Value val = target->getBoundFunctionArgument(i);
-        if (val.isObject() && gc::IsInsideNursery(runtime, &val.toObject()))
+        if (val.isObject() && gc::IsInsideNursery(&val.toObject()))
             return InliningStatus_NotInlined;
     }
 
     const Value thisVal = target->getBoundFunctionThis();
-    if (thisVal.isObject() && gc::IsInsideNursery(runtime, &thisVal.toObject()))
+    if (thisVal.isObject() && gc::IsInsideNursery(&thisVal.toObject()))
         return InliningStatus_NotInlined;
 
     size_t argc = target->getBoundFunctionArgumentCount() + nativeCallInfo.argc();

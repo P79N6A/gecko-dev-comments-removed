@@ -193,7 +193,7 @@ bool Wrapper::finalizeInBackground(Value priv)
 
 
 
-    if (IsInsideNursery(priv.toObject().runtimeFromMainThread(), &priv.toObject()))
+    if (IsInsideNursery(&priv.toObject()))
         return true;
     return IsBackgroundFinalized(priv.toObject().tenuredGetAllocKind());
 }

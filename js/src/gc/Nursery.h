@@ -61,6 +61,8 @@ class Nursery
     explicit Nursery(JSRuntime *rt)
       : runtime_(rt),
         position_(0),
+        heapStart_(0),
+        heapEnd_(0),
         currentStart_(0),
         currentEnd_(0),
         currentChunk_(0),
@@ -77,9 +79,13 @@ class Nursery
     
     bool isEmpty() const;
 
-    template <typename T>
-    MOZ_ALWAYS_INLINE bool isInside(const T *p) const {
-        return gc::IsInsideNursery((JS::shadow::Runtime *)runtime_, p);
+    
+
+
+
+    MOZ_ALWAYS_INLINE bool isInside(gc::Cell *cellp) const MOZ_DELETE;
+    MOZ_ALWAYS_INLINE bool isInside(const void *p) const {
+        return uintptr_t(p) >= heapStart_ && uintptr_t(p) < heapEnd_;
     }
 
     
@@ -142,13 +148,11 @@ class Nursery
     }
 
     MOZ_ALWAYS_INLINE uintptr_t start() const {
-        JS_ASSERT(runtime_);
-        return ((JS::shadow::Runtime *)runtime_)->gcNurseryStart_;
+        return heapStart_;
     }
 
     MOZ_ALWAYS_INLINE uintptr_t heapEnd() const {
-        JS_ASSERT(runtime_);
-        return ((JS::shadow::Runtime *)runtime_)->gcNurseryEnd_;
+        return heapEnd_;
     }
 
 #ifdef JS_GC_ZEAL
@@ -182,6 +186,10 @@ class Nursery
 
     
     uintptr_t position_;
+
+    
+    uintptr_t heapStart_;
+    uintptr_t heapEnd_;
 
     
     uintptr_t currentStart_;
