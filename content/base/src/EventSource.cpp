@@ -454,38 +454,14 @@ EventSource::OnStopRequest(nsIRequest *aRequest,
 
   nsresult rv;
   nsresult healthOfRequestResult = CheckHealthOfRequestCallback(aRequest);
-  if (NS_SUCCEEDED(healthOfRequestResult)) {
+  if (NS_SUCCEEDED(healthOfRequestResult) &&
+      mLastConvertionResult == NS_PARTIAL_MORE_INPUT) {
     
-    if (mLastConvertionResult == NS_PARTIAL_MORE_INPUT) {
-      rv = ParseCharacter(REPLACEMENT_CHAR);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    
-    
-    switch (mStatus)
-    {
-      case PARSE_STATE_CR_CHAR:
-      case PARSE_STATE_COMMENT:
-      case PARSE_STATE_FIELD_NAME:
-      case PARSE_STATE_FIRST_CHAR_OF_FIELD_VALUE:
-      case PARSE_STATE_FIELD_VALUE:
-      case PARSE_STATE_BEGIN_OF_LINE:
-        rv = SetFieldAndClear();
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = DispatchCurrentMessageEvent();  
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        break;
-
-      
-      case PARSE_STATE_OFF:
-      case PARSE_STATE_BEGIN_OF_STREAM:
-      case PARSE_STATE_BOM_WAS_READ:
-        break;
-    }
+    rv = ParseCharacter(REPLACEMENT_CHAR);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
+
+  ClearFields();
 
   nsCOMPtr<nsIRunnable> event =
     NS_NewRunnableMethod(this, &EventSource::ReestablishConnection);
@@ -1298,6 +1274,8 @@ EventSource::DispatchAllMessageEvents()
       NS_WARNING("Failed to dispatch the message event!!!");
       return;
     }
+
+    mLastEventID.Assign(message->mLastEventID);
   }
 }
 
@@ -1348,7 +1326,6 @@ EventSource::SetFieldAndClear()
     case PRUnichar('i'):
       if (mLastFieldName.EqualsLiteral("id")) {
         mCurrentMessage.mLastEventID.Assign(mLastFieldValue);
-        mLastEventID.Assign(mLastFieldValue);
       }
       break;
 
