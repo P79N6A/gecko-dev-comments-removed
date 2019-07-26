@@ -36,7 +36,9 @@ volatile bool gDebugDisableHangMonitor = false;
 
 const char kHangMonitorPrefName[] = "hangmonitor.timeout";
 
+#ifdef REPORT_CHROME_HANGS
 const char kTelemetryPrefName[] = "toolkit.telemetry.enabled";
+#endif
 
 
 
