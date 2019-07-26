@@ -8,6 +8,9 @@
 #define nsHtml5DocumentBuilder_h
 
 #include "nsHtml5PendingNotification.h"
+#include "nsContentSink.h"
+#include "nsHtml5DocumentMode.h"
+#include "nsIDocument.h"
 
 typedef nsIContent* nsIContentPtr;
 
@@ -92,7 +95,8 @@ public:
     mFlushState = eInDocUpdate;
   }
 
-  void DropHeldElements();
+  nsresult Init(nsIDocument* aDoc, nsIURI* aURI,
+                nsISupports* aContainer, nsIChannel* aChannel);
 
   
   nsIDocument* GetDocument() {
@@ -102,7 +106,54 @@ public:
     return mNodeInfoManager;
   }
 
-  virtual bool BelongsToStringParser() = 0;
+  
+
+
+
+
+
+  virtual nsresult MarkAsBroken(nsresult aReason);
+
+  
+
+
+
+  inline nsresult IsBroken() {
+    return mBroken;
+  }
+
+  inline void BeginDocUpdate() {
+    NS_PRECONDITION(mFlushState == eInFlush, "Tried to double-open update.");
+    NS_PRECONDITION(mParser, "Started update without parser.");
+    mFlushState = eInDocUpdate;
+    mDocument->BeginUpdate(UPDATE_CONTENT_MODEL);
+  }
+
+  inline void EndDocUpdate() {
+    NS_PRECONDITION(mFlushState != eNotifying, "mFlushState out of sync");
+    if (mFlushState == eInDocUpdate) {
+      FlushPendingAppendNotifications();
+      mFlushState = eInFlush;
+      mDocument->EndUpdate(UPDATE_CONTENT_MODEL);
+    }
+  }
+
+  void SetDocumentCharsetAndSource(nsACString& aCharset, int32_t aCharsetSource);
+
+  
+
+
+  void UpdateStyleSheet(nsIContent* aElement);
+
+  void SetDocumentMode(nsHtml5DocumentMode m);
+
+  void SetNodeInfoManager(nsNodeInfoManager* aManager) {
+    mNodeInfoManager = aManager;
+  }
+
+  
+  virtual void UpdateChildCounts();
+  virtual nsresult FlushTags();
 
 protected:
   inline void SetAppendBatchCapacity(uint32_t aCapacity)
@@ -110,11 +161,26 @@ protected:
     mElementsSeenInThisAppendBatch.SetCapacity(aCapacity);
   }
 
+  nsHtml5DocumentBuilder(bool aRunsToCompletion);
+  virtual ~nsHtml5DocumentBuilder();
+
 private:
   nsTArray<nsHtml5PendingNotification> mPendingNotifications;
-  nsTArray<nsCOMPtr<nsIContent> >      mOwnedElements;
   nsTArray<nsIContentPtr>              mElementsSeenInThisAppendBatch;
 protected:
+  nsTArray<nsCOMPtr<nsIContent> >      mOwnedElements;
+  
+
+
+
+
+
+
+
+
+
+
+  nsresult                             mBroken;
   eHtml5FlushState                     mFlushState;
 };
 
