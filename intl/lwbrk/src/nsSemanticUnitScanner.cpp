@@ -4,7 +4,6 @@
 
 
 #include "nsSemanticUnitScanner.h"
-#include "prmem.h"
 
 NS_IMPL_ISUPPORTS1(nsSemanticUnitScanner, nsISemanticUnitScanner)
 

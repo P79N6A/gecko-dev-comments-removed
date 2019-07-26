@@ -4,8 +4,6 @@
 
 
 #include "nsGNOMERegistry.h"
-#include "prlink.h"
-#include "prmem.h"
 #include "nsString.h"
 #include "nsIComponentManager.h"
 #include "nsIFile.h"

@@ -3,7 +3,6 @@
 
 
 
-#include "prmem.h"
 
 #include "gfxAlphaRecovery.h"
 #include "gfxImageSurface.h"
