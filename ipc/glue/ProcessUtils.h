@@ -8,6 +8,8 @@
 namespace mozilla {
 namespace ipc {
 
+
+
 void SetThisProcessName(const char *aName);
 
 } 

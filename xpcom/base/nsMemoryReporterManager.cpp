@@ -24,6 +24,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Services.h"
 #include "mozilla/dom/ContentParent.h"
+#include "mozilla/dom/ContentChild.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -1196,10 +1197,29 @@ DumpReport(nsIGZFileWriter *aWriter, bool aIsFirst,
         return NS_OK;
     }
 
+    
+    
+    
+    nsAutoCString processId;
+    if (XRE_GetProcessType() == GeckoProcessType_Default) {
+      
+      processId.AssignLiteral("Main Process ");
+    } else if (ContentChild *cc = ContentChild::GetSingleton()) {
+      
+      nsAutoString processName;
+      cc->GetProcessName(processName);
+      processId.Assign(NS_ConvertUTF16toUTF8(processName));
+      if (!processId.IsEmpty()) {
+        processId.AppendLiteral(" ");
+      }
+    }
+
+    
     unsigned pid = getpid();
-    nsPrintfCString pidStr("Process %u", pid);
+    processId.Append(nsPrintfCString("(pid %u)", pid));
+
     DUMP(aWriter, "\n    {\"process\": \"");
-    DUMP(aWriter, pidStr);
+    DUMP(aWriter, processId);
 
     DUMP(aWriter, "\", \"path\": \"");
     nsCString path(aPath);
