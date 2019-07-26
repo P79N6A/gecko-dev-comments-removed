@@ -9571,11 +9571,11 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
 
   
   uint32_t nestingLevel = sNestingLevel + 1;
-  int32_t realInterval = interval;
+  uint32_t realInterval = interval;
   if (aIsInterval || nestingLevel >= DOM_CLAMP_TIMEOUT_NESTING_LEVEL) {
     
     
-    realInterval = NS_MAX(realInterval, DOMMinTimeoutValue());
+    realInterval = NS_MAX(realInterval, uint32_t(DOMMinTimeoutValue()));
   }
 
   
