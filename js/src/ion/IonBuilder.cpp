@@ -6274,6 +6274,14 @@ IonBuilder::jsop_getelem_dense()
     MDefinition *obj = current->pop();
 
     types::StackTypeSet *types = types::TypeScript::BytecodeTypes(script(), pc);
+
+    if (JSOp(*pc) == JSOP_CALLELEM && !id->mightBeType(MIRType_String) && types->noConstraints()) {
+        
+        
+        
+        AddObjectsForPropertyRead(cx, obj, NULL, types);
+    }
+
     bool barrier = PropertyReadNeedsTypeBarrier(cx, obj, NULL, types);
     bool needsHoleCheck = !ElementAccessIsPacked(cx, obj);
 
