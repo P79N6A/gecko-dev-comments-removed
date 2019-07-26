@@ -336,6 +336,8 @@ class CodeGenerator : public CodeGeneratorSpecific
 
     
     IonScriptCounts *unassociatedScriptCounts_;
+
+    PerfSpewer perfSpewer_;
 };
 
 } 

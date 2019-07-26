@@ -24,6 +24,7 @@
 #include "vm/ThreadPool.h"
 #include "vm/ForkJoin.h"
 #include "IonCompartment.h"
+#include "PerfSpewer.h"
 #include "CodeGenerator.h"
 #include "jsworkers.h"
 #include "BacktrackingAllocator.h"
@@ -158,6 +159,7 @@ ion::InitializeIon()
     }
 #endif
     CheckLogging();
+    CheckPerf();
     return true;
 }
 
@@ -493,6 +495,11 @@ IonCode::finalize(FreeOp *fop)
 {
     
     JS_POISON(code_, JS_FREE_PATTERN, bufferSize_);
+
+    
+    
+    if (PerfEnabled())
+        return;
 
     
     
