@@ -161,6 +161,41 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool subsumes = AccessCheck::subsumes(js::GetContextCompartment(cx),
+                                          js::GetObjectCompartment(obj));
+    XrayType xrayType = GetXrayType(obj);
+    if (!subsumes && xrayType == NotXray) {
+        JSProtoKey key = JSProto_Null;
+        {
+            JSAutoCompartment ac(cx, obj);
+            key = JS_IdentifyClassPrototype(cx, obj);
+        }
+        if (key != JSProto_Null) {
+            RootedObject homeProto(cx);
+            if (!JS_GetClassPrototype(cx, key, homeProto.address()))
+                return nullptr;
+            MOZ_ASSERT(homeProto);
+            
+            
+            return homeProto;
+        }
+    }
+
+    
+    
+    
+    
+    
     if (!IS_WN_WRAPPER(obj) || !js::GetObjectParent(obj))
         return DoubleWrap(cx, obj, flags);
 
@@ -441,41 +476,7 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
         wrapper = SelectWrapper(securityWrapper, wantXrays, xrayType, waiveXrays);
     }
 
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     if (wrapper == &ChromeObjectWrapper::singleton) {
-        JSProtoKey key = JSProto_Null;
-        {
-            JSAutoCompartment ac(cx, obj);
-            RootedObject unwrappedProto(cx);
-            if (!js::GetObjectProto(cx, obj, &unwrappedProto))
-                return NULL;
-            if (unwrappedProto && IsCrossCompartmentWrapper(unwrappedProto))
-                unwrappedProto = Wrapper::wrappedObject(unwrappedProto);
-            if (unwrappedProto) {
-                JSAutoCompartment ac2(cx, unwrappedProto);
-                key = JS_IdentifyClassPrototype(cx, unwrappedProto);
-            }
-        }
-        if (key != JSProto_Null) {
-            RootedObject homeProto(cx);
-            if (!JS_GetClassPrototype(cx, key, homeProto.address()))
-                return NULL;
-            MOZ_ASSERT(homeProto);
-            proxyProto = homeProto;
-        }
-
         
         
         JSFunction *fun = JS_GetObjectFunction(obj);
