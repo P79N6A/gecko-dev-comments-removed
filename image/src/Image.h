@@ -47,7 +47,7 @@ public:
 
 
 
-  virtual nsresult Init(imgIDecoderObserver* aObserver,
+  virtual nsresult Init(imgDecoderObserver* aObserver,
                         const char* aMimeType,
                         const char* aURIString,
                         uint32_t aFlags) = 0;
