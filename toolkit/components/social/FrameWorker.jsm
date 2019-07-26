@@ -72,7 +72,7 @@ this.getFrameWorkerHandle =
 function FrameWorker(url, name, origin) {
   this.url = url;
   this.name = name || url;
-  this.ports = {};
+  this.ports = new Map();
   this.pendingPorts = [];
   this.loaded = false;
   this.reloading = false;
@@ -103,11 +103,11 @@ FrameWorker.prototype = {
   reload: function FrameWorker_reloadWorker() {
     
     
-    for (let [portid, port] in Iterator(this.ports)) {
+    for (let [, port] of this.ports) {
       port._window = null;
       this.pendingPorts.push(port);
     }
-    this.ports = {};
+    this.ports.clear();
     
     
     this.loaded = false;
@@ -263,7 +263,7 @@ FrameWorker.prototype = {
     
     workerWindow.addEventListener("unload", function unloadListener() {
       workerWindow.removeEventListener("unload", unloadListener);
-      for (let [portid, port] in Iterator(worker.ports)) {
+      for (let [, port] of worker.ports) {
         try {
           port.close();
         } catch (ex) {
@@ -273,7 +273,7 @@ FrameWorker.prototype = {
       
       
       
-      worker.ports = [];
+      worker.ports.clear();
       
       
       worker.loaded = false;
@@ -376,20 +376,20 @@ function initClientMessageHandler(worker, workerWindow) {
         break;
       case "port-close":
         
-        port = worker.ports[portid];
+        port = worker.ports.get(portid);
         if (!port) {
           
           
           
           return;
         }
-        delete worker.ports[portid];
+        worker.ports.delete(portid);
         port.close();
         break;
 
       case "port-message":
         
-        port = worker.ports[portid];
+        port = worker.ports.get(portid);
         if (!port) {
           return;
         }
@@ -448,7 +448,7 @@ ClientPort.prototype = {
 
   _createWorkerAndEntangle: function fw_ClientPort_createWorkerAndEntangle(worker) {
     this._window = worker.frame.contentWindow;
-    worker.ports[this._portid] = this;
+    worker.ports.set(this._portid, this);
     this._postControlMessage("port-create");
     for (let message of this._pendingMessagesOutgoing) {
       this._dopost(message);
@@ -458,7 +458,7 @@ ClientPort.prototype = {
     
     if (this._closed) {
       this._window = null;
-      delete worker.ports[this._portid];
+      worker.ports.delete(this._portid);
     }
   },
 
