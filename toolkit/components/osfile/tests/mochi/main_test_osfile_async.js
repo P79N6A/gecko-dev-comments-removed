@@ -140,6 +140,7 @@ let test = maketest("Main", function main(test) {
     yield test_mkdir();
     yield test_iter();
     yield test_exists();
+    yield test_debug_test();
     info("Test is over");
     SimpleTest.finish();
   });
@@ -652,5 +653,42 @@ let test_debug = maketest("debug", function debug(test) {
     testSetDebugPref(false);
     workerDEBUG = yield OS.File.GET_DEBUG();
     test.is(workerDEBUG, false, "Worker's DEBUG is unset.");
+  });
+});
+
+
+
+
+
+let test_debug_test = maketest("debug_test", function debug_test(test) {
+  return Task.spawn(function () {
+    
+    let consoleListener = {
+      observe: function (aMessage) {
+        
+        if (!(aMessage instanceof Components.interfaces.nsIConsoleMessage)) {
+          return;
+        }
+        if (aMessage.message.indexOf("TEST OS") < 0) {
+          return;
+        }
+        test.ok(true, "DEBUG TEST messages are logged correctly.")
+      }
+    };
+    
+    function toggleDebugTest (pref) {
+      OS.Shared.DEBUG = pref;
+      OS.Shared.TEST = pref;
+      Services.console[pref ? "registerListener" : "unregisterListener"](
+        consoleListener);
+    }
+    
+    let originalPref = OS.Shared.DEBUG;
+    toggleDebugTest(true);
+    
+    let fileExists = yield OS.File.exists(EXISTING_FILE);
+    toggleDebugTest(false);
+    
+    OS.Shared.DEBUG = originalPref;
   });
 });
