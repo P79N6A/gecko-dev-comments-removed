@@ -4,7 +4,9 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["Social", "OpenGraphBuilder", "DynamicResizeWatcher", "sizeSocialPanelToContent"];
+this.EXPORTED_SYMBOLS = ["Social", "CreateSocialStatusWidget",
+                         "CreateSocialMarkWidget", "OpenGraphBuilder",
+                         "DynamicResizeWatcher", "sizeSocialPanelToContent"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
@@ -17,6 +19,8 @@ const PANEL_MIN_WIDTH = 330;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "CustomizableUI",
+  "resource:///modules/CustomizableUI.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SocialService",
   "resource://gre/modules/SocialService.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
@@ -381,6 +385,64 @@ function schedule(callback) {
   Services.tm.mainThread.dispatch(callback, Ci.nsIThread.DISPATCH_NORMAL);
 }
 
+function CreateSocialStatusWidget(aId, aProvider) {
+  if (!aProvider.statusURL)
+    return;
+  let widget = CustomizableUI.getWidget(aId);
+  
+  
+  
+  if (widget && widget.provider == CustomizableUI.PROVIDER_API)
+    return;
+
+  CustomizableUI.createWidget({
+    id: aId,
+    type: 'custom',
+    removable: true,
+    defaultArea: CustomizableUI.AREA_NAVBAR,
+    onBuild: function(aDocument) {
+      let node = aDocument.createElement('toolbarbutton');
+      node.id = this.id;
+      node.setAttribute('class', 'toolbarbutton-1 chromeclass-toolbar-additional social-status-button');
+      node.setAttribute('type', "badged");
+      node.style.listStyleImage = "url(" + (aProvider.icon32URL || aProvider.iconURL) + ")";
+      node.setAttribute("origin", aProvider.origin);
+      node.setAttribute("label", aProvider.name);
+      node.setAttribute("tooltiptext", aProvider.name);
+      node.setAttribute("oncommand", "SocialStatus.showPopup(this);");
+
+      return node;
+    }
+  });
+};
+
+function CreateSocialMarkWidget(aId, aProvider) {
+  if (!aProvider.markURL)
+    return;
+  let widget = CustomizableUI.getWidget(aId);
+  
+  
+  
+  if (widget && widget.provider == CustomizableUI.PROVIDER_API)
+    return;
+
+  CustomizableUI.createWidget({
+    id: aId,
+    type: 'custom',
+    removable: true,
+    defaultArea: CustomizableUI.AREA_NAVBAR,
+    onBuild: function(aDocument) {
+      let node = aDocument.createElement('toolbarbutton');
+      node.id = this.id;
+      node.setAttribute('class', 'toolbarbutton-1 chromeclass-toolbar-additional social-mark-button');
+      node.setAttribute('type', "socialmark");
+      node.style.listStyleImage = "url(" + aProvider.iconURL + ")";
+      node.setAttribute("origin", aProvider.origin);
+
+      return node;
+    }
+  });
+};
 
 
 
