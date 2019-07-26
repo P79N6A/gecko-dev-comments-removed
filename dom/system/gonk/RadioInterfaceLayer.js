@@ -580,14 +580,6 @@ RadioInterfaceLayer.prototype = {
       case "setPreferredNetworkType":
         this.handleSetPreferredNetworkType(message);
         break;
-      case "stkcallsetup":
-        
-        
-        
-        debug("STK app has placed a call no. " + message.command.options.address);
-        gSystemMessenger.broadcastMessage("icc-dialing", {state: "dialing",
-          number: message.command.options.address});
-        break;
       case "queryCallForwardStatus":
         this.handleQueryCallForwardStatus(message);
         break;
@@ -1104,8 +1096,10 @@ RadioInterfaceLayer.prototype = {
     debug("handleCallStateChange: " + JSON.stringify(call));
     call.state = convertRILCallState(call.state);
 
-    if (call.state == nsIRadioInterfaceLayer.CALL_STATE_INCOMING) {
-      gSystemMessenger.broadcastMessage("telephony-incoming", {number: call.number});
+    if (call.state == nsIRadioInterfaceLayer.CALL_STATE_INCOMING ||
+        call.state == nsIRadioInterfaceLayer.CALL_STATE_DIALING) {
+      gSystemMessenger.broadcastMessage("telephony-new-call", {number: call.number,
+                                                               state: call.state});
     }
 
     if (call.isActive) {
