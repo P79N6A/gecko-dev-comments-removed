@@ -11,10 +11,9 @@
 #include "zlib.h"
 
 #ifdef WOFF_MOZILLA_CLIENT 
-# include "prmem.h"
-# define malloc  PR_Malloc
-# define realloc PR_Realloc
-# define free    PR_Free
+# define malloc  moz_malloc
+# define realloc moz_realloc
+# define free    moz_free
 #endif
 
 

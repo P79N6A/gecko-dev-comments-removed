@@ -5,6 +5,7 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsMemory.h"
+#include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Attributes.h"
 
@@ -41,16 +42,14 @@
 
 #include "imgIEncoder.h"
 #include "nsComponentManagerUtils.h"
-#include "prmem.h"
 #include "nsISupportsUtils.h"
-#include "plbase64.h"
 #include "nsCOMPtr.h"
 #include "nsIConsoleService.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStringGlue.h"
 #include "nsIClipboardHelper.h"
 
-using mozilla::CheckedInt;
+using namespace mozilla;
 
 static cairo_user_data_key_t gfxasurface_pointer_key;
 
@@ -776,7 +775,7 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
   
   bufSize += 16;
   uint32_t imgSize = 0;
-  char* imgData = (char*)PR_Malloc(bufSize);
+  char* imgData = (char*)moz_malloc(bufSize);
   if (!imgData)
     return;
   uint32_t numReadThisTime = 0;
@@ -788,9 +787,9 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
     if (imgSize == bufSize) {
       
       bufSize *= 2;
-      char* newImgData = (char*)PR_Realloc(imgData, bufSize);
+      char* newImgData = (char*)moz_realloc(imgData, bufSize);
       if (!newImgData) {
-        PR_Free(imgData);
+        moz_free(imgData);
         return;
       }
       imgData = newImgData;
@@ -807,9 +806,10 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
   }
 
   
-  char* encodedImg = PL_Base64Encode(imgData, imgSize, nullptr);
-  PR_Free(imgData);
-  if (!encodedImg) 
+  nsCString encodedImg;
+  rv = Base64Encode(Substring(imgData, imgSize), encodedImg);
+  moz_free(imgData);
+  if (NS_FAILED(rv)) 
     return;
 
   nsCString string("data:image/png;base64,");
@@ -837,8 +837,6 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
       clipboard->CopyString(NS_ConvertASCIItoUTF16(string), nullptr);
     }
   }
-
-  PR_Free(encodedImg);
 
   return;
 }
