@@ -3346,11 +3346,14 @@ public:
 
 
 
+
+
   static gfx3DMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
                                                  const nsPoint& aOrigin,
                                                  float aAppUnitsPerPixel,
                                                  const nsRect* aBoundsOverride = nullptr,
-                                                 nsIFrame** aOutAncestor = nullptr);
+                                                 nsIFrame** aOutAncestor = nullptr,
+                                                 bool aOffsetByOrigin = false);
   static gfx3DMatrix GetResultingTransformMatrix(const FrameTransformProperties& aProperties,
                                                  const nsPoint& aOrigin,
                                                  float aAppUnitsPerPixel,
@@ -3372,7 +3375,8 @@ private:
                                                          const nsPoint& aOrigin,
                                                          float aAppUnitsPerPixel,
                                                          const nsRect* aBoundsOverride,
-                                                         nsIFrame** aOutAncestor);
+                                                         nsIFrame** aOutAncestor,
+                                                         bool aOffsetByOrigin);
 
   nsDisplayWrapList mStoredList;
   gfx3DMatrix mTransform;
