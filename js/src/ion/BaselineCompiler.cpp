@@ -1469,7 +1469,10 @@ static const VMFunction DeleteElementNonStrictInfo = FunctionInfo<DeleteElementF
 bool
 BaselineCompiler::emit_JSOP_DELELEM()
 {
-    frame.popRegsAndSync(2);
+    
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-2)), R0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R1);
 
     prepareVMCall();
 
@@ -1480,6 +1483,7 @@ BaselineCompiler::emit_JSOP_DELELEM()
         return false;
 
     masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
+    frame.popn(2);
     frame.push(R1);
     return true;
 }
@@ -1611,7 +1615,9 @@ static const VMFunction DeletePropertyNonStrictInfo = FunctionInfo<DeletePropert
 bool
 BaselineCompiler::emit_JSOP_DELPROP()
 {
-    frame.popRegsAndSync(1);
+    
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
 
     prepareVMCall();
 
@@ -1622,6 +1628,7 @@ BaselineCompiler::emit_JSOP_DELPROP()
         return false;
 
     masm.boxNonDouble(JSVAL_TYPE_BOOLEAN, ReturnReg, R1);
+    frame.pop();
     frame.push(R1);
     return true;
 }
@@ -2250,14 +2257,16 @@ bool
 BaselineCompiler::emit_JSOP_TOID()
 {
     
-    frame.popRegsAndSync(1);
-    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R1);
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
 
     
     Label done;
     masm.branchTestInt32(Assembler::Equal, R0, &done);
 
     prepareVMCall();
+
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-2)), R1);
 
     pushArg(R0);
     pushArg(R1);
@@ -2268,6 +2277,7 @@ BaselineCompiler::emit_JSOP_TOID()
         return false;
 
     masm.bind(&done);
+    frame.pop(); 
     frame.push(R0);
     return true;
 }
