@@ -286,6 +286,16 @@ public:
 
     eIntID_MacLionTheme,
 
+   
+
+
+
+
+
+
+
+   eIntID_MacYosemiteTheme,
+
     
 
 
