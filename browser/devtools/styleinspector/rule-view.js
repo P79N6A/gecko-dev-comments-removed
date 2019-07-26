@@ -13,6 +13,7 @@ let {CssLogic} = require("devtools/styleinspector/css-logic");
 let {InplaceEditor, editableField, editableItem} = require("devtools/shared/inplace-editor");
 let {ELEMENT_STYLE, PSEUDO_ELEMENTS} = require("devtools/server/actors/styles");
 let {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
+let {Tooltip} = require("devtools/shared/widgets/Tooltip");
 
 const {OutputParser} = require("devtools/output-parser");
 
@@ -1039,8 +1040,10 @@ TextProperty.prototype = {
 
 
 
-function CssRuleView(aDoc, aStore, aPageStyle)
+
+function CssRuleView(aInspector, aDoc, aStore, aPageStyle)
 {
+  this.inspector = aInspector;
   this.doc = aDoc;
   this.store = aStore || {};
   this.pageStyle = aPageStyle;
@@ -1066,6 +1069,9 @@ function CssRuleView(aDoc, aStore, aPageStyle)
     theme: "auto"
   };
   this.popup = new AutocompletePopup(aDoc.defaultView.parent.document, options);
+
+  this.tooltip = new Tooltip(this.inspector.panelDoc);
+  this.tooltip.startTogglingOnHover(this.element, this._buildTooltipContent.bind(this));
 
   this._buildContextMenu();
   this._showEmpty();
@@ -1105,6 +1111,37 @@ CssRuleView.prototype = {
     }
 
     popupset.appendChild(this._contextmenu);
+  },
+
+  
+
+
+
+  _buildTooltipContent: function(target) {
+    let isValueWithImage = target.classList.contains("ruleview-propertyvalue") &&
+      target.querySelector(".theme-link");
+
+    let isImageHref = target.classList.contains("theme-link") &&
+      target.parentNode.classList.contains("ruleview-propertyvalue");
+    if (isImageHref) {
+      target = target.parentNode;
+    }
+
+    let isEditing = this.isEditing;
+
+    
+    
+    if (this.isEditing || (!isImageHref && !isValueWithImage)) {
+      return false;
+    }
+
+    
+    let property = target.textProperty;
+    let href = property.rule.domRule.href;
+
+    
+    this.tooltip.setCssBackgroundImageContent(property.value, href);
+    return true;
   },
 
   
@@ -1240,6 +1277,9 @@ CssRuleView.prototype = {
     
     this.doc.popupNode = null;
 
+    this.tooltip.stopTogglingOnHover(this.element);
+    this.tooltip.destroy();
+
     if (this.element.parentNode) {
       this.element.parentNode.removeChild(this.element);
     }
@@ -1306,7 +1346,6 @@ CssRuleView.prototype = {
         return promise.reject("element changed");
       }
       this._createEditors();
-
 
       
       var evt = this.doc.createEvent("Events");
@@ -1855,6 +1894,10 @@ TextPropertyEditor.prototype = {
 
     
     
+    this.valueSpan.textProperty = this.prop;
+
+    
+    
     this.committed = { name: this.prop.name,
                        value: this.prop.value,
                        priority: this.prop.priority };
@@ -1971,7 +2014,6 @@ TextPropertyEditor.prototype = {
       });
 
       a.addEventListener("click", (aEvent) => {
-
         
         aEvent.stopPropagation();
         aEvent.preventDefault();
@@ -2133,6 +2175,7 @@ TextPropertyEditor.prototype = {
   {
     this.element.parentNode.removeChild(this.element);
     this.ruleEditor.rule.editClosestTextProperty(this.prop);
+    this.valueSpan.textProperty = null;
     this.prop.remove();
   },
 

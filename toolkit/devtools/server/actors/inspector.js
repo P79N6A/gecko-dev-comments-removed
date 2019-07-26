@@ -256,6 +256,47 @@ var NodeActor = protocol.ActorClass({
 
 
 
+  getImageData: method(function() {
+    let isImg = this.rawNode.tagName.toLowerCase() === "img";
+    let isCanvas = this.rawNode.tagName.toLowerCase() === "canvas";
+
+    if (!isImg && !isCanvas) {
+      return null;
+    }
+
+    let imageData;
+    if (isImg) {
+      let canvas = this.rawNode.ownerDocument.createElement("canvas");
+      canvas.width = this.rawNode.naturalWidth;
+      canvas.height = this.rawNode.naturalHeight;
+      let ctx = canvas.getContext("2d");
+      try {
+        
+        ctx.drawImage(this.rawNode, 0, 0);
+        imageData = canvas.toDataURL("image/png");
+      } catch (e) {
+        imageData = "";
+      }
+    } else if (isCanvas) {
+      imageData = this.rawNode.toDataURL("image/png");
+    }
+
+    return LongStringActor(this.conn, imageData);
+  }, {
+    request: {},
+    response: {
+      data: RetVal("nullable:longstring")
+    }
+  }),
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -283,8 +324,7 @@ var NodeActor = protocol.ActorClass({
       modifications: Arg(0, "array:json")
     },
     response: {}
-  }),
-
+  })
 });
 
 

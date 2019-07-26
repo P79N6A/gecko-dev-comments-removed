@@ -11,8 +11,8 @@ let {CssLogic} = require("devtools/styleinspector/css-logic");
 let {ELEMENT_STYLE} = require("devtools/server/actors/styles");
 let promise = require("sdk/core/promise");
 let {EventEmitter} = require("devtools/shared/event-emitter");
-
 const {OutputParser} = require("devtools/output-parser");
+const {Tooltip} = require("devtools/shared/widgets/Tooltip");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PluralForm.jsm");
@@ -168,6 +168,11 @@ function CssHtmlTree(aStyleInspector, aPageStyle)
 
   
   this.viewedElement = null;
+
+  
+  this.tooltip = new Tooltip(this.styleInspector.inspector.panelDoc);
+  this.tooltip.startTogglingOnHover(this.propertyContainer,
+    this._buildTooltipContent.bind(this));
 
   this._buildContextMenu();
   this.createStyleViews();
@@ -493,6 +498,29 @@ CssHtmlTree.prototype = {
   
 
 
+
+  _buildTooltipContent: function(target)
+  {
+    
+    
+    let isPropertyValue = target.classList.contains("property-value");
+    if (!isPropertyValue) {
+      return false;
+    }
+    let propName = target.parentNode.querySelector(".property-name");
+    let isBackgroundImage = propName.textContent === "background-image";
+    if (!isBackgroundImage) {
+      return false;
+    }
+
+    
+    this.tooltip.setCssBackgroundImageContent(target.textContent);
+    return true;
+  },
+
+  
+
+
   _buildContextMenu: function()
   {
     let doc = this.styleDocument.defaultView.parent.document;
@@ -647,6 +675,9 @@ CssHtmlTree.prototype = {
       this._contextmenu.parentNode.removeChild(this._contextmenu);
       this._contextmenu = null;
     }
+
+    this.tooltip.stopTogglingOnHover(this.propertyContainer);
+    this.tooltip.destroy();
 
     
     this.styleDocument.removeEventListener("contextmenu", this._onContextMenu);
@@ -831,9 +862,8 @@ PropertyView.prototype = {
   {
     let doc = this.tree.styleDocument;
 
-    this.onMatchedToggle = this.onMatchedToggle.bind(this);
-
     
+    this.onMatchedToggle = this.onMatchedToggle.bind(this);
     this.element = doc.createElementNS(HTML_NS, "div");
     this.element.setAttribute("class", this.propertyHeaderClassName);
     this.element.addEventListener("dblclick", this.onMatchedToggle, false);
@@ -857,6 +887,8 @@ PropertyView.prototype = {
     this.matchedExpander.className = "expander theme-twisty";
     this.matchedExpander.addEventListener("click", this.onMatchedToggle, false);
     this.element.appendChild(this.matchedExpander);
+
+    this.focusElement = () => this.element.focus();
 
     
     this.nameNode = doc.createElementNS(HTML_NS, "div");
