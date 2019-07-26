@@ -8,6 +8,7 @@
 #define vm_Runtime_h
 
 #include "mozilla/Atomics.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/LinkedList.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/PodOperations.h"
@@ -625,7 +626,7 @@ class PerThreadData : public PerThreadDataFriendFields
 
     
     
-    class AutoEnterRuntime
+    class MOZ_STACK_CLASS AutoEnterRuntime
     {
         PerThreadData *pt;
 
