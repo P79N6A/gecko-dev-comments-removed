@@ -203,7 +203,6 @@ private:
   
   
   bool mContentConsumingTouch;
-  bool mIsFirstTouchMove;
   bool mCancelable;
   bool mRecognizerWantsEvents;
   nsTArray<uint32_t> mCanceledIds;
