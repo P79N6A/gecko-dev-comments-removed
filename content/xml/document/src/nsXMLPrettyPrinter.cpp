@@ -22,6 +22,9 @@
 #include "nsIScriptSecurityManager.h"
 #include "mozilla/Preferences.h"
 #include "nsIDocument.h"
+#include "nsVariant.h"
+#include "nsIDOMCustomEvent.h"
+#include "GeneratedEvents.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -153,15 +156,22 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    nsCOMPtr<nsIObserver> binding;
-    aDocument->BindingManager()->GetBindingImplementation(rootCont,
-                                              NS_GET_IID(nsIObserver),
-                                              (void**)getter_AddRefs(binding));
-    NS_ASSERTION(binding, "Prettyprint binding doesn't implement nsIObserver");
-    NS_ENSURE_TRUE(binding, NS_ERROR_UNEXPECTED);
-    
-    rv = binding->Observe(resultFragment, "prettyprint-dom-created",
-                          EmptyString().get());
+    nsCOMPtr<nsIDOMEvent> domEvent;
+    rv = NS_NewDOMCustomEvent(getter_AddRefs(domEvent), rootCont,
+                              nullptr, nullptr);
+    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsIDOMCustomEvent> customEvent = do_QueryInterface(domEvent);
+    MOZ_ASSERT(customEvent);
+    nsCOMPtr<nsIWritableVariant> resultFragmentVariant = new nsVariant();
+    rv = resultFragmentVariant->SetAsISupports(resultFragment);
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
+    rv = customEvent->InitCustomEvent(NS_LITERAL_STRING("prettyprint-dom-created"),
+                                       false,  false,
+                                       resultFragmentVariant);
+    NS_ENSURE_SUCCESS(rv, rv);
+    customEvent->SetTrusted(true);
+    bool dummy;
+    rv = rootCont->DispatchEvent(domEvent, &dummy);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
