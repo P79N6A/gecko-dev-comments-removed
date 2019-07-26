@@ -39,7 +39,7 @@ public:
   }
 
   
-  void GetAllActiveCues(nsTArray<nsRefPtr<TextTrackCue> >& aCues);
+  void Update(double aTime);
 
   TextTrack* IndexedGetter(uint32_t aIndex, bool& aFound);
 

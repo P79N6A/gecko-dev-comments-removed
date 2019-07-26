@@ -11,16 +11,11 @@
 #include "mozilla/dom/TextTrack.h"
 #include "mozilla/dom/TextTrackList.h"
 #include "mozilla/dom/TextTrackCueList.h"
-#include "mozilla/StaticPtr.h"
-
-class nsIWebVTTParserWrapper;
 
 namespace mozilla {
 namespace dom {
 
 class HTMLMediaElement;
-class TextTrack;
-class TextTrackCue;
 
 class TextTrackManager
 {
@@ -43,34 +38,8 @@ public:
   void AddCues(TextTrack* aTextTrack);
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   
-
-
-
-  void UpdateCueDisplay();
+  void Update(double aTime);
 
   void PopulatePendingList();
 
@@ -86,8 +55,6 @@ private:
   nsRefPtr<TextTrackList> mPendingTextTracks;
   
   nsRefPtr<TextTrackCueList> mNewCues;
-
-  static StaticRefPtr<nsIWebVTTParserWrapper> sParserWrapper;
 };
 
 } 

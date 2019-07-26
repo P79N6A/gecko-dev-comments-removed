@@ -3682,7 +3682,7 @@ void HTMLMediaElement::FireTimeUpdate(bool aPeriodic)
   
   
   if (mTextTrackManager) {
-    mTextTrackManager->UpdateCueDisplay();
+    mTextTrackManager->Update(time);
   }
 }
 

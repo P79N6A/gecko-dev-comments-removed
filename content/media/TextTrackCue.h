@@ -14,7 +14,6 @@
 #include "nsIWebVTTParserWrapper.h"
 #include "mozilla/StaticPtr.h"
 #include "nsIDocument.h"
-#include "mozilla/dom/HTMLDivElement.h"
 
 namespace mozilla {
 namespace dom {
@@ -297,21 +296,6 @@ public:
   IMPL_EVENT_HANDLER(enter)
   IMPL_EVENT_HANDLER(exit)
 
-  HTMLDivElement* GetDisplayState()
-  {
-    return static_cast<HTMLDivElement*>(mDisplayState.get());
-  }
-
-  void SetDisplayState(HTMLDivElement* aDisplayState)
-  {
-    mDisplayState = aDisplayState;
-  }
-
-  bool HasBeenReset()
-  {
-    return mReset;
-  }
-
   
   bool
   operator==(const TextTrackCue& rhs) const
@@ -331,6 +315,36 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+  void RenderCue();
+
+  
+
+
+
+
+
+
   already_AddRefed<DocumentFragment> GetCueAsHTML();
 
   void SetTrackElement(HTMLTrackElement* aTrackElement);
@@ -338,6 +352,7 @@ public:
 private:
   void CueChanged();
   void SetDefaultCueSettings();
+  void CreateCueOverlay();
   nsresult StashDocument(nsISupports* aGlobal);
 
   nsRefPtr<nsIDocument> mDocument;
@@ -361,7 +376,7 @@ private:
 
   
   
-  nsRefPtr<nsGenericHTMLElement> mDisplayState;
+  nsCOMPtr<nsIContent> mDisplayState;
   
   
   
