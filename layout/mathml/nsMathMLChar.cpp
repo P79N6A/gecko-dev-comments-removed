@@ -926,8 +926,8 @@ SetFontFamily(nsStyleContext*      aStyleContext,
     
     
     if (aGlyphTable == &gGlyphTableList->mUnicodeTable ||
-      fm->GetThebesFontGroup()->GetFontAt(0)->GetFontEntry()->
-      FamilyName() == family) {
+        fm->GetThebesFontGroup()->GetFontAt(0)->GetFontEntry()->
+        FamilyName() == family) {
       aFont.name = family;
       aRenderingContext.SetFont(fm);
     } else {
