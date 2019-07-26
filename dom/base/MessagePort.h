@@ -66,7 +66,7 @@ public:
   
   
   already_AddRefed<MessagePort>
-  Clone(nsPIDOMWindow* aWindow);
+  Clone();
 
 private:
   
