@@ -11,6 +11,8 @@
 #include <mozilla/Types.h>
 #include "nsXPCOMStrings.h"
 
+namespace mozilla {
+
 class GStreamerFormatHelper {
   
 
@@ -46,6 +48,12 @@ class GStreamerFormatHelper {
     static char const *const mCodecs[9][2];
 
     
+
+
+
+    static bool sLoadOK;
+
+    
     GstCaps* mSupportedContainerCaps;
     GstCaps* mSupportedCodecCaps;
 
@@ -63,5 +71,7 @@ class GStreamerFormatHelper {
 
     uint32_t mCookie;
 };
+
+} 
 
 #endif
