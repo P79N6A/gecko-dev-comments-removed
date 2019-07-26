@@ -425,18 +425,17 @@ enum {
     OBJECT_FLAG_PRE_TENURE            = 0x00400000,
 
     
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x007f0000,
-
-    
 
 
 
     OBJECT_FLAG_UNKNOWN_PROPERTIES    = 0x00800000,
 
     
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
+
+    
     OBJECT_FLAG_UNKNOWN_MASK =
         OBJECT_FLAG_DYNAMIC_MASK
-      | OBJECT_FLAG_UNKNOWN_PROPERTIES
       | OBJECT_FLAG_SETS_MARKED_UNKNOWN
 };
 typedef uint32_t TypeObjectFlags;
