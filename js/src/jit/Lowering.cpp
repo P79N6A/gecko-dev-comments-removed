@@ -2448,36 +2448,6 @@ LIRGenerator::visitGuardString(MGuardString *ins)
 }
 
 bool
-LIRGenerator::visitAssertRange(MAssertRange *ins)
-{
-    MDefinition *input = ins->input();
-    LInstruction *lir = NULL;
-
-    switch (input->type()) {
-      case MIRType_Int32:
-          lir = new LAssertRangeI(useRegisterAtStart(input));
-        break;
-
-      case MIRType_Double:
-        lir = new LAssertRangeD(useRegister(input), tempFloat());
-        break;
-
-      case MIRType_Value:
-        lir = new LAssertRangeV(tempToUnbox(), tempFloat(), tempFloat());
-        if (!useBox(lir, LAssertRangeV::Input, input))
-            return false;
-        break;
-
-      default:
-        MOZ_ASSUME_UNREACHABLE("Unexpected Range for MIRType");
-        break;
-    }
-
-    lir->setMir(ins);
-    return add(lir);
-}
-
-bool
 LIRGenerator::visitCallGetProperty(MCallGetProperty *ins)
 {
     LCallGetProperty *lir = new LCallGetProperty();
@@ -2963,6 +2933,25 @@ LIRGenerator::visitInstruction(MInstruction *ins)
     if (LOsiPoint *osiPoint = popOsiPoint()) {
         if (!add(osiPoint))
             return false;
+    }
+
+    
+    
+    
+    
+    if (js_IonOptions.checkRangeAnalysis) {
+        if (Range *r = ins->range()) {
+           switch (ins->type()) {
+           case MIRType_Int32:
+               add(new LRangeAssert(useRegisterAtStart(ins), *r));
+               break;
+           case MIRType_Double:
+               add(new LDoubleRangeAssert(useRegister(ins), tempFloat(), *r));
+               break;
+           default:
+               break;
+           }
+        }
     }
 
     return true;
