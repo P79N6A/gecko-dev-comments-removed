@@ -634,14 +634,6 @@ JSCompartment::setObjectMetadataCallback(js::ObjectMetadataCallback callback)
     
     ReleaseAllJITCode(runtime_->defaultFreeOp());
 
-    
-    
-    
-    if (callback)
-        JS::DisableGenerationalGC(runtime_);
-    else
-        JS::EnableGenerationalGC(runtime_);
-
     objectMetadataCallback = callback;
 }
 

@@ -1153,7 +1153,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     
 
 
-    bool                gcGenerationalEnabled;
+    unsigned            gcGenerationalDisabled;
 
     
 

@@ -443,6 +443,16 @@ BaselineScript::Trace(JSTracer *trc, BaselineScript *script)
 void
 BaselineScript::Destroy(FreeOp *fop, BaselineScript *script)
 {
+#ifdef JSGC_GENERATIONAL
+    
+
+
+
+
+
+
+    JS_ASSERT(fop->runtime()->gcNursery.isEmpty());
+#endif
     fop->delete_(script);
 }
 

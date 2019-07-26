@@ -5267,8 +5267,16 @@ void
 js::ReleaseAllJITCode(FreeOp *fop)
 {
 #ifdef JS_ION
-    for (ZonesIter zone(fop->runtime(), SkipAtoms); !zone.done(); zone.next()) {
 
+# ifdef JSGC_GENERATIONAL
+    
+
+
+
+    MinorGC(fop->runtime(), JS::gcreason::EVICT_NURSERY);
+# endif
+
+    for (ZonesIter zone(fop->runtime(), SkipAtoms); !zone.done(); zone.next()) {
 # ifdef DEBUG
         
         for (CellIter i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {

@@ -57,6 +57,7 @@ class Nursery
     explicit Nursery(JSRuntime *rt)
       : runtime_(rt),
         position_(0),
+        currentStart_(0),
         currentEnd_(0),
         currentChunk_(0),
         numActiveChunks_(0)
@@ -68,6 +69,9 @@ class Nursery
     void enable();
     void disable();
     bool isEnabled() const { return numActiveChunks_ != 0; }
+
+    
+    bool isEmpty() const;
 
     template <typename T>
     JS_ALWAYS_INLINE bool isInside(const T *p) const {
@@ -145,6 +149,9 @@ class Nursery
     uintptr_t position_;
 
     
+    uintptr_t currentStart_;
+
+    
     uintptr_t currentEnd_;
 
     
@@ -196,6 +203,7 @@ class Nursery
         JS_ASSERT(chunkno < numActiveChunks_);
         currentChunk_ = chunkno;
         position_ = chunk(chunkno).start();
+        currentStart_ = chunk(0).start();
         currentEnd_ = chunk(chunkno).end();
     }
 
