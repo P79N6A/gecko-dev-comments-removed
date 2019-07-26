@@ -720,14 +720,12 @@ meter {
 input[type="range"] {
   -moz-appearance: none;
   display: inline-block !important;
+  cursor: default;
   width: 12em;
   height: 1.3em;
-  margin: 0 0.7em;
-  
-  cursor: default;
   background: none;
   border: none;
-  -moz-binding: none; 
+  margin: 0 0.7em;
 }
 
 
