@@ -30,12 +30,6 @@ NS_NewElement(nsIContent** aResult,
 nsresult
 NS_NewXMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo);
 
-
-
-
-nsresult
-NS_NewCommentNode(nsIContent **aResult, nsNodeInfoManager *aNodeInfoManager);
-
 nsresult
 NS_NewHTMLElement(nsIContent** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
                   mozilla::dom::FromParser aFromParser);
