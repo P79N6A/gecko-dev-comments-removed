@@ -3783,36 +3783,29 @@ pref("layers.offmainthreadcomposition.enabled", false);
 
 
 pref("layers.offmainthreadcomposition.frame-rate", -1);
-#ifndef XP_WIN
 
 
-pref("layers.async-video.enabled",false);
-#endif
+
+pref("layers.async-video.enabled", true);
+pref("layers.async-video-oop.enabled",true);
 
 #ifdef XP_WIN
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.async-video.enabled", true);
-#endif
 
-#ifdef MOZ_X11
-
-pref("layers.async-video.enabled", true);
+pref("layers.async-video-oop.enabled", false);
 #endif
 
 #ifdef MOZ_WIDGET_QT
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.async-video.enabled",true);
 #endif
 
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.async-video.enabled",true);
 #endif
 
 
 #ifdef ANDROID
 pref("layers.offmainthreadcomposition.enabled", true);
-pref("layers.async-video.enabled",true);
 #endif
 
 
