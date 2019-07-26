@@ -3,6 +3,9 @@
 
 
 
+#ifndef nsConverterInputStream_h
+#define nsConverterInputStream_h
+
 #include "nsIInputStream.h"
 #include "nsIConverterInputStream.h"
 #include "nsIUnicharLineInputStream.h"
@@ -58,3 +61,6 @@ class nsConverterInputStream : public nsIConverterInputStream,
 
     nsAutoPtr<nsLineBuffer<PRUnichar> > mLineBuffer;
 };
+
+#endif
+
