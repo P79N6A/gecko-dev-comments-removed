@@ -42,8 +42,7 @@ bool CurrentProcessIsForeground();
 
 
 
-
-void TemporarilyLockProcessPriority();
+void TemporarilySetProcessPriorityToForeground();
 
 } 
 } 
