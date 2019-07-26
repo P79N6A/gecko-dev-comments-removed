@@ -59,8 +59,10 @@ private:
 
 
 
-nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId, nsIThread* aCameraThread, nsICameraGetCameraCallback* onSuccess, nsICameraErrorCallback* onError, uint64_t aWindowId)
+nsDOMCameraControl::nsDOMCameraControl(uint32_t aCameraId, nsIThread* aCameraThread, nsICameraGetCameraCallback* onSuccess, nsICameraErrorCallback* onError, nsPIDOMWindow* aWindow) :
+  mWindow(aWindow)
 {
+  MOZ_ASSERT(aWindow, "shouldn't be created with null window!");
 }
 
 

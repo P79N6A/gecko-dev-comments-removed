@@ -7,6 +7,8 @@
 #include "nsDOMClassInfo.h"
 #include "jsapi.h"
 #include "nsThread.h"
+#include "DeviceStorage.h"
+#include "mozilla/dom/CameraControlBinding.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/Services.h"
 #include "mozilla/unused.h"
@@ -23,15 +25,11 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-DOMCI_DATA(CameraControl, nsICameraControl)
-
-NS_IMPL_CYCLE_COLLECTION_1(nsDOMCameraControl,
-                           mDOMCapabilities)
+NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_2(nsDOMCameraControl, mDOMCapabilities, mWindow)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMCameraControl)
+  NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_INTERFACE_MAP_ENTRY(nsICameraControl)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CameraControl)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_CYCLE_COLLECTING_ADDREF(nsDOMCameraControl)
@@ -42,235 +40,242 @@ nsDOMCameraControl::~nsDOMCameraControl()
   DOM_CAMERA_LOGT("%s:%d : this=%p\n", __func__, __LINE__, this);
 }
 
+JSObject*
+nsDOMCameraControl::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aScope)
+{
+  return CameraControlBinding::Wrap(aCx, aScope, this);
+}
 
-NS_IMETHODIMP
-nsDOMCameraControl::GetCapabilities(nsICameraCapabilities** aCapabilities)
+nsICameraCapabilities*
+nsDOMCameraControl::Capabilities()
 {
   if (!mDOMCapabilities) {
     mDOMCapabilities = new DOMCameraCapabilities(mCameraControl);
   }
 
-  nsCOMPtr<nsICameraCapabilities> capabilities = mDOMCapabilities;
-  capabilities.forget(aCapabilities);
-  return NS_OK;
+  return mDOMCapabilities;
+}
+
+void
+nsDOMCameraControl::GetEffect(nsString& aEffect, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Get(CAMERA_PARAM_EFFECT, aEffect);
+}
+void
+nsDOMCameraControl::SetEffect(const nsAString& aEffect, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_EFFECT, aEffect);
+}
+
+void
+nsDOMCameraControl::GetWhiteBalanceMode(nsString& aWhiteBalanceMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Get(CAMERA_PARAM_WHITEBALANCE, aWhiteBalanceMode);
+}
+void
+nsDOMCameraControl::SetWhiteBalanceMode(const nsAString& aWhiteBalanceMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_WHITEBALANCE, aWhiteBalanceMode);
+}
+
+void
+nsDOMCameraControl::GetSceneMode(nsString& aSceneMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Get(CAMERA_PARAM_SCENEMODE, aSceneMode);
+}
+void
+nsDOMCameraControl::SetSceneMode(const nsAString& aSceneMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_SCENEMODE, aSceneMode);
+}
+
+void
+nsDOMCameraControl::GetFlashMode(nsString& aFlashMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Get(CAMERA_PARAM_FLASHMODE, aFlashMode);
+}
+void
+nsDOMCameraControl::SetFlashMode(const nsAString& aFlashMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_FLASHMODE, aFlashMode);
+}
+
+void
+nsDOMCameraControl::GetFocusMode(nsString& aFocusMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Get(CAMERA_PARAM_FOCUSMODE, aFocusMode);
+}
+void
+nsDOMCameraControl::SetFocusMode(const nsAString& aFocusMode, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_FOCUSMODE, aFocusMode);
+}
+
+double
+nsDOMCameraControl::GetZoom(ErrorResult& aRv)
+{
+  double zoom;
+  aRv = mCameraControl->Get(CAMERA_PARAM_ZOOM, &zoom);
+  return zoom;
+}
+
+void
+nsDOMCameraControl::SetZoom(double aZoom, ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(CAMERA_PARAM_ZOOM, aZoom);
 }
 
 
-NS_IMETHODIMP
-nsDOMCameraControl::GetEffect(nsAString& aEffect)
+JS::Value
+nsDOMCameraControl::GetMeteringAreas(JSContext* cx, ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_EFFECT, aEffect);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetEffect(const nsAString& aEffect)
-{
-  return mCameraControl->Set(CAMERA_PARAM_EFFECT, aEffect);
+  JS::Rooted<JS::Value> areas(cx);
+  aRv = mCameraControl->Get(cx, CAMERA_PARAM_METERINGAREAS, areas.address());
+  return areas;
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetWhiteBalanceMode(nsAString& aWhiteBalanceMode)
+void
+nsDOMCameraControl::SetMeteringAreas(JSContext* cx, JS::Handle<JS::Value> aMeteringAreas, ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_WHITEBALANCE, aWhiteBalanceMode);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetWhiteBalanceMode(const nsAString& aWhiteBalanceMode)
-{
-  return mCameraControl->Set(CAMERA_PARAM_WHITEBALANCE, aWhiteBalanceMode);
+  aRv = mCameraControl->SetMeteringAreas(cx, aMeteringAreas);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetSceneMode(nsAString& aSceneMode)
+JS::Value
+nsDOMCameraControl::GetFocusAreas(JSContext* cx, ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_SCENEMODE, aSceneMode);
+  JS::Rooted<JS::Value> value(cx);
+  aRv = mCameraControl->Get(cx, CAMERA_PARAM_FOCUSAREAS, value.address());
+  return value;
 }
-NS_IMETHODIMP
-nsDOMCameraControl::SetSceneMode(const nsAString& aSceneMode)
+void
+nsDOMCameraControl::SetFocusAreas(JSContext* cx, JS::Handle<JS::Value> aFocusAreas, ErrorResult& aRv)
 {
-  return mCameraControl->Set(CAMERA_PARAM_SCENEMODE, aSceneMode);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFlashMode(nsAString& aFlashMode)
-{
-  return mCameraControl->Get(CAMERA_PARAM_FLASHMODE, aFlashMode);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetFlashMode(const nsAString& aFlashMode)
-{
-  return mCameraControl->Set(CAMERA_PARAM_FLASHMODE, aFlashMode);
+  aRv = mCameraControl->SetFocusAreas(cx, aFocusAreas);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocusMode(nsAString& aFocusMode)
+double
+nsDOMCameraControl::GetFocalLength(ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_FOCUSMODE, aFocusMode);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetFocusMode(const nsAString& aFocusMode)
-{
-  return mCameraControl->Set(CAMERA_PARAM_FOCUSMODE, aFocusMode);
+  double focalLength;
+  aRv = mCameraControl->Get(CAMERA_PARAM_FOCALLENGTH, &focalLength);
+  return focalLength;
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetZoom(double* aZoom)
+double
+nsDOMCameraControl::GetFocusDistanceNear(ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_ZOOM, aZoom);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetZoom(double aZoom)
-{
-  return mCameraControl->Set(CAMERA_PARAM_ZOOM, aZoom);
+  double distance;
+  aRv = mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCENEAR, &distance);
+  return distance;
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetMeteringAreas(JSContext* cx, JS::Value* aMeteringAreas)
+double
+nsDOMCameraControl::GetFocusDistanceOptimum(ErrorResult& aRv)
 {
-  return mCameraControl->Get(cx, CAMERA_PARAM_METERINGAREAS, aMeteringAreas);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetMeteringAreas(JSContext* cx, const JS::Value& aMeteringAreas)
-{
-  return mCameraControl->SetMeteringAreas(cx, aMeteringAreas);
+  double distance;
+  aRv = mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCEOPTIMUM, &distance);
+  return distance;
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocusAreas(JSContext* cx, JS::Value* aFocusAreas)
+double
+nsDOMCameraControl::GetFocusDistanceFar(ErrorResult& aRv)
 {
-  return mCameraControl->Get(cx, CAMERA_PARAM_FOCUSAREAS, aFocusAreas);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetFocusAreas(JSContext* cx, const JS::Value& aFocusAreas)
-{
-  return mCameraControl->SetFocusAreas(cx, aFocusAreas);
+  double distance;
+  aRv = mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCEFAR, &distance);
+  return distance;
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocalLength(double* aFocalLength)
+void
+nsDOMCameraControl::SetExposureCompensation(const Optional<double>& aCompensation, ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_FOCALLENGTH, aFocalLength);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocusDistanceNear(double* aFocusDistanceNear)
-{
-  return mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCENEAR, aFocusDistanceNear);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocusDistanceOptimum(double* aFocusDistanceOptimum)
-{
-  return mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCEOPTIMUM, aFocusDistanceOptimum);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetFocusDistanceFar(double* aFocusDistanceFar)
-{
-  return mCameraControl->Get(CAMERA_PARAM_FOCUSDISTANCEFAR, aFocusDistanceFar);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::SetExposureCompensation(const JS::Value& aCompensation, JSContext* cx)
-{
-  if (aCompensation.isNullOrUndefined()) {
+  if (!aCompensation.WasPassed()) {
     
-    return mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, NAN);
+    aRv = mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, NAN);
   }
 
+  aRv = mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, aCompensation.Value());
+}
+
+double
+nsDOMCameraControl::GetExposureCompensation(ErrorResult& aRv)
+{
   double compensation;
-  if (!JS_ValueToNumber(cx, aCompensation, &compensation)) {
-    return NS_ERROR_INVALID_ARG;
-  }
+  aRv = mCameraControl->Get(CAMERA_PARAM_EXPOSURECOMPENSATION, &compensation);
+  return compensation;
+}
 
-  return mCameraControl->Set(CAMERA_PARAM_EXPOSURECOMPENSATION, compensation);
+already_AddRefed<nsICameraShutterCallback>
+nsDOMCameraControl::GetOnShutter(ErrorResult& aRv)
+{
+  nsCOMPtr<nsICameraShutterCallback> cb;
+  aRv = mCameraControl->Get(getter_AddRefs(cb));
+  return cb.forget();
+}
+
+void
+nsDOMCameraControl::SetOnShutter(nsICameraShutterCallback* aOnShutter,
+                                 ErrorResult& aRv)
+{
+  aRv = mCameraControl->Set(aOnShutter);
 }
 
 
-NS_IMETHODIMP
-nsDOMCameraControl::GetExposureCompensation(double* aExposureCompensation)
+already_AddRefed<nsICameraClosedCallback>
+nsDOMCameraControl::GetOnClosed(ErrorResult& aRv)
 {
-  return mCameraControl->Get(CAMERA_PARAM_EXPOSURECOMPENSATION, aExposureCompensation);
+  nsCOMPtr<nsICameraClosedCallback> onClosed;
+  aRv = mCameraControl->Get(getter_AddRefs(onClosed));
+  return onClosed.forget();
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetOnShutter(nsICameraShutterCallback** aOnShutter)
+void
+nsDOMCameraControl::SetOnClosed(nsICameraClosedCallback* aOnClosed,
+                                ErrorResult& aRv)
 {
-  return mCameraControl->Get(aOnShutter);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetOnShutter(nsICameraShutterCallback* aOnShutter)
-{
-  return mCameraControl->Set(aOnShutter);
+  aRv = mCameraControl->Set(aOnClosed);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetOnClosed(nsICameraClosedCallback** aOnClosed)
+already_AddRefed<nsICameraRecorderStateChange>
+nsDOMCameraControl::GetOnRecorderStateChange(ErrorResult& aRv)
 {
-  return mCameraControl->Get(aOnClosed);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetOnClosed(nsICameraClosedCallback* aOnClosed)
-{
-  return mCameraControl->Set(aOnClosed);
+  nsCOMPtr<nsICameraRecorderStateChange> cb;
+  aRv = mCameraControl->Get(getter_AddRefs(cb));
+  return cb.forget();
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetOnRecorderStateChange(nsICameraRecorderStateChange** aOnRecorderStateChange)
+void
+nsDOMCameraControl::SetOnRecorderStateChange(nsICameraRecorderStateChange* aOnRecorderStateChange,
+                                             ErrorResult& aRv)
 {
-  return mCameraControl->Get(aOnRecorderStateChange);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetOnRecorderStateChange(nsICameraRecorderStateChange* aOnRecorderStateChange)
-{
-  return mCameraControl->Set(aOnRecorderStateChange);
+  aRv = mCameraControl->Set(aOnRecorderStateChange);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetOnPreviewStateChange(nsICameraPreviewStateChange** aOnPreviewStateChange)
+void
+nsDOMCameraControl::StartRecording(JSContext* aCx,
+                                   JS::Handle<JS::Value> aOptions,
+                                   nsDOMDeviceStorage& storageArea,
+                                   const nsAString& filename,
+                                   nsICameraStartRecordingCallback* onSuccess,
+                                   const Optional<nsICameraErrorCallback*>& onError,
+                                   ErrorResult& aRv)
 {
-  return mCameraControl->Get(aOnPreviewStateChange);
-}
-NS_IMETHODIMP
-nsDOMCameraControl::SetOnPreviewStateChange(nsICameraPreviewStateChange* aOnPreviewStateChange)
-{
-  return mCameraControl->Set(aOnPreviewStateChange);
-}
-
-
-NS_IMETHODIMP
-nsDOMCameraControl::StartRecording(const JS::Value& aOptions, nsIDOMDeviceStorage* storageArea, const nsAString& filename, nsICameraStartRecordingCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
-{
-  NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
-  NS_ENSURE_TRUE(storageArea, NS_ERROR_INVALID_ARG);
-
+  MOZ_ASSERT(onSuccess, "no onSuccess handler passed");
   mozilla::idl::CameraStartRecordingOptions options;
 
   
   options.rotation = 0;
   options.maxFileSizeBytes = 0;
   options.maxVideoLengthMs = 0;
-  nsresult rv = options.Init(cx, &aOptions);
-  NS_ENSURE_SUCCESS(rv, rv);
+  aRv = options.Init(aCx, aOptions.address());
+  if (aRv.Failed()) {
+    return;
+  }
 
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (!obs) {
     NS_WARNING("Could not get the Observer service for CameraControl::StartRecording.");
-    return NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
+    return;
   }
 
   obs->NotifyObservers(nullptr,
@@ -296,19 +301,21 @@ nsDOMCameraControl::StartRecording(const JS::Value& aOptions, nsIDOMDeviceStorag
   #endif
 
   nsCOMPtr<nsIFile> folder;
-  rv = storageArea->GetRootDirectoryForFile(filename, getter_AddRefs(folder));
-  NS_ENSURE_SUCCESS(rv, rv);
-  return mCameraControl->StartRecording(&options, folder, filename, onSuccess, onError);
+  aRv = storageArea.GetRootDirectoryForFile(filename, getter_AddRefs(folder));
+  if (aRv.Failed()) {
+    return;
+  }
+  aRv = mCameraControl->StartRecording(&options, folder, filename, onSuccess,
+                                       onError.WasPassed() ? onError.Value() : nullptr);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::StopRecording()
+void
+nsDOMCameraControl::StopRecording(ErrorResult& aRv)
 {
-  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  nsCOMPtr<nsIObserverService> obs = services::GetObserverService();
   if (!obs) {
     NS_WARNING("Could not get the Observer service for CameraControl::StopRecording.");
-    return NS_ERROR_FAILURE;
+    aRv.Throw(NS_ERROR_FAILURE);
   }
 
   obs->NotifyObservers(nullptr,
@@ -327,54 +334,70 @@ nsDOMCameraControl::StopRecording()
   }
   #endif
 
-  return mCameraControl->StopRecording();
+  aRv = mCameraControl->StopRecording();
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetPreviewStream(const JS::Value& aOptions, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
+void
+nsDOMCameraControl::GetPreviewStream(JSContext* aCx,
+                                     JS::Handle<JS::Value> aOptions,
+                                     nsICameraPreviewStreamCallback* onSuccess,
+                                     const Optional<nsICameraErrorCallback*>& onError,
+                                     ErrorResult& aRv)
 {
-  NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
-
   mozilla::idl::CameraSize size;
-  nsresult rv = size.Init(cx, &aOptions);
-  NS_ENSURE_SUCCESS(rv, rv);
+  aRv = size.Init(aCx, aOptions.address());
+  if (aRv.Failed()) {
+    return;
+  }
 
-  return mCameraControl->GetPreviewStream(size, onSuccess, onError);
+  aRv = mCameraControl->GetPreviewStream(size, onSuccess,
+                                         onError.WasPassed()
+                                         ? onError.Value() : nullptr);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::ResumePreview()
+void
+nsDOMCameraControl::ResumePreview(ErrorResult& aRv)
 {
-  return mCameraControl->StartPreview(nullptr);
+  aRv = mCameraControl->StartPreview(nullptr);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::AutoFocus(nsICameraAutoFocusCallback* onSuccess, nsICameraErrorCallback* onError)
+already_AddRefed<nsICameraPreviewStateChange>
+nsDOMCameraControl::GetOnPreviewStateChange() const
 {
-  NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
-  return mCameraControl->AutoFocus(onSuccess, onError);
+  nsCOMPtr<nsICameraPreviewStateChange> cb;
+  mCameraControl->Get(getter_AddRefs(cb));
+  return cb.forget();
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::TakePicture(const JS::Value& aOptions, nsICameraTakePictureCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
+void
+nsDOMCameraControl::SetOnPreviewStateChange(nsICameraPreviewStateChange* aCb)
 {
-  NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
+  mCameraControl->Set(aCb);
+}
 
-  RootedDictionary<CameraPictureOptions> options(cx);
+void
+nsDOMCameraControl::AutoFocus(nsICameraAutoFocusCallback* onSuccess,
+                              const Optional<nsICameraErrorCallback*>& onError,
+                              ErrorResult& aRv)
+{
+  aRv = mCameraControl->AutoFocus(onSuccess,
+                                  onError.WasPassed() ? onError.Value() : nullptr);
+}
+
+void
+nsDOMCameraControl::TakePicture(JSContext* aCx,
+                                const CameraPictureOptions& aOptions,
+                                nsICameraTakePictureCallback* onSuccess,
+                                const Optional<nsICameraErrorCallback*>& aOnError,
+                                ErrorResult& aRv)
+{
   mozilla::idl::CameraSize           size;
   mozilla::idl::CameraPosition       pos;
 
-  JS::Rooted<JS::Value> optionVal(cx, aOptions);
-  if (!options.Init(cx, optionVal)) {
-    return NS_ERROR_FAILURE;
+  aRv = size.Init(aCx, &aOptions.mPictureSize);
+  if (aRv.Failed()) {
+    return;
   }
-
-  nsresult rv = size.Init(cx, &options.mPictureSize);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
 
@@ -384,29 +407,45 @@ nsDOMCameraControl::TakePicture(const JS::Value& aOptions, nsICameraTakePictureC
   pos.longitude = NAN;
   pos.altitude = NAN;
   pos.timestamp = NAN;
-  rv = pos.Init(cx, &options.mPosition);
-  NS_ENSURE_SUCCESS(rv, rv);
+  aRv = pos.Init(aCx, &aOptions.mPosition);
+  if (aRv.Failed()) {
+    return;
+  }
 
-  return mCameraControl->TakePicture(size, options.mRotation, options.mFileFormat, pos, options.mDateTime, onSuccess, onError);
+  nsICameraErrorCallback* onError =
+    aOnError.WasPassed() ? aOnError.Value() : nullptr;
+  aRv = mCameraControl->TakePicture(size, aOptions.mRotation,
+                                    aOptions.mFileFormat, pos,
+                                    aOptions.mDateTime, onSuccess, onError);
 }
 
-
-NS_IMETHODIMP
-nsDOMCameraControl::GetPreviewStreamVideoMode(const JS::Value& aOptions, nsICameraPreviewStreamCallback* onSuccess, nsICameraErrorCallback* onError, JSContext* cx)
+void
+nsDOMCameraControl::GetPreviewStreamVideoMode(JSContext* aCx,
+                                              JS::Handle<JS::Value> aOptions,
+                                              nsICameraPreviewStreamCallback* onSuccess,
+                                              const Optional<nsICameraErrorCallback*>& onError,
+                                              ErrorResult& aRv)
 {
-  NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
-
   mozilla::idl::CameraRecorderOptions options;
-  nsresult rv = options.Init(cx, &aOptions);
-  NS_ENSURE_SUCCESS(rv, rv);
+  aRv = options.Init(aCx, aOptions.address());
+  if (aRv.Failed()) {
+    return;
+  }
 
-  return mCameraControl->GetPreviewStreamVideoMode(&options, onSuccess, onError);
+  aRv = mCameraControl->GetPreviewStreamVideoMode(&options, onSuccess,
+                                                  onError.WasPassed()
+                                                  ? onError.Value() : nullptr);
 }
 
-NS_IMETHODIMP
-nsDOMCameraControl::ReleaseHardware(nsICameraReleaseCallback* onSuccess, nsICameraErrorCallback* onError)
+void
+nsDOMCameraControl::ReleaseHardware(const Optional<nsICameraReleaseCallback*>& onSuccess,
+                                    const Optional<nsICameraErrorCallback*>& onError,
+                                    ErrorResult& aRv)
 {
-  return mCameraControl->ReleaseHardware(onSuccess, onError);
+  aRv =
+    mCameraControl->ReleaseHardware(
+        onSuccess.WasPassed() ? onSuccess.Value() : nullptr,
+        onError.WasPassed() ? onError.Value() : nullptr);
 }
 
 class GetCameraResult : public nsRunnable
