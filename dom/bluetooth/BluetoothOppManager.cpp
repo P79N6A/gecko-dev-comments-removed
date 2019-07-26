@@ -27,6 +27,7 @@
 #include "nsIInputStream.h"
 #include "nsIMIMEService.h"
 #include "nsIOutputStream.h"
+#include "nsIVolumeService.h"
 #include "nsNetUtil.h"
 
 #define TARGET_SUBDIR "Download/Bluetooth/"
@@ -451,6 +452,15 @@ BluetoothOppManager::AfterOppConnected()
   mAbortFlag = false;
   mWaitingForConfirmationFlag = true;
   AfterFirstPut();
+  
+  
+  
+  if (!AcquireSdcardMountLock()) {
+    
+    
+    NS_WARNING("BluetoothOPPManager couldn't get a mount lock!");
+    Disconnect();
+  }
 }
 
 void
@@ -482,6 +492,11 @@ BluetoothOppManager::AfterOppDisconnected()
   if (mReadFileThread) {
     mReadFileThread->Shutdown();
     mReadFileThread = nullptr;
+  }
+  
+  if (mMountLock) {
+    
+    mMountLock = nullptr;
   }
 }
 
@@ -1493,3 +1508,15 @@ BluetoothOppManager::OnUpdateSdpRecords(const nsAString& aDeviceAddress)
   }
 }
 
+bool
+BluetoothOppManager::AcquireSdcardMountLock()
+{
+  nsCOMPtr<nsIVolumeService> volumeSrv =
+    do_GetService(NS_VOLUMESERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(volumeSrv, false);
+  nsresult rv;
+  rv = volumeSrv->CreateMountLock(NS_LITERAL_STRING("sdcard"),
+                                  getter_AddRefs(mMountLock));
+  NS_ENSURE_SUCCESS(rv, false);
+  return true;
+}
