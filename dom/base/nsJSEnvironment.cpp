@@ -2792,32 +2792,6 @@ static JSFunctionSpec JProfFunctions[] = {
 
 #endif 
 
-#ifdef MOZ_DMDV
-
-
-
-
-namespace mozilla {
-namespace dmdv {
-
-static JSBool
-ReportAndDump(JSContext *cx, unsigned argc, jsval *vp)
-{
-  mozilla::dmd::RunReporters();
-  mozilla::dmdv::Dump();
-  return JS_TRUE;
-}
-
-} 
-} 
-
-static JSFunctionSpec DMDVFunctions[] = {
-    JS_FS("DMDVReportAndDump", dmdv::ReportAndDump, 0, 0),
-    JS_FS_END
-};
-
-#endif 
-
 nsresult
 nsJSContext::InitClasses(JSObject* aGlobalObj)
 {
@@ -2844,11 +2818,6 @@ nsJSContext::InitClasses(JSObject* aGlobalObj)
 #ifdef MOZ_JPROF
   
   ::JS_DefineFunctions(mContext, aGlobalObj, JProfFunctions);
-#endif
-
-#ifdef MOZ_DMDV
-  
-  ::JS_DefineFunctions(mContext, aGlobalObj, DMDVFunctions);
 #endif
 
   return rv;

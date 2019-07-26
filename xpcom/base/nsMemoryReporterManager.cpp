@@ -1118,7 +1118,7 @@ NS_UnregisterMemoryMultiReporter (nsIMemoryMultiReporter *reporter)
     return mgr->UnregisterMultiReporter(reporter);
 }
 
-#if defined(MOZ_DMDV) || defined(MOZ_DMD)
+#if defined(MOZ_DMD)
 
 namespace mozilla {
 namespace dmd {
@@ -1191,21 +1191,6 @@ RunReporters()
       e2->GetNext(getter_AddRefs(r));
       r->CollectReports(cb, nullptr);
     }
-}
-
-} 
-} 
-
-#endif  
-
-#ifdef MOZ_DMDV
-namespace mozilla {
-namespace dmdv {
-
-void
-Dump()
-{
-    VALGRIND_DMDV_CHECK_REPORTING;
 }
 
 } 
