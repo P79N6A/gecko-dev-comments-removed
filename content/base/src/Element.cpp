@@ -2518,7 +2518,12 @@ ParseSelectorList(nsINode* aNode,
                                            doc->GetDocumentURI(),
                                            0, 
                                            &selectorList);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    
+    
+    
+    return rv;
+  }
 
   
   nsCSSSelectorList** slot = &selectorList;
