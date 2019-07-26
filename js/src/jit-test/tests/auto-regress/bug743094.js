@@ -2,10 +2,14 @@
 
 
 
+var i = 0;
 
-
-gczeal(2)
+gczeal(2);
 function test() {
-  typeof (new test("1")) != 'function'
+  if (i++ > 10000)
+    return "function";
+  var res = typeof (new test("1")) != 'function';
+  return res ? "function" : "string";
 }
+
 test();
