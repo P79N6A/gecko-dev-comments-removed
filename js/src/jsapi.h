@@ -4062,7 +4062,7 @@ JS_NewDateObjectMsec(JSContext *cx, double msec);
 
 
 extern JS_PUBLIC_API(bool)
-JS_ObjectIsDate(JSContext *cx, JSObject *obj);
+JS_ObjectIsDate(JSContext *cx, JS::HandleObject obj);
 
 
 

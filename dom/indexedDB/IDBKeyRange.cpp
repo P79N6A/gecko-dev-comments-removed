@@ -240,39 +240,38 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
   nsresult rv;
   nsRefPtr<IDBKeyRange> keyRange;
 
-  if (JSVAL_IS_VOID(aVal) || JSVAL_IS_NULL(aVal)) {
+  if (!aVal.isNullOrUndefined()) {
     
-  }
-  else if (JSVAL_IS_PRIMITIVE(aVal) ||
-           JS_IsArrayObject(aCx, JSVAL_TO_OBJECT(aVal)) ||
-           JS_ObjectIsDate(aCx, JSVAL_TO_OBJECT(aVal))) {
-    
-    keyRange = new IDBKeyRange(false, false, true);
 
-    rv = GetKeyFromJSVal(aCx, aVal, keyRange->Lower());
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-  }
-  else {
-    
-    nsIXPConnect* xpc = nsContentUtils::XPConnect();
-    NS_ASSERTION(xpc, "This should never be null!");
-
-    nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-    rv = xpc->GetWrappedNativeOfJSObject(aCx, JSVAL_TO_OBJECT(aVal),
-                                         getter_AddRefs(wrapper));
-    if (NS_FAILED(rv)) {
-      return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
-    }
-
-    nsCOMPtr<nsIIDBKeyRange> iface;
-    if (!wrapper || !(iface = do_QueryInterface(wrapper->Native()))) {
+    JS::RootedObject obj(aCx, aVal.isObject() ? &aVal.toObject() : NULL);
+    if (aVal.isPrimitive() || JS_IsArrayObject(aCx, obj) || JS_ObjectIsDate(aCx, obj)) {
       
-      return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
-    }
+      keyRange = new IDBKeyRange(false, false, true);
 
-    keyRange = static_cast<IDBKeyRange*>(iface.get());
+      rv = GetKeyFromJSVal(aCx, aVal, keyRange->Lower());
+      if (NS_FAILED(rv)) {
+        return rv;
+      }
+    }
+    else {
+      
+      nsIXPConnect* xpc = nsContentUtils::XPConnect();
+      NS_ASSERTION(xpc, "This should never be null!");
+
+      nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
+      rv = xpc->GetWrappedNativeOfJSObject(aCx, obj, getter_AddRefs(wrapper));
+      if (NS_FAILED(rv)) {
+        return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
+      }
+
+      nsCOMPtr<nsIIDBKeyRange> iface;
+      if (!wrapper || !(iface = do_QueryInterface(wrapper->Native()))) {
+        
+        return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
+      }
+
+      keyRange = static_cast<IDBKeyRange*>(iface.get());
+    }
   }
 
   keyRange.forget(aKeyRange);
