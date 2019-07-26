@@ -36,7 +36,7 @@ function getImageStatus(id)
   netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
 
   
-  var img = document.getElementById(id);
+  var img = SpecialPowers.wrap(document.getElementById(id));
 
   
   img.QueryInterface(SpecialPowers.Ci.nsIImageLoadingContent);
