@@ -55,6 +55,7 @@ var tests = {
     if (navigator.platform.contains("Mac")) {
       info("Skipping checking the menubar on Mac OS");
       next();
+      return;
     }
 
     
@@ -135,8 +136,10 @@ var tests = {
       is(statusIcon.getAttribute("aria-label"), "Test Ambient 1 \u2046");
 
       
-      if (navigator.platform.contains("Mac"))
+      if (navigator.platform.contains("Mac")) {
         next();
+        return;
+      }
 
       
       let toolsPopup = document.getElementById("menu_ToolsPopup");
