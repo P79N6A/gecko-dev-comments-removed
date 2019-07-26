@@ -248,6 +248,7 @@ nsVolumeService::CreateOrGetVolumeByPath(const nsAString& aPath, nsIVolume** aRe
                                          aPath, nsIVolume::STATE_MOUNTED,
                                          -1    ,
                                          true  ,
+                                         false ,
                                          false );
   vol.forget(aResult);
   return NS_OK;
@@ -380,6 +381,7 @@ nsVolumeService::CreateFakeVolume(const nsAString& name, const nsAString& path)
     nsRefPtr<nsVolume> vol = new nsVolume(name, path, nsIVolume::STATE_INIT,
                                           -1    ,
                                           true  ,
+                                          false ,
                                           false );
     vol->SetIsFake(true);
     vol->LogState();
