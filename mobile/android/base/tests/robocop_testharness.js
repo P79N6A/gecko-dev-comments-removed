@@ -3,12 +3,8 @@
 
 
 
-let bridge = SpecialPowers.Cc["@mozilla.org/android/bridge;1"]
-                          .getService(SpecialPowers.Ci.nsIAndroidBridge);
-
 function sendMessageToJava(message) {
-  let data = JSON.stringify(message);
-  bridge.handleGeckoMessage(data);
+  SpecialPowers.Services.androidBridge.handleGeckoMessage(message);
 }
 
 function _evalURI(uri, sandbox) {
