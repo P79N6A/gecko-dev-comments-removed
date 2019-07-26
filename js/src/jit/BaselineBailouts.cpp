@@ -482,6 +482,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 AutoValueVector &startFrameFormals, MutableHandleFunction nextCallee,
                 jsbytecode **callPC, const ExceptionBailoutInfo *excInfo)
 {
+    MOZ_ASSERT(script->hasBaselineScript());
+
     
     
     
@@ -1544,6 +1546,7 @@ jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 
         if (iter.isBaselineJS()) {
             BaselineFrame *frame = iter.baselineFrame();
+            MOZ_ASSERT(frame->script()->hasBaselineScript());
 
             
             

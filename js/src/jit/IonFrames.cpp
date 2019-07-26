@@ -1594,6 +1594,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
     
     callee_ = frame_->maybeCallee();
     script_ = frame_->script();
+    MOZ_ASSERT(script_->hasBaselineScript());
 
     
     
@@ -1652,6 +1653,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         
         
         script_ = callee_->existingScript();
+        MOZ_ASSERT(script_->hasBaselineScript());
 
         pc_ = script_->offsetToPC(si_.pcOffset());
     }
