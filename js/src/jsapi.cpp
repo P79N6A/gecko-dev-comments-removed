@@ -2944,8 +2944,12 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp, JSPrincipals *principals,
     if (!global)
         return NULL;
 
-    if (!Debugger::onNewGlobalObject(cx, global))
-        return NULL;
+    
+    
+    
+    
+    
+    Debugger::onNewGlobalObject(cx, global);
 
     return global;
 }

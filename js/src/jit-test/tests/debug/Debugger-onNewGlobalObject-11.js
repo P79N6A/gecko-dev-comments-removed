@@ -1,5 +1,6 @@
 
 
+
 load(libdir + 'asserts.js');
 
 var dbg = new Debugger;
@@ -17,7 +18,7 @@ dbg.uncaughtExceptionHook = function (ex) {
 };
 
 log = '';
-assertThrowsValue(newGlobal, 'fit');
+assertEq(typeof newGlobal(), 'object');
 assertEq(log, 'nu');
 
 dbg.uncaughtExceptionHook = function (ex) {
