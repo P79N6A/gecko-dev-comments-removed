@@ -433,21 +433,6 @@ MacroAssembler::newGCThing(const Register &result, gc::AllocKind allocKind, Labe
     branch32(Assembler::NotEqual, result, Imm32(0), fail);
 #endif
 
-#ifdef JSGC_GENERATIONAL
-    Nursery &nursery = zone->rt->gcNursery;
-    if (nursery.isEnabled() && allocKind <= gc::FINALIZE_OBJECT_LAST) {
-        
-        
-        
-        loadPtr(AbsoluteAddress(nursery.addressOfPosition()), result);
-        addPtr(Imm32(thingSize), result);
-        branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(nursery.addressOfCurrentEnd()), result, fail);
-        storePtr(result, AbsoluteAddress(nursery.addressOfPosition()));
-        subPtr(Imm32(thingSize), result);
-        return;
-    }
-#endif 
-
     
     
     

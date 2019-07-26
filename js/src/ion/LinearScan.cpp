@@ -555,13 +555,6 @@ LinearScanAllocator::populateSafepoints()
                     
                     if (!safepoint->addNunboxParts(*typeAlloc, *payloadAlloc))
                         return false;
-
-                    
-                    
-                    if (payloadAlloc->isGeneralReg() && isSpilledAt(payloadInterval, inputOf(ins))) {
-                        if (!safepoint->addNunboxParts(*typeAlloc, *payload->canonicalSpill()))
-                            return false;
-                    }
                 }
 #endif
             }

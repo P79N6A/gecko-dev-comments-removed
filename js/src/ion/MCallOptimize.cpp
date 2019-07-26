@@ -221,8 +221,6 @@ IonBuilder::inlineArray(CallInfo &callInfo)
         
         
         
-        
-        
         MConstant *id = NULL;
         for (uint32_t i = 0; i < initLength; i++) {
             id = MConstant::New(Int32Value(i));
@@ -349,9 +347,6 @@ IonBuilder::inlineArrayPush(CallInfo &callInfo)
         value = valueDouble;
     }
 
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(callInfo.thisArg(), value));
-
     MArrayPush *ins = MArrayPush::New(callInfo.thisArg(), value);
     current->add(ins);
     current->push(ins);
@@ -454,7 +449,7 @@ IonBuilder::inlineArrayConcat(CallInfo &callInfo)
     }
 
     
-    RootedObject templateObj(cx, NewDenseEmptyArray(cx, thisType->proto, TenuredObject));
+    RootedObject templateObj(cx, NewDenseEmptyArray(cx, thisType->proto));
     if (!templateObj)
         return InliningStatus_Error;
     templateObj->setType(thisType);
@@ -784,7 +779,7 @@ IonBuilder::inlineStringObject(CallInfo &callInfo)
     callInfo.unwrapArgs();
 
     RootedString emptyString(cx, cx->runtime->emptyString);
-    RootedObject templateObj(cx, StringObject::create(cx, emptyString, TenuredObject));
+    RootedObject templateObj(cx, StringObject::create(cx, emptyString));
     if (!templateObj)
         return InliningStatus_Error;
 

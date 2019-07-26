@@ -4232,9 +4232,6 @@ IonBuilder::createDeclEnvObject(MDefinition *callee, MDefinition *scope)
     current->add(declEnvObj);
 
     
-    
-    
-    
     current->add(MStoreFixedSlot::New(declEnvObj, DeclEnvObject::enclosingScopeSlot(), scope));
     current->add(MStoreFixedSlot::New(declEnvObj, DeclEnvObject::lambdaSlot(), callee));
 
@@ -4271,7 +4268,6 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
     MInstruction *callObj = MNewCallObject::New(templateObj, slots);
     current->add(callObj);
 
-    
     
     current->add(MStoreFixedSlot::New(callObj, CallObject::enclosingScopeSlot(), scope));
     current->add(MStoreFixedSlot::New(callObj, CallObject::calleeSlot(), callee));
@@ -4359,7 +4355,7 @@ IonBuilder::createThisScriptedSingleton(HandleFunction target, MDefinition *call
     if (!types::TypeScript::ThisTypes(target->nonLazyScript())->hasType(types::Type::ObjectType(type)))
         return NULL;
 
-    RootedObject templateObject(cx, CreateThisForFunctionWithProto(cx, target, proto, TenuredObject));
+    RootedObject templateObject(cx, CreateThisForFunctionWithProto(cx, target, proto));
     if (!templateObject)
         return NULL;
 
@@ -5058,11 +5054,6 @@ IonBuilder::getNewArrayTemplateObject(uint32_t count)
 {
     RootedScript scriptRoot(cx, script());
     NewObjectKind newKind = types::UseNewTypeForInitializer(cx, scriptRoot, pc, JSProto_Array);
-
-    
-    if (newKind == GenericObject)
-        newKind = TenuredObject;
-
     RootedObject templateObject(cx, NewDenseUnallocatedArray(cx, count, NULL, newKind));
     if (!templateObject)
         return NULL;
@@ -5109,11 +5100,6 @@ IonBuilder::jsop_newobject(HandleObject baseObj)
 
     RootedScript scriptRoot(cx, script());
     NewObjectKind newKind = types::UseNewTypeForInitializer(cx, scriptRoot, pc, JSProto_Object);
-
-    
-    if (newKind == GenericObject)
-        newKind = TenuredObject;
-
     if (baseObj) {
         templateObject = CopyInitializerObject(cx, baseObj, newKind);
     } else {
@@ -5175,9 +5161,6 @@ IonBuilder::jsop_initelem_array()
             needStub = true;
         }
     }
-
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(obj, value));
 
     if (needStub) {
         MCallInitElementArray *store = MCallInitElementArray::New(obj, GET_UINT24(pc), value);
@@ -5252,9 +5235,6 @@ IonBuilder::jsop_initprop(HandlePropertyName name)
         current->add(init);
         return resumeAfter(init);
     }
-
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(obj, value));
 
     bool needsBarrier = true;
     if ((id == types::IdToTypeId(id)) &&
@@ -5975,13 +5955,6 @@ ion::TypeSetIncludes(types::TypeSet *types, MIRType input, types::TypeSet *input
     }
 }
 
-
-bool
-ion::NeedsPostBarrier(CompileInfo &info, MDefinition *value)
-{
-    return info.executionMode() != ParallelExecution && value->mightBeType(MIRType_Object);
-}
-
 bool
 IonBuilder::jsop_setgname(HandlePropertyName name)
 {
@@ -6032,8 +6005,6 @@ IonBuilder::jsop_setgname(HandlePropertyName name)
     MSlots *slots = MSlots::New(global);
     current->add(slots);
 
-    
-    
     current->pop();
     MStoreSlot *store = MStoreSlot::New(slots, shape->slot() - globalObj->numFixedSlots(), value);
     current->add(store);
@@ -6584,9 +6555,6 @@ IonBuilder::jsop_setelem_dense(types::StackTypeSet::DoubleConversion conversion,
     
     
     bool writeOutOfBounds = !ElementAccessHasExtraIndexedProperty(cx, obj);
-
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(obj, value));
 
     
     MInstruction *idInt32 = MToInt32::New(id);
@@ -7628,9 +7596,6 @@ IonBuilder::jsop_setprop(HandlePropertyName name)
 
     types::StackTypeSet *objTypes = obj->resultTypeSet();
 
-    if (NeedsPostBarrier(info(), value))
-        current->add(MPostWriteBarrier::New(obj, value));
-
     RootedId id(cx, NameToId(name));
 
     JSFunction *commonSetter;
@@ -8029,9 +7994,6 @@ IonBuilder::jsop_setaliasedvar(ScopeCoordinate sc)
     MDefinition *obj = walkScopeChain(sc.hops);
 
     RootedShape shape(cx, ScopeCoordinateToStaticScopeShape(cx, script(), pc));
-
-    if (NeedsPostBarrier(info(), rval))
-        current->add(MPostWriteBarrier::New(obj, rval));
 
     MInstruction *store;
     if (shape->numFixedSlots() <= sc.slot) {
