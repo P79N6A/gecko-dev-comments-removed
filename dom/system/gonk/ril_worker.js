@@ -3629,12 +3629,12 @@ let RIL = {
     delete this.currentConference.cache;
 
     
-    let state = null;
+    let state = CALL_STATE_UNKNOWN;
     for each (let call in this.currentConference.participants) {
-      if (state && state != call.state) {
+      if (state != CALL_STATE_UNKNOWN && state != call.state) {
         
         
-        state = null;
+        state = CALL_STATE_UNKNOWN;
         break;
       }
       state = call.state;
