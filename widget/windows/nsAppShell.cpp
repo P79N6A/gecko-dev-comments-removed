@@ -18,11 +18,13 @@
 
 using namespace mozilla::widget;
 
-const PRUnichar* kAppShellEventId = L"nsAppShell:EventID";
+namespace mozilla {
+namespace widget {
+
+UINT sAppShellGeckoMsgId = RegisterWindowMessageW(L"nsAppShell:EventID");
+} }
+
 const PRUnichar* kTaskbarButtonEventId = L"TaskbarButtonCreated";
-
-static UINT sMsgId;
-
 UINT sTaskbarButtonCreatedMsg;
 
 
@@ -43,7 +45,7 @@ using mozilla::crashreporter::LSPAnnotate;
  LRESULT CALLBACK
 nsAppShell::EventWindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-  if (uMsg == sMsgId) {
+  if (uMsg == sAppShellGeckoMsgId) {
     nsAppShell *as = reinterpret_cast<nsAppShell *>(lParam);
     as->NativeEventCallback();
     NS_RELEASE(as);
@@ -70,9 +72,6 @@ nsAppShell::Init()
 #endif
 
   mLastNativeEventScheduled = TimeStamp::NowLoRes();
-
-  if (!sMsgId)
-    sMsgId = RegisterWindowMessageW(kAppShellEventId);
 
   sTaskbarButtonCreatedMsg = ::RegisterWindowMessageW(kTaskbarButtonEventId);
   NS_ASSERTION(sTaskbarButtonCreatedMsg, "Could not register taskbar button creation message");
@@ -165,7 +164,7 @@ nsAppShell::ScheduleNativeEventCallback()
   
   
   mLastNativeEventScheduled = TimeStamp::NowLoRes();
-  ::PostMessage(mEventWnd, sMsgId, 0, reinterpret_cast<LPARAM>(this));
+  ::PostMessage(mEventWnd, sAppShellGeckoMsgId, 0, reinterpret_cast<LPARAM>(this));
 }
 
 bool

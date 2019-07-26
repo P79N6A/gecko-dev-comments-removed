@@ -68,12 +68,20 @@ using namespace mozilla::ipc::windows;
 
 
 
-
-extern const PRUnichar* kAppShellEventId;
 #if defined(ACCESSIBILITY)
 
 extern const PRUnichar* kPropNameTabContent;
 #endif
+
+
+namespace mozilla {
+namespace widget {
+extern UINT sAppShellGeckoMsgId;
+#ifdef MOZ_METRO
+extern UINT sDefaultBrowserMsgId;
+#endif
+}
+}
 
 namespace {
 
@@ -94,7 +102,6 @@ HHOOK gDeferredGetMsgHook = NULL;
 HHOOK gDeferredCallWndProcHook = NULL;
 
 DWORD gUIThreadId = 0;
-static UINT sAppShellGeckoMsgId;
 
 LRESULT CALLBACK
 DeferredMessageHook(int nCode,
@@ -274,9 +281,14 @@ ProcessOrDeferMessage(HWND hwnd,
       return 0;
 
     default: {
-      if (uMsg && uMsg == sAppShellGeckoMsgId) {
+      if (uMsg && uMsg == mozilla::widget::sAppShellGeckoMsgId) {
         
         deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
+#ifdef MOZ_METRO
+      } else if (uMsg && uMsg == mozilla::widget::sDefaultBrowserMsgId) {
+        
+        deferred = new DeferredSendMessage(hwnd, uMsg, wParam, lParam);
+#endif
       } else {
         
 #ifdef DEBUG
@@ -368,6 +380,13 @@ WindowIsDeferredWindow(HWND hWnd)
       className.EqualsLiteral("nsAppShell:EventWindowClass")) {
     return true;
   }
+
+#ifdef MOZ_METRO
+  
+  if (className.EqualsLiteral("Windows.UI.Core.CoreWindow")) {
+    return true;
+  }
+#endif
 
   
   
@@ -525,7 +544,6 @@ Init()
   NS_ASSERTION(gUIThreadId, "ThreadId should not be 0!");
   NS_ASSERTION(gUIThreadId == GetCurrentThreadId(),
                "Running on different threads!");
-  sAppShellGeckoMsgId = RegisterWindowMessageW(kAppShellEventId);
 }
 
 
