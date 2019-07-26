@@ -8,9 +8,11 @@
 
 #include "mozilla/Atomics.h"
 #include "mozilla/LinkedList.h"
+#include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
 #include "prlock.h"
 #include "nsThreadUtils.h"
+#include "nsAutoPtr.h"
 
 class nsITimer;
 
@@ -119,6 +121,7 @@ class DiscardTracker
     static uint32_t sMaxDecodedImageKB;
     
     static PRLock *sAllocationLock;
+    static mozilla::Mutex* sNodeListMutex;
 };
 
 } 

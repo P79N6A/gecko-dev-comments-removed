@@ -23,6 +23,7 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
  uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
  PRLock * DiscardTracker::sAllocationLock = nullptr;
+ mozilla::Mutex* DiscardTracker::sNodeListMutex = nullptr;
 
 
 
@@ -50,7 +51,7 @@ DiscardTracker::Reset(Node *node)
   
   
   
-  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(*sNodeListMutex);
   MOZ_ASSERT(sInitialized);
   MOZ_ASSERT(node->img);
   MOZ_ASSERT(node->img->CanDiscard());
@@ -81,7 +82,7 @@ DiscardTracker::Reset(Node *node)
 void
 DiscardTracker::Remove(Node *node)
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(*sNodeListMutex);
 
   if (node->isInList())
     node->remove();
@@ -96,8 +97,6 @@ DiscardTracker::Remove(Node *node)
 void
 DiscardTracker::Shutdown()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   if (sTimer) {
     sTimer->Cancel();
     sTimer = nullptr;
@@ -106,6 +105,9 @@ DiscardTracker::Shutdown()
   
   
   DiscardAll();
+
+  delete sNodeListMutex;
+  sNodeListMutex = nullptr;
 }
 
 
@@ -114,7 +116,7 @@ DiscardTracker::Shutdown()
 void
 DiscardTracker::DiscardAll()
 {
-  MOZ_ASSERT(NS_IsMainThread());
+  MutexAutoLock lock(*sNodeListMutex);
 
   if (!sInitialized)
     return;
@@ -153,8 +155,6 @@ DiscardTracker::InformAllocation(int64_t bytes)
 nsresult
 DiscardTracker::Initialize()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
   
   Preferences::RegisterCallback(DiscardTimeoutChangedCallback,
                                 sDiscardTimeoutPref);
@@ -168,6 +168,10 @@ DiscardTracker::Initialize()
 
   
   sAllocationLock = PR_NewLock();
+
+  
+  MOZ_ASSERT(!sNodeListMutex);
+  sNodeListMutex = new Mutex("image::DiscardTracker");
 
   
   sInitialized = true;
