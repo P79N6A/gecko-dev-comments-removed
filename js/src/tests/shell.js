@@ -6,6 +6,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if (typeof version != 'undefined')
 {
   version(0);
@@ -615,7 +650,7 @@ function optionsClear() {
     if (optionName &&
         optionName != "methodjit" &&
         optionName != "methodjit_always" &&
-        optionName != "allow_xml")
+        optionName != "ion")
     {
       options(optionName);
     }
@@ -796,6 +831,18 @@ function getFailedCases() {
     }
   }
 }
+
+var JSTest = {
+  waitForExplicitFinish: function () {
+    gDelayTestDriverEnd = true;
+  },
+
+  testFinished: function () {
+    gDelayTestDriverEnd = false;
+    jsTestDriverEnd();
+    quit();
+  }
+};
 
 function jsTestDriverEnd()
 {

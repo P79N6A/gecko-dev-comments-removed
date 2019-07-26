@@ -2,6 +2,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 var gPageCompleted;
 var GLOBAL = this + '';
 
@@ -158,10 +190,7 @@ function options(aOptionName)
     value = value.substring(0, value.length-1);
   }
 
-  if (aOptionName === 'moar_xml')
-    aOptionName = 'xml';
-
-  if (aOptionName && aOptionName !== 'allow_xml') {
+  if (aOptionName) {
     netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     if (!(aOptionName in Components.utils))
     {
@@ -192,11 +221,11 @@ function optionsInit() {
     strict:     true,
     werror:     true,
     atline:     true,
-    moar_xml:   true,
+    xml:        true,
     relimit:    true,
     methodjit:  true,
     methodjit_always: true,
-    strict_mode: true
+    ion:        true
   };
 
   
@@ -210,15 +239,11 @@ function optionsInit() {
   netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
   for (var optionName in options.currvalues)
   {
-    var propName = optionName;
-    if (optionName === "moar_xml")
-      propName = "xml";
-
-    if (!(propName in Components.utils))
+    if (!(optionName in Components.utils))
     {
       throw "options.currvalues is out of sync with Components.utils";
     }
-    if (!Components.utils[propName])
+    if (!Components.utils[optionName])
     {
       delete options.currvalues[optionName];
     }
@@ -400,6 +425,17 @@ function outputscripttag(src, properties, e4x)
 
   document.write(s);
 }
+
+var JSTest = {
+  waitForExplicitFinish: function () {
+    gDelayTestDriverEnd = true;
+  },
+
+  testFinished: function () {
+    gDelayTestDriverEnd = false;
+    jsTestDriverEnd();
+  }
+};
 
 function jsTestDriverEnd()
 {
