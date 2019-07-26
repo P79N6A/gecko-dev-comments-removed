@@ -6,7 +6,7 @@
 
 
 #include "nsAppShell.h"
-#include <qapplication.h>
+#include <QGuiApplication>
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
@@ -49,11 +49,7 @@ nsAppShell::Init()
     if (!gWidgetDrawLog)
         gWidgetDrawLog = PR_NewLogModule("WidgetDraw");
 #endif
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 4, 0))
     sPokeEvent = QEvent::registerEventType();
-#else
-    sPokeEvent = QEvent::User+5000;
-#endif
 
     nsQAppInstance::AddRef();
 

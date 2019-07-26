@@ -4,7 +4,7 @@
 
 
 
-#include <QWidget>
+#include <QWindow>
 #include "nsQtRemoteService.h"
 
 #include "mozilla/ModuleUtils.h"
@@ -17,13 +17,14 @@
 
 
 
-class MozQRemoteEventHandlerWidget: public QWidget {
+class MozQRemoteEventHandlerWidget: public QWindow {
 public:
   
 
 
 
   MozQRemoteEventHandlerWidget(nsQtRemoteService &aRemoteService);
+  virtual ~MozQRemoteEventHandlerWidget() {}
 
 protected:
   

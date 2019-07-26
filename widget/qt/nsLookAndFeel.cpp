@@ -5,28 +5,29 @@
 
 
 
-#include <QApplication>
-#include <QFont>
-#include <QPalette>
-#include <QStyle>
 
-#undef NS_LOOKANDFEEL_DEBUG
-#ifdef NS_LOOKANDFEEL_DEBUG
-#include <QDebug>
-#endif
+
+
+
+
+
+
+
+
+#include <QGuiApplication>
+#include <QFont>
+#include <QScreen>
 
 #include "nsLookAndFeel.h"
 #include "nsStyleConsts.h"
+#include "gfxFont.h"
+#include "gfxFontConstants.h"
+#include "mozilla/gfx/2D.h"
 
-#include <qglobal.h>
-
-#define QCOLOR_TO_NS_RGB(c)                     \
-  ((nscolor)NS_RGB(c.red(),c.green(),c.blue()))
+static const char16_t UNICODE_BULLET = 0x2022;
 
 nsLookAndFeel::nsLookAndFeel()
-  : nsXPLookAndFeel(),
-    mDefaultFontCached(false), mButtonFontCached(false),
-    mFieldFontCached(false), mMenuFontCached(false)
+    : nsXPLookAndFeel()
 {
 }
 
@@ -37,370 +38,361 @@ nsLookAndFeel::~nsLookAndFeel()
 nsresult
 nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
 {
-  nsresult res = NS_OK;
+    nsresult rv = NS_OK;
 
-  if (!qApp)
-    return NS_ERROR_FAILURE;
+#define BASE_ACTIVE_COLOR     NS_RGB(0xaa,0xaa,0xaa)
+#define BASE_NORMAL_COLOR     NS_RGB(0xff,0xff,0xff)
+#define BASE_SELECTED_COLOR   NS_RGB(0xaa,0xaa,0xaa)
+#define BG_ACTIVE_COLOR       NS_RGB(0xff,0xff,0xff)
+#define BG_INSENSITIVE_COLOR  NS_RGB(0xaa,0xaa,0xaa)
+#define BG_NORMAL_COLOR       NS_RGB(0xff,0xff,0xff)
+#define BG_PRELIGHT_COLOR     NS_RGB(0xee,0xee,0xee)
+#define BG_SELECTED_COLOR     NS_RGB(0x99,0x99,0x99)
+#define DARK_NORMAL_COLOR     NS_RGB(0x88,0x88,0x88)
+#define FG_INSENSITIVE_COLOR  NS_RGB(0x44,0x44,0x44)
+#define FG_NORMAL_COLOR       NS_RGB(0x00,0x00,0x00)
+#define FG_PRELIGHT_COLOR     NS_RGB(0x77,0x77,0x77)
+#define FG_SELECTED_COLOR     NS_RGB(0xaa,0xaa,0xaa)
+#define LIGHT_NORMAL_COLOR    NS_RGB(0xaa,0xaa,0xaa)
+#define TEXT_ACTIVE_COLOR     NS_RGB(0x99,0x99,0x99)
+#define TEXT_NORMAL_COLOR     NS_RGB(0x00,0x00,0x00)
+#define TEXT_SELECTED_COLOR   NS_RGB(0x00,0x00,0x00)
 
-  QPalette palette = qApp->palette();
-
-  switch (aID) {
+    switch (aID) {
+        
+        
+        
     case eColorID_WindowBackground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = BASE_NORMAL_COLOR;
+        break;
     case eColorID_WindowForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID_WidgetBackground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_WidgetForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
-      break;
-
+        aColor = FG_NORMAL_COLOR;
+        break;
     case eColorID_WidgetSelectBackground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = BG_SELECTED_COLOR;
+        break;
     case eColorID_WidgetSelectForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
-      break;
-
+        aColor = FG_SELECTED_COLOR;
+        break;
     case eColorID_Widget3DHighlight:
-      aColor = NS_RGB(0xa0,0xa0,0xa0);
-      break;
-
+        aColor = NS_RGB(0xa0,0xa0,0xa0);
+        break;
     case eColorID_Widget3DShadow:
-      aColor = NS_RGB(0x40,0x40,0x40);
-      break;
-
+        aColor = NS_RGB(0x40,0x40,0x40);
+        break;
     case eColorID_TextBackground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BASE_NORMAL_COLOR;
+        break;
     case eColorID_TextForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
-      break;
-
+        
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID_TextSelectBackground:
     case eColorID_IMESelectedRawTextBackground:
     case eColorID_IMESelectedConvertedTextBackground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Highlight));
-      break;
-
+        
+        aColor = BASE_SELECTED_COLOR;
+        break;
     case eColorID_TextSelectForeground:
     case eColorID_IMESelectedRawTextForeground:
     case eColorID_IMESelectedConvertedTextForeground:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::HighlightedText));
-      break;
-
+        
+        aColor = TEXT_SELECTED_COLOR;
+        break;
     case eColorID_IMERawInputBackground:
     case eColorID_IMEConvertedTextBackground:
-      aColor = NS_TRANSPARENT;
-      break;
-
+        aColor = NS_TRANSPARENT;
+        break;
     case eColorID_IMERawInputForeground:
     case eColorID_IMEConvertedTextForeground:
-      aColor = NS_SAME_AS_FOREGROUND_COLOR;
-      break;
-
+        aColor = NS_SAME_AS_FOREGROUND_COLOR;
+        break;
     case eColorID_IMERawInputUnderline:
     case eColorID_IMEConvertedTextUnderline:
-      aColor = NS_SAME_AS_FOREGROUND_COLOR;
-      break;
-
+        aColor = NS_SAME_AS_FOREGROUND_COLOR;
+        break;
     case eColorID_IMESelectedRawTextUnderline:
     case eColorID_IMESelectedConvertedTextUnderline:
-      aColor = NS_TRANSPARENT;
-      break;
-
+        aColor = NS_TRANSPARENT;
+        break;
     case eColorID_SpellCheckerUnderline:
       aColor = NS_RGB(0xff, 0, 0);
       break;
 
+        
     case eColorID_activeborder:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_activecaption:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_appworkspace:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_background:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_captiontext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-      break;
-
+        
+        aColor = FG_NORMAL_COLOR;
+        break;
     case eColorID_graytext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Text));
-      break;
-
+        
+        aColor = FG_INSENSITIVE_COLOR;
+        break;
     case eColorID_highlight:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Highlight));
-      break;
-
+        
+        aColor = BASE_SELECTED_COLOR;
+        break;
     case eColorID_highlighttext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::HighlightedText));
-      break;
-
+        
+        aColor = TEXT_SELECTED_COLOR;
+        break;
     case eColorID_inactiveborder:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_inactivecaption:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Window));
-      break;
-
+        
+        aColor = BG_INSENSITIVE_COLOR;
+        break;
     case eColorID_inactivecaptiontext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Disabled, QPalette::Text));
-      break;
-
+        
+        aColor = FG_INSENSITIVE_COLOR;
+        break;
     case eColorID_infobackground:
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 4, 0))
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ToolTipBase));
-#else
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
-#endif
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_infotext:
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 4, 0))
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ToolTipText));
-#else
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-#endif
-      break;
-
+        
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID_menu:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID_menutext:
-    case eColorID__moz_menubartext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-      break;
-
+        
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID_scrollbar:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Mid));
-      break;
+        
+        aColor = BG_ACTIVE_COLOR;
+        break;
 
     case eColorID_threedface:
     case eColorID_buttonface:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Button));
-      break;
-
-    case eColorID_buttonhighlight:
-    case eColorID_threedhighlight:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Dark));
-      break;
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
 
     case eColorID_buttontext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ButtonText));
-      break;
+        
+        aColor = TEXT_NORMAL_COLOR;
+        break;
 
-    case eColorID_buttonshadow:
-    case eColorID_threedshadow:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Dark));
-      break;
-
-    case eColorID_threeddarkshadow:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Shadow));
-      break;
+    case eColorID_buttonhighlight:
+        
+    case eColorID_threedhighlight:
+        
+        aColor = LIGHT_NORMAL_COLOR;
+        break;
 
     case eColorID_threedlightshadow:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Light));
-      break;
+        
+        aColor = BG_NORMAL_COLOR;
+        break;
+
+    case eColorID_buttonshadow:
+        
+    case eColorID_threedshadow:
+        
+        aColor = DARK_NORMAL_COLOR;
+        break;
+
+    case eColorID_threeddarkshadow:
+        
+        aColor = NS_RGB(0,0,0);
+        break;
 
     case eColorID_window:
     case eColorID_windowframe:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
+        aColor = BG_NORMAL_COLOR;
+        break;
 
     case eColorID_windowtext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-      break;
+        aColor = FG_NORMAL_COLOR;
+        break;
 
-      
-      
-
-    case eColorID__moz_buttondefault:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Button));
-      break;
-
+    case eColorID__moz_eventreerow:
     case eColorID__moz_field:
-    case eColorID__moz_combobox:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Base));
-      break;
-
+        aColor = BASE_NORMAL_COLOR;
+        break;
     case eColorID__moz_fieldtext:
-    case eColorID__moz_comboboxtext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-      break;
-
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID__moz_dialog:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = BG_NORMAL_COLOR;
+        break;
     case eColorID__moz_dialogtext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::WindowText));
-      break;
-
+        aColor = FG_NORMAL_COLOR;
+        break;
     case eColorID__moz_dragtargetzone:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Window));
-      break;
-
+        aColor = BG_SELECTED_COLOR;
+        break;
+    case eColorID__moz_buttondefault:
+        
+        aColor = NS_RGB(0,0,0);
+        break;
+    case eColorID__moz_buttonhoverface:
+        aColor = BG_PRELIGHT_COLOR;
+        break;
     case eColorID__moz_buttonhovertext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::ButtonText));
-      break;
-
+        aColor = FG_PRELIGHT_COLOR;
+        break;
+    case eColorID__moz_cellhighlight:
+    case eColorID__moz_html_cellhighlight:
+        aColor = BASE_ACTIVE_COLOR;
+        break;
+    case eColorID__moz_cellhighlighttext:
+    case eColorID__moz_html_cellhighlighttext:
+        aColor = TEXT_ACTIVE_COLOR;
+        break;
+    case eColorID__moz_menuhover:
+        aColor = BG_PRELIGHT_COLOR;
+        break;
     case eColorID__moz_menuhovertext:
+        aColor = FG_PRELIGHT_COLOR;
+        break;
+    case eColorID__moz_oddtreerow:
+        aColor = NS_TRANSPARENT;
+        break;
+    case eColorID__moz_nativehyperlinktext:
+        aColor = NS_SAME_AS_FOREGROUND_COLOR;
+        break;
+    case eColorID__moz_comboboxtext:
+        aColor = TEXT_NORMAL_COLOR;
+        break;
+    case eColorID__moz_combobox:
+        aColor = BG_NORMAL_COLOR;
+        break;
+    case eColorID__moz_menubartext:
+        aColor = TEXT_NORMAL_COLOR;
+        break;
     case eColorID__moz_menubarhovertext:
-      aColor = QCOLOR_TO_NS_RGB(palette.color(QPalette::Normal, QPalette::Text));
-      break;
-
+        aColor = FG_PRELIGHT_COLOR;
+        break;
     default:
-      aColor = 0;
-      res    = NS_ERROR_FAILURE;
-      break;
-  }
-  return res;
-}
+        
+        aColor = 0;
+        rv = NS_ERROR_FAILURE;
+        break;
+    }
 
-#ifdef NS_LOOKANDFEEL_DEBUG
-static const char *metricToString[] = {
-  "eIntID_CaretBlinkTime",
-  "eIntID_CaretWidth",
-  "eIntID_ShowCaretDuringSelection",
-  "eIntID_SelectTextfieldsOnKeyFocus",
-  "eIntID_SubmenuDelay",
-  "eIntID_MenusCanOverlapOSBar",
-  "eIntID_SkipNavigatingDisabledMenuItem",
-  "eIntID_DragThresholdX",
-  "eIntID_DragThresholdY",
-  "eIntID_UseAccessibilityTheme",
-  "eIntID_ScrollArrowStyle",
-  "eIntID_ScrollSliderStyle",
-  "eIntID_ScrollButtonLeftMouseButtonAction",
-  "eIntID_ScrollButtonMiddleMouseButtonAction",
-  "eIntID_ScrollButtonRightMouseButtonAction",
-  "eIntID_TreeOpenDelay",
-  "eIntID_TreeCloseDelay",
-  "eIntID_TreeLazyScrollDelay",
-  "eIntID_TreeScrollDelay",
-  "eIntID_TreeScrollLinesMax",
-  "eIntID_TabFocusModel",
-  "eIntID_WindowsDefaultTheme",
-  "eIntID_AlertNotificationOrigin",
-  "eIntID_ScrollToClick",
-  "eIntID_IMERawInputUnderlineStyle",
-  "eIntID_IMESelectedRawTextUnderlineStyle",
-  "eIntID_IMEConvertedTextUnderlineStyle",
-  "eIntID_IMESelectedConvertedTextUnderline",
-  "eIntID_ImagesInMenus"
-};
-#endif
+    return rv;
+}
 
 nsresult
 nsLookAndFeel::GetIntImpl(IntID aID, int32_t &aResult)
 {
-#ifdef NS_LOOKANDFEEL_DEBUG
-  qDebug("nsLookAndFeel::GetIntImpl aID = %s", metricToString[aID]);
-#endif
+    nsresult rv = nsXPLookAndFeel::GetIntImpl(aID, aResult);
+    if (NS_SUCCEEDED(rv))
+        return rv;
 
-  nsresult res = nsXPLookAndFeel::GetIntImpl(aID, aResult);
-  if (NS_SUCCEEDED(res))
-    return res;
+    rv = NS_OK;
 
-  res = NS_OK;
+    switch (aID) {
+        case eIntID_CaretBlinkTime:
+            aResult = 500;
+            break;
 
-  switch (aID) {
-    case eIntID_CaretBlinkTime:
-      aResult = 500;
-      break;
+        case eIntID_CaretWidth:
+            aResult = 1;
+            break;
 
-    case eIntID_CaretWidth:
-      aResult = 1;
-      break;
+        case eIntID_ShowCaretDuringSelection:
+            aResult = 0;
+            break;
 
-    case eIntID_ShowCaretDuringSelection:
-      aResult = 0;
-      break;
+        case eIntID_SelectTextfieldsOnKeyFocus:
+            
+            
+            aResult = 1;
+            break;
 
-    case eIntID_SelectTextfieldsOnKeyFocus:
-      
-      
-      aResult = 1;
-      break;
+        case eIntID_SubmenuDelay:
+            aResult = 200;
+            break;
 
-    case eIntID_SubmenuDelay:
-      aResult = 200;
-      break;
+        case eIntID_TooltipDelay:
+            aResult = 500;
+            break;
 
-    case eIntID_TooltipDelay:
-      aResult = 500;
-      break;
+        case eIntID_MenusCanOverlapOSBar:
+            
+            aResult = 1;
+            break;
 
-    case eIntID_MenusCanOverlapOSBar:
-      
-      aResult = 1;
-      break;
+        case eIntID_ScrollArrowStyle:
+            aResult = eScrollArrowStyle_Single;
+            break;
 
-    case eIntID_ScrollArrowStyle:
-      aResult = eScrollArrowStyle_Single;
-      break;
+        case eIntID_ScrollSliderStyle:
+            aResult = eScrollThumbStyle_Proportional;
+            break;
 
-    case eIntID_ScrollSliderStyle:
-      aResult = eScrollThumbStyle_Proportional;
-      break;
+        case eIntID_TouchEnabled:
+            aResult = 1;
+            break;
 
-    case eIntID_TouchEnabled:
-      aResult = 0;
-      res = NS_ERROR_NOT_IMPLEMENTED;
-      break;
+        case eIntID_WindowsDefaultTheme:
+        case eIntID_WindowsThemeIdentifier:
+        case eIntID_OperatingSystemVersionIdentifier:
+            aResult = 0;
+            rv = NS_ERROR_NOT_IMPLEMENTED;
+            break;
 
-    case eIntID_WindowsDefaultTheme:
-      aResult = 0;
-      res = NS_ERROR_NOT_IMPLEMENTED;
-      break;
+        case eIntID_IMERawInputUnderlineStyle:
+        case eIntID_IMEConvertedTextUnderlineStyle:
+            aResult = NS_STYLE_TEXT_DECORATION_STYLE_SOLID;
+            break;
 
-    case eIntID_SpellCheckerUnderlineStyle:
-      aResult = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
-      break;
+        case eIntID_IMESelectedRawTextUnderlineStyle:
+        case eIntID_IMESelectedConvertedTextUnderline:
+            aResult = NS_STYLE_TEXT_DECORATION_STYLE_NONE;
+            break;
 
-    case eIntID_ScrollbarButtonAutoRepeatBehavior:
-      aResult = 1;
-      break;
+        case eIntID_SpellCheckerUnderlineStyle:
+            aResult = NS_STYLE_TEXT_DECORATION_STYLE_WAVY;
+            break;
 
-    default:
-      aResult = 0;
-      res = NS_ERROR_FAILURE;
-  }
-  return res;
+        case eIntID_ScrollbarButtonAutoRepeatBehavior:
+            aResult = 0;
+            break;
+
+        default:
+            aResult = 0;
+            rv = NS_ERROR_FAILURE;
+    }
+
+    return rv;
 }
-
-#ifdef NS_LOOKANDFEEL_DEBUG
-static const char *floatMetricToString[] = {
-  "eFloatID_IMEUnderlineRelativeSize"
-};
-#endif
 
 nsresult
 nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
 {
-#ifdef NS_LOOKANDFEEL_DEBUG
-  qDebug("nsLookAndFeel::GetFloatImpl aID = %s", floatMetricToString[aID]);
-#endif
-
   nsresult res = nsXPLookAndFeel::GetFloatImpl(aID, aResult);
   if (NS_SUCCEEDED(res))
     return res;
@@ -408,114 +400,61 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
 
   switch (aID) {
     case eFloatID_IMEUnderlineRelativeSize:
-      aResult = 1.0f;
-      break;
-
+        aResult = 1.0f;
+        break;
     case eFloatID_SpellCheckerUnderlineRelativeSize:
-      aResult = 1.0f;
-      break;
-
+        aResult = 1.0f;
+        break;
     default:
-      aResult = -1.0;
-      res = NS_ERROR_FAILURE;
-      break;
-  }
+        aResult = -1.0;
+        res = NS_ERROR_FAILURE;
+    }
   return res;
 }
 
-static void
-GetSystemFontInfo(const char *aClassName, nsString *aFontName,
-                  gfxFontStyle *aFontStyle)
-{
-  QFont qFont = QApplication::font(aClassName);
-
-  NS_NAMED_LITERAL_STRING(quote, "\"");
-  nsString family((char16_t*)qFont.family().data());
-  *aFontName = quote + family + quote;
-
-  aFontStyle->systemFont = true;
-  aFontStyle->style = NS_FONT_STYLE_NORMAL;
-  aFontStyle->weight = qFont.weight();
-  
-  aFontStyle->stretch = NS_FONT_STRETCH_NORMAL;
-  
-  if (qFont.pixelSize() != -1) {
-    aFontStyle->size = qFont.pixelSize();
-  } else {
-    aFontStyle->size = qFont.pointSizeF() * 96.0f / 72.0f;
-  }
-}
 
 bool
 nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
                            gfxFontStyle& aFontStyle,
                            float aDevPixPerCSSPixel)
 {
-  const char *className = nullptr;
-  nsString *cachedFontName = nullptr;
-  gfxFontStyle *cachedFontStyle = nullptr;
-  bool *isCached = nullptr;
+  QFont qFont = QGuiApplication::font();
 
-  switch (aID) {
-    case eFont_Menu:         
-    case eFont_PullDownMenu: 
-      cachedFontName = &mMenuFontName;
-      cachedFontStyle = &mMenuFontStyle;
-      isCached = &mMenuFontCached;
-      className = "QAction";
-      break;
+  NS_NAMED_LITERAL_STRING(quote, "\"");
+  nsString family((char16_t*)qFont.family().data());
+  aFontName = quote + family + quote;
 
-    case eFont_Field:        
-    case eFont_List:         
-      cachedFontName = &mFieldFontName;
-      cachedFontStyle = &mFieldFontStyle;
-      isCached = &mFieldFontCached;
-      className = "QlineEdit";
-      break;
-
-    case eFont_Button:       
-      cachedFontName = &mButtonFontName;
-      cachedFontStyle = &mButtonFontStyle;
-      isCached = &mButtonFontCached;
-      className = "QPushButton";
-      break;
-
-    case eFont_Caption:      
-    case eFont_Icon:         
-    case eFont_MessageBox:   
-    case eFont_SmallCaption: 
-    case eFont_StatusBar:    
-    case eFont_Window:       
-    case eFont_Document:     
-    case eFont_Workspace:    
-    case eFont_Desktop:      
-    case eFont_Info:         
-    case eFont_Dialog:       
-    case eFont_Tooltips:     
-    case eFont_Widget:       
-      cachedFontName = &mDefaultFontName;
-      cachedFontStyle = &mDefaultFontStyle;
-      isCached = &mDefaultFontCached;
-      className = "Qlabel";
-      break;
+  aFontStyle.systemFont = true;
+  aFontStyle.style = qFont.style();
+  aFontStyle.weight = qFont.weight();
+  aFontStyle.stretch = qFont.stretch();
+  
+  if (qFont.pixelSize() != -1) {
+    aFontStyle.size = qFont.pixelSize();
+  } else {
+    aFontStyle.size = qFont.pointSizeF() * qApp->primaryScreen()->logicalDotsPerInch() / 72.0f;
   }
 
-  if (!*isCached) {
-    GetSystemFontInfo(className, cachedFontName, cachedFontStyle);
-    *isCached = true;
-  }
-
-  aFontName = *cachedFontName;
-  aFontStyle = *cachedFontStyle;
   return true;
 }
 
-void
-nsLookAndFeel::RefreshImpl()
+
+bool
+nsLookAndFeel::GetEchoPasswordImpl() {
+    return true;
+}
+
+
+uint32_t
+nsLookAndFeel::GetPasswordMaskDelayImpl()
 {
-  nsXPLookAndFeel::RefreshImpl();
-  mDefaultFontCached = false;
-  mButtonFontCached = false;
-  mFieldFontCached = false;
-  mMenuFontCached = false;
+    
+    return 1500;
+}
+
+
+char16_t
+nsLookAndFeel::GetPasswordCharacterImpl()
+{
+    return UNICODE_BULLET;
 }

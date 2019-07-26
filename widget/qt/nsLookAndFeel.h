@@ -2,39 +2,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef __nsLookAndFeel
 #define __nsLookAndFeel
 
 #include "nsXPLookAndFeel.h"
-#include "gfxFont.h"
 
-class nsLookAndFeel: public nsXPLookAndFeel
+class nsLookAndFeel : public nsXPLookAndFeel
 {
 public:
     nsLookAndFeel();
     virtual ~nsLookAndFeel();
 
-    virtual nsresult NativeGetColor(ColorID aID, nscolor &aResult);
+    virtual bool GetFontImpl(FontID aID, nsString& aName, gfxFontStyle& aStyle,
+                             float aDevPixPerCSSPixel);
     virtual nsresult GetIntImpl(IntID aID, int32_t &aResult);
     virtual nsresult GetFloatImpl(FloatID aID, float &aResult);
-    virtual bool GetFontImpl(FontID aID, nsString& aFontName,
-                             gfxFontStyle& aFontStyle,
-                             float aDevPixPerCSSPixel);
-    virtual void RefreshImpl();
+    virtual bool GetEchoPasswordImpl();
+    virtual uint32_t GetPasswordMaskDelayImpl();
+    virtual char16_t GetPasswordCharacterImpl();
 
-private:
-    bool mDefaultFontCached;
-    bool mButtonFontCached;
-    bool mFieldFontCached;
-    bool mMenuFontCached;
-    nsString mDefaultFontName;
-    nsString mButtonFontName;
-    nsString mFieldFontName;
-    nsString mMenuFontName;
-    gfxFontStyle mDefaultFontStyle;
-    gfxFontStyle mButtonFontStyle;
-    gfxFontStyle mFieldFontStyle;
-    gfxFontStyle mMenuFontStyle;
+protected:
+    virtual nsresult NativeGetColor(ColorID aID, nscolor &aColor);
 };
 
 #endif

@@ -30,9 +30,9 @@ public:
 
 
 
-    virtual nsresult DrawWithXlib(gfxXlibSurface *xsurf,
-            nsIntPoint offset,
-            nsIntRect* clipRects, uint32_t numClipRects) = 0;
+    virtual nsresult DrawWithXlib(cairo_surface_t* surface,
+                                  nsIntPoint offset,
+                                  nsIntRect* clipRects, uint32_t numClipRects) = 0;
   
     enum {
         

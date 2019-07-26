@@ -11,44 +11,24 @@
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
 
-#include <QApplication>
-#include <QDesktopWidget>
+#include <QGuiApplication>
 #include <QtGui/QCursor>
 #include <QIcon>
-#include <QGraphicsScene>
-#include <QGraphicsView>
-#include <QGraphicsSceneContextMenuEvent>
-#include <QGraphicsSceneDragDropEvent>
-#include <QGraphicsSceneMouseEvent>
-#include <QGraphicsSceneHoverEvent>
-#include <QGraphicsSceneWheelEvent>
-#include <QGraphicsSceneResizeEvent>
-#include <QStyleOptionGraphicsItem>
+#include <QMouseEvent>
+#include <QWheelEvent>
+#include <QResizeEvent>
 #include <QPaintEngine>
 #include <QMimeData>
-#include "mozqglwidgetwrapper.h"
+#include <QScreen>
 
 #include <QtCore/QDebug>
 #include <QtCore/QEvent>
 #include <QtCore/QVariant>
 #include <algorithm>
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-#include <QPinchGesture>
-#include <QGestureRecognizer>
-#include "mozSwipeGesture.h"
-static Qt::GestureType gSwipeGestureId = Qt::CustomGesture;
-
-
-
-static const float GESTURES_BLOCK_MOUSE_FOR = 200;
-#ifdef MOZ_ENABLE_QTMOBILITY
-#include <QtSensors/QOrientationSensor>
-using namespace QtMobility;
-#endif 
-#endif 
 
 #ifdef MOZ_X11
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #endif 
 
 #include "nsXULAppAPI.h"
@@ -57,10 +37,6 @@ using namespace QtMobility;
 
 #include "nsWindow.h"
 #include "mozqwidget.h"
-
-#ifdef MOZ_ENABLE_QTMOBILITY
-#include "mozqorientationsensorfilter.h"
-#endif
 
 #include "nsIdleService.h"
 #include "nsRenderingContext.h"
@@ -72,6 +48,8 @@ using namespace QtMobility;
 #include "mozilla/Likely.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsIWidgetListener.h"
+#include "ClientLayerManager.h"
+#include "BasicLayers.h"
 
 #include "nsIStringBundle.h"
 #include "nsGfxCIID.h"
@@ -82,15 +60,12 @@ using namespace QtMobility;
 #include "nsAutoPtr.h"
 
 #include "gfxQtPlatform.h"
-#ifdef MOZ_X11
-#include "gfxXlibSurface.h"
-#endif
-#include "gfxQPainterSurface.h"
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 
-#include "nsIDOMSimpleGestureEvent.h" 
 #include "nsIDOMWheelEvent.h"
+
+#include "GLContext.h"
 
 #ifdef MOZ_X11
 #include "keysym2ucs.h"
@@ -99,89 +74,25 @@ using namespace QtMobility;
 #include "gfxUtils.h"
 #include "Layers.h"
 #include "GLContextProvider.h"
-#include "nsFastStartupQt.h"
-
-
-
-#define PARENTLESS_WIDGET (void*)0x13579
-
-#include "nsShmImage.h"
-extern "C" {
-#define PIXMAN_DONT_DEFINE_STDINT
-#include "pixman.h"
-}
 
 using namespace mozilla;
+using namespace mozilla::gl;
 using namespace mozilla::widget;
+using namespace mozilla::gfx;
+using namespace mozilla::layers;
 using mozilla::gl::GLContext;
-
-
-static nsRefPtr<gfxASurface> gBufferSurface;
-#ifdef MOZ_HAVE_SHMIMAGE
-
-nsRefPtr<nsShmImage> gShmImage;
-#endif
-
-static int gBufferPixmapUsageCount = 0;
-static gfxIntSize gBufferMaxSize(0, 0);
-
-
-static nsresult    initialize_prefs        (void);
-
-static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
-
-#define NS_WINDOW_TITLE_MAX_LENGTH 4095
 
 #define kWindowPositionSlop 20
 
 
 static const int WHEEL_DELTA = 120;
 static bool gGlobalsInitialized = false;
-
-static bool
-is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY);
-
 static bool sAltGrModifier = false;
 
-#ifdef MOZ_ENABLE_QTMOBILITY
-static QOrientationSensor *gOrientation = nullptr;
-static MozQOrientationSensorFilter gOrientationFilter;
-#endif
-
-static bool
-isContextMenuKeyEvent(const QKeyEvent *qe)
-{
-    uint32_t kc = QtKeyCodeToDOMKeyCode(qe->key());
-    if (qe->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))
-        return false;
-
-    bool isShift = qe->modifiers() & Qt::ShiftModifier;
-    return (kc == NS_VK_F10 && isShift) ||
-        (kc == NS_VK_CONTEXT_MENU && !isShift);
-}
-
-static void
-InitKeyEvent(WidgetKeyboardEvent &aEvent, QKeyEvent *aQEvent)
-{
-    aEvent.InitBasicModifiers(aQEvent->modifiers() & Qt::ControlModifier,
-                              aQEvent->modifiers() & Qt::AltModifier,
-                              aQEvent->modifiers() & Qt::ShiftModifier,
-                              aQEvent->modifiers() & Qt::MetaModifier);
-    aEvent.mIsRepeat =
-        (aEvent.message == NS_KEY_DOWN || aEvent.message == NS_KEY_PRESS) &&
-        aQEvent->isAutoRepeat();
-    aEvent.time = 0;
-
-    if (sAltGrModifier) {
-        aEvent.modifiers |= (MODIFIER_CONTROL | MODIFIER_ALT);
-    }
-
-    
-    
-    
-    
-    aEvent.pluginEvent = (void *)aQEvent;
-}
+static void find_first_visible_parent(QWindow* aItem, QWindow*& aVisibleItem);
+static bool is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY);
+static bool isContextMenuKeyEvent(const QKeyEvent *qe);
+static void InitKeyEvent(WidgetKeyboardEvent &aEvent, QKeyEvent *aQEvent);
 
 nsWindow::nsWindow()
 {
@@ -192,28 +103,22 @@ nsWindow::nsWindow()
     mIsShown          = false;
     mEnabled          = true;
     mWidget              = nullptr;
-    mIsVisible           = false;
+    mVisible           = false;
     mActivatePending     = false;
     mWindowType          = eWindowType_child;
     mSizeState           = nsSizeMode_Normal;
     mLastSizeMode        = nsSizeMode_Normal;
-    mPluginType          = PluginType_NONE;
     mQCursor             = Qt::ArrowCursor;
     mNeedsResize         = false;
     mNeedsMove           = false;
     mListenForResizes    = false;
     mNeedsShow           = false;
-    mGesturesCancelled   = false;
     mTimerStarted        = false;
-    mPinchEvent.needDispatch = false;
     mMoveEvent.needDispatch = false;
-    
+
     if (!gGlobalsInitialized) {
         gfxPlatform::GetPlatform();
         gGlobalsInitialized = true;
-
-        
-        initialize_prefs();
     }
 
     memset(mKeyDownFlags, 0, sizeof(mKeyDownFlags));
@@ -221,89 +126,6 @@ nsWindow::nsWindow()
     mIsTransparent = false;
 
     mCursor = eCursor_standard;
-
-    gBufferPixmapUsageCount++;
-
-#if (QT_VERSION > QT_VERSION_CHECK(4,6,0))
-    if (gSwipeGestureId == Qt::CustomGesture) {
-        
-        MozSwipeGestureRecognizer* swipeRecognizer = new MozSwipeGestureRecognizer;
-        gSwipeGestureId = QGestureRecognizer::registerRecognizer(swipeRecognizer);
-    }
-#endif
-}
-
-static inline gfxImageFormat
-_depth_to_gfximage_format(int32_t aDepth)
-{
-    switch (aDepth) {
-    case 32:
-        return gfxImageFormat::ARGB32;
-    case 24:
-        return gfxImageFormat::RGB24;
-    case 16:
-        return gfxImageFormat::RGB16_565;
-    default:
-        return gfxImageFormat::Unknown;
-    }
-}
-
-static inline QImage::Format
-_gfximage_to_qformat(gfxImageFormat aFormat)
-{
-    switch (aFormat) {
-    case gfxImageFormat::ARGB32:
-        return QImage::Format_ARGB32_Premultiplied;
-    case gfxImageFormat::RGB24:
-        return QImage::Format_ARGB32;
-    case gfxImageFormat::RGB16_565:
-        return QImage::Format_RGB16;
-    default:
-        return QImage::Format_Invalid;
-    }
-}
-
-static bool
-UpdateOffScreenBuffers(int aDepth, QSize aSize, QWidget* aWidget = nullptr)
-{
-    gfxIntSize size(aSize.width(), aSize.height());
-    if (gBufferSurface) {
-        if (gBufferMaxSize.width < size.width ||
-            gBufferMaxSize.height < size.height) {
-            gBufferSurface = nullptr;
-        } else
-            return true;
-    }
-
-    gBufferMaxSize.width = std::max(gBufferMaxSize.width, size.width);
-    gBufferMaxSize.height = std::max(gBufferMaxSize.height, size.height);
-
-    
-    gfxImageFormat format =
-        _depth_to_gfximage_format(aDepth);
-
-    
-    if (format == gfxImageFormat::Unknown)
-        format = gfxImageFormat::RGB24;
-
-#ifdef MOZ_HAVE_SHMIMAGE
-    if (aWidget) {
-        if (gfxPlatform::GetPlatform()->ScreenReferenceSurface()->GetType() ==
-            gfxSurfaceType::Image) {
-            gShmImage = nsShmImage::Create(gBufferMaxSize,
-                                           DefaultVisualOfScreen(gfxQtPlatform::GetXScreen(aWidget)),
-                                           aDepth);
-            gBufferSurface = gShmImage->AsSurface();
-            return true;
-        }
-    }
-#endif
-
-    gBufferSurface = gfxPlatform::GetPlatform()->
-        CreateOffscreenSurface(gBufferMaxSize.ToIntSize(),
-                               gfxASurface::ContentFromFormat(format));
-
-    return true;
 }
 
 nsWindow::~nsWindow()
@@ -313,12 +135,461 @@ nsWindow::~nsWindow()
     Destroy();
 }
 
- void
-nsWindow::ReleaseGlobals()
+nsresult
+nsWindow::Create(nsIWidget        *aParent,
+                 nsNativeWidget    aNativeParent,
+                 const nsIntRect  &aRect,
+                 nsDeviceContext *aContext,
+                 nsWidgetInitData *aInitData)
 {
+    
+    
+    nsIWidget *baseParent = aParent;
+
+    
+    BaseCreate(baseParent, aRect, aContext, aInitData);
+
+    mVisible = true;
+
+    
+    mParent = (nsWindow *)aParent;
+
+    
+    mBounds = aRect;
+
+    
+    MozQWidget *parent = nullptr;
+
+    if (aParent != nullptr) {
+        parent = static_cast<MozQWidget*>(aParent->GetNativeData(NS_NATIVE_WIDGET));
+    } else if (aNativeParent != nullptr) {
+        parent = static_cast<MozQWidget*>(aNativeParent);
+        if (parent && mParent == nullptr) {
+            mParent = parent->getReceiver();
+        }
+    }
+
+    LOG(("Create: nsWindow [%p] mWidget:[%p] parent:[%p], natPar:[%p] mParent:%p\n", (void *)this, (void*)mWidget, parent, aNativeParent, mParent));
+
+    
+    mWidget = createQWidget(parent, aInitData);
+
+    if (!mWidget) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+
+    
+    Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
+
+    
+    mListenForResizes = (aNativeParent ||
+                         (aInitData && aInitData->mListenForResizes));
+
+    return NS_OK;
 }
 
-NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsBaseWidget, nsISupportsWeakReference)
+MozQWidget*
+nsWindow::createQWidget(MozQWidget* parent,
+                        nsWidgetInitData* aInitData)
+{
+    const char *windowName = nullptr;
+    Qt::WindowFlags flags = Qt::Widget;
+
+    
+    switch (mWindowType) {
+    case eWindowType_dialog:
+        windowName = "topLevelDialog";
+        flags = Qt::Dialog;
+        break;
+    case eWindowType_popup:
+        windowName = "topLevelPopup";
+        flags = Qt::Popup;
+        break;
+    case eWindowType_toplevel:
+        windowName = "topLevelWindow";
+        flags = Qt::Window;
+        break;
+    case eWindowType_invisible:
+        windowName = "topLevelInvisible";
+        break;
+    case eWindowType_child:
+    case eWindowType_plugin:
+    default: 
+        windowName = "paintArea";
+        break;
+    }
+
+    MozQWidget* widget = new MozQWidget(this, parent);
+    if (!widget) {
+        return nullptr;
+    }
+
+    widget->setObjectName(QString(windowName));
+    if (mWindowType == eWindowType_invisible) {
+        widget->setVisibility(QWindow::Hidden);
+    }
+    if (mWindowType == eWindowType_dialog) {
+        widget->setModality(Qt::WindowModal);
+    }
+
+    widget->create();
+
+    
+    LOG(("nsWindow::%s [%p] Created Window: %s, widget:%p, par:%p\n", __FUNCTION__, (void *)this, windowName, widget, parent));
+
+    return widget;
+}
+
+NS_IMETHODIMP
+nsWindow::Destroy(void)
+{
+    if (mIsDestroyed || !mWidget) {
+        return NS_OK;
+    }
+
+    LOG(("nsWindow::Destroy [%p]\n", (void *)this));
+    mIsDestroyed = true;
+
+    
+    if (mLayerManager) {
+        mLayerManager->Destroy();
+    }
+    mLayerManager = nullptr;
+
+    
+    
+    
+    
+    
+    DestroyCompositor();
+
+    ClearCachedResources();
+
+    nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
+    if (rollupListener) {
+        nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
+        if (static_cast<nsIWidget *>(this) == rollupWidget) {
+            rollupListener->Rollup(0, nullptr, nullptr);
+        }
+    }
+
+    Show(false);
+
+    
+    
+    
+    for (nsIWidget* kid = mFirstChild; kid; ) {
+        nsIWidget* next = kid->GetNextSibling();
+        kid->Destroy();
+        kid = next;
+    }
+
+    
+    
+    if (mWidget) {
+        mWidget->dropReceiver();
+
+        
+        
+        
+        mWidget->deleteLater();
+    }
+    mWidget = nullptr;
+
+    OnDestroy();
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Show(bool aState)
+{
+    LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
+    if (aState == mIsShown) {
+        return NS_OK;
+    }
+
+    
+    if (mIsShown && !aState) {
+        ClearCachedResources();
+    }
+
+    mIsShown = aState;
+
+    if ((aState && !AreBoundsSane()) || !mWidget) {
+        LOG(("\tbounds are insane or window hasn't been created yet\n"));
+        mNeedsShow = true;
+        return NS_OK;
+    }
+
+    if (aState) {
+        if (mNeedsMove) {
+            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                         false);
+        } else if (mNeedsResize) {
+            NativeResize(mBounds.width, mBounds.height, false);
+        }
+    }
+    else {
+        
+        mNeedsShow = false;
+    }
+
+    NativeShow(aState);
+
+    return NS_OK;
+}
+
+bool
+nsWindow::IsVisible() const
+{
+    return mIsShown;
+}
+
+NS_IMETHODIMP
+nsWindow::ConstrainPosition(bool aAllowSlop, int32_t *aX, int32_t *aY)
+{
+    if (!mWidget) {
+        return NS_ERROR_FAILURE;
+    }
+
+    int32_t screenWidth  = qApp->primaryScreen()->size().width();
+    int32_t screenHeight = qApp->primaryScreen()->size().height();
+
+    if (aAllowSlop) {
+        if (*aX < (kWindowPositionSlop - mBounds.width))
+            *aX = kWindowPositionSlop - mBounds.width;
+        if (*aX > (screenWidth - kWindowPositionSlop))
+            *aX = screenWidth - kWindowPositionSlop;
+        if (*aY < (kWindowPositionSlop - mBounds.height))
+            *aY = kWindowPositionSlop - mBounds.height;
+        if (*aY > (screenHeight - kWindowPositionSlop))
+            *aY = screenHeight - kWindowPositionSlop;
+    } else {
+        if (*aX < 0)
+            *aX = 0;
+        if (*aX > (screenWidth - mBounds.width))
+            *aX = screenWidth - mBounds.width;
+        if (*aY < 0)
+            *aY = 0;
+        if (*aY > (screenHeight - mBounds.height))
+            *aY = screenHeight - mBounds.height;
+    }
+
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Move(double aX, double aY)
+{
+    LOG(("nsWindow::Move [%p] %f %f\n", (void *)this,
+         aX, aY));
+
+    int32_t x = NSToIntRound(aX);
+    int32_t y = NSToIntRound(aY);
+
+    if (mIsTopLevel) {
+        SetSizeMode(nsSizeMode_Normal);
+    }
+
+    if (x == mBounds.x && y == mBounds.y) {
+        return NS_OK;
+    }
+
+    mNeedsMove = false;
+
+    
+    QPoint pos(x, y);
+    if (mIsTopLevel) {
+        mWidget->setPosition(x, y);
+    }
+    else if (mWidget) {
+        
+        
+        pos = mWidget->mapToGlobal(pos);
+        mWidget->setPosition(pos);
+    }
+
+    mBounds.x = pos.x();
+    mBounds.y = pos.y();
+
+    NotifyRollupGeometryChange();
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
+{
+    mBounds.width = NSToIntRound(aWidth);
+    mBounds.height = NSToIntRound(aHeight);
+
+    if (!mWidget)
+        return NS_OK;
+
+    if (mIsShown) {
+        if (AreBoundsSane()) {
+            if (mIsTopLevel || mNeedsShow)
+                NativeResize(mBounds.x, mBounds.y,
+                             mBounds.width, mBounds.height, aRepaint);
+            else
+                NativeResize(mBounds.width, mBounds.height, aRepaint);
+
+            
+            if (mNeedsShow) {
+                NativeShow(true);
+            }
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = true;
+                NativeShow(false);
+            }
+        }
+    }
+    else if (AreBoundsSane() && mListenForResizes) {
+        
+        
+        
+        NativeResize(mBounds.width, mBounds.height, aRepaint);
+    }
+    else {
+        mNeedsResize = true;
+    }
+
+    
+    if (mIsTopLevel || mListenForResizes) {
+        nsEventStatus status;
+        DispatchResizeEvent(mBounds, status);
+    }
+
+    NotifyRollupGeometryChange();
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
+                 bool aRepaint)
+{
+    mBounds.x = NSToIntRound(aX);
+    mBounds.y = NSToIntRound(aY);
+    mBounds.width = NSToIntRound(aWidth);
+    mBounds.height = NSToIntRound(aHeight);
+
+    mPlaced = true;
+
+    if (!mWidget) {
+        return NS_OK;
+    }
+
+    
+    if (mIsShown) {
+        
+        if (AreBoundsSane()) {
+            
+            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                         aRepaint);
+            
+            if (mNeedsShow)
+                NativeShow(true);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            if (!mNeedsShow) {
+                mNeedsShow = true;
+                NativeShow(false);
+            }
+        }
+    }
+    
+    
+    else if (AreBoundsSane() && mListenForResizes) {
+        
+        
+        
+        NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                     aRepaint);
+    }
+    else {
+        mNeedsResize = true;
+        mNeedsMove = true;
+    }
+
+    if (mIsTopLevel || mListenForResizes) {
+        
+        nsEventStatus status;
+        DispatchResizeEvent(mBounds, status);
+    }
+
+    if (aRepaint) {
+        mWidget->renderLater();
+    }
+
+    NotifyRollupGeometryChange();
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::Enable(bool aState)
+{
+    mEnabled = aState;
+
+    return NS_OK;
+}
+
+bool
+nsWindow::IsEnabled() const
+{
+    return mEnabled;
+}
+
+NS_IMETHODIMP
+nsWindow::SetFocus(bool aRaise)
+{
+    
+    
+    LOGFOCUS(("  SetFocus [%p]\n", (void *)this));
+
+    if (!mWidget) {
+        return NS_ERROR_FAILURE;
+    }
+
+    if (mWidget->focusObject()) {
+        return NS_OK;
+    }
+
+    
+    
+    
+    QWindow* realFocusItem = nullptr;
+    find_first_visible_parent(mWidget, realFocusItem);
+
+    if (!realFocusItem || realFocusItem->focusObject()) {
+        return NS_OK;
+    }
+
+    if (aRaise && mWidget) {
+        
+        mWidget->raise();
+    }
+
+    
+    
+    DispatchActivateEvent();
+
+    return NS_OK;
+}
 
 NS_IMETHODIMP
 nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& aConfigurations)
@@ -342,121 +613,110 @@ nsWindow::ConfigureChildren(const nsTArray<nsIWidget::Configuration>& aConfigura
 }
 
 NS_IMETHODIMP
-nsWindow::Destroy(void)
+nsWindow::Invalidate(const nsIntRect &aRect)
 {
-    if (mIsDestroyed || !mWidget)
+    LOGDRAW(("Invalidate (rect) [%p,%p]: %d %d %d %d\n", (void *)this,
+             (void*)mWidget,aRect.x, aRect.y, aRect.width, aRect.height));
+
+    if (!mWidget) {
         return NS_OK;
-
-    LOG(("nsWindow::Destroy [%p]\n", (void *)this));
-    mIsDestroyed = true;
-
-    if (gBufferPixmapUsageCount &&
-        --gBufferPixmapUsageCount == 0) {
-
-        gBufferSurface = nullptr;
-#ifdef MOZ_HAVE_SHMIMAGE
-        gShmImage = nullptr;
-#endif
-#ifdef MOZ_ENABLE_QTMOBILITY
-        if (gOrientation) {
-            gOrientation->removeFilter(&gOrientationFilter);
-            gOrientation->stop();
-            delete gOrientation;
-            gOrientation = nullptr;
-        }
-#endif
     }
 
-    
-    if (mLayerManager) {
-        mLayerManager->Destroy();
-    }
-    mLayerManager = nullptr;
-
-    
-    
-    
-    
-    
-    DestroyCompositor();
-
-    ClearCachedResources();
-
-    nsIRollupListener* rollupListener = nsBaseWidget::GetActiveRollupListener();
-    if (rollupListener) {
-        nsCOMPtr<nsIWidget> rollupWidget = rollupListener->GetRollupWidget();
-        if (static_cast<nsIWidget *>(this) == rollupWidget) {
-            rollupListener->Rollup(0, nullptr);
-        }
-    }
-
-    Show(false);
-
-    
-    
-    
-    for (nsIWidget* kid = mFirstChild; kid; ) {
-        nsIWidget* next = kid->GetNextSibling();
-        kid->Destroy();
-        kid = next;
-    }
-
-    
-    
-    mThebesSurface = nullptr;
-
-    QWidget *view = nullptr;
-    QGraphicsScene *scene = nullptr;
-    if (mWidget) {
-        if (mIsTopLevel) {
-            view = GetViewWidget();
-            scene = mWidget->scene();
-        }
-
-        mWidget->dropReceiver();
-
-        
-        
-        
-        mWidget->deleteLater();
-    }
-    mWidget = nullptr;
-
-    OnDestroy();
-
-    
-    delete scene;
-    delete view;
+    mWidget->renderLater();
 
     return NS_OK;
 }
 
-void
-nsWindow::ClearCachedResources()
+nsIntPoint
+nsWindow::WidgetToScreenOffset()
 {
-    if (mLayerManager &&
-        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_BASIC) {
-        statimLayerManager->ClearCachedResources();
+    NS_ENSURE_TRUE(mWidget, nsIntPoint(0,0));
+
+    QPoint origin(0, 0);
+    origin = mWidget->mapToGlobal(origin);
+
+    return nsIntPoint(origin.x(), origin.y());
+}
+
+void*
+nsWindow::GetNativeData(uint32_t aDataType)
+{
+    switch (aDataType) {
+    case NS_NATIVE_WINDOW:
+    case NS_NATIVE_WIDGET: {
+        return mWidget;
     }
-    for (nsIWidget* kid = mFirstChild; kid; ) {
-        nsIWidget* next = kid->GetNextSibling();
-        static_cast<nsWindow*>(kid)->ClearCachedResources();
-        kid = next;
+    case NS_NATIVE_SHAREABLE_WINDOW: {
+        return mWidget ? (void*)mWidget->winId() : nullptr;
     }
+    case NS_NATIVE_DISPLAY: {
+#ifdef MOZ_X11
+        return gfxQtPlatform::GetXDisplay(mWidget);
+#endif
+        break;
+    }
+    case NS_NATIVE_PLUGIN_PORT:
+    case NS_NATIVE_GRAPHIC:
+    case NS_NATIVE_SHELLWIDGET: {
+        break;
+    }
+    default:
+        NS_WARNING("nsWindow::GetNativeData called with bad value");
+        return nullptr;
+    }
+    LOG(("nsWindow::%s [%p] aDataType:%i\n", __FUNCTION__, (void *)this, aDataType));
+    return nullptr;
 }
 
 NS_IMETHODIMP
-nsWindow::SetParent(nsIWidget *aNewParent)
+nsWindow::DispatchEvent(WidgetGUIEvent* aEvent, nsEventStatus& aStatus)
 {
-    NS_ENSURE_ARG_POINTER(aNewParent);
-    nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
-    nsIWidget* parent = GetParent();
-    if (parent) {
-        parent->RemoveChild(this);
+#ifdef DEBUG
+    debug_DumpEvent(stdout, aEvent->widget, aEvent,
+                    nsAutoCString("something"), 0);
+#endif
+
+    aStatus = nsEventStatus_eIgnore;
+
+    
+    if (mWidgetListener) {
+        aStatus = mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
     }
-    ReparentNativeWidget(aNewParent);
-    aNewParent->AddChild(this);
+
     return NS_OK;
+}
+
+NS_IMETHODIMP_(void)
+nsWindow::SetInputContext(const InputContext& aContext,
+                          const InputContextAction& aAction)
+{
+    NS_ENSURE_TRUE_VOID(mWidget);
+
+    
+    
+    mInputContext = aContext;
+
+    switch (mInputContext.mIMEState.mEnabled) {
+        case IMEState::ENABLED:
+        case IMEState::PASSWORD:
+        case IMEState::PLUGIN:
+            SetSoftwareKeyboardState(true, aAction);
+            break;
+        default:
+            SetSoftwareKeyboardState(false, aAction);
+            break;
+    }
+}
+
+NS_IMETHODIMP_(InputContext)
+nsWindow::GetInputContext()
+{
+    mInputContext.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
+    
+    
+    mInputContext.mNativeIMEContext = qApp->inputMethod();
+
+    return mInputContext;
 }
 
 NS_IMETHODIMP
@@ -467,702 +727,137 @@ nsWindow::ReparentNativeWidget(nsIWidget *aNewParent)
     MozQWidget* newParent = static_cast<MozQWidget*>(aNewParent->GetNativeData(NS_NATIVE_WINDOW));
     NS_ASSERTION(newParent, "Parent widget has a null native window handle");
     if (mWidget) {
-        mWidget->setParentItem(newParent);
+        mWidget->setParent(newParent);
     }
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindow::SetModal(bool aModal)
+nsWindow::MakeFullScreen(bool aFullScreen)
 {
-    LOG(("nsWindow::SetModal [%p] %d, widget[%p]\n", (void *)this, aModal, mWidget));
-    if (mWidget)
-        mWidget->setModal(aModal);
+    NS_ENSURE_TRUE(mWidget, NS_ERROR_FAILURE);
 
-    return NS_OK;
-}
-
-bool
-nsWindow::IsVisible() const
-{
-    return mIsShown;
-}
-
-NS_IMETHODIMP
-nsWindow::ConstrainPosition(bool aAllowSlop, int32_t *aX, int32_t *aY)
-{
-    if (mWidget) {
-        int32_t screenWidth  = QApplication::desktop()->width();
-        int32_t screenHeight = QApplication::desktop()->height();
-
-        if (aAllowSlop) {
-            if (*aX < (kWindowPositionSlop - mBounds.width))
-                *aX = kWindowPositionSlop - mBounds.width;
-            if (*aX > (screenWidth - kWindowPositionSlop))
-                *aX = screenWidth - kWindowPositionSlop;
-            if (*aY < (kWindowPositionSlop - mBounds.height))
-                *aY = kWindowPositionSlop - mBounds.height;
-            if (*aY > (screenHeight - kWindowPositionSlop))
-                *aY = screenHeight - kWindowPositionSlop;
-        } else {
-            if (*aX < 0)
-                *aX = 0;
-            if (*aX > (screenWidth - mBounds.width))
-                *aX = screenWidth - mBounds.width;
-            if (*aY < 0)
-                *aY = 0;
-            if (*aY > (screenHeight - mBounds.height))
-                *aY = screenHeight - mBounds.height;
+    if (aFullScreen) {
+        if (mSizeMode != nsSizeMode_Fullscreen) {
+            mLastSizeMode = mSizeMode;
         }
-    }
 
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Move(double aX, double aY)
-{
-    LOG(("nsWindow::Move [%p] %f %f\n", (void *)this,
-         aX, aY));
-
-    int32_t x = NSToIntRound(aX);
-    int32_t y = NSToIntRound(aY);
-
-    if (mIsTopLevel) {
-        SetSizeMode(nsSizeMode_Normal);
-    }
-
-    if (x == mBounds.x && y == mBounds.y)
-        return NS_OK;
-
-    mNeedsMove = false;
-
-    
-    QPointF pos( x, y );
-    if (mIsTopLevel) {
-        QWidget *widget = GetViewWidget();
-        NS_ENSURE_TRUE(widget, NS_OK);
-        widget->move(x, y);
-    }
-    else if (mWidget) {
-        
-        
-        pos = mWidget->mapFromScene(pos);
-        pos = mWidget->mapToParent(pos);
-        mWidget->setPos(pos);
-    }
-
-    mBounds.x = pos.x();
-    mBounds.y = pos.y();
-
-    NotifyRollupGeometryChange();
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement  aPlacement,
-                      nsIWidget                  *aWidget,
-                      bool                        aActivate)
-{
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
-nsWindow::SetSizeMode(int32_t aMode)
-{
-    nsresult rv;
-
-    LOG(("nsWindow::SetSizeMode [%p] %d\n", (void *)this, aMode));
-    if (aMode != nsSizeMode_Minimized) {
-        GetViewWidget()->activateWindow();
-    }
-
-    
-    rv = nsBaseWidget::SetSizeMode(aMode);
-
-    
-    
-    if (!mWidget || mSizeState == mSizeMode) {
-        return rv;
-    }
-
-    QWidget *widget = GetViewWidget();
-    NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
-
-    switch (aMode) {
-    case nsSizeMode_Maximized:
-        widget->showMaximized();
-        break;
-    case nsSizeMode_Minimized:
-        widget->showMinimized();
-        break;
-    case nsSizeMode_Fullscreen:
-        widget->showFullScreen();
-        break;
-
-    default:
-        
-        widget->showNormal();
-        break;
-    }
-
-    mSizeState = mSizeMode;
-
-    return rv;
-}
-
-
-
-
-static void find_first_visible_parent(QGraphicsItem* aItem, QGraphicsItem*& aVisibleItem)
-{
-    NS_ENSURE_TRUE_VOID(aItem);
-
-    aVisibleItem = nullptr;
-    QGraphicsItem* parItem = nullptr;
-    while (!aVisibleItem) {
-        if (aItem->isVisible())
-            aVisibleItem = aItem;
-        else {
-            parItem = aItem->parentItem();
-            if (parItem)
-                aItem = parItem;
-            else {
-                aItem->setVisible(true);
-                aVisibleItem = aItem;
-            }
-        }
-    }
-}
-
-NS_IMETHODIMP
-nsWindow::SetFocus(bool aRaise)
-{
-    
-    
-    LOGFOCUS(("  SetFocus [%p]\n", (void *)this));
-
-    if (!mWidget)
-        return NS_ERROR_FAILURE;
-
-    if (mWidget->hasFocus())
-        return NS_OK;
-
-    
-    
-    
-    QGraphicsItem* realFocusItem = nullptr;
-    find_first_visible_parent(mWidget, realFocusItem);
-
-    if (!realFocusItem || realFocusItem->hasFocus())
-        return NS_OK;
-
-    if (aRaise) {
-        
-        QWidget *widget = GetViewWidget();
-        if (widget)
-            widget->raise();
-        realFocusItem->setFocus(Qt::ActiveWindowFocusReason);
-    }
-    else
-        realFocusItem->setFocus(Qt::OtherFocusReason);
-
-    
-    
-    DispatchActivateEvent();
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::GetScreenBounds(nsIntRect &aRect)
-{
-    aRect = nsIntRect(nsIntPoint(0, 0), mBounds.Size());
-    if (mIsTopLevel) {
-        QWidget *widget = GetViewWidget();
-        NS_ENSURE_TRUE(widget, NS_OK);
-        QPoint pos = widget->pos();
-        aRect.MoveTo(pos.x(), pos.y());
+        mSizeMode = nsSizeMode_Fullscreen;
+        mWidget->showFullScreen();
     }
     else {
-        aRect.MoveTo(WidgetToScreenOffset());
+        mSizeMode = mLastSizeMode;
+
+        switch (mSizeMode) {
+        case nsSizeMode_Maximized:
+            mWidget->showMaximized();
+            break;
+        case nsSizeMode_Minimized:
+            mWidget->showMinimized();
+            break;
+        case nsSizeMode_Normal:
+            mWidget->showNormal();
+            break;
+        default:
+            mWidget->showNormal();
+            break;
+        }
     }
-    LOG(("GetScreenBounds %d %d | %d %d | %d %d\n",
-         aRect.x, aRect.y,
-         mBounds.width, mBounds.height,
-         aRect.width, aRect.height));
-    return NS_OK;
+
+    NS_ASSERTION(mLastSizeMode != nsSizeMode_Fullscreen,
+                 "mLastSizeMode should never be fullscreen");
+    return nsBaseWidget::MakeFullScreen(aFullScreen);
 }
 
-NS_IMETHODIMP
-nsWindow::SetForegroundColor(const nscolor &aColor)
+LayerManager*
+nsWindow::GetLayerManager(PLayerTransactionChild* aShadowManager,
+                          LayersBackend aBackendHint,
+                          LayerManagerPersistence aPersistence,
+                          bool* aAllowRetaining)
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+    if (!mLayerManager && eTransparencyTransparent == GetTransparencyMode()) {
+        mLayerManager = CreateBasicLayerManager();
+    }
+
+    return nsBaseWidget::GetLayerManager(aShadowManager, aBackendHint,
+                                         aPersistence, aAllowRetaining);
 }
 
-NS_IMETHODIMP
-nsWindow::SetBackgroundColor(const nscolor &aColor)
+void
+nsWindow::UserActivity()
 {
-    return NS_ERROR_NOT_IMPLEMENTED;
+    if (!mIdleService) {
+        mIdleService = do_GetService("@mozilla.org/widget/idleservice;1");
+    }
+
+    if (mIdleService) {
+        mIdleService->ResetIdleTimeOut(0);
+    }
+}
+
+uint32_t
+nsWindow::GetGLFrameBufferFormat()
+{
+    if (mLayerManager &&
+        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
+        return LOCAL_GL_RGB;
+    }
+    return LOCAL_GL_NONE;
 }
 
 NS_IMETHODIMP
 nsWindow::SetCursor(nsCursor aCursor)
 {
-    if (mCursor == aCursor)
+    if (mCursor == aCursor) {
         return NS_OK;
+    }
 
     mCursor = aCursor;
-    if (mWidget)
+    if (mWidget) {
         mWidget->SetCursor(mCursor);
+    }
     return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::SetCursor(imgIContainer* aCursor,
-                    uint32_t aHotspotX, uint32_t aHotspotY)
-{
-    return NS_ERROR_NOT_AVAILABLE;
-}
-
-NS_IMETHODIMP
-nsWindow::Invalidate(const nsIntRect &aRect)
-{
-    LOGDRAW(("Invalidate (rect) [%p,%p]: %d %d %d %d\n", (void *)this,
-             (void*)mWidget,aRect.x, aRect.y, aRect.width, aRect.height));
-
-    if (!mWidget)
-        return NS_OK;
-
-    mDirtyScrollArea = mDirtyScrollArea.united(QRect(aRect.x, aRect.y, aRect.width, aRect.height));
-
-    mWidget->update(aRect.x, aRect.y, aRect.width, aRect.height);
-
-    return NS_OK;
-}
-
-
-
-
-
-QWidget* nsWindow::GetViewWidget()
-{
-    NS_ASSERTION(mWidget, "Calling GetViewWidget without mWidget created");
-    if (!mWidget || !mWidget->scene() || !mWidget->scene()->views().size())
-        return nullptr;
-
-    NS_ASSERTION(mWidget->scene()->views().size() == 1, "Not exactly one view for our scene!");
-    return mWidget->scene()->views()[0];
-}
-
-void*
-nsWindow::GetNativeData(uint32_t aDataType)
-{
-    switch (aDataType) {
-    case NS_NATIVE_WINDOW:
-    case NS_NATIVE_WIDGET: {
-        if (!mWidget)
-            return nullptr;
-
-        return mWidget;
-        break;
-    }
-
-    case NS_NATIVE_PLUGIN_PORT:
-        return SetupPluginPort();
-        break;
-
-    case NS_NATIVE_DISPLAY:
-        {
-#ifdef MOZ_X11
-            return gfxQtPlatform::GetXDisplay(GetViewWidget());
-#else
-            return nullptr;
-#endif
-        }
-        break;
-
-    case NS_NATIVE_GRAPHIC: {
-        return nullptr;
-        break;
-    }
-
-    case NS_NATIVE_SHELLWIDGET: {
-        QWidget* widget = nullptr;
-        if (mWidget && mWidget->scene())
-            widget = mWidget->scene()->views()[0]->viewport();
-        return (void *) widget;
-    }
-
-    case NS_NATIVE_SHAREABLE_WINDOW: {
-        QWidget *widget = GetViewWidget();
-        return widget ? (void*)widget->winId() : nullptr;
-    }
-
-    default:
-        NS_WARNING("nsWindow::GetNativeData called with bad value");
-        return nullptr;
-    }
 }
 
 NS_IMETHODIMP
 nsWindow::SetTitle(const nsAString& aTitle)
 {
-    QString qStr(QString::fromUtf16(aTitle.BeginReading(), aTitle.Length()));
-    if (mIsTopLevel) {
-        QWidget *widget = GetViewWidget();
-        if (widget)
-            widget->setWindowTitle(qStr);
-    }
-    else if (mWidget)
-        mWidget->setWindowTitle(qStr);
+    QString qStr(QString::fromUtf16((const ushort*)aTitle.BeginReading(), aTitle.Length()));
+
+    mWidget->setTitle(qStr);
 
     return NS_OK;
 }
 
-NS_IMETHODIMP
-nsWindow::SetIcon(const nsAString& aIconSpec)
+
+
+void
+nsWindow::OnPaint()
 {
-    if (!mWidget)
-        return NS_OK;
+    LOGDRAW(("nsWindow::%s [%p]\n", __FUNCTION__, (void *)this));
+    nsIWidgetListener* listener =
+        mAttachedWidgetListener ? mAttachedWidgetListener : mWidgetListener;
+    if (!listener) {
+        return;
+    }
 
-    nsCOMPtr<nsIFile> iconFile;
-    nsAutoCString path;
-    nsTArray<nsCString> iconList;
+    listener->WillPaintWindow(this);
 
-    
-    
-    
-
-    const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
-                                    ".xpm", "16.xpm" };
-
-    for (uint32_t i = 0; i < ArrayLength(extensions); i++) {
-        
-        if (i == ArrayLength(extensions) - 2 && iconList.Length())
+    switch (GetLayerManager()->GetBackendType()) {
+        case mozilla::layers::LayersBackend::LAYERS_CLIENT: {
+            nsIntRegion region(nsIntRect(0, 0, mWidget->width(), mWidget->height()));
+            listener->PaintWindow(this, region);
             break;
-
-        nsAutoString extension;
-        extension.AppendASCII(extensions[i]);
-
-        ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
-        if (iconFile) {
-            iconFile->GetNativePath(path);
-            iconList.AppendElement(path);
         }
+        default:
+            NS_ERROR("Invalid layer manager");
     }
 
-    
-    if (iconList.Length() == 0)
-        return NS_OK;
-
-    return SetWindowIconList(iconList);
-}
-
-nsIntPoint
-nsWindow::WidgetToScreenOffset()
-{
-    NS_ENSURE_TRUE(mWidget, nsIntPoint(0,0));
-
-    QPointF origin(0, 0);
-    origin = mWidget->mapToScene(origin);
-
-    return nsIntPoint(origin.x(), origin.y());
-}
-
-NS_IMETHODIMP
-nsWindow::EnableDragDrop(bool aEnable)
-{
-    mWidget->setAcceptDrops(aEnable);
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::CaptureMouse(bool aCapture)
-{
-    LOG(("CaptureMouse %p\n", (void *)this));
-
-    if (!mWidget)
-        return NS_OK;
-
-    QWidget *widget = GetViewWidget();
-    NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
-
-    if (aCapture)
-        widget->grabMouse();
-    else
-        widget->releaseMouse();
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
-                              bool               aDoCapture)
-{
-    if (!mWidget)
-        return NS_OK;
-
-    LOG(("CaptureRollupEvents %p\n", (void *)this));
-
-    gRollupListener = aDoCapture ? aListener : nullptr;
-    return NS_OK;
-}
-
-bool
-nsWindow::CheckForRollup(double aMouseX, double aMouseY,
-                         bool aIsWheel)
-{
-    nsIRollupListener* rollupListener = GetActiveRollupListener();
-    nsCOMPtr<nsIWidget> rollupWidget;
-    if (rollupListener) {
-        rollupWidget = rollupListener->GetRollupWidget();
-    }
-    if (!rollupWidget) {
-        nsBaseWidget::gRollupListener = nullptr;
-        return false;
-    }
-
-    bool retVal = false;
-    MozQWidget *currentPopup =
-        (MozQWidget *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
-    if (!is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
-        bool rollup = true;
-        if (aIsWheel) {
-            rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
-            retVal = true;
-        }
-        
-        
-        
-        uint32_t popupsToRollup = UINT32_MAX;
-        if (rollupListener) {
-            nsAutoTArray<nsIWidget*, 5> widgetChain;
-            uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
-            for (uint32_t i=0; i<widgetChain.Length(); ++i) {
-                nsIWidget* widget =  widgetChain[i];
-                MozQWidget* currWindow =
-                    (MozQWidget*) widget->GetNativeData(NS_NATIVE_WINDOW);
-                if (is_mouse_in_window(currWindow, aMouseX, aMouseY)) {
-                  if (i < sameTypeCount) {
-                    rollup = false;
-                  }
-                  else {
-                    popupsToRollup = sameTypeCount;
-                  }
-                  break;
-                }
-            } 
-        } 
-
-        
-        if (rollup) {
-            retVal = rollupListener->Rollup(popupsToRollup, nullptr);
-        }
-    }
-
-    return retVal;
-}
-
-
-bool
-is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY)
-{
-    return aWindow->geometry().contains( aMouseX, aMouseY );
-}
-
-NS_IMETHODIMP
-nsWindow::GetAttention(int32_t aCycleCount)
-{
-    LOG(("nsWindow::GetAttention [%p]\n", (void *)this));
-    return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-#ifdef MOZ_X11
-static already_AddRefed<gfxASurface>
-GetSurfaceForQWidget(QWidget* aDrawable)
-{
-    nsRefPtr<gfxASurface> result =
-        new gfxXlibSurface(gfxQtPlatform::GetXDisplay(aDrawable),
-                           aDrawable->winId(),
-                           DefaultVisualOfScreen(gfxQtPlatform::GetXScreen(aDrawable)),
-                           gfxIntSize(aDrawable->size().width(),
-                           aDrawable->size().height()));
-    return result.forget();
-}
-#endif
-
-bool
-nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, QWidget* aWidget)
-{
-    if (mIsDestroyed) {
-        LOG(("Expose event on destroyed window [%p] window %p\n",
-             (void *)this, mWidget));
-        return false;
-    }
-
-    
-    {
-        if (mWidgetListener)
-            mWidgetListener->WillPaintWindow(this);
-    }
-
-    if (!mWidget)
-        return false;
-
-    QRectF r;
-    if (aOption)
-        r = aOption->exposedRect;
-    else
-        r = mWidget->boundingRect();
-
-    if (r.isEmpty())
-        return nsEventStatus_eIgnore;
-
-    if (!mDirtyScrollArea.isEmpty())
-        mDirtyScrollArea = QRegion();
-
-    bool painted = false;
-    nsIntRect rect(r.x(), r.y(), r.width(), r.height());
-
-    nsFastStartup* startup = nsFastStartup::GetSingleton();
-    if (startup) {
-        startup->RemoveFakeLayout();
-    }
-
-    gfxQtPlatform::RenderMode renderMode = gfxQtPlatform::GetPlatform()->GetRenderMode();
-    int depth = aPainter->device()->depth();
-
-    nsRefPtr<gfxASurface> targetSurface = nullptr;
-    if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
-        
-        if (!UpdateOffScreenBuffers(depth, QSize(r.width(), r.height())))
-            return false;
-
-        targetSurface = gBufferSurface;
-
-#ifdef CAIRO_HAS_QT_SURFACE
-    } else if (renderMode == gfxQtPlatform::RENDER_QPAINTER) {
-        targetSurface = new gfxQPainterSurface(aPainter);
-#endif
-    } else if (renderMode == gfxQtPlatform::RENDER_DIRECT) {
-        if (!UpdateOffScreenBuffers(depth, aWidget->size(), aWidget)) {
-            return false;
-        }
-        targetSurface = gBufferSurface;
-    }
-
-    if (MOZ_UNLIKELY(!targetSurface))
-        return false;
-
-    nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
-
-    
-    if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
-        ctx->Translate(gfxPoint(-r.x(), -r.y()));
-    }
-    else if (renderMode == gfxQtPlatform::RENDER_DIRECT) {
-      gfxMatrix matr;
-      matr.Translate(gfxPoint(aPainter->transform().dx(), aPainter->transform().dy()));
-#ifdef MOZ_ENABLE_QTMOBILITY
-         
-         
-         matr.Rotate((M_PI/180) * gOrientationFilter.GetWindowRotationAngle());
-         NS_ASSERTION(PIXMAN_VERSION > PIXMAN_VERSION_ENCODE(0, 21, 2) ||
-                      !gOrientationFilter.GetWindowRotationAngle(),
-                      "Old pixman and rotate transform, it is going to be slow");
-#endif 
-
-      ctx->SetMatrix(matr);
-    }
-
-    {
-        AutoLayerManagerSetup
-            setupLayerManager(this, ctx, mozilla::layers::BufferMode::BUFFER_NONE);
-        if (mWidgetListener) {
-          nsIntRegion region(rect);
-          painted = mWidgetListener->PaintWindow(this, region);
-        }
-    }
-
-    
-    
-    if (MOZ_UNLIKELY(mIsDestroyed))
-        return painted;
-
-    if (!painted)
-        return false;
-
-    LOGDRAW(("[%p] draw done\n", this));
-
-    
-    if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
-#if defined(MOZ_X11) && defined(Q_WS_X11)
-        if (gBufferSurface->GetType() == gfxSurfaceType::Xlib) {
-            
-            static QPixmap gBufferPixmap;
-            Drawable draw = static_cast<gfxXlibSurface*>(gBufferSurface.get())->XDrawable();
-            if (gBufferPixmap.handle() != draw)
-                gBufferPixmap = QPixmap::fromX11Pixmap(draw, QPixmap::ExplicitlyShared);
-            XSync(static_cast<gfxXlibSurface*>(gBufferSurface.get())->XDisplay(), False);
-            aPainter->drawPixmap(QPoint(rect.x, rect.y), gBufferPixmap,
-                                 QRect(0, 0, rect.width, rect.height));
-
-        } else
-#endif
-        if (gBufferSurface->GetType() == gfxSurfaceType::Image) {
-            
-            gfxImageSurface *imgs = static_cast<gfxImageSurface*>(gBufferSurface.get());
-            QImage img(imgs->Data(),
-                       imgs->Width(),
-                       imgs->Height(),
-                       imgs->Stride(),
-                       _gfximage_to_qformat(imgs->Format()));
-            aPainter->drawImage(QPoint(rect.x, rect.y), img,
-                                QRect(0, 0, rect.width, rect.height));
-        }
-    } else if (renderMode == gfxQtPlatform::RENDER_DIRECT) {
-        QRect trans = aPainter->transform().mapRect(r).toRect();
-#ifdef MOZ_X11
-        if (gBufferSurface->GetType() == gfxSurfaceType::Xlib) {
-            nsRefPtr<gfxASurface> widgetSurface = GetSurfaceForQWidget(aWidget);
-            nsRefPtr<gfxContext> ctx = new gfxContext(widgetSurface);
-            ctx->SetSource(gBufferSurface);
-            ctx->Rectangle(gfxRect(trans.x(), trans.y(), trans.width(), trans.height()), true);
-            ctx->Clip();
-            ctx->Fill();
-        } else
-#endif
-        if (gBufferSurface->GetType() == gfxSurfaceType::Image) {
-#ifdef MOZ_HAVE_SHMIMAGE
-            if (gShmImage) {
-                gShmImage->Put(aWidget, trans);
-            } else
-#endif
-            {
-                
-                gfxImageSurface *imgs = static_cast<gfxImageSurface*>(gBufferSurface.get());
-                QImage img(imgs->Data(),
-                           imgs->Width(),
-                           imgs->Height(),
-                           imgs->Stride(),
-                          _gfximage_to_qformat(imgs->Format()));
-                aPainter->drawImage(trans, img, trans);
-            }
-        }
-    }
-
-    ctx = nullptr;
-    targetSurface = nullptr;
-    if (mWidgetListener)
-      mWidgetListener->DidPaintWindow();
-
-    
-    return painted;
+    listener->DidPaintWindow();
 }
 
 nsEventStatus
-nsWindow::OnMoveEvent(QGraphicsSceneHoverEvent *aEvent)
+nsWindow::moveEvent(QMoveEvent* aEvent)
 {
     LOG(("configure event [%p] %d %d\n", (void *)this,
         aEvent->pos().x(),  aEvent->pos().y()));
@@ -1182,15 +877,15 @@ nsWindow::OnMoveEvent(QGraphicsSceneHoverEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnResizeEvent(QGraphicsSceneResizeEvent *aEvent)
+nsWindow::resizeEvent(QResizeEvent* aEvent)
 {
     nsIntRect rect;
 
     
     GetBounds(rect);
 
-    rect.width = aEvent->newSize().width();
-    rect.height = aEvent->newSize().height();
+    rect.width = aEvent->size().width();
+    rect.height = aEvent->size().height();
 
     mBounds.width = rect.width;
     mBounds.height = rect.height;
@@ -1201,99 +896,30 @@ nsWindow::OnResizeEvent(QGraphicsSceneResizeEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnCloseEvent(QCloseEvent *aEvent)
-{
-    if (!mWidgetListener)
-        return nsEventStatus_eIgnore;
-    mWidgetListener->RequestWindowClose(this);
-    return nsEventStatus_eConsumeNoDefault;
-}
-
-nsEventStatus
-nsWindow::OnEnterNotifyEvent(QGraphicsSceneHoverEvent *aEvent)
-{
-    WidgetMouseEvent event(true, NS_MOUSE_ENTER, this, WidgetMouseEvent::eReal);
-
-    event.refPoint.x = nscoord(aEvent->pos().x());
-    event.refPoint.y = nscoord(aEvent->pos().y());
-
-    LOG(("OnEnterNotify: %p\n", (void *)this));
-
-    return DispatchEvent(&event);
-}
-
-nsEventStatus
-nsWindow::OnLeaveNotifyEvent(QGraphicsSceneHoverEvent *aEvent)
-{
-    WidgetMouseEvent event(true, NS_MOUSE_EXIT, this, WidgetMouseEvent::eReal);
-
-    event.refPoint.x = nscoord(aEvent->pos().x());
-    event.refPoint.y = nscoord(aEvent->pos().y());
-
-    LOG(("OnLeaveNotify: %p\n", (void *)this));
-
-    return DispatchEvent(&event);
-}
-
-
-
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-#define CHECK_MOUSE_BLOCKED { \
-if (mLastMultiTouchTime.isValid()) { \
-    if (mLastMultiTouchTime.elapsed() < GESTURES_BLOCK_MOUSE_FOR) \
-        return nsEventStatus_eIgnore; \
-    else \
-        mLastMultiTouchTime = QTime(); \
-   } \
-}
-#else
-define CHECK_MOUSE_BLOCKED {}
-#endif
-
-nsEventStatus
-nsWindow::OnMotionNotifyEvent(QPointF aPos,  Qt::KeyboardModifiers aModifiers)
+nsWindow::mouseMoveEvent(QMouseEvent* aEvent)
 {
     UserActivity();
 
-    CHECK_MOUSE_BLOCKED
-
-    mMoveEvent.pos = aPos;
-    mMoveEvent.modifiers = aModifiers;
+    mMoveEvent.pos = aEvent->pos();
+    mMoveEvent.modifiers = aEvent->modifiers();
     mMoveEvent.needDispatch = true;
     DispatchMotionToMainThread();
 
     return nsEventStatus_eIgnore;
 }
 
-void
-nsWindow::InitButtonEvent(WidgetMouseEvent& aMoveEvent,
-                          QGraphicsSceneMouseEvent* aEvent,
-                          int aClickCount)
-{
-    aMoveEvent.refPoint.x = nscoord(aEvent->pos().x());
-    aMoveEvent.refPoint.y = nscoord(aEvent->pos().y());
-
-    aMoveEvent.InitBasicModifiers(aEvent->modifiers() & Qt::ControlModifier,
-                                  aEvent->modifiers() & Qt::AltModifier,
-                                  aEvent->modifiers() & Qt::ShiftModifier,
-                                  aEvent->modifiers() & Qt::MetaModifier);
-    aMoveEvent.clickCount      = aClickCount;
-}
-
 nsEventStatus
-nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
+nsWindow::mousePressEvent(QMouseEvent* aEvent)
 {
     
     UserActivity();
 
-    CHECK_MOUSE_BLOCKED
-
-    QPointF pos = aEvent->pos();
+    QPoint pos = aEvent->pos();
 
     
     
     if (mWidget)
-        pos = mWidget->mapToParent(pos);
+        pos = mWidget->mapToGlobal(pos);
 
     if (CheckForRollup( pos.x(), pos.y(), false))
         return nsEventStatus_eIgnore;
@@ -1333,11 +959,8 @@ nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnButtonReleaseEvent(QGraphicsSceneMouseEvent *aEvent)
+nsWindow::mouseReleaseEvent(QMouseEvent* aEvent)
 {
-    UserActivity();
-    CHECK_MOUSE_BLOCKED
-
     
     UserActivity();
 
@@ -1368,7 +991,7 @@ nsWindow::OnButtonReleaseEvent(QGraphicsSceneMouseEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnMouseDoubleClickEvent(QGraphicsSceneMouseEvent *aEvent)
+nsWindow::mouseDoubleClickEvent(QMouseEvent* aEvent)
 {
     uint32_t eventType;
 
@@ -1394,12 +1017,13 @@ nsWindow::OnMouseDoubleClickEvent(QGraphicsSceneMouseEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnFocusInEvent(QEvent *aEvent)
+nsWindow::focusInEvent(QFocusEvent* aEvent)
 {
     LOGFOCUS(("OnFocusInEvent [%p]\n", (void *)this));
 
-    if (!mWidget)
+    if (!mWidget) {
         return nsEventStatus_eIgnore;
+    }
 
     DispatchActivateEventOnTopLevelWindow();
 
@@ -1408,12 +1032,13 @@ nsWindow::OnFocusInEvent(QEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnFocusOutEvent(QEvent *aEvent)
+nsWindow::focusOutEvent(QFocusEvent* aEvent)
 {
     LOGFOCUS(("OnFocusOutEvent [%p]\n", (void *)this));
 
-    if (!mWidget)
+    if (!mWidget) {
         return nsEventStatus_eIgnore;
+    }
 
     DispatchDeactivateEventOnTopLevelWindow();
 
@@ -1421,37 +1046,8 @@ nsWindow::OnFocusOutEvent(QEvent *aEvent)
     return nsEventStatus_eIgnore;
 }
 
-inline bool
-is_latin_shortcut_key(quint32 aKeyval)
-{
-    return ((Qt::Key_0 <= aKeyval && aKeyval <= Qt::Key_9) ||
-            (Qt::Key_A <= aKeyval && aKeyval <= Qt::Key_Z));
-}
-
 nsEventStatus
-nsWindow::DispatchCommandEvent(nsIAtom* aCommand)
-{
-    WidgetCommandEvent event(true, nsGkAtoms::onAppCommand, aCommand, this);
-
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-
-    return status;
-}
-
-nsEventStatus
-nsWindow::DispatchContentCommandEvent(int32_t aMsg)
-{
-    WidgetContentCommandEvent event(true, aMsg, this);
-
-    nsEventStatus status;
-    DispatchEvent(&event, status);
-
-    return status;
-}
-
-nsEventStatus
-nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
+nsWindow::keyPressEvent(QKeyEvent* aEvent)
 {
     LOGFOCUS(("OnKeyPressEvent [%p]\n", (void *)this));
 
@@ -1477,7 +1073,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     uint32_t domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
 
     
-    Display *display = mozilla::DefaultXDisplay();
+    Display *display = gfxQtPlatform::GetXDisplay(mWidget);
     int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
     XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
     XModifierKeymap *xmodmap = XGetModifierMapping(display);
@@ -1632,7 +1228,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     
     
     if ((!domCharCode) &&
-        (QApplication::keyboardModifiers() &
+        (QGuiApplication::keyboardModifiers() &
         (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
 
         
@@ -1645,7 +1241,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         }
 
         
-        if (domCharCode > 0xFF && (QApplication::keyboardModifiers() & Qt::ControlModifier)) {
+        if (domCharCode > 0xFF && (QGuiApplication::keyboardModifiers() & Qt::ControlModifier)) {
             
             int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
             for (int i = 0; i < xkeysyms_per_keycode; ++i) {
@@ -1690,7 +1286,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     
     
     if (domCharCode &&
-        (QApplication::keyboardModifiers() &
+        (QGuiApplication::keyboardModifiers() &
         (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
 
         event.charCode = domCharCode;
@@ -1781,8 +1377,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     uint32_t domCharCode = 0;
     uint32_t domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
 
-    if (aEvent->text().length() && aEvent->text()[0].isPrint())
+    if (aEvent->text().length() && aEvent->text()[0].isPrint()) {
         domCharCode = (int32_t) aEvent->text()[0].unicode();
+    }
 
     KeyNameIndex keyNameIndex =
         domCharCode ? KEY_NAME_INDEX_PrintableKey :
@@ -1822,7 +1419,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
+nsWindow::keyReleaseEvent(QKeyEvent* aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
 
@@ -1839,7 +1436,7 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 #ifdef MOZ_X11
     if (!domKeyCode) {
         
-        Display *display = mozilla::DefaultXDisplay();
+        Display *display = gfxQtPlatform::GetXDisplay(mWidget);
         int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
         XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
         KeySym *xkeymap = XGetKeyboardMapping(display, x_min_keycode, x_max_keycode - x_min_keycode,
@@ -1880,7 +1477,7 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 }
 
 nsEventStatus
-nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
+nsWindow::wheelEvent(QWheelEvent* aEvent)
 {
     
     WidgetWheelEvent wheelEvent(true, NS_WHEEL_WHEEL, this);
@@ -1905,8 +1502,8 @@ nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
         break;
     }
 
-    wheelEvent.refPoint.x = nscoord(aEvent->scenePos().x());
-    wheelEvent.refPoint.y = nscoord(aEvent->scenePos().y());
+    wheelEvent.refPoint.x = nscoord(aEvent->pos().x());
+    wheelEvent.refPoint.y = nscoord(aEvent->pos().y());
 
     wheelEvent.InitBasicModifiers(aEvent->modifiers() & Qt::ControlModifier,
                                   aEvent->modifiers() & Qt::AltModifier,
@@ -1917,12 +1514,11 @@ nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
     return DispatchEvent(&wheelEvent);
 }
 
-
 nsEventStatus
 nsWindow::showEvent(QShowEvent *)
 {
     LOG(("%s [%p]\n", __PRETTY_FUNCTION__,(void *)this));
-    mIsVisible = true;
+    mVisible = true;
     return nsEventStatus_eConsumeDoDefault;
 }
 
@@ -1930,219 +1526,443 @@ nsEventStatus
 nsWindow::hideEvent(QHideEvent *)
 {
     LOG(("%s [%p]\n", __PRETTY_FUNCTION__,(void *)this));
-    mIsVisible = false;
+    mVisible = false;
     return nsEventStatus_eConsumeDoDefault;
 }
 
-
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-nsEventStatus nsWindow::OnTouchEvent(QTouchEvent *event, bool &handled)
+nsEventStatus nsWindow::touchEvent(QTouchEvent* aEvent)
 {
-    handled = false;
-    const QList<QTouchEvent::TouchPoint> &touchPoints = event->touchPoints();
-
-    if (event->type() == QEvent::TouchBegin) {
-        handled = true;
-        for (int i = touchPoints.count() -1; i >= 0; i--) {
-            QPointF fpos = touchPoints[i].pos();
-            WidgetGestureNotifyEvent gestureNotifyEvent(true,
-                                         NS_GESTURENOTIFY_EVENT_START, this);
-            gestureNotifyEvent.refPoint = LayoutDeviceIntPoint(fpos.x(), fpos.y());
-            DispatchEvent(&gestureNotifyEvent);
-        }
-    }
-    else if (event->type() == QEvent::TouchEnd) {
-        mGesturesCancelled = false;
-        mPinchEvent.needDispatch = false;
-    }
-
-    if (touchPoints.count() > 0) {
-        
-        
-        mPinchEvent.touchPoint = touchPoints.at(0).pos();
-    }
-
     return nsEventStatus_eIgnore;
 }
 
 nsEventStatus
-nsWindow::OnGestureEvent(QGestureEvent* event, bool &handled) {
-
-    handled = false;
-    if (mGesturesCancelled) {
-        return nsEventStatus_eIgnore;
-    }
-
-    nsEventStatus result = nsEventStatus_eIgnore;
-
-    QGesture* gesture = event->gesture(Qt::PinchGesture);
-
-    if (gesture) {
-        QPinchGesture* pinch = static_cast<QPinchGesture*>(gesture);
-        handled = true;
-
-        mPinchEvent.centerPoint =
-            mWidget->mapFromScene(event->mapToGraphicsScene(pinch->centerPoint()));
-        nsIntPoint centerPoint(mPinchEvent.centerPoint.x(),
-                               mPinchEvent.centerPoint.y());
-
-        if (pinch->state() == Qt::GestureStarted) {
-            event->accept();
-            mPinchEvent.startDistance = DistanceBetweenPoints(mPinchEvent.centerPoint, mPinchEvent.touchPoint) * 2;
-            mPinchEvent.prevDistance = mPinchEvent.startDistance;
-            result = DispatchGestureEvent(NS_SIMPLE_GESTURE_MAGNIFY_START,
-                                          0, 0, centerPoint);
-        }
-        else if (pinch->state() == Qt::GestureUpdated) {
-            mPinchEvent.needDispatch = true;
-            mPinchEvent.delta = 0;
-            DispatchMotionToMainThread();
-        }
-        else if (pinch->state() == Qt::GestureFinished) {
-            double distance = DistanceBetweenPoints(mPinchEvent.centerPoint, mPinchEvent.touchPoint) * 2;
-            double delta = distance - mPinchEvent.startDistance;
-            result = DispatchGestureEvent(NS_SIMPLE_GESTURE_MAGNIFY,
-                                          0, delta, centerPoint);
-            mPinchEvent.needDispatch = false;
-        }
-        else {
-            handled = false;
-        }
-
-        
-        
-        mLastMultiTouchTime.start();
-    }
-
-    gesture = event->gesture(gSwipeGestureId);
-    if (gesture) {
-        if (gesture->state() == Qt::GestureStarted) {
-            event->accept();
-        }
-        if (gesture->state() == Qt::GestureFinished) {
-            event->accept();
-            handled = true;
-
-            MozSwipeGesture* swipe = static_cast<MozSwipeGesture*>(gesture);
-            nsIntPoint hotspot;
-            hotspot.x = swipe->hotSpot().x();
-            hotspot.y = swipe->hotSpot().y();
-
-            
-            mGesturesCancelled = true;
-            mPinchEvent.needDispatch = false;
-
-            double distance = DistanceBetweenPoints(swipe->hotSpot(), mPinchEvent.touchPoint) * 2;
-            double delta = distance - mPinchEvent.startDistance;
-
-            DispatchGestureEvent(NS_SIMPLE_GESTURE_MAGNIFY, 0, delta / 2, hotspot);
-
-            result = DispatchGestureEvent(NS_SIMPLE_GESTURE_SWIPE,
-                                          swipe->Direction(), 0, hotspot);
-        }
-        mLastMultiTouchTime.start();
-    }
-
-    return result;
-}
-
-nsEventStatus
-nsWindow::DispatchGestureEvent(uint32_t aMsg, uint32_t aDirection,
-                               double aDelta, const nsIntPoint& aRefPoint)
+nsWindow::tabletEvent(QTabletEvent* aEvent)
 {
-    WidgetSimpleGestureEvent mozGesture(true, aMsg, this, 0, 0.0);
-    mozGesture.direction = aDirection;
-    mozGesture.delta = aDelta;
-    mozGesture.refPoint = LayoutDeviceIntPoint::FromUntyped(aRefPoint);
-
-    Qt::KeyboardModifiers modifiers = QApplication::keyboardModifiers();
-
-    mozGesture.InitBasicModifiers(modifiers & Qt::ControlModifier,
-                                  modifiers & Qt::AltModifier,
-                                  modifiers & Qt::ShiftModifier,
-                                  false);
-    mozGesture.button    = 0;
-    mozGesture.time      = 0;
-
-    return DispatchEvent(&mozGesture);
+    LOGFOCUS(("nsWindow::%s [%p]\n", __FUNCTION__, (void *)this));
+    return nsEventStatus_eIgnore;
 }
 
 
-double
-nsWindow::DistanceBetweenPoints(const QPointF &aFirstPoint, const QPointF &aSecondPoint)
-{
-    double result = 0;
-    double deltaX = abs(aFirstPoint.x() - aSecondPoint.x());
-    double deltaY = abs(aFirstPoint.y() - aSecondPoint.y());
-    result = sqrt(deltaX*deltaX + deltaY*deltaY);
-    return result;
-}
-
-#endif 
 
 void
-nsWindow::ThemeChanged()
+nsWindow::InitButtonEvent(WidgetMouseEvent& aMoveEvent,
+                          QMouseEvent* aEvent,
+                          int aClickCount)
 {
-    NotifyThemeChanged();
+    aMoveEvent.refPoint.x = nscoord(aEvent->pos().x());
+    aMoveEvent.refPoint.y = nscoord(aEvent->pos().y());
+
+    aMoveEvent.InitBasicModifiers(aEvent->modifiers() & Qt::ControlModifier,
+                                  aEvent->modifiers() & Qt::AltModifier,
+                                  aEvent->modifiers() & Qt::ShiftModifier,
+                                  aEvent->modifiers() & Qt::MetaModifier);
+    aMoveEvent.clickCount      = aClickCount;
 }
 
 nsEventStatus
-nsWindow::OnDragMotionEvent(QGraphicsSceneDragDropEvent *aEvent)
+nsWindow::DispatchEvent(WidgetGUIEvent* aEvent)
 {
-    LOG(("nsWindow::OnDragMotionSignal\n"));
-
-    WidgetMouseEvent event(true, NS_DRAGDROP_OVER, 0, WidgetMouseEvent::eReal);
-    return nsEventStatus_eIgnore;
+    nsEventStatus status;
+    DispatchEvent(aEvent, status);
+    return status;
 }
 
-nsEventStatus
-nsWindow::OnDragLeaveEvent(QGraphicsSceneDragDropEvent *aEvent)
+void
+nsWindow::DispatchActivateEvent(void)
 {
-    
-    LOG(("nsWindow::OnDragLeaveSignal(%p)\n", this));
-    WidgetMouseEvent event(true, NS_DRAGDROP_EXIT, this,
-                           WidgetMouseEvent::eReal);
-
-    return DispatchEvent(&event);
+    if (mWidgetListener) {
+        mWidgetListener->WindowActivated();
+    }
 }
 
-nsEventStatus
-nsWindow::OnDragDropEvent(QGraphicsSceneDragDropEvent *aDropEvent)
+void
+nsWindow::DispatchDeactivateEvent(void)
 {
-    if (aDropEvent->proposedAction() == Qt::CopyAction)
-    {
-        printf("text version of the data: %s\n", aDropEvent->mimeData()->text().toUtf8().data());
-        aDropEvent->acceptProposedAction();
+    if (mWidgetListener) {
+        mWidgetListener->WindowDeactivated();
+    }
+}
+
+void
+nsWindow::DispatchActivateEventOnTopLevelWindow(void)
+{
+    nsWindow* topLevelWindow = static_cast<nsWindow*>(GetTopLevelWidget());
+    if (topLevelWindow != nullptr) {
+        topLevelWindow->DispatchActivateEvent();
+    }
+}
+
+void
+nsWindow::DispatchDeactivateEventOnTopLevelWindow(void)
+{
+    nsWindow* topLevelWindow = static_cast<nsWindow*>(GetTopLevelWidget());
+    if (topLevelWindow != nullptr) {
+        topLevelWindow->DispatchDeactivateEvent();
+    }
+}
+
+void
+nsWindow::DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus)
+{
+    aStatus = nsEventStatus_eIgnore;
+    if (mWidgetListener &&
+        mWidgetListener->WindowResized(this, aRect.width, aRect.height)) {
+        aStatus = nsEventStatus_eConsumeNoDefault;
+    }
+}
+
+
+
+ bool
+isContextMenuKeyEvent(const QKeyEvent *qe)
+{
+    uint32_t kc = QtKeyCodeToDOMKeyCode(qe->key());
+    if (qe->modifiers() & (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier)) {
+        return false;
     }
 
-    LOG(("nsWindow::OnDragDropSignal\n"));
-    WidgetMouseEvent event(true, NS_DRAGDROP_OVER, 0, WidgetMouseEvent::eReal);
-    return nsEventStatus_eIgnore;
+    bool isShift = qe->modifiers() & Qt::ShiftModifier;
+    return (kc == NS_VK_F10 && isShift) ||
+        (kc == NS_VK_CONTEXT_MENU && !isShift);
 }
 
-nsEventStatus
-nsWindow::OnDragEnter(QGraphicsSceneDragDropEvent *aDragEvent)
+void
+InitKeyEvent(WidgetKeyboardEvent &aEvent, QKeyEvent *aQEvent)
 {
-    
-    if ( aDragEvent->mimeData()->hasFormat(kURLMime)
-      || aDragEvent->mimeData()->hasFormat(kURLDataMime)
-      || aDragEvent->mimeData()->hasFormat(kURLDescriptionMime)
-      || aDragEvent->mimeData()->hasFormat(kHTMLMime)
-      || aDragEvent->mimeData()->hasFormat(kUnicodeMime)
-      || aDragEvent->mimeData()->hasFormat(kTextMime)
-       )
-    {
-        aDragEvent->acceptProposedAction();
+    aEvent.InitBasicModifiers(aQEvent->modifiers() & Qt::ControlModifier,
+                              aQEvent->modifiers() & Qt::AltModifier,
+                              aQEvent->modifiers() & Qt::ShiftModifier,
+                              aQEvent->modifiers() & Qt::MetaModifier);
+    aEvent.mIsRepeat =
+        (aEvent.message == NS_KEY_DOWN || aEvent.message == NS_KEY_PRESS) &&
+        aQEvent->isAutoRepeat();
+    aEvent.time = 0;
+
+    if (sAltGrModifier) {
+        aEvent.modifiers |= (MODIFIER_CONTROL | MODIFIER_ALT);
     }
 
     
-
-    LOG(("nsWindow::OnDragEnter(%p)\n", this));
-
-    WidgetMouseEvent event(true, NS_DRAGDROP_ENTER, this,
-                           WidgetMouseEvent::eReal);
-    return DispatchEvent(&event);
+    
+    
+    
+    aEvent.pluginEvent = (void *)aQEvent;
 }
+
+NS_IMPL_ISUPPORTS_INHERITED1(nsWindow, nsBaseWidget, nsISupportsWeakReference)
+
+
+
+void
+nsWindow::ClearCachedResources()
+{
+    if (mLayerManager &&
+        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_BASIC) {
+        mLayerManager->ClearCachedResources();
+    }
+    for (nsIWidget* kid = mFirstChild; kid; ) {
+        nsIWidget* next = kid->GetNextSibling();
+        static_cast<nsWindow*>(kid)->ClearCachedResources();
+        kid = next;
+    }
+}
+
+NS_IMETHODIMP
+nsWindow::SetParent(nsIWidget *aNewParent)
+{
+    NS_ENSURE_ARG_POINTER(aNewParent);
+
+    nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
+    nsIWidget* parent = GetParent();
+    if (parent) {
+        parent->RemoveChild(this);
+    }
+    ReparentNativeWidget(aNewParent);
+    aNewParent->AddChild(this);
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::SetModal(bool aModal)
+{
+    LOG(("nsWindow::SetModal [%p] %d, widget[%p]\n", (void *)this, aModal, mWidget));
+    if (mWidget) {
+        mWidget->setModality(aModal ? Qt::WindowModal : Qt::NonModal);
+    }
+
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsWindow::PlaceBehind(nsTopLevelWidgetZPlacement  aPlacement,
+                      nsIWidget                  *aWidget,
+                      bool                        aActivate)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsWindow::SetSizeMode(int32_t aMode)
+{
+    nsresult rv;
+
+    LOG(("nsWindow::SetSizeMode [%p] %d\n", (void *)this, aMode));
+    if (aMode != nsSizeMode_Minimized) {
+        mWidget->requestActivate();
+    }
+
+    
+    rv = nsBaseWidget::SetSizeMode(aMode);
+
+    
+    
+    if (!mWidget || mSizeState == mSizeMode) {
+        return rv;
+    }
+
+    switch (aMode) {
+    case nsSizeMode_Maximized:
+        mWidget->showMaximized();
+        break;
+    case nsSizeMode_Minimized:
+        mWidget->showMinimized();
+        break;
+    case nsSizeMode_Fullscreen:
+        mWidget->showFullScreen();
+        break;
+
+    default:
+        
+        mWidget->show();
+        break;
+    }
+
+    mSizeState = mSizeMode;
+
+    return rv;
+}
+
+
+
+
+
+void find_first_visible_parent(QWindow* aItem, QWindow*& aVisibleItem)
+{
+    NS_ENSURE_TRUE_VOID(aItem);
+
+    aVisibleItem = nullptr;
+    QWindow* parItem = nullptr;
+    while (!aVisibleItem) {
+        if (aItem->isVisible()) {
+            aVisibleItem = aItem;
+        }
+        else {
+            parItem = aItem->parent();
+            if (parItem) {
+                aItem = parItem;
+            }
+            else {
+                aItem->setVisible(true);
+                aVisibleItem = aItem;
+            }
+        }
+    }
+}
+
+NS_IMETHODIMP
+nsWindow::GetScreenBounds(nsIntRect &aRect)
+{
+    aRect = nsIntRect(nsIntPoint(0, 0), mBounds.Size());
+    if (mIsTopLevel) {
+        QPoint pos = mWidget->position();
+        aRect.MoveTo(pos.x(), pos.y());
+    }
+    else {
+        aRect.MoveTo(WidgetToScreenOffset());
+    }
+    LOG(("GetScreenBounds %d %d | %d %d | %d %d\n",
+         aRect.x, aRect.y,
+         mBounds.width, mBounds.height,
+         aRect.width, aRect.height));
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsWindow::SetForegroundColor(const nscolor &aColor)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsWindow::SetBackgroundColor(const nscolor &aColor)
+{
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
+nsWindow::SetIcon(const nsAString& aIconSpec)
+{
+    if (!mWidget)
+        return NS_OK;
+
+    nsCOMPtr<nsIFile> iconFile;
+    nsAutoCString path;
+    nsTArray<nsCString> iconList;
+
+    
+    
+    
+
+    const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
+                                    ".xpm", "16.xpm" };
+
+    for (uint32_t i = 0; i < ArrayLength(extensions); i++) {
+        
+        if (i == ArrayLength(extensions) - 2 && iconList.Length())
+            break;
+
+        nsAutoString extension;
+        extension.AppendASCII(extensions[i]);
+
+        ResolveIconName(aIconSpec, extension, getter_AddRefs(iconFile));
+        if (iconFile) {
+            iconFile->GetNativePath(path);
+            iconList.AppendElement(path);
+        }
+    }
+
+    
+    if (iconList.Length() == 0)
+        return NS_OK;
+
+    return SetWindowIconList(iconList);
+}
+
+NS_IMETHODIMP
+nsWindow::CaptureMouse(bool aCapture)
+{
+    LOG(("CaptureMouse %p\n", (void *)this));
+
+    if (!mWidget)
+        return NS_OK;
+
+    mWidget->setMouseGrabEnabled(aCapture);
+
+    return NS_OK;
+}
+
+bool
+nsWindow::CheckForRollup(double aMouseX, double aMouseY,
+                         bool aIsWheel)
+{
+    nsIRollupListener* rollupListener = GetActiveRollupListener();
+    nsCOMPtr<nsIWidget> rollupWidget;
+    if (rollupListener) {
+        rollupWidget = rollupListener->GetRollupWidget();
+    }
+    if (!rollupWidget) {
+        nsBaseWidget::gRollupListener = nullptr;
+        return false;
+    }
+
+    bool retVal = false;
+    MozQWidget *currentPopup =
+        (MozQWidget *)rollupWidget->GetNativeData(NS_NATIVE_WINDOW);
+    if (!is_mouse_in_window(currentPopup, aMouseX, aMouseY)) {
+        bool rollup = true;
+        if (aIsWheel) {
+            rollup = rollupListener->ShouldRollupOnMouseWheelEvent();
+            retVal = true;
+        }
+        
+        
+        
+        uint32_t popupsToRollup = UINT32_MAX;
+        if (rollupListener) {
+            nsAutoTArray<nsIWidget*, 5> widgetChain;
+            uint32_t sameTypeCount = rollupListener->GetSubmenuWidgetChain(&widgetChain);
+            for (uint32_t i=0; i<widgetChain.Length(); ++i) {
+                nsIWidget* widget =  widgetChain[i];
+                MozQWidget* currWindow =
+                    (MozQWidget*) widget->GetNativeData(NS_NATIVE_WINDOW);
+                if (is_mouse_in_window(currWindow, aMouseX, aMouseY)) {
+                  if (i < sameTypeCount) {
+                    rollup = false;
+                  }
+                  else {
+                    popupsToRollup = sameTypeCount;
+                  }
+                  break;
+                }
+            } 
+        } 
+
+        
+        if (rollup) {
+            nsIntPoint pos(aMouseX, aMouseY);
+            retVal = rollupListener->Rollup(popupsToRollup, &pos, nullptr);
+        }
+    }
+
+    return retVal;
+}
+
+
+bool
+is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY)
+{
+    return aWindow->geometry().contains(aMouseX, aMouseY);
+}
+
+NS_IMETHODIMP
+nsWindow::GetAttention(int32_t aCycleCount)
+{
+    LOG(("nsWindow::GetAttention [%p]\n", (void *)this));
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+nsEventStatus
+nsWindow::OnCloseEvent(QCloseEvent *aEvent)
+{
+    if (!mWidgetListener)
+        return nsEventStatus_eIgnore;
+    mWidgetListener->RequestWindowClose(this);
+    return nsEventStatus_eConsumeNoDefault;
+}
+
+
+inline bool
+is_latin_shortcut_key(quint32 aKeyval)
+{
+    return ((Qt::Key_0 <= aKeyval && aKeyval <= Qt::Key_9) ||
+            (Qt::Key_A <= aKeyval && aKeyval <= Qt::Key_Z));
+}
+
+nsEventStatus
+nsWindow::DispatchCommandEvent(nsIAtom* aCommand)
+{
+    WidgetCommandEvent event(true, nsGkAtoms::onAppCommand, aCommand, this);
+
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+
+    return status;
+}
+
+nsEventStatus
+nsWindow::DispatchContentCommandEvent(int32_t aMsg)
+{
+    WidgetContentCommandEvent event(true, aMsg, this);
+
+    nsEventStatus status;
+    DispatchEvent(&event, status);
+
+    return status;
+}
+
 
 static void
 GetBrandName(nsXPIDLString& brandName)
@@ -2151,113 +1971,49 @@ GetBrandName(nsXPIDLString& brandName)
         mozilla::services::GetStringBundleService();
 
     nsCOMPtr<nsIStringBundle> bundle;
-    if (bundleService)
+    if (bundleService) {
         bundleService->CreateBundle(
             "chrome://branding/locale/brand.properties",
             getter_AddRefs(bundle));
+    }
 
-    if (bundle)
+    if (bundle) {
         bundle->GetStringFromName(
             MOZ_UTF16("brandShortName"),
             getter_Copies(brandName));
-
-    if (brandName.IsEmpty())
-        brandName.Assign(NS_LITERAL_STRING("Mozilla"));
-}
-
-
-nsresult
-nsWindow::Create(nsIWidget        *aParent,
-                 nsNativeWidget    aNativeParent,
-                 const nsIntRect  &aRect,
-                 nsDeviceContext *aContext,
-                 nsWidgetInitData *aInitData)
-{
-    
-    
-    nsIWidget *baseParent = aParent;
-
-    if (aInitData &&
-        (aInitData->mWindowType == eWindowType_dialog ||
-         aInitData->mWindowType == eWindowType_toplevel ||
-         aInitData->mWindowType == eWindowType_invisible)) {
-
-        baseParent = nullptr;
-        
-        aNativeParent = nullptr;
     }
 
-    
-    BaseCreate(baseParent, aRect, aContext, aInitData);
-
-    
-    mParent = aParent;
-
-    
-    mBounds = aRect;
-
-    
-    MozQWidget *parent = nullptr;
-
-    if (aParent != nullptr)
-        parent = static_cast<MozQWidget*>(aParent->GetNativeData(NS_NATIVE_WIDGET));
-
-    
-    mWidget = createQWidget(parent, aNativeParent, aInitData);
-
-    if (!mWidget)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    LOG(("Create: nsWindow [%p] [%p]\n", (void *)this, (void *)mWidget));
-
-    
-    Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
-
-    
-    mListenForResizes = (aNativeParent ||
-                         (aInitData && aInitData->mListenForResizes));
-
-    return NS_OK;
+    if (brandName.IsEmpty()) {
+        brandName.Assign(NS_LITERAL_STRING("Mozilla"));
+    }
 }
-
-already_AddRefed<nsIWidget>
-nsWindow::CreateChild(const nsIntRect&  aRect,
-                      nsDeviceContext* aContext,
-                      nsWidgetInitData* aInitData,
-                      bool              )
-{
-    
-    return nsBaseWidget::CreateChild(aRect,
-                                     aContext,
-                                     aInitData,
-                                     true); 
-}
-
 
 NS_IMETHODIMP
 nsWindow::SetWindowClass(const nsAString &xulWinType)
 {
-    if (!mWidget)
-      return NS_ERROR_FAILURE;
+    if (!mWidget) {
+        return NS_ERROR_FAILURE;
+    }
 
     nsXPIDLString brandName;
     GetBrandName(brandName);
 
 #ifdef MOZ_X11
     XClassHint *class_hint = XAllocClassHint();
-    if (!class_hint)
-      return NS_ERROR_OUT_OF_MEMORY;
+    if (!class_hint) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
     const char *role = nullptr;
     class_hint->res_name = ToNewCString(xulWinType);
     if (!class_hint->res_name) {
-      XFree(class_hint);
-      return NS_ERROR_OUT_OF_MEMORY;
+        XFree(class_hint);
+        return NS_ERROR_OUT_OF_MEMORY;
     }
     class_hint->res_class = ToNewCString(brandName);
     if (!class_hint->res_class) {
-      nsMemory::Free(class_hint->res_name);
-      XFree(class_hint);
-      return NS_ERROR_OUT_OF_MEMORY;
+        nsMemory::Free(class_hint->res_name);
+        XFree(class_hint);
+        return NS_ERROR_OUT_OF_MEMORY;
     }
 
     
@@ -2265,22 +2021,23 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
     
     
     for (char *c = class_hint->res_name; *c; c++) {
-      if (':' == *c) {
-        *c = 0;
-        role = c + 1;
-      }
-      else if (!isascii(*c) || (!isalnum(*c) && ('_' != *c) && ('-' != *c)))
-        *c = '_';
+        if (':' == *c) {
+            *c = 0;
+            role = c + 1;
+        }
+        else if (!isascii(*c) || (!isalnum(*c) && ('_' != *c) && ('-' != *c)))
+            *c = '_';
     }
     class_hint->res_name[0] = toupper(class_hint->res_name[0]);
     if (!role) role = class_hint->res_name;
 
-    QWidget *widget = GetViewWidget();
+    QWindow *widget = mWidget;
     
-    if (widget && widget->winId())
+    if (widget && widget->winId()) {
         XSetClassHint(gfxQtPlatform::GetXDisplay(widget),
                       widget->winId(),
                       class_hint);
+    }
 
     nsMemory::Free(class_hint->res_class);
     nsMemory::Free(class_hint->res_name);
@@ -2298,21 +2055,11 @@ nsWindow::NativeResize(int32_t aWidth, int32_t aHeight, bool    aRepaint)
 
     mNeedsResize = false;
 
-    if (mIsTopLevel) {
-        QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
-        NS_ENSURE_TRUE_VOID(widget);
-        
-        QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(0, 0, aWidth, aHeight))).boundingRect();
-        
-        r.adjust(0, 0, -1, -1);
-        widget->resize(r.width(), r.height());
-    }
-    else {
-        mWidget->resize(aWidth, aHeight);
-    }
+    mWidget->resize(aWidth, aHeight);
 
-    if (aRepaint)
-        mWidget->update();
+    if (aRepaint) {
+        mWidget->renderLater();
+    }
 }
 
 void
@@ -2326,41 +2073,27 @@ nsWindow::NativeResize(int32_t aX, int32_t aY,
     mNeedsResize = false;
     mNeedsMove = false;
 
-    if (mIsTopLevel) {
-        QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
-        NS_ENSURE_TRUE_VOID(widget);
-        
-        QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(aX, aY, aWidth, aHeight))).boundingRect();
-        
-        r.adjust(0, 0, -1, -1);
-        widget->setGeometry(r.x(), r.y(), r.width(), r.height());
-    }
-    else {
-        mWidget->setGeometry(aX, aY, aWidth, aHeight);
-    }
+    mWidget->setGeometry(aX, aY, aWidth, aHeight);
 
-    if (aRepaint)
-        mWidget->update();
+    if (aRepaint) {
+        mWidget->renderLater();
+    }
 }
 
 void
 nsWindow::NativeShow(bool aAction)
 {
     if (aAction) {
-        QWidget *widget = GetViewWidget();
         
         
         
-        if (widget &&
-            !widget->isVisible())
-            MakeFullScreen(mSizeMode == nsSizeMode_Fullscreen);
         mWidget->show();
-
         
         mNeedsShow = false;
     }
-    else
+    else {
         mWidget->hide();
+    }
 }
 
 NS_IMETHODIMP
@@ -2394,9 +2127,7 @@ nsWindow::SetWindowIconList(const nsTArray<nsCString> &aIconList)
         icon.addFile(path);
     }
 
-    QWidget *widget = GetViewWidget();
-    NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
-    widget->setWindowIcon(icon);
+    mWidget->setIcon(icon);
 
     return NS_OK;
 }
@@ -2412,41 +2143,6 @@ void nsWindow::QWidgetDestroyed()
     mWidget = nullptr;
 }
 
-NS_IMETHODIMP
-nsWindow::MakeFullScreen(bool aFullScreen)
-{
-    QWidget *widget = GetViewWidget();
-    NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
-    if (aFullScreen) {
-        if (mSizeMode != nsSizeMode_Fullscreen)
-            mLastSizeMode = mSizeMode;
-
-        mSizeMode = nsSizeMode_Fullscreen;
-        widget->showFullScreen();
-    }
-    else {
-        mSizeMode = mLastSizeMode;
-
-        switch (mSizeMode) {
-        case nsSizeMode_Maximized:
-            widget->showMaximized();
-            break;
-        case nsSizeMode_Minimized:
-            widget->showMinimized();
-            break;
-        case nsSizeMode_Normal:
-            widget->showNormal();
-            break;
-        default:
-            widget->showNormal();
-            break;
-        }
-    }
-
-    NS_ASSERTION(mLastSizeMode != nsSizeMode_Fullscreen,
-                 "mLastSizeMode should never be fullscreen");
-    return nsBaseWidget::MakeFullScreen(aFullScreen);
-}
 
 NS_IMETHODIMP
 nsWindow::HideWindowChrome(bool aShouldHide)
@@ -2469,295 +2165,19 @@ nsWindow::HideWindowChrome(bool aShouldHide)
         NativeShow(true);
     }
 
-    
-    
-    
-    
-    
-    QWidget *widget = GetViewWidget();
-    NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
-#ifdef MOZ_X11
-    XSync(gfxQtPlatform::GetXDisplay(widget), False);
-#endif
-
     return NS_OK;
 }
 
 
-
-
-void
-nsWindow::InitDragEvent(WidgetMouseEvent& aEvent)
-{
-    
-}
-
-
-
-
-
-nsresult
-initialize_prefs(void)
-{
-    
-    return NS_OK;
-}
-
-inline bool
-is_context_menu_key(const WidgetKeyboardEvent& aKeyEvent)
-{
-    return ((aKeyEvent.keyCode == NS_VK_F10 && aKeyEvent.IsShift() &&
-             !aKeyEvent.IsControl() && !aKeyEvent.IsMeta() &&
-             !aKeyEvent.IsAlt()) ||
-            (aKeyEvent.keyCode == NS_VK_CONTEXT_MENU && !aKeyEvent.IsShift() &&
-             !aKeyEvent.IsControl() && !aKeyEvent.IsMeta() &&
-             !aKeyEvent.IsAlt()));
-}
-
-void
-key_event_to_context_menu_event(WidgetMouseEvent& aEvent,
-                                QKeyEvent* aGdkEvent)
-{
-    aEvent.refPoint = LayoutDeviceIntPoint(0, 0);
-    aEvent.modifiers = 0;
-    aEvent.time = 0;
-    aEvent.clickCount = 1;
-}
-
-
-
-nsChildWindow::nsChildWindow()
-{
-}
-
-nsChildWindow::~nsChildWindow()
-{
-}
-
-nsPopupWindow::nsPopupWindow()
-{
-#ifdef DEBUG_WIDGETS
-    qDebug("===================== popup!");
-#endif
-}
-
-nsPopupWindow::~nsPopupWindow()
-{
-}
 
 NS_IMETHODIMP_(bool)
 nsWindow::HasGLContext()
 {
-    return MozQGLWidgetWrapper::hasGLContext(qobject_cast<QGraphicsView*>(GetViewWidget()));
-}
-
-MozQWidget*
-nsWindow::createQWidget(MozQWidget *parent,
-                        nsNativeWidget nativeParent,
-                        nsWidgetInitData *aInitData)
-{
-    const char *windowName = nullptr;
-    Qt::WindowFlags flags = Qt::Widget;
-    QWidget *parentWidget = (parent && parent->getReceiver()) ?
-            parent->getReceiver()->GetViewWidget() : nullptr;
-
-#ifdef DEBUG_WIDGETS
-    qDebug("NEW WIDGET\n\tparent is %p (%s)", (void*)parent,
-           parent ? qPrintable(parent->objectName()) : "null");
-#endif
-
-    
-    switch (mWindowType) {
-    case eWindowType_dialog:
-        windowName = "topLevelDialog";
-        mIsTopLevel = true;
-        flags |= Qt::Dialog;
-        break;
-    case eWindowType_popup:
-        windowName = "topLevelPopup";
-        break;
-    case eWindowType_toplevel:
-        windowName = "topLevelWindow";
-        mIsTopLevel = true;
-        break;
-    case eWindowType_invisible:
-        windowName = "topLevelInvisible";
-        break;
-    case eWindowType_child:
-    case eWindowType_plugin:
-    default: 
-        windowName = "paintArea";
-        break;
-    }
-
-    MozQWidget* parentQWidget = nullptr;
-    if (parent) {
-        parentQWidget = parent;
-    } else if (nativeParent && nativeParent != PARENTLESS_WIDGET) {
-        parentQWidget = static_cast<MozQWidget*>(nativeParent);
-    }
-    MozQWidget * widget = new MozQWidget(this, parentQWidget);
-    if (!widget)
-        return nullptr;
-    widget->setObjectName(QString(windowName));
-
-    
-    if (eWindowType_child == mWindowType || eWindowType_plugin == mWindowType) {
-        widget->setFlag(QGraphicsItem::ItemIsFocusable);
-        widget->setFocusPolicy(Qt::WheelFocus);
-    }
-
-    
-
-    if (mIsTopLevel) {
-        QGraphicsView* newView =
-            nsFastStartup::GetStartupGraphicsView(parentWidget, widget);
-
-        if (mWindowType == eWindowType_dialog) {
-            newView->setWindowModality(Qt::WindowModal);
-        }
-
-        if (gfxQtPlatform::GetPlatform()->GetRenderMode() == gfxQtPlatform::RENDER_DIRECT) {
-            
-#if defined(MOZ_X11) && (QT_VERSION < QT_VERSION_CHECK(5,0,0))
-            newView->viewport()->setAttribute(Qt::WA_PaintOnScreen, true);
-#endif
-            newView->viewport()->setAttribute(Qt::WA_NoSystemBackground, true);
-        }
-        
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-#if defined MOZ_ENABLE_MEEGOTOUCH
-        
-        newView->viewport()->ungrabGesture(Qt::PanGesture);
-        newView->viewport()->ungrabGesture(Qt::TapGesture);
-        newView->viewport()->ungrabGesture(Qt::TapAndHoldGesture);
-        newView->viewport()->ungrabGesture(Qt::SwipeGesture);
-#endif
-
-        
-        newView->viewport()->grabGesture(Qt::PinchGesture);
-        newView->viewport()->grabGesture(gSwipeGestureId);
-#endif
-        newView->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-        newView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-        
-        widget->setFlag(QGraphicsItem::ItemHasNoContents);
-#endif
-
-#ifdef MOZ_X11
-        if (newView->effectiveWinId()) {
-            XSetWindowBackgroundPixmap(mozilla::DefaultXDisplay(),
-                                       newView->effectiveWinId(), None);
-        }
-#endif
-    }
-
-    if (mWindowType == eWindowType_popup) {
-        widget->setZValue(100);
-
-        
-        
-        
-        SetCursor(eCursor_standard);
-    } else if (mIsTopLevel) {
-        SetDefaultIcon();
-    }
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-#if defined MOZ_ENABLE_MEEGOTOUCH
-    
-    widget->ungrabGesture(Qt::PanGesture);
-    widget->ungrabGesture(Qt::TapGesture);
-    widget->ungrabGesture(Qt::TapAndHoldGesture);
-    widget->ungrabGesture(Qt::SwipeGesture);
-#endif
-    widget->grabGesture(Qt::PinchGesture);
-    widget->grabGesture(gSwipeGestureId);
-#endif
-
-    return widget;
+    return false;
 }
 
 
-gfxASurface*
-nsWindow::GetThebesSurface()
-{
-    
-
-
-    if (mThebesSurface)
-        return mThebesSurface;
-
-#ifdef CAIRO_HAS_QT_SURFACE
-    gfxQtPlatform::RenderMode renderMode = gfxQtPlatform::GetPlatform()->GetRenderMode();
-    if (renderMode == gfxQtPlatform::RENDER_QPAINTER) {
-        mThebesSurface = new gfxQPainterSurface(gfxIntSize(1, 1), gfxContentType::COLOR);
-    }
-#endif
-    if (!mThebesSurface) {
-        gfxImageFormat imageFormat = gfxImageFormat::RGB24;
-        mThebesSurface = new gfxImageSurface(gfxIntSize(1, 1), imageFormat);
-    }
-
-    return mThebesSurface;
-}
-
-NS_IMETHODIMP
-nsWindow::BeginResizeDrag(WidgetGUIEvent* aEvent,
-                          int32_t aHorizontal,
-                          int32_t aVertical)
-{
-    NS_ENSURE_ARG_POINTER(aEvent);
-
-    if (aEvent->eventStructType != NS_MOUSE_EVENT) {
-        
-        return NS_ERROR_INVALID_ARG;
-    }
-
-    if (aEvent->AsMouseEvent()->button != WidgetMouseEvent::eLeftButton) {
-        
-        return NS_ERROR_INVALID_ARG;
-    }
-
-    return NS_OK;
-}
-
-nsEventStatus
-nsWindow::contextMenuEvent(QGraphicsSceneContextMenuEvent *)
-{
-    return nsEventStatus_eIgnore;
-}
-
-nsEventStatus
-nsWindow::imComposeEvent(QInputMethodEvent *event, bool &handled)
-{
-    
-    
-
-    WidgetCompositionEvent start(true, NS_COMPOSITION_START, this);
-    DispatchEvent(&start);
-
-    nsAutoString compositionStr(event->commitString().utf16());
-
-    if (!compositionStr.IsEmpty()) {
-      WidgetCompositionEvent update(true, NS_COMPOSITION_UPDATE, this);
-      update.data = compositionStr;
-      DispatchEvent(&update);
-    }
-
-    WidgetTextEvent text(true, NS_TEXT_TEXT, this);
-    text.theText = compositionStr;
-    DispatchEvent(&text);
-
-    WidgetCompositionEvent end(true, NS_COMPOSITION_END, this);
-    end.data = compositionStr;
-    DispatchEvent(&end);
-
-    return nsEventStatus_eIgnore;
-}
-
-nsIWidget *
+nsIWidget*
 nsWindow::GetParent(void)
 {
     return mParent;
@@ -2766,276 +2186,15 @@ nsWindow::GetParent(void)
 float
 nsWindow::GetDPI()
 {
-    QDesktopWidget* rootWindow = QApplication::desktop();
-    double heightInches = rootWindow->heightMM()/25.4;
-    if (heightInches < 0.25) {
-        
-        return 96.0f;
-    }
-
-    return float(rootWindow->height()/heightInches);
-}
-
-nsEventStatus
-nsWindow::DispatchEvent(WidgetGUIEvent* aEvent)
-{
-    nsEventStatus status;
-    DispatchEvent(aEvent, status);
-    return status;
-}
-
-void
-nsWindow::DispatchActivateEvent(void)
-{
-    if (mWidgetListener)
-      mWidgetListener->WindowActivated();
-}
-
-void
-nsWindow::DispatchDeactivateEvent(void)
-{
-    if (mWidgetListener)
-      mWidgetListener->WindowDeactivated();
-}
-
-void
-nsWindow::DispatchActivateEventOnTopLevelWindow(void)
-{
-    nsWindow * topLevelWindow = static_cast<nsWindow*>(GetTopLevelWidget());
-    if (topLevelWindow != nullptr)
-         topLevelWindow->DispatchActivateEvent();
-}
-
-void
-nsWindow::DispatchDeactivateEventOnTopLevelWindow(void)
-{
-    nsWindow * topLevelWindow = static_cast<nsWindow*>(GetTopLevelWidget());
-    if (topLevelWindow != nullptr)
-         topLevelWindow->DispatchDeactivateEvent();
-}
-
-void
-nsWindow::DispatchResizeEvent(nsIntRect &aRect, nsEventStatus &aStatus)
-{
-    aStatus = nsEventStatus_eIgnore;
-    if (mWidgetListener &&
-        mWidgetListener->WindowResized(this, aRect.width, aRect.height))
-      aStatus = nsEventStatus_eConsumeNoDefault;
-}
-
-NS_IMETHODIMP
-nsWindow::DispatchEvent(WidgetGUIEvent* aEvent, nsEventStatus& aStatus)
-{
-#ifdef DEBUG
-    debug_DumpEvent(stdout, aEvent->widget, aEvent,
-                    nsAutoCString("something"), 0);
-#endif
-
-    aStatus = nsEventStatus_eIgnore;
-
-    
-    if (mWidgetListener)
-      aStatus = mWidgetListener->HandleEvent(aEvent, mUseAttachedEvents);
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Show(bool aState)
-{
-    LOG(("nsWindow::Show [%p] state %d\n", (void *)this, aState));
-    if (aState == mIsShown)
-        return NS_OK;
-
-    
-    if (mIsShown && !aState) {
-        ClearCachedResources();
-    }
-
-    mIsShown = aState;
-
-#ifdef MOZ_ENABLE_QTMOBILITY
-    if (mWidget &&
-        (mWindowType == eWindowType_toplevel ||
-         mWindowType == eWindowType_dialog ||
-         mWindowType == eWindowType_popup))
-    {
-        if (!gOrientation) {
-            gOrientation = new QOrientationSensor();
-            gOrientation->addFilter(&gOrientationFilter);
-            gOrientation->start();
-            if (!gOrientation->isActive()) {
-                qWarning("Orientationsensor didn't start!");
-            }
-            gOrientationFilter.filter(gOrientation->reading());
-
-            QObject::connect((QObject*) &gOrientationFilter, SIGNAL(orientationChanged()),
-                             mWidget, SLOT(orientationChanged()));
-        }
-    }
-#endif
-
-    if ((aState && !AreBoundsSane()) || !mWidget) {
-        LOG(("\tbounds are insane or window hasn't been created yet\n"));
-        mNeedsShow = true;
-        return NS_OK;
-    }
-
-    if (aState) {
-        if (mNeedsMove) {
-            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
-                         false);
-        } else if (mNeedsResize) {
-            NativeResize(mBounds.width, mBounds.height, false);
-        }
-    }
-    else
-        
-        mNeedsShow = false;
-
-    NativeShow(aState);
-
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
-{
-    mBounds.width = NSToIntRound(aWidth);
-    mBounds.height = NSToIntRound(aHeight);
-
-    if (!mWidget)
-        return NS_OK;
-
-    if (mIsShown) {
-        if (AreBoundsSane()) {
-            if (mIsTopLevel || mNeedsShow)
-                NativeResize(mBounds.x, mBounds.y,
-                             mBounds.width, mBounds.height, aRepaint);
-            else
-                NativeResize(mBounds.width, mBounds.height, aRepaint);
-
-            
-            if (mNeedsShow)
-                NativeShow(true);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = true;
-                NativeShow(false);
-            }
-        }
-    }
-    else if (AreBoundsSane() && mListenForResizes) {
-        
-        
-        
-        NativeResize(mBounds.width, mBounds.height, aRepaint);
-    }
-    else {
-        mNeedsResize = true;
-    }
-
-    
-    if (mIsTopLevel || mListenForResizes) {
-        nsEventStatus status;
-        DispatchResizeEvent(mBounds, status);
-    }
-
-    NotifyRollupGeometryChange();
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
-                 bool aRepaint)
-{
-    mBounds.x = NSToIntRound(aX);
-    mBounds.y = NSToIntRound(aY);
-    mBounds.width = NSToIntRound(aWidth);
-    mBounds.height = NSToIntRound(aHeight);
-
-    mPlaced = true;
-
-    if (!mWidget)
-        return NS_OK;
-
-    
-    if (mIsShown) {
-        
-        if (AreBoundsSane()) {
-            
-            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
-                         aRepaint);
-            
-            if (mNeedsShow)
-                NativeShow(true);
-        }
-        else {
-            
-            
-            
-            
-            
-            
-            if (!mNeedsShow) {
-                mNeedsShow = true;
-                NativeShow(false);
-            }
-        }
-    }
-    
-    
-    else if (AreBoundsSane() && mListenForResizes) {
-        
-        
-        
-        NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
-                     aRepaint);
-    }
-    else {
-        mNeedsResize = true;
-        mNeedsMove = true;
-    }
-
-    if (mIsTopLevel || mListenForResizes) {
-        
-        nsEventStatus status;
-        DispatchResizeEvent(mBounds, status);
-    }
-
-    if (aRepaint)
-        mWidget->update();
-
-    NotifyRollupGeometryChange();
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWindow::Enable(bool aState)
-{
-    mEnabled = aState;
-
-    return NS_OK;
-}
-
-bool
-nsWindow::IsEnabled() const
-{
-    return mEnabled;
+    return qApp->primaryScreen()->logicalDotsPerInch();
 }
 
 void
 nsWindow::OnDestroy(void)
 {
-    if (mOnDestroyCalled)
+    if (mOnDestroyCalled) {
         return;
+    }
 
     mOnDestroyCalled = true;
 
@@ -3052,46 +2211,11 @@ nsWindow::OnDestroy(void)
 bool
 nsWindow::AreBoundsSane(void)
 {
-    if (mBounds.width > 0 && mBounds.height > 0)
+    if (mBounds.width > 0 && mBounds.height > 0) {
         return true;
+    }
 
     return false;
-}
-
-NS_IMETHODIMP_(void)
-nsWindow::SetInputContext(const InputContext& aContext,
-                          const InputContextAction& aAction)
-{
-    NS_ENSURE_TRUE_VOID(mWidget);
-
-    
-    
-    mInputContext = aContext;
-
-    switch (mInputContext.mIMEState.mEnabled) {
-        case IMEState::ENABLED:
-        case IMEState::PASSWORD:
-        case IMEState::PLUGIN:
-            SetSoftwareKeyboardState(true, aAction);
-            break;
-        default:
-            SetSoftwareKeyboardState(false, aAction);
-            break;
-    }
-}
-
-NS_IMETHODIMP_(InputContext)
-nsWindow::GetInputContext()
-{
-    mInputContext.mIMEState.mOpen = IMEState::OPEN_STATE_NOT_SUPPORTED;
-    
-    
-#if (QT_VERSION < QT_VERSION_CHECK(5, 0, 0))
-    mInputContext.mNativeIMEContext = qApp->inputContext();
-#else
-    mInputContext.mNativeIMEContext = qApp->inputMethod();
-#endif
-    return mInputContext;
 }
 
 void
@@ -3113,53 +2237,18 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
     }
 
     if (aOpen) {
-        
-        
-        int32_t openDelay =
-            Preferences::GetInt("ui.vkb.open.delay", 200);
-        MozQWidget::requestVKB(openDelay, mWidget);
+        qApp->inputMethod()->show();
     } else {
-        MozQWidget::hideVKB();
+        qApp->inputMethod()->hide();
     }
+
     return;
 }
 
-void
-nsWindow::UserActivity()
-{
-  if (!mIdleService) {
-    mIdleService = do_GetService("@mozilla.org/widget/idleservice;1");
-  }
-
-  if (mIdleService) {
-    mIdleService->ResetIdleTimeOut(0);
-  }
-}
-
-uint32_t
-nsWindow::GetGLFrameBufferFormat()
-{
-    if (mLayerManager &&
-        mLayerManager->GetBackendType() == mozilla::layers::LayersBackend::LAYERS_OPENGL) {
-        return MozQGLWidgetWrapper::isRGBAContext() ? LOCAL_GL_RGBA : LOCAL_GL_RGB;
-    }
-    return LOCAL_GL_NONE;
-}
 
 void
 nsWindow::ProcessMotionEvent()
 {
-    if (mPinchEvent.needDispatch) {
-        double distance = DistanceBetweenPoints(mPinchEvent.centerPoint,
-                                                mPinchEvent.touchPoint);
-        distance *= 2;
-        mPinchEvent.delta = distance - mPinchEvent.prevDistance;
-        nsIntPoint centerPoint(mPinchEvent.centerPoint.x(),
-                               mPinchEvent.centerPoint.y());
-        DispatchGestureEvent(NS_SIMPLE_GESTURE_MAGNIFY_UPDATE,
-                             0, mPinchEvent.delta, centerPoint);
-        mPinchEvent.prevDistance = distance;
-    }
     if (mMoveEvent.needDispatch) {
         WidgetMouseEvent event(true, NS_MOUSE_MOVE, this,
                                WidgetMouseEvent::eReal);
