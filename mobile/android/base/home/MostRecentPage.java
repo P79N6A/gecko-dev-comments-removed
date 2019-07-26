@@ -165,9 +165,11 @@ public class MostRecentPage extends HomeFragment {
         }
 
         
+        
         if (mTitle != null) {
-            mTitle.setVisibility(View.VISIBLE);
+            mTitle.setVisibility(View.GONE);
         }
+
         if (mEmptyView == null) {
             
             ViewStub emptyViewStub = (ViewStub) getView().findViewById(R.id.home_empty_view_stub);

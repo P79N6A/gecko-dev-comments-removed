@@ -159,8 +159,9 @@ public class LastTabsPage extends HomeFragment {
         }
 
         
+        
         if (mTitle != null) {
-            mTitle.setVisibility(View.VISIBLE);
+            mTitle.setVisibility(View.GONE);
         }
         mRestoreButton.setVisibility(View.GONE);
 
