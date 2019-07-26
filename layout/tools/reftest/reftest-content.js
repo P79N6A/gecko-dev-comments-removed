@@ -329,11 +329,13 @@ function FlushRendering() {
                     .getInterface(CI.nsIDOMWindowUtils);
         var afterPaintWasPending = utils.isMozAfterPaintPending;
 
-        try {
-            
-            win.document.documentElement.getBoundingClientRect();
-        } catch (e) {
-            LogWarning("flushWindow failed: " + e + "\n");
+        if (win.document.documentElement) {
+            try {
+                
+                win.document.documentElement.getBoundingClientRect();
+            } catch (e) {
+                LogWarning("flushWindow failed: " + e + "\n");
+            }
         }
 
         if (!afterPaintWasPending && utils.isMozAfterPaintPending) {
