@@ -241,14 +241,26 @@ this.DOMApplicationRegistry = {
   },
 
   
+  _registryStarted: Promise.defer(),
   notifyAppsRegistryStart: function notifyAppsRegistryStart() {
     Services.obs.notifyObservers(this, "webapps-registry-start", null);
+    this._registryStarted.resolve();
+  },
+
+  get registryStarted() {
+    return this._registryStarted.promise;
   },
 
   
+  _registryReady: Promise.defer(),
   notifyAppsRegistryReady: function notifyAppsRegistryReady() {
+    this._registryReady.resolve();
     Services.obs.notifyObservers(this, "webapps-registry-ready", null);
     this._saveApps();
+  },
+
+  get registryReady() {
+    return this._registryReady.promise;
   },
 
   
