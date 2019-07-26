@@ -395,8 +395,20 @@ protected:
   
   
   
+  
+  
+  void GoodSizeForCapacity(size_t capacity, size_t elemSize,
+                           size_t& nbytes, size_t& newCapacity);
+
+  
+  
+  
+  
   typename Alloc::ResultTypeProxy EnsureCapacity(size_type capacity, size_type elemSize);
 
+  
+  
+  
   
   
   
