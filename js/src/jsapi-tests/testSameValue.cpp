@@ -6,7 +6,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 BEGIN_TEST(testSameValue)
 {

@@ -2,7 +2,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 JSPrincipals system_principals = {
     1

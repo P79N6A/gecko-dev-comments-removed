@@ -6,7 +6,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 struct ScriptObjectFixture : public JSAPITest {
     static const int code_size;

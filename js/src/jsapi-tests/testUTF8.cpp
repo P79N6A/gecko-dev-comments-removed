@@ -5,7 +5,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jsapi.h"
 #include "jsstr.h"
 #include "js/CharacterEncoding.h"

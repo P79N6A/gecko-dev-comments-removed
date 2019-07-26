@@ -7,7 +7,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jsfriendapi.h"
 #include "jsdbgapi.h"
 

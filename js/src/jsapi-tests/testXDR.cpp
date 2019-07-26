@@ -4,7 +4,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jsscript.h"
 #include "jsstr.h"
 #include "jsfriendapi.h"

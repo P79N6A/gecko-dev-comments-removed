@@ -9,7 +9,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jscntxt.h"
 
 static uint32_t column = 0;

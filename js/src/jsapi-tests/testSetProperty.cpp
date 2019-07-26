@@ -6,7 +6,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 static JSBool
 nativeGet(JSContext *cx, JS::HandleObject obj, JS::HandleId id, JS::MutableHandleValue vp)

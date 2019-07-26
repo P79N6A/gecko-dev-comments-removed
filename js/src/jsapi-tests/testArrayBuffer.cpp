@@ -2,7 +2,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jsfriendapi.h"
 
 #define NUM_TEST_BUFFERS 2

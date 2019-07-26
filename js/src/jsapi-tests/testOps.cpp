@@ -8,7 +8,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 static JSBool
 my_convert(JSContext* context, JS::HandleObject obj, JSType type, JS::MutableHandleValue rval)

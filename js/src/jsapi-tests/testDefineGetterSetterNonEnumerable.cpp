@@ -6,7 +6,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 
 static JSBool
 native(JSContext *cx, unsigned argc, jsval *vp)

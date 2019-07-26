@@ -2,7 +2,7 @@
 
 
 
-#include "tests.h"
+#include "jsapi-tests/tests.h"
 #include "jsatom.h"
 
 #include "gc/Marking.h"
