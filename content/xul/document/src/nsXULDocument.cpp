@@ -2538,7 +2538,8 @@ nsXULDocument::InsertXULOverlayPI(const nsXULPrototypePI* aProtoPI,
         
         
         
-        rv = mUnloadedOverlays.InsertObjectAt(uri, 0);
+        mUnloadedOverlays.InsertElementAt(0, uri);
+        rv = NS_OK;
     } else if (rv == NS_ERROR_MALFORMED_URI) {
         
         
@@ -2585,8 +2586,7 @@ nsXULDocument::AddChromeOverlays()
         }
 
         
-        rv = mUnloadedOverlays.InsertObjectAt(uri, 0);
-        if (NS_FAILED(rv)) break;
+        mUnloadedOverlays.InsertElementAt(0, uri);
     }
 
     return rv;
@@ -3052,12 +3052,12 @@ nsXULDocument::ResumeWalk()
         mState = eState_Overlay;
 
         
-        PRUint32 count = mUnloadedOverlays.Count();
+        PRUint32 count = mUnloadedOverlays.Length();
         if (! count)
             break;
 
         nsCOMPtr<nsIURI> uri = mUnloadedOverlays[count-1];
-        mUnloadedOverlays.RemoveObjectAt(count-1);
+        mUnloadedOverlays.RemoveElementAt(count - 1);
 
         bool shouldReturn, failureFromContent;
         rv = LoadOverlayInternal(uri, false, &shouldReturn,

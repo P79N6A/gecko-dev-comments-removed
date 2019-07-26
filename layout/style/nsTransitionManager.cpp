@@ -22,6 +22,8 @@
 #include "nsEventDispatcher.h"
 #include "nsGUIEvent.h"
 #include "mozilla/dom/Element.h"
+#include "nsIFrame.h"
+#include "nsCSSFrameConstructor.h"
 
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
@@ -29,53 +31,12 @@ using mozilla::TimeDuration;
 namespace dom = mozilla::dom;
 namespace css = mozilla::css;
 
-
-
-
-
-struct ElementPropertyTransition
+ElementTransitions::ElementTransitions(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
+                                       nsTransitionManager *aTransitionManager)
+  : CommonElementAnimationData(aElement, aElementProperty,
+                               aTransitionManager)
 {
-  nsCSSProperty mProperty;
-  nsStyleAnimation::Value mStartValue, mEndValue;
-  TimeStamp mStartTime; 
-
-  
-  TimeDuration mDuration;
-  css::ComputedTimingFunction mTimingFunction;
-
-  
-  
-  
-  
-  
-  nsStyleAnimation::Value mStartForReversingTest;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  double mReversePortion;
-
-  
-  
-  
-  double ValuePortionFor(TimeStamp aRefreshTime) const;
-
-  bool IsRemovedSentinel() const
-  {
-    return mStartTime.IsNull();
-  }
-
-  void SetRemovedSentinel()
-  {
-    
-    mStartTime = TimeStamp();
-  }
-};
+}
 
 double
 ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
@@ -104,32 +65,6 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
 
   return mTimingFunction.GetValue(timePortion);
 }
-
-struct ElementTransitions : public mozilla::css::CommonElementAnimationData
-{
-  ElementTransitions(dom::Element *aElement, nsIAtom *aElementProperty,
-                     nsTransitionManager *aTransitionManager)
-    : CommonElementAnimationData(aElement, aElementProperty,
-                                 aTransitionManager)
-  {
-  }
-
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime);
-
-
-  
-  nsTArray<ElementPropertyTransition> mPropertyTransitions;
-
-  
-  
-  
-  
-  
-  
-  nsRefPtr<css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
-};
 
 static void
 ElementTransitionsPropertyDtor(void           *aObject,
@@ -171,6 +106,41 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
       NS_ABORT_IF_FALSE(ok, "could not interpolate values");
     }
   }
+}
+
+bool
+ElementPropertyTransition::CanPerformOnCompositor(mozilla::dom::Element* aElement,
+                                                  TimeStamp aTime) const {
+  return css::CommonElementAnimationData::
+    CanAnimatePropertyOnCompositor(aElement, mProperty) && !IsRemovedSentinel() &&
+    mStartTime < aTime && aTime < mStartTime + mDuration;
+}
+
+bool
+ElementTransitions::HasTransitionOfProperty(nsCSSProperty aProperty) const
+{
+  for (PRUint32 tranIdx = mPropertyTransitions.Length(); tranIdx-- != 0; ) {
+    if (aProperty == mPropertyTransitions[tranIdx].mProperty) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool
+ElementTransitions::CanPerformOnCompositorThread() const
+{
+  for (PRUint32 i = 0, i_end = mPropertyTransitions.Length(); i < i_end; ++i) {
+    const ElementPropertyTransition &pt = mPropertyTransitions[i];
+    if (pt.IsRemovedSentinel()) {
+      continue;
+    }
+    if (!css::CommonElementAnimationData::CanAnimatePropertyOnCompositor(mElement,
+                                                                         pt.mProperty)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 
@@ -225,13 +195,13 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
       disp->mTransitions[0].GetDelay() == 0.0f &&
       disp->mTransitions[0].GetDuration() == 0.0f) {
     return nullptr;
-  }      
+  }
 
 
   if (aNewStyleContext->PresContext()->IsProcessingAnimationStyleChange()) {
     return nullptr;
   }
-  
+
   if (aNewStyleContext->GetParent() &&
       aNewStyleContext->GetParent()->HasPseudoElementData()) {
     
@@ -260,7 +230,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
           property == eCSSProperty_UNKNOWN) {
         
       } else if (property == eCSSPropertyExtra_all_properties) {
-        for (nsCSSProperty p = nsCSSProperty(0); 
+        for (nsCSSProperty p = nsCSSProperty(0);
              p < eCSSProperty_COUNT_no_shorthands;
              p = nsCSSProperty(p + 1)) {
           ConsiderStartingTransition(p, t, aElement, et,
@@ -300,7 +270,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
             property == eCSSProperty_UNKNOWN) {
           
         } else if (property == eCSSPropertyExtra_all_properties) {
-          for (nsCSSProperty p = nsCSSProperty(0); 
+          for (nsCSSProperty p = nsCSSProperty(0);
                p < eCSSProperty_COUNT_no_shorthands;
                p = nsCSSProperty(p + 1)) {
             allTransitionProperties.AddProperty(p);
@@ -364,11 +334,7 @@ nsTransitionManager::StyleContextChanged(dom::Element *aElement,
   
 
   nsRefPtr<css::AnimValuesStyleRule> coverRule = new css::AnimValuesStyleRule;
-  if (!coverRule) {
-    NS_WARNING("out of memory");
-    return nullptr;
-  }
-  
+
   nsTArray<ElementPropertyTransition> &pts = et->mPropertyTransitions;
   for (PRUint32 i = 0, i_end = pts.Length(); i < i_end; ++i) {
     ElementPropertyTransition &pt = pts[i];
@@ -413,9 +379,19 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
                                       pt.mStartValue) &&
     ExtractComputedValueForTransition(aProperty, aNewStyleContext,
                                       pt.mEndValue);
+
+  bool haveChange = pt.mStartValue != pt.mEndValue;
+  bool haveOMTA = false;
+  if (!aNewStyleContext->GetPseudoType()) {
+    ElementTransitions* et = nsTransitionManager::GetTransitions(aElement);
+    if (et) {
+      haveOMTA = et->CanPerformOnCompositorThread();
+    }
+  }
+
   bool shouldAnimate =
     haveValues &&
-    pt.mStartValue != pt.mEndValue &&
+    (haveChange || haveOMTA) &&
     
     
     
@@ -496,7 +472,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       
       double valuePortion =
         oldPT.ValuePortionFor(mostRecentRefresh) * oldPT.mReversePortion +
-        (1.0 - oldPT.mReversePortion); 
+        (1.0 - oldPT.mReversePortion);
       
       
       
@@ -516,6 +492,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       
       if (delay < 0.0f)
         delay *= valuePortion;
+
       duration *= valuePortion;
 
       pt.mStartForReversingTest = oldPT.mEndValue;
@@ -527,7 +504,6 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   pt.mStartTime = mostRecentRefresh + TimeDuration::FromMilliseconds(delay);
   pt.mDuration = TimeDuration::FromMilliseconds(duration);
   pt.mTimingFunction.Init(tf);
-
   if (!aElementTransitions) {
     aElementTransitions =
       GetElementTransitions(aElement, aNewStyleContext->GetPseudoType(),
@@ -537,7 +513,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       return;
     }
   }
-  
+
   nsTArray<ElementPropertyTransition> &pts =
     aElementTransitions->mPropertyTransitions;
 #ifdef DEBUG
@@ -561,6 +537,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       nsCSSPseudoElements::ePseudo_NotPseudoElement ?
     eRestyle_Self : eRestyle_Subtree;
   presContext->PresShell()->RestyleForAnimation(aElement, hint);
+  
 
   *aStartedAny = true;
   aWhichStarted->AddProperty(aProperty);
@@ -594,16 +571,15 @@ nsTransitionManager::GetElementTransitions(dom::Element *aElement,
   if (!et && aCreateIfNeeded) {
     
     et = new ElementTransitions(aElement, propName, this);
-    if (!et) {
-      NS_WARNING("out of memory");
-      return nullptr;
-    }
     nsresult rv = aElement->SetProperty(propName, et,
                                         ElementTransitionsPropertyDtor, nullptr);
     if (NS_FAILED(rv)) {
       NS_WARNING("SetProperty failed");
       delete et;
       return nullptr;
+    }
+    if (propName == nsGkAtoms::transitionsProperty) {
+      aElement->SetMayHaveAnimations();
     }
 
     AddElementData(et);
@@ -759,8 +735,6 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
           et->mPropertyTransitions.RemoveElementAt(i);
         } else if (pt.mStartTime + pt.mDuration <= aTime) {
           
-
-          
           
           
           if (et->mElementProperty == nsGkAtoms::transitionsProperty) {
@@ -793,6 +767,9 @@ nsTransitionManager::WillRefresh(mozilla::TimeStamp aTime)
       nsRestyleHint hint = et->mElementProperty == nsGkAtoms::transitionsProperty ?
         eRestyle_Self : eRestyle_Subtree;
       mPresContext->PresShell()->RestyleForAnimation(et->mElement, hint);
+      
+      
+      
 
       if (et->mPropertyTransitions.IsEmpty()) {
         et->Destroy();

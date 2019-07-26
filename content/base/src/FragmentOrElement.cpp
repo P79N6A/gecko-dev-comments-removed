@@ -45,7 +45,7 @@
 #include "nsContentList.h"
 #include "nsDOMTokenList.h"
 #include "nsXBLPrototypeBinding.h"
-#include "nsError.h"
+#include "nsDOMError.h"
 #include "nsDOMString.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIDOMMutationEvent.h"
@@ -96,6 +96,7 @@
 #include "nsIScrollableFrame.h"
 #include "nsXBLInsertionPoint.h"
 #include "mozilla/css/StyleRule.h" 
+#include "nsCSSRuleProcessor.h"
 #include "nsRuleProcessorData.h"
 #include "nsAsyncDOMEvent.h"
 #include "nsTextNode.h"
@@ -110,6 +111,7 @@
 
 #include "mozAutoDocUpdate.h"
 
+#include "nsCSSParser.h"
 #include "prprf.h"
 #include "nsDOMMutationObserver.h"
 #include "nsSVGFeatures.h"
@@ -129,9 +131,9 @@ using namespace mozilla::dom;
 
 NS_DEFINE_IID(kThisPtrOffsetsSID, NS_THISPTROFFSETS_SID);
 
-int32_t nsIContent::sTabFocusModel = eTabFocus_any;
+PRInt32 nsIContent::sTabFocusModel = eTabFocus_any;
 bool nsIContent::sTabFocusModelAppliesToXUL = false;
-uint32_t nsMutationGuard::sMutationCount = 0;
+PRUint32 nsMutationGuard::sMutationCount = 0;
 
 nsIContent*
 nsIContent::FindFirstNonNativeAnonymous() const
@@ -316,7 +318,7 @@ nsIContent::GetBaseURI() const
   } while(elem);
   
   
-  for (uint32_t i = baseAttrs.Length() - 1; i != uint32_t(-1); --i) {
+  for (PRUint32 i = baseAttrs.Length() - 1; i != PRUint32(-1); --i) {
     nsCOMPtr<nsIURI> newBase;
     nsresult rv = NS_NewURI(getter_AddRefs(newBase), baseAttrs[i],
                             doc->GetDocumentCharacterSet().get(), base);
@@ -389,11 +391,11 @@ JSObject*
 nsChildContentList::WrapObject(JSContext *cx, JSObject *scope,
                                bool *triedToWrap)
 {
-  return mozilla::dom::oldproxybindings::NodeList::create(cx, scope, this, triedToWrap);
+  return mozilla::dom::binding::NodeList::create(cx, scope, this, triedToWrap);
 }
 
 NS_IMETHODIMP
-nsChildContentList::GetLength(uint32_t* aLength)
+nsChildContentList::GetLength(PRUint32* aLength)
 {
   *aLength = mNode ? mNode->GetChildCount() : 0;
 
@@ -401,7 +403,7 @@ nsChildContentList::GetLength(uint32_t* aLength)
 }
 
 NS_IMETHODIMP
-nsChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
+nsChildContentList::Item(PRUint32 aIndex, nsIDOMNode** aReturn)
 {
   nsINode* node = GetNodeAt(aIndex);
   if (!node) {
@@ -414,7 +416,7 @@ nsChildContentList::Item(uint32_t aIndex, nsIDOMNode** aReturn)
 }
 
 nsIContent*
-nsChildContentList::GetNodeAt(uint32_t aIndex)
+nsChildContentList::GetNodeAt(PRUint32 aIndex)
 {
   if (mNode) {
     return mNode->GetChildAt(aIndex);
@@ -423,7 +425,7 @@ nsChildContentList::GetNodeAt(uint32_t aIndex)
   return nullptr;
 }
 
-int32_t
+PRInt32
 nsChildContentList::IndexOf(nsIContent* aContent)
 {
   if (mNode) {
@@ -513,6 +515,33 @@ nsNodeSupportsWeakRefTearoff::GetWeakReference(nsIWeakReference** aInstancePtr)
   NS_ADDREF(*aInstancePtr = slots->mWeakReference);
 
   return NS_OK;
+}
+
+
+
+NS_IMPL_CYCLE_COLLECTION_1(nsNodeSelectorTearoff, mNode)
+
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsNodeSelectorTearoff)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMNodeSelector)
+NS_INTERFACE_MAP_END_AGGREGATED(mNode)
+
+NS_IMPL_CYCLE_COLLECTING_ADDREF(nsNodeSelectorTearoff)
+NS_IMPL_CYCLE_COLLECTING_RELEASE(nsNodeSelectorTearoff)
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelector(const nsAString& aSelector,
+                                     nsIDOMElement **aReturn)
+{
+  nsresult rv;
+  nsIContent* result = FragmentOrElement::doQuerySelector(mNode, aSelector, &rv);
+  return result ? CallQueryInterface(result, aReturn) : rv;
+}
+
+NS_IMETHODIMP
+nsNodeSelectorTearoff::QuerySelectorAll(const nsAString& aSelector,
+                                        nsIDOMNodeList **aReturn)
+{
+  return FragmentOrElement::doQuerySelectorAll(mNode, aSelector, aReturn);
 }
 
 
@@ -643,7 +672,7 @@ FragmentOrElement::SetNodeValue(const nsAString& aNodeValue)
 }
 
 NS_IMETHODIMP
-FragmentOrElement::GetNodeType(uint16_t* aNodeType)
+FragmentOrElement::GetNodeType(PRUint16* aNodeType)
 {
   *aNodeType = NodeType();
   return NS_OK;
@@ -772,7 +801,7 @@ FragmentOrElement::HasChildNodes(bool* aReturn)
 }
 
 already_AddRefed<nsINodeList>
-FragmentOrElement::GetChildren(uint32_t aFilter)
+FragmentOrElement::GetChildren(PRUint32 aFilter)
 {
   nsRefPtr<nsSimpleContentList> list = new nsSimpleContentList(this);
   if (!list) {
@@ -807,9 +836,9 @@ FragmentOrElement::GetChildren(uint32_t aFilter)
   }
 
   if (childList) {
-    uint32_t length = 0;
+    PRUint32 length = 0;
     childList->GetLength(&length);
-    for (uint32_t idx = 0; idx < length; idx++) {
+    for (PRUint32 idx = 0; idx < length; idx++) {
       nsIContent* child = childList->GetNodeAt(idx);
       list->AppendElement(child);
     }
@@ -1002,7 +1031,7 @@ FragmentOrElement::GetBindingParent() const
 
 nsresult
 FragmentOrElement::InsertChildAt(nsIContent* aKid,
-                                uint32_t aIndex,
+                                PRUint32 aIndex,
                                 bool aNotify)
 {
   NS_PRECONDITION(aKid, "null ptr");
@@ -1011,7 +1040,7 @@ FragmentOrElement::InsertChildAt(nsIContent* aKid,
 }
 
 void
-FragmentOrElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
+FragmentOrElement::RemoveChildAt(PRUint32 aIndex, bool aNotify)
 {
   nsCOMPtr<nsIContent> oldKid = mAttrsAndChildren.GetSafeChildAt(aIndex);
   NS_ASSERTION(oldKid == GetChildAt(aIndex), "Unexpected child in RemoveChildAt");
@@ -1045,7 +1074,7 @@ FragmentOrElement::DestroyContent()
   
   nsContentUtils::ReleaseWrapper(this, this);
 
-  uint32_t i, count = mAttrsAndChildren.ChildCount();
+  PRUint32 i, count = mAttrsAndChildren.ChildCount();
   for (i = 0; i < count; ++i) {
     
     mAttrsAndChildren.ChildAt(i)->DestroyContent();
@@ -1055,7 +1084,7 @@ FragmentOrElement::DestroyContent()
 void
 FragmentOrElement::SaveSubtreeState()
 {
-  uint32_t i, count = mAttrsAndChildren.ChildCount();
+  PRUint32 i, count = mAttrsAndChildren.ChildCount();
   for (i = 0; i < count; ++i) {
     mAttrsAndChildren.ChildAt(i)->SaveSubtreeState();
   }
@@ -1070,8 +1099,8 @@ FragmentOrElement::FireNodeInserted(nsIDocument* aDoc,
                                    nsINode* aParent,
                                    nsTArray<nsCOMPtr<nsIContent> >& aNodes)
 {
-  uint32_t count = aNodes.Length();
-  for (uint32_t i = 0; i < count; ++i) {
+  PRUint32 count = aNodes.Length();
+  for (PRUint32 i = 0; i < count; ++i) {
     nsIContent* childContent = aNodes[i];
 
     if (nsContentUtils::HasMutationListeners(childContent,
@@ -1115,7 +1144,7 @@ public:
       return;  
     }
     FragmentOrElement* container = static_cast<FragmentOrElement*>(aNode);
-    uint32_t childCount = container->mAttrsAndChildren.ChildCount();
+    PRUint32 childCount = container->mAttrsAndChildren.ChildCount();
     if (childCount) {
       while (childCount-- > 0) {
         
@@ -1137,15 +1166,15 @@ public:
   NS_IMETHOD Run()
   {
     nsAutoScriptBlocker scriptBlocker;
-    uint32_t len = mSubtreeRoots.Length();
+    PRUint32 len = mSubtreeRoots.Length();
     if (len) {
       PRTime start = PR_Now();
-      for (uint32_t i = 0; i < len; ++i) {
+      for (PRUint32 i = 0; i < len; ++i) {
         UnbindSubtree(mSubtreeRoots[i]);
       }
       mSubtreeRoots.Clear();
       Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_CONTENT_UNBIND,
-                            uint32_t(PR_Now() - start) / PR_USEC_PER_MSEC);
+                            PRUint32(PR_Now() - start) / PR_USEC_PER_MSEC);
     }
     if (this == sContentUnbinder) {
       sContentUnbinder = nullptr;
@@ -1220,7 +1249,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(FragmentOrElement)
 
   
   if (tmp->UnoptimizableCCNode() || !nsCCUncollectableMarker::sGeneration) {
-    uint32_t childCount = tmp->mAttrsAndChildren.ChildCount();
+    PRUint32 childCount = tmp->mAttrsAndChildren.ChildCount();
     if (childCount) {
       
       nsAutoScriptBlocker scriptBlocker;
@@ -1268,7 +1297,7 @@ void
 FragmentOrElement::MarkUserData(void* aObject, nsIAtom* aKey, void* aChild,
                                void* aData)
 {
-  uint32_t* gen = static_cast<uint32_t*>(aData);
+  PRUint32* gen = static_cast<PRUint32*>(aData);
   xpc_MarkInCCGeneration(static_cast<nsISupports*>(aChild), *gen);
 }
 
@@ -1326,8 +1355,8 @@ ClearBlackMarkedNodes()
   if (!gCCBlackMarkedNodes) {
     return;
   }
-  uint32_t len = gCCBlackMarkedNodes->Length();
-  for (uint32_t i = 0; i < len; ++i) {
+  PRUint32 len = gCCBlackMarkedNodes->Length();
+  for (PRUint32 i = 0; i < len; ++i) {
     nsINode* n = gCCBlackMarkedNodes->ElementAt(i);
     n->SetCCMarkedRoot(false);
     n->SetInCCBlackTree(false);
@@ -1426,7 +1455,7 @@ FragmentOrElement::CanSkipInCC(nsINode* aNode)
     currentDoc->
       MarkUncollectableForCCGeneration(nsCCUncollectableMarker::sGeneration);
   } else {
-    for (uint32_t i = 0; i < grayNodes.Length(); ++i) {
+    for (PRUint32 i = 0; i < grayNodes.Length(); ++i) {
       nsINode* node = grayNodes[i];
       node->SetInCCBlackTree(true);
     }
@@ -1435,7 +1464,7 @@ FragmentOrElement::CanSkipInCC(nsINode* aNode)
 
   
   
-  for (uint32_t i = 0; i < nodesToUnpurple.Length(); ++i) {
+  for (PRUint32 i = 0; i < nodesToUnpurple.Length(); ++i) {
     nsIContent* purple = nodesToUnpurple[i];
     
     if (purple != aNode) {
@@ -1451,8 +1480,8 @@ nsAutoTArray<nsIContent*, 1020>* gNodesToUnbind = nullptr;
 void ClearCycleCollectorCleanupData()
 {
   if (gPurpleRoots) {
-    uint32_t len = gPurpleRoots->Length();
-    for (uint32_t i = 0; i < len; ++i) {
+    PRUint32 len = gPurpleRoots->Length();
+    for (PRUint32 i = 0; i < len; ++i) {
       nsINode* n = gPurpleRoots->ElementAt(i);
       n->SetIsPurpleRoot(false);
     }
@@ -1460,8 +1489,8 @@ void ClearCycleCollectorCleanupData()
     gPurpleRoots = nullptr;
   }
   if (gNodesToUnbind) {
-    uint32_t len = gNodesToUnbind->Length();
-    for (uint32_t i = 0; i < len; ++i) {
+    PRUint32 len = gNodesToUnbind->Length();
+    for (PRUint32 i = 0; i < len; ++i) {
       nsIContent* c = gNodesToUnbind->ElementAt(i);
       c->SetIsPurpleRoot(false);
       ContentUnbinder::Append(c);
@@ -1602,7 +1631,7 @@ FragmentOrElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
         gNodesToUnbind = new nsAutoTArray<nsIContent*, 1020>();
       }
       gNodesToUnbind->AppendElement(static_cast<nsIContent*>(root));
-      for (uint32_t i = 0; i < nodesToClear.Length(); ++i) {
+      for (PRUint32 i = 0; i < nodesToClear.Length(); ++i) {
         nsIContent* n = nodesToClear[i];
         if ((n != aNode || aRemovingAllowed) && n->IsPurple()) {
           n->RemovePurple();
@@ -1631,7 +1660,7 @@ FragmentOrElement::CanSkip(nsINode* aNode, bool aRemovingAllowed)
 
   
   
-  for (uint32_t i = 0; i < nodesToClear.Length(); ++i) {
+  for (PRUint32 i = 0; i < nodesToClear.Length(); ++i) {
     nsIContent* n = nodesToClear[i];
     MarkNodeChildren(n);
     
@@ -1695,9 +1724,9 @@ static const char* kNSURIs[] = {
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
   if (NS_UNLIKELY(cb.WantDebugInfo())) {
     char name[512];
-    uint32_t nsid = tmp->GetNameSpaceID();
+    PRUint32 nsid = tmp->GetNameSpaceID();
     nsAtomCString localName(tmp->NodeInfo()->NameAtom());
-    nsAutoCString uri;
+    nsCAutoString uri;
     if (tmp->OwnerDoc()->GetDocumentURI()) {
       tmp->OwnerDoc()->GetDocumentURI()->GetSpec(uri);
     }
@@ -1728,7 +1757,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
                 NS_ConvertUTF16toUTF8(id).get(),
                 NS_ConvertUTF16toUTF8(classes).get(),
                 uri.get());
-    cb.DescribeRefCountedNode(tmp->mRefCnt.get(), name);
+    cb.DescribeRefCountedNode(tmp->mRefCnt.get(), sizeof(FragmentOrElement),
+                              name);
   }
   else {
     NS_IMPL_CYCLE_COLLECTION_DESCRIBE(FragmentOrElement, tmp->mRefCnt.get())
@@ -1767,8 +1797,8 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
 
   
   {
-    uint32_t i;
-    uint32_t attrs = tmp->mAttrsAndChildren.AttrCount();
+    PRUint32 i;
+    PRUint32 attrs = tmp->mAttrsAndChildren.AttrCount();
     for (i = 0; i < attrs; i++) {
       const nsAttrName* name = tmp->mAttrsAndChildren.AttrNameAt(i);
       if (!name->IsAtom()) {
@@ -1778,7 +1808,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(FragmentOrElement)
       }
     }
 
-    uint32_t kids = tmp->mAttrsAndChildren.ChildCount();
+    PRUint32 kids = tmp->mAttrsAndChildren.ChildCount();
     for (i = 0; i < kids; i++) {
       NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mAttrsAndChildren[i]");
       cb.NoteXPCOMChild(tmp->mAttrsAndChildren.GetSafeChildAt(i));
@@ -1835,7 +1865,7 @@ FragmentOrElement::PostQueryInterface(REFNSIID aIID, void** aInstancePtr)
 nsresult
 FragmentOrElement::CopyInnerTo(FragmentOrElement* aDst)
 {
-  uint32_t i, count = mAttrsAndChildren.AttrCount();
+  PRUint32 i, count = mAttrsAndChildren.AttrCount();
   for (i = 0; i < count; ++i) {
     const nsAttrName* name = mAttrsAndChildren.AttrNameAt(i);
     const nsAttrValue* value = mAttrsAndChildren.AttrAt(i);
@@ -1855,7 +1885,7 @@ FragmentOrElement::GetText()
   return nullptr;
 }
 
-uint32_t
+PRUint32
 FragmentOrElement::TextLength() const
 {
   
@@ -1866,7 +1896,7 @@ FragmentOrElement::TextLength() const
 }
 
 nsresult
-FragmentOrElement::SetText(const PRUnichar* aBuffer, uint32_t aLength,
+FragmentOrElement::SetText(const PRUnichar* aBuffer, PRUint32 aLength,
                           bool aNotify)
 {
   NS_ERROR("called FragmentOrElement::SetText");
@@ -1875,7 +1905,7 @@ FragmentOrElement::SetText(const PRUnichar* aBuffer, uint32_t aLength,
 }
 
 nsresult
-FragmentOrElement::AppendText(const PRUnichar* aBuffer, uint32_t aLength,
+FragmentOrElement::AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
                              bool aNotify)
 {
   NS_ERROR("called FragmentOrElement::AppendText");
@@ -1897,25 +1927,25 @@ FragmentOrElement::AppendTextTo(nsAString& aResult)
   NS_NOTREACHED("called FragmentOrElement::TextLength");
 }
 
-uint32_t
+PRUint32
 FragmentOrElement::GetChildCount() const
 {
   return mAttrsAndChildren.ChildCount();
 }
 
 nsIContent *
-FragmentOrElement::GetChildAt(uint32_t aIndex) const
+FragmentOrElement::GetChildAt(PRUint32 aIndex) const
 {
   return mAttrsAndChildren.GetSafeChildAt(aIndex);
 }
 
 nsIContent * const *
-FragmentOrElement::GetChildArray(uint32_t* aChildCount) const
+FragmentOrElement::GetChildArray(PRUint32* aChildCount) const
 {
   return mAttrsAndChildren.GetChildArray(aChildCount);
 }
 
-int32_t
+PRInt32
 FragmentOrElement::IndexOf(nsINode* aPossibleChild) const
 {
   return mAttrsAndChildren.IndexOfChild(aPossibleChild);
@@ -1946,6 +1976,164 @@ FragmentOrElement::FireNodeRemovedForChildren()
     nsContentUtils::MaybeFireNodeRemoved(child, this, doc);
   }
 }
+
+
+
+
+static nsresult
+ParseSelectorList(nsINode* aNode,
+                  const nsAString& aSelectorString,
+                  nsCSSSelectorList** aSelectorList)
+{
+  NS_ENSURE_ARG(aNode);
+
+  nsIDocument* doc = aNode->OwnerDoc();
+  nsCSSParser parser(doc->CSSLoader());
+
+  nsCSSSelectorList* selectorList;
+  nsresult rv = parser.ParseSelectorString(aSelectorString,
+                                           doc->GetDocumentURI(),
+                                           0, 
+                                           &selectorList);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCSSSelectorList** slot = &selectorList;
+  do {
+    nsCSSSelectorList* cur = *slot;
+    if (cur->mSelectors->IsPseudoElement()) {
+      *slot = cur->mNext;
+      cur->mNext = nullptr;
+      delete cur;
+    } else {
+      slot = &cur->mNext;
+    }
+  } while (*slot);
+  *aSelectorList = selectorList;
+
+  return NS_OK;
+}
+
+
+
+
+template<bool onlyFirstMatch, class T>
+inline static nsresult FindMatchingElements(nsINode* aRoot,
+                                            const nsAString& aSelector,
+                                            T &aList)
+{
+  nsAutoPtr<nsCSSSelectorList> selectorList;
+  nsresult rv = ParseSelectorList(aRoot, aSelector,
+                                  getter_Transfers(selectorList));
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(selectorList, NS_OK);
+
+  NS_ASSERTION(selectorList->mSelectors,
+               "How can we not have any selectors?");
+
+  nsIDocument* doc = aRoot->OwnerDoc();  
+  TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
+                                   doc, TreeMatchContext::eNeverMatchVisited);
+  doc->FlushPendingLinkUpdates();
+
+  
+  
+  
+  
+  
+  NS_ASSERTION(aRoot->IsElement() || aRoot->IsNodeOfType(nsINode::eDOCUMENT) ||
+               !aRoot->IsInDoc(),
+               "The optimization below to check ContentIsDescendantOf only for "
+               "elements depends on aRoot being either an element or a "
+               "document if it's in the document.");
+  if (aRoot->IsInDoc() &&
+      doc->GetCompatibilityMode() != eCompatibility_NavQuirks &&
+      !selectorList->mNext &&
+      selectorList->mSelectors->mIDList) {
+    nsIAtom* id = selectorList->mSelectors->mIDList->mAtom;
+    const nsSmallVoidArray* elements =
+      doc->GetAllElementsForId(nsDependentAtomString(id));
+
+    
+    
+    if (elements) {
+      for (PRInt32 i = 0; i < elements->Count(); ++i) {
+        Element *element = static_cast<Element*>(elements->ElementAt(i));
+        if (!aRoot->IsElement() ||
+            (element != aRoot &&
+             nsContentUtils::ContentIsDescendantOf(element, aRoot))) {
+          
+          
+          if (nsCSSRuleProcessor::SelectorListMatches(element, matchingContext,
+                                                      selectorList)) {
+            aList.AppendElement(element);
+            if (onlyFirstMatch) {
+              return NS_OK;
+            }
+          }
+        }
+      }
+    }
+
+    
+    
+    return NS_OK;
+  }
+
+  for (nsIContent* cur = aRoot->GetFirstChild();
+       cur;
+       cur = cur->GetNextNode(aRoot)) {
+    if (cur->IsElement() &&
+        nsCSSRuleProcessor::SelectorListMatches(cur->AsElement(),
+                                                matchingContext,
+                                                selectorList)) {
+      aList.AppendElement(cur->AsElement());
+      if (onlyFirstMatch) {
+        return NS_OK;
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+struct ElementHolder {
+  ElementHolder() : mElement(nullptr) {}
+  void AppendElement(Element* aElement) {
+    NS_ABORT_IF_FALSE(!mElement, "Should only get one element");
+    mElement = aElement;
+  }
+  Element* mElement;
+};
+
+
+nsIContent*
+FragmentOrElement::doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
+                                  nsresult *aResult)
+{
+  NS_PRECONDITION(aResult, "Null out param?");
+
+  ElementHolder holder;
+  *aResult = FindMatchingElements<true>(aRoot, aSelector, holder);
+
+  return holder.mElement;
+}
+
+
+nsresult
+FragmentOrElement::doQuerySelectorAll(nsINode* aRoot,
+                                     const nsAString& aSelector,
+                                     nsIDOMNodeList **aReturn)
+{
+  NS_PRECONDITION(aReturn, "Null out param?");
+
+  nsSimpleContentList* contentList = new nsSimpleContentList(aRoot);
+  NS_ENSURE_TRUE(contentList, NS_ERROR_OUT_OF_MEMORY);
+  NS_ADDREF(*aReturn = contentList);
+  
+  return FindMatchingElements<false>(aRoot, aSelector, *contentList);
+}
+
 
 size_t
 FragmentOrElement::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const

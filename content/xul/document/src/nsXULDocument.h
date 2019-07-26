@@ -345,7 +345,7 @@ protected:
 
 
 
-    nsCOMArray<nsIURI> mUnloadedOverlays;
+    nsTArray<nsCOMPtr<nsIURI> > mUnloadedOverlays;
 
     
 

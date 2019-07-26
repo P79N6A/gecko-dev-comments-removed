@@ -62,9 +62,9 @@ public:
 
 
 
-  bool InsertOptionAt(nsHTMLOptionElement* aOption, PRUint32 aIndex)
+  void InsertOptionAt(nsHTMLOptionElement* aOption, PRUint32 aIndex)
   {
-    return !!mElements.InsertElementAt(aIndex, aOption);
+    mElements.InsertElementAt(aIndex, aOption);
   }
 
   
@@ -97,9 +97,9 @@ public:
   
 
 
-  bool AppendOption(nsHTMLOptionElement* aOption)
+  void AppendOption(nsHTMLOptionElement* aOption)
   {
-    return !!mElements.AppendElement(aOption);
+    mElements.AppendElement(aOption);
   }
 
   
@@ -123,6 +123,7 @@ public:
 
 private:
   
+
   nsTArray<nsRefPtr<nsHTMLOptionElement> > mElements;
   
   nsHTMLSelectElement* mSelect;

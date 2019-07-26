@@ -11,113 +11,18 @@
 #include "nsStyleAnimation.h"
 #include "nsSMILKeySpline.h"
 #include "nsEventDispatcher.h"
+#include "nsDisplayList.h"
+#include "nsCSSFrameConstructor.h"
 
 using namespace mozilla;
 
-struct AnimationPropertySegment
+ElementAnimations::ElementAnimations(mozilla::dom::Element *aElement, nsIAtom *aElementProperty,
+                                     nsAnimationManager *aAnimationManager)
+  : CommonElementAnimationData(aElement, aElementProperty,
+                               aAnimationManager),
+    mNeedsRefreshes(true)
 {
-  float mFromKey, mToKey;
-  nsStyleAnimation::Value mFromValue, mToValue;
-  css::ComputedTimingFunction mTimingFunction;
-};
-
-struct AnimationProperty
-{
-  nsCSSProperty mProperty;
-  InfallibleTArray<AnimationPropertySegment> mSegments;
-};
-
-
-
-
-
-struct ElementAnimation
-{
-  ElementAnimation()
-    : mLastNotification(LAST_NOTIFICATION_NONE)
-  {
-  }
-
-  nsString mName; 
-  float mIterationCount; 
-  PRUint8 mDirection;
-  PRUint8 mFillMode;
-  PRUint8 mPlayState;
-
-  bool FillsForwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_FORWARDS;
-  }
-  bool FillsBackwards() const {
-    return mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BOTH ||
-           mFillMode == NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS;
-  }
-
-  bool IsPaused() const {
-    return mPlayState == NS_STYLE_ANIMATION_PLAY_STATE_PAUSED;
-  }
-
-  TimeStamp mStartTime; 
-  TimeStamp mPauseStart;
-  TimeDuration mIterationDuration;
-
-  enum {
-    LAST_NOTIFICATION_NONE = PRUint32(-1),
-    LAST_NOTIFICATION_END = PRUint32(-2)
-  };
-  
-  
-  PRUint32 mLastNotification;
-
-  InfallibleTArray<AnimationProperty> mProperties;
-};
-
-typedef nsAnimationManager::EventArray EventArray;
-typedef nsAnimationManager::AnimationEventInfo AnimationEventInfo;
-
-
-
-
-struct ElementAnimations : public mozilla::css::CommonElementAnimationData
-{
-  ElementAnimations(dom::Element *aElement, nsIAtom *aElementProperty,
-                     nsAnimationManager *aAnimationManager)
-    : CommonElementAnimationData(aElement, aElementProperty,
-                                 aAnimationManager),
-      mNeedsRefreshes(true)
-  {
-  }
-
-  void EnsureStyleRuleFor(TimeStamp aRefreshTime,
-                          EventArray &aEventsToDispatch);
-
-  bool IsForElement() const { 
-    return mElementProperty == nsGkAtoms::animationsProperty;
-  }
-
-  void PostRestyleForAnimation(nsPresContext *aPresContext) {
-    nsRestyleHint hint = IsForElement() ? eRestyle_Self : eRestyle_Subtree;
-    aPresContext->PresShell()->RestyleForAnimation(mElement, hint);
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  nsRefPtr<css::AnimValuesStyleRule> mStyleRule;
-  
-  TimeStamp mStyleRuleRefreshTime;
-
-  
-  
-  
-  bool mNeedsRefreshes;
-
-  InfallibleTArray<ElementAnimation> mAnimations;
-};
+}
 
 static void
 ElementAnimationsPropertyDtor(void           *aObject,
@@ -131,6 +36,114 @@ ElementAnimationsPropertyDtor(void           *aObject,
   ea->mCalledPropertyDtor = true;
 #endif
   delete ea;
+}
+
+double
+ElementAnimations::GetPositionInIteration(TimeStamp aStartTime, TimeStamp aCurrentTime,
+                                          TimeDuration aDuration, double aIterationCount,
+                                          PRUint32 aDirection, bool aIsForElement,
+                                          ElementAnimation* aAnimation,
+                                          ElementAnimations* aEa,
+                                          EventArray* aEventsToDispatch)
+{
+  
+  
+  TimeDuration currentTimeDuration = aCurrentTime - aStartTime;
+  double currentIterationCount =
+    currentTimeDuration / aDuration;
+  bool dispatchStartOrIteration = false;
+  if (currentIterationCount >= aIterationCount) {
+    if (!aAnimation) {
+      
+      
+      return -1;
+    }
+    
+    if (aIsForElement &&
+        aAnimation->mLastNotification !=
+          ElementAnimation::LAST_NOTIFICATION_END) {
+      aAnimation->mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
+      
+      
+      
+      AnimationEventInfo ei(aEa->mElement, aAnimation->mName, NS_ANIMATION_END,
+                            currentTimeDuration);
+      aEventsToDispatch->AppendElement(ei);
+    }
+
+    if (!aAnimation->FillsForwards()) {
+      
+      return -1;
+    }
+    currentIterationCount = double(aAnimation->mIterationCount);
+  } else {
+    if (aAnimation && !aAnimation->IsPaused()) {
+      aEa->mNeedsRefreshes = true;
+    }
+    if (currentIterationCount < 0.0) {
+      NS_ASSERTION(aAnimation, "Should not run animation that hasn't started yet on the compositor");
+      if (!aAnimation->FillsBackwards()) {
+        
+        return -1;
+      }
+      currentIterationCount = 0.0;
+    } else {
+      dispatchStartOrIteration = aAnimation && !aAnimation->IsPaused();
+    }
+  }
+
+  
+  
+  NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
+  PRUint32 whichIteration = int(currentIterationCount);
+  if (whichIteration == aIterationCount && whichIteration != 0) {
+    
+    
+    
+    --whichIteration;
+  }
+  double positionInIteration =
+    currentIterationCount - double(whichIteration);
+
+  bool thisIterationReverse = false;
+  switch (aDirection) {
+    case NS_STYLE_ANIMATION_DIRECTION_NORMAL:
+      thisIterationReverse = false;
+      break;
+    case NS_STYLE_ANIMATION_DIRECTION_REVERSE:
+      thisIterationReverse = true;
+      break;
+    case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE:
+      thisIterationReverse = (whichIteration & 1) == 1;
+      break;
+    case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
+      thisIterationReverse = (whichIteration & 1) == 0;
+      break;
+  }
+  if (thisIterationReverse) {
+    positionInIteration = 1.0 - positionInIteration;
+  }
+
+  
+  if (aAnimation && aIsForElement && dispatchStartOrIteration &&
+      whichIteration != aAnimation->mLastNotification) {
+    
+    
+    
+    
+    
+    
+    PRUint32 message =
+      aAnimation->mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
+        ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
+    
+    aAnimation->mLastNotification = whichIteration;
+    AnimationEventInfo ei(aEa->mElement, aAnimation->mName, message,
+                          currentTimeDuration);
+    aEventsToDispatch->AppendElement(ei);
+  }
+
+  return positionInIteration;
 }
 
 void
@@ -165,98 +178,24 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
         continue;
       }
 
-      TimeDuration currentTimeDuration;
+      TimeStamp currentTime;
       if (anim.IsPaused()) {
         
-        currentTimeDuration = anim.mPauseStart - anim.mStartTime;
+        currentTime = anim.mPauseStart;
       } else {
-        currentTimeDuration = aRefreshTime - anim.mStartTime;
+        currentTime = aRefreshTime;
       }
 
-      
-      
-      double currentIterationCount =
-        currentTimeDuration / anim.mIterationDuration;
-      bool dispatchStartOrIteration = false;
-      if (currentIterationCount >= double(anim.mIterationCount)) {
-        
-        if (IsForElement() && 
-            anim.mLastNotification !=
-              ElementAnimation::LAST_NOTIFICATION_END) {
-          anim.mLastNotification = ElementAnimation::LAST_NOTIFICATION_END;
-          AnimationEventInfo ei(mElement, anim.mName, NS_ANIMATION_END,
-                                currentTimeDuration);
-          aEventsToDispatch.AppendElement(ei);
-        }
-
-        if (!anim.FillsForwards()) {
-          
-          continue;
-        }
-        currentIterationCount = double(anim.mIterationCount);
-      } else {
-        if (!anim.IsPaused()) {
-          mNeedsRefreshes = true;
-        }
-        if (currentIterationCount < 0.0) {
-          if (!anim.FillsBackwards()) {
-            
-            continue;
-          }
-          currentIterationCount = 0.0;
-        } else {
-          dispatchStartOrIteration = !anim.IsPaused();
-        }
-      }
-
-      
-      
-      NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
-      PRUint32 whichIteration = int(currentIterationCount);
-      if (whichIteration == anim.mIterationCount && whichIteration != 0) {
-        
-        
-        
-        --whichIteration;
-      }
       double positionInIteration =
-        currentIterationCount - double(whichIteration);
-      bool thisIterationReverse = false;
-      switch (anim.mDirection) {
-        case NS_STYLE_ANIMATION_DIRECTION_NORMAL:
-          thisIterationReverse = false;
-          break;
-        case NS_STYLE_ANIMATION_DIRECTION_REVERSE:
-          thisIterationReverse = true;
-          break;
-        case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE:
-          thisIterationReverse = (whichIteration & 1) == 1;
-          break;
-        case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
-          thisIterationReverse = (whichIteration & 1) == 0;
-          break;
-      }
-      if (thisIterationReverse) {
-        positionInIteration = 1.0 - positionInIteration;
-      }
+        GetPositionInIteration(anim.mStartTime, currentTime,
+                               anim.mIterationDuration, anim.mIterationCount,
+                               anim.mDirection, IsForElement(),
+                               &anim, this, &aEventsToDispatch);
 
       
-      if (IsForElement() && dispatchStartOrIteration &&
-          whichIteration != anim.mLastNotification) {
-        
-        
-        
-        
-        
-        
-        PRUint32 message =
-          anim.mLastNotification == ElementAnimation::LAST_NOTIFICATION_NONE
-            ? NS_ANIMATION_START : NS_ANIMATION_ITERATION;
-        anim.mLastNotification = whichIteration;
-        AnimationEventInfo ei(mElement, anim.mName, message,
-                              currentTimeDuration);
-        aEventsToDispatch.AppendElement(ei);
-      }
+      
+      if (positionInIteration == -1)
+        continue;
 
       NS_ABORT_IF_FALSE(0.0 <= positionInIteration &&
                           positionInIteration <= 1.0,
@@ -323,6 +262,66 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
   }
 }
 
+static bool
+CanPerformAnimationOnCompositor(const ElementAnimation* aAnim,
+                                mozilla::dom::Element* aElement)
+{
+  for (PRUint32 propIdx = 0, propEnd = aAnim->mProperties.Length();
+       propIdx != propEnd; ++propIdx) {
+    const AnimationProperty &prop = aAnim->mProperties[propIdx];
+    if (!mozilla::css::CommonElementAnimationData::
+           CanAnimatePropertyOnCompositor(aElement,
+                                          prop.mProperty)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool
+ElementAnimation::CanPerformOnCompositor(mozilla::dom::Element* aElement,
+                                         TimeStamp aTime) const
+{
+  return CanPerformAnimationOnCompositor(this, aElement) &&
+    !IsPaused() && aTime > mStartTime &&
+    (aTime - mStartTime)  / mIterationDuration < mIterationCount;
+}
+
+bool
+ElementAnimations::HasAnimationOfProperty(nsCSSProperty aProperty) const
+{
+  for (PRUint32 animIdx = mAnimations.Length(); animIdx-- != 0; ) {
+    const ElementAnimation &anim = mAnimations[animIdx];
+    for (PRUint32 propIdx = 0, propEnd = anim.mProperties.Length();
+         propIdx != propEnd; ++propIdx) {
+      const AnimationProperty &prop = anim.mProperties[propIdx];
+      if (aProperty == prop.mProperty) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+bool
+ElementAnimations::CanPerformOnCompositorThread() const
+{
+  if (mElementProperty != nsGkAtoms::animationsProperty)
+    return false;
+  for (PRUint32 animIdx = mAnimations.Length(); animIdx-- != 0; ) {
+    const ElementAnimation &anim = mAnimations[animIdx];
+    if (anim.mIterationDuration.ToMilliseconds() <= 0.0) {
+      
+      continue;
+    }
+
+    if (!CanPerformAnimationOnCompositor(&anim, mElement))
+      return false;
+ }
+
+  return true;
+}
+
 ElementAnimations*
 nsAnimationManager::GetElementAnimations(dom::Element *aElement,
                                          nsCSSPseudoElements::Type aPseudoType,
@@ -351,16 +350,15 @@ nsAnimationManager::GetElementAnimations(dom::Element *aElement,
   if (!ea && aCreateIfNeeded) {
     
     ea = new ElementAnimations(aElement, propName, this);
-    if (!ea) {
-      NS_WARNING("out of memory");
-      return nullptr;
-    }
     nsresult rv = aElement->SetProperty(propName, ea,
                                         ElementAnimationsPropertyDtor, nullptr);
     if (NS_FAILED(rv)) {
       NS_WARNING("SetProperty failed");
       delete ea;
       return nullptr;
+    }
+    if (propName == nsGkAtoms::animationsProperty) {
+      aElement->SetMayHaveAnimations();
     }
 
     AddElementData(ea);
@@ -463,6 +461,7 @@ nsAnimationManager::CheckAnimationRule(nsStyleContext* aStyleContext,
     TimeStamp refreshTime = mPresContext->RefreshDriver()->MostRecentRefresh();
 
     if (ea) {
+      
       
       ea->mStyleRule = nullptr;
       ea->mStyleRuleRefreshTime = TimeStamp();

@@ -1972,19 +1972,13 @@ for (uint32_t i = 0; i < length; ++i) {
                             "arraybuffer views because making sure all the "
                             "objects are properly rooted is hard")
         name = type.name
-        if type.isArrayBuffer():
-            jsname = "ArrayBufferObject"
-        elif type.isArrayBufferView():
-            jsname = "ArrayBufferViewObject"
-        else:
-            jsname = type.name
-
         
         
         
         holderType = "Maybe<%s>" % name
         constructLoc = "${holderName}"
         constructMethod = "construct"
+        constructInternal = "ref"
         if type.nullable():
             if isOptional:
                 declType = "const Optional<" + name + "*>"
@@ -1997,15 +1991,16 @@ for (uint32_t i = 0; i < length; ++i) {
                 holderType = None
                 constructLoc = "(const_cast<Optional<" + name + ">& >(${declName}))"
                 constructMethod = "Construct"
+                constructInternal = "Value"
             else:
                 declType = "NonNull<" + name + ">"
         template = (
-            "if (!JS_Is%s(&${val}.toObject(), cx)) {\n"
+            "%s.%s(cx, &${val}.toObject());\n"
+            "if (!%s.%s().inited()) {\n"
             "%s" 
-            "}\n"
-            "%s.%s(cx, &${val}.toObject());\n" %
-            (jsname, CGIndenter(onFailure(failureCode, descriptorProvider.workers)).define(),
-             constructLoc, constructMethod))
+            "}\n" %
+            (constructLoc, constructMethod, constructLoc, constructInternal,
+             CGIndenter(onFailure(failureCode, descriptorProvider.workers)).define()))
         nullableTarget = ""
         if type.nullable():
             if isOptional:

@@ -974,13 +974,25 @@ nsHTMLFormElement::WalkFormElements(nsFormSubmission* aFormSubmission)
   nsresult rv = mControls->GetSortedControls(sortedControls);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
   PRUint32 len = sortedControls.Length();
+
+  
+  
+  for (PRUint32 i = 0; i < len; ++i) {
+    static_cast<nsGenericHTMLElement*>(sortedControls[i])->AddRef();
+  }
+
+  
+  
+  
   for (PRUint32 i = 0; i < len; ++i) {
     
     sortedControls[i]->SubmitNamesValues(aFormSubmission);
+  }
+
+  
+  for (PRUint32 i = 0; i < len; ++i) {
+    static_cast<nsGenericHTMLElement*>(sortedControls[i])->Release();
   }
 
   return NS_OK;

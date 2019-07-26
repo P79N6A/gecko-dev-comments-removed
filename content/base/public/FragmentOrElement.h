@@ -12,28 +12,50 @@
 #ifndef FragmentOrElement_h___
 #define FragmentOrElement_h___
 
-#include "nsAttrAndChildArray.h"          
-#include "nsCOMPtr.h"                     
-#include "nsCycleCollectionParticipant.h" 
-#include "nsIContent.h"                   
-#include "nsIDOMTouchEvent.h"             
-#include "nsIDOMXPathNSResolver.h"        
-#include "nsIInlineEventHandlers.h"       
-#include "nsINodeList.h"                  
-#include "nsIWeakReference.h"             
-#include "nsNodeUtils.h"                  
+#include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
+#include "nsIContent.h"
+#include "nsIDOMElement.h"
+#include "nsIDOMDocumentFragment.h"
+#include "nsILinkHandler.h"
+#include "nsNodeUtils.h"
+#include "nsAttrAndChildArray.h"
+#include "mozFlushType.h"
+#include "nsDOMAttributeMap.h"
+#include "nsIWeakReference.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsIDocument.h"
+#include "nsIDOMNodeSelector.h"
+#include "nsIDOMXPathNSResolver.h"
+#include "nsPresContext.h"
+#include "nsIDOMDOMStringMap.h"
+#include "nsContentList.h"
+#include "nsDOMClassInfoID.h" 
+#include "nsIDOMTouchEvent.h"
+#include "nsIInlineEventHandlers.h"
+#include "mozilla/CORSMode.h"
+#include "mozilla/Attributes.h"
 
-class ContentUnbinder;
-class nsContentList;
-class nsDOMAttributeMap;
-class nsDOMTokenList;
-class nsIControllers;
-class nsICSSDeclaration;
-class nsIDocument;
-class nsIDOMDOMStringMap;
+#include "nsISMILAttr.h"
+
+class nsIDOMAttr;
+class nsIDOMEventListener;
+class nsIFrame;
 class nsIDOMNamedNodeMap;
-class nsINodeInfo;
+class nsICSSDeclaration;
+class nsIDOMCSSStyleDeclaration;
 class nsIURI;
+class nsINodeInfo;
+class nsIControllers;
+class nsEventListenerManager;
+class nsIScrollableFrame;
+class nsAttrValueOrString;
+class nsContentList;
+class nsDOMTokenList;
+class ContentUnbinder;
+struct nsRect;
+
+typedef PRUptrdiff PtrBits;
 
 
 
@@ -61,7 +83,7 @@ public:
   NS_DECL_NSIDOMNODELIST
 
   
-  virtual int32_t IndexOf(nsIContent* aContent);
+  virtual PRInt32 IndexOf(nsIContent* aContent);
 
   void DropReference()
   {
@@ -154,6 +176,29 @@ private:
 };
 
 
+
+
+class nsNodeSelectorTearoff MOZ_FINAL : public nsIDOMNodeSelector
+{
+public:
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+
+  NS_DECL_NSIDOMNODESELECTOR
+
+  NS_DECL_CYCLE_COLLECTION_CLASS(nsNodeSelectorTearoff)
+
+  nsNodeSelectorTearoff(nsINode *aNode) : mNode(aNode)
+  {
+  }
+
+private:
+  ~nsNodeSelectorTearoff() {}
+
+private:
+  nsCOMPtr<nsINode> mNode;
+};
+
+
 class nsTouchEventReceiverTearoff;
 class nsInlineEventHandlersTearoff;
 
@@ -184,28 +229,28 @@ public:
   nsresult PostQueryInterface(REFNSIID aIID, void** aInstancePtr);
 
   
-  virtual uint32_t GetChildCount() const;
-  virtual nsIContent *GetChildAt(uint32_t aIndex) const;
-  virtual nsIContent * const * GetChildArray(uint32_t* aChildCount) const;
-  virtual int32_t IndexOf(nsINode* aPossibleChild) const;
-  virtual nsresult InsertChildAt(nsIContent* aKid, uint32_t aIndex,
+  virtual PRUint32 GetChildCount() const;
+  virtual nsIContent *GetChildAt(PRUint32 aIndex) const;
+  virtual nsIContent * const * GetChildArray(PRUint32* aChildCount) const;
+  virtual PRInt32 IndexOf(nsINode* aPossibleChild) const;
+  virtual nsresult InsertChildAt(nsIContent* aKid, PRUint32 aIndex,
                                  bool aNotify);
-  virtual void RemoveChildAt(uint32_t aIndex, bool aNotify);
+  virtual void RemoveChildAt(PRUint32 aIndex, bool aNotify);
   NS_IMETHOD GetTextContent(nsAString &aTextContent);
   NS_IMETHOD SetTextContent(const nsAString& aTextContent);
 
   
-  virtual already_AddRefed<nsINodeList> GetChildren(uint32_t aFilter);
+  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
   virtual const nsTextFragment *GetText();
-  virtual uint32_t TextLength() const;
-  virtual nsresult SetText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual PRUint32 TextLength() const;
+  virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
                            bool aNotify);
   
   nsresult SetText(const nsAString& aStr, bool aNotify)
   {
     return SetText(aStr.BeginReading(), aStr.Length(), aNotify);
   }
-  virtual nsresult AppendText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
                               bool aNotify);
   virtual bool TextIsOnlyWhitespace();
   virtual void AppendTextTo(nsAString& aResult);
@@ -224,7 +269,7 @@ public:
   NS_IMETHOD GetLocalName(nsAString& aLocalName);
   NS_IMETHOD GetNodeValue(nsAString& aNodeValue);
   NS_IMETHOD SetNodeValue(const nsAString& aNodeValue);
-  NS_IMETHOD GetNodeType(uint16_t* aNodeType);
+  NS_IMETHOD GetNodeType(PRUint16* aNodeType);
   NS_IMETHOD GetAttributes(nsIDOMNamedNodeMap** aAttributes);
   NS_IMETHOD GetNamespaceURI(nsAString& aNamespaceURI);
   NS_IMETHOD GetPrefix(nsAString& aPrefix);
@@ -251,7 +296,7 @@ public:
     return InsertBefore(aNewChild, nullptr, aReturn);
   }
 
-  nsresult CloneNode(bool aDeep, uint8_t aOptionalArgc, nsIDOMNode **aResult)
+  nsresult CloneNode(bool aDeep, PRUint8 aOptionalArgc, nsIDOMNode **aResult)
   {
     if (!aOptionalArgc) {
       aDeep = true;
@@ -283,6 +328,15 @@ public:
                                nsINode* aParent,
                                nsTArray<nsCOMPtr<nsIContent> >& aNodes);
 
+  
+
+
+  static nsIContent* doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
+                                     nsresult *aResult);
+  static nsresult doQuerySelectorAll(nsINode* aRoot,
+                                     const nsAString& aSelector,
+                                     nsIDOMNodeList **aReturn);
+
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(FragmentOrElement)
 
   
@@ -292,7 +346,7 @@ public:
 
   virtual bool OwnedOnlyByTheDOMTree()
   {
-    uint32_t rc = mRefCnt.get();
+    PRUint32 rc = mRefCnt.get();
     if (GetParent()) {
       --rc;
     }

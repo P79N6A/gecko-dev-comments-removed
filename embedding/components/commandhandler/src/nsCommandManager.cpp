@@ -38,15 +38,16 @@ nsCommandManager::~nsCommandManager()
 
 
 static PLDHashOperator
-TraverseCommandObservers(const char* aKey, nsCOMArray<nsIObserver>* aObservers,
+TraverseCommandObservers(const char* aKey,
+                         nsCommandManager::ObserverList* aObservers,
                          void* aClosure)
 {
   nsCycleCollectionTraversalCallback *cb = 
     static_cast<nsCycleCollectionTraversalCallback*>(aClosure);
 
-  PRInt32 i, numItems = aObservers->Count();
+  PRInt32 i, numItems = aObservers->Length();
   for (i = 0; i < numItems; ++i) {
-    cb->NoteXPCOMChild(aObservers->ObjectAt(i));
+    cb->NoteXPCOMChild(aObservers->ElementAt(i));
   }
 
   return PL_DHASH_NEXT;
@@ -90,16 +91,16 @@ nsCommandManager::Init(nsIDOMWindow *aWindow)
 NS_IMETHODIMP
 nsCommandManager::CommandStatusChanged(const char * aCommandName)
 {
-  nsCOMArray<nsIObserver>* commandObservers;
+  ObserverList* commandObservers;
   mObserversTable.Get(aCommandName, &commandObservers);
 
   if (commandObservers)
   {
     
-    PRInt32 i, numItems = commandObservers->Count();
+    PRInt32 i, numItems = commandObservers->Length();
     for (i = 0; i < numItems;  ++i)
     {
-      nsCOMPtr<nsIObserver> observer = commandObservers->ObjectAt(i);
+      nsCOMPtr<nsIObserver> observer = commandObservers->ElementAt(i);
       
       observer->Observe(NS_ISUPPORTS_CAST(nsICommandManager*, this),
                         aCommandName,
@@ -120,28 +121,24 @@ nsCommandManager::AddCommandObserver(nsIObserver *aCommandObserver, const char *
 {
   NS_ENSURE_ARG(aCommandObserver);
 
-  nsresult rv = NS_OK;
-
   
 
   
-  nsCOMArray<nsIObserver>* commandObservers;
+  ObserverList* commandObservers;
   if (!mObserversTable.Get(aCommandToObserve, &commandObservers))
   {
-    nsAutoPtr<nsCOMArray<nsIObserver> > array(new nsCOMArray<nsIObserver>);
-    mObserversTable.Put(aCommandToObserve, array);
-
-    commandObservers = array.forget();
+    commandObservers = new ObserverList;
+    mObserversTable.Put(aCommandToObserve, commandObservers);
   }
 
   
   PRInt32 existingIndex = commandObservers->IndexOf(aCommandObserver);
   if (existingIndex == -1)
-    rv = commandObservers->AppendObject(aCommandObserver);
+    commandObservers->AppendElement(aCommandObserver);
   else
     NS_WARNING("Registering command observer twice on the same command");
   
-  return rv;
+  return NS_OK;
 }
 
 
@@ -152,12 +149,13 @@ nsCommandManager::RemoveCommandObserver(nsIObserver *aCommandObserver, const cha
 
   
 
-  nsCOMArray<nsIObserver>* commandObservers;
+  ObserverList* commandObservers;
   if (!mObserversTable.Get(aCommandObserved, &commandObservers))
     return NS_ERROR_UNEXPECTED;
 
-  return commandObservers->RemoveObject(aCommandObserver) ? NS_OK :
-                                                            NS_ERROR_FAILURE;
+  commandObservers->RemoveElement(aCommandObserver);
+
+  return NS_OK;
 }
 
 

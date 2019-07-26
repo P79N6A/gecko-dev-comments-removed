@@ -948,10 +948,9 @@ WordSplitState::ShouldSkipWord(PRInt32 aStart, PRInt32 aLength)
 
   
   for (PRInt32 i = aStart; i < last; i ++) {
-    PRUnichar ch = mDOMWordText[i];
-    
-    if (ch >= '0' && ch <= '9')
+    if (unicode::GetGenCategory(mDOMWordText[i]) == nsIUGenCategory::kNumber) {
       return true;
+    }
   }
 
   

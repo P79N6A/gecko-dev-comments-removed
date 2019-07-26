@@ -11,6 +11,7 @@
 #include "nsChangeHint.h"
 #include "nsINode.h"
 #include "nsIDocument.h" 
+#include "nsCSSProperty.h"
 
 
 class nsIAtom;
@@ -760,31 +761,6 @@ public:
 
 
   NS_IMETHOD WalkContentStyleRules(nsRuleWalker* aRuleWalker) = 0;
-
-  
-
-
-
-
-
-
-  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
-
-  
-
-
-
-
-
-  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              PRInt32 aModType) const = 0;
-
-  
-
-
-
-
-  virtual nsIAtom *GetClassAttributeName() const = 0;
 
   
 

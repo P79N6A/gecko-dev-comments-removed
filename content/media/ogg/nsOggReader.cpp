@@ -1656,8 +1656,7 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
         
         
         
-        
-        return (nsresult)PAGE_SYNC_ERROR;
+        return NS_OK;
       }
     }
 
