@@ -2643,10 +2643,24 @@ Tab.prototype = {
   },
 
   sendViewportUpdate: function(aPageSizeUpdate) {
-    let viewport = this.getViewport();
-    let displayPort = getBridge().getDisplayPort(aPageSizeUpdate, BrowserApp.isBrowserContentDocumentDisplayed(), this.id, viewport);
+    let message;
+    
+    
+    
+    if (BrowserApp.selectedTab == this && BrowserApp.isBrowserContentDocumentDisplayed()) {
+      message = this.getViewport();
+      message.type = aPageSizeUpdate ? "Viewport:PageSize" : "Viewport:Update";
+    } else {
+      
+      
+      
+      
+      message = this.getViewport();
+      message.type = "Viewport:CalculateDisplayPort";
+    }
+    let displayPort = sendMessageToJava({ gecko: message });
     if (displayPort != null)
-      this.setDisplayPort(displayPort);
+      this.setDisplayPort(JSON.parse(displayPort));
   },
 
   handleEvent: function(aEvent) {
