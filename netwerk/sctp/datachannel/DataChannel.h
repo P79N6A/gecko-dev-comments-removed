@@ -109,7 +109,6 @@ public:
   virtual ~DataChannelConnection();
 
   bool Init(unsigned short aPort, uint16_t aNumStreams, bool aUsingDtls);
-  void Destroy(); 
 
   
   
@@ -169,8 +168,6 @@ protected:
   DataConnectionListener *mListener;
 
 private:
-  friend class DataChannelConnectRunnable;
-
 #ifdef SCTP_DTLS_SUPPORTED
   static void DTLSConnectThread(void *data);
   int SendPacket(const unsigned char* data, size_t len, bool release);
@@ -238,24 +235,21 @@ private:
   
   nsAutoTArray<uint16_t,4> mStreamsResetting;
 
-  struct socket *mMasterSocket; 
-  struct socket *mSocket; 
-  uint16_t mState; 
+  struct socket *mMasterSocket;
+  struct socket *mSocket;
+  uint16_t mState;
 
 #ifdef SCTP_DTLS_SUPPORTED
   nsRefPtr<TransportFlow> mTransportFlow;
   nsCOMPtr<nsIEventTarget> mSTS;
 #endif
-  uint16_t mLocalPort; 
+  uint16_t mLocalPort;
   uint16_t mRemotePort;
 
   
   nsCOMPtr<nsITimer> mDeferredTimer;
   uint32_t mDeferTimeout; 
   bool mTimerRunning;
-
-  
-  nsCOMPtr<nsIThread> mConnectThread;
 };
 
 class DataChannel {
@@ -292,7 +286,6 @@ public:
     }
 
   ~DataChannel();
-  void Destroy(); 
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DataChannel)
 
@@ -420,14 +413,6 @@ public:
       mChannel(aChannel),
       mConnection(aConnection) {}
 
-  
-  DataChannelOnMessageAvailable(int32_t     aType,
-                                DataChannelConnection *aConnection,
-                                bool aResult)
-    : mType(aType),
-      mConnection(aConnection),
-      mResult(aResult) {}
-
   NS_IMETHOD Run()
   {
     switch (mType) {
@@ -464,10 +449,7 @@ public:
         mConnection->mListener->NotifyDataChannel(mChannel);
         break;
       case ON_CONNECTION:
-        if (mResult) {
-          mConnection->mListener->NotifyConnection();
-        }
-        mConnection->mConnectThread = nullptr; 
+        mConnection->mListener->NotifyConnection();
         break;
       case ON_DISCONNECTED:
         mConnection->mListener->NotifyClosedConnection();
@@ -488,7 +470,6 @@ private:
   nsRefPtr<DataChannelConnection>   mConnection;
   nsCString                         mData;
   int32_t                           mLen;
-  bool                              mResult;
 };
 
 }
