@@ -1974,17 +1974,6 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JSObject* aOuterObject)
 
 
 
-static bool
-TreatAsRemoteXUL(nsIPrincipal* aPrincipal)
-{
-  MOZ_ASSERT(!nsContentUtils::IsSystemPrincipal(aPrincipal));
-  return nsContentUtils::AllowXULXBLForPrincipal(aPrincipal) &&
-         !Preferences::GetBool("dom.use_xbl_scopes_for_remote_xul", false);
-}
-
-
-
-
 
 
 static nsresult
@@ -2015,19 +2004,10 @@ CreateNativeGlobalForInner(JSContext* aCx,
 
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
 
-  
-  bool componentsInContent =
-    !Preferences::GetBool("dom.omit_components_in_content", true) ||
-    !Preferences::GetBool("dom.xbl_scopes", true);
-  bool needComponents = componentsInContent ||
-                        nsContentUtils::IsSystemPrincipal(aPrincipal) ||
-                        TreatAsRemoteXUL(aPrincipal);
-  uint32_t flags = needComponents ? 0 : nsIXPConnect::OMIT_COMPONENTS_OBJECT;
-
   nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
   nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
     aCx, ToSupports(aNewInner),
-    aPrincipal, flags, zoneSpec, getter_AddRefs(jsholder));
+    aPrincipal, 0, zoneSpec, getter_AddRefs(jsholder));
   NS_ENSURE_SUCCESS(rv, rv);
 
   MOZ_ASSERT(jsholder);
