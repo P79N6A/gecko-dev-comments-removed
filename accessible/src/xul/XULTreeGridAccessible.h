@@ -106,7 +106,6 @@ protected:
 
   
   mutable AccessibleHashtable mAccessibleCache;
-  nsString mCachedName;
 };
 
 
@@ -181,7 +180,8 @@ public:
 
 
 
-  void CellInvalidated();
+
+  bool CellInvalidated();
 
 protected:
   
