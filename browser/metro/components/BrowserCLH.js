@@ -223,11 +223,6 @@ BrowserCLH.prototype = {
         let defaultURL = getHomePage();
 
         
-        if (needHomepageOverride() == "new profile") {
-          defaultURL = 'about:newtab?firstrun';
-        }
-
-        
         if (uris.length > 0) {
           defaultURL = uris[0].spec;
           uris = uris.slice(1);

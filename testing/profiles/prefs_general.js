@@ -154,3 +154,7 @@ user_pref("browser.pagethumbnails.capturing_disabled", true);
 
 
 user_pref("browser.download.panel.shown", true);
+
+
+
+user_pref("browser.firstrun.count", 0);

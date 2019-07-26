@@ -122,6 +122,9 @@ pref("browser.display.history.maxresults", 100);
 pref("browser.display.startUI.maxresults", 16);
 
 
+pref("browser.firstrun.count", 3);
+
+
 
 
 
