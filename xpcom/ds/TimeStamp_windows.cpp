@@ -7,10 +7,6 @@
 
 
 
-
-
-#define FORCE_PR_LOG
-
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/TimeStamp.h"
