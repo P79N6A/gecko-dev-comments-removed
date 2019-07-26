@@ -4838,9 +4838,9 @@ static const JSJitInfo dom_x_getterinfo = {
     true,     
     true,     
     false,    
+    false,    
     0,        
-    JSJitInfo::AliasNone, 
-    nullptr   
+    JSJitInfo::AliasNone 
 };
 
 static const JSJitInfo dom_x_setterinfo = {
@@ -4852,9 +4852,9 @@ static const JSJitInfo dom_x_setterinfo = {
     false,    
     false,    
     false,    
+    false,    
     0,        
-    JSJitInfo::AliasEverything, 
-    nullptr   
+    JSJitInfo::AliasEverything 
 };
 
 static const JSJitInfo doFoo_methodinfo = {
@@ -4866,9 +4866,9 @@ static const JSJitInfo doFoo_methodinfo = {
     false,    
     false,    
     false,    
+    false,    
     0,        
-    JSJitInfo::AliasEverything, 
-    nullptr   
+    JSJitInfo::AliasEverything 
 };
 
 static const JSPropertySpec dom_props[] = {

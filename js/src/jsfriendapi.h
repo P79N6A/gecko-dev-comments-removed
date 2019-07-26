@@ -1504,6 +1504,11 @@ struct JSJitInfo {
         return type != ParallelNative;
     }
 
+    bool isTypedMethodJitInfo() const
+    {
+        return isTypedMethod;
+    }
+
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
@@ -1526,7 +1531,9 @@ struct JSJitInfo {
 
     uint16_t isInSlot : 1;     
 
-    uint16_t slotIndex : 13;   
+    uint16_t isTypedMethod : 1; 
+
+    uint16_t slotIndex : 12;   
 
 
     AliasSet aliasSet;      
@@ -1536,12 +1543,6 @@ struct JSJitInfo {
 
     
     
-    const ArgType* const argTypes; 
-
-
-
-
-
 
 private:
     static void staticAsserts()
@@ -1553,6 +1554,26 @@ private:
         JS_STATIC_ASSERT(Any & Object);
         JS_STATIC_ASSERT(Any & Null);
     }
+};
+
+struct JSTypedMethodJitInfo
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    JSJitInfo base;
+
+    const JSJitInfo::ArgType* const argTypes; 
+
+
+
+
+
 };
 
 namespace JS {
@@ -1584,7 +1605,7 @@ inline int CheckIsParallelNative(JSParallelNative parallelNative);
 
 #define JS_JITINFO_NATIVE_PARALLEL(infoName, parallelOp)                \
     const JSJitInfo infoName =                                          \
-        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSVAL_TYPE_MISSING,false,false,false,0,JSJitInfo::AliasEverything,nullptr}
+        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSVAL_TYPE_MISSING,false,false,false,false,0,JSJitInfo::AliasEverything}
 
 #define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
     bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, \
