@@ -795,7 +795,7 @@ js_DumpScriptDepth(JSContext *cx, JSScript *scriptArg, jsbytecode *pc)
 }
 
 static char *
-QuoteString(Sprinter *sp, JSString *str, uint32_t quote);
+QuoteString(Sprinter *sp, JSString *str, jschar quote);
 
 static bool
 ToDisassemblySource(JSContext *cx, HandleValue v, JSAutoByteString *bytes)
@@ -1288,69 +1288,60 @@ const char js_EscapeMap[] = {
     '\0'
 };
 
-#define DONT_ESCAPE     0x10000
-
+template <typename CharT>
 static char *
-QuoteString(Sprinter *sp, JSString *str, uint32_t quote)
+QuoteString(Sprinter *sp, const CharT *s, size_t length, jschar quote)
 {
     
-    bool dontEscape = (quote & DONT_ESCAPE) != 0;
-    jschar qc = (jschar) quote;
     ptrdiff_t offset = sp->getOffset();
-    if (qc && Sprint(sp, "%c", (char)qc) < 0)
+
+    if (quote && Sprint(sp, "%c", char(quote)) < 0)
         return nullptr;
 
-    const jschar *s = str->getChars(sp->context);
-    if (!s)
-        return nullptr;
-    const jschar *z = s + str->length();
+    const CharT *end = s + length;
 
     
-    for (const jschar *t = s; t < z; s = ++t) {
+    for (const CharT *t = s; t < end; s = ++t) {
         
         jschar c = *t;
-        while (c < 127 && isprint(c) && c != qc && c != '\\' && c != '\t') {
+        while (c < 127 && isprint(c) && c != quote && c != '\\' && c != '\t') {
             c = *++t;
-            if (t == z)
+            if (t == end)
                 break;
         }
 
         {
             ptrdiff_t len = t - s;
             ptrdiff_t base = sp->getOffset();
-            char *bp = sp->reserve(len);
-            if (!bp)
+            if (!sp->reserve(len))
                 return nullptr;
 
             for (ptrdiff_t i = 0; i < len; ++i)
-                (*sp)[base + i] = (char) *s++;
+                (*sp)[base + i] = char(*s++);
             (*sp)[base + len] = 0;
         }
 
-        if (t == z)
+        if (t == end)
             break;
 
         
-        bool ok;
-        const char *e;
-        if (!(c >> 8) && c != 0 && (e = strchr(js_EscapeMap, (int)c)) != nullptr) {
-            ok = dontEscape
-                 ? Sprint(sp, "%c", (char)c) >= 0
-                 : Sprint(sp, "\\%c", e[1]) >= 0;
+        const char *escape;
+        if (!(c >> 8) && c != 0 && (escape = strchr(js_EscapeMap, int(c))) != nullptr) {
+            if (Sprint(sp, "\\%c", escape[1]) < 0)
+                return nullptr;
         } else {
             
 
 
 
 
-            ok = Sprint(sp, (qc && !(c >> 8)) ? "\\x%02X" : "\\u%04X", c) >= 0;
+            if (Sprint(sp, (quote && !(c >> 8)) ? "\\x%02X" : "\\u%04X", c) < 0)
+                return nullptr;
         }
-        if (!ok)
-            return nullptr;
     }
 
     
-    if (qc && Sprint(sp, "%c", (char)qc) < 0)
+    if (quote && Sprint(sp, "%c", char(quote)) < 0)
         return nullptr;
 
     
@@ -1361,6 +1352,19 @@ QuoteString(Sprinter *sp, JSString *str, uint32_t quote)
         return nullptr;
 
     return sp->stringAt(offset);
+}
+
+static char *
+QuoteString(Sprinter *sp, JSString *str, jschar quote)
+{
+    JSLinearString *linear = str->ensureLinear(sp->context);
+    if (!linear)
+        return nullptr;
+
+    AutoCheckCannotGC nogc;
+    return linear->hasLatin1Chars()
+           ? QuoteString(sp, linear->latin1Chars(nogc), linear->length(), quote)
+           : QuoteString(sp, linear->twoByteChars(nogc), linear->length(), quote);
 }
 
 JSString *
