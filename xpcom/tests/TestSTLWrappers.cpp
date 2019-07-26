@@ -13,6 +13,9 @@
 
 
 #ifdef _MSC_VER
+   
+   
+#  pragma warning( disable : 4530 )
 #  define TRY       try
 #  define CATCH(e)  catch (e)
 #else
@@ -30,7 +33,7 @@ int main() {
       
       
       rv += v.at(1) ? 1 : 2;
-    } CATCH(const std::out_of_range& e) {
+    } CATCH(const std::out_of_range&) {
       fputs("TEST-FAIL | TestSTLWrappers.cpp | caught an exception?\n",
             stderr);
       return 1;
