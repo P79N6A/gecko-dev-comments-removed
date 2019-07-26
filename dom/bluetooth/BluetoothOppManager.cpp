@@ -161,11 +161,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mPutFinal(false)
                                            , mWaitingForConfirmationFlag(false)
 {
-  
-  
-  
-  
-  mConnectedDeviceAddress.AssignASCII("00:00:00:00:00:00");
+  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
 
 BluetoothOppManager::~BluetoothOppManager()
@@ -347,6 +343,8 @@ BluetoothOppManager::AfterOppDisconnected()
     mReadFileThread->Shutdown();
     mReadFileThread = nullptr;
   }
+
+  mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
 }
 
 
@@ -959,6 +957,9 @@ BluetoothOppManager::ReceivingFileConfirmation(const nsString& aAddress,
 void
 BluetoothOppManager::OnConnectSuccess()
 {
+  
+  
+  GetSocketAddr(mConnectedDeviceAddress);
 }
 
 void
@@ -969,4 +970,8 @@ BluetoothOppManager::OnConnectError()
 void
 BluetoothOppManager::OnDisconnect()
 {
+  
+  
+  
+  AfterOppDisconnected();
 }
