@@ -59,6 +59,11 @@ public class GLController {
     };
 
     private GLController() {
+        
+        
+        
+        
+        GfxInfoThread.startThread();
     }
 
     static GLController getInstance(LayerView view) {
@@ -115,6 +120,17 @@ public class GLController {
 
         mView.post(new Runnable() {
             public void run() {
+                
+                
+                
+                
+                
+                
+                if (!mCompositorCreated && !GfxInfoThread.hasData()) {
+                    mView.postDelayed(this, 1);
+                    return;
+                }
+
                 try {
                     
                     

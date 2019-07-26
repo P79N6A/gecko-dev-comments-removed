@@ -5,7 +5,6 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.gfx.GfxInfoThread;
 import org.mozilla.gecko.mozglue.GeckoLoader;
 import org.mozilla.gecko.util.GeckoEventListener;
 
@@ -92,15 +91,6 @@ public class GeckoThread extends Thread implements GeckoEventListener {
 
     @Override
     public void run() {
-        
-        
-        
-        
-        
-        
-        GeckoAppShell.sGfxInfoThread = new GfxInfoThread();
-        GeckoAppShell.sGfxInfoThread.start();
-
         String path = initGeckoEnvironment();
 
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - runGecko");
