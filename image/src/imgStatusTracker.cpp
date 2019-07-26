@@ -13,6 +13,7 @@
 #include "ImageLogging.h"
 #include "RasterImage.h"
 #include "nsIObserverService.h"
+#include "RasterImage.h"
 
 #include "mozilla/Util.h"
 #include "mozilla/Assertions.h"
@@ -291,12 +292,18 @@ imgStatusTracker::imgStatusTracker(Image* aImage)
     mHadLastPart(false)
 {}
 
+
 imgStatusTracker::imgStatusTracker(const imgStatusTracker& aOther)
   : mImage(aOther.mImage),
+    mTrackerObserver(new imgStatusTrackerNotifyingObserver(this)),
     mState(aOther.mState),
     mImageStatus(aOther.mImageStatus),
     mIsMultipart(aOther.mIsMultipart),
     mHadLastPart(aOther.mHadLastPart)
+    
+    
+    
+    
     
     
     
@@ -478,6 +485,53 @@ imgStatusTracker::SyncNotifyState(imgRequestProxy* proxy, bool hasImage, uint32_
   if (state & stateRequestStopped) {
     proxy->OnStopRequest(hadLastPart);
   }
+}
+
+void
+imgStatusTracker::SyncAndSyncNotifyDifference(imgStatusTracker* other)
+{
+  uint32_t diffState = ~mState & other->mState;
+  bool unblockedOnload = mState & stateBlockingOnload && !(other->mState & stateBlockingOnload);
+  bool foundError = mImageStatus == imgIRequest::STATUS_ERROR;
+
+  
+  
+
+  
+  mInvalidRect = mInvalidRect.Union(other->mInvalidRect);
+  mState |= other->mState;
+  mImageStatus = other->mImageStatus;
+  mIsMultipart = other->mIsMultipart;
+  mHadLastPart = other->mHadLastPart;
+
+  
+  
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mConsumers);
+  while (iter.HasMore()) {
+    imgRequestProxy* proxy = iter.GetNext();
+
+    if (!proxy->NotificationsDeferred()) {
+      SyncNotifyState(proxy, mImage, diffState, mInvalidRect, other->mHadLastPart);
+
+      if (unblockedOnload) {
+        SendUnblockOnload(proxy);
+      }
+    }
+  }
+
+  
+  other->mInvalidRect.SetEmpty();
+
+  if (foundError) {
+    FireFailureNotification();
+  }
+}
+
+imgStatusTracker*
+imgStatusTracker::CloneForRecording()
+{
+  imgStatusTracker* clone = new imgStatusTracker(*this);
+  return clone;
 }
 
 void

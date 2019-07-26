@@ -58,7 +58,6 @@ public:
   
   
   imgStatusTracker(mozilla::image::Image* aImage);
-  imgStatusTracker(const imgStatusTracker& aOther);
   ~imgStatusTracker();
 
   
@@ -180,17 +179,22 @@ public:
 
   inline imgDecoderObserver* GetDecoderObserver() { return mTrackerObserver.get(); }
 
+  imgStatusTracker* CloneForRecording();
+
 private:
   friend class imgStatusNotifyRunnable;
   friend class imgRequestNotifyRunnable;
   friend class imgStatusTrackerObserver;
   friend class imgStatusTrackerNotifyingObserver;
+  imgStatusTracker(const imgStatusTracker& aOther);
 
   void FireFailureNotification();
 
   static void SyncNotifyState(imgRequestProxy* proxy, bool hasImage,
                               uint32_t state, nsIntRect& dirtyRect,
                               bool hadLastPart);
+
+  void SyncAndSyncNotifyDifference(imgStatusTracker* other);
 
   nsCOMPtr<nsIRunnable> mRequestRunnable;
 
