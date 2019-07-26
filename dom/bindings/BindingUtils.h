@@ -25,6 +25,8 @@
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/CallbackObject.h"
 
+class nsPIDOMWindow;
+
 namespace mozilla {
 namespace dom {
 
@@ -1990,6 +1992,13 @@ GetUnforgeableHolder(JSObject* aGlobal, prototypes::ID aId)
   return &js::GetReservedSlot(interfaceProto,
                               DOM_INTERFACE_PROTO_SLOTS_BASE).toObject();
 }
+
+
+
+
+bool
+GetWindowForJSImplementedObject(JSContext* cx, JS::Handle<JSObject*> obj,
+                                nsPIDOMWindow** window);
 
 } 
 } 
