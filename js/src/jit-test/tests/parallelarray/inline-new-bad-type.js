@@ -14,5 +14,5 @@ if (getBuildConfiguration().parallelJS) {
   } catch(exc1) {}
   reportCompare();
 } else {
-  throw new TypeError();
+  throw new RangeError();
 }
