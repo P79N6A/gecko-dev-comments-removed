@@ -100,6 +100,11 @@ public:
   void CheckAudioOffload();
 #endif
 
+private:
+  
+  
+  
+  DebugOnly<bool> mIsActive;
 };
 
 } 
