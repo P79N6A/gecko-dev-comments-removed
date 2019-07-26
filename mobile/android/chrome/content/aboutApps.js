@@ -58,6 +58,9 @@ function onLoad(aEvent) {
   navigator.mozApps.mgmt.oninstall = onInstall;
   navigator.mozApps.mgmt.onuninstall = onUninstall;
   updateList();
+
+  
+  document.addEventListener("touchstart", function() { });
 }
 
 function updateList() {
