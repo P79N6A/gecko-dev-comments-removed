@@ -14,7 +14,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.widget.AdapterView;
@@ -31,12 +30,6 @@ public class BookmarksListView extends HomeListView
                                implements AdapterView.OnItemClickListener{
     public static final String LOGTAG = "GeckoBookmarksListView";
 
-    
-    private MotionEvent mMotionEvent;
-
-    
-    private int mTouchSlop;
-
     public BookmarksListView(Context context) {
         this(context, null);
     }
@@ -47,9 +40,6 @@ public class BookmarksListView extends HomeListView
 
     public BookmarksListView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
-
-        
-        mTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
     }
 
     @Override
@@ -68,36 +58,6 @@ public class BookmarksListView extends HomeListView
                 return false;
             }
         });
-    }
-
-    @Override
-    public boolean onInterceptTouchEvent(MotionEvent event) {
-        switch(event.getAction() & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_DOWN: {
-                
-                mMotionEvent = MotionEvent.obtain(event);
-                break;
-            }
-
-            case MotionEvent.ACTION_MOVE: {
-                if ((mMotionEvent != null) &&
-                    (Math.abs(event.getY() - mMotionEvent.getY()) > mTouchSlop)) {
-                    
-                    
-                    onTouchEvent(mMotionEvent);
-                    return true;
-                }
-                break;
-            }
-
-            default: {
-                mMotionEvent = null;
-                break;
-            }
-        }
-
-        
-        return super.onInterceptTouchEvent(event);
     }
 
     @Override
