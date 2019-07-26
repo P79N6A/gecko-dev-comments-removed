@@ -212,8 +212,7 @@ class AbstractFramePtr
     inline unsigned numActualArgs() const;
     inline unsigned numFormalArgs() const;
 
-    inline Value *formals() const;
-    inline Value *actuals() const;
+    inline Value *argv() const;
 
     inline bool hasArgsObj() const;
     inline ArgumentsObject &argsObj() const;
@@ -288,32 +287,28 @@ class StackFrame
         FINISHED_IN_INTERP =       0x80,  
 
         
-        OVERFLOW_ARGS      =      0x100,  
-        UNDERFLOW_ARGS     =      0x200,  
+        HAS_CALL_OBJ       =      0x100,  
+        HAS_ARGS_OBJ       =      0x200,  
 
         
-        HAS_CALL_OBJ       =      0x400,  
-        HAS_ARGS_OBJ       =      0x800,  
+        HAS_HOOK_DATA      =      0x400,  
+        HAS_RVAL           =      0x800,  
+        HAS_SCOPECHAIN     =     0x1000,  
+        HAS_PREVPC         =     0x2000,  
+        HAS_BLOCKCHAIN     =     0x4000,  
 
         
-        HAS_HOOK_DATA      =     0x1000,  
-        HAS_RVAL           =     0x2000,  
-        HAS_SCOPECHAIN     =     0x4000,  
-        HAS_PREVPC         =     0x8000,  
-        HAS_BLOCKCHAIN     =    0x10000,  
+        PREV_UP_TO_DATE    =     0x8000,  
 
         
-        PREV_UP_TO_DATE    =    0x20000,  
+        HAS_PUSHED_SPS_FRAME =  0x10000,  
 
         
-        HAS_PUSHED_SPS_FRAME =  0x40000,  
+        RUNNING_IN_ION     =    0x20000,  
+        CALLING_INTO_ION   =    0x40000,  
 
         
-        RUNNING_IN_ION     =    0x80000,  
-        CALLING_INTO_ION   =   0x100000,  
-
-        
-        USE_NEW_TYPE       =   0x200000   
+        USE_NEW_TYPE       =    0x80000   
     };
 
   private:
@@ -356,9 +351,7 @@ class StackFrame
   public:
     Value *slots() const { return (Value *)(this + 1); }
     Value *base() const { return slots() + script()->nfixed; }
-    Value *formals() const { return (Value *)this - fun()->nargs; }
-    Value *actuals() const { return formals() - (flags_ & OVERFLOW_ARGS ? 2 + u.nactual : 0); }
-    unsigned nactual() const { return u.nactual; }
+    Value *argv() const { return (Value *)this - Max(numActualArgs(), numFormalArgs()); }
 
   private:
     friend class FrameRegs;
@@ -519,13 +512,6 @@ class StackFrame
 
 
 
-
-
-
-
-
-
-
     inline Value &unaliasedVar(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
     inline Value &unaliasedLocal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING);
 
@@ -536,8 +522,8 @@ class StackFrame
 
     bool copyRawFrameSlots(AutoValueVector *v);
 
-    inline unsigned numFormalArgs() const;
-    inline unsigned numActualArgs() const;
+    unsigned numFormalArgs() const { JS_ASSERT(hasArgs()); return fun()->nargs; }
+    unsigned numActualArgs() const { JS_ASSERT(hasArgs()); return u.nactual; }
 
     inline Value &canonicalActualArg(unsigned i) const;
     template <class Op>
@@ -706,18 +692,18 @@ class StackFrame
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((Value *)this)[-1];
-        return formals()[-1];
+        return argv()[-1];
     }
 
     JSObject &constructorThis() const {
         JS_ASSERT(hasArgs());
-        return formals()[-1].toObject();
+        return argv()[-1].toObject();
     }
 
     Value &thisValue() const {
         if (flags_ & (EVAL | GLOBAL))
             return ((Value *)this)[-1];
-        return formals()[-1];
+        return argv()[-1];
     }
 
     
@@ -742,7 +728,7 @@ class StackFrame
     const Value &maybeCalleev() const {
         Value &calleev = flags_ & (EVAL | GLOBAL)
                          ? ((Value *)this)[-2]
-                         : formals()[-2];
+                         : argv()[-2];
         JS_ASSERT(calleev.isObjectOrNull());
         return calleev;
     }
@@ -751,11 +737,11 @@ class StackFrame
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((Value *)this)[-2];
-        return formals()[-2];
+        return argv()[-2];
     }
 
     CallReceiver callReceiver() const {
-        return CallReceiverFromArgv(formals());
+        return CallReceiverFromArgv(argv());
     }
 
     
@@ -850,7 +836,7 @@ class StackFrame
 
     Value *generatorArgsSnapshotBegin() const {
         JS_ASSERT(isGeneratorFrame());
-        return actuals() - 2;
+        return argv() - 2;
     }
 
     Value *generatorArgsSnapshotEnd() const {
@@ -945,10 +931,6 @@ class StackFrame
 
     void setPrevUpToDate() {
         flags_ |= PREV_UP_TO_DATE;
-    }
-
-    bool hasOverflowArgs() const {
-        return !!(flags_ & OVERFLOW_ARGS);
     }
 
     bool isYielding() {

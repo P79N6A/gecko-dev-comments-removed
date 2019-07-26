@@ -30,25 +30,13 @@ CopyStackFrameArguments(const AbstractFramePtr frame, HeapValue *dst, unsigned t
 {
     JS_ASSERT_IF(frame.isStackFrame(), !frame.asStackFrame()->runningInIon());
 
-    unsigned numActuals = frame.numActualArgs();
-    unsigned numFormals = frame.callee()->nargs;
-    JS_ASSERT(numActuals <= totalArgs);
-    JS_ASSERT(numFormals <= totalArgs);
-    JS_ASSERT(Max(numActuals, numFormals) == totalArgs);
+    JS_ASSERT(Max(frame.numActualArgs(), frame.numFormalArgs()) == totalArgs);
 
     
-    Value *src = frame.formals();
-    Value *end = src + numFormals;
+    Value *src = frame.argv();
+    Value *end = src + totalArgs;
     while (src != end)
         (dst++)->init(*src++);
-
-    
-    if (numFormals < numActuals) {
-        src = frame.actuals() + numFormals;
-        end = src + (numActuals - numFormals);
-        while (src != end)
-            (dst++)->init(*src++);
-    }
 }
 
  void
@@ -352,7 +340,7 @@ ArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, MutableHa
     if (JSID_IS_INT(id)) {
         unsigned arg = unsigned(JSID_TO_INT(id));
         if (arg < argsobj.initialLength() && !argsobj.isElementDeleted(arg)) {
-            argsobj.setElement(arg, vp);
+            argsobj.setElement(cx, arg, vp);
             if (arg < script->function()->nargs)
                 types::TypeScript::SetArgument(cx, script, arg, vp);
             return true;
@@ -475,7 +463,7 @@ StrictArgSetter(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Mut
     if (JSID_IS_INT(id)) {
         unsigned arg = unsigned(JSID_TO_INT(id));
         if (arg < argsobj->initialLength()) {
-            argsobj->setElement(arg, vp);
+            argsobj->setElement(cx, arg, vp);
             return true;
         }
     } else {
