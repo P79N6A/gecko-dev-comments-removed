@@ -762,27 +762,6 @@ public:
   }
 };
 
-class nsDOMTouchListSH : public nsArraySH
-{
-  protected:
-  nsDOMTouchListSH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsDOMTouchListSH()
-  {
-  }
-
-  virtual nsISupports* GetItemAt(nsISupports *aNative, uint32_t aIndex,
-                                 nsWrapperCache **aCache, nsresult *aResult) MOZ_OVERRIDE;
-
-  public:
-  static nsIClassInfo* doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsDOMTouchListSH(aData);
-  }
-};
-
 
 
 class nsStorage2SH : public nsDOMGenericSH
