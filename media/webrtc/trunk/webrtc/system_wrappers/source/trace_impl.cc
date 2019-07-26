@@ -88,8 +88,12 @@ TraceImpl::TraceImpl()
 
   for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
     for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
+#if !defined(WEBRTC_LAZY_TRACE_ALLOC)
       message_queue_[m][n] = new
       char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
+#else
+      message_queue_[m][n] = NULL;
+#endif
     }
   }
 }
@@ -340,6 +344,21 @@ int32_t TraceImpl::AddModuleAndId(char* trace_message,
 
 int32_t TraceImpl::SetTraceFileImpl(const char* file_name_utf8,
                                     const bool add_file_counter) {
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  if (file_name_utf8) {
+    
+    
+    
+    CriticalSectionScoped lock(critsect_array_);
+
+    for (int m = 0; m < WEBRTC_TRACE_NUM_ARRAY; ++m) {
+      for (int n = 0; n < WEBRTC_TRACE_MAX_QUEUE; ++n) {
+        message_queue_[m][n] = new char[WEBRTC_TRACE_MAX_MESSAGE_SIZE];
+      }
+    }
+  }
+#endif
+
   CriticalSectionScoped lock(critsect_interface_);
 
   trace_file_.Flush();
@@ -424,7 +443,19 @@ void TraceImpl::AddMessageToList(
 
   CriticalSectionScoped lock(critsect_array_);
 
-  if (next_free_idx_[active_queue_] >= WEBRTC_TRACE_MAX_QUEUE) {
+  uint16_t idx = next_free_idx_[active_queue_];
+
+#if defined(WEBRTC_LAZY_TRACE_ALLOC)
+  
+  
+  
+  
+  if (!message_queue_[active_queue_][idx]) {
+      return;
+  }
+#endif
+
+  if (idx >= WEBRTC_TRACE_MAX_QUEUE) {
     if (!trace_file_.Open() && !callback_) {
       
       
@@ -436,7 +467,7 @@ void TraceImpl::AddMessageToList(
                message_queue_[active_queue_][n + last_quarter_offset],
                WEBRTC_TRACE_MAX_MESSAGE_SIZE);
       }
-      next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE / 4;
+      idx = next_free_idx_[active_queue_] = WEBRTC_TRACE_MAX_QUEUE / 4;
     } else {
       
       
@@ -449,7 +480,6 @@ void TraceImpl::AddMessageToList(
     }
   }
 
-  uint16_t idx = next_free_idx_[active_queue_];
   next_free_idx_[active_queue_]++;
 
   level_[active_queue_][idx] = level;
