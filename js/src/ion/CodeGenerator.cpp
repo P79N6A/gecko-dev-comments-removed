@@ -514,7 +514,7 @@ CodeGenerator::emitCallInvokeFunction(LCallGeneric *call, uint32 unusedStack)
     masm.freeStack(unusedStack);
 
     pushArg(StackPointer);                    
-    pushArg(Imm32(call->numStackArgs()));     
+    pushArg(Imm32(call->numActualArgs()));    
     pushArg(ToRegister(call->getFunction())); 
 
     if (!callVM(InvokeFunctionInfo, call))
