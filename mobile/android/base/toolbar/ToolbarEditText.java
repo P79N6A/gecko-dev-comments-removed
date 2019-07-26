@@ -16,20 +16,24 @@ import org.mozilla.gecko.util.GamepadUtils;
 import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.graphics.Rect;
+import android.os.Build;
 import android.text.Editable;
 import android.text.NoCopySpan;
 import android.text.Selection;
 import android.text.Spanned;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.text.style.ForegroundColorSpan;
+import android.text.style.BackgroundColorSpan;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.View.OnKeyListener;
+import android.view.inputmethod.BaseInputConnection;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputConnection;
+import android.view.inputmethod.InputConnectionWrapper;
 import android.view.inputmethod.InputMethodManager;
 
 
@@ -125,14 +129,11 @@ public class ToolbarEditText extends CustomEditText
 
 
     private void resetAutocompleteState() {
-        final int textColor = getCurrentTextColor();
-
         mAutoCompleteSpans = new Object[] {
             
             AUTOCOMPLETE_SPAN,
             
-            new ForegroundColorSpan(Color.argb(
-                0x80, Color.red(textColor), Color.green(textColor), Color.blue(textColor)))
+            new BackgroundColorSpan(getHighlightColor())
         };
 
         mAutoCompleteResult = "";
@@ -160,11 +161,11 @@ public class ToolbarEditText extends CustomEditText
 
 
 
-    private void removeAutocomplete(final Editable text) {
+    private boolean removeAutocomplete(final Editable text) {
         final int start = text.getSpanStart(AUTOCOMPLETE_SPAN);
         if (start < 0) {
             
-            return;
+            return false;
         }
 
         beginSettingAutocomplete();
@@ -176,7 +177,11 @@ public class ToolbarEditText extends CustomEditText
         
         mAutoCompleteResult = "";
 
+        
+        setCursorVisible(true);
+
         endSettingAutocomplete();
+        return true;
     }
 
     
@@ -184,7 +189,13 @@ public class ToolbarEditText extends CustomEditText
 
 
 
-    private void commitAutocomplete(final Editable text) {
+    private boolean commitAutocomplete(final Editable text) {
+        final int start = text.getSpanStart(AUTOCOMPLETE_SPAN);
+        if (start < 0) {
+            
+            return false;
+        }
+
         beginSettingAutocomplete();
 
         
@@ -196,12 +207,16 @@ public class ToolbarEditText extends CustomEditText
         
         mAutoCompletePrefixLength = text.length();
 
+        
+        setCursorVisible(true);
+
         endSettingAutocomplete();
 
         
         if (mFilterListener != null) {
             mFilterListener.onFilter(text.toString(), null);
         }
+        return true;
     }
 
     
@@ -283,6 +298,9 @@ public class ToolbarEditText extends CustomEditText
             }
 
             
+            setCursorVisible(false);
+
+            
             
             
             
@@ -315,6 +333,63 @@ public class ToolbarEditText extends CustomEditText
         }
 
         return false;
+    }
+
+    
+
+
+
+
+
+    @Override
+    public InputConnection onCreateInputConnection(final EditorInfo outAttrs) {
+        final InputConnection ic = super.onCreateInputConnection(outAttrs);
+        if (ic == null) {
+            return null;
+        }
+
+        return new InputConnectionWrapper(ic, false) {
+            @Override
+            public boolean deleteSurroundingText(final int beforeLength, final int afterLength) {
+                if (removeAutocomplete(getText())) {
+                    
+                    
+                    
+                    return false;
+                }
+                return super.deleteSurroundingText(beforeLength, afterLength);
+            }
+
+            @Override
+            public boolean setComposingText(final CharSequence text, final int newCursorPosition) {
+                final Editable editable = getText();
+                final int composingStart = BaseInputConnection.getComposingSpanStart(editable);
+                final int composingEnd = BaseInputConnection.getComposingSpanEnd(editable);
+                
+                
+                if (composingStart >= 0 &&
+                    composingEnd >= 0 &&
+                    (composingEnd - composingStart) > text.length() &&
+                    removeAutocomplete(editable)) {
+                    
+                    
+                    return super.finishComposingText();
+                }
+                return super.setComposingText(text, newCursorPosition);
+            }
+
+            @Override
+            public boolean sendKeyEvent(final KeyEvent event) {
+                if ((event.getKeyCode() == KeyEvent.KEYCODE_DEL ||
+                    (Build.VERSION.SDK_INT >= 11 &&
+                        event.getKeyCode() == KeyEvent.KEYCODE_FORWARD_DEL)) &&
+                    removeAutocomplete(getText())) {
+                    
+                    return false;
+                }
+                return super.sendKeyEvent(event);
+            }
+        };
     }
 
     private class SelectionChangeListener implements OnSelectionChangedListener {
