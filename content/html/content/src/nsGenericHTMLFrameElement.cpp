@@ -418,7 +418,7 @@ nsGenericHTMLFrameElement::GetReallyIsBrowserOrApp(bool *aOut)
   
   nsIPrincipal *principal = NodePrincipal();
   nsCOMPtr<nsIPermissionManager> permMgr =
-    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+    services::GetPermissionManager();
   NS_ENSURE_TRUE(permMgr, NS_OK);
 
   uint32_t permission = nsIPermissionManager::DENY_ACTION;
@@ -464,7 +464,7 @@ nsGenericHTMLFrameElement::GetAppManifestURL(nsAString& aOut)
   
   nsIPrincipal *principal = NodePrincipal();
   nsCOMPtr<nsIPermissionManager> permMgr =
-    do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
+    services::GetPermissionManager();
   NS_ENSURE_TRUE(permMgr, NS_OK);
 
   uint32_t permission = nsIPermissionManager::DENY_ACTION;

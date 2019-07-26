@@ -3121,8 +3121,8 @@ nsObjectLoadingContent::ShouldPlay(FallbackType &aReason, bool aIgnoreCurrentTyp
   NS_ENSURE_SUCCESS(rv, false);
   nsCOMPtr<nsIDocument> topDoc = do_QueryInterface(topDocument);
 
-  nsCOMPtr<nsIPermissionManager> permissionManager = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, false);
+  nsCOMPtr<nsIPermissionManager> permissionManager = services::GetPermissionManager();
+  NS_ENSURE_TRUE(permissionManager, false);
 
   
   
