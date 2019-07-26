@@ -143,23 +143,6 @@ public:
   nsresult EnsureMessagesManager();
 
   
-  void GetAppName(nsString& aAppName)
-  {
-    NS_GetNavigatorAppName(aAppName);
-  }
-  void GetAppVersion(nsString& aAppVersion, ErrorResult& aRv)
-  {
-    aRv = GetAppVersion(aAppVersion);
-  }
-  void GetPlatform(nsString& aPlatform, ErrorResult& aRv)
-  {
-    aRv = GetPlatform(aPlatform);
-  }
-  void GetUserAgent(nsString& aUserAgent, ErrorResult& aRv)
-  {
-    aRv = GetUserAgent(aUserAgent);
-  }
-  
   
   bool OnLine();
   void RegisterProtocolHandler(const nsAString& aScheme, const nsAString& aURL,

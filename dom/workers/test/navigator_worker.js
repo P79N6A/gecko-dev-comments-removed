@@ -1,0 +1,43 @@
+
+
+
+
+var supportedProps = [
+  "appCodeName",
+  "appName",
+  "appVersion",
+  "platform",
+  "product",
+  "taintEnabled",
+  "userAgent"
+];
+
+for (var prop in navigator) {
+  
+  if (supportedProps.indexOf(prop) == -1) {
+    throw "Navigator has the '" + prop + "' property that isn't in the list!";
+  }
+}
+
+var obj;
+
+for (var index = 0; index < supportedProps.length; index++) {
+  var prop = supportedProps[index];
+
+  if (typeof navigator[prop] == "undefined") {
+    throw "Navigator has no '" + prop + "' property!";
+  }
+
+  obj = {
+    name:  prop,
+    value: prop === "taintEnabled" ? navigator[prop]() : navigator[prop]
+  };
+
+  postMessage(JSON.stringify(obj));
+}
+
+obj = {
+  name: "testFinished"
+};
+
+postMessage(JSON.stringify(obj));
