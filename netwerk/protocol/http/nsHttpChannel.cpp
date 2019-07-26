@@ -402,6 +402,10 @@ nsHttpChannel::Connect()
         return NS_ERROR_UNKNOWN_HOST;
 
     
+    mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
+    mConnectionInfo->SetPrivate(mPrivateBrowsing);
+
+    
     RetrieveSSLOptions();
     SpeculativeConnect();
 
@@ -537,8 +541,6 @@ nsHttpChannel::SpeculativeConnect()
     if (!callbacks)
         return;
 
-    mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
-    mConnectionInfo->SetPrivate(mPrivateBrowsing);
     gHttpHandler->SpeculativeConnect(
         mConnectionInfo, callbacks,
         mCaps & (NS_HTTP_ALLOW_RSA_FALSESTART | NS_HTTP_ALLOW_RC4_FALSESTART | NS_HTTP_DISALLOW_SPDY));
@@ -885,9 +887,6 @@ nsHttpChannel::SetupTransaction()
 
     if (mTimingEnabled)
         mCaps |= NS_HTTP_TIMING_ENABLED;
-
-    mConnectionInfo->SetAnonymous((mLoadFlags & LOAD_ANONYMOUS) != 0);
-    mConnectionInfo->SetPrivate(mPrivateBrowsing);
 
     if (mUpgradeProtocolCallback) {
         mRequestHead.SetHeader(nsHttp::Upgrade, mUpgradeProtocol, false);
