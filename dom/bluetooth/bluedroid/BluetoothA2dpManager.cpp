@@ -911,6 +911,9 @@ BluetoothA2dpManager::UpdatePlayStatus(uint32_t aDuration,
 #if ANDROID_VERSION > 17
   NS_ENSURE_TRUE_VOID(sBtAvrcpInterface);
   
+  sBtAvrcpInterface->get_play_status_rsp((btrc_play_status_t)aPlayStatus,
+                                         aDuration, aPosition);
+  
   if (mPlayStatus != aPlayStatus &&
       mPlayStatusChangedNotifyType == BTRC_NOTIFICATION_TYPE_INTERIM) {
     btrc_register_notification_t param;
@@ -931,8 +934,6 @@ BluetoothA2dpManager::UpdatePlayStatus(uint32_t aDuration,
                                                  &param);
   }
 
-  sBtAvrcpInterface->get_play_status_rsp((btrc_play_status_t)aPlayStatus,
-                                         aDuration, aPosition);
   mDuration = aDuration;
   mPosition = aPosition;
   mPlayStatus = aPlayStatus;
@@ -958,7 +959,7 @@ BluetoothA2dpManager::UpdateRegisterNotification(int aEventId, int aParam)
 
   switch (aEventId) {
     case BTRC_EVT_PLAY_STATUS_CHANGED:
-      mPlayPosChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
+      mPlayStatusChangedNotifyType = BTRC_NOTIFICATION_TYPE_INTERIM;
       param.play_status = (btrc_play_status_t)mPlayStatus;
       break;
     case BTRC_EVT_TRACK_CHANGE:
