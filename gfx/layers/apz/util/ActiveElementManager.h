@@ -10,11 +10,14 @@
 #include "nsISupportsImpl.h"
 
 class inIDOMUtils;
-class nsIDOMEventTarget;
-class nsIDOMElement;
 class CancelableTask;
 
 namespace mozilla {
+namespace dom {
+class Element;
+class EventTarget;
+}
+
 namespace layers {
 
 
@@ -35,7 +38,7 @@ public:
 
 
 
-  void SetTargetElement(nsIDOMEventTarget* aTarget);
+  void SetTargetElement(dom::EventTarget* aTarget);
   
 
 
@@ -55,7 +58,7 @@ private:
   
 
 
-  nsCOMPtr<nsIDOMElement> mTarget;
+  nsCOMPtr<dom::Element> mTarget;
   
 
 
@@ -73,10 +76,10 @@ private:
 
   
   void TriggerElementActivation();
-  void SetActive(nsIDOMElement* aTarget);
+  void SetActive(dom::Element* aTarget);
   void ResetActive();
   void ResetTouchBlockState();
-  void SetActiveTask(nsIDOMElement* aTarget);
+  void SetActiveTask(dom::Element* aTarget);
   void CancelTask();
 };
 
