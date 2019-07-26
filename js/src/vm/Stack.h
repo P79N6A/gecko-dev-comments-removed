@@ -1172,8 +1172,6 @@ class Activation
         return prev_;
     }
 
-    inline JSCompartment *compartment() const;
-
     bool isInterpreter() const {
         return kind_ == Interpreter;
     }
@@ -1342,7 +1340,7 @@ class JitActivation : public Activation
     
     typedef Vector<RematerializedFrame *, 1> RematerializedFrameVector;
     typedef HashMap<uint8_t *, RematerializedFrameVector> RematerializedFrameTable;
-    RematerializedFrameTable rematerializedFrames_;
+    RematerializedFrameTable *rematerializedFrames_;
 
     void freeRematerializedFramesInVector(RematerializedFrameVector &frames);
     void clearRematerializedFrames();
@@ -1401,7 +1399,7 @@ class JitActivation : public Activation
     
     
     
-    RematerializedFrame *getRematerializedFrame(JSContext *cx, JitFrameIterator &iter,
+    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, JitFrameIterator &iter,
                                                 size_t inlineDepth = 0);
 
     
@@ -1430,6 +1428,12 @@ class JitActivationIterator : public ActivationIterator
   public:
     explicit JitActivationIterator(JSRuntime *rt)
       : ActivationIterator(rt)
+    {
+        settle();
+    }
+
+    explicit JitActivationIterator(PerThreadData *perThreadData)
+      : ActivationIterator(perThreadData)
     {
         settle();
     }
@@ -1680,7 +1684,7 @@ class FrameIter
 
     
     
-    bool ensureHasRematerializedFrame();
+    bool ensureHasRematerializedFrame(ThreadSafeContext *cx);
 
     
     
