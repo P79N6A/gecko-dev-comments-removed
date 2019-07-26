@@ -30,7 +30,8 @@ class TestEnvironment(unittest.TestCase):
                               ('abc', 'def'), ('extra', 'foobar') ],
                   non_global_defines = ['extra', 'ignore'],
                   substs = [ ('FOO', 'bar'), ('ABC', 'def'),
-                             ('bar', 'baz qux'), ('zzz', '"abc def"') ])
+                             ('bar', 'baz qux'), ('zzz', '"abc def"'),
+                             ('qux', '') ])
         
         
         
