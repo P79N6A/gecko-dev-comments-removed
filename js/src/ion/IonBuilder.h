@@ -507,7 +507,6 @@ class IonBuilder : public MIRGenerator
                                            uint32_t discards);
 
     
-    InliningStatus inlineThrowError(CallInfo &callInfo);
     InliningStatus inlineIsCallable(CallInfo &callInfo);
     InliningStatus inlineNewObjectWithClassPrototype(CallInfo &callInfo);
     InliningStatus inlineHaveSameClass(CallInfo &callInfo);
