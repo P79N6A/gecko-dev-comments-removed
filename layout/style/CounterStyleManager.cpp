@@ -10,21 +10,13 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/ArrayUtils.h"
+#include "prprf.h"
 #include "nsString.h"
 #include "nsStyleSet.h"
 #include "nsCSSRules.h"
 #include "nsTArray.h"
-#include "nsBulletFrame.h"
 #include "nsTHashtable.h"
 #include "nsUnicodeProperties.h"
-
-
-
-
-extern const char16_t gJapaneseNegative[];
-extern const char16_t gKoreanNegative[];
-extern const char16_t gSimpChineseNegative[];
-extern const char16_t gTradChineseNegative[];
 
 namespace mozilla {
 
@@ -213,6 +205,360 @@ GetAdditiveCounterText(CounterValue aOrdinal,
   return aOrdinal == 0;
 }
 
+static bool
+DecimalToText(CounterValue aOrdinal, nsSubstring& aResult)
+{
+  
+  char cbuf[std::numeric_limits<CounterValue>::digits10 + 3];
+  PR_snprintf(cbuf, sizeof(cbuf), "%ld", aOrdinal);
+  aResult.AssignASCII(cbuf);
+  return true;
+}
+
+static bool
+TamilToText(CounterValue aOrdinal, nsSubstring& aResult)
+{
+  if (aOrdinal < 1 || aOrdinal > 9999) {
+    return false;
+  }
+  char16_t diff = 0x0BE6 - char16_t('0');
+  
+  
+  
+  DecimalToText(aOrdinal, aResult);
+  char16_t* p = aResult.BeginWriting();
+  for(; '\0' != *p ; p++) 
+    if(*p != char16_t('0'))
+      *p += diff;
+  return true;
+}
+
+
+
+
+
+
+#define NUM_BUF_SIZE 34 
+
+enum CJKIdeographicLang {
+  CHINESE, KOREAN, JAPANESE
+};
+struct CJKIdeographicData {
+  char16_t digit[10];
+  char16_t unit[3];
+  char16_t unit10K[2];
+  uint8_t lang;
+  bool informal;
+};
+static const CJKIdeographicData gDataJapaneseInformal = {
+  {                           
+    0x3007, 0x4e00, 0x4e8c, 0x4e09, 0x56db,
+    0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x5341, 0x767e, 0x5343 }, 
+  { 0x4e07, 0x5104 },         
+  JAPANESE,                   
+  true                        
+};
+static const CJKIdeographicData gDataJapaneseFormal = {
+  {                           
+    0x96f6, 0x58f1, 0x5f10, 0x53c2, 0x56db,
+    0x4f0d, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x62fe, 0x767e, 0x9621 }, 
+  { 0x842c, 0x5104 },         
+  JAPANESE,                   
+  false                       
+};
+static const CJKIdeographicData gDataKoreanHangulFormal = {
+  {                           
+    0xc601, 0xc77c, 0xc774, 0xc0bc, 0xc0ac,
+    0xc624, 0xc721, 0xce60, 0xd314, 0xad6c
+  },
+  { 0xc2ed, 0xbc31, 0xcc9c }, 
+  { 0xb9cc, 0xc5b5 },         
+  KOREAN,                     
+  false                       
+};
+static const CJKIdeographicData gDataKoreanHanjaInformal = {
+  {                           
+    0x96f6, 0x4e00, 0x4e8c, 0x4e09, 0x56db,
+    0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x5341, 0x767e, 0x5343 }, 
+  { 0x842c, 0x5104 },         
+  KOREAN,                     
+  true                        
+};
+static const CJKIdeographicData gDataKoreanHanjaFormal = {
+  {                           
+    0x96f6, 0x58f9, 0x8cb3, 0x53c3, 0x56db,
+    0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x62fe, 0x767e, 0x4edf }, 
+  { 0x842c, 0x5104 },         
+  KOREAN,                     
+  false                       
+};
+static const CJKIdeographicData gDataSimpChineseInformal = {
+  {                           
+    0x96f6, 0x4e00, 0x4e8c, 0x4e09, 0x56db,
+    0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x5341, 0x767e, 0x5343 }, 
+  { 0x4e07, 0x4ebf },         
+  CHINESE,                    
+  true                        
+};
+static const CJKIdeographicData gDataSimpChineseFormal = {
+  {                           
+    0x96f6, 0x58f9, 0x8d30, 0x53c1, 0x8086,
+    0x4f0d, 0x9646, 0x67d2, 0x634c, 0x7396
+  },
+  { 0x62fe, 0x4f70, 0x4edf }, 
+  { 0x4e07, 0x4ebf },         
+  CHINESE,                    
+  false                       
+};
+static const CJKIdeographicData gDataTradChineseInformal = {
+  {                           
+    0x96f6, 0x4e00, 0x4e8c, 0x4e09, 0x56db,
+    0x4e94, 0x516d, 0x4e03, 0x516b, 0x4e5d
+  },
+  { 0x5341, 0x767e, 0x5343 }, 
+  { 0x842c, 0x5104 },         
+  CHINESE,                    
+  true                        
+};
+static const CJKIdeographicData gDataTradChineseFormal = {
+  {                           
+    0x96f6, 0x58f9, 0x8cb3, 0x53c3, 0x8086,
+    0x4f0d, 0x9678, 0x67d2, 0x634c, 0x7396
+  },
+  { 0x62fe, 0x4f70, 0x4edf }, 
+  { 0x842c, 0x5104 },         
+  CHINESE,                    
+  false                       
+};
+
+static bool
+CJKIdeographicToText(CounterValue aOrdinal, nsSubstring& aResult,
+                     const CJKIdeographicData& data)
+{
+  NS_ASSERTION(aOrdinal >= 0, "Only accept non-negative ordinal");
+  char16_t buf[NUM_BUF_SIZE];
+  int32_t idx = NUM_BUF_SIZE;
+  int32_t pos = 0;
+  bool needZero = (aOrdinal == 0);
+  int32_t unitidx = 0, unit10Kidx = 0;
+  do {
+    unitidx = pos % 4;
+    if (unitidx == 0) {
+      unit10Kidx = pos / 4;
+    }
+    int32_t cur = aOrdinal % 10;
+    if (cur == 0) {
+      if (needZero) {
+        needZero = false;
+        buf[--idx] = data.digit[0];
+      }
+    } else {
+      if (data.lang == CHINESE) {
+        needZero = true;
+      }
+      if (unit10Kidx != 0) {
+        if (data.lang == KOREAN && idx != NUM_BUF_SIZE) {
+          buf[--idx] = ' ';
+        }
+        buf[--idx] = data.unit10K[unit10Kidx - 1];
+      }
+      if (unitidx != 0) {
+        buf[--idx] = data.unit[unitidx - 1];
+      }
+      if (cur != 1) {
+        buf[--idx] = data.digit[cur];
+      } else {
+        bool needOne = true;
+        if (data.informal) {
+          switch (data.lang) {
+            case CHINESE:
+              if (unitidx == 1 &&
+                  (aOrdinal == 1 || (pos > 4 && aOrdinal % 1000 == 1))) {
+                needOne = false;
+              }
+              break;
+            case JAPANESE:
+              if (unitidx > 0 &&
+                  (unitidx != 3 || (pos == 3 && aOrdinal == 1))) {
+                needOne = false;
+              }
+              break;
+            case KOREAN:
+              if (unitidx > 0 || (pos == 4 && (aOrdinal % 1000) == 1)) {
+                needOne = false;
+              }
+              break;
+          }
+        }
+        if (needOne) {
+          buf[--idx] = data.digit[1];
+        }
+      }
+      unit10Kidx = 0;
+    }
+    aOrdinal /= 10;
+    pos++;
+  } while (aOrdinal > 0);
+  aResult.Assign(buf + idx, NUM_BUF_SIZE - idx);
+  return true;
+}
+
+#define HEBREW_GERESH       0x05F3
+static const char16_t gHebrewDigit[22] = 
+{
+  
+  0x05D0, 0x05D1, 0x05D2, 0x05D3, 0x05D4, 0x05D5, 0x05D6, 0x05D7, 0x05D8,
+  
+  0x05D9, 0x05DB, 0x05DC, 0x05DE, 0x05E0, 0x05E1, 0x05E2, 0x05E4, 0x05E6,
+  
+  0x05E7, 0x05E8, 0x05E9, 0x05EA
+};
+
+static bool
+HebrewToText(CounterValue aOrdinal, nsSubstring& aResult)
+{
+  if (aOrdinal < 1 || aOrdinal > 999999) {
+    return false;
+  }
+
+  bool outputSep = false;
+  nsAutoString allText, thousandsGroup;
+  do {
+    thousandsGroup.Truncate();
+    int32_t n3 = aOrdinal % 1000;
+    
+    for(int32_t n1 = 400; n1 > 0; )
+    {
+      if( n3 >= n1)
+      {
+        n3 -= n1;
+        thousandsGroup.Append(gHebrewDigit[(n1/100)-1+18]);
+      } else {
+        n1 -= 100;
+      } 
+    } 
+
+    
+    int32_t n2;
+    if( n3 >= 10 )
+    {
+      
+      if(( 15 == n3 ) || (16 == n3)) {
+        
+        
+        
+        n2 = 9;
+        thousandsGroup.Append(gHebrewDigit[ n2 - 1]);
+      } else {
+        n2 = n3 - (n3 % 10);
+        thousandsGroup.Append(gHebrewDigit[(n2/10)-1+9]);
+      } 
+      n3 -= n2;
+    } 
+  
+    
+    if ( n3 > 0)
+      thousandsGroup.Append(gHebrewDigit[n3-1]);
+    if (outputSep) 
+      thousandsGroup.Append((char16_t)HEBREW_GERESH);
+    if (allText.IsEmpty())
+      allText = thousandsGroup;
+    else
+      allText = thousandsGroup + allText;
+    aOrdinal /= 1000;
+    outputSep = true;
+  } while (aOrdinal >= 1);
+
+  aResult = allText;
+  return true;
+}
+
+
+
+
+
+
+#define ETHIOPIC_ONE             0x1369
+#define ETHIOPIC_TEN             0x1372
+#define ETHIOPIC_HUNDRED         0x137B
+#define ETHIOPIC_TEN_THOUSAND    0x137C
+
+static bool
+EthiopicToText(CounterValue aOrdinal, nsSubstring& aResult)
+{
+  if (aOrdinal < 1) {
+    return false;
+  }
+
+  nsAutoString asciiNumberString;      
+  DecimalToText(aOrdinal, asciiNumberString);
+  uint8_t asciiStringLength = asciiNumberString.Length();
+
+  
+  
+  
+  
+  
+  if (asciiStringLength & 1) {
+    asciiNumberString.Insert(NS_LITERAL_STRING("0"), 0);
+  } else {
+    asciiStringLength--;
+  }
+
+  aResult.Truncate();
+  
+  
+  
+  for (uint8_t indexFromLeft = 0, groupIndexFromRight = asciiStringLength >> 1;
+       indexFromLeft <= asciiStringLength;
+       indexFromLeft += 2, groupIndexFromRight--) {
+    uint8_t tensValue  = asciiNumberString.CharAt(indexFromLeft) & 0x0F;
+    uint8_t unitsValue = asciiNumberString.CharAt(indexFromLeft + 1) & 0x0F;
+    uint8_t groupValue = tensValue * 10 + unitsValue;
+
+    bool oddGroup = (groupIndexFromRight & 1);
+
+    
+    if (aOrdinal > 1 &&
+        groupValue == 1 &&                  
+        (oddGroup || indexFromLeft == 0)) { 
+      unitsValue = 0;
+    }
+
+    
+    if (tensValue) {
+      
+      aResult.Append((char16_t) (tensValue +  ETHIOPIC_TEN - 1));
+    }
+    if (unitsValue) {
+      
+      aResult.Append((char16_t) (unitsValue + ETHIOPIC_ONE - 1));
+    }
+    
+    
+    if (oddGroup) {
+      if (groupValue) {
+        aResult.Append((char16_t) ETHIOPIC_HUNDRED);
+      }
+    } else {
+      if (groupIndexFromRight) {
+        aResult.Append((char16_t) ETHIOPIC_TEN_THOUSAND);
+      }
+    }
+  }
+  return true;
+}
+
 class BuiltinCounterStyle : public CounterStyle
 {
 public:
@@ -267,17 +613,42 @@ BuiltinCounterStyle::GetPrefix(nsSubstring& aResult)
  void
 BuiltinCounterStyle::GetSuffix(nsSubstring& aResult)
 {
-  
-  
-  nsAutoString result;
-  nsBulletFrame::GetListItemSuffix(mStyle, result);
-  aResult = result;
+  switch (mStyle) {
+    case NS_STYLE_LIST_STYLE_NONE:
+      aResult.Truncate();
+      break;
+ 
+    case NS_STYLE_LIST_STYLE_DISC:
+    case NS_STYLE_LIST_STYLE_CIRCLE:
+    case NS_STYLE_LIST_STYLE_SQUARE:
+      aResult = ' ';
+      break;
+
+    case NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL:
+    case NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL:
+    case NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL:
+    case NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL:
+    case NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL:
+    case NS_STYLE_LIST_STYLE_JAPANESE_FORMAL:
+      aResult = 0x3001;
+      break;
+
+    case NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL:
+    case NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL:
+    case NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL:
+      aResult.AssignLiteral(MOZ_UTF16(", "));
+      break;
+
+    default:
+      aResult.AssignLiteral(MOZ_UTF16(". "));
+      break;
+  }
 }
 
 
 static const char16_t kDiscCharacter = 0x2022;
 static const char16_t kCircleCharacter = 0x25e6;
-static const char16_t kSquareCharacter = 0x25aa;
+static const char16_t kSquareCharacter = 0x25fe;
 
  void
 BuiltinCounterStyle::GetSpokenCounterText(CounterValue aOrdinal,
@@ -320,6 +691,19 @@ BuiltinCounterStyle::IsBullet()
       return false;
   }
 }
+
+static const char16_t gJapaneseNegative[] = {
+  0x30de, 0x30a4, 0x30ca, 0x30b9, 0x0000
+};
+static const char16_t gKoreanNegative[] = {
+  0xb9c8, 0xc774, 0xb108, 0xc2a4, 0x0020, 0x0000
+};
+static const char16_t gSimpChineseNegative[] = {
+  0x8d1f, 0x0000
+};
+static const char16_t gTradChineseNegative[] = {
+  0x8ca0, 0x0000
+};
 
  void
 BuiltinCounterStyle::GetNegative(NegativeType& aResult)
@@ -483,16 +867,59 @@ BuiltinCounterStyle::GetInitialCounterText(CounterValue aOrdinal,
                                            nsSubstring& aResult,
                                            bool& aIsRTL)
 {
-  
-  
-  nsAutoString result;
-  nsBulletFrame::AppendCounterText(mStyle, aOrdinal, result, aIsRTL);
-  aResult = result;
-  
-  
-  
-  
-  return true;
+  aIsRTL = false;
+  switch (mStyle) {
+    
+    
+    case NS_STYLE_LIST_STYLE_NONE:
+      aResult.Truncate();
+      return true;
+    case NS_STYLE_LIST_STYLE_DISC:
+      aResult.Assign(kDiscCharacter);
+      return true;
+    case NS_STYLE_LIST_STYLE_CIRCLE:
+      aResult.Assign(kCircleCharacter);
+      return true;
+    case NS_STYLE_LIST_STYLE_SQUARE:
+      aResult.Assign(kSquareCharacter);
+      return true;
+
+    case NS_STYLE_LIST_STYLE_DECIMAL:
+      return DecimalToText(aOrdinal, aResult);
+
+    case NS_STYLE_LIST_STYLE_TRAD_CHINESE_INFORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataTradChineseInformal);
+    case NS_STYLE_LIST_STYLE_TRAD_CHINESE_FORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataTradChineseFormal);
+    case NS_STYLE_LIST_STYLE_SIMP_CHINESE_INFORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataSimpChineseInformal);
+    case NS_STYLE_LIST_STYLE_SIMP_CHINESE_FORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataSimpChineseFormal);
+    case NS_STYLE_LIST_STYLE_JAPANESE_INFORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataJapaneseInformal);
+    case NS_STYLE_LIST_STYLE_JAPANESE_FORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataJapaneseFormal);
+    case NS_STYLE_LIST_STYLE_KOREAN_HANGUL_FORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataKoreanHangulFormal);
+    case NS_STYLE_LIST_STYLE_KOREAN_HANJA_INFORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataKoreanHanjaInformal);
+    case NS_STYLE_LIST_STYLE_KOREAN_HANJA_FORMAL:
+      return CJKIdeographicToText(aOrdinal, aResult, gDataKoreanHanjaFormal);
+
+    case NS_STYLE_LIST_STYLE_HEBREW: 
+      aIsRTL = true;
+      return HebrewToText(aOrdinal, aResult);
+ 
+    case NS_STYLE_LIST_STYLE_MOZ_TAMIL:
+      return TamilToText(aOrdinal, aResult);
+
+    case NS_STYLE_LIST_STYLE_MOZ_ETHIOPIC_NUMERIC:
+      return EthiopicToText(aOrdinal, aResult);
+
+    default:
+      NS_NOTREACHED("Unknown builtin counter style");
+      return false;
+  }
 }
 
 class DependentBuiltinCounterStyle MOZ_FINAL : public BuiltinCounterStyle
@@ -1313,10 +1740,7 @@ CounterStyle::GetSpokenCounterText(CounterValue aOrdinal,
       aIsBullet = true;
       break;
     case NS_STYLE_COUNTER_SPEAKAS_NUMBERS:
-      
-      
-      CounterStyleManager::GetDecimalStyle()->
-        GetCounterText(aOrdinal, aResult, isRTL);
+      DecimalToText(aOrdinal, aResult);
       break;
     case NS_STYLE_COUNTER_SPEAKAS_SPELL_OUT:
       

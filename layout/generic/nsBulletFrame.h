@@ -76,17 +76,6 @@ public:
   int32_t SetListItemOrdinal(int32_t aNextOrdinal, bool* aChanged,
                              int32_t aIncrement);
 
-
-  
-  static void AppendCounterText(int32_t aListStyleType,
-                                int32_t aOrdinal,
-                                nsString& aResult,
-                                bool& aIsRTL);
-
-  
-  static void GetListItemSuffix(int32_t aListStyleType,
-                                nsString& aResult);
-
   
   void GetListItemText(nsAString& aResult);
 
