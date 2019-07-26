@@ -523,8 +523,8 @@ private:
 
   gfxFont::DrawMode SetupCairoState(gfxContext* aContext,
                                     nsIFrame* aFrame,
-                                    gfxTextContextPaint* aOuterContextPaint,
-                                    gfxTextContextPaint** aThisContextPaint);
+                                    gfxTextObjectPaint* aOuterObjectPaint,
+                                    gfxTextObjectPaint** aThisObjectPaint);
 
   
 
@@ -532,8 +532,8 @@ private:
 
   bool SetupCairoStroke(gfxContext* aContext,
                         nsIFrame* aFrame,
-                        gfxTextContextPaint* aOuterContextPaint,
-                        SVGTextContextPaint* aThisContextPaint);
+                        gfxTextObjectPaint* aOuterObjectPaint,
+                        SVGTextObjectPaint* aThisObjectPaint);
 
   
 
@@ -541,19 +541,19 @@ private:
 
   bool SetupCairoFill(gfxContext* aContext,
                       nsIFrame* aFrame,
-                      gfxTextContextPaint* aOuterContextPaint,
-                      SVGTextContextPaint* aThisContextPaint);
+                      gfxTextObjectPaint* aOuterObjectPaint,
+                      SVGTextObjectPaint* aThisObjectPaint);
 
   
 
 
 
 
-  bool SetupContextPaint(gfxContext* aContext,
+  bool SetupObjectPaint(gfxContext* aContext,
                         nsIFrame* aFrame,
                         nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                         float& aOpacity,
-                        gfxTextContextPaint* aContextPaint);
+                        gfxTextObjectPaint* aObjectPaint);
 
   
 
@@ -568,8 +568,8 @@ private:
   void SetupInheritablePaint(gfxContext* aContext,
                              nsIFrame* aFrame,
                              float& aOpacity,
-                             gfxTextContextPaint* aOuterContextPaint,
-                             SVGTextContextPaint::Paint& aTargetPaint,
+                             gfxTextObjectPaint* aOuterObjectPaint,
+                             SVGTextObjectPaint::Paint& aTargetPaint,
                              nsStyleSVGPaint nsStyleSVG::*aFillOrStroke,
                              const FramePropertyDescriptor* aProperty);
 
