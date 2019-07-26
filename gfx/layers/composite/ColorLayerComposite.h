@@ -9,7 +9,6 @@
 #include "Layers.h"                     
 #include "mozilla/Attributes.h"         
 #include "mozilla/layers/LayerManagerComposite.h"  
-#include "mozilla/layers/LayersTypes.h"  
 #include "nsTraceRefcnt.h"              
 
 struct nsIntPoint;
@@ -49,9 +48,7 @@ public:
 
   virtual LayerComposite* AsLayerComposite() MOZ_OVERRIDE { return this; }
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return "ColorLayerComposite"; }
-#endif
 };
 
 } 

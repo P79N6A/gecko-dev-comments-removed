@@ -158,9 +158,7 @@ public:
   void* GetThebesLayerCallbackData() const
   { return mThebesLayerCallbackData; }
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
-#endif 
 
   enum WorldTransforPolicy {
     ApplyWorldTransform,

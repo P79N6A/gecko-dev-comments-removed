@@ -970,14 +970,6 @@ pref("network.protocol-handler.external.afp", false);
 pref("network.protocol-handler.external.moz-icon", false);
 
 
-pref("network.protocol-handler.external.ttp", false);  
-pref("network.protocol-handler.external.ttps", false); 
-pref("network.protocol-handler.external.tps", false);  
-pref("network.protocol-handler.external.ps", false);   
-pref("network.protocol-handler.external.ile", false);  
-pref("network.protocol-handler.external.le", false);   
-
-
 
 
 
@@ -4206,6 +4198,7 @@ pref("layers.acceleration.force-enabled", false);
 
 pref("layers.acceleration.draw-fps", false);
 
+pref("layers.dump", false);
 pref("layers.draw-borders", false);
 pref("layers.draw-tile-borders", false);
 pref("layers.draw-bigimage-borders", false);

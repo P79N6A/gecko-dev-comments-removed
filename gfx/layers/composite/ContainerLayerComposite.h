@@ -9,7 +9,6 @@
 #include "Layers.h"                     
 #include "mozilla/Attributes.h"         
 #include "mozilla/layers/LayerManagerComposite.h"
-#include "mozilla/layers/LayersTypes.h"  
 
 class gfx3DMatrix;
 struct nsIntPoint;
@@ -53,9 +52,7 @@ public:
   
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE { return nullptr; }
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return "ContainerLayerComposite"; }
-#endif
 };
 
 class RefLayerComposite : public RefLayer,
@@ -90,9 +87,7 @@ public:
   
   CompositableHost* GetCompositableHost() MOZ_OVERRIDE { return nullptr; }
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const MOZ_OVERRIDE { return "RefLayerComposite"; }
-#endif
 };
 
 } 

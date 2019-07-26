@@ -505,10 +505,6 @@ public:
 
   virtual bool NeedsWidgetInvalidation() { return true; }
 
-  
-  
-  
-  
   virtual const char* Name() const { return "???"; }
 
   

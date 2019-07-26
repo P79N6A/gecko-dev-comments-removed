@@ -318,6 +318,10 @@ LayerManagerComposite::Render()
     return;
   }
 
+  if (gfxPlatform::GetPrefLayersDump()) {
+    this->Dump();
+  }
+
   if (mComposer2D && mComposer2D->TryRender(mRoot, mWorldMatrix)) {
     mCompositor->EndFrameForExternalComposition(mWorldMatrix);
     return;

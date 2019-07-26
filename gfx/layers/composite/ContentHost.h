@@ -183,9 +183,7 @@ public:
                     bool aDumpHtml=false) MOZ_OVERRIDE;
 #endif
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
-#endif
 protected:
   nsIntRegion mValidRegionForNextBackBuffer;
   
@@ -220,9 +218,7 @@ public:
                                  const TextureInfo& aTextureInfo) MOZ_OVERRIDE;
   virtual void DestroyTextures() MOZ_OVERRIDE;
 
-#ifdef MOZ_LAYERS_HAVE_LOG
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
-#endif
 };
 
 
