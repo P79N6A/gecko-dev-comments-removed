@@ -180,36 +180,25 @@ nsMenuFrame::nsMenuFrame(nsIPresShell* aShell, nsStyleContext* aContext):
     mChecked(false),
     mIgnoreAccelTextChange(false),
     mType(eMenuType_Normal),
-    mMenuParent(nullptr),
     mBlinkState(0)
 {
 }
 
-void
-nsMenuFrame::SetParent(nsIFrame* aParent)
+nsMenuParent*
+nsMenuFrame::GetMenuParent() const
 {
-  nsBoxFrame::SetParent(aParent);
-  InitMenuParent(aParent);
-}
-
-void
-nsMenuFrame::InitMenuParent(nsIFrame* aParent)
-{
-  while (aParent) {
-    nsMenuPopupFrame* popup = do_QueryFrame(aParent);
+  nsContainerFrame* parent = GetParent();
+  for (; parent; parent = parent->GetParent()) {
+    nsMenuPopupFrame* popup = do_QueryFrame(parent);
     if (popup) {
-      mMenuParent = popup;
-      break;
+      return popup;
     }
-
-    nsMenuBarFrame* menubar = do_QueryFrame(aParent);
+    nsMenuBarFrame* menubar = do_QueryFrame(parent);
     if (menubar) {
-      mMenuParent = menubar;
-      break;
+      return menubar;
     }
-
-    aParent = aParent->GetParent();
   }
+  return nullptr;
 }
 
 class nsASyncMenuInitialization MOZ_FINAL : public nsIReflowCallback
@@ -241,16 +230,14 @@ public:
 };
 
 void
-nsMenuFrame::Init(nsIContent*      aContent,
-                  nsIFrame*        aParent,
-                  nsIFrame*        aPrevInFlow)
+nsMenuFrame::Init(nsIContent*       aContent,
+                  nsContainerFrame* aParent,
+                  nsIFrame*         aPrevInFlow)
 {
   nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   mTimerMediator = new nsMenuTimerMediator(this);
-
-  InitMenuParent(aParent);
 
   BuildAcceleratorText(false);
   nsIReflowCallback* cb = new nsASyncMenuInitialization(this);
@@ -359,9 +346,10 @@ nsMenuFrame::DestroyFrom(nsIFrame* aDestructRoot)
   mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::menuactive, false);
 
   
-  if (mMenuParent && mMenuParent->GetCurrentMenuItem() == this) {
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent && menuParent->GetCurrentMenuItem() == this) {
     
-    mMenuParent->CurrentMenuIsBeingDestroyed();
+    menuParent->CurrentMenuIsBeingDestroyed();
   }
 
   nsFrameList* popupList = GetPopupList();
@@ -395,8 +383,11 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
                          nsEventStatus* aEventStatus)
 {
   NS_ENSURE_ARG_POINTER(aEventStatus);
-  if (nsEventStatus_eConsumeNoDefault == *aEventStatus ||
-      (mMenuParent && mMenuParent->IsMenuLocked())) {
+  if (nsEventStatus_eConsumeNoDefault == *aEventStatus) {
+    return NS_OK;
+  }
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent && menuParent->IsMenuLocked()) {
     return NS_OK;
   }
 
@@ -432,7 +423,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     
     
     
-    if (!mMenuParent || mMenuParent->IsMenuBar()) {
+    if (!menuParent || menuParent->IsMenuBar()) {
       ToggleMenuState();
     }
     else {
@@ -459,7 +450,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     
     
     
-    if (mMenuParent->IsContextMenu()) {
+    if (menuParent->IsContextMenu()) {
       *aEventStatus = nsEventStatus_eConsumeNoDefault;
       Execute(aEvent);
     }
@@ -479,33 +470,33 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     }
 
     
-    if (mMenuParent) {
-      bool onmenubar = mMenuParent->IsMenuBar();
-      if (!(onmenubar && mMenuParent->IsActive())) {
+    if (menuParent) {
+      bool onmenubar = menuParent->IsMenuBar();
+      if (!(onmenubar && menuParent->IsActive())) {
         if (IsMenu() && !onmenubar && IsOpen()) {
           
         }
-        else if (this == mMenuParent->GetCurrentMenuItem()) {
-          mMenuParent->ChangeMenuItem(nullptr, false);
+        else if (this == menuParent->GetCurrentMenuItem()) {
+          menuParent->ChangeMenuItem(nullptr, false);
         }
       }
     }
   }
   else if (aEvent->message == NS_MOUSE_MOVE &&
-           (onmenu || (mMenuParent && mMenuParent->IsMenuBar()))) {
+           (onmenu || (menuParent && menuParent->IsMenuBar()))) {
     if (gEatMouseMove) {
       gEatMouseMove = false;
       return NS_OK;
     }
 
     
-    mMenuParent->ChangeMenuItem(this, false);
+    menuParent->ChangeMenuItem(this, false);
     NS_ENSURE_TRUE(weakFrame.IsAlive(), NS_OK);
-    NS_ENSURE_TRUE(mMenuParent, NS_OK);
+    NS_ENSURE_TRUE(menuParent, NS_OK);
 
     
     
-    nsMenuFrame *realCurrentItem = mMenuParent->GetCurrentMenuItem();
+    nsMenuFrame *realCurrentItem = menuParent->GetCurrentMenuItem();
     if (realCurrentItem != this) {
       
       return NS_OK;
@@ -515,7 +506,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     
     
     
-    if (!IsDisabled() && IsMenu() && !IsOpen() && !mOpenTimer && !mMenuParent->IsMenuBar()) {
+    if (!IsDisabled() && IsMenu() && !IsOpen() && !mOpenTimer && !menuParent->IsMenuBar()) {
       int32_t menuDelay =
         LookAndFeel::GetInt(LookAndFeel::eIntID_SubmenuDelay, 300); 
 
@@ -546,11 +537,12 @@ nsMenuFrame::PopupOpened()
   if (!weakFrame.IsAlive())
     return;
 
-  if (mMenuParent) {
-    mMenuParent->SetActive(true);
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent) {
+    menuParent->SetActive(true);
     
     
-    mMenuParent->SetCurrentMenuItem(this);
+    menuParent->SetCurrentMenuItem(this);
   }
 }
 
@@ -564,14 +556,15 @@ nsMenuFrame::PopupClosed(bool aDeselectMenu)
     return;
 
   
-  if (mMenuParent && mMenuParent->MenuClosed()) {
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent && menuParent->MenuClosed()) {
     if (aDeselectMenu) {
       SelectMenu(false);
     } else {
       
       
       
-      nsMenuFrame *current = mMenuParent->GetCurrentMenuItem();
+      nsMenuFrame *current = menuParent->GetCurrentMenuItem();
       if (current) {
         
         
@@ -634,8 +627,10 @@ nsMenuFrame::SelectMenu(bool aActivateFlag)
 
     
     nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm)
-      pm->CancelMenuTimer(mMenuParent);
+    if (pm) {
+      nsMenuParent* menuParent = GetMenuParent();
+      pm->CancelMenuTimer(menuParent);
+    }
 
     nsCOMPtr<nsIRunnable> event =
       new nsMenuActivateEvent(mContent, PresContext(), aActivateFlag);
@@ -802,7 +797,8 @@ nsMenuFrame::Enter(WidgetGUIEvent* aEvent)
   if (IsDisabled()) {
 #ifdef XP_WIN
     
-    if (mMenuParent) {
+    nsMenuParent* menuParent = GetMenuParent();
+    if (menuParent) {
       nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
       if (pm) {
         nsIFrame* popup = pm->GetTopPopup(ePopupTypeAny);
@@ -817,7 +813,8 @@ nsMenuFrame::Enter(WidgetGUIEvent* aEvent)
 
   if (!IsOpen()) {
     
-    if (!IsMenu() && mMenuParent)
+    nsMenuParent* menuParent = GetMenuParent();
+    if (!IsMenu() && menuParent)
       Execute(aEvent);          
     else
       return this;
@@ -842,8 +839,9 @@ nsMenuFrame::IsMenu()
 nsMenuListType
 nsMenuFrame::GetParentMenuListType()
 {
-  if (mMenuParent && mMenuParent->IsMenu()) {
-    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(mMenuParent);
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent && menuParent->IsMenu()) {
+    nsMenuPopupFrame* popupFrame = static_cast<nsMenuPopupFrame*>(menuParent);
     nsIFrame* parentMenu = popupFrame->GetParent();
     if (parentMenu) {
       nsCOMPtr<nsIDOMXULMenuListElement> menulist = do_QueryInterface(parentMenu->GetContent());
@@ -864,12 +862,13 @@ nsMenuFrame::Notify(nsITimer* aTimer)
   if (aTimer == mOpenTimer.get()) {
     mOpenTimer = nullptr;
 
-    if (!IsOpen() && mMenuParent) {
+    nsMenuParent* menuParent = GetMenuParent();
+    if (!IsOpen() && menuParent) {
       
       
       nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
       if (pm) {
-        if ((!pm->HasContextMenu(nullptr) || mMenuParent->IsContextMenu()) &&
+        if ((!pm->HasContextMenu(nullptr) || menuParent->IsContextMenu()) &&
             mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::menuactive,
                                   nsGkAtoms::_true, eCaseMatters)) {
           OpenMenu(false);
@@ -893,13 +892,15 @@ nsMenuFrame::Notify(nsITimer* aTimer)
           }
         }
         break;
-      default:
-        if (mMenuParent) {
-          mMenuParent->LockMenuUntilClosed(false);
+      default: {
+        nsMenuParent* menuParent = GetMenuParent();
+        if (menuParent) {
+          menuParent->LockMenuUntilClosed(false);
         }
         PassMenuCommandEventToPopupManager();
         StopBlinking();
         break;
+      }
     }
   }
 
@@ -1209,9 +1210,10 @@ nsMenuFrame::StartBlinking(WidgetGUIEvent* aEvent, bool aFlipChecked)
   if (!weakFrame.IsAlive())
     return;
 
-  if (mMenuParent) {
+  nsMenuParent* menuParent = GetMenuParent();
+  if (menuParent) {
     
-    mMenuParent->LockMenuUntilClosed(true);
+    menuParent->LockMenuUntilClosed(true);
   }
 
   
@@ -1263,7 +1265,8 @@ void
 nsMenuFrame::PassMenuCommandEventToPopupManager()
 {
   nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-  if (pm && mMenuParent && mDelayedMenuCommandEvent) {
+  nsMenuParent* menuParent = GetMenuParent();
+  if (pm && menuParent && mDelayedMenuCommandEvent) {
     pm->ExecuteMenu(mContent, mDelayedMenuCommandEvent);
   }
   mDelayedMenuCommandEvent = nullptr;
