@@ -128,14 +128,36 @@ CheckOverRecursed(JSContext *cx)
     return true;
 }
 
+
+
+
+
+
+
+
+
+
 bool
-CheckOverRecursedWithExtra(JSContext *cx, uint32_t extra)
+CheckOverRecursedWithExtra(JSContext *cx, BaselineFrame *frame,
+                           uint32_t extra, uint32_t earlyCheck)
 {
+    JS_ASSERT_IF(earlyCheck, !frame->overRecursed());
+
     
     
     
     uint8_t spDummy;
     uint8_t *checkSp = (&spDummy) - extra;
+    if (earlyCheck) {
+        JS_CHECK_RECURSION_WITH_SP(cx, checkSp, frame->setOverRecursed());
+        return true;
+    }
+
+    
+    
+    if (frame->overRecursed())
+        return false;
+
     JS_CHECK_RECURSION_WITH_SP(cx, checkSp, return false);
 
     if (cx->runtime()->interrupt)

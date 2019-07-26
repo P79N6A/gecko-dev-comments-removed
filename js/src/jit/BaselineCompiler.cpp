@@ -286,8 +286,29 @@ BaselineCompiler::emitPrologue()
     else
         masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
 
-    if (!emitStackCheck())
-        return false;
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Label earlyStackCheckFailed;
+    if (needsEarlyStackCheck()) {
+        if (!emitStackCheck( true))
+            return false;
+        masm.branchTest32(Assembler::NonZero,
+                          frame.addressOfFlags(),
+                          Imm32(BaselineFrame::OVER_RECURSED),
+                          &earlyStackCheckFailed);
+    }
 
     
     
@@ -319,6 +340,9 @@ BaselineCompiler::emitPrologue()
         }
     }
 
+    if (needsEarlyStackCheck())
+        masm.bind(&earlyStackCheckFailed);
+
 #if JS_TRACE_LOGGING
     masm.tracelogStart(script.get());
     masm.tracelogLog(TraceLogging::INFO_ENGINE_BASELINE);
@@ -331,6 +355,9 @@ BaselineCompiler::emitPrologue()
     
     
     if (!initScopeChain())
+        return false;
+
+    if (!emitStackCheck())
         return false;
 
     if (!emitDebugPrologue())
@@ -417,24 +444,52 @@ BaselineCompiler::emitIC(ICStub *stub, bool isForOp)
     return true;
 }
 
-typedef bool (*CheckOverRecursedWithExtraFn)(JSContext *, uint32_t);
+typedef bool (*CheckOverRecursedWithExtraFn)(JSContext *, BaselineFrame *, uint32_t, uint32_t);
 static const VMFunction CheckOverRecursedWithExtraInfo =
     FunctionInfo<CheckOverRecursedWithExtraFn>(CheckOverRecursedWithExtra);
 
 bool
-BaselineCompiler::emitStackCheck()
+BaselineCompiler::emitStackCheck(bool earlyCheck)
 {
     Label skipCall;
     uintptr_t *limitAddr = &cx->runtime()->mainThread.ionStackLimit;
-    uint32_t tolerance = script->nslots * sizeof(Value);
+    uint32_t slotsSize = script->nslots * sizeof(Value);
+    uint32_t tolerance = earlyCheck ? slotsSize : 0;
+
     masm.movePtr(BaselineStackReg, R1.scratchReg());
-    masm.subPtr(Imm32(tolerance), R1.scratchReg());
+
+    
+    
+    
+    if (earlyCheck)
+        masm.subPtr(Imm32(tolerance), R1.scratchReg());
+
+    
+    
+    
+    
+    
+    
+    Label forceCall;
+    if (!earlyCheck && needsEarlyStackCheck()) {
+        masm.branchTest32(Assembler::NonZero,
+                          frame.addressOfFlags(),
+                          Imm32(BaselineFrame::OVER_RECURSED),
+                          &forceCall);
+    }
+
     masm.branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(limitAddr), R1.scratchReg(),
                    &skipCall);
 
+    if (!earlyCheck && needsEarlyStackCheck())
+        masm.bind(&forceCall);
+
     prepareVMCall();
+    pushArg(Imm32(earlyCheck));
     pushArg(Imm32(tolerance));
-    if (!callVM(CheckOverRecursedWithExtraInfo, true))
+    masm.loadBaselineFramePtr(BaselineFrameReg, R1.scratchReg());
+    pushArg(R1.scratchReg());
+    if (!callVM(CheckOverRecursedWithExtraInfo, earlyCheck))
         return false;
 
     masm.bind(&skipCall);
