@@ -1136,6 +1136,11 @@ pref("devtools.webconsole.fontSize", 0);
 
 
 
+
+pref("devtools.webconsole.persistlog", false);
+
+
+
 pref("devtools.hud.loglimit.network", 200);
 pref("devtools.hud.loglimit.cssparser", 200);
 pref("devtools.hud.loglimit.exception", 200);

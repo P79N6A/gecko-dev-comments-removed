@@ -9,6 +9,10 @@ const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/te
 function test() {
   waitForExplicitFinish();
 
+  const PREF = "devtools.webconsole.persistlog";
+  Services.prefs.setBoolPref(PREF, true);
+  registerCleanupFunction(() => Services.prefs.clearUserPref(PREF));
+
   
   
   addTab(TEST_URI);
