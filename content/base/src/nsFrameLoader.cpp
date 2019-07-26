@@ -450,22 +450,19 @@ nsFrameLoader::ReallyStartLoadingInternal()
 
   
   
-  HTMLIFrameElement* iframe =
-    HTMLIFrameElement::FromContent(mOwnerContent);
-
   uint32_t sandboxFlags = 0;
+  uint32_t parentSandboxFlags = mOwnerContent->OwnerDoc()->GetSandboxFlags();
+
+  HTMLIFrameElement* iframe = HTMLIFrameElement::FromContent(mOwnerContent);
 
   if (iframe) {
     sandboxFlags = iframe->GetSandboxFlags();
+  }
 
-    uint32_t parentSandboxFlags = iframe->OwnerDoc()->GetSandboxFlags();
-
-    if (sandboxFlags || parentSandboxFlags) {
-      
-      sandboxFlags |= parentSandboxFlags;
-
-      mDocShell->SetSandboxFlags(sandboxFlags);
-    }
+  if (sandboxFlags || parentSandboxFlags) {
+    
+    sandboxFlags |= parentSandboxFlags;
+    mDocShell->SetSandboxFlags(sandboxFlags);
   }
 
   
