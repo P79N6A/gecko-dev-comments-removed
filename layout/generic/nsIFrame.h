@@ -1317,6 +1317,18 @@ public:
   
 
 
+  uint32_t GetDepthInFrameTree() {
+    uint32_t result = 0;
+    for (nsIFrame* ancestor = GetParent(); ancestor;
+         ancestor = ancestor->GetParent()) {
+      result++;
+    }
+    return result;
+  }
+
+  
+
+
 
 
 

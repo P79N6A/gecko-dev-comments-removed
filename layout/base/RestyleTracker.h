@@ -14,11 +14,135 @@
 #include "mozilla/dom/Element.h"
 #include "nsDataHashtable.h"
 #include "nsIFrame.h"
+#include "nsTPriorityQueue.h"
 
 class nsCSSFrameConstructor;
 
 namespace mozilla {
 namespace css {
+
+
+
+
+
+
+class OverflowChangedTracker
+{
+public:
+
+  
+
+
+
+
+
+
+
+
+
+
+  void AddFrame(nsIFrame* aFrame) {
+    mEntryList.Push(Entry(aFrame, true));
+  }
+
+  
+
+
+
+
+
+  void Flush() {
+    while (!mEntryList.IsEmpty()) {
+      Entry entry = mEntryList.Pop();
+
+      
+      
+      while (!mEntryList.IsEmpty() &&
+             mEntryList.Top().mFrame == entry.mFrame) {
+        Entry next = mEntryList.Pop();
+
+        if (next.mInitial) {
+          entry.mInitial = true;
+        }
+      }
+      nsIFrame *frame = entry.mFrame;
+
+      bool updateParent = false;
+      if (entry.mInitial) {
+        nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
+          (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
+        if (pre) {
+          
+          
+          nsOverflowAreas overflowAreas = *pre;
+          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
+          
+          updateParent = true;
+        }
+      }
+      
+      
+      
+      if (!updateParent) {
+        updateParent = frame->UpdateOverflow() || entry.mInitial;
+      }
+      if (updateParent) {
+        nsIFrame *parent = frame->GetParent();
+        if (parent) {
+          mEntryList.Push(Entry(parent, entry.mDepth - 1, false));
+        }
+      }
+    }
+  }
+  
+private:
+  struct Entry
+  {
+    Entry(nsIFrame* aFrame, bool aInitial)
+      : mFrame(aFrame)
+      , mDepth(aFrame->GetDepthInFrameTree())
+      , mInitial(aInitial)
+    {}
+    
+    Entry(nsIFrame* aFrame, uint32_t aDepth, bool aInitial)
+      : mFrame(aFrame)
+      , mDepth(aDepth)
+      , mInitial(aInitial)
+    {}
+
+    bool operator==(const Entry& aOther) const
+    {
+      return mFrame == aOther.mFrame;
+    }
+ 
+    
+
+
+
+    bool operator<(const Entry& aOther) const
+    {
+      if (mDepth != aOther.mDepth) {
+        
+        
+        return mDepth > aOther.mDepth;
+      }
+
+      return mFrame < aOther.mFrame;
+    }
+
+    nsIFrame* mFrame;
+    
+    uint32_t mDepth;
+    
+
+
+
+    bool mInitial;
+  };
+
+  
+  nsTPriorityQueue<Entry> mEntryList;
+};
 
 class RestyleTracker {
 public:
