@@ -1612,7 +1612,12 @@ ThreadClient.prototype = {
 
 
   source: function TC_source(aForm) {
-    return new SourceClient(this._client, aForm);
+    if (aForm.actor in this._threadGrips) {
+      return this._threadGrips[aForm.actor];
+    }
+
+    return this._threadGrips[aForm.actor] = new SourceClient(this._client,
+                                                             aForm);
   }
 
 };
