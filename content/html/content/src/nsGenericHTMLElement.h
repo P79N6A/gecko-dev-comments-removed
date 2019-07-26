@@ -517,14 +517,6 @@ public:
   static void MapCommonAttributesInto(const nsMappedAttributes* aAttributes, 
                                       nsRuleData* aRuleData);
 
-  
-
-
-
-
-  static void MapCommonAttributesExceptHiddenInto(const nsMappedAttributes* aAttributes,
-                                                  nsRuleData* aRuleData);
-
   static const MappedAttributeEntry sCommonAttributeMap[];
   static const MappedAttributeEntry sImageMarginSizeAttributeMap[];
   static const MappedAttributeEntry sImageBorderAttributeMap[];
