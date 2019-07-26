@@ -13,6 +13,18 @@ var rokuTarget = {
   }
 };
 
+var fireflyTarget = {
+  target: "urn:dial-multiscreen-org:service:dial:1",
+  filters: {
+    server: null,
+    modelName: "Eureka Dongle"
+  },
+  factory: function(aService) {
+    Cu.import("resource://gre/modules/FireflyApp.jsm");
+    return new FireflyApp(aService);
+  }
+};
+
 var CastingApps = {
   _castMenuId: -1,
 
@@ -23,6 +35,7 @@ var CastingApps = {
 
     
     SimpleServiceDiscovery.registerTarget(rokuTarget);
+    SimpleServiceDiscovery.registerTarget(fireflyTarget);
 
     
     SimpleServiceDiscovery.search(120 * 1000);
