@@ -64,6 +64,10 @@ public:
     return mIsNull;
   }
 
+  Nullable& AsMutable() const {
+    return *const_cast<Nullable*>(this);
+  }
+
   
   
   template<typename U>

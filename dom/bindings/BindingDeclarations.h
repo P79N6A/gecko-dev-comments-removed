@@ -265,6 +265,11 @@ public:
     return mImpl.ref();
   }
 
+  Optional& AsMutable() const
+  {
+    return *const_cast<Optional*>(this);
+  }
+
   
   
   
@@ -377,6 +382,16 @@ public:
   operator JS::Value() const
   {
     return mValue;
+  }
+
+  JS::Value* operator&()
+  {
+    return &mValue;
+  }
+
+  const JS::Value* operator&() const
+  {
+    return &mValue;
   }
 
 private:
