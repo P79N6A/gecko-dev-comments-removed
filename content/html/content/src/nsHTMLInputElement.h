@@ -496,7 +496,7 @@ protected:
   
 
 
-  bool DoesValueAsNumberApply() const { return DoesMinMaxApply() || mType == NS_FORM_INPUT_TIME; }
+  bool DoesValueAsNumberApply() const { return DoesMinMaxApply(); }
 
   
 
@@ -634,19 +634,6 @@ protected:
 
 
   bool IsValidTime(const nsAString& aValue) const;
-
-  
-
-
-
-
-
-
-
-
-
-
-  static bool ParseTime(const nsAString& aValue, uint32_t* aResult);
 
   
 
