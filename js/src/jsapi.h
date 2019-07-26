@@ -3124,9 +3124,8 @@ JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 
 
-
 extern JS_PUBLIC_API(JSObject *)
-JS_NewArrayBufferWithContents(JSContext *cx, void *contents);
+JS_NewArrayBufferWithContents(JSContext *cx, size_t nbytes, void *contents);
 
 
 
@@ -3134,12 +3133,8 @@ JS_NewArrayBufferWithContents(JSContext *cx, void *contents);
 
 
 
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj, void **contents, uint8_t **data);
-
+extern JS_PUBLIC_API(void *)
+JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj);
 
 
 
@@ -3147,20 +3142,16 @@ JS_StealArrayBufferContents(JSContext *cx, JS::HandleObject obj, void **contents
 
 
 
-
-
-
-
-extern JS_PUBLIC_API(bool)
-JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, void **contents, uint8_t **data);
+extern JS_PUBLIC_API(void *)
+JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes);
 
 
 
 
 
 
-extern JS_PUBLIC_API(bool)
-JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data);
+extern JS_PUBLIC_API(void *)
+JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void *oldContents, uint32_t oldNbytes);
 
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JSObject *obj);

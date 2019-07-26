@@ -62,7 +62,6 @@ namespace mozilla {
 
 class ArrayBufferBuilder
 {
-  void* mRawContents;
   uint8_t* mDataPtr;
   uint32_t mCapacity;
   uint32_t mLength;

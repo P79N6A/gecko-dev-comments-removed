@@ -979,6 +979,8 @@ JSStructuredCloneWriter::writeTransferMap()
             return false;
         if (!out.write(0)) 
             return false;
+        if (!out.write(0)) 
+            return false;
     }
 
     return true;
@@ -1006,14 +1008,15 @@ JSStructuredCloneWriter::transferOwnership()
         MOZ_ASSERT(uint32_t(LittleEndian::readUint64(point)) == SCTAG_TM_UNFILLED);
 
         if (obj->is<ArrayBufferObject>()) {
-            void *content;
-            uint8_t *data;
-            if (!JS_StealArrayBufferContents(context(), obj, &content, &data))
+            size_t nbytes = obj->as<ArrayBufferObject>().byteLength();
+            void *contents = JS_StealArrayBufferContents(context(), obj);
+            if (!contents)
                 return false; 
 
             uint64_t entryTag = PairToUInt64(SCTAG_TRANSFER_MAP_ENTRY, SCTAG_TM_ALLOC_DATA);
             LittleEndian::writeUint64(point++, entryTag);
-            LittleEndian::writeUint64(point++, reinterpret_cast<uint64_t>(content));
+            LittleEndian::writeUint64(point++, reinterpret_cast<uint64_t>(contents));
+            LittleEndian::writeUint64(point++, nbytes);
             LittleEndian::writeUint64(point++, 0);
         } else {
             SharedArrayRawBuffer *rawbuf = obj->as<SharedArrayBufferObject>().rawBufferObject();
@@ -1025,6 +1028,7 @@ JSStructuredCloneWriter::transferOwnership()
             uint64_t entryTag = PairToUInt64(SCTAG_TRANSFER_MAP_ENTRY, SCTAG_TM_SHARED_BUFFER);
             LittleEndian::writeUint64(point++, entryTag);
             LittleEndian::writeUint64(point++, reinterpret_cast<uint64_t>(rawbuf));
+            LittleEndian::writeUint64(point++, 0);
             LittleEndian::writeUint64(point++, 0);
         }
     }
@@ -1512,6 +1516,10 @@ JSStructuredCloneReader::readTransferMap()
         if (!in.readPtr(&content))
             return false;
 
+        uint64_t nbytes;
+        if (!in.read(&nbytes))
+            return false;
+
         uint64_t userdata;
         if (!in.read(&userdata))
             return false;
@@ -1519,7 +1527,7 @@ JSStructuredCloneReader::readTransferMap()
         RootedObject obj(context());
 
         if (data == SCTAG_TM_ALLOC_DATA)
-            obj = JS_NewArrayBufferWithContents(context(), content);
+            obj = JS_NewArrayBufferWithContents(context(), nbytes, content);
         else if (data == SCTAG_TM_SHARED_BUFFER)
             obj = SharedArrayBufferObject::New(context(), (SharedArrayRawBuffer *)content);
 
