@@ -983,6 +983,27 @@ class Atomic<T*, Order> : public detail::AtomicBaseIncDec<T*, Order>
     Atomic(Atomic<T*, Order>& aOther) MOZ_DELETE;
 };
 
+
+
+
+
+
+template<typename T, MemoryOrdering Order>
+class Atomic<T, Order, typename EnableIf<IsEnum<T>::value>::Type>
+  : public detail::AtomicBase<T, Order>
+{
+    typedef typename detail::AtomicBase<T, Order> Base;
+
+  public:
+    Atomic() : Base() {}
+    Atomic(T aInit) : Base(aInit) {}
+
+    using Base::operator=;
+
+  private:
+    Atomic(Atomic<T, Order>& aOther) MOZ_DELETE;
+};
+
 } 
 
 #endif 
