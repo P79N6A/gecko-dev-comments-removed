@@ -104,6 +104,7 @@ const char js_typeof_str[]          = "typeof";
 const char js_void_str[]            = "void";
 const char js_while_str[]           = "while";
 const char js_with_str[]            = "with";
+const char js_yield_str[]           = "yield";
 
 
 

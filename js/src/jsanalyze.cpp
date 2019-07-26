@@ -1829,7 +1829,7 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
 
 
 
-    if (cx->compartment()->debugMode() || script_->isGenerator())
+    if (cx->compartment()->debugMode() || script_->isGenerator)
         return true;
 
     

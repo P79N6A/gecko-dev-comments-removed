@@ -935,7 +935,7 @@ TokenStream::checkForKeyword(const jschar *s, size_t length, TokenKind *ttp)
         
         
         
-        if (kw->tokentype != TOK_LET)
+        if (kw->tokentype != TOK_LET && kw->tokentype != TOK_YIELD)
             return true;
     }
 

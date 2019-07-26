@@ -414,19 +414,6 @@ class ScriptSourceObject : public JSObject
     static const uint32_t SOURCE_SLOT = 0;
 };
 
-enum GeneratorKind { NotGenerator, LegacyGenerator, StarGenerator };
-
-static inline unsigned
-GeneratorKindAsBits(GeneratorKind generatorKind) {
-    return static_cast<unsigned>(generatorKind);
-}
-
-static inline GeneratorKind
-GeneratorKindFromBits(unsigned val) {
-    JS_ASSERT(val <= StarGenerator);
-    return static_cast<GeneratorKind>(val);
-}
-
 } 
 
 class JSScript : public js::gc::Cell
@@ -552,9 +539,6 @@ class JSScript : public js::gc::Cell
     ArrayBitsT      hasArrayBits;
 
     
-    uint8_t         generatorKindBits_;
-
-    
 
   public:
     bool            noScriptRval:1; 
@@ -606,8 +590,13 @@ class JSScript : public js::gc::Cell
     bool            invalidatedIdempotentCache:1; 
 
     
+    bool            isGenerator:1;
+    
     
     bool            isGeneratorExp:1;
+    
+    
+    bool            isLegacyGenerator:1;
 
     bool            hasScriptCounts:1;
 
@@ -657,19 +646,6 @@ class JSScript : public js::gc::Cell
     bool argumentsHasVarBinding() const { return argsHasVarBinding_; }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
     void setArgumentsHasVarBinding();
-
-    js::GeneratorKind generatorKind() const {
-        return js::GeneratorKindFromBits(generatorKindBits_);
-    }
-    bool isGenerator() const { return generatorKind() != js::NotGenerator; }
-    bool isLegacyGenerator() const { return generatorKind() == js::LegacyGenerator; }
-    bool isStarGenerator() const { return generatorKind() == js::StarGenerator; }
-    void setGeneratorKind(js::GeneratorKind kind) {
-        
-        
-        JS_ASSERT(!isGenerator());
-        generatorKindBits_ = GeneratorKindAsBits(kind);
-    }
 
     
 
@@ -1172,9 +1148,7 @@ class LazyScript : public js::gc::Cell
     uint32_t version_ : 8;
 
     uint32_t numFreeVariables_ : 24;
-    uint32_t numInnerFunctions_ : 24;
-
-    uint32_t generatorKindBits_:2;
+    uint32_t numInnerFunctions_ : 26;
 
     
     uint32_t strict_ : 1;
@@ -1238,23 +1212,6 @@ class LazyScript : public js::gc::Cell
     }
     HeapPtrFunction *innerFunctions() {
         return (HeapPtrFunction *)&freeVariables()[numFreeVariables()];
-    }
-
-    GeneratorKind generatorKind() const { return GeneratorKindFromBits(generatorKindBits_); }
-
-    bool isGenerator() const { return generatorKind() != NotGenerator; }
-
-    bool isLegacyGenerator() const { return generatorKind() == LegacyGenerator; }
-
-    bool isStarGenerator() const { return generatorKind() == StarGenerator; }
-
-    void setGeneratorKind(GeneratorKind kind) {
-        
-        
-        JS_ASSERT(!isGenerator());
-        
-        JS_ASSERT(kind != LegacyGenerator);
-        generatorKindBits_ = GeneratorKindAsBits(kind);
     }
 
     bool strict() const {
