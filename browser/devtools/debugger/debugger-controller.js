@@ -1125,11 +1125,6 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    if (DebuggerView.instrumentsPaneTab == "events-tab") {
-      DebuggerController.Breakpoints.DOM.scheduleEventListenersFetch();
-    }
-
-    
     window.emit(EVENTS.SOURCES_ADDED);
   },
 
