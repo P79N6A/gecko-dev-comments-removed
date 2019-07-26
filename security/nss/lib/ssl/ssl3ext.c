@@ -681,21 +681,8 @@ ssl3_ServerSendStatusRequestXtn(
 {
     PRInt32 extension_length;
     SECStatus rv;
-    int i;
-    PRBool haveStatus = PR_FALSE;
 
-    for (i = kt_null; i < kt_kea_size; i++) {
-	
-
-
-
-
-	if (ss->certStatusArray[i] && ss->certStatusArray[i]->len) {
-	    haveStatus = PR_TRUE;
-	    break;
-	}
-    }
-    if (!haveStatus)
+    if (!ss->certStatusArray || !ss->certStatusArray->len)
 	return 0;
 
     extension_length = 2 + 2;

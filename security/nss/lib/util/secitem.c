@@ -115,63 +115,6 @@ SECITEM_ReallocItem(PLArenaPool *arena, SECItem *item, unsigned int oldlen,
     return SECSuccess;
 }
 
-SECStatus
-SECITEM_ReallocItemV2(PLArenaPool *arena, SECItem *item, unsigned int newlen)
-{
-    unsigned char *newdata = NULL;
-
-    PORT_Assert(item);
-    if (!item) {
-	PORT_SetError(SEC_ERROR_INVALID_ARGS);
-	return SECFailure;
-    }
-    
-    if (item->len == newlen) {
-	return SECSuccess;
-    }
-
-    if (!newlen) {
-	SECITEM_FreeItem(item, PR_FALSE);
-	return SECSuccess;
-    }
-    
-    if (!item->len) {
-	
-	PORT_Assert(!item->data);
-	if (arena) {
-	    newdata = PORT_ArenaAlloc(arena, newlen);
-	} else {
-	    newdata = PORT_Alloc(newlen);
-	}
-    } else {
-	
-	if (arena) {
-	    if (item->len > newlen) {
-		
-
-
-
-
-		item->len = newlen;
-		return SECSuccess;
-	    } else {
-		newdata = PORT_ArenaGrow(arena, item->data, item->len, newlen);
-	    }
-	} else {
-	    newdata = PORT_Realloc(item->data, newlen);
-	}
-    }
-
-    if (!newdata) {
-	PORT_SetError(SEC_ERROR_NO_MEMORY);
-	return SECFailure;
-    }
-
-    item->len = newlen;
-    item->data = newdata;
-    return SECSuccess;
-}
-
 SECComparison
 SECITEM_CompareItem(const SECItem *a, const SECItem *b)
 {

@@ -836,8 +836,7 @@ pkix_Build_VerifyCertificate(
         PKIX_PL_PublicKey *candidatePubKey = NULL;
         PKIX_CertChainChecker *userChecker = NULL;
         PKIX_CertChainChecker_CheckCallback checkerCheck = NULL;
-        PKIX_PL_TrustAnchorMode trustAnchorMode =
-                PKIX_PL_TrustAnchorMode_Ignore;
+        PKIX_Boolean trustOnlyUserAnchors = PKIX_FALSE;
         void *nbioContext = NULL;
         
         PKIX_ENTER(BUILD, "pkix_Build_VerifyCertificate");
@@ -851,17 +850,12 @@ pkix_Build_VerifyCertificate(
         candidateCert = state->candidateCert;
 
         if (state->buildConstants.numAnchors) {
-            if (state->buildConstants.trustOnlyUserAnchors) {
-                trustAnchorMode = PKIX_PL_TrustAnchorMode_Exclusive;
-            } else {
-                trustAnchorMode = PKIX_PL_TrustAnchorMode_Additive;
-            }
-        } else {
-            trustAnchorMode = PKIX_PL_TrustAnchorMode_Ignore;
+            trustOnlyUserAnchors = state->buildConstants.trustOnlyUserAnchors;
         }
 
         PKIX_CHECK(
-            PKIX_PL_Cert_IsCertTrusted(candidateCert, trustAnchorMode,
+            PKIX_PL_Cert_IsCertTrusted(candidateCert,
+                                       trustOnlyUserAnchors,
                                        &trusted, plContext),
             PKIX_CERTISCERTTRUSTEDFAILED);
 
@@ -3047,27 +3041,19 @@ pkix_Build_CheckInCache(
                    (matchingAnchor, &trustedCert, plContext),
                    PKIX_TRUSTANCHORGETTRUSTEDCERTFAILED);
         
-        if (anchors && state->buildConstants.numAnchors) {
+        if (state->buildConstants.anchors &&
+            state->buildConstants.anchors->length) {
             
             PKIX_CHECK(
-                pkix_List_Contains(anchors,
+                pkix_List_Contains(state->buildConstants.anchors,
                                    (PKIX_PL_Object *)matchingAnchor,
                                    &trusted,
                                    plContext),
                 PKIX_LISTCONTAINSFAILED);
-        }
-
-        if ((!trusted && !state->buildConstants.trustOnlyUserAnchors) ||
-            !state->buildConstants.numAnchors) {
-            
-
-
-
-            PKIX_CHECK(
-                PKIX_PL_Cert_IsCertTrusted(trustedCert,
-                                           PKIX_PL_TrustAnchorMode_Ignore,
-                                           &trusted, plContext),
-                PKIX_CERTISCERTTRUSTEDFAILED);
+        } else {
+            PKIX_CHECK(PKIX_PL_Cert_IsCertTrusted
+                       (trustedCert, PKIX_FALSE, &trusted, plContext),
+                       PKIX_CERTISCERTTRUSTEDFAILED);
         }
 
         if (!trusted) {

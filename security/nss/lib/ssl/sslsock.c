@@ -1,11 +1,11 @@
-/*
- * vtables (and methods that call through them) for the 4 types of 
- * SSLSockets supported.  Only one type is still supported.
- * Various other functions.
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
+
+
 #include "seccomon.h"
 #include "cert.h"
 #include "keyhi.h"
@@ -19,22 +19,22 @@
 #endif
 #include "nss.h"
 
-#define SET_ERROR_CODE   /* reminder */
+#define SET_ERROR_CODE
 
 struct cipherPolicyStr {
 	int		cipher;
-	unsigned char 	export;	/* policy value for export policy */
-	unsigned char 	france;	/* policy value for france policy */
+	unsigned char 	export;	
+	unsigned char 	france;	
 };
 
 typedef struct cipherPolicyStr cipherPolicy;
 
-/* This table contains two preconfigured policies: Export and France.
-** It is used only by the functions SSL_SetDomesticPolicy, 
-** SSL_SetExportPolicy, and SSL_SetFrancyPolicy.
-** Order of entries is not important.
-*/
-static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
+
+
+
+
+
+static cipherPolicy ssl_ciphers[] = {	   
  {  SSL_EN_RC4_128_WITH_MD5,		    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  SSL_EN_RC4_128_EXPORT40_WITH_MD5,	    SSL_ALLOWED,     SSL_ALLOWED },
  {  SSL_EN_RC2_128_CBC_WITH_MD5,	    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
@@ -92,11 +92,11 @@ static cipherPolicy ssl_ciphers[] = {	   /*   Export           France   */
  {  TLS_ECDHE_RSA_WITH_3DES_EDE_CBC_SHA,    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
  {  TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA,     SSL_NOT_ALLOWED, SSL_NOT_ALLOWED },
-#endif /* NSS_ENABLE_ECC */
+#endif 
  {  0,					    SSL_NOT_ALLOWED, SSL_NOT_ALLOWED }
 };
 
-static const sslSocketOps ssl_default_ops = {	/* No SSL. */
+static const sslSocketOps ssl_default_ops = {	
     ssl_DefConnect,
     NULL,
     ssl_DefBind,
@@ -111,7 +111,7 @@ static const sslSocketOps ssl_default_ops = {	/* No SSL. */
     ssl_DefGetsockname
 };
 
-static const sslSocketOps ssl_secure_ops = {	/* SSL. */
+static const sslSocketOps ssl_secure_ops = {	
     ssl_SecureConnect,
     NULL,
     ssl_DefBind,
@@ -126,39 +126,39 @@ static const sslSocketOps ssl_secure_ops = {	/* SSL. */
     ssl_DefGetsockname
 };
 
-/*
-** default settings for socket enables
-*/
+
+
+
 static sslOptions ssl_defaults = {
-    { siBuffer, NULL, 0 }, /* nextProtoNego */
-    PR_TRUE, 	/* useSecurity        */
-    PR_FALSE,	/* useSocks           */
-    PR_FALSE,	/* requestCertificate */
-    2,	        /* requireCertificate */
-    PR_FALSE,	/* handshakeAsClient  */
-    PR_FALSE,	/* handshakeAsServer  */
-    PR_FALSE,	/* enableSSL2         */ /* now defaults to off in NSS 3.13 */
-    PR_FALSE,	/* unusedBit9         */
-    PR_FALSE, 	/* unusedBit10        */
-    PR_FALSE,	/* noCache            */
-    PR_FALSE,	/* fdx                */
-    PR_FALSE,	/* v2CompatibleHello  */ /* now defaults to off in NSS 3.13 */
-    PR_TRUE,	/* detectRollBack     */
-    PR_FALSE,   /* noStepDown         */
-    PR_FALSE,   /* bypassPKCS11       */
-    PR_FALSE,   /* noLocks            */
-    PR_FALSE,   /* enableSessionTickets */
-    PR_FALSE,   /* enableDeflate      */
-    2,          /* enableRenegotiation (default: requires extension) */
-    PR_FALSE,   /* requireSafeNegotiation */
-    PR_FALSE,   /* enableFalseStart   */
-    PR_TRUE,    /* cbcRandomIV        */
-    PR_FALSE    /* enableOCSPStapling */
+    { siBuffer, NULL, 0 }, 
+    PR_TRUE, 	
+    PR_FALSE,	
+    PR_FALSE,	
+    2,	        
+    PR_FALSE,	
+    PR_FALSE,	
+    PR_FALSE,	 
+    PR_FALSE,	
+    PR_FALSE, 	
+    PR_FALSE,	
+    PR_FALSE,	
+    PR_FALSE,	 
+    PR_TRUE,	
+    PR_FALSE,   
+    PR_FALSE,   
+    PR_FALSE,   
+    PR_FALSE,   
+    PR_FALSE,   
+    2,          
+    PR_FALSE,   
+    PR_FALSE,   
+    PR_TRUE,    
+    PR_FALSE    
 };
 
-/*
- * default range of enabled SSL/TLS protocols
- */
+
+
+
 static SSLVersionRange versions_defaults_stream = {
     SSL_LIBRARY_VERSION_3_0,
     SSL_LIBRARY_VERSION_TLS_1_0
@@ -180,9 +180,9 @@ sslSessionIDUncacheFunc ssl_sid_uncache;
 static PRBool ssl_inited = PR_FALSE;
 static PRDescIdentity ssl_layer_id;
 
-PRBool                  locksEverDisabled; 	/* implicitly PR_FALSE */
-PRBool			ssl_force_locks;  	/* implicitly PR_FALSE */
-int                     ssl_lock_readers	= 1;	/* default true. */
+PRBool                  locksEverDisabled; 	
+PRBool			ssl_force_locks;  	
+int                     ssl_lock_readers	= 1;	
 char                    ssl_debug;
 char                    ssl_trace;
 FILE *                  ssl_trace_iob;
@@ -190,27 +190,27 @@ FILE *                  ssl_keylog_iob;
 char lockStatus[] = "Locks are ENABLED.  ";
 #define LOCKSTATUS_OFFSET 10 /* offset of ENABLED */
 
-/* SRTP_NULL_HMAC_SHA1_80 and SRTP_NULL_HMAC_SHA1_32 are not implemented. */
+
 static const PRUint16 srtpCiphers[] = {
     SRTP_AES128_CM_HMAC_SHA1_80,
     SRTP_AES128_CM_HMAC_SHA1_32,
     0
 };
 
-/* forward declarations. */
+
 static sslSocket *ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant variant);
 static SECStatus  ssl_MakeLocks(sslSocket *ss);
 static void       ssl_SetDefaultsFromEnvironment(void);
 static PRStatus   ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, 
                                   PRDescIdentity id);
 
-/************************************************************************/
 
-/*
-** Lookup a socket structure from a file descriptor.
-** Only functions called through the PRIOMethods table should use this.
-** Other app-callable functions should use ssl_FindSocket.
-*/
+
+
+
+
+
+
 static sslSocket *
 ssl_GetPrivate(PRFileDesc *fd)
 {
@@ -231,11 +231,11 @@ ssl_GetPrivate(PRFileDesc *fd)
     return ss;
 }
 
-/* This function tries to find the SSL layer in the stack. 
- * It searches for the first SSL layer at or below the argument fd,
- * and failing that, it searches for the nearest SSL layer above the 
- * argument fd.  It returns the private sslSocket from the found layer.
- */
+
+
+
+
+
 sslSocket *
 ssl_FindSocket(PRFileDesc *fd)
 {
@@ -277,7 +277,7 @@ ssl_DupSocket(sslSocket *os)
 	ss->cTimeout = os->cTimeout;
 	ss->dbHandle = os->dbHandle;
 
-	/* copy ssl2&3 policy & prefs, even if it's not selected (yet) */
+	
 	ss->allowedByPolicy	= os->allowedByPolicy;
 	ss->maybeAllowedByPolicy= os->maybeAllowedByPolicy;
 	ss->chosenPreference 	= os->chosenPreference;
@@ -294,14 +294,14 @@ ssl_DupSocket(sslSocket *os)
 	    ss->sizeCipherSpecs    = os->sizeCipherSpecs;
 	    ss->preferredCipher    = os->preferredCipher;
 	} else {
-	    ss->cipherSpecs        = NULL;  /* produced lazily */
+	    ss->cipherSpecs        = NULL;  
 	    ss->sizeCipherSpecs    = 0;
 	    ss->preferredCipher    = NULL;
 	}
 	if (ss->opt.useSecurity) {
-	    /* This int should be SSLKEAType, but CC on Irix complains,
-	     * during the for loop.
-	     */
+	    
+
+
 	    int i;
 	    sslServerCerts * oc = os->serverCerts;
 	    sslServerCerts * sc = ss->serverCerts;
@@ -321,17 +321,17 @@ ssl_DupSocket(sslSocket *os)
 		if (oc->serverKeyPair && !sc->serverKeyPair)
 		    goto loser;
 	        sc->serverKeyBits = oc->serverKeyBits;
-		ss->certStatusArray[i] = !os->certStatusArray[i] ? NULL :
-				SECITEM_DupArray(NULL, os->certStatusArray[i]);
 	    }
 	    ss->stepDownKeyPair = !os->stepDownKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->stepDownKeyPair);
 	    ss->ephemeralECDHKeyPair = !os->ephemeralECDHKeyPair ? NULL :
 		                  ssl3_GetKeyPairRef(os->ephemeralECDHKeyPair);
-/*
- * XXX the preceding CERT_ and SECKEY_ functions can fail and return NULL.
- * XXX We should detect this, and not just march on with NULL pointers.
- */
+	    ss->certStatusArray = !os->certStatusArray ? NULL :
+				  SECITEM_DupArray(NULL, os->certStatusArray);
+
+
+
+
 	    ss->authCertificate       = os->authCertificate;
 	    ss->authCertificateArg    = os->authCertificateArg;
 	    ss->getClientAuthData     = os->getClientAuthData;
@@ -344,7 +344,7 @@ ssl_DupSocket(sslSocket *os)
 	    ss->handshakeCallbackData = os->handshakeCallbackData;
 	    ss->pkcs11PinArg          = os->pkcs11PinArg;
     
-	    /* Create security data */
+	    
 	    rv = ssl_CopySecurityInfo(ss, os);
 	    if (rv != SECSuccess) {
 		goto loser;
@@ -361,7 +361,7 @@ loser:
 static void
 ssl_DestroyLocks(sslSocket *ss)
 {
-    /* Destroy locks. */
+    
     if (ss->firstHandshakeLock) {
     	PZ_DestroyMonitor(ss->firstHandshakeLock);
 	ss->firstHandshakeLock = NULL;
@@ -393,16 +393,16 @@ ssl_DestroyLocks(sslSocket *ss)
     }
 }
 
-/* Caller holds any relevant locks */
+
 static void
 ssl_DestroySocketContents(sslSocket *ss)
 {
-    /* "i" should be of type SSLKEAType, but CC on IRIX complains during
-     * the for loop.
-     */
+    
+
+
     int        i;
 
-    /* Free up socket */
+    
     ssl_DestroySecurityInfo(&ss->sec);
 
     ssl3_DestroySSL3Info(ss);
@@ -414,14 +414,14 @@ ssl_DestroySocketContents(sslSocket *ss)
     if (ss->peerID != NULL)
 	PORT_Free(ss->peerID);
     if (ss->url != NULL)
-	PORT_Free((void *)ss->url);	/* CONST */
+	PORT_Free((void *)ss->url);	
     if (ss->cipherSpecs) {
 	PORT_Free(ss->cipherSpecs);
 	ss->cipherSpecs     = NULL;
 	ss->sizeCipherSpecs = 0;
     }
 
-    /* Clean up server configuration */
+    
     for (i=kt_null; i < kt_kea_size; i++) {
 	sslServerCerts * sc = ss->serverCerts + i;
 	if (sc->serverCert != NULL)
@@ -430,10 +430,6 @@ ssl_DestroySocketContents(sslSocket *ss)
 	    CERT_DestroyCertificateList(sc->serverCertChain);
 	if (sc->serverKeyPair != NULL)
 	    ssl3_FreeKeyPair(sc->serverKeyPair);
-	if (ss->certStatusArray[i] != NULL) {
-	    SECITEM_FreeArray(ss->certStatusArray[i], PR_TRUE);
-	    ss->certStatusArray[i] = NULL;
-	}
     }
     if (ss->stepDownKeyPair) {
 	ssl3_FreeKeyPair(ss->stepDownKeyPair);
@@ -443,6 +439,10 @@ ssl_DestroySocketContents(sslSocket *ss)
 	ssl3_FreeKeyPair(ss->ephemeralECDHKeyPair);
 	ss->ephemeralECDHKeyPair = NULL;
     }
+    if (ss->certStatusArray) {
+	SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+	ss->certStatusArray = NULL;
+    }
     SECITEM_FreeItem(&ss->opt.nextProtoNego, PR_FALSE);
     PORT_Assert(!ss->xtnData.sniNameArr);
     if (ss->xtnData.sniNameArr) {
@@ -451,17 +451,17 @@ ssl_DestroySocketContents(sslSocket *ss)
     }
 }
 
-/*
- * free an sslSocket struct, and all the stuff that hangs off of it
- */
+
+
+
 void
 ssl_FreeSocket(sslSocket *ss)
 {
-/* Get every lock you can imagine!
-** Caller already holds these:
-**  SSL_LOCK_READER(ss);
-**  SSL_LOCK_WRITER(ss);
-*/
+
+
+
+
+
     ssl_Get1stHandshakeLock(ss);
     ssl_GetRecvBufLock(ss);
     ssl_GetSSL3HandshakeLock(ss);
@@ -470,7 +470,7 @@ ssl_FreeSocket(sslSocket *ss)
 
     ssl_DestroySocketContents(ss);
 
-    /* Release all the locks acquired above.  */
+    
     SSL_UNLOCK_READER(ss);
     SSL_UNLOCK_WRITER(ss);
     ssl_Release1stHandshakeLock(ss);
@@ -488,7 +488,7 @@ ssl_FreeSocket(sslSocket *ss)
     return;
 }
 
-/************************************************************************/
+
 SECStatus 
 ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled)
 {
@@ -514,7 +514,7 @@ ssl_ChooseOps(sslSocket *ss)
     ss->ops = ss->opt.useSecurity ? &ssl_secure_ops : &ssl_default_ops;
 }
 
-/* Called from SSL_Enable (immediately below) */
+
 static SECStatus
 PrepareSocket(sslSocket *ss)
 {
@@ -536,7 +536,7 @@ static PRCallOnceType setupBypassOnce;
 
 static SECStatus SSL_BypassShutdown(void* appData, void* nssData)
 {
-    /* unload freeBL shared library from memory */
+    
     BL_Unload();
     setupBypassOnce = pristineCallOnce;
     return SECSuccess;
@@ -553,16 +553,16 @@ static PRStatus SSL_BypassRegisterShutdown(void)
 static PRStatus SSL_BypassSetup(void)
 {
 #ifdef NO_PKCS11_BYPASS
-    /* Guarantee binary compatibility */
+    
     return PR_SUCCESS;
 #else
     return PR_CallOnce(&setupBypassOnce, &SSL_BypassRegisterShutdown);
 #endif
 }
 
-/* Implements the semantics for SSL_OptionSet(SSL_ENABLE_TLS, on) described in
- * ssl.h in the section "SSL version range setting API".
- */
+
+
+
 static void
 ssl_EnableTLS(SSLVersionRange *vrange, PRBool on)
 {
@@ -570,29 +570,29 @@ ssl_EnableTLS(SSLVersionRange *vrange, PRBool on)
 	if (on) {
 	    vrange->min = SSL_LIBRARY_VERSION_TLS_1_0;
 	    vrange->max = SSL_LIBRARY_VERSION_TLS_1_0;
-	} /* else don't change anything */
+	} 
 	return;
     }
 
     if (on) {
-	/* Expand the range of enabled version to include TLS 1.0 */
+	
 	vrange->min = PR_MIN(vrange->min, SSL_LIBRARY_VERSION_TLS_1_0);
 	vrange->max = PR_MAX(vrange->max, SSL_LIBRARY_VERSION_TLS_1_0);
     } else {
-	/* Disable all TLS versions, leaving only SSL 3.0 if it was enabled */
+	
 	if (vrange->min == SSL_LIBRARY_VERSION_3_0) {
 	    vrange->max = SSL_LIBRARY_VERSION_3_0;
 	} else {
-	    /* Only TLS was enabled, so now no versions are. */
+	    
 	    vrange->min = SSL_LIBRARY_VERSION_NONE;
 	    vrange->max = SSL_LIBRARY_VERSION_NONE;
 	}
     }
 }
 
-/* Implements the semantics for SSL_OptionSet(SSL_ENABLE_SSL3, on) described in
- * ssl.h in the section "SSL version range setting API".
- */
+
+
+
 static void
 ssl_EnableSSL3(SSLVersionRange *vrange, PRBool on)
 {
@@ -600,22 +600,22 @@ ssl_EnableSSL3(SSLVersionRange *vrange, PRBool on)
 	if (on) {
 	    vrange->min = SSL_LIBRARY_VERSION_3_0;
 	    vrange->max = SSL_LIBRARY_VERSION_3_0;
-	} /* else don't change anything */
+	} 
 	return;
     }
 
    if (on) {
-	/* Expand the range of enabled versions to include SSL 3.0. We know
-	 * SSL 3.0 or some version of TLS is already enabled at this point, so
-	 * we don't need to change vrange->max.
-	 */
+	
+
+
+
 	vrange->min = SSL_LIBRARY_VERSION_3_0;
    } else {
-	/* Disable SSL 3.0, leaving TLS unaffected. */
+	
 	if (vrange->max > SSL_LIBRARY_VERSION_3_0) {
 	    vrange->min = PR_MAX(vrange->min, SSL_LIBRARY_VERSION_TLS_1_0);
 	} else {
-	    /* Only SSL 3.0 was enabled, so now no versions are. */
+	    
 	    vrange->min = SSL_LIBRARY_VERSION_NONE;
 	    vrange->max = SSL_LIBRARY_VERSION_NONE;
 	}
@@ -683,7 +683,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         if (IS_DTLS(ss)) {
 	    if (on) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		rv = SECFailure; /* not allowed */
+		rv = SECFailure; 
 	    }
 	    break;
 	}
@@ -700,7 +700,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         if (IS_DTLS(ss)) {
 	    if (on) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		rv = SECFailure; /* not allowed */
+		rv = SECFailure; 
 	    }
 	    break;
 	}
@@ -717,7 +717,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         if (IS_DTLS(ss)) {
 	    if (on) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		rv = SECFailure; /* not allowed */
+		rv = SECFailure; 
 	    }
 	    break;
 	}
@@ -749,7 +749,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
         if (IS_DTLS(ss)) {
 	    if (on) {
 		PORT_SetError(SEC_ERROR_INVALID_ARGS);
-		rv = SECFailure; /* not allowed */
+		rv = SECFailure; 
 	    }
 	    break;
 	}
@@ -796,7 +796,7 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	    rv = SECFailure;
 	}
 	if (on && ssl_force_locks) 
-	    on = PR_FALSE;	/* silent override */
+	    on = PR_FALSE;	
 	ss->opt.noLocks   = on;
 	if (on) {
 	    locksEverDisabled = PR_TRUE;
@@ -842,11 +842,11 @@ SSL_OptionSet(PRFileDesc *fd, PRInt32 which, PRBool on)
 	rv = SECFailure;
     }
 
-    /* We can't use the macros for releasing the locks here,
-     * because ss->opt.noLocks might have changed just above.
-     * We must release these locks (monitors) here, if we aquired them above,
-     * regardless of the current value of ss->opt.noLocks.
-     */
+    
+
+
+
+
     if (holdingLocks) {
 	PZ_ExitMonitor((ss)->ssl3HandshakeLock);
 	PZ_ExitMonitor((ss)->firstHandshakeLock);
@@ -978,7 +978,7 @@ SSL_OptionGetDefault(PRInt32 which, PRBool *pOn)
     return rv;
 }
 
-/* XXX Use Global Lock to protect this stuff. */
+
 SECStatus
 SSL_EnableDefault(int which, PRBool on)
 {
@@ -1099,7 +1099,7 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
 	    return SECFailure;
 	}
 	if (on && ssl_force_locks) 
-	    on = PR_FALSE;		/* silent override */
+	    on = PR_FALSE;		
 	ssl_defaults.noLocks        = on;
 	if (on) {
 	    locksEverDisabled = PR_TRUE;
@@ -1142,7 +1142,7 @@ SSL_OptionSetDefault(PRInt32 which, PRBool on)
     return SECSuccess;
 }
 
-/* function tells us if the cipher suite is one that we no longer support. */
+
 static PRBool 
 ssl_IsRemovedCipherSuite(PRInt32 suite)
 {
@@ -1156,15 +1156,15 @@ ssl_IsRemovedCipherSuite(PRInt32 suite)
     }
 }
 
-/* Part of the public NSS API.
- * Since this is a global (not per-socket) setting, we cannot use the
- * HandshakeLock to protect this.  Probably want a global lock.
- */
+
+
+
+
 SECStatus
 SSL_SetPolicy(long which, int policy)
 {
     if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
-    	/* one of the two old FIPS ciphers */
+    	
 	if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) 
 	    which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
 	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
@@ -1214,16 +1214,16 @@ SSL_CipherPolicyGet(PRInt32 which, PRInt32 *oPolicy)
     return rv;
 }
 
-/* Part of the public NSS API.
- * Since this is a global (not per-socket) setting, we cannot use the
- * HandshakeLock to protect this.  Probably want a global lock.
- * These changes have no effect on any sslSockets already created. 
- */
+
+
+
+
+
 SECStatus
 SSL_EnableCipher(long which, PRBool enabled)
 {
     if ((which & 0xfffe) == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) {
-    	/* one of the two old FIPS ciphers */
+    	
 	if (which == SSL_RSA_OLDFIPS_WITH_3DES_EDE_CBC_SHA) 
 	    which = SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA;
 	else if (which == SSL_RSA_OLDFIPS_WITH_DES_CBC_SHA)
@@ -1355,7 +1355,7 @@ NSS_SetFrancePolicy(void)
 
 
 
-/* LOCKS ??? XXX */
+
 static PRFileDesc *
 ssl_ImportFD(PRFileDesc *model, PRFileDesc *fd, SSLProtocolVariant variant)
 {
@@ -1369,7 +1369,7 @@ ssl_ImportFD(PRFileDesc *model, PRFileDesc *fd, SSLProtocolVariant variant)
     }
 
     if (model == NULL) {
-	/* Just create a default socket if we're given NULL for the model */
+	
 	ns = ssl_NewSocket((PRBool)(!ssl_defaults.noLocks), variant);
     } else {
 	sslSocket * ss = ssl_FindSocket(model);
@@ -1428,9 +1428,9 @@ SSL_SetNextProtoCallback(PRFileDesc *fd, SSLNextProtoCallback callback,
     return SECSuccess;
 }
 
-/* ssl_NextProtoNegoCallback is set as an NPN callback for the case when
- * SSL_SetNextProtoNego is used.
- */
+
+
+
 static SECStatus
 ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
 			  const unsigned char *protos, unsigned int protos_len,
@@ -1448,18 +1448,18 @@ ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
     }
 
     if (protos_len == 0) {
-	/* The server supports the extension, but doesn't have any protocols
-	 * configured. In this case we request our favoured protocol. */
+	
+
 	goto pick_first;
     }
 
-    /* For each protocol in server preference, see if we support it. */
+    
     for (i = 0; i < protos_len; ) {
 	for (j = 0; j < ss->opt.nextProtoNego.len; ) {
 	    if (protos[i] == ss->opt.nextProtoNego.data[j] &&
 		PORT_Memcmp(&protos[i+1], &ss->opt.nextProtoNego.data[j+1],
 			     protos[i]) == 0) {
-		/* We found a match. */
+		
 		ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NEGOTIATED;
 		result = &protos[i];
 		goto found;
@@ -1651,9 +1651,9 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         PORT_SetError(SEC_ERROR_INVALID_ARGS);
         return NULL;
     }
-    /* This int should be SSLKEAType, but CC on Irix complains,
-     * during the for loop.
-     */
+    
+
+
     for (i=kt_null; i < kt_kea_size; i++) {
         mc = &(sm->serverCerts[i]);
         sc = &(ss->serverCerts[i]);
@@ -1668,15 +1668,6 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
             sc->serverCertChain = CERT_DupCertList(mc->serverCertChain);
             if (!sc->serverCertChain)
                 goto loser;
-	    if (sm->certStatusArray[i]) {
-		if (ss->certStatusArray[i]) {
-		    SECITEM_FreeArray(ss->certStatusArray[i], PR_TRUE);
-		    ss->certStatusArray[i] = NULL;
-		}
-		ss->certStatusArray[i] = SECITEM_DupArray(NULL, sm->certStatusArray[i]);
-		if (!ss->certStatusArray[i])
-		    goto loser;
-	    }
         }
         if (mc->serverKeyPair) {
             if (sc->serverKeyPair) {
@@ -1699,7 +1690,14 @@ SSL_ReconfigFD(PRFileDesc *model, PRFileDesc *fd)
         ss->ephemeralECDHKeyPair =
             ssl3_GetKeyPairRef(sm->ephemeralECDHKeyPair);
     }
-    /* copy trust anchor names */
+    if (sm->certStatusArray) {
+	if (ss->certStatusArray) {
+	    SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+	    ss->certStatusArray = NULL;
+	}
+	ss->certStatusArray = SECITEM_DupArray(NULL, sm->certStatusArray);
+    }
+    
     if (sm->ssl3.ca_list) {
         if (ss->ssl3.ca_list) {
             CERT_FreeDistNames(ss->ssl3.ca_list);
@@ -1749,15 +1747,15 @@ ssl3_VersionIsSupported(SSLProtocolVariant protocolVariant,
 	return (version >= SSL_LIBRARY_VERSION_TLS_1_1 &&
 		version <= SSL_LIBRARY_VERSION_MAX_SUPPORTED);
     default:
-	/* Can't get here */
+	
 	PORT_Assert(PR_FALSE);
 	return PR_FALSE;
     }
 }
 
-/* Returns PR_TRUE if the given version range is valid and
-** fully supported; otherwise, returns PR_FALSE.
-*/
+
+
+
 static PRBool
 ssl3_VersionRangeIsValid(SSLProtocolVariant protocolVariant,
 			 const SSLVersionRange *vrange)
@@ -1896,10 +1894,10 @@ SSL_PeerStapledOCSPResponses(PRFileDesc *fd)
     return &ss->sec.ci.sid->peerCertStatus;
 }
 
-/************************************************************************/
-/* The following functions are the TOP LEVEL SSL functions.
-** They all get called through the NSPRIOMethods table below.
-*/
+
+
+
+
 
 static PRFileDesc * PR_CALLBACK
 ssl_Accept(PRFileDesc *fd, PRNetAddr *sockaddr, PRIntervalTime timeout)
@@ -1916,7 +1914,7 @@ ssl_Accept(PRFileDesc *fd, PRNetAddr *sockaddr, PRIntervalTime timeout)
 	return NULL;
     }
 
-    /* IF this is a listen socket, there shouldn't be any I/O going on */
+    
     SSL_LOCK_READER(ss);
     SSL_LOCK_WRITER(ss);
     ssl_Get1stHandshakeLock(ss);
@@ -1926,32 +1924,32 @@ ssl_Accept(PRFileDesc *fd, PRNetAddr *sockaddr, PRIntervalTime timeout)
 
     osfd = ss->fd->lower;
 
-    /* First accept connection */
+    
     newfd = osfd->methods->accept(osfd, sockaddr, timeout);
     if (newfd == NULL) {
 	SSL_DBG(("%d: SSL[%d]: accept failed, errno=%d",
 		 SSL_GETPID(), ss->fd, PORT_GetError()));
     } else {
-	/* Create ssl module */
+	
 	ns = ssl_DupSocket(ss);
     }
 
     ssl_ReleaseSSL3HandshakeLock(ss);
     ssl_Release1stHandshakeLock(ss);
     SSL_UNLOCK_WRITER(ss);
-    SSL_UNLOCK_READER(ss);			/* ss isn't used below here. */
+    SSL_UNLOCK_READER(ss);			
 
     if (ns == NULL)
 	goto loser;
 
-    /* push ssl module onto the new socket */
+    
     status = ssl_PushIOLayer(ns, newfd, PR_TOP_IO_LAYER);
     if (status != PR_SUCCESS)
 	goto loser;
 
-    /* Now start server connection handshake with client.
-    ** Don't need locks here because nobody else has a reference to ns yet.
-    */
+    
+
+
     if ( ns->opt.useSecurity ) {
 	if ( ns->opt.handshakeAsClient ) {
 	    ns->handshake = ssl2_BeginClientHandshake;
@@ -1984,7 +1982,7 @@ ssl_Connect(PRFileDesc *fd, const PRNetAddr *sockaddr, PRIntervalTime timeout)
 	return PR_FAILURE;
     }
 
-    /* IF this is a listen socket, there shouldn't be any I/O going on */
+    
     SSL_LOCK_READER(ss);
     SSL_LOCK_WRITER(ss);
 
@@ -2077,16 +2075,16 @@ ssl_Close(PRFileDesc *fd)
 	return PR_FAILURE;
     }
 
-    /* There must not be any I/O going on */
+    
     SSL_LOCK_READER(ss);
     SSL_LOCK_WRITER(ss);
 
-    /* By the time this function returns, 
-    ** ss is an invalid pointer, and the locks to which it points have 
-    ** been unlocked and freed.  So, this is the ONE PLACE in all of SSL
-    ** where the LOCK calls and the corresponding UNLOCK calls are not in
-    ** the same function scope.  The unlock calls are in ssl_FreeSocket().
-    */
+    
+
+
+
+
+
     rv = (PRStatus)(*ss->ops->close)(ss);
 
     return rv;
@@ -2187,8 +2185,8 @@ ssl_GetPeerName(PRFileDesc *fd, PRNetAddr *addr)
     return (PRStatus)(*ss->ops->getpeername)(ss, addr);
 }
 
-/*
-*/
+
+
 SECStatus
 ssl_GetPeerInfo(sslSocket *ss)
 {
@@ -2231,8 +2229,8 @@ ssl_GetSockName(PRFileDesc *fd, PRNetAddr *name)
 }
 
 SECStatus
-SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
-			    SSLKEAType kea)
+SSL_SetStapledOCSPResponses(PRFileDesc *fd, SECItemArray *responses,
+			    PRBool takeOwnership)
 {
     sslSocket *ss;
 
@@ -2243,20 +2241,19 @@ SSL_SetStapledOCSPResponses(PRFileDesc *fd, const SECItemArray *responses,
 	return SECFailure;
     }
 
-    if ( kea <= 0 || kea >= kt_kea_size) {
-	SSL_DBG(("%d: SSL[%d]: invalid key in SSL_SetStapledOCSPResponses",
-		 SSL_GETPID(), fd));
-	return SECFailure;
-    }
-
-    if (ss->certStatusArray[kea]) {
-        SECITEM_FreeArray(ss->certStatusArray[kea], PR_TRUE);
-        ss->certStatusArray[kea] = NULL;
+    if (ss->certStatusArray) {
+        SECITEM_FreeArray(ss->certStatusArray, PR_TRUE);
+        ss->certStatusArray = NULL;
     }
     if (responses) {
-	ss->certStatusArray[kea] = SECITEM_DupArray(NULL, responses);
+	if (takeOwnership) {
+	    ss->certStatusArray = responses;
+	}
+	else {
+	    ss->certStatusArray = SECITEM_DupArray(NULL, responses);
+	}
     }
-    return (ss->certStatusArray[kea] || !responses) ? SECSuccess : SECFailure;
+    return (ss->certStatusArray || !responses) ? SECSuccess : SECFailure;
 }
 
 SECStatus
@@ -2286,7 +2283,7 @@ static PRInt16 PR_CALLBACK
 ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 {
     sslSocket *ss;
-    PRInt16    new_flags = how_flags;	/* should select on these flags. */
+    PRInt16    new_flags = how_flags;	
     PRNetAddr  addr;
 
     *p_out_flags = 0;
@@ -2294,7 +2291,7 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
     if (!ss) {
 	SSL_DBG(("%d: SSL[%d]: bad socket in SSL_Poll",
 		 SSL_GETPID(), fd));
-	return 0;	/* don't poll on this socket */
+	return 0;	
     }
 
     if (ss->opt.useSecurity && 
@@ -2304,74 +2301,74 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 	if (!ss->TCPconnected) {
 	    ss->TCPconnected = (PR_SUCCESS == ssl_DefGetpeername(ss, &addr));
 	}
-	/* If it's not connected, then presumably the application is polling
-	** on read or write appropriately, so don't change it. 
-	*/
+	
+
+
 	if (ss->TCPconnected) {
 	    if (!ss->handshakeBegun) {
-		/* If the handshake has not begun, poll on read or write 
-		** based on the local application's role in the handshake,
-		** not based on what the application requested.
-		*/
+		
+
+
+
 		new_flags &= ~PR_POLL_RW;
 		if (ss->handshaking == sslHandshakingAsClient) {
 		    new_flags |= PR_POLL_WRITE;
-		} else { /* handshaking as server */
+		} else { 
 		    new_flags |= PR_POLL_READ;
 		}
 	    } else 
-	    /* First handshake is in progress */
+	    
 	    if (ss->lastWriteBlocked) {
 		if (new_flags & PR_POLL_READ) {
-		    /* The caller is waiting for data to be received, 
-		    ** but the initial handshake is blocked on write, or the 
-		    ** client's first handshake record has not been written.
-		    ** The code should select on write, not read.
-		    */
-		    new_flags ^=  PR_POLL_READ;	   /* don't select on read. */
-		    new_flags |=  PR_POLL_WRITE;   /* do    select on write. */
+		    
+
+
+
+
+		    new_flags ^=  PR_POLL_READ;	   
+		    new_flags |=  PR_POLL_WRITE;   
 		}
 	    } else if (new_flags & PR_POLL_WRITE) {
-		    /* The caller is trying to write, but the handshake is 
-		    ** blocked waiting for data to read, and the first 
-		    ** handshake has been sent.  so do NOT to poll on write.
-		    */
-		    new_flags ^=  PR_POLL_WRITE;   /* don't select on write. */
-		    new_flags |=  PR_POLL_READ;	   /* do    select on read. */
+		    
+
+
+
+		    new_flags ^=  PR_POLL_WRITE;   
+		    new_flags |=  PR_POLL_READ;	   
 	    }
 	}
     } else if ((new_flags & PR_POLL_READ) && (SSL_DataPending(fd) > 0)) {
-	*p_out_flags = PR_POLL_READ;	/* it's ready already. */
+	*p_out_flags = PR_POLL_READ;	
 	return new_flags;
     } else if ((ss->lastWriteBlocked) && (how_flags & PR_POLL_READ) &&
-	       (ss->pendingBuf.len != 0)) { /* write data waiting to be sent */
-	new_flags |=  PR_POLL_WRITE;   /* also select on write. */
+	       (ss->pendingBuf.len != 0)) { 
+	new_flags |=  PR_POLL_WRITE;   
     }
 
     if (ss->version >= SSL_LIBRARY_VERSION_3_0 &&
 	ss->ssl3.hs.restartTarget != NULL) {
-	/* Read and write will block until the asynchronous callback completes
-	 * (e.g. until SSL_AuthCertificateComplete is called), so don't tell
-	 * the caller to poll the socket unless there is pending write data.
-	 */
+	
+
+
+
 	if (ss->lastWriteBlocked && ss->pendingBuf.len != 0) {
-	    /* Ignore any newly-received data on the socket, but do wait for
-	     * the socket to become writable again. Here, it is OK for an error
-	     * to be detected, because our logic for sending pending write data
-	     * will allow us to report the error to the caller without the risk
-	     * of the application spinning.
-	     */
+	    
+
+
+
+
+
 	    new_flags &= (PR_POLL_WRITE | PR_POLL_EXCEPT);
 	} else {
-	    /* Unfortunately, clearing new_flags will make it impossible for
-	     * the application to detect errors that it would otherwise be
-	     * able to detect with PR_POLL_EXCEPT, until the asynchronous
-	     * callback completes. However, we must clear all the flags to
-	     * prevent the application from spinning (alternating between
-	     * calling PR_Poll that would return PR_POLL_EXCEPT, and send/recv
-	     * which won't actually report the I/O error while we are waiting
-	     * for the asynchronous callback to complete).
-	     */
+	    
+
+
+
+
+
+
+
+
 	    new_flags = 0;
 	}
     }
@@ -2485,7 +2482,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	sent += len; \
     } while (0)
 
-    /* Make sure the first write is at least 8 KB, if possible. */
+    
     KILL_VECTORS
     if (!vectors)
 	return ssl_Send(fd, 0, 0, 0, timeout);
@@ -2526,7 +2523,7 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	if (!vectors || myIov.iov_len > limit) {
 	    addLen = 0;
 	} else if ((addLen = iov->iov_len % K16) + myIov.iov_len <= limit) {
-	    /* Addlen is already computed. */;
+	    ;
 	} else if (vectors > 1 && 
 	     iov[1].iov_len % K16 + addLen + myIov.iov_len <= 2 * limit) {
 	     addLen = limit - myIov.iov_len;
@@ -2548,13 +2545,13 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
 	    bufLen         += addLen;
 
 	    left = PR_MIN( limit, K16 - bufLen);
-	    if (!vectors 		/* no more left */
-	    ||  myIov.iov_len > 0	/* we didn't use that one all up */
-	    ||  bufLen >= K16		/* it's full. */
+	    if (!vectors 		
+	    ||  myIov.iov_len > 0	
+	    ||  bufLen >= K16		
 	    ) {
 		addLen = 0;
 	    } else if ((addLen = iov->iov_len % K16) <= left) {
-		/* Addlen is already computed. */;
+		;
 	    } else if (vectors > 1 && 
 		 iov[1].iov_len % K16 + addLen <= left + limit) {
 		 addLen = left;
@@ -2567,9 +2564,9 @@ ssl_WriteV(PRFileDesc *fd, const PRIOVec *iov, PRInt32 vectors,
     return sent;
 }
 
-/*
- * These functions aren't implemented.
- */
+
+
+
 
 static PRInt32 PR_CALLBACK
 ssl_Available(PRFileDesc *fd)
@@ -2651,41 +2648,41 @@ ssl_SendTo(PRFileDesc *fd, const void *buf, PRInt32 amount, PRIntn flags,
 
 static const PRIOMethods ssl_methods = {
     PR_DESC_LAYERED,
-    ssl_Close,           	/* close        */
-    ssl_Read,            	/* read         */
-    ssl_Write,           	/* write        */
-    ssl_Available,       	/* available    */
-    ssl_Available64,     	/* available64  */
-    ssl_FSync,           	/* fsync        */
-    ssl_Seek,            	/* seek         */
-    ssl_Seek64,          	/* seek64       */
-    ssl_FileInfo,        	/* fileInfo     */
-    ssl_FileInfo64,      	/* fileInfo64   */
-    ssl_WriteV,          	/* writev       */
-    ssl_Connect,         	/* connect      */
-    ssl_Accept,          	/* accept       */
-    ssl_Bind,            	/* bind         */
-    ssl_Listen,          	/* listen       */
-    ssl_Shutdown,        	/* shutdown     */
-    ssl_Recv,            	/* recv         */
-    ssl_Send,            	/* send         */
-    ssl_RecvFrom,        	/* recvfrom     */
-    ssl_SendTo,          	/* sendto       */
-    ssl_Poll,            	/* poll         */
-    PR_EmulateAcceptRead,       /* acceptread   */
-    ssl_TransmitFile,           /* transmitfile */
-    ssl_GetSockName,     	/* getsockname  */
-    ssl_GetPeerName,     	/* getpeername  */
-    NULL,                	/* getsockopt   OBSOLETE */
-    NULL,                	/* setsockopt   OBSOLETE */
-    NULL,                	/* getsocketoption   */
-    NULL,                	/* setsocketoption   */
-    PR_EmulateSendFile, 	/* Send a (partial) file with header/trailer*/
-    NULL,                	/* reserved for future use */
-    NULL,                	/* reserved for future use */
-    NULL,                	/* reserved for future use */
-    NULL,                	/* reserved for future use */
-    NULL                 	/* reserved for future use */
+    ssl_Close,           	
+    ssl_Read,            	
+    ssl_Write,           	
+    ssl_Available,       	
+    ssl_Available64,     	
+    ssl_FSync,           	
+    ssl_Seek,            	
+    ssl_Seek64,          	
+    ssl_FileInfo,        	
+    ssl_FileInfo64,      	
+    ssl_WriteV,          	
+    ssl_Connect,         	
+    ssl_Accept,          	
+    ssl_Bind,            	
+    ssl_Listen,          	
+    ssl_Shutdown,        	
+    ssl_Recv,            	
+    ssl_Send,            	
+    ssl_RecvFrom,        	
+    ssl_SendTo,          	
+    ssl_Poll,            	
+    PR_EmulateAcceptRead,       
+    ssl_TransmitFile,           
+    ssl_GetSockName,     	
+    ssl_GetPeerName,     	
+    NULL,                	
+    NULL,                	
+    NULL,                	
+    NULL,                	
+    PR_EmulateSendFile, 	
+    NULL,                	
+    NULL,                	
+    NULL,                	
+    NULL,                	
+    NULL                 	
 };
 
 
@@ -2726,8 +2723,8 @@ ssl_SetupIOMethods(void)
     new_methods->transmitfile      = my_methods->transmitfile;
     new_methods->getsockname       = my_methods->getsockname;
     new_methods->getpeername       = my_methods->getpeername;
-/*  new_methods->getsocketoption   = my_methods->getsocketoption;	*/
-/*  new_methods->setsocketoption   = my_methods->setsocketoption;	*/
+
+
     new_methods->sendfile          = my_methods->sendfile;
 
 }
@@ -2763,17 +2760,17 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
 	goto loser;
     layer->secret = (PRFilePrivate *)ns;
 
-    /* Here, "stack" points to the PRFileDesc on the top of the stack.
-    ** "layer" points to a new FD that is to be inserted into the stack.
-    ** If layer is being pushed onto the top of the stack, then 
-    ** PR_PushIOLayer switches the contents of stack and layer, and then
-    ** puts stack on top of layer, so that after it is done, the top of 
-    ** stack is the same "stack" as it was before, and layer is now the 
-    ** FD for the former top of stack.
-    ** After this call, stack always points to the top PRFD on the stack.
-    ** If this function fails, the contents of stack and layer are as 
-    ** they were before the call.
-    */
+    
+
+
+
+
+
+
+
+
+
+
     status = PR_PushIOLayer(stack, id, layer);
     if (status != PR_SUCCESS)
 	goto loser;
@@ -2783,12 +2780,12 @@ ssl_PushIOLayer(sslSocket *ns, PRFileDesc *stack, PRDescIdentity id)
 
 loser:
     if (layer) {
-	layer->dtor(layer); /* free layer */
+	layer->dtor(layer); 
     }
     return PR_FAILURE;
 }
 
-/* if this fails, caller must destroy socket. */
+
 static SECStatus
 ssl_MakeLocks(sslSocket *ss)
 {
@@ -2851,13 +2848,13 @@ ssl_SetDefaultsFromEnvironment(void)
 	    ssl_trace = atoi(ev);
 	    SSL_TRACE(("SSL: tracing set to %d", ssl_trace));
 	}
-#endif /* TRACE */
+#endif 
 	ev = getenv("SSLDEBUG");
 	if (ev && ev[0]) {
 	    ssl_debug = atoi(ev);
 	    SSL_TRACE(("SSL: debugging set to %d", ssl_debug));
 	}
-#endif /* DEBUG */
+#endif 
 	ev = getenv("SSLKEYLOGFILE");
 	if (ev && ev[0]) {
 	    ssl_keylog_iob = fopen(ev, "a");
@@ -2878,7 +2875,7 @@ ssl_SetDefaultsFromEnvironment(void)
 	    SSL_TRACE(("SSL: bypass default set to %d", \
 		      ssl_defaults.bypassPKCS11));
 	}
-#endif /* NO_PKCS11_BYPASS */
+#endif 
 	ev = getenv("SSLFORCELOCKS");
 	if (ev && ev[0] == '1') {
 	    ssl_force_locks = PR_TRUE;
@@ -2911,12 +2908,12 @@ ssl_SetDefaultsFromEnvironment(void)
 	    SSL_TRACE(("SSL: cbcRandomIV set to 0"));
 	}
     }
-#endif /* NSS_HAVE_GETENV */
+#endif 
 }
 
-/*
-** Create a newsocket structure for a file descriptor.
-*/
+
+
+
 static sslSocket *
 ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 {
@@ -2927,12 +2924,12 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
     if (ssl_force_locks)
 	makeLocks = PR_TRUE;
 
-    /* Make a new socket and get it ready */
+    
     ss = (sslSocket*) PORT_ZAlloc(sizeof(sslSocket));
     if (ss) {
-        /* This should be of type SSLKEAType, but CC on IRIX
-	 * complains during the for loop.
-	 */
+        
+
+
 	int i;
 	SECStatus status;
  
@@ -2946,7 +2943,7 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	ss->wTimeout	       = PR_INTERVAL_NO_TIMEOUT;
 	ss->cTimeout	       = PR_INTERVAL_NO_TIMEOUT;
 	ss->cipherSpecs        = NULL;
-        ss->sizeCipherSpecs    = 0;  /* produced lazily */
+        ss->sizeCipherSpecs    = 0;  
         ss->preferredCipher    = NULL;
         ss->url                = NULL;
 
@@ -2956,12 +2953,12 @@ ssl_NewSocket(PRBool makeLocks, SSLProtocolVariant protocolVariant)
 	    sc->serverCertChain = NULL;
 	    sc->serverKeyPair   = NULL;
 	    sc->serverKeyBits   = 0;
-	    ss->certStatusArray[i] = NULL;
 	}
 	ss->stepDownKeyPair    = NULL;
 	ss->dbHandle           = CERT_GetDefaultCertDB();
+	ss->certStatusArray    = NULL;
 
-	/* Provide default implementation of hooks */
+	
 	ss->authCertificate    = SSL_AuthCertificate;
 	ss->authCertificateArg = (void *)ss->dbHandle;
         ss->sniSocketConfig    = NULL;
