@@ -96,7 +96,13 @@ let AboutHomeListener = {
     if (aData.showKnowYourRights)
       docElt.setAttribute("showKnowYourRights", "true");
     docElt.setAttribute("snippetsVersion", aData.snippetsVersion);
-    docElt.setAttribute("searchEngineName", Services.search.defaultEngine.name);
+
+    let engine = aData.defaultSearchEngine;
+    docElt.setAttribute("searchEngineName", engine.name);
+    docElt.setAttribute("searchEnginePostData", engine.postDataString || "");
+    
+    
+    docElt.setAttribute("searchEngineURL", engine.searchURL);
   },
 
   onPageLoad: function() {
@@ -129,7 +135,7 @@ let AboutHomeListener = {
     sendAsyncMessage("AboutHome:RequestUpdate");
 
     doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
-      sendAsyncMessage("AboutHome:Search", { searchData: e.detail });
+      sendAsyncMessage("AboutHome:Search", { engineName: e.detail });
     }, true, true);
   },
 
