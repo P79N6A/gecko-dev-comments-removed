@@ -4161,7 +4161,7 @@ pref("social.enabled", false);
 pref("social.whitelist", "https://mozsocial.cliqz.com,https://now.msn.com,https://mixi.jp");
 
 
-pref("social.directories", "https://addons.mozilla.org");
+pref("social.directories", "https://activations.mozilla.org");
 
 
 
