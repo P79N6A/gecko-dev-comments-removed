@@ -33,6 +33,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CameraCapabilities)
 
+  
+  
+  
+  
+  
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   CameraCapabilities(nsPIDOMWindow* aWindow);
   ~CameraCapabilities();
 

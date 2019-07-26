@@ -40,6 +40,13 @@ public:
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsDOMCameraControl, DOMMediaStream)
   NS_DECL_ISUPPORTS_INHERITED
 
+  
+  
+  
+  
+  
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   nsDOMCameraControl(uint32_t aCameraId,
                      const dom::CameraConfiguration& aInitialConfig,
                      dom::GetCameraCallback* aOnSuccess,

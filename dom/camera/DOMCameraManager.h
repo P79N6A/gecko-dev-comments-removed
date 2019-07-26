@@ -46,6 +46,13 @@ public:
                                                          nsIObserver)
   NS_DECL_NSIOBSERVER
 
+  
+  
+  
+  
+  
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   static bool CheckPermission(nsPIDOMWindow* aWindow);
   static already_AddRefed<nsDOMCameraManager>
     CreateInstance(nsPIDOMWindow* aWindow);

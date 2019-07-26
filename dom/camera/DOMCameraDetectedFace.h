@@ -22,6 +22,13 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCameraPoint)
 
+  
+  
+  
+  
+  
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
+
   DOMCameraPoint(nsISupports* aParent, const ICameraControl::Point& aPoint)
     : mParent(aParent)
     , mX(aPoint.x)
@@ -66,6 +73,13 @@ class DOMCameraDetectedFace MOZ_FINAL : public nsISupports
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMCameraDetectedFace)
+
+  
+  
+  
+  
+  
+  static bool HasSupport(JSContext* aCx, JSObject* aGlobal);
 
   DOMCameraDetectedFace(nsISupports* aParent, const ICameraControl::Face& aFace);
 

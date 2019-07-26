@@ -14,11 +14,12 @@
 
 
 
+#include "ICameraControl.h"
+
 #include <camera/Camera.h>
 
 #include "CameraCommon.h"
 #include "GonkCameraControl.h"
-#include "ICameraControl.h"
 
 using namespace mozilla;
 
