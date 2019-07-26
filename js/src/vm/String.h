@@ -623,6 +623,7 @@ class JSExtensibleString : public JSFlatString
 
 JS_STATIC_ASSERT(sizeof(JSExtensibleString) == sizeof(JSString));
 
+
 class JSInlineString : public JSFlatString
 {
     static const size_t MAX_INLINE_LENGTH = NUM_INLINE_CHARS - 1;
@@ -646,13 +647,23 @@ class JSInlineString : public JSFlatString
 
 JS_STATIC_ASSERT(sizeof(JSInlineString) == sizeof(JSString));
 
+
+
+
+
+
+
+
+
+
+
+
 class JSFatInlineString : public JSInlineString
 {
-    
-    static const size_t INLINE_EXTENSION_CHARS = sizeof(JSString::Data) / sizeof(jschar);
+    static const size_t INLINE_EXTENSION_CHARS = 12 - NUM_INLINE_CHARS;
 
     static void staticAsserts() {
-        JS_STATIC_ASSERT(INLINE_EXTENSION_CHARS % js::gc::CellSize == 0);
+        JS_STATIC_ASSERT((INLINE_EXTENSION_CHARS * sizeof(jschar)) % js::gc::CellSize == 0);
         JS_STATIC_ASSERT(MAX_FAT_INLINE_LENGTH + 1 ==
                          (sizeof(JSFatInlineString) -
                           offsetof(JSFatInlineString, d.inlineStorage)) / sizeof(jschar));
@@ -678,7 +689,7 @@ class JSFatInlineString : public JSInlineString
     MOZ_ALWAYS_INLINE void finalize(js::FreeOp *fop);
 };
 
-JS_STATIC_ASSERT(sizeof(JSFatInlineString) == 2 * sizeof(JSString));
+JS_STATIC_ASSERT(sizeof(JSFatInlineString) % js::gc::CellSize == 0);
 
 class JSExternalString : public JSFlatString
 {
