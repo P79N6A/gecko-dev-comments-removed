@@ -897,6 +897,21 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     }
   }
 
+  if (windowIsNew) {
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> parentItem;
+    GetWindowTreeItem(aParent, getter_AddRefs(parentItem));
+    nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(parentItem);
+
+    nsCOMPtr<nsIDocShellTreeItem> childRoot;
+    newDocShellItem->GetRootTreeItem(getter_AddRefs(childRoot));
+    nsCOMPtr<nsILoadContext> childContext = do_QueryInterface(childRoot);
+    if (parentContext && childContext) {
+      childContext->SetUsePrivateBrowsing(parentContext->UsePrivateBrowsing());
+    }
+  }
+
   if (uriToLoad && aNavigate) { 
     JSContextAutoPopper contextGuard;
 

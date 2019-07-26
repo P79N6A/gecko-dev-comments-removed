@@ -40,6 +40,8 @@
 #include "nsICharsetConverterManager.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIChromeRegistry.h"
+#include "nsILoadContext.h"
+#include "nsIWebNavigation.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/StartupTimeline.h"
@@ -351,6 +353,20 @@ nsAppShellService::JustCreateTopWindow(nsIXULWindow *aParent,
                                    aIsHiddenWindow, widgetInitData);
 
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  nsCOMPtr<nsIDOMWindow> domWin = do_GetInterface(aParent);
+  nsCOMPtr<nsIWebNavigation> webNav = do_GetInterface(domWin);
+  nsCOMPtr<nsILoadContext> parentContext = do_QueryInterface(webNav);
+  nsCOMPtr<nsIDOMWindow> newDomWin =
+      do_GetInterface(NS_ISUPPORTS_CAST(nsIBaseWindow*, window));
+  nsCOMPtr<nsIWebNavigation> newWebNav = do_GetInterface(newDomWin);
+  nsCOMPtr<nsILoadContext> thisContext = do_GetInterface(newWebNav);
+  if (parentContext && thisContext) {
+    thisContext->SetUsePrivateBrowsing(parentContext->UsePrivateBrowsing());
+  }
 
   window.swap(*aResult); 
   if (parent)
