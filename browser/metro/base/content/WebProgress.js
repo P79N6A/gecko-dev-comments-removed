@@ -141,15 +141,20 @@ const WebProgress = {
   _networkStart: function _networkStart(aJson, aTab) {
     aTab.startLoading();
 
-    if (aTab == Browser.selectedTab)
-      BrowserUI.update(TOOLBARSTATE_LOADING);
+    if (aTab == Browser.selectedTab) {
+      
+      
+      
+      BrowserUI.update(BrowserUI.NO_STARTUI_VISIBILITY);
+    }
   },
 
   _networkStop: function _networkStop(aJson, aTab) {
     aTab.endLoading();
 
-    if (aTab == Browser.selectedTab)
-      BrowserUI.update(TOOLBARSTATE_LOADED);
+    if (aTab == Browser.selectedTab) {
+      BrowserUI.update();
+    }
   },
 
   _windowStart: function _windowStart(aJson, aTab) {

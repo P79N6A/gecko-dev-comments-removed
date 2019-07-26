@@ -12,11 +12,6 @@ Cu.import("resource://gre/modules/devtools/dbg-server.jsm")
 
 
 
-
-const TOOLBARSTATE_LOADING  = 1;
-const TOOLBARSTATE_LOADED   = 2;
-
-
 const kStartOverlayURI = "about:start";
 
 
@@ -298,10 +293,18 @@ var BrowserUI = {
 
 
   
-  update: function(aState) {
-    let uri = this.getDisplayURI(Browser.selectedBrowser);
-    StartUI.update(uri);
+  NO_STARTUI_VISIBILITY:  1, 
 
+  
+
+
+
+  update: function(aFlags) {
+    let flags = aFlags || 0;
+    if (!(flags & this.NO_STARTUI_VISIBILITY)) {
+      let uri = this.getDisplayURI(Browser.selectedBrowser);
+      StartUI.update(uri);
+    }
     this._updateButtons();
     this._updateToolbar();
   },
