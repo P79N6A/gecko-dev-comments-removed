@@ -262,6 +262,17 @@ SimpleTest.ise = function (a, b, name) {
 
 
 
+
+SimpleTest.doesThrow = function(fn, name) {
+    var gotException = false;
+    try {
+      fn();
+    } catch (ex) { gotException = true; }
+    ok(gotException, name);
+};
+
+
+
 SimpleTest.todo = function(condition, name, diag) {
     var test = {'result': !!condition, 'name': name, 'diag': diag, todo: true};
     SimpleTest._logResult(test, "TEST-UNEXPECTED-PASS", "TEST-KNOWN-FAIL");
