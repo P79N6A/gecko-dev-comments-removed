@@ -574,7 +574,10 @@ public:
             return mNext++;
         }
     private:
-        Block *mFirstBlock, *mCurBlock;
+        
+        
+        Block *&mFirstBlock;
+        Block *mCurBlock;
         
         
         PtrInfo *mNext, *mBlockEnd, *&mLast;
