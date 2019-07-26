@@ -699,6 +699,8 @@ nsLayoutUtils::GetDisplayPort(nsIContent* aContent, nsRect *aResult)
         gfxSize res = presContext->PresShell()->GetCumulativeResolution();
         gfxSize parentRes = res;
         if (isRoot) {
+          
+          
           gfxSize localRes = presContext->PresShell()->GetResolution();
           parentRes.width /= localRes.width;
           parentRes.height /= localRes.height;
