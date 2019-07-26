@@ -856,7 +856,11 @@ nsGonkCameraControl::StartRecordingImpl(DeviceStorageFileDescriptor* aFileDescri
   }
 
   nsresult rv;
+  
+  
+  
   int fd = aFileDescriptor->mFileDescriptor.PlatformHandle();
+  ScopedClose autoClose(fd);
   if (aOptions) {
     rv = SetupRecording(fd, aOptions->rotation, aOptions->maxFileSizeBytes,
                         aOptions->maxVideoLengthMs);
