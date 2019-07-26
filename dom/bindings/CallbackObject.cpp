@@ -151,7 +151,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   mCx = cx;
 
   
-  if (mExceptionHandling == eRethrowContentExceptions ||
+  if ((mCompartment && mExceptionHandling == eRethrowContentExceptions) ||
       mExceptionHandling == eRethrowExceptions) {
     mSavedJSContextOptions = JS::ContextOptionsRef(cx);
     JS::ContextOptionsRef(cx).setDontReportUncaught(true);
