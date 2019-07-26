@@ -372,6 +372,16 @@ if (navigator.userAgent.indexOf("Windows") == -1 ||
   ]);
 }
 
+var androidVersion = SpecialPowers.Cc['@mozilla.org/system-info;1']
+                                  .getService(SpecialPowers.Ci.nsIPropertyBag2)
+                                  .getProperty('version');
+
+if (navigator.userAgent.indexOf("Mobile") != -1 && androidVersion >= 18) {
+  gUnseekableTests = gUnseekableTests.concat([
+    { name:"street.mp4", type:"video/mp4" }
+  ]);
+}
+
 
 var gAudioTests = [
   { name:"r11025_s16_c1.wav", type:"audio/x-wav", duration:1.0 },
