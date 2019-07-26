@@ -466,6 +466,13 @@
   
 
 
+  function sanitizeSingleQuotes(str) {
+    return str.replace(/\'/g, "\\'");
+  }
+
+  
+
+
 
 
 
@@ -475,7 +482,7 @@
 
   function addToken(token, write, options) {
     if (token.type.type == "string") {
-      write("'" + sanitizeNewlines(token.value) + "'",
+      write("'" + sanitizeSingleQuotes(sanitizeNewlines(token.value)) + "'",
             token.startLoc.line,
             token.startLoc.column);
     } else {
