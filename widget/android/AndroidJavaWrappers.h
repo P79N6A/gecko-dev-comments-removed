@@ -688,6 +688,9 @@ public:
         PREFERENCES_OBSERVE = 39,
         PREFERENCES_GET = 40,
         PREFERENCES_REMOVE_OBSERVERS = 41,
+        TELEMETRY_UI_SESSION_START = 42,
+        TELEMETRY_UI_SESSION_STOP = 43,
+        TELEMETRY_UI_EVENT = 44,
         dummy_java_enum_list_end
     };
 
