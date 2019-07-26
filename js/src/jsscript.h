@@ -126,6 +126,9 @@ class Binding
 
 JS_STATIC_ASSERT(sizeof(Binding) == sizeof(uintptr_t));
 
+class Bindings;
+typedef InternalHandle<Bindings *> InternalBindingsHandle;
+
 
 
 
@@ -168,7 +171,7 @@ class Bindings
 
 
 
-    static bool initWithTemporaryStorage(JSContext *cx, InternalHandle<Bindings*> self,
+    static bool initWithTemporaryStorage(JSContext *cx, InternalBindingsHandle self,
                                          unsigned numArgs, unsigned numVars,
                                          Binding *bindingArray);
 
@@ -178,7 +181,8 @@ class Bindings
 
 
 
-    static bool clone(JSContext *cx, InternalHandle<Bindings*> self, uint8_t *dstScriptData, HandleScript srcScript);
+    static bool clone(JSContext *cx, InternalBindingsHandle self, uint8_t *dstScriptData,
+                      HandleScript srcScript);
 
     unsigned numArgs() const { return numArgs_; }
     unsigned numVars() const { return numVars_; }
@@ -188,7 +192,7 @@ class Bindings
     Shape *callObjShape() const { return callObjShape_; }
 
     
-    unsigned argumentsVarIndex(JSContext *cx) const;
+    static unsigned argumentsVarIndex(JSContext *cx, InternalBindingsHandle);
 
     
     bool bindingIsAliased(unsigned bindingIndex);
@@ -900,14 +904,14 @@ namespace js {
 
 class BindingIter
 {
-    const Bindings *bindings_;
+    const InternalBindingsHandle bindings_;
     unsigned i_;
 
     friend class Bindings;
-    BindingIter(const Bindings &bindings, unsigned i) : bindings_(&bindings), i_(i) {}
 
   public:
-    explicit BindingIter(const Bindings &bindings) : bindings_(&bindings), i_(0) {}
+    explicit BindingIter(const InternalBindingsHandle &bindings) : bindings_(bindings), i_(0) {}
+    explicit BindingIter(const HandleScript &script) : bindings_(script, &script->bindings), i_(0) {}
 
     bool done() const { return i_ == bindings_->count(); }
     operator bool() const { return !done(); }
@@ -931,7 +935,7 @@ class BindingIter
 typedef Vector<Binding, 32> BindingVector;
 
 extern bool
-FillBindingVector(Bindings &bindings, BindingVector *vec);
+FillBindingVector(HandleScript fromScript, BindingVector *vec);
 
 
 
