@@ -1575,6 +1575,10 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     if (nodeType == nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
       static_cast<nsGenericElement*>(aNewChild)->FireNodeRemovedForChildren();
     }
+    
+    if (aRefChild && aRefChild->GetNodeParent() != this) {
+      return NS_ERROR_DOM_NOT_FOUND_ERR;
+    }
   }
 
   nsIDocument* doc = OwnerDoc();
