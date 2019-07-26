@@ -49,9 +49,18 @@ public:
     
 
 
+
+
     gfxContext(mozilla::gfx::DrawTarget *aTarget);
 
     ~gfxContext();
+
+    
+
+
+
+
+    static already_AddRefed<gfxContext> ContextForDrawTarget(mozilla::gfx::DrawTarget* aTarget);
 
     
 
