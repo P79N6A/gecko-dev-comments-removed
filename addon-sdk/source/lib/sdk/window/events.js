@@ -8,73 +8,39 @@ module.metadata = {
 };
 
 const { Ci } = require("chrome");
-const events = require("../system/events");
-const { on, off, emit } = require("../event/core");
+const { observe } = require("../event/chrome");
+const { open } = require("../event/dom");
 const { windows } = require("../window/utils");
+const { filter, merge, map, expand } = require("../event/utils");
 
 
 
-const channel = {};
-exports.events = channel;
-
-const types = {
-  domwindowopened: "open",
-  domwindowclosed: "close",
-}
-
-
-function nsIDOMWindow($) $.QueryInterface(Ci.nsIDOMWindow);
-
-
-
-
-
-
-
-function onOpen(event) {
-  observe(nsIDOMWindow(event.subject));
-  dispatch(event);
-}
-
-
-
-function observe(window) {
-  function listener(event) {
-    if (event.target === window.document) {
-      window.removeEventListener(event.type, listener, true);
-      emit(channel, "data", { type: event.type, target: window });
-    }
-  }
-
-  
-  
-  
-  window.addEventListener("DOMContentLoaded", listener, true);
-  window.addEventListener("load", listener, true);
-  
-  
-}
-
-
-
-function dispatch({ type: topic, subject }) {
-  emit(channel, "data", {
-    topic: topic,
-    type: types[topic],
-    target: nsIDOMWindow(subject)
+function eventsFor(window) {
+  let interactive = open(window, "DOMContentLoaded", { capture: true });
+  let complete = open(window, "load", { capture: true });
+  let states = merge([interactive, complete]);
+  let changes = filter(states, function({target}) target === window.document);
+  return map(changes, function({type, target}) {
+    return { type: type, target: target.defaultView }
   });
 }
 
 
 
 let opened = windows(null, { includePrivate: true });
-opened.forEach(observe);
+let currentEvents = merge(opened.map(eventsFor));
 
 
+function rename({type, target, data}) {
+  return { type: rename[type], target: target, data: data }
+}
+rename.domwindowopened = "open";
+rename.domwindowclosed = "close";
 
+let openEvents = map(observe("domwindowopened"), rename);
+let closeEvents = map(observe("domwindowclosed"), rename);
+let futureEvents = expand(openEvents, function({target}) eventsFor(target));
 
-
-
-
-events.on("domwindowopened", onOpen);
-events.on("domwindowclosed", dispatch);
+let channel = merge([currentEvents, futureEvents,
+                     openEvents, closeEvents]);
+exports.events = channel;

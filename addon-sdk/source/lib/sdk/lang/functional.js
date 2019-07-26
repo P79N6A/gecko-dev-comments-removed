@@ -74,10 +74,40 @@ function partial(fn) {
 }
 exports.partial = partial;
 
-exports.curry = deprecateFunction(partial,
-  'curry is deprecated, ' +
-  'please use require("sdk/lang/functional").partial instead.'
-);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var curry = new function() {
+  function currier(fn, arity, params) {
+    
+    
+    return function curried() {
+      var input = Array.slice(arguments);
+      
+      if (params) input.unshift.apply(input, params);
+      
+      
+      return (input.length >= arity) ? fn.apply(this, input) :
+             currier(fn, arity, input);
+    };
+  }
+
+  return function curry(fn) {
+    return currier(fn, fn.length);
+  }
+};
+exports.curry = curry;
 
 
 

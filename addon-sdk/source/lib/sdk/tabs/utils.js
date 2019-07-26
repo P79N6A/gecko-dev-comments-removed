@@ -133,13 +133,21 @@ exports.isTabOpen = isTabOpen;
 function closeTab(tab) {
   let gBrowser = getTabBrowserForTab(tab);
   
-  if (gBrowser)
+  if (gBrowser) {
+    
+    if (!tab.parentNode)
+      return;
     return gBrowser.removeTab(tab);
+  }
 
   let window = getWindowHoldingTab(tab);
   
-  if (window && window.BrowserApp)
+  if (window && window.BrowserApp) {
+    
+    if (!tab.browser)
+      return;
     return window.BrowserApp.closeTab(tab);
+  }
   return null;
 }
 exports.closeTab = closeTab;
@@ -205,14 +213,20 @@ exports.getAllTabContentWindows = getAllTabContentWindows;
 function getTabForContentWindow(window) {
   
   
-  let browser = window.QueryInterface(Ci.nsIInterfaceRequestor)
-                   .getInterface(Ci.nsIWebNavigation)
-                   .QueryInterface(Ci.nsIDocShell)
-                   .chromeEventHandler;
+  let browser;
+  try {
+    browser = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIWebNavigation)
+                    .QueryInterface(Ci.nsIDocShell)
+                    .chromeEventHandler;
+  } catch(e) {
+    
+    
+  }
 
   
   if (!browser) {
-    return false;
+    return null;
   }
 
   

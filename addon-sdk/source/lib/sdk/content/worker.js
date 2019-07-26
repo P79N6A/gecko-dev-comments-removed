@@ -30,10 +30,15 @@ const { getTabForContentWindow } = require('../tabs/utils');
 
 
 
-
 let prefix = module.uri.split('worker.js')[0];
-const CONTENT_PROXY_URL = prefix + 'content-proxy.js';
 const CONTENT_WORKER_URL = prefix + 'content-worker.js';
+
+
+
+
+
+const permissions = require('@loader/options').metadata['permissions'] || {};
+const EXPANDED_PRINCIPALS = permissions['cross-domain-content'] || [];
 
 const JS_VERSION = '1.8';
 
@@ -43,15 +48,6 @@ const ERR_DESTROYED =
 
 const ERR_FROZEN = "The page is currently hidden and can no longer be used " +
                    "until it is visible again.";
-
-
-
-
-
-
-
-
-const PRIVATE_KEY = {};
 
 
 const WorkerSandbox = EventEmitter.compose({
@@ -83,11 +79,6 @@ const WorkerSandbox = EventEmitter.compose({
 
   emitSync: function emitSync() {
     let args = Array.slice(arguments);
-    
-    
-    
-    if ("_wrap" in this)
-      args = args.map(this._wrap);
     return this._emitToContent(args);
   },
 
@@ -130,25 +121,37 @@ const WorkerSandbox = EventEmitter.compose({
 
     
     
-    let apiSandbox = sandbox(window, { wantXrays: true, sameZoneAs: window });
-    apiSandbox.console = console;
-
     
     
-    if (USE_JS_PROXIES && XPCNativeWrapper.unwrap(window) !== window) {
+    
+    
+    
+    
+    
+    
+    
+    
+    let principals  = window;
+    let wantXHRConstructor = false;
+    if (EXPANDED_PRINCIPALS.length > 0 && !worker._injectInDocument) {
+      principals = EXPANDED_PRINCIPALS.concat(window);
       
-      load(apiSandbox, CONTENT_PROXY_URL);
       
-      proto = apiSandbox.create(window);
-      
-      this._wrap = apiSandbox.wrap;
+      delete proto.XMLHttpRequest;
+      wantXHRConstructor = true;
     }
 
     
     
-    let content = this._sandbox = sandbox(window, {
+    let apiSandbox = sandbox(principals, { wantXrays: true, sameZoneAs: window });
+    apiSandbox.console = console;
+
+    
+    
+    let content = this._sandbox = sandbox(principals, {
       sandboxPrototype: proto,
       wantXrays: true,
+      wantXHRConstructor: wantXHRConstructor,
       sameZoneAs: window
     });
     
@@ -233,12 +236,6 @@ const WorkerSandbox = EventEmitter.compose({
 
     
     
-    
-    if (apiSandbox && worker._expose_key)
-      content.UNWRAP_ACCESS_KEY = apiSandbox.UNWRAP_ACCESS_KEY;
-
-    
-    
     if (worker._injectInDocument) {
       let win = window.wrappedJSObject ? window.wrappedJSObject : window;
       Object.defineProperty(win, "addon", {
@@ -314,7 +311,6 @@ const WorkerSandbox = EventEmitter.compose({
     this.emitSync("detach");
     this._sandbox = null;
     this._addonWorker = null;
-    this._wrap = null;
   },
 
   
@@ -472,11 +468,6 @@ const Worker = EventEmitter.compose({
       this.contentScript = options.contentScript;
 
     this._setListeners(options);
-
-    
-    
-    if ('exposeUnlockKey' in options && options.exposeUnlockKey === PRIVATE_KEY)
-      this._expose_key = true;
 
     unload.ensure(this._public, "destroy");
 

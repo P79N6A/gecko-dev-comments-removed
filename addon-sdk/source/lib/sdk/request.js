@@ -14,7 +14,7 @@ const { merge } = require("./util/object");
 const { stringify } = require("./querystring");
 const { EventTarget } = require("./event/target");
 const { Class } = require("./core/heritage");
-const { XMLHttpRequest } = require("./net/xhr");
+const { XMLHttpRequest, forceAllowThirdPartyCookie } = require("./net/xhr");
 const apiUtils = require("./deprecated/api-utils");
 const { isValidURI } = require("./url.js");
 
@@ -75,7 +75,8 @@ function runRequest(mode, target) {
   
   xhr.open(mode, url);
 
-  xhr.forceAllowThirdPartyCookie();
+
+  forceAllowThirdPartyCookie(xhr);
 
   
   xhr.setRequestHeader("Content-Type", contentType);
