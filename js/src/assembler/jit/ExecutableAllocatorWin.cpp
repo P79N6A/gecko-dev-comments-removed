@@ -116,8 +116,10 @@ ExecutablePool::toggleAllCodeAsAccessible(bool accessible)
     size_t size = m_freePtr - begin;
 
     if (size) {
+        
+        
         DWORD oldProtect;
-        int flags = accessible ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE;
+        int flags = accessible ? PAGE_EXECUTE_READWRITE : PAGE_NOACCESS;
         if (!VirtualProtect(begin, size, flags, &oldProtect))
             MOZ_CRASH();
     }
