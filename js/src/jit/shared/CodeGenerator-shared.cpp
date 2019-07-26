@@ -571,9 +571,24 @@ CodeGeneratorShared::verifyOsiPointRegs(LSafepoint *safepoint)
 
     masm.jump(&done);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     masm.bind(&failure);
     masm.setupUnalignedABICall(0, scratch);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, OsiPointRegisterCheckFailed));
+    masm.callWithABINoProfiling(JS_FUNC_TO_DATA_PTR(void *, OsiPointRegisterCheckFailed));
     masm.breakpoint();
 
     masm.bind(&done);
