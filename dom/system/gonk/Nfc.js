@@ -51,7 +51,8 @@ const NFC_IPC_MSG_NAMES = [
   "NFC:GetDetailsNDEF",
   "NFC:MakeReadOnlyNDEF",
   "NFC:Connect",
-  "NFC:Close"
+  "NFC:Close",
+  "NFC:SendFile"
 ];
 
 const NFC_IPC_PEER_MSG_NAMES = [
@@ -532,6 +533,7 @@ Nfc.prototype = {
         break;
       case "NFC:WriteNDEF": 
       case "NFC:MakeReadOnlyNDEF":
+      case "NFC:SendFile":
         if (!message.target.assertPermission("nfc-write")) {
           debug("NFC message " + message.name +
                 " from a content process with no 'nfc-write' privileges.");
@@ -573,6 +575,17 @@ Nfc.prototype = {
         break;
       case "NFC:Close":
         this.sendToWorker("close", message.json);
+        break;
+      case "NFC:SendFile":
+        
+        
+        
+        
+        
+
+        
+        gSystemMessenger.broadcastMessage("nfc-manager-send-file",
+                                           message.json);
         break;
       default:
         debug("UnSupported : Message Name " + message.name);
