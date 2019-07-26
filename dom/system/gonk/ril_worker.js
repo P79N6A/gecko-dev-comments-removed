@@ -2857,7 +2857,7 @@ let RIL = {
       ComprehensionTlvHelper.writeLength(
         Math.ceil(options.address.length/2) + 1 
       );
-      GsmPDUHelper.writeDiallingNumber(options.address);
+      ICCPDUHelper.writeDiallingNumber(options.address);
     }
 
     
@@ -6691,96 +6691,6 @@ let GsmPDUHelper = {
 
 
 
-  read8BitUnpackedToString: function read8BitUnpackedToString(numOctets) {
-    let ret = "";
-    let escapeFound = false;
-    let i;
-    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
-    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
-
-    for(i = 0; i < numOctets; i++) {
-      let octet = this.readHexOctet();
-      if (octet == 0xff) {
-        i++;
-        break;
-      }
-
-      if (escapeFound) {
-        escapeFound = false;
-        if (octet == PDU_NL_EXTENDED_ESCAPE) {
-          
-          
-          
-          ret += " ";
-        } else if (octet == PDU_NL_RESERVED_CONTROL) {
-          
-          
-          
-          ret += " ";
-        } else {
-          ret += langShiftTable[octet];
-        }
-      } else if (octet == PDU_NL_EXTENDED_ESCAPE) {
-        escapeFound = true;
-      } else {
-        ret += langTable[octet];
-      }
-    }
-
-    Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
-    return ret;
-  },
-
-  
-
-
-
-
-
-
-  writeStringTo8BitUnpacked: function writeStringTo8BitUnpacked(numOctets, str) {
-    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
-    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
-
-    
-    
-    let i, j;
-    let len = str ? str.length : 0;
-    for (i = 0, j = 0; i < len && j < numOctets; i++) {
-      let c = str.charAt(i);
-      let octet = langTable.indexOf(c);
-
-      if (octet == -1) {
-        
-        if (j + 2 > numOctets) {
-          break;
-        }
-
-        octet = langShiftTable.indexOf(c);
-        if (octet == -1) {
-          
-          octet = langTable.indexOf(' ');
-        }
-        this.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
-        j++;
-      }
-      this.writeHexOctet(octet);
-      j++;
-    }
-
-    
-    while (j++ < numOctets) {
-      this.writeHexOctet(0xff);
-    }
-  },
-
-  
-
-
-
-
-
-
 
   readUCS2String: function readUCS2String(numOctets) {
     let str = "";
@@ -6807,103 +6717,6 @@ let GsmPDUHelper = {
       this.writeHexOctet((code >> 8) & 0xFF);
       this.writeHexOctet(code & 0xFF);
     }
-  },
-
-  
-
-
-
-
-
-
-
-
-  readICCUCS2String: function readICCUCS2String(scheme, numOctets) {
-    let str = "";
-    switch (scheme) {
-      
-
-
-
-
-      case 0x80:
-        let isOdd = numOctets % 2;
-        let i;
-        for (i = 0; i < numOctets - isOdd; i += 2) {
-          let code = (this.readHexOctet() << 8) | this.readHexOctet();
-          if (code == 0xffff) {
-            i += 2;
-            break;
-          }
-          str += String.fromCharCode(code);
-        }
-
-        
-        Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
-        break;
-      case 0x81: 
-      case 0x82:
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        let len = this.readHexOctet();
-        let offset, headerLen;
-        if (scheme == 0x81) {
-          offset = this.readHexOctet() << 7;
-          headerLen = 2;
-        } else {
-          offset = (this.readHexOctet() << 8) | this.readHexOctet();
-          headerLen = 3;
-        }
-
-        for (let i = 0; i < len; i++) {
-          let ch = this.readHexOctet();
-          if (ch & 0x80) {
-            
-            str += String.fromCharCode((ch & 0x7f) + offset);
-          } else {
-            
-            let count = 0, gotUCS2 = 0;
-            while ((i + count + 1 < len)) {
-              count++;
-              if (this.readHexOctet() & 0x80) {
-                gotUCS2 = 1;
-                break;
-              }
-            }
-            
-            
-            Buf.seekIncoming(-1 * (count + 1) * Buf.PDU_HEX_OCTET_SIZE);
-            str += this.read8BitUnpackedToString(count + 1 - gotUCS2);
-            i += count - gotUCS2;
-          }
-        }
-
-        
-        Buf.seekIncoming((numOctets - len - headerLen) * Buf.PDU_HEX_OCTET_SIZE);
-        break;
-    }
-    return str;
   },
 
   
@@ -7154,219 +6967,6 @@ let GsmPDUHelper = {
     }
 
     return addr;
-  },
-
-  
-
-
-
-
-  readAlphaIdDiallingNumber: function readAlphaIdDiallingNumber(recordSize) {
-    let length = Buf.readInt32();
-
-    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
-    let alphaId = this.readAlphaIdentifier(alphaLen);
-
-    let number = this.readNumberWithLength();
-
-    
-    Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
-    Buf.readStringDelimiter(length);
-
-    let contact = null;
-    if (alphaId || number) {
-      contact = {alphaId: alphaId,
-                 number: number};
-    }
-    return contact;
-  },
-
-  
-
-
-
-
-
-
-  writeAlphaIdDiallingNumber: function writeAlphaIdDiallingNumber(recordSize,
-                                                                  alphaId,
-                                                                  number) {
-    
-    let strLen = recordSize * 2;
-    Buf.writeInt32(strLen);
-
-    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
-    this.writeAlphaIdentifier(alphaLen, alphaId);
-    this.writeNumberWithLength(number);
-
-    
-    this.writeHexOctet(0xff);
-    this.writeHexOctet(0xff);
-    Buf.writeStringDelimiter(strLen);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  readAlphaIdentifier: function readAlphaIdentifier(numOctets) {
-    if (numOctets === 0) {
-      return "";
-    }
-
-    let temp;
-    
-    if ((temp = GsmPDUHelper.readHexOctet()) == 0x80 ||
-         temp == 0x81 ||
-         temp == 0x82) {
-      numOctets--;
-      return this.readICCUCS2String(temp, numOctets);
-    } else {
-      Buf.seekIncoming(-1 * Buf.PDU_HEX_OCTET_SIZE);
-      return this.read8BitUnpackedToString(numOctets);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  writeAlphaIdentifier: function writeAlphaIdentifier(numOctets, alphaId) {
-    if (numOctets === 0) {
-      return;
-    }
-
-    
-    if (!alphaId || ICCUtilsHelper.isGsm8BitAlphabet(alphaId)) {
-      this.writeStringTo8BitUnpacked(numOctets, alphaId);
-    } else {
-      
-      this.writeHexOctet(0x80);
-      numOctets--;
-      
-      if (alphaId.length * 2 > numOctets) {
-        alphaId = alphaId.substring(0, Math.floor(numOctets / 2));
-      }
-      this.writeUCS2String(alphaId);
-      for (let i = alphaId.length * 2; i < numOctets; i++) {
-        this.writeHexOctet(0xff);
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  readDiallingNumber: function readDiallingNumber(len) {
-    if (DEBUG) debug("PDU: Going to read Dialling number: " + len);
-    if (len === 0) {
-      return "";
-    }
-
-    
-    let toa = this.readHexOctet();
-
-    let number = this.readSwappedNibbleBcdString(len - 1);
-    if (number.length <= 0) {
-      if (DEBUG) debug("No number provided");
-      return "";
-    }
-    if ((toa >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
-      number = '+' + number;
-    }
-    return number;
-  },
-
-  
-
-
-
-
-  writeDiallingNumber: function writeDiallingNumber(number) {
-    let toa = PDU_TOA_ISDN; 
-    if (number[0] == '+') {
-      toa = PDU_TOA_INTERNATIONAL | PDU_TOA_ISDN; 
-      number = number.substring(1);
-    }
-    this.writeHexOctet(toa);
-    this.writeSwappedNibbleBCD(number);
-  },
-
-  readNumberWithLength: function readNumberWithLength() {
-    let number;
-    let numLen = this.readHexOctet();
-    if (numLen != 0xff) {
-      if (numLen > ADN_MAX_BCD_NUMBER_BYTES) {
-        throw new Error("invalid length of BCD number/SSC contents - " + numLen);
-      }
-
-      number = this.readDiallingNumber(numLen);
-      Buf.seekIncoming((ADN_MAX_BCD_NUMBER_BYTES - numLen) * Buf.PDU_HEX_OCTET_SIZE);
-    } else {
-      Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * Buf.PDU_HEX_OCTET_SIZE);
-    }
-
-    return number;
-  },
-
-  writeNumberWithLength: function writeNumberWithLength(number) {
-    if (number) {
-      let numStart = number[0] == "+" ? 1 : 0;
-      let numDigits = number.length - numStart;
-      if (numDigits > ADN_MAX_NUMBER_DIGITS) {
-        number = number.substring(0, ADN_MAX_NUMBER_DIGITS + numStart);
-        numDigits = number.length - numStart;
-      }
-
-      
-      let numLen = Math.ceil(numDigits / 2) + 1;
-      this.writeHexOctet(numLen);
-      this.writeDiallingNumber(number);
-      
-      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES - numLen; i++) {
-        this.writeHexOctet(0xff);
-      }
-    } else {
-      
-      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES + 1; i++) {
-        this.writeHexOctet(0xff);
-      }
-    }
   },
 
   
@@ -9590,6 +9190,411 @@ let CdmaPDUHelper = {
   }
 };
 
+
+
+
+let ICCPDUHelper = {
+  
+
+
+
+
+
+
+  read8BitUnpackedToString: function read8BitUnpackedToString(numOctets) {
+    let ret = "";
+    let escapeFound = false;
+    let i;
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    for(i = 0; i < numOctets; i++) {
+      let octet = GsmPDUHelper.readHexOctet();
+      if (octet == 0xff) {
+        i++;
+        break;
+      }
+
+      if (escapeFound) {
+        escapeFound = false;
+        if (octet == PDU_NL_EXTENDED_ESCAPE) {
+          
+          
+          
+          ret += " ";
+        } else if (octet == PDU_NL_RESERVED_CONTROL) {
+          
+          
+          
+          ret += " ";
+        } else {
+          ret += langShiftTable[octet];
+        }
+      } else if (octet == PDU_NL_EXTENDED_ESCAPE) {
+        escapeFound = true;
+      } else {
+        ret += langTable[octet];
+      }
+    }
+
+    Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
+    return ret;
+  },
+
+  
+
+
+
+
+
+
+  writeStringTo8BitUnpacked: function writeStringTo8BitUnpacked(numOctets, str) {
+    const langTable = PDU_NL_LOCKING_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+    const langShiftTable = PDU_NL_SINGLE_SHIFT_TABLES[PDU_NL_IDENTIFIER_DEFAULT];
+
+    
+    
+    let i, j;
+    let len = str ? str.length : 0;
+    for (i = 0, j = 0; i < len && j < numOctets; i++) {
+      let c = str.charAt(i);
+      let octet = langTable.indexOf(c);
+
+      if (octet == -1) {
+        
+        if (j + 2 > numOctets) {
+          break;
+        }
+
+        octet = langShiftTable.indexOf(c);
+        if (octet == -1) {
+          
+          octet = langTable.indexOf(' ');
+        }
+        GsmPDUHelper.writeHexOctet(PDU_NL_EXTENDED_ESCAPE);
+        j++;
+      }
+      GsmPDUHelper.writeHexOctet(octet);
+      j++;
+    }
+
+    
+    while (j++ < numOctets) {
+      GsmPDUHelper.writeHexOctet(0xff);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  readICCUCS2String: function readICCUCS2String(scheme, numOctets) {
+    let str = "";
+    switch (scheme) {
+      
+
+
+
+
+      case 0x80:
+        let isOdd = numOctets % 2;
+        let i;
+        for (i = 0; i < numOctets - isOdd; i += 2) {
+          let code = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+          if (code == 0xffff) {
+            i += 2;
+            break;
+          }
+          str += String.fromCharCode(code);
+        }
+
+        
+        Buf.seekIncoming((numOctets - i) * Buf.PDU_HEX_OCTET_SIZE);
+        break;
+      case 0x81: 
+      case 0x82:
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        let len = GsmPDUHelper.readHexOctet();
+        let offset, headerLen;
+        if (scheme == 0x81) {
+          offset = GsmPDUHelper.readHexOctet() << 7;
+          headerLen = 2;
+        } else {
+          offset = (GsmPDUHelper.readHexOctet() << 8) | GsmPDUHelper.readHexOctet();
+          headerLen = 3;
+        }
+
+        for (let i = 0; i < len; i++) {
+          let ch = GsmPDUHelper.readHexOctet();
+          if (ch & 0x80) {
+            
+            str += String.fromCharCode((ch & 0x7f) + offset);
+          } else {
+            
+            let count = 0, gotUCS2 = 0;
+            while ((i + count + 1 < len)) {
+              count++;
+              if (GsmPDUHelper.readHexOctet() & 0x80) {
+                gotUCS2 = 1;
+                break;
+              }
+            }
+            
+            
+            Buf.seekIncoming(-1 * (count + 1) * Buf.PDU_HEX_OCTET_SIZE);
+            str += this.read8BitUnpackedToString(count + 1 - gotUCS2);
+            i += count - gotUCS2;
+          }
+        }
+
+        
+        Buf.seekIncoming((numOctets - len - headerLen) * Buf.PDU_HEX_OCTET_SIZE);
+        break;
+    }
+    return str;
+  },
+
+  
+
+
+
+
+  readAlphaIdDiallingNumber: function readAlphaIdDiallingNumber(recordSize) {
+    let length = Buf.readInt32();
+
+    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
+    let alphaId = this.readAlphaIdentifier(alphaLen);
+
+    let number = this.readNumberWithLength();
+
+    
+    Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
+    Buf.readStringDelimiter(length);
+
+    let contact = null;
+    if (alphaId || number) {
+      contact = {alphaId: alphaId,
+                 number: number};
+    }
+    return contact;
+  },
+
+  
+
+
+
+
+
+
+  writeAlphaIdDiallingNumber: function writeAlphaIdDiallingNumber(recordSize,
+                                                                  alphaId,
+                                                                  number) {
+    
+    let strLen = recordSize * 2;
+    Buf.writeInt32(strLen);
+
+    let alphaLen = recordSize - ADN_FOOTER_SIZE_BYTES;
+    this.writeAlphaIdentifier(alphaLen, alphaId);
+    this.writeNumberWithLength(number);
+
+    
+    GsmPDUHelper.writeHexOctet(0xff);
+    GsmPDUHelper.writeHexOctet(0xff);
+    Buf.writeStringDelimiter(strLen);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  readAlphaIdentifier: function readAlphaIdentifier(numOctets) {
+    if (numOctets === 0) {
+      return "";
+    }
+
+    let temp;
+    
+    if ((temp = GsmPDUHelper.readHexOctet()) == 0x80 ||
+         temp == 0x81 ||
+         temp == 0x82) {
+      numOctets--;
+      return this.readICCUCS2String(temp, numOctets);
+    } else {
+      Buf.seekIncoming(-1 * Buf.PDU_HEX_OCTET_SIZE);
+      return this.read8BitUnpackedToString(numOctets);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  writeAlphaIdentifier: function writeAlphaIdentifier(numOctets, alphaId) {
+    if (numOctets === 0) {
+      return;
+    }
+
+    
+    if (!alphaId || ICCUtilsHelper.isGsm8BitAlphabet(alphaId)) {
+      this.writeStringTo8BitUnpacked(numOctets, alphaId);
+    } else {
+      
+      GsmPDUHelper.writeHexOctet(0x80);
+      numOctets--;
+      
+      if (alphaId.length * 2 > numOctets) {
+        alphaId = alphaId.substring(0, Math.floor(numOctets / 2));
+      }
+      GsmPDUHelper.writeUCS2String(alphaId);
+      for (let i = alphaId.length * 2; i < numOctets; i++) {
+        GsmPDUHelper.writeHexOctet(0xff);
+      }
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  readDiallingNumber: function readDiallingNumber(len) {
+    if (DEBUG) debug("PDU: Going to read Dialling number: " + len);
+    if (len === 0) {
+      return "";
+    }
+
+    
+    let toa = GsmPDUHelper.readHexOctet();
+
+    let number = GsmPDUHelper.readSwappedNibbleBcdString(len - 1);
+    if (number.length <= 0) {
+      if (DEBUG) debug("No number provided");
+      return "";
+    }
+    if ((toa >> 4) == (PDU_TOA_INTERNATIONAL >> 4)) {
+      number = '+' + number;
+    }
+    return number;
+  },
+
+  
+
+
+
+
+  writeDiallingNumber: function writeDiallingNumber(number) {
+    let toa = PDU_TOA_ISDN; 
+    if (number[0] == '+') {
+      toa = PDU_TOA_INTERNATIONAL | PDU_TOA_ISDN; 
+      number = number.substring(1);
+    }
+    GsmPDUHelper.writeHexOctet(toa);
+    GsmPDUHelper.writeSwappedNibbleBCD(number);
+  },
+
+  readNumberWithLength: function readNumberWithLength() {
+    let number;
+    let numLen = GsmPDUHelper.readHexOctet();
+    if (numLen != 0xff) {
+      if (numLen > ADN_MAX_BCD_NUMBER_BYTES) {
+        throw new Error("invalid length of BCD number/SSC contents - " + numLen);
+      }
+
+      number = this.readDiallingNumber(numLen);
+      Buf.seekIncoming((ADN_MAX_BCD_NUMBER_BYTES - numLen) * Buf.PDU_HEX_OCTET_SIZE);
+    } else {
+      Buf.seekIncoming(ADN_MAX_BCD_NUMBER_BYTES * Buf.PDU_HEX_OCTET_SIZE);
+    }
+
+    return number;
+  },
+
+  writeNumberWithLength: function writeNumberWithLength(number) {
+    if (number) {
+      let numStart = number[0] == "+" ? 1 : 0;
+      let numDigits = number.length - numStart;
+      if (numDigits > ADN_MAX_NUMBER_DIGITS) {
+        number = number.substring(0, ADN_MAX_NUMBER_DIGITS + numStart);
+        numDigits = number.length - numStart;
+      }
+
+      
+      let numLen = Math.ceil(numDigits / 2) + 1;
+      GsmPDUHelper.writeHexOctet(numLen);
+      this.writeDiallingNumber(number);
+      
+      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES - numLen; i++) {
+        GsmPDUHelper.writeHexOctet(0xff);
+      }
+    } else {
+      
+      for (let i = 0; i < ADN_MAX_BCD_NUMBER_BYTES + 1; i++) {
+        GsmPDUHelper.writeHexOctet(0xff);
+      }
+    }
+  }
+};
+
 let StkCommandParamsFactory = {
   createParam: function createParam(cmdDetails, ctlvs) {
     let method = StkCommandParamsFactory[cmdDetails.typeOfCommand];
@@ -10157,7 +10162,7 @@ let StkProactiveCmdHelper = {
 
   retrieveAlphaId: function retrieveAlphaId(length) {
     let alphaId = {
-      identifier: GsmPDUHelper.readAlphaIdentifier(length)
+      identifier: ICCPDUHelper.readAlphaIdentifier(length)
     };
     return alphaId;
   },
@@ -10191,7 +10196,7 @@ let StkProactiveCmdHelper = {
 
   retrieveAddress: function retrieveAddress(length) {
     let address = {
-      number : GsmPDUHelper.readDiallingNumber(length)
+      number : ICCPDUHelper.readDiallingNumber(length)
     };
     return address;
   },
@@ -10222,7 +10227,7 @@ let StkProactiveCmdHelper = {
         text.textString = GsmPDUHelper.readSeptetsToString(length * 8 / 7, 0, 0, 0);
         break;
       case STK_TEXT_CODING_GSM_8BIT:
-        text.textString = GsmPDUHelper.read8BitUnpackedToString(length);
+        text.textString = ICCPDUHelper.read8BitUnpackedToString(length);
         break;
       case STK_TEXT_CODING_UCS2:
         text.textString = GsmPDUHelper.readUCS2String(length);
@@ -10266,7 +10271,7 @@ let StkProactiveCmdHelper = {
     }
     let item = {
       identifier: GsmPDUHelper.readHexOctet(),
-      text: GsmPDUHelper.readAlphaIdentifier(length - 1)
+      text: ICCPDUHelper.readAlphaIdentifier(length - 1)
     };
     return item;
   },
@@ -11246,7 +11251,7 @@ let ICCRecordHelper = {
 
   readMSISDN: function readMSISDN() {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      let contact = ICCPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact ||
           (RIL.iccInfo.msisdn !== undefined &&
            RIL.iccInfo.msisdn === contact.number)) {
@@ -11304,7 +11309,7 @@ let ICCRecordHelper = {
       let octetLen = strLen / 2;
       let spnDisplayCondition = GsmPDUHelper.readHexOctet();
       
-      let spn = GsmPDUHelper.readAlphaIdentifier(octetLen - 1);
+      let spn = ICCPDUHelper.readAlphaIdentifier(octetLen - 1);
       Buf.readStringDelimiter(strLen);
 
       if (DEBUG) {
@@ -11416,7 +11421,7 @@ let ICCRecordHelper = {
 
   readADNLike: function readADNLike(fileId, onsuccess, onerror) {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      let contact = ICCPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
         contact.recordId = options.p1;
         contacts.push(contact);
@@ -11453,7 +11458,7 @@ let ICCRecordHelper = {
 
   updateADNLike: function updateADNLike(fileId, contact, pin2, onsuccess, onerror) {
     function dataWriter(recordSize) {
-      GsmPDUHelper.writeAlphaIdDiallingNumber(recordSize,
+      ICCPDUHelper.writeAlphaIdDiallingNumber(recordSize,
                                               contact.alphaId,
                                               contact.number);
     }
@@ -11485,7 +11490,7 @@ let ICCRecordHelper = {
 
   readMBDN: function readMBDN() {
     function callback(options) {
-      let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
+      let contact = ICCPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (!contact ||
           (RIL.iccInfoPrivate.mbdn !== undefined &&
            RIL.iccInfoPrivate.mbdn === contact.number)) {
@@ -11658,9 +11663,9 @@ let ICCRecordHelper = {
       
       
       if (fileType == ICC_USIM_TYPE1_TAG) {
-        email = GsmPDUHelper.read8BitUnpackedToString(octetLen);
+        email = ICCPDUHelper.read8BitUnpackedToString(octetLen);
       } else {
-        email = GsmPDUHelper.read8BitUnpackedToString(octetLen - 2);
+        email = ICCPDUHelper.read8BitUnpackedToString(octetLen - 2);
 
         
         Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE); 
@@ -11701,9 +11706,9 @@ let ICCRecordHelper = {
       Buf.writeInt32(strLen);
 
       if (fileType == ICC_USIM_TYPE1_TAG) {
-        GsmPDUHelper.writeStringTo8BitUnpacked(recordSize, email);
+        ICCPDUHelper.writeStringTo8BitUnpacked(recordSize, email);
       } else {
-        GsmPDUHelper.writeStringTo8BitUnpacked(recordSize - 2, email);
+        ICCPDUHelper.writeStringTo8BitUnpacked(recordSize - 2, email);
         GsmPDUHelper.writeHexOctet(pbr.adn.sfi || 0xff);
         GsmPDUHelper.writeHexOctet(adnRecordId);
       }
@@ -11743,7 +11748,7 @@ let ICCRecordHelper = {
       
       Buf.seekIncoming(1 * Buf.PDU_HEX_OCTET_SIZE);
 
-      number = GsmPDUHelper.readNumberWithLength();
+      number = ICCPDUHelper.readNumberWithLength();
 
       
       Buf.seekIncoming(2 * Buf.PDU_HEX_OCTET_SIZE);
@@ -11790,7 +11795,7 @@ let ICCRecordHelper = {
       
       GsmPDUHelper.writeHexOctet(0xff);
 
-      GsmPDUHelper.writeNumberWithLength(number);
+      ICCPDUHelper.writeNumberWithLength(number);
 
       
       GsmPDUHelper.writeHexOctet(0xff);
