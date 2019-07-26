@@ -332,29 +332,5 @@ static const char kEventTypeNames[][40] = {
   "virtual cursor changed"                   
 };
 
-
-
-
-
-static const char kRelationTypeNames[][20] = {
-  "labelled by",         
-  "label for",           
-  "described by",        
-  "description for",     
-  "node child of",       
-  "node parent of",      
-  "controlled by",       
-  "controller for",      
-  "flows to",            
-  "flows from",          
-  "member of",           
-  "subwindow of",        
-  "embeds",              
-  "embedded by",         
-  "popup for",           
-  "parent window of",    
-  "default button"       
-};
-
 #endif 
 
