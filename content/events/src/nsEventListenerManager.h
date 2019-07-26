@@ -270,7 +270,7 @@ protected:
                                    JSContext* aCx,
                                    JSObject* aScopeGlobal,
                                    nsIAtom* aName,
-                                   JSObject *aHandler,
+                                   const nsEventHandler& aHandler,
                                    bool aPermitUntrustedEvents,
                                    nsListenerStruct **aListenerStruct);
 

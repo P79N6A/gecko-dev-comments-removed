@@ -78,6 +78,12 @@ public:
     return mCallable;
   }
 
+  bool HasGrayCallable() const
+  {
+    
+    return mCallable && xpc_IsGrayGCThing(mCallable);
+  }
+
 protected:
   void DropCallback()
   {
