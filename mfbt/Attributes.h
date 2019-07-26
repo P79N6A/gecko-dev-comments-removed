@@ -63,6 +63,9 @@
 #  ifndef __has_extension
 #    define __has_extension __has_feature /* compatibility, for older versions of clang */
 #  endif
+#  if __has_extension(cxx_constexpr)
+#    define MOZ_HAVE_CXX11_CONSTEXPR
+#  endif
 #  if __cplusplus >= 201103L
 #    if __has_extension(cxx_deleted_functions)
 #      define MOZ_HAVE_CXX11_DELETE
@@ -92,6 +95,9 @@
 #      if __GNUC_MINOR__ >= 7
 #        define MOZ_HAVE_CXX11_OVERRIDE
 #        define MOZ_HAVE_CXX11_FINAL     final
+#      endif
+#      if __GNUC_MINOR__ >= 6
+#        define MOZ_HAVE_CXX11_CONSTEXPR
 #      endif
 #      define MOZ_HAVE_CXX11_DELETE
 #      if __GNUC_MINOR__ >= 5
@@ -123,6 +129,17 @@
 #  define MOZ_HAVE_CXX11_ENUM_TYPE
 #  define MOZ_HAVE_NEVER_INLINE          __declspec(noinline)
 #  define MOZ_HAVE_NORETURN              __declspec(noreturn)
+#endif
+
+
+
+
+
+
+#ifdef MOZ_HAVE_CXX11_CONSTEXPR
+#  define MOZ_CONSTEXPR         constexpr
+#else
+#  define MOZ_CONSTEXPR
 #endif
 
 

@@ -247,7 +247,7 @@ PointerRangeSize(T* begin, T* end)
 
 
 template<typename T, size_t N>
-size_t
+MOZ_CONSTEXPR size_t
 ArrayLength(T (&arr)[N])
 {
   return N;
@@ -259,7 +259,7 @@ ArrayLength(T (&arr)[N])
 
 
 template<typename T, size_t N>
-T*
+MOZ_CONSTEXPR T*
 ArrayEnd(T (&arr)[N])
 {
   return arr + ArrayLength(arr);
@@ -274,6 +274,10 @@ ArrayEnd(T (&arr)[N])
 
 
 
-#define MOZ_ARRAY_LENGTH(array) (sizeof(array)/sizeof((array)[0]))
+#ifdef MOZ_HAVE_CXX11_CONSTEXPR
+#  define MOZ_ARRAY_LENGTH(array)   mozilla::ArrayLength(array)
+#else
+#  define MOZ_ARRAY_LENGTH(array)   (sizeof(array)/sizeof((array)[0]))
+#endif
 
 #endif  
