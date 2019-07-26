@@ -1133,11 +1133,14 @@ NS_IMETHODIMP CacheEntry::AsyncDoom(nsICacheEntryDoomCallback *aCallback)
 
     mIsDoomed = true;
     mDoomCallback = aCallback;
-    BackgroundOp(Ops::DOOM);
   }
 
   
-  CacheStorageService::Self()->RemoveEntry(this);
+  
+  
+  
+  
+  PurgeAndDoom();
 
   return NS_OK;
 }
@@ -1403,8 +1406,6 @@ void CacheEntry::PurgeAndDoom()
 {
   LOG(("CacheEntry::PurgeAndDoom [this=%p]", this));
 
-  MOZ_ASSERT(CacheStorageService::IsOnManagementThread());
-
   CacheStorageService::Self()->RemoveEntry(this);
   DoomAlreadyRemoved();
 }
@@ -1413,36 +1414,45 @@ void CacheEntry::DoomAlreadyRemoved()
 {
   LOG(("CacheEntry::DoomAlreadyRemoved [this=%p]", this));
 
+  mozilla::MutexAutoLock lock(mLock);
+
   mIsDoomed = true;
 
-  if (!CacheStorageService::IsOnManagementThread()) {
-    mozilla::MutexAutoLock lock(mLock);
+  
+  
+  
+  DoomFile();
 
-    BackgroundOp(Ops::DOOM);
-    return;
-  }
+  
+  
+  BackgroundOp(Ops::CALLBACKS, true);
+  
+  BackgroundOp(Ops::UNREGISTER);
+}
 
-  CacheStorageService::Self()->UnregisterEntry(this);
-
-  {
-    mozilla::MutexAutoLock lock(mLock);
-
-    if (mCallbacks.Length()) {
-      
-      
-      BackgroundOp(Ops::CALLBACKS, true);
-    }
-  }
+void CacheEntry::DoomFile()
+{
+  nsresult rv = NS_ERROR_NOT_AVAILABLE;
 
   if (NS_SUCCEEDED(mFileStatus)) {
-    nsresult rv = mFile->Doom(mDoomCallback ? this : nullptr);
+    
+    rv = mFile->Doom(mDoomCallback ? this : nullptr);
     if (NS_SUCCEEDED(rv)) {
       LOG(("  file doomed"));
       return;
     }
+    
+    if (NS_ERROR_FILE_NOT_FOUND == rv) {
+      
+      
+      
+      
+      rv = NS_OK;
+    }
   }
 
-  OnFileDoomed(NS_OK);
+  
+  OnFileDoomed(rv);
 }
 
 void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
@@ -1496,10 +1506,10 @@ void CacheEntry::BackgroundOp(uint32_t aOperations, bool aForceAsync)
     CacheStorageService::Self()->RegisterEntry(this);
   }
 
-  if (aOperations & Ops::DOOM) {
-    LOG(("CacheEntry DOOM [this=%p]", this));
+  if (aOperations & Ops::UNREGISTER) {
+    LOG(("CacheEntry UNREGISTER [this=%p]", this));
 
-    DoomAlreadyRemoved();
+    CacheStorageService::Self()->UnregisterEntry(this);
   }
 
   if (aOperations & Ops::CALLBACKS) {
