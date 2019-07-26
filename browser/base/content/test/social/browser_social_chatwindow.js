@@ -105,47 +105,6 @@ var tests = {
     }
     port.postMessage({topic: "test-init", data: { id: 1 }});
   },
-  
-  
-  
-  testWorkerChatWindowMinimized: function(next) {
-    const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
-    let port = Social.provider.getWorkerPort();
-    let seen_opened = false;
-    ok(port, "provider has a port");
-    port.postMessage({topic: "test-init"});
-    port.onmessage = function (e) {
-      let topic = e.data.topic;
-      switch (topic) {
-        case "got-chatbox-message":
-          ok(true, "got a chat window opened");
-          let chats = document.getElementById("pinnedchats");
-          if (!seen_opened) {
-            
-            
-            
-            ok(chats.selectedChat.minimized, "chatbox from worker opened as minimized");
-            seen_opened = true;
-            port.postMessage({topic: "test-worker-chat", data: chatUrl});
-            
-            
-            
-            chats.selectedChat.iframe.contentWindow.wrappedJSObject.pingWorker();
-          } else {
-            
-            
-            let chats = document.getElementById("pinnedchats");
-            ok(chats.selectedChat.minimized, "chat still minimized")
-            chats.selectedChat.close();
-            is(chats.selectedChat, null, "should only have been one chat open");
-            port.close();
-            next();
-          }
-          break;
-      }
-    }
-    port.postMessage({topic: "test-worker-chat", data: chatUrl});
-  },
   testManyChats: function(next) {
     
     
@@ -189,6 +148,7 @@ var tests = {
   },
   testWorkerChatWindow: function(next) {
     const chatUrl = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
+    let chats = document.getElementById("pinnedchats");
     let port = Social.provider.getWorkerPort();
     ok(port, "provider has a port");
     port.postMessage({topic: "test-init"});
@@ -197,8 +157,7 @@ var tests = {
       switch (topic) {
         case "got-chatbox-message":
           ok(true, "got a chat window opened");
-          let chats = document.getElementById("pinnedchats");
-          ok(chats.selectedChat.minimized, "chatbox from worker opened as minimized");
+          ok(chats.selectedChat, "chatbox from worker opened");
           while (chats.selectedChat) {
             chats.selectedChat.close();
           }
@@ -209,6 +168,7 @@ var tests = {
           break;
       }
     }
+    ok(!chats.selectedChat, "chats are all closed");
     port.postMessage({topic: "test-worker-chat", data: chatUrl});
   },
   testCloseSelf: function(next) {

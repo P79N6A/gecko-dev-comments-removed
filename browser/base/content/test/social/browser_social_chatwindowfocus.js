@@ -176,7 +176,6 @@ var tests = {
     startTestAndWaitForSidebar(function(port) {
       openChatViaWorkerMessage(port, chatUrl, function() {
         is(chatbar.childElementCount, 1, "exactly 1 chat open");
-        ok(chatbar.firstElementChild.minimized, "chat is minimized");
         
         todo(chatbar.selectedChat != chatbar.firstElementChild, "chat is not selected");
         ok(isTabFocused(), "tab should be focused");
