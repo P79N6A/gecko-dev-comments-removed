@@ -59,7 +59,7 @@ WrapperFactory::GetXrayWaiver(JSObject *obj)
     
     MOZ_ASSERT(obj == UnwrapObject(obj));
     MOZ_ASSERT(!js::GetObjectClass(obj)->ext.outerObject);
-    XPCWrappedNativeScope *scope = ObjectScope(obj);
+    XPCWrappedNativeScope *scope = GetObjectScope(obj);
     MOZ_ASSERT(scope);
 
     if (!scope->mWaiverWrapperMap)
@@ -73,7 +73,7 @@ WrapperFactory::CreateXrayWaiver(JSContext *cx, JSObject *obj)
     
     
     MOZ_ASSERT(!GetXrayWaiver(obj));
-    XPCWrappedNativeScope *scope = ObjectScope(obj);
+    XPCWrappedNativeScope *scope = GetObjectScope(obj);
 
     
     JSObject *proto;
@@ -606,7 +606,7 @@ FixWaiverAfterTransplant(JSContext *cx, JSObject *oldWaiver, JSObject *newobj)
     
     
     
-    XPCWrappedNativeScope *scope = ObjectScope(oldWaiver);
+    XPCWrappedNativeScope *scope = GetObjectScope(oldWaiver);
     JSObject *key = Wrapper::wrappedObject(oldWaiver);
     MOZ_ASSERT(scope->mWaiverWrapperMap->Find(key));
     scope->mWaiverWrapperMap->Remove(key);

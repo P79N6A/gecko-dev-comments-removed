@@ -4386,8 +4386,10 @@ inline bool EnableUniversalXPConnect(JSContext *cx)
                                  js::AllCompartments());
 }
 
+
+
 inline XPCWrappedNativeScope*
-ObjectScope(JSObject *obj)
+GetObjectScope(JSObject *obj)
 {
     return EnsureCompartmentPrivate(obj)->scope;
 }
