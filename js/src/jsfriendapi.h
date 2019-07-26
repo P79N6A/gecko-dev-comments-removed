@@ -1467,6 +1467,14 @@ JS_NeuterArrayBuffer(JSContext *cx, JS::HandleObject obj,
 
 
 
+
+
+extern JS_FRIEND_API(bool)
+JS_IsNeuteredArrayBufferObject(JSObject *obj);
+
+
+
+
 JS_FRIEND_API(bool)
 JS_IsDataViewObject(JSObject *obj);
 
