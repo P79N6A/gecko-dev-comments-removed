@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jsgcinlines_h
 #define jsgcinlines_h
@@ -15,11 +15,11 @@ namespace js {
 
 class Shape;
 
-/*
- * This auto class should be used around any code that might cause a mark bit to
- * be set on an object in a dead zone. See AutoMaybeTouchDeadZones
- * for more details.
- */
+
+
+
+
+
 struct AutoMarkInDeadZone
 {
     AutoMarkInDeadZone(JS::Zone *zone)
@@ -97,7 +97,7 @@ GCPoke(JSRuntime *rt)
     rt->gcPoke = true;
 
 #ifdef JS_GC_ZEAL
-    /* Schedule a GC to happen "soon" after a GC poke. */
+    
     if (rt->gcZeal() == js::gc::ZealPokeValue)
         rt->gcNextScheduled = 1;
 #endif
@@ -254,12 +254,12 @@ class CellIter : public CellIterImpl
       : lists(&zone->allocator.arenas),
         kind(kind)
     {
-        /*
-         * We have a single-threaded runtime, so there's no need to protect
-         * against other threads iterating or allocating. However, we do have
-         * background finalization; we have to wait for this to finish if it's
-         * currently active.
-         */
+        
+
+
+
+
+
         if (IsBackgroundFinalized(kind) &&
             zone->allocator.arenas.needBackgroundFinalizeWait(kind))
         {
@@ -319,7 +319,7 @@ class GCZonesIter
 
 typedef CompartmentsIterT<GCZonesIter> GCCompartmentsIter;
 
-/* Iterates over all zones in the current zone group. */
+
 class GCZoneGroupIter {
   private:
     JS::Zone *current;
@@ -349,15 +349,15 @@ class GCZoneGroupIter {
 typedef CompartmentsIterT<GCZoneGroupIter> GCCompartmentGroupIter;
 
 #ifdef JSGC_GENERATIONAL
-/*
- * Attempt to allocate a new GC thing out of the nursery. If there is not enough
- * room in the nursery or there is an OOM, this method will return NULL.
- */
+
+
+
+
 template <typename T, AllowGC allowGC>
 inline T *
 TryNewNurseryGCThing(ThreadSafeContext *cxArg, size_t thingSize)
 {
-    /* TODO: Integrate PJS with generational GC. */
+    
     JSContext *cx = cxArg->asJSContext();
 
     JS_ASSERT(!IsAtomsCompartment(cx->compartment()));
@@ -369,7 +369,7 @@ TryNewNurseryGCThing(ThreadSafeContext *cxArg, size_t thingSize)
     if (allowGC && !rt->mainThread.suppressGC) {
         MinorGC(rt, JS::gcreason::OUT_OF_NURSERY);
 
-        /* Exceeding gcMaxBytes while tenuring can disable the Nursery. */
+        
         if (nursery.isEnabled()) {
             t = static_cast<T *>(nursery.allocate(thingSize));
             JS_ASSERT(t);
@@ -378,14 +378,14 @@ TryNewNurseryGCThing(ThreadSafeContext *cxArg, size_t thingSize)
     }
     return NULL;
 }
-#endif /* JSGC_GENERATIONAL */
+#endif 
 
-/*
- * Allocates a new GC thing. After a successful allocation the caller must
- * fully initialize the thing before calling any function that can potentially
- * trigger GC. This will ensure that GC tracing never sees junk values stored
- * in the partially initialized thing.
- */
+
+
+
+
+
+
 template <typename T, AllowGC allowGC>
 inline T *
 NewGCThing(ThreadSafeContext *cx, AllocKind kind, size_t thingSize, InitialHeap heap)
@@ -394,14 +394,14 @@ NewGCThing(ThreadSafeContext *cx, AllocKind kind, size_t thingSize, InitialHeap 
 
     if (cx->isJSContext()) {
         JSContext *ncx = cx->asJSContext();
-        JS_ASSERT_IF(ncx->compartment() == ncx->runtime()->atomsCompartment,
+        JS_ASSERT_IF(ncx->runtime()->isAtomsCompartment(ncx->compartment()),
                      kind == FINALIZE_STRING ||
                      kind == FINALIZE_SHORT_STRING ||
                      kind == FINALIZE_IONCODE);
         JS_ASSERT(!ncx->runtime()->isHeapBusy());
         JS_ASSERT(!ncx->runtime()->noGCOrAllocationCheck);
 
-        /* For testing out of memory conditions */
+        
         JS_OOM_POSSIBLY_FAIL_REPORT(ncx);
 
 #ifdef JS_GC_ZEAL
@@ -436,8 +436,8 @@ NewGCThing(ThreadSafeContext *cx, AllocKind kind, size_t thingSize, InitialHeap 
     return t;
 }
 
-} /* namespace gc */
-} /* namespace js */
+} 
+} 
 
 template <js::AllowGC allowGC>
 inline JSObject *
@@ -499,4 +499,4 @@ js_NewGCBaseShape(js::ThreadSafeContext *cx)
                                                       sizeof(js::BaseShape), js::gc::TenuredHeap);
 }
 
-#endif /* jsgcinlines_h */
+#endif 

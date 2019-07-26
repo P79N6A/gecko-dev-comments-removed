@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jscntxtinlines_h
 #define jscntxtinlines_h
@@ -31,10 +31,10 @@ class CompartmentChecker
       : compartment(cx->compartment_)
     {}
 
-    /*
-     * Set a breakpoint here (break js::CompartmentChecker::fail) to debug
-     * compartment mismatches.
-     */
+    
+
+
+
     static void fail(JSCompartment *c1, JSCompartment *c2) {
         printf("*** Compartment mismatch %p vs. %p\n", (void *) c1, (void *) c2);
         MOZ_CRASH();
@@ -45,16 +45,16 @@ class CompartmentChecker
         MOZ_CRASH();
     }
 
-    /* Note: should only be used when neither c1 nor c2 may be the default compartment. */
+    
     static void check(JSCompartment *c1, JSCompartment *c2) {
-        JS_ASSERT(c1 != c1->runtimeFromMainThread()->atomsCompartment);
-        JS_ASSERT(c2 != c2->runtimeFromMainThread()->atomsCompartment);
+        JS_ASSERT(!c1->runtimeFromMainThread()->isAtomsCompartment(c1));
+        JS_ASSERT(!c2->runtimeFromMainThread()->isAtomsCompartment(c2));
         if (c1 != c2)
             fail(c1, c2);
     }
 
     void check(JSCompartment *c) {
-        if (c && c != compartment->runtimeFromMainThread()->atomsCompartment) {
+        if (c && !compartment->runtimeFromMainThread()->isAtomsCompartment(c)) {
             if (!compartment)
                 compartment = c;
             else if (c != compartment)
@@ -126,12 +126,12 @@ class CompartmentChecker
     void check(StackFrame *fp);
     void check(AbstractFramePtr frame);
 };
-#endif /* JS_CRASH_DIAGNOSTICS */
+#endif 
 
-/*
- * Don't perform these checks when called from a finalizer. The checking
- * depends on other objects not having been swept yet.
- */
+
+
+
+
 #define START_ASSERT_SAME_COMPARTMENT()                                       \
     if (cx->isHeapBusy())                                                     \
         return;                                                               \
@@ -251,26 +251,26 @@ CallJSNativeConstructor(JSContext *cx, Native native, const CallArgs &args)
     if (!CallJSNative(cx, native, args))
         return false;
 
-    /*
-     * Native constructors must return non-primitive values on success.
-     * Although it is legal, if a constructor returns the callee, there is a
-     * 99.9999% chance it is a bug. If any valid code actually wants the
-     * constructor to return the callee, the assertion can be removed or
-     * (another) conjunct can be added to the antecedent.
-     *
-     * Exceptions:
-     *
-     * - Proxies are exceptions to both rules: they can return primitives and
-     *   they allow content to return the callee.
-     *
-     * - CallOrConstructBoundFunction is an exception as well because we might
-     *   have used bind on a proxy function.
-     *
-     * - new Iterator(x) is user-hookable; it returns x.__iterator__() which
-     *   could be any object.
-     *
-     * - (new Object(Object)) returns the callee.
-     */
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     JS_ASSERT_IF(native != FunctionProxyObject::class_.construct &&
                  native != js::CallOrConstructBoundFunction &&
                  native != js::IteratorConstructor &&
@@ -338,36 +338,6 @@ GetNativeStackLimit(ExclusiveContext *cx)
     return cx->perThreadData->nativeStackLimit;
 }
 
-inline RegExpCompartment &
-ExclusiveContext::regExps()
-{
-    return compartment_->regExps;
-}
-
-inline PropertyTree&
-ExclusiveContext::propertyTree()
-{
-    return compartment_->propertyTree;
-}
-
-inline BaseShapeSet &
-ExclusiveContext::baseShapes()
-{
-    return compartment_->baseShapes;
-}
-
-inline InitialShapeSet &
-ExclusiveContext::initialShapes()
-{
-    return compartment_->initialShapes;
-}
-
-inline DtoaCache &
-ExclusiveContext::dtoaCache()
-{
-    return compartment_->dtoaCache;
-}
-
 inline void
 ExclusiveContext::maybePause() const
 {
@@ -418,7 +388,7 @@ class AutoLockForExclusiveAccess
             runtime->mainThreadHasExclusiveAccess = false;
         }
     }
-#else // JS_THREADSAFE
+#else 
   public:
     AutoLockForExclusiveAccess(ExclusiveContext *cx MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -427,15 +397,15 @@ class AutoLockForExclusiveAccess
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
     ~AutoLockForExclusiveAccess() {
-        // An empty destructor is needed to avoid warnings from clang about
-        // unused local variables of this type.
+        
+        
     }
-#endif // JS_THREADSAFE
+#endif 
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-}  /* namespace js */
+}  
 
 inline js::LifoAlloc &
 JSContext::analysisLifoAlloc()
@@ -489,8 +459,8 @@ js::ExclusiveContext::leaveCompartment(JSCompartment *oldCompartment)
     JS_ASSERT(hasEnteredCompartment());
     enterCompartmentDepth_--;
 
-    // Only call leave() after we've setCompartment()-ed away from the current
-    // compartment.
+    
+    
     JSCompartment *startingCompartment = compartment_;
     setCompartment(oldCompartment);
     startingCompartment->leave();
@@ -504,24 +474,24 @@ js::ExclusiveContext::leaveCompartment(JSCompartment *oldCompartment)
 inline void
 js::ExclusiveContext::setCompartment(JSCompartment *comp)
 {
-    // ExclusiveContexts can only be in the atoms zone or in exclusive zones.
-    JS_ASSERT_IF(!isJSContext() && comp != runtime_->atomsCompartment,
+    
+    JS_ASSERT_IF(!isJSContext() && !runtime_->isAtomsCompartment(comp),
                  comp->zone()->usedByExclusiveThread);
 
-    // Normal JSContexts cannot enter exclusive zones.
+    
     JS_ASSERT_IF(isJSContext() && comp,
                  !comp->zone()->usedByExclusiveThread);
 
-    // Only one thread can be in the atoms compartment at a time.
-    JS_ASSERT_IF(comp == runtime_->atomsCompartment,
+    
+    JS_ASSERT_IF(runtime_->isAtomsCompartment(comp),
                  runtime_->currentThreadHasExclusiveAccess());
 
-    // Make sure that the atoms compartment has its own zone.
-    JS_ASSERT_IF(comp && comp != runtime_->atomsCompartment,
-                 comp->zone() != runtime_->atomsCompartment->zone());
+    
+    JS_ASSERT_IF(comp && !runtime_->isAtomsCompartment(comp),
+                 !runtime_->isAtomsZone(comp->zone()));
 
-    // Both the current and the new compartment should be properly marked as
-    // entered at this point.
+    
+    
     JS_ASSERT_IF(compartment_, compartment_->hasBeenEntered());
     JS_ASSERT_IF(comp, comp->hasBeenEntered());
 
@@ -586,4 +556,4 @@ JSParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, JS::V
     return threadSafeNative(slice, argc, vp) ? js::TP_SUCCESS : js::TP_FATAL;
 }
 
-#endif /* jscntxtinlines_h */
+#endif

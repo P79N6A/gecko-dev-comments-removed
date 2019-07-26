@@ -1,12 +1,12 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/*
- * JS atom table.
- */
+
+
+
+
+
+
+
+
 
 #include "jsatominlines.h"
 
@@ -38,8 +38,8 @@ using mozilla::RangedPtr;
 const char *
 js::AtomToPrintableString(ExclusiveContext *cx, JSAtom *atom, JSAutoByteString *bytes)
 {
-    // The only uses for this method when running off the main thread are for
-    // parse errors/warnings, which will not actually be reported in such cases.
+    
+    
     if (!cx->isJSContext())
         return "";
     return js_ValueToPrintable(cx->asJSContext(), StringValue(atom), bytes);
@@ -63,7 +63,7 @@ JS_FOR_EACH_PROTOTYPE(DEFINE_PROTO_STRING)
 FOR_EACH_COMMON_PROPERTYNAME(CONST_CHAR_STR)
 #undef CONST_CHAR_STR
 
-/* Constant strings that are not atomized. */
+
 const char js_break_str[]           = "break";
 const char js_case_str[]            = "case";
 const char js_catch_str[]           = "catch";
@@ -106,29 +106,30 @@ const char js_while_str[]           = "while";
 const char js_with_str[]            = "with";
 const char js_yield_str[]           = "yield";
 
-/*
- * For a browser build from 2007-08-09 after the browser starts up there are
- * just 55 double atoms, but over 15000 string atoms. Not to penalize more
- * economical embeddings allocating too much memory initially we initialize
- * atomized strings with just 1K entries.
- */
+
+
+
+
+
+
 #define JS_STRING_HASH_COUNT   1024
 
 bool
 js::InitAtoms(JSRuntime *rt)
 {
-    return rt->atoms.init(JS_STRING_HASH_COUNT);
+    AutoLockForExclusiveAccess lock(rt);
+    return rt->atoms().init(JS_STRING_HASH_COUNT);
 }
 
 void
 js::FinishAtoms(JSRuntime *rt)
 {
-    AtomSet &atoms = rt->atoms;
+    AtomSet &atoms = rt->atoms();
     if (!atoms.initialized()) {
-        /*
-         * We are called with uninitialized state when JS_NewRuntime fails and
-         * calls JS_DestroyRuntime on a partially initialized runtime.
-         */
+        
+
+
+
         return;
     }
 
@@ -181,7 +182,7 @@ void
 js::MarkAtoms(JSTracer *trc)
 {
     JSRuntime *rt = trc->runtime;
-    for (AtomSet::Range r = rt->atoms.all(); !r.empty(); r.popFront()) {
+    for (AtomSet::Range r = rt->atoms().all(); !r.empty(); r.popFront()) {
         AtomStateEntry entry = r.front();
         if (!entry.isTagged())
             continue;
@@ -195,12 +196,12 @@ js::MarkAtoms(JSTracer *trc)
 void
 js::SweepAtoms(JSRuntime *rt)
 {
-    for (AtomSet::Enum e(rt->atoms); !e.empty(); e.popFront()) {
+    for (AtomSet::Enum e(rt->atoms()); !e.empty(); e.popFront()) {
         AtomStateEntry entry = e.front();
         JSAtom *atom = entry.asPtr();
         bool isDying = IsStringAboutToBeFinalized(&atom);
 
-        /* Pinned or interned key cannot be finalized. */
+        
         JS_ASSERT_IF(entry.isTagged(), !isDying);
 
         if (isDying)
@@ -211,11 +212,13 @@ js::SweepAtoms(JSRuntime *rt)
 bool
 AtomIsInterned(JSContext *cx, JSAtom *atom)
 {
-    /* We treat static strings as interned because they're never collected. */
+    
     if (StaticStrings::isStatic(atom))
         return true;
 
-    AtomSet::Ptr p = cx->runtime()->atoms.lookup(atom);
+    AutoLockForExclusiveAccess lock(cx);
+
+    AtomSet::Ptr p = cx->runtime()->atoms().lookup(atom);
     if (!p)
         return false;
 
@@ -224,15 +227,15 @@ AtomIsInterned(JSContext *cx, JSAtom *atom)
 
 enum OwnCharsBehavior
 {
-    CopyChars, /* in other words, do not take ownership */
+    CopyChars, 
     TakeCharOwnership
 };
 
-/*
- * When the jschars reside in a freshly allocated buffer the memory can be used
- * as a new JSAtom's storage without copying. The contract is that the caller no
- * longer owns the memory and this method is responsible for freeing the memory.
- */
+
+
+
+
+
 JS_ALWAYS_INLINE
 static JSAtom *
 AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, InternBehavior ib)
@@ -246,15 +249,15 @@ AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, In
 
     AutoLockForExclusiveAccess lock(cx);
 
-    /*
-     * If a GC occurs at js_NewStringCopy then |p| will still have the correct
-     * hash, allowing us to avoid rehashing it. Even though the hash is
-     * unchanged, we need to re-lookup the table position because a last-ditch
-     * GC will potentially free some table entries.
-     */
+    
+
+
+
+
+
     AtomSet& atoms = cx->atoms();
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(tbchars, length));
-    SkipRoot skipHash(cx, &p); /* Prevent the hash from being poisoned. */
+    SkipRoot skipHash(cx, &p); 
     if (p) {
         JSAtom *atom = p->asPtr();
         p->setTagged(bool(ib));
@@ -274,14 +277,14 @@ AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, In
 
     if (!atoms.relookupOrAdd(p, AtomHasher::Lookup(tbchars, length),
                              AtomStateEntry(atom, bool(ib)))) {
-        js_ReportOutOfMemory(cx); /* SystemAllocPolicy does not report OOM. */
+        js_ReportOutOfMemory(cx); 
         return NULL;
     }
 
     return atom;
 }
 
-/* |tbchars| must not point into an inline or short string. */
+
 template <AllowGC allowGC>
 JS_ALWAYS_INLINE
 static JSAtom *
@@ -290,18 +293,18 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
     if (JSAtom *s = cx->staticStrings().lookup(tbchars, length))
          return s;
 
-    /*
-     * If a GC occurs at js_NewStringCopy then |p| will still have the correct
-     * hash, allowing us to avoid rehashing it. Even though the hash is
-     * unchanged, we need to re-lookup the table position because a last-ditch
-     * GC will potentially free some table entries.
-     */
+    
+
+
+
+
+
 
     AutoLockForExclusiveAccess lock(cx);
 
     AtomSet& atoms = cx->atoms();
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(tbchars, length));
-    SkipRoot skipHash(cx, &p); /* Prevent the hash from being poisoned. */
+    SkipRoot skipHash(cx, &p); 
     if (p) {
         JSAtom *atom = p->asPtr();
         p->setTagged(bool(ib));
@@ -319,7 +322,7 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
     if (!atoms.relookupOrAdd(p, AtomHasher::Lookup(tbchars, length),
                              AtomStateEntry(atom, bool(ib)))) {
         if (allowGC)
-            js_ReportOutOfMemory(cx); /* SystemAllocPolicy does not report OOM. */
+            js_ReportOutOfMemory(cx); 
         return NULL;
     }
 
@@ -329,18 +332,18 @@ AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, 
 template <AllowGC allowGC>
 JSAtom *
 js::AtomizeString(ExclusiveContext *cx, JSString *str,
-                  js::InternBehavior ib /* = js::DoNotInternAtom */)
+                  js::InternBehavior ib )
 {
     if (str->isAtom()) {
         JSAtom &atom = str->asAtom();
-        /* N.B. static atoms are effectively always interned. */
+        
         if (ib != InternAtom || js::StaticStrings::isStatic(&atom))
             return &atom;
 
         AutoLockForExclusiveAccess lock(cx);
 
         AtomSet::Ptr p = cx->atoms().lookup(AtomHasher::Lookup(&atom));
-        JS_ASSERT(p); /* Non-static atom must exist in atom state set. */
+        JS_ASSERT(p); 
         JS_ASSERT(p->asPtr() == &atom);
         JS_ASSERT(ib == InternAtom);
         p->setTagged(bool(ib));
@@ -388,13 +391,13 @@ js::Atomize(ExclusiveContext *cx, const char *bytes, size_t length, InternBehavi
 
     static const unsigned ATOMIZE_BUF_MAX = 32;
     if (length < ATOMIZE_BUF_MAX) {
-        /*
-         * Avoiding the malloc in InflateString on shorter strings saves us
-         * over 20,000 malloc calls on mozilla browser startup. This compares to
-         * only 131 calls where the string is longer than a 31 char (net) buffer.
-         * The vast majority of atomized strings are already in the hashtable. So
-         * js::AtomizeString rarely has to copy the temp string we make.
-         */
+        
+
+
+
+
+
+
         jschar inflated[ATOMIZE_BUF_MAX];
         size_t inflatedLength = ATOMIZE_BUF_MAX - 1;
         if (!InflateStringToBuffer(cx->maybeJSContext(),
@@ -498,7 +501,7 @@ js::XDRAtom(XDRState<mode> *xdr, MutableHandleAtom atomp)
         return xdr->codeChars(chars, nchars);
     }
 
-    /* Avoid JSString allocation for already existing atoms. See bug 321985. */
+    
     uint32_t nchars;
     if (!xdr->codeUint32(&nchars))
         return false;
@@ -506,24 +509,24 @@ js::XDRAtom(XDRState<mode> *xdr, MutableHandleAtom atomp)
     JSContext *cx = xdr->cx();
     JSAtom *atom;
 #if IS_LITTLE_ENDIAN
-    /* Directly access the little endian chars in the XDR buffer. */
+    
     const jschar *chars = reinterpret_cast<const jschar *>(xdr->buf.read(nchars * sizeof(jschar)));
     atom = AtomizeChars<CanGC>(cx, chars, nchars);
 #else
-    /*
-     * We must copy chars to a temporary buffer to convert between little and
-     * big endian data.
-     */
+    
+
+
+
     jschar *chars;
     jschar stackChars[256];
     if (nchars <= ArrayLength(stackChars)) {
         chars = stackChars;
     } else {
-        /*
-         * This is very uncommon. Don't use the tempLifoAlloc arena for this as
-         * most allocations here will be bigger than tempLifoAlloc's default
-         * chunk size.
-         */
+        
+
+
+
+
         chars = cx->runtime()->pod_malloc<jschar>(nchars);
         if (!chars)
             return false;
@@ -533,7 +536,7 @@ js::XDRAtom(XDRState<mode> *xdr, MutableHandleAtom atomp)
     atom = AtomizeChars<CanGC>(cx, chars, nchars);
     if (chars != stackChars)
         js_free(chars);
-#endif /* !IS_LITTLE_ENDIAN */
+#endif 
 
     if (!atom)
         return false;
