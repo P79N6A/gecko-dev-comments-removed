@@ -166,6 +166,9 @@ HTMLListBulletAccessible::Name(nsString &aName)
   nsBlockFrame* blockFrame = do_QueryFrame(mContent->GetPrimaryFrame());
   if (blockFrame) {
     blockFrame->GetBulletText(aName);
+
+    
+    aName.Append(' ');
   }
 
   return eNameOK;
