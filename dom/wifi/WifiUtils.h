@@ -105,7 +105,7 @@ public:
   do_wifi_start_supplicant(int32_t) = 0; 
 
   virtual int32_t
-  do_wifi_stop_supplicant() = 0;
+  do_wifi_stop_supplicant(int32_t) = 0; 
 
   virtual int32_t
   do_wifi_connect_to_supplicant(const char* iface) = 0; 
