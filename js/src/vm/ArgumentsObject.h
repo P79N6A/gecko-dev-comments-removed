@@ -59,7 +59,6 @@ struct ArgumentsData
 
 
 
-
     HeapValue   args[1];
 
     
@@ -226,14 +225,14 @@ class ArgumentsObject : public JSObject
     const Value &arg(unsigned i) const {
         JS_ASSERT(i < data()->numArgs);
         const Value &v = data()->args[i];
-        JS_ASSERT(!v.isMagic(JS_FORWARD_TO_CALL_OBJECT));
+        JS_ASSERT(!v.isMagic());
         return v;
     }
 
     void setArg(unsigned i, const Value &v) {
         JS_ASSERT(i < data()->numArgs);
         HeapValue &lhs = data()->args[i];
-        JS_ASSERT(!lhs.isMagic(JS_FORWARD_TO_CALL_OBJECT));
+        JS_ASSERT(!lhs.isMagic());
         lhs = v;
     }
 

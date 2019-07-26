@@ -575,7 +575,6 @@ JSFunction::trace(JSTracer *trc)
             
             
             
-            
             if (IS_GC_MARKING_TRACER(trc) && !compartment()->hasBeenEntered() &&
                 !compartment()->debugMode() && !compartment()->isSelfHosting &&
                 u.i.s.script_->isRelazifiable() && (!isSelfHostedBuiltin() || isExtended()))
@@ -1004,13 +1003,6 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         
         args2.setCallee(fval);
         args2.setThis(args[0]);
-
-        
-        if (args2.callee().is<JSFunction>()) {
-            JSFunction *fun = &args2.callee().as<JSFunction>();
-            if (fun->isInterpreted() && !fun->getOrCreateScript(cx))
-                return false;
-        }
 
         
         if (!GetElements(cx, aobj, length, args2.array()))

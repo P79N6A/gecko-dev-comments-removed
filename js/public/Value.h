@@ -233,7 +233,6 @@ typedef enum JSWhyMagic
     JS_OPTIMIZED_ARGUMENTS,      
     JS_IS_CONSTRUCTING,          
     JS_OVERWRITTEN_CALLEE,       
-    JS_FORWARD_TO_CALL_OBJECT,   
     JS_BLOCK_NEEDS_CLONE,        
     JS_HASH_KEY_EMPTY,           
     JS_ION_ERROR,                
@@ -599,6 +598,15 @@ MAGIC_TO_JSVAL_IMPL(JSWhyMagic why)
     return l;
 }
 
+static inline jsval_layout
+MAGIC_UINT32_TO_JSVAL_IMPL(uint32_t payload)
+{
+    jsval_layout l;
+    l.s.tag = JSVAL_TAG_MAGIC;
+    l.s.payload.u32 = payload;
+    return l;
+}
+
 static inline bool
 JSVAL_SAME_TYPE_IMPL(jsval_layout lhs, jsval_layout rhs)
 {
@@ -825,6 +833,14 @@ MAGIC_TO_JSVAL_IMPL(JSWhyMagic why)
     return l;
 }
 
+static inline jsval_layout
+MAGIC_UINT32_TO_JSVAL_IMPL(uint32_t payload)
+{
+    jsval_layout l;
+    l.asBits = ((uint64_t)payload) | JSVAL_SHIFTED_TAG_MAGIC;
+    return l;
+}
+
 static inline bool
 JSVAL_SAME_TYPE_IMPL(jsval_layout lhs, jsval_layout rhs)
 {
@@ -974,6 +990,10 @@ class Value
         data = MAGIC_TO_JSVAL_IMPL(why);
     }
 
+    void setMagicUint32(uint32_t payload) {
+        data = MAGIC_UINT32_TO_JSVAL_IMPL(payload);
+    }
+
     bool setNumber(uint32_t ui) {
         if (ui > JSVAL_INT_MAX) {
             setDouble((double)ui);
@@ -1091,6 +1111,11 @@ class Value
     JSWhyMagic whyMagic() const {
         MOZ_ASSERT(isMagic());
         return data.s.payload.why;
+    }
+
+    uint32_t magicUint32() const {
+        MOZ_ASSERT(isMagic());
+        return data.s.payload.u32;
     }
 
     
@@ -1364,6 +1389,14 @@ MagicValue(JSWhyMagic why)
 }
 
 static inline Value
+MagicValueUint32(uint32_t payload)
+{
+    Value v;
+    v.setMagicUint32(payload);
+    return v;
+}
+
+static inline Value
 NumberValue(float f)
 {
     Value v;
@@ -1571,6 +1604,7 @@ class ValueOperations
     uint32_t toPrivateUint32() const { return value()->toPrivateUint32(); }
 
     JSWhyMagic whyMagic() const { return value()->whyMagic(); }
+    uint32_t magicUint32() const { return value()->magicUint32(); }
 };
 
 

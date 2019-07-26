@@ -269,8 +269,22 @@ class CallObject : public ScopeObject
     const Value &aliasedVar(AliasedFormalIter fi) {
         return getSlot(fi.scopeSlot());
     }
+    inline void setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name,
+                              const Value &v);
 
-    inline void setAliasedVar(JSContext *cx, AliasedFormalIter fi, PropertyName *name, const Value &v);
+    
+
+
+
+
+
+
+
+    const Value &aliasedVarFromArguments(const Value &argsValue) {
+        return getSlot(argsValue.magicUint32());
+    }
+    inline void setAliasedVarFromArguments(JSContext *cx, const Value &argsValue, jsid id,
+                                           const Value &v);
 
     
     static size_t offsetOfCallee() {
