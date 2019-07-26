@@ -1,0 +1,343 @@
+
+
+
+
+
+
+"use strict";
+
+this.EXPORTED_SYMBOLS = ["PhoneNumber"];
+
+Components.utils.import("resource://gre/modules/PhoneNumberMetaData.jsm");
+
+this.PhoneNumber = (function (dataBase) {
+  
+  'use strict';
+
+  const UNICODE_DIGITS = /[\uFF10-\uFF19\u0660-\u0669\u06F0-\u06F9]/g;
+  const ALPHA_CHARS = /[a-zA-Z]/g;
+  const NON_ALPHA_CHARS = /[^a-zA-Z]/g;
+  const NON_DIALABLE_CHARS = /[^,#+\*\d]/g;
+  const PLUS_CHARS = /^[+\uFF0B]+/g;
+  const BACKSLASH = /\\/g;
+  const SPLIT_FIRST_GROUP = /^(\d+)(.*)$/;
+
+  
+  
+  
+  const META_DATA_ENCODING = ["region",
+                              "^internationalPrefix",
+                              "nationalPrefix",
+                              "^nationalPrefixForParsing",
+                              "nationalPrefixTransformRule",
+                              "nationalPrefixFormattingRule",
+                              "^possiblePattern$",
+                              "^nationalPattern$",
+                              "formats"];
+
+  const FORMAT_ENCODING = ["^pattern$",
+                           "nationalFormat",
+                           "^leadingDigits",
+                           "nationalPrefixFormattingRule",
+                           "internationalFormat"];
+
+  var regionCache = Object.create(null);
+
+  
+  
+  function ParseArray(array, encoding, obj) {
+    for (var n = 0; n < encoding.length; ++n) {
+      var value = array[n];
+      if (!value)
+        continue;
+      var field = encoding[n];
+      var fieldAlpha = field.replace(NON_ALPHA_CHARS, "");
+      if (field != fieldAlpha)
+        value = new RegExp(field.replace(fieldAlpha, value));
+      obj[fieldAlpha] = value;
+    }
+    return obj;
+  }
+
+  
+  
+  function ParseMetaData(countryCode, md) {
+    var array = eval(md.replace(BACKSLASH, "\\\\"));
+    md = ParseArray(array,
+                    META_DATA_ENCODING,
+                    { countryCode: countryCode });
+    regionCache[md.region] = md;
+    return md;
+  }
+
+  
+  
+  function ParseFormat(md) {
+    var formats = md.formats;
+    
+    if (!(Array.isArray(formats[0])))
+      return;
+    for (var n = 0; n < formats.length; ++n) {
+      formats[n] = ParseArray(formats[n],
+                              FORMAT_ENCODING,
+                              {});
+    }
+  }
+
+  
+  
+  
+  
+  function FindMetaDataForRegion(region) {
+    
+    
+    var md = regionCache[region];
+    if (md)
+      return md;
+    for (var countryCode in dataBase) {
+      var entry = dataBase[countryCode];
+      
+      
+      
+      
+      
+      
+      
+      if (Array.isArray(entry)) {
+        for (var n = 0; n < entry.length; ++n) {
+          if (typeof entry[n] == "string" && entry[n].substr(2,2) == region)
+            return entry[n] = ParseMetaData(countryCode, entry[n]);
+        }
+        continue;
+      }
+      if (typeof entry == "string" && entry.substr(2,2) == region)
+        return dataBase[countryCode] = ParseMetaData(countryCode, entry);
+    }
+  }
+
+  
+  
+  function FormatNumber(regionMetaData, number, intl) {
+    
+    
+    ParseFormat(regionMetaData);
+    var formats = regionMetaData.formats;
+    for (var n = 0; n < formats.length; ++n) {
+      var format = formats[n];
+      
+      
+      if (format.leadingDigits && !format.leadingDigits.test(number))
+        continue;
+      if (!format.pattern.test(number))
+        continue;
+      if (intl) {
+        
+        
+        var internationalFormat = format.internationalFormat;
+        if (!internationalFormat)
+          internationalFormat = format.nationalFormat;
+        
+        
+        
+        if (internationalFormat == "NA")
+          return null;
+        
+        number = "+" + regionMetaData.countryCode + " " +
+                 number.replace(format.pattern, internationalFormat);
+      } else {
+        number = number.replace(format.pattern, format.nationalFormat);
+        
+        
+        var nationalPrefixFormattingRule = regionMetaData.nationalPrefixFormattingRule;
+        if (format.nationalPrefixFormattingRule)
+          nationalPrefixFormattingRule = format.nationalPrefixFormattingRule;
+        if (nationalPrefixFormattingRule) {
+          
+          
+          
+          var match = number.match(SPLIT_FIRST_GROUP);
+          var firstGroup = match[1];
+          var rest = match[2];
+          var prefix = nationalPrefixFormattingRule;
+          prefix = prefix.replace("$NP", regionMetaData.nationalPrefix);
+          prefix = prefix.replace("$FG", firstGroup);
+          number = prefix + rest;
+        }
+      }
+      return (number == "NA") ? null : number;
+    }
+    return null;
+  }
+
+  function NationalNumber(regionMetaData, number) {
+    this.region = regionMetaData.region;
+    this.regionMetaData = regionMetaData;
+    this.nationalNumber = number;
+  }
+
+  
+  
+  
+  
+  NationalNumber.prototype = {
+    
+    get internationalFormat() {
+      var value = FormatNumber(this.regionMetaData, this.nationalNumber, true);
+      Object.defineProperty(this, "internationalFormat", { value: value, enumerable: true });
+      return value;
+    },
+    
+    get nationalFormat() {
+      var value = FormatNumber(this.regionMetaData, this.nationalNumber, false);
+      Object.defineProperty(this, "nationalFormat", { value: value, enumerable: true });
+      return value;
+    },
+    
+    get internationalNumber() {
+      var value = this.internationalFormat.replace(NON_DIALABLE_CHARS, "");
+      Object.defineProperty(this, "nationalNumber", { value: value, enumerable: true });
+      return value;
+    }
+  };
+
+  
+  
+  function NormalizeNumber(number) {
+    number = number.replace(UNICODE_DIGITS,
+                            function (ch) {
+                              return String.fromCharCode(48 + (ch.charCodeAt(0) & 0xf));
+                            });
+    number = number.replace(ALPHA_CHARS,
+                            function (ch) {
+                              return (ch.toLowerCase().charCodeAt(0) - 97)/3+2 | 0;
+                            });
+    number = number.replace(PLUS_CHARS, "+");
+    number = number.replace(NON_DIALABLE_CHARS, "");
+    return number;
+  }
+
+  
+  function IsValidNumber(number, md) {
+    return md.possiblePattern.test(number);
+  }
+
+  
+  function IsNationalNumber(number, md) {
+    return IsValidNumber(number, md) && md.nationalPattern.test(number);
+  }
+
+  
+  
+  function ParseCountryCode(number) {
+    for (var n = 1; n <= 3; ++n) {
+      var cc = number.substr(0,n);
+      if (dataBase[cc])
+        return cc;
+    }
+    return null;
+  }
+
+  
+  
+  function ParseInternationalNumber(number) {
+    var ret;
+
+    
+    var countryCode = ParseCountryCode(number);
+    if (!countryCode)
+      return null;
+    number = number.substr(countryCode.length);
+
+    
+    
+    var entry = dataBase[countryCode];
+    if (Array.isArray(entry)) {
+      for (var n = 0; n < entry.length; ++n) {
+        if (typeof entry[n] == "string")
+          entry[n] = ParseMetaData(countryCode, entry[n]);
+        if (ret = ParseNationalNumber(number, entry[n]))
+          return ret;
+      }
+      return null;
+    }
+    if (typeof entry == "string")
+      entry = dataBase[countryCode] = ParseMetaData(countryCode, entry);
+    return ParseNationalNumber(number, entry);
+  }
+
+  
+  
+  
+  function ParseNationalNumber(number, md) {
+    if (!md.possiblePattern.test(number) ||
+        !md.nationalPattern.test(number)) {
+      return null;
+    }
+    
+    return new NationalNumber(md, number);
+  }
+
+  
+  
+  function ParseNumber(number, defaultRegion) {
+    var ret;
+
+    
+    number = NormalizeNumber(number);
+
+    
+    if (number[0] === '+')
+      return ParseInternationalNumber(number.replace(PLUS_CHARS, ""));
+
+    
+    var md = FindMetaDataForRegion(defaultRegion.toUpperCase());
+
+    
+    
+    
+    if (md.internationalPrefix.test(number)) {
+      var possibleNumber = number.replace(md.internationalPrefix, "");
+      if (ret = ParseInternationalNumber(possibleNumber))
+        return ret;
+    }
+
+    
+    
+    
+    if (md.nationalPrefixForParsing) {
+      
+      var withoutPrefix = number.replace(md.nationalPrefixForParsing,
+                                         md.nationalPrefixTransformRule);
+      if (ret = ParseNationalNumber(withoutPrefix, md))
+        return ret;
+    } else {
+      
+      
+      var nationalPrefix = md.nationalPrefix;
+      if (nationalPrefix && number.indexOf(nationalPrefix) == 0 &&
+          (ret = ParseNationalNumber(number.substr(nationalPrefix.length), md))) {
+        return ret;
+      }
+    }
+    if (ret = ParseNationalNumber(number, md))
+      return ret;
+
+    
+    
+    if (md.possiblePattern.test(number))
+      return new NationalNumber(md, number);
+
+    
+    
+    if (ret = ParseInternationalNumber(number))
+      return ret;
+
+    
+    return null;
+  }
+
+  return {
+    Parse: ParseNumber,
+    Normalize: NormalizeNumber
+  };
+})(PHONE_NUMBER_META_DATA);
