@@ -934,7 +934,7 @@ class Atomic;
 
 
 template<typename T, MemoryOrdering Order>
-class Atomic<T, Order, typename EnableIf<IsIntegral<T>::value && !IsSame<T, bool>::value>::Type>
+class Atomic<T, Order, typename EnableIf<IsIntegral<T>::value>::Type>
   : public detail::AtomicBaseIncDec<T, Order>
 {
     typedef typename detail::AtomicBaseIncDec<T, Order> Base;
@@ -1004,44 +1004,6 @@ class Atomic<T, Order, typename EnableIf<IsEnum<T>::value>::Type>
 
   private:
     Atomic(Atomic<T, Order>& aOther) MOZ_DELETE;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<MemoryOrdering Order>
-class Atomic<bool, Order>
-  : protected detail::AtomicBase<uint32_t, Order>
-{
-    typedef typename detail::AtomicBase<uint32_t, Order> Base;
-
-  public:
-    MOZ_CONSTEXPR Atomic() : Base() {}
-    MOZ_CONSTEXPR Atomic(bool aInit) : Base(aInit) {}
-
-    
-    operator bool() const { return Base::operator uint32_t(); }
-    bool operator=(bool aValue) { return Base::operator=(aValue); }
-    bool exchange(bool aValue) { return Base::exchange(aValue); }
-    bool compareExchange(bool aOldValue, bool aNewValue) {
-      return Base::compareExchange(aOldValue, aNewValue);
-    }
-
-  private:
-    Atomic(Atomic<bool, Order>& aOther) MOZ_DELETE;
 };
 
 } 
