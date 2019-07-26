@@ -27,6 +27,10 @@
 #include "jsgcinlines.h"
 #include "jsobjinlines.h"
 
+#ifdef MOZ_VALGRIND
+# include <valgrind/memcheck.h>
+#endif
+
 using namespace js;
 using namespace js::gc;
 
@@ -255,7 +259,7 @@ MarkWordConservatively(JSTracer *trc, uintptr_t w)
 
 
 
-#ifdef JS_VALGRIND
+#ifdef MOZ_VALGRIND
     JS_SILENCE_UNUSED_VALUE_IN_EXPR(VALGRIND_MAKE_MEM_DEFINED(&w, sizeof(w)));
 #endif
 
