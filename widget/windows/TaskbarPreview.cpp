@@ -24,9 +24,11 @@
 
 #include <nsIBaseWindow.h>
 #include <nsICanvasRenderingContextInternal.h>
-#include <nsIDOMCanvasRenderingContext2D.h>
+#include "mozilla/dom/CanvasRenderingContext2D.h"
 #include <imgIContainer.h>
 #include <nsIDocShell.h>
+
+#include "mozilla/Telemetry.h"
 
 
 #define DWM_SIT_DISPLAYFRAME 0x1
@@ -39,7 +41,7 @@ namespace {
 
 
 
-nsIDOMCanvasRenderingContext2D* gCtx = NULL;
+dom::CanvasRenderingContext2D* gCtx = NULL;
 
 
 uint32_t gInstCount = 0;
@@ -56,26 +58,15 @@ uint32_t gInstCount = 0;
 nsresult
 GetRenderingContext(nsIDocShell *shell, gfxASurface *surface,
                     uint32_t width, uint32_t height) {
-  nsresult rv;
-  nsCOMPtr<nsIDOMCanvasRenderingContext2D> ctx = gCtx;
-
-  if (!ctx) {
+  if (!gCtx) {
     
-    ctx = do_CreateInstance("@mozilla.org/content/canvas-rendering-context;1?id=2d", &rv);
-    if (NS_FAILED(rv)) {
-      NS_WARNING("Could not create nsICanvasRenderingContext2D for tab previews!");
-      return rv;
-    }
-    gCtx = ctx;
+    Telemetry::Accumulate(Telemetry::CANVAS_2D_USED, 1);
+    gCtx = new mozilla::dom::CanvasRenderingContext2D();
     NS_ADDREF(gCtx);
   }
 
-  nsCOMPtr<nsICanvasRenderingContextInternal> ctxI = do_QueryInterface(ctx, &rv);
-  if (NS_FAILED(rv))
-    return rv;
-
   
-  return ctxI->InitializeWithSurface(shell, surface, width, height);
+  return gCtx->InitializeWithSurface(shell, surface, width, height);
 }
 
 
@@ -85,11 +76,7 @@ ResetRenderingContext() {
   if (!gCtx)
     return;
 
-  nsresult rv;
-  nsCOMPtr<nsICanvasRenderingContextInternal> ctxI = do_QueryInterface(gCtx, &rv);
-  if (NS_FAILED(rv))
-    return;
-  if (NS_FAILED(ctxI->Reset())) {
+  if (NS_FAILED(gCtx->Reset())) {
     NS_RELEASE(gCtx);
     gCtx = nullptr;
   }
