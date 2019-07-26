@@ -3837,8 +3837,10 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
 
 
 
-        if (rt->gcIsFull)
+        if (rt->gcIsFull) {
             SweepScriptFilenames(rt);
+            SweepScriptData(rt);
+        }
 
         
         if (JSC::ExecutableAllocator *execAlloc = rt->maybeExecAlloc())
