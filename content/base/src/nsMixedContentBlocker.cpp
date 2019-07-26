@@ -127,43 +127,111 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
                                   int16_t* aDecision)
 {
   
-  *aDecision = nsIContentPolicy::ACCEPT;
+  
+  
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+  MixedContentTypes classification = eMixedScript;
+
 
   
   
-  if (!sBlockMixedScript && !sBlockMixedDisplay) {
-    return NS_OK;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
-  
-  
-  if (aContentType == nsIContentPolicy::TYPE_DOCUMENT || aContentType == nsIContentPolicy::TYPE_WEBSOCKET) {
-    return NS_OK;
-  }
 
-  
-  
-  if (!aRequestingLocation) {
-    nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
-    if (node) {
-      nsCOMPtr<nsIURI> principalUri;
-      node->NodePrincipal()->GetURI(getter_AddRefs(principalUri));
-      aRequestingLocation = principalUri;
-    }
+  MOZ_STATIC_ASSERT(TYPE_DATAREQUEST == TYPE_XMLHTTPREQUEST,
+                    "TYPE_DATAREQUEST is not a synonym for "
+                    "TYPE_XMLHTTPREQUEST");
+
+  switch (aContentType) {
     
-    
-    if (!aRequestingLocation) {
-      *aDecision = nsIContentPolicy::REJECT_REQUEST;
+    case TYPE_DOCUMENT:
+      *aDecision = ACCEPT;
       return NS_OK;
-    }
-  }
+    
+    
+    
+    case TYPE_WEBSOCKET:
+      *aDecision = ACCEPT;
+      return NS_OK;
 
-  
-  
-  bool parentIsHttps;
-  if (NS_FAILED(aRequestingLocation->SchemeIs("https", &parentIsHttps)) ||
-      !parentIsHttps) {
-    return NS_OK;
+
+    
+    
+    case TYPE_IMAGE:
+    case TYPE_MEDIA:
+    case TYPE_PING:
+      classification = eMixedDisplay;
+      break;
+
+    
+    
+    
+    case TYPE_CSP_REPORT:
+    case TYPE_DTD:
+    case TYPE_FONT:
+    case TYPE_OBJECT:
+    case TYPE_OBJECT_SUBREQUEST:
+    case TYPE_SCRIPT:
+    case TYPE_STYLESHEET:
+    case TYPE_SUBDOCUMENT:
+    case TYPE_XBL:
+    case TYPE_XMLHTTPREQUEST:
+    case TYPE_OTHER:
+      break;
+
+
+    
+    default:
+      MOZ_NOT_REACHED("Mixed content of unknown type");
+      NS_WARNING("Mixed content of unknown type");
+      break;
   }
 
  
@@ -199,56 +267,53 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   }
 
   
-
   
-  
-  switch (aContentType) {
-    case nsIContentPolicy::TYPE_FONT:
-    case nsIContentPolicy::TYPE_OBJECT:
-    case nsIContentPolicy::TYPE_SCRIPT:
-    case nsIContentPolicy::TYPE_STYLESHEET:
-    case nsIContentPolicy::TYPE_SUBDOCUMENT:
-    case nsIContentPolicy::TYPE_WEBSOCKET:
-    case nsIContentPolicy::TYPE_XMLHTTPREQUEST:
-      
-      
-      
-      if (sBlockMixedScript) {
-        *aDecision = nsIContentPolicy::REJECT_REQUEST;
-
-        
-        
-        
-        
-
-
-
-      }
-      break;
-
-    case nsIContentPolicy::TYPE_IMAGE:
-    case nsIContentPolicy::TYPE_MEDIA:
-    case nsIContentPolicy::TYPE_PING:
-      
-      
-      if (sBlockMixedDisplay) {
-        *aDecision = nsIContentPolicy::REJECT_REQUEST;
-
-        
-        
-        
-        
-
-
-
-      }
-      break;
-
-    default:
-      
-      break;
+  if (!aRequestingLocation) {
+    nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
+    if (node) {
+      nsCOMPtr<nsIURI> principalUri;
+      node->NodePrincipal()->GetURI(getter_AddRefs(principalUri));
+      aRequestingLocation = principalUri;
+    }
+    
+    
+    if (!aRequestingLocation) {
+      *aDecision = REJECT_REQUEST;
+      return NS_OK;
+    }
   }
 
+  
+  
+  bool parentIsHttps;
+  nsresult rv = aRequestingLocation->SchemeIs("https", &parentIsHttps);
+  if (NS_FAILED(rv)) {
+    NS_ERROR("aRequestingLocation->SchemeIs failed");
+    *aDecision = REJECT_REQUEST;
+    return NS_OK;
+  }
+  if (!parentIsHttps) {
+    *aDecision = ACCEPT;
+    return NS_OK;
+  }
+
+  
+  
+  
+  if ( (sBlockMixedDisplay && classification == eMixedDisplay) || (sBlockMixedScript && classification == eMixedScript) ) {
+     *aDecision = nsIContentPolicy::REJECT_REQUEST;
+     return NS_OK;
+  } else {
+    
+
+    
+    
+    nsContentUtils::AddScriptRunner(
+      new nsMixedContentEvent(aRequestingContext, classification));
+    return NS_OK;
+  }
+
+  *aDecision = REJECT_REQUEST;
   return NS_OK;
 }
 
