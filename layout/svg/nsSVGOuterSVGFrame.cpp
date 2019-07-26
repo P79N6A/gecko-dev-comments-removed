@@ -460,6 +460,7 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
     
     
+    anonKid->AddStateBits(mState & NS_FRAME_IS_DIRTY);
     anonKid->ReflowSVG();
     NS_ABORT_IF_FALSE(!anonKid->GetNextSibling(),
       "We should have one anonymous child frame wrapping our real children");
