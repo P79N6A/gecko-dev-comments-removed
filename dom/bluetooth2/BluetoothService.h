@@ -315,6 +315,28 @@ public:
   void TryFiringAdapterAdded();
   void AdapterAddedReceived();
 
+  void FireAdapterStateChanged(bool aEnable);
+  nsresult EnableDisable(bool aEnable,
+                         BluetoothReplyRunnable* aRunnable);
+
+  
+
+
+
+
+
+  virtual nsresult
+  StartInternal(BluetoothReplyRunnable* aRunnable) = 0;
+
+  
+
+
+
+
+
+  virtual nsresult
+  StopInternal(BluetoothReplyRunnable* aRunnable) = 0;
+
 protected:
   BluetoothService() : mEnabled(false)
                      , mAdapterAddedReceived(false)
@@ -330,31 +352,15 @@ protected:
   Cleanup();
 
   nsresult
-  StartBluetooth(bool aIsStartup);
+  StartBluetooth(bool aIsStartup, BluetoothReplyRunnable* aRunnable);
 
   nsresult
-  StopBluetooth(bool aIsStartup);
+  StopBluetooth(bool aIsStartup, BluetoothReplyRunnable* aRunnable);
 
   nsresult
-  StartStopBluetooth(bool aStart, bool aIsStartup);
-
-  
-
-
-
-
-
-  virtual nsresult
-  StartInternal() = 0;
-
-  
-
-
-
-
-
-  virtual nsresult
-  StopInternal() = 0;
+  StartStopBluetooth(bool aStart,
+                     bool aIsStartup,
+                     BluetoothReplyRunnable* aRunnable);
 
   
 
