@@ -707,34 +707,7 @@ nsresult imgFrame::UnlockImageData()
   if (mQuartzSurface)
     mQuartzSurface->Flush();
 #endif
-
   return NS_OK;
-}
-
-void imgFrame::MarkImageDataDirty()
-{
-  if (mImageSurface)
-    mImageSurface->Flush();
-
-#ifdef USE_WIN_SURFACE
-  if (mWinSurface)
-    mWinSurface->Flush();
-#endif
-
-  if (mImageSurface)
-    mImageSurface->MarkDirty();
-
-#ifdef USE_WIN_SURFACE
-  if (mWinSurface)
-    mWinSurface->MarkDirty();
-#endif
-
-#ifdef XP_MACOSX
-  
-  
-  if (mQuartzSurface)
-    mQuartzSurface->Flush();
-#endif
 }
 
 int32_t imgFrame::GetTimeout() const

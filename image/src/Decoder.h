@@ -162,10 +162,6 @@ public:
   
   virtual nsresult AllocateFrame();
 
-  
-  
-  void MarkFrameDirty();
-
 protected:
 
   
