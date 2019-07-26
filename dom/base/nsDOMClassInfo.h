@@ -438,38 +438,6 @@ private:
 
 
 
-class nsNamedArraySH : public nsArraySH
-{
-protected:
-  nsNamedArraySH(nsDOMClassInfoData* aData) : nsArraySH(aData)
-  {
-  }
-
-  virtual ~nsNamedArraySH()
-  {
-  }
-
-  NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, uint32_t flags,
-                        JSObject **objp, bool *_retval) MOZ_OVERRIDE;
-
-  virtual nsISupports* GetNamedItem(nsISupports *aNative,
-                                    const nsAString& aName,
-                                    nsWrapperCache **cache,
-                                    nsresult *aResult) = 0;
-
-public:
-  NS_IMETHOD GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp, bool *_retval) MOZ_OVERRIDE;
-
-private:
-  
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData);
-};
-
-
-
-
 extern JSClass sHTMLDocumentAllClass;
 
 class nsHTMLDocumentSH
