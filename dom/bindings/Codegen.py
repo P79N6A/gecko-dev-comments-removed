@@ -912,8 +912,14 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                                 typeDesc = p.getDescriptor(f.inner.identifier.name)
                             except NoSuchDescriptorError:
                                 continue
-                            declarations.add((typeDesc.nativeType, False))
-                            implheaders.add(typeDesc.headerFile)
+                            if typeDesc.interface.isCallback():
+                                
+                                
+                                
+                                headers.add(typeDesc.headerFile)
+                            else:
+                                declarations.add((typeDesc.nativeType, False))
+                                implheaders.add(typeDesc.headerFile)
                 elif f.isDictionary():
                     
                     
@@ -926,6 +932,11 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
                     
                     
                     headers.add(CGHeaders.getDeclarationFilename(f.inner))
+                elif f.isCallback():
+                    
+                    
+                    
+                    headers.add(CGHeaders.getDeclarationFilename(f))
 
     map(addInfoForType, getAllTypes(descriptors, dictionaries, callbacks))
 
