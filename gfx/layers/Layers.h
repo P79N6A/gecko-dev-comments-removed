@@ -1074,7 +1074,7 @@ public:
 
 
 
-  const gfx3DMatrix GetLocalTransform();
+  const gfx::Matrix4x4 GetLocalTransform();
 
   
 
@@ -1480,9 +1480,7 @@ public:
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
-    gfx::Matrix4x4 idealTransform;
-    gfx::ToMatrix4x4(GetLocalTransform(), idealTransform);
-    idealTransform = idealTransform * aTransformToSurface;
+    gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     gfx::Matrix residual;
     mEffectiveTransform = SnapTransformTranslation(idealTransform,
         mAllowResidualTranslation ? &residual : nullptr);
@@ -1754,9 +1752,7 @@ public:
 
   virtual void ComputeEffectiveTransforms(const gfx::Matrix4x4& aTransformToSurface)
   {
-    gfx::Matrix4x4 idealTransform;
-    gfx::ToMatrix4x4(GetLocalTransform(), idealTransform);
-    idealTransform = idealTransform * aTransformToSurface;
+    gfx::Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
     mEffectiveTransform = SnapTransformTranslation(idealTransform, nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
   }
@@ -1900,10 +1896,8 @@ public:
     
     
     
-    gfx::Matrix4x4 localTransform;
-    gfx::ToMatrix4x4(GetLocalTransform(), localTransform);
     mEffectiveTransform =
-        SnapTransform(localTransform, gfxRect(0, 0, mBounds.width, mBounds.height),
+        SnapTransform(GetLocalTransform(), gfxRect(0, 0, mBounds.width, mBounds.height),
                       nullptr)*
         SnapTransformTranslation(aTransformToSurface, nullptr);
     ComputeEffectiveTransformForMaskLayer(aTransformToSurface);

@@ -40,28 +40,24 @@ BasicContainerLayer::ComputeEffectiveTransforms(const Matrix4x4& aTransformToSur
   
   
   Matrix residual;
-  gfx3DMatrix idealTransform;
-  To3DMatrix(aTransformToSurface, idealTransform);
-  idealTransform = GetLocalTransform() * idealTransform;
+  Matrix4x4 idealTransform = GetLocalTransform() * aTransformToSurface;
   idealTransform.ProjectTo2D();
 
   if (!idealTransform.CanDraw2D()) {
-    ToMatrix4x4(idealTransform, mEffectiveTransform);
+    mEffectiveTransform = idealTransform;
     ComputeEffectiveTransformsForChildren(Matrix4x4());
     ComputeEffectiveTransformForMaskLayer(Matrix4x4());
     mUseIntermediateSurface = true;
     return;
   }
 
-  Matrix4x4 ideal;
-  ToMatrix4x4(idealTransform, ideal);
-  mEffectiveTransform = SnapTransformTranslation(ideal, &residual);
+  mEffectiveTransform = SnapTransformTranslation(idealTransform, &residual);
   
   
-  ComputeEffectiveTransformsForChildren(ideal);
+  ComputeEffectiveTransformsForChildren(idealTransform);
 
   ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
-  
+
   Layer* child = GetFirstChild();
   bool hasSingleBlendingChild = false;
   if (!HasMultipleChildren() && child) {
