@@ -292,35 +292,24 @@ nsIMM32Handler::ProcessMessage(nsWindow* aWindow, UINT msg,
       return ProcessInputLangChangeMessage(aWindow, wParam, lParam, aResult);
     case WM_IME_STARTCOMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed = gIMM32Handler->OnIMEStartComposition(aWindow);
-      return true;
+      return gIMM32Handler->OnIMEStartComposition(aWindow, aResult);
     case WM_IME_COMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMEComposition(aWindow, wParam, lParam);
-      return true;
+      return gIMM32Handler->OnIMEComposition(aWindow, wParam, lParam, aResult);
     case WM_IME_ENDCOMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed = gIMM32Handler->OnIMEEndComposition(aWindow);
-      return true;
+      return gIMM32Handler->OnIMEEndComposition(aWindow, aResult);
     case WM_IME_CHAR:
-      aResult.mConsumed = OnIMEChar(aWindow, wParam, lParam);
-      return true;
+      return OnIMEChar(aWindow, wParam, lParam, aResult);
     case WM_IME_NOTIFY:
-      aResult.mConsumed = OnIMENotify(aWindow, wParam, lParam);
-      return true;
+      return OnIMENotify(aWindow, wParam, lParam, aResult);
     case WM_IME_REQUEST:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMERequest(aWindow, wParam, lParam, &aResult.mResult);
-      return true;
+      return gIMM32Handler->OnIMERequest(aWindow, wParam, lParam, aResult);
     case WM_IME_SELECT:
-      aResult.mConsumed = OnIMESelect(aWindow, wParam, lParam);
-      return true;
+      return OnIMESelect(aWindow, wParam, lParam, aResult);
     case WM_IME_SETCONTEXT:
-      aResult.mConsumed =
-        OnIMESetContext(aWindow, wParam, lParam, &aResult.mResult);
-      return true;
+      return OnIMESetContext(aWindow, wParam, lParam, aResult);
     case WM_KEYDOWN:
       return OnKeyDownEvent(aWindow, wParam, lParam, aResult);
     case WM_CHAR:
@@ -351,28 +340,21 @@ nsIMM32Handler::ProcessMessageForPlugin(nsWindow* aWindow, UINT msg,
       return ProcessInputLangChangeMessage(aWindow, wParam, lParam, aResult);
     case WM_IME_COMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMECompositionOnPlugin(aWindow, wParam, lParam);
-      return true;
+      return gIMM32Handler->OnIMECompositionOnPlugin(aWindow, wParam, lParam,
+                                                     aResult);
     case WM_IME_STARTCOMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMEStartCompositionOnPlugin(aWindow, wParam, lParam);
-      return true;
+      return gIMM32Handler->OnIMEStartCompositionOnPlugin(aWindow, wParam,
+                                                          lParam, aResult);
     case WM_IME_ENDCOMPOSITION:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMEEndCompositionOnPlugin(aWindow, wParam, lParam);
-      return true;
+      return gIMM32Handler->OnIMEEndCompositionOnPlugin(aWindow, wParam, lParam,
+                                                        aResult);
     case WM_IME_CHAR:
       EnsureHandlerInstance();
-      aResult.mConsumed =
-        gIMM32Handler->OnIMECharOnPlugin(aWindow, wParam, lParam);
-      return true;
+      return gIMM32Handler->OnIMECharOnPlugin(aWindow, wParam, lParam, aResult);
     case WM_IME_SETCONTEXT:
-      aResult.mConsumed =
-        OnIMESetContextOnPlugin(aWindow, wParam, lParam, &aResult.mResult);
-      return true;
+      return OnIMESetContextOnPlugin(aWindow, wParam, lParam, aResult);
     case WM_CHAR:
       if (!gIMM32Handler) {
         return false;
@@ -417,25 +399,28 @@ nsIMM32Handler::OnInputLangChange(nsWindow* aWindow,
 }
 
 bool
-nsIMM32Handler::OnIMEStartComposition(nsWindow* aWindow)
+nsIMM32Handler::OnIMEStartComposition(nsWindow* aWindow,
+                                      MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEStartComposition, hWnd=%08x, mIsComposing=%s\n",
      aWindow->GetWindowHandle(), mIsComposing ? "TRUE" : "FALSE"));
+  aResult.mConsumed = ShouldDrawCompositionStringOurselves();
   if (mIsComposing) {
     NS_WARNING("Composition has been already started");
-    return ShouldDrawCompositionStringOurselves();
+    return true;
   }
 
   nsIMEContext IMEContext(aWindow->GetWindowHandle());
   HandleStartComposition(aWindow, IMEContext);
-  return ShouldDrawCompositionStringOurselves();
+  return true;
 }
 
 bool
 nsIMM32Handler::OnIMEComposition(nsWindow* aWindow,
                                  WPARAM wParam,
-                                 LPARAM lParam)
+                                 LPARAM lParam,
+                                 MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEComposition, hWnd=%08x, lParam=%08x, mIsComposing=%s\n",
@@ -452,18 +437,21 @@ nsIMM32Handler::OnIMEComposition(nsWindow* aWindow,
     "OnIMEComposition should not be called when a plug-in has focus");
 
   nsIMEContext IMEContext(aWindow->GetWindowHandle());
-  return HandleComposition(aWindow, IMEContext, lParam);
+  aResult.mConsumed = HandleComposition(aWindow, IMEContext, lParam);
+  return true;
 }
 
 bool
-nsIMM32Handler::OnIMEEndComposition(nsWindow* aWindow)
+nsIMM32Handler::OnIMEEndComposition(nsWindow* aWindow,
+                                    MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEEndComposition, hWnd=%08x, mIsComposing=%s\n",
      aWindow->GetWindowHandle(), mIsComposing ? "TRUE" : "FALSE"));
 
+  aResult.mConsumed = ShouldDrawCompositionStringOurselves();
   if (!mIsComposing) {
-    return ShouldDrawCompositionStringOurselves();
+    return true;
   }
 
   
@@ -478,7 +466,7 @@ nsIMM32Handler::OnIMEEndComposition(nsWindow* aWindow)
     PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
       ("IMM32: OnIMEEndComposition, WM_IME_ENDCOMPOSITION is followed by "
        "WM_IME_COMPOSITION, ignoring the message..."));
-    return ShouldDrawCompositionStringOurselves();
+    return true;
   }
 
   
@@ -499,13 +487,14 @@ nsIMM32Handler::OnIMEEndComposition(nsWindow* aWindow)
 
   HandleEndComposition(aWindow);
 
-  return ShouldDrawCompositionStringOurselves();
+  return true;
 }
 
  bool
 nsIMM32Handler::OnIMEChar(nsWindow* aWindow,
                           WPARAM wParam,
-                          LPARAM lParam)
+                          LPARAM lParam,
+                          MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEChar, hWnd=%08x, char=%08x\n",
@@ -517,24 +506,28 @@ nsIMM32Handler::OnIMEChar(nsWindow* aWindow,
   
 
   
+  aResult.mConsumed = true;
   return true;
 }
 
  bool
-nsIMM32Handler::OnIMECompositionFull(nsWindow* aWindow)
+nsIMM32Handler::OnIMECompositionFull(nsWindow* aWindow,
+                                     MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMECompositionFull, hWnd=%08x\n",
      aWindow->GetWindowHandle()));
 
   
-  return false;
+  aResult.mConsumed = false;
+  return true;
 }
 
  bool
 nsIMM32Handler::OnIMENotify(nsWindow* aWindow,
                             WPARAM wParam,
-                            LPARAM lParam)
+                            LPARAM lParam,
+                            MSGResult& aResult)
 {
 #ifdef PR_LOGGING
   switch (wParam) {
@@ -612,61 +605,71 @@ nsIMM32Handler::OnIMENotify(nsWindow* aWindow,
 #endif 
 
   
-  return false;
+  aResult.mConsumed = false;
+  return true;
 }
 
 bool
 nsIMM32Handler::OnIMERequest(nsWindow* aWindow,
                              WPARAM wParam,
                              LPARAM lParam,
-                             LRESULT *oResult)
+                             MSGResult& aResult)
 {
   switch (wParam) {
     case IMR_RECONVERTSTRING:
       PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
         ("IMM32: OnIMERequest, hWnd=%08x, IMR_RECONVERTSTRING\n",
          aWindow->GetWindowHandle()));
-      return HandleReconvert(aWindow, lParam, oResult);
+      aResult.mConsumed = HandleReconvert(aWindow, lParam, &aResult.mResult);
+      return true;
     case IMR_QUERYCHARPOSITION:
       PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
         ("IMM32: OnIMERequest, hWnd=%08x, IMR_QUERYCHARPOSITION\n",
          aWindow->GetWindowHandle()));
-      return HandleQueryCharPosition(aWindow, lParam, oResult);
+      aResult.mConsumed =
+        HandleQueryCharPosition(aWindow, lParam, &aResult.mResult);
+      return true;
     case IMR_DOCUMENTFEED:
       PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
         ("IMM32: OnIMERequest, hWnd=%08x, IMR_DOCUMENTFEED\n",
          aWindow->GetWindowHandle()));
-      return HandleDocumentFeed(aWindow, lParam, oResult);
+      aResult.mConsumed = HandleDocumentFeed(aWindow, lParam, &aResult.mResult);
+      return true;
     default:
       PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
         ("IMM32: OnIMERequest, hWnd=%08x, wParam=%08x\n",
          aWindow->GetWindowHandle(), wParam));
-      return false;
+      aResult.mConsumed = false;
+      return true;
   }
 }
 
  bool
 nsIMM32Handler::OnIMESelect(nsWindow* aWindow,
                             WPARAM wParam,
-                            LPARAM lParam)
+                            LPARAM lParam,
+                            MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMESelect, hWnd=%08x, wParam=%08x, lParam=%08x\n",
      aWindow->GetWindowHandle(), wParam, lParam));
 
   
-  return false;
+  aResult.mConsumed = false;
+  return true;
 }
 
  bool
 nsIMM32Handler::OnIMESetContext(nsWindow* aWindow,
                                 WPARAM wParam,
                                 LPARAM lParam,
-                                LRESULT *aResult)
+                                MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMESetContext, hWnd=%08x, %s, lParam=%08x\n",
      aWindow->GetWindowHandle(), wParam ? "Active" : "Deactive", lParam));
+
+  aResult.mConsumed = false;
 
   
   
@@ -678,7 +681,7 @@ nsIMM32Handler::OnIMESetContext(nsWindow* aWindow,
   if (IsTopLevelWindowOfComposition(aWindow)) {
     PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
       ("IMM32: OnIMESetContext, hWnd=%08x is top level window\n"));
-    return false;
+    return true;
   }
 
   
@@ -699,8 +702,8 @@ nsIMM32Handler::OnIMESetContext(nsWindow* aWindow,
   
   
   
-  *aResult = ::DefWindowProc(aWindow->GetWindowHandle(),
-                             WM_IME_SETCONTEXT, wParam, lParam);
+  aResult.mResult = ::DefWindowProc(aWindow->GetWindowHandle(),
+                                    WM_IME_SETCONTEXT, wParam, lParam);
 
   
   
@@ -708,6 +711,7 @@ nsIMM32Handler::OnIMESetContext(nsWindow* aWindow,
     CancelComposition(aWindow, true);
   }
 
+  aResult.mConsumed = true;
   return true;
 }
 
@@ -747,23 +751,25 @@ nsIMM32Handler::OnChar(nsWindow* aWindow,
 bool
 nsIMM32Handler::OnIMEStartCompositionOnPlugin(nsWindow* aWindow,
                                               WPARAM wParam,
-                                              LPARAM lParam)
+                                              LPARAM lParam,
+                                              MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEStartCompositionOnPlugin, hWnd=%08x, mIsComposingOnPlugin=%s\n",
      aWindow->GetWindowHandle(), mIsComposingOnPlugin ? "TRUE" : "FALSE"));
   mIsComposingOnPlugin = true;
   mComposingWindow = aWindow;
-  bool handled =
+  aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_STARTCOMPOSITION, wParam, lParam,
                                  false);
-  return handled;
+  return true;
 }
 
 bool
 nsIMM32Handler::OnIMECompositionOnPlugin(nsWindow* aWindow,
                                          WPARAM wParam,
-                                         LPARAM lParam)
+                                         LPARAM lParam,
+                                         MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMECompositionOnPlugin, hWnd=%08x, lParam=%08x, mIsComposingOnPlugin=%s\n",
@@ -786,15 +792,16 @@ nsIMM32Handler::OnIMECompositionOnPlugin(nsWindow* aWindow,
     mIsComposingOnPlugin = true;
     mComposingWindow = aWindow;
   }
-  bool handled =
+  aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_COMPOSITION, wParam, lParam, true);
-  return handled;
+  return true;
 }
 
 bool
 nsIMM32Handler::OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
                                             WPARAM wParam,
-                                            LPARAM lParam)
+                                            LPARAM lParam,
+                                            MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMEEndCompositionOnPlugin, hWnd=%08x, mIsComposingOnPlugin=%s\n",
@@ -802,37 +809,38 @@ nsIMM32Handler::OnIMEEndCompositionOnPlugin(nsWindow* aWindow,
 
   mIsComposingOnPlugin = false;
   mComposingWindow = nullptr;
-  bool handled =
+  aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_ENDCOMPOSITION, wParam, lParam,
                                  false);
-  return handled;
+  return true;
 }
 
 bool
 nsIMM32Handler::OnIMECharOnPlugin(nsWindow* aWindow,
                                   WPARAM wParam,
-                                  LPARAM lParam)
+                                  LPARAM lParam,
+                                  MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMECharOnPlugin, hWnd=%08x, char=%08x, scancode=%08x\n",
      aWindow->GetWindowHandle(), wParam, lParam));
 
-  bool handled =
+  aResult.mConsumed =
     aWindow->DispatchPluginEvent(WM_IME_CHAR, wParam, lParam, true);
 
-  if (!handled) {
+  if (!aResult.mConsumed) {
     
     EnsureHandlerInstance();
     EnqueueIMECharRecords(wParam, lParam);
   }
-  return handled;
+  return true;
 }
 
  bool
 nsIMM32Handler::OnIMESetContextOnPlugin(nsWindow* aWindow,
                                         WPARAM wParam,
                                         LPARAM lParam,
-                                        LRESULT *aResult)
+                                        MSGResult& aResult)
 {
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: OnIMESetContextOnPlugin, hWnd=%08x, %s, lParam=%08x\n",
@@ -856,12 +864,13 @@ nsIMM32Handler::OnIMESetContextOnPlugin(nsWindow* aWindow,
 
   
   
-  *aResult = ::DefWindowProc(aWindow->GetWindowHandle(),
-                             WM_IME_SETCONTEXT, wParam, lParam);
+  aResult.mResult = ::DefWindowProc(aWindow->GetWindowHandle(),
+                                    WM_IME_SETCONTEXT, wParam, lParam);
 
   
   
   
+  aResult.mConsumed = true;
   return true;
 }
 
