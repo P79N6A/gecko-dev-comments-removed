@@ -54,6 +54,9 @@ function changeProximity() {
     is(event.value, expectedEvent.value, "value");
     is(event.min, expectedEvent.min, "min");
     is(event.max, expectedEvent.max, "max");
+    
+    window.ondeviceproximity = null;
+    window.removeEventListener('deviceproximity', listener);
     restoreProximity();
   };
 
@@ -73,9 +76,6 @@ function restoreProximity() {
 }
 
 function cleanUp() {
-  
-  window.removeEventListener('deviceproximity', listener);
-  window.ondeviceproximity = null;
   finish();
 }
 
