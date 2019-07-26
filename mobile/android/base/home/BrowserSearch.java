@@ -80,6 +80,10 @@ public class BrowserSearch extends HomeFragment
     private static final int MAX_AUTOCOMPLETE_SEARCH = 20;
 
     
+    
+    private static final int HTTPS_PREFIX_LENGTH = 9;
+
+    
     private static final int ANIMATION_DURATION = 250;
 
     
@@ -418,7 +422,8 @@ public class BrowserSearch extends HomeFragment
             
             
             if (url.startsWith(searchTerm)) {
-                return uriSubstringUpToMatchedPath(url, 0, searchLength);
+                return uriSubstringUpToMatchedPath(url, 0,
+                        (searchLength > HTTPS_PREFIX_LENGTH) ? searchLength : HTTPS_PREFIX_LENGTH);
             }
 
             final Uri uri = Uri.parse(url);
