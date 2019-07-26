@@ -101,5 +101,25 @@ ScaledFontMac::GetPathForGlyphs(const GlyphBuffer &aBuffer, const DrawTarget *aT
   }
 }
 
+void
+ScaledFontMac::CopyGlyphsToBuilder(const GlyphBuffer &aBuffer, PathBuilder *aBuilder)
+{
+  PathBuilderCG *pathBuilderCG =
+    static_cast<PathBuilderCG*>(aBuilder);
+  
+  for (unsigned int i = 0; i < aBuffer.mNumGlyphs; i++) {
+    
+    CGAffineTransform flip = CGAffineTransformMakeScale(1, -1);
+    CGPathRef glyphPath = ::CGFontGetGlyphPath(mFont, &flip, 0, aBuffer.mGlyphs[i].mIndex);
+
+    CGAffineTransform matrix = CGAffineTransformMake(mSize, 0, 0, mSize,
+                                                     aBuffer.mGlyphs[i].mPosition.x,
+                                                     aBuffer.mGlyphs[i].mPosition.y);
+    CGPathAddPath(pathBuilderCG->mCGPath, &matrix, glyphPath);
+    CGPathRelease(glyphPath);
+  }
+}
+
+
 }
 }
