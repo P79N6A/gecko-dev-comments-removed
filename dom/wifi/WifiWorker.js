@@ -852,7 +852,9 @@ var WifiManager = (function() {
       if (fields.BSSID !== "00:00:00:00:00:00")
         manager.connectionInfo.bssid = fields.BSSID;
 
-      notifyStateChange(fields);
+      if (notifyStateChange(fields) && fields.state === "COMPLETED") {
+        onconnected();
+      }
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-DRIVER-STATE") === 0) {
@@ -902,14 +904,6 @@ var WifiManager = (function() {
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-CONNECTED") === 0) {
-      
-      var bssid = eventData.split(" ")[4];
-      var id = eventData.substr(eventData.indexOf("id=")).split(" ")[0];
-
-      
-      
-      if (notifyStateChange({ state: "CONNECTED", BSSID: bssid, id: id }))
-        onconnected();
       return true;
     }
     if (eventData.indexOf("CTRL-EVENT-SCAN-RESULTS") === 0) {
