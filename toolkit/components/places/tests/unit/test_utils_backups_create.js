@@ -9,17 +9,17 @@
 
 
 const PREFIX = "bookmarks-";
-
-const LOCALIZED_PREFIX = "segnalibri-";
 const SUFFIX = ".json";
 const NUMBER_OF_BACKUPS = 10;
 
 function run_test() {
-  do_test_pending();
+  run_next_test();
+}
 
+add_task(function () {
   
-  var dateObj = new Date();
-  var dates = [];
+  let dateObj = new Date();
+  let dates = [];
   while (dates.length < NUMBER_OF_BACKUPS) {
     
     let randomDate = new Date(dateObj.getFullYear() - 1,
@@ -32,74 +32,63 @@ function run_test() {
   
   dates.sort();
 
-  Task.spawn(function() {
-    
-    let backupFolderPath = yield PlacesBackups.getBackupFolder();
-    let bookmarksBackupDir = new FileUtils.File(backupFolderPath);
+  
+  let backupFolderPath = yield PlacesBackups.getBackupFolder();
+  let bookmarksBackupDir = new FileUtils.File(backupFolderPath);
 
-    
-    
-    
-    for (let i = dates.length - 1; i >= 0; i--) {
-      let backupFilename;
-      if (i > Math.floor(dates.length/2))
-        backupFilename = PREFIX + dates[i] + SUFFIX;
-      else
-        backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
-      let backupFile = bookmarksBackupDir.clone();
-      backupFile.append(backupFilename);
-      backupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, 0666);
-      do_check_true(backupFile.exists());
-    }
+  
+  
+  
+  for (let i = dates.length - 1; i >= 0; i--) {
+    let backupFilename = PREFIX + dates[i] + SUFFIX;
+    let backupFile = bookmarksBackupDir.clone();
+    backupFile.append(backupFilename);
+    backupFile.create(Ci.nsIFile.NORMAL_FILE_TYPE, parseInt("0666", 8));
+    do_log_info("Creating fake backup " + backupFile.leafName);
+    if (!backupFile.exists())
+      do_throw("Unable to create fake backup " + backupFile.leafName);
+  }
 
-    
-    
-    PlacesUtils.getFormattedString = function (aKey, aValue) {
-      return LOCALIZED_PREFIX + aValue;
-    }
+  yield PlacesBackups.create(NUMBER_OF_BACKUPS);
+  
+  dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
 
-    yield PlacesBackups.create(Math.floor(dates.length/2));
-    
-    dates.push(dateObj.toLocaleFormat("%Y-%m-%d"));
-
-    
-    for (var i = 0; i < dates.length; i++) {
-      let backupFilename;
-      let shouldExist;
-      let backupFile;
-      if (i > Math.floor(dates.length/2)) {
-        let files = bookmarksBackupDir.directoryEntries;
-        let rx = new RegExp("^" + PREFIX + dates[i] + "(_[0-9]+){0,1}" + SUFFIX + "$");
-        while (files.hasMoreElements()) {
-          let entry = files.getNext().QueryInterface(Ci.nsIFile);
-          if (entry.leafName.match(rx)) {
-            backupFilename = entry.leafName;
-            backupFile = entry;
-            break;
-          }
+  
+  
+  for (let i = 0; i < dates.length; i++) {
+    let backupFilename;
+    let shouldExist;
+    let backupFile;
+    if (i > 0) {
+      let files = bookmarksBackupDir.directoryEntries;
+      let rx = new RegExp("^" + PREFIX + dates[i] + "(_[0-9]+){0,1}" + SUFFIX + "$");
+      while (files.hasMoreElements()) {
+        let entry = files.getNext().QueryInterface(Ci.nsIFile);
+        if (entry.leafName.match(rx)) {
+          backupFilename = entry.leafName;
+          backupFile = entry;
+          break;
         }
-        shouldExist = true;
       }
-      else {
-        backupFilename = LOCALIZED_PREFIX + dates[i] + SUFFIX;
-        backupFile = bookmarksBackupDir.clone();
-        backupFile.append(backupFilename);
-        shouldExist = false;
-      }
-      if (backupFile.exists() != shouldExist)
-        do_throw("Backup should " + (shouldExist ? "" : "not") + " exist: " + backupFilename);
+      shouldExist = true;
     }
-
-    
-    
-    
-    let files = bookmarksBackupDir.directoryEntries;
-    while (files.hasMoreElements()) {
-      let entry = files.getNext().QueryInterface(Ci.nsIFile);
-      entry.remove(false);
+    else {
+      backupFilename = PREFIX + dates[i] + SUFFIX;
+      backupFile = bookmarksBackupDir.clone();
+      backupFile.append(backupFilename);
+      shouldExist = false;
     }
-    do_check_false(bookmarksBackupDir.directoryEntries.hasMoreElements());
+    if (backupFile.exists() != shouldExist)
+      do_throw("Backup should " + (shouldExist ? "" : "not") + " exist: " + backupFilename);
+  }
 
-    do_test_finished();
-  });
-}
+  
+  
+  
+  let files = bookmarksBackupDir.directoryEntries;
+  while (files.hasMoreElements()) {
+    let entry = files.getNext().QueryInterface(Ci.nsIFile);
+    entry.remove(false);
+  }
+  do_check_false(bookmarksBackupDir.directoryEntries.hasMoreElements());
+});
