@@ -85,8 +85,6 @@ public:
                             TextureFlags aFlags = TEXTURE_FLAGS_DEFAULT,
                             gfx::BackendType aMoz2dBackend = gfx::BackendType::NONE);
 
-  
-  
   TemporaryRef<TextureClient>
   CreateTextureClientForDrawing(gfx::SurfaceFormat aFormat,
                                 TextureFlags aTextureFlags,

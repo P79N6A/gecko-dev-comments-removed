@@ -185,7 +185,6 @@ protected:
 
 
 class CairoTextureClientD3D9 : public TextureClient
-                             , public TextureClientDrawTarget
 {
 public:
   CairoTextureClientD3D9(gfx::SurfaceFormat aFormat, TextureFlags aFlags);
@@ -209,10 +208,6 @@ public:
   virtual gfx::SurfaceFormat GetFormat() const { return mFormat; }
 
   virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
-
-  
-
-  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() MOZ_OVERRIDE { return this; }
 
   virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
 
@@ -239,7 +234,6 @@ private:
 
 
 class DIBTextureClientD3D9 : public TextureClient
-                           , public TextureClientDrawTarget
 {
 public:
   DIBTextureClientD3D9(gfx::SurfaceFormat aFormat, TextureFlags aFlags);
@@ -264,9 +258,7 @@ public:
 
   virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
 
-  
-
-  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() MOZ_OVERRIDE { return this; }
+  virtual bool CanExposeDrawTarget() const MOZ_OVERRIDE { return true; }
 
   virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
 
