@@ -605,6 +605,9 @@ CompileStatus
 mjit::Compiler::compileArrayConcat(types::TypeSet *thisTypes, types::TypeSet *argTypes,
                                    FrameEntry *thisValue, FrameEntry *argValue)
 {
+    frame.forgetMismatchedObject(thisValue);
+    frame.forgetMismatchedObject(argValue);
+
     
 
 
