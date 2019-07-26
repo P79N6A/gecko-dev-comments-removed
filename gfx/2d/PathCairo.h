@@ -8,86 +8,18 @@
 
 #include "2D.h"
 #include "cairo.h"
+#include <vector>
 
 namespace mozilla {
 namespace gfx {
 
 class DrawTargetCairo;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class CairoPathContext : public RefCounted<CairoPathContext>
-{
-public:
-  
-  
-  
-  CairoPathContext(cairo_t* aCtx, DrawTargetCairo* aDrawTarget);
-
-  
-  CairoPathContext(CairoPathContext& aPathContext);
-
-  ~CairoPathContext();
-
-  
-  
-  
-  void CopyPathTo(cairo_t* aToContext, Matrix& aTransform);
-
-  
-  
-  void PathWillChange();
-
-  
-  
-  
-  void ForgetDrawTarget();
-
-  
-  void DuplicateContextAndPath();
-
-  
-  bool ContainsPath(const Path* path);
-
-  cairo_t* GetContext() const { return mContext; }
-  DrawTargetCairo* GetDrawTarget() const { return mDrawTarget; }
-  operator cairo_t* () const { return mContext; }
-
-private: 
-  cairo_t* mContext;
-  
-  DrawTargetCairo* mDrawTarget;
-};
+class PathCairo;
 
 class PathBuilderCairo : public PathBuilder
 {
 public:
-  
-  
-  
-  PathBuilderCairo(cairo_t* aCtx, DrawTargetCairo* aDrawTarget, FillRule aFillRule);
-
-  
-  
-  PathBuilderCairo(CairoPathContext* aContext, FillRule aFillRule, const Matrix& aTransform = Matrix());
+  PathBuilderCairo(FillRule aFillRule);
 
   virtual void MoveTo(const Point &aPoint);
   virtual void LineTo(const Point &aPoint);
@@ -102,20 +34,23 @@ public:
   virtual Point CurrentPoint() const;
   virtual TemporaryRef<Path> Finish();
 
-  TemporaryRef<CairoPathContext> GetPathContext();
-
 private: 
-  void PrepareForWrite();
+  friend class PathCairo;
 
-  RefPtr<CairoPathContext> mPathContext;
-  Matrix mTransform;
   FillRule mFillRule;
+  std::vector<cairo_path_data_t> mPathData;
+  
+  
+  Point mCurrentPoint;
+  Point mBeginPoint;
 };
 
 class PathCairo : public Path
 {
 public:
-  PathCairo(CairoPathContext* aPathContex, Matrix& aTransform, FillRule aFillRule);
+  PathCairo(FillRule aFillRule, std::vector<cairo_path_data_t> &aPathData, const Point &aCurrentPoint);
+  PathCairo(cairo_t *aContext);
+  ~PathCairo();
 
   virtual BackendType GetBackendType() const { return BACKEND_CAIRO; }
 
@@ -136,17 +71,16 @@ public:
 
   virtual FillRule GetFillRule() const { return mFillRule; }
 
-  TemporaryRef<CairoPathContext> GetPathContext();
+  void SetPathOnContext(cairo_t *aContext) const;
 
-  
-  
-  
-  void CopyPathTo(cairo_t* aContext, DrawTargetCairo* aDrawTarget);
-
+  void AppendPathToBuilder(PathBuilderCairo *aBuilder, const Matrix *aTransform = nullptr) const;
 private:
-  RefPtr<CairoPathContext> mPathContext;
-  Matrix mTransform;
+  void EnsureContainingContext() const;
+
   FillRule mFillRule;
+  std::vector<cairo_path_data_t> mPathData;
+  mutable cairo_t *mContainingContext;
+  Point mCurrentPoint;
 };
 
 }

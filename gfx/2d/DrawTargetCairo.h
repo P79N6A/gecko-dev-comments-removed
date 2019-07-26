@@ -142,14 +142,14 @@ public:
 
   bool Init(cairo_surface_t* aSurface, const IntSize& aSize);
 
-  void SetPathObserver(CairoPathContext* aPathObserver);
-
   virtual void SetTransform(const Matrix& aTransform);
 
   
   
   
   void PrepareForDrawing(cairo_t* aContext, const Path* aPath = nullptr);
+
+  static cairo_surface_t *GetDummySurface();
 
 private: 
   
@@ -181,12 +181,7 @@ private:
   
   
   RefPtr<SourceSurfaceCairo> mSnapshot;
-
-  
-  
-  
-  
-  mutable CairoPathContext* mPathObserver;
+  static cairo_surface_t *mDummySurface;
 };
 
 }

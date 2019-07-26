@@ -13,138 +13,37 @@
 namespace mozilla {
 namespace gfx {
 
-CairoPathContext::CairoPathContext(cairo_t* aCtx, DrawTargetCairo* aDrawTarget)
- : mContext(aCtx)
- , mDrawTarget(aDrawTarget)
+PathBuilderCairo::PathBuilderCairo(FillRule aFillRule)
+  : mFillRule(aFillRule)
 {
-  cairo_reference(mContext);
-
-  
-  aDrawTarget->SetPathObserver(this);
-  cairo_new_path(mContext);
 }
-
-CairoPathContext::CairoPathContext(CairoPathContext& aPathContext)
- : mContext(aPathContext.mContext)
- , mDrawTarget(nullptr)
-{
-  cairo_reference(mContext);
-  DuplicateContextAndPath();
-}
-
-CairoPathContext::~CairoPathContext()
-{
-  if (mDrawTarget) {
-    DrawTargetCairo* drawTarget = mDrawTarget;
-    ForgetDrawTarget();
-
-    
-    
-    drawTarget->SetPathObserver(nullptr);
-  }
-  cairo_destroy(mContext);
-}
-
-void
-CairoPathContext::DuplicateContextAndPath()
-{
-  
-  cairo_path_t* path = cairo_copy_path(mContext);
-
-  
-  cairo_surface_t* surf = cairo_get_target(mContext);
-  cairo_matrix_t matrix;
-  cairo_get_matrix(mContext, &matrix);
-  cairo_destroy(mContext);
-
-  mContext = cairo_create(surf);
-
-  
-  
-  
-  cairo_set_matrix(mContext, &matrix);
-
-  
-  cairo_append_path(mContext, path);
-  cairo_path_destroy(path);
-}
-
-void
-CairoPathContext::ForgetDrawTarget()
-{
-  
-  
-  
-  mDrawTarget = nullptr;
-}
-
-void
-CairoPathContext::PathWillChange()
-{
-  
-  
-  
-  
-  if (mDrawTarget) {
-    
-    
-    DuplicateContextAndPath();
-    ForgetDrawTarget();
-  }
-}
-
-void
-CairoPathContext::CopyPathTo(cairo_t* aToContext, Matrix& aTransform)
-{
-  if (aToContext != mContext) {
-    CairoTempMatrix tempMatrix(mContext, aTransform);
-    cairo_path_t* path = cairo_copy_path(mContext);
-    cairo_new_path(aToContext);
-    cairo_append_path(aToContext, path);
-    cairo_path_destroy(path);
-  }
-}
-
-bool
-CairoPathContext::ContainsPath(const Path* aPath)
-{
-  if (aPath->GetBackendType() != BACKEND_CAIRO) {
-    return false;
-  }
-
-  const PathCairo* path = static_cast<const PathCairo*>(aPath);
-  RefPtr<CairoPathContext> ctx = const_cast<PathCairo*>(path)->GetPathContext();
-  return ctx == this;
-}
-
-PathBuilderCairo::PathBuilderCairo(CairoPathContext* aPathContext,
-                                   FillRule aFillRule,
-                                   const Matrix& aTransform )
- : mPathContext(aPathContext)
- , mTransform(aTransform)
- , mFillRule(aFillRule)
-{}
-
-PathBuilderCairo::PathBuilderCairo(cairo_t* aCtx, DrawTargetCairo* aDrawTarget, FillRule aFillRule)
- : mPathContext(new CairoPathContext(aCtx, aDrawTarget))
- , mTransform(aDrawTarget->GetTransform())
- , mFillRule(aFillRule)
-{}
 
 void
 PathBuilderCairo::MoveTo(const Point &aPoint)
 {
-  PrepareForWrite();
-  CairoTempMatrix tempMatrix(*mPathContext, mTransform);
-  cairo_move_to(*mPathContext, aPoint.x, aPoint.y);
+  cairo_path_data_t data;
+  data.header.type = CAIRO_PATH_MOVE_TO;
+  data.header.length = 2;
+  mPathData.push_back(data);
+  data.point.x = aPoint.x;
+  data.point.y = aPoint.y;
+  mPathData.push_back(data);
+
+  mBeginPoint = mCurrentPoint = aPoint;
 }
 
 void
 PathBuilderCairo::LineTo(const Point &aPoint)
 {
-  PrepareForWrite();
-  CairoTempMatrix tempMatrix(*mPathContext, mTransform);
-  cairo_line_to(*mPathContext, aPoint.x, aPoint.y);
+  cairo_path_data_t data;
+  data.header.type = CAIRO_PATH_LINE_TO;
+  data.header.length = 2;
+  mPathData.push_back(data);
+  data.point.x = aPoint.x;
+  data.point.y = aPoint.y;
+  mPathData.push_back(data);
+
+  mCurrentPoint = aPoint;
 }
 
 void
@@ -152,18 +51,27 @@ PathBuilderCairo::BezierTo(const Point &aCP1,
                            const Point &aCP2,
                            const Point &aCP3)
 {
-  PrepareForWrite();
-  CairoTempMatrix tempMatrix(*mPathContext, mTransform);
-  cairo_curve_to(*mPathContext, aCP1.x, aCP1.y, aCP2.x, aCP2.y, aCP3.x, aCP3.y);
+  cairo_path_data_t data;
+  data.header.type = CAIRO_PATH_CURVE_TO;
+  data.header.length = 4;
+  mPathData.push_back(data);
+  data.point.x = aCP1.x;
+  data.point.y = aCP1.y;
+  mPathData.push_back(data);
+  data.point.x = aCP2.x;
+  data.point.y = aCP2.y;
+  mPathData.push_back(data);
+  data.point.x = aCP3.x;
+  data.point.y = aCP3.y;
+  mPathData.push_back(data);
+
+  mCurrentPoint = aCP3;
 }
 
 void
 PathBuilderCairo::QuadraticBezierTo(const Point &aCP1,
                                     const Point &aCP2)
 {
-  PrepareForWrite();
-  CairoTempMatrix tempMatrix(*mPathContext, mTransform);
-
   
   
   
@@ -173,14 +81,32 @@ PathBuilderCairo::QuadraticBezierTo(const Point &aCP1,
   Point CP2 = (aCP2 + aCP1 * 2.0) / 3.0;
   Point CP3 = aCP2;
 
-  cairo_curve_to(*mPathContext, CP1.x, CP1.y, CP2.x, CP2.y, CP3.x, CP3.y);
+  cairo_path_data_t data;
+  data.header.type = CAIRO_PATH_CURVE_TO;
+  data.header.length = 4;
+  mPathData.push_back(data);
+  data.point.x = CP1.x;
+  data.point.y = CP1.y;
+  mPathData.push_back(data);
+  data.point.x = CP2.x;
+  data.point.y = CP2.y;
+  mPathData.push_back(data);
+  data.point.x = CP3.x;
+  data.point.y = CP3.y;
+  mPathData.push_back(data);
+
+  mCurrentPoint = aCP2;
 }
 
 void
 PathBuilderCairo::Close()
 {
-  PrepareForWrite();
-  cairo_close_path(*mPathContext);
+  cairo_path_data_t data;
+  data.header.type = CAIRO_PATH_CLOSE_PATH;
+  data.header.length = 1;
+  mPathData.push_back(data);
+
+  mCurrentPoint = mBeginPoint;
 }
 
 void
@@ -193,74 +119,78 @@ PathBuilderCairo::Arc(const Point &aOrigin, float aRadius, float aStartAngle,
 Point
 PathBuilderCairo::CurrentPoint() const
 {
-  CairoTempMatrix tempMatrix(*mPathContext, mTransform);
-  double x, y;
-  cairo_get_current_point(*mPathContext, &x, &y);
-  return Point((Float)x, (Float)y);
+  return mCurrentPoint;
 }
 
 TemporaryRef<Path>
 PathBuilderCairo::Finish()
 {
-  return new PathCairo(mPathContext, mTransform, mFillRule);
+  return new PathCairo(mFillRule, mPathData, mCurrentPoint);
 }
 
-TemporaryRef<CairoPathContext>
-PathBuilderCairo::GetPathContext()
+PathCairo::PathCairo(FillRule aFillRule, std::vector<cairo_path_data_t> &aPathData, const Point &aCurrentPoint)
+  : mFillRule(aFillRule)
+  , mContainingContext(nullptr)
+  , mCurrentPoint(aCurrentPoint)
 {
-  return mPathContext;
+  mPathData.swap(aPathData);
 }
 
-void
-PathBuilderCairo::PrepareForWrite()
+PathCairo::PathCairo(cairo_t *aContext)
+  : mFillRule(FILL_WINDING)
+  , mContainingContext(nullptr)
 {
+  cairo_path_t *path = cairo_copy_path(aContext);
+
   
   
   
-  
-  if (mPathContext->refCount() != 1) {
-    mPathContext = new CairoPathContext(*mPathContext);
+  for (int i = 0; i < path->num_data; i++) {
+    mPathData.push_back(path->data[i]);
+  }
+
+  cairo_path_destroy(path);
+}
+
+PathCairo::~PathCairo()
+{
+  if (mContainingContext) {
+    cairo_destroy(mContainingContext);
   }
 }
-
-PathCairo::PathCairo(CairoPathContext* aPathContext, Matrix& aTransform,
-                     FillRule aFillRule)
- : mPathContext(aPathContext)
- , mTransform(aTransform)
- , mFillRule(aFillRule)
-{}
 
 TemporaryRef<PathBuilder>
 PathCairo::CopyToBuilder(FillRule aFillRule) const
 {
-  return new PathBuilderCairo(mPathContext, aFillRule, mTransform);
+  RefPtr<PathBuilderCairo> builder = new PathBuilderCairo(aFillRule);
+
+  builder->mPathData = mPathData;
+  builder->mCurrentPoint = mCurrentPoint;
+
+  return builder;
 }
 
 TemporaryRef<PathBuilder>
 PathCairo::TransformedCopyToBuilder(const Matrix &aTransform, FillRule aFillRule) const
 {
-  
-  
-  
-  
-  Matrix inverse = aTransform;
-  inverse.Invert();
+  RefPtr<PathBuilderCairo> builder = new PathBuilderCairo(aFillRule);
 
-  return new PathBuilderCairo(mPathContext, aFillRule, mTransform * inverse);
+  AppendPathToBuilder(builder, &aTransform);
+  builder->mCurrentPoint = aTransform * mCurrentPoint;
+
+  return builder;
 }
 
 bool
 PathCairo::ContainsPoint(const Point &aPoint, const Matrix &aTransform) const
 {
-  CairoTempMatrix temp(*mPathContext, mTransform);
-
   Matrix inverse = aTransform;
   inverse.Invert();
   Point transformed = inverse * aPoint;
 
-  
-  cairo_set_fill_rule(*mPathContext, GfxFillRuleToCairoFillRule(mFillRule));
-  return cairo_in_fill(*mPathContext, transformed.x, transformed.y);
+  EnsureContainingContext();
+
+  return cairo_in_fill(mContainingContext, transformed.x, transformed.y);
 }
 
 bool
@@ -268,24 +198,25 @@ PathCairo::StrokeContainsPoint(const StrokeOptions &aStrokeOptions,
                                const Point &aPoint,
                                const Matrix &aTransform) const
 {
-  CairoTempMatrix temp(*mPathContext, mTransform);
-
   Matrix inverse = aTransform;
   inverse.Invert();
   Point transformed = inverse * aPoint;
 
-  SetCairoStrokeOptions(*mPathContext, aStrokeOptions);
-  return cairo_in_stroke(*mPathContext, transformed.x, transformed.y);
+  EnsureContainingContext();
+
+  SetCairoStrokeOptions(mContainingContext, aStrokeOptions);
+
+  return cairo_in_stroke(mContainingContext, transformed.x, transformed.y);
 }
 
 Rect
 PathCairo::GetBounds(const Matrix &aTransform) const
 {
-  CairoTempMatrix temp(*mPathContext, mTransform);
+  EnsureContainingContext();
 
   double x1, y1, x2, y2;
 
-  cairo_path_extents(*mPathContext, &x1, &y1, &x2, &y2);
+  cairo_path_extents(mContainingContext, &x1, &y1, &x2, &y2);
   Rect bounds(Float(x1), Float(y1), Float(x2 - x1), Float(y2 - y1));
   return aTransform.TransformBounds(bounds);
 }
@@ -294,28 +225,69 @@ Rect
 PathCairo::GetStrokedBounds(const StrokeOptions &aStrokeOptions,
                             const Matrix &aTransform) const
 {
-  CairoTempMatrix temp(*mPathContext, mTransform);
+  EnsureContainingContext();
 
   double x1, y1, x2, y2;
 
-  SetCairoStrokeOptions(*mPathContext, aStrokeOptions);
+  SetCairoStrokeOptions(mContainingContext, aStrokeOptions);
 
-  cairo_stroke_extents(*mPathContext, &x1, &y1, &x2, &y2);
+  cairo_stroke_extents(mContainingContext, &x1, &y1, &x2, &y2);
   Rect bounds((Float)x1, (Float)y1, (Float)(x2 - x1), (Float)(y2 - y1));
   return aTransform.TransformBounds(bounds);
 }
 
-TemporaryRef<CairoPathContext>
-PathCairo::GetPathContext()
+void
+PathCairo::EnsureContainingContext() const
 {
-  return mPathContext;
+  if (mContainingContext) {
+    return;
+  }
+
+  mContainingContext = cairo_create(DrawTargetCairo::GetDummySurface());
+
+  SetPathOnContext(mContainingContext);
 }
 
 void
-PathCairo::CopyPathTo(cairo_t* aContext, DrawTargetCairo* aDrawTarget)
+PathCairo::SetPathOnContext(cairo_t *aContext) const
 {
-  mPathContext->CopyPathTo(aContext, mTransform);
+  
   cairo_set_fill_rule(aContext, GfxFillRuleToCairoFillRule(mFillRule));
+
+  cairo_new_path(aContext);
+
+  if (mPathData.size()) {
+    cairo_path_t path;
+    path.data = const_cast<cairo_path_data_t*>(&mPathData.front());
+    path.num_data = mPathData.size();
+    path.status = CAIRO_STATUS_SUCCESS;
+    cairo_append_path(aContext, &path);
+  }
+}
+
+void
+PathCairo::AppendPathToBuilder(PathBuilderCairo *aBuilder, const Matrix *aTransform) const
+{
+  if (aTransform) {
+    int i = 0;
+    while (i < mPathData.size()) {
+      uint32_t pointCount = mPathData[i].header.length - 1;
+      aBuilder->mPathData.push_back(mPathData[i]);
+      i++;
+      for (int c = 0; c < pointCount; c++) {
+        cairo_path_data_t data;
+        Point newPoint = *aTransform * Point(mPathData[i].point.x, mPathData[i].point.y);
+        data.point.x = newPoint.x;
+        data.point.y = newPoint.y;
+        aBuilder->mPathData.push_back(data);
+        i++;
+      }
+    }
+  } else {
+    for (int i = 0; i < mPathData.size(); i++) {
+      aBuilder->mPathData.push_back(mPathData[i]);
+    }
+  }
 }
 
 }
