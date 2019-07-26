@@ -92,7 +92,7 @@ AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoCon
      mLastSampleTime(TimeStamp::Now()),
      mState(NOTHING),
      mDPI(72),
-     mContentPainterStatus(CONTENT_IDLE),
+     mWaitingForContentToPaint(false),
      mDisableNextTouchBatch(false),
      mHandlingTouchQueue(false)
 {
@@ -819,13 +819,12 @@ void AsyncPanZoomController::RequestContentRepaint() {
     return;
   }
 
-  if (mContentPainterStatus == CONTENT_IDLE) {
-    mContentPainterStatus = CONTENT_PAINTING;
-    mLastPaintRequestMetrics = mFrameMetrics;
-    mGeckoContentController->RequestContentRepaint(mFrameMetrics);
-  } else {
-    mContentPainterStatus = CONTENT_PAINTING_AND_PAINT_PENDING;
-  }
+  
+  
+  
+  mGeckoContentController->RequestContentRepaint(mFrameMetrics);
+  mLastPaintRequestMetrics = mFrameMetrics;
+  mWaitingForContentToPaint = true;
 }
 
 bool AsyncPanZoomController::SampleContentTransformForFrame(const TimeStamp& aSampleTime,
@@ -932,14 +931,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
 
   mLastContentPaintMetrics = aViewportFrame;
 
-  if (mContentPainterStatus != CONTENT_IDLE) {
-    if (mContentPainterStatus == CONTENT_PAINTING_AND_PAINT_PENDING) {
-      mContentPainterStatus = CONTENT_IDLE;
-      RequestContentRepaint();
-    } else {
-      mContentPainterStatus = CONTENT_IDLE;
-    }
-  } else {
+  if (!mWaitingForContentToPaint) {
     
     
     
@@ -959,9 +951,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
     }
   }
 
-  if (aIsFirstPaint || mFrameMetrics.IsDefault()) {
-    mContentPainterStatus = CONTENT_IDLE;
+  mWaitingForContentToPaint = false;
 
+  if (aIsFirstPaint || mFrameMetrics.IsDefault()) {
     mX.CancelTouch();
     mY.CancelTouch();
 

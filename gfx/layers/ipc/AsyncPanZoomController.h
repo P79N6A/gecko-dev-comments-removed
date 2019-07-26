@@ -424,25 +424,6 @@ private:
 
   };
 
-  enum ContentPainterStatus {
-    
-    
-    
-    CONTENT_IDLE,
-    
-    
-    
-    CONTENT_PAINTING,
-    
-    
-    
-    
-    
-    
-    
-   CONTENT_PAINTING_AND_PAINT_PENDING
-  };
-
   
 
 
@@ -521,7 +502,7 @@ private:
   
   
   
-  ContentPainterStatus mContentPainterStatus;
+  bool mWaitingForContentToPaint;
 
   
   
