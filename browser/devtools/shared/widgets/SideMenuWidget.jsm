@@ -61,7 +61,6 @@ this.SideMenuWidget = function SideMenuWidget(aNode, aOptions={}) {
   this._list.addEventListener("keypress", e => this.emit("keyPress", e), false);
   this._list.addEventListener("mousedown", e => this.emit("mousePress", e), false);
   this._parent.appendChild(this._list);
-  this._boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
 
   
   this._groupsByName = new Map(); 
@@ -245,8 +244,9 @@ SideMenuWidget.prototype = {
     }
 
     
-    this._boxObject.ensureElementIsVisible(aElement);
-    this._boxObject.scrollBy(-aElement.clientWidth, 0);
+    let boxObject = this._list.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    boxObject.ensureElementIsVisible(aElement);
+    boxObject.scrollBy(-aElement.clientWidth, 0);
   },
 
   
@@ -432,7 +432,6 @@ SideMenuWidget.prototype = {
   _showGroupCheckboxes: false,
   _parent: null,
   _list: null,
-  _boxObject: null,
   _selectedItem: null,
   _groupsByName: null,
   _orderedGroupElementsArray: null,

@@ -110,6 +110,8 @@ let DebuggerView = {
   _initializePanes: function() {
     dumpn("Initializing the DebuggerView panes");
 
+    this._body = document.getElementById("body");
+    this._editorDeck = document.getElementById("editor-deck");
     this._sourcesPane = document.getElementById("sources-pane");
     this._instrumentsPane = document.getElementById("instruments-pane");
     this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
@@ -118,7 +120,6 @@ let DebuggerView = {
     this.showBlackBoxMessage = this.showBlackBoxMessage.bind(this);
     this.showProgressBar = this.showProgressBar.bind(this);
     this.maybeShowBlackBoxMessage = this.maybeShowBlackBoxMessage.bind(this);
-    this._editorDeck = document.getElementById("editor-deck");
 
     this._onTabSelect = this._onInstrumentsPaneTabSelect.bind(this);
     this._instrumentsPane.tabpanels.addEventListener("select", this._onTabSelect);
@@ -129,6 +130,11 @@ let DebuggerView = {
     this._sourcesPane.setAttribute("width", Prefs.sourcesWidth);
     this._instrumentsPane.setAttribute("width", Prefs.instrumentsWidth);
     this.toggleInstrumentsPane({ visible: Prefs.panesVisibleOnStartup });
+
+    
+    if (gHostType == "side") {
+      this.handleHostChanged(gHostType);
+    }
   },
 
   
@@ -137,10 +143,10 @@ let DebuggerView = {
   _destroyPanes: function() {
     dumpn("Destroying the DebuggerView panes");
 
-    Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
-    Prefs.instrumentsWidth = this._instrumentsPane.getAttribute("width");
-
-    this._instrumentsPane.tabpanels.removeEventListener("select", this._onTabSelect);
+    if (gHostType != "side") {
+      Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
+      Prefs.instrumentsWidth = this._instrumentsPane.getAttribute("width");
+    }
 
     this._sourcesPane = null;
     this._instrumentsPane = null;
@@ -519,7 +525,66 @@ let DebuggerView = {
   
 
 
-  _handleTabNavigation: function() {
+
+
+
+  handleHostChanged: function(aType) {
+    let newLayout = "";
+
+    if (aType == "side") {
+      newLayout = "vertical";
+      this._enterVerticalLayout();
+    } else {
+      newLayout = "horizontal";
+      this._enterHorizontalLayout();
+    }
+
+    this._hostType = aType;
+    this._body.setAttribute("layout", newLayout);
+    window.emit(EVENTS.LAYOUT_CHANGED, newLayout);
+  },
+
+  
+
+
+  _enterVerticalLayout: function() {
+    let normContainer = document.getElementById("debugger-widgets");
+    let vertContainer = document.getElementById("vertical-layout-panes-container");
+
+    
+    let splitter = document.getElementById("sources-and-instruments-splitter");
+    vertContainer.insertBefore(this._sourcesPane, splitter);
+    vertContainer.appendChild(this._instrumentsPane);
+
+    
+    
+    vertContainer.setAttribute("height",
+      vertContainer.getBoundingClientRect().height);
+  },
+
+  
+
+
+  _enterHorizontalLayout: function() {
+    let normContainer = document.getElementById("debugger-widgets");
+    let vertContainer = document.getElementById("vertical-layout-panes-container");
+
+    
+    
+    let splitter = document.getElementById("sources-and-editor-splitter");
+    normContainer.insertBefore(this._sourcesPane, splitter);
+    normContainer.appendChild(this._instrumentsPane);
+
+    
+    
+    this._sourcesPane.setAttribute("width", Prefs.sourcesWidth);
+    this._instrumentsPane.setAttribute("width", Prefs.instrumentsWidth);
+  },
+
+  
+
+
+  handleTabNavigation: function() {
     dumpn("Handling tab navigation in the DebuggerView");
 
     this.Filtering.clearSearch();
@@ -557,12 +622,13 @@ let DebuggerView = {
   editor: null,
   _editorSource: {},
   _loadingText: "",
+  _body: null,
+  _editorDeck: null,
   _sourcesPane: null,
   _instrumentsPane: null,
   _instrumentsPaneToggleButton: null,
   _collapsePaneString: "",
-  _expandPaneString: "",
-  _editorDeck: null,
+  _expandPaneString: ""
 };
 
 

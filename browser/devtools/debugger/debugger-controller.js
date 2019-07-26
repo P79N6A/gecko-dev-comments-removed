@@ -70,6 +70,9 @@ const EVENTS = {
   
   OPTIONS_POPUP_SHOWING: "Debugger:OptionsPopupShowing",
   OPTIONS_POPUP_HIDDEN: "Debugger:OptionsPopupHidden",
+
+  
+  LAYOUT_CHANGED: "Debugger:LayoutChanged"
 };
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -277,7 +280,7 @@ let DebuggerController = {
     switch (aType) {
       case "will-navigate": {
         
-        DebuggerView._handleTabNavigation();
+        DebuggerView.handleTabNavigation();
 
         
         
@@ -293,9 +296,9 @@ let DebuggerController = {
         break;
       }
       case "navigate": {
-        this.ThreadState._handleTabNavigation();
-        this.StackFrames._handleTabNavigation();
-        this.SourceScripts._handleTabNavigation();
+        this.ThreadState.handleTabNavigation();
+        this.StackFrames.handleTabNavigation();
+        this.SourceScripts.handleTabNavigation();
         break;
       }
     }
@@ -401,8 +404,8 @@ let DebuggerController = {
       }
 
       
-      DebuggerView._handleTabNavigation();
-      this.SourceScripts._handleTabNavigation();
+      DebuggerView.handleTabNavigation();
+      this.SourceScripts.handleTabNavigation();
 
       
       this.activeThread._clearFrames();
@@ -464,7 +467,7 @@ ThreadState.prototype = {
     this.activeThread.addListener("resumed", this._update);
     this.activeThread.pauseOnExceptions(Prefs.pauseOnExceptions,
                                         Prefs.ignoreCaughtExceptions);
-    this._handleTabNavigation();
+    this.handleTabNavigation();
   },
 
   
@@ -482,7 +485,7 @@ ThreadState.prototype = {
   
 
 
-  _handleTabNavigation: function() {
+  handleTabNavigation: function() {
     if (!this.activeThread) {
       return;
     }
@@ -538,7 +541,7 @@ StackFrames.prototype = {
     this.activeThread.addListener("framesadded", this._onFrames);
     this.activeThread.addListener("framescleared", this._onFramesCleared);
     this.activeThread.addListener("blackboxchange", this._onBlackBoxChange);
-    this._handleTabNavigation();
+    this.handleTabNavigation();
   },
 
   
@@ -559,7 +562,7 @@ StackFrames.prototype = {
   
 
 
-  _handleTabNavigation: function() {
+  handleTabNavigation: function() {
     dumpn("Handling tab navigation in the StackFrames");
     
   },
@@ -1007,7 +1010,7 @@ SourceScripts.prototype = {
     this.debuggerClient.addListener("newGlobal", this._onNewGlobal);
     this.debuggerClient.addListener("newSource", this._onNewSource);
     this.activeThread.addListener("blackboxchange", this._onBlackBoxChange);
-    this._handleTabNavigation();
+    this.handleTabNavigation();
   },
 
   
@@ -1033,7 +1036,7 @@ SourceScripts.prototype = {
   
 
 
-  _handleTabNavigation: function() {
+  handleTabNavigation: function() {
     if (!this.activeThread) {
       return;
     }
@@ -1901,6 +1904,9 @@ DebuggerController.Breakpoints.DOM = new EventListeners();
 Object.defineProperties(window, {
   "gTarget": {
     get: function() DebuggerController._target
+  },
+  "gHostType": {
+    get: function() DebuggerView._hostType
   },
   "gClient": {
     get: function() DebuggerController.client
