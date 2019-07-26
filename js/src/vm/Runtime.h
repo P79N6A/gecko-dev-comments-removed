@@ -535,6 +535,9 @@ class PerThreadData : public PerThreadDataFriendFields,
     friend class js::ActivationIterator;
     friend class js::jit::JitActivation;
     friend class js::AsmJSActivation;
+#ifdef DEBUG
+    friend bool js::CurrentThreadCanReadCompilationData();
+#endif
 
     
 
@@ -576,6 +579,11 @@ class PerThreadData : public PerThreadDataFriendFields,
 
 
     int32_t suppressGC;
+
+#ifdef DEBUG
+    
+    bool ionCompiling;
+#endif
 
     
     unsigned activeCompilations;
@@ -677,7 +685,8 @@ class MarkingValidator;
 typedef Vector<JS::Zone *, 4, SystemAllocPolicy> ZoneVector;
 
 class AutoLockForExclusiveAccess;
-class AutoProtectHeapForCompilation;
+class AutoLockForCompilation;
+class AutoProtectHeapForIonCompilation;
 
 void RecomputeStackLimit(JSRuntime *rt, StackKind kind);
 
@@ -727,6 +736,7 @@ struct JSRuntime : public JS::shadow::Runtime,
         ExclusiveAccessLock,
         WorkerThreadStateLock,
         OperationCallbackLock,
+        CompilationLock,
         GCLock
     };
 #ifdef DEBUG
@@ -805,20 +815,44 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     friend class js::AutoLockForExclusiveAccess;
 
+    
+
+
+
+
+
+
+    PRLock *compilationLock;
+#ifdef DEBUG
+    PRThread *compilationLockOwner;
+    bool mainThreadHasCompilationLock;
+#endif
+
+    
+    size_t numCompilationThreads;
+
+    friend class js::AutoLockForCompilation;
+#ifdef DEBUG
+    friend bool js::CurrentThreadCanWriteCompilationData();
+    friend bool js::CurrentThreadCanReadCompilationData();
+#endif
+
   public:
     void setUsedByExclusiveThread(JS::Zone *zone);
     void clearUsedByExclusiveThread(JS::Zone *zone);
 
 #endif 
 
+#ifdef DEBUG
     bool currentThreadHasExclusiveAccess() {
-#if defined(JS_WORKER_THREADS) && defined(DEBUG)
+#ifdef JS_WORKER_THREADS
         return (!numExclusiveThreads && mainThreadHasExclusiveAccess) ||
-            exclusiveAccessOwner == PR_GetCurrentThread();
+               exclusiveAccessOwner == PR_GetCurrentThread();
 #else
         return true;
 #endif
     }
+#endif 
 
     bool exclusiveThreadsPresent() const {
 #ifdef JS_WORKER_THREADS
@@ -827,6 +861,33 @@ struct JSRuntime : public JS::shadow::Runtime,
         return false;
 #endif
     }
+
+    void addCompilationThread() {
+        numCompilationThreads++;
+    }
+    void removeCompilationThread() {
+        JS_ASSERT(numCompilationThreads);
+        numCompilationThreads--;
+    }
+
+    bool compilationThreadsPresent() const {
+#ifdef JS_WORKER_THREADS
+        return numCompilationThreads > 0;
+#else
+        return false;
+#endif
+    }
+
+#ifdef DEBUG
+    bool currentThreadHasCompilationLock() {
+#ifdef JS_WORKER_THREADS
+        return (!numCompilationThreads && mainThreadHasCompilationLock) ||
+               compilationLockOwner == PR_GetCurrentThread();
+#else
+        return true;
+#endif
+    }
+#endif 
 
     
     JS::Zone            *systemZone;
@@ -1431,7 +1492,7 @@ struct JSRuntime : public JS::shadow::Runtime,
     const char          *numGrouping;
 #endif
 
-    friend class js::AutoProtectHeapForCompilation;
+    friend class js::AutoProtectHeapForIonCompilation;
     friend class js::AutoThreadSafeAccess;
     mozilla::DebugOnly<bool> heapProtected_;
 #ifdef DEBUG
@@ -2049,16 +2110,36 @@ class RuntimeAllocPolicy
 
 extern const JSSecurityCallbacks NullSecurityCallbacks;
 
-class AutoProtectHeapForCompilation
+
+
+class AutoEnterIonCompilation
+{
+  public:
+#ifdef DEBUG
+    AutoEnterIonCompilation(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+    ~AutoEnterIonCompilation();
+#else
+    AutoEnterIonCompilation(MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+#endif
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
+
+
+
+class AutoProtectHeapForIonCompilation
 {
   public:
 #if defined(DEBUG) && !defined(XP_WIN)
     JSRuntime *runtime;
 
-    AutoProtectHeapForCompilation(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
-    ~AutoProtectHeapForCompilation();
+    AutoProtectHeapForIonCompilation(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM);
+    ~AutoProtectHeapForIonCompilation();
 #else
-    AutoProtectHeapForCompilation(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+    AutoProtectHeapForIonCompilation(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }

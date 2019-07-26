@@ -324,8 +324,6 @@ class Proxy
     
     static bool callProp(JSContext *cx, HandleObject proxy, HandleObject reveiver, HandleId id,
                          MutableHandleValue vp);
-
-    static JSObject * const LazyProto;
 };
 
 

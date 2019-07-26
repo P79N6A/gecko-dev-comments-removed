@@ -724,7 +724,7 @@ class IonBuilder : public MIRGenerator
     }
 
     
-    HeapPtrScript script_;
+    JSScript *script_;
 
     
     
@@ -735,7 +735,7 @@ class IonBuilder : public MIRGenerator
   public:
     void clearForBackEnd();
 
-    JSScript *script() const { return script_.get(); }
+    JSScript *script() const { return script_; }
 
     CodeGenerator *backgroundCodegen() const { return backgroundCodegen_; }
     void setBackgroundCodegen(CodeGenerator *codegen) { backgroundCodegen_ = codegen; }
@@ -764,6 +764,17 @@ class IonBuilder : public MIRGenerator
 
     
     types::CompilerConstraintList *constraints_;
+
+    mozilla::Maybe<AutoLockForCompilation> lock_;
+
+    void lock() {
+        if (!analysisContext)
+            lock_.construct(compartment);
+    }
+    void unlock() {
+        if (!analysisContext)
+            lock_.destroy();
+    }
 
     
     BytecodeAnalysis analysis_;

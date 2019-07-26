@@ -25,20 +25,38 @@
 
 namespace js {
 
+#ifdef DEBUG
+bool CurrentThreadCanWriteCompilationData();
+bool CurrentThreadCanReadCompilationData();
+#endif
+
 class TypeRepresentation;
 
 class TaggedProto
 {
   public:
+    static JSObject * const LazyProto;
+
     TaggedProto() : proto(nullptr) {}
     TaggedProto(JSObject *proto) : proto(proto) {}
 
     uintptr_t toWord() const { return uintptr_t(proto); }
 
-    inline bool isLazy() const;
-    inline bool isObject() const;
-    inline JSObject *toObject() const;
-    inline JSObject *toObjectOrNull() const;
+    bool isLazy() const {
+        return proto == LazyProto;
+    }
+    bool isObject() const {
+        
+        return uintptr_t(proto) > uintptr_t(TaggedProto::LazyProto);
+    }
+    JSObject *toObject() const {
+        JS_ASSERT(isObject());
+        return proto;
+    }
+    JSObject *toObjectOrNull() const {
+        JS_ASSERT(!proto || isObject());
+        return proto;
+    }
     JSObject *raw() const { return proto; }
 
     bool operator ==(const TaggedProto &other) { return proto == other.proto; }
@@ -77,10 +95,10 @@ class TaggedProtoOperations
 
   public:
     uintptr_t toWord() const { return value()->toWord(); }
-    inline bool isLazy() const;
-    inline bool isObject() const;
-    inline JSObject *toObject() const;
-    inline JSObject *toObjectOrNull() const;
+    inline bool isLazy() const { return value()->isLazy(); }
+    inline bool isObject() const { return value()->isObject(); }
+    inline JSObject *toObject() const { return value()->toObject(); }
+    inline JSObject *toObjectOrNull() const { return value()->toObjectOrNull(); }
     JSObject *raw() const { return value()->raw(); }
 };
 
@@ -387,6 +405,12 @@ enum MOZ_ENUM_TYPE(uint32_t) {
 
 
 
+    OBJECT_FLAG_NURSERY_PROTO         = 0x4,
+
+    
+
+
+
     OBJECT_FLAG_SETS_MARKED_UNKNOWN   = 0x8,
 
     
@@ -503,7 +527,7 @@ class TypeSet
     static TemporaryTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
 
     
-    inline bool addType(Type type, LifoAlloc *alloc, bool *padded = nullptr);
+    inline bool addType(Type type, LifoAlloc *alloc);
 
     
     typedef Vector<Type, 1, SystemAllocPolicy> TypeList;
@@ -857,11 +881,45 @@ struct TypeTypedObject : public TypeObjectAddendum
 
 struct TypeObject : gc::BarrieredCell<TypeObject>
 {
+  private:
     
-    const Class *clasp;
+    const Class *clasp_;
 
     
-    HeapPtrObject proto;
+    HeapPtrObject proto_;
+
+#ifdef DEBUG
+    void assertCanAccessProto();
+#else
+    void assertCanAccessProto() {}
+#endif
+
+  public:
+
+    const Class *clasp() {
+        return clasp_;
+    }
+
+    void setClasp(const Class *clasp) {
+        JS_ASSERT(CurrentThreadCanWriteCompilationData());
+        JS_ASSERT(singleton);
+        clasp_ = clasp;
+    }
+
+    TaggedProto proto() {
+        assertCanAccessProto();
+        return TaggedProto(proto_);
+    }
+
+    HeapPtrObject &protoRaw() {
+        
+        return proto_;
+    }
+
+    void setProto(JSContext *cx, TaggedProto proto);
+    void setProtoUnchecked(TaggedProto proto) {
+        proto_ = proto.raw();
+    }
 
     
 
@@ -877,8 +935,9 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     static const size_t LAZY_SINGLETON = 1;
     bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
 
+  private:
     
-    TypeObjectFlags flags;
+    TypeObjectFlags flags_;
 
     
 
@@ -891,21 +950,46 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
     HeapPtr<TypeObjectAddendum> addendum;
+  public:
+
+    TypeObjectFlags flags() const {
+        JS_ASSERT(CurrentThreadCanReadCompilationData());
+        return flags_;
+    }
+
+    void addFlags(TypeObjectFlags flags) {
+        JS_ASSERT(CurrentThreadCanWriteCompilationData());
+        flags_ |= flags;
+    }
+
+    void clearFlags(TypeObjectFlags flags) {
+        JS_ASSERT(CurrentThreadCanWriteCompilationData());
+        flags_ &= ~flags;
+    }
 
     bool hasNewScript() const {
+        JS_ASSERT(CurrentThreadCanReadCompilationData());
         return addendum && addendum->isNewScript();
     }
 
     TypeNewScript *newScript() {
+        JS_ASSERT(CurrentThreadCanReadCompilationData());
         return addendum->asNewScript();
     }
 
     bool hasTypedObject() {
+        JS_ASSERT(CurrentThreadCanReadCompilationData());
         return addendum && addendum->isTypedObject();
     }
 
     TypeTypedObject *typedObject() {
+        JS_ASSERT(CurrentThreadCanReadCompilationData());
         return addendum->asTypedObject();
+    }
+
+    void setAddendum(TypeObjectAddendum *addendum) {
+        JS_ASSERT(CurrentThreadCanWriteCompilationData());
+        this->addendum = addendum;
     }
 
     
@@ -919,6 +1003,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
                                 TypeTypedObject::Kind kind ,
                                 TypeRepresentation *repr);
 
+  private:
     
 
 
@@ -953,6 +1038,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
 
     Property **propertySet;
+  public:
 
     
     HeapPtrFunction interpretedFunction;
@@ -961,25 +1047,29 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     uint32_t padding;
 #endif
 
-    inline TypeObject(const Class *clasp, TaggedProto proto, bool unknown);
+    inline TypeObject(const Class *clasp, TaggedProto proto, TypeObjectFlags initialFlags);
 
     bool hasAnyFlags(TypeObjectFlags flags) {
         JS_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
-        return !!(this->flags & flags);
+        return !!(this->flags() & flags);
     }
     bool hasAllFlags(TypeObjectFlags flags) {
         JS_ASSERT((flags & OBJECT_FLAG_DYNAMIC_MASK) == flags);
-        return (this->flags & flags) == flags;
+        return (this->flags() & flags) == flags;
     }
 
     bool unknownProperties() {
-        JS_ASSERT_IF(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES,
+        JS_ASSERT_IF(flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES,
                      hasAllFlags(OBJECT_FLAG_DYNAMIC_MASK));
-        return !!(flags & OBJECT_FLAG_UNKNOWN_PROPERTIES);
+        return !!(flags() & OBJECT_FLAG_UNKNOWN_PROPERTIES);
     }
 
     bool shouldPreTenure() {
         return hasAnyFlags(OBJECT_FLAG_PRE_TENURE) && !unknownProperties();
+    }
+
+    bool hasTenuredProto() const {
+        return !(flags() & OBJECT_FLAG_NURSERY_PROTO);
     }
 
     gc::InitialHeap initialHeap(CompilerConstraintList *constraints);
@@ -991,7 +1081,7 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
         
         if (unknownProperties())
             return false;
-        return (flags & OBJECT_FLAG_FROM_ALLOCATION_SITE) || hasNewScript();
+        return (flags() & OBJECT_FLAG_FROM_ALLOCATION_SITE) || hasNewScript();
     }
 
     void setShouldPreTenure(ExclusiveContext *cx) {
@@ -1046,12 +1136,20 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
 
     static inline ThingRootKind rootKind() { return THING_ROOT_TYPE_OBJECT; }
 
+    static inline uint32_t offsetOfClasp() {
+        return offsetof(TypeObject, clasp_);
+    }
+
+    static inline uint32_t offsetOfProto() {
+        return offsetof(TypeObject, proto_);
+    }
+
   private:
     inline uint32_t basePropertyCount() const;
     inline void setBasePropertyCount(uint32_t count);
 
     static void staticAsserts() {
-        JS_STATIC_ASSERT(offsetof(TypeObject, proto) == offsetof(js::shadow::TypeObject, proto));
+        JS_STATIC_ASSERT(offsetof(TypeObject, proto_) == offsetof(js::shadow::TypeObject, proto));
     }
 };
 
@@ -1247,6 +1345,7 @@ struct TypeObjectKey
 
     const Class *clasp();
     TaggedProto proto();
+    bool hasTenuredProto();
     JSObject *singleton();
     TypeNewScript *newScript();
 
@@ -1416,7 +1515,7 @@ struct TypeCompartment
 
 
     TypeObject *newTypeObject(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
-                              bool unknown = false);
+                              TypeObjectFlags initialFlags = 0);
 
     
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);

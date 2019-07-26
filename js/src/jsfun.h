@@ -123,8 +123,6 @@ class JSFunction : public JSObject
 
     
     bool isFunctionPrototype()      const { return flags() & IS_FUN_PROTO; }
-    bool isInterpretedLazy()        const { return flags() & INTERPRETED_LAZY; }
-    bool hasScript()                const { return flags() & INTERPRETED; }
     bool isExprClosure()            const { return flags() & EXPR_CLOSURE; }
     bool hasGuessedAtom()           const { return flags() & HAS_GUESSED_ATOM; }
     bool isLambda()                 const { return flags() & LAMBDA; }
@@ -134,6 +132,17 @@ class JSFunction : public JSObject
     bool isWrappable()              const {
         JS_ASSERT_IF(flags() & SH_WRAPPABLE, isSelfHostedBuiltin());
         return flags() & SH_WRAPPABLE;
+    }
+
+    
+    
+    bool isInterpretedLazy()        const {
+        JS_ASSERT(js::CurrentThreadCanReadCompilationData());
+        return flags() & INTERPRETED_LAZY;
+    }
+    bool hasScript()                const {
+        JS_ASSERT(js::CurrentThreadCanReadCompilationData());
+        return flags() & INTERPRETED;
     }
 
     bool hasJITCode() const {
@@ -321,6 +330,7 @@ class JSFunction : public JSObject
 
     JSScript *nonLazyScript() const {
         JS_ASSERT(hasScript());
+        JS_ASSERT(js::CurrentThreadCanReadCompilationData());
         return u.i.s.script_;
     }
 
@@ -331,11 +341,13 @@ class JSFunction : public JSObject
 
     js::LazyScript *lazyScript() const {
         JS_ASSERT(isInterpretedLazy() && u.i.s.lazy_);
+        JS_ASSERT(js::CurrentThreadCanReadCompilationData());
         return u.i.s.lazy_;
     }
 
     js::LazyScript *lazyScriptOrNull() const {
         JS_ASSERT(isInterpretedLazy());
+        JS_ASSERT(js::CurrentThreadCanReadCompilationData());
         return u.i.s.lazy_;
     }
 
@@ -357,13 +369,23 @@ class JSFunction : public JSObject
     bool isStarGenerator() const { return generatorKind() == js::StarGenerator; }
 
     void setScript(JSScript *script_) {
-        JS_ASSERT(isInterpreted());
+        JS_ASSERT(hasScript());
         mutableScript() = script_;
     }
 
     void initScript(JSScript *script_) {
-        JS_ASSERT(isInterpreted());
+        JS_ASSERT(hasScript());
         mutableScript().init(script_);
+    }
+
+    void setUnlazifiedScript(JSScript *script) {
+        
+        
+        JS_ASSERT(js::CurrentThreadCanWriteCompilationData());
+        JS_ASSERT(isInterpretedLazy());
+        flags_ &= ~INTERPRETED_LAZY;
+        flags_ |= INTERPRETED;
+        initScript(script);
     }
 
     void initLazyScript(js::LazyScript *lazy) {

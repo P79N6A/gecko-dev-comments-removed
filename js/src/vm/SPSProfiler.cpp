@@ -56,12 +56,13 @@ SPSProfiler::enable(bool enabled)
     if (enabled_ == enabled)
         return;
 
-    enabled_ = enabled;
     
 
 
 
     ReleaseAllJITCode(rt->defaultFreeOp());
+
+    enabled_ = enabled;
 
 #ifdef JS_ION
     

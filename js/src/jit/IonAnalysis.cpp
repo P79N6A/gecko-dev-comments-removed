@@ -225,8 +225,7 @@ IsPhiObservable(MPhi *phi, Observability observe)
     
     
     
-    
-    if (fun && fun->isHeavyweight() && info.hasArguments() && slot == info.scopeChainSlot())
+    if (fun && info.hasArguments() && slot == info.scopeChainSlot())
         return true;
 
     
@@ -2177,7 +2176,8 @@ jit::AnalyzeNewScriptProperties(JSContext *cx, JSFunction *fun,
     MIRGraph graph(&temp);
     CompileInfo info(script, fun,
                       nullptr,  false,
-                     DefinitePropertiesAnalysis);
+                     DefinitePropertiesAnalysis,
+                     script->needsArgsObj());
 
     AutoTempAllocatorRooter root(cx, &temp);
 
