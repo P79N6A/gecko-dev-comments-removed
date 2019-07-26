@@ -1072,20 +1072,10 @@ function waitForMessages(aOptions)
       return false;
     }
 
-    if (aRule.type) {
-      
-      
-      if (!aElement._messageObject ||
-          !(aElement._messageObject instanceof aRule.type)) {
-        return false;
-      }
-    }
-    else if (aElement._messageObject) {
-      
-      
-      
-      
-      
+    
+    
+    if (aRule.type && (!aElement._messageObject ||
+                       !(aElement._messageObject instanceof aRule.type))) {
       return false;
     }
 

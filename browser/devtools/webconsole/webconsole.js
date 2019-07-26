@@ -54,10 +54,6 @@ const IGNORED_SOURCE_URLS = ["debugger eval code", "self-hosted"];
 
 
 
-const NEW_GROUP_DELAY = 5000;
-
-
-
 const SEARCH_DELAY = 200;
 
 
@@ -165,9 +161,6 @@ const FILTER_PREFS_PREFIX = "devtools.webconsole.filter.";
 
 
 const MIN_FONT_SIZE = 10;
-
-
-const MAX_LONG_STRING_LENGTH = 200000;
 
 const PREF_CONNECTION_TIMEOUT = "devtools.debugger.remote-timeout";
 const PREF_PERSISTLOG = "devtools.webconsole.persistlog";
@@ -1162,6 +1155,7 @@ WebConsoleFrame.prototype = {
     let level = aMessage.level;
     let args = aMessage.arguments;
     let objectActors = new Set();
+    let node = null;
 
     
     args.forEach((aValue) => {
@@ -1175,7 +1169,11 @@ WebConsoleFrame.prototype = {
       case "info":
       case "warn":
       case "error":
-      case "debug":
+      case "debug": {
+        let msg = new Messages.ConsoleGeneric(aMessage);
+        node = msg.init(this.output).render().element;
+        break;
+      }
       case "dir": {
         body = { arguments: args };
         let clipboardArray = [];
@@ -1283,18 +1281,22 @@ WebConsoleFrame.prototype = {
       return null; 
     }
 
-    let node = this.createMessageNode(CATEGORY_WEBDEV, LEVELS[level], body,
-                                      sourceURL, sourceLine, clipboardText,
-                                      level, aMessage.timeStamp);
-    if (aMessage.private) {
-      node.setAttribute("private", true);
+    if (!node) {
+      node = this.createMessageNode(CATEGORY_WEBDEV, LEVELS[level], body,
+                                    sourceURL, sourceLine, clipboardText,
+                                    level, aMessage.timeStamp);
+      if (aMessage.private) {
+        node.setAttribute("private", true);
+      }
     }
 
     if (objectActors.size > 0) {
       node._objectActors = objectActors;
 
-      let repeatNode = node.getElementsByClassName("repeats")[0];
-      repeatNode._uid += [...objectActors].join("-");
+      if (!node._messageObject) {
+        let repeatNode = node.getElementsByClassName("repeats")[0];
+        repeatNode._uid += [...objectActors].join("-");
+      }
     }
 
     if (level == "trace") {
@@ -1314,26 +1316,6 @@ WebConsoleFrame.prototype = {
   handleConsoleAPICall: function WCF_handleConsoleAPICall(aMessage)
   {
     this.outputMessage(CATEGORY_WEBDEV, this.logConsoleAPIMessage, [aMessage]);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  _consoleLogClick: function WCF__consoleLogClick(aAnchor, aObjectActor)
-  {
-    this.jsterm.openVariablesView({
-      label: aAnchor.textContent,
-      objectActor: aObjectActor,
-      autofocus: true,
-    });
   },
 
   
@@ -1540,7 +1522,7 @@ WebConsoleFrame.prototype = {
 
     aLinkNode.appendChild(mixedContentWarningNode);
 
-    this._addMessageLinkCallback(mixedContentWarningNode, (aNode, aEvent) => {
+    this._addMessageLinkCallback(mixedContentWarningNode, (aEvent) => {
       aEvent.stopPropagation();
       this.owner.openLink(MIXED_CONTENT_LEARN_MORE);
     });
@@ -1601,7 +1583,7 @@ WebConsoleFrame.prototype = {
     warningNode.textContent = moreInfoLabel;
     warningNode.className = "learn-more-link";
 
-    this._addMessageLinkCallback(warningNode, (aNode, aEvent) => {
+    this._addMessageLinkCallback(warningNode, (aEvent) => {
       aEvent.stopPropagation();
       this.owner.openLink(aURL);
     });
@@ -1691,16 +1673,6 @@ WebConsoleFrame.prototype = {
   {
     let node = this.createMessageNode(CATEGORY_JS, SEVERITY_WARNING,
                                       l10n.getStr("ConsoleAPIDisabled"));
-    this.outputMessage(CATEGORY_JS, node);
-  },
-
-  
-
-
-  logWarningAboutStringTooLong: function WCF_logWarningAboutStringTooLong()
-  {
-    let node = this.createMessageNode(CATEGORY_JS, SEVERITY_WARNING,
-                                      l10n.getStr("longStringTooLong"));
     this.outputMessage(CATEGORY_JS, node);
   },
 
@@ -2302,12 +2274,28 @@ WebConsoleFrame.prototype = {
 
   _pruneItemFromQueue: function WCF__pruneItemFromQueue(aItem)
   {
+    
+    
+
     let [category, methodOrNode, args] = aItem;
     if (typeof methodOrNode != "function" && methodOrNode._objectActors) {
       for (let actor of methodOrNode._objectActors) {
         this._releaseObject(actor);
       }
       methodOrNode._objectActors.clear();
+    }
+
+    if (methodOrNode == this.output._flushMessageQueue &&
+        args[0]._objectActors) {
+      for (let arg of args) {
+        if (!arg._objectActors) {
+          continue;
+        }
+        for (let actor of arg._objectActors) {
+          this._releaseObject(actor);
+        }
+        arg._objectActors.clear();
+      }
     }
 
     if (category == CATEGORY_NETWORK) {
@@ -2482,10 +2470,6 @@ WebConsoleFrame.prototype = {
       if (aLevel == "dir") {
         str = VariablesView.getString(aBody.arguments[0]);
       }
-      else if (["log", "info", "warn", "error", "debug"].indexOf(aLevel) > -1 &&
-               typeof aBody == "object") {
-        this._makeConsoleLogMessageBody(node, bodyNode, aBody);
-      }
       else {
         str = aBody;
       }
@@ -2559,126 +2543,6 @@ WebConsoleFrame.prototype = {
     node.appendChild(this.document.createTextNode("\n"));
 
     return node;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _makeConsoleLogMessageBody:
-  function WCF__makeConsoleLogMessageBody(aMessage, aContainer, aBody)
-  {
-    Object.defineProperty(aMessage, "_panelOpen", {
-      get: function() {
-        let nodes = aContainer.getElementsByTagName("a");
-        return Array.prototype.some.call(nodes, function(aNode) {
-          return aNode._panelOpen;
-        });
-      },
-      enumerable: true,
-      configurable: false
-    });
-
-    aBody.arguments.forEach(function(aItem) {
-      if (aContainer.firstChild) {
-        aContainer.appendChild(this.document.createTextNode(" "));
-      }
-
-      let text = VariablesView.getString(aItem);
-      let inspectable = !VariablesView.isPrimitive({ value: aItem });
-
-      if (aItem && typeof aItem != "object" || !inspectable) {
-        aContainer.appendChild(this.document.createTextNode(text));
-
-        if (aItem.type && aItem.type == "longString") {
-          let ellipsis = this.document.createElementNS(XHTML_NS, "a");
-          ellipsis.classList.add("longStringEllipsis");
-          ellipsis.textContent = l10n.getStr("longStringEllipsis");
-          ellipsis.href = "#";
-          ellipsis.draggable = false;
-
-          let formatter = function(s) '"' + s + '"';
-
-          this._addMessageLinkCallback(ellipsis,
-            this._longStringClick.bind(this, aMessage, aItem, formatter));
-
-          aContainer.appendChild(ellipsis);
-        }
-        return;
-      }
-
-      
-      let elem = this.document.createElementNS(XHTML_NS, "a");
-      elem.setAttribute("aria-haspopup", "true");
-      elem.textContent = text;
-      elem.href = "#";
-      elem.draggable = false;
-
-      this._addMessageLinkCallback(elem,
-        this._consoleLogClick.bind(this, elem, aItem));
-
-      aContainer.appendChild(elem);
-    }, this);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _longStringClick:
-  function WCF__longStringClick(aMessage, aActor, aFormatter, aEllipsis)
-  {
-    if (!aFormatter) {
-      aFormatter = function(s) s;
-    }
-
-    let longString = this.webConsoleClient.longString(aActor);
-    let toIndex = Math.min(longString.length, MAX_LONG_STRING_LENGTH);
-    longString.substring(longString.initial.length, toIndex,
-      function WCF__onSubstring(aResponse) {
-        if (aResponse.error) {
-          Cu.reportError("WCF__longStringClick substring failure: " +
-                         aResponse.error);
-          return;
-        }
-
-        let node = aEllipsis.previousSibling;
-        node.textContent = aFormatter(longString.initial + aResponse.substring);
-        aEllipsis.parentNode.removeChild(aEllipsis);
-
-        if (aMessage.category == CATEGORY_WEBDEV ||
-            aMessage.category == CATEGORY_OUTPUT) {
-          aMessage.clipboardText = aMessage.textContent;
-        }
-
-        this.emit("messages-updated", new Set([aMessage]));
-
-        if (toIndex != longString.length) {
-          this.logWarningAboutStringTooLong();
-        }
-      }.bind(this));
   },
 
   
@@ -2807,7 +2671,7 @@ WebConsoleFrame.prototype = {
         return;
       }
 
-      aCallback(this, aEvent);
+      aCallback.call(this, aEvent);
     }, false);
   },
 
@@ -3206,7 +3070,7 @@ JSTerm.prototype = {
 
 
   _executeResultCallback:
-  function JST__executeResultCallback(aAfterNode, aCallback, aResponse)
+  function JST__executeResultCallback(aAfterMessage, aCallback, aResponse)
   {
     if (!this.hud) {
       return;
@@ -3218,13 +3082,8 @@ JSTerm.prototype = {
     }
     let errorMessage = aResponse.exceptionMessage;
     let result = aResponse.result;
-    let inspectable = false;
-    if (result && !VariablesView.isPrimitive({ value: result })) {
-      inspectable = true;
-    }
     let helperResult = aResponse.helperResult;
     let helperHasRawOutput = !!(helperResult || {}).rawOutput;
-    let resultString = VariablesView.getString(result);
 
     if (helperResult && helperResult.type) {
       switch (helperResult.type) {
@@ -3232,11 +3091,11 @@ JSTerm.prototype = {
           this.clearOutput();
           break;
         case "inspectObject":
-          if (aAfterNode) {
-            if (!aAfterNode._objectActors) {
-              aAfterNode._objectActors = new Set();
+          if (aAfterMessage) {
+            if (!aAfterMessage._objectActors) {
+              aAfterMessage._objectActors = new Set();
             }
-            aAfterNode._objectActors.add(helperResult.object.actor);
+            aAfterMessage._objectActors.add(helperResult.object.actor);
           }
           this.openVariablesView({
             label: VariablesView.getString(helperResult.object),
@@ -3265,26 +3124,13 @@ JSTerm.prototype = {
       return;
     }
 
-    let node;
-
-    if (errorMessage) {
-      node = this.writeOutput(errorMessage, CATEGORY_OUTPUT, SEVERITY_ERROR,
-                              aAfterNode, aResponse.timestamp);
-    }
-    else if (inspectable) {
-      node = this.writeOutputJS(resultString,
-                                this._evalOutputClick.bind(this, aResponse),
-                                aAfterNode, aResponse.timestamp);
-    }
-    else {
-      node = this.writeOutput(resultString, CATEGORY_OUTPUT, SEVERITY_LOG,
-                              aAfterNode, aResponse.timestamp);
-    }
+    let msg = new Messages.JavaScriptEvalOutput(aResponse, errorMessage);
+    this.hud.output.addMessage(msg);
 
     if (aCallback) {
       let oldFlushCallback = this.hud._flushCallback;
       this.hud._flushCallback = () => {
-        aCallback(node);
+        aCallback(msg.element);
         if (oldFlushCallback) {
           oldFlushCallback();
           this.hud._flushCallback = oldFlushCallback;
@@ -3295,36 +3141,15 @@ JSTerm.prototype = {
       };
     }
 
-    node._objectActors = new Set();
+    msg._afterMessage = aAfterMessage;
+    msg._objectActors = new Set();
 
-    let error = aResponse.exception;
-    if (WebConsoleUtils.isActorGrip(error)) {
-      node._objectActors.add(error.actor);
+    if (WebConsoleUtils.isActorGrip(aResponse.exception)) {
+      msg._objectActors.add(aResponse.exception.actor);
     }
 
     if (WebConsoleUtils.isActorGrip(result)) {
-      node._objectActors.add(result.actor);
-
-      if (result.type == "longString") {
-        
-        
-
-        let body = node.getElementsByClassName("body")[0];
-        let ellipsis = this.hud.document.createElementNS(XHTML_NS, "a");
-        ellipsis.classList.add("longStringEllipsis");
-        ellipsis.textContent = l10n.getStr("longStringEllipsis");
-        ellipsis.href = "#";
-        ellipsis.draggable = false;
-
-        let formatter = function(s) '"' + s + '"';
-        let onclick = this.hud._longStringClick.bind(this.hud, node, result,
-                                                    formatter);
-        this.hud._addMessageLinkCallback(ellipsis, onclick);
-
-        body.appendChild(ellipsis);
-
-        node.clipboardText += " " + ellipsis.textContent;
-      }
+      msg._objectActors.add(result.actor);
     }
   },
 
@@ -3345,8 +3170,12 @@ JSTerm.prototype = {
       return;
     }
 
-    let node = this.writeOutput(aExecuteString, CATEGORY_INPUT, SEVERITY_LOG);
-    let onResult = this._executeResultCallback.bind(this, node, aCallback);
+    let message = new Messages.Simple(aExecuteString, {
+      category: "input",
+      severity: "log",
+    });
+    this.hud.output.addMessage(message);
+    let onResult = this._executeResultCallback.bind(this, message, aCallback);
 
     let options = { frame: this.SELECTED_FRAME };
     this.requestEvaluation(aExecuteString, options).then(onResult, onResult);
@@ -3782,14 +3611,16 @@ JSTerm.prototype = {
       return;
     }
 
-    let exception = aResponse.exception;
-    if (exception) {
-      let node = this.writeOutput(aResponse.exceptionMessage,
-                                  CATEGORY_OUTPUT, SEVERITY_ERROR,
-                                  null, aResponse.timestamp);
-      node._objectActors = new Set();
-      if (WebConsoleUtils.isActorGrip(exception)) {
-        node._objectActors.add(exception.actor);
+    if (aResponse.exceptionMessage) {
+      let message = new Messages.Simple(aResponse.exceptionMessage, {
+        category: "output",
+        severity: "error",
+        timestamp: aResponse.timestamp,
+      });
+      this.hud.output.addMessage(message);
+      message._objectActors = new Set();
+      if (WebConsoleUtils.isActorGrip(aResponse.exception)) {
+        message._objectActors.add(aResponse.exception.actor);
       }
     }
 
@@ -3809,74 +3640,6 @@ JSTerm.prototype = {
     aCallback && aCallback(aResponse);
   },
 
-
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  writeOutputJS:
-  function JST_writeOutputJS(aOutputMessage, aCallback, aNodeAfter, aTimestamp)
-  {
-    let link = null;
-    if (aCallback) {
-      link = this.hud.document.createElementNS(XHTML_NS, "a");
-      link.setAttribute("aria-haspopup", true);
-      link.textContent = aOutputMessage;
-      link.href = "#";
-      link.draggable = false;
-      this.hud._addMessageLinkCallback(link, aCallback);
-    }
-
-    return this.writeOutput(link || aOutputMessage, CATEGORY_OUTPUT,
-                            SEVERITY_LOG, aNodeAfter, aTimestamp);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  writeOutput:
-  function JST_writeOutput(aOutputMessage, aCategory, aSeverity, aNodeAfter,
-                           aTimestamp)
-  {
-    let node = this.hud.createMessageNode(aCategory, aSeverity, aOutputMessage,
-                                          null, null, null, null, aTimestamp);
-    node._outputAfterNode = aNodeAfter;
-    this.hud.outputMessage(aCategory, node);
-    return node;
-  },
 
   
 
@@ -4562,21 +4325,6 @@ JSTerm.prototype = {
     this.completeNode.value = prefix + aSuffix;
   },
 
-  
-
-
-
-
-
-
-  _evalOutputClick: function JST__evalOutputClick(aResponse)
-  {
-    this.openVariablesView({
-      label: VariablesView.getString(aResponse.result),
-      objectActor: aResponse.result,
-      autofocus: true,
-    });
-  },
 
   
 
