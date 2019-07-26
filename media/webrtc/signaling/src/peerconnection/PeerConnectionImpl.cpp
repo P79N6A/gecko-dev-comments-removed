@@ -278,7 +278,7 @@ PeerConnectionImpl::PeerConnectionImpl()
 
 PeerConnectionImpl::~PeerConnectionImpl()
 {
-  Close();
+  Close(false);
   
   
   
@@ -935,7 +935,7 @@ PeerConnectionImpl::GetIceState(uint32_t* aState)
 }
 
 NS_IMETHODIMP
-PeerConnectionImpl::Close()
+PeerConnectionImpl::Close(bool aIsSynchronous)
 {
   if (mCall != NULL)
     mCall->endCall();
@@ -944,7 +944,7 @@ PeerConnectionImpl::Close()
     mDataConnection->CloseAll();
 #endif
 
-  ShutdownMedia();
+  ShutdownMedia(aIsSynchronous);
 
   
 
@@ -952,7 +952,7 @@ PeerConnectionImpl::Close()
 }
 
 void
-PeerConnectionImpl::ShutdownMedia()
+PeerConnectionImpl::ShutdownMedia(bool aIsSynchronous)
 {
   
   if (mThread) {
@@ -971,8 +971,13 @@ PeerConnectionImpl::ShutdownMedia()
   
   
   
+  
+
+  
+  
   RUN_ON_THREAD(mThread, WrapRunnable(mMedia.forget().get(),
-        &PeerConnectionMedia::SelfDestruct), NS_DISPATCH_NORMAL);
+                                      &PeerConnectionMedia::SelfDestruct),
+                aIsSynchronous ? NS_DISPATCH_SYNC : NS_DISPATCH_NORMAL);
 }
 
 void
