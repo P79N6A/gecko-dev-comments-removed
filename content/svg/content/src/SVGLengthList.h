@@ -196,6 +196,19 @@ public:
     return static_cast<nsSVGElement*>(e.get());
   }
 
+  
+
+
+
+
+  bool IsIdentity() const {
+    if (!mElement) {
+      NS_ABORT_IF_FALSE(IsEmpty(), "target element propagation failure");
+      return true;
+    }
+    return false;
+  }
+
   uint8_t Axis() const {
     NS_ABORT_IF_FALSE(mElement, "Axis() isn't valid");
     return mAxis;

@@ -174,6 +174,19 @@ public:
     return static_cast<nsSVGElement*>(e.get());
   }
 
+  
+
+
+
+
+  bool IsIdentity() const {
+    if (!mElement) {
+      NS_ABORT_IF_FALSE(IsEmpty(), "target element propagation failure");
+      return true;
+    } 
+    return false;
+  }
+
   nsresult CopyFrom(const SVGPointListAndInfo& rhs) {
     mElement = rhs.mElement;
     return SVGPointList::CopyFrom(rhs);

@@ -253,6 +253,11 @@ public:
     return SVGPathData::CopyFrom(rhs);
   }
 
+  
+
+
+
+
   bool IsIdentity() const {
     if (!mElement) {
       NS_ABORT_IF_FALSE(IsEmpty(), "target element propagation failure");
