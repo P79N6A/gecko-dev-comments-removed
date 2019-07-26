@@ -5057,7 +5057,7 @@ struct NewScriptPropertiesState
 };
 
 static bool
-AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
+AnalyzePoppedThis(JSContext *cx, SSAUseChain *use,
                   TypeObject *type, JSFunction *fun, NewScriptPropertiesState &state);
 
 static bool
@@ -5103,13 +5103,6 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
     Vector<SSAUseChain *> pendingPoppedThis(cx);
 
-    
-
-
-
-    uint32_t lastThisPopped = 0;
-
-    bool entirelyAnalyzed = true;
     unsigned nextOffset = 0;
     while (nextOffset < script->length) {
         unsigned offset = nextOffset;
@@ -5127,24 +5120,24 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
 
 
-        if (op == JSOP_RETURN || op == JSOP_STOP || op == JSOP_RETRVAL) {
-            if (offset < lastThisPopped) {
-                state.baseobj = NULL;
-                entirelyAnalyzed = false;
-                break;
-            }
 
-            entirelyAnalyzed = code->unconditional;
-            break;
+
+        while (!pendingPoppedThis.empty() && offset >= pendingPoppedThis.back()->offset) {
+            SSAUseChain *use = pendingPoppedThis.popCopy();
+            if (!AnalyzePoppedThis(cx, use, type, fun, state))
+                return false;
         }
 
         
-        if (op == JSOP_EVAL) {
-            if (offset < lastThisPopped)
-                state.baseobj = NULL;
-            entirelyAnalyzed = false;
-            break;
-        }
+
+
+
+        if (op == JSOP_RETURN || op == JSOP_STOP || op == JSOP_RETRVAL)
+            return code->unconditional;
+
+        
+        if (op == JSOP_EVAL)
+            return false;
 
         
 
@@ -5156,251 +5149,217 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
         SSAValue thisv = SSAValue::PushedValue(offset, 0);
         SSAUseChain *uses = analysis->useChain(thisv);
 
-        
-
-
-
-
-        if (!pendingPoppedThis.empty() &&
-            offset >= pendingPoppedThis.back()->offset) {
-            lastThisPopped = pendingPoppedThis[0]->offset;
-            if (!AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, state))
-                return false;
-        }
-
         JS_ASSERT(uses);
         if (uses->next || !uses->popped) {
             
-            entirelyAnalyzed = false;
-            break;
+            return false;
         }
 
         
         Bytecode *poppedCode = analysis->maybeCode(uses->offset);
-        if (!poppedCode || !poppedCode->unconditional) {
-            entirelyAnalyzed = false;
-            break;
-        }
+        if (!poppedCode || !poppedCode->unconditional)
+            return false;
 
-        if (!pendingPoppedThis.append(uses)) {
-            entirelyAnalyzed = false;
-            break;
-        }
+        if (!pendingPoppedThis.append(uses))
+            return false;
     }
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if (entirelyAnalyzed &&
-        !pendingPoppedThis.empty() &&
-        !AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, state))
-    {
-        return false;
-    }
-
-    
-    return entirelyAnalyzed;
+    return true;
 }
 
 static bool
-AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
+AnalyzePoppedThis(JSContext *cx, SSAUseChain *use,
                   TypeObject *type, JSFunction *fun, NewScriptPropertiesState &state)
 {
     RootedScript script(cx, fun->nonLazyScript());
     ScriptAnalysis *analysis = script->analysis();
 
-    while (!pendingPoppedThis->empty()) {
-        SSAUseChain *uses = pendingPoppedThis->back();
-        pendingPoppedThis->popBack();
+    jsbytecode *pc = script->code + use->offset;
+    JSOp op = JSOp(*pc);
 
-        jsbytecode *pc = script->code + uses->offset;
-        JSOp op = JSOp(*pc);
-
-        if (op == JSOP_SETPROP && uses->u.which == 1) {
-            
+    if (op == JSOP_SETPROP && use->u.which == 1) {
+        
 
 
 
 
-            RootedId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
-            if (IdToTypeId(id) != id)
+        RootedId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
+        if (IdToTypeId(id) != id)
+            return false;
+        if (id_prototype(cx) == id || id___proto__(cx) == id || id_constructor(cx) == id)
+            return false;
+
+        
+
+
+
+        for (size_t i = 0; i < state.accessedProperties.length(); i++) {
+            if (state.accessedProperties[i] == id)
                 return false;
-            if (id_prototype(cx) == id || id___proto__(cx) == id || id_constructor(cx) == id)
-                return false;
+        }
 
-            
+        if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
+            return false;
 
+        unsigned slotSpan = state.baseobj->slotSpan();
+        RootedValue value(cx, UndefinedValue());
+        if (!DefineNativeProperty(cx, state.baseobj, id, value, NULL, NULL,
+                                  JSPROP_ENUMERATE, 0, 0, DNP_SKIP_TYPE))
+        {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            state.baseobj = NULL;
+            return false;
+        }
 
+        if (state.baseobj->inDictionaryMode()) {
+            state.baseobj = NULL;
+            return false;
+        }
 
-            for (size_t i = 0; i < state.accessedProperties.length(); i++) {
-                if (state.accessedProperties[i] == id)
-                    return false;
-            }
-
-            if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
-                return false;
-
-            unsigned slotSpan = state.baseobj->slotSpan();
-            RootedValue value(cx, UndefinedValue());
-            if (!DefineNativeProperty(cx, state.baseobj, id, value, NULL, NULL,
-                                      JSPROP_ENUMERATE, 0, 0, DNP_SKIP_TYPE)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                state.baseobj = NULL;
-                return false;
-            }
-
-            if (state.baseobj->inDictionaryMode()) {
-                state.baseobj = NULL;
-                return false;
-            }
-
-            if (state.baseobj->slotSpan() == slotSpan) {
-                
-                return false;
-            }
-
-            TypeNewScript::Initializer setprop(TypeNewScript::Initializer::SETPROP, uses->offset);
-            if (!state.initializerList.append(setprop)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                state.baseobj = NULL;
-                return false;
-            }
-
-            if (state.baseobj->slotSpan() >= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
-                
-                return false;
-            }
-        } else if (op == JSOP_GETPROP && uses->u.which == 0) {
-            
-
-
-
-
-
-
-
-
-
-
-            RootedId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
-            if (IdToTypeId(id) != id)
-                return false;
-            if (!state.baseobj->nativeLookup(cx, id) && !state.accessedProperties.append(id.get())) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                state.baseobj = NULL;
-                return false;
-            }
-
-            if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
-                return false;
-
-            
-
-
-
-
-            Shape *shape = type->proto ? type->proto->nativeLookup(cx, id) : NULL;
-            if (shape && shape->hasSlot()) {
-                Value protov = type->proto->getSlot(shape->slot());
-                TypeSet *types = script->analysis()->bytecodeTypes(pc);
-                types->addType(cx, GetValueType(cx, protov));
-            }
-        } else if ((op == JSOP_FUNCALL || op == JSOP_FUNAPPLY) && uses->u.which == GET_ARGC(pc) - 1) {
-            
-
-
-
-
-
-
-
-
-
-
-
-            
-            SSAValue calleev = analysis->poppedValue(pc, GET_ARGC(pc) + 1);
-            if (calleev.kind() != SSAValue::PUSHED)
-                return false;
-            jsbytecode *calleepc = script->code + calleev.pushedOffset();
-            if (JSOp(*calleepc) != JSOP_CALLPROP)
-                return false;
-
-            
-
-
-
-            analysis->breakTypeBarriersSSA(cx, analysis->poppedValue(calleepc, 0));
-            analysis->breakTypeBarriers(cx, calleepc - script->code, true);
-
-            StackTypeSet *funcallTypes = analysis->poppedTypes(pc, GET_ARGC(pc) + 1);
-            StackTypeSet *scriptTypes = analysis->poppedTypes(pc, GET_ARGC(pc));
-
-            
-            RootedFunction function(cx);
-            {
-                JSObject *funcallObj = funcallTypes->getSingleton();
-                JSObject *scriptObj = scriptTypes->getSingleton();
-                if (!funcallObj || !funcallObj->isFunction() ||
-                    funcallObj->toFunction()->isInterpreted() ||
-                    !scriptObj || !scriptObj->isFunction() ||
-                    !scriptObj->toFunction()->isInterpreted()) {
-                    return false;
-                }
-                Native native = funcallObj->toFunction()->native();
-                if (native != js_fun_call && native != js_fun_apply)
-                    return false;
-                function = scriptObj->toFunction();
-            }
-
-            
-
-
-
-            funcallTypes->add(cx,
-                cx->analysisLifoAlloc().new_<TypeConstraintClearDefiniteSingle>(type));
-            scriptTypes->add(cx,
-                cx->analysisLifoAlloc().new_<TypeConstraintClearDefiniteSingle>(type));
-
-            TypeNewScript::Initializer pushframe(TypeNewScript::Initializer::FRAME_PUSH, uses->offset);
-            if (!state.initializerList.append(pushframe)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                state.baseobj = NULL;
-                return false;
-            }
-
-            if (!AnalyzeNewScriptProperties(cx, type, function, state))
-                return false;
-
-            TypeNewScript::Initializer popframe(TypeNewScript::Initializer::FRAME_POP, 0);
-            if (!state.initializerList.append(popframe)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                state.baseobj = NULL;
-                return false;
-            }
-
-            
-
-
-
-        } else {
+        if (state.baseobj->slotSpan() == slotSpan) {
             
             return false;
         }
+
+        TypeNewScript::Initializer setprop(TypeNewScript::Initializer::SETPROP, use->offset);
+        if (!state.initializerList.append(setprop)) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            state.baseobj = NULL;
+            return false;
+        }
+
+        if (state.baseobj->slotSpan() >= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
+            
+            return false;
+        }
+
+        return true;
     }
 
-    return true;
+    if (op == JSOP_GETPROP && use->u.which == 0) {
+        
+
+
+
+
+
+
+
+
+
+
+        RootedId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
+        if (IdToTypeId(id) != id)
+            return false;
+        if (!state.baseobj->nativeLookup(cx, id) && !state.accessedProperties.append(id.get())) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            state.baseobj = NULL;
+            return false;
+        }
+
+        if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
+            return false;
+
+        
+
+
+
+
+        Shape *shape = type->proto ? type->proto->nativeLookup(cx, id) : NULL;
+        if (shape && shape->hasSlot()) {
+            Value protov = type->proto->getSlot(shape->slot());
+            TypeSet *types = script->analysis()->bytecodeTypes(pc);
+            types->addType(cx, GetValueType(cx, protov));
+        }
+
+        return true;
+    }
+
+    if ((op == JSOP_FUNCALL || op == JSOP_FUNAPPLY) && use->u.which == GET_ARGC(pc) - 1) {
+        
+
+
+
+
+
+
+
+
+
+
+
+        
+        SSAValue calleev = analysis->poppedValue(pc, GET_ARGC(pc) + 1);
+        if (calleev.kind() != SSAValue::PUSHED)
+            return false;
+        jsbytecode *calleepc = script->code + calleev.pushedOffset();
+        if (JSOp(*calleepc) != JSOP_CALLPROP)
+            return false;
+
+        
+
+
+
+        analysis->breakTypeBarriersSSA(cx, analysis->poppedValue(calleepc, 0));
+        analysis->breakTypeBarriers(cx, calleepc - script->code, true);
+
+        StackTypeSet *funcallTypes = analysis->poppedTypes(pc, GET_ARGC(pc) + 1);
+        StackTypeSet *scriptTypes = analysis->poppedTypes(pc, GET_ARGC(pc));
+
+        
+        RootedFunction function(cx);
+        {
+            JSObject *funcallObj = funcallTypes->getSingleton();
+            JSObject *scriptObj = scriptTypes->getSingleton();
+            if (!funcallObj || !funcallObj->isFunction() ||
+                funcallObj->toFunction()->isInterpreted() ||
+                !scriptObj || !scriptObj->isFunction() ||
+                !scriptObj->toFunction()->isInterpreted())
+            {
+                return false;
+            }
+            Native native = funcallObj->toFunction()->native();
+            if (native != js_fun_call && native != js_fun_apply)
+                return false;
+            function = scriptObj->toFunction();
+        }
+
+        
+
+
+
+        funcallTypes->add(cx,
+            cx->analysisLifoAlloc().new_<TypeConstraintClearDefiniteSingle>(type));
+        scriptTypes->add(cx,
+            cx->analysisLifoAlloc().new_<TypeConstraintClearDefiniteSingle>(type));
+
+        TypeNewScript::Initializer pushframe(TypeNewScript::Initializer::FRAME_PUSH, use->offset);
+        if (!state.initializerList.append(pushframe)) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            state.baseobj = NULL;
+            return false;
+        }
+
+        if (!AnalyzeNewScriptProperties(cx, type, function, state))
+            return false;
+
+        TypeNewScript::Initializer popframe(TypeNewScript::Initializer::FRAME_POP, 0);
+        if (!state.initializerList.append(popframe)) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            state.baseobj = NULL;
+            return false;
+        }
+
+        
+
+
+
+        return true;
+    }
+
+    
+    return false;
 }
 
 
