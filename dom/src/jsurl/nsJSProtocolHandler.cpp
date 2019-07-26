@@ -785,7 +785,10 @@ nsJSChannel::EvaluateScript()
     nsLoadFlags loadFlags;
     mStreamChannel->GetLoadFlags(&loadFlags);
 
-    if (loadFlags & LOAD_DOCUMENT_URI) {
+    uint32_t disposition;
+    if (NS_FAILED(mStreamChannel->GetContentDisposition(&disposition)))
+        disposition = nsIChannel::DISPOSITION_INLINE;
+    if (loadFlags & LOAD_DOCUMENT_URI && disposition != nsIChannel::DISPOSITION_ATTACHMENT) {
         
         
         
