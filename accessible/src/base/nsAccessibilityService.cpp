@@ -37,6 +37,7 @@
 #endif
 
 #ifdef XP_WIN
+#include "mozilla/a11y/Compatibility.h"
 #include "HTMLWin32ObjectAccessible.h"
 #endif
 
@@ -63,6 +64,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
+#include "mozilla/StaticPtr.h"
 #include "mozilla/Util.h"
 #include "nsDeckFrame.h"
 
@@ -210,6 +212,45 @@ nsAccessibilityService::GetRootDocumentAccessible(nsIPresShell* aPresShell,
   return nullptr;
 }
 
+#ifdef XP_WIN
+static StaticAutoPtr<nsTArray<nsCOMPtr<nsIContent> > > sPendingPlugins;
+static StaticAutoPtr<nsTArray<nsCOMPtr<nsITimer> > > sPluginTimers;
+
+class PluginTimerCallBack MOZ_FINAL : public nsITimerCallback
+{
+public:
+  PluginTimerCallBack(nsIContent* aContent) : mContent(aContent) {}
+
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHODIMP Notify(nsITimer* aTimer) MOZ_FINAL
+  {
+    nsIPresShell* ps = mContent->OwnerDoc()->GetShell();
+    if (ps) {
+      DocAccessible* doc = ps->GetDocAccessible();
+      if (doc) {
+        
+        
+        doc->RecreateAccessible(mContent);
+        sPluginTimers->RemoveElement(aTimer);
+        return NS_OK;
+      }
+    }
+
+    
+    
+    sPendingPlugins->RemoveElement(mContent);
+    sPluginTimers->RemoveElement(aTimer);
+    return NS_OK;
+  }
+
+private:
+  nsCOMPtr<nsIContent> mContent;
+};
+
+NS_IMPL_ISUPPORTS1(PluginTimerCallBack, nsITimerCallback)
+#endif
+
 already_AddRefed<Accessible>
 nsAccessibilityService::CreatePluginAccessible(nsObjectFrame* aFrame,
                                                nsIContent* aContent,
@@ -225,6 +266,23 @@ nsAccessibilityService::CreatePluginAccessible(nsObjectFrame* aFrame,
   if (NS_SUCCEEDED(aFrame->GetPluginInstance(getter_AddRefs(pluginInstance))) &&
       pluginInstance) {
 #ifdef XP_WIN
+    if (!sPendingPlugins->Contains(aContent) &&
+        (Preferences::GetBool("accessibility.delay_plugins") ||
+         Compatibility::IsJAWS() || Compatibility::IsWE())) {
+      nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
+      nsRefPtr<PluginTimerCallBack> cb = new PluginTimerCallBack(aContent);
+      timer->InitWithCallback(cb, Preferences::GetUint("accessibility.delay_plugin_time"),
+                              nsITimer::TYPE_ONE_SHOT);
+      sPluginTimers->AppendElement(timer);
+      sPendingPlugins->AppendElement(aContent);
+      return nullptr;
+    }
+
+    
+    
+    
+    sPendingPlugins->RemoveElement(aContent);
+
     
     HWND pluginPort = nullptr;
     aFrame->GetPluginPort(&pluginPort);
@@ -1004,6 +1062,11 @@ nsAccessibilityService::Init()
                         NS_LITERAL_CSTRING("Active"));
 #endif
 
+#ifdef XP_WIN
+  sPendingPlugins = new nsTArray<nsCOMPtr<nsIContent> >;
+  sPluginTimers = new nsTArray<nsCOMPtr<nsITimer> >;
+#endif
+
   gIsShutdown = false;
 
   
@@ -1029,6 +1092,16 @@ nsAccessibilityService::Shutdown()
   DocManager::Shutdown();
 
   SelectionManager::Shutdown();
+
+#ifdef XP_WIN
+  sPendingPlugins = nullptr;
+
+  uint32_t timerCount = sPluginTimers->Length();
+  for (uint32_t i = 0; i < timerCount; i++)
+    sPluginTimers->ElementAt(i)->Cancel();
+
+  sPluginTimers = nullptr;
+#endif
 
   
   
