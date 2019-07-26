@@ -928,6 +928,7 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         mTabsPanel.prepareTabsAnimation(mMainLayoutAnimator);
+        mBrowserToolbar.prepareTabsAnimation(areTabsShown());
 
         
         
@@ -955,6 +956,8 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         mTabsPanel.finishTabsAnimation();
+        mBrowserToolbar.finishTabsAnimation(areTabsShown());
+
         mMainLayoutAnimator = null;
     }
 
