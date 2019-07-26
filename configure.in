@@ -369,6 +369,17 @@ if test -n "$GNU_CC" -a -z "$CLANG_CC" ; then
 fi
 
 dnl ========================================================
+dnl Disable compiling sources in unified mode.
+dnl ========================================================
+
+MOZ_ARG_DISABLE_BOOL(unified-compilation,
+[  --disable-unified-compilation
+                          Disable unified compilation of some C/C++ sources],
+    MOZ_DISABLE_UNIFIED_COMPILATION=1,
+    MOZ_DISABLE_UNIFIED_COMPILATION=)
+AC_SUBST(MOZ_DISABLE_UNIFIED_COMPILATION)
+
+dnl ========================================================
 dnl Special win32 checks
 dnl ========================================================
 
@@ -7344,7 +7355,7 @@ AC_SUBST(MOZ_B2G_BT_BLUEDROID)
 dnl ========================================================
 dnl = Enable NFC Interface for B2G (Gonk usually)
 dnl ========================================================
-MOZ_ARG_ENABLE_BOOL(nfc,
+MOZ_ARG_ENABLE_BOOL(b2g-nfc,
 [  --enable-nfc         Set compile flags necessary for compiling NFC API ],
     MOZ_NFC=1,
     MOZ_NFC= )
