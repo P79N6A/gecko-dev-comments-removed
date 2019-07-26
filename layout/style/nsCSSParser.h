@@ -180,6 +180,25 @@ public:
                                    uint32_t           aLineNumber,
                                    InfallibleTArray<float>& aSelectorList);
 
+  
+
+
+
+  bool EvaluateSupportsDeclaration(const nsAString& aProperty,
+                                   const nsAString& aValue,
+                                   nsIURI* aDocURL,
+                                   nsIURI* aBaseURL,
+                                   nsIPrincipal* aDocPrincipal);
+
+  
+
+
+
+  bool EvaluateSupportsCondition(const nsAString& aCondition,
+                                 nsIURI* aDocURL,
+                                 nsIURI* aBaseURL,
+                                 nsIPrincipal* aDocPrincipal);
+
 protected:
   
   
