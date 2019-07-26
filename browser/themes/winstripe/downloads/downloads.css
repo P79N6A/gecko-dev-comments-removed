@@ -257,6 +257,9 @@ richlistitem[type="download"]:hover > stack > .downloadButton.downloadRetry:acti
   background-image: url("chrome://browser/skin/downloads/download-glow.png");
 }
 
+
+
+
 #downloads-indicator:not([counter]) > #downloads-indicator-anchor > #downloads-indicator-progress-area > #downloads-indicator-counter {
   background: -moz-image-rect(url("chrome://browser/skin/Toolbar.png"),
                               0, 108, 18, 90) center no-repeat;
