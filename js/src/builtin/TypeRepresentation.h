@@ -160,10 +160,6 @@ class TypeRepresentation {
     JSObject *ownerObject() const { return ownerObject_.get(); }
     types::TypeObject *typeObject() const { return typeObject_.get(); }
 
-    
-    
-    bool appendString(JSContext *cx, StringBuffer &buffer);
-
     static bool isOwnerObject(JSObject &obj);
     static TypeRepresentation *fromOwnerObject(JSObject &obj);
 
@@ -262,17 +258,11 @@ class ScalarTypeRepresentation : public SizedTypeRepresentation {
 
   private:
     
-    friend class TypeRepresentation;
-
-    
     friend class TypeRepresentationHelper;
 
     const Type type_;
 
     explicit ScalarTypeRepresentation(Type type);
-
-    
-    bool appendStringScalar(JSContext *cx, StringBuffer &buffer);
 
   public:
     Type type() const {
@@ -316,15 +306,9 @@ class ReferenceTypeRepresentation : public SizedTypeRepresentation {
     static const int32_t TYPE_MAX = TYPE_STRING + 1;
 
   private:
-    
-    friend class TypeRepresentation;
-
     Type type_;
 
     explicit ReferenceTypeRepresentation(Type type);
-
-    
-    bool appendStringReference(JSContext *cx, StringBuffer &buffer);
 
   public:
     Type type() const {
@@ -353,17 +337,11 @@ class X4TypeRepresentation : public SizedTypeRepresentation {
 
   private:
     
-    friend class TypeRepresentation;
-
-    
     friend class TypeRepresentationHelper;
 
     const Type type_;
 
     explicit X4TypeRepresentation(Type type);
-
-    
-    bool appendStringX4(JSContext *cx, StringBuffer &buffer);
 
   public:
     Type type() const {
@@ -390,9 +368,6 @@ class UnsizedArrayTypeRepresentation : public TypeRepresentation {
     
     void traceUnsizedArrayFields(JSTracer *trace);
 
-    
-    bool appendStringUnsizedArray(JSContext *cx, StringBuffer &buffer);
-
   public:
     SizedTypeRepresentation *element() {
         return element_;
@@ -415,9 +390,6 @@ class SizedArrayTypeRepresentation : public SizedTypeRepresentation {
 
     
     void traceSizedArrayFields(JSTracer *trace);
-
-    
-    bool appendStringSizedArray(JSContext *cx, StringBuffer &buffer);
 
   public:
     SizedTypeRepresentation *element() {
@@ -468,9 +440,6 @@ class StructTypeRepresentation : public SizedTypeRepresentation {
 
     
     void traceStructFields(JSTracer *trace);
-
-    
-    bool appendStringStruct(JSContext *cx, StringBuffer &buffer);
 
   public:
     size_t fieldCount() const {
