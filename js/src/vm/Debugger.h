@@ -701,7 +701,7 @@ Debugger::onNewScript(JSContext *cx, HandleScript script, GlobalObject *compileA
     JS_ASSERT_IF(script->compileAndGo, compileAndGoGlobal == &script->uninlinedGlobal());
     
     
-    JS_ASSERT_IF(!script->compartment()->options().invisibleToDebugger &&
+    JS_ASSERT_IF(!script->compartment()->options().invisibleToDebugger() &&
                  !script->selfHosted,
                  script->compartment()->firedOnNewGlobalObject);
     JS_ASSERT_IF(!script->compileAndGo, !compileAndGoGlobal);
