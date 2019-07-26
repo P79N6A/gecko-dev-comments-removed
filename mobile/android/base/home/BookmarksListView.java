@@ -21,6 +21,8 @@ import android.widget.HeaderViewListAdapter;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 
+import java.util.EnumSet;
+
 
 
 
@@ -134,10 +136,9 @@ public class BookmarksListView extends HomeListView
         } else {
             
             final String url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
-            OnUrlOpenListener listener = getOnUrlOpenListener();
-            if (listener != null) {
-                listener.onUrlOpen(url);
-            }
+
+            
+            getOnUrlOpenListener().onUrlOpen(url, EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB));
         }
     }
 }

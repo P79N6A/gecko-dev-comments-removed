@@ -589,15 +589,15 @@ public class Tabs implements GeckoEventListener {
 
 
 
-    public boolean hasUrl(String url) {
+    public int getTabIdForUrl(String url) {
         for (Tab tab : mOrder) {
             if (TextUtils.equals(tab.getURL(), url) ||
                 TextUtils.equals(ReaderModeUtils.getUrlFromAboutReader(tab.getURL()), url)) {
-                return true;
+                return tab.getId();
             }
         }
 
-        return false;
+        return -1;
     }
 
     
