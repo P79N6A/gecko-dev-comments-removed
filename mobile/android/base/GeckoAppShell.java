@@ -246,8 +246,14 @@ public class GeckoAppShell
     public static native void notifyReadingMessageListFailed(int aError, int aRequestId);
 
     public static native void scheduleComposite();
+
+    
+    
+    
+    
     public static native void schedulePauseComposition();
     public static native void scheduleResumeComposition(int width, int height);
+
     public static native float computeRenderIntegrity();
 
     public static native SurfaceBits getSurfaceBits(Surface surface);

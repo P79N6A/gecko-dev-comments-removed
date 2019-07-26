@@ -613,6 +613,14 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
     }
 
     
+    public void sizeChanged(int width, int height) {
+        
+        
+        
+        compositionResumeRequested(mWindowSize.width, mWindowSize.height);
+    }
+
+    
     public void surfaceChanged(int width, int height) {
         setViewportSize(width, height);
 
@@ -620,7 +628,6 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         
         
         compositionResumeRequested(width, height);
-        renderRequested();
     }
 
     

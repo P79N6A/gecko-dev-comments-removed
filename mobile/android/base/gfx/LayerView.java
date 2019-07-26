@@ -154,7 +154,7 @@ public class LayerView extends FrameLayout {
             
             setWillNotCacheDrawing(false);
 
-            mSurfaceView = new SurfaceView(getContext());
+            mSurfaceView = new LayerSurfaceView(getContext(), this);
             mSurfaceView.setBackgroundColor(Color.WHITE);
             addView(mSurfaceView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
@@ -316,7 +316,36 @@ public class LayerView extends FrameLayout {
         return getDrawable(R.drawable.scrollbar);
     }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     private void onSizeChanged(int width, int height) {
+        if (!mGLController.hasValidSurface() || mSurfaceView == null) {
+            surfaceChanged(width, height);
+            return;
+        }
+
+        if (mListener != null) {
+            mListener.sizeChanged(width, height);
+        }
+    }
+
+    private void surfaceChanged(int width, int height) {
         mGLController.surfaceChanged(width, height);
 
         if (mListener != null) {
@@ -356,6 +385,7 @@ public class LayerView extends FrameLayout {
         void renderRequested();
         void compositionPauseRequested();
         void compositionResumeRequested(int width, int height);
+        void sizeChanged(int width, int height);
         void surfaceChanged(int width, int height);
     }
 
@@ -370,6 +400,24 @@ public class LayerView extends FrameLayout {
 
         public void surfaceDestroyed(SurfaceHolder holder) {
             onDestroyed();
+        }
+    }
+
+    
+
+
+    private class LayerSurfaceView extends SurfaceView {
+        LayerView mParent;
+
+        public LayerSurfaceView(Context aContext, LayerView aParent) {
+            super(aContext);
+            mParent = aParent;
+        }
+
+        protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+            if (changed) {
+                mParent.surfaceChanged(right - left, bottom - top);
+            }
         }
     }
 

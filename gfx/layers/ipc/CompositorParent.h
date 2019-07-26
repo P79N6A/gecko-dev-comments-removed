@@ -275,7 +275,6 @@ private:
   float mYScale;
   nsIntPoint mScrollOffset;
   nsIntRect mContentRect;
-  nsIntSize mWidgetSize;
 
   
   
