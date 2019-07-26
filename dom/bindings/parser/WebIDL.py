@@ -493,6 +493,9 @@ class IDLInterface(IDLObjectWithScope):
         self.interfacesImplementingSelf = set()
         self._hasChildInterfaces = False
         self._isOnGlobalProtoChain = False
+        
+        
+        self.totalMembersInSlots = 0
 
         IDLObjectWithScope.__init__(self, location, parentScope, name)
 
@@ -555,6 +558,8 @@ class IDLInterface(IDLObjectWithScope):
             self.parent.finish(scope)
 
             self.parent._hasChildInterfaces = True
+
+            self.totalMembersInSlots = self.parent.totalMembersInSlots
 
             
             if self.parent.getExtendedAttribute("Global"):
@@ -650,6 +655,13 @@ class IDLInterface(IDLObjectWithScope):
             if (member.isAttr() and member.isUnforgeable() and
                 not hasattr(member, "originatingInterface")):
                 member.originatingInterface = self
+
+        
+        
+        for member in self.members:
+            if member.isAttr() and member.getExtendedAttribute("StoreInSlot"):
+                member.slotIndex = self.totalMembersInSlots
+                self.totalMembersInSlots += 1
 
         if self.parent:
             
