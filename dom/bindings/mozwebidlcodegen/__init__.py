@@ -391,7 +391,8 @@ class WebIDLCodegenManager(LoggingMixin):
 
         
         
-        return set(f for f in changed_inputs if os.path.exists(f))
+        
+        return changed_inputs & self._input_paths
 
     def _binding_info(self, p):
         """Compute binding metadata for an input path.
