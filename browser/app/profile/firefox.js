@@ -1159,6 +1159,11 @@ pref("devtools.fontinspector.enabled", true);
 
 
 
+
+pref("devtools.telemetry.tools.opened.version", "{}");
+
+
+
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
 
