@@ -198,6 +198,11 @@ calculate_minimum_latency(void)
   DWORDLONG mask;
 
   
+  if (GetSystemMetrics(SM_REMOTESESSION) == TRUE) {
+    return 500;
+  }
+
+  
   memset(&osvi, 0, sizeof(OSVERSIONINFOEX));
   osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
   osvi.dwMajorVersion = 6;
@@ -209,11 +214,6 @@ calculate_minimum_latency(void)
 
   if (VerifyVersionInfo(&osvi, VER_MAJORVERSION | VER_MINORVERSION, mask) != 0) {
     return 200;
-  }
-
-  
-  if (GetSystemMetrics(SM_REMOTESESSION) == TRUE) {
-    return 500;
   }
 
   return 0;
