@@ -4,13 +4,6 @@
 
 %include ../../shared/devtools/webconsole.inc.css
 
-.webconsole-timestamp,
-.webconsole-msg-body,
-.jsterm-input-node,
-.jsterm-complete-node {
-  font-family: Consolas, Lucida Console, monospace;
-}
-
 
 
 
