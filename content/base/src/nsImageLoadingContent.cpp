@@ -237,8 +237,16 @@ nsImageLoadingContent::OnStopRequest(imgIRequest* aRequest,
   if (shell && shell->IsVisible() &&
       (!shell->DidInitialize() || shell->IsPaintingSuppressed())) {
 
-    if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
-      startedDecoding = true;
+    
+    
+    
+    
+    nsIFrame* f = GetOurPrimaryFrame();
+    if (!mFrameCreateCalled || !f ||
+        (f->GetStateBits() & NS_FRAME_FIRST_REFLOW) || mVisibleCount > 0) {
+      if (NS_SUCCEEDED(mCurrentRequest->StartDecoding())) {
+        startedDecoding = true;
+      }
     }
   }
 
