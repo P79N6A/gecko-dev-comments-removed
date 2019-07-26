@@ -848,7 +848,6 @@ Toolbox.prototype = {
     this._telemetry.destroy();
 
     
-    
     if (this._target) {
       this._target.off("close", this.destroy);
       outstanding.push(this._target.destroy());

@@ -52,6 +52,7 @@ exports.TargetFactory = {
 
 
 
+
   forRemoteTab: function TF_forRemoteTab(options) {
     let targetPromise = promiseTargets.get(options);
     if (targetPromise == null) {
@@ -446,10 +447,19 @@ TabTarget.prototype = {
       
       this._teardownRemoteListeners();
 
-      this._client.close(() => {
+      if (this.isLocalTab) {
+        
+        
+        this._client.close(() => {
+          this._cleanup();
+          this._destroyer.resolve(null);
+        });
+      } else {
+        
+        
         this._cleanup();
         this._destroyer.resolve(null);
-      });
+      }
     }
 
     return this._destroyer.promise;
