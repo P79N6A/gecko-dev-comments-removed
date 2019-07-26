@@ -22,6 +22,12 @@ public class TestHealthReportUploadService
     }
 
     @Override
+    public boolean backgroundDataIsEnabled() {
+      
+      return true;
+    }
+
+    @Override
     public void onHandleIntent(Intent intent) {
       super.onHandleIntent(intent);
       try {
