@@ -1701,7 +1701,7 @@ ThreadActor.prototype = {
         let listener = handler.listenerObject;
         
         
-        if (!listener) {
+        if (!listener || !handler.type) {
           continue;
         }
 
