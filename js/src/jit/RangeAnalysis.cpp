@@ -1960,22 +1960,29 @@ RangeAnalysis::analyze()
                 return false;
         }
 
-        if (mir->compilingAsmJS()) {
-            for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
-                if (i->isAsmJSLoadHeap()) {
-                    MAsmJSLoadHeap *ins = i->toAsmJSLoadHeap();
+        
+        
+        for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
+            iter->collectRangeInfoPreTrunc();
+
+            
+            
+            if (mir->compilingAsmJS()) {
+                uint32_t minHeapLength = mir->minAsmJSHeapLength();
+                if (iter->isAsmJSLoadHeap()) {
+                    MAsmJSLoadHeap *ins = iter->toAsmJSLoadHeap();
                     Range *range = ins->ptr()->range();
                     if (range && range->hasInt32LowerBound() && range->lower() >= 0 &&
-                        range->hasInt32UpperBound() &&
-                        (uint32_t) range->upper() < mir->minAsmJSHeapLength())
+                        range->hasInt32UpperBound() && (uint32_t) range->upper() < minHeapLength) {
                         ins->setSkipBoundsCheck(true);
-                } else if (i->isAsmJSStoreHeap()) {
-                    MAsmJSStoreHeap *ins = i->toAsmJSStoreHeap();
+                    }
+                } else if (iter->isAsmJSStoreHeap()) {
+                    MAsmJSStoreHeap *ins = iter->toAsmJSStoreHeap();
                     Range *range = ins->ptr()->range();
                     if (range && range->hasInt32LowerBound() && range->lower() >= 0 &&
-                        range->hasInt32UpperBound() &&
-                        (uint32_t) range->upper() < mir->minAsmJSHeapLength())
+                        range->hasInt32UpperBound() && (uint32_t) range->upper() < minHeapLength) {
                         ins->setSkipBoundsCheck(true);
+                    }
                 }
             }
         }
@@ -2410,22 +2417,6 @@ RangeAnalysis::truncate()
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
-        for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++)
-            iter->collectRangeInfo();
-    }
-
-    
-    
-    
     for (size_t i = 0; i < bitops.length(); i++) {
         MBinaryBitwiseInstruction *ins = bitops[i];
         MDefinition *folded = ins->foldUnnecessaryBitop();
@@ -2441,51 +2432,59 @@ RangeAnalysis::truncate()
 
 
 void
-MInArray::collectRangeInfo()
+MInArray::collectRangeInfoPreTrunc()
 {
     Range indexRange(index());
-    needsNegativeIntCheck_ = !indexRange.isFiniteNonNegative();
+    if (indexRange.isFiniteNonNegative())
+        needsNegativeIntCheck_ = false;
 }
 
 void
-MLoadElementHole::collectRangeInfo()
+MLoadElementHole::collectRangeInfoPreTrunc()
 {
     Range indexRange(index());
-    needsNegativeIntCheck_ = !indexRange.isFiniteNonNegative();
+    if (indexRange.isFiniteNonNegative())
+        needsNegativeIntCheck_ = false;
 }
 
 void
-MMod::collectRangeInfo()
+MMod::collectRangeInfoPreTrunc()
 {
     Range lhsRange(lhs());
-    canBeNegativeDividend_ = !lhsRange.isFiniteNonNegative();
+    if (lhsRange.isFiniteNonNegative())
+        canBeNegativeDividend_ = false;
 }
 
 void
-MBoundsCheckLower::collectRangeInfo()
+MBoundsCheckLower::collectRangeInfoPreTrunc()
 {
     Range indexRange(index());
-    fallible_ = !indexRange.hasInt32LowerBound() || indexRange.lower() < minimum_;
+    if (indexRange.hasInt32LowerBound() && indexRange.lower() >= minimum_)
+        fallible_ = false;
 }
 
 void
-MCompare::collectRangeInfo()
+MCompare::collectRangeInfoPreTrunc()
 {
-    operandsAreNeverNaN_ = !Range(lhs()).canBeNaN() && !Range(rhs()).canBeNaN();
+    if (!Range(lhs()).canBeNaN() && !Range(rhs()).canBeNaN())
+        operandsAreNeverNaN_ = true;
 }
 
 void
-MNot::collectRangeInfo()
+MNot::collectRangeInfoPreTrunc()
 {
-    operandIsNeverNaN_ = !Range(operand()).canBeNaN();
+    if (!Range(operand()).canBeNaN())
+        operandIsNeverNaN_ = true;
 }
 
 void
-MPowHalf::collectRangeInfo()
+MPowHalf::collectRangeInfoPreTrunc()
 {
     Range inputRange(input());
-    operandIsNeverNegativeInfinity_ = !inputRange.canBeInfiniteOrNaN() ||
-                                      inputRange.hasInt32LowerBound();
-    operandIsNeverNegativeZero_ = !inputRange.canBeZero();
-    operandIsNeverNaN_ = !inputRange.canBeNaN();
+    if (!inputRange.canBeInfiniteOrNaN() || inputRange.hasInt32LowerBound())
+        operandIsNeverNegativeInfinity_ = true;
+    if (!inputRange.canBeZero())
+        operandIsNeverNegativeZero_ = true;
+    if (!inputRange.canBeNaN())
+        operandIsNeverNaN_ = true;
 }

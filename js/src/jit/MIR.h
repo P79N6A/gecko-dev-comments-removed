@@ -393,7 +393,7 @@ class MDefinition : public MNode
     }
 
     
-    virtual void collectRangeInfo() {
+    virtual void collectRangeInfoPreTrunc() {
     }
 
     MNode::Kind kind() const {
@@ -2283,7 +2283,7 @@ class MCompare
     }
 
     void printOpcode(FILE *fp) const;
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 
     void trySpecializeFloat32(TempAllocator &alloc);
     bool isFloat32Commutative() const { return true; }
@@ -3802,7 +3802,7 @@ class MPowHalf
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 };
 
 
@@ -4193,7 +4193,7 @@ class MMod : public MBinaryArithInstruction
 
     void computeRange();
     bool truncate();
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 };
 
 class MConcat
@@ -5424,7 +5424,7 @@ class MNot
     TypePolicy *typePolicy() {
         return this;
     }
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 
     void trySpecializeFloat32(TempAllocator &alloc);
     bool isFloat32Commutative() const { return true; }
@@ -5532,7 +5532,7 @@ class MBoundsCheckLower
     bool fallible() const {
         return fallible_;
     }
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 };
 
 
@@ -5637,7 +5637,7 @@ class MLoadElementHole
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::Element);
     }
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
 };
 
 class MStoreElementCommon
@@ -8202,7 +8202,7 @@ class MInArray
     bool needsNegativeIntCheck() const {
         return needsNegativeIntCheck_;
     }
-    void collectRangeInfo();
+    void collectRangeInfoPreTrunc();
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::Element);
     }
