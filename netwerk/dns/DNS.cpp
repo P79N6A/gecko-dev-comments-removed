@@ -177,6 +177,32 @@ bool IsIPAddrV4Mapped(const NetAddr *addr)
   return false;
 }
 
+bool IsIPAddrLocal(const NetAddr *addr)
+{
+  MOZ_ASSERT(addr);
+
+  
+  if (addr->raw.family == AF_INET) {
+    uint32_t addr32 = ntohl(addr->inet.ip);
+    if (addr32 >> 24 == 0x0A ||    
+        addr32 >> 20 == 0xAC1 ||   
+        addr32 >> 16 == 0xC0A8 ||  
+        addr32 >> 16 == 0xA9FE) {  
+      return true;
+    }
+  }
+  
+  if (addr->raw.family == AF_INET6) {
+    uint16_t addr16 = ntohs(addr->inet6.ip.u16[0]);
+    if (addr16 >> 9 == 0xfc >> 1 ||   
+        addr16 >> 6 == 0xfe80 >> 6) { 
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 NetAddrElement::NetAddrElement(const PRNetAddr *prNetAddr)
 {
   PRNetAddrToNetAddr(prNetAddr, &mAddress);
