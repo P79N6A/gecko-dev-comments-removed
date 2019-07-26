@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/dom/TabChild.h"
 #include "mozilla/layers/PLayerChild.h"
 #include "mozilla/layers/PLayersChild.h"
 #include "mozilla/layers/PLayersParent.h"
@@ -25,6 +26,7 @@
 #include "mozilla/Preferences.h"
 #include "nsIWidget.h"
 
+using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 namespace mozilla {
@@ -215,6 +217,7 @@ BasicLayerManager::BasicLayerManager(nsIWidget* aWidget) :
   , mDoubleBuffering(BUFFER_NONE), mUsingDefaultTarget(false)
   , mCachedSurfaceInUse(false)
   , mTransactionIncomplete(false)
+  , mCompositorMightResample(false)
 {
   MOZ_COUNT_CTOR(BasicLayerManager);
   NS_ASSERTION(aWidget, "Must provide a widget");
@@ -1089,6 +1092,17 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   if (HasShadowManager()) {
     ShadowLayerForwarder::BeginTransaction(mTargetBounds, mTargetRotation);
+
+    
+    
+    
+    
+    
+    if (mWidget) {
+      if (TabChild* window = mWidget->GetOwningTabChild()) {
+        mCompositorMightResample = window->IsAsyncPanZoomEnabled();
+      }
+    }
 
     
     

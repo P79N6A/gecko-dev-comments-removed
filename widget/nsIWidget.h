@@ -1623,6 +1623,12 @@ class nsIWidget : public nsISupports {
 
     virtual const SizeConstraints& GetSizeConstraints() const = 0;
 
+    
+
+
+
+    virtual TabChild* GetOwningTabChild() { return nullptr; }
+
 protected:
 
     
