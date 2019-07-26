@@ -57,6 +57,9 @@ user_pref("experiments.supported", true);
 user_pref("experiments.logging.level", "Trace");
 
 
+user_pref("experiments.manifest.uri", "http://%(server)s/experiments-dummy/manifest");
+
+
 
 user_pref("extensions.enabledScopes", 5);
 
