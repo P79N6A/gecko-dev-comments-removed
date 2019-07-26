@@ -103,7 +103,7 @@ create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
 
 
   addSource: function(aSource, aOptions = {}) {
-    let url = aSource.url;
+    let url = NetworkHelper.convertToUnicode(unescape(aSource.url));
     let label = SourceUtils.getSourceLabel(url.split(" -> ").pop());
     let group = SourceUtils.getSourceGroup(url.split(" -> ").pop());
 
