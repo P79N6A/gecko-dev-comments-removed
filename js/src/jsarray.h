@@ -140,22 +140,22 @@ ArrayShiftMoveElements(JSObject *obj);
 extern bool
 array_shift(JSContext *cx, unsigned argc, js::Value *vp);
 
+
+
+
+
+
+
+
+extern bool
+NewbornArrayPush(JSContext *cx, HandleObject obj, const Value &v);
+
 } 
 
 #ifdef DEBUG
 extern bool
 js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
 #endif
-
-
-
-
-
-
-
-
-extern bool
-js_NewbornArrayPush(JSContext *cx, js::HandleObject obj, const js::Value &v);
 
 
 bool
