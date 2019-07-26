@@ -648,6 +648,31 @@ ModOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue lhs
     return true;
 }
 
+static JS_ALWAYS_INLINE bool
+NegOperation(JSContext *cx, HandleScript script, jsbytecode *pc, HandleValue val,
+             MutableHandleValue res)
+{
+    
+
+
+
+
+    int32_t i;
+    if (val.isInt32() && (i = val.toInt32()) != 0 && i != INT32_MIN) {
+        i = -i;
+        res.setInt32(i);
+    } else {
+        double d;
+        if (!ToNumber(cx, val, &d))
+            return false;
+        d = -d;
+        if (!res.setNumber(d) && !val.isDouble())
+            types::TypeScript::MonitorOverflow(cx, script, pc);
+    }
+
+    return true;
+}
+
 static inline bool
 FetchElementId(JSContext *cx, JSObject *obj, const Value &idval, jsid *idp, MutableHandleValue vp)
 {
