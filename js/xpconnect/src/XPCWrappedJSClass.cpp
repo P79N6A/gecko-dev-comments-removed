@@ -188,7 +188,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
     RootedValue retval(cx);
     RootedObject retObj(cx);
     bool success = false;
-    jsid funid;
     RootedValue fun(cx);
 
     
@@ -208,7 +207,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
         return nullptr;
 
     
-    funid = mRuntime->GetStringID(XPCJSRuntime::IDX_QUERY_INTERFACE);
+    HandleId funid = mRuntime->GetStringID(XPCJSRuntime::IDX_QUERY_INTERFACE);
     if (!JS_GetPropertyById(cx, jsobj, funid, &fun) || JSVAL_IS_PRIMITIVE(fun))
         return nullptr;
 
@@ -295,8 +294,8 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
 
 static bool
 GetNamedPropertyAsVariantRaw(XPCCallContext& ccx,
-                             JSObject* aJSObj,
-                             jsid aName,
+                             HandleObject aJSObj,
+                             HandleId aName,
                              nsIVariant** aResult,
                              nsresult* pErr)
 {
@@ -1360,11 +1359,15 @@ pre_call_clean_up:
 
         if (param.IsRetval())
             val = rval;
-        else if (JSVAL_IS_PRIMITIVE(argv[i]) ||
-                 !JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
-                                     mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
-                                     &val))
+        else if (argv[i].isPrimitive())
             break;
+        else {
+            RootedObject obj(cx, &argv[i].toObject());
+            if (!JS_GetPropertyById(cx, obj,
+                                    mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
+                                    &val))
+                break;
+        }
 
         
 
@@ -1405,10 +1408,13 @@ pre_call_clean_up:
 
             if (param.IsRetval())
                 val = rval;
-            else if (!JS_GetPropertyById(cx, JSVAL_TO_OBJECT(argv[i]),
-                                         mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
-                                         &val))
-                break;
+            else {
+                RootedObject obj(cx, &argv[i].toObject());
+                if (!JS_GetPropertyById(cx, obj,
+                                        mRuntime->GetStringID(XPCJSRuntime::IDX_VALUE),
+                                        &val))
+                    break;
+            }
 
             
 
