@@ -597,8 +597,6 @@ With this information, it finally type checks the AST.'''
                 return False
             return True
 
-        tu.cxxIncludes = builtinHeaderIncludes + tu.cxxIncludes
-
         
         
         if not runpass(GatherDecls(builtinUsing, self.errors)):
