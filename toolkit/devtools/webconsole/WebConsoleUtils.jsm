@@ -797,7 +797,8 @@ this.WebConsoleUtils = {
 
     let type = typeof aObject;
     if (type != "object") {
-      return type;
+      
+      return type.charAt(0).toUpperCase() + type.substr(1);
     }
 
     let className;
