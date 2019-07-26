@@ -524,22 +524,6 @@ class IDLInterface(IDLObjectWithScope):
                                    self.parent.identifier.name),
                                   [self.location, self.parent.location])
 
-            
-            
-            
-            
-            
-            unforgeableParentMembers = [
-                attr for attr in parent.members
-                if attr.isAttr() and attr.isUnforgeable() ]
-            if len(unforgeableParentMembers) != 0:
-                locs = [self.location, parent.location]
-                locs.extend(attr.location for attr in unforgeableParentMembers)
-                raise WebIDLError("Interface %s inherits from %s, which has "
-                                  "[Unforgeable] members" %
-                                  (self.identifier.name, parent.identifier.name),
-                                  locs)
-
         for iface in self.implementedInterfaces:
             iface.finish(scope)
 
@@ -598,6 +582,37 @@ class IDLInterface(IDLObjectWithScope):
             ancestor.interfacesBasedOnSelf.add(self)
             for ancestorConsequential in ancestor.getConsequentialInterfaces():
                 ancestorConsequential.interfacesBasedOnSelf.add(self)
+
+        if self.parent:
+            
+            
+            
+            
+            
+            
+            
+            for unforgeableAttr in (attr for attr in self.parent.members if
+                                    attr.isAttr() and not attr.isStatic() and
+                                    attr.isUnforgeable()):
+                shadows = [ m for m in self.members if
+                            (m.isAttr() or m.isMethod()) and
+                            not m.isStatic() and
+                            m.identifier.name == unforgeableAttr.identifier.name ]
+                if len(shadows) != 0:
+                    locs = [unforgeableAttr.location] + [ s.location for s
+                                                          in shadows ]
+                    raise WebIDLError("Interface %s shadows [Unforgeable] "
+                                      "members of %s" %
+                                      (self.identifier.name,
+                                       ancestor.identifier.name),
+                                      locs)
+                
+                
+                
+                
+                
+                
+                self.members.append(unforgeableAttr)
 
         
         
