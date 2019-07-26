@@ -3,8 +3,18 @@
 
 
 
-#include "nsNSSComponent.h"
 #include "nsCrypto.h"
+#include "nsNSSComponent.h"
+#include "secmod.h"
+
+#include "nsReadableUtils.h"
+#include "nsCRT.h"
+#include "nsXPIDLString.h"
+#include "nsISaveAsCharset.h"
+#include "nsNativeCharsetUtils.h"
+
+#ifndef MOZ_DISABLE_CRYPTOLEGACY
+#include "nsNSSComponent.h"
 #include "nsKeygenHandler.h"
 #include "nsKeygenThread.h"
 #include "nsNSSCertificate.h"
@@ -15,7 +25,6 @@
 #include "nsIServiceManager.h"
 #include "nsIMemory.h"
 #include "nsAlgorithm.h"
-#include "nsCRT.h"
 #include "prprf.h"
 #include "nsDOMCID.h"
 #include "nsIDOMWindow.h"
@@ -34,7 +43,6 @@
 #include "nsJSPrincipals.h"
 #include "nsIPrincipal.h"
 #include "nsIScriptSecurityManager.h"
-#include "nsXPIDLString.h"
 #include "nsIGenKeypairInfoDlg.h"
 #include "nsIDOMCryptoDialogs.h"
 #include "nsIFormSigningDialog.h"
@@ -42,7 +50,6 @@
 #include "jsapi.h"
 #include "jsdbgapi.h"
 #include <ctype.h>
-#include "nsReadableUtils.h"
 #include "pk11func.h"
 #include "keyhi.h"
 #include "cryptohi.h"
@@ -57,21 +64,17 @@
 #include "cert.h"
 #include "certdb.h"
 #include "secmod.h"
-#include "nsISaveAsCharset.h"
-#include "nsNativeCharsetUtils.h"
 #include "ScopedNSSTypes.h"
 
 #include "ssl.h" 
 
 #include "nsNSSCleaner.h"
 
-#include "nsNSSShutDown.h"
 #include "nsNSSCertHelper.h"
 #include <algorithm>
+#endif
 
 using namespace mozilla;
-
-NSSCleanupAutoPtrClass_WithParam(PK11Context, PK11_DestroyContext, TrueParam, true)
 
 
 
@@ -97,6 +100,16 @@ NSSCleanupAutoPtrClass_WithParam(PK11Context, PK11_DestroyContext, TrueParam, tr
 #define JS_ERR_BAD_MECHANISM_FLAGS        -8
 #define JS_ERR_BAD_CIPHER_ENABLE_FLAGS    -9
 #define JS_ERR_ADD_DUPLICATE_MOD          -10
+
+namespace {
+  
+NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
+
+} 
+
+#ifndef MOZ_DISABLE_CRYPTOLEGACY
+
+NSSCleanupAutoPtrClass_WithParam(PK11Context, PK11_DestroyContext, TrueParam, true)
 
 
 
@@ -195,13 +208,11 @@ private:
 
 NS_INTERFACE_MAP_BEGIN(nsCrypto)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCrypto)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(Crypto)
-NS_INTERFACE_MAP_END
+NS_INTERFACE_MAP_END_INHERITING(mozilla::dom::Crypto)
 
-NS_IMPL_ADDREF(nsCrypto)
-NS_IMPL_RELEASE(nsCrypto)
-
+NS_IMPL_ADDREF_INHERITED(nsCrypto, mozilla::dom::Crypto)
+NS_IMPL_RELEASE_INHERITED(nsCrypto, mozilla::dom::Crypto)
+ 
 
 NS_INTERFACE_MAP_BEGIN(nsCRMFObject)
   NS_INTERFACE_MAP_ENTRY(nsIDOMCRMFObject)
@@ -213,6 +224,8 @@ NS_IMPL_ADDREF(nsCRMFObject)
 NS_IMPL_RELEASE(nsCRMFObject)
 
 
+#endif 
+
 NS_INTERFACE_MAP_BEGIN(nsPkcs11)
   NS_INTERFACE_MAP_ENTRY(nsIPKCS11)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
@@ -220,6 +233,8 @@ NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(nsPkcs11)
 NS_IMPL_RELEASE(nsPkcs11)
+
+#ifndef MOZ_DISABLE_CRYPTOLEGACY
 
 
 NS_IMPL_ISUPPORTS1(nsCryptoRunnable, nsIRunnable)
@@ -229,8 +244,6 @@ NS_IMPL_ISUPPORTS1(nsP12Runnable, nsIRunnable)
 
 
 NS_IMPL_ISUPPORTS0(nsCryptoRunArgs)
-
-static NS_DEFINE_CID(kNSSComponentCID, NS_NSSCOMPONENT_CID);
 
 nsCrypto::nsCrypto() :
   mEnableSmartCardEvents(false)
@@ -2871,39 +2884,14 @@ nsCRMFObject::SetCRMFRequest(char *inRequest)
   return NS_OK;
 }
 
+#endif 
+
 nsPkcs11::nsPkcs11()
 {
 }
 
 nsPkcs11::~nsPkcs11()
 {
-}
-
-
-bool
-confirm_user(const PRUnichar *message)
-{
-  int32_t buttonPressed = 1; 
-
-  nsCOMPtr<nsIPrompt> prompter;
-  (void) nsNSSComponent::GetNewPrompter(getter_AddRefs(prompter));
-
-  if (prompter) {
-    nsPSMUITracker tracker;
-    if (!tracker.isUIForbidden()) {
-      
-      
-      bool checkState = false;
-      prompter->ConfirmEx(0, message,
-                          (nsIPrompt::BUTTON_DELAY_ENABLE) +
-                          (nsIPrompt::BUTTON_POS_1_DEFAULT) +
-                          (nsIPrompt::BUTTON_TITLE_OK * nsIPrompt::BUTTON_POS_0) +
-                          (nsIPrompt::BUTTON_TITLE_CANCEL * nsIPrompt::BUTTON_POS_1),
-                          nullptr, nullptr, nullptr, nullptr, &checkState, &buttonPressed);
-    }
-  }
-
-  return (buttonPressed == 0);
 }
 
 
@@ -2928,7 +2916,9 @@ nsPkcs11::DeleteModule(const nsAString& aModuleName)
   if (srv == SECSuccess) {
     SECMODModule *module = SECMOD_FindModule(modName.get());
     if (module) {
+#ifndef MOZ_DISABLE_CRYPTOLEGACY
       nssComponent->ShutdownSmartCardThread(module);
+#endif
       SECMOD_DestroyModule(module);
     }
     rv = NS_OK;
@@ -2960,7 +2950,9 @@ nsPkcs11::AddModule(const nsAString& aModuleName,
   if (srv == SECSuccess) {
     SECMODModule *module = SECMOD_FindModule(moduleName.get());
     if (module) {
+#ifndef MOZ_DISABLE_CRYPTOLEGACY
       nssComponent->LaunchSmartCardThread(module);
+#endif
       SECMOD_DestroyModule(module);
     }
   }
