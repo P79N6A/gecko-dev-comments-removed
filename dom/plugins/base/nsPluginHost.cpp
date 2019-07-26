@@ -223,14 +223,10 @@ nsInvalidPluginTag::nsInvalidPluginTag(const char* aFullPath, int64_t aLastModif
 : mFullPath(aFullPath),
   mLastModifiedTime(aLastModifiedTime),
   mSeen(false)
-{
-  
-}
+{}
 
 nsInvalidPluginTag::~nsInvalidPluginTag()
-{
-  
-}
+{}
 
 
 static bool
@@ -1209,7 +1205,7 @@ nsPluginHost::IsPluginEnabledForType(const char* aMimeType)
 
   return NS_OK;
 }
- 
+
 NS_IMETHODIMP
 nsPluginHost::IsPluginClickToPlayForType(const nsACString &aMimeType, bool *aResult)
 {
@@ -1246,7 +1242,7 @@ nsPluginHost::IsPluginPlayPreviewForType(const char* aMimeType)
 }
 
 nsresult
-nsPluginHost::GetBlocklistStateForType(const char *aMimeType, uint32_t *aState) 
+nsPluginHost::GetBlocklistStateForType(const char *aMimeType, uint32_t *aState)
 {
   nsPluginTag *plugin = FindPluginForType(aMimeType, true);
   if (plugin) {
@@ -1924,10 +1920,10 @@ int64_t GetPluginLastModifiedTime(const nsCOMPtr<nsIFile>& localfile)
   return fileModTime;
 }
 
-struct CompareFilesByTime 
+struct CompareFilesByTime
 {
-  bool 
-  LessThan(const nsCOMPtr<nsIFile>& a, const nsCOMPtr<nsIFile>& b) const 
+  bool
+  LessThan(const nsCOMPtr<nsIFile>& a, const nsCOMPtr<nsIFile>& b) const
   {
     return GetPluginLastModifiedTime(a) < GetPluginLastModifiedTime(b);
   }
@@ -1998,7 +1994,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       continue;
 
     int64_t fileModTime = GetPluginLastModifiedTime(localfile);
-    
+
     
     NS_ConvertUTF16toUTF8 filePath(utf16FilePath);
     nsRefPtr<nsPluginTag> pluginTag;
@@ -2027,7 +2023,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
         continue;
       }
     }
-    
+
     bool isKnownInvalidPlugin = false;
     for (nsRefPtr<nsInvalidPluginTag> invalidPlugins = mInvalidPlugins;
          invalidPlugins; invalidPlugins = invalidPlugins->mNext) {
@@ -2059,7 +2055,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
         nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(filePath.get(),
                                                                          fileModTime);
         pluginFile.FreePluginInfo(info);
-        
+
         if (aCreatePluginList) {
           invalidTag->mSeen = true;
         }
@@ -2068,7 +2064,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
           mInvalidPlugins->mPrev = invalidTag;
         }
         mInvalidPlugins = invalidTag;
-        
+
         
         *aPluginsChanged = true;
         continue;
@@ -2125,7 +2121,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       
       *aPluginsChanged = true;
     }
-    
+
     
     
     if (!nsNPAPIPlugin::RunPluginOOP(pluginTag)) {
@@ -2133,7 +2129,7 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
         continue;
       }
     }
-    
+
     
     if (nsPluginTag* duplicate = FirstPluginWithPath(pluginTag->mFullPath)) {
       if (pluginTag->mLastModifiedTime == duplicate->mLastModifiedTime) {
@@ -2207,7 +2203,7 @@ nsresult nsPluginHost::ScanPluginsDirectoryList(nsISimpleEnumerator *dirEnum,
       nsCOMPtr<nsIFile> nextDir(do_QueryInterface(supports, &rv));
       if (NS_FAILED(rv))
         continue;
-      
+
       
       bool pluginschanged = false;
       ScanPluginsDirectory(nextDir, aCreatePluginList, &pluginschanged);
@@ -2356,7 +2352,7 @@ nsresult nsPluginHost::FindPlugins(bool aCreatePluginList, bool * aPluginsChange
         dirToScan &&
         NS_SUCCEEDED(dirToScan->Exists(&bExists)) &&
         bExists) {
-      
+
       ScanPluginsDirectory(dirToScan, aCreatePluginList, &pluginschanged);
 
       if (pluginschanged)
@@ -2386,7 +2382,7 @@ nsresult nsPluginHost::FindPlugins(bool aCreatePluginList, bool * aPluginsChange
   while (invalidPlugins) {
     if (!invalidPlugins->mSeen) {
       nsRefPtr<nsInvalidPluginTag> invalidPlugin = invalidPlugins;
-      
+
       if (invalidPlugin->mPrev) {
         invalidPlugin->mPrev->mNext = invalidPlugin->mNext;
       }
@@ -2394,11 +2390,11 @@ nsresult nsPluginHost::FindPlugins(bool aCreatePluginList, bool * aPluginsChange
         mInvalidPlugins = invalidPlugin->mNext;
       }
       if (invalidPlugin->mNext) {
-        invalidPlugin->mNext->mPrev = invalidPlugin->mPrev; 
+        invalidPlugin->mNext->mPrev = invalidPlugin->mPrev;
       }
-      
+
       invalidPlugins = invalidPlugin->mNext;
-      
+
       invalidPlugin->mPrev = NULL;
       invalidPlugin->mNext = NULL;
     }
@@ -2561,7 +2557,7 @@ nsPluginHost::WritePluginInfo()
   if (!runtime) {
     return NS_ERROR_FAILURE;
   }
-    
+
   nsAutoCString arch;
   rv = runtime->GetXPCOMABI(arch);
   if (NS_FAILED(rv)) {
@@ -2633,7 +2629,7 @@ nsPluginHost::WritePluginInfo()
   }
 
   PR_fprintf(fd, "\n[INVALID]\n");
-  
+
   nsRefPtr<nsInvalidPluginTag> invalidPlugins = mInvalidPlugins;
   while (invalidPlugins) {
     
@@ -2647,7 +2643,7 @@ nsPluginHost::WritePluginInfo()
       invalidPlugins->mLastModifiedTime,
       PLUGIN_REGISTRY_FIELD_DELIMITER,
       PLUGIN_REGISTRY_END_OF_LINE_MARKER);
-    
+
     invalidPlugins = invalidPlugins->mNext;
   }
 
@@ -2756,37 +2752,37 @@ nsPluginHost::ReadPluginInfo()
   
   if (version >= "0.13") {
     char* archValues[6];
-    
+
     if (!reader.NextLine()) {
       return rv;
     }
-    
+
     
     if (2 != reader.ParseLine(archValues, 2)) {
       return rv;
     }
-      
+
     
     if (PL_strcmp(archValues[0], "Arch")) {
       return rv;
     }
-      
+
     nsCOMPtr<nsIXULRuntime> runtime = do_GetService("@mozilla.org/xre/runtime;1");
     if (!runtime) {
       return rv;
     }
-      
+
     nsAutoCString arch;
     if (NS_FAILED(runtime->GetXPCOMABI(arch))) {
       return rv;
     }
-      
+
     
     if (PL_strcmp(archValues[1], arch.get())) {
       return rv;
     }
   }
-  
+
   
   bool hasInvalidPlugins = (version >= "0.13");
 
@@ -2803,11 +2799,11 @@ nsPluginHost::ReadPluginInfo()
     const char *filename;
     const char *fullpath;
     nsAutoCString derivedFileName;
-    
+
     if (hasInvalidPlugins && *reader.LinePtr() == '[') {
       break;
     }
-    
+
     if (hasFullPathInFileNameField) {
       fullpath = reader.LinePtr();
       if (!reader.NextLine())
@@ -2923,7 +2919,7 @@ nsPluginHost::ReadPluginInfo()
     tag->mNext = mCachedPlugins;
     mCachedPlugins = tag;
   }
-  
+
   if (hasInvalidPlugins) {
     if (!ReadSectionHeader(reader, "INVALID")) {
       return rv;
@@ -2934,12 +2930,12 @@ nsPluginHost::ReadPluginInfo()
       if (!reader.NextLine()) {
         return rv;
       }
-      
+
       const char *lastModifiedTimeStamp = reader.LinePtr();
       int64_t lastmod = (vdiff == 0) ? nsCRT::atoll(lastModifiedTimeStamp) : -1;
-      
+
       nsRefPtr<nsInvalidPluginTag> invalidTag = new nsInvalidPluginTag(fullpath, lastmod);
-      
+
       invalidTag->mNext = mInvalidPlugins;
       if (mInvalidPlugins) {
         mInvalidPlugins->mPrev = invalidTag;
@@ -3098,7 +3094,7 @@ nsresult nsPluginHost::NewPluginURLStream(const nsString& aURL,
       rv = httpChannel->SetReferrer(referer);
       NS_ENSURE_SUCCESS(rv,rv);
     }
-      
+
     if (aPostStream) {
       
       
@@ -3903,7 +3899,7 @@ nsPluginHost::InstanceArray()
   return &mInstances;
 }
 
-void 
+void
 nsPluginHost::DestroyRunningInstances(nsISupportsArray* aReloadDocs, nsPluginTag* aPluginTag)
 {
   for (int32_t i = mInstances.Length(); i > 0; i--) {
@@ -4041,7 +4037,7 @@ PluginDestructionGuard::DelayDestroy(nsNPAPIPluginInstance *aInstance)
 
       return true;
     }
-    g = static_cast<PluginDestructionGuard*>(PR_NEXT_LINK(g));    
+    g = static_cast<PluginDestructionGuard*>(PR_NEXT_LINK(g));
   }
 
   return false;
