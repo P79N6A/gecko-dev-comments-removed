@@ -34,6 +34,11 @@ typedef nsContainerFrame nsSVGContainerFrameBase;
 
 
 
+
+
+
+
+
 class nsSVGContainerFrame : public nsSVGContainerFrameBase
 {
   friend nsIFrame* NS_NewSVGContainerFrame(nsIPresShell* aPresShell,
@@ -89,6 +94,13 @@ public:
 
   virtual bool UpdateOverflow();
 };
+
+
+
+
+
+
+
 
 
 
