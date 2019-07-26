@@ -26,6 +26,8 @@
 #define _PR_SI_ARCHITECTURE "ppc"
 #elif defined(__arm__)
 #define _PR_SI_ARCHITECTURE "arm"
+#elif defined(__aarch64__)
+#define _PR_SI_ARCHITECTURE "aarch64"
 #else
 #error "Unknown CPU architecture"
 #endif
@@ -122,7 +124,7 @@ extern PRInt32 _PR_Darwin_x86_64_AtomicAdd(PRInt32 *ptr, PRInt32 val);
 #define _MD_ATOMIC_ADD(ptr, val)    _PR_Darwin_x86_64_AtomicAdd(ptr, val)
 #endif 
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #define _PR_HAVE_ATOMIC_OPS
 #define _MD_INIT_ATOMIC()
 #define _MD_ATOMIC_INCREMENT(val)   OSAtomicIncrement32(val)

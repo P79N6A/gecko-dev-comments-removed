@@ -10,30 +10,88 @@
 
 
 
+
+
+static void _PR_PostNotifyToMonitor(PRMonitor *mon, PRBool broadcast)
+{
+    PR_ASSERT(mon != NULL);
+    PR_ASSERT_CURRENT_THREAD_IN_MONITOR(mon);
+
+    
+
+
+    if (broadcast)
+        mon->notifyTimes = -1;
+    else if (mon->notifyTimes != -1)
+        mon->notifyTimes += 1;
+}
+
+static void _PR_PostNotifiesFromMonitor(PRCondVar *cv, PRIntn times)
+{
+    PRStatus rv;
+
+    
+
+
+
+    PR_ASSERT(cv != NULL);
+    PR_ASSERT(times != 0);
+    if (times == -1) {
+        rv = PR_NotifyAllCondVar(cv);
+        PR_ASSERT(rv == PR_SUCCESS);
+    } else {
+        while (times-- > 0) {
+            rv = PR_NotifyCondVar(cv);
+            PR_ASSERT(rv == PR_SUCCESS);
+        }
+    }
+}
+
+
+
+
 PR_IMPLEMENT(PRMonitor*) PR_NewMonitor()
 {
     PRMonitor *mon;
-	PRCondVar *cvar;
-	PRLock *lock;
+    PRStatus rv;
+
+    if (!_pr_initialized) _PR_ImplicitInitialization();
 
     mon = PR_NEWZAP(PRMonitor);
-    if (mon) {
-		lock = PR_NewLock();
-	    if (!lock) {
-			PR_DELETE(mon);
-			return 0;
-    	}
-
-	    cvar = PR_NewCondVar(lock);
-	    if (!cvar) {
-	    	PR_DestroyLock(lock);
-			PR_DELETE(mon);
-			return 0;
-    	}
-    	mon->cvar = cvar;
-	mon->name = NULL;
+    if (mon == NULL) {
+        PR_SetError(PR_OUT_OF_MEMORY_ERROR, 0);
+        return NULL;
     }
+
+    rv = _PR_InitLock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    if (rv != PR_SUCCESS)
+        goto error1;
+
+    mon->owner = NULL;
+
+    rv = _PR_InitCondVar(&mon->entryCV, &mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    if (rv != PR_SUCCESS)
+        goto error2;
+
+    rv = _PR_InitCondVar(&mon->waitCV, &mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    if (rv != PR_SUCCESS)
+        goto error3;
+
+    mon->notifyTimes = 0;
+    mon->entryCount = 0;
+    mon->name = NULL;
     return mon;
+
+error3:
+    _PR_FreeCondVar(&mon->entryCV);
+error2:
+    _PR_FreeLock(&mon->lock);
+error1:
+    PR_Free(mon);
+    return NULL;
 }
 
 PR_IMPLEMENT(PRMonitor*) PR_NewNamedMonitor(const char* name)
@@ -51,9 +109,14 @@ PR_IMPLEMENT(PRMonitor*) PR_NewNamedMonitor(const char* name)
 
 PR_IMPLEMENT(void) PR_DestroyMonitor(PRMonitor *mon)
 {
-	PR_DestroyLock(mon->cvar->lock);
-    PR_DestroyCondVar(mon->cvar);
-    PR_DELETE(mon);
+    PR_ASSERT(mon != NULL);
+    _PR_FreeCondVar(&mon->waitCV);
+    _PR_FreeCondVar(&mon->entryCV);
+    _PR_FreeLock(&mon->lock);
+#if defined(DEBUG)
+    memset(mon, 0xaf, sizeof(PRMonitor));
+#endif
+    PR_Free(mon);
 }
 
 
@@ -61,12 +124,28 @@ PR_IMPLEMENT(void) PR_DestroyMonitor(PRMonitor *mon)
 
 PR_IMPLEMENT(void) PR_EnterMonitor(PRMonitor *mon)
 {
-    if (mon->cvar->lock->owner == _PR_MD_CURRENT_THREAD()) {
-		mon->entryCount++;
-    } else {
-		PR_Lock(mon->cvar->lock);
-		mon->entryCount = 1;
+    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PRStatus rv;
+
+    PR_ASSERT(mon != NULL);
+    PR_Lock(&mon->lock);
+    if (mon->entryCount != 0) {
+        if (mon->owner == me)
+            goto done;
+        while (mon->entryCount != 0) {
+            rv = PR_WaitCondVar(&mon->entryCV, PR_INTERVAL_NO_TIMEOUT);
+            PR_ASSERT(rv == PR_SUCCESS);
+        }
     }
+    
+    PR_ASSERT(mon->notifyTimes == 0);
+    PR_ASSERT(mon->owner == NULL);
+    mon->owner = me;
+
+done:
+    mon->entryCount += 1;
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
 }
 
 
@@ -76,16 +155,28 @@ PR_IMPLEMENT(void) PR_EnterMonitor(PRMonitor *mon)
 
 PR_IMPLEMENT(PRBool) PR_TestAndEnterMonitor(PRMonitor *mon)
 {
-    if (mon->cvar->lock->owner == _PR_MD_CURRENT_THREAD()) {
-		mon->entryCount++;
-		return PR_TRUE;
-    } else {
-		if (PR_TestAndLock(mon->cvar->lock)) {
-	    	mon->entryCount = 1;
-	   	 	return PR_TRUE;
-		}
+    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PRStatus rv;
+
+    PR_ASSERT(mon != NULL);
+    PR_Lock(&mon->lock);
+    if (mon->entryCount != 0) {
+        if (mon->owner == me)
+            goto done;
+        rv = PR_Unlock(&mon->lock);
+        PR_ASSERT(rv == PR_SUCCESS);
+        return PR_FALSE;
     }
-    return PR_FALSE;
+    
+    PR_ASSERT(mon->notifyTimes == 0);
+    PR_ASSERT(mon->owner == NULL);
+    mon->owner = me;
+
+done:
+    mon->entryCount += 1;
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    return PR_TRUE;
 }
 
 
@@ -93,12 +184,36 @@ PR_IMPLEMENT(PRBool) PR_TestAndEnterMonitor(PRMonitor *mon)
 
 PR_IMPLEMENT(PRStatus) PR_ExitMonitor(PRMonitor *mon)
 {
-    if (mon->cvar->lock->owner != _PR_MD_CURRENT_THREAD()) {
+    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PRStatus rv;
+
+    PR_ASSERT(mon != NULL);
+    PR_Lock(&mon->lock);
+    
+    PR_ASSERT(mon->entryCount > 0);
+    PR_ASSERT(mon->owner == me);
+    if (mon->entryCount == 0 || mon->owner != me)
+    {
+        rv = PR_Unlock(&mon->lock);
+        PR_ASSERT(rv == PR_SUCCESS);
         return PR_FAILURE;
     }
-    if (--mon->entryCount == 0) {
-		return PR_Unlock(mon->cvar->lock);
+
+    mon->entryCount -= 1;  
+    if (mon->entryCount == 0)
+    {
+        
+        
+        mon->owner = NULL;
+        if (mon->notifyTimes != 0) {
+            _PR_PostNotifiesFromMonitor(&mon->waitCV, mon->notifyTimes);
+            mon->notifyTimes = 0;
+        }
+        rv = PR_NotifyCondVar(&mon->entryCV);
+        PR_ASSERT(rv == PR_SUCCESS);
     }
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
     return PR_SUCCESS;
 }
 
@@ -108,17 +223,29 @@ PR_IMPLEMENT(PRStatus) PR_ExitMonitor(PRMonitor *mon)
 
 PR_IMPLEMENT(PRIntn) PR_GetMonitorEntryCount(PRMonitor *mon)
 {
-    return (mon->cvar->lock->owner == _PR_MD_CURRENT_THREAD()) ?
-        mon->entryCount : 0;
+    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PRStatus rv;
+    PRIntn count = 0;
+
+    PR_Lock(&mon->lock);
+    if (mon->owner == me)
+        count = mon->entryCount;
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    return count;
 }
-
-
-
-
 
 PR_IMPLEMENT(void) PR_AssertCurrentThreadInMonitor(PRMonitor *mon)
 {
-    PR_ASSERT_CURRENT_THREAD_OWNS_LOCK(mon->cvar->lock);
+#if defined(DEBUG) || defined(FORCE_PR_ASSERT)
+    PRStatus rv;
+
+    PR_Lock(&mon->lock);
+    PR_ASSERT(mon->entryCount != 0 &&
+              mon->owner == _PR_MD_CURRENT_THREAD());
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+#endif
 }
 
 
@@ -140,20 +267,45 @@ PR_IMPLEMENT(void) PR_AssertCurrentThreadInMonitor(PRMonitor *mon)
 
 PR_IMPLEMENT(PRStatus) PR_Wait(PRMonitor *mon, PRIntervalTime ticks)
 {
-    PRUintn entryCount;
-	PRStatus status;
-    PRThread *me = _PR_MD_CURRENT_THREAD();
+    PRStatus rv;
+    PRUint32 saved_entries;
+    PRThread *saved_owner;
 
-    if (mon->cvar->lock->owner != me) return PR_FAILURE;
+    PR_ASSERT(mon != NULL);
+    PR_Lock(&mon->lock);
+    
+    PR_ASSERT(mon->entryCount > 0);
+    
+    PR_ASSERT(mon->owner == _PR_MD_CURRENT_THREAD());  
 
-    entryCount = mon->entryCount;
+    
+    saved_entries = mon->entryCount;
     mon->entryCount = 0;
+    saved_owner = mon->owner;
+    mon->owner = NULL;
+    
+    if (mon->notifyTimes != 0) {
+        _PR_PostNotifiesFromMonitor(&mon->waitCV, mon->notifyTimes);
+        mon->notifyTimes = 0;
+    }
+    rv = PR_NotifyCondVar(&mon->entryCV);
+    PR_ASSERT(rv == PR_SUCCESS);
 
-	status = _PR_WaitCondVar(me, mon->cvar, mon->cvar->lock, ticks);
+    rv = PR_WaitCondVar(&mon->waitCV, ticks);
+    PR_ASSERT(rv == PR_SUCCESS);
 
-    mon->entryCount = entryCount;
+    while (mon->entryCount != 0) {
+        rv = PR_WaitCondVar(&mon->entryCV, PR_INTERVAL_NO_TIMEOUT);
+        PR_ASSERT(rv == PR_SUCCESS);
+    }
+    PR_ASSERT(mon->notifyTimes == 0);
+    
+    mon->entryCount = saved_entries;
+    mon->owner = saved_owner;
 
-    return status;
+    rv = PR_Unlock(&mon->lock);
+    PR_ASSERT(rv == PR_SUCCESS);
+    return rv;
 }
 
 
@@ -163,9 +315,7 @@ PR_IMPLEMENT(PRStatus) PR_Wait(PRMonitor *mon, PRIntervalTime ticks)
 
 PR_IMPLEMENT(PRStatus) PR_Notify(PRMonitor *mon)
 {
-    PRThread *me = _PR_MD_CURRENT_THREAD();
-    if (mon->cvar->lock->owner != me) return PR_FAILURE;
-    PR_NotifyCondVar(mon->cvar);
+    _PR_PostNotifyToMonitor(mon, PR_FALSE);
     return PR_SUCCESS;
 }
 
@@ -176,9 +326,7 @@ PR_IMPLEMENT(PRStatus) PR_Notify(PRMonitor *mon)
 
 PR_IMPLEMENT(PRStatus) PR_NotifyAll(PRMonitor *mon)
 {
-    PRThread *me = _PR_MD_CURRENT_THREAD();
-    if (mon->cvar->lock->owner != me) return PR_FAILURE;
-    PR_NotifyAllCondVar(mon->cvar);
+    _PR_PostNotifyToMonitor(mon, PR_TRUE);
     return PR_SUCCESS;
 }
 
@@ -188,10 +336,9 @@ PRUint32 _PR_MonitorToString(PRMonitor *mon, char *buf, PRUint32 buflen)
 {
     PRUint32 nb;
 
-    if (mon->cvar->lock->owner) {
+    if (mon->owner) {
 	nb = PR_snprintf(buf, buflen, "[%p] owner=%d[%p] count=%ld",
-			 mon, mon->cvar->lock->owner->id,
-			 mon->cvar->lock->owner, mon->entryCount);
+			 mon, mon->owner->id, mon->owner, mon->entryCount);
     } else {
 	nb = PR_snprintf(buf, buflen, "[%p]", mon);
     }

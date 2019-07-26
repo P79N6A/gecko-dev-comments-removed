@@ -3400,6 +3400,8 @@ PR_EXTERN(PRStatus) _pr_push_ipv6toipv4_layer(PRFileDesc *fd);
 extern PRBool _pr_ipv6_is_present(void);
 PR_IMPLEMENT(PRBool) _pr_test_ipv6_socket()
 {
+    int osfd;
+
 #if defined(DARWIN)
     
 
@@ -3412,24 +3414,18 @@ PR_IMPLEMENT(PRBool) _pr_test_ipv6_socket()
     }
 #endif
 
-#if defined(LINUX)
-    
-    int rv = access("/proc/net/if_inet6", F_OK);
-    return (rv == 0);
-#else
     
 
 
 
 
 
-    PRInt32 osfd = socket(AF_INET6, SOCK_STREAM, 0);
+    osfd = socket(AF_INET6, SOCK_STREAM, 0);
     if (osfd != -1) {
         close(osfd);
         return PR_TRUE;
     }
     return PR_FALSE;
-#endif
 }
 #endif	
 #endif

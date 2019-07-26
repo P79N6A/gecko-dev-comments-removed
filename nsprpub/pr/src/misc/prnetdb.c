@@ -2228,10 +2228,6 @@ PR_IMPLEMENT(PRStatus) PR_StringToNetAddr(const char *string, PRNetAddr *addr)
 #if !defined(_PR_HAVE_GETADDRINFO)
     return pr_StringToNetAddrFB(string, addr);
 #else
-#if defined(_PR_INET6_PROBE)
-    if (!_pr_ipv6_is_present())
-        return pr_StringToNetAddrFB(string, addr);
-#endif
     
 
 
@@ -2240,6 +2236,11 @@ PR_IMPLEMENT(PRStatus) PR_StringToNetAddr(const char *string, PRNetAddr *addr)
 
     if (!strchr(string, '%'))
         return pr_StringToNetAddrFB(string, addr);
+
+#if defined(_PR_INET6_PROBE)
+    if (!_pr_ipv6_is_present())
+        return pr_StringToNetAddrFB(string, addr);
+#endif
 
     return pr_StringToNetAddrGAI(string, addr);
 #endif
