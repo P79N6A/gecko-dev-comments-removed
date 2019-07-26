@@ -79,7 +79,8 @@ public class SiteIdentityPopup extends ArrowPopup {
             init();
         }
 
-        if (mSiteIdentity.getSecurityMode() == SecurityMode.MIXED_CONTENT_LOADED) {
+        if (mSiteIdentity.getSecurityMode() == SecurityMode.MIXED_CONTENT_LOADED ||
+            mSiteIdentity.getSecurityMode() == SecurityMode.MIXED_CONTENT_BLOCKED) {
             
             
             
