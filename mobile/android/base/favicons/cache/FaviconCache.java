@@ -8,11 +8,11 @@ import android.graphics.Bitmap;
 import android.util.Log;
 import org.mozilla.gecko.favicons.Favicons;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 
 
@@ -107,10 +107,10 @@ public class FaviconCache {
     
     
     
-    private final ConcurrentHashMap<String, FaviconsForURL> backingMap = new ConcurrentHashMap<String, FaviconsForURL>();
+    private final HashMap<String, FaviconsForURL> backingMap = new HashMap<String, FaviconsForURL>();
 
     
-    private final ConcurrentHashMap<String, FaviconsForURL> permanentBackingMap = new ConcurrentHashMap<String, FaviconsForURL>();
+    private final HashMap<String, FaviconsForURL> permanentBackingMap = new HashMap<String, FaviconsForURL>();
 
     
     
@@ -131,59 +131,38 @@ public class FaviconCache {
 
     
     
-    private final AtomicInteger ongoingReads = new AtomicInteger(0);
+    private final Object reorderingLock = new Object();
 
     
     
-    private final Semaphore turnSemaphore = new Semaphore(1);
+    private final ReentrantReadWriteLock backingMapsLock = new ReentrantReadWriteLock(false);
 
     
-    
-    
-    private final Semaphore reorderingSemaphore = new Semaphore(1);
-
-    
-    private final Semaphore writeLock = new Semaphore(1);
-
-    
-
 
 
     private void startRead() {
-        turnSemaphore.acquireUninterruptibly();
-        turnSemaphore.release();
-
-        if (ongoingReads.incrementAndGet() == 1) {
-            
-            writeLock.acquireUninterruptibly();
-        }
+        backingMapsLock.readLock().lock();
     }
 
     
-
 
 
     private void finishRead() {
-        if (ongoingReads.decrementAndGet() == 0) {
-            writeLock.release();
-        }
+        backingMapsLock.readLock().unlock();
     }
 
     
 
 
-
     private void startWrite() {
-        turnSemaphore.acquireUninterruptibly();
-        writeLock.acquireUninterruptibly();
+        backingMapsLock.writeLock().lock();
     }
 
     
 
 
     private void finishWrite() {
-        turnSemaphore.release();
-        writeLock.release();
+        backingMapsLock.writeLock().unlock();
     }
 
     public FaviconCache(int maxSize, int maxWidthToCache) {
@@ -472,13 +451,10 @@ public class FaviconCache {
 
 
     private boolean setMostRecentlyUsedWithinRead(FaviconCacheElement element) {
-        reorderingSemaphore.acquireUninterruptibly();
-        try {
+        synchronized(reorderingLock) {
             boolean contained = ordering.remove(element);
             ordering.offer(element);
             return contained;
-        } finally {
-            reorderingSemaphore.release();
         }
     }
 
