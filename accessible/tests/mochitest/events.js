@@ -101,10 +101,20 @@ function waitForEvent(aEventType, aTarget, aFunc, aContext, aArg1, aArg2)
 
 
 
+
+function waveOverImageMap(aImageMapID)
+{
+  var imageMapNode = getNode(aImageMapID);
+  synthesizeMouse(imageMapNode, 10, 10, { type: "mousemove" },
+                  imageMapNode.ownerDocument.defaultView);
+}
+
+
+
+
 function waitForImageMap(aImageMapID, aTestFunc)
 {
-  synthesizeMouse(aImageMapID, 10, 10, { type: "mousemove" },
-                  aImageMapID.ownerDocument.defaultView);
+  waveOverImageMap(aImageMapID);
 
   var imageMapAcc = getAccessible(aImageMapID);
   if (imageMapAcc.firstChild)
