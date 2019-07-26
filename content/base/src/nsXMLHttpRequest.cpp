@@ -78,6 +78,7 @@
 #include "mozilla/Attributes.h"
 #include "nsIPermissionManager.h"
 #include "nsMimeTypes.h"
+#include "nsIHttpChannelInternal.h"
 
 #include "nsWrapperCacheInlines.h"
 #include "nsStreamListenerWrapper.h"
@@ -2963,6 +2964,15 @@ nsXMLHttpRequest::Send(nsIVariant* aVariant, const Nullable<RequestBody>& aBody)
   
   
   AddLoadFlags(mChannel, nsIRequest::INHIBIT_PIPELINE);
+
+  nsCOMPtr<nsIHttpChannelInternal>
+    internalHttpChannel(do_QueryInterface(mChannel));
+  if (internalHttpChannel) {
+    
+    
+    
+    internalHttpChannel->SetLoadUnblocked(true);
+  }
 
   if (!IsSystemXHR()) {
     

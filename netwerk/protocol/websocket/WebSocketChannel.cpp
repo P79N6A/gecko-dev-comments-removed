@@ -2081,6 +2081,12 @@ WebSocketChannel::SetupRequest()
 
   
   
+  
+  rv = mChannel->SetLoadUnblocked(true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
   rv = mChannel->HTTPUpgrade(NS_LITERAL_CSTRING("websocket"), this);
   NS_ENSURE_SUCCESS(rv, rv);
 

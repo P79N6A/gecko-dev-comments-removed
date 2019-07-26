@@ -142,6 +142,10 @@ public:
   NS_IMETHOD GetRemotePort(int32_t* port);
   NS_IMETHOD GetAllowSpdy(bool *aAllowSpdy);
   NS_IMETHOD SetAllowSpdy(bool aAllowSpdy);
+  NS_IMETHOD GetLoadAsBlocking(bool *aLoadAsBlocking);
+  NS_IMETHOD SetLoadAsBlocking(bool aLoadAsBlocking);
+  NS_IMETHOD GetLoadUnblocked(bool *aLoadUnblocked);
+  NS_IMETHOD SetLoadUnblocked(bool aLoadUnblocked);
   
   inline void CleanRedirectCacheChainIfNecessary()
   {
@@ -274,6 +278,8 @@ protected:
   
   uint32_t                          mTimingEnabled              : 1;
   uint32_t                          mAllowSpdy                  : 1;
+  uint32_t                          mLoadAsBlocking             : 1;
+  uint32_t                          mLoadUnblocked              : 1;
 
   
   uint32_t                          mSuspendCount;

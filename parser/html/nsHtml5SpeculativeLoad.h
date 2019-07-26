@@ -16,6 +16,7 @@ enum eHtml5SpeculativeLoad {
   eSpeculativeLoadBase,
   eSpeculativeLoadImage,
   eSpeculativeLoadScript,
+  eSpeculativeLoadScriptFromHead,
   eSpeculativeLoadStyle,
   eSpeculativeLoadManifest,
   eSpeculativeLoadSetDocumentCharset
@@ -45,10 +46,12 @@ class nsHtml5SpeculativeLoad {
     inline void InitScript(const nsAString& aUrl,
                            const nsAString& aCharset,
                            const nsAString& aType,
-                           const nsAString& aCrossOrigin) {
+                           const nsAString& aCrossOrigin,
+                           bool aParserInHead) {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
-      mOpCode = eSpeculativeLoadScript;
+      mOpCode = aParserInHead ?
+          eSpeculativeLoadScriptFromHead : eSpeculativeLoadScript;
       mUrl.Assign(aUrl);
       mCharset.Assign(aCharset);
       mTypeOrCharsetSource.Assign(aType);
