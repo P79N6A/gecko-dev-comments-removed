@@ -14,6 +14,7 @@
 #include "nsGkAtoms.h"
 #include "nsINodeInfo.h"
 #include "nsINameSpaceManager.h"
+#include "nsThemeConstants.h"
 #include "mozilla/BasicEvents.h"
 #include "nsContentUtils.h"
 #include "nsContentCreatorFunctions.h"
@@ -318,6 +319,49 @@ nsNumberControlFrame::GetAnonTextControl()
   return mTextField ? HTMLInputElement::FromContent(mTextField) : nullptr;
 }
 
+ nsNumberControlFrame*
+nsNumberControlFrame::GetNumberControlFrameForTextField(nsIFrame* aFrame)
+{
+  
+  
+  
+  
+  
+  nsIContent* content = aFrame->GetContent();
+  if (content->IsInNativeAnonymousSubtree() &&
+      content->GetParent() && content->GetParent()->GetParent()) {
+    nsIContent* grandparent = content->GetParent()->GetParent();
+    if (grandparent->IsHTML(nsGkAtoms::input) &&
+        grandparent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                                 nsGkAtoms::number, eCaseMatters)) {
+      return do_QueryFrame(grandparent->GetPrimaryFrame());
+    }
+  }
+  return nullptr;
+}
+
+ nsNumberControlFrame*
+nsNumberControlFrame::GetNumberControlFrameForSpinButton(nsIFrame* aFrame)
+{
+  
+  
+  
+  
+  
+  nsIContent* content = aFrame->GetContent();
+  if (content->IsInNativeAnonymousSubtree() &&
+      content->GetParent() && content->GetParent()->GetParent() &&
+      content->GetParent()->GetParent()->GetParent()) {
+    nsIContent* greatgrandparent = content->GetParent()->GetParent()->GetParent();
+    if (greatgrandparent->IsHTML(nsGkAtoms::input) &&
+        greatgrandparent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                                      nsGkAtoms::number, eCaseMatters)) {
+      return do_QueryFrame(greatgrandparent->GetPrimaryFrame());
+    }
+  }
+  return nullptr;
+}
+
 int32_t
 nsNumberControlFrame::GetSpinButtonForPointerEvent(WidgetGUIEvent* aEvent) const
 {
@@ -330,7 +374,62 @@ nsNumberControlFrame::GetSpinButtonForPointerEvent(WidgetGUIEvent* aEvent) const
   if (aEvent->originalTarget == mSpinDown) {
     return eSpinButtonDown;
   }
+  if (aEvent->originalTarget == mSpinBox) {
+    
+    
+    
+    
+    
+    LayoutDeviceIntPoint absPoint = aEvent->refPoint;
+    nsPoint point =
+      nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent,
+                       LayoutDeviceIntPoint::ToUntyped(absPoint),
+                       mSpinBox->GetPrimaryFrame());
+    if (point != nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)) {
+      if (point.y < mSpinBox->GetPrimaryFrame()->GetSize().height / 2) {
+        return eSpinButtonUp;
+      }
+      return eSpinButtonDown;
+    }
+  }
   return eSpinButtonNone;
+}
+
+void
+nsNumberControlFrame::SpinnerStateChanged() const
+{
+  nsIFrame* spinUpFrame = mSpinUp->GetPrimaryFrame();
+  if (spinUpFrame && spinUpFrame->IsThemed()) {
+    spinUpFrame->InvalidateFrame();
+  }
+  nsIFrame* spinDownFrame = mSpinDown->GetPrimaryFrame();
+  if (spinDownFrame && spinDownFrame->IsThemed()) {
+    spinDownFrame->InvalidateFrame();
+  }
+}
+
+bool
+nsNumberControlFrame::SpinnerUpButtonIsDepressed() const
+{
+  return HTMLInputElement::FromContent(mContent)->
+           NumberSpinnerUpButtonIsDepressed();
+}
+
+bool
+nsNumberControlFrame::SpinnerDownButtonIsDepressed() const
+{
+  return HTMLInputElement::FromContent(mContent)->
+           NumberSpinnerDownButtonIsDepressed();
+}
+
+bool
+nsNumberControlFrame::IsFocused() const
+{
+  
+  
+  
+  return mTextField->AsElement()->State().HasState(NS_EVENT_STATE_FOCUS) ||
+         mContent->AsElement()->State().HasState(NS_EVENT_STATE_FOCUS);
 }
 
 void
@@ -340,6 +439,27 @@ nsNumberControlFrame::HandleFocusEvent(WidgetEvent* aEvent)
     
     HTMLInputElement::FromContent(mTextField)->Focus();
   }
+}
+
+#define STYLES_DISABLING_NATIVE_THEMING \
+  NS_AUTHOR_SPECIFIED_BACKGROUND | \
+  NS_AUTHOR_SPECIFIED_PADDING | \
+  NS_AUTHOR_SPECIFIED_BORDER
+
+bool
+nsNumberControlFrame::ShouldUseNativeStyleForSpinner() const
+{
+  nsIFrame* spinUpFrame = mSpinUp->GetPrimaryFrame();
+  nsIFrame* spinDownFrame = mSpinDown->GetPrimaryFrame();
+
+  return spinUpFrame &&
+    spinUpFrame->StyleDisplay()->mAppearance == NS_THEME_SPINNER_UP_BUTTON &&
+    !PresContext()->HasAuthorSpecifiedRules(spinUpFrame,
+                                            STYLES_DISABLING_NATIVE_THEMING) &&
+    spinDownFrame &&
+    spinDownFrame->StyleDisplay()->mAppearance == NS_THEME_SPINNER_DOWN_BUTTON &&
+    !PresContext()->HasAuthorSpecifiedRules(spinDownFrame,
+                                            STYLES_DISABLING_NATIVE_THEMING);
 }
 
 void
