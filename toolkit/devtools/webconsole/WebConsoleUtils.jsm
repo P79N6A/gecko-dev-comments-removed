@@ -1590,7 +1590,20 @@ this.JSTermHelpers = function JSTermHelpers(aOwner)
       if (!window) {
         return null;
       }
-      let target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
+
+      let target = null;
+      try {
+        target = devtools.TargetFactory.forTab(window.gBrowser.selectedTab);
+      }
+      catch (ex) {
+        
+        
+      }
+
+      if (!target) {
+        return null;
+      }
+
       let toolbox = gDevTools.getToolbox(target);
       let panel = toolbox ? toolbox.getPanel("inspector") : null;
       let node = panel ? panel.selection.node : null;
