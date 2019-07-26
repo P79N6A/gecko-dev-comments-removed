@@ -62,12 +62,9 @@ public:
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    {
-      MutexAutoLock lock(MediaManager::Get()->GetMutex());
-      WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
-      if (activeWindows->Get(mWindowID)) {
-        error->OnError(mErrorMsg);
-      }
+    WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
+    if (activeWindows->Get(mWindowID)) {
+      error->OnError(mErrorMsg);
     }
     return NS_OK;
   }
@@ -106,13 +103,10 @@ public:
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    {
-      MutexAutoLock lock(MediaManager::Get()->GetMutex());
-      WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
-      if (activeWindows->Get(mWindowID)) {
-        
-        success->OnSuccess(mFile);
-      }
+    WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
+    if (activeWindows->Get(mWindowID)) {
+      
+      success->OnSuccess(mFile);
     }
     return NS_OK;
   }
@@ -253,31 +247,25 @@ public:
     nsPIDOMWindow *window = static_cast<nsPIDOMWindow*>
       (nsGlobalWindow::GetInnerWindowWithId(mWindowID));
     WindowTable* activeWindows = MediaManager::Get()->GetActiveWindows();
-    {
-      MutexAutoLock lock(MediaManager::Get()->GetMutex());
 
-      if (!stream) {
-        if (activeWindows->Get(mWindowID)) {
-          nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
-          LOG(("Returning error for getUserMedia() - no stream"));
-          error->OnError(NS_LITERAL_STRING("NO_STREAM"));
-        }
-        return NS_OK;
+    if (!stream) {
+      if (activeWindows->Get(mWindowID)) {
+        nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
+        LOG(("Returning error for getUserMedia() - no stream"));
+        error->OnError(NS_LITERAL_STRING("NO_STREAM"));
       }
+      return NS_OK;
     }
+
     if (window && window->GetExtantDoc()) {
       stream->CombineWithPrincipal(window->GetExtantDoc()->NodePrincipal());
     }
 
     
-    nsIThread *mediaThread = MediaManager::GetThread();
-
-    
     
     
     GetUserMediaCallbackMediaStreamListener* listener =
-      new GetUserMediaCallbackMediaStreamListener(mediaThread, stream,
-                                                  mAudioSource,
+      new GetUserMediaCallbackMediaStreamListener(stream, mAudioSource,
                                                   mVideoSource);
     stream->GetStream()->AddListener(listener);
 
@@ -285,22 +273,12 @@ public:
     mListeners->AppendElement(listener);
 
     
-    
-    nsRefPtr<MediaOperationRunnable> runnable(
-      new MediaOperationRunnable(MEDIA_START, stream,
-                                 mAudioSource, mVideoSource));
-    mediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
-
-    
     nsCOMPtr<nsIDOMGetUserMediaSuccessCallback> success(mSuccess);
     nsCOMPtr<nsIDOMGetUserMediaErrorCallback> error(mError);
 
-    {
-      MutexAutoLock lock(MediaManager::Get()->GetMutex());
-      if (activeWindows->Get(mWindowID)) {
-        LOG(("Returning success for getUserMedia()"));
-        success->OnSuccess(stream);
-      }
+    if (activeWindows->Get(mWindowID)) {
+      LOG(("Returning success for getUserMedia()"));
+      success->OnSuccess(stream);
     }
 
     return NS_OK;
@@ -334,7 +312,7 @@ public:
   GetUserMediaRunnable(bool aAudio, bool aVideo, bool aPicture,
     already_AddRefed<nsIDOMGetUserMediaSuccessCallback> aSuccess,
     already_AddRefed<nsIDOMGetUserMediaErrorCallback> aError,
-    StreamListeners* aListeners, uint64_t aWindowID,
+    StreamListeners* aListeners, uint64_t aWindowID, 
     MediaDevice* aAudioDevice, MediaDevice* aVideoDevice)
     : mAudio(aAudio)
     , mVideo(aVideo)
@@ -348,7 +326,7 @@ public:
     {
       if (mAudio) {
         mAudioDevice = aAudioDevice;
-      }
+      } 
       if (mVideo) {
         mVideoDevice = aVideoDevice;
       }
@@ -781,52 +759,48 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
   
   
   uint64_t windowID = aWindow->WindowID();
-  nsRefPtr<GetUserMediaRunnable> gUMRunnable;
-  {
-    MutexAutoLock lock(mMutex);
-    StreamListeners* listeners = mActiveWindows.Get(windowID);
-    if (!listeners) {
-      listeners = new StreamListeners;
-      mActiveWindows.Put(windowID, listeners);
-    }
-
-    
-    if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
-      aPrivileged = true;
-    }
-
-    
-
-
-
-
-
-
-
-
-    if (fake) {
-      
-      gUMRunnable = new GetUserMediaRunnable(
-        audio, video, onSuccess.forget(), onError.forget(), listeners,
-        windowID, new MediaEngineDefault()
-                                             );
-    } else if (audiodevice || videodevice) {
-      
-      gUMRunnable = new GetUserMediaRunnable(
-        audio, video, picture, onSuccess.forget(), onError.forget(), listeners,
-        windowID,
-        static_cast<MediaDevice*>(audiodevice.get()),
-        static_cast<MediaDevice*>(videodevice.get())
-                                             );
-    } else {
-      
-      gUMRunnable = new GetUserMediaRunnable(
-        audio, video, picture, onSuccess.forget(), onError.forget(), listeners,
-        windowID
-                                             );
-    }
+  StreamListeners* listeners = mActiveWindows.Get(windowID);
+  if (!listeners) {
+    listeners = new StreamListeners;
+    mActiveWindows.Put(windowID, listeners);
   }
 
+  
+  if (Preferences::GetBool("media.navigator.permission.disabled", false)) {
+    aPrivileged = true;
+  }
+
+  
+
+
+
+
+
+
+
+
+  nsRefPtr<GetUserMediaRunnable> gUMRunnable;
+  if (fake) {
+    
+    gUMRunnable = new GetUserMediaRunnable(
+      audio, video, onSuccess.forget(), onError.forget(), listeners,
+      windowID, new MediaEngineDefault()
+    );
+  } else if (audiodevice || videodevice) {
+    
+    gUMRunnable = new GetUserMediaRunnable(
+      audio, video, picture, onSuccess.forget(), onError.forget(), listeners,
+      windowID, 
+      static_cast<MediaDevice*>(audiodevice.get()),
+      static_cast<MediaDevice*>(videodevice.get())
+    );
+  } else {
+    
+    gUMRunnable = new GetUserMediaRunnable(
+      audio, video, picture, onSuccess.forget(), onError.forget(), listeners,
+      windowID
+    );
+  }
 
 #ifdef ANDROID
   if (picture) {
@@ -837,7 +811,11 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
 #else
   
   if (aPrivileged || fake) {
-    (void) MediaManager::GetThread();
+    if (!mMediaThread) {
+      nsresult rv = NS_NewThread(getter_AddRefs(mMediaThread));
+      NS_ENSURE_SUCCESS(rv, rv);
+      LOG(("New Media thread for gum"));
+    }
     mMediaThread->Dispatch(gUMRunnable, NS_DISPATCH_NORMAL);
   } else {
     
@@ -858,10 +836,7 @@ MediaManager::GetUserMedia(bool aPrivileged, nsPIDOMWindow* aWindow,
     NS_ConvertUTF8toUTF16 callID(buffer);
 
     
-    {
-      MutexAutoLock lock(mMutex);
-      mActiveCallbacks.Put(callID, gUMRunnable);
-    }
+    mActiveCallbacks.Put(callID, gUMRunnable);
 
     
     nsAutoString data;
@@ -937,24 +912,21 @@ MediaManager::OnNavigation(uint64_t aWindowID)
 {
   
   
-  {
-    MutexAutoLock lock(mMutex);
-    StreamListeners* listeners = mActiveWindows.Get(aWindowID);
-    if (!listeners) {
-      return;
-    }
-
-    uint32_t length = listeners->Length();
-    for (uint32_t i = 0; i < length; i++) {
-      nsRefPtr<GetUserMediaCallbackMediaStreamListener> listener =
-        listeners->ElementAt(i);
-      listener->Invalidate();
-      listener = nullptr;
-    }
-    listeners->Clear();
-
-    mActiveWindows.Remove(aWindowID);
+  StreamListeners* listeners = mActiveWindows.Get(aWindowID);
+  if (!listeners) {
+    return;
   }
+
+  uint32_t length = listeners->Length();
+  for (uint32_t i = 0; i < length; i++) {
+    nsRefPtr<GetUserMediaCallbackMediaStreamListener> listener =
+      listeners->ElementAt(i);
+    listener->Invalidate();
+    listener = nullptr;
+  }
+  listeners->Clear();
+
+  mActiveWindows.Remove(aWindowID);
 }
 
 nsresult
@@ -970,12 +942,9 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     obs->RemoveObserver(this, "getUserMedia:response:deny");
 
     
-    {
-      MutexAutoLock lock(mMutex);
-      mActiveWindows.Clear();
-      mActiveCallbacks.Clear();
-      sSingleton = nullptr;
-    }
+    mActiveWindows.Clear();
+    mActiveCallbacks.Clear();
+    sSingleton = nullptr;
 
     return NS_OK;
   }
@@ -983,15 +952,18 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, "getUserMedia:response:allow")) {
     nsString key(aData);
     nsRefPtr<nsRunnable> runnable;
-    {
-      MutexAutoLock lock(mMutex);
-      if (!mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
-        return NS_OK;
-      }
+    if (!mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
+      return NS_OK;
     }
 
     
-    (void) MediaManager::GetThread();
+    if (!mMediaThread) {
+      LOG(("New Media thread for gum on allow"));
+      nsresult rv = NS_NewThread(getter_AddRefs(mMediaThread));
+      NS_ENSURE_SUCCESS(rv, rv);
+    } else {
+      LOG(("Reused Media thread for gum on allow"));
+    }
 
     if (aSubject) {
       
@@ -1013,25 +985,20 @@ MediaManager::Observe(nsISupports* aSubject, const char* aTopic,
     }
 
     mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
-    {
-      MutexAutoLock lock(mMutex);
-      mActiveCallbacks.Remove(key);
-    }
+    mActiveCallbacks.Remove(key);
     return NS_OK;
   }
 
   if (!strcmp(aTopic, "getUserMedia:response:deny")) {
     nsString key(aData);
     nsRefPtr<nsRunnable> runnable;
-    {
-      MutexAutoLock lock(mMutex);
-      if (mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
-        GetUserMediaRunnable* gUMRunnable =
+    if (mActiveCallbacks.Get(key, getter_AddRefs(runnable))) {
+      GetUserMediaRunnable* gUMRunnable =
           static_cast<GetUserMediaRunnable*>(runnable.get());
-        gUMRunnable->Denied();
-        mActiveCallbacks.Remove(key);
-      }
+      gUMRunnable->Denied();
+      mActiveCallbacks.Remove(key);
     }
+
     return NS_OK;
   }
 
