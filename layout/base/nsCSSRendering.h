@@ -213,7 +213,7 @@ struct nsBackgroundLayerState {
 
 
   nsBackgroundLayerState(nsIFrame* aForFrame, const nsStyleImage* aImage, uint32_t aFlags)
-    : mImageRenderer(aForFrame, aImage, aFlags) {}
+    : mImageRenderer(aForFrame, aImage, aFlags), mCompositingOp(gfxContext::OPERATOR_OVER) {}
 
   
 
@@ -237,6 +237,10 @@ struct nsBackgroundLayerState {
 
 
   nsPoint mAnchor;
+  
+
+
+  gfxContext::GraphicsOperator mCompositingOp;
 };
 
 struct nsCSSRendering {
