@@ -53,6 +53,10 @@ XPCOMUtils.defineLazyModuleGetter(this, "Promise",
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
 
+const BackgroundFileSaverStreamListener = Components.Constructor(
+      "@mozilla.org/network/background-file-saver;1?mode=streamlistener",
+      "nsIBackgroundFileSaver");
+
 
 
 
@@ -86,6 +90,67 @@ Download.prototype = {
 
 
 
+
+
+  done: false,
+
+  
+
+
+
+
+  hasProgress: false,
+
+  
+
+
+
+
+
+
+
+  progress: 0,
+
+  
+
+
+
+
+
+  totalBytes: 0,
+
+  
+
+
+
+
+
+
+
+  currentBytes: 0,
+
+  
+
+
+  onchange: null,
+
+  
+
+
+  _notifyChange: function D_notifyChange() {
+    try {
+      if (this.onchange) {
+        this.onchange();
+      }
+    } catch (ex) {
+      Cu.reportError(ex);
+    }
+  },
+
+  
+
+
+
   _deferDone: null,
 
   
@@ -98,7 +163,13 @@ Download.prototype = {
   start: function D_start()
   {
     this._deferDone.resolve(Task.spawn(function task_D_start() {
-      yield this.saver.execute();
+      try {
+        yield this.saver.execute();
+        this.progress = 100;
+      } finally {
+        this.done = true;
+        this._notifyChange();
+      }
     }.bind(this)));
 
     return this.whenDone();
@@ -113,6 +184,26 @@ Download.prototype = {
 
   whenDone: function D_whenDone() {
     return this._deferDone.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  _setBytes: function D_setBytes(aCurrentBytes, aTotalBytes) {
+    this.currentBytes = aCurrentBytes;
+    if (aTotalBytes != -1) {
+      this.hasProgress = true;
+      this.totalBytes = aTotalBytes;
+      if (aTotalBytes > 0) {
+        this.progress = Math.floor(aCurrentBytes / aTotalBytes * 100);
+      }
+    }
+    this._notifyChange();
   },
 };
 
@@ -191,27 +282,81 @@ DownloadCopySaver.prototype = {
   execute: function DCS_execute()
   {
     let deferred = Promise.defer();
+    let download = this.download;
 
-    NetUtil.asyncFetch(this.download.source.uri, function (aInputStream, aResult) {
-      if (!Components.isSuccessCode(aResult)) {
-        deferred.reject(new Components.Exception("Download failed.", aResult));
-        return;
-      }
+    
+    let backgroundFileSaver = new BackgroundFileSaverStreamListener();
+    try {
+      
+      
+      backgroundFileSaver.observer = {
+        onTargetChange: function () { },
+        onSaveComplete: function DCSE_onSaveComplete(aSaver, aStatus)
+        {
+          if (Components.isSuccessCode(aStatus)) {
+            deferred.resolve();
+          } else {
+            deferred.reject(new Components.Exception("Download failed.",
+                                                     aStatus));
+          }
 
-      let fileOutputStream = Cc["@mozilla.org/network/file-output-stream;1"]
-                              .createInstance(Ci.nsIFileOutputStream);
-      fileOutputStream.init(this.download.target.file, -1, -1, 0);
+          
+          backgroundFileSaver.observer = null;
+        },
+      };
 
-      NetUtil.asyncCopy(aInputStream, fileOutputStream, function (aResult) {
-        if (!Components.isSuccessCode(aResult)) {
-          deferred.reject(new Components.Exception("Download failed.", aResult));
-          return;
-        }
+      
+      backgroundFileSaver.setTarget(download.target.file, false);
 
-        deferred.resolve();
-      }.bind(this));
-    }.bind(this));
+      
+      
+      let channel = NetUtil.newChannel(download.source.uri);
+      channel.notificationCallbacks = {
+        QueryInterface: XPCOMUtils.generateQI([Ci.nsIInterfaceRequestor]),
+        getInterface: XPCOMUtils.generateQI([Ci.nsIProgressEventSink]),
+        onProgress: function DCSE_onProgress(aRequest, aContext, aProgress,
+                                             aProgressMax)
+        {
+          download._setBytes(aProgress, aProgressMax);
+        },
+        onStatus: function () { },
+      };
 
+      
+      backgroundFileSaver.QueryInterface(Ci.nsIStreamListener);
+      channel.asyncOpen({
+        onStartRequest: function DCSE_onStartRequest(aRequest, aContext)
+        {
+          backgroundFileSaver.onStartRequest(aRequest, aContext);
+        },
+        onStopRequest: function DCSE_onStopRequest(aRequest, aContext,
+                                                   aStatusCode)
+        {
+          try {
+            backgroundFileSaver.onStopRequest(aRequest, aContext, aStatusCode);
+          } finally {
+            
+            
+            
+            if (Components.isSuccessCode(aStatusCode)) {
+              backgroundFileSaver.finish(Cr.NS_OK);
+            }
+          }
+        },
+        onDataAvailable: function DCSE_onDataAvailable(aRequest, aContext,
+                                                       aInputStream, aOffset,
+                                                       aCount)
+        {
+          backgroundFileSaver.onDataAvailable(aRequest, aContext, aInputStream,
+                                              aOffset, aCount);
+        },
+      }, null);
+    } catch (ex) {
+      
+      
+      deferred.reject(ex);
+      backgroundFileSaver.finish(Cr.NS_ERROR_FAILURE);
+    }
     return deferred.promise;
   },
 };
