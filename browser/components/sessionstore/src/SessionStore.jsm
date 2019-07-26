@@ -142,7 +142,7 @@ function debug(aMsg) {
 
 this.SessionStore = {
   get promiseInitialized() {
-    return SessionStoreInternal.promiseInitialized.promise;
+    return SessionStoreInternal.promiseInitialized;
   },
 
   get canRestoreLastSession() {
@@ -154,7 +154,7 @@ this.SessionStore = {
   },
 
   init: function ss_init(aWindow) {
-    return SessionStoreInternal.init(aWindow);
+    SessionStoreInternal.init(aWindow);
   },
 
   getBrowserState: function ss_getBrowserState() {
@@ -340,7 +340,7 @@ let SessionStoreInternal = {
   _deferredInitialState: null,
 
   
-  _promiseInitialization: Promise.defer(),
+  _deferredInitialized: Promise.defer(),
 
   
   _sessionInitialized: false,
@@ -363,7 +363,7 @@ let SessionStoreInternal = {
 
 
   get promiseInitialized() {
-    return this._promiseInitialization;
+    return this._deferredInitialized.promise;
   },
 
   
@@ -380,29 +380,42 @@ let SessionStoreInternal = {
 
   
 
-  
 
-
-  initService: function ssi_initService() {
-    if (this._sessionInitialized) {
-      return;
+  init: function (aWindow) {
+    if (this._initialized) {
+      throw new Error("SessionStore.init() must only be called once!");
     }
+
+    if (!aWindow) {
+      throw new Error("SessionStore.init() must be called with a valid window.");
+    }
+
     TelemetryTimestamps.add("sessionRestoreInitialized");
     OBSERVING.forEach(function(aTopic) {
       Services.obs.addObserver(this, aTopic, true);
     }, this);
 
     this._initPrefs();
-
+    this._initialized = true;
     this._disabledForMultiProcess = this._prefBranch.getBoolPref("tabs.remote");
 
     
     this._sessionhistory_max_entries =
       this._prefBranch.getIntPref("sessionhistory.max_entries");
 
-    gSessionStartup.onceInitialized.then(
-      this.initSession.bind(this)
-    );
+    
+    gSessionStartup.onceInitialized.then(() => {
+      
+      this.initSession();
+
+      
+      if (!aWindow.closed) {
+        this.onLoad(aWindow);
+      }
+
+      
+      this._deferredInitialized.resolve();
+    });
   },
 
   initSession: function ssi_initSession() {
@@ -492,7 +505,6 @@ let SessionStoreInternal = {
     this._performUpgradeBackup();
 
     this._sessionInitialized = true;
-    this._promiseInitialization.resolve();
   },
 
   
@@ -569,32 +581,15 @@ let SessionStoreInternal = {
 
 
 
-
-
-  init: function ssi_init(aWindow) {
-    if (!aWindow) {
-      throw new Error("init() must be called with a valid window.");
+  _uninit: function ssi_uninit() {
+    if (!this._initialized) {
+      throw new Error("SessionStore is not initialized.");
     }
 
-    let self = this;
-    this.initService();
-    return this._promiseInitialization.promise.then(
-      function onSuccess() {
-        if (!aWindow.closed) {
-          self.onLoad(aWindow);
-        }
-      }
-    );
-  },
-
-  
-
-
-
-  _uninit: function ssi_uninit() {
     
-    if (this._sessionInitialized)
+    if (this._sessionInitialized) {
       this.saveState(true);
+    }
 
     
     TabRestoreQueue.reset();
