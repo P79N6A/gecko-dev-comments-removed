@@ -68,11 +68,6 @@ function test() {
 
 var gCurrTest;
 function nextTest() {
-  
-  try {
-    Services.prefs.clearUserPref("keyword.URL");
-  } catch(ex) {}
-
   if (gTests.length) {
     gCurrTest = gTests.shift();
     doTest();
@@ -83,9 +78,6 @@ function nextTest() {
 
 function doTest() {
   info("Running test: " + gCurrTest.name);
-
-  if (gCurrTest.keywordURLPref)
-    Services.prefs.setCharPref("keyword.URL", gCurrTest.keywordURLPref);
 
   
   gURLBar.value = gCurrTest.testText;
