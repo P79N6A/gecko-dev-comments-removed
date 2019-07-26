@@ -276,6 +276,7 @@ public:
                   nsStyleChangeList* aChangeList,
                   nsChangeHint aHintsHandledByAncestors,
                   RestyleTracker& aRestyleTracker,
+                  TreeMatchContext& aTreeMatchContext,
                   nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement);
 
   
@@ -302,8 +303,7 @@ public:
 
 
 
-  void Restyle(nsRestyleHint aRestyleHint,
-               TreeMatchContext &aTreeMatchContext);
+  void Restyle(nsRestyleHint aRestyleHint);
 
   
 
@@ -350,6 +350,7 @@ private:
   nsChangeHint mParentFrameHintsNotHandledForDescendants;
   nsChangeHint mHintsNotHandledForDescendants;
   RestyleTracker& mRestyleTracker;
+  TreeMatchContext& mTreeMatchContext;
 
   const DesiredA11yNotifications mDesiredA11yNotifications;
   DesiredA11yNotifications mKidsDesiredA11yNotifications;
