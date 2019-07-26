@@ -293,10 +293,6 @@ var W3CTest = {
       "output": false,
       "explicit_timeout": true
     });
-    
-    window.onerror = function(message, fileName, lineNumber) {
-      W3CTest.logFailure("Uncaught exception", fileName + " (" + lineNumber + "): " + message);
-    };
   } catch (e) {
     W3CTest.logFailure("Harness setup", "Unexpected exception: " + e);
   }
