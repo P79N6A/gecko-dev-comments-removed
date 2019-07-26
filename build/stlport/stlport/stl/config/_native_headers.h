@@ -1,0 +1,50 @@
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined (_STLP_MAKE_HEADER)
+#  define _STLP_MAKE_HEADER(path, header) <path/header>
+#endif
+
+#if !defined (_STLP_NATIVE_HEADER)
+#  if !defined (_STLP_NATIVE_INCLUDE_PATH)
+#    define _STLP_NATIVE_INCLUDE_PATH ../include
+#  endif
+#  define _STLP_NATIVE_HEADER(header) _STLP_MAKE_HEADER(_STLP_NATIVE_INCLUDE_PATH,header)
+#endif
+
+
+#if !defined (_STLP_NATIVE_C_HEADER)
+#  if !defined (_STLP_NATIVE_C_INCLUDE_PATH)
+#    define _STLP_NATIVE_C_INCLUDE_PATH _STLP_NATIVE_INCLUDE_PATH
+#  endif
+#  define _STLP_NATIVE_C_HEADER(header)  _STLP_MAKE_HEADER(_STLP_NATIVE_C_INCLUDE_PATH,header)
+#endif
+
+
+#if !defined (_STLP_NATIVE_CPP_C_HEADER)
+#  if !defined (_STLP_NATIVE_CPP_C_INCLUDE_PATH)
+#    define _STLP_NATIVE_CPP_C_INCLUDE_PATH _STLP_NATIVE_INCLUDE_PATH
+#  endif
+#  define _STLP_NATIVE_CPP_C_HEADER(header)  _STLP_MAKE_HEADER(_STLP_NATIVE_CPP_C_INCLUDE_PATH,header)
+#endif
+
+
+#if !defined ( _STLP_NATIVE_CPP_RUNTIME_HEADER )
+#  if !defined (_STLP_NATIVE_CPP_RUNTIME_INCLUDE_PATH)
+#    define _STLP_NATIVE_CPP_RUNTIME_INCLUDE_PATH _STLP_NATIVE_INCLUDE_PATH
+#  endif
+#  define _STLP_NATIVE_CPP_RUNTIME_HEADER(header)  _STLP_MAKE_HEADER(_STLP_NATIVE_CPP_RUNTIME_INCLUDE_PATH,header)
+#endif
