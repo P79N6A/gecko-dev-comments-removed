@@ -43,7 +43,7 @@ private:
   uint32_t mChunkSize;
 
   
-  nsAutoPtr<FarEndAudioChunk> mSaved;
+  FarEndAudioChunk *mSaved; 
   uint32_t mSamplesSaved;
 };
 
