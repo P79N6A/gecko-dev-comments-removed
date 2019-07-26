@@ -148,7 +148,7 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
     if (wrapperInitOptions == INIT_SHOULD_LOOKUP_WRAPPER) {
         
         
-        JSObject *unwrapped = js::CheckedUnwrap(obj,  false);
+        JSObject *unwrapped = js::UnwrapObjectChecked(obj,  false);
         if (!unwrapped) {
             mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
             if (!mWrapper) {
@@ -459,7 +459,7 @@ XPCCallContext::UnwrapThisIfAllowed(JSObject *object, JSObject *fun, unsigned ar
 {
     JS::Rooted<JSObject *> obj(mJSContext, object);
     
-    MOZ_ASSERT(!js::CheckedUnwrap(obj));
+    MOZ_ASSERT(!js::UnwrapObjectChecked(obj));
     MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
 
     
@@ -478,7 +478,7 @@ XPCCallContext::UnwrapThisIfAllowed(JSObject *object, JSObject *fun, unsigned ar
     
     
     MOZ_ASSERT(js::IsWrapper(obj));
-    JSObject *unwrapped = js::UncheckedUnwrap(obj,  false);
+    JSObject *unwrapped = js::UnwrapObject(obj,  false);
     MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, js::Wrapper::wrappedObject(obj)));
 
     

@@ -160,7 +160,7 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
       return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
 
-    obj = js::CheckedUnwrap(obj,  false);
+    obj = js::UnwrapObjectChecked(obj,  false);
     if (!obj) {
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
@@ -621,7 +621,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
     
     Maybe<JSAutoCompartment> ac;
     if (js::IsWrapper(scope)) {
-      scope = js::CheckedUnwrap(scope,  false);
+      scope = js::UnwrapObjectChecked(scope,  false);
       if (!scope)
         return false;
       ac.construct(cx, scope);

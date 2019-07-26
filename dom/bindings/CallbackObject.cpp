@@ -50,7 +50,7 @@ CallbackObject::CallSetup::CallSetup(JSObject* const aCallback,
   
 
   
-  JSObject* realCallback = js::UncheckedUnwrap(aCallback);
+  JSObject* realCallback = js::UnwrapObject(aCallback);
 
   
   JSContext* cx = nullptr;
@@ -106,7 +106,7 @@ CallbackObject::CallSetup::CallSetup(JSObject* const aCallback,
   
   
   nsresult rv = nsContentUtils::GetSecurityManager()->
-    CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
+    CheckFunctionAccess(cx, js::UnwrapObject(aCallback), nullptr);
 
   
   

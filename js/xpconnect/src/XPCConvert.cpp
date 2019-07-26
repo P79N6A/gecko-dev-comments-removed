@@ -1031,7 +1031,7 @@ XPCConvert::JSObject2NativeInterface(JSContext* cx,
         
         
         
-        JSObject* inner = js::CheckedUnwrap(src,  false);
+        JSObject* inner = js::UnwrapObjectChecked(src,  false);
 
         
         
@@ -1039,7 +1039,7 @@ XPCConvert::JSObject2NativeInterface(JSContext* cx,
         
         
         if (!inner && MOZ_UNLIKELY(xpc::WrapperFactory::IsCOW(src)))
-            inner = js::UncheckedUnwrap(src);
+            inner = js::UnwrapObject(src);
         if (!inner) {
             if (pErr)
                 *pErr = NS_ERROR_XPC_SECURITY_MANAGER_VETO;
@@ -1176,7 +1176,7 @@ XPCConvert::JSValToXPCException(XPCCallContext& ccx,
         }
 
         
-        JSObject *unwrapped = js::CheckedUnwrap(obj,  false);
+        JSObject *unwrapped = js::UnwrapObjectChecked(obj,  false);
         if (!unwrapped)
             return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
         XPCWrappedNative* wrapper = IS_WN_WRAPPER(unwrapped) ? XPCWrappedNative::Get(unwrapped)

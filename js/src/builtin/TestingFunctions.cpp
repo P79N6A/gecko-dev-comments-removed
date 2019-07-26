@@ -205,7 +205,7 @@ GC(JSContext *cx, unsigned argc, jsval *vp)
             if (!JS_StringEqualsAscii(cx, arg.toString(), "compartment", &compartment))
                 return false;
         } else if (arg.isObject()) {
-            PrepareZoneForGC(UncheckedUnwrap(&arg.toObject())->zone());
+            PrepareZoneForGC(UnwrapObject(&arg.toObject())->zone());
             compartment = true;
         }
     }
@@ -408,7 +408,7 @@ ScheduleGC(JSContext *cx, unsigned argc, jsval *vp)
         JS_ScheduleGC(cx, args[0].toInt32());
     } else if (args[0].isObject()) {
         
-        Zone *zone = UncheckedUnwrap(&args[0].toObject())->zone();
+        Zone *zone = UnwrapObject(&args[0].toObject())->zone();
         PrepareZoneForGC(zone);
     } else if (args[0].isString()) {
         

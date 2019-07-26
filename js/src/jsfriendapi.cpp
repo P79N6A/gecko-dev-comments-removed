@@ -71,7 +71,7 @@ JS_FindCompilationScope(JSContext *cx, RawObject objArg)
 
 
     if (obj->isWrapper())
-        obj = UncheckedUnwrap(obj);
+        obj = UnwrapObject(obj);
 
     
 

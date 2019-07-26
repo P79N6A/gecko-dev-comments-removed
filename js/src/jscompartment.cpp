@@ -263,7 +263,7 @@ JSCompartment::wrap(JSContext *cx, MutableHandleValue vp, HandleObject existingA
             return js_FindClassObject(cx, JSProto_StopIteration, vp);
 
         
-        obj = UncheckedUnwrap(obj,  true, &flags);
+        obj = UnwrapObject(obj,  true, &flags);
 
         if (obj->compartment() == this)
             return WrapForSameCompartment(cx, obj, vp);
