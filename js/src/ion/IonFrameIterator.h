@@ -44,6 +44,9 @@ enum FrameType
     IonFrame_Bailed_JS,
 
     
+    IonFrame_Bailed_BaselineStub,
+
+    
     
     IonFrame_Bailed_Rectifier,
 
@@ -191,6 +194,9 @@ class IonFrameIterator
 
     uintptr_t *spillBase() const;
     MachineState machineState() const;
+
+    template <class Op>
+    inline void forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const;
 
     void dump() const;
 };

@@ -46,11 +46,23 @@ SnapshotIterator::SnapshotIterator(const IonBailoutIterator &iter)
 {
 }
 
+InlineFrameIterator::InlineFrameIterator(const IonBailoutIterator *iter)
+  : frame_(iter),
+    framesRead_(0),
+    callee_(NULL),
+    script_(NULL)
+{
+    if (iter) {
+        start_ = SnapshotIterator(*iter);
+        findNextFrame();
+    }
+}
+
 void
 IonBailoutIterator::dump() const
 {
     if (type_ == IonFrame_OptimizedJS) {
-        InlineFrameIterator frames(GetIonContext()->cx, this);
+        InlineFrameIterator frames(this);
         for (;;) {
             frames.dump();
             if (!frames.more())
@@ -62,16 +74,18 @@ IonBailoutIterator::dump() const
     }
 }
 
-static RawScript
+static JSScript*
 GetBailedJSScript(JSContext *cx)
 {
+    AutoAssertNoGC nogc;
+
     
     
-    IonJSFrameLayout *frame = reinterpret_cast<IonJSFrameLayout*>(cx->mainThread().ionTop);
+    IonJSFrameLayout *frame = reinterpret_cast<IonJSFrameLayout*>(cx->runtime->ionTop);
     switch (GetCalleeTokenTag(frame->calleeToken())) {
       case CalleeToken_Function: {
         JSFunction *fun = CalleeTokenToFunction(frame->calleeToken());
-        return fun->nonLazyScript();
+        return fun->nonLazyScript().get(nogc);
       }
       case CalleeToken_Script:
         return CalleeTokenToScript(frame->calleeToken());
@@ -84,7 +98,8 @@ GetBailedJSScript(JSContext *cx)
 void
 StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
 {
-    uint32_t exprStackSlots = iter.slots() - script()->nfixed;
+    AutoAssertNoGC nogc;
+    uint32 exprStackSlots = iter.slots() - script()->nfixed;
 
 #ifdef TRACK_SNAPSHOTS
     iter.spewBailingFrom();
@@ -129,21 +144,21 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
         IonSpew(IonSpew_Bailouts, " frame slots %u, nargs %u, nfixed %u",
                 iter.slots(), fun()->nargs, script()->nfixed);
 
-        for (uint32_t i = 0; i < fun()->nargs; i++) {
+        for (uint32 i = 0; i < fun()->nargs; i++) {
             Value arg = iter.read();
             formals()[i] = arg;
         }
     }
     exprStackSlots -= CountArgSlots(maybeFun());
 
-    for (uint32_t i = 0; i < script()->nfixed; i++) {
+    for (uint32 i = 0; i < script()->nfixed; i++) {
         Value slot = iter.read();
         slots()[i] = slot;
     }
 
     IonSpew(IonSpew_Bailouts, " pushing %u expression stack slots", exprStackSlots);
     FrameRegs &regs = cx->regs();
-    for (uint32_t i = 0; i < exprStackSlots; i++) {
+    for (uint32 i = 0; i < exprStackSlots; i++) {
         Value v;
 
         
@@ -163,27 +178,22 @@ StackFrame::initFromBailout(JSContext *cx, SnapshotIterator &iter)
         regs.pc = GetNextPc(regs.pc);
 
     IonSpew(IonSpew_Bailouts, " new PC is offset %u within script %p (line %d)",
-            pcOff, (void *)script(), PCToLineNumber(script(), regs.pc));
-
-    
-    
-    
-    JS_ASSERT_IF(JSOp(*regs.pc) != JSOP_FUNAPPLY,
-                 exprStackSlots == js_ReconstructStackDepth(cx, script(), regs.pc));
+            pcOff, (void *)script().get(nogc), PCToLineNumber(script().get(nogc), regs.pc));
+    JS_ASSERT(exprStackSlots == js_ReconstructStackDepth(cx, script().get(nogc), regs.pc));
 }
 
 static StackFrame *
 PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
 {
+    AssertCanGC();
+
     
     
     
     
     FrameRegs &regs = cx->regs();
-    JS_ASSERT(js_CodeSpec[*regs.pc].format & JOF_INVOKE);
+    JS_ASSERT(JSOp(*regs.pc) == JSOP_CALL || JSOp(*regs.pc) == JSOP_NEW);
     int callerArgc = GET_ARGC(regs.pc);
-    if (JSOp(*regs.pc) == JSOP_FUNAPPLY)
-        callerArgc = callerFrame->nactual();
     const Value &calleeVal = regs.sp[-callerArgc - 2];
 
     RootedFunction fun(cx, calleeVal.toObject().toFunction());
@@ -198,7 +208,7 @@ PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
     if (JSOp(*regs.pc) == JSOP_NEW)
         flags = INITIAL_CONSTRUCT;
 
-    if (!cx->stack.pushInlineFrame(cx, regs, inlineArgs, fun, script, flags, DONT_REPORT_ERROR))
+    if (!cx->stack.pushInlineFrame(cx, regs, inlineArgs, *fun, script, flags, DONT_REPORT_ERROR))
         return NULL;
 
     StackFrame *fp = cx->stack.fp();
@@ -210,16 +220,15 @@ PushInlinedFrame(JSContext *cx, StackFrame *callerFrame)
     return fp;
 }
 
-static uint32_t
+static uint32
 ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 {
+    AssertCanGC();
     IonSpew(IonSpew_Bailouts, "Bailing out %s:%u, IonScript %p",
-            it.script()->filename(), it.script()->lineno, (void *) it.ionScript());
+            it.script()->filename, it.script()->lineno, (void *) it.ionScript());
     IonSpew(IonSpew_Bailouts, " reading from snapshot offset %u size %u",
             it.snapshotOffset(), it.ionScript()->snapshotsSize());
 #ifdef DEBUG
-    
-    
     
     
     if (it.script()->ion == it.ionScript()) {
@@ -227,6 +236,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
                 it.script()->getUseCount());
     }
 #endif
+
+    SnapshotIterator iter(it);
 
     
     
@@ -275,8 +286,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     if (it.isConstructing())
         fp->setConstructing();
 
-    SnapshotIterator iter(it);
-
     while (true) {
         IonSpew(IonSpew_Bailouts, " restoring frame");
         fp->initFromBailout(cx, iter);
@@ -290,8 +299,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
             return BAILOUT_RETURN_OVERRECURSED;
     }
 
-    fp->clearRunningInIon();
-
     jsbytecode *bailoutPc = fp->script()->code + iter.pcOffset();
     br->setBailoutPc(bailoutPc);
 
@@ -302,6 +309,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
         return BAILOUT_RETURN_TYPE_BARRIER;
       case Bailout_Monitor:
         return BAILOUT_RETURN_MONITOR;
+      case Bailout_RecompileCheck:
+        return BAILOUT_RETURN_RECOMPILE_CHECK;
       case Bailout_BoundsCheck:
         return BAILOUT_RETURN_BOUNDS_CHECK;
       case Bailout_ShapeGuard:
@@ -315,7 +324,7 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
       
       case Bailout_ArgumentCheck:
         fp->unsetPushedSPSFrame();
-        Probes::enterScript(cx, fp->script(), fp->script()->function(), fp);
+        Probes::enterScript(cx, fp->script().unsafeGet(), fp->script()->function(), fp);
         return BAILOUT_RETURN_ARGUMENT_CHECK;
     }
 
@@ -323,12 +332,40 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     return BAILOUT_RETURN_FATAL_ERROR;
 }
 
-uint32_t
+static inline void
+EnsureExitFrame(IonCommonFrameLayout *frame)
+{
+    if (frame->prevType() == IonFrame_Entry) {
+        
+        
+        return;
+    }
+
+    if (frame->prevType() == IonFrame_Rectifier) {
+        
+        
+        
+        
+        frame->changePrevType(IonFrame_Bailed_Rectifier);
+        return;
+    }
+
+    if (frame->prevType() == IonFrame_BaselineStub) {
+        frame->changePrevType(IonFrame_Bailed_BaselineStub);
+        return;
+    }
+
+    JS_ASSERT(frame->prevType() == IonFrame_OptimizedJS);
+    frame->changePrevType(IonFrame_Bailed_JS);
+}
+
+uint32
 ion::Bailout(BailoutStack *sp)
 {
+    AssertCanGC();
     JSContext *cx = GetIonContext()->cx;
     
-    cx->mainThread().ionTop = NULL;
+    cx->runtime->ionTop = NULL;
     IonActivationIterator ionActivations(cx);
     IonBailoutIterator iter(ionActivations, sp);
     IonActivation *activation = ionActivations.activation();
@@ -339,21 +376,22 @@ ion::Bailout(BailoutStack *sp)
 
     IonSpew(IonSpew_Bailouts, "Took bailout! Snapshot offset: %d", iter.snapshotOffset());
 
-    uint32_t retval = ConvertFrames(cx, activation, iter);
+    uint32 retval = ConvertFrames(cx, activation, iter);
 
     EnsureExitFrame(iter.jsFrame());
     return retval;
 }
 
-uint32_t
+uint32
 ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
 {
+    AssertCanGC();
     sp->checkInvariants();
 
     JSContext *cx = GetIonContext()->cx;
 
     
-    cx->mainThread().ionTop = NULL;
+    cx->runtime->ionTop = NULL;
     IonActivationIterator ionActivations(cx);
     IonBailoutIterator iter(ionActivations, sp);
     IonActivation *activation = ionActivations.activation();
@@ -363,7 +401,7 @@ ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
     
     *frameSizeOut = iter.topFrameSize();
 
-    uint32_t retval = ConvertFrames(cx, activation, iter);
+    uint32 retval = ConvertFrames(cx, activation, iter);
 
     {
         IonJSFrameLayout *frame = iter.jsFrame();
@@ -386,6 +424,16 @@ ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut)
         cx->regs().sp[-1] = cx->runtime->takeIonReturnOverride();
 
     if (retval != BAILOUT_RETURN_FATAL_ERROR) {
+        if (activation->entryfp()) {
+            if (void *annotation = activation->entryfp()->annotation()) {
+                
+                
+                
+                activation->entryfp()->setAnnotation(NULL);
+                cx->fp()->setAnnotation(annotation);
+            }
+        }
+
         
         
         
@@ -413,7 +461,7 @@ ReflowArgTypes(JSContext *cx)
     unsigned nargs = fp->fun()->nargs;
     RootedScript script(cx, fp->script());
 
-    types::AutoEnterAnalysis enter(cx);
+    types::AutoEnterTypeInference enter(cx);
 
     if (!fp->isConstructing())
         types::TypeScript::SetThis(cx, script, fp->thisValue());
@@ -421,11 +469,11 @@ ReflowArgTypes(JSContext *cx)
         types::TypeScript::SetArgument(cx, script, i, fp->unaliasedFormal(i, DONT_CHECK_ALIASING));
 }
 
-uint32_t
-ion::ReflowTypeInfo(uint32_t bailoutResult)
+uint32
+ion::ReflowTypeInfo(uint32 bailoutResult)
 {
     JSContext *cx = GetIonContext()->cx;
-    IonActivation *activation = cx->mainThread().ionActivation;
+    IonActivation *activation = cx->runtime->ionActivation;
 
     IonSpew(IonSpew_Bailouts, "reflowing type info");
 
@@ -440,10 +488,10 @@ ion::ReflowTypeInfo(uint32_t bailoutResult)
 
     JS_ASSERT(js_CodeSpec[*pc].format & JOF_TYPESET);
 
-    IonSpew(IonSpew_Bailouts, "reflowing type info at %s:%d pcoff %d", script->filename(),
+    IonSpew(IonSpew_Bailouts, "reflowing type info at %s:%d pcoff %d", script->filename,
             script->lineno, pc - script->code);
 
-    types::AutoEnterAnalysis enter(cx);
+    types::AutoEnterTypeInference enter(cx);
     if (bailoutResult == BAILOUT_RETURN_TYPE_BARRIER)
         script->analysis()->breakTypeBarriers(cx, pc - script->code, false);
     else
@@ -456,26 +504,44 @@ ion::ReflowTypeInfo(uint32_t bailoutResult)
     return true;
 }
 
+uint32
+ion::RecompileForInlining()
+{
+    JSContext *cx = GetIonContext()->cx;
+    RawScript script = cx->fp()->script().unsafeGet();
+
+    IonSpew(IonSpew_Inlining, "Recompiling script to inline calls %s:%d", script->filename,
+            script->lineno);
+
+    
+    if (!Invalidate(cx, script,  false))
+        return BAILOUT_RETURN_FATAL_ERROR;
+
+    
+    JS_ASSERT(script->getUseCount() >= js_IonOptions.usesBeforeInlining);
+
+    return true;
+}
 
 bool
-ion::EnsureHasScopeObjects(JSContext *cx, StackFrame *fp)
+ion::EnsureHasCallObject(JSContext *cx, StackFrame *fp)
 {
     if (fp->isFunctionFrame() &&
         fp->fun()->isHeavyweight() &&
         !fp->hasCallObj())
     {
-        return fp->initFunctionScopeObjects(cx);
+        return fp->initCallObject(cx);
     }
     return true;
 }
 
-uint32_t
+uint32
 ion::BoundsCheckFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
-    IonSpew(IonSpew_Bailouts, "Bounds check failure %s:%d", script->filename(),
+    IonSpew(IonSpew_Bailouts, "Bounds check failure %s:%d", script->filename,
             script->lineno);
 
     if (!script->failedBoundsCheck) {
@@ -490,11 +556,11 @@ ion::BoundsCheckFailure()
     return true;
 }
 
-uint32_t
+uint32
 ion::ShapeGuardFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
     JS_ASSERT(script->hasIonScript());
     JS_ASSERT(!script->ion->invalidated());
@@ -506,11 +572,11 @@ ion::ShapeGuardFailure()
     return Invalidate(cx, script);
 }
 
-uint32_t
+uint32
 ion::CachedShapeGuardFailure()
 {
     JSContext *cx = GetIonContext()->cx;
-    RawScript script = GetBailedJSScript(cx);
+    JSScript *script = GetBailedJSScript(cx);
 
     JS_ASSERT(script->hasIonScript());
     JS_ASSERT(!script->ion->invalidated());
@@ -527,16 +593,15 @@ ion::CachedShapeGuardFailure()
     return Invalidate(cx, script);
 }
 
-uint32_t
+uint32
 ion::ThunkToInterpreter(Value *vp)
 {
     JSContext *cx = GetIonContext()->cx;
-    IonActivation *activation = cx->mainThread().ionActivation;
+    IonActivation *activation = cx->runtime->ionActivation;
     BailoutClosure *br = activation->takeBailout();
-    InterpMode resumeMode = JSINTERP_BAILOUT;
 
-    if (!EnsureHasScopeObjects(cx, cx->fp()))
-        resumeMode = JSINTERP_RETHROW;
+    if (!EnsureHasCallObject(cx, cx->fp()))
+        return Interpret_Error;
 
     
     
@@ -556,9 +621,10 @@ ion::ThunkToInterpreter(Value *vp)
     
     
     {
+        br->entryfp()->clearRunningInIon();
         ScriptFrameIter iter(cx);
         StackFrame *fp = NULL;
-        Rooted<JSScript*> script(cx);
+        Rooted<JSScript*> script(cx, NULL);
         do {
             fp = iter.interpFrame();
             script = iter.script();
@@ -568,15 +634,16 @@ ion::ThunkToInterpreter(Value *vp)
                 
                 JS_ASSERT(!fp->hasArgsObj());
                 ArgumentsObject *argsobj = ArgumentsObject::createExpected(cx, fp);
-                if (!argsobj) {
-                    resumeMode = JSINTERP_RETHROW;
-                    break;
-                }
+                if (!argsobj)
+                    return Interpret_Error;
+                InternalBindingsHandle bindings(script, &script->bindings);
+                const unsigned var = Bindings::argumentsVarIndex(cx, bindings);
                 
                 
                 
                 
-                SetFrameArgumentsObject(cx, fp, script, argsobj);
+                if (fp->unaliasedLocal(var).isMagic(JS_OPTIMIZED_ARGUMENTS))
+                    fp->unaliasedLocal(var) = ObjectValue(*argsobj);
             }
             ++iter;
         } while (fp != br->entryfp());
@@ -589,11 +656,10 @@ ion::ThunkToInterpreter(Value *vp)
         
         vp->setMagic(JS_ION_BAILOUT);
         js_delete(br);
-        return resumeMode == JSINTERP_RETHROW ? Interpret_Error : Interpret_Ok;
+        return Interpret_Ok;
     }
 
-    InterpretStatus status = Interpret(cx, br->entryfp(), resumeMode);
-    JS_ASSERT_IF(resumeMode == JSINTERP_RETHROW, status == Interpret_Error);
+    InterpretStatus status = Interpret(cx, br->entryfp(), JSINTERP_BAILOUT);
 
     if (status == Interpret_OSR) {
         
@@ -601,8 +667,8 @@ ion::ThunkToInterpreter(Value *vp)
         JS_NOT_REACHED("invalid");
 
         IonSpew(IonSpew_Bailouts, "Performing inline OSR %s:%d",
-                cx->fp()->script()->filename(),
-                PCToLineNumber(cx->fp()->script(), cx->regs().pc));
+                cx->fp()->script()->filename,
+                PCToLineNumber(cx->fp()->script().unsafeGet(), cx->regs().pc));
 
         
         

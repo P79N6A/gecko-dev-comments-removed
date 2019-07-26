@@ -9,15 +9,13 @@
 #define jsion_frame_iterator_inl_h__
 
 #include "ion/IonFrameIterator.h"
-#include "ion/Bailouts.h"
-#include "ion/Ion.h"
 
 namespace js {
 namespace ion {
 
 template <class Op>
 inline void
-SnapshotIterator::readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Value *thisv,
+SnapshotIterator::readFrameArgs(Op op, const Value *argv, Value *scopeChain, Value *thisv,
                                 unsigned start, unsigned formalEnd, unsigned iterEnd)
 {
     if (scopeChain)
@@ -49,40 +47,9 @@ SnapshotIterator::readFrameArgs(Op &op, const Value *argv, Value *scopeChain, Va
     }
 }
 
-template <AllowGC allowGC>
-inline
-InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
-                                JSContext *cx, const IonFrameIterator *iter)
-  : callee_(cx),
-    script_(cx)
-{
-    resetOn(iter);
-}
-
-template <AllowGC allowGC>
-inline
-InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
-        JSContext *cx,
-        const InlineFrameIteratorMaybeGC<allowGC> *iter)
-  : frame_(iter ? iter->frame_ : NULL),
-    framesRead_(0),
-    callee_(cx),
-    script_(cx)
-{
-    if (frame_) {
-        start_ = SnapshotIterator(*frame_);
-        
-        
-        framesRead_ = iter->framesRead_ - 1;
-        findNextFrame();
-    }
-}
-
-template <AllowGC allowGC>
 template <class Op>
 inline void
-InlineFrameIteratorMaybeGC<allowGC>::forEachCanonicalActualArg(
-                JSContext *cx, Op op, unsigned start, unsigned count) const
+InlineFrameIterator::forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const
 {
     unsigned nactual = numActualArgs();
     if (count == unsigned(-1))
@@ -93,108 +60,33 @@ InlineFrameIteratorMaybeGC<allowGC>::forEachCanonicalActualArg(
 
     JS_ASSERT(start <= end && end <= nactual);
 
-    if (more()) {
-        
-        
-        
-        
-        
+    
+    
+    
+    
+    JS_ASSERT_IF(more(), end <= nformal);
 
-        
-        unsigned formal_end = (end < nformal) ? end : nformal;
-        SnapshotIterator s(si_);
-        s.readFrameArgs(op, NULL, NULL, NULL, start, nformal, formal_end);
-
-        
-        
-        InlineFrameIteratorMaybeGC it(cx, this);
-        SnapshotIterator parent_s((++it).snapshotIterator());
-
-        
-        
-        JS_ASSERT(parent_s.slots() >= nactual + 2);
-        unsigned skip = parent_s.slots() - nactual - 2;
-        for (unsigned j = 0; j < skip; j++)
-            parent_s.skip();
-
-        
-        parent_s.readFrameArgs(op, NULL, NULL, NULL, nformal, nactual, end);
-    } else {
-        SnapshotIterator s(si_);
-        Value *argv = frame_->actualArgs();
-        s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end);
-    }
-}
- 
-template <AllowGC allowGC>
-inline JSObject *
-InlineFrameIteratorMaybeGC<allowGC>::scopeChain() const
-{
     SnapshotIterator s(si_);
-
-    
-    Value v = s.read();
-    if (v.isObject()) {
-        JS_ASSERT_IF(script()->hasAnalysis(), script()->analysis()->usesScopeChain());
-        return &v.toObject();
-    }
-
-    return callee()->environment();
+    Value *argv = frame_->actualArgs();
+    s.readFrameArgs(op, argv, NULL, NULL, start, nformal, end);
 }
 
-template <AllowGC allowGC>
-inline JSObject *
-InlineFrameIteratorMaybeGC<allowGC>::thisObject() const
+template <class Op>
+inline void
+IonFrameIterator::forEachCanonicalActualArg(Op op, unsigned start, unsigned count) const
 {
-    
-    SnapshotIterator s(si_);
+    JS_ASSERT(isBaselineJS());
 
-    
-    s.skip();
+    unsigned nactual = numActualArgs();
+    if (count == unsigned(-1))
+        count = nactual - start;
 
-    
-    
-    Value v = s.read();
-    JS_ASSERT(v.isObject());
-    return &v.toObject();
-}
+    unsigned end = start + count;
+    JS_ASSERT(start <= end && end <= nactual);
 
-template <AllowGC allowGC>
-inline unsigned
-InlineFrameIteratorMaybeGC<allowGC>::numActualArgs() const
-{
-    
-    
-    
-    
-    
-    if (more())
-        return numActualArgs_;
-
-    return frame_->numActualArgs();
-}
-
-template <AllowGC allowGC>
-inline
-InlineFrameIteratorMaybeGC<allowGC>::InlineFrameIteratorMaybeGC(
-                                                JSContext *cx, const IonBailoutIterator *iter)
-  : frame_(iter),
-    framesRead_(0),
-    callee_(cx),
-    script_(cx)
-{
-    if (iter) {
-        start_ = SnapshotIterator(*iter);
-        findNextFrame();
-    }
-}
-
-template <AllowGC allowGC>
-inline InlineFrameIteratorMaybeGC<allowGC> &
-InlineFrameIteratorMaybeGC<allowGC>::operator++()
-{
-    findNextFrame();
-    return *this;
+    Value *argv = actualArgs();
+    for (unsigned i = start; i < end; i++)
+        op(argv[i]);
 }
 
 } 

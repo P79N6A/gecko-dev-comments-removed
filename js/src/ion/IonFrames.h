@@ -8,8 +8,6 @@
 #ifndef jsion_frames_h__
 #define jsion_frames_h__
 
-#include "mozilla/DebugOnly.h"
-
 #include "jsfun.h"
 #include "jstypes.h"
 #include "jsutil.h"
@@ -17,8 +15,8 @@
 #include "IonCode.h"
 #include "IonFrameIterator.h"
 
-class JSFunction;
-class JSScript;
+struct JSFunction;
+struct JSScript;
 
 namespace js {
 namespace ion {
@@ -44,7 +42,7 @@ CalleeToToken(JSFunction *fun)
     return CalleeToken(uintptr_t(fun) | uintptr_t(CalleeToken_Function));
 }
 static inline CalleeToken
-CalleeToToken(RawScript script)
+CalleeToToken(JSScript *script)
 {
     return CalleeToken(uintptr_t(script) | uintptr_t(CalleeToken_Script));
 }
@@ -59,21 +57,22 @@ CalleeTokenToFunction(CalleeToken token)
     JS_ASSERT(CalleeTokenIsFunction(token));
     return (JSFunction *)token;
 }
-static inline RawScript
+static inline JSScript *
 CalleeTokenToScript(CalleeToken token)
 {
     JS_ASSERT(GetCalleeTokenTag(token) == CalleeToken_Script);
-    return (RawScript)(uintptr_t(token) & ~uintptr_t(0x3));
+    return (JSScript *)(uintptr_t(token) & ~uintptr_t(0x3));
 }
 
-static inline RawScript
+static inline JSScript *
 ScriptFromCalleeToken(CalleeToken token)
 {
+    AutoAssertNoGC nogc;
     switch (GetCalleeTokenTag(token)) {
       case CalleeToken_Script:
         return CalleeTokenToScript(token);
       case CalleeToken_Function:
-        return CalleeTokenToFunction(token)->nonLazyScript();
+        return CalleeTokenToFunction(token)->nonLazyScript().get(nogc);
     }
     JS_NOT_REACHED("invalid callee token tag");
     return NULL;
@@ -99,19 +98,19 @@ class SafepointIndex
 {
     
     
-    uint32_t displacement_;
+    uint32 displacement_;
 
     union {
         LSafepoint *safepoint_;
 
         
-        uint32_t safepointOffset_;
+        uint32 safepointOffset_;
     };
 
     mozilla::DebugOnly<bool> resolved;
 
   public:
-    SafepointIndex(uint32_t displacement, LSafepoint *safepoint)
+    SafepointIndex(uint32 displacement, LSafepoint *safepoint)
       : displacement_(displacement),
         safepoint_(safepoint),
         resolved(false)
@@ -123,13 +122,13 @@ class SafepointIndex
         JS_ASSERT(!resolved);
         return safepoint_;
     }
-    uint32_t displacement() const {
+    uint32 displacement() const {
         return displacement_;
     }
-    uint32_t safepointOffset() const {
+    uint32 safepointOffset() const {
         return safepointOffset_;
     }
-    void adjustDisplacement(uint32_t offset) {
+    void adjustDisplacement(uint32 offset) {
         JS_ASSERT(offset >= displacement_);
         displacement_ = offset;
     }
@@ -144,20 +143,20 @@ class MacroAssembler;
 
 class OsiIndex
 {
-    uint32_t callPointDisplacement_;
-    uint32_t snapshotOffset_;
+    uint32 callPointDisplacement_;
+    uint32 snapshotOffset_;
 
   public:
-    OsiIndex(uint32_t callPointDisplacement, uint32_t snapshotOffset)
+    OsiIndex(uint32 callPointDisplacement, uint32 snapshotOffset)
       : callPointDisplacement_(callPointDisplacement),
         snapshotOffset_(snapshotOffset)
     { }
 
-    uint32_t returnPointDisplacement() const;
-    uint32_t callPointDisplacement() const {
+    uint32 returnPointDisplacement() const;
+    uint32 callPointDisplacement() const {
         return callPointDisplacement_;
     }
-    uint32_t snapshotOffset() const {
+    uint32 snapshotOffset() const {
         return snapshotOffset_;
     }
     void fixUpOffset(MacroAssembler &masm);
@@ -176,8 +175,8 @@ class OsiIndex
 
 
 
-static const uintptr_t FRAMESIZE_SHIFT = 3;
-static const uintptr_t FRAMETYPE_BITS = 3;
+static const uintptr_t FRAMESIZE_SHIFT = 4;
+static const uintptr_t FRAMETYPE_BITS = 4;
 static const uintptr_t FRAMETYPE_MASK = (1 << FRAMETYPE_BITS) - 1;
 
 
@@ -201,13 +200,13 @@ static const uintptr_t FRAMETYPE_MASK = (1 << FRAMETYPE_BITS) - 1;
 
 
 
-static const uint32_t NO_FRAME_SIZE_CLASS_ID = uint32_t(-1);
+static const uint32 NO_FRAME_SIZE_CLASS_ID = uint32(-1);
 
 class FrameSizeClass
 {
-    uint32_t class_;
+    uint32 class_;
 
-    explicit FrameSizeClass(uint32_t class_) : class_(class_)
+    explicit FrameSizeClass(uint32 class_) : class_(class_)
     { }
   
   public:
@@ -217,16 +216,16 @@ class FrameSizeClass
     static FrameSizeClass None() {
         return FrameSizeClass(NO_FRAME_SIZE_CLASS_ID);
     }
-    static FrameSizeClass FromClass(uint32_t class_) {
+    static FrameSizeClass FromClass(uint32 class_) {
         return FrameSizeClass(class_);
     }
 
     
-    static FrameSizeClass FromDepth(uint32_t frameDepth);
+    static FrameSizeClass FromDepth(uint32 frameDepth);
     static FrameSizeClass ClassLimit();
-    uint32_t frameSize() const;
+    uint32 frameSize() const;
 
-    uint32_t classId() const {
+    uint32 classId() const {
         JS_ASSERT(class_ != NO_FRAME_SIZE_CLASS_ID);
         return class_;
     }
@@ -247,13 +246,11 @@ struct ResumeFromException
 
 void HandleException(ResumeFromException *rfe);
 
-void EnsureExitFrame(IonCommonFrameLayout *frame);
-
 void MarkIonActivations(JSRuntime *rt, JSTracer *trc);
 void MarkIonCompilerRoots(JSTracer *trc);
 
-static inline uint32_t
-MakeFrameDescriptor(uint32_t frameSize, FrameType type)
+static inline uint32
+MakeFrameDescriptor(uint32 frameSize, FrameType type)
 {
     return (frameSize << FRAMESIZE_SHIFT) | type;
 }
@@ -272,33 +269,33 @@ MakeFrameDescriptor(uint32_t frameSize, FrameType type)
 namespace js {
 namespace ion {
 
-RawScript
+JSScript *
 GetTopIonJSScript(JSContext *cx,
                   const SafepointIndex **safepointIndexOut = NULL,
                   void **returnAddrOut = NULL);
 
 void
-GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes);
+GetPcScript(JSContext *cx, MutableHandleScript scriptRes, jsbytecode **pcRes);
 
 
 
 
-static inline int32_t
-OffsetOfFrameSlot(int32_t slot)
+static inline int32
+OffsetOfFrameSlot(int32 slot)
 {
     if (slot <= 0)
-        return -slot;
+        return sizeof(IonJSFrameLayout) + -slot;
     return -(slot * STACK_SLOT_SIZE);
 }
 
 static inline uintptr_t
-ReadFrameSlot(IonJSFrameLayout *fp, int32_t slot)
+ReadFrameSlot(IonJSFrameLayout *fp, int32 slot)
 {
     return *(uintptr_t *)((char *)fp + OffsetOfFrameSlot(slot));
 }
 
 static inline double
-ReadFrameDoubleSlot(IonJSFrameLayout *fp, int32_t slot)
+ReadFrameDoubleSlot(IonJSFrameLayout *fp, int32 slot)
 {
     return *(double *)((char *)fp + OffsetOfFrameSlot(slot));
 }
