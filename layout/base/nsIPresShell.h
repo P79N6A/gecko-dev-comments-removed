@@ -126,9 +126,10 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 
+
 #define NS_IPRESSHELL_IID \
-{ 0x218d1f13, 0xc3e4, 0x4b0d, \
-  { 0x97, 0x73, 0xa1, 0x8a, 0x6f, 0xd5, 0xd5, 0x20 } }
+{ 0xd39cd4ce, 0x6b38, 0x4793, \
+  { 0x8c, 0x1a, 0x00, 0x98, 0x5c, 0x56, 0xd9, 0x31 } }
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -1361,6 +1362,9 @@ public:
 
   
   virtual void RemoveImageFromVisibleList(nsIImageLoadingContent* aImage) = 0;
+
+  
+  virtual bool AssumeAllImagesVisible() = 0;
 
   
 
