@@ -51,6 +51,10 @@ CustomizeMode.prototype = {
   _dragOverItem: null,
   _customizing: false,
 
+  get resetButton() {
+    return this.document.getElementById("customization-restore-button");
+  },
+
   init: function() {
     
     
@@ -146,6 +150,8 @@ CustomizeMode.prototype = {
     this.visiblePalette.addEventListener("dragexit", this);
     this.visiblePalette.addEventListener("drop", this);
     this.visiblePalette.addEventListener("dragend", this);
+
+    this.resetButton.hidden = CustomizableUI.inDefaultState;
 
     document.documentElement.setAttribute("customizing", true);
     this._customizing = true;
@@ -468,6 +474,7 @@ CustomizeMode.prototype = {
 
   _onUIChange: function() {
     this._changed = true;
+    this.resetButton.hidden = CustomizableUI.inDefaultState;
     this.dispatchToolboxEvent("customizationchange");
   },
 
