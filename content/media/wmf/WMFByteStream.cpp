@@ -29,6 +29,9 @@ PRLogModuleInfo* gWMFByteStreamLog = nullptr;
 #endif
 
 
+static const uint32_t NumWMFIoThreads = 4;
+
+
 
 
 class ThreadPoolListener MOZ_FINAL : public nsIThreadPoolListener {
@@ -142,6 +145,19 @@ WMFByteStream::Init()
     NS_ADDREF(sThreadPool);
 
     rv = sThreadPool->SetName(NS_LITERAL_CSTRING("WMFByteStream Async Read Pool"));
+    NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    
+    
+    
+    
+    
+    
+    rv = sThreadPool->SetThreadLimit(NumWMFIoThreads);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = sThreadPool->SetIdleThreadLimit(NumWMFIoThreads);
     NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIThreadPoolListener> listener = new ThreadPoolListener();
