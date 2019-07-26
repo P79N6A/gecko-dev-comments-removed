@@ -77,19 +77,6 @@ let WebAppRT = {
     
         
         if (manifest.fullLaunchPath() == aUrl) {
-          
-          sendMessageToJava({
-            gecko: {
-              type: "Shortcut:Remove",
-              title: manifest.name,
-              url: manifest.fullLaunchPath(),
-              origin: app.origin,
-              shortcutType: "webapp"
-            }
-          });
-          WebappsUI.createShortcut(manifest.name, manifest.fullLaunchPath(),
-                                   WebappsUI.getBiggestIcon(manifest.icons, app.origin), "webapp");
-
           BrowserApp.manifestUrl = app.manifestURL;
           deferred.resolve(aUrl);
           return;
