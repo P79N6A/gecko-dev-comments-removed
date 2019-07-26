@@ -353,6 +353,7 @@ struct ParseTask
     
     
     Vector<frontend::CompileError *> errors;
+    bool overRecursed;
 
     ParseTask(ExclusiveContext *cx, JSContext *initCx,
               const jschar *chars, size_t length, JSObject *scopeChain,

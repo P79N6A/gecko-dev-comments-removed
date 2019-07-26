@@ -399,6 +399,7 @@ class ExclusiveContext : public ThreadSafeContext
 
     
     frontend::CompileError &addPendingCompileError();
+    void addPendingOverRecursed();
 };
 
 inline void
