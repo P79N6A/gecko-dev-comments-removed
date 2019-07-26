@@ -818,6 +818,9 @@ pref("urlclassifier.gethashnoise", 4);
 
 
 pref("urlclassifier.max-complete-age", 2700);
+
+pref("urlclassifier.download_block_table", "goog-badbinurl-shavar");
+pref("urlclassifier.download_allow_table", "goog-downloadwhite-digest256");
 #endif
 
 pref("browser.geolocation.warning.infoURL", "https://www.mozilla.org/%LOCALE%/firefox/geolocation/");
@@ -1078,7 +1081,7 @@ pref("devtools.commands.dir", "");
 
 
 pref("devtools.appmanager.enabled", true);
-pref("devtools.appmanager.lastTab", "help");
+pref("devtools.appmanager.firstrun", true);
 pref("devtools.appmanager.manifestEditor.enabled", false);
 
 

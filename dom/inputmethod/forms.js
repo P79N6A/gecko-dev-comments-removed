@@ -282,7 +282,7 @@ let FormAssistant = {
       this._observer = new MutationObserver(function(mutations) {
         var del = [].some.call(mutations, function(m) {
           return [].some.call(m.removedNodes, function(n) {
-            return n.contains(element);
+            return n === element;
           });
         });
         if (del && element === self.focusedElement) {
@@ -291,9 +291,8 @@ let FormAssistant = {
         }
       });
 
-      this._observer.observe(element.ownerDocument.body, {
-        childList: true,
-        subtree: true
+      this._observer.observe(element.parentNode, {
+        childList: true
       });
     }
 
@@ -396,6 +395,7 @@ let FormAssistant = {
         range = getSelectionRange(this.focusedElement);
         if (range[0] !== this.selectionStart ||
             range[1] !== this.selectionEnd) {
+          this.sendKeyboardState(this.focusedElement);
           this.updateSelection();
         }
         break;
@@ -415,7 +415,7 @@ let FormAssistant = {
           this.scrollIntoViewTimeout = content.setTimeout(function () {
             this.scrollIntoViewTimeout = null;
             if (this.focusedElement && !FormVisibility.isVisible(this.focusedElement)) {
-              scrollSelectionOrElementIntoView(this.focusedElement);
+              this.focusedElement.scrollIntoView(false);
             }
           }.bind(this), RESIZE_SCROLL_DELAY);
         }
@@ -510,16 +510,10 @@ let FormAssistant = {
       case "Forms:Input:SendKey":
         CompositionManager.endComposition('');
 
-        this._editing = true;
-        let doKeypress = domWindowUtils.sendKeyEvent('keydown', json.keyCode,
-                                  json.charCode, json.modifiers);
-        if (doKeypress) {
-          domWindowUtils.sendKeyEvent('keypress', json.keyCode,
-                                  json.charCode, json.modifiers);
-        }
-        domWindowUtils.sendKeyEvent('keyup', json.keyCode,
-                                  json.charCode, json.modifiers);
-        this._editing = false;
+        ["keydown", "keypress", "keyup"].forEach(function(type) {
+          domWindowUtils.sendKeyEvent(type, json.keyCode, json.charCode,
+            json.modifiers);
+        });
 
         if (json.requestId) {
           sendAsyncMessage("Forms:SendKey:Result:OK", {
@@ -761,18 +755,11 @@ function isPlainTextField(element) {
     return false;
   }
 
-  return element instanceof HTMLTextAreaElement ||
-         (element instanceof HTMLInputElement &&
-          element.mozIsTextField(false));
+  return element instanceof HTMLInputElement ||
+         element instanceof HTMLTextAreaElement;
 }
 
 function getJSON(element, focusCounter) {
-  
-  
-  
-  
-  element = element.ownerNumberControl || element;
-
   let type = element.type || "";
   let value = element.value || "";
   let max = element.max || "";
@@ -1014,23 +1001,6 @@ function setSelectionRange(element, start, end) {
     while (getContentEditableSelectionLength(element, sel) < selectionLength) {
       sel.modify("extend", "forward", "character");
     }
-  }
-}
-
-
-
-
-
-
-function scrollSelectionOrElementIntoView(element) {
-  let editor = getPlaintextEditor(element);
-  if (editor) {
-    editor.selectionController.scrollSelectionIntoView(
-      Ci.nsISelectionController.SELECTION_NORMAL,
-      Ci.nsISelectionController.SELECTION_FOCUS_REGION,
-      Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
-  } else {
-      element.scrollIntoView(false);
   }
 }
 
