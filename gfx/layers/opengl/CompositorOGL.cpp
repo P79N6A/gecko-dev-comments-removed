@@ -10,6 +10,7 @@
 #include "FPSCounter.h"                 
 #include "GLContextProvider.h"          
 #include "GLContext.h"                  
+#include "GLUploadHelpers.h"
 #include "Layers.h"                     
 #include "LayerScope.h"                 
 #include "gfx2DGlue.h"                  
@@ -1501,7 +1502,7 @@ CompositorOGL::CreateDataTextureSource(TextureFlags aFlags)
 bool
 CompositorOGL::SupportsPartialTextureUpdate()
 {
-  return mGLContext->CanUploadSubTextures();
+  return CanUploadSubTextures(mGLContext);
 }
 
 int32_t

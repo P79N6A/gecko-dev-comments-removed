@@ -92,6 +92,37 @@ CopyAndPadTextureData(const GLvoid* srcBuffer,
     }
 }
 
+
+
+
+
+
+
+bool
+CanUploadSubTextures(GLContext* gl)
+{
+    if (!gl->WorkAroundDriverBugs())
+        return true;
+
+    
+    
+    if (gl->Renderer() == GLContext::RendererAdreno200 ||
+        gl->Renderer() == GLContext::RendererAdreno205)
+    {
+        return false;
+    }
+
+    
+    
+    if (gl->Renderer() == GLContext::RendererSGX540 ||
+        gl->Renderer() == GLContext::RendererSGX530)
+    {
+        return false;
+    }
+
+    return true;
+}
+
 static void
 TexSubImage2DWithUnpackSubimageGLES(GLContext* gl,
                                     GLenum target, GLint level,
@@ -446,7 +477,7 @@ UploadImageDataToTexture(GLContext* gl,
         NS_ASSERTION(textureInited || (iterRect->x == 0 && iterRect->y == 0),
                      "Must be uploading to the origin when we don't have an existing texture");
 
-        if (textureInited && gl->CanUploadSubTextures()) {
+        if (textureInited && CanUploadSubTextures(gl)) {
             TexSubImage2DHelper(gl,
                                 aTextureTarget,
                                 0,

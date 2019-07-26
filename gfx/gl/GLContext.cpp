@@ -1145,32 +1145,6 @@ GLContext::InitExtensions()
 #endif
 }
 
-
-
-
-
-
-
-bool
-GLContext::CanUploadSubTextures()
-{
-    if (!mWorkAroundDriverBugs)
-        return true;
-
-    
-    
-    if (Renderer() == RendererAdreno200 || Renderer() == RendererAdreno205)
-        return false;
-
-    
-    
-    if (Renderer() == RendererSGX540 || Renderer() == RendererSGX530)
-        return false;
-
-    return true;
-}
-
-
 bool
 GLContext::CanReadSRGBFromFBOTexture()
 {
@@ -1225,24 +1199,6 @@ GLContext::CanUploadNonPowerOfTwo()
     
     return sPowerOfTwoForced ? false : (Renderer() != RendererAdreno200 &&
                                         Renderer() != RendererAdreno205);
-}
-
-bool
-GLContext::WantsSmallTiles()
-{
-    
-    
-    if (!CanUploadSubTextures())
-        return true;
-
-    
-    if (mWorkAroundDriverBugs &&
-        Renderer() == RendererSGX540)
-        return false;
-
-    
-    
-    return false;
 }
 
 
