@@ -78,6 +78,11 @@
 
 
 
+#define NS_STATUS_REPORTER_MANAGER_CONTRACTID "@mozilla.org/status-reporter-manager;1"
+
+
+
+
 #define NS_CYCLE_COLLECTOR_LOGGER_CONTRACTID "@mozilla.org/cycle-collector-logger;1"
 
 
