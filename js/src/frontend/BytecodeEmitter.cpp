@@ -6412,7 +6412,7 @@ CGConstList::finish(ConstArray *array)
 
 
 
-JS_FRIEND_DATA(const JSSrcNoteSpec) js_SrcNoteSpec[] = {
+const JSSrcNoteSpec js_SrcNoteSpec[] = {
  {"null",           0},
 
  {"if",             0},
