@@ -1,9 +1,9 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifdef JS_METHODJIT
 
@@ -72,29 +72,29 @@ void
 Recompiler::patchNative(JSCompartment *compartment, JITChunk *chunk, StackFrame *fp,
                         jsbytecode *pc, RejoinState rejoin)
 {
-    
-
-
-
-
-
-
-
-
-
-
-
+    /*
+     * There is a native call or getter IC at pc which triggered recompilation.
+     * The recompilation could have been triggered either by the native call
+     * itself, or by a SplatApplyArgs preparing for the native call. Either
+     * way, we don't want to patch up the call, but will instead steal the pool
+     * for the IC so it doesn't get freed with the JITChunk, and patch up the
+     * jump at the end to go to the interpoline.
+     *
+     * When doing this, we do not reset the the IC itself; there may be other
+     * native calls from this chunk on the stack and we need to find and patch
+     * all live stubs before purging the chunk's caches.
+     */
     fp->setRejoin(StubRejoin(rejoin));
 
-    
+    /* :XXX: We might crash later if this fails. */
     compartment->rt->jaegerRuntime().orphanedNativeFrames.append(fp);
 
     DebugOnly<bool> found = false;
 
-    
-
-
-
+    /*
+     * Find and patch all native call stubs attached to the given PC. There may
+     * be multiple ones for getter stubs attached to e.g. a GETELEM.
+     */
     for (unsigned i = 0; i < chunk->nativeCallStubs.length(); i++) {
         NativeCallStub &stub = chunk->nativeCallStubs[i];
         if (stub.pc != pc)
@@ -102,14 +102,14 @@ Recompiler::patchNative(JSCompartment *compartment, JITChunk *chunk, StackFrame 
 
         found = true;
 
-        
+        /* Check for pools that were already patched. */
         if (!stub.pool)
             continue;
 
-        
+        /* Patch the native fallthrough to go to the interpoline. */
         {
 #if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
-            
+            /* Win64 needs stack adjustment */
             void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolinePatched);
 #else
             void *interpoline = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
@@ -123,10 +123,10 @@ Recompiler::patchNative(JSCompartment *compartment, JITChunk *chunk, StackFrame 
 #endif
         }
 
-        
+        /* :XXX: We leak the pool if this fails. Oh well. */
         compartment->rt->jaegerRuntime().orphanedNativePools.append(stub.pool);
 
-        
+        /* Mark as stolen in case there are multiple calls on the stack. */
         stub.pool = NULL;
     }
 
@@ -138,27 +138,27 @@ Recompiler::patchFrame(JSCompartment *compartment, VMFrame *f, JSScript *script)
 {
     AutoAssertNoGC nogc;
 
-    
-
-
-
-
-
+    /*
+     * Check if the VMFrame returns directly into the script's jitcode. This
+     * depends on the invariant that f->fp() reflects the frame at the point
+     * where the call occurred, irregardless of any frames which were pushed
+     * inside the call.
+     */
     StackFrame *fp = f->fp();
     void **addr = f->returnAddressLocation();
     RejoinState rejoin = (RejoinState) f->stubRejoin;
     if (rejoin == REJOIN_NATIVE ||
         rejoin == REJOIN_NATIVE_LOWERED ||
         rejoin == REJOIN_NATIVE_GETTER) {
-        
+        /* Native call. */
         if (fp->script() == script) {
             patchNative(compartment, fp->jit()->chunk(f->regs.pc), fp, f->regs.pc, rejoin);
             f->stubRejoin = REJOIN_NATIVE_PATCHED;
         }
     } else if (rejoin == REJOIN_NATIVE_PATCHED) {
-        
+        /* Already patched, don't do anything. */
     } else if (rejoin) {
-        
+        /* Recompilation triggered by CompileFunction. */
         if (fp->script() == script) {
             fp->setRejoin(StubRejoin(rejoin));
             *addr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
@@ -202,14 +202,14 @@ Recompiler::expandInlineFrameChain(StackFrame *outer, InlineFrame *inner)
     return fp;
 }
 
-
-
-
-
+/*
+ * Whether a given return address for a frame indicates it returns directly
+ * into JIT code.
+ */
 static inline bool
 JITCodeReturnAddress(void *data)
 {
-    return data != NULL  
+    return data != NULL  /* frame is interpreted */
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerTrampolineReturn)
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline)
 #if (defined(JS_NO_FASTCALL) && defined(JS_CPU_X86)) || defined(_WIN64)
@@ -218,10 +218,10 @@ JITCodeReturnAddress(void *data)
         && data != JS_FUNC_TO_DATA_PTR(void *, JaegerInterpolineScripted);
 }
 
-
-
-
-
+/*
+ * Expand all inlined frames within fp per 'inlined' and update next and regs
+ * to refer to the new innermost frame.
+ */
 void
 Recompiler::expandInlineFrames(JSCompartment *compartment,
                                StackFrame *fp, mjit::CallSite *inlined,
@@ -230,20 +230,20 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
     AutoAssertNoGC nogc;
     JS_ASSERT_IF(next, next->prev() == fp && next->prevInline() == inlined);
 
-    
-
-
-
+    /*
+     * Treat any frame expansion as a recompilation event, so that f.jit() is
+     * stable if no recompilations have occurred.
+     */
     compartment->types.frameExpansions++;
 
     jsbytecode *pc = next ? next->prevpc() : f->regs.pc;
     JITChunk *chunk = fp->jit()->chunk(pc);
 
-    
-
-
-
-
+    /*
+     * Patch the VMFrame's return address if it is returning at the given inline site.
+     * Note there is no worry about handling a native or CompileFunction call here,
+     * as such IC stubs are not generated within inline frames.
+     */
     void **frameAddr = f->returnAddressLocation();
     uint8_t* codeStart = (uint8_t *)chunk->code.m_code.executableAddress();
 
@@ -252,9 +252,9 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
 
     StackFrame *innerfp = expandInlineFrameChain(fp, inner);
 
-    
+    /* Check if the VMFrame returns into the inlined frame. */
     if (f->stubRejoin && f->fp() == fp) {
-        
+        /* The VMFrame is calling CompileFunction. */
         JS_ASSERT(f->stubRejoin != REJOIN_NATIVE &&
                   f->stubRejoin != REJOIN_NATIVE_LOWERED &&
                   f->stubRejoin != REJOIN_NATIVE_GETTER &&
@@ -264,7 +264,7 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
         f->stubRejoin = 0;
     }
     if (CallsiteMatches(codeStart, *inlined, *frameAddr)) {
-        
+        /* The VMFrame returns directly into the expanded frame. */
         SetRejoinState(innerfp, *inlined, frameAddr);
     }
 
@@ -273,13 +273,13 @@ Recompiler::expandInlineFrames(JSCompartment *compartment,
         f->regs.expandInline(innerfp, innerpc);
     }
 
-    
-
-
-
-
-
-
+    /*
+     * Note: unlike the case for recompilation, during frame expansion we don't
+     * need to worry about the next VMFrame holding a reference to the inlined
+     * frame in its entryncode. entryncode is non-NULL only if the next frame's
+     * code was discarded and has executed via the Interpoline, which can only
+     * happen after all inline frames have been expanded.
+     */
 
     if (next) {
         next->resetInlinePrev(innerfp, innerpc);
@@ -348,21 +348,21 @@ ClearAllFrames(JSCompartment *compartment)
         if (f->entryfp->compartment() != compartment)
             continue;
 
-        Recompiler::patchFrame(compartment, f, f->fp()->script());
+        Recompiler::patchFrame(compartment, f, f->fp()->script().get(nogc));
 
-        
-        
-        
-        
-        
-        
-        
+        // Clear ncode values from all frames associated with the VMFrame.
+        // Patching the VMFrame's return address will cause all its frames to
+        // finish in the interpreter, unless the interpreter enters one of the
+        // intermediate frames at a loop boundary (where EnterMethodJIT will
+        // overwrite ncode). However, leaving stale values for ncode in stack
+        // frames can confuse the recompiler, which may see the VMFrame before
+        // it has resumed execution.
 
         for (StackFrame *fp = f->fp(); fp != f->entryfp; fp = fp->prev())
             fp->setNativeReturnAddress(NULL);
     }
 
-    
+    // Purge all ICs in chunks for which we patched any native frames, see patchNative.
     for (VMFrame *f = compartment->rt->jaegerRuntime().activeFrame();
          f != NULL;
          f = f->previous)
@@ -378,25 +378,25 @@ ClearAllFrames(JSCompartment *compartment)
     }
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * Recompilation can be triggered either by the debugger (turning debug mode on for
+ * a script or setting/clearing a trap), or by dynamic changes in type information
+ * from type inference. When recompiling we don't immediately recompile the JIT
+ * code, but destroy the old code and remove all references to the code, including
+ * those from active stack frames. Things to do:
+ *
+ * - Purge scripted call inline caches calling into the script.
+ *
+ * - For frames with an ncode return address in the original script, redirect
+ *   to the interpoline.
+ *
+ * - For VMFrames with a stub call return address in the original script,
+ *   redirect to the interpoline.
+ *
+ * - For VMFrames whose entryncode address (the value of entryfp->ncode before
+ *   being clobbered with JaegerTrampolineReturn) is in the original script,
+ *   redirect that entryncode to the interpoline.
+ */
 void
 Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
 {
@@ -409,18 +409,18 @@ Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
     JSCompartment *comp = script->compartment();
     types::AutoEnterTypeInference enter(fop, comp);
 
-    
+    /*
+     * The strategy for this goes as follows:
+     *
+     * 1) Scan the stack, looking at all return addresses that could go into JIT
+     *    code.
+     * 2) If an address corresponds to a call site registered by |callSite| during
+     *    the last compilation, patch it to go to the interpoline.
+     * 3) Purge the old compiled state.
+     */
 
-
-
-
-
-
-
-
-
-    
-    
+    // Find all JIT'd stack frames to account for return addresses that will
+    // need to be patched after recompilation.
     for (VMFrame *f = fop->runtime()->jaegerRuntime().activeFrame();
          f != NULL;
          f = f->previous)
@@ -428,7 +428,7 @@ Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
         if (f->entryfp->compartment() != comp)
             continue;
 
-        
+        // Scan all frames owned by this VMFrame.
         StackFrame *end = f->entryfp->prev();
         StackFrame *next = NULL;
         for (StackFrame *fp = f->fp(); fp != end; fp = fp->prev()) {
@@ -438,9 +438,9 @@ Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
             }
 
             if (next) {
-                
-                
-                
+                // check for a scripted call returning into the recompiled script.
+                // this misses scanning the entry fp, which cannot return directly
+                // into JIT code.
                 void **addr = next->addressOfNativeReturnAddress();
 
                 if (JITCodeReturnAddress(*addr)) {
@@ -457,7 +457,7 @@ Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
 
     comp->types.recompilations++;
 
-    
+    // Purge all ICs in chunks for which we patched any native frames, see patchNative.
     for (VMFrame *f = fop->runtime()->jaegerRuntime().activeFrame();
          f != NULL;
          f = f->previous)
@@ -472,8 +472,8 @@ Recompiler::clearStackReferences(FreeOp *fop, JSScript *script)
     }
 }
 
-} 
-} 
+} /* namespace mjit */
+} /* namespace js */
 
-#endif 
+#endif /* JS_METHODJIT */
 

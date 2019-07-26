@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil -*- */
+/* vim: set ts=4 sw=4 et tw=99: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jsworkers.h"
 
@@ -48,11 +48,11 @@ js::StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder)
     return true;
 }
 
-
-
-
-
-
+/*
+ * Move an IonBuilder for which compilation has either finished, failed, or
+ * been cancelled into the Ion compartment's finished compilations list.
+ * All off thread compilations which are started must eventually be finished.
+ */
 static void
 FinishOffThreadIonCompile(ion::IonBuilder *builder)
 {
@@ -85,21 +85,21 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 
     AutoLockWorkerThreadState lock(compartment->rt);
 
-    
+    /* Cancel any pending entries for which processing hasn't started. */
     for (size_t i = 0; i < state.ionWorklist.length(); i++) {
         ion::IonBuilder *builder = state.ionWorklist[i];
-        if (CompiledScriptMatches(compartment, script, builder->script())) {
+        if (CompiledScriptMatches(compartment, script, builder->script().unsafeGet())) {
             FinishOffThreadIonCompile(builder);
             state.ionWorklist[i--] = state.ionWorklist.back();
             state.ionWorklist.popBack();
         }
     }
 
-    
+    /* Wait for in progress entries to finish up. */
     for (size_t i = 0; i < state.numThreads; i++) {
         const WorkerThread &helper = state.threads[i];
         while (helper.ionBuilder &&
-               CompiledScriptMatches(compartment, script, helper.ionBuilder->script()))
+               CompiledScriptMatches(compartment, script, helper.ionBuilder->script().unsafeGet()))
         {
             helper.ionBuilder->cancel();
             state.wait(WorkerThreadState::MAIN);
@@ -108,10 +108,10 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 
     ion::OffThreadCompilationVector &compilations = ion->finishedOffThreadCompilations();
 
-    
+    /* Cancel code generation for any completed entries. */
     for (size_t i = 0; i < compilations.length(); i++) {
         ion::IonBuilder *builder = compilations[i];
-        if (CompiledScriptMatches(compartment, script, builder->script())) {
+        if (CompiledScriptMatches(compartment, script, builder->script().unsafeGet())) {
             ion::FinishOffThreadBuilder(builder);
             compilations[i--] = compilations.back();
             compilations.popBack();
@@ -168,10 +168,10 @@ WorkerThreadState::init(JSRuntime *rt)
 
 WorkerThreadState::~WorkerThreadState()
 {
-    
-
-
-
+    /*
+     * Join created threads first, which needs locks and condition variables
+     * to be intact.
+     */
     if (threads) {
         for (size_t i = 0; i < numThreads; i++)
             threads[i].destroy();
@@ -258,14 +258,14 @@ WorkerThread::destroy()
         AutoLockWorkerThreadState lock(runtime);
         terminate = true;
 
-        
+        /* Notify all workers, to ensure that this thread wakes up. */
         state.notifyAll(WorkerThreadState::WORKER);
     }
 
     PR_JoinThread(thread);
 }
 
-
+/* static */
 void
 WorkerThread::ThreadMain(void *arg)
 {
@@ -306,21 +306,21 @@ WorkerThread::threadLoop()
         FinishOffThreadIonCompile(ionBuilder);
         ionBuilder = NULL;
 
-        
-
-
-
+        /*
+         * Notify the main thread in case it is waiting for the compilation to
+         * finish.
+         */
         state.notify(WorkerThreadState::MAIN);
 
-        
-
-
-
+        /*
+         * Ping the main thread so that the compiled code can be incorporated
+         * at the next operation callback.
+         */
         runtime->triggerOperationCallback();
     }
 }
 
-#else 
+#else /* JS_PARALLEL_COMPILATION */
 
 bool
 js::StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder)
@@ -340,4 +340,4 @@ js::OffThreadCompilationAvailable(JSContext *cx)
     return false;
 }
 
-#endif 
+#endif /* JS_PARALLEL_COMPILATION */
