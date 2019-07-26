@@ -97,6 +97,7 @@ class nsScriptObjectTracer;
 class nsStringHashKey;
 class nsTextFragment;
 class nsViewportInfo;
+class nsIFrame;
 
 struct JSContext;
 struct JSPropertyDescriptor;
@@ -2114,6 +2115,21 @@ public:
                                         Element* aRoot,
                                         int32_t& aOutStartOffset,
                                         int32_t& aOutEndOffset);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  static int32_t GetAdjustedOffsetInTextControl(nsIFrame* aOffsetFrame,
+                                                int32_t aOffset);
 
   static nsIEditor* GetHTMLEditor(nsPresContext* aPresContext);
 
