@@ -1466,28 +1466,28 @@ PluginModuleParent::AnswerProcessSomeEvents()
 #endif
 
 bool
-PluginModuleParent::RecvProcessNativeEventsInRPCCall()
+PluginModuleParent::RecvProcessNativeEventsInInterruptCall()
 {
     PLUGIN_LOG_DEBUG(("%s", FULLFUNCTION));
 #if defined(OS_WIN)
-    ProcessNativeEventsInRPCCall();
+    ProcessNativeEventsInInterruptCall();
     return true;
 #else
     NS_NOTREACHED(
-        "PluginModuleParent::RecvProcessNativeEventsInRPCCall not implemented!");
+        "PluginModuleParent::RecvProcessNativeEventsInInterruptCall not implemented!");
     return false;
 #endif
 }
 
 void
-PluginModuleParent::ProcessRemoteNativeEventsInRPCCall()
+PluginModuleParent::ProcessRemoteNativeEventsInInterruptCall()
 {
 #if defined(OS_WIN)
-    unused << SendProcessNativeEventsInRPCCall();
+    unused << SendProcessNativeEventsInInterruptCall();
     return;
 #endif
     NS_NOTREACHED(
-        "PluginModuleParent::ProcessRemoteNativeEventsInRPCCall not implemented!");
+        "PluginModuleParent::ProcessRemoteNativeEventsInInterruptCall not implemented!");
 }
 
 bool

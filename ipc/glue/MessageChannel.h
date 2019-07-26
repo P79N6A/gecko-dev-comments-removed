@@ -97,7 +97,7 @@ class MessageChannel : HasResultCodes
         return !mCxxStackFrames.empty();
     }
 
-    void FlushPendingRPCQueue();
+    void FlushPendingInterruptQueue();
 
     
     
@@ -122,10 +122,10 @@ class MessageChannel : HasResultCodes
 #ifdef OS_WIN
     struct MOZ_STACK_CLASS SyncStackFrame
     {
-        SyncStackFrame(MessageChannel* channel, bool rpc);
+        SyncStackFrame(MessageChannel* channel, bool interrupt);
         ~SyncStackFrame();
 
-        bool mRPC;
+        bool mInterrupt;
         bool mSpinNestedEvents;
         bool mListenerNotified;
         MessageChannel* mChannel;
@@ -154,7 +154,7 @@ class MessageChannel : HasResultCodes
     static SyncStackFrame* sStaticTopFrame;
 
   public:
-    void ProcessNativeEventsInRPCCall();
+    void ProcessNativeEventsInInterruptCall();
     static void NotifyGeckoEventDispatch();
 
   private:
@@ -189,10 +189,10 @@ class MessageChannel : HasResultCodes
     
     bool SendAndWait(Message* aMsg, Message* aReply);
 
-    bool RPCCall(Message* aMsg, Message* aReply);
+    bool InterruptCall(Message* aMsg, Message* aReply);
     bool UrgentCall(Message* aMsg, Message* aReply);
 
-    bool RPCEventOccurred();
+    bool InterruptEventOccurred();
 
     void MaybeUndeferIncall();
     void EnqueuePendingMessages();
@@ -208,7 +208,7 @@ class MessageChannel : HasResultCodes
     void DispatchSyncMessage(const Message &aMsg);
     void DispatchUrgentMessage(const Message &aMsg);
     void DispatchAsyncMessage(const Message &aMsg);
-    void DispatchRPCMessage(const Message &aMsg, size_t aStackDepth);
+    void DispatchInterruptMessage(const Message &aMsg, size_t aStackDepth);
 
     
     
@@ -221,7 +221,7 @@ class MessageChannel : HasResultCodes
     
     
     bool WaitForSyncNotify();
-    bool WaitForRPCNotify();
+    bool WaitForInterruptNotify();
 
     bool WaitResponse(bool aWaitTimedOut);
 
@@ -248,7 +248,6 @@ class MessageChannel : HasResultCodes
     
     
     
-    
     void EnteredCxxStack() {
        mListener->OnEnteredCxxStack();
     }
@@ -268,16 +267,16 @@ class MessageChannel : HasResultCodes
     }
 
     enum Direction { IN_MESSAGE, OUT_MESSAGE };
-    struct RPCFrame {
-        RPCFrame(Direction direction, const Message* msg)
+    struct InterruptFrame {
+        InterruptFrame(Direction direction, const Message* msg)
           : mDirection(direction), mMsg(msg)
         { }
 
-        bool IsRPCIncall() const {
-            return mMsg->is_rpc() && IN_MESSAGE == mDirection;
+        bool IsInterruptIncall() const {
+            return mMsg->is_interrupt() && IN_MESSAGE == mDirection;
         }
-        bool IsRPCOutcall() const {
-            return mMsg->is_rpc() && OUT_MESSAGE == mDirection;
+        bool IsInterruptOutcall() const {
+            return mMsg->is_interrupt() && OUT_MESSAGE == mDirection;
         }
 
         void Describe(int32_t* id, const char** dir, const char** sems,
@@ -285,7 +284,7 @@ class MessageChannel : HasResultCodes
         {
             *id = mMsg->routing_id();
             *dir = (IN_MESSAGE == mDirection) ? "in" : "out";
-            *sems = mMsg->is_rpc() ? "rpc" : mMsg->is_sync() ? "sync" : "async";
+            *sems = mMsg->is_interrupt() ? "intr" : mMsg->is_sync() ? "sync" : "async";
             *name = mMsg->name();
         }
 
@@ -304,17 +303,17 @@ class MessageChannel : HasResultCodes
             if (mThat.mCxxStackFrames.empty())
                 mThat.EnteredCxxStack();
 
-            mThat.mCxxStackFrames.push_back(RPCFrame(direction, msg));
-            const RPCFrame& frame = mThat.mCxxStackFrames.back();
+            mThat.mCxxStackFrames.push_back(InterruptFrame(direction, msg));
+            const InterruptFrame& frame = mThat.mCxxStackFrames.back();
 
-            if (frame.IsRPCIncall())
+            if (frame.IsInterruptIncall())
                 mThat.EnteredCall();
 
-            mThat.mSawRPCOutMsg |= frame.IsRPCOutcall();
+            mThat.mSawInterruptOutMsg |= frame.IsInterruptOutcall();
         }
 
         ~CxxStackFrame() {
-            bool exitingCall = mThat.mCxxStackFrames.back().IsRPCIncall();
+            bool exitingCall = mThat.mCxxStackFrames.back().IsInterruptIncall();
             mThat.mCxxStackFrames.pop_back();
             bool exitingStack = mThat.mCxxStackFrames.empty();
 
@@ -345,13 +344,13 @@ class MessageChannel : HasResultCodes
 
     
     
-    void DumpRPCStack(const char* const pfx="") const;
+    void DumpInterruptStack(const char* const pfx="") const;
 
   private:
     
-    size_t RPCStackDepth() const {
+    size_t InterruptStackDepth() const {
         mMonitor->AssertCurrentThreadOwns();
-        return mRPCStack.size();
+        return mInterruptStack.size();
     }
 
     
@@ -363,9 +362,9 @@ class MessageChannel : HasResultCodes
         mMonitor->AssertCurrentThreadOwns();
         return mPendingUrgentReplies > 0;
     }
-    bool AwaitingRPCReply() const {
+    bool AwaitingInterruptReply() const {
         mMonitor->AssertCurrentThreadOwns();
-        return !mRPCStack.empty();
+        return !mInterruptStack.empty();
     }
 
     
@@ -551,7 +550,7 @@ class MessageChannel : HasResultCodes
     
     
     
-    std::stack<Message> mRPCStack;
+    std::stack<Message> mInterruptStack;
 
     
     
@@ -586,11 +585,11 @@ class MessageChannel : HasResultCodes
     
     
     
-    std::vector<RPCFrame> mCxxStackFrames;
+    std::vector<InterruptFrame> mCxxStackFrames;
 
     
     
-    bool mSawRPCOutMsg;
+    bool mSawInterruptOutMsg;
 
     
     

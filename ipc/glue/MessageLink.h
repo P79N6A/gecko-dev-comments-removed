@@ -49,10 +49,10 @@ enum ChannelState {
 };
 
 
-enum RacyRPCPolicy {
-    RRPError,
-    RRPChildWins,
-    RRPParentWins
+enum RacyInterruptPolicy {
+    RIPError,
+    RIPChildWins,
+    RIPParentWins
 };
 
 class MessageListener
@@ -87,13 +87,13 @@ class MessageListener
     virtual void OnExitedCall() {
         NS_RUNTIMEABORT("default impl shouldn't be invoked");
     }
-    virtual RacyRPCPolicy MediateRPCRace(const Message& parent,
-                                         const Message& child)
+    virtual RacyInterruptPolicy MediateInterruptRace(const Message& parent,
+                                                     const Message& child)
     {
-        return RRPChildWins;
+        return RIPChildWins;
     }
 
-    virtual void ProcessRemoteNativeEventsInRPCCall() {
+    virtual void ProcessRemoteNativeEventsInInterruptCall() {
     }
 
     

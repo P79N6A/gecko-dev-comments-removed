@@ -587,8 +587,8 @@ TimeoutHasExpired(const TimeoutData& aData)
 
 } 
 
-MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool rpc)
-  : mRPC(rpc)
+MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool interrupt)
+  : mInterrupt(interrupt)
   , mSpinNestedEvents(false)
   , mListenerNotified(false)
   , mChannel(channel)
@@ -608,9 +608,9 @@ MessageChannel::SyncStackFrame::SyncStackFrame(MessageChannel* channel, bool rpc
 MessageChannel::SyncStackFrame::~SyncStackFrame()
 {
   NS_ASSERTION(this == mChannel->mTopFrame,
-               "Mismatched RPC stack frames");
+               "Mismatched interrupt stack frames");
   NS_ASSERTION(this == sStaticTopFrame,
-               "Mismatched static RPC stack frames");
+               "Mismatched static Interrupt stack frames");
 
   mChannel->mTopFrame = mPrev;
   sStaticTopFrame = mStaticPrev;
@@ -637,16 +637,16 @@ MessageChannel::NotifyGeckoEventDispatch()
 
   sStaticTopFrame->mListenerNotified = true;
   MessageChannel* channel = static_cast<MessageChannel*>(sStaticTopFrame->mChannel);
-  channel->Listener()->ProcessRemoteNativeEventsInRPCCall();
+  channel->Listener()->ProcessRemoteNativeEventsInInterruptCall();
 }
 
 
 
 void
-MessageChannel::ProcessNativeEventsInRPCCall()
+MessageChannel::ProcessNativeEventsInInterruptCall()
 {
   if (!mTopFrame) {
-    NS_ERROR("Spin logic error: no RPC frame");
+    NS_ERROR("Spin logic error: no Interrupt frame");
     return;
   }
 
@@ -722,7 +722,7 @@ MessageChannel::WaitForSyncNotify()
   
   Init();
 
-  NS_ASSERTION(mTopFrame && !mTopFrame->mRPC,
+  NS_ASSERTION(mTopFrame && !mTopFrame->mInterrupt,
                "Top frame is not a sync frame!");
 
   MonitorAutoUnlock unlock(*mMonitor);
@@ -837,11 +837,11 @@ MessageChannel::WaitForSyncNotify()
 }
 
 bool
-MessageChannel::WaitForRPCNotify()
+MessageChannel::WaitForInterruptNotify()
 {
   mMonitor->AssertCurrentThreadOwns();
 
-  if (!RPCStackDepth()) {
+  if (!InterruptStackDepth()) {
     
     NS_RUNTIMEABORT("StackDepth() is 0 in call to MessageChannel::WaitForNotify!");
   }
@@ -849,7 +849,7 @@ MessageChannel::WaitForRPCNotify()
   
   Init();
 
-  NS_ASSERTION(mTopFrame && mTopFrame->mRPC,
+  NS_ASSERTION(mTopFrame && mTopFrame->mInterrupt,
                "Top frame is not a sync frame!");
 
   MonitorAutoUnlock unlock(*mMonitor);

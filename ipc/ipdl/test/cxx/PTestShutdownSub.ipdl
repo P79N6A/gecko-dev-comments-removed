@@ -1,15 +1,15 @@
-include protocol "PTestShutdown.ipdl";
-include protocol "PTestShutdownSubsub.ipdl";
+include protocol PTestShutdown;
+include protocol PTestShutdownSubsub;
 
 namespace mozilla {
 namespace _ipdltest {
 
-rpc protocol PTestShutdownSub {
+intr protocol PTestShutdownSub {
     manager PTestShutdown;
     manages PTestShutdownSubsub;
 
 both:
-    rpc StackFrame();
+    intr StackFrame();
 
 parent:
     PTestShutdownSubsub(bool expectParentDeleted);
