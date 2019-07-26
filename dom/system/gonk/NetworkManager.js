@@ -513,36 +513,44 @@ NetworkManager.prototype = {
   },
 
   setSecondaryDefaultRoute: function(network) {
-    
-    
-    
-    let route = {
-      ip: network.gateway,
-      prefix: IPV4_MAX_PREFIX_LENGTH,
-      gateway: IPV4_ADDRESS_ANY
-    };
-    gNetworkService.addSecondaryRoute(network.name, route);
-    
-    
-    route.ip = IPV4_ADDRESS_ANY;
-    route.prefix = 0;
-    route.gateway = network.gateway;
-    gNetworkService.addSecondaryRoute(network.name, route);
+    let gateways = network.getGateways();
+    for (let i = 0; i < gateways.length; i++) {
+      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
+      
+      
+      
+      let route = {
+        ip: gateways[i],
+        prefix: isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH,
+        gateway: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY
+      };
+      gNetworkService.addSecondaryRoute(network.name, route);
+      
+      
+      route.ip = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
+      route.prefix = 0;
+      route.gateway = gateways[i];
+      gNetworkService.addSecondaryRoute(network.name, route);
+    }
   },
 
   removeSecondaryDefaultRoute: function(network) {
-    
-    let route = {
-      ip: network.gateway,
-      prefix: IPV4_MAX_PREFIX_LENGTH,
-      gateway: IPV4_ADDRESS_ANY
-    };
-    gNetworkService.removeSecondaryRoute(network.name, route);
+    let gateways = network.getGateways();
+    for (let i = 0; i < gateways.length; i++) {
+      let isIPv6 = (gateways[i].indexOf(":") != -1) ? true : false;
+      
+      let route = {
+        ip: isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY,
+        prefix: 0,
+        gateway: gateways[i]
+      };
+      gNetworkService.removeSecondaryRoute(network.name, route);
 
-    route.ip = IPV4_ADDRESS_ANY;
-    route.prefix = "0";
-    route.gateway = network.gateway;
-    gNetworkService.removeSecondaryRoute(network.name, route);
+      route.ip = gateways[i];
+      route.prefix = isIPv6 ? IPV6_MAX_PREFIX_LENGTH : IPV4_MAX_PREFIX_LENGTH;
+      route.gateway = isIPv6 ? IPV6_ADDRESS_ANY : IPV4_ADDRESS_ANY;
+      gNetworkService.removeSecondaryRoute(network.name, route);
+    }
   },
 #endif 
 
