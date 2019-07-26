@@ -95,7 +95,11 @@ GetPrincipal(const nsACString& aHost, uint32_t aAppId, bool aIsInBrowserElement,
     
     
     
-    rv = NS_NewURI(getter_AddRefs(uri), NS_LITERAL_CSTRING("http://") + aHost);
+    
+    nsCString scheme = NS_LITERAL_CSTRING(
+      (aHost.FindChar('@') == -1) ? "http://" : "mailto:");
+
+    rv = NS_NewURI(getter_AddRefs(uri), scheme + aHost);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
