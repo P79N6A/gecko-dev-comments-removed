@@ -331,8 +331,15 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
 {
     
 
+    if (width < 0 || height < 0) {
+        GenerateWarning("Canvas size is too large (seems like a negative value wrapped)");
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
     if (!GetCanvas())
         return NS_ERROR_FAILURE;
+
+    
 
     GetCanvas()->InvalidateCanvas();
 
@@ -363,9 +370,8 @@ WebGLContext::SetDimensions(int32_t width, int32_t height)
     }
 
     
-
-
-
+    
+    
 
     
     
