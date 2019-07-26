@@ -311,26 +311,20 @@ SurfaceStream_TripleBuffer_Copy::SwapProducer(SurfaceFactory* factory,
 
     RecycleScraps(factory);
     if (mProducer) {
-        if (mStaging && mStaging->Type() != factory->Type())
+        if (mStaging) {
+            
+            
             Recycle(factory, mStaging);
+        }
 
-        if (!mStaging)
-            New(factory, mProducer->Size(), mStaging);
-
-        if (!mStaging)
-            return nullptr;
-
-        SharedSurface::Copy(mProducer, mStaging, factory);
-        
+        Move(mProducer, mStaging);
         mStaging->Fence();
 
-        if (mProducer->Size() != size)
-            Recycle(factory, mProducer);
-    }
-
-    
-    
-    if (!mProducer) {
+        New(factory, size, mProducer);
+        
+        if (mStaging->Size() == mProducer->Size())
+            SharedSurface::Copy(mStaging, mProducer, factory);
+    } else {
         New(factory, size, mProducer);
     }
 
