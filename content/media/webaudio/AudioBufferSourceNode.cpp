@@ -312,6 +312,11 @@ public:
       mPlaybackRate = mPlaybackRateTimeline.GetValueAtTime<TrackTicks>(aStream->GetCurrentPosition());
     }
 
+    
+    if (mPlaybackRate <= 0.0 || mPlaybackRate >= 1024) {
+      mPlaybackRate = 1.0;
+    }
+
     uint32_t currentOutSampleRate, currentInSampleRate;
     if (ShouldResample()) {
       SpeexResamplerState* resampler = Resampler(mChannels);
