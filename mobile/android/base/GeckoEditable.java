@@ -53,6 +53,7 @@ final class GeckoEditable
     private static final boolean DEBUG = false;
     private static final String LOGTAG = "GeckoEditable";
     private static final int NOTIFY_IME_REPLY_EVENT = 1;
+    private static final int NOTIFY_IME_FOCUSCHANGE = 3;
 
     
     private InputFilter[] mFilters;
@@ -464,6 +465,11 @@ final class GeckoEditable
             public void run() {
                 
                 mActionQueue.syncWithGecko();
+                if (type == NOTIFY_IME_FOCUSCHANGE && state != 0) {
+                    
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createIMEEvent(
+                            GeckoEvent.IME_ACKNOWLEDGE_FOCUS));
+                }
                 if (mListener != null) {
                     mListener.notifyIME(type, state);
                 }
