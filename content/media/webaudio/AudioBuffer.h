@@ -96,7 +96,7 @@ public:
 
   
   
-  void SetChannelDataFromArrayBufferContents(JSContext* aJSContext,
+  bool SetChannelDataFromArrayBufferContents(JSContext* aJSContext,
                                              uint32_t aChannel,
                                              void* aContents);
 
@@ -109,7 +109,7 @@ public:
                              float* aContents);
 
 protected:
-  void RestoreJSChannelData(JSContext* aJSContext);
+  bool RestoreJSChannelData(JSContext* aJSContext);
   void ClearJSChannels();
 
   nsRefPtr<AudioContext> mContext;
