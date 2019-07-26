@@ -257,7 +257,7 @@ var SelectionHandler = {
     
     this._closeSelection();
 
-    this._initTargetInfo(aElement);
+    this._initTargetInfo(aElement, this.TYPE_SELECTION);
 
     
     this._contentWindow.getSelection().removeAllRanges();
@@ -510,7 +510,7 @@ var SelectionHandler = {
           (aElement instanceof HTMLTextAreaElement)))
       return;
 
-    this._initTargetInfo(aElement);
+    this._initTargetInfo(aElement, this.TYPE_CURSOR);
 
     
     Services.obs.addObserver(this, "TextSelection:UpdateCaretPos", false);
@@ -525,12 +525,14 @@ var SelectionHandler = {
   },
 
   
-  _initTargetInfo: function sh_initTargetInfo(aElement) {
+  _initTargetInfo: function sh_initTargetInfo(aElement, aSelectionType) {
     this._targetElement = aElement;
     if (aElement instanceof Ci.nsIDOMNSEditableElement) {
-      
-      
-      aElement.blur();
+      if (aSelectionType === this.TYPE_SELECTION) {
+        
+        
+        aElement.blur();
+      }
       
       aElement.focus();
     }
