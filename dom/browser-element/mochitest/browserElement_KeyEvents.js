@@ -7,7 +7,7 @@
 
 let Ci = SpecialPowers.Ci;
 
-let whitelistedEvents = [
+let whitelistedKeyCodes = [
   Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE,   
   Ci.nsIDOMKeyEvent.DOM_VK_SLEEP,    
   Ci.nsIDOMKeyEvent.DOM_VK_CONTEXT_MENU,
@@ -16,13 +16,17 @@ let whitelistedEvents = [
   Ci.nsIDOMKeyEvent.DOM_VK_PAGE_DOWN 
 ];
 
-SimpleTest.waitForExplicitFinish();
+let blacklistedKeyCodes = [
+  Ci.nsIDOMKeyEvent.DOM_VK_A,
+  Ci.nsIDOMKeyEvent.DOM_VK_B
+];
 
+SimpleTest.waitForExplicitFinish();
 browserElementTestHelpers.setEnabledPref(true);
 browserElementTestHelpers.addPermission();
 
 
-var nbEvents = whitelistedEvents.length * 3;
+var nbEvents = whitelistedKeyCodes.length * 3;
 
 var iframe;
 var finished = false;
@@ -39,10 +43,20 @@ function runTest() {
 }
 
 function eventHandler(e) {
-  ok(((e.type == 'keydown' || e.type == 'keypress' || e.type == 'keyup') &&
-      !e.defaultPrevented &&
-      (whitelistedEvents.indexOf(e.keyCode) != -1)),
-      "[ " + e.type + "] Handled event should be a non prevented key event in the white list.");
+  if (whitelistedKeyCodes.indexOf(e.keyCode) == -1 &&
+      blacklistedKeyCodes.indexOf(e.keyCode) == -1) {
+    
+    
+    ok(true, "Ignoring unexpected " + e.type +
+       " with keyCode " + e.keyCode + ".");
+    return;
+  }
+
+  ok(e.type == 'keydown' || e.type == 'keypress' || e.type == 'keyup',
+     "e.type was " + e.type + ", expected keydown, keypress, or keyup");
+  ok(!e.defaultPrevented, "expected !e.defaultPrevented");
+  ok(whitelistedKeyCodes.indexOf(e.keyCode) != -1,
+     "Expected a whitelited keycode, but got " + e.keyCode + "instead.");
 
   nbEvents--;
 
@@ -53,8 +67,6 @@ function eventHandler(e) {
 
   if (nbEvents < 0 && !finished) {
     ok(false, "got an unexpected event! " + e.type + " " + e.keyCode);
-    SimpleTest.finish();
-    return;
   }
 }
 
@@ -73,10 +85,10 @@ function test2() {
   synthesizeKey("VK_ESCAPE", {});
 
   
-  synthesizeKey("VK_F5", {}); 
+  synthesizeKey("VK_F5", {});
   synthesizeKey("VK_ESCAPE", {});
-  synthesizeKey("VK_PAGE_UP", {});   
-  synthesizeKey("VK_PAGE_DOWN", {}); 
+  synthesizeKey("VK_PAGE_UP", {});
+  synthesizeKey("VK_PAGE_DOWN", {});
   synthesizeKey("VK_CONTEXT_MENU", {});
   synthesizeKey("VK_SLEEP", {});
   finished = true;
