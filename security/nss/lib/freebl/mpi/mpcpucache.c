@@ -75,12 +75,12 @@ void freebl_cpuid(unsigned long op, unsigned long *eax,
 {
 
 
-	__asm__("pushl %%ebx\n\t"
+
+	__asm__("mov %%ebx,%%edi\n\t"
 		  "cpuid\n\t"
-		  "mov %%ebx,%1\n\t"
-		  "popl %%ebx\n\t"
+		  "xchgl %%ebx,%%edi\n\t"
 		: "=a" (*eax),
-		  "=r" (*ebx),
+		  "=D" (*ebx),
 		  "=c" (*ecx),
 		  "=d" (*edx)
 		: "0" (op));

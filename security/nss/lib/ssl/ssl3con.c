@@ -5577,7 +5577,6 @@ ssl3_HandleServerHello(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
 	    ss->sec.peerCert = CERT_DupCertificate(sid->peerCert);
 	}
 
-
 	
 	rv = ssl3_InitPendingCipherSpec(ss,  NULL);
 	if (rv != SECSuccess) {
@@ -5981,14 +5980,14 @@ ssl3_HandleCertificateRequest(sslSocket *ss, SSL3Opaque *b, PRUint32 length)
     desc = no_certificate;
     ss->ssl3.hs.ws = wait_hello_done;
 
-    if (ss->getClientAuthData == NULL) {
-	rv = SECFailure; 
-    } else {
+    if (ss->getClientAuthData != NULL) {
 	
 	rv = (SECStatus)(*ss->getClientAuthData)(ss->getClientAuthDataArg,
 						 ss->fd, &ca_list,
 						 &ss->ssl3.clientCertificate,
 						 &ss->ssl3.clientPrivateKey);
+    } else {
+	rv = SECFailure; 
     }
     switch (rv) {
     case SECWouldBlock:	
@@ -6078,10 +6077,17 @@ ssl3_CanFalseStart(sslSocket *ss) {
 	 !ss->sec.isServer &&
 	 !ss->ssl3.hs.isResuming &&
 	 ss->ssl3.cwSpec &&
+
+	 
+
+
+
+
 	 ss->ssl3.cwSpec->cipher_def->secret_key_size >= 10 &&
-	(ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_rsa ||
-	 ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_dh  ||
-	 ss->ssl3.hs.kea_def->exchKeyType == ssl_kea_ecdh);
+	(ss->ssl3.hs.kea_def->kea == kea_dhe_dss ||
+	 ss->ssl3.hs.kea_def->kea == kea_dhe_rsa ||
+	 ss->ssl3.hs.kea_def->kea == kea_ecdhe_ecdsa ||
+	 ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa);
     ssl_ReleaseSpecReadLock(ss);
     return rv;
 }

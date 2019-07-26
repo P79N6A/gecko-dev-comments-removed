@@ -639,7 +639,6 @@ nss_Init(const char *configdir, const char *certPrefix, const char *keyPrefix,
     
 
     if (!(isReallyInitted && noCertDB && noModDB)) {
-	
 	rv = nss_InitModules(configdir, certPrefix, keyPrefix, secmodName, 
 		updateDir, updCertPrefix, updKeyPrefix, updateID, 
 		updateName, configName, configStrings, passwordRequired,

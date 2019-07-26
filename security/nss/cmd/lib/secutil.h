@@ -317,7 +317,7 @@ extern SECStatus SECU_StoreCRL(PK11SlotInfo *slot, SECItem *derCrl,
 
 
 
-extern SECStatus SECU_DerSignDataCRL(PRArenaPool *arena, CERTSignedData *sd,
+extern SECStatus SECU_DerSignDataCRL(PLArenaPool *arena, CERTSignedData *sd,
                                      unsigned char *buf, int len,
                                      SECKEYPrivateKey *pk, SECOidTag algID);
 
@@ -334,14 +334,14 @@ SECU_SignAndEncodeCRL(CERTCertificate *issuer, CERTSignedCrl *signCrl,
                       SECOidTag hashAlgTag, SignAndEncodeFuncExitStat *resCode);
 
 extern SECStatus
-SECU_CopyCRL(PRArenaPool *destArena, CERTCrl *destCrl, CERTCrl *srcCrl);
+SECU_CopyCRL(PLArenaPool *destArena, CERTCrl *destCrl, CERTCrl *srcCrl);
 
 
 
 
 
 CERTAuthKeyID *
-SECU_FindCRLAuthKeyIDExten (PRArenaPool *arena, CERTSignedCrl *crl);
+SECU_FindCRLAuthKeyIDExten (PLArenaPool *arena, CERTSignedCrl *crl);
 
 
 
@@ -353,12 +353,12 @@ SECU_FindCrlIssuer(CERTCertDBHandle *dbHandle, SECItem* subject,
 
 
 
-typedef SECStatus (* EXTEN_EXT_VALUE_ENCODER) (PRArenaPool *extHandleArena,
+typedef SECStatus (* EXTEN_EXT_VALUE_ENCODER) (PLArenaPool *extHandleArena,
                                                void *value, SECItem *encodedValue);
 
 
 SECStatus 
-SECU_EncodeAndAddExtensionValue(PRArenaPool *arena, void *extHandle, 
+SECU_EncodeAndAddExtensionValue(PLArenaPool *arena, void *extHandle, 
                                 void *value, PRBool criticality, int extenType, 
                                 EXTEN_EXT_VALUE_ENCODER EncodeValueFn);
 
