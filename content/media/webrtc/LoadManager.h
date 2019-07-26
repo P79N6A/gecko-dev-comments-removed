@@ -42,7 +42,6 @@ private:
     void LoadHasChanged();
 
     nsRefPtr<LoadMonitor> mLoadMonitor;
-    float mLastSystemLoad;
     float mLoadSum;
     int   mLoadSumMeasurements;
     
