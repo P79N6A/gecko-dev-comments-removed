@@ -1396,18 +1396,23 @@ ThreadActor.prototype = {
   _findClosestOffsetMappings: function TA__findClosestOffsetMappings(aTargetLocation,
                                                                      aScript,
                                                                      aScriptsAndOffsetMappings) {
-    let offsetMappings = aScript.getAllColumnOffsets()
-      .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
-
     
     
 
     if (aTargetLocation.column == null) {
+      let offsetMappings = aScript.getLineOffsets(aTargetLocation.line)
+        .map(o => ({
+          line: aTargetLocation.line,
+          offset: o
+        }));
       if (offsetMappings.length) {
         aScriptsAndOffsetMappings.set(aScript, offsetMappings);
       }
       return;
     }
+
+    let offsetMappings = aScript.getAllColumnOffsets()
+      .filter(({ lineNumber }) => lineNumber === aTargetLocation.line);
 
     
     
