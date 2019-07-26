@@ -24,6 +24,8 @@ const TELEMETRY_INTERVAL = 60000;
 
 const TELEMETRY_DELAY = 60000;
 
+const MAX_PING_FILE_AGE = 7 * 24 * 60 * 60 * 1000; 
+
 const PR_WRONLY = 0x2;
 const PR_CREATE_FILE = 0x8;
 const PR_TRUNCATE = 0x20;
@@ -747,6 +749,13 @@ TelemetryPing.prototype = {
   },
 
   loadHistograms: function loadHistograms(file, sync) {
+    let now = new Date();
+    if (now - file.lastModifiedTime > MAX_PING_FILE_AGE) {
+      
+      file.remove(true);
+      return;
+    }
+
     this._pingsLoaded++;
     if (sync) {
       let stream = Cc["@mozilla.org/network/file-input-stream;1"]
