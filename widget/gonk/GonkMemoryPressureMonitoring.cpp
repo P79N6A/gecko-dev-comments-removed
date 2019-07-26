@@ -34,8 +34,10 @@ public:
 
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (os) {
+      
+      
       os->NotifyObservers(nullptr, "memory-pressure",
-                          NS_LITERAL_STRING("low-memory").get());
+                          NS_LITERAL_STRING("low-memory-no-forward").get());
     }
     return NS_OK;
   }

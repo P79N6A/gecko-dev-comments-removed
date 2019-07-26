@@ -1043,7 +1043,8 @@ ContentParent::Observe(nsISupports* aSubject,
         return NS_OK;
 
     
-    if (!strcmp(aTopic, "memory-pressure")) {
+    if (!strcmp(aTopic, "memory-pressure") &&
+        !NS_LITERAL_STRING("low-memory-no-forward").Equals(aData)) {
         unused << SendFlushMemory(nsDependentString(aData));
     }
     
