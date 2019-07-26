@@ -25,10 +25,12 @@ namespace ion {
 class OutOfLineCode;
 class CodeGenerator;
 class MacroAssembler;
+class IonCache;
 class OutOfLineParallelAbort;
 
 template <class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
+
 class OutOfLineTruncateSlow;
 
 class CodeGeneratorShared : public LInstructionVisitor
@@ -61,7 +63,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
 
     
-    js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
+    js::Vector<uint8_t, 0, SystemAllocPolicy> runtimeData_;
+
+    
+    js::Vector<uint32_t, 0, SystemAllocPolicy> cacheList_;
 
     
     js::Vector<uint32_t, 0, SystemAllocPolicy> pushedArgumentSlots_;
@@ -154,10 +159,35 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
   protected:
-
-    size_t allocateCache(const IonCache &cache) {
+    
+    
+    size_t allocateCache(const IonCache &, size_t size) {
+        size_t dataOffset = allocateData(size);
         size_t index = cacheList_.length();
-        masm.reportMemory(cacheList_.append(cache));
+        masm.propagateOOM(cacheList_.append(dataOffset));
+        return index;
+    }
+
+    
+    
+    IonCache *getCache(size_t index) {
+        return reinterpret_cast<IonCache *>(&runtimeData_[cacheList_[index]]);
+    }
+
+  protected:
+
+    size_t allocateData(size_t size) {
+        JS_ASSERT(size % sizeof(void *) == 0);
+        size_t dataOffset = runtimeData_.length();
+        masm.propagateOOM(runtimeData_.appendN(0, size));
+        return dataOffset;
+    }
+
+    template <typename T>
+    inline size_t allocateCache(const T &cache) {
+        size_t index = allocateCache(cache, sizeof(mozilla::AlignedStorage2<T>));
+        
+        new (&runtimeData_[cacheList_.back()]) T(cache);
         return index;
     }
 
@@ -276,6 +306,8 @@ class CodeGeneratorShared : public LInstructionVisitor
     template <class ArgSeq, class StoreOutputTo>
     inline OutOfLineCode *oolCallVM(const VMFunction &fun, LInstruction *ins, const ArgSeq &args,
                                     const StoreOutputTo &out);
+
+    bool addCache(LInstruction *lir, size_t cacheIndex);
 
   protected:
     bool addOutOfLineCode(OutOfLineCode *code);
@@ -411,6 +443,7 @@ class ArgSeq : public SeqType
         this->SeqType::generate(codegen);
     }
 };
+
 
 template <>
 class ArgSeq<void, void>
