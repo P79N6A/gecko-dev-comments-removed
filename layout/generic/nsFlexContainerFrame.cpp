@@ -550,6 +550,10 @@ public:
     return mBaselineOffsetFromCrossStart;
   }
 
+  void PositionItemsInMainAxis(uint8_t aJustifyContent,
+                               nscoord aContentBoxMainSize,
+                               const FlexboxAxisTracker& aAxisTracker);
+
   void PositionItemsInCrossAxis(nscoord aLineStartPosition,
                                 const FlexboxAxisTracker& aAxisTracker);
 
@@ -1121,10 +1125,9 @@ protected:
 
 class MOZ_STACK_CLASS MainAxisPositionTracker : public PositionTracker {
 public:
-  MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
-                          const FlexboxAxisTracker& aAxisTracker,
-                          const nsHTMLReflowState& aReflowState,
+  MainAxisPositionTracker(const FlexboxAxisTracker& aAxisTracker,
                           const nsTArray<FlexItem>& aItems,
+                          uint8_t aJustifyContent,
                           nscoord aContentBoxMainSize);
 
   ~MainAxisPositionTracker() {
@@ -1583,19 +1586,16 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
 }
 
 MainAxisPositionTracker::
-  MainAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,
-                          const FlexboxAxisTracker& aAxisTracker,
-                          const nsHTMLReflowState& aReflowState,
+  MainAxisPositionTracker(const FlexboxAxisTracker& aAxisTracker,
                           const nsTArray<FlexItem>& aItems,
+                          uint8_t aJustifyContent,
                           nscoord aContentBoxMainSize)
   : PositionTracker(aAxisTracker.GetMainAxis()),
     mPackingSpaceRemaining(aContentBoxMainSize), 
     mNumAutoMarginsInMainAxis(0),
-    mNumPackingSpacesRemaining(0)
+    mNumPackingSpacesRemaining(0),
+    mJustifyContent(aJustifyContent)
 {
-  MOZ_ASSERT(aReflowState.frame == aFlexContainerFrame,
-             "Expecting the reflow state for the flex container frame");
-
   
   
   
@@ -1613,7 +1613,6 @@ MainAxisPositionTracker::
     mNumAutoMarginsInMainAxis = 0;
   }
 
-  mJustifyContent = aFlexContainerFrame->StylePosition()->mJustifyContent;
   
   
   
@@ -2140,27 +2139,34 @@ nsFlexContainerFrame::ComputeFlexContainerCrossSize(
 }
 
 void
-nsFlexContainerFrame::PositionItemInMainAxis(
-  MainAxisPositionTracker& aMainAxisPosnTracker,
-  FlexItem& aItem)
+FlexLine::PositionItemsInMainAxis(uint8_t aJustifyContent,
+                                  nscoord aContentBoxMainSize,
+                                  const FlexboxAxisTracker& aAxisTracker)
 {
-  nscoord itemMainBorderBoxSize =
-    aItem.GetMainSize() +
-    aItem.GetBorderPaddingSizeInAxis(aMainAxisPosnTracker.GetAxis());
+  MainAxisPositionTracker mainAxisPosnTracker(aAxisTracker, mItems,
+                                              aJustifyContent,
+                                              aContentBoxMainSize);
+  for (uint32_t i = 0; i < mItems.Length(); ++i) {
+    FlexItem& item = mItems[i];
 
-  
-  aMainAxisPosnTracker.ResolveAutoMarginsInMainAxis(aItem);
+    nscoord itemMainBorderBoxSize =
+      item.GetMainSize() +
+      item.GetBorderPaddingSizeInAxis(mainAxisPosnTracker.GetAxis());
 
-  
-  
-  aMainAxisPosnTracker.EnterMargin(aItem.GetMargin());
-  aMainAxisPosnTracker.EnterChildFrame(itemMainBorderBoxSize);
+    
+    mainAxisPosnTracker.ResolveAutoMarginsInMainAxis(item);
 
-  aItem.SetMainPosition(aMainAxisPosnTracker.GetPosition());
+    
+    
+    mainAxisPosnTracker.EnterMargin(item.GetMargin());
+    mainAxisPosnTracker.EnterChildFrame(itemMainBorderBoxSize);
 
-  aMainAxisPosnTracker.ExitChildFrame(itemMainBorderBoxSize);
-  aMainAxisPosnTracker.ExitMargin(aItem.GetMargin());
-  aMainAxisPosnTracker.TraversePackingSpace();
+    item.SetMainPosition(mainAxisPosnTracker.GetPosition());
+
+    mainAxisPosnTracker.ExitChildFrame(itemMainBorderBoxSize);
+    mainAxisPosnTracker.ExitMargin(item.GetMargin());
+    mainAxisPosnTracker.TraversePackingSpace();
+  }
 }
 
 
@@ -2442,12 +2448,9 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  MainAxisPositionTracker mainAxisPosnTracker(this, axisTracker,
-                                              aReflowState, line.mItems,
-                                              contentBoxMainSize);
-  for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
-    PositionItemInMainAxis(mainAxisPosnTracker, line.mItems[i]);
-  }
+  line.PositionItemsInMainAxis(aReflowState.mStylePosition->mJustifyContent,
+                               contentBoxMainSize,
+                               axisTracker);
 
   
   
