@@ -1243,9 +1243,6 @@ class ObjectImpl : public gc::BarrieredCell<ObjectImpl>
     }
 
     
-
-
-
     Shape *nativeLookupPure(jsid id);
     Shape *nativeLookupPure(PropertyId pid) {
         return nativeLookupPure(pid.asId());
