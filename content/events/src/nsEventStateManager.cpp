@@ -501,7 +501,7 @@ nsMouseWheelTransaction::OnEvent(WidgetEvent* aEvent)
       if (IsMouseEventReal(aEvent)) {
         
         
-        nsIntPoint pt = GetScreenPoint(static_cast<WidgetGUIEvent*>(aEvent));
+        nsIntPoint pt = GetScreenPoint(aEvent->AsGUIEvent());
         nsIntRect r = sTargetFrame->GetScreenRectExternal();
         if (!r.Contains(pt)) {
           EndTransaction();
@@ -3997,7 +3997,7 @@ public:
       nsIFrame* frame = aVisitor.mPresContext->GetPrimaryFrameFor(mTarget);
       if (frame) {
         frame->HandleEvent(aVisitor.mPresContext,
-                           static_cast<WidgetGUIEvent*>(aVisitor.mEvent),
+                           aVisitor.mEvent->AsGUIEvent(),
                            &aVisitor.mEventStatus);
       }
     }
