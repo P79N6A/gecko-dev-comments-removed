@@ -55,12 +55,21 @@ class TypeRepresentationSetBuilder {
 
 class TypeRepresentationSet {
   private:
+    friend struct TypeRepresentationSetHasher;
     friend class TypeRepresentationSetBuilder;
 
     size_t length_;
     TypeRepresentation **entries_; 
 
     TypeRepresentationSet(size_t length, TypeRepresentation **entries);
+
+    size_t length() const {
+        return length_;
+    }
+
+    TypeRepresentation *get(uint32_t i) const {
+        return entries_[i];
+    }
 
   public:
     
@@ -76,8 +85,7 @@ class TypeRepresentationSet {
     
 
     bool empty();
-    size_t length();
-    TypeRepresentation *get(size_t i);
+    bool singleton();
     bool allOfKind(TypeRepresentation::Kind kind);
 
     
@@ -98,6 +106,11 @@ class TypeRepresentationSet {
     
 
     TypeRepresentation::Kind kind();
+
+    
+    
+
+    TypeRepresentation *getTypeRepresentation();
 
     
     
