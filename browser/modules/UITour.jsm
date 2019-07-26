@@ -462,7 +462,16 @@ this.UITour = {
       }
       
 
-      highlighter.parentElement.openPopup(aTargetEl, "overlap", -4, -4);
+      let highlightWindow = aTargetEl.ownerDocument.defaultView;
+      let containerStyle = highlightWindow.getComputedStyle(highlighter.parentElement);
+      let paddingTopPx = 0 - parseFloat(containerStyle.paddingTop);
+      let paddingLeftPx = 0 - parseFloat(containerStyle.paddingLeft);
+      let highlightStyle = highlightWindow.getComputedStyle(highlighter);
+      let offsetX = paddingTopPx
+                      - (Math.max(0, parseFloat(highlightStyle.minWidth) - targetRect.width) / 2);
+      let offsetY = paddingLeftPx
+                      - (Math.max(0, parseFloat(highlightStyle.minHeight) - targetRect.height) / 2);
+      highlighter.parentElement.openPopup(aTargetEl, "overlap", offsetX, offsetY);
     }
 
     this._setAppMenuStateForAnnotation(aTarget.node.ownerDocument.defaultView, "highlight",
