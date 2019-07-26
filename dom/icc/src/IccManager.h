@@ -9,40 +9,48 @@
 #include "nsDOMEventTargetHelper.h"
 #include "nsIDOMIccManager.h"
 #include "nsIIccProvider.h"
+#include "nsTArrayHelpers.h"
 
 namespace mozilla {
 namespace dom {
 
-class IccManager : public nsDOMEventTargetHelper
-                 , public nsIDOMMozIccManager
+class IccListener;
+
+class IccManager MOZ_FINAL : public nsDOMEventTargetHelper
+                           , public nsIDOMMozIccManager
 {
-  
-
-
-
-
-
-  class Listener;
-
 public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_NSIDOMMOZICCMANAGER
-  NS_DECL_NSIICCLISTENER
 
   NS_REALLY_FORWARD_NSIDOMEVENTTARGET(nsDOMEventTargetHelper)
 
-  IccManager();
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(IccManager,
+                                                         nsDOMEventTargetHelper)
 
-  void Init(nsPIDOMWindow *aWindow);
-  void Shutdown();
+  IccManager(nsPIDOMWindow* aWindow);
+  ~IccManager();
+
+  void
+  Shutdown();
+
+  nsresult
+  NotifyIccAdd(const nsAString& aIccId);
+
+  nsresult
+  NotifyIccRemove(const nsAString& aIccId);
 
 private:
+  nsTArray<nsRefPtr<IccListener>> mIccListeners;
+
   
   
   
-  uint32_t mClientId;
-  nsCOMPtr<nsIIccProvider> mProvider;
-  nsRefPtr<Listener> mListener;
+  JS::Heap<JSObject*> mJsIccIds;
+  bool mRooted;
+
+  void Root();
+  void Unroot();
 };
 
 } 
