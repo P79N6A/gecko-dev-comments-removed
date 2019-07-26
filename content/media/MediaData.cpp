@@ -42,7 +42,7 @@ ValidatePlane(const VideoData::YCbCrBuffer::Plane& aPlane)
          aPlane.mStride > 0;
 }
 
-#if 0
+#ifdef MOZ_WIDGET_GONK
 static bool
 IsYV12Format(const VideoData::YCbCrBuffer::Plane& aYPlane,
              const VideoData::YCbCrBuffer::Plane& aCbPlane,
@@ -102,6 +102,45 @@ VideoData* VideoData::ShallowCopyUpdateDuration(VideoData* aOther,
   v->mImage = aOther->mImage;
   return v;
 }
+
+
+void VideoData::SetVideoDataToImage(PlanarYCbCrImage* aVideoImage,
+                                    VideoInfo& aInfo,
+                                    const YCbCrBuffer &aBuffer,
+                                    const IntRect& aPicture,
+                                    bool aCopyData)
+{
+  if (!aVideoImage) {
+    return;
+  }
+  const YCbCrBuffer::Plane &Y = aBuffer.mPlanes[0];
+  const YCbCrBuffer::Plane &Cb = aBuffer.mPlanes[1];
+  const YCbCrBuffer::Plane &Cr = aBuffer.mPlanes[2];
+
+  PlanarYCbCrData data;
+  data.mYChannel = Y.mData + Y.mOffset;
+  data.mYSize = IntSize(Y.mWidth, Y.mHeight);
+  data.mYStride = Y.mStride;
+  data.mYSkip = Y.mSkip;
+  data.mCbChannel = Cb.mData + Cb.mOffset;
+  data.mCrChannel = Cr.mData + Cr.mOffset;
+  data.mCbCrSize = IntSize(Cb.mWidth, Cb.mHeight);
+  data.mCbCrStride = Cb.mStride;
+  data.mCbSkip = Cb.mSkip;
+  data.mCrSkip = Cr.mSkip;
+  data.mPicX = aPicture.x;
+  data.mPicY = aPicture.y;
+  data.mPicSize = aPicture.Size();
+  data.mStereoMode = aInfo.mStereoMode;
+
+  aVideoImage->SetDelayedConversion(true);
+  if (aCopyData) {
+    aVideoImage->SetData(data);
+  } else {
+    aVideoImage->SetDataNoCopy(data);
+  }
+}
+
 
 VideoData* VideoData::Create(VideoInfo& aInfo,
                              ImageContainer* aContainer,
@@ -164,14 +203,16 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
                                        aKeyframe,
                                        aTimecode,
                                        aInfo.mDisplay.ToIntSize()));
+#ifdef MOZ_WIDGET_GONK
   const YCbCrBuffer::Plane &Y = aBuffer.mPlanes[0];
   const YCbCrBuffer::Plane &Cb = aBuffer.mPlanes[1];
   const YCbCrBuffer::Plane &Cr = aBuffer.mPlanes[2];
+#endif
 
   if (!aImage) {
     
     
-#if 0
+#ifdef MOZ_WIDGET_GONK
     if (IsYV12Format(Y, Cb, Cr)) {
       v->mImage = aContainer->CreateImage(ImageFormat::GRALLOC_PLANAR_YCBCR);
     }
@@ -191,31 +232,29 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
                "Wrong format?");
   PlanarYCbCrImage* videoImage = static_cast<PlanarYCbCrImage*>(v->mImage.get());
 
-  PlanarYCbCrData data;
-  data.mYChannel = Y.mData + Y.mOffset;
-  data.mYSize = IntSize(Y.mWidth, Y.mHeight);
-  data.mYStride = Y.mStride;
-  data.mYSkip = Y.mSkip;
-  data.mCbChannel = Cb.mData + Cb.mOffset;
-  data.mCrChannel = Cr.mData + Cr.mOffset;
-  data.mCbCrSize = IntSize(Cb.mWidth, Cb.mHeight);
-  data.mCbCrStride = Cb.mStride;
-  data.mCbSkip = Cb.mSkip;
-  data.mCrSkip = Cr.mSkip;
-  data.mPicX = aPicture.x;
-  data.mPicY = aPicture.y;
-  data.mPicSize = aPicture.Size();
-  data.mStereoMode = aInfo.mStereoMode;
-
-  videoImage->SetDelayedConversion(true);
   if (!aImage) {
-    videoImage->SetData(data);
+    VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
+                                   true );
   } else {
-    videoImage->SetDataNoCopy(data);
+    VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
+                                   false );
   }
 
+#ifdef MOZ_WIDGET_GONK
+  if (!videoImage->IsValid() && !aImage && IsYV12Format(Y, Cb, Cr)) {
+    
+    v->mImage = aContainer->CreateImage(ImageFormat::PLANAR_YCBCR);
+    if (!v->mImage) {
+      return nullptr;
+    }
+    videoImage = static_cast<PlanarYCbCrImage*>(v->mImage.get());
+    VideoData::SetVideoDataToImage(videoImage, aInfo, aBuffer, aPicture,
+                                   true );
+  }
+#endif
   return v.forget();
 }
+
 
 VideoData* VideoData::Create(VideoInfo& aInfo,
                              ImageContainer* aContainer,
@@ -231,6 +270,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
                 aKeyframe, aTimecode, aPicture);
 }
 
+
 VideoData* VideoData::Create(VideoInfo& aInfo,
                              Image* aImage,
                              int64_t aOffset,
@@ -244,6 +284,7 @@ VideoData* VideoData::Create(VideoInfo& aInfo,
   return Create(aInfo, nullptr, aImage, aOffset, aTime, aDuration, aBuffer,
                 aKeyframe, aTimecode, aPicture);
 }
+
 
 VideoData* VideoData::CreateFromImage(VideoInfo& aInfo,
                                       ImageContainer* aContainer,
@@ -266,6 +307,7 @@ VideoData* VideoData::CreateFromImage(VideoInfo& aInfo,
 }
 
 #ifdef MOZ_OMX_DECODER
+
 VideoData* VideoData::Create(VideoInfo& aInfo,
                              ImageContainer* aContainer,
                              int64_t aOffset,
