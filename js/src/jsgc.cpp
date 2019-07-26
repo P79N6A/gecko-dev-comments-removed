@@ -5371,6 +5371,8 @@ gc::MergeCompartments(JSCompartment *source, JSCompartment *target)
     
     JS_ASSERT(source->options_.mergeable());
 
+    JS_ASSERT(source->addonId == target->addonId);
+
     JSRuntime *rt = source->runtimeFromMainThread();
 
     AutoPrepareForTracing prepare(rt, SkipAtoms);

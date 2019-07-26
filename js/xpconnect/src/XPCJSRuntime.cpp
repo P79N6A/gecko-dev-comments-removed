@@ -84,6 +84,7 @@ const char* const XPCJSRuntime::mStrings[] = {
     "realFrameElement",     
     "length",               
     "name",                 
+    "undefined",            
 };
 
 

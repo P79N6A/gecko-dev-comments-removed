@@ -132,6 +132,10 @@ struct JSCompartment
     bool                         isSelfHosting;
     bool                         marked;
 
+    
+    
+    JSAddonId                    *addonId;
+
 #ifdef DEBUG
     bool                         firedOnNewGlobalObject;
 #endif

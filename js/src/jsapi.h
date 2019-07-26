@@ -2568,6 +2568,7 @@ class JS_PUBLIC_API(CompartmentOptions)
       , discardSource_(false)
       , traceGlobal_(nullptr)
       , singletonsAsTemplates_(true)
+      , addonId_(nullptr)
     {
         zone_.spec = JS::FreshZone;
     }
@@ -2626,6 +2627,14 @@ class JS_PUBLIC_API(CompartmentOptions)
         return singletonsAsTemplates_;
     };
 
+    
+    
+    JSAddonId *addonIdOrNull() const { return addonId_; }
+    CompartmentOptions &setAddonId(JSAddonId *id) {
+        addonId_ = id;
+        return *this;
+    }
+
     CompartmentOptions &setTrace(JSTraceOp op) {
         traceGlobal_ = op;
         return *this;
@@ -2650,6 +2659,8 @@ class JS_PUBLIC_API(CompartmentOptions)
     
     
     bool singletonsAsTemplates_;
+
+    JSAddonId *addonId_;
 };
 
 JS_PUBLIC_API(CompartmentOptions &)
@@ -4334,6 +4345,9 @@ CharsZOfAddonId(JSAddonId *id);
 
 extern JS_PUBLIC_API(JSString *)
 StringOfAddonId(JSAddonId *id);
+
+extern JS_PUBLIC_API(JSAddonId *)
+AddonIdOfObject(JSObject *obj);
 
 } 
 
