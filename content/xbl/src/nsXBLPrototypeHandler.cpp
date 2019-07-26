@@ -290,18 +290,44 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
   rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, handler);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  JSContext* cx = boundContext->GetNativeContext();
+  JSAutoRequest ar(cx);
+  JSObject* globalObject = boundGlobal->GetGlobalJSObject();
+  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
+
   
-  JSObject* scope = boundGlobal->GetGlobalJSObject();
-  nsScriptObjectHolder<JSObject> boundHandler(boundContext);
-  rv = boundContext->BindCompiledEventHandler(scriptTarget, scope,
-                                              handler.get(), boundHandler);
+  
+  
+
+  
+  
+  JSAutoCompartment ac(cx, scopeObject);
+  JSObject* genericHandler = handler.get();
+  bool ok = JS_WrapObject(cx, &genericHandler);
+  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
+  MOZ_ASSERT(!js::IsCrossCompartmentWrapper(genericHandler));
+
+  
+  
+  
+  JS::Value targetV = JS::UndefinedValue();
+  rv = nsContentUtils::WrapNative(cx, scopeObject, scriptTarget, &targetV, nullptr,
+                                   true);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  bool ok;
-  JSAutoRequest ar(boundContext->GetNativeContext());
+  
+  JSObject* bound = JS_CloneFunctionObject(cx, genericHandler, &targetV.toObject());
+  NS_ENSURE_TRUE(bound, NS_ERROR_FAILURE);
+
+  
+  JSAutoCompartment ac2(cx, globalObject);
+  if (!JS_WrapObject(cx, &bound)) {
+    return NS_ERROR_FAILURE;
+  }
+  nsScriptObjectHolder<JSObject> boundHandler(boundContext, bound);
+
   nsRefPtr<EventHandlerNonNull> handlerCallback =
-    new EventHandlerNonNull(boundContext->GetNativeContext(),
-                            scope, boundHandler.get(), &ok);
+    new EventHandlerNonNull(cx, globalObject, boundHandler.get(), &ok);
   if (!ok) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -310,7 +336,7 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
 
   
   nsCOMPtr<nsIJSEventListener> eventListener;
-  rv = NS_NewJSEventListener(nullptr, scope,
+  rv = NS_NewJSEventListener(nullptr, globalObject,
                              scriptTarget, onEventAtom,
                              eventHandler,
                              getter_AddRefs(eventListener));
@@ -333,15 +359,20 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
   if (pWindow) {
     JSObject* cachedHandler = pWindow->GetCachedXBLPrototypeHandler(this);
     if (cachedHandler) {
+      xpc_UnmarkGrayObject(cachedHandler);
       aHandler.set(cachedHandler);
-      return aHandler ? NS_OK : NS_ERROR_FAILURE;
+      NS_ENSURE_TRUE(aHandler, NS_ERROR_FAILURE);
+      return NS_OK;
     }
   }
 
   
   nsDependentString handlerText(mHandlerText);
-  if (handlerText.IsEmpty())
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(!handlerText.IsEmpty(), NS_ERROR_FAILURE);
+
+  JSContext* cx = aBoundContext->GetNativeContext();
+  JSObject* globalObject = aGlobal->GetGlobalJSObject();
+  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
 
   nsAutoCString bindingURI;
   mPrototypeBinding->DocURI()->GetSpec(bindingURI);
@@ -351,9 +382,9 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
   nsContentUtils::GetEventArgNames(kNameSpaceID_XBL, aName, &argCount,
                                    &argNames);
 
-  JSContext* cx = aBoundContext->GetNativeContext();
+  
   JSAutoRequest ar(cx);
-  JSAutoCompartment ac(cx, aGlobal->GetGlobalJSObject());
+  JSAutoCompartment ac(cx, scopeObject);
   JS::CompileOptions options(cx);
   options.setFileAndLine(bindingURI.get(), mLineNumber)
          .setVersion(JSVERSION_LATEST)
@@ -365,6 +396,13 @@ nsXBLPrototypeHandler::EnsureEventHandler(nsIScriptGlobalObject* aGlobal,
                                            nsAtomCString(aName), argCount,
                                            argNames, handlerText, &handlerFun);
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(handlerFun, NS_ERROR_FAILURE);
+
+  
+  
+  JSAutoCompartment ac2(cx, globalObject);
+  bool ok = JS_WrapObject(cx, &handlerFun);
+  NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
   aHandler.set(handlerFun);
   NS_ENSURE_TRUE(aHandler, NS_ERROR_FAILURE);
 
