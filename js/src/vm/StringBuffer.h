@@ -141,7 +141,7 @@ ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb)
 
 
 inline bool
-BooleanToStringBuffer(JSContext *cx, bool b, StringBuffer &sb)
+BooleanToStringBuffer(bool b, StringBuffer &sb)
 {
     return b ? sb.append("true") : sb.append("false");
 }
