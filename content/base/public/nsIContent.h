@@ -6,9 +6,7 @@
 #define nsIContent_h___
 
 #include "nsCaseTreatment.h" 
-#include "nsCOMPtr.h"        
-#include "nsIDocument.h"     
-#include "nsINode.h"         
+#include "nsIDocument.h"
 
 
 class nsAString;

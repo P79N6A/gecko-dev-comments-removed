@@ -6,11 +6,9 @@
 #ifndef nsINode_h___
 #define nsINode_h___
 
-#include "mozilla/ErrorResult.h"
 #include "mozilla/Likely.h"
 #include "nsCOMPtr.h"               
 #include "nsGkAtoms.h"              
-#include "nsIDOMEventTarget.h"      
 #include "nsIDOMNode.h"
 #include "nsIDOMNodeSelector.h"     
 #include "nsINodeInfo.h"            

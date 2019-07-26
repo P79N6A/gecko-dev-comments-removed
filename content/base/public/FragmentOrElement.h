@@ -13,7 +13,6 @@
 #define FragmentOrElement_h___
 
 #include "nsAttrAndChildArray.h"          
-#include "nsCOMPtr.h"                     
 #include "nsCycleCollectionParticipant.h" 
 #include "nsIContent.h"                   
 #include "nsIDOMTouchEvent.h"             
