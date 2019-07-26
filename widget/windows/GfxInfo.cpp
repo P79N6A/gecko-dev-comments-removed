@@ -443,16 +443,6 @@ GfxInfo::Init()
     }
   }
 
-  const char *spoofedDriverVersionString = PR_GetEnv("MOZ_GFX_SPOOF_DRIVER_VERSION");
-  if (spoofedDriverVersionString) {
-    mDriverVersion.AssignASCII(spoofedDriverVersionString);
-  }
-
-  const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_VENDOR_ID");
-  if (spoofedVendor) {
-    mAdapterVendorID.AssignASCII(spoofedVendor);
-  }
-
   mHasDriverVersionMismatch = false;
   if (mAdapterVendorID == GfxDriverInfo::GetDeviceVendor(VendorIntel)) {
     
@@ -474,6 +464,16 @@ GfxInfo::Init()
     
     if (dllNumericVersion != driverNumericVersion)
       mHasDriverVersionMismatch = true;
+  }
+
+  const char *spoofedDriverVersionString = PR_GetEnv("MOZ_GFX_SPOOF_DRIVER_VERSION");
+  if (spoofedDriverVersionString) {
+    mDriverVersion.AssignASCII(spoofedDriverVersionString);
+  }
+
+  const char *spoofedVendor = PR_GetEnv("MOZ_GFX_SPOOF_VENDOR_ID");
+  if (spoofedVendor) {
+    mAdapterVendorID.AssignASCII(spoofedVendor);
   }
 
   const char *spoofedDevice = PR_GetEnv("MOZ_GFX_SPOOF_DEVICE_ID");
