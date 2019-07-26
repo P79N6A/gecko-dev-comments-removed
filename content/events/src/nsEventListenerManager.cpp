@@ -1035,6 +1035,19 @@ nsEventListenerManager::SetJSEventListenerToJsval(nsIAtom *aEventName,
   }
 
   
+  JSAutoEnterCompartment ac;
+  if (!ac.enter(cx, aScope)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
+  
+  jsval tempVal = v;
+  if (!JS_WrapValue(cx, &tempVal)) {
+    return NS_ERROR_UNEXPECTED;
+  }
+  handler = &tempVal.toObject();
+
+  
   
   nsIScriptContext *context = nsJSUtils::GetStaticScriptContext(cx, aScope);
   NS_ENSURE_TRUE(context, NS_ERROR_FAILURE);

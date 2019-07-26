@@ -180,6 +180,11 @@ class NS_STACK_CLASS nsTreeSanitizer {
     
 
 
+    void RemoveAllAttributes(nsIContent* aElement);
+
+    
+
+
     static nsTHashtable<nsISupportsHashKey>* sElementsHTML;
 
     

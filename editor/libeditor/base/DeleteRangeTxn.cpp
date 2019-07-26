@@ -1,13 +1,11 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "DeleteRangeTxn.h"
 #include "nsIDOMRange.h"
-#include "nsIDOMCharacterData.h"
 #include "nsIDOMNodeList.h"
-#include "nsISelection.h"
 #include "DeleteTextTxn.h"
 #include "DeleteElementTxn.h"
 #include "nsIContentIterator.h"
@@ -22,7 +20,7 @@ using namespace mozilla;
 static bool gNoisy = false;
 #endif
 
-// note that aEditor is not refcounted
+
 DeleteRangeTxn::DeleteRangeTxn()
 : EditAggregateTxn()
 ,mRange()
@@ -57,7 +55,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DeleteRangeTxn)
 NS_INTERFACE_MAP_END_INHERITING(EditAggregateTxn)
 
-NS_IMETHODIMP DeleteRangeTxn::Init(nsIEditor *aEditor, 
+NS_IMETHODIMP DeleteRangeTxn::Init(nsEditor *aEditor,
                                    nsIDOMRange *aRange,
                                    nsRangeUpdater *aRangeUpdater)
 {
@@ -105,7 +103,7 @@ NS_IMETHODIMP DeleteRangeTxn::Init(nsIEditor *aEditor,
                mStartOffset, (void *)mStartParent, mEndOffset, (void *)mEndParent);
     }         
   }
-#endif // DEBUG
+#endif 
 
   return NS_OK;
 }
@@ -119,53 +117,53 @@ NS_IMETHODIMP DeleteRangeTxn::DoTransaction(void)
   NS_ENSURE_TRUE(mStartParent && mEndParent && mCommonParent && mEditor, NS_ERROR_NOT_INITIALIZED);
 
   nsresult result; 
-  // build the child transactions
+  
 
   if (mStartParent==mEndParent)
-  { // the selection begins and ends in the same node
+  { 
     result = CreateTxnsToDeleteBetween(mStartParent, mStartOffset, mEndOffset);
   }
   else
-  { // the selection ends in a different node from where it started
-    // delete the relevant content in the start node
+  { 
+    
     result = CreateTxnsToDeleteContent(mStartParent, mStartOffset, nsIEditor::eNext);
     if (NS_SUCCEEDED(result))
     {
-      // delete the intervening nodes
+      
       result = CreateTxnsToDeleteNodesBetween();
       if (NS_SUCCEEDED(result))
       {
-        // delete the relevant content in the end node
+        
         result = CreateTxnsToDeleteContent(mEndParent, mEndOffset, nsIEditor::ePrevious);
       }
     }
   }
 
-  // if we've successfully built this aggregate transaction, then do it.
+  
   if (NS_SUCCEEDED(result)) {
     result = EditAggregateTxn::DoTransaction();
   }
 
   NS_ENSURE_SUCCESS(result, result);
   
-  // only set selection to deletion point if editor gives permission
+  
   bool bAdjustSelection;
   mEditor->ShouldTxnSetSelection(&bAdjustSelection);
   if (bAdjustSelection)
   {
     nsCOMPtr<nsISelection> selection;
     result = mEditor->GetSelection(getter_AddRefs(selection));
-    // At this point, it is possible that the frame for our root element
-    // might have been destroyed, in which case, the above call returns
-    // an error.  We eat that error here intentionally.  See bug 574558
-    // for a sample case where this happens.
+    
+    
+    
+    
     NS_ENSURE_SUCCESS(result, NS_OK);
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
     result = selection->Collapse(mStartParent, mStartOffset);
   }
   else
   {
-    // do nothing - dom range gravity will adjust selection
+    
   }
 
   return result;
@@ -204,10 +202,10 @@ DeleteRangeTxn::CreateTxnsToDeleteBetween(nsIDOMNode *aStartParent,
                                           PRUint32    aStartOffset, 
                                           PRUint32    aEndOffset)
 {
-  // see what kind of node we have
+  
   nsCOMPtr<nsIDOMCharacterData> textNode = do_QueryInterface(aStartParent);
   if (textNode) {
-    // if the node is a text node, then delete text content
+    
     nsRefPtr<DeleteTextTxn> txn = new DeleteTextTxn();
 
     PRInt32 numToDel;
@@ -247,10 +245,10 @@ NS_IMETHODIMP DeleteRangeTxn::CreateTxnsToDeleteContent(nsIDOMNode *aParent,
                                                         nsIEditor::EDirection aAction)
 {
   nsresult result = NS_OK;
-  // see what kind of node we have
+  
   nsCOMPtr<nsIDOMCharacterData> textNode = do_QueryInterface(aParent);
   if (textNode)
-  { // if the node is a text node, then delete text content
+  { 
     PRUint32 start, numToDelete;
     if (nsIEditor::eNext == aAction)
     {

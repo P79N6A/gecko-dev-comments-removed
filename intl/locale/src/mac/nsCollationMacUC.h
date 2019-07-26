@@ -8,6 +8,7 @@
 
 #include "nsICollation.h"
 #include "nsCollation.h"
+#include "mozilla/Attributes.h"
 #include <Carbon/Carbon.h>
 
 
@@ -17,7 +18,7 @@ const PRUint32 kCacheSize = 128;
 
 const PRUint32 kCollationValueSizeFactor = 6;
 
-class nsCollationMacUC : public nsICollation {
+class nsCollationMacUC MOZ_FINAL : public nsICollation {
 
 public: 
   nsCollationMacUC();

@@ -92,8 +92,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x077dcff0, 0x400d, 0x4d3c, \
-  { 0xbd, 0x4d, 0x5f, 0xd5, 0xe1, 0xa6, 0x63, 0x07 } }
+{ 0x8c6a1e62, 0xd5ad, 0x4297, \
+  { 0xb9, 0x41, 0x64, 0x49, 0x22, 0x2e, 0xc4, 0xf0 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -679,6 +679,12 @@ public:
     return mWindow ? mWindow->GetOuterWindow() : GetWindowInternal();
   }
 
+  bool IsInBackgroundWindow() const
+  {
+    nsPIDOMWindow* outer = mWindow ? mWindow->GetOuterWindow() : nsnull;
+    return outer && outer->IsBackground();
+  }
+  
   
 
 

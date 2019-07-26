@@ -5,6 +5,7 @@
 
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/HashFunctions.h"
 
 #include "nsAtomTable.h"
@@ -102,7 +103,7 @@ public:
 
 
 
-class PermanentAtomImpl : public AtomImpl {
+class PermanentAtomImpl MOZ_FINAL : public AtomImpl {
 public:
   PermanentAtomImpl(const nsAString& aString, PLDHashNumber aKeyHash)
     : AtomImpl(aString, aKeyHash)

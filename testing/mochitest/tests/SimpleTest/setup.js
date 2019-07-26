@@ -109,7 +109,7 @@ var RunSet = {}
 RunSet.runall = function(e) {
   
   
-  gTestList = filterTests(params.runOnlyTests, params.excludeTests);
+  gTestList = filterTests(params.testManifest, params.runOnly);
 
   
   var my_tests = gTestList;
@@ -193,15 +193,11 @@ RunSet.reloadAndRunAll = function(e) {
 
 
 
-function filterTests(runOnly, exclude) {
+function filterTests(filterFile, runOnly) {
   var filteredTests = [];
-  var filterFile = null;
-
-  if (runOnly) {
-    filterFile = runOnly;
-  } else if (exclude) {
-    filterFile = exclude;
-  }
+  var removedTests = [];
+  var runtests = {};
+  var excludetests = {};
 
   if (filterFile == null)
     return gTestList;
@@ -216,33 +212,60 @@ function filterTests(runOnly, exclude) {
     dump("INFO | setup.js | error loading or parsing '" + datafile + "'\n");
     return gTestList;
   }
+
+  if ('runtests' in filter) {
+    runtests = filter.runtests;
+  }
+  if ('excludetests' in filter)
+    excludetests = filter.excludetests;
+  if (!('runtests' in filter) && !('excludetests' in filter)) {
+    if (runOnly == 'true') {
+      runtests = filter;
+    } else
+      excludetests = filter;
+  }
+  
   
   for (var i = 0; i < gTestList.length; ++i) {
-    var test_path = gTestList[i];
-    
-    
-    var tmp_path = test_path.replace(/^\//, '');
-
     var found = false;
+    var test_path = gTestList[i];
+    var tmp_path = test_path.replace(/^\//, '');
+    for (var f in excludetests) {
+      
+      file = f.replace(/^\//, '')
+      file = file.replace(/^tests\//, '')
+     
+      
+      if (tmp_path.match("^tests/" + file) != null) {
+        found = true;
+        break;
+      }
+    }
+    if (!found)
+        removedTests.push(test_path);
+  }
 
-    for (var f in filter) {
+  if (JSON.stringify(runtests) == "{}") {
+    return removedTests;
+  }
+
+  for (var i = 0; i < removedTests.length; ++i) {
+    var found = false;
+    var test_path = gTestList[i];
+    var tmp_path = test_path.replace(/^\//, '');
+    for (var f in runtests) {
       
       file = f.replace(/^\//, '')
       file = file.replace(/^tests\//, '')
       
       
       if (tmp_path.match("^tests/" + file) != null) {
-        if (runOnly)
-          filteredTests.push(test_path);
+        filteredTests.push(test_path);
         found = true;
         break;
       }
     }
-
-    if (exclude && !found)
-      filteredTests.push(test_path);
   }
-
   return filteredTests;
 }
 

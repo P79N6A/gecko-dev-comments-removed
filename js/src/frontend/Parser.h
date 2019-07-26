@@ -38,8 +38,6 @@ struct Parser : private AutoGCRooter
     StrictModeGetter    strictModeGetter; 
     TokenStream         tokenStream;
     void                *tempPoolMark;  
-    JSPrincipals        *principals;    
-    JSPrincipals        *originPrincipals;   
     StackFrame          *const callerFrame;  
     ParseNodeAllocator  allocator;
     ObjectBox           *traceListHead; 
@@ -52,16 +50,17 @@ struct Parser : private AutoGCRooter
     
     const bool          foldConstants:1;
 
+  private:
     
     const bool          compileAndGo:1;
 
+  public:
     Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
            const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
            StackFrame *cfp, bool foldConstants, bool compileAndGo);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
-    friend struct TreeContext;
 
     
 
@@ -71,10 +70,7 @@ struct Parser : private AutoGCRooter
 
     bool init();
 
-    void setPrincipals(JSPrincipals *prin, JSPrincipals *originPrin);
-
     const char *getFilename() const { return tokenStream.getFilename(); }
-    JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
 
     

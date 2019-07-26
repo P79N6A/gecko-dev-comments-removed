@@ -156,7 +156,7 @@ obj_setProto(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value 
 static bool
 MarkSharpObjects(JSContext *cx, HandleObject obj, JSIdArray **idap, JSSharpInfo *value)
 {
-    JS_CHECK_RECURSION(cx, return NULL);
+    JS_CHECK_RECURSION(cx, return false);
 
     JSIdArray *ida;
 
@@ -1436,6 +1436,17 @@ obj_lookupGetter(JSContext *cx, unsigned argc, Value *vp)
     RootedObject obj(cx, ToObject(cx, &vp[1]));
     if (!obj)
         return JS_FALSE;
+    if (obj->isProxy()) {
+        
+        
+        vp->setUndefined();
+        PropertyDescriptor desc;
+        if (!Proxy::getPropertyDescriptor(cx, obj, id, false, &desc))
+            return JS_FALSE;
+        if ((desc.attrs & JSPROP_GETTER) && desc.getter)
+            *vp = CastAsObjectJsval(desc.getter);
+        return JS_TRUE;
+    }
     JSObject *pobj;
     JSProperty *prop;
     if (!obj->lookupGeneric(cx, id, &pobj, &prop))
@@ -1460,6 +1471,17 @@ obj_lookupSetter(JSContext *cx, unsigned argc, Value *vp)
     RootedObject obj(cx, ToObject(cx, &vp[1]));
     if (!obj)
         return JS_FALSE;
+    if (obj->isProxy()) {
+        
+        
+        vp->setUndefined();
+        PropertyDescriptor desc;
+        if (!Proxy::getPropertyDescriptor(cx, obj, id, false, &desc))
+            return JS_FALSE;
+        if ((desc.attrs & JSPROP_SETTER) && desc.setter)
+            *vp = CastAsObjectJsval(desc.setter);
+        return JS_TRUE;
+    }
     JSObject *pobj;
     JSProperty *prop;
     if (!obj->lookupGeneric(cx, id, &pobj, &prop))
@@ -1879,6 +1901,50 @@ Reject(JSContext *cx, JSObject *obj, unsigned errorNumber, bool throwError, bool
 
     *rval = false;
     return JS_TRUE;
+}
+
+
+
+
+
+bool
+js::CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
+                        PropertyOp getter, StrictPropertyOp setter, unsigned attrs)
+{
+    if (!obj->isNative())
+        return true;
+
+    
+    
+    AutoPropertyDescriptorRooter desc(cx);
+    if (!GetOwnPropertyDescriptor(cx, obj, id, &desc))
+        return false;
+
+    
+    
+    
+    if (desc.obj && (desc.attrs & JSPROP_PERMANENT)) {
+        
+        
+        
+        if (getter != desc.getter ||
+            setter != desc.setter ||
+            (attrs != desc.attrs && attrs != (desc.attrs | JSPROP_READONLY)))
+        {
+            return Throw(cx, id, JSMSG_CANT_REDEFINE_PROP);
+        }
+
+        
+        
+        if ((desc.attrs & (JSPROP_GETTER | JSPROP_SETTER | JSPROP_READONLY)) == JSPROP_READONLY) {
+            bool same;
+            if (!SameValue(cx, value, desc.value, &same))
+                return false;
+            if (!same)
+                return JSObject::reportReadOnly(cx, id);
+        }
+    }
+    return true;
 }
 
 static JSBool
@@ -2533,7 +2599,7 @@ JSObject::sealOrFreeze(JSContext *cx, ImmutabilityType it)
 
             last = cx->propertyTree().getChild(cx, last, self->numFixedSlots(), child);
             if (!last)
-                return NULL;
+                return false;
         }
 
         JS_ASSERT(self->lastProperty()->slotSpan() == last->slotSpan());
@@ -5162,8 +5228,8 @@ js::CheckUndeclaredVarAssignment(JSContext *cx, JSString *propname)
                                         JSMSG_UNDECLARED_VAR, bytes.ptr());
 }
 
-static bool
-ReportReadOnly(JSContext *cx, jsid id, unsigned report)
+bool
+JSObject::reportReadOnly(JSContext *cx, jsid id, unsigned report)
 {
     return js_ReportValueErrorFlags(cx, report, JSMSG_READ_ONLY,
                                     JSDVG_IGNORE_STACK, IdToValue(id), NULL,
@@ -5232,9 +5298,9 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleId id, unsigne
 
                 if (pd.attrs & JSPROP_READONLY) {
                     if (strict)
-                        return ReportReadOnly(cx, id, JSREPORT_ERROR);
+                        return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
                     if (cx->hasStrictOption())
-                        return ReportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                        return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                     return true;
                 }
             }
@@ -5276,9 +5342,9 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleId id, unsigne
             if (!shape->writable()) {
                 
                 if (strict)
-                    return ReportReadOnly(cx, id, JSREPORT_ERROR);
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_ERROR);
                 if (cx->hasStrictOption())
-                    return ReportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
+                    return JSObject::reportReadOnly(cx, id, JSREPORT_STRICT | JSREPORT_WARNING);
                 return JS_TRUE;
             }
         }

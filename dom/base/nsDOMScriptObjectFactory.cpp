@@ -1,23 +1,23 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: set ts=2 sw=2 et tw=78:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- *
- * This Original Code has been modified by IBM Corporation.
- * Modifications made by IBM described herein are
- * Copyright (c) International Business Machines
- * Corporation, 2000
- *
- * Modifications to Mozilla code or documentation
- * identified per MPL Section 3.3
- *
- * Date         Modified by     Description of modification
- * 03/27/2000   IBM Corp.       Added PR_CALLBACK for Optlink
- *                               use in OS2
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsDOMScriptObjectFactory.h"
 #include "xpcexception.h"
@@ -63,7 +63,7 @@ nsDOMScriptObjectFactory::nsDOMScriptObjectFactory()
   NS_ASSERTION(!gExceptionProvider, "Registered twice?!");
   provider.swap(gExceptionProvider);
 
-  // And pre-create the javascript language.
+  
   NS_CreateJSRuntime(getter_AddRefs(mJSRuntime));
 }
 
@@ -119,8 +119,8 @@ nsDOMScriptObjectFactory::Observe(nsISupports *aSubject,
 {
   if (!nsCRT::strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID)) {
 #ifdef MOZ_XUL
-    // Flush the XUL cache since it holds JS roots, and we're about to
-    // start the final GC.
+    
+    
     nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
 
     if (cache)
@@ -160,8 +160,8 @@ static nsresult
 CreateXPConnectException(nsresult aResult, nsIException *aDefaultException,
                          nsIException **_retval)
 {
-  // See whether we already have a useful XPConnect exception.  If we
-  // do, let's not create one with _less_ information!
+  
+  
   nsCOMPtr<nsIXPCException> exception(do_QueryInterface(aDefaultException));
   if (!exception) {
     nsresult rv = NS_OK;
@@ -199,7 +199,7 @@ nsDOMScriptObjectFactory::RegisterDOMClassInfo(const char *aName,
 }
 
 
-// Factories
+
 nsresult
 NS_GetJSRuntime(nsIScriptRuntime** aLanguage)
 {
@@ -247,19 +247,16 @@ nsDOMExceptionProvider::GetException(nsresult result,
 
   switch (NS_ERROR_GET_MODULE(result))
   {
+    case NS_ERROR_MODULE_DOM:
     case NS_ERROR_MODULE_SVG:
-      return NS_NewSVGException(result, aDefaultException, _retval);
     case NS_ERROR_MODULE_DOM_XPATH:
-      return NS_NewXPathException(result, aDefaultException, _retval);
-    case NS_ERROR_MODULE_XPCONNECT:
-      return CreateXPConnectException(result, aDefaultException, _retval);
-    default:
-      MOZ_ASSERT(NS_ERROR_GET_MODULE(result) == NS_ERROR_MODULE_DOM ||
-          NS_ERROR_GET_MODULE(result) == NS_ERROR_MODULE_DOM_FILE ||
-          NS_ERROR_GET_MODULE(result) == NS_ERROR_MODULE_DOM_INDEXEDDB ||
-          NS_ERROR_GET_MODULE(result) == NS_ERROR_MODULE_DOM_FILEHANDLE,
-          "Trying to create an exception for the wrong error module.");
+    case NS_ERROR_MODULE_DOM_FILE:
+    case NS_ERROR_MODULE_DOM_INDEXEDDB:
+    case NS_ERROR_MODULE_DOM_FILEHANDLE:
       return NS_NewDOMException(result, aDefaultException, _retval);
+    default:
+      NS_WARNING("Trying to create an exception for the wrong error module.");
+      return NS_ERROR_FAILURE;
   }
   NS_NOTREACHED("Not reached");
   return NS_ERROR_UNEXPECTED;

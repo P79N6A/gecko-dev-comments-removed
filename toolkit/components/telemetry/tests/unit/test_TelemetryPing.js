@@ -32,7 +32,6 @@ var gFinished = false;
 function telemetry_ping () {
   const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].getService(Ci.nsIObserver);
   TelemetryPing.observe(null, "test-gather-startup", null);
-  TelemetryPing.observe(null, "test-enable-persistent-telemetry-send", null);
   TelemetryPing.observe(null, "test-enable-load-save-notifications", null);
   TelemetryPing.observe(null, "test-ping", SERVER);
 }
@@ -77,7 +76,7 @@ function getSavedHistogramsFile(basename) {
 
 function telemetryObserver(aSubject, aTopic, aData) {
   Services.obs.removeObserver(telemetryObserver, aTopic);
-  httpserver.registerPathHandler(PATH, checkPersistedHistogramsSync);
+  httpserver.registerPathHandler(PATH, checkHistogramsSync);
   let histogramsFile = getSavedHistogramsFile("saved-histograms.dat");
   setupTestData();
 
@@ -219,19 +218,22 @@ function checkPayload(request, reason, successfulPings) {
 }
 
 function checkPersistedHistogramsSync(request, response) {
-  httpserver.registerPathHandler(PATH, checkHistogramsSync);
+  
+  
+  
   checkPayload(request, "saved-session", 1);
-}
-
-function checkHistogramsSync(request, response) {
-  checkPayload(request, "test-ping", 1);
 
   Services.obs.addObserver(runAsyncTestObserver, "telemetry-test-xhr-complete", false);
 }
 
+function checkHistogramsSync(request, response) {
+  httpserver.registerPathHandler(PATH, checkPersistedHistogramsSync);
+  checkPayload(request, "test-ping", 1);
+}
+
 function runAsyncTestObserver(aSubject, aTopic, aData) {
   Services.obs.removeObserver(runAsyncTestObserver, aTopic);
-  httpserver.registerPathHandler(PATH, checkPersistedHistogramsAsync);
+  httpserver.registerPathHandler(PATH, checkHistogramsAsync);
   let histogramsFile = getSavedHistogramsFile("saved-histograms2.dat");
 
   const TelemetryPing = Cc["@mozilla.org/base/telemetry-ping;1"].getService(Ci.nsIObserver);
@@ -249,16 +251,19 @@ function runAsyncTestObserver(aSubject, aTopic, aData) {
 }
 
 function checkPersistedHistogramsAsync(request, response) {
-  httpserver.registerPathHandler(PATH, checkHistogramsAsync);
-  checkPayload(request, "saved-session", 2);
+  
+  httpserver.stop(do_test_finished);
+  
+  
+  
+  checkPayload(request, "saved-session", 3);
+
+  gFinished = true;
 }
 
 function checkHistogramsAsync(request, response) {
-  
-  httpserver.stop(do_test_finished);
-  checkPayload(request, "test-ping", 2);
-
-  gFinished = true;
+  httpserver.registerPathHandler(PATH, checkPersistedHistogramsAsync);
+  checkPayload(request, "test-ping", 3);
 }
 
 

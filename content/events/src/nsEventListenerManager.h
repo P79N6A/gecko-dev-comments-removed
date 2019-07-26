@@ -261,6 +261,8 @@ public:
 
 
 
+
+
   nsresult SetJSEventListenerToJsval(nsIAtom *aEventName, JSContext *cx,
                                      JSObject *aScope, const jsval &v);
   

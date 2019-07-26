@@ -63,6 +63,7 @@ private:
     PRUint32   mNumIdleThreads; 
     PRCList    mEventQ;         
     bool       mShutdown;       
+    nsThreadPoolNaming mNaming; 
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS2(nsIOThreadPool, nsIEventTarget, nsIObserver)
@@ -201,6 +202,8 @@ void
 nsIOThreadPool::ThreadFunc(void *arg)
 {
     nsIOThreadPool *pool = (nsIOThreadPool *) arg;
+
+    pool->mNaming.SetThreadPoolName("IO Thread");
 
     LOG(("entering ThreadFunc\n"));
 

@@ -681,16 +681,7 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 NS_IMETHODIMP
 nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 {
-  gfxMatrix m;
-  if (IsRoot()) {
-    
-    
-    
-    
-    m = PrependLocalTransformsTo(m);
-  } else {
-    m = nsSVGUtils::GetCTM(this, true);
-  }
+  gfxMatrix m = nsSVGUtils::GetCTM(this, true);
   *aCTM = m.IsSingular() ? nsnull : new DOMSVGMatrix(m);
   NS_IF_ADDREF(*aCTM);
   return NS_OK;
@@ -742,7 +733,7 @@ nsSVGSVGElement::SetZoomAndPan(PRUint16 aZoomAndPan)
     return NS_OK;
   }
 
-  return NS_ERROR_DOM_SVG_INVALID_VALUE_ERR;
+  return NS_ERROR_RANGE_ERR;
 }
 
 

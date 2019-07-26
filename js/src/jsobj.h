@@ -701,6 +701,7 @@ struct JSObject : public js::ObjectImpl
     void freeSlot(JSContext *cx, uint32_t slot);
 
   public:
+    static bool reportReadOnly(JSContext *cx, jsid id, unsigned report = JSREPORT_ERROR);
     bool reportNotConfigurable(JSContext* cx, jsid id, unsigned report = JSREPORT_ERROR);
     bool reportNotExtensible(JSContext *cx, unsigned report = JSREPORT_ERROR);
 
@@ -1401,6 +1402,23 @@ Throw(JSContext *cx, jsid id, unsigned errorNumber);
 
 extern bool
 Throw(JSContext *cx, JSObject *obj, unsigned errorNumber);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern bool
+CheckDefineProperty(JSContext *cx, HandleObject obj, HandleId id, HandleValue value,
+                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
 
 }  
 

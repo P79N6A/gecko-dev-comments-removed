@@ -673,6 +673,14 @@ ObjectValue(JSObject &obj)
 }
 
 static JS_ALWAYS_INLINE Value
+ObjectValueCrashOnTouch()
+{
+    Value v;
+    v.setObject(*reinterpret_cast<JSObject *>(0x42));
+    return v;
+}
+
+static JS_ALWAYS_INLINE Value
 MagicValue(JSWhyMagic why)
 {
     Value v;
@@ -2887,6 +2895,13 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
     bool entered() const { return state != STATE_UNENTERED; }
 
+    
+
+
+
+
+    void leave();
+
     ~JSAutoEnterCompartment();
 };
 
@@ -3478,14 +3493,14 @@ JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind);
 extern JS_PUBLIC_API(void)
 JS_TraceRuntime(JSTracer *trc);
 
-#ifdef DEBUG
-
 extern JS_PUBLIC_API(void)
-JS_PrintTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
-                       void *thing, JSGCTraceKind kind, JSBool includeDetails);
+JS_GetTraceThingInfo(char *buf, size_t bufsize, JSTracer *trc,
+                     void *thing, JSGCTraceKind kind, JSBool includeDetails);
 
 extern JS_PUBLIC_API(const char *)
 JS_GetTraceEdgeName(JSTracer *trc, char *buffer, int bufferSize);
+
+#ifdef DEBUG
 
 
 

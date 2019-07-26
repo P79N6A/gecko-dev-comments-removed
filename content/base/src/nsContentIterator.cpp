@@ -1113,7 +1113,7 @@ nsContentIterator::GetCurrentNode()
 
 
 
-class nsContentSubtreeIterator : public nsContentIterator 
+class nsContentSubtreeIterator : public nsContentIterator
 {
 public:
   nsContentSubtreeIterator() : nsContentIterator(false) {}
@@ -1142,20 +1142,18 @@ public:
 
 protected:
 
-  nsresult GetTopAncestorInRange(nsINode *aNode,
-                                 nsCOMPtr<nsINode> *outAnestor);
+  
+  
+  
+  nsINode* GetTopAncestorInRange(nsINode* aNode);
 
   
   nsContentSubtreeIterator(const nsContentSubtreeIterator&);
   nsContentSubtreeIterator& operator=(const nsContentSubtreeIterator&);
 
   nsRefPtr<nsRange> mRange;
-  
-#if 0
-  nsAutoTArray<nsIContent*, 8> mStartNodes;
-  nsAutoTArray<PRInt32, 8>     mStartOffsets;
-#endif
 
+  
   nsAutoTArray<nsIContent*, 8> mEndNodes;
   nsAutoTArray<PRInt32, 8>     mEndOffsets;
 };
@@ -1195,123 +1193,85 @@ NS_NewContentSubtreeIterator()
 
 
 
-nsresult nsContentSubtreeIterator::Init(nsINode* aRoot)
+nsresult
+nsContentSubtreeIterator::Init(nsINode* aRoot)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-nsresult nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
+nsresult
+nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
 {
-  if (!aRange) 
-    return NS_ERROR_NULL_POINTER; 
+  MOZ_ASSERT(aRange);
 
   mIsDone = false;
 
   mRange = static_cast<nsRange*>(aRange);
-  
-  
-  nsCOMPtr<nsIDOMNode> commonParent;
-  nsCOMPtr<nsIDOMNode> startParent;
-  nsCOMPtr<nsIDOMNode> endParent;
-  nsCOMPtr<nsINode> nStartP;
-  nsCOMPtr<nsINode> nEndP;
-  nsCOMPtr<nsINode> n;
-  nsINode *firstCandidate = nsnull;
-  nsINode *lastCandidate = nsnull;
-  PRInt32 indx, startIndx, endIndx;
 
   
-  if (NS_FAILED(aRange->GetCommonAncestorContainer(getter_AddRefs(commonParent))) || !commonParent)
-    return NS_ERROR_FAILURE;
-  mCommonParent = do_QueryInterface(commonParent);
+  mCommonParent = mRange->GetCommonAncestor();
+  nsINode* startParent = mRange->GetStartParent();
+  PRInt32 startOffset = mRange->StartOffset();
+  nsINode* endParent = mRange->GetEndParent();
+  PRInt32 endOffset = mRange->EndOffset();
+  MOZ_ASSERT(mCommonParent && startParent && endParent);
 
   
-  if (NS_FAILED(aRange->GetStartContainer(getter_AddRefs(startParent))) || !startParent)
-    return NS_ERROR_FAILURE;
-  nStartP = do_QueryInterface(startParent);
-  aRange->GetStartOffset(&startIndx);
+  if (startParent == endParent) {
+    nsINode* child = startParent->GetFirstChild();
 
-  
-  if (NS_FAILED(aRange->GetEndContainer(getter_AddRefs(endParent))) || !endParent)
-    return NS_ERROR_FAILURE;
-  nEndP = do_QueryInterface(endParent);
-  aRange->GetEndOffset(&endIndx);
-
-  
-  if (startParent == endParent)
-  {
-    nsINode* nChild = nStartP->GetFirstChild();
-  
-    if (!nChild) 
-    {
+    if (!child || startOffset == endOffset) {
       
       MakeEmpty();
       return NS_OK;
     }
-    else
-    {
-      if (startIndx == endIndx)  
-      {
-        MakeEmpty();
-        return NS_OK;
-      }
-    }
   }
+
   
-  
-#if 0
-  nsContentUtils::GetAncestorsAndOffsets(startParent, startIndx,
-                                         &mStartNodes, &mStartOffsets);
-#endif
-  nsContentUtils::GetAncestorsAndOffsets(endParent, endIndx,
+  nsContentUtils::GetAncestorsAndOffsets(endParent->AsDOMNode(), endOffset,
                                          &mEndNodes, &mEndOffsets);
 
-  
-  aRange->GetStartOffset(&indx);
+  nsINode* firstCandidate = nsnull;
+  nsINode* lastCandidate = nsnull;
 
-  if (!nStartP->GetChildCount()) 
-  {
-    n = nStartP;
-  }
-  else
-  {
-    nsINode* nChild = nStartP->GetChildAt(indx);
-    if (!nChild)  
-    {
-      n = nStartP;
-    }
-    else
-    {
-      firstCandidate = nChild;
-    }
-  }
   
-  if (!firstCandidate)
-  {
+  PRInt32 offset = mRange->StartOffset();
+
+  nsINode* node;
+  if (!startParent->GetChildCount()) {
     
-    firstCandidate = GetNextSibling(n, nsnull);
+    node = startParent;
+  } else {
+    nsINode* child = startParent->GetChildAt(offset);
+    if (!child) {
+      
+      node = startParent;
+    } else {
+      firstCandidate = child;
+    }
+  }
 
-    if (!firstCandidate)
-    {
+  if (!firstCandidate) {
+    
+    firstCandidate = GetNextSibling(node, nsnull);
+
+    if (!firstCandidate) {
       MakeEmpty();
       return NS_OK;
     }
   }
-  
+
   firstCandidate = GetDeepFirstChild(firstCandidate, nsnull);
+
   
   
-  
-  
-  
+
   bool nodeBefore, nodeAfter;
-  if (NS_FAILED(nsRange::CompareNodeToRange(firstCandidate, mRange,
-                                            &nodeBefore, &nodeAfter)))
-    return NS_ERROR_FAILURE;
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    nsRange::CompareNodeToRange(firstCandidate, mRange, &nodeBefore, &nodeAfter)));
 
-  if (nodeBefore || nodeAfter)
-  {
+  if (nodeBefore || nodeAfter) {
     MakeEmpty();
     return NS_OK;
   }
@@ -1319,50 +1279,40 @@ nsresult nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   
   
   
-  if (NS_FAILED(GetTopAncestorInRange(firstCandidate, address_of(mFirst))))
-    return NS_ERROR_FAILURE;
+  mFirst = GetTopAncestorInRange(firstCandidate);
 
   
-  aRange->GetEndOffset(&indx);
-  PRInt32 numChildren = nEndP->GetChildCount();
+  offset = mRange->EndOffset();
+  PRInt32 numChildren = endParent->GetChildCount();
 
-  if (indx > numChildren) indx = numChildren;
-  if (!indx)
-  {
-    n = nEndP;
+  if (offset > numChildren) {
+    offset = numChildren;
   }
-  else
-  {
-    if (!numChildren) 
-    {
-      n = nEndP;
-    }
-    else
-    {
-      lastCandidate = nEndP->GetChildAt(--indx);
-      NS_ASSERTION(lastCandidate,
-                   "tree traversal trouble in nsContentSubtreeIterator::Init");
-    }
-  }
-  
-  if (!lastCandidate)
-  {
+  if (!offset) {
+    node = endParent;
+  } else if (!numChildren) {
     
-    lastCandidate = GetPrevSibling(n, nsnull);
+    node = endParent;
+  } else {
+    lastCandidate = endParent->GetChildAt(--offset);
+    NS_ASSERTION(lastCandidate,
+                 "tree traversal trouble in nsContentSubtreeIterator::Init");
   }
-  
-  lastCandidate = GetDeepLastChild(lastCandidate, nsnull);
-  
-  
-  
-  
-  
-  if (NS_FAILED(nsRange::CompareNodeToRange(lastCandidate, mRange, &nodeBefore,
-                                            &nodeAfter)))
-    return NS_ERROR_FAILURE;
 
-  if (nodeBefore || nodeAfter)
-  {
+  if (!lastCandidate) {
+    
+    lastCandidate = GetPrevSibling(node, nsnull);
+  }
+
+  lastCandidate = GetDeepLastChild(lastCandidate, nsnull);
+
+  
+  
+
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+    nsRange::CompareNodeToRange(lastCandidate, mRange, &nodeBefore, &nodeAfter)));
+
+  if (nodeBefore || nodeAfter) {
     MakeEmpty();
     return NS_OK;
   }
@@ -1370,9 +1320,8 @@ nsresult nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   
   
   
-  if (NS_FAILED(GetTopAncestorInRange(lastCandidate, address_of(mLast))))
-    return NS_ERROR_FAILURE;
-  
+  mLast = GetTopAncestorInRange(lastCandidate);
+
   mCurNode = mFirst;
 
   return NS_OK;
@@ -1404,25 +1353,20 @@ nsContentSubtreeIterator::Last()
 void
 nsContentSubtreeIterator::Next()
 {
-  if (mIsDone || !mCurNode) 
+  if (mIsDone || !mCurNode) {
     return;
+  }
 
-  if (mCurNode == mLast) 
-  {
+  if (mCurNode == mLast) {
     mIsDone = true;
     return;
   }
 
-  nsINode *nextNode = GetNextSibling(mCurNode, nsnull);
+  nsINode* nextNode = GetNextSibling(mCurNode, nsnull);
   NS_ASSERTION(nextNode, "No next sibling!?! This could mean deadlock!");
 
-
-
-
-
   PRInt32 i = mEndNodes.IndexOf(nextNode);
-  while (i != -1)
-  {
+  while (i != -1) {
     
     
     nextNode = nextNode->GetFirstChild();
@@ -1441,8 +1385,6 @@ nsContentSubtreeIterator::Next()
   
   
   mIsDone = mCurNode == nsnull;
-
-  return;
 }
 
 
@@ -1451,20 +1393,22 @@ nsContentSubtreeIterator::Prev()
 {
   
   
-  if (mIsDone || !mCurNode) 
+  if (mIsDone || !mCurNode) {
     return;
+  }
 
-  if (mCurNode == mFirst) 
-  {
+  if (mCurNode == mFirst) {
     mIsDone = true;
     return;
   }
 
-  nsINode *prevNode = PrevNode(GetDeepFirstChild(mCurNode, nsnull), nsnull);
+  nsINode* prevNode = GetDeepFirstChild(mCurNode, nsnull);
+
+  prevNode = PrevNode(prevNode, nsnull);
 
   prevNode = GetDeepLastChild(prevNode, nsnull);
-  
-  GetTopAncestorInRange(prevNode, address_of(mCurNode));
+
+  mCurNode = GetTopAncestorInRange(prevNode);
 
   
   
@@ -1485,50 +1429,38 @@ nsContentSubtreeIterator::PositionAt(nsINode* aCurNode)
 
 
 
-nsresult
-nsContentSubtreeIterator::GetTopAncestorInRange(nsINode *aNode,
-                                                nsCOMPtr<nsINode> *outAncestor)
+nsINode*
+nsContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode)
 {
-  if (!aNode) 
-    return NS_ERROR_NULL_POINTER;
-  if (!outAncestor) 
-    return NS_ERROR_NULL_POINTER;
-  
-  
+  if (!aNode) {
+    return nsnull;
+  }
+
   
   bool nodeBefore, nodeAfter;
-  if (NS_FAILED(nsRange::CompareNodeToRange(aNode, mRange, &nodeBefore,
-                                            &nodeAfter)))
-    return NS_ERROR_FAILURE;
+  nsresult res = nsRange::CompareNodeToRange(aNode, mRange,
+                                             &nodeBefore, &nodeAfter);
+  NS_ASSERTION(NS_SUCCEEDED(res) && !nodeBefore && !nodeAfter,
+               "aNode isn't in mRange, or something else weird happened");
+  if (NS_FAILED(res) || nodeBefore || nodeAfter) {
+    return nsnull;
+  }
 
-  if (nodeBefore || nodeAfter)
-    return NS_ERROR_FAILURE;
-  
   nsCOMPtr<nsINode> parent, tmp;
-  while (aNode)
-  {
+  while (aNode) {
     parent = aNode->GetNodeParent();
-    if (!parent)
-    {
-      if (tmp)
-      {
-        *outAncestor = tmp;
-        return NS_OK;
-      }
-      else return NS_ERROR_FAILURE;
+    if (!parent) {
+      return tmp;
     }
-    if (NS_FAILED(nsRange::CompareNodeToRange(parent, mRange, &nodeBefore,
-                                              &nodeAfter)))
-      return NS_ERROR_FAILURE;
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
+      nsRange::CompareNodeToRange(parent, mRange, &nodeBefore, &nodeAfter)));
 
-    if (nodeBefore || nodeAfter)
-    {
-      *outAncestor = aNode;
-      return NS_OK;
+    if (nodeBefore || nodeAfter) {
+      return aNode;
     }
     tmp = aNode;
     aNode = parent;
   }
-  return NS_ERROR_FAILURE;
-}
 
+  MOZ_NOT_REACHED("This should only be possible if aNode was null");
+}

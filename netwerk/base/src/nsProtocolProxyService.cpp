@@ -4,6 +4,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 #include "mozilla/Util.h"
 
 #include "nsProtocolProxyService.h"
@@ -57,9 +58,9 @@ struct nsProtocolInfo {
 
 
 
-class nsAsyncResolveRequest : public nsIRunnable
-                            , public nsPACManCallback 
-                            , public nsICancelable
+class nsAsyncResolveRequest MOZ_FINAL : public nsIRunnable
+                                      , public nsPACManCallback
+                                      , public nsICancelable
 {
 public:
     NS_DECL_ISUPPORTS

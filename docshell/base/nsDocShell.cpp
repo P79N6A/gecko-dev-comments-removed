@@ -7928,10 +7928,10 @@ nsDocShell::CheckLoadingPermissions()
         }
 
         
-        bool equal;
-        sameOrigin = subjPrincipal->Equals(p, &equal);
+        bool subsumes;
+        sameOrigin = subjPrincipal->Subsumes(p, &subsumes);
         if (NS_SUCCEEDED(sameOrigin)) {
-            if (equal) {
+            if (subsumes) {
                 
 
                 return sameOrigin;
@@ -11991,7 +11991,7 @@ nsDocShell::SetIsBrowserFrame(bool aValue)
   
   
   
-  NS_ENSURE_STATE(!mIsBrowserFrame);
+  NS_ENSURE_STATE(!mIsBrowserFrame || aValue);
 
   bool wasBrowserFrame = mIsBrowserFrame;
   mIsBrowserFrame = aValue;

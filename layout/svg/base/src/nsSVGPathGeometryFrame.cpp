@@ -173,24 +173,24 @@ nsSVGPathGeometryFrame::GetFrameForPoint(const nsPoint &aPoint)
 
   bool isHit = false;
 
-  nsRefPtr<gfxContext> context =
+  nsRefPtr<gfxContext> tmpCtx =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(context);
+  GeneratePath(tmpCtx);
   gfxPoint userSpacePoint =
-    context->DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
-                                   PresContext()->AppUnitsToGfxUnits(aPoint.y)));
+    tmpCtx->DeviceToUser(gfxPoint(PresContext()->AppUnitsToGfxUnits(aPoint.x),
+                                  PresContext()->AppUnitsToGfxUnits(aPoint.y)));
 
   if (fillRule == NS_STYLE_FILL_RULE_EVENODD)
-    context->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
+    tmpCtx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
   else
-    context->SetFillRule(gfxContext::FILL_RULE_WINDING);
+    tmpCtx->SetFillRule(gfxContext::FILL_RULE_WINDING);
 
   if (hitTestFlags & SVG_HIT_TEST_FILL)
-    isHit = context->PointInFill(userSpacePoint);
+    isHit = tmpCtx->PointInFill(userSpacePoint);
   if (!isHit && (hitTestFlags & SVG_HIT_TEST_STROKE)) {
-    SetupCairoStrokeHitGeometry(context);
-    isHit = context->PointInStroke(userSpacePoint);
+    SetupCairoStrokeHitGeometry(tmpCtx);
+    isHit = tmpCtx->PointInStroke(userSpacePoint);
   }
 
   if (isHit && nsSVGUtils::HitTestClip(this, aPoint))
@@ -281,11 +281,11 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
     return bbox;
   }
 
-  nsRefPtr<gfxContext> context =
+  nsRefPtr<gfxContext> tmpCtx =
     new gfxContext(gfxPlatform::GetPlatform()->ScreenReferenceSurface());
 
-  GeneratePath(context, &aToBBoxUserspace);
-  context->IdentityMatrix();
+  GeneratePath(tmpCtx, &aToBBoxUserspace);
+  tmpCtx->IdentityMatrix();
 
   
   
@@ -299,7 +299,7 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   
   
 
-  gfxRect pathExtents = context->GetUserPathExtent();
+  gfxRect pathExtents = tmpCtx->GetUserPathExtent();
 
   
   if ((aFlags & nsSVGUtils::eBBoxIncludeFill) != 0 &&
@@ -321,8 +321,8 @@ nsSVGPathGeometryFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
       
       
       
-      SetupCairoStrokeGeometry(context);
-      pathExtents.MoveTo(context->GetUserStrokeExtent().Center());
+      SetupCairoStrokeGeometry(tmpCtx);
+      pathExtents.MoveTo(tmpCtx->GetUserStrokeExtent().Center());
       pathExtents.SizeTo(0, 0);
     }
     bbox.UnionEdges(nsSVGUtils::PathExtentsToMaxStrokeExtents(pathExtents,

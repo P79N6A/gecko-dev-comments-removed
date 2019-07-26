@@ -88,7 +88,6 @@ static NS_DEFINE_IID(kCContentIteratorCID, NS_CONTENTITERATOR_CID);
 static NS_DEFINE_IID(kCSubtreeIteratorCID, NS_SUBTREEITERATOR_CID);
 
 
-class nsSelectionIterator;
 class nsFrameSelection;
 class nsAutoScrollTimer;
 
@@ -144,35 +143,6 @@ public:
   { 
     if (mSelection) mSelection->EndBatchChanges();
   }
-};
-
-class nsSelectionIterator : public nsIBidirectionalEnumerator
-{
-public:
-
-
-
-  NS_DECL_ISUPPORTS
-
-  NS_DECL_NSIENUMERATOR
-
-  NS_DECL_NSIBIDIRECTIONALENUMERATOR
-
-
-
-  nsRange* CurrentItem();
-
-private:
-  friend class mozilla::Selection;
-
-  
-  friend class nsFrameSelection;
-
-  nsSelectionIterator(Selection*);
-  virtual ~nsSelectionIterator();
-  PRInt32     mIndex;
-  Selection* mDomSelection;
-  SelectionType mType;
 };
 
 class nsAutoScrollTimer : public nsITimerCallback

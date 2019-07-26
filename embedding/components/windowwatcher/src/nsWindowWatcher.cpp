@@ -593,6 +593,7 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
                                      sizeSpec.SizeSpecified(),
                                      uriToLoad, name, features, &windowIsNew,
                                      getter_AddRefs(newWindow));
+
         if (NS_SUCCEEDED(rv)) {
           GetWindowTreeItem(newWindow, getter_AddRefs(newDocShellItem));
           if (windowIsNew && newDocShellItem) {
@@ -604,6 +605,14 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
               do_QueryInterface(newDocShellItem);
             webNav->Stop(nsIWebNavigation::STOP_NETWORK);
           }
+        }
+        else if (rv == NS_ERROR_ABORT) {
+          
+          
+          
+          
+          
+          return NS_OK;
         }
       }
     }

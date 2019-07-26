@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* vim: set sw=4 ts=8 et tw=80 : */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef mozilla_tabs_TabParent_h
 #define mozilla_tabs_TabParent_h
@@ -52,7 +52,11 @@ public:
 
     virtual bool RecvMoveFocus(const bool& aForward);
     virtual bool RecvEvent(const RemoteDOMEvent& aEvent);
-
+    virtual bool RecvBrowserFrameOpenWindow(PBrowserParent* aOpener,
+                                            const nsString& aURL,
+                                            const nsString& aName,
+                                            const nsString& aFeatures,
+                                            bool* aOutWindowOpened);
     virtual bool AnswerCreateWindow(PBrowserParent** retval);
     virtual bool RecvSyncMessage(const nsString& aMessage,
                                  const nsString& aJSON,
@@ -96,18 +100,18 @@ public:
 
 
     void LoadURL(nsIURI* aURI);
-    // XXX/cjones: it's not clear what we gain by hiding these
-    // message-sending functions under a layer of indirection and
-    // eating the return values
+    
+    
+    
     void Show(const nsIntSize& size);
     void UpdateDimensions(const nsRect& rect, const nsIntSize& size);
     void Activate();
     void Deactivate();
 
-    /**
-     * Is this object active?  That is, was Activate() called more recently than
-     * Deactivate()?
-     */
+    
+
+
+
     bool Active();
 
     void SendMouseEvent(const nsAString& aType, float aX, float aY,
@@ -159,7 +163,7 @@ protected:
     void ActorDestroy(ActorDestroyReason why);
 
     virtual PIndexedDBParent* AllocPIndexedDB(const nsCString& aASCIIOrigin,
-                                              bool* /* aAllowed */);
+                                              bool* );
 
     virtual bool DeallocPIndexedDB(PIndexedDBParent* aActor);
 
@@ -196,15 +200,15 @@ protected:
     NS_OVERRIDE
     virtual bool DeallocPRenderFrame(PRenderFrameParent* aFrame);
 
-    // IME
+    
     static TabParent *mIMETabParent;
     nsString mIMECacheText;
     PRUint32 mIMESelectionAnchor;
     PRUint32 mIMESelectionFocus;
     bool mIMEComposing;
     bool mIMECompositionEnding;
-    // Buffer to store composition text during ResetInputState
-    // Compositions in almost all cases are small enough for nsAutoString
+    
+    
     nsAutoString mIMECompositionText;
     PRUint32 mIMECompositionStart;
     PRUint32 mIMESeqno;
@@ -219,7 +223,7 @@ private:
     void TryCacheDPI();
 };
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
 #endif

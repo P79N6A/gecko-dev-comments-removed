@@ -331,20 +331,16 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   nscoord colGap = GetColumnGap(this, colStyle);
   PRInt32 numColumns = colStyle->mColumnCount;
 
-  bool isBalancing = colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE;
-  if (isBalancing) {
-    const PRUint32 MAX_NESTED_COLUMN_BALANCING = 2;
-    PRUint32 cnt = 1;
-    for (const nsHTMLReflowState* rs = aReflowState.parentReflowState;
-         rs && cnt < MAX_NESTED_COLUMN_BALANCING;
-         rs = rs->parentReflowState) {
-      if (rs->mFlags.mIsColumnBalancing) {
-        ++cnt;
-      }
+  const PRUint32 MAX_NESTED_COLUMN_BALANCING = 2;
+  PRUint32 cnt = 1;
+  for (const nsHTMLReflowState* rs = aReflowState.parentReflowState; rs && cnt
+    < MAX_NESTED_COLUMN_BALANCING; rs = rs->parentReflowState) {
+    if (rs->mFlags.mIsColumnBalancing) {
+      ++cnt;
     }
-    if (cnt == MAX_NESTED_COLUMN_BALANCING) {
-      numColumns = 1;
-    }
+  }
+  if (cnt == MAX_NESTED_COLUMN_BALANCING) {
+    numColumns = 1;
   }
 
   nscoord colWidth;
@@ -400,21 +396,17 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   }
 
   
-  if (isBalancing) {
+  
+  if (aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
     
-
     if (numColumns <= 0) {
       
       
       numColumns = 1;
     }
-
-    colHeight = NS_MIN(mLastBalanceHeight,
-                       GetAvailableContentHeight(aReflowState));
+    colHeight = NS_MIN(mLastBalanceHeight, GetAvailableContentHeight(aReflowState));
   } else {
     
-    
-
     numColumns = PR_INT32_MAX;
   }
 
@@ -641,7 +633,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
       kidReflowState.mFlags.mIsTopOfPage = true;
       kidReflowState.mFlags.mTableIsSplittable = false;
       kidReflowState.mFlags.mIsColumnBalancing = aConfig.mBalanceColCount < PR_INT32_MAX;
-          
+
 #ifdef DEBUG_roc
       printf("*** Reflowing child #%d %p: availHeight=%d\n",
              columnCount, (void*)child,availSize.height);

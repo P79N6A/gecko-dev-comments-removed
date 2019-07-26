@@ -14,6 +14,8 @@
 #include <shobjidl.h> 
 #endif
 
+#include "mozilla/Attributes.h"
+
 class nsIDragService;
 class nsIWidget;
 
@@ -24,7 +26,7 @@ struct IDataObject;
 
 
 
-class nsNativeDragTarget : public IDropTarget
+class nsNativeDragTarget MOZ_FINAL : public IDropTarget
 {
 public:
   nsNativeDragTarget(nsIWidget * aWnd);

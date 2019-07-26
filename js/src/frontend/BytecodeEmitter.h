@@ -77,6 +77,8 @@ struct BytecodeEmitter
 
     BytecodeEmitter *parent;        
 
+    Rooted<JSScript*> script;       
+
     struct {
         jsbytecode  *base;          
         jsbytecode  *limit;         
@@ -121,17 +123,11 @@ struct BytecodeEmitter
 
     uint16_t        typesetCount;   
 
-    
-    const bool      noScriptRval:1;     
-    const bool      needScriptGlobal:1; 
-
-
     bool            hasSingletons:1;    
 
     bool            inForInit:1;        
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno,
-                    bool noScriptRval, bool needScriptGlobal);
+    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script, unsigned lineno);
     bool init();
 
     
@@ -141,8 +137,6 @@ struct BytecodeEmitter
 
 
     ~BytecodeEmitter();
-
-    JSVersion version() const { return parser->versionWithFlags(); }
 
     bool isAliasedName(ParseNode *pn);
     bool shouldNoteClosedName(ParseNode *pn);
@@ -166,7 +160,7 @@ struct BytecodeEmitter
     }
 
     bool checkSingletonContext() {
-        if (!parser->compileAndGo || sc->inFunction())
+        if (!script->compileAndGo || sc->inFunction())
             return false;
         for (StmtInfo *stmt = sc->topStmt; stmt; stmt = stmt->down) {
             if (STMT_IS_LOOP(stmt))

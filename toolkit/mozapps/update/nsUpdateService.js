@@ -42,7 +42,7 @@ const PREF_APP_UPDATE_POSTUPDATE          = "app.update.postupdate";
 const PREF_APP_UPDATE_PROMPTWAITTIME      = "app.update.promptWaitTime";
 const PREF_APP_UPDATE_SHOW_INSTALLED_UI   = "app.update.showInstalledUI";
 const PREF_APP_UPDATE_SILENT              = "app.update.silent";
-const PREF_APP_UPDATE_BACKGROUND          = "app.update.stage.enabled";
+const PREF_APP_UPDATE_STAGE_ENABLED       = "app.update.stage.enabled";
 const PREF_APP_UPDATE_URL                 = "app.update.url";
 const PREF_APP_UPDATE_URL_DETAILS         = "app.update.url.details";
 const PREF_APP_UPDATE_URL_OVERRIDE        = "app.update.url.override";
@@ -329,6 +329,16 @@ function testWriteAccess(updateTestFile, createDirectory) {
 }
 
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
+  function submitHasPermissionsTelemetryPing(val) {
+      try {
+        let h = Services.telemetry.getHistogramById("UPDATER_HAS_PERMISSIONS");
+        h.add(+val);
+      } catch(e) {
+        
+        Components.utils.reportError(e);
+      }
+  } 
+
   try {
     var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
     LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
@@ -408,17 +418,19 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
   catch (e) {
      LOG("gCanApplyUpdates - unable to apply updates. Exception: " + e);
     
+    submitHasPermissionsTelemetryPing(false);
     return false;
   }
 
   LOG("gCanApplyUpdates - able to apply updates");
+  submitHasPermissionsTelemetryPing(true);
   return true;
 });
 
 XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpdates() {
   
-  if (!getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false)) {
-    LOG("gCanStageUpdates - staging updates is disabled by preference " + PREF_APP_UPDATE_BACKGROUND);
+  if (!getPref("getBoolPref", PREF_APP_UPDATE_STAGE_ENABLED, false)) {
+    LOG("gCanStageUpdates - staging updates is disabled by preference " + PREF_APP_UPDATE_STAGE_ENABLED);
     return false;
   }
 
@@ -769,15 +781,19 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
           }
         }
         f.moveTo(dir, FILE_LAST_LOG);
-        continue;
+        if (aBackgroundUpdate) {
+          
+          
+          break;
+        } else {
+          continue;
+        }
       }
       catch (e) {
         LOG("cleanUpUpdatesDir - failed to move file " + f.path + " to " +
             dir.path + " and rename it to " + FILE_LAST_LOG);
       }
-    } else if (f.leafName == FILE_UPDATE_STATUS && aBackgroundUpdate) {
-      
-      
+    } else if (aBackgroundUpdate) {
       
       
       
@@ -1011,7 +1027,8 @@ function handleUpdateFailure(update, errorCode) {
 
 
 
-function handleFallbackToCompleteUpdate(update) {
+
+function handleFallbackToCompleteUpdate(update, postStaging) {
   cleanupActiveUpdate();
 
   update.statusText = gUpdateBundle.GetStringFromName("patchApplyFailure");
@@ -1024,7 +1041,7 @@ function handleFallbackToCompleteUpdate(update) {
         "failed, downloading complete patch");
     var status = Cc["@mozilla.org/updates/update-service;1"].
                  getService(Ci.nsIApplicationUpdateService).
-                 downloadUpdate(update, true);
+                 downloadUpdate(update, !postStaging);
     if (status == STATE_NONE)
       cleanupActiveUpdate();
   }
@@ -1587,8 +1604,29 @@ UpdateService.prototype = {
                    createInstance(Ci.nsIUpdatePrompt);
 
     update.state = status;
-    this._submitTelemetryPing(status);
+    this._sendStatusCodeTelemetryPing(status);
+
     if (status == STATE_SUCCEEDED) {
+      
+      
+      
+      
+      
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_ENABLED,
+                                      "UPDATER_UPDATES_ENABLED");
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_AUTO,
+                                      "UPDATER_UPDATES_AUTOMATIC");
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_STAGE_ENABLED,
+                                      "UPDATER_STAGE_ENABLED");
+
+#ifdef XP_WIN
+      this._sendBoolPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ENABLED,
+                                      "UPDATER_SERVICE_ENABLED");
+      this._sendIntPrefTelemetryPing(PREF_APP_UPDATE_SERVICE_ERRORS,
+                                     "UPDATER_SERVICE_ERRORS");
+      this._sendServiceInstalledTelemetryPing();
+#endif
+
       update.statusText = gUpdateBundle.GetStringFromName("installSuccess");
 
       
@@ -1617,7 +1655,7 @@ UpdateService.prototype = {
       }
 
       
-      handleFallbackToCompleteUpdate(update);
+      handleFallbackToCompleteUpdate(update, false);
 
       prompter.showUpdateError(update);
     }
@@ -1629,7 +1667,77 @@ UpdateService.prototype = {
 
 
 
-  _submitTelemetryPing: function AUS__submitTelemetryPing(status) {
+
+
+  _sendBoolPrefTelemetryPing: function AUS__boolTelemetryPing(pref, histogram) {
+    try {
+      
+      
+      
+      let val = getPref("getBoolPref", pref, false);
+      Services.telemetry.getHistogramById(histogram).add(+val);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+  },
+
+#ifdef XP_WIN
+  
+
+
+
+  _sendServiceInstalledTelemetryPing: function AUS__svcInstallTelemetryPing() {
+    let installed = 0;
+    try {
+      let wrk = Components.classes["@mozilla.org/windows-registry-key;1"]
+                .createInstance(Components.interfaces.nsIWindowsRegKey);
+      wrk.open(wrk.ROOT_KEY_LOCAL_MACHINE,
+               "SOFTWARE\\Mozilla\\MaintenanceService",
+               wrk.ACCESS_READ | wrk.WOW64_64);
+      installed = wrk.readIntValue("Installed");
+      wrk.close();
+    } catch(e) {
+    }
+    try {
+      let h = Services.telemetry.getHistogramById("UPDATER_SERVICE_INSTALLED");
+      h.add(installed);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+  },
+#endif
+
+  
+
+
+
+
+
+
+
+  _sendIntPrefTelemetryPing: function AUS__intTelemetryPing(pref, histogram) {
+    try {
+      
+      
+      
+      let val = getPref("getIntPref", pref, 0);
+      Services.telemetry.getHistogramById(histogram).add(val);
+    } catch(e) {
+      
+      Components.utils.reportError(e);
+    }
+  },
+
+
+  
+
+
+
+
+
+  _sendStatusCodeTelemetryPing: function AUS__statusTelemetryPing(status) {
     try {
       let parts = status.split(":");
       if ((parts.length == 1 && status != STATE_SUCCEEDED) ||
@@ -2432,7 +2540,7 @@ UpdateManager.prototype = {
     if (update.state == STATE_FAILED && ary[1]) {
       updateSucceeded = false;
       if (!handleUpdateFailure(update, ary[1])) {
-        handleFallbackToCompleteUpdate(update);
+        handleFallbackToCompleteUpdate(update, true);
       }
     }
     if (update.state == STATE_APPLIED && shouldUseService()) {
@@ -3120,7 +3228,7 @@ Downloader.prototype = {
         
         
         if (this.background)
-          shouldShowPrompt = !getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false);
+          shouldShowPrompt = !getPref("getBoolPref", PREF_APP_UPDATE_STAGE_ENABLED, false);
 
         
         writeStatusFile(getUpdatesDir(), state);

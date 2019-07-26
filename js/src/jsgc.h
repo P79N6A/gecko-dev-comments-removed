@@ -164,7 +164,6 @@ struct ArenaLists {
 
     ArenaList      arenaLists[FINALIZE_LIMIT];
 
-#ifdef JS_THREADSAFE
     
 
 
@@ -188,27 +187,22 @@ struct ArenaLists {
     };
 
     volatile uintptr_t backgroundFinalizeState[FINALIZE_LIMIT];
-#endif
 
   public:
     ArenaLists() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
             freeLists[i].initAsEmpty();
-#ifdef JS_THREADSAFE
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i)
             backgroundFinalizeState[i] = BFS_DONE;
-#endif
     }
 
     ~ArenaLists() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
-#ifdef JS_THREADSAFE
             
 
 
 
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE);
-#endif
             ArenaHeader **headp = &arenaLists[i].head;
             while (ArenaHeader *aheader = *headp) {
                 *headp = aheader->next;
@@ -227,14 +221,12 @@ struct ArenaLists {
 
     bool arenaListsAreEmpty() const {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
-#ifdef JS_THREADSAFE
             
 
 
 
             if (backgroundFinalizeState[i] != BFS_DONE)
                 return false;
-#endif
             if (arenaLists[i].head)
                 return false;
         }
@@ -243,11 +235,9 @@ struct ArenaLists {
 
     void unmarkAll() {
         for (size_t i = 0; i != FINALIZE_LIMIT; ++i) {
-# ifdef JS_THREADSAFE
             
             JS_ASSERT(backgroundFinalizeState[i] == BFS_DONE ||
                       backgroundFinalizeState[i] == BFS_JUST_FINISHED);
-# endif
             for (ArenaHeader *aheader = arenaLists[i].head; aheader; aheader = aheader->next) {
                 uintptr_t *word = aheader->chunk()->bitmap.arenaBits(aheader);
                 memset(word, 0, ArenaBitmapWords * sizeof(uintptr_t));
@@ -255,11 +245,9 @@ struct ArenaLists {
         }
     }
 
-#ifdef JS_THREADSAFE
     bool doneBackgroundFinalize(AllocKind kind) const {
         return backgroundFinalizeState[kind] == BFS_DONE;
     }
-#endif
 
     
 
@@ -359,9 +347,7 @@ struct ArenaLists {
     void finalizeScripts(FreeOp *fop);
     void finalizeIonCode(FreeOp *fop);
 
-#ifdef JS_THREADSAFE
     static void backgroundFinalize(FreeOp *fop, ArenaHeader *listHead);
-#endif
 
   private:
     inline void finalizeNow(FreeOp *fop, AllocKind thingKind);
@@ -513,7 +499,13 @@ namespace js {
 void
 InitTracer(JSTracer *trc, JSRuntime *rt, JSTraceCallback callback);
 
-#ifdef JS_THREADSAFE
+
+
+
+
+
+
+
 
 class GCHelperThread {
     enum State {
@@ -641,7 +633,6 @@ class GCHelperThread {
     bool prepareForBackgroundSweep();
 };
 
-#endif 
 
 struct GCChunkHasher {
     typedef gc::Chunk *Lookup;

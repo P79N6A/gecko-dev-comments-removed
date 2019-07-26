@@ -7640,7 +7640,8 @@ nsFrame::DoLayout(nsBoxLayoutState& aState)
     
     nsHTMLReflowState reflowState(aState.PresContext(), this,
                                   aState.GetRenderingContext(),
-                                  nsSize(size.width, NS_UNCONSTRAINEDSIZE));
+                                  nsSize(size.width, NS_UNCONSTRAINEDSIZE),
+                                  nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
 
     
     
@@ -7745,7 +7746,8 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
     nsFrameState savedState = parentFrame->GetStateBits();
     nsHTMLReflowState parentReflowState(aPresContext, parentFrame,
                                         aRenderingContext,
-                                        parentSize);
+                                        parentSize,
+                                        nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
     parentFrame->RemoveStateBits(~nsFrameState(0));
     parentFrame->AddStateBits(savedState);
 
@@ -7765,7 +7767,8 @@ nsFrame::BoxReflow(nsBoxLayoutState&        aState,
     
     nsSize availSize(aWidth, NS_INTRINSICSIZE);
     nsHTMLReflowState reflowState(aPresContext, this, aRenderingContext,
-                                  availSize);
+                                  availSize,
+                                  nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
 
     
     

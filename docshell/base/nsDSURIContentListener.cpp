@@ -15,6 +15,7 @@
 #include "nsIHttpChannel.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsNetError.h"
+#include "nsCharSeparatedTokenizer.h"
 #include "mozilla/Preferences.h"
 
 using namespace mozilla;
@@ -269,28 +270,17 @@ nsDSURIContentListener::SetParentContentListener(nsIURIContentListener*
     return NS_OK;
 }
 
-
-bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
-{
+bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
+                                                        const nsAString& policy) {
     
-    if (sIgnoreXFrameOptions) {
+    if (!policy.LowerCaseEqualsLiteral("deny") &&
+        !policy.LowerCaseEqualsLiteral("sameorigin"))
         return true;
-    }
-
-    nsCAutoString xfoHeaderValue;
 
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
     if (!httpChannel) {
         return true;
     }
-
-    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("X-Frame-Options"),
-                                   xfoHeaderValue);
-
-    
-    if (!xfoHeaderValue.LowerCaseEqualsLiteral("deny") &&
-        !xfoHeaderValue.LowerCaseEqualsLiteral("sameorigin"))
-        return true;
 
     if (mDocShell) {
         
@@ -321,8 +311,10 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
         nsresult rv;
         nsCOMPtr<nsIScriptSecurityManager> ssm =
             do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-        if (!ssm)
+        if (!ssm) {
+            NS_ASSERTION(ssm, "Failed to get the ScriptSecurityManager.");
             return false;
+        }
 
         
         
@@ -333,6 +325,7 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
             if (topDoc) {
                 if (NS_SUCCEEDED(ssm->IsSystemPrincipal(topDoc->NodePrincipal(),
                                                         &system)) && system) {
+                    
                     break;
                 }
             }
@@ -349,32 +342,69 @@ bool nsDSURIContentListener::CheckFrameOptions(nsIRequest* request)
 
         
         
-        if (xfoHeaderValue.LowerCaseEqualsLiteral("sameorigin")) {
+        
+        if (policy.LowerCaseEqualsLiteral("deny")) {
+            return false;
+        }
+
+        
+        
+        if (policy.LowerCaseEqualsLiteral("sameorigin")) {
             nsCOMPtr<nsIURI> uri;
             httpChannel->GetURI(getter_AddRefs(uri));
             topDoc = do_GetInterface(curDocShellItem);
             nsCOMPtr<nsIURI> topUri;
             topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
             rv = ssm->CheckSameOriginURI(uri, topUri, true);
-            if (NS_SUCCEEDED(rv))
-                return true;
+            if (NS_FAILED(rv))
+                return false; 
         }
+    }
 
-        else {
-            
-            
-            NS_ASSERTION(xfoHeaderValue.LowerCaseEqualsLiteral("deny"),
-                         "How did we get here with some random header value?");
-        }
+    return true;
+}
 
-        
-        httpChannel->Cancel(NS_BINDING_ABORTED);
-        nsCOMPtr<nsIWebNavigation> webNav(do_QueryObject(mDocShell));
-        if (webNav) {
-            webNav->LoadURI(NS_LITERAL_STRING("about:blank").get(),
-                            0, nsnull, nsnull, nsnull);
+
+
+
+bool nsDSURIContentListener::CheckFrameOptions(nsIRequest *request)
+{
+    
+    if (sIgnoreXFrameOptions) {
+        return true;
+    }
+
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
+    if (!httpChannel) {
+        return true;
+    }
+
+    nsCAutoString xfoHeaderCValue;
+    httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("X-Frame-Options"),
+                                   xfoHeaderCValue);
+    NS_ConvertUTF8toUTF16 xfoHeaderValue(xfoHeaderCValue);
+
+    
+    if (xfoHeaderValue.IsEmpty())
+        return true;
+
+    
+    
+    nsCharSeparatedTokenizer tokenizer(xfoHeaderValue, ',');
+    while (tokenizer.hasMoreTokens()) {
+        const nsSubstring& tok = tokenizer.nextToken();
+        if (!CheckOneFrameOptionsPolicy(request, tok)) {
+            
+            httpChannel->Cancel(NS_BINDING_ABORTED);
+            if (mDocShell) {
+                nsCOMPtr<nsIWebNavigation> webNav(do_QueryObject(mDocShell));
+                if (webNav) {
+                    webNav->LoadURI(NS_LITERAL_STRING("about:blank").get(),
+                                    0, nsnull, nsnull, nsnull);
+                }
+            }
+            return false;
         }
-        return false;
     }
 
     return true;

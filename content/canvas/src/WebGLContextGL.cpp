@@ -3933,8 +3933,6 @@ WebGLContext::ReadPixels(WebGLint x, WebGLint y, WebGLsizei width,
         
         if (!mBoundFramebuffer->CheckAndInitializeRenderbuffers())
             return ErrorInvalidFramebufferOperation("readPixels: incomplete framebuffer");
-    } else {
-        EnsureBackbufferClearedAsNeeded();
     }
     
 

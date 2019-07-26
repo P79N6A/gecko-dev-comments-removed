@@ -336,6 +336,9 @@ public:
     PRUint16 mHeightDependsOnAncestorCell:1;   
                                                
     PRUint16 mIsColumnBalancing:1;   
+    PRUint16 mDummyParentReflowState:1; 
+                                        
+                                        
   } mFlags;
 
   
@@ -347,7 +350,8 @@ public:
   nsHTMLReflowState(nsPresContext*           aPresContext,
                     nsIFrame*                aFrame,
                     nsRenderingContext*     aRenderingContext,
-                    const nsSize&            aAvailableSpace);
+                    const nsSize&            aAvailableSpace,
+                    PRUint32                 aFlags = 0);
 
   
   
@@ -361,6 +365,11 @@ public:
                     nscoord                  aContainingBlockWidth = -1,
                     nscoord                  aContainingBlockHeight = -1,
                     bool                     aInit = true);
+
+  
+  enum {
+    DUMMY_PARENT_REFLOW_STATE = (1<<0)
+  };
 
   
   

@@ -245,18 +245,6 @@ public:
   
 
 
-  bool IsInDocument(Accessible* aAccessible) const
-  {
-    Accessible* acc = aAccessible;
-    while (acc && !acc->IsPrimaryForNode())
-      acc = acc->Parent();
-
-    return acc ? mNodeToAccessibleMap.Get(acc->GetNode()) : false;
-  }
-
-  
-
-
 
 
 
