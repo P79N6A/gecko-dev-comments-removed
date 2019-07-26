@@ -9,16 +9,12 @@ let NetUtil = tempScope.NetUtil;
 let FileUtils = tempScope.FileUtils;
 
 
-let gScratchpad;
-
-
-let gFile;
+let gScratchpad; 
+let gFile; 
+let DEVTOOLS_CHROME_ENABLED = "devtools.chrome.enabled";
 
 
 let gFileContent = "function main() { return 0; }";
-
-const SCRATCHPAD_CONTEXT_CONTENT = 1;
-const SCRATCHPAD_CONTEXT_BROWSER = 2;
 
 function test() {
   waitForExplicitFinish();
@@ -72,11 +68,25 @@ function runTests() {
 
 function fileImported(status, content) {
   ok(Components.isSuccessCode(status), "File was imported successfully");
-  is(gScratchpad.executionContext, SCRATCHPAD_CONTEXT_BROWSER);
 
-  gFile.remove(false);
-  gFile = null;
-  gScratchpad = null;
-  finish();
+  
+  
+  is(gScratchpad.executionContext, gScratchpadWindow.SCRATCHPAD_CONTEXT_CONTENT);
+
+  
+  Services.prefs.setBoolPref(DEVTOOLS_CHROME_ENABLED, true);
+
+  gScratchpad.importFromFile(gFile.QueryInterface(Ci.nsILocalFile), true, function(status, content) {
+    ok(Components.isSuccessCode(status), "File was imported successfully");
+    is(gScratchpad.executionContext, gScratchpadWindow.SCRATCHPAD_CONTEXT_BROWSER);
+
+    gFile.remove(false);
+    gFile = null;
+    gScratchpad = null;
+    finish();
+  });
 }
 
+registerCleanupFunction(function () {
+  Services.prefs.clearUserPref(DEVTOOLS_CHROME_ENABLED);
+});
