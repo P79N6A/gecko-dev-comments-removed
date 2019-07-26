@@ -590,7 +590,8 @@ def writeResultDecl(f, type, varname):
             f.write("    nsString %s;\n" % varname)
             return
         elif name == '[jsval]':
-            return  
+            f.write("    jsval %s;\n" % varname)
+            return
     elif t.kind in ('interface', 'forward'):
         f.write("    nsCOMPtr<%s> %s;\n" % (type.name, varname))
         return
@@ -600,15 +601,11 @@ def writeResultDecl(f, type, varname):
 
 def outParamForm(name, type):
     type = unaliasType(type)
-    
-    
-    
-    assert getBuiltinOrNativeTypeName(type) is not '[jsval]'
     if type.kind == 'builtin':
         return '&' + name
     elif type.kind == 'native':
         if getBuiltinOrNativeTypeName(type) == '[jsval]':
-            return 'vp'
+            return '&' + name
         elif type.modifier == 'ref':
             return name
         else:
@@ -667,9 +664,8 @@ resultConvTemplates = {
         "    return xpc::StringToJsval(cx, result, ${jsvalPtr});\n",
 
     '[jsval]':
-        
-        
-        "    return JS_TRUE;\n"
+        "    ${jsvalRef} = result;\n"
+        "    return JS_WrapValue(cx, ${jsvalPtr});\n"
     }
 
 def isVariantType(t):
