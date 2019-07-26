@@ -49,9 +49,9 @@ public:
 
   NS_IMETHOD GetPath (const char **aPath);    
   static nsresult GetPrintMethod(const char *aPrinter, PrintMethod &aMethod);
-  virtual ~nsDeviceContextSpecGTK();
   
 protected:
+  virtual ~nsDeviceContextSpecGTK();
   nsCOMPtr<nsIPrintSettings> mPrintSettings;
   bool mToPrinter : 1;      
   bool mIsPPreview : 1;     
@@ -72,6 +72,7 @@ protected:
 
 class nsPrinterEnumeratorGTK MOZ_FINAL : public nsIPrinterEnumerator
 {
+  ~nsPrinterEnumeratorGTK() {}
 public:
   nsPrinterEnumeratorGTK();
   NS_DECL_ISUPPORTS

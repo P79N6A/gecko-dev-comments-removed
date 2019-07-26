@@ -27,11 +27,12 @@ public:
 
   nsPrintSettings();
   nsPrintSettings(const nsPrintSettings& aPS);
-  virtual ~nsPrintSettings();
 
   nsPrintSettings& operator=(const nsPrintSettings& rhs);
 
 protected:
+  virtual ~nsPrintSettings();
+
   
   virtual nsresult _Clone(nsIPrintSettings **_retval);
   virtual nsresult _Assign(nsIPrintSettings *aPS);

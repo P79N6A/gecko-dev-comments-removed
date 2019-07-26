@@ -55,9 +55,9 @@ public:
 
   void Init();
 
+private:
   virtual ~nsIdleServiceDaily();
 
-private:
   
 
 

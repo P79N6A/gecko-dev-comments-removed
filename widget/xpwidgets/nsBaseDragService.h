@@ -45,7 +45,6 @@ public:
   typedef mozilla::gfx::SourceSurface SourceSurface;
 
   nsBaseDragService();
-  virtual ~nsBaseDragService();
 
   
   NS_DECL_ISUPPORTS
@@ -59,6 +58,7 @@ public:
   uint16_t GetInputSource() { return mInputSource; }
 
 protected:
+  virtual ~nsBaseDragService();
 
   
 

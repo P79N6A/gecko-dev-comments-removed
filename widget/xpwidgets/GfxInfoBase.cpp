@@ -43,9 +43,10 @@ bool GfxInfoBase::mDriverInfoObserverInitialized;
 
 class ShutdownObserver : public nsIObserver
 {
+  virtual ~ShutdownObserver() {}
+
 public:
   ShutdownObserver() {}
-  virtual ~ShutdownObserver() {}
 
   NS_DECL_ISUPPORTS
 

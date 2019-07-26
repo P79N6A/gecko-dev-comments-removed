@@ -15,8 +15,7 @@ class nsBaseScreen : public nsIScreen
 {
 public:
   nsBaseScreen();
-  virtual ~nsBaseScreen();
-  
+
   NS_DECL_ISUPPORTS
 
   
@@ -45,6 +44,8 @@ public:
   NS_IMETHOD GetContentsScaleFactor(double* aContentsScaleFactor);
 
 protected:
+  virtual ~nsBaseScreen();
+
   
 
 

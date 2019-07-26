@@ -59,13 +59,13 @@ class nsTransferable : public nsITransferable
 public:
 
   nsTransferable();
-  virtual ~nsTransferable();
 
     
   NS_DECL_ISUPPORTS
   NS_DECL_NSITRANSFERABLE
 
 protected:
+  virtual ~nsTransferable();
 
     
   nsresult GetTransferDataFlavors(nsISupportsArray** aDataFlavorList);
