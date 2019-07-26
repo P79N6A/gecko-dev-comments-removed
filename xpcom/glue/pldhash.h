@@ -86,9 +86,23 @@ struct PLDHashEntryHdr {
     PLDHashNumber       keyHash;        
 };
 
-#define PL_DHASH_ENTRY_IS_FREE(entry)   ((entry)->keyHash == 0)
-#define PL_DHASH_ENTRY_IS_BUSY(entry)   (!PL_DHASH_ENTRY_IS_FREE(entry))
-#define PL_DHASH_ENTRY_IS_LIVE(entry)   ((entry)->keyHash >= 2)
+MOZ_ALWAYS_INLINE bool
+PL_DHASH_ENTRY_IS_FREE(PLDHashEntryHdr* entry)
+{
+    return entry->keyHash == 0;
+}
+
+MOZ_ALWAYS_INLINE bool
+PL_DHASH_ENTRY_IS_BUSY(PLDHashEntryHdr* entry)
+{
+    return !PL_DHASH_ENTRY_IS_FREE(entry);
+}
+
+MOZ_ALWAYS_INLINE bool
+PL_DHASH_ENTRY_IS_LIVE(PLDHashEntryHdr* entry)
+{
+    return entry->keyHash >= 2;
+}
 
 
 
