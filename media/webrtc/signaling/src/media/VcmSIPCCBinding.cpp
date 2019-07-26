@@ -223,6 +223,11 @@ nsIThread* VcmSIPCCBinding::getMainThread()
   return gMainThread;
 }
 
+nsIEventTarget* VcmSIPCCBinding::getSTSThread()
+{
+  return gSTSThread;
+}
+
 void VcmSIPCCBinding::connectCandidateSignal(
     NrIceMediaStream *stream)
 {
@@ -487,26 +492,15 @@ void vcmRxAllocPort(cc_mcapid_t mcap_id,
 
 
 
-
-
-
-static short vcmRxAllocICE_m(cc_mcapid_t mcap_id,
-                             cc_groupid_t group_id,
-                             cc_streamid_t stream_id,
-                             cc_call_handle_t  call_handle,
-                             const char *peerconnection,
-                             uint16_t level,
-                             char **default_addrp, 
-                             int *default_portp, 
-                             char ***candidatesp, 
-                             int *candidate_ctp 
-)
+static short vcmGetIceStream_m(cc_mcapid_t mcap_id,
+                               cc_groupid_t group_id,
+                               cc_streamid_t stream_id,
+                               cc_call_handle_t  call_handle,
+                               const char *peerconnection,
+                               uint16_t level,
+                               mozilla::RefPtr<NrIceCtx> *ctx,
+                               mozilla::RefPtr<NrIceMediaStream> *stream)
 {
-  *default_addrp = NULL;
-  *default_portp = -1;
-  *candidatesp = NULL;
-  *candidate_ctp = 0;
-
   CSFLogDebug( logTag, "%s: group_id=%d stream_id=%d call_handle=%d PC = %s",
     __FUNCTION__, group_id, stream_id, call_handle, peerconnection);
 
@@ -516,13 +510,56 @@ static short vcmRxAllocICE_m(cc_mcapid_t mcap_id,
   sipcc::PeerConnectionWrapper pc(peerconnection);
   ENSURE_PC(pc, VCM_ERROR);
 
+  *ctx = pc.impl()->media()->ice_ctx();
+  MOZ_ASSERT(*ctx);
+  if (!*ctx)
+    return VCM_ERROR;
+
   CSFLogDebug( logTag, "%s: Getting stream %d", __FUNCTION__, level);
-  mozilla::RefPtr<NrIceMediaStream> stream = pc.impl()->media()->
-    ice_media_stream(level-1);
-  MOZ_ASSERT(stream);
-  if (!stream) {
+  *stream = pc.impl()->media()->ice_media_stream(level-1);
+  MOZ_ASSERT(*stream);
+  if (!*stream) {
     return VCM_ERROR;
   }
+
+  return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static short vcmRxAllocICE_s(TemporaryRef<NrIceCtx> ctx_in,
+			     TemporaryRef<NrIceMediaStream> stream_in,
+                             cc_call_handle_t  call_handle,
+                             cc_streamid_t stream_id,
+                             uint16_t level,
+                             char **default_addrp, 
+                             int *default_portp, 
+                             char ***candidatesp, 
+                             int *candidate_ctp 
+)
+{
+  
+  
+  RefPtr<NrIceCtx> ctx(ctx_in);
+  RefPtr<NrIceMediaStream> stream(stream_in);
+
+  *default_addrp = NULL;
+  *default_portp = -1;
+  *candidatesp = NULL;
+  *candidate_ctp = 0;
 
   
   stream->SetOpaque(new VcmIceOpaque(stream_id, call_handle, level));
@@ -596,19 +633,44 @@ short vcmRxAllocICE(cc_mcapid_t mcap_id,
                    )
 {
   int ret;
-  mozilla::SyncRunnable::DispatchToThread(VcmSIPCCBinding::getMainThread(),
-      WrapRunnableNMRet(&vcmRxAllocICE_m,
+
+  mozilla::RefPtr<NrIceCtx> ctx;
+  mozilla::RefPtr<NrIceMediaStream> stream;
+
+  
+  
+  mozilla::SyncRunnable::DispatchToThread(
+      VcmSIPCCBinding::getMainThread(),
+      WrapRunnableNMRet(&vcmGetIceStream_m,
                         mcap_id,
                         group_id,
                         stream_id,
                         call_handle,
                         peerconnection,
                         level,
+                        &ctx,
+                        &stream,
+                        &ret));
+  if (ret)
+    return ret;
+
+  
+  
+  
+  mozilla::SyncRunnable::DispatchToThread(
+      VcmSIPCCBinding::getSTSThread(),
+                        WrapRunnableNMRet(&vcmRxAllocICE_s,
+                        ctx.forget(),
+                        stream.forget(),
+                        call_handle,
+                        stream_id,
+                        level,
                         default_addrp,
                         default_portp,
                         candidatesp,
                         candidate_ctp,
                         &ret));
+
   return ret;
 }
 
