@@ -548,7 +548,7 @@ nsXPConnect::WrapNative(JSContext * aJSContext,
     RootedObject aScope(aJSContext, aScopeArg);
     RootedValue v(aJSContext);
     return NativeInterface2JSObject(aScope, aCOMObj, nullptr, &aIID,
-                                    false, &v, aHolder);
+                                    true, &v, aHolder);
 }
 
 
