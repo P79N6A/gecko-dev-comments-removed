@@ -883,9 +883,8 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
         }
     }
 
-    private void setTitle(String title) {
+    private void setTitle(CharSequence title) {
         Tab tab = Tabs.getInstance().getSelectedTab();
-        CharSequence displayTitle = title;
 
         if (tab != null) {
             
@@ -897,30 +896,29 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             
             
             if ("about:home".equals(title) || "about:privatebrowsing".equals(title)) {
-                displayTitle = null;
+                title = null;
             }
 
-            if (mShowUrl && displayTitle != null) {
+            if (mShowUrl && title != null) {
                 title = StringUtils.stripScheme(tab.getURL());
-                title = StringUtils.stripCommonSubdomains(title);
-                displayTitle = title;
+                title = StringUtils.stripCommonSubdomains(title.toString());
 
                 
                 String baseDomain = tab.getBaseDomain();
                 if (!TextUtils.isEmpty(baseDomain)) {
                     SpannableStringBuilder builder = new SpannableStringBuilder(title);
-                    int index = title.indexOf(baseDomain);
+                    int index = title.toString().indexOf(baseDomain);
                     if (index > -1) {
                         builder.setSpan(mUrlColor, 0, title.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
                         builder.setSpan(tab.isPrivate() ? mPrivateDomainColor : mDomainColor, index, index+baseDomain.length(), Spannable.SPAN_INCLUSIVE_INCLUSIVE);
 
-                        displayTitle = builder;
+                        title = builder;
                     }
                 }
             }
         }
 
-        mTitle.setText(displayTitle);
+        mTitle.setText(title);
         mLayout.setContentDescription(title != null ? title : mTitle.getHint());
     }
 
