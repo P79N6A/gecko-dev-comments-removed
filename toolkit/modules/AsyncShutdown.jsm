@@ -341,7 +341,13 @@ Spinner.prototype = {
     promise.then(() => satisfied = true); 
     let thread = Services.tm.mainThread;
     while (!satisfied) {
-      thread.processNextEvent(true);
+      try {
+        thread.processNextEvent(true);
+      } catch (ex) {
+        
+        
+        Promise.reject(ex);
+      }
     }
   }
 };
@@ -590,6 +596,10 @@ Barrier.prototype = Object.freeze({
               " Phase: " + topic +
               " State: " + safeGetState(fetchState);
 	    warn(msg, error);
+
+            
+            
+            Promise.reject(error);
 	  });
           condition.then(() => indirection.resolve());
 
