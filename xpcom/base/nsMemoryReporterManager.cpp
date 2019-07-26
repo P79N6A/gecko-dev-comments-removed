@@ -20,6 +20,8 @@
 #include "nsIObserverService.h"
 #include "nsThread.h"
 #include "nsGZFileWriter.h"
+#include "nsJSEnvironment.h"
+#include "nsICycleCollectorListener.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Services.h"
@@ -675,6 +677,29 @@ private:
   const bool mDumpChildProcesses;
 };
 
+class GCAndCCLogDumpRunnable : public nsRunnable
+{
+public:
+  GCAndCCLogDumpRunnable(const nsAString& aIdentifier,
+                         bool aDumpChildProcesses)
+    : mIdentifier(aIdentifier)
+    , mDumpChildProcesses(aDumpChildProcesses)
+  {}
+
+  NS_IMETHOD Run()
+  {
+      nsCOMPtr<nsIMemoryReporterManager> mgr =
+          do_GetService("@mozilla.org/memory-reporter-manager;1");
+      NS_ENSURE_STATE(mgr);
+      mgr->DumpGCAndCCLogsToFile(mIdentifier, mDumpChildProcesses);
+      return NS_OK;
+  }
+
+private:
+  const nsString mIdentifier;
+  const bool mDumpChildProcesses;
+};
+
 } 
 
 #ifdef XP_LINUX 
@@ -701,8 +726,14 @@ namespace {
 
 
 
+
+
+
+
+
 static int sDumpAboutMemorySignum;         
 static int sDumpAboutMemoryAfterMMUSignum; 
+static int sGCAndCCDumpSignum;             
 
 
 
@@ -749,6 +780,7 @@ public:
 
     sDumpAboutMemorySignum = SIGRTMIN;
     sDumpAboutMemoryAfterMMUSignum = SIGRTMIN + 1;
+    sGCAndCCDumpSignum = SIGRTMIN + 2;
 
     
     
@@ -776,6 +808,9 @@ public:
     if (sigaction(sDumpAboutMemoryAfterMMUSignum, &action, nullptr)) {
       NS_WARNING("Failed to register about:memory dump after MMU signal handler.");
     }
+    if (sigaction(sGCAndCCDumpSignum, &action, nullptr)) {
+      NS_WARNING("Failed to register GC+CC dump signal handler.");
+    }
 
     
     return MessageLoopForIO::current()->WatchFileDescriptor(
@@ -796,19 +831,27 @@ public:
       return;
     }
 
-    if (signum != sDumpAboutMemorySignum &&
-        signum != sDumpAboutMemoryAfterMMUSignum) {
-      NS_WARNING("Got unexpected signum.");
-      return;
+    if (signum == sDumpAboutMemorySignum ||
+        signum == sDumpAboutMemoryAfterMMUSignum) {
+      
+      nsRefPtr<DumpMemoryReportsRunnable> runnable =
+        new DumpMemoryReportsRunnable(
+             EmptyString(),
+            signum == sDumpAboutMemoryAfterMMUSignum,
+             true);
+      NS_DispatchToMainThread(runnable);
     }
-
-    
-    nsRefPtr<DumpMemoryReportsRunnable> runnable =
-      new DumpMemoryReportsRunnable(
-           EmptyString(),
-          signum == sDumpAboutMemoryAfterMMUSignum,
-           true);
-    NS_DispatchToMainThread(runnable);
+    else if (signum == sGCAndCCDumpSignum) {
+      
+      nsRefPtr<GCAndCCLogDumpRunnable> runnable =
+        new GCAndCCLogDumpRunnable(
+             EmptyString(),
+             true);
+      NS_DispatchToMainThread(runnable);
+    }
+    else {
+      NS_WARNING("Got unexpected signum.");
+    }
   }
 
   virtual void OnFileCanWriteWithoutBlocking(int aFd)
@@ -1180,6 +1223,37 @@ nsMemoryReporterManager::DumpMemoryReportsToFile(
     }
 
     return DumpMemoryReportsToFileImpl(identifier);
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::DumpGCAndCCLogsToFile(
+    const nsAString& aIdentifier,
+    bool aDumpChildProcesses)
+{
+    
+    
+    
+    
+    nsString identifier(aIdentifier);
+    if (identifier.IsEmpty()) {
+        identifier.AppendInt(static_cast<int64_t>(PR_Now()) / 1000000);
+    }
+
+    if (aDumpChildProcesses) {
+        nsTArray<ContentParent*> children;
+        ContentParent::GetAll(children);
+        for (uint32_t i = 0; i < children.Length(); i++) {
+            unused << children[i]->SendDumpGCAndCCLogsToFile(
+                identifier, aDumpChildProcesses);
+        }
+    }
+
+    nsCOMPtr<nsICycleCollectorListener> logger =
+      do_CreateInstance("@mozilla.org/cycle-collector-logger;1");
+    logger->SetFilenameIdentifier(identifier);
+
+    nsJSContext::CycleCollectNow(logger);
+    return NS_OK;
 }
 
 #define DUMP(o, s) \
