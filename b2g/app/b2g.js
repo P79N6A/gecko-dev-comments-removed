@@ -569,7 +569,7 @@ pref("extensions.getAddons.cache.enabled", false);
 
 
 pref("ui.click_hold_context_menus", true);
-pref("ui.click_hold_context_menus.delay", 400);
+pref("ui.click_hold_context_menus.delay", 750);
 
 
 pref("device.storage.enabled", true);
@@ -900,8 +900,8 @@ pref("apz.asyncscroll.throttle", 40);
 pref("apz.pan_repaint_interval", 16);
 
 
-
-pref("apz.max_velocity_inches_per_ms", "0.0375");
+pref("apz.max_velocity_inches_per_ms", "0.07");
+pref("apz.fling_friction", "0.003");
 
 
 
