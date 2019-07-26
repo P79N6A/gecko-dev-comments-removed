@@ -1301,8 +1301,10 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     
     
     
-    bool slideHorizontal = mSlide && mPosition <= POPUPPOSITION_AFTEREND;
-    bool slideVertical = mSlide && mPosition >= POPUPPOSITION_STARTBEFORE;
+    bool slideHorizontal = mSlide && mPosition >= POPUPPOSITION_BEFORESTART
+                                  && mPosition <= POPUPPOSITION_AFTEREND;
+    bool slideVertical = mSlide && mPosition >= POPUPPOSITION_STARTBEFORE
+                                && mPosition <= POPUPPOSITION_ENDAFTER;
 
     
     
