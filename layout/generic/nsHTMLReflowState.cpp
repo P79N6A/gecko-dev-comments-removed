@@ -766,8 +766,8 @@ nsHTMLReflowState::ComputeRelativeOffsets(uint8_t aCBDirection,
     } else {
       
       aComputedOffsets.right = nsLayoutUtils::
-        ComputeWidthDependentValue(aContainingBlockWidth,
-                                   position->mOffset.GetRight());
+        ComputeCBDependentValue(aContainingBlockWidth,
+                                position->mOffset.GetRight());
 
       
       aComputedOffsets.left = -aComputedOffsets.right;
@@ -778,8 +778,8 @@ nsHTMLReflowState::ComputeRelativeOffsets(uint8_t aCBDirection,
     
     
     aComputedOffsets.left = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 position->mOffset.GetLeft());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              position->mOffset.GetLeft());
 
     
     aComputedOffsets.right = -aComputedOffsets.left;
@@ -944,11 +944,11 @@ nsHTMLReflowState::CalculateHorizBorderPaddingMargin(
   if (!mStylePadding->GetPadding(padding)) {
     
     padding.left = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 mStylePadding->mPadding.GetLeft());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              mStylePadding->mPadding.GetLeft());
     padding.right = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 mStylePadding->mPadding.GetRight());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              mStylePadding->mPadding.GetRight());
   }
 
   
@@ -959,16 +959,16 @@ nsHTMLReflowState::CalculateHorizBorderPaddingMargin(
       margin.left = 0;  
     } else {
       margin.left = nsLayoutUtils::
-        ComputeWidthDependentValue(aContainingBlockWidth,
-                                   mStyleMargin->mMargin.GetLeft());
+        ComputeCBDependentValue(aContainingBlockWidth,
+                                mStyleMargin->mMargin.GetLeft());
     }
     if (eStyleUnit_Auto == mStyleMargin->mMargin.GetRightUnit()) {
       
       margin.right = 0;  
     } else {
       margin.right = nsLayoutUtils::
-        ComputeWidthDependentValue(aContainingBlockWidth,
-                                   mStyleMargin->mMargin.GetRight());
+        ComputeCBDependentValue(aContainingBlockWidth,
+                                mStyleMargin->mMargin.GetRight());
     }
   }
 
@@ -1309,16 +1309,16 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
     leftIsAuto = true;
   } else {
     mComputedOffsets.left = nsLayoutUtils::
-      ComputeWidthDependentValue(containingBlockWidth,
-                                 mStylePosition->mOffset.GetLeft());
+      ComputeCBDependentValue(containingBlockWidth,
+                              mStylePosition->mOffset.GetLeft());
   }
   if (eStyleUnit_Auto == mStylePosition->mOffset.GetRightUnit()) {
     mComputedOffsets.right = 0;
     rightIsAuto = true;
   } else {
     mComputedOffsets.right = nsLayoutUtils::
-      ComputeWidthDependentValue(containingBlockWidth,
-                                 mStylePosition->mOffset.GetRight());
+      ComputeCBDependentValue(containingBlockWidth,
+                              mStylePosition->mOffset.GetRight());
   }
 
   
@@ -2432,22 +2432,22 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
   if (isWidthDependent) {
     
     mComputedMargin.left = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetLeft());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              styleMargin->mMargin.GetLeft());
     mComputedMargin.right = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetRight());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              styleMargin->mMargin.GetRight());
 
     
     
     
     
     mComputedMargin.top = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetTop());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              styleMargin->mMargin.GetTop());
     mComputedMargin.bottom = nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 styleMargin->mMargin.GetBottom());
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              styleMargin->mMargin.GetBottom());
   }
 
   nscoord marginAdjustment = FontSizeInflationListMarginAdjustment(frame);
@@ -2482,20 +2482,20 @@ nsCSSOffsetState::ComputePadding(nscoord aContainingBlockWidth, nsIAtom* aFrameT
     
     
     mComputedPadding.left = std::max(0, nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetLeft()));
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              stylePadding->mPadding.GetLeft()));
     mComputedPadding.right = std::max(0, nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetRight()));
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              stylePadding->mPadding.GetRight()));
 
     
     
     mComputedPadding.top = std::max(0, nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetTop()));
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              stylePadding->mPadding.GetTop()));
     mComputedPadding.bottom = std::max(0, nsLayoutUtils::
-      ComputeWidthDependentValue(aContainingBlockWidth,
-                                 stylePadding->mPadding.GetBottom()));
+      ComputeCBDependentValue(aContainingBlockWidth,
+                              stylePadding->mPadding.GetBottom()));
   }
   return isWidthDependent;
 }
