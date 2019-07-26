@@ -48,7 +48,7 @@ typedef uint32_t nscolor;
 
 
 
-NS_GFX_(bool) NS_HexToRGB(const nsString& aBuf, nscolor* aResult);
+NS_GFX_(bool) NS_HexToRGB(const nsAString& aBuf, nscolor* aResult);
 
 
 

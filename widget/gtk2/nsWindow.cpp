@@ -67,6 +67,7 @@
 #include "nsIServiceManager.h"
 #include "nsIStringBundle.h"
 #include "nsGfxCIID.h"
+#include "nsGtkUtils.h"
 #include "nsIObserverService.h"
 #include "mozilla/layers/LayersTypes.h"
 #include "nsIIdleServiceInternal.h"
@@ -282,17 +283,6 @@ static GtkWidget *gInvisibleContainer = NULL;
 
 
 static guint gButtonState;
-
-
-
-template<class T> static inline gpointer
-FuncToGpointer(T aFunction)
-{
-    return reinterpret_cast<gpointer>
-        (reinterpret_cast<uintptr_t>
-         
-         (reinterpret_cast<void (*)()>(aFunction)));
-}
 
 
 

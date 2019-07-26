@@ -33,6 +33,7 @@
 #include "nsISelection.h"
 #include "nsViewManager.h"
 #include "nsIFrame.h"
+#include "nsGtkUtils.h"
 
 
 #define DRAG_IMAGE_ALPHA_LEVEL 0.5
@@ -45,17 +46,6 @@ enum {
   MOZ_GTK_DRAG_RESULT_SUCCESS,
   MOZ_GTK_DRAG_RESULT_NO_TARGET
 };
-
-
-
-template<class T> static inline gpointer
-FuncToGpointer(T aFunction)
-{
-    return reinterpret_cast<gpointer>
-        (reinterpret_cast<uintptr_t>
-         
-         (reinterpret_cast<void (*)()>(aFunction)));
-}
 
 static PRLogModuleInfo *sDragLm = NULL;
 
