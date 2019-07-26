@@ -5,6 +5,8 @@
 "use strict";
 
 const {Cu} = require("chrome");
+const EventEmitter = require("devtools/shared/event-emitter");
+const promise = require("sdk/core/promise");
 
 loader.lazyGetter(this, "AutocompletePopup", () => {
   return Cu.import("resource:///modules/devtools/AutocompletePopup.jsm", {}).AutocompletePopup;
@@ -26,9 +28,10 @@ const MAX_SUGGESTIONS = 15;
 
 
 
-function SelectorSearch(aContentDocument, aInputNode, aCallback) {
+
+function SelectorSearch(aInspector, aContentDocument, aInputNode) {
+  this.inspector = aInspector;
   this.doc = aContentDocument;
-  this.callback = aCallback;
   this.searchBox = aInputNode;
   this.panelDoc = this.searchBox.ownerDocument;
 
@@ -62,11 +65,19 @@ function SelectorSearch(aContentDocument, aInputNode, aCallback) {
   
   this.searchBox.addEventListener("command", this._onHTMLSearch, true);
   this.searchBox.addEventListener("keypress", this._onSearchKeypress, true);
+
+  
+  
+  this._lastQuery = promise.resolve(null);
+
+  EventEmitter.decorate(this);
 }
 
 exports.SelectorSearch = SelectorSearch;
 
 SelectorSearch.prototype = {
+
+  get walker() this.inspector.walker,
 
   
   States: {
@@ -168,7 +179,13 @@ SelectorSearch.prototype = {
     this.panelDoc = null;
     this._searchResults = null;
     this._searchSuggestions = null;
-    this.callback = null;
+    EventEmitter.decorate(this);
+  },
+
+  _selectResult: function(index) {
+    return this._searchResults.item(index).then(node => {
+      this.emit("node-selected", node);
+    });
   },
 
   
@@ -181,6 +198,7 @@ SelectorSearch.prototype = {
       return;
     }
     this._lastSearched = query;
+    this._searchResults = null;
     this._searchIndex = 0;
 
     if (query.length == 0) {
@@ -194,54 +212,68 @@ SelectorSearch.prototype = {
     }
 
     this.searchBox.setAttribute("filled", true);
-    try {
-      this._searchResults = this.doc.querySelectorAll(query);
-    }
-    catch (ex) {
-      this._searchResults = [];
-    }
-    if (this._searchResults.length > 0) {
-      this._lastValidSearch = query;
+    let queryList = null;
+
+    this._lastQuery = this.walker.querySelectorAll(this.walker.rootNode, query).then(list => {
+      return list;
+    }, (err) => {
       
+      return null;
+    }).then(queryList => {
       
-      if (query.match(/[\s>+]$/)) {
-        
-        
-        this._lastValidSearch += "*";
-      }
-      else if (query.match(/[\s>+][\.#a-zA-Z][\.#>\s+]*$/)) {
-        
-        
-        
-        let lastPart = query.match(/[\s>+][\.#a-zA-Z][^>\s+]*$/)[0];
-        this._lastValidSearch = query.slice(0, -1 * lastPart.length + 1) + "*";
+      if (query != this.searchBox.value) {
+        if (queryList) {
+          queryList.release();
+        }
+        return promise.reject(null);
       }
 
-      if (!query.slice(-1).match(/[\.#\s>+]/)) {
+      this._searchResults = queryList;
+      if (this._searchResults && this._searchResults.length > 0) {
+        this._lastValidSearch = query;
         
         
-        
-        if (this.searchPopup.isOpen) {
-          this.searchPopup.hidePopup();
+        if (query.match(/[\s>+]$/)) {
+          
+          
+          this._lastValidSearch += "*";
         }
+        else if (query.match(/[\s>+][\.#a-zA-Z][\.#>\s+]*$/)) {
+          
+          
+          
+          let lastPart = query.match(/[\s>+][\.#a-zA-Z][^>\s+]*$/)[0];
+          this._lastValidSearch = query.slice(0, -1 * lastPart.length + 1) + "*";
+        }
+
+        if (!query.slice(-1).match(/[\.#\s>+]/)) {
+          
+          
+          
+          if (this.searchPopup.isOpen) {
+            this.searchPopup.hidePopup();
+          }
+        }
+        else {
+          this.showSuggestions();
+        }
+        this.searchBox.classList.remove("devtools-no-search-result");
+
+        return this._selectResult(0);
       }
       else {
+        if (query.match(/[\s>+]$/)) {
+          this._lastValidSearch = query + "*";
+        }
+        else if (query.match(/[\s>+][\.#a-zA-Z][\.#>\s+]*$/)) {
+          let lastPart = query.match(/[\s+>][\.#a-zA-Z][^>\s+]*$/)[0];
+          this._lastValidSearch = query.slice(0, -1 * lastPart.length + 1) + "*";
+        }
+        this.searchBox.classList.add("devtools-no-search-result");
         this.showSuggestions();
       }
-      this.searchBox.classList.remove("devtools-no-search-result");
-      this.callback(this._searchResults[0]);
-    }
-    else {
-      if (query.match(/[\s>+]$/)) {
-        this._lastValidSearch = query + "*";
-      }
-      else if (query.match(/[\s>+][\.#a-zA-Z][\.#>\s+]*$/)) {
-        let lastPart = query.match(/[\s+>][\.#a-zA-Z][^>\s+]*$/)[0];
-        this._lastValidSearch = query.slice(0, -1 * lastPart.length + 1) + "*";
-      }
-      this.searchBox.classList.add("devtools-no-search-result");
-      this.showSuggestions();
-    }
+      return undefined;
+    });
   },
 
   
@@ -252,7 +284,7 @@ SelectorSearch.prototype = {
     switch(aEvent.keyCode) {
       case aEvent.DOM_VK_ENTER:
       case aEvent.DOM_VK_RETURN:
-        if (query == this._lastSearched) {
+        if (query == this._lastSearched && this._searchResults) {
           this._searchIndex = (this._searchIndex + 1) % this._searchResults.length;
         }
         else {
@@ -315,8 +347,8 @@ SelectorSearch.prototype = {
 
     aEvent.preventDefault();
     aEvent.stopPropagation();
-    if (this._searchResults.length > 0) {
-      this.callback(this._searchResults[this._searchIndex]);
+    if (this._searchResults && this._searchResults.length > 0) {
+      this._lastQuery = this._selectResult(this._searchIndex);
     }
   },
 
@@ -442,6 +474,9 @@ SelectorSearch.prototype = {
 
 
   showSuggestions: function SelectorSearch_showSuggestions() {
+    if (!this.walker.isLocal()) {
+      return;
+    }
     let query = this.searchBox.value;
     if (this._lastValidSearch != "" &&
         this._lastToLastValidSearch != this._lastValidSearch) {
