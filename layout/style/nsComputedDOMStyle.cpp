@@ -307,10 +307,9 @@ nsComputedDOMStyle::GetStyleContextForElementNoFlush(Element* aElement,
   }
 
   if (!aPseudo && aStyleType == eAll) {
-    nsIFrame* frame = aElement->GetPrimaryFrame();
+    nsIFrame* frame = nsLayoutUtils::GetStyleFrame(aElement);
     if (frame) {
-      nsStyleContext* result =
-        nsLayoutUtils::GetStyleFrame(frame)->StyleContext();
+      nsStyleContext* result = frame->StyleContext();
       
       
       
