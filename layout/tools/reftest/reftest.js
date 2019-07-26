@@ -582,7 +582,6 @@ function BuildConditionSandbox(aURL) {
         
         
         sandbox.AndroidVersion = sysInfo.getPropertyAsInt32("version");
-        sandbox.ARMv7 = sysInfo.getProperty("hasARMv7");
     }
 
 #if MOZ_ASAN
