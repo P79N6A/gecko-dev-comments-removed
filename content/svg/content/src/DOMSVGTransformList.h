@@ -42,7 +42,7 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGTransformList)
 
-  DOMSVGTransformList(DOMSVGAnimatedTransformList *aAList,
+  DOMSVGTransformList(dom::SVGAnimatedTransformList *aAList,
                       const SVGTransformList &aInternalList)
     : mAList(aAList)
   {
@@ -160,7 +160,7 @@ private:
   
   FallibleTArray<dom::SVGTransform*> mItems;
 
-  nsRefPtr<DOMSVGAnimatedTransformList> mAList;
+  nsRefPtr<dom::SVGAnimatedTransformList> mAList;
 };
 
 } 
