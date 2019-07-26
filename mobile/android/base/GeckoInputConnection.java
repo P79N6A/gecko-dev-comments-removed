@@ -422,6 +422,13 @@ class GeckoInputConnection
     public void onTextChange(String text, int start, int oldEnd, int newEnd) {
 
         if (mUpdateRequest == null) {
+            
+            
+            final Editable editable = getEditable();
+            if (editable != null) {
+                onSelectionChange(Selection.getSelectionStart(editable),
+                                  Selection.getSelectionEnd(editable));
+            }
             return;
         }
 
