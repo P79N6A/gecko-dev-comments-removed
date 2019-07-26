@@ -6,10 +6,9 @@
 #ifndef nsCycleCollector_h__
 #define nsCycleCollector_h__
 
-class nsISupports;
+class nsCycleCollectionJSRuntime;
 class nsICycleCollectorListener;
-class nsCycleCollectionParticipant;
-class nsCycleCollectionTraversalCallback;
+class nsISupports;
 
 
 class nsCycleCollectorResults
@@ -50,49 +49,7 @@ void nsCycleCollector_shutdownThreads();
 void nsCycleCollector_shutdown();
 
 
-struct nsCycleCollectionJSRuntime
-{
-    virtual nsresult BeginCycleCollection(nsCycleCollectionTraversalCallback &cb) = 0;
-
-    
-
-
-
-
-
-    virtual bool NotifyLeaveMainThread() = 0;
-    virtual void NotifyEnterCycleCollectionThread() = 0;
-    virtual void NotifyLeaveCycleCollectionThread() = 0;
-    virtual void NotifyEnterMainThread() = 0;
-
-    
-
-
-    virtual void FixWeakMappingGrayBits() = 0;
-
-    
-
-
-    virtual bool NeedCollect() = 0;
-
-    
-
-
-    virtual void Collect(uint32_t reason) = 0;
-
-    
-
-
-    virtual nsCycleCollectionParticipant *GetParticipant() = 0;
-
-#ifdef DEBUG
-    virtual void SetObjectToUnlink(void* aObject) = 0;
-    virtual void AssertNoObjectsToTrace(void* aPossibleJSHolder) = 0;
-#endif
-};
-
-
-void nsCycleCollector_registerJSRuntime(nsCycleCollectionJSRuntime *rt);
+void nsCycleCollector_registerJSRuntime(nsCycleCollectionJSRuntime *aRt);
 void nsCycleCollector_forgetJSRuntime();
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \

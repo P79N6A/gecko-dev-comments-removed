@@ -23,12 +23,13 @@
 #if !defined(XPCOM_GLUE_AVOID_NSPR)
 #include "prthread.h" 
 #include "nsAtomicRefcnt.h" 
-#endif
+#ifdef DEBUG
+#include "nsCycleCollectorUtils.h" 
+#endif 
+#endif 
 
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
-#include "nsCycleCollector.h"
-#include "nsCycleCollectorUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Likely.h"

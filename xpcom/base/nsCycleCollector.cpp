@@ -97,6 +97,7 @@
 
 #include "mozilla/Util.h"
 
+#include "nsCycleCollectionJSRuntime.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsCycleCollectorUtils.h"
 #include "nsIProgrammingLanguage.h"
