@@ -76,7 +76,6 @@ class TreeMetadataEmitter(LoggingMixin):
 
         This is a generator of mozbuild.frontend.data.SandboxDerived instances.
         """
-
         
         
         for o in self._emit_directory_traversal_from_sandbox(sandbox): yield o
