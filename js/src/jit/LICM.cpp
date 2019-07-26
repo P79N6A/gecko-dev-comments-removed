@@ -6,377 +6,252 @@
 
 #include "jit/LICM.h"
 
-#include <stdio.h>
-
+#include "jit/IonAnalysis.h"
 #include "jit/IonSpewer.h"
-#include "jit/MIR.h"
 #include "jit/MIRGenerator.h"
 #include "jit/MIRGraph.h"
 
 using namespace js;
 using namespace js::jit;
 
-namespace {
 
-typedef Vector<MInstruction*, 1, IonAllocPolicy> InstructionQueue;
-
-class Loop
+static bool
+LoopContainsPossibleCall(MIRGraph &graph, MBasicBlock *header, MBasicBlock *backedge)
 {
-    MIRGenerator *mir;
-
-  public:
-    
-    enum LoopReturn {
-        LoopReturn_Success,
-        LoopReturn_Error, 
-        LoopReturn_Skip   
-    };
-
-  public:
-    
-    Loop(MIRGenerator *mir, MBasicBlock *footer);
-
-    
-    LoopReturn init();
-
-    
-    bool optimize();
-
-  private:
-    
-    MBasicBlock *header_;
-
-    
-    
-    MBasicBlock* preLoop_;
-
-    
-    
-    
-    
-    bool containsPossibleCall_;
-
-    TempAllocator &alloc() const {
-        return mir->alloc();
-    }
-
-    bool hoistInstructions(InstructionQueue &toHoist);
-
-    
-    bool isInLoop(MDefinition *ins);
-    bool isBeforeLoop(MDefinition *ins);
-    bool isLoopInvariant(MInstruction *ins);
-
-    
-    
-    bool checkHotness(MBasicBlock *block);
-
-    
-    InstructionQueue worklist_;
-    bool insertInWorklist(MInstruction *ins);
-    MInstruction* popFromWorklist();
-
-    inline bool isHoistable(const MDefinition *ins) const {
-        return ins->isMovable() && !ins->isEffectful() && !ins->neverHoist();
-    }
-
-    bool requiresHoistedUse(const MDefinition *ins) const;
-};
-
-} 
-
-LICM::LICM(MIRGenerator *mir, MIRGraph &graph)
-  : mir(mir), graph(graph)
-{
-}
-
-bool
-LICM::analyze()
-{
-    IonSpew(IonSpew_LICM, "Beginning LICM pass.");
-
-    
-    for (ReversePostorderIterator i(graph.rpoBegin()); i != graph.rpoEnd(); i++) {
-        MBasicBlock *header = *i;
-
-        
-        if (!header->isLoopHeader() || header->numPredecessors() < 2)
+    for (auto i(graph.rpoBegin(header)); ; ++i) {
+        MOZ_ASSERT(i != graph.rpoEnd(), "Reached end of graph searching for blocks in loop");
+        MBasicBlock *block = *i;
+        if (!block->isMarked())
             continue;
 
-        
-        Loop loop(mir, header);
-
-        Loop::LoopReturn lr = loop.init();
-        if (lr == Loop::LoopReturn_Error)
-            return false;
-        if (lr == Loop::LoopReturn_Skip) {
-            graph.unmarkBlocks();
-            continue;
-        }
-
-        if (!loop.optimize())
-            return false;
-
-        graph.unmarkBlocks();
-    }
-
-    return true;
-}
-
-Loop::Loop(MIRGenerator *mir, MBasicBlock *header)
-  : mir(mir),
-    header_(header),
-    containsPossibleCall_(false),
-    worklist_(mir->alloc())
-{
-    preLoop_ = header_->getPredecessor(0);
-}
-
-Loop::LoopReturn
-Loop::init()
-{
-    IonSpew(IonSpew_LICM, "Loop identified, headed by block %d", header_->id());
-    IonSpew(IonSpew_LICM, "footer is block %d", header_->backedge()->id());
-
-    
-    JS_ASSERT(header_->id() > header_->getPredecessor(0)->id());
-
-    
-    
-    
-    Vector<MBasicBlock *, 1, IonAllocPolicy> inlooplist(alloc());
-    if (!inlooplist.append(header_->backedge()))
-        return LoopReturn_Error;
-    header_->backedge()->mark();
-
-    while (!inlooplist.empty()) {
-        MBasicBlock *block = inlooplist.back();
-
-        
-        
-        
-        
-        
-        
-        if (block->immediateDominator() == block) {
-            while (!worklist_.empty())
-                popFromWorklist();
-            return LoopReturn_Skip;
-        }
-
-        
-        if (block != header_) {
-            for (size_t i = 0; i < block->numPredecessors(); i++) {
-                MBasicBlock *pred = block->getPredecessor(i);
-                if (pred->isMarked())
-                    continue;
-
-                if (!inlooplist.append(pred))
-                    return LoopReturn_Error;
-                pred->mark();
+        for (auto insIter(block->begin()), insEnd(block->end()); insIter != insEnd; ++insIter) {
+            MInstruction *ins = *insIter;
+            if (ins->possiblyCalls()) {
+                IonSpew(IonSpew_LICM, "    Possile call found at %s%u", ins->opName(), ins->id());
+                return true;
             }
         }
 
-        
-        if (block != inlooplist.back())
-            continue;
-
-        
-        for (MInstructionIterator i = block->begin(); i != block->end(); i++) {
-            MInstruction *ins = *i;
-
-            
-            
-            if (ins->possiblyCalls())
-                containsPossibleCall_ = true;
-
-            if (isHoistable(ins)) {
-                if (!insertInWorklist(ins))
-                    return LoopReturn_Error;
-            }
-        }
-
-        
-        inlooplist.popBack();
+        if (block == backedge)
+            break;
     }
-
-    return LoopReturn_Success;
+    return false;
 }
 
-bool
-Loop::optimize()
+
+
+
+
+
+
+
+static bool
+IsBeforeLoop(MDefinition *ins, MBasicBlock *header)
 {
-    InstructionQueue invariantInstructions(alloc());
-
-    IonSpew(IonSpew_LICM, "These instructions are in the loop: ");
-
-    while (!worklist_.empty()) {
-        if (mir->shouldCancel("LICM (worklist)"))
-            return false;
-
-        MInstruction *ins = popFromWorklist();
-
-        IonSpewHeader(IonSpew_LICM);
-
-        if (IonSpewEnabled(IonSpew_LICM)) {
-            ins->printName(IonSpewFile);
-            fprintf(IonSpewFile, " <- ");
-            ins->printOpcode(IonSpewFile);
-            fprintf(IonSpewFile, ":  ");
-        }
-
-        if (isLoopInvariant(ins)) {
-            
-            ins->setLoopInvariant();
-            if (!invariantInstructions.append(ins))
-                return false;
-
-            if (IonSpewEnabled(IonSpew_LICM))
-                fprintf(IonSpewFile, " Loop Invariant!\n");
-        }
-    }
-
-    if (!hoistInstructions(invariantInstructions))
-        return false;
-    return true;
+    return ins->block()->id() < header->id();
 }
 
-bool
-Loop::requiresHoistedUse(const MDefinition *ins) const
+
+
+static bool
+IsInLoop(MDefinition *ins)
 {
-    if (ins->isConstantElements() || ins->isBox())
+    return ins->block()->isMarked();
+}
+
+
+
+static bool
+RequiresHoistedUse(const MDefinition *ins, bool hasCalls)
+{
+    if (ins->isConstantElements())
         return true;
 
+    if (ins->isBox()) {
+        MOZ_ASSERT(!ins->toBox()->input()->isBox(),
+                "Box of a box could lead to unbounded recursion");
+        return true;
+    }
+
     
     
     
-    
-    if (ins->isConstant() && (IsFloatingPointType(ins->type()) || containsPossibleCall_))
+    if (ins->isConstant() && (!IsFloatingPointType(ins->type()) || hasCalls))
         return true;
 
     return false;
 }
 
-bool
-Loop::hoistInstructions(InstructionQueue &toHoist)
+
+static bool
+HasOperandInLoop(MInstruction *ins, bool hasCalls)
 {
     
-    for (int32_t i = toHoist.length() - 1; i >= 0; i--) {
-        MInstruction *ins = toHoist[i];
-
-        
-        
-        
-        if (requiresHoistedUse(ins)) {
-            bool loopInvariantUse = false;
-            for (MUseDefIterator use(ins); use; use++) {
-                if (use.def()->isLoopInvariant()) {
-                    loopInvariantUse = true;
-                    break;
-                }
-            }
-
-            if (!loopInvariantUse)
-                ins->setNotLoopInvariant();
-        }
-    }
-
     
-    for (size_t i = 0; i < toHoist.length(); i++) {
-        MInstruction *ins = toHoist[i];
+    for (size_t i = 0, e = ins->numOperands(); i != e; ++i) {
+        MDefinition *op = ins->getOperand(i);
 
-        
-        
-        JS_ASSERT(!ins->isControlInstruction());
-        JS_ASSERT(!ins->isEffectful());
-        JS_ASSERT(ins->isMovable());
-
-        if (!ins->isLoopInvariant())
+        if (!IsInLoop(op))
             continue;
 
-        if (checkHotness(ins->block())) {
-            ins->block()->moveBefore(preLoop_->lastIns(), ins);
-            ins->setNotLoopInvariant();
+        if (RequiresHoistedUse(op, hasCalls)) {
+            
+            
+            
+            if (!HasOperandInLoop(op->toInstruction(), hasCalls))
+                continue;
         }
-    }
 
-    return true;
+        return true;
+    }
+    return false;
 }
 
-bool
-Loop::isInLoop(MDefinition *ins)
+
+
+static bool
+IsHoistableIgnoringDependency(MInstruction *ins, bool hasCalls)
 {
-    return ins->block()->isMarked();
+    return ins->isMovable() && !ins->isEffectful() && !ins->neverHoist() &&
+           !HasOperandInLoop(ins, hasCalls);
 }
 
-bool
-Loop::isBeforeLoop(MDefinition *ins)
+
+static bool
+HasDependencyInLoop(MInstruction *ins, MBasicBlock *header)
 {
-    return ins->block()->id() < header_->id();
+    
+    if (MDefinition *dep = ins->dependency())
+        return !IsBeforeLoop(dep, header);
+    return false;
 }
 
-bool
-Loop::isLoopInvariant(MInstruction *ins)
+
+static bool
+IsHoistable(MInstruction *ins, MBasicBlock *header, bool hasCalls)
 {
-    if (!isHoistable(ins)) {
-        if (IonSpewEnabled(IonSpew_LICM))
-            fprintf(IonSpewFile, "not hoistable\n");
-        return false;
+    return IsHoistableIgnoringDependency(ins, hasCalls) && !HasDependencyInLoop(ins, header);
+}
+
+
+
+static void
+MoveDeferredOperands(MInstruction *ins, MInstruction *hoistPoint, bool hasCalls)
+{
+    
+    
+    for (size_t i = 0, e = ins->numOperands(); i != e; ++i) {
+        MDefinition *op = ins->getOperand(i);
+        if (!IsInLoop(op))
+            continue;
+        MOZ_ASSERT(RequiresHoistedUse(op, hasCalls),
+                   "Deferred loop-invariant operand is not cheap");
+        MInstruction *opIns = op->toInstruction();
+
+        
+        
+        MoveDeferredOperands(opIns, hoistPoint, hasCalls);
+
+        IonSpew(IonSpew_LICM, "    Hoisting %s%u (now that a user will be hoisted)",
+                opIns->opName(), opIns->id());
+
+        opIns->block()->moveBefore(hoistPoint, opIns);
     }
+}
 
-    
-    
-    
-    
-    if (ins->dependency() && !isBeforeLoop(ins->dependency())) {
-        if (IonSpewEnabled(IonSpew_LICM)) {
-            fprintf(IonSpewFile, "depends on store inside or after loop: ");
-            ins->dependency()->printName(IonSpewFile);
-            fprintf(IonSpewFile, "\n");
-        }
-        return false;
-    }
+static void
+VisitLoopBlock(MBasicBlock *block, MBasicBlock *header, MInstruction *hoistPoint, bool hasCalls)
+{
+    for (auto insIter(block->begin()), insEnd(block->end()); insIter != insEnd; ) {
+        MInstruction *ins = *insIter++;
 
-    
-    
-    for (size_t i = 0, e = ins->numOperands(); i < e; i++) {
-        if (isInLoop(ins->getOperand(i)) &&
-            !ins->getOperand(i)->isLoopInvariant()) {
-
-            if (IonSpewEnabled(IonSpew_LICM)) {
-                ins->getOperand(i)->printName(IonSpewFile);
-                fprintf(IonSpewFile, " is in the loop.\n");
+        if (!IsHoistable(ins, header, hasCalls)) {
+#ifdef DEBUG
+            if (IsHoistableIgnoringDependency(ins, hasCalls)) {
+                IonSpew(IonSpew_LICM, "    %s%u isn't hoistable due to dependency on %s%u",
+                        ins->opName(), ins->id(),
+                        ins->dependency()->opName(), ins->dependency()->id());
             }
-
-            return false;
+#endif
+            continue;
         }
+
+        
+        
+        
+        if (RequiresHoistedUse(ins, hasCalls)) {
+            IonSpew(IonSpew_LICM, "    %s%u will be hoisted only if its users are",
+                    ins->opName(), ins->id());
+            continue;
+        }
+
+        
+        MoveDeferredOperands(ins, hoistPoint, hasCalls);
+
+        IonSpew(IonSpew_LICM, "    Hoisting %s%u", ins->opName(), ins->id());
+
+        
+        block->moveBefore(hoistPoint, ins);
+    }
+}
+
+static void
+VisitLoop(MIRGraph &graph, MBasicBlock *header)
+{
+    MInstruction *hoistPoint = header->loopPredecessor()->lastIns();
+
+    IonSpew(IonSpew_LICM, "  Visiting loop with header block%u, hoisting to %s%u",
+            header->id(), hoistPoint->opName(), hoistPoint->id());
+
+    MBasicBlock *backedge = header->backedge();
+
+    
+    
+    
+    
+    bool hasCalls = LoopContainsPossibleCall(graph, header, backedge);
+
+    for (auto i(graph.rpoBegin(header)); ; ++i) {
+        MOZ_ASSERT(i != graph.rpoEnd(), "Reached end of graph searching for blocks in loop");
+        MBasicBlock *block = *i;
+        if (!block->isMarked())
+            continue;
+
+        VisitLoopBlock(block, header, hoistPoint, hasCalls);
+
+        if (block == backedge)
+            break;
+    }
+}
+
+bool
+jit::LICM(MIRGenerator *mir, MIRGraph &graph)
+{
+    IonSpew(IonSpew_LICM, "Beginning LICM pass");
+
+    
+    
+    for (auto i(graph.rpoBegin()), e(graph.rpoEnd()); i != e; ++i) {
+        MBasicBlock *header = *i;
+        if (!header->isLoopHeader())
+            continue;
+
+        bool canOsr;
+        MarkLoopBlocks(graph, header, &canOsr);
+
+        
+        
+        
+        if (!canOsr)
+            VisitLoop(graph, header);
+        else
+            IonSpew(IonSpew_LICM, "  Skipping loop with header block%u due to OSR", header->id());
+
+        UnmarkLoopBlocks(graph, header);
+
+        if (mir->shouldCancel("LICM (main loop)"))
+            return false;
     }
 
     return true;
-}
-
-bool
-Loop::checkHotness(MBasicBlock *block)
-{
-    
-    
-    
-    return true;
-}
-
-bool
-Loop::insertInWorklist(MInstruction *ins)
-{
-    if (!worklist_.insert(worklist_.begin(), ins))
-        return false;
-    ins->setInWorklist();
-    return true;
-}
-
-MInstruction*
-Loop::popFromWorklist()
-{
-    MInstruction* toReturn = worklist_.popCopy();
-    toReturn->setNotInWorklist();
-    return toReturn;
 }
