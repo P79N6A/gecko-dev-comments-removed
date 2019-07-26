@@ -46,8 +46,9 @@ NS_IMPL_ADDREF_INHERITED(SVGViewElement,SVGViewElementBase)
 NS_IMPL_RELEASE_INHERITED(SVGViewElement,SVGViewElementBase)
 
 NS_INTERFACE_TABLE_HEAD(SVGViewElement)
-  NS_NODE_INTERFACE_TABLE4(SVGViewElement, nsIDOMNode, nsIDOMElement,
-                           nsIDOMSVGElement, nsIDOMSVGViewElement)
+  NS_NODE_INTERFACE_TABLE5(SVGViewElement, nsIDOMNode, nsIDOMElement,
+                           nsIDOMSVGElement, nsIDOMSVGViewElement,
+                           nsIDOMSVGFitToViewBox)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGViewElement)
 NS_INTERFACE_MAP_END_INHERITING(SVGViewElementBase)
 
@@ -78,12 +79,30 @@ SVGViewElement::SetZoomAndPan(uint16_t aZoomAndPan, ErrorResult& rv)
 
 
 
+
+
+NS_IMETHODIMP
+SVGViewElement::GetViewBox(nsIDOMSVGAnimatedRect * *aViewBox)
+{
+  *aViewBox = ViewBox().get();
+  return NS_OK;
+}
+
 already_AddRefed<nsIDOMSVGAnimatedRect>
 SVGViewElement::ViewBox()
 {
   nsCOMPtr<nsIDOMSVGAnimatedRect> box;
   mViewBox.ToDOMAnimatedRect(getter_AddRefs(box), this);
   return box.forget();
+}
+
+
+NS_IMETHODIMP
+SVGViewElement::GetPreserveAspectRatio(nsISupports
+                                       **aPreserveAspectRatio)
+{
+  *aPreserveAspectRatio = PreserveAspectRatio().get();
+  return NS_OK;
 }
 
 already_AddRefed<DOMSVGAnimatedPreserveAspectRatio>
