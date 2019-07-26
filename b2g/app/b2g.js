@@ -547,4 +547,8 @@ pref("dom.disable_window_open_dialog_feature", true);
 pref("accessibility.accessfu.activate", 2);
 
 
+pref("ui.touch.radius.enabled", true);
+pref("ui.mouse.radius.enabled", true);
+
+
 pref("browser.prompt.allowNative", false);
