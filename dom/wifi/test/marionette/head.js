@@ -237,6 +237,70 @@ let gTestSuite = (function() {
 
 
 
+
+
+
+  function forgetNetwork(aNetwork) {
+    let request = wifiManager.forget(aNetwork);
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  function forgetAllKnownNetworks() {
+
+    function createForgetNetworkChain(aNetworks) {
+      let chain = Promise.resolve();
+
+      aNetworks.forEach(function (aNetwork) {
+        chain = chain.then(() => forgetNetwork(aNetwork));
+      });
+
+      return chain;
+    }
+
+    return getKnownNetworks()
+      .then(networks => createForgetNetworkChain(networks));
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+  function getKnownNetworks() {
+    let request = wifiManager.getKnownNetworks();
+    return wrapDomRequestAsPromise(request)
+      .then(event => event.target.result);
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   function requestWifiScan() {
     let request = wifiManager.getNetworks();
     return wrapDomRequestAsPromise(request)
@@ -288,6 +352,85 @@ let gTestSuite = (function() {
         }
         throw 'Unexpected scan result!';
       });
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function testAssociate(aNetwork) {
+    setPasswordIfNeeded(aNetwork);
+
+    let promises = [];
+
+    
+    
+    promises.push(waitForConnected(aNetwork));
+
+    
+    let request = wifiManager.associate(aNetwork);
+    promises.push(wrapDomRequestAsPromise(request));
+
+    return Promise.all(promises);
+  }
+
+  function waitForConnected(aExpectedNetwork) {
+    return waitForWifiManagerEventOnce('statuschange')
+      .then(function onstatuschange(event) {
+        log("event.status: " + event.status);
+        log("event.network.ssid: " + (event.network ? event.network.ssid : ''));
+
+        if ("connected" === event.status &&
+            event.network.ssid === aExpectedNetwork.ssid) {
+          return; 
+        }
+
+        log('Not expected "connected" statuschange event. Wait again!');
+        return waitForConnected(aExpectedNetwork);
+      });
+  }
+
+  
+
+
+
+
+
+
+
+
+  function setPasswordIfNeeded(aNetwork) {
+    let i = getFirstIndexBySsid(aNetwork.ssid, HOSTAPD_CONFIG_LIST);
+    if (-1 === i) {
+      log('unknown ssid: ' + aNetwork.ssid);
+      return; 
+    }
+
+    if (!aNetwork.security.length) {
+      return; 
+    }
+
+    let security = aNetwork.security[0];
+    if (/PSK$/.test(security)) {
+      aNetwork.psk = HOSTAPD_CONFIG_LIST[i].wpa_passphrase;
+      aNetwork.keyManagement = 'WPA-PSK';
+    } else if (/WEP$/.test(security)) {
+      aNetwork.wep = HOSTAPD_CONFIG_LIST[i].wpa_passphrase;
+      aNetwork.keyManagement = 'WEP';
+    }
   }
 
   
@@ -632,7 +775,9 @@ let gTestSuite = (function() {
 
   function cleanUp() {
     waitFor(function() {
-      return ensureWifiEnabled(wifiOrigEnabled)
+      return ensureWifiEnabled(true)
+        .then(forgetAllKnownNetworks)
+        .then(() => ensureWifiEnabled(wifiOrigEnabled))
         .then(finish);
     }, function() {
       return pendingEmulatorShellCount === 0;
@@ -678,6 +823,12 @@ let gTestSuite = (function() {
   suite.verifyNumOfProcesses = verifyNumOfProcesses;
   suite.testWifiScanWithRetry = testWifiScanWithRetry;
   suite.getFirstIndexBySsid = getFirstIndexBySsid;
+  suite.testAssociate = testAssociate;
+  suite.getKnownNetworks = getKnownNetworks;
+  suite.requestWifiScan = requestWifiScan;
+  suite.waitForConnected = waitForConnected;
+  suite.forgetNetwork = forgetNetwork;
+  suite.waitForTimeout = waitForTimeout;
 
   
 
