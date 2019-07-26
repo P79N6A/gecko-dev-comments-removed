@@ -550,6 +550,11 @@ public:
     return mBaselineOffsetFromCrossStart;
   }
 
+  
+  
+  void ResolveFlexibleLengths(const FlexboxAxisTracker& aAxisTracker,
+                              nscoord aFlexContainerMainSize);
+
   void PositionItemsInMainAxis(uint8_t aJustifyContent,
                                nscoord aContentBoxMainSize,
                                const FlexboxAxisTracker& aAxisTracker);
@@ -1400,13 +1405,12 @@ ShouldUseFlexGrow(nscoord aTotalFreeSpace,
 
 
 void
-nsFlexContainerFrame::ResolveFlexibleLengths(
+FlexLine::ResolveFlexibleLengths(
   const FlexboxAxisTracker& aAxisTracker,
-  nscoord aFlexContainerMainSize,
-  nsTArray<FlexItem>& aItems)
+  nscoord aFlexContainerMainSize)
 {
   PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG, ("ResolveFlexibleLengths\n"));
-  if (aItems.IsEmpty()) {
+  if (mItems.IsEmpty()) {
     return;
   }
 
@@ -1414,14 +1418,14 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
   
   
   nscoord spaceAvailableForFlexItemsContentBoxes = aFlexContainerMainSize;
-  for (uint32_t i = 0; i < aItems.Length(); i++) {
+  for (uint32_t i = 0; i < mItems.Length(); i++) {
     spaceAvailableForFlexItemsContentBoxes -=
-      aItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
+      mItems[i].GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
   }
 
   
   bool havePositiveFreeSpace =
-    ShouldUseFlexGrow(spaceAvailableForFlexItemsContentBoxes, aItems);
+    ShouldUseFlexGrow(spaceAvailableForFlexItemsContentBoxes, mItems);
 
   
   
@@ -1430,14 +1434,14 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
   
   
   for (uint32_t iterationCounter = 0;
-       iterationCounter < aItems.Length(); iterationCounter++) {
+       iterationCounter < mItems.Length(); iterationCounter++) {
     
     
     
     
     nscoord availableFreeSpace = spaceAvailableForFlexItemsContentBoxes;
-    for (uint32_t i = 0; i < aItems.Length(); i++) {
-      FlexItem& item = aItems[i];
+    for (uint32_t i = 0; i < mItems.Length(); i++) {
+      FlexItem& item = mItems[i];
       if (!item.IsFrozen()) {
         item.SetMainSize(item.GetFlexBaseSize());
       }
@@ -1469,8 +1473,8 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
       float runningFlexWeightSum = 0.0f;
       float largestFlexWeight = 0.0f;
       uint32_t numItemsWithLargestFlexWeight = 0;
-      for (uint32_t i = 0; i < aItems.Length(); i++) {
-        FlexItem& item = aItems[i];
+      for (uint32_t i = 0; i < mItems.Length(); i++) {
+        FlexItem& item = mItems[i];
         float curFlexWeight = item.GetFlexWeightToUse(havePositiveFreeSpace);
         MOZ_ASSERT(curFlexWeight >= 0.0f, "weights are non-negative");
 
@@ -1499,8 +1503,8 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
       if (runningFlexWeightSum != 0.0f) { 
         PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
                (" Distributing available space:"));
-        for (uint32_t i = aItems.Length() - 1; i < aItems.Length(); --i) {
-          FlexItem& item = aItems[i];
+        for (uint32_t i = mItems.Length() - 1; i < mItems.Length(); --i) {
+          FlexItem& item = mItems[i];
 
           if (!item.IsFrozen()) {
             
@@ -1549,8 +1553,8 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
     PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
            (" Checking for violations:"));
 
-    for (uint32_t i = 0; i < aItems.Length(); i++) {
-      FlexItem& item = aItems[i];
+    for (uint32_t i = 0; i < mItems.Length(); i++) {
+      FlexItem& item = mItems[i];
       if (!item.IsFrozen()) {
         if (item.GetMainSize() < item.GetMainMinSize()) {
           
@@ -1566,7 +1570,7 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
       }
     }
 
-    FreezeOrRestoreEachFlexibleSize(totalViolation, aItems);
+    FreezeOrRestoreEachFlexibleSize(totalViolation, mItems);
 
     PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
            (" Total violation: %d\n", totalViolation));
@@ -1578,8 +1582,8 @@ nsFlexContainerFrame::ResolveFlexibleLengths(
 
   
 #ifdef DEBUG
-  for (uint32_t i = 0; i < aItems.Length(); ++i) {
-    MOZ_ASSERT(aItems[i].IsFrozen(),
+  for (uint32_t i = 0; i < mItems.Length(); ++i) {
+    MOZ_ASSERT(mItems[i].IsFrozen(),
                "All flexible lengths should've been resolved");
   }
 #endif 
@@ -2377,7 +2381,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     ComputeFlexContainerMainSize(aReflowState, axisTracker, line,
                                  availableHeightForContent, aStatus);
 
-  ResolveFlexibleLengths(axisTracker, contentBoxMainSize, line.mItems);
+  line.ResolveFlexibleLengths(axisTracker, contentBoxMainSize);
 
   
   

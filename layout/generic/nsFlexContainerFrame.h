@@ -94,12 +94,6 @@ protected:
                                            const nsHTMLReflowState& aParentReflowState,
                                            const FlexboxAxisTracker& aAxisTracker);
 
-  
-  
-  void ResolveFlexibleLengths(const FlexboxAxisTracker& aAxisTracker,
-                              nscoord aFlexContainerMainSize,
-                              nsTArray<FlexItem>& aItems);
-
   nsresult GenerateFlexItems(nsPresContext* aPresContext,
                              const nsHTMLReflowState& aReflowState,
                              const FlexboxAxisTracker& aAxisTracker,
