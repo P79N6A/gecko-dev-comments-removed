@@ -1394,7 +1394,7 @@ nsPlainTextSerializer::EndLine(bool aSoftlinebreak, bool aBreakBySpace)
     
     
     if ((mFlags & nsIDocumentEncoder::OutputFormatDelSp) && aBreakBySpace)
-      mCurrentLine.Append(NS_LITERAL_STRING("  "));
+      mCurrentLine.AppendLiteral("  ");
     else
       mCurrentLine.Append(char16_t(' '));
   }

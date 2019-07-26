@@ -566,7 +566,7 @@ GetCacheSessionNameForStoragePolicy(
     
     sessionName.Assign(NS_LITERAL_CSTRING("other"));
     if (isPrivate)
-      sessionName.Append(NS_LITERAL_CSTRING("-private"));
+      sessionName.AppendLiteral("-private");
   }
 
   if (appId != nsILoadContextInfo::NO_APP_ID || inBrowser) {

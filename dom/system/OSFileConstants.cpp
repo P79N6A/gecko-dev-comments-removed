@@ -903,14 +903,14 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   
   nsAutoString libxul;
   libxul.Append(gPaths->libDir);
-  libxul.Append(NS_LITERAL_STRING("/XUL"));
+  libxul.AppendLiteral("/XUL");
 #else
   
   
   nsAutoString libxul;
-  libxul.Append(NS_LITERAL_STRING(DLL_PREFIX));
-  libxul.Append(NS_LITERAL_STRING("xul"));
-  libxul.Append(NS_LITERAL_STRING(DLL_SUFFIX));
+  libxul.AppendLiteral(DLL_PREFIX);
+  libxul.AppendLiteral("xul");
+  libxul.AppendLiteral(DLL_SUFFIX);
 #endif 
 
   if (!SetStringProperty(cx, objPath, "libxul", libxul)) {
@@ -973,14 +973,14 @@ bool DefineOSFileConstants(JSContext *cx, JS::Handle<JSObject*> global)
   nsAutoString libsqlite3;
 #if defined(ANDROID)
   
-  libsqlite3.Append(NS_LITERAL_STRING(DLL_PREFIX));
-  libsqlite3.Append(NS_LITERAL_STRING("sqlite3"));
-  libsqlite3.Append(NS_LITERAL_STRING(DLL_SUFFIX));
+  libsqlite3.AppendLiteral(DLL_PREFIX);
+  libsqlite3.AppendLiteral("sqlite3");
+  libsqlite3.AppendLiteral(DLL_SUFFIX);
 #elif defined(XP_WIN)
   
-  libsqlite3.Append(NS_LITERAL_STRING(DLL_PREFIX));
-  libsqlite3.Append(NS_LITERAL_STRING("nss3"));
-  libsqlite3.Append(NS_LITERAL_STRING(DLL_SUFFIX));
+  libsqlite3.AppendLiteral(DLL_PREFIX);
+  libsqlite3.AppendLiteral("nss3");
+  libsqlite3.AppendLiteral(DLL_SUFFIX);
 #else
     
   libsqlite3 = libxul;

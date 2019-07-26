@@ -3891,7 +3891,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
           content->GetAttr(kNameSpaceID_XMLNS, name->LocalName(), uriStr);
 
           
-          tagName.Append(NS_LITERAL_STRING(" xmlns")); 
+          tagName.AppendLiteral(" xmlns"); 
           if (name->GetPrefix()) {
             tagName.Append(char16_t(':'));
             name->LocalName()->ToString(nameStr);
@@ -3899,8 +3899,9 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
           } else {
             setDefaultNamespace = true;
           }
-          tagName.Append(NS_LITERAL_STRING("=\"") + uriStr +
-            NS_LITERAL_STRING("\""));
+          tagName.AppendLiteral("=\"");
+          tagName.Append(uriStr);
+          tagName.Append('"');
         }
       }
     }
@@ -3913,8 +3914,9 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
         
         
         info->GetNamespaceURI(uriStr);
-        tagName.Append(NS_LITERAL_STRING(" xmlns=\"") + uriStr +
-                       NS_LITERAL_STRING("\""));
+        tagName.AppendLiteral(" xmlns=\"");
+        tagName.Append(uriStr);
+        tagName.Append('"');
       }
     }
 
@@ -6116,7 +6118,7 @@ nsContentUtils::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
 
   
   aPattern.Insert(NS_LITERAL_STRING("^(?:"), 0);
-  aPattern.Append(NS_LITERAL_STRING(")$"));
+  aPattern.AppendLiteral(")$");
 
   JS::Rooted<JSObject*> re(cx,
     JS_NewUCRegExpObjectNoStatics(cx,

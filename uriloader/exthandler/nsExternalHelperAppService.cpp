@@ -1408,7 +1408,7 @@ nsresult nsExternalAppHandler::SetUpTempFile(nsIChannel * aChannel)
 
   
   
-  tempLeafName.Append(NS_LITERAL_CSTRING(".part"));
+  tempLeafName.AppendLiteral(".part");
 
   rv = mTempFile->Append(NS_ConvertUTF8toUTF16(tempLeafName));
   

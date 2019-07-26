@@ -1005,7 +1005,8 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
     ++p; 
   }
 
-  aFontName.Append(NS_LITERAL_STRING(",") + aFallbackFamilies);
+  aFontName.Append(',');
+  aFontName.Append(aFallbackFamilies);
   return;
 
 insert:

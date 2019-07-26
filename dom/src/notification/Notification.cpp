@@ -431,10 +431,10 @@ Notification::Notification(const nsAString& aID, const nsAString& aTitle, const 
   
   alertName.AppendLiteral("#");
   if (!mTag.IsEmpty()) {
-    alertName.Append(NS_LITERAL_STRING("tag:"));
+    alertName.AppendLiteral("tag:");
     alertName.Append(mTag);
   } else {
-    alertName.Append(NS_LITERAL_STRING("notag:"));
+    alertName.AppendLiteral("notag:");
     alertName.Append(mID);
   }
 
