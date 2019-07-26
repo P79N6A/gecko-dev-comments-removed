@@ -16,7 +16,7 @@
 #include "jsobj.h"
 
 
-const unsigned MIN_SPARSE_INDEX = 256;
+const unsigned MIN_SPARSE_INDEX = 512;
 
 namespace js {
 
