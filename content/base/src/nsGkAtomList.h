@@ -1818,6 +1818,10 @@ GK_ATOM(onuserproximity, "onuserproximity")
 GK_ATOM(ondevicelight, "ondevicelight")
 
 
+GK_ATOM(onmozinterruptbegin, "onmozinterruptbegin")
+GK_ATOM(onmozinterruptend, "onmozinterruptbegin")
+
+
 
 
 
