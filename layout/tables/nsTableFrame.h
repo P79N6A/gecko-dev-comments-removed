@@ -357,7 +357,7 @@ public:
   
   nscoord GetCellSpacingY();
  
-  virtual nscoord GetBaseline() const;
+  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
   
 
 

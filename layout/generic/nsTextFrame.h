@@ -173,7 +173,7 @@ public:
   
   virtual bool IsEmpty();
   virtual bool IsSelfEmpty() { return IsEmpty(); }
-  virtual nscoord GetBaseline() const;
+  virtual nscoord GetBaseline() const MOZ_OVERRIDE;
   
   
 
