@@ -933,19 +933,11 @@ SocialToolbar = {
         SharedFrame.updateURL(notificationFrameId, icon.contentPanel);
       }
 
-      let toolbarButtonContainerId = "social-notification-container-" + icon.name;
       let toolbarButtonId = "social-notification-icon-" + icon.name;
-      let toolbarButtonContainer = document.getElementById(toolbarButtonContainerId);
       let toolbarButton = document.getElementById(toolbarButtonId);
-      if (!toolbarButtonContainer) {
-        
-        
-        
-        toolbarButtonContainer = document.createElement("toolbaritem");
-        toolbarButtonContainer.classList.add("social-notification-container");
-        toolbarButtonContainer.setAttribute("id", toolbarButtonContainerId);
-
+      if (!toolbarButton) {
         toolbarButton = document.createElement("toolbarbutton");
+        toolbarButton.setAttribute("type", "badged");
         toolbarButton.classList.add("toolbarbutton-1");
         toolbarButton.setAttribute("id", toolbarButtonId);
         toolbarButton.setAttribute("notificationFrameId", notificationFrameId);
@@ -954,8 +946,7 @@ SocialToolbar = {
             SocialToolbar.showAmbientPopup(toolbarButton);
         });
 
-        toolbarButtonContainer.appendChild(toolbarButton);
-        toolbarButtons.appendChild(toolbarButtonContainer);
+        toolbarButtons.appendChild(toolbarButton);
       }
 
       toolbarButton.style.listStyleImage = "url(" + icon.iconURL + ")";
@@ -1049,7 +1040,7 @@ SocialToolbar = {
     let navBar = document.getElementById("nav-bar");
     let anchor = navBar.getAttribute("mode") == "text" ?
                    document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-text") :
-                   document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-icon");
+                   document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-badge-container");
     
     
     setTimeout(function() {
