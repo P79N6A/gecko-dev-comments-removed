@@ -97,8 +97,7 @@ class UpvarCookie
     F(FALSE) \
     F(NULL) \
     F(THIS) \
-    F(FUNCTIONDECL) \
-    F(FUNCTIONEXPR) \
+    F(FUNCTION) \
     F(IF) \
     F(ELSE) \
     F(SWITCH) \
@@ -211,8 +210,6 @@ enum ParseNodeKind {
     PNK_ASSIGNMENT_START = PNK_ASSIGN,
     PNK_ASSIGNMENT_LAST = PNK_MODASSIGN
 };
-
-
 
 
 
@@ -818,8 +815,7 @@ struct ParseNode {
     bool isGeneratorExpr() const {
         if (isKind(PNK_CALL)) {
             ParseNode *callee = this->pn_head;
-            JS_ASSERT(!callee->isKind(PNK_FUNCTIONDECL));
-            if (callee->getKind() == PNK_FUNCTIONEXPR && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
+            if (callee->getKind() == PNK_FUNCTION && callee->pn_body->getKind() == PNK_LEXICALSCOPE)
                 return true;
         }
         return false;
@@ -1390,7 +1386,7 @@ struct Definition : public ParseNode
     static const char *kindString(Kind kind);
 
     Kind kind() {
-        if (getKind() == PNK_FUNCTIONDECL) {
+        if (getKind() == PNK_FUNCTION) {
             if (isOp(JSOP_GETARG))
                 return ARG;
             return VAR;
