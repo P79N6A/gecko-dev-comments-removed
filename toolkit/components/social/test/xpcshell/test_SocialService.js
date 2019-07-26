@@ -5,14 +5,7 @@
 Cu.import("resource://gre/modules/Services.jsm");
 
 function run_test() {
-  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9");
-  
-  var blocklistFile = gProfD.clone();
-  blocklistFile.append("blocklist.xml");
-  if (blocklistFile.exists())
-    blocklistFile.remove(false);
-  var source = do_get_file("blocklist.xml");
-  source.copyTo(gProfD, "blocklist.xml");
+  initApp();
 
   
   

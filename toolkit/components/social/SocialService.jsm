@@ -37,6 +37,9 @@ let SocialServiceInternal = {
     let MANIFEST_PREFS = Services.prefs.getBranch("social.manifest.");
     let prefs = MANIFEST_PREFS.getChildList("", []);
     for (let pref of prefs) {
+      
+      if (!MANIFEST_PREFS.prefHasUserValue(pref))
+        continue;
       try {
         var manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(pref, Ci.nsISupportsString).data);
         if (manifest && typeof(manifest) == "object" && manifest.origin)
@@ -62,7 +65,7 @@ let SocialServiceInternal = {
     let prefs = MANIFEST_PREFS.getChildList("", []);
     for (let pref of prefs) {
       try {
-        var manifest = JSON.parse(MANIFEST_PREFS.getCharPref(pref));
+        var manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(pref, Ci.nsISupportsString).data);
         if (manifest.origin == origin) {
           return pref;
         }
@@ -121,21 +124,65 @@ let ActiveProviders = {
 };
 
 function migrateSettings() {
+  let activeProviders;
   try {
     
-    Services.prefs.getCharPref("social.activeProviders");
-    return;
+    activeProviders = Services.prefs.getCharPref("social.activeProviders");
   } catch(e) {
-    try {
-      let active = Services.prefs.getBoolPref("social.active");
-      if (active) {
-        for (let manifest of SocialServiceInternal.manifests) {
-          ActiveProviders.add(manifest.origin);
-          return;
-        }
+    
+  }
+  if (activeProviders) {
+    
+    
+    for (let origin in ActiveProviders._providers) {
+      let prefname = getPrefnameFromOrigin(origin);
+      if (!Services.prefs.prefHasUserValue(prefname)) {
+        
+        
+        let manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(prefname, Ci.nsISupportsString).data);
+        
+        if (manifest.builtin)
+          delete manifest.builtin;
+
+        let string = Cc["@mozilla.org/supports-string;1"].
+                     createInstance(Ci.nsISupportsString);
+        string.data = JSON.stringify(manifest);
+        Services.prefs.setComplexValue(prefname, Ci.nsISupportsString, string);
       }
-    } catch(e) {
-      
+    }
+    return;
+  }
+
+  
+  let active;
+  try {
+    active = Services.prefs.getBoolPref("social.active");
+  } catch(e) {}
+  if (!active)
+    return;
+
+  
+  
+  let manifestPrefs = Services.prefs.getDefaultBranch("social.manifest.");
+  let prefs = manifestPrefs.getChildList("", []);
+  for (let pref of prefs) {
+    try {
+      let manifest = JSON.parse(manifestPrefs.getComplexValue(pref, Ci.nsISupportsString).data);
+      if (manifest && typeof(manifest) == "object" && manifest.origin) {
+        
+        if (manifest.builtin)
+          delete manifest.builtin;
+        let string = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
+        string.data = JSON.stringify(manifest);
+        Services.prefs.setComplexValue(pref, Ci.nsISupportsString, string);
+        ActiveProviders.add(manifest.origin);
+        ActiveProviders.flush();
+        
+        
+        return;
+      }
+    } catch (err) {
+      Cu.reportError("SocialService: failed to load manifest: " + pref + ", exception: " + err);
     }
   }
 }
@@ -291,10 +338,9 @@ this.SocialService = {
   },
 
   getOriginActivationType: function(origin) {
-    for (let manifest in SocialServiceInternal.manifests) {
-      if (manifest.origin == origin)
-        return 'builtin';
-    }
+    let prefname = SocialServiceInternal.getManifestPrefname(origin);
+    if (Services.prefs.getDefaultBranch("social.manifest.").getPrefType(prefname) == Services.prefs.PREF_STRING)
+      return 'builtin';
 
     let whitelist = Services.prefs.getCharPref("social.whitelist").split(',');
     if (whitelist.indexOf(origin) >= 0)
@@ -445,8 +491,15 @@ this.SocialService = {
         
         
         
-        if (!manifest)
-          manifest = SocialServiceInternal.getManifestByOrigin(installOrigin);
+        if (!manifest) {
+          let prefname = getPrefnameFromOrigin(installOrigin);
+          manifest = Services.prefs.getDefaultBranch(prefname)
+                          .getComplexValue(prefname, Ci.nsISupportsString).data;
+          manifest = JSON.parse(manifest);
+          
+          if (manifest.builtin)
+            delete manifest.builtin;
+        }
       case "directory":
         
       case "whitelist":
