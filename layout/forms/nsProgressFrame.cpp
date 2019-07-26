@@ -236,15 +236,10 @@ nsProgressFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                  nsSize aMargin, nsSize aBorder,
                                  nsSize aPadding, bool aShrinkWrap)
 {
-  float inflation = nsLayoutUtils::FontSizeInflationFor(this);
-  nsRefPtr<nsFontMetrics> fontMet;
-  NS_ENSURE_SUCCESS(nsLayoutUtils::GetFontMetricsForFrame(this,
-                                                          getter_AddRefs(fontMet),
-                                                          inflation),
-                    nsSize(0, 0));
-
   nsSize autoSize;
-  autoSize.height = autoSize.width = fontMet->Font().size; 
+  autoSize.height = autoSize.width =
+    NSToCoordRound(StyleFont()->mFont.size *
+                   nsLayoutUtils::FontSizeInflationFor(this)); 
 
   if (StyleDisplay()->mOrient == NS_STYLE_ORIENT_VERTICAL) {
     autoSize.height *= 10; 
