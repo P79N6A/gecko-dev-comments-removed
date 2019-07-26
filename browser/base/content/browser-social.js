@@ -3,13 +3,24 @@
 
 
 
+let SocialUI,
+    SocialChatBar,
+    SocialFlyout,
+    SocialShareButton,
+    SocialMenu,
+    SocialToolbar,
+    SocialSidebar;
+
+(function() {
+
+
 const PANEL_MIN_HEIGHT = 100;
 const PANEL_MIN_WIDTH = 330;
 
 XPCOMUtils.defineLazyModuleGetter(this, "SharedFrame",
   "resource:///modules/SharedFrame.jsm");
 
-let SocialUI = {
+SocialUI = {
   
   init: function SocialUI_init() {
     Services.obs.addObserver(this, "social:ambient-notification-changed", false);
@@ -340,7 +351,7 @@ let SocialUI = {
 
 }
 
-let SocialChatBar = {
+SocialChatBar = {
   init: function() {
   },
   get chatbar() {
@@ -437,7 +448,7 @@ DynamicResizeWatcher.prototype = {
   }
 }
 
-let SocialFlyout = {
+SocialFlyout = {
   get panel() {
     return document.getElementById("social-flyout-panel");
   },
@@ -569,7 +580,7 @@ let SocialFlyout = {
   }
 }
 
-let SocialShareButton = {
+SocialShareButton = {
   
   init: function SSB_init() {
   },
@@ -712,7 +723,7 @@ let SocialShareButton = {
   }
 };
 
-var SocialMenu = {
+SocialMenu = {
   init: function SocialMenu_init() {
   },
 
@@ -746,7 +757,7 @@ var SocialMenu = {
 };
 
 
-var SocialToolbar = {
+SocialToolbar = {
   
   
   init: function SocialToolbar_init() {
@@ -1087,7 +1098,7 @@ var SocialToolbar = {
   }
 }
 
-var SocialSidebar = {
+SocialSidebar = {
   
   init: function SocialSidebar_init() {
     let sbrowser = document.getElementById("social-sidebar-browser");
@@ -1194,3 +1205,5 @@ var SocialSidebar = {
     }
   }
 }
+
+})();
