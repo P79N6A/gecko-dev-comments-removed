@@ -1276,8 +1276,6 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
     bool failName(ParseNode *pn, const char *fmt, PropertyName *name) {
-        
-        gc::AutoSuppressGC suppress(name->runtimeFromMainThread());
         JSAutoByteString bytes;
         if (AtomToPrintableString(cx_, name, &bytes))
             failf(pn, fmt, bytes.ptr());
