@@ -42,6 +42,12 @@
     }                                                                  \
   } while(0)
 
+#define MAX_UUID_SIZE 16
+
+#define SET_AUDIO_BIT(cod)               (cod |= 0x200000)
+
+#define SET_RENDERING_BIT(cod)           (cod |= 0x40000)
+
 using namespace mozilla;
 using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
@@ -482,6 +488,7 @@ RemoteDevicePropertiesCallback(bt_status_t aStatus, bt_bdaddr_t *aBdAddress,
   BdAddressTypeToString(aBdAddress, remoteDeviceBdAddress);
   BT_APPEND_NAMED_VALUE(props, "Address", remoteDeviceBdAddress);
 
+  bool isCodInvalid = false;
   for (int i = 0; i < aNumProperties; ++i) {
     bt_property_t p = aProperties[i];
 
@@ -490,11 +497,53 @@ RemoteDevicePropertiesCallback(bt_status_t aStatus, bt_bdaddr_t *aBdAddress,
       BT_APPEND_NAMED_VALUE(props, "Name", propertyValue);
     } else if (p.type == BT_PROPERTY_CLASS_OF_DEVICE) {
       uint32_t cod = *(uint32_t*)p.val;
-      BT_APPEND_NAMED_VALUE(props, "Class", cod);
-
       nsString icon;
       ClassToIcon(cod, icon);
-      BT_APPEND_NAMED_VALUE(props, "Icon", icon);
+      if (!icon.IsEmpty()) {
+        
+        BT_APPEND_NAMED_VALUE(props, "Class", cod);
+        BT_APPEND_NAMED_VALUE(props, "Icon", icon);
+      } else {
+        
+        
+        
+        isCodInvalid = true;
+      }
+    } else if (p.type == BT_PROPERTY_UUIDS) {
+      InfallibleTArray<nsString> uuidsArray;
+      int uuidListLength = p.len / MAX_UUID_SIZE;
+      uint32_t cod = 0;
+
+      for (int i = 0; i < uuidListLength; i++) {
+        uint16_t uuidServiceClass = UuidToServiceClassInt((bt_uuid_t*)(p.val +
+          (i * MAX_UUID_SIZE)));
+        BluetoothServiceClass serviceClass = BluetoothUuidHelper::
+          GetBluetoothServiceClass(uuidServiceClass);
+
+        
+        nsString uuid;
+        BluetoothUuidHelper::GetString(serviceClass, uuid);
+        uuidsArray.AppendElement(uuid);
+
+        
+        if (isCodInvalid) {
+          if (serviceClass == BluetoothServiceClass::HANDSFREE ||
+              serviceClass == BluetoothServiceClass::HEADSET) {
+            BT_LOGD("Restore Class Of Device to Audio bit");
+            SET_AUDIO_BIT(cod);
+          } else if (serviceClass == BluetoothServiceClass::A2DP_SINK) {
+            BT_LOGD("Restore Class of Device to Rendering bit");
+            SET_RENDERING_BIT(cod);
+          }
+        }
+      }
+
+      if (isCodInvalid) {
+        BT_APPEND_NAMED_VALUE(props, "Class", cod);
+        
+        BT_APPEND_NAMED_VALUE(props, "Icon", NS_LITERAL_STRING("audio-card"));
+      }
+      BT_APPEND_NAMED_VALUE(props, "UUIDS", uuidsArray);
     } else {
       BT_LOGD("Other non-handled device properties. Type: %d", p.type);
     }
