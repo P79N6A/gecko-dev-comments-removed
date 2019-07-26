@@ -2580,17 +2580,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
             nsDisplayTransform::ShouldPrerenderTransformedContent(mBuilder,
                                                                   item->Frame(),
                                                                   false)) {
-          if (!itemClip.HasClip()) {
-            
-            
-            data->SetAllDrawingAbove();
-          } else {
-            
-            
-            
-            data->AddVisibleAboveRegion(clipRect);
-            data->AddDrawAboveRegion(clipRect);
-          }
+          data->SetAllDrawingAbove();
         } else {
           data->AddVisibleAboveRegion(itemVisibleRect);
 
