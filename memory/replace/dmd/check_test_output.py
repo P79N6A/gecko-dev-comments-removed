@@ -66,9 +66,6 @@ def main():
     
     
     
-    
-    
-    
 
     print("filtering output to", filtered_name)
 
@@ -96,15 +93,6 @@ def main():
                             print("   ... DMD.cpp", file=fout)
                         print(frame, end='', file=fout)
                         break
-
-            elif re.search("in stack frame record", line):
-                
-                
-                line2 = fin.next()
-                line3 = fin.next()
-                line4 = fin.next()
-                line5 = fin.next()
-                line6 = fin.next()
 
             else:
                 
