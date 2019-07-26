@@ -260,7 +260,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxShapedText *aShapedText,
     
 
     static const int32_t NO_GLYPH = -1;
-    nsAutoTArray<int32_t,SMALL_GLYPH_RUN> charToGlyphArray;
+    AutoFallibleTArray<int32_t,SMALL_GLYPH_RUN> charToGlyphArray;
     if (!charToGlyphArray.SetLength(stringRange.length)) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
