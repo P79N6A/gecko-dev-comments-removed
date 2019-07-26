@@ -147,6 +147,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "libinject.dll", UNVERSIONED },
 
+  
+  { "rf-firefox-22.dll", ALL_VERSIONS },
+
   { nullptr, 0 }
 };
 
