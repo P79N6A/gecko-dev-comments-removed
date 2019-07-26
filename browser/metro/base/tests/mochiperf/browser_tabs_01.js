@@ -15,7 +15,7 @@ function timeTab(aUrl) {
     let tab = Browser.addTab(aUrl, true);
     yield tab.pageShowPromise;
     stopwatch.stop();
-    Browser.closeTab(tab)
+    Browser.closeTab(tab, { forceClose: true })
     yield waitForMs(500);
     throw new Task.Result(stopwatch.time());
   });
@@ -33,6 +33,10 @@ gTests.push({
       let time = yield timeTab("about:blank");
       openDataSet.push(time);
     }
+
+    
+    
+    yield waitForCondition(() => Browser.tabs.length == 2);
     
     PerfTest.declareTest("FBD7A532-D63A-44B5-9744-5CB07CFD131A",
                          "tab open", "browser", "ux",
