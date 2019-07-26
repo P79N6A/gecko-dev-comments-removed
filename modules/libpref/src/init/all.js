@@ -4173,8 +4173,12 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 
 
 pref("dom.mms.retrieval_mode", "manual");
-pref("dom.mms.retrievalRetryCount", 3);
-pref("dom.mms.retrievalRetryInterval", 300000);
+
+pref("dom.mms.sendRetryCount", 3);
+pref("dom.mms.sendRetryInterval", 300000);
+
+pref("dom.mms.retrievalRetryCount", 4);
+pref("dom.mms.retrievalRetryIntervals", "60000,300000,600000,1800000");
 
 
 
