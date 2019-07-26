@@ -32,7 +32,11 @@ kMediaConduitUnknownError,
 kMediaConduitExternalRecordingError,   
 kMediaConduitRecordingError,           
 kMediaConduitExternalPlayoutError,     
-kMediaConduitPlayoutError              
+kMediaConduitPlayoutError,             
+kMediaConduitMTUError,                 
+kMediaConduitRTCPStatusError,          
+kMediaConduitKeyFrameRequestError,     
+kMediaConduitNACKStatusError           
 };
 
 }

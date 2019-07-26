@@ -17,6 +17,7 @@
 #include "video_engine/include/vie_render.h"
 #include "video_engine/include/vie_network.h"
 #include "video_engine/include/vie_file.h"
+#include "video_engine/include/vie_rtp_rtcp.h"
 
 
 
@@ -183,7 +184,6 @@ private:
 
   
   void DumpCodecDB() const;
-
   webrtc::VideoEngine* mVideoEngine;
 
   mozilla::RefPtr<TransportInterface> mTransport;
@@ -195,6 +195,7 @@ private:
   webrtc::ViENetwork* mPtrViENetwork;
   webrtc::ViERender* mPtrViERender;
   webrtc::ViEExternalCapture*  mPtrExtCapture;
+  webrtc::ViERTP_RTCP* mPtrRTP;
 
   
   bool mEngineTransmitting; 
