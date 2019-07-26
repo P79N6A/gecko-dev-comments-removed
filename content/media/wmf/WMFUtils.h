@@ -4,9 +4,6 @@
 
 
 
-#ifndef WMFUtils_h
-#define WMFUtils_h
-
 #include "WMF.h"
 #include "nsString.h"
 #include "nsRect.h"
@@ -102,5 +99,3 @@ IsFlagSet(DWORD flags, DWORD pattern) {
 }
 
 } 
-
-#endif
