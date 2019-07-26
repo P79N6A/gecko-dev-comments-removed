@@ -24,7 +24,9 @@ this.EXPORTED_SYMBOLS = ["BreadcrumbsWidget"];
 
 
 
-this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
+
+
+this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode, aOptions={}) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;
   this._parent = aNode;
@@ -34,7 +36,8 @@ this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   this._list.className = "breadcrumbs-widget-container";
   this._list.setAttribute("flex", "1");
   this._list.setAttribute("orient", "horizontal");
-  this._list.setAttribute("clicktoscroll", "true")
+  this._list.setAttribute("clicktoscroll", "true");
+  this._list.setAttribute("smoothscroll", !!aOptions.smoothScroll);
   this._list.addEventListener("keypress", e => this.emit("keyPress", e), false);
   this._list.addEventListener("mousedown", e => this.emit("mousePress", e), false);
   this._parent.appendChild(this._list);
@@ -45,7 +48,6 @@ this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   this._list._scrollButtonDown.collapsed = true;
   this._list.addEventListener("underflow", this._onUnderflow.bind(this), false);
   this._list.addEventListener("overflow", this._onOverflow.bind(this), false);
-
 
   
   
