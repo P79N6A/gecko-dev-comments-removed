@@ -977,6 +977,18 @@ this.WidgetMethods = {
 
 
 
+  get selectedAttachment() {
+    let selectedElement = this._widget.selectedItem;
+    if (selectedElement) {
+      return this._itemsByElement.get(selectedElement).attachment;
+    }
+    return null;
+  },
+
+  
+
+
+
   set selectedItem(aItem) {
     
     

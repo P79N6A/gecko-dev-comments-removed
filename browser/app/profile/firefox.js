@@ -588,7 +588,7 @@ pref("browser.gesture.twist.left", "cmd_gestureRotateLeft");
 pref("browser.gesture.twist.end", "cmd_gestureRotateEnd");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
-pref("browser.snapshots.limit", 0);
+pref("browser.snapshots.limit", 5);
 
 
 
@@ -1165,6 +1165,9 @@ pref("devtools.scratchpad.recentFilesMax", 10);
 
 pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.transitions", true);
+
+
+pref("devtools.shadereditor.enabled", false);
 
 
 pref("devtools.chrome.enabled", false);
