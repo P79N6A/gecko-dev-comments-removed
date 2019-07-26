@@ -283,7 +283,9 @@ nsGenericHTMLFrameElement::GetReallyIsBrowserOrApp(bool *aOut)
   }
 
   
-  if (!GetBoolAttr(nsGkAtoms::mozbrowser)) {
+  bool hasMozbrowser = false;
+  GetMozbrowser(&hasMozbrowser);
+  if (!hasMozbrowser) {
     return NS_OK;
   }
 

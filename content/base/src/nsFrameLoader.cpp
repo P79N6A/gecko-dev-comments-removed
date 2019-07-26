@@ -88,7 +88,6 @@
 #include "mozilla/dom/SVGIFrameElement.h"
 #include "nsSandboxFlags.h"
 #include "JavaScriptParent.h"
-#include "CompositorChild.h"
 
 #include "mozilla/dom/StructuredCloneUtils.h"
 
@@ -1546,14 +1545,7 @@ nsFrameLoader::ShouldUseRemoteProcess()
 
   
   
-  if (XRE_GetProcessType() == GeckoProcessType_Content &&
-      !CompositorChild::ChildProcessHasCompositor()) {
-    return false;
-  }
-
-  if (XRE_GetProcessType() == GeckoProcessType_Content &&
-      !(PR_GetEnv("MOZ_NESTED_OOP_TABS") ||
-        Preferences::GetBool("dom.ipc.tabs.nested.enabled", false))) {
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
     return false;
   }
 
@@ -2101,7 +2093,10 @@ nsFrameLoader::TryRemoteBrowser()
     return false;
   }
   nsCOMPtr<nsIXULWindow> window(do_GetInterface(parentOwner));
-  if (window && NS_FAILED(window->GetChromeFlags(&chromeFlags))) {
+  if (!window) {
+    return false;
+  }
+  if (NS_FAILED(window->GetChromeFlags(&chromeFlags))) {
     return false;
   }
 
@@ -2140,12 +2135,11 @@ nsFrameLoader::TryRemoteBrowser()
     parentAsItem->GetRootTreeItem(getter_AddRefs(rootItem));
     nsCOMPtr<nsIDOMWindow> rootWin = rootItem->GetWindow();
     nsCOMPtr<nsIDOMChromeWindow> rootChromeWin = do_QueryInterface(rootWin);
+    NS_ABORT_IF_FALSE(rootChromeWin, "How did we not get a chrome window here?");
 
-    if (rootChromeWin) {
-      nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin;
-      rootChromeWin->GetBrowserDOMWindow(getter_AddRefs(browserDOMWin));
-      mRemoteBrowser->SetBrowserDOMWindow(browserDOMWin);
-    }
+    nsCOMPtr<nsIBrowserDOMWindow> browserDOMWin;
+    rootChromeWin->GetBrowserDOMWindow(getter_AddRefs(browserDOMWin));
+    mRemoteBrowser->SetBrowserDOMWindow(browserDOMWin);
 
     mContentParent = mRemoteBrowser->Manager();
 
@@ -2430,9 +2424,8 @@ nsFrameLoader::EnsureMessageManager()
     return NS_OK;
   }
 
-  bool useRemoteProcess = ShouldUseRemoteProcess();
   if (mMessageManager) {
-    if (useRemoteProcess && mRemoteBrowserShown) {
+    if (ShouldUseRemoteProcess() && mRemoteBrowserShown) {
       mMessageManager->InitWithCallback(this);
     }
     return NS_OK;
@@ -2456,7 +2449,7 @@ nsFrameLoader::EnsureMessageManager()
     }
   }
 
-  if (useRemoteProcess) {
+  if (ShouldUseRemoteProcess()) {
     mMessageManager = new nsFrameMessageManager(mRemoteBrowserShown ? this : nullptr,
                                                 static_cast<nsFrameMessageManager*>(parentManager.get()),
                                                 MM_CHROME);
