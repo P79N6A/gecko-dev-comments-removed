@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef nsCycleCollector_h__
 #define nsCycleCollector_h__
@@ -17,13 +17,13 @@ namespace mozilla {
 
 class CycleCollectedJSRuntime;
 
-// See the comments in nsContentUtils.h for explanations of these functions.
+
 typedef void* (*DeferredFinalizeAppendFunction)(void* pointers, void* thing);
 typedef bool (*DeferredFinalizeFunction)(uint32_t slice, void* data);
 
 }
 
-// Contains various stats about the cycle collection.
+
 class nsCycleCollectorResults
 {
 public:
@@ -61,10 +61,9 @@ void nsCycleCollector_collect(bool aManuallyTriggered,
 uint32_t nsCycleCollector_suspectedCount();
 void nsCycleCollector_shutdown();
 
-// Helpers for interacting with JS
+
 void nsCycleCollector_registerJSRuntime(mozilla::CycleCollectedJSRuntime *aRt);
 void nsCycleCollector_forgetJSRuntime();
-mozilla::CycleCollectedJSRuntime* nsCycleCollector_currentJSRuntime();
 
 #define NS_CYCLE_COLLECTOR_LOGGER_CID \
 { 0x58be81b4, 0x39d2, 0x437c, \
@@ -88,7 +87,7 @@ void DeferredFinalize(DeferredFinalizeAppendFunction aAppendFunc,
 void DeferredFinalize(nsISupports* aSupports);
 
 
-} // namespace cyclecollector
-} // namespace mozilla
+} 
+} 
 
-#endif // nsCycleCollector_h__
+#endif 

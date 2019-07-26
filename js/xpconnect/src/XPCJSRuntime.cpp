@@ -1393,6 +1393,10 @@ void XPCJSRuntime::SystemIsBeingShutDown()
 
 XPCJSRuntime::~XPCJSRuntime()
 {
+    
+    
+    SetPendingException(nullptr);
+
     JS::SetGCSliceCallback(Runtime(), mPrevGCSliceCallback);
 
     xpc_DelocalizeRuntime(Runtime());

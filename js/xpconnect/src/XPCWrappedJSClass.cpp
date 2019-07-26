@@ -17,6 +17,7 @@
 #include "nsJSUtils.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BindingUtils.h"
+#include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 
 #include "jsapi.h"
@@ -264,7 +265,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                     
                     
                     using namespace mozilla::dom;
-                    nsXPCException *e = nullptr;
+                    Exception *e = nullptr;
                     UNWRAP_OBJECT(Exception, cx, &jsexception.toObject(), e);
 
                     if (e &&
