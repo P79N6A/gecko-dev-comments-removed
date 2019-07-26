@@ -682,3 +682,8 @@ pref("browser.chrome.dynamictoolbar", true);
 
 pref("webgl.disabled", true);
 #endif
+
+#ifndef RELEASE_BUILD
+
+pref("media.webaudio.enabled", true);
+#endif
