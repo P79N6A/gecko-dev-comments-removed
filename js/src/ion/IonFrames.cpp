@@ -479,7 +479,17 @@ ion::HandleException(ResumeFromException *rfe)
             }
         }
 
+        IonJSFrameLayout *current = iter.isBaselineJS() ? iter.jsFrame() : NULL;
+
         ++iter;
+
+        if (current) {
+            
+            
+            
+            EnsureExitFrame(current);
+            cx->mainThread().ionTop = (uint8_t *)current;
+        }
     }
 
     rfe->stackPointer = iter.fp();
