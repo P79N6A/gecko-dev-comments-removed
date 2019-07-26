@@ -11,6 +11,7 @@
 
 #include "nsUnicharUtils.h"
 #include "nsUnicodeProperties.h"
+#include "gfx2DGlue.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxPangoFonts.h"
 #include "gfxContext.h"
@@ -85,7 +86,7 @@ gfxPlatformGtk::~gfxPlatformGtk()
 }
 
 already_AddRefed<gfxASurface>
-gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
+gfxPlatformGtk::CreateOffscreenSurface(const IntSize& size,
                                        gfxContentType contentType)
 {
     nsRefPtr<gfxASurface> newSurface;
@@ -104,12 +105,13 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                                  imageFormat);
 
             if (xrenderFormat) {
-                newSurface = gfxXlibSurface::Create(screen, xrenderFormat, size);
+                newSurface = gfxXlibSurface::Create(screen, xrenderFormat,
+                                                    ThebesIntSize(size));
             }
         } else {
             
             
-            newSurface = new gfxImageSurface(size, imageFormat);
+            newSurface = new gfxImageSurface(ThebesIntSize(size), imageFormat);
             
             
             needsClear = false;
@@ -121,7 +123,7 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         
         
         
-        newSurface = new gfxImageSurface(size, imageFormat);
+        newSurface = new gfxImageSurface(ThebesIntSize(size), imageFormat);
     }
 
     if (newSurface->CairoStatus()) {
