@@ -16,8 +16,8 @@
 #include "nscore.h"
 
 class nsIContent;
+class nsIDocument;
 class nsIDOMDataTransfer;
-class nsIDOMDocument;
 class nsIDOMElement;
 class nsIDOMEvent;
 class nsIDOMEventTarget;
@@ -138,7 +138,7 @@ public:
 
   virtual nsresult InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
                                           int32_t aIndex,
-                                          nsIDOMDocument *aSourceDoc,
+                                          nsIDocument *aSourceDoc,
                                           nsIDOMNode *aDestinationNode,
                                           int32_t aDestOffset,
                                           bool aDoDeleteSelection);
@@ -156,7 +156,7 @@ public:
   
   
   
-  bool IsSafeToInsertData(nsIDOMDocument* aSourceDoc);
+  bool IsSafeToInsertData(nsIDocument* aSourceDoc);
 
   static void GetDefaultEditorPrefs(int32_t &aNewLineHandling,
                                     int32_t &aCaretStyle);
@@ -198,7 +198,7 @@ protected:
   bool CanCutOrCopy();
   bool FireClipboardEvent(int32_t aType);
 
-  bool UpdateMetaCharset(nsIDOMDocument* aDocument,
+  bool UpdateMetaCharset(nsIDocument* aDocument,
                          const nsACString& aCharacterSet);
 
 

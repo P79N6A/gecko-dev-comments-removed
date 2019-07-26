@@ -15,7 +15,7 @@
 #include "nscore.h"
 
 class nsHTMLEditor;
-class nsIDOMDocument;
+class nsIDocument;
 class nsIDOMNode;
 struct DOMPoint;
 
@@ -218,7 +218,7 @@ class NS_STACK_CLASS nsWSRunObject
     nsresult InsertText(const nsAString& aStringToInsert, 
                         nsCOMPtr<nsIDOMNode> *aInOutNode, 
                         int32_t *aInOutOffset,
-                        nsIDOMDocument *aDoc);
+                        nsIDocument *aDoc);
 
     
     
