@@ -203,6 +203,10 @@ pref("media.navigator.enabled", true);
 #endif
 #endif
 
+#ifdef MOZ_WEBSPEECH
+pref("media.webspeech.recognition.enable", false);
+#endif
+
 
 pref("media.webaudio.enabled", false);
 
@@ -378,7 +382,7 @@ pref("toolkit.telemetry.server", "https://data.mozilla.com");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
 
-pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.html#telemetry");
+pref("toolkit.telemetry.infoURL", "https://www.mozilla.org/legal/privacy/firefox.html#telemetry");
 
 
 pref("toolkit.telemetry.debugSlowSql", false);
@@ -790,6 +794,8 @@ pref("javascript.options.mem.gc_dynamic_mark_slice", true);
 pref("javascript.options.mem.gc_allocation_threshold_mb", 30);
 
 pref("javascript.options.mem.analysis_purge_mb", 100);
+
+pref("javascript.options.showInConsole", false);
 
 
 pref("advanced.mailftp",                    false);
