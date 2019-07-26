@@ -778,6 +778,25 @@ protected:
 
     uint32_t                   mSandboxFlags;
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    enum FullscreenAllowedState {
+        CHECK_ATTRIBUTES,
+        PARENT_ALLOWS,
+        PARENT_PROHIBITS
+    };
+    FullscreenAllowedState     mFullscreenAllowed;
+
     bool                       mCreated;
     bool                       mAllowSubframes;
     bool                       mAllowPlugins;

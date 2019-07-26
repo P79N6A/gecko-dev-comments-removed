@@ -9455,21 +9455,16 @@ nsDocument::IsFullScreenEnabled(bool aCallerIsChrome, bool aLogFailure)
 
   
   
-  nsINode* node = static_cast<nsINode*>(this);
-  do {
-    nsIContent* content = static_cast<nsIContent*>(node);
-    if (content->IsHTML(nsGkAtoms::iframe) &&
-        !content->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)) {
-      
-      
-      
-      LogFullScreenDenied(aLogFailure, "FullScreenDeniedIframeDisallowed", this);
-      return false;
-    }
-    node = nsContentUtils::GetCrossDocParentNode(node);
-  } while (node);
+  nsCOMPtr<nsIDocShell> docShell = do_QueryReferent(mDocumentContainer);
+  bool allowed = false;
+  if (docShell) {
+    docShell->GetFullscreenAllowed(&allowed);
+  }
+  if (!allowed) {
+    LogFullScreenDenied(aLogFailure, "FullScreenDeniedIframeDisallowed", this);
+  }
 
-  return true;
+  return allowed;
 }
 
 static void

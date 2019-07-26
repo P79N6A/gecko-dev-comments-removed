@@ -737,6 +737,7 @@ nsDocShell::nsDocShell():
     mPreviousTransIndex(-1),
     mLoadedTransIndex(-1),
     mSandboxFlags(0),
+    mFullscreenAllowed(CHECK_ATTRIBUTES),
     mCreated(false),
     mAllowSubframes(true),
     mAllowPlugins(true),
@@ -2156,6 +2157,72 @@ NS_IMETHODIMP nsDocShell::GetAllowWindowControl(bool * aAllowWindowControl)
 NS_IMETHODIMP nsDocShell::SetAllowWindowControl(bool aAllowWindowControl)
 {
     mAllowWindowControl = aAllowWindowControl;
+    return NS_OK;
+}
+
+NS_IMETHODIMP
+nsDocShell::GetFullscreenAllowed(bool* aFullscreenAllowed)
+{
+    NS_ENSURE_ARG_POINTER(aFullscreenAllowed);
+
+    
+    
+    if (mFullscreenAllowed != CHECK_ATTRIBUTES) {
+        *aFullscreenAllowed = (mFullscreenAllowed == PARENT_ALLOWS);
+        return NS_OK;
+    }
+
+    
+    *aFullscreenAllowed = false;
+
+    
+    
+    
+    
+    nsCOMPtr<nsPIDOMWindow> win = do_GetInterface(GetAsSupports(this));
+    if (!win) {
+        return NS_OK;
+    }
+    nsCOMPtr<nsIContent> frameElement = do_QueryInterface(win->GetFrameElementInternal());
+    if (frameElement &&
+        frameElement->IsHTML(nsGkAtoms::iframe) &&
+        !frameElement->HasAttr(kNameSpaceID_None, nsGkAtoms::mozallowfullscreen)) {
+        return NS_OK;
+    }
+
+    
+    
+    
+    nsCOMPtr<nsIDocShellTreeItem> dsti = do_GetInterface(GetAsSupports(this));
+    NS_ENSURE_TRUE(dsti, NS_OK);
+
+    nsCOMPtr<nsIDocShellTreeItem> parentTreeItem;
+    dsti->GetParent(getter_AddRefs(parentTreeItem));
+    if (!parentTreeItem) {
+        *aFullscreenAllowed = true;
+        return NS_OK;
+    }
+    
+    
+    nsCOMPtr<nsIDocShell> parent = do_QueryInterface(parentTreeItem);
+    NS_ENSURE_TRUE(parent, NS_OK);
+    
+    return parent->GetFullscreenAllowed(aFullscreenAllowed);
+}
+
+NS_IMETHODIMP
+nsDocShell::SetFullscreenAllowed(bool aFullscreenAllowed)
+{
+    if (!nsIDocShell::GetIsContentBoundary()) {
+        
+        
+        
+        
+        
+        
+        return NS_ERROR_UNEXPECTED;
+    }
+    mFullscreenAllowed = (aFullscreenAllowed ? PARENT_ALLOWS : PARENT_PROHIBITS);
     return NS_OK;
 }
 
