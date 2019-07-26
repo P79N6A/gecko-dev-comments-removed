@@ -8,6 +8,7 @@
 #define builtin_Intl_h
 
 #include "NamespaceImports.h"
+#include "unicode/utypes.h"
 
 
 
@@ -177,6 +178,21 @@ intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
 extern bool
 intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+inline const UChar *
+JSCharToUChar(const jschar *chars)
+{
+  return reinterpret_cast<const UChar *>(chars);
+}
+
+inline UChar *
+JSCharToUChar(jschar *chars)
+{
+  return reinterpret_cast<UChar *>(chars);
+}
 
 } 
 
