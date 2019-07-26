@@ -556,7 +556,10 @@ class FileFinder(BaseFinder):
         Ignores file names starting with a '.' under the given path. If the
         path itself has leafs starting with a '.', they are not ignored.
         '''
-        for p in os.listdir(os.path.join(self.base, path)):
+        
+        
+        
+        for p in sorted(os.listdir(os.path.join(self.base, path))):
             if p.startswith('.'):
                 continue
             for p_, f in self._find(mozpack.path.join(path, p)):
@@ -596,7 +599,8 @@ class FileFinder(BaseFinder):
         elif '*' in pattern[0]:
             if not os.path.exists(os.path.join(self.base, base)):
                 return
-            for p in os.listdir(os.path.join(self.base, base)):
+            
+            for p in sorted(os.listdir(os.path.join(self.base, base))):
                 if p.startswith('.') and not pattern[0].startswith('.'):
                     continue
                 if mozpack.path.match(p, pattern[0]):
