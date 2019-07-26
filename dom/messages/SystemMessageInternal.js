@@ -90,12 +90,22 @@ SystemMessageInternal.prototype = {
       });
     }
 
+    let pagesToOpen = {};
     this._pages.forEach(function(aPage) {
       if (!this._isPageMatched(aPage, aType, aPageURI.spec, aManifestURI.spec)) {
         return;
       }
 
-      this._openAppPage(aPage, aMessage, messageID);
+      
+      this._queueMessage(aPage, aMessage, messageID);
+
+      
+      
+      let key = this._createKeyForPage(aPage);
+      if (!pagesToOpen.hasOwnProperty(key)) {
+        this._openAppPage(aPage, aMessage);
+        pagesToOpen[key] = true;
+      }
     }, this);
   },
 
@@ -115,6 +125,7 @@ SystemMessageInternal.prototype = {
 
     debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
     
+    let pagesToOpen = {};
     this._pages.forEach(function(aPage) {
       if (aPage.type == aType) {
         if (this._listeners[aPage.manifest]) {
@@ -127,7 +138,16 @@ SystemMessageInternal.prototype = {
                                          msgID: messageID })
           });
         }
-        this._openAppPage(aPage, aMessage, messageID);
+        
+        this._queueMessage(aPage, aMessage, messageID);
+
+        
+        
+        let key = this._createKeyForPage(aPage);
+        if (!pagesToOpen.hasOwnProperty(key)) {
+          this._openAppPage(aPage, aMessage);
+          pagesToOpen[key] = true;
+        }
       }
     }, this);
   },
@@ -266,14 +286,16 @@ SystemMessageInternal.prototype = {
     }
   },
 
-  _openAppPage: function _openAppPage(aPage, aMessage, aMessageID) {
+  _queueMessage: function _queueMessage(aPage, aMessage, aMessageID) {
     
     
     aPage.pendingMessages.push({ msg: aMessage, msgID: aMessageID });
     if (aPage.pendingMessages.length > kMaxPendingMessages) {
       aPage.pendingMessages.splice(0, 1);
     }
+  },
 
+  _openAppPage: function _openAppPage(aPage, aMessage) {
     
     let page = { uri: aPage.uri,
                  manifest: aPage.manifest,
@@ -287,6 +309,24 @@ SystemMessageInternal.prototype = {
     return (aPage.type === aType &&
             aPage.manifest === aManifest &&
             aPage.uri === aUri)
+  },
+
+  _createKeyForPage: function _createKeyForPage(aPage) {
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                      .createInstance(Ci.nsIScriptableUnicodeConverter);
+    converter.charset = "UTF-8";
+
+    let hasher = Cc["@mozilla.org/security/hash;1"]
+                   .createInstance(Ci.nsICryptoHash);
+    hasher.init(hasher.SHA1);
+
+    
+    ["type", "manifest", "uri"].forEach(function(aProp) {
+      let data = converter.convertToByteArray(aPage[aProp], {});
+      hasher.update(data, data.length);
+    });
+
+    return hasher.finish(true);
   },
 
   classID: Components.ID("{70589ca5-91ac-4b9e-b839-d6a88167d714}"),
