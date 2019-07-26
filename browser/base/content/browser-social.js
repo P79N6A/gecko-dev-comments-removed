@@ -367,6 +367,9 @@ let SocialFlyout = {
   },
 
   open: function(aURL, yOffset, aCallback) {
+    
+    document.getElementById("social-notification-panel").hidePopup();
+
     if (!Social.provider)
       return;
     let panel = this.panel;
@@ -820,6 +823,9 @@ var SocialToolbar = {
   },
 
   showAmbientPopup: function SocialToolbar_showAmbientPopup(aToolbarButtonBox) {
+    
+    SocialFlyout.panel.hidePopup();
+
     let panel = document.getElementById("social-notification-panel");
     let notificationFrameId = aToolbarButtonBox.getAttribute("notificationFrameId");
     let notificationFrame = document.getElementById(notificationFrameId);
