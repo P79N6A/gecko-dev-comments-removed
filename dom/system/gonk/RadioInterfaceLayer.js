@@ -1846,6 +1846,7 @@ RadioInterface.prototype = {
       let domMessage =
         gMobileMessageService.createSmsMessage(message.id,
                                                message.threadId,
+                                               null, 
                                                message.delivery,
                                                message.deliveryStatus,
                                                message.sender,
@@ -1911,6 +1912,7 @@ RadioInterface.prototype = {
       let domMessage =
         gMobileMessageService.createSmsMessage(message.id,
                                                message.threadId,
+                                               null, 
                                                message.delivery,
                                                message.deliveryStatus,
                                                message.sender,
@@ -3020,6 +3022,7 @@ RadioInterface.prototype = {
           context.request.notifyMessageSent(
             gMobileMessageService.createSmsMessage(sms.id,
                                                    sms.threadId,
+                                                   null, 
                                                    DOM_MOBILE_MESSAGE_DELIVERY_SENT,
                                                    sms.deliveryStatus,
                                                    sms.sender,
@@ -3071,6 +3074,7 @@ RadioInterface.prototype = {
       let domMessage =
         gMobileMessageService.createSmsMessage(-1, 
                                                0,  
+                                               null, 
                                                delivery,
                                                deliveryStatus,
                                                sendingMessage.sender,
