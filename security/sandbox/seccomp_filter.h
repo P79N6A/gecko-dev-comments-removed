@@ -83,6 +83,8 @@
   ALLOW_SYSCALL(sigprocmask), \
    \
   SECCOMP_WHITELIST_ADD \
+   \
+  ALLOW_SYSCALL(restart_syscall), \
   ALLOW_SYSCALL(exit_group), \
   ALLOW_SYSCALL(exit)
 
