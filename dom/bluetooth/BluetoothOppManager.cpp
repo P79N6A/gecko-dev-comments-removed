@@ -162,6 +162,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mWaitingForConfirmationFlag(false)
 {
   mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
+  mSocketStatus = GetConnectionStatus();
 }
 
 BluetoothOppManager::~BluetoothOppManager()
@@ -244,6 +245,8 @@ BluetoothOppManager::Listen()
                                            true,
                                            true,
                                            this);
+  mSocketStatus = GetConnectionStatus();
+
   return NS_FAILED(rv) ? false : true;
 }
 
@@ -960,11 +963,16 @@ BluetoothOppManager::OnConnectSuccess()
   
   
   GetSocketAddr(mConnectedDeviceAddress);
+
+  mSocketStatus = GetConnectionStatus();
 }
 
 void
 BluetoothOppManager::OnConnectError()
 {
+  CloseSocket();
+  mSocketStatus = GetConnectionStatus();
+  Listen();
 }
 
 void
@@ -974,4 +982,8 @@ BluetoothOppManager::OnDisconnect()
   
   
   AfterOppDisconnected();
+
+  if (mSocketStatus == SocketConnectionStatus::SOCKET_CONNECTED) {
+    Listen();
+  }
 }
