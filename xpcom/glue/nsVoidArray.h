@@ -40,7 +40,7 @@ public:
   bool SetCount(int32_t aNewCount);
   
   inline int32_t GetArraySize() const {
-    return mImpl ? (int32_t(mImpl->mBits) & kArraySizeMask) : 0;
+    return mImpl ? mImpl->mSize : 0;
   }
 
   void* FastElementAt(int32_t aIndex) const
@@ -120,10 +120,7 @@ protected:
     
 
 
-
-
-
-    uint32_t mBits;
+    int32_t mSize;
 
     
 
@@ -143,52 +140,13 @@ protected:
   bool    mIsAuto;
 #endif
 
-  enum {
-    kArrayOwnerMask = 1 << 31,
-    kArrayHasAutoBufferMask = 1 << 30,
-    kArraySizeMask = ~(kArrayOwnerMask | kArrayHasAutoBufferMask)
-  };
-  enum { kAutoBufSize = 8 };
-
-
   
-  void SetArray(Impl *newImpl, int32_t aSize, int32_t aCount, bool aOwner,
-                bool aHasAuto);
-  inline bool IsArrayOwner() const {
-    return mImpl && (mImpl->mBits & kArrayOwnerMask);
-  }
-  inline bool HasAutoBuffer() const {
-    return mImpl && (mImpl->mBits & kArrayHasAutoBufferMask);
-  }
+  void SetArray(Impl *newImpl, int32_t aSize, int32_t aCount);
 
 private:
   
   nsVoidArray(const nsVoidArray& other);
 };
-
-
-
-class NS_COM_GLUE nsAutoVoidArray : public nsVoidArray {
-public:
-  nsAutoVoidArray();
-
-  void ResetToAutoBuffer()
-  {
-    SetArray(reinterpret_cast<Impl*>(mAutoBuf), kAutoBufSize, 0, false,
-             true);
-  }
-
-  nsAutoVoidArray& operator=(const nsVoidArray& other)
-  {
-    nsVoidArray::operator=(other);
-    return *this;
-  }
-  
-protected:
-  
-  char mAutoBuf[sizeof(Impl) + (kAutoBufSize - 1) * sizeof(void*)];
-};
-
 
 
 

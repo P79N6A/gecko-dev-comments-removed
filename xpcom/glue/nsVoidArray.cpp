@@ -107,16 +107,13 @@ VoidStats gVoidStats;
 #endif
 
 void
-nsVoidArray::SetArray(Impl *newImpl, int32_t aSize, int32_t aCount,
-                      bool aOwner, bool aHasAuto)
+nsVoidArray::SetArray(Impl *newImpl, int32_t aSize, int32_t aCount)
 {
   
   NS_PRECONDITION(newImpl, "can't set size");
   mImpl = newImpl;
   mImpl->mCount = aCount;
-  mImpl->mBits = static_cast<uint32_t>(aSize & kArraySizeMask) |
-                 (aOwner ? kArrayOwnerMask : 0) |
-                 (aHasAuto ? kArrayHasAutoBufferMask : 0);
+  mImpl->mSize = aSize;
 }
 
 
@@ -125,8 +122,6 @@ nsVoidArray::SetArray(Impl *newImpl, int32_t aSize, int32_t aCount,
 bool nsVoidArray::SizeTo(int32_t aSize)
 {
   uint32_t oldsize = GetArraySize();
-  bool isOwner = IsArrayOwner();
-  bool hasAuto = HasAutoBuffer();
 
   if (aSize == (int32_t) oldsize)
     return true; 
@@ -136,25 +131,13 @@ bool nsVoidArray::SizeTo(int32_t aSize)
     
     if (mImpl)
     {
-      if (isOwner)
-      {
-        free(reinterpret_cast<char *>(mImpl));
-        if (hasAuto) {
-          static_cast<nsAutoVoidArray*>(this)->ResetToAutoBuffer();
-        }
-        else {
-          mImpl = nullptr;
-        }
-      }
-      else
-      {
-        mImpl->mCount = 0; 
-      }
+      free(reinterpret_cast<char *>(mImpl));
+      mImpl = nullptr;
     }
     return true;
   }
 
-  if (mImpl && isOwner)
+  if (mImpl)
   {
     
     if (aSize < mImpl->mCount)
@@ -185,7 +168,7 @@ bool nsVoidArray::SizeTo(int32_t aSize)
       }
     }
 #endif
-    SetArray(newImpl, aSize, newImpl->mCount, true, hasAuto);
+    SetArray(newImpl, aSize, newImpl->mCount);
     return true;
   }
 
@@ -225,7 +208,7 @@ bool nsVoidArray::SizeTo(int32_t aSize)
                   mImpl->mCount * sizeof(mImpl->mArray[0]));
   }
 
-  SetArray(newImpl, aSize, mImpl ? mImpl->mCount : 0, true, hasAuto);
+  SetArray(newImpl, aSize, mImpl ? mImpl->mCount : 0);
   
   return true;
 }
@@ -340,7 +323,7 @@ nsVoidArray& nsVoidArray::operator=(const nsVoidArray& other)
 nsVoidArray::~nsVoidArray()
 {
   MOZ_COUNT_DTOR(nsVoidArray);
-  if (mImpl && IsArrayOwner())
+  if (mImpl)
     free(reinterpret_cast<char*>(mImpl));
 }
 
@@ -623,12 +606,6 @@ void nsVoidArray::Clear()
   if (mImpl)
   {
     mImpl->mCount = 0;
-    
-    
-    if (HasAutoBuffer() && IsArrayOwner() &&
-        GetArraySize() > kAutoClearCompactSizeFactor * kAutoBufSize) {
-      SizeTo(0);
-    }
   }
 }
 
@@ -639,15 +616,7 @@ void nsVoidArray::Compact()
     
     
     int32_t count = Count();
-    if (HasAutoBuffer() && count <= kAutoBufSize)
-    {
-      Impl* oldImpl = mImpl;
-      static_cast<nsAutoVoidArray*>(this)->ResetToAutoBuffer();
-      memcpy(mImpl->mArray, oldImpl->mArray,
-             count * sizeof(mImpl->mArray[0]));
-      free(reinterpret_cast<char *>(oldImpl));
-    }
-    else if (GetArraySize() > count)
+    if (GetArraySize() > count)
     {
       SizeTo(Count());
     }
@@ -756,21 +725,6 @@ nsVoidArray::SizeOfExcludingThis(
     n += data2.mSize;
   }
   return n;
-}
-
-
-
-
-nsAutoVoidArray::nsAutoVoidArray()
-  : nsVoidArray()
-{
-  
-  
-#if DEBUG_VOIDARRAY
-  mIsAuto = true;
-  ADD_TO_STATS(MaxAuto,0);
-#endif
-  ResetToAutoBuffer();
 }
 
 
