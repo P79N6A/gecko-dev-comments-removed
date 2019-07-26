@@ -59,6 +59,26 @@ public:
 
   virtual void RebuildTextRun(nsTransformedTextRun* aTextRun, gfxContext* aRefContext) MOZ_OVERRIDE;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static bool TransformString(const nsAString& aString,
+                              nsString& aConvertedString,
+                              bool aAllUppercase,
+                              const nsIAtom* aLanguage,
+                              nsTArray<bool>& aCharsToMergeArray,
+                              nsTArray<bool>& aDeletedCharsArray,
+                              nsTransformedTextRun* aTextRun = nullptr,
+                              nsTArray<uint8_t>* aCanBreakBeforeArray = nullptr,
+                              nsTArray<nsStyleContext*>* aStyleArray = nullptr);
+
 protected:
   nsAutoPtr<nsTransformingTextRunFactory> mInnerTransformingTextRunFactory;
   bool                                    mAllUppercase;
