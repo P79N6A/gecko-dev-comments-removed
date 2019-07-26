@@ -45,6 +45,17 @@ try {
 } 
 catch (e) { }
 
+
+if (runningInParent &&
+    "mozIAsyncHistory" in Components.interfaces) {
+  
+  
+  let (prefs = Components.classes["@mozilla.org/preferences-service;1"]
+               .getService(Components.interfaces.nsIPrefBranch)) {
+    prefs.setBoolPref("places.history.enabled", true);
+  };
+}
+
 try {
   if (runningInParent) {
     let prefs = Components.classes["@mozilla.org/preferences-service;1"]
