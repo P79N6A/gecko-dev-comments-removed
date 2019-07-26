@@ -95,8 +95,6 @@ class Registers {
     
     static const uint32_t CallMask =
         (1 << JSC::X86Registers::eax);
-
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
 };
 
 

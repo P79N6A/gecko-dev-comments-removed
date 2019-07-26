@@ -997,8 +997,6 @@ struct TypeObject : gc::Cell
     
     TypeObjectFlags flags;
 
-    static inline size_t offsetOfFlags() { return offsetof(TypeObject, flags); }
-
     
 
 
