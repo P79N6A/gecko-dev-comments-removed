@@ -2276,7 +2276,15 @@ function BrowserOnAboutPageLoad(doc) {
 
     
     let docElt = doc.documentElement;
+    
+    
     docElt.setAttribute("snippetsURL", AboutHomeUtils.snippetsURL);
+    if (AboutHomeUtils.showKnowYourRights) {
+      docElt.setAttribute("showKnowYourRights", "true");
+      
+      let currentVersion = Services.prefs.getIntPref("browser.rights.version");
+      Services.prefs.setBoolPref("browser.rights." + currentVersion + ".shown", true);
+    }
     docElt.setAttribute("snippetsVersion", AboutHomeUtils.snippetsVersion);
     docElt.setAttribute("searchEngineName",
                         AboutHomeUtils.defaultSearchEngine.name);

@@ -340,6 +340,19 @@ function loadSnippets()
 let _snippetsShown = false;
 function showSnippets()
 {
+  let snippetsElt = document.getElementById("snippets");
+
+  
+  let showRights = document.documentElement.getAttribute("showKnowYourRights");
+  if (showRights) {
+    let rightsElt = document.getElementById("rightsSnippet");
+    let anchor = rightsElt.getElementsByTagName("a")[0];
+    anchor.href = "about:rights";
+    snippetsElt.appendChild(rightsElt);
+    rightsElt.removeAttribute("hidden");
+    return;
+  }
+
   if (!gSnippetsMap)
     throw new Error("Snippets map has not properly been initialized");
   if (_snippetsShown) {
@@ -350,7 +363,6 @@ function showSnippets()
   }
   _snippetsShown = true;
 
-  let snippetsElt = document.getElementById("snippets");
   let snippets = gSnippetsMap.get("snippets");
   
   if (snippets) {
