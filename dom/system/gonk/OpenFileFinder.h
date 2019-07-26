@@ -9,6 +9,19 @@
 
 #include <dirent.h>
 
+#define USE_DEBUG 0
+
+#undef LOG
+#define LOG(args...)  __android_log_print(ANDROID_LOG_INFO,  "OpenFileFinder", ## args)
+#define LOGW(args...) __android_log_print(ANDROID_LOG_WARN,  "OpenFileFinder", ## args)
+#define ERR(args...)  __android_log_print(ANDROID_LOG_ERROR, "OpenFileFinder", ## args)
+
+#if USE_DEBUG
+#define DBG(args...)  __android_log_print(ANDROID_LOG_DEBUG, "OpenFileFinder" , ## args)
+#else
+#define DBG(args...)
+#endif
+
 namespace mozilla {
 namespace system {
 
@@ -29,9 +42,10 @@ public:
     pid_t     mPid;       
     nsCString mComm;      
     nsCString mExe;       
+    bool      mIsB2gOrDescendant; 
   };
 
-  OpenFileFinder(const nsACString& aPath);
+  OpenFileFinder(const nsACString& aPath, bool aCheckIsB2gOrDescendant = true);
   ~OpenFileFinder();
 
   bool First(Info* aInfo);  
@@ -52,6 +66,8 @@ private:
   DIR*      mProcDir; 
   DIR*      mFdDir;   
   int       mPid;     
+  pid_t     mMyPid;   
+  bool      mCheckIsB2gOrDescendant; 
 };
 
 } 

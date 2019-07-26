@@ -13,11 +13,14 @@
 namespace mozilla {
 namespace system {
 
-OpenFileFinder::OpenFileFinder(const nsACString& aPath)
+OpenFileFinder::OpenFileFinder(const nsACString& aPath,
+                               bool aCheckIsB2gOrDescendant )
   : mPath(aPath),
     mProcDir(nullptr),
     mFdDir(nullptr),
-    mPid(0)
+    mPid(0),
+    mMyPid(-1),
+    mCheckIsB2gOrDescendant(aCheckIsB2gOrDescendant)
 {
 }
 
@@ -86,7 +89,14 @@ OpenFileFinder::Next(OpenFileFinder::Info* aInfo)
             
             
             FillInfo(aInfo, resolvedPath);
-            return true;
+            
+            
+            
+            if (!mCheckIsB2gOrDescendant || aInfo->mIsB2gOrDescendant) {
+              return true;
+            }
+            LOG("Ignore process(%d), not a b2g process or its descendant.",
+                aInfo->mPid);
           }
         }
         
@@ -153,9 +163,41 @@ OpenFileFinder::FillInfo(OpenFileFinder::Info* aInfo, const nsACString& aPath)
   
   int ppid = atoi(&closeParen[4]);
   
-  if (ppid != getpid()) {
+  if (mMyPid == -1) {
+    mMyPid = getpid();
+  }
+
+  if (mPid == mMyPid) {
+    
+    aInfo->mIsB2gOrDescendant = true;
+    DBG("Chrome process has open file(s)");
     return;
   }
+  
+  
+  while (ppid != mMyPid && ppid != 1) {
+    DBG("Process(%d) is not forked from b2g(%d) or Init(1), keep looking",
+        ppid, mMyPid);
+    nsPrintfCString ppStatPath("/proc/%d/stat", ppid);
+    ReadSysFile(ppStatPath.get(), stat, statString.Length());
+    closeParen = strrchr(stat, ')');
+    if (!closeParen) {
+      return;
+    }
+    ppid = atoi(&closeParen[4]);
+  }
+  if (ppid == 1) {
+    
+    DBG("Non-b2g process has open file(s)");
+    aInfo->mIsB2gOrDescendant = false;
+    return;
+  }
+  if (ppid == mMyPid) {
+    
+    DBG("Child process of chrome process has open file(s)");
+    aInfo->mIsB2gOrDescendant = true;
+  }
+
   
   
   aInfo->mAppName = aInfo->mComm;
