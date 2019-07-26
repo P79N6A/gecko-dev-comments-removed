@@ -311,7 +311,7 @@ StructTypeRepresentation::init(JSContext *cx,
     
     
     
-    int32_t totalSize = 0;
+    uint32_t totalSize = 0;
 
     
     alignment_ = 1;
@@ -324,7 +324,7 @@ StructTypeRepresentation::init(JSContext *cx,
         if (fieldTypeRepr->opaque())
             opaque_ = true;
 
-        int32_t alignedSize = alignTo(totalSize, fieldTypeRepr->alignment());
+        uint32_t alignedSize = alignTo(totalSize, fieldTypeRepr->alignment());
         if (alignedSize < totalSize) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                  JSMSG_TYPEDOBJECT_TOO_BIG);
@@ -335,7 +335,7 @@ StructTypeRepresentation::init(JSContext *cx,
                                       fieldTypeRepr, alignedSize);
         alignment_ = js::Max(alignment_, fieldTypeRepr->alignment());
 
-        int32_t incrementedSize = alignedSize + fieldTypeRepr->size();
+        uint32_t incrementedSize = alignedSize + fieldTypeRepr->size();
         if (incrementedSize < alignedSize) {
             JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                                  JSMSG_TYPEDOBJECT_TOO_BIG);
@@ -345,7 +345,7 @@ StructTypeRepresentation::init(JSContext *cx,
         totalSize = incrementedSize;
     }
 
-    int32_t alignedSize = alignTo(totalSize, alignment_);
+    uint32_t alignedSize = alignTo(totalSize, alignment_);
     if (alignedSize < totalSize) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, nullptr,
                              JSMSG_TYPEDOBJECT_TOO_BIG);
