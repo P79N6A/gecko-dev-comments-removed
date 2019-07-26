@@ -8,20 +8,17 @@
 
 #include "nsISupports.h"
 #include "nsColor.h"
-#include "nsCoord.h"
 #include "nsRect.h"
-#include "nsPoint.h"
 #include "nsStringGlue.h"
 
-#include "prthread.h"
-#include "nsEvent.h"
 #include "nsCOMPtr.h"
-#include "nsITheme.h"
-#include "nsNativeWidget.h"
 #include "nsWidgetInitData.h"
 #include "nsTArray.h"
 #include "nsXULAppAPI.h"
+#include "mozilla/EventForwards.h"
 #include "mozilla/layers/LayersTypes.h"
+#include "mozilla/RefPtr.h"
+#include "Units.h"
 
 
 class   nsFontMetrics;
@@ -29,7 +26,6 @@ class   nsRenderingContext;
 class   nsDeviceContext;
 struct  nsFont;
 class   nsIRollupListener;
-class   nsGUIEvent;
 class   imgIContainer;
 class   gfxASurface;
 class   nsIContent;
@@ -45,8 +41,12 @@ namespace layers {
 class Composer2D;
 class CompositorChild;
 class LayerManager;
+class LayerManagerComposite;
 class PLayerTransactionChild;
 }
+namespace gfx {
+class DrawTarget;
+}
 }
 
 
@@ -59,7 +59,12 @@ class PLayerTransactionChild;
 
 
 
-typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
+typedef nsEventStatus (* EVENT_CALLBACK)(mozilla::WidgetGUIEvent* aEvent);
+
+
+
+
+typedef void* nsNativeWidget;
 
 
 
@@ -92,8 +97,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-{ 0xa7d1e8d4, 0xe2c1, 0x45cb, \
-  { 0xab, 0x72, 0xb3, 0xe9, 0xf9, 0xcc, 0xb2, 0xce } }
+{ 0x746cb189, 0x9793, 0x4e53, \
+  { 0x89, 0x47, 0x78, 0x56, 0xb6, 0xcd, 0x9f, 0x71 } }
 
 
 
@@ -105,6 +110,17 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #define NS_STYLE_WINDOW_SHADOW_MENU             2
 #define NS_STYLE_WINDOW_SHADOW_TOOLTIP          3
 #define NS_STYLE_WINDOW_SHADOW_SHEET            4
+
+
+
+
+
+enum nsTransparencyMode {
+  eTransparencyOpaque = 0,  
+  eTransparencyTransparent, 
+  eTransparencyGlass,       
+  eTransparencyBorderlessGlass 
+};
 
 
 
@@ -202,17 +218,28 @@ enum nsTopLevelWidgetZPlacement {
 
 
 
+
 struct nsIMEUpdatePreference {
 
+  typedef int8_t Notifications;
+
+  enum
+  {
+    NOTIFY_NOTHING           = 0x0000,
+    NOTIFY_SELECTION_CHANGE  = 0x0001,
+    NOTIFY_TEXT_CHANGE       = 0x0002
+  };
+
   nsIMEUpdatePreference()
-    : mWantUpdates(false), mWantHints(false)
+    : mWantUpdates(NOTIFY_NOTHING), mWantHints(false)
   {
   }
-  nsIMEUpdatePreference(bool aWantUpdates, bool aWantHints)
+  nsIMEUpdatePreference(Notifications aWantUpdates, bool aWantHints)
     : mWantUpdates(aWantUpdates), mWantHints(aWantHints)
   {
   }
-  bool mWantUpdates;
+
+  Notifications mWantUpdates;
   bool mWantHints;
 };
 
@@ -305,6 +332,11 @@ struct IMEState {
 
 struct InputContext {
   InputContext() : mNativeIMEContext(nullptr) {}
+
+  bool IsPasswordEditor() const
+  {
+    return mHTMLInputType.LowerCaseEqualsLiteral("password");
+  }
 
   IMEState mIMEState;
 
@@ -403,6 +435,21 @@ struct SizeConstraints {
   nsIntSize mMaxSize;
 };
 
+
+enum NotificationToIME {
+  
+  
+  NOTIFY_IME_OF_CURSOR_POS_CHANGED,
+  
+  NOTIFY_IME_OF_FOCUS,
+  
+  NOTIFY_IME_OF_BLUR,
+  
+  NOTIFY_IME_OF_SELECTION_CHANGE,
+  REQUEST_TO_COMMIT_COMPOSITION,
+  REQUEST_TO_CANCEL_COMPOSITION
+};
+
 } 
 } 
 
@@ -418,6 +465,7 @@ class nsIWidget : public nsISupports {
     typedef mozilla::layers::Composer2D Composer2D;
     typedef mozilla::layers::CompositorChild CompositorChild;
     typedef mozilla::layers::LayerManager LayerManager;
+    typedef mozilla::layers::LayerManagerComposite LayerManagerComposite;
     typedef mozilla::layers::LayersBackend LayersBackend;
     typedef mozilla::layers::PLayerTransactionChild PLayerTransactionChild;
     typedef mozilla::widget::NotificationToIME NotificationToIME;
@@ -605,7 +653,7 @@ class nsIWidget : public nsISupports {
 
 
 
-    double GetDefaultScale();
+    mozilla::CSSToLayoutDeviceScale GetDefaultScale();
 
     
 
@@ -1169,7 +1217,14 @@ class nsIWidget : public nsISupports {
 
     virtual void CleanupWindowEffects() = 0;
 
-    virtual void PreRender(LayerManager* aManager) = 0;
+    
+
+
+
+
+
+
+    virtual bool PreRender(LayerManagerComposite* aManager) = 0;
 
     
 
@@ -1177,7 +1232,22 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void DrawWindowUnderlay(LayerManager* aManager, nsIntRect aRect) = 0;
+
+    virtual void PostRender(LayerManagerComposite* aManager) = 0;
+
+    
+
+
+
+
+    virtual void DrawWindowUnderlay(LayerManagerComposite* aManager, nsIntRect aRect) = 0;
+
+    
+
+
+
+
+    virtual void DrawWindowOverlay(LayerManagerComposite* aManager, nsIntRect aRect) = 0;
 
     
 
@@ -1185,7 +1255,24 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual void DrawWindowOverlay(LayerManager* aManager, nsIntRect aRect) = 0;
+    virtual mozilla::TemporaryRef<mozilla::gfx::DrawTarget> StartRemoteDrawing() = 0;
+
+    
+
+
+
+
+
+
+    virtual void EndRemoteDrawing() = 0;
+
+    
+
+
+
+
+
+    virtual void CleanupRemoteDrawing() = 0;
 
     
 
@@ -1262,7 +1349,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus) = 0;
+    NS_IMETHOD DispatchEvent(mozilla::WidgetGUIEvent* event,
+                             nsEventStatus & aStatus) = 0;
 
     
 
@@ -1309,24 +1397,6 @@ class nsIWidget : public nsISupports {
 
 
     virtual bool HasPendingInputEvent() = 0;
-
-    
-
-
-
-
-
-
-    NS_IMETHOD BeginSecureKeyboardInput() = 0;
-
-    
-
-
-
-
-
-
-    NS_IMETHOD EndSecureKeyboardInput() = 0;
 
     
 
@@ -1383,12 +1453,14 @@ class nsIWidget : public nsISupports {
     
 
 
-    NS_IMETHOD BeginResizeDrag(nsGUIEvent* aEvent, int32_t aHorizontal, int32_t aVertical) = 0;
+    NS_IMETHOD BeginResizeDrag(mozilla::WidgetGUIEvent* aEvent,
+                               int32_t aHorizontal,
+                               int32_t aVertical) = 0;
 
     
 
 
-    NS_IMETHOD BeginMoveDrag(nsMouseEvent* aEvent) = 0;
+    NS_IMETHOD BeginMoveDrag(mozilla::WidgetMouseEvent* aEvent) = 0;
 
     enum Modifiers {
         CAPS_LOCK = 0x01, 
@@ -1718,6 +1790,13 @@ class nsIWidget : public nsISupports {
 
     virtual Composer2D* GetComposer2D()
     { return nullptr; }
+
+    
+
+
+
+
+    virtual int32_t RoundsWidgetCoordinatesTo() { return 1; }
 
 protected:
     

@@ -213,6 +213,8 @@ public:
 
   static const LayerTreeState* GetIndirectShadowTree(uint64_t aId);
 
+  float ComputeRenderIntegrity();
+
   
 
 

@@ -925,6 +925,17 @@ CompositorParent::GetAPZCTreeManager(uint64_t aLayersId)
   return nullptr;
 }
 
+float
+CompositorParent::ComputeRenderIntegrity()
+{
+  if (mLayerManager) {
+    return mLayerManager->ComputeRenderIntegrity();
+  }
+
+  return 1.0f;
+}
+
+
 
 
 
