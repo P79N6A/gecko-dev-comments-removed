@@ -426,6 +426,122 @@ gcli.addCommand({
 
 
 
+[
+  {
+    name: "blackbox",
+    clientMethod: "blackBox",
+    l10nPrefix: "dbgBlackBox"
+  },
+  {
+    name: "unblackbox",
+    clientMethod: "unblackBox",
+    l10nPrefix: "dbgUnBlackBox"
+  }
+].forEach(function (cmd) {
+  const lookup = function (id) {
+    return gcli.lookup(cmd.l10nPrefix + id);
+  };
+
+  gcli.addCommand({
+    name: "dbg " + cmd.name,
+    description: lookup("Desc"),
+    params: [
+      {
+        name: "source",
+        type: {
+          name: "selection",
+          data: function (context) {
+            let dbg = getPanel(context, "jsdebugger");
+            return dbg
+              ? [s for (s of dbg._view.Sources.values)]
+              : [];
+          }
+        },
+        description: lookup("SourceDesc"),
+        defaultValue: null
+      },
+      {
+        name: "glob",
+        type: "string",
+        description: lookup("GlobDesc"),
+        defaultValue: null
+      }
+    ],
+    returnType: "dom",
+    exec: function (args, context) {
+      const dbg = getPanel(context, "jsdebugger");
+      const doc = context.environment.chromeDocument;
+      if (!dbg) {
+        throw new Error(gcli.lookup("debuggerClosed"));
+      }
+
+      const { promise, resolve, reject } = context.defer();
+      const { activeThread } = dbg._controller;
+      const globRegExp = args.glob
+        ? globToRegExp(args.glob)
+        : null;
+
+      
+
+      function shouldBlackBox(source) {
+        return globRegExp && globRegExp.test(source.url)
+          || args.source && source.url == args.source;
+      }
+
+      const toBlackBox = [s.attachment.source
+                          for (s of dbg._view.Sources.items)
+                          if (shouldBlackBox(s.attachment.source))];
+
+      
+
+      if (toBlackBox.length === 0) {
+        const empty = createXHTMLElement(doc, "div");
+        empty.textContent = lookup("EmptyDesc");
+        return void resolve(empty);
+      }
+
+      
+      
+
+      const blackBoxed = [];
+
+      for (let source of toBlackBox) {
+        activeThread.source(source)[cmd.clientMethod](function ({ error }) {
+          if (error) {
+            blackBoxed.push(lookup("ErrorDesc") + " " + source.url);
+          } else {
+            blackBoxed.push(source.url);
+          }
+
+          if (toBlackBox.length === blackBoxed.length) {
+            displayResults();
+          }
+        });
+      }
+
+      
+
+      function displayResults() {
+        const results = doc.createElement("div");
+        results.textContent = lookup("NonEmptyDesc");
+        const list = createXHTMLElement(doc, "ul");
+        results.appendChild(list);
+        for (let result of blackBoxed) {
+          const item = createXHTMLElement(doc, "li");
+          item.textContent = result;
+          list.appendChild(item);
+        }
+        resolve(results);
+      }
+
+      return promise;
+    }
+  });
+});
+
+
+
+
 function createXHTMLElement(document, tagname) {
   return document.createElementNS("http://www.w3.org/1999/xhtml", tagname);
 }
@@ -451,4 +567,33 @@ function getPanel(context, id, options = {}) {
       return undefined;
     }
   }
+}
+
+
+
+
+function globToRegExp(glob) {
+  const reStr = glob
+  
+    .replace(/\\/g, "\\\\")
+    .replace(/\//g, "\\/")
+    .replace(/\^/g, "\\^")
+    .replace(/\$/g, "\\$")
+    .replace(/\+/g, "\\+")
+    .replace(/\?/g, "\\?")
+    .replace(/\./g, "\\.")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)")
+    .replace(/\=/g, "\\=")
+    .replace(/\!/g, "\\!")
+    .replace(/\|/g, "\\|")
+    .replace(/\{/g, "\\{")
+    .replace(/\}/g, "\\}")
+    .replace(/\,/g, "\\,")
+    .replace(/\[/g, "\\[")
+    .replace(/\]/g, "\\]")
+    .replace(/\-/g, "\\-")
+  
+    .replace(/\*/g, ".*")
+  return new RegExp("^" + reStr + "$");
 }
