@@ -22,6 +22,8 @@
 #include "js/Vector.h"
 #include "vm/RegExpObject.h"
 
+struct KeywordInfo;
+
 namespace js {
 namespace frontend {
 
@@ -655,7 +657,9 @@ class MOZ_STACK_CLASS TokenStream
     
     
     
+    bool checkForKeyword(const KeywordInfo *kw, TokenKind *ttp);
     bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp);
+    bool checkForKeyword(JSAtom *atom, TokenKind *ttp);
 
     
     
