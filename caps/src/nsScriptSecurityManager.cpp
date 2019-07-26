@@ -631,67 +631,47 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(uint32_t aAction,
 
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const char *className = aClassName;
+    if (!className && jsObject) {
+        className = JS_GetClass(jsObject)->name;
+    }
+    if (className &&
+        (!strcmp(className, "Window") || !strcmp(className, "Location")))
+    {
+        return NS_OK;
+    }
+
+    
+    
     ClassInfoData classInfoData(aClassInfo, aClassName);
 
     
-    SecurityLevel securityLevel;
-    rv = LookupPolicy(subjectPrincipal, classInfoData, property, aAction,
-                      &securityLevel);
-    if (NS_FAILED(rv))
-        return rv;
-
-    if (securityLevel.level == SCRIPT_SECURITY_UNDEFINED_ACCESS)
-    {
-        
-        
-        
-        
-        if (!aCallContext || classInfoData.IsDOMClass())
-            securityLevel.level = SCRIPT_SECURITY_SAME_ORIGIN_ACCESS;
-        else
-            securityLevel.level = SCRIPT_SECURITY_NO_ACCESS;
-    }
-
-    if (SECURITY_ACCESS_LEVEL_FLAG(securityLevel))
     
-    {
-        switch (securityLevel.level)
-        {
-        case SCRIPT_SECURITY_NO_ACCESS:
-            rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
-            break;
-
-        case SCRIPT_SECURITY_ALL_ACCESS:
-            rv = NS_OK;
-            break;
-
-        case SCRIPT_SECURITY_SAME_ORIGIN_ACCESS:
-            {
-                nsCOMPtr<nsIPrincipal> principalHolder;
-                if (jsObject)
-                {
-                    objectPrincipal = doGetObjectPrincipal(jsObject);
-                    if (!objectPrincipal)
-                        rv = NS_ERROR_DOM_SECURITY_ERR;
-                }
-                else
-                {
-                    NS_ERROR("CheckPropertyAccessImpl called without a target object or URL");
-                    return NS_ERROR_FAILURE;
-                }
-                if(NS_SUCCEEDED(rv))
-                    rv = CheckSameOriginDOMProp(subjectPrincipal, objectPrincipal,
-                                                aAction);
-                break;
-            }
-        default:
-            NS_ERROR("Bad Security Level Value");
+    
+    if (aCallContext && !classInfoData.IsDOMClass()) {
+        rv = NS_ERROR_DOM_PROP_ACCESS_DENIED;
+    } else {
+        if (!jsObject) {
+            NS_ERROR("CheckPropertyAccessImpl called without a target object or URL");
             return NS_ERROR_FAILURE;
         }
-    }
-    else 
-    {
-        rv = SubjectIsPrivileged() ? NS_OK : NS_ERROR_DOM_SECURITY_ERR;
+        nsCOMPtr<nsIPrincipal> principalHolder;
+        objectPrincipal = doGetObjectPrincipal(jsObject);
+        if (!objectPrincipal)
+            rv = NS_ERROR_DOM_SECURITY_ERR;
+
+        if (NS_SUCCEEDED(rv))
+            rv = CheckSameOriginDOMProp(subjectPrincipal, objectPrincipal,
+                                        aAction);
     }
 
     if (NS_SUCCEEDED(rv))
@@ -1433,19 +1413,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
             return NS_OK;
         }
 
-        
-        static const char loadURIPrefGroup[] = "checkloaduri";
-        ClassInfoData nameData(nullptr, loadURIPrefGroup);
-
-        SecurityLevel secLevel;
-        rv = LookupPolicy(aPrincipal, nameData, EnabledID(),
-                          nsIXPCSecurityManager::ACCESS_GET_PROPERTY, &secLevel);
-        if (NS_SUCCEEDED(rv) && secLevel.level == SCRIPT_SECURITY_ALL_ACCESS)
-        {
-            
-            return NS_OK;
-        }
-
         if (reportErrors) {
             ReportError(nullptr, errorTag, sourceURI, aTargetURI);
         }
@@ -1588,29 +1555,7 @@ nsScriptSecurityManager::ScriptAllowed(JSObject *aGlobal)
     JS::RootedObject global(cx, js::UncheckedUnwrap(aGlobal,  false));
 
     
-    xpc::Scriptability& scriptability = xpc::Scriptability::Get(aGlobal);
-    if (!scriptability.Allowed()) {
-        return false;
-    }
-
-    
-    if (scriptability.IsImmuneToScriptPolicy()) {
-        return true;
-    }
-
-    
-    static const char jsPrefGroupName[] = "javascript";
-    ClassInfoData nameData(nullptr, jsPrefGroupName);
-    SecurityLevel secLevel;
-    nsresult rv = LookupPolicy(doGetObjectPrincipal(global), nameData,
-                               EnabledID(),
-                               nsIXPCSecurityManager::ACCESS_GET_PROPERTY,
-                               &secLevel);
-    if (NS_FAILED(rv) || secLevel.level == SCRIPT_SECURITY_NO_ACCESS) {
-        return false;
-    }
-
-    return true;
+    return xpc::Scriptability::Get(aGlobal).Allowed();
 }
 
 
