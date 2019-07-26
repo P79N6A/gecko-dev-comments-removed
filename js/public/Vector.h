@@ -482,7 +482,16 @@ class Vector : private AllocPolicy
 
 
 
-    bool insert(T *p, const T &val);
+
+
+
+
+
+
+
+
+
+    T *insert(T *p, const T &val);
 
     
 
@@ -863,24 +872,25 @@ Vector<T,N,AP>::internalAppendN(const T &t, size_t needed)
 }
 
 template <class T, size_t N, class AP>
-inline bool
+inline T *
 Vector<T,N,AP>::insert(T *p, const T &val)
 {
     JS_ASSERT(begin() <= p && p <= end());
     size_t pos = p - begin();
     JS_ASSERT(pos <= mLength);
     size_t oldLength = mLength;
-    if (pos == oldLength)
-        return append(val);
-    {
+    if (pos == oldLength) {
+        if (!append(val))
+            return NULL;
+    } else {
         T oldBack = back();
         if (!append(oldBack)) 
-            return false;
+            return NULL;
+        for (size_t i = oldLength; i > pos; --i)
+            (*this)[i] = (*this)[i - 1];
+        (*this)[pos] = val;
     }
-    for (size_t i = oldLength; i > pos; --i)
-        (*this)[i] = (*this)[i - 1];
-    (*this)[pos] = val;
-    return true;
+    return begin() + pos;
 }
 
 template<typename T, size_t N, class AP>
