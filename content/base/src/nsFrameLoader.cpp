@@ -318,6 +318,15 @@ nsFrameLoader::LoadFrame()
   src.Trim(" \t\n\r");
 
   if (src.IsEmpty()) {
+    
+    
+    
+    if (mOwnerContent->IsXUL() &&
+        mOwnerContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::nodefaultsrc,
+                                   nsGkAtoms::_true, eCaseMatters)) {
+      return NS_OK;
+    }
+
     src.AssignLiteral("about:blank");
   }
 
