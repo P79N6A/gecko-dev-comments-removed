@@ -179,6 +179,39 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void FindBestBalanceHeight(const nsHTMLReflowState& aReflowState,
+                             nsPresContext* aPresContext,
+                             ReflowConfig& aConfig,
+                             ColumnBalanceData& aColData,
+                             nsHTMLReflowMetrics& aDesiredSize,
+                             nsCollapsingMargin& aOutMargin,
+                             bool& aUnboundedLastColumn,
+                             bool& aRunWasFeasible,
+                             nsReflowStatus& aStatus);
+  
+
+
+
   bool ReflowChildren(nsHTMLReflowMetrics& aDesiredSize,
                         const nsHTMLReflowState& aReflowState,
                         nsReflowStatus& aStatus,
