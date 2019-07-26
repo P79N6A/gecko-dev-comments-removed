@@ -1298,6 +1298,19 @@ private:
     
     NodeHasValidDirAttribute,
     
+    NodeHasFixedDir,
+    
+    
+    NodeHasDirAutoSet,
+    
+    
+    
+    NodeHasTextNodeDirectionalityMap,
+    
+    NodeHasDirAuto,
+    
+    NodeAncestorHasDirAuto,
+    
     BooleanFlagCount
   };
 
@@ -1367,6 +1380,52 @@ public:
   void SetHasValidDir() { SetBoolFlag(NodeHasValidDirAttribute); }
   void ClearHasValidDir() { ClearBoolFlag(NodeHasValidDirAttribute); }
   bool HasValidDir() const { return GetBoolFlag(NodeHasValidDirAttribute); }
+  void SetHasFixedDir() {
+    MOZ_ASSERT(NodeType() != nsIDOMNode::TEXT_NODE,
+               "SetHasFixedDir on text node");
+    SetBoolFlag(NodeHasFixedDir);
+  }
+  void ClearHasFixedDir() {
+    MOZ_ASSERT(NodeType() != nsIDOMNode::TEXT_NODE,
+               "ClearHasFixedDir on text node");
+    ClearBoolFlag(NodeHasFixedDir);
+  }
+  bool HasFixedDir() const { return GetBoolFlag(NodeHasFixedDir); }
+  void SetHasDirAutoSet() {
+    MOZ_ASSERT(NodeType() != nsIDOMNode::TEXT_NODE,
+               "SetHasDirAutoSet on text node");
+    SetBoolFlag(NodeHasDirAutoSet);
+  }
+  void ClearHasDirAutoSet() {
+    MOZ_ASSERT(NodeType() != nsIDOMNode::TEXT_NODE,
+               "ClearHasDirAutoSet on text node");
+    ClearBoolFlag(NodeHasDirAutoSet);
+  }
+  bool HasDirAutoSet() const
+    { return GetBoolFlag(NodeHasDirAutoSet); }
+  void SetHasTextNodeDirectionalityMap() {
+    MOZ_ASSERT(NodeType() == nsIDOMNode::TEXT_NODE,
+               "SetHasTextNodeDirectionalityMap on non-text node");
+    SetBoolFlag(NodeHasTextNodeDirectionalityMap);
+  }
+  void ClearHasTextNodeDirectionalityMap() {
+    MOZ_ASSERT(NodeType() == nsIDOMNode::TEXT_NODE,
+               "ClearHasTextNodeDirectionalityMap on non-text node");
+    ClearBoolFlag(NodeHasTextNodeDirectionalityMap);
+  }
+  bool HasTextNodeDirectionalityMap() const
+    { return GetBoolFlag(NodeHasTextNodeDirectionalityMap); }
+
+  void SetHasDirAuto() { SetBoolFlag(NodeHasDirAuto); }
+  void ClearHasDirAuto() { ClearBoolFlag(NodeHasDirAuto); }
+  bool HasDirAuto() const { return GetBoolFlag(NodeHasDirAuto); }
+
+  void SetAncestorHasDirAuto() { SetBoolFlag(NodeAncestorHasDirAuto); }
+  void ClearAncestorHasDirAuto() { ClearBoolFlag(NodeAncestorHasDirAuto); }
+  bool AncestorHasDirAuto() const { return GetBoolFlag(NodeAncestorHasDirAuto); }
+
+  bool NodeOrAncestorHasDirAuto() const
+    { return HasDirAuto() || AncestorHasDirAuto(); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }

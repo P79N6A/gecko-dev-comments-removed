@@ -511,6 +511,8 @@ protected:
 
   nsresult SetDefaultValueAsValue();
 
+  virtual void SetDirectionIfAuto(bool aAuto, bool aNotify);
+
   
 
 
