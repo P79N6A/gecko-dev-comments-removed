@@ -647,30 +647,30 @@ pref("dom.ipc.processPriorityManager.backgroundLRUPoolLevels", 5);
 
 
 pref("hal.processPriorityManager.gonk.MASTER.OomScoreAdjust", 0);
-pref("hal.processPriorityManager.gonk.MASTER.KillUnderMB", 4);
+pref("hal.processPriorityManager.gonk.MASTER.KillUnderKB", 4096);
 pref("hal.processPriorityManager.gonk.MASTER.Nice", 0);
 
 pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.OomScoreAdjust", 67);
-pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.KillUnderMB", 5);
+pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.KillUnderKB", 5120);
 pref("hal.processPriorityManager.gonk.FOREGROUND_HIGH.Nice", 0);
 
 pref("hal.processPriorityManager.gonk.FOREGROUND.OomScoreAdjust", 134);
-pref("hal.processPriorityManager.gonk.FOREGROUND.KillUnderMB", 6);
+pref("hal.processPriorityManager.gonk.FOREGROUND.KillUnderKB", 6144);
 pref("hal.processPriorityManager.gonk.FOREGROUND.Nice", 1);
 
 pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.OomScoreAdjust", 200);
 pref("hal.processPriorityManager.gonk.FOREGROUND_KEYBOARD.Nice", 1);
 
 pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.OomScoreAdjust", 400);
-pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderMB", 7);
+pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.KillUnderKB", 7168);
 pref("hal.processPriorityManager.gonk.BACKGROUND_PERCEIVABLE.Nice", 7);
 
 pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.OomScoreAdjust", 534);
-pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.KillUnderMB", 8);
+pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.KillUnderKB", 8192);
 pref("hal.processPriorityManager.gonk.BACKGROUND_HOMESCREEN.Nice", 18);
 
 pref("hal.processPriorityManager.gonk.BACKGROUND.OomScoreAdjust", 667);
-pref("hal.processPriorityManager.gonk.BACKGROUND.KillUnderMB", 20);
+pref("hal.processPriorityManager.gonk.BACKGROUND.KillUnderKB", 20480);
 pref("hal.processPriorityManager.gonk.BACKGROUND.Nice", 18);
 
 
@@ -683,7 +683,7 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 
 
 
-pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 14);
+pref("hal.processPriorityManager.gonk.notifyLowMemUnderKB", 14336);
 
 
 

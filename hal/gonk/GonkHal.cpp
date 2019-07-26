@@ -1228,7 +1228,7 @@ EnsureKernelLowMemKillerParamsSet()
   nsAutoCString minfreeParams;
 
   int32_t lowerBoundOfNextOomScoreAdj = OOM_SCORE_ADJ_MIN - 1;
-  int32_t lowerBoundOfNextKillUnderMB = 0;
+  int32_t lowerBoundOfNextKillUnderKB = 0;
   int32_t countOfLowmemorykillerParametersSets = 0;
 
   for (int i = NUM_PROCESS_PRIORITY - 1; i >= 0; i--) {
@@ -1245,18 +1245,18 @@ EnsureKernelLowMemKillerParamsSet()
       MOZ_CRASH();
     }
 
-    int32_t killUnderMB;
+    int32_t killUnderKB;
     if (!NS_SUCCEEDED(Preferences::GetInt(
-          nsPrintfCString("hal.processPriorityManager.gonk.%s.KillUnderMB",
+          nsPrintfCString("hal.processPriorityManager.gonk.%s.KillUnderKB",
                           ProcessPriorityToString(priority)).get(),
-          &killUnderMB))) {
+          &killUnderKB))) {
       continue;
     }
 
     
     
     MOZ_ASSERT(oomScoreAdj > lowerBoundOfNextOomScoreAdj);
-    MOZ_ASSERT(killUnderMB > lowerBoundOfNextKillUnderMB);
+    MOZ_ASSERT(killUnderKB > lowerBoundOfNextKillUnderKB);
 
     
     MOZ_ASSERT(countOfLowmemorykillerParametersSets < 6);
@@ -1265,10 +1265,10 @@ EnsureKernelLowMemKillerParamsSet()
     adjParams.AppendPrintf("%d,", OomAdjOfOomScoreAdj(oomScoreAdj));
 
     
-    minfreeParams.AppendPrintf("%d,", killUnderMB * 1024 * 1024 / PAGE_SIZE);
+    minfreeParams.AppendPrintf("%d,", killUnderKB * 1024 / PAGE_SIZE);
 
     lowerBoundOfNextOomScoreAdj = oomScoreAdj;
-    lowerBoundOfNextKillUnderMB = killUnderMB;
+    lowerBoundOfNextKillUnderKB = killUnderKB;
     countOfLowmemorykillerParametersSets++;
   }
 
@@ -1281,14 +1281,14 @@ EnsureKernelLowMemKillerParamsSet()
   }
 
   
-  int32_t lowMemNotifyThresholdMB;
+  int32_t lowMemNotifyThresholdKB;
   if (NS_SUCCEEDED(Preferences::GetInt(
-        "hal.processPriorityManager.gonk.notifyLowMemUnderMB",
-        &lowMemNotifyThresholdMB))) {
+        "hal.processPriorityManager.gonk.notifyLowMemUnderKB",
+        &lowMemNotifyThresholdKB))) {
 
     
     WriteToFile("/sys/module/lowmemorykiller/parameters/notify_trigger",
-      nsPrintfCString("%d", lowMemNotifyThresholdMB * 1024 * 1024 / PAGE_SIZE).get());
+      nsPrintfCString("%d", lowMemNotifyThresholdKB * 1024 / PAGE_SIZE).get());
   }
 
   
