@@ -182,10 +182,8 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url,
     if (!targetObj) {
         
         mozJSComponentLoader* loader = mozJSComponentLoader::Get();
-        if (loader) {
-            rv = loader->FindTargetObject(cx, &targetObj);
-            NS_ENSURE_SUCCESS(rv, rv);
-        }
+        rv = loader->FindTargetObject(cx, &targetObj);
+        NS_ENSURE_SUCCESS(rv, rv);
     }
 
     
