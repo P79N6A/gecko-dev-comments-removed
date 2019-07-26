@@ -993,6 +993,25 @@ IonBuilder::maybeAddOsrTypeBarriers()
     
 
     MBasicBlock *osrBlock = graph().osrBlock();
+    if (!osrBlock) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        JS_ASSERT(graph().hasTryBlock());
+        return abort("OSR block only reachable through catch block");
+    }
+
     MBasicBlock *preheader = osrBlock->getSuccessor(0);
     MBasicBlock *header = preheader->getSuccessor(0);
     static const size_t OSR_PHI_POSITION = 1;
