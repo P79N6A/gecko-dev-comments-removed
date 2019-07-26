@@ -82,9 +82,6 @@ MIRGraph::removeBlocksAfter(MBasicBlock *start)
         if (block->id() <= start->id())
             continue;
 
-        
-        
-        block->discardAllResumePoints();
         removeBlock(block);
     }
 }
@@ -92,8 +89,6 @@ MIRGraph::removeBlocksAfter(MBasicBlock *start)
 void
 MIRGraph::removeBlock(MBasicBlock *block)
 {
-    
-    
     
 
     if (block == osrBlock_)
@@ -109,6 +104,7 @@ MIRGraph::removeBlock(MBasicBlock *block)
         }
     }
 
+    block->discardAllResumePoints();
     block->discardAllInstructions();
 
     
@@ -791,6 +787,8 @@ MBasicBlock::discardAllResumePoints(bool discardEntry)
             iter = resumePoints_.removeAt(iter);
         }
     }
+    if (discardEntry)
+        clearEntryResumePoint();
 }
 
 void
