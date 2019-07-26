@@ -1296,6 +1296,14 @@ nsFrameLoader::SwapWithOtherLoader(nsFrameLoader* aOther,
 
   ourFrameFrame->EndSwapDocShells(otherFrame);
 
+  
+  
+  
+  
+  
+  ourShell->BackingScaleFactorChanged();
+  otherShell->BackingScaleFactorChanged();
+
   ourParentDocument->FlushPendingNotifications(Flush_Layout);
   otherParentDocument->FlushPendingNotifications(Flush_Layout);
 
