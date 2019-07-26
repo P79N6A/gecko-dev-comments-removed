@@ -30,26 +30,22 @@ function run_test() {
   Cu.import("resource://gre/modules/BookmarkHTMLUtils.jsm");
 
   
+  var bookmarksFileOld = OS.Path.join(do_get_cwd().path, "bookmarks.preplaces.html");
   
-  var bookmarksFileOld = do_get_file("bookmarks.preplaces.html");
-  
-  var jsonFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-  jsonFile.append("bookmarks.exported.json");
+  var jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.exported.json");
+  Task.spawn(function () {
+    
+    if ((yield OS.File.exists(jsonFile)))
+      yield OS.File.remove(jsonFile);
 
-  
-  if (jsonFile.exists())
-    jsonFile.remove(false);
-  jsonFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
-  if (!jsonFile.exists())
-    do_throw("couldn't create file: bookmarks.exported.json");
-
-  
-  
-  
-  try {
-    BookmarkHTMLUtils.importFromFile(bookmarksFileOld, true)
-                     .then(after_import, do_report_unexpected_exception);
-  } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
+    
+    
+    
+    try {
+      BookmarkHTMLUtils.importFromFile(bookmarksFileOld, true)
+                       .then(after_import, do_report_unexpected_exception);
+    } catch(ex) { do_throw("couldn't import legacy bookmarks file: " + ex); }
+  });
 
   function after_import() {
     populate();

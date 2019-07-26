@@ -107,57 +107,35 @@ var test = {
 }
 
 function run_test() {
-  do_test_pending();
+  run_next_test();
+}
 
-  do_check_eq(typeof PlacesUtils, "object");
-
+add_task(function() {
   
-  var jsonFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-  jsonFile.append("bookmarks.json");
-  if (jsonFile.exists())
-    jsonFile.remove(false);
-  jsonFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, 0600);
-  if (!jsonFile.exists())
-    do_throw("couldn't create file: bookmarks.exported.json");
+  let jsonFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.json");
 
   
   test.populate();
 
-  Task.spawn(function() {
-    try {
-      yield BookmarkJSONUtils.exportToFile(jsonFile);
-    } catch(ex) {
-      do_throw("couldn't export to file: " + ex);
-    }
+  yield BookmarkJSONUtils.exportToFile(jsonFile);
 
-    
-    try {
-      yield BookmarkJSONUtils.importFromFile(jsonFile, true);
-    } catch(ex) {
-      do_throw("couldn't import the exported file: " + ex);
-    }
+  
+  yield BookmarkJSONUtils.importFromFile(jsonFile, true);
 
-    
-    
-    test.validate(false);
+  
+  
+  test.validate(false);
 
-    
-    remove_all_bookmarks();
-    
-    PlacesUtils.bookmarks.removeItem(test._excludeRootId);
-    
-    try {
-      yield BookmarkJSONUtils.importFromFile(jsonFile, true);
-    } catch(ex) {
-      do_throw("couldn't import the exported file: " + ex);
-    }
+  
+  remove_all_bookmarks();
+  
+  PlacesUtils.bookmarks.removeItem(test._excludeRootId);
+  
+  yield BookmarkJSONUtils.importFromFile(jsonFile, true);
 
-    
-    test.validate(true);
+  
+  test.validate(true);
 
-    
-    jsonFile.remove(false);
-
-    do_test_finished();
-  });
-}
+  
+  yield OS.File.remove(jsonFile);
+});

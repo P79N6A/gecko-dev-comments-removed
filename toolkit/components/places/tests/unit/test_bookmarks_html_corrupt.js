@@ -40,7 +40,7 @@ add_task(function test_corrupt_file() {
   ps.setIntPref("browser.places.smartBookmarksVersion", -1);
 
   
-  yield BookmarkHTMLUtils.importFromFile(do_get_file("bookmarks.corrupt.html"),
+  yield BookmarkHTMLUtils.importFromFile(OS.Path.join(do_get_cwd().path, "bookmarks.corrupt.html"),
                                          true);
 
   
@@ -57,10 +57,9 @@ add_task(function test_corrupt_database() {
   stmt.execute();
   stmt.finalize();
 
-  let bookmarksFile = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
-  bookmarksFile.append("bookmarks.exported.html");
-  if (bookmarksFile.exists())
-    bookmarksFile.remove(false);
+  let bookmarksFile = OS.Path.join(OS.Constants.Path.profileDir, "bookmarks.exported.html");
+  if ((yield OS.File.exists(bookmarksFile)))
+    yield OS.File.remove(bookmarksFile);
   yield BookmarkHTMLUtils.exportToFile(bookmarksFile);
 
   
