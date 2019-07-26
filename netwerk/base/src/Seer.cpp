@@ -1987,19 +1987,17 @@ Seer::LearnForSubresource(const UriInfo &targetURI, const UriInfo &sourceURI)
                                  hostInfo);
   }
 
-  PRTime now = PR_Now();
-
   if (haveResource) {
-    UpdateSubresource(QUERY_PAGE, resourceInfo, now);
+    UpdateSubresource(QUERY_PAGE, resourceInfo, pageInfo.lastLoad);
   } else if (havePage) {
-    AddSubresource(QUERY_PAGE, pageInfo.id, targetURI.spec, now);
+    AddSubresource(QUERY_PAGE, pageInfo.id, targetURI.spec, pageInfo.lastLoad);
   }
   
 
   if (haveHost) {
-    UpdateSubresource(QUERY_ORIGIN, hostInfo, now);
+    UpdateSubresource(QUERY_ORIGIN, hostInfo, originInfo.lastLoad);
   } else if (haveOrigin) {
-    AddSubresource(QUERY_ORIGIN, originInfo.id, targetURI.origin, now);
+    AddSubresource(QUERY_ORIGIN, originInfo.id, targetURI.origin, originInfo.lastLoad);
   }
   
 }
