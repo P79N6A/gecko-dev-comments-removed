@@ -991,10 +991,10 @@ ScopeIter::ScopeIter(AbstractFramePtr frame, ScopeObject &scope, JSContext *cx
 
 
 
-    if (cur_->isNestedScope()) {
+    if (cur_->is<NestedScopeObject>()) {
         block_ = frame.maybeBlockChain();
         while (block_) {
-            if (block_->stackDepth() <= cur_->asNestedScope().stackDepth())
+            if (block_->stackDepth() <= cur_->as<NestedScopeObject>().stackDepth())
                 break;
             block_ = block_->enclosingBlock();
         }

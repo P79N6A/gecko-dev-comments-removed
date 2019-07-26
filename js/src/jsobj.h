@@ -225,7 +225,6 @@ class ClonedBlockObject;
 class DebugScopeObject;
 class GlobalObject;
 class MapObject;
-class NestedScopeObject;
 class NewObjectCache;
 class NormalArgumentsObject;
 class NumberObject;
@@ -975,7 +974,6 @@ class JSObject : public js::ObjectImpl
     inline bool isWeakMap()          const { return hasClass(&js::WeakMapClass); }
 
     
-    inline bool isNestedScope() const;
     inline bool isWith()        const { return hasClass(&js::WithClass); }
     inline bool isClonedBlock() const;
     inline bool isStaticBlock() const;
@@ -996,7 +994,6 @@ class JSObject : public js::ObjectImpl
     inline js::DebugScopeObject &asDebugScope();
     inline js::GlobalObject &asGlobal();
     inline js::MapObject &asMap();
-    inline js::NestedScopeObject &asNestedScope();
     inline js::NumberObject &asNumber();
     inline js::ScopeObject &asScope();
     inline js::SetObject &asSet();
