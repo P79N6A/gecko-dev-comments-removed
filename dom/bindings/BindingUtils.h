@@ -1043,6 +1043,15 @@ protected:
 };
 
 
+template <class T>
+inline bool
+WrapNewBindingObject(JSContext* cx, JSObject* scope, OwningNonNull<T>& value,
+                     JS::Value* vp)
+{
+  return WrapNewBindingObject(cx, scope, &static_cast<T&>(value), vp);
+}
+
+
 
 struct FakeDependentString {
   FakeDependentString() :
