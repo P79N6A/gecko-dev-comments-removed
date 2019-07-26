@@ -559,6 +559,8 @@ nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, bool aCanBubbleArg, bool a
   mEvent->mFlags.mBubbles = aCanBubbleArg;
   mEvent->mFlags.mCancelable = aCancelableArg;
 
+  mEvent->mFlags.mDefaultPrevented = false;
+
   
   
   mEvent->target = nullptr;
