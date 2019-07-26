@@ -71,18 +71,18 @@ function Tester(aTests, aDumper, aCallback) {
   this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/SpecialPowersObserverAPI.js", simpleTestScope);
   this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/ChromePowers.js", simpleTestScope);
   this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/SimpleTest.js", simpleTestScope);
-  this._scriptLoader.loadSubScript("chrome://mochikit/content/tests/SimpleTest/MemoryStats.js", simpleTestScope);
   this._scriptLoader.loadSubScript("chrome://mochikit/content/chrome-harness.js", simpleTestScope);
   this.SimpleTest = simpleTestScope.SimpleTest;
-  this.MemoryStats = simpleTestScope.MemoryStats;
   this.Task = Components.utils.import("resource://gre/modules/Task.jsm", null).Task;
   this.Promise = Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js", null).Promise;
+  this.Assert = Components.utils.import("resource://testing-common/Assert.jsm", null).Assert;
 }
 Tester.prototype = {
   EventUtils: {},
   SimpleTest: {},
   Task: null,
   Promise: null,
+  Assert: null,
 
   repeat: 0,
   runUntilFailure: false,
@@ -355,14 +355,6 @@ Tester.prototype = {
       }
 
       
-      if (Cc["@mozilla.org/xre/runtime;1"]
-          .getService(Ci.nsIXULRuntime)
-          .processType == Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT)
-      {
-        this.MemoryStats.dump((l) => { this.dumper.dump(l + "\n"); });
-      }
-
-      
       let time = Date.now() - this.lastStartTime;
       this.dumper.dump("INFO TEST-END | " + this.currentTest.path + " | finished in " + time + "ms\n");
       this.currentTest.setDuration(time);
@@ -447,7 +439,8 @@ Tester.prototype = {
     this.SimpleTest.reset();
 
     
-    this.currentTest.scope = new testScope(this, this.currentTest);
+    let currentScope = this.currentTest.scope = new testScope(this, this.currentTest);
+    let currentTest = this.currentTest;
 
     
     this.currentTest.scope.EventUtils = this.EventUtils;
@@ -455,6 +448,23 @@ Tester.prototype = {
     this.currentTest.scope.gTestPath = this.currentTest.path;
     this.currentTest.scope.Task = this.Task;
     this.currentTest.scope.Promise = this.Promise;
+    
+    this.currentTest.scope.Assert = new this.Assert(function(err, message, stack) {
+      let res;
+      if (err) {
+        res = new testResult(false, err.message, err.stack, false, err.stack);
+      } else {
+        res = new testResult(true, message, "", false, stack);
+      }
+      currentTest.addResult(res);
+    });
+
+    
+    this.currentTest.scope.export_assertions = function() {
+      for (let func in this.Assert) {
+        this[func] = this.Assert[func].bind(this.Assert);
+      }
+    };
 
     
     ["ok", "is", "isnot", "ise", "todo", "todo_is", "todo_isnot", "info", "expectAssertions"].forEach(function(m) {
@@ -493,8 +503,6 @@ Tester.prototype = {
         if ("test" in this.currentTest.scope) {
           throw "Cannot run both a add_task test and a normal test at the same time.";
         }
-        let testScope = this.currentTest.scope;
-        let currentTest = this.currentTest;
         this.Task.spawn(function() {
           let task;
           while ((task = this.__tasks.shift())) {
@@ -511,7 +519,7 @@ Tester.prototype = {
             this.SimpleTest.info("Leaving test " + task.name);
           }
           this.finish();
-        }.bind(testScope));
+        }.bind(currentScope));
       } else if ("generatorTest" in this.currentTest.scope) {
         if ("test" in this.currentTest.scope) {
           throw "Cannot run both a generator test and a normal test at the same time.";
@@ -781,6 +789,7 @@ testScope.prototype = {
   SimpleTest: {},
   Task: null,
   Promise: null,
+  Assert: null,
 
   
 
