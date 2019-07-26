@@ -29,8 +29,14 @@ extern "C" {
 #endif
 
 
-#undef PL_DHASH_SIZE_LIMIT
-#define PL_DHASH_SIZE_LIMIT     ((uint32_t)1 << 24)
+
+
+
+
+
+
+#undef PL_DHASH_MAX_SIZE
+#define PL_DHASH_MAX_SIZE     ((uint32_t)1 << 26)
 
 
 #ifndef PL_DHASH_MIN_SIZE
