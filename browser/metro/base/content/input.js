@@ -35,8 +35,6 @@ const kMaxVelocity = 6;
 
 const kDebugMouseInputPref = "metro.debug.treatmouseastouch";
 
-const kDebugMouseLayerPref = "metro.debug.colorizeInputOverlay";
-
 
 const kDebugSelectionDisplayPref = "metro.debug.selection.displayRanges";
 
@@ -94,6 +92,7 @@ var TouchModule = {
 
     
     window.addEventListener("CancelTouchSequence", this, true);
+    window.addEventListener("dblclick", this, true);
 
     
     window.addEventListener("contextmenu", this, false);
@@ -141,6 +140,18 @@ var TouchModule = {
             break;
           case "touchend":
             this._onTouchEnd(aEvent);
+            break;
+          case "dblclick":
+            
+            
+            
+            
+            setTimeout(function () {
+              let contextInfo = { name: "",
+                                  json: { xPos: aEvent.clientX, yPos: aEvent.clientY },
+                                  target: Browser.selectedTab.browser };
+              SelectionHelperUI.attachEditSession(contextInfo);
+            }, 50);
             break;
         }
       }
