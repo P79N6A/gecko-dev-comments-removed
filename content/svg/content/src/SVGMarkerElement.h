@@ -124,6 +124,9 @@ public:
   nsSVGOrientType* GetOrientType() { return &mOrientType; }
 
   
+  static bool MarkerImprovementsPrefEnabled();
+
+  
   already_AddRefed<SVGAnimatedRect> ViewBox();
   already_AddRefed<DOMSVGAnimatedPreserveAspectRatio> PreserveAspectRatio();
   already_AddRefed<SVGAnimatedLength> RefX();

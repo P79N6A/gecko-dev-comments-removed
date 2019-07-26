@@ -1937,6 +1937,14 @@ pref("svg.paint-order.enabled", true);
 #endif
 
 
+
+#ifdef RELEASE_BUILD
+pref("svg.marker-improvements.enabled", false);
+#else
+pref("svg.marker-improvements.enabled", true);
+#endif
+
+
 pref("svg.text.css-frames.enabled", true);
 
 pref("font.minimum-size.ar", 0);
