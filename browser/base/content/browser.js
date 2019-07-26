@@ -63,26 +63,26 @@ XPCOMUtils.defineLazyGetter(window, "gFindBar", function() {
   return findbar;
 });
 
-this.__defineGetter__("gPrefService", function() {
+__defineGetter__("gPrefService", function() {
   delete this.gPrefService;
   return this.gPrefService = Services.prefs;
 });
 
-this.__defineGetter__("AddonManager", function() {
+__defineGetter__("AddonManager", function() {
   let tmp = {};
   Cu.import("resource://gre/modules/AddonManager.jsm", tmp);
   return this.AddonManager = tmp.AddonManager;
 });
-this.__defineSetter__("AddonManager", function (val) {
+__defineSetter__("AddonManager", function (val) {
   delete this.AddonManager;
   return this.AddonManager = val;
 });
 
-this.__defineGetter__("PluralForm", function() {
+__defineGetter__("PluralForm", function() {
   Cu.import("resource://gre/modules/PluralForm.jsm");
   return this.PluralForm;
 });
-this.__defineSetter__("PluralForm", function (val) {
+__defineSetter__("PluralForm", function (val) {
   delete this.PluralForm;
   return this.PluralForm = val;
 });
@@ -1539,7 +1539,7 @@ var gBrowserInit = {
     if (!gStartupRan)
       return;
 
-    if (!window.__lookupGetter__("InspectorUI"))
+    if (!__lookupGetter__("InspectorUI"))
       InspectorUI.destroy();
 
     
@@ -3614,7 +3614,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
     
     
     
-    if (!window.__lookupGetter__("PopupNotifications"))
+    if (!__lookupGetter__("PopupNotifications"))
       PopupNotifications.iconBox = document.getElementById("notification-popup-box");
   }
 
@@ -4073,7 +4073,7 @@ var XULBrowserWindow = {
         
         
         
-        if (!window.__lookupGetter__("PopupNotifications"))
+        if (!__lookupGetter__("PopupNotifications"))
           PopupNotifications.locationChange();
       }
     }
