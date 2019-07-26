@@ -5,6 +5,7 @@
 
 #include "ImageScaling.h"
 #include "2D.h"
+#include "DataSurfaceHelpers.h"
 
 #include <math.h>
 #include <algorithm>
@@ -77,7 +78,13 @@ ImageHalfScaler::ScaleForSize(const IntSize &aSize)
   delete [] mDataStorage;
   
   
-  mDataStorage = new uint8_t[internalSurfSize.height * mStride + 15];
+  size_t bufLen = BufferSizeFromStrideAndHeight(mStride, internalSurfSize.height, 15);
+  if (bufLen == 0) {
+    mSize.SizeTo(0, 0);
+    mDataStorage = nullptr;
+    return;
+  }
+  mDataStorage = new uint8_t[bufLen];
 
   if (uintptr_t(mDataStorage) % 16) {
     

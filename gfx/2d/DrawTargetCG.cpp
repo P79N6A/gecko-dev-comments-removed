@@ -3,7 +3,9 @@
 
 
 #include "BorrowedContext.h"
+#include "DataSurfaceHelpers.h"
 #include "DrawTargetCG.h"
+#include "Logging.h"
 #include "SourceSurfaceCG.h"
 #include "Rect.h"
 #include "ScaledFontMac.h"
@@ -13,6 +15,7 @@
 #include "MacIOSurface.h"
 #include "FilterNodeSoftware.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/Types.h" 
 #include "mozilla/FloatingPoint.h"
 
 using namespace std;
@@ -1297,6 +1300,7 @@ DrawTargetCG::Init(BackendType aType,
       
       
       aSize.width > 32767 || aSize.height > 32767) {
+    gfxWarning() << "Failed to Init() DrawTargetCG because of bad size.";
     mColorSpace = nullptr;
     mCg = nullptr;
     return false;
@@ -1309,9 +1313,17 @@ DrawTargetCG::Init(BackendType aType,
 
   if (aData == nullptr && aType != BackendType::COREGRAPHICS_ACCELERATED) {
     
-    mData.Realloc(aStride * aSize.height);
+    size_t bufLen = BufferSizeFromStrideAndHeight(aStride, aSize.height);
+    if (bufLen == 0) {
+      mColorSpace = nullptr;
+      mCg = nullptr;
+      return false;
+    }
+    static_assert(sizeof(decltype(mData[0])) == 1,
+                  "mData.Realloc() takes an object count, so its objects must be 1-byte sized if we use bufLen");
+    mData.Realloc( bufLen);
     aData = static_cast<unsigned char*>(mData);
-    memset(aData, 0, aStride * aSize.height);
+    memset(aData, 0, bufLen);
   }
 
   mSize = aSize;

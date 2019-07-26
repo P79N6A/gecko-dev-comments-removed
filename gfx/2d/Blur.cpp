@@ -4,7 +4,7 @@
 
 
 
-#include "mozilla/gfx/Blur.h"
+#include "Blur.h"
 
 #include <algorithm>
 #include <math.h>
@@ -14,6 +14,7 @@
 #include "mozilla/Constants.h"
 
 #include "2D.h"
+#include "DataSurfaceHelpers.h"
 #include "Tools.h"
 
 using namespace std;
@@ -383,9 +384,9 @@ AlphaBoxBlur::AlphaBoxBlur(const Rect& aRect,
 
     
     
-    CheckedInt<int32_t> size = CheckedInt<int32_t>(mStride) * mRect.height + 3;
-    if (size.isValid()) {
-      mSurfaceAllocationSize = size.value();
+    size_t size = BufferSizeFromStrideAndHeight(mStride, mRect.height, 3);
+    if (size != 0) {
+      mSurfaceAllocationSize = size;
     }
   }
 }
@@ -403,9 +404,9 @@ AlphaBoxBlur::AlphaBoxBlur(const Rect& aRect,
 {
   IntRect intRect;
   if (aRect.ToIntRect(&intRect)) {
-    CheckedInt<int32_t> minDataSize = CheckedInt<int32_t>(intRect.width)*intRect.height;
-    if (minDataSize.isValid()) {
-      mSurfaceAllocationSize = minDataSize.value();
+    size_t minDataSize = BufferSizeFromStrideAndHeight(intRect.width, intRect.height);
+    if (minDataSize != 0) {
+      mSurfaceAllocationSize = minDataSize;
     }
   }
 }
@@ -528,7 +529,13 @@ AlphaBoxBlur::Blur(uint8_t* aData)
 
       
       
-      AlignedArray<uint32_t> integralImage((integralImageStride / 4) * integralImageSize.height + 12);
+      size_t bufLen = BufferSizeFromStrideAndHeight(integralImageStride, integralImageSize.height, 12);
+      if (bufLen == 0) {
+        return;
+      }
+      
+      
+      AlignedArray<uint32_t> integralImage((bufLen / 4) + ((bufLen % 4) ? 1 : 0));
 
       if (!integralImage) {
         return;
