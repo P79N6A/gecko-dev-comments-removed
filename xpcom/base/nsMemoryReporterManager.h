@@ -39,6 +39,13 @@ public:
   };
   AmountFns mAmountFns;
 
+  
+  struct SizeOfTabFns {
+    mozilla::JSSizeOfTabFn    mJS;
+    mozilla::NonJSSizeOfTabFn mNonJS;
+  };
+  SizeOfTabFns mSizeOfTabFns;
+
 private:
   nsresult RegisterReporterHelper(nsIMemoryReporter *aReporter, bool aForce);
 

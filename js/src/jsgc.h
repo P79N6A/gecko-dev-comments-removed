@@ -1288,6 +1288,17 @@ IterateZonesCompartmentsArenasCells(JSRuntime *rt, void *data,
 
 
 
+
+extern void
+IterateZoneCompartmentsArenasCells(JSRuntime *rt, Zone *zone, void *data,
+                                   IterateZoneCallback zoneCallback,
+                                   JSIterateCompartmentCallback compartmentCallback,
+                                   IterateArenaCallback arenaCallback,
+                                   IterateCellCallback cellCallback);
+
+
+
+
 extern void
 IterateChunks(JSRuntime *rt, void *data, IterateChunkCallback chunkCallback);
 

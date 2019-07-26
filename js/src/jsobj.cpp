@@ -43,6 +43,7 @@
 #include "js/OldDebugAPI.h"
 #include "vm/ArgumentsObject.h"
 #include "vm/Interpreter.h"
+#include "vm/ProxyObject.h"
 #include "vm/RegExpStaticsObject.h"
 #include "vm/Shape.h"
 
@@ -5680,8 +5681,24 @@ JSObject::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf, JS::Objects
     }
 
     
-    
-    if (is<ArgumentsObject>()) {
+    if (is<JSFunction>() ||
+        is<JSObject>() ||
+        is<ArrayObject>() ||
+        is<CallObject>() ||
+        is<RegExpObject>() ||
+        is<ProxyObject>())
+    {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+    } else if (is<ArgumentsObject>()) {
         sizes->mallocHeapArgumentsData += as<ArgumentsObject>().sizeOfMisc(mallocSizeOf);
     } else if (is<RegExpStaticsObject>()) {
         sizes->mallocHeapRegExpStatics += as<RegExpStaticsObject>().sizeOfData(mallocSizeOf);
