@@ -704,7 +704,7 @@ public:
                           const GlyphBuffer &aBuffer,
                           const Pattern &aPattern,
                           const DrawOptions &aOptions = DrawOptions(),
-                          const GlyphRenderingOptions *aRenderingOptions = NULL) = 0;
+                          const GlyphRenderingOptions *aRenderingOptions = nullptr) = 0;
 
   
 
@@ -839,7 +839,7 @@ public:
   
 
 
-  virtual void *GetNativeSurface(NativeSurfaceType aType) { return NULL; }
+  virtual void *GetNativeSurface(NativeSurfaceType aType) { return nullptr; }
 
   virtual bool IsDualDrawTarget() { return false; }
 

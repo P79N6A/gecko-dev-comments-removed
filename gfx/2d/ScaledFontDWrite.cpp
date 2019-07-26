@@ -213,7 +213,7 @@ DoGrayscale(IDWriteFontFace *aDWFace, Float ppem)
   return true;
 }
 
-IDWriteFontFileLoader* DWriteFontFileLoader::mInstance = NULL;
+IDWriteFontFileLoader* DWriteFontFileLoader::mInstance = nullptr;
 
 HRESULT STDMETHODCALLTYPE
 DWriteFontFileLoader::CreateStreamFromKey(const void *fontFileReferenceKey, 
@@ -275,7 +275,7 @@ DWriteFontFileStream::ReadFileFragment(const void **fragmentStart,
 
   
   *fragmentStart = &mData[index];
-  *fragmentContext = NULL;
+  *fragmentContext = nullptr;
   return S_OK;
 }
 
