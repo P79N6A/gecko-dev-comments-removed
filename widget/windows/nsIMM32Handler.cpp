@@ -107,41 +107,6 @@ nsIMM32Handler::IsTopLevelWindowOfComposition(nsWindow* aWindow)
 }
 
  bool
-nsIMM32Handler::IsDoingKakuteiUndo(HWND aWnd)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  MSG imeStartCompositionMsg, imeCompositionMsg, charMsg;
-  return ::PeekMessageW(&imeStartCompositionMsg, aWnd,
-                        WM_IME_STARTCOMPOSITION, WM_IME_STARTCOMPOSITION,
-                        PM_NOREMOVE | PM_NOYIELD) &&
-         ::PeekMessageW(&imeCompositionMsg, aWnd, WM_IME_COMPOSITION,
-                        WM_IME_COMPOSITION, PM_NOREMOVE | PM_NOYIELD) &&
-         ::PeekMessageW(&charMsg, aWnd, WM_CHAR, WM_CHAR,
-                        PM_NOREMOVE | PM_NOYIELD) &&
-         imeStartCompositionMsg.wParam == 0x0 &&
-         imeStartCompositionMsg.lParam == 0x0 &&
-         imeCompositionMsg.wParam == 0x0 &&
-         imeCompositionMsg.lParam == 0x1BF &&
-         charMsg.wParam == VK_BACK && charMsg.lParam == 0x1 &&
-         imeStartCompositionMsg.time <= imeCompositionMsg.time &&
-         imeCompositionMsg.time <= charMsg.time;
-}
-
- bool
 nsIMM32Handler::ShouldDrawCompositionStringOurselves()
 {
   
