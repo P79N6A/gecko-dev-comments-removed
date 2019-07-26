@@ -1239,6 +1239,11 @@ public:
 
 
   virtual void DidPaint() = 0;
+
+  
+
+
+
   virtual void ScheduleViewManagerFlush() = 0;
   virtual void ClearMouseCaptureOnView(nsIView* aView) = 0;
   virtual bool IsVisible() = 0;

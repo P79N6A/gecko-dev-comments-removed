@@ -2217,7 +2217,14 @@ public:
 
 
 
-  void SchedulePaint();
+
+
+
+
+  enum {
+    PAINT_COMPOSITE_ONLY
+  };
+  void SchedulePaint(uint32_t aFlags = 0);
 
   
 
