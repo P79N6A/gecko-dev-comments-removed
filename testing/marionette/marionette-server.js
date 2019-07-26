@@ -1185,15 +1185,26 @@ MarionetteServerConnection.prototype = {
   
 
 
-  getWindows: function MDA_getWindows() {
+
+
+
+
+
+
+
+
+
+
+  getWindowHandles: function MDA_getWindowHandles() {
     this.command_id = this.getCommandId();
     let res = [];
     let winEn = this.getWinEnumerator();
-    while(winEn.hasMoreElements()) {
+    while (winEn.hasMoreElements()) {
       let foundWin = winEn.getNext();
-      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
-      winId = winId + ((appName == "B2G") ? '-b2g' : '');
-      res.push(winId)
+      let winId = foundWin.QueryInterface(Ci.nsIInterfaceRequestor)
+            .getInterface(Ci.nsIDOMWindowUtils).outerWindowID;
+      winId = winId + ((appName == "B2G") ? "-b2g" : "");
+      res.push(winId);
     }
     this.sendResponse(res, this.command_id);
   },
@@ -2399,7 +2410,8 @@ MarionetteServerConnection.prototype.requestTypes = {
   "refresh":  MarionetteServerConnection.prototype.refresh,
   "getCurrentWindowHandle":  MarionetteServerConnection.prototype.getCurrentWindowHandle,
   "getWindow":  MarionetteServerConnection.prototype.getCurrentWindowHandle,  
-  "getWindows":  MarionetteServerConnection.prototype.getWindows,
+  "getCurrentWindowHandles": MarionetteServerConnection.prototype.getWindowHandles,
+  "getWindows":  MarionetteServerConnection.prototype.getWindowHandles,  
   "getActiveFrame": MarionetteServerConnection.prototype.getActiveFrame,
   "switchToFrame": MarionetteServerConnection.prototype.switchToFrame,
   "switchToWindow": MarionetteServerConnection.prototype.switchToWindow,
