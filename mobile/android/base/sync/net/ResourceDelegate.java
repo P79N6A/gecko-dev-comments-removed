@@ -28,6 +28,13 @@ public interface ResourceDelegate {
 
   
 
+
+
+
+  public String getUserAgent();
+
+  
+
   
 
 

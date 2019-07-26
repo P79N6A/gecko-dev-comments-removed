@@ -4,6 +4,7 @@
 
 package org.mozilla.gecko.tokenserver;
 
+
 public interface TokenServerClientDelegate {
   void handleSuccess(TokenServerToken token);
   void handleFailure(TokenServerException e);
@@ -13,4 +14,6 @@ public interface TokenServerClientDelegate {
 
 
   void handleBackoff(int backoffSeconds);
+
+  public String getUserAgent();
 }
