@@ -176,4 +176,33 @@ private:
 #endif
 };
 
+namespace mozilla {
+namespace image {
+  
+  
+  class AutoFrameLocker
+  {
+  public:
+    AutoFrameLocker(imgFrame* frame)
+      : mFrame(frame)
+      , mSucceeded(NS_SUCCEEDED(frame->LockImageData()))
+    {}
+
+    ~AutoFrameLocker()
+    {
+      if (mSucceeded) {
+        mFrame->UnlockImageData();
+      }
+    }
+
+    
+    bool Succeeded() { return mSucceeded; }
+
+  private:
+    imgFrame* mFrame;
+    bool mSucceeded;
+  };
+}
+}
+
 #endif 
