@@ -2523,8 +2523,41 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     dirtyRect = ExpandRect(dirtyRect);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  mShouldBuildScrollableLayer = usingDisplayport || nsContentUtils::HasScrollgrab(mOuter->GetContent());
+  bool shouldBuildLayer = false;
+  if (mShouldBuildScrollableLayer) {
+    shouldBuildLayer = true;
+  } else {
+    shouldBuildLayer =
+      nsLayoutUtils::WantSubAPZC() &&
+      WantAsyncScroll() &&
+      
+      
+      
+      (!mIsRoot || aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext());
+  }
+
   nsDisplayListCollection scrolledContent;
   {
+    
+    
+    
+    
+    
+    nsDisplayListBuilder::AutoCurrentScrollParentIdSetter idSetter(
+        aBuilder,
+        shouldBuildLayer && mScrolledFrame->GetContent()
+            ? nsLayoutUtils::FindOrCreateIDFor(mScrolledFrame->GetContent())
+            : aBuilder->GetCurrentScrollParentId());
     DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
     if (usingDisplayport) {
@@ -2583,29 +2616,6 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       clip.SetTo(clipRect);
       ::ClipListsExceptCaret(&scrolledContent, aBuilder, mScrolledFrame, clip);
     }
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mShouldBuildScrollableLayer = usingDisplayport || nsContentUtils::HasScrollgrab(mOuter->GetContent());
-  bool shouldBuildLayer = false;
-  if (mShouldBuildScrollableLayer) {
-    shouldBuildLayer = true;
-  } else {
-    shouldBuildLayer =
-      nsLayoutUtils::WantSubAPZC() &&
-      WantAsyncScroll() &&
-      
-      
-      
-      (!mIsRoot || aBuilder->RootReferenceFrame()->PresContext() != mOuter->PresContext());
   }
 
   if (shouldBuildLayer) {

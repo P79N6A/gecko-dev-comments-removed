@@ -114,6 +114,7 @@ public:
   typedef mozilla::DisplayListClipState DisplayListClipState;
   typedef nsIWidget::ThemeGeometry ThemeGeometry;
   typedef mozilla::layers::Layer Layer;
+  typedef mozilla::layers::FrameMetrics::ViewID ViewID;
 
   
 
@@ -248,6 +249,10 @@ public:
 
 
   nsIFrame* GetIgnoreScrollFrame() { return mIgnoreScrollFrame; }
+  
+
+
+  ViewID GetCurrentScrollParentId() const { return mCurrentScrollParentId; }
   
 
 
@@ -603,6 +608,25 @@ public:
   };
 
   
+
+
+  class AutoCurrentScrollParentIdSetter;
+  friend class AutoCurrentScrollParentIdSetter;
+  class AutoCurrentScrollParentIdSetter {
+  public:
+    AutoCurrentScrollParentIdSetter(nsDisplayListBuilder* aBuilder, ViewID aScrollId)
+      : mBuilder(aBuilder), mOldValue(aBuilder->mCurrentScrollParentId) {
+      aBuilder->mCurrentScrollParentId = aScrollId;
+    }
+    ~AutoCurrentScrollParentIdSetter() {
+      mBuilder->mCurrentScrollParentId = mOldValue;
+    }
+  private:
+    nsDisplayListBuilder* mBuilder;
+    ViewID                mOldValue;
+  };
+
+  
   nsDisplayTableItem* GetCurrentTableItem() { return mCurrentTableItem; }
   void SetCurrentTableItem(nsDisplayTableItem* aTableItem) { mCurrentTableItem = aTableItem; }
 
@@ -706,6 +730,7 @@ private:
   nsDisplayItem*                 mGlassDisplayItem;
   nsTArray<DisplayItemClip*>     mDisplayItemClipsToDestroy;
   Mode                           mMode;
+  ViewID                         mCurrentScrollParentId;
   bool                           mBuildCaret;
   bool                           mIgnoreSuppression;
   bool                           mHadToIgnoreSuppression;
@@ -2834,6 +2859,8 @@ public:
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE;
 
   NS_DISPLAY_DECL_NAME("SubDocument", TYPE_SUBDOCUMENT)
+protected:
+  ViewID mScrollParentId;
 };
 
 
@@ -2971,6 +2998,7 @@ public:
 protected:
   nsIFrame* mScrollFrame;
   nsIFrame* mScrolledFrame;
+  ViewID mScrollParentId;
 };
 
 
