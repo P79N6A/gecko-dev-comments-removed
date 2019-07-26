@@ -726,8 +726,6 @@ void MediaDecoderStateMachine::SendStreamData()
 
   if (mAudioCaptured) {
     
-    int64_t audioPacketTimeToDiscard =
-        std::min(minLastAudioPacketTime, mStartTime + mCurrentFrameTime);
     while (true) {
       nsAutoPtr<AudioData> a(mReader->AudioQueue().PopFront());
       if (!a)
@@ -738,7 +736,7 @@ void MediaDecoderStateMachine::SendStreamData()
       
       
       
-      if (a->GetEnd() >= audioPacketTimeToDiscard) {
+      if (a->GetEnd() >= minLastAudioPacketTime) {
         mReader->AudioQueue().PushFront(a.forget());
         break;
       }
