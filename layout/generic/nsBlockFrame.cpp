@@ -241,6 +241,7 @@ NS_DECLARE_FRAME_PROPERTY_FRAMELIST(OverflowOutOfFlowsProperty)
 NS_DECLARE_FRAME_PROPERTY_FRAMELIST(PushedFloatProperty)
 NS_DECLARE_FRAME_PROPERTY_FRAMELIST(OutsideBulletProperty)
 NS_DECLARE_FRAME_PROPERTY(InsideBulletProperty, nullptr)
+NS_DECLARE_FRAME_PROPERTY(BottomEdgeOfChildrenProperty, nullptr)
 
 
 
@@ -1452,12 +1453,36 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
   aMetrics.Height() = std::max(0, aMetrics.Height());
   *aBottomEdgeOfChildren = bottomEdgeOfChildren;
 
+  FrameProperties properties = Properties();
+  if (bottomEdgeOfChildren != aMetrics.Height() - borderPadding.bottom) {
+    properties.Set(BottomEdgeOfChildrenProperty(),
+                   NS_INT32_TO_PTR(bottomEdgeOfChildren));
+  } else {
+    properties.Delete(BottomEdgeOfChildrenProperty());
+  }
+
 #ifdef DEBUG_blocks
   if (CRAZY_SIZE(aMetrics.Width()) || CRAZY_SIZE(aMetrics.Height())) {
     ListTag(stdout);
     printf(": WARNING: desired:%d,%d\n", aMetrics.Width(), aMetrics.Height());
   }
 #endif
+}
+
+static void
+ConsiderBottomEdgeOfChildren(nscoord aBottomEdgeOfChildren,
+                             nsOverflowAreas& aOverflowAreas)
+{
+  
+  
+  
+  
+  
+  
+  NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+    nsRect& o = aOverflowAreas.Overflow(otype);
+    o.height = std::max(o.YMost(), aBottomEdgeOfChildren) - o.y;
+  }
 }
 
 void
@@ -1487,17 +1512,9 @@ nsBlockFrame::ComputeOverflowAreas(const nsRect&         aBounds,
       areas.UnionAllWith(outsideBullet->GetRect());
     }
 
-    
-    
-    
-    
-    
-    
-    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
-      nsRect& o = areas.Overflow(otype);
-      o.height = std::max(o.YMost(), aBottomEdgeOfChildren) - o.y;
-    }
+    ConsiderBottomEdgeOfChildren(aBottomEdgeOfChildren, areas);
   }
+
 #ifdef NOISY_COMBINED_AREA
   ListTag(stdout);
   printf(": ca=%d,%d,%d,%d\n", area.x, area.y, area.width, area.height);
@@ -1509,6 +1526,9 @@ nsBlockFrame::ComputeOverflowAreas(const nsRect&         aBounds,
 bool
 nsBlockFrame::UpdateOverflow()
 {
+  nsRect rect(nsPoint(0, 0), GetSize());
+  nsOverflowAreas overflowAreas(rect, rect);
+
   
   
   
@@ -1516,7 +1536,8 @@ nsBlockFrame::UpdateOverflow()
   for (line_iterator line = begin_lines(), line_end = end_lines();
        line != line_end;
        ++line) {
-    nsOverflowAreas lineAreas;
+    nsRect bounds = line->mBounds;
+    nsOverflowAreas lineAreas(bounds, bounds);
 
     int32_t n = line->GetChildCount();
     for (nsIFrame* lineFrame = line->mFirstChild;
@@ -1532,13 +1553,26 @@ nsBlockFrame::UpdateOverflow()
     }
 
     line->SetOverflowAreas(lineAreas);
+    overflowAreas.UnionWith(lineAreas);
   }
 
   
   
   ClearLineCursor();
 
-  return nsBlockFrameSuper::UpdateOverflow();
+  
+  
+  nsLayoutUtils::UnionChildOverflow(this, overflowAreas,
+                                    kPrincipalList | kFloatList);
+
+  bool found;
+  nscoord bottomEdgeOfChildren = NS_PTR_TO_INT32(
+    Properties().Get(BottomEdgeOfChildrenProperty(), &found));
+  if (found) {
+    ConsiderBottomEdgeOfChildren(bottomEdgeOfChildren, overflowAreas);
+  }
+
+  return FinishAndStoreOverflow(overflowAreas, GetSize());
 }
 
 void
