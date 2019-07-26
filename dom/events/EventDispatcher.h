@@ -13,7 +13,6 @@
 
 #undef CreateEvent
 
-class nsEventTargetChainItem;
 class nsIDOMEvent;
 class nsIScriptGlobalObject;
 class nsPresContext;
@@ -272,6 +271,10 @@ public:
                               const nsAString& aEventType,
                               nsIDOMEvent** aDOMEvent);
 
+  
+
+
+  static void Shutdown();
 };
 
 } 
