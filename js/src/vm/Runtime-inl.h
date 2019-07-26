@@ -74,7 +74,7 @@ ThreadDataIter::ThreadDataIter(JSRuntime *rt)
 #ifdef JS_WORKER_THREADS
     
     
-    JS_ASSERT_IF(rt->workerThreadState, rt->workerThreadState->shouldPause);
+    JS_ASSERT(rt->exclusiveThreadsPaused);
 #endif
     iter = rt->threadList.getFirst();
 }

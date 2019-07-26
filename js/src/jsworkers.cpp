@@ -359,17 +359,32 @@ WorkerThreadState::init(JSRuntime *rt)
     return true;
 }
 
-WorkerThreadState::~WorkerThreadState()
+void
+WorkerThreadState::cleanup(JSRuntime *rt)
 {
     
+    
 
-
-
+    
     if (threads) {
         for (size_t i = 0; i < numThreads; i++)
             threads[i].destroy();
         js_free(threads);
+        threads = NULL;
+        numThreads = 0;
     }
+
+    
+    while (!parseFinishedList.empty()) {
+        JSScript *script = parseFinishedList[0]->script;
+        finishParseTaskForScript(rt, script);
+    }
+}
+
+WorkerThreadState::~WorkerThreadState()
+{
+    JS_ASSERT(!threads);
+    JS_ASSERT(parseFinishedList.empty());
 
     if (workerLock)
         PR_DestroyLock(workerLock);
