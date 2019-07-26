@@ -136,6 +136,10 @@ let HomeBanner = (function () {
 
 
     remove: function(id) {
+      if (!(id in _messages)) {
+        throw "Home.banner: Can't remove message that doesn't exist: id = " + id;
+      }
+
       delete _messages[id];
 
       
