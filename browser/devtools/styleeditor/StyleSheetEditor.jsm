@@ -210,8 +210,7 @@ StyleSheetEditor.prototype = {
       mode: Editor.modes.css,
       readOnly: this._state.readOnly,
       autoCloseBrackets: "{}()[]",
-      extraKeys: this._getKeyBindings(),
-      contextMenu: "sourceEditorContextMenu"
+      extraKeys: this._getKeyBindings()
     };
     let sourceEditor = new Editor(config);
 
