@@ -409,9 +409,6 @@ public:
   
   nsRect GetBoundsInParentUnits() const;
 
-  
-  
-
   bool HasNonEmptyDirtyRegion() {
     return mDirtyRegion && !mDirtyRegion->IsEmpty();
   }
