@@ -173,12 +173,6 @@ var WifiManager = (function() {
 
   var driverLoaded = false;
 
-  manager.checkDriverState = function(expectState) {
-    if (!unloadDriverEnabled)
-      return true;
-    return (expectState === driverLoaded);
-  }
-
   function loadDriver(callback) {
     if (driverLoaded) {
       callback(0);
@@ -1315,7 +1309,6 @@ var WifiManager = (function() {
                 if (status < 0) {
                   unloadDriver(function() {
                     callback(status);
-
                   });
                   manager.state = "UNINITIALIZED";
                   return;
@@ -2091,9 +2084,6 @@ function WifiWorker() {
     }
 
     
-    self._notifyAfterStateChange(true, true);
-
-    
     WifiManager.getMacAddress(function (mac) {
       self.macAddress = mac;
       debug("Got mac: " + mac);
@@ -2108,9 +2098,6 @@ function WifiWorker() {
     WifiManager.enabled = WifiManager.supplicantStarted = false;
     WifiManager.state = "UNINITIALIZED";
     debug("Supplicant died!");
-
-    
-    self._notifyAfterStateChange(this.success, false);
 
     
     self._fireEvent("wifiDown", {});
@@ -2933,103 +2920,33 @@ WifiWorker.prototype = {
     }).bind(this));
   },
 
-  _notifyAfterStateChange: function(success, newState) {
-    if (!this._stateRequests.length)
-      return;
-
-    
-    let state = this._stateRequests[0].enabled;
-    let driverReady = WifiManager.checkDriverState(newState);
-
-    
-    
-    if (this._stateRequests.length > 0
-        && ("callback" in this._stateRequests[0])) {
-      return;
-    }
-
-    
-    
-    
-    
-    
-    if (!success || (driverReady && state === newState)) {
-      do {
-        if (!("callback" in this._stateRequests[0])) {
-          this._stateRequests.shift();
-        }
-        
-      } while (success &&
-               this._stateRequests.length &&
-               !("callback" in this._stateRequests[0]) &&
-               this._stateRequests[0].enabled === state);
-    }
-    
-    if (this._stateRequests.length > 0) {
-      let self = this;
-      let callback = null;
-      this._callbackTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-      if (driverReady) {
-        
-        callback = function(timer) {
-          if ("callback" in self._stateRequests[0]) {
-            self._stateRequests[0].callback.call(self, self._stateRequests[0].enabled);
-          } else {
-            WifiManager.setWifiEnabled(self._stateRequests[0].enabled,
-                                       self._setWifiEnabledCallback.bind(self));
-          }
-          timer = null;
-        };
-      } else {
-        
-        callback = function(timer) {
-          self._notifyAfterStateChange(success, newState);
-          timer = null;
-        };
-      }
-      this._callbackTimer.initWithCallback(callback, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
-    }
-  },
-
   _setWifiEnabledCallback: function(status) {
-    if (status === "no change") {
-      this._notifyAfterStateChange(true, this._stateRequests[0].enabled);
-      return;
-    }
-
-    if (status) {
-      
-      
-      this._notifyAfterStateChange(false, this._stateRequests[0].enabled);
-      return;
-    }
-
     
     
     
     if (WifiManager.supplicantStarted)
       WifiManager.start();
+
+    this.requestDone();
   },
 
-  setWifiEnabled: function(msg) {
-    
-    
-    
-    
-    
-    
-    this._stateRequests.push(msg);
-    if (this._stateRequests.length === 1) {
-      if ("callback" in this._stateRequests[0]) {
-        this._stateRequests[0].callback.call(this, msg.enabled);
-      } else {
-        WifiManager.setWifiEnabled(msg.enabled, this._setWifiEnabledCallback.bind(this));
-      }
-    }
+  setWifiEnabled: function(enabled, callback) {
+    WifiManager.setWifiEnabled(enabled, callback);
   },
 
+  
+  
   queueRequest: function(enabled, callback) {
-    this.setWifiEnabled({enabled: enabled, callback: callback});
+    if (!callback) {
+        throw "Try to enqueue a request without callback";
+    }
+
+    this._stateRequests.push({
+      enabled: enabled,
+      callback: callback
+    });
+
+    this.nextRequest();
   },
 
   getWifiTetheringParameters: function getWifiTetheringParameters(enable) {
@@ -3103,6 +3020,7 @@ WifiWorker.prototype = {
     let configuration = this.getWifiTetheringParameters(enabled);
 
     if (!configuration) {
+      this.requestDone();
       debug("Invalid Wifi Tethering configuration.");
       return;
     }
@@ -3335,49 +3253,79 @@ WifiWorker.prototype = {
 
   shutdown: function() {
     debug("shutting down ...");
-    this.setWifiEnabled({enabled: false});
+    this.queueRequest(false, function(data) {
+      this.setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
+    }.bind(this));
+  },
+
+  requestProcessing: false,   
+                              
+                              
+  requestDone: function requestDone() {
+    this.requestProcessing = false;
+    this.nextRequest();
   },
 
   nextRequest: function nextRequest() {
-    if (this._stateRequests.length <= 0 ||
-        !("callback" in this._stateRequests[0])) {
+    
+    if (this._stateRequests.length === 0) {
       return;
     }
-    this._stateRequests.shift();
+
     
-    if (this._stateRequests.length > 0) {
-      if ("callback" in this._stateRequests[0]) {
-        this._stateRequests[0].callback.call(this,
-                                             this._stateRequests[0].enabled);
-      } else {
-        WifiManager.setWifiEnabled(this._stateRequests[0].enabled,
-                                   this._setWifiEnabledCallback.bind(this));
-      }
+    if (this.requestProcessing) {
+      return;
     }
+
+    
+    this.requestProcessing = true;
+
+    
+    let request = this._stateRequests.shift();
+
+    request.callback(request.enabled);
   },
 
   notifyTetheringOn: function notifyTetheringOn() {
     
     
     
+    let self = this;
     this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] = true;
     this._oldWifiTetheringEnabledState = true;
     gSettingsService.createLock().set(
-      SETTINGS_WIFI_TETHERING_ENABLED, true, null, "fromInternalSetting");
-    
-    this.nextRequest();
+      SETTINGS_WIFI_TETHERING_ENABLED,
+      true,
+      {
+        handle: function(aName, aResult) {
+          self.requestDone();
+        },
+        handleError: function(aErrorMessage) {
+          self.requestDone();
+        }
+      },
+      "fromInternalSetting");
   },
 
   notifyTetheringOff: function notifyTetheringOff() {
     
     
     
+    let self = this;
     this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] = false;
     this._oldWifiTetheringEnabledState = false;
     gSettingsService.createLock().set(
-      SETTINGS_WIFI_TETHERING_ENABLED, false, null, "fromInternalSetting");
-    
-    this.nextRequest();
+      SETTINGS_WIFI_TETHERING_ENABLED,
+      false,
+      {
+        handle: function(aName, aResult) {
+          self.requestDone();
+        },
+        handleError: function(aErrorMessage) {
+          self.requestDone();
+        }
+      },
+      "fromInternalSetting");
   },
 
   handleWifiEnabled: function(enabled) {
@@ -3392,7 +3340,10 @@ WifiWorker.prototype = {
         this.setWifiApEnabled(false, this.notifyTetheringOff.bind(this));
       }.bind(this));
     }
-    this.setWifiEnabled({enabled: enabled});
+
+    this.queueRequest(enabled, function(data) {
+      this.setWifiEnabled(enabled, this._setWifiEnabledCallback.bind(this));
+    }.bind(this));
 
     if (!enabled && this.disconnectedByWifi) {
       this.queueRequest(true, function(data) {
@@ -3406,17 +3357,21 @@ WifiWorker.prototype = {
     
     if (enabled && (WifiManager.enabled ||
          WifiManager.state != "UNINITIALIZED")) {
-      this.disconnectedByWifiTethering = true;
-      this.setWifiEnabled({enabled: false});
+      this.queueRequest(false, function(data) {
+        this.disconnectedByWifiTethering = true;
+        this.setWifiEnabled(false, this._setWifiEnabledCallback.bind(this));
+      }.bind(this));
     }
 
     this.queueRequest(enabled, function(data) {
-      this.setWifiApEnabled(data, this.nextRequest.bind(this));
+      this.setWifiApEnabled(data, this.requestDone.bind(this));
     }.bind(this));
 
     if (!enabled && this.disconnectedByWifiTethering) {
-      this.disconnectedByWifiTethering = false;
-      this.setWifiEnabled({enabled: true});
+      this.queueRequest(true, function(data) {
+        this.disconnectedByWifiTethering = false;
+        this.setWifiEnabled(true, this._setWifiEnabledCallback.bind(this));
+      }.bind(this));
     }
   },
 
