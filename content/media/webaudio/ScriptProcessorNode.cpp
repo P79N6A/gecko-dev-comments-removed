@@ -67,6 +67,13 @@ private:
       return front;
     }
 
+    
+    void Clear()
+    {
+      mMutex.AssertCurrentThreadOwns();
+      mBufferList.clear();
+    }
+
   private:
     typedef std::deque<AudioChunk> BufferList;
 
@@ -167,6 +174,18 @@ public:
     return mDelaySoFar == TRACK_TICKS_MAX ? 0 : mDelaySoFar;
   }
 
+  void Reset()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+    mDelaySoFar = TRACK_TICKS_MAX;
+    mLatency = 0.0f;
+    {
+      MutexAutoLock lock(mOutputQueue.Lock());
+      mOutputQueue.Clear();
+    }
+    mLastEventTime = TimeStamp();
+  }
+
 private:
   OutputQueue mOutputQueue;
   
@@ -221,6 +240,18 @@ public:
     
     if (!Node()) {
       aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
+      return;
+    }
+
+    
+    
+    
+    if (!(aStream->ConsumerCount() ||
+          aStream->AsProcessedStream()->InputPortCount())) {
+      aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
+      mSharedBuffers->Reset();
+      mSeenNonSilenceInput = false;
+      mInputWriteIndex = 0;
       return;
     }
 
