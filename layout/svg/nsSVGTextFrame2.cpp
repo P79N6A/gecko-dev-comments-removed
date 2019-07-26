@@ -4785,8 +4785,7 @@ nsSVGTextFrame2::DoTextPathLayout()
 
     
     RefPtr<Path> path = GetTextPath(textPathFrame);
-    nsRefPtr<gfxPath> data = new gfxPath(path);
-    if (!data) {
+    if (!path) {
       it.AdvancePastCurrentTextPathFrame();
       continue;
     }
@@ -4794,7 +4793,7 @@ nsSVGTextFrame2::DoTextPathLayout()
     nsIContent* textPath = textPathFrame->GetContent();
 
     gfxFloat offset = GetStartOffset(textPathFrame);
-    gfxFloat pathLength = data->GetLength();
+    Float pathLength = path->ComputeLength();
 
     
     do {
@@ -4808,19 +4807,22 @@ nsSVGTextFrame2::DoTextPathLayout()
       mPositions[i].mHidden = midx < 0 || midx > pathLength;
 
       
-      double angle;
-      gfxPoint pt =
-        data->FindPoint(gfxPoint(midx, mPositions[i].mPosition.y), &angle);
-      gfxPoint direction = gfxPoint(cos(angle), sin(angle)) * sign;
-      mPositions[i].mPosition = pt - direction * halfAdvance;
-      mPositions[i].mAngle += angle;
+      Point tangent; 
+      Point pt = path->ComputePointAtLength(Float(midx), &tangent);
+      double glyphRotation = atan2(tangent.y, tangent.x);
+      Point normal(-tangent.y, tangent.x); 
+      Point offsetFromPath = normal * mPositions[i].mPosition.y;
+      pt += offsetFromPath;
+      Point direction = tangent * sign;
+      mPositions[i].mPosition = ThebesPoint(pt) - ThebesPoint(direction) * halfAdvance;
+      mPositions[i].mAngle += glyphRotation;
 
       
       for (uint32_t j = i + 1;
            j < mPositions.Length() && mPositions[j].mClusterOrLigatureGroupMiddle;
            j++) {
         gfxPoint partialAdvance =
-          direction * it.GetGlyphPartialAdvance(j - i, context) /
+          ThebesPoint(direction) * it.GetGlyphPartialAdvance(j - i, context) /
                                                          mFontSizeScaleFactor;
         mPositions[j].mPosition = mPositions[i].mPosition + partialAdvance;
         mPositions[j].mAngle = mPositions[i].mAngle;
