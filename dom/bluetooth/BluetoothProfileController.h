@@ -100,13 +100,7 @@ public:
 
 
 
-  void OnConnect(const nsAString& aErrorStr);
-
-  
-
-
-
-  void OnDisconnect(const nsAString& aErrorStr);
+  void NotifyCompletion(const nsAString& aErrorStr);
 
   
 
