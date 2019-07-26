@@ -739,9 +739,22 @@ CodeGenerator::emitLambdaInit(const Register &output, const Register &scopeChain
 
     JS_STATIC_ASSERT(offsetof(JSFunction, flags) == offsetof(JSFunction, nargs) + 2);
     masm.store32(Imm32(u.word), Address(output, offsetof(JSFunction, nargs)));
-    masm.storePtr(ImmGCPtr(fun->nonLazyScript()),
-                  Address(output, JSFunction::offsetOfNativeOrScript()));
+
+    
+    
+    ImmGCPtr scriptOrLazyScript(NULL);
+    if (fun->isInterpretedLazy())
+        scriptOrLazyScript = ImmGCPtr(fun->lazyScriptOrNull());
+    else
+        scriptOrLazyScript = ImmGCPtr(fun->nonLazyScript());
+
+    masm.storePtr(scriptOrLazyScript, Address(output, JSFunction::offsetOfNativeOrScript()));
+
+    
+    
     masm.storePtr(scopeChain, Address(output, JSFunction::offsetOfEnvironment()));
+
+    
     masm.storePtr(ImmGCPtr(fun->displayAtom()), Address(output, JSFunction::offsetOfAtom()));
 }
 
