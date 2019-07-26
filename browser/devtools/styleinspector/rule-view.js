@@ -1125,23 +1125,17 @@ CssRuleView.prototype = {
 
 
   _buildTooltipContent: function(target) {
-    let isValueWithImage = target.classList.contains("ruleview-propertyvalue") &&
-      target.querySelector(".theme-link");
-
     let isImageHref = target.classList.contains("theme-link") &&
       target.parentNode.classList.contains("ruleview-propertyvalue");
-    if (isImageHref) {
-      target = target.parentNode;
-    }
 
     
     
-    if (!isImageHref && !isValueWithImage) {
+    if (!isImageHref) {
       return false;
     }
 
     
-    let property = target.textProperty;
+    let property = target.parentNode.textProperty;
     let href = property.rule.domRule.href;
 
     

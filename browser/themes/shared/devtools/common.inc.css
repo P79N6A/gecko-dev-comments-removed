@@ -115,8 +115,17 @@
 
 
 
-.devtools-tooltip.devtools-tooltip-panel .panel-arrowcontent {
+.devtools-tooltip .panel-arrowcontent {
   padding: 4px;
+}
+
+.devtools-tooltip .panel-arrowcontainer {
+  
+  transition: none;
+  
+
+
+  transform: none;
 }
 
 .devtools-tooltip-simple-text {

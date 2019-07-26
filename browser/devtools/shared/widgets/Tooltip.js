@@ -24,6 +24,7 @@ const XHTML_NS = "http://www.w3.org/1999/xhtml";
 const SPECTRUM_FRAME = "chrome://browser/content/devtools/spectrum-frame.xhtml";
 const ESCAPE_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_ESCAPE;
 const ENTER_KEYCODE = Ci.nsIDOMKeyEvent.DOM_VK_RETURN;
+const SHOW_TIMEOUT = 50;
 
 
 
@@ -194,6 +195,10 @@ Tooltip.prototype = {
 
 
 
+
+
+
+
   show: function(anchor,
     position = this.defaultPosition,
     x = this.defaultOffsetX,
@@ -239,14 +244,14 @@ Tooltip.prototype = {
 
     this.content = null;
 
+    if (this._basedNode) {
+      this.stopTogglingOnHover();
+    }
+
     this.doc = null;
 
     this.panel.parentNode.removeChild(this.panel);
     this.panel = null;
-
-    if (this._basedNode) {
-      this.stopTogglingOnHover();
-    }
   },
 
   
@@ -281,14 +286,10 @@ Tooltip.prototype = {
 
 
 
-  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay = 750) {
+  startTogglingOnHover: function(baseNode, targetNodeCb, showDelay=SHOW_TIMEOUT) {
     if (this._basedNode) {
       this.stopTogglingOnHover();
     }
-
-    
-    
-    this._hideOnMouseLeave = !targetNodeCb;
 
     this._basedNode = baseNode;
     this._showDelay = showDelay;
@@ -322,7 +323,7 @@ Tooltip.prototype = {
   _onBaseNodeMouseMove: function(event) {
     if (event.target !== this._lastHovered) {
       this.hide();
-      this._lastHovered = null;
+      this._lastHovered = event.target;
       setNamedTimeout(this.uid, this._showDelay, () => {
         this._showOnHover(event.target);
       });
@@ -332,16 +333,13 @@ Tooltip.prototype = {
   _showOnHover: function(target) {
     if (this._targetNodeCb(target, this)) {
       this.show(target);
-      this._lastHovered = target;
     }
   },
 
   _onBaseNodeMouseLeave: function() {
     clearNamedTimeout(this.uid);
     this._lastHovered = null;
-    if (this._hideOnMouseLeave) {
-      this.hide();
-    }
+    this.hide();
   },
 
   
