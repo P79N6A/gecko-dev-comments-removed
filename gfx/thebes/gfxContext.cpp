@@ -1456,10 +1456,16 @@ gfxContext::Mask(gfxASurface *surface, const gfxPoint& offset)
     gfxPoint pt = surface->GetDeviceOffset();
 
     
+    surface->SetDeviceOffset(gfxPoint(0.0,0.0));
+
+    
     mDT->MaskSurface(GeneralPattern(this), 
               sourceSurf,
               Point(offset.x - pt.x, offset.y -  pt.y),
               DrawOptions(1.0f, CurrentState().op, CurrentState().aaMode));
+    
+    
+    surface->SetDeviceOffset(pt);
   }
 }
 
