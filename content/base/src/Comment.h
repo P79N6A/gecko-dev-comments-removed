@@ -46,7 +46,6 @@ public:
 
   
   NS_FORWARD_NSIDOMCHARACTERDATA(nsGenericDOMDataNode::)
-  using nsGenericDOMDataNode::SetData; 
 
   
   
