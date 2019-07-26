@@ -7,12 +7,7 @@ let Cc = SpecialPowers.Cc;
 let Ci = SpecialPowers.Ci;
 
 
-let systemWorkerManager = Cc["@mozilla.org/telephony/system-worker-manager;1"];
-ok(systemWorkerManager);
-
-
-let RIL = systemWorkerManager.getService(Ci.nsIInterfaceRequestor).
-          getInterface(Ci.nsIRadioInterfaceLayer);
+let RIL = Cc["@mozilla.org/ril;1"].getService(Ci.nsIRadioInterfaceLayer);
 ok(RIL);
 
 
