@@ -247,7 +247,6 @@ gfxAndroidPlatform::FontHintingEnabled()
 {
     
     
-
 #ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
     
     
@@ -256,44 +255,12 @@ gfxAndroidPlatform::FontHintingEnabled()
     
     
     return false;
-#endif
-
-#ifdef MOZ_B2G
+#else
     
     
-    return false;
+    return XRE_GetProcessType() != GeckoProcessType_Content ||
+           !ContentChild::GetSingleton()->IsForBrowser();
 #endif 
-
-    
-    
-
-    NS_NOTREACHED("oops, what platform is this?");
-    return gfxPlatform::FontHintingEnabled();
-}
-
-bool
-gfxAndroidPlatform::RequiresLinearZoom()
-{
-#ifdef MOZ_USING_ANDROID_JAVA_WIDGETS
-    
-    
-    
-    
-    
-    
-    return true;
-#endif
-
-#ifdef MOZ_B2G
-    
-    
-    
-    return XRE_GetProcessType() == GeckoProcessType_Content &&
-           ContentChild::GetSingleton()->IsForBrowser();
-#endif
-
-    NS_NOTREACHED("oops, what platform is this?");
-    return gfxPlatform::RequiresLinearZoom();
 }
 
 int
