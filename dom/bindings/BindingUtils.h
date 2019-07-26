@@ -669,6 +669,22 @@ CouldBeDOMBinding(nsWrapperCache* aCache)
   return aCache->IsDOMBinding();
 }
 
+inline bool
+TryToOuterize(JSContext* cx, JS::MutableHandle<JS::Value> rval)
+{
+  if (js::IsInnerObject(&rval.toObject())) {
+    JS::Rooted<JSObject*> obj(cx, &rval.toObject());
+    obj = JS_ObjectToOuterObject(cx, obj);
+    if (!obj) {
+      return false;
+    }
+
+    rval.set(JS::ObjectValue(*obj));
+  }
+
+  return true;
+}
+
 
 
 MOZ_ALWAYS_INLINE
@@ -698,9 +714,9 @@ MaybeWrapObjectValue(JSContext* cx, JS::MutableHandle<JS::Value> rval)
   }
 
   
+  
   if (IsDOMObject(obj)) {
-    rval.set(JS::ObjectValue(*obj));
-    return true;
+    return TryToOuterize(cx, rval);
   }
 
   
@@ -821,14 +837,17 @@ WrapNewBindingObject(JSContext* cx, JS::Handle<JSObject*> scope, T* value,
   MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
 #endif
 
+  rval.set(JS::ObjectValue(*obj));
+
   bool sameCompartment =
     js::GetObjectCompartment(obj) == js::GetContextCompartment(cx);
   if (sameCompartment && couldBeDOMBinding) {
-    rval.set(JS::ObjectValue(*obj));
-    return true;
+    
+    
+    return IsBaseOf<nsGlobalWindow, T>::value || IsSame<EventTarget, T>::value ?
+           TryToOuterize(cx, rval) : true;
   }
 
-  rval.set(JS::ObjectValue(*obj));
   return JS_WrapValue(cx, rval);
 }
 
