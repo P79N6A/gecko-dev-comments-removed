@@ -69,7 +69,7 @@ class TypedObjectModuleObject;
 class GlobalObject : public JSObject
 {
     
-    static const unsigned APPLICATION_SLOTS = 3;
+    static const unsigned APPLICATION_SLOTS = JSCLASS_GLOBAL_APPLICATION_SLOTS;
 
     
 
