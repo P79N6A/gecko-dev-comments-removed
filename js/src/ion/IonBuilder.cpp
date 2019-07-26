@@ -1460,6 +1460,9 @@ IonBuilder::processNextLookupSwitchCase(CFGState &state)
     }
 
     
+    graph_.moveBlockToEnd(successor);
+
+    
     
     if (curBlock + 1 < state.lookupswitch.bodies->length())
         state.stopAt = (*state.lookupswitch.bodies)[curBlock + 1]->pc();
@@ -2209,9 +2212,9 @@ IonBuilder::lookupSwitch(JSOp op, jssrcnote *sn)
     
     
     for (size_t i = 0; i < bodyBlocks.length(); i++) {
-        graph_.moveBlockToEnd(bodyBlocks[i]);
         (*state.lookupswitch.bodies)[i] = bodyBlocks[i];
     }
+    graph_.moveBlockToEnd(bodyBlocks[0]);
 
     
     ControlFlowInfo switchinfo(cfgStack_.length(), exitpc);
