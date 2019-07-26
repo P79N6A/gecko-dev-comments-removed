@@ -1704,33 +1704,26 @@ ContainerState::FindFixedPosFrameForLayerData(const nsIFrame* aAnimatedGeometryR
 
   nsPresContext* presContext = mContainerFrame->PresContext();
   nsIFrame* viewport = presContext->PresShell()->GetRootFrame();
-  const nsIFrame* result = nullptr;
-  nsRect displayPort;
 
   if (viewport == aAnimatedGeometryRoot && aDisplayItemFixedToViewport &&
-      nsLayoutUtils::ViewportHasDisplayPort(presContext, &displayPort)) {
+      nsLayoutUtils::ViewportHasDisplayPort(presContext)) {
     
-    result = viewport;
-  } else {
-    
-    if (!viewport->GetFirstChild(nsIFrame::kFixedList)) {
-      return nullptr;
+    return viewport;
+  }
+  
+  if (!viewport->GetFirstChild(nsIFrame::kFixedList)) {
+    return nullptr;
+  }
+  for (const nsIFrame* f = aAnimatedGeometryRoot; f; f = f->GetParent()) {
+    if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f)) {
+      return f;
     }
-    for (const nsIFrame* f = aAnimatedGeometryRoot; f; f = f->GetParent()) {
-      if (nsLayoutUtils::IsFixedPosFrameInDisplayPort(f, &displayPort)) {
-        result = f;
-        break;
-      }
-      if (f == mContainerReferenceFrame) {
-        
-        return nullptr;
-      }
-    }
-    if (!result) {
+    if (f == mContainerReferenceFrame) {
+      
       return nullptr;
     }
   }
-  return result;
+  return nullptr;
 }
 
 void
@@ -1860,7 +1853,8 @@ ContainerState::PopThebesLayerData()
   nsRefPtr<Layer> layer;
   nsRefPtr<ImageContainer> imageContainer = data->CanOptimizeImageLayer(mBuilder);
 
-  if ((data->mIsSolidColorInVisibleRegion || imageContainer) &&
+  bool isRetained = data->mLayer->Manager()->IsWidgetLayerManager();
+  if (isRetained && (data->mIsSolidColorInVisibleRegion || imageContainer) &&
       (data->mLayer->GetValidRegion().IsEmpty() || mLayerBuilder->CheckInLayerTreeCompressionMode())) {
     NS_ASSERTION(!(data->mIsSolidColorInVisibleRegion && imageContainer),
                  "Can't be a solid color as well as an image!");
@@ -2080,6 +2074,7 @@ ThebesLayerData::Accumulate(ContainerState* aState,
   } else {
     mImage = nullptr;
   }
+  bool clipMatches = mItemClip == aClip;
   mItemClip = aClip;
 
   if (!mIsSolidColorInVisibleRegion && mOpaqueRegion.Contains(aDrawRect) &&
@@ -2113,13 +2108,14 @@ ThebesLayerData::Accumulate(ContainerState* aState,
         isUniform = false;
       }
     }
-    if (isUniform && aClip.GetRoundedRectCount() == 0) {
+    if (isUniform) {
       if (mVisibleRegion.IsEmpty()) {
         
         mSolidColor = uniformColor;
         mIsSolidColorInVisibleRegion = true;
       } else if (mIsSolidColorInVisibleRegion &&
-                 mVisibleRegion.IsEqual(nsIntRegion(aVisibleRect))) {
+                 mVisibleRegion.IsEqual(nsIntRegion(aVisibleRect)) &&
+                 clipMatches) {
         
         mSolidColor = NS_ComposeColors(mSolidColor, uniformColor);
       } else {
