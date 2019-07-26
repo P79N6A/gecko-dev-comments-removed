@@ -32,6 +32,7 @@ namespace mozilla {
 namespace dom {
 
 class EventTarget;
+class Element;
 
 typedef CallbackObjectHolder<EventListener, nsIDOMEventListener>
   EventListenerHolder;
@@ -284,13 +285,16 @@ public:
 
 
 
+
+
   
   
   nsresult SetEventHandler(nsIAtom *aName,
                            const nsAString& aFunc,
                            uint32_t aLanguage,
                            bool aDeferCompilation,
-                           bool aPermitUntrustedEvents);
+                           bool aPermitUntrustedEvents,
+                           mozilla::dom::Element* aElement);
   
 
 
@@ -422,8 +426,10 @@ protected:
 
 
 
+
   nsresult CompileEventHandlerInternal(nsListenerStruct *aListenerStruct,
-                                       const nsAString* aBody);
+                                       const nsAString* aBody,
+                                       mozilla::dom::Element* aElement);
 
   
 
