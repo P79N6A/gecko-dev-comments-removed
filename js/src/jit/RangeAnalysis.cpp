@@ -2069,10 +2069,6 @@ RangeAnalysis::addRangeAssertions()
             if (r.isUnknown() || (ins->type() == MIRType_Int32 && r.isUnknownInt32()))
                 continue;
 
-            
-            if (ins->isPassArg())
-                continue;
-
             MAssertRange *guard = MAssertRange::New(alloc(), ins, new(alloc()) Range(r));
 
             

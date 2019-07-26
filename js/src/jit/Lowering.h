@@ -30,20 +30,12 @@ class LIRGenerator : public LIRGeneratorSpecific
     void updateResumeState(MBasicBlock *block);
 
     
-    uint32_t argslots_;
-    
     uint32_t maxargslots_;
-
-#ifdef DEBUG
-    
-    
-    Vector<MPrepareCall *, 4, SystemAllocPolicy> prepareCallStack_;
-#endif
 
   public:
     LIRGenerator(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
       : LIRGeneratorSpecific(gen, graph, lirGraph),
-        argslots_(0), maxargslots_(0)
+        maxargslots_(0)
     { }
 
     bool generate();
@@ -61,14 +53,7 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool precreatePhi(LBlock *block, MPhi *phi);
     bool definePhis();
 
-    
-    void allocateArguments(uint32_t argc);
-    
-    
-    uint32_t getArgumentSlot(uint32_t argnum);
-    uint32_t getArgumentSlotForCall() { return argslots_; }
-    
-    void freeArguments(uint32_t argc);
+    bool lowerCallArguments(MCall *call);
 
   public:
     bool visitInstruction(MInstruction *ins);
@@ -99,8 +84,6 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool visitCheckOverRecursedPar(MCheckOverRecursedPar *ins);
     bool visitDefVar(MDefVar *ins);
     bool visitDefFun(MDefFun *ins);
-    bool visitPrepareCall(MPrepareCall *ins);
-    bool visitPassArg(MPassArg *arg);
     bool visitCreateThisWithTemplate(MCreateThisWithTemplate *ins);
     bool visitCreateThisWithProto(MCreateThisWithProto *ins);
     bool visitCreateThis(MCreateThis *ins);

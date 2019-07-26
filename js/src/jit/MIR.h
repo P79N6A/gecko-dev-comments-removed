@@ -1747,26 +1747,6 @@ class MInitElemGetterSetter
     }
 };
 
-
-
-
-class MPrepareCall : public MNullaryInstruction
-{
-  public:
-    INSTRUCTION_HEADER(PrepareCall)
-
-    static MPrepareCall *New(TempAllocator &alloc) {
-        return new(alloc) MPrepareCall();
-    }
-
-    
-    uint32_t argc() const;
-
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-};
-
 class MVariadicInstruction : public MInstruction
 {
     FixedList<MUse> operands_;
@@ -1801,9 +1781,8 @@ class MCall
   private:
     
     
-    static const size_t PrepareCallOperandIndex  = 0;
-    static const size_t FunctionOperandIndex   = 1;
-    static const size_t NumNonArgumentOperands = 2;
+    static const size_t FunctionOperandIndex   = 0;
+    static const size_t NumNonArgumentOperands = 1;
 
   protected:
     
@@ -1829,12 +1808,7 @@ class MCall
     static MCall *New(TempAllocator &alloc, JSFunction *target, size_t maxArgc, size_t numActualArgs,
                       bool construct);
 
-    void initPrepareCall(MDefinition *start) {
-        JS_ASSERT(start->isPrepareCall());
-        return setOperand(PrepareCallOperandIndex, start);
-    }
     void initFunction(MDefinition *func) {
-        JS_ASSERT(!func->isPassArg());
         return setOperand(FunctionOperandIndex, func);
     }
 
@@ -1845,10 +1819,6 @@ class MCall
     void disableArgCheck() {
         needsArgCheck_ = false;
     }
-
-    MPrepareCall *getPrepareCall() {
-        return getOperand(PrepareCallOperandIndex)->toPrepareCall();
-    }
     MDefinition *getFunction() const {
         return getOperand(FunctionOperandIndex);
     }
@@ -1856,7 +1826,7 @@ class MCall
         replaceOperand(FunctionOperandIndex, newfunc);
     }
 
-    void addArg(size_t argnum, MPassArg *arg);
+    void addArg(size_t argnum, MDefinition *arg);
 
     MDefinition *getArg(uint32_t index) const {
         return getOperand(NumNonArgumentOperands + index);
@@ -1871,6 +1841,9 @@ class MCall
     }
     static size_t IndexOfArgument(size_t index) {
         return NumNonArgumentOperands + index + 1; 
+    }
+    static size_t IndexOfStackArg(size_t index) {
+        return NumNonArgumentOperands + index;
     }
 
     
@@ -2798,55 +2771,6 @@ class MReturnFromCtor
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
-    TypePolicy *typePolicy() {
-        return this;
-    }
-};
-
-
-
-
-
-
-class MPassArg
-  : public MUnaryInstruction,
-    public NoFloatPolicy<0>
-{
-    int32_t argnum_;
-
-  private:
-    MPassArg(MDefinition *def)
-      : MUnaryInstruction(def), argnum_(-1)
-    {
-        setResultType(def->type());
-        setResultTypeSet(def->resultTypeSet());
-    }
-
-  public:
-    INSTRUCTION_HEADER(PassArg)
-    static MPassArg *New(TempAllocator &alloc, MDefinition *def)
-    {
-        return new(alloc) MPassArg(def);
-    }
-
-    MDefinition *getArgument() const {
-        return getOperand(0);
-    }
-
-    
-    void setArgnum(uint32_t argnum) {
-        argnum_ = argnum;
-        JS_ASSERT(argnum_ >= 0);
-    }
-    uint32_t getArgnum() const {
-        JS_ASSERT(argnum_ >= 0);
-        return (uint32_t)argnum_;
-    }
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-    void printOpcode(FILE *fp) const;
-
     TypePolicy *typePolicy() {
         return this;
     }

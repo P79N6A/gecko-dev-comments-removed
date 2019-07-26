@@ -288,22 +288,6 @@ UnreachableCodeElimination::removeUnmarkedBlocksAndClearDominators()
                 }
             }
 
-            
-            
-            
-            
-            for (MInstructionIterator iter(block->begin()); iter != block->end(); iter++) {
-                if (iter->isCall()) {
-                    MCall *call = iter->toCall();
-                    for (size_t i = 0; i < call->numStackArgs(); i++) {
-                        JS_ASSERT(call->getArg(i)->isPassArg());
-                        JS_ASSERT(call->getArg(i)->hasOneDefUse());
-                        MPassArg *arg = call->getArg(i)->toPassArg();
-                        arg->replaceAllUsesWith(arg->getArgument());
-                    }
-                }
-            }
-
             graph_.removeBlock(block);
         }
     }
