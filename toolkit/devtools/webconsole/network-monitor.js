@@ -1004,8 +1004,11 @@ NetworkMonitor.prototype = {
 
 
 
-function NetworkMonitorChild(appId, messageManager, owner) {
+
+
+function NetworkMonitorChild(appId, messageManager, connID, owner) {
   this.appId = appId;
+  this.connID = connID;
   this.owner = owner;
   this._messageManager = messageManager;
   this._onNewEvent = this._onNewEvent.bind(this);
@@ -1027,7 +1030,7 @@ NetworkMonitorChild.prototype = {
   set saveRequestAndResponseBodies(val) {
     this._saveRequestAndResponseBodies = val;
 
-    this._messageManager.sendAsyncMessage("debug:netmonitor", {
+    this._messageManager.sendAsyncMessage("debug:netmonitor:" + this.connID, {
       appId: this.appId,
       action: "setPreferences",
       preferences: {
@@ -1037,9 +1040,12 @@ NetworkMonitorChild.prototype = {
   },
 
   init: function() {
-    this._messageManager.addMessageListener("debug:netmonitor:newEvent", this._onNewEvent);
-    this._messageManager.addMessageListener("debug:netmonitor:updateEvent", this._onUpdateEvent);
-    this._messageManager.sendAsyncMessage("debug:netmonitor", {
+    let mm = this._messageManager;
+    mm.addMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
+                          this._onNewEvent);
+    mm.addMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
+                          this._onUpdateEvent);
+    mm.sendAsyncMessage("debug:netmonitor:" + this.connID, {
       appId: this.appId,
       action: "start",
     });
@@ -1067,9 +1073,14 @@ NetworkMonitorChild.prototype = {
   }),
 
   destroy: function() {
-    this._messageManager.removeMessageListener("debug:netmonitor:newEvent", this._onNewEvent);
-    this._messageManager.removeMessageListener("debug:netmonitor:updateEvent", this._onUpdateEvent);
-    this._messageManager.sendAsyncMessage("debug:netmonitor", { action: "disconnect" });
+    let mm = this._messageManager;
+    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":newEvent",
+                             this._onNewEvent);
+    mm.removeMessageListener("debug:netmonitor:" + this.connID + ":updateEvent",
+                             this._onUpdateEvent);
+    mm.sendAsyncMessage("debug:netmonitor:" + this.connID, {
+      action: "disconnect",
+    });
     this._netEvents.clear();
     this._messageManager = null;
     this.owner = null;
@@ -1091,8 +1102,11 @@ NetworkMonitorChild.prototype = {
 
 
 
-function NetworkEventActorProxy(messageManager) {
+
+
+function NetworkEventActorProxy(messageManager, connID) {
   this.id = gSequenceId();
+  this.connID = connID;
   this.messageManager = messageManager;
 }
 exports.NetworkEventActorProxy = NetworkEventActorProxy;
@@ -1100,7 +1114,8 @@ exports.NetworkEventActorProxy = NetworkEventActorProxy;
 NetworkEventActorProxy.methodFactory = function(method) {
   return DevToolsUtils.makeInfallible(function() {
     let args = Array.slice(arguments);
-    this.messageManager.sendAsyncMessage("debug:netmonitor:updateEvent", {
+    let mm = this.messageManager;
+    mm.sendAsyncMessage("debug:netmonitor:" + this.connID + ":updateEvent", {
       id: this.id,
       method: method,
       args: args,
@@ -1120,7 +1135,8 @@ NetworkEventActorProxy.prototype = {
 
   init: DevToolsUtils.makeInfallible(function(event)
   {
-    this.messageManager.sendAsyncMessage("debug:netmonitor:newEvent", {
+    let mm = this.messageManager;
+    mm.sendAsyncMessage("debug:netmonitor:" + this.connID + ":newEvent", {
       id: this.id,
       event: event,
     });
@@ -1149,15 +1165,18 @@ NetworkEventActorProxy.prototype = {
 
 
 
-function NetworkMonitorManager(frame)
+
+
+function NetworkMonitorManager(frame, id)
 {
+  this.id = id;
   let mm = frame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
   this.messageManager = mm;
   this.frame = frame;
   this.onNetMonitorMessage = this.onNetMonitorMessage.bind(this);
   this.onNetworkEvent = this.onNetworkEvent.bind(this);
 
-  mm.addMessageListener("debug:netmonitor", this.onNetMonitorMessage);
+  mm.addMessageListener("debug:netmonitor:" + id, this.onNetMonitorMessage);
 }
 exports.NetworkMonitorManager = NetworkMonitorManager;
 
@@ -1175,7 +1194,6 @@ NetworkMonitorManager.prototype = {
 
   onNetMonitorMessage: DevToolsUtils.makeInfallible(function _onNetMonitorMessage(msg) {
     let { action, appId } = msg.json;
-
     
     switch (action) {
       case "start":
@@ -1222,13 +1240,15 @@ NetworkMonitorManager.prototype = {
 
 
   onNetworkEvent: DevToolsUtils.makeInfallible(function _onNetworkEvent(event) {
-    return new NetworkEventActorProxy(this.messageManager).init(event);
+    return new NetworkEventActorProxy(this.messageManager, this.id).init(event);
   }),
 
   destroy: function()
   {
-    this.messageManager.removeMessageListener("debug:netmonitor",
-                                              this.onNetMonitorMessage);
+    if (this.messageManager) {
+      this.messageManager.removeMessageListener("debug:netmonitor:" + this.id,
+                                                this.onNetMonitorMessage);
+    }
     this.messageManager = null;
     this.filters = null;
 

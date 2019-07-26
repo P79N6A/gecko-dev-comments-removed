@@ -70,6 +70,10 @@ this.all = all;
 Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
 Cu.import("resource://gre/modules/devtools/Console.jsm");
 
+XPCOMUtils.defineLazyGetter(this, "NetworkMonitorManager", () => {
+  return require("devtools/toolkit/webconsole/network-monitor").NetworkMonitorManager;
+});
+
 function dumpn(str) {
   if (wantLogging) {
     dump("DBG-SERVER: " + str + "\n");
@@ -536,14 +540,29 @@ var DebuggerServer = {
     return this._onConnection(transport, aPrefix, true);
   },
 
-  connectToChild: function(aConnection, aMessageManager, aOnDisconnect) {
-    let deferred = Promise.defer();
+  
 
-    let mm = aMessageManager;
+
+
+
+
+
+
+
+
+
+
+
+  connectToChild: function(aConnection, aFrame, aOnDisconnect) {
+    let deferred = defer();
+
+    let mm = aFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader
+             .messageManager;
     mm.loadFrameScript("resource://gre/modules/devtools/server/child.js", false);
 
     let actor, childTransport;
     let prefix = aConnection.allocID("child");
+    let netMonitor = null;
 
     let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
       mm.removeMessageListener("debug:actor", onActorCreated);
@@ -561,6 +580,8 @@ var DebuggerServer = {
       dumpn("establishing forwarding for app with prefix " + prefix);
 
       actor = msg.json.actor;
+
+      netMonitor = new NetworkMonitorManager(aFrame, actor.actor);
 
       deferred.resolve(actor);
     }).bind(this);
@@ -587,6 +608,11 @@ var DebuggerServer = {
           
           aConnection.send({ from: actor.actor, type: "tabDetached" });
           actor = null;
+        }
+
+        if (netMonitor) {
+          netMonitor.destroy();
+          netMonitor = null;
         }
 
         if (aOnDisconnect) {
