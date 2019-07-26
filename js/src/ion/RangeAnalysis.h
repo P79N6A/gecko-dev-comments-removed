@@ -11,59 +11,12 @@
 #include "wtf/Platform.h"
 #include "MIR.h"
 #include "CompileInfo.h"
-#include "IonAnalysis.h"
 
 namespace js {
 namespace ion {
 
 class MBasicBlock;
 class MIRGraph;
-
-
-
-
-
-struct LoopIterationBound : public TempObject
-{
-    
-    MBasicBlock *header;
-
-    
-    
-    
-    
-    MTest *test;
-
-    
-    LinearSum sum;
-
-    LoopIterationBound(MBasicBlock *header, MTest *test, LinearSum sum)
-      : header(header), test(test), sum(sum)
-    {
-    }
-};
-
-
-struct SymbolicBound : public TempObject
-{
-    
-    
-    
-    
-    
-    
-    LoopIterationBound *loop;
-
-    
-    LinearSum sum;
-
-    SymbolicBound(LoopIterationBound *loop, LinearSum sum)
-      : loop(loop), sum(sum)
-    {
-    }
-
-    void print(Sprinter &sp) const;
-};
 
 class RangeAnalysis
 {
@@ -80,20 +33,16 @@ class RangeAnalysis
     bool addBetaNobes();
     bool analyze();
     bool removeBetaNobes();
-
-  private:
-    void analyzeLoop(MBasicBlock *header);
-    LoopIterationBound *analyzeLoopIterationCount(MBasicBlock *header,
-                                                  MTest *test, BranchDirection direction);
-    void analyzeLoopPhi(MBasicBlock *header, LoopIterationBound *loopBound, MPhi *phi);
-    bool tryHoistBoundsCheck(MBasicBlock *header, MBoundsCheck *ins);
-    void markBlocksInLoopBody(MBasicBlock *header, MBasicBlock *current);
 };
 
-class Range : public TempObject {
+struct RangeChangeCount;
+class Range {
   private:
     
     
+    
+    
+
     
     
     
@@ -120,38 +69,33 @@ class Range : public TempObject {
     int32 upper_;
     bool upper_infinite_;
 
-    
-    const SymbolicBound *symbolicLower_;
-    const SymbolicBound *symbolicUpper_;
-
   public:
     Range()
         : lower_(JSVAL_INT_MIN),
           lower_infinite_(true),
           upper_(JSVAL_INT_MAX),
-          upper_infinite_(true),
-          symbolicLower_(NULL),
-          symbolicUpper_(NULL)
+          upper_infinite_(true)
     {}
 
-    Range(int64_t l, int64_t h)
-        : symbolicLower_(NULL),
-          symbolicUpper_(NULL)
-    {
+    Range(int64_t l, int64_t h) {
         setLower(l);
         setUpper(h);
     }
 
     Range(const Range &other)
-        : lower_(other.lower_),
-          lower_infinite_(other.lower_infinite_),
-          upper_(other.upper_),
-          upper_infinite_(other.upper_infinite_),
-          symbolicLower_(NULL),
-          symbolicUpper_(NULL)
+    : lower_(other.lower_),
+      lower_infinite_(other.lower_infinite_),
+      upper_(other.upper_),
+      upper_infinite_(other.upper_infinite_)
     {}
-
-    static Range *Truncate(int64_t l, int64_t h);
+    static Range Truncate(int64_t l, int64_t h) {
+        Range ret(l,h);
+        if (!ret.isFinite()) {
+            ret.makeLowerInfinite();
+            ret.makeUpperInfinite();
+        }
+        return ret;
+    }
 
     static int64_t abs64(int64_t x) {
 #ifdef WTF_OS_WINDOWS
@@ -161,7 +105,7 @@ class Range : public TempObject {
 #endif
     }
 
-    void print(Sprinter &sp) const;
+    void printRange(FILE *fp);
     bool update(const Range *other);
     bool update(const Range &other) {
         return update(&other);
@@ -172,15 +116,15 @@ class Range : public TempObject {
     
     
     void unionWith(const Range *other);
-    static Range * intersect(const Range *lhs, const Range *rhs, bool *emptyRange);
-    static Range * addTruncate(const Range *lhs, const Range *rhs);
-    static Range * subTruncate(const Range *lhs, const Range *rhs);
-    static Range * add(const Range *lhs, const Range *rhs);
-    static Range * sub(const Range *lhs, const Range *rhs);
-    static Range * mul(const Range *lhs, const Range *rhs);
-    static Range * and_(const Range *lhs, const Range *rhs);
-    static Range * shl(const Range *lhs, int32 c);
-    static Range * shr(const Range *lhs, int32 c);
+    static Range intersect(const Range *lhs, const Range *rhs, bool *nullRange);
+    static Range addTruncate(const Range *lhs, const Range *rhs);
+    static Range subTruncate(const Range *lhs, const Range *rhs);
+    static Range add(const Range *lhs, const Range *rhs);
+    static Range sub(const Range *lhs, const Range *rhs);
+    static Range mul(const Range *lhs, const Range *rhs);
+    static Range and_(const Range *lhs, const Range *rhs);
+    static Range shl(const Range *lhs, int32 c);
+    static Range shr(const Range *lhs, int32 c);
 
     static bool precisionLossMul(const Range *lhs, const Range *rhs);
 
@@ -240,20 +184,35 @@ class Range : public TempObject {
         setLower(l);
         setUpper(h);
     }
+};
 
-    const SymbolicBound *symbolicLower() const {
-        return symbolicLower_;
+struct RangeChangeCount {
+    Range oldRange;
+    unsigned char lowerCount_ : 4;
+    unsigned char upperCount_ : 4;
+    RangeChangeCount() : oldRange(), lowerCount_(0), upperCount_(0) {};
+    void updateRange(Range *newRange) {
+        JS_ASSERT(newRange->lower() >= oldRange.lower());
+        if (newRange->lower() != oldRange.lower())
+            lowerCount_ = lowerCount_ < 15 ? lowerCount_ + 1 : lowerCount_;
+        JS_ASSERT(newRange->upper() <= oldRange.upper());
+        if (newRange->upper() != oldRange.upper())
+            upperCount_ = upperCount_ < 15 ? upperCount_ + 1 : upperCount_;
+        oldRange = *newRange;
     }
-    const SymbolicBound *symbolicUpper() const {
-        return symbolicUpper_;
-    }
-
-    void setSymbolicLower(SymbolicBound *bound) {
-        symbolicLower_ = bound;
-    }
-    void setSymbolicUpper(SymbolicBound *bound) {
-        symbolicUpper_ = bound;
-    }
+};
+class RangeUpdater {
+    Range r_;
+    bool lowerSet_;
+    bool upperSet_;
+  public:
+    RangeUpdater() : r_(), lowerSet_(false), upperSet_(false) {}
+    void unionWith(const Range *other);
+    void unionWith(RangeChangeCount *other);
+    void updateLower(const Range * other);
+    void updateUpper(const Range * other);
+    Range *getRange() { JS_ASSERT(lowerSet_ && upperSet_); return &r_; }
+    void printRange(FILE *fp) { r_.printRange(fp); }
 };
 
 } 
