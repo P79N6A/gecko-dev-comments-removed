@@ -277,7 +277,7 @@ public:
   
   
   
-  nsresult 
+  void
   ReflowChild(nsIFrame*                aKidFrame,
               nsPresContext*          aPresContext,
               nsHTMLReflowMetrics&     aDesiredSize,

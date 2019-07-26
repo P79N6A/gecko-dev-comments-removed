@@ -792,7 +792,7 @@ nscoord CalcHeightFromUnpaginatedHeight(nsPresContext*   aPresContext,
   return std::max(height, 0);
 }
 
-nsresult
+void
 nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
                                 nsHTMLReflowMetrics&     aDesiredSize,
                                 const nsHTMLReflowState& aReflowState,
@@ -804,7 +804,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   
   const bool isPaginated = aPresContext->IsPaginated();
   const bool borderCollapse = aTableFrame.IsBorderCollapse();
-  nsresult rv = NS_OK;
+
   nscoord cellSpacingX = aTableFrame.GetCellSpacingX();
   int32_t cellColSpan = 1;  
   
@@ -912,8 +912,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
                              kidReflowState);
 
         nsReflowStatus status;
-        rv = ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
-                         x, 0, 0, status);
+        ReflowChild(kidFrame, aPresContext, desiredSize, kidReflowState,
+                    x, 0, 0, status);
 
         
         
@@ -1029,7 +1029,6 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   }
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
   FinishAndStoreOverflow(&aDesiredSize);
-  return rv;
 }
 
 
