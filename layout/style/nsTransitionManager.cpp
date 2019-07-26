@@ -51,35 +51,29 @@ ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
   
   
   
-  double duration = mTiming.mIterationDuration.ToSeconds();
-  NS_ABORT_IF_FALSE(duration >= 0.0, "negative duration forbidden");
-  double timePortion;
-  if (IsFinishedTransition()) {
-    
-    
-    timePortion = 1.0;
-  } else if (duration == 0.0) {
-    
-    
-    if (aRefreshTime >= mStartTime + mTiming.mDelay) {
-      timePortion = 1.0;
-    } else {
-      timePortion = 0.0;
-    }
-  } else {
-    timePortion =
-      (aRefreshTime - (mStartTime + mTiming.mDelay)).ToSeconds() / duration;
-    if (timePortion < 0.0)
-      timePortion = 0.0; 
-    if (timePortion > 1.0)
-      timePortion = 1.0; 
-  }
+  MOZ_ASSERT(!IsFinishedTransition(),
+             "Getting the value portion of a finished transition");
+
+  TimeDuration localTime = GetLocalTimeAt(aRefreshTime);
+
+  
+  
+  
+  
+  
+  
+  AnimationTiming timingToUse = mTiming;
+  timingToUse.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
+  ComputedTiming computedTiming = GetComputedTimingAt(localTime, timingToUse);
+
+  MOZ_ASSERT(computedTiming.mTimeFraction != ComputedTiming::kNullTimeFraction,
+             "Got a null time fraction for a fill mode of 'both'");
   MOZ_ASSERT(mProperties.Length() == 1,
              "Should have one animation property for a transition");
   MOZ_ASSERT(mProperties[0].mSegments.Length() == 1,
              "Animation property should have one segment for a transition");
-
-  return mProperties[0].mSegments[0].mTimingFunction.GetValue(timePortion);
+  return mProperties[0].mSegments[0].mTimingFunction
+         .GetValue(computedTiming.mTimeFraction);
 }
 
 static void
