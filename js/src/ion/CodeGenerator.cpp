@@ -2130,19 +2130,17 @@ CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
     
 
     JSRuntime *rt = gen->compartment->rt;
-    Register limitReg = ToRegister(lir->limitTemp());
 
     
     
     uintptr_t *limitAddr = &rt->mainThread.ionStackLimit;
-    masm.loadPtr(AbsoluteAddress(limitAddr), limitReg);
 
     CheckOverRecursedFailure *ool = new CheckOverRecursedFailure(lir);
     if (!addOutOfLineCode(ool))
         return false;
 
     
-    masm.branchPtr(Assembler::BelowOrEqual, StackPointer, limitReg, ool->entry());
+    masm.branchPtr(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr), StackPointer, ool->entry());
     masm.bind(ool->rejoin());
 
     return true;
