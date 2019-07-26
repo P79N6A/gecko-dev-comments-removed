@@ -673,23 +673,22 @@ JitCode::finalize(FreeOp *fop)
     
     JS_ASSERT(fop->runtime()->currentThreadOwnsInterruptLock());
 
-#ifdef DEBUG
     
     
     
     if (fop->runtime()->jitRuntime() && !fop->runtime()->jitRuntime()->ionCodeProtected())
-        JS_POISON(code_, JS_FREE_PATTERN, bufferSize_);
-#endif
+        memset(code_, JS_FREE_PATTERN, bufferSize_);
+    code_ = nullptr;
 
     
     
-    if (PerfEnabled())
-        return;
-
-    
-    
-    if (pool_)
-        pool_->release();
+    if (pool_) {
+        
+        
+        if (!PerfEnabled())
+            pool_->release();
+        pool_ = nullptr;
+    }
 }
 
 void
