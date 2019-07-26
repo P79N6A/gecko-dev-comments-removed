@@ -78,7 +78,7 @@ SetObexPacketInfo(uint8_t* aRetBuf, uint8_t aOpcode, int aPacketLength)
   aRetBuf[2] = aPacketLength & 0x00FF;
 }
 
-void
+bool
 ParseHeaders(const uint8_t* aHeaderStart,
              int aTotalLength,
              ObexHeaderSet* aRetHandlerSet)
@@ -88,7 +88,7 @@ ParseHeaders(const uint8_t* aHeaderStart,
   while (ptr - aHeaderStart < aTotalLength) {
     ObexHeaderId headerId = (ObexHeaderId)*ptr++;
 
-    int contentLength = 0;
+    uint16_t contentLength = 0;
     uint8_t highByte, lowByte;
 
     
@@ -101,7 +101,7 @@ ParseHeaders(const uint8_t* aHeaderStart,
         
         highByte = *ptr++;
         lowByte = *ptr++;
-        contentLength = (((int)highByte << 8) | lowByte) - 3;
+        contentLength = (((uint16_t)highByte << 8) | lowByte) - 3;
         break;
 
       case 0x02:
@@ -115,10 +115,20 @@ ParseHeaders(const uint8_t* aHeaderStart,
         break;
     }
 
-    aRetHandlerSet->AddHeader(new ObexHeader(headerId, contentLength, ptr));
+    
+    if (ptr + contentLength > aHeaderStart + aTotalLength) {
+      
+      
+      MOZ_ASSERT(false);
+      aRetHandlerSet->ClearHeaders();
+      return false;
+    }
 
+    aRetHandlerSet->AddHeader(new ObexHeader(headerId, contentLength, ptr));
     ptr += contentLength;
   }
+
+  return true;
 }
 
 END_BLUETOOTH_NAMESPACE

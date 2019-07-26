@@ -819,25 +819,31 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     
     
     
-    ParseHeaders(&aMessage->mData[7],
-                 receivedLength - 7,
-                 &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[7], receivedLength - 7, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToConnect();
     AfterOppConnected();
   } else if (opCode == ObexRequestCode::Abort) {
     
     
-    ParseHeaders(&aMessage->mData[3],
-                receivedLength - 3,
-                &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToDisconnectOrAbort();
     DeleteReceivedFile();
   } else if (opCode == ObexRequestCode::Disconnect) {
     
     
-    ParseHeaders(&aMessage->mData[3],
-                receivedLength - 3,
-                &pktHeaders);
+    if (!ParseHeaders(&aMessage->mData[3], receivedLength - 3, &pktHeaders)) {
+      ReplyError(ObexResponseCode::BadRequest);
+      return;
+    }
+
     ReplyToDisconnectOrAbort();
     AfterOppDisconnected();
     FileTransferComplete();
@@ -1213,7 +1219,7 @@ BluetoothOppManager::ReplyToPut(bool aFinal, bool aContinue)
 void
 BluetoothOppManager::ReplyError(uint8_t aError)
 {
-  if (!mConnected) return;
+  BT_LOGR("error: %d", aError);
 
   
   
