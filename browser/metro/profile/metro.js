@@ -30,6 +30,7 @@ pref("prompts.tab_modal.enabled", true);
 
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.async-pan-zoom.enabled", false);
+pref("gfx.axis.fling_friction", "0.002");
 
 
 pref("intl.enable_tsf_support", true);
