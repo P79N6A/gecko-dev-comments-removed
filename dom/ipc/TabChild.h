@@ -46,6 +46,7 @@ namespace dom {
 
 class TabChild;
 class ClonedMessageData;
+class TabChildBase;
 
 class TabChildGlobal : public nsDOMEventTargetHelper,
                        public nsIContentFrameMessageManager,
@@ -53,7 +54,7 @@ class TabChildGlobal : public nsDOMEventTargetHelper,
                        public nsIGlobalObject
 {
 public:
-  TabChildGlobal(TabChild* aTabChild);
+  TabChildGlobal(TabChildBase* aTabChild);
   void Init();
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TabChildGlobal, nsDOMEventTargetHelper)
@@ -129,7 +130,7 @@ public:
   virtual JSObject* GetGlobalJSObject() MOZ_OVERRIDE;
 
   nsCOMPtr<nsIContentFrameMessageManager> mMessageManager;
-  TabChild* mTabChild;
+  TabChildBase* mTabChild;
 };
 
 class ContentListener MOZ_FINAL : public nsIDOMEventListener
@@ -142,8 +143,74 @@ protected:
   TabChild* mTabChild;
 };
 
+
+
+
+
+class TabChildBase : public nsFrameScriptExecutor,
+                     public ipc::MessageManagerCallback
+{
+public:
+    TabChildBase();
+
+    virtual nsIWebNavigation* WebNavigation() = 0;
+    virtual nsIWidget* WebWidget() = 0;
+    nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    bool IsAsyncPanZoomEnabled();
+    
+    
+    
+    
+    
+    bool HandlePossibleViewportChange();
+    virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
+                                         const mozilla::layers::FrameMetrics::ViewID& aViewId,
+                                         const bool& aIsRoot,
+                                         const mozilla::layers::ZoomConstraints& aConstraints) = 0;
+
+    nsEventStatus DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
+                                                const LayoutDevicePoint& aRefPoint,
+                                                nsIWidget* aWidget);
+
+protected:
+    CSSSize GetPageSize(nsCOMPtr<nsIDocument> aDocument, const CSSSize& aViewport);
+
+    
+    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
+    
+    already_AddRefed<nsIDocument> GetDocument();
+
+    
+    
+    void SetCSSViewport(const CSSSize& aSize);
+
+    
+    
+    
+    
+    
+    void DispatchMessageManagerMessage(const nsAString& aMessageName,
+                                       const nsAString& aJSONData);
+
+    nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& event);
+
+    bool HasValidInnerSize();
+    void InitializeRootMetrics();
+
+    mozilla::layers::FrameMetrics ProcessUpdateFrame(const mozilla::layers::FrameMetrics& aFrameMetrics);
+
+    bool UpdateFrameHandler(const mozilla::layers::FrameMetrics& aFrameMetrics);
+
+protected:
+    float mOldViewportWidth;
+    bool mContentDocumentIsDisplayed;
+    nsRefPtr<TabChildGlobal> mTabChildGlobal;
+    ScreenIntSize mInnerSize;
+    mozilla::layers::FrameMetrics mLastRootMetrics;
+    mozilla::layout::ScrollingBehavior mScrolling;
+};
+
 class TabChild : public PBrowserChild,
-                 public nsFrameScriptExecutor,
                  public nsIWebBrowserChrome2,
                  public nsIEmbeddingSiteWindow,
                  public nsIWebBrowserChromeFocus,
@@ -154,9 +221,9 @@ class TabChild : public PBrowserChild,
                  public nsSupportsWeakReference,
                  public nsITabChild,
                  public nsIObserver,
-                 public ipc::MessageManagerCallback,
                  public TabContext,
-                 public nsITooltipListener
+                 public nsITooltipListener,
+                 public TabChildBase
 {
     typedef mozilla::dom::ClonedMessageData ClonedMessageData;
     typedef mozilla::layout::RenderFrameChild RenderFrameChild;
@@ -206,7 +273,10 @@ public:
                                     const mozilla::dom::StructuredCloneData& aData,
                                     JS::Handle<JSObject *> aCpows,
                                     nsIPrincipal* aPrincipal) MOZ_OVERRIDE;
-
+    virtual bool DoUpdateZoomConstraints(const uint32_t& aPresShellId,
+                                         const ViewID& aViewId,
+                                         const bool& aIsRoot,
+                                         const ZoomConstraints& aConstraints) MOZ_OVERRIDE;
     virtual bool RecvLoadURL(const nsCString& uri) MOZ_OVERRIDE;
     virtual bool RecvCacheFileDescriptor(const nsString& aPath,
                                          const FileDescriptor& aFileDescriptor)
@@ -304,9 +374,8 @@ public:
     virtual bool
     DeallocPOfflineCacheUpdateChild(POfflineCacheUpdateChild* offlineCacheUpdate) MOZ_OVERRIDE;
 
-    nsIWebNavigation* WebNavigation() { return mWebNav; }
-
-    nsIPrincipal* GetPrincipal() { return mPrincipal; }
+    virtual nsIWebNavigation* WebNavigation() MOZ_OVERRIDE { return mWebNav; }
+    virtual nsIWidget* WebWidget() MOZ_OVERRIDE { return mWidget; }
 
     
     void GetDPI(float* aDPI);
@@ -318,7 +387,6 @@ public:
 
     void NotifyPainted();
 
-    bool IsAsyncPanZoomEnabled();
 
     
 
@@ -378,8 +446,6 @@ protected:
     virtual bool RecvSetUpdateHitRegion(const bool& aEnabled) MOZ_OVERRIDE;
     virtual bool RecvSetIsDocShellActive(const bool& aIsActive) MOZ_OVERRIDE;
 
-    nsEventStatus DispatchWidgetEvent(WidgetGUIEvent& event);
-
     virtual PIndexedDBChild* AllocPIndexedDBChild(const nsCString& aGroup,
                                                   const nsCString& aASCIIOrigin,
                                                   bool* ) MOZ_OVERRIDE;
@@ -399,8 +465,6 @@ private:
 
     nsresult Init();
 
-    void InitializeRootMetrics();
-    bool HasValidInnerSize();
 
     
     
@@ -418,32 +482,9 @@ private:
     bool InitRenderingState();
     void DestroyWindow();
     void SetProcessNameToAppName();
-    FrameMetrics ProcessUpdateFrame(const FrameMetrics& aFrameMetrics);
 
     
     void DoFakeShow();
-
-    
-    
-    void SetCSSViewport(const CSSSize& aSize);
-
-    
-    
-    
-    
-    
-    void HandlePossibleViewportChange();
-
-    
-    
-    
-    
-    
-    void DispatchMessageManagerMessage(const nsAString& aMessageName,
-                                       const nsACString& aJSONData);
-
-    void DispatchSynthesizedMouseEvent(uint32_t aMsg, uint64_t aTime,
-                                       const LayoutDevicePoint& aRefPoint);
 
     
     
@@ -463,11 +504,6 @@ private:
                               bool* aWindowIsNew,
                               nsIDOMWindow** aReturn);
 
-    
-    already_AddRefed<nsIDOMWindowUtils> GetDOMWindowUtils();
-    
-    already_AddRefed<nsIDocument> GetDocument();
-
     class CachedFileDescriptorInfo;
     class CachedFileDescriptorCallbackRunnable;
 
@@ -475,13 +511,10 @@ private:
     nsCOMPtr<nsIWebNavigation> mWebNav;
     nsCOMPtr<nsIWidget> mWidget;
     nsCOMPtr<nsIURI> mLastURI;
-    FrameMetrics mLastRootMetrics;
     RenderFrameChild* mRemoteFrame;
     nsRefPtr<ContentChild> mManager;
-    nsRefPtr<TabChildGlobal> mTabChildGlobal;
     uint32_t mChromeFlags;
     nsIntRect mOuterRect;
-    ScreenIntSize mInnerSize;
     
     
     LayoutDevicePoint mGestureDownPoint;
@@ -496,12 +529,9 @@ private:
     
     nsAutoTArray<nsAutoPtr<CachedFileDescriptorInfo>, 1>
         mCachedFileDescriptorInfos;
-    float mOldViewportWidth;
     nscolor mLastBackgroundColor;
-    ScrollingBehavior mScrolling;
     bool mDidFakeShow;
     bool mNotified;
-    bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
     ScreenOrientation mOrientation;
     bool mUpdateHitRegion;
