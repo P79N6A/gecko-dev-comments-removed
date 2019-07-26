@@ -550,12 +550,9 @@ GonkGPSGeolocationProvider::SetupAGPS()
   }
 
   
-  nsIInterfaceRequestor* ireq = dom::gonk::SystemWorkerManager::GetInterfaceRequestor();
-  if (ireq) {
-    mRIL = do_GetInterface(ireq);
-    if (mRIL) {
-      mRIL->RegisterDataCallCallback(this);
-    }
+  mRIL = do_GetService("@mozilla.org/ril;1");
+  if (mRIL) {
+    mRIL->RegisterDataCallCallback(this);
   }
 
   return;
