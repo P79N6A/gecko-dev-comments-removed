@@ -55,11 +55,6 @@ public:
         return mProxyInfo;
     }
 
-    void SetProxyInfo(nsIProxyInfo *pi)
-    {
-        mProxyInfo = pi;
-    }
-
     
     bool ResumeRequested() { return mResumeRequested; }
 

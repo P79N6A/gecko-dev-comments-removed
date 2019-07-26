@@ -851,6 +851,40 @@ NS_GetReferrerFromChannel(nsIChannel *channel,
     return rv;
 }
 
+#ifdef MOZILLA_INTERNAL_API
+inline nsresult
+NS_ExamineForProxy(const char    *scheme,
+                   const char    *host,
+                   int32_t        port, 
+                   nsIProxyInfo **proxyInfo)
+{
+    nsresult rv;
+    nsCOMPtr<nsIProtocolProxyService> pps =
+            do_GetService(NS_PROTOCOLPROXYSERVICE_CONTRACTID, &rv);
+    if (NS_SUCCEEDED(rv)) {
+        nsAutoCString spec(scheme);
+        spec.Append("://");
+        spec.Append(host);
+        spec.Append(':');
+        spec.AppendInt(port);
+        
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIURI> uri =
+                do_CreateInstance(NS_STANDARDURL_CONTRACTID, &rv);
+        if (NS_SUCCEEDED(rv)) {
+            rv = uri->SetSpec(spec);
+            if (NS_SUCCEEDED(rv))
+                rv = pps->Resolve(uri, 0, proxyInfo);
+        }
+    }
+    return rv;
+}
+#endif
+
 inline nsresult
 NS_ParseContentType(const nsACString &rawContentType,
                     nsCString        &contentType,

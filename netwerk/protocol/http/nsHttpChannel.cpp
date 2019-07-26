@@ -333,16 +333,20 @@ nsHttpChannel::~nsHttpChannel()
 nsresult
 nsHttpChannel::Init(nsIURI *uri,
                     uint8_t caps,
-                    nsProxyInfo *proxyInfo,
-                    uint32_t proxyResolveFlags,
-                    nsIURI *proxyURI)
+                    nsProxyInfo *proxyInfo)
 {
-    nsresult rv = HttpBaseChannel::Init(uri, caps, proxyInfo,
-                                        proxyResolveFlags, proxyURI);
+    nsresult rv = HttpBaseChannel::Init(uri, caps, proxyInfo);
     if (NS_FAILED(rv))
         return rv;
 
     LOG(("nsHttpChannel::Init [this=%p]\n", this));
+
+    mAuthProvider =
+        do_CreateInstance("@mozilla.org/network/http-channel-auth-provider;1",
+                          &rv);
+    if (NS_FAILED(rv))
+        return rv;
+    rv = mAuthProvider->Init(this);
 
     return rv;
 }
@@ -402,6 +406,13 @@ nsHttpChannel::Connect()
 
     
     SpeculativeConnect();
+
+    
+    bool offline = gIOService->IsOffline();
+    if (offline)
+        mLoadFlags |= LOAD_ONLY_FROM_CACHE;
+    else if (PL_strcmp(mConnectionInfo->ProxyType(), "unknown") == 0)
+        return ResolveProxy();  
 
     
     if (mResuming && (mLoadFlags & LOAD_ONLY_FROM_CACHE)) {
@@ -1522,6 +1533,54 @@ nsHttpChannel::ProxyFailover()
 }
 
 void
+nsHttpChannel::HandleAsyncReplaceWithProxy()
+{
+    NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+
+    if (mSuspendCount) {
+        LOG(("Waiting until resume to do async proxy replacement [this=%p]\n",
+             this));
+        mCallOnResume = &nsHttpChannel::HandleAsyncReplaceWithProxy;
+        return;
+    }
+
+    nsresult status = mStatus;
+    
+    nsCOMPtr<nsIProxyInfo> pi;
+    pi.swap(mTargetProxyInfo);
+    if (!mCanceled) {
+        PushRedirectAsyncFunc(&nsHttpChannel::ContinueHandleAsyncReplaceWithProxy);
+        status = AsyncDoReplaceWithProxy(pi);
+        if (NS_SUCCEEDED(status))
+            return;
+        PopRedirectAsyncFunc(&nsHttpChannel::ContinueHandleAsyncReplaceWithProxy);
+    }
+
+    if (NS_FAILED(status)) {
+        ContinueHandleAsyncReplaceWithProxy(status);
+    }
+}
+
+nsresult
+nsHttpChannel::ContinueHandleAsyncReplaceWithProxy(nsresult status)
+{
+    if (mLoadGroup && NS_SUCCEEDED(status)) {
+        mLoadGroup->RemoveRequest(this, nullptr, mStatus);
+    }
+    else if (NS_FAILED(status)) {
+        AsyncAbort(status);
+    }
+
+    
+    
+    
+    
+    
+    
+    return NS_OK;
+}
+
+void
 nsHttpChannel::HandleAsyncRedirectChannelToHttps()
 {
     NS_PRECONDITION(!mCallOnResume, "How did that happen?");
@@ -1665,8 +1724,7 @@ nsHttpChannel::AsyncDoReplaceWithProxy(nsIProxyInfo* pi)
     nsresult rv;
 
     nsCOMPtr<nsIChannel> newChannel;
-    rv = gHttpHandler->NewProxiedChannel(mURI, pi, mProxyResolveFlags,
-                                         mProxyURI, getter_AddRefs(newChannel));
+    rv = gHttpHandler->NewProxiedChannel(mURI, pi, getter_AddRefs(newChannel));
     if (NS_FAILED(rv))
         return rv;
 
@@ -1737,16 +1795,11 @@ nsHttpChannel::ResolveProxy()
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    uint32_t proxyConfigType;
-    if (NS_SUCCEEDED(pps->GetProxyConfigType(&proxyConfigType)) &&
-        proxyConfigType == nsIProtocolProxyService::PROXYCONFIG_DIRECT) {
-        return NS_ERROR_FAILURE;
-    }
+    uint32_t resolveFlags = 0;
+    if (mConnectionInfo->ProxyInfo())
+        mConnectionInfo->ProxyInfo()->GetResolveFlags(&resolveFlags);
 
-    return pps->AsyncResolve(mProxyURI ? mProxyURI : mURI, mProxyResolveFlags,
-                             this, getter_AddRefs(mProxyRequest));
+    return pps->AsyncResolve(mURI, resolveFlags, this, getter_AddRefs(mProxyRequest));
 }
 
 bool
@@ -4304,6 +4357,22 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (NS_FAILED(rv))
         return rv;
 
+    if (!(mConnectionInfo && mConnectionInfo->UsingHttpProxy())) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
+        mDNSPrefetch->PrefetchHigh();
+    }
+    
     
     const char *cookieHeader = mRequestHead.PeekHeader(nsHttp::Cookie);
     if (cookieHeader) {
@@ -4311,10 +4380,27 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     }
 
     AddCookiesToRequest();
+ 
+    
+    mAuthProvider->AddAuthorizationHeaders();
 
     
     gHttpHandler->OnModifyRequest(this);
 
+    
+    
+    
+    if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close"))
+        mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
+    
+    if ((mLoadFlags & VALIDATE_ALWAYS) || 
+        (BYPASS_LOCAL_CACHE(mLoadFlags)))
+        mCaps |= NS_HTTP_REFRESH_DNS;
+
+    
+    if (mLoadFlags & LOAD_FRESH_CONNECTION)
+        mCaps |= NS_HTTP_CLEAR_KEEPALIVES;
+    
     mIsPending = true;
     mWasOpened = true;
 
@@ -4333,103 +4419,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         mAsyncOpenTime = mozilla::TimeStamp::Now();
 
     
-    bool offline = gIOService->IsOffline();
-    if (offline)
-        mLoadFlags |= LOAD_ONLY_FROM_CACHE;
-
-    
-    
-    if (!mProxyInfo && NS_SUCCEEDED(ResolveProxy()))
-        return NS_OK;
-
-    return BeginConnect();
-}
-
-nsresult
-nsHttpChannel::BeginConnect()
-{
-    LOG(("nsHttpChannel::BeginConnect [this=%p]\n", this));
-    nsresult rv;
-
-    
-    nsAutoCString host;
-    int32_t port = -1;
-    bool usingSSL = false;
-
-    rv = mURI->SchemeIs("https", &usingSSL);
-    if (NS_SUCCEEDED(rv))
-        rv = mURI->GetAsciiHost(host);
-    if (NS_SUCCEEDED(rv))
-        rv = mURI->GetPort(&port);
-    if (NS_SUCCEEDED(rv))
-        rv = mURI->GetAsciiSpec(mSpec);
-    if (NS_FAILED(rv))
-        return rv;
-
-    
-    if (host.IsEmpty())
-        return NS_ERROR_MALFORMED_URI;
-    LOG(("host=%s port=%d\n", host.get(), port));
-    LOG(("uri=%s\n", mSpec.get()));
-
-    nsCOMPtr<nsProxyInfo> proxyInfo;
-    if (mProxyInfo)
-        proxyInfo = do_QueryInterface(mProxyInfo);
-
-    mConnectionInfo = new nsHttpConnectionInfo(host, port, proxyInfo, usingSSL);
-
-    mAuthProvider =
-        do_CreateInstance("@mozilla.org/network/http-channel-auth-provider;1",
-                          &rv);
-    if (NS_SUCCEEDED(rv))
-        rv = mAuthProvider->Init(this);
-    if (NS_FAILED(rv))
-        return rv;
-
-    
-    mAuthProvider->AddAuthorizationHeaders();
-
-    
-    if (!mConnectionInfo->UsingConnect() && mConnectionInfo->UsingHttpProxy()) {
-        mCaps &= ~NS_HTTP_ALLOW_PIPELINING;
-        if (gHttpHandler->ProxyPipelining())
-            mCaps |= NS_HTTP_ALLOW_PIPELINING;
-    }
-
-    
-    gHttpHandler->AddConnectionHeader(&mRequestHead.Headers(), mCaps);
-
-    if (!mConnectionInfo->UsingHttpProxy()) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        mDNSPrefetch = new nsDNSPrefetch(mURI, mTimingEnabled);
-        mDNSPrefetch->PrefetchHigh();
-    }
-    
-    
-    
-    
-    if (mRequestHead.HasHeaderValue(nsHttp::Connection, "close"))
-        mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
-    
-    if ((mLoadFlags & VALIDATE_ALWAYS) || 
-        (BYPASS_LOCAL_CACHE(mLoadFlags)))
-        mCaps |= NS_HTTP_REFRESH_DNS;
-
-    
-    if (mLoadFlags & LOAD_FRESH_CONNECTION)
-        mCaps |= NS_HTTP_CLEAR_KEEPALIVES;
-
-    
     
     
     if (mCanceled)
@@ -4442,10 +4431,14 @@ nsHttpChannel::BeginConnect()
         AsyncAbort(rv);
     } else if (mLoadFlags & LOAD_CLASSIFY_URI) {
         nsRefPtr<nsChannelClassifier> classifier = new nsChannelClassifier();
+        if (!classifier) {
+            Cancel(NS_ERROR_OUT_OF_MEMORY);
+            return NS_OK;
+        }
+
         rv = classifier->Start(this);
         if (NS_FAILED(rv)) {
             Cancel(rv);
-            return rv;
         }
     }
 
@@ -4493,33 +4486,18 @@ NS_IMETHODIMP
 nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIURI *uri,
                                 nsIProxyInfo *pi, nsresult status)
 {
-    LOG(("nsHttpChannel::OnProxyAvailable [this=%p pi=%p status=%x mStatus=%x]\n",
-         this, pi, status, mStatus));
     mProxyRequest = nullptr;
 
-    nsresult rv;
-
     
     
     
     
     
-    if (NS_SUCCEEDED(status))
-        mProxyInfo = pi;
-
-    if (!gHttpHandler->Active()) {
-        LOG(("nsHttpChannel::OnProxyAvailable [this=%p] "
-             "Handler no longer active.\n", this));
-        rv = NS_ERROR_NOT_AVAILABLE;
-    }
-    else {
-        rv = BeginConnect();
-    }
-
-    if (NS_FAILED(rv)) {
-        Cancel(rv);
-        DoNotifyListener();
-    }
+    
+    
+    
+    mTargetProxyInfo = pi;
+    HandleAsyncReplaceWithProxy();
     return NS_OK;
 }
 
