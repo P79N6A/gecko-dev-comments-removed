@@ -126,9 +126,6 @@ public:
   
   uint16_t inputSource;
 
-  
-  nsString region;
-
   void AssignMouseEventBaseData(const WidgetMouseEventBase& aEvent,
                                 bool aCopyTargets)
   {
