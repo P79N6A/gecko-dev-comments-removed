@@ -60,3 +60,123 @@ function is_approx(float1, float2, error, desc) {
   ok(Math.abs(float1 - float2) < error,
      desc + ": " + float1 + " and " + float2 + " should be within " + error);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+function runOMTATest(aTestFunction, aOnSkip) {
+  const OMTAPrefKey = "layers.offmainthreadcomposition.async-animations";
+  var utils      = SpecialPowers.DOMWindowUtils;
+  var expectOMTA = utils.layerManagerRemote &&
+                   
+                   
+                   SpecialPowers.getBoolPref(OMTAPrefKey);
+
+  isOMTAWorking().then(function(isWorking) {
+    if (expectOMTA) {
+      if (isWorking) {
+        aTestFunction();
+      } else {
+        
+        
+        
+        ok(isWorking, "OMTA is working as expected");
+        aOnSkip();
+      }
+    } else {
+      todo(isWorking, "OMTA is working");
+      aOnSkip();
+    }
+  }).catch(function(err) {
+    ok(false, err);
+    aOnSkip();
+  });
+
+  function isOMTAWorking() {
+    
+    const animationName = "a6ce3091ed85"; 
+    var ruleText = "@keyframes " + animationName +
+                   " { from { opacity: 0.5 } to { opacity 0.5 } }";
+    var style = document.createElement("style");
+    style.appendChild(document.createTextNode(ruleText));
+    document.head.appendChild(style);
+
+    
+    var div = document.createElement("div");
+    document.body.appendChild(div);
+
+    
+    div.style.width  = "100px";
+    div.style.height = "100px";
+    div.style.backgroundColor = "white";
+
+    
+    var cleanUp = function() {
+      div.parentNode.removeChild(div);
+      style.parentNode.removeChild(style);
+      if (utils.isTestControllingRefreshes) {
+        utils.restoreNormalRefresh();
+      }
+    };
+
+    return waitForDocumentLoad()
+      .then(loadPaintListener)
+      .then(function() {
+        
+        utils.advanceTimeAndRefresh(0);
+        div.style.animation = animationName + " 10s";
+
+        
+        div.clientTop;
+        return waitForPaints();
+      }).then(function() {
+        var opacity = utils.getOMTAStyle(div, "opacity");
+        cleanUp();
+        return Promise.resolve(opacity == 0.5);
+      }).catch(function(err) {
+        cleanUp();
+        return Promise.reject(err);
+      });
+  }
+
+  function waitForDocumentLoad() {
+    return new Promise(function(resolve, reject) {
+      if (document.readyState === "complete") {
+        resolve();
+      } else {
+        window.addEventListener("load", resolve);
+      }
+    });
+  }
+
+  function waitForPaints() {
+    return new Promise(function(resolve, reject) {
+      waitForAllPaintsFlushed(resolve);
+    });
+  }
+
+  function loadPaintListener() {
+    return new Promise(function(resolve, reject) {
+      if (typeof(window.waitForAllPaints) !== "function") {
+        var script = document.createElement("script");
+        script.onload = resolve;
+        script.onerror = function() {
+          reject(new Error("Failed to load paint listener"));
+        };
+        script.src = "/tests/SimpleTest/paint_listener.js";
+        var firstScript = document.scripts[0];
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        resolve();
+      }
+    });
+  }
+}
