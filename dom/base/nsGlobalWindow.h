@@ -537,6 +537,9 @@ public:
   virtual void EnableTimeChangeNotifications();
   virtual void DisableTimeChangeNotifications();
 
+  virtual void EnableNetworkEvent(uint32_t aType);
+  virtual void DisableNetworkEvent(uint32_t aType);
+
   virtual nsresult SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin);
 
   static bool DOMWindowDumpEnabled();
@@ -1083,6 +1086,11 @@ protected:
   
   
   bool                          mDialogsPermanentlyDisabled;
+
+  
+  
+  bool mObservingNetworkUpload;
+  bool mObservingNetworkDownload;
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
