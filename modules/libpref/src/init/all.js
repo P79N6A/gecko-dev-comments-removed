@@ -741,9 +741,6 @@ pref("dom.experimental_forms", false);
 pref("dom.experimental_forms_range", true);
 
 
-pref("dom.sysmsg.enabled", false);
-
-
 pref("dom.workers.mem.gc_allocation_threshold_mb", 30);
 
 
