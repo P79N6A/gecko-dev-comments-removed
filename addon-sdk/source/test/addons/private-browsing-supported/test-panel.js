@@ -81,3 +81,6 @@ function testShowPanel(assert, panel) {
 
   return promise;
 }
+
+
+module.exports = {}

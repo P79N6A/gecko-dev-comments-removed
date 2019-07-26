@@ -164,58 +164,61 @@ exports["test Document Reload"] = function(assert, done) {
   assert.pass('Panel was created');
 };
 
-exports["test Parent Resize Hack"] = function(assert, done) {
-  const { Panel } = require('sdk/panel');
 
-  let browserWindow = getMostRecentBrowserWindow();
 
-  let previousWidth = browserWindow.outerWidth;
-  let previousHeight = browserWindow.outerHeight;
 
-  let content = "<script>" +
-                "function contentResize() {" +
-                "  resizeTo(200,200);" +
-                "  resizeBy(200,200);" +
-                "  window.postMessage('resize-attempt', '*');" +
-                "}" +
-                "</script>" +
-                "Try to resize browser window";
 
-  let panel = Panel({
-    contentURL: "data:text/html;charset=utf-8," + encodeURIComponent(content),
-    contentScriptWhen: "ready",
-    contentScript: Isolate(() => {
-        self.on('message', message => {
-          if (message === 'resize') unsafeWindow.contentResize();
-        });
 
-        window.addEventListener('message', ({ data }) => self.postMessage(data));
-      }),
-    onMessage: function (message) {
-      if (message !== "resize-attempt") return;
 
-      assert.equal(browserWindow, getMostRecentBrowserWindow(),
-        "The browser window is still the same");
-      assert.equal(previousWidth, browserWindow.outerWidth,
-        "Size doesn't change by calling resizeTo/By/...");
-      assert.equal(previousHeight, browserWindow.outerHeight,
-        "Size doesn't change by calling resizeTo/By/...");
 
-      try {
-        panel.destroy();
-      }
-      catch (e) {
-        assert.fail(e);
-        throw e;
-      }
 
-      done();
-    },
-    onShow: () => panel.postMessage('resize')
-  });
 
-  panel.show();
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 exports["test Resize Panel"] = function(assert, done) {
   const { Panel } = require('sdk/panel');
