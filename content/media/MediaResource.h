@@ -7,9 +7,6 @@
 #define MediaResource_h_
 
 #include "mozilla/Mutex.h"
-#ifdef MOZ_DASH
-#include "mozilla/ReentrantMonitor.h"
-#endif
 #include "nsIChannel.h"
 #include "nsIURI.h"
 #include "nsIStreamingProtocolController.h"
@@ -362,19 +359,6 @@ public:
 
   virtual nsresult Open(nsIStreamListener** aStreamListener) = 0;
 
-#ifdef MOZ_DASH
-  
-
-
-
-
-  virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
-                                 MediaByteRange const &aByteRange)
-  {
-    return Open(aStreamListener);
-  }
-#endif
-
   
 
 
@@ -522,10 +506,6 @@ public:
 
   
   virtual nsresult Open(nsIStreamListener** aStreamListener);
-#ifdef MOZ_DASH
-  virtual nsresult OpenByteRange(nsIStreamListener** aStreamListener,
-                                 MediaByteRange const & aByteRange);
-#endif
   virtual nsresult Close();
   virtual void     Suspend(bool aCloseImmediately);
   virtual void     Resume();
@@ -666,20 +646,6 @@ protected:
 
   
   MediaByteRange mByteRange;
-
-#ifdef MOZ_DASH
-  
-  bool mByteRangeDownloads;
-
-  
-  bool mByteRangeFirstOpen;
-
-  
-  
-  
-  ReentrantMonitor mSeekOffsetMonitor;
-  int64_t mSeekOffset;
-#endif
 
   
   

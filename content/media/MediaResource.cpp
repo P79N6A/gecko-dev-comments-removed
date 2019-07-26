@@ -59,12 +59,6 @@ ChannelMediaResource::ChannelMediaResource(MediaDecoder* aDecoder,
     mLock("ChannelMediaResource.mLock"),
     mIgnoreResume(false),
     mSeekingForMetadata(false),
-#ifdef MOZ_DASH
-    mByteRangeDownloads(false),
-    mByteRangeFirstOpen(true),
-    mSeekOffsetMonitor("media.dashseekmonitor"),
-    mSeekOffset(-1),
-#endif
     mIsTransportSeekable(true)
 {
 #ifdef PR_LOGGING
@@ -417,16 +411,6 @@ ChannelMediaResource::OnStopRequest(nsIRequest* aRequest, nsresult aStatus)
     mChannelStatistics->Stop();
   }
 
-#ifdef MOZ_DASH
-  
-  
-  
-  if (mByteRangeDownloads) {
-    mDecoder->NotifyDownloadEnded(aStatus);
-    return NS_OK;
-  }
-#endif
-
   
   
   
@@ -490,18 +474,6 @@ ChannelMediaResource::CopySegmentToCache(nsIInputStream *aInStream,
 
   closure->mResource->mDecoder->NotifyDataArrived(aFromSegment, aCount, closure->mResource->mOffset);
 
-#ifdef MOZ_DASH
-  
-  
-  
-  
-  
-  
-  if (closure->mResource->mByteRangeDownloads) {
-    closure->mResource->mCacheStream.NotifyDataStarted(closure->mResource->mOffset);
-  }
-#endif
-
   
   LOG("%p [ChannelMediaResource]: CopySegmentToCache at mOffset [%lld] add "
       "[%d] bytes for decoder[%p]",
@@ -547,39 +519,6 @@ ChannelMediaResource::OnDataAvailable(nsIRequest* aRequest,
 
   return NS_OK;
 }
-
-#ifdef MOZ_DASH
-
-
-
-
-
-
-nsresult
-ChannelMediaResource::OpenByteRange(nsIStreamListener** aStreamListener,
-                                    MediaByteRange const & aByteRange)
-{
-  NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
-
-  mByteRangeDownloads = true;
-  mByteRange = aByteRange;
-
-  
-  
-  if (mByteRangeFirstOpen) {
-    mByteRangeFirstOpen = false;
-    return Open(aStreamListener);
-  }
-
-  
-  CloseChannel();
-
-  nsresult rv = RecreateChannel();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return OpenChannel(aStreamListener);
-}
-#endif
 
 nsresult ChannelMediaResource::Open(nsIStreamListener **aStreamListener)
 {
@@ -832,13 +771,6 @@ nsresult ChannelMediaResource::Seek(int32_t aWhence, int64_t aOffset)
 
   CMLOG("Seek requested for aOffset [%lld] for decoder [%p]",
         aOffset, mDecoder);
-#ifdef MOZ_DASH
-  
-  if (mByteRangeDownloads) {
-    ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
-    mSeekOffset = aOffset;
-  }
-#endif
   return mCacheStream.Seek(aWhence, aOffset);
 }
 
@@ -1045,107 +977,13 @@ ChannelMediaResource::CacheClientSeek(int64_t aOffset, bool aResume)
   CMLOG("CacheClientSeek requested for aOffset [%lld] for decoder [%p]",
         aOffset, mDecoder);
 
-#ifndef MOZ_DASH
   CloseChannel();
-#else
-  
-  if (!mByteRangeDownloads) {
-    CloseChannel();
-  } else if (mChannel) {
-    
-    bool isPending = false;
-    nsresult rv = mChannel->IsPending(&isPending);
-    NS_ENSURE_SUCCESS(rv, rv);
-    if (!isPending) {
-      CloseChannel();
-    }
-  }
-#endif
 
   if (aResume) {
     NS_ASSERTION(mSuspendCount > 0, "Too many resumes!");
     
     --mSuspendCount;
   }
-
-#ifdef MOZ_DASH  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  if (mByteRangeDownloads) {
-    
-    nsresult rv;
-    {
-      ReentrantMonitorAutoEnter mon(mSeekOffsetMonitor);
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (mSeekOffset >= 0) {
-        rv = mDecoder->GetByteRangeForSeek(mSeekOffset, mByteRange);
-        
-        
-        
-        
-        
-        
-        
-        
-        if (NS_SUCCEEDED(rv) && !mByteRange.IsNull() &&
-            aOffset > mByteRange.mEnd) {
-          rv = NS_ERROR_NOT_AVAILABLE;
-          mByteRange.Clear();
-        }
-        mSeekOffset = -1;
-      } else if (mByteRange.mStart <= aOffset && aOffset <= mByteRange.mEnd) {
-        CMLOG("Trying to resume download at offset [%lld].", aOffset);
-        rv = NS_OK;
-      } else {
-        CMLOG("MediaCache [%p] trying to seek independently to offset [%lld].",
-            &mCacheStream, aOffset);
-        rv = NS_ERROR_NOT_AVAILABLE;
-      }
-    }
-    if (rv == NS_ERROR_NOT_AVAILABLE) {
-      
-      
-      
-      
-      
-      CMLOG("Byte range not available for decoder [%p]; returning "
-            "silently.", mDecoder);
-      return NS_OK;
-    } else if (NS_FAILED(rv) || mByteRange.IsNull()) {
-      
-      CMLOG("Error getting byte range: seek offset[%lld] cache offset[%lld] "
-            "decoder[%p]", mSeekOffset, aOffset, mDecoder);
-      mDecoder->NetworkError();
-      CloseChannel();
-      return rv;
-    }
-    
-    mByteRange.mStart = mOffset = aOffset;
-    return OpenByteRange(nullptr, mByteRange);
-  }
-#endif
 
   mOffset = aOffset;
 
