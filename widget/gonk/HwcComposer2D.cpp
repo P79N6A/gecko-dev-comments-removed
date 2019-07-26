@@ -545,10 +545,8 @@ HwcComposer2D::TryHwComposition()
                     
                     
                     mHwcLayerMap[k]->SetLayerComposited(true);
-                    if (k && (mList->hwLayers[k].hints & HWC_HINT_CLEAR_FB) &&
+                    if ((mList->hwLayers[k].hints & HWC_HINT_CLEAR_FB) &&
                         (mList->hwLayers[k].blending == HWC_BLENDING_NONE)) {
-                        
-                        
                         
                         hwc_rect_t r = mList->hwLayers[k].displayFrame;
                         mHwcLayerMap[k]->SetClearRect(nsIntRect(r.left, r.top,
