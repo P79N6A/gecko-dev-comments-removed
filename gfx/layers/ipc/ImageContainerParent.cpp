@@ -6,6 +6,7 @@
 #include "mozilla/layers/ImageContainerParent.h"
 #include "mozilla/layers/ImageBridgeParent.h"
 #include "mozilla/layers/SharedImageUtils.h"
+#include "mozilla/unused.h"
 #include "CompositorParent.h"
 
 namespace mozilla {
@@ -29,7 +30,7 @@ bool ImageContainerParent::RecvPublishImage(const SharedImage& aImage)
   }
 
   if (prevImage && !mStop) {
-    SendReturnImage(*prevImage);
+    unused << SendReturnImage(*prevImage);
     delete prevImage;
   }
   return true;
@@ -92,6 +93,8 @@ struct ImageIDPair {
 };
 
 typedef nsTArray<ImageIDPair> SharedImageMap;
+
+
 SharedImageMap *sSharedImageMap = nullptr;
 
 static const int SHAREDIMAGEMAP_INVALID_INDEX = -1;

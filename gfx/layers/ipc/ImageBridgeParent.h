@@ -18,10 +18,13 @@ class CompositorParent;
 
 class ImageBridgeParent : public PImageBridgeParent
 {
-public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(ImageBridgeParent)
 
-  ImageBridgeParent(MessageLoop* aLoop);
+public:
+  ImageBridgeParent(MessageLoop* aLoop, Transport* aTransport);
   ~ImageBridgeParent();
+
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
   static PImageBridgeParent*
   Create(Transport* aTransport, ProcessId aOtherProcess);
@@ -43,7 +46,13 @@ public:
   MessageLoop * GetMessageLoop();
 
 private:
-  MessageLoop * mMessageLoop;
+  void DeferredDestroy();
+
+  MessageLoop* mMessageLoop;
+  Transport* mTransport;
+  
+  
+  nsRefPtr<ImageBridgeParent> mSelfRef;
 };
 
 } 
