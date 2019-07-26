@@ -315,8 +315,15 @@ public class Tab {
 
     public synchronized void updateTitle(String title) {
         
-        if (mEnteringReaderMode)
+        if (mEnteringReaderMode) {
             return;
+        }
+
+        
+        if (mTitle != null &&
+            TextUtils.equals(mTitle, title)) {
+            return;
+        }
 
         mTitle = (title == null ? "" : title);
         Tabs.getInstance().notifyListeners(this, Tabs.TabEvents.TITLE);
