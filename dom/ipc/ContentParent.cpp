@@ -422,7 +422,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
 
     if (aContext.IsBrowserElement() || !aContext.HasOwnApp()) {
         if (nsRefPtr<ContentParent> cp = GetNewOrUsed(aContext.IsBrowserElement())) {
-            nsRefPtr<TabParent> tp(new TabParent(aContext));
+            nsRefPtr<TabParent> tp(new TabParent(cp, aContext));
             tp->SetOwnerElement(aFrameElement);
             uint32_t chromeFlags = 0;
 
@@ -498,7 +498,7 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
         sAppContentParents->Put(manifestURL, p);
     }
 
-    nsRefPtr<TabParent> tp = new TabParent(aContext);
+    nsRefPtr<TabParent> tp = new TabParent(p, aContext);
     tp->SetOwnerElement(aFrameElement);
     PBrowserParent* browser = p->SendPBrowserConstructor(
         nsRefPtr<TabParent>(tp).forget().get(), 
@@ -1640,7 +1640,7 @@ ContentParent::AllocPBrowserParent(const IPCTabContext& aContext,
         return nullptr;
     }
 
-    TabParent* parent = new TabParent(TabContext(aContext));
+    TabParent* parent = new TabParent(this, TabContext(aContext));
 
     
     NS_ADDREF(parent);

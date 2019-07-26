@@ -589,7 +589,7 @@ ContentChild::AllocPBrowserChild(const IPCTabContext& aContext,
     
     
 
-    nsRefPtr<TabChild> child = TabChild::Create(TabContext(aContext), aChromeFlags);
+    nsRefPtr<TabChild> child = TabChild::Create(this, TabContext(aContext), aChromeFlags);
 
     
     return child.forget().get();
