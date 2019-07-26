@@ -283,9 +283,9 @@ public class FennecNativeDriver implements Driver {
     
 
 
-    public static HashMap convertTextToTable(String data)
+    public static Map<String, String> convertTextToTable(String data)
     {
-        HashMap retVal = new HashMap();
+        HashMap<String, String> retVal = new HashMap<String, String>();
 
         String[] lines = data.split("\n");
         for (int i = 0; i < lines.length; i++) {
