@@ -46,10 +46,12 @@
 #include "base/cpu.h"
 #include "base/singleton.h"
 #include "base/system_monitor.h"
+#include "mozilla/Casting.h"
 
 using base::Time;
 using base::TimeDelta;
 using base::TimeTicks;
+using mozilla::BitwiseCast;
 
 namespace {
 
@@ -59,7 +61,7 @@ int64_t FileTimeToMicroseconds(const FILETIME& ft) {
   
   
   
-  return bit_cast<int64_t, FILETIME>(ft) / 10;
+  return BitwiseCast<int64_t>(ft) / 10;
 }
 
 void MicrosecondsToFileTime(int64_t us, FILETIME* ft) {
@@ -68,7 +70,7 @@ void MicrosecondsToFileTime(int64_t us, FILETIME* ft) {
 
   
   
-  *ft = bit_cast<FILETIME, int64_t>(us * 10);
+  *ft = BitwiseCast<FILETIME>(us * 10);
 }
 
 int64_t CurrentWallclockMicroseconds() {
