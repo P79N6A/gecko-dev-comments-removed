@@ -4,7 +4,7 @@
 
 %endif
 
-%define tabHeight 30px
+%define tabHeight 31px
 %define tabCurveWidth 30px
 %define tabCurveHalfWidth 15px
 
@@ -35,7 +35,7 @@
 
 .tabbrowser-tab[selected=true] {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 }
 
 .tab-background-middle {
@@ -128,7 +128,6 @@
 .tab-background-end[selected=true]::after {
   
   -moz-margin-start: -@tabCurveWidth@;
-  margin-bottom: -1px;
   display: -moz-box;
 }
 
