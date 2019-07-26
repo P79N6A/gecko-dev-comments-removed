@@ -21,6 +21,8 @@ namespace mozilla {
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGLength)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGLength)
   
   if (tmp->mList) {

@@ -276,6 +276,8 @@ IDBRequest::GetError(mozilla::ErrorResult& aRv)
   return mError;
 }
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(IDBRequest)
+
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBRequest, IDBWrapperCache)
   
   
@@ -354,6 +356,8 @@ IDBOpenDBRequest::SetTransaction(IDBTransaction* aTransaction)
 
   mTransaction = aTransaction;
 }
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(IDBOpenDBRequest)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(IDBOpenDBRequest,
                                                   IDBRequest)

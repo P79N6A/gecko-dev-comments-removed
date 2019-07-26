@@ -19,6 +19,8 @@ using namespace mozilla;
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(nsISVGPoint)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsISVGPoint)
   
   if (tmp->mList) {

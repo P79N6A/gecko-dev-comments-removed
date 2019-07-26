@@ -40,6 +40,8 @@ void UpdateListIndicesFromIndex(FallibleTArray<DOMSVGNumber*>& aItemsArray,
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGNumberList)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGNumberList)
   if (tmp->mAList) {
     if (tmp->IsAnimValList()) {

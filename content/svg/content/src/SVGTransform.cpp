@@ -29,6 +29,8 @@ SVGMatrixTearoffTable()
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(SVGTransform)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(SVGTransform)
   
   if (tmp->mList) {

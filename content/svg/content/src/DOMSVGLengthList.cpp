@@ -40,6 +40,8 @@ namespace mozilla {
 
 
 
+NS_IMPL_CYCLE_COLLECTION_CLASS(DOMSVGLengthList)
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(DOMSVGLengthList)
   if (tmp->mAList) {
     if (tmp->IsAnimValList()) {
