@@ -328,7 +328,8 @@ bool
 MouseScrollHandler::DispatchEvent(nsWindowBase* aWidget,
                                   WidgetGUIEvent& aEvent)
 {
-  return aWidget->DispatchWindowEvent(&aEvent);
+  
+  return aWidget->DispatchScrollEvent(&aEvent);
 }
 
 

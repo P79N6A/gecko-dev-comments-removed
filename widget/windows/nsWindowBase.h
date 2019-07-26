@@ -58,6 +58,13 @@ public:
   
 
 
+
+
+  virtual bool DispatchScrollEvent(mozilla::WidgetGUIEvent* aEvent) = 0;
+
+  
+
+
   virtual bool DispatchPluginEvent(const MSG& aMsg);
 
   

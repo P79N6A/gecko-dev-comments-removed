@@ -34,6 +34,7 @@
 #include "InputData.h"
 #include "mozilla/TextEvents.h"
 #include "mozilla/TouchEvents.h"
+#include "mozilla/MiscEvents.h"
 
 using namespace Microsoft::WRL;
 using namespace Microsoft::WRL::Wrappers;
@@ -568,64 +569,47 @@ CloseGesture()
 
 
 
-class DispatchMsg
+bool
+MetroWidget::DispatchScrollEvent(mozilla::WidgetGUIEvent* aEvent)
 {
-public:
-  DispatchMsg(UINT aMsg, WPARAM aWParam, LPARAM aLParam) :
-    mMsg(aMsg),
-    mWParam(aWParam),
-    mLParam(aLParam)
-  {
-  }
-  ~DispatchMsg()
-  {
-  }
-
-  UINT mMsg;
-  WPARAM mWParam;
-  LPARAM mLParam;
-};
-
-DispatchMsg*
-MetroWidget::CreateDispatchMsg(UINT aMsg, WPARAM aWParam, LPARAM aLParam)
-{
-  switch (aMsg) {
-    case WM_SETTINGCHANGE:
-    case WM_MOUSEWHEEL:
-    case WM_MOUSEHWHEEL:
-    case WM_HSCROLL:
-    case WM_VSCROLL:
-    case MOZ_WM_HSCROLL:
-    case MOZ_WM_VSCROLL:
-    case WM_KEYDOWN:
-    case WM_KEYUP:
-    
-    case MOZ_WM_MOUSEVWHEEL:
-    case MOZ_WM_MOUSEHWHEEL:
-      return new DispatchMsg(aMsg, aWParam, aLParam);
+  WidgetGUIEvent* newEvent = nullptr;
+  switch(aEvent->eventStructType) {
+    case NS_WHEEL_EVENT:
+    {
+      WidgetWheelEvent* oldEvent = aEvent->AsWheelEvent();
+      WidgetWheelEvent* wheelEvent =
+        new WidgetWheelEvent(oldEvent->mFlags.mIsTrusted, oldEvent->message, oldEvent->widget);
+      wheelEvent->AssignWheelEventData(*oldEvent, true);
+      newEvent = static_cast<WidgetGUIEvent*>(wheelEvent);
+    }
+    break;
+    case NS_CONTENT_COMMAND_EVENT:
+    {
+      WidgetContentCommandEvent* oldEvent = aEvent->AsContentCommandEvent();
+      WidgetContentCommandEvent* cmdEvent =
+        new WidgetContentCommandEvent(oldEvent->mFlags.mIsTrusted, oldEvent->message, oldEvent->widget);
+      cmdEvent->AssignContentCommandEventData(*oldEvent, true);
+      newEvent = static_cast<WidgetGUIEvent*>(cmdEvent);
+    }
+    break;
     default:
-      MOZ_CRASH("Unknown event being passed to CreateDispatchMsg.");
-      return nullptr;
+      MOZ_CRASH("unknown event in DispatchScrollEvent");
+    break;
   }
-}
-
-void
-MetroWidget::DispatchAsyncScrollEvent(DispatchMsg* aEvent)
-{
-  mMsgEventQueue.Push(aEvent);
+  mEventQueue.Push(newEvent);
   nsCOMPtr<nsIRunnable> runnable =
     NS_NewRunnableMethod(this, &MetroWidget::DeliverNextScrollEvent);
   NS_DispatchToCurrentThread(runnable);
+  return false;
 }
 
 void
 MetroWidget::DeliverNextScrollEvent()
 {
-  DispatchMsg* msg = static_cast<DispatchMsg*>(mMsgEventQueue.PopFront());
-  MOZ_ASSERT(msg);
-  MSGResult msgResult;
-  MouseScrollHandler::ProcessMessage(this, msg->mMsg, msg->mWParam, msg->mLParam, msgResult);
-  delete msg;
+  WidgetGUIEvent* event =
+    static_cast<WidgetInputEvent*>(mEventQueue.PopFront());
+  DispatchWindowEvent(event);
+  delete event;
 }
 
 
@@ -712,14 +696,10 @@ MetroWidget::WindowProcedure(HWND aWnd, UINT aMsg, WPARAM aWParam, LPARAM aLPara
   
   LRESULT processResult = 0;
 
-  
-  
-  
-  
-  
-  if (MouseScrollHandler::NeedsMessage(aMsg)) {
-    DispatchMsg* msg = CreateDispatchMsg(aMsg, aWParam, aLParam);
-    DispatchAsyncScrollEvent(msg);
+  MSGResult msgResult(&processResult);
+  MouseScrollHandler::ProcessMessage(this, aMsg, aWParam, aLParam, msgResult);
+  if (msgResult.mConsumed) {
+    return processResult;
   }
 
   switch (aMsg) {
