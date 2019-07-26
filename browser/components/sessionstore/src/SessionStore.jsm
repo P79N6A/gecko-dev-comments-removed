@@ -886,16 +886,9 @@ let SessionStoreInternal = {
       winData._shouldRestore = true;
 #endif
 
-#ifdef MOZ_PER_WINDOW_PRIVATE_BROWSING
-      
-      
-      if (!winData.isPrivate && (winData.tabs.length > 1 ||
-          (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0])))) {
-#else
       
       if (winData.tabs.length > 1 ||
           (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]))) {
-#endif
         
         delete winData.busy;
 
