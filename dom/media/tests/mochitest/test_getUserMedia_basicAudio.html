@@ -32,9 +32,9 @@
       playback.playMedia(false, function () {
         aStream.stop();
         SimpleTest.finish();
-      }, unexpectedCallbackAndFinish);
+      }, unexpectedCallbackAndFinish(new Error));
 
-    }, unexpectedCallbackAndFinish);
+    }, unexpectedCallbackAndFinish(new Error));
 
   }, true);
 

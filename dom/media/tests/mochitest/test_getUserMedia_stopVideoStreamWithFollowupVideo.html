@@ -38,13 +38,13 @@
           streamPlayback.playMedia(false, function() {
             secondStream.stop();
             SimpleTest.finish();
-          }, unexpectedCallbackAndFinish);
+          }, unexpectedCallbackAndFinish(new Error));
 
-        }, unexpectedCallbackAndFinish);
+        }, unexpectedCallbackAndFinish(new Error));
 
-      }, unexpectedCallbackAndFinish);
+      }, unexpectedCallbackAndFinish(new Error));
 
-    }, unexpectedCallbackAndFinish);
+    }, unexpectedCallbackAndFinish(new Error));
   }, true);
 
 </script>

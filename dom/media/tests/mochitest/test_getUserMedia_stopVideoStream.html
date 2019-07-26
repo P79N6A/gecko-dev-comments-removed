@@ -30,8 +30,8 @@
       var videoStreamPlayback = new LocalMediaStreamPlayback(testVideo, stream);
 
       videoStreamPlayback.playMediaWithStreamStop(false, SimpleTest.finish,
-        unexpectedCallbackAndFinish);
-    }, unexpectedCallbackAndFinish);
+        unexpectedCallbackAndFinish(new Error));
+    }, unexpectedCallbackAndFinish(new Error));
   }, true);
 
 </script>

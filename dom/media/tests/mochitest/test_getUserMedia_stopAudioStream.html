@@ -30,8 +30,8 @@
       var audioStreamPlayback = new LocalMediaStreamPlayback(testAudio, stream);
 
       audioStreamPlayback.playMediaWithStreamStop(false, SimpleTest.finish,
-        unexpectedCallbackAndFinish);
-    }, unexpectedCallbackAndFinish);
+        unexpectedCallbackAndFinish(new Error));
+    }, unexpectedCallbackAndFinish(new Error));
   }, true);
 
 </script>
