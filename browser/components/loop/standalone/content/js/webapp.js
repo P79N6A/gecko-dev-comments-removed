@@ -8,18 +8,12 @@ var loop = loop || {};
 loop.webapp = (function($, _, OT) {
   "use strict";
 
-  
-
-
-
-
-
+  loop.config = loop.config || {};
+  loop.config.serverUrl = loop.config.serverUrl || "http://localhost:5000";
 
   var sharedModels = loop.shared.models,
       sharedViews = loop.shared.views,
-      
-      
-      baseServerUrl = "http://localhost:5000";
+      baseServerUrl = loop.config.serverUrl;
 
   
 
