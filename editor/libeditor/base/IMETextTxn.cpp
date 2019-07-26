@@ -12,6 +12,7 @@
 #include "nsGUIEvent.h"                 
 #include "nsIDOMCharacterData.h"        
 #include "nsIDOMRange.h"                
+#include "nsIContent.h"                 
 #include "nsIEditor.h"                  
 #include "nsIPresShell.h"               
 #include "nsIPrivateTextRange.h"        

@@ -33,6 +33,7 @@
 #include "mozilla/css/ImageLoader.h"
 #include "FramePropertyTable.h"
 #include "mozilla/TypedEnum.h"
+#include "nsDirection.h"
 #include <algorithm>
 
 #ifdef ACCESSIBILITY
@@ -353,11 +354,6 @@ enum nsSelectionAmount {
   eSelectWordNoSpace = 8 
                          
                          
-};
-
-enum nsDirection {
-  eDirNext    = 0,
-  eDirPrevious= 1
 };
 
 enum nsSpread {
