@@ -4,9 +4,9 @@
 
 
 
-#include "jscntxt.h"
-
 #include "vm/ForkJoin.h"
+
+#include "jscntxt.h"
 
 #ifdef JS_THREADSAFE
 # include "prthread.h"
