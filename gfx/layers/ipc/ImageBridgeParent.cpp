@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "base/thread.h"
 
@@ -22,8 +22,8 @@ ImageBridgeParent::ImageBridgeParent(MessageLoop* aLoop, Transport* aTransport)
   : mMessageLoop(aLoop)
   , mTransport(aTransport)
 {
-  // creates the map only if it has not been created already, so it is safe
-  // with several bridges
+  
+  
   CompositableMap::Create();
 }
 
@@ -56,10 +56,10 @@ ImageBridgeParent::RecvUpdate(const EditArray& aEdits, EditReplyArray* aReply)
     aReply->AppendElements(&replyv.front(), replyv.size());
   }
 
-  // Ensure that any pending operations involving back and front
-  // buffers have completed, so that neither process stomps on the
-  // other's buffer contents.
-  ShadowLayerManager::PlatformSyncBeforeReplyUpdate();
+  
+  
+  
+  LayerManagerComposite::PlatformSyncBeforeReplyUpdate();
 
   return true;
 }
@@ -83,7 +83,7 @@ ConnectImageBridgeInParentProcess(ImageBridgeParent* aBridge,
                 XRE_GetIOMessageLoop(), AsyncChannel::Parent);
 }
 
-/*static*/ PImageBridgeParent*
+ PImageBridgeParent*
 ImageBridgeParent::Create(Transport* aTransport, ProcessId aOtherProcess)
 {
   ProcessHandle processHandle;
@@ -163,8 +163,8 @@ void
 ImageBridgeParent::DeferredDestroy()
 {
   mSelfRef = nullptr;
-  // |this| was just destroyed, hands off
+  
 }
 
-} // layers
-} // mozilla
+} 
+} 
