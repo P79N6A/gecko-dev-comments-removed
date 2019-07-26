@@ -38,7 +38,7 @@
 
 "use strict";
 
-importScripts("ril_consts.js");
+importScripts("ril_consts.js", "systemlibs.js");
 importScripts("resource://gre/modules/workers/require.js");
 
 
@@ -53,7 +53,6 @@ if (!this.debug) {
   };
 }
 
-let RIL_EMERGENCY_NUMBERS;
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
 
@@ -75,22 +74,23 @@ const MMI_MAX_LENGTH_SHORT_CODE = 2;
 
 const MMI_END_OF_USSD = "#";
 
-let RILQUIRKS_CALLSTATE_EXTRA_UINT32;
+let RILQUIRKS_CALLSTATE_EXTRA_UINT32 = libcutils.property_get("ro.moz.ril.callstate_extra_int", "false") === "true";
 
 
-let RILQUIRKS_V5_LEGACY;
-let RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL;
-let RILQUIRKS_SIM_APP_STATE_EXTRA_FIELDS;
+let RILQUIRKS_V5_LEGACY = libcutils.property_get("ro.moz.ril.v5_legacy", "true") === "true";
+let RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL = libcutils.property_get("ro.moz.ril.dial_emergency_call", "false") === "true";
+let RILQUIRKS_SIM_APP_STATE_EXTRA_FIELDS = libcutils.property_get("ro.moz.ril.simstate_extra_field", "false") === "true";
 
-let RILQUIRKS_EXTRA_UINT32_2ND_CALL;
+let RILQUIRKS_EXTRA_UINT32_2ND_CALL = libcutils.property_get("ro.moz.ril.extra_int_2nd_call", "false") == "true";
 
-let RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT;
-
-
-let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD;
+let RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = libcutils.property_get("ro.moz.ril.query_icc_count", "false") == "true";
 
 
-let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND;
+let RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = libcutils.property_get("ro.moz.ril.send_stk_profile_dl", "false") == "true";
+
+
+let RILQUIRKS_DATA_REGISTRATION_ON_DEMAND =
+  libcutils.property_get("ro.moz.ril.data_reg_on_demand", "false") == "true";
 
 
 let PENDING_NETWORK_TYPE = {};
@@ -111,7 +111,7 @@ let Buf = {
 
     
     
-    this.mTokenRequestMap = new Map();
+    this.mTokenRequestMap = {};
   },
 
   
@@ -125,7 +125,7 @@ let Buf = {
       let token = this.readInt32();
       let error = this.readInt32();
 
-      options = this.mTokenRequestMap.get(token);
+      options = this.mTokenRequestMap[token];
       if (!options) {
         if (DEBUG) {
           debug("Suspicious uninvited request found: " + token + ". Ignored!");
@@ -133,7 +133,7 @@ let Buf = {
         return;
       }
 
-      this.mTokenRequestMap.delete(token);
+      delete this.mTokenRequestMap[token];
       request_type = options.rilRequestType;
 
       options.rilRequestError = error;
@@ -174,7 +174,7 @@ let Buf = {
     }
     options.rilRequestType = type;
     options.rilRequestError = null;
-    this.mTokenRequestMap.set(this.mToken, options);
+    this.mTokenRequestMap[this.mToken] = options;
     this.mToken++;
     return this.mToken;
   },
@@ -2913,7 +2913,11 @@ let RIL = {
 
    _isEmergencyNumber: function(number) {
      
-     let numbers = RIL_EMERGENCY_NUMBERS;
+     let numbers = libcutils.property_get("ril.ecclist");
+     if (!numbers) {
+       
+       numbers = libcutils.property_get("ro.ril.ecclist");
+     }
 
      if (numbers) {
        numbers = numbers.split(",");
@@ -3581,8 +3585,11 @@ let RIL = {
         }
 
         
-        newCall.isEmergency = newCall.isOutgoing &&
-                              this._isEmergencyNumber(newCall.number);
+        if (newCall.isOutgoing && this._isEmergencyNumber(newCall.number)) {
+          newCall.isEmergency = true;
+        } else {
+          newCall.isEmergency = false;
+        }
 
         
         if (newCall.isMpty) {
@@ -4955,16 +4962,6 @@ let RIL = {
     CLIENT_ID = options.clientId;
     this.cellBroadcastDisabled = options.cellBroadcastDisabled;
     this.clirMode = options.clirMode;
-    RIL_EMERGENCY_NUMBERS = options.rilEmergencyNumbers;
-    let quirks = options.quirks;
-    RILQUIRKS_CALLSTATE_EXTRA_UINT32 = quirks.callstateExtraUint32;
-    RILQUIRKS_V5_LEGACY = quirks.v5Legacy;
-    RILQUIRKS_REQUEST_USE_DIAL_EMERGENCY_CALL = quirks.requestUseDialEmergencyCall;
-    RILQUIRKS_SIM_APP_STATE_EXTRA_FIELDS = quirks.simAppStateExtraFields;
-    RILQUIRKS_EXTRA_UINT32_2ND_CALL = quirks.extraUint2ndCall;
-    RILQUIRKS_HAVE_QUERY_ICC_LOCK_RETRY_COUNT = quirks.haveQueryIccLockRetryCount;
-    RILQUIRKS_SEND_STK_PROFILE_DOWNLOAD = quirks.sendStkProfileDownload;
-    RILQUIRKS_DATA_REGISTRATION_ON_DEMAND = quirks.dataRegistrationOnDemand;
   }
 };
 
