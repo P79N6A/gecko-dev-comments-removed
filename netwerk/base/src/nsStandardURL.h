@@ -28,7 +28,6 @@
 class nsIBinaryInputStream;
 class nsIBinaryOutputStream;
 class nsIIDNService;
-class nsICharsetConverterManager;
 class nsIPrefBranch;
 class nsIFile;
 class nsIURLParser;
@@ -271,7 +270,6 @@ private:
     
     
     static nsIIDNService               *gIDN;
-    static nsICharsetConverterManager  *gCharsetMgr;
     static bool                         gInitialized;
     static bool                         gEscapeUTF8;
     static bool                         gAlwaysEncodeInUTF8;

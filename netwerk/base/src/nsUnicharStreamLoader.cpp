@@ -7,9 +7,8 @@
 
 #include "nsUnicharStreamLoader.h"
 #include "nsIInputStream.h"
-#include "nsICharsetConverterManager.h"
-#include "nsServiceManagerUtils.h"
 #include <algorithm>
+#include "mozilla/dom/EncodingUtils.h"
 
 
 
@@ -18,6 +17,7 @@
 #define SNIFFING_BUFFER_SIZE 1024
 
 using namespace mozilla;
+using mozilla::dom::EncodingUtils;
 
 NS_IMETHODIMP
 nsUnicharStreamLoader::Init(nsIUnicharStreamLoaderObserver *aObserver)
@@ -162,10 +162,6 @@ nsUnicharStreamLoader::OnDataAvailable(nsIRequest *aRequest,
   return rv;
 }
 
-
-static NS_DEFINE_CID(kCharsetConverterManagerCID,
-                     NS_ICHARSETCONVERTERMANAGER_CID);
-
 nsresult
 nsUnicharStreamLoader::DetermineCharset()
 {
@@ -177,21 +173,20 @@ nsUnicharStreamLoader::DetermineCharset()
   }
 
   
-  nsCOMPtr<nsICharsetConverterManager> ccm =
-    do_GetService(kCharsetConverterManagerCID, &rv);
-  if (NS_FAILED(rv)) return rv;
-
-  
-  
   
   
   
   if (mCharset.EqualsLiteral("replacement")) {
-    rv = ccm->GetUnicodeDecoderRaw(mCharset.get(), getter_AddRefs(mDecoder));
+    mDecoder = EncodingUtils::DecoderForEncoding(mCharset);
   } else {
-    rv = ccm->GetUnicodeDecoder(mCharset.get(), getter_AddRefs(mDecoder));
+    nsAutoCString charset;
+    if (!EncodingUtils::FindEncodingForLabelNoReplacement(mCharset, charset)) {
+      
+      
+      return NS_ERROR_UCONV_NOCONV;
+    }
+    mDecoder = EncodingUtils::DecoderForEncoding(charset);
   }
-  if (NS_FAILED(rv)) return rv;
 
   
   uint32_t dummy;

@@ -4,13 +4,15 @@
 
 
 #include "nsString.h"
-#include "nsICharsetConverterManager.h"
 #include "nsIScriptableUConv.h"
 #include "nsScriptableUConv.h"
 #include "nsIStringStream.h"
 #include "nsComponentManagerUtils.h"
-#include "nsCharsetAlias.h"
-#include "nsServiceManagerUtils.h"
+#include "nsIUnicodeDecoder.h"
+#include "nsIUnicodeEncoder.h"
+#include "mozilla/dom/EncodingUtils.h"
+
+using mozilla::dom::EncodingUtils;
 
 
 NS_IMPL_ISUPPORTS(nsScriptableUnicodeConverter, nsIScriptableUnicodeConverter)
@@ -253,44 +255,37 @@ nsScriptableUnicodeConverter::SetIsInternal(const bool aIsInternal)
 nsresult
 nsScriptableUnicodeConverter::InitConverter()
 {
-  nsresult rv = NS_OK;
   mEncoder = nullptr;
 
-  nsCOMPtr<nsICharsetConverterManager> ccm = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
-  if (NS_FAILED(rv) || !ccm) {
-    return rv;
-  }
-
-  
-  rv = ccm->GetUnicodeEncoder(mCharset.get(), getter_AddRefs(mEncoder));
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  rv = mEncoder->SetOutputErrorBehavior(nsIUnicodeEncoder::kOnError_Replace, nullptr, (char16_t)'?');
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  nsAutoCString charset;
-  rv = mIsInternal ? nsCharsetAlias::GetPreferredInternal(mCharset, charset)
-                   : nsCharsetAlias::GetPreferred(mCharset, charset);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  rv = ccm->GetUnicodeDecoderRaw(charset.get(), getter_AddRefs(mDecoder));
-  if (NS_FAILED(rv)) {
-    return rv;
+  nsAutoCString encoding;
+  if (mIsInternal) {
+    encoding.Assign(mCharset);
+    
+    
+    
+    
+    mEncoder = EncodingUtils::EncoderForEncoding(mCharset);
+    mDecoder = EncodingUtils::DecoderForEncoding(mCharset);
+    if (!mEncoder || !mDecoder) {
+      return NS_ERROR_UCONV_NOCONV;
+    }
+  } else {
+    if (!EncodingUtils::FindEncodingForLabelNoReplacement(mCharset, encoding)) {
+      return NS_ERROR_UCONV_NOCONV;
+    }
+    mEncoder = EncodingUtils::EncoderForEncoding(encoding);
+    mDecoder = EncodingUtils::DecoderForEncoding(encoding);
   }
 
   
   
   
   
-  if (charset.EqualsLiteral("UTF-8")) {
+  if (encoding.EqualsLiteral("UTF-8")) {
     mDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
   }
 
-  return rv ;
+  return mEncoder->SetOutputErrorBehavior(nsIUnicodeEncoder::kOnError_Replace,
+                                          nullptr,
+                                          (char16_t)'?');
 }

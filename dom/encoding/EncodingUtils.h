@@ -49,6 +49,25 @@ public:
 
 
 
+  static bool FindEncodingForLabelNoReplacement(const nsACString& aLabel,
+                                                nsACString& aOutEncoding);
+
+  static bool FindEncodingForLabelNoReplacement(const nsAString& aLabel,
+                                                nsACString& aOutEncoding)
+  {
+    return FindEncodingForLabelNoReplacement(NS_ConvertUTF16toUTF8(aLabel),
+                                             aOutEncoding);
+  }
+
+  
+
+
+
+
+
+
+
+
 
   template<class T>
   static void TrimSpaceCharacters(T& aString)
@@ -108,6 +127,16 @@ public:
 
   static already_AddRefed<nsIUnicodeEncoder>
   EncoderForEncoding(const nsACString& aEncoding);
+
+  
+
+
+
+
+
+
+  static void LangGroupForEncoding(const nsACString& aEncoding,
+                                   nsACString& aOutGroup);
 
 private:
   EncodingUtils() MOZ_DELETE;

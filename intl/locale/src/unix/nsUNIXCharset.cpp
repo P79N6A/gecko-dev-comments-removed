@@ -11,11 +11,6 @@
 #include "nsUConvPropertySearch.h"
 #include "nsCOMPtr.h"
 #include "nsReadableUtils.h"
-#include "nsIComponentManager.h"
-#include "nsIServiceManager.h"
-#include "nsIUnicodeDecoder.h"
-#include "nsIUnicodeEncoder.h"
-#include "nsICharsetConverterManager.h"
 #include "nsEncoderDecoderUtils.h"
 #if HAVE_GNU_LIBC_VERSION_H
 #include <gnu/libc-version.h>
@@ -29,7 +24,9 @@
 #include "nsPlatformCharset.h"
 #include "prinit.h"
 #include "nsUnicharUtils.h"
+#include "mozilla/dom/EncodingUtils.h"
 
+using mozilla::dom::EncodingUtils;
 using namespace mozilla;
 
 static const char* kUnixCharsets[][3] = {
@@ -181,49 +178,11 @@ nsPlatformCharset::VerifyCharset(nsCString &aCharset)
     return NS_OK;
   }
 
-  nsresult res;
-  
-  
-  
-  nsCOMPtr <nsICharsetConverterManager>  charsetConverterManager;
-  charsetConverterManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &res);
-  if (NS_FAILED(res))
-    return res;
-
-  
-  
-  
-  nsCOMPtr <nsIUnicodeEncoder> enc;
-  res = charsetConverterManager->GetUnicodeEncoder(aCharset.get(), getter_AddRefs(enc));
-  if (NS_FAILED(res)) {
-    NS_ERROR("failed to create encoder");
-    return res;
+  nsAutoCString encoding;
+  if (!EncodingUtils::FindEncodingForLabelNoReplacement(aCharset, encoding)) {
+    return NS_ERROR_UCONV_NOCONV;
   }
 
-  
-  
-  
-  nsCOMPtr <nsIUnicodeDecoder> dec;
-  res = charsetConverterManager->GetUnicodeDecoder(aCharset.get(), getter_AddRefs(dec));
-  if (NS_FAILED(res)) {
-    NS_ERROR("failed to create decoder");
-    return res;
-  }
-
-  
-  
-  
-
-  nsAutoCString result;
-  res = charsetConverterManager->GetCharsetAlias(aCharset.get(), result);
-  if (NS_FAILED(res)) {
-    return res;
-  }
-
-  
-  
-  
-
-  aCharset.Assign(result);
+  aCharset.Assign(encoding);
   return NS_OK;
 }

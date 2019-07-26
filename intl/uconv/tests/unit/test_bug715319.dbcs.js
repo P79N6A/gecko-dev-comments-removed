@@ -1,5 +1,5 @@
 
-const charsets = [ "Big5", "EUC-KR", "x-euc-tw", "x-johab" ]
+const charsets = [ "Big5", "EUC-KR" ]
 const ScriptableUnicodeConverter =
 	Components.Constructor("@mozilla.org/intl/scriptableunicodeconverter",
 			       "nsIScriptableUnicodeConverter");

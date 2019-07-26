@@ -4,10 +4,9 @@
 
 #include "nsISO2022CNToUnicode.h"
 #include "nsUCSupport.h"
-#include "nsICharsetConverterManager.h"
-#include "nsServiceManagerUtils.h"
+#include "mozilla/dom/EncodingUtils.h"
 
-static NS_DEFINE_CID(kCharsetConverterManagerCID, NS_ICHARSETCONVERTERMANAGER_CID);
+using mozilla::dom::EncodingUtils;
 
 NS_IMETHODIMP nsISO2022CNToUnicode::GB2312_To_Unicode(unsigned char *aSrc, int32_t aSrcLength, char16_t * aDest, int32_t * aDestLength)
 {
@@ -15,14 +14,7 @@ NS_IMETHODIMP nsISO2022CNToUnicode::GB2312_To_Unicode(unsigned char *aSrc, int32
 
     if(!mGB2312_Decoder) {
        
-       nsCOMPtr<nsICharsetConverterManager> ccm =
-              do_GetService(kCharsetConverterManagerCID, &rv);
-       if(NS_FAILED(rv))
-          return NS_ERROR_UNEXPECTED;
-
-       rv = ccm->GetUnicodeDecoderRaw("GB2312", getter_AddRefs(mGB2312_Decoder));
-       if(NS_FAILED(rv))
-          return NS_ERROR_UNEXPECTED;
+       mGB2312_Decoder = EncodingUtils::DecoderForEncoding(NS_LITERAL_CSTRING("GB2312"));
     }
 
     if(!mGB2312_Decoder) 
@@ -38,14 +30,7 @@ NS_IMETHODIMP nsISO2022CNToUnicode::EUCTW_To_Unicode(unsigned char *aSrc, int32_
 
     if(!mEUCTW_Decoder) {
        
-       nsCOMPtr<nsICharsetConverterManager> ccm =
-              do_GetService(kCharsetConverterManagerCID, &rv);
-       if(NS_FAILED(rv))
-          return NS_ERROR_UNEXPECTED;
-
-       rv = ccm->GetUnicodeDecoderRaw("x-euc-tw", getter_AddRefs(mEUCTW_Decoder));
-       if(NS_FAILED(rv))
-          return NS_ERROR_UNEXPECTED;
+       mEUCTW_Decoder = EncodingUtils::DecoderForEncoding(NS_LITERAL_CSTRING("x-euc-tw"));
     }
 
     if(!mEUCTW_Decoder) 

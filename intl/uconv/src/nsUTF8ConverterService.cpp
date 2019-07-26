@@ -5,11 +5,13 @@
 
 
 #include "nsString.h"
-#include "nsICharsetConverterManager.h"
 #include "nsUTF8ConverterService.h"
 #include "nsEscape.h"
 #include "nsAutoPtr.h"
-#include "nsServiceManagerUtils.h"
+#include "nsIUnicodeDecoder.h"
+#include "mozilla/dom/EncodingUtils.h"
+
+using mozilla::dom::EncodingUtils;
 
 NS_IMPL_ISUPPORTS(nsUTF8ConverterService, nsIUTF8ConverterService)
 
@@ -21,15 +23,13 @@ ToUTF8(const nsACString &aString, const char *aCharset,
   if (!aCharset || !*aCharset)
     return NS_ERROR_INVALID_ARG;
 
-  nsCOMPtr<nsICharsetConverterManager> ccm;
-
-  ccm = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIUnicodeDecoder> unicodeDecoder;
-  rv = ccm->GetUnicodeDecoder(aCharset,
-                              getter_AddRefs(unicodeDecoder));
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsDependentCString label(aCharset);
+  nsAutoCString encoding;
+  if (!EncodingUtils::FindEncodingForLabelNoReplacement(label, encoding)) {
+    return NS_ERROR_UCONV_NOCONV;
+  }
+  nsCOMPtr<nsIUnicodeDecoder> unicodeDecoder =
+    EncodingUtils::DecoderForEncoding(encoding);
 
   if (!aAllowSubstitution)
     unicodeDecoder->SetInputErrorBehavior(nsIUnicodeDecoder::kOnError_Signal);
