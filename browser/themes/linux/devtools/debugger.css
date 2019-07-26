@@ -107,7 +107,8 @@
 }
 
 #clear-tracer {
-  min-width: 22px !important;
+  
+  min-width: 1px;
 }
 
 #tracer-message {
