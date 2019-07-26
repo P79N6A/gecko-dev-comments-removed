@@ -6166,6 +6166,15 @@ DecompileExpressionFromStack(JSContext *cx, int spindex, int skipStackHits, Valu
 
     *res = NULL;
 
+#ifdef JS_MORE_DETERMINISTIC
+    
+
+
+
+
+    return true;
+#endif
+
     ScriptFrameIter frameIter(cx);
 
     if (frameIter.done())
