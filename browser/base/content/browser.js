@@ -2606,26 +2606,32 @@ function PageProxyClickHandler(aEvent)
 
 
 
-function BrowserOnAboutPageLoad(document) {
-  if (document.documentURI.toLowerCase() == "about:home") {
+function BrowserOnAboutPageLoad(doc) {
+  if (doc.documentURI.toLowerCase() == "about:home") {
     
     
     if (getBoolPref("browser.aboutHome.apps", false))
-      document.getElementById("apps").removeAttribute("hidden");
+      doc.getElementById("apps").removeAttribute("hidden");
 
     let ss = Components.classes["@mozilla.org/browser/sessionstore;1"].
              getService(Components.interfaces.nsISessionStore);
     if (ss.canRestoreLastSession &&
         !PrivateBrowsingUtils.isWindowPrivate(window))
-      document.getElementById("launcher").setAttribute("session", "true");
+      doc.getElementById("launcher").setAttribute("session", "true");
 
     
-    let docElt = document.documentElement;
+    let docElt = doc.documentElement;
     docElt.setAttribute("snippetsURL", AboutHomeUtils.snippetsURL);
     docElt.setAttribute("searchEngineName",
                         AboutHomeUtils.defaultSearchEngine.name);
     docElt.setAttribute("searchEngineURL",
                         AboutHomeUtils.defaultSearchEngine.searchURL);
+
+#ifdef MOZ_SERVICES_HEALTHREPORT
+    doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
+      BrowserSearch.recordSearchInHealthReport(e.detail, "abouthome");
+    }, true, true);
+#endif
   }
 }
 
@@ -3505,8 +3511,43 @@ const BrowserSearch = {
     var where = newWindowPref == 3 ? "tab" : "window";
     var searchEnginesURL = formatURL("browser.search.searchEnginesURL", true);
     openUILinkIn(searchEnginesURL, where);
-  }
-}
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  recordSearchInHealthReport: function (engine, source) {
+#ifdef MOZ_SERVICES_HEALTHREPORT
+    let reporter = Cc["@mozilla.org/datareporting/service;1"]
+                     .getService()
+                     .wrappedJSObject
+                     .healthReporter;
+
+    
+    
+    if (!reporter) {
+      return;
+    }
+
+    reporter.onInit().then(function record() {
+      try {
+        reporter.getProvider("org.mozilla.searches").recordSearch(engine, source);
+      } catch (ex) {
+        Cu.reportError(ex);
+      }
+    });
+#endif
+  },
+};
 
 function FillHistoryMenu(aParent) {
   
@@ -7450,3 +7491,4 @@ function focusNextFrame(event) {
   if (element.ownerDocument == document)
     focusAndSelectUrlBar();
 }
+
