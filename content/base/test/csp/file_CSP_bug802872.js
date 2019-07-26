@@ -8,7 +8,7 @@ function createAllowedEvent() {
 
 
 
-  var src_event = new EventSource("http://mochi.test:8888/tests/content/base/test/file_CSP_bug802872.sjs");
+  var src_event = new EventSource("http://mochi.test:8888/tests/content/base/test/csp/file_CSP_bug802872.sjs");
 
   src_event.onmessage = function(e) {
     src_event.close();
@@ -26,7 +26,7 @@ function createBlockedEvent() {
 
 
 
-  var src_event = new EventSource("http://example.com/tests/content/base/test/file_CSP_bug802872.sjs");
+  var src_event = new EventSource("http://example.com/tests/content/base/test/csp/file_CSP_bug802872.sjs");
 
   src_event.onmessage = function(e) {
     src_event.close();
