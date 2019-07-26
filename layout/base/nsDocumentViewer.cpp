@@ -1564,14 +1564,8 @@ nsDocumentViewer::Destroy()
 
     
     if (mDocument) {
-      nsresult rv = mDocument->Sanitize();
-      if (NS_FAILED(rv)) {
-        
-        
-        savePresentation = false;
-      }
+      mDocument->Sanitize();
     }
-
 
     
     
