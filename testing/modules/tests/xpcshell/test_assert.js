@@ -280,9 +280,6 @@ function run_test() {
   }
 
   
-  export_assertions();
-
-  
   ok(true, "OK, this went well");
   deepEqual(/a/g, /a/g, "deep equal should work on RegExp");
   deepEqual(/a/igm, /a/igm, "deep equal should work on RegExp");
