@@ -1639,12 +1639,38 @@ nsLayoutUtils::ChangeMatrixBasis(const gfxPoint3D &aOrigin,
 
 
 
-static void ConstrainToCoordValues(gfxFloat &aVal)
+static void ConstrainToCoordValues(gfxFloat& aVal)
 {
   if (aVal <= nscoord_MIN)
     aVal = nscoord_MIN;
   else if (aVal >= nscoord_MAX)
     aVal = nscoord_MAX;
+}
+
+static void ConstrainToCoordValues(gfxFloat& aStart, gfxFloat& aSize)
+{
+  gfxFloat max = aStart + aSize;
+
+  
+  ConstrainToCoordValues(aStart);
+  ConstrainToCoordValues(max);
+
+  aSize = max - aStart;
+  
+  
+  if (aSize > nscoord_MAX) {
+    gfxFloat excess = aSize - nscoord_MAX;
+    excess /= 2;
+
+    aStart += excess;
+    aSize = nscoord_MAX;
+  } else if (aSize < nscoord_MIN) {
+    gfxFloat excess = aSize - nscoord_MIN;
+    excess /= 2;
+
+    aStart -= excess;
+    aSize = nscoord_MIN;
+  }
 }
 
 nsRect
@@ -1655,10 +1681,8 @@ nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
   scaledRect.ScaleRoundOut(aFactor);
 
   
-  ConstrainToCoordValues(scaledRect.x);
-  ConstrainToCoordValues(scaledRect.y);
-  ConstrainToCoordValues(scaledRect.width);
-  ConstrainToCoordValues(scaledRect.height);
+  ConstrainToCoordValues(scaledRect.x, scaledRect.width);
+  ConstrainToCoordValues(scaledRect.y, scaledRect.height);
 
   
   return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()),
