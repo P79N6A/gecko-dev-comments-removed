@@ -79,23 +79,14 @@
 
 
 
+#include "mozilla/IntegerPrintfMacros.h"
 #include "mozilla/NullPtr.h"
 
 
-
-#define __STDC_FORMAT_MACROS
 #define _GNU_SOURCE 1
 #define _DARWIN_C_SOURCE 1
 
 #include <stddef.h>
-
-#ifndef _WIN32
-#include <inttypes.h>
-#else
-#define PRIxPTR "Ix"
-typedef unsigned int uint32_t;
-
-#endif
 
 #include <errno.h>
 #include <stdio.h>
