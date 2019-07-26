@@ -60,11 +60,7 @@ WorkerAPI.prototype = {
       SocialService.updateProvider(origin, data);
     },
     "social.reload-worker": function(data) {
-      getFrameWorkerHandle(this._provider.workerURL, null)._worker.reload();
-      
-      
-      
-      this._port.postMessage({topic: "social.initialize"});
+      this._provider.reload();
     },
     "social.user-profile": function (data) {
       this._provider.updateUserProfile(data);

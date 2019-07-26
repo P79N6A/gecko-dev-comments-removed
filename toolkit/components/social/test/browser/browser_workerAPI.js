@@ -128,103 +128,41 @@ let tests = {
     let fw = {};
     Cu.import("resource://gre/modules/FrameWorker.jsm", fw);
 
-    
-    
-    
-    
-
-    
-    
-    
-    
-    let contentScript = function() {
-      
-      
-      
-      
-      addMessageListener("frameworker-test:ready", function onready() {
-        removeMessageListener("frameworker-test:ready", onready);
-        
-        let port, id
-        for ([id, port] of frameworker.ports) {
-          ; 
-        }
-        let unloadHasFired = false,
-            haveNoPendingMessagesBefore = true,
-            havePendingMessagesAfter = false;
-        content.addEventListener("unload", function workerUnload(e) {
-          content.removeEventListener("unload", workerUnload);
-          
-          
-          
-          
-          
-          for (let [temp_id, temp_port] of frameworker.ports) {
-            if (temp_port._pendingMessagesOutgoing.length == 0)
-              continue;
-            if (temp_port._pendingMessagesOutgoing.length == 1 &&
-                temp_port._pendingMessagesOutgoing[0].data &&
-                JSON.parse(temp_port._pendingMessagesOutgoing[0].data).topic == "social.initialize")
-              continue;
-            
-            haveNoPendingMessagesBefore = false;
-          }
-          unloadHasFired = true; 
-        });
-        addEventListener("DOMWindowCreated", function workerLoaded(e) {
-          removeEventListener("DOMWindowCreated", workerLoaded);
-          
-          port.postMessage({topic: "test-pending-msg"});
-          for (let [temp_id, temp_port] of frameworker.ports) {
-            if (temp_port._pendingMessagesOutgoing.length >= 0) {
-              havePendingMessagesAfter = true;
-            }
-          }
-          let ok = unloadHasFired && haveNoPendingMessagesBefore && havePendingMessagesAfter;
-          sendAsyncMessage("test-result", {ok: ok});
-        });
-      });
-    };
-
-    let reloading = false;
     let worker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
     let port = provider.getWorkerPort();
-    worker._worker.browserPromise.then(browser => {
-      browser.messageManager.loadFrameScript("data:," + encodeURI(contentScript.toSource()) + "();", false);
-      browser.messageManager.sendAsyncMessage("frameworker-test:ready");
-      let seenTestResult = false;
-      browser.messageManager.addMessageListener("test-result", function _onTestResult(msg) {
-        browser.messageManager.removeMessageListener("test-result", _onTestResult);
-        ok(msg.json.ok, "test result from content-script is ok");
-        seenTestResult = true;
-      });
-
-      port.onmessage = function (e) {
+    
+    
+    Services.obs.addObserver(function reloadObserver() {
+      Services.obs.removeObserver(reloadObserver, "social:provider-reload");
+      ok(port._closed, "old port was closed by the reload");
+      let newWorker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload - worker2");
+      let newPort = provider.getWorkerPort();
+      newPort.onmessage = function (e) {
         let topic = e.data.topic;
         switch (topic) {
           case "test-initialization-complete":
             
-            
-            
-            
-            
-            
-            
-            port.postMessage({topic: "test-reload-init"});
-            break;
-          case "test-pending-response":
-            ok(e.data.data.seenInit, "worker has seen the social.initialize message");
-            
-            let newWorker = fw.getFrameWorkerHandle(provider.workerURL, undefined, "testWorkerReload");
-            is(worker._worker, newWorker._worker, "worker is the same after reload");
-            ok(true, "worker reloaded and testPort was reconnected");
-            ok(seenTestResult, "saw result message from content");
+            newPort.close();
             next();
             break;
         }
       }
-      port.postMessage({topic: "test-initialization"});
-    });
+      newPort.postMessage({topic: "test-initialization"});
+    }, "social:provider-reload", false);
+
+    port.onmessage = function (e) {
+      let topic = e.data.topic;
+      switch (topic) {
+        case "test-initialization-complete":
+          
+          
+          
+          port.postMessage({topic: "test-reload-init"});
+          
+          break;
+      }
+    }
+    port.postMessage({topic: "test-initialization"});
   },
 
   testNotificationLinks: function(next) {

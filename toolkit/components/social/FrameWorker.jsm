@@ -82,17 +82,6 @@ function _Worker(browserPromise, options) {
 }
 
 _Worker.prototype = {
-  reload: function() {
-    
-    
-    
-    
-    
-    this.browserPromise.then(browser => {
-      browser.messageManager.sendAsyncMessage("frameworker:reload");
-    });
-  },
-
   
   receiveMessage: function(msg) {
     switch (msg.name) {

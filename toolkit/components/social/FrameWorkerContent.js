@@ -45,7 +45,6 @@ function FrameWorker(url, name, origin, exposeLocalStorage) {
   this.name = name || url;
   this.ports = new Map(); 
   this.loaded = false;
-  this.reloading = false;
   this.origin = origin;
   this._injectController = null;
   this.exposeLocalStorage = exposeLocalStorage;
@@ -76,22 +75,6 @@ FrameWorker.prototype = {
       Services.obs.removeObserver(this._injectController, "document-element-inserted");
       this._injectController = null;
     }
-  },
-
-  reload: function FrameWorker_reloadWorker() {
-    
-    
-    for (let [, port] of this.ports) {
-      port._entangled = false;
-    }
-    
-    
-    this.loaded = false;
-    
-    
-    
-    this.reloading = true;
-    navigate("about:blank");
   },
 
   createSandbox: function createSandbox() {
@@ -249,26 +232,10 @@ FrameWorker.prototype = {
       
       
       
-      if (!worker.reloading && content) {
-        for (let [, port] of worker.ports) {
-          try {
-            port.close();
-          } catch (ex) {
-            Cu.reportError("FrameWorker: failed to close port. " + ex);
-          }
-        }
-        worker.ports.clear();
-      }
-
+      worker.ports.clear();
       if (sandbox) {
         Cu.nukeSandbox(sandbox);
         sandbox = null;
-      }
-      if (worker.reloading) {
-        Services.tm.mainThread.dispatch(function doReload() {
-          worker.reloading = false;
-          worker.load();
-        }, Ci.nsIThread.DISPATCH_NORMAL);
       }
     });
   },
@@ -285,7 +252,6 @@ const FrameWorkerManager = {
 
     addMessageListener("frameworker:init", this._onInit);
     addMessageListener("frameworker:connect", this._onConnect);
-    addMessageListener("frameworker:reload", this._onReload);
     addMessageListener("frameworker:port-message", this._onPortMessage);
     addMessageListener("frameworker:cookie-get", this._onCookieGet);
   },
@@ -302,10 +268,6 @@ const FrameWorkerManager = {
     frameworker.ports.set(msg.data.portId, port);
     if (frameworker.loaded && !frameworker.reloading)
       port._createWorkerAndEntangle(frameworker);
-  },
-
-  _onReload: function(msg) {
-    frameworker.reload();
   },
 
   

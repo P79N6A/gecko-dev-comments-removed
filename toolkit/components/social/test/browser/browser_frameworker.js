@@ -559,33 +559,6 @@ let tests = {
     }
   },
 
-  testReloadAndNewPort: function(cbnext) {
-    let run = function () {
-      onconnect = function(e) {
-        e.ports[0].postMessage({topic: "ready"});
-      }
-    }
-    let doneReload = false;
-    let worker = getFrameWorkerHandle(makeWorkerUrl(run),
-                                      undefined, "testReloadAndNewPort");
-    worker.port.onmessage = function(e) {
-      if (e.data.topic == "ready" && !doneReload) {
-        
-        doneReload = true;
-        worker._worker.reload();
-        let worker2 = getFrameWorkerHandle(makeWorkerUrl(run),
-                                           undefined, "testReloadAndNewPort");
-        worker2.port.onmessage = function(e) {
-          if (e.data.topic == "ready") {
-            
-            worker2.terminate();
-            cbnext();
-          }
-        }
-      }
-    }
-  },
-
   
   
   testCloseFirstSend: function(cbnext) {

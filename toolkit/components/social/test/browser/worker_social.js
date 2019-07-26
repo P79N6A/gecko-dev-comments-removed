@@ -25,11 +25,6 @@ onconnect = function(e) {
       case "test-profile":
         apiPort.postMessage({topic: "social.user-profile", data: data});
         break;
-      case "test-pending-msg":
-        
-        
-        port.postMessage({topic: "test-pending-response", data: {seenInit: !!apiPort}});
-        break;
       case "test-ambient":
         apiPort.postMessage({topic: "social.ambient-notification", data: data});
         break;
@@ -40,8 +35,6 @@ onconnect = function(e) {
         testerPort.postMessage({topic: "test.cookies-get-response", data: data});
         break;
       case "test-reload-init":
-        
-        
         apiPort.postMessage({topic: 'social.reload-worker'});
         break;
       case "test-notification-create":
@@ -63,9 +56,4 @@ onconnect = function(e) {
         break;
     }
   }
-  
-  if (apiPort && apiPort != port) {
-    port.postMessage({topic: "worker.connected"})
-  }
-
 }
