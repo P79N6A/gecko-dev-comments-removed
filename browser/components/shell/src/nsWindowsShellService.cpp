@@ -460,13 +460,13 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
     
     ::RegCloseKey(theKey);
     if (REG_FAILED(res) ||
-        !valueData.Equals(currValue, CaseInsensitiveCompare)) {
+        _wcsicmp(valueData.get(), currValue)) {
       
       NS_ConvertUTF8toUTF16 oldValueData(settings->oldValueData);
       offset = oldValueData.Find("%APPPATH%");
       oldValueData.Replace(offset, 9, appLongPath);
       
-      if (!oldValueData.Equals(currValue, CaseInsensitiveCompare)) {
+      if (_wcsicmp(oldValueData.get(), currValue)) {
         *aIsDefaultBrowser = false;
         return NS_OK;
       }
@@ -579,7 +579,7 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
     
     
     if (REG_FAILED(res) ||
-        !oldValueOpen.Equals(currValue, CaseInsensitiveCompare)) {
+        _wcsicmp(oldValueOpen.get(), currValue)) {
       ::RegCloseKey(theKey);
       return NS_OK;
     }
