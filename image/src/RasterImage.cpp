@@ -2927,7 +2927,7 @@ RasterImage::RequestDecodeIfNeeded(nsresult aStatus,
 
   
   if (NS_SUCCEEDED(aStatus) &&
-      aIntent != eShutdownIntent_Error &&
+      aIntent == eShutdownIntent_Done &&
       aDone &&
       aWasSize &&
       mWantFullDecode) {
