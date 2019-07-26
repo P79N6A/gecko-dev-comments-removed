@@ -1326,6 +1326,20 @@ SpdyStream31::Close(nsresult reason)
   mTransaction->Close(reason);
 }
 
+void
+SpdyStream31::UpdateRemoteWindow(int32_t delta)
+{
+  mRemoteWindow += delta;
+
+  
+  
+  if (mBlockedOnRwin && mSession->RemoteSessionWindow() > 0 &&
+      mRemoteWindow > 0) {
+    
+    mSession->TransactionHasDataToWrite(this);
+  }
+}
+
 
 
 
