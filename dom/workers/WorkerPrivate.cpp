@@ -1766,7 +1766,7 @@ struct WorkerPrivate::TimeoutInfo
   bool mCanceled;
 };
 
-class WorkerPrivate::MemoryReporter MOZ_FINAL : public nsIMemoryReporter
+class WorkerPrivate::MemoryReporter MOZ_FINAL : public nsIMemoryMultiReporter
 {
   friend class WorkerPrivate;
 
@@ -1807,7 +1807,7 @@ public:
   }
 
   NS_IMETHOD
-  CollectReports(nsIMemoryReporterCallback* aCallback,
+  CollectReports(nsIMemoryMultiReporterCallback* aCallback,
                  nsISupports* aClosure)
   {
     AssertIsOnMainThread();
@@ -1883,7 +1883,7 @@ private:
   }
 };
 
-NS_IMPL_ISUPPORTS1(WorkerPrivate::MemoryReporter, nsIMemoryReporter)
+NS_IMPL_ISUPPORTS1(WorkerPrivate::MemoryReporter, nsIMemoryMultiReporter)
 
 template <class Derived>
 WorkerPrivateParent<Derived>::WorkerPrivateParent(
@@ -3093,7 +3093,7 @@ WorkerPrivate::EnableMemoryReporter()
   
   mMemoryReporter = new MemoryReporter(this);
 
-  if (NS_FAILED(NS_RegisterMemoryReporter(mMemoryReporter))) {
+  if (NS_FAILED(NS_RegisterMemoryMultiReporter(mMemoryReporter))) {
     NS_WARNING("Failed to register memory reporter!");
     
     
@@ -3148,7 +3148,7 @@ WorkerPrivate::DisableMemoryReporter()
   }
 
   
-  if (NS_FAILED(NS_UnregisterMemoryReporter(memoryReporter))) {
+  if (NS_FAILED(NS_UnregisterMemoryMultiReporter(memoryReporter))) {
     NS_WARNING("Failed to unregister memory reporter!");
   }
 }

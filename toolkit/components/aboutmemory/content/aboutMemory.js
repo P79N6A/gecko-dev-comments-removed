@@ -177,21 +177,38 @@ function onUnload()
 
 
 
-function processMemoryReporters(aIgnoreReporter, aIgnoreReport, aHandleReport)
+function processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport)
 {
-  let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
-                              aAmount, aDescription) {
-    if (!aIgnoreReport(aUnsafePath)) {
-      aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
-                    aDescription,  undefined);
-    }
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   let e = gMgr.enumerateReporters();
   while (e.hasMoreElements()) {
-    let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    if (!aIgnoreReporter(mr.name)) {
+    let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+    let unsafePath = rOrig.path;
+    if (!aIgnoreSingle(unsafePath)) {
+      aHandleReport(rOrig.process, unsafePath, rOrig.kind, rOrig.units,
+                    rOrig.amount, rOrig.description);
+    }
+  }
+
+  let e = gMgr.enumerateMultiReporters();
+  while (e.hasMoreElements()) {
+    let mr = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
+    if (!aIgnoreMulti(mr.name)) {
       
+      let handleReport = function(aProcess, aUnsafePath, aKind, aUnits,
+                                  aAmount, aDescription) {
+        aHandleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
+                      aDescription,  undefined);
+      }
       mr.collectReports(handleReport, null);
     }
   }
@@ -208,13 +225,13 @@ function processMemoryReporters(aIgnoreReporter, aIgnoreReport, aHandleReport)
 
 
 
-function processMemoryReportsFromFile(aReports, aIgnoreReport, aHandleReport)
+function processMemoryReportsFromFile(aReports, aIgnoreSingle, aHandleReport)
 {
   
 
   for (let i = 0; i < aReports.length; i++) {
     let r = aReports[i];
-    if (!aIgnoreReport(r.path)) {
+    if (!aIgnoreSingle(r.path)) {
       aHandleReport(r.process, r.path, r.kind, r.units, r.amount,
                     r.description, r._presence);
     }
@@ -574,7 +591,10 @@ function updateAboutMemoryFromReporters()
 
   try {
     
-    appendAboutMemoryMain(processMemoryReporters, gMgr.hasMozMallocUsableSize,
+    let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
+      processMemoryReporters(aIgnoreSingle, aIgnoreMulti, aHandleReport);
+    }
+    appendAboutMemoryMain(process, gMgr.hasMozMallocUsableSize,
                            false);
 
   } catch (ex) {
@@ -601,8 +621,8 @@ function updateAboutMemoryFromJSONObject(aObj)
                 "missing 'hasMozMallocUsableSize' property");
     assertInput(aObj.reports && aObj.reports instanceof Array,
                 "missing or non-array 'reports' property");
-    let process = function(aIgnoreReporter, aIgnoreReport, aHandleReport) {
-      processMemoryReportsFromFile(aObj.reports, aIgnoreReport, aHandleReport);
+    let process = function(aIgnoreSingle, aIgnoreMulti, aHandleReport) {
+      processMemoryReportsFromFile(aObj.reports, aIgnoreSingle, aHandleReport);
     }
     appendAboutMemoryMain(process, aObj.hasMozMallocUsableSize,
                            true);
@@ -962,10 +982,10 @@ function PColl()
 
 
 
-function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize,
+function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
                                aForceShowSmaps)
 {
-  let pcollsByProcess = getPCollsByProcess(aProcessReports, aForceShowSmaps);
+  let pcollsByProcess = getPCollsByProcess(aProcess, aForceShowSmaps);
 
   
   let processes = Object.keys(pcollsByProcess);
@@ -1031,7 +1051,7 @@ function appendAboutMemoryMain(aProcessReports, aHasMozMallocUsableSize,
 
 
 
-function getPCollsByProcess(aProcessReports, aForceShowSmaps)
+function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
 {
   let pcollsByProcess = {};
 
@@ -1052,21 +1072,23 @@ function getPCollsByProcess(aProcessReports, aForceShowSmaps)
   
   
   
+  
+  
+  
 
-  function ignoreReporter(aName)
-  {
-    return (aName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
-           aName === "compartments" ||
-           aName === "ghost-windows" ||
-           aName === "resident-fast";
-  }
-
-  function ignoreReport(aUnsafePath)
+  function ignoreSingle(aUnsafePath)
   {
     return (isSmapsPath(aUnsafePath) && !gVerbose.checked && !aForceShowSmaps) ||
            aUnsafePath.startsWith("compartments/") ||
            aUnsafePath.startsWith("ghost-windows/") ||
            aUnsafePath == "resident-fast";
+  }
+
+  function ignoreMulti(aMRName)
+  {
+    return (aMRName === "smaps" && !gVerbose.checked && !aForceShowSmaps) ||
+            aMRName === "compartments" ||
+            aMRName === "ghost-windows";
   }
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
@@ -1149,7 +1171,7 @@ function getPCollsByProcess(aProcessReports, aForceShowSmaps)
     }
   }
 
-  aProcessReports(ignoreReporter, ignoreReport, handleReport);
+  aProcessMemoryReports(ignoreSingle, ignoreMulti, handleReport);
 
   return pcollsByProcess;
 }
@@ -2089,14 +2111,14 @@ function getCompartmentsByProcess()
   
   
 
-  function ignoreReporter(aName)
-  {
-    return !(aName == "compartments" || aName == "content-child");
-  }
-
-  function ignoreReport(aUnsafePath)
+  function ignoreSingle(aUnsafePath)
   {
     return !aUnsafePath.startsWith("compartments/");
+  }
+
+  function ignoreMulti(aMRName)
+  {
+    return aMRName !== "compartments";
   }
 
   let compartmentsByProcess = {};
@@ -2147,7 +2169,7 @@ function getCompartmentsByProcess()
     }
   }
 
-  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
+  processMemoryReporters(ignoreSingle, ignoreMulti, handleReport);
 
   return compartmentsByProcess;
 }
@@ -2169,14 +2191,14 @@ GhostWindow.prototype = {
 
 function getGhostWindowsByProcess()
 {
-  function ignoreReporter(aName)
-  {
-    return !(aName == "ghost-windows" || aName == "content-child");
-  }
-
-  function ignoreReport(aUnsafePath)
+  function ignoreSingle(aUnsafePath)
   {
     return !aUnsafePath.startsWith('ghost-windows/')
+  }
+
+  function ignoreMulti(aName)
+  {
+    return aName !== "ghost-windows";
   }
 
   let ghostWindowsByProcess = {};
@@ -2208,7 +2230,7 @@ function getGhostWindowsByProcess()
     }
   }
 
-  processMemoryReporters(ignoreReporter, ignoreReport, handleReport);
+  processMemoryReporters(ignoreSingle, ignoreMulti, handleReport);
 
   return ghostWindowsByProcess;
 }
