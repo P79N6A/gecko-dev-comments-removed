@@ -234,8 +234,8 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
-  mScaleRequest(this),
-  mInUpdateImageContainer(false)
+  mInUpdateImageContainer(false),
+  mScaleRequest(this)
 {
   
   mDiscardTrackerNode.img = this;
@@ -2714,6 +2714,10 @@ RasterImage::ScaleWorker::RequestScale(RasterImage* aImg)
   if (request->isInList())
     return;
 
+  
+  
+  request->kungFuDeathGrip = request->image;
+
   mScaleRequests.insertBack(request);
 
   if (!sScaleWorkerThread) {
@@ -2757,6 +2761,11 @@ RasterImage::DrawWorker::Run()
       scaledFrame->ImageUpdated(scaledFrame->GetRect());
       nsIntRect frameRect = request->srcFrame->GetRect();
       observer->FrameChanged(nullptr, request->image, &frameRect);
+    }
+    if (request->done) {
+      
+      
+      request->kungFuDeathGrip = nullptr;
     }
   }
 
