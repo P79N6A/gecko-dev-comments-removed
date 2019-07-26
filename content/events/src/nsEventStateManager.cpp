@@ -1009,22 +1009,23 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 #endif
   
   
+  WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
   if (aEvent->mFlags.mIsTrusted &&
-      ((aEvent->IsMouseDerivedEvent() && IsMouseEventReal(aEvent)) ||
-       aEvent->eventStructType == NS_WHEEL_EVENT)) {
-    if (!sIsPointerLocked) {
-      sLastScreenPoint = nsDOMUIEvent::CalculateScreenPoint(aPresContext, aEvent);
-      sLastClientPoint = nsDOMUIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
-    }
+      ((mouseEvent && IsMouseEventReal(mouseEvent)) ||
+       aEvent->eventStructType == NS_WHEEL_EVENT) &&
+      !sIsPointerLocked) {
+    sLastScreenPoint =
+      nsDOMUIEvent::CalculateScreenPoint(aPresContext, aEvent);
+    sLastClientPoint =
+      nsDOMUIEvent::CalculateClientPoint(aPresContext, aEvent, nullptr);
   }
 
   
   
   if (aEvent->mFlags.mIsTrusted &&
-      ((aEvent->eventStructType == NS_MOUSE_EVENT  &&
-        IsMouseEventReal(aEvent) &&
-        aEvent->message != NS_MOUSE_ENTER &&
-        aEvent->message != NS_MOUSE_EXIT) ||
+      ((mouseEvent && IsMouseEventReal(mouseEvent) &&
+        mouseEvent->message != NS_MOUSE_ENTER &&
+        mouseEvent->message != NS_MOUSE_EXIT) ||
        aEvent->eventStructType == NS_WHEEL_EVENT ||
        aEvent->eventStructType == NS_KEY_EVENT)) {
     if (gMouseOrKeyboardEventCounter == 0) {
@@ -1044,7 +1045,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
   switch (aEvent->message) {
   case NS_MOUSE_BUTTON_DOWN: {
-    WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
     switch (mouseEvent->button) {
     case WidgetMouseEvent::eLeftButton:
 #ifndef XP_OS2
@@ -1069,7 +1069,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     break;
   }
   case NS_MOUSE_BUTTON_UP: {
-    WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
     switch (mouseEvent->button) {
       case WidgetMouseEvent::eLeftButton:
         if (Prefs::ClickHoldContextMenu()) {
@@ -1095,21 +1094,18 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     
     
     
-    {
-      WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
-      if (mouseEvent->exit != WidgetMouseEvent::eTopLevel) {
-        
-        
-        
-        mouseEvent->message = NS_MOUSE_MOVE;
-        mouseEvent->reason = WidgetMouseEvent::eSynthesized;
-        
-      } else {
-        GenerateMouseEnterExit(mouseEvent);
-        
-        aEvent->message = 0;
-        break;
-      }
+    if (mouseEvent->exit != WidgetMouseEvent::eTopLevel) {
+      
+      
+      
+      mouseEvent->message = NS_MOUSE_MOVE;
+      mouseEvent->reason = WidgetMouseEvent::eSynthesized;
+      
+    } else {
+      GenerateMouseEnterExit(mouseEvent);
+      
+      aEvent->message = 0;
+      break;
     }
   case NS_MOUSE_MOVE: {
     
@@ -1118,7 +1114,6 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     
     
     
-    WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
     GenerateDragGesture(aPresContext, mouseEvent);
     UpdateCursor(aPresContext, aEvent, mCurrentTarget, aStatus);
     GenerateMouseEnterExit(mouseEvent);

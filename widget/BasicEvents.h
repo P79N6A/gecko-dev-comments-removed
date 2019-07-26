@@ -740,14 +740,6 @@ public:
   
 
 
-  bool IsLeftClickEvent() const;
-  
-
-
-  bool IsContextMenuKeyEvent() const;
-  
-
-
 
   bool IsRetargetedNativeEventDelivererForPlugin() const;
   

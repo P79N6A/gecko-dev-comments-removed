@@ -3112,8 +3112,9 @@ HTMLInputElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   
+  WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
   bool outerActivateEvent =
-    (aVisitor.mEvent->IsLeftClickEvent() ||
+    ((mouseEvent && mouseEvent->IsLeftClickEvent()) ||
      (aVisitor.mEvent->message == NS_UI_ACTIVATE && !mInInternalActivate));
 
   if (outerActivateEvent) {
@@ -3342,14 +3343,18 @@ HTMLInputElement::MaybeInitPickers(nsEventChainPostVisitor& aVisitor)
   
   
   
-  if (aVisitor.mEvent->IsLeftClickEvent() &&
-      !aVisitor.mEvent->mFlags.mDefaultPrevented) {
-    if (mType == NS_FORM_INPUT_FILE) {
-      return InitFilePicker(FILE_PICKER_FILE);
-    }
-    if (mType == NS_FORM_INPUT_COLOR) {
-      return InitColorPicker();
-    }
+  if (aVisitor.mEvent->mFlags.mDefaultPrevented) {
+    return NS_OK;
+  }
+  WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
+  if (!(mouseEvent && mouseEvent->IsLeftClickEvent())) {
+    return NS_OK;
+  }
+  if (mType == NS_FORM_INPUT_FILE) {
+    return InitFilePicker(FILE_PICKER_FILE);
+  }
+  if (mType == NS_FORM_INPUT_COLOR) {
+    return InitColorPicker();
   }
   return NS_OK;
 }
@@ -3395,23 +3400,26 @@ HTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   
   
   if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
-      !IsSingleLineTextControl(true) &&
-      aVisitor.mEvent->IsLeftClickEvent() &&
-      !ShouldPreventDOMActivateDispatch(aVisitor.mEvent->originalTarget)) {
-    InternalUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted,
-                             NS_UI_ACTIVATE, 1);
+      !IsSingleLineTextControl(true)) {
+    WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
+    if (mouseEvent && mouseEvent->IsLeftClickEvent() &&
+        !ShouldPreventDOMActivateDispatch(aVisitor.mEvent->originalTarget)) {
+      InternalUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted,
+                               NS_UI_ACTIVATE, 1);
 
-    nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
-    if (shell) {
-      nsEventStatus status = nsEventStatus_eIgnore;
-      mInInternalActivate = true;
-      rv = shell->HandleDOMEventWithTarget(this, &actEvent, &status);
-      mInInternalActivate = false;
+      nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
+      if (shell) {
+        nsEventStatus status = nsEventStatus_eIgnore;
+        mInInternalActivate = true;
+        rv = shell->HandleDOMEventWithTarget(this, &actEvent, &status);
+        mInInternalActivate = false;
 
-      
-      
-      if (status == nsEventStatus_eConsumeNoDefault)
-        aVisitor.mEventStatus = status;
+        
+        
+        if (status == nsEventStatus_eConsumeNoDefault) {
+          aVisitor.mEventStatus = status;
+        }
+      }
     }
   }
 

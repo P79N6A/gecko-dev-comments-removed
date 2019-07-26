@@ -373,7 +373,8 @@ HTMLImageElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   
-  if (aVisitor.mEvent->IsLeftClickEvent()) {
+  WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
+  if (mouseEvent && mouseEvent->IsLeftClickEvent()) {
     bool isMap = false;
     GetIsMap(&isMap);
     if (isMap) {

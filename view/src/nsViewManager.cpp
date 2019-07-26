@@ -703,14 +703,15 @@ nsViewManager::DispatchEvent(WidgetGUIEvent *aEvent,
 {
   PROFILER_LABEL("event", "nsViewManager::DispatchEvent");
 
-  if ((aEvent->HasMouseEventMessage() &&
+  WidgetMouseEvent* mouseEvent = aEvent->AsMouseEvent();
+  if ((mouseEvent &&
        
-       aEvent->AsMouseEvent()->reason == WidgetMouseEvent::eReal &&
+       mouseEvent->reason == WidgetMouseEvent::eReal &&
        
        
        
-       aEvent->message != NS_MOUSE_EXIT &&
-       aEvent->message != NS_MOUSE_ENTER) ||
+       mouseEvent->message != NS_MOUSE_EXIT &&
+       mouseEvent->message != NS_MOUSE_ENTER) ||
       aEvent->HasKeyEventMessage() ||
       aEvent->HasIMEEventMessage() ||
       aEvent->message == NS_PLUGIN_INPUT_EVENT) {

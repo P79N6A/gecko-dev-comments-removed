@@ -198,8 +198,9 @@ HTMLButtonElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   
   
   
+  WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
   bool outerActivateEvent =
-    (aVisitor.mEvent->IsLeftClickEvent() ||
+    ((mouseEvent && mouseEvent->IsLeftClickEvent()) ||
      (aVisitor.mEvent->message == NS_UI_ACTIVATE &&
       !mInInternalActivate));
 
@@ -225,22 +226,25 @@ HTMLButtonElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     return rv;
   }
 
-  if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault &&
-      aVisitor.mEvent->IsLeftClickEvent()) {
-    InternalUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted,
-                             NS_UI_ACTIVATE, 1);
+  if (aVisitor.mEventStatus != nsEventStatus_eConsumeNoDefault) {
+    WidgetMouseEvent* mouseEvent = aVisitor.mEvent->AsMouseEvent();
+    if (mouseEvent && mouseEvent->IsLeftClickEvent()) {
+      InternalUIEvent actEvent(aVisitor.mEvent->mFlags.mIsTrusted,
+                               NS_UI_ACTIVATE, 1);
 
-    nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
-    if (shell) {
-      nsEventStatus status = nsEventStatus_eIgnore;
-      mInInternalActivate = true;
-      shell->HandleDOMEventWithTarget(this, &actEvent, &status);
-      mInInternalActivate = false;
+      nsCOMPtr<nsIPresShell> shell = aVisitor.mPresContext->GetPresShell();
+      if (shell) {
+        nsEventStatus status = nsEventStatus_eIgnore;
+        mInInternalActivate = true;
+        shell->HandleDOMEventWithTarget(this, &actEvent, &status);
+        mInInternalActivate = false;
 
-      
-      
-      if (status == nsEventStatus_eConsumeNoDefault)
-        aVisitor.mEventStatus = status;
+        
+        
+        if (status == nsEventStatus_eConsumeNoDefault) {
+          aVisitor.mEventStatus = status;
+        }
+      }
     }
   }
 
