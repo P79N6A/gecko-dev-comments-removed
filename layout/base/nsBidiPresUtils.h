@@ -25,6 +25,7 @@ class nsBlockFrame;
 class nsPresContext;
 class nsRenderingContext;
 class nsBlockInFlowLineIterator;
+class nsStyleContext;
 template<class T> class nsTHashtable;
 
 
@@ -190,9 +191,16 @@ public:
 
 
 
+
+
+
+
+
+
+
   static nsresult RenderText(const PRUnichar*       aText,
                              int32_t                aLength,
-                             nsBidiDirection        aBaseDirection,
+                             nsBidiLevel            aBaseLevel,
                              nsPresContext*         aPresContext,
                              nsRenderingContext&    aRenderingContext,
                              nsRenderingContext&    aTextRunConstructionContext,
@@ -201,18 +209,18 @@ public:
                              nsBidiPositionResolve* aPosResolve = nullptr,
                              int32_t                aPosResolveCount = 0)
   {
-    return ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext, aRenderingContext,
+    return ProcessTextForRenderingContext(aText, aLength, aBaseLevel, aPresContext, aRenderingContext,
                                           aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nullptr);
   }
   
   static nscoord MeasureTextWidth(const PRUnichar*     aText,
                                   int32_t              aLength,
-                                  nsBidiDirection      aBaseDirection,
+                                  nsBidiLevel          aBaseLevel,
                                   nsPresContext*       aPresContext,
                                   nsRenderingContext&  aRenderingContext)
   {
     nscoord length;
-    nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseDirection, aPresContext,
+    nsresult rv = ProcessTextForRenderingContext(aText, aLength, aBaseLevel, aPresContext,
                                                  aRenderingContext, aRenderingContext,
                                                  MODE_MEASURE, 0, 0, nullptr, 0, &length);
     return NS_SUCCEEDED(rv) ? length : 0;
@@ -292,9 +300,16 @@ public:
 
 
 
+
+
+
+
+
+
+
   static nsresult ProcessText(const PRUnichar*       aText,
                               int32_t                aLength,
-                              nsBidiDirection        aBaseDirection,
+                              nsBidiLevel            aBaseLevel,
                               nsPresContext*         aPresContext,
                               BidiProcessor&         aprocessor,
                               Mode                   aMode,
@@ -321,11 +336,25 @@ public:
                                   nsBidiLevel aBaseDirection,
                                   bool aOverride);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  static nsBidiLevel BidiLevelFromStyle(nsStyleContext* aStyleContext);
+
 private:
   static nsresult
   ProcessTextForRenderingContext(const PRUnichar*       aText,
                                  int32_t                aLength,
-                                 nsBidiDirection        aBaseDirection,
+                                 nsBidiLevel            aBaseLevel,
                                  nsPresContext*         aPresContext,
                                  nsRenderingContext&    aRenderingContext,
                                  nsRenderingContext&    aTextRunConstructionContext,

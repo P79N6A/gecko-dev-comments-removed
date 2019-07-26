@@ -510,14 +510,13 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
 
     if (mState & NS_FRAME_IS_BIDI) {
       presContext->SetBidiEnabled();
-      const nsStyleVisibility* vis = StyleVisibility();
-      nsBidiDirection direction = (NS_STYLE_DIRECTION_RTL == vis->mDirection) ? NSBIDI_RTL : NSBIDI_LTR;
+      nsBidiLevel level = nsBidiPresUtils::BidiLevelFromStyle(StyleContext());
       if (mAccessKeyInfo && mAccessKeyInfo->mAccesskeyIndex != kNotFound) {
           
           
           nsBidiPositionResolve posResolve;
           posResolve.logicalIndex = mAccessKeyInfo->mAccesskeyIndex;
-          rv = nsBidiPresUtils::RenderText(mCroppedTitle.get(), mCroppedTitle.Length(), direction,
+          rv = nsBidiPresUtils::RenderText(mCroppedTitle.get(), mCroppedTitle.Length(), level,
                                            presContext, aRenderingContext,
                                            *refContext,
                                            aTextRect.x, baseline,
@@ -528,7 +527,7 @@ nsTextBoxFrame::DrawText(nsRenderingContext& aRenderingContext,
       }
       else
       {
-          rv = nsBidiPresUtils::RenderText(mCroppedTitle.get(), mCroppedTitle.Length(), direction,
+          rv = nsBidiPresUtils::RenderText(mCroppedTitle.get(), mCroppedTitle.Length(), level,
                                            presContext, aRenderingContext,
                                            *refContext,
                                            aTextRect.x, baseline);
