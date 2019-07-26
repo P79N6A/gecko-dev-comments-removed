@@ -8,37 +8,31 @@
 
 namespace mozilla {
 
-#define STACK_ARENA_MARK_INCREMENT 50
-
-#define STACK_ARENA_BLOCK_INCREMENT 4044
-
-
-
 
 struct StackBlock {
-   
-   
-   
-   char mBlock[STACK_ARENA_BLOCK_INCREMENT];
+  
+  static const size_t MAX_USABLE_SIZE = 4044;
 
-   
-   
-   
-   StackBlock* mNext;
+  
+  
+  char mBlock[MAX_USABLE_SIZE];
 
-   StackBlock() : mNext(nullptr) { }
-   ~StackBlock() { }
+  
+  
+  StackBlock* mNext;
+
+  StackBlock() : mNext(nullptr) { }
+  ~StackBlock() { }
 };
 
 
 
-
 struct StackMark {
-   
-   StackBlock* mBlock;
-   
-   
-   size_t mPos;
+  
+  StackBlock* mBlock;
+
+  
+  size_t mPos;
 };
 
 StackArena* AutoStackArena::gStackArena;
@@ -59,14 +53,13 @@ StackArena::StackArena()
 StackArena::~StackArena()
 {
   
-  delete[] mMarks;
-  while(mBlocks)
-  {
+  delete [] mMarks;
+  while (mBlocks) {
     StackBlock* toDelete = mBlocks;
     mBlocks = mBlocks->mNext;
     delete toDelete;
   }
-} 
+}
 
 size_t
 StackArena::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
@@ -81,19 +74,21 @@ StackArena::SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const
   return n;
 }
 
+static const int STACK_ARENA_MARK_INCREMENT = 50;
+
 void
 StackArena::Push()
 {
   
   
   
-  if (mStackTop >= mMarkLength)
-  {
+  if (mStackTop >= mMarkLength) {
     uint32_t newLength = mStackTop + STACK_ARENA_MARK_INCREMENT;
     StackMark* newMarks = new StackMark[newLength];
     if (newMarks) {
-      if (mMarkLength)
+      if (mMarkLength) {
         memcpy(newMarks, mMarks, sizeof(StackMark)*mMarkLength);
+      }
       
       
       for (; mMarkLength < mStackTop; ++mMarkLength) {
@@ -123,18 +118,17 @@ StackArena::Allocate(size_t aSize)
   NS_ASSERTION(mStackTop > 0, "Allocate called without Push");
 
   
-  
   aSize = NS_ROUNDUP<size_t>(aSize, 8);
 
   
-  if (mPos + aSize >= STACK_ARENA_BLOCK_INCREMENT)
-  {
-    NS_ASSERTION(aSize <= STACK_ARENA_BLOCK_INCREMENT,
+  if (mPos + aSize >= StackBlock::MAX_USABLE_SIZE) {
+    NS_ASSERTION(aSize <= StackBlock::MAX_USABLE_SIZE,
                  "Requested memory is greater that our block size!!");
-    if (mCurBlock->mNext == nullptr)
+    if (mCurBlock->mNext == nullptr) {
       mCurBlock->mNext = new StackBlock();
+    }
 
-    mCurBlock =  mCurBlock->mNext;
+    mCurBlock = mCurBlock->mNext;
     mPos = 0;
   }
 

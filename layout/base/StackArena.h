@@ -12,8 +12,6 @@ namespace mozilla {
 struct StackBlock;
 struct StackMark;
 class AutoStackArena;
- 
-
 
 
 class StackArena {
@@ -62,11 +60,11 @@ private:
 
 
 
-
-
 class MOZ_STACK_CLASS AutoStackArena {
 public:
-  AutoStackArena() : mOwnsStackArena(false) {
+  AutoStackArena()
+    : mOwnsStackArena(false)
+  {
     if (!gStackArena) {
       gStackArena = new StackArena();
       mOwnsStackArena = true;
@@ -92,6 +90,5 @@ private:
   static StackArena* gStackArena;
   bool mOwnsStackArena;
 };
-
 
 } 
