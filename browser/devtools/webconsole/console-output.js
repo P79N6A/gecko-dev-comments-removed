@@ -152,6 +152,18 @@ ConsoleOutput.prototype = {
 
 
 
+  _releaseObject: function(actorId)
+  {
+    this.owner._releaseObject(actorId);
+  },
+
+  
+
+
+
+
+
+
   addMessage: function(...args)
   {
     for (let msg of args) {
@@ -847,7 +859,7 @@ Messages.Simple.prototype = Heritage.extend(Messages.BaseMessage.prototype,
 
     let repeatNode = this.document.createElementNS(XHTML_NS, "span");
     repeatNode.setAttribute("value", "1");
-    repeatNode.className = "repeats";
+    repeatNode.className = "message-repeats";
     repeatNode.textContent = 1;
     repeatNode._uid = this.getRepeatID();
     return repeatNode;
@@ -1077,6 +1089,134 @@ Messages.ConsoleGeneric.prototype = Heritage.extend(Messages.Extended.prototype,
   },
 }); 
 
+
+
+
+
+
+
+
+
+Messages.ConsoleTrace = function(packet)
+{
+  let options = {
+    className: "consoleTrace cm-s-mozilla",
+    timestamp: packet.timeStamp,
+    category: "webdev",
+    severity: CONSOLE_API_LEVELS_TO_SEVERITIES[packet.level],
+    private: packet.private,
+    filterDuplicates: true,
+    location: {
+      url: packet.filename,
+      line: packet.lineNumber,
+    },
+  };
+
+  this._renderStack = this._renderStack.bind(this);
+  Messages.Simple.call(this, this._renderStack, options);
+
+  this._repeatID.consoleApiLevel = packet.level;
+  this._stacktrace = this._repeatID.stacktrace = packet.stacktrace;
+  this._arguments = packet.arguments;
+};
+
+Messages.ConsoleTrace.prototype = Heritage.extend(Messages.Simple.prototype,
+{
+  
+
+
+
+
+
+  _stacktrace: null,
+
+  
+
+
+
+
+
+
+
+  _arguments: null,
+
+  init: function()
+  {
+    let result = Messages.Simple.prototype.init.apply(this, arguments);
+
+    
+    if (Array.isArray(this._arguments)) {
+      for (let arg of this._arguments) {
+        if (WebConsoleUtils.isActorGrip(arg)) {
+          this.output._releaseObject(arg.actor);
+        }
+      }
+    }
+    this._arguments = null;
+
+    return result;
+  },
+
+  
+
+
+
+
+
+  _renderStack: function()
+  {
+    let cmvar = this.document.createElementNS(XHTML_NS, "span");
+    cmvar.className = "cm-variable";
+    cmvar.textContent = "console";
+
+    let cmprop = this.document.createElementNS(XHTML_NS, "span");
+    cmprop.className = "cm-property";
+    cmprop.textContent = "trace";
+
+    let title = this.document.createElementNS(XHTML_NS, "span");
+    title.className = "title devtools-monospace";
+    title.appendChild(cmvar);
+    title.appendChild(this.document.createTextNode("."));
+    title.appendChild(cmprop);
+    title.appendChild(this.document.createTextNode("():"));
+
+    let repeatNode = Messages.Simple.prototype._renderRepeatNode.call(this);
+    let location = Messages.Simple.prototype._renderLocation.call(this);
+    if (location) {
+      location.target = "jsdebugger";
+    }
+
+    let widget = new Widgets.Stacktrace(this, this._stacktrace).render();
+
+    let body = this.document.createElementNS(XHTML_NS, "div");
+    body.appendChild(title);
+    if (repeatNode) {
+      body.appendChild(repeatNode);
+    }
+    if (location) {
+      body.appendChild(location);
+    }
+    body.appendChild(this.document.createTextNode("\n"));
+
+    let frag = this.document.createDocumentFragment();
+    frag.appendChild(body);
+    frag.appendChild(widget.element);
+
+    return frag;
+  },
+
+  _renderBody: function()
+  {
+    let body = Messages.Simple.prototype._renderBody.apply(this, arguments);
+    body.classList.remove("devtools-monospace");
+    return body;
+  },
+
+  
+  
+  _renderLocation: function() { },
+  _renderRepeatNode: function() { },
+}); 
 
 let Widgets = {};
 
@@ -1351,6 +1491,91 @@ Widgets.LongString.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
     });
     this.output.addMessage(msg);
   },
+}); 
+
+
+
+
+
+
+
+
+
+
+
+
+
+Widgets.Stacktrace = function(message, stacktrace)
+{
+  Widgets.BaseWidget.call(this, message);
+  this.stacktrace = stacktrace;
+};
+
+Widgets.Stacktrace.prototype = Heritage.extend(Widgets.BaseWidget.prototype,
+{
+  
+
+
+
+  stacktrace: null,
+
+  render: function()
+  {
+    if (this.element) {
+      return this;
+    }
+
+    let result = this.element = this.document.createElementNS(XHTML_NS, "ul");
+    result.className = "stacktrace devtools-monospace";
+
+    for (let frame of this.stacktrace) {
+      result.appendChild(this._renderFrame(frame));
+    }
+
+    return this;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _renderFrame: function(frame)
+  {
+    let fn = this.document.createElementNS(XHTML_NS, "span");
+    fn.className = "function";
+    if (frame.functionName) {
+      let span = this.document.createElementNS(XHTML_NS, "span");
+      span.className = "cm-variable";
+      span.textContent = frame.functionName;
+      fn.appendChild(span);
+      fn.appendChild(this.document.createTextNode("()"));
+    } else {
+      fn.classList.add("cm-comment");
+      fn.textContent = l10n.getStr("stacktrace.anonymousFunction");
+    }
+
+    let location = this.output.owner.createLocationNode(frame.filename,
+                                                        frame.lineNumber,
+                                                        "jsdebugger");
+
+    
+    
+    
+    location.classList.remove("devtools-monospace");
+
+    let elem = this.document.createElementNS(XHTML_NS, "li");
+    elem.appendChild(fn);
+    elem.appendChild(location);
+    elem.appendChild(this.document.createTextNode("\n"));
+
+    return elem;
+  },
+
 }); 
 
 
