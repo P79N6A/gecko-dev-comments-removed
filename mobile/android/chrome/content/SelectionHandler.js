@@ -74,13 +74,17 @@ var SelectionHandler = {
             this.copySelection();
           else
             this._closeSelection();
+        } else if (this._activeType == this.TYPE_CURSOR) {
+          
+          
+          this._closeSelection();
         }
         break;
       }
       case "Tab:Selected":
         this._closeSelection();
         break;
-  
+
       case "Window:Resize": {
         if (this._activeType == this.TYPE_SELECTION) {
           
