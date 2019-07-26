@@ -159,7 +159,7 @@ class Float32Policy : public BoxInputsPolicy
 
 
 template <unsigned Op>
-class RuntimePolicy : public TypePolicy
+class FloatingPointPolicy : public TypePolicy
 {
     MIRType policyType_;
 
