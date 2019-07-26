@@ -37,38 +37,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef HAVE_VISIBILITY_HIDDEN_ATTRIBUTE
 #define NS_VISIBILITY_HIDDEN   __attribute__ ((visibility ("hidden")))
 #else
@@ -90,7 +58,7 @@
 #define NS_EXTERNAL_VIS     NS_VISIBILITY_DEFAULT
 
 #undef  IMETHOD_VISIBILITY
-#define IMETHOD_VISIBILITY  NS_VISIBILITY_HIDDEN
+#define IMETHOD_VISIBILITY
 
 
 
