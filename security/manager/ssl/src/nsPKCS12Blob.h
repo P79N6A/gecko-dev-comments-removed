@@ -76,7 +76,6 @@ private:
 
   
   PRFileDesc *mTmpFile;
-  char       *mTmpFilePath;
 
   
   nsCString                 *mDigest;
@@ -95,4 +94,3 @@ private:
 };
 
 #endif 
-
