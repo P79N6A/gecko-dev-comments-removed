@@ -20,9 +20,42 @@ MACHO_SIGNATURES = [
 
 FAT_SIGNATURE = 0xcafebabe  
 
-EXECUTABLE_SIGNATURES = [
-    0x7f454c46,  
-] + MACHO_SIGNATURES
+ELF_SIGNATURE = 0x7f454c46  
+
+UNKNOWN = 0
+MACHO = 1
+ELF = 2
+
+def get_type(path):
+    '''
+    Check the signature of the give file and returns what kind of executable
+    matches.
+    '''
+    with open(path, 'rb') as f:
+        signature = f.read(4)
+        if len(signature) < 4:
+            return UNKNOWN
+        signature = struct.unpack('>L', signature)[0]
+        if signature == ELF_SIGNATURE:
+            return ELF
+        if signature in MACHO_SIGNATURES:
+            return MACHO
+        if signature != FAT_SIGNATURE:
+            return UNKNOWN
+        
+        
+        
+        
+        
+        
+        
+        num = f.read(4)
+        if len(num) < 4:
+            return UNKNOWN
+        num = struct.unpack('>L', num)[0]
+        if num < 20:
+            return MACHO
+        return UNKNOWN
 
 
 def is_executable(path):
@@ -45,27 +78,7 @@ def is_executable(path):
         return path.lower().endswith((substs['DLL_SUFFIX'],
                                       substs['BIN_SUFFIX']))
 
-    with open(path, 'rb') as f:
-        signature = f.read(4)
-        if len(signature) < 4:
-            return False
-        signature = struct.unpack('>L', signature)[0]
-        if signature in EXECUTABLE_SIGNATURES:
-            return True
-        if signature != FAT_SIGNATURE:
-            return False
-        
-        
-        
-        
-        
-        
-        
-        num = f.read(4)
-        if len(num) < 4:
-            return False
-        num = struct.unpack('>L', num)[0]
-        return num < 20
+    return get_type(path) != UNKNOWN
 
 
 def may_strip(path):
