@@ -22,6 +22,7 @@
 #include "plstr.h"
 #include "prprf.h"
 
+#include "mozilla/Telemetry.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsDocument.h"
@@ -1419,6 +1420,46 @@ nsDocument::~nsDocument()
 #endif
 
   NS_ASSERTION(!mIsShowing, "Destroying a currently-showing document");
+
+  if (IsTopLevelContentDocument()) {
+    
+    nsCOMPtr<nsIPrincipal> principal = GetPrincipal();
+    nsCOMPtr<nsIURI> uri;
+    principal->GetURI(getter_AddRefs(uri));
+    bool isAboutScheme = true;
+    if (uri) {
+      uri->SchemeIs("about", &isAboutScheme);
+    }
+
+    if (!isAboutScheme) {
+      
+      enum {
+        NO_MIXED_CONTENT = 0, 
+        MIXED_DISPLAY_CONTENT = 1, 
+        MIXED_ACTIVE_CONTENT = 2, 
+        MIXED_DISPLAY_AND_ACTIVE_CONTENT = 3 
+      };
+
+      bool mixedActiveLoaded = GetHasMixedActiveContentLoaded();
+      bool mixedActiveBlocked = GetHasMixedActiveContentBlocked();
+
+      bool mixedDisplayLoaded = GetHasMixedDisplayContentLoaded();
+      bool mixedDisplayBlocked = GetHasMixedDisplayContentBlocked();
+
+      bool hasMixedDisplay = (mixedDisplayBlocked || mixedDisplayLoaded);
+      bool hasMixedActive = (mixedActiveBlocked || mixedActiveLoaded);
+
+      uint32_t mixedContentLevel = NO_MIXED_CONTENT;
+      if (hasMixedDisplay && hasMixedActive) {
+        mixedContentLevel = MIXED_DISPLAY_AND_ACTIVE_CONTENT;
+      } else if (hasMixedActive){
+        mixedContentLevel = MIXED_ACTIVE_CONTENT;
+      } else if (hasMixedDisplay) {
+        mixedContentLevel = MIXED_DISPLAY_CONTENT;
+      }
+      Accumulate(Telemetry::MIXED_CONTENT_PAGE_LOAD, mixedContentLevel);
+    }
+  }
 
   mInDestructor = true;
   mInUnlinkOrDeletion = true;
@@ -4113,6 +4154,23 @@ nsIDocument::SetContainer(nsISupports* aContainer)
 {
   mDocumentContainer = do_GetWeakReference(aContainer);
   EnumerateFreezableElements(NotifyActivityChanged, nullptr);
+  
+  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(aContainer);
+  if (docShell) {
+    int32_t itemType;
+    docShell->GetItemType(&itemType);
+    
+    if (itemType == nsIDocShellTreeItem::typeContent) {
+      
+      nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
+      docShell->GetSameTypeRootTreeItem(getter_AddRefs(sameTypeRoot));
+      NS_ASSERTION(sameTypeRoot, "No document shell root tree item from document shell tree item!");
+
+      if (sameTypeRoot == docShell) {
+        static_cast<nsDocument*>(this)->SetIsTopLevelContentDocument(true);
+      }
+    }
+  }
 }
 
 void
@@ -4241,6 +4299,18 @@ nsDocument::SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject)
     mHasHadScriptHandlingObject = true;
     mHasHadDefaultView = false;
   }
+}
+
+bool
+nsDocument::IsTopLevelContentDocument()
+{
+  return mIsTopLevelContentDocument;
+}
+
+void
+nsDocument::SetIsTopLevelContentDocument(bool aIsTopLevelContentDocument)
+{
+  mIsTopLevelContentDocument = aIsTopLevelContentDocument;
 }
 
 nsPIDOMWindow *
