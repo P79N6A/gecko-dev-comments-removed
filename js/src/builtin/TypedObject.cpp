@@ -894,8 +894,12 @@ StructMetaTypeDescr::layout(JSContext *cx,
     
     RootedObject fieldOffsets(cx);
     fieldOffsets = NewObjectWithProto<JSObject>(cx, nullptr, nullptr, TenuredObject);
+    if (!fieldOffsets)
+        return false;
     RootedObject fieldTypes(cx);
     fieldTypes = NewObjectWithProto<JSObject>(cx, nullptr, nullptr, TenuredObject);
+    if (!fieldTypes)
+        return false;
     for (size_t i = 0; i < typeRepr->fieldCount(); i++) {
         const StructField &field = typeRepr->field(i);
         RootedId fieldId(cx, NameToId(field.propertyName));
