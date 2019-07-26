@@ -833,15 +833,7 @@ public:
   : CycleCollectedJSRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE,
                             JS_NO_HELPER_THREADS),
     mWorkerPrivate(aWorkerPrivate)
-  {
-    
-    
-    
-    
-    
-    mLastJSContext = JS_NewContext(Runtime(), 0);
-    MOZ_ASSERT(mLastJSContext);
-  }
+  { }
 
   ~WorkerJSRuntime()
   {
@@ -853,14 +845,11 @@ public:
     
     
     
-    
     nsCycleCollector_shutdown();
 
     
     
     mWorkerPrivate = nullptr;
-    JS_DestroyContext(mLastJSContext);
-    mLastJSContext = nullptr;
   }
 
   void
@@ -888,7 +877,6 @@ public:
 
 private:
   WorkerPrivate* mWorkerPrivate;
-  JSContext* mLastJSContext;
 };
 
 class WorkerThreadRunnable : public nsRunnable
