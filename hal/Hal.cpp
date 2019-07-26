@@ -871,6 +871,12 @@ SetProcessPriority(int aPid,
                                         aBackgroundLRU));
 }
 
+void
+SetCurrentThreadPriority(ThreadPriority aPriority)
+{
+  PROXY_IF_SANDBOXED(SetCurrentThreadPriority(aPriority));
+}
+
 
 const char*
 ProcessPriorityToString(ProcessPriority aPriority)
@@ -878,6 +884,8 @@ ProcessPriorityToString(ProcessPriority aPriority)
   switch (aPriority) {
   case PROCESS_PRIORITY_MASTER:
     return "MASTER";
+  case PROCESS_PRIORITY_PREALLOC:
+    return "PREALLOC";
   case PROCESS_PRIORITY_FOREGROUND_HIGH:
     return "FOREGROUND_HIGH";
   case PROCESS_PRIORITY_FOREGROUND:
@@ -892,6 +900,18 @@ ProcessPriorityToString(ProcessPriority aPriority)
     return "BACKGROUND";
   case PROCESS_PRIORITY_UNKNOWN:
     return "UNKNOWN";
+  default:
+    MOZ_ASSERT(false);
+    return "???";
+  }
+}
+
+const char *
+ThreadPriorityToString(ThreadPriority aPriority)
+{
+  switch (aPriority) {
+  case THREAD_PRIORITY_COMPOSITOR:
+    return "COMPOSITOR";
   default:
     MOZ_ASSERT(false);
     return "???";
@@ -915,6 +935,13 @@ ProcessPriorityToString(ProcessPriority aPriority,
     }
     if (aCPUPriority == PROCESS_CPU_PRIORITY_LOW) {
       return "MASTER:CPU_LOW";
+    }
+  case PROCESS_PRIORITY_PREALLOC:
+    if (aCPUPriority == PROCESS_CPU_PRIORITY_NORMAL) {
+      return "PREALLOC:CPU_NORMAL";
+    }
+    if (aCPUPriority == PROCESS_CPU_PRIORITY_LOW) {
+      return "PREALLOC:CPU_LOW";
     }
   case PROCESS_PRIORITY_FOREGROUND_HIGH:
     if (aCPUPriority == PROCESS_CPU_PRIORITY_NORMAL) {

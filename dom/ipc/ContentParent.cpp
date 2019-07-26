@@ -448,7 +448,7 @@ ContentParent::PreallocateAppProcess()
         new ContentParent( nullptr,
                            false,
                            true,
-                          PROCESS_PRIORITY_BACKGROUND);
+                          PROCESS_PRIORITY_PREALLOC);
     process->Init();
     return process.forget();
 }
@@ -778,6 +778,11 @@ ContentParent::Init()
         }
     }
     Preferences::AddStrongObserver(this, "");
+    nsCOMPtr<nsIThreadInternal>
+            threadInt(do_QueryInterface(NS_GetCurrentThread()));
+    if (threadInt) {
+        threadInt->AddObserver(this);
+    }
     if (obs) {
         obs->NotifyObservers(static_cast<nsIObserver*>(this), "ipc:content-created", nullptr);
     }
@@ -1132,7 +1137,8 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
                           CHILD_PROCESS_SHUTDOWN_MESSAGE, false,
                           nullptr, nullptr, nullptr, nullptr);
     }
-    nsRefPtr<ContentParent> kungFuDeathGrip(this);
+    nsCOMPtr<nsIThreadObserver>
+        kungFuDeathGrip(static_cast<nsIThreadObserver*>(this));
     nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
     if (obs) {
         size_t length = ArrayLength(sObserverTopics);
@@ -1164,6 +1170,11 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
     RecvRemoveGeolocationListener();
 
     mConsoleService = nullptr;
+
+    nsCOMPtr<nsIThreadInternal>
+        threadInt(do_QueryInterface(NS_GetCurrentThread()));
+    if (threadInt)
+        threadInt->RemoveObserver(this);
 
     MarkAsDead();
 
@@ -1453,7 +1464,7 @@ ContentParent::ContentParent(ContentParent* aTemplate,
     
     ProcessPriority priority;
     if (IsPreallocated()) {
-        priority = PROCESS_PRIORITY_BACKGROUND;
+        priority = PROCESS_PRIORITY_PREALLOC;
     } else {
         priority = PROCESS_PRIORITY_FOREGROUND;
     }
@@ -1950,18 +1961,10 @@ ContentParent::RecvAddNewProcess(const uint32_t& aPid,
 #endif
 }
 
-
-
-NS_IMPL_CYCLE_COLLECTION_0(ContentParent)
-
-NS_IMPL_CYCLE_COLLECTING_ADDREF(ContentParent)
-NS_IMPL_CYCLE_COLLECTING_RELEASE(ContentParent)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ContentParent)
-  NS_INTERFACE_MAP_ENTRY(nsIObserver)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMGeoPositionCallback)
-  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIObserver)
-NS_INTERFACE_MAP_END
+NS_IMPL_ISUPPORTS3(ContentParent,
+                   nsIObserver,
+                   nsIThreadObserver,
+                   nsIDOMGeoPositionCallback)
 
 NS_IMETHODIMP
 ContentParent::Observe(nsISupports* aSubject,
@@ -2852,6 +2855,32 @@ ContentParent::RecvLoadURIExternal(const URIParams& uri)
     }
     extProtService->LoadURI(ourURI, nullptr);
     return true;
+}
+
+
+NS_IMETHODIMP
+ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
+{
+   NS_NOTREACHED("OnDispatchedEvent unimplemented");
+   return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+NS_IMETHODIMP
+ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
+                                  bool mayWait,
+                                  uint32_t recursionDepth)
+{
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+ContentParent::AfterProcessNextEvent(nsIThreadInternal *thread,
+                                     uint32_t recursionDepth,
+                                     bool eventWasProcessed)
+{
+    return NS_OK;
 }
 
 bool
