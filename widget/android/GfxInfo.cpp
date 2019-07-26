@@ -470,6 +470,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
         
         
         
+        
 
         bool isBlocklisted =
           cModel.Find("GT-P3100", true) != -1 ||
@@ -478,6 +479,7 @@ GfxInfo::GetFeatureStatusImpl(int32_t aFeature,
           cModel.Find("GT-P5100", true) != -1 ||
           cModel.Find("GT-P5110", true) != -1 ||
           cModel.Find("GT-P5113", true) != -1 ||
+          cModel.Find("XT890", true) != -1 ||
           cManufacturer.Find("Sony", true) != -1;
 
         if (isBlocklisted) {
