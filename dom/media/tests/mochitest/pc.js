@@ -362,6 +362,16 @@ function PCT_setMediaConstraints(constraintsLocal, constraintsRemote) {
 
 
 
+
+
+PeerConnectionTest.prototype.setOfferConstraints =
+function PCT_setOfferConstraints(constraints) {
+  this.pcLocal.offerConstraints = constraints;
+};
+
+
+
+
 PeerConnectionTest.prototype.run = function PCT_run() {
   this.next();
 };
@@ -399,6 +409,7 @@ function PeerConnectionWrapper(label, configuration) {
   this.label = label;
 
   this.constraints = [ ];
+  this.offerConstraints = {};
   this.streams = [ ];
 
   info("Creating new PeerConnectionWrapper: " + this.label);
@@ -525,7 +536,7 @@ PeerConnectionWrapper.prototype = {
       info("Got offer: " + JSON.stringify(offer));
       self._last_offer = offer;
       onSuccess(offer);
-    }, unexpectedCallbackAndFinish);
+    }, unexpectedCallbackAndFinish, this.offerConstraints);
   },
 
   
