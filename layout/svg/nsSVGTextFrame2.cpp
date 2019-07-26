@@ -3467,11 +3467,6 @@ nsSVGTextFrame2::ReflowSVG()
   }
 
   
-  
-  
-  mPositioningDirty = true;
-
-  
   UpdateGlyphPositioning();
 
   nsPresContext* presContext = PresContext();
