@@ -9,6 +9,8 @@ function gc() {
   wu.garbageCollect();
 }
 
+let openChatWindow = Cu.import("resource://gre/modules/MozSocialAPI.jsm", {}).openChatWindow;
+
 
 
 let origProxyType = Services.prefs.getIntPref('network.proxy.type');
@@ -42,9 +44,10 @@ function openPanel(url, panelCallback, loadCallback) {
 
 function openChat(url, panelCallback, loadCallback) {
   
-  SocialChatBar.openChat(SocialSidebar.provider, url, panelCallback);
-  SocialChatBar.chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
-    SocialChatBar.chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
+  let chatbar = getChatBar();
+  openChatWindow(null, SocialSidebar.provider, url, panelCallback);
+  chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
+    chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
     loadCallback();
   }, true);
 }
@@ -164,7 +167,7 @@ var tests = {
       function() { 
         executeSoon(function() {
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-          let chat = SocialChatBar.chatbar.selectedChat;
+          let chat = getChatBar().selectedChat;
           waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
                            function() {
                             chat.close();
@@ -186,7 +189,7 @@ var tests = {
       null,
       function() { 
         executeSoon(function() {
-          let chat = SocialChatBar.chatbar.selectedChat;
+          let chat = getChatBar().selectedChat;
           is(chat.contentDocument.location.href, url, "correct url loaded");
           
           chat.swapWindows().then(

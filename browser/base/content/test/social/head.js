@@ -399,7 +399,7 @@ function get3ChatsForCollapsing(mode, cb) {
   
   
   
-  let chatbar = window.SocialChatBar.chatbar;
+  let chatbar = getChatBar();
   let chatWidth = undefined;
   let num = 0;
   is(chatbar.childNodes.length, 0, "chatbar starting empty");
@@ -443,23 +443,21 @@ function makeChat(mode, uniqueid, cb) {
   info("making a chat window '" + uniqueid +"'");
   let provider = SocialSidebar.provider;
   const chatUrl = provider.origin + "/browser/browser/base/content/test/social/social_chat.html";
-  let isOpened = window.SocialChatBar.openChat(provider, chatUrl + "?id=" + uniqueid, function(chat) {
+  
+  
+  let chatbox = getChatBar().openChat(provider.origin, provider.name,
+                                      chatUrl + "?id=" + uniqueid, mode);
+  chatbox.promiseChatLoaded.then(
+    () => {
     info("chat window has opened");
-    
-    
-    
-    chat.document.title = uniqueid;
-    executeSoon(cb);
-  }, mode);
-  if (!isOpened) {
-    ok(false, "unable to open chat window, no provider? more failures to come");
-    executeSoon(cb);
-  }
+    chatbox.contentDocument.title = uniqueid;
+    cb();
+  });
 }
 
 function checkPopup() {
   
-  let chatbar = window.SocialChatBar.chatbar;
+  let chatbar = getChatBar();
   let numCollapsed = 0;
   for (let chat of chatbar.childNodes) {
     if (chat.collapsed) {
@@ -478,7 +476,7 @@ function checkPopup() {
 
 
 function resizeWindowToChatAreaWidth(desired, cb, count = 0) {
-  let current = window.SocialChatBar.chatbar.getBoundingClientRect().width;
+  let current = getChatBar().getBoundingClientRect().width;
   let delta = desired - current;
   info(count + ": resizing window so chat area is " + desired + " wide, currently it is "
        + current + ".  Screen avail is " + window.screen.availWidth
@@ -511,7 +509,7 @@ function resizeWindowToChatAreaWidth(desired, cb, count = 0) {
   }
   function resize_handler(event) {
     
-    let newSize = window.SocialChatBar.chatbar.getBoundingClientRect().width;
+    let newSize = getChatBar().getBoundingClientRect().width;
     let sizedOk = widthDeltaCloseEnough(newSize - desired);
     if (!sizedOk)
       return;
@@ -559,8 +557,13 @@ function resizeAndCheckWidths(first, second, third, checks, cb) {
   }, count);
 }
 
+function getChatBar() {
+  return document.getElementById("pinnedchats");
+}
+
 function getPopupWidth() {
-  let popup = window.SocialChatBar.chatbar.menupopup;
+  let chatbar = getChatBar();
+  let popup = chatbar.menupopup;
   ok(!popup.parentNode.collapsed, "asking for popup width when it is visible");
   let cs = document.defaultView.getComputedStyle(popup.parentNode);
   let margins = parseInt(cs.marginLeft) + parseInt(cs.marginRight);
@@ -568,6 +571,8 @@ function getPopupWidth() {
 }
 
 function closeAllChats() {
-  let chatbar = window.SocialChatBar.chatbar;
-  chatbar.removeAll();
+  let chatbar = getChatBar();
+  while (chatbar.selectedChat) {
+    chatbar.selectedChat.close();
+  }
 }
