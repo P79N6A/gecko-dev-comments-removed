@@ -189,30 +189,6 @@ inline bool
 IsNotDateOrRegExp(JSContext* cx, JSObject* obj)
 {
   MOZ_ASSERT(obj);
-  
-  
-  
-  Maybe<JSAutoCompartment> ac;
-  if (js::IsWrapper(obj)) {
-    obj = js::UnwrapObjectChecked(obj,  false);
-    if (!obj) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      return true;
-    }
-
-    ac.construct(cx, obj);
-  }
-
-  
   return !JS_ObjectIsDate(cx, obj) && !JS_ObjectIsRegExp(cx, obj);
 }
 
