@@ -27,12 +27,14 @@
 #include "FixedTableLayoutStrategy.h"
 
 #include "nsPresContext.h"
+#include "nsContentUtils.h"
 #include "nsCSSRendering.h"
 #include "nsGkAtoms.h"
 #include "nsCSSAnonBoxes.h"
 #include "nsIPresShell.h"
 #include "nsIDOMElement.h"
 #include "nsIDOMHTMLElement.h"
+#include "nsIScriptError.h"
 #include "nsFrameManager.h"
 #include "nsError.h"
 #include "nsAutoPtr.h"
@@ -41,6 +43,7 @@
 #include "nsDisplayList.h"
 #include "nsIScrollableFrame.h"
 #include "nsCSSProps.h"
+#include "RestyleTracker.h"
 #include <algorithm>
 
 using namespace mozilla;
@@ -250,6 +253,81 @@ nsTableFrame::PageBreakAfter(nsIFrame* aSourceFrame,
     }
   }
   return false;
+}
+
+typedef nsTArray<nsIFrame*> FrameTArray;
+
+ void
+nsTableFrame::DestroyPositionedTablePartArray(void* aPropertyValue)
+{
+  auto positionedObjs = static_cast<FrameTArray*>(aPropertyValue);
+  delete positionedObjs;
+}
+
+ void
+nsTableFrame::RegisterPositionedTablePart(nsIFrame* aFrame)
+{
+  
+  
+  
+  
+  if (nsGkAtoms::tableCellFrame != aFrame->GetType()) {
+    nsIContent* content = aFrame->GetContent();
+    nsPresContext* presContext = aFrame->PresContext();
+    if (content && !presContext->HasWarnedAboutPositionedTableParts()) {
+      presContext->SetHasWarnedAboutPositionedTableParts();
+      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
+                                      NS_LITERAL_CSTRING("Layout: Tables"),
+                                      content->OwnerDoc(),
+                                      nsContentUtils::eLAYOUT_PROPERTIES,
+                                      "TablePartRelPosWarning");
+    }
+  }
+
+  nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(aFrame);
+  MOZ_ASSERT(tableFrame, "Should have a table frame here");
+  tableFrame = static_cast<nsTableFrame*>(tableFrame->FirstContinuation());
+
+  
+  FrameProperties props = tableFrame->Properties();
+  auto positionedParts =
+    static_cast<FrameTArray*>(props.Get(PositionedTablePartArray()));
+
+  
+  if (!positionedParts) {
+    positionedParts = new FrameTArray;
+    props.Set(PositionedTablePartArray(), positionedParts);
+  }
+
+  
+  positionedParts->AppendElement(aFrame);
+}
+
+ void
+nsTableFrame::UnregisterPositionedTablePart(nsIFrame* aFrame,
+                                            nsIFrame* aDestructRoot)
+{
+  
+  
+  
+  nsTableFrame* tableFrame = GetTableFramePassingThrough(aDestructRoot, aFrame);
+  if (!tableFrame) {
+    return;
+  }
+  tableFrame = static_cast<nsTableFrame*>(tableFrame->FirstContinuation());
+
+  
+  FrameProperties props = tableFrame->Properties();
+  auto positionedParts =
+    static_cast<FrameTArray*>(props.Get(PositionedTablePartArray()));
+
+  
+  MOZ_ASSERT(positionedParts &&
+             positionedParts->IndexOf(aFrame) != FrameTArray::NoIndex,
+             "Asked to unregister a positioned table part that wasn't registered");
+  if (positionedParts) {
+    positionedParts->RemoveElement(aFrame);
+  }
 }
 
 
@@ -1815,6 +1893,10 @@ nsresult nsTableFrame::Reflow(nsPresContext*           aPresContext,
   }
 
   
+  
+  FixupPositionedTableParts(aPresContext, aReflowState);
+
+  
   nsRect tableRect(0, 0, aDesiredSize.Width(), aDesiredSize.Height()) ;
 
   if (!ShouldApplyOverflowClipping(this, aReflowState.mStyleDisplay)) {
@@ -1832,6 +1914,57 @@ nsresult nsTableFrame::Reflow(nsPresContext*           aPresContext,
   FinishAndStoreOverflow(&aDesiredSize);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return rv;
+}
+
+void
+nsTableFrame::FixupPositionedTableParts(nsPresContext* aPresContext,
+                                        const nsHTMLReflowState& aReflowState)
+{
+  auto positionedParts =
+    static_cast<FrameTArray*>(Properties().Get(PositionedTablePartArray()));
+  if (!positionedParts) {
+    return;
+  }
+
+  OverflowChangedTracker overflowTracker;
+  overflowTracker.SetSubtreeRoot(this);
+
+  for (size_t i = 0; i < positionedParts->Length(); ++i) {
+    nsIFrame* positionedPart = positionedParts->ElementAt(i);
+
+    
+    
+    nsSize size(positionedPart->GetSize());
+    nsHTMLReflowMetrics desiredSize(aReflowState.GetWritingMode());
+    desiredSize.Width() = size.width;
+    desiredSize.Height() = size.height;
+    desiredSize.mOverflowAreas = positionedPart->GetOverflowAreasRelativeToSelf();
+
+    
+    
+    
+    
+    nsHTMLReflowState reflowState(aPresContext, positionedPart,
+                                  aReflowState.rendContext,
+                                  nsSize(size.width, NS_UNCONSTRAINEDSIZE),
+                                  nsHTMLReflowState::DUMMY_PARENT_REFLOW_STATE);
+    nsReflowStatus reflowStatus = NS_FRAME_COMPLETE;
+
+    
+    
+    
+    
+    overflowTracker.AddFrame(positionedPart);
+    nsFrame* positionedFrame = static_cast<nsFrame*>(positionedPart);
+    positionedFrame->FinishReflowWithAbsoluteFrames(PresContext(),
+                                                    desiredSize,
+                                                    reflowState,
+                                                    reflowStatus,
+                                                    true);
+  }
+
+  
+  overflowTracker.Flush();
 }
 
 bool
@@ -3442,6 +3575,32 @@ nsTableFrame::GetTableFrame(nsIFrame* aFrame)
   }
   NS_RUNTIMEABORT("unable to find table parent");
   return nullptr;
+}
+
+nsTableFrame*
+nsTableFrame::GetTableFramePassingThrough(nsIFrame* aMustPassThrough,
+                                          nsIFrame* aFrame)
+{
+  MOZ_ASSERT(aMustPassThrough == aFrame ||
+             nsLayoutUtils::IsProperAncestorFrame(aMustPassThrough, aFrame),
+             "aMustPassThrough should be an ancestor");
+
+  
+  
+  bool hitPassThroughFrame = false;
+  nsTableFrame* tableFrame = nullptr;
+  for (nsIFrame* ancestor = aFrame; ancestor; ancestor = ancestor->GetParent()) {
+    if (ancestor == aMustPassThrough) {
+      hitPassThroughFrame = true;
+    }
+    if (nsGkAtoms::tableFrame == ancestor->GetType()) {
+      tableFrame = static_cast<nsTableFrame*>(ancestor);
+      break;
+    }
+  }
+
+  MOZ_ASSERT(tableFrame, "Should have a table frame here");
+  return hitPassThroughFrame ? tableFrame : nullptr;
 }
 
 bool
