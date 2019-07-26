@@ -146,9 +146,6 @@ const HISTORY_FORWARD = 1;
 const GROUP_INDENT = 12;
 
 
-const GROUP_INDENT_DEFAULT = 6;
-
-
 
 const MESSAGES_IN_INTERVAL = DEFAULT_LOG_LIMIT;
 
@@ -2449,15 +2446,18 @@ WebConsoleFrame.prototype = {
       aClipboardText = aBody.innerText;
     }
 
+    let indentNode = this.document.createElementNS(XHTML_NS, "span");
+    indentNode.className = "indent";
+
+    
+    let indent = this.groupDepth * GROUP_INDENT;
+    indentNode.style.width = indent + "px";
+
     
     
     
     let iconContainer = this.document.createElementNS(XHTML_NS, "span");
     iconContainer.className = "icon";
-
-    
-    let iconMarginLeft = this.groupDepth * GROUP_INDENT + GROUP_INDENT_DEFAULT;
-    iconContainer.style.marginLeft = iconMarginLeft + "px";
 
     
     let bodyNode = this.document.createElementNS(XHTML_NS, "span");
@@ -2528,6 +2528,7 @@ WebConsoleFrame.prototype = {
     }
 
     node.appendChild(timestampNode);
+    node.appendChild(indentNode);
     node.appendChild(iconContainer);
 
     
