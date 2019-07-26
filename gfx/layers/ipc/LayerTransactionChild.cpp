@@ -85,9 +85,15 @@ LayerTransactionChild::DeallocPCompositableChild(PCompositableChild* actor)
 void
 LayerTransactionChild::ActorDestroy(ActorDestroyReason why)
 {
+#ifdef MOZ_B2G
+  
+  
+  
+  
   if (why == AbnormalShutdown) {
     NS_RUNTIMEABORT("ActorDestroy by IPC channel failure at LayerTransactionChild");
   }
+#endif
 }
 
 }  

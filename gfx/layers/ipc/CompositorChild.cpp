@@ -101,9 +101,15 @@ CompositorChild::ActorDestroy(ActorDestroyReason aWhy)
 {
   MOZ_ASSERT(sCompositor == this);
 
+#ifdef MOZ_B2G
+  
+  
+  
+  
   if (aWhy == AbnormalShutdown) {
     NS_RUNTIMEABORT("ActorDestroy by IPC channel failure at CompositorChild");
   }
+#endif
 
   sCompositor = nullptr;
   
