@@ -45,6 +45,19 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
     private static final int MAX_WAIT_ENABLED_TEXT_MS = 10000;
     public static final int MAX_WAIT_MS = 3000;
 
+    // Note: DEFAULT_BOOKMARKS_TITLES.length == DEFAULT_BOOKMARKS_URLS.length
+    protected static final String[] DEFAULT_BOOKMARKS_TITLES = new String[] {
+        "Firefox: About your browser",
+        "Firefox: Support",
+        "Firefox: Customize with add-ons"
+    };
+    protected static final String[] DEFAULT_BOOKMARKS_URLS = new String[] {
+        "about:firefox",
+        "http://support.mozilla.org/en-US/products/mobile",
+        "https://addons.mozilla.org/en-US/android/"
+    };
+    protected static final int DEFAULT_BOOKMARKS_COUNT = DEFAULT_BOOKMARKS_TITLES.length;
+
     private static Class<Activity> mLauncherActivityClass;
     private Activity mActivity;
     protected Solo mSolo;
@@ -92,7 +105,7 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
     @Override
     protected void setUp() throws Exception {
         // Load config file from root path (setup by python script)
-        String rootPath = FennecInstrumentationTestRunner.getFennecArguments().getString("deviceroot");
+        String rootPath = FennecInstrumentationTestRunner.getArguments().getString("deviceroot");
         String configFile = FennecNativeDriver.getFile(rootPath + "/robotium.config");
         HashMap config = FennecNativeDriver.convertTextToTable(configFile);
         // Create the intent to be used with all the important arguments.
@@ -708,40 +721,6 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
         RobocopUtils.runOnUiThreadSync(mActivity, runnable);
     }
 
-    /* Tap the "star" (bookmark) button to bookmark or un-bookmark the current page */
-    public void toggleBookmark() {
-        mActions.sendSpecialKey(Actions.SpecialKey.MENU);
-        waitForText("Settings");
-
-        // On ICS+ phones, there is no button labeled "Bookmarks"
-        // instead we have to just dig through every button on the screen
-        ArrayList<View> images = mSolo.getCurrentViews();
-        for (int i = 0; i < images.size(); i++) {
-            final View view = images.get(i);
-            boolean found = false;
-            found = "Bookmark".equals(view.getContentDescription());
-
-            // on older android versions, try looking at the button's text
-            if (!found) {
-                if (view instanceof TextView) {
-                    found = "Bookmark".equals(((TextView)view).getText());
-                }
-            }
-
-            if (found) {
-                int[] xy = new int[2];
-                view.getLocationOnScreen(xy);
-
-                final int viewWidth = view.getWidth();
-                final int viewHeight = view.getHeight();
-                final float x = xy[0] + (viewWidth / 2.0f);
-                float y = xy[1] + (viewHeight / 2.0f);
-
-                mSolo.clickOnScreen(x, y);
-            }
-        }
-    }
-
     /**
     * This method will edit the bookmark with index = bookmarkIndex from the list of bookmarks
     * For the field index:
@@ -894,8 +873,6 @@ abstract class BaseTest extends ActivityInstrumentationTestCase2<Activity> {
             }
         }
 
-        // DEPRECATED!
-        // Use BaseTest.toggleBookmark() in new code.
         public void bookmark() {
             if (devType.equals("tablet")) {
                 if (!osVersion.equals("4.x")){
