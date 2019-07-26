@@ -60,7 +60,6 @@ BreakpointStore.prototype = {
 
 
 
-
   addBreakpoint: function (aBreakpoint) {
     let { url, line, column } = aBreakpoint;
 
@@ -1375,8 +1374,7 @@ ThreadActor.prototype = {
       let response = this._createAndStoreBreakpoint({
         url: url,
         line: line,
-        column: column,
-        condition: aRequest.condition
+        column: column
       });
       
       
@@ -1444,13 +1442,11 @@ ThreadActor.prototype = {
     let storedBp = this.breakpointStore.getBreakpoint(aLocation);
     if (storedBp.actor) {
       actor = storedBp.actor;
-      actor.condition = aLocation.condition;
     } else {
       storedBp.actor = actor = new BreakpointActor(this, {
         url: aLocation.url,
         line: aLocation.line,
-        column: aLocation.column,
-        condition: aLocation.condition
+        column: aLocation.column
       });
       this.threadLifetimePool.addActor(actor);
     }
@@ -4225,17 +4221,15 @@ FrameActor.prototype.requestTypes = {
 
 
 
-function BreakpointActor(aThreadActor, { url, line, column, condition })
+function BreakpointActor(aThreadActor, aLocation)
 {
   this.scripts = [];
   this.threadActor = aThreadActor;
-  this.location = { url: url, line: line, column: column };
-  this.condition = condition;
+  this.location = aLocation;
 }
 
 BreakpointActor.prototype = {
   actorPrefix: "breakpoint",
-  condition: null,
 
   
 
@@ -4261,14 +4255,6 @@ BreakpointActor.prototype = {
     this.scripts = [];
   },
 
-  isValidCondition: function(aFrame) {
-    if(!this.condition) {
-      return true;
-    }
-    var res = aFrame.eval(this.condition);
-    return res.return;
-  },
-
   
 
 
@@ -4285,9 +4271,7 @@ BreakpointActor.prototype = {
         column: this.location.column
       }));
 
-    if (this.threadActor.sources.isBlackBoxed(url)
-        || aFrame.onStep
-        || !this.isValidCondition(aFrame)) {
+    if (this.threadActor.sources.isBlackBoxed(url) || aFrame.onStep) {
       return undefined;
     }
 

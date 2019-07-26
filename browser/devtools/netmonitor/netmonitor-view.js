@@ -526,37 +526,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  copyAsCurl: function() {
-    let selected = this.selectedItem.attachment;
-    Task.spawn(function*() {
-      
-      let data = {
-        url: selected.url,
-        method: selected.method,
-        headers: [],
-        httpVersion: selected.httpVersion,
-        postDataText: null
-      };
-
-      
-      for (let { name, value } of selected.requestHeaders.headers) {
-        let text = yield gNetwork.getString(value);
-        data.headers.push({ name: name, value: text });
-      }
-
-      
-      if (selected.requestPostData) {
-        let postData = selected.requestPostData.postData.text;
-        data.postDataText = yield gNetwork.getString(postData);
-      }
-
-      clipboardHelper.copyString(Curl.generateCommand(data), document);
-    });
-  },
-
-  
-
-
   copyImageAsDataUri: function() {
     let selected = this.selectedItem.attachment;
     let { mimeType, text, encoding } = selected.responseContent.content;
@@ -1590,9 +1559,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     let copyUrlElement = $("#request-menu-context-copy-url");
     copyUrlElement.hidden = !selectedItem;
-
-    let copyAsCurlElement = $("#request-menu-context-copy-as-curl");
-    copyAsCurlElement.hidden = !selectedItem || !selectedItem.attachment.responseContent;
 
     let copyImageAsDataUriElement = $("#request-menu-context-copy-image-as-data-uri");
     copyImageAsDataUriElement.hidden = !selectedItem ||

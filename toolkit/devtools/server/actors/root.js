@@ -187,8 +187,6 @@ RootActor.prototype = {
         storageInspector: true,
         
         storageInspectorReadOnly: true,
-        
-        conditionalBreakpoints: true
       }
     };
   },

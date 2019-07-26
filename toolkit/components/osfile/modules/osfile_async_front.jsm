@@ -135,47 +135,6 @@ for (let [constProp, dirKey] of [
 
 let clone = SharedAll.clone;
 
-
-
-
-
-
-
-
-
-
-
-
-function summarizeObject(obj) {
-  if (!obj) {
-    return null;
-  }
-  if (typeof obj == "string") {
-    if (obj.length > 1024) {
-      return {"Long string": obj.length};
-    }
-    return obj;
-  }
-  if (typeof obj == "object") {
-    if (Array.isArray(obj)) {
-      if (obj.length > 32) {
-        return {"Long array": obj.length};
-      }
-      return [summarizeObject(k) for (k of obj)];
-    }
-    if ("byteLength" in obj) {
-      
-      return {"Binary Data": obj.byteLength};
-    }
-    let result = {};
-    for (let k of Object.keys(obj)) {
-      result[k] = summarizeObject(obj[k]);
-    }
-    return result;
-  }
-  return obj;
-}
-
 let worker = null;
 let Scheduler = {
   
@@ -200,39 +159,17 @@ let Scheduler = {
   
 
 
-  Debugging: {
-    
 
 
+  latestSent: undefined,
 
-
-    latestSent: undefined,
-
-    
+  
 
 
 
 
 
-    latestReceived: undefined,
-
-    
-
-
-
-    messagesSent: 0,
-
-    
-
-
-
-    messagesQueued: 0,
-
-    
-
-
-    messagesReceived: 0,
-  },
+  latestReceived: undefined,
 
   
 
@@ -297,7 +234,6 @@ let Scheduler = {
     if (firstLaunch && SharedAll.Config.DEBUG) {
       
       worker.post("SET_DEBUG", [true]);
-      Scheduler.Debugging.messagesSent++;
     }
 
     
@@ -306,43 +242,41 @@ let Scheduler = {
     if (methodArgs) {
       options = methodArgs[methodArgs.length - 1];
     }
-    Scheduler.Debugging.messagesQueued++;
     return this.push(() => Task.spawn(function*() {
-      
-      
-      Scheduler.Debugging.latestReceived = null;
-      Scheduler.Debugging.latestSent = [Date.now(), method, summarizeObject(methodArgs)];
+      Scheduler.latestReceived = null;
+      if (OS.Constants.Sys.DEBUG) {
+        
+        Scheduler.latestSent = [Date.now(), method, ...args];
+      } else {
+        Scheduler.latestSent = [Date.now(), method];
+      }
       let data;
       let reply;
       let isError = false;
       try {
-        try {
-          data = yield worker.post(method, ...args);
-        } finally {
-          Scheduler.Debugging.messagesReceived++;
-        }
+        data = yield worker.post(method, ...args);
         reply = data;
-      } catch (error) {
+      } catch (error if error instanceof PromiseWorker.WorkerError) {
         reply = error;
         isError = true;
-        if (error instanceof PromiseWorker.WorkerError) {
-          throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
+        throw EXCEPTION_CONSTRUCTORS[error.data.exn || "OSError"](error.data);
+      } catch (error if error instanceof ErrorEvent) {
+        reply = error;
+        let message = error.message;
+        if (message == "uncaught exception: [object StopIteration]") {
+          throw StopIteration;
         }
-        if (error instanceof ErrorEvent) {
-          let message = error.message;
-          if (message == "uncaught exception: [object StopIteration]") {
-            isError = false;
-            throw StopIteration;
-          }
-          throw new Error(message, error.filename, error.lineno);
-        }
-        throw ex;
+        isError = true;
+        throw new Error(message, error.filename, error.lineno);
       } finally {
-        Scheduler.Debugging.latestSent = Scheduler.Debugging.latestSent.slice(0, 2);
-        if (isError) {
-          Scheduler.Debugging.latestReceived = [Date.now(), reply.message, reply.fileName, reply.lineNumber];
+        Scheduler.latestSent = Scheduler.latestSent.slice(0, 2);
+        if (OS.Constants.Sys.DEBUG) {
+          
+          Scheduler.latestReceived = [Date.now(), reply];
+        } else if (isError) {
+          Scheduler.latestReceived = [Date.now(), reply.message, reply.fileName, reply.lineNumber];
         } else {
-          Scheduler.Debugging.latestReceived = [Date.now(), summarizeObject(reply)];
+          Scheduler.latestReceived = [Date.now()];
         }
         if (firstLaunch) {
           Scheduler._updateTelemetry();
@@ -1429,12 +1363,8 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       shutdown: Scheduler.shutdown,
       worker: !!worker,
       pendingReset: !!Scheduler.resetTimer,
-      latestSent: Scheduler.Debugging.latestSent,
-      latestReceived: Scheduler.Debugging.latestReceived,
-      messagesSent: Scheduler.Debugging.messagesSent,
-      messagesReceived: Scheduler.Debugging.messagesReceived,
-      messagesQueued: Scheduler.Debugging.messagesQueued,
-      DEBUG: SharedAll.Config.DEBUG
+      latestSent: Scheduler.latestSent,
+      latestReceived: Scheduler.latestReceived
     };
     
     for (let key of ["latestSent", "latestReceived"]) {

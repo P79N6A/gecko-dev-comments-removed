@@ -28,8 +28,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/Timer.jsm");
-Cu.import("resource://gre/modules/devtools/Console.jsm");
-
 let promise = Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js").Promise;
 const { defer, resolve, reject } = promise;
 
@@ -1409,28 +1407,17 @@ ThreadClient.prototype = {
 
 
 
-  setBreakpoint: function ({ url, line, column, condition }, aOnResponse) {
+  setBreakpoint: function (aLocation, aOnResponse) {
     
     let doSetBreakpoint = function (aCallback) {
-      const location = {
-        url: url,
-        line: line,
-        column: column
-      };
-
-      let packet = {
-        to: this._actor,
-        type: "setBreakpoint",
-        location: location,
-        condition: condition
-      };
+      let packet = { to: this._actor, type: "setBreakpoint",
+                     location: aLocation };
       this.client.request(packet, function (aResponse) {
         
         
         if (aOnResponse) {
-          let bpClient = new BreakpointClient(this.client,
-                                              aResponse.actor,
-                                              location);
+          let bpClient = new BreakpointClient(this.client, aResponse.actor,
+                                              aLocation);
           if (aCallback) {
             aCallback(aOnResponse(aResponse, bpClient));
           } else {
