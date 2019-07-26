@@ -176,14 +176,8 @@ fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValu
         
 
 
-
-
         JSObject &caller = vp.toObject();
-        JSErrorReporter reporter = JS_SetErrorReporter(cx, NULL);
-        bool punctureThrew = !UnwrapObjectChecked(cx, &caller);
-        JS_SetErrorReporter(cx, reporter);
-        if (punctureThrew) {
-            JS_ClearPendingException(cx);
+        if (caller.isWrapper() && !Wrapper::wrapperHandler(&caller)->isSafeToUnwrap()) {
             vp.setNull();
         } else if (caller.isFunction()) {
             JSFunction *callerFun = caller.toFunction();
