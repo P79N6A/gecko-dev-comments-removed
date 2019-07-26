@@ -1433,7 +1433,12 @@ nsGlobalWindow::FreeInnerObjects()
   NotifyDOMWindowDestroyed(this);
 
   
-  mozilla::dom::workers::CancelWorkersForWindow(this);
+  
+  {
+    nsIScriptContext *scx = GetContextInternal();
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+    mozilla::dom::workers::CancelWorkersForWindow(cx, this);
+  }
 
   
   quota::QuotaManager* quotaManager = quota::QuotaManager::Get();
@@ -11235,7 +11240,12 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
     DisableGamepadUpdates();
 
     
-    mozilla::dom::workers::SuspendWorkersForWindow(this);
+    
+    {
+      nsIScriptContext *scx = GetContextInternal();
+      AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+      mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
+    }
 
     TimeStamp now = TimeStamp::Now();
     for (nsTimeout *t = mTimeouts.getFirst(); t; t = t->getNext()) {
@@ -11324,7 +11334,10 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
     }
 
     
-    mozilla::dom::workers::ResumeWorkersForWindow(this);
+    
+    nsIScriptContext *scx = GetContextInternal();
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
+    mozilla::dom::workers::ResumeWorkersForWindow(scx, this);
 
     
     
@@ -12117,3 +12130,4 @@ nsGlobalWindow::DisableNetworkEvent(uint32_t aType)
 #undef BEFOREUNLOAD_EVENT
 #undef ERROR_EVENT
 #undef EVENT
+
