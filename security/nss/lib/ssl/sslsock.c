@@ -1370,6 +1370,11 @@ DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd)
     return ssl_ImportFD(model, fd, ssl_variant_datagram);
 }
 
+
+
+
+
+
 SECStatus
 SSL_SetNextProtoCallback(PRFileDesc *fd, SSLNextProtoCallback callback,
                          void *arg)
@@ -1409,12 +1414,6 @@ ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
         return SECFailure;
     }
 
-    if (protos_len == 0) {
-        
-
-        goto pick_first;
-    }
-
     
     for (i = 0; i < protos_len; ) {
         for (j = 0; j < ss->opt.nextProtoNego.len; ) {
@@ -1431,7 +1430,10 @@ ssl_NextProtoNegoCallback(void *arg, PRFileDesc *fd,
         i += 1 + (unsigned int)protos[i];
     }
 
-pick_first:
+    
+
+
+    
     ss->ssl3.nextProtoState = SSL_NEXT_PROTO_NO_OVERLAP;
     result = ss->opt.nextProtoNego.data;
 
