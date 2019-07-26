@@ -646,7 +646,7 @@ VectorImage::CopyFrame(uint32_t aWhichFrame,
                      gfxRect(gfxPoint(0,0), gfxIntSize(imageIntSize.width,
                                                        imageIntSize.height)),
                      nsIntRect(nsIntPoint(0,0), imageIntSize),
-                     imageIntSize, aFlags);
+                     imageIntSize, nullptr, aFlags);
   if (NS_SUCCEEDED(rv)) {
     *_retval = surface.forget().get();
   }
@@ -718,6 +718,7 @@ VectorImage::Draw(gfxContext* aContext,
                   const gfxRect& aFill,
                   const nsIntRect& aSubimage,
                   const nsIntSize& aViewportSize,
+                  const SVGImageContext* aSVGContext,
                   uint32_t aFlags)
 {
   NS_ENSURE_ARG_POINTER(aContext);
@@ -730,6 +731,8 @@ VectorImage::Draw(gfxContext* aContext,
   }
   mIsDrawing = true;
 
+  AutoSVGRenderingState autoSVGState(aSVGContext,
+                                     mSVGDocumentWrapper->GetRootSVGElem());
   mSVGDocumentWrapper->UpdateViewportBounds(aViewportSize);
   mSVGDocumentWrapper->FlushImageTransformInvalidation();
 

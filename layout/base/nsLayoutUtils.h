@@ -44,6 +44,7 @@ class nsBlockFrame;
 class gfxDrawable;
 
 namespace mozilla {
+class SVGImageContext;
 namespace dom {
 class Element;
 class HTMLImageElement;
@@ -1292,13 +1293,19 @@ public:
 
 
 
-  static nsresult DrawSingleImage(nsRenderingContext* aRenderingContext,
-                                  imgIContainer*       aImage,
-                                  GraphicsFilter       aGraphicsFilter,
-                                  const nsRect&        aDest,
-                                  const nsRect&        aDirty,
-                                  uint32_t             aImageFlags,
-                                  const nsRect*        aSourceArea = nullptr);
+
+
+
+
+
+  static nsresult DrawSingleImage(nsRenderingContext*    aRenderingContext,
+                                  imgIContainer*         aImage,
+                                  GraphicsFilter         aGraphicsFilter,
+                                  const nsRect&          aDest,
+                                  const nsRect&          aDirty,
+                                  const mozilla::SVGImageContext* aSVGContext,
+                                  uint32_t               aImageFlags,
+                                  const nsRect*          aSourceArea = nullptr);
 
   
 

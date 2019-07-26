@@ -3064,6 +3064,7 @@ RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
 
 
 
+
 NS_IMETHODIMP
 RasterImage::Draw(gfxContext *aContext,
                   gfxPattern::GraphicsFilter aFilter,
@@ -3071,6 +3072,7 @@ RasterImage::Draw(gfxContext *aContext,
                   const gfxRect &aFill,
                   const nsIntRect &aSubimage,
                   const nsIntSize& ,
+                  const SVGImageContext* ,
                   uint32_t aFlags)
 {
   if (mError)
