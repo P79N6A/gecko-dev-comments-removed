@@ -9718,6 +9718,11 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
         return NS_OK;
     }
 
+    nsIScrollableFrame* rootScroll = shell->GetRootScrollFrameAsScrollable();
+    if (rootScroll) {
+        rootScroll->ClearDidHistoryRestore();
+    }
+
     
     
     
