@@ -1,0 +1,56 @@
+
+
+
+
+
+
+#pragma once
+
+#include "nsCOMPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsString.h"
+#include "nsWrapperCache.h"
+
+#include "mozilla/Attributes.h"
+#include "mozilla/ErrorResult.h"
+
+#include "EnableWebSpeechRecognitionCheck.h"
+
+struct JSContext;
+
+namespace mozilla {
+namespace dom {
+
+class GlobalObject;
+
+class SpeechGrammar MOZ_FINAL : public nsISupports,
+                                public nsWrapperCache,
+                                public EnableWebSpeechRecognitionCheck
+{
+public:
+  SpeechGrammar(nsISupports* aParent);
+  ~SpeechGrammar();
+
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(SpeechGrammar)
+
+  nsISupports* GetParentObject() const;
+
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope);
+
+  static SpeechGrammar* Constructor(const GlobalObject& aGlobal, ErrorResult& aRv);
+
+  void GetSrc(nsString& aRetVal, ErrorResult& aRv) const;
+
+  void SetSrc(const nsAString& aArg, ErrorResult& aRv);
+
+  float GetWeight(ErrorResult& aRv) const;
+
+  void SetWeight(float aArg, ErrorResult& aRv);
+
+private:
+  nsCOMPtr<nsISupports> mParent;
+};
+
+} 
+} 
