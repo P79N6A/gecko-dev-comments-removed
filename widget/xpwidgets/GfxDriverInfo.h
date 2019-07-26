@@ -3,10 +3,11 @@
 
 
 
-#include "nsString.h"
-
 #ifndef __mozilla_widget_GfxDriverInfo_h__
 #define __mozilla_widget_GfxDriverInfo_h__
+
+#include "mozilla/Util.h" 
+#include "nsString.h"
 
 
 #define APPEND_TO_DRIVER_BLOCKLIST(os, vendor, devices, feature, featureStatus, driverComparator, driverVersion, suggestedVersion) \

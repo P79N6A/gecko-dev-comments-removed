@@ -29,7 +29,6 @@
 #include "nsContentListDeclarations.h"
 #include "nsMathUtils.h"
 #include "nsReadableUtils.h"
-#include "nsTArray.h"
 #include "nsWrapperCache.h"
 
 class imgICache;
@@ -107,6 +106,7 @@ struct nsIntMargin;
 struct nsNativeKeyEvent; 
 
 template<class E> class nsCOMArray;
+template<class E> class nsTArray;
 template<class K, class V> class nsDataHashtable;
 template<class K, class V> class nsRefPtrHashtable;
 

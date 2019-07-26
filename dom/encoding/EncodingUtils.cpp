@@ -3,6 +3,8 @@
 
 
 #include "mozilla/dom/EncodingUtils.h"
+
+#include "mozilla/Util.h" 
 #include "nsUConvPropertySearch.h"
 
 namespace mozilla {
