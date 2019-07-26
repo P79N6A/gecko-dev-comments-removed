@@ -109,7 +109,7 @@ nsTArray_base<Alloc, Copy>::EnsureCapacity(size_type capacity, size_type elemSiz
   
   
   if ((uint64_t)capacity * elemSize > size_type(-1)/2) {
-    Alloc::SizeTooBig();
+    Alloc::SizeTooBig((size_t)capacity * elemSize);
     return Alloc::FailureResult();
   }
 
