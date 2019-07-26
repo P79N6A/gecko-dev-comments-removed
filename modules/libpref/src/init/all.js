@@ -1050,7 +1050,7 @@ pref("network.http.pipelining.reschedule-timeout", 1500);
 pref("network.http.pipelining.read-timeout", 30000);
 
 
-pref("network.http.prompt-temp-redirect", false);
+pref("network.http.prompt-temp-redirect", true);
 
 
 
