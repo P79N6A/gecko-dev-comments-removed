@@ -221,16 +221,16 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
       
       return;
     }
-    float scale = nsSVGUtils::MaxExpansion(canvasTM);
 
-    filterRegion.Scale(scale);
+    gfxSize scale = canvasTM.ScaleFactors(true);
+    filterRegion.Scale(scale.width, scale.height);
     filterRegion.RoundOut();
     
     
     bool overflow;
     filterRes = nsSVGUtils::ConvertToSurfaceSize(filterRegion.Size(),
                                                  &overflow);
-    filterRegion.Scale(1.0 / scale);
+    filterRegion.Scale(1.0 / scale.width, 1.0 / scale.height);
   }
 
   
