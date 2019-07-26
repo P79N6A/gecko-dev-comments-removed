@@ -1417,6 +1417,14 @@ abstract public class BrowserApp extends GeckoApp
         int id = Favicons.getSizedFavicon(tab.getURL(), tab.getFaviconURL(), tabFaviconSize, flags, sFaviconLoadedListener);
 
         tab.setFaviconLoadId(id);
+
+        final Tabs tabs = Tabs.getInstance();
+        if (id != Favicons.LOADED && tabs.isSelectedTab(tab)) {
+            
+            
+            tab.updateFavicon(Favicons.sDefaultFavicon);
+            tabs.notifyListeners(tab, Tabs.TabEvents.FAVICON);
+        }
     }
 
     private void maybeCancelFaviconLoad(Tab tab) {
