@@ -2734,7 +2734,7 @@ nsNavHistory::CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString)
       
       NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                        nsINavHistoryObserver,
-                       OnDeleteVisits(uri, 0, guid, nsINavHistoryObserver::REASON_DELETED));
+                       OnDeleteVisits(uri, 0, guid, nsINavHistoryObserver::REASON_DELETED, 0));
     }
   }
 
@@ -3617,7 +3617,7 @@ nsNavHistory::AsyncExecuteLegacyQueries(nsINavHistoryQuery** aQueries,
 NS_IMETHODIMP
 nsNavHistory::NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
                                   bool aWholeEntry, const nsACString& aGUID,
-                                  uint16_t aReason)
+                                  uint16_t aReason, uint32_t aTransitionType)
 {
   
   mHasHistoryEntries = -1;
@@ -3632,7 +3632,8 @@ nsNavHistory::NotifyOnPageExpired(nsIURI *aURI, PRTime aVisitTime,
     
     NOTIFY_OBSERVERS(mCanNotify, mCacheObservers, mObservers,
                      nsINavHistoryObserver,
-                     OnDeleteVisits(aURI, aVisitTime, aGUID, aReason));
+                     OnDeleteVisits(aURI, aVisitTime, aGUID, aReason,
+                                    aTransitionType));
   }
 
   return NS_OK;

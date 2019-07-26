@@ -32,9 +32,14 @@
 #include "nsContentUtils.h"
 #include "nsIMemoryReporter.h"
 #include "mozilla/ipc/URIUtils.h"
+#include "nsPrintfCString.h"
+#include "nsTHashtable.h"
 
 
 #define VISIT_OBSERVERS_INITIAL_CACHE_SIZE 128
+
+
+#define VISITS_REMOVAL_INITIAL_HASH_SIZE 128
 
 using namespace mozilla::dom;
 using namespace mozilla::ipc;
@@ -154,6 +159,55 @@ struct VisitData {
 
   
   bool titleChanged;
+};
+
+
+
+
+
+
+
+struct RemoveVisitsFilter {
+  RemoveVisitsFilter()
+  : transitionType(UINT32_MAX)
+  {
+  }
+
+  uint32_t transitionType;
+};
+
+
+
+
+class PlaceHashKey : public nsCStringHashKey
+{
+  public:
+    PlaceHashKey(const nsACString& aSpec)
+    : nsCStringHashKey(&aSpec)
+    , visitCount(-1)
+    , bookmarked(-1)
+    {
+    }
+
+    PlaceHashKey(const nsACString* aSpec)
+    : nsCStringHashKey(aSpec)
+    , visitCount(-1)
+    , bookmarked(-1)
+    {
+    }
+
+    PlaceHashKey(const PlaceHashKey& aOther)
+    : nsCStringHashKey(&aOther.GetKey())
+    {
+      MOZ_ASSERT("Do not call me!");
+    }
+
+    
+    int32_t visitCount;
+    
+    int32_t bookmarked;
+    
+    nsTArray<VisitData> visits;
 };
 
 
@@ -719,7 +773,7 @@ public:
 
     
     MutexAutoLock lockedScope(mHistory->GetShutdownMutex());
-    if(mHistory->IsShuttingDown()) {
+    if (mHistory->IsShuttingDown()) {
       
       return NS_OK;
     }
@@ -1355,6 +1409,342 @@ NS_IMPL_ISUPPORTS1(
   SetDownloadAnnotations,
   mozIVisitInfoCallback
 )
+
+
+
+
+static PLDHashOperator TransferHashEntries(PlaceHashKey* aEntry,
+                                           void* aHash)
+{
+  nsTHashtable<PlaceHashKey>* hash =
+    static_cast<nsTHashtable<PlaceHashKey> *>(aHash);
+  PlaceHashKey* copy = hash->PutEntry(aEntry->GetKey());
+  copy->visitCount = aEntry->visitCount;
+  copy->bookmarked = aEntry->bookmarked;
+  aEntry->visits.SwapElements(copy->visits);
+  return PL_DHASH_NEXT;
+}
+
+
+
+
+static PLDHashOperator NotifyVisitRemoval(PlaceHashKey* aEntry,
+                                          void* aHistory)
+{
+  nsNavHistory* history = static_cast<nsNavHistory *>(aHistory);
+  const nsTArray<VisitData>& visits = aEntry->visits;
+  nsCOMPtr<nsIURI> uri;
+  (void)NS_NewURI(getter_AddRefs(uri), visits[0].spec);
+  bool removingPage = visits.Length() == aEntry->visitCount &&
+                      !aEntry->bookmarked;
+  
+  
+  
+  
+  
+  
+  
+  uint32_t transition = visits[0].transitionType < UINT32_MAX ?
+                          visits[0].transitionType : 0;
+  history->NotifyOnPageExpired(uri, visits[0].visitTime, removingPage,
+                               visits[0].guid,
+                               nsINavHistoryObserver::REASON_DELETED,
+                               transition);
+  return PL_DHASH_NEXT;
+}
+
+
+
+
+class NotifyRemoveVisits : public nsRunnable
+{
+public:
+
+  NotifyRemoveVisits(nsTHashtable<PlaceHashKey>& aPlaces)
+  : mHistory(History::GetService())
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "This should not be called on the main thread");
+    mPlaces.Init(VISITS_REMOVAL_INITIAL_HASH_SIZE);
+    aPlaces.EnumerateEntries(TransferHashEntries, &mPlaces);
+  }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread(), "This should be called on the main thread");
+
+    
+    if (mHistory->IsShuttingDown()) {
+      
+      return NS_OK;
+    }
+
+    nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+    if (!navHistory) {
+      NS_WARNING("Cannot notify without the history service!");
+      return NS_OK;
+    }
+
+    
+    
+    
+    (void)navHistory->BeginUpdateBatch();
+    mPlaces.EnumerateEntries(NotifyVisitRemoval, navHistory);
+    (void)navHistory->EndUpdateBatch();
+
+    return NS_OK;
+  }
+
+private:
+  nsTHashtable<PlaceHashKey> mPlaces;
+
+  
+
+
+
+  nsRefPtr<History> mHistory;
+};
+
+
+
+
+static PLDHashOperator ListToBeRemovedPlaceIds(PlaceHashKey* aEntry,
+                                               void* aIdsList)
+{
+  const nsTArray<VisitData>& visits = aEntry->visits;
+  
+  if (visits.Length() == aEntry->visitCount && !aEntry->bookmarked) {
+    nsCString* list = static_cast<nsCString*>(aIdsList);
+    if (!list->IsEmpty())
+      list->AppendLiteral(",");
+    list->AppendInt(visits[0].placeId);
+  }
+  return PL_DHASH_NEXT;
+}
+
+
+
+
+class RemoveVisits : public nsRunnable
+{
+public:
+  
+
+
+
+
+
+
+
+  static nsresult Start(mozIStorageConnection* aConnection,
+                        RemoveVisitsFilter& aFilter)
+  {
+    MOZ_ASSERT(NS_IsMainThread(), "This should be called on the main thread");
+
+    nsRefPtr<RemoveVisits> event = new RemoveVisits(aConnection, aFilter);
+
+    
+    nsCOMPtr<nsIEventTarget> target = do_GetInterface(aConnection);
+    NS_ENSURE_TRUE(target, NS_ERROR_UNEXPECTED);
+    nsresult rv = target->Dispatch(event, NS_DISPATCH_NORMAL);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "This should not be called on the main thread");
+
+    
+    MutexAutoLock lockedScope(mHistory->GetShutdownMutex());
+    if (mHistory->IsShuttingDown()) {
+      
+      return NS_OK;
+    }
+
+    
+    
+    nsTHashtable<PlaceHashKey> places;
+    places.Init(VISITS_REMOVAL_INITIAL_HASH_SIZE);
+    nsresult rv = FindRemovableVisits(places);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (places.Count() == 0)
+      return NS_OK;
+
+    
+    
+
+    mozStorageTransaction transaction(mDBConn, false,
+                                      mozIStorageConnection::TRANSACTION_IMMEDIATE);
+
+    rv = RemoveVisitsFromDatabase();
+    NS_ENSURE_SUCCESS(rv, rv);
+    rv = RemovePagesFromDatabase(places);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    rv = transaction.Commit();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    nsCOMPtr<nsIRunnable> event = new NotifyRemoveVisits(places);
+    rv = NS_DispatchToMainThread(event);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+private:
+  RemoveVisits(mozIStorageConnection* aConnection,
+               RemoveVisitsFilter& aFilter)
+  : mDBConn(aConnection)
+  , mHasTransitionType(false)
+  , mHistory(History::GetService())
+  {
+    MOZ_ASSERT(NS_IsMainThread(), "This should be called on the main thread");
+
+    
+    nsTArray<nsCString> conditions;
+    
+    if (aFilter.transitionType < UINT32_MAX) {
+      conditions.AppendElement(nsPrintfCString("visit_type = %d", aFilter.transitionType));
+      mHasTransitionType = true;
+    }
+    if (conditions.Length() > 0) {
+      mWhereClause.AppendLiteral (" WHERE ");
+      for (uint32_t i = 0; i < conditions.Length(); ++i) {
+        if (i > 0)
+          mWhereClause.AppendLiteral(" AND ");
+        mWhereClause.Append(conditions[i]);
+      }
+    }
+  }
+
+  nsresult
+  FindRemovableVisits(nsTHashtable<PlaceHashKey>& aPlaces)
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "This should not be called on the main thread");
+
+    nsCString query("SELECT h.id, url, guid, visit_date, visit_type, "
+                    "(SELECT count(*) FROM moz_historyvisits WHERE place_id = h.id) as full_visit_count, "
+                    "EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) as bookmarked "
+                    "FROM moz_historyvisits "
+                    "JOIN moz_places h ON place_id = h.id");
+    query.Append(mWhereClause);
+
+    nsCOMPtr<mozIStorageStatement> stmt = mHistory->GetStatement(query);
+    NS_ENSURE_STATE(stmt);
+    mozStorageStatementScoper scoper(stmt);
+
+    bool hasResult;
+    nsresult rv;
+    while (NS_SUCCEEDED((rv = stmt->ExecuteStep(&hasResult))) && hasResult) {
+      VisitData visit;
+      rv = stmt->GetInt64(0, &visit.placeId);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->GetUTF8String(1, visit.spec);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->GetUTF8String(2, visit.guid);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->GetInt64(3, &visit.visitTime);
+      NS_ENSURE_SUCCESS(rv, rv);
+      if (mHasTransitionType) {
+        int32_t transition;
+        rv = stmt->GetInt32(4, &transition);
+        NS_ENSURE_SUCCESS(rv, rv);
+        visit.transitionType = static_cast<uint32_t>(transition);
+      }
+      int32_t visitCount, bookmarked;
+      rv = stmt->GetInt32(5, &visitCount);
+      NS_ENSURE_SUCCESS(rv, rv);
+      rv = stmt->GetInt32(6, &bookmarked);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      PlaceHashKey* entry = aPlaces.GetEntry(visit.spec);
+      if (!entry) {
+        entry = aPlaces.PutEntry(visit.spec);
+      }
+      entry->visitCount = visitCount;
+      entry->bookmarked = bookmarked;
+      entry->visits.AppendElement(visit);
+    }
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  nsresult
+  RemoveVisitsFromDatabase()
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "This should not be called on the main thread");
+
+    nsCString query("DELETE FROM moz_historyvisits");
+    query.Append(mWhereClause);
+
+    nsCOMPtr<mozIStorageStatement> stmt = mHistory->GetStatement(query);
+    NS_ENSURE_STATE(stmt);
+    mozStorageStatementScoper scoper(stmt);
+    nsresult rv = stmt->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  nsresult
+  RemovePagesFromDatabase(nsTHashtable<PlaceHashKey>& aPlaces)
+  {
+    MOZ_ASSERT(!NS_IsMainThread(),
+               "This should not be called on the main thread");
+
+    nsCString placeIdsToRemove;
+    aPlaces.EnumerateEntries(ListToBeRemovedPlaceIds, &placeIdsToRemove);
+
+#ifdef DEBUG
+    {
+      
+      nsCString query("SELECT id FROM moz_places h WHERE id IN (");
+      query.Append(placeIdsToRemove);
+      query.AppendLiteral(") AND ("
+          "EXISTS(SELECT 1 FROM moz_bookmarks WHERE fk = h.id) OR "
+          "EXISTS(SELECT 1 FROM moz_historyvisits WHERE place_id = h.id) OR "
+          "SUBSTR(h.url, 1, 6) = 'place:' "
+        ")");
+      nsCOMPtr<mozIStorageStatement> stmt = mHistory->GetStatement(query);
+      NS_ENSURE_STATE(stmt);
+      mozStorageStatementScoper scoper(stmt);
+      bool hasResult;
+      MOZ_ASSERT(NS_SUCCEEDED(stmt->ExecuteStep(&hasResult)) && !hasResult,
+                 "Trying to remove a non-oprhan place from the database");
+    }
+#endif
+
+    nsCString query("DELETE FROM moz_places "
+                    "WHERE id IN (");
+    query.Append(placeIdsToRemove);
+    query.AppendLiteral(")");
+
+    nsCOMPtr<mozIStorageStatement> stmt = mHistory->GetStatement(query);
+    NS_ENSURE_STATE(stmt);
+    mozStorageStatementScoper scoper(stmt);
+    nsresult rv = stmt->Execute();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    return NS_OK;
+  }
+
+  mozIStorageConnection* mDBConn;
+  bool mHasTransitionType;
+  nsCString mWhereClause;
+
+  
+
+
+
+  nsRefPtr<History> mHistory;
+};
 
 
 
@@ -2115,6 +2505,35 @@ History::AddDownload(nsIURI* aSource, nsIURI* aReferrer,
   if (obsService) {
     obsService->NotifyObservers(aSource, NS_LINK_VISITED_EVENT_TOPIC, nullptr);
   }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+History::RemoveAllDownloads()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  if (mShuttingDown) {
+    return NS_OK;
+  }
+
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    NS_ERROR("Cannot remove downloads to history from content process!");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  nsNavHistory* navHistory = nsNavHistory::GetHistoryService();
+  NS_ENSURE_TRUE(navHistory, NS_ERROR_OUT_OF_MEMORY);
+  mozIStorageConnection* dbConn = GetDBConn();
+  NS_ENSURE_STATE(dbConn);
+
+  RemoveVisitsFilter filter;
+  filter.transitionType = nsINavHistoryService::TRANSITION_DOWNLOAD;
+
+  nsresult rv = RemoveVisits::Start(dbConn, filter);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
 }

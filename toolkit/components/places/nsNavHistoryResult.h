@@ -74,7 +74,8 @@ private:
                            const nsAString &aNewValue,                  \
                            const nsACString &aGUID);                    \
   NS_IMETHOD OnDeleteVisits(nsIURI* aURI, PRTime aVisitTime,            \
-                            const nsACString& aGUID, uint16_t aReason);
+                            const nsACString& aGUID, uint16_t aReason,  \
+                            uint32_t aTransitionType);
 
 
 
