@@ -28,36 +28,6 @@ namespace webrtc {
 
 class EventWrapper;
 
-const WebRtc_UWord32 N_MAX_INTERFACES = 3;
-const WebRtc_UWord32 N_MAX_OUTPUT_DEVICES = 6;
-const WebRtc_UWord32 N_MAX_INPUT_DEVICES = 3;
-
-const WebRtc_UWord32 N_REC_SAMPLES_PER_SEC = 16000;  
-const WebRtc_UWord32 N_PLAY_SAMPLES_PER_SEC = 16000;  
-
-const WebRtc_UWord32 N_REC_CHANNELS = 1;
-const WebRtc_UWord32 N_PLAY_CHANNELS = 1;
-
-const WebRtc_UWord32 REC_BUF_SIZE_IN_SAMPLES = 480;
-const WebRtc_UWord32 PLAY_BUF_SIZE_IN_SAMPLES = 480;
-
-const WebRtc_UWord32 REC_MAX_TEMP_BUF_SIZE_PER_10ms =
-    N_REC_CHANNELS * REC_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
-
-const WebRtc_UWord32 PLAY_MAX_TEMP_BUF_SIZE_PER_10ms =
-    N_PLAY_CHANNELS * PLAY_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
-
-
-const WebRtc_UWord16 N_PLAY_QUEUE_BUFFERS = 8;
-
-
-const WebRtc_UWord16 N_REC_QUEUE_BUFFERS = 16;
-
-
-
-
-
-
 class ThreadWrapper;
 
 class AudioDeviceAndroidOpenSLES: public AudioDeviceGeneric {
@@ -210,6 +180,36 @@ class AudioDeviceAndroidOpenSLES: public AudioDeviceGeneric {
   
   virtual WebRtc_Word32 SetLoudspeakerStatus(bool enable);
   virtual WebRtc_Word32 GetLoudspeakerStatus(bool& enable) const;  
+
+  static const WebRtc_UWord32 N_MAX_INTERFACES = 3;
+  static const WebRtc_UWord32 N_MAX_OUTPUT_DEVICES = 6;
+  static const WebRtc_UWord32 N_MAX_INPUT_DEVICES = 3;
+
+  static const WebRtc_UWord32 N_REC_SAMPLES_PER_SEC = 16000;  
+  static const WebRtc_UWord32 N_PLAY_SAMPLES_PER_SEC = 16000;  
+
+  static const WebRtc_UWord32 N_REC_CHANNELS = 1;
+  static const WebRtc_UWord32 N_PLAY_CHANNELS = 1;
+
+  static const WebRtc_UWord32 REC_BUF_SIZE_IN_SAMPLES = 480;
+  static const WebRtc_UWord32 PLAY_BUF_SIZE_IN_SAMPLES = 480;
+
+  static const WebRtc_UWord32 REC_MAX_TEMP_BUF_SIZE_PER_10ms =
+      N_REC_CHANNELS * REC_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
+
+  static const WebRtc_UWord32 PLAY_MAX_TEMP_BUF_SIZE_PER_10ms =
+      N_PLAY_CHANNELS * PLAY_BUF_SIZE_IN_SAMPLES * sizeof(int16_t);
+
+  
+  static const WebRtc_UWord16 N_PLAY_QUEUE_BUFFERS = 8;
+  
+  
+  static const WebRtc_UWord16 N_REC_QUEUE_BUFFERS = 16;
+  
+  
+  
+  
+  
 
  private:
   

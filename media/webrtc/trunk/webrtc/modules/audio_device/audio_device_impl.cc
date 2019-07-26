@@ -24,8 +24,10 @@
  #endif
 #elif defined(WEBRTC_ANDROID_OPENSLES)
     #include <stdlib.h>
+    #include <dlfcn.h>
     #include "audio_device_utility_android.h"
     #include "audio_device_opensles_android.h"
+    #include "audio_device_jni_android.h"
 #elif defined(WEBRTC_ANDROID)
     #include <stdlib.h>
     #include "audio_device_utility_android.h"
@@ -259,12 +261,18 @@ WebRtc_Word32 AudioDeviceModuleImpl::CreatePlatformSpecificObjects()
     
     
 #if defined(WEBRTC_ANDROID_OPENSLES)
-    if (audioLayer == kPlatformDefaultAudio)
-    {
+    
+    void* opensles_lib = dlopen("libOpenSLES.so", RTLD_LAZY);
+    if (opensles_lib) {
         
-        ptrAudioDevice = new AudioDeviceAndroidOpenSLES(Id());
-        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
-                     "Android OpenSLES Audio APIs will be utilized");
+        dlclose(opensles_lib);
+        if (audioLayer == kPlatformDefaultAudio)
+        {
+            
+            ptrAudioDevice = new AudioDeviceAndroidOpenSLES(Id());
+            WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id,
+                         "Android OpenSLES Audio APIs will be utilized");
+        }
     }
 
     if (ptrAudioDevice != NULL)
@@ -272,24 +280,23 @@ WebRtc_Word32 AudioDeviceModuleImpl::CreatePlatformSpecificObjects()
         
         ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
     }
+#elif defined(WEBRTC_ANDROID_OPENSLES) or defined(WEBRTC_ANDROID)
     
-
-    
-    
-#elif defined(WEBRTC_ANDROID)
-    if (audioLayer == kPlatformDefaultAudio)
-    {
+    if (ptrAudioDevice == NULL) {
         
-        ptrAudioDevice = new AudioDeviceAndroidJni(Id());
-        WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "Android JNI Audio APIs will be utilized");
-    }
+        if (audioLayer == kPlatformDefaultAudio)
+        {
+            
+            ptrAudioDevice = new AudioDeviceAndroidJni(Id());
+            WEBRTC_TRACE(kTraceInfo, kTraceAudioDevice, _id, "Android JNI Audio APIs will be utilized");
+        }
 
-    if (ptrAudioDevice != NULL)
-    {
-        
-        ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
+        if (ptrAudioDevice != NULL)
+        {
+            
+            ptrAudioDeviceUtility = new AudioDeviceUtilityAndroid(Id());
+        }
     }
-    
 
     
     
