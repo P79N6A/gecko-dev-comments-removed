@@ -10,19 +10,18 @@ const TEST_DATA = [
   
   
   
-  
   {
     options: {
       action: MozMobileConnection.CALL_FORWARD_ACTION_DISABLE,
-      reason: MozMobileConnection.CALL_FORWARD_REASON_UNCONDITIONAL,
+      reason: MozMobileConnection.CALL_FORWARD_REASON_ALL_CALL_FORWARDING,
     },
-    expectedErrorMsg: "RequestNotSupported"
+    errorMsg: "GenericFailure"
   }, {
     options: {
       action: MozMobileConnection.CALL_FORWARD_ACTION_ENABLE,
-      reason: MozMobileConnection.CALL_FORWARD_REASON_MOBILE_BUSY,
+      reason: MozMobileConnection.CALL_FORWARD_REASON_ALL_CONDITIONAL_CALL_FORWARDING,
     },
-    expectedErrorMsg: "RequestNotSupported"
+    errorMsg: "GenericFailure"
   },
   
   {
@@ -31,13 +30,13 @@ const TEST_DATA = [
       action: MozMobileConnection.CALL_FORWARD_ACTION_QUERY_STATUS,
       reason: MozMobileConnection.CALL_FORWARD_REASON_MOBILE_BUSY,
     },
-    expectedErrorMsg: "InvalidParameter"
+    errorMsg: "InvalidParameter"
   }, {
     options: {
       action: 10 ,
       reason: MozMobileConnection.CALL_FORWARD_REASON_MOBILE_BUSY,
     },
-    expectedErrorMsg: "InvalidParameter"
+    errorMsg: "InvalidParameter"
   },
   
   {
@@ -45,11 +44,11 @@ const TEST_DATA = [
       action: MozMobileConnection.CALL_FORWARD_ACTION_DISABLE,
       reason: 10 ,
     },
-    expectedErrorMsg: "InvalidParameter"
+    errorMsg: "InvalidParameter"
   }
 ];
 
-function testSetCallForwardingOption(aOptions, aExpectedErrorMsg) {
+function testSetCallForwardingOption(aOptions, aErrorMsg) {
   log("Test setting call forwarding to " + JSON.stringify(aOptions));
 
   aOptions.number = TEST_NUMBER;
@@ -57,9 +56,9 @@ function testSetCallForwardingOption(aOptions, aExpectedErrorMsg) {
 
   return setCallForwardingOption(aOptions)
     .then(function resolve() {
-      ok(!aExpectedErrorMsg, "setCallForwardingOption success");
+      ok(false, "setCallForwardingOption success");
     }, function reject(aError) {
-      is(aError.name, aExpectedErrorMsg, "failed to setCallForwardingOption");
+      is(aError.name, aErrorMsg, "failed to setCallForwardingOption");
     });
 }
 
@@ -69,7 +68,7 @@ startTestCommon(function() {
   for (let i = 0; i < TEST_DATA.length; i++) {
     let data = TEST_DATA[i];
     promise = promise.then(() => testSetCallForwardingOption(data.options,
-                                                             data.expectedErrorMsg));
+                                                             data.errorMsg));
   }
   return promise;
 });
