@@ -547,8 +547,12 @@ jit::FinishOffThreadBuilder(IonBuilder *builder)
         builder->script()->ionScript()->clearRecompiling();
 
     
-    if (CompilingOffThread(builder->script(), executionMode))
-        SetIonScript(builder->script(), executionMode, nullptr);
+    if (CompilingOffThread(builder->script(), executionMode)) {
+        SetIonScript(builder->script(), executionMode,
+                     builder->abortReason() == AbortReason_Disable
+                     ? ION_DISABLED_SCRIPT
+                     : nullptr);
+    }
 
     
     

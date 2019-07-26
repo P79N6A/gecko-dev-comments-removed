@@ -384,6 +384,7 @@ ParallelSafetyAnalysis::analyze()
                 
                 if (*block == graph_.entryBlock()) {
                     Spew(SpewCompile, "Entry block contains unsafe MIR");
+                    mir_->disable();
                     return false;
                 }
 
