@@ -89,10 +89,7 @@ public:
   SetKey(DOMStorageImpl* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
-         bool aSecure,
-         int32_t aQuota,
-         bool aExcludeOfflineFromUsage,
-         int32_t* aNewUsage);
+         bool aSecure);
 
   
 
@@ -108,9 +105,7 @@ public:
 
   nsresult
   RemoveKey(DOMStorageImpl* aStorage,
-            const nsAString& aKey,
-            bool aExcludeOfflineFromUsage,
-            int32_t aKeyUsage);
+            const nsAString& aKey);
 
   
 
@@ -134,27 +129,25 @@ public:
 
 
   nsresult
-  RemoveOwner(const nsACString& aOwner, bool aIncludeSubDomains);
-
-  
-
-
-
-  nsresult
-  RemoveOwners(const nsTArray<nsString>& aOwners,
-               bool aIncludeSubDomains, bool aMatch);
+  RemoveOwner(const nsACString& aOwner);
 
   
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  RemoveAll();
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage, bool aPrivate);
+  GetUsage(DOMStorageImpl* aStorage, int32_t *aUsage);
+
+  
+
+
+  nsresult
+  GetUsage(const nsACString& aDomain, int32_t *aUsage, bool aPrivate);
 
   
 
@@ -195,11 +188,10 @@ public:
 
 
   static nsresult CreateQuotaDomainDBKey(const nsACString& aAsciiDomain,
-                                         bool aIncludeSubDomains, bool aETLDplus1Only,
                                          nsACString& aKey);
 
   static nsresult GetDomainFromScopeKey(const nsACString& aScope,
-                                         nsACString& aDomain);
+                                        nsACString& aDomain);
 
   
 
@@ -221,7 +213,6 @@ public:
   void StopTempTableFlushTimer();
 
 protected:
-  nsDOMStoragePersistentDB mChromePersistentDB;
   nsDOMStoragePersistentDB mPersistentDB;
   nsDOMStorageMemoryDB mSessionOnlyDB;
   nsDOMStorageMemoryDB mPrivateBrowsingDB;

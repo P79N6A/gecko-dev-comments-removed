@@ -30,10 +30,6 @@
 
 #include "nsDOMStorageDBWrapper.h"
 
-#define IS_PERMISSION_ALLOWED(perm) \
-      ((perm) != nsIPermissionManager::UNKNOWN_ACTION && \
-      (perm) != nsIPermissionManager::DENY_ACTION)
-
 class nsDOMStorage;
 class nsIDOMStorage;
 class nsDOMStorageItem;
@@ -114,7 +110,7 @@ public:
   DOMStorageBase(DOMStorageBase&);
 
   virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
+  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aPrivate);
 
   virtual nsTArray<nsString>* GetKeys(bool aCallerSecure) = 0;
   virtual nsresult GetLength(bool aCallerSecure, uint32_t* aLength) = 0;
@@ -171,10 +167,9 @@ public:
   nsCString& GetScopeDBKey() {return mScopeDBKey;}
 
   
-  
-  nsCString& GetQuotaDomainDBKey(bool aOfflineAllowed)
+  nsCString& GetQuotaDomainDBKey()
   {
-    return aOfflineAllowed ? mQuotaDomainDBKey : mQuotaETLDplus1DomainDBKey;
+    return mQuotaETLDplus1DomainDBKey;
   }
 
   virtual bool CacheStoragePermissions() = 0;
@@ -202,9 +197,7 @@ protected:
   
   nsCString mScopeDBKey;
   nsCString mQuotaETLDplus1DomainDBKey;
-  nsCString mQuotaDomainDBKey;
 
-  bool mCanUseChromePersist;
   bool mInPrivateBrowsing;
 };
 
@@ -221,7 +214,7 @@ public:
   ~DOMStorageImpl();
 
   virtual void InitAsSessionStorage(nsIURI* aDomainURI, bool aPrivate);
-  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aCanUseChromePersist, bool aPrivate);
+  virtual void InitAsLocalStorage(nsIURI* aDomainURI, bool aPrivate);
 
   bool SessionOnly() {
     return mSessionOnly;
@@ -244,10 +237,6 @@ public:
   uint64_t CachedVersion() { return mItemsCachedVersion; }
   void SetCachedVersion(uint64_t version) { mItemsCachedVersion = version; }
   
-  
-  
-  bool CanUseChromePersist();
-
   
   
   nsresult
@@ -291,10 +280,9 @@ private:
 
   
   
-  void InitFromChild(bool aUseDB, bool aCanUseChromePersist, bool aSessionOnly,
+  void InitFromChild(bool aUseDB, bool aSessionOnly,
                      bool aPrivate, const nsACString& aDomain,
                      const nsACString& aScopeDBKey,
-                     const nsACString& aQuotaDomainDBKey,
                      const nsACString& aQuotaETLDplus1DomainDBKey,
                      uint32_t aStorageType);
   void SetSessionOnly(bool aSessionOnly);
@@ -351,12 +339,6 @@ public:
   static bool
   CanUseStorage(DOMStorageBase* aStorage = nullptr);
 
-  
-  
-  
-  static bool
-  URICanUseChromePersist(nsIURI* aURI);
-  
   
   
   bool
@@ -502,11 +484,5 @@ protected:
 
 nsresult
 NS_NewDOMStorage2(nsISupports* aOuter, REFNSIID aIID, void** aResult);
-
-uint32_t
-GetOfflinePermission(const nsACString &aDomain);
-
-bool
-IsOfflineAllowed(const nsACString &aDomain);
 
 #endif 

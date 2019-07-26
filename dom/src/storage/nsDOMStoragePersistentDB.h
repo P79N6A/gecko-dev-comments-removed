@@ -63,10 +63,7 @@ public:
   SetKey(DOMStorageImpl* aStorage,
          const nsAString& aKey,
          const nsAString& aValue,
-         bool aSecure,
-         int32_t aQuota,
-         bool aExcludeOfflineFromUsage,
-         int32_t* aNewUsage);
+         bool aSecure);
 
   
 
@@ -82,9 +79,7 @@ public:
 
   nsresult
   RemoveKey(DOMStorageImpl* aStorage,
-            const nsAString& aKey,
-            bool aExcludeOfflineFromUsage,
-            int32_t aKeyUsage);
+            const nsAString& aKey);
 
   
 
@@ -95,15 +90,7 @@ public:
 
 
   nsresult
-  RemoveOwner(const nsACString& aOwner, bool aIncludeSubDomains);
-
-  
-
-
-
-  nsresult
-  RemoveOwners(const nsTArray<nsString>& aOwners,
-               bool aIncludeSubDomains, bool aMatch);
+  RemoveOwner(const nsACString& aOwner);
 
   
 
@@ -115,13 +102,13 @@ public:
 
 
   nsresult
-  GetUsage(DOMStorageImpl* aStorage, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  GetUsage(DOMStorageImpl* aStorage, int32_t *aUsage);
 
   
 
 
   nsresult
-  GetUsage(const nsACString& aDomain, bool aIncludeSubDomains, int32_t *aUsage);
+  GetUsage(const nsACString& aDomain, int32_t *aUsage);
 
   
 
@@ -174,7 +161,7 @@ protected:
   friend class nsDOMStorageDBWrapper;
   friend class nsDOMStorageMemoryDB;
   nsresult
-  GetUsageInternal(const nsACString& aQuotaDomainDBKey, bool aExcludeOfflineFromUsage, int32_t *aUsage);
+  GetUsageInternal(const nsACString& aQuotaDomainDBKey, int32_t *aUsage);
 
   
   
