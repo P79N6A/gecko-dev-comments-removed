@@ -325,23 +325,7 @@ public:
               PBrowserParent *browserParent) MOZ_OVERRIDE
   {
     
-
-    
-    
-    
-    
-    
-    
-    
     TabParent *tabParent = static_cast<TabParent*>(browserParent);
-    if (!tabParent->Active()) {
-      HAL_LOG(("RecvVibrate: Tab is not active. Cancelling."));
-      return true;
-    }
-
-    
-    
-    
     nsCOMPtr<nsIDOMWindow> window =
       do_QueryInterface(tabParent->GetBrowserDOMWindow());
     WindowIdentifier newID(id, window);
