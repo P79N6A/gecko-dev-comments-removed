@@ -682,6 +682,20 @@ public:
   uint32_t Length();
 };
 
+class TestCppKeywordNamedMethodsInterface : public nsISupports,
+                                            public nsWrapperCache
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  
+  virtual nsISupports* GetParentObject();
+
+  bool Continue();
+  bool Delete();
+  int32_t Volatile();
+};
+
 } 
 } 
 
