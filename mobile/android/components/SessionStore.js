@@ -178,9 +178,12 @@ SessionStore.prototype = {
         break;
       }
       case "DOMTitleChanged": {
-        let browser = Services.wm.getMostRecentWindow("navigator:browser")
-                                 .BrowserApp
-                                 .getBrowserForDocument(aEvent.target);
+        let browser = aEvent.currentTarget;
+
+        
+        if (browser.contentDocument !== aEvent.originalTarget)
+          return;
+
         
         
         
@@ -220,7 +223,6 @@ SessionStore.prototype = {
     browsers.addEventListener("TabOpen", this, true);
     browsers.addEventListener("TabClose", this, true);
     browsers.addEventListener("TabSelect", this, true);
-    browsers.addEventListener("DOMTitleChanged", this, true);
   },
 
   onWindowClose: function ss_onWindowClose(aWindow) {
@@ -232,7 +234,6 @@ SessionStore.prototype = {
     browsers.removeEventListener("TabOpen", this, true);
     browsers.removeEventListener("TabClose", this, true);
     browsers.removeEventListener("TabSelect", this, true);
-    browsers.removeEventListener("DOMTitleChanged", this, true);
 
     if (this._loadState == STATE_RUNNING) {
       
@@ -253,12 +254,15 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
+    aBrowser.addEventListener("DOMTitleChanged", this, true);
     if (!aNoNotification)
       this.saveStateDelayed();
     this._updateCrashReportURL(aWindow);
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
+    aBrowser.removeEventListener("DOMTitleChanged", this, true);
+
     
     if (aBrowser.__SS_restore)
       return;
