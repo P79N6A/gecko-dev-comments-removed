@@ -28,7 +28,6 @@ ISOMediaWriter::ISOMediaWriter(uint32_t aType)
   , mBlobReady(false)
   , mType(0)
 {
-  
   if (aType & HAS_AUDIO) {
     mType |= Audio_Track;
   }
@@ -176,7 +175,7 @@ ISOMediaWriter::ReadyToRunState(bool& aEOS)
     if (!mVideoFragmentBuffer->HasEnoughData()) {
       bReadyToMux = false;
     }
-    if (mAudioFragmentBuffer->EOS()) {
+    if (mVideoFragmentBuffer->EOS()) {
       aEOS = true;
       bReadyToMux = true;
     }
