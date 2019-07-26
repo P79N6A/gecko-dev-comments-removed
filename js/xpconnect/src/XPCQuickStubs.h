@@ -531,7 +531,7 @@ xpc_qsGetWrapperCache(void *p)
 
 
 JSBool
-xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx,
+xpc_qsXPCOMObjectToJsval(JSContext *aCx,
                          qsObjectHelper &aHelper,
                          const nsIID *iid,
                          XPCNativeInterface **iface,
@@ -541,7 +541,7 @@ xpc_qsXPCOMObjectToJsval(XPCLazyCallContext &lccx,
 
 
 JSBool
-xpc_qsVariantToJsval(XPCLazyCallContext &ccx,
+xpc_qsVariantToJsval(JSContext *cx,
                      nsIVariant *p,
                      jsval *rval);
 
