@@ -5,6 +5,12 @@
 #ifndef _CCAPI_CALL_INFO_H_
 #define _CCAPI_CALL_INFO_H_
 
+#if defined(__cplusplus) && __cplusplus >= 201103L
+typedef struct Timecard Timecard;
+#else
+#include "timecard.h"
+#endif
+
 #include "ccapi_types.h"
 #include "peer_connection_types.h"
 #include "fsmdef_states.h"
@@ -309,5 +315,12 @@ cc_int32_t  CCAPI_CallInfo_getStatusCode(cc_callinfo_ref_t handle);
 
 
 MediaStreamTable* CCAPI_CallInfo_getMediaStreams(cc_callinfo_ref_t handle);
+
+
+
+
+
+
+Timecard* CCAPI_CallInfo_takeTimecard(cc_callinfo_ref_t handle);
 
 #endif 

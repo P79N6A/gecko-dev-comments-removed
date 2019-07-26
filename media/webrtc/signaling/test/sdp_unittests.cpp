@@ -2,6 +2,8 @@
 
 
 
+#include "timecard.h"
+
 #include "CSFLog.h"
 
 #include <string>

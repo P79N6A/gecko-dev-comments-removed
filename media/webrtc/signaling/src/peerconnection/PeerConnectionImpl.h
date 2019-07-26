@@ -40,6 +40,12 @@ namespace mozilla {
 }
 #endif
 
+#if defined(__cplusplus) && __cplusplus >= 201103L
+typedef struct Timecard Timecard;
+#else
+#include "timecard.h"
+#endif
+
 using namespace mozilla;
 
 namespace sipcc {
@@ -327,6 +333,11 @@ private:
 
   
   nsresult IceStateChange_m(IceState aState);
+
+  
+  
+  
+  Timecard *mTimeCard;
 
   
   Role mRole;
