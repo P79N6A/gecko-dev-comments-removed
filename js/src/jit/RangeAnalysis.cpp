@@ -1075,7 +1075,13 @@ MMod::computeRange()
     int64_t b = Abs<int64_t>(rhs.upper());
     if (a == 0 && b == 0)
         return;
-    int64_t rhsAbsBound = Max(a-1, b-1);
+    int64_t rhsAbsBound = Max(a, b);
+
+    
+    
+    
+    if (!lhs.isDecimal() && !rhs.isDecimal())
+        --rhsAbsBound;
 
     
     
