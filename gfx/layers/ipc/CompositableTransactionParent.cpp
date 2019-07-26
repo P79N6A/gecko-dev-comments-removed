@@ -36,6 +36,17 @@ CompositableHost* AsCompositable(const T& op)
   return static_cast<CompositableParent*>(op.compositableParent())->GetCompositableHost();
 }
 
+
+
+
+
+
+
+
+
+
+
+
 template<typename T>
 bool ScheduleComposition(const T& op)
 {
@@ -133,7 +144,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
                                          op.textureId(), newBack));
         }
 
-        if (shouldRecomposite) {
+        if (IsAsync() && shouldRecomposite) {
           ScheduleComposition(op);
         }
       }
@@ -221,8 +232,8 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       MOZ_ASSERT(tex.get());
       compositable->UseTextureHost(tex);
 
-      if (!ScheduleComposition(op)) {
-        NS_WARNING("could not find a compositor to schedule composition");
+      if (IsAsync()) {
+        ScheduleComposition(op);
       }
       break;
     }
