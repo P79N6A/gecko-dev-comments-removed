@@ -394,7 +394,7 @@ FunctionBox::FunctionBox(JSContext *cx, ObjectBox* traceListHead, JSFunction *fu
         
         inWith = true;
 
-    } else if (!outerpc->sc->isFunctionBox()) {
+    } else if (outerpc->sc->isGlobalSharedContext()) {
         
         
         
@@ -447,6 +447,13 @@ Parser::newFunctionBox(JSFunction *fun, ParseContext *outerpc, bool strict)
     traceListHead = funbox;
 
     return funbox;
+}
+
+ModuleBox::ModuleBox(JSContext *cx, ParseContext *pc, Module *module,
+                     ObjectBox *traceListHead)
+    : ObjectBox(module, traceListHead),
+      SharedContext(cx, true)
+{
 }
 
 void
