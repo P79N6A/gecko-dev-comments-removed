@@ -219,7 +219,7 @@ img[align=right] {
 
 
 input:not([type=image]), textarea {
-  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 }
 
 

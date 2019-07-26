@@ -28,7 +28,7 @@ div.progress-bar {
 
 
 
-  -moz-box-sizing: border-box;
+  box-sizing: border-box;
 
   
   background-color: #0064b4;
