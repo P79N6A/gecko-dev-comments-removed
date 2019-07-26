@@ -170,6 +170,12 @@ public:
     return mConnectionStatus;
   }
 
+  int GetSuggestedConnectDelayMs() const
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+    return mConnectDelayMs;
+  }
+
   
 
 
@@ -266,8 +272,12 @@ public:
   void GetSocketAddr(nsAString& aAddrStr);
 
 private:
+  uint32_t CalculateConnectDelayMs() const;
+
   UnixSocketImpl* mImpl;
   SocketConnectionStatus mConnectionStatus;
+  PRIntervalTime mConnectTimestamp;
+  uint32_t mConnectDelayMs;
 };
 
 } 
