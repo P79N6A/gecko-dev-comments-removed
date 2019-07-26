@@ -66,7 +66,6 @@
 #include "MediaStreamGraph.h"
 #include "nsIScriptError.h"
 #include "nsHostObjectProtocolHandler.h"
-#include "mozilla/dom/MediaSource.h"
 #include "MediaMetadataManager.h"
 
 #include "AudioChannelService.h"
@@ -403,7 +402,6 @@ NS_IMPL_ADDREF_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
 NS_IMPL_RELEASE_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(HTMLMediaElement, nsGenericHTMLElement)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSrcAttrStream)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mSourcePointer)
@@ -425,7 +423,6 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLMediaElement, nsGenericHTMLE
     tmp->EndSrcMediaStreamPlayback();
   }
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSrcAttrStream)
-  NS_IMPL_CYCLE_COLLECTION_UNLINK(mMediaSource)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSourcePointer)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mLoadBlockedDoc)
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mSourceLoadCandidate)
@@ -593,10 +590,6 @@ void HTMLMediaElement::AbortExistingLoads()
   if (mSrcStream) {
     EndSrcMediaStreamPlayback();
   }
-  if (mMediaSource) {
-    mMediaSource->DetachElement();
-    mMediaSource = nullptr;
-  }
   if (mAudioStream) {
     mAudioStream->Shutdown();
     mAudioStream = nullptr;
@@ -667,12 +660,12 @@ typedef void (HTMLMediaElement::*SyncSectionFn)();
 class nsSyncSection : public nsMediaEvent
 {
 private:
-  nsCOMPtr<nsIRunnable> mRunnable;
+  SyncSectionFn mClosure;
 public:
   nsSyncSection(HTMLMediaElement* aElement,
-                nsIRunnable* aRunnable) :
+                SyncSectionFn aClosure) :
     nsMediaEvent(aElement),
-    mRunnable(aRunnable)
+    mClosure(aClosure)
   {
   }
 
@@ -680,16 +673,20 @@ public:
     
     if (IsCancelled())
       return NS_OK;
-    mRunnable->Run();
+    (mElement.get()->*mClosure)();
     return NS_OK;
   }
 };
 
 static NS_DEFINE_CID(kAppShellCID, NS_APPSHELL_CID);
 
-void HTMLMediaElement::RunInStableState(nsIRunnable* aRunnable)
+
+
+
+void AsyncAwaitStableState(HTMLMediaElement* aElement,
+                           SyncSectionFn aClosure)
 {
-  nsCOMPtr<nsIRunnable> event = new nsSyncSection(this, aRunnable);
+  nsCOMPtr<nsIRunnable> event = new nsSyncSection(aElement, aClosure);
   nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
   appShell->RunInStableState(event);
 }
@@ -698,8 +695,7 @@ void HTMLMediaElement::QueueLoadFromSourceTask()
 {
   ChangeDelayLoadStatus(true);
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
-  RunInStableState(
-    NS_NewRunnableMethod(this, &HTMLMediaElement::LoadFromSourceChildren));
+  AsyncAwaitStableState(this, &HTMLMediaElement::LoadFromSourceChildren);
 }
 
 void HTMLMediaElement::QueueSelectResourceTask()
@@ -709,8 +705,7 @@ void HTMLMediaElement::QueueSelectResourceTask()
     return;
   mHaveQueuedSelectResource = true;
   mNetworkState = nsIDOMHTMLMediaElement::NETWORK_NO_SOURCE;
-  RunInStableState(
-    NS_NewRunnableMethod(this, &HTMLMediaElement::SelectResourceWrapper));
+  AsyncAwaitStableState(this, &HTMLMediaElement::SelectResourceWrapper);
 }
 
 
@@ -1116,30 +1111,6 @@ nsresult HTMLMediaElement::LoadResource()
     return NS_OK;
   }
 
-  if (IsMediaSourceURI(mLoadingSrc)) {
-    nsRefPtr<MediaSource> source;
-    rv = NS_GetSourceForMediaSourceURI(mLoadingSrc, getter_AddRefs(source));
-    if (NS_FAILED(rv)) {
-      nsCString specUTF8;
-      mLoadingSrc->GetSpec(specUTF8);
-      NS_ConvertUTF8toUTF16 spec(specUTF8);
-      const PRUnichar* params[] = { spec.get() };
-      ReportLoadError("MediaLoadInvalidURI", params, ArrayLength(params));
-      return rv;
-    }
-    mMediaSource = source.forget();
-    if (!mMediaSource->AttachElement(this)) {
-      
-      
-      
-      
-      return NS_ERROR_FAILURE;
-    }
-    
-    
-    
-  }
-
   nsCOMPtr<nsILoadGroup> loadGroup = GetDocumentLoadGroup();
 
   
@@ -1386,17 +1357,7 @@ already_AddRefed<TimeRanges>
 HTMLMediaElement::Seekable() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  if (mMediaSource) {
-    double duration = mMediaSource->Duration();
-    if (IsNaN(duration)) {
-      
-    } else if (duration > 0 && IsInfinite(duration)) {
-      nsRefPtr<TimeRanges> bufferedRanges = Buffered();
-      ranges->Add(0, bufferedRanges->GetFinalEndTime());
-    } else {
-      ranges->Add(0, duration);
-    }
-  } else if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+  if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
     mDecoder->GetSeekable(ranges);
   }
   return ranges.forget();
@@ -1946,8 +1907,7 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mHasAudio(false),
     mDownloadSuspendedByCache(false),
     mAudioChannelType(AUDIO_CHANNEL_NORMAL),
-    mPlayingThroughTheAudioChannel(false),
-    mWasInDocument(false)
+    mPlayingThroughTheAudioChannel(false)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -1980,10 +1940,6 @@ HTMLMediaElement::~HTMLMediaElement()
   }
   if (mSrcStream) {
     EndSrcMediaStreamPlayback();
-  }
-  if (mMediaSource) {
-    mMediaSource->DetachElement();
-    mMediaSource = nullptr;
   }
 
   NS_ASSERTION(MediaElementTableCount(this, mLoadingSrc) == 0,
@@ -2372,8 +2328,6 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
     
     UpdatePreloadAction();
 
-    mWasInDocument = true;
-
     if (aDocument->HasAudioAvailableListeners()) {
       
       
@@ -2388,9 +2342,8 @@ nsresult HTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParen
 void HTMLMediaElement::UnbindFromTree(bool aDeep,
                                       bool aNullParent)
 {
-  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
+  if (!mPaused && mNetworkState != nsIDOMHTMLMediaElement::NETWORK_EMPTY)
     Pause();
-  }
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
 }
 
@@ -3089,10 +3042,7 @@ bool HTMLMediaElement::CanActivateAutoplay()
   
   
   
-  
-  
   return !mPausedForInactiveDocumentOrChannel &&
-         mWasInDocument && IsInDoc() &&
          mAutoplaying &&
          mPaused &&
          (mDownloadSuspendedByCache ||
@@ -3537,9 +3487,7 @@ already_AddRefed<TimeRanges>
 HTMLMediaElement::Buffered() const
 {
   nsRefPtr<TimeRanges> ranges = new TimeRanges();
-  if (mMediaSource) {
-    mMediaSource->GetBuffered(ranges);
-  } else if (mDecoder && mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING) {
+  if (mReadyState > nsIDOMHTMLMediaElement::HAVE_NOTHING && mDecoder) {
     
     
     mDecoder->GetBuffered(ranges);
