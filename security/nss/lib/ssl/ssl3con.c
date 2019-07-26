@@ -6669,35 +6669,51 @@ done:
     return rv;
 }
 
-PRBool
-ssl3_CanFalseStart(sslSocket *ss) {
-    PRBool rv;
+static SECStatus
+ssl3_CheckFalseStart(sslSocket *ss)
+{
+    SECStatus rv;
+    PRBool maybeFalseStart = PR_TRUE;
 
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
+    PORT_Assert( !ss->ssl3.hs.authCertificatePending );
 
     
 
 
 
 
-
     ssl_GetSpecReadLock(ss);
-    rv = ss->opt.enableFalseStart &&
-	 !ss->sec.isServer &&
-	 !ss->ssl3.hs.isResuming &&
-	 ss->ssl3.cwSpec &&
-
-	 
-
-
-
-
-	 ss->ssl3.cwSpec->cipher_def->secret_key_size >= 10 &&
-	(ss->ssl3.hs.kea_def->kea == kea_dhe_dss ||
-	 ss->ssl3.hs.kea_def->kea == kea_dhe_rsa ||
-	 ss->ssl3.hs.kea_def->kea == kea_ecdhe_ecdsa ||
-	 ss->ssl3.hs.kea_def->kea == kea_ecdhe_rsa);
+    if (ss->ssl3.cwSpec->cipher_def->secret_key_size < 10) {
+	ss->ssl3.hs.canFalseStart = PR_FALSE;
+	maybeFalseStart = PR_FALSE;
+    }
     ssl_ReleaseSpecReadLock(ss);
+    if (!maybeFalseStart) {
+	return SECSuccess;
+    }
+
+    if (!ss->canFalseStartCallback) {
+	rv = SSL_DefaultCanFalseStart(ss->fd, &ss->ssl3.hs.canFalseStart);
+
+	if (rv == SECSuccess &&
+            ss->ssl3.hs.canFalseStart && ss->handshakeCallback) {
+	    
+
+
+
+	    (ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
+	}
+    } else {
+	rv = (ss->canFalseStartCallback)(ss->fd,
+ 					 ss->canFalseStartCallbackData,
+					 &ss->ssl3.hs.canFalseStart);
+    }
+
+    if (rv != SECSuccess) {
+	ss->ssl3.hs.canFalseStart = PR_FALSE;
+    }
+
     return rv;
 }
 
@@ -6727,6 +6743,7 @@ ssl3_HandleServerHelloDone(sslSocket *ss)
 	return SECFailure;
     }
 
+    ss->enoughFirstHsDone = PR_TRUE;
     rv = ssl3_SendClientSecondRound(ss);
 
     return rv;
@@ -6825,6 +6842,23 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 	if (rv != SECSuccess) {
 	    goto loser;	
 	}
+
+	if (ss->opt.enableFalseStart) {
+	    if (!ss->ssl3.hs.authCertificatePending) {
+		rv = ssl3_CheckFalseStart(ss);
+		if (rv != SECSuccess) {
+		    goto loser;
+		}
+	    } else {
+		
+
+
+
+
+
+		ss->ssl3.hs.restartTarget = ssl3_CheckFalseStart;
+	    }
+	}
     }
 
     rv = ssl3_SendFinished(ss, 0);
@@ -6838,11 +6872,6 @@ ssl3_SendClientSecondRound(sslSocket *ss)
 	ss->ssl3.hs.ws = wait_new_session_ticket;
     else
 	ss->ssl3.hs.ws = wait_change_cipher;
-
-    
-    if (ss->handshakeCallback != NULL && ssl3_CanFalseStart(ss)) {
-	(ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
-    }
 
     return SECSuccess;
 
@@ -9416,13 +9445,6 @@ ssl3_AuthCertificate(sslSocket *ss)
 
 	    ss->ssl3.hs.authCertificatePending = PR_TRUE;
 	    rv = SECSuccess;
-
-	    
-
-
-
-
-	    ss->opt.enableFalseStart = PR_FALSE;
 	}
 
 	if (rv != SECSuccess) {
@@ -10070,6 +10092,11 @@ xmit_loser:
 	ss->ssl3.hs.cacheSID = rv == SECSuccess;
     }
 
+    
+    if (ss->ssl3.hs.restartTarget == ssl3_CheckFalseStart) {
+	ss->ssl3.hs.restartTarget = NULL;
+    }
+
     if (ss->ssl3.hs.authCertificatePending) {
 	if (ss->ssl3.hs.restartTarget) {
 	    PR_NOT_REACHED("ssl3_HandleFinished: unexpected restartTarget");
@@ -10088,6 +10115,8 @@ xmit_loser:
 SECStatus
 ssl3_FinishHandshake(sslSocket * ss)
 {
+    PRBool falseStarted;
+
     PORT_Assert( ss->opt.noLocks || ssl_HaveRecvBufLock(ss) );
     PORT_Assert( ss->opt.noLocks || ssl_HaveSSL3HandshakeLock(ss) );
     PORT_Assert( ss->ssl3.hs.restartTarget == NULL );
@@ -10095,6 +10124,7 @@ ssl3_FinishHandshake(sslSocket * ss)
     
     ss->handshake           = NULL;
     ss->firstHsDone         = PR_TRUE;
+    ss->enoughFirstHsDone   = PR_TRUE;
 
     if (ss->ssl3.hs.cacheSID) {
 	(*ss->sec.cache)(ss->sec.ci.sid);
@@ -10102,9 +10132,14 @@ ssl3_FinishHandshake(sslSocket * ss)
     }
 
     ss->ssl3.hs.ws = idle_handshake;
+    falseStarted = ss->ssl3.hs.canFalseStart;
+    ss->ssl3.hs.canFalseStart = PR_FALSE; 
 
     
-    if (ss->handshakeCallback != NULL && !ssl3_CanFalseStart(ss)) {
+
+
+    if (ss->handshakeCallback != NULL &&
+	!(falseStarted && !ss->canFalseStartCallback)) {
 	(ss->handshakeCallback)(ss->fd, ss->handshakeCallbackData);
     }
 

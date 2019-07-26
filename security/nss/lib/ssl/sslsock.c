@@ -2343,7 +2343,11 @@ ssl_Poll(PRFileDesc *fd, PRInt16 how_flags, PRInt16 *p_out_flags)
 
 
 
-		    new_flags ^=  PR_POLL_WRITE;   
+
+		    if (!(ss->version >= SSL_LIBRARY_VERSION_3_0 &&
+			ss->ssl3.hs.canFalseStart)) {
+			new_flags ^=  PR_POLL_WRITE;   
+		    }
 		    new_flags |=  PR_POLL_READ;	   
 	    }
 	}

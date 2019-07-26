@@ -868,6 +868,8 @@ const ssl3CipherSuiteDef *suite_def;
     PRUint32              rtTimeoutMs;     
 
     PRUint32              rtRetries;       
+    PRBool                canFalseStart;   
+
 } SSL3HandshakeState;
 
 
@@ -1116,6 +1118,10 @@ struct sslSocketStr {
     unsigned long    clientAuthRequested;
     unsigned long    delayDisabled;       
     unsigned long    firstHsDone;         
+    unsigned long    enoughFirstHsDone;   
+
+
+
     unsigned long    handshakeBegun;     
     unsigned long    lastWriteBlocked;   
     unsigned long    recvdCloseNotify;    
@@ -1156,6 +1162,8 @@ const unsigned char *  preferredCipher;
     void                     *badCertArg;
     SSLHandshakeCallback      handshakeCallback;
     void                     *handshakeCallbackData;
+    SSLCanFalseStartCallback  canFalseStartCallback;
+    void                     *canFalseStartCallbackData;
     void                     *pkcs11PinArg;
     SSLNextProtoCallback      nextProtoCallback;
     void                     *nextProtoArg;
@@ -1358,7 +1366,6 @@ extern void      ssl3_SetAlwaysBlock(sslSocket *ss);
 
 extern SECStatus ssl_EnableNagleDelay(sslSocket *ss, PRBool enabled);
 
-extern PRBool    ssl3_CanFalseStart(sslSocket *ss);
 extern SECStatus
 ssl3_CompressMACEncryptRecord(ssl3CipherSpec *   cwSpec,
 		              PRBool             isServer,

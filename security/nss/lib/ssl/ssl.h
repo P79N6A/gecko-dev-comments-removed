@@ -156,6 +156,14 @@ SSL_IMPORT PRFileDesc *DTLS_ImportFD(PRFileDesc *model, PRFileDesc *fd);
 
 
 
+
+
+
+
+
+
+
+
 #define SSL_CBC_RANDOM_IV 23
 #define SSL_ENABLE_OCSP_STAPLING       24 /* Request OCSP stapling (client) */
 
@@ -656,10 +664,55 @@ SSL_IMPORT SECStatus SSL_InheritMPServerSIDCache(const char * envString);
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 typedef void (PR_CALLBACK *SSLHandshakeCallback)(PRFileDesc *fd,
                                                  void *client_data);
 SSL_IMPORT SECStatus SSL_HandshakeCallback(PRFileDesc *fd, 
 			          SSLHandshakeCallback cb, void *client_data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef SECStatus (PR_CALLBACK *SSLCanFalseStartCallback)(
+    PRFileDesc *fd, void *arg, PRBool *canFalseStart);
+
+SSL_IMPORT SECStatus SSL_SetCanFalseStartCallback(
+    PRFileDesc *fd, SSLCanFalseStartCallback callback, void *arg);
+
+
+
+
+
+SSL_IMPORT SECStatus SSL_DefaultCanFalseStart(PRFileDesc *fd,
+                                              PRBool *canFalseStart);
 
 
 

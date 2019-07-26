@@ -77,7 +77,6 @@ SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
 {
   
   sslSocket * sslsocket = NULL;
-  PRBool enoughFirstHsDone = PR_FALSE;
 
   if (!pYes) {
     PORT_SetError(SEC_ERROR_INVALID_ARGS);
@@ -93,14 +92,8 @@ SSL_HandshakeNegotiatedExtension(PRFileDesc * socket,
 
   *pYes = PR_FALSE;
 
-  if (sslsocket->firstHsDone) {
-    enoughFirstHsDone = PR_TRUE;
-  } else if (sslsocket->ssl3.initialized && ssl3_CanFalseStart(sslsocket)) {
-    enoughFirstHsDone = PR_TRUE;
-  }
-
   
-  if (sslsocket->opt.useSecurity && enoughFirstHsDone) {
+  if (sslsocket->opt.useSecurity && sslsocket->enoughFirstHsDone) {
     if (sslsocket->ssl3.initialized) { 
       
 
