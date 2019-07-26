@@ -126,13 +126,12 @@ public:
 
 
   enum {
-    SENT_WILL_PAINT = 1 << 0, 
-    WILL_SEND_DID_PAINT = 1 << 1, 
-    PAINT_IS_ALTERNATE = 1 << 2 
+    PAINT_IS_ALTERNATE = 1 << 0 
   };
   virtual bool PaintWindow(nsIWidget* aWidget, nsIntRegion aRegion, uint32_t aFlags) { return false; }
 
   
+
 
 
 
