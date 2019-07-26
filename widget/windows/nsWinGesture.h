@@ -263,7 +263,7 @@ private:
   bool InitLibrary();
 
   static HMODULE sLibraryHandle;
-  static const PRUnichar kGestureLibraryName[];
+  static const wchar_t kGestureLibraryName[];
 
   
   nsPointWin mPanIntermediate;

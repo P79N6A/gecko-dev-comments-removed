@@ -429,7 +429,7 @@ nsresult JumpListShortcut::GetShellLink(nsCOMPtr<nsIJumpListItem>& item,
 
 
 static nsresult IsPathInOurIconCache(nsCOMPtr<nsIJumpListShortcut>& aShortcut, 
-                                     PRUnichar *aPath, bool *aSame)
+                                     wchar_t *aPath, bool *aSame)
 {
   NS_ENSURE_ARG_POINTER(aPath);
   NS_ENSURE_ARG_POINTER(aSame);
@@ -473,10 +473,10 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
     do_CreateInstance(NS_LOCALHANDLERAPP_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  PRUnichar buf[MAX_PATH];
+  wchar_t buf[MAX_PATH];
 
   
-  hres = pLink->GetPath((LPWSTR)&buf, MAX_PATH, nullptr, SLGP_UNCPRIORITY);
+  hres = pLink->GetPath(buf, MAX_PATH, nullptr, SLGP_UNCPRIORITY);
   if (FAILED(hres))
     return NS_ERROR_INVALID_ARG;
 
@@ -489,7 +489,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  hres = pLink->GetArguments((LPWSTR)&buf, MAX_PATH);
+  hres = pLink->GetArguments(buf, MAX_PATH);
   if (SUCCEEDED(hres)) {
     LPWSTR *arglist;
     int32_t numArgs;
@@ -511,7 +511,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
 
   
   int iconIdx = 0;
-  hres = pLink->GetIconLocation((LPWSTR)&buf, MAX_PATH, &iconIdx);
+  hres = pLink->GetIconLocation(buf, MAX_PATH, &iconIdx);
   if (SUCCEEDED(hres)) {
     
     aShortcut->SetIconIndex(iconIdx);
@@ -519,7 +519,7 @@ nsresult JumpListShortcut::GetJumpListShortcut(IShellLinkW *pLink, nsCOMPtr<nsIJ
     
     
     bool isInOurCache;
-    if (NS_SUCCEEDED(IsPathInOurIconCache(aShortcut, buf, &isInOurCache)) && 
+    if (NS_SUCCEEDED(IsPathInOurIconCache(aShortcut, buf, &isInOurCache)) &&
         isInOurCache) {
       nsCOMPtr<nsIURI> iconUri;
       nsAutoString path(buf);

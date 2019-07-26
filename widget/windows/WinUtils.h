@@ -114,9 +114,9 @@ public:
 
 
   static bool GetRegistryKey(HKEY aRoot,
-                             const PRUnichar* aKeyName,
-                             const PRUnichar* aValueName,
-                             PRUnichar* aBuffer,
+                             char16ptr_t aKeyName,
+                             char16ptr_t aValueName,
+                             wchar_t* aBuffer,
                              DWORD aBufferLength);
 
   
@@ -128,7 +128,7 @@ public:
 
 
   static bool HasRegistryKey(HKEY aRoot,
-                             const PRUnichar* aKeyName);
+                             char16ptr_t aKeyName);
 
   
 
