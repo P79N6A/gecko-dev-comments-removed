@@ -70,6 +70,11 @@ struct nsCycleCollectionJSRuntime
     
 
 
+    virtual void FixWeakMappingGrayBits() = 0;
+
+    
+
+
     virtual bool NeedCollect() = 0;
 
     
