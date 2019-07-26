@@ -975,6 +975,9 @@ class Mochitest(MochitestUtilsMixin):
       options.browserArgs.extend(('-firefoxpath', options.app))
       options.app = self.immersiveHelperPath
 
+    if options.jsdebugger:
+      options.browserArgs.extend(['-jsdebugger'])
+
     
     
     if os.path.exists(self.leak_report_file):
