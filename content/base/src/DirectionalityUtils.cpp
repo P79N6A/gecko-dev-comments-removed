@@ -367,17 +367,33 @@ WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
   nsIContent* child;
   if (aStartAfterNode &&
       nsContentUtils::ContentIsDescendantOf(aStartAfterNode, aElement)) {
+    nsIContent* firstNode = aStartAfterNode->GetNextNode(aElement);
+
 #ifdef DEBUG
+    
+    
+    
     child = aElement->GetFirstChild();
-    while (child && child != aStartAfterNode) {
+    while (child && child != firstNode) {
+      
+      
+      if (child->IsElement() &&
+          (DoesNotParticipateInAutoDirection(child->AsElement()) ||
+           child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+           child->HasFixedDir())) {
+        child = child->GetNextNonChildNode(aElement);
+        continue;
+      }
+
       if (child->NodeType() == nsIDOMNode::TEXT_NODE) {
         MOZ_ASSERT(GetDirectionFromText(child->GetText()) == eDir_NotSet,
                    "Strong directional characters before aStartAfterNode");
       }
       child = child->GetNextNode(aElement);
     }
+#else
+    child = firstNode;
 #endif
-    child = aStartAfterNode->GetNextNode(aElement);
   } else {
     child = aElement->GetFirstChild();
   }
