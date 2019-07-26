@@ -362,6 +362,10 @@ ComputedTimingFunction::GetValue(double aPortion) const
 
 } 
 
+
+
+const double ComputedTiming::kNullTimeFraction = NS_IEEEPositiveInfinity();
+
 bool
 ElementAnimation::IsRunningAt(TimeStamp aTime) const
 {

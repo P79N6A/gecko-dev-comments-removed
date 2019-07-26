@@ -247,6 +247,37 @@ struct AnimationTiming
 
 
 
+struct ComputedTiming
+{
+  ComputedTiming()
+  : mTimeFraction(kNullTimeFraction),
+    mCurrentIteration(0)
+  { }
+
+  static const double kNullTimeFraction;
+
+  
+  
+  double mTimeFraction;
+
+  
+  
+  uint64_t mCurrentIteration;
+
+  enum {
+    
+    AnimationPhase_Before,
+    
+    AnimationPhase_Active,
+    
+    AnimationPhase_After
+  } mPhase;
+};
+
+
+
+
+
 struct ElementAnimation
 {
   ElementAnimation()
