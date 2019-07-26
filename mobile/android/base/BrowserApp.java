@@ -1382,8 +1382,13 @@ abstract public class BrowserApp extends GeckoApp
         tab.setFaviconLoadId(Favicons.NOT_LOADING);
     }
 
+    
+
+
+
+
     private void enterEditingMode() {
-        String url = null;
+        String url = "";
 
         final Tab tab = Tabs.getInstance().getSelectedTab();
         if (tab != null) {
