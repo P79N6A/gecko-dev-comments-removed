@@ -3129,8 +3129,6 @@ nsComputedDOMStyle::DoGetTextCombineHorizontal()
 CSSValue*
 nsComputedDOMStyle::DoGetTextDecoration()
 {
-  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
-
   const nsStyleTextReset* textReset = StyleTextReset();
 
   
@@ -3151,6 +3149,7 @@ nsComputedDOMStyle::DoGetTextDecoration()
   
   
 
+  nsROCSSPrimitiveValue* val = new nsROCSSPrimitiveValue;
   uint8_t line = textReset->mTextDecorationLine;
   
   
