@@ -62,6 +62,20 @@ LoginManagerPrompter.prototype = {
         return this.__strBundle;
     },
 
+    __brandBundle : null, 
+    get _brandBundle() {
+        if (!this.__brandBundle) {
+            var bunService = Cc["@mozilla.org/intl/stringbundle;1"].
+                             getService(Ci.nsIStringBundleService);
+            this.__brandBundle = bunService.createBundle(
+                        "chrome://branding/locale/brand.properties");
+            if (!this.__brandBundle)
+                throw "Branding string bundle not present!";
+        }
+
+        return this.__brandBundle;
+    },
+
 
     __ellipsis : null,
     get _ellipsis() {
@@ -159,13 +173,37 @@ LoginManagerPrompter.prototype = {
 
 
     _showSaveLoginNotification : function (aLogin) {
+
+        
+        
+        
+        
+        var neverButtonText =
+              this._getLocalizedString("notifyBarNeverForSiteButtonText");
+        var neverButtonAccessKey =
+              this._getLocalizedString("notifyBarNeverForSiteButtonAccessKey");
+        var rememberButtonText =
+              this._getLocalizedString("notifyBarRememberButtonText");
+        var rememberButtonAccessKey =
+              this._getLocalizedString("notifyBarRememberButtonAccessKey");
+        var notNowButtonText =
+              this._getLocalizedString("notifyBarNotNowButtonText");
+        var notNowButtonAccessKey =
+              this._getLocalizedString("notifyBarNotNowButtonAccessKey");
+
+        var brandShortName =
+              this._brandBundle.GetStringFromName("brandShortName");
         var displayHost = this._getShortDisplayHost(aLogin.hostname);
         var notificationText;
         if (aLogin.username) {
             var displayUser = this._sanitizeUsername(aLogin.username);
-            notificationText  = this._getLocalizedString("savePassword", [displayUser, displayHost]);
+            notificationText  = this._getLocalizedString(
+                                        "saveLoginText",
+                                        [brandShortName, displayUser, displayHost]);
         } else {
-            notificationText  = this._getLocalizedString("savePasswordNoUser", [displayHost]);
+            notificationText  = this._getLocalizedString(
+                                        "saveLoginTextNoUsername",
+                                        [brandShortName, displayHost]);
         }
 
         
@@ -173,18 +211,34 @@ LoginManagerPrompter.prototype = {
         
         var pwmgr = this._pwmgr;
 
+
         var buttons = [
+            
             {
-                label: this._getLocalizedString("saveButton"),
+                label:     rememberButtonText,
+                accessKey: rememberButtonAccessKey,
+                popup:     null,
                 callback: function() {
                     pwmgr.addLogin(aLogin);
                 }
             },
+
+            
             {
-                label: this._getLocalizedString("dontSaveButton"),
+                label:     neverButtonText,
+                accessKey: neverButtonAccessKey,
+                popup:     null,
                 callback: function() {
-                    
+                    pwmgr.setLoginSavingEnabled(aLogin.hostname, false);
                 }
+            },
+
+            
+            {
+                label:     notNowButtonText,
+                accessKey: notNowButtonAccessKey,
+                popup:     null,
+                callback:  function() {  }
             }
         ];
 
@@ -213,10 +267,22 @@ LoginManagerPrompter.prototype = {
         var notificationText;
         if (aOldLogin.username) {
             let displayUser = this._sanitizeUsername(aOldLogin.username);
-            notificationText  = this._getLocalizedString("updatePassword", [displayUser]);
+            notificationText  = this._getLocalizedString(
+                                          "passwordChangeText",
+                                          [displayUser]);
         } else {
-            notificationText  = this._getLocalizedString("updatePasswordNoUser");
+            notificationText  = this._getLocalizedString(
+                                          "passwordChangeTextNoUser");
         }
+
+        var changeButtonText =
+              this._getLocalizedString("notifyBarChangeButtonText");
+        var changeButtonAccessKey =
+              this._getLocalizedString("notifyBarChangeButtonAccessKey");
+        var dontChangeButtonText =
+              this._getLocalizedString("notifyBarDontChangeButtonText");
+        var dontChangeButtonAccessKey =
+              this._getLocalizedString("notifyBarDontChangeButtonAccessKey");
 
         
         
@@ -224,14 +290,21 @@ LoginManagerPrompter.prototype = {
         var self = this;
 
         var buttons = [
+            
             {
-                label: this._getLocalizedString("updateButton"),
+                label:     changeButtonText,
+                accessKey: changeButtonAccessKey,
+                popup:     null,
                 callback:  function() {
                     self._updateLogin(aOldLogin, aNewPassword);
                 }
             },
+
+            
             {
-                label: this._getLocalizedString("dontUpdateButton"),
+                label:     dontChangeButtonText,
+                accessKey: dontChangeButtonAccessKey,
+                popup:     null,
                 callback:  function() {
                     
                 }
