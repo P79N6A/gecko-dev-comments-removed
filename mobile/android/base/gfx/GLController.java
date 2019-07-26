@@ -69,11 +69,6 @@ public class GLController {
     };
 
     private GLController() {
-        
-        
-        
-        
-        GfxInfoThread.startThread();
     }
 
     static GLController getInstance(LayerView view) {
@@ -136,15 +131,6 @@ public class GLController {
             @Override
             public void run() {
                 Log.w(LOGTAG, "GLController::surfaceChanged, creating compositor; mCompositorCreated=" + mCompositorCreated + ", mSurfaceValid=" + mSurfaceValid);
-                
-                
-                
-                
-                if (!mCompositorCreated && !GfxInfoThread.hasData()) {
-                    mView.postDelayed(this, 1);
-                    return;
-                }
-
                 try {
                     
                     
