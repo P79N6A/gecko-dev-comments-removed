@@ -38,16 +38,16 @@ using namespace mozilla;
 
 static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
   10,  
-  10,  
-  7,   
-  15,  
-  7,   
-  7,   
   15,  
   7,   
   15,  
+  7,   
+  7,   
   15,  
-  10,  
+  7,   
+  15,  
+  15,  
+  15,  
 };
 
 
@@ -371,6 +371,12 @@ AudioManager::SetFmRadioAudioEnabled(bool aFmRadioAudioEnabled)
       aFmRadioAudioEnabled ? AUDIO_POLICY_DEVICE_STATE_AVAILABLE :
       AUDIO_POLICY_DEVICE_STATE_UNAVAILABLE, "");
     InternalSetAudioRoutes(GetCurrentSwitchState(SWITCH_HEADPHONES));
+    
+    if (aFmRadioAudioEnabled) {
+      int32_t volIndex = 0;
+      AudioSystem::getStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_MUSIC), &volIndex);
+      AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_FM), volIndex);
+    }
     return NS_OK;
   } else {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -381,6 +387,10 @@ NS_IMETHODIMP
 AudioManager::SetStreamVolumeIndex(int32_t aStream, int32_t aIndex) {
   status_t status =
     AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(aStream), aIndex);
+  
+  if (aStream == AUDIO_STREAM_MUSIC && IsDeviceOn(AUDIO_DEVICE_OUT_FM)) {
+    AudioSystem::setStreamVolumeIndex(static_cast<audio_stream_type_t>(AUDIO_STREAM_FM), aIndex);
+  }
   return status ? NS_ERROR_FAILURE : NS_OK;
 }
 
