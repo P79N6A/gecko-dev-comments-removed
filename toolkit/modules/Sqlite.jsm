@@ -148,18 +148,25 @@ function OpenedConnection(connection, basename, number) {
   let log = Log4Moz.repository.getLogger("Sqlite.Connection." + basename);
 
   
+  
+  
+  
+  
+  let logProxy = {__proto__: log};
+
+  
   for (let level in Log4Moz.Level) {
     if (level == "Desc") {
       continue;
     }
 
     let lc = level.toLowerCase();
-    log[lc] = function (msg) {
-      return Log4Moz.Logger.prototype[lc].call(log, "Conn #" + number + ": " + msg);
-    }
+    logProxy[lc] = function (msg) {
+      return log[lc].call(log, "Conn #" + number + ": " + msg);
+    };
   }
 
-  this._log = log;
+  this._log = logProxy;
 
   this._log.info("Opened");
 
