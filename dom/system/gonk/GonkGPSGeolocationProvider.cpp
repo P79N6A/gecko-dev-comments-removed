@@ -673,9 +673,10 @@ GonkGPSGeolocationProvider::Handle(const nsAString& aName,
     JSContext *cx = nsContentUtils::GetCurrentJSContext();
     NS_ENSURE_TRUE(cx, NS_OK);
     JSAutoRequest ar(cx);
-    JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(aResult));
+
     
     if (aResult.isString()) {
+      
       nsDependentJSString apn;
       apn.init(cx, aResult.toString());
       if (!apn.IsEmpty()) {
