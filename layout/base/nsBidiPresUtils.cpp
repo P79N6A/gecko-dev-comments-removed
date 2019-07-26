@@ -394,8 +394,10 @@ static bool
 IsBidiSplittable(nsIFrame* aFrame)
 {
   
-  return aFrame->IsFrameOfType(nsIFrame::eBidiInlineContainer)
-    && aFrame->GetType() != nsGkAtoms::lineFrame;
+  nsIAtom* frameType = aFrame->GetType();
+  return (aFrame->IsFrameOfType(nsIFrame::eBidiInlineContainer) &&
+          frameType != nsGkAtoms::lineFrame) ||
+         frameType == nsGkAtoms::textFrame;
 }
 
 
@@ -814,8 +816,7 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
               while (parent && nextParent) {
                 if (parent == nextParent ||
                     nextParent != parent->GetNextInFlow() ||
-                    !parent->IsFrameOfType(nsIFrame::eLineParticipant) ||
-                    !nextParent->IsFrameOfType(nsIFrame::eLineParticipant)) {
+                    !IsBidiSplittable(parent)) {
                   break;
                 }
                 parent->SetNextContinuation(nextParent);
@@ -1606,7 +1607,7 @@ nsBidiPresUtils::RemoveBidiContinuation(BidiParagraphData *aBpd,
   
   nsIFrame* lastFrame = aBpd->FrameAt(aLastIndex);
   nsIFrame* next = lastFrame->GetNextInFlow();
-  if (next) {
+  if (next && IsBidiSplittable(lastFrame)) {
     lastFrame->SetNextContinuation(next);
     next->SetPrevContinuation(lastFrame);
   }
