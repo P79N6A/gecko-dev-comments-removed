@@ -60,13 +60,20 @@ public:
 
   virtual bool ContentOrNormalChannelIsActive();
 
+  
+
+
+
+  virtual bool ProcessContentOrNormalChannelIsActive(uint64_t aChildID);
+
 protected:
   void Notify();
 
   
 
 
-  void SendAudioChannelChangedNotification();
+
+  void SendAudioChannelChangedNotification(uint64_t aChildID);
 
   
   void RegisterType(AudioChannelType aType, uint64_t aChildID);

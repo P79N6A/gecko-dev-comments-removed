@@ -429,6 +429,11 @@ private:
   bool mObservingOwnerContent : 1;
 
   
+  
+  
+  bool mVisible : 1;
+
+  
   nsCOMPtr<nsIObserver> mChildHost;
   RenderFrameParent* mCurrentRemoteFrame;
   TabParent* mRemoteBrowser;

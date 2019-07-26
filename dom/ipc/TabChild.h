@@ -315,16 +315,6 @@ public:
     void MakeVisible();
     void MakeHidden();
 
-    virtual bool RecvSetAppType(const nsString& aAppType);
-
-    
-
-
-
-
-
-    void GetAppType(nsAString& aAppType) const { aAppType = mAppType; }
-
     
     
     bool GetCachedFileDescriptor(const nsAString& aPath,
@@ -459,7 +449,6 @@ private:
     bool mNotified;
     bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
-    nsString mAppType;
     ScreenOrientation mOrientation;
 
     DISALLOW_EVIL_CONSTRUCTORS(TabChild);

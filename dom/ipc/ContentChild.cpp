@@ -48,6 +48,7 @@
 #include "nsJSEnvironment.h"
 #include "SandboxHal.h"
 #include "nsDebugImpl.h"
+#include "nsHashPropertyBag.h"
 #include "nsLayoutStylesheetCache.h"
 
 #include "IHistory.h"
@@ -571,12 +572,6 @@ ContentChild::RecvPBrowserConstructor(PBrowserChild* actor,
 {
     
     
-    
-    
-    
-    
-    
-    
 
     nsCOMPtr<nsIObserverService> os = services::GetObserverService();
     if (os) {
@@ -592,13 +587,6 @@ ContentChild::RecvPBrowserConstructor(PBrowserChild* actor,
         MOZ_ASSERT(!sFirstIdleTask);
         sFirstIdleTask = NewRunnableFunction(FirstIdle);
         MessageLoop::current()->PostIdleTask(FROM_HERE, sFirstIdleTask);
-
-        
-        
-        
-        
-        
-        TemporarilyLockProcessPriority();
     }
 
     return true;
@@ -1205,6 +1193,58 @@ ContentChild::RecvFileSystemUpdate(const nsString& aFsName,
     unused << aState;
     unused << aMountGeneration;
 #endif
+    return true;
+}
+
+bool
+ContentChild::RecvNotifyProcessPriorityChanged(
+    const hal::ProcessPriority& aPriority)
+{
+    nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+    NS_ENSURE_TRUE(os, true);
+
+    nsRefPtr<nsHashPropertyBag> props = new nsHashPropertyBag();
+    props->Init();
+    props->SetPropertyAsInt32(NS_LITERAL_STRING("priority"),
+                              static_cast<int32_t>(aPriority));
+
+    os->NotifyObservers(static_cast<nsIPropertyBag2*>(props),
+                        "ipc:process-priority-changed",  nullptr);
+    return true;
+}
+
+bool
+ContentChild::RecvMinimizeMemoryUsage()
+{
+    nsCOMPtr<nsIMemoryReporterManager> mgr =
+        do_GetService("@mozilla.org/memory-reporter-manager;1");
+    NS_ENSURE_TRUE(mgr, true);
+
+    nsCOMPtr<nsICancelableRunnable> runnable =
+        do_QueryReferent(mMemoryMinimizerRunnable);
+
+    
+    if (runnable) {
+        runnable->Cancel();
+        runnable = nullptr;
+    }
+
+    mgr->MinimizeMemoryUsage( nullptr,
+                             getter_AddRefs(runnable));
+    mMemoryMinimizerRunnable = do_GetWeakReference(runnable);
+    return true;
+}
+
+bool
+ContentChild::RecvCancelMinimizeMemoryUsage()
+{
+    nsCOMPtr<nsICancelableRunnable> runnable =
+        do_QueryReferent(mMemoryMinimizerRunnable);
+    if (runnable) {
+        runnable->Cancel();
+        mMemoryMinimizerRunnable = nullptr;
+    }
+
     return true;
 }
 

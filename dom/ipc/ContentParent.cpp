@@ -59,6 +59,7 @@
 #include "nsFrameMessageManager.h"
 #include "nsHashPropertyBag.h"
 #include "nsIAlertsService.h"
+#include "nsIAppsService.h"
 #include "nsIClipboard.h"
 #include "nsIDOMApplicationRegistry.h"
 #include "nsIDOMGeoGeolocation.h"
@@ -221,8 +222,9 @@ static uint64_t gContentChildID = 1;
 ContentParent::PreallocateAppProcess()
 {
     nsRefPtr<ContentParent> process =
-        new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
-                          false,
+        new ContentParent( nullptr,
+                           false,
+                           true,
                           
                           
                           base::PRIVILEGES_INHERIT,
@@ -339,8 +341,9 @@ ContentParent::GetNewOrUsed(bool aForBrowserElement)
     }
 
     nsRefPtr<ContentParent> p =
-        new ContentParent( EmptyString(),
+        new ContentParent( nullptr,
                           aForBrowserElement,
+                           false,
                           base::PRIVILEGES_DEFAULT,
                           PROCESS_PRIORITY_FOREGROUND);
     p->Init();
@@ -461,8 +464,11 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
                                             initialPriority);
         if (!p) {
             NS_WARNING("Unable to use pre-allocated app process");
-            p = new ContentParent(manifestURL,  false,
-                                  privs, initialPriority);
+            p = new ContentParent(ownApp,
+                                   false,
+                                   false,
+                                  privs,
+                                  initialPriority);
             p->Init();
         }
         sAppContentParents->Put(manifestURL, p);
@@ -471,21 +477,9 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     nsRefPtr<TabParent> tp = new TabParent(aContext);
     tp->SetOwnerElement(aFrameElement);
     PBrowserParent* browser = p->SendPBrowserConstructor(
-        tp.forget().get(), 
+        nsRefPtr<TabParent>(tp).forget().get(), 
         aContext.AsIPCTabContext(),
          0);
-
-    
-    
-    
-    
-    
-    nsCOMPtr<Element> frameElement = do_QueryInterface(aFrameElement);
-    if (frameElement) {
-      nsAutoString appType;
-      frameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozapptype, appType);
-      unused << browser->SendSetAppType(appType);
-    }
 
     p->MaybeTakeCPUWakeLock(aFrameElement);
 
@@ -630,17 +624,6 @@ NS_IMPL_ISUPPORTS1(SystemMessageHandledListener,
 } 
 
 void
-ContentParent::SetProcessPriority(ProcessPriority aPriority)
-{
-    if (!Preferences::GetBool("dom.ipc.processPriorityManager.enabled")) {
-        return;
-    }
-
-    hal::SetProcessPriority(base::GetProcId(mSubprocess->GetChildProcessHandle()),
-                            aPriority);
-}
-
-void
 ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
 {
     
@@ -667,7 +650,7 @@ ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
 bool
 ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
 {
-    SetProcessPriority(aPriority);
+    ProcessPriorityManager::SetProcessPriority(this, aPriority);
 
     
     
@@ -686,14 +669,38 @@ ContentParent::SetPriorityAndCheckIsAlive(ProcessPriority aPriority)
     return true;
 }
 
+
+static void
+TryGetNameFromManifestURL(const nsAString& aManifestURL,
+                          nsAString& aName)
+{
+    aName.Truncate();
+    if (aManifestURL.IsEmpty() ||
+        aManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL) {
+        return;
+    }
+
+    nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
+    NS_ENSURE_TRUE_VOID(appsService);
+
+    nsCOMPtr<mozIDOMApplication> domApp;
+    appsService->GetAppByManifestURL(aManifestURL, getter_AddRefs(domApp));
+
+    nsCOMPtr<mozIApplication> app = do_QueryInterface(domApp);
+    if (!app) {
+        return;
+    }
+
+    app->GetName(aName);
+}
+
 bool
 ContentParent::TransformPreallocatedIntoApp(const nsAString& aAppManifestURL,
                                             ChildPrivileges aPrivs)
 {
-    MOZ_ASSERT(mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL);
-    
-    
-    const_cast<nsString&>(mAppManifestURL) = aAppManifestURL;
+    MOZ_ASSERT(IsPreallocated());
+    mAppManifestURL = aAppManifestURL;
+    TryGetNameFromManifestURL(aAppManifestURL, mAppName);
 
     return SendSetProcessPrivileges(aPrivs);
 }
@@ -1001,8 +1008,9 @@ ContentParent::GetTestShellSingleton()
     return static_cast<TestShellParent*>(ManagedPTestShellParent()[0]);
 }
 
-ContentParent::ContentParent(const nsAString& aAppManifestURL,
+ContentParent::ContentParent(mozIApplication* aApp,
                              bool aIsForBrowser,
+                             bool aIsForPreallocated,
                              ChildPrivileges aOSPrivileges,
                              ProcessPriority aInitialPriority )
     : mSubprocess(nullptr)
@@ -1011,7 +1019,6 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mGeolocationWatchID(-1)
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
-    , mAppManifestURL(aAppManifestURL)
     , mForceKillTask(nullptr)
     , mNumDestroyingTabs(0)
     , mIsAlive(true)
@@ -1020,7 +1027,18 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mIsForBrowser(aIsForBrowser)
 {
     
+    
+    MOZ_ASSERT(!!aApp + aIsForBrowser + aIsForPreallocated <= 1);
+
+    
     sContentParents.insertBack(this);
+
+    if (aApp) {
+        aApp->GetManifestURL(mAppManifestURL);
+        aApp->GetName(mAppName);
+    } else if (aIsForPreallocated) {
+        mAppManifestURL = MAGIC_PREALLOCATED_APP_MANIFEST_URL;
+    }
 
     
     
@@ -1032,12 +1050,15 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
 
     mSubprocess->LaunchAndWaitForProcessHandle();
 
-    
-    
-    
-    SetProcessPriority(aInitialPriority);
-
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
+
+    
+    
+    
+    
+    
+    
+    ProcessPriorityManager::SetProcessPriority(this, aInitialPriority);
 
     
     
@@ -1369,7 +1390,7 @@ ContentParent::RecvAudioChannelChangedNotification()
     nsRefPtr<AudioChannelService> service =
         AudioChannelService::GetAudioChannelService();
     if (service) {
-       service->SendAudioChannelChangedNotification();
+       service->SendAudioChannelChangedNotification(ChildID());
     }
     return true;
 }
@@ -1712,6 +1733,30 @@ ContentParent::KillHard()
         FROM_HERE,
         NewRunnableFunction(&ProcessWatcher::EnsureProcessTerminated,
                             OtherProcess(), true));
+}
+
+bool
+ContentParent::IsPreallocated()
+{
+    return mAppManifestURL == MAGIC_PREALLOCATED_APP_MANIFEST_URL;
+}
+
+void
+ContentParent::FriendlyName(nsAString& aName)
+{
+    aName.Truncate();
+    if (IsPreallocated()) {
+        aName.AssignLiteral("(Preallocated)");
+    } else if (mIsForBrowser) {
+        aName.AssignLiteral("Browser");
+    } else if (!mAppName.IsEmpty()) {
+        aName = mAppName;
+    } else if (!mAppManifestURL.IsEmpty()) {
+        aName.AssignLiteral("Unknown app: ");
+        aName.Append(mAppManifestURL);
+    } else {
+        aName.AssignLiteral("???");
+    }
 }
 
 PCrashReporterParent*

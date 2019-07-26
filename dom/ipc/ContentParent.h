@@ -16,6 +16,7 @@
 #include "mozilla/dom/ipc/Blob.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/HalTypes.h"
+#include "mozilla/LinkedList.h"
 
 #include "nsFrameMessageManager.h"
 #include "nsIObserver.h"
@@ -137,6 +138,10 @@ public:
         return mSubprocess;
     }
 
+    int32_t Pid() {
+        return base::GetProcId(mSubprocess->GetChildProcessHandle());
+    }
+
     bool NeedsPermissionsUpdate() {
         return mSendPermissionUpdates;
     }
@@ -151,6 +156,15 @@ public:
     void KillHard();
 
     uint64_t ChildID() { return mChildID; }
+    bool IsPreallocated();
+
+    
+
+
+
+
+
+    void FriendlyName(nsAString& aName);
 
 protected:
     void OnChannelConnected(int32_t pid);
@@ -180,16 +194,17 @@ private:
     using PContentParent::SendPBrowserConstructor;
     using PContentParent::SendPTestShellConstructor;
 
-    ContentParent(const nsAString& aAppManifestURL, bool aIsForBrowser,
+    
+    
+    ContentParent(mozIApplication* aApp,
+                  bool aIsForBrowser,
+                  bool aIsForPreallocated,
                   ChildPrivileges aOSPrivileges = base::PRIVILEGES_DEFAULT,
                   hal::ProcessPriority aInitialPriority = hal::PROCESS_PRIORITY_FOREGROUND);
+
     virtual ~ContentParent();
 
     void Init();
-
-    
-    
-    void SetProcessPriority(hal::ProcessPriority aInitialPriority);
 
     
     
@@ -406,7 +421,15 @@ private:
     
     nsCOMArray<nsIMemoryReporter> mMemoryReporters;
 
-    const nsString mAppManifestURL;
+    nsString mAppManifestURL;
+
+    
+
+
+
+
+    nsString mAppName;
+
     nsRefPtr<nsFrameMessageManager> mMessageManager;
 
     

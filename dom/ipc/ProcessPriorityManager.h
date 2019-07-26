@@ -7,9 +7,15 @@
 #ifndef mozilla_ProcessPriorityManager_h_
 #define mozilla_ProcessPriorityManager_h_
 
+#include "mozilla/HalTypes.h"
+#include "mozilla/StaticPtr.h"
+#include "nsIObserver.h"
+#include "nsDataHashtable.h"
+
 namespace mozilla {
 namespace dom {
-namespace ipc {
+class ContentParent;
+}
 
 
 
@@ -24,17 +30,10 @@ namespace ipc {
 
 
 
-void InitProcessPriorityManager();
-
-
-
-
-
-
-bool CurrentProcessIsForeground();
-
-
-
+class ProcessPriorityManager MOZ_FINAL
+{
+public:
+  
 
 
 
@@ -42,11 +41,41 @@ bool CurrentProcessIsForeground();
 
 
 
+  static void Init();
 
-void TemporarilyLockProcessPriority();
+  
 
-} 
-} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void SetProcessPriority(dom::ContentParent* aContentParent,
+                                 hal::ProcessPriority aPriority);
+
+  
+
+
+
+
+
+
+  static bool CurrentProcessIsForeground();
+
+private:
+  ProcessPriorityManager();
+  DISALLOW_EVIL_CONSTRUCTORS(ProcessPriorityManager);
+};
+
 } 
 
 #endif
