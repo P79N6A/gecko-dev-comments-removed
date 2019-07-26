@@ -72,7 +72,8 @@ public:
   
   nsresult AsyncRemoteFileOpen(int32_t aFlags,
                                nsIRemoteOpenFileListener* aListener,
-                               nsITabChild* aTabChild);
+                               nsITabChild* aTabChild,
+                               nsILoadContext *aLoadContext);
 
   void ReleaseIPDLReference()
   {
