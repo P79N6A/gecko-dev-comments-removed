@@ -42,12 +42,58 @@
 
 
 
+
+
+
 class nsMainThreadSurfaceRef;
 
 template <>
 class nsAutoRefTraits<nsMainThreadSurfaceRef> {
 public:
   typedef gfxASurface* RawRef;
+
+  
+
+
+  class SurfaceReleaser : public nsRunnable {
+  public:
+    SurfaceReleaser(RawRef aRef) : mRef(aRef) {}
+    NS_IMETHOD Run() {
+      mRef->Release();
+      return NS_OK;
+    }
+    RawRef mRef;
+  };
+
+  static RawRef Void() { return nullptr; }
+  static void Release(RawRef aRawRef)
+  {
+    if (NS_IsMainThread()) {
+      aRawRef->Release();
+      return;
+    }
+    nsCOMPtr<nsIRunnable> runnable = new SurfaceReleaser(aRawRef);
+    NS_DispatchToMainThread(runnable);
+  }
+  static void AddRef(RawRef aRawRef)
+  {
+    NS_ASSERTION(NS_IsMainThread(),
+                 "Can only add a reference on the main thread");
+    aRawRef->AddRef();
+  }
+};
+
+
+
+
+
+
+class nsMainThreadSourceSurfaceRef;
+
+template <>
+class nsAutoRefTraits<nsMainThreadSourceSurfaceRef> {
+public:
+  typedef mozilla::gfx::SourceSurface* RawRef;
 
   
 
@@ -877,8 +923,12 @@ protected:
 class CairoImage : public Image {
 public:
   struct Data {
-    gfxASurface* mSurface;
+    gfxASurface* mDeprecatedSurface;
     gfx::IntSize mSize;
+
+    
+    
+    RefPtr<gfx::SourceSurface> mSourceSurface;
   };
 
   
@@ -888,14 +938,19 @@ public:
 
   void SetData(const Data& aData)
   {
-    mSurface = aData.mSurface;
+    mDeprecatedSurface = aData.mDeprecatedSurface;
     mSize = aData.mSize;
+    mSourceSurface = aData.mSourceSurface;
   }
 
+  virtual TemporaryRef<gfx::SourceSurface> GetAsSourceSurface()
+  {
+    return mSourceSurface.get();
+  }
 
   virtual already_AddRefed<gfxASurface> DeprecatedGetAsSurface()
   {
-    nsRefPtr<gfxASurface> surface = mSurface.get();
+    nsRefPtr<gfxASurface> surface = mDeprecatedSurface.get();
     return surface.forget();
   }
 
@@ -903,8 +958,14 @@ public:
 
   CairoImage() : Image(nullptr, CAIRO_SURFACE) {}
 
-  nsCountedRef<nsMainThreadSurfaceRef> mSurface;
+private:
+
+  nsCountedRef<nsMainThreadSurfaceRef> mDeprecatedSurface;
   gfx::IntSize mSize;
+
+  
+  
+  nsCountedRef<nsMainThreadSourceSurfaceRef> mSourceSurface;
 };
 
 class RemoteBitmapImage : public Image {
