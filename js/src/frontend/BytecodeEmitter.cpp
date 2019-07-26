@@ -90,8 +90,8 @@ struct frontend::StmtInfoBCE : public StmtInfoBase
 
 BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent,
                                  Parser<FullParseHandler> *parser, SharedContext *sc,
-                                 HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
-                                 uint32_t lineNum, bool selfHostingMode)
+                                 HandleScript script, bool insideEval, HandleScript evalCaller,
+                                 bool hasGlobalScope, uint32_t lineNum, bool selfHostingMode)
   : sc(sc),
     parent(parent),
     script(sc->context, script),
@@ -114,9 +114,11 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent,
     hasSingletons(false),
     emittingForInit(false),
     emittingRunOnceLambda(false),
+    insideEval(insideEval),
     hasGlobalScope(hasGlobalScope),
     selfHostingMode(selfHostingMode)
 {
+    JS_ASSERT_IF(evalCaller, insideEval);
 }
 
 bool
@@ -1119,7 +1121,6 @@ EmitEnterBlock(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, JSOp op)
 
 
 
-
 static bool
 TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 {
@@ -1136,7 +1137,7 @@ TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
         bce->hasGlobalScope &&
         !(bce->sc->isFunctionBox() && bce->sc->asFunctionBox()->mightAliasLocals()) &&
         !pn->isDeoptimized() &&
-        !bce->sc->strict)
+        !(bce->sc->strict && bce->insideEval))
     {
         
         
@@ -4453,8 +4454,9 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             script->bindings = funbox->bindings;
 
             uint32_t lineNum = bce->parser->tokenStream.srcCoords.lineNum(pn->pn_pos.begin);
-            BytecodeEmitter bce2(bce, bce->parser, funbox, script, bce->evalCaller,
-                                 bce->hasGlobalScope, lineNum, bce->selfHostingMode);
+            BytecodeEmitter bce2(bce, bce->parser, funbox, script, bce->insideEval,
+                                 bce->evalCaller, bce->hasGlobalScope, lineNum,
+                                 bce->selfHostingMode);
             if (!bce2.init())
                 return false;
 

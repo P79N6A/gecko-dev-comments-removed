@@ -90,6 +90,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
 
 
     JS_ASSERT_IF(evalCaller, options.compileAndGo);
+    JS_ASSERT_IF(evalCaller, options.forEval);
     JS_ASSERT_IF(staticLevel != 0, evalCaller);
 
     if (!CheckLength(cx, length))
@@ -146,8 +147,8 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
     JS_ASSERT_IF(globalScope, globalScope->isNative());
     JS_ASSERT_IF(globalScope, JSCLASS_HAS_GLOBAL_FLAG_AND_SLOTS(globalScope->getClass()));
 
-    BytecodeEmitter bce( NULL, &parser, &globalsc, script, evalCaller, !!globalScope,
-                        options.lineno, options.selfHostingMode);
+    BytecodeEmitter bce( NULL, &parser, &globalsc, script, options.forEval, evalCaller,
+                        !!globalScope, options.lineno, options.selfHostingMode);
     if (!bce.init())
         return NULL;
 
@@ -330,6 +331,8 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
             return false;
     }
 
+    JS_ASSERT(!options.forEval);
+
     Parser<FullParseHandler> parser(cx, options, chars, length,  true);
     if (!parser.init())
         return false;
@@ -420,7 +423,7 @@ frontend::CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileO
 
 
         BytecodeEmitter funbce( NULL, &parser, funbox, script,
-                                NullPtr(),
+                                false,  NullPtr(),
                                fun->environment() && fun->environment()->isGlobal(),
                                options.lineno);
         if (!funbce.init())

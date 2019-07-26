@@ -124,6 +124,9 @@ struct BytecodeEmitter
     bool            emittingRunOnceLambda:1; 
 
 
+    bool            insideEval:1;       
+
+
     const bool      hasGlobalScope:1;   
 
 
@@ -139,8 +142,8 @@ struct BytecodeEmitter
 
 
     BytecodeEmitter(BytecodeEmitter *parent, Parser<FullParseHandler> *parser, SharedContext *sc,
-                    HandleScript script, HandleScript evalCaller, bool hasGlobalScope,
-                    uint32_t lineNum, bool selfHostingMode = false);
+                    HandleScript script, bool insideEval, HandleScript evalCaller,
+                    bool hasGlobalScope, uint32_t lineNum, bool selfHostingMode = false);
     bool init();
 
     bool isAliasedName(ParseNode *pn);
