@@ -92,13 +92,8 @@ public:
   
 
 
-  ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext);
 
-  
-  
-  bool SetChannelDataFromArrayBufferContents(JSContext* aJSContext,
-                                             uint32_t aChannel,
-                                             void* aContents);
+  ThreadSharedFloatArrayBufferList* GetThreadSharedChannelsForRate(JSContext* aContext);
 
   
   
