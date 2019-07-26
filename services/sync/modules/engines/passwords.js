@@ -40,18 +40,30 @@ PasswordEngine.prototype = {
     SyncEngine.prototype._syncFinish.call(this);
 
     
-    if (!Svc.Prefs.get("deletePwd", false)) {
+    if (!Svc.Prefs.get("deletePwdFxA", false)) {
       try {
-        let ids = Services.logins.findLogins({}, PWDMGR_HOST, "", "")
-                          .map(function(info) {
-          return info.QueryInterface(Components.interfaces.nsILoginMetaInfo).guid;
-        });
-        let coll = new Collection(this.engineURL, null, this.service);
-        coll.ids = ids;
-        let ret = coll.delete();
-        this._log.debug("Delete result: " + ret);
-
-        Svc.Prefs.set("deletePwd", true);
+        let ids = [];
+        for (let host of Utils.getSyncCredentialsHosts()) {
+          for (let info of Services.logins.findLogins({}, host, "", "")) {
+            ids.push(info.QueryInterface(Components.interfaces.nsILoginMetaInfo).guid);
+          }
+        }
+        if (ids.length) {
+          let coll = new Collection(this.engineURL, null, this.service);
+          coll.ids = ids;
+          let ret = coll.delete();
+          this._log.debug("Delete result: " + ret);
+          if (!ret.success && ret.status != 400) {
+            
+            return;
+          }
+        } else {
+          this._log.debug("Didn't find any passwords to delete");
+        }
+        
+        
+        Svc.Prefs.set("deletePwdFxA", true);
+        Svc.Prefs.reset("deletePwd"); 
       }
       catch(ex) {
         this._log.debug("Password deletes failed: " + Utils.exceptionStr(ex));
@@ -150,8 +162,9 @@ PasswordStore.prototype = {
     for (let i = 0; i < logins.length; i++) {
       
       let metaInfo = logins[i].QueryInterface(Ci.nsILoginMetaInfo);
-      if (metaInfo.hostname == PWDMGR_HOST)
+      if (Utils.getSyncCredentialsHosts().has(metaInfo.hostname)) {
         continue;
+      }
 
       items[metaInfo.guid] = metaInfo;
     }
@@ -288,7 +301,7 @@ PasswordTracker.prototype = {
       case "removeLogin":
         
         subject.QueryInterface(Ci.nsILoginMetaInfo).QueryInterface(Ci.nsILoginInfo);
-        if (subject.hostname == PWDMGR_HOST) {
+        if (Utils.getSyncCredentialsHosts().has(subject.hostname)) {
           break;
         }
 
