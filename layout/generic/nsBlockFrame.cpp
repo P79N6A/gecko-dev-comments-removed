@@ -43,7 +43,6 @@
 #include "nsIScrollableFrame.h"
 #ifdef ACCESSIBILITY
 #include "nsIDOMHTMLDocument.h"
-#include "nsAccessibilityService.h"
 #endif
 #include "nsLayoutUtils.h"
 #include "nsDisplayList.h"
@@ -6223,27 +6222,19 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
-nsBlockFrame::CreateAccessible()
+a11y::AccType
+nsBlockFrame::AccessibleType()
 {
-  nsAccessibilityService* accService = nsIPresShell::AccService();
-  if (!accService) {
-    return nullptr;
-  }
-
-  nsPresContext* presContext = PresContext();
-
   
   if (mContent->Tag() == nsGkAtoms::hr) {
-    return accService->CreateHTMLHRAccessible(mContent,
-                                              presContext->PresShell());
+    return a11y::eHTMLHRAccessible;
   }
 
-  if (!HasBullet() || !presContext) {
+  if (!HasBullet() || !PresContext()) {
     if (!mContent->GetParent()) {
       
       
-      return nullptr;
+      return a11y::eNoAccessible;
     }
     
     nsCOMPtr<nsIDOMHTMLDocument> htmlDoc =
@@ -6254,17 +6245,16 @@ nsBlockFrame::CreateAccessible()
       if (SameCOMIdentity(body, mContent)) {
         
         
-        return nullptr;
+        return a11y::eNoAccessible;
       }
     }
 
     
-    return accService->CreateHyperTextAccessible(mContent,
-                                                 presContext->PresShell());
+    return a11y::eHyperTextAccessible;
   }
 
   
-  return accService->CreateHTMLLIAccessible(mContent, presContext->PresShell());
+  return a11y::eHTMLLiAccessible;
 }
 #endif
 

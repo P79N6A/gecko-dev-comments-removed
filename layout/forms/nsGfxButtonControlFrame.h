@@ -12,10 +12,6 @@
 #include "nsCOMPtr.h"
 #include "nsIAnonymousContentCreator.h"
 
-#ifdef ACCESSIBILITY
-class nsIAccessible;
-#endif
-
 
 
 

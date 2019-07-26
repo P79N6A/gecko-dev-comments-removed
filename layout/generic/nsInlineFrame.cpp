@@ -18,15 +18,13 @@
 #include "nsCSSAnonBoxes.h"
 #include "nsAutoPtr.h"
 #include "nsFrameManager.h"
-#ifdef ACCESSIBILITY
-#include "nsIServiceManager.h"
-#include "nsAccessibilityService.h"
-#endif
 #include "nsDisplayList.h"
 
 #ifdef DEBUG
 #undef NOISY_PUSHING
 #endif
+
+using namespace mozilla;
 
 
 
@@ -910,31 +908,20 @@ nsInlineFrame::DestroyFrom(nsIFrame* aDestructRoot)
 }
 
 #ifdef ACCESSIBILITY
-already_AddRefed<Accessible>
-nsInlineFrame::CreateAccessible()
+a11y::AccType
+nsInlineFrame::AccessibleType()
 {
   
   
   nsIAtom *tagAtom = mContent->Tag();
-  if ((tagAtom == nsGkAtoms::img || tagAtom == nsGkAtoms::input || 
-       tagAtom == nsGkAtoms::label) && mContent->IsHTML()) {
-    
+  if (tagAtom == nsGkAtoms::input)  
+    return a11y::eHTMLButtonAccessible;
+  if (tagAtom == nsGkAtoms::img)  
+    return a11y::eImageAccessible;
+  if (tagAtom == nsGkAtoms::label)  
+    return a11y::eHTMLLabelAccessible;
 
-    nsAccessibilityService* accService = nsIPresShell::AccService();
-    if (!accService)
-      return nullptr;
-    if (tagAtom == nsGkAtoms::input)  
-      return accService->CreateHTMLButtonAccessible(mContent,
-                                                    PresContext()->PresShell());
-    else if (tagAtom == nsGkAtoms::img)  
-      return accService->CreateHTMLImageAccessible(mContent,
-                                                   PresContext()->PresShell());
-    else if (tagAtom == nsGkAtoms::label)  
-      return accService->CreateHTMLLabelAccessible(mContent,
-                                                   PresContext()->PresShell());
-  }
-
-  return nullptr;
+  return a11y::eNoAccessible;
 }
 #endif
 
