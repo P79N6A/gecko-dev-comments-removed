@@ -300,7 +300,7 @@ FindNumVBRFrames(const nsAutoCString& aFrame)
 
 
 
-static const uint32_t MAX_SKIPPED_BYTES = 200 * 1024;
+static const uint32_t MAX_SKIPPED_BYTES = 4096;
 
 
 
