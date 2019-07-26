@@ -156,7 +156,7 @@ struct already_AddRefed
       
     }
 
-    T* get() const { return mRawPtr; }
+    T* take() const { return mRawPtr; }
 
     
 

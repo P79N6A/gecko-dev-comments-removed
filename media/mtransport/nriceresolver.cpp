@@ -174,7 +174,7 @@ int NrIceResolver::resolve(nr_resolver_resource *resource,
   
   
   
-  *handle = pr.forget().get();
+  pr.forget(handle);
 
   _status=0;
 abort:

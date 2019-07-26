@@ -579,7 +579,7 @@ nsresult nsView::CreateWidget(nsWidgetInitData *aWidgetInitData,
   
   
   mWindow = parentWidget->CreateChild(trect, dx, aWidgetInitData,
-                                      true).get();
+                                      true).take();
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -608,7 +608,7 @@ nsresult nsView::CreateWidgetForParent(nsIWidget* aParentWidget,
   nsRefPtr<nsDeviceContext> dx = mViewManager->GetDeviceContext();
 
   mWindow =
-    aParentWidget->CreateChild(trect, dx, aWidgetInitData).get();
+    aParentWidget->CreateChild(trect, dx, aWidgetInitData).take();
   if (!mWindow) {
     return NS_ERROR_FAILURE;
   }
@@ -640,7 +640,7 @@ nsresult nsView::CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
     
     
     mWindow = aParentWidget->CreateChild(trect, dx, aWidgetInitData,
-                                         true).get();
+                                         true).take();
   }
   else {
     nsIWidget* nearestParent = GetParent() ? GetParent()->GetNearestWidget(nullptr)
@@ -652,7 +652,7 @@ nsresult nsView::CreateWidgetForPopup(nsWidgetInitData *aWidgetInitData,
     }
 
     mWindow =
-      nearestParent->CreateChild(trect, dx, aWidgetInitData).get();
+      nearestParent->CreateChild(trect, dx, aWidgetInitData).take();
   }
   if (!mWindow) {
     return NS_ERROR_FAILURE;

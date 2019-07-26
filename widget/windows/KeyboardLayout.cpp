@@ -1811,7 +1811,7 @@ KeyboardLayout::GetInstance()
     nsCOMPtr<nsIIdleServiceInternal> idleService =
       do_GetService("@mozilla.org/widget/idleservice;1");
     
-    sIdleService = idleService.forget().get();
+    sIdleService = idleService.forget().take();
   }
   return sInstance;
 }

@@ -586,7 +586,8 @@ nsXBLService::AttachGlobalKeyHandler(EventTarget* aTarget)
                                   dom::TrustedEventsAtSystemGroupBubble());
 
   if (contentNode)
-    return contentNode->SetProperty(nsGkAtoms::listener, handler.forget().get(),
+    return contentNode->SetProperty(nsGkAtoms::listener,
+                                    handler.forget().take(),
                                     nsPropertyTable::SupportsDtorFunc, true);
 
   

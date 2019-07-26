@@ -239,7 +239,7 @@ public:
               const ImageKey    aImageKey,
               const SurfaceKey& aSurfaceKey)
   {
-    MOZ_ASSERT(!Lookup(aImageKey, aSurfaceKey).get(),
+    MOZ_ASSERT(!Lookup(aImageKey, aSurfaceKey).take(),
                "Inserting a duplicate drawable into the SurfaceCache");
 
     

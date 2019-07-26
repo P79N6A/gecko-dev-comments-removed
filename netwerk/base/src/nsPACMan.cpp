@@ -326,7 +326,7 @@ nsPACMan::PostQuery(PendingPACQuery *query)
 
   
   nsRefPtr<PendingPACQuery> addref(query);
-  mPendingQ.insertBack(addref.forget().get());
+  mPendingQ.insertBack(addref.forget().take());
   ProcessPendingQ();
   return NS_OK;
 }

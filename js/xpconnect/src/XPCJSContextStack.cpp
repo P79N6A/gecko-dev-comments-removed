@@ -180,7 +180,7 @@ XPCJSContextStack::InitSafeJSContext()
     
     
     nsRefPtr<SandboxPrivate> sp = new SandboxPrivate(principal, glob);
-    JS_SetPrivate(glob, sp.forget().get());
+    JS_SetPrivate(glob, sp.forget().take());
 
     
     

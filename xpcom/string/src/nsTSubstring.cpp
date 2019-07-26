@@ -130,7 +130,8 @@ nsTSubstring_CharT::MutatePrep( size_type capacity, char_type** oldData, uint32_
         
         
 
-        nsStringBuffer* newHdr = nsStringBuffer::Alloc(storageSize).get();
+        nsStringBuffer* newHdr =
+          nsStringBuffer::Alloc(storageSize).take();
         if (!newHdr)
           return false; 
 

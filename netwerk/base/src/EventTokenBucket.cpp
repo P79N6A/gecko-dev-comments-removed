@@ -228,7 +228,7 @@ EventTokenBucket::SubmitEvent(ATokenBucketEvent *event, nsICancelable **cancelab
   if (mPaused || !TryImmediateDispatch(cancelEvent.get())) {
     
     SOCKET_LOG(("   queued\n"));
-    mEvents.Push(cancelEvent.forget().get());
+    mEvents.Push(cancelEvent.forget().take());
     UpdateTimer();
   }
   else {

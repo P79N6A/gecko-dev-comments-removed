@@ -1113,7 +1113,7 @@ xpc::CreateSandboxObject(JSContext *cx, MutableHandleValue vp, nsISupports *prin
             new SandboxPrivate(principal, sandbox);
 
         
-        JS_SetPrivate(sandbox, sbp.forget().get());
+        JS_SetPrivate(sandbox, sbp.forget().take());
 
         bool allowComponents = nsContentUtils::IsSystemPrincipal(principal) ||
                                nsContentUtils::IsExpandedPrincipal(principal);

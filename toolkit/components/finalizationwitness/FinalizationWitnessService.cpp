@@ -204,7 +204,7 @@ FinalizationWitnessService::Make(const char* aTopic,
 
   
   JS_SetReservedSlot(objResult, WITNESS_SLOT_EVENT,
-                     JS::PrivateValue(event.forget().get()));
+                     JS::PrivateValue(event.forget().take()));
 
   aRetval.setObject(*objResult);
   return NS_OK;

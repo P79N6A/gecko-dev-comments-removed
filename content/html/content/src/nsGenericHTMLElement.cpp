@@ -322,7 +322,7 @@ nsGenericHTMLElement::Dataset()
 NS_IMETHODIMP
 nsGenericHTMLElement::GetDataset(nsISupports** aDataset)
 {
-  *aDataset = Dataset().get();
+  *aDataset = Dataset().take();
   return NS_OK;
 }
 
@@ -745,7 +745,7 @@ nsGenericHTMLElement::IsHTMLLink(nsIURI** aURI) const
 {
   NS_PRECONDITION(aURI, "Must provide aURI out param");
 
-  *aURI = GetHrefURIForAnchors().get();
+  *aURI = GetHrefURIForAnchors().take();
   
   return *aURI != nullptr;
 }

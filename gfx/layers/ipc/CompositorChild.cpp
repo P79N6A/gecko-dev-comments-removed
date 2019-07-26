@@ -84,7 +84,7 @@ CompositorChild::Create(Transport* aTransport, ProcessId aOtherProcess)
     return nullptr;
   }
   
-  return sCompositor = child.forget().get();
+  return sCompositor = child.forget().take();
 }
 
  CompositorChild*

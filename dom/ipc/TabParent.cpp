@@ -1694,7 +1694,7 @@ TabParent::AllocPOfflineCacheUpdateParent(const URIParams& aManifestURI,
     new mozilla::docshell::OfflineCacheUpdateParent(OwnOrContainingAppId(),
                                                     IsBrowserElement());
   
-  return update.forget().get();
+  return update.forget().take();
 }
 
 bool
