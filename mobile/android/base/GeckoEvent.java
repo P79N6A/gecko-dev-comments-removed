@@ -194,6 +194,10 @@ public class GeckoEvent {
         mFlags = k.getFlags();
         mKeyCode = k.getKeyCode();
         mUnicodeChar = k.getUnicodeChar();
+        if (mUnicodeChar == 0) {
+            
+            mUnicodeChar = k.getUnicodeChar(0);
+        }
         mRepeatCount = k.getRepeatCount();
         mCharacters = k.getCharacters();
         mDomKeyLocation = isJoystickButton(mKeyCode) ? DOM_KEY_LOCATION_JOYSTICK : DOM_KEY_LOCATION_MOBILE;
