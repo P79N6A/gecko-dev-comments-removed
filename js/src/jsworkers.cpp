@@ -14,6 +14,7 @@
 #include "frontend/BytecodeCompiler.h"
 #include "jit/ExecutionModeInlines.h"
 #include "jit/IonBuilder.h"
+#include "vm/Debugger.h"
 
 #include "jscntxtinlines.h"
 #include "jscompartmentinlines.h"
@@ -499,11 +500,39 @@ WorkerThreadState::canStartCompressionTask()
     return !compressionWorklist.empty();
 }
 
+static void
+CallNewScriptHookForAllScripts(JSContext *cx, HandleScript script)
+{
+    
+    
+    JS_CHECK_RECURSION(cx, return);
+
+    
+    if (script->hasObjects()) {
+        ObjectArray *objects = script->objects();
+        for (size_t i = 0; i < objects->length; i++) {
+            JSObject *obj = objects->vector[i];
+            if (obj->is<JSFunction>()) {
+                JSFunction *fun = &obj->as<JSFunction>();
+                if (fun->hasScript()) {
+                    RootedScript nested(cx, fun->nonLazyScript());
+                    CallNewScriptHookForAllScripts(cx, nested);
+                }
+            }
+        }
+    }
+
+    
+    RootedFunction function(cx, script->function());
+    CallNewScriptHook(cx, script, function);
+}
+
 JSScript *
 WorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *token)
 {
     ParseTask *parseTask = NULL;
 
+    
     
     {
         AutoLockWorkerThreadState lock(*rt->workerThreadState);
@@ -548,15 +577,27 @@ WorkerThreadState::finishParseTask(JSContext *maybecx, JSRuntime *rt, void *toke
     
     gc::MergeCompartments(parseTask->cx->compartment(), parseTask->scopeChain->compartment());
 
+    RootedScript script(rt, parseTask->script);
+
     
     
     if (maybecx) {
         AutoCompartment ac(maybecx, parseTask->scopeChain);
         for (size_t i = 0; i < parseTask->errors.length(); i++)
             parseTask->errors[i]->throwError(maybecx);
+
+        if (script) {
+            
+            GlobalObject *compileAndGoGlobal = NULL;
+            if (script->compileAndGo)
+                compileAndGoGlobal = &script->global();
+            Debugger::onNewScript(maybecx, script, compileAndGoGlobal);
+
+            
+            CallNewScriptHookForAllScripts(maybecx, script);
+        }
     }
 
-    JSScript *script = parseTask->script;
     js_delete(parseTask);
     return script;
 }
