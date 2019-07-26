@@ -834,7 +834,9 @@ pref("browser.webapps.updateCheckUrl", "http://dapk.net/app_updates");
 #endif
 
 
-pref("home.sync.wifiOnly", false);
+
+
+pref("home.sync.updateMode", 0);
 
 
 pref("home.sync.checkIntervalSecs", 3600);
