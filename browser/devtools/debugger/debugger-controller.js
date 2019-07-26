@@ -888,10 +888,7 @@ StackFrames.prototype = {
     } while ((environment = environment.parent));
 
     
-    
-    
     window.emit(EVENTS.FETCHED_SCOPES);
-    DebuggerView.Variables.commitHierarchy();
   },
 
   
@@ -1006,10 +1003,7 @@ StackFrames.prototype = {
       }
 
       
-      
-      
       window.emit(EVENTS.FETCHED_WATCH_EXPRESSIONS);
-      DebuggerView.Variables.commitHierarchy();
     });
   },
 

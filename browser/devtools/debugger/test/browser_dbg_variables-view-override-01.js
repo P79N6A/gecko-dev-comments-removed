@@ -49,12 +49,12 @@ function test() {
 
     is(firstScope._store.size, 3,
       "The first scope should have all the variables available.");
-    is(secondScope._store.size, 3,
-      "The second scope shoild have all the variables available.");
-    is(thirdScope._store.size, 3,
-      "The third scope shoild have all the variables available.");
+    is(secondScope._store.size, 0,
+      "The second scope shoild have no variables available yet.");
+    is(thirdScope._store.size, 0,
+      "The third scope shoild have no variables available yet.");
     is(globalScope._store.size, 0,
-      "The global scope shoild have no variables available.");
+      "The global scope shoild have no variables available yet.");
 
     
 
@@ -94,6 +94,14 @@ function test() {
 
     
     
+
+    
+    
+    
+    let fetched = waitForDebuggerEvents(panel, events.FETCHED_VARIABLES);
+    secondScope.expand();
+    thirdScope.expand();
+    globalScope.expand();
 
     let someVar2 = secondScope.get("a");
     let someOwner2 = variables.getOwnerScopeForVariableOrProperty(someVar2);

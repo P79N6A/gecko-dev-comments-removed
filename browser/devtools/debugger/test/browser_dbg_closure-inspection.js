@@ -1,8 +1,6 @@
 
 
 
-
-
 const TAB_URL = EXAMPLE_URL + "doc_closures.html";
 
 
@@ -15,6 +13,7 @@ function test() {
     gDebuggee = aDebuggee;
     gPanel = aPanel;
     gDebugger = gPanel.panelWin;
+    gDebuggee.gRecurseLimit = 2;
 
     waitForSourceShown(gPanel, ".html")
       .then(testClosure)
@@ -33,45 +32,25 @@ function test() {
         gDebuggee);
     });
 
-    gDebuggee.gRecurseLimit = 2;
-
     return waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES).then(() => {
-      let deferred = promise.defer();
-
-      let gVars = gDebugger.DebuggerView.Variables,
-          localScope = gVars.getScopeAtIndex(0),
-          globalScope = gVars.getScopeAtIndex(1),
-          localNodes = localScope.target.querySelector(".variables-view-element-details").childNodes,
-          globalNodes = globalScope.target.querySelector(".variables-view-element-details").childNodes;
+      let gVars = gDebugger.DebuggerView.Variables;
+      let localScope = gVars.getScopeAtIndex(0);
+      let localNodes = localScope.target.querySelector(".variables-view-element-details").childNodes;
 
       is(localNodes[4].querySelector(".name").getAttribute("value"), "person",
         "Should have the right property name for |person|.");
-
       is(localNodes[4].querySelector(".value").getAttribute("value"), "Object",
         "Should have the right property value for |person|.");
 
       
       
       let personNode = gVars.getItemForNode(localNodes[4]);
+      let personFetched = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_PROPERTIES);
       personNode.expand();
-      is(personNode.expanded, true, "person should be expanded at this point.");
 
-      
-      
-      
-      let count1 = 0;
-      let intervalID = window.setInterval(function(){
-        info("count1: " + count1);
-        if (++count1 > 50) {
-          ok(false, "Timed out while polling for the properties.");
-          window.clearInterval(intervalID);
-          deferred.reject("Timed out.");
-          return;
-        }
-        if (!personNode._retrieved) {
-          return;
-        }
-        window.clearInterval(intervalID);
+      return personFetched.then(() => {
+        is(personNode.expanded, true,
+          "|person| should be expanded at this point.");
 
         is(personNode.get("getName").target.querySelector(".name")
            .getAttribute("value"), "getName",
@@ -90,27 +69,16 @@ function test() {
         
         let getFooNode = personNode.get("getFoo");
         let getNameNode = personNode.get("getName");
+        let funcsFetched = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_PROPERTIES, 2);
+        let funcClosuresFetched = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_SCOPES, 2);
         getFooNode.expand();
         getNameNode.expand();
-        is(getFooNode.expanded, true, "person.getFoo should be expanded at this point.");
-        is(getNameNode.expanded, true, "person.getName should be expanded at this point.");
 
-        
-        
-        
-        let count2 = 0;
-        let intervalID1 = window.setInterval(function(){
-          info("count2: " + count2);
-          if (++count2 > 50) {
-            ok(false, "Timed out while polling for the properties.");
-            window.clearInterval(intervalID1);
-            deferred.reject("Timed out.");
-            return;
-          }
-          if (!getFooNode._retrieved || !getNameNode._retrieved) {
-            return;
-          }
-          window.clearInterval(intervalID1);
+        return funcsFetched.then(() => {
+          is(getFooNode.expanded, true,
+            "|person.getFoo| should be expanded at this point.");
+          is(getNameNode.expanded, true,
+            "|person.getName| should be expanded at this point.");
 
           is(getFooNode.get("<Closure>").target.querySelector(".name")
              .getAttribute("value"), "<Closure>",
@@ -126,29 +94,17 @@ function test() {
             "The closure node has no value for getName.");
 
           
+          
           let getFooClosure = getFooNode.get("<Closure>");
           let getNameClosure = getNameNode.get("<Closure>");
           getFooClosure.expand();
           getNameClosure.expand();
-          is(getFooClosure.expanded, true, "person.getFoo closure should be expanded at this point.");
-          is(getNameClosure.expanded, true, "person.getName closure should be expanded at this point.");
 
-          
-          
-          
-          let count3 = 0;
-          let intervalID2 = window.setInterval(function(){
-            info("count3: " + count3);
-            if (++count3 > 50) {
-              ok(false, "Timed out while polling for the properties.");
-              window.clearInterval(intervalID2);
-              deferred.reject("Timed out.");
-              return;
-            }
-            if (!getFooClosure._retrieved || !getNameClosure._retrieved) {
-              return;
-            }
-            window.clearInterval(intervalID2);
+          return funcClosuresFetched.then(() => {
+            is(getFooClosure.expanded, true,
+              "|person.getFoo| closure should be expanded at this point.");
+            is(getNameClosure.expanded, true,
+              "|person.getName| closure should be expanded at this point.");
 
             is(getFooClosure.get("Function scope [_pfactory]").target.querySelector(".name")
                .getAttribute("value"), "Function scope [_pfactory]",
@@ -166,27 +122,15 @@ function test() {
             
             let getFooInnerScope = getFooClosure.get("Function scope [_pfactory]");
             let getNameInnerScope = getNameClosure.get("Function scope [_pfactory]");
+            let innerFuncsFetched = waitForDebuggerEvents(gPanel, gDebugger.EVENTS.FETCHED_PROPERTIES, 2);
             getFooInnerScope.expand();
             getNameInnerScope.expand();
-            is(getFooInnerScope.expanded, true, "person.getFoo inner scope should be expanded at this point.");
-            is(getNameInnerScope.expanded, true, "person.getName inner scope should be expanded at this point.");
 
-            
-            
-            
-            let count4 = 0;
-            let intervalID3 = window.setInterval(function(){
-              info("count4: " + count4);
-              if (++count4 > 50) {
-                ok(false, "Timed out while polling for the properties.");
-                window.clearInterval(intervalID3);
-                deferred.reject("Timed out.");
-                return;
-              }
-              if (!getFooInnerScope._retrieved || !getNameInnerScope._retrieved) {
-                return;
-              }
-              window.clearInterval(intervalID3);
+            return funcsFetched.then(() => {
+              is(getFooInnerScope.expanded, true,
+                "|person.getFoo| inner scope should be expanded at this point.");
+              is(getNameInnerScope.expanded, true,
+                "|person.getName| inner scope should be expanded at this point.");
 
               
               
@@ -203,14 +147,10 @@ function test() {
               is(getNameInnerScope.get("name").target.querySelector(".value")
                  .getAttribute("value"), '"Bob"',
                 "The name node has the expected value.");
-
-              deferred.resolve();
-            }, 100);
-          }, 100);
-        }, 100);
-      }, 100);
-
-      return deferred.promise;
+            });
+          });
+        });
+      });
     });
   }
 }

@@ -152,8 +152,6 @@ VariablesViewController.prototype = {
       aTarget.setGrip(aGrip.initial + aResponse.substring);
       aTarget.hideArrow();
 
-      
-      aTarget._retrieved = true;
       deferred.resolve();
     });
 
@@ -171,13 +169,6 @@ VariablesViewController.prototype = {
 
   _populateFromObject: function(aTarget, aGrip) {
     let deferred = promise.defer();
-
-    
-    let finish = variable => {
-      variable._retrieved = true;
-      this.view.commitHierarchy();
-      deferred.resolve();
-    };
 
     let objectClient = this._getObjectClient(aGrip);
     objectClient.getPrototypeAndProperties(aResponse => {
@@ -224,12 +215,12 @@ VariablesViewController.prototype = {
             
             
             console.warn(aResponse.error + ": " + aResponse.message);
-            return void finish(aTarget);
+            return void deferred.resolve();
           }
-          this._addVarScope(aTarget, aResponse.scope).then(() => finish(aTarget));
+          this._populateWithClosure(aTarget, aResponse.scope).then(deferred.resolve);
         });
       } else {
-        finish(aTarget);
+        deferred.resolve();
       }
     });
 
@@ -244,41 +235,36 @@ VariablesViewController.prototype = {
 
 
 
-
-  _addVarScope: function(aTarget, aScope) {
+  _populateWithClosure: function(aTarget, aScope) {
     let objectScopes = [];
     let environment = aScope;
     let funcScope = aTarget.addItem("<Closure>");
-    funcScope._target.setAttribute("scope", "");
-    funcScope._fetched = true;
+    funcScope.target.setAttribute("scope", "");
     funcScope.showArrow();
+
     do {
       
       let label = StackFrameUtils.getScopeLabel(environment);
+
       
       let closure = funcScope.addItem(label, undefined, true);
-      closure._target.setAttribute("scope", "");
-      closure._fetched = environment.class == "Function";
+      closure.target.setAttribute("scope", "");
       closure.showArrow();
+
       
       if (environment.bindings) {
-        this._addBindings(closure, environment.bindings);
-        funcScope._retrieved = true;
-        closure._retrieved = true;
+        this._populateWithEnvironmentBindings(closure, environment.bindings);
       } else {
-        let deferred = Promise.defer();
+        let deferred = promise.defer();
         objectScopes.push(deferred.promise);
         this._getEnvironmentClient(environment).getBindings(response => {
-          this._addBindings(closure, response.bindings);
-          funcScope._retrieved = true;
-          closure._retrieved = true;
+          this._populateWithEnvironmentBindings(closure, response.bindings);
           deferred.resolve();
         });
       }
     } while ((environment = environment.parent));
-    aTarget.expand();
 
-    return Promise.all(objectScopes).then(() => {
+    return promise.all(objectScopes).then(() => {
       
       this.view.emit("fetched", "scopes", funcScope);
     });
@@ -292,27 +278,27 @@ VariablesViewController.prototype = {
 
 
 
-  _addBindings: function(closure, bindings) {
-    for (let argument of bindings.arguments) {
-      let name = Object.getOwnPropertyNames(argument)[0];
-      let argRef = closure.addItem(name, argument[name]);
-      let argVal = argument[name].value;
-      this.addExpander(argRef, argVal);
-    }
-
-    let aVariables = bindings.variables;
-    let variableNames = Object.keys(aVariables);
+  _populateWithEnvironmentBindings: function(aTarget, aBindings) {
+    
+    aTarget.addItems(aBindings.arguments.reduce((accumulator, arg) => {
+      let name = Object.getOwnPropertyNames(arg)[0];
+      let descriptor = arg[name];
+      accumulator[name] = descriptor;
+      return accumulator;
+    }, {}), {
+      
+      sorted: false,
+      
+      callback: this.addExpander
+    });
 
     
-    if (VARIABLES_SORTING_ENABLED) {
-      variableNames.sort();
-    }
-    
-    for (let name of variableNames) {
-      let varRef = closure.addItem(name, aVariables[name]);
-      let varVal = aVariables[name].value;
-      this.addExpander(varRef, varVal);
-    }
+    aTarget.addItems(aBindings.variables, {
+      
+      sorted: VARIABLES_SORTING_ENABLED,
+      
+      callback: this.addExpander
+    });
   },
 
   
@@ -328,12 +314,10 @@ VariablesViewController.prototype = {
     
     if (aTarget.getter || aTarget.setter) {
       aTarget.evaluationMacro = this._overrideValueEvalMacro;
-
       let getter = aTarget.get("get");
       if (getter) {
         getter.evaluationMacro = this._getterOrSetterEvalMacro;
       }
-
       let setter = aTarget.get("set");
       if (setter) {
         setter.evaluationMacro = this._getterOrSetterEvalMacro;
@@ -352,19 +336,13 @@ VariablesViewController.prototype = {
       aTarget.showArrow();
     }
 
-    if (aSource.type == "block" || aSource.type == "function") {
-      
-      
-      this.populate(aTarget, aSource);
-    } else {
-      
-      aTarget.onexpand = () => this.populate(aTarget, aSource);
+    
+    aTarget.onexpand = () => this.populate(aTarget, aSource);
 
-      
-      
-      if (aTarget.shouldPrefetch) {
-        aTarget.addEventListener("mouseover", aTarget.onexpand, false);
-      }
+    
+    
+    if (aTarget.shouldPrefetch) {
+      aTarget.addEventListener("mouseover", aTarget.onexpand, false);
     }
 
     
@@ -404,9 +382,11 @@ VariablesViewController.prototype = {
     
     if (VariablesView.isVariable(aTarget)) {
       this._populateFromObject(aTarget, aSource).then(() => {
-        deferred.resolve();
         
         this.view.emit("fetched", "properties", aTarget);
+        
+        this.view.commitHierarchy();
+        deferred.resolve();
       });
       return deferred.promise;
     }
@@ -414,43 +394,29 @@ VariablesViewController.prototype = {
     switch (aSource.type) {
       case "longString":
         this._populateFromLongString(aTarget, aSource).then(() => {
-          deferred.resolve();
           
           this.view.emit("fetched", "longString", aTarget);
+          deferred.resolve();
         });
         break;
       case "with":
       case "object":
         this._populateFromObject(aTarget, aSource.object).then(() => {
-          deferred.resolve();
           
           this.view.emit("fetched", "variables", aTarget);
+          
+          this.view.commitHierarchy();
+          deferred.resolve();
         });
         break;
       case "block":
       case "function":
-        
-        let args = aSource.bindings.arguments;
-        if (args) {
-          for (let arg of args) {
-            let name = Object.getOwnPropertyNames(arg)[0];
-            let ref = aTarget.addItem(name, arg[name]);
-            let val = arg[name].value;
-            this.addExpander(ref, val);
-          }
-        }
-
-        aTarget.addItems(aSource.bindings.variables, {
-          
-          sorted: VARIABLES_SORTING_ENABLED,
-          
-          callback: this.addExpander
-        });
-
+        this._populateWithEnvironmentBindings(aTarget, aSource.bindings);
         
         
         
-
+        
+        this.view.commitHierarchy();
         deferred.resolve();
         break;
       default:
