@@ -289,9 +289,6 @@ let SessionStoreInternal = {
   _loadState: STATE_STOPPED,
 
   
-  _initialState: null,
-
-  
   
   _restoreCount: -1,
 
@@ -391,11 +388,11 @@ let SessionStoreInternal = {
     
     gSessionStartup.onceInitialized.then(() => {
       
-      this.initSession();
+      let initialState = this.initSession();
 
       
       if (!aWindow.closed) {
-        this.onLoad(aWindow);
+        this.onLoad(aWindow, initialState);
       }
 
       
@@ -404,74 +401,76 @@ let SessionStoreInternal = {
   },
 
   initSession: function ssi_initSession() {
+    let state;
     let ss = gSessionStartup;
+
     try {
       if (ss.doRestore() ||
           ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION)
-        this._initialState = ss.state;
+        state = ss.state;
     }
     catch(ex) { dump(ex + "\n"); } 
 
-    if (this._initialState) {
+    if (state) {
       try {
         
         
         if (ss.sessionType == Ci.nsISessionStartup.DEFER_SESSION) {
-          let [iniState, remainingState] = this._prepDataForDeferredRestore(this._initialState);
+          let [iniState, remainingState] = this._prepDataForDeferredRestore(state);
           
           
           if (iniState.windows.length)
-            this._initialState = iniState;
+            state = iniState;
           else
-            this._initialState = null;
+            state = null;
           if (remainingState.windows.length)
             this._lastSessionState = remainingState;
         }
         else {
           
           
-          this._lastSessionState = this._initialState.lastSessionState;
+          this._lastSessionState = state.lastSessionState;
 
           let lastSessionCrashed =
-            this._initialState.session && this._initialState.session.state &&
-            this._initialState.session.state == STATE_RUNNING_STR;
+            state.session && state.session.state &&
+            state.session.state == STATE_RUNNING_STR;
           if (lastSessionCrashed) {
-            this._recentCrashes = (this._initialState.session &&
-                                   this._initialState.session.recentCrashes || 0) + 1;
+            this._recentCrashes = (state.session &&
+                                   state.session.recentCrashes || 0) + 1;
 
-            if (this._needsRestorePage(this._initialState, this._recentCrashes)) {
+            if (this._needsRestorePage(state, this._recentCrashes)) {
               
               let pageData = {
                 url: "about:sessionrestore",
                 formdata: {
-                  id: { "sessionData": this._initialState },
+                  id: { "sessionData": state },
                   xpath: {}
                 }
               };
-              this._initialState = { windows: [{ tabs: [{ entries: [pageData] }] }] };
-            } else if (this._hasSingleTabWithURL(this._initialState.windows,
+              state = { windows: [{ tabs: [{ entries: [pageData] }] }] };
+            } else if (this._hasSingleTabWithURL(state.windows,
                                                  "about:welcomeback")) {
               
               
-              this._initialState.windows[0].tabs[0].entries[0].url = "about:sessionrestore";
+              state.windows[0].tabs[0].entries[0].url = "about:sessionrestore";
             }
           }
 
           
-          this._sessionStartTime = this._initialState.session &&
-                                   this._initialState.session.startTime ||
+          this._sessionStartTime = state.session &&
+                                   state.session.startTime ||
                                    this._sessionStartTime;
 
           
-          delete this._initialState.windows[0].hidden;
+          delete state.windows[0].hidden;
           
-          delete this._initialState.windows[0].isPopup;
+          delete state.windows[0].isPopup;
           
-          if (this._initialState.windows[0].sizemode == "minimized")
-            this._initialState.windows[0].sizemode = "normal";
+          if (state.windows[0].sizemode == "minimized")
+            state.windows[0].sizemode = "normal";
           
           
-          this._initialState.windows.forEach(function(aWindow) {
+          state.windows.forEach(function(aWindow) {
             delete aWindow.__lastSessionWindowID;
           });
         }
@@ -486,8 +485,9 @@ let SessionStoreInternal = {
       this._prefBranch.setBoolPref("sessionstore.resume_session_once", false);
 
     this._performUpgradeBackup();
-
     this._sessionInitialized = true;
+
+    return state;
   },
 
   
@@ -703,7 +703,9 @@ let SessionStoreInternal = {
 
 
 
-  onLoad: function ssi_onLoad(aWindow) {
+
+
+  onLoad: function ssi_onLoad(aWindow, aInitialState = null) {
     
     if (aWindow && aWindow.__SSi && this._windows[aWindow.__SSi])
       return;
@@ -733,24 +735,23 @@ let SessionStoreInternal = {
       this._lastSaveTime = Date.now();
 
       
-      if (this._initialState) {
+      if (aInitialState) {
         if (isPrivateWindow) {
           
           
           
-          this._deferredInitialState = this._initialState;
-          this._initialState = null;
+          this._deferredInitialState = aInitialState;
 
           
           Services.obs.notifyObservers(null, NOTIFY_WINDOWS_RESTORED, "");
         } else {
           TelemetryTimestamps.add("sessionRestoreRestoring");
           
-          this._initialState._firstTabs = true;
-          this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
-          this.restoreWindow(aWindow, this._initialState,
-                             this._isCmdLineEmpty(aWindow, this._initialState));
-          this._initialState = null;
+          aInitialState._firstTabs = true;
+          this._restoreCount = aInitialState.windows ? aInitialState.windows.length : 0;
+
+          let overwrite = this._isCmdLineEmpty(aWindow, aInitialState);
+          this.restoreWindow(aWindow, aInitialState, overwrite);
 
           
           
