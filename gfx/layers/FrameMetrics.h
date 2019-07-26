@@ -55,6 +55,7 @@ public:
     , mPresShellId(-1)
     , mIsRoot(false)
     , mHasScrollgrab(false)
+    , mUpdateScrollOffset(false)
   {}
 
   
@@ -73,7 +74,8 @@ public:
            mDevPixelsPerCSSPixel == aOther.mDevPixelsPerCSSPixel &&
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
            mPresShellId == aOther.mPresShellId &&
-           mIsRoot == aOther.mIsRoot;
+           mIsRoot == aOther.mIsRoot &&
+           mUpdateScrollOffset == aOther.mUpdateScrollOffset;
   }
   bool operator!=(const FrameMetrics& aOther) const
   {
@@ -284,6 +286,10 @@ public:
 
   
   bool mHasScrollgrab;
+
+  
+  
+  bool mUpdateScrollOffset;
 };
 
 

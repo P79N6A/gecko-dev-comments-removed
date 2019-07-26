@@ -84,6 +84,25 @@ MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
     - aActualScrollOffset;
 }
 
+static CSSPoint
+ScrollFrameTo(nsIScrollableFrame* aFrame, const CSSPoint& aPoint)
+{
+  if (!aFrame) {
+    return CSSPoint();
+  }
+
+  
+  
+  
+  if (!aFrame->OriginOfLastScroll() || aFrame->OriginOfLastScroll() == nsGkAtoms::apz) {
+    aFrame->ScrollToCSSPixelsApproximate(aPoint, nsGkAtoms::apz);
+  }
+  
+  
+  
+  return CSSPoint::FromAppUnits(aFrame->GetScrollPosition());
+}
+
 void
 APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
                                     FrameMetrics& aMetrics)
@@ -105,12 +124,8 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
     aUtils->SetScrollPositionClampingScrollPortSize(scrollPort.width, scrollPort.height);
 
     
-    aUtils->ScrollToCSSPixelsApproximate(aMetrics.mScrollOffset.x, aMetrics.mScrollOffset.y, nullptr);
-
-    
-    
-    CSSPoint actualScrollOffset;
-    aUtils->GetScrollXYFloat(false, &actualScrollOffset.x, &actualScrollOffset.y);
+    nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.mScrollId);
+    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset);
 
     
     
@@ -167,12 +182,8 @@ APZCCallbackHelper::UpdateSubFrame(nsIContent* aContent,
     
     
 
-    CSSPoint actualScrollOffset;
     nsIScrollableFrame* sf = nsLayoutUtils::FindScrollableFrameFor(aMetrics.mScrollId);
-    if (sf) {
-        sf->ScrollToCSSPixelsApproximate(aMetrics.mScrollOffset);
-        actualScrollOffset = CSSPoint::FromAppUnits(sf->GetScrollPosition());
-    }
+    CSSPoint actualScrollOffset = ScrollFrameTo(sf, aMetrics.mScrollOffset);
 
     nsCOMPtr<nsIDOMElement> element = do_QueryInterface(aContent);
     if (element) {

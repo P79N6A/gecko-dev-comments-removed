@@ -25,6 +25,7 @@ class nsIFrame;
 class nsPresContext;
 class nsIContent;
 class nsRenderingContext;
+class nsIAtom;
 
 
 
@@ -186,7 +187,8 @@ public:
 
 
 
-  virtual void ScrollToCSSPixelsApproximate(const mozilla::CSSPoint& aScrollPosition) = 0;
+  virtual void ScrollToCSSPixelsApproximate(const mozilla::CSSPoint& aScrollPosition,
+                                            nsIAtom *aOrigin = nullptr) = 0;
 
   
 
@@ -268,6 +270,15 @@ public:
 
 
   virtual bool IsRectNearlyVisible(const nsRect& aRect) = 0;
+  
+
+
+
+  virtual nsIAtom* OriginOfLastScroll() = 0;
+  
+
+
+  virtual void ResetOriginOfLastScroll() = 0;
 };
 
 #endif

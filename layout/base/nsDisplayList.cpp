@@ -630,6 +630,13 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     metrics.mScrollableRect = CSSRect::FromAppUnits(contentBounds);
     nsPoint scrollPosition = scrollableFrame->GetScrollPosition();
     metrics.mScrollOffset = CSSPoint::FromAppUnits(scrollPosition);
+
+    
+    
+    
+    nsIAtom* originOfLastScroll = scrollableFrame->OriginOfLastScroll();
+    metrics.mUpdateScrollOffset = (originOfLastScroll && originOfLastScroll != nsGkAtoms::apz);
+    scrollableFrame->ResetOriginOfLastScroll();
   }
   else {
     nsRect contentBounds = aForFrame->GetRect();

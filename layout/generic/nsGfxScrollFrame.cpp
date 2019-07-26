@@ -1537,6 +1537,7 @@ ScrollFrameHelper::ScrollFrameHelper(nsContainerFrame* aOuter,
   , mResizerBox(nullptr)
   , mOuter(aOuter)
   , mAsyncScroll(nullptr)
+  , mOriginOfLastScroll(nullptr)
   , mDestination(0, 0)
   , mScrollPosAtLastPaint(0, 0)
   , mRestorePos(-1, -1)
@@ -1652,12 +1653,13 @@ ScrollFrameHelper::ScrollToCSSPixels(const CSSIntPoint& aScrollPosition)
 }
 
 void
-ScrollFrameHelper::ScrollToCSSPixelsApproximate(const CSSPoint& aScrollPosition)
+ScrollFrameHelper::ScrollToCSSPixelsApproximate(const CSSPoint& aScrollPosition,
+                                                nsIAtom *aOrigin)
 {
   nsPoint pt = CSSPoint::ToAppUnits(aScrollPosition);
   nscoord halfRange = nsPresContext::CSSPixelsToAppUnits(1000);
   nsRect range(pt.x - halfRange, pt.y - halfRange, 2*halfRange - 1, 2*halfRange - 1);
-  ScrollTo(pt, nsIScrollableFrame::INSTANT, &range);
+  ScrollToWithOrigin(pt, nsIScrollableFrame::INSTANT, aOrigin, &range);
   
 }
 
@@ -1687,7 +1689,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
     
     mAsyncScroll = nullptr;
     nsWeakFrame weakFrame(mOuter);
-    ScrollToImpl(mDestination, range);
+    ScrollToImpl(mDestination, range, aOrigin);
     if (!weakFrame.IsAlive()) {
       return;
     }
@@ -1707,7 +1709,7 @@ ScrollFrameHelper::ScrollToWithOrigin(nsPoint aScrollPosition,
       mAsyncScroll = nullptr;
       
       nsWeakFrame weakFrame(mOuter);
-      ScrollToImpl(mDestination, range);
+      ScrollToImpl(mDestination, range, aOrigin);
       if (!weakFrame.IsAlive()) {
         return;
       }
@@ -1982,8 +1984,15 @@ ScrollFrameHelper::ScheduleSyntheticMouseMove()
 }
 
 void
-ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
+ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange, nsIAtom* aOrigin)
 {
+  if (aOrigin == nullptr) {
+    
+    
+    
+    aOrigin = nsGkAtoms::other;
+  }
+
   nsPresContext* presContext = mOuter->PresContext();
   nscoord appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   
@@ -2038,6 +2047,7 @@ ScrollFrameHelper::ScrollToImpl(nsPoint aPt, const nsRect& aRange)
   nsPoint oldScrollFramePos = mScrolledFrame->GetPosition();
   
   mScrolledFrame->SetPosition(mScrollPort.TopLeft() - pt);
+  mOriginOfLastScroll = aOrigin;
 
   
   ScrollVisual(oldScrollFramePos);
