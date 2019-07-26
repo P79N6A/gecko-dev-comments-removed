@@ -69,6 +69,14 @@ public:
 
   virtual void ClearCachedResources() MOZ_OVERRIDE;
 
+  
+
+
+
+
+  void GetAncestorLayers(ContainerLayer** aOutScrollAncestor,
+                         ContainerLayer** aOutDisplayPortAncestor);
+
 private:
   ClientLayerManager* ClientManager()
   {

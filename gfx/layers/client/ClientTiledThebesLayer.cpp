@@ -86,6 +86,32 @@ GetTransformToAncestorsParentLayer(Layer* aStart, Layer* aAncestor)
 }
 
 void
+ClientTiledThebesLayer::GetAncestorLayers(ContainerLayer** aOutScrollAncestor,
+                                          ContainerLayer** aOutDisplayPortAncestor)
+{
+  ContainerLayer* scrollAncestor = nullptr;
+  ContainerLayer* displayPortAncestor = nullptr;
+  for (ContainerLayer* ancestor = GetParent(); ancestor; ancestor = ancestor->GetParent()) {
+    const FrameMetrics& metrics = ancestor->GetFrameMetrics();
+    if (!scrollAncestor && metrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID) {
+      scrollAncestor = ancestor;
+    }
+    if (!metrics.mDisplayPort.IsEmpty()) {
+      displayPortAncestor = ancestor;
+      
+      
+      break;
+    }
+  }
+  if (aOutScrollAncestor) {
+    *aOutScrollAncestor = scrollAncestor;
+  }
+  if (aOutDisplayPortAncestor) {
+    *aOutDisplayPortAncestor = displayPortAncestor;
+  }
+}
+
+void
 ClientTiledThebesLayer::BeginPaint()
 {
   mPaintData.mLowPrecisionPaintCount = 0;
@@ -104,18 +130,7 @@ ClientTiledThebesLayer::BeginPaint()
   
   ContainerLayer* scrollAncestor = nullptr;
   ContainerLayer* displayPortAncestor = nullptr;
-  for (ContainerLayer* ancestor = GetParent(); ancestor; ancestor = ancestor->GetParent()) {
-    const FrameMetrics& metrics = ancestor->GetFrameMetrics();
-    if (!scrollAncestor && metrics.GetScrollId() != FrameMetrics::NULL_SCROLL_ID) {
-      scrollAncestor = ancestor;
-    }
-    if (!metrics.mDisplayPort.IsEmpty()) {
-      displayPortAncestor = ancestor;
-      
-      
-      break;
-    }
-  }
+  GetAncestorLayers(&scrollAncestor, &displayPortAncestor);
 
   if (!displayPortAncestor || !scrollAncestor) {
     
