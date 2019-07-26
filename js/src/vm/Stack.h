@@ -297,7 +297,6 @@ class AbstractFramePtr
     inline bool hasArgsObj() const;
     inline ArgumentsObject &argsObj() const;
     inline void initArgsObj(ArgumentsObject &argsobj) const;
-    inline bool useNewType() const;
 
     inline bool copyRawFrameSlots(AutoValueVector *vec) const;
 
@@ -390,13 +389,10 @@ class StackFrame
         HAS_PUSHED_SPS_FRAME = 0x100000,  
 
         
-        RUNNING_IN_ION     =   0x200000,  
-        CALLING_INTO_ION   =   0x400000,  
+        RUNNING_IN_ION       = 0x200000,  
+        CALLING_INTO_ION     = 0x400000,  
 
-        JIT_REVISED_STACK  =   0x800000,  
-
-        
-        USE_NEW_TYPE       =  0x1000000   
+        JIT_REVISED_STACK    = 0x800000   
     };
 
   private:
@@ -495,7 +491,10 @@ class StackFrame
 
 
 
-    bool prologue(JSContext *cx);
+
+
+
+    bool prologue(JSContext *cx, bool newType);
     void epilogue(JSContext *cx);
 
     
@@ -1051,15 +1050,6 @@ class StackFrame
     bool hasArgsObj() const {
         JS_ASSERT(script()->needsArgsObj());
         return flags_ & HAS_ARGS_OBJ;
-    }
-
-    void setUseNewType() {
-        JS_ASSERT(isConstructing());
-        flags_ |= USE_NEW_TYPE;
-    }
-    bool useNewType() const {
-        JS_ASSERT(isConstructing());
-        return flags_ & USE_NEW_TYPE;
     }
 
     
