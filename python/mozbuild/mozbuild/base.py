@@ -184,7 +184,7 @@ class MozbuildObject(object):
 
     def _run_make(self, directory=None, filename=None, target=None, log=True,
             srcdir=False, allow_parallel=True, line_handler=None, env=None,
-            ignore_errors=False):
+            ignore_errors=False, silent=True, print_directory=True):
         """Invoke make.
 
         directory -- Relative directory to look for Makefile in.
@@ -193,6 +193,9 @@ class MozbuildObject(object):
             strings.
         srcdir -- If True, invoke make from the source directory tree.
             Otherwise, make will be invoked from the object directory.
+        silent -- If True (the default), run make in silent mode.
+        print_directory -- If True (the default), have make print directories
+        while doing traversal.
         """
         self._ensure_objdir_exists()
 
@@ -210,14 +213,15 @@ class MozbuildObject(object):
         if ignore_errors:
             args.append('-k')
 
-        
-        args.append('-s')
+        if silent:
+            args.append('-s')
 
         
         
         
         
-        args.append('-w')
+        if print_directory:
+            args.append('-w')
 
         if isinstance(target, list):
             args.extend(target)
