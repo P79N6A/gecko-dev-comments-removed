@@ -6363,33 +6363,11 @@ CodeGenerator::visitLoadTypedArrayElement(LLoadTypedArrayElement *lir)
     return true;
 }
 
-class OutOfLineLoadTypedArray : public OutOfLineCodeBase<CodeGenerator>
-{
-    LLoadTypedArrayElementHole *ins_;
-
-  public:
-    OutOfLineLoadTypedArray(LLoadTypedArrayElementHole *ins)
-      : ins_(ins)
-    { }
-
-    bool accept(CodeGenerator *codegen) {
-        return codegen->visitOutOfLineLoadTypedArray(this);
-    }
-
-    LLoadTypedArrayElementHole *ins() const {
-        return ins_;
-    }
-};
-
 bool
 CodeGenerator::visitLoadTypedArrayElementHole(LLoadTypedArrayElementHole *lir)
 {
     Register object = ToRegister(lir->object());
     const ValueOperand out = ToOutValue(lir);
-
-    OutOfLineLoadTypedArray *ool = new OutOfLineLoadTypedArray(lir);
-    if (!addOutOfLineCode(ool))
-        return false;
 
     
     Register scratch = out.scratchReg();
@@ -6397,9 +6375,13 @@ CodeGenerator::visitLoadTypedArrayElementHole(LLoadTypedArrayElementHole *lir)
     masm.unboxInt32(Address(object, TypedArrayObject::lengthOffset()), scratch);
 
     
-    masm.branchKey(Assembler::BelowOrEqual, scratch, key, ool->entry());
+    Label inbounds, done;
+    masm.branchKey(Assembler::Above, scratch, key, &inbounds);
+    masm.moveValue(UndefinedValue(), out);
+    masm.jump(&done);
 
     
+    masm.bind(&inbounds);
     masm.loadPtr(Address(object, TypedArrayObject::dataOffset()), scratch);
 
     int arrayType = lir->mir()->arrayType();
@@ -6419,35 +6401,7 @@ CodeGenerator::visitLoadTypedArrayElementHole(LLoadTypedArrayElementHole *lir)
     if (fail.used() && !bailoutFrom(&fail, lir->snapshot()))
         return false;
 
-    masm.bind(ool->rejoin());
-    return true;
-}
-
-typedef bool (*GetElementMonitoredFn)(JSContext *, MutableHandleValue, HandleValue, MutableHandleValue);
-static const VMFunction GetElementMonitoredInfo =
-    FunctionInfo<GetElementMonitoredFn>(js::GetElementMonitored);
-
-bool
-CodeGenerator::visitOutOfLineLoadTypedArray(OutOfLineLoadTypedArray *ool)
-{
-    LLoadTypedArrayElementHole *ins = ool->ins();
-    saveLive(ins);
-
-    Register object = ToRegister(ins->object());
-    ValueOperand out = ToOutValue(ins);
-
-    if (ins->index()->isConstant())
-        pushArg(*ins->index()->toConstant());
-    else
-        pushArg(TypedOrValueRegister(MIRType_Int32, ToAnyRegister(ins->index())));
-    pushArg(TypedOrValueRegister(MIRType_Object, AnyRegister(object)));
-    if (!callVM(GetElementMonitoredInfo, ins))
-        return false;
-
-    masm.storeCallResultValue(out);
-    restoreLive(ins);
-
-    masm.jump(ool->rejoin());
+    masm.bind(&done);
     return true;
 }
 
