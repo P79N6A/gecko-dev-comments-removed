@@ -20,8 +20,6 @@
 
 
 #include "mozilla/Attributes.h"
-#include "mozilla/TypeTraits.h"
-#include "mozilla/Assertions.h"
 
   
 #ifndef nsDebug_h___
@@ -547,18 +545,6 @@ class nsCOMPtr MOZ_FINAL
           
         {
           NSCAP_LOG_ASSIGNMENT(this, aSmartPtr.mRawPtr);
-          NSCAP_ASSERT_NO_QUERY_NEEDED();
-        }
-
-      template<typename U>
-      nsCOMPtr( const already_AddRefed<U>& aSmartPtr )
-            : NSCAP_CTOR_BASE(static_cast<T*>(aSmartPtr.mRawPtr))
-          
-        {
-          
-          MOZ_STATIC_ASSERT((mozilla::IsBaseOf<T, U>::value),
-                            "U is not a subclass of T");
-          NSCAP_LOG_ASSIGNMENT(this, static_cast<T*>(aSmartPtr.mRawPtr));
           NSCAP_ASSERT_NO_QUERY_NEEDED();
         }
 
