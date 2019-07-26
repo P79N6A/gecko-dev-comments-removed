@@ -222,9 +222,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.8.4.1"
+#define SQLITE_VERSION        "3.8.4.2"
 #define SQLITE_VERSION_NUMBER 3008004
-#define SQLITE_SOURCE_ID      "2014-03-11 15:27:36 018d317b1257ce68a92908b05c9c7cf1494050d0"
+#define SQLITE_SOURCE_ID      "2014-03-26 18:51:19 02ea166372bdb2ef9d8dfbb05e78a97609673a8e"
 
 
 
@@ -64782,6 +64782,7 @@ SQLITE_PRIVATE int sqlite3VdbeRecordCompare(
   }else{
     idx1 = getVarint32(aKey1, szHdr1);
     d1 = szHdr1;
+    if( d1>(unsigned)nKey1 ) return 1;  
     i = 0;
   }
 
