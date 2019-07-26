@@ -122,7 +122,6 @@ BuildForwardInner(TrustDomain& trustDomain,
                   SECOidTag requiredEKUIfPresent,
                   SECOidTag requiredPolicy,
                   CERTCertificate* potentialIssuerCertToDup,
-                   const SECItem* stapledOCSPResponse,
                   unsigned int subCACount,
                   ScopedCERTCertList& results)
 {
@@ -252,8 +251,7 @@ BuildForward(TrustDomain& trustDomain,
        !CERT_LIST_END(n, candidates); n = CERT_LIST_NEXT(n)) {
     rv = BuildForwardInner(trustDomain, subject, time, endEntityOrCA,
                            requiredEKUIfPresent, requiredPolicy,
-                           n->cert, stapledOCSPResponse, subCACount,
-                           results);
+                           n->cert, subCACount, results);
     if (rv == Success) {
       
       
