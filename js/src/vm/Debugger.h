@@ -172,6 +172,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
         JSSLOT_DEBUG_ENV_PROTO,
         JSSLOT_DEBUG_OBJECT_PROTO,
         JSSLOT_DEBUG_SCRIPT_PROTO,
+        JSSLOT_DEBUG_SOURCE_PROTO,
         JSSLOT_DEBUG_PROTO_STOP,
         JSSLOT_DEBUG_HOOK_START = JSSLOT_DEBUG_PROTO_STOP,
         JSSLOT_DEBUG_HOOK_STOP = JSSLOT_DEBUG_HOOK_START + HookCount,
@@ -215,6 +216,10 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
     
     typedef DebuggerWeakMap<EncapsulatedPtrScript, RelocatablePtrObject> ScriptWeakMap;
     ScriptWeakMap scripts;
+
+    
+    typedef DebuggerWeakMap<EncapsulatedPtrObject, RelocatablePtrObject> SourceWeakMap;
+    SourceWeakMap sources;
 
     
     typedef DebuggerWeakMap<EncapsulatedPtrObject, RelocatablePtrObject> ObjectWeakMap;
@@ -347,6 +352,12 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     JSObject *newDebuggerScript(JSContext *cx, HandleScript script);
+
+    
+
+
+
+    JSObject *newDebuggerSource(JSContext *cx, JS::HandleScriptSource source);
 
     
 
@@ -504,6 +515,13 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     JSObject *wrapScript(JSContext *cx, HandleScript script);
+
+    
+
+
+
+
+    JSObject *wrapSource(JSContext *cx, JS::HandleScriptSource source);
 
   private:
     Debugger(const Debugger &) MOZ_DELETE;
