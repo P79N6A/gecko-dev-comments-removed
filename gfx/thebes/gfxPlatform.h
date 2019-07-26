@@ -329,6 +329,22 @@ public:
 
     virtual bool FontHintingEnabled() { return true; }
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool RequiresLinearZoom() { return false; }
+
     bool UsesSubpixelAATextRendering() {
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
 	return false;
