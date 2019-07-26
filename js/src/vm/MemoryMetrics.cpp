@@ -306,7 +306,7 @@ StatsCellCallback(JSRuntime *rt, void *data, void *thing, JSGCTraceKind traceKin
         if (ObjectPrivateVisitor *opv = closure->opv) {
             nsISupports *iface;
             if (opv->getISupports_(obj, &iface) && iface) {
-                cStats->objectsExtra.private_ += opv->sizeOfIncludingThis(iface);
+                cStats->objectsPrivate += opv->sizeOfIncludingThis(iface);
             }
         }
         break;

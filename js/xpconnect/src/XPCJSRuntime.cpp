@@ -2067,7 +2067,7 @@ ReportCompartmentStats(const JS::CompartmentStats &cStats,
     
     
     ZCREPORT_BYTES(cDOMPathPrefix + NS_LITERAL_CSTRING("orphan-nodes"),
-                   cStats.objectsExtra.private_,
+                   cStats.objectsPrivate,
                    "Memory used by orphan DOM nodes that are only reachable "
                    "from JavaScript objects.");
 
