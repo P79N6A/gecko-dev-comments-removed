@@ -881,10 +881,26 @@ DownloadsDataItem.prototype = {
     this.referrer = this._download.source.referrer;
     this.startTime = this._download.startTime;
     this.currBytes = this._download.currentBytes;
-    this.maxBytes = this._download.totalBytes;
     this.resumable = this._download.hasPartialData;
     this.speed = this._download.speed;
-    this.percentComplete = this._download.progress;
+
+    if (this._download.succeeded) {
+      
+      
+      
+      this.maxBytes = this._download.hasProgress ?
+                             this._download.totalBytes :
+                             this._download.currentBytes;
+      this.percentComplete = 100;
+    } else if (this._download.hasProgress) {
+      
+      this.maxBytes = this._download.totalBytes;
+      this.percentComplete = this._download.progress;
+    } else {
+      
+      this.maxBytes = -1;
+      this.percentComplete = -1;
+    }
   },
 
   
