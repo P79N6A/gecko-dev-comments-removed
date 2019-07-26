@@ -156,7 +156,7 @@ DrawTargetCG::~DrawTargetCG()
 }
 
 BackendType
-DrawTargetCG::GetType() const
+DrawTargetCG::GetBackendType() const
 {
   
   
@@ -186,7 +186,7 @@ DrawTargetCG::CreateSimilarDrawTarget(const IntSize &aSize, SurfaceFormat aForma
   
   
   RefPtr<DrawTargetCG> newTarget = new DrawTargetCG();
-  if (newTarget->Init(GetType(), aSize, aFormat)) {
+  if (newTarget->Init(GetBackendType(), aSize, aFormat)) {
     return newTarget.forget();
   }
   return nullptr;
@@ -1573,7 +1573,8 @@ DrawTargetCG::MarkChanged()
 CGContextRef
 BorrowedCGContext::BorrowCGContextFromDrawTarget(DrawTarget *aDT)
 {
-  if (aDT->GetType() == BackendType::COREGRAPHICS || aDT->GetType() == BackendType::COREGRAPHICS_ACCELERATED) {
+  if (aDT->GetBackendType() == BackendType::COREGRAPHICS ||
+      aDT->GetBackendType() == BackendType::COREGRAPHICS_ACCELERATED) {
     DrawTargetCG* cgDT = static_cast<DrawTargetCG*>(aDT);
     cgDT->MarkChanged();
 
