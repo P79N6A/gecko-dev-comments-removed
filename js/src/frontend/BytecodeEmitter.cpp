@@ -523,19 +523,38 @@ PopIterator(ExclusiveContext *cx, BytecodeEmitter *bce)
     return true;
 }
 
+namespace {
+
+class NonLocalExitScope {
+    ExclusiveContext *cx;
+    BytecodeEmitter *bce;
+    const uint32_t savedScopeIndex;
+    const int savedDepth;
+
+    NonLocalExitScope(const NonLocalExitScope &) MOZ_DELETE;
+
+  public:
+    explicit NonLocalExitScope(ExclusiveContext *cx_, BytecodeEmitter *bce_)
+      : cx(cx_),
+        bce(bce_),
+        savedScopeIndex(bce->blockScopeList.length()),
+        savedDepth(bce->stackDepth) {}
+
+    ~NonLocalExitScope() {
+        for (uint32_t n = savedScopeIndex; n < bce->blockScopeList.length(); n++)
+            bce->blockScopeList.recordEnd(n, bce->offset());
+        bce->stackDepth = savedDepth;
+    }
+
+    bool prepareForNonLocalJump(StmtInfoBCE *toStmt);
+};
 
 
 
-static bool
-EmitNonLocalJumpFixup(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt)
+
+bool
+NonLocalExitScope::prepareForNonLocalJump(StmtInfoBCE *toStmt)
 {
-    
-
-
-
-
-
-    int depth = bce->stackDepth;
     int npops = 0;
 
 #define FLUSH_POPS() if (npops && !FlushPops(cx, bce, &npops)) return false
@@ -580,24 +599,31 @@ EmitNonLocalJumpFixup(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *t
             FLUSH_POPS();
             JS_ASSERT(stmt->blockObj);
             StaticBlockObject &blockObj = *stmt->blockObj;
+            uint32_t blockScopeIndex = stmt->blockScopeIndex;
+            uint32_t scopeObjectIndex = bce->blockScopeList.findEnclosingScope(blockScopeIndex);
             if (Emit1(cx, bce, JSOP_DEBUGLEAVEBLOCK) < 0)
+                return false;
+            if (!bce->blockScopeList.append(scopeObjectIndex, bce->offset()))
                 return false;
             EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, blockObj.slotCount());
         }
     }
 
     FLUSH_POPS();
-    bce->stackDepth = depth;
     return true;
 
 #undef FLUSH_POPS
 }
 
+}  
+
 static ptrdiff_t
 EmitGoto(ExclusiveContext *cx, BytecodeEmitter *bce, StmtInfoBCE *toStmt, ptrdiff_t *lastp,
          SrcNoteType noteType = SRC_NULL)
 {
-    if (!EmitNonLocalJumpFixup(cx, bce, toStmt))
+    NonLocalExitScope nle(cx, bce);
+
+    if (!nle.prepareForNonLocalJump(toStmt))
         return -1;
 
     if (noteType != SRC_NULL) {
@@ -776,9 +802,6 @@ PopStatementBCE(ExclusiveContext *cx, BytecodeEmitter *bce)
         return false;
     }
 
-    if (stmt->isBlockScope)
-        bce->blockScopeList.recordEnd(stmt->blockScopeIndex, bce->offset());
-
     FinishPopStatement(bce);
     return true;
 }
@@ -786,10 +809,11 @@ PopStatementBCE(ExclusiveContext *cx, BytecodeEmitter *bce)
 static bool
 LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
 {
-#ifdef DEBUG
     StmtInfoBCE *stmt = bce->topStmt;
-    uint32_t blockScopeIndex = stmt->blockScopeIndex;
     JS_ASSERT(stmt->isBlockScope);
+    uint32_t blockScopeIndex = stmt->blockScopeIndex;
+
+#ifdef DEBUG
     JS_ASSERT(bce->blockScopeList.list[blockScopeIndex].length == 0);
     uint32_t blockObjIndex = bce->blockScopeList.list[blockScopeIndex].index;
     ObjectBox *blockObjBox = bce->objectList.find(blockObjIndex);
@@ -805,6 +829,8 @@ LeaveBlockScope(ExclusiveContext *cx, BytecodeEmitter *bce, JSOp op)
 
     if (Emit1(cx, bce, JSOP_DEBUGLEAVEBLOCK) < 0)
         return false;
+
+    bce->blockScopeList.recordEnd(blockScopeIndex, bce->offset());
 
     JS_ASSERT(op == JSOP_LEAVEBLOCK || op == JSOP_LEAVEBLOCKEXPR);
     EMIT_UINT16_IMM_OP(op, slotCount);
@@ -3843,35 +3869,26 @@ EmitCatch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (guardCheck < 0)
             return false;
 
-#ifdef DEBUG
-        uint32_t blockScopeIndex = bce->topStmt->blockScopeIndex;
-        uint32_t blockObjIndex = bce->blockScopeList.list[blockScopeIndex].index;
-        ObjectBox *blockObjBox = bce->objectList.find(blockObjIndex);
-        StaticBlockObject *blockObj = &blockObjBox->object->as<StaticBlockObject>();
-        JS_ASSERT(blockObj == bce->blockChain);
-#endif
+        {
+            NonLocalExitScope nle(cx, bce);
+
+            
+            
+            if (Emit1(cx, bce, JSOP_THROWING) < 0)
+                return false;
+
+            
+            if (!nle.prepareForNonLocalJump(stmt))
+                return false;
+
+            
+            ptrdiff_t guardJump = EmitJump(cx, bce, JSOP_GOTO, 0);
+            if (guardJump < 0)
+                return false;
+            stmt->guardJump() = guardJump;
+        }
 
         
-        int savedDepth = bce->stackDepth;
-
-        
-        
-        if (Emit1(cx, bce, JSOP_THROWING) < 0)
-            return false;
-
-        
-        if (Emit1(cx, bce, JSOP_DEBUGLEAVEBLOCK) < 0)
-            return false;
-        EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, bce->blockChain->slotCount());
-
-        
-        ptrdiff_t guardJump = EmitJump(cx, bce, JSOP_GOTO, 0);
-        if (guardJump < 0)
-            return false;
-        stmt->guardJump() = guardJump;
-
-        
-        bce->stackDepth = savedDepth;
         SetJumpOffsetAt(bce, guardCheck);
 
         
@@ -5064,8 +5081,12 @@ EmitReturn(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
     if (Emit1(cx, bce, JSOP_RETURN) < 0)
         return false;
-    if (!EmitNonLocalJumpFixup(cx, bce, nullptr))
+
+    NonLocalExitScope nle(cx, bce);
+
+    if (!nle.prepareForNonLocalJump(nullptr))
         return false;
+
     if (top + JSOP_RETURN_LENGTH != bce->offset()) {
         bce->code()[top] = JSOP_SETRVAL;
         if (Emit1(cx, bce, JSOP_RETRVAL) < 0)
@@ -6879,6 +6900,30 @@ CGBlockScopeList::append(uint32_t scopeObject, uint32_t offset)
     note.start = offset;
 
     return list.append(note);
+}
+
+uint32_t
+CGBlockScopeList::findEnclosingScope(uint32_t index)
+{
+    JS_ASSERT(index < length());
+    JS_ASSERT(list[index].index != BlockScopeNote::NoBlockScopeIndex);
+
+    uint32_t pos = list[index].start;
+    while (index--) {
+        JS_ASSERT(list[index].start <= pos);
+        if (list[index].length == 0) {
+            
+            
+            
+            return list[index].index;
+        } else {
+            
+            
+            JS_ASSERT(list[index].start + list[index].length <= pos);
+        }
+    }
+
+    return BlockScopeNote::NoBlockScopeIndex;
 }
 
 void
