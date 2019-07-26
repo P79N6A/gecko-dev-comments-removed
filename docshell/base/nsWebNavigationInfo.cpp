@@ -9,6 +9,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsIDocumentLoaderFactory.h"
 #include "nsIPluginHost.h"
+#include "nsIDocShell.h"
 #include "nsContentUtils.h"
 #include "imgLoader.h"
 
@@ -50,7 +51,15 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   if (*aIsTypeSupported) {
     return rv;
   }
+
   
+  
+  nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aWebNav));
+  bool allowed;
+  if (docShell && NS_SUCCEEDED(docShell->GetAllowPlugins(&allowed)) && !allowed) {
+    return NS_OK;
+  }
+
   
   nsCOMPtr<nsIPluginHost> pluginHost =
     do_GetService(MOZ_PLUGIN_HOST_CONTRACTID);
