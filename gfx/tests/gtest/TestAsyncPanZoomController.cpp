@@ -10,6 +10,8 @@
 #include "mozilla/layers/AsyncPanZoomController.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/GeckoContentController.h"
+#include "mozilla/layers/CompositorParent.h"
+#include "mozilla/layers/APZCTreeManager.h"
 #include "Layers.h"
 #include "TestLayers.h"
 
@@ -49,6 +51,11 @@ public:
     MonitorAutoLock lock(mMonitor);
     mFrameMetrics = metrics;
   }
+};
+
+class TestAPZCTreeManager : public APZCTreeManager {
+protected:
+  void AssertOnCompositorThread() MOZ_OVERRIDE {  }
 };
 
 static
@@ -339,143 +346,123 @@ CreateTestLayerTree(nsRefPtr<LayerManager>& aLayerManager, nsTArray<nsRefPtr<Lay
   return CreateLayerTree(layerTreeSyntax, layerVisibleRegion, transforms, aLayerManager, aLayers);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+static void
+SetScrollableFrameMetrics(Layer* aLayer, FrameMetrics::ViewID aScrollId, MockContentController* mcc)
+{
+  ContainerLayer* container = aLayer->AsContainerLayer();
+  FrameMetrics metrics;
+  metrics.mScrollId = aScrollId;
+  nsIntRect layerBound = aLayer->GetVisibleRegion().GetBounds();
+  metrics.mCompositionBounds = ScreenIntRect(layerBound.x, layerBound.y,
+                                             layerBound.width, layerBound.height);
+  metrics.mViewport = CSSRect(layerBound.x, layerBound.y,
+                              layerBound.width, layerBound.height);
+  container->SetFrameMetrics(metrics);
+
+  
+  
+  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_)).Times(1);
+  EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
+}
+
+TEST(APZCTreeManager, GetAPZCAtPoint) {
+  nsTArray<nsRefPtr<Layer> > layers;
+  nsRefPtr<LayerManager> lm;
+  nsRefPtr<Layer> root = CreateTestLayerTree(lm, layers);
+
+  TimeStamp testStartTime = TimeStamp::Now();
+  AsyncPanZoomController::SetFrameTime(testStartTime);
+  nsRefPtr<MockContentController> mcc = new MockContentController();
+  ScopedLayerTreeRegistration controller(CompositorParent::ROOT_LAYER_TREE_ID, root, mcc);
+
+  nsRefPtr<APZCTreeManager> manager = new TestAPZCTreeManager();
+
+  
+  nsRefPtr<AsyncPanZoomController> hit = manager->GetTargetAPZC(ScreenPoint(20, 20));
+  AsyncPanZoomController* nullAPZC = nullptr;
+  EXPECT_EQ(nullAPZC, hit.get());
+
+  
+  SetScrollableFrameMetrics(root, FrameMetrics::ROOT_SCROLL_ID, mcc);
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
+  EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  SetScrollableFrameMetrics(layers[3], FrameMetrics::START_SCROLL_ID, mcc);
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  EXPECT_NE(root->AsContainerLayer()->GetAsyncPanZoomController(), layers[3]->AsContainerLayer()->GetAsyncPanZoomController());
+  hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
+  EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
+  EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  SetScrollableFrameMetrics(layers[4], FrameMetrics::START_SCROLL_ID + 1, mcc);
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  hit = manager->GetTargetAPZC(ScreenPoint(15, 15));
+  EXPECT_EQ(layers[4]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  hit = manager->GetTargetAPZC(ScreenPoint(90, 90));
+  EXPECT_EQ(root->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  hit = manager->GetTargetAPZC(ScreenPoint(1000, 10));
+  EXPECT_EQ(nullAPZC, hit.get());
+  hit = manager->GetTargetAPZC(ScreenPoint(-1000, 10));
+  EXPECT_EQ(nullAPZC, hit.get());
+
+  
+  gfx3DMatrix transform;
+  transform.ScalePost(0.1, 0.1, 1);
+  root->SetBaseTransform(transform);
+  root->ComputeEffectiveTransforms(gfx3DMatrix());
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  hit = manager->GetTargetAPZC(ScreenPoint(50, 50)); 
+  EXPECT_EQ(nullAPZC, hit.get());
+
+  hit = manager->GetTargetAPZC(ScreenPoint(2, 2));
+  EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  layers[4]->SetBaseTransform(transform);
+  
+  
+  root->ComputeEffectiveTransforms(gfx3DMatrix());
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  hit = manager->GetTargetAPZC(ScreenPoint(2, 2));
+  EXPECT_EQ(layers[3]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  
+  SetScrollableFrameMetrics(layers[7], FrameMetrics::START_SCROLL_ID + 2, mcc);
+
+  gfx3DMatrix translateTransform;
+  translateTransform.Translate(gfxPoint3D(10, 10, 0));
+  layers[5]->SetBaseTransform(translateTransform);
+
+  gfx3DMatrix translateTransform2;
+  translateTransform2.Translate(gfxPoint3D(-20, 0, 0));
+  layers[6]->SetBaseTransform(translateTransform2);
+
+  gfx3DMatrix translateTransform3;
+  translateTransform3.ScalePost(1,15,1);
+  layers[7]->SetBaseTransform(translateTransform3);
+
+  root->ComputeEffectiveTransforms(gfx3DMatrix());
+  manager->UpdatePanZoomControllerTree(nullptr, root, CompositorParent::ROOT_LAYER_TREE_ID, false);
+  
+  hit = manager->GetTargetAPZC(ScreenPoint(1, 45));
+  EXPECT_EQ(layers[7]->AsContainerLayer()->GetAsyncPanZoomController(), hit.get());
+  
+
+  manager->ClearTree();
+}
 
 

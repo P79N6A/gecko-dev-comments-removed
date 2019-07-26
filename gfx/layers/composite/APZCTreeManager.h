@@ -96,11 +96,12 @@ struct ScrollableLayerGuid {
 
 
 
-class APZCTreeManager MOZ_FINAL {
+class APZCTreeManager {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(APZCTreeManager)
 
 public:
   APZCTreeManager();
+  virtual ~APZCTreeManager() {}
 
   
 
@@ -220,14 +221,23 @@ public:
 
   void ClearTree();
 
-private:
+protected:
   
+
+
+
+  virtual void AssertOnCompositorThread();
+
+public:
+  
+
 
 
 
 
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScrollableLayerGuid& aGuid);
   already_AddRefed<AsyncPanZoomController> GetTargetAPZC(const ScreenPoint& aPoint);
+private:
   
   AsyncPanZoomController* FindTargetAPZC(AsyncPanZoomController* aApzc, const ScrollableLayerGuid& aGuid);
   AsyncPanZoomController* GetAPZCAtPoint(AsyncPanZoomController* aApzc, gfxPoint aHitTestPoint);

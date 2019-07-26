@@ -21,6 +21,12 @@ APZCTreeManager::APZCTreeManager()
   AsyncPanZoomController::InitializeGlobalState();
 }
 
+void
+APZCTreeManager::AssertOnCompositorThread()
+{
+  Compositor::AssertOnCompositorThread();
+}
+
 
 static void
 Collect(AsyncPanZoomController* aApzc, nsTArray< nsRefPtr<AsyncPanZoomController> >* aCollection)
@@ -36,7 +42,7 @@ void
 APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor, Layer* aRoot,
                                              bool aIsFirstPaint, uint64_t aFirstPaintLayersId)
 {
-  Compositor::AssertOnCompositorThread();
+  AssertOnCompositorThread();
 
   MonitorAutoLock lock(mTreeLock);
 
