@@ -13,10 +13,6 @@
 #include "jit/IonAnalysis.h"
 #include "jit/MIR.h"
 
-
-#undef min
-#undef max
-
 namespace js {
 namespace jit {
 
