@@ -57,8 +57,6 @@ function reflectString(aParameters)
   element[idlAttr] = null;
   
   var todoAttrs = {
-    col: [ "align", "vAlign", "ch" ],
-    colgroup: [ "align", "vAlign", "ch" ],
     form: [ "acceptCharset", "name", "target" ],
     img: [ "align" ],
     input: [ "accept", "alt", "formTarget", "max", "min", "name", "pattern", "placeholder", "step", "defaultValue" ],
