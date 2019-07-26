@@ -8,6 +8,8 @@
 
 
 
+#ifdef WEBRTC_ANDROID_OPENSLES_OUTPUT
+
 #include "webrtc/modules/audio_device/android/opensles_output.h"
 
 #include <assert.h>
@@ -603,3 +605,5 @@ bool OpenSlesOutput::CbThreadImpl() {
 }
 
 }  
+
+#endif

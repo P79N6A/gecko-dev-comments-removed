@@ -32,6 +32,9 @@ class FineAudioBuffer;
 class SingleRwFifo;
 class ThreadWrapper;
 
+#ifdef WEBRTC_ANDROID_OPENSLES_OUTPUT
+
+
 
 
 
@@ -259,6 +262,200 @@ class OpenSlesOutput : public PlayoutDelayProvider {
   SLInterfaceID SL_IID_VOLUME_;
 };
 
+#else
+
+
+class OpenSlesOutput : public PlayoutDelayProvider {
+ public:
+  explicit OpenSlesOutput(const int32_t id) :
+    initialized_(false), speaker_initialized_(false),
+    play_initialized_(false), playing_(false)
+  {}
+  virtual ~OpenSlesOutput() {}
+
+  static int32_t SetAndroidAudioDeviceObjects(void* javaVM,
+                                              void* env,
+                                              void* context) { return 0; }
+  static void ClearAndroidAudioDeviceObjects() {}
+
+  
+  int32_t Init() { initialized_ = true; return 0; }
+  int32_t Terminate() { initialized_ = false; return 0; }
+  bool Initialized() const { return initialized_; }
+
+  
+  int16_t PlayoutDevices() { return 1; }
+
+  int32_t PlayoutDeviceName(uint16_t index,
+                            char name[kAdmMaxDeviceNameSize],
+                            char guid[kAdmMaxGuidSize])
+  {
+    assert(index == 0);
+    
+    name[0] = '\0';
+    guid[0] = '\0';
+    return 0;
+  }
+
+  
+  int32_t SetPlayoutDevice(uint16_t index)
+  {
+    assert(index == 0);
+    return 0;
+  }
+  int32_t SetPlayoutDevice(
+      AudioDeviceModule::WindowsDeviceType device) { return 0; }
+
+  
+  int32_t SetPlayoutSampleRate(uint32_t sample_rate_hz) { return 0; }
+
+  
+  int32_t PlayoutIsAvailable(bool& available)  
+  {
+    available = true;
+    return 0;
+  }
+  int32_t InitPlayout()
+  {
+    assert(initialized_);
+    play_initialized_ = true;
+    return 0;
+  }
+  bool PlayoutIsInitialized() const { return play_initialized_; }
+
+  
+  int32_t StartPlayout()
+  {
+    assert(play_initialized_);
+    assert(!playing_);
+    playing_ = true;
+    return 0;
+  }
+
+  int32_t StopPlayout()
+  {
+    playing_ = false;
+    return 0;
+  }
+
+  bool Playing() const { return playing_; }
+
+  
+  int32_t SpeakerIsAvailable(bool& available)  
+  {
+    available = true;
+    return 0;
+  }
+  int32_t InitSpeaker()
+  {
+    assert(!playing_);
+    speaker_initialized_ = true;
+    return 0;
+  }
+  bool SpeakerIsInitialized() const { return speaker_initialized_; }
+
+  
+  int32_t SpeakerVolumeIsAvailable(bool& available)  
+  {
+    available = true;
+    return 0;
+  }
+  int32_t SetSpeakerVolume(uint32_t volume)
+  {
+    assert(speaker_initialized_);
+    assert(initialized_);
+    return 0;
+  }
+  int32_t SpeakerVolume(uint32_t& volume) const { return 0; }  
+  int32_t MaxSpeakerVolume(uint32_t& maxVolume) const  
+  {
+    assert(speaker_initialized_);
+    assert(initialized_);
+    maxVolume = 0;
+    return 0;
+  }
+  int32_t MinSpeakerVolume(uint32_t& minVolume) const  
+  {
+    assert(speaker_initialized_);
+    assert(initialized_);
+    minVolume = 0;
+    return 0;
+  }
+  int32_t SpeakerVolumeStepSize(uint16_t& stepSize) const  
+  {
+    assert(speaker_initialized_);
+    assert(initialized_);
+    stepSize = 0;
+    return 0;
+  }
+
+  
+  int32_t SpeakerMuteIsAvailable(bool& available)  
+  {
+    available = true;
+    return 0;
+  }
+  int32_t SetSpeakerMute(bool enable) { return -1; }
+  int32_t SpeakerMute(bool& enabled) const { return -1; }  
+
+
+  
+  int32_t StereoPlayoutIsAvailable(bool& available)  
+  {
+    available = true;
+    return 0;
+  }
+  int32_t SetStereoPlayout(bool enable)
+  {
+    return 0;
+  }
+  int32_t StereoPlayout(bool& enabled) const  
+  {
+    enabled = kNumChannels == 2;
+    return 0;
+  }
+
+  
+  int32_t SetPlayoutBuffer(const AudioDeviceModule::BufferType type,
+                                   uint16_t sizeMS) { return -1; }
+  int32_t PlayoutBuffer(AudioDeviceModule::BufferType& type,  
+                        uint16_t& sizeMS) const
+  {
+    type = AudioDeviceModule::kAdaptiveBufferSize;
+    sizeMS = 40;
+    return 0;
+  }
+  int32_t PlayoutDelay(uint16_t& delayMS) const  
+  {
+    delayMS = 0;
+    return 0;
+  }
+
+
+  
+  bool PlayoutWarning() const { return false; }
+  bool PlayoutError() const { return false; }
+  void ClearPlayoutWarning() {}
+  void ClearPlayoutError() {}
+
+  
+  void AttachAudioBuffer(AudioDeviceBuffer* audioBuffer) {}
+
+  
+  int32_t SetLoudspeakerStatus(bool enable) { return 0; }
+  int32_t GetLoudspeakerStatus(bool& enable) const { enable = true; return 0; }  
+
+ protected:
+  virtual int PlayoutDelayMs() { return 40; }
+
+ private:
+  bool initialized_;
+  bool speaker_initialized_;
+  bool play_initialized_;
+  bool playing_;
+};
+#endif
+
 }  
 
-#endif
+#endif  
