@@ -682,12 +682,12 @@ bool TabParent::SendRealMouseEvent(WidgetMouseEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetMouseEvent e(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &e);
-  if (!MapEventCoordinatesForChildProcess(&e)) {
+  WidgetMouseEvent outEvent(event);
+  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
+  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
     return false;
   }
-  return PBrowserParent::SendRealMouseEvent(e);
+  return PBrowserParent::SendRealMouseEvent(outEvent);
 }
 
 CSSIntPoint TabParent::AdjustTapToChildWidget(const CSSIntPoint& aPoint)
@@ -750,9 +750,9 @@ bool TabParent::SendMouseWheelEvent(WidgetWheelEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetWheelEvent e(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &e);
-  if (!MapEventCoordinatesForChildProcess(&e)) {
+  WidgetWheelEvent outEvent(event);
+  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
+  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
     return false;
   }
   return PBrowserParent::SendMouseWheelEvent(event);
@@ -763,12 +763,12 @@ bool TabParent::SendRealKeyEvent(WidgetKeyboardEvent& event)
   if (mIsDestroyed) {
     return false;
   }
-  WidgetKeyboardEvent e(event);
-  MaybeForwardEventToRenderFrame(event, nullptr, &e);
-  if (!MapEventCoordinatesForChildProcess(&e)) {
+  WidgetKeyboardEvent outEvent(event);
+  MaybeForwardEventToRenderFrame(event, nullptr, &outEvent);
+  if (!MapEventCoordinatesForChildProcess(&outEvent)) {
     return false;
   }
-  return PBrowserParent::SendRealKeyEvent(e);
+  return PBrowserParent::SendRealKeyEvent(outEvent);
 }
 
 bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
@@ -797,30 +797,36 @@ bool TabParent::SendRealTouchEvent(WidgetTouchEvent& event)
     ++mEventCaptureDepth;
   }
 
-  WidgetTouchEvent e(event);
+  
   
   
   
   if (event.message == NS_TOUCH_END || event.message == NS_TOUCH_CANCEL) {
-    for (int i = e.touches.Length() - 1; i >= 0; i--) {
-      if (!e.touches[i]->mChanged) {
-        e.touches.RemoveElementAt(i);
+    for (int i = event.touches.Length() - 1; i >= 0; i--) {
+      if (!event.touches[i]->mChanged) {
+        event.touches.RemoveElementAt(i);
       }
     }
   }
 
+  
+  
+  
+  
+  WidgetTouchEvent outEvent(event);
+
   ScrollableLayerGuid guid;
-  MaybeForwardEventToRenderFrame(event, &guid, &e);
+  MaybeForwardEventToRenderFrame(event, &guid, &outEvent);
 
   if (mIsDestroyed) {
     return false;
   }
 
-  MapEventCoordinatesForChildProcess(mChildProcessOffsetAtTouchStart, &e);
+  MapEventCoordinatesForChildProcess(mChildProcessOffsetAtTouchStart, &outEvent);
 
-  return (e.message == NS_TOUCH_MOVE) ?
-    PBrowserParent::SendRealTouchMoveEvent(e, guid) :
-    PBrowserParent::SendRealTouchEvent(e, guid);
+  return (outEvent.message == NS_TOUCH_MOVE) ?
+    PBrowserParent::SendRealTouchMoveEvent(outEvent, guid) :
+    PBrowserParent::SendRealTouchEvent(outEvent, guid);
 }
 
  TabParent*
