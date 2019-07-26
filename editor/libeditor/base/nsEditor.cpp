@@ -5208,6 +5208,23 @@ nsEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
     if (!focusedContent) {
       return false;
     }
+  } else {
+    nsAutoString eventType;
+    aEvent->GetType(eventType);
+    
+    
+    
+    
+    
+    if (eventType.EqualsLiteral("text") ||
+        eventType.EqualsLiteral("compositionstart") ||
+        eventType.EqualsLiteral("compositionend")) {
+      WidgetGUIEvent* widgetGUIEvent =
+        aEvent->GetInternalNSEvent()->AsGUIEvent();
+      if (!widgetGUIEvent || !widgetGUIEvent->widget) {
+        return false;
+      }
+    }
   }
 
   bool isTrusted;
