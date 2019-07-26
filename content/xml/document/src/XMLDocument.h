@@ -70,6 +70,9 @@ public:
 protected:
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
 
+  friend nsresult (::NS_NewXMLDocument)(nsIDocument**, bool, bool);
+
+
   
   
   
@@ -79,6 +82,9 @@ protected:
   bool mChannelIsPending;
   bool mAsync;
   bool mLoopingForSyncLoad;
+
+  
+  bool mIsPlainDocument;
 };
 
 } 
