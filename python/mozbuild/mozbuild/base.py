@@ -135,11 +135,10 @@ class MozbuildObject(ProcessExecutionMixin):
                 topsrcdir = dir_path
                 break
 
-        if not topsrcdir:
-            
-            mozinfo_path = os.path.join(os.path.dirname(sys.prefix), "mozinfo.json")
-            if os.path.isfile(mozinfo_path):
-                topsrcdir, topobjdir, mozconfig = load_mozinfo(mozinfo_path)
+        
+        mozinfo_path = os.path.join(os.path.dirname(sys.prefix), "mozinfo.json")
+        if os.path.isfile(mozinfo_path):
+            topsrcdir, topobjdir, mozconfig = load_mozinfo(mozinfo_path)
 
         
         
