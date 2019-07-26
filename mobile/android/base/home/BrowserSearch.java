@@ -8,6 +8,7 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.AutocompleteHandler;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.PrefsHelper;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.Tab;
 import org.mozilla.gecko.Tabs;
@@ -37,9 +38,17 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.ViewGroup;
+import android.view.ViewStub;
+import android.view.WindowManager.LayoutParams;
+import android.view.animation.AccelerateInterpolator;
+import android.view.animation.Animation;
+import android.view.animation.TranslateAnimation;
 import android.widget.AdapterView;
+import android.widget.LinearLayout;
 import android.widget.ListView;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -72,16 +81,22 @@ public class BrowserSearch extends HomeFragment
     private static final int MAX_AUTOCOMPLETE_SEARCH = 20;
 
     
+    private static final int ANIMATION_DURATION = 250;
+
+    
     private String mSearchTerm;
 
     
     private SearchAdapter mAdapter;
 
     
+    private LinearLayout mView;
+
+    
     private ListView mList;
 
     
-    private SuggestClient mSuggestClient;
+    private volatile SuggestClient mSuggestClient;
 
     
     private ArrayList<SearchEngine> mSearchEngines;
@@ -110,6 +125,12 @@ public class BrowserSearch extends HomeFragment
     
     private OnEditSuggestionListener mEditSuggestionListener;
 
+    
+    private boolean mAnimateSuggestions;
+
+    
+    private View mSuggestionsOptInPrompt;
+
     public interface OnSearchListener {
         public void onSearch(String engineId, String text);
     }
@@ -124,26 +145,6 @@ public class BrowserSearch extends HomeFragment
 
     public BrowserSearch() {
         mSearchTerm = "";
-    }
-
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-
-        registerEventListener("SearchEngines:Data");
-
-        
-        
-        if (mSearchEngines == null) {
-            mSearchEngines = new ArrayList<SearchEngine>();
-            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
-        }
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterEventListener("SearchEngines:Data");
     }
 
     @Override
@@ -189,8 +190,23 @@ public class BrowserSearch extends HomeFragment
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         
         
-        mList = new HomeListView(container.getContext());
-        return mList;
+        mView = (LinearLayout) inflater.inflate(R.layout.browser_search, container, false);
+        mList = (ListView) mView.findViewById(R.id.home_list_view);
+
+        return mView;
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        unregisterEventListener("SearchEngines:Data");
+
+        mView = null;
+        mList = null;
+        mSearchEngines = null;
+        mSuggestionsOptInPrompt = null;
+        mSuggestClient = null;
     }
 
     @Override
@@ -211,6 +227,10 @@ public class BrowserSearch extends HomeFragment
         });
 
         registerForContextMenu(mList);
+        registerEventListener("SearchEngines:Data");
+
+        mSearchEngines = new ArrayList<SearchEngine>();
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("SearchEngines:Get", null));
     }
 
     @Override
@@ -312,11 +332,20 @@ public class BrowserSearch extends HomeFragment
     }
 
     private void setSuggestions(ArrayList<String> suggestions) {
-        mSearchEngines.get(0).suggestions = suggestions;
-        mAdapter.notifyDataSetChanged();
+        if (mSearchEngines != null) {
+            mSearchEngines.get(0).suggestions = suggestions;
+            mAdapter.notifyDataSetChanged();
+        }
     }
 
     private void setSearchEngines(JSONObject data) {
+        
+        
+        
+        if (mView == null) {
+            return;
+        }
+
         try {
             final JSONObject suggest = data.getJSONObject("suggest");
             final String suggestEngine = suggest.optString("engine", null);
@@ -359,11 +388,116 @@ public class BrowserSearch extends HomeFragment
             }
 
             
+            
+            if (!suggestionsPrompted && mSuggestClient != null) {
+                showSuggestionsOptIn();
+            }
         } catch (JSONException e) {
             Log.e(LOGTAG, "Error getting search engine JSON", e);
         }
 
         filterSuggestions();
+    }
+
+    private void showSuggestionsOptIn() {
+        mSuggestionsOptInPrompt = ((ViewStub) mView.findViewById(R.id.suggestions_opt_in_prompt)).inflate();
+
+        TextView promptText = (TextView) mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_title);
+        promptText.setText(getResources().getString(R.string.suggestions_prompt, mSearchEngines.get(0).name));
+
+        final View yesButton = mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_yes);
+        final View noButton = mSuggestionsOptInPrompt.findViewById(R.id.suggestions_prompt_no);
+
+        final OnClickListener listener = new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                
+                yesButton.setOnClickListener(null);
+                noButton.setOnClickListener(null);
+
+                setSuggestionsEnabled(v == yesButton);
+            }
+        };
+
+        yesButton.setOnClickListener(listener);
+        noButton.setOnClickListener(listener);
+    }
+
+    private void setSuggestionsEnabled(final boolean enabled) {
+        
+        
+        
+        
+        if (mSuggestionsOptInPrompt == null) {
+            return;
+        }
+
+        
+        ThreadUtils.postToBackgroundThread(new Runnable() {
+            @Override
+            public void run() {
+                SuggestClient client = mSuggestClient;
+                if (client != null) {
+                    client.query(mSearchTerm);
+                }
+            }
+        });
+
+        
+        PrefsHelper.setPref("browser.search.suggest.enabled", enabled);
+
+        TranslateAnimation slideAnimation = new TranslateAnimation(0, mSuggestionsOptInPrompt.getWidth(), 0, 0);
+        slideAnimation.setDuration(ANIMATION_DURATION);
+        slideAnimation.setInterpolator(new AccelerateInterpolator());
+        slideAnimation.setFillAfter(true);
+        final View prompt = mSuggestionsOptInPrompt.findViewById(R.id.prompt);
+
+        TranslateAnimation shrinkAnimation = new TranslateAnimation(0, 0, 0, -1 * mSuggestionsOptInPrompt.getHeight());
+        shrinkAnimation.setDuration(ANIMATION_DURATION);
+        shrinkAnimation.setFillAfter(true);
+        shrinkAnimation.setStartOffset(slideAnimation.getDuration());
+        shrinkAnimation.setAnimationListener(new Animation.AnimationListener() {
+            @Override
+            public void onAnimationStart(Animation a) {
+                
+                mView.getLayoutParams().height = mView.getHeight() +
+                        mSuggestionsOptInPrompt.getHeight();
+                mView.requestLayout();
+            }
+
+            @Override
+            public void onAnimationRepeat(Animation a) {}
+
+            @Override
+            public void onAnimationEnd(Animation a) {
+                
+                
+                
+                
+                mView.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        mView.removeView(mSuggestionsOptInPrompt);
+                        mList.clearAnimation();
+                        mSuggestionsOptInPrompt = null;
+
+                        if (enabled) {
+                            
+                            mView.getLayoutParams().height = LayoutParams.MATCH_PARENT;
+
+                            mSuggestionsEnabled = enabled;
+                            mAnimateSuggestions = true;
+                            mAdapter.notifyDataSetChanged();
+                            filterSuggestions();
+                        }
+                    }
+                });
+            }
+        });
+
+        prompt.startAnimation(slideAnimation);
+        mSuggestionsOptInPrompt.startAnimation(shrinkAnimation);
+        mList.startAnimation(shrinkAnimation);
     }
 
     private void registerEventListener(String eventName) {
@@ -528,7 +662,12 @@ public class BrowserSearch extends HomeFragment
                 row.setSearchTerm(mSearchTerm);
 
                 final SearchEngine engine = mSearchEngines.get(getEngineIndex(position));
-                row.updateFromSearchEngine(engine);
+                final boolean animate = (mAnimateSuggestions && engine.suggestions.size() > 0);
+                row.updateFromSearchEngine(engine, animate);
+                if (animate) {
+                    
+                    mAnimateSuggestions = false;
+                }
 
                 return row;
             } else {
@@ -633,6 +772,9 @@ public class BrowserSearch extends HomeFragment
     private class SuggestionLoaderCallbacks implements LoaderCallbacks<ArrayList<String>> {
         @Override
         public Loader<ArrayList<String>> onCreateLoader(int id, Bundle args) {
+            
+            
+            
             return new SuggestionAsyncLoader(getActivity(), mSuggestClient, mSearchTerm);
         }
 
