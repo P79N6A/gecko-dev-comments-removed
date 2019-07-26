@@ -92,6 +92,8 @@ namespace mozilla {
 class AudioSegment;
 class VideoSegment;
 
+class AudioSink;
+
 
 
 
@@ -106,6 +108,8 @@ class VideoSegment;
 
 class MediaDecoderStateMachine : public nsRunnable
 {
+  friend class AudioSink;
+
 public:
   typedef MediaDecoder::DecodedStreamData DecodedStreamData;
   MediaDecoderStateMachine(MediaDecoder* aDecoder,
@@ -173,9 +177,6 @@ public:
     return IsCurrentThread(mDecodeThread);
   }
   bool OnStateMachineThread() const;
-  bool OnAudioThread() const {
-    return IsCurrentThread(mAudioThread);
-  }
 
   MediaDecoderOwner::NextFrameStatus GetNextFrameStatus();
 
@@ -422,16 +423,6 @@ private:
   bool JustExitedQuickBuffering();
 
   
-  
-  
-  
-  
-  
-  
-  
-  void Wait(int64_t aUsecs);
-
-  
   void UpdateReadyState();
 
   
@@ -477,22 +468,6 @@ private:
   
   
   
-  
-  
-  
-  
-  uint32_t PlaySilence(uint32_t aFrames,
-                       uint32_t aChannels,
-                       uint64_t aFrameOffset);
-
-  
-  
-  
-  uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
-
-  
-  
-  
   void StopDecodeThread();
 
   
@@ -508,11 +483,6 @@ private:
   
   
   nsresult StartAudioThread();
-
-  
-  
-  
-  void AudioLoop();
 
   
   
@@ -590,6 +560,20 @@ private:
 
   
   
+  void SetPlayStartTime(const TimeStamp& aTimeStamp);
+
+  
+  void OnAudioEndTimeUpdate(int64_t aAudioEndTime);
+
+  
+  void OnPlaybackOffsetUpdate(int64_t aPlaybackOffset);
+
+  
+  
+  void OnAudioSinkComplete();
+
+  
+  
   
   
   
@@ -604,10 +588,6 @@ private:
   
   
   State mState;
-
-  
-  
-  nsCOMPtr<nsIThread> mAudioThread;
 
   
   nsCOMPtr<nsIThread> mDecodeThread;
@@ -629,13 +609,13 @@ private:
   
   
   
-  StreamTime mSyncPointInMediaStream;
-  int64_t mSyncPointInDecodedStream; 
+  bool mResetPlayStartTime;
 
   
   
   
-  bool mResetPlayStartTime;
+  StreamTime mSyncPointInMediaStream;
+  int64_t mSyncPointInDecodedStream; 
 
   
   
@@ -667,11 +647,7 @@ private:
   
   int64_t mFragmentEndTime;
 
-  
-  
-  
-  
-  nsAutoPtr<AudioStream> mAudioStream;
+  nsRefPtr<AudioSink> mAudioSink;
 
   
   
@@ -826,7 +802,7 @@ private:
   
   
   
-  AudioAvailableEventManager mEventManager;
+  nsRefPtr<AudioAvailableEventManager> mEventManager;
 
   
   
