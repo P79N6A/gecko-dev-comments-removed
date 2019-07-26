@@ -690,7 +690,8 @@ MediaDecoderStateMachine::CheckIfDecodeComplete()
 {
   AssertCurrentThreadInMonitor();
   if (mState == DECODER_STATE_SHUTDOWN ||
-      mState == DECODER_STATE_SEEKING) {
+      mState == DECODER_STATE_SEEKING ||
+      mState == DECODER_STATE_COMPLETED) {
     
     
     return;
