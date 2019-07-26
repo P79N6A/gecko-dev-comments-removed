@@ -80,6 +80,12 @@ let gSupportedWidgetTypes = new Set(["button", "view", "custom"]);
 
 
 
+let gPanelsForWindow = new WeakMap();
+
+
+
+
+
 
 
 let gSeenWidgets = new Set();
@@ -380,14 +386,24 @@ let CustomizableUIInternal = {
     this.endBatchUpdate();
   },
 
-  ensureButtonsClosePanel: function(aPanel) {
+  addPanelCloseListeners: function(aPanel) {
     gELS.addSystemEventListener(aPanel, "click", this, false);
     gELS.addSystemEventListener(aPanel, "keypress", this, false);
+    let win = aPanel.ownerDocument.defaultView;
+    if (!gPanelsForWindow.has(win)) {
+      gPanelsForWindow.set(win, new Set());
+    }
+    gPanelsForWindow.get(win).add(this._getPanelForNode(aPanel));
   },
 
   removePanelCloseListeners: function(aPanel) {
     gELS.removeSystemEventListener(aPanel, "click", this, false);
     gELS.removeSystemEventListener(aPanel, "keypress", this, false);
+    let win = aPanel.ownerDocument.defaultView;
+    let panels = gPanelsForWindow.get(win);
+    if (panels) {
+      panels.delete(this._getPanelForNode(aPanel));
+    }
   },
 
   ensureButtonContextMenu: function(aNode, ourContextMenu) {
@@ -472,7 +488,7 @@ let CustomizableUIInternal = {
     aPanel.toolbox = document.getElementById("navigator-toolbox");
     aPanel.customizationTarget = aPanel;
 
-    this.ensureButtonsClosePanel(aPanel);
+    this.addPanelCloseListeners(aPanel);
 
     let placements = gPlacements.get(CustomizableUI.AREA_PANEL);
     this.buildArea(CustomizableUI.AREA_PANEL, placements, aPanel);
@@ -633,10 +649,14 @@ let CustomizableUIInternal = {
       gBuildWindows.set(aWindow, new Set());
     }
 
-    aWindow.addEventListener("unload", this, false);
+    aWindow.addEventListener("unload", this);
+    aWindow.addEventListener("command", this, true);
   },
 
   unregisterBuildWindow: function(aWindow) {
+    aWindow.removeEventListener("unload", this);
+    aWindow.removeEventListener("command", this, true);
+    gPanelsForWindow.delete(aWindow);
     gBuildWindows.delete(aWindow);
     let document = aWindow.document;
 
@@ -682,17 +702,34 @@ let CustomizableUIInternal = {
 
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
+      case "command":
+        if (!this._originalEventInPanel(aEvent)) {
+          break;
+        }
+        aEvent = aEvent.sourceEvent;
+        
       case "click":
       case "keypress":
         this.maybeAutoHidePanel(aEvent);
         break;
-      case "unload": {
-        let window = aEvent.currentTarget;
-        window.removeEventListener("unload", this);
-        this.unregisterBuildWindow(window);
+      case "unload":
+        this.unregisterBuildWindow(aEvent.currentTarget);
         break;
-      }
     }
+  },
+
+  _originalEventInPanel: function(aEvent) {
+    let e = aEvent.sourceEvent;
+    if (!e) {
+      return false;
+    }
+    let node = this._getPanelForNode(e.target);
+    if (!node) {
+      return false;
+    }
+    let win = e.view;
+    let panels = gPanelsForWindow.get(win);
+    return !!panels && panels.has(node);
   },
 
   isSpecialWidget: function(aId) {
@@ -933,6 +970,13 @@ let CustomizableUIInternal = {
     }
   },
 
+  _getPanelForNode: function(aNode) {
+    let panel = aNode;
+    while (panel && panel.localName != "panel")
+      panel = panel.parentNode;
+    return panel;
+  },
+
   
 
 
@@ -952,9 +996,7 @@ let CustomizableUIInternal = {
   },
 
   hidePanelForNode: function(aNode) {
-    let panel = aNode;
-    while (panel && panel.localName != "panel")
-      panel = panel.parentNode;
+    let panel = this._getPanelForNode(aNode);
     if (panel) {
       panel.hidePopup();
     }
@@ -970,7 +1012,7 @@ let CustomizableUIInternal = {
       
       
 
-    } else { 
+    } else if (aEvent.type != "command") { 
       if (aEvent.defaultPrevented || aEvent.button != 0) {
         return;
       }
@@ -1939,7 +1981,13 @@ this.CustomizableUI = {
   },
   isSpecialWidget: function(aWidgetId) {
     return CustomizableUIInternal.isSpecialWidget(aWidgetId);
-  }
+  },
+  addPanelCloseListeners: function(aPanel) {
+    CustomizableUIInternal.addPanelCloseListeners(aPanel);
+  },
+  removePanelCloseListeners: function(aPanel) {
+    CustomizableUIInternal.removePanelCloseListeners(aPanel);
+  },
 };
 Object.freeze(this.CustomizableUI);
 
@@ -2142,7 +2190,7 @@ OverflowableToolbar.prototype = {
 
     this._panel = doc.getElementById("widget-overflow");
     this._panel.addEventListener("popuphiding", this);
-    CustomizableUIInternal.ensureButtonsClosePanel(this._panel);
+    CustomizableUIInternal.addPanelCloseListeners(this._panel);
 
     this.initialized = true;
 
