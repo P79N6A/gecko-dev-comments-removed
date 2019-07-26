@@ -89,12 +89,6 @@ XPCWrappedNativeScope::GetNewOrUsed(JSContext *cx, JSObject* aGlobal)
     XPCWrappedNativeScope* scope = GetObjectScope(aGlobal);
     if (!scope) {
         scope = new XPCWrappedNativeScope(cx, aGlobal);
-    } else {
-        
-        
-        
-        
-        scope->SetGlobal(cx, aGlobal);
     }
     return scope;
 }
@@ -106,7 +100,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mMainThreadWrappedNativeProtoMap(ClassInfo2WrappedNativeProtoMap::newMap(XPC_NATIVE_PROTO_MAP_SIZE)),
         mComponents(nullptr),
         mNext(nullptr),
-        mGlobalJSObject(nullptr),
+        mGlobalJSObject(aGlobal),
         mPrototypeNoHelper(nullptr),
         mExperimentalBindingsEnabled(XPCJSRuntime::Get()->ExperimentalBindingsEnabled()),
         mIsXBLScope(false)
@@ -127,9 +121,6 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JSContext *cx,
         mContext = XPCContext::GetXPCContext(cx);
         mContext->AddScope(this);
     }
-
-    if (aGlobal)
-        SetGlobal(cx, aGlobal);
 
     DEBUG_TrackNewScope(this);
     MOZ_COUNT_CTOR(XPCWrappedNativeScope);
@@ -285,16 +276,6 @@ js::Class XPC_WN_NoHelper_Proto_JSClass = {
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
-
-
-void
-XPCWrappedNativeScope::SetGlobal(JSContext *cx, JSObject* aGlobal)
-{
-    
-    
-    mGlobalJSObject = aGlobal;
-
-}
 
 XPCWrappedNativeScope::~XPCWrappedNativeScope()
 {
