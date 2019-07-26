@@ -868,6 +868,63 @@ function format_pattern_match_failure(diagnosis, indent="") {
   return indent + a;
 }
 
+
+
+function do_check_throws_nsIException(func, resultName,
+                                      stack=Components.stack.caller, todo=false)
+{
+  let expected = Components.results[resultName];
+  if (typeof expected !== 'number') {
+    do_throw("do_check_throws_nsIException requires a Components.results" +
+             " property name, not " + uneval(resultName), stack);
+  }
+
+  let msg = ("do_check_throws_nsIException: func should throw" +
+             " an nsIException whose 'result' is Components.results." +
+             resultName);
+
+  try {
+    func();
+  } catch (ex) {
+    if (!(ex instanceof Components.interfaces.nsIException) ||
+        ex.result !== expected) {
+      do_report_result(false, msg + ", threw " + legible_exception(ex) +
+                       " instead", stack, todo);
+    }
+
+    do_report_result(true, msg, stack, todo);
+    return;
+  }
+
+  
+  
+  do_report_result(false, msg + ", but returned normally", stack, todo);
+}
+
+
+
+function legible_exception(exception)
+{
+  switch (typeof exception) {
+    case 'object':
+    if (exception instanceof Components.interfaces.nsIException) {
+      return "nsIException instance: " + uneval(exception.toString());
+    }
+    return exception.toString();
+
+    case 'number':
+    for (let name in Components.results) {
+      if (exception === Components.results[name]) {
+        return "Components.results." + name;
+      }
+    }
+
+    
+    default:
+    return uneval(exception);
+  }
+}
+
 function do_test_pending(aName) {
   ++_tests_pending;
 

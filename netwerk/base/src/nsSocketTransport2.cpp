@@ -155,8 +155,13 @@ ErrorAccordingToNSPR(PRErrorCode errorCode)
         rv = NS_ERROR_NET_INTERRUPT;
         break;
     case PR_CONNECT_REFUSED_ERROR:
-    case PR_NETWORK_UNREACHABLE_ERROR: 
-    case PR_HOST_UNREACHABLE_ERROR:    
+    
+    
+    
+    
+    
+    case PR_NETWORK_UNREACHABLE_ERROR:
+    case PR_HOST_UNREACHABLE_ERROR:
     case PR_ADDRESS_NOT_AVAILABLE_ERROR:
     
     
@@ -170,10 +175,68 @@ ErrorAccordingToNSPR(PRErrorCode errorCode)
     case PR_CONNECT_TIMEOUT_ERROR:
         rv = NS_ERROR_NET_TIMEOUT;
         break;
+    case PR_OUT_OF_MEMORY_ERROR:
+    
+    
+    
+    case PR_PROC_DESC_TABLE_FULL_ERROR:
+    case PR_SYS_DESC_TABLE_FULL_ERROR:
+    case PR_INSUFFICIENT_RESOURCES_ERROR:
+        rv = NS_ERROR_OUT_OF_MEMORY;
+        break;
+    case PR_ADDRESS_IN_USE_ERROR:
+        rv = NS_ERROR_SOCKET_ADDRESS_IN_USE;
+        break;
+    
+    case PR_FILE_NOT_FOUND_ERROR:
+        rv = NS_ERROR_FILE_NOT_FOUND;
+        break;
+    case PR_IS_DIRECTORY_ERROR:
+        rv = NS_ERROR_FILE_IS_DIRECTORY;
+        break;
+    case PR_LOOP_ERROR:
+        rv = NS_ERROR_FILE_UNRESOLVABLE_SYMLINK;
+        break;
+    case PR_NAME_TOO_LONG_ERROR:
+        rv = NS_ERROR_FILE_NAME_TOO_LONG;
+        break;
+    case PR_NO_DEVICE_SPACE_ERROR:
+        rv = NS_ERROR_FILE_NO_DEVICE_SPACE;
+        break;
+    case PR_NOT_DIRECTORY_ERROR:
+        rv = NS_ERROR_FILE_NOT_DIRECTORY;
+        break;
+    case PR_READ_ONLY_FILESYSTEM_ERROR:
+        rv = NS_ERROR_FILE_READ_ONLY;
+        break;
     default:
         if (IsNSSErrorCode(errorCode))
             rv = GetXPCOMFromNSSError(errorCode);
         break;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     }
     SOCKET_LOG(("ErrorAccordingToNSPR [in=%d out=%x]\n", errorCode, rv));
     return rv;
