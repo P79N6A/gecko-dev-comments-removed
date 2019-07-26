@@ -14,7 +14,11 @@ namespace mozilla {
 static GstMozVideoBuffer *gst_moz_video_buffer_copy(GstMozVideoBuffer* self);
 static void gst_moz_video_buffer_finalize(GstMozVideoBuffer* self);
 
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
 G_DEFINE_TYPE(GstMozVideoBuffer, gst_moz_video_buffer, GST_TYPE_BUFFER);
+#pragma GCC diagnostic pop
 
 static void
 gst_moz_video_buffer_class_init(GstMozVideoBufferClass* klass)
