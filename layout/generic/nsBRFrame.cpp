@@ -125,14 +125,6 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       else {
         aMetrics.SetTopAscent(aMetrics.Height() = 0);
       }
-
-      
-      
-      
-      
-      
-      
-      aMetrics.Width() = 1;
     }
 
     
