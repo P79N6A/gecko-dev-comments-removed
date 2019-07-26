@@ -19,7 +19,7 @@ using namespace mozilla::dom;
 namespace mozilla {
 
 
-StaticRefPtr<WifiProxyService> gWifiProxyService;
+static StaticRefPtr<WifiProxyService> gWifiProxyService;
 
 
 static nsAutoPtr<WpaSupplicant> gWpaSupplicant;
@@ -28,7 +28,9 @@ static nsAutoPtr<WpaSupplicant> gWpaSupplicant;
 class WifiEventDispatcher : public nsRunnable
 {
 public:
-  WifiEventDispatcher(nsAString& aEvent): mEvent(aEvent)
+  WifiEventDispatcher(const nsAString& aEvent, const nsACString& aInterface)
+    : mEvent(aEvent)
+    , mInterface(aInterface)
   {
     MOZ_ASSERT(!NS_IsMainThread());
   }
@@ -36,19 +38,21 @@ public:
   NS_IMETHOD Run()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    gWifiProxyService->DispatchWifiEvent(mEvent);
+    gWifiProxyService->DispatchWifiEvent(mEvent, mInterface);
     return NS_OK;
   }
 
 private:
   nsString mEvent;
+  nsCString mInterface;
 };
 
 
 class EventRunnable : public nsRunnable
 {
 public:
-  EventRunnable()
+  EventRunnable(const nsACString& aInterface)
+    : mInterface(aInterface)
   {
     MOZ_ASSERT(NS_IsMainThread());
   }
@@ -57,20 +61,24 @@ public:
   {
     MOZ_ASSERT(!NS_IsMainThread());
     nsAutoString event;
-    gWpaSupplicant->WaitForEvent(event);
+    gWpaSupplicant->WaitForEvent(event, mInterface);
     if (!event.IsEmpty()) {
-      nsCOMPtr<nsIRunnable> runnable = new WifiEventDispatcher(event);
+      nsCOMPtr<nsIRunnable> runnable = new WifiEventDispatcher(event, mInterface);
       NS_DispatchToMainThread(runnable);
     }
     return NS_OK;
   }
+
+private:
+  nsCString mInterface;
 };
 
 
 class WifiResultDispatcher : public nsRunnable
 {
 public:
-  WifiResultDispatcher(WifiResultOptions& aResult)
+  WifiResultDispatcher(WifiResultOptions& aResult, const nsACString& aInterface)
+    : mInterface(aInterface)
   {
     MOZ_ASSERT(!NS_IsMainThread());
 
@@ -106,33 +114,38 @@ public:
   NS_IMETHOD Run()
   {
     MOZ_ASSERT(NS_IsMainThread());
-    gWifiProxyService->DispatchWifiResult(mResult);
+    gWifiProxyService->DispatchWifiResult(mResult, mInterface);
     return NS_OK;
   }
 
 private:
   WifiResultOptions mResult;
+  nsCString mInterface;
 };
 
 
 class ControlRunnable : public nsRunnable
 {
 public:
-  ControlRunnable(CommandOptions aOptions) : mOptions(aOptions) {
+  ControlRunnable(CommandOptions aOptions, const nsACString& aInterface)
+    : mOptions(aOptions)
+    , mInterface(aInterface)
+  {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
   NS_IMETHOD Run()
   {
     WifiResultOptions result;
-    if (gWpaSupplicant->ExecuteCommand(mOptions, result)) {
-      nsCOMPtr<nsIRunnable> runnable = new WifiResultDispatcher(result);
+    if (gWpaSupplicant->ExecuteCommand(mOptions, result, mInterface)) {
+      nsCOMPtr<nsIRunnable> runnable = new WifiResultDispatcher(result, mInterface);
       NS_DispatchToMainThread(runnable);
     }
     return NS_OK;
   }
 private:
    CommandOptions mOptions;
+   nsCString mInterface;
 };
 
 NS_IMPL_ISUPPORTS1(WifiProxyService, nsIWifiProxyService)
@@ -170,23 +183,33 @@ WifiProxyService::FactoryCreate()
 }
 
 NS_IMETHODIMP
-WifiProxyService::Start(nsIWifiEventListener* aListener)
+WifiProxyService::Start(nsIWifiEventListener* aListener,
+                        const char ** aInterfaces,
+                        uint32_t aNumOfInterfaces)
 {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aListener);
 
-  nsresult rv = NS_NewThread(getter_AddRefs(mEventThread));
-  if (NS_FAILED(rv)) {
-    NS_WARNING("Can't create wifi event thread");
-    return NS_ERROR_FAILURE;
+  nsresult rv;
+
+  
+  
+  
+  mEventThreadList.SetLength(aNumOfInterfaces);
+  for (uint32_t i = 0; i < aNumOfInterfaces; i++) {
+    mEventThreadList[i].mInterface = aInterfaces[i];
+    rv = NS_NewThread(getter_AddRefs(mEventThreadList[i].mThread));
+    if (NS_FAILED(rv)) {
+      NS_WARNING("Can't create wifi event thread");
+      Shutdown();
+      return NS_ERROR_FAILURE;
+    }
   }
 
   rv = NS_NewThread(getter_AddRefs(mControlThread));
   if (NS_FAILED(rv)) {
     NS_WARNING("Can't create wifi control thread");
-    
-    mEventThread->Shutdown();
-    mEventThread = nullptr;
+    Shutdown();
     return NS_ERROR_FAILURE;
   }
 
@@ -199,15 +222,23 @@ NS_IMETHODIMP
 WifiProxyService::Shutdown()
 {
   MOZ_ASSERT(NS_IsMainThread());
-  mEventThread->Shutdown();
-  mEventThread = nullptr;
-  mControlThread->Shutdown();
-  mControlThread = nullptr;
+  for (size_t i = 0; i < mEventThreadList.Length(); i++) {
+    if (mEventThreadList[i].mThread) {
+      mEventThreadList[i].mThread->Shutdown();
+      mEventThreadList[i].mThread = nullptr;
+    }
+  }
+  mEventThreadList.Clear();
+  if (mControlThread) {
+    mControlThread->Shutdown();
+    mControlThread = nullptr;
+  }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-WifiProxyService::SendCommand(const JS::Value& aOptions, JSContext* aCx)
+WifiProxyService::SendCommand(const JS::Value& aOptions, const nsACString& aInterface,
+                              JSContext* aCx)
 {
   MOZ_ASSERT(NS_IsMainThread());
   WifiCommandOptions options;
@@ -220,22 +251,30 @@ WifiProxyService::SendCommand(const JS::Value& aOptions, JSContext* aCx)
 
   
   CommandOptions commandOptions(options);
-  nsCOMPtr<nsIRunnable> runnable = new ControlRunnable(commandOptions);
+  nsCOMPtr<nsIRunnable> runnable = new ControlRunnable(commandOptions, aInterface);
   mControlThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-WifiProxyService::WaitForEvent()
+WifiProxyService::WaitForEvent(const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
-  nsCOMPtr<nsIRunnable> runnable = new EventRunnable();
-  mEventThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
-  return NS_OK;
+
+  
+  for (size_t i = 0; i < mEventThreadList.Length(); i++) {
+    if (mEventThreadList[i].mInterface.Equals(aInterface)) {
+      nsCOMPtr<nsIRunnable> runnable = new EventRunnable(aInterface);
+      mEventThreadList[i].mThread->Dispatch(runnable, nsIEventTarget::DISPATCH_NORMAL);
+      return NS_OK;
+    }
+  }
+
+  return NS_ERROR_FAILURE;
 }
 
 void
-WifiProxyService::DispatchWifiResult(const WifiResultOptions& aOptions)
+WifiProxyService::DispatchWifiResult(const WifiResultOptions& aOptions, const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -247,15 +286,15 @@ WifiProxyService::DispatchWifiResult(const WifiResultOptions& aOptions)
   }
 
   
-  mListener->OnCommand(val);
+  mListener->OnCommand(val, aInterface);
 }
 
 void
-WifiProxyService::DispatchWifiEvent(const nsAString& aEvent)
+WifiProxyService::DispatchWifiEvent(const nsAString& aEvent, const nsACString& aInterface)
 {
   MOZ_ASSERT(NS_IsMainThread());
   
-  mListener->OnWaitEvent(aEvent);
+  mListener->OnWaitEvent(aEvent, aInterface);
 }
 
 NS_GENERIC_FACTORY_SINGLETON_CONSTRUCTOR(WifiProxyService,

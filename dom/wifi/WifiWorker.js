@@ -96,6 +96,8 @@ XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
 
 
 var WifiManager = (function() {
+  var manager = {};
+
   function getStartupPrefs() {
     return {
       sdkVersion: parseInt(libcutils.property_get("ro.build.version.sdk"), 10),
@@ -109,26 +111,17 @@ var WifiManager = (function() {
   let {sdkVersion, unloadDriverEnabled, schedScanRecovery, driverDelay, ifname} = getStartupPrefs();
 
   let wifiListener = {
-    onWaitEvent: function(event) {
-      if (handleEvent(event)) {
-        waitForEvent();
+    onWaitEvent: function(event, iface) {
+      if (manager.ifname === iface && handleEvent(event)) {
+        waitForEvent(iface);
       }
     },
 
-    onCommand: function(event) {
-      onmessageresult(event);
+    onCommand: function(event, iface) {
+      onmessageresult(event, iface);
     }
   }
 
-  let wifiService = Cc["@mozilla.org/wifi/service;1"];
-  if (wifiService) {
-    wifiService = wifiService.getService(Ci.nsIWifiProxyService);
-    wifiService.start(wifiListener);
-  } else {
-    debug("No wifi service component available!");
-  }
-
-  var manager = {};
   manager.ifname = ifname;
   
   
@@ -138,7 +131,16 @@ var WifiManager = (function() {
   manager.schedScanRecovery = schedScanRecovery;
   manager.driverDelay = driverDelay ? parseInt(driverDelay, 10) : DRIVER_READY_WAIT;
 
-  var wifiCommand = WifiCommand(controlMessage);
+  let wifiService = Cc["@mozilla.org/wifi/service;1"];
+  if (wifiService) {
+    wifiService = wifiService.getService(Ci.nsIWifiProxyService);
+    let interfaces = [manager.ifname];
+    wifiService.start(wifiListener, interfaces, interfaces.length);
+  } else {
+    debug("No wifi service component available!");
+  }
+
+  var wifiCommand = WifiCommand(controlMessage, manager.ifname);
   var netUtil = WifiNetUtil(controlMessage);
 
   
@@ -148,12 +150,13 @@ var WifiManager = (function() {
   function controlMessage(obj, callback) {
     var id = idgen++;
     obj.id = id;
-    if (callback)
+    if (callback) {
       controlCallbacks[id] = callback;
-    wifiService.sendCommand(obj);
+    }
+    wifiService.sendCommand(obj, obj.iface);
   }
 
-  let onmessageresult = function(data) {
+  let onmessageresult = function(data, iface) {
     var id = data.id;
     var callback = controlCallbacks[id];
     if (callback) {
@@ -165,8 +168,8 @@ var WifiManager = (function() {
   
   var recvErrors = 0;
 
-  function waitForEvent() {
-    wifiService.waitForEvent();
+  function waitForEvent(iface) {
+    wifiService.waitForEvent(iface);
   }
 
   
@@ -755,7 +758,7 @@ var WifiManager = (function() {
   }
 
   function didConnectSupplicant(callback) {
-    waitForEvent();
+    waitForEvent(manager.ifname);
 
     
     getDebugEnabled(function(ok) {
