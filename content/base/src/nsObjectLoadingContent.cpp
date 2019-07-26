@@ -10,7 +10,6 @@
 
 
 
-
 #include "imgLoader.h"
 #include "nsEventDispatcher.h"
 #include "nsIContent.h"
@@ -1380,6 +1379,7 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
 
   nsresult rv;
   nsAutoCString newMime;
+  nsAutoString typeAttr;
   nsCOMPtr<nsIURI> newURI;
   nsCOMPtr<nsIURI> newBaseURI;
   ObjectType newType;
@@ -1406,10 +1406,11 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
     newMime.AssignLiteral("application/x-java-vm");
     isJava = true;
   } else {
-    nsAutoString typeAttr;
-    thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, typeAttr);
-    if (!typeAttr.IsEmpty()) {
-      CopyUTF16toUTF8(typeAttr, newMime);
+    nsAutoString rawTypeAttr;
+    thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::type, rawTypeAttr);
+    if (!rawTypeAttr.IsEmpty()) {
+      typeAttr = rawTypeAttr;
+      CopyUTF16toUTF8(rawTypeAttr, newMime);
       isJava = nsPluginHost::IsJavaMIMEType(newMime.get());
     }
   }
@@ -1658,7 +1659,11 @@ nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
     
 
     bool overrideChannelType = false;
-    if (typeHint == eType_Plugin) {
+    if (thisContent->HasAttr(kNameSpaceID_None, nsGkAtoms::typemustmatch)) {
+      if (!typeAttr.LowerCaseEqualsASCII(channelType.get())) {
+        stateInvalid = true;
+      }
+    } else if (typeHint == eType_Plugin) {
       LOG(("OBJLC [%p]: Using plugin type hint in favor of any channel type",
            this));
       overrideChannelType = true;
