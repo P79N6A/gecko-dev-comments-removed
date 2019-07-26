@@ -5,11 +5,17 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.mozglue.RobocopTarget;
 
 
 
 
 
+
+
+
+
+@RobocopTarget
 public interface TelemetryContract {
 
     
@@ -64,6 +70,12 @@ public interface TelemetryContract {
         
         
         UNSAVE("unsave.1"),
+
+        
+        _TEST1("_test_event_1.1"),
+        _TEST2("_test_event_2.1"),
+        _TEST3("_test_event_3.1"),
+        _TEST4("_test_event_4.1"),
         ;
 
         private final String string;
@@ -124,6 +136,10 @@ public interface TelemetryContract {
 
         
         SUGGESTION("suggestion"),
+
+        
+        _TEST1("_test_method_1"),
+        _TEST2("_test_method_2"),
         ;
 
         private final String string;
@@ -164,6 +180,10 @@ public interface TelemetryContract {
         
         
         READER("reader.1"),
+
+        
+        _TEST_STARTED_TWICE("_test_session_started_twice.1"),
+        _TEST_STOPPED_TWICE("_test_session_stopped_twice.1"),
         ;
 
         private final String string;
@@ -190,6 +210,11 @@ public interface TelemetryContract {
 
         
         NONE(null),
+
+        
+        _TEST1("_test_reason_1"),
+        _TEST2("_test_reason_2"),
+        _TEST_IGNORED("_test_reason_ignored"),
         ;
 
         private final String string;
