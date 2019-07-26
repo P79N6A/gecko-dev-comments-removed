@@ -1517,6 +1517,24 @@ SnapshotIterator::pcOffset() const
     return resumePoint()->pcOffset();
 }
 
+void
+SnapshotIterator::skipInstruction()
+{
+    MOZ_ASSERT(snapshot_.numAllocationsRead() == 0);
+    size_t numOperands = instruction()->numOperands();
+    for (size_t i = 0; i < numOperands; i++)
+        skip();
+    nextInstruction();
+}
+
+void
+SnapshotIterator::nextFrame()
+{
+    nextInstruction();
+    while (!instruction()->isResumePoint())
+        skipInstruction();
+}
+
 IonScript *
 IonFrameIterator::ionScript() const
 {
@@ -1576,6 +1594,12 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
     
     callee_ = frame_->maybeCallee();
     script_ = frame_->script();
+
+    
+    
+    if (!si_.instruction()->isResumePoint())
+        si_.nextFrame();
+
     pc_ = script_->offsetToPC(si_.pcOffset());
 #ifdef DEBUG
     numActualArgs_ = 0xbadbad;
@@ -1613,6 +1637,7 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         for (unsigned j = 0; j < skipCount; j++)
             si_.skip();
 
+        
         Value funval = si_.read();
 
         

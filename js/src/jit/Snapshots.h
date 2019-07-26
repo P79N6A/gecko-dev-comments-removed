@@ -419,12 +419,16 @@ class SnapshotReader
 
   private:
     void readSnapshotHeader();
+    uint32_t readAllocationIndex();
 
   public:
     SnapshotReader(const uint8_t *snapshots, uint32_t offset,
                    uint32_t RVATableSize, uint32_t listSize);
 
     RValueAllocation readAllocation();
+    void skipAllocation() {
+        readAllocationIndex();
+    }
 
     BailoutKind bailoutKind() const {
         return bailoutKind_;
@@ -448,8 +452,14 @@ class RecoverReader
 {
     CompactBufferReader reader_;
 
-    uint32_t frameCount_;
-    uint32_t framesRead_;         
+    
+    uint32_t numInstructions_;
+
+    
+    uint32_t numInstructionsRead_;
+
+    
+    
     bool resumeAfter_;
 
     
@@ -458,19 +468,16 @@ class RecoverReader
 
   private:
     void readRecoverHeader();
-    void readFrame();
+    void readInstruction();
 
   public:
     RecoverReader(SnapshotReader &snapshot, const uint8_t *recovers, uint32_t size);
 
-    bool moreFrames() const {
-        return framesRead_ < frameCount_;
+    bool moreInstructions() const {
+        return numInstructionsRead_ < numInstructions_;
     }
-    void nextFrame() {
-        readFrame();
-    }
-    uint32_t frameCount() const {
-        return frameCount_;
+    void nextInstruction() {
+        readInstruction();
     }
 
     const RInstruction *instruction() const {

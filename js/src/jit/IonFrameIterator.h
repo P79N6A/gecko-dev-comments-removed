@@ -289,7 +289,7 @@ class SnapshotIterator
         return snapshot_.readAllocation();
     }
     Value skip() {
-        readAllocation();
+        snapshot_.skipAllocation();
         return UndefinedValue();
     }
 
@@ -320,16 +320,29 @@ class SnapshotIterator
 
   public:
     
-    inline void nextFrame() {
-        JS_ASSERT(snapshot_.numAllocationsRead() == numAllocations());
-        recover_.nextFrame();
+    
+    inline void nextInstruction() {
+        MOZ_ASSERT(snapshot_.numAllocationsRead() == numAllocations());
+        recover_.nextInstruction();
         snapshot_.resetNumAllocationsRead();
     }
-    inline bool moreFrames() const {
-        return recover_.moreFrames();
+
+    
+    
+    void skipInstruction();
+
+    inline bool moreInstructions() const {
+        return recover_.moreInstructions();
     }
-    inline uint32_t frameCount() const {
-        return recover_.frameCount();
+
+  public:
+    
+    void nextFrame();
+
+    inline bool moreFrames() const {
+        
+        
+        return moreInstructions();
     }
 
   public:
