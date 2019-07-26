@@ -55,6 +55,7 @@ using namespace js::frontend;
 using mozilla::ArrayLength;
 using mozilla::PodCopy;
 using mozilla::Range;
+using mozilla::RangedPtr;
 
 static bool
 fun_getProperty(JSContext *cx, HandleObject obj_, HandleId id, MutableHandleValue vp)
@@ -747,8 +748,8 @@ const Class* const js::FunctionClassPtr = &JSFunction::class_;
 
 
 bool
-js::FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t length,
-         size_t *bodyStart, size_t *bodyEnd)
+js::FindBody(JSContext *cx, HandleFunction fun, HandleLinearString src, size_t *bodyStart,
+             size_t *bodyEnd)
 {
     
     CompileOptions options(cx);
@@ -759,7 +760,13 @@ js::FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t 
         options.setVersion(fun->nonLazyScript()->getVersion());
 
     AutoKeepAtoms keepAtoms(cx->perThreadData);
-    TokenStream ts(cx, options, chars.get(), length, nullptr);
+
+    AutoStableStringChars stableChars(cx, src);
+    if (!stableChars.initTwoByte(cx))
+        return false;
+
+    const Range<const jschar> srcChars = stableChars.twoByteRange();
+    TokenStream ts(cx, options, srcChars.start().get(), srcChars.length(), nullptr);
     int nest = 0;
     bool onward = true;
     
@@ -794,7 +801,7 @@ js::FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t 
     *bodyStart = ts.currentToken().pos.begin;
     if (braced)
         *bodyStart += 1;
-    ConstTwoByteChars end(chars.get() + length, chars.get(), length);
+    RangedPtr<const jschar> end = srcChars.end();
     if (end[-1] == '}') {
         end--;
     } else {
@@ -802,7 +809,7 @@ js::FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t 
         for (; unicode::IsSpaceOrBOM2(end[-1]); end--)
             ;
     }
-    *bodyEnd = end - chars;
+    *bodyEnd = end - srcChars.start();
     JS_ASSERT(*bodyStart <= *bodyEnd);
     return true;
 }
@@ -862,7 +869,6 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
         if (!src)
             return nullptr;
 
-        ConstTwoByteChars chars(src->chars(), src->length());
         bool exprBody = fun->isExprClosure();
 
         
@@ -878,7 +884,8 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
         
         JS_ASSERT_IF(funCon, !fun->isArrow());
         JS_ASSERT_IF(funCon, !exprBody);
-        JS_ASSERT_IF(!funCon && !fun->isArrow(), src->length() > 0 && chars[0] == '(');
+        JS_ASSERT_IF(!funCon && !fun->isArrow(),
+                     src->length() > 0 && src->latin1OrTwoByteChar(0) == '(');
 
         
         
@@ -919,7 +926,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
             
             if (!funCon) {
                 JS_ASSERT(!buildBody);
-                if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+                if (!FindBody(cx, fun, src, &bodyStart, &bodyEnd))
                     return nullptr;
             } else {
                 bodyEnd = src->length();
@@ -927,7 +934,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
 
             if (addUseStrict) {
                 
-                if (!out.append(chars, bodyStart))
+                if (!out.appendSubstring(src, 0, bodyStart))
                     return nullptr;
                 if (exprBody) {
                     
@@ -944,7 +951,7 @@ js::FunctionToString(JSContext *cx, HandleFunction fun, bool bodyOnly, bool lamb
             
             
             size_t dependentEnd = bodyOnly ? bodyEnd : src->length();
-            if (!out.append(chars + bodyStart, dependentEnd - bodyStart))
+            if (!out.appendSubstring(src, bodyStart, dependentEnd - bodyStart))
                 return nullptr;
         } else {
             if (!out.append(src))
