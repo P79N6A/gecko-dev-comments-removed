@@ -320,10 +320,11 @@ let UI = {
            
            button.disabled = false;
          },
-         (msg) => {
+         (err) => {
            button.disabled = false;
-           alert(msg);
-           this.connection.log(msg);
+           let message = err.error ? err.error + ": " + err.message : String(err);
+           alert(message);
+           this.connection.log(message);
          });
   },
 
