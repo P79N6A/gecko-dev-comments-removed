@@ -6,9 +6,8 @@
 
 
 
-#include "mozilla/Util.h"
 #include "mozilla/StackWalk.h"
-#include "nsDebug.h"
+#include "mozilla/Assertions.h"
 #include "nsStackWalkPrivate.h"
 
 #include "nsStackWalk.h"
@@ -42,7 +41,6 @@ static CriticalAddress gCriticalAddress;
 
 #if NSSTACKWALK_SUPPORTS_MACOSX
 #include <pthread.h>
-#include <errno.h>
 #include <CoreServices/CoreServices.h>
 
 typedef void
@@ -814,7 +812,6 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 #include "nscore.h"
 #include <stdio.h>
 #include "plstr.h"
@@ -831,7 +828,6 @@ NS_FormatCodeAddressDetails(void *aPC, const nsCodeAddressDetails *aDetails,
 
 #if defined(MOZ_DEMANGLE_SYMBOLS)
 #include <cxxabi.h>
-#include <stdlib.h> 
 #endif 
 
 void DemangleSymbol(const char * aSymbol, 

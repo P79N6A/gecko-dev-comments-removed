@@ -10,7 +10,6 @@
 
 #include "nsIMemory.h"
 #include "nsIRunnable.h"
-#include "prtime.h"
 
 
 

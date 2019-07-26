@@ -4,7 +4,7 @@
 
 
 #include "nsErrorService.h"
-#include "nsCRT.h"
+#include "nsCRTGlue.h"
 #include "nsAutoPtr.h"
 
 static void*
