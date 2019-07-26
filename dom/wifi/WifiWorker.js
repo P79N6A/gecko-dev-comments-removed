@@ -869,15 +869,12 @@ var WifiManager = (function() {
             manager.state = "UNINITIALIZED";
             return;
           }
+          
+          
+          
           gNetworkService.setWifiOperationMode(manager.ifname,
                                                WIFI_FIRMWARE_STATION,
                                                function (status) {
-            if (status) {
-              callback(status);
-              manager.state = "UNINITIALIZED";
-              return;
-            }
-
             function doStartSupplicant() {
               cancelWaitForDriverReadyTimer();
               wifiCommand.startSupplicant(function (status) {
