@@ -18,13 +18,13 @@
 
 #ifdef PR_LOGGING
 PRLogModuleInfo* gRtspMediaResourceLog;
-#define LOG(msg, ...) PR_LOG(gRtspMediaResourceLog, PR_LOG_DEBUG, \
-                             (msg, ##__VA_ARGS__))
+#define RTSP_LOG(msg, ...) PR_LOG(gRtspMediaResourceLog, PR_LOG_DEBUG, \
+                                  (msg, ##__VA_ARGS__))
 
 #define RTSPMLOG(msg, ...) \
-        LOG("%p [RtspMediaResource]: " msg, this, ##__VA_ARGS__)
+        RTSP_LOG("%p [RtspMediaResource]: " msg, this, ##__VA_ARGS__)
 #else
-#define LOG(msg, ...)
+#define RTSP_LOG(msg, ...)
 #define RTSPMLOG(msg, ...)
 #endif
 
@@ -72,7 +72,6 @@ public:
   void Start() {
     MonitorAutoLock monitor(mMonitor);
     mIsStarted = true;
-    mFrameType = 0;
   }
   void Stop() {
     MonitorAutoLock monitor(mMonitor);
@@ -445,9 +444,6 @@ RtspMediaResource::OnConnected(uint8_t aTrackIdx,
                                nsIStreamingProtocolMetaData *meta)
 {
   if (mIsConnected) {
-    for (uint32_t i = 0 ; i < mTrackBuffer.Length(); ++i) {
-      mTrackBuffer[i]->Start();
-    }
     return NS_OK;
   }
 
@@ -527,19 +523,9 @@ RtspMediaResource::OnDisconnected(uint8_t aTrackIdx, nsresult aReason)
     mTrackBuffer[i]->Reset();
   }
 
-  if (aReason == NS_ERROR_NOT_INITIALIZED ||
-      aReason == NS_ERROR_CONNECTION_REFUSED ||
-      aReason == NS_ERROR_NOT_CONNECTED) {
-
-    RTSPMLOG("Error in OnDisconnected 0x%x", aReason);
-
+  if (aReason == NS_ERROR_CONNECTION_REFUSED) {
     mDecoder->NetworkError();
-    return NS_OK;
   }
-
-  
-  
-  mDecoder->ResetConnectionState();
   return NS_OK;
 }
 
