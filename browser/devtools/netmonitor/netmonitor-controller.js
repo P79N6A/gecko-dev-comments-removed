@@ -227,6 +227,14 @@ let NetMonitorController = {
 
 
 
+  isConnected: function() {
+    return !!this.client;
+  },
+
+  
+
+
+
 
 
 
