@@ -3888,7 +3888,12 @@ nsGfxScrollFrameInner::SaveState()
   }
 
   nsPresState* state = new nsPresState();
-  state->SetScrollState(GetLogicalScrollPosition());
+  
+  
+  
+  
+  nsPoint pt = mRestorePos.y == -1 ? GetLogicalScrollPosition() : mRestorePos;
+  state->SetScrollState(pt);
   return state;
 }
 
@@ -3896,8 +3901,6 @@ void
 nsGfxScrollFrameInner::RestoreState(nsPresState* aState)
 {
   mRestorePos = aState->GetScrollState();
-  mLastPos.x = -1;
-  mLastPos.y = -1;
   mDidHistoryRestore = true;
   mLastPos = mScrolledFrame ? GetLogicalScrollPosition() : nsPoint(0,0);
 }
