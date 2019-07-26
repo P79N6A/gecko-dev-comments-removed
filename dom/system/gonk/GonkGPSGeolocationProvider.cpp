@@ -671,17 +671,47 @@ GonkGPSGeolocationProvider::NetworkLocationUpdate::Update(nsIDOMGeoPosition *pos
     return NS_ERROR_FAILURE;
   }
 
-  
-  
-  int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
-  if (provider->mLocationCallback && diff > kDefaultPeriod) {
-    provider->mLocationCallback->Update(position);
-  }
-
   double lat, lon, acc;
   coords->GetLatitude(&lat);
   coords->GetLongitude(&lon);
   coords->GetAccuracy(&acc);
+
+  double delta = MAXFLOAT;
+
+  static double sLastMLSPosLat = 0;
+  static double sLastMLSPosLon = 0;
+
+  if (0 != sLastMLSPosLon || 0 != sLastMLSPosLat) {
+    
+    
+    
+    const double radsInDeg = 3.14159265 / 180.0;
+    const double rNewLat = lat * radsInDeg;
+    const double rNewLon = lon * radsInDeg;
+    const double rOldLat = sLastMLSPosLat * radsInDeg;
+    const double rOldLon = sLastMLSPosLon * radsInDeg;
+    
+    delta = acos( (sin(rNewLat) * sin(rOldLat)) +
+                  (cos(rNewLat) * cos(rOldLat) * cos(rOldLon - rNewLon)) )
+                  * 6378137;
+  }
+
+  sLastMLSPosLat = lat;
+  sLastMLSPosLon = lon;
+
+  
+  
+  const double kMinMLSCoordChangeInMeters = 10;
+
+  
+  
+  int64_t diff = PR_Now() - provider->mLastGPSDerivedLocationTime;
+  if (provider->mLocationCallback && diff > kDefaultPeriod
+      && delta > kMinMLSCoordChangeInMeters)
+  {
+    provider->mLocationCallback->Update(position);
+  }
+
   provider->InjectLocation(lat, lon, acc);
   return NS_OK;
 }
