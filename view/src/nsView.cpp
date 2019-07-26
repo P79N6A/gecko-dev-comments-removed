@@ -248,7 +248,9 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   nsWindowType type;
   mWindow->GetWindowType(type);
 
-  if (curBounds.IsEmpty() && mDimBounds.IsEmpty() && type == eWindowType_popup) {
+  if (type == eWindowType_popup &&
+      ((curBounds.IsEmpty() && mDimBounds.IsEmpty()) ||
+       mVis == nsViewVisibility_kHide)) {
     
     
     
