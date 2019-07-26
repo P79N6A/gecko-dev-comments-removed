@@ -1499,6 +1499,16 @@ ThreadClient.prototype = {
 
 
 
+  breakOnNext: function (aOnResponse) {
+    this._doResume({ type: "break" }, aOnResponse);
+  },
+
+  
+
+
+
+
+
   stepOver: function (aOnResponse) {
     this._doResume({ type: "next" }, aOnResponse);
   },
