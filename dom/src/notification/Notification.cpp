@@ -772,14 +772,13 @@ void
 Notification::CloseInternal()
 {
   if (!mIsClosed) {
-    nsresult rv;
     
     
     nsCOMPtr<nsINotificationStorage> notificationStorage =
       do_GetService(NS_NOTIFICATION_STORAGE_CONTRACTID);
     if (notificationStorage) {
       nsString origin;
-      rv = GetOrigin(GetOwner(), origin);
+      nsresult rv = GetOrigin(GetOwner(), origin);
       if (NS_SUCCEEDED(rv)) {
         notificationStorage->Delete(origin, mID);
       }
@@ -788,9 +787,7 @@ Notification::CloseInternal()
     nsCOMPtr<nsIAlertsService> alertService =
       do_GetService(NS_ALERTSERVICE_CONTRACTID);
     if (alertService) {
-      if (NS_SUCCEEDED(rv)) {
-        alertService->CloseAlert(mAlertName, GetPrincipal());
-      }
+      alertService->CloseAlert(mAlertName, GetPrincipal());
     }
   }
 }
