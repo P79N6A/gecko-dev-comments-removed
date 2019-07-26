@@ -28,6 +28,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Task",
                                   "resource://gre/modules/Task.jsm");
+XPCOMUtils.defineLazyServiceGetter(this, "FinalizationWitnessService",
+                                   "@mozilla.org/toolkit/finalizationwitness;1",
+                                   "nsIFinalizationWitnessService");
 
 
 
@@ -38,6 +41,19 @@ let connectionCounters = new Map();
 
 
 let isClosed = false;
+
+
+function logScriptError(message) {
+  let consoleMessage = Cc["@mozilla.org/scripterror;1"].
+                       createInstance(Ci.nsIScriptError);
+  let stack = new Error();
+  consoleMessage.init(message, stack.fileName, null, stack.lineNumber, 0,
+                      Ci.nsIScriptError.errorFlag, "component javascript");
+  Services.console.logMessage(consoleMessage);
+
+  
+  dump("*** " + message + "\n");
+}
 
 
 
@@ -67,6 +83,29 @@ XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
 
 
 
+
+  let finalizationObserver = function (subject, topic, connectionIdentifier) {
+    let connectionData = ConnectionData.byId.get(connectionIdentifier);
+
+    if (connectionData === undefined) {
+      logScriptError("Error: Attempt to finalize unknown Sqlite connection: " +
+                     connectionIdentifier + "\n");
+      return;
+    }
+
+    ConnectionData.byId.delete(connectionIdentifier);
+    logScriptError("Warning: Sqlite connection '" + connectionIdentifier +
+                   "' was not properly closed. Auto-close triggered by garbage collection.\n");
+    connectionData.close();
+  };
+  Services.obs.addObserver(finalizationObserver, "sqlite-finalization-witness", false);
+
+  
+
+
+
+
+
   AsyncShutdown.profileBeforeChange.addBlocker("Sqlite.jsm shutdown blocker",
     Task.async(function* () {
       yield Barriers.shutdown.wait();
@@ -79,6 +118,9 @@ XPCOMUtils.defineLazyGetter(this, "Barriers", () => {
 
       
       yield Barriers.connections.wait();
+
+      
+      Services.obs.removeObserver(finalizationObserver, "sqlite-finalization-witness");
     }),
 
     function status() {
@@ -154,6 +196,18 @@ function ConnectionData(connection, basename, number, options) {
     this._deferredClose.promise
   );
 }
+
+
+
+
+
+
+
+
+
+
+
+ConnectionData.byId = new Map();
 
 ConnectionData.prototype = Object.freeze({
   close: function () {
@@ -720,7 +774,7 @@ function cloneStorageConnection(options) {
   }
 
   if (isClosed) {
-    throw new Error("Sqlite.jsm has been shutdown. Cannot close connection to: " + source.database.path);
+    throw new Error("Sqlite.jsm has been shutdown. Cannot clone connection to: " + source.database.path);
   }
 
   let openedOptions = {};
@@ -815,6 +869,19 @@ function OpenedConnection(connection, basename, number, options) {
   
   
   this._connectionData = new ConnectionData(connection, basename, number, options);
+
+  
+  
+  ConnectionData.byId.set(this._connectionData._connectionIdentifier,
+                          this._connectionData);
+
+  
+  
+  
+  
+  this._witness = FinalizationWitnessService.make(
+    "sqlite-finalization-witness",
+    this._connectionData._connectionIdentifier);
 }
 
 OpenedConnection.prototype = Object.freeze({
@@ -871,6 +938,13 @@ OpenedConnection.prototype = Object.freeze({
 
 
   close: function () {
+    
+    
+    
+    if (ConnectionData.byId.has(this._connectionData._connectionIdentifier)) {
+      ConnectionData.byId.delete(this._connectionData._connectionIdentifier);
+      this._witness.forget();
+    }
     return this._connectionData.close();
   },
 
