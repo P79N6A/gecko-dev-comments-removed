@@ -504,17 +504,9 @@ public:
   
   
   
-  gfx::Rect ClipRectInLayersCoordinates(gfx::Rect aClip) const {
-    switch (mScreenRotation) {
-      case ROTATION_90:
-      case ROTATION_270:
-        return gfx::Rect(aClip.y, aClip.x, aClip.height, aClip.width);
-      case ROTATION_0:
-      case ROTATION_180:
-      default:
-        return aClip;
-    }
-  }
+  
+  
+  gfx::Rect ClipRectInLayersCoordinates(gfx::Rect aClip) const;
 protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
