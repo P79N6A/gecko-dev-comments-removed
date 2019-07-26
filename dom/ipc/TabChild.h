@@ -164,15 +164,11 @@ public:
 
     
     static already_AddRefed<TabChild> 
-    Create(uint32_t aChromeFlags, uint32_t aOwnOrContainingAppId, bool aIsBrowserElement);
+    Create(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
 
     virtual ~TabChild();
 
-    uint32_t GetOwnOrContainingAppId() { return mOwnOrContainingAppId; }
-
-    
-    
-    bool IsBrowserOrApp();
+    uint32_t GetAppId() { return mAppId; }
 
     bool IsRootContentDocument();
 
@@ -319,12 +315,11 @@ private:
 
 
 
-
-    TabChild(uint32_t aChromeFlags, uint32_t aOwnOrContainingAppId, bool aIsBrowserElement);
+    TabChild(uint32_t aChromeFlags, bool aIsBrowserElement, uint32_t aAppId);
 
     nsresult Init();
 
-    void SetAppBrowserConfig(uint32_t aOwnOrContainingAppId, bool aIsBrowserElement);
+    void SetAppBrowserConfig(bool aIsBrowserElement, uint32_t aAppId);
 
     bool UseDirectCompositor();
 
@@ -388,9 +383,9 @@ private:
     float mOldViewportWidth;
     nscolor mLastBackgroundColor;
     ScrollingBehavior mScrolling;
-    uint32_t mOwnOrContainingAppId;
-    bool mIsBrowserElement;
+    uint32_t mAppId;
     bool mDidFakeShow;
+    bool mIsBrowserElement;
     bool mNotified;
     bool mContentDocumentIsDisplayed;
     bool mTriedBrowserInit;
