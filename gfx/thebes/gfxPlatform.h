@@ -565,14 +565,6 @@ public:
       return nsIntRect(0, 0, bits * sizeOfBit, sizeOfBit);
     }
 
-    
-
-
-
-
-
-    bool PreferMemoryOverShmem() const;
-
     mozilla::gl::SkiaGLGlue* GetSkiaGLGlue();
     void PurgeSkiaCache();
 
@@ -685,7 +677,6 @@ private:
     mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
 
     mozilla::RefPtr<mozilla::gfx::DrawEventRecorder> mRecorder;
-    bool mLayersPreferMemoryOverShmem;
     mozilla::RefPtr<mozilla::gl::SkiaGLGlue> mSkiaGlue;
 };
 
