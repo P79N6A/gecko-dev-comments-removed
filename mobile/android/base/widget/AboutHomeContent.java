@@ -192,12 +192,11 @@ public class AboutHomeContent extends ScrollView
 
 
     public void refresh() {
-        mTopSites.onDestroy();
-
         
         removeAllViews();
 
         inflate();
+        mTopSites.refresh();
 
         
         update(AboutHomeContent.UpdateFlags.ALL);
