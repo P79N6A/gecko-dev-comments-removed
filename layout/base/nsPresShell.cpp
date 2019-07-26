@@ -6551,7 +6551,6 @@ PresShell::DispatchTouchEvent(nsEvent *aEvent,
                               nsPresShellEventCB* aEventCB,
                               bool aTouchIsNew)
 {
-  nsresult rv = NS_OK;
   
   
   bool canPrevent = aEvent->message == NS_TOUCH_START ||
