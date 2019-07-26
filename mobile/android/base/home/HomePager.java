@@ -8,7 +8,7 @@ package org.mozilla.gecko.home;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.animation.PropertyAnimator;
 import org.mozilla.gecko.animation.ViewHelper;
-import org.mozilla.gecko.home.HomeAdapter.OnAddTabListener;
+import org.mozilla.gecko.home.HomeAdapter.OnAddPageListener;
 import org.mozilla.gecko.mozglue.RobocopTarget;
 import org.mozilla.gecko.util.HardwareUtils;
 
@@ -32,7 +32,7 @@ public class HomePager extends ViewPager {
     private volatile boolean mLoaded;
     private Decor mDecor;
 
-    private final OnAddTabListener mAddTabListener;
+    private final OnAddPageListener mAddPageListener;
 
     
     @RobocopTarget
@@ -90,9 +90,9 @@ public class HomePager extends ViewPager {
         super(context, attrs);
         mContext = context;
 
-        mAddTabListener = new OnAddTabListener() {
+        mAddPageListener = new OnAddPageListener() {
             @Override
-            public void onAddTab(String title) {
+            public void onAddPage(String title) {
                 if (mDecor != null) {
                     mDecor.onAddPagerView(title);
                 }
@@ -163,26 +163,26 @@ public class HomePager extends ViewPager {
         }
 
         final HomeAdapter adapter = new HomeAdapter(mContext, fm);
-        adapter.setOnAddTabListener(mAddTabListener);
+        adapter.setOnAddPageListener(mAddPageListener);
 
         
         final boolean shouldAnimate = (animator != null && Build.VERSION.SDK_INT >= 11);
 
-        adapter.addTab(Page.TOP_SITES, TopSitesPage.class, new Bundle(),
+        adapter.addPage(Page.TOP_SITES, TopSitesPage.class, new Bundle(),
                 getContext().getString(R.string.home_top_sites_title));
-        adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, new Bundle(),
+        adapter.addPage(Page.BOOKMARKS, BookmarksPage.class, new Bundle(),
                 getContext().getString(R.string.bookmarks_title));
 
         
         
         if (!HardwareUtils.isLowMemoryPlatform()) {
-            adapter.addTab(Page.READING_LIST, ReadingListPage.class, new Bundle(),
+            adapter.addPage(Page.READING_LIST, ReadingListPage.class, new Bundle(),
                     getContext().getString(R.string.reading_list_title));
         }
 
         
         
-        adapter.addTab(HardwareUtils.isTablet() ? -1 : 0,
+        adapter.addPage(HardwareUtils.isTablet() ? -1 : 0,
                 Page.HISTORY, HistoryPage.class, new Bundle(),
                 getContext().getString(R.string.home_history_title));
 
