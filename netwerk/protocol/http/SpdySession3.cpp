@@ -271,6 +271,7 @@ SpdySession3::ReadTimeoutTick(PRIntervalTime now)
       mPingSentEpoch = 1; 
     GeneratePing(mNextPingID);
     mNextPingID += 2;
+    ResumeRecv(); 
 
     if (mNextPingID == 0xffffffff) {
       LOG(("SpdySession3::ReadTimeoutTick %p "
