@@ -9,11 +9,6 @@
 
 #include "nsCOMPtr.h"
 #include "Accessible.h"
-#include "prlog.h"
-
-#ifdef PR_LOGGING
-#define MAI_LOGGING
-#endif 
 
 struct _AtkObject;
 typedef struct _AtkObject AtkObject;
@@ -59,12 +54,6 @@ public:
 
   
   virtual void Shutdown();
-
-#ifdef MAI_LOGGING
-  virtual void DumpAccessibleWrapInfo(int aDepth) {}
-  static int32_t mAccWrapCreated;
-  static int32_t mAccWrapDeleted;
-#endif
 
   
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
