@@ -26,22 +26,25 @@ function run_test()
 
 function test_pause_frame()
 {
-  gThreadClient.pauseOnExceptions(true, false, function () {
+  gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
     gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
       do_check_eq(aPacket.why.type, "exception");
-      do_check_eq(aPacket.why.exception, 42);
+      do_check_eq(aPacket.why.exception, "bar");
       gThreadClient.resume(function () {
         finishClient(gClient);
       });
     });
-
-    gDebuggee.eval("(" + function() {
-      function stopMe() {
-        throw 42;
-      };
-      try {
-        stopMe();
-      } catch (e) {}
-    } + ")()");
+    gThreadClient.pauseOnExceptions(true, true);
+    gThreadClient.resume();
   });
+
+  try {
+    gDebuggee.eval("(" + function() {
+      debugger;
+      try {
+        throw "foo";
+      } catch (e) {}
+      throw "bar";
+    } + ")()");
+  } catch (e) {}
 }

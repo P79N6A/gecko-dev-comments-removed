@@ -873,6 +873,7 @@ ThreadActor.prototype = {
 
     if (aRequest) {
       this._options.pauseOnExceptions = aRequest.pauseOnExceptions;
+      this._options.ignoreCaughtExceptions = aRequest.ignoreCaughtExceptions;
       this.maybePauseOnExceptions();
       
       let events = aRequest.pauseOnDOMEvents;
@@ -1961,6 +1962,18 @@ ThreadActor.prototype = {
 
 
   onExceptionUnwind: function TA_onExceptionUnwind(aFrame, aValue) {
+    let willBeCaught = false;
+    for (let frame = aFrame; frame != null; frame = frame.older) {
+      if (frame.script.isInCatchScope(frame.offset)) {
+        willBeCaught = true;
+        break;
+      }
+    }
+
+    if (willBeCaught && this._options.ignoreCaughtExceptions) {
+      return undefined;
+    }
+
     let { url } = this.synchronize(this.sources.getOriginalLocation({
       url: aFrame.script.url,
       line: aFrame.script.getOffsetLine(aFrame.offset),
