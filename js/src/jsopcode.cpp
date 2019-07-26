@@ -6431,6 +6431,7 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
             if (0 < jmpoff && pc + jmpoff <= target) {
                 pc += jmpoff;
                 oplen = 0;
+                
                 if (hpcdepth != unsigned(-1)) {
                     pcdepth = hpcdepth;
                     hpcdepth = unsigned(-1);
@@ -6438,8 +6439,11 @@ ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target,
                 continue;
             }
 
-            if (!script->hasTrynotes())
+            if (!script->hasTrynotes()) {
+                
+                hpcdepth = unsigned(-1);
                 continue;
+            }
 
             
 
