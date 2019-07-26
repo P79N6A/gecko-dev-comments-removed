@@ -107,16 +107,6 @@ enum ProcessCPUPriority {
 
 
 
-enum ThreadPriority {
-  THREAD_PRIORITY_COMPOSITOR,
-  NUM_THREAD_PRIORITY
-};
-
-
-
-
-
-
 
 const char*
 ProcessPriorityToString(ProcessPriority aPriority);
@@ -124,14 +114,6 @@ ProcessPriorityToString(ProcessPriority aPriority);
 const char*
 ProcessPriorityToString(ProcessPriority aPriority,
                         ProcessCPUPriority aCPUPriority);
-
-
-
-
-
-
-const char *
-ThreadPriorityToString(ThreadPriority aPriority);
 
 
 

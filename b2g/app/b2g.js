@@ -686,19 +686,6 @@ pref("hal.processPriorityManager.gonk.LowCPUNice", 18);
 
 
 
-
-
-
-pref("hal.gonk.compositor.rt_priority", 0);
-pref("hal.gonk.compositor.nice", 0);
-
-
-
-
-
-
-
-
 pref("hal.processPriorityManager.gonk.notifyLowMemUnderKB", 14336);
 
 
