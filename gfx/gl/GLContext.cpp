@@ -594,6 +594,16 @@ GLContext::InitExtensions()
 
     mAvailableExtensions.Load(extensions, sExtensionNames, firstRun && DebugMode());
 
+#ifdef XP_MACOSX
+    
+    
+    if (WorkAroundDriverBugs() &&
+        Vendor() == gl::GLContext::VendorNVIDIA)
+    {
+        MarkExtensionUnsupported(gl::GLContext::EXT_packed_depth_stencil);
+    }
+#endif
+
 #ifdef DEBUG
     firstRun = false;
 #endif
