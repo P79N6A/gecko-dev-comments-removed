@@ -30,9 +30,12 @@ function unconvert(aProp) {
 
 
 
+
 function Dict(aInitial) {
   if (aInitial === undefined)
     aInitial = {};
+  if (typeof aInitial == "string")
+    aInitial = JSON.parse(aInitial);
   var items = {}, count = 0;
   
   for (var [key, val] in Iterator(aInitial)) {
@@ -231,5 +234,16 @@ Dict.prototype = Object.freeze({
     return "{" +
       [(key + ": " + val) for ([key, val] in this.items)].join(", ") +
       "}";
+  },
+
+  
+
+
+  toJSON: function Dict_toJSON() {
+    let obj = {};
+    for (let [key, item] of Iterator(this._state.items)) {
+      obj[unconvert(key)] = item;
+    }
+    return JSON.stringify(obj);
   },
 });
