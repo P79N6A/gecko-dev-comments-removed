@@ -436,16 +436,6 @@ ComputeBufferRect(const nsIntRect& aRequestedRect)
   
   
   rect.width = std::max(aRequestedRect.width, 64);
-#ifdef MOZ_WIDGET_GONK
-  
-  
-  
-  
-  
-  
-  
-  rect.height = std::max(aRequestedRect.height, 32);
-#endif
   return rect;
 }
 
