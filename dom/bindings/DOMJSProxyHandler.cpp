@@ -37,11 +37,35 @@ DefineStaticJSVals(JSContext* cx)
 
 int HandlerFamily;
 
+js::ListBaseShadowsResult
+DOMListShadows(JSContext* cx, JSHandleObject proxy, JSHandleId id)
+{
+  JS::Value v = js::GetProxyExtra(proxy, JSPROXYSLOT_EXPANDO);
+  if (v.isObject()) {
+    JSBool hasOwn;
+    if (!JS_AlreadyHasOwnPropertyById(cx, &v.toObject(), id, &hasOwn))
+      return js::ShadowCheckFailed;
+
+    return hasOwn ? js::Shadows : js::DoesntShadow;
+  }
+
+  if (v.isUndefined()) {
+    return js::DoesntShadow;
+  }
+
+  bool hasOwn;
+  if (!GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
+    return js::ShadowCheckFailed;
+
+  return hasOwn ? js::Shadows : js::DoesntShadowUnique;
+}
+
 
 struct SetListBaseInformation
 {
   SetListBaseInformation() {
-    js::SetListBaseInformation((void*) &HandlerFamily, js::JSSLOT_PROXY_EXTRA + JSPROXYSLOT_EXPANDO);
+    js::SetListBaseInformation((void*) &HandlerFamily,
+                               js::JSSLOT_PROXY_EXTRA + JSPROXYSLOT_EXPANDO, DOMListShadows);
   }
 };
 
@@ -111,7 +135,7 @@ DOMProxyHandler::getPropertyDescriptor(JSContext* cx, JS::Handle<JSObject*> prox
   }
 
   JS::Rooted<JSObject*> proto(cx);
-  if (!js::GetObjectProto(cx, proxy, &proto)) {
+  if (!js::GetObjectProto(cx, proxy, proto.address())) {
     return false;
   }
   if (!proto) {
@@ -192,7 +216,7 @@ DOMProxyHandler::has(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid
 
   
   JS::Rooted<JSObject*> proto(cx);
-  if (!js::GetObjectProto(cx, proxy, &proto)) {
+  if (!js::GetObjectProto(cx, proxy, proto.address())) {
     return false;
   }
   if (!proto) {
