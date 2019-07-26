@@ -3772,8 +3772,14 @@ nsGfxScrollFrameInner::UpdateOverflow()
     
     
     
+    
+    
     mOuter->PresContext()->PresShell()->FrameNeedsReflow(
-      mOuter, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+      mOuter, nsIPresShell::eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
+    
+    
+    
+    mSkippedScrollbarLayout = true;
     return false;  
   }
   return mOuter->nsContainerFrame::UpdateOverflow();
