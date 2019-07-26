@@ -504,12 +504,6 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       WinHasOption(features.get(), "-moz-internal-modal", 0, nullptr)) {
     windowIsModalContentDialog = true;
 
-    
-    
-    
-    
-    
-    chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL_CONTENT_WINDOW;
     chromeFlags |= nsIWebBrowserChrome::CHROME_MODAL;
   }
 
