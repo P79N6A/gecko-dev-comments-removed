@@ -129,47 +129,6 @@ FillWithMask(gfxContext* aContext, float aOpacity, Layer* aMaskLayer);
 BasicImplData*
 ToData(Layer* aLayer);
 
-ShadowableLayer*
-ToShadowable(Layer* aLayer);
-
-
-
-bool
-ShouldShadow(Layer* aLayer);
-
-
-template<class OpT> BasicShadowableLayer*
-GetBasicShadowable(const OpT& op)
-{
-  return static_cast<BasicShadowableLayer*>(
-    static_cast<const ShadowLayerChild*>(op.textureChild()->Manager())->layer());
-}
-
-
-
-
-template<typename CreatedMethod> void
-MaybeCreateShadowFor(BasicShadowableLayer* aLayer,
-                     BasicShadowLayerManager* aMgr,
-                     CreatedMethod aMethod)
-{
-  if (!aMgr->HasShadowManager()) {
-    return;
-  }
-
-  PLayerChild* shadow = aMgr->ConstructShadowFor(aLayer);
-  
-  NS_ABORT_IF_FALSE(shadow, "failed to create shadow");
-
-  aLayer->SetShadow(shadow);
-  (aMgr->*aMethod)(aLayer);
-  aMgr->Hold(aLayer->AsLayer());
-}
-
-#define MAYBE_CREATE_SHADOW(_type)                                      \
-  MaybeCreateShadowFor(layer, this,                                     \
-                       &ShadowLayerForwarder::Created ## _type ## Layer)
-
 }
 }
 

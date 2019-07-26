@@ -7,7 +7,7 @@
 #define GFX_TILEDCONTENTHOST_H
 
 #include "ContentHost.h"
-#include "BasicTiledThebesLayer.h" 
+#include "ClientTiledThebesLayer.h" 
 
 namespace mozilla {
 namespace layers {

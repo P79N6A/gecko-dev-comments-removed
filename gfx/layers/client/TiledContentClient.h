@@ -84,8 +84,8 @@ struct BasicTiledLayerPaintData {
   bool mPaintFinished : 1;
 };
 
-class BasicTiledThebesLayer;
-class BasicShadowLayerManager;
+class ClientTiledThebesLayer;
+class ClientLayerManager;
 
 
 
@@ -99,8 +99,8 @@ class BasicTiledLayerBuffer
   friend class TiledLayerBuffer<BasicTiledLayerBuffer, BasicTiledLayerTile>;
 
 public:
-  BasicTiledLayerBuffer(BasicTiledThebesLayer* aThebesLayer,
-                        BasicShadowLayerManager* aManager);
+  BasicTiledLayerBuffer(ClientTiledThebesLayer* aThebesLayer,
+                        ClientLayerManager* aManager);
   BasicTiledLayerBuffer()
     : mThebesLayer(nullptr)
     , mManager(nullptr)
@@ -172,8 +172,8 @@ protected:
 
 private:
   gfxASurface::gfxContentType GetContentType() const;
-  BasicTiledThebesLayer* mThebesLayer;
-  BasicShadowLayerManager* mManager;
+  ClientTiledThebesLayer* mThebesLayer;
+  ClientLayerManager* mManager;
   LayerManager::DrawThebesLayerCallback mCallback;
   void* mCallbackData;
   gfxSize mFrameResolution;
@@ -221,11 +221,11 @@ class TiledContentClient : public CompositableClient
   
   
   
-  friend class BasicTiledThebesLayer;
+  friend class ClientTiledThebesLayer;
 
 public:
-  TiledContentClient(BasicTiledThebesLayer* aThebesLayer,
-                     BasicShadowLayerManager* aManager);
+  TiledContentClient(ClientTiledThebesLayer* aThebesLayer,
+                     ClientLayerManager* aManager);
 
   ~TiledContentClient()
   {
