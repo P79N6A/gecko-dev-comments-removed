@@ -261,7 +261,7 @@ nsHTTPIndex::OnStartRequest(nsIRequest *request, nsISupports* aContext)
     JS::Rooted<JS::Value> jslistener(cx, OBJECT_TO_JSVAL(jsobj));
 
     
-    bool ok = JS_SetProperty(cx, global, "HTTPIndex", jslistener.address());
+    bool ok = JS_SetProperty(cx, global, "HTTPIndex", &jslistener);
     NS_ASSERTION(ok, "unable to set Listener property");
     if (!ok)
       return NS_ERROR_FAILURE;
