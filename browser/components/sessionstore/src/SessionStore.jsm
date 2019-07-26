@@ -1044,7 +1044,6 @@ let SessionStoreInternal = {
         TabStateCache.delete(aTab);
         delete aTab.linkedBrowser.__SS_data;
         delete aTab.linkedBrowser.__SS_tabStillLoading;
-        delete aTab.linkedBrowser.__SS_formDataSaved;
         if (aTab.linkedBrowser.__SS_restoreState)
           this._resetTabRestoringState(aTab);
       }, this);
@@ -1194,7 +1193,6 @@ let SessionStoreInternal = {
 
     delete browser.__SS_data;
     delete browser.__SS_tabStillLoading;
-    delete browser.__SS_formDataSaved;
 
     
     
@@ -1273,7 +1271,6 @@ let SessionStoreInternal = {
 
     delete aBrowser.__SS_data;
     delete aBrowser.__SS_tabStillLoading;
-    delete aBrowser.__SS_formDataSaved;
     this.saveStateDelayed(aWindow);
 
     
@@ -1288,11 +1285,7 @@ let SessionStoreInternal = {
 
 
   onTabInput: function ssi_onTabInput(aWindow, aBrowser) {
-    
-    delete aBrowser.__SS_formDataSaved;
-
     TabStateCache.delete(aBrowser);
-
     this.saveStateDelayed(aWindow);
   },
 
@@ -2238,9 +2231,8 @@ let SessionStoreInternal = {
 
     this._updateTextAndScrollDataForFrame(window, browser.contentWindow,
                                           aTabData.entries[tabIndex],
-                                          !browser.__SS_formDataSaved, includePrivateData,
+                                          includePrivateData,
                                           !!aTabData.pinned);
-    browser.__SS_formDataSaved = true;
     if (browser.currentURI.spec == "about:config")
       aTabData.entries[tabIndex].formdata = {
         id: {
@@ -2265,15 +2257,13 @@ let SessionStoreInternal = {
 
 
 
-
-
   _updateTextAndScrollDataForFrame:
     function ssi_updateTextAndScrollDataForFrame(aWindow, aContent, aData,
-                                                 aUpdateFormData, aIncludePrivateData, aIsPinned) {
+                                                 aIncludePrivateData, aIsPinned) {
     for (var i = 0; i < aContent.frames.length; i++) {
       if (aData.children && aData.children[i])
         this._updateTextAndScrollDataForFrame(aWindow, aContent.frames[i],
-                                              aData.children[i], aUpdateFormData,
+                                              aData.children[i],
                                               aIncludePrivateData, aIsPinned);
     }
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
@@ -2281,22 +2271,20 @@ let SessionStoreInternal = {
     let topURL = aContent.top.document.location.href;
     let isAboutSR = topURL == "about:sessionrestore" || topURL == "about:welcomeback";
     if (aIncludePrivateData || this.checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
-      if (aIncludePrivateData || aUpdateFormData) {
-        let formData = DocumentUtils.getFormData(aContent.document);
+      let formData = DocumentUtils.getFormData(aContent.document);
 
-        
-        
-        
-        if (formData && isAboutSR) {
-          formData.id["sessionData"] = JSON.parse(formData.id["sessionData"]);
-        }
+      
+      
+      
+      if (formData && isAboutSR) {
+        formData.id["sessionData"] = JSON.parse(formData.id["sessionData"]);
+      }
 
-        if (Object.keys(formData.id).length ||
-            Object.keys(formData.xpath).length) {
-          aData.formdata = formData;
-        } else if (aData.formdata) {
-          delete aData.formdata;
-        }
+      if (Object.keys(formData.id).length ||
+          Object.keys(formData.xpath).length) {
+        aData.formdata = formData;
+      } else if (aData.formdata) {
+        delete aData.formdata;
       }
 
       
