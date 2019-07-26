@@ -11,10 +11,13 @@ let promise = devtools.require("sdk/core/promise");
 let {getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
 
 
+
+
 function clearUserPrefs() {
   Services.prefs.clearUserPref("devtools.inspector.htmlPanelOpen");
   Services.prefs.clearUserPref("devtools.inspector.sidebarOpen");
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
+  Services.prefs.clearUserPref("devtools.dump.emit");
 }
 
 registerCleanupFunction(clearUserPrefs);

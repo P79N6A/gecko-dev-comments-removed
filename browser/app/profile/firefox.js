@@ -1096,6 +1096,9 @@ pref("services.sync.prefs.sync.xpinstall.whitelist.required", true);
 #endif
 
 
+pref("devtools.dump.emit", false);
+
+
 pref("devtools.errorconsole.enabled", false);
 
 
