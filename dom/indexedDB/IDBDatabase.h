@@ -110,12 +110,7 @@ public:
     return mInvalidated;
   }
 
-  void DisconnectFromActor();
-
-  
-  
-  
-  bool IsDisconnectedFromActor() const;
+  void DisconnectFromActorParent();
 
   void CloseInternal(bool aIsDead);
 
@@ -153,6 +148,12 @@ public:
   GetActorChild() const
   {
     return mActorChild;
+  }
+
+  IndexedDBDatabaseParent*
+  GetActorParent() const
+  {
+    return mActorParent;
   }
 
   mozilla::dom::ContentParent*
@@ -195,7 +196,6 @@ private:
   mozilla::dom::ContentParent* mContentParent;
 
   bool mInvalidated;
-  bool mDisconnected;
   bool mRegistered;
   bool mClosed;
   bool mRunningVersionChange;

@@ -2858,7 +2858,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
                 
                 managertype = p.managerActorType(self.side, ptr=1)
                 managermeth = MethodDefn(MethodDecl(
-                    p.managerMethod().name, ret=managertype))
+                    p.managerMethod().name, ret=managertype, const=1))
                 managermeth.addstmt(StmtReturn(
                     ExprCast(p.managerVar(), managertype, static=1)))
 
