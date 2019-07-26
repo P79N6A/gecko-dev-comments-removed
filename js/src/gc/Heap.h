@@ -821,7 +821,15 @@ struct Chunk
 
     static Chunk *allocate(JSRuntime *rt);
 
-    void decommitAllArenas(JSRuntime *rt);
+    void decommitAllArenas(JSRuntime *rt) {
+        decommittedArenas.clear(true);
+        MarkPagesUnused(rt, &arenas[0], ArenasPerChunk * ArenaSize);
+
+        info.freeArenasHead = nullptr;
+        info.lastDecommittedArenaOffset = 0;
+        info.numArenasFree = ArenasPerChunk;
+        info.numArenasFreeCommitted = 0;
+    }
 
     
     static inline void release(JSRuntime *rt, Chunk *chunk);

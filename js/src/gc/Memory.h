@@ -14,49 +14,41 @@ struct JSRuntime;
 namespace js {
 namespace gc {
 
-class SystemPageAllocator
-{
-  public:
-    
-    
-    SystemPageAllocator();
 
-    size_t systemPageSize() { return pageSize; }
-    size_t systemAllocGranularity() { return allocGranularity; }
 
-    
-    void *mapAlignedPages(size_t size, size_t alignment);
-    void unmapPages(void *p, size_t size);
+void
+InitMemorySubsystem(JSRuntime *rt);
 
-    
-    
-    bool markPagesUnused(void *p, size_t size);
 
-    
-    
-    
-    bool markPagesInUse(void *p, size_t size);
+void *
+MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment);
 
-    
-    static size_t GetPageFaultCount();
+void
+UnmapPages(JSRuntime *rt, void *p, size_t size);
 
-    
-    
-    static void *AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
 
-    
-    static void DeallocateMappedContent(void *p, size_t length);
 
-  private:
-    bool decommitEnabled();
+bool
+MarkPagesUnused(JSRuntime *rt, void *p, size_t size);
 
-    
-    
-    size_t              pageSize;
 
-    
-    size_t              allocGranularity;
-};
+
+
+bool
+MarkPagesInUse(JSRuntime *rt, void *p, size_t size);
+
+
+size_t
+GetPageFaultCount();
+
+
+
+void *
+AllocateMappedContent(int fd, size_t offset, size_t length, size_t alignment);
+
+
+void
+DeallocateMappedContent(void *p, size_t length);
 
 } 
 } 
