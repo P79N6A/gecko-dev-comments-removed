@@ -40,7 +40,7 @@
 #include "nsIDOMXULElement.h"
 #include "nsContainerFrame.h"
 #include "nsINameSpaceManager.h"
-#include "nsIDOMHTMLSelectElement.h"
+#include "nsHTMLSelectElement.h"
 #include "nsIDOMHTMLLegendElement.h"
 #include "nsIComboboxControlFrame.h"
 #include "nsIListControlFrame.h"
@@ -2903,111 +2903,107 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
   
-  nsCOMPtr<nsIDOMHTMLSelectElement> sel(do_QueryInterface(content));
-  uint32_t size = 1;
-  if (sel) {
-    sel->GetSize(&size); 
-    bool multipleSelect = false;
-    sel->GetMultiple(&multipleSelect);
-     
-    if ((1 == size || 0 == size) && !multipleSelect) {
-        
-        
-        
-        
-        
-      uint32_t flags = NS_BLOCK_FLOAT_MGR;
-      nsIFrame* comboboxFrame = NS_NewComboboxControlFrame(mPresShell, styleContext, flags);
-
-      
-      
-      nsILayoutHistoryState *historyState = aState.mFrameState;
-      aState.mFrameState = nullptr;
-      
-      InitAndRestoreFrame(aState, content,
-                          aState.GetGeometricParent(aStyleDisplay, aParentFrame),
-                          nullptr, comboboxFrame);
-
-      aState.AddChild(comboboxFrame, aFrameItems, content, styleContext,
-                      aParentFrame);
-      
-      nsIComboboxControlFrame* comboBox = do_QueryFrame(comboboxFrame);
-      NS_ASSERTION(comboBox, "NS_NewComboboxControlFrame returned frame that "
-                             "doesn't implement nsIComboboxControlFrame");
-
-        
-      nsRefPtr<nsStyleContext> listStyle;
-      listStyle = mPresShell->StyleSet()->
-        ResolveAnonymousBoxStyle(nsCSSAnonBoxes::dropDownList, styleContext);
-
-        
-      nsIFrame* listFrame = NS_NewListControlFrame(mPresShell, listStyle);
-
-        
-      nsIListControlFrame * listControlFrame = do_QueryFrame(listFrame);
-      if (listControlFrame) {
-        listControlFrame->SetComboboxFrame(comboboxFrame);
-      }
-         
-      comboBox->SetDropDown(listFrame);
-
-      NS_ASSERTION(!listFrame->IsPositioned(),
-                   "Ended up with positioned dropdown list somehow.");
-      NS_ASSERTION(!listFrame->IsFloating(),
-                   "Ended up with floating dropdown list somehow.");
-      
-      
-      
-      nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(mPresShell, styleContext, flags);
-
-      InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
-                            comboboxFrame, listStyle, true,
-                            aItem.mPendingBinding, aFrameItems);
-
-      NS_ASSERTION(listFrame->GetView(), "ListFrame's view is nullptr");
-
-      
-      
-      
-
-      nsFrameItems childItems;
-      CreateAnonymousFrames(aState, content, comboboxFrame,
-                            aItem.mPendingBinding, childItems);
+  nsHTMLSelectElement* sel = nsHTMLSelectElement::FromContent(content);
+  MOZ_ASSERT(sel);
+  uint32_t size = sel->Size();
+  bool multipleSelect = sel->Multiple();
   
-      comboboxFrame->SetInitialChildList(kPrincipalList, childItems);
+  if ((1 == size || 0 == size) && !multipleSelect) {
+    
+    
+    
+    
+    
+    uint32_t flags = NS_BLOCK_FLOAT_MGR;
+    nsIFrame* comboboxFrame = NS_NewComboboxControlFrame(mPresShell, styleContext, flags);
 
+    
+    
+    nsILayoutHistoryState *historyState = aState.mFrameState;
+    aState.mFrameState = nullptr;
+    
+    InitAndRestoreFrame(aState, content,
+                        aState.GetGeometricParent(aStyleDisplay, aParentFrame),
+                        nullptr, comboboxFrame);
+
+    aState.AddChild(comboboxFrame, aFrameItems, content, styleContext,
+                    aParentFrame);
+
+    nsIComboboxControlFrame* comboBox = do_QueryFrame(comboboxFrame);
+    NS_ASSERTION(comboBox, "NS_NewComboboxControlFrame returned frame that "
+                 "doesn't implement nsIComboboxControlFrame");
+
+    
+    nsRefPtr<nsStyleContext> listStyle;
+    listStyle = mPresShell->StyleSet()->
+      ResolveAnonymousBoxStyle(nsCSSAnonBoxes::dropDownList, styleContext);
+
+    
+    nsIFrame* listFrame = NS_NewListControlFrame(mPresShell, listStyle);
+
+    
+    nsIListControlFrame * listControlFrame = do_QueryFrame(listFrame);
+    if (listControlFrame) {
+      listControlFrame->SetComboboxFrame(comboboxFrame);
+    }
+    
+    comboBox->SetDropDown(listFrame);
+
+    NS_ASSERTION(!listFrame->IsPositioned(),
+                 "Ended up with positioned dropdown list somehow.");
+    NS_ASSERTION(!listFrame->IsFloating(),
+                 "Ended up with floating dropdown list somehow.");
       
+    
+    
+    nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(mPresShell, styleContext, flags);
+
+    InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
+                          comboboxFrame, listStyle, true,
+                          aItem.mPendingBinding, aFrameItems);
+
+    NS_ASSERTION(listFrame->GetView(), "ListFrame's view is nullptr");
+
+    
+    
+    
+
+    nsFrameItems childItems;
+    CreateAnonymousFrames(aState, content, comboboxFrame,
+                          aItem.mPendingBinding, childItems);
+
+    comboboxFrame->SetInitialChildList(kPrincipalList, childItems);
+
+    
+    
+    nsFrameItems popupItems;
+    popupItems.AddChild(listFrame);
+    comboboxFrame->SetInitialChildList(nsIFrame::kSelectPopupList,
+                                       popupItems);
+
+    *aNewFrame = comboboxFrame;
+    aState.mFrameState = historyState;
+    if (aState.mFrameState) {
       
-      nsFrameItems popupItems;
-      popupItems.AddChild(listFrame);
-      comboboxFrame->SetInitialChildList(nsIFrame::kSelectPopupList,
-                                         popupItems);
+      RestoreFrameState(comboboxFrame, aState.mFrameState);
+    }
+  } else {
+    nsIFrame* listFrame = NS_NewListControlFrame(mPresShell, styleContext);
+    rv = NS_OK;
 
-      *aNewFrame = comboboxFrame;
-      aState.mFrameState = historyState;
-      if (aState.mFrameState) {
-        
-        RestoreFrameState(comboboxFrame, aState.mFrameState);
-      }
-    } else {
-      nsIFrame* listFrame = NS_NewListControlFrame(mPresShell, styleContext);
-      rv = NS_OK;
-
-      nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(
+    nsIFrame* scrolledFrame = NS_NewSelectsAreaFrame(
         mPresShell, styleContext, NS_BLOCK_FLOAT_MGR);
 
-      
-      
+    
+    
 
-      InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
-                            aParentFrame, styleContext, false,
-                            aItem.mPendingBinding, aFrameItems);
+    InitializeSelectFrame(aState, listFrame, scrolledFrame, content,
+                          aParentFrame, styleContext, false,
+                          aItem.mPendingBinding, aFrameItems);
 
-      *aNewFrame = listFrame;
-    }
+    *aNewFrame = listFrame;
   }
   return rv;
-
 }
 
 
