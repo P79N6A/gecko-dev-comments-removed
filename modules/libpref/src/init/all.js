@@ -1814,11 +1814,7 @@ pref("layout.css.supports-rule.enabled", true);
 pref("layout.css.filters.enabled", false);
 
 
-#ifdef RELEASE_BUILD
-pref("layout.css.sticky.enabled", false);
-#else
 pref("layout.css.sticky.enabled", true);
-#endif
 
 
 pref("layout.css.will-change.enabled", false);
