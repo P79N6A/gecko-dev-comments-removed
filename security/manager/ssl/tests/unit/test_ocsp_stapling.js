@@ -45,6 +45,7 @@ function add_tests_in_mode(useMozillaPKIX, certDB, otherTestCA) {
   add_ocsp_test("ocsp-stapling-skip-responseBytes.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-critical-extension.example.com", Cr.NS_OK, false);
   add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, false);
+  add_ocsp_test("ocsp-stapling-empty-extensions.example.com", Cr.NS_OK, false);
 
   
   
@@ -126,6 +127,8 @@ function add_tests_in_mode(useMozillaPKIX, certDB, otherTestCA) {
                   : Cr.NS_OK, 
                 true);
   add_ocsp_test("ocsp-stapling-noncritical-extension.example.com", Cr.NS_OK, true);
+  
+  add_ocsp_test("ocsp-stapling-empty-extensions.example.com", Cr.NS_OK, true);
 
   add_ocsp_test("ocsp-stapling-delegated-included.example.com", Cr.NS_OK, true);
   add_ocsp_test("ocsp-stapling-delegated-included-last.example.com", Cr.NS_OK, true);
@@ -153,8 +156,8 @@ function check_ocsp_stapling_telemetry() {
                     .getHistogramById("SSL_OCSP_STAPLING")
                     .snapshot();
   do_check_eq(histogram.counts[0], 2 * 0); 
-  do_check_eq(histogram.counts[1], 4 + 5); 
-  do_check_eq(histogram.counts[2], 2 * 17); 
+  do_check_eq(histogram.counts[1], 5 + 6); 
+  do_check_eq(histogram.counts[2], 2 * 18); 
   do_check_eq(histogram.counts[3], 2 * 0); 
   do_check_eq(histogram.counts[4], 19 + 17); 
   run_next_test();

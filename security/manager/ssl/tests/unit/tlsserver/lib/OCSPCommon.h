@@ -32,6 +32,7 @@ enum OCSPResponseType
   ORTSkipResponseBytes, 
   ORTCriticalExtension, 
   ORTNoncriticalExtension, 
+  ORTEmptyExtensions,  
   ORTDelegatedIncluded, 
   ORTDelegatedIncludedLast, 
   ORTDelegatedMissing, 

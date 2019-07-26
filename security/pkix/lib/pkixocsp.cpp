@@ -858,11 +858,15 @@ CheckExtensionForCriticality(der::Input& input)
   return input.Skip(toSkip);
 }
 
+
 static der::Result
 CheckExtensionsForCriticality(der::Input& input)
 {
+  
+  
+  
   return der::NestedOf(input, der::SEQUENCE, der::SEQUENCE,
-                       der::MustNotBeEmpty, CheckExtensionForCriticality);
+                       der::MayBeEmpty, CheckExtensionForCriticality);
 }
 
 

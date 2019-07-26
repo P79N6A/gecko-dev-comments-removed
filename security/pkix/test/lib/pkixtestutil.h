@@ -67,6 +67,9 @@ public:
   ResponderIDType responderIDType;
 
   OCSPResponseExtension* extensions;
+  bool includeEmptyExtensions; 
+                               
+                               
 };
 
 
