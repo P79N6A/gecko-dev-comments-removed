@@ -143,6 +143,10 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
                     lastSyncStarted = System.currentTimeMillis();
 
                     
+                    
+                    
+                    
+                    panel.setIconDrawable(Panel.REMOTE_TABS, R.drawable.tabs_synced_animated);
                     final Drawable iconDrawable = panel.getIconDrawable(Panel.REMOTE_TABS);
                     if (iconDrawable instanceof AnimationDrawable) {
                         ((AnimationDrawable) iconDrawable).start();
@@ -174,10 +178,9 @@ public class RemoteTabsContainerPanel extends GeckoSwipeRefreshLayout
                     setRefreshing(false);
 
                     
-                    final Drawable iconDrawable = panel.getIconDrawable(Panel.REMOTE_TABS);
-                    if (iconDrawable instanceof AnimationDrawable) {
-                        ((AnimationDrawable) iconDrawable).stop();
-                    }
+                    
+                    
+                    panel.setIconDrawable(Panel.REMOTE_TABS, R.drawable.tabs_synced);
                 }
             }, delay);
         }

@@ -93,4 +93,18 @@ public class IconTabWidget extends TabWidget {
         }
         return null;
     }
+
+    public void setIconDrawable(int index, int resource) {
+        if (!mIsIcon) {
+            return;
+        }
+        
+        
+        
+        
+        final View view = getChildTabViewAt(index);
+        if (view instanceof ImageButton) {
+            ((ImageButton) view).setImageResource(resource);
+        }
+    }
 }
