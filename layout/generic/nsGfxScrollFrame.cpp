@@ -1345,15 +1345,23 @@ nsGfxScrollFrameInner::AsyncScroll::InitSmoothScroll(TimeStamp aTime,
                                                      nsPoint aDestination,
                                                      nsIAtom *aOrigin,
                                                      const nsRect& aRange) {
+  mRange = aRange;
+  TimeDuration duration = CalcDurationForEventTime(aTime, aOrigin);
   nsSize currentVelocity(0, 0);
   if (!mIsFirstIteration) {
+    
+    
+    
+    if (aDestination == mDestination &&
+        aTime + duration > mStartTime + mDuration)
+      return;
+
     currentVelocity = VelocityAt(aTime);
     mStartPos = PositionAt(aTime);
   }
   mStartTime = aTime;
-  mDuration = CalcDurationForEventTime(aTime, aOrigin);
+  mDuration = duration;
   mDestination = aDestination;
-  mRange = aRange;
   InitTimingFunction(mTimingFunctionX, mStartPos.x, currentVelocity.width,
                      aDestination.x);
   InitTimingFunction(mTimingFunctionY, mStartPos.y, currentVelocity.height,
