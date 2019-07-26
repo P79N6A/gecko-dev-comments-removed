@@ -443,6 +443,10 @@ nsJAR::LoadEntry(const nsACString &aFilename, char** aBuf, uint32_t* aBufLen)
 int32_t
 nsJAR::ReadLine(const char** src)
 {
+  if (!*src) {
+    return 0;
+  }
+
   
   
   int32_t length;
