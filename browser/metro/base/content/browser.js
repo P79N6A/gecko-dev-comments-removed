@@ -74,6 +74,8 @@ var Browser = {
     PopupBlockerObserver.init();
 
     
+    
+    
     this.contentScrollbox = Elements.browsers;
     this.contentScrollboxScroller = {
       scrollBy: function(aDx, aDy) {
@@ -145,6 +147,10 @@ var Browser = {
     messageManager.addMessageListener("Browser:TapOnSelection", this);
     messageManager.addMessageListener("Browser:PluginClickToPlayClicked", this);
 
+    
+    
+    InputSourceHelper.fireUpdate();
+
     Task.spawn(function() {
       
       let activationURI = yield this.getShortcutOrURI(MetroUtils.activationURI);
@@ -192,9 +198,6 @@ var Browser = {
       } else {
         loadStartupURI();
       }
-
-      
-      InputSourceHelper.fireUpdate();
 
       
       let event = document.createEvent("Events");
