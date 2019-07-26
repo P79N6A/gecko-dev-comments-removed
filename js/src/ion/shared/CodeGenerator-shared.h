@@ -25,36 +25,27 @@ namespace ion {
 class OutOfLineCode;
 class CodeGenerator;
 class MacroAssembler;
-class IonCache;
-class OutOfLineParallelAbort;
 
 template <class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
-
 class OutOfLineTruncateSlow;
 
 class CodeGeneratorShared : public LInstructionVisitor
 {
     js::Vector<OutOfLineCode *, 0, SystemAllocPolicy> outOfLineCode_;
     OutOfLineCode *oolIns;
-    OutOfLineParallelAbort *oolParallelAbort_;
-
-    MacroAssembler &ensureMasm(MacroAssembler *masm);
-    mozilla::Maybe<MacroAssembler> maybeMasm_;
-
-  public:
-    MacroAssembler &masm;
 
   protected:
+    MacroAssembler masm;
     MIRGenerator *gen;
     LIRGraph &graph;
     LBlock *current;
     SnapshotWriter snapshots_;
     IonCode *deoptTable_;
 #ifdef DEBUG
-    uint32_t pushedArgs_;
+    uint32 pushedArgs_;
 #endif
-    uint32_t lastOsiPointOffset_;
+    uint32 lastOsiPointOffset_;
     SafepointWriter safepoints_;
     Label invalidate_;
     CodeOffsetLabel invalidateEpilogueData_;
@@ -66,13 +57,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
 
     
-    js::Vector<uint8_t, 0, SystemAllocPolicy> runtimeData_;
+    js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
 
     
-    js::Vector<uint32_t, 0, SystemAllocPolicy> cacheList_;
+    js::Vector<CodeOffsetLabel, 0, SystemAllocPolicy> barrierOffsets_;
 
     
-    js::Vector<uint32_t, 0, SystemAllocPolicy> pushedArgumentSlots_;
+    js::Vector<uint32, 0, SystemAllocPolicy> pushedArgumentSlots_;
 
     
     
@@ -101,30 +92,28 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     
-    int32_t frameDepth_;
+    int32 frameDepth_;
 
     
     FrameSizeClass frameClass_;
 
     
-    inline int32_t ArgToStackOffset(int32_t slot) const {
-        return masm.framePushed() +
-               (gen->compilingAsmJS() ? NativeFrameSize : sizeof(IonJSFrameLayout)) +
-               slot;
+    inline int32 ArgToStackOffset(int32 slot) const {
+        return masm.framePushed() + sizeof(IonJSFrameLayout) + slot;
     }
 
     
-    inline int32_t CalleeStackOffset() const {
+    inline int32 CalleeStackOffset() const {
         return masm.framePushed() + IonJSFrameLayout::offsetOfCalleeToken();
     }
 
-    inline int32_t SlotToStackOffset(int32_t slot) const {
-        JS_ASSERT(slot > 0 && slot <= int32_t(graph.localSlotCount()));
-        int32_t offset = masm.framePushed() - (slot * STACK_SLOT_SIZE);
+    inline int32 SlotToStackOffset(int32 slot) const {
+        JS_ASSERT(slot > 0 && slot <= int32(graph.localSlotCount()));
+        int32 offset = masm.framePushed() - (slot * STACK_SLOT_SIZE);
         JS_ASSERT(offset >= 0);
         return offset;
     }
-    inline int32_t StackOffsetToSlot(int32_t offset) const {
+    inline int32 StackOffsetToSlot(int32 offset) const {
         
         
         
@@ -136,10 +125,10 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
     
-    inline int32_t StackOffsetOfPassedArg(int32_t slot) const {
+    inline int32 StackOffsetOfPassedArg(int32 slot) const {
         
-        JS_ASSERT(slot >= 0 && slot <= int32_t(graph.argumentSlotCount()));
-        int32_t offset = masm.framePushed() -
+        JS_ASSERT(slot >= 0 && slot <= int32(graph.argumentSlotCount()));
+        int32 offset = masm.framePushed() -
                        (graph.localSlotCount() * STACK_SLOT_SIZE) -
                        (slot * sizeof(Value));
         
@@ -153,54 +142,33 @@ class CodeGeneratorShared : public LInstructionVisitor
         return offset;
     }
 
-    inline int32_t ToStackOffset(const LAllocation *a) const {
+    inline int32 ToStackOffset(const LAllocation *a) const {
         if (a->isArgument())
             return ArgToStackOffset(a->toArgument()->index());
         return SlotToStackOffset(a->toStackSlot()->slot());
     }
 
-    uint32_t frameSize() const {
+    uint32 frameSize() const {
         return frameClass_ == FrameSizeClass::None() ? frameDepth_ : frameClass_.frameSize();
     }
 
   protected:
-    
-    
-    size_t allocateCache(const IonCache &, size_t size) {
-        size_t dataOffset = allocateData(size);
+
+    size_t allocateCache(const IonCache &cache) {
         size_t index = cacheList_.length();
-        masm.propagateOOM(cacheList_.append(dataOffset));
+        masm.reportMemory(cacheList_.append(cache));
         return index;
     }
 
-    
-    
-    IonCache *getCache(size_t index) {
-        return reinterpret_cast<IonCache *>(&runtimeData_[cacheList_[index]]);
-    }
-
-  protected:
-
-    size_t allocateData(size_t size) {
-        JS_ASSERT(size % sizeof(void *) == 0);
-        size_t dataOffset = runtimeData_.length();
-        masm.propagateOOM(runtimeData_.appendN(0, size));
-        return dataOffset;
-    }
-
-    template <typename T>
-    inline size_t allocateCache(const T &cache) {
-        size_t index = allocateCache(cache, sizeof(mozilla::AlignedStorage2<T>));
-        
-        new (&runtimeData_[cacheList_.back()]) T(cache);
-        return index;
+    void addPreBarrierOffset(CodeOffsetLabel offset) {
+        masm.reportMemory(barrierOffsets_.append(offset));
     }
 
   protected:
     
     
     bool encode(LSnapshot *snapshot);
-    bool encodeSlots(LSnapshot *snapshot, MResumePoint *resumePoint, uint32_t *startIndex);
+    bool encodeSlots(LSnapshot *snapshot, MResumePoint *resumePoint, uint32 *startIndex);
 
     
     
@@ -214,13 +182,13 @@ class CodeGeneratorShared : public LInstructionVisitor
     
     
     bool markSafepoint(LInstruction *ins);
-    bool markSafepointAt(uint32_t offset, LInstruction *ins);
+    bool markSafepointAt(uint32 offset, LInstruction *ins);
 
     
     
     
     
-    bool markOsiPoint(LOsiPoint *ins, uint32_t *returnPointOffset);
+    bool markOsiPoint(LOsiPoint *ins, uint32 *returnPointOffset);
 
     
     
@@ -239,15 +207,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     }
 
   public:
-    
-    
-    
-    
-    
-    
-    
-    
-    
     void saveVolatile(Register output) {
         RegisterSet regs = RegisterSet::Volatile();
         regs.maybeTake(output);
@@ -312,40 +271,24 @@ class CodeGeneratorShared : public LInstructionVisitor
     inline OutOfLineCode *oolCallVM(const VMFunction &fun, LInstruction *ins, const ArgSeq &args,
                                     const StoreOutputTo &out);
 
-    bool addCache(LInstruction *lir, size_t cacheIndex);
-
   protected:
     bool addOutOfLineCode(OutOfLineCode *code);
-    bool hasOutOfLineCode() { return !outOfLineCode_.empty(); }
     bool generateOutOfLineCode();
+
+    void linkAbsoluteLabels() {
+    }
 
   private:
     void generateInvalidateEpilogue();
 
   public:
-    CodeGeneratorShared(MIRGenerator *gen, LIRGraph *graph, MacroAssembler *masm);
+    CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph);
 
   public:
     template <class ArgSeq, class StoreOutputTo>
     bool visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool);
 
     bool visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool);
-
-  public:
-    
-    
-    virtual bool visitOutOfLineParallelAbort(OutOfLineParallelAbort *ool) = 0;
-    bool callTraceLIR(uint32_t blockIndex, LInstruction *lir, const char *bailoutName = NULL);
-
-  protected:
-    bool ensureOutOfLineParallelAbort(Label **result);
-};
-
-
-struct HeapLabel
-  : public TempObject,
-    public Label
-{
 };
 
 
@@ -353,7 +296,7 @@ class OutOfLineCode : public TempObject
 {
     Label entry_;
     Label rejoin_;
-    uint32_t framePushed_;
+    uint32 framePushed_;
     jsbytecode *pc_;
     JSScript *script_;
 
@@ -375,20 +318,20 @@ class OutOfLineCode : public TempObject
     Label *rejoin() {
         return &rejoin_;
     }
-    void setFramePushed(uint32_t framePushed) {
+    void setFramePushed(uint32 framePushed) {
         framePushed_ = framePushed;
     }
-    uint32_t framePushed() const {
+    uint32 framePushed() const {
         return framePushed_;
     }
-    void setSource(RawScript script, jsbytecode *pc) {
+    void setSource(JSScript *script, jsbytecode *pc) {
         script_ = script;
         pc_ = pc;
     }
     jsbytecode *pc() {
         return pc_;
     }
-    RawScript script() {
+    JSScript *script() {
         return script_;
     }
 };
@@ -446,7 +389,6 @@ class ArgSeq : public SeqType
         this->SeqType::generate(codegen);
     }
 };
-
 
 template <>
 class ArgSeq<void, void>
@@ -575,6 +517,7 @@ template <class ArgSeq, class StoreOutputTo>
 bool
 CodeGeneratorShared::visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo> *ool)
 {
+    AssertCanGC();
     LInstruction *lir = ool->lir();
 
     saveLive(lir);
@@ -586,17 +529,6 @@ CodeGeneratorShared::visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo>
     masm.jump(ool->rejoin());
     return true;
 }
-
-
-
-class OutOfLineParallelAbort : public OutOfLineCode
-{
-  public:
-    OutOfLineParallelAbort()
-    { }
-
-    bool generate(CodeGeneratorShared *codegen);
-};
 
 } 
 } 

@@ -235,6 +235,13 @@ class Label : public LabelBase
     }
 };
 
+
+struct HeapLabel
+  : public TempObject,
+    public Label
+{
+};
+
 class RepatchLabel
 {
     static const int32 INVALID_OFFSET = 0xC0000000;
