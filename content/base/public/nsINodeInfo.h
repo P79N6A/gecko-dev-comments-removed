@@ -132,7 +132,7 @@ public:
   
 
 
-  virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const = 0;
+  virtual void GetNamespaceURI(nsAString& aNameSpaceURI) const = 0;
 
   
 

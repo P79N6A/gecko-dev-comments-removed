@@ -29,7 +29,7 @@ public:
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_CLASS(nsNodeInfo)
 
   
-  virtual nsresult GetNamespaceURI(nsAString& aNameSpaceURI) const;
+  virtual void GetNamespaceURI(nsAString& aNameSpaceURI) const;
   virtual bool NamespaceEquals(const nsAString& aNamespaceURI) const;
 
   

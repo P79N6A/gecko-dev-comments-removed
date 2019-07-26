@@ -208,19 +208,20 @@ NS_INTERFACE_MAP_END
 
 
 
-nsresult
+void
 nsNodeInfo::GetNamespaceURI(nsAString& aNameSpaceURI) const
 {
-  nsresult rv = NS_OK;
-
   if (mInner.mNamespaceID > 0) {
-    rv = nsContentUtils::NameSpaceManager()->GetNameSpaceURI(mInner.mNamespaceID,
-                                                             aNameSpaceURI);
+    nsresult rv =
+      nsContentUtils::NameSpaceManager()->GetNameSpaceURI(mInner.mNamespaceID,
+                                                          aNameSpaceURI);
+    
+    if (NS_FAILED(rv)) {
+      MOZ_CRASH();
+    }
   } else {
     SetDOMStringToNull(aNameSpaceURI);
   }
-
-  return rv;
 }
 
 
