@@ -3484,34 +3484,40 @@ WorkerPrivate::NotifyInternal(JSContext* aCx, Status aStatus)
 
   
   
-  if (!JS_GetGlobalObject(aCx) || mCloseHandlerFinished) {
+  if (previousStatus == Running) {
+    MutexAutoLock lock(mMutex);
+    ClearQueue(&mQueue);
+  }
+
+  
+  if (mCloseHandlerFinished) {
     return true;
   }
 
   
   
+  if (!JS_GetGlobalObject(aCx)) {
+    mCloseHandlerStarted = true;
+    mCloseHandlerFinished = true;
+    return true;
+  }
+
   
-  if (previousStatus == Running) {
+  
+  if (previousStatus == Running && aStatus != Killing) {
     NS_ASSERTION(!mCloseHandlerStarted && !mCloseHandlerFinished,
                  "This is impossible!");
 
-    {
-      MutexAutoLock lock(mMutex);
-      ClearQueue(&mQueue);
+    nsRefPtr<CloseEventRunnable> closeRunnable = new CloseEventRunnable(this);
+
+    MutexAutoLock lock(mMutex);
+
+    if (!mQueue.Push(closeRunnable)) {
+      NS_WARNING("Failed to push closeRunnable!");
+      return false;
     }
 
-    if (aStatus != Killing) {
-      nsRefPtr<CloseEventRunnable> closeRunnable = new CloseEventRunnable(this);
-
-      MutexAutoLock lock(mMutex);
-
-      if (!mQueue.Push(closeRunnable)) {
-        NS_WARNING("Failed to push closeRunnable!");
-        return false;
-      }
-
-      closeRunnable.forget();
-    }
+    closeRunnable.forget();
   }
 
   if (aStatus == Closing) {
