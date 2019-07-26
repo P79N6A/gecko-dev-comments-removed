@@ -217,6 +217,15 @@ public:
   bool IsReady() { return mIsReady; }
 
 private:
+  
+
+
+
+
+
+  already_AddRefed<gfxDrawable> DrawableForElement(const nsRect& aImageRect,
+                                                   nsRenderingContext&  aRenderingContext);
+
   nsIFrame*                 mForFrame;
   const nsStyleImage*       mImage;
   nsStyleImageType          mType;
