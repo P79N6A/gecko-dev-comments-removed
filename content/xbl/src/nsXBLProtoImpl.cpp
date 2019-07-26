@@ -55,7 +55,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   
   nsIDocument* document = aBinding->GetBoundElement()->OwnerDoc();
-                                              
+
   nsCOMPtr<nsIScriptGlobalObject> global =  do_QueryInterface(document->GetScopeObject());
   if (!global) return NS_OK;
 
@@ -67,7 +67,7 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  JSObject* targetClassObject = nullptr;
+  JS::Rooted<JSObject*> targetClassObject(context->GetNativeContext(), nullptr);
   bool targetObjectIsNew = false;
   nsresult rv = InitTargetObjects(aPrototypeBinding, context,
                                   aBinding->GetBoundElement(),
@@ -83,8 +83,8 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   if (!targetObjectIsNew)
     return NS_OK;
 
-  JSObject * targetScriptObject;
-  holder->GetJSObject(&targetScriptObject);
+  JS::Rooted<JSObject*> targetScriptObject(context->GetNativeContext());
+  holder->GetJSObject(targetScriptObject.address());
 
   AutoPushJSContext cx(context->GetNativeContext());
   JSAutoRequest ar(cx);

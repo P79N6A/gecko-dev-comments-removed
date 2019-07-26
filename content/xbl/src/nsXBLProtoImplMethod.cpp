@@ -96,14 +96,14 @@ nsXBLProtoImplMethod::SetLineNumber(uint32_t aLineNumber)
 
 nsresult
 nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
-                                    JSObject* aTargetClassObject)
+                                    JS::Handle<JSObject*> aTargetClassObject)
 {
   NS_PRECONDITION(IsCompiled(),
                   "Should not be installing an uncompiled method");
   MOZ_ASSERT(js::IsObjectInContextCompartment(aTargetClassObject, aCx));
 
-  JSObject* globalObject = JS_GetGlobalForObject(aCx, aTargetClassObject);
-  JSObject* scopeObject = xpc::GetXBLScope(aCx, globalObject);
+  JS::Rooted<JSObject*> globalObject(aCx, JS_GetGlobalForObject(aCx, aTargetClassObject));
+  JS::Rooted<JSObject*> scopeObject(aCx, xpc::GetXBLScope(aCx, globalObject));
 
   
   if (mJSMethodObject) {
@@ -111,7 +111,7 @@ nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
 
     
     JSAutoCompartment ac(aCx, scopeObject);
-    JSObject * method = ::JS_CloneFunctionObject(aCx, mJSMethodObject, scopeObject);
+    JS::Rooted<JSObject*> method(aCx, ::JS_CloneFunctionObject(aCx, mJSMethodObject, scopeObject));
     if (!method) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -119,10 +119,13 @@ nsXBLProtoImplMethod::InstallMember(JSContext* aCx,
     
     
     JSAutoCompartment ac2(aCx, aTargetClassObject);
-    if (!JS_WrapObject(aCx, &method) ||
-        !::JS_DefineUCProperty(aCx, aTargetClassObject,
+    if (!JS_WrapObject(aCx, method.address()))
+      return NS_ERROR_OUT_OF_MEMORY;
+
+    JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*method));
+    if (!::JS_DefineUCProperty(aCx, aTargetClassObject,
                                static_cast<const jschar*>(mName),
-                               name.Length(), OBJECT_TO_JSVAL(method),
+                               name.Length(), value,
                                nullptr, nullptr, JSPROP_ENUMERATE)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
