@@ -1540,9 +1540,18 @@ class ScriptFrameIter
 
 class NonBuiltinScriptFrameIter : public ScriptFrameIter
 {
+#ifdef DEBUG
+    static bool includeSelfhostedFrames();
+#else
+    static bool includeSelfhostedFrames() {
+        return false;
+    }
+#endif
+
     void settle() {
-        while (!done() && script()->selfHosted)
-            ScriptFrameIter::operator++();
+        if (!includeSelfhostedFrames())
+            while (!done() && script()->selfHosted)
+                ScriptFrameIter::operator++();
     }
 
   public:
