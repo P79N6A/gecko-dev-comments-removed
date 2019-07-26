@@ -1572,14 +1572,16 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
   const nsStyleTextReset* styleTextReset = GetStyleTextReset();
   
   bool tryAndSkipLines =
-      
+    
+    GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR &&
+    
     IsAlignedLeft(styleText->mTextAlign, 
                   aState.mReflowState.mStyleVisibility->mDirection,
                   styleTextReset->mUnicodeBidi,
                   this) &&
-      
-      
-      !GetStylePadding()->mPadding.GetLeft().HasPercent();
+    
+    
+    !GetStylePadding()->mPadding.GetLeft().HasPercent();
 
 #ifdef DEBUG
   if (gDisableResizeOpt) {
