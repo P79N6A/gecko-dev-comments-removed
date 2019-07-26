@@ -12,7 +12,7 @@
 class qsObjectHelper;
 namespace mozilla {
 namespace dom {
-class NativeProperties;
+class NativePropertiesHolder;
 }
 }
 
@@ -41,7 +41,7 @@ struct xpc_qsHashEntry {
     uint16_t n_props;
     uint16_t func_index;
     uint16_t n_funcs;
-    const mozilla::dom::NativeProperties* newBindingProperties;
+    const mozilla::dom::NativePropertiesHolder* newBindingProperties;
     
     
     uint16_t parentInterface;
