@@ -7,6 +7,7 @@
 #define nsWindowBase_h_
 
 #include "nsBaseWidget.h"
+#include <windows.h>
 
 
 
