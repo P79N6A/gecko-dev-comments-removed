@@ -1996,6 +1996,12 @@ ElementRestyler::CaptureChange(nsStyleContext* aOldContext,
                                nsStyleContext* aNewContext,
                                nsChangeHint aChangeToAssume)
 {
+  
+  NS_ASSERTION(aOldContext->GetPseudo() == aNewContext->GetPseudo(),
+               "old and new style contexts should have the same pseudo");
+  NS_ASSERTION(aOldContext->GetPseudoType() == aNewContext->GetPseudoType(),
+               "old and new style contexts should have the same pseudo");
+
   nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext,
                              mParentFrameHintsNotHandledForDescendants);
   NS_ASSERTION(!(ourChange & nsChangeHint_AllReflowHints) ||
@@ -2337,7 +2343,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
     bool checkUndisplayed;
     nsIContent* undisplayedParent;
     nsCSSFrameConstructor* frameConstructor = mPresContext->FrameConstructor();
-    if (pseudoTag) {
+    if (mFrame->StyleContext()->GetPseudo()) {
       checkUndisplayed = mFrame == frameConstructor->
                                      GetDocElementContainingBlock();
       undisplayedParent = nullptr;
@@ -2424,7 +2430,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         childRestyleHint) {
       
       
-      if (!pseudoTag &&
+      if (!mFrame->StyleContext()->GetPseudo() &&
           ((mFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
            
            (mFrame->GetContentInsertionFrame()->GetStateBits() &
@@ -2455,7 +2461,7 @@ ElementRestyler::Restyle(nsRestyleHint aRestyleHint)
         childRestyleHint) {
       
       
-      if (!pseudoTag &&
+      if (!mFrame->StyleContext()->GetPseudo() &&
           ((mFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
            
            (mFrame->GetContentInsertionFrame()->GetStateBits() &
