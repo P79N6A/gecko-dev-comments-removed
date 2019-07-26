@@ -320,7 +320,7 @@ nsIdleService::GetInstance()
 
 nsIdleService::nsIdleService() : mCurrentlySetToTimeoutAtInPR(0),
                                  mAnyObserverIdle(false),
-                                 mDeltaToNextIdleSwitchInS(PR_UINT32_MAX),
+                                 mDeltaToNextIdleSwitchInS(UINT32_MAX),
                                  mLastUserInteractionInPR(PR_Now())
 {
 #ifdef PR_LOGGING
@@ -360,7 +360,7 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, uint32_t aIdleTimeInS)
   NS_ENSURE_ARG_POINTER(aObserver);
   
   
-  NS_ENSURE_ARG_RANGE(aIdleTimeInS, 1, (PR_UINT32_MAX / 10) - 1);
+  NS_ENSURE_ARG_RANGE(aIdleTimeInS, 1, (UINT32_MAX / 10) - 1);
 
   
   IdleListener listener(aObserver, aIdleTimeInS);
@@ -455,7 +455,7 @@ nsIdleService::ResetIdleTimeOut(uint32_t idleDeltaInMS)
   
   Telemetry::AutoTimer<Telemetry::IDLE_NOTIFY_BACK_MS> timer;
   nsCOMArray<nsIObserver> notifyList;
-  mDeltaToNextIdleSwitchInS = PR_UINT32_MAX;
+  mDeltaToNextIdleSwitchInS = UINT32_MAX;
 
   
   for (uint32_t i = 0; i < mArrayListeners.Length(); i++) {
@@ -632,7 +632,7 @@ nsIdleService::IdleTimerCallback(void)
   Telemetry::AutoTimer<Telemetry::IDLE_NOTIFY_IDLE_MS> timer;
 
   
-  mDeltaToNextIdleSwitchInS = PR_UINT32_MAX;
+  mDeltaToNextIdleSwitchInS = UINT32_MAX;
 
   
   nsCOMArray<nsIObserver> notifyList;
@@ -756,7 +756,7 @@ void
 nsIdleService::ReconfigureTimer(void)
 {
   
-  if (!mAnyObserverIdle && PR_UINT32_MAX == mDeltaToNextIdleSwitchInS) {
+  if (!mAnyObserverIdle && UINT32_MAX == mDeltaToNextIdleSwitchInS) {
     
     
     PR_LOG(sLog, PR_LOG_DEBUG,

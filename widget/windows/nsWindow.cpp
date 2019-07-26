@@ -7917,7 +7917,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
 
       
       
-      uint32_t popupsToRollup = PR_UINT32_MAX;
+      uint32_t popupsToRollup = UINT32_MAX;
       if (rollup) {
         if ( sRollupListener ) {
           nsAutoTArray<nsIWidget*, 5> widgetChain;
@@ -7941,7 +7941,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         } 
       }
 
-      if (inMsg == WM_MOUSEACTIVATE && popupsToRollup == PR_UINT32_MAX) {
+      if (inMsg == WM_MOUSEACTIVATE && popupsToRollup == UINT32_MAX) {
         
         
         
@@ -8004,7 +8004,7 @@ nsWindow::DealWithPopups(HWND inWnd, UINT inMsg, WPARAM inWParam, LPARAM inLPara
         
         
         
-        if (popupsToRollup != PR_UINT32_MAX && inMsg == WM_MOUSEACTIVATE) {
+        if (popupsToRollup != UINT32_MAX && inMsg == WM_MOUSEACTIVATE) {
           *outResult = MA_NOACTIVATEANDEAT;
           return TRUE;
         }

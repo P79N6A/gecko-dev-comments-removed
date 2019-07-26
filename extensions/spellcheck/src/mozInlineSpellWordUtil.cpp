@@ -482,7 +482,7 @@ mozInlineSpellWordUtil::BuildSoftText()
       }
       break;
     }
-    checkBeforeOffset = PR_INT32_MAX;
+    checkBeforeOffset = INT32_MAX;
     if (IsBreakElement(node)) {
       
       

@@ -65,8 +65,8 @@ nsresult TP_NewPipe(nsIInputStream **pipeIn,
 
     
     uint32_t segmentCount;
-    if (maxSize == PR_UINT32_MAX)
-        segmentCount = PR_UINT32_MAX;
+    if (maxSize == UINT32_MAX)
+        segmentCount = UINT32_MAX;
     else
         segmentCount = maxSize / segmentSize;
 

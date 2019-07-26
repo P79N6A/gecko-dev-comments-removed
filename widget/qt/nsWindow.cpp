@@ -929,7 +929,7 @@ check_for_rollup(double aMouseX, double aMouseY,
             
             
             
-            uint32_t popupsToRollup = PR_UINT32_MAX;
+            uint32_t popupsToRollup = UINT32_MAX;
             if (gRollupListener) {
                 nsAutoTArray<nsIWidget*, 5> widgetChain;
                 uint32_t sameTypeCount = gRollupListener->GetSubmenuWidgetChain(&widgetChain);

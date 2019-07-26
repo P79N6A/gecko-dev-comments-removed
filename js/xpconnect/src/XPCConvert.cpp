@@ -1506,7 +1506,7 @@ CheckTargetAndPopulate(JSContext *cx,
 
     
     
-    size_t max = PR_UINT32_MAX / typeSize;
+    size_t max = UINT32_MAX / typeSize;
 
     
     size_t byteSize = count * typeSize;
@@ -1690,7 +1690,7 @@ XPCConvert::JSArray2Native(JSContext* cx, void** d, JS::Value s,
 #define POPULATE(_mode, _t)                                                   \
     PR_BEGIN_MACRO                                                            \
         cleanupMode = _mode;                                                  \
-        size_t max = PR_UINT32_MAX / sizeof(_t);                              \
+        size_t max = UINT32_MAX / sizeof(_t);                              \
         if (count > max ||                                                    \
             nullptr == (array = nsMemory::Alloc(count * sizeof(_t)))) {        \
             if (pErr)                                                         \

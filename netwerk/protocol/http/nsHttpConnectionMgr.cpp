@@ -758,7 +758,7 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
 
     
     
-    uint32_t timeToNextExpire = PR_UINT32_MAX;
+    uint32_t timeToNextExpire = UINT32_MAX;
     int32_t count = ent->mIdleConns.Length();
     if (count > 0) {
         for (int32_t i=count-1; i>=0; --i) {
@@ -793,7 +793,7 @@ nsHttpConnectionMgr::PruneDeadConnectionsCB(const nsACString &key,
     
     
     
-    if (timeToNextExpire != PR_UINT32_MAX) {
+    if (timeToNextExpire != UINT32_MAX) {
         uint32_t now = NowInSeconds();
         uint64_t timeOfNextExpire = now + timeToNextExpire;
         

@@ -1830,7 +1830,7 @@ nsXULTemplateBuilder::CompileTemplate(nsIContent* aTemplate,
         nsINodeInfo *ni = rulenode->NodeInfo();
 
         
-        if (*aPriority == PR_INT16_MAX)
+        if (*aPriority == INT16_MAX)
             return NS_ERROR_FAILURE;
 
         

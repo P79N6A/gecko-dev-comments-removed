@@ -182,7 +182,7 @@ public:
   static nsIntRect GetMaxRect() {
     
     
-    return nsIntRect(PR_INT32_MIN/2, PR_INT32_MIN/2, PR_INT32_MAX, PR_INT32_MAX);
+    return nsIntRect(INT32_MIN/2, INT32_MIN/2, INT32_MAX, INT32_MAX);
   }
 
   operator nsISupports*() { return static_cast<nsIContent*>(this); }

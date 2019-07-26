@@ -2782,7 +2782,7 @@ nsCryptoHash::UpdateFromStream(nsIInputStream *data, uint32_t aLen)
   
 
   uint64_t len = aLen;
-  if (aLen == PR_UINT32_MAX)
+  if (aLen == UINT32_MAX)
     len = n;
 
   
@@ -2975,7 +2975,7 @@ NS_IMETHODIMP nsCryptoHMAC::UpdateFromStream(nsIInputStream *aStream, uint32_t a
   
 
   uint64_t len = aLen;
-  if (aLen == PR_UINT32_MAX)
+  if (aLen == UINT32_MAX)
     len = n;
 
   

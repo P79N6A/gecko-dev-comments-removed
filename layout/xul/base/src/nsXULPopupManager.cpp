@@ -192,7 +192,7 @@ nsXULPopupManager::Rollup(uint32_t aCount, bool aGetLastRolledUp)
     
     
     nsIContent* lastPopup = nullptr;
-    if (aCount != PR_UINT32_MAX) {
+    if (aCount != UINT32_MAX) {
       nsMenuChainItem* last = item;
       while (--aCount && last->GetParent()) {
         last = last->GetParent();

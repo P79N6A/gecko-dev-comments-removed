@@ -87,7 +87,7 @@ public:
   {
     if (mChanges.IsEmpty()) {
       if (aTime) {
-        *aTime = PR_INT64_MIN;
+        *aTime = INT64_MIN;
       }
       return mCurrent;
     }
@@ -131,17 +131,17 @@ public:
   {
     if (mChanges.IsEmpty() || aTime < mChanges[0].mTime) {
       if (aStart) {
-        *aStart = PR_INT64_MIN;
+        *aStart = INT64_MIN;
       }
       if (aEnd) {
-        *aEnd = mChanges.IsEmpty() ? PR_INT64_MAX : mChanges[0].mTime;
+        *aEnd = mChanges.IsEmpty() ? INT64_MAX : mChanges[0].mTime;
       }
       return mCurrent;
     }
     int32_t changesLength = mChanges.Length();
     if (mChanges[changesLength - 1].mTime <= aTime) {
       if (aEnd) {
-        *aEnd = PR_INT64_MAX;
+        *aEnd = INT64_MAX;
       }
       if (aStart) {
         *aStart = mChanges[changesLength - 1].mTime;

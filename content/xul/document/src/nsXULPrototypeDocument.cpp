@@ -325,7 +325,7 @@ nsXULPrototypeDocument::Read(nsIObjectInputStream* aStream)
         
         
         tmp = mNodeInfoManager->GetNodeInfo(localName, prefix, namespaceURI,
-                                            PR_UINT16_MAX,
+                                            UINT16_MAX,
                                             getter_AddRefs(nodeInfo));
         if (NS_FAILED(tmp)) {
           rv = tmp;

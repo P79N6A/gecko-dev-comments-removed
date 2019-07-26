@@ -1492,7 +1492,7 @@ nsIMM32Handler::HandleDocumentFeed(nsWindow* aWindow,
 
   
   nsQueryContentEvent textContent(true, NS_QUERY_TEXT_CONTENT, aWindow);
-  textContent.InitForQueryTextContent(0, PR_UINT32_MAX);
+  textContent.InitForQueryTextContent(0, UINT32_MAX);
   aWindow->InitEvent(textContent, &point);
   aWindow->DispatchWindowEvent(&textContent);
   if (!textContent.mSucceeded) {

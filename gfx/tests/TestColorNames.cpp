@@ -79,7 +79,7 @@ int main(int argc, char** argv)
     uint8_t g = NS_GET_G(rgb);
     uint8_t b = NS_GET_B(rgb);
     uint8_t a = NS_GET_A(rgb);
-    if (a != PR_UINT8_MAX) {
+    if (a != UINT8_MAX) {
       
       rgb = NS_RGB(r, g, b);
     }

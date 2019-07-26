@@ -28,7 +28,7 @@
 
 
 
-#define kNameSpaceID_Wildcard PR_INT32_MIN
+#define kNameSpaceID_Wildcard INT32_MIN
 
 
 

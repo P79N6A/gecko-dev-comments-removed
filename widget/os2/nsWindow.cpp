@@ -496,7 +496,7 @@ NS_METHOD nsWindow::Destroy()
   
   if (this == gRollupWidget) {
     if (gRollupListener) {
-      gRollupListener->Rollup(PR_UINT32_MAX);
+      gRollupListener->Rollup(UINT32_MAX);
     }
     CaptureRollupEvents(nullptr, false, true);
   }
@@ -1585,7 +1585,7 @@ bool nsWindow::RollupOnButtonDown(ULONG aMsg)
 
   
   
-  uint32_t popupsToRollup = PR_UINT32_MAX;
+  uint32_t popupsToRollup = UINT32_MAX;
 
   if (gRollupListener) {
     nsAutoTArray<nsIWidget*, 5> widgetChain;
@@ -1635,7 +1635,7 @@ void nsWindow::RollupOnFocusLost(HWND aFocus)
   }
 
   
-  gRollupListener->Rollup(PR_UINT32_MAX);
+  gRollupListener->Rollup(UINT32_MAX);
   return;
 }
 

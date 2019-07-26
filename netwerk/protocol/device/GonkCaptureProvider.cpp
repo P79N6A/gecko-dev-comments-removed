@@ -311,7 +311,7 @@ GonkCameraInputStream::Init(nsACString& aContentType, nsCaptureParams* aParams)
   params.getSupportedPreviewSizes(previewSizes);
 
   
-  uint32_t minSizeDelta = PR_UINT32_MAX;
+  uint32_t minSizeDelta = UINT32_MAX;
   uint32_t bestWidth = mWidth;
   uint32_t bestHeight = mHeight;
   for (uint32_t i = 0; i < previewSizes.size(); i++) {

@@ -528,8 +528,8 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
     
     
     
-    aMetrics.height = NS_MIN(aPresContext->DevPixelsToAppUnits(PR_INT16_MAX), aMetrics.height);
-    aMetrics.width = NS_MIN(aPresContext->DevPixelsToAppUnits(PR_INT16_MAX), aMetrics.width);
+    aMetrics.height = NS_MIN(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.height);
+    aMetrics.width = NS_MIN(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.width);
 #endif
   }
 

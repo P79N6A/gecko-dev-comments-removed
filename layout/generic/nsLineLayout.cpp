@@ -1035,7 +1035,7 @@ nsLineLayout::ReflowFrame(nsIFrame* aFrame,
           
           
           
-          if (NotifyOptionalBreakPosition(aFrame->GetContent(), PR_INT32_MAX, optionalBreakAfterFits, eNormalBreak)) {
+          if (NotifyOptionalBreakPosition(aFrame->GetContent(), INT32_MAX, optionalBreakAfterFits, eNormalBreak)) {
             
             aReflowStatus = NS_INLINE_LINE_BREAK_AFTER(aReflowStatus);
           }

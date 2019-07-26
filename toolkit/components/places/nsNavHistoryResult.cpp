@@ -3701,7 +3701,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(int64_t aItemId,
       !isQuery && excludeItems) {
     
     
-    ReindexRange(aIndex, PR_INT32_MAX, 1);
+    ReindexRange(aIndex, INT32_MAX, 1);
     return NS_OK;
   }
 
@@ -3709,7 +3709,7 @@ nsNavHistoryFolderResultNode::OnItemAdded(int64_t aItemId,
     return NS_OK; 
 
   
-  ReindexRange(aIndex, PR_INT32_MAX, 1);
+  ReindexRange(aIndex, INT32_MAX, 1);
 
   nsRefPtr<nsNavHistoryResultNode> node;
   if (aItemType == nsINavBookmarksService::TYPE_BOOKMARK) {
@@ -3793,7 +3793,7 @@ nsNavHistoryFolderResultNode::OnItemRemoved(int64_t aItemId,
   if ((node->IsURI() || node->IsSeparator()) && excludeItems) {
     
     
-    ReindexRange(aIndex, PR_INT32_MAX, -1);
+    ReindexRange(aIndex, INT32_MAX, -1);
     return NS_OK;
   }
 
@@ -3801,7 +3801,7 @@ nsNavHistoryFolderResultNode::OnItemRemoved(int64_t aItemId,
     return NS_OK; 
 
   
-  ReindexRange(aIndex + 1, PR_INT32_MAX, -1);
+  ReindexRange(aIndex + 1, INT32_MAX, -1);
 
   return RemoveChildAt(index);
 }
@@ -4015,8 +4015,8 @@ nsNavHistoryFolderResultNode::OnItemMoved(int64_t aItemId,
     
 
     
-    ReindexRange(aOldIndex + 1, PR_INT32_MAX, -1);
-    ReindexRange(aNewIndex, PR_INT32_MAX, 1);
+    ReindexRange(aOldIndex + 1, INT32_MAX, -1);
+    ReindexRange(aNewIndex, INT32_MAX, 1);
 
     uint32_t index;
     nsNavHistoryResultNode* node = FindChildById(aItemId, &index);

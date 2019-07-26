@@ -86,7 +86,7 @@ LazyIdleThread::DisableIdleTimeout()
   MutexAutoLock lock(mMutex);
 
   
-  NS_ASSERTION(mPendingEventCount < PR_UINT32_MAX, "Way too many!");
+  NS_ASSERTION(mPendingEventCount < UINT32_MAX, "Way too many!");
   mPendingEventCount++;
 }
 
@@ -119,7 +119,7 @@ LazyIdleThread::PreDispatch()
 {
   MutexAutoLock lock(mMutex);
 
-  NS_ASSERTION(mPendingEventCount < PR_UINT32_MAX, "Way too many!");
+  NS_ASSERTION(mPendingEventCount < UINT32_MAX, "Way too many!");
   mPendingEventCount++;
 }
 
@@ -497,7 +497,7 @@ LazyIdleThread::AfterProcessNextEvent(nsIThreadInternal* ,
 
     shouldNotifyIdle = !mPendingEventCount;
     if (shouldNotifyIdle) {
-      NS_ASSERTION(mIdleNotificationCount < PR_UINT32_MAX, "Way too many!");
+      NS_ASSERTION(mIdleNotificationCount < UINT32_MAX, "Way too many!");
       mIdleNotificationCount++;
     }
   }

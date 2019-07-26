@@ -46,7 +46,7 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
 {
   
   
-  MOZ_STATIC_ASSERT((PR_UINT32_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
+  MOZ_STATIC_ASSERT((UINT32_MAX >> NS_STYLE_CONTEXT_TYPE_SHIFT) >=
                     nsCSSPseudoElements::ePseudo_MAX,
                     "pseudo element bits no longer fit in a uint32_t");
 

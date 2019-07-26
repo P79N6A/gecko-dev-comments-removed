@@ -1401,7 +1401,7 @@ void BuildTextRunsScanner::FlushFrames(bool aFlushLineBreaks, bool aSuppressTrai
     } else {
       AutoFallibleTArray<uint8_t,BIG_TEXT_NODE_SIZE> buffer;
       uint32_t bufferSize = mMaxTextLength*(mDoubleByteText ? 2 : 1);
-      if (bufferSize < mMaxTextLength || bufferSize == PR_UINT32_MAX ||
+      if (bufferSize < mMaxTextLength || bufferSize == UINT32_MAX ||
           !buffer.AppendElements(bufferSize)) {
         return;
       }
@@ -1448,10 +1448,10 @@ void BuildTextRunsScanner::FlushLineBreaks(gfxTextRun* aTrailingTextRun)
 
 void BuildTextRunsScanner::AccumulateRunInfo(nsTextFrame* aFrame)
 {
-  if (mMaxTextLength != PR_UINT32_MAX) {
-    NS_ASSERTION(mMaxTextLength < PR_UINT32_MAX - aFrame->GetContentLength(), "integer overflow");
-    if (mMaxTextLength >= PR_UINT32_MAX - aFrame->GetContentLength()) {
-      mMaxTextLength = PR_UINT32_MAX;
+  if (mMaxTextLength != UINT32_MAX) {
+    NS_ASSERTION(mMaxTextLength < UINT32_MAX - aFrame->GetContentLength(), "integer overflow");
+    if (mMaxTextLength >= UINT32_MAX - aFrame->GetContentLength()) {
+      mMaxTextLength = UINT32_MAX;
     } else {
       mMaxTextLength += aFrame->GetContentLength();
     }
@@ -2098,7 +2098,7 @@ BuildTextRunsScanner::SetupLineBreakerContext(gfxTextRun *aTextRun)
 {
   AutoFallibleTArray<uint8_t,BIG_TEXT_NODE_SIZE> buffer;
   uint32_t bufferSize = mMaxTextLength*(mDoubleByteText ? 2 : 1);
-  if (bufferSize < mMaxTextLength || bufferSize == PR_UINT32_MAX) {
+  if (bufferSize < mMaxTextLength || bufferSize == UINT32_MAX) {
     return false;
   }
   void *textPtr = buffer.AppendElements(bufferSize);
@@ -2652,7 +2652,7 @@ static bool IsInBounds(const gfxSkipCharsIterator& aStart, int32_t aContentLengt
                          uint32_t aOffset, uint32_t aLength) {
   if (aStart.GetSkippedOffset() > aOffset)
     return false;
-  if (aContentLength == PR_INT32_MAX)
+  if (aContentLength == INT32_MAX)
     return true;
   gfxSkipCharsIterator iter(aStart);
   iter.AdvanceOriginal(aContentLength);
@@ -2753,7 +2753,7 @@ public:
   const gfxSkipCharsIterator& GetStart() { return mStart; }
   
   uint32_t GetOriginalLength() {
-    NS_ASSERTION(mLength != PR_INT32_MAX, "Length not known");
+    NS_ASSERTION(mLength != INT32_MAX, "Length not known");
     return mLength;
   }
   const nsTextFragment* GetFragment() { return mFrag; }
@@ -3099,7 +3099,7 @@ PropertyProvider::GetHyphenationBreaks(uint32_t aStart, uint32_t aLength,
                                        bool* aBreakBefore)
 {
   NS_PRECONDITION(IsInBounds(mStart, mLength, aStart, aLength), "Range out of bounds");
-  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
+  NS_PRECONDITION(mLength != INT32_MAX, "Can't call this with undefined length");
 
   if (!mTextStyle->WhiteSpaceCanWrap() ||
       mTextStyle->mHyphens == NS_STYLE_HYPHENS_NONE)
@@ -3169,7 +3169,7 @@ void
 PropertyProvider::FindJustificationRange(gfxSkipCharsIterator* aStart,
                                          gfxSkipCharsIterator* aEnd)
 {
-  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
+  NS_PRECONDITION(mLength != INT32_MAX, "Can't call this with undefined length");
   NS_ASSERTION(aStart && aEnd, "aStart or/and aEnd is null");
 
   aStart->SetOriginalOffset(mStart.GetOriginalOffset());
@@ -3199,7 +3199,7 @@ PropertyProvider::FindJustificationRange(gfxSkipCharsIterator* aStart,
 void
 PropertyProvider::SetupJustificationSpacing()
 {
-  NS_PRECONDITION(mLength != PR_INT32_MAX, "Can't call this with undefined length");
+  NS_PRECONDITION(mLength != INT32_MAX, "Can't call this with undefined length");
 
   if (!(mFrame->GetStateBits() & TEXT_JUSTIFICATION_ENABLED))
     return;
@@ -4016,7 +4016,7 @@ public:
                                    gfxSkipChars* aSkipChars = nullptr,
                                    gfxSkipCharsIterator* aSkipIter = nullptr,
                                    uint32_t aSkippedStartOffset = 0,
-                                   uint32_t aSkippedMaxLength = PR_UINT32_MAX)
+                                   uint32_t aSkippedMaxLength = UINT32_MAX)
   { return NS_ERROR_NOT_IMPLEMENTED; } 
 
 protected:
@@ -6959,7 +6959,7 @@ nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
 
   
   
-  int32_t len = PR_INT32_MAX;
+  int32_t len = INT32_MAX;
   bool hyphenating = frag->GetLength() > 0 &&
     (textStyle->mHyphens == NS_STYLE_HYPHENS_AUTO ||
      (textStyle->mHyphens == NS_STYLE_HYPHENS_MANUAL &&
@@ -7131,7 +7131,7 @@ nsTextFrame::AddInlinePrefWidthForFlow(nsRenderingContext *aRenderingContext,
   const nsStyleText* textStyle = GetStyleText();
   const nsTextFragment* frag = mContent->GetText();
   PropertyProvider provider(textRun, textStyle, frag, this,
-                            iter, PR_INT32_MAX, nullptr, 0, aTextRunType);
+                            iter, INT32_MAX, nullptr, 0, aTextRunType);
 
   bool collapseWhitespace = !textStyle->WhiteSpaceIsSignificant();
   bool preformatNewlines = textStyle->NewlineIsSignificant();
@@ -7892,7 +7892,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
   int32_t lastBreak = -1;
   if (charsFit >= limitLength) {
     charsFit = limitLength;
-    if (transformedLastBreak != PR_UINT32_MAX) {
+    if (transformedLastBreak != UINT32_MAX) {
       
       
       lastBreak = end.ConvertSkippedToOriginal(transformedOffset + transformedLastBreak);

@@ -14,7 +14,7 @@ public:
     nsASocketHandler()
         : mCondition(NS_OK)
         , mPollFlags(0)
-        , mPollTimeout(PR_UINT16_MAX)
+        , mPollTimeout(UINT16_MAX)
         {}
 
     

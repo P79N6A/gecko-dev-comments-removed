@@ -301,11 +301,11 @@ inline int32_t NSCoordToInt(nscoord aCoord) {
   if (aCoord < -2147483648.0f) {
     
     
-    return PR_INT32_MIN;
+    return INT32_MIN;
   } else if (aCoord > 2147483520.0f) {
     
     
-    return PR_INT32_MAX;
+    return INT32_MAX;
   } else {
     return (int32_t)aCoord;
   }

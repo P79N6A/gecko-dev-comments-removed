@@ -464,7 +464,7 @@ public:
     
     
     void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext,
-                 uint32_t aBegin = 0, uint32_t aEnd = PR_UINT32_MAX);
+                 uint32_t aBegin = 0, uint32_t aEnd = UINT32_MAX);
 
     void ApplyRectTo(gfxContext* aContext, int32_t A2D) const;
     

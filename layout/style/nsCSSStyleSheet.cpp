@@ -1822,7 +1822,7 @@ nsCSSStyleSheet::InsertRuleInternal(const nsAString& aRule,
   if (aIndex > uint32_t(mInner->mOrderedRules.Count()))
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   
-  NS_ASSERTION(uint32_t(mInner->mOrderedRules.Count()) <= PR_INT32_MAX,
+  NS_ASSERTION(uint32_t(mInner->mOrderedRules.Count()) <= INT32_MAX,
                "Too many style rules!");
 
   
@@ -1956,7 +1956,7 @@ nsCSSStyleSheet::DeleteRule(uint32_t aIndex)
     if (aIndex >= uint32_t(mInner->mOrderedRules.Count()))
       return NS_ERROR_DOM_INDEX_SIZE_ERR;
 
-    NS_ASSERTION(uint32_t(mInner->mOrderedRules.Count()) <= PR_INT32_MAX,
+    NS_ASSERTION(uint32_t(mInner->mOrderedRules.Count()) <= INT32_MAX,
                  "Too many style rules!");
 
     

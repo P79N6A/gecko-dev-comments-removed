@@ -294,7 +294,7 @@ public:
     {
         
         
-        if (mRules.Length() == PR_INT16_MAX)
+        if (mRules.Length() == INT16_MAX)
             return nullptr;
 
         return mRules.AppendElement(nsTemplateRule(aRuleNode, aAction,

@@ -75,7 +75,7 @@ static char* nsEscapeCount(
     
     
     
-    if (dstSize > PR_UINT32_MAX)
+    if (dstSize > UINT32_MAX)
         return 0;
 
 	char* result = (char *)nsMemory::Alloc(dstSize);
@@ -193,7 +193,7 @@ nsEscapeHTML(const char * string)
     char *rv = nullptr;
     
     uint32_t len = PL_strlen(string);
-    if (len >= (PR_UINT32_MAX / 6))
+    if (len >= (UINT32_MAX / 6))
       return nullptr;
 
     rv = (char *)NS_Alloc( (6 * len) + 1 );
@@ -263,7 +263,7 @@ nsEscapeHTML2(const PRUnichar *aSourceBuffer, int32_t aSourceBufferLen)
 
   
   if (uint32_t(aSourceBufferLen) >=
-      ((PR_UINT32_MAX - sizeof(PRUnichar)) / (6 * sizeof(PRUnichar))) )
+      ((UINT32_MAX - sizeof(PRUnichar)) / (6 * sizeof(PRUnichar))) )
     return nullptr;
 
   PRUnichar *resultBuffer = (PRUnichar *)nsMemory::Alloc(aSourceBufferLen *

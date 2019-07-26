@@ -3109,7 +3109,7 @@ public:
     
     
     
-    enum { UNDERLINE_OFFSET_NOT_SET = PR_INT16_MAX };
+    enum { UNDERLINE_OFFSET_NOT_SET = INT16_MAX };
     virtual gfxFloat GetUnderlineOffset() {
         if (mUnderlineOffset == UNDERLINE_OFFSET_NOT_SET)
             mUnderlineOffset = GetFontAt(0)->GetMetrics().underlineOffset;

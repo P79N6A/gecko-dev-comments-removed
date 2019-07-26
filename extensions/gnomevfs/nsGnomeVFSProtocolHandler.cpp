@@ -319,7 +319,7 @@ class nsGnomeVFSInputStream MOZ_FINAL : public nsIInputStream
       : mSpec(uriSpec)
       , mChannel(nullptr)
       , mHandle(nullptr)
-      , mBytesRemaining(PR_UINT64_MAX)
+      , mBytesRemaining(UINT64_MAX)
       , mStatus(NS_OK)
       , mDirList(nullptr)
       , mDirListPtr(nullptr)
@@ -433,9 +433,9 @@ nsGnomeVFSInputStream::DoOpen()
 
       
       
-      if (mBytesRemaining != PR_UINT64_MAX) {
+      if (mBytesRemaining != UINT64_MAX) {
         
-        mChannel->SetContentLength(NS_MAX((int32_t)mBytesRemaining, PR_INT32_MAX));
+        mChannel->SetContentLength(NS_MAX((int32_t)mBytesRemaining, INT32_MAX));
       }
     }
     else

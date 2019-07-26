@@ -415,7 +415,7 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   } else {
     
     
-    numColumns = PR_INT32_MAX;
+    numColumns = INT32_MAX;
   }
 
 #ifdef DEBUG_roc
@@ -632,7 +632,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
                                        aReflowState.ComputedHeight());
       kidReflowState.mFlags.mIsTopOfPage = true;
       kidReflowState.mFlags.mTableIsSplittable = false;
-      kidReflowState.mFlags.mIsColumnBalancing = aConfig.mBalanceColCount < PR_INT32_MAX;
+      kidReflowState.mFlags.mIsColumnBalancing = aConfig.mBalanceColCount < INT32_MAX;
 
 #ifdef DEBUG_roc
       printf("*** Reflowing child #%d %p: availHeight=%d\n",
@@ -739,7 +739,7 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
 
       if ((contentBottom > aReflowState.mComputedMaxHeight ||
           contentBottom > aReflowState.ComputedHeight()) &&
-          aConfig.mBalanceColCount < PR_INT32_MAX) {
+          aConfig.mBalanceColCount < INT32_MAX) {
         
         
         
@@ -909,7 +909,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
 
   ReflowConfig config = ChooseColumnStrategy(aReflowState);
-  bool isBalancing = config.mBalanceColCount < PR_INT32_MAX;
+  bool isBalancing = config.mBalanceColCount < INT32_MAX;
   
   
   
@@ -933,7 +933,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
     if (colData.mShouldRevertToAuto) {
       config = ChooseColumnStrategy(aReflowState);
       isBalancing = false;
-      config.mBalanceColCount = PR_INT32_MAX;
+      config.mBalanceColCount = INT32_MAX;
     }
 
     bool feasible = ReflowChildren(aDesiredSize, aReflowState,

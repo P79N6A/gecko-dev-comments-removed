@@ -42,7 +42,7 @@
 
 
 
-#define NSCOORD_NONE      PR_INT32_MIN
+#define NSCOORD_NONE      INT32_MIN
 
 #undef DEBUG_MOUSE_LOCATION
 
