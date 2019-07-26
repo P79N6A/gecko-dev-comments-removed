@@ -486,7 +486,7 @@ protected:
   
 
 
-  bool DoesStepApply() const { return DoesMinMaxApply() && mType != NS_FORM_INPUT_TIME; }
+  bool DoesStepApply() const { return DoesMinMaxApply(); }
 
   
 
@@ -707,6 +707,12 @@ protected:
 
 
 
+  double GetDefaultStep() const;
+
+  
+
+
+
 
 
   nsresult ApplyStep(int32_t aStep);
@@ -768,9 +774,15 @@ protected:
   
   static const double kStepScaleFactorDate;
   static const double kStepScaleFactorNumber;
+  static const double kStepScaleFactorTime;
 
   
   static const double kDefaultStepBase;
+
+  
+  static const double kDefaultStep;
+  static const double kDefaultStepTime;
+
   
   static const double kStepAny;
 
