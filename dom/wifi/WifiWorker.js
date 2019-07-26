@@ -925,6 +925,12 @@ var WifiManager = (function() {
       }
       return true;
     }
+    if (eventData.indexOf("CTRL-EVENT-EAP-FAILURE") === 0) {
+      if (event.indexOf("EAP authentication failed") !== -1) {
+        notify("passwordmaybeincorrect");
+      }
+      return true;
+    }
     if (eventData.indexOf("CTRL-EVENT-CONNECTED") === 0) {
       
       var bssid = event.split(" ")[4];
