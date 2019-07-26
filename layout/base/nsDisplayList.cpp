@@ -4044,6 +4044,21 @@ nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame 
   mStoredList.SetClip(aBuilder, DisplayItemClip::NoClip());
 }
 
+nsDisplayTransform::nsDisplayTransform(nsDisplayListBuilder* aBuilder, nsIFrame *aFrame,
+                                       nsDisplayItem *aItem, uint32_t aIndex)
+  : nsDisplayItem(aBuilder, aFrame)
+  , mStoredList(aBuilder, aFrame, aItem)
+  , mTransformGetter(nullptr)
+  , mIndex(aIndex)
+{
+  MOZ_COUNT_CTOR(nsDisplayTransform);
+  NS_ABORT_IF_FALSE(aFrame, "Must have a frame!");
+  mReferenceFrame =
+    aBuilder->FindReferenceFrameFor(GetTransformRootFrame(aFrame));
+  mToReferenceFrame = aFrame->GetOffsetToCrossDoc(mReferenceFrame);
+  mStoredList.SetClip(aBuilder, DisplayItemClip::NoClip());
+}
+
 
 
 
@@ -4055,8 +4070,12 @@ nsDisplayTransform::GetDeltaToTransformOrigin(const nsIFrame* aFrame,
                                               const nsRect* aBoundsOverride)
 {
   NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
-  NS_PRECONDITION(aFrame->IsTransformed(),
+  NS_PRECONDITION(aFrame->IsTransformed() || aFrame->StyleDisplay()->BackfaceIsHidden(),
                   "Shouldn't get a delta for an untransformed frame!");
+
+  if (!aFrame->IsTransformed()) {
+    return gfxPoint3D();
+  }
 
   
 
@@ -4120,8 +4139,12 @@ nsDisplayTransform::GetDeltaToPerspectiveOrigin(const nsIFrame* aFrame,
                                                 float aAppUnitsPerPixel)
 {
   NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
-  NS_PRECONDITION(aFrame->IsTransformed(),
+  NS_PRECONDITION(aFrame->IsTransformed() || aFrame->StyleDisplay()->BackfaceIsHidden(),
                   "Shouldn't get a delta for an untransformed frame!");
+
+  if (!aFrame->IsTransformed()) {
+    return gfxPoint3D();
+  }
 
   
 
