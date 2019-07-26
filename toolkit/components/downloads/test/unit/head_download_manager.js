@@ -83,6 +83,7 @@ var gDownloadCount = 0;
 
 
 
+
 function addDownload(aParams)
 {
   if (!aParams)
@@ -113,7 +114,7 @@ function addDownload(aParams)
   var dl = dm.addDownload(Ci.nsIDownloadManager.DOWNLOAD_TYPE_DOWNLOAD,
                           createURI(aParams.sourceURI),
                           createURI(aParams.targetFile), aParams.downloadName, null,
-                          Math.round(Date.now() * 1000), null, persist);
+                          Math.round(Date.now() * 1000), null, persist, aParams.isPrivate);
 
   
   

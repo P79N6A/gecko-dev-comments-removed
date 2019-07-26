@@ -401,6 +401,7 @@ private:
   double mSpeed;
 
   bool mHasMultipleFiles;
+  bool mPrivate;
 
   
 

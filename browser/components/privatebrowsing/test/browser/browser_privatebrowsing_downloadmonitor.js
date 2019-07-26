@@ -29,6 +29,7 @@ function test() {
 
   
   let [file, persist] = addDownload(dm, {
+    isPrivate: window.gPrivateBrowsingUI.privateWindow,
     resultFileName: "pbtest-1",
     downloadName: "PB Test 1"
   });
@@ -51,6 +52,7 @@ function test() {
 
     
     let [file2, persist2] = addDownload(dm, {
+      isPrivate: window.gPrivateBrowsingUI.privateWindow,
       resultFileName: "pbtest-2",
       downloadName: "PB Test 2"
     });
@@ -99,6 +101,7 @@ function test() {
 
 
 
+
 function addDownload(dm, aParams)
 {
   if (!aParams)
@@ -128,7 +131,7 @@ function addDownload(dm, aParams)
   let dl = dm.addDownload(Ci.nsIDownloadManager.DOWNLOAD_TYPE_DOWNLOAD,
                           createURI(aParams.sourceURI),
                           createURI(aParams.targetFile), aParams.downloadName, null,
-                          Math.round(Date.now() * 1000), null, persist);
+                          Math.round(Date.now() * 1000), null, persist, aParams.isPrivate);
 
   
   

@@ -101,7 +101,7 @@ var stringBundle;
         
         let xfer = Components.classes["@mozilla.org/transfer;1"].
                    createInstance(Components.interfaces.nsITransfer);
-        xfer.init(source, target, "", null, null, null, persist);
+        xfer.init(source, target, "", null, null, null, persist, false);
         persist.progressListener = xfer;
 
         

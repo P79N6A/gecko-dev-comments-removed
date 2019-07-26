@@ -3,6 +3,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
+Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+
 var ContentAreaUtils = {
   get ioService() {
     delete this.ioService;
@@ -91,10 +93,11 @@ function isContentFrame(aFocusedWindow)
 
 
 function saveURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
-                 aSkipPrompt, aReferrer)
+                 aSkipPrompt, aReferrer, aSourceDocument)
 {
   internalSave(aURL, null, aFileName, null, null, aShouldBypassCache,
-               aFilePickerTitleKey, null, aReferrer, aSkipPrompt, null);
+               aFilePickerTitleKey, null, aReferrer, aSourceDocument,
+               aSkipPrompt, null);
 }
 
 
@@ -127,7 +130,7 @@ function saveImageURL(aURL, aFileName, aFilePickerTitleKey, aShouldBypassCache,
   }
   internalSave(aURL, null, aFileName, contentDisposition, contentType,
                aShouldBypassCache, aFilePickerTitleKey, null, aReferrer,
-               aSkipPrompt, null);
+               aDoc, aSkipPrompt, null);
 }
 
 function saveDocument(aDocument, aSkipPrompt)
@@ -161,7 +164,7 @@ function saveDocument(aDocument, aSkipPrompt)
   internalSave(aDocument.location.href, aDocument, null, contentDisposition,
                aDocument.contentType, false, null, null,
                aDocument.referrer ? makeURI(aDocument.referrer) : null,
-               aSkipPrompt, cacheKey);
+               aDocument, aSkipPrompt, cacheKey);
 }
 
 function DownloadListener(win, transfer) {
@@ -264,9 +267,12 @@ const kSaveAsType_Text     = 2;
 
 
 
+
+
 function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
                       aContentType, aShouldBypassCache, aFilePickerTitleKey,
-                      aChosenData, aReferrer, aSkipPrompt, aCacheKey)
+                      aChosenData, aReferrer, aInitiatingDocument, aSkipPrompt,
+                      aCacheKey)
 {
   if (aSkipPrompt == undefined)
     aSkipPrompt = false;
@@ -333,12 +339,15 @@ function internalSave(aURL, aDocument, aDefaultFileName, aContentDisposition,
     targetFile        : file,
     sourceCacheKey    : aCacheKey,
     sourcePostData    : aDocument ? getPostData(aDocument) : null,
-    bypassCache       : aShouldBypassCache
+    bypassCache       : aShouldBypassCache,
+    initiatingWindow  : aInitiatingDocument.defaultView
   };
 
   
   internalPersist(persistArgs);
 }
+
+
 
 
 
@@ -387,10 +396,12 @@ function internalPersist(persistArgs)
   
   var targetFileURL = makeFileURI(persistArgs.targetFile);
 
+  var isPrivate = PrivateBrowsingUtils.isWindowPrivate(persistArgs.initiatingWindow);
+
   
   var tr = Components.classes["@mozilla.org/transfer;1"].createInstance(Components.interfaces.nsITransfer);
   tr.init(persistArgs.sourceURI,
-          targetFileURL, "", null, null, null, persist);
+          targetFileURL, "", null, null, null, persist, isPrivate);
   persist.progressListener = new DownloadListener(window, tr);
 
   if (persistArgs.sourceDocument) {
