@@ -547,6 +547,7 @@ class JSObject : public js::ObjectImpl
     static bool setMetadata(JSContext *cx, js::HandleObject obj, js::HandleObject newMetadata);
 
     inline js::GlobalObject &global() const;
+    inline bool isOwnGlobal() const;
 
     
     static inline bool clearType(JSContext *cx, js::HandleObject obj);

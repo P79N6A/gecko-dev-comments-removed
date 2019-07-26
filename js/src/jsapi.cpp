@@ -2522,6 +2522,27 @@ JS_NewGlobalObject(JSContext *cx, const JSClass *clasp, JSPrincipals *principals
 }
 
 JS_PUBLIC_API(void)
+JS_GlobalObjectTraceHook(JSTracer *trc, JSObject *global)
+{
+    JS_ASSERT(global->is<GlobalObject>());
+
+    
+    
+    
+    
+    if (!global->isOwnGlobal())
+        return;
+
+    
+    
+    global->compartment()->trace(trc);
+
+    JSTraceOp trace = global->compartment()->options().getTrace();
+    if (trace)
+        trace(trc, global);
+}
+
+JS_PUBLIC_API(void)
 JS_FireOnNewGlobalObject(JSContext *cx, JS::HandleObject global)
 {
     
