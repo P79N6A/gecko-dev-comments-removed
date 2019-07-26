@@ -63,14 +63,11 @@ typedef ogg_int32_t VorbisPCMValue;
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) \
  (static_cast<AudioDataValue>(MOZ_CLIP_TO_15((x)>>9)))
 
-#define MOZ_CONVERT_AUDIO_SAMPLE(x) ((x)*(1.F/32768))
-
 #else 
 
 typedef float VorbisPCMValue;
 
 #define MOZ_CONVERT_VORBIS_SAMPLE(x) (x)
-#define MOZ_CONVERT_AUDIO_SAMPLE(x) (x)
 
 #endif
 
