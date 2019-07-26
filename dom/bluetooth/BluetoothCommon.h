@@ -114,11 +114,6 @@ extern bool gBluetoothDebugFlag;
 
 
 
-#define DISCOVERY_STATE_CHANGED_ID           "discoverystatechanged"
-
-
-
-
 
 #define REQUEST_MEDIA_PLAYSTATUS_ID          "requestmediaplaystatus"
 
