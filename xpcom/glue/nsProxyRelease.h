@@ -118,6 +118,7 @@ public:
     NS_IF_ADDREF(mRawPtr = ptr);
   }
 
+private:
   
   ~nsMainThreadPtrHolder() {
     if (NS_IsMainThread()) {
@@ -133,6 +134,7 @@ public:
     }
   }
 
+public:
   T* get() {
     
     if (mStrict && MOZ_UNLIKELY(!NS_IsMainThread())) {
