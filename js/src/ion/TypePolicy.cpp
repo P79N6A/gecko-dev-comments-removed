@@ -98,31 +98,29 @@ ComparePolicy::adjustInputs(MInstruction *def)
 {
     JS_ASSERT(def->isCompare());
     MCompare *compare = def->toCompare();
-    MIRType type = compare->inputType();
 
     
-    if (type == MIRType_Value)
+    if (compare->compareType() == MCompare::Compare_Unknown ||
+        compare->compareType() == MCompare::Compare_Value)
+    {
         return BoxInputsPolicy::adjustInputs(def);
-
-    
-    if (type == MIRType_Undefined || type == MIRType_Null)
-        return true;
-
-    
-    
-    
-    
-    if (type == MIRType_Boolean && def->getOperand(0)->type() == MIRType_Boolean) {
-       compare->setCompareType(MCompare::Compare_Int32);
-       type = compare->inputType();
     }
 
     
     
-    if (type == MIRType_Boolean) {
+    
+    
+    if (compare->compareType() == MCompare::Compare_Boolean &&
+        def->getOperand(0)->type() == MIRType_Boolean)
+    {
+       compare->setCompareType(MCompare::Compare_Int32);
+    }
+
+    
+    
+    if (compare->compareType() == MCompare::Compare_Boolean) {
         
         MDefinition *rhs = def->getOperand(1);
-
         if (rhs->type() == MIRType_Value) {
             MInstruction *unbox = MUnbox::New(rhs, MIRType_Boolean, MUnbox::Infallible);
             def->block()->insertBefore(def, unbox);
@@ -135,6 +133,36 @@ ComparePolicy::adjustInputs(MInstruction *def)
     }
 
     
+    
+    if (compare->compareType() == MCompare::Compare_StrictString &&
+        def->getOperand(0)->type() == MIRType_String)
+    {
+       compare->setCompareType(MCompare::Compare_String);
+    }
+
+    
+    
+    if (compare->compareType() == MCompare::Compare_StrictString) {
+        
+        MDefinition *rhs = def->getOperand(1);
+        if (rhs->type() == MIRType_Value) {
+            MInstruction *unbox = MUnbox::New(rhs, MIRType_String, MUnbox::Infallible);
+            def->block()->insertBefore(def, unbox);
+            def->replaceOperand(1, unbox);
+        }
+
+        JS_ASSERT(def->getOperand(0)->type() != MIRType_String);
+        JS_ASSERT(def->getOperand(1)->type() == MIRType_String);
+        return true;
+    }
+
+    
+    MIRType type = compare->inputType();
+
+    
+    if (type == MIRType_Undefined || type == MIRType_Null)
+        return true;
+
     for (size_t i = 0; i < 2; i++) {
         MDefinition *in = def->getOperand(i);
         if (in->type() == type)

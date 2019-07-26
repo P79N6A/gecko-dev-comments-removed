@@ -1294,6 +1294,7 @@ MCompare::inputType()
       case Compare_Double:
         return MIRType_Double;
       case Compare_String:
+      case Compare_StrictString:
         return MIRType_String;
       case Compare_Object:
         return MIRType_Object;
@@ -1371,6 +1372,18 @@ MCompare::infer(const TypeOracle::BinaryTypes &b, JSContext *cx)
     
     if (!relationalEq && lhs == MIRType_String && rhs == MIRType_String) {
         compareType_ = Compare_String;
+        return;
+    }
+
+    if (strictEq && lhs == MIRType_String) {
+        
+        compareType_ = Compare_StrictString;
+        swapOperands();
+        return;
+    }
+
+    if (strictEq && rhs == MIRType_String) {
+        compareType_ = Compare_StrictString;
         return;
     }
 
@@ -1668,6 +1681,31 @@ MCompare::tryFold(bool *result)
             *result = (op == JSOP_STRICTNE);
             return true;
           case MIRType_Boolean:
+            
+            JS_NOT_REACHED("Wrong specialization");
+            return false;
+          default:
+            JS_NOT_REACHED("Unexpected type");
+            return false;
+        }
+    }
+
+    if (compareType_ == Compare_StrictString) {
+        JS_ASSERT(op == JSOP_STRICTEQ || op == JSOP_STRICTNE);
+        JS_ASSERT(rhs()->type() == MIRType_String);
+
+        switch (lhs()->type()) {
+          case MIRType_Value:
+            return false;
+          case MIRType_Boolean:
+          case MIRType_Int32:
+          case MIRType_Double:
+          case MIRType_Object:
+          case MIRType_Null:
+          case MIRType_Undefined:
+            *result = (op == JSOP_STRICTNE);
+            return true;
+          case MIRType_String:
             
             JS_NOT_REACHED("Wrong specialization");
             return false;

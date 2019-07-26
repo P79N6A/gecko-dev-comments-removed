@@ -1510,6 +1510,15 @@ class MCompare
         Compare_String,
 
         
+        
+        
+        
+        
+        
+        
+        Compare_StrictString,
+
+        
         Compare_Object,
 
         

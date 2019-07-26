@@ -587,6 +587,19 @@ LIRGenerator::visitCompare(MCompare *comp)
     }
 
     
+    if (comp->compareType() == MCompare::Compare_StrictString) {
+        JS_ASSERT(left->type() == MIRType_Value);
+        JS_ASSERT(right->type() == MIRType_String);
+
+        LCompareStrictS *lir = new LCompareStrictS(useRegister(right), temp(), temp());
+        if (!useBox(lir, LCompareStrictS::Lhs, left))
+            return false;
+        if (!define(lir, comp))
+            return false;
+        return assignSafepoint(lir, comp);
+    }
+
+    
     if (comp->compareType() == MCompare::Compare_Unknown) {
         LCompareVM *lir = new LCompareVM();
         if (!useBoxAtStart(lir, LCompareVM::LhsInput, left))

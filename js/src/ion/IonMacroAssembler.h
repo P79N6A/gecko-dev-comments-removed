@@ -476,6 +476,13 @@ class MacroAssembler : public MacroAssemblerSpecific
         }
     }
 
+    Register extractString(const Address &address, Register scratch) {
+        return extractObject(address, scratch);
+    }
+    Register extractString(const ValueOperand &value, Register scratch) {
+        return extractObject(value, scratch);
+    }
+
     
     
     void clampDoubleToUint8(FloatRegister input, Register output);
