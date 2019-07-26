@@ -552,7 +552,7 @@ AudioContext::Shutdown()
 
   
   if (mIsOffline) {
-    mDestination->DestroyGraph();
+    mDestination->OfflineShutdown();
   }
 }
 
