@@ -400,12 +400,8 @@ class TypedRegisterSet
 #endif
     }
     T getAny() const {
-        
-        
-        
-        
-        
-        return getFirst();
+        JS_ASSERT(!empty());
+        return T::FromCode(mozilla::FloorLog2(bits_));
     }
     T getFirst() const {
         JS_ASSERT(!empty());
