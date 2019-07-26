@@ -88,7 +88,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
-            if (ins->isUnbox() || ins->isParameter() || ins->isTypeBarrier())
+            if (ins->isUnbox() || ins->isParameter() || ins->isTypeBarrier() || ins->isComputeThis())
                 continue;
 
             
