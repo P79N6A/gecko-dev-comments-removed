@@ -83,6 +83,15 @@ public:
   };
   virtual int      GetSensorOrientation(uint32_t aType = RAW_SENSOR_ORIENTATION);
 
+  
+
+
+
+
+
+
+  enum { MIN_UNDEQUEUED_BUFFERS = 4};
+
   virtual int      AutoFocus();
   virtual int      CancelAutoFocus();
   virtual int      StartFaceDetection();
