@@ -95,6 +95,7 @@ oddly_ordered_inclnames = set([
     'ctypes/typedefs.h',        
     'jsautokw.h',               
     'jswin.h',                  
+    'machine/endian.h',         
     'winbase.h',                
     'windef.h'                  
 ])
