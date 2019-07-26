@@ -257,6 +257,22 @@ ShadowRoot::SetYoungerShadow(ShadowRoot* aYoungerShadow)
 }
 
 void
+ShadowRoot::RemoveDestInsertionPoint(nsIContent* aInsertionPoint,
+                                     nsTArray<nsIContent*>& aDestInsertionPoints)
+{
+  
+  
+  
+  int32_t index = aDestInsertionPoints.IndexOf(aInsertionPoint);
+
+  
+  
+  if (index >= 0) {
+    aDestInsertionPoints.SetLength(index);
+  }
+}
+
+void
 ShadowRoot::DistributeSingleNode(nsIContent* aContent)
 {
   
@@ -295,7 +311,7 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
       
       if (childIterator.Seek(aContent, matchedNodes[i])) {
         
-        matchedNodes.InsertElementAt(i, aContent);
+        insertionPoint->InsertMatchedNode(i, aContent);
         isIndexFound = true;
         break;
       }
@@ -306,7 +322,7 @@ ShadowRoot::DistributeSingleNode(nsIContent* aContent)
       
       MOZ_ASSERT(childIterator.Seek(aContent),
                  "Trying to match a node that is not a candidate to be matched");
-      matchedNodes.AppendElement(aContent);
+      insertionPoint->AppendMatchedNode(aContent);
     }
 
     
@@ -354,7 +370,7 @@ ShadowRoot::RemoveDistributedNode(nsIContent* aContent)
         return;
       }
 
-      mInsertionPoints[i]->MatchedNodes().RemoveElement(aContent);
+      mInsertionPoints[i]->RemoveMatchedNode(aContent);
 
       
       
@@ -412,8 +428,7 @@ ShadowRoot::DistributeAllNodes()
     
     for (uint32_t j = 0; j < nodePool.Length(); j++) {
       if (mInsertionPoints[i]->Match(nodePool[j])) {
-        mInsertionPoints[i]->MatchedNodes().AppendElement(nodePool[j]);
-        nodePool[j]->SetXBLInsertionParent(mInsertionPoints[i]);
+        mInsertionPoints[i]->AppendMatchedNode(nodePool[j]);
         nodePool.RemoveElementAt(j--);
       }
     }
@@ -562,16 +577,16 @@ ShadowRoot::IsPooledNode(nsIContent* aContent, nsIContent* aContainer,
     return false;
   }
 
+  if (aContainer == aHost) {
+    
+    return true;
+  }
+
   if (aContainer->IsHTML(nsGkAtoms::content)) {
     
     HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
     return content->IsInsertionPoint() && content->MatchedNodes().IsEmpty() &&
            aContainer->GetParentNode() == aHost;
-  }
-
-  if (aContainer == aHost) {
-    
-    return true;
   }
 
   return false;
@@ -609,9 +624,18 @@ ShadowRoot::ContentAppended(nsIDocument* aDocument,
   
   nsIContent* currentChild = aFirstNewContent;
   while (currentChild) {
+    
+    if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+      HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+      if (content->MatchedNodes().IsEmpty()) {
+        currentChild->DestInsertionPoints().AppendElement(aContainer);
+      }
+    }
+
     if (IsPooledNode(currentChild, aContainer, mPoolHost)) {
       DistributeSingleNode(currentChild);
     }
+
     currentChild = currentChild->GetNextSibling();
   }
 }
@@ -631,6 +655,14 @@ ShadowRoot::ContentInserted(nsIDocument* aDocument,
   
   
   if (IsPooledNode(aChild, aContainer, mPoolHost)) {
+    
+    if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+      HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+      if (content->MatchedNodes().IsEmpty()) {
+        aChild->DestInsertionPoints().AppendElement(aContainer);
+      }
+    }
+
     DistributeSingleNode(aChild);
   }
 }
@@ -646,6 +678,15 @@ ShadowRoot::ContentRemoved(nsIDocument* aDocument,
     DistributeAllNodes();
     mInsertionPointChanged = false;
     return;
+  }
+
+  
+  
+  if (nsContentUtils::IsContentInsertionPoint(aContainer)) {
+    HTMLContentElement* content = static_cast<HTMLContentElement*>(aContainer);
+    if (content->MatchedNodes().IsEmpty()) {
+      aChild->DestInsertionPoints().Clear();
+    }
   }
 
   

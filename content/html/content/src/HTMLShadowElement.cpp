@@ -5,6 +5,7 @@
 
 #include "mozilla/dom/ShadowRoot.h"
 
+#include "ChildIterator.h"
 #include "nsContentUtils.h"
 #include "mozilla/dom/HTMLShadowElement.h"
 #include "mozilla/dom/HTMLShadowElementBinding.h"
@@ -60,10 +61,28 @@ HTMLShadowElement::SetProjectedShadow(ShadowRoot* aProjectedShadow)
 {
   if (mProjectedShadow) {
     mProjectedShadow->RemoveMutationObserver(this);
+
+    
+    
+    ExplicitChildIterator childIterator(mProjectedShadow);
+    for (nsIContent* content = childIterator.GetNextChild();
+         content;
+         content = childIterator.GetNextChild()) {
+      ShadowRoot::RemoveDestInsertionPoint(this, content->DestInsertionPoints());
+    }
   }
 
   mProjectedShadow = aProjectedShadow;
   if (mProjectedShadow) {
+    
+    
+    ExplicitChildIterator childIterator(mProjectedShadow);
+    for (nsIContent* content = childIterator.GetNextChild();
+         content;
+         content = childIterator.GetNextChild()) {
+      content->DestInsertionPoints().AppendElement(this);
+    }
+
     
     
     
@@ -156,6 +175,14 @@ HTMLShadowElement::UnbindFromTree(bool aDeep, bool aNullParent)
 void
 HTMLShadowElement::DistributeSingleNode(nsIContent* aContent)
 {
+  if (aContent->DestInsertionPoints().Contains(this)) {
+    
+    
+    return;
+  }
+
+  aContent->DestInsertionPoints().AppendElement(this);
+
   
   
   
@@ -181,6 +208,8 @@ HTMLShadowElement::DistributeSingleNode(nsIContent* aContent)
 void
 HTMLShadowElement::RemoveDistributedNode(nsIContent* aContent)
 {
+  ShadowRoot::RemoveDestInsertionPoint(this, aContent->DestInsertionPoints());
+
   
   
   
@@ -209,6 +238,21 @@ HTMLShadowElement::DistributeAllNodes()
   
   
   
+  ShadowRoot* containingShadow = GetContainingShadow();
+  ShadowRoot* olderShadow = containingShadow->GetOlderShadow();
+  if (olderShadow) {
+    ExplicitChildIterator childIterator(olderShadow);
+    for (nsIContent* content = childIterator.GetNextChild();
+         content;
+         content = childIterator.GetNextChild()) {
+      ShadowRoot::RemoveDestInsertionPoint(this, content->DestInsertionPoints());
+      content->DestInsertionPoints().AppendElement(this);
+    }
+  }
+
+  
+  
+  
   
   ShadowRoot* parentShadowRoot = GetParent()->GetShadowRoot();
   if (parentShadowRoot) {
@@ -218,7 +262,6 @@ HTMLShadowElement::DistributeAllNodes()
 
   
   
-  ShadowRoot* containingShadow = GetContainingShadow();
   ShadowRoot* youngerShadow = containingShadow->GetYoungerShadow();
   if (youngerShadow && GetParent() == containingShadow) {
     HTMLShadowElement* youngerShadowElement = youngerShadow->GetShadowElement();

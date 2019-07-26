@@ -46,6 +46,9 @@ public:
   bool Match(nsIContent* aContent);
   bool IsInsertionPoint() const { return mIsInsertionPoint; }
   nsCOMArray<nsIContent>& MatchedNodes() { return mMatchedNodes; }
+  void AppendMatchedNode(nsIContent* aContent);
+  void RemoveMatchedNode(nsIContent* aContent);
+  void InsertMatchedNode(uint32_t aIndex, nsIContent* aContent);
   void ClearMatchedNodes();
 
   virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
@@ -68,6 +71,15 @@ public:
 
 protected:
   virtual JSObject* WrapNode(JSContext *aCx) MOZ_OVERRIDE;
+
+  
+
+
+
+
+
+
+  void UpdateFallbackDistribution();
 
   
 

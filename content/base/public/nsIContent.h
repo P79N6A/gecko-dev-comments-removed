@@ -39,8 +39,8 @@ enum nsLinkState {
 
 
 #define NS_ICONTENT_IID \
-{ 0x1329e5b7, 0x4bcd, 0x450c, \
-  { 0xa2, 0x3a, 0x98, 0xc5, 0x85, 0xcd, 0x73, 0xf9 } }
+{ 0xc534a378, 0x7b5f, 0x43a4, \
+  { 0xaf, 0x65, 0x5f, 0xfe, 0xea, 0xd6, 0x00, 0xfb } }
 
 
 
@@ -667,6 +667,20 @@ public:
 
 
   virtual mozilla::dom::ShadowRoot *GetContainingShadow() const = 0;
+
+  
+
+
+
+
+  virtual nsTArray<nsIContent*> &DestInsertionPoints() = 0;
+
+  
+
+
+
+
+  virtual nsTArray<nsIContent*> *GetExistingDestInsertionPoints() const = 0;
 
   
 
