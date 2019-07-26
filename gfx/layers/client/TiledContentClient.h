@@ -258,23 +258,20 @@ struct BasicTiledLayerPaintData {
 
 
 
-  gfx3DMatrix mTransformDisplayPortToLayoutDevice;
+  gfx3DMatrix mTransformDisplayPortToLayer;
 
   
 
 
 
 
-
-
-
-  nsIntRect mCriticalDisplayPort;
+  LayerIntRect mCriticalDisplayPort;
 
   
 
 
 
-  LayoutDeviceRect mViewport;
+  LayerRect mViewport;
 
   
 
@@ -287,7 +284,7 @@ struct BasicTiledLayerPaintData {
 
 
 
-  LayoutDeviceRect mCompositionBounds;
+  LayerRect mCompositionBounds;
 
   
 

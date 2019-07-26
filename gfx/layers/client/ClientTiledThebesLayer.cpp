@@ -58,10 +58,10 @@ ClientTiledThebesLayer::FillSpecificAttributes(SpecificLayerAttributes& aAttrs)
   aAttrs = ThebesLayerAttributes(GetValidRegion());
 }
 
-static LayoutDeviceRect
-ApplyParentLayerToLayoutTransform(const gfx3DMatrix& aTransform, const ParentLayerRect& aParentLayerRect)
+static LayerRect
+ApplyParentLayerToLayerTransform(const gfx3DMatrix& aTransform, const ParentLayerRect& aParentLayerRect)
 {
-  return TransformTo<LayoutDevicePixel>(aTransform, aParentLayerRect);
+  return TransformTo<LayerPixel>(aTransform, aParentLayerRect);
 }
 
 static gfx3DMatrix
@@ -131,22 +131,21 @@ ClientTiledThebesLayer::BeginPaint()
 
   
   
-  gfx3DMatrix layoutDeviceToDisplayPort =
+  gfx3DMatrix transformToDisplayPort =
     GetTransformToAncestorsParentLayer(this, displayPortAncestor);
-  layoutDeviceToDisplayPort.ScalePost(scrollMetrics.mCumulativeResolution.scale,
-                                      scrollMetrics.mCumulativeResolution.scale,
-                                      1.f);
+  transformToDisplayPort.ScalePost(scrollMetrics.mCumulativeResolution.scale,
+                                   scrollMetrics.mCumulativeResolution.scale,
+                                   1.f);
 
-  mPaintData.mTransformDisplayPortToLayoutDevice = layoutDeviceToDisplayPort.Inverse();
+  mPaintData.mTransformDisplayPortToLayer = transformToDisplayPort.Inverse();
 
   
   
   ParentLayerRect criticalDisplayPort =
     (displayportMetrics.mCriticalDisplayPort * displayportMetrics.GetZoomToParent())
     + displayportMetrics.mCompositionBounds.TopLeft();
-  mPaintData.mCriticalDisplayPort = LayoutDeviceIntRect::ToUntyped(RoundedOut(
-    ApplyParentLayerToLayoutTransform(mPaintData.mTransformDisplayPortToLayoutDevice,
-                                      criticalDisplayPort)));
+  mPaintData.mCriticalDisplayPort = RoundedOut(
+    ApplyParentLayerToLayerTransform(mPaintData.mTransformDisplayPortToLayer, criticalDisplayPort));
   TILING_PRLOG_OBJ(("TILING 0x%p: Critical displayport %s\n", this, tmpstr.get()), mPaintData.mCriticalDisplayPort);
 
   
@@ -154,8 +153,8 @@ ClientTiledThebesLayer::BeginPaint()
   ParentLayerRect viewport =
     (displayportMetrics.mViewport * displayportMetrics.GetZoomToParent())
     + displayportMetrics.mCompositionBounds.TopLeft();
-  mPaintData.mViewport = ApplyParentLayerToLayoutTransform(
-    mPaintData.mTransformDisplayPortToLayoutDevice, viewport);
+  mPaintData.mViewport = ApplyParentLayerToLayerTransform(
+    mPaintData.mTransformDisplayPortToLayer, viewport);
   TILING_PRLOG_OBJ(("TILING 0x%p: Viewport %s\n", this, tmpstr.get()), mPaintData.mViewport);
 
   
@@ -164,10 +163,10 @@ ClientTiledThebesLayer::BeginPaint()
   TILING_PRLOG(("TILING 0x%p: Resolution %f\n", this, mPaintData.mResolution.scale));
 
   
-  gfx3DMatrix layoutDeviceToCompBounds =
+  gfx3DMatrix transformToCompBounds =
     GetTransformToAncestorsParentLayer(this, scrollAncestor);
-  mPaintData.mCompositionBounds = TransformTo<LayoutDevicePixel>(
-    layoutDeviceToCompBounds.Inverse(),
+  mPaintData.mCompositionBounds = TransformTo<LayerPixel>(
+    transformToCompBounds.Inverse(),
     scrollMetrics.mCompositionBounds / scrollMetrics.GetParentResolution());
   TILING_PRLOG_OBJ(("TILING 0x%p: Composition bounds %s\n", this, tmpstr.get()), mPaintData.mCompositionBounds);
 
@@ -267,7 +266,7 @@ ClientTiledThebesLayer::RenderLayer()
     if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
       
       
-      mValidRegion.And(mValidRegion, mPaintData.mCriticalDisplayPort);
+      mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
     }
   }
 
@@ -283,7 +282,7 @@ ClientTiledThebesLayer::RenderLayer()
     }
 
     
-    invalidRegion.And(invalidRegion, mPaintData.mCriticalDisplayPort);
+    invalidRegion.And(invalidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
     if (invalidRegion.IsEmpty() && lowPrecisionInvalidRegion.IsEmpty()) {
       EndPaint(true);
       return;
@@ -304,7 +303,7 @@ ClientTiledThebesLayer::RenderLayer()
       nsIntRegion oldValidRegion = mContentClient->mTiledBuffer.GetValidRegion();
       oldValidRegion.And(oldValidRegion, mVisibleRegion);
       if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
-        oldValidRegion.And(oldValidRegion, mPaintData.mCriticalDisplayPort);
+        oldValidRegion.And(oldValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
       }
 
       TILING_PRLOG_OBJ(("TILING 0x%p: Progressive update with old valid region %s\n", this, tmpstr.get()), oldValidRegion);
@@ -317,7 +316,7 @@ ClientTiledThebesLayer::RenderLayer()
       updatedBuffer = true;
       mValidRegion = mVisibleRegion;
       if (!mPaintData.mCriticalDisplayPort.IsEmpty()) {
-        mValidRegion.And(mValidRegion, mPaintData.mCriticalDisplayPort);
+        mValidRegion.And(mValidRegion, LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort));
       }
 
       TILING_PRLOG_OBJ(("TILING 0x%p: Painting: valid region %s\n", this, tmpstr.get()), mValidRegion);
@@ -354,7 +353,7 @@ ClientTiledThebesLayer::RenderLayer()
   
   bool updatedLowPrecision = false;
   if (!lowPrecisionInvalidRegion.IsEmpty() &&
-      !nsIntRegion(mPaintData.mCriticalDisplayPort).Contains(mVisibleRegion)) {
+      !nsIntRegion(LayerIntRect::ToUntyped(mPaintData.mCriticalDisplayPort)).Contains(mVisibleRegion)) {
     nsIntRegion oldValidRegion =
       mContentClient->mLowPrecisionTiledBuffer.GetValidRegion();
     oldValidRegion.And(oldValidRegion, mVisibleRegion);

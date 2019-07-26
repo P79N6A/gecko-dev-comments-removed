@@ -889,12 +889,12 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
   return aTile;
 }
 
-static LayoutDeviceRect
+static LayerRect
 TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
                            const CSSToParentLayerScale& aZoom,
                            const ParentLayerPoint& aScrollOffset,
                            const CSSToParentLayerScale& aResolution,
-                           const gfx3DMatrix& aTransformDisplayPortToLayoutDevice)
+                           const gfx3DMatrix& aTransformDisplayPortToLayer)
 {
   
   
@@ -904,14 +904,14 @@ TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
   offsetViewportRect.MoveBy(-aScrollOffset);
 
   gfxRect transformedViewport =
-    aTransformDisplayPortToLayoutDevice.TransformBounds(
+    aTransformDisplayPortToLayer.TransformBounds(
       gfxRect(offsetViewportRect.x, offsetViewportRect.y,
               offsetViewportRect.width, offsetViewportRect.height));
 
-  return LayoutDeviceRect(transformedViewport.x,
-                          transformedViewport.y,
-                          transformedViewport.width,
-                          transformedViewport.height);
+  return LayerRect(transformedViewport.x,
+                   transformedViewport.y,
+                   transformedViewport.width,
+                   transformedViewport.height);
 }
 
 bool
@@ -976,26 +976,27 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
     }
   }
 
-  LayoutDeviceRect transformedCompositionBounds =
+  LayerRect transformedCompositionBounds =
     TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayoutDevice);
+                               aPaintData->mResolution, aPaintData->mTransformDisplayPortToLayer);
 
   
   
   
   
-  LayoutDeviceRect typedCoherentUpdateRect =
+  LayerRect typedCoherentUpdateRect =
     transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
 
+  
   
   
   typedCoherentUpdateRect.MoveBy(aPaintData->mViewport.TopLeft());
 
   
-  nsIntRect roundedCoherentUpdateRect =
-    LayoutDeviceIntRect::ToUntyped(RoundedOut(typedCoherentUpdateRect));
+  nsIntRect untypedCoherentUpdateRect(LayerIntRect::ToUntyped(
+    RoundedOut(typedCoherentUpdateRect)));
 
-  aRegionToPaint.And(aInvalidRegion, roundedCoherentUpdateRect);
+  aRegionToPaint.And(aInvalidRegion, untypedCoherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);
   bool drawingStale = !aRegionToPaint.IsEmpty();
   if (!drawingStale) {
@@ -1004,8 +1005,8 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
 
   
   bool paintVisible = false;
-  if (aRegionToPaint.Intersects(roundedCoherentUpdateRect)) {
-    aRegionToPaint.And(aRegionToPaint, roundedCoherentUpdateRect);
+  if (aRegionToPaint.Intersects(untypedCoherentUpdateRect)) {
+    aRegionToPaint.And(aRegionToPaint, untypedCoherentUpdateRect);
     paintVisible = true;
   }
 

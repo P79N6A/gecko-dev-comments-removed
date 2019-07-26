@@ -189,6 +189,9 @@ struct LayoutDevicePixel {
 
 
 struct LayerPixel {
+  static nsIntRect ToUntyped(const LayerIntRect& aRect) {
+    return nsIntRect(aRect.x, aRect.y, aRect.width, aRect.height);
+  }
 };
 
 
