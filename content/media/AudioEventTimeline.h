@@ -201,6 +201,11 @@ public:
     }
   }
 
+  void CancelAllEvents()
+  {
+    mEvents.Clear();
+  }
+
   
   template<class TimeType>
   float GetValueAtTime(TimeType aTime) const
