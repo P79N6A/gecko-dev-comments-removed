@@ -15,6 +15,10 @@
 #include "uachelper.h"
 #include "updatehelper.h"
 
+
+
+#pragma comment(linker, "/SUBSYSTEM:windows")
+
 SERVICE_STATUS gSvcStatus = { 0 }; 
 SERVICE_STATUS_HANDLE gSvcStatusHandle = nullptr; 
 HANDLE gWorkDoneEvent = nullptr;
