@@ -127,7 +127,10 @@ let gSyncPane = {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_UNVERIFIED;
           enginesListDisabled = true;
         
-        } else if (Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
+        
+        
+        } else if (Weave.Service.identity.readyToAuthenticate &&
+                   Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
           enginesListDisabled = true;
         
