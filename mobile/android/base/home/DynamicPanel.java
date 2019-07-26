@@ -64,6 +64,9 @@ public class DynamicPanel extends HomeFragment {
     private static final String DATASET_REQUEST = "dataset_request";
 
     
+    private static final int RESULT_LIMIT = 100;
+
+    
     private FrameLayout mView;
 
     
@@ -381,6 +384,8 @@ public class DynamicPanel extends HomeFragment {
             final Uri queryUri = HomeItems.CONTENT_URI.buildUpon()
                                                       .appendQueryParameter(BrowserContract.PARAM_DATASET_ID,
                                                                             mRequest.getDatasetId())
+                                                      .appendQueryParameter(BrowserContract.PARAM_LIMIT,
+                                                                            String.valueOf(RESULT_LIMIT))
                                                       .build();
 
             
