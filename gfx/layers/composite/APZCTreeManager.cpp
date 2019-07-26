@@ -344,37 +344,37 @@ nsEventStatus
 APZCTreeManager::ProcessTouchEvent(const WidgetTouchEvent& aEvent,
                                    WidgetTouchEvent* aOutEvent)
 {
+  nsEventStatus ret = nsEventStatus_eIgnore;
   if (!aEvent.touches.Length()) {
-    return nsEventStatus_eIgnore;
+    return ret;
   }
   if (aEvent.message == NS_TOUCH_START) {
     mTouchCount++;
     ScreenPoint point = ScreenPoint(aEvent.touches[0]->mRefPoint.x, aEvent.touches[0]->mRefPoint.y);
     mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent, point);
   }
-  if (!mApzcForInputBlock) {
-    return nsEventStatus_eIgnore;
-  }
-  
-  
-  
-  gfx3DMatrix transformToApzc = mCachedTransformToApzcForInputBlock;
-  MultiTouchInput inputForApzc(aEvent);
-  for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
-    ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
-  }
-  nsEventStatus ret = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
 
-  
-  
-  
-  gfx3DMatrix transformToGecko;
-  GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToGecko);
-  gfx3DMatrix outTransform = transformToApzc * transformToGecko;
-  for (size_t i = 0; i < aOutEvent->touches.Length(); i++) {
-    ApplyTransform(&(aOutEvent->touches[i]->mRefPoint), outTransform);
-  }
+  if (mApzcForInputBlock) {
+    
+    
+    
+    gfx3DMatrix transformToApzc = mCachedTransformToApzcForInputBlock;
+    MultiTouchInput inputForApzc(aEvent);
+    for (size_t i = 0; i < inputForApzc.mTouches.Length(); i++) {
+      ApplyTransform(&(inputForApzc.mTouches[i].mScreenPoint), transformToApzc);
+    }
+    ret = mApzcForInputBlock->ReceiveInputEvent(inputForApzc);
 
+    
+    
+    
+    gfx3DMatrix transformToGecko;
+    GetInputTransforms(mApzcForInputBlock, transformToApzc, transformToGecko);
+    gfx3DMatrix outTransform = transformToApzc * transformToGecko;
+    for (size_t i = 0; i < aOutEvent->touches.Length(); i++) {
+      ApplyTransform(&(aOutEvent->touches[i]->mRefPoint), outTransform);
+    }
+  }
   
   
   if (aEvent.message == NS_TOUCH_CANCEL ||
