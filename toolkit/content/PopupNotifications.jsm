@@ -16,6 +16,7 @@ const ICON_SELECTOR = ".notification-anchor-icon";
 const ICON_ATTRIBUTE_SHOWING = "showing";
 
 let popupNotificationsMap = new WeakMap();
+let gNotificationParents = new WeakMap;
 
 
 
@@ -397,19 +398,59 @@ PopupNotifications.prototype = {
   
 
 
+  _clearPanel: function () {
+    let popupnotification;
+    while ((popupnotification = this.panel.lastChild)) {
+      this.panel.removeChild(popupnotification);
+
+      
+      
+      let originalParent = gNotificationParents.get(popupnotification);
+      if (originalParent) {
+        popupnotification.notification = null;
+
+        
+        
+        
+        let contentNode = popupnotification.lastChild;
+        while (contentNode) {
+          let previousSibling = contentNode.previousSibling;
+          if (contentNode.nodeName != "popupnotificationcontent")
+            popupnotification.removeChild(contentNode);
+          contentNode = previousSibling;
+        }
+
+        
+        
+        popupnotification.hidden = true;
+
+        originalParent.appendChild(popupnotification);
+      }
+    }
+  },
+
   _refreshPanel: function PopupNotifications_refreshPanel(notificationsToShow) {
-    while (this.panel.lastChild)
-      this.panel.removeChild(this.panel.lastChild);
+    this._clearPanel();
 
     const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
     notificationsToShow.forEach(function (n) {
       let doc = this.window.document;
-      let popupnotification = doc.createElementNS(XUL_NS, "popupnotification");
+
+      
+      
+      let popupnotificationID = n.id + "-notification";
+
+      
+      
+      let popupnotification = doc.getElementById(popupnotificationID);
+      if (popupnotification)
+        gNotificationParents.set(popupnotification, popupnotification.parentNode);
+      else
+        popupnotification = doc.createElementNS(XUL_NS, "popupnotification");
+
       popupnotification.setAttribute("label", n.message);
-      
-      
-      popupnotification.setAttribute("id", n.id + "-notification");
+      popupnotification.setAttribute("id", popupnotificationID);
       popupnotification.setAttribute("popupid", n.id);
       popupnotification.setAttribute("closebuttoncommand", "PopupNotifications._dismiss();");
       if (n.mainAction) {
@@ -441,6 +482,10 @@ PopupNotifications.prototype = {
       }
 
       this.panel.appendChild(popupnotification);
+
+      
+      
+      popupnotification.hidden = false;
     }, this);
   },
 
@@ -622,8 +667,7 @@ PopupNotifications.prototype = {
       }
     }, this);
 
-    while (this.panel.lastChild)
-      this.panel.removeChild(this.panel.lastChild);
+    this._clearPanel();
 
     this._update();
   },
