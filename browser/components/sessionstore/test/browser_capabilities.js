@@ -31,11 +31,6 @@ function runTests() {
   docShell.allowMetaRedirects = false;
 
   
-  
-  browser.reload();
-  yield whenBrowserLoaded(browser);
-
-  
   let disallowedState = JSON.parse(ss.getTabState(tab));
   let disallow = new Set(disallowedState.disallow.split(","));
   ok(disallow.has("Images"), "images not allowed");
@@ -57,7 +52,7 @@ function runTests() {
 
   
   ok(!docShell.allowImages, "images not allowed");
-  ok(!docShell.allowMetaRedirects, "meta redirects not allowed");
+  ok(!docShell.allowMetaRedirects, "meta redirects not allowed")
 
   
   state = JSON.parse(ss.getTabState(tab));
