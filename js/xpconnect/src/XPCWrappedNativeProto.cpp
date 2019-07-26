@@ -153,15 +153,6 @@ XPCWrappedNativeProto::SystemIsBeingShutDown()
     
     
 
-#ifdef XPC_TRACK_PROTO_STATS
-    static bool DEBUG_DumpedStats = false;
-    if (!DEBUG_DumpedStats) {
-        printf("%d XPCWrappedNativeProto(s) alive at shutdown\n",
-               gDEBUG_LiveProtoCount);
-        DEBUG_DumpedStats = true;
-    }
-#endif
-
     if (mJSProtoObject) {
         
         JS_SetPrivate(mJSProtoObject, nullptr);
