@@ -281,7 +281,7 @@ let CustomHighlighterActor = exports.CustomHighlighterActor = protocol.ActorClas
     
     
     if (supportXULBasedHighlighter(inspector.tabActor)) {
-      this._highlighter = new constructor(inspector.tabActor, inspector);
+      this._highlighter = new constructor(inspector.tabActor);
     }
   },
 
@@ -339,9 +339,7 @@ let CustomHighlighterFront = protocol.FrontClass(CustomHighlighterActor, {});
 
 
 
-function XULBasedHighlighter(tabActor, inspector) {
-  this._inspector = inspector;
-
+function XULBasedHighlighter(tabActor) {
   this.browser = tabActor.browser;
   this.win = tabActor.window;
   this.chromeDoc = this.browser.ownerDocument;
@@ -432,7 +430,6 @@ XULBasedHighlighter.prototype = {
     this.win = null;
     this.browser = null;
     this.chromeDoc = null;
-    this._inspector = null;
     this.currentNode = null;
   }
 };
@@ -479,8 +476,8 @@ XULBasedHighlighter.prototype = {
 
 
 
-function BoxModelHighlighter(tabActor, inspector) {
-  XULBasedHighlighter.call(this, tabActor, inspector);
+function BoxModelHighlighter(tabActor) {
+  XULBasedHighlighter.call(this, tabActor);
   this.layoutHelpers = new LayoutHelpers(this.win);
   this._initMarkup();
   EventEmitter.decorate(this);
@@ -925,8 +922,8 @@ BoxModelHighlighter.prototype = Heritage.extend(XULBasedHighlighter.prototype, {
 
 
 
-function CssTransformHighlighter(tabActor, inspector) {
-  XULBasedHighlighter.call(this, tabActor, inspector);
+function CssTransformHighlighter(tabActor) {
+  XULBasedHighlighter.call(this, tabActor);
 
   this.layoutHelpers = new LayoutHelpers(tabActor.window);
   this._initMarkup();
