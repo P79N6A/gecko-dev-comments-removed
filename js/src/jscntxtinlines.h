@@ -567,44 +567,6 @@ JSContext::propertyTree()
     return compartment->propertyTree;
 }
 
-inline bool
-JSContext::hasEnteredCompartment() const
-{
-    return enterCompartmentDepth_ > 0;
-}
-
-inline void
-JSContext::enterCompartment(JSCompartment *c)
-{
-    enterCompartmentDepth_++;
-    compartment = c;
-    if (throwing)
-        wrapPendingException();
-}
-
-inline void
-JSContext::leaveCompartment(JSCompartment *oldCompartment)
-{
-    JS_ASSERT(hasEnteredCompartment());
-    enterCompartmentDepth_--;
-
-    
-
-
-
-
-
-
-
-    if (hasEnteredCompartment() || !defaultCompartmentObject_)
-        compartment = oldCompartment;
-    else
-        compartment = defaultCompartmentObject_->compartment();
-
-    if (throwing)
-        wrapPendingException();
-}
-
 inline void
 JSContext::setDefaultCompartmentObject(JSObject *obj)
 {
