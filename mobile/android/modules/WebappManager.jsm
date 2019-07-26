@@ -85,7 +85,7 @@ this.WebappManager = {
     }
 
     sendMessageToJava({
-      type: "WebApps:InstallApk",
+      type: "Webapps:InstallApk",
       filePath: filePath,
       data: JSON.stringify(aMessage),
     });
@@ -157,7 +157,7 @@ this.WebappManager = {
 
         
         sendMessageToJava({
-          type: "WebApps:PostInstall",
+          type: "Webapps:Postinstall",
           apkPackageName: aData.app.apkPackageName,
           origin: aData.app.origin,
         });
@@ -171,7 +171,7 @@ this.WebappManager = {
     log("launchWebapp: " + manifestURL);
 
     sendMessageToJava({
-      type: "WebApps:Open",
+      type: "Webapps:Open",
       manifestURL: manifestURL,
       origin: origin
     });
@@ -285,7 +285,7 @@ this.WebappManager = {
 
       
       let apkNameToVersion = JSON.parse(sendMessageToJava({
-        type: "WebApps:GetApkVersions",
+        type: "Webapps:GetApkVersions",
         packageNames: installedApps.map(app => app.packageName).filter(packageName => !!packageName)
       }));
 
@@ -454,7 +454,7 @@ this.WebappManager = {
           from: apk.app.installOrigin,
         };
         sendMessageToJava({
-          type: "WebApps:InstallApk",
+          type: "Webapps:InstallApk",
           filePath: apk.filePath,
           data: JSON.stringify(msg),
         });

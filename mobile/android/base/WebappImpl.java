@@ -26,8 +26,8 @@ import android.view.Display;
 import java.net.URL;
 import java.io.File;
 
-public class WebAppImpl extends GeckoApp {
-    private static final String LOGTAG = "GeckoWebAppImpl";
+public class WebappImpl extends GeckoApp {
+    private static final String LOGTAG = "GeckoWebappImpl";
 
     private URL mOrigin;
     private TextView mTitlebarText = null;
@@ -62,12 +62,12 @@ public class WebAppImpl extends GeckoApp {
         mTitlebarText = (TextView)findViewById(R.id.webapp_title);
         mTitlebar = findViewById(R.id.webapp_titlebar);
         if (!action.startsWith(ACTION_WEBAPP_PREFIX)) {
-            Log.e(LOGTAG, "WebApp launch, but intent action is " + action + "!");
+            Log.e(LOGTAG, "Webapp launch, but intent action is " + action + "!");
             return;
         }
 
         
-        String origin = WebAppAllocator.getInstance(this).getAppForIndex(getIndex());
+        String origin = WebappAllocator.getInstance(this).getAppForIndex(getIndex());
         try {
             mOrigin = new URL(origin);
         } catch (java.net.MalformedURLException ex) {
@@ -93,8 +93,8 @@ public class WebAppImpl extends GeckoApp {
             
             
             
-            int index = WebAppAllocator.getInstance(this).findAndAllocateIndex(uri, "App", (Bitmap) null);
-            Intent appIntent = GeckoAppShell.getWebAppIntent(index, uri);
+            int index = WebappAllocator.getInstance(this).findAndAllocateIndex(uri, "App", (Bitmap) null);
+            Intent appIntent = GeckoAppShell.getWebappIntent(index, uri);
             startActivity(appIntent);
             finish();
         }
@@ -105,7 +105,7 @@ public class WebAppImpl extends GeckoApp {
 
         
         int[] colors = new int[2];
-        int dominantColor = prefs.getInt(WebAppAllocator.iconKey(getIndex()), -1);
+        int dominantColor = prefs.getInt(WebappAllocator.iconKey(getIndex()), -1);
 
         
         float[] f = new float[3];
@@ -144,7 +144,7 @@ public class WebAppImpl extends GeckoApp {
     protected String getDefaultProfileName() {
         String action = getIntent().getAction();
         if (!action.startsWith(ACTION_WEBAPP_PREFIX)) {
-            Log.e(LOGTAG, "WebApp launch, but intent action is " + action + "!");
+            Log.e(LOGTAG, "Webapp launch, but intent action is " + action + "!");
             return null;
         }
 

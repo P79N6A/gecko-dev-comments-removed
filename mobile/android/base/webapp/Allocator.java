@@ -18,7 +18,7 @@ import android.util.Log;
 
 public class Allocator {
 
-    private final String LOGTAG = "GeckoWebAppAllocator";
+    private final String LOGTAG = "GeckoWebappAllocator";
 
     private static final String PREFIX_ORIGIN = "webapp-origin-";
     private static final String PREFIX_PACKAGE_NAME = "webapp-package-name-";
