@@ -24,6 +24,10 @@ function debug(msg) {
 
 
 this.SessionHistory = Object.freeze({
+  isEmpty: function (docShell) {
+    return SessionHistoryInternal.isEmpty(docShell);
+  },
+
   collect: function (docShell) {
     return SessionHistoryInternal.collect(docShell);
   },
@@ -37,6 +41,19 @@ this.SessionHistory = Object.freeze({
 
 
 let SessionHistoryInternal = {
+  
+
+
+
+
+
+  isEmpty: function (docShell) {
+    let webNavigation = docShell.QueryInterface(Ci.nsIWebNavigation);
+    let history = webNavigation.sessionHistory;
+    let uri = webNavigation.currentURI.spec;
+    return uri == "about:blank" && history.count == 0;
+  },
+
   
 
 
