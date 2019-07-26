@@ -8,6 +8,7 @@
 #include "WebGLTexture.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 #include "GLContext.h"
+#include "ScopedGLHelpers.h"
 
 using namespace mozilla;
 using namespace mozilla::gl;
@@ -17,7 +18,7 @@ DepthStencilDepthFormat(GLContext* gl) {
     
     if (gl->IsGLES2() && !gl->IsExtensionSupported(gl::GLContext::OES_depth24))
         return LOCAL_GL_DEPTH_COMPONENT16;
-    
+
     return LOCAL_GL_DEPTH_COMPONENT24;
 }
 
@@ -151,7 +152,7 @@ WebGLRenderbuffer::RenderbufferStorage(GLenum internalFormat, GLsizei width, GLs
     }
 
     gl->fRenderbufferStorage(LOCAL_GL_RENDERBUFFER, primaryFormat, width, height);
-    
+
     if (!mSecondaryRB) {
         MOZ_ASSERT(!secondaryFormat);
         return;
