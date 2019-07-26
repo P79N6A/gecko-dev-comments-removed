@@ -176,7 +176,7 @@ ThebesLayerComposite::CleanupResources()
   mBuffer = nullptr;
 }
 
-gfxSize
+LayerSize
 ThebesLayerComposite::GetEffectiveResolution()
 {
   
@@ -184,7 +184,7 @@ ThebesLayerComposite::GetEffectiveResolution()
   
   
   
-  gfxSize resolution(1, 1);
+  LayerSize resolution(1, 1);
   for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
     const FrameMetrics& metrics = parent->GetFrameMetrics();
     resolution.width *= metrics.mResolution.scale;
@@ -206,7 +206,7 @@ ThebesLayerComposite::GetDisplayPort()
   
   
   gfxRect displayPort;
-  gfxSize parentResolution = GetEffectiveResolution();
+  LayerSize parentResolution = GetEffectiveResolution();
   for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
     const FrameMetrics& metrics = parent->GetFrameMetrics();
     if (displayPort.IsEmpty()) {
