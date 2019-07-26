@@ -205,8 +205,7 @@ public:
 
   
   
-  static CycleCollectedJSRuntime*
-  Get();
+  static CycleCollectedJSRuntime* Get();
 
 private:
   JSGCThingParticipant mGCThingCycleCollectorGlobal;

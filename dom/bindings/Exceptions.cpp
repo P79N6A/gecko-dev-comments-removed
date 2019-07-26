@@ -12,8 +12,10 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
+#include "nsServiceManagerUtils.h"
 #include "nsThreadUtils.h"
 #include "XPCWrapper.h"
+#include "WorkerPrivate.h"
 
 namespace {
 
@@ -51,7 +53,7 @@ ThrowExceptionObject(JSContext* aCx, nsIException* aException)
   
   MOZ_ASSERT(NS_IsMainThread());
 
-  JS::RootedObject glob(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!glob) {
     return false;
   }
@@ -77,7 +79,7 @@ ThrowExceptionObject(JSContext* aCx, nsIException* aException)
 bool
 ThrowExceptionObject(JSContext* aCx, Exception* aException)
 {
-  JS::RootedValue thrown(aCx);
+  JS::Rooted<JS::Value> thrown(aCx);
 
   
   
@@ -93,35 +95,25 @@ ThrowExceptionObject(JSContext* aCx, Exception* aException)
     return true;
   }
 
-  JS::RootedObject glob(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::Rooted<JSObject*> glob(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!glob) {
     return false;
   }
 
-  JS::RootedValue val(aCx);
-  if (!mozilla::dom::WrapNewBindingObject(aCx, glob, aException, &val)) {
+  if (!WrapNewBindingObject(aCx, glob, aException, &thrown)) {
     return false;
   }
 
-  JS_SetPendingException(aCx, val);
+  JS_SetPendingException(aCx, thrown);
   return true;
 }
 
-void
-Throw(JSContext* cx, nsresult rv, const char* sz)
+bool
+Throw(JSContext* aCx, nsresult aRv, const char* aMessage)
 {
-  bool success = false;
-
-  if (JS_IsExceptionPending(cx)) {
+  if (JS_IsExceptionPending(aCx)) {
     
-    return;
-  }
-
-  
-  if (rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO && JS_IsExceptionPending(cx)) {
-    
-    MOZ_ASSERT(NS_IsMainThread());
-    return;
+    return false;
   }
 
   CycleCollectedJSRuntime* runtime = CycleCollectedJSRuntime::Get();
@@ -129,24 +121,22 @@ Throw(JSContext* cx, nsresult rv, const char* sz)
   if (existingException) {
     nsresult nr;
     if (NS_SUCCEEDED(existingException->GetResult(&nr)) && 
-        rv == nr) {
+        aRv == nr) {
       
-      return;
+      return false;
     }
   }
 
   nsRefPtr<Exception> finalException;
 
   
-  switch (NS_ERROR_GET_MODULE(rv)) {
+  switch (NS_ERROR_GET_MODULE(aRv)) {
   case NS_ERROR_MODULE_DOM:
   case NS_ERROR_MODULE_SVG:
   case NS_ERROR_MODULE_DOM_XPATH:
   case NS_ERROR_MODULE_DOM_INDEXEDDB:
   case NS_ERROR_MODULE_DOM_FILEHANDLE:
-    if (NS_IsMainThread()) {
-      finalException = DOMException::Create(rv);
-    }
+    finalException = DOMException::Create(aRv);
     break;
 
   default:
@@ -154,17 +144,56 @@ Throw(JSContext* cx, nsresult rv, const char* sz)
   }
 
   
-  if (finalException == nullptr) {
-    finalException = new Exception(sz, rv, nullptr, nullptr, nullptr);
+  if (!finalException) {
+    finalException = new Exception(aMessage, aRv, nullptr, nullptr, nullptr);
   }
 
   MOZ_ASSERT(finalException);
-  success = ThrowExceptionObject(cx, finalException);
-  
-  
-  if (!success) {
-    JS_ReportOutOfMemory(cx);
+  if (!ThrowExceptionObject(aCx, finalException)) {
+    
+    
+    JS_ReportOutOfMemory(aCx);
   }
+
+  return false;
+}
+
+already_AddRefed<nsIStackFrame>
+GetCurrentJSStack()
+{
+  
+  JSContext* cx = nullptr;
+
+  if (NS_IsMainThread()) {
+    
+    
+    
+    nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID());
+    cx = xpc->GetCurrentJSContext();
+  } else {
+    cx = workers::GetCurrentThreadJSContext();
+  }
+
+  if (!cx) {
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIStackFrame> stack = exceptions::CreateStack(cx);
+  if (!stack) {
+    return nullptr;
+  }
+
+  
+  uint32_t language;
+  nsCOMPtr<nsIStackFrame> caller;
+  while (stack &&
+         NS_SUCCEEDED(stack->GetLanguage(&language)) &&
+         language != nsIProgrammingLanguage::JAVASCRIPT &&
+         NS_SUCCEEDED(stack->GetCaller(getter_AddRefs(caller))) &&
+         caller) {
+    stack = caller;
+  }
+  return stack.forget();
 }
 
 namespace exceptions {
@@ -301,7 +330,7 @@ NS_IMETHODIMP JSStackFrame::ToString(char** _retval)
   static const char format[] = "%s frame :: %s :: %s :: line %d";
   int len = sizeof(char)*
               (strlen(frametype) + strlen(filename) + strlen(funname)) +
-            sizeof(format) + 6 ;
+            sizeof(format) + 3 * sizeof(mLineno);
 
   char* buf = (char*) nsMemory::Alloc(len);
   JS_snprintf(buf, len, format, frametype, filename, funname, mLineno);
@@ -351,7 +380,7 @@ JSStackFrame::CreateStack(JSContext* cx)
 
     nsRefPtr<JSStackFrame> frame = new JSStackFrame();
     self->mCaller = frame;
-    self = frame.forget();
+    self.swap(frame);
   }
 
   JS::FreeStackDescription(cx, desc);
