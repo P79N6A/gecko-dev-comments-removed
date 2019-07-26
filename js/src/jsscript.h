@@ -386,30 +386,32 @@ class ScriptSource
 {
     friend class SourceCompressionTask;
 
-    
-    
-    
-    
-    
+    uint32_t refs;
+
     
     
     
 
+    
+    enum {
+        DataMissing,
+        DataUncompressed,
+        DataCompressed
+    } dataType;
+
     union {
-        
-        
-        
-        
-        
-        
-        
-        
-        jschar *source;
-        unsigned char *compressed;
+        struct {
+            const jschar *chars;
+            bool ownsChars;
+        } uncompressed;
+
+        struct {
+            void *raw;
+            size_t nbytes;
+        } compressed;
     } data;
-    uint32_t refs;
+
     uint32_t length_;
-    uint32_t compressedLength_;
     char *filename_;
     jschar *displayURL_;
     jschar *sourceMapURL_;
@@ -446,14 +448,13 @@ class ScriptSource
     
     bool sourceRetrievable_:1;
     bool argumentsNotIncluded_:1;
-    bool ready_:1;
     bool hasIntroductionOffset_:1;
 
   public:
     explicit ScriptSource()
       : refs(0),
+        dataType(DataMissing),
         length_(0),
-        compressedLength_(0),
         filename_(nullptr),
         displayURL_(nullptr),
         sourceMapURL_(nullptr),
@@ -463,28 +464,25 @@ class ScriptSource
         introductionType_(nullptr),
         sourceRetrievable_(false),
         argumentsNotIncluded_(false),
-        ready_(true),
         hasIntroductionOffset_(false)
     {
-        data.source = nullptr;
     }
+    ~ScriptSource();
     void incref() { refs++; }
     void decref() {
         JS_ASSERT(refs != 0);
         if (--refs == 0)
-            destroy();
+            js_delete(this);
     }
     bool initFromOptions(ExclusiveContext *cx, const ReadOnlyCompileOptions &options);
     bool setSourceCopy(ExclusiveContext *cx,
                        JS::SourceBufferHolder &srcBuf,
                        bool argumentsNotIncluded,
                        SourceCompressionTask *tok);
-    void setSource(const jschar *src, size_t length);
-    bool ready() const { return ready_; }
     void setSourceRetrievable() { sourceRetrievable_ = true; }
     bool sourceRetrievable() const { return sourceRetrievable_; }
-    bool hasSourceData() const { return !ready() || !!data.source; }
-    uint32_t length() const {
+    bool hasSourceData() const { return dataType != DataMissing; }
+    size_t length() const {
         JS_ASSERT(hasSourceData());
         return length_;
     }
@@ -496,6 +494,30 @@ class ScriptSource
     JSFlatString *substring(JSContext *cx, uint32_t start, uint32_t stop);
     void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                 JS::ScriptSourceInfo *info) const;
+
+    const jschar *uncompressedChars() const {
+        JS_ASSERT(dataType == DataUncompressed);
+        return data.uncompressed.chars;
+    }
+
+    bool ownsUncompressedChars() const {
+        JS_ASSERT(dataType == DataUncompressed);
+        return data.uncompressed.ownsChars;
+    }
+
+    void *compressedData() const {
+        JS_ASSERT(dataType == DataCompressed);
+        return data.compressed.raw;
+    }
+
+    size_t compressedBytes() const {
+        JS_ASSERT(dataType == DataCompressed);
+        return data.compressed.nbytes;
+    }
+
+    void setSource(const jschar *chars, size_t length, bool ownsChars = true);
+    void setCompressedSource(void *raw, size_t nbytes);
+    bool ensureOwnsSource(ExclusiveContext *cx);
 
     
     template <XDRMode mode>
@@ -541,13 +563,7 @@ class ScriptSource
     }
 
   private:
-    void destroy();
-    bool compressed() const { return compressedLength_ != 0; }
-    size_t computedSizeOfData() const {
-        return compressed() ? compressedLength_ : sizeof(jschar) * length_;
-    }
-    bool adjustDataSize(size_t nbytes);
-    const jschar *getOffThreadCompressionChars(ExclusiveContext *cx);
+    size_t computedSizeOfData() const;
 };
 
 class ScriptSourceHolder
