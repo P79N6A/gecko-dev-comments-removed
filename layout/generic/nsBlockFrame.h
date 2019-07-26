@@ -547,9 +547,9 @@ protected:
 
   
 
-  nsresult ReflowPushedFloats(nsBlockReflowState& aState,
-                              nsOverflowAreas&    aOverflowAreas,
-                              nsReflowStatus&     aStatus);
+  void ReflowPushedFloats(nsBlockReflowState& aState,
+                          nsOverflowAreas&    aOverflowAreas,
+                          nsReflowStatus&     aStatus);
 
   
 
@@ -579,7 +579,7 @@ protected:
   
 
 
-  nsresult PrepareResizeReflow(nsBlockReflowState& aState);
+  void PrepareResizeReflow(nsBlockReflowState& aState);
 
   
   nsresult ReflowDirtyLines(nsBlockReflowState& aState);
@@ -712,11 +712,11 @@ protected:
                          line_iterator       aLine,
                          bool*               aKeepReflowGoing);
 
-  nsresult SplitLine(nsBlockReflowState& aState,
-                     nsLineLayout& aLineLayout,
-                     line_iterator aLine,
-                     nsIFrame* aFrame,
-                     LineReflowStatus* aLineReflowStatus);
+  void SplitLine(nsBlockReflowState& aState,
+                 nsLineLayout& aLineLayout,
+                 line_iterator aLine,
+                 nsIFrame* aFrame,
+                 LineReflowStatus* aLineReflowStatus);
 
   
 
