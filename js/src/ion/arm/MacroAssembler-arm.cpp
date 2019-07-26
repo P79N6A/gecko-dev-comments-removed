@@ -2722,6 +2722,11 @@ MacroAssemblerARMCompat::callWithABI(void *fun, Result result)
     checkStackAlignment();
     ma_call(fun);
 
+    if (result == DOUBLE) {
+        
+        as_vxfer(r0, r1, ReturnFloatReg, CoreToFloat);
+    }
+
     freeStack(stackAdjust);
     if (dynamicAlignment_) {
         
