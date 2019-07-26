@@ -1601,7 +1601,9 @@ Accessible::ApplyARIAState(uint64_t* aState) const
 
   
   
-  if (mRoleMapEntry->Is(nsGkAtoms::gridcell) &&
+  if ((mRoleMapEntry->Is(nsGkAtoms::gridcell) ||
+       mRoleMapEntry->Is(nsGkAtoms::columnheader) ||
+       mRoleMapEntry->Is(nsGkAtoms::rowheader)) &&
       !(*aState & (states::READONLY | states::EDITABLE))) {
     const TableCellAccessible* cell = AsTableCell();
     if (cell) {
