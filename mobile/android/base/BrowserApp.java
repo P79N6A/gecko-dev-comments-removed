@@ -890,6 +890,12 @@ abstract public class BrowserApp extends GeckoApp
 
         
         mLayerView.setOnKeyListener(this);
+
+        
+        if (HardwareUtils.isTablet()) {
+            onCreatePanelMenu(Window.FEATURE_OPTIONS_PANEL, null);
+            invalidateOptionsMenu();
+        }
     }
 
     private void shareCurrentUrl() {
