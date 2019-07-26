@@ -46,8 +46,8 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
-using namespace mozilla::gfx;
 using namespace android;
+using mozilla::gfx::IntSize;
 
 
 
