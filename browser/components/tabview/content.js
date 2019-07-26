@@ -41,7 +41,9 @@ let WindowEventHandler = {
   
   
   onMozAfterPaint: function WEH_onMozAfterPaint(event) {
-    sendAsyncMessage("Panorama:MozAfterPaint");
+    if (event.clientRects.length > 0) {
+      sendAsyncMessage("Panorama:MozAfterPaint");
+    }
   }
 };
 
