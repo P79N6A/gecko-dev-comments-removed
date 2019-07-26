@@ -41,6 +41,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 const {Cc, Ci, Cu} = require("chrome");
 
 const protocol = require("devtools/server/protocol");
@@ -505,7 +514,7 @@ types.addDictType("disconnectedNode", {
   node: "domnode",
 
   
-  newNodes: "array:domnode"
+  newParents: "array:domnode"
 });
 
 types.addDictType("disconnectedNodeArray", {
@@ -513,7 +522,7 @@ types.addDictType("disconnectedNodeArray", {
   nodes: "array:domnode",
 
   
-  newNodes: "array:domnode"
+  newParents: "array:domnode"
 });
 
 types.addDictType("dommutation", {});
@@ -562,10 +571,10 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
 
   item: method(function(index) {
     let node = this.walker._ref(this.nodeList[index]);
-    let newNodes = [node for (node of this.walker.ensurePathToRoot(node))];
+    let newParents = [node for (node of this.walker.ensurePathToRoot(node))];
     return {
       node: node,
-      newNodes: newNodes
+      newParents: newParents
     }
   }, {
     request: { item: Arg(0) },
@@ -577,20 +586,20 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
 
   items: method(function(start=0, end=this.nodeList.length) {
     let items = [this.walker._ref(item) for (item of Array.prototype.slice.call(this.nodeList, start, end))];
-    let newNodes = new Set();
+    let newParents = new Set();
     for (let item of items) {
-      this.walker.ensurePathToRoot(item, newNodes);
+      this.walker.ensurePathToRoot(item, newParents);
     }
     return {
       nodes: items,
-      newNodes: [node for (node of newNodes)]
+      newParents: [node for (node of newParents)]
     }
   }, {
     request: {
       start: Arg(0, "number", { optional: true }),
       end: Arg(1, "number", { optional: true })
     },
-    response: { nodes: RetVal("disconnectedNodeArray") }
+    response: RetVal("disconnectedNodeArray")
   }),
 
   release: method(function() {}, { release: true })
@@ -1199,7 +1208,7 @@ var WalkerActor = protocol.ActorClass({
     let newParents = this.ensurePathToRoot(node);
     return {
       node: node,
-      newNodes: [parent for (parent of newParents)]
+      newParents: [parent for (parent of newParents)]
     }
   }, {
     request: {
