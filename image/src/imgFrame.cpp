@@ -685,6 +685,17 @@ nsresult imgFrame::UnlockImageData()
     return NS_OK;
 
   
+  
+  
+  if (mImageSurface)
+    mImageSurface->Flush();
+
+#ifdef USE_WIN_SURFACE
+  if (mWinSurface)
+    mWinSurface->Flush();
+#endif
+
+  
   if (mImageSurface)
     mImageSurface->MarkDirty();
 
@@ -709,6 +720,9 @@ void imgFrame::ApplyDirtToSurfaces()
 
   MutexAutoLock lock(mDirtyMutex);
   if (mDirty) {
+    
+    
+    
     if (mImageSurface)
       mImageSurface->Flush();
 
