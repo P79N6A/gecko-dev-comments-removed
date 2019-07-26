@@ -184,7 +184,7 @@ function run_test_2(uri) {
 function run_test_3(uri) {
   restartManager();
 
-  do_check_eq(AddonManager.mapURIToAddonID(uri), null);
+  check_mapping(uri, "bootstrap1@tests.mozilla.org");
 
   run_test_4();
 }
@@ -216,6 +216,43 @@ function run_test_4() {
 
 function run_test_5() {
   restartManager();
+
+  AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+    let uri = b1.getResourceURI(".");
+    check_mapping(uri, b1.id);
+
+    do_execute_soon(run_test_6);
+  });
+}
+
+
+function run_test_6() {
+  AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
+    prepare_test({
+      "bootstrap1@tests.mozilla.org": [
+        ["onUninstalling", false],
+        "onUninstalled"
+      ]
+    });
+
+    let uri = b1.getResourceURI(".");
+    b1.uninstall();
+    ensure_test_completed();
+
+    check_mapping(uri, b1.id);
+
+    restartManager();
+    do_execute_soon(run_test_7);
+  });
+}
+
+
+function run_test_7() {
+  shutdownManager();
+
+  manuallyInstall(do_get_addon("test_bootstrap1_1"), profileDir, "bootstrap1@tests.mozilla.org");
+
+  startupManager();
 
   AddonManager.getAddonByID("bootstrap1@tests.mozilla.org", function(b1) {
     let uri = b1.getResourceURI(".");
