@@ -198,8 +198,9 @@ public:
   
   void ApzContentConsumingTouch();
   void ApzContentIgnoringTouch();
-  nsEventStatus ApzReceiveInputEvent(nsInputEvent* aEvent);
-  nsEventStatus ApzReceiveInputEvent(nsInputEvent* aInEvent, nsInputEvent* aOutEvent);
+  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aEvent);
+  nsEventStatus ApzReceiveInputEvent(mozilla::WidgetInputEvent* aInEvent,
+                                     mozilla::WidgetInputEvent* aOutEvent);
   bool HitTestAPZC(mozilla::ScreenPoint& pt);
   nsresult RequestContentScroll();
   void RequestContentRepaintImplMainThread();

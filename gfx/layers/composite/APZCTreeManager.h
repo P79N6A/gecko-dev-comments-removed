@@ -160,8 +160,8 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(const nsInputEvent& aEvent,
-                                  nsInputEvent* aOutEvent);
+  nsEventStatus ReceiveInputEvent(const WidgetInputEvent& aEvent,
+                                  WidgetInputEvent* aOutEvent);
 
   
 
@@ -169,7 +169,7 @@ public:
 
 
 
-  nsEventStatus ReceiveInputEvent(nsInputEvent& aEvent);
+  nsEventStatus ReceiveInputEvent(WidgetInputEvent& aEvent);
 
   
 
@@ -303,7 +303,7 @@ private:
   AsyncPanZoomController* GetTouchInputBlockAPZC(const WidgetTouchEvent& aEvent, ScreenPoint aPoint);
   nsEventStatus ProcessTouchEvent(const WidgetTouchEvent& touchEvent, WidgetTouchEvent* aOutEvent);
   nsEventStatus ProcessMouseEvent(const nsMouseEvent& mouseEvent, nsMouseEvent* aOutEvent);
-  nsEventStatus ProcessEvent(const nsInputEvent& inputEvent, nsInputEvent* aOutEvent);
+  nsEventStatus ProcessEvent(const WidgetInputEvent& inputEvent, WidgetInputEvent* aOutEvent);
 
   
 

@@ -263,7 +263,7 @@ private:
   
 
   
-  void DispatchAsyncEventIgnoreStatus(nsInputEvent* aEvent);
+  void DispatchAsyncEventIgnoreStatus(WidgetInputEvent* aEvent);
   void DispatchAsyncTouchEventIgnoreStatus(WidgetTouchEvent* aEvent);
   void DispatchAsyncTouchEventWithCallback(WidgetTouchEvent* aEvent,
                                            void (MetroInput::*Callback)());

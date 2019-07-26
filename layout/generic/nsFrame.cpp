@@ -2586,9 +2586,8 @@ nsFrame::HandlePress(nsPresContext* aPresContext,
   
   isEditor = isEditor == nsISelectionDisplay::DISPLAY_ALL;
 
-  nsInputEvent* keyEvent = (nsInputEvent*)aEvent;
+  WidgetInputEvent* keyEvent = static_cast<WidgetInputEvent*>(aEvent);
   if (!keyEvent->IsAlt()) {
-    
     for (nsIContent* content = mContent; content;
          content = content->GetParent()) {
       if (nsContentUtils::ContentIsDraggable(content) &&

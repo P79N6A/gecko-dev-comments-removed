@@ -102,7 +102,7 @@ public:
     
 
 
-    static void InitInputEvent(nsInputEvent& aInputEvent,
+    static void InitInputEvent(WidgetInputEvent& aInputEvent,
                                guint aModifierState);
 
     

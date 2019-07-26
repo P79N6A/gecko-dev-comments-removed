@@ -495,7 +495,7 @@ KeymapWrapper::AreModifiersActive(Modifiers aModifiers,
 }
 
  void
-KeymapWrapper::InitInputEvent(nsInputEvent& aInputEvent,
+KeymapWrapper::InitInputEvent(WidgetInputEvent& aInputEvent,
                               guint aModifierState)
 {
     KeymapWrapper* keymapWrapper = GetInstance();

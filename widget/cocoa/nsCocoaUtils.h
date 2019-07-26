@@ -291,9 +291,9 @@ class nsCocoaUtils
   
 
 
-  static void InitInputEvent(nsInputEvent &aInputEvent,
+  static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
                              NSEvent* aNativeEvent);
-  static void InitInputEvent(nsInputEvent &aInputEvent,
+  static void InitInputEvent(mozilla::WidgetInputEvent &aInputEvent,
                              NSUInteger aModifiers);
 
   

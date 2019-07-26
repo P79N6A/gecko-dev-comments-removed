@@ -46,6 +46,7 @@ public:
   
   
   
+  
   uint32_t mTime;
 
   INPUTDATA_AS_CHILD_TYPE(MultiTouchInput, MULTITOUCH_INPUT)

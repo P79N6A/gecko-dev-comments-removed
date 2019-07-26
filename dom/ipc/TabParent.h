@@ -324,8 +324,8 @@ private:
     
     
     
-    void MaybeForwardEventToRenderFrame(const nsInputEvent& aEvent,
-                                        nsInputEvent* aOutEvent);
+    void MaybeForwardEventToRenderFrame(const WidgetInputEvent& aEvent,
+                                        WidgetInputEvent* aOutEvent);
     
     
     

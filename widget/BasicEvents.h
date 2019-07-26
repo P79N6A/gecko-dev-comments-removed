@@ -1025,6 +1025,5 @@ public:
 
 typedef mozilla::WidgetEvent      nsEvent;
 typedef mozilla::WidgetGUIEvent   nsGUIEvent;
-typedef mozilla::WidgetInputEvent nsInputEvent;
 
 #endif 
