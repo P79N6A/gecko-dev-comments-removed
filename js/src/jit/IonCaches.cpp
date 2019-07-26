@@ -2059,6 +2059,13 @@ IsCacheableSetPropCallPropertyOp(HandleObject obj, HandleObject holder,
     if (shape->hasSetterValue())
         return false;
 
+    
+    
+    
+    
+    if (!shape->writable())
+        return false;
+
     return true;
 }
 
