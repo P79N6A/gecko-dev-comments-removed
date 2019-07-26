@@ -392,7 +392,12 @@ let MessageQueue = {
 
     let sync = options && options.sync;
     let startID = (options && options.id) || this._id;
-    let sendMessage = sync ? sendSyncMessage : sendAsyncMessage;
+
+    
+    
+    
+    
+    let sendMessage = sync ? sendRpcMessage : sendAsyncMessage;
 
     let data = {};
     for (let [key, id] of this._lastUpdated) {
