@@ -772,16 +772,7 @@ menuitem.panel-subview-footer@menuStateActive@,
 
 #BMB_bookmarksPopup menupopup > .bookmarks-actions-menuseparator {
   
-
-
-
-
-
-  -moz-appearance: none;
-  visibility: hidden;
-  min-height: 1px;
-  margin: -1px 0 0;
-  border: none;
+  display: none;
 }
 
 
