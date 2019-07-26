@@ -409,53 +409,55 @@ gTests.push({
 
     
     
-
-    
-    let promise = waitForEvent(document, "popupshown");
-    sendContextMenuClickToWindow(win, 10, 10);
-    yield promise;
-
-    purgeEventQueue();
-
-    ok(ContextMenuUI._menuPopup._visible, "is visible");
-
-    checkContextUIMenuItemVisibility(["context-save-image-lib",
-                                      "context-copy-image",
-                                      "context-copy-image-loc",
-                                      "context-open-image-tab"]);
-
-    
     
 
-    let dirSvc = Components.classes["@mozilla.org/file/directory_service;1"]
-                           .getService(Components.interfaces.nsIProperties);
-    let saveLocationPath = dirSvc.get("Pict", Components.interfaces.nsIFile);
-    saveLocationPath.append("image01.png");
 
-    registerCleanupFunction(function () {
-      saveLocationPath.remove(false);
-    });
 
-    if (saveLocationPath.exists()) {
-      info("had to remove old image!");
-      saveLocationPath.remove(false);
-    }
 
-    let menuItem = document.getElementById("context-save-image-lib");
-    ok(menuItem, "menu item exists");
-    ok(!menuItem.hidden, "menu item visible");
 
-    
-    let downloadPromise = waitForObserver("dl-done", 10000);
 
-    let popupPromise = waitForEvent(document, "popuphidden");
-    EventUtils.synthesizeMouse(menuItem, 10, 10, {}, win);
-    yield popupPromise;
-    yield downloadPromise;
 
-    purgeEventQueue();
 
-    ok(saveLocationPath.exists(), "image saved");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
     
@@ -465,10 +467,10 @@ gTests.push({
     yield promise;
     ok(ContextMenuUI._menuPopup._visible, "is visible");
 
-    menuItem = document.getElementById("context-copy-image");
+    let menuItem = document.getElementById("context-copy-image");
     ok(menuItem, "menu item exists");
     ok(!menuItem.hidden, "menu item visible");
-    popupPromise = waitForEvent(document, "popuphidden");
+    let popupPromise = waitForEvent(document, "popuphidden");
     EventUtils.synthesizeMouse(menuItem, 10, 10, {}, win);
     yield popupPromise;
 
