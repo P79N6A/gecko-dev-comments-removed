@@ -673,6 +673,28 @@ NativeInterface2JSObjectAndThrowIfFailed(JSContext* aCx,
                                          bool aAllowNativeWrapper)
 {
   nsresult rv;
+  
+  
+  nsWrapperCache *cache = aHelper.GetWrapperCache();
+
+  if (cache && cache->IsDOMBinding()) {
+      JS::RootedObject obj(aCx, cache->GetWrapper());
+      if (!obj) {
+          obj = cache->WrapObject(aCx, aScope);
+      }
+
+      if (obj && aAllowNativeWrapper && !JS_WrapObject(aCx, obj.address())) {
+        return false;
+      }
+
+      if (obj) {
+        *aRetval = JS::ObjectValue(*obj);
+        return true;
+      }
+  }
+
+  MOZ_ASSERT(NS_IsMainThread());
+
   if (!XPCConvert::NativeInterface2JSObject(aRetval, NULL, aHelper, aIID,
                                             NULL, aAllowNativeWrapper, &rv)) {
     

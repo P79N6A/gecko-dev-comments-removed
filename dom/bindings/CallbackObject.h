@@ -151,10 +151,6 @@ protected:
 
     
 
-    
-    
-    nsAutoMicroTask mMt;
-
     nsCxPusher mCxPusher;
 
     
@@ -172,6 +168,7 @@ protected:
     ErrorResult& mErrorResult;
     const ExceptionHandling mExceptionHandling;
     uint32_t mSavedJSContextOptions;
+    const bool mIsMainThread;
   };
 };
 

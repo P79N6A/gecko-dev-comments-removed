@@ -862,7 +862,7 @@ XPCConvert::NativeInterface2JSObject(jsval* d,
     if (cpow) {
         if (!JS_WrapObject(cx, cpow.address()))
             return false;
-        *d = OBJECT_TO_JSVAL(cpow);
+        *d = JS::ObjectValue(*cpow);
         return true;
     }
 

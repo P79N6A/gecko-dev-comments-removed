@@ -17,6 +17,7 @@
 #include "nsCxPusher.h"
 #include "nsIScriptSecurityManager.h"
 #include "xpcprivate.h"
+#include "WorkerPrivate.h"
 
 namespace mozilla {
 namespace dom {
@@ -49,7 +50,11 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   , mCompartment(aCompartment)
   , mErrorResult(aRv)
   , mExceptionHandling(aExceptionHandling)
+  , mIsMainThread(NS_IsMainThread())
 {
+  if (mIsMainThread) {
+    nsContentUtils::EnterMicroTask();
+  }
   
   
   
@@ -58,45 +63,49 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
 
   
   JSObject* realCallback = js::UncheckedUnwrap(aCallback);
-
-  
   JSContext* cx = nullptr;
-  nsIScriptContext* ctx = nullptr;
-  nsIScriptGlobalObject* sgo = nsJSUtils::GetStaticScriptGlobal(realCallback);
-  if (sgo) {
+
+  if (mIsMainThread) {
     
-    
-    
-    
-    
-    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(sgo);
-    if (win) {
-      MOZ_ASSERT(win->IsInnerWindow());
-      nsPIDOMWindow* outer = win->GetOuterWindow();
-      if (!outer || win != outer->GetCurrentInnerWindow()) {
+    nsIScriptContext* ctx = nullptr;
+    nsIScriptGlobalObject* sgo = nsJSUtils::GetStaticScriptGlobal(realCallback);
+    if (sgo) {
+      
+      
+      
+      
+      
+      nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(sgo);
+      if (win) {
+        MOZ_ASSERT(win->IsInnerWindow());
+        nsPIDOMWindow* outer = win->GetOuterWindow();
+        if (!outer || win != outer->GetCurrentInnerWindow()) {
+          
+          return;
+        }
+      }
+      
+
+      ctx = sgo->GetContext();
+      if (ctx) {
         
-        return;
+        
+        
+        cx = ctx->GetNativeContext();
       }
     }
-    
 
-    ctx = sgo->GetContext();
-    if (ctx) {
+    if (!cx) {
       
       
-      
-      cx = ctx->GetNativeContext();
+      cx = nsContentUtils::GetSafeJSContext();
     }
-  }
 
-  if (!cx) {
     
-    
-    cx = nsContentUtils::GetSafeJSContext();
+    mCxPusher.Push(cx);
+  } else {
+    cx = workers::GetCurrentThreadJSContext();
   }
-
-  
-  mCxPusher.Push(cx);
 
   
   
@@ -109,16 +118,18 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   JS::ExposeObjectToActiveJS(aCallback);
   mRootedCallable.construct(cx, aCallback);
 
-  
-  
-  
-  
-  nsresult rv = nsContentUtils::GetSecurityManager()->
-    CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
-
-  if (NS_FAILED(rv)) {
+  if (mIsMainThread) {
     
-    return;
+    
+    
+    
+    nsresult rv = nsContentUtils::GetSecurityManager()->
+      CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
+
+    if (NS_FAILED(rv)) {
+      
+      return;
+    }
   }
 
   
@@ -204,12 +215,19 @@ CallbackObject::CallSetup::~CallSetup()
 
   
   mCxPusher.Pop();
+
+  
+  
+  if (mIsMainThread) {
+    nsContentUtils::LeaveMicroTask();
+  }
 }
 
 already_AddRefed<nsISupports>
 CallbackObjectHolderBase::ToXPCOMCallback(CallbackObject* aCallback,
                                           const nsIID& aIID) const
 {
+  MOZ_ASSERT(NS_IsMainThread());
   if (!aCallback) {
     return nullptr;
   }
