@@ -166,7 +166,8 @@ SideMenuWidget.prototype = {
 
 
   removeChild: function(aChild) {
-    if (aChild.classList.contains("side-menu-widget-item-contents")) {
+    if (aChild.classList.contains("side-menu-widget-item-contents") &&
+       !aChild.classList.contains("side-menu-widget-item")) {
       
       aChild.parentNode.remove();
     } else {

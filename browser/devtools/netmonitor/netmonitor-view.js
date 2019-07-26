@@ -2044,6 +2044,7 @@ NetworkDetailsView.prototype = {
 
 
 function $(aSelector, aTarget = document) aTarget.querySelector(aSelector);
+function $all(aSelector, aTarget = document) aTarget.querySelectorAll(aSelector);
 
 
 
