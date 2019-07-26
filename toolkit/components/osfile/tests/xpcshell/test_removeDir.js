@@ -36,7 +36,7 @@ add_task(function() {
   
   let exception = null;
   try {
-    yield OS.File.removeDir(dir);
+    yield OS.File.removeDir(dir, {ignoreAbsent: false});
   } catch (ex) {
     exception = ex;
   }
@@ -46,12 +46,13 @@ add_task(function() {
 
   
   yield OS.File.removeDir(dir, {ignoreAbsent: true});
+  yield OS.File.removeDir(dir);
 
   
   yield OS.File.writeAtomic(file, "content", { tmpPath: file + ".tmp" });
   exception = null;
   try {
-    yield OS.File.removeDir(file);
+    yield OS.File.removeDir(file, {ignoreAbsent: false});
   } catch (ex) {
     exception = ex;
   }
@@ -67,15 +68,14 @@ add_task(function() {
   
   yield OS.File.makeDir(dir);
   yield OS.File.writeAtomic(file1, "content", { tmpPath: file1 + ".tmp" });
-  
-  yield OS.File.removeDir(dir)
+  yield OS.File.removeDir(dir);
   do_check_false((yield OS.File.exists(dir)));
 
   
   yield OS.File.makeDir(dir);
   yield OS.File.writeAtomic(file1, "content", { tmpPath: file1 + ".tmp" });
   yield OS.File.writeAtomic(file2, "content", { tmpPath: file2 + ".tmp" });
-  yield OS.File.removeDir(dir)
+  yield OS.File.removeDir(dir);
   do_check_false((yield OS.File.exists(dir)));
 
   
