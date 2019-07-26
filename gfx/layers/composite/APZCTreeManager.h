@@ -19,6 +19,7 @@
 #include "nsISupportsImpl.h"            
 #include "mozilla/Vector.h"             
 #include "nsTArray.h"                   
+#include "mozilla/gfx/Logging.h"        
 
 class gfx3DMatrix;
 template <class E> class nsTArray;
@@ -340,6 +341,9 @@ private:
 
 
   Vector< nsRefPtr<AsyncPanZoomController> > mOverscrollHandoffChain;
+  
+
+  gfx::TreeLog mApzcTreeLog;
 
   static float sDPI;
 };
