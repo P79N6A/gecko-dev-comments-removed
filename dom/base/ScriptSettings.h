@@ -12,6 +12,7 @@
 #include "nsCxPusher.h"
 #include "MainThreadUtils.h"
 #include "nsIGlobalObject.h"
+#include "nsIPrincipal.h"
 
 #include "mozilla/Maybe.h"
 
@@ -37,6 +38,24 @@ nsIGlobalObject* BrokenGetEntryGlobal();
 
 
 nsIGlobalObject* GetIncumbentGlobal();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+nsIPrincipal* GetWebIDLCallerPrincipal();
 
 class ScriptSettingsStack;
 struct ScriptSettingsStackEntry {
@@ -79,11 +98,17 @@ public:
                   JSContext* aCx = nullptr);
   ~AutoEntryScript();
 
+  void SetWebIDLCallerPrincipal(nsIPrincipal *aPrincipal) {
+    mWebIDLCallerPrincipal = aPrincipal;
+  }
+
 private:
   dom::ScriptSettingsStack& mStack;
+  nsCOMPtr<nsIPrincipal> mWebIDLCallerPrincipal;
   mozilla::Maybe<AutoCxPusher> mCxPusher;
   mozilla::Maybe<JSAutoCompartment> mAc; 
                                          
+  friend nsIPrincipal* GetWebIDLCallerPrincipal();
 };
 
 
