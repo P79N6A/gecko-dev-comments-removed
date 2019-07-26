@@ -1989,12 +1989,15 @@ nsFlexContainerFrame::GenerateFlexLines(
 {
   MOZ_ASSERT(aLines.IsEmpty(), "Expecting outparam to start out empty");
 
+  const bool isSingleLine =
+    NS_STYLE_FLEX_WRAP_NOWRAP == aReflowState.mStylePosition->mFlexWrap;
+
   
   
   FlexLine* curLine = aLines.AppendElement();
 
   nscoord wrapThreshold;
-  if (NS_STYLE_FLEX_WRAP_NOWRAP == aReflowState.mStylePosition->mFlexWrap) {
+  if (isSingleLine) {
     
     wrapThreshold = NS_UNCONSTRAINEDSIZE;
 
@@ -2026,8 +2029,16 @@ nsFlexContainerFrame::GenerateFlexLines(
   }
 
   for (nsFrameList::Enumerator e(mFrames); !e.AtEnd(); e.Next()) {
+    nsIFrame* childFrame = e.get();
+
+    
+    if (!isSingleLine && !curLine->mItems.IsEmpty() &&
+        childFrame->StyleDisplay()->mBreakBefore) {
+      curLine = aLines.AppendElement();
+    }
+
     FlexItem* item = curLine->mItems.AppendElement(
-                       GenerateFlexItemForChild(aPresContext, e.get(),
+                       GenerateFlexItemForChild(aPresContext, childFrame,
                                                 aReflowState, aAxisTracker));
 
     nsresult rv = ResolveFlexItemMaxContentSizing(aPresContext, *item,
@@ -2064,6 +2075,12 @@ nsFlexContainerFrame::GenerateFlexLines(
 
     curLine->AddToMainSizeTotals(itemInnerHypotheticalMainSize,
                                  itemOuterHypotheticalMainSize);
+
+    
+    if (!isSingleLine && childFrame->GetNextSibling() &&
+        childFrame->StyleDisplay()->mBreakAfter) {
+      curLine = aLines.AppendElement();
+    }
   }
 
   return NS_OK;
