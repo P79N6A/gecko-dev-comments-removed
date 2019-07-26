@@ -114,6 +114,12 @@ RemoteFinderListener.prototype = {
     this._global.sendAsyncMessage("Finder:Result", data);
   },
 
+  
+  
+  shouldFocusContent: function () {
+    return true;
+  },
+
   receiveMessage: function (aMessage) {
     let data = aMessage.data;
 
