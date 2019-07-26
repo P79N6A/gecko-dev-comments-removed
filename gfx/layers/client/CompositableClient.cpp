@@ -166,6 +166,16 @@ TemporaryRef<BufferTextureClient>
 CompositableClient::CreateBufferTextureClient(gfx::SurfaceFormat aFormat,
                                               uint32_t aTextureFlags)
 {
+
+
+
+
+
+
+
+
+
+
   if (gfxPlatform::GetPlatform()->PreferMemoryOverShmem()) {
     RefPtr<BufferTextureClient> result = new MemoryTextureClient(this, aFormat, aTextureFlags);
     return result.forget();
