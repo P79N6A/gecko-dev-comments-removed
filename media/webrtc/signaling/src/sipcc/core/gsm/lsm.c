@@ -34,8 +34,6 @@
 #include "util_string.h"
 #include "platform_api.h"
 
-static const char* logTag = "lsm";
-
 #ifndef NO
 #define NO  (0)
 #endif
@@ -907,8 +905,7 @@ lsm_rx_start (lsm_lcb_t *lcb, const char *fname, fsmdef_media_t *media)
 
 
 
-        if (media->type != SDP_MEDIA_APPLICATION &&
-            !gsmsdp_is_crypto_ready(media, TRUE)) {
+        if (!gsmsdp_is_crypto_ready(media, TRUE)) {
             LSM_DEBUG(DEB_L_C_F_PREFIX"%s: Not ready to open receive port (%d)\n",
                       DEB_L_C_F_PREFIX_ARGS(LSM, dcb->line, dcb->call_id, fname1), fname, media->src_port);
             continue;
@@ -1053,13 +1050,6 @@ lsm_rx_start (lsm_lcb_t *lcb, const char *fname, fsmdef_media_t *media)
                                                                direction);
                 }
             }
-        }
-
-        if (media->type == SDP_MEDIA_APPLICATION) {
-            
-
-
-            lsm_initialize_datachannel(dcb, media);
         }
     }
 }
@@ -5322,24 +5312,29 @@ void lsm_add_remote_stream (line_t line, callid_t call_id, fsmdef_media_t *media
 
 
 
-void lsm_initialize_datachannel (fsmdef_dcb_t *dcb, fsmdef_media_t *media)
+
+void lsm_data_channel_negotiated (line_t line, callid_t call_id, fsmdef_media_t *media, int *pc_stream_id)
 {
-    if (!dcb) {
-        CSFLogError(logTag, "%s DCB is NULL", __FUNCTION__);
-        return;
+    static const char fname[] = "lsm_data_channel_negotiated";
+    fsmdef_dcb_t   *dcb;
+    lsm_lcb_t *lcb;
+
+    lcb = lsm_get_lcb_by_call_id(call_id);
+    if (lcb) {
+        dcb = lcb->dcb;
+        if (dcb == NULL) {
+            LSM_ERR_MSG(get_debug_string(DEBUG_INPUT_NULL), fname);
+            return;
+        }
+
+        
+
+
+
+
+        vcmSetDataChannelParameters(dcb->peerconnection, media->streams, media->sctp_port, media->protocol);
+
     }
-
-    if (!media) {
-        CSFLogError(logTag, "%s media is NULL", __FUNCTION__);
-        return;
-    }
-
-    
-
-
-    vcmInitializeDataChannel(dcb->peerconnection, media->datachannel_streams,
-        media->local_datachannel_port, media->remote_datachannel_port,
-        media->datachannel_protocol);
 }
 
 

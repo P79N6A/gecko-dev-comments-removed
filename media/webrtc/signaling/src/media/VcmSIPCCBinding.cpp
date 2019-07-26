@@ -1051,52 +1051,13 @@ short vcmGetDtlsIdentity(const char *peerconnection,
 
 
 
-
-static short vcmInitializeDataChannel_m(const char *peerconnection, cc_uint16_t streams,
-  int local_datachannel_port, int remote_datachannel_port, const char* protocol)
+short vcmSetDataChannelParameters(const char *peerconnection, cc_uint16_t streams, int sctp_port, const char* protocol)
 {
-  nsresult res;
-
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
-
-  sipcc::PeerConnectionWrapper pc(peerconnection);
-  ENSURE_PC(pc, VCM_ERROR);
-
-  res = pc.impl()->InitializeDataChannel(local_datachannel_port, remote_datachannel_port, streams);
-  if (NS_FAILED(res)) {
-    return VCM_ERROR;
-  }
 
   return 0;
 }
 
-
-
-
-
-
-
-
-
-
-
-short vcmInitializeDataChannel(const char *peerconnection, cc_uint16_t streams,
-  int local_datachannel_port, int remote_datachannel_port, const char* protocol)
-{
-  short ret;
-
-  VcmSIPCCBinding::getMainThread()->Dispatch(
-      WrapRunnableNMRet(&vcmInitializeDataChannel_m,
-                        peerconnection,
-                        streams,
-                        local_datachannel_port,
-                        remote_datachannel_port,
-                        protocol,
-                        &ret),
-      NS_DISPATCH_SYNC);
-
-  return ret;
-}
 
 
 

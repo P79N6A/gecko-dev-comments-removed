@@ -618,17 +618,6 @@ PeerConnectionImpl::ConnectDataConnection(uint16_t aLocalport,
                                           uint16_t aRemoteport,
                                           uint16_t aNumstreams)
 {
-  return NS_OK; 
-}
-
-
-
-
-nsresult
-PeerConnectionImpl::InitializeDataChannel(uint16_t aLocalport,
-                                          uint16_t aRemoteport,
-                                          uint16_t aNumstreams)
-{
   PC_AUTO_ENTER_API_CALL_NO_CHECK();
 
 #ifdef MOZILLA_INTERNAL_API
