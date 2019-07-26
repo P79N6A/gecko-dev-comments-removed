@@ -13,13 +13,9 @@ Cu.import("resource://gre/modules/PageThumbs.jsm");
 
 const kStartURI = "about:start";
 
-const kBrowserViewZoomLevelPrecision = 10000;
-
 
 const kTouchTimeout = 300;
 const kSetInactiveStateTimeout = 100;
-
-const kDefaultMetadata = { autoSize: false, allowZoom: true, autoScale: true };
 
 const kTabThumbnailDelayCapture = 500;
 
@@ -68,10 +64,7 @@ var Browser = {
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/SelectionHandler.js", true);
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/ContextMenuHandler.js", true);
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/FindHandler.js", true);
-      
-      
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/ConsoleAPIObserver.js", true);
-      
     } catch (e) {
       
       dump("###########" + e + "\n");
@@ -88,7 +81,6 @@ var Browser = {
     InputSourceHelper.init();
 
     TouchModule.init();
-    ScrollwheelModule.init(Elements.browsers);
     GestureModule.init();
     BrowserTouchHandler.init();
     PopupBlockerObserver.init();
@@ -156,17 +148,12 @@ var Browser = {
     }
 
     messageManager.addMessageListener("DOMLinkAdded", this);
-    messageManager.addMessageListener("MozScrolledAreaChanged", this);
-    messageManager.addMessageListener("Browser:ViewportMetadata", this);
     messageManager.addMessageListener("Browser:FormSubmit", this);
-    messageManager.addMessageListener("Browser:ZoomToPoint:Return", this);
     messageManager.addMessageListener("Browser:CanUnload:Return", this);
     messageManager.addMessageListener("scroll", this);
     messageManager.addMessageListener("Browser:CertException", this);
     messageManager.addMessageListener("Browser:BlockedSite", this);
-    messageManager.addMessageListener("Browser:ErrorPage", this);
     messageManager.addMessageListener("Browser:TapOnSelection", this);
-    messageManager.addMessageListener("Browser:PluginClickToPlayClicked", this);
 
     Task.spawn(function() {
       
@@ -229,15 +216,10 @@ var Browser = {
     ContentAreaObserver.shutdown();
     Appbar.shutdown();
 
-    messageManager.removeMessageListener("MozScrolledAreaChanged", this);
-    messageManager.removeMessageListener("Browser:ViewportMetadata", this);
     messageManager.removeMessageListener("Browser:FormSubmit", this);
-    messageManager.removeMessageListener("Browser:ZoomToPoint:Return", this);
     messageManager.removeMessageListener("scroll", this);
     messageManager.removeMessageListener("Browser:CertException", this);
     messageManager.removeMessageListener("Browser:BlockedSite", this);
-    messageManager.removeMessageListener("Browser:ErrorPage", this);
-    messageManager.removeMessageListener("Browser:PluginClickToPlayClicked", this);
     messageManager.removeMessageListener("Browser:TapOnSelection", this);
 
     Services.obs.removeObserver(SessionHistoryObserver, "browser:purge-session-history");
@@ -772,42 +754,9 @@ var Browser = {
   },
 
   
-  zoom: function zoom(aDirection) {
-    let tab = this.selectedTab;
-    if (!tab.allowZoom)
-      return;
-
-    let browser = tab.browser;
-    let oldZoomLevel = browser.scale;
-    let zoomLevel = oldZoomLevel;
-
-    let zoomValues = ZoomManager.zoomValues;
-    let i = zoomValues.indexOf(ZoomManager.snap(zoomLevel)) + (aDirection < 0 ? 1 : -1);
-    if (i >= 0 && i < zoomValues.length)
-      zoomLevel = zoomValues[i];
-
-    zoomLevel = tab.clampZoomLevel(zoomLevel);
-
-    let browserRect = browser.getBoundingClientRect();
-    let center = browser.ptClientToBrowser(browserRect.width / 2,
-                                           browserRect.height / 2);
-    let rect = this._getZoomRectForPoint(center.xPos, center.yPos, zoomLevel);
-    AnimatedZoom.animateTo(rect);
-  },
-
-  
   _getZoomLevelForRect: function _getZoomLevelForRect(rect) {
     const margin = 15;
     return this.selectedTab.clampZoomLevel(ContentAreaObserver.width / (rect.width + margin * 2));
-  },
-
-  
-
-
-
-  _getZoomRectForRect: function _getZoomRectForRect(rect, y) {
-    let zoomLevel = this._getZoomLevelForRect(rect);
-    return this._getZoomRectForPoint(rect.center().x, y, zoomLevel);
   },
 
   
@@ -829,52 +778,6 @@ var Browser = {
     
     return result.translateInside(new Rect(0, 0, browser.contentDocumentWidth * oldScale,
                                                  browser.contentDocumentHeight * oldScale));
-  },
-
-  zoomToPoint: function zoomToPoint(cX, cY, aRect) {
-    let tab = this.selectedTab;
-    if (!tab.allowZoom)
-      return null;
-
-    let zoomRect = null;
-    if (aRect)
-      zoomRect = this._getZoomRectForRect(aRect, cY);
-
-    if (!zoomRect && tab.isDefaultZoomLevel()) {
-      let scale = tab.clampZoomLevel(tab.browser.scale * 2);
-      zoomRect = this._getZoomRectForPoint(cX, cY, scale);
-    }
-
-    if (zoomRect)
-      AnimatedZoom.animateTo(zoomRect);
-
-    return zoomRect;
-  },
-
-  zoomFromPoint: function zoomFromPoint(cX, cY) {
-    let tab = this.selectedTab;
-    if (tab.allowZoom && !tab.isDefaultZoomLevel()) {
-      let zoomLevel = tab.getDefaultZoomLevel();
-      let zoomRect = this._getZoomRectForPoint(cX, cY, zoomLevel);
-      AnimatedZoom.animateTo(zoomRect);
-    }
-  },
-
-  
-  
-  getScaleRatio: function getScaleRatio() {
-    let prefValue = Services.prefs.getIntPref("browser.viewport.scaleRatio");
-    if (prefValue > 0)
-      return prefValue / 100;
-
-    let dpi = Util.displayDPI;
-    if (dpi < 200) 
-      return 1;
-    else if (dpi < 300) 
-      return 1.5;
-
-    
-    return Math.floor(dpi / 150);
   },
 
   
@@ -930,73 +833,23 @@ var Browser = {
         }
         break;
       }
-      case "MozScrolledAreaChanged": {
-        let tab = this.getTabForBrowser(browser);
-        if (tab)
-          tab.scrolledAreaChanged();
-        break;
-      }
-      case "Browser:ViewportMetadata": {
-        let tab = this.getTabForBrowser(browser);
-        
-        
-        if (tab)
-          tab.updateViewportMetadata(json);
-        break;
-      }
       case "Browser:FormSubmit":
         browser.lastLocation = null;
         break;
 
       case "Browser:CanUnload:Return": {
-	if (json.permit) {
-	  let tab = this.getTabForBrowser(browser);
-	  BrowserUI.animateClosingTab(tab);
-	}
-	break;
-      }
-      case "Browser:ZoomToPoint:Return":
-        if (json.zoomTo) {
-          let rect = Rect.fromRect(json.zoomTo);
-          this.zoomToPoint(json.x, json.y, rect);
-        } else {
-          this.zoomFromPoint(json.x, json.y);
+        if (json.permit) {
+          let tab = this.getTabForBrowser(browser);
+          BrowserUI.animateClosingTab(tab);
         }
         break;
+      }
       case "Browser:CertException":
         this._handleCertException(aMessage);
         break;
       case "Browser:BlockedSite":
         this._handleBlockedSite(aMessage);
         break;
-      case "Browser:ErrorPage":
-        break;
-      case "Browser:PluginClickToPlayClicked": {
-        
-        let parent = browser.parentNode;
-        let data = browser.__SS_data;
-        if (data.entries.length == 0)
-          return;
-
-        
-        parent.removeChild(browser);
-
-        
-        browser.setAttribute("remote", "false");
-        parent.appendChild(browser);
-
-        
-        browser.__SS_data = data;
-        let json = {
-          uri: data.entries[data.index - 1].url,
-          flags: null,
-          entries: data.entries,
-          index: data.index
-        };
-        browser.messageManager.sendAsyncMessage("WebNavigation:LoadURI", json);
-        break;
-      }
-
       case "Browser:TapOnSelection":
         if (!InputSourceHelper.isPrecise) {
           if (SelectionHelperUI.isActive) {
@@ -1235,10 +1088,6 @@ nsBrowserAccess.prototype = {
     return browser ? browser.QueryInterface(Ci.nsIFrameLoaderOwner) : null;
   },
 
-  zoom: function browser_zoom(aAmount) {
-    Browser.zoom(aAmount);
-  },
-
   isTabContentWindow: function(aWindow) {
     return Browser.browsers.some(function (browser) browser.contentWindow == aWindow);
   },
@@ -1394,7 +1243,6 @@ function Tab(aURI, aParams, aOwner) {
   this._notification = null;
   this._loading = false;
   this._chromeTab = null;
-  this._metadata = null;
   this._eventDeferred = null;
   this._updateThumbnailTimeout = null;
 
@@ -1425,94 +1273,8 @@ Tab.prototype = {
     return this._chromeTab;
   },
 
-  get metadata() {
-    return this._metadata || kDefaultMetadata;
-  },
-
   get pageShowPromise() {
     return this._eventDeferred ? this._eventDeferred.promise : null;
-  },
-
-  
-  updateViewportMetadata: function updateViewportMetadata(aMetadata) {
-    if (aMetadata && aMetadata.autoScale) {
-      let scaleRatio = aMetadata.scaleRatio = Browser.getScaleRatio();
-
-      if ("defaultZoom" in aMetadata && aMetadata.defaultZoom > 0)
-        aMetadata.defaultZoom *= scaleRatio;
-      if ("minZoom" in aMetadata && aMetadata.minZoom > 0)
-        aMetadata.minZoom *= scaleRatio;
-      if ("maxZoom" in aMetadata && aMetadata.maxZoom > 0)
-        aMetadata.maxZoom *= scaleRatio;
-    }
-    this._metadata = aMetadata;
-    this.updateViewportSize();
-  },
-
-  
-
-
-  updateViewportSize: function updateViewportSize(width, height) {
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  },
-
-  restoreViewportPosition: function restoreViewportPosition(aOldWidth, aNewWidth) {
-    let browser = this._browser;
-
-    
-    let oldScale = browser.scale;
-    let newScale = this.clampZoomLevel(oldScale * aNewWidth / aOldWidth);
-    let scaleRatio = newScale / oldScale;
-
-    let view = browser.getRootView();
-    let pos = view.getPosition();
-    browser.fuzzyZoom(newScale, pos.x * scaleRatio, pos.y * scaleRatio);
-    browser.finishFuzzyZoom();
   },
 
   startLoading: function startLoading() {
@@ -1698,107 +1460,8 @@ Tab.prototype = {
 
 
 
-
-
-  clampZoomLevel: function clampZoomLevel(aScale, aPageZoomLevel) {
-    let md = this.metadata;
-    if (!this.allowZoom) {
-      return (md && md.defaultZoom)
-        ? md.defaultZoom
-        : (aPageZoomLevel || this.getPageZoomLevel());
-    }
-
-    let browser = this._browser;
-    let bounded = Util.clamp(aScale, ZoomManager.MIN, ZoomManager.MAX);
-
-    if (md && md.minZoom)
-      bounded = Math.max(bounded, md.minZoom);
-    if (md && md.maxZoom)
-      bounded = Math.min(bounded, md.maxZoom);
-
-    bounded = Math.max(bounded, this.getPageZoomLevel());
-
-    let rounded = Math.round(bounded * kBrowserViewZoomLevelPrecision) / kBrowserViewZoomLevelPrecision;
-    return rounded || 1.0;
-  },
-
-  
-  resetZoomLevel: function resetZoomLevel() {
-    this._defaultZoomLevel = this._browser.scale;
-  },
-
-  scrolledAreaChanged: function scrolledAreaChanged(firstPaint) {
-    if (!this._browser)
-      return;
-
-    if (firstPaint) {
-      
-      this.updateViewportSize();
-    }
-
-    this.updateDefaultZoomLevel();
-  },
-
-  
-
-
-
-  updateDefaultZoomLevel: function updateDefaultZoomLevel() {
-    let browser = this._browser;
-    if (!browser || !this._firstPaint)
-      return;
-
-    let isDefault = this.isDefaultZoomLevel();
-    this._defaultZoomLevel = this.getDefaultZoomLevel();
-    if (isDefault) {
-      if (browser.scale != this._defaultZoomLevel) {
-        browser.scale = this._defaultZoomLevel;
-      } else {
-        
-        
-        
-        
-        
-        
-        browser.getRootView()._updateCacheViewport();
-      }
-    } else {
-      
-      
-      browser.getRootView()._updateCacheViewport();
-    }
-  },
-
-  isDefaultZoomLevel: function isDefaultZoomLevel() {
-    return this._browser.scale == this._defaultZoomLevel;
-  },
-
-  getDefaultZoomLevel: function getDefaultZoomLevel() {
-    let md = this.metadata;
-    if (md && md.defaultZoom)
-      return this.clampZoomLevel(md.defaultZoom);
-
-    let browserWidth = this._browser.getBoundingClientRect().width;
-    let defaultZoom = browserWidth / this._browser.contentWindowWidth;
-    return this.clampZoomLevel(defaultZoom);
-  },
-
-  
-
-
-
-
-  getPageZoomLevel: function getPageZoomLevel(aScreenWidth) {
-    let browserW = this._browser.contentDocumentWidth;
-    if (browserW == 0)
-      return 1.0;
-
-    let screenW = aScreenWidth || this._browser.getBoundingClientRect().width;
-    return screenW / browserW;
-  },
-
-  get allowZoom() {
-    return this.metadata.allowZoom && !Util.isURLEmpty(this.browser.currentURI.spec);
+  clampZoomLevel: function clampZoomLevel(aScale) {
+    return Util.clamp(aScale, ZoomManager.MIN, ZoomManager.MAX);
   },
 
   updateThumbnail: function updateThumbnail() {
