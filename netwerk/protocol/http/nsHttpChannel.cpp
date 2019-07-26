@@ -4405,20 +4405,6 @@ nsHttpChannel::BeginConnect()
     nsresult rv;
 
     
-    CallOnModifyRequestObservers();
-
-    
-    
-    if (mAPIRedirectToURI) {
-        return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
-    }
-
-    
-    
-    if (!mTimingEnabled)
-        mAsyncOpenTime = TimeStamp();
-
-    
     nsAutoCString host;
     int32_t port = -1;
     bool usingSSL = false;
@@ -4455,6 +4441,20 @@ nsHttpChannel::BeginConnect()
 
     
     mAuthProvider->AddAuthorizationHeaders();
+
+    
+    CallOnModifyRequestObservers();
+
+    
+    
+    if (mAPIRedirectToURI) {
+        return AsyncCall(&nsHttpChannel::HandleAsyncAPIRedirect);
+    }
+
+    
+    
+    if (!mTimingEnabled)
+        mAsyncOpenTime = TimeStamp();
 
     
     if (!mConnectionInfo->UsingConnect() && mConnectionInfo->UsingHttpProxy()) {
