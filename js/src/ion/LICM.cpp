@@ -200,6 +200,12 @@ Loop::isInLoop(MDefinition *ins)
 }
 
 bool
+Loop::isBeforeLoop(MDefinition *ins)
+{
+    return ins->block()->id() < header_->id();
+}
+
+bool
 Loop::isLoopInvariant(MInstruction *ins)
 {
     if (!isHoistable(ins)) {
@@ -209,9 +215,12 @@ Loop::isLoopInvariant(MInstruction *ins)
     }
 
     
-    if (ins->dependency() && isInLoop(ins->dependency())) {
+    
+    
+    
+    if (ins->dependency() && !isBeforeLoop(ins->dependency())) {
         if (IonSpewEnabled(IonSpew_LICM)) {
-            fprintf(IonSpewFile, "depends on store inside loop: ");
+            fprintf(IonSpewFile, "depends on store inside or after loop: ");
             ins->dependency()->printName(IonSpewFile);
             fprintf(IonSpewFile, "\n");
         }

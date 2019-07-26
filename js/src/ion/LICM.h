@@ -74,6 +74,7 @@ class Loop
 
     
     bool isInLoop(MDefinition *ins);
+    bool isBeforeLoop(MDefinition *ins);
     bool isLoopInvariant(MInstruction *ins);
     bool isLoopInvariant(MDefinition *ins);
 
