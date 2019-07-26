@@ -1,0 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+  <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+  <title>Test for Bug 843434</title>
+  <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
+  
+  <link rel=stylesheet href="data:text/css;charset=ISO-2022-JP,%cc">
+</head>
+<body onload="test()">
+<pre id="test">
+<script class="testbody" type="text/javascript">
+function test()
+{
+  ok(true, "Test for no prior assertion.");
+  SimpleTest.finish();
+}
+SimpleTest.waitForExplicitFinish();
+</script>
+</pre>
+</body>
+</html>
+
