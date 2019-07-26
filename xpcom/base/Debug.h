@@ -3,17 +3,39 @@
 
 
 
-#ifndef mozilla_Debug_h__
-#define mozilla_Debug_h__
+#ifndef mozilla_Debug_h
+#define mozilla_Debug_h
+
+#include "nsString.h"
+#include <stdio.h>
 
 namespace mozilla {
 
-#ifdef XP_WIN
+typedef uint32_t LogOptions;
 
 
-void PrintToDebugger(const char* aStr);
+const LogOptions kPrintToStream   = 1 << 0;
 
-#endif
+
+
+const LogOptions kPrintToDebugger = 1 << 1;
+
+
+
+const LogOptions kPrintInfoLog    = 1 << 2;
+
+
+
+const LogOptions kPrintErrorLog   = 1 << 3;
+
+
+const LogOptions kPrintNewLine    = 1 << 4;
+
+
+void PrintToDebugger(const nsAString& aStr, FILE* aStream,
+                     LogOptions aOptions = kPrintToStream
+                                         | kPrintToDebugger
+                                         | kPrintInfoLog);
 
 } 
 
