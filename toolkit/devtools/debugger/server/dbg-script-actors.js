@@ -1384,10 +1384,10 @@ PauseScopedActor.prototype = {
 
 
 
-function SourceActor(aUrl, aThreadActor, aSourceMap=null) {
+function SourceActor(aUrl, aThreadActor, aSourceContent=null) {
   this._threadActor = aThreadActor;
   this._url = aUrl;
-  this._sourceMap = aSourceMap;
+  this._sourceContent = aSourceContent;
 }
 
 SourceActor.prototype = {
@@ -1415,33 +1415,25 @@ SourceActor.prototype = {
 
 
   onSource: function SA_onSource(aRequest) {
-    let sourceContent = null;
-    if (this._sourceMap) {
-      sourceContent = this._sourceMap.sourceContentFor(this._url);
-    }
-
-    if (sourceContent) {
+    if (this._sourceContent) {
       return {
         from: this.actorID,
         source: this.threadActor.createValueGrip(
-          sourceContent, this.threadActor.threadLifetimePool)
+          this._sourceContent, this.threadActor.threadLifetimePool)
       };
     }
 
-    
-    
-    
-    return fetch(this._url, { loadFromCache: !this._sourceMap })
-      .then((aSource) => {
+    return fetch(this._url)
+      .then(function(aSource) {
         return this.threadActor.createValueGrip(
           aSource, this.threadActor.threadLifetimePool);
-      })
-      .then((aSourceGrip) => {
+      }.bind(this))
+      .then(function (aSourceGrip) {
         return {
           from: this.actorID,
           source: aSourceGrip
         };
-      }, (aError) => {
+      }.bind(this), function (aError) {
         let msg = "Got an exception during SA_onSource: " + aError +
           "\n" + aError.stack;
         Cu.reportError(msg);
@@ -1451,7 +1443,7 @@ SourceActor.prototype = {
           "error": "loadSourceError",
           "message": "Could not load the source for " + this._url + "."
         };
-      });
+      }.bind(this));
   }
 };
 
@@ -2456,7 +2448,7 @@ ThreadSources.prototype = {
 
 
 
-  source: function TS_source(aURL, aSourceMap=null) {
+  source: function TS_source(aURL, aSourceContent=null) {
     if (!this._allow(aURL)) {
       return null;
     }
@@ -2465,7 +2457,7 @@ ThreadSources.prototype = {
       return this._sourceActors[aURL];
     }
 
-    let actor = new SourceActor(aURL, this._thread, aSourceMap);
+    let actor = new SourceActor(aURL, this._thread, aSourceContent);
     this._thread.threadLifetimePool.addActor(actor);
     this._sourceActors[aURL] = actor;
     try {
@@ -2487,7 +2479,8 @@ ThreadSources.prototype = {
     return this.sourceMap(aScript)
       .then((aSourceMap) => {
         return [
-          this.source(s, aSourceMap) for (s of aSourceMap.sources)
+          this.source(s, aSourceMap.sourceContentFor(s))
+          for (s of aSourceMap.sources)
         ];
       }, (e) => {
         reportError(e);
@@ -2661,7 +2654,7 @@ function isNotNull(aThing) {
 
 
 
-function fetch(aURL, aOptions={ loadFromCache: true }) {
+function fetch(aURL) {
   let deferred = defer();
   let scheme;
   let url = aURL.split(" -> ").pop();
@@ -2728,9 +2721,7 @@ function fetch(aURL, aOptions={ loadFromCache: true }) {
         }
       };
 
-      channel.loadFlags = aOptions.loadFromCache
-        ? channel.LOAD_FROM_CACHE
-        : channel.LOAD_BYPASS_CACHE;
+      channel.loadFlags = channel.LOAD_FROM_CACHE;
       channel.asyncOpen(streamListener, null);
       break;
   }
