@@ -169,6 +169,33 @@ struct IsEnum
   : detail::IsEnumHelper<typename RemoveCV<T>::Type>
 {};
 
+namespace detail {
+
+
+
+
+
+template<typename T>
+struct IsClassHelper
+  : IntegralConstant<bool, __is_class(T)>
+{};
+
+} 
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsClass
+  : detail::IsClassHelper<typename RemoveCV<T>::Type>
+{};
+
 
 
 
@@ -242,6 +269,64 @@ template<> struct IsPod<wchar_t>            : TrueType {};
 template<> struct IsPod<char16_t>           : TrueType {};
 #endif
 template<typename T> struct IsPod<T*>       : TrueType {};
+
+namespace detail {
+
+
+
+
+
+template<typename T>
+struct IsEmptyHelper
+  : IntegralConstant<bool, IsClass<T>::value && __is_empty(T)>
+{};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsEmpty : detail::IsEmptyHelper<typename RemoveCV<T>::Type>
+{};
+
 
 namespace detail {
 
