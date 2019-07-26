@@ -1353,7 +1353,7 @@ function DoDrawWindow(ctx, x, y, w, h)
         } else {
             
             
-            gDumpLog("REFTEST INFO | WARNING: USE_WIDGET_LAYERS disabled\n");
+            gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | WARNING: USE_WIDGET_LAYERS disabled\n");
         }
         gDumpLog("REFTEST INFO | drawWindow flags = " + flagsStr +
                  "; window size = " + gContainingWindow.innerWidth + "," + gContainingWindow.innerHeight +
