@@ -989,7 +989,7 @@ var BrowserApp = {
     });
   },
 
-  scrollToFocusedInput: function(aBrowser, aAllowZoom = true) {
+  getFocusedInput: function(aBrowser, aOnlyInputElements = false) {
     let doc = aBrowser.contentDocument;
     if (!doc)
       return;
@@ -1000,9 +1000,13 @@ var BrowserApp = {
       focused = doc.activeElement;
     }
 
-    if ((focused instanceof HTMLInputElement && focused.mozIsTextField(false))
-        || (focused instanceof HTMLTextAreaElement)
-        || (focused.isContentEditable)) {
+    if (focused instanceof HTMLInputElement && focused.mozIsTextField(false))
+      return focused;
+
+    if (aOnlyInputElements)
+      return null;
+
+    if  (focused instanceof HTMLTextAreaElement || focused.isContentEditable) {
 
       if (focused instanceof HTMLBodyElement) {
         
@@ -1010,7 +1014,14 @@ var BrowserApp = {
         
         focused = focused.ownerDocument.defaultView.frameElement;
       }
+      return focused;
+    }
+    return null;
+  },
 
+  scrollToFocusedInput: function(aBrowser, aAllowZoom = true) {
+    let focused = this.getFocusedInput(aBrowser);
+    if (focused) {
       
       BrowserEventHandler._zoomToElement(focused, -1, false, aAllowZoom);
     }
@@ -4820,6 +4831,7 @@ var FormAssistant = {
     Services.obs.addObserver(this, "FormAssist:Blocklisted", false);
     Services.obs.addObserver(this, "FormAssist:Hidden", false);
     Services.obs.addObserver(this, "invalidformsubmit", false);
+    Services.obs.addObserver(this, "PanZoom:StateChange", false);
 
     
     BrowserApp.deck.addEventListener("focus", this, true);
@@ -4833,6 +4845,7 @@ var FormAssistant = {
     Services.obs.removeObserver(this, "FormAssist:Blocklisted");
     Services.obs.removeObserver(this, "FormAssist:Hidden");
     Services.obs.removeObserver(this, "invalidformsubmit");
+    Services.obs.removeObserver(this, "PanZoom:StateChange");
 
     BrowserApp.deck.removeEventListener("focus", this);
     BrowserApp.deck.removeEventListener("click", this);
@@ -4842,6 +4855,24 @@ var FormAssistant = {
 
   observe: function(aSubject, aTopic, aData) {
     switch (aTopic) {
+      case "PanZoom:StateChange":
+        
+        if (aData == "TOUCHING" || aData == "WAITING_LISTENERS")
+          break;
+        if (aData == "NOTHING") {
+          
+          let focused = BrowserApp.getFocusedInput(BrowserApp.selectedBrowser, true);
+          if (!focused)
+            break;
+
+          if (this._showValidationMessage(focused))
+            break;
+          this._showAutoCompleteSuggestions(focused);
+        } else {
+          
+          this._hideFormAssistPopup();
+        }
+        break;
       case "FormAssist:AutoComplete":
         if (!this._currentInputElement)
           break;
@@ -4906,9 +4937,9 @@ var FormAssistant = {
         
         if (this._showValidationMessage(currentElement))
           break;
-        this._showAutoCompleteSuggestions(currentElement);
+        if (!this._showAutoCompleteSuggestions(currentElement))
+          this._hideFormAssistPopup();
         break;
-
       case "input":
         currentElement = aEvent.target;
 

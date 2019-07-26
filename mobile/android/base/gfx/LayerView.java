@@ -133,10 +133,6 @@ public class LayerView extends FrameLayout {
         if (event.getActionMasked() == MotionEvent.ACTION_DOWN)
             requestFocus();
 
-        
-        if (GeckoApp.mAppContext != null)
-            GeckoApp.mAppContext.hideFormAssistPopup();
-
         return mTouchEventHandler == null ? false : mTouchEventHandler.handleEvent(event);
     }
 

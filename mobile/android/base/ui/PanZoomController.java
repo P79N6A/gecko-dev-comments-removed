@@ -140,7 +140,10 @@ public class PanZoomController
     }
 
     private void setState(PanZoomState state) {
-        mState = state;
+        if (state != mState) {
+            GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("PanZoom:StateChange", state.toString()));
+            mState = state;
+        }
     }
 
     private ImmutableViewportMetrics getMetrics() {
@@ -515,7 +518,7 @@ public class PanZoomController
     }
 
     
-    private void bounce(ImmutableViewportMetrics metrics) {
+    private void bounce(ImmutableViewportMetrics metrics, PanZoomState state) {
         stopAnimationTimer();
 
         ImmutableViewportMetrics bounceStartMetrics = getMetrics();
@@ -523,6 +526,8 @@ public class PanZoomController
             setState(PanZoomState.NOTHING);
             return;
         }
+
+        setState(state);
 
         
         
@@ -534,8 +539,7 @@ public class PanZoomController
 
     
     private void bounce() {
-        setState(PanZoomState.BOUNCE);
-        bounce(getValidViewportMetrics());
+        bounce(getValidViewportMetrics(), PanZoomState.BOUNCE);
     }
 
     
@@ -1024,7 +1028,6 @@ public class PanZoomController
 
 
     private boolean animatedZoomTo(RectF zoomToRect) {
-        setState(PanZoomState.ANIMATED_ZOOM);
         final float startZoom = getMetrics().zoomFactor;
 
         RectF viewport = getMetrics().getViewport();
@@ -1060,7 +1063,7 @@ public class PanZoomController
         
         finalMetrics = getValidViewportMetrics(finalMetrics);
 
-        bounce(finalMetrics);
+        bounce(finalMetrics, PanZoomState.ANIMATED_ZOOM);
         return true;
     }
 
