@@ -60,6 +60,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
 
     
     private final ViewTransform mCurrentViewTransform;
+    private final RectF mCurrentViewTransformMargins;
 
     
     private final ProgressiveUpdateData mProgressiveUpdateData;
@@ -102,6 +103,7 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mRecordDrawTimes = true;
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
+        mCurrentViewTransformMargins = new RectF();
         mProgressiveUpdateData = new ProgressiveUpdateData();
         mProgressiveUpdateDisplayPort = new DisplayPortMetrics();
         mLastProgressiveUpdateWasLowPrecision = false;
@@ -257,22 +259,68 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         });
     }
 
+    private boolean adjustFixedLayerMarginsForOverscroll(ImmutableViewportMetrics metrics, RectF adjustedMargins) {
+        
+        
+        
+        
+        
+        
+        
+        boolean changed = false;
+        adjustedMargins.left = metrics.fixedLayerMarginLeft;
+        adjustedMargins.top = metrics.fixedLayerMarginTop;
+        adjustedMargins.right = metrics.fixedLayerMarginRight;
+        adjustedMargins.bottom = metrics.fixedLayerMarginBottom;
+
+        if (metrics.getPageWidth() > metrics.getWidthWithoutMargins()) {
+            
+            if (metrics.viewportRectLeft < metrics.pageRectLeft && metrics.fixedLayerMarginLeft > 0) {
+                adjustedMargins.left = Math.max(0, metrics.fixedLayerMarginLeft
+                                                   - (metrics.pageRectLeft - metrics.viewportRectLeft));
+                adjustedMargins.right += metrics.fixedLayerMarginLeft - adjustedMargins.left;
+                changed = true;
+            }
+
+            
+            if (metrics.viewportRectRight < metrics.pageRectRight && metrics.fixedLayerMarginRight > 0) {
+                adjustedMargins.right = Math.max(0, metrics.fixedLayerMarginRight
+                                                   - (metrics.pageRectRight - metrics.viewportRectRight));
+                adjustedMargins.left += metrics.fixedLayerMarginRight - adjustedMargins.right;
+                changed = true;
+            }
+        }
+
+        if (metrics.getPageHeight() > metrics.getHeightWithoutMargins()) {
+            
+            if (metrics.viewportRectTop < metrics.pageRectTop && metrics.fixedLayerMarginTop > 0) {
+                adjustedMargins.top = Math.max(0, metrics.fixedLayerMarginTop
+                                                   - (metrics.pageRectTop - metrics.viewportRectTop));
+                adjustedMargins.bottom += metrics.fixedLayerMarginTop - adjustedMargins.top;
+                changed = true;
+            }
+
+            
+            if (metrics.viewportRectBottom < metrics.pageRectBottom && metrics.fixedLayerMarginBottom > 0) {
+                adjustedMargins.bottom = Math.max(0, metrics.fixedLayerMarginBottom
+                                                   - (metrics.pageRectBottom - metrics.viewportRectBottom));
+                adjustedMargins.top += metrics.fixedLayerMarginBottom - adjustedMargins.bottom;
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     private void adjustViewport(DisplayPortMetrics displayPort) {
         ImmutableViewportMetrics metrics = getViewportMetrics();
         ImmutableViewportMetrics clampedMetrics = metrics.clamp();
 
-        
-        
-        
-        if ((metrics.fixedLayerMarginLeft > 0 && metrics.viewportRectLeft < metrics.pageRectLeft) ||
-            (metrics.fixedLayerMarginTop > 0 && metrics.viewportRectTop < metrics.pageRectTop) ||
-            (metrics.fixedLayerMarginRight > 0 && metrics.viewportRectRight > metrics.pageRectRight) ||
-            (metrics.fixedLayerMarginBottom > 0 && metrics.viewportRectBottom > metrics.pageRectBottom)) {
+        RectF fixedLayerMargins = new RectF();
+        if (adjustFixedLayerMarginsForOverscroll(metrics, fixedLayerMargins)) {
             clampedMetrics = clampedMetrics.setFixedLayerMargins(
-              Math.max(0, metrics.fixedLayerMarginLeft + Math.min(0, metrics.viewportRectLeft - metrics.pageRectLeft)),
-              Math.max(0, metrics.fixedLayerMarginTop + Math.min(0, metrics.viewportRectTop - metrics.pageRectTop)),
-              Math.max(0, metrics.fixedLayerMarginRight + Math.min(0, (metrics.pageRectRight - metrics.viewportRectRight))),
-              Math.max(0, metrics.fixedLayerMarginBottom + Math.min(0, (metrics.pageRectBottom - metrics.viewportRectBottom))));
+                fixedLayerMargins.left, fixedLayerMargins.top,
+                fixedLayerMargins.right, fixedLayerMargins.bottom);
         }
 
         if (displayPort == null) {
@@ -630,18 +678,11 @@ public class GeckoLayerClient implements LayerView.Listener, PanZoomTarget
         mCurrentViewTransform.scale = mFrameMetrics.zoomFactor;
 
         
-        mCurrentViewTransform.fixedLayerMarginLeft =
-            Math.max(0, mFrameMetrics.fixedLayerMarginLeft +
-                     Math.min(0, mFrameMetrics.viewportRectLeft - mFrameMetrics.pageRectLeft));
-        mCurrentViewTransform.fixedLayerMarginTop =
-            Math.max(0, mFrameMetrics.fixedLayerMarginTop +
-                     Math.min(0, mFrameMetrics.viewportRectTop - mFrameMetrics.pageRectTop));
-        mCurrentViewTransform.fixedLayerMarginRight =
-            Math.max(0, mFrameMetrics.fixedLayerMarginRight +
-                     Math.min(0, (mFrameMetrics.pageRectRight - mFrameMetrics.viewportRectRight)));
-        mCurrentViewTransform.fixedLayerMarginBottom =
-            Math.max(0, mFrameMetrics.fixedLayerMarginBottom +
-                     Math.min(0, (mFrameMetrics.pageRectBottom - mFrameMetrics.viewportRectBottom)));
+        adjustFixedLayerMarginsForOverscroll(mFrameMetrics, mCurrentViewTransformMargins);
+        mCurrentViewTransform.fixedLayerMarginLeft = mCurrentViewTransformMargins.left;
+        mCurrentViewTransform.fixedLayerMarginTop = mCurrentViewTransformMargins.top;
+        mCurrentViewTransform.fixedLayerMarginRight = mCurrentViewTransformMargins.right;
+        mCurrentViewTransform.fixedLayerMarginBottom = mCurrentViewTransformMargins.bottom;
 
         mRootLayer.setPositionAndResolution(x, y, x + width, y + height, resolution);
 
