@@ -628,6 +628,14 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
 
     private void setSuggestionsEnabled(final boolean enabled) {
         
+        
+        
+        
+        if (mSuggestionsOptInPrompt == null) {
+            return;
+        }
+
+        
         primeSuggestions();
 
         
