@@ -59,6 +59,9 @@ public class Favicons {
     
     public static int sDefaultFaviconSize;
 
+    
+    public static int sLargestFaviconSize;
+
     private static final Map<Integer, LoadFaviconTask> sLoadTasks = Collections.synchronizedMap(new HashMap<Integer, LoadFaviconTask>());
 
     
@@ -290,8 +293,20 @@ public class Favicons {
         sFaviconsCache.putSingleFavicon(pageUrl, image);
     }
 
+    
+
+
+
+
+
+
+
     public static void putFaviconsInMemCache(String pageUrl, Iterator<Bitmap> images, boolean permanently) {
         sFaviconsCache.putFavicons(pageUrl, images, permanently);
+    }
+
+    public static void putFaviconsInMemCache(String pageUrl, Iterator<Bitmap> images) {
+        putFaviconsInMemCache(pageUrl, images, false);
     }
 
     public static void clearMemCache() {
@@ -366,7 +381,11 @@ public class Favicons {
         }
 
         sDefaultFaviconSize = res.getDimensionPixelSize(R.dimen.favicon_bg);
-        sFaviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, res.getDimensionPixelSize(R.dimen.favicon_largest_interesting_size));
+
+        
+        
+        sLargestFaviconSize = context.getResources().getDimensionPixelSize(R.dimen.favicon_largest_interesting_size);
+        sFaviconsCache = new FaviconCache(FAVICON_CACHE_SIZE_BYTES, sLargestFaviconSize);
 
         
         for (String url : AboutPages.getDefaultIconPages()) {

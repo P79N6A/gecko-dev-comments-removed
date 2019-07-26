@@ -111,7 +111,10 @@ public class FaviconsForURL {
             if (element.mIsPrimary) {
                 if (element.mInvalidated) {
                     
-                    break;
+                    
+                    
+                    
+                    return null;
                 }
                 return element;
             }
