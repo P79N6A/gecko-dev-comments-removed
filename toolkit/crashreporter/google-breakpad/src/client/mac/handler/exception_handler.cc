@@ -134,6 +134,22 @@ struct ExceptionReplyMessage {
 #endif
 
 
+typedef boolean_t (*UserExceptionHandlerFunc) (exception_type_t exception,
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+                                               mach_exception_data_t code,
+#else
+                                               exception_data_t code,
+#endif
+                                               mach_msg_type_number_t code_count,
+                                               mach_port_t thread);
+
+
+
+
+
+static UserExceptionHandlerFunc s_UserExceptionHandler = NULL;
+
+
 
 exception_mask_t s_exception_mask = EXC_MASK_BAD_ACCESS |
 EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC | EXC_MASK_BREAKPOINT;
@@ -704,6 +720,38 @@ void* ExceptionHandler::WaitForMessage(void* exception_handler_class) {
         if (receive.exception == EXC_BAD_ACCESS && receive.code_count > 1)
           subcode = receive.code[1];
 
+        if (s_UserExceptionHandler &&
+            s_UserExceptionHandler(receive.exception, receive.code, receive.code_count,
+                                   receive.thread.name) == TRUE) {
+          
+          
+          ExceptionReplyMessage reply;
+
+          
+          reply.header.msgh_id = receive.header.msgh_id + 100;
+          reply.header.msgh_bits = MACH_MSGH_BITS(MACH_MSGH_BITS_REMOTE(receive.header.msgh_bits), 0);
+          reply.header.msgh_size = sizeof(reply);
+          reply.header.msgh_remote_port = receive.header.msgh_remote_port;
+          reply.header.msgh_local_port = MACH_PORT_NULL;
+
+          reply.ndr = NDR_record;
+          reply.return_code = KERN_SUCCESS;
+
+          
+          result = mach_msg(&(reply.header), MACH_SEND_MSG,
+                            reply.header.msgh_size, 0, MACH_PORT_NULL,
+                            MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+          if (result != KERN_SUCCESS) {
+            
+            
+            fprintf(stderr, "mach_msg reply after user exception handler returned %d!\n", result);
+            exit(1);
+          }
+
+          
+          continue;
+        }
+
         self->SuspendThreads();
 
 #if USE_PROTECTED_ALLOCATIONS
@@ -778,6 +826,12 @@ bool ExceptionHandler::InstallHandler() {
   if (gProtectedData.handler != NULL) {
     return false;
   }
+
+#if TARGET_OSX_USE_64BIT_EXCEPTIONS
+  s_UserExceptionHandler = (UserExceptionHandlerFunc) dlsym(RTLD_SELF, "BreakpadUserExceptionHandler64");
+#else
+  s_UserExceptionHandler = (UserExceptionHandlerFunc) dlsym(RTLD_SELF, "BreakpadUserExceptionHandler");
+#endif
 
 #if TARGET_OS_IPHONE
   if (!IsOutOfProcess()) {
