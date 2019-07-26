@@ -1080,6 +1080,8 @@ var BrowserUI = {
         break;
       case "cmd_newTab":
         this.newTab(null, null, true);
+        
+        ContextUI.displayNavbar();
         this._edit.beginEditing(false);
         break;
       case "cmd_closeTab":
