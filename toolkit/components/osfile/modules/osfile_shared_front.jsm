@@ -489,15 +489,7 @@ AbstractFile.writeAtomic =
 
 
 
-
-
-
-
-
-
-
-
-AbstractFile.removeDir = function(path, options = {}) {
+AbstractFile.removeRecursive = function(path, options = {}) {
   let iterator = new OS.File.DirectoryIterator(path);
   if (!iterator.exists()) {
     if (!("ignoreAbsent" in options) || options.ignoreAbsent) {
@@ -508,8 +500,17 @@ AbstractFile.removeDir = function(path, options = {}) {
   try {
     for (let entry in iterator) {
       if (entry.isDir) {
-        OS.File.removeDir(entry.path, options);
+        if (entry.isLink) {
+          
+          
+          
+          OS.File.removeEmptyDir(entry.path, options);
+        } else {
+          
+          AbstractFile.removeRecursive(entry.path, options);
+        }
       } else {
+        
         OS.File.remove(entry.path, options);
       }
     }

@@ -974,7 +974,39 @@
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
-     File.removeDir = exports.OS.Shared.AbstractFile.removeDir;
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+     File.removeDir = function(path, options) {
+       
+       let attributes = WinFile.GetFileAttributes(path);
+       if (attributes == Const.INVALID_FILE_ATTRIBUTES) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.winLastError == Const.ERROR_FILE_NOT_FOUND) {
+           return;
+         }
+         throw new File.Error("removeEmptyDir", ctypes.winLastError, path);
+       }
+       if (attributes & Const.FILE_ATTRIBUTE_REPARSE_POINT) {
+         
+         
+         
+         OS.File.removeEmptyDir(path, options);
+         return;
+       }
+       exports.OS.Shared.AbstractFile.removeRecursive(path, options);
+     };
 
      
 

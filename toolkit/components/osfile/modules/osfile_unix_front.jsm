@@ -677,6 +677,11 @@
        File.remove(sourcePath);
      };
 
+     File.unixSymLink = function unixSymLink(sourcePath, destPath) {
+       throw_on_negative("symlink", UnixFile.symlink(sourcePath, destPath),
+           sourcePath);
+     };
+
      
 
 
@@ -930,7 +935,42 @@
      File.read = exports.OS.Shared.AbstractFile.read;
      File.writeAtomic = exports.OS.Shared.AbstractFile.writeAtomic;
      File.openUnique = exports.OS.Shared.AbstractFile.openUnique;
-     File.removeDir = exports.OS.Shared.AbstractFile.removeDir;
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.removeDir = function(path, options) {
+       let isSymLink;
+       try {
+         let info = File.stat(path, {unixNoFollowingLinks: true});
+         isSymLink = info.isSymLink;
+       } catch (e) {
+         if ((!("ignoreAbsent" in options) || options.ignoreAbsent) &&
+             ctypes.errno == Const.ENOENT) {
+           return;
+         }
+         throw e;
+       }
+       if (isSymLink) {
+         
+         
+         File.remove(path, options);
+         return;
+       }
+       exports.OS.Shared.AbstractFile.removeRecursive(path, options);
+     };
 
      
 
