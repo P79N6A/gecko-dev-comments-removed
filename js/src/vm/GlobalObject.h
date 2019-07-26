@@ -211,16 +211,9 @@ class GlobalObject : public JSObject
         JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
 
         
+        MOZ_ASSERT(getConstructor(key).isUndefined() ||
+                   getConstructor(key).isObject());
         return !getConstructor(key).isUndefined();
-    }
-
-    void markStandardClassInitializedNoProto(const js::Class *clasp) {
-        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
-
-        
-        
-        if (getConstructor(key).isUndefined())
-            setConstructor(key, BooleanValue(true));
     }
 
   private:
