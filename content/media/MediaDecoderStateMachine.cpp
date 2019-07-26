@@ -2466,7 +2466,10 @@ void MediaDecoderStateMachine::AdvanceFrame()
         mReader->VideoQueue().PushFront(currentFrame.forget());
       }
       StartBuffering();
-      ScheduleStateMachine();
+      
+      
+      
+      ScheduleStateMachine(USECS_PER_S);
       return;
     }
   }
