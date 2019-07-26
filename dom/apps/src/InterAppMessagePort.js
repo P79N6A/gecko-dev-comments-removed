@@ -26,6 +26,13 @@ InterAppMessagePort.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISupports]),
 
+  
+  __init: function(aKeyword, aMessagePortID, aIsPublisher) {
+    debug("Calling __init(): aKeyword: " + aKeyword +
+          " aMessagePortID: " + aMessagePortID +
+          " aIsPublisher: " + aIsPublisher);
+  },
+
   postMessage: function(aMessage) {
     
   },
