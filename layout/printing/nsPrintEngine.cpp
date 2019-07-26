@@ -9,6 +9,7 @@
 #include "nsReadableUtils.h"
 #include "nsCRT.h"
 
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/Selection.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsPIDOMWindow.h"
@@ -19,7 +20,6 @@
 #include "nsError.h"
 
 #include "nsView.h"
-#include "nsAsyncDOMEvent.h"
 #include <algorithm>
 
 
@@ -1858,7 +1858,7 @@ nsPrintEngine::FirePrintPreviewUpdateEvent()
   
   if (mIsDoingPrintPreview && !mIsDoingPrinting) {
     nsCOMPtr<nsIContentViewer> cv = do_QueryInterface(mDocViewerPrint);
-    (new nsAsyncDOMEvent(
+    (new AsyncEventDispatcher(
        cv->GetDocument(), NS_LITERAL_STRING("printPreviewUpdate"), true, true)
     )->RunDOMEventWhenSafe();
   }

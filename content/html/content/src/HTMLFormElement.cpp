@@ -1056,14 +1056,14 @@ void
 HTMLFormElement::PostPasswordEvent()
 {
   
-  if (mFormPasswordEvent.get()) {
+  if (mFormPasswordEventDispatcher.get()) {
     return;
   }
 
-  nsRefPtr<FormPasswordEvent> event =
-    new FormPasswordEvent(this, NS_LITERAL_STRING("DOMFormHasPassword"));
-  mFormPasswordEvent = event;
-  event->PostDOMEvent();
+  mFormPasswordEventDispatcher =
+    new FormPasswordEventDispatcher(this,
+                                    NS_LITERAL_STRING("DOMFormHasPassword"));
+  mFormPasswordEventDispatcher->PostDOMEvent();
 }
 
 

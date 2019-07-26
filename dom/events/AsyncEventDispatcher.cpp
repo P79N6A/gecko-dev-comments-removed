@@ -3,19 +3,26 @@
 
 
 
-#include "nsAsyncDOMEvent.h"
-#include "nsIDOMEvent.h"
-#include "nsContentUtils.h"
-#include "nsEventDispatcher.h"
+#include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/dom/Event.h" 
 #include "mozilla/dom/EventTarget.h"
+#include "nsContentUtils.h"
+#include "nsEventDispatcher.h"
+#include "nsIDOMEvent.h"
 
-using namespace mozilla;
-using namespace mozilla::dom;
+namespace mozilla {
 
-nsAsyncDOMEvent::nsAsyncDOMEvent(nsINode* aEventNode, WidgetEvent& aEvent)
-  : mEventNode(aEventNode), mDispatchChromeOnly(false)
+using namespace dom;
+
+
+
+
+
+AsyncEventDispatcher::AsyncEventDispatcher(nsINode* aEventNode,
+                                           WidgetEvent& aEvent)
+  : mEventNode(aEventNode)
+  , mDispatchChromeOnly(false)
 {
   MOZ_ASSERT(mEventNode);
   nsEventDispatcher::CreateEvent(aEventNode, nullptr, &aEvent, EmptyString(),
@@ -25,7 +32,8 @@ nsAsyncDOMEvent::nsAsyncDOMEvent(nsINode* aEventNode, WidgetEvent& aEvent)
   mEvent->SetTrusted(aEvent.mFlags.mIsTrusted);
 }
 
-NS_IMETHODIMP nsAsyncDOMEvent::Run()
+NS_IMETHODIMP
+AsyncEventDispatcher::Run()
 {
   if (mEvent) {
     if (mDispatchChromeOnly) {
@@ -62,19 +70,27 @@ NS_IMETHODIMP nsAsyncDOMEvent::Run()
   return NS_OK;
 }
 
-nsresult nsAsyncDOMEvent::PostDOMEvent()
+nsresult
+AsyncEventDispatcher::PostDOMEvent()
 {
   return NS_DispatchToCurrentThread(this);
 }
 
-void nsAsyncDOMEvent::RunDOMEventWhenSafe()
+void
+AsyncEventDispatcher::RunDOMEventWhenSafe()
 {
   nsContentUtils::AddScriptRunner(this);
 }
 
-nsLoadBlockingAsyncDOMEvent::~nsLoadBlockingAsyncDOMEvent()
+
+
+
+
+LoadBlockingAsyncEventDispatcher::~LoadBlockingAsyncEventDispatcher()
 {
   if (mBlockedDoc) {
     mBlockedDoc->UnblockOnload(true);
   }
 }
+
+} 
