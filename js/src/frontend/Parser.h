@@ -305,7 +305,7 @@ struct Parser : private AutoGCRooter
 
 
 
-    JSFunction *newFunction(ParseContext *pc, JSAtom *atom, FunctionSyntaxKind kind);
+    JSFunction *newFunction(ParseContext *pc, HandleAtom atom, FunctionSyntaxKind kind);
 
     void trace(JSTracer *trc);
 

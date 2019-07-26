@@ -3077,7 +3077,7 @@ DefineConstructorAndPrototype(JSContext *cx, HandleObject obj, JSProtoKey key, H
 
 
 
-        RootedFunction fun(cx, js_NewFunction(cx, NULL, constructor, nargs, JSFUN_CONSTRUCTOR,
+        RootedFunction fun(cx, js_NewFunction(cx, NullPtr(), constructor, nargs, JSFUN_CONSTRUCTOR,
                                               obj, atom, ctorKind));
         if (!fun)
             goto bad;
