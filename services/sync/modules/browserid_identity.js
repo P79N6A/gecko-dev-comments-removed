@@ -63,6 +63,8 @@ function AuthenticationError(message) {
 }
 
 this.BrowserIDManager = function BrowserIDManager() {
+  
+  
   this._fxaService = fxAccounts;
   this._tokenServerClient = new TokenServerClient();
   
@@ -112,7 +114,7 @@ this.BrowserIDManager.prototype = {
     this.whenReadyToAuthenticate = Promise.defer();
     this._shouldHaveSyncKeyBundle = false;
 
-    return fxAccounts.getSignedInUser().then(accountData => {
+    return this._fxaService.getSignedInUser().then(accountData => {
       if (!accountData) {
         this._log.info("initializeWithCurrentIdentity has no user logged in");
         this._account = null;
@@ -124,7 +126,7 @@ this.BrowserIDManager.prototype = {
       
       
       this._log.info("Waiting for user to be verified.");
-      fxAccounts.whenVerified(accountData).then(accountData => {
+      this._fxaService.whenVerified(accountData).then(accountData => {
         
         this._log.info("Starting fetch for key bundle.");
         if (this.needsCustomization) {
@@ -141,7 +143,7 @@ this.BrowserIDManager.prototype = {
             Services.prefs.clearUserPref(PREF_SYNC_SHOW_CUSTOMIZATION);
           } else {
             
-            return fxAccounts.signOut();
+            return this._fxaService.signOut();
           }
         }
       }).then(() => {
@@ -411,6 +413,7 @@ this.BrowserIDManager.prototype = {
     let tokenServerURI = Svc.Prefs.get("tokenServerURI");
     let log = this._log;
     let client = this._tokenServerClient;
+    let fxa = this._fxaService;
 
     
     let kBbytes = CommonUtils.hexToBytes(userData.kB);
@@ -437,7 +440,7 @@ this.BrowserIDManager.prototype = {
     function getAssertion() {
       log.debug("Getting an assertion");
       let audience = Services.io.newURI(tokenServerURI, null, null).prePath;
-      return fxAccounts.getAssertion(audience).then(null, err => {
+      return fxa.getAssertion(audience).then(null, err => {
         if (err.code === 401) {
           throw new AuthenticationError("Unable to get assertion for user");
         } else {
@@ -448,7 +451,7 @@ this.BrowserIDManager.prototype = {
 
     
     
-    return this._fxaService.whenVerified(userData)
+    return fxa.whenVerified(userData)
       .then(() => getAssertion())
       .then(assertion => getToken(tokenServerURI, assertion))
       .then(token => {
@@ -561,8 +564,9 @@ BrowserIDClusterManager.prototype = {
   __proto__: ClusterManager.prototype,
 
   _findCluster: function() {
+    let fxa = this.identity._fxaService; 
     let promiseClusterURL = function() {
-      return fxAccounts.getSignedInUser().then(userData => {
+      return fxa.getSignedInUser().then(userData => {
         return this.identity._fetchTokenForUser(userData).then(token => {
           let endpoint = token.endpoint;
           
