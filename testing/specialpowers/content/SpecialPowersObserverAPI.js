@@ -166,6 +166,10 @@ SpecialPowersObserverAPI.prototype = {
         if (aMessage.json.op == "get") {
           if (!prefName || !prefType)
             throw new SpecialPowersException("Invalid parameters for get in SPPrefService");
+
+          
+          if (prefs.getPrefType(prefName) == prefs.PREF_INVALID)
+            return;
         } else if (aMessage.json.op == "set") {
           if (!prefName || !prefType  || prefValue === null)
             throw new SpecialPowersException("Invalid parameters for set in SPPrefService");
