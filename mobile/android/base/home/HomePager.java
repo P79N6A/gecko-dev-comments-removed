@@ -53,7 +53,8 @@ public class HomePager extends ViewPager {
     private final Drawable mOriginalBackground;
 
     
-    private String mCurrentPanelSession;
+    private TelemetryContract.Session mCurrentPanelSession;
+    private String mCurrentPanelSessionSuffix;
 
     
     private LoadState mLoadState;
@@ -509,8 +510,9 @@ public class HomePager extends ViewPager {
         
         stopCurrentPanelTelemetrySession();
 
-        mCurrentPanelSession = TelemetryContract.Session.HOME_PANEL + panelId;
-        Telemetry.startUISession(mCurrentPanelSession);
+        mCurrentPanelSession = TelemetryContract.Session.HOME_PANEL;
+        mCurrentPanelSessionSuffix = panelId;
+        Telemetry.startUISession(mCurrentPanelSession, mCurrentPanelSessionSuffix);
     }
 
     
@@ -518,8 +520,9 @@ public class HomePager extends ViewPager {
 
     private void stopCurrentPanelTelemetrySession() {
         if (mCurrentPanelSession != null) {
-            Telemetry.stopUISession(mCurrentPanelSession);
+            Telemetry.stopUISession(mCurrentPanelSession, mCurrentPanelSessionSuffix);
             mCurrentPanelSession = null;
+            mCurrentPanelSessionSuffix = null;
         }
     }
 }

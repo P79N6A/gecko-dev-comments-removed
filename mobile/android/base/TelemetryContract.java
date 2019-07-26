@@ -18,52 +18,64 @@ public interface TelemetryContract {
 
 
 
-    public interface Event {
+    public enum Event {
         
-        public static final String ACTION = "action.1";
+        ACTION("action.1"),
 
         
-        public static final String CANCEL = "cancel.1";
+        CANCEL("cancel.1"),
 
         
-        public static final String EDIT = "edit.1";
-
-        
-        
-        public static final String LAUNCH = "launch.1";
-
-        
-        public static final String LOAD_URL = "loadurl.1";
-
-        public static final String LOCALE_BROWSER_RESET = "locale.browser.reset.1";
-        public static final String LOCALE_BROWSER_SELECTED = "locale.browser.selected.1";
-        public static final String LOCALE_BROWSER_UNSELECTED = "locale.browser.unselected.1";
-
-        
-        public static final String PANEL_SET_DEFAULT = "setdefault.1";
-
-        
-        public static final String PIN = "pin.1";
-
-        
-        public static final String POLICY_NOTIFICATION_SUCCESS = "policynotification.success.1:";
-
-        
-        public static final String SANITIZE = "sanitize.1";
+        EDIT("edit.1"),
 
         
         
-        public static final String SAVE = "save.1";
+        LAUNCH("launch.1"),
 
         
-        public static final String SHARE = "share.1";
+        LOAD_URL("loadurl.1"),
+
+        LOCALE_BROWSER_RESET("locale.browser.reset.1"),
+        LOCALE_BROWSER_SELECTED("locale.browser.selected.1"),
+        LOCALE_BROWSER_UNSELECTED("locale.browser.unselected.1"),
 
         
-        public static final String UNPIN = "unpin.1";
+        PANEL_SET_DEFAULT("setdefault.1"),
+
+        
+        PIN("pin.1"),
+
+        
+        POLICY_NOTIFICATION_SUCCESS("policynotification.success.1"),
+
+        
+        SANITIZE("sanitize.1"),
 
         
         
-        public static final String UNSAVE = "unsave.1";
+        SAVE("save.1"),
+
+        
+        SHARE("share.1"),
+
+        
+        UNPIN("unpin.1"),
+
+        
+        
+        UNSAVE("unsave.1"),
+        ;
+
+        private final String string;
+
+        Event(final String string) {
+            this.string = string;
+        }
+
+        @Override
+        public String toString() {
+            return string;
+        }
     }
 
     
@@ -72,43 +84,58 @@ public interface TelemetryContract {
 
 
 
-    public interface Method {
+    public enum Method {
         
-        public static final String ACTIONBAR = "actionbar";
+        ACTIONBAR("actionbar"),
 
         
-        public static final String BACK = "back";
+        BACK("back"),
 
         
-        public static final String BUTTON = "button";
+        BUTTON("button"),
 
         
-        public static final String CONTEXT_MENU = "contextmenu";
+        CONTEXT_MENU("contextmenu"),
 
         
-        public static final String DIALOG = "dialog";
+        DIALOG("dialog"),
 
         
-        public static final String GRID_ITEM = "griditem";
+        GRID_ITEM("griditem"),
 
         
-        public static final String INTENT = "intent";
+        INTENT("intent"),
 
         
-        public static final String LIST = "list";
+        LIST("list"),
 
         
-        public static final String LIST_ITEM = "listitem";
+        LIST_ITEM("listitem"),
 
         
-        public static final String MENU = "menu";
+        MENU("menu"),
+
+        
+        NONE(null),
 
         
         
-        public static final String PAGEACTION = "pageaction";
+        PAGEACTION("pageaction"),
 
         
-        public static final String SUGGESTION = "suggestion";
+        SUGGESTION("suggestion"),
+        ;
+
+        private final String string;
+
+        Method(final String string) {
+            this.string = string;
+        }
+
+        @Override
+        public String toString() {
+            return string;
+        }
     }
 
     
@@ -117,26 +144,38 @@ public interface TelemetryContract {
 
 
 
-    public interface Session {
+    public enum Session {
         
-        public static final String AWESOMESCREEN = "awesomescreen.1";
+        AWESOMESCREEN("awesomescreen.1"),
 
         
-        public static final String FIRSTRUN = "firstrun.1";
+        FIRSTRUN("firstrun.1"),
 
         
-        public static final String FRECENCY = "frecency.1";
+        FRECENCY("frecency.1"),
 
         
-        public static final String HOME = "home.1";
-
-        
-        
-        public static final String HOME_PANEL = "homepanel.1:";
+        HOME("home.1"),
 
         
         
-        public static final String READER = "reader.1";
+        HOME_PANEL("homepanel.1"),
+
+        
+        
+        READER("reader.1"),
+        ;
+
+        private final String string;
+
+        Session(final String string) {
+            this.string = string;
+        }
+
+        @Override
+        public String toString() {
+            return string;
+        }
     }
 
     
@@ -145,8 +184,23 @@ public interface TelemetryContract {
 
 
 
-    public interface Reason {
+    public enum Reason {
         
-        public static final String COMMIT = "commit";
+        COMMIT("commit"),
+
+        
+        NONE(null),
+        ;
+
+        private final String string;
+
+        Reason(final String string) {
+            this.string = string;
+        }
+
+        @Override
+        public String toString() {
+            return string;
+        }
     }
 }
