@@ -323,6 +323,378 @@ js_DumpPCCounts(JSContext *cx, HandleScript script, js::Sprinter *sp)
 #endif
 }
 
+
+
+
+
+
+static void
+AssertStackDepth(JSScript *script, uint32_t offset, uint32_t stackDepth) {
+    
+
+
+
+
+
+    JS_ASSERT_IF(script->hasAnalysis() && script->analysis()->maybeCode(offset),
+                 script->analysis()->getCode(offset).stackDepth == stackDepth);
+}
+
+namespace {
+
+class BytecodeParser
+{
+    class Bytecode
+    {
+      public:
+        Bytecode() { mozilla::PodZero(this); }
+
+        
+        
+        bool parsed : 1;
+
+        
+        uint32_t stackDepth;
+
+        
+        
+        
+        
+        uint32_t *offsetStack;
+
+        bool captureOffsetStack(LifoAlloc &alloc, const uint32_t *stack, uint32_t depth) {
+            stackDepth = depth;
+            offsetStack = alloc.newArray<uint32_t>(stackDepth);
+            if (stackDepth) {
+                if (!offsetStack)
+                    return false;
+                for (uint32_t n = 0; n < stackDepth; n++)
+                    offsetStack[n] = stack[n];
+            }
+            return true;
+        }
+
+        
+        
+        
+        
+        
+        void mergeOffsetStack(const uint32_t *stack, uint32_t depth) {
+            JS_ASSERT(depth == stackDepth);
+            for (uint32_t n = 0; n < stackDepth; n++)
+                if (offsetStack[n] != stack[n])
+                    offsetStack[n] = UINT32_MAX;
+        }
+    };
+
+    JSContext *cx_;
+    LifoAllocScope allocScope_;
+    JSScript *script_;
+
+    Bytecode **codeArray_;
+
+  public:
+    BytecodeParser(JSContext *cx, JSScript *script)
+      : cx_(cx),
+        allocScope_(&cx->tempLifoAlloc()),
+        script_(script),
+        codeArray_(nullptr) { }
+
+    bool parse();
+
+    uint32_t stackDepthAtPC(uint32_t offset) {
+        
+        
+        
+        Bytecode *code = maybeCode(offset);
+        return code ? code->stackDepth : 0;
+    }
+    uint32_t stackDepthAtPC(const jsbytecode *pc) { return stackDepthAtPC(pc - script_->code); }
+
+    uint32_t offsetForStackOperand(uint32_t offset, int operand) {
+        Bytecode &code = getCode(offset);
+        if (operand < 0) {
+            operand += code.stackDepth;
+            JS_ASSERT(operand >= 0);
+        }
+        JS_ASSERT(uint32_t(operand) < code.stackDepth);
+        return code.offsetStack[operand];
+    }
+    jsbytecode *pcForStackOperand(jsbytecode *pc, int operand) {
+        uint32_t offset = offsetForStackOperand(pc - script_->code, operand);
+        if (offset == UINT32_MAX)
+            return nullptr;
+        return script_->code + offsetForStackOperand(pc - script_->code, operand);
+    }
+
+  private:
+    LifoAlloc &alloc() {
+        return allocScope_.alloc();
+    }
+
+    void reportOOM() {
+        allocScope_.releaseEarly();
+        js_ReportOutOfMemory(cx_);
+    }
+
+    uint32_t numSlots() {
+        return 1 + (script_->function() ? script_->function()->nargs : 0) + script_->nfixed;
+    }
+
+    uint32_t maximumStackDepth() {
+        return script_->nslots - script_->nfixed;
+    }
+
+    Bytecode& getCode(uint32_t offset) {
+        JS_ASSERT(offset < script_->length);
+        JS_ASSERT(codeArray_[offset]);
+        return *codeArray_[offset];
+    }
+    Bytecode& getCode(const jsbytecode *pc) { return getCode(pc - script_->code); }
+
+    Bytecode* maybeCode(uint32_t offset) {
+        JS_ASSERT(offset < script_->length);
+        return codeArray_[offset];
+    }
+    Bytecode* maybeCode(const jsbytecode *pc) { return maybeCode(pc - script_->code); }
+
+    uint32_t simulateOp(JSOp op, uint32_t offset, uint32_t *offsetStack, uint32_t stackDepth);
+
+    inline bool addJump(uint32_t offset, uint32_t *currentOffset,
+                        uint32_t stackDepth, const uint32_t *offsetStack);
+};
+
+}  
+
+uint32_t
+BytecodeParser::simulateOp(JSOp op, uint32_t offset, uint32_t *offsetStack, uint32_t stackDepth)
+{
+    uint32_t nuses = GetUseCount(script_, offset);
+    uint32_t ndefs = GetDefCount(script_, offset);
+
+    JS_ASSERT(stackDepth >= nuses);
+    stackDepth -= nuses;
+    JS_ASSERT(stackDepth + ndefs <= maximumStackDepth());
+
+    
+    
+    
+    switch (op) {
+      default:
+        for (uint32_t n = 0; n != ndefs; ++n)
+            offsetStack[stackDepth + n] = offset;
+        break;
+
+      case JSOP_CASE:
+        
+        JS_ASSERT(ndefs == 1);
+        break;
+
+      case JSOP_DUP:
+        JS_ASSERT(ndefs == 2);
+        if (offsetStack)
+            offsetStack[stackDepth + 1] = offsetStack[stackDepth];
+        break;
+
+      case JSOP_DUP2:
+        JS_ASSERT(ndefs == 4);
+        if (offsetStack) {
+            offsetStack[stackDepth + 2] = offsetStack[stackDepth];
+            offsetStack[stackDepth + 3] = offsetStack[stackDepth + 1];
+        }
+        break;
+
+      case JSOP_SWAP:
+        JS_ASSERT(ndefs == 2);
+        if (offsetStack) {
+            uint32_t tmp = offsetStack[stackDepth + 1];
+            offsetStack[stackDepth + 1] = offsetStack[stackDepth];
+            offsetStack[stackDepth] = tmp;
+        }
+        break;
+    }
+    stackDepth += ndefs;
+    return stackDepth;
+}
+
+bool
+BytecodeParser::addJump(uint32_t offset, uint32_t *currentOffset,
+                        uint32_t stackDepth, const uint32_t *offsetStack)
+{
+    JS_ASSERT(offset < script_->length);
+
+    Bytecode *&code = codeArray_[offset];
+    if (!code) {
+        code = alloc().new_<Bytecode>();
+        if (!code)
+            return false;
+        AssertStackDepth(script_, offset, stackDepth);
+        if (!code->captureOffsetStack(alloc(), offsetStack, stackDepth)) {
+            reportOOM();
+            return false;
+        }
+    } else {
+        code->mergeOffsetStack(offsetStack, stackDepth);
+    }
+
+    if (offset < *currentOffset && !code->parsed) {
+        
+        
+        
+        *currentOffset = offset;
+    }
+
+    return true;
+}
+
+bool
+BytecodeParser::parse()
+{
+    JS_ASSERT(!codeArray_);
+
+    uint32_t length = script_->length;
+    codeArray_ = alloc().newArray<Bytecode*>(length);
+
+    if (!codeArray_) {
+        reportOOM();
+        return false;
+    }
+
+    mozilla::PodZero(codeArray_, length);
+
+    
+    Bytecode *startcode = alloc().new_<Bytecode>();
+    if (!startcode) {
+        reportOOM();
+        return false;
+    }
+
+    
+    uint32_t *offsetStack = alloc().newArray<uint32_t>(maximumStackDepth());
+    if (maximumStackDepth() && !offsetStack) {
+        reportOOM();
+        return false;
+    }
+
+    startcode->stackDepth = 0;
+    codeArray_[0] = startcode;
+
+    uint32_t offset, nextOffset = 0;
+    while (nextOffset < length) {
+        offset = nextOffset;
+
+        Bytecode *code = maybeCode(offset);
+        jsbytecode *pc = script_->code + offset;
+
+        JSOp op = (JSOp)*pc;
+        JS_ASSERT(op < JSOP_LIMIT);
+
+        
+        uint32_t successorOffset = offset + GetBytecodeLength(pc);
+
+        
+        
+        nextOffset = successorOffset;
+
+        if (!code) {
+            
+            continue;
+        }
+
+        if (code->parsed) {
+            
+            continue;
+        }
+
+        code->parsed = true;
+
+        uint32_t stackDepth = simulateOp(op, offset, offsetStack, code->stackDepth);
+
+        switch (op) {
+          case JSOP_TABLESWITCH: {
+            uint32_t defaultOffset = offset + GET_JUMP_OFFSET(pc);
+            jsbytecode *pc2 = pc + JUMP_OFFSET_LEN;
+            int32_t low = GET_JUMP_OFFSET(pc2);
+            pc2 += JUMP_OFFSET_LEN;
+            int32_t high = GET_JUMP_OFFSET(pc2);
+            pc2 += JUMP_OFFSET_LEN;
+
+            if (!addJump(defaultOffset, &nextOffset, stackDepth, offsetStack))
+                return false;
+
+            for (int32_t i = low; i <= high; i++) {
+                uint32_t targetOffset = offset + GET_JUMP_OFFSET(pc2);
+                if (targetOffset != offset) {
+                    if (!addJump(targetOffset, &nextOffset, stackDepth, offsetStack))
+                        return false;
+                }
+                pc2 += JUMP_OFFSET_LEN;
+            }
+            break;
+          }
+
+          case JSOP_TRY: {
+            
+            
+            
+            
+            JSTryNote *tn = script_->trynotes()->vector;
+            JSTryNote *tnlimit = tn + script_->trynotes()->length;
+            for (; tn < tnlimit; tn++) {
+                uint32_t startOffset = script_->mainOffset + tn->start;
+                if (startOffset == offset + 1) {
+                    uint32_t catchOffset = startOffset + tn->length;
+                    if (tn->kind != JSTRY_ITER && tn->kind != JSTRY_LOOP) {
+                        if (!addJump(catchOffset, &nextOffset, stackDepth, offsetStack))
+                            return false;
+                    }
+                }
+            }
+            break;
+          }
+
+          default:
+            break;
+        }
+
+        
+        if (IsJumpOpcode(op)) {
+            
+            uint32_t newStackDepth = stackDepth;
+            if (op == JSOP_CASE)
+                newStackDepth--;
+
+            uint32_t targetOffset = offset + GET_JUMP_OFFSET(pc);
+            if (!addJump(targetOffset, &nextOffset, newStackDepth, offsetStack))
+                return false;
+        }
+
+        
+        if (BytecodeFallsThrough(op)) {
+            JS_ASSERT(successorOffset < script_->length);
+
+            Bytecode *&nextcode = codeArray_[successorOffset];
+
+            if (!nextcode) {
+                nextcode = alloc().new_<Bytecode>();
+                if (!nextcode) {
+                    reportOOM();
+                    return false;
+                }
+                AssertStackDepth(script_, successorOffset, stackDepth);
+                if (!nextcode->captureOffsetStack(alloc(), offsetStack, stackDepth)) {
+                    reportOOM();
+                    return false;
+                }
+            } else {
+                nextcode->mergeOffsetStack(offsetStack, stackDepth);
+            }
+        }
+    }
+
+    return true;
+}
+
 #ifdef DEBUG
 
 
@@ -1039,14 +1411,6 @@ js_QuoteString(ExclusiveContext *cx, JSString *str, jschar quote)
 
 
 
-static int ReconstructPCStack(JSContext*, JSScript*, jsbytecode*, jsbytecode**);
-
-static unsigned
-StackDepth(JSScript *script)
-{
-    return script->nslots - script->nfixed;
-}
-
 static JSObject *
 GetBlockChainAtPC(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
@@ -1092,51 +1456,6 @@ GetBlockChainAtPC(JSContext *cx, JSScript *script, jsbytecode *pc)
     return blockChain;
 }
 
-namespace {
-
-class PCStack
-{
-    jsbytecode **stack;
-    int depth_;
-
-  public:
-    PCStack() : stack(nullptr), depth_(0) {}
-    ~PCStack();
-    bool init(JSContext *cx, JSScript *script, jsbytecode *pc);
-    int depth() const { return depth_; }
-    jsbytecode *operator[](int i) const;
-};
-
-} 
-
-PCStack::~PCStack()
-{
-    js_free(stack);
-}
-
-bool
-PCStack::init(JSContext *cx, JSScript *script, jsbytecode *pc)
-{
-    stack = cx->pod_malloc<jsbytecode*>(StackDepth(script));
-    if (!stack)
-        return false;
-    depth_ = ReconstructPCStack(cx, script, pc, stack);
-    JS_ASSERT(depth_ >= 0);
-    return true;
-}
-
-
-jsbytecode *
-PCStack::operator[](int i) const
-{
-    if (i < 0) {
-        i += depth_;
-        JS_ASSERT(i >= 0);
-    }
-    JS_ASSERT(i < depth_);
-    return stack[i];
-}
-
 
 
 
@@ -1175,6 +1494,7 @@ struct ExpressionDecompiler
     RootedScript script;
     RootedFunction fun;
     BindingVector *localNames;
+    BytecodeParser parser;
     Sprinter sprinter;
 
     ExpressionDecompiler(JSContext *cx, JSScript *script, JSFunction *fun)
@@ -1182,10 +1502,12 @@ struct ExpressionDecompiler
           script(cx, script),
           fun(cx, fun),
           localNames(nullptr),
+          parser(cx, script),
           sprinter(cx)
     {}
     ~ExpressionDecompiler();
     bool init();
+    bool decompilePCForStackOperand(jsbytecode *pc, int i);
     bool decompilePC(jsbytecode *pc);
     JSAtom *getVar(unsigned slot);
     JSAtom *getArg(unsigned slot);
@@ -1198,13 +1520,18 @@ struct ExpressionDecompiler
 };
 
 bool
+ExpressionDecompiler::decompilePCForStackOperand(jsbytecode *pc, int i)
+{
+    pc = parser.pcForStackOperand(pc, i);
+    if (!pc)
+        return write("(intermediate value)");
+    return decompilePC(pc);
+}
+
+bool
 ExpressionDecompiler::decompilePC(jsbytecode *pc)
 {
     JS_ASSERT(script->code <= pc && pc < script->code + script->length);
-
-    PCStack pcstack;
-    if (!pcstack.init(cx, script, pc))
-        return false;
 
     JSOp op = (JSOp)*pc;
 
@@ -1215,18 +1542,18 @@ ExpressionDecompiler::decompilePC(jsbytecode *pc)
             jssrcnote *sn = js_GetSrcNote(cx, script, pc);
             if (!sn || SN_TYPE(sn) != SRC_ASSIGNOP)
                 return write("(") &&
-                       decompilePC(pcstack[-2]) &&
+                       decompilePCForStackOperand(pc, -2) &&
                        write(" ") &&
                        write(token) &&
                        write(" ") &&
-                       decompilePC(pcstack[-1]) &&
+                       decompilePCForStackOperand(pc, -1) &&
                        write(")");
             break;
           }
           case 1:
             return write(token) &&
                    write("(") &&
-                   decompilePC(pcstack[-1]) &&
+                   decompilePCForStackOperand(pc, -1) &&
                    write(")");
           default:
             break;
@@ -1251,10 +1578,10 @@ ExpressionDecompiler::decompilePC(jsbytecode *pc)
         JSAtom *atom;
         if (i >= script->nfixed) {
             i -= script->nfixed;
-            JS_ASSERT(i < unsigned(pcstack.depth()));
+            JS_ASSERT(i < unsigned(parser.stackDepthAtPC(pc)));
             atom = findLetVar(pc, i);
             if (!atom)
-                return decompilePC(pcstack[i]); 
+                return decompilePCForStackOperand(pc, i); 
         } else {
             atom = getVar(i);
         }
@@ -1271,7 +1598,7 @@ ExpressionDecompiler::decompilePC(jsbytecode *pc)
       case JSOP_GETPROP:
       case JSOP_CALLPROP: {
         RootedAtom prop(cx, (op == JSOP_LENGTH) ? cx->names().length : loadAtom(pc));
-        if (!decompilePC(pcstack[-1]))
+        if (!decompilePCForStackOperand(pc, -1))
             return false;
         if (IsIdentifier(prop)) {
             return write(".") &&
@@ -1283,9 +1610,9 @@ ExpressionDecompiler::decompilePC(jsbytecode *pc)
       }
       case JSOP_GETELEM:
       case JSOP_CALLELEM:
-        return decompilePC(pcstack[-2]) &&
+        return decompilePCForStackOperand(pc, -2) &&
                write("[") &&
-               decompilePC(pcstack[-1]) &&
+               decompilePCForStackOperand(pc, -1) &&
                write("]");
       case JSOP_NULL:
         return write(js_null_str);
@@ -1310,10 +1637,10 @@ ExpressionDecompiler::decompilePC(jsbytecode *pc)
         return write(js_this_str);
       case JSOP_CALL:
       case JSOP_FUNCALL:
-        return decompilePC(pcstack[-int32_t(GET_ARGC(pc) + 2)]) &&
+        return decompilePCForStackOperand(pc, -int32_t(GET_ARGC(pc) + 2)) &&
                write("(...)");
       case JSOP_SPREADCALL:
-        return decompilePC(pcstack[-int32_t(3)]) &&
+        return decompilePCForStackOperand(pc, -int32_t(3)) &&
                write("(...)");
       case JSOP_NEWARRAY:
         return write("[]");
@@ -1352,6 +1679,9 @@ ExpressionDecompiler::init()
         return false;
     RootedScript script_(cx, script);
     if (!FillBindingVector(script_, localNames))
+        return false;
+
+    if (!parser.parse())
         return false;
 
     return true;
@@ -1448,26 +1778,21 @@ FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, int skipStackHits
 
 
 
-
-
-
-
-
     if (iter.isIon())
         return true;
 
     *valuepc = nullptr;
 
-    PCStack pcstack;
-    if (!pcstack.init(cx, iter.script(), current))
+    BytecodeParser parser(cx, iter.script());
+    if (!parser.parse())
         return false;
 
-    if (spindex < 0 && spindex + pcstack.depth() < 0)
+    if (spindex < 0 && spindex + int(parser.stackDepthAtPC(current)) < 0)
         spindex = JSDVG_SEARCH_STACK;
 
     if (spindex == JSDVG_SEARCH_STACK) {
         size_t index = iter.numFrameSlots();
-        JS_ASSERT(index >= size_t(pcstack.depth()));
+        JS_ASSERT(index >= size_t(parser.stackDepthAtPC(current)));
 
         
         
@@ -1482,12 +1807,14 @@ FindStartPC(JSContext *cx, ScriptFrameIter &iter, int spindex, int skipStackHits
 
         
         
-        if (index < size_t(pcstack.depth()))
-            *valuepc = pcstack[index];
-        else
-            *valuepc = current;
+        
+        jsbytecode *pc = nullptr;
+        if (index < size_t(parser.stackDepthAtPC(current)))
+            pc = parser.pcForStackOperand(current, index);
+        *valuepc = pc ? pc : current;
     } else {
-        *valuepc = pcstack[spindex];
+        jsbytecode *pc = parser.pcForStackOperand(current, spindex);
+        *valuepc = pc ? pc : current;
     }
     return true;
 }
@@ -1615,19 +1942,19 @@ DecompileArgumentFromStack(JSContext *cx, int formalIndex, char **res)
     if (JSOp(*current) != JSOP_CALL || static_cast<unsigned>(formalIndex) >= GET_ARGC(current))
         return true;
 
-    PCStack pcStack;
-    if (!pcStack.init(cx, script, current))
+    BytecodeParser parser(cx, script);
+    if (!parser.parse())
         return false;
 
-    int formalStackIndex = pcStack.depth() - GET_ARGC(current) + formalIndex;
+    int formalStackIndex = parser.stackDepthAtPC(current) - GET_ARGC(current) + formalIndex;
     JS_ASSERT(formalStackIndex >= 0);
-    if (formalStackIndex >= pcStack.depth())
+    if (uint32_t(formalStackIndex) >= parser.stackDepthAtPC(current))
         return true;
 
     ExpressionDecompiler ed(cx, script, fun);
     if (!ed.init())
         return false;
-    if (!ed.decompilePC(pcStack[formalStackIndex]))
+    if (!ed.decompilePCForStackOperand(current, formalStackIndex))
         return false;
 
     return ed.getOutput(res);
@@ -1661,348 +1988,12 @@ js::DecompileArgument(JSContext *cx, int formalIndex, HandleValue v)
 unsigned
 js_ReconstructStackDepth(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    return ReconstructPCStack(cx, script, pc, nullptr);
+    BytecodeParser parser(cx, script);
+    if (!parser.parse())
+        return 0;
+    return parser.stackDepthAtPC(pc);
 }
 
-#define LOCAL_ASSERT_CUSTOM(expr, BAD_EXIT)                                   \
-    JS_BEGIN_MACRO                                                            \
-        JS_ASSERT(expr);                                                      \
-        if (!(expr)) { BAD_EXIT; }                                            \
-    JS_END_MACRO
-#define LOCAL_ASSERT_RV(expr, rv)                                             \
-    LOCAL_ASSERT_CUSTOM(expr, return (rv))
-#define LOCAL_ASSERT(expr)      LOCAL_ASSERT_RV(expr, -1);
-
-static int
-SimulateOp(JSScript *script, JSOp op, const JSCodeSpec *cs,
-           jsbytecode *pc, jsbytecode **pcstack, unsigned &pcdepth)
-{
-    unsigned nuses = StackUses(script, pc);
-    unsigned ndefs = StackDefs(script, pc);
-    LOCAL_ASSERT(pcdepth >= nuses);
-    pcdepth -= nuses;
-    LOCAL_ASSERT(pcdepth + ndefs <= StackDepth(script));
-
-    
-
-
-
-
-    switch (op) {
-      default:
-        if (pcstack) {
-            for (unsigned i = 0; i != ndefs; ++i)
-                pcstack[pcdepth + i] = pc;
-        }
-        break;
-
-      case JSOP_CASE:
-        
-        JS_ASSERT(ndefs == 1);
-        break;
-
-      case JSOP_DUP:
-        JS_ASSERT(ndefs == 2);
-        if (pcstack)
-            pcstack[pcdepth + 1] = pcstack[pcdepth];
-        break;
-
-      case JSOP_DUP2:
-        JS_ASSERT(ndefs == 4);
-        if (pcstack) {
-            pcstack[pcdepth + 2] = pcstack[pcdepth];
-            pcstack[pcdepth + 3] = pcstack[pcdepth + 1];
-        }
-        break;
-
-      case JSOP_SWAP:
-        JS_ASSERT(ndefs == 2);
-        if (pcstack) {
-            jsbytecode *tmp = pcstack[pcdepth + 1];
-            pcstack[pcdepth + 1] = pcstack[pcdepth];
-            pcstack[pcdepth] = tmp;
-        }
-        break;
-    }
-    pcdepth += ndefs;
-    return pcdepth;
-}
-
-
-static void
-AssertPCDepth(JSScript *script, jsbytecode *pc, unsigned pcdepth) {
-    
-
-
-
-
-
-    JS_ASSERT_IF(script->hasAnalysis() && script->analysis()->maybeCode(pc),
-                 script->analysis()->getCode(pc).stackDepth == pcdepth);
-}
-
-static int
-ReconstructPCStack(JSContext *cx, JSScript *script, jsbytecode *target, jsbytecode **pcstack)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    LOCAL_ASSERT(script->code <= target && target < script->code + script->length);
-
-    
-
-
-
-    unsigned hpcdepth = unsigned(-1);
-
-    
-
-
-
-    unsigned cpcdepth = unsigned(-1);
-
-    jsbytecode *pc;
-    unsigned pcdepth;
-    ptrdiff_t oplen;
-    for (pc = script->code, pcdepth = 0; ; pc += oplen) {
-        JSOp op = JSOp(*pc);
-        oplen = GetBytecodeLength(pc);
-        const JSCodeSpec *cs = &js_CodeSpec[op];
-        jssrcnote *sn = js_GetSrcNote(cx, script, pc);
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        bool exitPath =
-            op == JSOP_GOTO ||
-            op == JSOP_RETRVAL ||
-            op == JSOP_THROW;
-
-        bool isConditionalCatchExit = false;
-
-        if (sn && SN_TYPE(sn) == SRC_HIDDEN) {
-            
-            isConditionalCatchExit = op == JSOP_GOTO;
-            if (hpcdepth == unsigned(-1))
-                hpcdepth = pcdepth;
-        } else if (!exitPath) {
-            hpcdepth = unsigned(-1);
-        }
-
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        if (op == JSOP_LEAVEBLOCK && sn && SN_TYPE(sn) == SRC_CATCH) {
-            LOCAL_ASSERT(cpcdepth == unsigned(-1));
-            cpcdepth = pcdepth;
-        } else if (sn && SN_TYPE(sn) == SRC_HIDDEN &&
-                   (op == JSOP_THROW || op == JSOP_THROWING))
-        {
-            
-
-
-
-
-
-            LOCAL_ASSERT(cpcdepth != unsigned(-1));
-            pcdepth = cpcdepth + 1;
-            cpcdepth = unsigned(-1);
-        } else if (!(op == JSOP_GOTO && sn && SN_TYPE(sn) == SRC_HIDDEN) &&
-                   !(op == JSOP_GOSUB && cpcdepth != unsigned(-1)))
-        {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-            if (cpcdepth != unsigned(-1))
-                LOCAL_ASSERT(op == JSOP_NOP || op == JSOP_FINALLY);
-            cpcdepth = unsigned(-1);
-        }
-
-        
-        AssertPCDepth(script, pc, pcdepth);
-        if (pc >= target)
-            break;
-
-        
-        if (SimulateOp(script, op, cs, pc, pcstack, pcdepth) < 0)
-            return -1;
-
-        
-
-        
-
-
-
-
-
-        if (exitPath && hpcdepth != unsigned(-1)) {
-            pcdepth = hpcdepth;
-
-            
-            if (!isConditionalCatchExit)
-                hpcdepth = unsigned(-1);
-        }
-
-        
-
-
-
-
-
-
-
-
-
-
-
-
-        if (sn && SN_TYPE(sn) == SRC_COND) {
-            ptrdiff_t jmplen = GET_JUMP_OFFSET(pc);
-            if (pc + jmplen <= target) {
-                
-                oplen = jmplen;
-            }
-        }
-    }
-    LOCAL_ASSERT(pc == target);
-    AssertPCDepth(script, pc, pcdepth);
-    return pcdepth;
-}
-
-#undef LOCAL_ASSERT
-#undef LOCAL_ASSERT_RV
 
 bool
 js::CallResultEscapes(jsbytecode *pc)
