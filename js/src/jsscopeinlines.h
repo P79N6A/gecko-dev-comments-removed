@@ -3,7 +3,6 @@
 
 
 
-
 #ifndef jsscopeinlines_h___
 #define jsscopeinlines_h___
 
@@ -278,8 +277,13 @@ Shape::getUserId(JSContext *cx, jsid *idp) const
 #endif
     if (self->hasShortID()) {
         int16_t id = self->shortid();
-        if (id < 0)
-            return ValueToId(cx, Int32Value(id), idp);
+        if (id < 0) {
+            RootedId rootedId(cx);
+            if (!ValueToId(cx, Int32Value(id), &rootedId))
+                return false;
+            *idp = rootedId;
+            return true;
+        }
         *idp = INT_TO_JSID(id);
     } else {
         *idp = self->propid();

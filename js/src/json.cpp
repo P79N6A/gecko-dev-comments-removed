@@ -644,7 +644,7 @@ js_Stringify(JSContext *cx, MutableHandleValue vp, JSObject *replacer_, Value sp
                 if (!JSObject::getElement(cx, replacer, replacer, i, &v))
                     return false;
 
-                jsid id;
+                RootedId id(cx);
                 if (v.isNumber()) {
                     
                     int32_t n;
