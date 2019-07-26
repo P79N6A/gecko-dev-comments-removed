@@ -48,42 +48,13 @@ public:
 
 
 
- virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len);
+  virtual MediaConduitErrorCode ReceivedRTPPacket(const void *data, int len);
 
   
 
 
 
- virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len);
-
-  
-
-
-
-
-
-
-
- virtual MediaConduitErrorCode ConfigureSendMediaCodec(
-                               const AudioCodecConfig* codecConfig);
-  
-
-
-
-
-
-
-
-
- virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
-                               const std::vector<AudioCodecConfig* >& codecConfigList);
-
-  
-
-
-
- virtual MediaConduitErrorCode AttachTransport(
-                               mozilla::RefPtr<TransportInterface> aTransport);
+  virtual MediaConduitErrorCode ReceivedRTCPPacket(const void *data, int len);
 
   
 
@@ -93,6 +64,8 @@ public:
 
 
 
+  virtual MediaConduitErrorCode ConfigureSendMediaCodec(const AudioCodecConfig* codecConfig);
+  
 
 
 
@@ -101,10 +74,35 @@ public:
 
 
 
- virtual MediaConduitErrorCode SendAudioFrame(const int16_t speechData[],
-                                              int32_t lengthSamples,
-                                              int32_t samplingFreqHz,
-                                              int32_t capture_time);
+  virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
+    const std::vector<AudioCodecConfig* >& codecConfigList);
+
+  
+
+
+
+  virtual MediaConduitErrorCode AttachTransport(mozilla::RefPtr<TransportInterface> aTransport);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual MediaConduitErrorCode SendAudioFrame(const int16_t speechData[],
+                                               int32_t lengthSamples,
+                                               int32_t samplingFreqHz,
+                                               int32_t capture_time);
 
   
 
@@ -143,14 +141,14 @@ public:
 
 
   WebrtcAudioConduit():
-                      mOtherDirection(NULL),
+                      mOtherDirection(nullptr),
                       mShutDown(false),
-                      mVoiceEngine(NULL),
-                      mTransport(NULL),
+                      mVoiceEngine(nullptr),
+                      mTransport(nullptr),
                       mEngineTransmitting(false),
                       mEngineReceiving(false),
                       mChannel(-1),
-                      mCurSendCodecConfig(NULL),
+                      mCurSendCodecConfig(nullptr),
                       mCaptureDelay(150),
                       mEchoOn(true),
                       mEchoCancel(webrtc::kEcAec)
@@ -195,6 +193,9 @@ private:
   
   void DumpCodecDB() const;
 
+  
+  
+  
   WebrtcAudioConduit*  mOtherDirection;
   
   bool mShutDown;
