@@ -988,9 +988,9 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
 
   bool strict = Preferences::GetBool(js_strict_option_str);
   if (strict)
-    newDefaultJSOptions |= JSOPTION_EXTRA_WARNINGS;
+    newDefaultJSOptions |= JSOPTION_STRICT;
   else
-    newDefaultJSOptions &= ~JSOPTION_EXTRA_WARNINGS;
+    newDefaultJSOptions &= ~JSOPTION_STRICT;
 
   
   
@@ -1056,9 +1056,9 @@ nsJSContext::JSOptionChangedCallback(const char *pref, void *data)
   
   
   bool strictDebug = Preferences::GetBool(js_strict_debug_option_str);
-  if (strictDebug && (newDefaultJSOptions & JSOPTION_EXTRA_WARNINGS) == 0) {
+  if (strictDebug && (newDefaultJSOptions & JSOPTION_STRICT) == 0) {
     if (chromeWindow || !contentWindow)
-      newDefaultJSOptions |= JSOPTION_EXTRA_WARNINGS;
+      newDefaultJSOptions |= JSOPTION_STRICT;
   }
 #endif
 
