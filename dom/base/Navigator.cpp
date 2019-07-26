@@ -992,6 +992,13 @@ Navigator::MozIsLocallyAvailable(const nsAString &aURI,
 
 NS_IMETHODIMP Navigator::GetDeviceStorage(const nsAString &aType, nsIDOMDeviceStorage** _retval)
 {
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = nullptr;
+
+  if (!Preferences::GetBool("device.storage.enabled", false)) {
+    return NS_OK;
+  }
+
   
   
   
@@ -1009,7 +1016,6 @@ NS_IMETHODIMP Navigator::GetDeviceStorage(const nsAString &aType, nsIDOMDeviceSt
   if (dataType != nsIDataType::VTYPE_ARRAY) {
     NS_ASSERTION(dataType == nsIDataType::VTYPE_EMPTY_ARRAY,
                  "Expecting an empty array");
-    *_retval = nullptr;
     return NS_OK;
   }
 
@@ -1030,6 +1036,9 @@ NS_IMETHODIMP Navigator::GetDeviceStorage(const nsAString &aType, nsIDOMDeviceSt
 
 NS_IMETHODIMP Navigator::GetDeviceStorages(const nsAString &aType, nsIVariant** _retval)
 {
+  NS_ENSURE_ARG_POINTER(_retval);
+  *_retval = nullptr;
+
   if (!Preferences::GetBool("device.storage.enabled", false)) {
     return NS_OK;
   }
