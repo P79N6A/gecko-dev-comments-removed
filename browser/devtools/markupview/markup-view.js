@@ -21,6 +21,10 @@ Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource://gre/modules/devtools/Templater.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+loader.lazyGetter(this, "DOMParser", function() {
+ return Cc["@mozilla.org/xmlextras/domparser;1"].createInstance(Ci.nsIDOMParser);
+});
 loader.lazyGetter(this, "AutocompletePopup", () => require("devtools/shared/autocomplete-popup").AutocompletePopup);
 
 
@@ -1111,7 +1115,7 @@ function ElementEditor(aContainer, aNode)
   this.markup = this.container.markup;
   this.node = aNode;
 
-  this.attrs = [];
+  this.attrs = { };
 
   
   this.elt = null;
@@ -1168,7 +1172,7 @@ function ElementEditor(aContainer, aNode)
           undoMods.apply();
         });
       } catch(x) {
-        console.log(x);
+        console.error(x);
       }
     }
   });
@@ -1217,7 +1221,7 @@ ElementEditor.prototype = {
 
   _createAttribute: function EE_createAttribute(aAttr, aBefore)
   {
-    if (this.attrs.indexOf(aAttr.name) !== -1) {
+    if (this.attrs.hasOwnProperty(aAttr.name)) {
       var attr = this.attrs[aAttr.name];
       var name = attr.querySelector(".attrname");
       var val = attr.querySelector(".attrvalue");
@@ -1307,8 +1311,7 @@ ElementEditor.prototype = {
 
   _applyAttributes: function EE__applyAttributes(aValue, aAttrNode, aDoMods, aUndoMods)
   {
-    let attrs = escapeAttributeValues(aValue);
-
+    let attrs = parseAttributeValues(aValue, this.doc);
     for (let attr of attrs) {
       
       this._createAttribute(attr, aAttrNode ? aAttrNode.nextSibling : null);
@@ -1410,90 +1413,34 @@ function nodeDocument(node) {
 
 
 
-function escapeAttributeValues(attr) {
-  let name = null;
-  let value = null;
-  let result = "";
+
+
+function parseAttributeValues(attr, doc) {
+
+  attr = attr.trim();
+
+  
+  let el = DOMParser.parseFromString("<div " + attr + "></div>", "text/html").body.childNodes[0] ||
+           DOMParser.parseFromString("<div " + attr + "\"></div>", "text/html").body.childNodes[0] ||
+           DOMParser.parseFromString("<div " + attr + "'></div>", "text/html").body.childNodes[0];
+  let div = doc.createElement("div");
+
   let attributes = [];
-
-  while(attr.length > 0) {
-    let match;
-    let dirty = false;
-
+  for (let attribute of el.attributes) {
     
-    match = attr.match(/^["\s]+/);
-    if (match && match.length == 1) {
-      attr = attr.substr(match[0].length);
-    }
-
     
-    if (!dirty) {
-      match = attr.match(/^([\w-]+)="/);
-      if (match && match.length == 2) {
-        if (name) {
-          
-          value = "";
-        } else {
-          name = match[1];
-          attr = attr.substr(match[0].length);
-        }
-        dirty = true;
-      }
+    try {
+      div.setAttribute(attribute.name, attribute.value);
+      attributes.push({
+        name: attribute.name,
+        value: attribute.value
+      });
     }
-
-    
-    if (!dirty) {
-      match = attr.match(/^(.+?)"\s+[\w-]+="/);
-      if (match && match.length > 1) {
-        value = typeof match[1] == "undefined" ? match[2] : match[1];
-        attr = attr.substr(value.length);
-        value = simpleEscape(value);
-        dirty = true;
-      }
-    }
-
-    
-    if (!dirty && attr.indexOf("=\"") == -1) {
-      
-      if (attr.charAt(attr.length - 1) == '"') {
-        attr = attr.substr(0, attr.length - 1);
-      }
-
-      if (!name) {
-        name = attr;
-        value = "";
-      } else {
-        value = simpleEscape(attr);
-      }
-      attr = "";
-      dirty = true;
-    }
-
-    if (name !== null && value !== null) {
-      attributes.push({name: name, value: value});
-      name = value = null;
-    }
-
-    if (!dirty) {
-      
-      return attributes;
-    }
+    catch(e) { }
   }
-  return attributes;
-}
 
-
-
-
-
-
-
-
-function simpleEscape(value) {
-  return value.replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&apos;");
+  
+  return attributes.reverse();
 }
 
 
