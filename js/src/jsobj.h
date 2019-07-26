@@ -939,7 +939,6 @@ class JSObject : public js::ObjectImpl
     inline bool isDate()             const { return hasClass(&js::DateClass); }
     inline bool isError()            const { return hasClass(&js::ErrorClass); }
     inline bool isFunction()         const { return hasClass(&js::FunctionClass); }
-    inline bool isGlobal()           const;
     inline bool isObject()           const { return hasClass(&js::ObjectClass); }
     using js::ObjectImpl::isProxy;
     inline bool isRegExpStatics()    const { return hasClass(&js::RegExpStaticsClass); }
@@ -949,8 +948,6 @@ class JSObject : public js::ObjectImpl
     inline bool isWrapper()                 const;
     inline bool isFunctionProxy()           const { return hasClass(&js::FunctionProxyClass); }
     inline bool isCrossCompartmentWrapper() const;
-
-    inline js::GlobalObject &asGlobal();
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_OBJECT; }
 
