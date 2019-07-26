@@ -313,6 +313,9 @@ RtspOmxReader::ReadMetadata(MediaInfo* aInfo,
 
 void RtspOmxReader::SetIdle() {
   
+  MediaOmxReader::SetIdle();
+
+  
   if (mRtspResource) {
     nsIStreamingProtocolController* controller =
         mRtspResource->GetMediaStreamController();
@@ -320,9 +323,6 @@ void RtspOmxReader::SetIdle() {
       controller->Pause();
     }
   }
-
-  
-  MediaOmxReader::SetIdle();
 }
 
 void RtspOmxReader::SetActive() {
