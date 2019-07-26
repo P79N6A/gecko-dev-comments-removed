@@ -6,10 +6,12 @@
 
 
 
+#include <android/api-level.h>
 
 
 
-#if defined(__arm__) || defined(__thumb__) || ANDROID_VERSION >= 9
+
+#if defined(__arm__) || defined(__thumb__) || __ANDROID_API__ >= 9
 #include <asm/sigcontext.h>
 #else
 #error use newer NDK or newer platform version (e.g. --with-android-version=9)
