@@ -33,8 +33,13 @@ function test(aEnabled) {
 
   let deferred = Promise.defer();
 
-  Promise.all([setBluetoothEnabled(aEnabled),
-               waitEitherEnabledOrDisabled()])
+  
+  
+  
+  let promises = [];
+  promises.push(waitEitherEnabledOrDisabled());
+  promises.push(setBluetoothEnabled(aEnabled));
+  Promise.all(promises)
     .then(function(aResults) {
       
 
@@ -43,9 +48,9 @@ function test(aEnabled) {
       log("  Examine results " + JSON.stringify(aResults));
 
       is(bluetoothManager.enabled, aEnabled, "bluetoothManager.enabled");
-      is(aResults[1], aEnabled, "'adapteradded' event received");
+      is(aResults[0], aEnabled, "'adapteradded' event received");
 
-      if (bluetoothManager.enabled === aEnabled && aResults[1] === aEnabled) {
+      if (bluetoothManager.enabled === aEnabled && aResults[0] === aEnabled) {
         deferred.resolve();
       } else {
         deferred.reject();
