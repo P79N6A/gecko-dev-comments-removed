@@ -4679,16 +4679,16 @@ ScriptAnalysis::integerOperation(jsbytecode *pc)
 
 
 
-class TypeConstraintClearDefiniteSetter : public TypeConstraint
+class TypeConstraintClearDefiniteGetterSetter : public TypeConstraint
 {
   public:
     TypeObject *object;
 
-    TypeConstraintClearDefiniteSetter(TypeObject *object)
+    TypeConstraintClearDefiniteGetterSetter(TypeObject *object)
         : object(object)
     {}
 
-    const char *kind() { return "clearDefiniteSetter"; }
+    const char *kind() { return "clearDefiniteGetterSetter"; }
 
     void newPropertyState(JSContext *cx, TypeSet *source)
     {
@@ -4706,6 +4706,28 @@ class TypeConstraintClearDefiniteSetter : public TypeConstraint
 
     void newType(JSContext *cx, TypeSet *source, Type type) {}
 };
+
+static bool
+AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, TypeObject *type, jsid id)
+{
+    
+
+
+
+
+    RootedObject parent(cx, type->proto);
+    while (parent) {
+        TypeObject *parentObject = parent->getType(cx);
+        if (parentObject->unknownProperties())
+            return false;
+        HeapTypeSet *parentTypes = parentObject->getProperty(cx, id, false);
+        if (!parentTypes || parentTypes->ownProperty(true))
+            return false;
+        parentTypes->add(cx, cx->typeLifoAlloc().new_<TypeConstraintClearDefiniteGetterSetter>(type));
+        parent = parent->getProto();
+    }
+    return true;
+}
 
 
 
@@ -4731,15 +4753,25 @@ class TypeConstraintClearDefiniteSingle : public TypeConstraint
     }
 };
 
-static bool
-AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
-                  TypeObject *type, HandleFunction fun, MutableHandleObject pbaseobj,
-                  Vector<TypeNewScript::Initializer> *initializerList);
+struct NewScriptPropertiesState
+{
+    RootedFunction thisFunction;
+    RootedObject baseobj;
+    Vector<TypeNewScript::Initializer> initializerList;
+    Vector<jsid> accessedProperties;
+
+    NewScriptPropertiesState(JSContext *cx)
+      : thisFunction(cx), baseobj(cx), initializerList(cx), accessedProperties(cx)
+    {}
+};
 
 static bool
-AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
-                           MutableHandleObject pbaseobj,
-                           Vector<TypeNewScript::Initializer> *initializerList)
+AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
+                  TypeObject *type, JSFunction *fun, NewScriptPropertiesState &state);
+
+static bool
+AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun,
+                           NewScriptPropertiesState &state)
 {
     AssertCanGC();
 
@@ -4753,7 +4785,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
 
 
-    if (initializerList->length() > 50) {
+    if (state.initializerList.length() > 50) {
         
 
 
@@ -4763,7 +4795,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
     RootedScript script(cx, fun->nonLazyScript());
     if (!JSScript::ensureRanAnalysis(cx, script) || !JSScript::ensureRanInference(cx, script)) {
-        pbaseobj.set(NULL);
+        state.baseobj = NULL;
         cx->compartment->types.setPendingNukeTypes(cx);
         return false;
     }
@@ -4808,7 +4840,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
         if (op == JSOP_RETURN || op == JSOP_STOP || op == JSOP_RETRVAL) {
             if (offset < lastThisPopped) {
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
                 entirelyAnalyzed = false;
                 break;
             }
@@ -4820,7 +4852,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
         
         if (op == JSOP_EVAL) {
             if (offset < lastThisPopped)
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
             entirelyAnalyzed = false;
             break;
         }
@@ -4857,10 +4889,8 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
         if (!pendingPoppedThis.empty() &&
             offset >= pendingPoppedThis.back()->offset) {
             lastThisPopped = pendingPoppedThis[0]->offset;
-            if (!AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, pbaseobj,
-                                   initializerList)) {
+            if (!AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, state))
                 return false;
-            }
         }
 
         if (!pendingPoppedThis.append(uses)) {
@@ -4885,8 +4915,8 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
     if (entirelyAnalyzed &&
         !pendingPoppedThis.empty() &&
-        !AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, pbaseobj,
-                           initializerList)) {
+        !AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, state))
+    {
         return false;
     }
 
@@ -4896,8 +4926,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, HandleFunction fun,
 
 static bool
 AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
-                  TypeObject *type, HandleFunction fun, MutableHandleObject pbaseobj,
-                  Vector<TypeNewScript::Initializer> *initializerList)
+                  TypeObject *type, JSFunction *fun, NewScriptPropertiesState &state)
 {
     RootedScript script(cx, fun->nonLazyScript());
     ScriptAnalysis *analysis = script->analysis();
@@ -4925,50 +4954,80 @@ AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
 
 
 
-
-            RootedObject parent(cx, type->proto);
-            while (parent) {
-                TypeObject *parentObject = parent->getType(cx);
-                if (parentObject->unknownProperties())
+            for (size_t i = 0; i < state.accessedProperties.length(); i++) {
+                if (state.accessedProperties[i] == id)
                     return false;
-                HeapTypeSet *parentTypes = parentObject->getProperty(cx, id, false);
-                if (!parentTypes || parentTypes->ownProperty(true))
-                    return false;
-                parentTypes->add(cx, cx->typeLifoAlloc().new_<TypeConstraintClearDefiniteSetter>(type));
-                parent = parent->getProto();
             }
 
-            unsigned slotSpan = pbaseobj->slotSpan();
+            if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
+                return false;
+
+            unsigned slotSpan = state.baseobj->slotSpan();
             RootedValue value(cx, UndefinedValue());
-            if (!DefineNativeProperty(cx, pbaseobj, id, value, NULL, NULL,
+            if (!DefineNativeProperty(cx, state.baseobj, id, value, NULL, NULL,
                                       JSPROP_ENUMERATE, 0, 0, DNP_SKIP_TYPE)) {
                 cx->compartment->types.setPendingNukeTypes(cx);
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
                 return false;
             }
 
-            if (pbaseobj->inDictionaryMode()) {
-                pbaseobj.set(NULL);
+            if (state.baseobj->inDictionaryMode()) {
+                state.baseobj = NULL;
                 return false;
             }
 
-            if (pbaseobj->slotSpan() == slotSpan) {
+            if (state.baseobj->slotSpan() == slotSpan) {
                 
                 return false;
             }
 
             TypeNewScript::Initializer setprop(TypeNewScript::Initializer::SETPROP, uses->offset);
-            if (!initializerList->append(setprop)) {
+            if (!state.initializerList.append(setprop)) {
                 cx->compartment->types.setPendingNukeTypes(cx);
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
                 return false;
             }
 
-            if (pbaseobj->slotSpan() >= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
+            if (state.baseobj->slotSpan() >= (TYPE_FLAG_DEFINITE_MASK >> TYPE_FLAG_DEFINITE_SHIFT)) {
                 
                 return false;
             }
-        } else if (op == JSOP_FUNCALL && uses->u.which == GET_ARGC(pc) - 1) {
+        } else if (op == JSOP_GETPROP && uses->u.which == 0) {
+            
+
+
+
+
+
+
+
+
+
+
+            RootedId id(cx, NameToId(script->getName(GET_UINT32_INDEX(pc))));
+            if (IdToTypeId(id) != id)
+                return false;
+            if (!state.baseobj->nativeLookup(cx, id) && !state.accessedProperties.append(id.get())) {
+                cx->compartment->types.setPendingNukeTypes(cx);
+                state.baseobj = NULL;
+                return false;
+            }
+
+            if (!AddClearDefiniteGetterSetterForPrototypeChain(cx, type, id))
+                return false;
+
+            
+
+
+
+
+            Shape *shape = type->proto ? type->proto->nativeLookup(cx, id) : NULL;
+            if (shape && shape->hasSlot()) {
+                Value protov = type->proto->getSlot(shape->slot());
+                TypeSet *types = script->analysis()->bytecodeTypes(pc);
+                types->addType(cx, GetValueType(cx, protov));
+            }
+        } else if ((op == JSOP_FUNCALL || op == JSOP_FUNAPPLY) && uses->u.which == GET_ARGC(pc) - 1) {
             
 
 
@@ -5000,14 +5059,19 @@ AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
             StackTypeSet *scriptTypes = analysis->poppedTypes(pc, GET_ARGC(pc));
 
             
-            RootedFunction function(cx);
+            JSFunction *function;
             {
                 RawObject funcallObj = funcallTypes->getSingleton();
                 RawObject scriptObj = scriptTypes->getSingleton();
-                if (!funcallObj || !scriptObj || !scriptObj->isFunction() ||
+                if (!funcallObj || !funcallObj->isFunction() ||
+                    funcallObj->toFunction()->isInterpreted() ||
+                    !scriptObj || !scriptObj->isFunction() ||
                     !scriptObj->toFunction()->isInterpreted()) {
                     return false;
                 }
+                Native native = funcallObj->toFunction()->native();
+                if (native != js_fun_call && native != js_fun_apply)
+                    return false;
                 function = scriptObj->toFunction();
             }
 
@@ -5021,21 +5085,19 @@ AnalyzePoppedThis(JSContext *cx, Vector<SSAUseChain *> *pendingPoppedThis,
                 cx->analysisLifoAlloc().new_<TypeConstraintClearDefiniteSingle>(type));
 
             TypeNewScript::Initializer pushframe(TypeNewScript::Initializer::FRAME_PUSH, uses->offset);
-            if (!initializerList->append(pushframe)) {
+            if (!state.initializerList.append(pushframe)) {
                 cx->compartment->types.setPendingNukeTypes(cx);
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
                 return false;
             }
 
-            if (!AnalyzeNewScriptProperties(cx, type, function,
-                                            pbaseobj, initializerList)) {
+            if (!AnalyzeNewScriptProperties(cx, type, function, state))
                 return false;
-            }
 
             TypeNewScript::Initializer popframe(TypeNewScript::Initializer::FRAME_POP, 0);
-            if (!initializerList->append(popframe)) {
+            if (!state.initializerList.append(popframe)) {
                 cx->compartment->types.setPendingNukeTypes(cx);
-                pbaseobj.set(NULL);
+                state.baseobj = NULL;
                 return false;
             }
 
@@ -5063,17 +5125,22 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, HandleFunction fu
     if (type->unknownProperties())
         return;
 
+    NewScriptPropertiesState state(cx);
+    state.thisFunction = fun;
+
     
-    RootedObject baseobj(cx, NewBuiltinClassInstance(cx, &ObjectClass, gc::FINALIZE_OBJECT16));
-    if (!baseobj) {
+    state.baseobj = NewBuiltinClassInstance(cx, &ObjectClass, gc::FINALIZE_OBJECT16);
+    if (!state.baseobj) {
         if (type->newScript)
             type->clearNewScript(cx);
         return;
     }
 
-    Vector<TypeNewScript::Initializer> initializerList(cx);
-    AnalyzeNewScriptProperties(cx, type, fun, &baseobj, &initializerList);
-    if (!baseobj || baseobj->slotSpan() == 0 || !!(type->flags & OBJECT_FLAG_NEW_SCRIPT_CLEARED)) {
+    AnalyzeNewScriptProperties(cx, type, fun, state);
+    if (!state.baseobj ||
+        state.baseobj->slotSpan() == 0 ||
+        !!(type->flags & OBJECT_FLAG_NEW_SCRIPT_CLEARED))
+    {
         if (type->newScript)
             type->clearNewScript(cx);
         return;
@@ -5085,15 +5152,15 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, HandleFunction fu
 
 
     if (type->newScript) {
-        if (!type->matchDefiniteProperties(baseobj))
+        if (!type->matchDefiniteProperties(state.baseobj))
             type->clearNewScript(cx);
         return;
     }
 
-    gc::AllocKind kind = gc::GetGCObjectKind(baseobj->slotSpan());
+    gc::AllocKind kind = gc::GetGCObjectKind(state.baseobj->slotSpan());
 
     
-    JS_ASSERT(gc::GetGCKindSlots(kind) >= baseobj->slotSpan());
+    JS_ASSERT(gc::GetGCKindSlots(kind) >= state.baseobj->slotSpan());
 
     TypeNewScript::Initializer done(TypeNewScript::Initializer::DONE, 0);
 
@@ -5102,17 +5169,17 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, HandleFunction fu
 
 
 
-    RootedShape shape(cx, baseobj->lastProperty());
-    baseobj = NewReshapedObject(cx, type, baseobj->getParent(), kind, shape);
-    if (!baseobj ||
-        !type->addDefiniteProperties(cx, baseobj) ||
-        !initializerList.append(done)) {
+    RootedShape shape(cx, state.baseobj->lastProperty());
+    state.baseobj = NewReshapedObject(cx, type, state.baseobj->getParent(), kind, shape);
+    if (!state.baseobj ||
+        !type->addDefiniteProperties(cx, state.baseobj) ||
+        !state.initializerList.append(done)) {
         cx->compartment->types.setPendingNukeTypes(cx);
         return;
     }
 
     size_t numBytes = sizeof(TypeNewScript)
-                    + (initializerList.length() * sizeof(TypeNewScript::Initializer));
+                    + (state.initializerList.length() * sizeof(TypeNewScript::Initializer));
 #ifdef JSGC_ROOT_ANALYSIS
     
     void *p;
@@ -5133,11 +5200,13 @@ CheckNewScriptProperties(JSContext *cx, HandleTypeObject type, HandleFunction fu
 
     type->newScript->fun = fun;
     type->newScript->allocKind = kind;
-    type->newScript->shape = baseobj->lastProperty();
+    type->newScript->shape = state.baseobj->lastProperty();
 
     type->newScript->initializerList = (TypeNewScript::Initializer *)
         ((char *) type->newScript.get() + sizeof(TypeNewScript));
-    PodCopy(type->newScript->initializerList, initializerList.begin(), initializerList.length());
+    PodCopy(type->newScript->initializerList,
+            state.initializerList.begin(),
+            state.initializerList.length());
 }
 
 
