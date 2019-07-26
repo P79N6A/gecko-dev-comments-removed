@@ -499,8 +499,8 @@ StreamTextureSourceOGL::RetrieveTextureFromStream()
       mTextureHandle = glTexSurf->Texture();
       mTextureTarget = glTexSurf->TextureTarget();
       MOZ_ASSERT(mTextureHandle);
-      mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                       : SurfaceFormat::R8G8B8X8;
+      mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                       : FORMAT_R8G8B8X8;
       break;
     }
     case SharedSurfaceType::EGLImageShare: {
@@ -513,8 +513,8 @@ StreamTextureSourceOGL::RetrieveTextureFromStream()
         toUpload = eglImageSurf->GetPixels();
         MOZ_ASSERT(toUpload);
       } else {
-        mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                         : SurfaceFormat::R8G8B8X8;
+        mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                         : FORMAT_R8G8B8X8;
       }
       break;
     }
@@ -524,8 +524,8 @@ StreamTextureSourceOGL::RetrieveTextureFromStream()
       mTextureHandle = glTexSurf->Texture();
       mTextureTarget = glTexSurf->TextureTarget();
       MOZ_ASSERT(mTextureHandle);
-      mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                       : SurfaceFormat::R8G8B8X8;
+      mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                       : FORMAT_R8G8B8X8;
       break;
     }
 #endif
@@ -943,7 +943,7 @@ void
 SurfaceStreamHostOGL::Unlock()
 {
   
-  mFormat = gfx::SurfaceFormat::UNKNOWN;
+  mFormat = gfx::FORMAT_UNKNOWN;
 }
 
 bool
@@ -971,8 +971,8 @@ SurfaceStreamHostOGL::Lock()
       mTextureHandle = glTexSurf->Texture();
       mTextureTarget = glTexSurf->TextureTarget();
       MOZ_ASSERT(mTextureHandle);
-      mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                       : SurfaceFormat::R8G8B8X8;
+      mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                       : FORMAT_R8G8B8X8;
       break;
     }
     case SharedSurfaceType::EGLImageShare: {
@@ -985,8 +985,8 @@ SurfaceStreamHostOGL::Lock()
         toUpload = eglImageSurf->GetPixels();
         MOZ_ASSERT(toUpload);
       } else {
-        mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                         : SurfaceFormat::R8G8B8X8;
+        mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                         : FORMAT_R8G8B8X8;
       }
       break;
     }
@@ -996,8 +996,8 @@ SurfaceStreamHostOGL::Lock()
       mTextureHandle = glTexSurf->Texture();
       mTextureTarget = glTexSurf->TextureTarget();
       MOZ_ASSERT(mTextureHandle);
-      mFormat = sharedSurf->HasAlpha() ? SurfaceFormat::R8G8B8A8
-                                       : SurfaceFormat::R8G8B8X8;
+      mFormat = sharedSurf->HasAlpha() ? FORMAT_R8G8B8A8
+                                       : FORMAT_R8G8B8X8;
       break;
     }
 #endif
@@ -1226,9 +1226,9 @@ TiledDeprecatedTextureHostOGL::Update(gfxReusableSurfaceWrapper* aReusableSurfac
                                         TILEDLAYERBUFFER_TILE_SIZE);
 
   if (mGLFormat == LOCAL_GL_RGB) {
-    mFormat = SurfaceFormat::R8G8B8X8;
+    mFormat = FORMAT_R8G8B8X8;
   } else {
-    mFormat = SurfaceFormat::B8G8R8A8;
+    mFormat = FORMAT_B8G8R8A8;
   }
 }
 
@@ -1255,26 +1255,24 @@ Deprecated_SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
 {
   switch (aFormat) {
   case android::PIXEL_FORMAT_BGRA_8888:
-    return swapRB ? SurfaceFormat::R8G8B8A8 : SurfaceFormat::B8G8R8A8;
+    return swapRB ? FORMAT_R8G8B8A8 : FORMAT_B8G8R8A8;
   case android::PIXEL_FORMAT_RGBA_8888:
-    return swapRB ? SurfaceFormat::B8G8R8A8 : SurfaceFormat::R8G8B8A8;
+    return swapRB ? FORMAT_B8G8R8A8 : FORMAT_R8G8B8A8;
   case android::PIXEL_FORMAT_RGBX_8888:
-    return swapRB ? SurfaceFormat::B8G8R8X8 : SurfaceFormat::R8G8B8X8;
+    return swapRB ? FORMAT_B8G8R8X8 : FORMAT_R8G8B8X8;
   case android::PIXEL_FORMAT_RGB_565:
-    return SurfaceFormat::R5G6B5;
-  case android::PIXEL_FORMAT_A_8:
-    return SurfaceFormat::A8;
+    return FORMAT_R5G6B5;
   case HAL_PIXEL_FORMAT_YCbCr_422_SP:
   case HAL_PIXEL_FORMAT_YCrCb_420_SP:
   case HAL_PIXEL_FORMAT_YCbCr_422_I:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
   case HAL_PIXEL_FORMAT_YV12:
-    return SurfaceFormat::B8G8R8A8; 
+    return FORMAT_B8G8R8A8; 
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
       
-      return SurfaceFormat::B8G8R8A8;
+      return FORMAT_B8G8R8A8;
     } else {
       
       
@@ -1282,7 +1280,7 @@ Deprecated_SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
       
       
       MOZ_ASSERT(false, "Unknown Android pixel format.");
-      return SurfaceFormat::UNKNOWN;
+      return FORMAT_UNKNOWN;
     }
   }
 }
@@ -1301,7 +1299,6 @@ Deprecated_TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
   case android::PIXEL_FORMAT_RGBA_8888:
   case android::PIXEL_FORMAT_RGBX_8888:
   case android::PIXEL_FORMAT_RGB_565:
-  case android::PIXEL_FORMAT_A_8:
     return LOCAL_GL_TEXTURE_2D;
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
@@ -1340,9 +1337,9 @@ gfx::SurfaceFormat
 GrallocDeprecatedTextureHostOGL::GetFormat() const
 {
   switch (mTextureTarget) {
-  case LOCAL_GL_TEXTURE_EXTERNAL: return gfx::SurfaceFormat::R8G8B8A8;
+  case LOCAL_GL_TEXTURE_EXTERNAL: return gfx::FORMAT_R8G8B8A8;
   case LOCAL_GL_TEXTURE_2D: return mFormat;
-  default: return gfx::SurfaceFormat::UNKNOWN;
+  default: return gfx::FORMAT_UNKNOWN;
   }
 }
 

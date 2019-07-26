@@ -24,26 +24,24 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
 {
   switch (aFormat) {
   case android::PIXEL_FORMAT_BGRA_8888:
-    return swapRB ? gfx::SurfaceFormat::R8G8B8A8 : gfx::SurfaceFormat::B8G8R8A8;
+    return swapRB ? gfx::FORMAT_R8G8B8A8 : gfx::FORMAT_B8G8R8A8;
   case android::PIXEL_FORMAT_RGBA_8888:
-    return swapRB ? gfx::SurfaceFormat::B8G8R8A8 : gfx::SurfaceFormat::R8G8B8A8;
+    return swapRB ? gfx::FORMAT_B8G8R8A8 : gfx::FORMAT_R8G8B8A8;
   case android::PIXEL_FORMAT_RGBX_8888:
-    return swapRB ? gfx::SurfaceFormat::B8G8R8X8 : gfx::SurfaceFormat::R8G8B8X8;
+    return swapRB ? gfx::FORMAT_B8G8R8X8 : gfx::FORMAT_R8G8B8X8;
   case android::PIXEL_FORMAT_RGB_565:
-    return gfx::SurfaceFormat::R5G6B5;
-  case android::PIXEL_FORMAT_A_8:
-    return gfx::SurfaceFormat::A8;
+    return gfx::FORMAT_R5G6B5;
   case HAL_PIXEL_FORMAT_YCbCr_422_SP:
   case HAL_PIXEL_FORMAT_YCrCb_420_SP:
   case HAL_PIXEL_FORMAT_YCbCr_422_I:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_TILED:
   case GrallocImage::HAL_PIXEL_FORMAT_YCbCr_420_SP_VENUS:
   case HAL_PIXEL_FORMAT_YV12:
-    return gfx::SurfaceFormat::B8G8R8A8; 
+    return gfx::FORMAT_B8G8R8A8; 
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
       
-      return gfx::SurfaceFormat::B8G8R8A8;
+      return gfx::FORMAT_B8G8R8A8;
     } else {
       
       
@@ -52,7 +50,7 @@ SurfaceFormatForAndroidPixelFormat(android::PixelFormat aFormat,
       
       printf_stderr(" xxxxx unknow android format %i\n", (int)aFormat);
       MOZ_ASSERT(false, "Unknown Android pixel format.");
-      return gfx::SurfaceFormat::UNKNOWN;
+      return gfx::FORMAT_UNKNOWN;
     }
   }
 }
@@ -71,7 +69,6 @@ TextureTargetForAndroidPixelFormat(android::PixelFormat aFormat)
   case android::PIXEL_FORMAT_RGBA_8888:
   case android::PIXEL_FORMAT_RGBX_8888:
   case android::PIXEL_FORMAT_RGB_565:
-  case android::PIXEL_FORMAT_A_8:
     return LOCAL_GL_TEXTURE_2D;
   default:
     if (aFormat >= 0x100 && aFormat <= 0x1FF) {
@@ -160,10 +157,10 @@ GrallocTextureSourceOGL::GetTextureTarget() const
 gfx::SurfaceFormat
 GrallocTextureSourceOGL::GetFormat() const {
   if (!mGraphicBuffer.get()) {
-    return gfx::SurfaceFormat::UNKNOWN;
+    return gfx::FORMAT_UNKNOWN;
   }
   if (GetTextureTarget() == LOCAL_GL_TEXTURE_EXTERNAL) {
-    return gfx::SurfaceFormat::R8G8B8A8;
+    return gfx::FORMAT_R8G8B8A8;
   }
   return mFormat;
 }
