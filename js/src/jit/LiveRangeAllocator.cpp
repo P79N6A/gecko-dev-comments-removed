@@ -548,8 +548,8 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
         
         
         for (BitSet::Iterator liveRegId(*live); liveRegId; liveRegId++) {
-            if (!vregs[*liveRegId].getInterval(0)->addRangeAtHead(inputOf(block->firstId()),
-                                                                  outputOf(block->lastId()).next()))
+            if (!vregs[*liveRegId].getInterval(0)->addRangeAtHead(entryOf(block),
+                                                                  exitOf(block).next()))
             {
                 return false;
             }
@@ -747,7 +747,7 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                     }
 
                     LiveInterval *interval = vregs[use].getInterval(0);
-                    if (!interval->addRangeAtHead(inputOf(block->firstId()), forLSRA ? to : to.next()))
+                    if (!interval->addRangeAtHead(entryOf(block), forLSRA ? to : to.next()))
                         return false;
                     interval->addUse(new(alloc()) UsePosition(use, to));
 
@@ -766,7 +766,7 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
             } else {
                 
                 
-                if (!vregs[def].getInterval(0)->addRangeAtHead(inputOf(block->firstId()),
+                if (!vregs[def].getInterval(0)->addRangeAtHead(entryOf(block),
                                                                outputOf(block->firstId())))
                 {
                     return false;
@@ -786,8 +786,8 @@ LiveRangeAllocator<VREG, forLSRA>::buildLivenessInfo()
                 JS_ASSERT(loopBlock->id() >= mblock->id());
 
                 
-                CodePosition from = inputOf(loopBlock->lir()->firstId());
-                CodePosition to = outputOf(loopBlock->lir()->lastId()).next();
+                CodePosition from = entryOf(loopBlock->lir());
+                CodePosition to = exitOf(loopBlock->lir()).next();
 
                 for (BitSet::Iterator liveRegId(*live); liveRegId; liveRegId++) {
                     if (!vregs[*liveRegId].getInterval(0)->addRange(from, to))
