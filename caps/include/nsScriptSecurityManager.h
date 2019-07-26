@@ -117,10 +117,13 @@ private:
     CheckObjectAccess(JSContext *cx, JS::Handle<JSObject*> obj,
                       JS::Handle<jsid> id, JSAccessMode mode,
                       JS::MutableHandle<JS::Value> vp);
-    
+
     
     static bool
     ContentSecurityPolicyPermitsJSAction(JSContext *cx);
+
+    static bool
+    JSPrincipalsSubsume(JSPrincipals *first, JSPrincipals *second);
 
     
     

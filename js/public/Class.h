@@ -276,6 +276,12 @@ typedef bool
 
 
 typedef bool
+(* JSSubsumesOp)(JSPrincipals *first, JSPrincipals *second);
+
+
+
+
+typedef bool
 (* JSHasInstanceOp)(JSContext *cx, JS::Handle<JSObject*> obj, JS::MutableHandle<JS::Value> vp,
                     bool *bp);
 
