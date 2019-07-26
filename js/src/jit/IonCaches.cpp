@@ -1539,9 +1539,9 @@ GenerateProxyClassGuards(MacroAssembler &masm, Register object, Register scratch
     
     
     masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
-                            ObjectProxyClassPtr, success);
+                            CallableProxyClassPtr, success);
     masm.branchTestObjClass(Assembler::Equal, object, scratchReg,
-                            FunctionProxyClassPtr, success);
+                            UncallableProxyClassPtr, success);
     masm.branchTestObjClass(Assembler::NotEqual, object, scratchReg,
                             OuterWindowProxyClassPtr, failures);
 }

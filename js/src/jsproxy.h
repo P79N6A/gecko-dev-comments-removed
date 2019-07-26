@@ -279,34 +279,15 @@ class Proxy
 };
 
 
-
-extern JS_FRIEND_DATA(const js::Class* const) FunctionProxyClassPtr;
-extern JS_FRIEND_DATA(const js::Class* const) ObjectProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) CallableProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) UncallableProxyClassPtr;
 extern JS_FRIEND_DATA(const js::Class* const) OuterWindowProxyClassPtr;
-
-inline bool IsObjectProxyClass(const Class *clasp)
-{
-    return clasp == ObjectProxyClassPtr || clasp == OuterWindowProxyClassPtr;
-}
-
-inline bool IsFunctionProxyClass(const Class *clasp)
-{
-    return clasp == FunctionProxyClassPtr;
-}
 
 inline bool IsProxyClass(const Class *clasp)
 {
-    return IsObjectProxyClass(clasp) || IsFunctionProxyClass(clasp);
-}
-
-inline bool IsObjectProxy(JSObject *obj)
-{
-    return IsObjectProxyClass(GetObjectClass(obj));
-}
-
-inline bool IsFunctionProxy(JSObject *obj)
-{
-    return IsFunctionProxyClass(GetObjectClass(obj));
+    return clasp == CallableProxyClassPtr ||
+           clasp == UncallableProxyClassPtr ||
+           clasp == OuterWindowProxyClassPtr;
 }
 
 inline bool IsProxy(JSObject *obj)

@@ -620,7 +620,7 @@ extern JSObject *
 GetDebugScopeForFrame(JSContext *cx, AbstractFramePtr frame);
 
 
-class DebugScopeObject : public ObjectProxyObject
+class DebugScopeObject : public ProxyObject
 {
     
 
@@ -732,11 +732,11 @@ template<>
 inline bool
 JSObject::is<js::DebugScopeObject>() const
 {
-    extern bool js_IsDebugScopeSlow(js::ObjectProxyObject *proxy);
+    extern bool js_IsDebugScopeSlow(js::ProxyObject *proxy);
 
     
-    return hasClass(&js::ObjectProxyObject::class_) &&
-           js_IsDebugScopeSlow(&const_cast<JSObject*>(this)->as<js::ObjectProxyObject>());
+    return hasClass(&js::ProxyObject::uncallableClass_) &&
+           js_IsDebugScopeSlow(&const_cast<JSObject*>(this)->as<js::ProxyObject>());
 }
 
 template<>
