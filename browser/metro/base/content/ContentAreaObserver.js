@@ -161,7 +161,7 @@ var ContentAreaObserver = {
     this.styles["viewable-width"].maxWidth = newWidth + "px";
 
     
-    let navBar = document.getElementById("appbar");
+    let navBar = document.getElementById("navbar");
     let contextAppBar = document.getElementById("contextappbar");
     let findBar = document.getElementById("content-navigator");
     let keyboardHeight = MetroUtils.keyboardHeight;
