@@ -586,12 +586,10 @@ js::ExecuteRegExp(JSContext *cx, HandleObject regexp, HandleString string, Match
         return RegExpRunStatus_Error;
 
     
-    if (re->global() || (status == RegExpRunStatus_Success && re->sticky())) {
-        if (status == RegExpRunStatus_Success_NotFound)
-            reobj->zeroLastIndex();
-        else
-            reobj->setLastIndex(lastIndexInt);
-    }
+    if (status == RegExpRunStatus_Success_NotFound)
+        reobj->zeroLastIndex();
+    else if (re->global() || re->sticky())
+        reobj->setLastIndex(lastIndexInt);
 
     return status;
 }
