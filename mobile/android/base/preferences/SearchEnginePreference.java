@@ -14,16 +14,13 @@ import android.os.Build;
 import android.preference.Preference;
 import android.text.SpannableString;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.mozilla.gecko.Favicons;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.ThreadUtils;
-import org.mozilla.gecko.widget.FaviconView;
 
 
 
@@ -33,7 +30,6 @@ public class SearchEnginePreference extends Preference {
 
     
     public static int sIconSize;
-    public static int sDialogIconSize;
 
     
     public static final int INDEX_SET_DEFAULT_BUTTON = 0;
@@ -56,11 +52,6 @@ public class SearchEnginePreference extends Preference {
     private final SearchPreferenceCategory mParentCategory;
 
     
-    private BitmapDrawable mPromptIcon;
-    
-    private Bitmap mIconBitmap;
-
-    
 
 
 
@@ -74,12 +65,7 @@ public class SearchEnginePreference extends Preference {
         Resources res = getContext().getResources();
 
         
-        setLayoutResource(R.layout.preference_search_engine);
-
-        
-        sIconSize = (int) res.getDimension(R.dimen.awesomebar_row_favicon_size_small);
-        sDialogIconSize = (int) res.getDimension(R.dimen.awesomebar_row_favicon_size_large);
-
+        sIconSize = res.getDimensionPixelSize(R.dimen.searchpreferences_icon_size);
         setOnPreferenceClickListener(new OnPreferenceClickListener() {
             @Override
             public boolean onPreferenceClick(Preference preference) {
@@ -103,18 +89,6 @@ public class SearchEnginePreference extends Preference {
 
 
 
-    @Override
-    protected void onBindView(View view) {
-        super.onBindView(view);
-        
-        ((FaviconView) view.findViewById(R.id.search_engine_icon)).updateImage(mIconBitmap, getTitle().toString());
-    }
-
-    
-
-
-
-
     public void setSearchEngineFromJSON(JSONObject geckoEngineJSON) throws JSONException {
         final String engineName = geckoEngineJSON.getString("name");
         SpannableString titleSpannable = new SpannableString(engineName);
@@ -126,12 +100,14 @@ public class SearchEnginePreference extends Preference {
         }
         setTitle(titleSpannable);
 
-        String iconURI = geckoEngineJSON.getString("iconURI");
         
-        mIconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
-        
-        if (!Favicons.getInstance().isLargeFavicon(mIconBitmap)) {
-            mIconBitmap = Bitmap.createScaledBitmap(mIconBitmap, sIconSize, sIconSize, false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            
+            String iconURI = geckoEngineJSON.getString("iconURI");
+            Bitmap iconBitmap = BitmapUtils.getBitmapFromDataURI(iconURI);
+            Bitmap scaledIconBitmap = Bitmap.createScaledBitmap(iconBitmap, sIconSize, sIconSize, false);
+            BitmapDrawable drawable = new BitmapDrawable(scaledIconBitmap);
+            setIcon(drawable);
         }
     }
 
@@ -197,11 +173,9 @@ public class SearchEnginePreference extends Preference {
         });
 
         
-        
-        if (mPromptIcon == null) {
-            mPromptIcon = new BitmapDrawable(Bitmap.createScaledBitmap(mIconBitmap, sDialogIconSize, sDialogIconSize, false));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB) {
+            builder.setIcon(getIcon());
         }
-        builder.setIcon(mPromptIcon);
 
         
         ThreadUtils.postToUiThread(new Runnable() {
