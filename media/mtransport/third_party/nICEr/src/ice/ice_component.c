@@ -249,7 +249,7 @@ int nr_ice_component_initialize(struct nr_ice_ctx_ *ctx,nr_ice_component *compon
           ABORT(r);
         cand->state=NR_ICE_CAND_STATE_INITIALIZING; 
         cand->done_cb=nr_ice_initialize_finished_cb;
-        cand->cb_arg=cand;
+        cand->cb_arg=ctx;
 
         TAILQ_INSERT_TAIL(&component->candidates,cand,entry_comp);
         component->candidate_ct++;
@@ -315,7 +315,7 @@ int nr_ice_component_initialize(struct nr_ice_ctx_ *ctx,nr_ice_component *compon
     cand=TAILQ_FIRST(&component->candidates);
     while(cand){
       if(cand->state!=NR_ICE_CAND_STATE_INITIALIZING){
-        if(r=nr_ice_candidate_initialize(cand,nr_ice_initialize_finished_cb,cand)){
+        if(r=nr_ice_candidate_initialize(cand,nr_ice_initialize_finished_cb,ctx)){
           if(r!=R_WOULDBLOCK){
             ctx->uninitialized_candidates--;
             cand->state=NR_ICE_CAND_STATE_FAILED;
@@ -339,55 +339,65 @@ int nr_ice_component_initialize(struct nr_ice_ctx_ *ctx,nr_ice_component *compon
 
 
 
-
-int nr_ice_component_maybe_prune_candidate(nr_ice_ctx *ctx, nr_ice_component *comp, nr_ice_candidate *c1, int *was_pruned)
+int nr_ice_component_prune_candidates(nr_ice_ctx *ctx, nr_ice_component *comp)
   {
-    nr_ice_candidate *c2, *tmp = NULL;
+    nr_ice_candidate *c1,*c1n,*c2;
 
-    *was_pruned = 0;
-    c2 = TAILQ_FIRST(&comp->candidates);
-    while(c2){
-      if((c1 != c2) &&
-         (c2->state == NR_ICE_CAND_STATE_INITIALIZED) &&
-         !nr_transport_addr_cmp(&c1->base,&c2->base,NR_TRANSPORT_ADDR_CMP_MODE_ALL) &&
-         !nr_transport_addr_cmp(&c1->addr,&c2->addr,NR_TRANSPORT_ADDR_CMP_MODE_ALL)){
-
-        if((c1->type == c2->type) ||
-           (c1->type==HOST && c2->type == SERVER_REFLEXIVE) ||
-           (c2->type==HOST && c1->type == SERVER_REFLEXIVE)){
-
-          
-
-
-
-
-
-          if (c1->priority < c2->priority) {
-            tmp = c1;
-            *was_pruned = 1;
-          }
-          else {
-            tmp = c2;
-          }
-          break;
+    c1=TAILQ_FIRST(&comp->candidates);
+    while(c1){
+      c1n=TAILQ_NEXT(c1,entry_comp);
+      if(c1->state!=NR_ICE_CAND_STATE_INITIALIZED){
+        r_log(LOG_ICE,LOG_DEBUG,"ICE(%s): Removing non-initialized candidate %s",
+          ctx->label,c1->label);
+        if (c1->state == NR_ICE_CAND_STATE_INITIALIZING) {
+          r_log(LOG_ICE,LOG_NOTICE, "ICE(%s): Removing candidate %s which is in INITIALIZING state",
+            ctx->label, c1->label);
         }
+        TAILQ_REMOVE(&comp->candidates,c1,entry_comp);
+        comp->candidate_ct--;
+        TAILQ_REMOVE(&c1->isock->candidates,c1,entry_sock);
+        
+
+        NR_ASYNC_SCHEDULE(nr_ice_candidate_destroy_cb,c1);
+        goto next_c1;
       }
 
-      c2=TAILQ_NEXT(c2,entry_comp);
+      c2=TAILQ_NEXT(c1,entry_comp);
+
+      while(c2){
+        nr_ice_candidate *tmp;
+
+        if(!nr_transport_addr_cmp(&c1->base,&c2->base,NR_TRANSPORT_ADDR_CMP_MODE_ALL) && !nr_transport_addr_cmp(&c1->addr,&c2->addr,NR_TRANSPORT_ADDR_CMP_MODE_ALL)){
+
+          if((c1->type == c2->type) ||
+            (c1->type==HOST && c2->type == SERVER_REFLEXIVE) ||
+            (c2->type==HOST && c1->type == SERVER_REFLEXIVE)){
+
+            
+            tmp=c2;
+            c2=TAILQ_NEXT(c2,entry_comp);
+            if(c1n==tmp)
+              c1n=c2;
+
+            r_log(LOG_ICE,LOG_DEBUG,"ICE(%s): Removing redundant candidate %s",
+              ctx->label,tmp->label);
+
+            TAILQ_REMOVE(&comp->candidates,tmp,entry_comp);
+            comp->candidate_ct--;
+            TAILQ_REMOVE(&tmp->isock->candidates,tmp,entry_sock);
+
+            nr_ice_candidate_destroy(&tmp);
+          }
+        }
+        else{
+          c2=TAILQ_NEXT(c2,entry_comp);
+        }
+      }
+    next_c1:
+      c1=c1n;
     }
 
-    if (tmp) {
-      r_log(LOG_ICE,LOG_DEBUG,"ICE(%s): Removing redundant candidate %s",
-            ctx->label,tmp->label);
-
-      TAILQ_REMOVE(&comp->candidates,tmp,entry_comp);
-      comp->candidate_ct--;
-      TAILQ_REMOVE(&tmp->isock->candidates,tmp,entry_sock);
-
-      nr_ice_candidate_destroy(&tmp);
-    }
-
-    return 0;
+    return(0);
   }
 
 
@@ -642,85 +652,74 @@ int nr_ice_component_service_pre_answer_requests(nr_ice_peer_ctx *pctx, nr_ice_c
     return(_status);
   }
 
-int nr_ice_component_pair_candidate(nr_ice_peer_ctx *pctx, nr_ice_component *pcomp, nr_ice_candidate *lcand, int pair_all_remote)
-  {
-    int r, _status;
-    nr_ice_candidate *pcand;
-    nr_ice_cand_pair *pair=0;
-    char codeword[5];
-
-    nr_ice_compute_codeword(lcand->label,strlen(lcand->label),codeword);
-    r_log(LOG_ICE,LOG_DEBUG,"Pairing local candidate %s:%s",codeword,lcand->label);
-
-    switch(lcand->type){
-      case HOST:
-        break;
-      case SERVER_REFLEXIVE:
-      case PEER_REFLEXIVE:
-        
-        goto done;
-        break;
-      case RELAYED:
-        break;
-      default:
-        assert(0);
-        ABORT(R_INTERNAL);
-        break;
-    }
-
-    pcand=TAILQ_FIRST(&pcomp->candidates);
-    while(pcand){
-      
-
-
-
-
-
-
-
-
-      if (pair_all_remote || (pcand->state == NR_ICE_CAND_PEER_CANDIDATE_UNPAIRED)) {
-        
-
-        if (pair_all_remote)
-          assert (pcand->state == NR_ICE_CAND_PEER_CANDIDATE_PAIRED);
-
-        nr_ice_compute_codeword(pcand->label,strlen(pcand->label),codeword);
-        r_log(LOG_ICE,LOG_DEBUG,"Pairing with peer candidate %s:%s",codeword,pcand->label);
-
-        if(r=nr_ice_candidate_pair_create(pctx,lcand,pcand,&pair))
-          ABORT(r);
-
-        if(r=nr_ice_candidate_pair_insert(&pcomp->stream->check_list,
-                                          pair))
-          ABORT(r);
-      }
-
-      pcand=TAILQ_NEXT(pcand,entry_comp);
-    }
-
-   done:
-    _status = 0;
-   abort:
-    return(_status);
-  }
-
 int nr_ice_component_pair_candidates(nr_ice_peer_ctx *pctx, nr_ice_component *lcomp,nr_ice_component *pcomp)
   {
-    nr_ice_candidate *lcand, *pcand;
+    nr_ice_candidate *lcand,*pcand;
+    nr_ice_cand_pair *pair=0;
     nr_ice_socket *isock;
     int r,_status;
+    char codeword[5];
 
     r_log(LOG_ICE,LOG_DEBUG,"Pairing candidates======");
-
     
     lcand=TAILQ_FIRST(&lcomp->candidates);
     while(lcand){
-      if (lcand->state == NR_ICE_CAND_STATE_INITIALIZED) {
-        if ((r = nr_ice_component_pair_candidate(pctx, pcomp, lcand, 0)))
-          ABORT(r);
+      int was_paired = 0;
+
+      nr_ice_compute_codeword(lcand->label,strlen(lcand->label),codeword);
+      r_log(LOG_ICE,LOG_DEBUG,"Examining local candidate %s:%s",codeword,lcand->label);
+
+      switch(lcand->type){
+        case HOST:
+          break;
+        case SERVER_REFLEXIVE:
+        case PEER_REFLEXIVE:
+          
+          goto next_cand;
+          break;
+        case RELAYED:
+          break;
+        default:
+          assert(0);
+          ABORT(R_INTERNAL);
+          break;
       }
 
+      
+      if(TAILQ_EMPTY(&pcomp->candidates)) {
+          
+          goto next_cand;
+      }
+      pcand=TAILQ_FIRST(&pcomp->candidates);
+      while(pcand){
+        
+
+
+
+
+
+
+        if (pcand->state == NR_ICE_CAND_PEER_CANDIDATE_UNPAIRED) {
+          nr_ice_compute_codeword(pcand->label,strlen(pcand->label),codeword);
+          r_log(LOG_ICE,LOG_DEBUG,"Examining peer candidate %s:%s",codeword,pcand->label);
+
+          if(r=nr_ice_candidate_pair_create(pctx,lcand,pcand,&pair))
+            ABORT(r);
+
+          if(r=nr_ice_candidate_pair_insert(&pcomp->stream->check_list,
+              pair))
+            ABORT(r);
+        }
+        else {
+          was_paired = 1;
+        }
+        pcand=TAILQ_NEXT(pcand,entry_comp);
+      }
+
+      if(!pair)
+        goto next_cand;
+
+    next_cand:
       lcand=TAILQ_NEXT(lcand,entry_comp);
     }
 

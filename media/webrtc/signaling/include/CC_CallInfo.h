@@ -362,10 +362,5 @@ namespace CSF
 
 
         virtual Timecard *takeTimecard() = 0;
-
-	
-
-
-	virtual std::string getCandidate() = 0;
     };
 };

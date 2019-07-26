@@ -106,12 +106,6 @@ struct NrIceCandidatePair {
   
 };
 
-
-class NrIceOpaque {
- public:
-  virtual ~NrIceOpaque() {}
-};
-
 class NrIceMediaStream {
  public:
   static RefPtr<NrIceMediaStream> Create(NrIceCtx *ctx,
@@ -170,18 +164,16 @@ class NrIceMediaStream {
   
   void Close();
 
-  
-  void SetOpaque(NrIceOpaque *opaque) { opaque_ = opaque; }
-
-  
-  NrIceOpaque* opaque() const { return opaque_; }
-
   sigslot::signal2<NrIceMediaStream *, const std::string& >
   SignalCandidate;  
   sigslot::signal1<NrIceMediaStream *> SignalReady;  
   sigslot::signal1<NrIceMediaStream *> SignalFailed;  
   sigslot::signal4<NrIceMediaStream *, int, const unsigned char *, int>
   SignalPacketReceived;  
+
+  
+  
+  void EmitAllCandidates();
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(NrIceMediaStream)
 
@@ -192,8 +184,7 @@ class NrIceMediaStream {
       ctx_(ctx),
       name_(name),
       components_(components),
-      stream_(nullptr),
-      opaque_(nullptr) {}
+      stream_(nullptr) {}
 
   DISALLOW_COPY_ASSIGN(NrIceMediaStream);
 
@@ -202,7 +193,6 @@ class NrIceMediaStream {
   const std::string name_;
   const int components_;
   nr_ice_media_stream *stream_;
-  ScopedDeletePtr<NrIceOpaque> opaque_;
 };
 
 

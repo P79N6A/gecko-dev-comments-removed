@@ -386,8 +386,6 @@ private:
   
   std::vector<std::string> mSDPParseErrorMessages;
 
-  bool mTrickle;
-
 public:
   
   unsigned short listenPort;

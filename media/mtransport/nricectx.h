@@ -69,7 +69,6 @@ typedef struct nr_ice_peer_ctx_ nr_ice_peer_ctx;
 typedef struct nr_ice_media_stream_ nr_ice_media_stream;
 typedef struct nr_ice_handler_ nr_ice_handler;
 typedef struct nr_ice_handler_vtbl_ nr_ice_handler_vtbl;
-typedef struct nr_ice_candidate_ nr_ice_candidate;
 typedef struct nr_ice_cand_pair_ nr_ice_cand_pair;
 typedef struct nr_ice_stun_server_ nr_ice_stun_server;
 typedef struct nr_ice_turn_server_ nr_ice_turn_server;
@@ -223,9 +222,6 @@ class NrIceCtx {
   nsresult Finalize();
 
   
-  bool generating_trickle() const { return trickle_; }
-
-  
   
   
   
@@ -248,8 +244,8 @@ class NrIceCtx {
     ctx_(nullptr),
     peer_(nullptr),
     ice_handler_vtbl_(nullptr),
-    ice_handler_(nullptr),
-    trickle_(true) {
+    ice_handler_(nullptr)
+  {
     
     (void)offerer_;
   }
@@ -269,8 +265,10 @@ class NrIceCtx {
   static int msg_recvd(void *obj, nr_ice_peer_ctx *pctx,
                        nr_ice_media_stream *stream, int component_id,
                        unsigned char *msg, int len);
-  static void trickle_cb(void *arg, nr_ice_ctx *ctx, nr_ice_media_stream *stream,
-                         int component_id, nr_ice_candidate *candidate);
+
+  
+  
+  void EmitAllCandidates();
 
   
   RefPtr<NrIceMediaStream> FindStream(nr_ice_media_stream *stream);
@@ -286,7 +284,6 @@ class NrIceCtx {
   nr_ice_peer_ctx *peer_;
   nr_ice_handler_vtbl* ice_handler_vtbl_;  
   nr_ice_handler* ice_handler_;  
-  bool trickle_;
   nsCOMPtr<nsIEventTarget> sts_target_; 
 };
 
