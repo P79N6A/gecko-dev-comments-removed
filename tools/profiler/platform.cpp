@@ -116,7 +116,7 @@ static inline const char* name_UnwMode(UnwMode m)
 }
 
 
-void read_env_vars()
+void read_profiler_env_vars()
 {
   bool nativeAvail = false;
 # if defined(HAVE_NATIVE_UNWIND)
@@ -132,6 +132,7 @@ void read_env_vars()
 
   const char* strM = PR_GetEnv("MOZ_PROFILER_MODE");
   const char* strI = PR_GetEnv("MOZ_PROFILER_INTERVAL");
+  const char* strF = PR_GetEnv("MOZ_PROFILER_STACK_SCAN");
 
   if (strM) {
     if (0 == strcmp(strM, "pseudo"))
@@ -148,6 +149,15 @@ void read_env_vars()
     long int n = strtol(strI, (char**)NULL, 10);
     if (errno == 0 && n >= 1 && n <= 1000) {
       sUnwindInterval = n;
+    }
+    else goto usage;
+  }
+
+  if (strF) {
+    errno = 0;
+    long int n = strtol(strF, (char**)NULL, 10);
+    if (errno == 0 && n >= 0 && n <= 100) {
+      sUnwindStackScan = n;
     }
     else goto usage;
   }
@@ -170,6 +180,9 @@ void read_env_vars()
   LOG( "SPS:   MOZ_PROFILER_VERBOSE");
   LOG( "SPS:   If set to any value, increases verbosity (recommended).");
   LOG( "SPS: ");
+  LOG( "SPS:   MOZ_PROFILER_STACK_SCAN=<number>   (default is zero)");
+  LOG( "SPS:   The number of dubious (stack-scanned) frames allowed");
+  LOG( "SPS: ");
   LOG( "SPS:   MOZ_PROFILER_NEW");
   LOG( "SPS:   Needs to be set to use Breakpad-based unwinding.");
   LOG( "SPS: ");
@@ -179,12 +192,15 @@ void read_env_vars()
   
   sUnwindMode       = nativeAvail ? UnwCOMBINED : UnwPSEUDO;
   sUnwindInterval   = 0;  
+  sUnwindStackScan  = 0;
 
  out:
   LOG( "SPS:");
   LOGF("SPS: Unwind mode       = %s", name_UnwMode(sUnwindMode));
   LOGF("SPS: Sampling interval = %d ms (zero means \"platform default\")",
        (int)sUnwindInterval);
+  LOGF("SPS: UnwindStackScan   = %d (max dubious frames per unwind).",
+       (int)sUnwindStackScan);
   LOG( "SPS: Use env var MOZ_PROFILER_MODE=help for further information.");
   LOG( "SPS:");
 
@@ -212,7 +228,8 @@ void mozilla_sampler_init()
   if (sps_version2()) {
     
     
-    read_env_vars();
+    
+    read_profiler_env_vars();
 
     
     uwt__init();

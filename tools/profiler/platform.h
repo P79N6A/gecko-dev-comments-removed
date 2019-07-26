@@ -218,6 +218,15 @@ class Thread {
 
 
 
+void read_profiler_env_vars();
+typedef  enum { UnwINVALID, UnwNATIVE, UnwPSEUDO, UnwCOMBINED }  UnwMode;
+extern UnwMode sUnwindMode;       
+extern int     sUnwindInterval;   
+extern int     sUnwindStackScan;  
+
+
+
+
 
 
 
