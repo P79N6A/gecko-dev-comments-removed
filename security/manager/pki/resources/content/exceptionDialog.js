@@ -14,6 +14,8 @@ var gNeedReset;
 var gSecHistogram;
 var gNsISecTel;
 
+Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
+
 function badCertListener() {}
 badCertListener.prototype = {
   getInterface: function (aIID) {
@@ -381,20 +383,6 @@ function addException() {
 
 
 
-
 function inPrivateBrowsingMode() {
-  
-  var args = window.arguments;
-  if (args && args[0] && args[0].handlePrivateBrowsing) {
-    
-    try {
-      var pb = Components.classes["@mozilla.org/privatebrowsing;1"].
-               getService(Components.interfaces.nsIPrivateBrowsingService);
-      return pb.privateBrowsingEnabled;
-    } catch (ex) {
-      Components.utils.reportError("Could not get the Private Browsing service");
-    }
-  }
-
-  return false;
+  return PrivateBrowsingUtils.isWindowPrivate(window);
 }

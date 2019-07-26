@@ -19,14 +19,13 @@ function test() {
   
   pb.privateBrowsingEnabled = true;
 
-  step1();
+  doTest();
 
   
-  function step1() {
+  function doTest() {
     let params = {
       exceptionAdded : false,
       location: INVALID_CERT_LOCATION,
-      handlePrivateBrowsing : true,
       prefetchCert: true,
     };
     function testCheckbox() {
@@ -40,32 +39,6 @@ function test() {
           "the permanent checkbox should be disabled when handling the private browsing mode");
         ok(!checkbox.hasAttribute("checked"),
           "the permanent checkbox should not be checked when handling the private browsing mode");
-        win.close();
-        step2();
-      }, "cert-exception-ui-ready", false);
-    }
-    var win = openDialog(EXCEPTIONS_DLG_URL, "", EXCEPTIONS_DLG_FEATURES, params);
-    win.addEventListener("load", testCheckbox, false);
-  }
-
-  
-  function step2() {
-    let params = {
-      exceptionAdded : false,
-      location: INVALID_CERT_LOCATION,
-      prefetchCert: true,
-    };
-    function testCheckbox() {
-      win.removeEventListener("load", testCheckbox, false);
-      Services.obs.addObserver(function (aSubject, aTopic, aData) {
-        Services.obs.removeObserver(arguments.callee, "cert-exception-ui-ready", false);
-        ok(win.gCert, "The certificate information should be available now");
-
-        let checkbox = win.document.getElementById("permanent");
-        ok(!checkbox.hasAttribute("disabled"),
-          "the permanent checkbox should not be disabled when not handling the private browsing mode");
-        ok(checkbox.hasAttribute("checked"),
-          "the permanent checkbox should be checked when not handling the private browsing mode");
         win.close();
         cleanup();
       }, "cert-exception-ui-ready", false);
