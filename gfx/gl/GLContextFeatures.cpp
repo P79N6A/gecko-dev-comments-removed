@@ -86,7 +86,7 @@ static const FeatureInfo sFeatureInfoArr[] = {
     },
     {
         "draw_range_elements",
-        200, 
+        120, 
         300, 
         {
             GLContext::EXT_draw_range_elements,
