@@ -1051,6 +1051,15 @@ GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes)
 
     
     
+    if (it.prevType() == IonFrame_Rectifier || it.prevType() == IonFrame_Unwound_Rectifier) {
+        ++it;
+        JS_ASSERT(it.prevType() == IonFrame_BaselineStub ||
+                  it.prevType() == IonFrame_BaselineJS ||
+                  it.prevType() == IonFrame_OptimizedJS);
+    }
+
+    
+    
     
     if (it.prevType() == IonFrame_BaselineStub || it.prevType() == IonFrame_Unwound_BaselineStub) {
         ++it;
