@@ -413,8 +413,8 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
         return true;
 
     JSContext *ncx = cx->asJSContext();
-#if defined(JS_GC_ZEAL) || defined(DEBUG)
     JSRuntime *rt = ncx->runtime();
+#if defined(JS_GC_ZEAL) || defined(DEBUG)
     JS_ASSERT_IF(rt->isAtomsCompartment(ncx->compartment()),
                  kind == FINALIZE_STRING ||
                  kind == FINALIZE_SHORT_STRING ||
@@ -426,13 +426,22 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
     
     JS_OOM_POSSIBLY_FAIL_REPORT(ncx);
 
+    if (allowGC) {
 #ifdef JS_GC_ZEAL
-    if (allowGC && rt->needZealousGC())
-        js::gc::RunDebugGC(ncx);
+        if (rt->needZealousGC())
+            js::gc::RunDebugGC(ncx);
 #endif
 
-    if (allowGC)
+        if (rt->interrupt) {
+            
+
+
+
+            js::gc::GCIfNeeded(ncx);
+        }
+
         MaybeCheckStackRoots(ncx);
+    }
 
     return true;
 }

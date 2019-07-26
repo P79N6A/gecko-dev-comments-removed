@@ -1331,6 +1331,9 @@ NewCompartment(JSContext *cx, JS::Zone *zone, JSPrincipals *principals,
 
 namespace gc {
 
+extern void
+GCIfNeeded(JSContext *cx);
+
 
 void
 RunDebugGC(JSContext *cx);

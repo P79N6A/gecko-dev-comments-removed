@@ -423,6 +423,13 @@ js::RunScript(JSContext *cx, RunState &state)
     return Interpret(cx, state);
 }
 
+struct AutoGCIfNeeded
+{
+    JSContext *cx_;
+    AutoGCIfNeeded(JSContext *cx) : cx_(cx) {}
+    ~AutoGCIfNeeded() { js::gc::GCIfNeeded(cx_); }
+};
+
 
 
 
@@ -437,6 +444,9 @@ js::Invoke(JSContext *cx, CallArgs args, MaybeConstruct construct)
 
     
     JS_ASSERT(cx->iterValue.isMagic(JS_NO_ITER_VALUE));
+
+    
+    AutoGCIfNeeded gcIfNeeded(cx);
 
     
     InitialFrameFlags initial = (InitialFrameFlags) construct;
