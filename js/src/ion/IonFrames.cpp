@@ -357,6 +357,13 @@ ion::HandleException(ResumeFromException *rfe)
         ++iter;
     }
 
+    
+    
+    
+    
+    if (cx->runtime->hasIonReturnOverride())
+        cx->runtime->takeIonReturnOverride();
+
     rfe->stackPointer = iter.fp();
 }
 
