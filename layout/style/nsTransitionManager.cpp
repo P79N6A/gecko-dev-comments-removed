@@ -998,7 +998,7 @@ nsTransitionManager::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const
 
 struct TransitionEventInfo {
   nsCOMPtr<nsIContent> mElement;
-  nsTransitionEvent mEvent;
+  InternalTransitionEvent mEvent;
 
   TransitionEventInfo(nsIContent *aElement, nsCSSProperty aProperty,
                       TimeDuration aDuration, const nsAString& aPseudoElement)
