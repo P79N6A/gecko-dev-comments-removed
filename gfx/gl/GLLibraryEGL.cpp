@@ -78,7 +78,7 @@ static PRLibrary*
 LoadLibraryForEGLOnWindows(const nsAString& filename)
 {
     nsCOMPtr<nsIFile> file;
-	nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(file));
+    nsresult rv = NS_GetSpecialDirectory(NS_GRE_DIR, getter_AddRefs(file));
     if (NS_FAILED(rv))
         return nullptr;
 
@@ -112,21 +112,31 @@ GLLibraryEGL::EnsureInitialized()
         
         
 
-#ifndef MOZ_D3DCOMPILER_DLL
-#error MOZ_D3DCOMPILER_DLL should have been defined by the Makefile
-#endif
-        
-        
-        
-        
-        if (!LoadLibrarySystem32(L"d3dcompiler_47.dll")) {
-            
-            LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_DLL)));
-        }
         
 
+        do {
+            
+            
+            
+            
+
+            if (LoadLibrarySystem32(L"d3dcompiler_47.dll"))
+                break;
+
+#ifdef MOZ_D3DCOMPILER_VISTA_DLL
+            if (LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_VISTA_DLL))))
+                break;
+#endif
+
+#ifdef MOZ_D3DCOMPILER_XP_DLL
+            if (LoadLibraryForEGLOnWindows(NS_LITERAL_STRING(NS_STRINGIFY(MOZ_D3DCOMPILER_XP_DLL))))
+                break;
+#endif
+
+            MOZ_ASSERT(false, "d3dcompiler DLL loading failed.");
+        } while (false);
+
         LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libGLESv2.dll"));
-        
 
         mEGLLibrary = LoadLibraryForEGLOnWindows(NS_LITERAL_STRING("libEGL.dll"));
 
@@ -206,7 +216,7 @@ GLLibraryEGL::EnsureInitialized()
     if (vendor && (strstr(vendor, "TransGaming") != 0 || strstr(vendor, "Google Inc.") != 0)) {
         mIsANGLE = true;
     }
-    
+
     InitExtensions();
 
     GLLibraryLoader::PlatformLookupFunction lookupFunction =
