@@ -226,7 +226,7 @@ public:
 
 
 
-  static mozilla::RefPtr<AudioSessionConduit> Create();
+  static mozilla::RefPtr<AudioSessionConduit> Create(AudioSessionConduit *aOther);
 
   virtual ~AudioSessionConduit() {}
 
