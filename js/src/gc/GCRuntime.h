@@ -144,18 +144,30 @@ class GCRuntime
 #ifdef JS_THREADSAFE
     void notifyRequestEnd() { conservativeGC.updateForRequestEnd(); }
 #endif
-    bool isBackgroundSweeping() { return helperThread.sweeping(); }
-    void waitBackgroundSweepEnd() { helperThread.waitBackgroundSweepEnd(); }
-    void waitBackgroundSweepOrAllocEnd() { helperThread.waitBackgroundSweepOrAllocEnd(); }
-    void startBackgroundShrink() { helperThread.startBackgroundShrink(); }
-    void freeLater(void *p) { helperThread.freeLater(p); }
+    bool isBackgroundSweeping() { return helperState.isBackgroundSweeping(); }
+    void waitBackgroundSweepEnd() { helperState.waitBackgroundSweepEnd(); }
+    void waitBackgroundSweepOrAllocEnd() { helperState.waitBackgroundSweepOrAllocEnd(); }
+    void startBackgroundShrink() { helperState.startBackgroundShrink(); }
+    void startBackgroundAllocationIfIdle() { helperState.startBackgroundAllocationIfIdle(); }
+    void freeLater(void *p) { helperState.freeLater(p); }
+
 #ifdef DEBUG
-    bool onBackgroundThread() { return helperThread.onBackgroundThread(); }
+
+    bool onBackgroundThread() { return helperState.onBackgroundThread(); }
+
+    bool currentThreadOwnsGCLock() {
+#ifdef JS_THREADSAFE
+        return lockOwner == PR_GetCurrentThread();
+#else
+        return true;
 #endif
+    }
+
+#endif 
 
 #ifdef JS_THREADSAFE
     void assertCanLock() {
-        JS_ASSERT(lockOwner != PR_GetCurrentThread());
+        JS_ASSERT(!currentThreadOwnsGCLock());
     }
 #endif
 
@@ -203,7 +215,7 @@ class GCRuntime
   private:
     
     friend class ArenaLists;
-    Chunk *pickChunk(Zone *zone);
+    Chunk *pickChunk(Zone *zone, AutoMaybeStartBackgroundAllocation &maybeStartBackgroundAllocation);
 
     inline bool wantBackgroundAllocation() const;
 
@@ -537,12 +549,12 @@ class GCRuntime
     PRLock                *lock;
     mozilla::DebugOnly<PRThread *>   lockOwner;
 
-    js::GCHelperThread helperThread;
+    GCHelperState helperState;
 
     ConservativeGCData conservativeGC;
 
     
-    friend class js::GCHelperThread;
+    friend class js::GCHelperState;
     friend class js::gc::MarkingValidator;
 };
 
