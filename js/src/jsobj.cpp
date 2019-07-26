@@ -1448,9 +1448,13 @@ js::NewObjectWithClassProtoCommon(JSContext *cx, js::Class *clasp, JSObject *pro
     return obj;
 }
 
-JSObject *
-js::NewObjectWithType(JSContext *cx, HandleTypeObject type, JSObject *parent, gc::AllocKind allocKind,
-                      NewObjectKind newKind )
+
+
+
+
+static JSObject *
+NewObjectWithType(JSContext *cx, HandleTypeObject type, JSObject *parent, gc::AllocKind allocKind,
+                  NewObjectKind newKind = GenericObject)
 {
     JS_ASSERT(type->proto->hasNewType(&ObjectClass, type));
     JS_ASSERT(parent);
@@ -3236,8 +3240,8 @@ PurgeProtoChain(JSContext *cx, JSObject *objArg, HandleId id)
     return true;
 }
 
-bool
-js_PurgeScopeChainHelper(JSContext *cx, HandleObject objArg, HandleId id)
+static bool
+PurgeScopeChainHelper(JSContext *cx, HandleObject objArg, HandleId id)
 {
     
     RootedObject obj(cx, objArg);
@@ -3267,6 +3271,21 @@ js_PurgeScopeChainHelper(JSContext *cx, HandleObject objArg, HandleId id)
     return true;
 }
 
+
+
+
+
+
+
+static inline bool
+PurgeScopeChain(JSContext *cx, JS::HandleObject obj, JS::HandleId id)
+{
+    if (obj->isDelegate())
+        return PurgeScopeChainHelper(cx, obj, id);
+    return true;
+}
+
+
 Shape *
 js_AddNativeProperty(JSContext *cx, HandleObject obj, HandleId id,
                      PropertyOp getter, StrictPropertyOp setter, uint32_t slot,
@@ -3277,7 +3296,7 @@ js_AddNativeProperty(JSContext *cx, HandleObject obj, HandleId id,
 
 
 
-    if (!js_PurgeScopeChain(cx, obj, id))
+    if (!PurgeScopeChain(cx, obj, id))
         return NULL;
 
     Shape *shape =
@@ -3512,7 +3531,7 @@ js::DefineNativeProperty(JSContext *cx, HandleObject obj, HandleId id, HandleVal
 
 
     if (!(defineHow & DNP_DONT_PURGE)) {
-        if (!js_PurgeScopeChain(cx, obj, id))
+        if (!PurgeScopeChain(cx, obj, id))
             return false;
     }
 
@@ -4478,7 +4497,7 @@ baseops::SetPropertyHelper(JSContext *cx, HandleObject obj, HandleObject receive
         }
 
         
-        if (!js_PurgeScopeChain(cx, obj, id))
+        if (!PurgeScopeChain(cx, obj, id))
             return false;
 
         if (getter == JS_PropertyStub)
