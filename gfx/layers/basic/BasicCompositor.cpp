@@ -412,7 +412,7 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
   if (mCopyTarget) {
     
     
-    mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenCanvasDrawTarget(IntSize(1,1), SurfaceFormat::B8G8R8A8);
+    mDrawTarget = gfxPlatform::GetPlatform()->CreateOffscreenContentDrawTarget(IntSize(1,1), SurfaceFormat::B8G8R8A8);
   } else {
     mDrawTarget = mWidget->StartRemoteDrawing();
   }
