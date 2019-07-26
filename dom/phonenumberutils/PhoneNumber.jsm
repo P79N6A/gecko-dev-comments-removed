@@ -99,10 +99,14 @@ this.PhoneNumber = (function (dataBase) {
   const LEADING_PLUS_CHARS_PATTERN = new RegExp("^[" + PLUS_CHARS + "]+", "g");
 
   
+  const VENEZUELA_SHORT_NUMBER = "\\*[" + VALID_DIGITS + "]";
+
+  
   
   
   const VALID_PHONE_NUMBER_PATTERN =
     new RegExp("^" + MIN_LENGTH_PHONE_NUMBER + "$|"
+               + "^" + VENEZUELA_SHORT_NUMBER + "$|"
                + "^" + VALID_PHONE_NUMBER + "(?:" + EXTN_PATTERNS_FOR_PARSING + ")?$", "i");
 
   
