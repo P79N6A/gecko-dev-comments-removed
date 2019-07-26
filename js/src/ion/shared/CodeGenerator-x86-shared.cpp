@@ -447,6 +447,21 @@ CodeGeneratorX86Shared::visitMinMaxD(LMinMaxD *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitNegD(LNegD *ins)
+{
+    
+    FloatRegister input = ToFloatRegister(ins->input());
+    JS_ASSERT(input == ToFloatRegister(ins->output()));
+
+    
+    masm.pcmpeqw(ScratchFloatReg, ScratchFloatReg);
+    masm.psllq(Imm32(63), ScratchFloatReg);
+
+    masm.xorpd(ScratchFloatReg, input); 
+    return true;
+}
+
+bool
 CodeGeneratorX86Shared::visitAbsD(LAbsD *ins)
 {
     FloatRegister input = ToFloatRegister(ins->input());
