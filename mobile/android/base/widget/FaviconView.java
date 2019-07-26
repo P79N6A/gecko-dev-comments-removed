@@ -5,7 +5,6 @@
 
 package org.mozilla.gecko.widget;
 
-import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.Favicons;
 import org.mozilla.gecko.R;
 
@@ -29,8 +28,11 @@ public class FaviconView extends ImageView {
         setScaleType(ImageView.ScaleType.CENTER);
     }
 
-    @Override
-    public void setImageBitmap(final Bitmap bitmap) {
+    
+
+
+
+    public void updateImage(Bitmap bitmap, String key) {
         if (bitmap == null) {
             
             setImageDrawable(null);
@@ -43,20 +45,11 @@ public class FaviconView extends ImageView {
         } else {
             super.setImageBitmap(bitmap);
             
-            new AsyncTask<Void, Void, Integer>(){
-                @Override
-                public Integer doInBackground(Void... params) {
-                    return BitmapUtils.getDominantColor(bitmap);
-                }
-                @Override
-                public void onPostExecute(Integer color) {
-                    
-                    color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color));
-                    Drawable drawable = getResources().getDrawable(R.drawable.favicon_bg);
-                    drawable.setColorFilter(color, Mode.SRC_ATOP);
-                    setBackgroundDrawable(drawable);
-                }
-            }.execute();
+            int color = Favicons.getInstance().getFaviconColor(bitmap, key);
+            color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color));
+            Drawable drawable = getResources().getDrawable(R.drawable.favicon_bg);
+            drawable.setColorFilter(color, Mode.SRC_ATOP);
+            setBackgroundDrawable(drawable);
         }
     }
 }
