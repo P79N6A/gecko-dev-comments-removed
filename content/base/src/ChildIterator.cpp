@@ -16,7 +16,7 @@ ExplicitChildIterator::GetNextChild()
   
   if (mIndexInInserted) {
     MOZ_ASSERT(mChild);
-    MOZ_ASSERT(mChild->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL));
+    MOZ_ASSERT(mChild->IsActiveChildrenElement());
     MOZ_ASSERT(!mDefaultChild);
 
     XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
@@ -28,7 +28,7 @@ ExplicitChildIterator::GetNextChild()
   } else if (mDefaultChild) {
     
     MOZ_ASSERT(mChild);
-    MOZ_ASSERT(mChild->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL));
+    MOZ_ASSERT(mChild->IsActiveChildrenElement());
 
     mDefaultChild = mDefaultChild->GetNextSibling();
     if (mDefaultChild) {
@@ -44,8 +44,7 @@ ExplicitChildIterator::GetNextChild()
   }
 
   
-  while (mChild &&
-         mChild->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+  while (mChild && mChild->IsActiveChildrenElement()) {
     XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
     if (!point->mInsertedChildren.IsEmpty()) {
       mIndexInInserted = 1;
@@ -85,6 +84,7 @@ FlattenedChildIterator::FlattenedChildIterator(nsIContent* aParent)
          child;
          child = child->GetNextSibling()) {
       if (child->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+        MOZ_ASSERT(child->GetBindingParent());
         mXBLInvolved = true;
         break;
       }
@@ -131,8 +131,7 @@ nsIContent* FlattenedChildIterator::GetPreviousChild()
   }
 
   
-  while (mChild &&
-         mChild->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+  while (mChild && mChild->IsActiveChildrenElement()) {
     XBLChildrenElement* point = static_cast<XBLChildrenElement*>(mChild);
     if (!point->mInsertedChildren.IsEmpty()) {
       mIndexInInserted = point->InsertedChildrenLength();

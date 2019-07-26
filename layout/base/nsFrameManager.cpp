@@ -1379,8 +1379,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         
         
         nsIContent* parent = undisplayed->mContent->GetParent();
-        bool pushInsertionPoint = parent &&
-          parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+        bool pushInsertionPoint = parent && parent->IsActiveChildrenElement();
         TreeMatchContext::AutoAncestorPusher
           insertionPointPusher(pushInsertionPoint,
                                aTreeMatchContext,
@@ -1549,8 +1548,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
             
             
             nsIContent* parent = child->GetContent() ? child->GetContent()->GetParent() : nullptr;
-            bool pushInsertionPoint = parent &&
-              parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+            bool pushInsertionPoint = parent && parent->IsActiveChildrenElement();
             TreeMatchContext::AutoAncestorPusher
               insertionPointPusher(pushInsertionPoint, aTreeMatchContext,
                                    parent && parent->IsElement() ? parent->AsElement() : nullptr);
@@ -1911,8 +1909,7 @@ nsFrameManagerBase::UndisplayedMap::GetEntryFor(nsIContent** aParentContent)
   
   
   
-  if (parentContent &&
-      parentContent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+  if (parentContent && parentContent->IsActiveChildrenElement()) {
     parentContent = parentContent->GetParent();
     
     *aParentContent = parentContent;

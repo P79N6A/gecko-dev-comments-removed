@@ -3518,7 +3518,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   
   nsIContent* parent = content->GetParent();
   bool pushInsertionPoint = aState.mTreeMatchContext.mAncestorFilter.HasFilter() &&
-    parent && parent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL);
+    parent && parent->IsActiveChildrenElement();
   TreeMatchContext::AutoAncestorPusher
     insertionPointPusher(pushInsertionPoint,
                          aState.mTreeMatchContext,
@@ -6511,7 +6511,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   nsIFrame* parentFrame = GetFrameFor(aContainer);
 
   
-  if (!parentFrame && !aContainer->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+  if (!parentFrame && !aContainer->IsActiveChildrenElement()) {
     return NS_OK;
   }
 
@@ -6934,7 +6934,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   
   
   
-  if (!parentFrame && !aContainer->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+  if (!parentFrame && !aContainer->IsActiveChildrenElement()) {
     return NS_OK;
   }
 

@@ -2312,9 +2312,7 @@ static bool SelectorMatchesTree(Element* aPrevElement,
         
         
         
-        if (selector->mOperator == '>' &&
-            element->NodeInfo()->Equals(nsGkAtoms::children,
-                                        kNameSpaceID_XBL)) {
+        if (selector->mOperator == '>' && element->IsActiveChildrenElement()) {
           Element* styleScope = aTreeMatchContext.mCurrentStyleScope;
           if (SelectorMatchesTree(element, selector, aTreeMatchContext,
                                   aLookForRelevantLink)) {
