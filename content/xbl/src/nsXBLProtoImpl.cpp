@@ -172,23 +172,28 @@ nsXBLProtoImpl::InitTargetObjects(nsXBLPrototypeBinding* aBinding,
 
   
   
-  AutoPushJSContext jscontext(aContext->GetNativeContext());
-  JSObject* global = sgo->GetGlobalJSObject();
+  AutoPushJSContext cx(aContext->GetNativeContext());
+  JS::Rooted<JSObject*> global(cx, sgo->GetGlobalJSObject());
   nsCOMPtr<nsIXPConnectJSObjectHolder> wrapper;
   JS::Value v;
-  rv = nsContentUtils::WrapNative(jscontext, global, aBoundElement, &v,
+  rv = nsContentUtils::WrapNative(cx, global, aBoundElement, &v,
                                   getter_AddRefs(wrapper));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  JS::Rooted<JSObject*> value(cx, &v.toObject());
+  JS::Rooted<JSObject*> targetClassObject(cx, *aTargetClassObject);
 
   
   
   
   
-  rv = aBinding->InitClass(mClassName, jscontext, global, JSVAL_TO_OBJECT(v),
-                           aTargetClassObject, aTargetIsNew);
+  rv = aBinding->InitClass(mClassName, cx, global, value,
+                           &targetClassObject, aTargetIsNew);
   if (NS_FAILED(rv)) {
     return rv;
   }
+
+  *aTargetClassObject = targetClassObject;
 
   nsContentUtils::PreserveWrapper(aBoundElement, aBoundElement);
 
@@ -205,6 +210,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   
   nsCOMPtr<nsIScriptGlobalObjectOwner> globalOwner(
       do_QueryObject(aBinding->XBLDocumentInfo()));
+
   nsIScriptGlobalObject* globalObject = globalOwner->GetScriptGlobalObject();
   NS_ENSURE_TRUE(globalObject, NS_ERROR_UNEXPECTED);
 
@@ -212,10 +218,9 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   NS_ENSURE_TRUE(context, NS_ERROR_OUT_OF_MEMORY);
 
   AutoPushJSContext cx(context->GetNativeContext());
-  JSObject *global = globalObject->GetGlobalJSObject();
-  
 
-  JSObject* classObject;
+  JS::Rooted<JSObject*> global(cx, globalObject->GetGlobalJSObject());
+  JS::Rooted<JSObject*> classObject(cx);
   bool classObjectIsNew = false;
   nsresult rv = aBinding->InitClass(mClassName, cx, global, global,
                                     &classObject, &classObjectIsNew);
@@ -349,9 +354,9 @@ nsXBLProtoImpl::Read(nsIScriptContext* aContext,
 {
   
   AutoPushJSContext cx(aContext->GetNativeContext());
-  JSObject *global = aGlobal->GetGlobalJSObject();
+  JS::Rooted<JSObject*> global(cx, aGlobal->GetGlobalJSObject());
 
-  JSObject* classObject;
+  JS::Rooted<JSObject*> classObject(cx);
   bool classObjectIsNew = false;
   nsresult rv = aBinding->InitClass(mClassName, cx, global, global, &classObject,
                                     &classObjectIsNew);
