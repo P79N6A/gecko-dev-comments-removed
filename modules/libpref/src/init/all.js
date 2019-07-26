@@ -106,11 +106,10 @@ pref("dom.workers.sharedWorkers.enabled", false);
 pref("dom.enable_performance", true);
 
 
+pref("dom.gamepad.enabled", true);
 #ifdef RELEASE_BUILD
-pref("dom.gamepad.enabled", false);
 pref("dom.gamepad.non_standard_events.enabled", false);
 #else
-pref("dom.gamepad.enabled", true);
 pref("dom.gamepad.non_standard_events.enabled", true);
 #endif
 
