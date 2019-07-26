@@ -26,7 +26,7 @@ namespace dom {
   class Element;
 } 
 
-class RestyleManager {
+class RestyleManager MOZ_FINAL {
 public:
   friend class ::nsRefreshDriver;
   friend class RestyleTracker;
@@ -191,36 +191,6 @@ public:
   }
 
 private:
-  enum DesiredA11yNotifications {
-    eSkipNotifications,
-    eSendAllNotifications,
-    eNotifyIfShown
-  };
-
-  enum A11yNotificationType {
-    eDontNotify,
-    eNotifyShown,
-    eNotifyHidden
-  };
-
-  
-  
-  
-  
-  
-  NS_HIDDEN_(nsChangeHint)
-    ReResolveStyleContext(nsPresContext* aPresContext,
-                          nsIFrame* aFrame,
-                          nsIContent* aParentContent,
-                          nsStyleChangeList* aChangeList,
-                          nsChangeHint aMinChange,
-                          nsChangeHint aParentFrameHintsNotHandledForDescendants,
-                          nsRestyleHint aRestyleHint,
-                          RestyleTracker& aRestyleTracker,
-                          DesiredA11yNotifications aDesiredA11yNotifications,
-                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
-                          TreeMatchContext& aTreeMatchContext);
-
   
 
 
@@ -290,6 +260,79 @@ private:
 
   RestyleTracker mPendingRestyles;
   RestyleTracker mPendingAnimationRestyles;
+};
+
+
+
+
+
+class ElementRestyler MOZ_FINAL {
+public:
+  typedef mozilla::dom::Element Element;
+
+  
+  ElementRestyler(nsPresContext* aPresContext);
+
+  
+  ElementRestyler(const ElementRestyler& aParentRestyler);
+
+  
+  
+  
+  
+  
+  
+  enum ParentContextFromChildFrame { PARENT_CONTEXT_FROM_CHILD_FRAME };
+  ElementRestyler(ParentContextFromChildFrame,
+                  const ElementRestyler& aParentFrameRestyler);
+
+public: 
+  enum DesiredA11yNotifications {
+    eSkipNotifications,
+    eSendAllNotifications,
+    eNotifyIfShown
+  };
+
+  enum A11yNotificationType {
+    eDontNotify,
+    eNotifyShown,
+    eNotifyHidden
+  };
+
+public:
+  
+
+
+
+
+
+
+
+
+  nsChangeHint Restyle(nsPresContext     *aPresContext,
+               nsIFrame          *aFrame,
+               nsIContent        *aParentContent,
+               nsStyleChangeList *aChangeList,
+               nsChangeHint       aMinChange,
+               nsChangeHint       aParentFrameHintsNotHandledForDescendants,
+               nsRestyleHint      aRestyleHint,
+               RestyleTracker&    aRestyleTracker,
+               DesiredA11yNotifications aDesiredA11yNotifications,
+               nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
+               TreeMatchContext &aTreeMatchContext);
+
+private:
+  void CaptureChange(nsStyleContext* aOldContext,
+                     nsStyleContext* aNewContext,
+                     nsIFrame* aFrame, nsIContent* aContent,
+                     nsStyleChangeList* aChangeList,
+                     nsChangeHint &aMinChange,
+                     nsChangeHint aParentHintsNotHandledForDescendants,
+                     nsChangeHint &aHintsNotHandledForDescendants,
+                     nsChangeHint aChangeToAssume);
+
+private:
+  nsPresContext* const mPresContext;
 };
 
 } 
