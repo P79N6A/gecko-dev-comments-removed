@@ -938,10 +938,9 @@ ContextStack::pushExecuteFrame(JSContext *cx, HandleScript script, const Value &
     } else {
         prevLink = maybefp();
         extend = CAN_EXTEND;
-        if (maybefp()) {
-            ScriptFrameIter iter(cx);
+        ScriptFrameIter iter(cx);
+        if (!iter.done())
             prev = iter.isIon() ? maybefp() : iter.abstractFramePtr();
-        }
     }
 
     unsigned nvars = 2  + VALUES_PER_STACK_FRAME + script->nslots;

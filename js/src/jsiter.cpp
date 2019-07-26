@@ -1373,6 +1373,55 @@ SetGeneratorClosed(JSContext *cx, JSGenerator *gen)
     gen->state = JSGEN_CLOSED;
 }
 
+GeneratorState::GeneratorState(JSContext *cx, JSGenerator *gen, JSGeneratorState futureState)
+  : RunState(cx, Generator, gen->fp->script()),
+    cx_(cx),
+    gen_(gen),
+    futureState_(futureState),
+    entered_(false)
+{ }
+
+GeneratorState::~GeneratorState()
+{
+    if (entered_)
+        cx_->leaveGenerator(gen_);
+}
+
+StackFrame *
+GeneratorState::pushInterpreterFrame(JSContext *cx)
+{
+    gfg_.construct();
+
+    
+
+
+
+
+
+
+
+
+
+
+    GeneratorWriteBarrierPre(cx, gen_);
+
+    if (!cx->stack.pushGeneratorFrame(cx, gen_, gfg_.addr())) {
+        SetGeneratorClosed(cx, gen_);
+        return NULL;
+    }
+
+    
+
+
+
+    gen_->state = futureState_;
+    gen_->regs = cx->stack.regs();
+
+    cx->enterGenerator(gen_);   
+    entered_ = true;
+    return gfg_.ref().fp();
+}
+
 static void
 generator_trace(JSTracer *trc, JSObject *obj)
 {
@@ -1493,19 +1542,6 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
         return false;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-    GeneratorWriteBarrierPre(cx, gen);
-
     JSGeneratorState futureState;
     JS_ASSERT(gen->state == JSGEN_NEWBORN || gen->state == JSGEN_OPEN);
     switch (op) {
@@ -1535,24 +1571,10 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, HandleObject obj,
 
     JSBool ok;
     {
-        GeneratorFrameGuard gfg;
-        if (!cx->stack.pushGeneratorFrame(cx, gen, &gfg)) {
-            SetGeneratorClosed(cx, gen);
+        GeneratorState state(cx, gen, futureState);
+        ok = RunScript(cx, state);
+        if (!ok && gen->state == JSGEN_CLOSED)
             return false;
-        }
-
-        
-
-
-
-        gen->state = futureState;
-
-        StackFrame *fp = gfg.fp();
-        gen->regs = cx->stack.regs();
-
-        cx->enterGenerator(gen);   
-        ok = RunScript(cx, fp);
-        cx->leaveGenerator(gen);
     }
 
     if (gen->fp->isYielding()) {

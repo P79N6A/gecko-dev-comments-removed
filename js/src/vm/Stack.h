@@ -283,33 +283,32 @@ class StackFrame
 
         
         YIELDING           =       0x40,  
-        FINISHED_IN_INTERP =       0x80,  
 
         
-        HAS_CALL_OBJ       =      0x100,  
-        HAS_ARGS_OBJ       =      0x200,  
+        HAS_CALL_OBJ       =       0x80,  
+        HAS_ARGS_OBJ       =      0x100,  
 
         
-        HAS_HOOK_DATA      =      0x400,  
-        HAS_RVAL           =      0x800,  
-        HAS_SCOPECHAIN     =     0x1000,  
-        HAS_PREVPC         =     0x2000,  
-        HAS_BLOCKCHAIN     =     0x4000,  
+        HAS_HOOK_DATA      =      0x200,  
+        HAS_RVAL           =      0x400,  
+        HAS_SCOPECHAIN     =      0x800,  
+        HAS_PREVPC         =     0x1000,  
+        HAS_BLOCKCHAIN     =     0x2000,  
 
         
-        PREV_UP_TO_DATE    =     0x8000,  
+        PREV_UP_TO_DATE    =     0x4000,  
 
         
-        HAS_PUSHED_SPS_FRAME =  0x10000,  
+        HAS_PUSHED_SPS_FRAME =   0x8000,  
 
         
 
 
 
-        RUNNING_IN_JIT     =    0x20000,
+        RUNNING_IN_JIT     =    0x10000,
 
         
-        USE_NEW_TYPE       =    0x40000   
+        USE_NEW_TYPE       =    0x20000   
     };
 
   private:
@@ -933,14 +932,6 @@ class StackFrame
 
     void clearYielding() {
         flags_ &= ~YIELDING;
-    }
-
-    void setFinishedInInterpreter() {
-        flags_ |= FINISHED_IN_INTERP;
-    }
-
-    bool finishedInInterpreter() const {
-        return !!(flags_ & FINISHED_IN_INTERP);
     }
 
   public:
