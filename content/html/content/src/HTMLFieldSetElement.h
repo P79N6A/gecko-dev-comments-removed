@@ -9,6 +9,8 @@
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLFieldSetElement.h"
 #include "nsIConstraintValidation.h"
+#include "nsHTMLFormElement.h"
+#include "mozilla/dom/ValidityState.h"
 
 namespace mozilla {
 namespace dom {
@@ -18,6 +20,9 @@ class HTMLFieldSetElement : public nsGenericHTMLFormElement,
                             public nsIConstraintValidation
 {
 public:
+  using nsGenericHTMLFormElement::GetForm;
+  using nsIConstraintValidation::Validity;
+  using nsIConstraintValidation::CheckValidity;
   using nsIConstraintValidation::GetValidationMessage;
 
   HTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo);
@@ -70,6 +75,42 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(HTMLFieldSetElement,
                                            nsGenericHTMLFormElement)
+
+  
+  bool Disabled() const
+  {
+    return GetBoolAttr(nsGkAtoms::disabled);
+  }
+  void SetDisabled(bool aValue, ErrorResult& aRv)
+  {
+    SetHTMLBoolAttr(nsGkAtoms::disabled, aValue, aRv);
+  }
+
+  
+
+  void SetName(const nsAString& aValue, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::name, aValue, aRv);
+  }
+
+  
+
+  nsIHTMLCollection* Elements();
+
+  
+
+  
+
+  
+
+  
+
+  
+
+protected:
+  virtual JSObject* WrapNode(JSContext* aCx, JSObject* aScope,
+                             bool* aTriedToWrap) MOZ_OVERRIDE;
+
 private:
 
   
