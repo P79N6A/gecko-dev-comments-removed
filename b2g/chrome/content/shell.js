@@ -1209,3 +1209,19 @@ Services.obs.addObserver(function(aSubject, aTopic, aData) {
     pageURL: data.pageURL
   });
 }, "activity-done", false);
+
+#ifdef MOZ_WIDGET_GONK
+
+
+(function setHTTPCacheSize() {
+  let path = Services.prefs.getCharPref("browser.cache.disk.parent_directory");
+  let volumeService = Cc["@mozilla.org/telephony/volume-service;1"]
+                        .getService(Ci.nsIVolumeService);
+
+  let stats = volumeService.createOrGetVolumeByPath(path).getStats();
+
+  
+  let size = Math.floor(stats.totalBytes / 1024) - 1024;
+  Services.prefs.setIntPref("browser.cache.disk.capacity", size);
+}) ()
+#endif
