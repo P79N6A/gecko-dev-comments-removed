@@ -5180,18 +5180,6 @@ var FormAssistant = {
 
   
   
-  _getElementPositionData: function _getElementPositionData(aElement) {
-    let rect = ElementTouchHelper.getBoundingContentRect(aElement);
-    let viewport = BrowserApp.selectedTab.getViewport();
-    
-    return { rect: [rect.x - (viewport.x / viewport.zoom),
-                    rect.y - (viewport.y / viewport.zoom),
-                    rect.w, rect.h],
-             zoom: viewport.zoom }
-  },
-
-  
-  
   
   _showAutoCompleteSuggestions: function _showAutoCompleteSuggestions(aElement) {
     if (!this._isAutoComplete(aElement))
@@ -5214,12 +5202,10 @@ var FormAssistant = {
     if (!suggestions.length)
       return false;
 
-    let positionData = this._getElementPositionData(aElement);
     sendMessageToJava({
       type:  "FormAssist:AutoComplete",
       suggestions: suggestions,
-      rect: positionData.rect,
-      zoom: positionData.zoom
+      rect: ElementTouchHelper.getBoundingContentRect(aElement)
     });
 
     
@@ -5249,12 +5235,10 @@ var FormAssistant = {
     if (!this._isValidateable(aElement))
       return false;
 
-    let positionData = this._getElementPositionData(aElement);
     sendMessageToJava({
       type: "FormAssist:ValidationMessage",
       validationMessage: aElement.validationMessage,
-      rect: positionData.rect,
-      zoom: positionData.zoom
+      rect: ElementTouchHelper.getBoundingContentRect(aElement)
     });
 
     return true;
