@@ -315,16 +315,6 @@ struct Token {
     }
 };
 
-enum TokenStreamFlags
-{
-    TSF_EOF = 0x01,             
-    TSF_EOL = 0x02,             
-    TSF_UNEXPECTED_EOF = 0x04,  
-    TSF_DIRTYLINE = 0x08,       
-    TSF_OCTAL_CHAR = 0x10,      
-    TSF_HAD_ERROR = 0x20        
-};
-
 struct CompileError {
     JSContext *cx;
     JSErrorReport report;
@@ -424,18 +414,17 @@ class MOZ_STACK_CLASS TokenStream
     JSPrincipals *getOriginPrincipals() const { return originPrincipals; }
     JSVersion versionNumber() const { return VersionNumber(options().version); }
     JSVersion versionWithFlags() const { return options().version; }
-    bool hadError() const { return !!(flags & TSF_HAD_ERROR); }
 
     bool isCurrentTokenAssignment() const {
         return TokenKindIsAssignment(currentToken().type);
     }
 
     
-    void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
-
-    bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
-    bool isEOF() const { return !!(flags & TSF_EOF); }
-    bool sawOctalEscape() const { return !!(flags & TSF_OCTAL_CHAR); }
+    bool isEOF() const { return flags.isEOF; }
+    void setUnexpectedEOF() { flags.isUnexpectedEOF = true; }
+    bool isUnexpectedEOF() const { return flags.isUnexpectedEOF; }
+    bool sawOctalEscape() const { return flags.sawOctalEscape; }
+    bool hadError() const { return flags.hadError; }
 
     
     bool reportError(unsigned errorNumber, ...);
@@ -464,12 +453,19 @@ class MOZ_STACK_CLASS TokenStream
     static JSAtom *atomize(ExclusiveContext *cx, CharBuffer &cb);
     bool putIdentInTokenbuf(const jschar *identStart);
 
-    void setFlag(bool enabled, TokenStreamFlags flag) {
-        if (enabled)
-            flags |= flag;
-        else
-            flags &= ~flag;
-    }
+    struct Flags
+    {
+        bool isEOF:1;           
+        bool isUnexpectedEOF:1; 
+        bool sawEOL:1;          
+        bool isDirtyLine:1;     
+        bool sawOctalEscape:1;  
+        bool hadError:1;        
+
+        Flags()
+          : isEOF(), isUnexpectedEOF(), sawEOL(), isDirtyLine(), sawOctalEscape(), hadError()
+        {}
+    };
 
   public:
     
@@ -528,11 +524,11 @@ class MOZ_STACK_CLASS TokenStream
 
 
 
-        flags &= ~TSF_EOL;
+        flags.sawEOL = false;
         TokenKind tt = getToken(modifier);
-        if (flags & TSF_EOL) {
+        if (flags.sawEOL) {
             tt = TOK_EOL;
-            flags &= ~TSF_EOL;
+            flags.sawEOL = false;
         }
         ungetToken();
         return tt;
@@ -579,7 +575,7 @@ class MOZ_STACK_CLASS TokenStream
         Position(const Position&) MOZ_DELETE;
         friend class TokenStream;
         const jschar *buf;
-        unsigned flags;
+        Flags flags;
         unsigned lineno;
         const jschar *linebase;
         const jschar *prevLinebase;
@@ -849,7 +845,7 @@ class MOZ_STACK_CLASS TokenStream
     unsigned            cursor;         
     unsigned            lookahead;      
     unsigned            lineno;         
-    unsigned            flags;          
+    Flags               flags;          
     const jschar        *linebase;      
     const jschar        *prevLinebase;  
     TokenBuf            userbuf;        
