@@ -1146,7 +1146,7 @@ ForkJoinOperation::warmupExecution(bool stopIfComplete, ExecutionStatus *status)
         
         
         
-        if (!HandleExecutionInterrupt(cx_)) {
+        if (!CheckForInterrupt(cx_)) {
             *status = ExecutionFatal;
             return RedLight;
         }

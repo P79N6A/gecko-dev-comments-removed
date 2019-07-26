@@ -329,15 +329,9 @@ JSStringToUTF8(JSContext *cx, JSString *str)
 }
 
 
-
-
-
-
-
-
-
 struct JSShellContextData {
-    volatile int64_t startTime;
+    
+    int64_t startTime;
 };
 
 static JSShellContextData *

@@ -1417,7 +1417,7 @@ Interpret(JSContext *cx, RunState &state)
 
 #define CHECK_BRANCH()                                                        \
     JS_BEGIN_MACRO                                                            \
-        if (cx->runtime()->interrupt && !HandleExecutionInterrupt(cx))        \
+        if (!CheckForInterrupt(cx))                                           \
             goto error;                                                       \
     JS_END_MACRO
 
@@ -3721,10 +3721,7 @@ js::GetAndClearException(JSContext *cx, MutableHandleValue res)
         return false;
 
     
-    
-    if (cx->runtime()->interrupt)
-        return HandleExecutionInterrupt(cx);
-    return true;
+    return CheckForInterrupt(cx);
 }
 
 template <bool strict>
