@@ -42,9 +42,6 @@ Box::BoxSizeChecker::~BoxSizeChecker()
     MOZ_ASSERT(false);
   }
 
-  
-  
-  mControl->mLastWrittenBoxPos += box_size;
   MOZ_COUNT_DTOR(BoxSizeChecker);
 }
 
