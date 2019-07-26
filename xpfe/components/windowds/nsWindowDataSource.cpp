@@ -13,6 +13,7 @@
 #include "nsIWindowMediator.h"
 #include "nsXPCOMCID.h"
 #include "mozilla/ModuleUtils.h"
+#include "nsString.h"
 
 
 #include "nsIInterfaceRequestorUtils.h"
