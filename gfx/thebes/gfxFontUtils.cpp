@@ -315,13 +315,19 @@ gfxFontUtils::ReadCMAPTableFormat12(const uint8_t *aBuf, uint32_t aLength,
     
     uint32_t prevEndCharCode = 0;
     for (uint32_t i = 0; i < numGroups; i++, group++) {
-        const uint32_t startCharCode = group->startCharCode;
+        uint32_t startCharCode = group->startCharCode;
         const uint32_t endCharCode = group->endCharCode;
         NS_ENSURE_TRUE((prevEndCharCode < startCharCode || i == 0) &&
                        startCharCode <= endCharCode &&
                        endCharCode <= CMAP_MAX_CODEPOINT, 
                        NS_ERROR_GFX_CMAP_MALFORMED);
-        aCharacterMap.SetRange(startCharCode, endCharCode);
+        
+        if (group->startGlyphId == 0) {
+            startCharCode++;
+        }
+        if (startCharCode <= endCharCode) {
+            aCharacterMap.SetRange(startCharCode, endCharCode);
+        }
         prevEndCharCode = endCharCode;
     }
 
@@ -379,7 +385,20 @@ gfxFontUtils::ReadCMAPTableFormat4(const uint8_t *aBuf, uint32_t aLength,
         prevEndCount = endCount;
 
         if (idRangeOffset == 0) {
-            aCharacterMap.SetRange(startCount, endCount);
+            
+            
+            
+            const uint16_t skipCode = 65536 - ReadShortAt16(idDeltas, i);
+            if (startCount < skipCode) {
+                aCharacterMap.SetRange(startCount,
+                                       std::min<uint16_t>(skipCode - 1,
+                                                          endCount));
+            }
+            if (skipCode < endCount) {
+                aCharacterMap.SetRange(std::max<uint16_t>(startCount,
+                                                          skipCode + 1),
+                                       endCount);
+            }
         } else {
             
             for (uint32_t c = startCount; c <= endCount; ++c) {
@@ -397,9 +416,10 @@ gfxFontUtils::ReadCMAPTableFormat4(const uint8_t *aBuf, uint32_t aLength,
                 
                 if (*gdata != 0) {
                     
-                    
-
-                    aCharacterMap.set(c);
+                    uint16_t glyph = ReadShortAt16(idDeltas, i) + *gdata;
+                    if (glyph) {
+                        aCharacterMap.set(c);
+                    }
                 }
             }
         }
