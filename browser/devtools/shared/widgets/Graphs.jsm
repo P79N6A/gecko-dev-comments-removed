@@ -1563,6 +1563,9 @@ this.CanvasGraphUtils = {
 
 
   linkAnimation: Task.async(function*(graph1, graph2) {
+    if (!graph1 || !graph2) {
+      return;
+    }
     yield graph1.ready();
     yield graph2.ready();
 
@@ -1583,6 +1586,9 @@ this.CanvasGraphUtils = {
 
 
   linkSelection: function(graph1, graph2) {
+    if (!graph1 || !graph2) {
+      return;
+    }
     graph1.on("selecting", () => {
       graph2.setSelection(graph1.getSelection());
     });
