@@ -124,7 +124,6 @@ enum PatternType {
 static struct FilterRecord {
     PRCList      links;
     jsdIFilter  *filterObject;
-    void        *glob;
     nsCString    urlPattern;
     PatternType  patternType;
     uint32_t     startLine;
@@ -234,20 +233,9 @@ jsds_SyncFilter (FilterRecord *rec, jsdIFilter *filter)
 {
     NS_ASSERTION (rec, "jsds_SyncFilter without rec");
     NS_ASSERTION (filter, "jsds_SyncFilter without filter");
-    
-    JSObject *glob_proper = nullptr;
-    nsCOMPtr<nsISupports> glob;
-    nsresult rv = filter->GetGlobalObject(getter_AddRefs(glob));
-    if (NS_FAILED(rv))
-        return false;
-    if (glob) {
-        nsCOMPtr<nsIScriptGlobalObject> nsiglob = do_QueryInterface(glob);
-        if (nsiglob)
-            glob_proper = nsiglob->GetGlobalJSObject();
-    }
-    
+
     uint32_t startLine;
-    rv = filter->GetStartLine(&startLine);
+    nsresult rv = filter->GetStartLine(&startLine);
     if (NS_FAILED(rv))
         return false;
 
@@ -299,8 +287,6 @@ jsds_SyncFilter (FilterRecord *rec, jsdIFilter *filter)
         rec->filterObject = filter;
     }
     
-    rec->glob = glob_proper;
-    
     rec->startLine     = startLine;
     rec->endLine       = endLine;
     
@@ -332,14 +318,6 @@ jsds_FindFilter (jsdIFilter *filter)
 bool
 jsds_FilterHook (JSDContext *jsdc, JSDThreadState *state)
 {
-    JSContext *cx = JSD_GetJSContext (jsdc, state);
-    void *glob = static_cast<void *>(JS_GetGlobalObject (cx));
-
-    if (!glob) {
-        NS_WARNING("No global in threadstate");
-        return false;
-    }
-    
     JSDStackFrameInfo *frame = JSD_GetStackFrame (jsdc, state);
 
     if (!frame) {
@@ -376,10 +354,8 @@ jsds_FilterHook (JSDContext *jsdc, JSDThreadState *state)
 
         if (flags & jsdIFilter::FLAG_ENABLED) {
             
-            if ((!currentFilter->glob || currentFilter->glob == glob) &&
-                
 
-                (!currentFilter->startLine || 
+            if ((!currentFilter->startLine ||
                  currentFilter->startLine <= currentLine) &&
                 
 
