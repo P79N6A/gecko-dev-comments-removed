@@ -48,6 +48,8 @@ function allAppShellDOMWindows(aWindowType)
   }
 }
 
+exports.allAppShellDOMWindows = allAppShellDOMWindows;
+
 
 
 
