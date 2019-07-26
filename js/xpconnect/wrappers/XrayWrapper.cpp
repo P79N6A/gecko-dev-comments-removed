@@ -156,6 +156,17 @@ public:
                                     HandleId id, MutableHandle<JSPropertyDescriptor> desc,
                                     unsigned flags);
 
+    static bool call(JSContext *cx, HandleObject wrapper,
+                     const JS::CallArgs &args, js::Wrapper& baseInstance)
+    {
+        MOZ_ASSUME_UNREACHABLE("Call trap currently implemented only for XPCWNs");
+    }
+    static bool construct(JSContext *cx, HandleObject wrapper,
+                          const JS::CallArgs &args, js::Wrapper& baseInstance)
+    {
+        MOZ_ASSUME_UNREACHABLE("Call trap currently implemented only for XPCWNs");
+    }
+
     virtual void preserveWrapper(JSObject *target) = 0;
 
     JSObject* getExpandoObject(JSContext *cx, HandleObject target,
@@ -304,9 +315,7 @@ public:
                                MutableHandle<JSPropertyDescriptor> desc,
                                Handle<JSPropertyDescriptor> existingDesc, bool *defined)
     {
-        
-        *defined = false;
-        return true;
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
     }
 
     static bool enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags,
@@ -318,19 +327,13 @@ public:
     static bool call(JSContext *cx, HandleObject wrapper,
                      const JS::CallArgs &args, js::Wrapper& baseInstance)
     {
-        
-        RootedValue v(cx, ObjectValue(*wrapper));
-        js_ReportIsNotFunction(cx, v);
-        return false;
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
     }
 
     static bool construct(JSContext *cx, HandleObject wrapper,
                           const JS::CallArgs &args, js::Wrapper& baseInstance)
     {
-        
-        RootedValue v(cx, ObjectValue(*wrapper));
-        js_ReportIsNotFunction(cx, v);
-        return false;
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
     }
 
     static bool isResolving(JSContext *cx, JSObject *holder, jsid id)
@@ -348,10 +351,7 @@ public:
     }
 
     virtual void preserveWrapper(JSObject *target) {
-        
-        
-        
-        
+        MOZ_ASSUME_UNREACHABLE("Not yet implemented");
     }
 
     virtual JSObject* createHolder(JSContext *cx, JSObject *wrapper) {
