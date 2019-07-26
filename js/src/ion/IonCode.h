@@ -172,20 +172,23 @@ struct IonScript
     bool bailoutExpected_;
 
     
-    uint32_t snapshots_;
-    uint32_t snapshotsSize_;
+    
+    uint32_t runtimeData_;
+    uint32_t runtimeSize_;
 
     
-    uint32_t bailoutTable_;
-    uint32_t bailoutEntries_;
-
     
-    uint32_t constantTable_;
-    uint32_t constantEntries_;
+    
+    uint32_t cacheIndex_;
+    uint32_t cacheEntries_;
 
     
     uint32_t safepointIndexOffset_;
     uint32_t safepointIndexEntries_;
+
+    
+    uint32_t safepointsStart_;
+    uint32_t safepointsSize_;
 
     
     
@@ -196,16 +199,20 @@ struct IonScript
     uint32_t frameSize_;
 
     
+    uint32_t bailoutTable_;
+    uint32_t bailoutEntries_;
+
+    
     uint32_t osiIndexOffset_;
     uint32_t osiIndexEntries_;
 
     
-    uint32_t cacheList_;
-    uint32_t cacheEntries_;
+    uint32_t snapshots_;
+    uint32_t snapshotsSize_;
 
     
-    uint32_t safepointsStart_;
-    uint32_t safepointsSize_;
+    uint32_t constantTable_;
+    uint32_t constantEntries_;
 
     
     uint32_t scriptList_;
@@ -226,39 +233,50 @@ struct IonScript
     
     size_t refcount_;
 
+    
     types::RecompileInfo recompileInfo_;
+
+  private:
+    inline uint8_t *bottomBuffer() {
+        return reinterpret_cast<uint8_t *>(this);
+    }
+    inline const uint8_t *bottomBuffer() const {
+        return reinterpret_cast<const uint8_t *>(this);
+    }
 
   public:
     
     uint32_t slowCallCount;
 
     SnapshotOffset *bailoutTable() {
-        return (SnapshotOffset *)(reinterpret_cast<uint8_t *>(this) + bailoutTable_);
+        return (SnapshotOffset *) &bottomBuffer()[bailoutTable_];
     }
     HeapValue *constants() {
-        return (HeapValue *)(reinterpret_cast<uint8_t *>(this) + constantTable_);
+        return (HeapValue *) &bottomBuffer()[constantTable_];
     }
     const SafepointIndex *safepointIndices() const {
         return const_cast<IonScript *>(this)->safepointIndices();
     }
     SafepointIndex *safepointIndices() {
-        return (SafepointIndex *)(reinterpret_cast<uint8_t *>(this) + safepointIndexOffset_);
+        return (SafepointIndex *) &bottomBuffer()[safepointIndexOffset_];
     }
     const OsiIndex *osiIndices() const {
         return const_cast<IonScript *>(this)->osiIndices();
     }
     OsiIndex *osiIndices() {
-        return (OsiIndex *)(reinterpret_cast<uint8_t *>(this) + osiIndexOffset_);
+        return (OsiIndex *) &bottomBuffer()[osiIndexOffset_];
     }
-    IonCache *cacheList() {
-        return (IonCache *)(reinterpret_cast<uint8_t *>(this) + cacheList_);
+    uint32_t *cacheIndex() {
+        return (uint32_t *) &bottomBuffer()[cacheIndex_];
+    }
+    uint8_t *runtimeData() {
+        return  &bottomBuffer()[runtimeData_];
     }
     JSScript **scriptList() const {
-        return (JSScript **)(reinterpret_cast<const uint8_t *>(this) + scriptList_);
+        return (JSScript **) &bottomBuffer()[scriptList_];
     }
     JSScript **parallelInvalidatedScriptList() {
-        return (JSScript **)(reinterpret_cast<const uint8_t *>(this) +
-                             parallelInvalidatedScriptList_);
+        return (JSScript **) &bottomBuffer()[parallelInvalidatedScriptList_];
     }
 
   private:
@@ -271,7 +289,8 @@ struct IonScript
     static IonScript *New(JSContext *cx, uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsSize, size_t snapshotEntries,
                           size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
-                          size_t cacheEntries, size_t safepointsSize, size_t scriptEntries,
+                          size_t cacheEntries, size_t runtimeSize,
+                          size_t safepointsSize, size_t scriptEntries,
                           size_t parallelInvalidatedScriptEntries);
     static void Trace(JSTracer *trc, IonScript *script);
     static void Destroy(FreeOp *fop, IonScript *script);
@@ -392,9 +411,17 @@ struct IonScript
     }
     const OsiIndex *getOsiIndex(uint32_t disp) const;
     const OsiIndex *getOsiIndex(uint8_t *retAddr) const;
-    inline IonCache &getCache(size_t index);
+    inline IonCache &getCache(uint32_t index) {
+        JS_ASSERT(index < cacheEntries_);
+        uint32_t offset = cacheIndex()[index];
+        JS_ASSERT(offset < runtimeSize_);
+        return *(IonCache *) &runtimeData()[offset];
+    }
     size_t numCaches() const {
         return cacheEntries_;
+    }
+    size_t runtimeSize() const {
+        return runtimeSize_;
     }
     void toggleBarriers(bool enabled);
     void purgeCaches(JSCompartment *c);
@@ -403,7 +430,8 @@ struct IonScript
     void copyConstants(const HeapValue *vp);
     void copySafepointIndices(const SafepointIndex *firstSafepointIndex, MacroAssembler &masm);
     void copyOsiIndices(const OsiIndex *firstOsiIndex, MacroAssembler &masm);
-    void copyCacheEntries(const IonCache *caches, MacroAssembler &masm);
+    void copyRuntimeData(const uint8_t *data);
+    void copyCacheEntries(const uint32_t *caches, MacroAssembler &masm);
     void copySafepoints(const SafepointWriter *writer);
     void copyScriptEntries(JSScript **scripts);
     void zeroParallelInvalidatedScripts();
