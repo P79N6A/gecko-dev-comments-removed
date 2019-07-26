@@ -4423,8 +4423,6 @@ CodeGenerator::link()
     if (executionMode == ParallelExecution)
         ionScript->zeroParallelInvalidatedScripts();
 
-    linkAbsoluteLabels();
-
     
     
     

@@ -70,17 +70,6 @@ class LUnboxDouble : public LInstructionHelper<1, 2, 0>
     }
 };
 
-
-class LDouble : public LInstructionHelper<1, 1, 0>
-{
-  public:
-    LIR_HEADER(Double);
-
-    LDouble(const LConstantIndex &cindex) {
-        setOperand(0, cindex);
-    }
-};
-
 } 
 } 
 

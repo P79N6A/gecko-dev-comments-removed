@@ -237,10 +237,6 @@ class Assembler : public AssemblerX86Shared
 
     
     
-    void finish() { }
-
-    
-    
     void executableCopy(uint8_t *buffer);
 
     
@@ -404,13 +400,6 @@ class Assembler : public AssemblerX86Shared
 
     void movsd(const double *dp, const FloatRegister &dest) {
         masm.movsd_mr((const void *)dp, dest.code());
-    }
-    void movsd(AbsoluteLabel *label, const FloatRegister &dest) {
-        JS_ASSERT(!label->bound());
-        
-        
-        masm.movsd_mr(reinterpret_cast<void *>(label->prev()), dest.code());
-        label->setPrev(masm.size());
     }
 };
 

@@ -1155,26 +1155,6 @@ CodeGeneratorARM::visitUnbox(LUnbox *unbox)
     return true;
 }
 
-void
-CodeGeneratorARM::linkAbsoluteLabels()
-{
-    
-    
-    
-    
-# if 0
-    JS_NOT_REACHED("Absolute Labels NYI");
-    UnrootedScript script = gen->info().script();
-    IonCode *method = script->ion->method();
-
-    for (size_t i = 0; i < deferredDoubles_.length(); i++) {
-        DeferredDouble *d = deferredDoubles_[i];
-        const Value &v = script->ion->getConstant(d->index());
-        MacroAssembler::Bind(method, d->label(), &v);
-    }
-#endif
-}
-
 bool
 CodeGeneratorARM::visitDouble(LDouble *ins)
 {

@@ -528,6 +528,28 @@ struct DefaultHasher<T *> : PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::re
 {};
 
 
+template <>
+struct DefaultHasher<double>
+{
+    typedef double Lookup;
+    static HashNumber hash(double d) {
+        JS_STATIC_ASSERT(sizeof(HashNumber) == 4);
+        union {
+            struct {
+                uint32_t lo;
+                uint32_t hi;
+            } s;
+            double d;
+        } u;
+        u.d = d;
+        return u.s.lo ^ u.s.hi;
+    }
+    static bool match(double lhs, double rhs) {
+        return lhs == rhs;
+    }
+};
+
+
 
 
 
