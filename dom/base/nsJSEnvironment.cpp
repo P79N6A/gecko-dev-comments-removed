@@ -1861,6 +1861,107 @@ nsJSContext::CompileFunction(JSObject* aTarget,
 }
 
 nsresult
+nsJSContext::CallEventHandler(nsISupports* aTarget, JSObject* aScope,
+                              JSObject* aHandler, nsIArray* aargv,
+                              nsIVariant** arv)
+{
+  NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
+
+  if (!mScriptsEnabled) {
+    return NS_OK;
+  }
+
+  SAMPLE_LABEL("JS", "CallEventHandler");
+
+  nsAutoMicroTask mt;
+  xpc_UnmarkGrayObject(aScope);
+  xpc_UnmarkGrayObject(aHandler);
+
+  XPCAutoRequest ar(mContext);
+  JSObject* target = nullptr;
+  nsresult rv = JSObjectFromInterface(aTarget, aScope, &target);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  JS::AutoObjectRooter targetVal(mContext, target);
+  jsval rval = JSVAL_VOID;
+
+  
+  
+  
+  
+
+  nsCxPusher pusher;
+  if (!pusher.Push(mContext, true))
+    return NS_ERROR_FAILURE;
+
+  
+  rv = sSecurityManager->CheckFunctionAccess(mContext, aHandler, target);
+
+  nsJSContext::TerminationFuncHolder holder(this);
+
+  if (NS_SUCCEEDED(rv)) {
+    
+    uint32_t argc = 0;
+    jsval *argv = nullptr;
+
+    JSObject *funobj = aHandler;
+    jsval funval = OBJECT_TO_JSVAL(funobj);
+    JSAutoCompartment ac(mContext, funobj);
+    if (!JS_WrapObject(mContext, &target)) {
+      ReportPendingException();
+      return NS_ERROR_FAILURE;
+    }
+
+    Maybe<nsRootedJSValueArray> tempStorage;
+
+    
+    
+    
+    
+    
+    rv = ConvertSupportsTojsvals(aargv, target, &argc, &argv, tempStorage);
+    NS_ENSURE_SUCCESS(rv, rv);
+    for (uint32_t i = 0; i < argc; i++) {
+      if (!JSVAL_IS_PRIMITIVE(argv[i])) {
+        xpc_UnmarkGrayObject(JSVAL_TO_OBJECT(argv[i]));
+      }
+    }
+
+    ++mExecuteDepth;
+    bool ok = ::JS_CallFunctionValue(mContext, target,
+                                       funval, argc, argv, &rval);
+    --mExecuteDepth;
+
+    if (!ok) {
+      
+      rval = JSVAL_VOID;
+
+      
+      rv = NS_ERROR_FAILURE;
+    } else if (rval == JSVAL_NULL) {
+      *arv = nullptr;
+    } else if (!JS_WrapValue(mContext, &rval)) {
+      rv = NS_ERROR_FAILURE;
+    } else {
+      rv = nsContentUtils::XPConnect()->JSToVariant(mContext, rval, arv);
+    }
+
+    
+    
+    
+    if (NS_FAILED(rv))
+      ReportPendingException();
+  }
+
+  pusher.Pop();
+
+  
+  ScriptEvaluated(true);
+
+  return rv;
+}
+
+nsresult
 nsJSContext::BindCompiledEventHandler(nsISupports* aTarget, JSObject* aScope,
                                       JSObject* aHandler,
                                       nsScriptObjectHolder<JSObject>& aBoundHandler)
