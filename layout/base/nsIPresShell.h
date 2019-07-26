@@ -1391,6 +1391,26 @@ public:
 
   void SetMaxLineBoxWidth(nscoord aMaxLineBoxWidth);
 
+  
+
+
+
+
+
+
+
+  bool IsReflowOnZoomPending() {
+    return mReflowOnZoomPending;
+  }
+
+  
+
+
+
+  void ClearReflowOnZoomPending() {
+    mReflowOnZoomPending = false;
+  }
+
 protected:
   friend class nsRefreshDriver;
 
@@ -1498,6 +1518,10 @@ protected:
   uint32_t mFontSizeInflationLineThreshold;
   bool mFontSizeInflationForceEnabled;
   bool mFontSizeInflationDisabledInMasterProcess;
+
+  
+  
+  bool mReflowOnZoomPending;
 
   
   

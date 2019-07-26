@@ -359,7 +359,15 @@ protected:
                           bool aTouchIsNew);
 
   void     WillDoReflow();
-  void     DidDoReflow(bool aInterruptible);
+
+  
+
+
+
+
+
+
+  void     DidDoReflow(bool aInterruptible, bool aWasInterrupted);
   
   
   bool     ProcessReflowCommands(bool aInterruptible);
