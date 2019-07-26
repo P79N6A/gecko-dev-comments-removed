@@ -1730,9 +1730,10 @@ namespace dom {
 bool
 IsChromeOrXBL(JSContext* cx, JSObject* )
 {
-  JSCompartment* compartment = js::GetContextCompartment(cx);
-  return AccessCheck::isChrome(compartment) ||
-         IsXBLScope(compartment);
+    MOZ_ASSERT(NS_IsMainThread());
+    JSCompartment* compartment = js::GetContextCompartment(cx);
+    return AccessCheck::isChrome(compartment) ||
+           IsXBLScope(compartment);
 }
 
 } 
