@@ -1401,9 +1401,8 @@ ActivationIterator::operator++()
 void
 ActivationIterator::settle()
 {
-    while (!done() && activation_->isJit() && !activation_->asJit()->isActive()) {
-        if (activation_->asJit()->isActive())
-            jitTop_ = activation_->asJit()->prevIonTop();
+    
+    
+    while (!done() && activation_->isJit() && !activation_->asJit()->isActive())
         activation_ = activation_->prev();
-    }
 }
