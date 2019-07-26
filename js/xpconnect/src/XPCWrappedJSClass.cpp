@@ -261,7 +261,7 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                     
                     using namespace mozilla::dom;
                     Exception *e = nullptr;
-                    UNWRAP_OBJECT(Exception, cx, &jsexception.toObject(), e);
+                    UNWRAP_OBJECT(Exception, &jsexception.toObject(), e);
 
                     if (e &&
                         NS_SUCCEEDED(e->GetResult(&rv)) &&

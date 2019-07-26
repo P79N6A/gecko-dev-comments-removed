@@ -592,7 +592,7 @@ WindowGlobalOrNull(JSObject *aObj)
     
     if (!IS_WN_CLASS(js::GetObjectClass(glob))) {
         nsGlobalWindow* win = nullptr;
-        UNWRAP_OBJECT(Window, nullptr, glob, win);
+        UNWRAP_OBJECT(Window, glob, win);
         return win;
     }
 

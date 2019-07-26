@@ -77,7 +77,7 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
   else {
     MOZ_ASSERT(aVal.isObject());
     
-    if (NS_FAILED(UNWRAP_OBJECT(IDBKeyRange, aCx, obj, keyRange))) {
+    if (NS_FAILED(UNWRAP_OBJECT(IDBKeyRange, obj, keyRange))) {
       return NS_ERROR_DOM_INDEXEDDB_DATA_ERR;
     }
   }
