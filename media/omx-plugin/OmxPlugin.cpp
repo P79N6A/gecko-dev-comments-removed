@@ -23,6 +23,9 @@
 
 #include "android/log.h"
 
+#define MAX_DECODER_NAME_LEN 256
+#define AVC_MIME_TYPE "video/avc"
+
 #if !defined(MOZ_ANDROID_FROYO)
 #define DEFAULT_STAGEFRIGHT_FLAGS OMXCodec::kClientNeedsFramebuffer
 #else
@@ -239,7 +242,13 @@ static uint32_t GetVideoCreationFlags(PluginHost* aPluginHost)
 #endif
 }
 
-static bool
+enum ColorFormatSupport {
+  ColorFormatNotSupported = 0,
+  ColorFormatSupportOK,
+  ColorFormatSupportPreferred,
+};
+
+static ColorFormatSupport
 IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
 {
   switch (aColorFormat) {
@@ -250,15 +259,19 @@ IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
     case OMX_QCOM_COLOR_FormatYVU420SemiPlanar:
     case OMX_TI_COLOR_FormatYUV420PackedSemiPlanar:
       LOG("Colour format %#x supported natively.", aColorFormat);
-      return true;
+      
+      
+      return ColorFormatSupportPreferred;
     default:
       break;
   }
 
+  
+  
 #if !defined(MOZ_ANDROID_HC)
   if (ColorConverter(aColorFormat, OMX_COLOR_Format16bitRGB565).isValid()) {
     LOG("Colour format %#x supported by Android ColorConverter.", aColorFormat);
-    return true;
+    return ColorFormatSupportOK;
   }
 #endif
 
@@ -268,12 +281,64 @@ IsColorFormatSupported(OMX_COLOR_FORMATTYPE aColorFormat)
   if (yuvConverter.isLoaded() &&
       yuvConverter.getDecoderOutputFormat() == aColorFormat) {
     LOG("Colour format %#x supported by Android I420ColorConverter.", aColorFormat);
-    return true;
+    return ColorFormatSupportOK;
   }
 #endif
 
+  return ColorFormatNotSupported;
+}
+
+#if defined(MOZ_ANDROID_KK)
+
+
+
+static bool
+FindPreferredDecoderAndColorFormat(const sp<IOMX>& aOmx,
+                                   char *aDecoderName,
+                                   size_t aDecoderLen,
+                                   OMX_COLOR_FORMATTYPE *aColorFormat)
+{
+  Vector<CodecCapabilities> codecs;
+
+  
+  QueryCodecs(aOmx, AVC_MIME_TYPE, true , &codecs);
+
+  
+  
+  for (uint32_t i = 0; i < codecs.size(); i++) {
+    const CodecCapabilities &caps = codecs[i];
+    const Vector<OMX_U32> &colors = caps.mColorFormats;
+
+    bool found = false;
+    for (uint32_t j = 0; j < colors.size(); j++) {
+      OMX_COLOR_FORMATTYPE color = (OMX_COLOR_FORMATTYPE)colors[j];
+
+      LOG("Decoder %s can output colour format %#x.\n",
+          caps.mComponentName.string(), color);
+
+      ColorFormatSupport supported = IsColorFormatSupported(color);
+
+      if (supported) {
+        strncpy(aDecoderName, caps.mComponentName.string(), aDecoderLen);
+        *aColorFormat = (OMX_COLOR_FORMATTYPE)color;
+        found = true;
+      }
+
+      if (supported == ColorFormatSupportPreferred) {
+        
+        
+        break;
+      }
+    }
+
+    if (found) {
+      return true;
+    }
+  }
+
   return false;
 }
+#endif
 
 static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
                                          const sp<IOMX>& aOmx,
@@ -281,10 +346,29 @@ static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
 {
   uint32_t flags = GetVideoCreationFlags(aPluginHost);
 
+  char decoderName[MAX_DECODER_NAME_LEN] = "";
+  sp<MetaData> videoFormat = aVideoTrack->getFormat();
+
+#if defined(MOZ_ANDROID_KK)
+  OMX_COLOR_FORMATTYPE colorFormat = (OMX_COLOR_FORMATTYPE)0;
+  if (FindPreferredDecoderAndColorFormat(aOmx,
+                                         decoderName, sizeof(decoderName),
+                                         &colorFormat)) {
+    
+    
+    videoFormat->setInt32(kKeyColorFormat, colorFormat);
+
+    LOG("Found compatible decoder %s with colour format %#x.\n",
+        decoderName, colorFormat);
+  }
+#endif
+
   if (flags == DEFAULT_STAGEFRIGHT_FLAGS) {
     
-    sp<MediaSource> videoSource = OMXCodec::Create(aOmx, aVideoTrack->getFormat(),
-                                                   false, aVideoTrack, nullptr, flags);
+    sp<MediaSource> videoSource = OMXCodec::Create(aOmx, videoFormat,
+                                                   false, aVideoTrack,
+                                                   decoderName[0] ? decoderName : nullptr,
+                                                   flags);
     if (videoSource == nullptr)
       return nullptr;
 
