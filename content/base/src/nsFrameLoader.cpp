@@ -1572,7 +1572,7 @@ nsFrameLoader::MaybeCreateDocShell()
   }
 
   if (!frameName.IsEmpty()) {
-    mDocShell->SetName(frameName.get());
+    mDocShell->SetName(frameName);
   }
 
   

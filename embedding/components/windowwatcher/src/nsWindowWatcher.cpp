@@ -805,11 +805,13 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
 
 
-  if (windowNeedsName)
-    newDocShellItem->SetName(nameSpecified &&
-                             !name.LowerCaseEqualsLiteral("_blank") ?
-                             name.get() : nullptr);
-
+  if (windowNeedsName) {
+    if (nameSpecified && !name.LowerCaseEqualsLiteral("_blank")) {
+      newDocShellItem->SetName(name);
+    } else {
+      newDocShellItem->SetName(EmptyString());
+    }
+  }
 
   
   
