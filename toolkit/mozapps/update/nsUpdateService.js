@@ -65,21 +65,12 @@ const URI_UPDATE_NS             = "http://www.mozilla.org/2005/app-update";
 
 const CATEGORY_UPDATE_TIMER               = "update-timer";
 
-const KEY_APPDIR          = "XCurProcD";
 const KEY_GRED            = "GreD";
-
-#ifdef XP_WIN
-#define USE_UPDROOT
-#elifdef ANDROID
-#define USE_UPDROOT
-#endif
+const KEY_UPDROOT         = "UpdRootD";
+const KEY_EXECUTABLE      = "XREExeF";
 
 #ifdef MOZ_WIDGET_GONK
 #define USE_UPDATE_ARCHIVE_DIR
-#endif
-
-#ifdef USE_UPDROOT
-const KEY_UPDROOT         = "UpdRootD";
 #endif
 
 #ifdef USE_UPDATE_ARCHIVE_DIR
@@ -470,7 +461,8 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
 
     if (!userCanElevate) {
       
-      var appDirTestFile = FileUtils.getFile(KEY_APPDIR, [FILE_PERMS_TEST]);
+      var appDirTestFile = getAppBaseDir();
+      appDirTestFile.append(FILE_PERMS_TEST);
       LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
       if (appDirTestFile.exists())
         appDirTestFile.remove(false)
@@ -618,14 +610,27 @@ function binaryToHex(input) {
 
 
 function getUpdateDirCreate(pathArray) {
-#ifdef USE_UPDROOT
-  try {
-    let dir = FileUtils.getDir(KEY_UPDROOT, pathArray, true);
-    return dir;
-  } catch (e) {
-  }
-#endif
-  return FileUtils.getDir(KEY_APPDIR, pathArray, true);
+  return FileUtils.getDir(KEY_UPDROOT, pathArray, true);
+}
+
+ 
+
+
+
+
+
+
+
+function getUpdateDirNoCreate(pathArray) {
+  return FileUtils.getDir(KEY_UPDROOT, pathArray, false);
+}
+
+
+
+
+
+function getAppBaseDir() {
+  return Services.dirsvc.get(KEY_EXECUTABLE, Ci.nsIFile).parent;
 }
 
 
@@ -636,7 +641,7 @@ function getUpdateDirCreate(pathArray) {
 
 
 function getInstallDirRoot() {
-  var dir = FileUtils.getDir(KEY_APPDIR, [], false);
+  var dir = getAppBaseDir();
 #ifdef XP_MACOSX
   
   dir = dir.parent.parent;
@@ -696,7 +701,6 @@ function getUpdatesDir() {
   return getUpdateDirCreate([DIR_UPDATES, "0"]);
 }
 
-#ifndef USE_UPDROOT
 
 
 
@@ -704,7 +708,7 @@ function getUpdatesDir() {
 
 
 function getUpdatesDirInApplyToDir() {
-  var dir = FileUtils.getDir(KEY_APPDIR, []);
+  var dir = getAppBaseDir();
 #ifdef XP_MACOSX
   dir = dir.parent.parent; 
 #endif
@@ -719,7 +723,6 @@ function getUpdatesDirInApplyToDir() {
   }
   return dir;
 }
-#endif
 
 
 
@@ -951,26 +954,16 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
     if (f.leafName == FILE_UPDATE_LOG) {
       var dir;
       try {
-#ifdef USE_UPDROOT
         
         
         
         
         
-        
-        dir = f.parent.parent;
-#else
-        
-        
-        
-        
-        
-        if (aBackgroundUpdate) {
+        if (aBackgroundUpdate && getUpdateDirNoCreate([]).equals(getAppBaseDir())) {
           dir = getUpdatesDirInApplyToDir();
         } else {
           dir = f.parent.parent;
         }
-#endif
         var logFile = dir.clone();
         logFile.append(FILE_LAST_LOG);
         if (logFile.exists()) {
@@ -1059,8 +1052,8 @@ function getLocale() {
 
   if (!gLocale)
     throw Components.Exception(FILE_UPDATE_LOCALE + " file doesn't exist in " +
-                               "either the " + KEY_APPDIR + " or " + KEY_GRED +
-                               " directories", Cr.NS_ERROR_FILE_NOT_FOUND);
+                               "either the application or GRE directories",
+                               Cr.NS_ERROR_FILE_NOT_FOUND);
 
   LOG("getLocale - getting locale from file: " + channel.originalURI.spec +
       ", locale: " + gLocale);
