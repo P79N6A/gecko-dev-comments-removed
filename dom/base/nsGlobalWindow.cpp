@@ -1283,7 +1283,7 @@ nsGlobalWindow::~nsGlobalWindow()
     }
   }
 
-  mDoc = nullptr;
+  ClearDelayedEventsAndDropDocument();
 
   
   
@@ -1352,6 +1352,15 @@ nsGlobalWindow::MaybeForgiveSpamCount()
     NS_ASSERTION(gOpenPopupSpamCount >= 0,
                  "Unbalanced decrement of gOpenPopupSpamCount");
   }
+}
+
+void
+nsGlobalWindow::ClearDelayedEventsAndDropDocument()
+{
+  if (mDoc && mDoc->EventHandlingSuppressed()) {
+    mDoc->UnsuppressEventHandlingAndFireEvents(false);
+  }
+  mDoc = nullptr;
 }
 
 void
@@ -2773,7 +2782,7 @@ nsGlobalWindow::DetachFromDocShell()
     mDocBaseURI = mDoc->GetDocBaseURI();
 
     
-    mDoc = nullptr;
+    ClearDelayedEventsAndDropDocument();
     mFocusedNode = nullptr;
   }
 
@@ -8192,10 +8201,8 @@ nsGlobalWindow::EnterModalState()
     NS_ASSERTION(!mSuspendedDoc, "Shouldn't have mSuspendedDoc here!");
 
     mSuspendedDoc = topWin->GetExtantDoc();
-    if (mSuspendedDoc && mSuspendedDoc->EventHandlingSuppressed()) {
+    if (mSuspendedDoc) {
       mSuspendedDoc->SuppressEventHandling();
-    } else {
-      mSuspendedDoc = nullptr;
     }
   }
   topWin->mModalStateDepth++;
