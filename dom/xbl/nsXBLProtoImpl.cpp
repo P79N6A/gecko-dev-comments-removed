@@ -201,7 +201,7 @@ nsXBLProtoImpl::CompilePrototypeMembers(nsXBLPrototypeBinding* aBinding)
   
   
   AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> compilationGlobal(cx, aBinding->XBLDocumentInfo()->GetCompilationGlobal());
+  JS::Rooted<JSObject*> compilationGlobal(cx, xpc::GetCompilationScope());
   NS_ENSURE_TRUE(compilationGlobal, NS_ERROR_UNEXPECTED);
   JSAutoCompartment ac(cx, compilationGlobal);
 
