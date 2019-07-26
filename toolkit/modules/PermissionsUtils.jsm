@@ -37,7 +37,7 @@ function importPrefBranch(aPrefBranch, aPermission, aAction) {
 }
 
 
-let PermissionsUtils = {
+this.PermissionsUtils = {
   
 
 
