@@ -22,10 +22,8 @@ BumpChunk::new_(size_t chunkSize)
     BumpChunk *result = new (mem) BumpChunk(chunkSize - sizeof(BumpChunk));
 
     
-
-
-
-
+    
+    
     JS_ASSERT(AlignPtr(result->bump) == result->bump);
     return result;
 }
@@ -66,9 +64,7 @@ LifoAlloc::freeAll()
     first = latest = last = NULL;
 
     
-
-
-
+    
     JS_ASSERT(curSize_ == 0);
 }
 
@@ -79,7 +75,7 @@ LifoAlloc::getOrCreateChunk(size_t n)
         
         while (latest->next()) {
             latest = latest->next();
-            latest->resetBump(); 
+            latest->resetBump();    
             if (latest->canAlloc(n))
                 return latest;
         }
