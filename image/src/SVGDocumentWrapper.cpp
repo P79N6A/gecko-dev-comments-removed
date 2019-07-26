@@ -27,7 +27,6 @@
 #include "nsSVGEffects.h"
 #include "mozilla/dom/SVGAnimatedLength.h"
 #include "nsMimeTypes.h"
-#include "DOMSVGLength.h"
 
 
 #undef GetCurrentTime
@@ -86,7 +85,7 @@ SVGDocumentWrapper::GetWidthOrHeight(Dimension aDimension,
   NS_ENSURE_TRUE(domAnimLength, false);
 
   
-  nsRefPtr<DOMSVGLength> domLength = domAnimLength->AnimVal();
+  nsRefPtr<nsIDOMSVGLength> domLength = domAnimLength->AnimVal();
   NS_ENSURE_TRUE(domLength, false);
 
   

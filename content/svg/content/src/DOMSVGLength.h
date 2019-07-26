@@ -14,7 +14,6 @@
 #include "nsTArray.h"
 #include "SVGLength.h"
 #include "mozilla/Attributes.h"
-#include "nsWrapperCache.h"
 
 class nsSVGElement;
 
@@ -30,7 +29,6 @@ class nsSVGElement;
 
 namespace mozilla {
 
-class ErrorResult;
 
 
 
@@ -68,21 +66,14 @@ class ErrorResult;
 
 
 
-
-class DOMSVGLength MOZ_FINAL : public nsIDOMSVGLength,
-                               public nsWrapperCache
+class DOMSVGLength MOZ_FINAL : public nsIDOMSVGLength
 {
   friend class AutoChangeLengthNotifier;
-
-  
-
-
-  DOMSVGLength(nsSVGLength2* aVal, nsSVGElement* aSVGElement, bool aAnimVal);
 
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGLENGTH_IID)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGLength)
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGLength)
   NS_DECL_NSIDOMSVGLENGTH
 
   
@@ -99,11 +90,14 @@ public:
 
   DOMSVGLength();
 
-  ~DOMSVGLength();
-
-  static already_AddRefed<DOMSVGLength> GetTearOff(nsSVGLength2* aVal,
-                                                   nsSVGElement* aSVGElement,
-                                                   bool aAnimVal);
+  ~DOMSVGLength() {
+    
+    
+    
+    if (mList) {
+      mList->mItems[mListIndex] = nullptr;
+    }
+  }
 
   
 
@@ -162,28 +156,9 @@ public:
 
   SVGLength ToSVGLength();
 
-  
-  uint16_t UnitType();
-  float GetValue(ErrorResult& aRv);
-  void SetValue(float aValue, ErrorResult& aRv);
-  float ValueInSpecifiedUnits();
-  void SetValueInSpecifiedUnits(float aValue, ErrorResult& aRv);
-  
-  void SetValueAsString(const nsAString& aValue, ErrorResult& aRv);
-  void NewValueSpecifiedUnits(uint16_t aUnit, float aValue,
-                              ErrorResult& aRv);
-  void ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv);
-
-  nsISupports* GetParentObject() const {
-    auto svgElement = mList ? Element() : mSVGElement.get();
-    return static_cast<nsIDOMSVGElement*> (svgElement);
-  }
-
-  JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
-
 private:
 
-  nsSVGElement* Element() const {
+  nsSVGElement* Element() {
     return mList->Element();
   }
 
@@ -226,10 +201,6 @@ private:
   
   uint32_t mUnit:5; 
   float mValue;
-
-  
-  nsSVGLength2* mVal; 
-  nsRefPtr<nsSVGElement> mSVGElement;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGLength, MOZILLA_DOMSVGLENGTH_IID)
