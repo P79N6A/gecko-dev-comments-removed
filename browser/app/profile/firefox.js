@@ -227,6 +227,7 @@ pref("general.useragent.complexOverride.moodle", false);
 
 
 pref("browser.shell.checkDefaultBrowser", true);
+pref("browser.shell.shortcutFavicons",true);
 
 
 
