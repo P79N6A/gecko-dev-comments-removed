@@ -39,6 +39,7 @@
 #include "gfxContext.h"
 #include "nsRect.h"
 #include "nsMathUtils.h"
+#include "gfxWindowsPlatform.h"
 
 
 
@@ -301,11 +302,14 @@ nsDragService::StartInvokingDragSession(IDataObject * aDataObj,
   
   
   
+  
+  
   DWORD pos = ::GetMessagePos();
-  POINT cpos;
-  cpos.x = GET_X_LPARAM(pos);
-  cpos.y = GET_Y_LPARAM(pos);
-  SetDragEndPoint(nsIntPoint(cpos.x, cpos.y));
+  FLOAT scaleFactor = 96.0f /
+    GetDeviceCaps(gfxWindowsPlatform::GetPlatform()->GetScreenDC(), LOGPIXELSY);
+  nsIntPoint logPos(NSToIntRound(scaleFactor * GET_X_LPARAM(pos)),
+                    NSToIntRound(scaleFactor * GET_Y_LPARAM(pos)));
+  SetDragEndPoint(logPos);
   EndDragSession(true);
 
   mDoingDrag = false;
