@@ -9230,14 +9230,7 @@ IonBuilder::jsop_setprop(PropertyName *name)
         return emitted;
 
     
-    if (!setPropTryCache(&emitted, obj, name, value, barrier, objTypes) || emitted)
-        return emitted;
-
-    
-    MInstruction *ins = MCallSetProperty::New(alloc(), obj, value, name, script()->strict());
-    current->add(ins);
-    current->push(value);
-    return resumeAfter(ins);
+    return setPropTryCache(&emitted, obj, name, value, barrier, objTypes);
 }
 
 bool
