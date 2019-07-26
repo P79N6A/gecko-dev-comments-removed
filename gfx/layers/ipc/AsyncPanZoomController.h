@@ -228,6 +228,15 @@ public:
 
 
 
+
+  gfx3DMatrix GetTransformToLastDispatchedPaint();
+
+  
+
+
+
+
+
   static const CSSRect CalculatePendingDisplayPort(
     const FrameMetrics& aFrameMetrics,
     const ScreenPoint& aVelocity,
