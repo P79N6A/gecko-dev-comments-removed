@@ -452,9 +452,6 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     
     const JSFunctionSpec *fsMatch = nullptr;
     for (const JSFunctionSpec *fs = clasp->spec.prototypeFunctions; fs && fs->name; ++fs) {
-        
-        if (fs->selfHostedName)
-            continue;
         if (JS_FlatStringEqualsAscii(str, fs->name)) {
             fsMatch = fs;
             break;
@@ -462,8 +459,13 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     }
     if (fsMatch) {
         
-        Rooted<JSFunction*> fun(cx, JS_NewFunctionById(cx, fsMatch->call.op, fsMatch->nargs,
-                                                       0, wrapper, id));
+        RootedFunction fun(cx);
+        if (fsMatch->selfHostedName) {
+            fun = JS::GetSelfHostedFunction(cx, fsMatch->selfHostedName, id, fsMatch->nargs);
+        } else {
+            fun = JS_NewFunctionById(cx, fsMatch->call.op, fsMatch->nargs,
+                                     0, wrapper, id);
+        }
         if (!fun)
             return false;
 
@@ -479,17 +481,37 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     
     const JSPropertySpec *psMatch = nullptr;
     for (const JSPropertySpec *ps = clasp->spec.prototypeProperties; ps && ps->name; ++ps) {
-        
-        
-        
-        if (!(ps->flags & JSPROP_NATIVE_ACCESSORS))
-            continue;
         if (JS_FlatStringEqualsAscii(str, ps->name)) {
             psMatch = ps;
             break;
         }
     }
     if (psMatch) {
+        desc.value().setUndefined();
+        
+        
+        RootedFunction getterObj(cx);
+        RootedFunction setterObj(cx);
+        unsigned flags = psMatch->flags;
+        if (flags & JSPROP_NATIVE_ACCESSORS) {
+            desc.setGetter(psMatch->getter.propertyOp.op);
+            desc.setSetter(psMatch->setter.propertyOp.op);
+        } else {
+            MOZ_ASSERT(flags & JSPROP_GETTER);
+            getterObj = JS::GetSelfHostedFunction(cx, psMatch->getter.selfHosted.funname, id, 0);
+            if (!getterObj)
+                return false;
+            desc.setGetterObject(JS_GetFunctionObject(getterObj));
+            if (psMatch->setter.selfHosted.funname) {
+                MOZ_ASSERT(flags & JSPROP_SETTER);
+                setterObj = JS::GetSelfHostedFunction(cx, psMatch->setter.selfHosted.funname, id, 0);
+                if (!setterObj)
+                    return false;
+                desc.setSetterObject(JS_GetFunctionObject(setterObj));
+            }
+        }
+        desc.setAttributes(flags);
+
         
         
         
@@ -499,8 +521,8 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
         
         
         return JS_DefinePropertyById(cx, holder, id,
-                                     UndefinedHandleValue, psMatch->flags,
-                                     psMatch->getter.propertyOp.op, psMatch->setter.propertyOp.op) &&
+                                     UndefinedHandleValue, desc.attributes(),
+                                     desc.getter(), desc.setter()) &&
                JS_GetPropertyDescriptorById(cx, holder, id, desc);
     }
 
@@ -527,9 +549,6 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
 
     
     for (const JSFunctionSpec *fs = clasp->spec.prototypeFunctions; fs && fs->name; ++fs) {
-        
-        if (fs->selfHostedName)
-            continue;
         RootedString str(cx, JS_InternString(cx, fs->name));
         if (!str)
             return false;
@@ -540,8 +559,10 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
         
         
         
-        if (!(ps->flags & JSPROP_NATIVE_ACCESSORS))
-            continue;
+        
+        MOZ_ASSERT(ps->flags & JSPROP_NATIVE_ACCESSORS,
+                   "Self-hosted accessor added to Xrayable class - ping the XPConnect "
+                   "module owner about adding test coverage");
         RootedString str(cx, JS_InternString(cx, ps->name));
         if (!str)
             return false;
