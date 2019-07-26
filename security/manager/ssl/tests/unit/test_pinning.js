@@ -91,6 +91,34 @@ function test_disabled() {
   add_connection_test("test-mode.pinning.example.com", Cr.NS_OK);
 }
 
+function test_enforce_test_mode() {
+  
+  add_test(function() {
+    Services.prefs.setIntPref("security.cert_pinning.enforcement_level", 3);
+    run_next_test();
+  });
+
+  
+  add_connection_test("bad.include-subdomains.pinning.example.com",
+    getXPCOMStatusFromNSS(SEC_ERROR_APPLICATION_CALLBACK_ERROR));
+
+  
+  add_connection_test("include-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("good.include-subdomains.pinning.example.com", Cr.NS_OK);
+  add_connection_test("exclude-subdomains.pinning.example.com", Cr.NS_OK);
+
+  
+  
+  add_connection_test("sub.exclude-subdomains.pinning.example.com", Cr.NS_OK);
+
+  
+  
+  
+  
+  add_connection_test("test-mode.pinning.example.com",
+    getXPCOMStatusFromNSS(SEC_ERROR_APPLICATION_CALLBACK_ERROR));
+}
+
 function check_pinning_telemetry() {
   let service = Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
   let prod_histogram = service.getHistogramById("CERT_PINNING_RESULTS")
@@ -99,9 +127,9 @@ function check_pinning_telemetry() {
                          .snapshot();
   
   
-  do_check_eq(prod_histogram.counts[0], 1); 
-  do_check_eq(prod_histogram.counts[1], 2); 
-  do_check_eq(test_histogram.counts[0], 1); 
+  do_check_eq(prod_histogram.counts[0], 2); 
+  do_check_eq(prod_histogram.counts[1], 4); 
+  do_check_eq(test_histogram.counts[0], 2); 
   do_check_eq(test_histogram.counts[1], 0); 
 
   let moz_prod_histogram = service.getHistogramById("CERT_PINNING_MOZ_RESULTS")
@@ -116,7 +144,7 @@ function check_pinning_telemetry() {
   let per_host_histogram =
     service.getHistogramById("CERT_PINNING_MOZ_RESULTS_BY_HOST").snapshot();
   do_check_eq(per_host_histogram.counts[0], 0); 
-  do_check_eq(per_host_histogram.counts[1], 1); 
+  do_check_eq(per_host_histogram.counts[1], 2); 
   run_next_test();
 }
 
@@ -129,6 +157,7 @@ function run_test() {
   test_strict();
   test_mitm();
   test_disabled();
+  test_enforce_test_mode();
 
   add_test(function () {
     check_pinning_telemetry();

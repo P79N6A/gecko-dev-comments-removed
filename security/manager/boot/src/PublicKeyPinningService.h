@@ -23,9 +23,11 @@ public:
 
 
 
+
   static bool ChainHasValidPins(const CERTCertList* certList,
                                 const char* hostname,
-                                const PRTime time);
+                                const PRTime time,
+                                bool enforceTestMode);
 };
 
 }} 
