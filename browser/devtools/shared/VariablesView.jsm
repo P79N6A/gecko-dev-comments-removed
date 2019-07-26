@@ -1231,7 +1231,7 @@ function Variable(aScope, aName, aDescriptor) {
   this._onValueInputKeyPress = this._onValueInputKeyPress.bind(this);
 
   Scope.call(this, aScope, aName, this._initialDescriptor = aDescriptor);
-  this._setGrip(aDescriptor.value);
+  this.setGrip(aDescriptor.value);
   this._symbolicName = aName;
   this._absoluteName = aScope.name + "[\"" + aName + "\"]";
 }
@@ -1414,7 +1414,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
-  _setGrip: function V__setGrip(aGrip) {
+  setGrip: function V_setGrip(aGrip) {
     
     if (!this._nameString) {
       return;
@@ -1493,6 +1493,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
     let valueLabel = this._valueLabel = document.createElement("label");
     valueLabel.className = "plain value";
+    valueLabel.setAttribute("crop", "center");
 
     this._title.appendChild(separatorLabel);
     this._title.appendChild(valueLabel);
@@ -2139,6 +2140,8 @@ VariablesView.getClass = function VV_getClass(aGrip) {
         return "token-undefined";
       case "null":
         return "token-null";
+      case "longString":
+        return "token-string";
     }
   } else {
     switch (typeof aGrip) {
