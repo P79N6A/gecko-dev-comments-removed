@@ -117,7 +117,6 @@ nsCxPusher::Push(JSContext *cx)
 void
 nsCxPusher::DoPush(JSContext* cx)
 {
-  nsXPConnect *xpc = nsXPConnect::XPConnect();
   
   if (cx && nsJSUtils::GetDynamicScriptContext(cx) &&
       xpc::IsJSContextOnStack(cx))
