@@ -868,14 +868,12 @@ TelemetryPing.prototype = {
     let profileDirectory = Services.dirsvc.get("ProfD", Ci.nsILocalFile);
     let directory = profileDirectory.clone();
     directory.append("saved-telemetry-pings");
-    if (directory.exists()) {
-      if (directory.isDirectory()) {
-        
-        
-        directory.permissions = RWX_OWNER;
-        return directory;
-      } else {
+    if (directory.isDirectory()) {
+      return directory;
+    } else {
+      try {
         directory.remove(true);
+      } catch (e) {
       }
     }
 
