@@ -538,10 +538,20 @@ Rule.prototype = {
 
 
 
-  createProperty: function Rule_createProperty(aName, aValue, aPriority)
+
+
+  createProperty: function Rule_createProperty(aName, aValue, aPriority, aSiblingProp)
   {
     let prop = new TextProperty(this, aName, aValue, aPriority);
-    this.textProps.push(prop);
+
+    if (aSiblingProp) {
+      let ind = this.textProps.indexOf(aSiblingProp);
+      this.textProps.splice(ind + 1, 0, prop);
+    }
+    else {
+      this.textProps.push(prop);
+    }
+
     this.applyProperties();
     return prop;
   },
@@ -594,7 +604,7 @@ Rule.prototype = {
 
     let promise = aModifications.apply().then(() => {
       let cssProps = {};
-      for (let cssProp of this._parseCSSText(this.style.cssText)) {
+      for (let cssProp of parseCSSText(this.style.cssText)) {
         cssProps[cssProp.name] = cssProp;
       }
 
@@ -701,26 +711,6 @@ Rule.prototype = {
     this.applyProperties(modifications);
   },
 
-  _parseCSSText: function Rule_parseProperties(aCssText)
-  {
-    let lines = aCssText.match(CSS_LINE_RE);
-    let props = [];
-
-    for (let line of lines) {
-      let [, name, value, priority] = CSS_PROP_RE.exec(line) || [];
-      if (!name || !value) {
-        continue;
-      }
-
-      props.push({
-        name: name,
-        value: value,
-        priority: priority || ""
-      });
-    }
-    return props;
-  },
-
   
 
 
@@ -729,7 +719,7 @@ Rule.prototype = {
   {
     let textProps = [];
     let store = this.elementStyle.store;
-    let props = this._parseCSSText(this.style.cssText);
+    let props = parseCSSText(this.style.cssText);
     for (let prop of props) {
       let name = prop.name;
       if (this.inherited && !domUtils.isInheritedProperty(name)) {
@@ -1730,9 +1720,9 @@ RuleEditor.prototype = {
     });
 
     
-    editableItem({ element: this.closeBrace }, function(aElement) {
+    editableItem({ element: this.closeBrace }, (aElement) => {
       this.newProperty();
-    }.bind(this));
+    });
   },
 
   updateSourceLink: function RuleEditor_updateSourceLink()
@@ -1806,12 +1796,57 @@ RuleEditor.prototype = {
 
 
 
-  addProperty: function RuleEditor_addProperty(aName, aValue, aPriority)
+
+
+  addProperty: function RuleEditor_addProperty(aName, aValue, aPriority, aSiblingProp)
   {
-    let prop = this.rule.createProperty(aName, aValue, aPriority);
+    let prop = this.rule.createProperty(aName, aValue, aPriority, aSiblingProp);
+    let index = this.rule.textProps.indexOf(prop);
     let editor = new TextPropertyEditor(this, prop);
-    this.propertyList.appendChild(editor.element);
+
+    
+    
+    
+    
+    
+    this.propertyList.insertBefore(editor.element,
+      this.propertyList.children[index]);
+
     return prop;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  addProperties: function RuleEditor_addProperties(aProperties, aSiblingProp)
+  {
+    if (!aProperties || !aProperties.length) {
+      return;
+    }
+
+    let lastProp = aSiblingProp;
+    for (let p of aProperties) {
+      lastProp = this.addProperty(p.name, p.value, p.priority, lastProp);
+    }
+
+    
+    if (lastProp && lastProp.value.trim() === "") {
+      lastProp.editor.valueSpan.click();
+    } else {
+      this.newProperty();
+    }
   },
 
   
@@ -1840,7 +1875,9 @@ RuleEditor.prototype = {
       tabindex: "0"
     });
 
-    new InplaceEditor({
+    this.multipleAddedProperties = null;
+
+    this.editor = new InplaceEditor({
       element: this.newPropSpan,
       done: this._onNewProperty,
       destroy: this._newPropertyDestroy,
@@ -1848,10 +1885,13 @@ RuleEditor.prototype = {
       contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,
       popup: this.ruleView.popup
     });
+
+    
+    this.editor.input.addEventListener("paste",
+      blurOnMultipleProperties, false);
   },
 
   
-
 
 
 
@@ -1866,13 +1906,23 @@ RuleEditor.prototype = {
     }
 
     
-    let prop = this.rule.createProperty(aValue, "", "");
-    let editor = new TextPropertyEditor(this, prop);
-    this.propertyList.appendChild(editor.element);
-    editor.valueSpan.click();
+    
+    this.multipleAddedProperties = parseCSSText(aValue);
+    if (!this.multipleAddedProperties.length) {
+      this.multipleAddedProperties = [{
+        name: aValue,
+        value: "",
+        priority: ""
+      }];
+    }
+
+    this.editor.input.blur();
   },
 
   
+
+
+
 
 
   _newPropertyDestroy: function RuleEditor__newPropertyDestroy()
@@ -1883,6 +1933,13 @@ RuleEditor.prototype = {
     this.propertyList.removeChild(this.newPropItem);
     delete this.newPropItem;
     delete this.newPropSpan;
+
+    
+    
+    
+    if (this.multipleAddedProperties && this.multipleAddedProperties.length) {
+      this.addProperties(this.multipleAddedProperties);
+    }
   }
 };
 
@@ -1916,7 +1973,8 @@ function TextPropertyEditor(aRuleEditor, aProperty)
   this._onStartEditing = this._onStartEditing.bind(this);
   this._onNameDone = this._onNameDone.bind(this);
   this._onValueDone = this._onValueDone.bind(this);
-  this._onValidate = throttle(this._livePreview, 10, this, this.browserWindow);
+  this._onValidate = throttle(this._livePreview, 10, this);
+  this.update = this.update.bind(this);
 
   this._create();
   this.update();
@@ -1974,11 +2032,15 @@ TextPropertyEditor.prototype = {
       start: this._onStartEditing,
       element: this.nameSpan,
       done: this._onNameDone,
-      destroy: this.update.bind(this),
+      destroy: this.update,
       advanceChars: ':',
       contentType: InplaceEditor.CONTENT_TYPES.CSS_PROPERTY,
       popup: this.popup
     });
+
+    
+    this.nameContainer.addEventListener("paste",
+      blurOnMultipleProperties, false);
 
     appendText(this.nameContainer, ": ");
 
@@ -2044,7 +2106,7 @@ TextPropertyEditor.prototype = {
       start: this._onStartEditing,
       element: this.valueSpan,
       done: this._onValueDone,
-      destroy: this.update.bind(this),
+      destroy: this.update,
       validate: this._onValidate,
       advanceChars: ';',
       contentType: InplaceEditor.CONTENT_TYPES.CSS_VALUE,
@@ -2262,30 +2324,27 @@ TextPropertyEditor.prototype = {
   _onNameDone: function TextPropertyEditor_onNameDone(aValue, aCommit)
   {
     if (aCommit) {
+      
+      
       if (aValue.trim() === "") {
         this.remove();
       } else {
-        this.prop.setName(aValue);
+
+        
+        
+        let properties = parseCSSText(aValue);
+        if (properties.length > 0) {
+          this.prop.setName(properties[0].name);
+          this.prop.setValue(properties[0].value, properties[0].priority);
+
+          this.ruleEditor.addProperties(properties.slice(1), this.prop);
+        } else {
+          this.prop.setName(aValue);
+        }
       }
     }
   },
 
-  
-
-
-
-
-
-
-
-  _parseValue: function TextPropertyEditor_parseValue(aValue)
-  {
-    let pieces = aValue.split("!", 2);
-    return {
-      value: pieces[0].trim(),
-      priority: (pieces.length > 1 ? pieces[1].trim() : "")
-    };
-  },
 
   
 
@@ -2316,24 +2375,97 @@ TextPropertyEditor.prototype = {
 
    _onValueDone: function PropertyEditor_onValueDone(aValue, aCommit)
   {
-    if (aCommit) {
-      this._applyNewValue(aValue);
-    } else {
-      
-      if (this.removeOnRevert) {
-        this.remove();
-      } else {
-        
-        
-        
-        this.prop.setValue(this.valueSpan.textContent, this.committed.priority);
-      }
+    if (!aCommit) {
+       
+       if (this.removeOnRevert) {
+         this.remove();
+       } else {
+         this.prop.setValue(this.committed.value, this.committed.priority);
+       }
+       return;
     }
+
+    let {propertiesToAdd,firstValue} = this._getValueAndExtraProperties(aValue);
+
+    
+    let val = parseCSSValue(firstValue);
+    this.prop.setValue(val.value, val.priority);
+    this.removeOnRevert = false;
+    this.committed.value = this.prop.value;
+    this.committed.priority = this.prop.priority;
+
+    
+    this.ruleEditor.addProperties(propertiesToAdd, this.prop);
+
+    
+    
+    
+    
+    
+    if (val.value.trim() === "") {
+      setTimeout(() => {
+        if (!this.editing) {
+          this.remove();
+        }
+      }, 0);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _getValueAndExtraProperties: function PropetyEditor_getValueAndExtraProperties(aValue) {
+
+    
+    
+    
+    
+    let properties = parseCSSText(aValue);
+    let propertiesToAdd = [];
+    let firstValue = aValue;
+
+    if (properties.length > 0) {
+      
+      
+      let propertiesNoName = parseCSSText("a:" + aValue);
+      let enteredValueFirst = propertiesNoName.length > properties.length;
+
+      let firstProp = properties[0];
+      propertiesToAdd = properties.slice(1);
+
+      if (enteredValueFirst) {
+        firstProp = propertiesNoName[0];
+        propertiesToAdd = propertiesNoName.slice(1);
+      }
+
+      
+      
+      firstValue = enteredValueFirst ?
+        firstProp.value + "!" + firstProp.priority :
+        firstProp.name + ": " + firstProp.value + "!" + firstProp.priority;
+    }
+
+    return {
+      propertiesToAdd: propertiesToAdd,
+      firstValue: firstValue
+    };
   },
 
   _applyNewValue: function PropetyEditor_applyNewValue(aValue)
   {
-    let val = this._parseValue(aValue);
+    let val = parseCSSValue(aValue);
     
     if (val.value.trim() === "") {
       this.remove();
@@ -2358,7 +2490,7 @@ TextPropertyEditor.prototype = {
       return;
     }
 
-    let val = this._parseValue(aValue);
+    let val = parseCSSValue(aValue);
 
     
     
@@ -2379,7 +2511,7 @@ TextPropertyEditor.prototype = {
   {
     let name = this.prop.name;
     let value = typeof aValue == "undefined" ? this.prop.value : aValue;
-    let val = this._parseValue(value);
+    let val = parseCSSValue(value);
 
     let style = this.doc.createElementNS(HTML_NS, "div").style;
     let prefs = Services.prefs;
@@ -2524,21 +2656,98 @@ function createMenuItem(aMenu, aAttributes)
   return item;
 }
 
+function setTimeout()
+{
+  let window = Services.appShell.hiddenDOMWindow;
+  return window.setTimeout.apply(window, arguments);
+}
 
-function throttle(func, wait, scope, window) {
+function clearTimeout()
+{
+  let window = Services.appShell.hiddenDOMWindow;
+  return window.clearTimeout.apply(window, arguments);
+}
+
+function throttle(func, wait, scope)
+{
   var timer = null;
   return function() {
     if(timer) {
-      window.clearTimeout(timer);
+      clearTimeout(timer);
     }
     var args = arguments;
-    timer = window.setTimeout(function() {
+    timer = setTimeout(function() {
       timer = null;
       func.apply(scope, args);
     }, wait);
   };
 }
 
+
+
+
+
+
+
+
+
+function parseCSSValue(aValue)
+{
+  let pieces = aValue.split("!", 2);
+  return {
+    value: pieces[0].trim(),
+    priority: (pieces.length > 1 ? pieces[1].trim() : "")
+  };
+}
+
+
+
+
+
+
+
+
+
+
+
+function parseCSSText(aCssText)
+{
+  let lines = aCssText.match(CSS_LINE_RE);
+  let props = [];
+
+  [].forEach.call(lines, (line, i) => {
+    let [, name, value, priority] = CSS_PROP_RE.exec(line) || [];
+
+    
+    
+    if (!name && line && i > 0) {
+      name = line;
+    }
+
+    if (name) {
+      props.push({
+        name: name.trim(),
+        value: value || "",
+        priority: priority || ""
+      });
+    }
+  });
+
+  return props;
+}
+
+
+
+
+
+function blurOnMultipleProperties(e)
+{
+  setTimeout(() => {
+    if (parseCSSText(e.target.value).length) {
+      e.target.blur();
+    }
+  }, 0);
+}
 
 
 
