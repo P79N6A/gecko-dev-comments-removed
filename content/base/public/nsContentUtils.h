@@ -96,6 +96,7 @@ class nsStringHashKey;
 class nsTextFragment;
 class nsViewportInfo;
 class nsWrapperCache;
+class nsAttrValue;
 
 struct JSPropertyDescriptor;
 struct JSRuntime;
@@ -835,7 +836,7 @@ public:
 
 
 
-  static uint32_t ParseSandboxAttributeToFlags(const nsAString& aSandboxAttr);
+  static uint32_t ParseSandboxAttributeToFlags(const nsAttrValue* sandboxAttr);
 
 
   
@@ -1460,7 +1461,7 @@ public:
 
 
 
-  static bool MaybeAllowOfflineAppByDefault(nsIPrincipal *aPrincipal, nsIDOMWindow *aWindow);
+  static bool MaybeAllowOfflineAppByDefault(nsIPrincipal *aPrincipal);
 
   
 
