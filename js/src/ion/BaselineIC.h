@@ -388,6 +388,8 @@ class ICUpdatedStub;
 
 class ICStub
 {
+    friend class ICFallbackStub;
+
   public:
     enum Kind {
         INVALID = 0,
@@ -570,6 +572,27 @@ class ICStub
     static inline size_t offsetOfStubCode() {
         return offsetof(ICStub, stubCode_);
     }
+
+    static bool CanMakeCalls(ICStub::Kind kind) {
+        switch (kind) {
+          case Call_Scripted:
+          case Call_Native:
+          case Call_Fallback:
+          case UseCount_Fallback:
+            return true;
+          default:
+            return false;
+        }
+    }
+
+    
+    
+    
+    
+    bool allocatedInFallbackSpace() const {
+        JS_ASSERT(next());
+        return CanMakeCalls(kind());
+    }
 };
 
 class ICFallbackStub : public ICStub
@@ -647,6 +670,8 @@ class ICFallbackStub : public ICStub
 
         return false;
     }
+
+    void unlinkStub(ICStub *prev, ICStub *stub);
     void unlinkStubsWithKind(ICStub::Kind kind);
 };
 
@@ -667,7 +692,10 @@ class ICMonitoredStub : public ICStub
         JS_ASSERT(firstMonitorStub_ && firstMonitorStub_->isTypeMonitor_Fallback());
         firstMonitorStub_ = monitorStub;
     }
-
+    inline void resetFirstMonitorStub(ICStub *monitorFallback) {
+        JS_ASSERT(monitorFallback->isTypeMonitor_Fallback());
+        firstMonitorStub_ = monitorFallback;
+    }
     inline ICStub *firstMonitorStub() const {
         return firstMonitorStub_;
     }
@@ -720,7 +748,7 @@ class ICUpdatedStub : public ICStub
   public:
     bool initUpdatingChain(JSContext *cx, ICStubSpace *space);
 
-    bool addUpdateStubForValue(JSContext *cx, ICStubSpace *space, HandleValue val);
+    bool addUpdateStubForValue(JSContext *cx, HandleScript script, HandleValue val);
 
     void addOptimizedUpdateStub(ICStub *stub) {
         if (firstUpdateStub_->isTypeUpdate_Fallback()) {
@@ -755,6 +783,11 @@ class ICUpdatedStub : public ICStub
 
 class ICStubCompiler
 {
+    
+    js::gc::AutoSuppressGC suppressGC;
+
+    mozilla::DebugOnly<bool> entersStubFrame_;
+
   protected:
     JSContext *cx;
     ICStub::Kind kind;
@@ -771,7 +804,8 @@ class ICStubCompiler
     IonCode *getStubCode();
 
     ICStubCompiler(JSContext *cx, ICStub::Kind kind)
-      : cx(cx), kind(kind) {}
+      : suppressGC(cx), entersStubFrame_(false), cx(cx), kind(kind)
+    {}
 
     
     bool tailCallVM(const VMFunction &fun, MacroAssembler &masm);
@@ -782,6 +816,12 @@ class ICStubCompiler
     
     
     bool callTypeUpdateIC(MacroAssembler &masm, uint32_t objectOffset);
+
+    
+    
+    
+    void enterStubFrame(MacroAssembler &masm, Register scratch);
+    void leaveStubFrame(MacroAssembler &masm, bool calledIntoIon = false);
 
     inline GeneralRegisterSet availableGeneralRegs(size_t numInputs) const {
         GeneralRegisterSet regs(GeneralRegisterSet::All());
@@ -815,6 +855,12 @@ class ICStubCompiler
 
   public:
     virtual ICStub *getStub(ICStubSpace *space) = 0;
+
+    ICStubSpace *getStubSpace(HandleScript script) {
+        return ICStub::CanMakeCalls(kind)
+            ? script->baselineScript()->fallbackStubSpace()
+            : script->baselineScript()->optimizedStubSpace();
+    }
 };
 
 
@@ -1026,7 +1072,9 @@ class ICTypeMonitor_Fallback : public ICStub
 
     
     
-    bool addMonitorStubForValue(JSContext *cx, ICStubSpace *space, HandleValue val);
+    bool addMonitorStubForValue(JSContext *cx, HandleScript script, HandleValue val);
+
+    void resetMonitorStubChain();
 
     
     class Compiler : public ICStubCompiler {
@@ -2210,6 +2258,7 @@ class ICGetElem_TypedArray : public ICStub
 {
     friend class ICStubSpace;
 
+  protected: 
     HeapPtrShape shape_;
     uint32_t type_;
 
@@ -2514,6 +2563,7 @@ class ICGetName_Global : public ICMonitoredStub
 {
     friend class ICStubSpace;
 
+  protected: 
     HeapPtrShape shape_;
     uint32_t slot_;
 
@@ -2838,6 +2888,7 @@ class ICGetProp_String : public ICMonitoredStub
 {
     friend class ICStubSpace;
 
+  protected: 
     
     HeapPtrShape stringProtoShape_;
 
@@ -3106,6 +3157,7 @@ class ICSetProp_Native : public ICUpdatedStub
 {
     friend class ICStubSpace;
 
+  protected: 
     HeapPtrTypeObject type_;
     HeapPtrShape shape_;
     uint32_t offset_;
@@ -3338,6 +3390,7 @@ class ICTableSwitch : public ICStub
 {
     friend class ICStubSpace;
 
+  protected: 
     void **table_;
     int32_t min_;
     int32_t length_;

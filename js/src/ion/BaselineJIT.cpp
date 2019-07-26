@@ -19,20 +19,6 @@
 using namespace js;
 using namespace js::ion;
 
- ICStubSpace *
-ICStubSpace::FallbackStubSpaceFor(JSScript *script)
-{
-    JS_ASSERT(script->hasBaselineScript());
-    return script->baselineScript()->fallbackStubSpace();
-}
-
- ICStubSpace *
-ICStubSpace::StubSpaceFor(JSScript *script)
-{
-    JS_ASSERT(script->hasBaselineScript());
-    return script->baselineScript()->optimizedStubSpace();
-}
-
  PCMappingEntry::SlotLocation
 PCMappingEntry::ToSlotLocation(const StackValue *stackVal)
 {
@@ -497,12 +483,78 @@ BaselineScript::toggleDebugTraps(UnrootedScript script, jsbytecode *pc)
 }
 
 void
+BaselineScript::purgeOptimizedStubs()
+{
+    IonSpew(IonSpew_BaselineIC, "Purging optimized stubs");
+
+    for (size_t i = 0; i < numICEntries(); i++) {
+        ICEntry &entry = icEntry(i);
+        if (!entry.hasStub())
+            continue;
+
+        ICStub *lastStub = entry.firstStub();
+        while (lastStub->next())
+            lastStub = lastStub->next();
+
+        if (lastStub->isFallback()) {
+            
+            ICStub *stub = entry.firstStub();
+            ICStub *prev = NULL;
+
+            while (stub->next()) {
+                if (!stub->allocatedInFallbackSpace()) {
+                    lastStub->toFallbackStub()->unlinkStub(prev, stub);
+                    stub = stub->next();
+                    continue;
+                }
+
+                prev = stub;
+                stub = stub->next();
+            }
+
+            if (lastStub->isMonitoredFallback()) {
+                
+                
+                ICTypeMonitor_Fallback *lastMonStub =
+                    lastStub->toMonitoredFallbackStub()->fallbackMonitorStub();
+                lastMonStub->resetMonitorStubChain();
+            }
+        } else if (lastStub->isTypeMonitor_Fallback()) {
+            lastStub->toTypeMonitor_Fallback()->resetMonitorStubChain();
+        } else {
+            JS_ASSERT(lastStub->isTableSwitch());
+        }
+    }
+
+#ifdef DEBUG
+    
+    for (size_t i = 0; i < numICEntries(); i++) {
+        ICEntry &entry = icEntry(i);
+        if (!entry.hasStub())
+            continue;
+
+        ICStub *stub = entry.firstStub();
+        while (stub->next()) {
+            JS_ASSERT(stub->allocatedInFallbackSpace());
+            stub = stub->next();
+        }
+    }
+#endif
+
+    optimizedStubSpace_.free();
+}
+
+void
 ion::FinishDiscardBaselineScript(FreeOp *fop, UnrootedScript script)
 {
     if (!script->hasBaselineScript())
         return;
 
     if (script->baseline->active()) {
+        
+        
+        script->baseline->purgeOptimizedStubs();
+
         
         
         script->baseline->resetActive();
