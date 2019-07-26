@@ -2,7 +2,7 @@
 
 
 
-let WeaveGlue = {
+let Sync = {
   setupData: null,
   _boundOnEngineSync: null,     
   _boundOnServiceSync: null,
@@ -369,7 +369,7 @@ let WeaveGlue = {
     Weave.Service.identity.syncKey = this.setupData.synckey;
     Weave.Service.persistLogin();
     Weave.Svc.Obs.notify("weave:service:setup-complete");
-    setTimeout(function () { Weave.Service.sync(); }, 0);
+    this.sync();
   },
 
   disconnect: function disconnect() {
@@ -378,7 +378,7 @@ let WeaveGlue = {
   },
 
   sync: function sync() {
-    Weave.Service.sync();
+    Weave.Service.scheduler.scheduleNextSync(0);
   },
 
   _addListeners: function _addListeners() {
@@ -391,13 +391,13 @@ let WeaveGlue = {
 
     
     topics.forEach(function(topic) {
-      Services.obs.addObserver(WeaveGlue, topic, false);
+      Services.obs.addObserver(Sync, topic, false);
     });
 
     
     addEventListener("unload", function() {
       topics.forEach(function(topic) {
-        Services.obs.removeObserver(WeaveGlue, topic);
+        Services.obs.removeObserver(Sync, topic);
       });
     }, false);
   },
@@ -562,7 +562,7 @@ let WeaveGlue = {
   },
 
   openTutorial: function _openTutorial() {
-    WeaveGlue.close();
+    Sync.close();
 
     let formatter = Cc["@mozilla.org/toolkit/URLFormatterService;1"].getService(Ci.nsIURLFormatter);
     let url = formatter.formatURLPref("app.sync.tutorialURL");
