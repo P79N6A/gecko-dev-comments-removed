@@ -499,7 +499,7 @@ nsTableRowFrame::CalcHeight(const nsHTMLReflowState& aReflowState)
     nsTableCellFrame *cellFrame = do_QueryFrame(kidFrame);
     if (cellFrame) {
       nsSize desSize = cellFrame->GetDesiredSize();
-      if ((NS_UNCONSTRAINEDSIZE == aReflowState.availableHeight) && !GetPrevInFlow()) {
+      if ((NS_UNCONSTRAINEDSIZE == aReflowState.AvailableHeight()) && !GetPrevInFlow()) {
         CalculateCellActualHeight(cellFrame, desSize.height);
       }
       
@@ -830,7 +830,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
       if (!aReflowState.mFlags.mSpecialHeightReflow)
         doReflowChild = false;
     }
-    else if ((NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight)) {
+    else if ((NS_UNCONSTRAINEDSIZE != aReflowState.AvailableHeight())) {
       
       
       if (aTableFrame.GetEffectiveRowSpan(*cellFrame) > 1) {
@@ -887,7 +887,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
           HasPctHeight()) {
         
         
-        nsSize  kidAvailSize(availCellWidth, aReflowState.availableHeight);
+        nsSize  kidAvailSize(availCellWidth, aReflowState.AvailableHeight());
 
         
         nsTableCellReflowState kidReflowState(aPresContext, aReflowState, 
@@ -925,7 +925,7 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
         }
       }
       
-      if (NS_UNCONSTRAINEDSIZE == aReflowState.availableHeight) {
+      if (NS_UNCONSTRAINEDSIZE == aReflowState.AvailableHeight()) {
         if (!GetPrevInFlow()) {
           
           
@@ -980,12 +980,12 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
   }
 
   
-  aDesiredSize.width = aReflowState.availableWidth;
+  aDesiredSize.width = aReflowState.AvailableWidth();
 
   if (aReflowState.mFlags.mSpecialHeightReflow) {
     aDesiredSize.height = mRect.height;
   }
-  else if (NS_UNCONSTRAINEDSIZE == aReflowState.availableHeight) {
+  else if (NS_UNCONSTRAINEDSIZE == aReflowState.AvailableHeight()) {
     aDesiredSize.height = CalcHeight(aReflowState);
     if (GetPrevInFlow()) {
       nscoord height = CalcHeightFromUnpaginatedHeight(aPresContext, *this);
@@ -1006,8 +1006,8 @@ nsTableRowFrame::ReflowChildren(nsPresContext*          aPresContext,
     
     
     nscoord styleHeight = CalcHeightFromUnpaginatedHeight(aPresContext, *this);
-    if (styleHeight > aReflowState.availableHeight) {
-      styleHeight = aReflowState.availableHeight;
+    if (styleHeight > aReflowState.AvailableHeight()) {
+      styleHeight = aReflowState.AvailableHeight();
       NS_FRAME_SET_INCOMPLETE(aStatus);
     }
     aDesiredSize.height = std::max(cellMaxHeight, styleHeight);
@@ -1052,7 +1052,7 @@ nsTableRowFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   
-  aDesiredSize.width = aReflowState.availableWidth;
+  aDesiredSize.width = aReflowState.AvailableWidth();
 
   
   

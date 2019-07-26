@@ -111,7 +111,7 @@ nsSimplePageSequenceFrame::SetDesiredSize(nsHTMLReflowMetrics& aDesiredSize,
     
     
     
-    aDesiredSize.width = std::max(aReflowState.availableWidth,
+    aDesiredSize.width = std::max(aReflowState.AvailableWidth(),
                                 nscoord(aWidth * PresContext()->GetPrintPreviewScale()));
     aDesiredSize.height = std::max(aReflowState.ComputedHeight(),
                                  nscoord(aHeight * PresContext()->GetPrintPreviewScale()));
@@ -211,11 +211,11 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
                                      pageSize);
     nsReflowStatus  status;
 
-    kidReflowState.SetComputedWidth(kidReflowState.availableWidth);
+    kidReflowState.SetComputedWidth(kidReflowState.AvailableWidth());
     
-    PR_PL(("AV W: %d   H: %d\n", kidReflowState.availableWidth, kidReflowState.availableHeight));
+    PR_PL(("AV W: %d   H: %d\n", kidReflowState.AvailableWidth(), kidReflowState.AvailableHeight()));
 
-    nsMargin pageCSSMargin = kidReflowState.mComputedMargin;
+    nsMargin pageCSSMargin = kidReflowState.ComputedPhysicalMargin();
     y += pageCSSMargin.top;
     const nscoord x = pageCSSMargin.left;
 

@@ -237,7 +237,7 @@ nsSplittableFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowSt
   if (aConsumedHeight != 0 && aConsumedHeight != NS_INTRINSICSIZE) {
     
     
-    height += aReflowState.mComputedBorderPadding.top;
+    height += aReflowState.ComputedPhysicalBorderPadding().top;
   }
 
   
@@ -265,9 +265,9 @@ nsSplittableFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
     
     
 
-    if (NS_UNCONSTRAINEDSIZE != aReflowState->availableHeight) {
+    if (NS_UNCONSTRAINEDSIZE != aReflowState->AvailableHeight()) {
       nscoord effectiveCH = this->GetEffectiveComputedHeight(*aReflowState);
-      if (effectiveCH > aReflowState->availableHeight) {
+      if (effectiveCH > aReflowState->AvailableHeight()) {
         
         
         skip |= 1 << NS_SIDE_BOTTOM;

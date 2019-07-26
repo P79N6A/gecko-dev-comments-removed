@@ -271,9 +271,9 @@ nsRangeFrame::Reflow(nsPresContext*           aPresContext,
     computedHeight = 0;
   }
   aDesiredSize.width = aReflowState.ComputedWidth() +
-                       aReflowState.mComputedBorderPadding.LeftRight();
+                       aReflowState.ComputedPhysicalBorderPadding().LeftRight();
   aDesiredSize.height = computedHeight +
-                        aReflowState.mComputedBorderPadding.TopBottom();
+                        aReflowState.ComputedPhysicalBorderPadding().TopBottom();
 
   nsresult rv =
     ReflowAnonymousContent(aPresContext, aDesiredSize, aReflowState);
@@ -340,14 +340,14 @@ nsRangeFrame::ReflowAnonymousContent(nsPresContext*           aPresContext,
     nscoord trackY = rangeFrameContentBoxHeight / 2;
 
     
-    trackX -= trackReflowState.mComputedBorderPadding.left +
+    trackX -= trackReflowState.ComputedPhysicalBorderPadding().left +
                 trackReflowState.ComputedWidth() / 2;
-    trackY -= trackReflowState.mComputedBorderPadding.top +
+    trackY -= trackReflowState.ComputedPhysicalBorderPadding().top +
                 trackReflowState.ComputedHeight() / 2;
 
     
-    trackX += aReflowState.mComputedBorderPadding.left;
-    trackY += aReflowState.mComputedBorderPadding.top;
+    trackX += aReflowState.ComputedPhysicalBorderPadding().left;
+    trackY += aReflowState.ComputedPhysicalBorderPadding().top;
 
     nsReflowStatus frameStatus;
     nsHTMLReflowMetrics trackDesiredSize;

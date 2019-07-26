@@ -441,7 +441,7 @@ nsTableRowGroupFrame::ReflowChildren(nsPresContext*         aPresContext,
     aReflowState.y -= cellSpacingY;
 
   
-  aDesiredSize.width = aReflowState.reflowState.availableWidth;
+  aDesiredSize.width = aReflowState.reflowState.AvailableWidth();
   aDesiredSize.height = aReflowState.y;
 
   if (aReflowState.reflowState.mFlags.mSpecialHeightReflow) {
@@ -926,8 +926,8 @@ nsTableRowGroupFrame::SplitSpanningCells(nsPresContext&           aPresContext,
         bool isTopOfPage = (row == &aFirstRow) && aFirstRowIsTopOfPage;
 
         nsRect rowRect = row->GetRect();
-        nsSize rowAvailSize(aReflowState.availableWidth,
-                            std::max(aReflowState.availableHeight - rowRect.y,
+        nsSize rowAvailSize(aReflowState.AvailableWidth(),
+                            std::max(aReflowState.AvailableHeight() - rowRect.y,
                                    0));
         
         
@@ -1034,8 +1034,8 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
   nsTableRowFrame* prevRowFrame = nullptr;
   aDesiredSize.height = 0;
 
-  nscoord availWidth  = aReflowState.availableWidth;
-  nscoord availHeight = aReflowState.availableHeight;
+  nscoord availWidth  = aReflowState.AvailableWidth();
+  nscoord availHeight = aReflowState.AvailableHeight();
   
   const bool borderCollapse = aTableFrame->IsBorderCollapse();
   nscoord cellSpacingY = aTableFrame->GetCellSpacingY();
@@ -1102,10 +1102,10 @@ nsTableRowGroupFrame::SplitRowGroup(nsPresContext*           aPresContext,
 
         if (NS_FRAME_IS_NOT_COMPLETE(aStatus)) {
           
-          if ((rowMetrics.height <= rowReflowState.availableHeight) || isTopOfPage) {
+          if ((rowMetrics.height <= rowReflowState.AvailableHeight()) || isTopOfPage) {
             
             
-            NS_ASSERTION(rowMetrics.height <= rowReflowState.availableHeight, 
+            NS_ASSERTION(rowMetrics.height <= rowReflowState.AvailableHeight(), 
                          "data loss - incomplete row needed more height than available, on top of page");
             CreateContinuingRowFrame(*aPresContext, *rowFrame, (nsIFrame**)&contRow);
             if (contRow) {
@@ -1306,9 +1306,9 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
   
   
   if (aReflowState.mFlags.mTableIsSplittable &&
-      NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
+      NS_UNCONSTRAINEDSIZE != aReflowState.AvailableHeight() &&
       (NS_FRAME_NOT_COMPLETE == aStatus || splitDueToPageBreak || 
-       aDesiredSize.height > aReflowState.availableHeight)) {
+       aDesiredSize.height > aReflowState.AvailableHeight())) {
     
     bool specialReflow = (bool)aReflowState.mFlags.mSpecialHeightReflow;
     ((nsHTMLReflowState::ReflowStateFlags&)aReflowState.mFlags).mSpecialHeightReflow = false;
@@ -1330,7 +1330,7 @@ nsTableRowGroupFrame::Reflow(nsPresContext*           aPresContext,
                     (aReflowState.ComputedHeight() > 0)); 
   
   
-  aDesiredSize.width = aReflowState.availableWidth;
+  aDesiredSize.width = aReflowState.AvailableWidth();
 
   aDesiredSize.UnionOverflowAreasWithDesiredBounds();
 

@@ -494,16 +494,16 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
-    leftEdge = ltr ? aReflowState.mComputedBorderPadding.left
-                   : aReflowState.mComputedBorderPadding.right;
+    leftEdge = ltr ? aReflowState.ComputedPhysicalBorderPadding().left
+                   : aReflowState.ComputedPhysicalBorderPadding().right;
   }
-  nscoord availableWidth = aReflowState.availableWidth;
+  nscoord availableWidth = aReflowState.AvailableWidth();
   NS_ASSERTION(availableWidth != NS_UNCONSTRAINEDSIZE,
                "should no longer use available widths");
   
   availableWidth -= leftEdge;
-  availableWidth -= ltr ? aReflowState.mComputedBorderPadding.right
-                        : aReflowState.mComputedBorderPadding.left;
+  availableWidth -= ltr ? aReflowState.ComputedPhysicalBorderPadding().right
+                        : aReflowState.ComputedPhysicalBorderPadding().left;
   lineLayout->BeginSpan(this, &aReflowState, leftEdge,
                         leftEdge + availableWidth, &mBaseline);
 
@@ -656,8 +656,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   
   
   if (!GetPrevContinuation() && !FrameIsNonFirstInIBSplit()) {
-    aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.left
-                          : aReflowState.mComputedBorderPadding.right;
+    aMetrics.width += ltr ? aReflowState.ComputedPhysicalBorderPadding().left
+                          : aReflowState.ComputedPhysicalBorderPadding().right;
   }
 
   
@@ -670,8 +670,8 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
   if (NS_FRAME_IS_COMPLETE(aStatus) &&
       !LastInFlow()->GetNextContinuation() &&
       !FrameIsNonLastInIBSplit()) {
-    aMetrics.width += ltr ? aReflowState.mComputedBorderPadding.right
-                          : aReflowState.mComputedBorderPadding.left;
+    aMetrics.width += ltr ? aReflowState.ComputedPhysicalBorderPadding().right
+                          : aReflowState.ComputedPhysicalBorderPadding().left;
   }
 
   nsRefPtr<nsFontMetrics> fm;
@@ -696,9 +696,9 @@ nsInlineFrame::ReflowFrames(nsPresContext* aPresContext,
     NS_WARNING("Cannot get font metrics - defaulting sizes to 0");
     aMetrics.ascent = aMetrics.height = 0;
   }
-  aMetrics.ascent += aReflowState.mComputedBorderPadding.top;
-  aMetrics.height += aReflowState.mComputedBorderPadding.top +
-    aReflowState.mComputedBorderPadding.bottom;
+  aMetrics.ascent += aReflowState.ComputedPhysicalBorderPadding().top;
+  aMetrics.height += aReflowState.ComputedPhysicalBorderPadding().top +
+    aReflowState.ComputedPhysicalBorderPadding().bottom;
 
   
   

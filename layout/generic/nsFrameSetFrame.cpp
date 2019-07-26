@@ -623,8 +623,8 @@ nsHTMLFramesetFrame::GetDesiredSize(nsPresContext*           aPresContext,
   if (nullptr == framesetParent) {
     if (aPresContext->IsPaginated()) {
       
-      aDesiredSize.width = aReflowState.availableWidth;
-      aDesiredSize.height = aReflowState.availableHeight;
+      aDesiredSize.width = aReflowState.AvailableWidth();
+      aDesiredSize.height = aReflowState.AvailableHeight();
     } else {
       nsRect area = aPresContext->GetVisibleArea();
 
@@ -737,8 +737,8 @@ nsHTMLFramesetFrame::ReflowPlaceChild(nsIFrame*                aChild,
 {
   
   nsHTMLReflowState reflowState(aPresContext, aReflowState, aChild, aSize);
-  reflowState.SetComputedWidth(std::max(0, aSize.width - reflowState.mComputedBorderPadding.LeftRight()));
-  reflowState.SetComputedHeight(std::max(0, aSize.height - reflowState.mComputedBorderPadding.TopBottom()));
+  reflowState.SetComputedWidth(std::max(0, aSize.width - reflowState.ComputedPhysicalBorderPadding().LeftRight()));
+  reflowState.SetComputedHeight(std::max(0, aSize.height - reflowState.ComputedPhysicalBorderPadding().TopBottom()));
   nsHTMLReflowMetrics metrics;
   metrics.width = aSize.width;
   metrics.height= aSize.height;
@@ -856,10 +856,10 @@ nsHTMLFramesetFrame::Reflow(nsPresContext*           aPresContext,
   
   GetDesiredSize(aPresContext, aReflowState, aDesiredSize);
 
-  nscoord width  = (aDesiredSize.width <= aReflowState.availableWidth)
-    ? aDesiredSize.width : aReflowState.availableWidth;
-  nscoord height = (aDesiredSize.height <= aReflowState.availableHeight)
-    ? aDesiredSize.height : aReflowState.availableHeight;
+  nscoord width  = (aDesiredSize.width <= aReflowState.AvailableWidth())
+    ? aDesiredSize.width : aReflowState.AvailableWidth();
+  nscoord height = (aDesiredSize.height <= aReflowState.AvailableHeight())
+    ? aDesiredSize.height : aReflowState.AvailableHeight();
 
   bool firstTime = (GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
   if (firstTime) {

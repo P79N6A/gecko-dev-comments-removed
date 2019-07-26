@@ -139,7 +139,7 @@ ViewportFrame::AdjustReflowStateForScrollbars(nsHTMLReflowState* aReflowState) c
     nsMargin scrollbars = scrollingFrame->GetActualScrollbarSizes();
     aReflowState->SetComputedWidth(aReflowState->ComputedWidth() -
                                    scrollbars.LeftRight());
-    aReflowState->availableWidth -= scrollbars.LeftRight();
+    aReflowState->AvailableWidth() -= scrollbars.LeftRight();
     aReflowState->SetComputedHeightWithoutResettingResizeFlags(
       aReflowState->ComputedHeight() - scrollbars.TopBottom());
     return nsPoint(scrollbars.left, scrollbars.top);
@@ -211,8 +211,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
       
       nsIFrame*           kidFrame = mFrames.FirstChild();
       nsHTMLReflowMetrics kidDesiredSize;
-      nsSize              availableSpace(aReflowState.availableWidth,
-                                         aReflowState.availableHeight);
+      nsSize              availableSpace(aReflowState.AvailableWidth(),
+                                         aReflowState.AvailableHeight());
       nsHTMLReflowState   kidReflowState(aPresContext, aReflowState,
                                          kidFrame, availableSpace);
 
@@ -228,11 +228,11 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     }
   }
 
-  NS_ASSERTION(aReflowState.availableWidth != NS_UNCONSTRAINEDSIZE,
+  NS_ASSERTION(aReflowState.AvailableWidth() != NS_UNCONSTRAINEDSIZE,
                "shouldn't happen anymore");
 
   
-  aDesiredSize.width = aReflowState.availableWidth;
+  aDesiredSize.width = aReflowState.AvailableWidth();
   
   
   aDesiredSize.height = aReflowState.ComputedHeight() != NS_UNCONSTRAINEDSIZE
@@ -249,12 +249,12 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     
     nsHTMLReflowState reflowState(aReflowState);
 
-    if (reflowState.availableHeight == NS_UNCONSTRAINEDSIZE) {
+    if (reflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE) {
       
       
-      reflowState.availableHeight = aDesiredSize.height;
+      reflowState.AvailableHeight() = aDesiredSize.height;
       
-      NS_ASSERTION(reflowState.mComputedBorderPadding == nsMargin(0,0,0,0),
+      NS_ASSERTION(reflowState.ComputedPhysicalBorderPadding() == nsMargin(0,0,0,0),
                    "Viewports can't have border/padding");
       reflowState.SetComputedHeight(aDesiredSize.height);
     }

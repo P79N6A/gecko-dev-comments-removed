@@ -637,7 +637,7 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
   
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
      ("enter nsSubDocumentFrame::Reflow: maxSize=%d,%d",
-      aReflowState.availableWidth, aReflowState.availableHeight));
+      aReflowState.AvailableWidth(), aReflowState.AvailableHeight()));
 
   aStatus = NS_FRAME_COMPLETE;
 
@@ -651,12 +651,12 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 
   
   
-  nsPoint offset = nsPoint(aReflowState.mComputedBorderPadding.left,
-                           aReflowState.mComputedBorderPadding.top);
+  nsPoint offset = nsPoint(aReflowState.ComputedPhysicalBorderPadding().left,
+                           aReflowState.ComputedPhysicalBorderPadding().top);
 
   nsSize innerSize(aDesiredSize.width, aDesiredSize.height);
-  innerSize.width  -= aReflowState.mComputedBorderPadding.LeftRight();
-  innerSize.height -= aReflowState.mComputedBorderPadding.TopBottom();
+  innerSize.width  -= aReflowState.ComputedPhysicalBorderPadding().LeftRight();
+  innerSize.height -= aReflowState.ComputedPhysicalBorderPadding().TopBottom();
 
   if (mInnerView) {
     nsViewManager* vm = mInnerView->GetViewManager();

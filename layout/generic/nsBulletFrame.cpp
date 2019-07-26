@@ -1666,7 +1666,7 @@ nsBulletFrame::Reflow(nsPresContext* aPresContext,
 
   
   
-  const nsMargin& borderPadding = aReflowState.mComputedBorderPadding;
+  const nsMargin& borderPadding = aReflowState.ComputedPhysicalBorderPadding();
   if (!mSuppressPadding ||
       aPresContext->HasAuthorSpecifiedRules(this,
                                             NS_AUTHOR_SPECIFIED_PADDING)) {

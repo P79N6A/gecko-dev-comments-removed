@@ -786,11 +786,11 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
                                             childRS.ComputedWidth(),
                                             childRS.ComputedHeight());
   nscoord mainMinSize = GET_MAIN_COMPONENT(aAxisTracker,
-                                           childRS.mComputedMinWidth,
-                                           childRS.mComputedMinHeight);
+                                           childRS.ComputedMinWidth(),
+                                           childRS.ComputedMinHeight());
   nscoord mainMaxSize = GET_MAIN_COMPONENT(aAxisTracker,
-                                           childRS.mComputedMaxWidth,
-                                           childRS.mComputedMaxHeight);
+                                           childRS.ComputedMaxWidth(),
+                                           childRS.ComputedMaxHeight());
   
   MOZ_ASSERT(mainMinSize <= mainMaxSize, "min size is larger than max size");
 
@@ -798,11 +798,11 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
   
 
   nscoord crossMinSize = GET_CROSS_COMPONENT(aAxisTracker,
-                                             childRS.mComputedMinWidth,
-                                             childRS.mComputedMinHeight);
+                                             childRS.ComputedMinWidth(),
+                                             childRS.ComputedMinHeight());
   nscoord crossMaxSize = GET_CROSS_COMPONENT(aAxisTracker,
-                                             childRS.mComputedMaxWidth,
-                                             childRS.mComputedMaxHeight);
+                                             childRS.ComputedMaxWidth(),
+                                             childRS.ComputedMaxHeight());
 
   
   
@@ -827,9 +827,9 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
 
     
     widgetMainMinSize -=
-      aAxisTracker.GetMarginSizeInMainAxis(childRS.mComputedBorderPadding);
+      aAxisTracker.GetMarginSizeInMainAxis(childRS.ComputedPhysicalBorderPadding());
     widgetCrossMinSize -=
-      aAxisTracker.GetMarginSizeInCrossAxis(childRS.mComputedBorderPadding);
+      aAxisTracker.GetMarginSizeInCrossAxis(childRS.ComputedPhysicalBorderPadding());
 
     if (!canOverride) {
       
@@ -854,8 +854,8 @@ nsFlexContainerFrame::GenerateFlexItemForChild(
                 flexGrow, flexShrink, flexBaseSize,
                 mainMinSize, mainMaxSize,
                 crossMinSize, crossMaxSize,
-                childRS.mComputedMargin,
-                childRS.mComputedBorderPadding,
+                childRS.ComputedPhysicalMargin(),
+                childRS.ComputedPhysicalBorderPadding(),
                 aAxisTracker);
 
   
@@ -948,7 +948,7 @@ nsFlexContainerFrame::
   
   
   nscoord childDesiredHeight = childDesiredSize.height -
-    childRSForMeasuringHeight.mComputedBorderPadding.TopBottom();
+    childRSForMeasuringHeight.ComputedPhysicalBorderPadding().TopBottom();
   childDesiredHeight = std::max(0, childDesiredHeight);
 
   aFlexItem.SetFlexBaseSizeAndMainSize(childDesiredHeight);
@@ -2183,8 +2183,8 @@ nsFlexContainerFrame::GenerateFlexLines(
     if (wrapThreshold == NS_UNCONSTRAINEDSIZE) {
       const nscoord flexContainerMaxMainSize =
         GET_MAIN_COMPONENT(aAxisTracker,
-                           aReflowState.mComputedMaxWidth,
-                           aReflowState.mComputedMaxHeight);
+                           aReflowState.ComputedMaxWidth(),
+                           aReflowState.ComputedMaxHeight());
 
       wrapThreshold = flexContainerMaxMainSize;
     }
@@ -2336,8 +2336,8 @@ ClampFlexContainerMainSize(const nsHTMLReflowState& aReflowState,
   
   nscoord largestLineOuterSize = GetLargestLineMainSize(aLines);
   return NS_CSS_MINMAX(largestLineOuterSize,
-                       aReflowState.mComputedMinHeight,
-                       aReflowState.mComputedMaxHeight);
+                       aReflowState.ComputedMinHeight(),
+                       aReflowState.ComputedMaxHeight());
 }
 
 
@@ -2401,8 +2401,8 @@ nsFlexContainerFrame::ComputeCrossSize(const nsHTMLReflowState& aReflowState,
   
   *aIsDefinite = false;
   return NS_CSS_MINMAX(SumLineCrossSizes(aLines),
-                       aReflowState.mComputedMinHeight,
-                       aReflowState.mComputedMaxHeight);
+                       aReflowState.ComputedMinHeight(),
+                       aReflowState.ComputedMaxHeight());
 }
 
 void
@@ -2629,10 +2629,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nscoord availableHeightForContent = aReflowState.availableHeight;
+  nscoord availableHeightForContent = aReflowState.AvailableHeight();
   if (availableHeightForContent != NS_UNCONSTRAINEDSIZE &&
       !(GetSkipSides() & (1 << NS_SIDE_TOP))) {
-    availableHeightForContent -= aReflowState.mComputedBorderPadding.top;
+    availableHeightForContent -= aReflowState.ComputedPhysicalBorderPadding().top;
     
     availableHeightForContent = std::max(availableHeightForContent, 0);
   }
@@ -2717,7 +2717,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    flexContainerAscent = aReflowState.mComputedBorderPadding.top +
+    flexContainerAscent = aReflowState.ComputedPhysicalBorderPadding().top +
       PhysicalPosFromLogicalPos(firstLineBaselineOffsetWRTContainer,
                                 contentBoxCrossSize,
                                 axisTracker.GetCrossAxis());
@@ -2743,7 +2743,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsMargin containerBorderPadding(aReflowState.mComputedBorderPadding);
+  nsMargin containerBorderPadding(aReflowState.ComputedPhysicalBorderPadding());
   ApplySkipSides(containerBorderPadding, &aReflowState);
   const nsPoint containerContentBoxOrigin(containerBorderPadding.left,
                                           containerBorderPadding.top);
@@ -2895,11 +2895,11 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
     
     
     nscoord desiredHeightWithBottomBP =
-      aDesiredSize.height + aReflowState.mComputedBorderPadding.bottom;
+      aDesiredSize.height + aReflowState.ComputedPhysicalBorderPadding().bottom;
 
-    if (aReflowState.availableHeight == NS_UNCONSTRAINEDSIZE ||
+    if (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE ||
         aDesiredSize.height == 0 ||
-        desiredHeightWithBottomBP <= aReflowState.availableHeight ||
+        desiredHeightWithBottomBP <= aReflowState.AvailableHeight() ||
         aReflowState.ComputedHeight() == NS_INTRINSICSIZE) {
       
       aDesiredSize.height = desiredHeightWithBottomBP;

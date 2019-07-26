@@ -410,7 +410,7 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   
   
   
-  nsSize availSize(aReflowState.availableWidth, NS_UNCONSTRAINEDSIZE);
+  nsSize availSize(aReflowState.AvailableWidth(), NS_UNCONSTRAINEDSIZE);
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, mDropdownFrame,
                                    availSize);
 
@@ -418,8 +418,8 @@ nsComboboxControlFrame::ReflowDropdown(nsPresContext*  aPresContext,
   
   
   nscoord forcedWidth = aReflowState.ComputedWidth() +
-    aReflowState.mComputedBorderPadding.LeftRight() -
-    kidReflowState.mComputedBorderPadding.LeftRight();
+    aReflowState.ComputedPhysicalBorderPadding().LeftRight() -
+    kidReflowState.ComputedPhysicalBorderPadding().LeftRight();
   kidReflowState.SetComputedWidth(std::max(kidReflowState.ComputedWidth(),
                                          forcedWidth));
 
@@ -1255,7 +1255,7 @@ nsComboboxDisplayFrame::Reflow(nsPresContext*           aPresContext,
     state.SetComputedHeight(mComboBox->mListControlFrame->GetHeightOfARow());
   }
   nscoord computedWidth = mComboBox->mDisplayWidth -
-    state.mComputedBorderPadding.LeftRight();
+    state.ComputedPhysicalBorderPadding().LeftRight();
   if (computedWidth < 0) {
     computedWidth = 0;
   }

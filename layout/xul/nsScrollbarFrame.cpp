@@ -64,10 +64,10 @@ nsScrollbarFrame::Reflow(nsPresContext*          aPresContext,
 
   
   
-  if (aReflowState.availableWidth == 0) {
+  if (aReflowState.AvailableWidth() == 0) {
     aDesiredSize.width = 0;
   }
-  if (aReflowState.availableHeight == 0) {
+  if (aReflowState.AvailableHeight() == 0) {
     aDesiredSize.height = 0;
   }
 

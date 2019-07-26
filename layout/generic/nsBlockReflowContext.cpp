@@ -46,7 +46,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   bool* aMayNeedRetry, bool* aBlockIsEmpty)
 {
   
-  aMargin->Include(aRS.mComputedMargin.top);
+  aMargin->Include(aRS.ComputedPhysicalMargin().top);
 
   
   
@@ -54,7 +54,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
 
 #ifdef NOISY_VERTICAL_MARGINS
   nsFrame::ListTag(stdout, aRS.frame);
-  printf(": %d => %d\n", aRS.mComputedMargin.top, aMargin->get());
+  printf(": %d => %d\n", aRS.ComputedPhysicalMargin().top, aMargin->get());
 #endif
 
   bool dirtiedLine = false;
@@ -68,7 +68,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
   nsIFrame* frame = DescendIntoBlockLevelFrame(aRS.frame);
   nsPresContext* prescontext = frame->PresContext();
   nsBlockFrame* block = nullptr;
-  if (0 == aRS.mComputedBorderPadding.top) {
+  if (0 == aRS.ComputedPhysicalBorderPadding().top) {
     block = nsLayoutUtils::GetAsBlock(frame);
     if (block) {
       bool topMarginRoot, unused;
@@ -158,7 +158,7 @@ nsBlockReflowContext::ComputeCollapsedTopMargin(const nsHTMLReflowState& aRS,
               dirtiedLine = true;
             }
             if (isEmpty)
-              aMargin->Include(innerReflowState.mComputedMargin.bottom);
+              aMargin->Include(innerReflowState.ComputedPhysicalMargin().bottom);
           }
           if (outerReflowState != &aRS) {
             delete const_cast<nsHTMLReflowState*>(outerReflowState);
@@ -226,8 +226,8 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
 
     
     
-    if (NS_UNCONSTRAINEDSIZE != aFrameRS.availableHeight) {
-      aFrameRS.availableHeight -= mTopMargin.get() + aClearance;
+    if (NS_UNCONSTRAINEDSIZE != aFrameRS.AvailableHeight()) {
+      aFrameRS.AvailableHeight() -= mTopMargin.get() + aClearance;
     }
   }
 
@@ -241,7 +241,7 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     
     
 
-    mX = tx = mSpace.x + aFrameRS.mComputedMargin.left;
+    mX = tx = mSpace.x + aFrameRS.ComputedPhysicalMargin().left;
     mY = ty = mSpace.y + mTopMargin.get() + aClearance;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
@@ -321,7 +321,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
   
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
     aBottomMarginResult = mMetrics.mCarriedOutBottomMargin;
-    aBottomMarginResult.Include(aReflowState.mComputedMargin.bottom);
+    aBottomMarginResult.Include(aReflowState.ComputedPhysicalMargin().bottom);
   } else {
     
     aBottomMarginResult.Zero();
