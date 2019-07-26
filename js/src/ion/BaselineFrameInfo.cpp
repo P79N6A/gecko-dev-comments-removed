@@ -5,6 +5,7 @@
 
 
 
+#include "jsanalyze.h"
 #include "BaselineFrameInfo.h"
 #include "IonSpewer.h"
 

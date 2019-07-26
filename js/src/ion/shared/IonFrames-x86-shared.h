@@ -442,7 +442,7 @@ class InvalidationBailoutStack
 
 class BaselineFrame
 {
-    uint32_t frameSize;
+    size_t frameSize;
 
   public:
     

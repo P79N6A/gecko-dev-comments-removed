@@ -16,9 +16,14 @@ namespace ion {
 static const Register BaselineFrameReg    = rbp;
 static const Register BaselineStackReg    = rsp;
 
-static const ValueOperand R0(r12);
-static const ValueOperand R1(r13);
-static const ValueOperand R2(r14);
+static const ValueOperand R0(rcx);
+static const ValueOperand R1(rbx);
+static const ValueOperand R2(rax);
+
+
+
+static const Register BaselineTailCallReg = rsi;
+static const Register BaselineStubReg     = rdi;
 
 } 
 } 
