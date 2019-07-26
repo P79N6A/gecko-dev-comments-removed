@@ -11,7 +11,7 @@
 #include "nsIPrintSettings.h"
 #include "nsIPrintOptions.h"
 #include "nsIDateTimeFormat.h"
-#include "nsHTMLCanvasElement.h"
+#include "mozilla/dom/HTMLCanvasElement.h"
 
 
 
@@ -135,7 +135,7 @@ protected:
   int32_t      mFromPageNum;
   int32_t      mToPageNum;
   nsTArray<int32_t> mPageRanges;
-  nsTArray<nsRefPtr<nsHTMLCanvasElement> > mCurrentCanvasList;
+  nsTArray<nsRefPtr<mozilla::dom::HTMLCanvasElement> > mCurrentCanvasList;
 
   
   nscoord      mSelectionHeight;

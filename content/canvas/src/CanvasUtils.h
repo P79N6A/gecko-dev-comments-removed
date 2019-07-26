@@ -10,13 +10,16 @@
 
 #include "mozilla/CheckedInt.h"
 
-class nsHTMLCanvasElement;
 class nsIPrincipal;
 
 namespace mozilla {
 
 namespace gfx {
 class Matrix;
+}
+
+namespace dom {
+class HTMLCanvasElement;
 }
 
 namespace CanvasUtils {
@@ -39,7 +42,7 @@ inline bool CheckSaneSubrectSize(int32_t x, int32_t y, int32_t w, int32_t h,
 
 
 
-void DoDrawImageSecurityCheck(nsHTMLCanvasElement *aCanvasElement,
+void DoDrawImageSecurityCheck(dom::HTMLCanvasElement *aCanvasElement,
                               nsIPrincipal *aPrincipal,
                               bool forceWriteOnly,
                               bool CORSUsed);
