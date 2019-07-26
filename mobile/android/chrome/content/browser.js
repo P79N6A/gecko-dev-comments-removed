@@ -13,6 +13,7 @@ let Cr = Components.results;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/AddonManager.jsm");
+Cu.import("resource://gre/modules/DownloadNotifications.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/JNI.jsm");
 Cu.import('resource://gre/modules/Payment.jsm');
@@ -360,7 +361,7 @@ var BrowserApp = {
 
     NativeWindow.init();
     LightWeightThemeWebInstaller.init();
-    Downloads.init();
+    DownloadNotifications.init();
     FormAssistant.init();
     IndexedDB.init();
     HealthReportStatusListener.init();
@@ -648,7 +649,7 @@ var BrowserApp = {
       function(aTarget) {
         aTarget.muted = true;
       });
-  
+
     NativeWindow.contextmenus.add(Strings.browser.GetStringFromName("contextmenu.unmute"),
       NativeWindow.contextmenus.mediaContext("media-muted"),
       function(aTarget) {
@@ -741,6 +742,7 @@ var BrowserApp = {
 
   shutdown: function shutdown() {
     NativeWindow.uninit();
+    DownloadNotifications.uninit();
     LightWeightThemeWebInstaller.uninit();
     FormAssistant.uninit();
     IndexedDB.uninit();
@@ -1810,7 +1812,7 @@ var NativeWindow = {
         return;
 
       sendMessageToJava({
-        type: "Menu:Update", 
+        type: "Menu:Update",
         id: aId,
         options: aOptions
       });
@@ -2233,7 +2235,7 @@ var NativeWindow = {
             mode: SelectionHandler.SELECT_AT_POINT,
             x: x,
             y: y
-          })) { 
+          })) {
             SelectionHandler.attachCaret(target);
           }
         }
@@ -3740,7 +3742,7 @@ Tab.prototype = {
 
             if (sizes == "any") {
               
-              maxSize = -1; 
+              maxSize = -1;
             } else {
               let tokens = sizes.split(" ");
               tokens.forEach(function(token) {
@@ -6630,7 +6632,7 @@ var IdentityHandler = {
 
       return result;
     }
-    
+
     
     result.owner = Strings.browser.GetStringFromName("identity.ownerUnknown3");
 
@@ -7242,7 +7244,7 @@ var WebappsUI = {
         favicon.src = WebappsUI.DEFAULT_ICON;
       }
     };
-  
+
     favicon.src = aIconURL;
   },
 
@@ -8419,3 +8421,21 @@ HTMLContextMenuItem.prototype = Object.create(ContextMenuItem.prototype, {
     }
   },
 });
+
+
+
+
+const kTransferCid = Components.ID("{1b4c85df-cbdd-4bb6-b04e-613caece083c}");
+
+
+
+
+const kTransferContractId = "@mozilla.org/transfer;1";
+
+
+
+
+
+Components.manager.QueryInterface(Ci.nsIComponentRegistrar)
+                  .registerFactory(kTransferCid, "",
+                                   kTransferContractId, null);
