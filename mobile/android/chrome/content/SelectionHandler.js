@@ -528,6 +528,10 @@ var SelectionHandler = {
   _initTargetInfo: function sh_initTargetInfo(aElement) {
     this._targetElement = aElement;
     if (aElement instanceof Ci.nsIDOMNSEditableElement) {
+      
+      
+      aElement.blur();
+      
       aElement.focus();
     }
 
