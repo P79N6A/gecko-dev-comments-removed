@@ -103,6 +103,10 @@ class Range : public TempObject {
 
     
     
+    static const uint16_t MaxUInt32Exponent = 31;
+
+    
+    
     
     static const uint16_t MaxTruncatableExponent = mozilla::DoubleExponentShift;
 
@@ -210,6 +214,24 @@ class Range : public TempObject {
     }
 
     Range(const MDefinition *def);
+
+    static Range *NewInt32Range(int32_t l, int32_t h) {
+        return new Range(l, h, false, MaxInt32Exponent);
+    }
+
+    static Range *NewUInt32Range(uint32_t l, uint32_t h) {
+        
+        
+        return new Range(l, h, false, MaxUInt32Exponent);
+    }
+
+    static Range *NewDoubleRange(int64_t l, int64_t h, uint16_t e = MaxDoubleExponent) {
+        return new Range(l, h, true, e);
+    }
+
+    static Range *NewSingleValueRange(int64_t v) {
+        return new Range(v, v, false, MaxDoubleExponent);
+    }
 
     void print(Sprinter &sp) const;
     bool update(const Range *other);
