@@ -306,7 +306,7 @@ public class GeckoLayerClient
     }
 
     
-    private DisplayPortMetrics handleViewportMessage(ViewportMetrics messageMetrics, ViewportMessageType type) {
+    private DisplayPortMetrics handleViewportMessage(ImmutableViewportMetrics messageMetrics, ViewportMessageType type) {
         synchronized (this) {
             ViewportMetrics metrics;
             ImmutableViewportMetrics oldMetrics = getViewportMetrics();
@@ -314,7 +314,7 @@ public class GeckoLayerClient
             switch (type) {
             default:
             case UPDATE:
-                metrics = messageMetrics;
+                metrics = new ViewportMetrics(messageMetrics);
                 
                 metrics.setSize(oldMetrics.getSize());
                 abortPanZoomAnimation();
@@ -323,7 +323,7 @@ public class GeckoLayerClient
                 
                 
                 
-                float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
+                float scaleFactor = oldMetrics.zoomFactor / messageMetrics.zoomFactor;
                 metrics = new ViewportMetrics(oldMetrics);
                 metrics.setPageRect(RectUtils.scale(messageMetrics.getPageRect(), scaleFactor), messageMetrics.getCssPageRect());
                 break;
@@ -341,7 +341,7 @@ public class GeckoLayerClient
         return mDisplayPort;
     }
 
-    public DisplayPortMetrics getDisplayPort(boolean pageSizeUpdate, boolean isBrowserContentDisplayed, int tabId, ViewportMetrics metrics) {
+    public DisplayPortMetrics getDisplayPort(boolean pageSizeUpdate, boolean isBrowserContentDisplayed, int tabId, ImmutableViewportMetrics metrics) {
         Tabs tabs = Tabs.getInstance();
         if (tabs.isSelectedTab(tabs.getTab(tabId)) && isBrowserContentDisplayed) {
             
@@ -353,8 +353,7 @@ public class GeckoLayerClient
             
             
             
-            ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(metrics);
-            return DisplayPortCalculator.calculate(newMetrics, null);
+            return DisplayPortCalculator.calculate(metrics, null);
         }
     }
 
