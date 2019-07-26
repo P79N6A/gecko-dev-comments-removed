@@ -4430,24 +4430,6 @@ nsBlockFrame::DrainSelfOverflowList()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void
 nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
 {
@@ -4461,57 +4443,15 @@ nsBlockFrame::DrainPushedFloats(nsBlockReflowState& aState)
 #endif
 
   
-  
-  
-  
-  nsFrameList *ourPushedFloats = GetPushedFloats();
-  if (ourPushedFloats) {
-    
-    
-    
-    nsIFrame *insertionPrevSibling = nullptr; 
-    for (nsIFrame* f = mFloats.FirstChild();
-         f && (f->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT);
-         f = f->GetNextSibling()) {
-      insertionPrevSibling = f;
-    }
-
-    nsPresContext *presContext = PresContext();
-    for (nsIFrame *f = ourPushedFloats->LastChild(), *next; f; f = next) {
-      next = f->GetPrevSibling();
-
-      if (!f->GetPrevContinuation()) {
-        nsPlaceholderFrame *placeholder =
-          presContext->FrameManager()->GetPlaceholderFrameFor(f);
-        nsIFrame *floatOriginalParent = presContext->PresShell()->
-          FrameConstructor()->GetFloatContainingBlock(placeholder);
-        if (floatOriginalParent != this) {
-          
-          
-          
-          
-          ourPushedFloats->RemoveFrame(f);
-          mFloats.InsertFrame(nullptr, insertionPrevSibling, f);
-        }
-      }
-    }
-
-    if (ourPushedFloats->IsEmpty()) {
-      delete RemovePushedFloats();
-    }
-  }
-
-  
-  
   nsBlockFrame* prevBlock = static_cast<nsBlockFrame*>(GetPrevInFlow());
-  if (prevBlock) {
-    nsFrameList *list = prevBlock->RemovePushedFloats();
-    if (list) {
-      if (list->NotEmpty()) {
-        mFloats.InsertFrames(this, nullptr, *list);
-      }
-      delete list;
+  if (!prevBlock)
+    return;
+  nsFrameList *list = prevBlock->RemovePushedFloats();
+  if (list) {
+    if (list->NotEmpty()) {
+      mFloats.InsertFrames(this, nullptr, *list);
     }
+    delete list;
   }
 }
 
@@ -5594,9 +5534,6 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
       nsFrameList* list = GetPushedFloats();
       if (list) {
         removed = list->RemoveFrameIfPresent(aChild);
-        if (list->IsEmpty()) {
-          delete RemovePushedFloats();
-        }
       }
     }
     return removed ? NS_OK : NS_ERROR_UNEXPECTED;
@@ -5913,8 +5850,6 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
                                  nsReflowStatus&     aStatus)
 {
   nsresult rv = NS_OK;
-  
-  
   for (nsIFrame* f = mFloats.FirstChild(), *next;
        f && (f->GetStateBits() & NS_FRAME_IS_PUSHED_FLOAT);
        f = next) {
@@ -5961,9 +5896,17 @@ nsBlockFrame::ReflowPushedFloats(nsBlockReflowState& aState,
       continue;
     }
 
-    
-    
-    aState.FlowAndPlaceFloat(f);
+    if (NS_SUBTREE_DIRTY(f) || aState.mReflowState.ShouldReflowAllKids()) {
+      
+      aState.FlowAndPlaceFloat(f);
+    }
+    else {
+      
+      nsRect region = nsFloatManager::GetRegionFor(f);
+      aState.mFloatManager->AddFloat(f, region);
+      if (f->GetNextInFlow())
+        NS_MergeReflowStatusInto(&aStatus, NS_FRAME_OVERFLOW_INCOMPLETE);
+    }
 
     ConsiderChildOverflow(aOverflowAreas, f);
   }

@@ -465,9 +465,6 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
     
     
     
-    
-    
-    
     nsBlockFrame *floatParent =
       static_cast<nsBlockFrame*>(aFloat->GetParent());
     floatParent->StealFrame(mPresContext, aFloat);

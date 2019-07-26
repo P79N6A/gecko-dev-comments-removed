@@ -784,8 +784,6 @@ protected:
   }
 
   
-  
-  
   nsFrameList* GetPushedFloats() const;
   
   
