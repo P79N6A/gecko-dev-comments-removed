@@ -24,7 +24,6 @@ public:
   MOZ_DECLARE_REFCOUNTED_TYPENAME(TextureClientPool)
   TextureClientPool(gfx::SurfaceFormat aFormat, gfx::IntSize aSize,
                     ISurfaceAllocator *aAllocator);
-  ~TextureClientPool();
 
   
 
@@ -78,8 +77,6 @@ public:
 
 
   void Clear();
-
-  gfx::SurfaceFormat GetFormat() { return mFormat; }
 
 private:
   
