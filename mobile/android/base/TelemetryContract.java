@@ -32,6 +32,10 @@ public interface TelemetryContract {
         CANCEL("cancel.1"),
 
         
+        
+        CAST("cast.1"),
+
+        
         EDIT("edit.1"),
 
         
