@@ -1243,6 +1243,8 @@ private:
   void MarkRoots(SliceBudget &aBudget);
   void ScanRoots(bool aFullySynchGraphBuild);
   void ScanIncrementalRoots();
+  void ScanWhiteNodes(bool aFullySynchGraphBuild);
+  void ScanBlackNodes();
   void ScanWeakMaps();
 
   
@@ -2680,50 +2682,6 @@ FloodBlackNode(uint32_t& aWhiteNodeCount, bool& aFailed, PtrInfo* aPi)
     MOZ_ASSERT(aPi->mColor == black || !aPi->mParticipant, "FloodBlackNode should make aPi black");
 }
 
-struct scanVisitor
-{
-  scanVisitor(uint32_t &aWhiteNodeCount, bool &aFailed, bool aWasIncremental)
-    : mWhiteNodeCount(aWhiteNodeCount), mFailed(aFailed),
-      mWasIncremental(aWasIncremental)
-  {
-  }
-
-  bool ShouldVisitNode(PtrInfo const *pi)
-  {
-    return pi->mColor == grey;
-  }
-
-  MOZ_NEVER_INLINE void VisitNode(PtrInfo *pi)
-  {
-    if (pi->mInternalRefs > pi->mRefCount && pi->mRefCount > 0) {
-      
-      
-      
-      
-      
-      if (!mWasIncremental || pi->mColor != black) {
-        Fault("traversed refs exceed refcount", pi);
-      }
-    }
-
-    if (pi->mInternalRefs == pi->mRefCount || pi->mRefCount == 0) {
-      pi->mColor = white;
-      ++mWhiteNodeCount;
-    } else {
-      FloodBlackNode(mWhiteNodeCount, mFailed, pi);
-    }
-  }
-
-  void Failed() {
-    mFailed = true;
-  }
-
-private:
-  uint32_t &mWhiteNodeCount;
-  bool &mFailed;
-  bool mWasIncremental;
-};
-
 
 
 void
@@ -2742,10 +2700,6 @@ nsCycleCollector::ScanWeakMaps()
       uint32_t kdColor = wm->mKeyDelegate ? wm->mKeyDelegate->mColor : black;
       uint32_t vColor = wm->mVal ? wm->mVal->mColor : black;
 
-      
-      
-      
-      
       MOZ_ASSERT(mColor != grey, "Uncolored weak map");
       MOZ_ASSERT(kColor != grey, "Uncolored weak map key");
       MOZ_ASSERT(kdColor != grey, "Uncolored weak map key delegate");
@@ -2895,6 +2849,68 @@ nsCycleCollector::ScanIncrementalRoots()
   }
 }
 
+
+
+
+void
+nsCycleCollector::ScanWhiteNodes(bool aFullySynchGraphBuild)
+{
+  NodePool::Enumerator nodeEnum(mGraph.mNodes);
+  while (!nodeEnum.IsDone()) {
+    PtrInfo* pi = nodeEnum.GetNext();
+    if (pi->mColor == black) {
+      
+      
+      
+      MOZ_ASSERT(!aFullySynchGraphBuild,
+                 "In a synch CC, no nodes should be marked black early on.");
+      continue;
+    }
+    MOZ_ASSERT(pi->mColor == grey);
+
+    if (!pi->mParticipant) {
+      
+      
+      continue;
+    }
+
+    if (pi->mInternalRefs == pi->mRefCount || pi->mRefCount == 0) {
+      pi->mColor = white;
+      ++mWhiteNodeCount;
+      continue;
+    }
+
+    if (MOZ_LIKELY(pi->mInternalRefs < pi->mRefCount)) {
+      
+      continue;
+    }
+
+    Fault("Traversed refs exceed refcount", pi);
+  }
+}
+
+
+
+
+
+void
+nsCycleCollector::ScanBlackNodes()
+{
+  bool failed = false;
+  NodePool::Enumerator nodeEnum(mGraph.mNodes);
+  while (!nodeEnum.IsDone()) {
+    PtrInfo* pi = nodeEnum.GetNext();
+    if (pi->mColor == grey && pi->mParticipant) {
+      FloodBlackNode(mWhiteNodeCount, failed, pi);
+    }
+  }
+
+  if (failed) {
+    NS_ASSERTION(false, "Ran out of memory in ScanBlackNodes");
+    CC_TELEMETRY(_OOM, true);
+  }
+}
+
 void
 nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
 {
@@ -2909,19 +2925,11 @@ nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild)
   }
 
   TimeLog timeLog;
+  ScanWhiteNodes(aFullySynchGraphBuild);
+  timeLog.Checkpoint("ScanRoots::ScanWhiteNodes");
 
-  
-  
-  
-  bool failed = false;
-  scanVisitor sv(mWhiteNodeCount, failed, !aFullySynchGraphBuild);
-  GraphWalker<scanVisitor>(sv).WalkFromRoots(mGraph);
-  timeLog.Checkpoint("ScanRoots::WalkFromRoots");
-
-  if (failed) {
-    NS_ASSERTION(false, "Ran out of memory in ScanRoots");
-    CC_TELEMETRY(_OOM, true);
-  }
+  ScanBlackNodes();
+  timeLog.Checkpoint("ScanRoots::ScanBlackNodes");
 
   
   ScanWeakMaps();
