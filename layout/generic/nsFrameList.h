@@ -16,6 +16,7 @@
 #define DEBUG_FRAME_DUMP 1
 #endif
 
+class nsContainerFrame;
 class nsIFrame;
 class nsIPresShell;
 class nsPresContext;
@@ -112,7 +113,7 @@ public:
 
 
 
-  Slice AppendFrames(nsIFrame* aParent, nsFrameList& aFrameList) {
+  Slice AppendFrames(nsContainerFrame* aParent, nsFrameList& aFrameList) {
     return InsertFrames(aParent, LastChild(), aFrameList);
   }
 
@@ -121,7 +122,7 @@ public:
 
 
 
-  void AppendFrame(nsIFrame* aParent, nsIFrame* aFrame) {
+  void AppendFrame(nsContainerFrame* aParent, nsIFrame* aFrame) {
     nsFrameList temp(aFrame, aFrame);
     AppendFrames(aParent, temp);
   }
@@ -189,7 +190,7 @@ public:
 
 
 
-  void InsertFrame(nsIFrame* aParent, nsIFrame* aPrevSibling,
+  void InsertFrame(nsContainerFrame* aParent, nsIFrame* aPrevSibling,
                    nsIFrame* aFrame) {
     nsFrameList temp(aFrame, aFrame);
     InsertFrames(aParent, aPrevSibling, temp);
@@ -202,7 +203,7 @@ public:
 
 
 
-  Slice InsertFrames(nsIFrame* aParent, nsIFrame* aPrevSibling,
+  Slice InsertFrames(nsContainerFrame* aParent, nsIFrame* aPrevSibling,
                      nsFrameList& aFrameList);
 
   class FrameLinkEnumerator;
@@ -259,7 +260,7 @@ public:
 
 
 
-  void ApplySetParent(nsIFrame* aParent) const;
+  void ApplySetParent(nsContainerFrame* aParent) const;
 
   
 
