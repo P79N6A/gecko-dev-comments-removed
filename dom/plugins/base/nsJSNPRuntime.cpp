@@ -818,13 +818,13 @@ nsJSObjWrapper::NP_RemoveProperty(NPObject *npobj, NPIdentifier id)
   nsCxPusher pusher;
   pusher.Push(cx);
   AutoJSExceptionReporter reporter(cx);
-  JS::Rooted<JS::Value> deleted(cx, JSVAL_FALSE);
+  bool deleted = false;
   JSAutoCompartment ac(cx, npjsobj->mJSObj);
 
   NS_ASSERTION(NPIdentifierIsInt(id) || NPIdentifierIsString(id),
                "id must be either string or int!\n");
   ok = ::JS_DeletePropertyById2(cx, npjsobj->mJSObj, NPIdentifierToJSId(id), &deleted);
-  if (ok && deleted == JSVAL_TRUE) {
+  if (ok && deleted) {
     
     
 
@@ -835,13 +835,11 @@ nsJSObjWrapper::NP_RemoveProperty(NPObject *npobj, NPIdentifier id)
       
       
 
-      deleted = JSVAL_FALSE;
+      deleted = false;
     }
   }
 
-  
-  
-  return ok == JS_TRUE && deleted == JSVAL_TRUE;
+  return ok && deleted;
 }
 
 
