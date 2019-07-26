@@ -75,9 +75,6 @@ class Bytecode
     bool jumpFallthrough : 1;
 
     
-    bool switchTarget : 1;
-
-    
 
 
 
