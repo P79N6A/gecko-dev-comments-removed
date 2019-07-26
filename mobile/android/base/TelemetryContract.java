@@ -29,6 +29,10 @@ public interface TelemetryContract {
     public interface Session {
         
         public static final String HOME = "home.1";
+
+        
+        
+        public static final String HOME_PANEL = "homepanel.1:";
     }
 
     
