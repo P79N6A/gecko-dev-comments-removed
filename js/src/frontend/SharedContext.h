@@ -231,7 +231,6 @@ class FunctionBox : public ObjectBox, public SharedContext
 
 
 
-
 enum StmtType {
     STMT_LABEL,                 
     STMT_IF,                    
