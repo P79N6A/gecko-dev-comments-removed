@@ -825,7 +825,7 @@ CanvasRenderingContext2D::RemoveDemotableContext(CanvasRenderingContext2D* conte
 }
 
 bool
-CheckSizeForSkiaGL(IntSize size) {
+CanvasRenderingContext2D::CheckSizeForSkiaGL(IntSize size) {
   MOZ_ASSERT(NS_IsMainThread());
 
   int minsize = Preferences::GetInt("gfx.canvas.min-size-for-skia-gl", 128);
@@ -852,6 +852,11 @@ CheckSizeForSkiaGL(IntSize size) {
   
   static int32_t gScreenPixels = -1;
   if (gScreenPixels < 0) {
+    
+    
+    
+    gScreenPixels = 980 * 480;
+
     nsCOMPtr<nsIScreenManager> screenManager =
       do_GetService("@mozilla.org/gfx/screenmanager;1");
     if (screenManager) {
@@ -861,13 +866,33 @@ CheckSizeForSkiaGL(IntSize size) {
         int32_t x, y, width, height;
         primaryScreen->GetRect(&x, &y, &width, &height);
 
-        gScreenPixels = width * height;
+        gScreenPixels = std::max(gScreenPixels, width * height);
       }
     }
   }
 
   
-  return gScreenPixels < 0 || (size.width * size.height) <= gScreenPixels;
+  
+  
+  static double gDefaultScale = 0.0;
+  if (gDefaultScale < 1.0) {
+    nsIPresShell* ps = GetPresShell();
+    if (ps) {
+      nsIFrame* frame = ps->GetRootFrame();
+      if (frame) {
+        nsIWidget* widget = frame->GetNearestWidget();
+        if (widget) {
+          gDefaultScale = widget->GetDefaultScale().scale;
+        }
+      }
+    }
+  }
+
+  int32_t threshold = gDefaultScale > 0 ? ceil(gDefaultScale * gScreenPixels)
+                                        : gScreenPixels;
+
+  
+  return threshold < 0 || (size.width * size.height) <= threshold;
 }
 
 void
