@@ -69,7 +69,7 @@ SocialUI = {
     Services.prefs.addObserver("social.toast-notifications.enabled", this, false);
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
-    document.getElementById("PanelUI-popup").addEventListener("popupshown", SocialMarks.updatePanelButtons, true);
+    PanelUI.panel.addEventListener("popupshown", SocialUI.updateState, true);
 
     
     
@@ -102,7 +102,7 @@ SocialUI = {
 
     Services.prefs.removeObserver("social.toast-notifications.enabled", this);
 
-    document.getElementById("PanelUI-popup").removeEventListener("popupshown", SocialMarks.updatePanelButtons, true);
+    PanelUI.panel.removeEventListener("popupshown", SocialUI.updateState, true);
     document.getElementById("viewSidebarMenu").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
     document.getElementById("social-statusarea-popup").removeEventListener("popupshowing", SocialSidebar.populateSidebarMenu, true);
 
@@ -288,7 +288,7 @@ SocialUI = {
   
   
   updateState: function() {
-    if (!this.enabled)
+    if (!SocialUI.enabled)
       return;
     SocialMarks.update();
     SocialShare.update();
@@ -432,6 +432,12 @@ SocialFlyout = {
 }
 
 SocialShare = {
+  
+  
+  get anchor() {
+    let widget = CustomizableUI.getWidget("social-share-button");
+    return widget.forWindow(window).anchor;
+  },
   get panel() {
     return document.getElementById("social-share-panel");
   },
@@ -523,7 +529,15 @@ SocialShare = {
   },
 
   get shareButton() {
-    return document.getElementById("social-share-button");
+    
+    
+    
+    if (!window.CustomizableUI)
+      return null;
+    let widget = CustomizableUI.getWidget("social-share-button");
+    if (!widget || !widget.areaType)
+      return null;
+    return widget.forWindow(window).node;
   },
 
   canSharePage: function(aURI) {
@@ -540,23 +554,29 @@ SocialShare = {
     let shareButton = this.shareButton;
     shareButton.hidden = !SocialUI.enabled ||
                          [p for (p of Social.providers) if (p.shareURL)].length == 0;
-    shareButton.disabled = shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
+    let disabled = shareButton.hidden || !this.canSharePage(gBrowser.currentURI);
 
+    
+    
+    
     
     
     let cmd = document.getElementById("Social:SharePage");
-    if (shareButton.disabled)
+    if (disabled) {
       cmd.setAttribute("disabled", "true");
-    else
+      shareButton.setAttribute("disabled", "true");
+    } else {
       cmd.removeAttribute("disabled");
+      shareButton.removeAttribute("disabled");
+    }
   },
 
   onShowing: function() {
-    this.shareButton.setAttribute("open", "true");
+    this.anchor.setAttribute("open", "true");
   },
 
   onHidden: function() {
-    this.shareButton.removeAttribute("open");
+    this.anchor.removeAttribute("open");
     this.iframe.setAttribute("src", "data:text/plain;charset=utf8,");
     this.currentShare = null;
   },
@@ -670,8 +690,7 @@ SocialShare = {
     iframe.setAttribute("origin", provider.origin);
     iframe.setAttribute("src", shareEndpoint);
 
-    let navBar = document.getElementById("nav-bar");
-    let anchor = document.getAnonymousElementByAttribute(this.shareButton, "class", "toolbarbutton-icon");
+    let anchor = document.getAnonymousElementByAttribute(this.anchor, "class", "toolbarbutton-icon");
     this.panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
     Social.setErrorListener(iframe, this.setErrorMessage.bind(this));
   }
@@ -1357,7 +1376,6 @@ SocialMarks = {
     
     
     let providers = SocialMarks.getProviders();
-    let panel =  document.getElementById("PanelUI-popup");
     for (let p of providers) {
       let widgetId = SocialMarks._toolbarHelper.idFromOrigin(p.origin);
       let widget = CustomizableUI.getWidget(widgetId);
