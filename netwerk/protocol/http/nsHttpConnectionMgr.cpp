@@ -1720,11 +1720,6 @@ nsHttpConnectionMgr::ProcessNewTransaction(nsHttpTransaction *trans)
 
     
     
-    if (trans->Caps() & NS_HTTP_CLEAR_KEEPALIVES)
-        ClosePersistentConnections(ent);
-
-    
-    
     
 
     nsAHttpConnection *wrappedConnection = trans->Connection();

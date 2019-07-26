@@ -4415,8 +4415,13 @@ nsHttpChannel::BeginConnect()
         mCaps |= NS_HTTP_REFRESH_DNS;
 
     
-    if (mLoadFlags & LOAD_FRESH_CONNECTION)
-        mCaps |= NS_HTTP_CLEAR_KEEPALIVES;
+    if (mLoadFlags & LOAD_FRESH_CONNECTION) {
+        
+        if (mLoadFlags & LOAD_INITIAL_DOCUMENT_URI)
+            gHttpHandler->ConnMgr()->ClosePersistentConnections();
+        
+        mCaps &= ~(NS_HTTP_ALLOW_KEEPALIVE | NS_HTTP_ALLOW_PIPELINING);
+    }
 
     
     
