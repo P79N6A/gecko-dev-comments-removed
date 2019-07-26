@@ -21,8 +21,18 @@ AnnexB::ConvertSample(MP4Sample* aSample,
   MOZ_ASSERT(aSample);
   MOZ_ASSERT(aSample->data);
   MOZ_ASSERT(aSample->size >= ArrayLength(kAnnexBDelimiter));
-  
-  memcpy(aSample->data, kAnnexBDelimiter, ArrayLength(kAnnexBDelimiter));
+
+  uint8_t* d = aSample->data;
+  while (d + 4 < aSample->data + aSample->size) {
+    uint32_t nalLen = (uint32_t(d[0]) << 24) +
+                      (uint32_t(d[1]) << 16) +
+                      (uint32_t(d[2]) << 8) +
+                       uint32_t(d[3]);
+    
+    memcpy(d, kAnnexBDelimiter, ArrayLength(kAnnexBDelimiter));
+    d += 4 + nalLen;
+  }
+
   
   if (aSample->is_sync_point) {
     aSample->Prepend(annexB.begin(), annexB.length());

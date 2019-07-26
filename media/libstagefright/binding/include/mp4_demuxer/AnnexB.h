@@ -16,6 +16,7 @@ class AnnexB
 {
 public:
   
+  
   static void ConvertSample(MP4Sample* aSample,
                             const mozilla::Vector<uint8_t>& annexB);
 
