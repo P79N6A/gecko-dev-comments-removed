@@ -32,6 +32,7 @@
 #include "nsNodeUtils.h"
 #include "mozAutoDocUpdate.h"
 #include "nsTextNode.h"
+#include "mozilla/dom/Element.h"
 
 #include "pldhash.h"
 #include "rdf.h"
@@ -248,7 +249,7 @@ protected:
     nsresult
     CreateElement(int32_t aNameSpaceID,
                   nsIAtom* aTag,
-                  nsIContent** aResult);
+                  Element** aResult);
 
     
 
@@ -583,9 +584,11 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
         else if (isGenerationElement) {
             
             
-            rv = CreateElement(nameSpaceID, tag, getter_AddRefs(realKid));
+            nsCOMPtr<Element> element;
+            rv = CreateElement(nameSpaceID, tag, getter_AddRefs(element));
             if (NS_FAILED(rv))
                 return rv;
+            realKid = element.forget();
 
             
             
@@ -649,8 +652,10 @@ nsXULContentBuilder::BuildContentFromTemplate(nsIContent *aTemplateNode,
         }
         else {
             
-            rv = CreateElement(nameSpaceID, tag, getter_AddRefs(realKid));
+            nsCOMPtr<Element> element;
+            rv = CreateElement(nameSpaceID, tag, getter_AddRefs(element));
             if (NS_FAILED(rv)) return rv;
+            realKid = element.forget();
         }
 
         if (realKid && !realKidAlreadyExisted) {
@@ -1234,7 +1239,7 @@ nsXULContentBuilder::EnsureElementHasGenericChild(nsIContent* parent,
 
     if (rv == NS_RDF_NO_VALUE) {
         
-        nsCOMPtr<nsIContent> element;
+        nsCOMPtr<Element> element;
 
         rv = CreateElement(nameSpaceID, tag, getter_AddRefs(element));
         if (NS_FAILED(rv))
@@ -1352,25 +1357,18 @@ nsXULContentBuilder::GetElementsForResult(nsIXULTemplateResult* aResult,
 nsresult
 nsXULContentBuilder::CreateElement(int32_t aNameSpaceID,
                                    nsIAtom* aTag,
-                                   nsIContent** aResult)
+                                   Element** aResult)
 {
     nsCOMPtr<nsIDocument> doc = mRoot->GetDocument();
     NS_ASSERTION(doc != nullptr, "not initialized");
     if (! doc)
         return NS_ERROR_NOT_INITIALIZED;
 
-    nsCOMPtr<nsIContent> result;
     nsCOMPtr<nsINodeInfo> nodeInfo =
         doc->NodeInfoManager()->GetNodeInfo(aTag, nullptr, aNameSpaceID,
                                             nsIDOMNode::ELEMENT_NODE);
 
-    nsresult rv = NS_NewElement(getter_AddRefs(result), nodeInfo.forget(),
-                                NOT_FROM_PARSER);
-    if (NS_FAILED(rv))
-        return rv;
-
-    result.forget(aResult);
-    return NS_OK;
+    return NS_NewElement(aResult, nodeInfo.forget(), NOT_FROM_PARSER);
 }
 
 nsresult
