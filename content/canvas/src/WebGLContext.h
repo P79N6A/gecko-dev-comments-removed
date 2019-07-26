@@ -815,6 +815,21 @@ public:
     void VertexAttribDivisor(WebGLuint index, WebGLuint divisor);
 
 private:
+    
+    
+    bool mBufferFetchingIsVerified;
+    bool mBufferFetchingHasPerVertex;
+    uint32_t mMaxFetchedVertices;
+    uint32_t mMaxFetchedInstances;
+
+    inline void InvalidateBufferFetching()
+    {
+        mBufferFetchingIsVerified = false;
+        mBufferFetchingHasPerVertex = false;
+        mMaxFetchedVertices = 0;
+        mMaxFetchedInstances = 0;
+    }
+
     bool DrawArrays_check(WebGLint first, WebGLsizei count, WebGLsizei primcount, const char* info);
     bool DrawElements_check(WebGLsizei count, WebGLenum type, WebGLintptr byteOffset,
                             WebGLsizei primcount, const char* info);
@@ -897,19 +912,6 @@ protected:
 
     
     
-    bool mBufferFetchingIsVerified;
-    uint32_t mMaxFetchedVertices;
-    uint32_t mMaxFetchedInstances;
-
-    inline void InvalidateBufferFetching()
-    {
-        mBufferFetchingIsVerified = false;
-        mMaxFetchedVertices = 0;
-        mMaxFetchedInstances = 0;
-    }
-
-    
-    
     
     
     enum ContextStatus {
@@ -942,6 +944,7 @@ protected:
         WEBGL_depth_texture,
         WEBGL_lose_context,
         WEBGL_draw_buffers,
+        ANGLE_instanced_arrays,
         WebGLExtensionID_unknown_extension
     };
     nsTArray<nsRefPtr<WebGLExtensionBase> > mExtensions;
