@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef mozilla_TypeTraits_h_
 #define mozilla_TypeTraits_h_
 
@@ -226,6 +227,60 @@ struct IsConvertible
 
 
 
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct RemoveConst
+{
+    typedef T Type;
+};
+
+template<typename T>
+struct RemoveConst<const T>
+{
+    typedef T Type;
+};
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct RemoveVolatile
+{
+    typedef T Type;
+};
+
+template<typename T>
+struct RemoveVolatile<volatile T>
+{
+    typedef T Type;
+};
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct RemoveCV
+{
+    typedef typename RemoveConst<typename RemoveVolatile<T>::Type>::Type Type;
+};
 
 
 
