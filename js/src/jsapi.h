@@ -4896,20 +4896,6 @@ class MOZ_STACK_CLASS JS_PUBLIC_API(ForOfIterator) {
     }
 };
 
-
-
-
-
-
-
-
-
-typedef void
-(* LargeAllocationFailureCallback)();
-
-extern JS_PUBLIC_API(void)
-SetLargeAllocationFailureCallback(JSRuntime *rt, LargeAllocationFailureCallback afc);
-
 } 
 
 #endif
