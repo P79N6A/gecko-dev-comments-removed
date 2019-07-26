@@ -319,6 +319,14 @@ public:
 
 
 
+
+  virtual const nsStyleText* StyleTextForLineLayout();
+
+  
+
+
+
+
   bool CheckForCollapsedBottomMarginFromClearanceLine();
 
   static nsresult GetCurrentLine(nsBlockReflowState *aState, nsLineBox **aOutCurrentLine);

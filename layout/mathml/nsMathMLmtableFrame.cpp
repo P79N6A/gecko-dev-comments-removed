@@ -9,6 +9,7 @@
 #include "nsStyleConsts.h"
 #include "nsINameSpaceManager.h"
 #include "nsRenderingContext.h"
+#include "nsCSSRendering.h"
 
 #include "nsTArray.h"
 #include "nsTableFrame.h"
@@ -17,58 +18,111 @@
 #include "RestyleManager.h"
 #include <algorithm>
 
+#include "nsIScriptError.h"
+#include "nsContentUtils.h"
+
 using namespace mozilla;
 
 
 
 
 
-
-
-
-
-static void
-SplitString(nsString&             aString, 
-            nsTArray<PRUnichar*>& aOffset) 
+static int8_t
+ParseStyleValue(nsIAtom* aAttribute, const nsAString& aAttributeValue)
 {
-  static const PRUnichar kNullCh = PRUnichar('\0');
+  if (aAttribute == nsGkAtoms::rowalign_) {
+    if (aAttributeValue.EqualsLiteral("top"))
+      return NS_STYLE_VERTICAL_ALIGN_TOP;
+    else if (aAttributeValue.EqualsLiteral("bottom"))
+      return NS_STYLE_VERTICAL_ALIGN_BOTTOM;
+    else if (aAttributeValue.EqualsLiteral("center"))
+      return NS_STYLE_VERTICAL_ALIGN_MIDDLE;
+    else
+      return NS_STYLE_VERTICAL_ALIGN_BASELINE;
+  } else if (aAttribute == nsGkAtoms::columnalign_) {
+    if (aAttributeValue.EqualsLiteral("left"))
+      return NS_STYLE_TEXT_ALIGN_LEFT;
+    else if (aAttributeValue.EqualsLiteral("right"))
+      return NS_STYLE_TEXT_ALIGN_RIGHT;
+    else
+      return NS_STYLE_TEXT_ALIGN_CENTER;
+  } else if (aAttribute == nsGkAtoms::rowlines_ ||
+             aAttribute == nsGkAtoms::columnlines_) {
+    if (aAttributeValue.EqualsLiteral("solid"))
+      return NS_STYLE_BORDER_STYLE_SOLID;
+    else if (aAttributeValue.EqualsLiteral("dashed"))
+      return NS_STYLE_BORDER_STYLE_DASHED;
+    else
+      return NS_STYLE_BORDER_STYLE_NONE;
+  } else {
+    MOZ_CRASH("Unrecognized attribute.");
+  }
 
-  aString.Append(kNullCh);  
+  return -1;
+}
 
-  PRUnichar* start = aString.BeginWriting();
-  PRUnichar* end   = start;
+static nsTArray<int8_t>*
+ExtractStyleValues(const nsAString& aString, nsIAtom* aAttribute,
+                   bool aAllowMultiValues)
+{
+  nsTArray<int8_t>* styleArray = nullptr;
 
-  while (kNullCh != *start) {
-    while ((kNullCh != *start) && nsCRT::IsAsciiSpace(*start)) {  
+  const PRUnichar* start = aString.BeginReading();
+  const PRUnichar* end = aString.EndReading();
+
+  int32_t startIndex = 0;
+  int32_t count = 0;
+
+  while (start < end) {
+    
+    while ((start < end) && nsCRT::IsAsciiSpace(*start)) {
       start++;
-    }
-    end = start;
-
-    while ((kNullCh != *end) && (false == nsCRT::IsAsciiSpace(*end))) { 
-      end++;
-    }
-    *end = kNullCh; 
-
-    if (start < end) {
-      aOffset.AppendElement(start); 
+      startIndex++;
     }
 
-    start = ++end;
+    
+    while ((start < end) && !nsCRT::IsAsciiSpace(*start)) {
+      start++;
+      count++;
+    }
+
+    
+    if (count > 0) {
+      if (!styleArray)
+        styleArray = new nsTArray<int8_t>();
+
+      
+      
+      if (styleArray->Length() > 1 && !aAllowMultiValues) {
+        delete styleArray;
+        return nullptr;
+      }
+
+      nsDependentSubstring valueString(aString, startIndex, count);
+      int8_t styleValue = ParseStyleValue(aAttribute, valueString);
+      styleArray->AppendElement(styleValue);
+
+      startIndex += count;
+      count = 0;
+    }
   }
+  return styleArray;
 }
 
-struct nsValueList
+static nsresult ReportParseError(nsIFrame* aFrame, const PRUnichar* aAttribute,
+                                 const PRUnichar* aValue)
 {
-  nsString             mData;
-  nsTArray<PRUnichar*> mArray;
+  nsIContent* content = aFrame->GetContent();
 
-  nsValueList(nsString& aData) {
-    mData.Assign(aData);
-    SplitString(mData, mArray);
-  }
-};
+  const PRUnichar* params[] =
+    { aValue, aAttribute, content->Tag()->GetUTF16String() };
 
-
+  return nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
+                                         NS_LITERAL_CSTRING("MathML"),
+                                         content->OwnerDoc(),
+                                         nsContentUtils::eMATHML_PROPERTIES,
+                                         "AttributeParsingError", params, 3);
+}
 
 
 
@@ -76,15 +130,15 @@ struct nsValueList
 
 
 static void
-DestroyValueList(void* aPropertyValue)
+DestroyStylePropertyList(void* aPropertyValue)
 {
-  delete static_cast<nsValueList*>(aPropertyValue);
+  delete static_cast<nsTArray<int8_t>*>(aPropertyValue);
 }
 
-NS_DECLARE_FRAME_PROPERTY(RowAlignProperty, DestroyValueList)
-NS_DECLARE_FRAME_PROPERTY(RowLinesProperty, DestroyValueList)
-NS_DECLARE_FRAME_PROPERTY(ColumnAlignProperty, DestroyValueList)
-NS_DECLARE_FRAME_PROPERTY(ColumnLinesProperty, DestroyValueList)
+NS_DECLARE_FRAME_PROPERTY(RowAlignProperty, DestroyStylePropertyList)
+NS_DECLARE_FRAME_PROPERTY(RowLinesProperty, DestroyStylePropertyList)
+NS_DECLARE_FRAME_PROPERTY(ColumnAlignProperty, DestroyStylePropertyList)
+NS_DECLARE_FRAME_PROPERTY(ColumnLinesProperty, DestroyStylePropertyList)
 
 static const FramePropertyDescriptor*
 AttributeToProperty(nsIAtom* aAttribute)
@@ -99,141 +153,132 @@ AttributeToProperty(nsIAtom* aAttribute)
   return ColumnLinesProperty();
 }
 
-static PRUnichar*
-GetValueAt(nsIFrame*                      aTableOrRowFrame,
-           const FramePropertyDescriptor* aProperty,
-           nsIAtom*                       aAttribute,
-           int32_t                        aRowOrColIndex)
+
+
+
+
+
+
+static nsTArray<int8_t>*
+FindCellProperty(const nsIFrame* aCellFrame,
+                 const FramePropertyDescriptor* aFrameProperty)
 {
-  FrameProperties props = aTableOrRowFrame->Properties();
-  nsValueList* valueList = static_cast<nsValueList*>(props.Get(aProperty));
-  if (!valueList) {
-    
-    nsAutoString values;
-    aTableOrRowFrame->GetContent()->GetAttr(kNameSpaceID_None, aAttribute, values);
-    if (!values.IsEmpty())
-      valueList = new nsValueList(values);
-    if (!valueList || !valueList->mArray.Length()) {
-      delete valueList; 
-      return nullptr;
-    }
-    props.Set(aProperty, valueList);
+  const nsIFrame* currentFrame = aCellFrame;
+  nsTArray<int8_t>* propertyData = nullptr;
+
+  while (currentFrame) {
+    FrameProperties props = currentFrame->Properties();
+    propertyData = static_cast<nsTArray<int8_t>*>(props.Get(aFrameProperty));
+    bool frameIsTable = (currentFrame->GetType() == nsGkAtoms::tableFrame);
+
+    if (propertyData || frameIsTable)
+      currentFrame = nullptr; 
+    else
+      currentFrame = currentFrame->GetParent(); 
   }
-  int32_t count = valueList->mArray.Length();
-  return (aRowOrColIndex < count)
-         ? valueList->mArray[aRowOrColIndex]
-         : valueList->mArray[count-1];
+
+  return propertyData;
 }
+
+
+
+
+
+
+class nsDisplaymtdBorder : public nsDisplayBorder {
+public:
+  nsDisplaymtdBorder(nsDisplayListBuilder* aBuilder, nsMathMLmtdFrame* aFrame)
+    : nsDisplayBorder(aBuilder, aFrame)
+  {
+  }
+
+  virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx) MOZ_OVERRIDE
+  {
+    int32_t rowIndex;
+    int32_t columnIndex;
+    static_cast<nsTableCellFrame*>(mFrame)->
+      GetCellIndexes(rowIndex, columnIndex);
+
+    nsStyleBorder styleBorder = *mFrame->StyleBorder();
+    nscoord borderWidth =
+      mFrame->PresContext()->GetBorderWidthTable()[NS_STYLE_BORDER_WIDTH_THIN];
+
+    nsTArray<int8_t>* rowLinesList =
+      FindCellProperty(mFrame, RowLinesProperty());
+
+    nsTArray<int8_t>* columnLinesList =
+      FindCellProperty(mFrame, ColumnLinesProperty());
+
+    
+    if (rowIndex > 0 && rowLinesList) {
+      
+      
+      int32_t listLength = rowLinesList->Length();
+      if (rowIndex < listLength) {
+        styleBorder.SetBorderStyle(NS_SIDE_TOP,
+                      rowLinesList->ElementAt(rowIndex - 1));
+      } else {
+        styleBorder.SetBorderStyle(NS_SIDE_TOP,
+                      rowLinesList->ElementAt(listLength - 1));
+      }
+      styleBorder.SetBorderWidth(NS_SIDE_TOP, borderWidth);
+    }
+
+    
+    if (columnIndex > 0 && columnLinesList) {
+      
+      
+      int32_t listLength = columnLinesList->Length();
+      if (columnIndex < listLength) {
+        styleBorder.SetBorderStyle(NS_SIDE_LEFT,
+                      columnLinesList->ElementAt(columnIndex - 1));
+      } else {
+        styleBorder.SetBorderStyle(NS_SIDE_LEFT,
+                      columnLinesList->ElementAt(listLength - 1));
+      }
+      styleBorder.SetBorderWidth(NS_SIDE_LEFT, borderWidth);
+    }
+
+    nsPoint offset = ToReferenceFrame();
+    nsCSSRendering::PaintBorderWithStyleBorder(mFrame->PresContext(), *aCtx,
+                                               mFrame, mVisibleRect,
+                                               nsRect(offset,
+                                                      mFrame->GetSize()),
+                                               styleBorder,
+                                               mFrame->StyleContext(),
+                                               mFrame->GetSkipSides());
+  }
+};
 
 #ifdef DEBUG
-static bool
-IsTable(uint8_t aDisplay)
-{
-  if ((aDisplay == NS_STYLE_DISPLAY_TABLE) ||
-      (aDisplay == NS_STYLE_DISPLAY_INLINE_TABLE))
-    return true;
-  return false;
-}
-
 #define DEBUG_VERIFY_THAT_FRAME_IS(_frame, _expected) \
   NS_ASSERTION(NS_STYLE_DISPLAY_##_expected == _frame->StyleDisplay()->mDisplay, "internal error");
-#define DEBUG_VERIFY_THAT_FRAME_IS_TABLE(_frame) \
-  NS_ASSERTION(IsTable(_frame->StyleDisplay()->mDisplay), "internal error");
 #else
 #define DEBUG_VERIFY_THAT_FRAME_IS(_frame, _expected)
-#define DEBUG_VERIFY_THAT_FRAME_IS_TABLE(_frame)
 #endif
 
-
-
 static void
-MapRowAttributesIntoCSS(nsIFrame* aTableFrame,
-                        nsIFrame* aRowFrame)
+ParseFrameAttribute(nsIFrame* aFrame, nsIAtom* aAttribute,
+                    bool aAllowMultiValues)
 {
-  DEBUG_VERIFY_THAT_FRAME_IS_TABLE(aTableFrame);
-  DEBUG_VERIFY_THAT_FRAME_IS(aRowFrame, TABLE_ROW);
-  int32_t rowIndex = ((nsTableRowFrame*)aRowFrame)->GetRowIndex();
-  nsIContent* rowContent = aRowFrame->GetContent();
-  PRUnichar* attr;
+  nsAutoString attrValue;
 
-  
-  if (!rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::rowalign_) &&
-      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_)) {
+  nsIContent* frameContent = aFrame->GetContent();
+  frameContent->GetAttr(kNameSpaceID_None, aAttribute, attrValue);
+
+  if (!attrValue.IsEmpty()) {
+    nsTArray<int8_t>* valueList =
+      ExtractStyleValues(attrValue, aAttribute, aAllowMultiValues);
+
     
-    attr = GetValueAt(aTableFrame, RowAlignProperty(),
-                      nsGkAtoms::rowalign_, rowIndex);
-    if (attr) {
-      
-      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                          nsDependentString(attr), false);
-    }
-  }
-
-  
-  
-  
-  
-  
-  if (rowIndex > 0 &&
-      !rowContent->HasAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_)) {
-    attr = GetValueAt(aTableFrame, RowLinesProperty(),
-                      nsGkAtoms::rowlines_, rowIndex-1);
-    if (attr) {
-      
-      rowContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowline_,
-                          nsDependentString(attr), false);
-    }
-  }
-}
-
-
-
-static void
-MapColAttributesIntoCSS(nsIFrame* aTableFrame,
-                        nsIFrame* aRowFrame,
-                        nsIFrame* aCellFrame)
-{
-  DEBUG_VERIFY_THAT_FRAME_IS_TABLE(aTableFrame);
-  DEBUG_VERIFY_THAT_FRAME_IS(aRowFrame, TABLE_ROW);
-  DEBUG_VERIFY_THAT_FRAME_IS(aCellFrame, TABLE_CELL);
-  int32_t rowIndex, colIndex;
-  ((nsTableCellFrame*)aCellFrame)->GetCellIndexes(rowIndex, colIndex);
-  nsIContent* cellContent = aCellFrame->GetContent();
-  PRUnichar* attr;
-
-  
-  if (!cellContent->HasAttr(kNameSpaceID_None, nsGkAtoms::columnalign_) &&
-      !cellContent->HasAttr(kNameSpaceID_None,
-                            nsGkAtoms::_moz_math_columnalign_)) {
     
-    attr = GetValueAt(aRowFrame, ColumnAlignProperty(),
-                      nsGkAtoms::columnalign_, colIndex);
-    if (!attr) {
+    if (valueList) {
       
-      attr = GetValueAt(aTableFrame, ColumnAlignProperty(),
-                        nsGkAtoms::columnalign_, colIndex);
-    }
-    if (attr) {
-      
-      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                           nsDependentString(attr), false);
-    }
-  }
-
-  
-  
-  
-  
-  
-  if (colIndex > 0 &&
-      !cellContent->HasAttr(kNameSpaceID_None,
-                            nsGkAtoms::_moz_math_columnline_)) {
-    attr = GetValueAt(aTableFrame, ColumnLinesProperty(),
-                      nsGkAtoms::columnlines_, colIndex-1);
-    if (attr) {
-      
-      cellContent->SetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnline_,
-                           nsDependentString(attr), false);
+      NS_ASSERTION(valueList->Length() >= 1, "valueList should not be empty!");
+      FrameProperties props = aFrame->Properties();
+      props.Set(AttributeToProperty(aAttribute), valueList);
+    } else {
+      ReportParseError(aFrame, aAttribute->GetUTF16String(), attrValue.get());
     }
   }
 }
@@ -244,6 +289,14 @@ static void
 MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
 {
   
+  ParseFrameAttribute(aTableFrame, nsGkAtoms::rowalign_, true);
+  ParseFrameAttribute(aTableFrame, nsGkAtoms::rowlines_, true);
+
+  
+  ParseFrameAttribute(aTableFrame, nsGkAtoms::columnalign_, true);
+  ParseFrameAttribute(aTableFrame, nsGkAtoms::columnlines_, true);
+
+  
   nsIFrame* rgFrame = aTableFrame->GetFirstPrincipalChild();
   if (!rgFrame || rgFrame->GetType() != nsGkAtoms::tableRowGroupFrame)
     return;
@@ -252,12 +305,19 @@ MapAllAttributesIntoCSS(nsIFrame* aTableFrame)
   for ( ; rowFrame; rowFrame = rowFrame->GetNextSibling()) {
     DEBUG_VERIFY_THAT_FRAME_IS(rowFrame, TABLE_ROW);
     if (rowFrame->GetType() == nsGkAtoms::tableRowFrame) {
-      MapRowAttributesIntoCSS(aTableFrame, rowFrame);
+      
+      ParseFrameAttribute(rowFrame, nsGkAtoms::rowalign_, false);
+      
+      ParseFrameAttribute(rowFrame, nsGkAtoms::columnalign_, true);
+
       nsIFrame* cellFrame = rowFrame->GetFirstPrincipalChild();
       for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
         DEBUG_VERIFY_THAT_FRAME_IS(cellFrame, TABLE_CELL);
         if (IS_TABLE_CELL(cellFrame->GetType())) {
-          MapColAttributesIntoCSS(aTableFrame, rowFrame, cellFrame);
+          
+          ParseFrameAttribute(cellFrame, nsGkAtoms::rowalign_, false);
+          
+          ParseFrameAttribute(cellFrame, nsGkAtoms::columnalign_, false);
         }
       }
     }
@@ -457,48 +517,27 @@ nsMathMLmtableOuterFrame::AttributeChanged(int32_t  aNameSpaceID,
   }
 
   
-  nsIAtom* MOZrowAtom = nullptr;
-  nsIAtom* MOZcolAtom = nullptr;
-  if (aAttribute == nsGkAtoms::rowalign_)
-    MOZrowAtom = nsGkAtoms::_moz_math_rowalign_;
-  else if (aAttribute == nsGkAtoms::rowlines_)
-    MOZrowAtom = nsGkAtoms::_moz_math_rowline_;
-  else if (aAttribute == nsGkAtoms::columnalign_)
-    MOZcolAtom = nsGkAtoms::_moz_math_columnalign_;
-  else if (aAttribute == nsGkAtoms::columnlines_)
-    MOZcolAtom = nsGkAtoms::_moz_math_columnline_;
 
-  if (!MOZrowAtom && !MOZcolAtom)
+  
+  if (aAttribute != nsGkAtoms::rowalign_ &&
+      aAttribute != nsGkAtoms::rowlines_ &&
+      aAttribute != nsGkAtoms::columnalign_ &&
+      aAttribute != nsGkAtoms::columnlines_) {
     return NS_OK;
+  }
 
   nsPresContext* presContext = tableFrame->PresContext();
+
   
   presContext->PropertyTable()->
     Delete(tableFrame, AttributeToProperty(aAttribute));
 
   
-  nsIFrame* rowFrame = rgFrame->GetFirstPrincipalChild();
-  for ( ; rowFrame; rowFrame = rowFrame->GetNextSibling()) {
-    if (rowFrame->GetType() == nsGkAtoms::tableRowFrame) {
-      if (MOZrowAtom) { 
-        rowFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZrowAtom, false);
-        MapRowAttributesIntoCSS(tableFrame, rowFrame);    
-      } else { 
-        nsIFrame* cellFrame = rowFrame->GetFirstPrincipalChild();
-        for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
-          if (IS_TABLE_CELL(cellFrame->GetType())) {
-            cellFrame->GetContent()->UnsetAttr(kNameSpaceID_None, MOZcolAtom, false);
-            MapColAttributesIntoCSS(tableFrame, rowFrame, cellFrame);
-          }
-        }
-      }
-    }
-  }
+  ParseFrameAttribute(tableFrame, aAttribute, true);
 
   
-  presContext->RestyleManager()->
-    PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree,
-                     nsChangeHint_AllReflowHints);
+  presContext->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
 
   return NS_OK;
 }
@@ -706,41 +745,24 @@ nsMathMLmtrFrame::AttributeChanged(int32_t  aNameSpaceID,
   
   
   
-  
-
-  if (aAttribute == nsGkAtoms::rowalign_) {
-    
-    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_rowalign_,
-                        false);
-    MapRowAttributesIntoCSS(nsTableFrame::GetTableFrame(this), this);
-    
-    return NS_OK;
-  }
-
-  if (aAttribute != nsGkAtoms::columnalign_)
-    return NS_OK;
 
   nsPresContext* presContext = PresContext();
-  
-  presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
 
-  
-  
-  nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
-  nsIFrame* cellFrame = GetFirstPrincipalChild();
-  for ( ; cellFrame; cellFrame = cellFrame->GetNextSibling()) {
-    if (IS_TABLE_CELL(cellFrame->GetType())) {
-      cellFrame->GetContent()->
-        UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                  false);
-      MapColAttributesIntoCSS(tableFrame, this, cellFrame);
-    }
+  if (aAttribute != nsGkAtoms::rowalign_ &&
+      aAttribute != nsGkAtoms::columnalign_) {
+    return NS_OK;
   }
 
+  presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
+
+  bool allowMultiValues = (aAttribute == nsGkAtoms::columnalign_);
+
   
-  presContext->RestyleManager()->
-    PostRestyleEvent(mContent->AsElement(), eRestyle_Subtree,
-                     nsChangeHint_AllReflowHints);
+  ParseFrameAttribute(this, aAttribute, allowMultiValues);
+
+  
+  presContext->PresShell()->
+      FrameNeedsReflow(this, nsIPresShell::eStyleChange, NS_FRAME_IS_DIRTY);
 
   return NS_OK;
 }
@@ -811,11 +833,14 @@ nsMathMLmtdFrame::AttributeChanged(int32_t  aNameSpaceID,
   
   
 
-  if (aAttribute == nsGkAtoms::columnalign_) {
+  if (aAttribute == nsGkAtoms::rowalign_ ||
+      aAttribute == nsGkAtoms::columnalign_) {
+
+    nsPresContext* presContext = PresContext();
+    presContext->PropertyTable()->Delete(this, AttributeToProperty(aAttribute));
+
     
-    mContent->UnsetAttr(kNameSpaceID_None, nsGkAtoms::_moz_math_columnalign_,
-                        false);
-    MapColAttributesIntoCSS(nsTableFrame::GetTableFrame(this), mParent, this);
+    ParseFrameAttribute(this, aAttribute, false);
     return NS_OK;
   }
 
@@ -830,6 +855,38 @@ nsMathMLmtdFrame::AttributeChanged(int32_t  aNameSpaceID,
   return NS_OK;
 }
 
+uint8_t
+nsMathMLmtdFrame::GetVerticalAlign() const
+{
+  
+  uint8_t alignment = nsTableCellFrame::GetVerticalAlign();
+
+  nsTArray<int8_t>* alignmentList = FindCellProperty(this, RowAlignProperty());
+
+  if (alignmentList) {
+    int32_t rowIndex;
+    GetRowIndex(rowIndex);
+
+    
+    
+    if (rowIndex < (int32_t)alignmentList->Length())
+      alignment = alignmentList->ElementAt(rowIndex);
+    else
+      alignment = alignmentList->ElementAt(alignmentList->Length() - 1);
+  }
+
+  return alignment;
+}
+
+nsresult
+nsMathMLmtdFrame::ProcessBorders(nsTableFrame* aFrame,
+                                 nsDisplayListBuilder* aBuilder,
+                                 const nsDisplayListSet& aLists)
+{
+  aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
+                                            nsDisplaymtdBorder(aBuilder, this));
+  return NS_OK;
+}
 
 
 
@@ -845,8 +902,16 @@ NS_NewMathMLmtdInnerFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsMathMLmtdInnerFrame)
 
+nsMathMLmtdInnerFrame::nsMathMLmtdInnerFrame(nsStyleContext* aContext)
+  : nsBlockFrame(aContext)
+{
+  
+  mUniqueStyleText = new (PresContext()) nsStyleText(*StyleText());
+}
+
 nsMathMLmtdInnerFrame::~nsMathMLmtdInnerFrame()
 {
+  mUniqueStyleText->Destroy(PresContext());
 }
 
 NS_IMETHODIMP
@@ -861,4 +926,38 @@ nsMathMLmtdInnerFrame::Reflow(nsPresContext*          aPresContext,
   
   
   return rv;
+}
+
+const
+nsStyleText* nsMathMLmtdInnerFrame::StyleTextForLineLayout()
+{
+  
+  uint8_t alignment = StyleText()->mTextAlign;
+
+  nsTArray<int8_t>* alignmentList =
+    FindCellProperty(this, ColumnAlignProperty());
+
+  if (alignmentList) {
+    nsMathMLmtdFrame* cellFrame = (nsMathMLmtdFrame*)GetParent();
+    int32_t columnIndex;
+    cellFrame->GetColIndex(columnIndex);
+
+    
+    
+    if (columnIndex < (int32_t)alignmentList->Length())
+      alignment = alignmentList->ElementAt(columnIndex);
+    else
+      alignment = alignmentList->ElementAt(alignmentList->Length() - 1);
+  }
+
+  mUniqueStyleText->mTextAlign = alignment;
+  return mUniqueStyleText;
+}
+
+ void
+nsMathMLmtdInnerFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
+{
+  nsBlockFrame::DidSetStyleContext(aOldStyleContext);
+  mUniqueStyleText->Destroy(PresContext());
+  mUniqueStyleText = new (PresContext()) nsStyleText(*StyleText());
 }

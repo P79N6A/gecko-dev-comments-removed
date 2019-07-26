@@ -5706,6 +5706,13 @@ nsBlockFrame::DeleteNextInFlowChild(nsPresContext* aPresContext,
   }
 }
 
+const nsStyleText*
+nsBlockFrame::StyleTextForLineLayout()
+{
+  
+  return StyleText();
+}
+
 
 
 
