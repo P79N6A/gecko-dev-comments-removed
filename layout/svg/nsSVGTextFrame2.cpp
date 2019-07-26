@@ -3531,7 +3531,9 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
       (gfxTextContextPaint*)aContext->GetUserData(&gfxTextContextPaint::sUserDataKey);
 
     nsAutoPtr<gfxTextContextPaint> contextPaint;
-    SetupCairoState(gfx, frame, outerContextPaint, getter_Transfers(contextPaint));
+    gfxFont::DrawMode drawMode =
+      SetupCairoState(gfx, frame, outerContextPaint,
+                      getter_Transfers(contextPaint));
 
     
     
@@ -3540,16 +3542,19 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
     runTransform.Multiply(currentMatrix);
     gfx->SetMatrix(runTransform);
 
-    nsRect frameRect = frame->GetVisualOverflowRect();
-    bool paintSVGGlyphs;
-    if (ShouldRenderAsPath(aContext, frame, paintSVGGlyphs)) {
-      SVGTextDrawPathCallbacks callbacks(aContext, frame, matrixForPaintServers,
-                                         paintSVGGlyphs);
-      frame->PaintText(aContext, nsPoint(), frameRect, item,
-                       contextPaint, &callbacks);
-    } else {
-      frame->PaintText(aContext, nsPoint(), frameRect, item,
-                       contextPaint, nullptr);
+    if (drawMode != gfxFont::DrawMode(0)) {
+      nsRect frameRect = frame->GetVisualOverflowRect();
+      bool paintSVGGlyphs;
+      if (ShouldRenderAsPath(aContext, frame, paintSVGGlyphs)) {
+        SVGTextDrawPathCallbacks callbacks(aContext, frame,
+                                           matrixForPaintServers,
+                                           paintSVGGlyphs);
+        frame->PaintText(aContext, nsPoint(), frameRect, item,
+                         contextPaint, &callbacks);
+      } else {
+        frame->PaintText(aContext, nsPoint(), frameRect, item,
+                         contextPaint, nullptr);
+      }
     }
 
     if (frame == caretFrame && ShouldPaintCaret(run, caret)) {
