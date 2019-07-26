@@ -1365,6 +1365,11 @@ ICUpdatedStub::addUpdateStubForValue(JSContext *cx, HandleScript script, HandleO
 
     types::EnsureTrackPropertyTypes(cx, obj, id);
 
+    
+    
+    if (val.isUndefined() && types::CanHaveEmptyPropertyTypesForOwnProperty(obj))
+        types::AddTypePropertyId(cx, obj, id, val);
+
     if (val.isPrimitive()) {
         JSValueType type = val.isDouble() ? JSVAL_TYPE_DOUBLE : val.extractNonDoubleType();
 
