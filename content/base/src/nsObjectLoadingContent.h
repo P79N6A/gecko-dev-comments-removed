@@ -40,7 +40,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 {
   friend class AutoSetInstantiatingToFalse;
   friend class AutoSetLoadingToFalse;
-  friend class InDocCheckEvent;
+  friend class CheckPluginStopEvent;
   friend class nsStopPluginRunnable;
   friend class nsAsyncInstantiateEvent;
 
@@ -451,6 +451,9 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     nsCOMPtr<nsIRunnable>       mPendingInstantiateEvent;
+
+    
+    nsCOMPtr<nsIRunnable>       mPendingCheckPluginStopEvent;
 
     
     

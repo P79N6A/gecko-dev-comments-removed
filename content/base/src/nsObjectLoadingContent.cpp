@@ -140,12 +140,14 @@ nsAsyncInstantiateEvent::Run()
 
 
 
-class InDocCheckEvent : public nsRunnable {
+
+
+class CheckPluginStopEvent : public nsRunnable {
 public:
-  InDocCheckEvent(nsObjectLoadingContent *aContent)
+  CheckPluginStopEvent(nsObjectLoadingContent *aContent)
   : mContent(aContent) {}
 
-  ~InDocCheckEvent() {}
+  ~CheckPluginStopEvent() {}
 
   NS_IMETHOD Run();
 
@@ -154,18 +156,33 @@ private:
 };
 
 NS_IMETHODIMP
-InDocCheckEvent::Run()
+CheckPluginStopEvent::Run()
 {
   nsObjectLoadingContent *objLC =
     static_cast<nsObjectLoadingContent *>(mContent.get());
 
+  
+  
+  if (objLC->mPendingCheckPluginStopEvent != this) {
+    return NS_OK;
+  }
+  objLC->mPendingCheckPluginStopEvent = nullptr;
+
   nsCOMPtr<nsIContent> content =
     do_QueryInterface(static_cast<nsIImageLoadingContent *>(objLC));
-
   if (!InActiveDocument(content)) {
-    nsObjectLoadingContent *objLC =
-      static_cast<nsObjectLoadingContent *>(mContent.get());
+    
+    LOG(("OBJLC [%p]: Unloading plugin outside of document", this));
     objLC->UnloadObject();
+    return NS_OK;
+  }
+
+  if (!content->GetPrimaryFrame()) {
+    
+    
+    LOG(("OBJLC [%p]: Stopping plugin that lost frame", this));
+    
+    objLC->StopPluginInstance();
   }
   return NS_OK;
 }
@@ -644,7 +661,8 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
     
     
     
-    nsCOMPtr<nsIRunnable> event = new InDocCheckEvent(this);
+    nsCOMPtr<nsIRunnable> event = new CheckPluginStopEvent(this);
+    mPendingCheckPluginStopEvent = event;
 
     nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
     if (appShell) {
@@ -661,9 +679,7 @@ nsObjectLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 nsObjectLoadingContent::nsObjectLoadingContent()
-  : mPendingInstantiateEvent(nullptr)
-  , mChannel(nullptr)
-  , mType(eType_Loading)
+  : mType(eType_Loading)
   , mFallbackType(eFallbackAlternate)
   , mChannelLoaded(false)
   , mInstantiating(false)
@@ -972,25 +988,49 @@ nsObjectLoadingContent::GetDisplayedType(uint32_t* aType)
 NS_IMETHODIMP
 nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
 {
-  if (mType == eType_Plugin) {
-    if (!mInstanceOwner) {
-      
-      
-      AsyncStartPluginInstance();
-      return NS_OK;
-    }
-
-    
-    mInstanceOwner->SetFrame(nullptr);
-
-    
-    nsObjectFrame *objFrame = static_cast<nsObjectFrame*>(aFrame);
-    mInstanceOwner->SetFrame(objFrame);
-
-    
-    objFrame->FixupWindow(objFrame->GetContentRectRelativeToSelf().Size());
-    objFrame->InvalidateFrame();
+  if (mType != eType_Plugin) {
+    return NS_OK;
   }
+
+  if (!aFrame) {
+    
+    
+    
+    if (mInstanceOwner) {
+      mInstanceOwner->SetFrame(nullptr);
+
+      nsCOMPtr<nsIRunnable> event = new CheckPluginStopEvent(this);
+      mPendingCheckPluginStopEvent = event;
+      nsCOMPtr<nsIAppShell> appShell = do_GetService(kAppShellCID);
+      if (appShell) {
+        appShell->RunInStableState(event);
+      } else {
+        NS_NOTREACHED("No app shell?");
+      }
+    }
+    return NS_OK;
+  }
+
+  
+
+  if (!mInstanceOwner) {
+    
+    
+    AsyncStartPluginInstance();
+    return NS_OK;
+  }
+
+  
+  mInstanceOwner->SetFrame(nullptr);
+
+  
+  nsObjectFrame *objFrame = static_cast<nsObjectFrame*>(aFrame);
+  mInstanceOwner->SetFrame(objFrame);
+
+  
+  objFrame->FixupWindow(objFrame->GetContentRectRelativeToSelf().Size());
+  objFrame->InvalidateFrame();
+
   return NS_OK;
 }
 
@@ -1779,7 +1819,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   if (mFrameLoader || mPendingInstantiateEvent || mInstanceOwner ||
-      mFinalListener)
+      mPendingCheckPluginStopEvent || mFinalListener)
   {
     NS_NOTREACHED("Trying to load new plugin with existing content");
     rv = NS_ERROR_UNEXPECTED;
@@ -2488,6 +2528,7 @@ nsObjectLoadingContent::DoStopPlugin(nsPluginInstanceOwner* aInstanceOwner,
   
   
   
+  
   if (mIsStopping && !aForcedReentry) {
     return;
   }
@@ -2521,6 +2562,7 @@ nsObjectLoadingContent::StopPluginInstance()
 {
   
   mPendingInstantiateEvent = nullptr;
+  mPendingCheckPluginStopEvent = nullptr;
 
   if (!mInstanceOwner) {
     return NS_OK;
