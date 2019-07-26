@@ -2100,9 +2100,6 @@ RuntimeService::CreateServiceWorker(const GlobalObject& aGlobal,
   nsRefPtr<ServiceWorker> serviceWorker =
     new ServiceWorker(window, sharedWorker);
 
-  
-  
-  serviceWorker->mState = ServiceWorkerState::Parsed;
   serviceWorker->mURL = aScriptURL;
   serviceWorker->mScope = NS_ConvertUTF8toUTF16(aScope);
 

@@ -97,7 +97,14 @@ ServiceWorkerContainer::GetWaiting()
 }
 
 already_AddRefed<workers::ServiceWorker>
-ServiceWorkerContainer::GetCurrent()
+ServiceWorkerContainer::GetActive()
+{
+  
+  return nullptr;
+}
+
+already_AddRefed<workers::ServiceWorker>
+ServiceWorkerContainer::GetController()
 {
   
   return nullptr;
@@ -112,11 +119,12 @@ ServiceWorkerContainer::GetAll(ErrorResult& aRv)
 }
 
 already_AddRefed<Promise>
-ServiceWorkerContainer::WhenReady(ErrorResult& aRv)
+ServiceWorkerContainer::Ready()
 {
   
-  aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-  return nullptr;
+  nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(mWindow);
+  nsRefPtr<Promise> promise = new Promise(global);
+  return promise.forget();
 }
 
 
