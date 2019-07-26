@@ -26,6 +26,7 @@
 #include "imgIContainer.h"
 #include "mozilla/gfx/2D.h"
 #include "Units.h"
+#include "mozilla/ToString.h"
 
 #include <limits>
 #include <algorithm>
@@ -2169,6 +2170,34 @@ public:
 
 
   static bool WantSubAPZC();
+
+  
+
+
+
+
+
+
+
+
+  static void LogTestDataForPaint(nsIPresShell* aPresShell,
+                                  ViewID aScrollId,
+                                  const std::string& aKey,
+                                  const std::string& aValue);
+
+  
+
+
+
+
+  template <typename Value>
+  static void LogTestDataForPaint(nsIPresShell* aPresShell,
+                                  ViewID aScrollId,
+                                  const std::string& aKey,
+                                  const Value& aValue) {
+    LogTestDataForPaint(aPresShell, aScrollId, aKey,
+        mozilla::ToString(aValue));
+  }
 
  
 

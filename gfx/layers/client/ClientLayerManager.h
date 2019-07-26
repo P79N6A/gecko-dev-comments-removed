@@ -16,6 +16,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/ShadowLayers.h"  
+#include "mozilla/layers/APZTestData.h" 
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
 #include "nsDebug.h"                    
@@ -172,6 +173,31 @@ public:
    return (GetTextureFactoryIdentifier().mSupportedBlendModes & aMixBlendModes) == aMixBlendModes;
   }
 
+  
+  
+  
+  void LogTestDataForCurrentPaint(FrameMetrics::ViewID aScrollId,
+                                  const std::string& aKey,
+                                  const std::string& aValue)
+  {
+    mApzTestData.LogTestDataForPaint(mPaintSequenceNumber, aScrollId, aKey, aValue);
+  }
+
+  
+  
+  
+  void StartNewRepaintRequest(SequenceNumber aSequenceNumber)
+  {
+    mApzTestData.StartNewRepaintRequest(aSequenceNumber);
+  }
+  void LogTestDataForRepaintRequest(SequenceNumber aSequenceNumber,
+                                    FrameMetrics::ViewID aScrollId,
+                                    const std::string& aKey,
+                                    const std::string& aValue)
+  {
+    mApzTestData.LogTestDataForRepaintRequest(aSequenceNumber, aScrollId, aKey, aValue);
+  }
+
 protected:
   enum TransactionPhase {
     PHASE_NONE, PHASE_CONSTRUCTION, PHASE_DRAWING, PHASE_FORWARD
@@ -235,6 +261,8 @@ private:
   
   
   uint32_t mPaintSequenceNumber;
+
+  APZTestData mApzTestData;
 
   RefPtr<ShadowLayerForwarder> mForwarder;
   nsAutoTArray<RefPtr<TextureClientPool>,2> mTexturePools;

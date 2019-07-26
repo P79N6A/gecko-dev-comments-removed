@@ -164,6 +164,7 @@ ClientLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   if (!mIsRepeatTransaction) {
     ++mPaintSequenceNumber;
+    mApzTestData.StartNewPaint(mPaintSequenceNumber);
   }
 }
 
