@@ -191,7 +191,7 @@ FoldBinaryNumeric(ExclusiveContext *cx, JSOp op, ParseNode *pn1, ParseNode *pn2,
 
 
 
-void
+static void
 ReplaceNode(ParseNode **pnp, ParseNode *pn)
 {
     pn->pn_next = (*pnp)->pn_next;

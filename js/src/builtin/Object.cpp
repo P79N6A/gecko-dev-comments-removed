@@ -484,7 +484,7 @@ obj_lookupSetter(JSContext *cx, unsigned argc, Value *vp)
 #endif 
 
 
-bool
+static bool
 obj_getPrototypeOf(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);

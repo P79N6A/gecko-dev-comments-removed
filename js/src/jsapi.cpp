@@ -3767,7 +3767,7 @@ JS_Enumerate(JSContext *cx, JSObject *objArg)
 
 
 
-const uint32_t JSSLOT_ITER_INDEX = 0;
+static const uint32_t JSSLOT_ITER_INDEX = 0;
 
 static void
 prop_iter_finalize(FreeOp *fop, JSObject *obj)

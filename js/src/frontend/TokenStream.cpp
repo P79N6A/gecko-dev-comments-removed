@@ -914,7 +914,7 @@ TokenStream::atomize(ExclusiveContext *cx, CharBuffer &cb)
 }
 
 #ifdef DEBUG
-bool
+static bool
 IsTokenSane(Token *tp)
 {
     

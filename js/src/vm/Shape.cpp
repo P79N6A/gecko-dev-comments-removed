@@ -679,7 +679,7 @@ JSObject::addPropertyInternal<ParallelExecution>(ForkJoinSlice *cx,
 
 
 
-inline bool
+static inline bool
 CheckCanChangeAttrs(ThreadSafeContext *cx, JSObject *obj, Shape *shape, unsigned *attrsp)
 {
     if (shape->configurable())

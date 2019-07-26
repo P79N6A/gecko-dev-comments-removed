@@ -234,7 +234,7 @@ IsPhiObservable(MPhi *phi, Observability observe)
 
 
 
-inline MDefinition *
+static inline MDefinition *
 IsPhiRedundant(MPhi *phi)
 {
     MDefinition *first = phi->operandIfRedundant();
