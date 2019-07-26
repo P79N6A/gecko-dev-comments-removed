@@ -137,6 +137,9 @@ function basicNotification() {
         case "dismissed":
           self.dismissalCallbackTriggered = true;
           break;
+        case "showing":
+          self.showingCallbackTriggered = true;
+          break;
         case "shown":
           self.shownCallbackTriggered = true;
           break;
@@ -858,6 +861,27 @@ var tests = [
       this.notification1.remove();
       this.notification2.remove();
     }
+  },
+  { 
+    run: function() {
+      this.notifyObj = new basicNotification();
+      var normalCallback = this.notifyObj.options.eventCallback;
+      this.notifyObj.options.eventCallback = function (eventName) {
+        if (eventName == "showing") {
+          this.mainAction.label = "Alternate Label";
+        }
+        normalCallback.call(this, eventName);
+      };
+      showNotification(this.notifyObj);
+    },
+    onShown: function(popup) {
+      
+      
+      
+      checkPopup(popup, this.notifyObj);
+      triggerMainCommand(popup);
+    },
+    onHidden: function() { }
   }
 ];
 
@@ -874,6 +898,7 @@ function showNotification(notifyObj) {
 function checkPopup(popup, notificationObj) {
   info("[Test #" + gTestIndex + "] checking popup");
 
+  ok(notificationObj.showingCallbackTriggered, "showing callback was triggered");
   ok(notificationObj.shownCallbackTriggered, "shown callback was triggered");
 
   let notifications = popup.childNodes;
