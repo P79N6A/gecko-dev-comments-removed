@@ -4847,7 +4847,7 @@ JS::CanCompileOffThread(JSContext *cx, const CompileOptions &options)
     
     
     
-    if (cx->runtime()->atomsZoneNeedsBarrier())
+    if (cx->runtime()->activeGCInAtomsZone())
         return false;
 
     

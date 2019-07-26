@@ -401,12 +401,6 @@ JSRuntime::isAtomsZone(JS::Zone *zone)
     return zone == atomsCompartment_->zone();
 }
 
-inline bool
-JSRuntime::atomsZoneNeedsBarrier()
-{
-    return atomsCompartment_->zone()->needsBarrier();
-}
-
 
 
 
