@@ -139,6 +139,13 @@ nsIMM32Handler::GetKeyboardCodePage()
 }
 
 
+nsIMEUpdatePreference
+nsIMM32Handler::GetIMEUpdatePreference()
+{
+  return nsIMEUpdatePreference(nsIMEUpdatePreference::NOTIFY_POSITION_CHANGE);
+}
+
+
 #define IS_COMPOSING_LPARAM(lParam) \
   ((lParam) & (GCS_COMPSTR | GCS_COMPATTR | GCS_COMPCLAUSE | GCS_CURSORPOS))
 #define IS_COMMITTING_LPARAM(lParam) ((lParam) & GCS_RESULTSTR)
