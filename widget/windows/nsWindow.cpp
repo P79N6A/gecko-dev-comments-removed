@@ -7303,6 +7303,25 @@ nsWindow::GetPopupsToRollup(nsIRollupListener* aRollupListener,
 
 
 bool
+nsWindow::NeedsToHandleNCActivateDelayed(HWND aWnd)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsWindow* window = WinUtils::GetNSWindowPtr(aWnd);
+  return window && !window->IsPopup();
+}
+
+
+bool
 nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
                          WPARAM aWParam, LPARAM aLParam, LRESULT* aResult)
 {
@@ -7323,6 +7342,8 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
     return false;
   }
 
+  static bool sSendingNCACTIVATE = false;
+  static bool sPendingNCACTIVATE = false;
   uint32_t popupsToRollup = UINT32_MAX;
 
   nsWindow* popupWindow = static_cast<nsWindow*>(popup.get());
@@ -7358,9 +7379,55 @@ nsWindow::DealWithPopups(HWND aWnd, UINT aMessage,
 
     case WM_ACTIVATE:
       
+      
+      if (LOWORD(aWParam) == WA_ACTIVE && aLParam) {
+        nsWindow* window = WinUtils::GetNSWindowPtr(aWnd);
+        if (window && window->IsPopup()) {
+          
+          
+          sJustGotDeactivate = false;
+          
+          ::PostMessageW(aWnd, MOZ_WM_REACTIVATE, aWParam, aLParam);
+          return true;
+        }
+      } else if (sPendingNCACTIVATE && LOWORD(aWParam) == WA_INACTIVE &&
+                 NeedsToHandleNCActivateDelayed(aWnd)) {
+        
+        
+        nsWindow* activeWindow =
+          WinUtils::GetNSWindowPtr(reinterpret_cast<HWND>(aLParam));
+        if (!activeWindow || !activeWindow->IsPopup()) {
+          sSendingNCACTIVATE = true;
+          ::SendMessageW(aWnd, WM_NCACTIVATE, false, 0);
+          sSendingNCACTIVATE = false;
+        }
+        sPendingNCACTIVATE = false;
+      }
+      
       if (!EventIsInsideWindow(popupWindow) &&
           GetPopupsToRollup(rollupListener, &popupsToRollup)) {
         break;
+      }
+      return false;
+
+    case MOZ_WM_REACTIVATE:
+      
+      if (::IsWindow(reinterpret_cast<HWND>(aLParam))) {
+        ::SetForegroundWindow(reinterpret_cast<HWND>(aLParam));
+      }
+      return true;
+
+    case WM_NCACTIVATE:
+      if (!aWParam && !sSendingNCACTIVATE &&
+          NeedsToHandleNCActivateDelayed(aWnd)) {
+        
+        
+        ::DefWindowProcW(aWnd, aMessage, TRUE, aLParam);
+        
+        
+        *aResult = TRUE;
+        sPendingNCACTIVATE = true;
+        return true;
       }
       return false;
 

@@ -35,8 +35,11 @@
 #define MOZ_WM_MOUSEWHEEL_LAST            MOZ_WM_HSCROLL
 
 
+#define MOZ_WM_REACTIVATE                 (WM_APP+0x0314)
 
-#define MOZ_WM_ENSUREVISIBLE              (WM_APP + 14159)
+
+
+#define MOZ_WM_ENSUREVISIBLE              (WM_APP+0x374F)
 
 #ifndef SM_CXPADDEDBORDER
 #define SM_CXPADDEDBORDER                 92
