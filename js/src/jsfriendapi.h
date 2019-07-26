@@ -960,6 +960,135 @@ enum ViewType {
 };
 
 } 
+
+
+
+
+
+
+
+
+
+
+
+class ArrayBufferBuilder
+{
+    void *rawcontents_;
+    uint8_t *dataptr_;
+    uint32_t capacity_;
+    uint32_t length_;
+  public:
+    ArrayBufferBuilder()
+        : rawcontents_(NULL),
+          dataptr_(NULL),
+          capacity_(0),
+          length_(0)
+    {
+    }
+
+    ~ArrayBufferBuilder() {
+        reset();
+    }
+
+    void reset() {
+        if (rawcontents_)
+            JS_free(NULL, rawcontents_);
+        rawcontents_ = dataptr_ = NULL;
+        capacity_ = length_ = 0;
+    }
+
+    
+    bool setCapacity(uint32_t newcap) {
+        if (!JS_ReallocateArrayBufferContents(NULL, newcap, &rawcontents_, &dataptr_))
+            return false;
+
+        capacity_ = newcap;
+        if (length_ > newcap)
+            length_ = newcap;
+
+        return true;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    bool append(const uint8_t *newdata, uint32_t datalen, uint32_t maxgrowth = 0) {
+        if (length_ + datalen > capacity_) {
+            uint32_t newcap;
+            
+            if (!maxgrowth || capacity_ < maxgrowth)
+                newcap = capacity_ * 2;
+            else
+                newcap = capacity_ + maxgrowth;
+
+            
+            if (newcap < length_ + datalen)
+                newcap = length_ + datalen;
+
+            
+            if (newcap < capacity_)
+                return false;
+
+            if (!setCapacity(newcap))
+                return false;
+        }
+
+        
+        JS_ASSERT(!areOverlappingRegions(newdata, datalen, dataptr_ + length_, datalen));
+
+        memcpy(dataptr_ + length_, newdata, datalen);
+        length_ += datalen;
+
+        return true;
+    }
+
+    uint8_t *data() {
+        return dataptr_;
+    }
+
+    uint32_t length() {
+        return length_;
+    }
+
+    uint32_t capacity() {
+        return capacity_;
+    }
+
+    JSObject* getArrayBuffer(JSContext *cx) {
+        if (capacity_ > length_) {
+            if (!setCapacity(length_))
+                return NULL;
+        }
+
+        JSObject* obj = JS_NewArrayBufferWithContents(cx, rawcontents_);
+        if (!obj)
+            return NULL;
+
+        rawcontents_ = dataptr_ = NULL;
+        length_ = capacity_ = 0;
+
+        return obj;
+    }
+
+protected:
+
+    static bool areOverlappingRegions(const uint8_t *start1, uint32_t length1,
+                                      const uint8_t *start2, uint32_t length2)
+    {
+        const uint8_t *end1 = start1 + length1;
+        const uint8_t *end2 = start2 + length2;
+
+        const uint8_t *max_start = start1 > start2 ? start1 : start2;
+        const uint8_t *min_end   = end1 < end2 ? end1 : end2;
+
+        return max_start < min_end;
+    }
+};
+
 } 
 
 typedef js::ArrayBufferView::ViewType JSArrayBufferViewType;

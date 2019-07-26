@@ -202,19 +202,38 @@ ArrayBufferObject::class_constructor(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+
 static ObjectElements *
-AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, uint8_t *contents)
+AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, uint8_t *initdata, void *oldptr = NULL)
 {
     uint32_t size = nbytes + sizeof(ObjectElements);
-    ObjectElements *newheader =
-        static_cast<ObjectElements *>(maybecx ? maybecx->calloc_(size) : js_calloc(size));
+    ObjectElements *newheader;
+
+    
+    if (oldptr) {
+        ObjectElements *oldheader = static_cast<ObjectElements *>(oldptr);
+        uint32_t oldnbytes = ArrayBufferObject::getElementsHeaderInitializedLength(oldheader);
+        newheader = static_cast<ObjectElements *>(maybecx ? maybecx->realloc_(oldptr, size) : js_realloc(oldptr, size));
+
+        
+        if (newheader && nbytes > oldnbytes)
+            memset(reinterpret_cast<uint8_t*>(newheader->elements()) + oldnbytes, 0, nbytes - oldnbytes);
+    } else {
+        newheader = static_cast<ObjectElements *>(maybecx ? maybecx->calloc_(size) : js_calloc(size));
+    }
     if (!newheader) {
         if (maybecx)
             js_ReportOutOfMemory(maybecx);
         return NULL;
     }
-    if (contents)
-        memcpy(newheader->elements(), contents, nbytes);
+
+    if (initdata)
+        memcpy(newheader->elements(), initdata, nbytes);
+
+    
+    ArrayBufferObject::setElementsHeader(newheader, nbytes);
+
     return newheader;
 }
 
@@ -3920,6 +3939,20 @@ JS_PUBLIC_API(JSBool)
 JS_AllocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data)
 {
     js::ObjectElements *header = AllocateArrayBufferContents(cx, nbytes, NULL);
+    if (!header)
+        return false;
+
+    ArrayBufferObject::setElementsHeader(header, nbytes);
+
+    *contents = header;
+    *data = reinterpret_cast<uint8_t*>(header->elements());
+    return true;
+}
+
+JS_PUBLIC_API(JSBool)
+JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data)
+{
+    js::ObjectElements *header = AllocateArrayBufferContents(cx, nbytes, NULL, *contents);
     if (!header)
         return false;
 
