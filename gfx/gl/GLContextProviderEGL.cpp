@@ -263,6 +263,18 @@ GLContextEGL::~GLContextEGL()
 #endif
 
     sEGLLibrary.fDestroyContext(EGL_DISPLAY(), mContext);
+
+#if defined(MOZ_WIDGET_GONK) && ANDROID_VERSION < 17
+    if (!mIsOffscreen) {
+      
+      
+      
+      
+      
+      return;
+    }
+#endif
+
     mozilla::gl::DestroySurface(mSurface);
 }
 
