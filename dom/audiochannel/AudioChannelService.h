@@ -37,23 +37,27 @@ public:
 
 
 
-  void RegisterMediaElement(nsHTMLMediaElement* aMediaElement,
-                            AudioChannelType aType);
+  virtual void RegisterMediaElement(nsHTMLMediaElement* aMediaElement,
+                                    AudioChannelType aType);
 
   
 
 
 
-  void UnregisterMediaElement(nsHTMLMediaElement* aMediaElement);
+  virtual void UnregisterMediaElement(nsHTMLMediaElement* aMediaElement);
 
   
 
 
   virtual bool GetMuted(AudioChannelType aType, bool aElementHidden);
 
+protected:
   void Notify();
 
-protected:
+  
+  void RegisterType(AudioChannelType aType);
+  void UnregisterType(AudioChannelType aType);
+
   AudioChannelService();
   virtual ~AudioChannelService();
 
@@ -66,6 +70,11 @@ protected:
   int32_t* mChannelCounters;
 
   AudioChannelType mCurrentHigherChannel;
+
+  
+  
+  friend class ContentParent;
+  friend class ContentChild;
 };
 
 } 
