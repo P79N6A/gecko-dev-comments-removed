@@ -9,7 +9,7 @@
 #include "MetroUtils.h" 
 #include "MetroWidget.h" 
 #include "npapi.h" 
-#include "nsDOMTouchEvent.h"  
+#include "mozilla/dom/Touch.h"  
 #include "nsTArray.h" 
 #include "nsIDOMSimpleGestureEvent.h" 
 
@@ -23,6 +23,7 @@
 using namespace ABI::Windows; 
 using namespace Microsoft; 
 using namespace mozilla::widget::winrt;
+using namespace mozilla::dom;
 
 
 namespace {
@@ -56,7 +57,7 @@ namespace {
 
 
 
-  nsDOMTouch*
+  Touch*
   CreateDOMTouch(UI::Input::IPointerPoint* aPoint) {
     WRL::ComPtr<UI::Input::IPointerPointProperties> props;
     Foundation::Point position;
@@ -74,28 +75,28 @@ namespace {
     nsIntPoint touchRadius;
     touchRadius.x = MetroUtils::LogToPhys(contactRect.Width) / 2;
     touchRadius.y = MetroUtils::LogToPhys(contactRect.Height) / 2;
-    return new nsDOMTouch(pointerId,
-                          touchPoint,
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          touchRadius,
-                          0.0f,
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          
-                          pressure);
+    return new Touch(pointerId,
+                     touchPoint,
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     touchRadius,
+                     0.0f,
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     
+                     pressure);
   }
 
   bool
