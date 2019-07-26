@@ -4,7 +4,12 @@
 
 
 
-const TEST_ID = "0160";
+
+
+
+
+
+const TEST_ID = "0160_svc";
 
 
 
@@ -234,6 +239,10 @@ ADDITIONAL_TEST_DIRS = [
 }];
 
 function run_test() {
+  if (!shouldRunServiceTest()) {
+    return;
+  }
+
   do_test_pending();
   do_register_cleanup(cleanupUpdaterTest);
 
@@ -264,14 +273,12 @@ function doUpdate() {
   }
 
   
-  let exitValue = runUpdate();
-  logTestInfo("testing updater binary process exitValue for success when " +
-              "applying a complete mar");
-  do_check_eq(exitValue, 0);
-
-  setupHelperFinish();
+  runUpdateUsingService(STATE_PENDING_SVC, STATE_SUCCEEDED, checkUpdateApplied);
 }
 
+function checkUpdateApplied() {
+  setupHelperFinish();
+}
 
 function checkUpdate() {
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
@@ -290,6 +297,14 @@ function checkUpdate() {
   }
 
   checkFilesAfterUpdateSuccess();
+  checkUpdateLogContents(LOG_COMPLETE_SUCCESS);
 
-  checkCallbackAppLog();
+  if (IS_WIN) {
+    logTestInfo("testing tobedeleted directory doesn't exist");
+    let toBeDeletedDir = getApplyDirFile("tobedeleted", true);
+    do_check_false(toBeDeletedDir.exists());
+  }
+
+  checkCallbackServiceLog();
 }
+
