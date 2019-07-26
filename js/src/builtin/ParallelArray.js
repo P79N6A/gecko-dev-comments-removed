@@ -5,92 +5,6 @@
 
 
 
-#define TRY_PARALLEL(MODE) \
-  ((!MODE || MODE.mode !== "seq"))
-#define ASSERT_SEQUENTIAL_IS_OK(MODE) \
-  do { if (MODE) AssertSequentialIsOK(MODE) } while(false)
-
-
-#define SLICE_INFO(START, END) START, END, START, 0
-#define SLICE_START(ID) ((ID << 2) + 0)
-#define SLICE_END(ID)   ((ID << 2) + 1)
-#define SLICE_POS(ID)   ((ID << 2) + 2)
-
-
-
-
-#define CHUNK_SHIFT 5
-#define CHUNK_SIZE 32
-
-
-#define ARRAY_PUSH(ARRAY, ELEMENT) \
-  callFunction(std_Array_push, ARRAY, ELEMENT);
-#define ARRAY_SLICE(ARRAY, ELEMENT) \
-  callFunction(std_Array_slice, ARRAY, ELEMENT);
-
-
-
-
-
-#ifndef DEBUG
-#define ParallelSpew(args)
-#endif
-
-
-
-
-
-function ComputeNumChunks(length) {
-  var chunks = length >>> CHUNK_SHIFT;
-  if (chunks << CHUNK_SHIFT === length)
-    return chunks;
-  return chunks + 1;
-}
-
-
-
-
-
-
-
-function ComputeSliceBounds(numItems, sliceIndex, numSlices) {
-  var sliceWidth = (numItems / numSlices) | 0;
-  var extraChunks = (numItems % numSlices) | 0;
-
-  var startIndex = sliceWidth * sliceIndex + std_Math_min(extraChunks, sliceIndex);
-  var endIndex = startIndex + sliceWidth;
-  if (sliceIndex < extraChunks)
-    endIndex += 1;
-  return [startIndex, endIndex];
-}
-
-
-
-
-
-
-
-
-
-function ComputeAllSliceBounds(numItems, numSlices) {
-  
-  var sliceWidth = (numItems / numSlices) | 0;
-  var extraChunks = (numItems % numSlices) | 0;
-  var counter = 0;
-  var info = [];
-  var i = 0;
-  for (; i < extraChunks; i++) {
-    ARRAY_PUSH(info, SLICE_INFO(counter, counter + sliceWidth + 1));
-    counter += sliceWidth + 1;
-  }
-  for (; i < numSlices; i++) {
-    ARRAY_PUSH(info, SLICE_INFO(counter, counter + sliceWidth));
-    counter += sliceWidth;
-  }
-  return info;
-}
-
-
 
 
 
@@ -161,8 +75,8 @@ function ParallelArrayConstructEmpty() {
 
 
 
-function ParallelArrayConstructFromArray(buffer) {
-  var buffer = ToObject(buffer);
+function ParallelArrayConstructFromArray(array) {
+  var buffer = ToObject(array);
   var length = buffer.length >>> 0;
   if (length !== buffer.length)
     ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
@@ -441,6 +355,8 @@ function ParallelArrayMap(func, mode) {
 
     return chunkEnd == info[SLICE_END(sliceId)];
   }
+
+  return undefined;
 }
 
 
@@ -525,6 +441,8 @@ function ParallelArrayReduce(func, mode) {
       accumulator = func(accumulator, self.get(i));
     return accumulator;
   }
+
+  return undefined;
 }
 
 
@@ -713,6 +631,8 @@ function ParallelArrayScan(func, mode) {
 
     return indexEnd == info[SLICE_END(sliceId)];
   }
+
+  return undefined;
 }
 
 
@@ -870,6 +790,8 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
 
       return indexEnd == targetsLength;
     }
+
+    return undefined;
   }
 
   function parDivideScatterVector() {
@@ -948,6 +870,8 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
         }
       }
     }
+
+    return undefined;
   }
 
   function seq() {
@@ -981,6 +905,8 @@ function ParallelArrayScatter(targets, defaultValue, conflictFunc, length, mode)
     
     return TO_INT32(t);
   }
+
+  return undefined;
 }
 
 
@@ -1117,6 +1043,8 @@ function ParallelArrayFilter(func, mode) {
 
     return true;
   }
+
+  return undefined;
 }
 
 
@@ -1289,9 +1217,9 @@ function ForkJoinMode(mode) {
     return 3;
   } else if (mode.mode === "bailout") {
     return 4;
-  } else {
-    ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
   }
+  ThrowError(JSMSG_PAR_ARRAY_BAD_ARG, "");
+  return undefined;
 }
 
 
