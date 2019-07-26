@@ -1995,15 +1995,16 @@ SizeOfTreeIncludingThis(nsINode *tree)
 class OrphanReporter : public JS::ObjectPrivateVisitor
 {
 public:
-    OrphanReporter()
+    OrphanReporter(GetISupportsFun aGetISupports)
+      : JS::ObjectPrivateVisitor(aGetISupports)
     {
         mAlreadyMeasuredOrphanTrees.Init();
     }
 
-    virtual size_t sizeOfIncludingThis(void *aSupports)
+    virtual size_t sizeOfIncludingThis(nsISupports *aSupports)
     {
         size_t n = 0;
-        nsCOMPtr<nsINode> node = do_QueryInterface(static_cast<nsISupports*>(aSupports));
+        nsCOMPtr<nsINode> node = do_QueryInterface(aSupports);
         
         
         
@@ -2065,15 +2066,15 @@ class XPCJSRuntimeStats : public JS::RuntimeStats
                     cJSPathPrefix.AppendLiteral("/js/");
                 } else {
                     cJSPathPrefix.AssignLiteral("explicit/js-non-window/compartments/unknown-window-global/");
-                    cDOMPathPrefix.AssignLiteral("explicit/dom/?!/");
+                    cDOMPathPrefix.AssignLiteral("explicit/dom/unknown-window-global?!/");
                 }
             } else {
                 cJSPathPrefix.AssignLiteral("explicit/js-non-window/compartments/non-window-global/");
-                cDOMPathPrefix.AssignLiteral("explicit/dom/?!/");
+                cDOMPathPrefix.AssignLiteral("explicit/dom/non-window-global?!/");
             }
         } else {
             cJSPathPrefix.AssignLiteral("explicit/js-non-window/compartments/no-global/");
-            cDOMPathPrefix.AssignLiteral("explicit/dom/?!/");
+            cDOMPathPrefix.AssignLiteral("explicit/dom/no-global?!/");
         }
 
         cJSPathPrefix += NS_LITERAL_CSTRING("compartment(") + cName + NS_LITERAL_CSTRING(")/");
@@ -2108,7 +2109,7 @@ JSMemoryMultiReporter::CollectReports(WindowPaths *windowPaths,
     
 
     XPCJSRuntimeStats rtStats(windowPaths);
-    OrphanReporter orphanReporter;
+    OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);
     if (!JS::CollectRuntimeStats(xpcrt->GetJSRuntime(), &rtStats, &orphanReporter))
         return NS_ERROR_FAILURE;
 

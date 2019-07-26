@@ -19,6 +19,8 @@
 #include "js/Utility.h"
 #include "js/Vector.h"
 
+class nsISupports;      
+
 namespace js {
 
 
@@ -392,7 +394,16 @@ class ObjectPrivateVisitor
 public:
     
     
-    virtual size_t sizeOfIncludingThis(void *aSupports) = 0;
+    virtual size_t sizeOfIncludingThis(nsISupports *aSupports) = 0;
+
+    
+    
+    typedef JSBool(*GetISupportsFun)(JSObject *obj, nsISupports **iface);
+    GetISupportsFun getISupports;
+
+    ObjectPrivateVisitor(GetISupportsFun getISupports)
+      : getISupports(getISupports)
+    {}
 };
 
 extern JS_PUBLIC_API(bool)
