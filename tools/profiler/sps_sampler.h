@@ -26,6 +26,11 @@
 #endif
 #include "jsfriendapi.h"
 
+
+#ifdef min
+#undef min
+#endif
+
 using mozilla::TimeStamp;
 using mozilla::TimeDuration;
 
