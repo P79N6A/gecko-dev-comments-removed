@@ -213,7 +213,6 @@ function RilObject(aContext) {
   this.currentCalls = {};
   this.currentConference = {state: null, participants: {}};
   this.currentDataCalls = {};
-  this._receivedSmsSegmentsMap = {};
   this._pendingSentSmsMap = {};
   this.pendingNetworkType = {};
   this._receivedSmsCbPagesMap = {};
@@ -242,13 +241,6 @@ RilObject.prototype = {
 
 
   currentDataCalls: null,
-
-  
-
-
-
-
-  _receivedSmsSegmentsMap: null,
 
   
 
@@ -1812,6 +1804,15 @@ RilObject.prototype = {
     Buf.writeInt32(success ? 0 : 1);
     Buf.writeInt32(cause);
     Buf.sendParcel();
+  },
+
+  
+
+
+  updateMwis: function(options) {
+    if (this.context.ICCUtilsHelper.isICCServiceAvailable("MWIS")) {
+      this.context.SimRecordHelper.updateMWIS(options.mwi);
+    }
   },
 
   setCellBroadcastDisabled: function(options) {
@@ -4404,47 +4405,11 @@ RilObject.prototype = {
 
 
   _processSmsMultipart: function(message) {
-    if (message.header && message.header.segmentMaxSeq &&
-        (message.header.segmentMaxSeq > 1)) {
-      message = this._processReceivedSmsSegment(message);
-    } else {
-      if (message.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
-        message.fullData = message.data;
-        delete message.data;
-      } else {
-        message.fullBody = message.body;
-        delete message.body;
-      }
-    }
+    message.rilMessageType = "sms-received";
 
-    if (message) {
-      message.result = PDU_FCS_OK;
-      if (message.messageClass == GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_2]) {
-        
-        
-        message.result = PDU_FCS_RESERVED;
-      }
+    this.sendChromeMessage(message);
 
-      if (message.messageType == PDU_CDMA_MSG_TYPE_BROADCAST) {
-        message.rilMessageType = "broadcastsms-received";
-      } else {
-        message.rilMessageType = "sms-received";
-      }
-
-      this.sendChromeMessage(message);
-
-      
-      if (message.mwi &&
-          this.context.ICCUtilsHelper.isICCServiceAvailable("MWIS")) {
-        this.context.SimRecordHelper.updateMWIS(message.mwi);
-      }
-
-      
-      
-      return MOZ_FCS_WAIT_FOR_EXPLICIT_ACK;
-    }
-
-    return PDU_FCS_OK;
+    return MOZ_FCS_WAIT_FOR_EXPLICIT_ACK;
   },
 
   
@@ -4601,95 +4566,6 @@ RilObject.prototype = {
     message.data = message.data.subarray(index);
 
     return this._processSmsMultipart(message);
-  },
-
-  
-
-
-
-
-
-  _processReceivedSmsSegment: function(original) {
-    let hash = original.sender + ":" + original.header.segmentRef;
-    let seq = original.header.segmentSeq;
-
-    let options = this._receivedSmsSegmentsMap[hash];
-    if (!options) {
-      options = original;
-      this._receivedSmsSegmentsMap[hash] = options;
-
-      options.segmentMaxSeq = original.header.segmentMaxSeq;
-      options.receivedSegments = 0;
-      options.segments = [];
-    } else if (options.segments[seq]) {
-      
-      if (DEBUG) {
-        this.context.debug("Got duplicated segment no." + seq +
-                           " of a multipart SMS: " + JSON.stringify(original));
-      }
-      return null;
-    }
-
-    if (options.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
-      options.segments[seq] = original.data;
-      delete original.data;
-    } else {
-      options.segments[seq] = original.body;
-      delete original.body;
-    }
-    options.receivedSegments++;
-
-    
-    
-    
-    
-    
-    if (original.teleservice === PDU_CDMA_MSG_TELESERIVCIE_ID_WAP && seq === 1) {
-      if (!options.header.originatorPort && original.header.originatorPort) {
-        options.header.originatorPort = original.header.originatorPort;
-      }
-
-      if (!options.header.destinationPort && original.header.destinationPort) {
-        options.header.destinationPort = original.header.destinationPort;
-      }
-    }
-
-    if (options.receivedSegments < options.segmentMaxSeq) {
-      if (DEBUG) {
-        this.context.debug("Got segment no." + seq + " of a multipart SMS: " +
-                           JSON.stringify(options));
-      }
-      return null;
-    }
-
-    
-    delete this._receivedSmsSegmentsMap[hash];
-
-    
-    if (options.encoding == PDU_DCS_MSG_CODING_8BITS_ALPHABET) {
-      
-      
-      let fullDataLen = 0;
-      for (let i = 1; i <= options.segmentMaxSeq; i++) {
-        fullDataLen += options.segments[i].length;
-      }
-
-      options.fullData = new Uint8Array(fullDataLen);
-      for (let d= 0, i = 1; i <= options.segmentMaxSeq; i++) {
-        let data = options.segments[i];
-        for (let j = 0; j < data.length; j++) {
-          options.fullData[d++] = data[j];
-        }
-      }
-    } else {
-      options.fullBody = options.segments.join("");
-    }
-
-    if (DEBUG) {
-      this.context.debug("Got full multipart SMS: " + JSON.stringify(options));
-    }
-
-    return options;
   },
 
   
@@ -7619,23 +7495,23 @@ GsmPDUHelperObject.prototype = {
       
       
       
-      SMSC:      null, 
-      mti:       null, 
-      udhi:      null, 
-      sender:    null, 
-      recipient: null, 
-      pid:       null, 
-      epid:      null, 
-      dcs:       null, 
-      mwi:       null, 
-      replace:  false, 
-      header:    null, 
-      body:      null, 
-      data:      null, 
-      timestamp: null, 
-      status:    null, 
-      scts:      null, 
-      dt:        null, 
+      SMSC:              null, 
+      mti:               null, 
+      udhi:              null, 
+      sender:            null, 
+      recipient:         null, 
+      pid:               null, 
+      epid:              null, 
+      dcs:               null, 
+      mwi:               null, 
+      replace:          false, 
+      header:            null, 
+      body:              null, 
+      data:              null, 
+      sentTimestamp:     null, 
+      status:            null, 
+      scts:              null, 
+      dt:                null, 
     };
 
     
@@ -8904,7 +8780,7 @@ CdmaPDUHelperObject.prototype = {
       header:           message.header,
       body:             message.body,
       data:             message.data,
-      timestamp:        message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
+      sentTimestamp:    message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
       language:         message[PDU_CDMA_LANGUAGE_INDICATOR],
       status:           null,
       scts:             null,
