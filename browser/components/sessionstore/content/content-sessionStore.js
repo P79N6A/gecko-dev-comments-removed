@@ -2,11 +2,18 @@
 
 
 
+"use strict";
+
 function debug(msg) {
   Services.console.logStringMessage("SessionStoreContent: " + msg);
 }
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
+
+XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
+  "resource:///modules/sessionstore/SessionHistory.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
+  "resource:///modules/sessionstore/SessionStorage.jsm");
 
 
 
@@ -55,7 +62,37 @@ let EventListener = {
     }
   }
 };
-EventListener.init();
+
+
+
+
+let MessageListener = {
+
+  MESSAGES: [
+    "SessionStore:collectSessionHistory",
+    "SessionStore:collectSessionStorage"
+  ],
+
+  init: function () {
+    this.MESSAGES.forEach(m => addMessageListener(m, this));
+  },
+
+  receiveMessage: function ({name, data: {id}}) {
+    switch (name) {
+      case "SessionStore:collectSessionHistory":
+        let history = SessionHistory.read(docShell);
+        sendAsyncMessage(name, {id: id, data: history});
+        break;
+      case "SessionStore:collectSessionStorage":
+        let storage = SessionStorage.serialize(docShell);
+        sendAsyncMessage(name, {id: id, data: storage});
+        break;
+      default:
+        debug("received unknown message '" + name + "'");
+        break;
+    }
+  }
+};
 
 let ProgressListener = {
   init: function() {
@@ -74,4 +111,7 @@ let ProgressListener = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
                                          Ci.nsISupportsWeakReference])
 };
+
+EventListener.init();
+MessageListener.init();
 ProgressListener.init();

@@ -124,6 +124,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Messenger",
+  "resource:///modules/sessionstore/Messenger.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PrivacyLevel",
   "resource:///modules/sessionstore/PrivacyLevel.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionSaver",
@@ -4129,6 +4131,17 @@ let TabStateCache = {
 
 
 
+  has: function (aTab) {
+    let key = this._normalizeToBrowser(aTab);
+    return this._data.has(key);
+  },
+
+  
+
+
+
+
+
 
 
   set: function(aTab, aValue) {
@@ -4224,6 +4237,10 @@ let TabStateCache = {
 
 let TabState = {
   
+  
+  _pendingCollections: new WeakMap(),
+
+  
 
 
 
@@ -4232,7 +4249,51 @@ let TabState = {
 
 
   collect: function (tab) {
-    return Promise.resolve(this.collectSync(tab));
+    if (!tab) {
+      throw new TypeError("Expecting a tab");
+    }
+
+    
+    if (TabStateCache.has(tab)) {
+      return Promise.resolve(TabStateCache.get(tab));
+    }
+
+    let promise = Task.spawn(function task() {
+      
+      let options = {omitSessionHistory: true, omitSessionStorage: true};
+      let tabData = new TabData(this._collectBaseTabData(tab, options));
+
+      
+      let history = yield Messenger.send(tab, "SessionStore:collectSessionHistory");
+      tabData.entries = history.entries;
+      tabData.index = history.index;
+
+      
+      let storage = yield Messenger.send(tab, "SessionStore:collectSessionStorage");
+      if (Object.keys(storage).length) {
+        tabData.storage = storage;
+      }
+
+      
+      if (this._updateTextAndScrollDataForTab(tab, tabData)) {
+        
+        
+        
+        if (this._pendingCollections.get(tab) == promise) {
+          TabStateCache.set(tab, tabData);
+          this._pendingCollections.delete(tab);
+        }
+      }
+
+      throw new Task.Result(tabData);
+    }.bind(this));
+
+    
+    
+    
+    this._pendingCollections.set(tab, promise);
+
+    return promise;
   },
 
   
@@ -4249,14 +4310,22 @@ let TabState = {
     if (!tab) {
       throw new TypeError("Expecting a tab");
     }
-    let tabData;
-    if ((tabData = TabStateCache.get(tab))) {
-      return tabData;
+    if (TabStateCache.has(tab)) {
+      return TabStateCache.get(tab);
     }
-    tabData = new TabData(this._collectBaseTabData(tab));
+
+    let tabData = new TabData(this._collectBaseTabData(tab));
     if (this._updateTextAndScrollDataForTab(tab, tabData)) {
       TabStateCache.set(tab, tabData);
     }
+
+    
+    
+    
+    
+    
+    this._pendingCollections.delete(tab);
+
     return tabData;
   },
 
@@ -4279,6 +4348,13 @@ let TabState = {
   },
 
   
+
+
+
+
+
+
+
 
 
 
@@ -4316,7 +4392,9 @@ let TabState = {
     }
 
     
-    this._collectTabHistory(tab, tabData, options);
+    if (!options || !options.omitSessionHistory) {
+      this._collectTabHistory(tab, tabData, options);
+    }
 
     
     
@@ -4358,7 +4436,9 @@ let TabState = {
       delete tabData.extData;
 
     
-    this._collectTabSessionStorage(tab, tabData, options);
+    if (!options || !options.omitSessionStorage) {
+      this._collectTabSessionStorage(tab, tabData, options);
+    }
 
     return tabData;
   },
