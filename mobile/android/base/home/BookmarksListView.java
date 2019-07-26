@@ -27,6 +27,9 @@ import android.widget.SimpleCursorAdapter;
 
 import java.util.LinkedList;
 
+
+
+
 public class BookmarksListView extends HomeListView
                                implements AdapterView.OnItemClickListener{
     
@@ -35,7 +38,10 @@ public class BookmarksListView extends HomeListView
     private int mFolderId = Bookmarks.FIXED_ROOT_ID;
     private String mFolderTitle = "";
 
+    
     private BookmarksListAdapter mCursorAdapter = null;
+
+    
     private BookmarksQueryTask mQueryTask = null;
 
     
