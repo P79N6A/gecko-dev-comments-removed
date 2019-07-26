@@ -11,7 +11,11 @@
 #include "nsIServiceManager.h"
 #include <algorithm>
 
-#define SNIFFING_BUFFER_SIZE 512 // specified in draft-abarth-mime-sniff-06
+
+
+
+
+#define SNIFFING_BUFFER_SIZE 1024
 
 using namespace mozilla;
 
