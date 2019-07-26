@@ -135,13 +135,6 @@ static inline void profiler_lock() {}
 
 static inline void profiler_unlock() {}
 
-static inline void profiler_register_thread(const char* name) {}
-static inline void profiler_unregister_thread() {}
-
-
-
-static inline void profiler_js_operation_callback() {}
-
 #else
 
 #include "GeckoProfilerImpl.h"

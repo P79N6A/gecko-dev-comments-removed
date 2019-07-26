@@ -8,7 +8,6 @@
 #include "base/string_util.h"
 #include "base/thread_local.h"
 #include "base/waitable_event.h"
-#include "GeckoProfiler.h"
 
 namespace base {
 
@@ -137,8 +136,6 @@ void Thread::StopSoon() {
 }
 
 void Thread::ThreadMain() {
-  profiler_register_thread(name_.c_str());
-
   
   MessageLoop message_loop(startup_data_->options.message_loop_type);
 
@@ -163,8 +160,6 @@ void Thread::ThreadMain() {
 
   
   DCHECK(GetThreadWasQuitProperly());
-
-  profiler_unregister_thread();
 
   
   message_loop_ = NULL;

@@ -42,8 +42,6 @@
 #include "OSFileConstants.h"
 #include <algorithm>
 
-#include "GeckoProfiler.h"
-
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -265,10 +263,6 @@ JSBool
 OperationCallback(JSContext* aCx)
 {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
-
-  
-  profiler_js_operation_callback();
-
   return worker->OperationCallback(aCx);
 }
 
@@ -521,18 +515,12 @@ public:
       return NS_ERROR_FAILURE;
     }
 
-    JSRuntime* rt = JS_GetRuntime(cx);
-
-    profiler_register_thread("WebWorker");
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    if (PseudoStack* stack = mozilla_get_pseudo_stack())
-      stack->sampleRuntime(rt);
-#endif
-
     {
       JSAutoRequest ar(cx);
       workerPrivate->DoRunLoop(cx);
     }
+
+    JSRuntime* rt = JS_GetRuntime(cx);
 
     
     
@@ -552,14 +540,9 @@ public:
       JS_DestroyContext(cx);
     }
 
-#ifdef MOZ_ENABLE_PROFILER_SPS
-    if (PseudoStack* stack = mozilla_get_pseudo_stack())
-      stack->sampleRuntime(nullptr);
-#endif
     JS_DestroyRuntime(rt);
 
     workerPrivate->ScheduleDeletion(false);
-    profiler_unregister_thread();
     return NS_OK;
   }
 };
