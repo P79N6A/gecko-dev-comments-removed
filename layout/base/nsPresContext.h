@@ -72,6 +72,9 @@ class nsDeviceContext;
 
 namespace mozilla {
 class RestyleManager;
+namespace dom {
+class MediaQueryList;
+}
 namespace layers {
 class ContainerLayer;
 }
@@ -269,7 +272,7 @@ public:
   
 
 
-  already_AddRefed<nsIDOMMediaQueryList>
+  already_AddRefed<mozilla::dom::MediaQueryList>
     MatchMedia(const nsAString& aMediaQueryList);
 
   
