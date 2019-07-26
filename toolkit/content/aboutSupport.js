@@ -327,15 +327,8 @@ function copyContentsToClipboard() {
 
 
 function createTextForElement(elem) {
-  
-  let textFragmentAccumulator = [];
-  generateTextForElement(elem, "", textFragmentAccumulator);
-  let text = textFragmentAccumulator.join("");
-
-  
-  
-  text = text.replace(/[ \t]+\n/g, "\n");
-  text = text.replace(/\n\n\n+/g, "\n\n");
+  let serializer = new Serializer();
+  let text = serializer.serialize(elem);
 
   
 #ifdef XP_WIN
@@ -345,44 +338,160 @@ function createTextForElement(elem) {
   return text;
 }
 
-function generateTextForElement(elem, indent, textFragmentAccumulator) {
-  if (elem.classList.contains("no-copy"))
-    return;
+function Serializer() {
+}
+
+Serializer.prototype = {
+
+  serialize: function (rootElem) {
+    this._lines = [];
+    this._startNewLine();
+    this._serializeElement(rootElem);
+    this._startNewLine();
+    return this._lines.join("\n").trim() + "\n";
+  },
 
   
-  if (elem.tagName != "td")
-    textFragmentAccumulator.push("\n");
-
   
-  let node = elem.firstChild;
-  while (node) {
+  
+  get _currentLine() {
+    return this._lines.length ? this._lines[this._lines.length - 1] : null;
+  },
 
-    if (node.nodeType == Node.TEXT_NODE) {
-      
-      generateTextForTextNode(node, indent, textFragmentAccumulator);
-    }
-    else if (node.nodeType == Node.ELEMENT_NODE) {
-      
-      generateTextForElement(node, indent + "  ", textFragmentAccumulator);
+  set _currentLine(val) {
+    return this._lines[this._lines.length - 1] = val;
+  },
+
+  _serializeElement: function (elem) {
+    if (this._ignoreElement(elem))
+      return;
+
+    
+    if (elem.localName == "table") {
+      this._serializeTable(elem);
+      return;
     }
 
     
-    node = node.nextSibling;
-  }
-}
 
-function generateTextForTextNode(node, indent, textFragmentAccumulator) {
-  
-  
-  let prevNode = node.previousSibling;
-  if (!prevNode || prevNode.nodeType == Node.TEXT_NODE)
-    textFragmentAccumulator.push("\n" + indent);
+    let hasText = false;
+    for (let child of elem.childNodes) {
+      if (child.nodeType == Node.TEXT_NODE) {
+        let text = this._nodeText(child);
+        this._appendText(text);
+        hasText = hasText || !!text.trim();
+      }
+      else if (child.nodeType == Node.ELEMENT_NODE)
+        this._serializeElement(child);
+    }
 
-  
-  
-  let text = node.textContent.trim().replace("\n", "\n" + indent, "g");
-  textFragmentAccumulator.push(text);
-}
+    
+    if (/^h[0-9]+$/.test(elem.localName)) {
+      let headerText = (this._currentLine || "").trim();
+      if (headerText) {
+        this._startNewLine();
+        this._appendText("-".repeat(headerText.length));
+      }
+    }
+
+    
+    if (hasText) {
+      let display = window.getComputedStyle(elem).getPropertyValue("display");
+      if (display == "block") {
+        this._startNewLine();
+        this._startNewLine();
+      }
+    }
+  },
+
+  _startNewLine: function (lines) {
+    let currLine = this._currentLine;
+    if (currLine) {
+      
+      this._currentLine = currLine.trim();
+      if (!this._currentLine)
+        
+        this._lines.pop();
+    }
+    this._lines.push("");
+  },
+
+  _appendText: function (text, lines) {
+    this._currentLine += text;
+  },
+
+  _serializeTable: function (table) {
+    
+    
+    let colHeadings = {};
+    let tableHeadingElem = table.querySelector("thead");
+    if (!tableHeadingElem)
+      tableHeadingElem = table.querySelector("tr");
+    if (tableHeadingElem) {
+      let tableHeadingCols = tableHeadingElem.querySelectorAll("th,td");
+      
+      
+      for (let i = tableHeadingCols.length - 1; i >= 0; i--) {
+        if (tableHeadingCols[i].localName != "th")
+          break;
+        colHeadings[i] = this._nodeText(tableHeadingCols[i]).trim();
+      }
+    }
+    let hasColHeadings = Object.keys(colHeadings).length > 0;
+    if (!hasColHeadings)
+      tableHeadingElem = null;
+
+    let trs = table.querySelectorAll("table > tr, tbody > tr");
+    let startRow =
+      tableHeadingElem && tableHeadingElem.localName == "tr" ? 1 : 0;
+
+    if (startRow >= trs.length)
+      
+      return;
+
+    if (hasColHeadings && !this._ignoreElement(tableHeadingElem)) {
+      
+      
+      
+      for (let i = startRow; i < trs.length; i++) {
+        if (this._ignoreElement(trs[i]))
+          continue;
+        let children = trs[i].querySelectorAll("td");
+        for (let j = 0; j < children.length; j++) {
+          let text = "";
+          if (colHeadings[j])
+            text += colHeadings[j] + ": ";
+          text += this._nodeText(children[j]).trim();
+          this._appendText(text);
+          this._startNewLine();
+        }
+        this._startNewLine();
+      }
+      return;
+    }
+
+    
+    
+    
+    for (let i = startRow; i < trs.length; i++) {
+      if (this._ignoreElement(trs[i]))
+        continue;
+      let children = trs[i].querySelectorAll("th,td");
+      let rowHeading = this._nodeText(children[0]).trim();
+      this._appendText(rowHeading + ": " + this._nodeText(children[1]).trim());
+      this._startNewLine();
+    }
+    this._startNewLine();
+  },
+
+  _ignoreElement: function (elem) {
+    return elem.classList.contains("no-copy");
+  },
+
+  _nodeText: function (node) {
+    return node.textContent.replace(/\s+/g, " ");
+  },
+};
 
 function openProfileDirectory() {
   
