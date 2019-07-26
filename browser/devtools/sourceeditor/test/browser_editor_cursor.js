@@ -31,6 +31,13 @@ function test() {
     ed.dropSelection();
     is(ed.getSelection(), "", "dropSelection");
 
+    
+    let iframe = win.document.querySelector("iframe");
+    let gutter = iframe.contentWindow.document.querySelector(".CodeMirror-gutters");
+
+    EventUtils.sendMouseEvent({ type: "mousedown", shiftKey: true }, gutter, iframe.contentWindow);
+    is(ed.getSelection(), "Hello.", "shift-click");
+
     teardown(ed, win);
   });
 }
