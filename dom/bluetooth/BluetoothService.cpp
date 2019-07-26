@@ -153,6 +153,10 @@ public:
       return NS_OK;
     }
 
+    
+    
+    gBluetoothService->SetEnabled(mEnabled);
+
     nsAutoString signalName;
     signalName = mEnabled ? NS_LITERAL_STRING("Enabled")
                           : NS_LITERAL_STRING("Disabled");
@@ -207,10 +211,6 @@ public:
         }
       }
     }
-
-    
-    
-    gBluetoothService->SetEnabled(mEnabled);
 
     
     
