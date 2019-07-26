@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsFilePicker.h"
 
@@ -41,10 +41,10 @@ static const unsigned long kDialogTimerTimeout = 300;
 
 typedef DWORD FILEOPENDIALOGOPTIONS;
 
+///////////////////////////////////////////////////////////////////////////////
+// Helper classes
 
-
-
-
+// Manages matching SuppressBlurEvents calls on the parent widget.
 class AutoSuppressEvents
 {
 public:
@@ -65,7 +65,7 @@ private:
   nsRefPtr<nsWindow> mWindow;
 };
 
-
+// Manages the current working path.
 class AutoRestoreWorkingPath
 {
 public:
@@ -90,9 +90,9 @@ private:
   nsAutoArrayPtr<PRUnichar> mWorkingPath;
 };
 
-
-
-
+// Manages NS_NATIVE_TMP_WINDOW child windows. NS_NATIVE_TMP_WINDOWs are
+// temporary child windows of mParentWidget created to address RTL issues
+// in picker dialogs. We are responsible for destroying these.
 class AutoDestroyTmpWindow
 {
 public:
@@ -110,7 +110,7 @@ private:
   HWND mWnd;
 };
 
-
+// Manages matching PickerOpen/PickerClosed calls on the parent widget.
 class AutoWidgetPickerState
 {
 public:
@@ -134,7 +134,7 @@ private:
   nsRefPtr<nsWindow> mWindow;
 };
 
-
+// Manages a simple callback timer
 class AutoTimerCallbackCancel
 {
 public:
@@ -166,8 +166,8 @@ private:
     
 };
 
-
-
+///////////////////////////////////////////////////////////////////////////////
+// nsIFilePicker
 
 nsFilePicker::nsFilePicker() :
   mSelectedType(1)
@@ -213,11 +213,11 @@ STDMETHODIMP nsFilePicker::QueryInterface(REFIID refiid, void** ppvResult)
   return E_NOINTERFACE;
 }
 
+/*
+ * XP picker callbacks
+ */
 
-
-
-
-
+// Show - Display the file dialog
 int CALLBACK
 BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
 {
@@ -226,7 +226,7 @@ BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
     PRUnichar * filePath = (PRUnichar *) lpData;
     if (filePath)
       ::SendMessageW(hwnd, BFFM_SETSELECTIONW,
-                     TRUE ,
+                     TRUE /* true because lpData is a path string */,
                      lpData);
   }
   return 0;
@@ -235,11 +235,11 @@ BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
 static void
 EnsureWindowVisible(HWND hwnd) 
 {
-  
-  
+  // Obtain the monitor which has the largest area of intersection 
+  // with the window, or NULL if there is no intersection.
   HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
   if (!monitor) {
-    
+    // The window is not visible, we should reposition it to the same place as its parent
     HWND parentHwnd = GetParent(hwnd);
     RECT parentRect;
     GetWindowRect(parentHwnd, &parentRect);
@@ -250,8 +250,8 @@ EnsureWindowVisible(HWND hwnd)
   }
 }
 
-
-
+// Callback hook which will ensure that the window is visible. Currently
+// only in use on os <= XP.
 UINT_PTR CALLBACK
 nsFilePicker::FilePickerHook(HWND hwnd,
                              UINT msg,
@@ -267,9 +267,9 @@ nsFilePicker::FilePickerHook(HWND hwnd,
         }
         
         if (CDN_INITDONE == lpofn->hdr.code) {
-          
-          
-          
+          // The Window will be automatically moved to the last position after
+          // CDN_INITDONE.  We post a message to ensure the window will be visible
+          // so it will be done after the automatic last position window move.
           PostMessage(hwnd, MOZ_WM_ENSUREVISIBLE, 0, 0);
         }
       }
@@ -290,7 +290,7 @@ nsFilePicker::FilePickerHook(HWND hwnd,
       break;
     case WM_TIMER:
       {
-        
+        // Check to see if our parent has been torn down, if so, we close too.
         if (wParam == kDialogTimerID) {
           nsFilePicker* picker = 
             reinterpret_cast<nsFilePicker*>(GetProp(hwnd, kDialogPtrProp));
@@ -305,8 +305,8 @@ nsFilePicker::FilePickerHook(HWND hwnd,
 }
 
 
-
-
+// Callback hook which will dynamically allocate a buffer large enough
+// for the file picker dialog.  Currently only in use on  os <= XP.
 UINT_PTR CALLBACK
 nsFilePicker::MultiFilePickerHook(HWND hwnd,
                                   UINT msg,
@@ -316,14 +316,14 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
   switch (msg) {
     case WM_INITDIALOG:
       {
-        
-        
-        
+        // Finds the child drop down of a File Picker dialog and sets the 
+        // maximum amount of text it can hold when typed in manually.
+        // A wParam of 0 mean 0x7FFFFFFE characters.
         HWND comboBox = FindWindowEx(GetParent(hwnd), NULL, 
                                      L"ComboBoxEx32", NULL );
         if(comboBox)
           SendMessage(comboBox, CB_LIMITTEXT, 0, 0);
-        
+        // Store our nsFilePicker ptr for future use
         OPENFILENAMEW* pofn = reinterpret_cast<OPENFILENAMEW*>(lParam);
         SetProp(hwnd, kDialogPtrProp, (HANDLE)pofn->lCustData);
         nsFilePicker* picker =
@@ -340,12 +340,12 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
         if (!lpofn || !lpofn->lpOFN) {
           return 0;
         }
-        
-        
+        // CDN_SELCHANGE is sent when the selection in the list box of the file
+        // selection dialog changes
         if (lpofn->hdr.code == CDN_SELCHANGE) {
           HWND parentHWND = GetParent(hwnd);
 
-          
+          // Get the required size for the selected files buffer
           UINT newBufLength = 0; 
           int requiredBufLength = CommDlg_OpenSave_GetSpecW(parentHWND, 
                                                             NULL, 0);
@@ -354,10 +354,10 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
           else
             newBufLength += MAX_PATH;
 
-          
-          
-          
-          
+          // If the user selects multiple files, the buffer contains the 
+          // current directory followed by the file names of the selected 
+          // files. So make room for the directory path.  If the user
+          // selects a single file, it is no harm to add extra space.
           requiredBufLength = CommDlg_OpenSave_GetFolderPathW(parentHWND, 
                                                               NULL, 0);
           if(requiredBufLength >= 0)
@@ -365,14 +365,14 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
           else
             newBufLength += MAX_PATH;
 
-          
+          // Check if lpstrFile and nMaxFile are large enough
           if (newBufLength > lpofn->lpOFN->nMaxFile) {
             if (lpofn->lpOFN->lpstrFile)
               delete[] lpofn->lpOFN->lpstrFile;
 
-            
-            
-            
+            // We allocate FILE_BUFFER_SIZE more bytes than is needed so that
+            // if the user selects a file and holds down shift and down to 
+            // select  additional items, we will not continuously reallocate
             newBufLength += FILE_BUFFER_SIZE;
 
             PRUnichar* filesBuffer = new PRUnichar[newBufLength];
@@ -386,7 +386,7 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
       break;
     case WM_TIMER:
       {
-        
+        // Check to see if our parent has been torn down, if so, we close too.
         if (wParam == kDialogTimerID) {
           nsFilePicker* picker =
             reinterpret_cast<nsFilePicker*>(GetProp(hwnd, kDialogPtrProp));
@@ -401,9 +401,9 @@ nsFilePicker::MultiFilePickerHook(HWND hwnd,
   return FilePickerHook(hwnd, msg, wParam, lParam);
 }
 
-
-
-
+/*
+ * Vista+ callbacks
+ */
 
 HRESULT
 nsFilePicker::OnFileOk(IFileDialog *pfd)
@@ -441,7 +441,7 @@ nsFilePicker::OnShareViolation(IFileDialog *pfd,
 HRESULT
 nsFilePicker::OnTypeChange(IFileDialog *pfd)
 {
-  
+  // Failures here result in errors due to security concerns.
   nsRefPtr<IOleWindow> win;
   pfd->QueryInterface(IID_IOleWindow, getter_AddRefs(win));
   if (!win) {
@@ -467,9 +467,9 @@ nsFilePicker::OnOverwrite(IFileDialog *pfd,
   return S_OK;
 }
 
-
-
-
+/*
+ * Close on parent close logic
+ */
 
 bool
 nsFilePicker::ClosePickerIfNeeded(bool aIsXPDialog)
@@ -478,8 +478,8 @@ nsFilePicker::ClosePickerIfNeeded(bool aIsXPDialog)
     return false;
 
   nsWindow *win = static_cast<nsWindow *>(mParentWidget.get());
-  
-  
+  // Note, the xp callbacks hand us an inner window, so we have to step up
+  // one to get the actual dialog.
   HWND dlgWnd;
   if (aIsXPDialog)
     dlgWnd = GetParent(mDlgWnd);
@@ -487,7 +487,7 @@ nsFilePicker::ClosePickerIfNeeded(bool aIsXPDialog)
     dlgWnd = mDlgWnd;
   if (IsWindow(dlgWnd) && IsWindowVisible(dlgWnd) && win->DestroyCalled()) {
     PRUnichar className[64];
-    
+    // Make sure we have the right window
     if (GetClassNameW(dlgWnd, className, mozilla::ArrayLength(className)) &&
         !wcscmp(className, L"#32770") &&
         DestroyWindow(dlgWnd)) {
@@ -515,12 +515,12 @@ nsFilePicker::SetDialogHandle(HWND aWnd)
   mDlgWnd = aWnd;
 }
 
+/*
+ * Folder picker invocation
+ */
 
-
-
-
-
-
+// Open the older XP style folder picker dialog. We end up in this call
+// on XP systems or when platform is built without the longhorn SDK.
 bool
 nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
 {
@@ -543,8 +543,8 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
   browserInfo.lParam         = reinterpret_cast<LPARAM>(this);
 
   if (!aInitialDir.IsEmpty()) {
-    
-    
+    // the dialog is modal so that |initialDir.get()| will be valid in 
+    // BrowserCallbackProc. Thus, we don't need to clone it.
     browserInfo.lParam = (LPARAM) aInitialDir.get();
     browserInfo.lpfn   = &BrowseCallbackProc;
   } else {
@@ -557,22 +557,22 @@ nsFilePicker::ShowXPFolderPicker(const nsString& aInitialDir)
     result = ::SHGetPathFromIDListW(list, (LPWSTR)dirBuffer);
     if (result)
       mUnicodeFile.Assign(dirBuffer);
-    
+    // free PIDL
     CoTaskMemFree(list);
   }
 
   return result;
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * Show a folder picker post Windows XP
+ * 
+ * @param aInitialDir   The initial directory, the last used directory will be
+ *                      used if left blank.
+ * @param aWasInitError Out parameter will hold true if there was an error
+ *                      before the folder picker is shown.
+ * @return true if a file was selected successfully.
+*/
 bool
 nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
 {
@@ -585,14 +585,14 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
   }
   aWasInitError = false;
 
-  
+  // hook up event callbacks
   dialog->Advise(this, &mFDECookie);
 
-  
+  // options
   FILEOPENDIALOGOPTIONS fos = FOS_PICKFOLDERS;
   dialog->SetOptions(fos);
  
-  
+  // initial strings
   dialog->SetTitle(mTitle.get());
   if (!aInitialDir.IsEmpty()) {
     nsRefPtr<IShellItem> folder;
@@ -607,7 +607,7 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
   AutoDestroyTmpWindow adtw((HWND)(mParentWidget.get() ?
     mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : NULL));
  
-  
+  // display
   nsRefPtr<IShellItem> item;
   if (FAILED(dialog->Show(adtw.get())) ||
       FAILED(dialog->GetResult(getter_AddRefs(item))) ||
@@ -617,10 +617,10 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
   }
   dialog->Unadvise(mFDECookie);
 
-  
+  // results
 
-  
-  
+  // If the user chose a Win7 Library, resolve to the library's
+  // default save folder.
   nsRefPtr<IShellItem> folderPath;
   nsRefPtr<IShellLibrary> shellLib;
   CoCreateInstance(CLSID_ShellLibrary, NULL, CLSCTX_INPROC, IID_IShellLibrary,
@@ -632,13 +632,13 @@ nsFilePicker::ShowFolderPicker(const nsString& aInitialDir, bool &aWasInitError)
     item.swap(folderPath);
   }
 
-  
+  // get the folder's file system path
   return WinUtils::GetShellItemPath(item, mUnicodeFile);
 }
 
-
-
-
+/*
+ * File open and save picker invocation
+ */
 
 bool
 nsFilePicker::FilePickerWrapper(OPENFILENAMEW* ofn, PickerType aType)
@@ -668,7 +668,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
                                 
   nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE]);
   wcsncpy(fileBuffer,  mDefaultFilePath.get(), FILE_BUFFER_SIZE);
-  fileBuffer[FILE_BUFFER_SIZE-1] = '\0'; 
+  fileBuffer[FILE_BUFFER_SIZE-1] = '\0'; // null terminate in case copy truncated
 
   if (!aInitialDir.IsEmpty()) {
     ofn.lpstrInitialDir = aInitialDir.get();
@@ -688,16 +688,16 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
               OFN_HIDEREADONLY | OFN_PATHMUSTEXIST | OFN_ENABLESIZING | 
               OFN_EXPLORER;
 
-  
-  
-  
-  
+  // Windows Vista and up won't allow you to use the new looking dialogs with
+  // a hook procedure.  The hook procedure fixes a problem on XP dialogs for
+  // file picker visibility.  Vista and up automatically ensures the file 
+  // picker is always visible.
   if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
     ofn.lpfnHook = FilePickerHook;
     ofn.Flags |= OFN_ENABLEHOOK;
   }
 
-  
+  // Handle add to recent docs settings
   if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
     ofn.Flags |= OFN_DONTADDTORECENT;
   }
@@ -707,24 +707,24 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   if (!mDefaultExtension.IsEmpty()) {
     ofn.lpstrDefExt = mDefaultExtension.get();
   } else if (IsDefaultPathHtml()) {
-    
-    
-    
-    
-    
-    
+    // Get file extension from suggested filename to detect if we are
+    // saving an html file.
+    // This is supposed to append ".htm" if user doesn't supply an
+    // extension but the behavior is sort of weird:
+    // - Often appends ".html" even if you have an extension
+    // - It obeys your extension if you put quotes around name
     ofn.lpstrDefExt = htmExt.get();
   }
 
-  
-  
-  
-  
-  
-  
+  // When possible, instead of using OFN_NOCHANGEDIR to ensure the current
+  // working directory will not change from this call, we will retrieve the
+  // current working directory before the call and restore it after the 
+  // call.  This flag causes problems on Windows XP for paths that are
+  // selected like  C:test.txt where the user is currently at C:\somepath
+  // In which case expected result should be C:\somepath\test.txt
   AutoRestoreWorkingPath restoreWorkingPath;
-  
-  
+  // If we can't get the current working directory, the best case is to
+  // use the OFN_NOCHANGEDIR flag
   if (!restoreWorkingPath.HasWorkingPath()) {
     ofn.Flags |= OFN_NOCHANGEDIR;
   }
@@ -733,7 +733,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
 
   switch(mMode) {
     case modeOpen:
-      
+      // FILE MUST EXIST!
       ofn.Flags |= OFN_FILEMUSTEXIST;
       result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
       break;
@@ -741,16 +741,16 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
     case modeOpenMultiple:
       ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT;
 
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
+      // The hook set here ensures that the buffer returned will always be
+      // large enough to hold all selected files.  The hook may modify the
+      // value of ofn.lpstrFile and deallocate the old buffer that it pointed
+      // to (fileBuffer). The hook assumes that the passed in value is heap 
+      // allocated and that the returned value should be freed by the caller.
+      // If the hook changes the buffer, it will deallocate the old buffer.
+      // This fix would be nice to have in Vista and up, but it would force
+      // the file picker to use the old style dialogs because hooks are not
+      // allowed in the new file picker UI.  We need to eventually move to
+      // the new Common File Dialogs for Vista and up.
       if (WinUtils::GetWindowsVersion() < WinUtils::VISTA_VERSION) {
         ofn.lpfnHook = MultiFilePickerHook;
         fileBuffer.forget();
@@ -765,18 +765,18 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
       {
         ofn.Flags |= OFN_NOREADONLYRETURN;
 
-        
-        
+        // Don't follow shortcuts when saving a shortcut, this can be used
+        // to trick users (bug 271732)
         if (IsDefaultPathLink())
           ofn.Flags |= OFN_NODEREFERENCELINKS;
 
         result = FilePickerWrapper(&ofn, PICKER_TYPE_SAVE);
         if (!result) {
-          
+          // Error, find out what kind.
           if (GetLastError() == ERROR_INVALID_PARAMETER ||
               CommDlgExtendedError() == FNERR_INVALIDFILENAME) {
-            
-            
+            // Probably the default file name is too long or contains illegal
+            // characters. Try again, without a starting file name.
             ofn.lpstrFile[0] = nsnull;
             result = FilePickerWrapper(&ofn, PICKER_TYPE_SAVE);
           }
@@ -792,25 +792,25 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   if (!result)
     return false;
 
-  
+  // Remember what filter type the user selected
   mSelectedType = (PRInt16)ofn.nFilterIndex;
 
-  
+  // Single file selection, we're done
   if (mMode != modeOpenMultiple) {
     GetQualifiedPath(fileBuffer, mUnicodeFile);
     return true;
   }
 
-  
-  
-  
-  
-  
-  
+  // Set user-selected location of file or directory.  From msdn's "Open and
+  // Save As Dialog Boxes" section:
+  // If you specify OFN_EXPLORER, the directory and file name strings are NULL
+  // separated, with an extra NULL character after the last file name. This
+  // format enables the Explorer-style dialog boxes to return long file names
+  // that include spaces. 
   PRUnichar *current = fileBuffer;
   
   nsAutoString dirName(current);
-  
+  // Sometimes dirName contains a trailing slash and sometimes it doesn't:
   if (current[dirName.Length() - 1] != '\\')
     dirName.Append((PRUnichar)'\\');
   
@@ -820,7 +820,7 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
     nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
     NS_ENSURE_TRUE(file, false);
 
-    
+    // Only prepend the directory if the path specified is a relative path
     nsAutoString path;
     if (PathIsRelativeW(current)) {
       path = dirName + nsDependentString(current);
@@ -835,9 +835,9 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
       return false;
   }
   
-  
-  
-  
+  // Handle the case where the user selected just one file. From msdn: If you
+  // specify OFN_ALLOWMULTISELECT and the user selects only one file the
+  // lpstrFile string does not have a separator between the path and file name.
   if (current && *current && (current == fileBuffer)) {
     nsCOMPtr<nsIFile> file = do_CreateInstance("@mozilla.org/file/local;1");
     NS_ENSURE_TRUE(file, false);
@@ -852,15 +852,15 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   return true;
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * Show a file picker post Windows XP
+ * 
+ * @param aInitialDir   The initial directory, the last used directory will be
+ *                      used if left blank.
+ * @param aWasInitError Out parameter will hold true if there was an error
+ *                      before the file picker is shown.
+ * @return true if a file was selected successfully.
+*/
 bool
 nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 {
@@ -882,25 +882,25 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
   }
   aWasInitError = false;
 
-  
+  // hook up event callbacks
   dialog->Advise(this, &mFDECookie);
 
-  
+  // options
 
   FILEOPENDIALOGOPTIONS fos = 0;
   fos |= FOS_SHAREAWARE | FOS_OVERWRITEPROMPT |
          FOS_FORCEFILESYSTEM;
 
-  
+  // Handle add to recent docs settings
   if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
     fos |= FOS_DONTADDTORECENT;
   }
 
-  
-  
+  // Msdn claims FOS_NOCHANGEDIR is not needed. We'll add this
+  // just in case.
   AutoRestoreWorkingPath arw;
 
-  
+  // mode specific
   switch(mMode) {
     case modeOpen:
       fos |= FOS_FILEMUSTEXIST;
@@ -912,8 +912,8 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 
     case modeSave:
       fos |= FOS_NOREADONLYRETURN;
-      
-      
+      // Don't follow shortcuts when saving a shortcut, this can be used
+      // to trick users (bug 271732)
       if (IsDefaultPathLink())
         fos |= FOS_NODEREFERENCELINKS;
       break;
@@ -921,26 +921,26 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
 
   dialog->SetOptions(fos);
 
-  
+  // initial strings
 
-  
+  // title
   dialog->SetTitle(mTitle.get());
 
-  
+  // default filename
   if (!mDefaultFilename.IsEmpty()) {
     dialog->SetFileName(mDefaultFilename.get());
   }
   
   NS_NAMED_LITERAL_STRING(htmExt, "html");
 
-  
+  // default extension to append to new files
   if (!mDefaultExtension.IsEmpty()) {
     dialog->SetDefaultExtension(mDefaultExtension.get());
   } else if (IsDefaultPathHtml()) {
     dialog->SetDefaultExtension(htmExt.get());
   }
 
-  
+  // initial location
   if (!aInitialDir.IsEmpty()) {
     nsRefPtr<IShellItem> folder;
     if (SUCCEEDED(
@@ -951,13 +951,13 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
     }
   }
 
-  
+  // filter types and the default index
   if (!mComFilterList.IsEmpty()) {
     dialog->SetFileTypes(mComFilterList.Length(), mComFilterList.get());
     dialog->SetFileTypeIndex(mSelectedType);
   }
 
-  
+  // display
 
   {
     AutoDestroyTmpWindow adtw((HWND)(mParentWidget.get() ?
@@ -972,15 +972,15 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
     dialog->Unadvise(mFDECookie);
   }
 
-  
+  // results
 
-  
+  // Remember what filter type the user selected
   UINT filterIdxResult;
   if (SUCCEEDED(dialog->GetFileTypeIndex(&filterIdxResult))) {
     mSelectedType = (PRInt16)filterIdxResult;
   }
 
-  
+  // single selection
   if (mMode != modeOpenMultiple) {
     nsRefPtr<IShellItem> item;
     if (FAILED(dialog->GetResult(getter_AddRefs(item))) || !item)
@@ -988,11 +988,11 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
     return WinUtils::GetShellItemPath(item, mUnicodeFile);
   }
 
-  
+  // multiple selection
   nsRefPtr<IFileOpenDialog> openDlg;
   dialog->QueryInterface(IID_IFileOpenDialog, getter_AddRefs(openDlg));
   if (!openDlg) {
-    
+    // should not happen
     return false;
   }
 
@@ -1017,8 +1017,8 @@ nsFilePicker::ShowFilePicker(const nsString& aInitialDir, bool &aWasInitError)
   return true;
 }
 
-
-
+///////////////////////////////////////////////////////////////////////////////
+// nsIFilePicker impl.
 
 NS_IMETHODIMP
 nsFilePicker::ShowW(PRInt16 *aReturnVal)
@@ -1033,21 +1033,21 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
   if (mDisplayDirectory)
     mDisplayDirectory->GetPath(initialDir);
 
-  
+  // If no display directory, re-use the last one.
   if(initialDir.IsEmpty()) {
-    
+    // Allocate copy of last used dir.
     initialDir = mLastUsedUnicodeDirectory;
   }
 
-  
+  // Clear previous file selections
   mUnicodeFile.Truncate();
   mFiles.Clear();
 
-  
-  
-  
-  
-  
+  // Launch the XP file/folder picker on XP and as a fallback on Vista+. 
+  // The CoCreateInstance call to CLSID_FileOpenDialog fails with "(0x80040111)
+  // ClassFactory cannot supply requested class" when the checkbox for
+  // Disable Visual Themes is on in the compatability tab within the shortcut
+  // properties.
   bool result = false, wasInitError = true;
   if (mMode == modeGetFolder) {
     if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION)
@@ -1061,7 +1061,7 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
       result = ShowXPFilePicker(initialDir);
   }
 
-  
+  // exit, and return returnCancel in aReturnVal
   if (!result)
     return NS_OK;
 
@@ -1069,8 +1069,8 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
 
   PRInt16 retValue = returnOK;
   if (mMode == modeSave) {
-    
-    
+    // Windows does not return resultReplace, we must check if file
+    // already exists.
     nsCOMPtr<nsIFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
     bool flag = false;
     if (file && NS_SUCCEEDED(file->InitWithPath(mUnicodeFile)) &&
@@ -1128,13 +1128,13 @@ nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
   return NS_NewArrayEnumerator(aFiles, mFiles);
 }
 
-
+// Get the file + path
 NS_IMETHODIMP
 nsFilePicker::SetDefaultString(const nsAString& aString)
 {
   mDefaultFilePath = aString;
 
-  
+  // First, make sure the file name is not too long.
   PRInt32 nameLength;
   PRInt32 nameIndex = mDefaultFilePath.RFind("\\");
   if (nameIndex == kNotFound)
@@ -1149,15 +1149,15 @@ nsFilePicker::SetDefaultString(const nsAString& aString)
     if (extIndex == kNotFound)
       extIndex = mDefaultFilePath.Length();
 
-    
+    // Let's try to shave the needed characters from the name part.
     PRInt32 charsToRemove = nameLength - MAX_PATH;
     if (extIndex - nameIndex >= charsToRemove) {
       mDefaultFilePath.Cut(extIndex - charsToRemove, charsToRemove);
     }
   }
 
-  
-  
+  // Then, we need to replace illegal characters. At this stage, we cannot
+  // replace the backslash as the string might represent a file path.
   mDefaultFilePath.ReplaceChar(FILE_ILLEGAL_CHARACTERS, '-');
 
   return NS_OK;
@@ -1169,7 +1169,7 @@ nsFilePicker::GetDefaultString(nsAString& aString)
   return NS_ERROR_FAILURE;
 }
 
-
+// The default extension to use for files
 NS_IMETHODIMP
 nsFilePicker::GetDefaultExtension(nsAString& aExtension)
 {
@@ -1184,11 +1184,11 @@ nsFilePicker::SetDefaultExtension(const nsAString& aExtension)
   return NS_OK;
 }
 
-
+// Set the filter index
 NS_IMETHODIMP
 nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
-  
+  // Windows' filter index is 1-based, we use a 0-based system.
   *aFilterIndex = mSelectedType - 1;
   return NS_OK;
 }
@@ -1196,7 +1196,7 @@ nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 NS_IMETHODIMP
 nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
-  
+  // Windows' filter index is 1-based, we use a 0-based system.
   mSelectedType = aFilterIndex + 1;
   return NS_OK;
 }
@@ -1214,9 +1214,9 @@ nsFilePicker::InitNative(nsIWidget *aParent,
 void 
 nsFilePicker::GetQualifiedPath(const PRUnichar *aInPath, nsString &aOutPath)
 {
-  
-  
-  
+  // Prefer a qualified path over a non qualified path.
+  // Things like c:file.txt would be accepted in Win XP but would later
+  // fail to open from the download manager.
   PRUnichar qualifiedFileBuffer[MAX_PATH];
   if (PathSearchAndQualifyW(aInPath, qualifiedFileBuffer, MAX_PATH)) {
     aOutPath.Assign(qualifiedFileBuffer);
@@ -1292,7 +1292,7 @@ bool
 nsFilePicker::IsDefaultPathLink()
 {
   NS_ConvertUTF16toUTF8 ext(mDefaultFilePath);
-  ext.Trim(" .", false, true); 
+  ext.Trim(" .", false, true); // watch out for trailing space and dots
   ToLowerCase(ext);
   if (StringEndsWith(ext, NS_LITERAL_CSTRING(".lnk")) ||
       StringEndsWith(ext, NS_LITERAL_CSTRING(".pif")) ||

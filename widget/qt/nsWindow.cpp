@@ -1,12 +1,14 @@
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:expandtab:shiftwidth=4:tabstop=4:
+ */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Util.h"
 
+#include <QtOpenGL/QGLWidget>
+#include <QtOpenGL/QGLContext>
 #include <QApplication>
 #include <QDesktopWidget>
 #include <QtGui/QCursor>
@@ -32,18 +34,18 @@
 #include "mozSwipeGesture.h"
 static Qt::GestureType gSwipeGestureId = Qt::CustomGesture;
 
-
-
+// How many milliseconds mouseevents are blocked after receiving
+// multitouch.
 static const float GESTURES_BLOCK_MOUSE_FOR = 200;
 #ifdef MOZ_ENABLE_QTMOBILITY
 #include <QtSensors/QOrientationSensor>
 using namespace QtMobility;
-#endif 
-#endif 
+#endif // MOZ_ENABLE_QTMOBILITY
+#endif // QT version check 4.6
 
 #ifdef MOZ_X11
 #include <X11/Xlib.h>
-#endif 
+#endif //MOZ_X11
 
 #include "nsXULAppAPI.h"
 
@@ -80,7 +82,7 @@ using namespace QtMobility;
 #include "gfxContext.h"
 #include "gfxImageSurface.h"
 
-#include "nsIDOMSimpleGestureEvent.h" 
+#include "nsIDOMSimpleGestureEvent.h" //Gesture support
 
 #if MOZ_PLATFORM_MAEMO > 5
 #include "nsIDOMWindow.h"
@@ -96,17 +98,15 @@ static Atom sPluginIMEAtom = nsnull;
 #define PLUGIN_VKB_REQUEST_PROP "_NPAPI_PLUGIN_REQUEST_VKB"
 #include <QThread>
 #endif
-#endif 
+#endif //MOZ_X11
 
-#include <QtOpenGL/QGLWidget>
-#include <QtOpenGL/QGLContext>
 #define GLdouble_defined 1
 #include "Layers.h"
 #include "LayerManagerOGL.h"
 #include "nsFastStartupQt.h"
 
-
-
+// If embedding clients want to create widget without real parent window
+// then nsIBaseWindow->Init() should have parent argument equal to PARENTLESS_WIDGET
 #define PARENTLESS_WIDGET (void*)0x13579
 
 #include "nsShmImage.h"
@@ -118,17 +118,17 @@ extern "C" {
 using namespace mozilla;
 using namespace mozilla::widget;
 
-
+// Cached offscreen surface
 static nsRefPtr<gfxASurface> gBufferSurface;
 #ifdef MOZ_HAVE_SHMIMAGE
-
+// If we're using xshm rendering, mThebesSurface wraps gShmImage
 nsRefPtr<nsShmImage> gShmImage;
 #endif
 
 static int gBufferPixmapUsageCount = 0;
 static gfxIntSize gBufferMaxSize(0, 0);
 
-
+// initialization static functions 
 static nsresult    initialize_prefs        (void);
 
 static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
@@ -137,7 +137,7 @@ static NS_DEFINE_IID(kCDragServiceCID,  NS_DRAGSERVICE_CID);
 
 #define kWindowPositionSlop 20
 
-
+// Qt
 static const int WHEEL_DELTA = 120;
 static bool gGlobalsInitialized = false;
 
@@ -177,7 +177,7 @@ InitKeyEvent(nsKeyEvent &aEvent, QKeyEvent *aQEvent)
                               aQEvent->modifiers() & Qt::ShiftModifier,
                               aQEvent->modifiers() & Qt::MetaModifier);
 
-    
+    // TODO: Needs to set .location for desktop Qt build.
 #ifdef MOZ_PLATFORM_MAEMO
     aEvent.location  = nsIDOMKeyEvent::DOM_KEY_LOCATION_MOBILE;
 #endif
@@ -187,10 +187,10 @@ InitKeyEvent(nsKeyEvent &aEvent, QKeyEvent *aQEvent)
         aEvent.modifiers |= (widget::MODIFIER_CONTROL | widget::MODIFIER_ALT);
     }
 
-    
-    
-    
-    
+    // The transformations above and in qt for the keyval are not invertible
+    // so link to the QKeyEvent (which will vanish soon after return from the
+    // event callback) to give plugins access to hardware_keycode and state.
+    // (An XEvent would be nice but the QKeyEvent is good enough.)
     aEvent.pluginEvent = (void *)aQEvent;
 }
 
@@ -224,12 +224,12 @@ nsWindow::nsWindow()
         gGlobalsInitialized = true;
 
 #if defined(MOZ_X11) && (MOZ_PLATFORM_MAEMO == 6)
-        
+        // This cannot be called on non-main thread
         if (QThread::currentThread() == qApp->thread()) {
             sPluginIMEAtom = XInternAtom(mozilla::DefaultXDisplay(), PLUGIN_VKB_REQUEST_PROP, False);
         }
 #endif
-        
+        // It's OK if either of these fail, but it may not be one day.
         initialize_prefs();
     }
 
@@ -243,7 +243,7 @@ nsWindow::nsWindow()
 
 #if (QT_VERSION > QT_VERSION_CHECK(4,6,0))
     if (gSwipeGestureId == Qt::CustomGesture) {
-        
+        // QGestureRecognizer takes ownership
         MozSwipeGestureRecognizer* swipeRecognizer = new MozSwipeGestureRecognizer;
         gSwipeGestureId = QGestureRecognizer::registerRecognizer(swipeRecognizer);
     }
@@ -295,11 +295,11 @@ UpdateOffScreenBuffers(int aDepth, QSize aSize, QWidget* aWidget = nsnull)
     gBufferMaxSize.width = NS_MAX(gBufferMaxSize.width, size.width);
     gBufferMaxSize.height = NS_MAX(gBufferMaxSize.height, size.height);
 
-    
+    // Check if system depth has related gfxImage format
     gfxASurface::gfxImageFormat format =
         _depth_to_gfximage_format(aDepth);
 
-    
+    // Use fallback RGB24 format, Qt will do conversion for us
     if (format == gfxASurface::ImageFormatUnknown)
         format = gfxASurface::ImageFormatRGB24;
 
@@ -330,7 +330,7 @@ nsWindow::~nsWindow()
     Destroy();
 }
 
- void
+/* static */ void
 nsWindow::ReleaseGlobals()
 {
 }
@@ -399,17 +399,17 @@ nsWindow::Destroy(void)
 
     Show(false);
 
-    
-    
-    
+    // walk the list of children and call destroy on them.  Have to be
+    // careful, though -- calling destroy on a kid may actually remove
+    // it from our child list, losing its sibling links.
     for (nsIWidget* kid = mFirstChild; kid; ) {
         nsIWidget* next = kid->GetNextSibling();
         kid->Destroy();
         kid = next;
     }
 
-    
-    
+    // Destroy thebes surface now. Badness can happen if we destroy
+    // the surface after its X Window.
     mThebesSurface = nsnull;
 
     QWidget *view = nsnull;
@@ -422,16 +422,16 @@ nsWindow::Destroy(void)
 
         mWidget->dropReceiver();
 
-        
-        
-        
+        // Call deleteLater instead of delete; Qt still needs the object
+        // to be valid even after sending it a Close event.  We could
+        // also set WA_DeleteOnClose, but this gives us more control.
         mWidget->deleteLater();
     }
     mWidget = nsnull;
 
     OnDestroy();
 
-    
+    // tear down some infrastructure after all event handling is finished
     delete scene;
     delete view;
 
@@ -527,7 +527,7 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
 
     mNeedsMove = false;
 
-    
+    // update the bounds
     QPointF pos( aX, aY );
     if (mIsTopLevel) {
         QWidget *widget = GetViewWidget();
@@ -535,8 +535,8 @@ nsWindow::Move(PRInt32 aX, PRInt32 aY)
         widget->move(aX, aY);
     }
     else if (mWidget) {
-        
-        
+        // the position of the widget is set relative to the parent
+        // so we map the coordinates accordingly
         pos = mWidget->mapFromScene(pos);
         pos = mWidget->mapToParent(pos);
         mWidget->setPos(pos);
@@ -567,11 +567,11 @@ nsWindow::SetSizeMode(PRInt32 aMode)
         GetViewWidget()->activateWindow();
     }
 
-    
+    // Save the requested state.
     rv = nsBaseWidget::SetSizeMode(aMode);
 
-    
-    
+    // return if there's no shell or our current state is the same as
+    // the mode we were just set to.
     if (!mWidget || mSizeState == mSizeMode) {
         return rv;
     }
@@ -591,7 +591,7 @@ nsWindow::SetSizeMode(PRInt32 aMode)
         break;
 
     default:
-        
+        // nsSizeMode_Normal, really.
         widget->showNormal();
         break;
     }
@@ -601,9 +601,9 @@ nsWindow::SetSizeMode(PRInt32 aMode)
     return rv;
 }
 
-
-
-
+// Helper function to recursively find the first parent item that
+// is still visible (QGraphicsItem can be hidden even if they are
+// set to visible if one of their ancestors is invisible)
 static void find_first_visible_parent(QGraphicsItem* aItem, QGraphicsItem*& aVisibleItem)
 {
     NS_ENSURE_TRUE(aItem, );
@@ -628,8 +628,8 @@ static void find_first_visible_parent(QGraphicsItem* aItem, QGraphicsItem*& aVis
 NS_IMETHODIMP
 nsWindow::SetFocus(bool aRaise)
 {
-    
-    
+    // Make sure that our owning widget has focus.  If it doesn't try to
+    // grab it.  Note that we don't set our focus flag in this case.
     LOGFOCUS(("  SetFocus [%p]\n", (void *)this));
 
     if (!mWidget)
@@ -638,9 +638,9 @@ nsWindow::SetFocus(bool aRaise)
     if (mWidget->hasFocus())
         return NS_OK;
 
-    
-    
-    
+    // Because QGraphicsItem cannot get the focus if they are
+    // invisible, we look up the chain, for the lowest visible
+    // parent and focus that one
     QGraphicsItem* realFocusItem = nsnull;
     find_first_visible_parent(mWidget, realFocusItem);
 
@@ -648,7 +648,7 @@ nsWindow::SetFocus(bool aRaise)
         return NS_OK;
 
     if (aRaise) {
-        
+        // the raising has to happen on the view widget
         QWidget *widget = GetViewWidget();
         if (widget)
             widget->raise();
@@ -729,10 +729,10 @@ nsWindow::Invalidate(const nsIntRect &aRect)
     return NS_OK;
 }
 
-
-
-
-
+// Returns the graphics view widget for this nsWindow by iterating
+// the chain of parents until a toplevel window with a view/scene is found.
+// (This function always returns something or asserts if the precondition
+// is not met)
 QWidget* nsWindow::GetViewWidget()
 {
     NS_ASSERTION(mWidget, "Calling GetViewWidget without mWidget created");
@@ -818,15 +818,15 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
     nsCAutoString path;
     nsTArray<nsCString> iconList;
 
-    
-    
-    
+    // Look for icons with the following suffixes appended to the base name.
+    // The last two entries (for the old XPM format) will be ignored unless
+    // no icons are found using the other suffixes. XPM icons are depricated.
 
     const char extensions[6][7] = { ".png", "16.png", "32.png", "48.png",
                                     ".xpm", "16.xpm" };
 
     for (PRUint32 i = 0; i < ArrayLength(extensions); i++) {
-        
+        // Don't bother looking for XPM versions if we found a PNG.
         if (i == ArrayLength(extensions) - 2 && iconList.Length())
             break;
 
@@ -840,7 +840,7 @@ nsWindow::SetIcon(const nsAString& aIconSpec)
         }
     }
 
-    
+    // leave the default icon intact if no matching icons were found
     if (iconList.Length() == 0)
         return NS_OK;
 
@@ -924,9 +924,9 @@ check_for_rollup(double aMouseX, double aMouseY,
                 rollup = gRollupListener->ShouldRollupOnMouseWheelEvent();
                 retVal = true;
             }
-            
-            
-            
+            // if we're dealing with menus, we probably have submenus and
+            // we don't want to rollup if the clickis in a parent menu of
+            // the current submenu
             PRUint32 popupsToRollup = PR_UINT32_MAX;
             if (gRollupListener) {
                 nsAutoTArray<nsIWidget*, 5> widgetChain;
@@ -944,10 +944,10 @@ check_for_rollup(double aMouseX, double aMouseY,
                       }
                       break;
                     }
-                } 
-            } 
+                } // foreach parent menu widget
+            } // if rollup listener knows about menus
 
-            
+            // if we've determined that we should still rollup, do it.
             if (rollup) {
                 gRollupListener->Rollup(popupsToRollup);
                 retVal = true;
@@ -961,7 +961,7 @@ check_for_rollup(double aMouseX, double aMouseY,
     return retVal;
 }
 
-
+/* static */
 bool
 is_mouse_in_window (MozQWidget* aWindow, double aMouseX, double aMouseY)
 {
@@ -1007,8 +1007,8 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         return nsEventStatus_eIgnore;
     }
 
-    
-    
+    // Dispatch WILL_PAINT to allow scripts etc. to run before we
+    // dispatch PAINT
     {
         nsEventStatus status;
         nsPaintEvent willPaintEvent(true, NS_WILL_PAINT, this);
@@ -1052,12 +1052,12 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         gfxMatrix matr;
         matr.Translate(gfxPoint(aPainter->transform().dx(), aPainter->transform().dy()));
 #ifdef MOZ_ENABLE_QTMOBILITY
-        
-        
+        // This is needed for rotate transformation on MeeGo
+        // This will work very slow if pixman does not handle rotation very well
         matr.Rotate((M_PI/180) * gOrientationFilter.GetWindowRotationAngle());
         static_cast<mozilla::layers::LayerManagerOGL*>(GetLayerManager(nsnull))->
             SetWorldTransform(matr);
-#endif 
+#endif //MOZ_ENABLE_QTMOBILITY
 
         status = DispatchEvent(&event);
         aPainter->endNativePainting();
@@ -1070,7 +1070,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
 
     nsRefPtr<gfxASurface> targetSurface = nsnull;
     if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
-        
+        // Prepare offscreen buffers iamge or xlib, depends from paintEngineType
         if (!UpdateOffScreenBuffers(depth, QSize(r.width(), r.height())))
             return nsEventStatus_eIgnore;
 
@@ -1092,7 +1092,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
 
     nsRefPtr<gfxContext> ctx = new gfxContext(targetSurface);
 
-    
+    // We will paint to 0, 0 position in offscrenn buffer
     if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
         ctx->Translate(gfxPoint(-r.x(), -r.y()));
     }
@@ -1100,13 +1100,13 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
       gfxMatrix matr;
       matr.Translate(gfxPoint(aPainter->transform().dx(), aPainter->transform().dy()));
 #ifdef MOZ_ENABLE_QTMOBILITY
-         
-         
+         // This is needed for rotate transformation on MeeGo
+         // This will work very slow if pixman does not handle rotation very well
          matr.Rotate((M_PI/180) * gOrientationFilter.GetWindowRotationAngle());
          NS_ASSERTION(PIXMAN_VERSION > PIXMAN_VERSION_ENCODE(0, 21, 2) ||
                       !gOrientationFilter.GetWindowRotationAngle(),
                       "Old pixman and rotate transform, it is going to be slow");
-#endif 
+#endif //MOZ_ENABLE_QTMOBILITY
 
       ctx->SetMatrix(matr);
     }
@@ -1122,8 +1122,8 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         status = DispatchEvent(&event);
     }
 
-    
-    
+    // DispatchEvent can Destroy us (bug 378273), avoid doing any paint
+    // operations below if that happened - it will lead to XError and exit().
     if (NS_UNLIKELY(mIsDestroyed))
         return status;
 
@@ -1132,11 +1132,11 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
 
     LOGDRAW(("[%p] draw done\n", this));
 
-    
+    // Handle buffered painting mode
     if (renderMode == gfxQtPlatform::RENDER_BUFFERED) {
 #if defined(MOZ_X11) && defined(Q_WS_X11)
         if (gBufferSurface->GetType() == gfxASurface::SurfaceTypeXlib) {
-            
+            // Paint offscreen pixmap to QPainter
             static QPixmap gBufferPixmap;
             Drawable draw = static_cast<gfxXlibSurface*>(gBufferSurface.get())->XDrawable();
             if (gBufferPixmap.handle() != draw)
@@ -1148,7 +1148,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
         } else
 #endif
         if (gBufferSurface->GetType() == gfxASurface::SurfaceTypeImage) {
-            
+            // in raster mode we can just wrap gBufferImage as QImage and paint directly
             gfxImageSurface *imgs = static_cast<gfxImageSurface*>(gBufferSurface.get());
             QImage img(imgs->Data(),
                        imgs->Width(),
@@ -1177,7 +1177,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
             } else
 #endif
             {
-                
+                // Qt should take care about optimized rendering on QImage into painter device (gl/fb/image et.c.)
                 gfxImageSurface *imgs = static_cast<gfxImageSurface*>(gBufferSurface.get());
                 QImage img(imgs->Data(),
                            imgs->Width(),
@@ -1193,7 +1193,7 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
     targetSurface = nsnull;
     DispatchDidPaint(this);
 
-    
+    // check the return value!
     return status;
 }
 
@@ -1203,7 +1203,7 @@ nsWindow::OnMoveEvent(QGraphicsSceneHoverEvent *aEvent)
     LOG(("configure event [%p] %d %d\n", (void *)this,
         aEvent->pos().x(),  aEvent->pos().y()));
 
-    
+    // can we shortcut?
     if (!mWidget)
         return nsEventStatus_eIgnore;
 
@@ -1218,8 +1218,8 @@ nsWindow::OnMoveEvent(QGraphicsSceneHoverEvent *aEvent)
     event.refPoint.x = aEvent->pos().x();
     event.refPoint.y = aEvent->pos().y();
 
-    
-    
+    // XXX mozilla will invalidate the entire window after this move
+    // complete.  wtf?
     return DispatchEvent(&event);
 }
 
@@ -1228,7 +1228,7 @@ nsWindow::OnResizeEvent(QGraphicsSceneResizeEvent *aEvent)
 {
     nsIntRect rect;
 
-    
+    // Generate XPFE resize event
     GetBounds(rect);
 
     rect.width = aEvent->newSize().width();
@@ -1279,8 +1279,8 @@ nsWindow::OnLeaveNotifyEvent(QGraphicsSceneHoverEvent *aEvent)
     return DispatchEvent(&event);
 }
 
-
-
+// Block the mouse events if user was recently executing gestures;
+// otherwise there will be also some panning during/after gesture
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
 #define CHECK_MOUSE_BLOCKED { \
 if (mLastMultiTouchTime.isValid()) { \
@@ -1326,15 +1326,15 @@ nsWindow::InitButtonEvent(nsMouseEvent &aMoveEvent,
 nsEventStatus
 nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 {
-    
+    // The user has done something.
     UserActivity();
 
     CHECK_MOUSE_BLOCKED
 
     QPointF pos = aEvent->pos();
 
-    
-    
+    // we check against the widgets geometry, so use parent coordinates
+    // for the check
     if (mWidget)
         pos = mWidget->mapToParent(pos);
 
@@ -1363,7 +1363,7 @@ nsWindow::OnButtonPressEvent(QGraphicsSceneMouseEvent *aEvent)
 
     nsEventStatus status = DispatchEvent(&event);
 
-    
+    // right menu click on linux should also pop up a context menu
     if (domButton == nsMouseEvent::eRightButton &&
         NS_LIKELY(!mIsDestroyed)) {
         nsMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
@@ -1381,7 +1381,7 @@ nsWindow::OnButtonReleaseEvent(QGraphicsSceneMouseEvent *aEvent)
     UserActivity();
     CHECK_MOUSE_BLOCKED
 
-    
+    // The user has done something.
     UserActivity();
 
     PRUint16 domButton;
@@ -1430,7 +1430,7 @@ nsWindow::OnMouseDoubleClickEvent(QGraphicsSceneMouseEvent *aEvent)
     event.button = eventType;
 
     InitButtonEvent(event, aEvent, 2);
-    
+    //pressed
     return DispatchEvent(&event);
 }
 
@@ -1459,8 +1459,8 @@ nsWindow::OnFocusOutEvent(QEvent *aEvent)
 #if MOZ_PLATFORM_MAEMO > 5
     if (((QFocusEvent*)aEvent)->reason() == Qt::OtherFocusReason
          && mWidget->isVKBOpen()) {
-        
-        
+        // We assume that the VKB was open in this case, because of the focus
+        // reason and clear the focus in the active window.
         nsCOMPtr<nsIFocusManager> fm = do_GetService("@mozilla.org/focus-manager;1");
         if (fm) {
             nsCOMPtr<nsIDOMWindow> domWindow;
@@ -1512,7 +1512,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyPressEvent [%p]\n", (void *)this));
 
-    
+    // The user has done something.
     UserActivity();
 
     bool setNoDefault = false;
@@ -1522,20 +1522,20 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     }
 
 #ifdef MOZ_X11
-    
-    
+    // before we dispatch a key, check if it's the context menu key.
+    // If so, send a context menu key event instead.
     if (isContextMenuKeyEvent(aEvent)) {
         nsMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
                                       nsMouseEvent::eReal,
                                       nsMouseEvent::eContextMenuKey);
-        
+        //keyEventToContextMenuEvent(&event, &contextMenuEvent);
         return DispatchEvent(&contextMenuEvent);
     }
 
     PRUint32 domCharCode = 0;
     PRUint32 domKeyCode = QtKeyCodeToDOMKeyCode(aEvent->key());
 
-    
+    // get keymap and modifier map from the Xserver
     Display *display = mozilla::DefaultXDisplay();
     int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
     XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
@@ -1550,7 +1550,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         return nsEventStatus_eIgnore;
     }
 
-    
+    // create modifier masks
     qint32 shift_mask = 0, shift_lock_mask = 0, caps_lock_mask = 0, num_lock_mask = 0;
 
     for (int i = 0; i < 8 * xmodmap->max_keypermod; ++i) {
@@ -1580,14 +1580,14 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             }
         }
     }
-    
+    // indicate whether is down or not
     bool shift_state = ((shift_mask & aEvent->nativeModifiers()) != 0) ^
                           (bool)(shift_lock_mask & aEvent->nativeModifiers());
     bool capslock_state = (bool)(caps_lock_mask & aEvent->nativeModifiers());
 
-    
-    
-    
+    // try to find a keysym that we can translate to a DOMKeyCode
+    // this is needed because some of Qt's keycodes cannot be translated
+    // TODO: use US keyboard keymap instead of localised keymap
     if (!domKeyCode &&
         aEvent->nativeScanCode() >= (quint32)x_min_keycode &&
         aEvent->nativeScanCode() <= (quint32)x_max_keycode) {
@@ -1597,13 +1597,13 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         }
     }
 
-    
+    // store character in domCharCode
     if (aEvent->text().length() && aEvent->text()[0].isPrint())
         domCharCode = (PRInt32) aEvent->text()[0].unicode();
 
-    
+    // If the key isn't autorepeat, we need to send the initial down event
     if (!aEvent->isAutoRepeat() && !IsKeyDown(domKeyCode)) {
-        
+        // send the key down event
 
         SetKeyDownFlag(domKeyCode);
 
@@ -1614,22 +1614,22 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
         nsEventStatus status = DispatchEvent(&downEvent);
 
-        
+        // DispatchEvent can Destroy us (bug 378273)
         if (NS_UNLIKELY(mIsDestroyed)) {
             qWarning() << "Returning[" << __LINE__ << "]: " << "Window destroyed";
             return status;
         }
 
-        
+        // If prevent default on keydown, do same for keypress
         if (status == nsEventStatus_eConsumeNoDefault)
             setNoDefault = true;
     }
 
-    
-    
-    
-    
-    
+    // Don't pass modifiers as NS_KEY_PRESS events.
+    // Instead of selectively excluding some keys from NS_KEY_PRESS events,
+    // we instead selectively include (as per MSDN spec
+    // ( http://msdn.microsoft.com/en-us/library/system.windows.forms.control.keypress%28VS.71%29.aspx );
+    // no official spec covers KeyPress events).
     if (aEvent->key() == Qt::Key_Shift   ||
         aEvent->key() == Qt::Key_Control ||
         aEvent->key() == Qt::Key_Meta    ||
@@ -1641,7 +1641,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             nsEventStatus_eIgnore;
     }
 
-    
+    // Look for specialized app-command keys
     switch (aEvent->key()) {
         case Qt::Key_Back:
             return DispatchCommandEvent(nsGkAtoms::Back);
@@ -1658,7 +1658,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         case Qt::Key_HomePage:
             return DispatchCommandEvent(nsGkAtoms::Home);
         case Qt::Key_Copy:
-        case Qt::Key_F16: 
+        case Qt::Key_F16: // F16, F20, F18, F14 are old keysyms for Copy Cut Paste Undo
             return DispatchContentCommandEvent(NS_CONTENT_COMMAND_COPY);
         case Qt::Key_Cut:
         case Qt::Key_F20:
@@ -1671,7 +1671,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             return DispatchContentCommandEvent(NS_CONTENT_COMMAND_UNDO);
     }
 
-    
+    // Qt::Key_Redo and Qt::Key_Undo are not available yet.
     if (aEvent->nativeVirtualKey() == 0xff66) {
         return DispatchContentCommandEvent(NS_CONTENT_COMMAND_REDO);
     }
@@ -1682,20 +1682,20 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     nsKeyEvent event(true, NS_KEY_PRESS, this);
     InitKeyEvent(event, aEvent);
 
-    
+    // If prevent default on keydown, do same for keypress
     if (setNoDefault) {
         event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
     }
 
-    
-    
-    
-    
+    // If there is no charcode attainable from the text, try to
+    // generate it from the keycode. Check shift state for case
+    // Also replace the charcode if ControlModifier is the only
+    // pressed Modifier
     if ((!domCharCode) &&
         (QApplication::keyboardModifiers() &
         (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
 
-        
+        // get a character from X11 key map
         KeySym keysym = aEvent->nativeVirtualKey();
         if (keysym) {
             domCharCode = (PRUint32) keysym2ucs(keysym);
@@ -1704,9 +1704,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             }
         }
 
-        
+        // if Ctrl is pressed and domCharCode is not a ASCII character
         if (domCharCode > 0xFF && (QApplication::keyboardModifiers() & Qt::ControlModifier)) {
-            
+            // replace Unicode character
             int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
             for (int i = 0; i < xkeysyms_per_keycode; ++i) {
                 if (xkeymap[index + i] <= 0xFF && !shift_state) {
@@ -1716,10 +1716,10 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             }
         }
 
-    } else { 
-             
-             
-             
+    } else { // The key event should cause a character input.
+             // At that time, we need to reset the modifiers
+             // because nsEditor will not accept a key event
+             // for text input if one or more modifiers are set.
         event.modifiers &= ~(widget::MODIFIER_CONTROL |
                              widget::MODIFIER_ALT |
                              widget::MODIFIER_META);
@@ -1729,10 +1729,10 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
     for (int i = 0; i < xkeysyms_per_keycode; ++i) {
         if (xkeymap[index + i] == aEvent->nativeVirtualKey()) {
-            if ((i % 2) == 0) { 
+            if ((i % 2) == 0) { // shifted char
                 keysym = xkeymap[index + i + 1];
                 break;
-            } else { 
+            } else { // unshifted char
                 keysym = xkeymap[index + i - 1];
                 break;
             }
@@ -1746,9 +1746,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     ucs = ucs == -1 ? 0 : ucs;
     QChar shiftedChar((uint)ucs);
 
-    
-    
-    
+    // append alternativeCharCodes if modifier is pressed
+    // append an additional alternativeCharCodes if domCharCode is not a Latin character
+    // and if one of these modifiers is pressed (i.e. Ctrl, Alt, Meta)
     if (domCharCode &&
         (QApplication::keyboardModifiers() &
         (Qt::ControlModifier | Qt::AltModifier | Qt::MetaModifier))) {
@@ -1756,7 +1756,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
         event.charCode = domCharCode;
         event.keyCode = 0;
         nsAlternativeCharCode altCharCode(0, 0);
-        
+        // if character has a lower and upper representation
         if ((unshiftedChar.isUpper() || unshiftedChar.isLower()) &&
             unshiftedChar.toLower() == shiftedChar.toLower()) {
             if (shift_state ^ capslock_state) {
@@ -1771,20 +1771,20 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
             altCharCode.mShiftedCharCode = (PRUint32) shiftedChar.unicode();
         }
 
-        
+        // append alternative char code to event
         if ((altCharCode.mUnshiftedCharCode && altCharCode.mUnshiftedCharCode != domCharCode) ||
             (altCharCode.mShiftedCharCode && altCharCode.mShiftedCharCode != domCharCode)) {
             event.alternativeCharCodes.AppendElement(altCharCode);
         }
 
-        
+        // check if the alternative char codes are latin-1
         if (altCharCode.mUnshiftedCharCode > 0xFF || altCharCode.mShiftedCharCode > 0xFF) {
             altCharCode.mUnshiftedCharCode = altCharCode.mShiftedCharCode = 0;
 
-            
+            // find latin char for keycode
             KeySym keysym = NoSymbol;
             int index = (aEvent->nativeScanCode() - x_min_keycode) * xkeysyms_per_keycode;
-            
+            // find first shifted and unshifted Latin-Char in XKeyMap
             for (int i = 0; i < xkeysyms_per_keycode; ++i) {
                 keysym = xkeymap[index + i];
                 if (keysym && keysym <= 0xFF) {
@@ -1820,20 +1820,20 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     }
 
     event.keyCode = domCharCode ? 0 : domKeyCode;
-    
+    // send the key press event
     return DispatchEvent(&event);
 #else
 
-    
-    
+    //:TODO: fix shortcuts hebrew for non X11,
+    //see Bug 562195##51
 
-    
-    
+    // before we dispatch a key, check if it's the context menu key.
+    // If so, send a context menu key event instead.
     if (isContextMenuKeyEvent(aEvent)) {
         nsMouseEvent contextMenuEvent(true, NS_CONTEXTMENU, this,
                                       nsMouseEvent::eReal,
                                       nsMouseEvent::eContextMenuKey);
-        
+        //keyEventToContextMenuEvent(&event, &contextMenuEvent);
         return DispatchEvent(&contextMenuEvent);
     }
 
@@ -1843,9 +1843,9 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     if (aEvent->text().length() && aEvent->text()[0].isPrint())
         domCharCode = (PRInt32) aEvent->text()[0].unicode();
 
-    
+    // If the key isn't autorepeat, we need to send the initial down event
     if (!aEvent->isAutoRepeat() && !IsKeyDown(domKeyCode)) {
-        
+        // send the key down event
 
         SetKeyDownFlag(domKeyCode);
 
@@ -1856,7 +1856,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
 
         nsEventStatus status = DispatchEvent(&downEvent);
 
-        
+        // If prevent default on keydown, do same for keypress
         if (status == nsEventStatus_eConsumeNoDefault)
             setNoDefault = true;
     }
@@ -1871,7 +1871,7 @@ nsWindow::OnKeyPressEvent(QKeyEvent *aEvent)
     if (setNoDefault)
         event.flags |= NS_EVENT_FLAG_NO_DEFAULT;
 
-    
+    // send the key press event
     return DispatchEvent(&event);
 #endif
 }
@@ -1881,11 +1881,11 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 {
     LOGFOCUS(("OnKeyReleaseEvent [%p]\n", (void *)this));
 
-    
+    // The user has done something.
     UserActivity();
 
     if (isContextMenuKeyEvent(aEvent)) {
-        
+        // er, what do we do here? DoDefault or NoDefault?
         return nsEventStatus_eConsumeDoDefault;
     }
 
@@ -1893,7 +1893,7 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 
 #ifdef MOZ_X11
     if (!domKeyCode) {
-        
+        // get keymap from the Xserver
         Display *display = mozilla::DefaultXDisplay();
         int x_min_keycode = 0, x_max_keycode = 0, xkeysyms_per_keycode;
         XDisplayKeycodes(display, &x_min_keycode, &x_max_keycode);
@@ -1912,9 +1912,9 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
             XFree(xkeymap);
         }
     }
-#endif 
+#endif // MOZ_X11
 
-    
+    // send the key event as a key up event
     nsKeyEvent event(true, NS_KEY_UP, this);
     InitKeyEvent(event, aEvent);
 
@@ -1924,7 +1924,7 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 
     event.keyCode = domKeyCode;
 
-    
+    // unset the key down flag
     ClearKeyDownFlag(event.keyCode);
 
     return DispatchEvent(&event);
@@ -1933,7 +1933,7 @@ nsWindow::OnKeyReleaseEvent(QKeyEvent *aEvent)
 nsEventStatus
 nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
 {
-    
+    // check to see if we should rollup
     nsMouseScrollEvent event(true, NS_MOUSE_SCROLL, this);
 
     switch (aEvent->orientation()) {
@@ -1948,8 +1948,8 @@ nsWindow::OnScrollEvent(QGraphicsSceneWheelEvent *aEvent)
         break;
     }
 
-    
-    
+    // negative values for aEvent->delta indicate downward scrolling;
+    // this is opposite Gecko usage.
 
     event.delta = (int)(aEvent->delta() / WHEEL_DELTA) * -3;
 
@@ -1982,7 +1982,7 @@ nsWindow::hideEvent(QHideEvent *)
     return nsEventStatus_eConsumeDoDefault;
 }
 
-
+//Gestures are only supported in 4.6.0 >
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
 nsEventStatus nsWindow::OnTouchEvent(QTouchEvent *event, bool &handled)
 {
@@ -2004,8 +2004,8 @@ nsEventStatus nsWindow::OnTouchEvent(QTouchEvent *event, bool &handled)
     }
 
     if (touchPoints.count() > 0) {
-        
-        
+        // Remember start touch point in order to use it for
+        // distance calculation in NS_SIMPLE_GESTURE_MAGNIFY_UPDATE
         mPinchEvent.touchPoint = touchPoints.at(0).pos();
     }
 
@@ -2056,8 +2056,8 @@ nsWindow::OnGestureEvent(QGestureEvent* event, bool &handled) {
             handled = false;
         }
 
-        
-        
+        //Disable mouse events when gestures are used, because they cause problems with
+        //Fennec
         mLastMultiTouchTime.start();
     }
 
@@ -2075,7 +2075,7 @@ nsWindow::OnGestureEvent(QGestureEvent* event, bool &handled) {
             hotspot.x = swipe->hotSpot().x();
             hotspot.y = swipe->hotSpot().y();
 
-            
+            // Cancel pinch gesture
             mGesturesCancelled = true;
             mPinchEvent.needDispatch = false;
 
@@ -2125,7 +2125,7 @@ nsWindow::DistanceBetweenPoints(const QPointF &aFirstPoint, const QPointF &aSeco
     return result;
 }
 
-#endif 
+#endif //qt version check
 
 void
 nsWindow::ThemeChanged()
@@ -2134,7 +2134,7 @@ nsWindow::ThemeChanged()
 
     DispatchEvent(&event);
 
-    
+    // do nothing
     return;
 }
 
@@ -2151,7 +2151,7 @@ nsWindow::OnDragMotionEvent(QGraphicsSceneDragDropEvent *aEvent)
 nsEventStatus
 nsWindow::OnDragLeaveEvent(QGraphicsSceneDragDropEvent *aEvent)
 {
-    
+    // XXX Do we want to pass this on only if the event's subwindow is null?
     LOG(("nsWindow::OnDragLeaveSignal(%p)\n", this));
     nsMouseEvent event(true, NS_DRAGDROP_EXIT, this, nsMouseEvent::eReal);
 
@@ -2176,7 +2176,7 @@ nsWindow::OnDragDropEvent(QGraphicsSceneDragDropEvent *aDropEvent)
 nsEventStatus
 nsWindow::OnDragEnter(QGraphicsSceneDragDropEvent *aDragEvent)
 {
-    
+    // Is it some format we think we can support?
     if ( aDragEvent->mimeData()->hasFormat(kURLMime)
       || aDragEvent->mimeData()->hasFormat(kURLDataMime)
       || aDragEvent->mimeData()->hasFormat(kURLDescriptionMime)
@@ -2188,7 +2188,7 @@ nsWindow::OnDragEnter(QGraphicsSceneDragDropEvent *aDragEvent)
         aDragEvent->acceptProposedAction();
     }
 
-    
+    // XXX Do we want to pass this on only if the event's subwindow is null?
 
     LOG(("nsWindow::OnDragEnter(%p)\n", this));
 
@@ -2226,8 +2226,8 @@ nsWindow::Create(nsIWidget        *aParent,
                  nsDeviceContext *aContext,
                  nsWidgetInitData *aInitData)
 {
-    
-    
+    // only set the base parent if we're not going to be a dialog or a
+    // toplevel
     nsIWidget *baseParent = aParent;
 
     if (aInitData &&
@@ -2236,26 +2236,26 @@ nsWindow::Create(nsIWidget        *aParent,
          aInitData->mWindowType == eWindowType_invisible)) {
 
         baseParent = nsnull;
-        
+        // also drop native parent for toplevel windows
         aNativeParent = nsnull;
     }
 
-    
+    // initialize all the common bits of this class
     BaseCreate(baseParent, aRect, aHandleEventFunction, aContext, aInitData);
 
-    
+    // and do our common creation
     mParent = aParent;
 
-    
+    // save our bounds
     mBounds = aRect;
 
-    
+    // find native parent
     MozQWidget *parent = nsnull;
 
     if (aParent != nsnull)
         parent = static_cast<MozQWidget*>(aParent->GetNativeData(NS_NATIVE_WIDGET));
 
-    
+    // ok, create our QGraphicsWidget
     mWidget = createQWidget(parent, aNativeParent, aInitData);
 
     if (!mWidget)
@@ -2263,10 +2263,10 @@ nsWindow::Create(nsIWidget        *aParent,
 
     LOG(("Create: nsWindow [%p] [%p]\n", (void *)this, (void *)mWidget));
 
-    
+    // resize so that everything is set to the right dimensions
     Resize(mBounds.x, mBounds.y, mBounds.width, mBounds.height, false);
 
-    
+    // check if we should listen for resizes
     mListenForResizes = (aNativeParent ||
                          (aInitData && aInitData->mListenForResizes));
 
@@ -2278,14 +2278,14 @@ nsWindow::CreateChild(const nsIntRect&  aRect,
                       EVENT_CALLBACK    aHandleEventFunction,
                       nsDeviceContext* aContext,
                       nsWidgetInitData* aInitData,
-                      bool              )
+                      bool              /*aForceUseIWidgetParent*/)
 {
-    
+    //We need to force parent widget, otherwise GetTopLevelWindow doesn't work
     return nsBaseWidget::CreateChild(aRect,
                                      aHandleEventFunction,
                                      aContext,
                                      aInitData,
-                                     true); 
+                                     true); // Force parent
 }
 
 
@@ -2315,10 +2315,10 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    
-    
-    
-    
+    // Parse res_name into a name and role. Characters other than
+    // [A-Za-z0-9_-] are converted to '_'. Anything after the first
+    // colon is assigned to role; if there's no colon, assign the
+    // whole thing to both role and res_name.
     for (char *c = class_hint->res_name; *c; c++) {
       if (':' == *c) {
         *c = 0;
@@ -2331,7 +2331,7 @@ nsWindow::SetWindowClass(const nsAString &xulWinType)
     if (!role) role = class_hint->res_name;
 
     QWidget *widget = GetViewWidget();
-    
+    // If widget not show, handle might be null
     if (widget && widget->winId())
         XSetClassHint(gfxQtPlatform::GetXDisplay(widget),
                       widget->winId(),
@@ -2356,9 +2356,9 @@ nsWindow::NativeResize(PRInt32 aWidth, PRInt32 aHeight, bool    aRepaint)
     if (mIsTopLevel) {
         QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
         NS_ENSURE_TRUE(widget,);
-        
+        // map from in-scene widget to scene, from scene to view.
         QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(0, 0, aWidth, aHeight))).boundingRect();
-        
+        // going from QPolygon to QRect includes the points, adding one to width and height
         r.adjust(0, 0, -1, -1);
         widget->resize(r.width(), r.height());
     }
@@ -2384,9 +2384,9 @@ nsWindow::NativeResize(PRInt32 aX, PRInt32 aY,
     if (mIsTopLevel) {
         QGraphicsView *widget = qobject_cast<QGraphicsView*>(GetViewWidget());
         NS_ENSURE_TRUE(widget,);
-        
+        // map from in-scene widget to scene, from scene to view.
         QRect r = widget->mapFromScene(mWidget->mapToScene(QRect(aX, aY, aWidth, aHeight))).boundingRect();
-        
+        // going from QPolygon to QRect includes the points, adding one to width and height
         r.adjust(0, 0, -1, -1);
         widget->setGeometry(r.x(), r.y(), r.width(), r.height());
     }
@@ -2403,15 +2403,15 @@ nsWindow::NativeShow(bool aAction)
 {
     if (aAction) {
         QWidget *widget = GetViewWidget();
-        
-        
-        
+        // On e10s, we never want the child process or plugin process
+        // to go fullscreen because if we do the window because visible
+        // do to disabled Qt-Xembed
         if (widget &&
             !widget->isVisible())
             MakeFullScreen(mSizeMode == nsSizeMode_Fullscreen);
         mWidget->show();
 
-        
+        // unset our flag now that our window has been shown
         mNeedsShow = false;
     }
     else
@@ -2507,13 +2507,13 @@ NS_IMETHODIMP
 nsWindow::HideWindowChrome(bool aShouldHide)
 {
     if (!mWidget) {
-        
+        // Nothing to hide
         return NS_ERROR_FAILURE;
     }
 
-    
-    
-    
+    // Sawfish, metacity, and presumably other window managers get
+    // confused if we change the window decorations while the window
+    // is visible.
     bool wasVisible = false;
     if (mWidget->isVisible()) {
         NativeShow(false);
@@ -2524,11 +2524,11 @@ nsWindow::HideWindowChrome(bool aShouldHide)
         NativeShow(true);
     }
 
-    
-    
-    
-    
-    
+    // For some window managers, adding or removing window decorations
+    // requires unmapping and remapping our toplevel window.  Go ahead
+    // and flush the queue here so that we don't end up with a BadWindow
+    // error later when this happens (when the persistence timer fires
+    // and GetWindowPos is called)
     QWidget *widget = GetViewWidget();
     NS_ENSURE_TRUE(widget, NS_ERROR_FAILURE);
 #ifdef MOZ_X11
@@ -2538,23 +2538,23 @@ nsWindow::HideWindowChrome(bool aShouldHide)
     return NS_OK;
 }
 
-
-
+//////////////////////////////////////////////////////////////////////
+// These are all of our drag and drop operations
 
 void
 nsWindow::InitDragEvent(nsMouseEvent &aEvent)
 {
-    
+    // set the keyboard modifiers
 }
 
+// This will update the drag action based on the information in the
+// drag context.
 
-
-
-
+/* static */
 nsresult
 initialize_prefs(void)
 {
-    
+    // check to see if we should set our raise pref
     return NS_OK;
 }
 
@@ -2579,7 +2579,7 @@ key_event_to_context_menu_event(nsMouseEvent &aEvent,
     aEvent.clickCount = 1;
 }
 
-
+// nsChildWindow class
 
 nsChildWindow::nsChildWindow()
 {
@@ -2622,7 +2622,7 @@ nsWindow::createQWidget(MozQWidget *parent,
            parent ? qPrintable(parent->objectName()) : "null");
 #endif
 
-    
+    // ok, create our windows
     switch (mWindowType) {
     case eWindowType_dialog:
         windowName = "topLevelDialog";
@@ -2641,7 +2641,7 @@ nsWindow::createQWidget(MozQWidget *parent,
         break;
     case eWindowType_child:
     case eWindowType_plugin:
-    default: 
+    default: // sheet
         windowName = "paintArea";
         break;
     }
@@ -2656,13 +2656,13 @@ nsWindow::createQWidget(MozQWidget *parent,
     if (!widget)
         return nsnull;
 
-    
+    // make only child and plugin windows focusable
     if (eWindowType_child == mWindowType || eWindowType_plugin == mWindowType) {
         widget->setFlag(QGraphicsItem::ItemIsFocusable);
         widget->setFocusPolicy(Qt::WheelFocus);
     }
 
-    
+    // create a QGraphicsView if this is a new toplevel window
 
     if (mIsTopLevel) {
         QGraphicsView* newView =
@@ -2674,7 +2674,7 @@ nsWindow::createQWidget(MozQWidget *parent,
 
 #if defined(MOZ_PLATFORM_MAEMO) || defined(MOZ_GL_PROVIDER)
         if (GetShouldAccelerate()) {
-            
+            // Only create new OGL widget if it is not yet installed
             if (!HasGLContext()) {
                 MozQGraphicsView *qview = qobject_cast<MozQGraphicsView*>(newView);
                 if (qview) {
@@ -2685,23 +2685,23 @@ nsWindow::createQWidget(MozQWidget *parent,
 #endif
 
         if (gfxQtPlatform::GetPlatform()->GetRenderMode() == gfxQtPlatform::RENDER_DIRECT) {
-            
+            // Disable double buffer and system background rendering
 #if defined(MOZ_X11) && (QT_VERSION < QT_VERSION_CHECK(5,0,0))
             newView->viewport()->setAttribute(Qt::WA_PaintOnScreen, true);
 #endif
             newView->viewport()->setAttribute(Qt::WA_NoSystemBackground, true);
         }
-        
+        // Enable gestures:
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
 #if defined MOZ_ENABLE_MEEGOTOUCH
-        
+        // Disable default Gesture filters (speedup filtering)
         newView->viewport()->ungrabGesture(Qt::PanGesture);
         newView->viewport()->ungrabGesture(Qt::TapGesture);
         newView->viewport()->ungrabGesture(Qt::TapAndHoldGesture);
         newView->viewport()->ungrabGesture(Qt::SwipeGesture);
 #endif
 
-        
+        // Enable required filters
         newView->viewport()->grabGesture(Qt::PinchGesture);
         newView->viewport()->grabGesture(gSwipeGestureId);
 #endif
@@ -2709,7 +2709,7 @@ nsWindow::createQWidget(MozQWidget *parent,
         newView->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-        
+        // Top level widget is just container, and should not be painted
         widget->setFlag(QGraphicsItem::ItemHasNoContents);
 #endif
 
@@ -2724,16 +2724,16 @@ nsWindow::createQWidget(MozQWidget *parent,
     if (mWindowType == eWindowType_popup) {
         widget->setZValue(100);
 
-        
-        
-        
+        // XXX is this needed for Qt?
+        // gdk does not automatically set the cursor for "temporary"
+        // windows, which are what gtk uses for popups.
         SetCursor(eCursor_standard);
     } else if (mIsTopLevel) {
         SetDefaultIcon();
     }
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
 #if defined MOZ_ENABLE_MEEGOTOUCH
-    
+    // Disable default Gesture filters (speedup filtering)
     widget->ungrabGesture(Qt::PanGesture);
     widget->ungrabGesture(Qt::TapGesture);
     widget->ungrabGesture(Qt::TapAndHoldGesture);
@@ -2746,13 +2746,13 @@ nsWindow::createQWidget(MozQWidget *parent,
     return widget;
 }
 
-
+// return the gfxASurface for rendering to this widget
 gfxASurface*
 nsWindow::GetThebesSurface()
 {
-    
-
-
+    /* This is really a dummy surface; this is only used when doing reflow, because
+     * we need a RenderingContext to measure text against.
+     */
     if (mThebesSurface)
         return mThebesSurface;
 
@@ -2776,14 +2776,14 @@ nsWindow::BeginResizeDrag(nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVert
     NS_ENSURE_ARG_POINTER(aEvent);
 
     if (aEvent->eventStructType != NS_MOUSE_EVENT) {
-        
+        // you can only begin a resize drag with a mouse event
         return NS_ERROR_INVALID_ARG;
     }
 
     nsMouseEvent* mouse_event = static_cast<nsMouseEvent*>(aEvent);
 
     if (mouse_event->button != nsMouseEvent::eLeftButton) {
-        
+        // you can only begin a resize drag with the left mouse button
         return NS_ERROR_INVALID_ARG;
     }
 
@@ -2799,8 +2799,8 @@ nsWindow::contextMenuEvent(QGraphicsSceneContextMenuEvent *)
 nsEventStatus
 nsWindow::imComposeEvent(QInputMethodEvent *event, bool &handled)
 {
-    
-    
+    // XXX Needs to check whether this widget has been destroyed or not after
+    //     each DispatchEvent().
 
     nsCompositionEvent start(true, NS_COMPOSITION_START, this);
     DispatchEvent(&start);
@@ -2836,7 +2836,7 @@ nsWindow::GetDPI()
     QDesktopWidget* rootWindow = QApplication::desktop();
     double heightInches = rootWindow->heightMM()/25.4;
     if (heightInches < 0.25) {
-        
+        // Something's broken, but we'd better not crash.
         return 96.0f;
     }
 
@@ -2901,7 +2901,7 @@ nsWindow::DispatchEvent(nsGUIEvent *aEvent,
 
     aStatus = nsEventStatus_eIgnore;
 
-    
+    // send it to the standard callback
     if (mEventCallback)
         aStatus = (* mEventCallback)(aEvent);
 
@@ -2951,7 +2951,7 @@ nsWindow::Show(bool aState)
         }
     }
     else
-        
+        // If someone is hiding this widget, clear any needing show flag.
         mNeedsShow = false;
 
     NativeShow(aState);
@@ -2976,17 +2976,17 @@ nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
             else
                 NativeResize(mBounds.width, mBounds.height, aRepaint);
 
-            
+            // Does it need to be shown because it was previously insane?
             if (mNeedsShow)
                 NativeShow(true);
         }
         else {
-            
-            
-            
-            
-            
-            
+            // If someone has set this so that the needs show flag is false
+            // and it needs to be hidden, update the flag and hide the
+            // window.  This flag will be cleared the next time someone
+            // hides the window or shows it.  It also prevents us from
+            // calling NativeShow(false) excessively on the window which
+            // causes unneeded X traffic.
             if (!mNeedsShow) {
                 mNeedsShow = true;
                 NativeShow(false);
@@ -2994,16 +2994,16 @@ nsWindow::Resize(PRInt32 aWidth, PRInt32 aHeight, bool aRepaint)
         }
     }
     else if (AreBoundsSane() && mListenForResizes) {
-        
-        
-        
+        // For widgets that we listen for resizes for (widgets created
+        // with native parents) we apparently _always_ have to resize.  I
+        // dunno why, but apparently we're lame like that.
         NativeResize(aWidth, aHeight, aRepaint);
     }
     else {
         mNeedsResize = true;
     }
 
-    
+    // synthesize a resize event if this isn't a toplevel
     if (mIsTopLevel || mListenForResizes) {
         nsIntRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
         nsEventStatus status;
@@ -3028,35 +3028,35 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
     if (!mWidget)
         return NS_OK;
 
-    
+    // Has this widget been set to visible?
     if (mIsShown) {
-        
+        // Are the bounds sane?
         if (AreBoundsSane()) {
-            
+            // Yep?  Resize the window
             NativeResize(aX, aY, aWidth, aHeight, aRepaint);
-            
+            // Does it need to be shown because it was previously insane?
             if (mNeedsShow)
                 NativeShow(true);
         }
         else {
-            
-            
-            
-            
-            
-            
+            // If someone has set this so that the needs show flag is false
+            // and it needs to be hidden, update the flag and hide the
+            // window.  This flag will be cleared the next time someone
+            // hides the window or shows it.  It also prevents us from
+            // calling NativeShow(false) excessively on the window which
+            // causes unneeded X traffic.
             if (!mNeedsShow) {
                 mNeedsShow = true;
                 NativeShow(false);
             }
         }
     }
-    
-    
+    // If the widget hasn't been shown, mark the widget as needing to be
+    // resized before it is shown
     else if (AreBoundsSane() && mListenForResizes) {
-        
-        
-        
+        // For widgets that we listen for resizes for (widgets created
+        // with native parents) we apparently _always_ have to resize.  I
+        // dunno why, but apparently we're lame like that.
         NativeResize(aX, aY, aWidth, aHeight, aRepaint);
     }
     else {
@@ -3065,7 +3065,7 @@ nsWindow::Resize(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
     }
 
     if (mIsTopLevel || mListenForResizes) {
-        
+        // synthesize a resize event
         nsIntRect rect(aX, aY, aWidth, aHeight);
         nsEventStatus status;
         DispatchResizeEvent(rect, status);
@@ -3100,10 +3100,10 @@ nsWindow::OnDestroy(void)
 
     mOnDestroyCalled = true;
 
-    
+    // release references to children and device context
     nsBaseWidget::OnDestroy();
 
-    
+    // let go of our parent
     mParent = nsnull;
 
     nsCOMPtr<nsIWidget> kungFuDeathGrip = this;
@@ -3134,7 +3134,7 @@ static QCoreApplication::EventFilter previousEventFilter = NULL;
 static PluginVKBState
 GetPluginVKBState(Window aWinId)
 {
-    
+    // Set default value as unexpected error
     PluginVKBState imeState = VKBUndefined;
     Display *display = mozilla::DefaultXDisplay();
 
@@ -3152,7 +3152,7 @@ GetPluginVKBState(Window aWinId)
                                     &bytes, &data.asUChar);
 
     if (status == Success && actualType == XA_CARDINAL && actualFormat == 32 && nitems == 1) {
-        
+        // Assume that plugin set value false - close VKB, true - open VKB
         imeState = data.asLong[0] ? VKBOpen : VKBClose;
     }
 
@@ -3206,8 +3206,8 @@ nsWindow::SetInputContext(const InputContext& aContext,
 {
     NS_ENSURE_TRUE(mWidget, );
 
-    
-    
+    // SetSoftwareKeyboardState uses mInputContext,
+    // so, before calling that, record aContext in mInputContext.
     mInputContext = aContext;
 
 #if defined(MOZ_X11) && (MOZ_PLATFORM_MAEMO == 6)
@@ -3215,12 +3215,12 @@ nsWindow::SetInputContext(const InputContext& aContext,
         static QCoreApplication::EventFilter currentEventFilter = NULL;
         if (mInputContext.mIMEState.mEnabled == IMEState::PLUGIN &&
             currentEventFilter != x11EventFilter) {
-            
+            // Install event filter for listening Plugin IME state changes
             previousEventFilter = QCoreApplication::instance()->setEventFilter(x11EventFilter);
             currentEventFilter = x11EventFilter;
         } else if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN &&
                    currentEventFilter == x11EventFilter) {
-            
+            // Remove event filter
             QCoreApplication::instance()->setEventFilter(previousEventFilter);
             currentEventFilter = previousEventFilter;
             previousEventFilter = NULL;
@@ -3258,8 +3258,8 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
     if (aOpen) {
         NS_ENSURE_TRUE(mInputContext.mIMEState.mEnabled != IMEState::DISABLED,);
 
-        
-        
+        // Ensure that opening the virtual keyboard is allowed for this specific
+        // InputContext depending on the content.ime.strict.policy pref
         if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN &&
             Preferences::GetBool("content.ime.strict_policy", false) &&
             !aAction.ContentGotFocusByTrustedCause() &&
@@ -3267,7 +3267,7 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
             return;
         }
 #if defined(MOZ_X11) && (MOZ_PLATFORM_MAEMO == 6)
-        
+        // doen't open VKB if plugin did set closed state
         else if (sPluginIMEAtom) {
             QWidget* view = GetViewWidget();
             if (view && GetPluginVKBState(view->winId()) == VKBClose) {
@@ -3278,8 +3278,8 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
     }
 
     if (aOpen) {
-        
-        
+        // VKB open need to be delayed in order to give
+        // to plugins chance prevent VKB from opening
         PRInt32 openDelay =
             Preferences::GetInt("ui.vkb.open.delay", 200);
         MozQWidget::requestVKB(openDelay, mWidget);
@@ -3306,7 +3306,7 @@ nsWindow::GetGLFrameBufferFormat()
 {
     if (mLayerManager &&
         mLayerManager->GetBackendType() == mozilla::layers::LAYERS_OPENGL) {
-        
+        // On maemo the hardware fb has RGB format.
 #ifdef MOZ_PLATFORM_MAEMO
         return LOCAL_GL_RGB;
 #else

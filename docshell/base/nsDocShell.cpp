@@ -4902,6 +4902,13 @@ nsDocShell::SetParentNativeWindow(nativeWindow parentNativeWindow)
 }
 
 NS_IMETHODIMP
+nsDocShell::GetNativeHandle(nsAString& aNativeHandle)
+{
+    
+    return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP
 nsDocShell::GetVisibility(bool * aVisibility)
 {
     NS_ENSURE_ARG_POINTER(aVisibility);

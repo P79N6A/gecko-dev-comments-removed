@@ -425,7 +425,7 @@ public:
   
 
   bool     ArePreservingSelection();
-  void     PreserveSelectionAcrossActions(nsISelection *aSel);
+  void     PreserveSelectionAcrossActions(mozilla::Selection* aSel);
   nsresult RestorePreservedSelection(nsISelection *aSel);
   void     StopPreservingSelection();
 

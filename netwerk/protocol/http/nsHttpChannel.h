@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim:set et cin ts=4 sw=4 sts=4: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsHttpChannel_h__
 #define nsHttpChannel_h__
@@ -39,9 +39,9 @@ namespace mozilla { namespace net {
 
 class HttpCacheQuery;
 
-
-
-
+//-----------------------------------------------------------------------------
+// nsHttpChannel
+//-----------------------------------------------------------------------------
 
 class nsHttpChannel : public HttpBaseChannel
                     , public HttpAsyncAborter<nsHttpChannel>
@@ -70,9 +70,9 @@ public:
     NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
     NS_DECL_NSITIMEDCHANNEL
 
-    
-    
-    
+    // nsIHttpAuthenticableChannel. We can't use
+    // NS_DECL_NSIHTTPAUTHENTICABLECHANNEL because it duplicates cancel() and
+    // others.
     NS_IMETHOD GetIsSSL(bool *aIsSSL);
     NS_IMETHOD GetProxyMethodIsConnect(bool *aProxyMethodIsConnect);
     NS_IMETHOD GetServerResponseHeader(nsACString & aServerResponseHeader);
@@ -82,9 +82,9 @@ public:
     NS_IMETHOD SetWWWCredentials(const nsACString & aCredentials);
     NS_IMETHOD OnAuthAvailable();
     NS_IMETHOD OnAuthCancelled(bool userCancel);
-    
-    
-    
+    // Functions we implement from nsIHttpAuthenticableChannel but are
+    // declared in HttpBaseChannel must be implemented in this class. We
+    // just call the HttpBaseChannel:: impls.
     NS_IMETHOD GetLoadFlags(nsLoadFlags *aLoadFlags);
     NS_IMETHOD GetURI(nsIURI **aURI);
     NS_IMETHOD GetNotificationCallbacks(nsIInterfaceRequestor **aCallbacks);
@@ -96,23 +96,23 @@ public:
 
     virtual nsresult Init(nsIURI *aURI, PRUint8 aCaps, nsProxyInfo *aProxyInfo);
 
-    
-    
-    
+    // Methods HttpBaseChannel didn't implement for us or that we override.
+    //
+    // nsIRequest
     NS_IMETHOD Cancel(nsresult status);
     NS_IMETHOD Suspend();
     NS_IMETHOD Resume();
-    
+    // nsIChannel
     NS_IMETHOD GetSecurityInfo(nsISupports **aSecurityInfo);
     NS_IMETHOD AsyncOpen(nsIStreamListener *listener, nsISupports *aContext);
-    
+    // nsIHttpChannelInternal
     NS_IMETHOD SetupFallbackChannel(const char *aFallbackKey);
-    
+    // nsISupportsPriority
     NS_IMETHOD SetPriority(PRInt32 value);
-    
+    // nsIResumableChannel
     NS_IMETHOD ResumeAt(PRUint64 startPos, const nsACString& entityID);
 
-public:  
+public: /* internal necko use only */ 
 
     void InternalSetUploadStream(nsIInputStream *uploadStream) 
       { mUploadStream = uploadStream; }
@@ -128,8 +128,8 @@ public:
         return NS_OK;
     }
 
-    
-    
+    // This allows cache entry to be marked as foreign even after channel itself
+    // is gone.  Needed for e10s (see HttpChannelParent::RecvDocumentChannelCleanup)
     class OfflineCacheEntryAsForeignMarker {
         nsCOMPtr<nsIApplicationCache> mApplicationCache;
         nsCString mCacheKey;
@@ -173,18 +173,16 @@ private:
     nsresult ContinueOnStartRequest2(nsresult);
     nsresult ContinueOnStartRequest3(nsresult);
 
-    
+    // redirection specific methods
     void     HandleAsyncRedirect();
     nsresult ContinueHandleAsyncRedirect(nsresult);
     void     HandleAsyncNotModified();
     void     HandleAsyncFallback();
     nsresult ContinueHandleAsyncFallback(nsresult);
     nsresult PromptTempRedirect();
-    virtual nsresult SetupReplacementChannel(nsIURI *, nsIChannel *,
-                                             bool preserveMethod,
-                                             bool forProxy);
+    virtual nsresult SetupReplacementChannel(nsIURI *, nsIChannel *, bool preserveMethod);
 
-    
+    // proxy specific methods
     nsresult ProxyFailover();
     nsresult AsyncDoReplaceWithProxy(nsIProxyInfo *);
     nsresult ContinueDoReplaceWithProxy(nsresult);
@@ -192,7 +190,7 @@ private:
     nsresult ContinueHandleAsyncReplaceWithProxy(nsresult);
     nsresult ResolveProxy();
 
-    
+    // cache specific methods
     nsresult OpenCacheEntry(bool usingSSL);
     nsresult OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
                                           nsCacheAccessMode aAccess,
@@ -229,10 +227,10 @@ private:
     nsresult DetermineCacheAccess(nsCacheAccessMode *_retval);
     void     AsyncOnExamineCachedResponse();
 
-    
+    // Handle the bogus Content-Encoding Apache sometimes sends
     void ClearBogusContentEncodingIfNeeded();
 
-    
+    // byte range request specific methods
     nsresult ProcessPartialContent();
     nsresult OnDoneReadingPartialCacheEntry(bool *streamDone);
 
@@ -242,12 +240,12 @@ private:
     nsresult AsyncRedirectChannelToHttps();
     nsresult ContinueAsyncRedirectChannelToHttps(nsresult rv);
 
-    
-
-
-
-
-
+    /**
+     * A function that takes care of reading STS headers and enforcing STS 
+     * load rules.  After a secure channel is erected, STS requires the channel
+     * to be trusted or any STS header data on the channel is ignored.
+     * This is called from ProcessResponse.
+     */
     nsresult ProcessSTSHeader();
 
     void InvalidateCacheEntryForLocation(const char *location);
@@ -255,8 +253,8 @@ private:
     nsresult CreateNewURI(const char *loc, nsIURI **newURI);
     void DoInvalidateCacheEntry(const nsCString &key);
 
-    
-    
+    // Ref RFC2616 13.10: "invalidation... MUST only be performed if
+    // the host part is the same as in the Request-URI"
     inline bool HostPartIsTheSame(nsIURI *uri) {
         nsCAutoString tmpHost1, tmpHost2;
         return (NS_SUCCEEDED(mURI->GetAsciiHost(tmpHost1)) &&
@@ -280,10 +278,10 @@ private:
 
     PRUint64                          mLogicalOffset;
 
-    
+    // cache specific data
     nsRefPtr<HttpCacheQuery>          mCacheQuery;
     nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
-    
+    // We must close mCacheInputStream explicitly to avoid leaks.
     AutoClose<nsIInputStream>         mCacheInputStream;
     nsRefPtr<nsInputStreamPump>       mCachePump;
     nsAutoPtr<nsHttpResponseHead>     mCachedResponseHead;
@@ -302,15 +300,15 @@ private:
     PRUint32                          mOfflineCacheLastModifiedTime;
     nsCOMPtr<nsIApplicationCache>     mApplicationCacheForWrite;
 
-    
+    // auth specific data
     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
 
-    
+    // Proxy info to replace with
     nsCOMPtr<nsIProxyInfo>            mTargetProxyInfo;
 
-    
-    
-    
+    // If the channel is associated with a cache, and the URI matched
+    // a fallback namespace, this will hold the key for the fallback
+    // cache entry.
     nsCString                         mFallbackKey;
 
     friend class AutoRedirectVetoNotifier;
@@ -321,24 +319,24 @@ private:
     nsCOMPtr<nsIChannel>              mRedirectChannel;
     PRUint32                          mRedirectType;
 
-    
+    // state flags
     PRUint32                          mCachedContentIsValid     : 1;
     PRUint32                          mCachedContentIsPartial   : 1;
     PRUint32                          mTransactionReplaced      : 1;
     PRUint32                          mAuthRetryPending         : 1;
     PRUint32                          mResuming                 : 1;
     PRUint32                          mInitedCacheEntry         : 1;
-    
-    
+    // True if we are loading a fallback cache entry from the
+    // application cache.
     PRUint32                          mFallbackChannel          : 1;
-    
-    
-    
+    // True if consumer added its own If-None-Match or If-Modified-Since
+    // headers. In such a case we must not override them in the cache code
+    // and also we want to pass possible 304 code response through.
     PRUint32                          mCustomConditionalRequest : 1;
     PRUint32                          mFallingBack              : 1;
     PRUint32                          mWaitingForRedirectCallback : 1;
-    
-    
+    // True if mRequestTime has been set. In such a case it is safe to update
+    // the cache entry's expiration time. Otherwise, it is not(see bug 567360).
     PRUint32                          mRequestTimeInitialized : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
@@ -348,10 +346,10 @@ private:
     mozilla::TimeStamp                mAsyncOpenTime;
     mozilla::TimeStamp                mCacheReadStart;
     mozilla::TimeStamp                mCacheReadEnd;
-    
-    
+    // copied from the transaction before we null out mTransaction
+    // so that the timing can still be queried from OnStopRequest
     TimingStruct                      mTransactionTimings;
-    
+    // Needed for accurate DNS timing
     nsRefPtr<nsDNSPrefetch>           mDNSPrefetch;
 
     nsresult WaitForRedirectCallback();
@@ -361,10 +359,10 @@ private:
 protected:
     virtual void DoNotifyListenerCleanup();
 
-private: 
+private: // cache telemetry
     bool mDidReval;
 };
 
-} } 
+} } // namespace mozilla::net
 
-#endif 
+#endif // nsHttpChannel_h__

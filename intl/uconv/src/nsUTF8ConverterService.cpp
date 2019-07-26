@@ -59,8 +59,11 @@ nsUTF8ConverterService::ConvertStringToUTF8(const nsACString &aString,
                                             const char *aCharset, 
                                             bool aSkipCheck, 
                                             bool aAllowSubstitution,
+                                            PRUint8 aOptionalArgc,
                                             nsACString &aUTF8String)
 {
+  bool allowSubstitution = (aOptionalArgc == 1) ? aAllowSubstitution : true;
+
   
   
   
@@ -72,7 +75,7 @@ nsUTF8ConverterService::ConvertStringToUTF8(const nsACString &aString,
 
   aUTF8String.Truncate();
 
-  nsresult rv = ToUTF8(aString, aCharset, aAllowSubstitution, aUTF8String);
+  nsresult rv = ToUTF8(aString, aCharset, allowSubstitution, aUTF8String);
 
   
   

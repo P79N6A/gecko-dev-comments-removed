@@ -267,6 +267,12 @@ private:
 
   
   bool IsLiveTag(nsIPluginTag* tag);
+  
+  
+  nsPluginTag* HaveSamePlugin(const nsPluginTag * aPluginTag);
+    
+  
+  nsPluginTag* FirstPluginWithPath(const nsCString& path);
 
   nsresult EnsurePrivateDirServiceProvider();
 

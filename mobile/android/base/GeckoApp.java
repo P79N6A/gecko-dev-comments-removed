@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: Java; c-basic-offset: 4; tab-width: 4; indent-tabs-mode: nil; -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 package org.mozilla.gecko;
 
@@ -137,8 +137,8 @@ abstract public class GeckoApp
         }
     }
 
-    
-    
+    // if mLaunchState is equal to checkState this sets mLaunchState to setState
+    // and return true. Otherwise we return false.
     static boolean checkAndSetLaunchState(LaunchState checkState, LaunchState setState) {
         synchronized(sLaunchState) {
             if (sLaunchState != checkState)
@@ -153,18 +153,18 @@ abstract public class GeckoApp
     void focusChrome() { }
 
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
-        
-        
+        // When a tab is closed, it is always unselected first.
+        // When a tab is unselected, another tab is always selected first.
         switch(msg) {
             case UNSELECTED:
                 hidePlugins(tab);
                 break;
 
             case LOCATION_CHANGE:
-                
+                // We only care about location change for the selected tab.
                 if (!Tabs.getInstance().isSelectedTab(tab))
                     break;
-                
+                // Fall through...
             case SELECTED:
                 updatePopups(tab);
                 invalidateOptionsMenu();
@@ -173,7 +173,7 @@ abstract public class GeckoApp
             case LOAD_ERROR:
             case START:
             case STOP:
-                
+                // The options menu only applies to the selected tab.
                 if (Tabs.getInstance().isSelectedTab(tab))
                     invalidateOptionsMenu();
                 break;
@@ -184,10 +184,10 @@ abstract public class GeckoApp
 
     public static final String PLUGIN_ACTION = "android.webkit.PLUGIN";
 
-    
-
-
-
+    /**
+     * A plugin that wish to be loaded in the WebView must provide this permission
+     * in their AndroidManifest.xml.
+     */
     public static final String PLUGIN_PERMISSION = "android.webkit.permission.PLUGIN";
 
     private static final String PLUGIN_SYSTEM_LIB = "/system/lib/plugins/";
@@ -198,16 +198,16 @@ abstract public class GeckoApp
 
     String[] getPluginDirectories() {
 
-        
+        // An awful hack to detect Tegra devices. Easiest way to do it without spinning up a EGL context.
         boolean isTegra = (new File("/system/lib/hw/gralloc.tegra.so")).exists();
         if (isTegra) {
-            
+            // disable Flash on pre-HC Tegra (bug 703056)
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
                 Log.w(LOGTAG, "Blocking plugins because of Tegra 2 + Gingerbread bug (bug 703056)");
                 return new String[0];
             }
 
-            
+            // disable Flash on Tegra ICS with CM9 and other custom firmware (bug 736421)
             File vfile = new File("/proc/version");
             FileReader vreader = null;
             try {
@@ -223,14 +223,14 @@ abstract public class GeckoApp
                     }
                 }
             } catch (IOException ex) {
-                
+                // nothing
             } finally {
                 try {
                     if (vreader != null) {
                         vreader.close();
                     }
                 } catch (IOException ex) {
-                    
+                    // nothing
                 }
             }
         }
@@ -244,22 +244,22 @@ abstract public class GeckoApp
 
         synchronized(mPackageInfoCache) {
 
-            
+            // clear the list of existing packageInfo objects
             mPackageInfoCache.clear();
 
 
             for (ResolveInfo info : plugins) {
 
-                
+                // retrieve the plugin's service information
                 ServiceInfo serviceInfo = info.serviceInfo;
                 if (serviceInfo == null) {
                     Log.w(LOGTAG, "Ignore bad plugin");
                     continue;
                 }
 
-                
-                
-                
+                // Blacklist HTC's flash lite.
+                // See bug #704516 - We're not quite sure what Flash Lite does,
+                // but loading it causes Flash to give errors and fail to draw.
                 if (serviceInfo.packageName.equals("com.htc.flashliteplugin")) {
                     Log.w(LOGTAG, "Skipping HTC's flash lite plugin");
                     continue;
@@ -268,7 +268,7 @@ abstract public class GeckoApp
                 Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName);
 
 
-                
+                // retrieve information from the plugin's manifest
                 PackageInfo pkgInfo;
                 try {
                     pkgInfo = pm.getPackageInfo(serviceInfo.packageName,
@@ -283,22 +283,22 @@ abstract public class GeckoApp
                     continue;
                 }
 
-                
-
-
-
-
-
+                /*
+                 * find the location of the plugin's shared library. The default
+                 * is to assume the app is either a user installed app or an
+                 * updated system app. In both of these cases the library is
+                 * stored in the app's data directory.
+                 */
                 String directory = pkgInfo.applicationInfo.dataDir + "/lib";
                 final int appFlags = pkgInfo.applicationInfo.flags;
                 final int updatedSystemFlags = ApplicationInfo.FLAG_SYSTEM |
                                                ApplicationInfo.FLAG_UPDATED_SYSTEM_APP;
-                
+                // preloaded system app with no user updates
                 if ((appFlags & updatedSystemFlags) == ApplicationInfo.FLAG_SYSTEM) {
                     directory = PLUGIN_SYSTEM_LIB + pkgInfo.packageName;
                 }
 
-                
+                // check if the plugin has the required permissions
                 String permissions[] = pkgInfo.requestedPermissions;
                 if (permissions == null) {
                     Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Does not have required permission.");
@@ -316,14 +316,14 @@ abstract public class GeckoApp
                     continue;
                 }
 
-                
+                // check to ensure the plugin is properly signed
                 Signature signatures[] = pkgInfo.signatures;
                 if (signatures == null) {
                     Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Not signed.");
                     continue;
                 }
 
-                
+                // determine the type of plugin from the manifest
                 if (serviceInfo.metaData == null) {
                     Log.e(LOGTAG, "The plugin '" + serviceInfo.name + "' has no type defined");
                     continue;
@@ -338,7 +338,7 @@ abstract public class GeckoApp
                 try {
                     Class<?> cls = getPluginClass(serviceInfo.packageName, serviceInfo.name);
 
-                    
+                    //TODO implement any requirements of the plugin class here!
                     boolean classFound = true;
 
                     if (!classFound) {
@@ -354,7 +354,7 @@ abstract public class GeckoApp
                     continue;
                 }
 
-                
+                // if all checks have passed then make the plugin available
                 mPackageInfoCache.add(pkgInfo);
                 directories.add(directory);
             }
@@ -519,7 +519,7 @@ abstract public class GeckoApp
         return mMenuPanel;
     }
 
-    
+    // MenuPanel holds the scrollable Menu
     public static class MenuPanel extends ScrollView {
         public MenuPanel(Context context, AttributeSet attrs) {
             super(context, attrs);
@@ -529,27 +529,20 @@ abstract public class GeckoApp
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            if (getChildCount() == 0) {
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-                return;
-            }
-
-            int restrictedHeightSpec;
-            int childHeight = getChildAt(0).getHeight();
+            super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
             DisplayMetrics metrics = new DisplayMetrics();
             ((Activity) GeckoApp.mAppContext).getWindowManager().getDefaultDisplay().getMetrics(metrics);
 
-            
-            int preferredHeight = (int) (0.75 * metrics.heightPixels);
-            restrictedHeightSpec = MeasureSpec.makeMeasureSpec(childHeight <= preferredHeight ? childHeight : preferredHeight, MeasureSpec.EXACTLY);
+            // heightPixels changes during rotation.
+            int restrictedHeightSpec = MeasureSpec.makeMeasureSpec((int) (0.75 * metrics.heightPixels), MeasureSpec.AT_MOST);
 
             super.onMeasure(widthMeasureSpec, restrictedHeightSpec);
         }
 
         @Override
         public boolean dispatchPopulateAccessibilityEvent (AccessibilityEvent event) {
-            if (Build.VERSION.SDK_INT >= 14) 
+            if (Build.VERSION.SDK_INT >= 14) // Build.VERSION_CODES.ICE_CREAM_SANDWICH
                 onPopulateAccessibilityEvent(event);
             return true;
         }
@@ -561,7 +554,7 @@ abstract public class GeckoApp
             if (mMenuPanel == null) {
                 mMenuPanel = new MenuPanel(mAppContext, null);
             } else {
-                
+                // Prepare the panel everytime before showing the menu.
                 onPreparePanel(featureId, mMenuPanel, mMenu);
             }
 
@@ -604,7 +597,7 @@ abstract public class GeckoApp
                 onPreparePanel(featureId, mMenuPanel, mMenu);
             }
 
-            
+            // Scroll custom menu to the top
             if (mMenuPanel != null)
                 mMenuPanel.scrollTo(0, 0);
 
@@ -711,6 +704,17 @@ abstract public class GeckoApp
                 return super.onOptionsItemSelected(item);
         }
     }
+ 
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        // Custom Menu should be opened when hardware menu key is pressed.
+        if (Build.VERSION.SDK_INT >= 11 && keyCode == KeyEvent.KEYCODE_MENU) {
+            openOptionsMenu();
+            return true;
+        }
+
+        return super.onKeyDown(keyCode, event);
+    }
 
     private void shareCurrentUrl() {
       Tab tab = Tabs.getInstance().getSelectedTab();
@@ -814,14 +818,14 @@ abstract public class GeckoApp
         if (tab == null)
             return;
 
-        
+        // Only remove doorhangers if the popup is hidden or if we're navigating to a new URL
         if (!mDoorHangerPopup.isShowing() || !uri.equals(tab.getURL()))
             tab.removeTransientDoorHangers();
 
         tab.updateURL(uri);
         tab.setDocumentURI(documentURI);
 
-        
+        // We can get a location change event for the same document with an anchor tag
         if (sameDocument)
             return;
 
@@ -865,7 +869,7 @@ abstract public class GeckoApp
         if (tab == null)
             return;
 
-        
+        // When a load error occurs, the URLBar can get corrupt so we reset it
         mMainHandler.post(new Runnable() {
             public void run() {
                 Tabs.getInstance().notifyListeners(tab, Tabs.TabEvents.LOAD_ERROR);
@@ -881,8 +885,8 @@ abstract public class GeckoApp
     }
 
     public StartupMode getStartupMode() {
-        
-        
+        // This function might touch the disk and should not
+        // be called from UI's main thread.
 
         synchronized(this) {
             if (mStartupMode != null)
@@ -891,8 +895,8 @@ abstract public class GeckoApp
             String packageName = getPackageName();
             SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
 
-            
-            
+            // This key should be profile-dependent. For now, we're simply hardcoding
+            // the "default" profile here.
             String profileName = getDefaultProfileName();
             if (profileName == null)
                 profileName = "default";
@@ -903,8 +907,8 @@ abstract public class GeckoApp
                 PackageInfo pkgInfo = getPackageManager().getPackageInfo(packageName, 0);
                 appVersion = pkgInfo.versionName;
             } catch(NameNotFoundException nnfe) {
-                
-                
+                // If, for some reason, we can't fetch the app version
+                // we fallback to NORMAL startup mode.
                 mStartupMode = StartupMode.NORMAL;
                 return mStartupMode;
             }
@@ -938,13 +942,13 @@ abstract public class GeckoApp
 
     public void hideTabs() { }
 
-    
-
-
-
-
-
-
+    /**
+     * Close the tab UI indirectly (not as the result of a direct user
+     * action).  This does not force the UI to close; for example in Firefox
+     * tablet mode it will remain open unless the user explicitly closes it.
+     *
+     * @return True if the tab UI was hidden.
+     */
     public boolean autoHideTabs() { return false; }
 
     public boolean areTabsShown() { return false; }
@@ -968,7 +972,7 @@ abstract public class GeckoApp
                 final String label = message.getString("name");
                 final int id = message.getInt("id");
                 String iconRes = null;
-                try { 
+                try { // icon is optional
                     iconRes = message.getString("icon");
                 } catch (Exception ex) { }
                 final String icon = iconRes;
@@ -996,12 +1000,12 @@ abstract public class GeckoApp
                 if (backgroundColor != null) {
                     tab.setCheckerboardColor(backgroundColor);
                 } else {
-                    
+                    // Default to white if no color is given
                     tab.setCheckerboardColor(Color.WHITE);
                 }
 
-                
-                
+                // Sync up the LayerController and the tab if the tab's
+                // currently displayed.
                 if (getLayerController() != null && Tabs.getInstance().isSelectedTab(tab)) {
                     getLayerController().setCheckerboardColor(tab.getCheckerboardColor());
                 }
@@ -1021,7 +1025,7 @@ abstract public class GeckoApp
                 final int tabId = message.getInt("tabID");
                 handleWindowClose(tabId);
             } else if (event.equals("log")) {
-                
+                // generic log listener
                 final String msg = message.getString("msg");
                 Log.i(LOGTAG, "Log: " + msg);
             } else if (event.equals("Content:LocationChange")) {
@@ -1148,7 +1152,7 @@ abstract public class GeckoApp
                 tab.setDefaultZoom((float) message.getDouble("defaultZoom"));
                 tab.setMinZoom((float) message.getDouble("minZoom"));
                 tab.setMaxZoom((float) message.getDouble("maxZoom"));
-                
+                // Sync up the LayerController and the tab if the tab's currently displayed.
                 LayerController controller = getLayerController();
                 if (controller != null && Tabs.getInstance().isSelectedTab(tab)) {
                     controller.setAllowZoom(tab.getAllowZoom());
@@ -1200,13 +1204,13 @@ abstract public class GeckoApp
                 accEvent.setItemCount(message.optInt("itemCount", -1));
                 accEvent.setCurrentItemIndex(message.optInt("currentItemIndex", -1));
                 accEvent.setBeforeText(message.optString("beforeText"));
-                if (Build.VERSION.SDK_INT >= 14) { 
+                if (Build.VERSION.SDK_INT >= 14) { // Build.VERSION_CODES.ICE_CREAM_SANDWICH
                     accEvent.setToIndex(message.optInt("toIndex", -1));
                     accEvent.setScrollable(message.optBoolean("scrollable"));
                     accEvent.setScrollX(message.optInt("scrollX", -1));
                     accEvent.setScrollY(message.optInt("scrollY", -1));
                 }
-                if (Build.VERSION.SDK_INT >= 15) { 
+                if (Build.VERSION.SDK_INT >= 15) { // Build.VERSION_CODES.ICE_CREAM_SANDWICH_MR1
                     AccessibilityCompat.setMaxScrollX(accEvent, message.optInt("maxScrollX", -1));
                     AccessibilityCompat.setMaxScrollY(accEvent, message.optInt("maxScrollY", -1));
                 }
@@ -1218,7 +1222,7 @@ abstract public class GeckoApp
                         try {
                             accessibilityManager.sendAccessibilityEvent(accEvent);
                         } catch (IllegalStateException e) {
-                            
+                            // Accessibility is off.
                         }
                     }
                 });
@@ -1278,11 +1282,11 @@ abstract public class GeckoApp
 
     void onStatePurged() { }
 
-    
-
-
-
-
+    /**
+     * @param aPermissions
+     *        Array of JSON objects to represent site permissions.
+     *        Example: { type: "offline-app", setting: "Store Offline Data: Allow" }
+     */
     private void showSiteSettingsDialog(String aHost, JSONArray aPermissions) {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
 
@@ -1291,20 +1295,20 @@ abstract public class GeckoApp
         ((TextView) customTitleView.findViewById(R.id.host)).setText(aHost);        
         builder.setCustomTitle(customTitleView);
 
-        
-        
+        // If there are no permissions to clear, show the user a message about that.
+        // In the future, we want to disable the menu item if there are no permissions to clear.
         if (aPermissions.length() == 0) {
             builder.setMessage(R.string.site_settings_no_settings);
         } else {
-            
-            
+            // Eventually we should use a list adapter and custom checkable list items
+            // to make a two-line UI to match the mock-ups
             CharSequence[] items = new CharSequence[aPermissions.length()];
             boolean[] states = new boolean[aPermissions.length()];
             for (int i = 0; i < aPermissions.length(); i++) {
                 try {
                     items[i] = aPermissions.getJSONObject(i).
                                getString("setting");
-                    
+                    // Make all the items checked by default
                     states[i] = true;
                 } catch (JSONException e) {
                     Log.i(LOGTAG, "JSONException", e);
@@ -1312,7 +1316,7 @@ abstract public class GeckoApp
             }
             builder.setMultiChoiceItems(items, states, new DialogInterface.OnMultiChoiceClickListener(){
                 public void onClick(DialogInterface dialog, int item, boolean state) {
-                    
+                    // Do nothing
                 }
             });
             builder.setPositiveButton(R.string.site_settings_clear, new DialogInterface.OnClickListener() {
@@ -1320,7 +1324,7 @@ abstract public class GeckoApp
                     ListView listView = ((AlertDialog) dialog).getListView();
                     SparseBooleanArray checkedItemPositions = listView.getCheckedItemPositions();
 
-                    
+                    // An array of the indices of the permissions we want to clear
                     JSONArray permissionsToClear = new JSONArray();
                     for (int i = 0; i < checkedItemPositions.size(); i++) {
                         boolean checked = checkedItemPositions.get(i);
@@ -1413,7 +1417,7 @@ abstract public class GeckoApp
         final String oldURL = tab.getURL();
         GeckoAppShell.getHandler().postDelayed(new Runnable() {
             public void run() {
-                
+                // tab.getURL() may return null
                 if (!TextUtils.equals(oldURL, tab.getURL()))
                     return;
 
@@ -1543,8 +1547,8 @@ abstract public class GeckoApp
 
         mFullScreenPluginContainer.removeView(mFullScreenPluginView);
 
-        
-        
+        // We need do do this on the next iteration in order to avoid
+        // a deadlock, see comment below in FullScreenHolder
         mMainHandler.post(new Runnable() { 
             public void run() {
                 mLayerController.getView().setVisibility(View.VISIBLE);
@@ -1587,7 +1591,7 @@ abstract public class GeckoApp
                         (AccessibilityManager) mAppContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
                     try {
                         ret.put("enabled", accessibilityManager.isEnabled());
-                        if (Build.VERSION.SDK_INT >= 14) { 
+                        if (Build.VERSION.SDK_INT >= 14) { // Build.VERSION_CODES.ICE_CREAM_SANDWICH
                             ret.put("exploreByTouch", accessibilityManager.isTouchExplorationEnabled());
                         } else {
                             ret.put("exploreByTouch", false);
@@ -1651,7 +1655,7 @@ abstract public class GeckoApp
     public void setFullScreen(final boolean fullscreen) {
         mMainHandler.post(new Runnable() { 
             public void run() {
-                
+                // Hide/show the system notification bar
                 Window window = getWindow();
                 window.setFlags(fullscreen ?
                                 WindowManager.LayoutParams.FLAG_FULLSCREEN : 0,
@@ -1670,7 +1674,7 @@ abstract public class GeckoApp
                  ((screenLayout & Configuration.SCREENLAYOUT_SIZE_MASK) == Configuration.SCREENLAYOUT_SIZE_XLARGE)));
     }
 
-    
+    /** Called when the activity is first created. */
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -1678,15 +1682,15 @@ abstract public class GeckoApp
 
         mAppContext = this;
 
-        
+        // Check to see if the activity is restarted after configuration change.
         if (getLastNonConfigurationInstance() != null) {
-            
+            // Restart the application as a safe way to handle the configuration change.
             doRestart();
             System.exit(0);
             return;
         }
 
-        
+        // StrictMode is set by defaults resource flag |enableStrictMode|.
         if (getResources().getBoolean(R.bool.enableStrictMode)) {
             enableStrictMode();
         }
@@ -1698,8 +1702,8 @@ abstract public class GeckoApp
             if (uri != null && uri.length() > 0 && !uri.equals("about:home"))
                 sGeckoThread.start();
         } else {
-            
-            
+            // this happens when the GeckoApp activity is destroyed by android
+            // without killing the entire application (see bug 769269)
             mIsRestoringActivity = true;
         }
 
@@ -1714,11 +1718,11 @@ abstract public class GeckoApp
 
         setContentView(getLayout());
 
-        
+        // setup gecko layout
         mGeckoLayout = (RelativeLayout) findViewById(R.id.gecko_layout);
         mMainLayout = (LinearLayout) findViewById(R.id.main_layout);
 
-        
+        // setup tabs panel
         mTabsPanel = (TabsPanel) findViewById(R.id.tabs_panel);
 
         if (savedInstanceState != null) {
@@ -1785,8 +1789,8 @@ abstract public class GeckoApp
         boolean isExternalURL = passedUri != null && !passedUri.equals("about:home");
         initializeChrome(uri, isExternalURL);
 
-        
-        
+        // Start migrating as early as possible, can do this in
+        // parallel with Gecko load.
         checkMigrateProfile();
 
         Uri data = intent.getData();
@@ -1795,9 +1799,9 @@ abstract public class GeckoApp
             Intent copy = new Intent(intent);
             copy.setAction(ACTION_LOAD);
             GeckoAppShell.getHandler().post(new RedirectorRunnable(copy));
-            
-            
-            
+            // We're going to handle this uri with the redirector, so setting
+            // the action to MAIN and clearing the uri data prevents us from
+            // loading it twice
             intent.setAction(Intent.ACTION_MAIN);
             intent.setData(null);
             passedUri = "about:empty";
@@ -1815,7 +1819,7 @@ abstract public class GeckoApp
                     setLaunchState(LaunchState.Launching);
                     sGeckoThread.reallyStart();
                 }
-            }, 1000 * 5 );
+            }, 1000 * 5 /* 5 seconds */);
             Log.i(LOGTAG, "Intent : ACTION_DEBUG - waiting 5s before launching");
         }
 
@@ -1828,24 +1832,24 @@ abstract public class GeckoApp
         }
 
         if (mLayerController == null) {
-            
-
-
+            /*
+             * Create a layer client, but don't hook it up to the layer controller yet.
+             */
             mLayerClient = new GeckoLayerClient(this);
 
-            
-
-
-
-
-
-
-
-
+            /*
+             * Hook a placeholder layer client up to the layer controller so that the user can pan
+             * and zoom a cached screenshot of the previous page. This call will return null if
+             * there is no cached screenshot; in that case, we have no choice but to display a
+             * checkerboard.
+             *
+             * TODO: Fall back to a built-in screenshot of the Fennec Start page for a nice first-
+             * run experience, perhaps?
+             */
             mLayerController = new LayerController(this);
             View v = mLayerController.getView();
 
-            
+            // Instead of flickering the checkerboard, show a white screen until Gecko paints
             v.setBackgroundColor(Color.WHITE);
 
             mGeckoLayout.addView(v, 0);
@@ -1859,7 +1863,7 @@ abstract public class GeckoApp
 
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - UI almost up");
 
-        
+        //register for events
         GeckoAppShell.registerGeckoEventListener("DOMContentLoaded", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("DOMTitleChanged", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("DOMLinkAdded", GeckoApp.mAppContext);
@@ -1927,18 +1931,18 @@ abstract public class GeckoApp
         GeckoAppShell.getHandler().postDelayed(new Runnable() {
             public void run() {
                 Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - pre checkLaunchState");
-                
-                
+                // Sync settings need Gecko to be loaded, so
+                // no hurry in starting this.
                 checkMigrateSync();
 
-                
-
-
-
-
-
-
-
+                /*
+                  XXXX see bug 635342
+                   We want to disable this code if possible.  It is about 145ms in runtime
+                SharedPreferences settings = getPreferences(Activity.MODE_PRIVATE);
+                String localeCode = settings.getString(getPackageName() + ".locale", "");
+                if (localeCode != null && localeCode.length() > 0)
+                    GeckoAppShell.setSelectedLocale(localeCode);
+                */
 
                 if (!checkLaunchState(LaunchState.Launched)) {
                     return;
@@ -1958,17 +1962,17 @@ abstract public class GeckoApp
     }
 
     public GeckoProfile getProfile() {
-        
+        // fall back to default profile if we didn't load a specific one
         if (mProfile == null) {
             mProfile = GeckoProfile.get(this);
         }
         return mProfile;
     }
 
-    
-
-
-
+    /**
+     * Enable Android StrictMode checks (for supported OS versions).
+     * http://developer.android.com/reference/android/os/StrictMode.html
+     */
     private void enableStrictMode()
     {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.GINGERBREAD) {
@@ -1987,7 +1991,7 @@ abstract public class GeckoApp
     }
 
     public void enableCameraView() {
-        
+        // Some phones (eg. nexus S) need at least a 8x16 preview size
         mMainLayout.addView(cameraView, new AbsoluteLayout.LayoutParams(8, 16, 0, 0));
     }
 
@@ -2006,9 +2010,9 @@ abstract public class GeckoApp
         public void run() {
             HttpURLConnection connection = null;
             try {
-                
+                // this class should only be initialized with an intent with non-null data
                 URL url = new URL(mIntent.getData().toString());
-                
+                // data url should have an http scheme
                 connection = (HttpURLConnection) url.openConnection();
                 connection.setRequestProperty("User-Agent", getUAStringForHost(url.getHost()));
                 connection.setInstanceFollowRedirects(false);
@@ -2069,30 +2073,30 @@ abstract public class GeckoApp
         Log.w(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - onNewIntent");
 
         if (checkLaunchState(LaunchState.GeckoExiting)) {
-            
-            
+            // We're exiting and shouldn't try to do anything else just incase
+            // we're hung for some reason we'll force the process to exit
             System.exit(0);
             return;
         }
 
-        
-        
+        // if we were previously OOM killed, we can end up here when launching
+        // from external shortcuts, so set this as the intent for initialization
         if (!mInitialized) {
             setIntent(intent);
             return;
         }
 
-        
+        // don't perform any actions if launching from recent apps
         if ((intent.getFlags() & Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY) != 0)
             return;
 
         if (checkLaunchState(LaunchState.Launched)) {
             Uri data = intent.getData();
             Bundle bundle = intent.getExtras();
-            
-            
-            
-            
+            // if the intent has data (i.e. a URI to be opened) and the scheme
+            // is either http, we'll prefetch it, which means warming
+            // up the radio and DNS cache by connecting and parsing the redirect
+            // if the return code is between 300 and 400
             if (data != null && 
                 "http".equals(data.getScheme()) &&
                 (bundle == null || bundle.getInt("prefetched", 0) != 1) &&
@@ -2129,10 +2133,10 @@ abstract public class GeckoApp
         }
     }
 
-    
-
-
-
+    /*
+     * Handles getting a uri from and intent in a way that is backwards
+     * compatable with our previous implementations
+     */
     private String getURIFromIntent(Intent intent) {
         String uri = intent.getDataString();
         if (uri != null)
@@ -2153,8 +2157,8 @@ abstract public class GeckoApp
     {
         Log.i(LOGTAG, "resume");
 
-        
-        
+        // After an onPause, the activity is back in the foreground.
+        // Undo whatever we did in onPause.
         super.onResume();
 
         SiteIdentityPopup.getInstance().dismiss();
@@ -2166,7 +2170,7 @@ abstract public class GeckoApp
             refreshChrome();
         }
 
-        
+        // User may have enabled/disabled accessibility.
         updateAccessibilitySettings();
     }
 
@@ -2182,16 +2186,16 @@ abstract public class GeckoApp
     public void onStop()
     {
         Log.i(LOGTAG, "stop");
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // We're about to be stopped, potentially in preparation for
+        // being destroyed.  We're killable after this point -- as I
+        // understand it, in extreme cases the process can be terminated
+        // without going through onDestroy.
+        //
+        // We might also get an onRestart after this; not sure what
+        // that would mean for Gecko if we were to kill it here.
+        // Instead, what we should do here is save prefs, session,
+        // etc., and generally mark the profile as 'clean', and then
+        // dirty it again if we get an onResume.
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createStoppingEvent(isApplicationInBackground()));
         super.onStop();
@@ -2219,8 +2223,8 @@ abstract public class GeckoApp
     {
         Log.i(LOGTAG, "destroy");
 
-        
-        
+        // Tell Gecko to shutting down; we'll end up calling System.exit()
+        // in onXreExit.
         if (isFinishing())
             GeckoAppShell.sendEventToGecko(GeckoEvent.createShutdownEvent());
         
@@ -2300,13 +2304,13 @@ abstract public class GeckoApp
         ((GeckoApplication) getApplication()).removeApplicationLifecycleCallbacks(this);
     }
 
-    
+    // Get a temporary directory, may return null
     public static File getTempDirectory() {
         File dir = mAppContext.getExternalFilesDir("temp");
         return dir;
     }
 
-    
+    // Delete any files in our temporary directory
     public static void deleteTempFiles() {
         File dir = getTempDirectory();
         if (dir == null)
@@ -2376,8 +2380,8 @@ abstract public class GeckoApp
 
     @Override
     public Object onRetainNonConfigurationInstance() {
-        
-        
+        // Send a non-null value so that we can restart the application, 
+        // when activity restarts due to configuration change.
         return new Boolean(true);
     } 
 
@@ -2407,7 +2411,7 @@ abstract public class GeckoApp
             Intent intent = new Intent(action);
             intent.setClassName(getPackageName(),
                                 getPackageName() + ".Restarter");
-            
+            /* TODO: addEnvToIntent(intent); */
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
                             Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
             Log.i(LOGTAG, intent.toString());
@@ -2417,7 +2421,7 @@ abstract public class GeckoApp
             Log.i(LOGTAG, "error doing restart", e);
         }
         finish();
-        
+        // Give the restart process time to start before we die
         GeckoAppShell.waitForAnotherGeckoProc();
     }
 
@@ -2428,7 +2432,7 @@ abstract public class GeckoApp
     private void checkAndLaunchUpdate() {
         Log.i(LOGTAG, "Checking for an update");
 
-        int statusCode = 8; 
+        int statusCode = 8; // UNEXPECTED_ERROR
         File baseUpdateDir = null;
         if (Build.VERSION.SDK_INT >= 8)
             baseUpdateDir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
@@ -2448,7 +2452,7 @@ abstract public class GeckoApp
 
         Log.i(LOGTAG, "Update is available!");
 
-        
+        // Launch APK
         File updateFileToRun = new File(updateDir, getPackageName() + "-update.apk");
         try {
             if (updateFile.renameTo(updateFileToRun)) {
@@ -2457,16 +2461,16 @@ abstract public class GeckoApp
                                updateFileToRun.getPath();
                 Log.i(LOGTAG, amCmd);
                 Runtime.getRuntime().exec(amCmd);
-                statusCode = 0; 
+                statusCode = 0; // OK
             } else {
                 Log.i(LOGTAG, "Cannot rename the update file!");
-                statusCode = 7; 
+                statusCode = 7; // WRITE_ERROR
             }
         } catch (Exception e) {
             Log.i(LOGTAG, "error launching installer to update", e);
         }
 
-        
+        // Update the status file
         String status = statusCode == 0 ? "succeeded\n" : "failed: "+ statusCode + "\n";
 
         OutputStream outStream;
@@ -2508,10 +2512,10 @@ abstract public class GeckoApp
 
                     ProfileMigrator profileMigrator = new ProfileMigrator(app);
 
-                    
+                    // Do a migration run on the first start after an upgrade.
                     if (!profileMigrator.hasMigrationRun()) {
-                        
-                        
+                        // Show the "Setting up Fennec" screen if this takes
+                        // a while.
                         final SetupScreen setupScreen = new SetupScreen(app);
 
                         final Runnable startCallback = new Runnable() {
@@ -2581,11 +2585,11 @@ abstract public class GeckoApp
         intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION | Intent.FLAG_ACTIVITY_NO_HISTORY);
         intent.putExtra(AwesomeBar.TARGET_KEY, aTarget.name());
 
-        
+        // if we were passed in a url, show it
         if (aUrl != null && !TextUtils.isEmpty(aUrl)) {
             intent.putExtra(AwesomeBar.CURRENT_URL_KEY, aUrl);
         } else if (aTarget == AwesomeBar.Target.CURRENT_TAB) {
-            
+            // otherwise, if we're editing the current tab, show its url
             Tab tab = Tabs.getInstance().getSelectedTab();
             if (tab != null) {
 
@@ -2649,7 +2653,7 @@ abstract public class GeckoApp
         int parentId = tab.getParentId();
         Tab parent = tabs.getTab(parentId);
         if (parent != null) {
-            
+            // The back button should always return to the parent (not a sibling).
             tabs.closeTab(tab, parent);
             return;
         }
@@ -2664,8 +2668,8 @@ abstract public class GeckoApp
         }
     }
 
-    
-    
+    // If searchEngine is provided, url will be used as the search query.
+    // Otherwise, the url is loaded.
     protected void loadRequest(String url, AwesomeBar.Target target, String searchEngine, boolean userEntered) {
         Log.d(LOGTAG, target.name());
         JSONObject args = new JSONObject();
@@ -2693,12 +2697,12 @@ abstract public class GeckoApp
         loadRequest(url, target, null, false);
     }
 
-    
-
-
-
-
-
+    /**
+     * Open the url as a new tab, and mark the selected tab as its "parent".
+     * If the url is already open in a tab, the existing tab is selected.
+     * Use this for tabs opened by the browser chrome, so users can press the
+     * "Back" button to return to the previous tab.
+     */
     public void loadUrlInTab(String url) {
         ArrayList<Tab> tabs = Tabs.getInstance().getTabsInOrder();
         if (tabs != null) {
@@ -2723,13 +2727,13 @@ abstract public class GeckoApp
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Add", args.toString()));
     }
 
-    
+    /* This method is referenced by Robocop via reflection. */
     public GeckoLayerClient getLayerClient() { return mLayerClient; }
     public LayerController getLayerController() { return mLayerController; }
 
     public AbsoluteLayout getPluginContainer() { return mPluginContainer; }
 
-    
+    // accelerometer
     public void onAccuracyChanged(Sensor sensor, int accuracy) {}
 
     public void onSensorChanged(SensorEvent event)
@@ -2737,7 +2741,7 @@ abstract public class GeckoApp
         GeckoAppShell.sendEventToGecko(GeckoEvent.createSensorEvent(event));
     }
 
-    
+    // geolocation
     public void onLocationChanged(Location location)
     {
         Log.w(LOGTAG, "onLocationChanged "+location);
@@ -2756,7 +2760,7 @@ abstract public class GeckoApp
     {
     }
 
-    
+    // Called when a Gecko Hal WakeLock is changed
     public void notifyWakeLockChanged(String topic, String state) {
         PowerManager.WakeLock wl = mWakeLocks.get(topic);
         if (state.equals("locked-foreground") && wl == null) {
@@ -2793,8 +2797,8 @@ abstract public class GeckoApp
 
                 if (initialPoint != null && (action & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_MOVE) {
                     if (PointUtils.subtract(point, initialPoint).length() < PanZoomController.PAN_THRESHOLD) {
-                        
-                        
+                        // Don't send the touchmove event if if the users finger hasn't move far
+                        // Necessary for Google Maps to work correctlly. See bug 771099.
                         return true;
                     } else {
                         initialPoint = null;
@@ -2812,7 +2816,7 @@ abstract public class GeckoApp
 
         @Override
         public boolean onInterceptTouchEvent(View view, MotionEvent event) {
-            
+            // If the tab tray is showing, hide the tab tray and don't send the event to content.
             if (event.getActionMasked() == MotionEvent.ACTION_DOWN && autoHideTabs()) {
                 mIsHidingTabs = true;
                 return true;
@@ -2823,7 +2827,7 @@ abstract public class GeckoApp
         @Override
         public boolean onTouch(View view, MotionEvent event) {
             if (mIsHidingTabs) {
-                
+                // Keep consuming events until the gesture finishes.
                 int action = event.getActionMasked();
                 if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
                     mIsHidingTabs = false;
@@ -2846,15 +2850,15 @@ abstract public class GeckoApp
 
         @Override
         public void addView(View view, int index) {
-            
-
-
-
-
-
-
-
-
+            /**
+             * This normally gets called when Flash adds a separate SurfaceView
+             * for the video. It is unhappy if we have the LayerView underneath
+             * it for some reason so we need to hide that. Hiding the LayerView causes
+             * its surface to be destroyed, which causes a pause composition
+             * event to be sent to Gecko. We synchronously wait for that to be
+             * processed. Simultaneously, however, Flash is waiting on a mutex so
+             * the post() below is an attempt to avoid a deadlock.
+             */
             super.addView(view, index);
 
             mMainHandler.post(new Runnable() { 
@@ -2864,13 +2868,13 @@ abstract public class GeckoApp
             });
         }
 
-        
-
-
-
-
-
-
+        /**
+         * The methods below are simply copied from what Android WebKit does.
+         * It wasn't ever called in my testing, but might as well
+         * keep it in case it is for some reason. The methods
+         * all return true because we don't want any events
+         * leaking out from the fullscreen view.
+         */
         @Override
         public boolean onKeyDown(int keyCode, KeyEvent event) {
             if (event.isSystem()) {
@@ -2970,7 +2974,7 @@ abstract public class GeckoApp
         }
     }
 
-    
+    // SDK version 15 accessibility methods retrieved through reflection.
     private static class AccessibilityCompat {
         private static boolean mInitialized = false;
         private static Method mAccessibilityEvent_setMaxScrollX = null;

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __JumpListItem_h__
 #define __JumpListItem_h__
@@ -9,8 +9,8 @@
 #include <windows.h>
 #include <shobjidl.h>
 
-#include "nsIJumpListItem.h"  
-#include "nsIMIMEInfo.h" 
+#include "nsIJumpListItem.h"  // defines nsIJumpListItem
+#include "nsIMIMEInfo.h" // defines nsILocalHandlerApp
 #include "nsTArray.h"
 #include "nsIMutableArray.h"
 #include "nsCOMPtr.h"
@@ -48,8 +48,6 @@ protected:
   short Type() { return mItemType; }
   short mItemType;
 
-  static nsresult HashURI(nsCOMPtr<nsICryptoHash> &aCryptoHash,
-                          nsIURI *aUri, nsACString& aUriHash);
 };
 
 class JumpListSeparator : public JumpListItem, public nsIJumpListSeparator
@@ -121,7 +119,7 @@ protected:
                                                    nsCOMPtr<nsIThread> &aIOThread);
 };
 
-} 
-} 
+} // namespace widget
+} // namespace mozilla
 
-#endif 
+#endif /* __JumpListItem_h__ */

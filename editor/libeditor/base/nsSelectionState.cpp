@@ -4,6 +4,7 @@
 
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/Selection.h"          
 #include "nsAString.h"                  
 #include "nsAutoPtr.h"                  
 #include "nsCycleCollectionParticipant.h"
@@ -19,6 +20,7 @@
 #include "nsRange.h"                    
 #include "nsSelectionState.h"
 
+using namespace mozilla;
 
 
 
@@ -47,43 +49,30 @@ nsSelectionState::DoTraverse(nsCycleCollectionTraversalCallback &cb)
   }
 }
 
-nsresult  
-nsSelectionState::SaveSelection(nsISelection *aSel)
+void
+nsSelectionState::SaveSelection(Selection* aSel)
 {
-  NS_ENSURE_TRUE(aSel, NS_ERROR_NULL_POINTER);
-  PRInt32 i,rangeCount, arrayCount = mArray.Length();
-  aSel->GetRangeCount(&rangeCount);
+  MOZ_ASSERT(aSel);
+  PRInt32 arrayCount = mArray.Length();
+  PRInt32 rangeCount = aSel->GetRangeCount();
+
   
-  
-  if (arrayCount<rangeCount)
-  {
-    PRInt32 count = rangeCount-arrayCount;
-    for (i=0; i<count; i++)
-    {
+  if (arrayCount < rangeCount) {
+    for (PRInt32 i = arrayCount; i < rangeCount; i++) {
       mArray.AppendElement();
       mArray[i] = new nsRangeStore();
     }
-  }
-  
-  
-  else if (arrayCount>rangeCount)
-  {
-    for (i = arrayCount-1; i >= rangeCount; i--)
-    {
+  } else if (arrayCount > rangeCount) {
+    
+    for (PRInt32 i = arrayCount - 1; i >= rangeCount; i--) {
       mArray.RemoveElementAt(i);
     }
   }
+
   
-  
-  nsresult res = NS_OK;
-  for (i=0; i<rangeCount; i++)
-  {
-    nsCOMPtr<nsIDOMRange> range;
-    res = aSel->GetRangeAt(i, getter_AddRefs(range));
-    mArray[i]->StoreRange(range);
+  for (PRInt32 i = 0; i < rangeCount; i++) {
+    mArray[i]->StoreRange(aSel->GetRangeAt(i));
   }
-  
-  return res;
 }
 
 nsresult  

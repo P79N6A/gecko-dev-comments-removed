@@ -1365,7 +1365,7 @@ MNot::foldsTo(bool useValueNumbers)
     if (operand()->isConstant()) {
        const Value &v = operand()->toConstant()->value();
         
-        return MConstant::New(BooleanValue(!js_ValueToBoolean(v)));
+        return MConstant::New(BooleanValue(!ToBoolean(v)));
     }
 
     

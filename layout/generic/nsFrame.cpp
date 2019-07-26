@@ -2103,8 +2103,15 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     pseudoStackingContext = true;
   }
 
+  
+  
+  
+  
+  bool buildFixedPositionItem = disp->mPosition == NS_STYLE_POSITION_FIXED
+    && !child->GetParent()->GetParent() && !isSVG && !aBuilder->IsInFixedPosition();
+
   nsDisplayListBuilder::AutoBuildingDisplayList
-    buildingForChild(aBuilder, child, pseudoStackingContext);
+    buildingForChild(aBuilder, child, pseudoStackingContext, buildFixedPositionItem);
 
   nsRect overflowClip;
   nscoord overflowClipRadii[8];
@@ -2204,9 +2211,8 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
       
       
       nsDisplayItem* item;
-      if (!isSVG && !child->GetParent()->GetParent() &&
-          disp->mPosition == NS_STYLE_POSITION_FIXED) {
-        item = new (aBuilder) nsDisplayFixedPosition(aBuilder, child, &list);
+      if (buildFixedPositionItem) {
+        item = new (aBuilder) nsDisplayFixedPosition(aBuilder, child, child, &list);
       } else {
         item = new (aBuilder) nsDisplayWrapList(aBuilder, child, &list);
       }
@@ -2216,6 +2222,19 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
         rv = aLists.PositionedDescendants()->AppendNewToTop(item);
       }
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      if (buildFixedPositionItem) {
+        while (!extraPositionedDescendants.IsEmpty()) {
+          item = extraPositionedDescendants.RemoveBottom();
+          nsDisplayList fixedPosDescendantList;
+          fixedPosDescendantList.AppendToTop(item);
+          aLists.PositionedDescendants()->AppendNewToTop(
+              new (aBuilder) nsDisplayFixedPosition(aBuilder, item->GetUnderlyingFrame(),
+                                                    child, &fixedPosDescendantList));
+        }
+      }
     }
   } else if (!isSVG && disp->IsFloating()) {
     if (!list.IsEmpty()) {

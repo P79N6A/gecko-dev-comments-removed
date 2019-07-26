@@ -547,6 +547,7 @@ struct JSScript : public js::gc::Cell
     bool            invalidatedIdempotentCache:1; 
     bool            callDestroyHook:1;
     bool            isGenerator:1;    
+    bool            isGeneratorExp:1; 
     bool            hasScriptCounts:1;
 
     bool            hasSourceMap:1;   
