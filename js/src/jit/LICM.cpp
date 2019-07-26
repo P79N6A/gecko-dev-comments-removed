@@ -248,7 +248,7 @@ Loop::requiresHoistedUse(const MDefinition *ins) const
     
     
     
-    if (ins->isConstant() && (IsFloatingPointType(ins->type()) || containsPossibleCall_))
+    if (ins->isConstant() && (ins->type() != MIRType_Double || containsPossibleCall_))
         return true;
 
     return false;

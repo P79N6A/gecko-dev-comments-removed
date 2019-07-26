@@ -25,7 +25,6 @@ ABIArgGenerator::next(MIRType type)
       case MIRType_Pointer:
         stackOffset_ += sizeof(uint32_t);
         break;
-      case MIRType_Float32: 
       case MIRType_Double:
         stackOffset_ += sizeof(uint64_t);
         break;

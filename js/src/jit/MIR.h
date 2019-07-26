@@ -454,13 +454,6 @@ class MDefinition : public MNode
     }
 
     
-    
-    virtual bool isFloat32Commutative() const { return false; }
-    virtual bool canProduceFloat32() const { return false; }
-    virtual bool canConsumeFloat32() const { return false; }
-    virtual void trySpecializeFloat32() {}
-
-    
     MUseIterator usesBegin() const {
         return uses_.begin();
     }
@@ -955,21 +948,8 @@ class MConstant : public MNullaryInstruction
         return AliasSet::None();
     }
 
-    bool updateForReplacement(MDefinition *def) {
-        MConstant *c = def->toConstant();
-        
-        
-        if (type() == MIRType_Float32)
-            return c->type() == MIRType_Float32;
-        if (type() == MIRType_Double)
-            return c->type() != MIRType_Float32;
-        return true;
-    }
-
     void computeRange();
     bool truncate();
-
-    bool canProduceFloat32() const;
 };
 
 class MParameter : public MNullaryInstruction
@@ -1741,10 +1721,6 @@ class MCall
 
     MDefinition *getArg(uint32_t index) const {
         return getOperand(NumNonArgumentOperands + index);
-    }
-
-    void replaceArg(uint32_t index, MDefinition *def) {
-        replaceOperand(NumNonArgumentOperands + index, def);
     }
 
     void rootTargetScript(JSFunction *target) {
@@ -2661,65 +2637,6 @@ class MToDouble
 };
 
 
-
-class MToFloat32
-  : public MUnaryInstruction,
-    public ToDoublePolicy
-{
-  public:
-    
-    enum ConversionKind {
-        NonStringPrimitives,
-        NonNullNonStringPrimitives,
-        NumbersOnly
-    };
-
-  protected:
-    ConversionKind conversion_;
-
-    MToFloat32(MDefinition *def, ConversionKind conversion)
-      : MUnaryInstruction(def), conversion_(conversion)
-    {
-        setResultType(MIRType_Float32);
-        setMovable();
-    }
-
-  public:
-    INSTRUCTION_HEADER(ToFloat32)
-    static MToFloat32 *New(MDefinition *def, ConversionKind conversion = NonStringPrimitives) {
-        return new MToFloat32(def, conversion);
-    }
-    static MToFloat32 *NewAsmJS(MDefinition *def) {
-        return new MToFloat32(def, NonStringPrimitives);
-    }
-
-    ConversionKind conversion() const {
-        return conversion_;
-    }
-
-    TypePolicy *typePolicy() {
-        return this;
-    }
-
-    virtual MDefinition *foldsTo(bool useValueNumbers);
-    bool congruentTo(MDefinition *ins) const {
-        if (!ins->isToFloat32() || ins->toToFloat32()->conversion() != conversion())
-            return false;
-        return congruentIfOperandsEqual(ins);
-    }
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-
-    void computeRange();
-    bool truncate();
-    bool isOperandTruncated(size_t index) const;
-
-    bool canConsumeFloat32() const { return true; }
-    bool canProduceFloat32() const { return true; }
-};
-
-
 class MAsmJSUnsignedToDouble
   : public MUnaryInstruction
 {
@@ -3184,8 +3101,6 @@ class MBinaryArithInstruction
         setResultType(MIRType_Int32);
     }
 
-    virtual void trySpecializeFloat32();
-
     bool congruentTo(MDefinition *ins) const {
         return MBinaryInstruction::congruentTo(ins);
     }
@@ -3561,8 +3476,6 @@ class MAdd : public MBinaryArithInstruction
         return add;
     }
 
-    bool isFloat32Commutative() const { return true; }
-
     double getIdentity() {
         return 0;
     }
@@ -3598,8 +3511,6 @@ class MSub : public MBinaryArithInstruction
     double getIdentity() {
         return 0;
     }
-
-    bool isFloat32Commutative() const { return true; }
 
     bool fallible();
     void computeRange();
@@ -3673,8 +3584,6 @@ class MMul : public MBinaryArithInstruction
         return canBeNegativeZero_ || canOverflow();
     }
 
-    bool isFloat32Commutative() const { return true; }
-
     void computeRange();
     bool truncate();
     bool isOperandTruncated(size_t index) const;
@@ -3742,8 +3651,6 @@ class MDiv : public MBinaryArithInstruction
     bool isUnsigned() {
         return unsigned_;
     }
-
-    bool isFloat32Commutative() const { return true; }
 
     bool fallible();
     bool truncate();
@@ -3932,8 +3839,6 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineForwardListNode<MPhi>
     bool hasBackedgeType_;
     bool triedToSpecialize_;
     bool isIterator_;
-    bool canProduceFloat32_;
-    bool canConsumeFloat32_;
 
 #if DEBUG
     bool specialized_;
@@ -3944,9 +3849,7 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineForwardListNode<MPhi>
       : slot_(slot),
         hasBackedgeType_(false),
         triedToSpecialize_(false),
-        isIterator_(false),
-        canProduceFloat32_(false),
-        canConsumeFloat32_(false)
+        isIterator_(false)
 #if DEBUG
         , specialized_(false)
         , capacity_(0)
@@ -4043,22 +3946,6 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineForwardListNode<MPhi>
                 return NULL;
         }
         return first;
-    }
-
-    bool canProduceFloat32() const {
-        return canProduceFloat32_;
-    }
-
-    void setCanProduceFloat32(bool can) {
-        canProduceFloat32_ = can;
-    }
-
-    bool canConsumeFloat32() const {
-        return canConsumeFloat32_;
-    }
-
-    void setCanConsumeFloat32(bool can) {
-        canConsumeFloat32_ = can;
     }
 };
 
@@ -5064,7 +4951,7 @@ class MStoreElementCommon
 class MStoreElement
   : public MAryInstruction<3>,
     public MStoreElementCommon,
-    public MixPolicy<SingleObjectPolicy, NoFloatPolicy<2> >
+    public SingleObjectPolicy
 {
     bool needsHoleCheck_;
 
@@ -5114,7 +5001,7 @@ class MStoreElement
 class MStoreElementHole
   : public MAryInstruction<4>,
     public MStoreElementCommon,
-    public MixPolicy<SingleObjectPolicy, NoFloatPolicy<3> >
+    public SingleObjectPolicy
 {
     MStoreElementHole(MDefinition *object, MDefinition *elements,
                       MDefinition *index, MDefinition *value) {
@@ -5314,8 +5201,6 @@ class MLoadTypedArrayElement
     }
 
     void computeRange();
-
-    bool canProduceFloat32() const { return arrayType_ == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 
@@ -5364,7 +5249,6 @@ class MLoadTypedArrayElementHole
     AliasSet getAliasSet() const {
         return AliasSet::Load(AliasSet::TypedArrayElement);
     }
-    bool canProduceFloat32() const { return arrayType_ == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 
@@ -5376,9 +5260,7 @@ class MLoadTypedArrayElementStatic
       : MUnaryInstruction(ptr), typedArray_(typedArray), fallible_(true)
     {
         int type = typedArray_->type();
-        if (type == ScalarTypeRepresentation::TYPE_FLOAT32)
-            setResultType(MIRType_Float32);
-        else if (type == ScalarTypeRepresentation::TYPE_FLOAT64)
+        if (type == ScalarTypeRepresentation::TYPE_FLOAT32 || type == ScalarTypeRepresentation::TYPE_FLOAT64)
             setResultType(MIRType_Double);
         else
             setResultType(MIRType_Int32);
@@ -5417,7 +5299,6 @@ class MLoadTypedArrayElementStatic
 
     void computeRange();
     bool truncate();
-    bool canProduceFloat32() const { return typedArray_->type() == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 class MStoreTypedArrayElement
@@ -5481,8 +5362,6 @@ class MStoreTypedArrayElement
         racy_ = true;
     }
     bool isOperandTruncated(size_t index) const;
-
-    bool canConsumeFloat32() const { return arrayType_ == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 class MStoreTypedArrayElementHole
@@ -5546,8 +5425,6 @@ class MStoreTypedArrayElementHole
         return AliasSet::Store(AliasSet::TypedArrayElement);
     }
     bool isOperandTruncated(size_t index) const;
-
-    bool canConsumeFloat32() const { return arrayType_ == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 
@@ -5589,8 +5466,6 @@ class MStoreTypedArrayElementStatic :
         return AliasSet::Store(AliasSet::TypedArrayElement);
     }
     bool isOperandTruncated(size_t index) const;
-
-    bool canConsumeFloat32() const { return typedArray_->type() == ScalarTypeRepresentation::TYPE_FLOAT32; }
 };
 
 
@@ -5710,7 +5585,7 @@ class MLoadFixedSlot
 
 class MStoreFixedSlot
   : public MBinaryInstruction,
-    public MixPolicy<SingleObjectPolicy, NoFloatPolicy<1> >
+    public SingleObjectPolicy
 {
     bool needsBarrier_;
     size_t slot_;
@@ -6531,7 +6406,7 @@ class MForkJoinSlice
 
 class MStoreSlot
   : public MBinaryInstruction,
-    public MixPolicy<ObjectPolicy<0>, NoFloatPolicy<1> >
+    public SingleObjectPolicy
 {
     uint32_t slot_;
     MIRType slotType_;
@@ -6831,7 +6706,7 @@ class MCallSetProperty
 
 class MSetPropertyCache
   : public MSetPropertyInstruction,
-    public MixPolicy<SingleObjectPolicy, NoFloatPolicy<1> >
+    public SingleObjectPolicy
 {
     bool needsTypeBarrier_;
 
