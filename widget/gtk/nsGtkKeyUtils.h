@@ -12,6 +12,7 @@
 #include "mozilla/EventForwards.h"
 
 #include <gdk/gdk.h>
+#include <X11/XKBlib.h>
 
 namespace mozilla {
 namespace widget {
@@ -208,7 +209,33 @@ protected:
     
 
 
+
+
+
+    XKeyboardState mKeyboardState;
+
+    
+
+
     static KeymapWrapper* sInstance;
+
+    
+
+
+    static guint sLastRepeatableHardwareKeyCode;
+    enum RepeatState
+    {
+        NOT_PRESSED,
+        FIRST_PRESS,
+        REPEATING
+    };
+    static RepeatState sRepeatState;
+
+    
+
+
+
+    bool IsAutoRepeatableKey(guint aHardwareKeyCode);
 
     
 
@@ -295,6 +322,15 @@ protected:
 
     void InitKeypressEvent(WidgetKeyboardEvent& aKeyEvent,
                            GdkEventKey* aGdkKeyEvent);
+
+    
+
+
+
+
+    static GdkFilterReturn FilterEvents(GdkXEvent* aXEvent,
+                                        GdkEvent* aGdkEvent,
+                                        gpointer aData);
 };
 
 } 
