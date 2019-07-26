@@ -16,7 +16,6 @@ var Downloads = {
   _dlmgr: null,
   _progressAlert: null,
   _privateDownloads: [],
-  isForeground : true,
 
   _getLocalFile: function dl__getLocalFile(aFileURI) {
     
@@ -35,8 +34,6 @@ var Downloads = {
     this._progressAlert = new AlertDownloadProgressListener();
     this._dlmgr.addPrivacyAwareListener(this._progressAlert);
     Services.obs.addObserver(this, "last-pb-context-exited", true);
-    Services.obs.addObserver(this, "application-background", false);
-    Services.obs.addObserver(this, "application-foreground", false);
   },
 
   openDownload: function dl_openDownload(aDownload) {
@@ -107,29 +104,16 @@ var Downloads = {
 
   
   observe: function dl_observe(aSubject, aTopic, aData) {
-    switch (aTopic) {
-      case "last-pb-context-exited": {
-        let alertsService = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
-        let progressListener = alertsService.QueryInterface(Ci.nsIAlertsProgressListener);
-        let download;
-        while ((download = this._privateDownloads.pop())) {
-          try {
-            let notificationName = download.target.spec.replace("file:", "download:");
-            progressListener.onCancel(notificationName);
-          } catch (e) {
-            dump("Error removing private download: " + e);
-          }
-        }
-        break;
+    let alertsService = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
+    let progressListener = alertsService.QueryInterface(Ci.nsIAlertsProgressListener);
+    let download;
+    while ((download = this._privateDownloads.pop())) {
+      try {
+        let notificationName = download.target.spec.replace("file:", "download:");
+        progressListener.onCancel(notificationName);
+      } catch (e) {
+        dump("Error removing private download: " + e);
       }
-
-      case "application-foreground":
-        this.isForeground = true;
-        break;
-
-      case "application-background":
-        this.isForeground = false;
-        break;
     }
   },
 
@@ -197,14 +181,8 @@ AlertDownloadProgressListener.prototype = {
             this._privateDownloads.splice(index, 1);
           }
         }
-        
-        
-        let existsAvailableHandler = (aDownload.MIMEInfo && aDownload.MIMEInfo.possibleApplicationHandlers.length > 1);
 
-        
-        
-        if (state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED &&
-            !(existsAvailableHandler && Downloads.isForeground)) {
+        if (state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
           Downloads.showAlert(aDownload, Strings.browser.GetStringFromName("alertDownloadsDone2"),
                               aDownload.displayName);
         }
