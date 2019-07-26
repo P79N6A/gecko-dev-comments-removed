@@ -69,6 +69,30 @@ const BackgroundPageThumbs = {
     this._processCaptureQueue();
   },
 
+  observe: function(subject, topic, data) {
+    
+    if (this._thumbBrowser) {
+      let frameLoader = subject.QueryInterface(Ci.nsIFrameLoader);
+      if (this._thumbBrowser.messageManager == frameLoader.messageManager) {
+        Cu.reportError("BackgroundThumbnails remote process crashed - recovering");
+        this._destroyBrowser();
+        let curCapture = this._captureQueue.length ? this._captureQueue[0] : null;
+        
+        
+        
+        
+        
+        if (curCapture && curCapture.pending) {
+          curCapture._done(null);
+          
+        }
+        
+        
+        
+      }
+    }
+  },
+
   
 
 
@@ -149,11 +173,18 @@ const BackgroundPageThumbs = {
 
     browser.messageManager.loadFrameScript(FRAME_SCRIPT_URL, false);
     this._thumbBrowser = browser;
+    
+    
+    
+    
+    
+    Services.obs.addObserver(this, "oop-frameloader-crashed", false);
   },
 
   _destroyBrowser: function () {
     if (!this._thumbBrowser)
       return;
+    Services.obs.removeObserver(this, "oop-frameloader-crashed");
     this._thumbBrowser.remove();
     delete this._thumbBrowser;
   },
@@ -178,6 +209,7 @@ const BackgroundPageThumbs = {
   },
 
   
+
 
 
   _onCaptureOrTimeout: function (capture) {
