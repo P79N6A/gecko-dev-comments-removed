@@ -483,6 +483,14 @@ class XPCShellTestThread(Thread):
             for part in output:
                 
                 for line in part.splitlines():
+                    try:
+                        line = line.decode('utf-8')
+                    except UnicodeDecodeError:
+                        self.log.info("TEST-INFO | %s | Detected non UTF-8 output."\
+                                      " Please modify the test to only print UTF-8." %
+                                      self.test_object['name'])
+                        
+                        line = line.decode('utf-8', 'replace')
                     self.log.info(line)
         self.log.info("<<<<<<<")
 
