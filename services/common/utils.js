@@ -10,7 +10,7 @@ Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm")
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://gre/modules/Log.jsm");
 
 this.CommonUtils = {
   exceptionStr: function exceptionStr(e) {
@@ -88,7 +88,7 @@ this.CommonUtils = {
     try {
       return Services.io.newURI(URIString, null, null);
     } catch (e) {
-      let log = Log4Moz.repository.getLogger("Common.Utils");
+      let log = Log.repository.getLogger("Common.Utils");
       log.debug("Could not create URI: " + CommonUtils.exceptionStr(e));
       return null;
     }

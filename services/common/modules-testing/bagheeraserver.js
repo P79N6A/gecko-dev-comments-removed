@@ -8,7 +8,7 @@ const {utils: Cu} = Components;
 
 this.EXPORTED_SYMBOLS = ["BagheeraServer"];
 
-Cu.import("resource://services-common/log4moz.js");
+Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/utils.js");
 Cu.import("resource://testing-common/httpd.js");
 
@@ -23,7 +23,7 @@ Cu.import("resource://testing-common/httpd.js");
 
 
 this.BagheeraServer = function BagheeraServer() {
-  this._log = Log4Moz.repository.getLogger("metrics.BagheeraServer");
+  this._log = Log.repository.getLogger("metrics.BagheeraServer");
 
   this.server = new HttpServer();
   this.namespaces = {};
