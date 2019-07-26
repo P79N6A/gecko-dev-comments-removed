@@ -97,28 +97,39 @@ nsReturnRef<HRTFKernel> HRTFElevation::calculateKernelForAzimuthElevation(int az
 
     const int16_t (&impulse_response_data)[ResponseFrameSize] =
         irc_composite_c_r0195[elevationIndex].azimuths[azimuthIndex];
-    float floatResponse[ResponseFrameSize];
-    ConvertAudioSamples(impulse_response_data, floatResponse,
-                        ResponseFrameSize);
 
     
-    const size_t responseLength = fftSizeForSampleRate(sampleRate) / 2;
+    
+    
+    
+#ifdef MOZ_SAMPLE_TYPE_S16
+#  define RESAMPLER_PROCESS speex_resampler_process_int
+    const int16_t* response = impulse_response_data;
+    const int16_t* resampledResponse;
+#else
+#  define RESAMPLER_PROCESS speex_resampler_process_float
+    float response[ResponseFrameSize];
+    ConvertAudioSamples(impulse_response_data, response, ResponseFrameSize);
+    float* resampledResponse;
+#endif
 
-    float* response;
-    nsAutoTArray<float, 2 * ResponseFrameSize> resampled;
+    
+    const size_t resampledResponseLength = fftSizeForSampleRate(sampleRate) / 2;
+
+    nsAutoTArray<AudioDataValue, 2 * ResponseFrameSize> resampled;
     if (sampleRate == rawSampleRate) {
-        response = floatResponse;
-        MOZ_ASSERT(responseLength == ResponseFrameSize);
+        resampledResponse = response;
+        MOZ_ASSERT(resampledResponseLength == ResponseFrameSize);
     } else {
-        resampled.SetLength(responseLength);
-        response = resampled.Elements();
+        resampled.SetLength(resampledResponseLength);
+        resampledResponse = resampled.Elements();
         speex_resampler_skip_zeros(resampler);
 
         
         spx_uint32_t in_len = ResponseFrameSize;
         spx_uint32_t out_len = resampled.Length();
-        speex_resampler_process_float(resampler, 0, floatResponse, &in_len,
-                                      response, &out_len);
+        RESAMPLER_PROCESS(resampler, 0, response, &in_len,
+                          resampled.Elements(), &out_len);
 
         if (out_len < resampled.Length()) {
             
@@ -126,23 +137,35 @@ nsReturnRef<HRTFKernel> HRTFElevation::calculateKernelForAzimuthElevation(int az
             
             spx_uint32_t out_index = out_len;
             in_len = speex_resampler_get_input_latency(resampler);
-            nsAutoTArray<float, 256> zeros;
+            nsAutoTArray<AudioDataValue, 256> zeros;
             zeros.SetLength(in_len);
             PodZero(zeros.Elements(), in_len);
             out_len = resampled.Length() - out_index;
-            speex_resampler_process_float(resampler, 0,
-                                          zeros.Elements(), &in_len,
-                                          response + out_index, &out_len);
+            RESAMPLER_PROCESS(resampler, 0,
+                              zeros.Elements(), &in_len,
+                              resampled.Elements() + out_index, &out_len);
             out_index += out_len;
             
             
-            PodZero(response + out_index, resampled.Length() - out_index);
+            PodZero(resampled.Elements() + out_index,
+                    resampled.Length() - out_index);
         }
 
         speex_resampler_reset_mem(resampler);
     }
 
-    return HRTFKernel::create(response, responseLength, sampleRate);
+#ifdef MOZ_SAMPLE_TYPE_S16
+    nsAutoTArray<float, 2 * ResponseFrameSize> floatArray;
+    floatArray.SetLength(resampledResponseLength);
+    float *floatResponse = floatArray.Elements();
+    ConvertAudioSamples(resampledResponse,
+                        floatResponse, resampledResponseLength);
+#else
+    float *floatResponse = resampledResponse;
+#endif
+#undef RESAMPLER_PROCESS
+
+    return HRTFKernel::create(floatResponse, resampledResponseLength, sampleRate);
 }
 
 
