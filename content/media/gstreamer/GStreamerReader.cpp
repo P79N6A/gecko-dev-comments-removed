@@ -184,6 +184,16 @@ void GStreamerReader::PlayBinSourceSetup(GstAppSrc *aSource)
   mSource = GST_APP_SRC(aSource);
   gst_app_src_set_callbacks(mSource, &mSrcCallbacks, (gpointer) this, NULL);
   MediaResource* resource = mDecoder->GetResource();
+
+  
+
+
+  char buf[512];
+  unsigned int size = 0;
+  resource->Read(buf, sizeof(buf), &size);
+  resource->Seek(SEEK_SET, 0);
+
+  
   int64_t len = resource->GetLength();
   gst_app_src_set_size(mSource, len);
   if (resource->IsDataCachedToEndOfResource(0) ||
@@ -191,11 +201,12 @@ void GStreamerReader::PlayBinSourceSetup(GstAppSrc *aSource)
     
 
 
-    LOG(PR_LOG_ERROR, ("configuring random access"));
+    LOG(PR_LOG_DEBUG, ("configuring random access, len %lld", len));
     gst_app_src_set_stream_type(mSource, GST_APP_STREAM_TYPE_RANDOM_ACCESS);
   } else {
     
 
+    LOG(PR_LOG_DEBUG, ("configuring push mode, len %lld", len));
     gst_app_src_set_stream_type(mSource, GST_APP_STREAM_TYPE_SEEKABLE);
   }
 }
