@@ -48,9 +48,11 @@ var PLUGINS = [{
   blocklisted: false
 }];
 
+var gBlocklistService = null;
 var gNotifier = null;
 var gNextTest = null;
 var gServer = null;
+var gPluginHost = null;
 
 function test_basic() {
   var blocklist = Components.classes["@mozilla.org/extensions/blocklist;1"].getService(nsIBLS);
@@ -85,7 +87,10 @@ function get_test_plugin() {
 
 function test_is_not_clicktoplay() {
   var plugin = get_test_plugin();
-  do_check_false(plugin.clicktoplay);
+  var blocklistState = gBlocklistService.getPluginBlocklistState(plugin, "1", "1.9");
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE);
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE);
+  do_check_false(gPluginHost.isPluginClickToPlayForType("application/x-test"));
 
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/test_pluginBlocklistCtpUndo.xml");
   gNextTest = test_is_clicktoplay;
@@ -96,7 +101,9 @@ function test_is_not_clicktoplay() {
 
 function test_is_clicktoplay() {
   var plugin = get_test_plugin();
-  do_check_true(plugin.clicktoplay);
+  var blocklistState = gBlocklistService.getPluginBlocklistState(plugin, "1", "1.9");
+  do_check_eq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE);
+  do_check_true(gPluginHost.isPluginClickToPlayForType("application/x-test"));
 
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/test_pluginBlocklistCtp.xml");
   gNextTest = test_is_not_clicktoplay2;
@@ -107,25 +114,42 @@ function test_is_clicktoplay() {
 
 function test_is_not_clicktoplay2() {
   var plugin = get_test_plugin();
-  do_check_false(plugin.clicktoplay);
+  var blocklistState = gBlocklistService.getPluginBlocklistState(plugin, "1", "1.9");
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE);
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE);
+  do_check_false(gPluginHost.isPluginClickToPlayForType("application/x-test"));
 
-  plugin.clicktoplay = true;
-  gNextTest = test_is_clicktoplay2;
+  Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/test_pluginBlocklistCtpUndo.xml");
+  gNextTest = test_disable_blocklist;
   gNotifier.notify(null);
 }
 
 
 
-function test_is_clicktoplay2() {
+function test_disable_blocklist() {
   var plugin = get_test_plugin();
-  do_check_true(plugin.clicktoplay);
+  var blocklistState = gBlocklistService.getPluginBlocklistState(plugin, "1", "1.9");
+  do_check_eq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE);
+  do_check_true(gPluginHost.isPluginClickToPlayForType("application/x-test"));
+
+  gNextTest = null;
+  Services.prefs.setBoolPref("extensions.blocklist.enabled", false);
+  blocklistState = gBlocklistService.getPluginBlocklistState(plugin, "1", "1.9");
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_NO_UPDATE);
+  do_check_neq(blocklistState, Components.interfaces.nsIBlocklistService.STATE_VULNERABLE_UPDATE_AVAILABLE);
+  do_check_false(gPluginHost.isPluginClickToPlayForType("application/x-test"));
+
+  
+  Services.prefs.setBoolPref("plugins.click_to_play", true);
+  do_check_true(gPluginHost.isPluginClickToPlayForType("application/x-test"));
 
   gServer.stop(do_test_finished);
 }
 
 
 function observer() {
-  do_execute_soon(gNextTest);
+  if (gNextTest)
+    do_execute_soon(gNextTest);
 }
 
 function run_test() {
@@ -138,14 +162,16 @@ function run_test() {
   Services.prefs.setCharPref("extensions.blocklist.url", "http://localhost:4444/data/test_pluginBlocklistCtp.xml");
   startupManager();
 
+  gPluginHost = Components.classes["@mozilla.org/plugin/host;1"].getService(Components.interfaces.nsIPluginHost);
+  gBlocklistService = Components.classes["@mozilla.org/extensions/blocklist;1"].getService(Components.interfaces.nsIBlocklistService);
   gNotifier = Components.classes["@mozilla.org/extensions/blocklist;1"].getService(Components.interfaces.nsITimerCallback);
   Services.obs.addObserver(observer, "blocklist-updated", false);
 
   do_register_cleanup(function() {
     Services.prefs.clearUserPref("extensions.blocklist.url");
+    Services.prefs.clearUserPref("extensions.blocklist.enabled");
+    Services.prefs.clearUserPref("plugins.click_to_play");
     Services.obs.removeObserver(observer, "blocklist-updated");
-    var plugin = get_test_plugin();
-    plugin.clicktoplay = false;
   });
 
   gNextTest = test_basic;
