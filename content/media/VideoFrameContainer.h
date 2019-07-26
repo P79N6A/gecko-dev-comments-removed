@@ -96,8 +96,6 @@ protected:
   
   
   bool mImageSizeChanged;
-
-  bool mNeedInvalidation;
 };
 
 }

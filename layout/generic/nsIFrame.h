@@ -2318,7 +2318,13 @@ public:
 
 
 
-  Layer* InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect = nullptr);
+
+
+
+  enum {
+    UPDATE_IS_ASYNC = 1 << 0
+  };
+  Layer* InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect = nullptr, uint32_t aFlags = 0);
 
   
 

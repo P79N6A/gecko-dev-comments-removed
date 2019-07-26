@@ -4995,11 +4995,21 @@ nsIFrame::SchedulePaint(uint32_t aFlags)
 }
 
 Layer*
-nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey, const nsIntRect* aDamageRect)
+nsIFrame::InvalidateLayer(uint32_t aDisplayItemKey,
+                          const nsIntRect* aDamageRect,
+                          uint32_t aFlags )
 {
   NS_ASSERTION(aDisplayItemKey > 0, "Need a key");
 
   Layer* layer = FrameLayerBuilder::GetDedicatedLayer(this, aDisplayItemKey);
+
+  
+  
+  if ((aFlags & UPDATE_IS_ASYNC) && layer &&
+      layer->Manager()->GetBackendType() == LAYERS_CLIENT) {
+    return layer;
+  }
+
   if (aDamageRect && aDamageRect->IsEmpty()) {
     return layer;
   }
