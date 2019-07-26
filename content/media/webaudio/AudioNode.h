@@ -87,13 +87,6 @@ public:
   
   virtual void DestroyMediaStream();
 
-  
-  
-  virtual bool SupportsMediaStreams() const
-  {
-    return false;
-  }
-
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioNode,
                                            nsDOMEventTargetHelper)
