@@ -1094,6 +1094,11 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
     }
     break;
   }
+  case NS_POINTER_CANCEL:
+  {
+    GenerateMouseEnterExit(mouseEvent);
+    break;
+  }
   case NS_MOUSE_EXIT:
     
     
@@ -4440,6 +4445,7 @@ nsEventStateManager::GenerateMouseEnterExit(WidgetMouseEvent* aMouseEvent)
     }
     break;
   case NS_POINTER_LEAVE:
+  case NS_POINTER_CANCEL:
   case NS_MOUSE_EXIT:
     {
       
