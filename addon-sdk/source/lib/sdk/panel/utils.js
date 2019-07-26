@@ -236,7 +236,12 @@ function make(document) {
   let viewFrame = createFrame(panel, frameOptions);
   setupPanelFrame(viewFrame);
 
-  function onDisplayChange({type}) {
+  function onDisplayChange({type, target}) {
+    
+    
+    
+    if (target !== this) return;
+
     try { swapFrameLoaders(backgroundFrame, viewFrame); }
     catch(error) { console.exception(error); }
     events.emit(type, { subject: panel });
