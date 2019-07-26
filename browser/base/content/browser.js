@@ -1571,19 +1571,11 @@ var gBrowserInit = {
     }
 
     
-    let chromeEnabled = gPrefService.getBoolPref("devtools.chrome.enabled");
-    let remoteEnabled = chromeEnabled &&
-                        gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
-                        gPrefService.getBoolPref("devtools.debugger.remote-enabled");
-    if (remoteEnabled) {
+    let enabled = gPrefService.getBoolPref("devtools.chrome.enabled") &&
+                  gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
+                  gPrefService.getBoolPref("devtools.debugger.remote-enabled");
+    if (enabled) {
       let cmd = document.getElementById("Tools:ChromeDebugger");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    if (chromeEnabled) {
-      let cmd = document.getElementById("Tools:BrowserConsole");
       cmd.removeAttribute("disabled");
       cmd.removeAttribute("hidden");
     }
@@ -1591,7 +1583,7 @@ var gBrowserInit = {
     
     
     let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled") ||
-                         chromeEnabled;
+                         gPrefService.getBoolPref("devtools.chrome.enabled");
     if (consoleEnabled) {
       let cmd = document.getElementById("Tools:ErrorConsole");
       cmd.removeAttribute("disabled");
@@ -1814,6 +1806,10 @@ var gBrowserInit = {
     }
 
     SocialUI.nonBrowserWindowInit();
+
+    if (PrivateBrowsingUtils.permanentPrivateBrowsing) {
+      document.getElementById("macDockMenuNewWindow").hidden = true;
+    }
 
     this._delayedStartupTimeoutId = setTimeout(this.nonBrowserWindowDelayedStartup.bind(this), 0);
   },
