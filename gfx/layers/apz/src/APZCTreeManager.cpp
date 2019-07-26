@@ -268,6 +268,17 @@ APZCTreeManager::UpdatePanZoomControllerTree(CompositorParent* aCompositor,
         }
 
         
+        
+        
+        
+        
+        
+        if (aLayersId == aOriginatingLayersId && apzc->GetParent()) {
+          aPaintLogger.LogTestData(metrics.GetScrollId(), "parentScrollId",
+              apzc->GetParent()->GetGuid().mScrollId);
+        }
+
+        
         aParent = apzc;
 
         if (newApzc) {
