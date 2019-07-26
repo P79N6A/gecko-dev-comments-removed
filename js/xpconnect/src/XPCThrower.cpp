@@ -10,6 +10,7 @@
 #include "xpcpublic.h"
 #include "XPCWrapper.h"
 #include "jsprf.h"
+#include "nsDOMException.h"
 
 bool XPCThrower::sVerbose = true;
 
@@ -45,8 +46,7 @@ Throw(JSContext *cx, nsresult rv)
 bool
 XPCThrower::CheckForPendingException(nsresult result, JSContext *cx)
 {
-    nsCOMPtr<nsIException> e;
-    XPCJSRuntime::Get()->GetPendingException(getter_AddRefs(e));
+    nsCOMPtr<nsIException> e = XPCJSRuntime::Get()->GetPendingException();
     if (!e)
         return false;
     XPCJSRuntime::Get()->SetPendingException(nullptr);
@@ -178,32 +178,52 @@ XPCThrower::BuildAndThrowException(JSContext* cx, nsresult rv, const char* sz)
     
     if (rv == NS_ERROR_XPC_SECURITY_MANAGER_VETO && JS_IsExceptionPending(cx))
         return;
-    nsCOMPtr<nsIException> finalException;
-    nsCOMPtr<nsIException> defaultException;
-    nsXPCException::NewException(sz, rv, nullptr, nullptr, getter_AddRefs(defaultException));
 
-    nsIExceptionManager * exceptionManager = XPCJSRuntime::Get()->GetExceptionManager();
-    if (exceptionManager) {
-        
-        
-        exceptionManager->GetExceptionFromProvider(rv,
-                                                   defaultException,
-                                                   getter_AddRefs(finalException));
-        
-        
-        if (finalException == nullptr) {
-            finalException = defaultException;
+    XPCJSRuntime* runtime = XPCJSRuntime::Get();
+    nsCOMPtr<nsIException> existingException = runtime->GetPendingException();
+    if (existingException) {
+        nsresult nr;
+        if (NS_SUCCEEDED(existingException->GetResult(&nr)) && 
+            rv == nr) {
+            
+            return;
         }
     }
 
+    nsCOMPtr<nsIException> finalException;
+    nsCOMPtr<nsIException> defaultException;
+    nsXPCException::NewException(sz, rv, nullptr, nullptr,
+                                 getter_AddRefs(defaultException));
+
+    
+    switch (NS_ERROR_GET_MODULE(rv)) {
+    case NS_ERROR_MODULE_DOM:
+    case NS_ERROR_MODULE_SVG:
+    case NS_ERROR_MODULE_DOM_XPATH:
+    case NS_ERROR_MODULE_DOM_INDEXEDDB:
+    case NS_ERROR_MODULE_DOM_FILEHANDLE:
+        if (NS_IsMainThread()) {
+            NS_NewDOMException(rv, defaultException,
+                               getter_AddRefs(finalException));
+        }
+        break;
+
+    default:
+        break;
+    }
+
+    
+    if (finalException == nullptr) {
+        finalException = defaultException;
+    }
+
+    MOZ_ASSERT(finalException);
+    success = ThrowExceptionObject(cx, finalException);
     
     
-    if (finalException)
-        success = ThrowExceptionObject(cx, finalException);
-    
-    
-    if (!success)
+    if (!success) {
         JS_ReportOutOfMemory(cx);
+    }
 }
 
 static bool
