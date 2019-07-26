@@ -1262,6 +1262,10 @@ jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
                           const ExceptionBailoutInfo *excInfo)
 {
+    
+    
+    JS_ASSERT(cx->mainThread().suppressGC);
+
     JS_ASSERT(bailoutInfo != nullptr);
     JS_ASSERT(*bailoutInfo == nullptr);
 
