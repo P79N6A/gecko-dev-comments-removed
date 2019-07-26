@@ -222,6 +222,9 @@ public:
   void Drain();
 
   
+  void Cancel();
+
+  
   void Start();
 
   
