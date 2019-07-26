@@ -147,9 +147,7 @@ var SelectionHandler = {
 
           
           this._ignoreCompositionChanges = true;
-
-          
-          this._sendMouseEvents(data.x, data.y);
+          this._moveCaret(data.x, data.y);
 
           
           this._positionHandles();
@@ -810,10 +808,7 @@ var SelectionHandler = {
     }
   },
 
-  _sendMouseEvents: function sh_sendMouseEvents(aX, aY, useShift) {
-    
-    
-    if (this._activeType == this.TYPE_CURSOR) {
+  _moveCaret: function sh_moveCaret(aX, aY) {
       
       let range = document.createRange();
       range.selectNodeContents(this._targetElement.QueryInterface(Ci.nsIDOMNSEditableElement).editor.rootElement);
@@ -853,13 +848,9 @@ var SelectionHandler = {
         aX = rect.x + rect.width;
         this._getSelectionController().scrollCharacter(true);
       }
-    } else if (this._activeType == this.TYPE_SELECTION) {
-      
-      aY -= 1;
-    }
 
-    this._domWinUtils.sendMouseEventToWindow("mousedown", aX, aY, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
-    this._domWinUtils.sendMouseEventToWindow("mouseup", aX, aY, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
+    this._domWinUtils.sendMouseEventToWindow("mousedown", aX, aY, 0, 0, 0, true);
+    this._domWinUtils.sendMouseEventToWindow("mouseup", aX, aY, 0, 0, 0, true);
   },
 
   copySelection: function sh_copySelection() {
