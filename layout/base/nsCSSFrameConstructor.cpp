@@ -7617,13 +7617,22 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
 
 
 
+
+
+
+
+
 static void
-UpdateViewsForTree(nsIFrame* aFrame,
-                   nsFrameManager* aFrameManager,
-                   nsChangeHint aChange)
+SyncViewsAndInvalidateDescendants(nsIFrame* aFrame,
+                                  nsFrameManager* aFrameManager,
+                                  nsChangeHint aChange)
 {
   NS_PRECONDITION(gInApplyRenderingChangeToTree,
                   "should only be called within ApplyRenderingChangeToTree");
+  NS_ASSERTION(aChange == (aChange & (nsChangeHint_RepaintFrame |
+                                      nsChangeHint_SyncFrameView |
+                                      nsChangeHint_UpdateOpacityLayer)),
+               "Invalid change flag");
 
   nsView* view = aFrame->GetView();
   if (view) {
@@ -7652,7 +7661,7 @@ UpdateViewsForTree(nsIFrame* aFrame,
           DoApplyRenderingChangeToTree(child, aFrameManager,
                                        aChange);
         } else {  
-          UpdateViewsForTree(child, aFrameManager, aChange);
+          SyncViewsAndInvalidateDescendants(child, aFrameManager, aChange);
         }
       }
     }
@@ -7714,13 +7723,10 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     
     
     
-    
-    
-    
-    UpdateViewsForTree(aFrame, aFrameManager,
-                       nsChangeHint(aChange & (nsChangeHint_RepaintFrame |
-                                               nsChangeHint_SyncFrameView |
-                                               nsChangeHint_UpdateOpacityLayer)));
+    SyncViewsAndInvalidateDescendants(aFrame, aFrameManager,
+      nsChangeHint(aChange & (nsChangeHint_RepaintFrame |
+                              nsChangeHint_SyncFrameView |
+                              nsChangeHint_UpdateOpacityLayer)));
     
     
     
