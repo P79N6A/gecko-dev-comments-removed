@@ -136,6 +136,11 @@ public:
   
 
 
+  virtual void RequestRepaint() { }
+
+  
+
+
   virtual nsEventStatus HandleEvent(nsGUIEvent* event, bool useAttachedEvents)
   {
     return nsEventStatus_eIgnore;
