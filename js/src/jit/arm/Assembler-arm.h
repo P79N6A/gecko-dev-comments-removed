@@ -1304,11 +1304,16 @@ class Assembler
         m_buffer.initWithAllocator();
 
         
-        new (&pools_[2]) Pool (1024, 8, 4, 8, 8, m_buffer.LifoAlloc_, true);
+        
+        
+        
+
+        
+        new (&pools_[2]) Pool (1020, 8, 4, 8, 8, m_buffer.LifoAlloc_, true);
         
         new (&pools_[3]) Pool (4096, 4, 4, 8, 4, m_buffer.LifoAlloc_, true, true);
         
-        new (doublePool) Pool (1024, 8, 4, 8, 8, m_buffer.LifoAlloc_, false, false, &pools_[2]);
+        new (doublePool) Pool (1020, 8, 4, 8, 8, m_buffer.LifoAlloc_, false, false, &pools_[2]);
         
         new (int32Pool) Pool (4096, 4, 4, 8, 4, m_buffer.LifoAlloc_, false, true, &pools_[3]);
         for (int i = 0; i < 4; i++) {
