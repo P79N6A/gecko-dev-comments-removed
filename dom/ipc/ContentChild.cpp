@@ -671,8 +671,18 @@ ContentChild::DeallocPBlobChild(PBlobChild* aActor)
 BlobChild*
 ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
-  NS_ASSERTION(aBlob, "Null pointer!");
+  MOZ_ASSERT(NS_IsMainThread());
+  MOZ_ASSERT(aBlob);
+
+  
+  
+  if (nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(aBlob)) {
+    BlobChild* actor =
+      static_cast<BlobChild*>(
+        static_cast<PBlobChild*>(remoteBlob->GetPBlob()));
+    MOZ_ASSERT(actor);
+    return actor;
+  }
 
   
   
@@ -680,19 +690,42 @@ ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
   const nsDOMFileBase* blob = static_cast<nsDOMFileBase*>(aBlob);
 
   
+  
+  
+  const nsTArray<nsCOMPtr<nsIDOMBlob> >* subBlobs = blob->GetSubBlobs();
+  if (subBlobs && subBlobs->Length() == 1) {
+    const nsCOMPtr<nsIDOMBlob>& subBlob = subBlobs->ElementAt(0);
+    MOZ_ASSERT(subBlob);
+
+    
+    
+    nsCOMPtr<nsIDOMFile> multipartBlobAsFile = do_QueryInterface(aBlob);
+    nsCOMPtr<nsIDOMFile> subBlobAsFile = do_QueryInterface(subBlob);
+    if (!multipartBlobAsFile == !subBlobAsFile) {
+      
+      
+      if (nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(subBlob)) {
+        BlobChild* actor =
+          static_cast<BlobChild*>(
+            static_cast<PBlobChild*>(remoteBlob->GetPBlob()));
+        MOZ_ASSERT(actor);
+        return actor;
+      }
+
+      
+      
+      
+      aBlob = subBlob;
+      blob = static_cast<nsDOMFileBase*>(aBlob);
+      subBlobs = blob->GetSubBlobs();
+    }
+  }
+
+  
   nsCOMPtr<nsIMutable> mutableBlob = do_QueryInterface(aBlob);
   if (!mutableBlob || NS_FAILED(mutableBlob->SetMutable(false))) {
     NS_WARNING("Failed to make blob immutable!");
     return nullptr;
-  }
-
-  nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(aBlob);
-  if (remoteBlob) {
-    BlobChild* actor =
-      static_cast<BlobChild*>(static_cast<PBlobChild*>(remoteBlob->GetPBlob()));
-    NS_ASSERTION(actor, "Null actor?!");
-
-    return actor;
   }
 
   ParentBlobConstructorParams params;
@@ -743,16 +776,12 @@ ContentChild::GetOrCreateActorForBlob(nsIDOMBlob* aBlob)
       blobParams.length() = length;
       params.blobParams() = blobParams;
     }
-    }
+  }
 
   BlobChild* actor = BlobChild::Create(this, aBlob);
   NS_ENSURE_TRUE(actor, nullptr);
 
-  if (!SendPBlobConstructor(actor, params)) {
-        return nullptr;
-      }
-
-  return actor;
+  return SendPBlobConstructor(actor, params) ? actor : nullptr;
 }
 
 PCrashReporterChild*
