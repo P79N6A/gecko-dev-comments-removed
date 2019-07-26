@@ -1,0 +1,76 @@
+
+
+
+
+
+
+#ifndef mozilla_dom_MobileNetworkInfo_h
+#define mozilla_dom_MobileNetworkInfo_h
+
+#include "mozilla/dom/MozMobileNetworkInfoBinding.h"
+#include "nsIMobileNetworkInfo.h"
+#include "nsPIDOMWindow.h"
+#include "nsWrapperCache.h"
+
+namespace mozilla {
+namespace dom {
+
+class GlobalObject;
+
+class MobileNetworkInfo MOZ_FINAL : public nsIMobileNetworkInfo
+                                  , public nsWrapperCache
+{
+public:
+  NS_DECL_NSIMOBILENETWORKINFO
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(MobileNetworkInfo)
+
+  MobileNetworkInfo(nsPIDOMWindow* aWindow);
+
+  void
+  Update(nsIMobileNetworkInfo* aInfo);
+
+  nsPIDOMWindow*
+  GetParentObject() const
+  {
+    return mWindow;
+  }
+
+  virtual JSObject*
+  WrapObject(JSContext* aCx) MOZ_OVERRIDE;
+
+  
+  static already_AddRefed<MobileNetworkInfo>
+  Constructor(const GlobalObject& aGlobal, const nsAString& aShortName,
+              const nsAString& aLongName, const nsAString& aMcc,
+              const nsAString& aMnc, const nsAString& aState,
+              ErrorResult& aRv);
+
+  Nullable<MobileNetworkState>
+  GetState() const
+  {
+    uint32_t i = 0;
+    for (const EnumEntry* entry = MobileNetworkStateValues::strings;
+         entry->value;
+         ++entry, ++i) {
+      if (mState.EqualsASCII(entry->value)) {
+        return Nullable<MobileNetworkState>(static_cast<MobileNetworkState>(i));
+      }
+    }
+
+    return Nullable<MobileNetworkState>();
+  }
+
+private:
+  nsCOMPtr<nsPIDOMWindow> mWindow;
+  nsString mShortName;
+  nsString mLongName;
+  nsString mMcc;
+  nsString mMnc;
+  nsString mState;
+};
+
+} 
+} 
+
+#endif 
