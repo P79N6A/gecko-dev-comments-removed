@@ -1440,7 +1440,11 @@ class StackSpace
     void markActiveCompartments();
 
     
-    JS_FRIEND_API(size_t) sizeOfCommitted();
+
+
+
+
+    JS_FRIEND_API(size_t) sizeOf();
 
 #ifdef DEBUG
     
