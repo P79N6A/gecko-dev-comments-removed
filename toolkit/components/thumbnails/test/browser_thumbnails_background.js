@@ -205,7 +205,7 @@ let tests = [
     yield deferred.promise;
   },
 
-  function noCookies() {
+  function noCookiesSent() {
     
     let url = testPageURL({ setGreenCookie: true });
     let tab = gBrowser.loadOneTab(url, { inBackground: false });
@@ -241,6 +241,27 @@ let tests = [
       deferred.resolve();
     });
     yield deferred.promise;
+  },
+
+  
+  
+  function noCookiesStored() {
+    let url = testPageURL({ setRedCookie: true });
+    yield capture(url);
+    let file = fileForURL(url);
+    ok(file.exists(), "Thumbnail file should exist after capture.");
+    
+    
+    let tab = gBrowser.loadOneTab(url, { inBackground: false });
+    let browser = tab.linkedBrowser;
+    yield onPageLoad(browser);
+
+    
+    let redStr = "rgb(255, 0, 0)";
+    isnot(browser.contentDocument.documentElement.style.backgroundColor,
+          redStr,
+          "The page shouldn't be red.");
+    gBrowser.removeTab(tab);
   },
 
   
