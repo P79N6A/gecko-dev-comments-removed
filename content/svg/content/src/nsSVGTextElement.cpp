@@ -135,7 +135,7 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGTextElement)
 
 
 NS_IMETHODIMP
-nsSVGTextElement::GetX(nsIDOMSVGAnimatedLengthList * *aX)
+nsSVGTextElement::GetX(nsISupports * *aX)
 {
   *aX = DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[X],
                                                 this, X, SVGContentUtils::X).get();
@@ -144,7 +144,7 @@ nsSVGTextElement::GetX(nsIDOMSVGAnimatedLengthList * *aX)
 
 
 NS_IMETHODIMP
-nsSVGTextElement::GetY(nsIDOMSVGAnimatedLengthList * *aY)
+nsSVGTextElement::GetY(nsISupports * *aY)
 {
   *aY = DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[Y],
                                                 this, Y, SVGContentUtils::Y).get();
@@ -153,7 +153,7 @@ nsSVGTextElement::GetY(nsIDOMSVGAnimatedLengthList * *aY)
 
 
 NS_IMETHODIMP
-nsSVGTextElement::GetDx(nsIDOMSVGAnimatedLengthList * *aDx)
+nsSVGTextElement::GetDx(nsISupports * *aDx)
 {
   *aDx = DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[DX],
                                                  this, DX, SVGContentUtils::X).get();
@@ -162,7 +162,7 @@ nsSVGTextElement::GetDx(nsIDOMSVGAnimatedLengthList * *aDx)
 
 
 NS_IMETHODIMP
-nsSVGTextElement::GetDy(nsIDOMSVGAnimatedLengthList * *aDy)
+nsSVGTextElement::GetDy(nsISupports * *aDy)
 {
   *aDy = DOMSVGAnimatedLengthList::GetDOMWrapper(&mLengthListAttributes[DY],
                                                  this, DY, SVGContentUtils::Y).get();

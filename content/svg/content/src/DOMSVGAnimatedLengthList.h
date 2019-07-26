@@ -9,7 +9,6 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsIDOMSVGAnimatedLengthList.h"
 #include "nsSVGElement.h"
 #include "mozilla/Attributes.h"
 
@@ -104,7 +103,7 @@ class DOMSVGLengthList;
 
 
 
-class DOMSVGAnimatedLengthList MOZ_FINAL : public nsIDOMSVGAnimatedLengthList,
+class DOMSVGAnimatedLengthList MOZ_FINAL : public nsISupports,
                                            public nsWrapperCache
 {
   friend class DOMSVGLengthList;
@@ -112,7 +111,6 @@ class DOMSVGAnimatedLengthList MOZ_FINAL : public nsIDOMSVGAnimatedLengthList,
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedLengthList)
-  NS_DECL_NSIDOMSVGANIMATEDLENGTHLIST
 
   
 
