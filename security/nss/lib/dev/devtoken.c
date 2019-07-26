@@ -2,6 +2,10 @@
 
 
 
+#ifdef DEBUG
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
+#endif 
+
 #include "pkcs11.h"
 
 #ifndef DEVM_H

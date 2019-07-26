@@ -5,6 +5,7 @@
 
 
 
+
 #include "bbs_rand.h"
 
 #define SEED     1

@@ -2,6 +2,10 @@
 
 
 
+#ifdef DEBUG
+static const char CVS_ID[] = "@(#) $RCSfile$ $Revision$ $Date$";
+#endif 
+
 #ifndef DEV_H
 #include "dev.h"
 #endif 

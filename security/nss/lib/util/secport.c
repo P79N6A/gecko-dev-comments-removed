@@ -10,6 +10,8 @@
 
 
 
+
+
 #include "seccomon.h"
 #include "prmem.h"
 #include "prerror.h"
@@ -394,35 +396,18 @@ PORT_ArenaMark(PLArenaPool *arena)
     return result;
 }
 
-
-
-
-
-
-
-
-
-
-
-
 static void
 port_ArenaZeroAfterMark(PLArenaPool *arena, void *mark)
 {
     PLArena *a = arena->current;
     if (a->base <= (PRUword)mark && (PRUword)mark <= a->avail) {
 	
-#ifdef PL_MAKE_MEM_UNDEFINED
-	PL_MAKE_MEM_UNDEFINED(mark, a->avail - (PRUword)mark);
-#endif
 	memset(mark, 0, a->avail - (PRUword)mark);
     } else {
 	
 	for (a = arena->first.next; a; a = a->next) {
 	    PR_ASSERT(a->base <= a->avail && a->avail <= a->limit);
 	    if (a->base <= (PRUword)mark && (PRUword)mark <= a->avail) {
-#ifdef PL_MAKE_MEM_UNDEFINED
-		PL_MAKE_MEM_UNDEFINED(mark, a->avail - (PRUword)mark);
-#endif
 		memset(mark, 0, a->avail - (PRUword)mark);
 		a = a->next;
 		break;
@@ -430,9 +415,6 @@ port_ArenaZeroAfterMark(PLArenaPool *arena, void *mark)
 	}
 	for (; a; a = a->next) {
 	    PR_ASSERT(a->base <= a->avail && a->avail <= a->limit);
-#ifdef PL_MAKE_MEM_UNDEFINED
-	    PL_MAKE_MEM_UNDEFINED((void *)a->base, a->avail - a->base);
-#endif
 	    memset((void *)a->base, 0, a->avail - a->base);
 	}
     }
