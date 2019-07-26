@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["IdentityManager"];
+const EXPORTED_SYMBOLS = ["IdentityManager"];
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
@@ -49,7 +49,7 @@ Cu.import("resource://services-sync/util.js");
 
 
 
-this.IdentityManager = function IdentityManager() {
+function IdentityManager() {
   this._log = Log4Moz.repository.getLogger("Sync.Identity");
   this._log.Level = Log4Moz.Level[Svc.Prefs.get("log.logger.identity")];
 

@@ -4,7 +4,7 @@
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "RESTRequest",
   "RESTResponse",
   "TokenAuthenticatedRESTRequest"
@@ -74,7 +74,7 @@ const Prefs = new Preferences("services.common.rest.");
 
 
 
-this.RESTRequest = function RESTRequest(uri) {
+function RESTRequest(uri) {
   this.status = this.NOT_SENT;
 
   
@@ -580,7 +580,7 @@ RESTRequest.prototype = {
 
 
 
-this.RESTResponse = function RESTResponse() {
+function RESTResponse() {
   this._log = Log4Moz.repository.getLogger(this._logName);
   this._log.level =
     Log4Moz.Level[Prefs.get("log.logger.rest.response")];
@@ -671,8 +671,7 @@ RESTResponse.prototype = {
 
 
 
-this.TokenAuthenticatedRESTRequest =
- function TokenAuthenticatedRESTRequest(uri, authToken, extra) {
+function TokenAuthenticatedRESTRequest(uri, authToken, extra) {
   RESTRequest.call(this, uri);
   this.authToken = authToken;
   this.extra = extra || {};

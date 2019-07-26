@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["webappsUI"];
+let EXPORTED_SYMBOLS = ["webappsUI"];
 
 let Ci = Components.interfaces;
 let Cc = Components.classes;
@@ -15,7 +15,7 @@ Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/WebappsInstaller.jsm");
 Cu.import("resource://gre/modules/WebappOSUtils.jsm");
 
-this.webappsUI = {
+let webappsUI = {
   init: function webappsUI_init() {
     Services.obs.addObserver(this, "webapps-ask-install", false);
     Services.obs.addObserver(this, "webapps-launch", false);

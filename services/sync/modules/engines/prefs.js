@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ['PrefsEngine', 'PrefRec'];
+const EXPORTED_SYMBOLS = ['PrefsEngine', 'PrefRec'];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -20,7 +20,7 @@ Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 
 const PREFS_GUID = CommonUtils.encodeBase64URL(Services.appinfo.ID);
 
-this.PrefRec = function PrefRec(collection, id) {
+function PrefRec(collection, id) {
   CryptoWrapper.call(this, collection, id);
 }
 PrefRec.prototype = {
@@ -31,7 +31,7 @@ PrefRec.prototype = {
 Utils.deferGetSet(PrefRec, "cleartext", ["value"]);
 
 
-this.PrefsEngine = function PrefsEngine(service) {
+function PrefsEngine(service) {
   SyncEngine.call(this, "Prefs", service);
 }
 PrefsEngine.prototype = {

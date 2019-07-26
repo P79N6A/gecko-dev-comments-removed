@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "DocumentUtils" ];
+EXPORTED_SYMBOLS = [ "DocumentUtils" ];
 
 const Cu = Components.utils;
 const Ci = Components.interfaces;
@@ -10,7 +10,7 @@ const Ci = Components.interfaces;
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/sessionstore/XPathGenerator.jsm");
 
-this.DocumentUtils = {
+let DocumentUtils = {
   
 
 

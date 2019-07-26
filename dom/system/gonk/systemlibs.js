@@ -13,9 +13,10 @@
 
 
 
+let EXPORTED_SYMBOLS;
 if (!this.ctypes) {
   
-  this.EXPORTED_SYMBOLS = [ "libcutils", "libnetutils", "netHelpers" ];
+  EXPORTED_SYMBOLS = [ "libcutils", "libnetutils", "netHelpers" ];
   Components.utils.import("resource://gre/modules/ctypes.jsm");
 }
 
@@ -30,7 +31,7 @@ let DEBUG;
 
 
 
-this.libcutils = (function() {
+let libcutils = (function() {
   let lib;
   try {
     lib = ctypes.open("libcutils.so");
@@ -105,7 +106,7 @@ this.libcutils = (function() {
 
 
 
-this.libnetutils = (function () {
+let libnetutils = (function () {
   let library;
   try {
     library = ctypes.open("libnetutils.so");
@@ -328,7 +329,7 @@ this.libnetutils = (function () {
 
 
 
-this.netHelpers = {
+let netHelpers = {
 
   
 

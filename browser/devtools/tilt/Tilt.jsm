@@ -48,7 +48,7 @@ Cu.import("resource:///modules/devtools/TiltGL.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 Cu.import("resource:///modules/devtools/TiltVisualizer.jsm");
 
-this.EXPORTED_SYMBOLS = ["Tilt"];
+let EXPORTED_SYMBOLS = ["Tilt"];
 
 
 
@@ -56,7 +56,7 @@ this.EXPORTED_SYMBOLS = ["Tilt"];
 
 
 
-this.Tilt = function Tilt(aWindow)
+function Tilt(aWindow)
 {
   
 

@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["SessionStore"];
+let EXPORTED_SYMBOLS = ["SessionStore"];
 
 const Cu = Components.utils;
 const Cc = Components.classes;
@@ -99,7 +99,7 @@ function debug(aMsg) {
   Services.console.logStringMessage(aMsg);
 }
 
-this.SessionStore = {
+let SessionStore = {
   get canRestoreLastSession() {
     return SessionStoreInternal.canRestoreLastSession;
   },

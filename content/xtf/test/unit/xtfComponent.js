@@ -152,4 +152,4 @@ FooElementFactory.prototype =
 
 
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([FooElementFactory]);
+const NSGetFactory = XPCOMUtils.generateNSGetFactory([FooElementFactory]);

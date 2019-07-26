@@ -88,14 +88,14 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
+var EXPORTED_SYMBOLS = [ "XPCOMUtils" ];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-this.XPCOMUtils = {
+var XPCOMUtils = {
   
 
 

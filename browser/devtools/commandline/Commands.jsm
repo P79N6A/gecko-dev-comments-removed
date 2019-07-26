@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ ];
+let EXPORTED_SYMBOLS = [ ];
 
 const Cu = Components.utils;
 

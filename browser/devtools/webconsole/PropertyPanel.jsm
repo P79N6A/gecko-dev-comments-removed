@@ -15,7 +15,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "WebConsoleUtils",
                                   "resource://gre/modules/devtools/WebConsoleUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
+var EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
 
 
 
@@ -25,7 +25,7 @@ this.EXPORTED_SYMBOLS = ["PropertyPanel", "PropertyTreeView"];
 
 
 
-this.PropertyTreeView = function() {
+var PropertyTreeView = function() {
   this._rows = [];
   this._objectActors = [];
 };
@@ -404,7 +404,7 @@ function appendChild(aDocument, aParent, aTag, aAttributes)
 
 
 
-this.PropertyPanel = function PropertyPanel(aParent, aTitle, aObject, aButtons)
+function PropertyPanel(aParent, aTitle, aObject, aButtons)
 {
   let document = aParent.ownerDocument;
 

@@ -15,7 +15,7 @@
 Components.utils.import('resource://gre/modules/devtools/Require.jsm');
 Components.utils.import('resource://gre/modules/devtools/SourceMap.jsm');
 
-this.EXPORTED_SYMBOLS = [ "define", "runSourceMapTests" ];
+let EXPORTED_SYMBOLS = [ "define", "runSourceMapTests" ];
 
 
 

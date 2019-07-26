@@ -11,10 +11,10 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/AppsUtils.jsm");
 Cu.import("resource://gre/modules/PermissionSettings.jsm");
 
-this.EXPORTED_SYMBOLS = ["PermissionsInstaller",
-                         "expandPermissions",
-                         "PermissionsTable",
-                        ];
+var EXPORTED_SYMBOLS = ["PermissionsInstaller",
+                        "expandPermissions",
+                        "PermissionsTable",
+                       ];
 const UNKNOWN_ACTION = Ci.nsIPermissionManager.UNKNOWN_ACTION;
 const ALLOW_ACTION = Ci.nsIPermissionManager.ALLOW_ACTION;
 const DENY_ACTION = Ci.nsIPermissionManager.DENY_ACTION;
@@ -50,7 +50,7 @@ function mapSuffixes(aPermName, aSuffixes)
 
 
 
-this.PermissionsTable =  { "resource-lock": {
+const PermissionsTable = { "resource-lock": {
                              app: ALLOW_ACTION,
                              privileged: ALLOW_ACTION,
                              certified: ALLOW_ACTION
@@ -275,7 +275,7 @@ for (let permName in PermissionsTable) {
 
 
 
-this.expandPermissions = function expandPermissions(aPermName, aAccess) {
+function expandPermissions(aPermName, aAccess) {
   if (!PermissionsTable[aPermName]) {
     Cu.reportError("PermissionsTable.jsm: expandPermissions: Unknown Permission: " + aPermName);
     return [];
@@ -322,9 +322,9 @@ this.expandPermissions = function expandPermissions(aPermName, aAccess) {
     }
   }
   return expandedPerms;
-};
+}
 
-this.PermissionsInstaller = {
+let PermissionsInstaller = {
 
 
 
@@ -453,4 +453,4 @@ this.PermissionsInstaller = {
       }
     );
   }
-};
+}

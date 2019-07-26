@@ -2,15 +2,14 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["LightweightThemeConsumer"];
+let EXPORTED_SYMBOLS = ["LightweightThemeConsumer"];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "LightweightThemeImageOptimizer",
   "resource://gre/modules/LightweightThemeImageOptimizer.jsm");
 
-this.LightweightThemeConsumer =
- function LightweightThemeConsumer(aDocument) {
+function LightweightThemeConsumer(aDocument) {
   this._doc = aDocument;
   this._win = aDocument.defaultView;
   this._footerId = aDocument.documentElement.getAttribute("lightweightthemesfooter");

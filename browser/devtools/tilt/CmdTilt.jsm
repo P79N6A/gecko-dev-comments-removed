@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ ];
+let EXPORTED_SYMBOLS = [ ];
 
 Components.utils.import("resource:///modules/devtools/gcli.jsm");
 Components.utils.import("resource:///modules/HUDService.jsm");

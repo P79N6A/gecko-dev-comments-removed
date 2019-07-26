@@ -4,7 +4,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["ChromeManifestParser"];
+var EXPORTED_SYMBOLS = ["ChromeManifestParser"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -33,7 +33,7 @@ function flushJarCache(aJarFile) {
 
 
 
-this.ChromeManifestParser = {
+var ChromeManifestParser = {
 
   
 

@@ -1,8 +1,6 @@
+var EXPORTED_SYMBOLS = ["CrashTestUtils"];
 
-
-this.EXPORTED_SYMBOLS = ["CrashTestUtils"];
-
-this.CrashTestUtils = {
+let CrashTestUtils = {
   
   crash: null,
   lockDir: null,

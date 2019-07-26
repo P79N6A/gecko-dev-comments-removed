@@ -13,7 +13,7 @@ Cu.import("resource://gre/modules/mms_consts.js");
 
 let DEBUG; 
 
-this.translatePduErrorToStatus = function translatePduErrorToStatus(error) {
+function translatePduErrorToStatus(error) {
   if (error == MMS_PDU_ERROR_OK) {
     return MMS_PDU_STATUS_RETRIEVED;
   }
@@ -40,7 +40,7 @@ function defineLazyRegExp(obj, name, pattern) {
 
 
 
-this.BooleanValue = {
+let BooleanValue = {
   
 
 
@@ -76,7 +76,7 @@ this.BooleanValue = {
 
 
 
-this.Address = {
+let Address = {
   
 
 
@@ -187,7 +187,7 @@ defineLazyRegExp(Address, "REGEXP_ALPHANUM",           "^\\w+$");
 
 
 
-this.HeaderField = {
+let HeaderField = {
   
 
 
@@ -224,7 +224,7 @@ this.HeaderField = {
 
 
 
-this.MmsHeader = {
+let MmsHeader = {
   
 
 
@@ -300,7 +300,7 @@ this.MmsHeader = {
 
 
 
-this.ContentClassValue = {
+let ContentClassValue = {
   
 
 
@@ -345,7 +345,7 @@ this.ContentClassValue = {
 
 
 
-this.ContentLocationValue = {
+let ContentLocationValue = {
   
 
 
@@ -384,7 +384,7 @@ this.ContentLocationValue = {
 
 
 
-this.ElementDescriptorValue = {
+let ElementDescriptorValue = {
   
 
 
@@ -422,7 +422,7 @@ this.ElementDescriptorValue = {
 
 
 
-this.Parameter = {
+let Parameter = {
   
 
 
@@ -532,7 +532,7 @@ this.Parameter = {
 
 
 
-this.EncodedStringValue = {
+let EncodedStringValue = {
   
 
 
@@ -670,7 +670,7 @@ this.EncodedStringValue = {
 
 
 
-this.ExpiryValue = {
+let ExpiryValue = {
   
 
 
@@ -743,7 +743,7 @@ this.ExpiryValue = {
 
 
 
-this.FromValue = {
+let FromValue = {
   
 
 
@@ -806,7 +806,7 @@ this.FromValue = {
 
 
 
-this.PreviouslySentByValue = {
+let PreviouslySentByValue = {
   
 
 
@@ -836,7 +836,7 @@ this.PreviouslySentByValue = {
 
 
 
-this.PreviouslySentDateValue = {
+let PreviouslySentDateValue = {
   
 
 
@@ -870,7 +870,7 @@ this.PreviouslySentDateValue = {
 
 
 
-this.MessageClassValue = {
+let MessageClassValue = {
   WELL_KNOWN_CLASSES: ["personal", "advertisement", "informational", "auto"],
 
   
@@ -926,7 +926,7 @@ this.MessageClassValue = {
 
 
 
-this.MessageTypeValue = {
+let MessageTypeValue = {
   
 
 
@@ -969,7 +969,7 @@ this.MessageTypeValue = {
 
 
 
-this.MmFlagsValue = {
+let MmFlagsValue = {
   
 
 
@@ -1032,7 +1032,7 @@ this.MmFlagsValue = {
 
 
 
-this.MmStateValue = {
+let MmStateValue = {
   
 
 
@@ -1075,7 +1075,7 @@ this.MmStateValue = {
 
 
 
-this.PriorityValue = {
+let PriorityValue = {
   
 
 
@@ -1114,7 +1114,7 @@ this.PriorityValue = {
 
 
 
-this.RecommendedRetrievalModeValue = {
+let RecommendedRetrievalModeValue = {
   
 
 
@@ -1136,7 +1136,7 @@ this.RecommendedRetrievalModeValue = {
 
 
 
-this.ReplyChargingValue = {
+let ReplyChargingValue = {
   
 
 
@@ -1180,7 +1180,7 @@ this.ReplyChargingValue = {
 
 
 
-this.ResponseText = {
+let ResponseText = {
   
 
 
@@ -1232,7 +1232,7 @@ this.ResponseText = {
 
 
 
-this.RetrieveStatusValue = {
+let RetrieveStatusValue = {
   
 
 
@@ -1270,7 +1270,7 @@ this.RetrieveStatusValue = {
 
 
 
-this.StatusValue = {
+let StatusValue = {
   
 
 
@@ -1305,7 +1305,7 @@ this.StatusValue = {
   },
 };
 
-this.PduHelper = {
+let PduHelper = {
   
 
 
@@ -1695,7 +1695,7 @@ if (DEBUG) {
   debug = function (s) {};
 }
 
-this.EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
+const EXPORTED_SYMBOLS = ALL_CONST_SYMBOLS.concat([
   
   "translatePduErrorToStatus",
 

@@ -6,7 +6,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-this.EXPORTED_SYMBOLS = ["TelemetryStopwatch"];
+let EXPORTED_SYMBOLS = ["TelemetryStopwatch"];
 
 let Telemetry = Cc["@mozilla.org/base/telemetry;1"]
                   .getService(Ci.nsITelemetry);
@@ -17,7 +17,7 @@ let Telemetry = Cc["@mozilla.org/base/telemetry;1"]
 let simpleTimers = {};
 let objectTimers = new WeakMap();
 
-this.TelemetryStopwatch = {
+let TelemetryStopwatch = {
   
 
 

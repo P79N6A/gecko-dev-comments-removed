@@ -5,7 +5,7 @@
 
 "use strict";
 
-this.EXPORTED_SYMBOLS = ["StyleEditor", "StyleEditorFlags", "StyleEditorManager"];
+const EXPORTED_SYMBOLS = ["StyleEditor", "StyleEditorFlags", "StyleEditorManager"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -65,7 +65,7 @@ const TRANSITIONS_ENABLED = Services.prefs.getBoolPref(TRANSITIONS_PREF);
 
 
 
-this.StyleEditor = function StyleEditor(aDocument, aStyleSheet)
+function StyleEditor(aDocument, aStyleSheet)
 {
   assert(aDocument, "Argument 'aDocument' is required.");
 
@@ -1143,7 +1143,7 @@ StyleEditor.prototype = {
 
 
 
-this.StyleEditorFlags = {
+let StyleEditorFlags = {
   DISABLED:      "disabled",
   ERROR:         "error",
   IMPORTED:      "imported",
@@ -1282,7 +1282,7 @@ function setupBracketCompletion(aSourceEditor)
 
 
 
-this.StyleEditorManager = function StyleEditorManager(aWindow) {
+function StyleEditorManager(aWindow) {
   this.chromeWindow = aWindow;
   this.listenToTabs();
   this.editors = new WeakMap();

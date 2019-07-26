@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "DownloadUtils" ];
+var EXPORTED_SYMBOLS = [ "DownloadUtils" ];
 
 
 
@@ -85,7 +85,7 @@ __defineGetter__("gBundle", function() {
 const kCachedLastMaxSize = 10;
 let gCachedLast = [];
 
-this.DownloadUtils = {
+let DownloadUtils = {
   
 
 

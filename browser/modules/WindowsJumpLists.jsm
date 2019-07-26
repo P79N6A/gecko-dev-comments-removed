@@ -35,7 +35,7 @@ const LIST_TYPE = {
 
 
 
-this.EXPORTED_SYMBOLS = [
+let EXPORTED_SYMBOLS = [
   "WinTaskbarJumpList",
 ];
 
@@ -157,7 +157,7 @@ var tasksCfg = [
 
 
 
-this.WinTaskbarJumpList =
+var WinTaskbarJumpList =
 {
   _builder: null,
   _tasks: null,

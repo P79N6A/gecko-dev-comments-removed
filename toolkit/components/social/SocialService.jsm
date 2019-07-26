@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["SocialService"];
+const EXPORTED_SYMBOLS = ["SocialService"];
 
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
@@ -82,7 +82,7 @@ function schedule(callback) {
 }
 
 
-this.SocialService = {
+const SocialService = {
   get enabled() {
     return SocialServiceInternal.enabled;
   },

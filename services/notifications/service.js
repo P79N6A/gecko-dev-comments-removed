@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Service"];
+const EXPORTED_SYMBOLS = ["Service"];
 
 const {classes: Cc, interfaces: Ci, results: Cr, utils: Cu} = Components;
 
@@ -24,5 +24,5 @@ NotificationSvc.prototype = {
   }
 };
 
-this.Service = new NotificationSvc();
+let Service = new NotificationSvc();
 Service.onStartup();

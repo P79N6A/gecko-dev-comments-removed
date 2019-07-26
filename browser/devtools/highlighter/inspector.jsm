@@ -9,7 +9,7 @@ const Cu = Components.utils;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 
-this.EXPORTED_SYMBOLS = ["InspectorUI"];
+var EXPORTED_SYMBOLS = ["InspectorUI"];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -411,7 +411,7 @@ Inspector.prototype = {
 
 
 
-this.InspectorUI = function InspectorUI(aWindow)
+function InspectorUI(aWindow)
 {
   
   let tmp = {};

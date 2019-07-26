@@ -4,7 +4,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [
+let EXPORTED_SYMBOLS = [
   "NetUtil",
 ];
 
@@ -25,7 +25,7 @@ const PR_UINT32_MAX = 0xffffffff;
 
 
 
-this.NetUtil = {
+const NetUtil = {
     
 
 

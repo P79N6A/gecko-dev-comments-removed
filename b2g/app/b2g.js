@@ -576,5 +576,3 @@ pref("network.activity.blipIntervalMilliseconds", 250);
 
 pref("general.useragent.override.facebook.com", "\(Mobile#(Android; Mobile");
 pref("general.useragent.override.youtube.com", "\(Mobile#(Android; Mobile");
-
-pref("jsloader.reuseGlobal", true);

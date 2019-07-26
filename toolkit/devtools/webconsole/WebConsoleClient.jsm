@@ -10,7 +10,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-this.EXPORTED_SYMBOLS = ["WebConsoleClient"];
+var EXPORTED_SYMBOLS = ["WebConsoleClient"];
 
 
 
@@ -21,7 +21,7 @@ this.EXPORTED_SYMBOLS = ["WebConsoleClient"];
 
 
 
-this.WebConsoleClient = function WebConsoleClient(aDebuggerClient, aActor)
+function WebConsoleClient(aDebuggerClient, aActor)
 {
   this._actor = aActor;
   this._client = aDebuggerClient;

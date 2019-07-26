@@ -2,14 +2,14 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Services"];
+let EXPORTED_SYMBOLS = ["Services"];
 
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-this.Services = {};
+let Services = {};
 
 XPCOMUtils.defineLazyGetter(Services, "prefs", function () {
   return Cc["@mozilla.org/preferences-service;1"]

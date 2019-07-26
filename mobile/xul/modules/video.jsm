@@ -2,8 +2,8 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["Video"];
+var EXPORTED_SYMBOLS = ["Video"];
 
-this.Video = {
+var Video = {
   fullScreenSourceElement: null
 };

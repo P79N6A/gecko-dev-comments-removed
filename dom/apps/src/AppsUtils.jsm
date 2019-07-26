@@ -14,13 +14,13 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-this.EXPORTED_SYMBOLS = ["AppsUtils", "ManifestHelper"];
+let EXPORTED_SYMBOLS = ["AppsUtils", "ManifestHelper"];
 
 function debug(s) {
   
 }
 
-this.AppsUtils = {
+let AppsUtils = {
   
   cloneAppObject: function cloneAppObject(aApp) {
     return {
@@ -240,7 +240,7 @@ this.AppsUtils = {
 
 
 
-this.ManifestHelper = function(aManifest, aOrigin) {
+let ManifestHelper = function(aManifest, aOrigin) {
   this._origin = Services.io.newURI(aOrigin, null, null);
   this._manifest = aManifest;
   let chrome = Cc["@mozilla.org/chrome/chrome-registry;1"].getService(Ci.nsIXULChromeRegistry)

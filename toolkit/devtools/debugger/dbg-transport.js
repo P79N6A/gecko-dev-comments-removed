@@ -39,7 +39,7 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 
 
 
-this.DebuggerTransport = function DebuggerTransport(aInput, aOutput)
+function DebuggerTransport(aInput, aOutput)
 {
   this._input = aInput;
   this._output = aOutput;

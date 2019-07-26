@@ -3,14 +3,14 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["AbstractPort"];
+const EXPORTED_SYMBOLS = ["AbstractPort"];
 
-this.AbstractPort = function AbstractPort(portid) {
+function AbstractPort(portid) {
   this._portid = portid;
   this._handler = undefined;
   
   this._pendingMessagesIncoming = [];
-};
+}
 
 AbstractPort.prototype = {
   _portType: null, 
@@ -103,4 +103,4 @@ AbstractPort.prototype = {
     this._pendingMessagesIncoming = [];
     this._portid = null;
   }
-};
+}

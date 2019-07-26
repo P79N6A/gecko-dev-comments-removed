@@ -1404,4 +1404,4 @@ HandlerService.prototype = {
 
 
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([HandlerService]);
+NSGetFactory = XPCOMUtils.generateNSGetFactory([HandlerService]);

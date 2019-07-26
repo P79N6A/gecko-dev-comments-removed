@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "PlacesUtils"
 , "PlacesAggregatedTransaction"
 , "PlacesCreateFolderTransaction"
@@ -77,7 +77,7 @@ function asFullVisit(aNode) QI_node(aNode, Ci.nsINavHistoryFullVisitResultNode);
 function asContainer(aNode) QI_node(aNode, Ci.nsINavHistoryContainerResultNode);
 function asQuery(aNode) QI_node(aNode, Ci.nsINavHistoryQueryResultNode);
 
-this.PlacesUtils = {
+var PlacesUtils = {
   
   TYPE_X_MOZ_PLACE_CONTAINER: "text/x-moz-place-container",
   
@@ -2349,8 +2349,7 @@ BaseTransaction.prototype = {
 
 
 
-this.PlacesAggregatedTransaction =
- function PlacesAggregatedTransaction(aName, aTransactions)
+function PlacesAggregatedTransaction(aName, aTransactions)
 {
   
   
@@ -2433,9 +2432,8 @@ PlacesAggregatedTransaction.prototype = {
 
 
 
-this.PlacesCreateFolderTransaction =
- function PlacesCreateFolderTransaction(aTitle, aParentId, aIndex, aAnnotations,
-                                        aChildTransactions)
+function PlacesCreateFolderTransaction(aTitle, aParentId, aIndex, aAnnotations,
+                                       aChildTransactions)
 {
   this.item = new TransactionItemCache();
   this.item.title = aTitle;
@@ -2507,10 +2505,9 @@ PlacesCreateFolderTransaction.prototype = {
 
 
 
-this.PlacesCreateBookmarkTransaction =
- function PlacesCreateBookmarkTransaction(aURI, aParentId, aIndex, aTitle,
-                                          aKeyword, aAnnotations,
-                                          aChildTransactions)
+function PlacesCreateBookmarkTransaction(aURI, aParentId, aIndex, aTitle,
+                                         aKeyword, aAnnotations,
+                                         aChildTransactions)
 {
   this.item = new TransactionItemCache();
   this.item.uri = aURI;
@@ -2574,8 +2571,7 @@ PlacesCreateBookmarkTransaction.prototype = {
 
 
 
-this.PlacesCreateSeparatorTransaction =
- function PlacesCreateSeparatorTransaction(aParentId, aIndex)
+function PlacesCreateSeparatorTransaction(aParentId, aIndex)
 {
   this.item = new TransactionItemCache();
   this.item.parentId = aParentId;
@@ -2618,9 +2614,8 @@ PlacesCreateSeparatorTransaction.prototype = {
 
 
 
-this.PlacesCreateLivemarkTransaction =
- function PlacesCreateLivemarkTransaction(aFeedURI, aSiteURI, aTitle, aParentId,
-                                          aIndex, aAnnotations)
+function PlacesCreateLivemarkTransaction(aFeedURI, aSiteURI, aTitle, aParentId,
+                                         aIndex, aAnnotations)
 {
   this.item = new TransactionItemCache();
   this.item.feedURI = aFeedURI;
@@ -2757,8 +2752,7 @@ PlacesRemoveLivemarkTransaction.prototype = {
 
 
 
-this.PlacesMoveItemTransaction =
- function PlacesMoveItemTransaction(aItemId, aNewParentId, aNewIndex)
+function PlacesMoveItemTransaction(aItemId, aNewParentId, aNewIndex)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -2804,8 +2798,7 @@ PlacesMoveItemTransaction.prototype = {
 
 
 
-this.PlacesRemoveItemTransaction =
- function PlacesRemoveItemTransaction(aItemId)
+function PlacesRemoveItemTransaction(aItemId)
 {
   if (PlacesUtils.isRootItem(aItemId))
     throw Cr.NS_ERROR_INVALID_ARG;
@@ -2938,8 +2931,7 @@ PlacesRemoveItemTransaction.prototype = {
 
 
 
-this.PlacesEditItemTitleTransaction =
- function PlacesEditItemTitleTransaction(aItemId, aNewTitle)
+function PlacesEditItemTitleTransaction(aItemId, aNewTitle)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -2973,8 +2965,7 @@ PlacesEditItemTitleTransaction.prototype = {
 
 
 
-this.PlacesEditBookmarkURITransaction =
- function PlacesEditBookmarkURITransaction(aItemId, aNewURI) {
+function PlacesEditBookmarkURITransaction(aItemId, aNewURI) {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
   this.new = new TransactionItemCache();
@@ -3025,8 +3016,7 @@ PlacesEditBookmarkURITransaction.prototype = {
 
 
 
-this.PlacesSetItemAnnotationTransaction =
- function PlacesSetItemAnnotationTransaction(aItemId, aAnnotationObject)
+function PlacesSetItemAnnotationTransaction(aItemId, aAnnotationObject)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -3085,8 +3075,7 @@ PlacesSetItemAnnotationTransaction.prototype = {
 
 
 
-this.PlacesSetPageAnnotationTransaction =
- function PlacesSetPageAnnotationTransaction(aURI, aAnnotationObject)
+function PlacesSetPageAnnotationTransaction(aURI, aAnnotationObject)
 {
   this.item = new TransactionItemCache();
   this.item.uri = aURI;
@@ -3142,8 +3131,7 @@ PlacesSetPageAnnotationTransaction.prototype = {
 
 
 
-this.PlacesEditBookmarkKeywordTransaction =
- function PlacesEditBookmarkKeywordTransaction(aItemId, aNewKeyword)
+function PlacesEditBookmarkKeywordTransaction(aItemId, aNewKeyword)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -3177,8 +3165,7 @@ PlacesEditBookmarkKeywordTransaction.prototype = {
 
 
 
-this.PlacesEditBookmarkPostDataTransaction =
- function PlacesEditBookmarkPostDataTransaction(aItemId, aPostData)
+function PlacesEditBookmarkPostDataTransaction(aItemId, aPostData)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -3212,8 +3199,7 @@ PlacesEditBookmarkPostDataTransaction.prototype = {
 
 
 
-this.PlacesEditItemDateAddedTransaction =
- function PlacesEditItemDateAddedTransaction(aItemId, aNewDateAdded)
+function PlacesEditItemDateAddedTransaction(aItemId, aNewDateAdded)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -3251,8 +3237,7 @@ PlacesEditItemDateAddedTransaction.prototype = {
 
 
 
-this.PlacesEditItemLastModifiedTransaction =
- function PlacesEditItemLastModifiedTransaction(aItemId, aNewLastModified)
+function PlacesEditItemLastModifiedTransaction(aItemId, aNewLastModified)
 {
   this.item = new TransactionItemCache();
   this.item.id = aItemId;
@@ -3292,8 +3277,7 @@ PlacesEditItemLastModifiedTransaction.prototype = {
 
 
 
-this.PlacesSortFolderByNameTransaction =
- function PlacesSortFolderByNameTransaction(aFolderId)
+function PlacesSortFolderByNameTransaction(aFolderId)
 {
   this.item = new TransactionItemCache();  
   this.item.id = aFolderId;
@@ -3379,8 +3363,7 @@ PlacesSortFolderByNameTransaction.prototype = {
 
 
 
-this.PlacesTagURITransaction =
- function PlacesTagURITransaction(aURI, aTags)
+function PlacesTagURITransaction(aURI, aTags)
 {
   this.item = new TransactionItemCache();
   this.item.uri = aURI;
@@ -3427,8 +3410,7 @@ PlacesTagURITransaction.prototype = {
 
 
 
-this.PlacesUntagURITransaction =
- function PlacesUntagURITransaction(aURI, aTags)
+function PlacesUntagURITransaction(aURI, aTags)
 {
   this.item = new TransactionItemCache();
   this.item.uri = aURI;

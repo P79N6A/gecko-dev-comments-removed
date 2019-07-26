@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["WebappsInstaller"];
+let EXPORTED_SYMBOLS = ["WebappsInstaller"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -13,7 +13,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 
-this.WebappsInstaller = {
+let WebappsInstaller = {
   
 
 

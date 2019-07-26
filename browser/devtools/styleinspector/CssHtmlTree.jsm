@@ -18,7 +18,7 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/devtools/CssLogic.jsm");
 Cu.import("resource:///modules/devtools/Templater.jsm");
 
-this.EXPORTED_SYMBOLS = ["CssHtmlTree", "PropertyView"];
+var EXPORTED_SYMBOLS = ["CssHtmlTree", "PropertyView"];
 
 
 
@@ -116,7 +116,7 @@ UpdateProcess.prototype = {
 
 
 
-this.CssHtmlTree = function CssHtmlTree(aStyleInspector)
+function CssHtmlTree(aStyleInspector)
 {
   this.styleWin = aStyleInspector.iframe;
   this.styleInspector = aStyleInspector;
@@ -719,7 +719,7 @@ CssHtmlTree.prototype = {
 
 
 
-this.PropertyView = function PropertyView(aTree, aName)
+function PropertyView(aTree, aName)
 {
   this.tree = aTree;
   this.name = aName;

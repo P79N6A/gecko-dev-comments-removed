@@ -7,7 +7,7 @@
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 
 
-this.EXPORTED_SYMBOLS = ["DOMIdentity"];
+let EXPORTED_SYMBOLS = ["DOMIdentity"];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -123,7 +123,7 @@ RPWatchContext.prototype = {
   }
 };
 
-this.DOMIdentity = {
+let DOMIdentity = {
   
   receiveMessage: function DOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;

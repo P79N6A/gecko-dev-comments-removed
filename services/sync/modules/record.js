@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [
+const EXPORTED_SYMBOLS = [
   "WBORecord",
   "RecordManager",
   "CryptoWrapper",
@@ -24,7 +24,7 @@ Cu.import("resource://services-sync/keys.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/util.js");
 
-this.WBORecord = function WBORecord(collection, id) {
+function WBORecord(collection, id) {
   this.data = {};
   this.payload = {};
   this.collection = collection;      
@@ -108,7 +108,7 @@ Utils.deferGetSet(WBORecord, "data", ["id", "modified", "sortindex", "payload"])
 
 
 
-this.RecordManager = function RecordManager(service) {
+function RecordManager(service) {
   this.service = service;
 
   this._log = Log4Moz.repository.getLogger(this._logName);
@@ -167,7 +167,7 @@ RecordManager.prototype = {
   }
 };
 
-this.CryptoWrapper = function CryptoWrapper(collection, id) {
+function CryptoWrapper(collection, id) {
   this.cleartext = {};
   WBORecord.call(this, collection, id);
   this.ciphertext = null;
@@ -276,7 +276,7 @@ Utils.deferGetSet(CryptoWrapper, "cleartext", "deleted");
 
 
 
-this.CollectionKeyManager = function CollectionKeyManager() {
+function CollectionKeyManager() {
   this.lastModified = 0;
   this._collections = {};
   this._default = null;
@@ -505,7 +505,7 @@ CollectionKeyManager.prototype = {
   }
 }
 
-this.Collection = function Collection(uri, recordObj, service) {
+function Collection(uri, recordObj, service) {
   if (!service) {
     throw new Error("Collection constructor requires a service.");
   }

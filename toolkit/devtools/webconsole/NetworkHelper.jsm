@@ -64,7 +64,7 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
   return obj.NetUtil;
 });
 
-this.EXPORTED_SYMBOLS = ["NetworkHelper"];
+var EXPORTED_SYMBOLS = ["NetworkHelper"];
 
 
 
@@ -73,7 +73,7 @@ this.EXPORTED_SYMBOLS = ["NetworkHelper"];
 
 
 
-this.NetworkHelper =
+var NetworkHelper =
 {
   
 

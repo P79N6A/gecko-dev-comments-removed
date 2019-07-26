@@ -3,7 +3,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = [ "FileUtils" ];
+EXPORTED_SYMBOLS = [ "FileUtils" ];
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
@@ -15,7 +15,7 @@ XPCOMUtils.defineLazyServiceGetter(this, "gDirService",
                                    "@mozilla.org/file/directory_service;1",
                                    "nsIProperties");
 
-this.FileUtils = {
+var FileUtils = {
   MODE_RDONLY   : 0x01,
   MODE_WRONLY   : 0x02,
   MODE_RDWR     : 0x04,

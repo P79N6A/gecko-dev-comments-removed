@@ -2,7 +2,7 @@
 
 
 
-this.EXPORTED_SYMBOLS = ["ClusterManager"];
+const EXPORTED_SYMBOLS = ["ClusterManager"];
 
 const {utils: Cu} = Components;
 
@@ -14,7 +14,7 @@ Cu.import("resource://services-sync/util.js");
 
 
 
-this.ClusterManager = function ClusterManager(service) {
+function ClusterManager(service) {
   this._log = Log4Moz.repository.getLogger("Sync.Service");
   this._log.level = Log4Moz.Level[Svc.Prefs.get("log.logger.service.main")];
 
