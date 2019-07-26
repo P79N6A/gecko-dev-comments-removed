@@ -352,8 +352,10 @@ class TestRILCodeQuality(MarionetteTestCase):
     def test_RadioInterfaceLayer(self):
         self._check('RadioInterfaceLayer.js')
 
-    def test_ril_worker(self):
-        self._check('ril_worker.js')
+    
+    
+    
+    
 
     def test_ril_consts(self):
         self._check('ril_consts.js')
