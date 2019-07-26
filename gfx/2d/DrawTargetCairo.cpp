@@ -177,6 +177,7 @@ GetCairoSurfaceForSourceSurface(SourceSurface *aSurface, bool aExistingOnly = fa
   
   
   if (cairo_surface_status(surf)) {
+    cairo_surface_destroy(surf);
     return nullptr;
   }
 
