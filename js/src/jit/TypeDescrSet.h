@@ -7,7 +7,7 @@
 #ifndef jit_TypeRepresentationSet_h
 #define jit_TypeRepresentationSet_h
 
-#include "builtin/TypeRepresentation.h"
+#include "builtin/TypedObject.h"
 #include "jit/IonAllocPolicy.h"
 #include "js/HashTable.h"
 
@@ -70,7 +70,7 @@ class TypeDescrSet {
     }
 
     template<typename T>
-    bool genericType(typename T::TypeRepr::Type *out);
+    bool genericType(typename T::Type *out);
 
   public:
     
@@ -86,7 +86,7 @@ class TypeDescrSet {
     
 
     bool empty();
-    bool allOfKind(TypeRepresentation::Kind kind);
+    bool allOfKind(TypeDescr::Kind kind);
 
     
     
@@ -105,7 +105,7 @@ class TypeDescrSet {
     
     
 
-    TypeRepresentation::Kind kind();
+    TypeDescr::Kind kind();
 
     
     
@@ -114,7 +114,7 @@ class TypeDescrSet {
 
     
     
-    bool scalarType(ScalarTypeRepresentation::Type *out);
+    bool scalarType(ScalarTypeDescr::Type *out);
 
     
     
@@ -123,7 +123,7 @@ class TypeDescrSet {
 
     
     
-    bool referenceType(ReferenceTypeRepresentation::Type *out);
+    bool referenceType(ReferenceTypeDescr::Type *out);
 
     
     
@@ -132,7 +132,7 @@ class TypeDescrSet {
 
     
     
-    bool x4Type(X4TypeRepresentation::Type *out);
+    bool x4Type(X4TypeDescr::Type *out);
 
     
     
