@@ -13,7 +13,7 @@
 
 
 
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 18
+#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
 # include "mozilla/layers/FenceUtilsGonk.h"
 #else
 namespace mozilla {
@@ -28,7 +28,7 @@ struct FenceHandle {
 
 namespace IPC {
 
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 18
+#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
 #else
 template <>
 struct ParamTraits<mozilla::layers::FenceHandle> {

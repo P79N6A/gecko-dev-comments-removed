@@ -31,7 +31,7 @@
 #include "OGLShaderProgram.h"           
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
-#if ANDROID_VERSION >= 18
+#if ANDROID_VERSION >= 17
 #include <ui/Fence.h>
 #endif
 #endif
@@ -125,7 +125,7 @@ public:
 class TextureHostOGL
 {
 public:
-#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 18
+#if MOZ_WIDGET_GONK && ANDROID_VERSION >= 17
 
   
 
