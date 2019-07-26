@@ -3384,6 +3384,24 @@ public:
     
 
 
+
+
+
+    gfxFloat GetHyphenWidth(gfxContext *aCtx, uint32_t aAppUnitsPerDevUnit);
+
+    
+
+
+
+
+
+
+    gfxTextRun *MakeHyphenTextRun(gfxContext *aCtx,
+                                  uint32_t aAppUnitsPerDevUnit);
+
+    
+
+
     typedef bool (*FontCreationCallback) (const nsAString& aName,
                                             const nsACString& aGenericName,
                                             bool aUseFontSet,
@@ -3463,6 +3481,7 @@ protected:
     gfxFontStyle mStyle;
     nsTArray<FamilyFace> mFonts;
     gfxFloat mUnderlineOffset;
+    gfxFloat mHyphenWidth;
 
     gfxUserFontSet* mUserFontSet;
     uint64_t mCurrGeneration;  
