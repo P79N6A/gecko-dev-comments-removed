@@ -1804,7 +1804,6 @@ pref("capability.policy.default.SOAPCall.invokeVerifySourceHeader", "allAccess")
 
 
 pref("plugin.override_internal_types", false);
-pref("plugin.expose_full_path", false); 
 
 
 
