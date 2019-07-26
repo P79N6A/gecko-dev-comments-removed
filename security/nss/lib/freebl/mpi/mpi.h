@@ -56,11 +56,11 @@ typedef int               mp_err;
 #error "USHRT_MAX not defined"
 #endif
 
-#if defined(ULONG_LONG_MAX)			
-#define MP_ULONG_LONG_MAX ULONG_LONG_MAX
-#elif defined(ULLONG_MAX)			
+#if defined(ULLONG_MAX)				
 #define MP_ULONG_LONG_MAX ULLONG_MAX
 
+#elif defined(ULONG_LONG_MAX)			
+#define MP_ULONG_LONG_MAX ULONG_LONG_MAX
 #elif defined(ULONGLONG_MAX)			
 #define MP_ULONG_LONG_MAX ULONGLONG_MAX
 #endif

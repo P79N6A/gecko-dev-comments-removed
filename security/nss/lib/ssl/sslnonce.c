@@ -483,6 +483,8 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid,
 {
     PORT_Assert(sid);
     PORT_Assert(newSessionTicket);
+    PORT_Assert(newSessionTicket->ticket.data);
+    PORT_Assert(newSessionTicket->ticket.len != 0);
 
     
 
@@ -491,10 +493,6 @@ ssl3_SetSIDSessionTicket(sslSessionID *sid,
 
     if (sid->u.ssl3.lock) {
 	PR_RWLock_Wlock(sid->u.ssl3.lock);
-
-	
-
-
 	if (sid->u.ssl3.locked.sessionTicket.ticket.data) {
 	    SECITEM_FreeItem(&sid->u.ssl3.locked.sessionTicket.ticket,
 			     PR_FALSE);

@@ -45,7 +45,11 @@ typedef PRUintn uint;
 #endif
 typedef PRUint8 uint8;
 typedef PRUint16 uint16;
+
+
+#if !defined(AIX)
 typedef PRInt32 int32;
+#endif
 typedef PRUint32 uint32;
 
 #include <limits.h>

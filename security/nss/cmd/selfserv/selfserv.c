@@ -107,18 +107,18 @@ const int ssl2CipherSuites[] = {
 const int ssl3CipherSuites[] = {
     -1, 
     -1, 
-    SSL_RSA_WITH_RC4_128_MD5,			
-    SSL_RSA_WITH_3DES_EDE_CBC_SHA,		
-    SSL_RSA_WITH_DES_CBC_SHA,			
-    SSL_RSA_EXPORT_WITH_RC4_40_MD5,		
-    SSL_RSA_EXPORT_WITH_RC2_CBC_40_MD5,		
+    TLS_RSA_WITH_RC4_128_MD5,			
+    TLS_RSA_WITH_3DES_EDE_CBC_SHA,		
+    TLS_RSA_WITH_DES_CBC_SHA,			
+    TLS_RSA_EXPORT_WITH_RC4_40_MD5,		
+    TLS_RSA_EXPORT_WITH_RC2_CBC_40_MD5,		
     -1, 
-    SSL_RSA_WITH_NULL_MD5,			
+    TLS_RSA_WITH_NULL_MD5,			
     SSL_RSA_FIPS_WITH_3DES_EDE_CBC_SHA,		
     SSL_RSA_FIPS_WITH_DES_CBC_SHA,		
     TLS_RSA_EXPORT1024_WITH_DES_CBC_SHA,	
     TLS_RSA_EXPORT1024_WITH_RC4_56_SHA,	        
-    SSL_RSA_WITH_RC4_128_SHA,			
+    TLS_RSA_WITH_RC4_128_SHA,			
     -1, 
     -1, 
     -1, 
@@ -130,7 +130,7 @@ const int ssl3CipherSuites[] = {
     -1, 
     -1, 
     TLS_RSA_WITH_AES_256_CBC_SHA,     	    	
-    SSL_RSA_WITH_NULL_SHA,			
+    TLS_RSA_WITH_NULL_SHA,			
     0
 };
 
@@ -1932,9 +1932,9 @@ server_main(
 
 
 
-    secStatus = SSL_CipherPrefSetDefault( SSL_RSA_WITH_NULL_MD5, PR_TRUE);
+    secStatus = SSL_CipherPrefSetDefault( TLS_RSA_WITH_NULL_MD5, PR_TRUE);
     if ( secStatus != SECSuccess ) {
-	errExit("SSL_CipherPrefSetDefault:SSL_RSA_WITH_NULL_MD5");
+	errExit("SSL_CipherPrefSetDefault:TLS_RSA_WITH_NULL_MD5");
     }
 
     if (expectedHostNameVal) {

@@ -948,9 +948,10 @@ PK11_LoadSlotList(PK11SlotInfo *slot, PK11PreSlotInfo *psi, int count)
 
 
 SECStatus
-PK11_UpdateSlotAttribute(PK11SlotInfo *slot, PK11DefaultArrayEntry *entry,
-                        PRBool add)  
-                        
+PK11_UpdateSlotAttribute(PK11SlotInfo *slot,
+                         const PK11DefaultArrayEntry *entry,
+                         PRBool add)
+                         
 {
     SECStatus result = SECSuccess;
     PK11SlotList *slotList = PK11_GetSlotList(entry->mechanism);

@@ -1515,7 +1515,7 @@ typedef enum PKIX_PL_TrustAnchorModeEnum {
 
 
 
-        PKIX_PL_TrustAnchorMode_Exclusive,
+        PKIX_PL_TrustAnchorMode_Exclusive
 } PKIX_PL_TrustAnchorMode;
 
 

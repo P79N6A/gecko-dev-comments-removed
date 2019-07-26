@@ -497,7 +497,7 @@ main(int argc, char **argv)
 	
 
 	NSS_SetDomesticPolicy();
-	SSL_CipherPrefSetDefault(SSL_RSA_WITH_NULL_MD5, PR_TRUE);
+	SSL_CipherPrefSetDefault(TLS_RSA_WITH_NULL_MD5, PR_TRUE);
 
 	
 	if (cipherString) {
