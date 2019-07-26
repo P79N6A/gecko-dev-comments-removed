@@ -29,6 +29,11 @@ Presenter.prototype = {
   
 
 
+  type: 'Base',
+
+  
+
+
 
   attach: function attach(aWindow) {},
 
@@ -93,12 +98,18 @@ Presenter.prototype = {
 
 
 
-  viewportChanged: function viewportChanged() {},
+
+  viewportChanged: function viewportChanged(aWindow) {},
 
   
 
 
-  editingModeChanged: function editingModeChanged(aIsEditing) {}
+  editingModeChanged: function editingModeChanged(aIsEditing) {},
+
+  
+
+
+  presentLastPivot: function AndroidPresenter_presentLastPivot() {}
 };
 
 
@@ -110,83 +121,60 @@ function VisualPresenter() {}
 VisualPresenter.prototype = {
   __proto__: Presenter.prototype,
 
+  type: 'Visual',
+
   
 
 
   BORDER_PADDING: 2,
 
-  attach: function VisualPresenter_attach(aWindow) {
-    this.chromeWin = aWindow;
-
-    
-    this.highlightBox = this.chromeWin.document.
-      createElementNS('http://www.w3.org/1999/xhtml', 'div');
-    this.chromeWin.document.documentElement.appendChild(this.highlightBox);
-    this.highlightBox.id = 'virtual-cursor-box';
-
-    
-    let inset = this.chromeWin.document.
-      createElementNS('http://www.w3.org/1999/xhtml', 'div');
-    inset.id = 'virtual-cursor-inset';
-
-    this.highlightBox.appendChild(inset);
-  },
-
-  detach: function VisualPresenter_detach() {
-    this.highlightBox.parentNode.removeChild(this.highlightBox);
-    this.highlightBox = this.stylesheet = null;
-  },
-
-  viewportChanged: function VisualPresenter_viewportChanged() {
+  viewportChanged: function VisualPresenter_viewportChanged(aWindow) {
     if (this._currentContext)
-      this._highlight(this._currentContext);
+      return {
+        type: this.type,
+        details: {
+          method: 'show',
+          bounds: this._currentContext.bounds,
+          padding: this.BORDER_PADDING
+        }
+      };
+
+    return null;
   },
 
   pivotChanged: function VisualPresenter_pivotChanged(aContext, aReason) {
     this._currentContext = aContext;
 
-    if (!aContext.accessible) {
-      this._hide();
-      return;
-    }
+    if (!aContext.accessible)
+      return {type: this.type, details: {method: 'hide'}};
 
     try {
       aContext.accessible.scrollTo(
         Ci.nsIAccessibleScrollType.SCROLL_TYPE_ANYWHERE);
-      this._highlight(aContext);
+      return {
+        type: this.type,
+        details: {
+          method: 'show',
+          bounds: aContext.bounds,
+          padding: this.BORDER_PADDING
+        }
+      };
     } catch (e) {
       Logger.error('Failed to get bounds: ' + e);
-      return;
+      return null;
     }
   },
 
   tabSelected: function VisualPresenter_tabSelected(aDocContext, aVCContext) {
-    this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
+    return this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
   },
 
   tabStateChanged: function VisualPresenter_tabStateChanged(aDocObj,
                                                             aPageState) {
     if (aPageState == 'newdoc')
-      this._hide();
-  },
+      return {type: this.type, details: {method: 'hide'}};
 
-  
-
-  _hide: function _hide() {
-    this.highlightBox.style.display = 'none';
-  },
-
-  _highlight: function _highlight(aContext) {
-    let vp = Utils.getViewport(this.chromeWin) || { zoom: 1.0, offsetY: 0 };
-    let r = aContext.bounds.scale(vp.zoom, vp.zoom).expandToIntegers();
-
-    
-    this.highlightBox.style.display = 'none';
-    this.highlightBox.style.top = (r.top - this.BORDER_PADDING) + 'px';
-    this.highlightBox.style.left = (r.left - this.BORDER_PADDING) + 'px';
-    this.highlightBox.style.width = (r.width + this.BORDER_PADDING*2) + 'px';
-    this.highlightBox.style.height = (r.height + this.BORDER_PADDING*2) + 'px';
-    this.highlightBox.style.display = 'block';
+    return null;
   }
 };
 
@@ -198,6 +186,8 @@ function AndroidPresenter() {}
 
 AndroidPresenter.prototype = {
   __proto__: Presenter.prototype,
+
+  type: 'Android',
 
   
   ANDROID_VIEW_CLICKED: 0x01,
@@ -212,15 +202,13 @@ AndroidPresenter.prototype = {
   ANDROID_ANNOUNCEMENT: 0x4000,
   ANDROID_VIEW_ACCESSIBILITY_FOCUSED: 0x8000,
 
-  attach: function AndroidPresenter_attach(aWindow) {
-    this.chromeWin = aWindow;
-  },
-
   pivotChanged: function AndroidPresenter_pivotChanged(aContext, aReason) {
     if (!aContext.accessible)
-      return;
+      return null;
 
     this._currentContext = aContext;
+
+    let androidEvents = [];
 
     let isExploreByTouch = (aReason == Ci.nsIAccessiblePivot.REASON_POINT &&
                             Utils.AndroidSdkVersion >= 14);
@@ -231,17 +219,9 @@ AndroidPresenter.prototype = {
     if (isExploreByTouch) {
       
       
-      this.sendMessageToJava({
-         gecko: {
-           type: 'Accessibility:Event',
-           eventType: this.ANDROID_VIEW_HOVER_EXIT,
-           text: []
-         }
-      });
+      androidEvents.push({eventType: this.ANDROID_VIEW_HOVER_EXIT, text: []});
     }
 
-    let vp = Utils.getViewport(this.chromeWin) || { zoom: 1.0, offsetY: 0 };
-    let bounds = aContext.bounds.scale(vp.zoom, vp.zoom).expandToIntegers();
     let output = [];
 
     aContext.newAncestry.forEach(
@@ -259,34 +239,34 @@ AndroidPresenter.prototype = {
       }
     );
 
-    this.sendMessageToJava({
-      gecko: {
-        type: 'Accessibility:Event',
-        eventType: (isExploreByTouch) ? this.ANDROID_VIEW_HOVER_ENTER : focusEventType,
-        text: output,
-        bounds: bounds
-      }
-    });
+    androidEvents.push({eventType: (isExploreByTouch) ?
+                          this.ANDROID_VIEW_HOVER_ENTER : focusEventType,
+                        text: output,
+                        bounds: aContext.bounds});
+    return {
+      type: this.type,
+      details: androidEvents
+    };
   },
 
   actionInvoked: function AndroidPresenter_actionInvoked(aObject, aActionName) {
-    this.sendMessageToJava({
-      gecko: {
-        type: 'Accessibility:Event',
+    return {
+      type: this.type,
+      details: [{
         eventType: this.ANDROID_VIEW_CLICKED,
         text: UtteranceGenerator.genForAction(aObject, aActionName)
-      }
-    });
+      }]
+    };
   },
 
   tabSelected: function AndroidPresenter_tabSelected(aDocContext, aVCContext) {
     
-    this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
+    return this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
   },
 
   tabStateChanged: function AndroidPresenter_tabStateChanged(aDocObj,
                                                              aPageState) {
-    this._appAnnounce(
+    return this._appAnnounce(
       UtteranceGenerator.genForTabStateChange(aDocObj, aPageState));
   },
 
@@ -294,12 +274,14 @@ AndroidPresenter.prototype = {
                                                      aLength, aText,
                                                      aModifiedText) {
     let androidEvent = {
-      type: 'Accessibility:Event',
-      eventType: this.ANDROID_VIEW_TEXT_CHANGED,
-      text: [aText],
-      fromIndex: aStart,
-      removedCount: 0,
-      addedCount: 0
+      type: this.type,
+      details: [{
+        eventType: this.ANDROID_VIEW_TEXT_CHANGED,
+        text: [aText],
+        fromIndex: aStart,
+        removedCount: 0,
+        addedCount: 0
+      }]
     };
 
     if (aIsInserted) {
@@ -312,71 +294,52 @@ AndroidPresenter.prototype = {
         aText.substring(0, aStart) + aModifiedText + aText.substring(aStart);
     }
 
-    this.sendMessageToJava({gecko: androidEvent});
+    return androidEvent;
   },
 
-  viewportChanged: function AndroidPresenter_viewportChanged() {
+  viewportChanged: function AndroidPresenter_viewportChanged(aWindow) {
     if (Utils.AndroidSdkVersion < 14)
-      return;
+      return null;
 
-    let win = Utils.getBrowserApp(this.chromeWin).selectedBrowser.contentWindow;
-    this.sendMessageToJava({
-      gecko: {
-        type: 'Accessibility:Event',
+    return {
+      type: this.type,
+      details: [{
         eventType: this.ANDROID_VIEW_SCROLLED,
         text: [],
-        scrollX: win.scrollX,
-        scrollY: win.scrollY,
-        maxScrollX: win.scrollMaxX,
-        maxScrollY: win.scrollMaxY
-      }
-    });
+        scrollX: aWindow.scrollX,
+        scrollY: aWindow.scrollY,
+        maxScrollX: aWindow.scrollMaxX,
+        maxScrollY: aWindow.scrollMaxY
+      }]
+    };
   },
 
   editingModeChanged: function AndroidPresenter_editingModeChanged(aIsEditing) {
-    this._appAnnounce(UtteranceGenerator.genForEditingMode(aIsEditing));
+    return this._appAnnounce(UtteranceGenerator.genForEditingMode(aIsEditing));
   },
 
   _appAnnounce: function _appAnnounce(aUtterance) {
     if (!aUtterance.length)
-      return;
+      return null;
 
-    this.sendMessageToJava({
-      gecko: {
-        type: 'Accessibility:Event',
+    return {
+      type: this.type,
+      details: [{
         eventType: (Utils.AndroidSdkVersion >= 16) ?
           this.ANDROID_ANNOUNCEMENT : this.ANDROID_VIEW_TEXT_CHANGED,
         text: aUtterance,
         addedCount: aUtterance.join(' ').length,
         removedCount: 0,
         fromIndex: 0
-      }
-    });
+      }]
+    };
   },
 
-  accessibilityFocus: function AndroidPresenter_accessibilityFocus() {
+  presentLastPivot: function AndroidPresenter_presentLastPivot() {
     if (this._currentContext)
-      this.pivotChanged(this._currentContext);
-  },
-
-  sendMessageToJava: function AndroidPresenter_sendMessageTojava(aMessage) {
-    return Cc['@mozilla.org/android/bridge;1'].
-      getService(Ci.nsIAndroidBridge).
-      handleGeckoMessage(JSON.stringify(aMessage));
-  }
-};
-
-
-
-
-
-function DummyAndroidPresenter() {}
-
-DummyAndroidPresenter.prototype = {
-  __proto__: AndroidPresenter.prototype,
-
-  sendMessageToJava: function DummyAndroidPresenter_sendMessageToJava(aMsg) {
-    Logger.debug('Android event:\n' + JSON.stringify(aMsg, null, 2));
+      return this.pivotChanged(this._currentContext);
+    else
+      return null;
   }
 };
 
@@ -389,10 +352,11 @@ function SpeechPresenter() {}
 SpeechPresenter.prototype = {
   __proto__: Presenter.prototype,
 
+  type: 'Speech',
 
   pivotChanged: function SpeechPresenter_pivotChanged(aContext, aReason) {
     if (!aContext.accessible)
-      return;
+      return null;
 
     let output = [];
 
@@ -411,9 +375,17 @@ SpeechPresenter.prototype = {
       }
     );
 
-    Logger.info('SPEAK', '"' + output.join(' ') + '"');
+    return {
+      type: this.type,
+      details: {
+        actions: [
+          {method: 'playEarcon', data: 'tick', options: {}},
+          {method: 'speak', data: output.join(' '), options: {enqueue: true}}
+        ]
+      }
+    };
   }
-}
+};
 
 
 
@@ -504,6 +476,7 @@ PresenterContext.prototype = {
 
       this._accessible.getBounds(objX, objY, objW, objH);
 
+      
       
       let docX = {}, docY = {};
       let docRoot = this._accessible.rootDocument.
