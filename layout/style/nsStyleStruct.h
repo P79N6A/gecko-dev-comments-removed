@@ -986,6 +986,7 @@ public:
   uint8_t        mBorderImageRepeatH; 
   uint8_t        mBorderImageRepeatV; 
   uint8_t        mFloatEdge;          
+  uint8_t        mBoxDecorationBreak; 
 
 protected:
   
