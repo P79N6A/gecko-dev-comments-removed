@@ -46,6 +46,7 @@ class SymbolObject : public JSObject
 
     
     static bool for_(JSContext *cx, unsigned argc, Value *vp);
+    static bool keyFor(JSContext *cx, unsigned argc, Value *vp);
 
     
     static bool toString_impl(JSContext *cx, CallArgs args);
