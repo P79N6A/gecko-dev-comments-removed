@@ -9,6 +9,7 @@
 const { classes: Cc, interfaces: Ci, utils: Cu } = Components;
 
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/Messaging.jsm");
 Cu.import("resource://gre/modules/SharedPreferences.jsm");
 
 
@@ -23,10 +24,6 @@ const WRAPPER_VERSION = 1;
 
 const EVENT_HEALTH_REQUEST = "HealthReport:Request";
 const EVENT_HEALTH_RESPONSE = "HealthReport:Response";
-
-function sendMessageToJava(message) {
-  return Services.androidBridge.handleGeckoMessage(JSON.stringify(message));
-}
 
 
 

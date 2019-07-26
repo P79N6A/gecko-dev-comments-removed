@@ -5,8 +5,8 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.EventDispatcher;
-import org.mozilla.gecko.util.GeckoEventResponder;
+import org.mozilla.gecko.EventDispatcher;
+import org.mozilla.gecko.util.GeckoEventListener;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -24,13 +24,11 @@ import java.util.HashMap;
 
 
 public final class SharedPreferencesHelper
-             implements GeckoEventResponder
+             implements GeckoEventListener
 {
     public static final String LOGTAG = "GeckoAndSharedPrefs";
 
     protected final Context mContext;
-
-    protected String mResponse;
 
     
     
@@ -117,7 +115,7 @@ public final class SharedPreferencesHelper
 
 
 
-    private String handleGet(JSONObject message) throws JSONException {
+    private JSONArray handleGet(JSONObject message) throws JSONException {
         if (!message.has("branch")) {
             Log.e(LOGTAG, "No branch specified for SharedPreference:Get; aborting.");
             return null;
@@ -156,7 +154,7 @@ public final class SharedPreferencesHelper
             jsonValues.put(jsonValue);
         }
 
-        return jsonValues.toString();
+        return jsonValues;
     }
 
     private static class ChangeListener
@@ -225,8 +223,6 @@ public final class SharedPreferencesHelper
     public void handleMessage(String event, JSONObject message) {
         
         
-        mResponse = null;
-
         try {
             if (event.equals("SharedPreferences:Set")) {
                 if (Log.isLoggable(LOGTAG, Log.VERBOSE)) {
@@ -237,9 +233,9 @@ public final class SharedPreferencesHelper
                 if (Log.isLoggable(LOGTAG, Log.VERBOSE)) {
                     Log.v(LOGTAG, "Got SharedPreferences:Get message.");
                 }
-                
-                
-                mResponse = handleGet(message);
+                JSONObject obj = new JSONObject();
+                obj.put("values", handleGet(message));
+                EventDispatcher.sendResponse(message, obj);
             } else if (event.equals("SharedPreferences:Observe")) {
                 if (Log.isLoggable(LOGTAG, Log.VERBOSE)) {
                     Log.v(LOGTAG, "Got SharedPreferences:Observe message.");
@@ -253,10 +249,5 @@ public final class SharedPreferencesHelper
             Log.e(LOGTAG, "Got exception in handleMessage handling event " + event, e);
             return;
         }
-    }
-
-    @Override
-    public String getResponse(JSONObject origMessage) {
-        return mResponse;
     }
 }
