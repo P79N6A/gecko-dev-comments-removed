@@ -663,6 +663,28 @@ HealthReporter.prototype = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+  collectAndObtainJSONPayload: function (asObject=false) {
+    return Task.spawn(function collectAndObtain() {
+      yield this.collectMeasurements();
+
+      let payload = yield this.getJSONPayload(asObject);
+
+      throw new Task.Result(payload);
+    }.bind(this));
+  },
+
+  
+
+
+
+
   requestDataUpload: function (request) {
     this.collectMeasurements()
         .then(this._uploadData.bind(this, request),
@@ -685,11 +707,23 @@ HealthReporter.prototype = Object.freeze({
     return this._policy.deleteRemoteData(reason);
   },
 
-  getJSONPayload: function () {
+  
+
+
+
+
+
+
+
+
+
+
+
+  getJSONPayload: function (asObject=false) {
     TelemetryStopwatch.start(TELEMETRY_GENERATE_PAYLOAD, this);
     let deferred = Promise.defer();
 
-    Task.spawn(this._getJSONPayload.bind(this, this._now())).then(
+    Task.spawn(this._getJSONPayload.bind(this, this._now(), asObject)).then(
       function onResult(result) {
         TelemetryStopwatch.finish(TELEMETRY_GENERATE_PAYLOAD, this);
         deferred.resolve(result);
@@ -703,7 +737,7 @@ HealthReporter.prototype = Object.freeze({
     return deferred.promise;
   },
 
-  _getJSONPayload: function (now) {
+  _getJSONPayload: function (now, asObject=false) {
     let pingDateString = this._formatDate(now);
     this._log.info("Producing JSON payload for " + pingDateString);
 
@@ -802,7 +836,8 @@ HealthReporter.prototype = Object.freeze({
     }
 
     this._storage.compact();
-    throw new Task.Result(JSON.stringify(o));
+
+    throw new Task.Result(asObject ? o : JSON.stringify(o));
   },
 
   _onBagheeraResult: function (request, isDelete, result) {
@@ -882,6 +917,12 @@ HealthReporter.prototype = Object.freeze({
     }.bind(this));
   },
 
+  
+
+
+
+
+
   deleteRemoteData: function (request) {
     if (!this.lastSubmitID) {
       this._log.info("Received request to delete remote data but no data stored.");
@@ -945,6 +986,10 @@ HealthReporter.prototype = Object.freeze({
   },
 
   
+
+
+
+
 
 
 
