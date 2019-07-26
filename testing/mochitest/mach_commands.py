@@ -66,6 +66,11 @@ class MochitestRunner(MozbuildObject):
             raise Exception(ADB_NOT_FOUND % ('mochitest-remote', b2g_home))
 
         
+        test_path = ''
+        if test_file:
+            test_path = self._wrap_path_argument(test_file).relpath()
+
+        
         os.chdir(self.mochitest_dir)
 
         import imp
@@ -86,8 +91,12 @@ class MochitestRunner(MozbuildObject):
         options.httpdPath = self.mochitest_dir
         options.xrePath = xre_path
 
-        if test_file:
-            options.testPath = test_file
+        if test_path:
+            test_root_file = mozpack.path.join(self.mochitest_dir, 'tests', test_path)
+            if not os.path.exists(test_root_file):
+                print('Specified test path does not exist: %s' % test_root_file)
+                return 1
+            options.testPath = test_path
         else:
             options.testManifest = 'b2g.json'
 
