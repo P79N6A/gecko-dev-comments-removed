@@ -132,7 +132,7 @@ function writeUpdatesToWebappManifest(aRestore)
                  "browser", "dom" , "tests", "browser"];
   
   
-  let slavePath = ["dist", "test-package-stage", "mochitest",
+  let slavePath = ["dist", "test-stage", "mochitest",
                    "browser", "dom", "tests", "browser"];
 
   newfile = newfile.parent; 
