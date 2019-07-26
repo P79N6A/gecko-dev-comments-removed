@@ -46,12 +46,13 @@ public:
     return TextEncoderBinding::Wrap(aCx, this, aTookOwnership);
   }
 
-  JSObject* Encode(JSContext* aCx,
-                   JS::Handle<JSObject*> aObj,
-                   const nsAString& aString,
-                   const TextEncodeOptions& aOptions,
-                   ErrorResult& aRv) {
-    return TextEncoder::Encode(aCx, aObj, aString, aOptions.mStream, aRv);
+  void Encode(JSContext* aCx,
+	      JS::Handle<JSObject*> aObj,
+	      const nsAString& aString,
+	      const TextEncodeOptions& aOptions,
+	      JS::MutableHandle<JSObject*> aRetval,
+	      ErrorResult& aRv) {
+    TextEncoder::Encode(aCx, aObj, aString, aOptions.mStream, aRetval, aRv);
   }
 
 protected:
@@ -87,11 +88,13 @@ public:
 
 
 
-  JSObject* Encode(JSContext* aCx,
-                   JS::Handle<JSObject*> aObj,
-                   const nsAString& aString,
-                   const bool aStream,
-                   ErrorResult& aRv);
+
+  void Encode(JSContext* aCx,
+	      JS::Handle<JSObject*> aObj,
+	      const nsAString& aString,
+	      const bool aStream,
+	      JS::MutableHandle<JSObject*> aRetval,
+	      ErrorResult& aRv);
 
 private:
   nsCString mEncoding;
