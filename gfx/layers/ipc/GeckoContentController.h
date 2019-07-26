@@ -51,7 +51,8 @@ public:
 
 
 
-  virtual void SendAsyncScrollDOMEvent(const CSSRect &aContentRect,
+  virtual void SendAsyncScrollDOMEvent(FrameMetrics::ViewID aScrollId,
+                                       const CSSRect &aContentRect,
                                        const CSSSize &aScrollableSize) = 0;
 
   
