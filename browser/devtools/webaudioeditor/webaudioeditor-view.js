@@ -8,6 +8,14 @@ Cu.import("resource:///modules/devtools/VariablesViewController.jsm");
 const { debounce } = require("sdk/lang/functional");
 
 
+const EXPAND_INSPECTOR_STRING = L10N.getStr("expandInspector");
+const COLLAPSE_INSPECTOR_STRING = L10N.getStr("collapseInspector");
+
+
+
+const INSPECTOR_WIDTH = 300;
+
+
 
 
 const WIDTH = 1000;
@@ -20,8 +28,6 @@ const ARROW_WIDTH = 8;
 const GRAPH_DEBOUNCE_TIMER = 100;
 
 const GENERIC_VARIABLES_VIEW_SETTINGS = {
-  lazyEmpty: true,
-  lazyEmptyDelay: 10, 
   searchEnabled: false,
   editableValueTooltip: "",
   editableNameTooltip: "",
@@ -225,55 +231,201 @@ let WebAudioGraphView = {
     
     if (!node)
       return;
-    WebAudioParamView.focusNode(node.getAttribute('data-id'));
+
+    window.emit(EVENTS.UI_SELECT_NODE, node.getAttribute('data-id'));
   }
 };
 
-let WebAudioParamView = {
-  _paramsView: null,
+let WebAudioInspectorView = {
+
+  _propsView: null,
+
+  _currentNode: null,
+
+  _inspectorPane: null,
+  _inspectorPaneToggleButton: null,
+  _tabsPane: null,
 
   
 
 
   initialize: function () {
-    this._paramsView = new VariablesView($("#web-audio-inspector-content"), GENERIC_VARIABLES_VIEW_SETTINGS);
-    this._paramsView.eval = this._onEval.bind(this);
-    window.on(EVENTS.CREATE_NODE, this.addNode = this.addNode.bind(this));
-    window.on(EVENTS.DESTROY_NODE, this.removeNode = this.removeNode.bind(this));
+    this._inspectorPane = $("#web-audio-inspector");
+    this._inspectorPaneToggleButton = $("#inspector-pane-toggle");
+    this._tabsPane = $("#web-audio-editor-tabs");
+
+    
+    this._inspectorPane.setAttribute("width", INSPECTOR_WIDTH);
+    this.toggleInspector(false);
+
+    this._onEval = this._onEval.bind(this);
+    this._onNodeSelect = this._onNodeSelect.bind(this);
+    this._onTogglePaneClick = this._onTogglePaneClick.bind(this);
+
+    this._inspectorPaneToggleButton.addEventListener("mousedown", this._onTogglePaneClick, false);
+    this._propsView = new VariablesView($("#properties-tabpanel-content"), GENERIC_VARIABLES_VIEW_SETTINGS);
+    this._propsView.eval = this._onEval;
+
+    window.on(EVENTS.UI_SELECT_NODE, this._onNodeSelect);
   },
 
   
 
 
-  destroy: function() {
-    window.off(EVENTS.CREATE_NODE, this.addNode);
-    window.off(EVENTS.DESTROY_NODE, this.removeNode);
+  destroy: function () {
+    this._inspectorPaneToggleButton.removeEventListener("mousedown", this._onTogglePaneClick);
+    window.off(EVENTS.UI_SELECT_NODE, this._onNodeSelect);
+
+    this._inspectorPane = null;
+    this._inspectorPaneToggleButton = null;
+    this._tabsPane = null;
+  },
+
+  
+
+
+
+
+
+
+
+  toggleInspector: function (visible, index) {
+    let pane = this._inspectorPane;
+    let button = this._inspectorPaneToggleButton;
+
+    let flags = {
+      visible: visible,
+      animated: true,
+      delayed: true,
+      callback: () => window.emit(EVENTS.UI_INSPECTOR_TOGGLED, visible)
+    };
+
+    ViewHelpers.togglePane(flags, pane);
+
+    if (flags.visible) {
+      button.removeAttribute("pane-collapsed");
+      button.setAttribute("tooltiptext", COLLAPSE_INSPECTOR_STRING);
+    }
+    else {
+      button.setAttribute("pane-collapsed", "");
+      button.setAttribute("tooltiptext", EXPAND_INSPECTOR_STRING);
+    }
+
+    if (index != undefined) {
+      pane.selectedIndex = index;
+    }
+  },
+
+  
+
+
+
+  isVisible: function () {
+    return !this._inspectorPane.hasAttribute("pane-collapsed");
+  },
+
+  
+
+
+
+  setCurrentAudioNode: function (node) {
+    this._currentNode = node || null;
+
+    
+    
+    if (!node) {
+      $("#web-audio-editor-details-pane-empty").removeAttribute("hidden");
+      $("#web-audio-editor-tabs").setAttribute("hidden", "true");
+      window.emit(EVENTS.UI_INSPECTOR_NODE_SET, null);
+    }
+    
+    else {
+      $("#web-audio-editor-details-pane-empty").setAttribute("hidden", "true");
+      $("#web-audio-editor-tabs").removeAttribute("hidden");
+      this._setTitle();
+      this._buildPropertiesView()
+        .then(() => window.emit(EVENTS.UI_INSPECTOR_NODE_SET, this._currentNode.id));
+    }
+  },
+
+  
+
+
+  getCurrentNode: function () {
+    return this._currentNode;
   },
 
   
 
 
   resetUI: function () {
-    this._paramsView.empty();
+    this._propsView.empty();
+    
+    this.setCurrentAudioNode();
   },
 
   
 
 
-  focusNode: function (id) {
-    let scope = this._getScopeByID(id);
-    if (!scope) return;
-
-    scope.focus();
-    scope.expand();
+  _setTitle: function () {
+    let node = this._currentNode;
+    let title = node.type + " (" + node.id + ")";
+    $("#web-audio-inspector-title").setAttribute("value", title);
   },
+
+  
+
+
+
+  _buildPropertiesView: Task.async(function* () {
+    let propsView = this._propsView;
+    let node = this._currentNode;
+    propsView.empty();
+
+    let audioParamsScope = propsView.addScope("AudioParams");
+    let props = yield node.getParams();
+
+    
+    
+    this._togglePropertiesView(!!props.length);
+
+    props.forEach(({ param, value }) => {
+      let descriptor = { value: value };
+      audioParamsScope.addItem(param, descriptor);
+    });
+
+    audioParamsScope.expanded = true;
+
+    window.emit(EVENTS.UI_PROPERTIES_TAB_RENDERED, node.id);
+  }),
+
+  _togglePropertiesView: function (show) {
+    let propsView = $("#properties-tabpanel-content");
+    let emptyView = $("#properties-tabpanel-content-empty");
+    (show ? propsView : emptyView).removeAttribute("hidden");
+    (show ? emptyView : propsView).setAttribute("hidden", "true");
+  },
+
+  
+
+
+
+
+
+  _getAudioPropertiesScope: function () {
+    return this._propsView.getScopeAtIndex(0);
+  },
+
+  
+
+
 
   
 
 
   _onEval: Task.async(function* (variable, value) {
     let ownerScope = variable.ownerView;
-    let node = getViewNodeById(ownerScope.actorID);
+    let node = this._currentNode;
     let propName = variable.name;
     let error;
 
@@ -300,73 +452,20 @@ let WebAudioParamView = {
   
 
 
-  _getScopeByID: function (id) {
-    let view = this._paramsView;
-    for (let i = 0; i < view._store.length; i++) {
-      let scope = view.getScopeAtIndex(i);
-      if (scope.actorID === id)
-        return scope;
-    }
-    return null;
+
+  _onNodeSelect: function (_, id) {
+    this.setCurrentAudioNode(getViewNodeById(id));
+
+    
+    this.toggleInspector(true);
   },
 
   
 
 
-  _onMouseOver: function (e) {
-    let id = WebAudioParamView._getScopeID(this);
-
-    if (!id) return;
-
-    WebAudioGraphView.focusNode(id);
+  _onTogglePaneClick: function () {
+    this.toggleInspector(!this.isVisible());
   },
-
-  
-
-
-  _onMouseOut: function (e) {
-    let id = WebAudioParamView._getScopeID(this);
-
-    if (!id) return;
-
-    WebAudioGraphView.blurNode(id);
-  },
-
-  
-
-
-
-  _getScopeID: function ($el) {
-    let match = $el.parentNode.id.match(/\(([^\)]*)\)/);
-    return match ? match[1] : null;
-  },
-
-  
-
-
-
-  addNode: Task.async(function* (_, id) {
-    let viewNode = getViewNodeById(id);
-    let type = viewNode.type;
-
-    let audioParamsTitle = type + " (" + id + ")";
-    let paramsView = this._paramsView;
-    let paramsScopeView = paramsView.addScope(audioParamsTitle);
-
-    paramsScopeView.actorID = id;
-    paramsScopeView.expanded = false;
-
-    paramsScopeView.addEventListener("mouseover", this._onMouseOver, false);
-    paramsScopeView.addEventListener("mouseout", this._onMouseOut, false);
-
-    let params = yield viewNode.getParams();
-    params.forEach(({ param, value }) => {
-      let descriptor = { value: value };
-      paramsScopeView.addItem(param, descriptor);
-    });
-
-    window.emit(EVENTS.UI_ADD_NODE_LIST, id);
-  }),
 
   
 
@@ -384,6 +483,10 @@ let WebAudioParamView = {
 
 
 function findGraphNodeParent (el) {
+  
+  if (!el.classList)
+    return null;
+
   while (!el.classList.contains("nodes")) {
     if (el.classList.contains("audionode"))
       return el;

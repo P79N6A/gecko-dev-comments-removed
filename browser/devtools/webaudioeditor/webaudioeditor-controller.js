@@ -16,6 +16,8 @@ const { Task } = Cu.import("resource://gre/modules/Task.jsm", {});
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const EventEmitter = require("devtools/toolkit/event-emitter");
 const STRINGS_URI = "chrome://browser/locale/devtools/webaudioeditor.properties"
+const L10N = new ViewHelpers.L10N(STRINGS_URI);
+
 let { console } = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 
@@ -43,7 +45,16 @@ const EVENTS = {
   UI_SET_PARAM: "WebAudioEditor:UISetParam",
 
   
-  UI_ADD_NODE_LIST: "WebAudioEditor:UIAddNodeList",
+  UI_SELECT_NODE: "WebAudioEditor:UISelectNode",
+
+  
+  UI_INSPECTOR_NODE_SET: "WebAudioEditor:UIInspectorNodeSet",
+
+  
+  UI_INSPECTOR_TOGGLED: "WebAudioEditor:UIInspectorToggled",
+
+  
+  UI_PROPERTIES_TAB_RENDERED: "WebAudioEditor:UIPropertiesTabRendered",
 
   
   
@@ -106,7 +117,7 @@ function startupWebAudioEditor() {
   return all([
     WebAudioEditorController.initialize(),
     WebAudioGraphView.initialize(),
-    WebAudioParamView.initialize()
+    WebAudioInspectorView.initialize(),
   ]);
 }
 
@@ -117,7 +128,7 @@ function shutdownWebAudioEditor() {
   return all([
     WebAudioEditorController.destroy(),
     WebAudioGraphView.destroy(),
-    WebAudioParamView.destroy()
+    WebAudioInspectorView.destroy(),
   ]);
 }
 
@@ -181,7 +192,7 @@ let WebAudioEditorController = {
           
           
           WebAudioGraphView.resetUI();
-          WebAudioParamView.resetUI();
+          WebAudioInspectorView.resetUI();
 
           
           AudioNodes.length = 0;
