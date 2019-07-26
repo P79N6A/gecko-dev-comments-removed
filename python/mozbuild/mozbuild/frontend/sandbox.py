@@ -124,6 +124,8 @@ class GlobalNamespace(dict):
 
         self._allow_all_writes = False
 
+        self._allow_one_mutation = set()
+
     def __getitem__(self, name):
         try:
             return dict.__getitem__(self, name)
@@ -151,7 +153,20 @@ class GlobalNamespace(dict):
     def __setitem__(self, name, value):
         if self._allow_all_writes:
             dict.__setitem__(self, name, value)
+            self._allow_one_mutation.add(name)
             return
+
+        
+        
+        
+        
+        
+        
+        
+        if name in self._allow_one_mutation:
+            self._allow_one_mutation.remove(name)
+        elif name in self and dict.__getitem__(self, name) is not value:
+            raise Exception('Reassigning %s is forbidden' % name)
 
         
         
@@ -194,6 +209,11 @@ class GlobalNamespace(dict):
         self._allow_all_writes = True
         yield self
         self._allow_all_writes = False
+
+    
+    def update(self, other):
+        for name, value in other.items():
+            self.__setitem__(name, value)
 
 
 class LocalNamespace(dict):
