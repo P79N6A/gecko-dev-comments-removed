@@ -69,6 +69,10 @@ RemoteTabsView.prototype = {
     let list = this._set;
     let seenURLs = new Set();
 
+    
+    
+    this._set.clearAll();
+
     for (let [guid, client] in Iterator(tabsEngine.getAllClients())) {
       client.tabs.forEach(function({title, urlHistory, icon}) {
         let url = urlHistory[0];
