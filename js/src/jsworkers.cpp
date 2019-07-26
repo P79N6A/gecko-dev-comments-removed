@@ -719,11 +719,26 @@ WorkerThread::destroy()
         threadData.destroy();
 }
 
+#ifdef MOZ_NUWA_PROCESS
+extern "C" {
+MFBT_API bool IsNuwaProcess();
+MFBT_API void NuwaMarkCurrentThread(void (*recreate)(void *), void *arg);
+}
+#endif
+
 
 void
 WorkerThread::ThreadMain(void *arg)
 {
     PR_SetCurrentThreadName("Analysis Helper");
+
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        JS_ASSERT(NuwaMarkCurrentThread != nullptr);
+        NuwaMarkCurrentThread(nullptr, nullptr);
+    }
+#endif
+
     static_cast<WorkerThread *>(arg)->threadLoop();
 }
 
@@ -788,24 +803,7 @@ WorkerThread::handleIonWorkload()
     JS_ASSERT(WorkerThreadState().canStartIonCompile());
     JS_ASSERT(idle());
 
-    
-    GlobalWorkerThreadState::IonBuilderVector &ionWorklist = WorkerThreadState().ionWorklist();
-    size_t highest = 0;
-    for (size_t i = 1; i < ionWorklist.length(); i++) {
-        if (ionWorklist[i]->script()->getUseCount() >
-            ionWorklist[highest]->script()->getUseCount())
-        {
-            highest = i;
-        }
-    }
-    ionBuilder = ionWorklist[highest];
-
-    
-    
-    if (highest != ionWorklist.length() - 1)
-        ionWorklist[highest] = ionWorklist.popCopy();
-    else
-        ionWorklist.popBack();
+    ionBuilder = WorkerThreadState().ionWorklist().popCopy();
 
     TraceLogger *logger = TraceLoggerForCurrentThread();
     AutoTraceLog logScript(logger, TraceLogCreateTextId(logger, ionBuilder->script()));
