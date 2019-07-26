@@ -37,7 +37,7 @@ let tests = [
     });
   },
   function customize(next) {
-    whenNewWindowLoaded(null, function (win) {
+    whenNewWindowLoaded(undefined, function (win) {
       
       
       whenDelayedStartupFinished(win, function () {
