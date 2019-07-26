@@ -182,6 +182,14 @@ char const * cubeb_get_backend_id(cubeb * context);
 
 
 
+
+
+
+
+int cubeb_get_max_channel_count(cubeb * context, uint32_t * max_channels);
+
+
+
 void cubeb_destroy(cubeb * context);
 
 
