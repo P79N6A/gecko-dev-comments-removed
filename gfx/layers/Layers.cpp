@@ -16,6 +16,7 @@
 #include "ReadbackLayer.h"              
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
+#include "gfx2DGlue.h"
 #include "mozilla/DebugOnly.h"          
 #include "mozilla/Telemetry.h"          
 #include "mozilla/TelemetryHistogramEnums.h"
@@ -509,7 +510,7 @@ Layer::SnapTransform(const gfx3DMatrix& aTransform,
   gfx3DMatrix result;
   if (mManager->IsSnappingEffectiveTransforms() &&
       aTransform.Is2D(&matrix2D) &&
-      gfxSize(1.0, 1.0) <= aSnapRect.Size() &&
+      gfx::Size(1.0, 1.0) <= ToSize(aSnapRect.Size()) &&
       matrix2D.PreservesAxisAlignedRectangles()) {
     gfxPoint transformedTopLeft = matrix2D.Transform(aSnapRect.TopLeft());
     transformedTopLeft.Round();

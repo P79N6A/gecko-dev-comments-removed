@@ -228,7 +228,7 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
     return;
   }
   float resolution = aLayerBuffer.GetResolution();
-  gfxSize layerScale(1, 1);
+  gfx::Size layerScale(1, 1);
   
   
   if (aLayerBuffer.GetFrameResolution() != mVideoMemoryTiledBuffer.GetFrameResolution()) {
