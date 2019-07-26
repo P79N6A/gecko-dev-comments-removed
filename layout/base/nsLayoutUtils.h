@@ -473,7 +473,7 @@ public:
   static nsIFrame* GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
                                                     const nsEvent* aEvent);
 
-
+  
 
 
 
@@ -588,7 +588,18 @@ public:
 
 
   static nsPoint TransformRootPointToFrame(nsIFrame* aFrame,
-                                           const nsPoint &aPt);
+                                           const nsPoint &aPoint)
+  {
+    return TransformAncestorPointToFrame(aFrame, aPoint, nullptr);
+  }
+
+  
+
+
+
+  static nsPoint TransformAncestorPointToFrame(nsIFrame* aFrame,
+                                               const nsPoint& aPoint,
+                                               nsIFrame* aAncestor);
 
   
 

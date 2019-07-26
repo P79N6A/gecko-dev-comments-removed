@@ -2900,6 +2900,36 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::ParagraphDepthProperty()))
   };
   bool IsVisibleConsideringAncestors(uint32_t aFlags = 0) const;
 
+  struct FrameWithDistance
+  {
+    nsIFrame* mFrame;
+    nscoord mXDistance;
+    nscoord mYDistance;
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void FindCloserFrameForSelection(nsPoint aPoint,
+                                           FrameWithDistance* aCurrentBestFrame);
+
   inline bool IsBlockInside() const;
   inline bool IsBlockOutside() const;
   inline bool IsInlineOutside() const;

@@ -216,9 +216,17 @@ public:
                                   uint32_t aFlags);
 
   
+
+
+  virtual void FindCloserFrameForSelection(nsPoint aPoint,
+                                          FrameWithDistance* aCurrentBestFrame);
+
+
+  
   virtual void NotifySVGChanged(uint32_t aFlags);
   NS_IMETHOD PaintSVG(nsRenderingContext* aContext,
                       const nsIntRect* aDirtyRect);
+  NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint& aPoint);
   virtual void ReflowSVG();
   NS_IMETHOD_(nsRect) GetCoveredRegion();
   virtual SVGBBox GetBBoxContribution(const gfxMatrix& aToBBoxUserspace,
@@ -257,6 +265,32 @@ public:
   void UpdateFontSizeScaleFactor(bool aForceGlobalTransform);
 
   double GetFontSizeScaleFactor() const;
+
+  
+
+
+
+
+  gfxPoint TransformFramePointToTextChild(const gfxPoint& aPoint,
+                                          nsIFrame* aChildFrame);
+
+  
+
+
+
+
+
+  gfxRect TransformFrameRectToTextChild(const gfxRect& aRect,
+                                        nsIFrame* aChildFrame);
+
+  
+
+
+
+
+
+  gfxRect TransformFrameRectFromTextChild(const nsRect& aRect,
+                                          nsIFrame* aChildFrame);
 
 private:
   

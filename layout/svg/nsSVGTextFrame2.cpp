@@ -12,6 +12,7 @@
 #include "gfxSkipChars.h"
 #include "gfxTypes.h"
 #include "LookAndFeel.h"
+#include "nsAlgorithm.h"
 #include "nsBlockFrame.h"
 #include "nsCaret.h"
 #include "nsContentUtils.h"
@@ -122,6 +123,18 @@ ScaleAround(gfxRect& aRect, const gfxPoint& aPoint, double aScale)
   aRect.y = aPoint.y - aScale * (aPoint.y - aRect.y);
   aRect.width *= aScale;
   aRect.height *= aScale;
+}
+
+
+
+
+static bool
+Inside(const gfxRect& aRect, const gfxPoint& aPoint)
+{
+  return aPoint.x >= aRect.x &&
+         aPoint.x < aRect.XMost() &&
+         aPoint.y >= aRect.y &&
+         aPoint.y < aRect.YMost();
 }
 
 
@@ -2731,8 +2744,10 @@ nsDisplaySVGText::HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
   
   nsPoint userSpacePt = pointRelativeToReferenceFrame -
                           (ToReferenceFrame() - frame->GetPosition());
-  if (frame->GetFrameForPoint(userSpacePt)) {
-    aOutFrames->AppendElement(frame);
+
+  nsIFrame* target = frame->GetFrameForPoint(userSpacePt);
+  if (target) {
+    aOutFrames->AppendElement(target);
   }
 }
 
@@ -2938,6 +2953,35 @@ nsSVGTextFrame2::InvalidateInternal(const nsRect& aDamageRect,
     (this, nsSVGUtils::OuterSVGIsCallingReflowSVG(this), nullptr, aFlags);
 }
 
+void
+nsSVGTextFrame2::FindCloserFrameForSelection(
+                                 nsPoint aPoint,
+                                 nsIFrame::FrameWithDistance* aCurrentBestFrame)
+{
+  UpdateGlyphPositioning(true);
+
+  nsPresContext* presContext = PresContext();
+
+  
+  TextRenderedRunIterator it(this);
+  for (TextRenderedRun run = it.Current(); run.mFrame; run = it.Next()) {
+    uint32_t flags = TextRenderedRun::eIncludeFill |
+                     TextRenderedRun::eIncludeStroke |
+                     TextRenderedRun::eNoHorizontalOverflow;
+    gfxRect userRect = run.GetUserSpaceRect(presContext, flags);
+
+    nsRect rect = nsSVGUtils::ToCanvasBounds(userRect,
+                                             GetCanvasTM(FOR_HIT_TESTING),
+                                             presContext);
+
+    if (nsLayoutUtils::PointIsCloserToRect(aPoint, rect,
+                                           aCurrentBestFrame->mXDistance,
+                                           aCurrentBestFrame->mYDistance)) {
+      aCurrentBestFrame->mFrame = run.mFrame;
+    }
+  }
+}
+
 
 
 
@@ -3136,6 +3180,52 @@ nsSVGTextFrame2::PaintSVG(nsRenderingContext* aContext,
   }
 
   return NS_OK;
+}
+
+NS_IMETHODIMP_(nsIFrame*)
+nsSVGTextFrame2::GetFrameForPoint(const nsPoint& aPoint)
+{
+  NS_ASSERTION(GetFirstPrincipalChild(), "must have a child frame");
+
+  AutoCanvasTMForMarker autoCanvasTMFor(this, FOR_HIT_TESTING);
+
+  if (mState & NS_STATE_SVG_NONDISPLAY_CHILD) {
+    
+    
+    
+    
+    UpdateGlyphPositioning(true);
+  } else {
+    NS_ASSERTION(!NS_SUBTREE_DIRTY(this), "reflow should have happened");
+  }
+
+  nsPresContext* presContext = PresContext();
+
+  gfxPoint pointInOuterSVGUserUnits = AppUnitsToGfxUnits(aPoint, presContext);
+
+  TextRenderedRunIterator it(this);
+  nsIFrame* hit = nullptr;
+  for (TextRenderedRun run = it.Current(); run.mFrame; run = it.Next()) {
+    uint16_t hitTestFlags = nsSVGUtils::GetGeometryHitTestFlags(run.mFrame);
+    if (!(hitTestFlags & (SVG_HIT_TEST_FILL | SVG_HIT_TEST_STROKE))) {
+      continue;
+    }
+
+    gfxMatrix m = GetCanvasTM(FOR_HIT_TESTING);
+    m.PreMultiply(run.GetTransformFromRunUserSpaceToUserSpace(presContext));
+    m.Invert();
+
+    gfxPoint pointInRunUserSpace = m.Transform(pointInOuterSVGUserUnits);
+    gfxRect frameRect =
+      run.GetRunUserSpaceRect(presContext, TextRenderedRun::eIncludeFill |
+                                           TextRenderedRun::eIncludeStroke);
+
+    if (Inside(frameRect, pointInRunUserSpace) &&
+        nsSVGUtils::HitTestClip(this, aPoint)) {
+      hit = run.mFrame;
+    }
+  }
+  return hit;
 }
 
 NS_IMETHODIMP_(nsRect)
@@ -4588,4 +4678,214 @@ double
 nsSVGTextFrame2::GetFontSizeScaleFactor() const
 {
   return mFontSizeScaleFactor;
+}
+
+
+
+
+
+
+gfxPoint
+nsSVGTextFrame2::TransformFramePointToTextChild(const gfxPoint& aPoint,
+                                                nsIFrame* aChildFrame)
+{
+  NS_ASSERTION(aChildFrame &&
+               nsLayoutUtils::GetClosestFrameOfType
+                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame2) == this,
+               "aChildFrame must be a descendant of this frame");
+
+  UpdateGlyphPositioning(true);
+
+  nsPresContext* presContext = PresContext();
+
+  
+  
+  
+  float cssPxPerDevPx = presContext->
+    AppUnitsToFloatCSSPixels(presContext->AppUnitsPerDevPixel());
+  float factor = presContext->AppUnitsPerCSSPixel();
+  gfxPoint framePosition(NSAppUnitsToFloatPixels(mRect.x, factor),
+                         NSAppUnitsToFloatPixels(mRect.y, factor));
+  gfxPoint pointInUserSpace = aPoint * cssPxPerDevPx + framePosition;
+
+  
+  TextRenderedRunIterator it(this, TextRenderedRunIterator::eAllFrames,
+                             aChildFrame);
+  TextRenderedRun hit;
+  gfxPoint pointInRun;
+  nscoord dx = nscoord_MAX;
+  nscoord dy = nscoord_MAX;
+  for (TextRenderedRun run = it.Current(); run.mFrame; run = it.Next()) {
+    uint32_t flags = TextRenderedRun::eIncludeFill |
+                     TextRenderedRun::eIncludeStroke |
+                     TextRenderedRun::eNoHorizontalOverflow;
+    gfxRect runRect = run.GetRunUserSpaceRect(presContext, flags);
+
+    gfxPoint pointInRunUserSpace =
+      run.GetTransformFromRunUserSpaceToUserSpace(presContext).Invert().
+          Transform(pointInUserSpace);
+
+    if (Inside(runRect, pointInRunUserSpace)) {
+      
+      dx = 0;
+      dy = 0;
+      pointInRun = pointInRunUserSpace;
+      hit = run;
+    } else if (nsLayoutUtils::PointIsCloserToRect(pointInRunUserSpace,
+                                                  runRect, dx, dy)) {
+      
+      
+      pointInRun.x = clamped(pointInRunUserSpace.x,
+                             runRect.X(), runRect.XMost());
+      pointInRun.y = clamped(pointInRunUserSpace.y,
+                             runRect.Y(), runRect.YMost());
+      hit = run;
+    }
+  }
+
+  if (!hit.mFrame) {
+    
+    return aPoint;
+  }
+
+  
+  
+  gfxMatrix m = hit.GetTransformFromRunUserSpaceToFrameUserSpace(presContext);
+  m.Scale(mFontSizeScaleFactor, mFontSizeScaleFactor);
+  return m.Transform(pointInRun) / cssPxPerDevPx;
+}
+
+
+
+
+
+
+
+
+gfxRect
+nsSVGTextFrame2::TransformFrameRectToTextChild(const gfxRect& aRect,
+                                               nsIFrame* aChildFrame)
+{
+  NS_ASSERTION(aChildFrame &&
+               nsLayoutUtils::GetClosestFrameOfType
+                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame2) == this,
+               "aChildFrame must be a descendant of this frame");
+
+  UpdateGlyphPositioning(true);
+
+  nsPresContext* presContext = PresContext();
+
+  
+  
+  
+  float cssPxPerDevPx = presContext->
+    AppUnitsToFloatCSSPixels(presContext->AppUnitsPerDevPixel());
+  float factor = presContext->AppUnitsPerCSSPixel();
+  gfxPoint framePosition(NSAppUnitsToFloatPixels(mRect.x, factor),
+                         NSAppUnitsToFloatPixels(mRect.y, factor));
+  gfxRect incomingRectInUserSpace(aRect.x * cssPxPerDevPx + framePosition.x,
+                                  aRect.y * cssPxPerDevPx + framePosition.y,
+                                  aRect.width * cssPxPerDevPx,
+                                  aRect.height * cssPxPerDevPx);
+
+  
+  gfxRect result;
+  TextRenderedRunIterator it(this, TextRenderedRunIterator::eAllFrames,
+                             aChildFrame);
+  for (TextRenderedRun run = it.Current(); run.mFrame; run = it.Next()) {
+    
+    gfxMatrix m;
+    m.PreMultiply(run.GetTransformFromRunUserSpaceToUserSpace(presContext).Invert());
+    m.PreMultiply(run.GetTransformFromRunUserSpaceToFrameUserSpace(presContext));
+    gfxRect incomingRectInFrameUserSpace =
+      m.TransformBounds(incomingRectInUserSpace);
+
+    
+    uint32_t flags = TextRenderedRun::eIncludeFill |
+                     TextRenderedRun::eIncludeStroke;
+    gfxRect runRectInFrameUserSpace = run.GetFrameUserSpaceRect(presContext, flags);
+    gfxRect runIntersectionInFrameUserSpace =
+      incomingRectInFrameUserSpace.Intersect(runRectInFrameUserSpace);
+
+    if (!runIntersectionInFrameUserSpace.IsEmpty()) {
+      
+      runIntersectionInFrameUserSpace.x *= mFontSizeScaleFactor;
+      runIntersectionInFrameUserSpace.y *= mFontSizeScaleFactor;
+      runIntersectionInFrameUserSpace.width *= mFontSizeScaleFactor;
+      runIntersectionInFrameUserSpace.height *= mFontSizeScaleFactor;
+
+      
+      nsPoint offset = run.mFrame->GetOffsetTo(aChildFrame);
+      gfxRect runIntersection =
+        runIntersectionInFrameUserSpace +
+          gfxPoint(NSAppUnitsToFloatPixels(offset.x, factor),
+                   NSAppUnitsToFloatPixels(offset.y, factor));
+
+      
+      result.UnionRect(result, runIntersection);
+    }
+  }
+
+  return result;
+}
+
+
+
+
+
+
+
+
+gfxRect
+nsSVGTextFrame2::TransformFrameRectFromTextChild(const nsRect& aRect,
+                                                 nsIFrame* aChildFrame)
+{
+  NS_ASSERTION(aChildFrame &&
+               nsLayoutUtils::GetClosestFrameOfType
+                 (aChildFrame->GetParent(), nsGkAtoms::svgTextFrame2) == this,
+               "aChildFrame must be a descendant of this frame");
+
+  UpdateGlyphPositioning(true);
+
+  nsPresContext* presContext = PresContext();
+
+  gfxRect result;
+  TextRenderedRunIterator it(this, TextRenderedRunIterator::eAllFrames,
+                             aChildFrame);
+  for (TextRenderedRun run = it.Current(); run.mFrame; run = it.Next()) {
+    
+    nsRect rectInTextFrame = aRect + aChildFrame->GetOffsetTo(run.mFrame);
+
+    
+    gfxRect rectInFrameUserSpace =
+      AppUnitsToFloatCSSPixels(gfxRect(rectInTextFrame.x,
+                                       rectInTextFrame.y,
+                                       rectInTextFrame.width,
+                                       rectInTextFrame.height), presContext);
+
+    
+    uint32_t flags = TextRenderedRun::eIncludeFill |
+                     TextRenderedRun::eIncludeStroke;
+    rectInFrameUserSpace.IntersectRect
+      (rectInFrameUserSpace, run.GetFrameUserSpaceRect(presContext, flags));
+
+    if (!rectInFrameUserSpace.IsEmpty()) {
+      
+      
+      gfxMatrix m = run.GetTransformFromRunUserSpaceToUserSpace(presContext);
+      m.Scale(mFontSizeScaleFactor, mFontSizeScaleFactor);
+      gfxRect rectInUserSpace = m.Transform(rectInFrameUserSpace);
+
+      
+      result.UnionRect(result, rectInUserSpace);
+    }
+  }
+
+  
+  
+  float factor = presContext->AppUnitsPerCSSPixel();
+  gfxPoint framePosition(NSAppUnitsToFloatPixels(mRect.x, factor),
+                         NSAppUnitsToFloatPixels(mRect.y, factor));
+
+  return result - framePosition;
 }
