@@ -172,6 +172,8 @@ public:
 
   virtual void Unlock() {}
 
+  virtual bool IsLocked() const = 0;
+
   
 
 
@@ -312,6 +314,8 @@ public:
   virtual bool Lock(OpenMode aMode) MOZ_OVERRIDE;
 
   virtual void Unlock() MOZ_OVERRIDE;
+
+  virtual bool IsLocked() const MOZ_OVERRIDE { return mLocked; }
 
   
 
