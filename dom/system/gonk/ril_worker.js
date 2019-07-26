@@ -1312,6 +1312,8 @@ let RIL = {
 
 
 
+
+
   getICCContacts: function getICCContacts(options) {
     if (!this.appType) {
       options.rilMessageType = "icccontacts";
@@ -1319,23 +1321,20 @@ let RIL = {
       this.sendDOMMessage(options);
     }
 
-    let type = options.contactType;
-    switch (type) {
-      case "ADN":
-        switch (this.appType) {
-          case CARD_APPTYPE_SIM:
-            options.fileId = ICC_EF_ADN;
-            ICCRecordHelper.getADN(options);
-            break;
-          case CARD_APPTYPE_USIM:
-            ICCRecordHelper.getPBR(options);
-            break;
-        }
-        break;
-      case "FDN":
-        ICCRecordHelper.getFDN(options);
-        break;
-    }
+    ICCContactHelper.readICCContacts(
+      this.appType,
+      options.contactType,
+      function onsuccess(contacts) {
+        
+        options.rilMessageType = "icccontacts";
+        options.contacts = contacts;
+        RIL.sendDOMMessage(options);
+      }.bind(this),
+      function onerror(errorMsg) {
+        options.rilMessageType = "icccontacts";
+        options.errorMsg = errorMsg;
+        RIL.sendDOMMessage(options);
+      }.bind(this));
   },
 
   
@@ -4473,10 +4472,7 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options)
 };
 RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
   if (!length) {
-    if (options.onerror) {
-      options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
-      options.onerror(options);
-    }
+    ICCIOHelper.processICCIOError(options);
     return;
   }
 
@@ -4485,18 +4481,7 @@ RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
   options.sw1 = Buf.readUint32();
   options.sw2 = Buf.readUint32();
   if (options.sw1 != ICC_STATUS_NORMAL_ENDING) {
-    
-    
-    let msg = "ICC I/O Error EF id = " + options.fileId.toString(16) +
-              " command = " + options.command.toString(16) +
-              "(" + options.sw1.toString(16) + "/" + options.sw2.toString(16) + ")"
-    if (DEBUG) {
-      debug(msg);
-    }
-    if (options.onerror) {
-      options.errorMsg = msg;
-      options.onerror(options);
-    }
+    ICCIOHelper.processICCIOError(options);
     return;
   }
   ICCIOHelper.processICCIO(options);
@@ -8524,6 +8509,23 @@ let ICCIOHelper = {
       options.callback(options);
     }
   },
+
+  
+
+
+  processICCIOError: function processICCIOError(options) {
+    let error = options.onerror || debug;
+
+    
+    
+    let errorMsg = "ICC I/O Error code " +
+                   RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError] +
+                   "EF id = " + options.fileId.toString(16) +
+                   " command = " + options.command.toString(16) +
+                   "(" + options.sw1.toString(16) +
+                   "/" + options.sw2.toString(16) + ")";
+    error(errorMsg);
+  },
 };
 ICCIOHelper[ICC_COMMAND_SEEK] = null;
 ICCIOHelper[ICC_COMMAND_READ_BINARY] = function ICC_COMMAND_READ_BINARY(options) {
@@ -8749,37 +8751,26 @@ let ICCRecordHelper = {
 
 
 
-  getFDN: function getFDN(options) {
+  readFDN: function readFDN(onsuccess, onerror) {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
-        RIL.iccInfo.fdn.push(contact);
+        contacts.push(contact);
       }
 
       if (options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
       } else {
-        if (DEBUG) {
-          for (let i = 0; i < RIL.iccInfo.fdn.length; i++) {
-            debug("FDN[" + i + "] alphaId = " + RIL.iccInfo.fdn[i].alphaId +
-                                " number  = " + RIL.iccInfo.fdn[i].number);
-          }
+        if (onsuccess) {
+          onsuccess(contacts);
         }
-        
-        
-        
-        delete options.callback;
-        delete options.onerror;
-        options.rilMessageType = "icccontacts";
-        options.contacts = RIL.iccInfo.fdn;
-        RIL.sendDOMMessage(options);
       }
     }
 
-    RIL.iccInfo.fdn = [];
-    options.fileId = ICC_EF_FDN;
-    options.callback = callback.bind(this);
-    ICCIOHelper.loadLinearFixedEF(options);
+    let contacts = [];
+    ICCIOHelper.loadLinearFixedEF({fileId: ICC_EF_FDN,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
   },
 
   
@@ -8789,44 +8780,32 @@ let ICCRecordHelper = {
 
 
 
-
-  getADN: function getADN(options) {
+  readADN: function readADN(fileId, onsuccess, onerror) {
     function callback(options) {
       let contact = GsmPDUHelper.readAlphaIdDiallingNumber(options.recordSize);
       if (contact) {
-        RIL.iccInfo.adn.push(contact);
+        contact.recordId = options.p1;
+        contacts.push(contact);
       }
 
       if (options.p1 < options.totalRecords) {
         ICCIOHelper.loadNextRecord(options);
       } else {
         if (DEBUG) {
-          for (let i = 0; i < RIL.iccInfo.adn.length; i++) {
-            debug("ADN[" + i + "] " + JSON.stringify(RIL.iccInfo.adn[i]));
+          for (let i = 0; i < contacts.length; i++) {
+            debug("ADN[" + i + "] " + JSON.stringify(contacts[i]));
           }
         }
-        
-        
-        
-        delete options.callback;
-        delete options.onerror;
-        options.rilMessageType = "icccontacts";
-        options.contacts = RIL.iccInfo.adn;
-        RIL.sendDOMMessage(options);
+        if (onsuccess) {
+          onsuccess(contacts);
+        }
       }
     }
 
-    function error(options) {
-      delete options.callback;
-      delete options.onerror;
-      options.rilMessageType = "icccontacts";
-      RIL.sendDOMMessage(options);
-    }
-
-    RIL.iccInfo.adn = [];
-    options.callback = callback.bind(this);
-    options.onerror = error.bind(this);
-    ICCIOHelper.loadLinearFixedEF(options);
+    let contacts = [];
+    ICCIOHelper.loadLinearFixedEF({fileId: fileId,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
   },
 
   
@@ -8858,32 +8837,45 @@ let ICCRecordHelper = {
 
 
 
-  getPBR: function getPBR(options) {
+  readPBR: function readPBR(onsuccess, onerror) {
     function callback(options) {
-      let bufLen = Buf.readUint32();
+      let strLen = Buf.readUint32();
+      let octetLen = strLen / 2, readLen = 0;
 
-      let tag = GsmPDUHelper.readHexOctet();
-      let length = GsmPDUHelper.readHexOctet();
-      let value = ICCUtilsHelper.decodeSimTlvs(length);
+      let pbrTlvs = [];
+      while (readLen < octetLen) {
+        let tag = GsmPDUHelper.readHexOctet();
+        if (tag == 0xff) {
+          readLen++;
+          Buf.seekIncoming((octetLen - readLen) * PDU_HEX_OCTET_SIZE);
+          break;
+        }
 
-      let adn = ICCUtilsHelper.searchForIccUsimTag(value, ICC_USIM_EFADN_TAG);
-      options.fileId = (adn.value[0] << 8) | adn.value[1];
-      Buf.readStringDelimiter(bufLen);
+        let tlvLen = GsmPDUHelper.readHexOctet();
+        let tlvs = ICCUtilsHelper.decodeSimTlvs(tlvLen);
+        pbrTlvs.push({tag: tag,
+                      length: tlvLen,
+                      value: tlvs});
 
-      this.getADN(options);
+        readLen += tlvLen + 2; 
+      }
+      Buf.readStringDelimiter(strLen);
+
+      if (pbrTlvs.length == 0) {
+        let error = onerror || debug;
+        error("Cannot access Phonebook.");
+        return;
+      }
+
+      let pbr = ICCUtilsHelper.parsePbrTlvs(pbrTlvs);
+      if (onsuccess) {
+        onsuccess(pbr);
+      }
     }
 
-    function error(options) {
-      delete options.callback;
-      delete options.onerror;
-      options.rilMessageType = "icccontacts";
-      RIL.sendDOMMessage(options);
-    }
-
-    options.fileId = ICC_EF_PBR;
-    options.callback = callback.bind(this);
-    options.onerror = error.bind(this);
-    ICCIOHelper.loadLinearFixedEF(options);
+    ICCIOHelper.loadLinearFixedEF({fileId : ICC_EF_PBR,
+                                   callback: callback.bind(this),
+                                   onerror: onerror});
   },
 
   
@@ -9347,13 +9339,38 @@ let ICCUtilsHelper = {
     return tlvs;
   },
 
-  searchForIccUsimTag: function searchForIccUsimTag(tlvs, tag) {
-    for (let i = 0; i < tlvs.length; i++) {
-      if (tlvs[i].tag == tag) {
-        return tlvs[i];
+  
+
+
+  parsePbrTlvs: function parsePbrTlvs(pbrTlvs) {
+    let pbr = {};
+    for (let i = 0; i < pbrTlvs.length; i++) {
+      let pbrTlv = pbrTlvs[i];
+      for (let j = 0; j < pbrTlv.value.length; j++) {
+        let tlv = pbrTlv.value[j];
+        let tagName = USIM_TAG_NAME[tlv.tag];
+
+        
+        if (tlv.tag == ICC_USIM_EFANR_TAG) {
+          if (!pbr.anr) {
+            pbr.anr = [];
+          }
+          pbr.anr.push(tlv);
+        } else {
+          pbr[tagName] = tlv;
+        }
+
+        pbr[tagName].fileType = pbrTlv.tag;
+        pbr[tagName].fileId = (tlv.value[0] << 8) | tlv.value[1];
+
+        
+        if (pbrTlv.tag == ICC_USIM_TYPE2_TAG) {
+          pbr[tagName].indexInIAP = j;
+        }
       }
     }
-    return null;
+
+    return pbr;
   },
 
   
@@ -9452,6 +9469,67 @@ let ICCUtilsHelper = {
     }
 
     return true;
+  },
+};
+
+
+
+
+let ICCContactHelper = {
+  
+
+
+
+
+
+
+
+  readICCContacts: function readICCContacts(appType, contactType, onsuccess, onerror) {
+    switch (contactType) {
+      case "ADN":
+        switch (appType) {
+          case CARD_APPTYPE_SIM:
+            this.readSimContacts(onsuccess, onerror);
+            break;
+          case CARD_APPTYPE_USIM:
+            this.readUSimContacts(onsuccess, onerror);
+            break;
+        }
+        break;
+      case "FDN":
+        ICCRecordHelper.readFDN(onsuccess, onerror);
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+  readUSimContacts: function readUSimContacts(onsuccess, onerror) {
+    let gotPbrCb = function gotPbrCb(pbr) {
+      if (pbr.adn) {
+        let fileId = pbr.adn.fileId;
+        ICCRecordHelper.readADN(fileId, onsuccess, onerror);
+      } else {
+        let error = onerror || debug;
+        error("Cannot access ADN.");
+      }
+    }.bind(this);
+
+    ICCRecordHelper.readPBR(gotPbrCb, onerror);
+  },
+
+  
+
+
+
+
+
+  readSimContacts: function readSimContacts(onsuccess, onerror) {
+    ICCRecordHelper.readADN(ICC_EF_ADN, onsuccess, onerror);
   },
 };
 
