@@ -1058,52 +1058,43 @@ nsHTMLEditor::TabInTable(bool inIsShift, bool* outHandled)
   *outHandled = false;
 
   
-  nsCOMPtr<nsIDOMElement> cellElement;
-  nsresult res = GetElementOrParentByTagName(NS_LITERAL_STRING("td"), nullptr, getter_AddRefs(cellElement));
-  NS_ENSURE_SUCCESS(res, res);
+  nsCOMPtr<Element> cellElement =
+    GetElementOrParentByTagName(NS_LITERAL_STRING("td"), nullptr);
   
   NS_ENSURE_TRUE(cellElement, NS_OK);
 
   
-  nsCOMPtr<nsIDOMNode> tbl = GetEnclosingTable(cellElement);
-  NS_ENSURE_TRUE(tbl, res);
+  nsCOMPtr<Element> table = GetEnclosingTable(cellElement);
+  NS_ENSURE_TRUE(table, NS_OK);
 
   
   
-  nsCOMPtr<nsIContentIterator> iter =
-      do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &res);
-  NS_ENSURE_SUCCESS(res, res);
-  NS_ENSURE_TRUE(iter, NS_ERROR_NULL_POINTER);
-  nsCOMPtr<nsIContent> cTbl = do_QueryInterface(tbl);
-  nsCOMPtr<nsIContent> cBlock = do_QueryInterface(cellElement);
-  res = iter->Init(cTbl);
+  nsCOMPtr<nsIContentIterator> iter = NS_NewContentIterator();
+  nsresult res = iter->Init(table);
   NS_ENSURE_SUCCESS(res, res);
   
-  res = iter->PositionAt(cBlock);
+  res = iter->PositionAt(cellElement);
   NS_ENSURE_SUCCESS(res, res);
 
-  nsCOMPtr<nsIDOMNode> node;
-  do
-  {
-    if (inIsShift)
+  nsCOMPtr<nsINode> node;
+  do {
+    if (inIsShift) {
       iter->Prev();
-    else
+    } else {
       iter->Next();
+    }
 
-    node = do_QueryInterface(iter->GetCurrentNode());
+    node = iter->GetCurrentNode();
 
     if (node && nsHTMLEditUtils::IsTableCell(node) &&
-        GetEnclosingTable(node) == tbl)
-    {
-      CollapseSelectionToDeepestNonTableFirstChild(nullptr,
-                                                   iter->GetCurrentNode());
+        nsCOMPtr<Element>(GetEnclosingTable(node)) == table) {
+      CollapseSelectionToDeepestNonTableFirstChild(nullptr, node);
       *outHandled = true;
       return NS_OK;
     }
   } while (!iter->IsDone());
   
-  if (!(*outHandled) && !inIsShift)
-  {
+  if (!(*outHandled) && !inIsShift) {
     
     
     res = InsertTableRow(1, true);
@@ -1111,9 +1102,8 @@ nsHTMLEditor::TabInTable(bool inIsShift, bool* outHandled)
     *outHandled = true;
     
     
-    nsCOMPtr<nsISelection>selection;
-    nsCOMPtr<nsIDOMElement> tblElement;
-    nsCOMPtr<nsIDOMElement> cell;
+    nsCOMPtr<nsISelection> selection;
+    nsCOMPtr<nsIDOMElement> tblElement, cell;
     int32_t row;
     res = GetCellContext(getter_AddRefs(selection), 
                          getter_AddRefs(tblElement),
@@ -1127,12 +1117,12 @@ nsHTMLEditor::TabInTable(bool inIsShift, bool* outHandled)
     
     
     
-    node = do_QueryInterface(cell);
-    if (node) selection->Collapse(node,0);
-    return NS_OK;
+    if (cell) {
+      selection->Collapse(cell, 0);
+    }
   }
   
-  return res;
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLEditor::CreateBR(nsIDOMNode *aNode, int32_t aOffset, nsCOMPtr<nsIDOMNode> *outBRNode, EDirection aSelect)
