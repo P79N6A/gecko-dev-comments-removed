@@ -296,6 +296,12 @@ bool    nsNativeCharsetConverter::gIsNativeUTF8    = false;
 void
 nsNativeCharsetConverter::LazyInit()
 {
+    
+    
+    
+    
+    if (!gLock)
+      setlocale(LC_CTYPE, "");
     const char  *blank_list[] = { "", NULL };
     const char **native_charset_list = blank_list;
     const char  *native_charset = nl_langinfo(CODESET);
