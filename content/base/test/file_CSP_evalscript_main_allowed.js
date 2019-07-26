@@ -28,17 +28,6 @@ var onevalblocked = (function(window) {
 
 
 addEventListener('load', function() {
-  
-  try {
-      var script =
-        'console.log("dynamic script passed to crypto.generateCRMFRequest should execute")';
-      crypto.generateCRMFRequest('CN=0', 0, 0, null, script, 384, null, 'rsa-dual-use');
-      onevalexecuted(true, "eval(script) inside crypto.generateCRMFRequest",
-                     "eval executed during crypto.generateCRMFRequest");
-  } catch (e) {
-    onevalblocked(true, "eval(script) inside crypto.generateCRMFRequest",
-                  "eval was blocked during crypto.generateCRMFRequest");
-  }
 
   
   try {
