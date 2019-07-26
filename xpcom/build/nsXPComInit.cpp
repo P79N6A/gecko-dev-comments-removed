@@ -583,6 +583,10 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         
         
         if (observerService) {
+            
+            
+            
+            
             observerService->
                 EnumerateObservers(NS_XPCOM_SHUTDOWN_LOADERS_OBSERVER_ID,
                                    getter_AddRefs(moduleLoaders));
