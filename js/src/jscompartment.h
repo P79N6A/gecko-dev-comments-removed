@@ -463,6 +463,9 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
 
     js::DtoaCache dtoaCache;
 
+    
+    uint64_t rngState;
+
   private:
     
 

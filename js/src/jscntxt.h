@@ -1219,6 +1219,16 @@ struct JSRuntime : js::RuntimeFriendFields
         return 0;
 #endif
     }
+
+  private:
+    
+
+
+
+    uint64_t rngNonce;
+
+  public:
+    uint64_t nextRNGNonce() { return rngNonce++; }
 };
 
 
@@ -1566,9 +1576,6 @@ struct JSContext : js::ContextFriendFields,
 
     
     unsigned               resolveFlags;
-
-    
-    int64_t             rngSeed;
 
     
     js::Value           iterValue;

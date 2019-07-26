@@ -888,7 +888,8 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     threadPool(this),
     ionReturnOverride_(MagicValue(JS_ARG_POISON)),
     useHelperThreads_(useHelperThreads),
-    requestedHelperThreadCount(-1)
+    requestedHelperThreadCount(-1),
+    rngNonce(0)
 {
     
     JS_INIT_CLIST(&onNewGlobalObjectWatchers);
