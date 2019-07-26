@@ -322,6 +322,12 @@ PluginHangUIParent::OnMiniShmEvent(MiniShmBase *aMiniShmObj)
   NS_ASSERTION(NS_SUCCEEDED(rv),
                "Couldn't obtain read pointer OnMiniShmEvent");
   if (NS_SUCCEEDED(rv)) {
+    
+    
+    if (::UnregisterWaitEx(mRegWait, NULL)) {
+      mRegWait = NULL;
+    }
+
     RecvUserResponse(response->mResponseBits);
   }
 }
