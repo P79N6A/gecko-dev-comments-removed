@@ -978,6 +978,9 @@ public:
   
   inline void ResetPosition() { mPosition = 0; }
 
+  
+  nscoord GetCrossStartToFurthestBaseline() { return mCrossStartToFurthestBaseline; }
+
 private:
   
   
@@ -1934,6 +1937,21 @@ nsFlexContainerFrame::PositionItemInMainAxis(
   aMainAxisPosnTracker.TraversePackingSpace();
 }
 
+
+
+static void
+ResolveReflowedChildAscent(nsIFrame* aFrame,
+                           nsHTMLReflowMetrics& aChildDesiredSize)
+{
+  if (aChildDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    
+    if (!nsLayoutUtils::GetFirstLineBaseline(aFrame,
+                                             &aChildDesiredSize.ascent)) {
+      aChildDesiredSize.ascent = aFrame->GetBaseline();
+    }
+  }
+}
+
 nsresult
 nsFlexContainerFrame::SizeItemInCrossAxis(
   nsPresContext* aPresContext,
@@ -2016,13 +2034,7 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
 
   
   if (aItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE) {
-    if (childDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-      
-      if (!nsLayoutUtils::GetFirstLineBaseline(aItem.Frame(),
-                                               &childDesiredSize.ascent)) {
-        childDesiredSize.ascent = aItem.Frame()->GetBaseline();
-      }
-    }
+    ResolveReflowedChildAscent(aItem.Frame(), childDesiredSize);
     aItem.SetAscent(childDesiredSize.ascent);
   }
 
@@ -2209,11 +2221,12 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  
-  
-  
-  nscoord flexContainerAscent = contentBoxCrossSize +
-    aReflowState.mComputedBorderPadding.top;
+  nscoord flexContainerAscent =
+    lineCrossAxisPosnTracker.GetCrossStartToFurthestBaseline();
+  if (flexContainerAscent != nscoord_MIN) {
+    
+    flexContainerAscent += aReflowState.mComputedBorderPadding.top;
+  }
 
   
   for (uint32_t i = 0; i < items.Length(); ++i) {
@@ -2321,6 +2334,18 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                            &childReflowState, childDesiredSize,
                            physicalPosn.x, physicalPosn.y, 0);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    if (i == 0 && flexContainerAscent == nscoord_MIN) {
+      ResolveReflowedChildAscent(curItem.Frame(), childDesiredSize);
+
+      
+      
+      flexContainerAscent = physicalPosn.y + childDesiredSize.ascent -
+        childReflowState.mComputedOffsets.top;
+    }
   }
 
   
@@ -2330,6 +2355,19 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   aDesiredSize.height =
     IsAxisHorizontal(axisTracker.GetCrossAxis()) ?
     frameMainSize : frameCrossSize;
+
+  if (flexContainerAscent == nscoord_MIN) {
+    
+    
+    
+    
+    NS_WARN_IF_FALSE(items.IsEmpty(),
+                     "Have flex items but didn't get an ascent - that's odd "
+                     "(or there are just gigantic sizes involved)");
+    
+    flexContainerAscent = aDesiredSize.height -
+      aReflowState.mComputedBorderPadding.bottom;
+  }
 
   aDesiredSize.ascent = flexContainerAscent;
 

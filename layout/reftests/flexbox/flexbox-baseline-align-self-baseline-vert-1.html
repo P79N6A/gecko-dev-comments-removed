@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" type="text/css" href="ahem.css" />
+  <style>
+    body {
+      margin: 0;
+      font: 20px Ahem;
+      line-height: 20px;
+      /* Baseline is 0.8em = 16px from top */
+    }
+    .flexContainer {
+      display: inline-flex;
+      flex-direction: column;
+      display: -webkit-inline-flex;
+      -webkit-flex-direction: column;
+      background: lightblue;
+      align-items: baseline;
+    }
+    .hugeAndUnaligned {
+      font-size: 35px;
+      line-height: 35px;
+      /* This one flex item won't be baseline-aligned, so it won't impact
+         the flex container's positioning */
+      align-self: stretch;
+    }
+    .smallFont {
+      font-size: 10px;
+      line-height: 10px;
+      /* Baseline is 0.8em = 8px from top */
+    }
+  </style>
+</head>
+<body>
+  a
+  <div class="flexContainer">
+    <div class="smallFont">b</div>
+    <div>c</div>
+    <div class="hugeAndUnaligned">d</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">e</div>
+    <div>f</div>
+    <div class="smallFont">g</div>
+  </div>
+  <div class="flexContainer">
+    <div class="hugeAndUnaligned">h</div>
+    <div class="smallFont">i</div>
+    <div>j</div>
+  </div>
+</body>
+</html>
