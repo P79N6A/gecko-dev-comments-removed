@@ -49,9 +49,6 @@ DOMCI_CLASS(CRMFObject)
 DOMCI_CLASS(Crypto)
 
 
-DOMCI_CLASS(CSSRect)
-
-
 DOMCI_CLASS(ChromeWindow)
 
 #ifdef MOZ_XUL
@@ -134,7 +131,6 @@ DOMCI_CLASS(IDBKeyRange)
 DOMCI_CLASS(IDBIndex)
 DOMCI_CLASS(IDBOpenDBRequest)
 
-DOMCI_CLASS(TouchList)
 
 DOMCI_CLASS(MozCSSKeyframeRule)
 DOMCI_CLASS(MozCSSKeyframesRule)
