@@ -111,7 +111,6 @@ class PostMessageEvent;
 class nsRunnable;
 class nsDOMEventTargetHelper;
 class nsDOMOfflineResourceList;
-class nsDOMMozURLProperty;
 class nsDOMWindowUtils;
 class nsIIdleService;
 
@@ -124,6 +123,7 @@ class nsWindowSizes;
 namespace mozilla {
 namespace dom {
 class Navigator;
+class URL;
 } 
 } 
 
@@ -282,8 +282,6 @@ class nsGlobalWindow : public nsPIDOMWindow,
 #endif 
 {
 public:
-  friend class nsDOMMozURLProperty;
-
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::dom::Navigator Navigator;
@@ -1127,8 +1125,6 @@ protected:
   
   
   bool                          mDialogsPermanentlyDisabled;
-
-  nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
   nsTHashtable<nsPtrHashKey<nsDOMEventTargetHelper> > mEventTargetObjects;
 
