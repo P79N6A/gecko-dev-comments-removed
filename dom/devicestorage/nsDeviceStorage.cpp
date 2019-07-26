@@ -894,16 +894,6 @@ DeviceStorageFile::AppendRelativePath(const nsAString& aPath) {
   if (!mFile) {
     return;
   }
-  if (!IsSafePath(aPath)) {
-    
-    
-    
-    
-    
-    NS_WARNING("Unsafe path detected - ignoring");
-    NS_WARNING(NS_LossyConvertUTF16toASCII(aPath).get());
-    return;
-  }
 #if defined(XP_WIN)
   
   
