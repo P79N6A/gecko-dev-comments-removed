@@ -7,10 +7,13 @@
 
 
 #include "xpcprivate.h"
+#include "nsCxPusher.h"
 #include "nsAtomicRefcnt.h"
 #include "nsProxyRelease.h"
 #include "nsThreadUtils.h"
 #include "nsTextFormatter.h"
+
+using namespace mozilla;
 
 
 
@@ -266,12 +269,12 @@ CheckMainThreadOnly(nsXPCWrappedJS *aWrapper)
 
 
 nsresult
-nsXPCWrappedJS::GetNewOrUsed(JSContext* cx,
-                             JSObject* aJSObj,
+nsXPCWrappedJS::GetNewOrUsed(JSObject* aJSObj,
                              REFNSIID aIID,
                              nsISupports* aOuter,
                              nsXPCWrappedJS** wrapperResult)
 {
+    AutoJSContext cx;
     JS::RootedObject jsObj(cx, aJSObj);
     JSObject2WrappedJSMap* map;
     nsXPCWrappedJS* root = nullptr;
