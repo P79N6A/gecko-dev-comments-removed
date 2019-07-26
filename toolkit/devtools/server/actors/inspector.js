@@ -242,6 +242,13 @@ let NodeFront = protocol.FrontClass(NodeActor, {
   
 
 
+  parentNode: function() {
+    return this._parent;
+  },
+
+  
+
+
 
 
 
@@ -586,6 +593,11 @@ var WalkerActor = protocol.ActorClass({
     this._refMap = new Map();
     this._pendingMutations = [];
 
+    
+    
+    
+    this._orphaned = new Set();
+
     this.onMutations = this.onMutations.bind(this);
 
     
@@ -648,6 +660,7 @@ var WalkerActor = protocol.ActorClass({
     actor.observer.observe(node, {
       attributes: true,
       characterData: true,
+      childList: true,
       subtree: true
     });
   },
@@ -1030,6 +1043,26 @@ var WalkerActor = protocol.ActorClass({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   getMutations: method(function() {
     let pending = this._pendingMutations || [];
     this._pendingMutations = [];
@@ -1074,6 +1107,39 @@ var WalkerActor = protocol.ActorClass({
         } else {
           mutation.newValue = targetNode.nodeValue;
         }
+      } else if (mutation.type === "childList") {
+        
+        
+        let removedActors = [];
+        let addedActors = [];
+        for (let removed of change.removedNodes) {
+          let removedActor = this._refMap.get(removed);
+          if (!removedActor) {
+            
+            
+            continue;
+          }
+          
+          this._orphaned.add(removedActor);
+          removedActors.push(removedActor.actorID);
+        }
+        for (let added of change.addedNodes) {
+          let addedActor = this._refMap.get(added);
+          if (!addedActor) {
+            
+            
+            
+            continue;
+          }
+          
+          
+          
+          this._orphaned.delete(addedActor);
+          addedActors.push(addedActor.actorID);
+        }
+        mutation.numChildren = change.target.childNodes.length;
+        mutation.removed = removedActors;
+        mutation.added = addedActors;
       }
       this._pendingMutations.push(mutation);
     }
@@ -1090,6 +1156,7 @@ var WalkerActor = protocol.ActorClass({
 var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
+    this._orphaned = new Set();
   },
 
   destroy: function() {
@@ -1151,11 +1218,50 @@ var WalkerFront = exports.WalkerFront = protocol.FrontClass(WalkerActor, {
           console.error("Got a mutation for an unexpected actor: " + targetID);
           continue;
         }
-        targetFront.updateMutation(change);
 
-        
-        
-        emitMutations.push(object.merge(change, { target: targetFront }));
+        let emittedMutation = object.merge(change, { target: targetFront });
+
+        if (change.type === "childList") {
+          
+          let addedFronts = [];
+          let removedFronts = [];
+          for (let removed of change.removed) {
+            let removedFront = this.get(removed);
+            if (!removedFront) {
+              console.error("Got a removal of an actor we didn't know about: " + removed);
+              continue;
+            }
+            
+            removedFront.reparent(null);
+
+            
+            
+            this._orphaned.add(removedFront);
+            removedFronts.push(removedFront);
+          }
+          for (let added of change.added) {
+            let addedFront = this.get(added);
+            if (!addedFront) {
+              console.error("Got an addition of an actor we didn't know about: " + added);
+              continue;
+            }
+            addedFront.reparent(targetFront)
+
+            
+            
+            this._orphaned.delete(addedFront);
+            addedFronts.push(addedFront);
+          }
+          
+          
+          emittedMutation.added = addedFronts;
+          emittedMutation.removed = removedFronts;
+          targetFront._form.numChildren = change.numChildren;
+        } else {
+          targetFront.updateMutation(change);
+        }
+
+        emitMutations.push(emittedMutation);
       }
       events.emit(this, "mutations", emitMutations);
     });
