@@ -40,8 +40,7 @@ static NS_DEFINE_CID(kDOMScriptObjectFactoryCID,
                      NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
 
 
-class nsXULPDGlobalObject : public nsIScriptGlobalObject,
-                            public nsIScriptObjectPrincipal
+class nsXULPDGlobalObject : public nsIScriptGlobalObject
 {
 public:
     nsXULPDGlobalObject(nsXULPrototypeDocument* owner);
@@ -50,10 +49,12 @@ public:
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
     
+    virtual JSObject* GetGlobalJSObject();
+
+    
     virtual void OnFinalize(JSObject* aObject);
     virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
 
-    virtual JSObject* GetGlobalJSObject();
     virtual nsresult EnsureScriptEnvironment();
 
     virtual nsIScriptContext *GetScriptContext();
@@ -729,6 +730,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsXULPDGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIScriptGlobalObject)
   NS_INTERFACE_MAP_ENTRY(nsIScriptObjectPrincipal)
+  NS_INTERFACE_MAP_ENTRY(nsIGlobalObject)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIScriptGlobalObject)
 NS_INTERFACE_MAP_END
 

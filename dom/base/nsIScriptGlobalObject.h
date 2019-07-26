@@ -9,11 +9,45 @@
 
 #include "nsISupports.h"
 #include "nsEvent.h"
+#include "nsIProgrammingLanguage.h"
+#include "nsIGlobalObject.h"
 
 class nsIScriptContext;
+class nsIDOMEvent;
+class nsIScriptGlobalObjectOwner;
+class nsIArray;
 class nsScriptErrorEvent;
 class nsIScriptGlobalObject;
-class JSObject;
+class JSObject; 
+
+
+
+
+
+
+
+#define NS_STID_FIRST nsIProgrammingLanguage::JAVASCRIPT
+
+#define NS_STID_LAST (nsIProgrammingLanguage::MAX > 0x000FU ? \
+                      0x000FU : nsIProgrammingLanguage::MAX)
+
+
+#define NS_STID_ARRAY_UBOUND (NS_STID_LAST-NS_STID_FIRST+1)
+
+
+#define NS_STID_VALID(langID) (langID >= NS_STID_FIRST && langID <= NS_STID_LAST)
+
+
+#define NS_STID_INDEX(langID) (langID-NS_STID_FIRST)
+
+
+#define NS_STID_FOR_ID(varName) \
+          for (varName=NS_STID_FIRST;varName<=NS_STID_LAST;varName++)
+
+
+
+#define NS_STID_FOR_INDEX(varName) \
+          for (varName=0;varName<=NS_STID_INDEX(NS_STID_LAST);varName++)
 
 
 
@@ -27,15 +61,17 @@ NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
 
 
 #define NS_ISCRIPTGLOBALOBJECT_IID \
-{ 0x92569431, 0x6e6e, 0x408a, \
-  { 0xa8, 0x8c, 0x45, 0x28, 0x5c, 0x1c, 0x85, 0x73 } }
+{ 0xde24b30a, 0x12c6, 0x4e5f, \
+  { 0xa8, 0x5e, 0x90, 0xcd, 0xfb, 0x6c, 0x54, 0x51 } }
 
 
 
 
 
 
-class nsIScriptGlobalObject : public nsISupports
+
+
+class nsIScriptGlobalObject : public nsIGlobalObject
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ISCRIPTGLOBALOBJECT_IID)
@@ -54,8 +90,6 @@ public:
 
 
   virtual nsIScriptContext *GetScriptContext() = 0;
-  
-  virtual JSObject* GetGlobalJSObject() = 0;
 
   nsIScriptContext* GetContext() {
     return GetScriptContext();

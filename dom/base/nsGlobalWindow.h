@@ -260,7 +260,6 @@ class nsGlobalWindow : public mozilla::dom::EventTarget,
                        public nsPIDOMWindow,
                        public nsIScriptGlobalObject,
                        public nsIDOMJSWindow,
-                       public nsIScriptObjectPrincipal,
                        public nsIDOMStorageIndexedDB,
                        public nsSupportsWeakReference,
                        public nsIInterfaceRequestor,
@@ -298,8 +297,10 @@ public:
   }
 
   
-  virtual nsIScriptContext *GetContext();
   virtual JSObject *GetGlobalJSObject();
+
+  
+  virtual nsIScriptContext *GetContext();
   JSObject *FastGetGlobalJSObject()
   {
     return mJSObject;
@@ -981,10 +982,8 @@ protected:
 
   void UpdateCanvasFocus(bool aFocusChanged, nsIContent* aNewContent);
 
-public:
-  virtual already_AddRefed<nsPIWindowRoot> GetTopWindowRoot() MOZ_OVERRIDE;
+  already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
 
-protected:
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
   void NotifyWindowIDDestroyed(const char* aTopic);
 
@@ -1113,6 +1112,7 @@ protected:
   nsRefPtr<nsDOMWindowUtils>    mWindowUtils;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
+  
   nsGlobalWindowObserver*       mObserver;
   nsCOMPtr<nsIDOMCrypto>        mCrypto;
 
