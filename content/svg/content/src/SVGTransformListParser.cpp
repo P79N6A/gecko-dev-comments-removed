@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim: sw=2 ts=2 et lcs=trail\:.,tab\:>~ :
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "mozilla/ArrayUtils.h"
 
@@ -14,8 +14,8 @@
 
 using namespace mozilla;
 
-//----------------------------------------------------------------------
-// private methods
+
+
 
 bool
 SVGTransformListParser::Parse()
@@ -36,7 +36,7 @@ SVGTransformListParser::ParseTransforms()
   }
 
   while (SkipWsp()) {
-    // The SVG BNF allows multiple comma-wsp between transforms
+    
     while (*mIter == ',') {
       ++mIter;
       if (!SkipWsp()) {
@@ -63,7 +63,7 @@ SVGTransformListParser::ParseTransform()
   }
 
   if (start == mIter) {
-    // Didn't read anything
+    
     return false;
   }
 
@@ -143,7 +143,7 @@ SVGTransformListParser::ParseTranslate()
   switch (count) {
     case 1:
       t[1] = 0.f;
-      // fall-through
+      
     case 2:
     {
       nsSVGTransform* transform = mTransforms.AppendElement();
@@ -171,7 +171,7 @@ SVGTransformListParser::ParseScale()
   switch (count) {
     case 1:
       s[1] = s[0];
-      // fall-through
+      
     case 2:
     {
       nsSVGTransform* transform = mTransforms.AppendElement();
@@ -200,7 +200,7 @@ SVGTransformListParser::ParseRotate()
   switch (count) {
     case 1:
       r[1] = r[2] = 0.f;
-      // fall-through
+      
     case 3:
     {
       nsSVGTransform* transform = mTransforms.AppendElement();

@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/dom/SVGTitleElement.h"
 #include "mozilla/dom/SVGTitleElementBinding.h"
@@ -17,16 +17,16 @@ SVGTitleElement::WrapNode(JSContext *aCx)
   return SVGTitleElementBinding::Wrap(aCx, this);
 }
 
-//----------------------------------------------------------------------
-// nsISupports methods
+
+
 
 NS_IMPL_ISUPPORTS_INHERITED(SVGTitleElement, SVGTitleElementBase,
                             nsIDOMNode, nsIDOMElement,
                             nsIDOMSVGElement,
                             nsIMutationObserver)
 
-//----------------------------------------------------------------------
-// Implementation
+
+
 
 SVGTitleElement::SVGTitleElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
   : SVGTitleElementBase(aNodeInfo)
@@ -76,7 +76,7 @@ SVGTitleElement::BindToTree(nsIDocument *aDocument,
                              nsIContent *aBindingParent,
                              bool aCompileEventHandlers)
 {
-  // Let this fall through.
+  
   nsresult rv = SVGTitleElementBase::BindToTree(aDocument, aParent,
                                                 aBindingParent,
                                                 aCompileEventHandlers);
@@ -92,7 +92,7 @@ SVGTitleElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
   SendTitleChangeEvent(false);
 
-  // Let this fall through.
+  
   SVGTitleElementBase::UnbindFromTree(aDeep, aNullParent);
 }
 
@@ -113,11 +113,11 @@ SVGTitleElement::SendTitleChangeEvent(bool aBound)
   }
 }
 
-//----------------------------------------------------------------------
-// nsIDOMNode methods
+
+
 
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGTitleElement)
 
-} // namespace dom
-} // namespace mozilla
+} 
+} 
 
