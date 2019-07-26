@@ -9,6 +9,7 @@
 #include <cmath>
 #include <mozilla/Assertions.h>
 #include <algorithm>
+#include "nsMathUtils.h"
 
 namespace mozilla {
 namespace gfx {
@@ -55,6 +56,15 @@ struct BaseRect {
   
   bool IsEmpty() const { return height <= 0 || width <= 0; }
   void SetEmpty() { width = height = 0; }
+
+  
+  bool IsFinite() const
+  {
+    return (NS_finite(x) &&
+            NS_finite(y) &&
+            NS_finite(width) &&
+            NS_finite(height));
+  }
 
   
   
