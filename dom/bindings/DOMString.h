@@ -12,9 +12,11 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "nsDOMString.h"
+#include "nsIAtom.h"
 
 namespace mozilla {
 namespace dom {
+
 
 
 
@@ -101,6 +103,41 @@ public:
     MOZ_ASSERT(aStringBuffer, "Why are we getting null?");
     mStringBuffer = aStringBuffer;
     mLength = aLength;
+  }
+
+  void SetOwnedString(const nsAString& aString)
+  {
+    MOZ_ASSERT(mString.empty(), "We already have a string?");
+    MOZ_ASSERT(!mIsNull, "We're already set as null");
+    MOZ_ASSERT(!mStringBuffer, "Setting stringbuffer twice?");
+    nsStringBuffer* buf = nsStringBuffer::FromString(aString);
+    if (buf) {
+      SetStringBuffer(buf, aString.Length());
+    } else if (aString.IsVoid()) {
+      SetNull();
+    } else if (!aString.IsEmpty()) {
+      AsAString() = aString;
+    }
+  }
+
+  enum NullHandling
+  {
+    eTreatNullAsNull,
+    eTreatNullAsEmpty,
+    eNullNotExpected
+  };
+
+  void SetOwnedAtom(nsIAtom* aAtom, NullHandling aNullHandling)
+  {
+    MOZ_ASSERT(mString.empty(), "We already have a string?");
+    MOZ_ASSERT(!mIsNull, "We're already set as null");
+    MOZ_ASSERT(!mStringBuffer, "Setting stringbuffer twice?");
+    MOZ_ASSERT(aAtom || aNullHandling != eNullNotExpected);
+    if (aNullHandling == eNullNotExpected || aAtom) {
+      SetStringBuffer(aAtom->GetStringBuffer(), aAtom->GetLength());
+    } else if (aNullHandling == eTreatNullAsNull) {
+      SetNull();
+    }
   }
 
   void SetNull()
