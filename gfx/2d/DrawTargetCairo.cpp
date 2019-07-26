@@ -902,6 +902,7 @@ CopyDataToCairoSurface(cairo_surface_t* aSurface,
                        int32_t aPixelWidth)
 {
   unsigned char* surfData = cairo_image_surface_get_data(aSurface);
+  int surfStride = cairo_image_surface_get_stride(aSurface);
   
   
   
@@ -910,7 +911,7 @@ CopyDataToCairoSurface(cairo_surface_t* aSurface,
     return;
   }
   for (int32_t y = 0; y < aSize.height; ++y) {
-    memcpy(surfData + y * aSize.width * aPixelWidth,
+    memcpy(surfData + y * surfStride,
            aData + y * aStride,
            aSize.width * aPixelWidth);
   }
