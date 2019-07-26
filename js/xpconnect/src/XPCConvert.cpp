@@ -728,7 +728,7 @@ XPCConvert::JSData2Native(void* d, HandleValue s,
             return true;
         } else if (iid->Equals(NS_GET_IID(nsIAtom)) && s.isString()) {
             
-            JSString* str = JSVAL_TO_STRING(s);
+            JSString* str = s.toString();
             const char16_t* chars = JS_GetStringCharsZ(cx, str);
             if (!chars) {
                 if (pErr)
