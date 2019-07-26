@@ -120,7 +120,7 @@ class StoreBuffer
         
         void put(const T &t) {
             mozilla::ReentrancyGuard g(*this);
-            JS_ASSERT(!owner->inParallelSection());
+            JS_ASSERT(CurrentThreadCanAccessRuntime(owner->runtime));
 
             if (!enabled_)
                 return;
@@ -159,7 +159,7 @@ class StoreBuffer
 
         
         void unput(const T &v) {
-            JS_ASSERT(!this->owner->inParallelSection());
+            JS_ASSERT(CurrentThreadCanAccessRuntime(this->owner->runtime));
             MonoTypeBuffer<T>::put(v.tagged());
         }
     };
@@ -194,7 +194,7 @@ class StoreBuffer
         template <typename T>
         void put(const T &t) {
             mozilla::ReentrancyGuard g(*this);
-            JS_ASSERT(!owner->inParallelSection());
+            JS_ASSERT(CurrentThreadCanAccessRuntime(owner->runtime));
 
             
             (void)static_cast<const BufferableRef*>(&t);
