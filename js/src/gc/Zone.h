@@ -267,11 +267,6 @@ struct Zone : public JS::shadow::Zone,
     bool usedByExclusiveThread;
 
     
-    
-    bool scheduledForDestruction;
-    bool maybeAlive;
-
-    
     bool active;
 
     mozilla::DebugOnly<unsigned> gcLastZoneGroupIndex;
