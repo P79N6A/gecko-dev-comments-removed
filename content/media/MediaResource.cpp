@@ -1293,25 +1293,20 @@ public:
   }
   virtual int64_t GetLength() {
     MutexAutoLock lock(mLock);
-    if (mInput) {
-      EnsureSizeInitialized();
-    }
+
+    EnsureSizeInitialized();
     return mSizeInitialized ? mSize : 0;
   }
   virtual int64_t GetNextCachedData(int64_t aOffset)
   {
     MutexAutoLock lock(mLock);
-    if (!mInput) {
-      return -1;
-    }
+
     EnsureSizeInitialized();
     return (aOffset < mSize) ? aOffset : -1;
   }
   virtual int64_t GetCachedDataEnd(int64_t aOffset) {
     MutexAutoLock lock(mLock);
-    if (!mInput) {
-      return aOffset;
-    }
+
     EnsureSizeInitialized();
     return NS_MAX(aOffset, mSize);
   }
@@ -1347,8 +1342,6 @@ private:
   
   nsCOMPtr<nsISeekableStream> mSeekable;
 
-  
-  
   
   
   nsCOMPtr<nsIInputStream>  mInput;
@@ -1402,9 +1395,7 @@ void FileMediaResource::EnsureSizeInitialized()
 nsresult FileMediaResource::GetCachedRanges(nsTArray<MediaByteRange>& aRanges)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput) {
-    return NS_ERROR_FAILURE;
-  }
+
   EnsureSizeInitialized();
   if (mSize == -1) {
     return NS_ERROR_FAILURE;
@@ -1470,12 +1461,11 @@ nsresult FileMediaResource::Close()
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
 
-  MutexAutoLock lock(mLock);
+  
+  
   if (mChannel) {
     mChannel->Cancel(NS_ERROR_PARSED_DATA_CACHED);
     mChannel = nullptr;
-    mInput = nullptr;
-    mSeekable = nullptr;
   }
 
   return NS_OK;
@@ -1527,8 +1517,7 @@ MediaResource* FileMediaResource::CloneData(MediaDecoder* aDecoder)
 nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput || !mSeekable)
-    return NS_ERROR_FAILURE;
+
   EnsureSizeInitialized();
   int64_t offset = 0;
   nsresult res = mSeekable->Tell(&offset);
@@ -1557,8 +1546,7 @@ nsresult FileMediaResource::ReadFromCache(char* aBuffer, int64_t aOffset, uint32
 nsresult FileMediaResource::Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes)
 {
   MutexAutoLock lock(mLock);
-  if (!mInput)
-    return NS_ERROR_FAILURE;
+
   EnsureSizeInitialized();
   return mInput->Read(aBuffer, aCount, aBytes);
 }
