@@ -612,6 +612,8 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
 
 
 
+
+
 #ifdef DEBUG
     
     

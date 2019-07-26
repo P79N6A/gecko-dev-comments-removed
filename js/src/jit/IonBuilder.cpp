@@ -18,6 +18,7 @@
 #include "jit/BaselineInspector.h"
 #include "jit/ExecutionModeInlines.h"
 #include "jit/Ion.h"
+#include "jit/IonOptimizationLevels.h"
 #include "jit/IonSpewer.h"
 #include "jit/Lowering.h"
 #include "jit/MIRGraph.h"
@@ -101,11 +102,13 @@ jit::NewBaselineFrameInspector(TempAllocator *temp, BaselineFrame *frame)
     return inspector;
 }
 
-IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp, TempAllocator *temp, MIRGraph *graph,
-                       types::CompilerConstraintList *constraints,
-                       BaselineInspector *inspector, CompileInfo *info, BaselineFrameInspector *baselineFrame,
-                       size_t inliningDepth, uint32_t loopDepth)
-  : MIRGenerator(comp, temp, graph, info),
+IonBuilder::IonBuilder(JSContext *analysisContext, CompileCompartment *comp, TempAllocator *temp,
+                       MIRGraph *graph, types::CompilerConstraintList *constraints,
+                       BaselineInspector *inspector, CompileInfo *info,
+                       const OptimizationInfo *optimizationInfo,
+                       BaselineFrameInspector *baselineFrame, size_t inliningDepth,
+                       uint32_t loopDepth)
+  : MIRGenerator(comp, temp, graph, info, optimizationInfo),
     backgroundCodegen_(nullptr),
     analysisContext(analysisContext),
     baselineFrame_(baselineFrame),
@@ -335,6 +338,9 @@ IonBuilder::DontInline(JSScript *targetScript, const char *reason)
 IonBuilder::InliningDecision
 IonBuilder::canInlineTarget(JSFunction *target, CallInfo &callInfo)
 {
+    if (!optimizationInfo().inlineInterpreted())
+        return InliningDecision_DontInline;
+
     if (!target->isInterpreted())
         return DontInline(nullptr, "Non-interpreted target");
 
@@ -3902,9 +3908,9 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     unlock();
 
     
-    IonBuilder inlineBuilder(analysisContext, compartment,
-                             &alloc(), &graph(), constraints(), &inspector, info, nullptr,
-                             inliningDepth_ + 1, loopDepth_);
+    IonBuilder inlineBuilder(analysisContext, compartment, &alloc(), &graph(), constraints(),
+                             &inspector, info, &optimizationInfo(), nullptr, inliningDepth_ + 1,
+                             loopDepth_);
     if (!inlineBuilder.buildInline(this, outerResumePoint, callInfo)) {
         if (analysisContext && analysisContext->isExceptionPending()) {
             IonSpew(IonSpew_Abort, "Inline builder raised exception.");
@@ -4018,19 +4024,9 @@ IonBuilder::patchInlinedReturns(CallInfo &callInfo, MIRGraphReturns &returns, MB
     return phi;
 }
 
-static bool
-IsSmallFunction(JSScript *script)
-{
-    return script->length() <= js_IonOptions.smallFunctionMaxBytecodeLength;
-}
-
 IonBuilder::InliningDecision
 IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 {
-    
-    if (!inliningEnabled())
-        return InliningDecision_DontInline;
-
     
     if (target == nullptr)
         return InliningDecision_DontInline;
@@ -4050,30 +4046,30 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
     
     if (!targetScript->shouldInline()) {
         
-        if (IsSmallFunction(targetScript)) {
-            if (inliningDepth_ >= js_IonOptions.smallFunctionMaxInlineDepth)
+        if (js_IonOptions.isSmallFunction(targetScript)) {
+            if (inliningDepth_ >= optimizationInfo().smallFunctionMaxInlineDepth())
                 return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
         } else {
-            if (inliningDepth_ >= js_IonOptions.maxInlineDepth)
+            if (inliningDepth_ >= optimizationInfo().maxInlineDepth())
                 return DontInline(targetScript, "Vetoed: exceeding allowed inline depth");
 
             if (targetScript->hasLoops())
                 return DontInline(targetScript, "Vetoed: big function that contains a loop");
 
             
-            if (script()->length() >= js_IonOptions.inliningMaxCallerBytecodeLength)
+            if (script()->length() >= optimizationInfo().inliningMaxCallerBytecodeLength())
                 return DontInline(targetScript, "Vetoed: caller excessively large");
         }
 
         
         
-        if (targetScript->length() > js_IonOptions.inlineMaxTotalBytecodeLength)
+        if (targetScript->length() > optimizationInfo().inlineMaxTotalBytecodeLength())
             return DontInline(targetScript, "Vetoed: callee excessively large");
 
         
         
         
-        if (targetScript->getUseCount() < js_IonOptions.usesBeforeInlining() &&
+        if (targetScript->getUseCount() < optimizationInfo().usesBeforeInlining() &&
             info().executionMode() != DefinitePropertiesAnalysis)
         {
             return DontInline(targetScript, "Vetoed: callee is insufficiently hot.");
@@ -4116,7 +4112,7 @@ IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, Boo
         
         if (inlineable && target->isInterpreted()) {
             totalSize += target->nonLazyScript()->length();
-            if (totalSize > js_IonOptions.inlineMaxTotalBytecodeLength)
+            if (totalSize > optimizationInfo().inlineMaxTotalBytecodeLength())
                 inlineable = false;
         }
 
@@ -4210,9 +4206,6 @@ IonBuilder::InliningStatus
 IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
                            bool lambda, CallInfo &callInfo)
 {
-    if (!inliningEnabled())
-        return InliningStatus_NotInlined;
-
     if (targets.empty())
         return InliningStatus_NotInlined;
 
@@ -6049,10 +6042,28 @@ ClassHasResolveHook(CompileCompartment *comp, const Class *clasp, PropertyName *
 void
 IonBuilder::insertRecompileCheck()
 {
+    
     if (info().executionMode() != SequentialExecution)
         return;
 
-    return;
+    
+    OptimizationLevel curLevel = optimizationInfo().level();
+    if (js_IonOptimizations.isLastLevel(curLevel))
+        return;
+
+    
+
+    
+    
+    IonBuilder *topBuilder = this;
+    while (topBuilder->callerBuilder_)
+        topBuilder = topBuilder->callerBuilder_;
+
+    
+    
+    OptimizationLevel nextLevel = js_IonOptimizations.nextLevel(curLevel);
+    const OptimizationInfo *info = js_IonOptimizations.get(nextLevel);
+    current->add(MRecompileCheck::New(alloc(), topBuilder->script(), info->usesBeforeCompile()));
 }
 
 JSObject *
