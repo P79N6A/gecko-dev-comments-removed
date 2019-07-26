@@ -252,6 +252,8 @@ public:
 
 
 
+
+
   RadialGradientPattern(const Point &aCenter1,
                         const Point &aCenter2,
                         Float aRadius1,
