@@ -733,3 +733,30 @@ add_test(function test_polling_implicit_acceptance() {
   policy.startPolling();
 });
 
+add_test(function test_record_health_report_upload_enabled() {
+  let [policy, policyPrefs, hrPrefs, listener] = getPolicy("record_health_report_upload_enabled");
+
+  
+  do_check_false(policy.pendingDeleteRemoteData);
+  do_check_true(policy.healthReportUploadEnabled);
+  do_check_eq(listener.requestRemoteDeleteCount, 0);
+
+  
+  
+  policy.recordHealthReportUploadEnabled(false, "testing 1 2 3");
+  do_check_false(policy.healthReportUploadEnabled);
+  do_check_true(policy.pendingDeleteRemoteData);
+  do_check_eq(listener.requestRemoteDeleteCount, 1);
+
+  
+  listener.lastRemoteDeleteRequest.onNoDataAvailable();
+  do_check_false(policy.pendingDeleteRemoteData);
+
+  
+  policy.recordHealthReportUploadEnabled(true, "testing 1 2 3");
+  do_check_false(policy.pendingDeleteRemoteData);
+  do_check_true(policy.healthReportUploadEnabled);
+
+  run_next_test();
+});
+

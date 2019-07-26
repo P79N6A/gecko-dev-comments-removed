@@ -621,6 +621,8 @@ DataReportingPolicy.prototype = Object.freeze({
     return !!this._healthReportPrefs.get("uploadEnabled", true);
   },
 
+  
+  
   set healthReportUploadEnabled(value) {
     this._healthReportPrefs.set("uploadEnabled", !!value);
   },
@@ -661,6 +663,39 @@ DataReportingPolicy.prototype = Object.freeze({
     this.dataSubmissionPolicyResponseDate = this.now();
     this.dataSubmissionPolicyResponseType = "rejected-" + reason;
     this.dataSubmissionPolicyAccepted = false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  recordHealthReportUploadEnabled: function (flag, reason="no-reason") {
+    this.healthReportUploadEnabled = flag;
+
+    if (flag) {
+      return null;
+    }
+
+    return this.deleteRemoteData(reason);
   },
 
   
