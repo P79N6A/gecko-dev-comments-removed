@@ -479,16 +479,19 @@ protected:
 
 
 
-
-
   nsIFrame* GetPosAndText(int32_t& aStartOffset, int32_t& aEndOffset,
                           nsAString *aText = nullptr,
                           nsIFrame **aEndFrame = nullptr,
-                          nsIntRect *aBoundsRect = nullptr,
                           Accessible** aStartAcc = nullptr,
                           Accessible** aEndAcc = nullptr);
 
-  nsIntRect GetBoundsForString(nsIFrame *aFrame, uint32_t aStartRenderedOffset, uint32_t aEndRenderedOffset);
+  
+
+
+
+  nsIntRect GetBoundsInFrame(nsIFrame* aFrame,
+                             uint32_t aStartRenderedOffset,
+                             uint32_t aEndRenderedOffset);
 
   
 
