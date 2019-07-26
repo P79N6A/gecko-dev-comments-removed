@@ -7,9 +7,7 @@
 
 #include "mozilla/MemoryReporting.h"
 #include "RasterImage.h"
-#include "imgFrame.h"
 
-#define PIXMAN_DONT_DEFINE_STDINT
 #include "pixman.h"
 
 using namespace mozilla;
@@ -34,11 +32,11 @@ FrameBlender::GetFrame(uint32_t framenum) const
 {
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
-    return mFrames.SafeElementAt(0, nullptr);
+    return mFrames.SafeElementAt(0, FrameDataPair());
   }
   if (mAnim->lastCompositedFrameIndex == int32_t(framenum))
     return mAnim->compositingFrame;
-  return mFrames.SafeElementAt(framenum, nullptr);
+  return mFrames.SafeElementAt(framenum, FrameDataPair());
 }
 
 imgFrame*
@@ -46,10 +44,10 @@ FrameBlender::RawGetFrame(uint32_t framenum) const
 {
   if (!mAnim) {
     NS_ASSERTION(framenum == 0, "Don't ask for a frame > 0 if we're not animated!");
-    return mFrames.SafeElementAt(0, nullptr);
+    return mFrames.SafeElementAt(0, FrameDataPair());
   }
 
-  return mFrames.SafeElementAt(framenum, nullptr);
+  return mFrames.SafeElementAt(framenum, FrameDataPair());
 }
 
 uint32_t
@@ -63,17 +61,14 @@ FrameBlender::RemoveFrame(uint32_t framenum)
 {
   NS_ABORT_IF_FALSE(framenum < mFrames.Length(), "Deleting invalid frame!");
 
-  delete mFrames[framenum];
-  mFrames[framenum] = nullptr;
   mFrames.RemoveElementAt(framenum);
 }
 
 void
 FrameBlender::ClearFrames()
 {
-  for (uint32_t i = 0; i < mFrames.Length(); ++i) {
-    delete mFrames[i];
-  }
+  
+  
   mFrames.Clear();
 }
 
@@ -84,6 +79,10 @@ FrameBlender::InsertFrame(uint32_t framenum, imgFrame* aFrame)
   mFrames.InsertElementAt(framenum, aFrame);
   if (GetNumFrames() > 1) {
     EnsureAnimExists();
+
+    
+    
+    mFrames[framenum].LockAndGetData();
   }
 }
 
@@ -91,13 +90,40 @@ imgFrame*
 FrameBlender::SwapFrame(uint32_t framenum, imgFrame* aFrame)
 {
   NS_ABORT_IF_FALSE(framenum < mFrames.Length(), "Swapping invalid frame!");
-  imgFrame* ret = mFrames.SafeElementAt(framenum, nullptr);
-  mFrames.RemoveElementAt(framenum);
-  if (aFrame) {
-    mFrames.InsertElementAt(framenum, aFrame);
+
+  FrameDataPair ret;
+
+  
+  if (mAnim && mAnim->lastCompositedFrameIndex == int32_t(framenum)) {
+    ret = mAnim->compositingFrame;
+    mAnim->lastCompositedFrameIndex = -1;
+  } else if (framenum < mFrames.Length()) {
+    ret = mFrames[framenum];
   }
 
-  return ret;
+  mFrames.RemoveElementAt(framenum);
+  if (aFrame) {
+    InsertFrame(framenum, aFrame);
+  }
+
+  return ret.Forget();
+}
+
+void
+FrameBlender::EnsureAnimExists()
+{
+  if (!mAnim) {
+    
+    mAnim = new Anim();
+
+    
+    
+    MOZ_ASSERT(mFrames.Length() == 2);
+
+    
+    
+    mFrames[0].LockAndGetData();
+  }
 }
 
 
@@ -112,9 +138,9 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     return false;
   }
 
-  imgFrame* prevFrame = mFrames[aPrevFrameIndex];
-  imgFrame* nextFrame = mFrames[aNextFrameIndex];
-  if (!prevFrame || !nextFrame) {
+  FrameDataPair& prevFrame = mFrames[aPrevFrameIndex];
+  FrameDataPair& nextFrame = mFrames[aNextFrameIndex];
+  if (!prevFrame.HasFrameData() || !nextFrame.HasFrameData()) {
     return false;
   }
 
@@ -201,13 +227,14 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
 
   
   if (!mAnim->compositingFrame) {
-    mAnim->compositingFrame = new imgFrame();
+    mAnim->compositingFrame.SetFrame(new imgFrame());
     nsresult rv = mAnim->compositingFrame->Init(0, 0, mSize.width, mSize.height,
                                                 gfxASurface::ImageFormatARGB32);
     if (NS_FAILED(rv)) {
-      mAnim->compositingFrame = nullptr;
+      mAnim->compositingFrame.SetFrame(nullptr);
       return false;
     }
+    mAnim->compositingFrame.LockAndGetData();
     needToBlankComposite = true;
   } else if (int32_t(aNextFrameIndex) != mAnim->lastCompositedFrameIndex+1) {
 
@@ -269,7 +296,7 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
 
           
           if (nextFrameDisposalMethod != FrameBlender::kDisposeRestorePrevious)
-            mAnim->compositingPrevFrame = nullptr;
+            mAnim->compositingPrevFrame.SetFrame(nullptr);
         } else {
           ClearFrame(mAnim->compositingFrame);
         }
@@ -312,13 +339,15 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     
     
     if (!mAnim->compositingPrevFrame) {
-      mAnim->compositingPrevFrame = new imgFrame();
+      mAnim->compositingPrevFrame.SetFrame(new imgFrame());
       nsresult rv = mAnim->compositingPrevFrame->Init(0, 0, mSize.width, mSize.height,
                                                       gfxASurface::ImageFormatARGB32);
       if (NS_FAILED(rv)) {
-        mAnim->compositingPrevFrame = nullptr;
+        mAnim->compositingPrevFrame.SetFrame(nullptr);
         return false;
       }
+
+      mAnim->compositingPrevFrame.LockAndGetData();
     }
 
     CopyFrameImage(mAnim->compositingFrame, mAnim->compositingPrevFrame);
@@ -352,7 +381,7 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
     
     if (CopyFrameImage(mAnim->compositingFrame, nextFrame)) {
       prevFrame->SetFrameDisposalMethod(FrameBlender::kDisposeClearAll);
-      mAnim->compositingFrame = nullptr;
+      mAnim->compositingFrame.SetFrame(nullptr);
       mAnim->lastCompositedFrameIndex = -1;
       return true;
     }
@@ -567,9 +596,7 @@ FrameBlender::Discard()
   NS_ABORT_IF_FALSE(!mAnim, "Asked to discard for animated image!");
 
   
-  for (uint32_t i = 0; i < mFrames.Length(); ++i)
-    delete mFrames[i];
-  mFrames.Clear();
+  ClearFrames();
 }
 
 size_t
@@ -578,7 +605,7 @@ FrameBlender::SizeOfDecodedWithComputedFallbackIfHeap(gfxASurface::MemoryLocatio
 {
   size_t n = 0;
   for (uint32_t i = 0; i < mFrames.Length(); ++i) {
-    imgFrame* frame = mFrames.SafeElementAt(i, nullptr);
+    imgFrame* frame = mFrames.SafeElementAt(i, FrameDataPair());
     NS_ABORT_IF_FALSE(frame, "Null frame in frame array!");
     n += frame->SizeOfExcludingThisWithComputedFallbackIfHeap(aLocation, aMallocSizeOf);
   }
