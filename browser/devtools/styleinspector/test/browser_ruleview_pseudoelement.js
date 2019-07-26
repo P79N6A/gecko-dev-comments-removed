@@ -4,6 +4,8 @@
 
 "use strict";
 
+
+
 const TEST_URI = TEST_URL_ROOT + "browser_ruleview_pseudoelement.html";
 
 let test = asyncTest(function*() {
