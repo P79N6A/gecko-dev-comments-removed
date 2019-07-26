@@ -1757,6 +1757,7 @@ DocAccessible::UpdateTree(Accessible* aContainer, nsIContent* aChildNode,
     
     
     if (!aIsInsert && aChildNode->IsHTML(nsGkAtoms::optgroup) &&
+        aContainer->GetContent() &&
         aContainer->GetContent()->IsHTML(nsGkAtoms::select)) {
       for (nsIContent* optContent = aChildNode->GetFirstChild(); optContent;
            optContent = optContent->GetNextSibling()) {
