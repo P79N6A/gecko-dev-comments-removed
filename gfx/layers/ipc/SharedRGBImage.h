@@ -18,7 +18,7 @@ namespace layers {
 
 
 
-class SharedRGBImage : public Image
+class DeprecatedSharedRGBImage : public Image
 {
   typedef gfxASurface::gfxImageFormat gfxImageFormat;
 public:
@@ -26,10 +26,10 @@ public:
     gfxImageFormat mImageFormat;
   };
 
-  SharedRGBImage(ISurfaceAllocator *aAllocator);
-  ~SharedRGBImage();
+  DeprecatedSharedRGBImage(ISurfaceAllocator *aAllocator);
+  ~DeprecatedSharedRGBImage();
 
-  static already_AddRefed<SharedRGBImage> Create(ImageContainer* aImageContainer,
+  static already_AddRefed<DeprecatedSharedRGBImage> Create(ImageContainer* aImageContainer,
                                                  nsIntSize aSize,
                                                  gfxImageFormat aImageFormat);
   uint8_t *GetBuffer();
@@ -59,7 +59,7 @@ public:
 
 
 
-  static SharedRGBImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
+  static DeprecatedSharedRGBImage* FromSurfaceDescriptor(const SurfaceDescriptor& aDescriptor);
 
 private:
   bool AllocateBuffer(nsIntSize aSize, gfxImageFormat aImageFormat);
