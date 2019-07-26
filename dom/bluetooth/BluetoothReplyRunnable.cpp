@@ -5,9 +5,9 @@
 
 
 #include "base/basictypes.h"
-#include "BluetoothTypes.h"
 #include "BluetoothReplyRunnable.h"
 #include "nsIDOMDOMRequest.h"
+#include "mozilla/dom/bluetooth/BluetoothTypes.h"
 
 USING_BLUETOOTH_NAMESPACE
 
@@ -86,9 +86,9 @@ BluetoothReplyRunnable::Run()
   }
 
   ReleaseMembers();
-  if (mDOMRequest) {
-    NS_WARNING("mDOMRequest still alive! Deriving class should call BluetoothReplyRunnable::ReleaseMembers()!");
-  }
+  MOZ_ASSERT(!mDOMRequest,
+             "mDOMRequest still alive! Deriving class should call "
+             "BluetoothReplyRunnable::ReleaseMembers()!");
 
   return rv;
 }
