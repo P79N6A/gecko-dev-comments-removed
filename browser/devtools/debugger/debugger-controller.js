@@ -10,6 +10,7 @@ const Ci = Components.interfaces;
 const Cu = Components.utils;
 
 const DBG_STRINGS_URI = "chrome://browser/locale/devtools/debugger.properties";
+const NEW_SCRIPT_IGNORED_URLS = ["debugger eval code", "self-hosted"];
 const NEW_SCRIPT_DISPLAY_DELAY = 200; 
 const FETCH_SOURCE_RESPONSE_DELAY = 50; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
@@ -1049,7 +1050,6 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("SourceScripts is disconnecting...");
-    window.clearTimeout(this._newScriptTimeout);
     this.debuggerClient.removeListener("newScript", this._onNewScript);
     this.debuggerClient.removeListener("newGlobal", this._onNewGlobal);
   },
@@ -1062,7 +1062,6 @@ SourceScripts.prototype = {
       return;
     }
     dumpn("Handling tab navigation in the SourceScripts");
-    window.clearTimeout(this._newScriptTimeout);
 
     
     
@@ -1074,7 +1073,7 @@ SourceScripts.prototype = {
 
   _onNewScript: function SS__onNewScript(aNotification, aPacket) {
     
-    if (aPacket.url == "debugger eval code") {
+    if (NEW_SCRIPT_IGNORED_URLS.indexOf(aPacket.url) != -1) {
       return;
     }
 
@@ -1096,8 +1095,7 @@ SourceScripts.prototype = {
     }
     
     else {
-      window.clearTimeout(this._newScriptTimeout);
-      this._newScriptTimeout = window.setTimeout(function() {
+      window.setTimeout(function() {
         
         
         if (!container.selectedValue) {
@@ -1130,7 +1128,7 @@ SourceScripts.prototype = {
     
     for (let script of aResponse.scripts) {
       
-      if (script.url == "debugger eval code") {
+      if (NEW_SCRIPT_IGNORED_URLS.indexOf(script.url) != -1) {
         continue;
       }
       this._addSource(script);
