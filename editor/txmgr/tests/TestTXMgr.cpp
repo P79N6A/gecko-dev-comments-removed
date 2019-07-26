@@ -4578,10 +4578,15 @@ aggregation_batch_stress_test()
 #ifdef DEBUG
   10
 #else
+#if defined(MOZ_ASAN) || defined(MOZ_WIDGET_ANDROID)
+  
+  100
+#else
   
   
   
   500
+#endif
 #endif
   ;
   return stress_test(&factory, iterations);
