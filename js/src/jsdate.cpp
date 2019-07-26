@@ -523,23 +523,6 @@ date_convert(JSContext *cx, HandleObject obj, JSType hint, MutableHandleValue vp
 
 
 
-
-
-const Class DateObject::class_ = {
-    js_Date_str,
-    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
-    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
-    JS_PropertyStub,         
-    JS_DeletePropertyStub,   
-    JS_PropertyStub,         
-    JS_StrictPropertyStub,   
-    JS_EnumerateStub,
-    JS_ResolveStub,
-    date_convert
-};
-
-
-
 static const char* const wtb[] = {
     "am", "pm",
     "monday", "tuesday", "wednesday", "thursday", "friday",
@@ -3027,51 +3010,47 @@ js_Date(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
-JSObject *
-js_InitDateClass(JSContext *cx, HandleObject obj)
+static bool
+FinishDateClassInit(JSContext *cx, HandleObject ctor, HandleObject proto)
 {
-    JS_ASSERT(obj->isNative());
-
-    Rooted<GlobalObject*> global(cx, &obj->as<GlobalObject>());
-
-    RootedObject dateProto(cx, global->createBlankPrototype(cx, &DateObject::class_));
-    if (!dateProto)
-        return nullptr;
-    dateProto->as<DateObject>().setUTCTime(GenericNaN());
-
-    RootedFunction ctor(cx);
-    ctor = global->createConstructor(cx, js_Date, cx->names().Date, MAXARGS);
-    if (!ctor)
-        return nullptr;
-
-    if (!LinkConstructorAndPrototype(cx, ctor, dateProto))
-        return nullptr;
-
-    if (!DefinePropertiesAndBrand(cx, ctor, nullptr, date_static_methods))
-        return nullptr;
+    proto->as<DateObject>().setUTCTime(GenericNaN());
 
     
 
 
 
-
-    if (!JS_DefineFunctions(cx, dateProto, date_methods))
-        return nullptr;
     RootedValue toUTCStringFun(cx);
     RootedId toUTCStringId(cx, NameToId(cx->names().toUTCString));
     RootedId toGMTStringId(cx, NameToId(cx->names().toGMTString));
-    if (!baseops::GetProperty(cx, dateProto, toUTCStringId, &toUTCStringFun) ||
-        !baseops::DefineGeneric(cx, dateProto, toGMTStringId, toUTCStringFun,
-                                JS_PropertyStub, JS_StrictPropertyStub, 0))
-    {
-        return nullptr;
-    }
-
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_Date, ctor, dateProto))
-        return nullptr;
-
-    return dateProto;
+    return baseops::GetProperty(cx, proto, toUTCStringId, &toUTCStringFun) &&
+           baseops::DefineGeneric(cx, proto, toGMTStringId, toUTCStringFun,
+                                  JS_PropertyStub, JS_StrictPropertyStub, 0);
 }
+
+const Class DateObject::class_ = {
+    js_Date_str,
+    JSCLASS_HAS_RESERVED_SLOTS(RESERVED_SLOTS) |
+    JSCLASS_HAS_CACHED_PROTO(JSProto_Date),
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    date_convert,
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    nullptr,                 
+    {
+        GenericCreateConstructor<js_Date, NAME_OFFSET(Date), MAXARGS>,
+        GenericCreatePrototype<&DateObject::class_>,
+        date_static_methods,
+        date_methods,
+        FinishDateClassInit
+    }
+};
 
 JS_FRIEND_API(JSObject *)
 js_NewDateObjectMsec(JSContext *cx, double msec_time)
