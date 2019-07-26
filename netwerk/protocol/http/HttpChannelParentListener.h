@@ -35,22 +35,9 @@ public:
   HttpChannelParentListener(HttpChannelParent* aInitialChannel);
   virtual ~HttpChannelParentListener();
 
-  
-  nsresult DivertTo(nsIStreamListener *aListener);
-  nsresult SuspendForDiversion();
-
 private:
-  
-  nsresult ResumeForDiversion();
-
-  
-  
-  
-  
-  nsCOMPtr<nsIStreamListener> mNextListener;
+  nsCOMPtr<nsIParentChannel> mActiveChannel;
   uint32_t mRedirectChannelId;
-  
-  bool mSuspendedForDiversion;
 };
 
 } 

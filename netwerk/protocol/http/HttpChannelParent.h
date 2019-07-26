@@ -8,7 +8,6 @@
 #ifndef mozilla_net_HttpChannelParent_h
 #define mozilla_net_HttpChannelParent_h
 
-#include "ADivertableParentChannel.h"
 #include "nsHttp.h"
 #include "mozilla/dom/PBrowserParent.h"
 #include "mozilla/net/PHttpChannelParent.h"
@@ -35,7 +34,6 @@ class HttpChannelParent : public PHttpChannelParent
                         , public nsIParentRedirectingChannel
                         , public nsIProgressEventSink
                         , public nsIInterfaceRequestor
-                        , public ADivertableParentChannel
 {
 public:
   NS_DECL_ISUPPORTS
@@ -52,19 +50,6 @@ public:
   virtual ~HttpChannelParent();
 
   bool Init(const HttpChannelCreationArgs& aOpenArgs);
-
-  
-  void DivertTo(nsIStreamListener *aListener) MOZ_OVERRIDE;
-  nsresult SuspendForDiversion() MOZ_OVERRIDE;
-
-  
-  
-  
-  void StartDiversion();
-
-  
-  
-  void NotifyDiversionFailed(nsresult aErrorCode, bool aSkipResume = true);
 
 protected:
   
@@ -111,17 +96,12 @@ protected:
   virtual bool RecvDivertComplete() MOZ_OVERRIDE;
   virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
-  
-  nsresult ResumeForDiversion();
-
-  
-  void FailDiversion(nsresult aErrorCode, bool aSkipResume = true);
-
+protected:
   friend class HttpChannelParentListener;
   nsRefPtr<mozilla::dom::TabParent> mTabParent;
 
 private:
-  nsRefPtr<nsHttpChannel>       mChannel;
+  nsCOMPtr<nsIChannel>                    mChannel;
   nsCOMPtr<nsICacheEntry>       mCacheEntry;
   nsCOMPtr<nsIAssociatedContentSecurity>  mAssociatedContentSecurity;
   bool mIPCClosed;                
@@ -145,19 +125,6 @@ private:
 
   nsCOMPtr<nsILoadContext> mLoadContext;
   nsRefPtr<nsHttpHandler>  mHttpHandler;
-
-  nsRefPtr<HttpChannelParentListener> mParentListener;
-  
-  nsresult mStatus;
-  
-  
-  
-  bool mDivertingFromChild;
-
-  
-  bool mDivertedOnStartRequest;
-
-  bool mSuspendedForDiversion;
 };
 
 } 
