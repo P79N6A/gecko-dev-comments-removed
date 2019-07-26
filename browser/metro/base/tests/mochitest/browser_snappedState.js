@@ -93,27 +93,30 @@ gTests.push({
   tearDown: restoreViewstate
 });
 
-gTests.push({
-  desc: "Test Snapped scrolls vertically",
-  setUp: function() {
 
-    
-    BookmarksTestHelper.setup();
-    sendElementTap(Browser.selectedBrowser.contentWindow, getNarrowTitle("start-bookmarks"));
 
-    yield waitForCondition(() => gStartDoc.getElementById("start-bookmarks").hasAttribute("expanded"));
 
-    yield setUpSnapped();
-  },
-  run: function() {
-    ok(Browser.selectedBrowser.contentWindow.scrollMaxY !== 0, "Snapped scrolls vertically");
-    ok(Browser.selectedBrowser.contentWindow.scrollMaxX === 0, "Snapped does not scroll horizontally");
-  },
-  tearDown: function() {
-    BookmarksTestHelper.restore();
-    yield restoreViewstate();
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 gTests.push({
   desc: "Test tile selection is cleared and disabled",
   setUp: function() {
@@ -183,22 +186,24 @@ gTests.push({
   tearDown: restoreViewstate
 });
 
-gTests.push({
-  desc: "Test portrait scrolls vertically",
-  setUp: function() {
-    
-    BookmarksTestHelper.setup();
-    HistoryTestHelper.setup();
 
-    yield setUpPortrait();
-  },
-  run: function() {
-    ok(Browser.selectedBrowser.contentWindow.scrollMaxY !== 0, "Portrait scrolls vertically");
-    ok(Browser.selectedBrowser.contentWindow.scrollMaxX === 0, "Portrait does not scroll horizontally");
-  },
-  tearDown: function() {
-    BookmarksTestHelper.restore();
-    HistoryTestHelper.restore();
-    yield restoreViewstate();
-  }
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
