@@ -482,6 +482,9 @@ struct JSScript : public js::gc::Cell
 
     bool            hasDebugScript:1; 
 
+    bool            hasFreezeConstraints:1; 
+
+
   private:
     
     bool            argsHasVarBinding_:1;
@@ -611,8 +614,7 @@ struct JSScript : public js::gc::Cell
     
     bool isShortRunning();
 
-    inline bool hasGlobal() const;
-    inline bool hasClearedGlobal() const;
+    inline void clearPropertyReadTypes();
 
     inline js::GlobalObject &global() const;
 
@@ -1227,10 +1229,11 @@ js_GetScriptLineExtent(JSScript *script);
 namespace js {
 
 extern unsigned
-PCToLineNumber(JSScript *script, jsbytecode *pc);
+PCToLineNumber(JSScript *script, jsbytecode *pc, unsigned *columnp = NULL);
 
 extern unsigned
-PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc);
+PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc,
+               unsigned *columnp = NULL);
 
 extern unsigned
 CurrentLine(JSContext *cx);
