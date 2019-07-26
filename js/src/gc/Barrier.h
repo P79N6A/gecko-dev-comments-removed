@@ -120,7 +120,17 @@ namespace js {
 
 class PropertyName;
 
+#ifdef DEBUG
+bool
+RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone);
+#endif
+
 namespace gc {
+
+template <typename T>
+void
+MarkUnbarriered(JSTracer *trc, T **thingp, const char *name);
+
 
 void
 MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
@@ -131,7 +141,60 @@ void
 MarkObjectUnbarriered(JSTracer *trc, JSObject **obj, const char *name);
 void
 MarkStringUnbarriered(JSTracer *trc, JSString **str, const char *name);
-}
+
+
+
+template <typename T>
+class BarrieredCell : public gc::Cell
+{
+  public:
+    JS_ALWAYS_INLINE JS::Zone *zone() const { return tenuredZone(); }
+    JS_ALWAYS_INLINE JS::shadow::Zone *shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
+    bool isInsideZone(JS::Zone *zone_) const { return tenuredIsInsideZone(zone_); }
+
+    static JS_ALWAYS_INLINE void readBarrier(T *thing) {
+#ifdef JSGC_INCREMENTAL
+        JS::shadow::Zone *shadowZone = thing->shadowZone();
+        if (shadowZone->needsBarrier()) {
+            MOZ_ASSERT(!RuntimeFromMainThreadIsHeapMajorCollecting(shadowZone));
+            T *tmp = thing;
+            js::gc::MarkUnbarriered<T>(shadowZone->barrierTracer(), &tmp, "read barrier");
+            JS_ASSERT(tmp == thing);
+        }
+#endif
+    }
+
+    static JS_ALWAYS_INLINE bool needWriteBarrierPre(JS::Zone *zone) {
+#ifdef JSGC_INCREMENTAL
+        return JS::shadow::Zone::asShadowZone(zone)->needsBarrier();
+#else
+        return false;
+#endif
+    }
+
+    static JS_ALWAYS_INLINE bool isNullLike(T *thing) { return !thing; }
+
+    static JS_ALWAYS_INLINE void writeBarrierPre(T *thing) {
+#ifdef JSGC_INCREMENTAL
+        if (isNullLike(thing) || !thing->shadowRuntimeFromAnyThread()->needsBarrier())
+            return;
+
+        JS::shadow::Zone *shadowZone = thing->shadowZone();
+        if (shadowZone->needsBarrier()) {
+            MOZ_ASSERT(!RuntimeFromMainThreadIsHeapMajorCollecting(shadowZone));
+            T *tmp = thing;
+            js::gc::MarkUnbarriered<T>(shadowZone->barrierTracer(), &tmp, "write barrier");
+            JS_ASSERT(tmp == thing);
+        }
+#endif
+    }
+
+    static void writeBarrierPost(T *thing, void *addr) {}
+    static void writeBarrierPostRelocate(T *thing, void *addr) {}
+    static void writeBarrierPostRemove(T *thing, void *addr) {}
+};
+
+} 
 
 
 
@@ -1024,11 +1087,6 @@ class ReadBarrieredValue
 
     inline JSObject &toObject() const;
 };
-
-#ifdef DEBUG
-bool
-RuntimeFromMainThreadIsHeapMajorCollecting(JS::shadow::Zone *shadowZone);
-#endif
 
 } 
 

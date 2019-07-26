@@ -972,7 +972,7 @@ struct TypeTypedObject : public TypeObjectAddendum
 
 
 
-struct TypeObject : gc::Cell
+struct TypeObject : gc::BarrieredCell<TypeObject>
 {
     
     const Class *clasp;
@@ -1147,36 +1147,6 @@ struct TypeObject : gc::Cell
 
 
     void finalize(FreeOp *fop) {}
-
-    JS::Zone *zone() const { return tenuredZone(); }
-    JS::shadow::Zone *shadowZone() const { return JS::shadow::Zone::asShadowZone(zone()); }
-
-    static void writeBarrierPre(TypeObject *type) {
-#ifdef JSGC_INCREMENTAL
-        if (!type || !type->shadowRuntimeFromAnyThread()->needsBarrier())
-            return;
-
-        JS::shadow::Zone *shadowZone = type->shadowZone();
-        if (shadowZone->needsBarrier()) {
-            TypeObject *tmp = type;
-            js::gc::MarkTypeObjectUnbarriered(shadowZone->barrierTracer(), &tmp, "write barrier");
-            JS_ASSERT(tmp == type);
-        }
-#endif
-    }
-
-    static void writeBarrierPost(TypeObject *type, void *addr) {}
-
-    static void readBarrier(TypeObject *type) {
-#ifdef JSGC_INCREMENTAL
-        JS::shadow::Zone *shadowZone = type->shadowZone();
-        if (shadowZone->needsBarrier()) {
-            TypeObject *tmp = type;
-            MarkTypeObjectUnbarriered(shadowZone->barrierTracer(), &tmp, "read barrier");
-            JS_ASSERT(tmp == type);
-        }
-#endif
-    }
 
     static inline ThingRootKind rootKind() { return THING_ROOT_TYPE_OBJECT; }
 
