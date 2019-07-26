@@ -31,6 +31,11 @@
 
 using namespace mozilla;
 
+enum nsMixedContentBlockerMessageType {
+  eBlocked = 0x00,
+  eUserOverride = 0x01
+};
+
 
 
 bool nsMixedContentBlocker::sBlockMixedScript = false;
@@ -147,22 +152,42 @@ nsMixedContentBlocker::~nsMixedContentBlocker()
 
 NS_IMPL_ISUPPORTS1(nsMixedContentBlocker, nsIContentPolicy)
 
-void
-LogBlockingMixedContent(MixedContentTypes classification,
-                        nsIURI* aContentLocation,
-                        nsIDocument* aRootDoc)
+static void
+LogMixedContentMessage(MixedContentTypes aClassification,
+                       nsIURI* aContentLocation,
+                       nsIDocument* aRootDoc,
+                       nsMixedContentBlockerMessageType aMessageType)
 {
+  nsAutoCString messageCategory;
+  uint32_t severityFlag;
+  nsAutoCString messageLookupKey;
+
+  if (aMessageType == eBlocked) {
+    severityFlag = nsIScriptError::errorFlag;
+    messageCategory.AssignLiteral("Mixed Content Blocker");
+    if (aClassification == eMixedDisplay) {
+      messageLookupKey.AssignLiteral("BlockMixedDisplayContent");
+    } else {
+      messageLookupKey.AssignLiteral("BlockMixedActiveContent");
+    }
+  } else {
+    severityFlag = nsIScriptError::warningFlag;
+    messageCategory.AssignLiteral("Mixed Content Message");
+    if (aClassification == eMixedDisplay) {
+      messageLookupKey.AssignLiteral("LoadingMixedDisplayContent");
+    } else {
+      messageLookupKey.AssignLiteral("LoadingMixedActiveContent");
+    }
+  }
+
   nsAutoCString locationSpec;
   aContentLocation->GetSpec(locationSpec);
   NS_ConvertUTF8toUTF16 locationSpecUTF16(locationSpec);
 
   const PRUnichar* strings[] = { locationSpecUTF16.get() };
-  nsContentUtils::ReportToConsole(nsIScriptError::errorFlag,
-                                  NS_LITERAL_CSTRING("Mixed Content Blocker"),
-                                  aRootDoc,
+  nsContentUtils::ReportToConsole(severityFlag, messageCategory, aRootDoc,
                                   nsContentUtils::eSECURITY_PROPERTIES,
-                                  classification == eMixedDisplay ? "BlockMixedDisplayContent" : "BlockMixedActiveContent",
-                                  strings, ArrayLength(strings));
+                                  messageLookupKey.get(), strings, ArrayLength(strings));
 }
 
 NS_IMETHODIMP
@@ -453,6 +478,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   
   if (sBlockMixedDisplay && classification == eMixedDisplay) {
     if (allowMixedContent) {
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
       *aDecision = nsIContentPolicy::ACCEPT;
       rootDoc->SetHasMixedActiveContentLoaded(true);
       if (!rootDoc->GetHasMixedDisplayContentLoaded() && NS_SUCCEEDED(stateRV)) {
@@ -460,7 +486,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
       }
     } else {
       *aDecision = nsIContentPolicy::REJECT_REQUEST;
-      LogBlockingMixedContent(classification, aContentLocation, rootDoc);
+      LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
       if (!rootDoc->GetHasMixedDisplayContentBlocked() && NS_SUCCEEDED(stateRV)) {
         eventSink->OnSecurityChange(aRequestingContext, (State | nsIWebProgressListener::STATE_BLOCKED_MIXED_DISPLAY_CONTENT));
       }
@@ -471,6 +497,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     
     
     if (allowMixedContent) {
+       LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
        *aDecision = nsIContentPolicy::ACCEPT;
        
        if (rootDoc->GetHasMixedActiveContentLoaded()) {
@@ -501,7 +528,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     } else {
        
        *aDecision = nsIContentPolicy::REJECT_REQUEST;
-       LogBlockingMixedContent(classification, aContentLocation, rootDoc);
+       LogMixedContentMessage(classification, aContentLocation, rootDoc, eBlocked);
        
        if (rootDoc->GetHasMixedActiveContentBlocked()) {
          return NS_OK;
@@ -518,6 +545,9 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
 
   } else {
     
+
+    
+    LogMixedContentMessage(classification, aContentLocation, rootDoc, eUserOverride);
 
     
     
