@@ -534,46 +534,90 @@ void CacheStorageService::DropPrivateBrowsingEntries()
     DoomStorageEntries(keys[i], nullptr, true, nullptr);
 }
 
+namespace { 
 
-void CacheStorageService::CleaupCacheDirectories(uint32_t aVersion, uint32_t aActive)
+class CleaupCacheDirectoriesRunnable : public nsRunnable
+{
+public:
+  NS_DECL_NSIRUNNABLE
+  static bool Post(uint32_t aVersion, uint32_t aActive);
+
+private:
+  CleaupCacheDirectoriesRunnable(uint32_t aVersion, uint32_t aActive)
+    : mVersion(aVersion), mActive(aActive)
+  {
+    nsCacheService::GetDiskCacheDirectory(getter_AddRefs(mCache1Dir));
+    CacheFileIOManager::GetCacheDirectory(getter_AddRefs(mCache2Dir));
+  }
+
+  virtual ~CleaupCacheDirectoriesRunnable() {}
+  uint32_t mVersion, mActive;
+  nsCOMPtr<nsIFile> mCache1Dir, mCache2Dir;
+};
+
+
+bool CleaupCacheDirectoriesRunnable::Post(uint32_t aVersion, uint32_t aActive)
 {
   
   
   
   nsCOMPtr<nsICacheService> service = do_GetService(NS_CACHESERVICE_CONTRACTID);
+  if (!service)
+    return false;
 
-  
-  nsCOMPtr<nsIFile> cache1Dir, cache2Dir;
-  nsCacheService::GetDiskCacheDirectory(getter_AddRefs(cache1Dir));
-  CacheFileIOManager::GetCacheDirectory(getter_AddRefs(cache2Dir));
+  nsCOMPtr<nsIEventTarget> thread;
+  service->GetCacheIOTarget(getter_AddRefs(thread));
+  if (!thread)
+    return false;
 
-  
-  
-  static bool runOnce = (
-    cache1Dir && NS_SUCCEEDED(nsDeleteDir::RemoveOldTrashes(cache1Dir)),
-    cache2Dir && NS_SUCCEEDED(nsDeleteDir::RemoveOldTrashes(cache2Dir))
-  );
+  nsRefPtr<CleaupCacheDirectoriesRunnable> r =
+    new CleaupCacheDirectoriesRunnable(aVersion, aActive);
+  thread->Dispatch(r, NS_DISPATCH_NORMAL);
+  return true;
+}
 
-  if (!runOnce) {
-    NS_WARNING("Could not start deletion of some of the old cache trashes");
+NS_IMETHODIMP CleaupCacheDirectoriesRunnable::Run()
+{
+  MOZ_ASSERT(!NS_IsMainThread());
+
+  if (mCache1Dir) {
+    nsDeleteDir::RemoveOldTrashes(mCache1Dir);
+  }
+  if (mCache2Dir) {
+    nsDeleteDir::RemoveOldTrashes(mCache2Dir);
   }
 
   
-  if (aVersion == aActive) {
-    return;
+  if (mVersion == mActive) {
+    return NS_OK;
   }
 
-  switch (aVersion) {
+  switch (mVersion) {
   case 0:
-    if (cache1Dir) {
-      nsDeleteDir::DeleteDir(cache1Dir, true, 30000);
+    if (mCache1Dir) {
+      nsDeleteDir::DeleteDir(mCache1Dir, true, 30000);
     }
     break;
   case 1:
-    if (cache2Dir) {
-      nsDeleteDir::DeleteDir(cache2Dir, true, 30000);
+    if (mCache2Dir) {
+      nsDeleteDir::DeleteDir(mCache2Dir, true, 30000);
     }
     break;
+  }
+
+  return NS_OK;
+}
+
+} 
+
+
+void CacheStorageService::CleaupCacheDirectories(uint32_t aVersion, uint32_t aActive)
+{
+  
+  
+  static bool runOnce = CleaupCacheDirectoriesRunnable::Post(aVersion, aActive);
+  if (!runOnce) {
+    NS_WARNING("Could not start cache trashes cleanup");
   }
 }
 
