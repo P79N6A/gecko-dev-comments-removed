@@ -11418,6 +11418,15 @@ nsDocShell::EnsureScriptEnvironment()
 
     bool isModalContentWindow = (mItemType == typeContent) &&
         (chromeFlags & nsIWebBrowserChrome::CHROME_MODAL);
+    
+    
+    
+    if (isModalContentWindow) {
+        nsCOMPtr<nsIDocShellTreeItem> primaryItem;
+        nsresult rv = mTreeOwner->GetPrimaryContentShell(getter_AddRefs(primaryItem));
+        NS_ENSURE_SUCCESS(rv, rv);
+        isModalContentWindow = (primaryItem == this);
+    }
 
     
     
