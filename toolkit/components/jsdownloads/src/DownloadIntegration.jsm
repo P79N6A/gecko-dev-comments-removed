@@ -110,7 +110,9 @@ const kPrefImportedFromSqlite = "browser.download.importedFromSqlite";
 this.DownloadIntegration = {
   
   _testMode: false,
-  dontLoad: false,
+  testPromptDownloads: 0,
+  dontLoadList: false,
+  dontLoadObservers: false,
   dontCheckParentalControls: false,
   shouldBlockInTest: false,
   dontOpenFileAndFolder: false,
@@ -149,7 +151,7 @@ this.DownloadIntegration = {
 
   initializePublicDownloadList: function(aList) {
     return Task.spawn(function task_DI_initializePublicDownloadList() {
-      if (this.dontLoad) {
+      if (this.dontLoadList) {
         return;
       }
 
@@ -616,7 +618,7 @@ this.DownloadIntegration = {
 
 
   addListObservers: function DI_addListObservers(aList, aIsPrivate) {
-    if (this.dontLoad) {
+    if (this.dontLoadObservers) {
       return Promise.resolve();
     }
 
@@ -722,6 +724,11 @@ this.DownloadObserver = {
     aCancel, aDownloadsCount, aIdTitle, aIdMessageSingle, aIdMessageMultiple, aIdButton) {
     
     if ((aCancel instanceof Ci.nsISupportsPRBool) && aCancel.data) {
+      return;
+    }
+    
+    if (DownloadIntegration.testMode) {
+      DownloadIntegration.testPromptDownloads = aDownloadsCount;
       return;
     }
     

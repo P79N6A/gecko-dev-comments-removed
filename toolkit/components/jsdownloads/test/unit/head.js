@@ -662,7 +662,8 @@ add_task(function test_common_initialize()
     });
 
   
-  DownloadIntegration.dontLoad = true;
+  DownloadIntegration.dontLoadList = true;
+  DownloadIntegration.dontLoadObservers = true;
   
   DownloadIntegration.dontCheckParentalControls = true;
   

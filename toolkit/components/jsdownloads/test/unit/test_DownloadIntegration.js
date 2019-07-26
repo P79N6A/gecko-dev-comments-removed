@@ -10,6 +10,55 @@
 
 
 
+
+
+
+
+function enableObserversTestMode() {
+  DownloadIntegration.testMode = true;
+  DownloadIntegration.dontLoadObservers = false;
+  function cleanup() {
+    DownloadIntegration.testMode = false;
+    DownloadIntegration.dontLoadObservers = true;
+  }
+  do_register_cleanup(cleanup);
+}
+
+
+
+
+
+
+
+
+
+
+
+function notifyPromptObservers(aIsPrivate, aExpectedCount, aExpectedPBCount) {
+  let cancelQuit = Cc["@mozilla.org/supports-PRBool;1"].
+                   createInstance(Ci.nsISupportsPRBool);
+
+  
+  DownloadIntegration.testPromptDownloads = -1;
+  Services.obs.notifyObservers(cancelQuit, "quit-application-requested", null);
+  do_check_eq(DownloadIntegration.testPromptDownloads, aExpectedCount);
+
+  
+  DownloadIntegration.testPromptDownloads = -1;
+  Services.obs.notifyObservers(cancelQuit, "offline-requested", null);
+  do_check_eq(DownloadIntegration.testPromptDownloads, aExpectedCount);
+
+  if (aIsPrivate) {
+    
+    DownloadIntegration.testPromptDownloads = -1;
+    Services.obs.notifyObservers(cancelQuit, "last-pb-context-exiting", null);
+    do_check_eq(DownloadIntegration.testPromptDownloads, aExpectedPBCount);
+  }
+}
+
+
+
+
 XPCOMUtils.defineLazyGetter(this, "gStringBundle", function() {
   return Services.strings.
     createBundle("chrome://mozapps/locale/downloads/downloads.properties");
@@ -147,3 +196,108 @@ add_task(function test_getTemporaryDownloadsDirectory()
   }
 });
 
+
+
+
+
+
+
+
+add_task(function test_notifications()
+{
+  enableObserversTestMode();
+  mustInterruptResponses();
+
+  for (let isPrivate of [false, true]) {
+    let list = isPrivate ? yield promiseNewPrivateDownloadList()
+                         : yield promiseNewDownloadList();
+    let download1 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    let download2 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    let download3 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    let promiseAttempt1 = download1.start();
+    let promiseAttempt2 = download2.start();
+    download3.start();
+
+    
+    list.add(download1);
+    list.add(download2);
+    list.add(download3);
+    
+    yield download3.cancel();
+
+    notifyPromptObservers(isPrivate, 2, 2);
+
+    
+    continueResponses();
+    yield promiseAttempt1;
+    yield promiseAttempt2;
+
+    
+    list.remove(download1);
+    list.remove(download2);
+    list.remove(download3);
+  }
+});
+
+
+
+
+
+add_task(function test_no_notifications()
+{
+  enableObserversTestMode();
+
+  for (let isPrivate of [false, true]) {
+    let list = isPrivate ? yield promiseNewPrivateDownloadList()
+                         : yield promiseNewDownloadList();
+    let download1 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    let download2 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+    download1.start();
+    download2.start();
+
+    
+    list.add(download1);
+    list.add(download2);
+
+    yield download1.cancel();
+    yield download2.cancel();
+
+    notifyPromptObservers(isPrivate, 0, 0);
+
+    
+    list.remove(download1);
+    list.remove(download2);
+  }
+});
+
+
+
+
+
+add_task(function test_mix_notifications()
+{
+  enableObserversTestMode();
+  mustInterruptResponses();
+
+  let publicList = yield promiseNewDownloadList();
+  let privateList = yield promiseNewPrivateDownloadList();
+  let download1 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  let download2 = yield promiseNewDownload(httpUrl("interruptible.txt"));
+  let promiseAttempt1 = download1.start();
+  let promiseAttempt2 = download2.start();
+
+  
+  publicList.add(download1);
+  privateList.add(download2);
+
+  notifyPromptObservers(true, 2, 1);
+
+  
+  continueResponses();
+  yield promiseAttempt1;
+  yield promiseAttempt2;
+
+  
+  publicList.remove(download1);
+  privateList.remove(download2);
+});
