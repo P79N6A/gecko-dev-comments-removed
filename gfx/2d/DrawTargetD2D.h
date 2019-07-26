@@ -205,6 +205,8 @@ private:
   
   TemporaryRef<ID2D1Geometry> GetClippedGeometry(IntRect *aClipBounds);
 
+  bool GetDeviceSpaceClipRect(D2D1_RECT_F& aClipRect, bool& aIsPixelAligned);
+
   TemporaryRef<ID2D1Brush> CreateBrushForPattern(const Pattern &aPattern, Float aAlpha = 1.0f);
 
   TemporaryRef<ID3D10Texture2D> CreateGradientTexture(const GradientStopsD2D *aStops);
