@@ -101,15 +101,9 @@ public:
 
 
 
-
-
-  void UpdateForValueChange();
+  void UpdateThumbPositionForValueChange();
 
 private:
-
-  nsresult MakeAnonymousDiv(nsIContent** aResult,
-                            nsCSSPseudoElements::Type aPseudoType,
-                            nsTArray<ContentInfo>& aElements);
 
   
   nsresult ReflowAnonymousContent(nsPresContext*           aPresContext,
@@ -118,9 +112,6 @@ private:
 
   void DoUpdateThumbPosition(nsIFrame* aThumbFrame,
                              const nsSize& aRangeSize);
-
-  void DoUpdateRangeProgressFrame(nsIFrame* aProgressFrame,
-                                  const nsSize& aRangeSize);
 
   
 
@@ -135,14 +126,6 @@ private:
 
 
   nsCOMPtr<nsIContent> mTrackDiv;
-
-  
-
-
-
-
-
-  nsCOMPtr<nsIContent> mProgressDiv;
 
   
 
