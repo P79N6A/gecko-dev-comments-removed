@@ -47,8 +47,7 @@ struct CharPosition
       mUnaddressable(false),
       mClusterOrLigatureGroupMiddle(false),
       mRunBoundary(false),
-      mStartOfChunk(false),
-      mAngleImplied(false)
+      mStartOfChunk(false)
   {
   }
 
@@ -59,8 +58,7 @@ struct CharPosition
       mUnaddressable(false),
       mClusterOrLigatureGroupMiddle(false),
       mRunBoundary(false),
-      mStartOfChunk(false),
-      mAngleImplied(false)
+      mStartOfChunk(false)
   {
   }
 
@@ -103,10 +101,6 @@ struct CharPosition
 
   
   bool mStartOfChunk;
-
-  
-  
-  bool mAngleImplied;
 
 private:
   static gfxFloat UnspecifiedCoord()
