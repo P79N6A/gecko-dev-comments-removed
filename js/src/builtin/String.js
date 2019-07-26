@@ -200,3 +200,102 @@ function String_static_localeCompare(str1, str2) {
     return callFunction(String_localeCompare, str1, str2, locales, options);
 }
 
+
+function String_big() {
+    CheckObjectCoercible(this);
+    return "<big>" + ToString(this) + "</big>";
+}
+
+
+function String_blink() {
+    CheckObjectCoercible(this);
+    return "<blink>" + ToString(this) + "</blink>";
+}
+
+
+function String_bold() {
+    CheckObjectCoercible(this);
+    return "<b>" + ToString(this) + "</b>";
+}
+
+
+function String_fixed() {
+    CheckObjectCoercible(this);
+    return "<tt>" + ToString(this) + "</tt>";
+}
+
+
+function String_italics() {
+    CheckObjectCoercible(this);
+    return "<i>" + ToString(this) + "</i>";
+}
+
+
+function String_small() {
+    CheckObjectCoercible(this);
+    return "<small>" + ToString(this) + "</small>";
+}
+
+
+function String_strike() {
+    CheckObjectCoercible(this);
+    return "<strike>" + ToString(this) + "</strike>";
+}
+
+
+function String_sub() {
+    CheckObjectCoercible(this);
+    return "<sub>" + ToString(this) + "</sub>";
+}
+
+
+function String_sup() {
+    CheckObjectCoercible(this);
+    return "<sup>" + ToString(this) + "</sup>";
+}
+
+function EscapeAttributeValue(v) {
+    var inputStr = ToString(v);
+    var inputLen = inputStr.length;
+    var outputStr = '';
+    var chunkStart = 0;
+    for (var i = 0; i < inputLen; i++) {
+        if (inputStr[i] === '"') {
+            outputStr += callFunction(std_String_substring, inputStr, chunkStart, i) + '&quot;';
+            chunkStart = i + 1;
+        }
+    }
+    if (chunkStart === 0)
+        return inputStr;
+    if (chunkStart < inputLen)
+        outputStr += callFunction(std_String_substring, inputStr, chunkStart);
+    return outputStr;
+}
+
+
+function String_anchor(name) {
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+    return '<a name="' + EscapeAttributeValue(name) + '">' + S + "</a>";
+}
+
+
+function String_fontcolor(color) {
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+    return '<font color="' + EscapeAttributeValue(color) + '">' + S + "</font>";
+}
+
+
+function String_fontsize(size) {
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+    return '<font size="' + EscapeAttributeValue(size) + '">' + S + "</font>";
+}
+
+
+function String_link(url) {
+    CheckObjectCoercible(this);
+    var S = ToString(this);
+    return '<a href="' + EscapeAttributeValue(url) + '">' + S + "</a>";
+}
