@@ -2341,6 +2341,9 @@ let BrowserOnClick = {
              ownerDoc.documentURI.toLowerCase() == "about:newtab") {
       this.onE10sAboutNewTab(aEvent, ownerDoc);
     }
+    else if (ownerDoc.documentURI.startsWith("about:tabcrashed")) {
+      this.onAboutTabCrashed(aEvent, ownerDoc);
+    }
   },
 
   onAboutCertError: function BrowserOnClick_onAboutCertError(aTargetElm, aOwnerDoc) {
@@ -2473,6 +2476,22 @@ let BrowserOnClick = {
     }
   },
 
+  
+
+
+
+  onAboutTabCrashed: function(aEvent, aOwnerDoc) {
+    let isTopFrame = (aOwnerDoc.defaultView.parent === aOwnerDoc.defaultView);
+    if (!isTopFrame) {
+      return;
+    }
+
+    let button = aEvent.originalTarget;
+    if (button.id == "tryAgain") {
+      openUILinkIn(button.getAttribute("url"), "current");
+    }
+  },
+
   ignoreWarningButton: function BrowserOnClick_ignoreWarningButton(aIsMalware) {
     
     
@@ -2582,6 +2601,16 @@ function getWebNavigation()
 }
 
 function BrowserReloadWithFlags(reloadFlags) {
+  let url = gBrowser.currentURI.spec;
+  if (gBrowser._updateBrowserRemoteness(gBrowser.selectedBrowser,
+                                        gBrowser._shouldBrowserBeRemote(url))) {
+    
+    
+    
+    gBrowser.loadURIWithFlags(url, reloadFlags);
+    return;
+  }
+
   
 
 
