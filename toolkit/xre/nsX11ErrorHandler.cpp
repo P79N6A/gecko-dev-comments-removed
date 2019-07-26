@@ -58,7 +58,7 @@ X11Error(Display *display, XErrorEvent *event) {
       }
       XCloseDisplay(tmpDisplay);
 
-#if (MOZ_WIDGET_GTK == 2)
+#ifdef MOZ_WIDGET_GTK2
       
       
       

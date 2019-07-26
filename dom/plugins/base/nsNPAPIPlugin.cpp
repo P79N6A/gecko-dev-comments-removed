@@ -1922,7 +1922,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
         return NPERR_NO_ERROR;
       }
     }
-#if (MOZ_WIDGET_GTK == 2)
+#ifdef MOZ_WIDGET_GTK2
     
     
     
@@ -1943,7 +1943,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
     return NPERR_GENERIC_ERROR;
 #endif
 
-#if defined(XP_WIN) || defined(XP_OS2) || (MOZ_WIDGET_GTK == 2) \
+#if defined(XP_WIN) || defined(XP_OS2) || defined(MOZ_WIDGET_GTK2) \
  || defined(MOZ_WIDGET_QT)
   case NPNVnetscapeWindow: {
     if (!npp || !npp->ndata)
