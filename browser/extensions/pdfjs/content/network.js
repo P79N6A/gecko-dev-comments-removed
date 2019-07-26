@@ -151,22 +151,24 @@ var NetworkManager = (function NetworkManagerClosure() {
 
       delete this.pendingRequests[xhrId];
 
-      if (xhr.status === 0) {
+      
+      if (xhr.status === 0 && /^https?:/i.test(this.url)) {
         if (pendingRequest.onError) {
           pendingRequest.onError(xhr.status);
         }
         return;
       }
+      var xhrStatus = xhr.status || OK_RESPONSE;
 
       
       
       
       var ok_response_on_range_request =
-          xhr.status === OK_RESPONSE &&
+          xhrStatus === OK_RESPONSE &&
           pendingRequest.expectedStatus === PARTIAL_CONTENT_RESPONSE;
 
       if (!ok_response_on_range_request &&
-          xhr.status !== pendingRequest.expectedStatus) {
+          xhrStatus !== pendingRequest.expectedStatus) {
         if (pendingRequest.onError) {
           pendingRequest.onError(xhr.status);
         }
@@ -176,7 +178,7 @@ var NetworkManager = (function NetworkManagerClosure() {
       this.loadedRequests[xhrId] = true;
 
       var chunk = getArrayBuffer(xhr);
-      if (xhr.status === PARTIAL_CONTENT_RESPONSE) {
+      if (xhrStatus === PARTIAL_CONTENT_RESPONSE) {
         var rangeHeader = xhr.getResponseHeader('Content-Range');
         var matches = /bytes (\d+)-(\d+)\/(\d+)/.exec(rangeHeader);
         var begin = parseInt(matches[1], 10);

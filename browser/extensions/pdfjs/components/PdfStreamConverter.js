@@ -198,28 +198,7 @@ function ChromeActions(domWindow, contentDispositionFilename) {
 
 ChromeActions.prototype = {
   isInPrivateBrowsing: function() {
-    var docIsPrivate, privateBrowsing;
-    try {
-      docIsPrivate = PrivateBrowsingUtils.isWindowPrivate(this.domWindow);
-    } catch (x) {
-      
-    }
-    if (typeof docIsPrivate === 'undefined') {
-      
-      try {
-        privateBrowsing = Cc['@mozilla.org/privatebrowsing;1']
-                            .getService(Ci.nsIPrivateBrowsingService);
-        docIsPrivate = privateBrowsing.privateBrowsingEnabled;
-      } catch (x) {
-        
-        docIsPrivate = false;
-      }
-    }
-    
-    this.isInPrivateBrowsing = function isInPrivateBrowsingCached() {
-      return docIsPrivate;
-    };
-    return docIsPrivate;
+    return PrivateBrowsingUtils.isWindowPrivate(this.domWindow);
   },
   download: function(data, sendResponse) {
     var self = this;
@@ -412,7 +391,7 @@ var RangedChromeActions = (function RangedChromeActionsClosure() {
 
     ChromeActions.call(this, domWindow, contentDispositionFilename);
 
-    this.pdfUrl = originalRequest.URI.resolve('');
+    this.pdfUrl = originalRequest.URI.spec;
     this.contentLength = originalRequest.contentLength;
 
     
