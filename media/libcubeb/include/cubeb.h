@@ -234,15 +234,6 @@ int cubeb_stream_stop(cubeb_stream * stream);
 
 int cubeb_stream_get_position(cubeb_stream * stream, uint64_t * position);
 
-
-
-
-
-
-
-
-int cubeb_stream_get_latency(cubeb_stream * stream, uint32_t * latency);
-
 #if defined(__cplusplus)
 }
 #endif
