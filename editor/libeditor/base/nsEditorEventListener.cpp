@@ -530,9 +530,6 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
 
   if (GetEditorKeyBindings() && ShouldHandleNativeKeyBindings(aKeyEvent)) {
     
-    
-    
-    
     WidgetKeyboardEvent* keyEvent =
       aKeyEvent->GetInternalNSEvent()->AsKeyboardEvent();
     MOZ_ASSERT(keyEvent,
