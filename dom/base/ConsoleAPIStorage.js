@@ -13,10 +13,9 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 const STORAGE_MAX_EVENTS = 200;
 
-this.EXPORTED_SYMBOLS = ["ConsoleAPIStorage"];
-
 var _consoleStorage = new Map();
 
+const CONSOLEAPISTORAGE_CID = Components.ID('{96cf7855-dfa9-4c6d-8276-f9705b4890f2}');
 
 
 
@@ -38,9 +37,21 @@ var _consoleStorage = new Map();
 
 
 
-this.ConsoleAPIStorage = {
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
+function ConsoleAPIStorageService() {
+  this.init();
+}
+
+ConsoleAPIStorageService.prototype = {
+  classID : CONSOLEAPISTORAGE_CID,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleAPIStorage,
+                                         Ci.nsIObserver]),
+  classInfo: XPCOMUtils.generateCI({
+    classID: CONSOLEAPISTORAGE_CID,
+    contractID: '@mozilla.org/consoleAPI-storage;1',
+    interfaces: [Ci.nsIConsoleAPIStorage, Ci.nsIObserver],
+    flags: Ci.nsIClassInfo.SINGLETON
+  }),
 
   observe: function CS_observe(aSubject, aTopic, aData)
   {
@@ -140,4 +151,4 @@ this.ConsoleAPIStorage = {
   },
 };
 
-ConsoleAPIStorage.init();
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([ConsoleAPIStorageService]);
