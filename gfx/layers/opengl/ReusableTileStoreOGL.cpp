@@ -131,10 +131,19 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
     if (x + w > validBounds.x + validBounds.width)
       w = validBounds.x + validBounds.width - x;
 
+    
+    
+    
+    if (w < 16)
+      continue;
+
     for (int y = validBounds.y; y < validBounds.YMost();) {
       int h = tileSize - aVideoMemoryTiledBuffer->GetTileStart(y);
       if (y + h > validBounds.y + validBounds.height)
         h = validBounds.y + validBounds.height - y;
+
+      if (h < 16)
+        continue;
 
       
       
@@ -166,6 +175,21 @@ ReusableTileStoreOGL::HarvestTiles(TiledThebesLayerOGL* aLayer,
             new ReusableTiledTextureOGL(removedTile, nsIntPoint(x, y), tileRegion,
                                         tileSize, aOldResolution);
           mTiles.AppendElement(reusedTile);
+
+          
+          
+          for (int i = 0; i < mTiles.Length() - 1; i++) {
+            
+            
+            if (aVideoMemoryTiledBuffer->RoundDownToTileEdge(mTiles[i]->mTileOrigin.x) == aVideoMemoryTiledBuffer->RoundDownToTileEdge(x) &&
+                aVideoMemoryTiledBuffer->RoundDownToTileEdge(mTiles[i]->mTileOrigin.y) == aVideoMemoryTiledBuffer->RoundDownToTileEdge(y) &&
+                mTiles[i]->mResolution == aOldResolution) {
+              mContext->fDeleteTextures(1, &mTiles[i]->mTexture.mTextureHandle);
+              mTiles.RemoveElementAt(i);
+              
+              break;
+            }
+          }
         }
 #ifdef GFX_TILEDLAYER_PREF_WARNINGS
         else
