@@ -666,7 +666,8 @@ pref("reader.font_size", 4);
 pref("reader.margin_size", 5);
 
 
-pref("reader.color_scheme", "light");
+
+pref("reader.color_scheme", "auto");
 
 
 pref("reader.font_type", "sans-serif");
