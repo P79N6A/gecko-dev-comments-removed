@@ -63,14 +63,18 @@ public:
   {
     MOZ_ASSERT(mSource == aStream, "Invalid source stream");
 
-    *aOutput = aInput;
-    if (mGain.HasSimpleValue()) {
+    if (aInput.IsNull()) {
       
+      aOutput->SetNull(WEBAUDIO_BLOCK_SIZE);
+    } else if (mGain.HasSimpleValue()) {
+      
+      *aOutput = aInput;
       aOutput->mVolume *= mGain.GetValue();
     } else {
       
       
       
+      AllocateAudioBlock(aInput.mChannelData.Length(), aOutput);
 
       
       
@@ -82,9 +86,10 @@ public:
 
       
       for (size_t channel = 0; channel < aOutput->mChannelData.Length(); ++channel) {
+        const float* inputBuffer = static_cast<const float*> (aInput.mChannelData[channel]);
         float* buffer = static_cast<float*> (const_cast<void*>
                           (aOutput->mChannelData[channel]));
-        AudioBlockCopyChannelWithScale(buffer, computedGain, buffer);
+        AudioBlockCopyChannelWithScale(inputBuffer, computedGain, buffer);
       }
     }
   }
