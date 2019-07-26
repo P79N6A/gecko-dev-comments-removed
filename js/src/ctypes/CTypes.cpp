@@ -1447,7 +1447,7 @@ struct ConvertImpl<uint64_t, double> {
 
 
 
-#ifdef SPARC
+#if defined(SPARC) || defined(__powerpc__)
 
 template<>
 struct ConvertImpl<uint64_t, double> {
