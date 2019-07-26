@@ -82,6 +82,9 @@ private:
   nsresult CheckClean(const nsACString &lookupKey,
                       bool *clean);
 
+  
+  nsresult ReadTablesFromPrefs();
+
   nsRefPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
 
