@@ -12,7 +12,6 @@ import org.mozilla.gecko.ThumbnailHelper;
 import org.mozilla.gecko.db.BrowserDB.TopSitesCursorWrapper;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.home.HomePager.OnUrlOpenListener;
-import org.mozilla.gecko.util.StringUtils;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -105,7 +104,7 @@ public class TopSitesGridView extends GridView {
                 TopSitesGridItemView row = (TopSitesGridItemView) view;
 
                 
-                String url = TopSitesPanel.decodeUserEnteredUrl(row.getUrl());
+                String url = HomeFragment.decodeUserEnteredUrl(row.getUrl());
 
                 
                 
@@ -125,7 +124,14 @@ public class TopSitesGridView extends GridView {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
                 Cursor cursor = (Cursor) parent.getItemAtPosition(position);
-                mContextMenuInfo = new TopSitesGridContextMenuInfo(view, position, id, cursor);
+
+                if (cursor == null) {
+                    mContextMenuInfo = null;
+                    return false;
+                }
+
+                mContextMenuInfo = new TopSitesGridContextMenuInfo(view, position, id);
+                updateContextMenuFromCursor(mContextMenuInfo, cursor);
                 return showContextMenuForChild(TopSitesGridView.this);
             }
         });
@@ -226,6 +232,18 @@ public class TopSitesGridView extends GridView {
 
 
 
+
+
+    private void updateContextMenuFromCursor(TopSitesGridContextMenuInfo info, Cursor cursor) {
+        info.url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
+        info.title = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.TITLE));
+        info.isPinned = ((TopSitesCursorWrapper) cursor).isPinned();
+    }
+    
+
+
+
+
     public void setOnUrlOpenListener(OnUrlOpenListener listener) {
         mUrlOpenListener = listener;
     }
@@ -242,27 +260,11 @@ public class TopSitesGridView extends GridView {
     
 
 
-    public static class TopSitesGridContextMenuInfo extends AdapterContextMenuInfo {
+    public static class TopSitesGridContextMenuInfo extends HomeContextMenuInfo {
+        public boolean isPinned = false;
 
-        public String url;
-        public String title;
-        public boolean isPinned;
-
-        public TopSitesGridContextMenuInfo(View targetView, int position, long id, Cursor cursor) {
+        public TopSitesGridContextMenuInfo(View targetView, int position, long id) {
             super(targetView, position, id);
-
-            if (cursor == null) {
-                return;
-            }
-
-            url = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.URL));
-            title = cursor.getString(cursor.getColumnIndexOrThrow(URLColumns.TITLE));
-            isPinned = ((TopSitesCursorWrapper) cursor).isPinned();
-        }
-
-        public String getDisplayTitle() {
-            return TextUtils.isEmpty(title) ?
-                StringUtils.stripCommonSubdomains(StringUtils.stripScheme(url, StringUtils.UrlFlags.STRIP_HTTPS)) : title;
         }
     }
 }

@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -85,6 +86,11 @@ abstract class HomeFragment extends Fragment {
         inflater.inflate(R.menu.home_contextmenu, menu);
 
         menu.setHeaderTitle(info.getDisplayTitle());
+
+        
+        menu.findItem(R.id.top_sites_edit).setVisible(false);
+        menu.findItem(R.id.top_sites_pin).setVisible(false);
+        menu.findItem(R.id.top_sites_unpin).setVisible(false);
 
         
         
@@ -152,7 +158,10 @@ abstract class HomeFragment extends Fragment {
                 flags |= Tabs.LOADURL_PRIVATE;
 
             final String url = (info.isInReadingList() ? ReaderModeUtils.getAboutReaderForUrl(info.url) : info.url);
-            Tabs.getInstance().loadUrl(url, flags);
+
+            
+            
+            Tabs.getInstance().loadUrl(decodeUserEnteredUrl(url), flags);
             Toast.makeText(context, R.string.new_tab_opened, Toast.LENGTH_SHORT).show();
             return true;
         }
@@ -216,6 +225,23 @@ abstract class HomeFragment extends Fragment {
 
     boolean getCanLoadHint() {
         return mCanLoadHint;
+    }
+
+    
+
+
+
+
+
+
+
+
+    public static String decodeUserEnteredUrl(String url) {
+        Uri uri = Uri.parse(url);
+        if ("user-entered".equals(uri.getScheme())) {
+            return uri.getSchemeSpecificPart();
+        }
+        return url;
     }
 
     protected abstract void load();
