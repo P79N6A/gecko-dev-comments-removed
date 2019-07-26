@@ -757,6 +757,11 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
         raise
     else:
         runner.wait(10)
+        
+        try:
+            runner.stop()
+        except:
+            pass
     finally:
         outf.close()
         if profile:
