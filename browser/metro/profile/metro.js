@@ -37,6 +37,8 @@ pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.async-pan-zoom.enabled", true);
 pref("layers.componentalpha.enabled", false);
 pref("gfx.azpc.touch_start_tolerance", "0.1"); 
+pref("gfx.azpc.pan_repaint_interval", "50");   
+pref("gfx.azpc.fling_repaint_interval", "50"); 
 pref("gfx.axis.fling_friction", "0.002");
 
 
