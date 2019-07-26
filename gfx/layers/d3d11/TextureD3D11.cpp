@@ -155,18 +155,16 @@ TextureClientD3D11::~TextureClientD3D11()
 bool
 TextureClientD3D11::Lock(OpenMode aMode)
 {
-  if (!IsValid() || !IsAllocated()) {
-    return false;
-  }
   MOZ_ASSERT(!mIsLocked, "The Texture is already locked!");
   LockD3DTexture(mTexture.get());
+  mIsLocked = true;
 
   if (mNeedsClear) {
+    mDrawTarget = GetAsDrawTarget();
     mDrawTarget->ClearRect(Rect(0, 0, GetSize().width, GetSize().height));
     mNeedsClear = false;
   }
 
-  mIsLocked = true;
   return true;
 }
 
@@ -175,8 +173,12 @@ TextureClientD3D11::Unlock()
 {
   MOZ_ASSERT(mIsLocked, "Unlocked called while the texture is not locked!");
   if (mDrawTarget) {
+    MOZ_ASSERT(mDrawTarget->refCount() == 1);
     mDrawTarget->Flush();
   }
+
+  
+  
   UnlockD3DTexture(mTexture.get());
   mIsLocked = false;
 }
@@ -190,8 +192,6 @@ TextureClientD3D11::GetAsDrawTarget()
     return mDrawTarget;
   }
 
-  
-  
   mDrawTarget = Factory::CreateDrawTargetForD3D10Texture(mTexture, mFormat);
   return mDrawTarget;
 }
