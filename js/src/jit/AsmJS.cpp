@@ -2029,8 +2029,6 @@ class FunctionCompiler
         if (!newBlock( nullptr, &curBlock_, fn_))
             return false;
 
-        curBlock_->add(MAsmJSCheckOverRecursed::New(alloc(), &m_.stackOverflowLabel()));
-
         for (ABIArgTypeIter i = argTypes; !i.done(); i++) {
             MAsmJSParameter *ins = MAsmJSParameter::New(alloc(), *i, i.mirType());
             curBlock_->add(ins);
@@ -5470,8 +5468,8 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
 
     m.masm().bind(func.code());
 
-    ScopedJSDeletePtr<CodeGenerator> codegen(jit::GenerateCode(&mir, &lir, &m.masm()));
-    if (!codegen)
+    ScopedJSDeletePtr<CodeGenerator> codegen(js_new<CodeGenerator>(&mir, &lir, &m.masm()));
+    if (!codegen || !codegen->generateAsmJS(&m.stackOverflowLabel()))
         return m.fail(nullptr, "internal codegen failure (probably out of memory)");
 
     if (!m.collectAccesses(mir))
@@ -6739,30 +6737,37 @@ GenerateStackOverflowExit(ModuleCompiler &m, Label *throwLabel)
     masm.align(CodeAlignment);
     masm.bind(&m.stackOverflowLabel());
 
-#if defined(JS_CODEGEN_X86)
     
-    masm.push(Imm32(0));
-#endif
+    
+    masm.setFramePushed(AlignmentMidPrologue - AlignmentAtPrologue);
+
+    MIRTypeVector argTypes(m.cx());
+    argTypes.infallibleAppend(MIRType_Pointer); 
+
+    unsigned stackDec = StackDecrementForCall(masm, argTypes);
+    masm.reserveStack(stackDec);
+
+    ABIArgMIRTypeIter i(argTypes);
+
+    Register scratch = ABIArgGenerator::NonArgReturnVolatileReg0;
+    LoadAsmJSActivationIntoRegister(masm, scratch);
 
     
-    
-    
-    masm.andPtr(Imm32(~(StackAlignment - 1)), StackPointer);
-    if (ShadowStackSpace)
-        masm.subPtr(Imm32(ShadowStackSpace), StackPointer);
+    if (i->kind() == ABIArg::GPR) {
+        LoadJSContextFromActivation(masm, scratch, i->gpr());
+    } else {
+        LoadJSContextFromActivation(masm, scratch, scratch);
+        masm.storePtr(scratch, Address(StackPointer, i->offsetFromArgBase()));
+    }
+    i++;
 
-    
-#if defined(JS_CODEGEN_X86)
-    LoadAsmJSActivationIntoRegister(masm, eax);
-    LoadJSContextFromActivation(masm, eax, eax);
-    masm.storePtr(eax, Address(StackPointer, 0));
-#else
-    LoadAsmJSActivationIntoRegister(masm, IntArgReg0);
-    LoadJSContextFromActivation(masm, IntArgReg0, IntArgReg0);
-#endif
+    JS_ASSERT(i.done());
+
+    AssertStackAlignment(masm);
     masm.call(AsmJSImm_ReportOverRecursed);
-    masm.jump(throwLabel);
 
+    
+    masm.jump(throwLabel);
     return !masm.oom();
 }
 

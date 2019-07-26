@@ -39,9 +39,31 @@ CodeGeneratorX86Shared::CodeGeneratorX86Shared(MIRGenerator *gen, LIRGraph *grap
 bool
 CodeGeneratorX86Shared::generatePrologue()
 {
+    JS_ASSERT(!gen->compilingAsmJS());
+
     
     masm.reserveStack(frameSize());
 
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::generateAsmJSPrologue(Label *stackOverflowLabel)
+{
+    JS_ASSERT(gen->compilingAsmJS());
+
+    
+    
+    
+    if (!omitOverRecursedCheck()) {
+        masm.branchPtr(Assembler::AboveOrEqual,
+                       AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
+                       StackPointer,
+                       stackOverflowLabel);
+    }
+
+    
+    masm.reserveStack(frameSize());
     return true;
 }
 

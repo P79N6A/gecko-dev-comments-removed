@@ -40,16 +40,34 @@ CodeGeneratorARM::CodeGeneratorARM(MIRGenerator *gen, LIRGraph *graph, MacroAsse
 bool
 CodeGeneratorARM::generatePrologue()
 {
-    if (gen->compilingAsmJS()) {
-        masm.Push(lr);
-        
-        masm.reserveStack(frameDepth_);
-    } else {
-        
-        masm.reserveStack(frameSize());
-        masm.checkStackAlignment();
+    JS_ASSERT(!gen->compilingAsmJS());
+
+    
+    masm.reserveStack(frameSize());
+    masm.checkStackAlignment();
+    return true;
+}
+
+bool
+CodeGeneratorARM::generateAsmJSPrologue(Label *stackOverflowLabel)
+{
+    JS_ASSERT(gen->compilingAsmJS());
+
+    masm.Push(lr);
+
+    
+    
+    
+    if (!omitOverRecursedCheck()) {
+        masm.branchPtr(Assembler::AboveOrEqual,
+                       AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
+                       StackPointer,
+                       stackOverflowLabel);
     }
 
+    
+    masm.reserveStack(frameDepth_);
+    masm.checkStackAlignment();
     return true;
 }
 

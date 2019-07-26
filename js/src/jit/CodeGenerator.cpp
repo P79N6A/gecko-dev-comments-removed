@@ -2749,17 +2749,6 @@ class CheckOverRecursedFailure : public OutOfLineCodeBase<CodeGenerator>
 };
 
 bool
-CodeGenerator::omitOverRecursedCheck() const
-{
-    
-    
-    
-    
-    
-    return frameSize() < 64 && !gen->performsCall();
-}
-
-bool
 CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 {
     
@@ -6202,7 +6191,7 @@ CodeGenerator::visitRestPar(LRestPar *lir)
 }
 
 bool
-CodeGenerator::generateAsmJS()
+CodeGenerator::generateAsmJS(Label *stackOverflowLabel)
 {
     IonSpew(IonSpew_Codegen, "# Emitting asm.js code");
 
@@ -6215,7 +6204,7 @@ CodeGenerator::generateAsmJS()
     
     
     
-    if (!generatePrologue())
+    if (!generateAsmJSPrologue(stackOverflowLabel))
         return false;
     if (!generateBody())
         return false;
@@ -8294,20 +8283,6 @@ CodeGenerator::visitAsmJSVoidReturn(LAsmJSVoidReturn *lir)
     
     if (current->mir() != *gen->graph().poBegin())
         masm.jump(&returnLabel_);
-    return true;
-}
-
-bool
-CodeGenerator::visitAsmJSCheckOverRecursed(LAsmJSCheckOverRecursed *lir)
-{
-    
-    if (omitOverRecursedCheck())
-        return true;
-
-    masm.branchPtr(Assembler::AboveOrEqual,
-                   AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
-                   StackPointer,
-                   lir->mir()->onError());
     return true;
 }
 

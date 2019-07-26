@@ -10040,20 +10040,6 @@ class MAsmJSCall MOZ_FINAL : public MInstruction
     }
 };
 
-
-
-class MAsmJSCheckOverRecursed : public MNullaryInstruction
-{
-    Label *onError_;
-    MAsmJSCheckOverRecursed(Label *onError) : onError_(onError) {}
-  public:
-    INSTRUCTION_HEADER(AsmJSCheckOverRecursed);
-    static MAsmJSCheckOverRecursed *New(TempAllocator &alloc, Label *onError) {
-        return new(alloc) MAsmJSCheckOverRecursed(onError);
-    }
-    Label *onError() const { return onError_; }
-};
-
 #undef INSTRUCTION_HEADER
 
 

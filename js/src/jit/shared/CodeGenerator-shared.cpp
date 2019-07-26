@@ -776,6 +776,17 @@ CodeGeneratorShared::visitOutOfLineTruncateSlow(OutOfLineTruncateSlow *ool)
     return true;
 }
 
+bool
+CodeGeneratorShared::omitOverRecursedCheck() const
+{
+    
+    
+    
+    
+    
+    return frameSize() < 64 && !gen->performsCall();
+}
+
 void
 CodeGeneratorShared::emitPreBarrier(Register base, const LAllocation *index, MIRType type)
 {
