@@ -844,6 +844,7 @@ nsGenericDOMDataNode::AppendText(const PRUnichar* aBuffer,
 bool
 nsGenericDOMDataNode::TextIsOnlyWhitespace()
 {
+  
   if (mText.Is2b()) {
     
     
@@ -856,7 +857,7 @@ nsGenericDOMDataNode::TextIsOnlyWhitespace()
   while (cp < end) {
     char ch = *cp;
 
-    if (!XP_IS_SPACE(ch)) {
+    if (!dom::IsSpaceCharacter(ch)) {
       return false;
     }
 

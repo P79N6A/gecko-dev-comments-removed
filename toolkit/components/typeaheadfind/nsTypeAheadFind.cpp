@@ -803,7 +803,8 @@ nsTypeAheadFind::RangeStartsInsideLink(nsIDOMRange *aRange,
     if (textFrag) {
       
       for (int32_t index = 0; index < startOffset; index++) {
-        if (!XP_IS_SPACE(textFrag->CharAt(index))) {
+        
+        if (!mozilla::dom::IsSpaceCharacter(textFrag->CharAt(index))) {
           *aIsStartingLink = false;  
 
           break;
