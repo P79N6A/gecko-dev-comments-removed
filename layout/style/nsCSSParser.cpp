@@ -653,7 +653,10 @@ protected:
   
   
   
-  bool ParseGridLineNames(nsCSSValue& aValue);
+  
+  
+  
+  CSSParseResult ParseGridLineNames(nsCSSValue& aValue);
   bool ParseGridTrackBreadth(nsCSSValue& aValue);
   CSSParseResult ParseGridTrackSize(nsCSSValue& aValue);
   bool ParseGridAutoColumnsRows(nsCSSProperty aPropID);
@@ -6958,14 +6961,14 @@ CSSParserImpl::ParseGridAutoFlow()
   return true;
 }
 
-bool
+CSSParseResult
 CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
 {
   if (!ExpectSymbol('(', true)) {
-    return true;
+    return CSSParseResult::NotFound;
   }
   if (!GetToken(true) || mToken.IsSymbol(')')) {
-    return true;
+    return CSSParseResult::Ok;
   }
   
 
@@ -6992,10 +6995,10 @@ CSSParserImpl::ParseGridLineNames(nsCSSValue& aValue)
           ParseCustomIdent(item->mValue, mToken.mIdent))) {
       UngetToken();
       SkipUntil(')');
-      return false;
+      return CSSParseResult::Error;
     }
     if (!GetToken(true) || mToken.IsSymbol(')')) {
-      return true;
+      return CSSParseResult::Ok;
     }
     item->mNext = new nsCSSValueList;
     item = item->mNext;
@@ -7085,7 +7088,7 @@ CSSParserImpl::ParseGridTrackListWithFirstLineNames(nsCSSValue& aValue,
   for (;;) {
     item->mNext = new nsCSSValueList;
     item = item->mNext;
-    if (!ParseGridLineNames(item->mValue)) {
+    if (ParseGridLineNames(item->mValue) == CSSParseResult::Error) {
       return false;
     }
 
@@ -7126,8 +7129,8 @@ CSSParserImpl::ParseGridTemplateColumnsRows(nsCSSProperty aPropID)
   
 
   nsCSSValue firstLineNames;
-  if (!(ParseGridLineNames(firstLineNames) &&
-        ParseGridTrackListWithFirstLineNames(value, firstLineNames))) {
+  if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
+      !ParseGridTrackListWithFirstLineNames(value, firstLineNames)) {
     return false;
   }
   AppendValue(aPropID, value);
@@ -7284,8 +7287,8 @@ CSSParserImpl::ParseGridTemplate()
   
   
   nsCSSValue firstLineNames;
-  if (!(ParseGridLineNames(firstLineNames) &&
-        GetToken(true))) {
+  if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
+      !GetToken(true)) {
     return false;
   }
   if (mToken.mType == eCSSToken_String) {
@@ -7315,8 +7318,8 @@ CSSParserImpl::ParseGridTemplateAfterSlash(bool aColumnsIsTrackList)
     
 
     nsCSSValue firstLineNames;
-    if (!(ParseGridLineNames(firstLineNames) &&
-          GetToken(true))) {
+    if (ParseGridLineNames(firstLineNames) == CSSParseResult::Error ||
+        !GetToken(true)) {
       return false;
     }
     if (aColumnsIsTrackList && mToken.mType == eCSSToken_String) {
@@ -7372,7 +7375,7 @@ CSSParserImpl::ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames)
 
     rowsItem->mNext = new nsCSSValueList;
     rowsItem = rowsItem->mNext;
-    if (!ParseGridLineNames(rowsItem->mValue)) {
+    if (ParseGridLineNames(rowsItem->mValue) == CSSParseResult::Error) {
       return false;
     }
 
@@ -7381,8 +7384,8 @@ CSSParserImpl::ParseGridTemplateAfterString(const nsCSSValue& aFirstLineNames)
     }
 
     
-    if (!(ParseGridLineNames(rowsItem->mValue) &&
-          GetToken(true))) {
+    if (ParseGridLineNames(rowsItem->mValue) == CSSParseResult::Error ||
+        !GetToken(true)) {
       return false;
     }
     if (eCSSToken_String != mToken.mType) {
