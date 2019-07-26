@@ -1501,6 +1501,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
                         flags,
                         target.get(),
                         nullptr,         
+                        NullString(),    
                         postStream,
                         headersStream,
                         loadType,
@@ -4494,7 +4495,7 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
 
     return InternalLoad(errorPageURI, nullptr, nullptr,
                         INTERNAL_LOAD_FLAGS_INHERIT_OWNER, nullptr, nullptr,
-                        nullptr, nullptr, LOAD_ERROR_PAGE,
+                        NullString(), nullptr, nullptr, LOAD_ERROR_PAGE,
                         nullptr, true, nullptr, nullptr);
 }
 
@@ -4525,7 +4526,7 @@ nsDocShell::Reload(uint32_t aReloadFlags)
 
     if (!canReload)
       return NS_OK;
-    
+
     
     if (mOSHE) {
         rv = LoadHistoryEntry(mOSHE, loadType);
@@ -4549,15 +4550,15 @@ nsDocShell::Reload(uint32_t aReloadFlags)
                           INTERNAL_LOAD_FLAGS_NONE, 
                           nullptr,         
                           NS_LossyConvertUTF16toASCII(contentTypeHint).get(),
+                          NullString(),    
                           nullptr,         
                           nullptr,         
-                          loadType,       
+                          loadType,        
                           nullptr,         
                           true,
                           nullptr,         
                           nullptr);        
     }
-    
 
     return rv;
 }
@@ -8318,12 +8319,13 @@ public:
             mTypeHint = aTypeHint;
         }
     }
-    
+
     NS_IMETHOD Run() {
         return mDocShell->InternalLoad(mURI, mReferrer, mOwner, mFlags,
                                        nullptr, mTypeHint.get(),
-                                       mPostData, mHeadersData, mLoadType,
-                                       mSHEntry, mFirstParty, nullptr, nullptr);
+                                       NullString(), mPostData, mHeadersData,
+                                       mLoadType, mSHEntry, mFirstParty,
+                                       nullptr, nullptr);
     }
 
 private:
@@ -8368,6 +8370,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                          uint32_t aFlags,
                          const PRUnichar *aWindowTarget,
                          const char* aTypeHint,
+                         const nsAString& aFileName,
                          nsIInputStream * aPostData,
                          nsIInputStream * aHeadersData,
                          uint32_t aLoadType,
@@ -8387,7 +8390,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         PR_LogPrint("DOCSHELL %p InternalLoad %s\n", this, spec.get());
     }
 #endif
-    
     
     if (aDocShell) {
         *aDocShell = nullptr;
@@ -8602,6 +8604,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                               aFlags,
                                               nullptr,         
                                               aTypeHint,
+                                              NullString(),    
                                               aPostData,
                                               aHeadersData,
                                               aLoadType,
@@ -9096,8 +9099,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     nsCOMPtr<nsIRequest> req;
     rv = DoURILoad(aURI, aReferrer,
                    !(aFlags & INTERNAL_LOAD_FLAGS_DONT_SEND_REFERRER),
-                   owner, aTypeHint, aPostData, aHeadersData, aFirstParty,
-                   aDocShell, getter_AddRefs(req),
+                   owner, aTypeHint, aFileName, aPostData, aHeadersData,
+                   aFirstParty, aDocShell, getter_AddRefs(req),
                    (aFlags & INTERNAL_LOAD_FLAGS_FIRST_LOAD) != 0,
                    (aFlags & INTERNAL_LOAD_FLAGS_BYPASS_CLASSIFIER) != 0,
                    (aFlags & INTERNAL_LOAD_FLAGS_FORCE_ALLOW_COOKIES) != 0);
@@ -9170,6 +9173,7 @@ nsDocShell::DoURILoad(nsIURI * aURI,
                       bool aSendReferrer,
                       nsISupports * aOwner,
                       const char * aTypeHint,
+                      const nsAString & aFileName,
                       nsIInputStream * aPostData,
                       nsIInputStream * aHeadersData,
                       bool aFirstParty,
@@ -9269,11 +9273,19 @@ nsDocShell::DoURILoad(nsIURI * aURI,
     if (aTypeHint && *aTypeHint) {
         channel->SetContentType(nsDependentCString(aTypeHint));
         mContentTypeHint = aTypeHint;
-    }
-    else {
+    } else {
         mContentTypeHint.Truncate();
     }
-    
+
+    if (!aFileName.IsVoid()) {
+        rv = channel->SetContentDisposition(nsIChannel::DISPOSITION_ATTACHMENT);
+        NS_ENSURE_SUCCESS(rv, rv);
+        if (!aFileName.IsEmpty()) {
+            rv = channel->SetContentDispositionFilename(aFileName);
+            NS_ENSURE_SUCCESS(rv, rv);
+        }
+    }
+
     
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(channel));
     nsCOMPtr<nsIHttpChannelInternal> httpChannelInternal(do_QueryInterface(channel));
@@ -10586,11 +10598,12 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, uint32_t aLoadType)
                       owner,
                       INTERNAL_LOAD_FLAGS_NONE, 
                       nullptr,            
-                      contentType.get(), 
-                      postData,          
+                      contentType.get(),  
+                      NullString(),       
+                      postData,           
                       nullptr,            
-                      aLoadType,         
-                      aEntry,            
+                      aLoadType,          
+                      aEntry,             
                       true,
                       nullptr,            
                       nullptr);           
@@ -11823,7 +11836,8 @@ public:
   OnLinkClickEvent(nsDocShell* aHandler, nsIContent* aContent,
                    nsIURI* aURI,
                    const PRUnichar* aTargetSpec,
-                   nsIInputStream* aPostDataStream, 
+                   const nsAString& aFileName,
+                   nsIInputStream* aPostDataStream,
                    nsIInputStream* aHeadersDataStream,
                    bool aIsTrusted);
 
@@ -11834,8 +11848,8 @@ public:
     nsCxPusher pusher;
     if (mIsTrusted || pusher.Push(mContent)) {
       mHandler->OnLinkClickSync(mContent, mURI,
-                                mTargetSpec.get(), mPostDataStream,
-                                mHeadersDataStream,
+                                mTargetSpec.get(), mFileName,
+                                mPostDataStream, mHeadersDataStream,
                                 nullptr, nullptr);
     }
     return NS_OK;
@@ -11845,6 +11859,7 @@ private:
   nsRefPtr<nsDocShell>     mHandler;
   nsCOMPtr<nsIURI>         mURI;
   nsString                 mTargetSpec;
+  nsString                mFileName;
   nsCOMPtr<nsIInputStream> mPostDataStream;
   nsCOMPtr<nsIInputStream> mHeadersDataStream;
   nsCOMPtr<nsIContent>     mContent;
@@ -11856,12 +11871,14 @@ OnLinkClickEvent::OnLinkClickEvent(nsDocShell* aHandler,
                                    nsIContent *aContent,
                                    nsIURI* aURI,
                                    const PRUnichar* aTargetSpec,
+                                   const nsAString& aFileName,
                                    nsIInputStream* aPostDataStream,
                                    nsIInputStream* aHeadersDataStream,
                                    bool aIsTrusted)
   : mHandler(aHandler)
   , mURI(aURI)
   , mTargetSpec(aTargetSpec)
+  , mFileName(aFileName)
   , mPostDataStream(aPostDataStream)
   , mHeadersDataStream(aHeadersDataStream)
   , mContent(aContent)
@@ -11878,6 +11895,7 @@ NS_IMETHODIMP
 nsDocShell::OnLinkClick(nsIContent* aContent,
                         nsIURI* aURI,
                         const PRUnichar* aTargetSpec,
+                        const nsAString& aFileName,
                         nsIInputStream* aPostDataStream,
                         nsIInputStream* aHeadersDataStream,
                         bool aIsTrusted)
@@ -11917,7 +11935,7 @@ nsDocShell::OnLinkClick(nsIContent* aContent,
     target = aTargetSpec;  
 
   nsCOMPtr<nsIRunnable> ev =
-      new OnLinkClickEvent(this, aContent, aURI, target.get(),
+      new OnLinkClickEvent(this, aContent, aURI, target.get(), aFileName, 
                            aPostDataStream, aHeadersDataStream, aIsTrusted);
   return NS_DispatchToCurrentThread(ev);
 }
@@ -11926,6 +11944,7 @@ NS_IMETHODIMP
 nsDocShell::OnLinkClickSync(nsIContent *aContent,
                             nsIURI* aURI,
                             const PRUnichar* aTargetSpec,
+                            const nsAString& aFileName,
                             nsIInputStream* aPostDataStream,
                             nsIInputStream* aHeadersDataStream,
                             nsIDocShell** aDocShell,
@@ -12018,7 +12037,7 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
   if (!clonedURI) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  
+
   nsresult rv = InternalLoad(clonedURI,                 
                              referer,                   
                              aContent->NodePrincipal(), 
@@ -12026,11 +12045,12 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
                              INTERNAL_LOAD_FLAGS_NONE,
                              target.get(),              
                              NS_LossyConvertUTF16toASCII(typeHint).get(),
+                             aFileName,                 
                              aPostDataStream,           
                              aHeadersDataStream,        
                              LOAD_LINK,                 
-                             nullptr,                    
-                             true,                   
+                             nullptr,                   
+                             true,                      
                              aDocShell,                 
                              aRequest);                 
   if (NS_SUCCEEDED(rv)) {
