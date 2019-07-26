@@ -90,9 +90,11 @@ protected:
 
   
   
-  nsresult EnsureFrameLoader();
+  void EnsureFrameLoader();
   nsresult LoadSrc();
+  nsIDocument* GetContentDocument();
   nsresult GetContentDocument(nsIDOMDocument** aContentDocument);
+  already_AddRefed<nsPIDOMWindow> GetContentWindow();
   nsresult GetContentWindow(nsIDOMWindow** aContentWindow);
 
   nsRefPtr<nsFrameLoader> mFrameLoader;
