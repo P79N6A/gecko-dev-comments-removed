@@ -67,37 +67,6 @@ PropDesc::checkSetter(JSContext *cx)
     return true;
 }
 
-
-
-
-
-
-bool
-PropDesc::wrapInto(JSContext *cx, HandleObject obj, const jsid &id, jsid *wrappedId,
-                   PropDesc *desc) const
-{
-    MOZ_ASSERT(!isUndefined());
-
-    JSCompartment *comp = cx->compartment();
-
-    *wrappedId = id;
-    if (!comp->wrapId(cx, wrappedId))
-        return false;
-
-    *desc = *this;
-    RootedValue value(cx, desc->value_);
-    RootedValue get(cx, desc->get_);
-    RootedValue set(cx, desc->set_);
-
-    if (!comp->wrap(cx, &value) || !comp->wrap(cx, &get) || !comp->wrap(cx, &set))
-        return false;
-
-    desc->value_ = value;
-    desc->get_ = get;
-    desc->set_ = set;
-    return !obj->is<ProxyObject>() || desc->makeObject(cx);
-}
-
 static const ObjectElements emptyElementsHeader(0, 0);
 
 
