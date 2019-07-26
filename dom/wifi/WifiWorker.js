@@ -748,6 +748,10 @@ var WifiManager = (function() {
 
   manager.connectionDropped = function(callback) {
     
+    configureInterface(manager.ifname, 0, 0, 0, 0, 0, function (data) {
+    });
+
+    
     
     resetConnections(manager.ifname, function() {
       stopDhcp(manager.ifname, function() {

@@ -404,5 +404,18 @@ this.netHelpers = {
       mask |= (0x80000000 >> i);
     }
     return this.ntohl(mask);
+  },
+
+  
+
+
+  getMaskLength: function getMaskLength(mask) {
+    let len = 0;
+    let netmask = this.ntohl(mask);
+    while (netmask & 0x80000000) {
+        len++;
+        netmask = netmask << 1;
+    }
+    return len;
   }
 };
