@@ -96,13 +96,16 @@ DownloadElementShell.prototype = {
 
 
 
+
+
   ensureActive: function DES_ensureActive() {
     if (this._active)
-      return;
+      return false;
     this._active = true;
     this._element.setAttribute("active", true);
     this._updateStatusUI();
     this._fetchTargetFileInfo();
+    return true;
   },
   get active() !!this._active,
 
@@ -112,19 +115,25 @@ DownloadElementShell.prototype = {
 
   set dataItem(aValue) {
     this._dataItem = aValue;
+    let shouldUpdate = false;
     if (this._dataItem) {
-      this._active = true;
       this._targetFileInfoFetched = false;
-      this._fetchTargetFileInfo();
+      
+      
+      shouldUpdate = !this.ensureActive();
     }
     else if (this._placesNode) {
       this._targetFileInfoFetched = false;
-      if (this.active)
-        this._fetchTargetFileInfo();
+      shouldUpdate = this.active;
+    }
+    else {
+      throw new Error("Should always have either a dataItem or a placesNode");
     }
 
-    if (this.active)
+    if (shouldUpdate) {
+      this._fetchTargetFileInfo();
       this._updateStatusUI();
+    }
     return aValue;
   },
 
@@ -141,7 +150,9 @@ DownloadElementShell.prototype = {
 
       
       
-      if (!this._dataItem && this._placesNode) {
+      if (!this._dataItem) {
+        if (!this._placesNode)
+          throw new Error("Should always have either a dataItem or a placesNode");
         this._targetFileInfoFetched = false;
         if (this.active) {
           this._updateStatusUI();
@@ -904,7 +915,6 @@ DownloadsPlacesView.prototype = {
       shells.delete(shell);
       if (shells.size == 0)
         this._downloadElementsShellsForURI.delete(aDataItem.uri);
-      return;
     }
     else {
       shell.dataItem = null;
