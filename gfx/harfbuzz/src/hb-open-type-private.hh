@@ -616,10 +616,20 @@ struct Index : USHORT {
 DEFINE_NULL_DATA (Index, "\xff\xff");
 
 
-typedef USHORT Offset;
+struct Offset : USHORT
+{
+  inline bool is_null (void) const { return 0 == *this; }
+  public:
+  DEFINE_SIZE_STATIC (2);
+};
 
 
-typedef ULONG LongOffset;
+struct LongOffset : ULONG
+{
+  inline bool is_null (void) const { return 0 == *this; }
+  public:
+  DEFINE_SIZE_STATIC (4);
+};
 
 
 
