@@ -159,10 +159,11 @@ SocialUI = {
           }
           break;
         case "social:profile-changed":
+          
+          
+          
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateProvider();
-            SocialMarks.update();
-            SocialChatBar.update();
           }
           break;
         case "social:frameworker-error":
@@ -868,17 +869,19 @@ SocialToolbar = {
     toggleNotificationsCommand.setAttribute("hidden", !socialEnabled);
 
     let parent = document.getElementById("social-notification-panel");
-    while (parent.hasChildNodes()) {
-      let frame = parent.firstChild;
-      SharedFrame.forgetGroup(frame.id);
-      parent.removeChild(frame);
-    }
-
     let tbi = document.getElementById("social-provider-button");
     if (tbi) {
       
+      
       while (tbi.nextSibling) {
-        tbi.parentNode.removeChild(tbi.nextSibling);
+        let tb = tbi.nextSibling;
+        let nid = tb.getAttribute("notificationFrameId");
+        let frame = document.getElementById(nid);
+        if (frame) {
+          SharedFrame.forgetGroup(frame.id);
+          parent.removeChild(frame);
+        }
+        tbi.parentNode.removeChild(tb);
       }
     }
   },
