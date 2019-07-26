@@ -1263,7 +1263,7 @@ nsWindow::DispatchMotionEvent(WidgetInputEvent &event, AndroidGeckoEvent *ae,
 {
     nsIntPoint offset = WidgetToScreenOffset();
 
-    event.modifiers = 0;
+    event.modifiers = ae->DOMModifiers();
     event.time = ae->Time();
 
     
@@ -1609,16 +1609,19 @@ nsWindow::InitKeyEvent(WidgetKeyboardEvent& event, AndroidGeckoEvent& key,
         event.pluginEvent = pluginEvent;
     }
 
-    if (event.message != NS_KEY_PRESS ||
-        !key.UnicodeChar() || !key.BaseUnicodeChar() ||
-        key.UnicodeChar() == key.BaseUnicodeChar()) {
-        
-        
-        
-        event.InitBasicModifiers(gMenu || key.IsCtrlPressed(),
-                                 key.IsAltPressed(),
-                                 key.IsShiftPressed(),
-                                 key.IsMetaPressed());
+    event.modifiers = key.DOMModifiers();
+    if (gMenu) {
+        event.modifiers |= MODIFIER_CONTROL;
+    }
+    
+    
+    
+    
+    
+    
+    if (event.message == NS_KEY_PRESS &&
+        key.UnicodeChar() && key.UnicodeChar() != key.BaseUnicodeChar()) {
+        event.modifiers &= ~(MODIFIER_ALT | MODIFIER_CONTROL | MODIFIER_META);
     }
 
     event.mIsRepeat =
