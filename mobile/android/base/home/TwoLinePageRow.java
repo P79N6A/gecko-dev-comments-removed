@@ -30,7 +30,7 @@ import android.widget.TextView;
 public class TwoLinePageRow extends LinearLayout
                             implements Tabs.OnTabsChangedListener {
 
-    private static final int NO_ICON = 0;
+    protected static final int NO_ICON = 0;
 
     private final TextView mTitle;
     private final TextView mUrl;
@@ -122,15 +122,19 @@ public class TwoLinePageRow extends LinearLayout
         mTitle.setText(text);
     }
 
-    private void setUrl(String text) {
+    protected void setUrl(String text) {
         mUrl.setText(text);
     }
 
-    private void setUrl(int stringId) {
+    protected void setUrl(int stringId) {
         mUrl.setText(stringId);
     }
 
-    private void setSwitchToTabIcon(int iconId) {
+    protected String getUrl() {
+        return mPageUrl;
+    }
+
+    protected void setSwitchToTabIcon(int iconId) {
         if (mSwitchToTabIconId == iconId) {
             return;
         }
@@ -162,7 +166,7 @@ public class TwoLinePageRow extends LinearLayout
 
 
 
-    private void updateDisplayedUrl() {
+    protected void updateDisplayedUrl() {
         boolean isPrivate = Tabs.getInstance().getSelectedTab().isPrivate();
         Tab tab = Tabs.getInstance().getFirstTabForUrl(mPageUrl, isPrivate);
         if (!mShowIcons || tab == null) {
