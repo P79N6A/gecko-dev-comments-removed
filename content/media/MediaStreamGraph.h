@@ -191,9 +191,8 @@ class MediaStreamGraphImpl;
 class SourceMediaStream;
 class ProcessedMediaStream;
 class MediaInputPort;
-class AudioNodeEngine;
-class AudioNodeExternalInputStream;
 class AudioNodeStream;
+class AudioNodeEngine;
 struct AudioChunk;
 
 
@@ -361,7 +360,6 @@ public:
 
   friend class MediaStreamGraphImpl;
   friend class MediaInputPort;
-  friend class AudioNodeExternalInputStream;
 
   virtual SourceMediaStream* AsSourceStream() { return nullptr; }
   virtual ProcessedMediaStream* AsProcessedStream() { return nullptr; }
@@ -970,11 +968,6 @@ public:
   AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine,
                                          AudioNodeStreamKind aKind,
                                          TrackRate aSampleRate = 0);
-
-  AudioNodeExternalInputStream*
-  CreateAudioNodeExternalInputStream(AudioNodeEngine* aEngine,
-                                     TrackRate aSampleRate = 0);
-
   
 
 
