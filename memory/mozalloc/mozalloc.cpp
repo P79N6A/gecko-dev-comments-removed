@@ -19,9 +19,6 @@
 #if defined(XP_UNIX)
 #  include <unistd.h>           
 #endif 
-#if defined(__FreeBSD__)
-#  include <malloc_np.h>        
-#endif 
 
 #if defined(XP_WIN) || (defined(XP_OS2) && defined(__declspec))
 #  define MOZALLOC_EXPORT __declspec(dllexport)
@@ -213,8 +210,7 @@ moz_malloc_usable_size(void *ptr)
 
 #if defined(XP_MACOSX)
     return malloc_size(ptr);
-#elif defined(MOZ_MEMORY) || (defined(XP_LINUX) && !defined(ANDROID)) || defined(__FreeBSD__)
-    
+#elif defined(HAVE_MALLOC_USABLE_SIZE) || defined(MOZ_MEMORY)
     return malloc_usable_size(ptr);
 #elif defined(XP_WIN)
     return _msize(ptr);
