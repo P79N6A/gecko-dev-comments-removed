@@ -2504,6 +2504,13 @@ nsJSContext::PokeGC(JS::gcreason::Reason aReason, int aDelay)
     return;
   }
 
+  if (sICCTimer) {
+    
+    
+    sNeedsGCAfterCC = true;
+    return;
+  }
+
   CallCreateInstance("@mozilla.org/timer;1", &sGCTimer);
 
   if (!sGCTimer) {
