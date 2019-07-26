@@ -704,10 +704,14 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
     
     public static class MenuPopup extends PopupWindow {
         private RelativeLayout mPanel;
+        private int mYOffset;
 
         public MenuPopup(Context context) {
             super(context);
             setFocusable(true);
+
+            
+            mYOffset = (int) (context.getResources().getDimension(R.dimen.menu_popup_offset));
 
             
             setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
@@ -724,6 +728,11 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         public void setPanelView(View view) {
             mPanel.removeAllViews();
             mPanel.addView(view);
+        }
+
+        @Override
+        public void showAsDropDown(View anchor) {
+            showAsDropDown(anchor, 0, -mYOffset);
         }
     }
 
