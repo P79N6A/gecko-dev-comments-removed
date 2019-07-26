@@ -265,12 +265,12 @@ public:
   
 
 
-  void GetGuid(ScrollableLayerGuid* aGuidOut);
+  void GetGuid(ScrollableLayerGuid* aGuidOut) const;
 
   
 
 
-  ScrollableLayerGuid GetGuid();
+  ScrollableLayerGuid GetGuid() const;
 
   
 
@@ -483,7 +483,7 @@ protected:
 
 
 
-  const FrameMetrics& GetFrameMetrics();
+  const FrameMetrics& GetFrameMetrics() const;
 
   
 
