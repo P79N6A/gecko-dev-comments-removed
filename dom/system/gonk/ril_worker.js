@@ -62,6 +62,9 @@ const PDU_HEX_OCTET_SIZE = 4;
 
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
+
+const EMERGENCY_CB_MODE_TIMEOUT_MS = 300000;  
+
 const ICC_MAX_LINEAR_FIXED_RECORDS = 0xfe;
 
 
@@ -785,6 +788,11 @@ let RIL = {
 
 
     this._isCdma = false;
+
+    
+
+
+    this._isInEmergencyCbMode = false;
 
     
 
@@ -1762,6 +1770,21 @@ let RIL = {
     Buf.simpleRequest(REQUEST_BASEBAND_VERSION);
   },
 
+  sendExitEmergencyCbModeRequest: function sendExitEmergencyCbModeRequest(options) {
+    Buf.simpleRequest(REQUEST_EXIT_EMERGENCY_CALLBACK_MODE, options);
+  },
+
+  exitEmergencyCbMode: function exitEmergencyCbMode(options) {
+    
+    
+    
+    if (!options) {
+      options = {internal: true};
+    }
+    this._cancelEmergencyCbModeTimeout();
+    this.sendExitEmergencyCbModeRequest(options);
+  },
+
   
 
 
@@ -1814,6 +1837,11 @@ let RIL = {
         options.isDialEmergency) {
       onerror(RIL_CALL_FAILCAUSE_TO_GECKO_CALL_ERROR[CALL_FAIL_UNOBTAINABLE_NUMBER]);
       return;
+    }
+
+    
+    if (this._isInEmergencyCbMode) {
+      this.exitEmergencyCbMode();
     }
 
     options.request = REQUEST_DIAL;
@@ -3985,6 +4013,39 @@ let RIL = {
     this.sendChromeMessage(message);
   },
 
+  _cancelEmergencyCbModeTimeout: function _cancelEmergencyCbModeTimeout() {
+    if (this._exitEmergencyCbModeTimeoutID) {
+      clearTimeout(this._exitEmergencyCbModeTimeoutID);
+      this._exitEmergencyCbModeTimeoutID = null;
+    }
+  },
+
+  _handleChangedEmergencyCbMode: function _handleChangedEmergencyCbMode(active) {
+    if (this._isInEmergencyCbMode === active) {
+      return;
+    }
+
+    if (active) {
+      
+      let ril = this;
+      this._cancelEmergencyCbModeTimeout();
+      this._exitEmergencyCbModeTimeoutID = setTimeout(function() {
+          ril.exitEmergencyCbMode();
+      }, EMERGENCY_CB_MODE_TIMEOUT_MS);
+    } else {
+      
+      this._cancelEmergencyCbModeTimeout();
+    }
+
+    
+    this._isInEmergencyCbMode = active;
+
+    let message = {rilMessageType: "emergencyCbModeChange",
+                   active: active,
+                   timeoutMs: EMERGENCY_CB_MODE_TIMEOUT_MS};
+    this.sendChromeMessage(message);
+  },
+
   _processNetworks: function _processNetworks() {
     let strings = Buf.readStringList();
     let networks = [];
@@ -5939,7 +6000,17 @@ RIL[REQUEST_DEVICE_IDENTITY] = function REQUEST_DEVICE_IDENTITY(length, options)
   this.ESN = result[2];
   this.MEID = result[3];
 };
-RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
+RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = function REQUEST_EXIT_EMERGENCY_CALLBACK_MODE(length, options) {
+  if (options.internal) {
+    return;
+  }
+
+  options.success = (options.rilRequestError === 0);
+  if (!options.success) {
+    options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
+  }
+  this.sendChromeMessage(options);
+};
 RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
   if (options.rilRequestError) {
     return;
@@ -6249,7 +6320,9 @@ RIL[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICITED_RESPONSE_NEW_
 };
 RIL[UNSOLICITED_CDMA_RUIM_SMS_STORAGE_FULL] = null;
 RIL[UNSOLICITED_RESTRICTED_STATE_CHANGED] = null;
-RIL[UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE] = null;
+RIL[UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE() {
+  this._handleChangedEmergencyCbMode(true);
+};
 RIL[UNSOLICITED_CDMA_CALL_WAITING] = function UNSOLICITED_CDMA_CALL_WAITING(length) {
   let call = {};
   call.number              = Buf.readString();
@@ -6268,6 +6341,9 @@ RIL[UNSOLICITED_CDMA_INFO_REC] = null;
 RIL[UNSOLICITED_OEM_HOOK_RAW] = null;
 RIL[UNSOLICITED_RINGBACK_TONE] = null;
 RIL[UNSOLICITED_RESEND_INCALL_MUTE] = null;
+RIL[UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE] = function UNSOLICITED_EXIT_EMERGENCY_CALLBACK_MODE() {
+  this._handleChangedEmergencyCbMode(false);
+};
 RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
   
   
@@ -6283,6 +6359,8 @@ RIL[UNSOLICITED_RIL_CONNECTED] = function UNSOLICITED_RIL_CONNECTED(length) {
   }
 
   this.initRILState();
+  
+  this.exitEmergencyCbMode();
 };
 
 
