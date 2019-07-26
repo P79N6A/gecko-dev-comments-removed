@@ -101,17 +101,6 @@ function createModule(id) {
 
 
 
-let chromeWhitelist = [
-  "devtools/toolkit/event-emitter",
-];
-
-
-
-
-
-
-
-
 
 
 
@@ -185,17 +174,6 @@ function WorkerDebuggerLoader(options) {
       
       if (id === undefined) {
         throw new Error("can't require module without id!");
-      }
-
-      
-      
-      
-      
-      
-      if (id === "chrome" && chromeWhitelist.indexOf(requirer.id) < 0) {
-        return { CC: undefined, Cc: undefined,
-                 ChromeWorker: undefined, Cm: undefined, Ci: undefined, Cu: undefined,
-                 Cr: undefined, components: undefined };
       }
 
       
@@ -331,9 +309,9 @@ if (typeof Components === "object") {
     let SourceMap = {};
     Cu.import("resource://gre/modules/devtools/SourceMap.jsm", SourceMap);
     const Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
-    const chrome = { CC: Function.bind.call(CC, Components), Cc: Cc,
-                     ChromeWorker: ChromeWorker, Cm: Cm, Ci: Ci, Cu: Cu,
-                     Cr: Cr, components: Components };
+    const chrome = { CC: undefined, Cc: undefined, ChromeWorker: undefined,
+                     Cm: undefined, Ci: undefined, Cu: undefined,
+                     Cr: undefined, components: undefined };
     const xpcInspector = Cc["@mozilla.org/jsinspector;1"].
                          getService(Ci.nsIJSInspector);
 
