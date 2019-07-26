@@ -5,7 +5,7 @@
 
 
 
-const acorn = require("acorn/acorn");
+const acorn = require("acorn");
 Cu.import("resource://gre/modules/reflect.jsm");
 
 const testCode = "" + function main () {

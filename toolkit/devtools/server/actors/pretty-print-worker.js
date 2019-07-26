@@ -27,18 +27,16 @@
 
 
 
-importScripts("resource://gre/modules/devtools/escodegen/escodegen.worker.js");
+importScripts("resource://gre/modules/devtools/acorn.js");
+importScripts("resource://gre/modules/devtools/source-map.js");
+importScripts("resource://gre/modules/devtools/pretty-fast.js");
 
-self.onmessage = ({ data: { id, url, indent, ast } }) => {
+self.onmessage = (event) => {
+  const { data: { id, url, indent, source } } = event;
   try {
-    const prettified = escodegen.generate(ast, {
-      format: {
-        indent: {
-          style: " ".repeat(indent)
-        }
-      },
-      sourceMap: url,
-      sourceMapWithCode: true
+    const prettified = prettyFast(source, {
+      url: url,
+      indent: " ".repeat(indent)
     });
 
     self.postMessage({
@@ -48,6 +46,7 @@ self.onmessage = ({ data: { id, url, indent, ast } }) => {
     });
   } catch (e) {
     self.postMessage({
+      id: id,
       error: e.message + "\n" + e.stack
     });
   }
