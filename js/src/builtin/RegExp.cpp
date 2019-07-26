@@ -23,7 +23,6 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString input_, const jschar *ch
                             MatchPairs &matches, MutableHandleValue rval)
 {
     RootedString input(cx, input_);
-    RootedValue undefinedValue(cx, UndefinedValue());
 
     
 
@@ -53,7 +52,7 @@ js::CreateRegExpMatchResult(JSContext *cx, HandleString input_, const jschar *ch
 
         if (pair.isUndefined()) {
             JS_ASSERT(i != 0); 
-            elements.infallibleAppend(undefinedValue);
+            elements.infallibleAppend(UndefinedHandleValue);
         } else {
             JSLinearString *str = js_NewDependentString(cx, input, pair.start, pair.length());
             if (!str)
