@@ -105,6 +105,10 @@ struct BaselineScript
     HeapPtr<IonCode> method_;
 
     
+    
+    HeapPtrObject templateScope_;
+
+    
     FallbackICStubSpace fallbackStubSpace_;
 
     
@@ -223,6 +227,14 @@ struct BaselineScript
     void setMethod(IonCode *code) {
         JS_ASSERT(!method_);
         method_ = code;
+    }
+
+    JSObject *templateScope() const {
+        return templateScope_;
+    }
+    void setTemplateScope(JSObject *templateScope) {
+        JS_ASSERT(!templateScope_);
+        templateScope_ = templateScope;
     }
 
     void toggleBarriers(bool enabled) {

@@ -4527,18 +4527,7 @@ IonBuilder::createDeclEnvObject(MDefinition *callee, MDefinition *scope)
 {
     
     
-    
-    
-
-    RootedFunction fun(cx, info().fun());
-    RootedObject templateObj(cx, DeclEnvObject::createTemplateObject(cx, fun, gc::TenuredHeap));
-    if (!templateObj)
-        return nullptr;
-
-    
-    
-    templateObj->setFixedSlot(DeclEnvObject::enclosingScopeSlot(), MagicValue(JS_GENERIC_MAGIC));
-    templateObj->setFixedSlot(DeclEnvObject::lambdaSlot(), MagicValue(JS_GENERIC_MAGIC));
+    DeclEnvObject *templateObj = inspector->templateDeclEnvObject();
 
     
     
@@ -4565,13 +4554,7 @@ IonBuilder::createCallObject(MDefinition *callee, MDefinition *scope)
 {
     
     
-    
-    
-
-    RootedScript scriptRoot(cx, script());
-    RootedObject templateObj(cx, CallObject::createTemplateObject(cx, scriptRoot, gc::TenuredHeap));
-    if (!templateObj)
-        return nullptr;
+    CallObject *templateObj = inspector->templateCallObject();
 
     
     MInstruction *slots;
@@ -4631,11 +4614,11 @@ IonBuilder::createThisScripted(MDefinition *callee)
     
     MInstruction *getProto;
     if (!invalidatedIdempotentCache()) {
-        MGetPropertyCache *getPropCache = MGetPropertyCache::New(callee, cx->names().prototype);
+        MGetPropertyCache *getPropCache = MGetPropertyCache::New(callee, names().prototype);
         getPropCache->setIdempotent();
         getProto = getPropCache;
     } else {
-        MCallGetProperty *callGetProp = MCallGetProperty::New(callee, cx->names().prototype,
+        MCallGetProperty *callGetProp = MCallGetProperty::New(callee, names().prototype,
                                                                false);
         callGetProp->setIdempotent();
         getProto = callGetProp;
@@ -4658,7 +4641,7 @@ IonBuilder::getSingletonPrototype(JSFunction *target)
     if (targetType->unknownProperties())
         return nullptr;
 
-    jsid protoid = NameToId(cx->names().prototype);
+    jsid protoid = NameToId(names().prototype);
     types::HeapTypeSetKey protoProperty = targetType->property(protoid);
 
     return protoProperty.singleton(constraints());
@@ -6216,12 +6199,12 @@ IonBuilder::getStaticName(JSObject *staticObject, PropertyName *name, bool *psuc
 
     if (staticObject->is<GlobalObject>()) {
         
-        if (name == cx->names().undefined)
+        if (name == names().undefined)
             return pushConstant(UndefinedValue());
-        if (name == cx->names().NaN)
-            return pushConstant(cx->runtime()->NaNValue);
-        if (name == cx->names().Infinity)
-            return pushConstant(cx->runtime()->positiveInfinityValue);
+        if (name == names().NaN)
+            return pushConstant(compartment->runtimeFromAnyThread()->NaNValue);
+        if (name == names().Infinity)
+            return pushConstant(compartment->runtimeFromAnyThread()->positiveInfinityValue);
     }
 
     
@@ -9448,7 +9431,7 @@ IonBuilder::jsop_instanceof()
             break;
 
         types::HeapTypeSetKey protoProperty =
-            rhsType->property(NameToId(cx->names().prototype));
+            rhsType->property(NameToId(names().prototype));
         JSObject *protoObject = protoProperty.singleton(constraints());
         if (!protoObject)
             break;
