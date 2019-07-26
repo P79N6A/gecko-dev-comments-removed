@@ -367,6 +367,11 @@ public:
     
 
 
+    bool OpenTypeSVGEnabled();
+
+    
+
+
 
     bool UseGraphiteShaping();
 
@@ -588,6 +593,7 @@ protected:
 
     int8_t  mAllowDownloadableFonts;
     int8_t  mGraphiteShapingEnabled;
+    int8_t  mOpenTypeSVGEnabled;
 
     int8_t  mBidiNumeralOption;
 
