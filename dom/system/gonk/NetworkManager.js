@@ -212,6 +212,10 @@ NetworkManager.prototype = {
             this.removeDefaultRoute(network.name);
             this.setAndConfigureActive();
             
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
+              this.mRIL.updateRILNetworkInterface();
+            }
+            
             if (this.waitForConnectionReadyCallback) {
               this.waitForConnectionReadyCallback.call(this);
               this.waitForConnectionReadyCallback = null;
@@ -225,6 +229,10 @@ NetworkManager.prototype = {
               this.removeHostRoute(network);
             }
             this.setAndConfigureActive();
+            
+            if (network.type == Ci.nsINetworkInterface.NETWORK_TYPE_WIFI) {
+              this.mRIL.updateRILNetworkInterface();
+            }
             break;
         }
         break;
@@ -826,6 +834,12 @@ NetworkManager.prototype = {
     }
   }
 };
+
+XPCOMUtils.defineLazyGetter(NetworkManager.prototype, "mRIL", function () {
+    return Cc["@mozilla.org/telephony/system-worker-manager;1"]
+              .getService(Ci.nsIInterfaceRequestor)
+              .getInterface(Ci.nsIRadioInterfaceLayer);
+});
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([NetworkManager]);
 
