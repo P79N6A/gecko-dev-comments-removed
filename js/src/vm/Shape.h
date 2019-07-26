@@ -1448,16 +1448,40 @@ struct InitialShapeEntry
     
     struct Lookup {
         const Class *clasp;
-        TaggedProto proto;
-        JSObject *parent;
-        JSObject *metadata;
+        TaggedProto hashProto;
+        TaggedProto matchProto;
+        JSObject *hashParent;
+        JSObject *matchParent;
+        JSObject *hashMetadata;
+        JSObject *matchMetadata;
         uint32_t nfixed;
         uint32_t baseFlags;
         Lookup(const Class *clasp, TaggedProto proto, JSObject *parent, JSObject *metadata,
                uint32_t nfixed, uint32_t baseFlags)
-          : clasp(clasp), proto(proto), parent(parent), metadata(metadata),
+          : clasp(clasp),
+            hashProto(proto), matchProto(proto),
+            hashParent(parent), matchParent(parent),
+            hashMetadata(metadata), matchMetadata(metadata),
             nfixed(nfixed), baseFlags(baseFlags)
         {}
+
+#ifdef JSGC_GENERATIONAL
+        
+
+
+
+
+        Lookup(const Class *clasp, TaggedProto proto,
+               JSObject *hashParent, JSObject *matchParent,
+               JSObject *hashMetadata, JSObject *matchMetadata,
+               uint32_t nfixed, uint32_t baseFlags)
+          : clasp(clasp),
+            hashProto(proto), matchProto(proto),
+            hashParent(hashParent), matchParent(matchParent),
+            hashMetadata(hashMetadata), matchMetadata(matchMetadata),
+            nfixed(nfixed), baseFlags(baseFlags)
+        {}
+#endif
     };
 
     inline InitialShapeEntry();

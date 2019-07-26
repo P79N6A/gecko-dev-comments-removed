@@ -601,6 +601,7 @@ CheckHashTablesAfterMovingGC(JSRuntime *rt)
     
     for (CompartmentsIter c(rt, SkipAtoms); !c.done(); c.next()) {
         c->checkNewTypeObjectTableAfterMovingGC();
+        c->checkInitialShapesTableAfterMovingGC();
         if (c->debugScopes)
             c->debugScopes->checkHashTablesAfterMovingGC(rt);
     }
