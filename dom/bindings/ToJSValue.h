@@ -204,22 +204,6 @@ ToJSValue(JSContext* aCx,
 }
 
 
-inline bool
-ToJSValue(JSContext* aCx, JS::Handle<JS::Value> aArgument,
-          JS::MutableHandle<JS::Value> aValue)
-{
-  aValue.set(aArgument);
-  return MaybeWrapValue(aCx, aValue);
-}
-
-
-
-bool
-ToJSValue(JSContext* aCx,
-          nsresult aArgument,
-          JS::MutableHandle<JS::Value> aValue);
-
-
 template <typename T>
 bool
 ToJSValue(JSContext* aCx,
