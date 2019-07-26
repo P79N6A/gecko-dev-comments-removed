@@ -10,6 +10,7 @@
 
 #include "nsIContent.h"
 #include "nsIControllers.h"
+#include "mozilla/dom/Element.h"
 #include "nsContentUtils.h"
 
 #include "XPCWrapper.h"
@@ -1084,6 +1085,28 @@ XPCWrappedNativeXrayTraits::resolveNativeProperty(JSContext *cx, HandleObject wr
         if (NS_FAILED(rv) || !c) {
             JS_ReportError(cx, "Failed to invoke GetControllers via Xrays");
             return false;
+        }
+
+        desc.object().set(wrapper);
+        return true;
+    }
+
+    
+    
+    
+    if (id == GetRTIdByIndex(cx, XPCJSRuntime::IDX_REALFRAMEELEMENT) &&
+        AccessCheck::isChrome(wrapper) &&
+        (win = AsWindow(cx, wrapper)))
+    {
+        ErrorResult rv;
+        Element* f = win->GetRealFrameElement(rv);
+        if (!f) {
+          desc.object().set(nullptr);
+          return true;
+        }
+
+        if (!WrapNewBindingObject(cx, f, desc.value())) {
+          return false;
         }
 
         desc.object().set(wrapper);
