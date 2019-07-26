@@ -50,6 +50,7 @@ namespace mozilla {
 namespace dom {
 
 class MediaError;
+class MediaSource;
 
 class HTMLMediaElement : public nsGenericHTMLElement,
                          public nsIObserver,
@@ -866,6 +867,9 @@ protected:
 
   
   nsRefPtr<StreamListener> mSrcStreamListener;
+
+  
+  nsRefPtr<MediaSource> mMediaSource;
 
   
   
