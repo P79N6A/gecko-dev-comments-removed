@@ -2811,7 +2811,10 @@ HTMLInputElement::SetValueInternal(const nsAString& aValue,
             numberControlFrame->SetValueOfAnonTextControl(value);
           }
         }
-        OnValueChanged(!mParserCreating);
+        if (!mParserCreating) {
+          OnValueChanged(true);
+        }
+        
       }
 
       if (mType == NS_FORM_INPUT_COLOR) {
