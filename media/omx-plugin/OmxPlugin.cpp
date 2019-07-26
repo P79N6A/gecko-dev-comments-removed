@@ -1024,7 +1024,7 @@ static bool CreateDecoder(PluginHost *aPluginHost, Decoder *aDecoder, const char
 } 
 
 
-Manifest MOZ_EXPORT MPAPI_MANIFEST {
+Manifest MOZ_EXPORT MPAPI_MANIFEST = {
   OmxPlugin::CanDecode,
   OmxPlugin::CreateDecoder
 };
