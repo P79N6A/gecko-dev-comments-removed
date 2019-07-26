@@ -21,7 +21,6 @@ class nsGTKToolkit
 {
 public:
     nsGTKToolkit();
-    virtual ~nsGTKToolkit();
 
     static nsGTKToolkit* GetToolkit();
 
@@ -30,9 +29,6 @@ public:
       gToolkit = nullptr;
     }
 
-    void          CreateSharedGC(void);
-    GdkGC         *GetSharedGC(void);
-    
     
 
 
@@ -51,7 +47,6 @@ public:
 private:
     static nsGTKToolkit* gToolkit;
 
-    GdkGC         *mSharedGC;
     nsCString      mDesktopStartupID;
     uint32_t       mFocusTimestamp;
 };

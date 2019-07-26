@@ -25,7 +25,7 @@
 #include "nsCRT.h"
 #include "mozilla/Services.h"
 
-#if defined(MOZ_WIDGET_GTK2)
+#if (MOZ_WIDGET_GTK == 2)
 #include "gtk2compat.h"
 #endif
 
@@ -351,7 +351,7 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     GdkEvent event;
     memset(&event, 0, sizeof(GdkEvent));
     event.type = GDK_BUTTON_PRESS;
-    event.button.window = mHiddenWidget->window;
+    event.button.window = gtk_widget_get_window(mHiddenWidget);
     event.button.time = nsWindow::GetLastUserInputTime();
 
     
@@ -362,6 +362,13 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
     gtk_window_group_add_window(window_group,
                                 GTK_WINDOW(mHiddenWidget));
 
+#if (MOZ_WIDGET_GTK == 3)
+    
+    GdkDisplay *display = gdk_display_get_default();
+    GdkDeviceManager *device_manager = gdk_display_get_device_manager(display);
+    event.button.device = gdk_device_manager_get_client_pointer(device_manager);
+#endif
+  
     
     GdkDragContext *context = gtk_drag_begin(mHiddenWidget,
                                              sourceList,
@@ -402,6 +409,7 @@ nsDragService::SetAlphaPixmap(gfxASurface *aSurface,
                                  int32_t aYOffset,
                                  const nsIntRect& dragRect)
 {
+#if (MOZ_WIDGET_GTK == 2)
     GdkScreen* screen = gtk_widget_get_screen(mHiddenWidget);
 
     
@@ -443,6 +451,10 @@ nsDragService::SetAlphaPixmap(gfxASurface *aSurface,
                              aXOffset, aYOffset);
     g_object_unref(pixmap);
     return true;
+#else
+    
+    return false;
+#endif
 }
 
 NS_IMETHODIMP
@@ -974,7 +986,8 @@ nsDragService::IsDataFlavorSupported(const char *aDataFlavor,
 
     
     GList *tmp;
-    for (tmp = mTargetDragContext->targets; tmp; tmp = tmp->next) {
+    for (tmp = gdk_drag_context_list_targets(mTargetDragContext); 
+         tmp; tmp = tmp->next) {
         
         GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
         gchar *name = NULL;
@@ -1058,15 +1071,16 @@ nsDragService::TargetDataReceived(GtkWidget         *aWidget,
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::TargetDataReceived"));
     TargetResetData();
     mTargetDragDataReceived = true;
-    if (aSelectionData->length > 0) {
-        mTargetDragDataLen = aSelectionData->length;
+    mTargetDragDataLen = gtk_selection_data_get_length(aSelectionData);
+    if (mTargetDragDataLen > 0) {
         mTargetDragData = g_malloc(mTargetDragDataLen);
-        memcpy(mTargetDragData, aSelectionData->data, mTargetDragDataLen);
+        memcpy(mTargetDragData, gtk_selection_data_get_data(aSelectionData),
+               mTargetDragDataLen);
     }
     else {
         PR_LOG(sDragLm, PR_LOG_DEBUG,
                ("Failed to get data.  selection data len was %d\n",
-                aSelectionData->length));
+                mTargetDragDataLen));
     }
 }
 
@@ -1086,7 +1100,8 @@ nsDragService::IsTargetContextList(void)
 
     
     
-    for (tmp = mTargetDragContext->targets; tmp; tmp = tmp->next) {
+    for (tmp = gdk_drag_context_list_targets(mTargetDragContext); 
+         tmp; tmp = tmp->next) {
         
         GdkAtom atom = GDK_POINTER_TO_ATOM(tmp->data);
         gchar *name = NULL;
@@ -1363,7 +1378,8 @@ nsDragService::SourceEndDragSession(GdkDragContext *aContext,
         
         
         GdkDragAction action =
-            aContext->dest_window ? aContext->action : (GdkDragAction)0;
+            gdk_drag_context_get_dest_window(aContext) ? 
+                gdk_drag_context_get_actions(aContext) : (GdkDragAction)0;
 
         
         
@@ -1556,7 +1572,7 @@ nsDragService::SourceDataGet(GtkWidget        *aWidget,
             if (tmpData) {
                 
                 gtk_selection_data_set(aSelectionData,
-                                       aSelectionData->target,
+                                       gtk_selection_data_get_target(aSelectionData),
                                        8,
                                        (guchar *)tmpData, tmpDataLen);
                 
@@ -1569,7 +1585,7 @@ nsDragService::SourceDataGet(GtkWidget        *aWidget,
                 gint length;
                 CreateUriList(mSourceDataItems, &uriList, &length);
                 gtk_selection_data_set(aSelectionData,
-                                       aSelectionData->target,
+                                       gtk_selection_data_get_target(aSelectionData),
                                        8, (guchar *)uriList, length);
                 g_free(uriList);
                 return;
