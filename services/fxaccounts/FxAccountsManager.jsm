@@ -45,6 +45,10 @@ this.FxAccountsManager = {
   _activeSession: null,
 
   
+  
+  _refreshing: false,
+
+  
   get _user() {
     if (!this._activeSession || !this._activeSession.email) {
       return null;
@@ -103,7 +107,7 @@ this.FxAccountsManager = {
     }
 
     
-    if (this._activeSession) {
+    if ((!this._refreshing) && this._activeSession) {
       return this._error(ERROR_ALREADY_SIGNED_IN_USER, {
         user: this._user
       });
@@ -112,7 +116,7 @@ this.FxAccountsManager = {
     let client = this._getFxAccountsClient();
     return this._fxAccounts.getSignedInUser().then(
       user => {
-        if (user) {
+        if ((!this._refreshing) && user) {
           return this._error(ERROR_ALREADY_SIGNED_IN_USER, {
             user: this._user
           });
@@ -380,21 +384,32 @@ this.FxAccountsManager = {
           if (aOptions &&
               (typeof(aOptions.refreshAuthentication) != "undefined")) {
             let gracePeriod = aOptions.refreshAuthentication;
-            if (typeof gracePeriod != 'number' || isNaN(gracePeriod)) {
+            if (typeof(gracePeriod) !== "number" || isNaN(gracePeriod)) {
               return this._error(ERROR_INVALID_REFRESH_AUTH_VALUE);
             }
-
+            
+            
+            if (aOptions.silent) {
+              return this._error(ERROR_NO_SILENT_REFRESH_AUTH);
+            }
             if ((Date.now() / 1000) - this._activeSession.authAt > gracePeriod) {
               
               
               
-              return this._signOut().then(
-                () => {
-                  if (aOptions.silent) {
-                    return Promise.resolve(null);
-                  }
-                  return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
-                                         aAudience, user.accountId);
+              this._refreshing = true;
+              return this._uiRequest(UI_REQUEST_REFRESH_AUTH,
+                                     aAudience, user.accountId).then(
+                (assertion) => {
+                  this._refreshing = false;
+                  return assertion;
+                },
+                (reason) => {
+                  this._refreshing = false;
+                  return this._signOut().then(
+                    () => {
+                      return this._error(reason);
+                    }
+                  );
                 }
               );
             }
