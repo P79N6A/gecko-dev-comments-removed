@@ -296,6 +296,7 @@ public:
 
     
     void GetDPI(float* aDPI);
+    void GetDefaultScale(double *aScale);
 
     gfxSize GetZoom() { return mLastMetrics.mZoom; }
 

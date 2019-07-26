@@ -169,6 +169,7 @@ public:
   
   
   virtual float GetDPI();
+  virtual double GetDefaultScaleInternal();
 
   virtual bool NeedsPaint() MOZ_OVERRIDE;
 
@@ -223,6 +224,7 @@ private:
 
   
   float mDPI;
+  double mDefaultScale;
 };
 
 class PuppetScreen : public nsBaseScreen
