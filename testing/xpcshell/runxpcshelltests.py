@@ -969,9 +969,7 @@ class XPCShellTests(object):
 
         
         
-        
-        
-        localPath = os.path.join(os.path.split(os.path.abspath(__file__))[0], 'node')
+        localPath = os.getenv('MOZ_NODE_PATH', None)
         if localPath and os.path.exists(localPath) and os.path.isfile(localPath):
             nodeBin = localPath
 
@@ -993,7 +991,7 @@ class XPCShellTests(object):
                         
                         msg = process.stdout.readline()
                         if 'server listening' in msg:
-                            nodeMozInfo['hasNode'] = True  
+                            nodeMozInfo['hasNode'] = True
                     except OSError, e:
                         
                         self.log.error('Could not run %s server: %s' % (name, str(e)))
