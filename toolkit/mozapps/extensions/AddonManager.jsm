@@ -479,7 +479,6 @@ var AddonManagerInternal = {
   
   telemetryDetails: {},
 
-
   
   typesProxy: Proxy.create({
     getOwnPropertyDescriptor: function typesProxy_getOwnPropertyDescriptor(aName) {
@@ -1142,6 +1141,8 @@ var AddonManagerInternal = {
       throw Components.Exception("AddonManager is not initialized",
                                  Cr.NS_ERROR_NOT_INITIALIZED);
 
+    logger.debug("Background update check beginning");
+
     return Task.spawn(function* backgroundUpdateTask() {
       let hotfixID = this.hotfixID;
 
@@ -1284,6 +1285,7 @@ var AddonManagerInternal = {
         }
       }
 
+      logger.debug("Background update check complete");
       Services.obs.notifyObservers(null,
                                    "addons-background-update-complete",
                                    null);
@@ -2326,7 +2328,7 @@ this.AddonManagerPrivate = {
   },
 
   backgroundUpdateCheck: function AMP_backgroundUpdateCheck() {
-    AddonManagerInternal.backgroundUpdateCheck();
+    return AddonManagerInternal.backgroundUpdateCheck();
   },
 
   addStartupChange: function AMP_addStartupChange(aType, aID) {
