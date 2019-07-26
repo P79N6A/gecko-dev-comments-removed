@@ -29,7 +29,7 @@ function test() {
 
   
   let [file, persist] = addDownload(dm, {
-    isPrivate: window.gPrivateBrowsingUI.privateWindow,
+    isPrivate: PrivateBrowsingUtils.isWindowPrivate(window),
     resultFileName: "pbtest-1",
     downloadName: "PB Test 1"
   });
@@ -52,7 +52,7 @@ function test() {
 
     
     let [file2, persist2] = addDownload(dm, {
-      isPrivate: window.gPrivateBrowsingUI.privateWindow,
+      isPrivate: PrivateBrowsingUtils.isWindowPrivate(window),
       resultFileName: "pbtest-2",
       downloadName: "PB Test 2"
     });

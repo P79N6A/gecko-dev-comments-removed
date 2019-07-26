@@ -4,6 +4,7 @@
 
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -368,7 +369,7 @@ WebContentConverterRegistrar.prototype = {
     LOG("registerProtocolHandler(" + aProtocol + "," + aURIString + "," + aTitle + ")");
 
     var browserWindow = this._getBrowserWindowForContentWindow(aContentWindow);    
-    if (browserWindow.gPrivateBrowsingUI.privateWindow) {
+    if (PrivateBrowsingUtils.isWindowPrivate(browserWindow)) {
       
       
       

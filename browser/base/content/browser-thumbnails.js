@@ -122,7 +122,7 @@ let gBrowserThumbnails = {
       return false;
 
     
-    if (gPrivateBrowsingUI.privateWindow)
+    if (PrivateBrowsingUtils.isWindowPrivate(window))
       return false;
 
     let doc = aBrowser.contentDocument;

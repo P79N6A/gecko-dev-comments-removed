@@ -49,6 +49,7 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
+Cu.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
 
 const TOGGLE_PREF_NAME = "browser.taskbar.previews.enable";
@@ -442,7 +443,7 @@ TabWindow.prototype = {
     preview.visible = AeroPeek.enabled;
     preview.active = this.tabbrowser.selectedTab == tab;
     
-    getFaviconAsImage(null, this.win.gPrivateBrowsingUI.privateWindow, function (img) {
+    getFaviconAsImage(null, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
       
       
       if (!preview.icon)
@@ -541,7 +542,7 @@ TabWindow.prototype = {
   
   onLinkIconAvailable: function (aBrowser, aIconURL) {
     let self = this;
-    getFaviconAsImage(aIconURL, this.win.gPrivateBrowsingUI.privateWindow, function (img) {
+    getFaviconAsImage(aIconURL, PrivateBrowsingUtils.isWindowPrivate(this.win), function (img) {
       let index = self.tabbrowser.browsers.indexOf(aBrowser);
       
       if (index != -1)

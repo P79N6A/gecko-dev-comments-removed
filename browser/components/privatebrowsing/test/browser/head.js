@@ -27,6 +27,7 @@ function waitForClearHistory(aCallback) {
 
 
 
+
 function setPrivateWindow(aWindow, aEnable) {
   return aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                  .getInterface(Ci.nsIWebNavigation)
