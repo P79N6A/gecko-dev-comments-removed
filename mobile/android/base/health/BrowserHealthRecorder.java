@@ -65,7 +65,8 @@ public class BrowserHealthRecorder implements GeckoEventListener {
     private static final String EVENT_ADDONS_CHANGE = "Addons:Change";
     private static final String EVENT_ADDONS_UNINSTALLING = "Addons:Uninstalling";
     private static final String EVENT_PREF_CHANGE = "Pref:Change";
- 
+
+    
     
     
     public static final String EVENT_KEYWORD_SEARCH = "Search:Keyword";
@@ -681,6 +682,9 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
             
             if (EVENT_KEYWORD_SEARCH.equals(event)) {
+                
+                
+                
                 recordSearch(message.getString("identifier"), "bartext");
                 return;
             }

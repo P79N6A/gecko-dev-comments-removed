@@ -1403,6 +1403,8 @@ var BrowserApp = {
 
       case "keyword-search":
         
+        
+        
         this.selectedTab.userSearch = aData;
 
         let engine = aSubject.QueryInterface(Ci.nsISearchEngine);
