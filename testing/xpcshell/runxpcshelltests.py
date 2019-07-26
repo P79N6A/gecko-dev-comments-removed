@@ -79,7 +79,7 @@ import mozinfo
 
 
 
-_cleanup_encoding_re = re.compile(u'[\x00-\x08\x0b-\x1f\x7f-\x9f\\\\]')
+_cleanup_encoding_re = re.compile(u'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f-\x9f\\\\]')
 def _cleanup_encoding_repl(m):
     c = m.group(0)
     return '\\\\' if c == '\\' else '\\x{:02X}'.format(ord(c))
