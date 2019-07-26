@@ -93,16 +93,11 @@ var AccessFuTest = {
     
     Logger.test = false;
     Logger.logLevel = Logger.INFO;
-    AccessFu.doneCallback = function doneCallback() {
-      
-      
-      AccessFu.detach();
-      
-      SimpleTest.finish();
-    };
     
-    SpecialPowers.setIntPref("accessibility.accessfu.notify_output", 0);
-    SpecialPowers.setIntPref("accessibility.accessfu.activate", 0);
+    SimpleTest.executeSoon(function () {
+      AccessFu.detach();
+      SimpleTest.finish();
+    });
   },
 
   nextTest: function AccessFuTest_nextTest() {
@@ -138,8 +133,12 @@ var AccessFuTest = {
       
       Logger.test = true;
       Logger.logLevel = Logger.DEBUG;
-      
+    };
 
+    SpecialPowers.pushPrefEnv({
+      'set': [['accessibility.accessfu.notify_output', 1],
+              ['dom.mozSettings.enabled', true]]
+    }, function () {
       if (AccessFuTest._waitForExplicitFinish) {
         
         AccessFuTest.nextTest();
@@ -148,11 +147,7 @@ var AccessFuTest = {
         [testFunc() for (testFunc of gTestFuncs)];
         AccessFuTest.finish();
       }
-    };
-
-    
-    SpecialPowers.setIntPref("accessibility.accessfu.activate", 1);
-    SpecialPowers.setIntPref("accessibility.accessfu.notify_output", 1);
+    });
   }
 };
 
