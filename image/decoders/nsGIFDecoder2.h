@@ -55,7 +55,7 @@ private:
 
   
   
-  int32_t mCurrentFrame;
+  int32_t mCurrentFrameIndex;
 
   uint8_t mCurrentPass;
   uint8_t mLastFlushedPass;
