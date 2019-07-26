@@ -160,7 +160,7 @@ private:
 
   
   
-  nsTArray<DOMSVGTransform*> mItems;
+  FallibleTArray<DOMSVGTransform*> mItems;
 
   nsRefPtr<DOMSVGAnimatedTransformList> mAList;
 };

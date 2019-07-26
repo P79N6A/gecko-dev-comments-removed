@@ -214,7 +214,7 @@ private:
 
   
   
-  nsTArray<nsISVGPoint*> mItems;
+  FallibleTArray<nsISVGPoint*> mItems;
 
   
   

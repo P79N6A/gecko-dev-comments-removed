@@ -143,7 +143,7 @@ struct MotionSegment
   } mU;
 };
 
-typedef nsTArray<MotionSegment> MotionSegmentArray;
+typedef FallibleTArray<MotionSegment> MotionSegmentArray;
 
 
 static MotionSegmentArray&

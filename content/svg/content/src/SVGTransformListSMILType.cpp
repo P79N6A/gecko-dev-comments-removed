@@ -14,7 +14,7 @@ using namespace mozilla;
 
  SVGTransformListSMILType SVGTransformListSMILType::sSingleton;
 
-typedef nsTArray<SVGTransformSMILData> TransformArray;
+typedef FallibleTArray<SVGTransformSMILData> TransformArray;
 
 
 

@@ -246,7 +246,7 @@ private:
 
   
   
-  nsTArray<ItemProxy> mItems;
+  FallibleTArray<ItemProxy> mItems;
 
   
   

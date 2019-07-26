@@ -166,7 +166,7 @@ private:
 
   
   
-  nsTArray<DOMSVGNumber*> mItems;
+  FallibleTArray<DOMSVGNumber*> mItems;
 
   nsRefPtr<DOMSVGAnimatedNumberList> mAList;
 };
