@@ -40,6 +40,11 @@ public interface AbstractFxAccount {
 
   public String getServerURI();
 
+  
+
+
+  public String getProfile();
+
   public boolean isValid();
   public void setInvalid();
 
