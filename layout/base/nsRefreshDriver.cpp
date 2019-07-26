@@ -1015,12 +1015,6 @@ nsRefreshDriver::ArrayFor(mozFlushType aFlushType)
 
 
 
-NS_IMPL_ISUPPORTS(nsRefreshDriver, nsISupports)
-
-
-
-
-
 void
 nsRefreshDriver::DoTick()
 {
