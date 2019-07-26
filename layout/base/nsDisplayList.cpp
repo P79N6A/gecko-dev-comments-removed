@@ -642,37 +642,30 @@ CalculateRootCompositionSize(FrameMetrics& aMetrics,
   }
   nsIPresShell* rootPresShell = nullptr;
   if (rootPresContext) {
-    
-    
-    
     nsIPresShell* rootPresShell = rootPresContext->PresShell();
     if (nsIFrame* rootFrame = rootPresShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
-        LayoutDeviceToParentLayerScale parentResolution(
-          rootPresShell->GetCumulativeResolution().width
-          / rootPresShell->GetResolution().width);
-        int32_t rootAUPerDevPixel = rootPresContext->AppUnitsPerDevPixel();
-        nsRect viewBounds = view->GetBounds();
-        LayerSize viewSize = ViewAs<LayerPixel>(
-          (LayoutDeviceRect::FromAppUnits(viewBounds, rootAUPerDevPixel)
-           * parentResolution).Size(), PixelCastJustification::ParentLayerToLayerForRootComposition);
-        nsIWidget* widget =
-#ifdef MOZ_WIDGET_ANDROID
-            rootFrame->GetNearestWidget();
-#else
-            view->GetWidget();
-#endif
+        nsIWidget* widget = view->GetWidget();
+  #ifdef MOZ_WIDGET_ANDROID
+        
+        
+        if (!widget) {
+          widget = rootFrame->GetNearestWidget();
+        }
+  #endif
         if (widget) {
-          nsIntRect widgetBounds;
-          widget->GetBounds(widgetBounds);
-          rootCompositionSize = LayerSize(ViewAs<LayerPixel>(widgetBounds.Size()));
-#ifdef MOZ_WIDGET_ANDROID
-          if (viewSize.height < rootCompositionSize.height) {
-            rootCompositionSize.height = viewSize.height;
-          }
-#endif
+          nsIntRect bounds;
+          widget->GetBounds(bounds);
+          rootCompositionSize = LayerSize(ViewAs<LayerPixel>(bounds.Size()));
         } else {
-          rootCompositionSize = viewSize;
+          LayoutDeviceToParentLayerScale parentResolution(
+            rootPresShell->GetCumulativeResolution().width
+            / rootPresShell->GetResolution().width);
+          int32_t rootAUPerDevPixel = rootPresContext->AppUnitsPerDevPixel();
+          nsRect viewBounds = view->GetBounds();
+          rootCompositionSize = ViewAs<LayerPixel>(
+            (LayoutDeviceRect::FromAppUnits(viewBounds, rootAUPerDevPixel)
+             * parentResolution).Size(), PixelCastJustification::ParentLayerToLayerForRootComposition);
         }
       }
     }
@@ -800,7 +793,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   nsRect compositionBounds(frameForCompositionBoundsCalculation->GetOffsetToCrossDoc(aReferenceFrame),
                            frameForCompositionBoundsCalculation->GetSize());
   metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(compositionBounds, auPerDevPixel)
-                                            * metrics.GetParentResolution());
+                             * metrics.GetParentResolution());
 
   
   
@@ -815,35 +808,23 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
   if (isRootContentDocRootScrollFrame) {
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
-        nsRect viewBoundsAppUnits = view->GetBounds() + rootFrame->GetOffsetToCrossDoc(aReferenceFrame);
-        ParentLayerIntRect viewBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(viewBoundsAppUnits, auPerDevPixel)
-                                                     * metrics.GetParentResolution());
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        nsIWidget* widget =
+        nsIWidget* widget = view->GetWidget();
 #ifdef MOZ_WIDGET_ANDROID
-            rootFrame->GetNearestWidget();
-#else
-            view->GetWidget();
+        
+        
+        if (!widget) {
+          widget = rootFrame->GetNearestWidget();
+        }
 #endif
         if (widget) {
-          nsIntRect widgetBounds;
-          widget->GetBounds(widgetBounds);
-          metrics.mCompositionBounds = ViewAs<ParentLayerPixel>(widgetBounds);
-#ifdef MOZ_WIDGET_ANDROID
-          if (viewBounds.height < metrics.mCompositionBounds.height) {
-            metrics.mCompositionBounds.height = viewBounds.height;
-          }
-#endif
+          nsIntRect bounds;
+          widget->GetBounds(bounds);
+          metrics.mCompositionBounds = ParentLayerIntRect::FromUnknownRect(mozilla::gfx::IntRect(
+              bounds.x, bounds.y, bounds.width, bounds.height));
         } else {
-          metrics.mCompositionBounds = viewBounds;
+          nsRect viewBounds = view->GetBounds() + rootFrame->GetOffsetToCrossDoc(aReferenceFrame);
+          metrics.mCompositionBounds = RoundedToInt(LayoutDeviceRect::FromAppUnits(viewBounds, auPerDevPixel)
+                                     * metrics.GetParentResolution());
         }
       }
     }

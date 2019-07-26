@@ -6128,31 +6128,33 @@ nsLayoutUtils::CalculateCompositionSizeForFrame(nsIFrame* aFrame)
   
   
   
+  
+  
+  
+  
+  
   bool isRootContentDocRootScrollFrame = presContext->IsRootContentDocument()
                                       && aFrame == presShell->GetRootScrollFrame();
   if (isRootContentDocRootScrollFrame) {
     if (nsIFrame* rootFrame = presShell->GetRootFrame()) {
       if (nsView* view = rootFrame->GetView()) {
-        nsSize viewSize = view->GetBounds().Size();
-        nsIWidget* widget =
+        nsIWidget* widget = view->GetWidget();
 #ifdef MOZ_WIDGET_ANDROID
-            rootFrame->GetNearestWidget();
-#else
-            view->GetWidget();
+        
+        
+        if (!widget) {
+          widget = rootFrame->GetNearestWidget();
+        }
 #endif
         if (widget) {
-          nsIntRect widgetBounds;
-          widget->GetBounds(widgetBounds);
+          nsIntRect bounds;
+          widget->GetBounds(bounds);
           int32_t auPerDevPixel = presContext->AppUnitsPerDevPixel();
-          size = nsSize(widgetBounds.width * auPerDevPixel,
-                        widgetBounds.height * auPerDevPixel);
-#ifdef MOZ_WIDGET_ANDROID
-          if (viewSize.height < size.height) {
-            size.height = viewSize.height;
-          }
-#endif
+          size = nsSize(bounds.width * auPerDevPixel,
+                        bounds.height * auPerDevPixel);
         } else {
-          size = viewSize;
+          nsRect viewBounds = view->GetBounds();
+          size = nsSize(viewBounds.width, viewBounds.height);
         }
       }
     }
