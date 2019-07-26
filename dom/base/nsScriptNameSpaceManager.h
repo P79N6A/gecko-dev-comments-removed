@@ -143,6 +143,12 @@ public:
     mozilla::dom::DefineInterface aDefineDOMInterface,
     mozilla::dom::PrefEnabled aPrefEnabled);
 
+  typedef PLDHashOperator
+  (* GlobalNameEnumerator)(const nsAString& aGlobalName, void* aClosure);
+
+  void EnumerateGlobalNames(GlobalNameEnumerator aEnumerator,
+                            void* aClosure);
+
 private:
   
   
