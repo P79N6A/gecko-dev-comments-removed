@@ -85,7 +85,6 @@ struct ParseContext : public GenericParseContext
 {
     typedef StmtInfoPC StmtInfo;
     typedef typename ParseHandler::Node Node;
-    typedef typename ParseHandler::DefinitionNode DefinitionNode;
 
     uint32_t        bodyid;         
     uint32_t        blockidGen;     
@@ -104,12 +103,12 @@ struct ParseContext : public GenericParseContext
     Node            blockNode;      
 
   private:
-    AtomDecls<ParseHandler> decls_; 
+    AtomDecls       decls_;         
     DeclVector      args_;          
     DeclVector      vars_;          
 
   public:
-    const AtomDecls<ParseHandler> &decls() const {
+    const AtomDecls &decls() const {
         return decls_;
     }
 
@@ -162,7 +161,7 @@ struct ParseContext : public GenericParseContext
     void popLetDecl(JSAtom *atom);
 
     
-    void prepareToAddDuplicateArg(HandlePropertyName name, DefinitionNode prevDecl);
+    void prepareToAddDuplicateArg(Definition *prevDecl);
 
     
     void updateDecl(JSAtom *atom, Node newDecl);
@@ -495,13 +494,13 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
     bool checkStrictBinding(HandlePropertyName name, Node pn);
     bool checkDeleteExpression(Node *pn);
     bool defineArg(Node funcpn, HandlePropertyName name,
-                   bool disallowDuplicateArgs = false, Node *duplicatedArg = NULL);
+                   bool disallowDuplicateArgs = false, DefinitionNode *duplicatedArg = NULL);
     Node pushLexicalScope(StmtInfoPC *stmt);
     Node pushLexicalScope(Handle<StaticBlockObject*> blockObj, StmtInfoPC *stmt);
     Node pushLetScope(Handle<StaticBlockObject*> blockObj, StmtInfoPC *stmt);
-    bool noteNameUse(HandlePropertyName name, Node pn);
+    bool noteNameUse(Node pn);
     Node newRegExp(const jschar *chars, size_t length, RegExpFlag flags);
-    Node newBindingNode(PropertyName *name, bool functionScope, VarContext varContext = HoistVars);
+    Node newBindingNode(PropertyName *name, VarContext varContext = HoistVars);
     bool checkDestructuring(BindData<ParseHandler> *data, Node left, bool toplevel = true);
     bool bindDestructuringVar(BindData<ParseHandler> *data, Node pn);
     bool bindDestructuringLHS(Node pn);
@@ -522,7 +521,7 @@ struct Parser : private AutoGCRooter, public StrictModeGetter
     bindVarOrConst(JSContext *cx, BindData<ParseHandler> *data,
                    HandlePropertyName name, Parser<ParseHandler> *parser);
 
-    static Node null() { return ParseHandler::null(); }
+    static DefinitionNode null() { return ParseHandler::null(); }
 
     bool reportRedeclaration(Node pn, bool isConst, JSAtom *atom);
     bool reportBadReturn(Node pn, ParseReportKind kind, unsigned errnum, unsigned anonerrnum);

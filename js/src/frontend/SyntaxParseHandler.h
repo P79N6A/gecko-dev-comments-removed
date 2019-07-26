@@ -27,7 +27,7 @@ class SyntaxParseHandler
         NodeStringExprStatement,
         NodeLValue
     };
-    typedef Definition::Kind DefinitionNode;
+    typedef Node DefinitionNode;
 
     SyntaxParseHandler(JSContext *cx, TokenStream &tokenStream, bool foldConstants)
       : lastAtom(NULL),
@@ -42,9 +42,6 @@ class SyntaxParseHandler
                  ParseNodeKind kind = PNK_NAME) {
         lastAtom = name;
         return NodeName;
-    }
-    DefinitionNode newPlaceholder(Node pn, ParseContext<SyntaxParseHandler> *pc) {
-        return Definition::PLACEHOLDER;
     }
     Node newAtom(ParseNodeKind kind, JSAtom *atom, JSOp op = JSOP_NOP) {
         if (kind == PNK_STRING) {
@@ -105,7 +102,6 @@ class SyntaxParseHandler
     Node newFunctionDefinition() { return NodeGeneric; }
     void setFunctionBody(Node pn, Node kid) {}
     void setFunctionBox(Node pn, FunctionBox *funbox) {}
-    void addFunctionArgument(Node pn, Node argpn) {}
     Node newLexicalScope(ObjectBox *blockbox) { return NodeGeneric; }
     bool isOperationWithoutParens(Node pn, ParseNodeKind kind) {
         
@@ -123,8 +119,6 @@ class SyntaxParseHandler
     void setEndPosition(Node pn, Node oth) {}
     void setEndPosition(Node pn, uint32_t end) {}
 
-
-    void setPosition(Node pn, const TokenPos &pos) {}
     TokenPos getPosition(Node pn) {
         return tokenStream.currentToken().pos;
     }
@@ -160,29 +154,6 @@ class SyntaxParseHandler
     bool isEmptySemicolon(Node pn) { return false; }
 
     Node makeAssignment(Node pn, Node rhs) { return NodeGeneric; }
-
-    static Node getDefinitionNode(DefinitionNode dn) { return NodeGeneric; }
-    static Definition::Kind getDefinitionKind(DefinitionNode dn) { return dn; }
-    void linkUseToDef(Node pn, DefinitionNode dn) {}
-    DefinitionNode resolve(DefinitionNode dn) { return dn; }
-    void deoptimizeUsesWithin(DefinitionNode dn, const TokenPos &pos) {}
-    bool dependencyCovered(Node pn, unsigned blockid, bool functionScope) {
-        
-        
-        
-        return functionScope;
-    }
-
-    static uintptr_t definitionToBits(DefinitionNode dn) {
-        
-        return uintptr_t(dn << 1);
-    }
-    static DefinitionNode definitionFromBits(uintptr_t bits) {
-        return (DefinitionNode) (bits >> 1);
-    }
-    static DefinitionNode nullDefinition() {
-        return Definition::MISSING;
-    }
 };
 
 } 

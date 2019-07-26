@@ -18,11 +18,11 @@
 namespace js {
 namespace frontend {
 
-class DefinitionSingle;
+struct Definition;
 class DefinitionList;
 
 typedef InlineMap<JSAtom *, jsatomid, 24> AtomIndexMap;
-typedef InlineMap<JSAtom *, DefinitionSingle, 24> AtomDefnMap;
+typedef InlineMap<JSAtom *, Definition *, 24> AtomDefnMap;
 typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
 
 
@@ -135,6 +135,15 @@ struct AtomThingMapPtr
     Map &operator*() const { return *map_; }
 };
 
+struct AtomDefnMapPtr : public AtomThingMapPtr<AtomDefnMap>
+{
+    JS_ALWAYS_INLINE
+    Definition *lookupDefn(JSAtom *atom) {
+        AtomDefnMap::Ptr p = map_->lookup(atom);
+        return p ? p.value() : NULL;
+    }
+};
+
 typedef AtomThingMapPtr<AtomIndexMap> AtomIndexMapPtr;
 
 
@@ -156,48 +165,8 @@ class OwnedAtomThingMapPtr : public AtomThingMapPtrT
     }
 };
 
-typedef OwnedAtomThingMapPtr<AtomIndexMapPtr> OwnedAtomIndexMapPtr;
-
-
-
-
-
-
-
-
-
-
-class DefinitionSingle
-{
-    uintptr_t bits;
-
-  public:
-
-    template <typename ParseHandler>
-    static DefinitionSingle new_(typename ParseHandler::DefinitionNode defn)
-    {
-        DefinitionSingle res;
-        res.bits = ParseHandler::definitionToBits(defn);
-        return res;
-    }
-
-    template <typename ParseHandler>
-    typename ParseHandler::DefinitionNode get() {
-        return ParseHandler::definitionFromBits(bits);
-    }
-};
-
-struct AtomDefnMapPtr : public AtomThingMapPtr<AtomDefnMap>
-{
-    template <typename ParseHandler>
-    JS_ALWAYS_INLINE
-    typename ParseHandler::DefinitionNode lookupDefn(JSAtom *atom) {
-        AtomDefnMap::Ptr p = map_->lookup(atom);
-        return p ? p.value().get<ParseHandler>() : ParseHandler::nullDefinition();
-    }
-};
-
 typedef OwnedAtomThingMapPtr<AtomDefnMapPtr> OwnedAtomDefnMapPtr;
+typedef OwnedAtomThingMapPtr<AtomIndexMapPtr> OwnedAtomIndexMapPtr;
 
 
 
@@ -222,16 +191,22 @@ class DefinitionList
     
     struct Node
     {
-        uintptr_t bits;
+        Definition *defn;
         Node *next;
 
-        Node(uintptr_t bits, Node *next) : bits(bits), next(next) {}
+        Node(Definition *defn, Node *next) : defn(defn), next(next) {}
     };
 
     union {
-        uintptr_t bits;
+        Definition *defn;
         Node *head;
+        uintptr_t bits;
     } u;
+
+    Definition *defn() const {
+        JS_ASSERT(!isMultiple());
+        return u.defn;
+    }
 
     Node *firstNode() const {
         JS_ASSERT(isMultiple());
@@ -239,7 +214,7 @@ class DefinitionList
     }
 
     static Node *
-    allocNode(JSContext *cx, uintptr_t bits, Node *tail);
+    allocNode(JSContext *cx, Definition *head, Node *tail);
             
   public:
     class Range
@@ -247,41 +222,40 @@ class DefinitionList
         friend class DefinitionList;
 
         Node *node;
-        uintptr_t bits;
+        Definition *defn;
 
         explicit Range(const DefinitionList &list) {
             if (list.isMultiple()) {
                 node = list.firstNode();
-                bits = node->bits;
+                defn = node->defn;
             } else {
                 node = NULL;
-                bits = list.u.bits;
+                defn = list.defn();
             }
         }
 
       public:
         
-        Range() : node(NULL), bits(0) {}
+        Range() : node(NULL), defn(NULL) {}
 
         void popFront() {
             JS_ASSERT(!empty());
             if (!node) {
-                bits = 0;
+                defn = NULL;
                 return;
             }
             node = node->next;
-            bits = node ? node->bits : 0;
+            defn = node ? node->defn : NULL;
         }
 
-        template <typename ParseHandler>
-        typename ParseHandler::DefinitionNode front() {
+        Definition *front() {
             JS_ASSERT(!empty());
-            return ParseHandler::definitionFromBits(bits);
+            return defn;
         }
 
         bool empty() const {
-            JS_ASSERT_IF(!bits, !node);
-            return !bits;
+            JS_ASSERT_IF(!defn, !node);
+            return !defn;
         }
     };
 
@@ -289,8 +263,8 @@ class DefinitionList
         u.bits = 0;
     }
 
-    explicit DefinitionList(uintptr_t bits) {
-        u.bits = bits;
+    explicit DefinitionList(Definition *defn) {
+        u.defn = defn;
         JS_ASSERT(!isMultiple());
     }
 
@@ -302,9 +276,8 @@ class DefinitionList
 
     bool isMultiple() const { return (u.bits & 0x1) != 0; }
 
-    template <typename ParseHandler>
-    typename ParseHandler::DefinitionNode front() {
-        return ParseHandler::definitionFromBits(isMultiple() ? firstNode()->bits : u.bits);
+    Definition *front() {
+        return isMultiple() ? firstNode()->defn : defn();
     }
 
     
@@ -321,7 +294,7 @@ class DefinitionList
         if (next->next)
             *this = DefinitionList(next);
         else
-            *this = DefinitionList(next->bits);
+            *this = DefinitionList(next->defn);
         return true;
     }
 
@@ -330,31 +303,17 @@ class DefinitionList
 
 
 
-    template <typename ParseHandler>
-    bool pushFront(JSContext *cx, typename ParseHandler::DefinitionNode defn) {
-        Node *tail;
-        if (isMultiple()) {
-            tail = firstNode();
-        } else {
-            tail = allocNode(cx, u.bits, NULL);
-            if (!tail)
-                return false;
-        }
-
-        Node *node = allocNode(cx, ParseHandler::definitionToBits(defn), tail);
-        if (!node)
-            return false;
-        *this = DefinitionList(node);
-        return true;
-    }
+    bool pushFront(JSContext *cx, Definition *val);
 
     
-    template <typename ParseHandler>
-        void setFront(typename ParseHandler::DefinitionNode defn) {
+    bool pushBack(JSContext *cx, Definition *val);
+
+    
+    void setFront(Definition *val) {
         if (isMultiple())
-            firstNode()->bits = ParseHandler::definitionToBits(defn);
+            firstNode()->defn = val;
         else
-            *this = DefinitionList(ParseHandler::definitionToBits(defn));
+            *this = DefinitionList(val);
     }
 
     Range all() const { return Range(*this); }
@@ -382,11 +341,8 @@ class DefinitionList
 
 
 
-template <typename ParseHandler>
 class AtomDecls
 {
-    typedef typename ParseHandler::DefinitionNode DefinitionNode;
-
     
     friend class AtomDeclsIter;
 
@@ -408,21 +364,21 @@ class AtomDecls
     }
 
     
-    inline DefinitionNode lookupFirst(JSAtom *atom) const;
+    inline Definition *lookupFirst(JSAtom *atom) const;
 
     
     inline DefinitionList::Range lookupMulti(JSAtom *atom) const;
 
     
-    inline bool addUnique(JSAtom *atom, DefinitionNode defn);
-    bool addShadow(JSAtom *atom, DefinitionNode defn);
+    inline bool addUnique(JSAtom *atom, Definition *defn);
+    bool addShadow(JSAtom *atom, Definition *defn);
 
     
-    void updateFirst(JSAtom *atom, DefinitionNode defn) {
+    void updateFirst(JSAtom *atom, Definition *defn) {
         JS_ASSERT(map);
         AtomDefnListMap::Ptr p = map->lookup(atom);
         JS_ASSERT(p);
-        p.value().setFront<ParseHandler>(defn);
+        p.value().setFront(defn);
     }
 
     
@@ -463,9 +419,6 @@ typedef AtomDefnListMap::Range  AtomDefnListRange;
 } 
 
 namespace mozilla {
-
-template <>
-struct IsPod<js::frontend::DefinitionSingle> : TrueType {};
 
 template <>
 struct IsPod<js::frontend::DefinitionList> : TrueType {};
