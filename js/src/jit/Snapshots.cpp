@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/Snapshots.h"
 
@@ -18,81 +18,81 @@
 using namespace js;
 using namespace js::jit;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Snapshot header:
+//
+//   [vwu] bits (n-31]: frame count
+//         bits [0,n):  bailout kind (n = BAILOUT_KIND_BITS)
+//
+// Snapshot body, repeated "frame count" times, from oldest frame to newest frame.
+// Note that the first frame doesn't have the "parent PC" field.
+//
+//   [ptr] Debug only: JSScript *
+//   [vwu] pc offset
+//   [vwu] # of slots, including nargs
+//  [rva*] N recover value allocations entries,
+//             where N = nargs + nfixed + stackDepth
+//
+// Encodings:
+//   [ptr] A fixed-size pointer.
+//   [vwu] A variable-width unsigned integer.
+//   [vws] A variable-width signed integer.
+//    [u8] An 8-bit unsigned integer.
+//  [rva*] list of RValueAllocation which are indicating how to find a js::Value
+//         on a call/bailout. The first byte is split as thus:
+//           Bits 0-2: JSValueType
+//           Bits 3-7: 5-bit register code ("reg").
+//
+//         JSVAL_TYPE_DOUBLE:
+//              If "reg" is InvalidFloatReg, this byte is followed by a
+//              [vws] stack offset. Otherwise, "reg" encodes an XMM register.
+//
+//         JSVAL_TYPE_INT32:
+//         JSVAL_TYPE_OBJECT:
+//         JSVAL_TYPE_BOOLEAN:
+//         JSVAL_TYPE_STRING:
+//              If "reg" is ESC_REG_FIELD_INDEX, this byte is followed by a
+//              [vws] stack offset. Otherwise, "reg" encodes a GPR register.
+//
+//         JSVAL_TYPE_NULL:
+//              Reg value:
+//                 0-27: Constant integer; Int32Value(n)
+//                   28: Variable float32; Float register code
+//                   29: Variable float32; Stack index
+//                   30: NullValue()
+//                   31: Constant integer; Int32Value([vws])
+//
+//         JSVAL_TYPE_UNDEFINED:
+//              Reg value:
+//                 0-27: Constant value, index n into ionScript->constants()
+//                28-29: unused
+//                   30: UndefinedValue()
+//                   31: Constant value, index [vwu] into
+//                       ionScript->constants()
+//
+//         JSVAL_TYPE_MAGIC: (reg value is 30)
+//              The value is a lazy argument object. Followed by extra fields
+//              indicating the location of the payload.
+//              [vwu] reg2 (0-29)
+//              [vwu] reg2 (31) [vws] stack index
+//
+//         JSVAL_TYPE_MAGIC:
+//              The type is not statically known. The meaning of this depends
+//              on the boxing style.
+//
+//              NUNBOX32:
+//                  Followed by a type and payload indicator that are one of
+//                  the following:
+//                   code=0 [vws] stack slot, [vws] stack slot
+//                   code=1 [vws] stack slot, reg
+//                   code=2 reg, [vws] stack slot
+//                   code=3 reg, reg
+//
+//              PUNBOX64:
+//                  "reg" is ESC_REG_FIELD_INDEX: byte is followed by a [vws]
+//                  stack offset containing a Value.
+//
+//                  Otherwise, "reg" is a register containing a Value.
+//
 
 #ifdef JS_NUNBOX32
 static const uint32_t NUNBOX32_STACK_STACK = 0;
@@ -314,6 +314,25 @@ RValueAllocation::write(CompactBufferWriter &writer) const
     }
 }
 
+HashNumber
+RValueAllocation::hash() const {
+    CompactBufferWriter writer;
+    write(writer);
+
+    // We should never oom because the compact buffer writer has 32 inlined
+    // bytes, and in the worse case scenario, only encode 11 bytes (= header
+    // + signed + signed).
+    MOZ_ASSERT(!writer.oom());
+    MOZ_ASSERT(writer.length() <= 11);
+
+    HashNumber res = 0;
+    for (size_t i = 0; i < writer.length(); i++) {
+        res = ((res << 8) | (res >> (sizeof(res) - 1)));
+        res ^= writer.buffer()[i];
+    }
+    return res;
+}
+
 void
 Location::dump(FILE *fp) const
 {
@@ -411,13 +430,16 @@ RValueAllocation::dump(FILE *fp) const
     }
 }
 
-SnapshotReader::SnapshotReader(const uint8_t *buffer, const uint8_t *end)
-  : reader_(buffer, end),
+SnapshotReader::SnapshotReader(const uint8_t *snapshots, uint32_t offset,
+                               uint32_t RVATableSize, uint32_t listSize)
+  : reader_(snapshots + offset, snapshots + listSize),
+    allocReader_(snapshots + listSize, snapshots + listSize + RVATableSize),
+    allocTable_(snapshots + listSize),
     allocCount_(0),
     frameCount_(0),
     allocRead_(0)
 {
-    if (!buffer)
+    if (!snapshots)
         return;
     IonSpew(IonSpew_Snapshots, "Creating snapshot reader");
     readSnapshotHeader();
@@ -481,13 +503,40 @@ SnapshotReader::spewBailingFrom() const
 }
 #endif
 
+// Pad serialized RValueAllocations by a multiple of X bytes in the allocation
+// buffer.  By padding serialized value allocations, we are building an
+// indexable table of elements of X bytes, and thus we can safely divide any
+// offset within the buffer by X to obtain an index.
+//
+// By padding, we are loosing space within the allocation buffer, but we
+// multiple by X the number of indexes that we can store on one byte in each
+// snapshots.
+//
+// Some value allocations are taking more than X bytes to be encoded, in which
+// case we will pad to a multiple of X, and we are wasting indexes. The choice
+// of X should be balanced between the wasted padding of serialized value
+// allocation, and the saving made in snapshot indexes.
+static const size_t ALLOCATION_TABLE_ALIGNMENT = 2; /* bytes */
+
 RValueAllocation
 SnapshotReader::readAllocation()
 {
     JS_ASSERT(allocRead_ < allocCount_);
     IonSpew(IonSpew_Snapshots, "Reading slot %u", allocRead_);
     allocRead_++;
-    return RValueAllocation::read(reader_);
+
+    uint32_t offset = reader_.readUnsigned() * ALLOCATION_TABLE_ALIGNMENT;
+    allocReader_.seek(allocTable_, offset);
+    return RValueAllocation::read(allocReader_);
+}
+
+bool
+SnapshotWriter::init()
+{
+    // Based on the measurements made in Bug 962555 comment 20, this should be
+    // enough to prevent the reallocation of the hash table for at least half of
+    // the compilations.
+    return allocMap_.init(32);
 }
 
 SnapshotOffset
@@ -516,9 +565,9 @@ SnapshotWriter::startSnapshot(uint32_t frameCount, BailoutKind kind, bool resume
 void
 SnapshotWriter::startFrame(JSFunction *fun, JSScript *script, jsbytecode *pc, uint32_t exprStack)
 {
-    
-    
-    
+    // Test if we honor the maximum of arguments at all times.
+    // This is a sanity check and not an algorithm limit. So check might be a bit too loose.
+    // +4 to account for scope chain, return value, this value and maybe arguments_object.
     JS_ASSERT(CountArgSlots(script, fun) < SNAPSHOT_MAX_NARGS + 4);
 
     uint32_t implicit = StartArgSlot(script);
@@ -549,25 +598,44 @@ SnapshotWriter::trackFrame(uint32_t pcOpcode, uint32_t mirOpcode, uint32_t mirId
 }
 #endif
 
-void
+bool
 SnapshotWriter::add(const RValueAllocation &alloc)
 {
+    MOZ_ASSERT(allocMap_.initialized());
+
+    uint32_t offset;
+    RValueAllocMap::AddPtr p = allocMap_.lookupForAdd(alloc);
+    if (!p) {
+        // Write 0x7f in all padding bytes.
+        while (allocWriter_.length() % ALLOCATION_TABLE_ALIGNMENT)
+            allocWriter_.writeByte(0x7f);
+
+        offset = allocWriter_.length();
+        JS_ASSERT(offset % ALLOCATION_TABLE_ALIGNMENT == 0);
+        alloc.write(allocWriter_);
+        if (!allocMap_.add(p, alloc, offset))
+            return false;
+    } else {
+        offset = p->value();
+    }
+
     if (IonSpewEnabled(IonSpew_Snapshots)) {
         IonSpewHeader(IonSpew_Snapshots);
-        fprintf(IonSpewFile, "    slot %u: ", allocWritten_);
+        fprintf(IonSpewFile, "    slot %u (%d): ", allocWritten_, offset);
         alloc.dump(IonSpewFile);
         fprintf(IonSpewFile, "\n");
     }
 
     allocWritten_++;
     JS_ASSERT(allocWritten_ <= nallocs_);
-    alloc.write(writer_);
+    writer_.writeUnsigned(offset / ALLOCATION_TABLE_ALIGNMENT);
+    return true;
 }
 
 void
 SnapshotWriter::endFrame()
 {
-    
+    // Check that the last write succeeded.
     JS_ASSERT(nallocs_ == allocWritten_);
     nallocs_ = allocWritten_ = 0;
     framesWritten_++;
@@ -578,7 +646,7 @@ SnapshotWriter::endSnapshot()
 {
     JS_ASSERT(nframes_ == framesWritten_);
 
-    
+    // Place a sentinel for asserting on the other end.
 #ifdef DEBUG
     writer_.writeSigned(-1);
 #endif
