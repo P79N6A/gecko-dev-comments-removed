@@ -26,7 +26,7 @@
 namespace js {
 
 namespace ion {
-    class IonCompartment;
+class IonCompartment;
 }
 
 struct NativeIterator;
@@ -39,8 +39,8 @@ struct NativeIterator;
 
 
 class DtoaCache {
-    double        d;
-    int         base;
+    double       d;
+    int          base;
     JSFlatString *s;      
 
   public:
@@ -154,9 +154,9 @@ class Allocator
     JS_DECLARE_NEW_METHODS(new_, malloc_, JS_ALWAYS_INLINE)
 };
 
-}
+} 
 
-struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNodeBase<JSCompartment>
+struct JSCompartment : private JS::shadow::Zone, public js::gc::GraphNodeBase<JSCompartment>
 {
     JSRuntime                    *rt;
     JSPrincipals                 *principals;
@@ -577,6 +577,10 @@ struct JSCompartment : private JS::shadow::Compartment, public js::gc::GraphNode
     }
 #endif
 };
+
+namespace JS {
+typedef JSCompartment Zone;
+} 
 
 
 
