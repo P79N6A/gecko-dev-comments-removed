@@ -58,7 +58,8 @@ local int gz_avail(state)
         return -1;
     if (state->eof == 0) {
         if (strm->avail_in) {       
-            unsigned char *p = state->in, *q = strm->next_in;
+            unsigned char *p = state->in;
+            unsigned const char *q = strm->next_in;
             unsigned n = strm->avail_in;
             do {
                 *p++ = *q++;
@@ -90,8 +91,8 @@ local int gz_look(state)
     
     if (state->size == 0) {
         
-        state->in = malloc(state->want);
-        state->out = malloc(state->want << 1);
+        state->in = (unsigned char *)malloc(state->want);
+        state->out = (unsigned char *)malloc(state->want << 1);
         if (state->in == NULL || state->out == NULL) {
             if (state->out != NULL)
                 free(state->out);
@@ -352,14 +353,14 @@ int ZEXPORT gzread(file, buf, len)
 
         
         else if (state->how == COPY) {      
-            if (gz_load(state, buf, len, &n) == -1)
+            if (gz_load(state, (unsigned char *)buf, len, &n) == -1)
                 return -1;
         }
 
         
         else {  
             strm->avail_out = len;
-            strm->next_out = buf;
+            strm->next_out = (unsigned char *)buf;
             if (gz_decomp(state) == -1)
                 return -1;
             n = state->x.have;
@@ -378,7 +379,11 @@ int ZEXPORT gzread(file, buf, len)
 }
 
 
-#undef gzgetc
+#ifdef Z_PREFIX_SET
+#  undef z_gzgetc
+#else
+#  undef gzgetc
+#endif
 int ZEXPORT gzgetc(file)
     gzFile file;
 {
@@ -518,7 +523,7 @@ char * ZEXPORT gzgets(file, buf, len)
 
         
         n = state->x.have > left ? left : state->x.have;
-        eol = memchr(state->x.next, '\n', n);
+        eol = (unsigned char *)memchr(state->x.next, '\n', n);
         if (eol != NULL)
             n = (unsigned)(eol - state->x.next) + 1;
 

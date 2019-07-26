@@ -9,7 +9,7 @@
 #define MAXBITS 15
 
 const char inflate_copyright[] =
-   " inflate 1.2.7 Copyright 1995-2012 Mark Adler ";
+   " inflate 1.2.8 Copyright 1995-2013 Mark Adler ";
 
 
 
@@ -62,7 +62,7 @@ unsigned short FAR *work;
         35, 43, 51, 59, 67, 83, 99, 115, 131, 163, 195, 227, 258, 0, 0};
     static const unsigned short lext[31] = { 
         16, 16, 16, 16, 16, 16, 16, 16, 17, 17, 17, 17, 18, 18, 18, 18,
-        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 78, 68};
+        19, 19, 19, 19, 20, 20, 20, 20, 21, 21, 21, 21, 16, 72, 78};
     static const unsigned short dbase[32] = { 
         1, 2, 3, 4, 5, 7, 9, 13, 17, 25, 33, 49, 65, 97, 129, 193,
         257, 385, 513, 769, 1025, 1537, 2049, 3073, 4097, 6145,
@@ -208,8 +208,8 @@ unsigned short FAR *work;
     mask = used - 1;            
 
     
-    if ((type == LENS && used >= ENOUGH_LENS) ||
-        (type == DISTS && used >= ENOUGH_DISTS))
+    if ((type == LENS && used > ENOUGH_LENS) ||
+        (type == DISTS && used > ENOUGH_DISTS))
         return 1;
 
     
@@ -277,8 +277,8 @@ unsigned short FAR *work;
 
             
             used += 1U << curr;
-            if ((type == LENS && used >= ENOUGH_LENS) ||
-                (type == DISTS && used >= ENOUGH_DISTS))
+            if ((type == LENS && used > ENOUGH_LENS) ||
+                (type == DISTS && used > ENOUGH_DISTS))
                 return 1;
 
             

@@ -119,4 +119,9 @@
 
 #define gzopen_w MOZ_Z_gzopen_w
 
+
+#define _tr_flush_bits MOZ_Z__tr_flush_bits
+#define gzvprintf MOZ_Z_gzvprintf
+#define inflateGetDictionary MOZ_Z_inflateGetDictionary
+
 #endif

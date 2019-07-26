@@ -37,11 +37,11 @@
 extern "C" {
 #endif
 
-#define ZLIB_VERSION "1.2.7"
-#define ZLIB_VERNUM 0x1270
+#define ZLIB_VERSION "1.2.8"
+#define ZLIB_VERNUM 0x1280
 #define ZLIB_VER_MAJOR 1
 #define ZLIB_VER_MINOR 2
-#define ZLIB_VER_REVISION 7
+#define ZLIB_VER_REVISION 8
 #define ZLIB_VER_SUBREVISION 0
 
 
@@ -839,6 +839,21 @@ ZEXTERN int ZEXPORT inflateSetDictionary OF((z_streamp strm,
 
 
 
+ZEXTERN int ZEXPORT inflateGetDictionary OF((z_streamp strm,
+                                             Bytef *dictionary,
+                                             uInt  *dictLength));
+
+
+
+
+
+
+
+
+
+
+
+
 ZEXTERN int ZEXPORT inflateSync OF((z_streamp strm));
 
 
@@ -1007,12 +1022,14 @@ ZEXTERN int ZEXPORT inflateGetHeader OF((z_streamp strm,
 
 
 
-typedef unsigned (*in_func) OF((void FAR *, unsigned char FAR * FAR *));
+typedef unsigned (*in_func) OF((void FAR *,
+                                z_const unsigned char FAR * FAR *));
 typedef int (*out_func) OF((void FAR *, unsigned char FAR *, unsigned));
 
 ZEXTERN int ZEXPORT inflateBack OF((z_streamp strm,
                                     in_func in, void FAR *in_desc,
                                     out_func out, void FAR *out_desc));
+
 
 
 
@@ -1736,6 +1753,13 @@ ZEXTERN int            ZEXPORT deflateResetKeep OF((z_streamp));
 #if defined(_WIN32) && !defined(Z_SOLO)
 ZEXTERN gzFile         ZEXPORT gzopen_w OF((const wchar_t *path,
                                             const char *mode));
+#endif
+#if defined(STDC) || defined(Z_HAVE_STDARG_H)
+#  ifndef Z_SOLO
+ZEXTERN int            ZEXPORTVA gzvprintf Z_ARG((gzFile file,
+                                                  const char *format,
+                                                  va_list va));
+#  endif
 #endif
 
 #ifdef __cplusplus

@@ -69,8 +69,8 @@ z_streamp strm;
 unsigned start;         
 {
     struct inflate_state FAR *state;
-    unsigned char FAR *in;      
-    unsigned char FAR *last;    
+    z_const unsigned char FAR *in;      
+    z_const unsigned char FAR *last;    
     unsigned char FAR *out;     
     unsigned char FAR *beg;     
     unsigned char FAR *end;     

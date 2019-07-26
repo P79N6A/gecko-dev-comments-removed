@@ -14,7 +14,7 @@
 struct internal_state      {int dummy;}; 
 #endif
 
-const char * const z_errmsg[10] = {
+z_const char * const z_errmsg[10] = {
 "need dictionary",     
 "stream end",          
 "",                    

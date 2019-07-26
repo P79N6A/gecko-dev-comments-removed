@@ -255,7 +255,7 @@ out_func out;
 void FAR *out_desc;
 {
     struct inflate_state FAR *state;
-    unsigned char FAR *next;    
+    z_const unsigned char FAR *next;    
     unsigned char FAR *put;     
     unsigned have, left;        
     unsigned long hold;         

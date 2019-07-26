@@ -35,6 +35,13 @@
 #  include <io.h>
 #endif
 
+#ifdef WINAPI_FAMILY
+#  define open _open
+#  define read _read
+#  define write _write
+#  define close _close
+#endif
+
 #ifdef NO_DEFLATE       
 #  define NO_GZCOMPRESS
 #endif
@@ -88,6 +95,14 @@
 #  endif
 #endif
 
+
+
+
+
+#ifdef _MSC_VER
+#  define snprintf _snprintf
+#endif
+
 #ifndef local
 #  define local static
 #endif
@@ -126,6 +141,7 @@
 #else
 #  define DEF_MEM_LEVEL  MAX_MEM_LEVEL
 #endif
+
 
 
 #define GZBUFSIZE 8192
