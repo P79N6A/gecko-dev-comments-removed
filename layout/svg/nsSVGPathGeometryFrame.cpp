@@ -611,9 +611,11 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
     
     
     gfxContextMatrixAutoSaveRestore autoSaveRestore;
-    if (renderMode != SVGAutoRenderState::CLIP) {
+    
+    
+    
       autoSaveRestore.SetContext(gfx);
-    }
+    
 
     GeneratePath(gfx, ToMatrix(GetCanvasTM(FOR_PAINTING, aTransformRoot)));
 
