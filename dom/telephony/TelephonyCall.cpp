@@ -266,6 +266,13 @@ TelephonyCall::Hold(ErrorResult& aRv)
     return;
   }
 
+  if (!mSecondNumber.IsEmpty()) {
+    
+    
+    
+    return;
+  }
+
   ChangeStateInternal(nsITelephonyProvider::CALL_STATE_HOLDING, true);
 }
 
