@@ -606,7 +606,10 @@ void HTMLMediaElement::AbortExistingLoads()
   }
 
   mError = nullptr;
-  mLoadedFirstFrame = false;
+  mMetadataLoaded = false;
+  mFirstFrameLoaded = false;
+  mFiredLoadedData = false;
+  mBegun = false;
   mAutoplaying = true;
   mIsLoadingFromSourceChildren = false;
   mSuspendedAfterFirstFrame = false;
@@ -626,7 +629,7 @@ void HTMLMediaElement::AbortExistingLoads()
   if (mNetworkState != NETWORK_EMPTY) {
     mNetworkState = NETWORK_EMPTY;
     NS_ASSERTION(!mDecoder && !mSrcStream, "How did someone setup a new stream/decoder already?");
-    ChangeReadyState(HAVE_NOTHING);
+    UpdateReadyStateForData(NEXT_FRAME_UNAVAILABLE);
     mPaused = true;
 
     if (fireTimeUpdate) {
@@ -1887,7 +1890,9 @@ HTMLMediaElement::HTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo)
     mCurrentPlayRangeStart(-1.0),
     mAllowAudioData(false),
     mBegun(false),
-    mLoadedFirstFrame(false),
+    mMetadataLoaded(false),
+    mFirstFrameLoaded(false),
+    mFiredLoadedData(false),
     mAutoplaying(true),
     mAutoplayEnabled(true),
     mPaused(true),
@@ -2722,53 +2727,38 @@ void HTMLMediaElement::MetadataLoaded(int aChannels,
                                       bool aHasVideo,
                                       const MetadataTags* aTags)
 {
+  mMetadataLoaded = true;
   mChannels = aChannels;
   mRate = aRate;
   mHasAudio = aHasAudio;
   mHasVideo = aHasVideo;
   mTags = aTags;
-  ChangeReadyState(HAVE_METADATA);
+
+  UpdateReadyStateForData(NEXT_FRAME_UNAVAILABLE);
+
   DispatchAsyncEvent(NS_LITERAL_STRING("durationchange"));
   DispatchAsyncEvent(NS_LITERAL_STRING("loadedmetadata"));
+
   if (mDecoder && mDecoder->IsTransportSeekable() && mDecoder->IsMediaSeekable()) {
     ProcessMediaFragmentURI();
     mDecoder->SetFragmentEndTime(mFragmentEnd);
-  }
-
-  
-  
-  
-  if (!aHasVideo) {
-    mVideoFrameContainer = nullptr;
   }
 }
 
 void HTMLMediaElement::FirstFrameLoaded()
 {
+  mFirstFrameLoaded = true;
   ChangeDelayLoadStatus(false);
+
+  
   UpdateReadyStateForData(NEXT_FRAME_UNAVAILABLE);
 
   NS_ASSERTION(!mSuspendedAfterFirstFrame, "Should not have already suspended");
-
   if (mDecoder && mAllowSuspendAfterFirstFrame && mPaused &&
       !HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
       mPreloadAction == HTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = true;
     mDecoder->Suspend();
-  } else if (mLoadedFirstFrame &&
-             mDownloadSuspendedByCache &&
-             mDecoder &&
-             !mDecoder->IsEnded()) {
-    
-    
-    
-    
-    
-    
-    
-    
-    ChangeReadyState(HAVE_ENOUGH_DATA);
-    return;
   }
 }
 
@@ -2859,7 +2849,7 @@ void HTMLMediaElement::PlaybackEnded()
 void HTMLMediaElement::SeekStarted()
 {
   DispatchAsyncEvent(NS_LITERAL_STRING("seeking"));
-  ChangeReadyState(HAVE_METADATA);
+  UpdateReadyStateForData(NEXT_FRAME_UNAVAILABLE);
   FireTimeUpdate(false);
 }
 
@@ -2914,18 +2904,26 @@ void HTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
 {
   mLastNextFrameStatus = aNextFrame;
 
-  if (mReadyState < HAVE_METADATA) {
-    
-    
-    
-    
+  if (!mMetadataLoaded) {
+    ChangeReadyState(HAVE_NOTHING);
     return;
   }
 
-  if (mReadyState > HAVE_METADATA &&
-      mDownloadSuspendedByCache &&
-      mDecoder &&
-      !mDecoder->IsEnded()) {
+  if (!mFirstFrameLoaded || Seeking()) {
+    ChangeReadyState(HAVE_METADATA);
+    return;
+  }
+
+  if (mHasVideo) {
+    VideoFrameContainer* container = GetVideoFrameContainer();
+    if (container && mMediaSize == nsIntSize(-1,-1)) {
+      
+      ChangeReadyState(HAVE_METADATA);
+      return;
+    }
+  }
+
+  if (mDownloadSuspendedByCache && mDecoder && !mDecoder->IsEnded()) {
     
     
     
@@ -2937,14 +2935,6 @@ void HTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
     
     ChangeReadyState(HAVE_ENOUGH_DATA);
     return;
-  }
-
-  if (mReadyState < HAVE_CURRENT_DATA && mHasVideo) {
-    VideoFrameContainer* container = GetVideoFrameContainer();
-    if (container && mMediaSize == nsIntSize(-1,-1)) {
-      
-      return;
-    }
   }
 
   if (aNextFrame != NEXT_FRAME_AVAILABLE) {
@@ -2973,11 +2963,11 @@ void HTMLMediaElement::UpdateReadyStateForData(NextFrameStatus aNextFrame)
   MediaDecoder::Statistics stats = mDecoder->GetStatistics();
   if (stats.mTotalBytes < 0 ? stats.mDownloadRateReliable
                             : stats.mTotalBytes == stats.mDownloadPosition ||
-                              mDecoder->CanPlayThrough())
-  {
+                              mDecoder->CanPlayThrough()) {
     ChangeReadyState(HAVE_ENOUGH_DATA);
     return;
   }
+
   ChangeReadyState(HAVE_FUTURE_DATA);
 }
 
@@ -3011,12 +3001,10 @@ void HTMLMediaElement::ChangeReadyState(nsMediaReadyState aState)
     DispatchAsyncEvent(NS_LITERAL_STRING("waiting"));
   }
 
-  if (oldState < HAVE_CURRENT_DATA &&
-      mReadyState >= HAVE_CURRENT_DATA &&
-      !mLoadedFirstFrame)
-  {
+  if (oldState < HAVE_CURRENT_DATA && mReadyState >= HAVE_CURRENT_DATA &&
+      !mFiredLoadedData) {
     DispatchAsyncEvent(NS_LITERAL_STRING("loadeddata"));
-    mLoadedFirstFrame = true;
+    mFiredLoadedData = true;
   }
 
   if (mReadyState == HAVE_CURRENT_DATA) {
