@@ -1,3 +1,11 @@
+
+
+
+
+module.metadata = {
+  "stability": "experimental"
+};
+
 "use strict";
 
 const { Cu } = require("chrome");
@@ -47,7 +55,13 @@ function iterator(target) {
   for (let ref of refs) {
     let value = ref.get();
 
-    if (has(target, value))
+    
+    
+    
+    
+    
+    
+    if (value !== null && has(target, value))
       yield value;
     else
       refs.delete(ref);

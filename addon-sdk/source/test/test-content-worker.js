@@ -2,7 +2,7 @@
 
 
 
-"use stirct";
+"use strict";
 
 const { Cc, Ci } = require("chrome");
 const { setTimeout } = require("sdk/timers");
