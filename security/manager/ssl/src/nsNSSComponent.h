@@ -267,7 +267,7 @@ public:
 private:
 
   nsresult InitializeNSS(bool showWarningBox);
-  nsresult ShutdownNSS();
+  void ShutdownNSS();
 
 #ifdef XP_MACOSX
   void TryCFM2MachOMigration(nsIFile *cfmPath, nsIFile *machoPath);
@@ -291,7 +291,6 @@ private:
 
   
   
-  void DoProfileApproveChange(nsISupports* aSubject);
   void DoProfileChangeNetTeardown();
   void DoProfileChangeTeardown(nsISupports* aSubject);
   void DoProfileBeforeChange(nsISupports* aSubject);
