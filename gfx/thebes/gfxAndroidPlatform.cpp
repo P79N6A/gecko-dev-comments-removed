@@ -148,19 +148,6 @@ gfxAndroidPlatform::CreateOffscreenSurface(const IntSize& size,
     return newSurface.forget();
 }
 
-already_AddRefed<gfxASurface>
-gfxAndroidPlatform::OptimizeImage(gfxImageSurface *aSurface,
-                                  gfxImageFormat format)
-{
-    
-    if (OptimalFormatForContent(gfxASurface::ContentFromFormat(format)) ==
-        format) {
-        return nullptr;
-    }
-
-    return gfxPlatform::OptimizeImage(aSurface, format);
-}
-
 static bool
 IsJapaneseLocale()
 {
