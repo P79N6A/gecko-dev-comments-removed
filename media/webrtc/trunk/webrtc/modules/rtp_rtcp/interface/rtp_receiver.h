@@ -83,9 +83,11 @@ class RtpReceiver {
   virtual void SetNACKStatus(const NACKMethod method) = 0;
 
   
-  virtual uint32_t Timestamp() const = 0;
   
-  virtual int32_t LastReceivedTimeMs() const = 0;
+  virtual bool Timestamp(uint32_t* timestamp) const = 0;
+  
+  
+  virtual bool LastReceivedTimeMs(int64_t* receive_time_ms) const = 0;
 
   
   virtual uint32_t SSRC() const = 0;
