@@ -130,7 +130,7 @@ public class Tabs implements GeckoEventListener {
         final Tab tab = mTabs.get(id);
         
         
-        if (tab == null)
+        if (tab == null || oldTab == tab)
             return null;
 
         mSelectedTab = tab;
