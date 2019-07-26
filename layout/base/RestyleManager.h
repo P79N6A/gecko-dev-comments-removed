@@ -272,10 +272,12 @@ public:
 
   
   ElementRestyler(nsPresContext* aPresContext,
+                  nsIFrame* aFrame,
                   nsChangeHint aHintsHandledByAncestors);
 
   
-  ElementRestyler(const ElementRestyler& aParentRestyler);
+  ElementRestyler(const ElementRestyler& aParentRestyler,
+                  nsIFrame* aFrame);
 
   
   
@@ -285,7 +287,8 @@ public:
   
   enum ParentContextFromChildFrame { PARENT_CONTEXT_FROM_CHILD_FRAME };
   ElementRestyler(ParentContextFromChildFrame,
-                  const ElementRestyler& aParentFrameRestyler);
+                  const ElementRestyler& aParentFrameRestyler,
+                  nsIFrame* aFrame);
 
 public: 
   enum DesiredA11yNotifications {
@@ -311,7 +314,6 @@ public:
 
 
   void Restyle(nsPresContext     *aPresContext,
-               nsIFrame          *aFrame,
                nsIContent        *aParentContent,
                nsStyleChangeList *aChangeList,
                nsChangeHint       aParentFrameHintsNotHandledForDescendants,
@@ -333,7 +335,7 @@ public:
 private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
-                     nsIFrame* aFrame, nsIContent* aContent,
+                     nsIContent* aContent,
                      nsStyleChangeList* aChangeList,
                      nsChangeHint aParentHintsNotHandledForDescendants,
                      nsChangeHint &aHintsNotHandledForDescendants,
@@ -341,6 +343,7 @@ private:
 
 private:
   nsPresContext* const mPresContext;
+  nsIFrame* const mFrame;
   
   
   
