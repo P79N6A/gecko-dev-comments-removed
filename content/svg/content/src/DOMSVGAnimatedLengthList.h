@@ -104,13 +104,14 @@ class DOMSVGLengthList;
 
 
 
-class DOMSVGAnimatedLengthList MOZ_FINAL : public nsIDOMSVGAnimatedLengthList
+class DOMSVGAnimatedLengthList MOZ_FINAL : public nsIDOMSVGAnimatedLengthList,
+                                           public nsWrapperCache
 {
   friend class DOMSVGLengthList;
 
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGAnimatedLengthList)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedLengthList)
   NS_DECL_NSIDOMSVGANIMATEDLENGTHLIST
 
   
@@ -159,6 +160,13 @@ public:
 
   bool IsAnimating() const;
 
+  
+  nsSVGElement* GetParentObject() const { return mElement; }
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
+  
+  already_AddRefed<DOMSVGLengthList> BaseVal();
+  already_AddRefed<DOMSVGLengthList> AnimVal();
+
 private:
 
   
@@ -171,7 +179,9 @@ private:
     , mElement(aElement)
     , mAttrEnum(aAttrEnum)
     , mAxis(aAxis)
-  {}
+  {
+    SetIsDOMBinding();
+  }
 
   ~DOMSVGAnimatedLengthList();
 
