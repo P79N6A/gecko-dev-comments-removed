@@ -2493,7 +2493,7 @@ AddTypeGuard(MBasicBlock *current, MDefinition *obj, types::TypeObject *typeObje
 
 bool
 ion::PropertyWriteNeedsTypeBarrier(JSContext *cx, MBasicBlock *current, MDefinition **pobj,
-                                   PropertyName *name, MDefinition **pvalue)
+                                   PropertyName *name, MDefinition **pvalue, bool canModify)
 {
     
     
@@ -2535,6 +2535,12 @@ ion::PropertyWriteNeedsTypeBarrier(JSContext *cx, MBasicBlock *current, MDefinit
             break;
         }
         if (!TypeSetIncludes(property, (*pvalue)->type(), (*pvalue)->resultTypeSet())) {
+            
+            
+            
+            
+            if (!canModify)
+                return true;
             success = TryAddTypeBarrierForWrite(cx, current, types, id, pvalue);
             break;
         }
