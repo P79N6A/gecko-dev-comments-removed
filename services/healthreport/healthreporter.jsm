@@ -707,6 +707,12 @@ AbstractHealthReporter.prototype = Object.freeze({
 
               if (!(dateFormatted in outputDataDays)) {
                 outputDataDays[dateFormatted] = {};
+              }
+
+              
+              
+              
+              if (!(dateFormatted in dayVersions)) {
                 dayVersions[dateFormatted] = {};
               }
 
