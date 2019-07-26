@@ -44,6 +44,7 @@ namespace JSC {
 
 inline bool CAN_SIGN_EXTEND_8_32(int32_t value) { return value == (int32_t)(signed char)value; }
 inline bool CAN_ZERO_EXTEND_8_32(int32_t value) { return value == (int32_t)(unsigned char)value; }
+inline bool CAN_ZERO_EXTEND_8H_32(int32_t value) { return value == (value & 0xff00); }
 inline bool CAN_ZERO_EXTEND_32_64(int32_t value) { return value >= 0; }
 
 namespace X86Registers {
@@ -134,6 +135,31 @@ namespace X86Registers {
 #       else
         return nameIReg(4, reg);
 #       endif
+    }
+
+    inline bool hasSubregL(RegisterID reg)
+    {
+#       if WTF_CPU_X86_64
+        
+        return true;
+#       else
+        
+        return reg <= ebx;
+#       endif
+    }
+
+    inline bool hasSubregH(RegisterID reg)
+    {
+        
+        
+        
+        
+        return reg <= ebx;
+    }
+
+    inline RegisterID getSubregH(RegisterID reg) {
+        JS_ASSERT(hasSubregH(reg));
+        return RegisterID(reg + 4);
     }
 
 } 
@@ -1284,15 +1310,18 @@ public:
 
     void testl_i32r(int imm, RegisterID dst)
     {
-#if WTF_CPU_X86_64
         
         
-        
-        if (CAN_ZERO_EXTEND_8_32(imm)) {
+        if (CAN_ZERO_EXTEND_8_32(imm) && X86Registers::hasSubregL(dst)) {
             testb_i8r(imm, dst);
             return;
         }
-#endif
+        
+        
+        if (CAN_ZERO_EXTEND_8H_32(imm) && X86Registers::hasSubregH(dst)) {
+            testb_i8r_norex(imm >> 8, X86Registers::getSubregH(dst));
+            return;
+        }
         spew("testl      $0x%x, %s",
              imm, nameIReg(dst));
         m_formatter.oneByteOp(OP_GROUP3_EvIz, GROUP3_OP_TEST, dst);
@@ -1338,14 +1367,16 @@ public:
 
     void testq_i32r(int imm, RegisterID dst)
     {
+        
+        
         if (CAN_ZERO_EXTEND_32_64(imm)) {
             testl_i32r(imm, dst);
-        } else {
-            spew("testq      $0x%x, %s",
-                 imm, nameIReg(dst));
-            m_formatter.oneByteOp64(OP_GROUP3_EvIz, GROUP3_OP_TEST, dst);
-            m_formatter.immediate32(imm);
+            return;
         }
+        spew("testq      $0x%x, %s",
+             imm, nameIReg(dst));
+        m_formatter.oneByteOp64(OP_GROUP3_EvIz, GROUP3_OP_TEST, dst);
+        m_formatter.immediate32(imm);
     }
 
     void testq_i32m(int imm, int offset, RegisterID base)
@@ -1376,6 +1407,16 @@ public:
         spew("testb      $0x%x, %s",
              imm, nameIReg(1,dst));
         m_formatter.oneByteOp8(OP_GROUP3_EbIb, GROUP3_OP_TEST, dst);
+        m_formatter.immediate8(imm);
+    }
+
+    
+    
+    void testb_i8r_norex(int imm, RegisterID dst)
+    {
+        spew("testb      $0x%x, %s",
+             imm, nameIReg(1,dst));
+        m_formatter.oneByteOp8_norex(OP_GROUP3_EbIb, GROUP3_OP_TEST, dst);
         m_formatter.immediate8(imm);
     }
 
@@ -1862,12 +1903,9 @@ public:
 
     void movzbl_rr(RegisterID src, RegisterID dst)
     {
-        
-        
-        
         spew("movzbl     %s, %s",
              nameIReg(1,src), nameIReg(4,dst));
-        m_formatter.twoByteOp8(OP2_MOVZX_GvEb, dst, src);
+        m_formatter.twoByteOp8_movx(OP2_MOVZX_GvEb, dst, src);
     }
 
     void leal_mr(int offset, RegisterID base, RegisterID index, int scale, RegisterID dst)
@@ -3146,18 +3184,6 @@ private:
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
 
         void oneByteOp8(OneByteOpcodeID opcode, GroupOpcodeID groupOp, RegisterID rm)
         {
@@ -3166,6 +3192,15 @@ private:
 #endif
             m_buffer.ensureSpace(maxInstructionSize);
             emitRexIf(byteRegRequiresRex(rm), 0, 0, rm);
+            m_buffer.putByteUnchecked(opcode);
+            registerModRM(groupOp, rm);
+        }
+
+        
+        void oneByteOp8_norex(OneByteOpcodeID opcode, GroupOpcodeID groupOp, RegisterID rm)
+        {
+            ASSERT(!regRequiresRex(rm));
+            m_buffer.ensureSpace(maxInstructionSize);
             m_buffer.putByteUnchecked(opcode);
             registerModRM(groupOp, rm);
         }
@@ -3207,6 +3242,19 @@ private:
         {
             m_buffer.ensureSpace(maxInstructionSize);
             emitRexIf(byteRegRequiresRex(reg)|byteRegRequiresRex(rm), reg, 0, rm);
+            m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+            m_buffer.putByteUnchecked(opcode);
+            registerModRM(reg, rm);
+        }
+
+        
+        
+        
+        
+        void twoByteOp8_movx(TwoByteOpcodeID opcode, RegisterID reg, RegisterID rm)
+        {
+            m_buffer.ensureSpace(maxInstructionSize);
+            emitRexIf(regRequiresRex(reg)|byteRegRequiresRex(rm), reg, 0, rm);
             m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
             m_buffer.putByteUnchecked(opcode);
             registerModRM(reg, rm);
