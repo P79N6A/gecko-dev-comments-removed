@@ -13,7 +13,9 @@
 
 #include "jstypes.h"
 
+#include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
+#include "js/Value.h"
 
 struct JSRuntime;
 struct JSStructuredCloneReader;
@@ -62,15 +64,15 @@ struct JSStructuredCloneCallbacks {
 
 JS_PUBLIC_API(bool)
 JS_ReadStructuredClone(JSContext *cx, uint64_t *data, size_t nbytes, uint32_t version,
-                       JS::Value *vp, const JSStructuredCloneCallbacks *optionalCallbacks,
-                       void *closure);
+                       JS::MutableHandleValue vp,
+                       const JSStructuredCloneCallbacks *optionalCallbacks, void *closure);
 
 
 
 JS_PUBLIC_API(bool)
-JS_WriteStructuredClone(JSContext *cx, JS::Value v, uint64_t **datap, size_t *nbytesp,
+JS_WriteStructuredClone(JSContext *cx, JS::HandleValue v, uint64_t **datap, size_t *nbytesp,
                         const JSStructuredCloneCallbacks *optionalCallbacks,
-                        void *closure, JS::Value transferable);
+                        void *closure, JS::HandleValue transferable);
 
 JS_PUBLIC_API(bool)
 JS_ClearStructuredClone(const uint64_t *data, size_t nbytes);
@@ -79,7 +81,7 @@ JS_PUBLIC_API(bool)
 JS_StructuredCloneHasTransferables(const uint64_t *data, size_t nbytes, bool *hasTransferable);
 
 JS_PUBLIC_API(bool)
-JS_StructuredClone(JSContext *cx, JS::Value v, JS::Value *vp,
+JS_StructuredClone(JSContext *cx, JS::HandleValue v, JS::MutableHandleValue vp,
                    const JSStructuredCloneCallbacks *optionalCallbacks, void *closure);
 
 
@@ -112,13 +114,13 @@ class JS_PUBLIC_API(JSAutoStructuredCloneBuffer) {
     
     void steal(uint64_t **datap, size_t *nbytesp, uint32_t *versionp=nullptr);
 
-    bool read(JSContext *cx, JS::Value *vp,
+    bool read(JSContext *cx, JS::MutableHandleValue vp,
               const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
-    bool write(JSContext *cx, JS::Value v,
+    bool write(JSContext *cx, JS::HandleValue v,
                const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
-    bool write(JSContext *cx, JS::Value v, JS::Value transferable,
+    bool write(JSContext *cx, JS::HandleValue v, JS::HandleValue transferable,
                const JSStructuredCloneCallbacks *optionalCallbacks=nullptr, void *closure=nullptr);
 
     
