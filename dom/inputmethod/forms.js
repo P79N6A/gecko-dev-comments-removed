@@ -767,6 +767,12 @@ function isPlainTextField(element) {
 }
 
 function getJSON(element, focusCounter) {
+  
+  
+  
+  
+  element = element.ownerNumberControl || element;
+
   let type = element.type || "";
   let value = element.value || "";
   let max = element.max || "";
