@@ -520,7 +520,8 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
             
             for (unsigned i = 0; i < savedCount; i++) {
                 LifetimeVariable &var = *saved[i];
-                var.lifetime = alloc.new_<Lifetime>(offset, var.savedEnd, var.saved);
+                uint32_t savedEnd = var.savedEnd;
+                var.lifetime = alloc.new_<Lifetime>(offset, savedEnd, var.saved);
                 if (!var.lifetime) {
                     js_free(saved);
                     setOOM(cx);
@@ -612,7 +613,8 @@ ScriptAnalysis::analyzeLifetimes(JSContext *cx)
 
 
 
-                        var.lifetime = alloc.new_<Lifetime>(offset, var.savedEnd, var.saved);
+                        uint32_t savedEnd = var.savedEnd;
+                        var.lifetime = alloc.new_<Lifetime>(offset, savedEnd, var.saved);
                         if (!var.lifetime) {
                             js_free(saved);
                             setOOM(cx);
@@ -676,7 +678,8 @@ ScriptAnalysis::addVariable(JSContext *cx, LifetimeVariable &var, unsigned offse
                 }
             }
         }
-        var.lifetime = cx->typeLifoAlloc().new_<Lifetime>(offset, var.savedEnd, var.saved);
+        uint32_t savedEnd = var.savedEnd;
+        var.lifetime = cx->typeLifoAlloc().new_<Lifetime>(offset, savedEnd, var.saved);
         if (!var.lifetime) {
             setOOM(cx);
             return;
@@ -691,7 +694,8 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
 {
     if (!var.lifetime) {
         
-        Lifetime *lifetime = cx->typeLifoAlloc().new_<Lifetime>(offset, var.savedEnd, var.saved);
+        uint32_t savedEnd = var.savedEnd;
+        Lifetime *lifetime = cx->typeLifoAlloc().new_<Lifetime>(offset, savedEnd, var.saved);
         if (!lifetime) {
             setOOM(cx);
             return;
