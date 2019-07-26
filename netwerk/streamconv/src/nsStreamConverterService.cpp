@@ -53,6 +53,13 @@ struct BFSState {
 typedef nsCOMArray<nsIAtom> SCTableData;
 
 
+static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
+    SCTableData *entry = (SCTableData*)aData;
+    delete entry;
+    return true;
+}
+
+
 struct BFSTableData {
     nsCStringKey *key;
     union _data {
@@ -75,26 +82,15 @@ NS_IMPL_ISUPPORTS1(nsStreamConverterService, nsIStreamConverterService)
 
 
 
-nsStreamConverterService::nsStreamConverterService() : mAdjacencyList(nullptr) {
+nsStreamConverterService::nsStreamConverterService()
+  : mAdjacencyList (new nsObjectHashtable(nullptr, nullptr,
+                                          DeleteAdjacencyEntry, nullptr))
+{
 }
 
 nsStreamConverterService::~nsStreamConverterService() {
     NS_ASSERTION(mAdjacencyList, "init wasn't called, or the retval was ignored");
     delete mAdjacencyList;
-}
-
-
-static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
-    SCTableData *entry = (SCTableData*)aData;
-    delete entry;
-    return true;
-}
-
-nsresult
-nsStreamConverterService::Init() {
-    mAdjacencyList = new nsObjectHashtable(nullptr, nullptr,
-                                           DeleteAdjacencyEntry, nullptr);
-    return NS_OK;
 }
 
 
@@ -637,11 +633,7 @@ NS_NewStreamConv(nsStreamConverterService** aStreamConv)
     if (!aStreamConv) return NS_ERROR_NULL_POINTER;
 
     *aStreamConv = new nsStreamConverterService();
-
     NS_ADDREF(*aStreamConv);
-    nsresult rv = (*aStreamConv)->Init();
-    if (NS_FAILED(rv))
-        NS_RELEASE(*aStreamConv);
 
-    return rv;
+    return NS_OK;
 }
