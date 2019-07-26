@@ -1451,33 +1451,23 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
     void startFunctionBodies() {
-        JS_ASSERT(masm_.size() == 0);
         module_->startFunctionBodies();
     }
     void finishFunctionBodies() {
         JS_ASSERT(!finishedFunctionBodies_);
         masm_.align(AsmJSPageSize);
         finishedFunctionBodies_ = true;
-        module_->finishFunctionBodies(masm_.size());
+        module_->finishFunctionBodies(masm_.currentOffset());
     }
 
     void setInterpExitOffset(unsigned exitIndex) {
-#if defined(JS_CODEGEN_ARM)
-        masm_.flush();
-#endif
-        module_->exit(exitIndex).initInterpOffset(masm_.size());
+        module_->exit(exitIndex).initInterpOffset(masm_.currentOffset());
     }
     void setIonExitOffset(unsigned exitIndex) {
-#if defined(JS_CODEGEN_ARM)
-        masm_.flush();
-#endif
-        module_->exit(exitIndex).initIonOffset(masm_.size());
+        module_->exit(exitIndex).initIonOffset(masm_.currentOffset());
     }
     void setEntryOffset(unsigned exportIndex) {
-#if defined(JS_CODEGEN_ARM)
-        masm_.flush();
-#endif
-        module_->exportedFunction(exportIndex).initCodeOffset(masm_.size());
+        module_->exportedFunction(exportIndex).initCodeOffset(masm_.currentOffset());
     }
 
     void buildCompilationTimeReport(bool storedInCache, ScopedJSFreePtr<char> *out) {
@@ -5397,7 +5387,7 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
     
     
     
-    if (!m.addProfiledFunction(func, m.masm().size()))
+    if (!m.addProfiledFunction(func, m.masm().currentOffset()))
         return false;
 #endif
 
@@ -5405,7 +5395,7 @@ GenerateCode(ModuleCompiler &m, ModuleCompiler::Func &func, MIRGenerator &mir, L
     
     
     if (PerfBlockEnabled()) {
-        if (!m.addPerfProfiledBlocks(mir.perfSpewer(), func, m.masm().size()))
+        if (!m.addPerfProfiledBlocks(mir.perfSpewer(), func, m.masm().currentOffset()))
             return false;
     }
 #endif

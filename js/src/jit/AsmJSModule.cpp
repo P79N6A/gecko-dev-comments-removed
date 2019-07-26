@@ -280,15 +280,21 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
 
 #if defined(JS_CODEGEN_ARM)
     
+    pod.functionBytes_ = masm.actualOffset(pod.functionBytes_);
     for (size_t i = 0; i < heapAccesses_.length(); i++) {
         AsmJSHeapAccess &a = heapAccesses_[i];
         a.setOffset(masm.actualOffset(a.offset()));
     }
+    for (unsigned i = 0; i < numExportedFunctions(); i++)
+        exportedFunction(i).updateCodeOffset(masm);
+    for (unsigned i = 0; i < numExits(); i++)
+        exit(i).updateOffsets(masm);
     for (size_t i = 0; i < callSites_.length(); i++) {
         CallSite &c = callSites_[i];
         c.setReturnAddressOffset(masm.actualOffset(c.returnAddressOffset()));
     }
 #endif
+    JS_ASSERT(pod.functionBytes_ % AsmJSPageSize == 0);
 
     
     
@@ -363,11 +369,10 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
 
 #if defined(MOZ_VTUNE) || defined(JS_ION_PERF)
     
-    
-    
     for (size_t i = 0; i < profiledFunctions_.length(); i++) {
         ProfiledFunction &pf = profiledFunctions_[i];
         pf.pod.startCodeOffset = masm.actualOffset(pf.pod.startCodeOffset);
+        pf.pod.endCodeOffset = masm.actualOffset(pf.pod.endCodeOffset);
     }
 #endif
 #ifdef JS_ION_PERF
@@ -375,6 +380,7 @@ AsmJSModule::finish(ExclusiveContext *cx, TokenStream &tokenStream, MacroAssembl
         ProfiledBlocksFunction &pbf = perfProfiledBlocksFunctions_[i];
         pbf.pod.startCodeOffset = masm.actualOffset(pbf.pod.startCodeOffset);
         pbf.endInlineCodeOffset = masm.actualOffset(pbf.endInlineCodeOffset);
+        pbf.pod.endCodeOffset = masm.actualOffset(pbf.pod.endCodeOffset);
         BasicBlocksVector &basicBlocks = pbf.blocks;
         for (uint32_t i = 0; i < basicBlocks.length(); i++) {
             Record &r = basicBlocks[i];
