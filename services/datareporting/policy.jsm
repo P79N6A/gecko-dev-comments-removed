@@ -653,6 +653,13 @@ DataReportingPolicy.prototype = Object.freeze({
   
 
 
+  get healthReportUploadLocked() {
+    return this._healthReportPrefs.locked("uploadEnabled");
+  },
+
+  
+
+
 
 
 
