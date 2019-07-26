@@ -4,8 +4,6 @@
 
 package org.mozilla.gecko.util;
 
-import org.mozilla.gecko.mozglue.NativeZip;
-
 import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.drawable.BitmapDrawable;
@@ -19,6 +17,9 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.EmptyStackException;
 import java.util.Stack;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 
 
@@ -38,7 +39,7 @@ public final class GeckoJarReader {
         InputStream inputStream = null;
         BitmapDrawable bitmap = null;
 
-        NativeZip zip = null;
+        ZipFile zip = null;
         try {
             
             zip = getZipFile(jarUrls.pop());
@@ -57,7 +58,11 @@ public final class GeckoJarReader {
                 }
             }
             if (zip != null) {
-                zip.close();
+                try {
+                    zip.close();
+                } catch(IOException ex) {
+                    Log.e(LOGTAG, "Error closing zip", ex);
+                }
             }
         }
 
@@ -67,7 +72,7 @@ public final class GeckoJarReader {
     public static String getText(String url) {
         Stack<String> jarUrls = parseUrl(url);
 
-        NativeZip zip = null;
+        ZipFile zip = null;
         BufferedReader reader = null;
         String text = null;
         try {
@@ -88,39 +93,71 @@ public final class GeckoJarReader {
                 }
             }
             if (zip != null) {
-                zip.close();
+                try {
+                    zip.close();
+                } catch(IOException ex) {
+                    Log.e(LOGTAG, "Error closing zip", ex);
+                }
             }
         }
 
         return text;
     }
 
-    private static NativeZip getZipFile(String url) throws IOException {
+    private static ZipFile getZipFile(String url) throws IOException {
         URL fileUrl = new URL(url);
-        return new NativeZip(fileUrl.getPath());
+        File file = new File(fileUrl.getPath());
+        return new ZipFile(file);
     }
 
-    private static InputStream getStream(NativeZip zip, Stack<String> jarUrls) throws IOException {
-        InputStream inputStream = null;
+    private static InputStream getStream(ZipFile zip, Stack<String> jarUrls) throws IOException {
+        ZipInputStream inputStream = null;
+        ZipEntry entry = null;
         try {
             
             while (jarUrls.peek() != null) {
                 String fileName = jarUrls.pop();
 
                 if (inputStream != null) {
-                    
-                    zip = new NativeZip(inputStream);
+                    entry = getEntryFromStream(inputStream, fileName);
+                } else {
+                    entry = zip.getEntry(fileName);
                 }
 
-                inputStream = zip.getInputStream(fileName);
+                if (entry == null) {
+                    Log.d(LOGTAG, "No Entry for " + fileName);
+                    return null;
+                }
 
                 
                 jarUrls.peek();
+
+                if (inputStream != null) {
+                    inputStream = new ZipInputStream(inputStream);
+                } else {
+                    inputStream = new ZipInputStream(zip.getInputStream(entry));
+                }
             }
         } catch (EmptyStackException ex) {
             Log.d(LOGTAG, "Jar reader reached end of stack");
         }
         return inputStream;
+    }
+
+    
+    private static ZipEntry getEntryFromStream(ZipInputStream zipStream, String entryName) {
+        ZipEntry entry = null;
+
+        try {
+            entry = zipStream.getNextEntry();
+            while(entry != null && !entry.getName().equals(entryName)) {
+                entry = zipStream.getNextEntry();
+            }
+        } catch (IOException ex) {
+            Log.e(LOGTAG, "Exception getting stream entry", ex);
+        }
+
+        return entry;
     }
 
     
