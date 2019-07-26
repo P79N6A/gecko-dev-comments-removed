@@ -360,6 +360,12 @@ protected:
 
   
   bool mDisableCookieAccess;
+
+  
+
+
+
+  bool mPendingMaybeEditingStateChanged;
 };
 
 #define NS_HTML_DOCUMENT_INTERFACE_TABLE_BEGIN(_class)                        \
