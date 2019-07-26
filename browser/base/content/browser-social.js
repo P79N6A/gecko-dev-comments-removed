@@ -1366,6 +1366,10 @@ SocialSidebar = {
       
       if (sbrowser.getAttribute("src") != Social.provider.sidebarURL) {
         sbrowser.setAttribute("src", Social.provider.sidebarURL);
+      }
+
+      
+      if (sbrowser.contentDocument.readyState != "complete") {
         sbrowser.addEventListener("load", SocialSidebar._loadListener, true);
       } else {
         this.setSidebarVisibilityState(true);
