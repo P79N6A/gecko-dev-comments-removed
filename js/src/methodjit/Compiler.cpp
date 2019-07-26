@@ -3577,11 +3577,12 @@ mjit::Compiler::updateElemCounts(jsbytecode *pc, FrameEntry *obj, FrameEntry *id
 
     if (obj->mightBeType(JSVAL_TYPE_OBJECT)) {
         types::StackTypeSet *types = frame.extra(obj).types;
-        if (types && !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY) &&
-            types->getTypedArrayType() != TypedArray::TYPE_MAX) {
+        if (types && types->getTypedArrayType() != TypedArray::TYPE_MAX) {
             count = PCCounts::ELEM_OBJECT_TYPED;
-        } else if (types && !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY)) {
-            if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED_ARRAY))
+        } else if (types && types->getKnownClass() == &ArrayClass &&
+                   !types->hasObjectFlags(cx, types::OBJECT_FLAG_SPARSE_INDEXES |
+                                          types::OBJECT_FLAG_LENGTH_OVERFLOW)) {
+            if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED))
                 count = PCCounts::ELEM_OBJECT_PACKED;
             else
                 count = PCCounts::ELEM_OBJECT_DENSE;
@@ -5084,8 +5085,9 @@ mjit::Compiler::jsop_getprop(HandlePropertyName name, JSValueType knownType,
 
 
 
-
-        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY)) {
+        if (types->getKnownClass() == &ArrayClass &&
+            !types->hasObjectFlags(cx, types::OBJECT_FLAG_LENGTH_OVERFLOW))
+        {
             frame.forgetMismatchedObject(top);
             bool isObject = top->isTypeKnown();
             if (!isObject) {
@@ -5114,7 +5116,7 @@ mjit::Compiler::jsop_getprop(HandlePropertyName name, JSValueType knownType,
 
 
 
-        if (!types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY)) {
+        if (types->getTypedArrayType() != TypedArray::TYPE_MAX) {
             if (top->isConstant()) {
                 JSObject *obj = &top->getValue().toObject();
                 uint32_t length = TypedArray::length(obj);
@@ -6793,14 +6795,15 @@ mjit::Compiler::jsop_instanceof()
     RegisterID tmp = frame.allocReg();
     RegisterID obj = frame.tempRegForData(rhs);
 
-    masm.loadBaseShape(obj, tmp);
+    masm.loadPtr(Address(obj, JSObject::offsetOfType()), tmp);
     Jump notFunction = masm.branchPtr(Assembler::NotEqual,
-                                      Address(tmp, BaseShape::offsetOfClass()),
+                                      Address(tmp, offsetof(types::TypeObject, clasp)),
                                       ImmPtr(&FunctionClass));
 
     stubcc.linkExit(notFunction, Uses(2));
 
     
+    masm.loadBaseShape(obj, tmp);
     Jump isBound = masm.branchTest32(Assembler::NonZero,
                                      Address(tmp, BaseShape::offsetOfFlags()),
                                      Imm32(BaseShape::BOUND_FUNCTION));
@@ -7409,7 +7412,7 @@ mjit::Compiler::constructThis()
 
 
 
-        types::TypeObject *type = proto->getNewType(cx, fun);
+        types::TypeObject *type = proto->getNewType(cx, &ObjectClass, fun);
         if (!type)
             return false;
         if (!types::TypeScript::ThisTypes(script_)->hasType(types::Type::ObjectType(type)))
@@ -7596,11 +7599,12 @@ mjit::Compiler::jsop_in()
         types::StackTypeSet *types = analysis->poppedTypes(PC, 0);
 
         if (obj->mightBeType(JSVAL_TYPE_OBJECT) &&
-            !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
+            types->getKnownClass() == &ArrayClass &&
+            !types->hasObjectFlags(cx, types::OBJECT_FLAG_SPARSE_INDEXES) &&
             !types::ArrayPrototypeHasIndexedProperty(cx, outerScript))
         {
             frame.forgetMismatchedObject(obj);
-            bool isPacked = !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED_ARRAY);
+            bool isPacked = !types->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED);
 
             if (!obj->isTypeKnown()) {
                 Jump guard = frame.testObject(Assembler::NotEqual, obj);

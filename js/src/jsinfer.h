@@ -372,37 +372,34 @@ enum {
         OBJECT_FLAG_PROPERTY_COUNT_MASK >> OBJECT_FLAG_PROPERTY_COUNT_SHIFT,
 
     
-
-
-
-    OBJECT_FLAG_NON_DENSE_ARRAY       = 0x00010000,
+    OBJECT_FLAG_SPARSE_INDEXES        = 0x00010000,
 
     
-    OBJECT_FLAG_NON_PACKED_ARRAY      = 0x00020000,
+    OBJECT_FLAG_NON_PACKED            = 0x00020000,
 
     
-    OBJECT_FLAG_NON_TYPED_ARRAY       = 0x00040000,
+
+
+
+    OBJECT_FLAG_LENGTH_OVERFLOW       = 0x00040000,
 
     
-    OBJECT_FLAG_NON_DOM               = 0x00080000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x00080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x00100000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00200000,
+    OBJECT_FLAG_ITERATED              = 0x00200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x00400000,
+    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00400000,
 
     
-    OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00800000,
+    OBJECT_FLAG_EMULATES_UNDEFINED    = 0x00800000,
 
     
-    OBJECT_FLAG_EMULATES_UNDEFINED    = 0x01000000,
-
-    
-    OBJECT_FLAG_DYNAMIC_MASK          = 0x01ff0000,
+    OBJECT_FLAG_DYNAMIC_MASK          = 0x00ff0000,
 
     
 
@@ -593,10 +590,13 @@ class StackTypeSet : public TypeSet
     bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
 
     
+    Class *getKnownClass();
 
-
-
+    
     int getTypedArrayType();
+
+    
+    bool isDOMClass();
 
     
     RawObject getSingleton();
@@ -903,6 +903,9 @@ struct TypeNewScript
 struct TypeObject : gc::Cell
 {
     
+    Class *clasp;
+
+    
     HeapPtrObject proto;
 
     
@@ -980,11 +983,7 @@ struct TypeObject : gc::Cell
     
     HeapPtrFunction interpretedFunction;
 
-#if JS_BITS_PER_WORD == 32
-    void *padding;
-#endif
-
-    inline TypeObject(TaggedProto proto, bool isFunction, bool unknown);
+    inline TypeObject(Class *clasp, TaggedProto proto, bool isFunction, bool unknown);
 
     bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
 
@@ -1016,9 +1015,6 @@ struct TypeObject : gc::Cell
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
-
-    
-    inline void setFlagsFromKey(JSContext *cx, JSProtoKey kind);
 
     
 
@@ -1078,10 +1074,15 @@ struct TypeObject : gc::Cell
 
 struct TypeObjectEntry
 {
-    typedef TaggedProto Lookup;
+    struct Lookup {
+        Class *clasp;
+        TaggedProto proto;
 
-    static inline HashNumber hash(TaggedProto base);
-    static inline bool match(TypeObject *key, TaggedProto lookup);
+        Lookup(Class *clasp, TaggedProto proto) : clasp(clasp), proto(proto) {}
+    };
+
+    static inline HashNumber hash(const Lookup &lookup);
+    static inline bool match(TypeObject *key, const Lookup &lookup);
 };
 typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
 
@@ -1383,8 +1384,8 @@ struct TypeCompartment
 
 
 
-    TypeObject *newTypeObject(JSContext *cx, JSProtoKey kind, Handle<TaggedProto> proto,
-                              bool unknown = false, bool isDOM = false);
+    TypeObject *newTypeObject(JSContext *cx, Class *clasp, Handle<TaggedProto> proto,
+                              bool unknown = false);
 
     
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
