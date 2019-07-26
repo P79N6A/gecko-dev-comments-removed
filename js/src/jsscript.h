@@ -81,6 +81,13 @@ struct JSTryNote {
 
 namespace js {
 
+struct BlockScopeNote {
+    uint32_t        index;      
+    uint32_t        start;      
+    uint32_t        length;     
+    uint32_t        padding;    
+};
+
 struct ConstArray {
     js::HeapValue   *vector;    
     uint32_t        length;
@@ -93,6 +100,11 @@ struct ObjectArray {
 
 struct TryNoteArray {
     JSTryNote       *vector;    
+    uint32_t        length;     
+};
+
+struct BlockScopeArray {
+    BlockScopeNote *vector;     
     uint32_t        length;     
 };
 
@@ -552,6 +564,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         OBJECTS,
         REGEXPS,
         TRYNOTES,
+        BLOCK_SCOPES,
         ARRAY_KIND_BITS
     };
 
@@ -564,7 +577,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     uint8_t         generatorKindBits_:2;
 
     
-    uint8_t         padToByte_:2;
+    uint8_t         padToByte_:1;
 
     
 
@@ -650,8 +663,9 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     
     
     static bool partiallyInit(js::ExclusiveContext *cx, JS::Handle<JSScript*> script,
-                              uint32_t nobjects, uint32_t nregexps,
-                              uint32_t ntrynotes, uint32_t nconsts, uint32_t nTypeSets);
+                              uint32_t nconsts, uint32_t nobjects, uint32_t nregexps,
+                              uint32_t ntrynotes, uint32_t nblockscopes,
+                              uint32_t nTypeSets);
     static bool fullyInitFromEmitter(js::ExclusiveContext *cx, JS::Handle<JSScript*> script,
                                      js::frontend::BytecodeEmitter *bce);
     
@@ -913,6 +927,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     bool hasObjects()       { return hasArray(OBJECTS);     }
     bool hasRegexps()       { return hasArray(REGEXPS);     }
     bool hasTrynotes()      { return hasArray(TRYNOTES);    }
+    bool hasBlockScopes()   { return hasArray(BLOCK_SCOPES); }
 
     #define OFF(fooOff, hasFoo, t)   (fooOff() + (hasFoo() ? sizeof(t) : 0))
 
@@ -920,6 +935,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     size_t objectsOffset()    { return OFF(constsOffset,     hasConsts,     js::ConstArray);      }
     size_t regexpsOffset()    { return OFF(objectsOffset,    hasObjects,    js::ObjectArray);     }
     size_t trynotesOffset()   { return OFF(regexpsOffset,    hasRegexps,    js::ObjectArray);     }
+    size_t blockScopesOffset(){ return OFF(trynotesOffset,   hasTrynotes,   js::TryNoteArray);    }
 
     js::ConstArray *consts() {
         JS_ASSERT(hasConsts());
@@ -939,6 +955,11 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
     js::TryNoteArray *trynotes() {
         JS_ASSERT(hasTrynotes());
         return reinterpret_cast<js::TryNoteArray *>(data + trynotesOffset());
+    }
+
+    js::BlockScopeArray *blockScopes() {
+        JS_ASSERT(hasBlockScopes());
+        return reinterpret_cast<js::BlockScopeArray *>(data + blockScopesOffset());
     }
 
     bool hasLoops();
