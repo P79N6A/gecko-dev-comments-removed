@@ -16,7 +16,7 @@ namespace ion {
 
 bool
 PcScriptCache::get(JSRuntime *rt, uint32_t hash, uint8_t *addr,
-                   MutableHandleScript scriptRes, jsbytecode **pcRes)
+                   JSScript **scriptRes, jsbytecode **pcRes)
 {
     
     if (gcNumber != rt->gcNumber) {
@@ -27,7 +27,7 @@ PcScriptCache::get(JSRuntime *rt, uint32_t hash, uint8_t *addr,
     if (entries[hash].returnAddress != addr)
         return false;
 
-    scriptRes.set(entries[hash].script);
+    *scriptRes = entries[hash].script;
     if (pcRes)
         *pcRes = entries[hash].pc;
 

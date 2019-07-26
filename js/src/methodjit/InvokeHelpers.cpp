@@ -358,7 +358,7 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
     FrameRegs regs = f.regs;
 
     
-    if (!cx->stack.pushInlineFrame(cx, regs, args, *newfun, newscript, initial, &f.stackLimit))
+    if (!cx->stack.pushInlineFrame(cx, regs, args, newfun, newscript, initial, &f.stackLimit))
         return false;
 
     

@@ -1087,7 +1087,7 @@ typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> T
 
 
 bool
-UseNewType(JSContext *cx, HandleScript script, jsbytecode *pc);
+UseNewType(JSContext *cx, UnrootedScript script, jsbytecode *pc);
 
 
 bool
@@ -1180,7 +1180,7 @@ class TypeScript
     static inline void MonitorString(JSContext *cx, HandleScript script, jsbytecode *pc);
     static inline void MonitorUnknown(JSContext *cx, HandleScript script, jsbytecode *pc);
 
-    static inline void GetPcScript(JSContext *cx, MutableHandleScript script, jsbytecode **pc);
+    static inline void GetPcScript(JSContext *cx, JSScript **script, jsbytecode **pc);
     static inline void MonitorOverflow(JSContext *cx);
     static inline void MonitorString(JSContext *cx);
     static inline void MonitorUnknown(JSContext *cx);
