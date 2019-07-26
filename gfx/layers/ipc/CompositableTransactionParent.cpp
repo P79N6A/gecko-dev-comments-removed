@@ -16,7 +16,6 @@
 #include "mozilla/RefPtr.h"             
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ContentHost.h"  
-#include "mozilla/layers/SharedBufferManagerParent.h"
 #include "mozilla/layers/LayerManagerComposite.h"
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/LayersTypes.h"  

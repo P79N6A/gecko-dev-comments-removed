@@ -125,8 +125,14 @@ public:
 
   virtual const char* Name() MOZ_OVERRIDE { return "GrallocTextureHostOGL"; }
 
+  
+  virtual void ForgetBufferActor()
+  {
+    mGrallocActor = nullptr;
+  }
+
 private:
-  NewSurfaceDescriptorGralloc mGrallocHandle;
+  GrallocBufferActor* mGrallocActor;
   RefPtr<GrallocTextureSourceOGL> mTextureSource;
   gfx::IntSize mSize; 
 };
