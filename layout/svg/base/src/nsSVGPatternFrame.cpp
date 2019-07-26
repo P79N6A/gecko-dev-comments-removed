@@ -310,22 +310,25 @@ nsSVGPatternFrame::PaintPattern(gfxASurface** surface,
   
   *patternMatrix = GetPatternMatrix(patternUnits, patternTransform,
                                     bbox, callerBBox, aContextMatrix);
+  if (patternMatrix->IsSingular()) {
+    return NS_ERROR_FAILURE;
+  }
 
   
   
-  gfxFloat patternWidth = bbox.Width();
-  gfxFloat patternHeight = bbox.Height();
+  gfxRect transformedBBox = patternTransform.TransformBounds(bbox);
 
   bool resultOverflows;
   gfxIntSize surfaceSize =
     nsSVGUtils::ConvertToSurfaceSize(
-      gfxSize(patternWidth * fabs(patternTransform.xx),
-              patternHeight * fabs(patternTransform.yy)),
-      &resultOverflows);
+      transformedBBox.Size(), &resultOverflows);
 
   
   if (surfaceSize.width <= 0 || surfaceSize.height <= 0)
     return NS_ERROR_FAILURE;
+
+  gfxFloat patternWidth = bbox.Width();
+  gfxFloat patternHeight = bbox.Height();
 
   if (resultOverflows ||
       patternWidth != surfaceSize.width ||
@@ -690,10 +693,6 @@ nsSVGPatternFrame::GetPaintServerPattern(nsIFrame *aSource,
                              aSource, aFillOrStroke, aGraphicOpacity, aOverrideBounds);
 
   if (NS_FAILED(rv)) {
-    return nullptr;
-  }
-
-  if (pMatrix.IsSingular()) {
     return nullptr;
   }
 

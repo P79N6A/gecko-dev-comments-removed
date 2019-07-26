@@ -278,6 +278,8 @@ IDBDatabase::CloseInternal(bool aIsDead)
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
 
   if (!mClosed) {
+    mClosed = true;
+
     
     {
       nsRefPtr<DatabaseInfo> previousInfo;
@@ -300,8 +302,6 @@ IDBDatabase::CloseInternal(bool aIsDead)
       NS_ASSERTION(!IndexedDatabaseManager::IsMainProcess(), "Wrong process!");
       mActorChild->SendClose(aIsDead);
     }
-
-    mClosed = true;
   }
 }
 

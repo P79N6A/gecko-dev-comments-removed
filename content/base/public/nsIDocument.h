@@ -23,6 +23,7 @@
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
+#include "mozilla/dom/DirectionalityUtils.h"
 
 class imgIRequest;
 class nsAString;
@@ -396,6 +397,10 @@ public:
   void SetBidiOptions(PRUint32 aBidiOptions)
   {
     mBidiOptions = aBidiOptions;
+  }
+
+  inline mozilla::directionality::Directionality GetDocumentDirectionality() {
+    return mDirectionality;
   }
   
   
@@ -1852,6 +1857,9 @@ protected:
   
   
   PRUint32 mBidiOptions;
+
+  
+  mozilla::directionality::Directionality mDirectionality;
 
   nsCString mContentLanguage;
 private:

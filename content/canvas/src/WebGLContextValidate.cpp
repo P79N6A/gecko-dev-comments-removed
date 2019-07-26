@@ -772,6 +772,9 @@ WebGLContext::InitAndValidateGL()
 #endif
 
     
+    mIsMesa = strstr((const char *)(gl->fGetString(LOCAL_GL_VERSION)), "Mesa");
+
+    
     
     error = gl->GetAndClearError();
     if (error != LOCAL_GL_NO_ERROR) {

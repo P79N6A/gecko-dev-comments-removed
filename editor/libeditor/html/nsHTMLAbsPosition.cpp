@@ -61,8 +61,8 @@ nsHTMLEditor::AbsolutePositionSelection(bool aEnabled)
 {
   nsAutoEditBatch beginBatching(this);
   nsAutoRules beginRulesSniffing(this,
-                                 aEnabled ? kOpSetAbsolutePosition :
-                                            kOpRemoveAbsolutePosition,
+                                 aEnabled ? OperationID::setAbsolutePosition :
+                                            OperationID::removeAbsolutePosition,
                                  nsIEditor::eNext);
   
   
@@ -70,8 +70,8 @@ nsHTMLEditor::AbsolutePositionSelection(bool aEnabled)
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  nsTextRulesInfo ruleInfo(aEnabled ? kOpSetAbsolutePosition :
-                                      kOpRemoveAbsolutePosition);
+  nsTextRulesInfo ruleInfo(aEnabled ? OperationID::setAbsolutePosition :
+                                      OperationID::removeAbsolutePosition);
   bool cancel, handled;
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (NS_FAILED(res) || cancel)
@@ -174,16 +174,16 @@ nsHTMLEditor::RelativeChangeZIndex(PRInt32 aChange)
 {
   nsAutoEditBatch beginBatching(this);
   nsAutoRules beginRulesSniffing(this,
-                                 (aChange < 0) ? kOpDecreaseZIndex :
-                                                 kOpIncreaseZIndex,
+                                 (aChange < 0) ? OperationID::decreaseZIndex :
+                                                 OperationID::increaseZIndex,
                                  nsIEditor::eNext);
   
   
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  nsTextRulesInfo ruleInfo(aChange < 0 ? kOpDecreaseZIndex :
-                                         kOpIncreaseZIndex);
+  nsTextRulesInfo ruleInfo(aChange < 0 ? OperationID::decreaseZIndex :
+                                         OperationID::increaseZIndex);
   bool cancel, handled;
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || NS_FAILED(res))

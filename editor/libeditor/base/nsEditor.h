@@ -87,6 +87,53 @@ struct IMEState;
 
 
 
+MOZ_BEGIN_ENUM_CLASS(OperationID, PRInt32)
+  ignore = -1,
+  none = 0,
+  undo,
+  redo,
+  insertNode,
+  createNode,
+  deleteNode,
+  splitNode,
+  joinNode,
+  deleteText = 1003,
+
+  
+  insertText         = 2000,
+  insertIMEText      = 2001,
+  deleteSelection    = 2002,
+  setTextProperty    = 2003,
+  removeTextProperty = 2004,
+  outputText         = 2005,
+
+  
+  insertBreak         = 3000,
+  makeList            = 3001,
+  indent              = 3002,
+  outdent             = 3003,
+  align               = 3004,
+  makeBasicBlock      = 3005,
+  removeList          = 3006,
+  makeDefListItem     = 3007,
+  insertElement       = 3008,
+  insertQuotation     = 3009,
+  htmlPaste           = 3012,
+  loadHTML            = 3013,
+  resetTextProperties = 3014,
+  setAbsolutePosition = 3015,
+  removeAbsolutePosition = 3016,
+  decreaseZIndex      = 3017,
+  increaseZIndex      = 3018
+MOZ_END_ENUM_CLASS(OperationID)
+
+inline bool operator!(const OperationID& aOp)
+{
+  return aOp == OperationID::none;
+}
+
+
+
 
 
 
@@ -102,47 +149,6 @@ public:
   {
     kIterForward,
     kIterBackward
-  };
-
-  enum OperationID
-  {
-    kOpIgnore = -1,
-    kOpNone = 0,
-    kOpUndo,
-    kOpRedo,
-    kOpInsertNode,
-    kOpCreateNode,
-    kOpDeleteNode,
-    kOpSplitNode,
-    kOpJoinNode,
-    kOpDeleteText = 1003,
-
-    
-    kOpInsertText         = 2000,
-    kOpInsertIMEText      = 2001,
-    kOpDeleteSelection    = 2002,
-    kOpSetTextProperty    = 2003,
-    kOpRemoveTextProperty = 2004,
-    kOpOutputText         = 2005,
-
-    
-    kOpInsertBreak         = 3000,
-    kOpMakeList            = 3001,
-    kOpIndent              = 3002,
-    kOpOutdent             = 3003,
-    kOpAlign               = 3004,
-    kOpMakeBasicBlock      = 3005,
-    kOpRemoveList          = 3006,
-    kOpMakeDefListItem     = 3007,
-    kOpInsertElement       = 3008,
-    kOpInsertQuotation     = 3009,
-    kOpHTMLPaste           = 3012,
-    kOpLoadHTML            = 3013,
-    kOpResetTextProperties = 3014,
-    kOpSetAbsolutePosition = 3015,
-    kOpRemoveAbsolutePosition = 3016,
-    kOpDecreaseZIndex      = 3017,
-    kOpIncreaseZIndex      = 3018
   };
 
   

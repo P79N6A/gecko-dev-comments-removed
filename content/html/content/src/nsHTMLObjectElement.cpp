@@ -517,6 +517,12 @@ nsHTMLObjectElement::GetAttributeMappingFunction() const
 void
 nsHTMLObjectElement::StartObjectLoad(bool aNotify)
 {
+  
+  
+  if (!IsInDoc() || !OwnerDoc()->IsActive()) {
+    return;
+  }
+
   LoadObject(aNotify);
   SetIsNetworkCreated(false);
 }
