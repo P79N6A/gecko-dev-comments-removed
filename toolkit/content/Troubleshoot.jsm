@@ -182,7 +182,7 @@ let dataProviders = {
       
       
       
-      let msg = ["no information"];
+      let msg = [""];
       try {
         var status = gfxInfo.getFeatureStatus(feature);
       }
