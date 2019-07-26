@@ -1207,14 +1207,14 @@ void nsDisplayList::PaintForFrame(nsDisplayListBuilder* aBuilder,
   bool temp = aBuilder->SetIsCompositingCheap(layerManager->IsCompositingCheap());
   LayerManager::EndTransactionFlags flags = LayerManager::END_DEFAULT;
   if (layerManager->NeedsWidgetInvalidation()) {
+    if (aFlags & PAINT_NO_COMPOSITE) {
+      flags = LayerManager::END_NO_COMPOSITE;
+    }
+  } else {
     
     
     if (aBuilder->WillComputePluginGeometry()) {
       flags = LayerManager::END_NO_REMOTE_COMPOSITE;
-    }
-  } else {
-    if (aFlags & PAINT_NO_COMPOSITE) {
-      flags = LayerManager::END_NO_COMPOSITE;
     }
   }
 
