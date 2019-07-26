@@ -558,8 +558,15 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     bool resumeAfter = iter.resumeAfter();
     BaselineScript *baselineScript = script->baselineScript();
 
-    JS_ASSERT(js_ReconstructStackDepth(cx, script, resumeAfter ? GetNextPc(pc) : pc)
-                == exprStackSlots);
+    
+    
+    
+#ifdef DEBUG
+    uint32_t expectedDepth = js_ReconstructStackDepth(cx, script,
+                                                      resumeAfter ? GetNextPc(pc) : pc);
+    JS_ASSERT_IF(op != JSOP_FUNAPPLY || !iter.moreFrames() || resumeAfter,
+                 exprStackSlots == expectedDepth);
+#endif
 
     IonSpew(IonSpew_BaselineBailouts, "      Resuming %s pc offset %d of %s:%d",
                 resumeAfter ? "after" : "at", (int) pcOff, script->filename, (int) script->lineno);
@@ -720,6 +727,9 @@ InitFromBailout(JSContext *cx, HandleFunction fun, HandleScript script, Snapshot
     
     JS_ASSERT(isCall);
     unsigned actualArgc = GET_ARGC(pc);
+    if (op == JSOP_FUNAPPLY)
+        actualArgc = blFrame->numActualArgs();
+
     JS_ASSERT(actualArgc + 2 <= exprStackSlots);
     for (unsigned i = 0; i < actualArgc + 1; i++) {
         size_t argSlot = (script->nfixed + exprStackSlots) - (i + 1);
