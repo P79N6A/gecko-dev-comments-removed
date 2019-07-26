@@ -47,9 +47,7 @@ function test() {
 
   
   let tab = gBrowser.addTab(TEST_URL);
-  tab.linkedBrowser.addEventListener("load", function loadListener(e) {
-    tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-
+  whenBrowserLoaded(tab.linkedBrowser, function() {
     
     
     setTimeout(function step1(e) {
@@ -72,5 +70,5 @@ function test() {
         finish();
       }, 3500); 
     }, 3500); 
-  }, true);
+  });
 }

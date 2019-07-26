@@ -52,7 +52,7 @@ function runTests() {
 
   
   gBrowser.selectedTab = tab;
-  yield whenBrowserLoaded(tab.linkedBrowser);
+  yield whenTabRestored(tab);
 
   
   let {attributes} = JSON.parse(ss.getTabState(tab));

@@ -13,8 +13,7 @@ function test() {
 
   
   let tab1 = gBrowser.addTab();
-  tab1.linkedBrowser.addEventListener("load", function() {
-    tab1.linkedBrowser.removeEventListener("load", arguments.callee, true);
+  whenBrowserLoaded(tab1.linkedBrowser, function() {
     ss.setTabValue(tab1, uniqueName, uniqueValue1);
 
     
@@ -26,14 +25,13 @@ function test() {
 
     
     ss.setTabState(tab1, JSON.stringify({ entries: [] }));
-    tab1.linkedBrowser.addEventListener("load", function() {
-      tab1.linkedBrowser.removeEventListener("load", arguments.callee, true);
+    whenTabRestored(tab1, function() {
       is(ss.getTabValue(tab1, uniqueName), "", "tab value was cleared");
 
       
       gBrowser.removeTab(tab2);
       gBrowser.removeTab(tab1);
       finish();
-    }, true);
-  }, true);
+    });
+  });
 }

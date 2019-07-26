@@ -5,18 +5,19 @@
 function test() {
   let tab1 = gBrowser.addTab("about:rights");
   let tab2 = gBrowser.addTab("about:mozilla");
-  tab1.linkedBrowser.addEventListener("load", mainPart, true);
+  whenBrowserLoaded(tab1.linkedBrowser, mainPart);
   waitForExplicitFinish();
 
   function mainPart() {
-    tab1.linkedBrowser.removeEventListener("load", mainPart, true);
-
     
     let newTabState = '{"entries":[{"url":"about:rights"}],"pinned":true,"userTypedValue":"Hello World!"}';
     ss.setTabState(tab1, newTabState);
 
     
     gBrowser.unpinTab(tab1);
+
+    is(tab1.linkedBrowser.__SS_tabStillLoading, true,
+       "_tabStillLoading should be true.");
 
     
     gBrowser.removeTab(tab1);

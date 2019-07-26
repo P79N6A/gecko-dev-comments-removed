@@ -71,8 +71,7 @@ function test() {
   
   let testURL = "about:";
   tab = gBrowser.addTab(testURL);
-  tab.linkedBrowser.addEventListener("load", function(aEvent) {
-    this.removeEventListener("load", arguments.callee, true);
+  whenBrowserLoaded(tab.linkedBrowser, function() {
     
     gPrefService.setIntPref("browser.sessionstore.max_tabs_undo", max_tabs_undo + 1);
 
@@ -87,15 +86,14 @@ function test() {
     tab = test(function() ss.undoCloseTab(window, 0));
     ok(tab, "undoCloseTab doesn't throw")
 
-    tab.linkedBrowser.addEventListener("load", function(aEvent) {
-      this.removeEventListener("load", arguments.callee, true);
-      is(this.currentURI.spec, testURL, "correct tab was reopened");
+    whenTabRestored(tab, function() {
+      is(tab.linkedBrowser.currentURI.spec, testURL, "correct tab was reopened");
 
       
       if (gPrefService.prefHasUserValue("browser.sessionstore.max_tabs_undo"))
         gPrefService.clearUserPref("browser.sessionstore.max_tabs_undo");
       gBrowser.removeTab(tab);
       finish();
-    }, true);
-  }, true);
+    });
+  });
 }
