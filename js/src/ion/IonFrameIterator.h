@@ -151,7 +151,6 @@ class IonFrameIterator
     unsigned numActualArgs() const;
     JSScript *script() const;
     Value *nativeVp() const;
-    Value *argv() const;
 
     
     

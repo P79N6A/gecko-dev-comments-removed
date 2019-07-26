@@ -1483,6 +1483,11 @@ StackIter::numActualArgs() const
         JS_ASSERT(isFunctionFrame());
         return fp()->numActualArgs();
       case ION:
+        
+        
+        
+        
+        JS_ASSERT(ionInlineFrames_.numActualArgs() <= ionInlineFrames_.callee()->nargs);
         return ionInlineFrames_.numActualArgs();
       case NATIVE:
       case IMPLICIT_NATIVE:
