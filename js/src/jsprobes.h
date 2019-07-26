@@ -67,18 +67,6 @@ extern const char nullName[];
 extern const char anonymousName[];
 
 
-JSBool startEngine();
-
-
-bool createRuntime(JSRuntime *rt);
-
-
-bool destroyRuntime(JSRuntime *rt);
-
-
-bool shutdown();
-
-
 
 
 
@@ -104,89 +92,15 @@ bool startExecution(RawScript script);
 bool stopExecution(RawScript script);
 
 
-bool resizeHeap(JS::Zone *zone, size_t oldSize, size_t newSize);
-
-
 
 
 bool createObject(JSContext *cx, JSObject *obj);
-
-
-bool objectResizeActive();
-
-
-bool resizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
 
 
 
 
 
 bool finalizeObject(JSObject *obj);
-
-
-
-
-
-
-
-
-
-bool createString(JSContext *cx, JSString *string, size_t length);
-
-
-
-
-
-
-bool finalizeString(JSString *string);
-
-
-bool compileScriptBegin(const char *filename, int lineno);
-
-
-bool compileScriptEnd(const char *filename, int lineno);
-
-
-bool calloutBegin(JSContext *cx, RawFunction fun);
-
-
-bool calloutEnd(JSContext *cx, RawFunction fun);
-
-
-bool acquireMemory(JSContext *cx, void *address, size_t nbytes);
-bool releaseMemory(JSContext *cx, void *address, size_t nbytes);
-
-
-
-
-
-
-
-
-
-
-
-
-bool GCStart();
-bool GCEnd();
-
-bool GCStartMarkPhase();
-bool GCEndMarkPhase();
-
-bool GCStartSweepPhase();
-bool GCEndSweepPhase();
-
-
-
-
-
-
-
-
-
-bool CustomMark(JSString *string);
-bool CustomMark(const char *string);
-bool CustomMark(int marker);
 
 
 
@@ -243,42 +157,6 @@ discardExecutableRegion(void *start, size_t size);
 void DTraceEnterJSFun(JSContext *cx, RawFunction fun, RawScript script);
 void DTraceExitJSFun(JSContext *cx, RawFunction fun, RawScript script);
 
-
-
-
-#ifdef MOZ_ETW
-
-bool ETWCreateRuntime(JSRuntime *rt);
-bool ETWDestroyRuntime(JSRuntime *rt);
-bool ETWShutdown();
-bool ETWCallTrackingActive();
-bool ETWEnterJSFun(JSContext *cx, RawFunction fun, RawScript script, int counter);
-bool ETWExitJSFun(JSContext *cx, RawFunction fun, RawScript script, int counter);
-bool ETWCreateObject(JSContext *cx, JSObject *obj);
-bool ETWFinalizeObject(JSObject *obj);
-bool ETWResizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize);
-bool ETWCreateString(JSContext *cx, JSString *string, size_t length);
-bool ETWFinalizeString(JSString *string);
-bool ETWCompileScriptBegin(const char *filename, int lineno);
-bool ETWCompileScriptEnd(const char *filename, int lineno);
-bool ETWCalloutBegin(JSContext *cx, RawFunction fun);
-bool ETWCalloutEnd(JSContext *cx, RawFunction fun);
-bool ETWAcquireMemory(JSContext *cx, void *address, size_t nbytes);
-bool ETWReleaseMemory(JSContext *cx, void *address, size_t nbytes);
-bool ETWGCStart();
-bool ETWGCEnd();
-bool ETWGCStartMarkPhase();
-bool ETWGCEndMarkPhase();
-bool ETWGCStartSweepPhase();
-bool ETWGCEndSweepPhase();
-bool ETWCustomMark(JSString *string);
-bool ETWCustomMark(const char *string);
-bool ETWCustomMark(int marker);
-bool ETWStartExecution(RawScript script);
-bool ETWStopExecution(JSContext *cx, RawScript script);
-bool ETWResizeHeap(JSCompartment *compartment, size_t oldSize, size_t newSize);
-#endif
-
 } 
 
 
@@ -295,10 +173,6 @@ Probes::callTrackingActive(JSContext *cx)
 #endif
 #ifdef MOZ_TRACE_JSCALLS
     if (cx->functionCallback)
-        return true;
-#endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && ETWCallTrackingActive())
         return true;
 #endif
     return false;
@@ -322,10 +196,6 @@ Probes::enterScript(JSContext *cx, RawScript script, RawFunction maybeFun,
 #endif
 #ifdef MOZ_TRACE_JSCALLS
     cx->doFunctionCallback(maybeFun, script, 1);
-#endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWEnterJSFun(cx, maybeFun, script, 1))
-        ok = false;
 #endif
 
     JSRuntime *rt = cx->runtime;
@@ -351,10 +221,6 @@ Probes::exitScript(JSContext *cx, RawScript script, RawFunction maybeFun,
 #ifdef MOZ_TRACE_JSCALLS
     cx->doFunctionCallback(maybeFun, script, 0);
 #endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWExitJSFun(cx, maybeFun, script, 0))
-        ok = false;
-#endif
 
     JSRuntime *rt = cx->runtime;
     
@@ -367,19 +233,6 @@ Probes::exitScript(JSContext *cx, RawScript script, RawFunction maybeFun,
     {
         rt->spsProfiler.exit(cx, script, maybeFun);
     }
-    return ok;
-}
-
-inline bool
-Probes::resizeHeap(JS::Zone *zone, size_t oldSize, size_t newSize)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWResizeHeap(zone, oldSize, newSize))
-        ok = false;
-#endif
-
     return ok;
 }
 
@@ -406,10 +259,6 @@ Probes::createObject(JSContext *cx, JSObject *obj)
     if (JAVASCRIPT_OBJECT_CREATE_ENABLED())
         JAVASCRIPT_OBJECT_CREATE(ObjectClassname(obj), (uintptr_t)obj);
 #endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCreateObject(cx, obj))
-        ok = false;
-#endif
 
     return ok;
 }
@@ -427,259 +276,9 @@ Probes::finalizeObject(JSObject *obj)
         JAVASCRIPT_OBJECT_FINALIZE(NULL, (char *)clasp->name, (uintptr_t)obj);
     }
 #endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWFinalizeObject(obj))
-        ok = false;
-#endif
 
     return ok;
 }
-
-inline bool
-Probes::objectResizeActive()
-{
-#ifdef MOZ_ETW
-    if (ProfilingActive)
-        return true;
-#endif
-
-    return false;
-}
-
-inline bool
-Probes::resizeObject(JSContext *cx, JSObject *obj, size_t oldSize, size_t newSize)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWResizeObject(cx, obj, oldSize, newSize))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::createString(JSContext *cx, JSString *string, size_t length)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCreateString(cx, string, length))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::finalizeString(JSString *string)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWFinalizeString(string))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::compileScriptBegin(const char *filename, int lineno)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCompileScriptBegin(filename, lineno))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::compileScriptEnd(const char *filename, int lineno)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCompileScriptEnd(filename, lineno))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::calloutBegin(JSContext *cx, RawFunction fun)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCalloutBegin(cx, fun))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::calloutEnd(JSContext *cx, RawFunction fun)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCalloutEnd(cx, fun))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::acquireMemory(JSContext *cx, void *address, size_t nbytes)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWAcquireMemory(cx, address, nbytes))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::releaseMemory(JSContext *cx, void *address, size_t nbytes)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWReleaseMemory(cx, address, nbytes))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCStart()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCStart())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCEnd()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCEnd())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCStartMarkPhase()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCStartMarkPhase())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCEndMarkPhase()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCEndMarkPhase())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCStartSweepPhase()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCStartSweepPhase())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::GCEndSweepPhase()
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWGCEndSweepPhase())
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::CustomMark(JSString *string)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCustomMark(string))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::CustomMark(const char *string)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCustomMark(string))
-        ok = false;
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::CustomMark(int marker)
-{
-    bool ok = true;
-
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWCustomMark(marker))
-        ok = false;
-#endif
-
-    return ok;
-}
-
 inline bool
 Probes::startExecution(RawScript script)
 {
@@ -689,10 +288,6 @@ Probes::startExecution(RawScript script)
     if (JAVASCRIPT_EXECUTE_START_ENABLED())
         JAVASCRIPT_EXECUTE_START((script->filename() ? (char *)script->filename() : nullName),
                                  script->lineno);
-#endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWStartExecution(script))
-        ok = false;
 #endif
 
     return ok;
@@ -707,10 +302,6 @@ Probes::stopExecution(RawScript script)
     if (JAVASCRIPT_EXECUTE_DONE_ENABLED())
         JAVASCRIPT_EXECUTE_DONE((script->filename() ? (char *)script->filename() : nullName),
                                 script->lineno);
-#endif
-#ifdef MOZ_ETW
-    if (ProfilingActive && !ETWStopExecution(script))
-        ok = false;
 #endif
 
     return ok;

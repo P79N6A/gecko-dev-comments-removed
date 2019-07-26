@@ -86,19 +86,6 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain,
 {
     RootedString source(cx, source_);
 
-    class ProbesManager
-    {
-        const char* filename;
-        unsigned lineno;
-
-      public:
-        ProbesManager(const char *f, unsigned l) : filename(f), lineno(l) {
-            Probes::compileScriptBegin(filename, lineno);
-        }
-        ~ProbesManager() { Probes::compileScriptEnd(filename, lineno); }
-    };
-    ProbesManager probesManager(options.filename, options.lineno);
-
     
 
 
