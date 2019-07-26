@@ -942,7 +942,6 @@ void
 RenderFrameParent::ActorDestroy(ActorDestroyReason why)
 {
   if (mLayersId != 0) {
-    CompositorParent::DeallocateLayerTreeId(mLayersId);
     if (mContentController) {
       
       
