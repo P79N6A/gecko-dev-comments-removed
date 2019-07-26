@@ -454,6 +454,7 @@ let Scheduler = {
       let isError = false;
       try {
         try {
+          Scheduler.Debugging.messagesSent++;
           data = yield this.worker.post(method, ...args);
         } finally {
           Scheduler.Debugging.messagesReceived++;
@@ -608,7 +609,18 @@ const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
 
 AsyncShutdown.webWorkersShutdown.addBlocker(
   "OS.File: flush pending requests, warn about unclosed files, shut down service.",
-  () => Scheduler.kill({reset: false, shutdown: true})
+  Task.async(function*() {
+    
+    yield Barriers.shutdown.wait({crashAfterMS: null});
+
+    
+    yield Scheduler.kill({reset: false, shutdown: true});
+  }),
+  () => {
+    let details = Barriers.getDetails();
+    details.clients = Barriers.shutdown.state;
+    return details;
+  }
 );
 
 
@@ -1509,25 +1521,13 @@ Object.defineProperty(OS.File, "queue", {
 
 
 
-
-AsyncShutdown.profileBeforeChange.addBlocker(
-  "OS.File: flush I/O queued before profile-before-change",
+let Barriers = {
+  profileBeforeChange: new AsyncShutdown.Barrier("OS.File: Waiting for clients before profile-before-shutdown"),
+  shutdown: new AsyncShutdown.Barrier("OS.File: Waiting for clients before full shutdown"),
   
-  function() {
-    let DEBUG = false;
-    try {
-      DEBUG = Services.prefs.getBoolPref("toolkit.osfile.debug.failshutdown");
-    } catch (ex) {
-      
-    }
-    if (DEBUG) {
-      
-      return Promise.defer().promise;
-    } else {
-      return Scheduler.queue;
-    }
-  },
-  function getDetails() {
+
+
+  getDetails: function() {
     let result = {
       launched: Scheduler.launched,
       shutdown: Scheduler.shutdown,
@@ -1538,7 +1538,7 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       messagesSent: Scheduler.Debugging.messagesSent,
       messagesReceived: Scheduler.Debugging.messagesReceived,
       messagesQueued: Scheduler.Debugging.messagesQueued,
-      DEBUG: SharedAll.Config.DEBUG
+      DEBUG: SharedAll.Config.DEBUG,
     };
     
     for (let key of ["latestSent", "latestReceived"]) {
@@ -1547,5 +1547,28 @@ AsyncShutdown.profileBeforeChange.addBlocker(
       }
     }
     return result;
+  }
+};
+
+File.profileBeforeChange = Barriers.profileBeforeChange.client;
+File.shutdown = Barriers.shutdown.client;
+
+
+
+
+
+AsyncShutdown.profileBeforeChange.addBlocker(
+  "OS.File: flush I/O queued before profile-before-change",
+  Task.async(function*() {
+    
+    yield Barriers.profileBeforeChange.wait({crashAfterMS: null});
+
+    
+    yield Scheduler.queue;
+  }),
+  () => {
+    let details = Barriers.getDetails();
+    details.clients = Barriers.profileBeforeChange.state;
+    return details;
   }
 );
