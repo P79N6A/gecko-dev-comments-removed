@@ -2,7 +2,7 @@
 
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init();
+MockFilePicker.init(window);
 
 let tempScope = {};
 Cu.import("resource://gre/modules/NetUtil.jsm", tempScope);

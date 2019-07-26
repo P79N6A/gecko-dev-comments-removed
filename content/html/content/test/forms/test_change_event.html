@@ -48,7 +48,7 @@
 
   SimpleTest.waitForExplicitFinish();
   var MockFilePicker = SpecialPowers.MockFilePicker;
-  MockFilePicker.init();
+  MockFilePicker.init(window);
 
   function fileInputBlurTest() {
     var btn = document.getElementById('fileInput');

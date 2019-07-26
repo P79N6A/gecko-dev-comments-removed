@@ -5,7 +5,7 @@
 
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init();
+MockFilePicker.init(window);
 
 var gManagerWindow;
 var gSawInstallNotification = false;

@@ -2,7 +2,7 @@
 
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init();
+MockFilePicker.init(window);
 
 function checkDiskCacheFor(filename) {
   let visitor = {

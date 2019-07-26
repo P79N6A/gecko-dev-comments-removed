@@ -18,7 +18,7 @@
 <script type="text/javascript">
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.init();
+MockFilePicker.init(window);
 MockFilePicker.returnValue = MockFilePicker.returnOK;
 
 function test() {
