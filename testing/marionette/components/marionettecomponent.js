@@ -94,12 +94,14 @@ MarionetteComponent.prototype = {
         catch(e) {}
         Services.prefs.setBoolPref(DEBUGGER_FORCELOCAL_PREF, marionette_forcelocal);
 
-        
-        
-        
-        
-        let insaneSacrificialGoat = new ServerSocket(666, false, 4);
-        insaneSacrificialGoat.asyncListen(this);
+        if (!marionette_forcelocal) {
+          
+          
+          
+          
+          let insaneSacrificialGoat = new ServerSocket(666, false, 4);
+          insaneSacrificialGoat.asyncListen(this);
+        }
 
         this.init();
         break;
