@@ -558,6 +558,87 @@ nsNativeThemeWin::CalculateProgressOverlayRect(nsIFrame* aFrame,
 
 
 
+
+static void
+DrawChunkProgressMeter(HTHEME aTheme, HDC aHdc, int aPart,
+                       int aState, nsIFrame* aFrame, RECT* aWidgetRect,
+                       RECT* aClipRect, gfxFloat aAppUnits, bool aIsIndeterm,
+                       bool aIsVertical, bool aIsRtl)
+{
+  NS_ASSERTION(aTheme, "Bad theme.");
+  NS_ASSERTION(aHdc, "Bad hdc.");
+  NS_ASSERTION(aWidgetRect, "Bad rect.");
+  NS_ASSERTION(aClipRect, "Bad clip rect.");
+  NS_ASSERTION(aFrame, "Bad frame.");
+
+  
+  
+  
+  if (aIsVertical) {
+    DrawThemeBackground(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
+    return;
+  }
+
+  
+  int chunkSize, spaceSize;
+  if (FAILED(GetThemeMetric(aTheme, aHdc, aPart, aState,
+                            TMT_PROGRESSCHUNKSIZE, &chunkSize)) ||
+      FAILED(GetThemeMetric(aTheme, aHdc, aPart, aState,
+                            TMT_PROGRESSSPACESIZE, &spaceSize))) {
+    DrawThemeBackground(aTheme, aHdc, aPart, aState, aWidgetRect, aClipRect);
+    return;
+  }
+
+  
+  if (!aIsRtl || aIsIndeterm) {
+    for (int chunk = aWidgetRect->left; chunk <= aWidgetRect->right;
+         chunk += (chunkSize+spaceSize)) {
+      if (!aIsIndeterm && ((chunk + chunkSize) > aWidgetRect->right)) {
+        
+        
+        
+        
+        
+        
+        if (!IsProgressMeterFilled(aFrame)) {
+          break;
+        }
+      }
+      RECT bounds =
+        { chunk, aWidgetRect->top, chunk + chunkSize, aWidgetRect->bottom };
+      DrawThemeBackground(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
+    }
+  } else {
+    
+    for (int chunk = aWidgetRect->right; chunk >= aWidgetRect->left;
+         chunk -= (chunkSize+spaceSize)) {
+      if ((chunk - chunkSize) < aWidgetRect->left) {
+        if (!IsProgressMeterFilled(aFrame)) {
+          break;
+        }
+      }
+      RECT bounds =
+        { chunk - chunkSize, aWidgetRect->top, chunk, aWidgetRect->bottom };
+      DrawThemeBackground(aTheme, aHdc, aPart, aState, &bounds, aClipRect);
+    }
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
                                           HANDLE aTheme, HDC aHdc,
@@ -603,8 +684,10 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
       animate = true;
     }
   } else if (!indeterminate) {
-    DrawThemeBackground(aTheme, aHdc, aPart, aState,
-                        &adjWidgetRect, &adjClipRect);
+    
+    DrawChunkProgressMeter(aTheme, aHdc, aPart, aState, aFrame,
+                           &adjWidgetRect, &adjClipRect, aAppUnits,
+                           indeterminate, vertical, IsFrameRTL(aFrame));
   }    
 
   if (animate) {
@@ -613,8 +696,14 @@ nsNativeThemeWin::DrawThemedProgressMeter(nsIFrame* aFrame, int aWidgetType,
     RECT overlayRect =
       CalculateProgressOverlayRect(aFrame, &adjWidgetRect, vertical,
                                    indeterminate, false);
-    DrawThemeBackground(aTheme, aHdc, overlayPart, aState, &overlayRect,
-                        &adjClipRect);
+    if (WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION) {
+      DrawThemeBackground(aTheme, aHdc, overlayPart, aState, &overlayRect,
+                          &adjClipRect);
+    } else {
+      DrawChunkProgressMeter(aTheme, aHdc, overlayPart, aState, aFrame,
+                             &overlayRect, &adjClipRect, aAppUnits,
+                             indeterminate, vertical, IsFrameRTL(aFrame));
+    }
 
     if (!QueueAnimatedContentForRefresh(aFrame->GetContent(), 60)) {
       NS_WARNING("unable to animate progress widget!");
