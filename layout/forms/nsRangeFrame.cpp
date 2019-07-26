@@ -409,6 +409,11 @@ nsRangeFrame::GetValueAtEventPoint(nsGUIEvent* aEvent)
   nsPoint point =
     nsLayoutUtils::GetEventCoordinatesRelativeTo(aEvent, absPoint, this);
 
+  if (point == nsPoint(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE)) {
+    
+    return GetValue();
+  }
+
   nsRect rangeContentRect = GetContentRectRelativeToSelf();
   nsSize thumbSize;
 
