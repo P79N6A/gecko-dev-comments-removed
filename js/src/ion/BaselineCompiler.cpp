@@ -156,6 +156,9 @@ BaselineCompiler::emitBody()
 
         switch (op) {
           default:
+            
+            if (js_CodeSpec[op].format & JOF_DECOMPOSE)
+                break;
             IonSpew(IonSpew_Abort, "Unhandled op: %s", js_CodeName[op]);
             return Method_CantCompile;
 
