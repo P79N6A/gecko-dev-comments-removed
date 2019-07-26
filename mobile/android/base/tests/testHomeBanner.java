@@ -20,6 +20,22 @@ public class testHomeBanner extends UITest {
         mAboutHome.assertVisible()
                   .assertBannerNotVisible();
 
+        
+        addBannerTest();
+        removeBannerTest();
+
+        
+        
+        dismissBannerTest();
+    }
+
+    
+
+
+
+
+
+    private void addBannerTest() {
         addBannerMessage();
 
         
@@ -42,14 +58,30 @@ public class testHomeBanner extends UITest {
         
         final View banner = getActivity().findViewById(R.id.home_banner);
         assertTrue("The HomeBanner is not visible", banner == null || banner.getVisibility() != View.VISIBLE);
+    }
 
+
+    
+
+
+
+
+    private void removeBannerTest() {
         removeBannerMessage();
 
         
         NavigationHelper.enterAndLoadUrl("about:home");
         mAboutHome.assertVisible()
                   .assertBannerNotVisible();
+    }
 
+    
+
+
+
+
+
+    private void dismissBannerTest() {
         
         addBannerMessage();
 
@@ -57,7 +89,7 @@ public class testHomeBanner extends UITest {
         mAboutHome.assertVisible();
 
         
-        eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageDismissed");
+        final Actions.EventExpecter eventExpecter = getActions().expectGeckoEvent("TestHomeBanner:MessageDismissed");
         mAboutHome.dismissBanner();
         eventExpecter.blockForEvent();
 
