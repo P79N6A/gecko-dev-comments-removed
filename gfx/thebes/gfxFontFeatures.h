@@ -7,6 +7,8 @@
 #ifndef GFX_FONT_FEATURES_H
 #define GFX_FONT_FEATURES_H
 
+#include "prtypes.h"
+
 
 struct gfxFontFeature {
     uint32_t mTag; 
