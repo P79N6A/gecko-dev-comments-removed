@@ -47,7 +47,7 @@ const backgroundPageThumbsContent = {
       content.
         QueryInterface(Ci.nsIInterfaceRequestor).
         getInterface(Ci.nsIDOMWindowUtils).
-        preventFurtherDialogs();
+        disableDialogs();
     }
   },
 

@@ -505,11 +505,13 @@ public:
 
   
   
-  bool DialogsAreBlocked(bool *aBeingAbused);
-
   
   
   
+  
+  
+  
+  bool ShouldPromptToBlockDialogs();
   bool DialogsAreBeingAbused();
 
   
@@ -518,7 +520,19 @@ public:
   bool ConfirmDialogIfNeeded();
 
   
-  void PreventFurtherDialogs(bool aPermanent);
+  
+  
+  
+  
+  
+  
+  
+  
+  void EnableDialogs();
+  void DisableDialogs();
+  bool AreDialogsEnabled();
+  void LimitDialogs();
+  bool CanDialogCurrentlyBeShown();
 
   virtual void SetHasAudioAvailableEventListeners();
 
