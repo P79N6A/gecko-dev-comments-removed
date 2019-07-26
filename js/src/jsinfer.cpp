@@ -2390,9 +2390,13 @@ TypeInferenceSupported()
 #endif
 
 #if WTF_ARM_ARCH_VERSION == 6
+#ifdef  JS_ION
+    return js::ion::hasVFP();
+#else
     
     
     return false;
+#endif
 #endif
 
     return true;
