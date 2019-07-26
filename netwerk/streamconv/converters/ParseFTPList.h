@@ -3,6 +3,9 @@
 
 
 
+#ifndef ParseRTPList_h___
+#define ParseRTPList_h___
+
 #include <stdint.h>
 #include <string.h>
 #include "prtime.h"
@@ -94,7 +97,8 @@ struct list_result
                                   
 };
 
-int ParseFTPList(const char *line, 
+int ParseFTPList(const char *line,
                  struct list_state *state,
                  struct list_result *result );
 
+#endif 
