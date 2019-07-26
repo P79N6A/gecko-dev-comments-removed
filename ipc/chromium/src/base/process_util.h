@@ -271,17 +271,6 @@ class NamedProcessIterator {
 
 
 
-
-struct FreeMBytes {
-  size_t total;
-  size_t largest;
-  void* largest_ptr;
-};
-
-
-
-
-
 class ProcessMetrics {
  public:
   
