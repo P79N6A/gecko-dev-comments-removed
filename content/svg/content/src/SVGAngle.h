@@ -3,7 +3,8 @@
 
 
 
-#pragma once
+#ifndef mozilla_dom_SVGAngle_h
+#define mozilla_dom_SVGAngle_h
 
 #include "nsWrapperCache.h"
 #include "nsSVGElement.h"
@@ -11,21 +12,10 @@
 
 class nsSVGAngle;
 
-
-
-
-
-
-#define MOZILLA_SVGANGLE_IID \
-{0x2cd27ef5, 0x81d8, 0x4720, \
-  {0x81, 0x42, 0x66, 0xc6, 0xa9, 0xbe, 0xc3, 0xeb } }
-
-
 namespace mozilla {
 namespace dom {
 
-class SVGAngle MOZ_FINAL : public nsISupports,
-                           public nsWrapperCache
+class SVGAngle MOZ_FINAL : public nsWrapperCache
 {
 public:
   typedef enum {
@@ -34,9 +24,8 @@ public:
     CreatedValue
   } AngleType;
 
-  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_SVGANGLE_IID)
-  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(SVGAngle)
+  NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(SVGAngle)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(SVGAngle)
 
   SVGAngle(nsSVGAngle* aVal, nsSVGElement *aSVGElement, AngleType aType)
     : mVal(aVal), mSVGElement(aSVGElement), mType(aType)
@@ -66,8 +55,7 @@ protected:
   AngleType mType;
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(SVGAngle, MOZILLA_SVGANGLE_IID)
-
 } 
 } 
 
+#endif 
