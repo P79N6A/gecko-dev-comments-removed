@@ -336,7 +336,7 @@ pref("browser.download.manager.scanWhenDone", true);
 pref("browser.download.manager.resumeOnWakeDelay", 10000);
 
 
-pref("browser.download.useJSTransfer", true);
+pref("browser.download.useJSTransfer", false);
 
 
 pref("browser.download.useToolkitUI", false);
