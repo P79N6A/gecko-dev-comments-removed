@@ -5,7 +5,10 @@
     var embed = document.getElementsByTagName('embed')[0];
     if (undefined === embed)
       embed = document.getElementsByTagName('object')[0];
-    try {
+
+    
+    
+    if (testframe.contentDocument) {
       var content = testframe.contentDocument.body.innerHTML;
       if (!content.length)
         return;
@@ -14,7 +17,7 @@
           embed.getAttribute("geturl") ||
           embed.getAttribute("geturlnotify") ||
           embed.getAttribute("data");
-      
+
       var req = new XMLHttpRequest();
       req.open('GET', filename, false);
       req.overrideMimeType('text/plain; charset=x-user-defined');
@@ -23,18 +26,7 @@
       is(content, req.responseText.replace(/\r\n/g, "\n"),
          "content doesn't match");
     }
-    catch (e) {
-      
-      
-      
 
-      
-      
-      
-      ok(e.message.indexOf("Permission denied") > -1 &&
-         e.message.indexOf("access property 'body'") > -1,
-         "Unexpected exception thrown: " + e.message);
-    }
     is(embed.getError(), "pass", "plugin reported error");
     SimpleTest.finish();
   }
