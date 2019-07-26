@@ -1035,7 +1035,6 @@ nsGlobalWindow::nsGlobalWindow(nsGlobalWindow *aOuterWindow)
     mSetOpenerWindowCalled(false),
 #endif
     mCleanedUp(false),
-    mCallCleanUpAfterModalDialogCloses(false),
     mDialogAbuseCount(0),
     mStopAbuseDialogs(false),
     mDialogsPermanentlyDisabled(false)
@@ -1253,7 +1252,7 @@ nsGlobalWindow::~nsGlobalWindow()
   
   
   if (IsInnerWindow()) {
-    CleanUp(true);
+    CleanUp();
   } else {
     MOZ_ASSERT(mCleanedUp);
   }
@@ -1323,20 +1322,8 @@ nsGlobalWindow::MaybeForgiveSpamCount()
 }
 
 void
-nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
+nsGlobalWindow::CleanUp()
 {
-  if (IsOuterWindow() && !aIgnoreModalDialog) {
-    nsGlobalWindow* inner = GetCurrentInnerWindowInternal();
-    nsCOMPtr<nsIDOMModalContentWindow> dlg(do_QueryObject(inner));
-    if (dlg) {
-      
-      
-      
-      mCallCleanUpAfterModalDialogCloses = true;
-      return;
-    }
-  }
-
   
   if (mCleanedUp)
     return;
@@ -1404,7 +1391,7 @@ nsGlobalWindow::CleanUp(bool aIgnoreModalDialog)
   nsGlobalWindow *inner = GetCurrentInnerWindowInternal();
 
   if (inner) {
-    inner->CleanUp(aIgnoreModalDialog);
+    inner->CleanUp();
   }
 
   DisableGamepadUpdates();
@@ -2783,7 +2770,7 @@ nsGlobalWindow::DetachFromDocShell()
   }
 
   MaybeForgiveSpamCount();
-  CleanUp(false);
+  CleanUp();
 }
 
 void
@@ -7247,7 +7234,7 @@ nsGlobalWindow::ReallyCloseWindow()
       }
     }
 
-    CleanUp(false);
+    CleanUp();
   }
 }
 
@@ -7827,11 +7814,6 @@ nsGlobalWindow::ShowModalDialog(const nsAString& aURI, nsIVariant *aArgs_,
   if (dialog) {
     rv = dialog->GetReturnValue(aRetVal);
     MOZ_ASSERT(NS_SUCCEEDED(rv));
-    nsGlobalModalWindow *win = static_cast<nsGlobalModalWindow*>(dialog.get());
-    if (win->mCallCleanUpAfterModalDialogCloses) {
-      win->mCallCleanUpAfterModalDialogCloses = false;
-      win->CleanUp(true);
-    }
   }
 
   return NS_OK;
