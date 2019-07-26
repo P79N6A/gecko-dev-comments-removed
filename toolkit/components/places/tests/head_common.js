@@ -393,23 +393,6 @@ function check_no_bookmarks() {
 
 
 
-
-
-
-function setPageTitle(aURI, aTitle) {
-  PlacesUtils.history.setPageTitle(aURI, aTitle);
-}
-
-
-
-
-
-
-
-
-
-
-
 function promiseTopicObserved(aTopic)
 {
   let deferred = Promise.defer();
