@@ -571,12 +571,18 @@ class CallCompiler : public BaseCompiler
         Assembler masm;
         Registers regs(Registers::AvailRegs);
 
+        
         regs.takeReg(Registers::ClobberInCall);
 
         
-        RegisterID funObjReg = regs.takeAnyReg().reg();
-        if (ic.funObjReg != funObjReg)
+        RegisterID funObjReg = ic.funObjReg;
+        if (funObjReg == Registers::ClobberInCall) {
+            funObjReg = regs.takeAnyReg().reg();
             masm.move(ic.funObjReg, funObjReg);
+        } else {
+            
+            regs.takeReg(funObjReg);
+        }
 
         size_t argc = ic.frameSize.staticArgc();
 
