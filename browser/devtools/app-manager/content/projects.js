@@ -356,25 +356,15 @@ let UI = {
       loop(0);
       return deferred.promise;
     };
-    let onTargetReady = (target) => {
-      
-      let deferred = promise.defer();
-      gDevTools.showToolbox(target,
-                            null,
-                            devtools.Toolbox.HostType.WINDOW).then(toolbox => {
-        this.connection.once(Connection.Events.DISCONNECTED, () => {
-          toolbox.destroy();
-        });
-        deferred.resolve(toolbox);
-      });
-      return deferred.promise;
-    };
 
     
     this.start(project)
         .then(null, onFailedToStart)
         .then(onStarted)
-        .then(onTargetReady)
+        .then((target) =>
+          top.UI.openAndShowToolboxForTarget(target,
+                                             project.manifest.name,
+                                             project.icon))
         .then(() => {
            
            button.disabled = false;
