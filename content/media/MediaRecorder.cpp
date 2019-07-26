@@ -61,8 +61,10 @@ NS_IMPL_RELEASE_INHERITED(MediaRecorder, nsDOMEventTargetHelper)
 
 
 
-class MediaRecorder::Session
+class MediaRecorder::Session: public nsIObserver
 {
+  NS_DECL_THREADSAFE_ISUPPORTS
+
   
   
   class PushBlobRunnable : public nsRunnable
@@ -114,7 +116,7 @@ class MediaRecorder::Session
   class DestroyRunnable : public nsRunnable
   {
   public:
-    DestroyRunnable(Session *aSession)
+    DestroyRunnable(const already_AddRefed<Session> &aSession)
       : mSession(aSession) {}
 
     NS_IMETHODIMP Run()
@@ -124,10 +126,14 @@ class MediaRecorder::Session
 
       
       
+      
+      
+      
       if (recorder->mState != RecordingState::Inactive) {
         ErrorResult result;
         recorder->Stop(result);
         NS_DispatchToMainThread(new DestroyRunnable(mSession.forget()));
+
         return NS_OK;
       }
 
@@ -135,14 +141,12 @@ class MediaRecorder::Session
       recorder->DispatchSimpleEvent(NS_LITERAL_STRING("stop"));
       recorder->SetMimeType(NS_LITERAL_STRING(""));
 
-      
-      mSession = nullptr;
-
       return NS_OK;
     }
 
   private:
-    nsAutoPtr<Session> mSession;
+    
+    nsRefPtr<Session> mSession;
   };
 
   friend class PushBlobRunnable;
@@ -156,21 +160,16 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    AddRef();
     mEncodedBufferCache = new EncodedBufferCache(MAX_ALLOW_MEMORY_BUFFER);
   }
 
   
-  ~Session()
+  virtual ~Session()
   {
     MOZ_ASSERT(NS_IsMainThread());
 
-    if (mInputPort.get()) {
-      mInputPort->Destroy();
-    }
-
-    if (mTrackUnionStream.get()) {
-      mTrackUnionStream->Destroy();
-    }
+    CleanupStreams();
   }
 
   void Start()
@@ -183,16 +182,15 @@ public:
     if (!mReadThread) {
       nsresult rv = NS_NewNamedThread("Media Encoder", getter_AddRefs(mReadThread));
       if (NS_FAILED(rv)) {
-        if (mInputPort.get()) {
-          mInputPort->Destroy();
-        }
-        if (mTrackUnionStream.get()) {
-          mTrackUnionStream->Destroy();
-        }
+        CleanupStreams();
         mRecorder->NotifyError(rv);
         return;
       }
     }
+
+    
+    
+    nsContentUtils::RegisterShutdownObserver(this);
 
     mReadThread->Dispatch(new ExtractRunnable(this), NS_DISPATCH_NORMAL);
   }
@@ -201,18 +199,8 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
-    
-    if (mInputPort.get())
-    {
-      mInputPort->Destroy();
-      mInputPort = nullptr;
-    }
-
-    if (mTrackUnionStream.get())
-    {
-      mTrackUnionStream->Destroy();
-      mTrackUnionStream = nullptr;
-    }
+    CleanupStreams();
+    nsContentUtils::UnregisterShutdownObserver(this);
   }
 
   void Pause()
@@ -233,6 +221,7 @@ public:
   {
     nsString mimeType;
     mRecorder->GetMimeType(mimeType);
+
     return mEncodedBufferCache->ExtractBlob(mimeType);
   }
 
@@ -273,7 +262,7 @@ private:
     NS_DispatchToMainThread(new PushBlobRunnable(this));
 
     
-    NS_DispatchToMainThread(new DestroyRunnable(this));
+    NS_DispatchToMainThread(new DestroyRunnable(already_AddRefed<Session>(this)));
   }
 
   
@@ -281,12 +270,14 @@ private:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    
     MediaStreamGraph* gm = mRecorder->mStream->GetStream()->Graph();
     mTrackUnionStream = gm->CreateTrackUnionStream(nullptr);
     MOZ_ASSERT(mTrackUnionStream, "CreateTrackUnionStream failed");
 
     mTrackUnionStream->SetAutofinish(true);
 
+    
     mInputPort = mTrackUnionStream->AllocateInputPort(mRecorder->mStream->GetStream(), MediaInputPort::FLAG_BLOCK_OUTPUT);
 
     
@@ -298,11 +289,37 @@ private:
     }
   }
 
+  void CleanupStreams()
+  {
+    if (mInputPort.get()) {
+      mInputPort->Destroy();
+      mInputPort = nullptr;
+    }
+
+    if (mTrackUnionStream.get()) {
+      mTrackUnionStream->Destroy();
+      mTrackUnionStream = nullptr;
+    }
+  }
+
+  NS_IMETHODIMP Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
+      
+      Stop();
+    }
+
+    return NS_OK;
+  }
+
 private:
   
   
   nsRefPtr<MediaRecorder> mRecorder;
 
+  
   
   nsRefPtr<ProcessedMediaStream> mTrackUnionStream;
   nsRefPtr<MediaInputPort> mInputPort;
@@ -319,6 +336,8 @@ private:
   
   const int32_t mTimeSlice;
 };
+
+NS_IMPL_ISUPPORTS1(MediaRecorder::Session, nsIObserver)
 
 MediaRecorder::~MediaRecorder()
 {
