@@ -40,7 +40,13 @@ static const double NONSEEKABLE_READAHEAD_MAX = 0.5;
 
 
 
-static const uint32_t REPLAY_DELAY = 30;
+
+
+
+
+
+
+static const uint32_t REPLAY_PENALTY_FACTOR = 3;
 
 
 
@@ -932,15 +938,20 @@ MediaCache::PredictNextUse(TimeStamp aNow, int32_t aBlock)
       
       prediction = aNow - bo->mLastUseTime;
       break;
-    case PLAYED_BLOCK:
+    case PLAYED_BLOCK: {
       
       
       NS_ASSERTION(static_cast<int64_t>(bo->mStreamBlock)*BLOCK_SIZE <
                    bo->mStream->mStreamOffset,
                    "Played block after the current stream position?");
-      prediction = aNow - bo->mLastUseTime +
-        TimeDuration::FromSeconds(REPLAY_DELAY);
+      int64_t bytesBehind =
+        bo->mStream->mStreamOffset - static_cast<int64_t>(bo->mStreamBlock)*BLOCK_SIZE;
+      int64_t millisecondsBehind =
+        bytesBehind*1000/bo->mStream->mPlaybackBytesPerSecond;
+      prediction = TimeDuration::FromMilliseconds(
+          NS_MIN<int64_t>(millisecondsBehind*REPLAY_PENALTY_FACTOR, INT32_MAX));
       break;
+    }
     case READAHEAD_BLOCK: {
       int64_t bytesAhead =
         static_cast<int64_t>(bo->mStreamBlock)*BLOCK_SIZE - bo->mStream->mStreamOffset;
