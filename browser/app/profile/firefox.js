@@ -1525,9 +1525,6 @@ pref("social.sidebar.unload_timeout_ms", 10000);
 pref("dom.identity.enabled", false);
 
 
-pref("security.csp.speccompliant", true);
-
-
 pref("security.mixed_content.block_active_content", true);
 
 

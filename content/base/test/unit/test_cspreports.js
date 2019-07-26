@@ -63,8 +63,9 @@ function makeTest(id, expectedJSON, useReportOnlyPolicy, callback) {
 
   
   var csp = Cc["@mozilla.org/contentsecuritypolicy;1"]
+  
               .createInstance(Ci.nsIContentSecurityPolicy);
-  var policy = "allow 'none'; " +
+  var policy = "default-src 'none'; " +
                "report-uri " + REPORT_SERVER_URI +
                                ":" + REPORT_SERVER_PORT +
                                "/test" + id;
@@ -80,7 +81,7 @@ function makeTest(id, expectedJSON, useReportOnlyPolicy, callback) {
 
   
   
-  csp.appendPolicy(policy, selfuri, useReportOnlyPolicy, false);
+  csp.appendPolicy(policy, selfuri, useReportOnlyPolicy, true);
 
   
   var handler = makeReportHandler("/test" + id, "Test " + id, expectedJSON);

@@ -2682,18 +2682,9 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   }
 
   nsAutoCString tCspHeaderValue, tCspROHeaderValue;
-  nsAutoCString tCspOldHeaderValue, tCspOldROHeaderValue;
 
   nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(aChannel);
   if (httpChannel) {
-    httpChannel->GetResponseHeader(
-        NS_LITERAL_CSTRING("x-content-security-policy"),
-        tCspOldHeaderValue);
-
-    httpChannel->GetResponseHeader(
-        NS_LITERAL_CSTRING("x-content-security-policy-report-only"),
-        tCspOldROHeaderValue);
-
     httpChannel->GetResponseHeader(
         NS_LITERAL_CSTRING("content-security-policy"),
         tCspHeaderValue);
@@ -2704,35 +2695,6 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   }
   NS_ConvertASCIItoUTF16 cspHeaderValue(tCspHeaderValue);
   NS_ConvertASCIItoUTF16 cspROHeaderValue(tCspROHeaderValue);
-  NS_ConvertASCIItoUTF16 cspOldHeaderValue(tCspOldHeaderValue);
-  NS_ConvertASCIItoUTF16 cspOldROHeaderValue(tCspOldROHeaderValue);
-
-  
-  
-  
-  bool specCompliantEnabled =
-    Preferences::GetBool("security.csp.speccompliant");
-
-  
-  if ((!cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty()) &&
-       !specCompliantEnabled) {
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-            ("Got spec compliant CSP headers but pref was not set"));
-    cspHeaderValue.Truncate();
-    cspROHeaderValue.Truncate();
-  }
-
-  
-  
-  
-  bool oldHeaderIsPresent = !cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty();
-  bool newHeaderIsPresent = !cspHeaderValue.IsEmpty() || !cspROHeaderValue.IsEmpty();
-
-  if (oldHeaderIsPresent && newHeaderIsPresent) {
-    mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
-  } else if (oldHeaderIsPresent) {
-    mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
-  }
 
   
   nsIPrincipal* principal = NodePrincipal();
@@ -2760,9 +2722,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   if (!applyAppDefaultCSP &&
       !applyAppManifestCSP &&
       cspHeaderValue.IsEmpty() &&
-      cspROHeaderValue.IsEmpty() &&
-      cspOldHeaderValue.IsEmpty() &&
-      cspOldROHeaderValue.IsEmpty()) {
+      cspROHeaderValue.IsEmpty()) {
 #ifdef PR_LOGGING
     nsCOMPtr<nsIURI> chanURI;
     aChannel->GetURI(getter_AddRefs(chanURI));
@@ -2812,7 +2772,7 @@ nsDocument::InitCSP(nsIChannel* aChannel)
   
   
 
-  if (newHeaderIsPresent && CSPService::sNewBackendEnabled) {
+  if (CSPService::sNewBackendEnabled) {
     csp = do_CreateInstance("@mozilla.org/cspcontext;1", &rv);
   }
   else {
@@ -2845,35 +2805,24 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
 
     if (appCSP) {
-      
-      csp->AppendPolicy(appCSP, selfURI, false, specCompliantEnabled);
+      csp->AppendPolicy(appCSP, selfURI, false, true);
     }
   }
 
   
   if (applyAppManifestCSP) {
-    
-    csp->AppendPolicy(appManifestCSP, selfURI, false, specCompliantEnabled);
+    csp->AppendPolicy(appManifestCSP, selfURI, false, true);
   }
-
-  
-  
 
   
   if (!cspHeaderValue.IsEmpty()) {
     rv = AppendCSPFromHeader(csp, cspHeaderValue, selfURI, false, true);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else if (!cspOldHeaderValue.IsEmpty()) {
-    rv = AppendCSPFromHeader(csp, cspOldHeaderValue, selfURI, false, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
   if (!cspROHeaderValue.IsEmpty()) {
     rv = AppendCSPFromHeader(csp, cspROHeaderValue, selfURI, true, true);
-    NS_ENSURE_SUCCESS(rv, rv);
-  } else if (!cspOldROHeaderValue.IsEmpty()) {
-    rv = AppendCSPFromHeader(csp, cspOldROHeaderValue, selfURI, true, false);
     NS_ENSURE_SUCCESS(rv, rv);
   }
 

@@ -193,7 +193,7 @@ CSPPolicyURIListener.prototype = {
       
       
       this._csp.appendPolicy(this._policy, this._docURI,
-                             this._reportOnly, this._csp._specCompliant);
+                             this._reportOnly, true);
     }
     else {
       
@@ -202,7 +202,7 @@ CSPPolicyURIListener.prototype = {
       this._csp.log(WARN_FLAG, CSPLocalizer.getFormatStr("errorFetchingPolicy",
                                                          [status]));
       this._csp.appendPolicy("default-src 'none'", this._docURI,
-                             this._reportOnly, this._csp._specCompliant);
+                             this._reportOnly, true);
     }
     
     this._docRequest.resume();
@@ -214,48 +214,22 @@ CSPPolicyURIListener.prototype = {
 
 
 
-
-
-
-
-
-this.CSPRep = function CSPRep(aSpecCompliant) {
+this.CSPRep = function CSPRep() {
   
   
   this._isInitialized = false;
 
   this._allowEval = false;
   this._allowInlineScripts = false;
+  this._allowInlineStyles = false;
   this._reportOnlyMode = false;
 
   
   this._directives = {};
-
-  
-  
-  this._specCompliant = (aSpecCompliant !== undefined) ? aSpecCompliant : false;
-
-  
-  this._allowInlineStyles = !aSpecCompliant;
 }
 
 
-
-CSPRep.SRC_DIRECTIVES_OLD = {
-  DEFAULT_SRC:      "default-src",
-  SCRIPT_SRC:       "script-src",
-  STYLE_SRC:        "style-src",
-  MEDIA_SRC:        "media-src",
-  IMG_SRC:          "img-src",
-  OBJECT_SRC:       "object-src",
-  FRAME_SRC:        "frame-src",
-  FRAME_ANCESTORS:  "frame-ancestors",
-  FONT_SRC:         "font-src",
-  XHR_SRC:          "xhr-src"
-};
-
-
-CSPRep.SRC_DIRECTIVES_NEW = {
+CSPRep.SRC_DIRECTIVES = {
   DEFAULT_SRC:      "default-src",
   SCRIPT_SRC:       "script-src",
   STYLE_SRC:        "style-src",
@@ -273,11 +247,6 @@ CSPRep.URI_DIRECTIVES = {
   POLICY_URI:       "policy-uri"  
 };
 
-
-
-
-CSPRep.OPTIONS_DIRECTIVE = "options";
-CSPRep.ALLOW_DIRECTIVE   = "allow";
 
 
 
@@ -301,268 +270,9 @@ CSPRep.ALLOW_DIRECTIVE   = "allow";
 
 CSPRep.fromString = function(aStr, self, reportOnly, docRequest, csp,
                              enforceSelfChecks) {
-  var SD = CSPRep.SRC_DIRECTIVES_OLD;
+  var SD = CSPRep.SRC_DIRECTIVES;
   var UD = CSPRep.URI_DIRECTIVES;
   var aCSPR = new CSPRep();
-  aCSPR._originalText = aStr;
-  aCSPR._innerWindowID = innerWindowFromRequest(docRequest);
-  if (typeof reportOnly === 'undefined') reportOnly = false;
-  aCSPR._reportOnlyMode = reportOnly;
-
-  var selfUri = null;
-  if (self instanceof Ci.nsIURI) {
-    selfUri = self.cloneIgnoringRef();
-    
-    
-    try {
-      
-      selfUri.userPass = '';
-    } catch (ex) {}
-  }
-
-  var dirs = aStr.split(";");
-
-  directive:
-  for each(var dir in dirs) {
-    dir = dir.trim();
-    if (dir.length < 1) continue;
-
-    var dirname = dir.split(/\s+/)[0].toLowerCase();
-    var dirvalue = dir.substring(dirname.length).trim();
-
-    if (aCSPR._directives.hasOwnProperty(dirname)) {
-      
-      cspError(aCSPR, CSPLocalizer.getFormatStr("duplicateDirective",
-                                                [dirname]));
-      CSPdebug("Skipping duplicate directive: \"" + dir + "\"");
-      continue directive;
-    }
-
-    
-    if (dirname === CSPRep.OPTIONS_DIRECTIVE) {
-      if (aCSPR._allowInlineScripts || aCSPR._allowEval) {
-        
-        cspError(aCSPR, CSPLocalizer.getFormatStr("duplicateDirective",
-                                                  [dirname]));
-        CSPdebug("Skipping duplicate directive: \"" + dir + "\"");
-        continue directive;
-      }
-
-      
-      var options = dirvalue.split(/\s+/);
-      for each (var opt in options) {
-        if (opt === "inline-script")
-          aCSPR._allowInlineScripts = true;
-        else if (opt === "eval-script")
-          aCSPR._allowEval = true;
-        else
-          cspWarn(aCSPR, CSPLocalizer.getFormatStr("ignoringUnknownOption",
-                                                   [opt]));
-      }
-      continue directive;
-    }
-
-    
-    
-    
-    if (dirname === CSPRep.ALLOW_DIRECTIVE) {
-      cspWarn(aCSPR, CSPLocalizer.getStr("allowDirectiveIsDeprecated"));
-      if (aCSPR._directives.hasOwnProperty(SD.DEFAULT_SRC)) {
-        
-        cspError(aCSPR, CSPLocalizer.getFormatStr("duplicateDirective",
-                                                  [dirname]));
-        CSPdebug("Skipping duplicate directive: \"" + dir + "\"");
-        continue directive;
-      }
-      var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri,
-                                        enforceSelfChecks);
-      if (dv) {
-        aCSPR._directives[SD.DEFAULT_SRC] = dv;
-        continue directive;
-      }
-    }
-
-    
-    for each(var sdi in SD) {
-      if (dirname === sdi) {
-        
-        var dv = CSPSourceList.fromString(dirvalue, aCSPR, selfUri,
-                                          enforceSelfChecks);
-        if (dv) {
-          aCSPR._directives[sdi] = dv;
-          continue directive;
-        }
-      }
-    }
-
-    
-    if (dirname === UD.REPORT_URI) {
-      
-      var uriStrings = dirvalue.split(/\s+/);
-      var okUriStrings = [];
-
-      for (let i in uriStrings) {
-        var uri = null;
-        try {
-          
-          
-          
-          uri = gIoService.newURI(uriStrings[i],null,selfUri);
-
-          
-          
-          uri.host;
-
-          
-          
-          
-          
-          if (!uri.schemeIs("http") && !uri.schemeIs("https")) {
-            cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotHttpsOrHttp2",
-                                                     [uri.asciiSpec]));
-          }
-        } catch(e) {
-          switch (e.result) {
-            case Components.results.NS_ERROR_INSUFFICIENT_DOMAIN_LEVELS:
-            case Components.results.NS_ERROR_HOST_IS_IP_ADDRESS:
-              if (uri.host !== selfUri.host) {
-                cspWarn(aCSPR,
-                        CSPLocalizer.getFormatStr("pageCannotSendReportsTo",
-                                                  [selfUri.host, uri.host]));
-                continue;
-              }
-              break;
-
-            default:
-              cspWarn(aCSPR, CSPLocalizer.getFormatStr("couldNotParseReportURI",
-                                                       [uriStrings[i]]));
-              continue;
-          }
-        }
-        
-        okUriStrings.push(uri.asciiSpec);
-      }
-      aCSPR._directives[UD.REPORT_URI] = okUriStrings.join(' ');
-      continue directive;
-    }
-
-    
-    if (dirname === UD.POLICY_URI) {
-      
-      if (aCSPR._directives.length > 0 || dirs.length > 1) {
-        cspError(aCSPR, CSPLocalizer.getStr("policyURINotAlone"));
-        return CSPRep.fromString("default-src 'none'", null, reportOnly);
-      }
-      
-      
-      if (!docRequest || !csp) {
-        cspError(aCSPR, CSPLocalizer.getStr("noParentRequest"));
-        return CSPRep.fromString("default-src 'none'", null, reportOnly);
-      }
-
-      var uri = '';
-      try {
-        uri = gIoService.newURI(dirvalue, null, selfUri);
-      } catch(e) {
-        cspError(aCSPR, CSPLocalizer.getFormatStr("policyURIParseError",
-                                                  [dirvalue]));
-        return CSPRep.fromString("default-src 'none'", null, reportOnly);
-      }
-
-      
-      if (selfUri) {
-        if (selfUri.host !== uri.host) {
-          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingHost",
-                                                    [uri.host]));
-          return CSPRep.fromString("default-src 'none'", null, reportOnly);
-        }
-        if (selfUri.port !== uri.port) {
-          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingPort",
-                                                    [uri.port.toString()]));
-          return CSPRep.fromString("default-src 'none'", null, reportOnly);
-        }
-        if (selfUri.scheme !== uri.scheme) {
-          cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingScheme",
-                                                    [uri.scheme]));
-          return CSPRep.fromString("default-src 'none'", null, reportOnly);
-        }
-      }
-
-      
-      try {
-        docRequest.suspend();
-        var chan = gIoService.newChannel(uri.asciiSpec, null, null);
-        
-        
-        chan.loadFlags |= Ci.nsIChannel.LOAD_ANONYMOUS;
-        chan.loadGroup = docRequest.loadGroup;
-        chan.asyncOpen(new CSPPolicyURIListener(uri, docRequest, csp, reportOnly), null);
-      }
-      catch (e) {
-        
-        docRequest.resume();
-        cspError(aCSPR, CSPLocalizer.getFormatStr("errorFetchingPolicy",
-                                                  [e.toString()]));
-        return CSPRep.fromString("default-src 'none'", null, reportOnly);
-      }
-
-      
-      
-      return CSPRep.fromString("default-src *", null, reportOnly);
-    }
-
-    
-    cspWarn(aCSPR, CSPLocalizer.getFormatStr("couldNotProcessUnknownDirective",
-                                             [dirname]));
-
-  } 
-
-  
-  
-  if (!aCSPR._directives[SD.DEFAULT_SRC]) {
-    cspWarn(aCSPR, CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
-    return CSPRep.fromString("default-src 'none'", null, reportOnly);
-  }
-
-  
-  
-  
-  if (aCSPR._reportOnlyMode && !aCSPR._directives.hasOwnProperty(UD.REPORT_URI)) {
-    cspWarn(aCSPR, CSPLocalizer.getFormatStr("reportURInotInReportOnlyHeader",
-                                             [selfUri ? selfUri.prePath : "undefined"]))
-  }
-
-  return aCSPR;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, csp,
-                                          enforceSelfChecks) {
-  var SD = CSPRep.SRC_DIRECTIVES_NEW;
-  var UD = CSPRep.URI_DIRECTIVES;
-  var aCSPR = new CSPRep(true);
   aCSPR._originalText = aStr;
   aCSPR._innerWindowID = innerWindowFromRequest(docRequest);
   if (typeof reportOnly === 'undefined') reportOnly = false;
@@ -587,7 +297,10 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
 
     var dirname = dir.split(/\s+/)[0].toLowerCase();
     var dirvalue = dir.substring(dirname.length).trim();
-    dirs[dirname] = dirvalue;
+    
+    if (!dirs.hasOwnProperty(dirname)) {
+      dirs[dirname] = dirvalue;
+    }
   }
 
   
@@ -712,13 +425,13 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
       
       if (aCSPR._directives.length > 0 || dirs.length > 1) {
         cspError(aCSPR, CSPLocalizer.getStr("policyURINotAlone"));
-        return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+        return CSPRep.fromString("default-src 'none'", null, reportOnly);
       }
       
       
       if (!docRequest || !csp) {
         cspError(aCSPR, CSPLocalizer.getStr("noParentRequest"));
-        return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+        return CSPRep.fromString("default-src 'none'", null, reportOnly);
       }
 
       var uri = '';
@@ -726,22 +439,22 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
         uri = gIoService.newURI(dirvalue, null, selfUri);
       } catch(e) {
         cspError(aCSPR, CSPLocalizer.getFormatStr("policyURIParseError", [dirvalue]));
-        return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+        return CSPRep.fromString("default-src 'none'", null, reportOnly);
       }
 
       
       if (selfUri) {
         if (selfUri.host !== uri.host){
           cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingHost", [uri.host]));
-          return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+          return CSPRep.fromString("default-src 'none'", null, reportOnly);
         }
         if (selfUri.port !== uri.port){
           cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingPort", [uri.port.toString()]));
-          return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+          return CSPRep.fromString("default-src 'none'", null, reportOnly);
         }
         if (selfUri.scheme !== uri.scheme){
           cspError(aCSPR, CSPLocalizer.getFormatStr("nonMatchingScheme", [uri.scheme]));
-          return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+          return CSPRep.fromString("default-src 'none'", null, reportOnly);
         }
       }
 
@@ -759,12 +472,12 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, reportOnly, docRequest, cs
         
         docRequest.resume();
         cspError(aCSPR, CSPLocalizer.getFormatStr("errorFetchingPolicy", [e.toString()]));
-        return CSPRep.fromStringSpecCompliant("default-src 'none'", null, reportOnly);
+        return CSPRep.fromString("default-src 'none'", null, reportOnly);
       }
 
       
       
-      return CSPRep.fromStringSpecCompliant("default-src *", null, reportOnly);
+      return CSPRep.fromString("default-src *", null, reportOnly);
     }
 
     
@@ -819,10 +532,6 @@ CSPRep.prototype = {
   function csp_toString() {
     var dirs = [];
 
-    if (!this._specCompliant && (this._allowEval || this._allowInlineScripts)) {
-      dirs.push("options" + (this._allowEval ? " eval-script" : "")
-                           + (this._allowInlineScripts ? " inline-script" : ""));
-    }
     for (var i in this._directives) {
       if (this._directives[i]) {
         dirs.push(i + " " + this._directives[i].toString());
@@ -867,7 +576,7 @@ CSPRep.prototype = {
       return true;
 
     
-    let DIRS = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
+    let DIRS = CSPRep.SRC_DIRECTIVES;
 
     let directiveInPolicy = false;
     for (var i in DIRS) {
@@ -905,7 +614,7 @@ CSPRep.prototype = {
 
     
     
-    return this._specCompliant;
+    return true;
   },
 
   
@@ -1541,7 +1250,11 @@ CSPSource.prototype = {
       s = s + this.scheme + "://";
     if (this._host)
       s = s + this._host;
-    if (this.port)
+
+    
+    
+    
+    if (this.port && gIoService.getProtocolHandler(this.scheme).defaultPort != this.port)
       s = s + ":" + this.port;
     return s;
   },
