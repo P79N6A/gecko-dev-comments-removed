@@ -408,13 +408,6 @@ public:
     bool UseGraphiteShaping();
 
     
-
-
-
-
-    bool UseHarfBuzzForScript(int32_t aScriptCode);
-
-    
     virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags) { return false; }
 
     void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
@@ -640,9 +633,6 @@ protected:
     
     
     int8_t  mFallbackUsesCmaps;
-
-    
-    int32_t mUseHarfBuzzScripts;
 
     
     int32_t mWordCacheCharLimit;

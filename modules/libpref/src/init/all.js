@@ -424,23 +424,6 @@ pref("gfx.font_rendering.wordcache.maxentries", 10000);
 
 pref("gfx.font_rendering.graphite.enabled", true);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pref("gfx.font_rendering.harfbuzz.scripts", 255);
-
 #ifdef XP_WIN
 pref("gfx.font_rendering.directwrite.enabled", false);
 pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
