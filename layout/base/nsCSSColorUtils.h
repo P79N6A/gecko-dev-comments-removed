@@ -8,16 +8,16 @@
 #ifndef __nsCSSColorUtils_h
 #define __nsCSSColorUtils_h
 
+#include "mozilla/MathAlgorithms.h"
+
 #include "nsColor.h"
-#include <cstdlib> 
-#include <cmath> 
 
 
 
 
 #define NS_SUFFICIENT_LUMINOSITY_DIFFERENCE 125000
 #define NS_LUMINOSITY_DIFFERENCE(a, b) \
-          std::abs(NS_GetLuminosity(a) - NS_GetLuminosity(b))
+          mozilla::Abs(NS_GetLuminosity(a) - NS_GetLuminosity(b))
 
 
 void NS_GetSpecial3DColors(nscolor aResult[2],

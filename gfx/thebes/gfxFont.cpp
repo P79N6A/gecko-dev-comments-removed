@@ -4,6 +4,7 @@
 
 
 #include "mozilla/DebugOnly.h"
+#include "mozilla/MathAlgorithms.h"
 
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
@@ -48,8 +49,6 @@
 #include "sampler.h"
 
 #include <algorithm>
-#include <cstdlib> 
-#include <cmath> 
 
 using namespace mozilla;
 using namespace mozilla::gfx;
@@ -788,7 +787,7 @@ CalcStyleMatch(gfxFontEntry *aFontEntry, const gfxFontStyle *aStyle)
          }
 
         
-        rank += 9 - abs(aFontEntry->Weight() / 100 - aStyle->ComputeWeight());
+        rank += 9 - Abs(aFontEntry->Weight() / 100 - aStyle->ComputeWeight());
     } else {
         
         if (!aFontEntry->IsItalic()) {
@@ -2965,7 +2964,7 @@ gfxFont::InitMetricsFromSfntTables(Metrics& aMetrics)
             
             SET_SIGNED(xHeight, os2->sxHeight);
             
-            aMetrics.xHeight = std::abs(aMetrics.xHeight);
+            aMetrics.xHeight = Abs(aMetrics.xHeight);
         }
         
         if (os2data.Length() >= offsetof(OS2Table, yStrikeoutPosition) +

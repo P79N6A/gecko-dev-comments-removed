@@ -6,12 +6,11 @@
 
 
 
-#include <cmath> 
-#include <cstdlib> 
 #include <ctime>
 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/HashFunctions.h"
+#include "mozilla/MathAlgorithms.h"
 #include "mozilla/Types.h"
 
 #include "nsStyleConsts.h"
@@ -1986,10 +1985,10 @@ ComputeRadialGradientLine(nsPresContext* aPresContext,
 
   
   double radiusX, radiusY;
-  double leftDistance = std::abs(aLineStart->x);
-  double rightDistance = std::abs(aBoxSize.width - aLineStart->x);
-  double topDistance = std::abs(aLineStart->y);
-  double bottomDistance = std::abs(aBoxSize.height - aLineStart->y);
+  double leftDistance = Abs(aLineStart->x);
+  double rightDistance = Abs(aBoxSize.width - aLineStart->x);
+  double topDistance = Abs(aLineStart->y);
+  double bottomDistance = Abs(aBoxSize.height - aLineStart->y);
   switch (aGradient->mSize) {
   case NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE:
     radiusX = std::min(leftDistance, rightDistance);

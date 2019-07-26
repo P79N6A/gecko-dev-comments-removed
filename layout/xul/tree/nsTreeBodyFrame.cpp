@@ -3,10 +3,8 @@
 
 
 
-#include <cmath> 
-#include <cstdlib> 
-
 #include "mozilla/DebugOnly.h"
+#include "mozilla/MathAlgorithms.h"
 #include "mozilla/Likely.h"
 
 #include "nsCOMPtr.h"
@@ -1125,10 +1123,7 @@ nsTreeBodyFrame::GetCoordsForCellItem(int32_t aRow, nsITreeColumn* aCol, const n
     }
     
     PrefillPropertyArray(aRow, currCol);
-
-    nsAutoString properties;
-    mView->GetCellProperties(aRow, currCol, properties);
-    nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+    mView->GetCellProperties(aRow, currCol, mScratchArray);
 
     nsStyleContext* rowContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreerow);
 
@@ -1471,9 +1466,7 @@ nsTreeBodyFrame::GetItemWithinCellAt(nscoord aX, const nsRect& aCellRect,
 
   
   PrefillPropertyArray(aRowIndex, aColumn);
-  nsAutoString properties;
-  mView->GetCellProperties(aRowIndex, aColumn, properties);
-  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+  mView->GetCellProperties(aRowIndex, aColumn, mScratchArray);
 
   
   nsStyleContext* cellContext = GetPseudoStyleContext(nsCSSAnonBoxes::moztreecell);
@@ -1835,7 +1828,7 @@ nsTreeBodyFrame::RowCountChanged(int32_t aIndex, int32_t aCount)
   NS_ASSERTION(rowCount == mRowCount, "row count did not change by the amount suggested, check caller");
 #endif
 
-  int32_t count = std::abs(aCount);
+  int32_t count = Abs(aCount);
   int32_t last = GetLastVisibleRow();
   if (aIndex >= mTopRowIndex && aIndex <= last)
     InvalidateRange(aIndex, last);
@@ -2881,9 +2874,7 @@ nsTreeBodyFrame::PaintColumn(nsTreeColumn*        aColumn,
 
   
   PrefillPropertyArray(-1, aColumn);
-  nsAutoString properties;
-  mView->GetColumnProperties(aColumn, properties);
-  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+  mView->GetColumnProperties(aColumn, mScratchArray);
 
   
   
@@ -2919,10 +2910,7 @@ nsTreeBodyFrame::PaintRow(int32_t              aRowIndex,
   
   
   PrefillPropertyArray(aRowIndex, nullptr);
-
-  nsAutoString properties;
-  mView->GetRowProperties(aRowIndex, properties);
-  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+  mView->GetRowProperties(aRowIndex, mScratchArray);
 
   
   
@@ -3122,9 +3110,7 @@ nsTreeBodyFrame::PaintCell(int32_t              aRowIndex,
   
   
   PrefillPropertyArray(aRowIndex, aColumn);
-  nsAutoString properties;
-  mView->GetCellProperties(aRowIndex, aColumn, properties);
-  nsTreeUtils::TokenizeProperties(properties, mScratchArray);
+  mView->GetCellProperties(aRowIndex, aColumn, mScratchArray);
 
   
   

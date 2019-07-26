@@ -3,12 +3,11 @@
 
 
 #include "mozilla/layers/PLayersChild.h"
+#include "mozilla/MathAlgorithms.h"
 #include "BasicTiledThebesLayer.h"
 #include "gfxImageSurface.h"
 #include "sampler.h"
 #include "gfxPlatform.h"
-#include <cstdlib> 
-#include <cmath> 
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
 #include "cairo.h"
@@ -377,7 +376,7 @@ BasicTiledThebesLayer::ComputeProgressiveUpdateRegion(BasicTiledLayerBuffer& aTi
     if (!aRegionToPaint.IsEmpty()) {
       break;
     }
-    if (std::abs(scrollDiffY) >= std::abs(scrollDiffX)) {
+    if (Abs(scrollDiffY) >= Abs(scrollDiffX)) {
       tileBounds.x += incX;
     } else {
       tileBounds.y += incY;

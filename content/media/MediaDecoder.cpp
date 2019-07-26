@@ -5,6 +5,8 @@
 
 
 #include "MediaDecoder.h"
+#include "mozilla/FloatingPoint.h"
+#include "mozilla/MathAlgorithms.h"
 #include <limits>
 #include "nsNetUtil.h"
 #include "AudioStream.h"
@@ -20,10 +22,7 @@
 #include "MediaResource.h"
 #include "nsError.h"
 #include "mozilla/Preferences.h"
-#include <cstdlib> 
-#include <cmath> 
 #include <algorithm>
-#include <mozilla/FloatingPoint.h>
 
 #ifdef MOZ_WMF
 #include "WMFDecoder.h"
@@ -595,11 +594,11 @@ nsresult MediaDecoder::Seek(double aTime)
         NS_ENSURE_SUCCESS(res, NS_OK);
         res = seekable.Start(range + 1, &rightBound);
         NS_ENSURE_SUCCESS(res, NS_OK);
-        double distanceLeft = std::abs(leftBound - aTime);
-        double distanceRight = std::abs(rightBound - aTime);
+        double distanceLeft = Abs(leftBound - aTime);
+        double distanceRight = Abs(rightBound - aTime);
         if (distanceLeft == distanceRight) {
-          distanceLeft = std::abs(leftBound - mCurrentTime);
-          distanceRight = std::abs(rightBound - mCurrentTime);
+          distanceLeft = Abs(leftBound - mCurrentTime);
+          distanceRight = Abs(rightBound - mCurrentTime);
         } 
         aTime = (distanceLeft < distanceRight) ? leftBound : rightBound;
       } else {

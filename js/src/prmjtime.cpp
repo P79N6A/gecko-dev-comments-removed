@@ -6,6 +6,7 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
 
 #ifdef SOLARIS
 #define _REENTRANT 1
@@ -28,7 +29,6 @@
 #ifdef XP_WIN
 #include <windef.h>
 #include <winbase.h>
-#include <math.h>     
 #include <mmsystem.h> 
 
 #if _MSC_VER >= 1400
@@ -358,7 +358,7 @@ PRMJ_Now(void)
 
 
 
-            if (fabs(diff) > 2*skewThreshold) {
+            if (mozilla::Abs(diff) > 2 * skewThreshold) {
                 
 
                 if (calibrated) {

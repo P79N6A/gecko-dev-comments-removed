@@ -4,6 +4,8 @@
 
 
 
+#include "mozilla/MathAlgorithms.h"
+
 
 #include "nsXULWindow.h"
 #include <algorithm>
@@ -56,8 +58,6 @@
 #include "prenv.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/dom/Element.h"
-#include <cstdlib> 
-#include <cmath> 
 
 using namespace mozilla;
 
@@ -1349,8 +1349,7 @@ void nsXULWindow::StaggerPosition(int32_t &aRequestedX, int32_t &aRequestedY,
           listY = NSToIntRound(listY / scale);
         }
 
-        if (std::abs(listX - aRequestedX) <= kSlop &&
-            std::abs(listY - aRequestedY) <= kSlop) {
+        if (Abs(listX - aRequestedX) <= kSlop && Abs(listY - aRequestedY) <= kSlop) {
           
           if (bouncedX & 0x1)
             aRequestedX -= kOffset;
