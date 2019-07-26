@@ -817,6 +817,15 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
         AssertGraphCoherency(graph);
     }
 
+    
+    
+    
+    
+    if (!EliminateRedundantBoundsChecks(graph))
+        return false;
+    IonSpewPass("Bounds Check Elimination");
+    AssertGraphCoherency(graph);
+
     LIRGraph lir(graph);
     LIRGenerator lirgen(&builder, graph, lir);
     if (!lirgen.generate())

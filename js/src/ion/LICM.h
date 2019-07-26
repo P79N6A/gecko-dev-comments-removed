@@ -43,6 +43,7 @@
 #define jsion_licm_h__
 
 #include "ion/IonAllocPolicy.h"
+#include "ion/IonAnalysis.h"
 #include "ion/MIR.h"
 #include "ion/MIRGraph.h"
 
@@ -64,21 +65,6 @@ class LICM
     LICM(MIRGraph &graph);
     bool analyze();
 };
-
-
-
-struct LinearSum
-{
-    MDefinition *term;
-    int32 constant;
-
-    LinearSum(MDefinition *term, int32 constant)
-        : term(term), constant(constant)
-    {}
-};
-
-LinearSum
-ExtractLinearSum(MDefinition *ins);
 
 
 
@@ -156,4 +142,4 @@ class Loop
 } 
 } 
 
-#endif 
+#endif

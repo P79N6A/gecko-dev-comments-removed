@@ -50,46 +50,6 @@
 using namespace js;
 using namespace js::ion;
 
-
-LinearSum
-ion::ExtractLinearSum(MDefinition *ins)
-{
-    if (ins->type() != MIRType_Int32)
-        return LinearSum(ins, 0);
-
-    if (ins->isConstant()) {
-        const Value &v = ins->toConstant()->value();
-        JS_ASSERT(v.isInt32());
-        return LinearSum(NULL, v.toInt32());
-    } else if (ins->isAdd() || ins->isSub()) {
-        MDefinition *lhs = ins->getOperand(0);
-        MDefinition *rhs = ins->getOperand(1);
-        if (lhs->type() == MIRType_Int32 && rhs->type() == MIRType_Int32) {
-            LinearSum lsum = ExtractLinearSum(lhs);
-            LinearSum rsum = ExtractLinearSum(rhs);
-
-            JS_ASSERT(lsum.term || rsum.term);
-            if (lsum.term && rsum.term)
-                return LinearSum(ins, 0);
-
-            
-            if (ins->isAdd()) {
-                int32 constant;
-                if (!SafeAdd(lsum.constant, rsum.constant, &constant))
-                    return LinearSum(ins, 0);
-                return LinearSum(lsum.term ? lsum.term : rsum.term, constant);
-            } else if (lsum.term) {
-                int32 constant;
-                if (!SafeSub(lsum.constant, rsum.constant, &constant))
-                    return LinearSum(ins, 0);
-                return LinearSum(lsum.term, constant);
-            }
-        }
-    }
-
-    return LinearSum(ins, 0);
-}
-
 bool
 ion::ExtractLinearInequality(MTest *test, BranchDirection direction,
                              LinearSum *plhs, MDefinition **prhs, bool *plessEqual)
@@ -328,6 +288,12 @@ Loop::hoistInstructions(InstructionQueue &toHoist, InstructionQueue &boundsCheck
                 if (lower && !hoistedChecks.append(lower))
                     return false;
                 if (upper || lower) {
+                    
+                    
+                    
+                    
+                    
+                    ins->replaceAllUsesWith(ins->index());
                     ins->block()->discard(ins);
                     break;
                 }

@@ -819,3 +819,217 @@ ion::AssertGraphCoherency(MIRGraph &graph)
 #endif
 }
 
+
+struct BoundsCheckInfo
+{
+    MBoundsCheck *check;
+    uint32 validUntil;
+};
+
+typedef HashMap<uint32,
+                BoundsCheckInfo,
+                DefaultHasher<uint32>,
+                IonAllocPolicy> BoundsCheckMap;
+
+
+static HashNumber
+BoundsCheckHashIgnoreOffset(MBoundsCheck *check)
+{
+    LinearSum indexSum = ExtractLinearSum(check->index());
+    uintptr_t index = indexSum.term ? uintptr_t(indexSum.term) : 0;
+    uintptr_t length = uintptr_t(check->length());
+    return index ^ length;
+}
+
+static MBoundsCheck *
+FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t index)
+{
+    
+    HashNumber hash = BoundsCheckHashIgnoreOffset(check);
+    BoundsCheckMap::Ptr p = checks.lookup(hash);
+    if (!p || index > p->value.validUntil) {
+        
+        BoundsCheckInfo info;
+        info.check = check;
+        info.validUntil = index + check->block()->numDominated();
+
+        if(!checks.put(hash, info))
+            return NULL;
+
+        return check;
+    }
+
+    return p->value.check;
+}
+
+
+LinearSum
+ion::ExtractLinearSum(MDefinition *ins)
+{
+    if (ins->type() != MIRType_Int32)
+        return LinearSum(ins, 0);
+
+    if (ins->isConstant()) {
+        const Value &v = ins->toConstant()->value();
+        JS_ASSERT(v.isInt32());
+        return LinearSum(NULL, v.toInt32());
+    } else if (ins->isAdd() || ins->isSub()) {
+        MDefinition *lhs = ins->getOperand(0);
+        MDefinition *rhs = ins->getOperand(1);
+        if (lhs->type() == MIRType_Int32 && rhs->type() == MIRType_Int32) {
+            LinearSum lsum = ExtractLinearSum(lhs);
+            LinearSum rsum = ExtractLinearSum(rhs);
+
+            JS_ASSERT(lsum.term || rsum.term);
+            if (lsum.term && rsum.term)
+                return LinearSum(ins, 0);
+
+            
+            if (ins->isAdd()) {
+                int32 constant;
+                if (!SafeAdd(lsum.constant, rsum.constant, &constant))
+                    return LinearSum(ins, 0);
+                return LinearSum(lsum.term ? lsum.term : rsum.term, constant);
+            } else if (lsum.term) {
+                int32 constant;
+                if (!SafeSub(lsum.constant, rsum.constant, &constant))
+                    return LinearSum(ins, 0);
+                return LinearSum(lsum.term, constant);
+            }
+        }
+    }
+
+    return LinearSum(ins, 0);
+}
+
+static bool
+TryEliminateBoundsCheck(MBoundsCheck *dominating, MBoundsCheck *dominated, bool *eliminated)
+{
+    JS_ASSERT(!*eliminated);
+
+    
+    
+    if (dominating->length() != dominated->length())
+        return true;
+
+    LinearSum sumA = ExtractLinearSum(dominating->index());
+    LinearSum sumB = ExtractLinearSum(dominated->index());
+
+    
+    if (sumA.term != sumB.term)
+        return true;
+
+    
+    *eliminated = true;
+
+    
+    int32 minimumA, maximumA, minimumB, maximumB;
+    if (!SafeAdd(sumA.constant, dominating->minimum(), &minimumA) ||
+        !SafeAdd(sumA.constant, dominating->maximum(), &maximumA) ||
+        !SafeAdd(sumB.constant, dominated->minimum(), &minimumB) ||
+        !SafeAdd(sumB.constant, dominated->maximum(), &maximumB))
+    {
+        return false;
+    }
+
+    
+    
+    int32 newMinimum, newMaximum;
+    if (!SafeSub(Min(minimumA, minimumB), sumA.constant, &newMinimum) ||
+        !SafeSub(Max(maximumA, maximumB), sumA.constant, &newMaximum))
+    {
+        return false;
+    }
+
+    dominating->setMinimum(newMinimum);
+    dominating->setMaximum(newMaximum);
+    return true;
+}
+
+
+
+
+
+
+
+
+
+bool
+ion::EliminateRedundantBoundsChecks(MIRGraph &graph)
+{
+    BoundsCheckMap checks;
+
+    if (!checks.init())
+        return false;
+
+    
+    Vector<MBasicBlock *, 1, IonAllocPolicy> worklist;
+
+    
+    size_t index = 0;
+
+    
+    
+    for (MBasicBlockIterator i(graph.begin()); i != graph.end(); i++) {
+        MBasicBlock *block = *i;
+        if (block->immediateDominator() == block) {
+            if (!worklist.append(block))
+                return false;
+        }
+    }
+
+    
+    while (!worklist.empty()) {
+        MBasicBlock *block = worklist.popCopy();
+
+        
+        for (size_t i = 0; i < block->numImmediatelyDominatedBlocks(); i++) {
+            if (!worklist.append(block->getImmediatelyDominatedBlock(i)))
+                return false;
+        }
+
+        for (MDefinitionIterator iter(block); iter; ) {
+            if (!iter->isBoundsCheck()) {
+                iter++;
+                continue;
+            }
+
+            MBoundsCheck *check = iter->toBoundsCheck();
+
+            
+            
+            
+            
+            
+            check->replaceAllUsesWith(check->index());
+
+            if (!check->isMovable()) {
+                iter++;
+                continue;
+            }
+
+            MBoundsCheck *dominating = FindDominatingBoundsCheck(checks, check, index);
+            if (!dominating)
+                return false;
+
+            if (dominating == check) {
+                
+                iter++;
+                continue;
+            }
+
+            bool eliminated = false;
+            if (!TryEliminateBoundsCheck(dominating, check, &eliminated))
+                return false;
+
+            if (eliminated)
+                iter = check->block()->discardDefAt(iter);
+            else
+                iter++;
+        }
+        index++;
+    }
+
+    JS_ASSERT(index == graph.numBlocks());
+    return true;
+}
