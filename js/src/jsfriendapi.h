@@ -1465,6 +1465,24 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
+    enum AliasSet {
+        
+        
+        
+
+        
+        
+        AliasNone,
+
+        
+        
+        AliasDOMSets,
+
+        
+        
+        AliasEverything
+    };
+
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
@@ -1475,8 +1493,12 @@ struct JSJitInfo {
     uint32_t depth;
     OpType type;
     bool isInfallible;      
-    bool isConstant;        
-    bool isPure;            
+    bool isMovable;         
+
+
+    AliasSet aliasSet;      
+
+
 
 
     
@@ -1510,7 +1532,7 @@ private:
 };
 
 #define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,false,0,JSVAL_TYPE_MISSING,nullptr,op}
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,JSJitInfo::AliasEverything,false,0,JSVAL_TYPE_MISSING,nullptr,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)
