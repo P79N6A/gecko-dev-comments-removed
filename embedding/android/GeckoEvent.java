@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko;
 
 import android.os.*;
@@ -47,6 +15,7 @@ import android.hardware.*;
 import android.location.*;
 import android.util.FloatMath;
 import android.util.DisplayMetrics;
+import java.nio.ByteBuffer;
 
 import android.util.Log;
 
@@ -80,6 +49,18 @@ public class GeckoEvent {
     public static final int VISITED = 21;
     public static final int NETWORK_CHANGED = 22;
     public static final int PROXIMITY_EVENT = 23;
+    public static final int SCREENORIENTATION_CHANGED = 26;
+
+    
+
+
+
+    private static final int DOM_KEY_LOCATION_STANDARD = 0;
+    private static final int DOM_KEY_LOCATION_LEFT = 1;
+    private static final int DOM_KEY_LOCATION_RIGHT = 2;
+    private static final int DOM_KEY_LOCATION_NUMPAD = 3;
+    private static final int DOM_KEY_LOCATION_MOBILE = 4;
+    private static final int DOM_KEY_LOCATION_JOYSTICK = 5;
 
     public static final int IME_COMPOSITION_END = 0;
     public static final int IME_COMPOSITION_BEGIN = 1;
@@ -116,17 +97,23 @@ public class GeckoEvent {
 
     public int mMetaState, mFlags;
     public int mKeyCode, mUnicodeChar;
+    public int mRepeatCount;
     public int mOffset, mCount;
     public String mCharacters, mCharactersExtra;
     public int mRangeType, mRangeStyles;
     public int mRangeForeColor, mRangeBackColor;
     public Location mLocation;
     public Address  mAddress;
+    public int mDomKeyLocation;
 
     public double mBandwidth;
     public boolean mCanBeMetered;
 
+    public short mScreenOrientation;
+
     public int mNativeWindow;
+
+    public ByteBuffer mBuffer;
 
     public GeckoEvent() {
         mType = NATIVE_POKE;
@@ -144,9 +131,78 @@ public class GeckoEvent {
         mFlags = k.getFlags();
         mKeyCode = k.getKeyCode();
         mUnicodeChar = k.getUnicodeChar();
+        mRepeatCount = k.getRepeatCount();
         mCharacters = k.getCharacters();
+        mDomKeyLocation = isJoystickButton(mKeyCode) ? DOM_KEY_LOCATION_JOYSTICK : DOM_KEY_LOCATION_MOBILE;
     }
 
+    
+
+
+
+
+
+    private static boolean isJoystickButton(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+            case KeyEvent.KEYCODE_DPAD_UP:
+                return true;
+            default:
+                if (Build.VERSION.SDK_INT >= 12) {
+                    return KeyEvent.isGamepadButton(keyCode);
+                }
+                return GeckoEvent.isGamepadButton(keyCode);
+        }
+    }
+
+    
+
+
+
+
+
+
+    private static boolean isGamepadButton(int keyCode) {
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_BUTTON_A:
+            case KeyEvent.KEYCODE_BUTTON_B:
+            case KeyEvent.KEYCODE_BUTTON_C:
+            case KeyEvent.KEYCODE_BUTTON_X:
+            case KeyEvent.KEYCODE_BUTTON_Y:
+            case KeyEvent.KEYCODE_BUTTON_Z:
+            case KeyEvent.KEYCODE_BUTTON_L1:
+            case KeyEvent.KEYCODE_BUTTON_R1:
+            case KeyEvent.KEYCODE_BUTTON_L2:
+            case KeyEvent.KEYCODE_BUTTON_R2:
+            case KeyEvent.KEYCODE_BUTTON_THUMBL:
+            case KeyEvent.KEYCODE_BUTTON_THUMBR:
+            case KeyEvent.KEYCODE_BUTTON_START:
+            case KeyEvent.KEYCODE_BUTTON_SELECT:
+            case KeyEvent.KEYCODE_BUTTON_MODE:
+            case KeyEvent.KEYCODE_BUTTON_1:
+            case KeyEvent.KEYCODE_BUTTON_2:
+            case KeyEvent.KEYCODE_BUTTON_3:
+            case KeyEvent.KEYCODE_BUTTON_4:
+            case KeyEvent.KEYCODE_BUTTON_5:
+            case KeyEvent.KEYCODE_BUTTON_6:
+            case KeyEvent.KEYCODE_BUTTON_7:
+            case KeyEvent.KEYCODE_BUTTON_8:
+            case KeyEvent.KEYCODE_BUTTON_9:
+            case KeyEvent.KEYCODE_BUTTON_10:
+            case KeyEvent.KEYCODE_BUTTON_11:
+            case KeyEvent.KEYCODE_BUTTON_12:
+            case KeyEvent.KEYCODE_BUTTON_13:
+            case KeyEvent.KEYCODE_BUTTON_14:
+            case KeyEvent.KEYCODE_BUTTON_15:
+            case KeyEvent.KEYCODE_BUTTON_16:
+                return true;
+            default:
+                return false;
+        }
+    }
     public GeckoEvent(MotionEvent m) {
         mType = MOTION_EVENT;
         mAction = m.getAction();
@@ -252,10 +308,9 @@ public class GeckoEvent {
         }
     }
 
-    public GeckoEvent(Location l, Address a) {
+    public GeckoEvent(Location l) {
         mType = LOCATION_EVENT;
         mLocation = l;
-        mAddress  = a;
     }
 
     public GeckoEvent(int imeAction, int offset, int count) {
@@ -333,5 +388,10 @@ public class GeckoEvent {
         mType = NETWORK_CHANGED;
         mBandwidth = bandwidth;
         mCanBeMetered = canBeMetered;
+    }
+
+    public GeckoEvent(short aScreenOrientation) {
+        mType = SCREENORIENTATION_CHANGED;
+        mScreenOrientation = aScreenOrientation;
     }
 }
