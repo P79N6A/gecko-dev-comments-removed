@@ -30,6 +30,7 @@ class BluetoothOppManager : public BluetoothSocketObserver
 {
 public:
   NS_DECL_ISUPPORTS
+  NS_DECL_NSIOBSERVER
 
   
 
@@ -73,7 +74,6 @@ public:
 
   void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
   bool ExtractBlobHeaders();
-  nsresult HandleShutdown();
 
   
   
@@ -95,6 +95,9 @@ public:
 
 private:
   BluetoothOppManager();
+  bool Init();
+  nsresult HandleShutdown();
+
   void StartFileTransfer();
   void StartSendingNextFile();
   void FileTransferComplete();
