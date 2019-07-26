@@ -115,6 +115,8 @@ private:
   
   
   const bool mIsMP3Enabled;
+
+  bool mCOMInitialized;
 };
 
 } 
