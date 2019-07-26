@@ -1792,21 +1792,21 @@ JS_IdToProtoKey(JSContext *cx, JS::HandleId id);
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_GetFunctionPrototype(JSContext *cx, JSObject *forObj);
+JS_GetFunctionPrototype(JSContext *cx, JS::HandleObject forObj);
 
 
 
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_GetObjectPrototype(JSContext *cx, JSObject *forObj);
+JS_GetObjectPrototype(JSContext *cx, JS::HandleObject forObj);
 
 
 
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_GetArrayPrototype(JSContext *cx, JSObject *forObj);
+JS_GetArrayPrototype(JSContext *cx, JS::HandleObject forObj);
 
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
@@ -1844,7 +1844,7 @@ JS_GetScriptedGlobal(JSContext *cx);
 
 
 extern JS_PUBLIC_API(JSObject *)
-JS_InitReflect(JSContext *cx, JSObject *global);
+JS_InitReflect(JSContext *cx, JS::HandleObject global);
 
 #ifdef JS_HAS_CTYPES
 
@@ -1852,7 +1852,7 @@ JS_InitReflect(JSContext *cx, JSObject *global);
 
 
 extern JS_PUBLIC_API(bool)
-JS_InitCTypesClass(JSContext *cx, JSObject *global);
+JS_InitCTypesClass(JSContext *cx, JS::HandleObject global);
 
 
 
