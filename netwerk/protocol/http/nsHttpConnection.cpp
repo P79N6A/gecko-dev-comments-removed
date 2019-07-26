@@ -120,7 +120,7 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
     NS_ENSURE_TRUE(!mConnInfo, NS_ERROR_ALREADY_INITIALIZED);
 
     mConnInfo = info;
-    mLastReadTime = PR_IntervalNow();
+    mLastWriteTime = mLastReadTime = PR_IntervalNow();
     mSupportsPipelining =
         gHttpHandler->ConnMgr()->SupportsPipelining(mConnInfo);
     mRtt = rtt;
@@ -315,7 +315,7 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, uint32_t caps, int32_t pri
     NS_ENSURE_TRUE(!mTransaction, NS_ERROR_IN_PROGRESS);
 
     
-    mLastReadTime = PR_IntervalNow();
+    mLastWriteTime = mLastReadTime = PR_IntervalNow();
 
     
     nsCOMPtr<nsIInterfaceRequestor> callbacks;
@@ -704,17 +704,6 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
 
     
     
-    
-    
-    uint16_t responseStatus = responseHead->Status();
-    if (responseStatus == 408) {
-        Close(NS_ERROR_NET_RESET);
-        *reset = true;
-        return NS_OK;
-    }
-
-    
-    
 
     
     
@@ -726,6 +715,27 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     if (!explicitClose)
         explicitKeepAlive = responseHead->HasHeaderValue(nsHttp::Connection, "keep-alive") ||
             responseHead->HasHeaderValue(nsHttp::Proxy_Connection, "keep-alive");
+
+    
+    uint16_t responseStatus = responseHead->Status();
+    static const PRIntervalTime k1000ms  = PR_MillisecondsToInterval(1000);
+    if (responseStatus == 408) {
+        
+        
+        
+        
+        if (mIsReused && ((PR_IntervalNow() - mLastWriteTime) < k1000ms)) {
+            Close(NS_ERROR_NET_RESET);
+            *reset = true;
+            return NS_OK;
+        }
+
+        
+        
+        
+        explicitClose = true;
+        explicitKeepAlive = false;
+    }
 
     
     mSupportsPipelining = false;
@@ -1219,6 +1229,7 @@ nsHttpConnection::OnReadSegment(const char *buf,
     else if (*countRead == 0)
         mSocketOutCondition = NS_BASE_STREAM_CLOSED;
     else {
+        mLastWriteTime = PR_IntervalNow();
         mSocketOutCondition = NS_OK; 
         if (!mProxyConnectInProgress)
             mTotalBytesWritten += *countRead;

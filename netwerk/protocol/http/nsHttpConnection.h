@@ -214,6 +214,7 @@ private:
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
     PRIntervalTime                  mLastReadTime;
+    PRIntervalTime                  mLastWriteTime;
     PRIntervalTime                  mMaxHangTime;    
     PRIntervalTime                  mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
