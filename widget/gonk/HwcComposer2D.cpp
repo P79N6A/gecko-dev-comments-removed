@@ -469,34 +469,66 @@ HwcComposer2D::TryHwComposition()
 
     Prepare(fbsurface->lastHandle, -1);
 
-    bool fullHwcComposite = true;
-    for (int j = 0; j < idx; j++) {
-        if (mList->hwLayers[j].compositionType == HWC_FRAMEBUFFER) {
+    
+
+
+
+
+
+    bool gpuComposite = false;
+    bool blitComposite = false;
+    bool overlayComposite = true;
+
+    for (int j=0; j < idx; j++) {
+        if (mList->hwLayers[j].compositionType == HWC_FRAMEBUFFER ||
+            mList->hwLayers[j].compositionType == HWC_BLIT) {
             
             
-            LOGD("GPU or Partial HWC Composition");
-            fullHwcComposite = false;
+            overlayComposite = false;
             break;
         }
     }
 
-    if (!fullHwcComposite) {
+    if (!overlayComposite) {
         for (int k=0; k < idx; k++) {
-            if (mList->hwLayers[k].compositionType == HWC_OVERLAY) {
-                
-                
-                
-                mHwcLayerMap[k]->SetLayerComposited(true);
+            switch (mList->hwLayers[k].compositionType) {
+                case HWC_FRAMEBUFFER:
+                    gpuComposite = true;
+                    break;
+                case HWC_BLIT:
+                    blitComposite = true;
+                    break;
+                case HWC_OVERLAY:
+                    
+                    
+                    
+                    mHwcLayerMap[k]->SetLayerComposited(true);
+                    break;
+                default:
+                    break;
             }
         }
-        return false;
+
+        if (gpuComposite) {
+            
+            return false;
+        } else if (blitComposite) {
+            
+            GetGonkDisplay()->UpdateFBSurface(mDpy, mSur);
+            FramebufferSurface* fbsurface = (FramebufferSurface*)(GetGonkDisplay()->GetFBSurface());
+            if (!fbsurface) {
+                LOGE("H/W Composition failed. NULL FBSurface.");
+                return false;
+            }
+            mList->hwLayers[idx].handle = fbsurface->lastHandle;
+            mList->hwLayers[idx].acquireFenceFd = fbsurface->lastFenceFD;
+        }
     }
 
     
     Commit();
 
-    
-    close(mList->hwLayers[idx].releaseFenceFd);
+    GetGonkDisplay()->SetFBReleaseFd(mList->hwLayers[idx].releaseFenceFd);
     return true;
 }
 
