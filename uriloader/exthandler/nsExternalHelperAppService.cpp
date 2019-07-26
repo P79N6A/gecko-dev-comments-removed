@@ -1994,17 +1994,7 @@ nsresult nsExternalAppHandler::CreateProgressListener()
   return rv;
 }
 
-nsresult nsExternalAppHandler::SaveDestinationAvailable(nsIFile * aFile)
-{
-  if (aFile)
-    ContinueSave(aFile);
-  else
-    Cancel(NS_BINDING_ABORTED);
-
-  return NS_OK;
-}
-
-void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultFile, const nsAFlatString &aFileExtension)
+nsresult nsExternalAppHandler::PromptForSaveToFile(nsIFile ** aNewFile, const nsAFlatString &aDefaultFile, const nsAFlatString &aFileExtension)
 {
   
   
@@ -2014,10 +2004,7 @@ void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultF
   {
     
     mDialog = do_CreateInstance( NS_HELPERAPPLAUNCHERDLG_CONTRACTID, &rv );
-    if (rv != NS_OK) {
-      Cancel(NS_BINDING_ABORTED);
-      return;
-    }
+    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -2028,25 +2015,14 @@ void nsExternalAppHandler::RequestSaveDestination(const nsAFlatString &aDefaultF
   
   
   
-  nsIFile* fileToUse;
   nsRefPtr<nsExternalAppHandler> kungFuDeathGrip(this);
   nsCOMPtr<nsIHelperAppLauncherDialog> dlg(mDialog);
-  rv = mDialog->PromptForSaveToFile(this,
+  rv = mDialog->PromptForSaveToFile(this, 
                                     mWindowContext,
                                     aDefaultFile.get(),
                                     aFileExtension.get(),
-                                    mForceSave, &fileToUse);
-
-  if (rv == NS_ERROR_NOT_AVAILABLE) {
-    
-    rv = mDialog->PromptForSaveToFileAsync(this, 
-                                           mWindowContext,
-                                           aDefaultFile.get(),
-                                           aFileExtension.get(),
-                                           mForceSave);
-  } else {
-    SaveDestinationAvailable(rv == NS_OK ? fileToUse : nullptr);
-  }
+                                    mForceSave, aNewFile);
+  return rv;
 }
 
 nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
@@ -2113,6 +2089,7 @@ nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
 
 NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool aRememberThisPreference)
 {
+  nsresult rv = NS_OK;
   if (mCanceled)
     return NS_OK;
 
@@ -2121,9 +2098,11 @@ NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool 
   
   mReceivedDispositionInfo = true;
 
-  if (!aNewFileLocation) {
+  nsCOMPtr<nsIFile> fileToUse = do_QueryInterface(aNewFileLocation);
+  if (!fileToUse)
+  {
     if (mSuggestedFileName.IsEmpty())
-      RequestSaveDestination(mTempLeafName, mTempFileExtension);
+      rv = PromptForSaveToFile(getter_AddRefs(fileToUse), mTempLeafName, mTempFileExtension);
     else
     {
       nsAutoString fileExt;
@@ -2133,20 +2112,15 @@ NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool 
       if (fileExt.IsEmpty())
         fileExt = mTempFileExtension;
 
-      RequestSaveDestination(mSuggestedFileName, fileExt);
+      rv = PromptForSaveToFile(getter_AddRefs(fileToUse), mSuggestedFileName, fileExt);
     }
-  } else {
-    ContinueSave(aNewFileLocation);
+
+    if (NS_FAILED(rv) || !fileToUse) {
+      Cancel(NS_BINDING_ABORTED);
+      return NS_ERROR_FAILURE;
+    }
   }
-
-  return NS_OK;
-}
-nsresult nsExternalAppHandler::ContinueSave(nsIFile * aNewFileLocation)
-{
-  NS_PRECONDITION(aNewFileLocation, "Must be called with a non-null file");
-
-  nsresult rv = NS_OK;
-  nsCOMPtr<nsIFile> fileToUse = do_QueryInterface(aNewFileLocation);
+  
   mFinalFileDestination = do_QueryInterface(fileToUse);
 
   

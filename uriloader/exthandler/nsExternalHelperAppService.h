@@ -342,34 +342,9 @@ protected:
 
 
   nsresult CreateProgressListener();
-
-
-  
-
-
-
-
-
-
-
-
-
-
-  
-
-
-
-  void RequestSaveDestination(const nsAFlatString &aDefaultFile,
-                              const nsAFlatString &aDefaultFileExt);
-
-  
-
-
-
-
-
-
-  nsresult ContinueSave(nsIFile* aFile);
+  nsresult PromptForSaveToFile(nsIFile ** aNewFile,
+                               const nsAFlatString &aDefaultFile,
+                               const nsAFlatString &aDefaultFileExt);
 
   
 

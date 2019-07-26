@@ -66,19 +66,20 @@ function test() {
 
     MockFilePicker.returnFiles = [aFile];
     MockFilePicker.displayDirectory = null;
-    aWin.getTargetFile(params, function() {
-      
-      is(MockFilePicker.displayDirectory.path, aDisplayDir.path,
-         "File picker should start with browser.download.lastDir");
-      
-      is(prefs.getComplexValue("lastDir", Ci.nsIFile).path, aLastDir.path,
-         "LastDir should be the expected last dir");
-      
-      is(gDownloadLastDir.file.path, aGlobalLastDir.path,
-         "gDownloadLastDir should be the expected global last dir");
+    ok(aWin.getTargetFile(params),
+       "Show the file picker dialog with given params");
 
-      aCallback();
-    });
+    
+    is(MockFilePicker.displayDirectory.path, aDisplayDir.path,
+       "File picker should start with browser.download.lastDir");
+    
+    is(prefs.getComplexValue("lastDir", Ci.nsIFile).path, aLastDir.path,
+       "LastDir should be the expected last dir");
+    
+    is(gDownloadLastDir.file.path, aGlobalLastDir.path,
+       "gDownloadLastDir should be the expected global last dir");
+
+    aCallback();
   }
 
   testOnWindow(false, function(win, downloadDir) {

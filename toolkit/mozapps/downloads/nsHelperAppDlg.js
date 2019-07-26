@@ -189,10 +189,6 @@ nsUnknownContentTypeDialog.prototype = {
   
   
   promptForSaveToFile: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
-    throw new Components.Exception("Async version must be used", Components.results.NS_ERROR_NOT_AVAILABLE);
-  },
-
-  promptForSaveToFileAsync: function(aLauncher, aContext, aDefaultFile, aSuggestedFileExtension, aForcePrompt) {
     var result = null;
 
     this.mLauncher = aLauncher;
@@ -230,16 +226,13 @@ nsUnknownContentTypeDialog.prototype = {
                            bundle.GetStringFromName("badPermissions.title"),
                            bundle.GetStringFromName("badPermissions"));
 
-            aLauncher.saveDestinationAvailable(null);
             return;
           }
         }
 
         
-        if (result) {
-          aLauncher.saveDestinationAvailable(result);
-          return;
-        }
+        if (result)
+          return result;
       }
     }
 
@@ -279,39 +272,42 @@ nsUnknownContentTypeDialog.prototype = {
                             .getService(Components.interfaces.nsIDownloadManager);
     picker.displayDirectory = dnldMgr.userDownloadsDirectory;
 
-    gDownloadLastDir.getFileAsync(aLauncher.source, function LastDirCallback(lastDir) {
-      if (lastDir && isUsableDirectory(lastDir))
+    
+    try {
+      var lastDir = gDownloadLastDir.getFile(aLauncher.source);
+      if (isUsableDirectory(lastDir))
         picker.displayDirectory = lastDir;
+    }
+    catch (ex) {
+    }
 
-      if (picker.show() == nsIFilePicker.returnCancel) {
+    if (picker.show() == nsIFilePicker.returnCancel) {
+      
+      return null;
+    }
+
+    
+    
+    
+    result = picker.file;
+
+    if (result) {
+      try {
         
-        aLauncher.saveDestinationAvailable(null);
-        return;
-      }
-
-      
-      
-      
-      result = picker.file;
-
-      if (result) {
-        try {
-          
-          
-          
-          if (result.exists())
-            result.remove(false);
-        }
-        catch (e) { }
-        var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
-
         
-        gDownloadLastDir.setFile(aLauncher.source, newDir);
-
-        result = this.validateLeafName(newDir, result.leafName, null);
+        
+        if (result.exists())
+          result.remove(false);
       }
-      aLauncher.saveDestinationAvailable(result);
-    }.bind(this));
+      catch (e) { }
+      var newDir = result.parent.QueryInterface(Components.interfaces.nsILocalFile);
+
+      
+      gDownloadLastDir.setFile(aLauncher.source, newDir);
+
+      result = this.validateLeafName(newDir, result.leafName, null);
+    }
+    return result;
   },
 
   
