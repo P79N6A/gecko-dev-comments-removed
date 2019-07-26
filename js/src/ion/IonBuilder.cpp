@@ -5914,24 +5914,7 @@ IonBuilder::jsop_getprop(HandlePropertyName name)
         return makeCallBarrier(getter, 0, false, types, barrier);
     }
 
-    
-    
-    
-    
-    bool targetIsObject = (unary.ival == MIRType_Object);
-
-    if (!targetIsObject) {
-        if (unaryTypes.inTypes->objectOrSentinel()) {
-            
-            
-            MUnbox *unbox = MUnbox::New(obj, MIRType_Object, MUnbox::Fallible);
-            current->add(unbox);
-            obj = unbox;
-            targetIsObject = true;
-        }
-    }
-
-    if (targetIsObject) {
+    if (unary.ival == MIRType_Object) {
         MIRType rvalType = MIRType_Value;
         if (!barrier && !IsNullOrUndefined(unary.rval))
             rvalType = unary.rval;
