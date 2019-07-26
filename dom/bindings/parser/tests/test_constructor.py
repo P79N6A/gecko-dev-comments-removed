@@ -11,7 +11,7 @@ def WebIDLTest(parser, harness):
         harness.check(argument.variadic, variadic, "Argument has the right variadic value")
 
     def checkMethod(method, QName, name, signatures,
-                    static=False, getter=False, setter=False, creator=False,
+                    static=True, getter=False, setter=False, creator=False,
                     deleter=False, legacycaller=False, stringifier=False):
         harness.ok(isinstance(method, WebIDL.IDLMethod),
                    "Should be an IDLMethod")
@@ -62,14 +62,14 @@ def WebIDLTest(parser, harness):
                "Should be an IDLInterface")
 
     checkMethod(results[0].ctor(), "::TestConstructorNoArgs::constructor",
-                "constructor", [("TestConstructorNoArgs", [])])
+                "constructor", [("TestConstructorNoArgs (Wrapper)", [])])
     checkMethod(results[1].ctor(), "::TestConstructorWithArgs::constructor",
                 "constructor",
-                [("TestConstructorWithArgs",
+                [("TestConstructorWithArgs (Wrapper)",
                  [("::TestConstructorWithArgs::constructor::name", "name", "String", False, False)])])
     checkMethod(results[2].ctor(), "::TestConstructorOverloads::constructor",
                 "constructor",
-                [("TestConstructorOverloads",
+                [("TestConstructorOverloads (Wrapper)",
                  [("::TestConstructorOverloads::constructor::foo", "foo", "Object", False, False)]),
-                 ("TestConstructorOverloads",
+                 ("TestConstructorOverloads (Wrapper)",
                  [("::TestConstructorOverloads::constructor::bar", "bar", "Boolean", False, False)])])

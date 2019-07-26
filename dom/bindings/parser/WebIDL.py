@@ -680,7 +680,8 @@ class IDLInterface(IDLObjectWithScope):
                 identifier = IDLUnresolvedIdentifier(self.location, "constructor",
                                                      allowForbidden=True)
 
-                method = IDLMethod(self.location, identifier, retType, args)
+                method = IDLMethod(self.location, identifier, retType, args,
+                                   static=True)
                 
                 
                 
