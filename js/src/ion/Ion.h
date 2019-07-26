@@ -102,7 +102,7 @@ struct IonOptions
     
     
     
-    uint32_t usesBeforeInlining;
+    double usesBeforeInliningFactor;
 
     
     
@@ -132,15 +132,6 @@ struct IonOptions
     
     
     uint32_t smallFunctionMaxBytecodeLength;
-
-    
-    
-    
-    
-    
-    
-    
-    uint32_t smallFunctionUsesBeforeInlining;
 
     
     
@@ -184,10 +175,6 @@ struct IonOptions
         eagerCompilation = true;
         usesBeforeCompile = usesBeforeCompileNoJaeger = 0;
 
-        
-        usesBeforeInlining = 0;
-        smallFunctionUsesBeforeInlining = 0;
-
         parallelCompilation = false;
     }
 
@@ -205,20 +192,23 @@ struct IonOptions
         parallelCompilation(false),
         usesBeforeCompile(10240),
         usesBeforeCompileNoJaeger(40),
-        usesBeforeInlining(usesBeforeCompile),
+        usesBeforeInliningFactor(.125),
         maxStackArgs(4096),
         maxInlineDepth(3),
         smallFunctionMaxInlineDepth(10),
         smallFunctionMaxBytecodeLength(100),
-        smallFunctionUsesBeforeInlining(usesBeforeInlining / 4),
         polyInlineMax(4),
-        inlineMaxTotalBytecodeLength(800),
+        inlineMaxTotalBytecodeLength(1000),
         inlineUseCountRatio(128),
         eagerCompilation(false),
         slowCallLimit(512),
         slowCallIncUseCount(5),
         usesBeforeCompileParallel(1)
     {
+    }
+
+    uint32_t usesBeforeInlining() {
+        return usesBeforeCompile * usesBeforeInliningFactor;
     }
 };
 

@@ -710,7 +710,7 @@ pref("dom.min_background_timeout_value", 1000);
 pref("dom.experimental_bindings", true);
 
 
-pref("dom.xbl_scopes", false);
+pref("dom.xbl_scopes", true);
 
 
 pref("dom.experimental_forms", false);
@@ -1817,6 +1817,7 @@ pref("dom.ipc.plugins.java.enabled", false);
 #endif
 
 pref("dom.ipc.plugins.flash.subprocess.crashreporter.enabled", true);
+pref("dom.ipc.plugins.reportCrashURL", true);
 
 pref("dom.ipc.processCount", 1);
 
