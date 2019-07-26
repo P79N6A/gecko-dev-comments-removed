@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_frame_iterator_inl_h__
+#if !defined(jsion_frame_iterator_inl_h__) && defined(JS_ION)
 #define jsion_frame_iterator_inl_h__
 
 #include "ion/BaselineFrame.h"

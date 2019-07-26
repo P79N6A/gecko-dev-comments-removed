@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_macro_assembler_h__
+#if !defined(jsion_macro_assembler_h__) && defined(JS_ION)
 #define jsion_macro_assembler_h__
 
 #if defined(JS_CPU_X86)

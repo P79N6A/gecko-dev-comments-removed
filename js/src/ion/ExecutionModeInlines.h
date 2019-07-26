@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_compilemode_h__
+#if !defined(jsion_compilemode_h__) && defined(JS_ION)
 #define jsion_compilemode_h__
 
 namespace js {

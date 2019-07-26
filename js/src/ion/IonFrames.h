@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_frames_h__
+#if !defined(jsion_frames_h__) && defined(JS_ION)
 #define jsion_frames_h__
 
 #include "mozilla/DebugOnly.h"

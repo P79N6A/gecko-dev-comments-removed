@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_ion_compartment_h__
+#if !defined(jsion_ion_compartment_h__) && defined(JS_ION)
 #define jsion_ion_compartment_h__
 
 #include "IonCode.h"

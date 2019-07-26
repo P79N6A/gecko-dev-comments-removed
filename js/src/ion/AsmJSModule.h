@@ -4,7 +4,7 @@
 
 
 
-#if !defined(jsion_asmjsmodule_h__)
+#if !defined(jsion_asmjsmodule_h__) && defined(JS_ION)
 #define jsion_asmjsmodule_h__
 
 #include "gc/Marking.h"

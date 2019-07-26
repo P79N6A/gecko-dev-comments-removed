@@ -4,7 +4,7 @@
 
 
 
-#ifndef jsion_bytecode_analyzer_h__
+#if !defined(jsion_bytecode_analyzer_h__) && defined(JS_ION)
 #define jsion_bytecode_analyzer_h__
 
 
