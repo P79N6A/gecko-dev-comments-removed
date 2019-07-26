@@ -114,7 +114,7 @@ class TransportInfo {
     dtls_ = nullptr;
   }
 
-  void Shutdown() {
+  void Stop() {
     if (loopback_) {
       loopback_->Disconnect();
     }
@@ -168,6 +168,11 @@ class TestAgent {
 
   void StopInt() {
     audio_->GetStream()->Stop();
+    audio_rtp_transport_.Stop();
+    audio_rtcp_transport_.Stop();
+    bundle_transport_.Stop();
+    if (audio_pipeline_)
+      audio_pipeline_->ShutdownTransport_s();
   }
 
   void Stop() {
@@ -179,60 +184,14 @@ class TestAgent {
     mozilla::SyncRunnable::DispatchToThread(
       test_utils->sts_target(),
       WrapRunnable(this, &TestAgent::StopInt));
-  }
 
-  void Shutdown_s() {
-    audio_rtp_transport_.Shutdown();
-    audio_rtcp_transport_.Shutdown();
-    bundle_transport_.Shutdown();
-    if (audio_pipeline_)
-      audio_pipeline_->ShutdownTransport_s();
-  }
-
-  void Shutdown() {
-    if (audio_pipeline_)
-      audio_pipeline_->ShutdownMedia_m();
-
-    mozilla::SyncRunnable::DispatchToThread(
-      test_utils->sts_target(),
-      WrapRunnable(this, &TestAgent::Shutdown_s));
-  }
-
-  uint32_t GetRemoteSSRC() {
-    uint32_t res = 0;
-    audio_conduit_->GetRemoteSSRC(&res);
-    return res;
-  }
-
-  uint32_t GetLocalSSRC() {
-    uint32_t res = 0;
-    audio_conduit_->GetLocalSSRC(&res);
-    return res;
-  }
-
-  int GetAudioRtpCountSent() {
-    return audio_pipeline_->rtp_packets_sent();
-  }
-
-  int GetAudioRtpCountReceived() {
-    return audio_pipeline_->rtp_packets_received();
-  }
-
-  int GetAudioRtcpCountSent() {
-    return audio_pipeline_->rtcp_packets_sent();
-  }
-
-  int GetAudioRtcpCountReceived() {
-    return audio_pipeline_->rtcp_packets_received();
+    audio_pipeline_ = nullptr;
   }
 
  protected:
   mozilla::AudioCodecConfig audio_config_;
   mozilla::RefPtr<mozilla::MediaSessionConduit> audio_conduit_;
   nsRefPtr<DOMMediaStream> audio_;
-  
-  
-  
   mozilla::RefPtr<mozilla::MediaPipeline> audio_pipeline_;
   TransportInfo audio_rtp_transport_;
   TransportInfo audio_rtcp_transport_;
@@ -279,6 +238,14 @@ class TestAgentSend : public TestAgent {
     audio_pipeline_->Init();
   }
 
+  int GetAudioRtpCount() {
+    return audio_pipeline_->rtp_packets_sent();
+  }
+
+  int GetAudioRtcpCount() {
+    return audio_pipeline_->rtcp_packets_received();
+  }
+
   void SetUsingBundle(bool use_bundle) {
     use_bundle_ = use_bundle;
   }
@@ -319,7 +286,6 @@ class TestAgentReceive : public TestAgent {
     RefPtr<TransportFlow> bundle_transport;
     if (bundle_filter_) {
       bundle_transport = bundle_transport_.flow_;
-      bundle_filter_->AddLocalSSRC(GetLocalSSRC());
     }
 
     audio_pipeline_ = new mozilla::MediaPipelineReceiveAudio(
@@ -337,6 +303,14 @@ class TestAgentReceive : public TestAgent {
     audio_pipeline_->Init();
   }
 
+  int GetAudioRtpCount() {
+    return audio_pipeline_->rtp_packets_received();
+  }
+
+  int GetAudioRtcpCount() {
+    return audio_pipeline_->rtcp_packets_sent();
+  }
+
   void SetBundleFilter(nsAutoPtr<MediaPipelineFilter> filter) {
     bundle_filter_ = filter;
   }
@@ -349,7 +323,6 @@ class TestAgentReceive : public TestAgent {
       nsAutoPtr<MediaPipelineFilter> filter) {
     audio_pipeline_->UpdateFilterFromRemoteDescription_s(filter);
   }
-
  private:
   nsAutoPtr<MediaPipelineFilter> bundle_filter_;
 };
@@ -360,8 +333,6 @@ class MediaPipelineTest : public ::testing::Test {
   ~MediaPipelineTest() {
     p1_.Stop();
     p2_.Stop();
-    p1_.Shutdown();
-    p2_.Shutdown();
   }
 
   
@@ -391,9 +362,7 @@ class MediaPipelineTest : public ::testing::Test {
                      nsAutoPtr<MediaPipelineFilter> localFilter =
                         nsAutoPtr<MediaPipelineFilter>(nullptr),
                      nsAutoPtr<MediaPipelineFilter> remoteFilter =
-                        nsAutoPtr<MediaPipelineFilter>(nullptr),
-                     unsigned int ms_until_answer = 500,
-                     unsigned int ms_of_traffic_after_answer = 10000) {
+                        nsAutoPtr<MediaPipelineFilter>(nullptr)) {
 
     
     
@@ -417,20 +386,16 @@ class MediaPipelineTest : public ::testing::Test {
     p1_.Start();
 
     
-    PR_Sleep(ms_until_answer);
+    PR_Sleep(500);
 
     mozilla::SyncRunnable::DispatchToThread(
       test_utils->sts_target(),
       WrapRunnable(&p2_, &TestAgentReceive::SetUsingBundle_s, bundle));
 
     if (bundle) {
-      
       if (!remoteFilter) {
         remoteFilter = new MediaPipelineFilter;
-        
-        remoteFilter->AddRemoteSSRC(p1_.GetLocalSSRC());
       }
-
       mozilla::SyncRunnable::DispatchToThread(
           test_utils->sts_target(),
           WrapRunnable(&p2_,
@@ -440,43 +405,26 @@ class MediaPipelineTest : public ::testing::Test {
 
 
     
-    PR_Sleep(ms_of_traffic_after_answer);
+    PR_Sleep(10000);
+
+    if (bundle) {
+      
+      ASSERT_EQ(0, p2_.GetAudioRtpCount());
+    } else {
+      ASSERT_GE(p1_.GetAudioRtpCount(), 40);
+      ASSERT_GE(p2_.GetAudioRtpCount(), 40);
+      ASSERT_GE(p2_.GetAudioRtcpCount(), 1);
+    }
 
     p1_.Stop();
     p2_.Stop();
-
-    
-    PR_Sleep(100);
-
-    p1_.Shutdown();
-    p2_.Shutdown();
-
-    if (!bundle) {
-      
-      ASSERT_GE(p1_.GetAudioRtpCountSent(), 40);
-      ASSERT_EQ(p1_.GetAudioRtpCountReceived(), p2_.GetAudioRtpCountSent());
-      ASSERT_EQ(p1_.GetAudioRtpCountSent(), p2_.GetAudioRtpCountReceived());
-
-      
-      
-      ASSERT_LE(p2_.GetAudioRtcpCountReceived(), p1_.GetAudioRtcpCountSent());
-      ASSERT_GE(p2_.GetAudioRtcpCountReceived() + 1, p1_.GetAudioRtcpCountSent());
-    }
-
   }
 
   void TestAudioReceiverOffersBundle(bool bundle_accepted,
       nsAutoPtr<MediaPipelineFilter> localFilter,
       nsAutoPtr<MediaPipelineFilter> remoteFilter =
-          nsAutoPtr<MediaPipelineFilter>(nullptr),
-      unsigned int ms_until_answer = 500,
-      unsigned int ms_of_traffic_after_answer = 10000) {
-    TestAudioSend(true,
-                  bundle_accepted,
-                  localFilter,
-                  remoteFilter,
-                  ms_until_answer,
-                  ms_of_traffic_after_answer);
+          nsAutoPtr<MediaPipelineFilter>(nullptr)) {
+    TestAudioSend(true, bundle_accepted, localFilter, remoteFilter);
   }
 protected:
   TestAgentSend p1_;
@@ -881,33 +829,7 @@ TEST_F(MediaPipelineTest, TestAudioSendBundleOfferedAndDeclined) {
 
 TEST_F(MediaPipelineTest, TestAudioSendBundleOfferedAndAccepted) {
   nsAutoPtr<MediaPipelineFilter> filter(new MediaPipelineFilter);
-  
-  
-  
-  
-  TestAudioReceiverOffersBundle(true,
-                                filter,
-  
-  
-                                nsAutoPtr<MediaPipelineFilter>(),
-                                10000,
-                                10000);
-
-  
-  ASSERT_GT(p1_.GetAudioRtpCountSent(), p2_.GetAudioRtpCountReceived());
-  ASSERT_GT(p2_.GetAudioRtpCountReceived(), 40);
-  ASSERT_GT(p1_.GetAudioRtcpCountSent(), 1);
-  ASSERT_GT(p1_.GetAudioRtcpCountSent(), p2_.GetAudioRtcpCountReceived());
-  ASSERT_GT(p2_.GetAudioRtcpCountReceived(), 0);
-}
-
-TEST_F(MediaPipelineTest, TestAudioSendBundleOfferedAndAcceptedEmptyFilter) {
-  nsAutoPtr<MediaPipelineFilter> filter(new MediaPipelineFilter);
-  nsAutoPtr<MediaPipelineFilter> bad_answer_filter(new MediaPipelineFilter);
-  TestAudioReceiverOffersBundle(true, filter, bad_answer_filter);
-  
-  ASSERT_EQ(0, p2_.GetAudioRtpCountReceived());
-  ASSERT_EQ(0, p2_.GetAudioRtcpCountReceived());
+  TestAudioReceiverOffersBundle(true, filter);
 }
 
 }  
