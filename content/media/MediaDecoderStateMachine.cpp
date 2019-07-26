@@ -160,7 +160,6 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
                                                    bool aRealTime) :
   mDecoder(aDecoder),
   mState(DECODER_STATE_DECODING_METADATA),
-  mInRunningStateMachine(false),
   mSyncPointInMediaStream(-1),
   mSyncPointInDecodedStream(-1),
   mResetPlayStartTime(false),
@@ -192,10 +191,12 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mDispatchedEventToDecode(false),
   mStopAudioThread(true),
   mQuickBuffering(false),
+  mIsRunning(false),
+  mRunAgain(false),
   mMinimizePreroll(false),
+  mDispatchedRunEvent(false),
   mDecodeThreadWaiting(false),
   mRealTime(aRealTime),
-  mEventManager(aDecoder),
   mLastFrameStatus(MediaDecoderOwner::NEXT_FRAME_UNINITIALIZED)
 {
   MOZ_COUNT_CTOR(MediaDecoderStateMachine);
@@ -943,8 +944,6 @@ void MediaDecoderStateMachine::AudioLoop()
           ReentrantMonitorAutoExit exit(mDecoder->GetReentrantMonitor());
           mAudioStream->Drain();
         }
-        
-        mEventManager.Drain(mAudioEndTime);
       }
     }
   }
@@ -955,7 +954,6 @@ void MediaDecoderStateMachine::AudioLoop()
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mAudioStream->Shutdown();
     mAudioStream = nullptr;
-    mEventManager.Clear();
     if (!mAudioCaptured) {
       mAudioCompleted = true;
       UpdateReadyState();
@@ -977,9 +975,6 @@ uint32_t MediaDecoderStateMachine::PlaySilence(uint32_t aFrames,
   uint32_t maxFrames = SILENCE_BYTES_CHUNK / aChannels / sizeof(AudioDataValue);
   uint32_t frames = std::min(aFrames, maxFrames);
   WriteSilence(mAudioStream, frames);
-  
-  mEventManager.QueueWrittenAudioData(nullptr, frames * aChannels,
-                                      (aFrameOffset + frames) * aChannels);
   return frames;
 }
 
@@ -1012,10 +1007,6 @@ uint32_t MediaDecoderStateMachine::PlayFromAudioQueue(uint64_t aFrameOffset,
   offset = audio->mOffset;
   frames = audio->mFrames;
 
-  
-  mEventManager.QueueWrittenAudioData(audio->mAudioData.get(),
-                                      audio->mFrames * aChannels,
-                                      (aFrameOffset + frames) * aChannels);
   if (offset != -1) {
     mDecoder->UpdatePlaybackOffset(offset);
   }
@@ -1044,12 +1035,6 @@ nsresult MediaDecoderStateMachine::Init(MediaDecoderStateMachine* aCloneDonor)
   }
 
   mStateMachineThreadPool = stateMachinePool;
-
-  nsresult rv;
-  mTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = mTimer->SetTarget(GetStateMachineThread());
-  NS_ENSURE_SUCCESS(rv, rv);
 
   return mReader->Init(cloneReader);
 }
@@ -1145,9 +1130,6 @@ void MediaDecoderStateMachine::UpdatePlaybackPosition(int64_t aTime)
       NS_NewRunnableMethod(mDecoder, &MediaDecoder::PlaybackPositionChanged);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   }
-
-  
-  mEventManager.DispatchPendingEvents(GetMediaTime());
 
   mMetadataManager.DispatchMetadataIfNeeded(mDecoder, aTime);
 
@@ -1780,14 +1762,6 @@ bool MediaDecoderStateMachine::HasLowUndecodedData(double aUsecs) const
   return stream->GetCachedDataEnd(currentPos) < requiredPos;
 }
 
-void MediaDecoderStateMachine::SetFrameBufferLength(uint32_t aLength)
-{
-  NS_ASSERTION(aLength >= 512 && aLength <= 16384,
-               "The length must be between 512 and 16384");
-  AssertCurrentThreadInMonitor();
-  mEventManager.SetSignalBufferLength(aLength);
-}
-
 void
 MediaDecoderStateMachine::DecodeError()
 {
@@ -1892,18 +1866,6 @@ nsresult MediaDecoderStateMachine::DecodeMetadata()
   }
 
   
-  
-  
-  
-  if (HasAudio()) {
-    mEventManager.Init(mInfo.mAudio.mChannels, mInfo.mAudio.mRate);
-    
-    
-    
-    uint32_t frameBufferLength = mInfo.mAudio.mChannels * FRAMEBUFFER_LENGTH_PER_CHANNEL;
-    mDecoder->RequestFrameBufferLength(frameBufferLength);
-  }
-
   nsCOMPtr<nsIRunnable> metadataLoadedEvent =
     new AudioMetadataEventRunner(mDecoder,
                                  mInfo.mAudio.mChannels,
@@ -2704,21 +2666,42 @@ nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {
   return res;
 }
 
+nsresult MediaDecoderStateMachine::Run()
+{
+  ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+  NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
+
+  return CallRunStateMachine();
+}
+
 nsresult MediaDecoderStateMachine::CallRunStateMachine()
 {
   AssertCurrentThreadInMonitor();
   NS_ASSERTION(OnStateMachineThread(), "Should be on state machine thread.");
+  
+  
+  mRunAgain = false;
+
+  
+  
+  mDispatchedRunEvent = false;
 
   
   if (mAudioCaptured) {
     StopAudioThread();
   }
 
-  MOZ_ASSERT(!mInRunningStateMachine, "State machine cycles must run in sequence!");
   mTimeout = TimeStamp();
-  mInRunningStateMachine = true;
+
+  mIsRunning = true;
   nsresult res = RunStateMachine();
-  mInRunningStateMachine = false;
+  mIsRunning = false;
+
+  if (mRunAgain && !mDispatchedRunEvent) {
+    mDispatchedRunEvent = true;
+    return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
+  }
+
   return res;
 }
 
@@ -2733,7 +2716,16 @@ void MediaDecoderStateMachine::TimeoutExpired()
 {
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
   NS_ASSERTION(OnStateMachineThread(), "Must be on state machine thread");
-  CallRunStateMachine();
+  if (mIsRunning) {
+    mRunAgain = true;
+  } else if (!mDispatchedRunEvent) {
+    
+    
+    CallRunStateMachine();
+  }
+  
+  
+  
 }
 
 void MediaDecoderStateMachine::ScheduleStateMachineWithLockAndWakeDecoder() {
@@ -2753,25 +2745,60 @@ nsresult MediaDecoderStateMachine::ScheduleStateMachine(int64_t aUsecs) {
   aUsecs = std::max<int64_t>(aUsecs, 0);
 
   TimeStamp timeout = TimeStamp::Now() + UsecsToDuration(aUsecs);
-  if (!mTimeout.IsNull() && timeout >= mTimeout) {
+  if (!mTimeout.IsNull()) {
+    if (timeout >= mTimeout) {
+      
+      
+      return NS_OK;
+    }
+    if (mTimer) {
+      
+      
+      mTimer->Cancel();
+    }
+  }
+
+  uint32_t ms = static_cast<uint32_t>((aUsecs / USECS_PER_MS) & 0xFFFFFFFF);
+  if (mRealTime && ms > 40)
+    ms = 40;
+  if (ms == 0) {
+    if (mIsRunning) {
+      
+      
+      mRunAgain = true;
+      return NS_OK;
+    } else if (!mDispatchedRunEvent) {
+      
+      
+      mDispatchedRunEvent = true;
+      return GetStateMachineThread()->Dispatch(this, NS_DISPATCH_NORMAL);
+    }
+    
     
     
     return NS_OK;
   }
 
-  uint32_t ms = static_cast<uint32_t>((aUsecs / USECS_PER_MS) & 0xFFFFFFFF);
-  if (mRealTime && ms > 40) {
-    ms = 40;
-  }
-  mTimeout = timeout;
   
-  mTimer->Cancel();
-  nsresult rv = mTimer->InitWithFuncCallback(mozilla::TimeoutExpired,
-                                             this,
-                                             ms,
-                                             nsITimer::TYPE_ONE_SHOT);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return NS_OK;
+  
+  if (mRunAgain) {
+    return NS_OK;
+  }
+
+  mTimeout = timeout;
+
+  nsresult res;
+  if (!mTimer) {
+    mTimer = do_CreateInstance("@mozilla.org/timer;1", &res);
+    if (NS_FAILED(res)) return res;
+    mTimer->SetTarget(GetStateMachineThread());
+  }
+
+  res = mTimer->InitWithFuncCallback(mozilla::TimeoutExpired,
+                                     this,
+                                     ms,
+                                     nsITimer::TYPE_ONE_SHOT);
+  return res;
 }
 
 bool MediaDecoderStateMachine::OnDecodeThread() const
@@ -2789,12 +2816,6 @@ bool MediaDecoderStateMachine::OnStateMachineThread() const
 nsIEventTarget* MediaDecoderStateMachine::GetStateMachineThread()
 {
   return mStateMachineThreadPool->GetEventTarget();
-}
-
-void MediaDecoderStateMachine::NotifyAudioAvailableListener()
-{
-  AssertCurrentThreadInMonitor();
-  mEventManager.NotifyAudioAvailableListener();
 }
 
 void MediaDecoderStateMachine::SetPlaybackRate(double aPlaybackRate)

@@ -390,12 +390,6 @@ public:
 
 
 
-  bool MayHaveAudioAvailableEventListener() { return mMayHaveAudioAvailableEventListener; }
-
-  
-
-
-
   bool MayHaveTouchEventListener() { return mMayHaveTouchEventListener; }
 
   bool MayHaveMouseEnterLeaveEventListener() { return mMayHaveMouseEnterLeaveEventListener; }
@@ -543,13 +537,12 @@ protected:
   uint32_t mMayHaveMutationListeners : 1;
   uint32_t mMayHaveCapturingListeners : 1;
   uint32_t mMayHaveSystemGroupListeners : 1;
-  uint32_t mMayHaveAudioAvailableEventListener : 1;
   uint32_t mMayHaveTouchEventListener : 1;
   uint32_t mMayHaveMouseEnterLeaveEventListener : 1;
   uint32_t mMayHavePointerEnterLeaveEventListener : 1;
   uint32_t mClearingListeners : 1;
   uint32_t mIsMainThreadELM : 1;
-  uint32_t mNoListenerForEvent : 22;
+  uint32_t mNoListenerForEvent : 23;
 
   nsAutoTObserverArray<Listener, 2> mListeners;
   dom::EventTarget* mTarget;  

@@ -29,16 +29,14 @@ namespace dom {
 
 extern bool IsAudioAPIEnabled();
 
-NS_IMPL_ISUPPORTS_INHERITED4(HTMLAudioElement, HTMLMediaElement,
-                             nsIDOMHTMLMediaElement, nsIDOMHTMLAudioElement,
-                             nsITimerCallback, nsIAudioChannelAgentCallback)
+NS_IMPL_ISUPPORTS_INHERITED2(HTMLAudioElement, HTMLMediaElement,
+                             nsIDOMHTMLMediaElement, nsIDOMHTMLAudioElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLAudioElement)
 
 
 HTMLAudioElement::HTMLAudioElement(already_AddRefed<nsINodeInfo>& aNodeInfo)
-  : HTMLMediaElement(aNodeInfo),
-    mTimerActivated(false)
+  : HTMLMediaElement(aNodeInfo)
 {
 }
 
@@ -77,128 +75,6 @@ HTMLAudioElement::Audio(const GlobalObject& aGlobal,
   return audio.forget();
 }
 
-void
-HTMLAudioElement::MozSetup(uint32_t aChannels, uint32_t aRate, ErrorResult& aRv)
-{
-  if (!IsAudioAPIEnabled()) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return;
-  }
-
-  OwnerDoc()->WarnOnceAbout(nsIDocument::eMozAudioData);
-
-  
-  if (mDecoder) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  
-  if (0 == aChannels) {
-    aRv.Throw(NS_ERROR_FAILURE);
-    return;
-  }
-
-  if (mAudioStream) {
-    mAudioStream->Shutdown();
-  }
-
-#ifdef MOZ_B2G
-  if (mTimerActivated) {
-    mDeferStopPlayTimer->Cancel();
-    mTimerActivated = false;
-    UpdateAudioChannelPlayingState();
-  }
-#endif
-
-  mAudioStream = new AudioStream();
-  aRv = mAudioStream->Init(aChannels, aRate, mAudioChannelType, AudioStream::HighLatency);
-  if (aRv.Failed()) {
-    mAudioStream->Shutdown();
-    mAudioStream = nullptr;
-    return;
-  }
-
-  MetadataLoaded(aChannels, aRate, true, false, nullptr);
-  mAudioStream->SetVolume(mMuted ? 0.0 : mVolume);
-}
-
-uint32_t
-HTMLAudioElement::MozWriteAudio(const float* aData, uint32_t aLength,
-                                ErrorResult& aRv)
-{
-  if (!IsAudioAPIEnabled()) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return 0;
-  }
-
-  if (!mAudioStream) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return 0;
-  }
-
-  
-  
-  if (aLength % mChannels != 0) {
-    aRv.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    return 0;
-  }
-
-#ifdef MOZ_B2G
-  if (!mDeferStopPlayTimer) {
-    mDeferStopPlayTimer = do_CreateInstance("@mozilla.org/timer;1");
-  }
-
-  if (mTimerActivated) {
-    mDeferStopPlayTimer->Cancel();
-  }
-  
-  
-  mDeferStopPlayTimer->InitWithCallback(this, 1000, nsITimer::TYPE_ONE_SHOT);
-  mTimerActivated = true;
-  UpdateAudioChannelPlayingState();
-#endif
-
-  
-  uint32_t writeLen = std::min(mAudioStream->Available(), aLength / mChannels);
-
-  
-  
-  
-  
-  nsAutoArrayPtr<AudioDataValue> audioData(new AudioDataValue[writeLen * mChannels]);
-  ConvertAudioSamples(aData, audioData.get(), writeLen * mChannels);
-  aRv = mAudioStream->Write(audioData.get(), writeLen);
-  if (aRv.Failed()) {
-    return 0;
-  }
-  mAudioStream->Start();
-
-  
-  return writeLen * mChannels;
-}
-
-uint64_t
-HTMLAudioElement::MozCurrentSampleOffset(ErrorResult& aRv)
-{
-  if (!IsAudioAPIEnabled()) {
-    aRv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
-    return 0;
-  }
-
-  if (!mAudioStream) {
-    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
-    return 0;
-  }
-
-  int64_t position = mAudioStream->GetPositionInFrames();
-  if (position < 0) {
-    return 0;
-  }
-
-  return position * mChannels;
-}
-
 nsresult HTMLAudioElement::SetAcceptHeader(nsIHttpChannel* aChannel)
 {
     nsAutoCString value(
@@ -224,78 +100,5 @@ HTMLAudioElement::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aScope)
   return HTMLAudioElementBinding::Wrap(aCx, aScope, this);
 }
 
-
-NS_IMETHODIMP
-HTMLAudioElement::CanPlayChanged(int32_t canPlay)
-{
-  NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
-  
-  
-  if (!mAudioStream) {
-    return HTMLMediaElement::CanPlayChanged(canPlay);
-  }
-#ifdef MOZ_B2G
-  if (canPlay != AUDIO_CHANNEL_STATE_MUTED) {
-    SetMutedInternal(mMuted & ~MUTED_BY_AUDIO_CHANNEL);
-  } else {
-    SetMutedInternal(mMuted | MUTED_BY_AUDIO_CHANNEL);
-  }
-
-#endif
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-HTMLAudioElement::WindowVolumeChanged()
-{
-  return HTMLMediaElement::WindowVolumeChanged();
-}
-
-NS_IMETHODIMP
-HTMLAudioElement::Notify(nsITimer* aTimer)
-{
-#ifdef MOZ_B2G
-  mTimerActivated = false;
-  UpdateAudioChannelPlayingState();
-#endif
-  return NS_OK;
-}
-
-void
-HTMLAudioElement::UpdateAudioChannelPlayingState()
-{
-  if (!mAudioStream) {
-    HTMLMediaElement::UpdateAudioChannelPlayingState();
-    return;
-  }
-  
-#ifdef MOZ_B2G
-  if (mTimerActivated != mPlayingThroughTheAudioChannel) {
-    mPlayingThroughTheAudioChannel = mTimerActivated;
-
-    if (!mAudioChannelAgent) {
-      nsresult rv;
-      mAudioChannelAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1", &rv);
-      if (!mAudioChannelAgent) {
-        return;
-      }
-      
-      mAudioChannelAgent->InitWithWeakCallback(OwnerDoc()->GetWindow(),
-                                               mAudioChannelType, this);
-
-      mAudioChannelAgent->SetVisibilityState(!OwnerDoc()->Hidden());
-    }
-
-    if (mPlayingThroughTheAudioChannel) {
-      int32_t canPlay;
-      mAudioChannelAgent->StartPlaying(&canPlay);
-      CanPlayChanged(canPlay);
-    } else {
-      mAudioChannelAgent->StopPlaying();
-      mAudioChannelAgent = nullptr;
-    }
-  }
-#endif
-}
 } 
 } 

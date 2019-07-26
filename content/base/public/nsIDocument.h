@@ -1892,14 +1892,6 @@ public:
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) = 0;
 
   
-  
-  
-  virtual void NotifyAudioAvailableListener() = 0;
-
-  
-  virtual bool HasAudioAvailableListeners() = 0;
-
-  
   void RegisterPendingLinkUpdate(mozilla::dom::Link* aLink);
   
   

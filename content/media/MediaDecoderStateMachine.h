@@ -79,7 +79,6 @@
 #include "mozilla/Attributes.h"
 #include "nsThreadUtils.h"
 #include "MediaDecoder.h"
-#include "AudioAvailableEventManager.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "MediaDecoderReader.h"
 #include "MediaDecoderOwner.h"
@@ -113,9 +112,8 @@ class SharedThreadPool;
 
 
 
-class MediaDecoderStateMachine
+class MediaDecoderStateMachine : public nsRunnable
 {
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderStateMachine)
 public:
   typedef MediaDecoder::DecodedStreamData DecodedStreamData;
   MediaDecoderStateMachine(MediaDecoder* aDecoder,
@@ -229,6 +227,9 @@ public:
   void StartBuffering();
 
   
+  NS_IMETHOD Run() MOZ_OVERRIDE;
+
+  
   
   bool HasAudio() const {
     AssertCurrentThreadInMonitor();
@@ -296,10 +297,6 @@ public:
   }
 
   
-  
-  void SetFrameBufferLength(uint32_t aLength);
-
-  
   nsIEventTarget* GetStateMachineThread();
 
   
@@ -333,10 +330,6 @@ public:
   
   void SetSyncPointForMediaStream();
   int64_t GetCurrentTimeViaMediaStreamSync();
-
-  
-  
-  void NotifyAudioAvailableListener();
 
   
   
@@ -511,7 +504,6 @@ private:
 
   
   
-  
   uint32_t PlayFromAudioQueue(uint64_t aFrameOffset, uint32_t aChannels);
 
   
@@ -644,7 +636,7 @@ private:
 
   bool IsStateMachineScheduled() const {
     AssertCurrentThreadInMonitor();
-    return !mTimeout.IsNull();
+    return !mTimeout.IsNull() || mRunAgain;
   }
 
   
@@ -686,10 +678,8 @@ private:
 
   
   
-  TimeStamp mTimeout;
-
   
-  DebugOnly<bool> mInRunningStateMachine;
+  TimeStamp mTimeout;
 
   
   
@@ -922,6 +912,14 @@ private:
 
   
   
+  bool mIsRunning;
+
+  
+  
+  bool mRunAgain;
+
+  
+  
   
   
   
@@ -935,15 +933,17 @@ private:
   
   
   
+  
+  
+  bool mDispatchedRunEvent;
+
+  
+  
+  
   bool mDecodeThreadWaiting;
 
   
   bool mRealTime;
-
-  
-  
-  
-  AudioAvailableEventManager mEventManager;
 
   
   

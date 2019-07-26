@@ -476,12 +476,6 @@ public:
 
 
 
-  virtual void SetHasAudioAvailableEventListeners() = 0;
-
-  
-
-
-
   bool HasMouseEnterLeaveEventListeners()
   {
     return mMayHaveMouseEnterLeaveEventListener;

@@ -47,12 +47,6 @@ public:
   virtual bool GetPaused() = 0;
 
   
-
-
-  virtual void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
-                                    float aTime) = 0;
-
-  
   
   
   virtual void MetadataLoaded(int aChannels,

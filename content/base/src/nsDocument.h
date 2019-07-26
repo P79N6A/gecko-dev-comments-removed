@@ -1107,13 +1107,6 @@ public:
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) MOZ_OVERRIDE;
 
-  virtual void NotifyAudioAvailableListener() MOZ_OVERRIDE;
-
-  bool HasAudioAvailableListeners() MOZ_OVERRIDE
-  {
-    return mHasAudioAvailableListener;
-  }
-
   virtual Element* GetFullScreenElement() MOZ_OVERRIDE;
   virtual void AsyncRequestFullScreen(Element* aElement) MOZ_OVERRIDE;
   virtual void RestorePreviousFullScreenState() MOZ_OVERRIDE;
@@ -1470,10 +1463,6 @@ public:
 
   
   bool mAnimatingImages:1;
-
-  
-  
-  bool mHasAudioAvailableListener:1;
 
   
   

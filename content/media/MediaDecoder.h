@@ -212,16 +212,6 @@ class MediaDecoderOwner;
 
 
 
-
-static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
-
-
-
-static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
-static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
-
-
-
 #ifdef GetCurrentTime
 #undef GetCurrentTime
 #endif
@@ -661,12 +651,6 @@ public:
 
   
   
-  uint32_t GetFrameBufferLength() { return mFrameBufferLength; }
-
-  void AudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength, float aTime);
-
-  
-  
   void DurationChanged();
 
   bool OnStateMachineThread() const MOZ_OVERRIDE;
@@ -694,10 +678,6 @@ public:
     return mVideoFrameContainer;
   }
   layers::ImageContainer* GetImageContainer() MOZ_OVERRIDE;
-
-  
-  
-  virtual nsresult RequestFrameBufferLength(uint32_t aLength);
 
   
   
@@ -840,11 +820,6 @@ public:
 
   
   virtual void ReleaseStateMachine();
-
-  
-  
-  
-  virtual void NotifyAudioAvailableListener();
 
   
   virtual void DecodeError();
@@ -1210,9 +1185,6 @@ protected:
   
   
   MediaChannelStatistics mPlaybackStatistics;
-
-  
-  uint32_t mFrameBufferLength;
 
   
   

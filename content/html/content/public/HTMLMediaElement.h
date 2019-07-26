@@ -32,7 +32,6 @@ typedef uint16_t nsMediaNetworkState;
 typedef uint16_t nsMediaReadyState;
 
 namespace mozilla {
-class AudioStream;
 class ErrorResult;
 class MediaResource;
 class MediaDecoder;
@@ -199,13 +198,6 @@ public:
 
   
   
-  
-  
-  
-  void NotifyAudioAvailableListener();
-
-  
-  
   virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
   layers::ImageContainer* GetImageContainer();
 
@@ -213,9 +205,6 @@ public:
   using nsGenericHTMLElement::DispatchEvent;
   virtual nsresult DispatchEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
   virtual nsresult DispatchAsyncEvent(const nsAString& aName) MOZ_FINAL MOZ_OVERRIDE;
-  nsresult DispatchAudioAvailableEvent(float* aFrameBuffer,
-                                       uint32_t aFrameBufferLength,
-                                       float aTime);
 
   
   nsresult DispatchPendingMediaEvents();
@@ -278,12 +267,6 @@ public:
 
 
   void NotifyLoadError();
-
-  
-
-
-  virtual void NotifyAudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength,
-                                    float aTime) MOZ_FINAL MOZ_OVERRIDE;
 
   virtual bool IsNodeOfType(uint32_t aFlags) const MOZ_OVERRIDE;
 
@@ -505,14 +488,6 @@ public:
   {
     return mAudioCaptured;
   }
-
-  uint32_t GetMozChannels(ErrorResult& aRv) const;
-
-  uint32_t GetMozSampleRate(ErrorResult& aRv) const;
-
-  uint32_t GetMozFrameBufferLength(ErrorResult& aRv) const;
-
-  void SetMozFrameBufferLength(uint32_t aValue, ErrorResult& aRv);
 
   JSObject* MozGetMetadata(JSContext* aCx, ErrorResult& aRv);
 
@@ -871,7 +846,7 @@ protected:
   void Seek(double aTime, SeekTarget::Type aSeekType, ErrorResult& aRv);
   
   
-  virtual void UpdateAudioChannelPlayingState();
+  void UpdateAudioChannelPlayingState();
 
   
   
@@ -964,12 +939,6 @@ protected:
   double mVolume;
 
   
-  uint32_t mChannels;
-
-  
-  uint32_t mRate;
-
-  
   
   static PLDHashOperator BuildObjectFromTags(nsCStringHashKey::KeyType aKey,
                                              nsCString aValue,
@@ -1032,17 +1001,10 @@ protected:
   nsCOMPtr<nsIContent> mSourceLoadCandidate;
 
   
-  nsAutoPtr<AudioStream> mAudioStream;
-
-  
   nsRefPtr<TimeRanges> mPlayed;
 
   
   double mCurrentPlayRangeStart;
-
-  
-  
-  bool mAllowAudioData;
 
   
   
