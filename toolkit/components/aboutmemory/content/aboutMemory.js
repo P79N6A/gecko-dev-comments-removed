@@ -511,6 +511,8 @@ function onLoadAboutMemory()
   }
 }
 
+
+
 function doGC()
 {
   Cu.forceGC();
@@ -541,8 +543,6 @@ function doMeasure()
 {
   addChildObserversAndUpdate(updateAboutMemoryFromReporters);
 }
-
-
 
 
 
@@ -693,6 +693,16 @@ function updateAboutMemoryFromClipboard()
 
 
 
+function PColl()
+{
+  this._trees = {};
+  this._degenerates = {};
+  this._heapTotal = 0;
+}
+
+
+
+
 
 
 
@@ -706,12 +716,10 @@ function updateAboutMemoryFromClipboard()
 function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
                                aForceShowSmaps)
 {
-  let treesByProcess = {}, degeneratesByProcess = {}, heapTotalByProcess = {};
-  getTreesByProcess(aProcess, treesByProcess, degeneratesByProcess,
-                    heapTotalByProcess, aForceShowSmaps);
+  let pcollsByProcess = getPCollsByProcess(aProcess, aForceShowSmaps);
 
   
-  let processes = Object.keys(treesByProcess);
+  let processes = Object.keys(pcollsByProcess);
   processes.sort(function(aProcessA, aProcessB) {
     assert(aProcessA != aProcessB,
            "Elements of Object.keys() should be unique, but " +
@@ -726,8 +734,8 @@ function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
     }
 
     
-    let nodeA = degeneratesByProcess[aProcessA]['resident'];
-    let nodeB = degeneratesByProcess[aProcessB]['resident'];
+    let nodeA = pcollsByProcess[aProcessA]._degenerates['resident'];
+    let nodeB = pcollsByProcess[aProcessB]._degenerates['resident'];
     let residentA = nodeA ? nodeA._amount : -1;
     let residentB = nodeB ? nodeB._amount : -1;
 
@@ -755,9 +763,9 @@ function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
     let section = appendElement(gMain, 'div', 'section');
 
     appendProcessAboutMemoryElements(section, process,
-                                     treesByProcess[process],
-                                     degeneratesByProcess[process],
-                                     heapTotalByProcess[process],
+                                     pcollsByProcess[process]._trees,
+                                     pcollsByProcess[process]._degenerates,
+                                     pcollsByProcess[process]._heapTotal,
                                      aHasMozMallocUsableSize);
   }
 }
@@ -767,7 +775,6 @@ function appendAboutMemoryMain(aProcess, aHasMozMallocUsableSize,
 
 
 
-const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
 
 
 
@@ -775,24 +782,15 @@ const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
-                           aDegeneratesByProcess, aHeapTotalByProcess,
-                           aForceShowSmaps)
+function getPCollsByProcess(aProcessMemoryReports, aForceShowSmaps)
 {
+  let pcollsByProcess = {};
+
+  
+  
+  
+  const gSentenceRegExp = /^[A-Z].*\.\)?$/m;
+
   
   
   
@@ -850,19 +848,16 @@ function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
     let isDegenerate = unsafeNames.length === 1;
 
     
-    
-    let t;
-    let thingsByProcess =
-      isDegenerate ? aDegeneratesByProcess : aTreesByProcess;
-    let things = thingsByProcess[process];
-    if (!thingsByProcess[process]) {
-      things = thingsByProcess[process] = {};
+    let pcoll = pcollsByProcess[process];
+    if (!pcollsByProcess[process]) {
+      pcoll = pcollsByProcess[process] = new PColl();
     }
 
     
-    t = things[unsafeName0];
+    let psubcoll = isDegenerate ? pcoll._degenerates : pcoll._trees;
+    let t = psubcoll[unsafeName0];
     if (!t) {
-      t = things[unsafeName0] =
+      t = psubcoll[unsafeName0] =
         new TreeNode(unsafeName0, aUnits, isDegenerate);
     }
 
@@ -884,10 +879,7 @@ function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
 
       
       if (unsafeName0 === "explicit" && aKind == KIND_HEAP) {
-        if (!aHeapTotalByProcess[process]) {
-          aHeapTotalByProcess[process] = 0;
-        }
-        aHeapTotalByProcess[process] += aAmount;
+        pcollsByProcess[process]._heapTotal += aAmount;
       }
     }
 
@@ -903,6 +895,8 @@ function getTreesByProcess(aProcessMemoryReports, aTreesByProcess,
   }
 
   aProcessMemoryReports(ignoreSingle, ignoreMulti, handleReport);
+
+  return pcollsByProcess;
 }
 
 
@@ -1221,18 +1215,19 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
   let hasKnownHeapAllocated;
   {
     let treeName = "explicit";
-    let t = aTrees[treeName];
-    assertInput(t, "no explicit reports");
-    fillInTree(t);
-    hasKnownHeapAllocated =
-      aDegenerates &&
-      addHeapUnclassifiedNode(t, aDegenerates["heap-allocated"], aHeapTotal);
-    sortTreeAndInsertAggregateNodes(t._amount, t);
-    t._description = kTreeDescriptions[treeName];
     let pre = appendSectionHeader(aP, kSectionNames[treeName]);
-    appendTreeElements(pre, t, aProcess, "");
+    let t = aTrees[treeName];
+    if (t) {
+      fillInTree(t);
+      hasKnownHeapAllocated =
+        aDegenerates &&
+        addHeapUnclassifiedNode(t, aDegenerates["heap-allocated"], aHeapTotal);
+      sortTreeAndInsertAggregateNodes(t._amount, t);
+      t._description = kTreeDescriptions[treeName];
+      appendTreeElements(pre, t, aProcess, "");
+      delete aTrees[treeName];
+    }
     appendTextNode(aP, "\n");  
-    delete aTrees[treeName];
   }
 
   
@@ -1242,14 +1237,14 @@ function appendProcessAboutMemoryElements(aP, aProcess, aTrees, aDegenerates,
     
     let t = aTrees[aTreeName];
     if (t) {
+      let pre = appendSectionHeader(aP, kSectionNames[aTreeName]);
       fillInTree(t);
       sortTreeAndInsertAggregateNodes(t._amount, t);
       t._description = kTreeDescriptions[aTreeName];
       t._hideKids = true;   
-      let pre = appendSectionHeader(aP, kSectionNames[aTreeName]);
       appendTreeElements(pre, t, aProcess, "");
-      appendTextNode(aP, "\n");  
       delete aTrees[aTreeName];
+      appendTextNode(aP, "\n");  
     }
   });
 
