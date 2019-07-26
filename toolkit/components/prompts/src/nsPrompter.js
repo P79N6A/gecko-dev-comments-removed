@@ -367,11 +367,26 @@ XPCOMUtils.defineLazyGetter(PromptUtils, "ellipsis", function () {
 function openModalWindow(domWin, uri, args) {
     
     
-    if (!domWin)
-        domWin = Services.ww.activeWindow;
-
     
-
+    
+    
+    
+    
+    
+    if (domWin) {
+        
+        let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                             .getInterface(Ci.nsIDOMWindowUtils);
+        if (!winUtils.isParentWindowMainWidgetVisible) {
+            throw Components.Exception("Cannot call openModalWindow on a hidden window",
+                                       Cr.NS_ERROR_NOT_AVAILABLE);
+        }
+    } else {
+        
+        
+        domWin = Services.ww.activeWindow;
+        
+    }
     
     
     
