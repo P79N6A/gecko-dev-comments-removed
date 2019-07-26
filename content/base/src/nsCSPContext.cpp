@@ -584,16 +584,6 @@ nsCSPContext::SetRequestContext(nsIURI* aSelfURI,
     NS_WARNING("Channel needed (but null) in SetRequestContext.  Cannot query loadgroup, which means report sending may fail.");
   }
 
-  
-  
-  if (aDocumentPrincipal) {
-    mPrincipal = aDocumentPrincipal;
-  }
-  else if (aChannel) {
-    nsContentUtils::GetSecurityManager()->
-      GetChannelPrincipal(aChannel, getter_AddRefs(mPrincipal));
-  }
-
   mReferrer = aReferrer;
   if (!mReferrer) {
     nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
@@ -759,13 +749,19 @@ nsCSPContext::SendReports(nsISupports* aBlockedContentSource,
 
     
     int16_t shouldLoad = nsIContentPolicy::ACCEPT;
-    rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_CSP_REPORT,
-                                   reportURI,
-                                   mPrincipal,
-                                   nullptr,        
-                                   EmptyCString(), 
-                                   nullptr,        
-                                   &shouldLoad);
+    nsCOMPtr<nsIContentPolicy> cp = do_GetService(NS_CONTENTPOLICY_CONTRACTID);
+    if (!cp) {
+      return NS_ERROR_FAILURE;
+    }
+
+    rv = cp->ShouldLoad(nsIContentPolicy::TYPE_CSP_REPORT,
+                        reportURI,
+                        aOriginalURI,
+                        nullptr,        
+                        EmptyCString(), 
+                        nullptr,        
+                        nullptr,        
+                        &shouldLoad);
 
     
     NS_ENSURE_SUCCESS(rv, rv);
