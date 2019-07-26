@@ -194,7 +194,6 @@ function verifyFoundMsgs(foundSmsList) {
   
   for (var x = 0; x < foundSmsList.length; x++) {
     is(foundSmsList[x].id, smsList[x].id, "id");
-    is(foundSmsList[x].sender, smsList[x].sender, "number");
   }
   deleteAllMsgs(cleanUp);
 }
