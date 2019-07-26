@@ -29,8 +29,7 @@ function test() {
   waitForExplicitFinish();
 
   runSocialTests(tests, undefined, undefined, function () {
-    resetBlocklist(); 
-    finish();
+    resetBlocklist(finish); 
   });
 }
 
@@ -129,21 +128,22 @@ var tests = {
       ok(true, "window closed");
     });
 
-    function finish(good) {
-      ok(good, "blocklisted provider removed");
-      Services.prefs.clearUserPref("social.manifest.blocked");
-      setAndUpdateBlocklist(blocklistEmpty, next);
-    }
     setManifestPref("social.manifest.blocked", manifest_bad);
     SocialService.addProvider(manifest_bad, function(provider) {
       if (provider) {
-        setAndUpdateBlocklist(blocklistURL, function() {
+        
+        
+        SocialService.registerProviderListener(function providerListener() {
+          SocialService.unregisterProviderListener(providerListener);
           SocialService.getProvider(provider.origin, function(p) {
-            finish(p==null);
-          })
+            ok(p==null, "blocklisted provider removed");
+            Services.prefs.clearUserPref("social.manifest.blocked");
+            setAndUpdateBlocklist(blocklistEmpty, next);
+          });
         });
-      } else {
-        finish(false);
+        
+        
+        setAndUpdateBlocklist(blocklistURL);
       }
     });
   }
