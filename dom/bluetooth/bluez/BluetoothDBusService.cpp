@@ -195,15 +195,29 @@ private:
   int (* m_bt_is_enabled)(void);
 };
 
+
+
+
+
+
+
 static class Bluedroid sBluedroid;
 #endif
+
+
+
+
+
+
+
+
 
 typedef struct {
   const char* name;
   int type;
 } Properties;
 
-static Properties sDeviceProperties[] = {
+static const Properties sDeviceProperties[] = {
   {"Address", DBUS_TYPE_STRING},
   {"Name", DBUS_TYPE_STRING},
   {"Icon", DBUS_TYPE_STRING},
@@ -224,7 +238,7 @@ static Properties sDeviceProperties[] = {
   {"Services", DBUS_TYPE_ARRAY}
 };
 
-static Properties sAdapterProperties[] = {
+static const Properties sAdapterProperties[] = {
   {"Address", DBUS_TYPE_STRING},
   {"Name", DBUS_TYPE_STRING},
   {"Class", DBUS_TYPE_UINT32},
@@ -239,33 +253,31 @@ static Properties sAdapterProperties[] = {
   {"Type", DBUS_TYPE_STRING}
 };
 
-static Properties sManagerProperties[] = {
+static const Properties sManagerProperties[] = {
   {"Adapters", DBUS_TYPE_ARRAY},
 };
 
-static Properties sSinkProperties[] = {
+static const Properties sSinkProperties[] = {
   {"State", DBUS_TYPE_STRING},
   {"Connected", DBUS_TYPE_BOOLEAN},
   {"Playing", DBUS_TYPE_BOOLEAN}
 };
 
-static Properties sControlProperties[] = {
+static const Properties sControlProperties[] = {
   {"Connected", DBUS_TYPE_BOOLEAN}
 };
 
-static Properties sInputProperties[] = {
+static const Properties sInputProperties[] = {
   {"Connected", DBUS_TYPE_BOOLEAN}
 };
 
-static const char* sBluetoothDBusIfaces[] =
-{
+static const char* const sBluetoothDBusIfaces[] = {
   DBUS_MANAGER_IFACE,
   DBUS_ADAPTER_IFACE,
   DBUS_DEVICE_IFACE
 };
 
-static const char* sBluetoothDBusSignals[] =
-{
+static const char* const sBluetoothDBusSignals[] = {
   "type='signal',interface='org.freedesktop.DBus'",
   "type='signal',interface='org.bluez.Adapter'",
   "type='signal',interface='org.bluez.Manager'",
@@ -279,7 +291,31 @@ static const char* sBluetoothDBusSignals[] =
 };
 
 
+
+
+
+static const int sWaitingForAdapterNameInterval = 1000; 
+
+
+
+
+
+
+
+
 static StaticAutoPtr<RawDBusConnection> sDBusConnection;
+
+
+static Atomic<int32_t> sIsPairing(0);
+
+static nsDataHashtable<nsStringHashKey, DBusMessage* >* sPairingReqTable;
+
+
+
+
+
+
+
 
 
 static nsTArray<BluetoothServiceClass> sAuthorizedServiceClass;
@@ -291,17 +327,10 @@ static nsString sAdapterPath;
 
 
 
-static int sWaitingForAdapterNameInterval = 1000; 
-
-
-static Atomic<int32_t> sIsPairing(0);
-static nsDataHashtable<nsStringHashKey, DBusMessage* >* sPairingReqTable;
-
-
-
-
-
 static int sConnectedDeviceCount = 0;
+
+
+
 static StaticAutoPtr<Monitor> sGetPropertyMonitor;
 static StaticAutoPtr<Monitor> sStopBluetoothMonitor;
 
@@ -782,7 +811,7 @@ ContainsIcon(const InfallibleTArray<BluetoothNamedValue>& aProperties)
 }
 
 static bool
-GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
+GetProperty(DBusMessageIter aIter, const Properties* aPropertyTypes,
             int aPropertyTypeLen, int* aPropIndex,
             InfallibleTArray<BluetoothNamedValue>& aProperties)
 {
@@ -926,7 +955,7 @@ static void
 ParseProperties(DBusMessageIter* aIter,
                 BluetoothValue& aValue,
                 nsAString& aErrorStr,
-                Properties* aPropertyTypes,
+                const Properties* aPropertyTypes,
                 const int aPropertyTypeLen)
 {
   DBusMessageIter dict_entry, dict;
@@ -959,7 +988,7 @@ UnpackPropertiesMessage(DBusMessage* aMsg, DBusError* aErr,
 {
   MOZ_ASSERT(aMsg);
 
-  Properties* propertyTypes;
+  const Properties* propertyTypes;
   int propertyTypesLength;
 
   nsAutoString errorStr;
@@ -995,7 +1024,7 @@ UnpackPropertiesMessage(DBusMessage* aMsg, DBusError* aErr,
 
 static void
 ParsePropertyChange(DBusMessage* aMsg, BluetoothValue& aValue,
-                    nsAString& aErrorStr, Properties* aPropertyTypes,
+                    nsAString& aErrorStr, const Properties* aPropertyTypes,
                     const int aPropertyTypeLen)
 {
   DBusMessageIter iter;
