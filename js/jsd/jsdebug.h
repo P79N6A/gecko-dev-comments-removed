@@ -160,6 +160,12 @@ JSD_GetDefaultJSContext(JSDContext* jsdc);
 
 
 
+extern JSD_PUBLIC_API(JSObject*)
+JSD_GetDefaultGlobal(JSDContext* jsdc);
+
+
+
+
 extern JSD_PUBLIC_API(JSRuntime*)
 JSD_GetJSRuntime(JSDContext* jsdc);
 
