@@ -674,15 +674,9 @@ nsEventStatus AsyncPanZoomController::OnScale(const PinchGestureInput& aEvent) {
 
 nsEventStatus AsyncPanZoomController::OnScaleEnd(const PinchGestureInput& aEvent) {
   APZC_LOG("%p got a scale-end in state %d\n", this, mState);
-  
-  
-  
-  
-  if (aEvent.mCurrentSpan >= 0) {
-    SetState(PANNING);
-    mX.StartTouch(aEvent.mFocusPoint.x);
-    mY.StartTouch(aEvent.mFocusPoint.y);
-  }
+  SetState(PANNING);
+  mX.StartTouch(aEvent.mFocusPoint.x);
+  mY.StartTouch(aEvent.mFocusPoint.y);
   {
     ReentrantMonitorAutoEnter lock(mMonitor);
     ScheduleComposite();
@@ -1290,13 +1284,9 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aLayerMetri
       aLayerMetrics.mCompositionBounds.height == mFrameMetrics.mCompositionBounds.height) {
     
     
-    CSSToScreenScale previousResolution = mFrameMetrics.CalculateIntrinsicScale();
-    mFrameMetrics.mViewport = aLayerMetrics.mViewport;
-    CSSToScreenScale newResolution = mFrameMetrics.CalculateIntrinsicScale();
-    if (previousResolution != newResolution) {
+    if (mFrameMetrics.mViewport.width != aLayerMetrics.mViewport)
       needContentRepaint = true;
-      mFrameMetrics.mZoom.scale *= newResolution.scale / previousResolution.scale;
-    }
+    mFrameMetrics.mViewport = aLayerMetrics.mViewport;
   }
 
   if (aIsFirstPaint || isDefault) {
