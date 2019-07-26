@@ -15,16 +15,10 @@ const { method, Arg, Option, RetVal } = protocol;
 
 const WEBGL_CONTEXT_NAMES = ["webgl", "experimental-webgl", "moz-webgl"];
 
-const HIGHLIGHT_FRAG_SHADER = [
-  "precision lowp float;",
-  "void main() {",
-    "gl_FragColor.rgba = vec4(%color);",
-  "}"
-].join("\n");
-
 
 const PROGRAM_DEFAULT_TRAITS = 0;
 const PROGRAM_BLACKBOX_TRAIT = 1;
+const PROGRAM_HIGHLIGHT_TRAIT = 2;
 
 exports.register = function(handle) {
   handle.addTabActor(WebGLActor, "webglActor");
@@ -162,15 +156,11 @@ let ProgramActor = protocol.ActorClass({
   
 
 
-
-  highlight: method(function(color) {
-    let shaderActor = this._getShaderActor("fragment");
-    let oldText = shaderActor.text;
-    let newText = HIGHLIGHT_FRAG_SHADER.replace("%color", color)
-    shaderActor.compile(newText);
-    shaderActor.text = oldText;
+  highlight: method(function(tint) {
+    this.linkedProxy.highlightTint = tint;
+    this.linkedCache.setProgramTrait(this.program, PROGRAM_HIGHLIGHT_TRAIT);
   }, {
-    request: { color: Arg(0, "array:string") },
+    request: { tint: Arg(0, "array:number") },
     oneway: true
   }),
 
@@ -178,8 +168,7 @@ let ProgramActor = protocol.ActorClass({
 
 
   unhighlight: method(function() {
-    let shaderActor = this._getShaderActor("fragment");
-    shaderActor.compile(shaderActor.text);
+    this.linkedCache.unsetProgramTrait(this.program, PROGRAM_HIGHLIGHT_TRAIT);
   }, {
     oneway: true
   }),
@@ -485,21 +474,23 @@ let WebGLInstrumenter = {
 
 
 
-  _instrument: function(observer, context, funcName, callbackName, timing = 0) {
+
+  _instrument: function(observer, context, funcName, callbackName = [], timing = -1) {
     let { cache, proxy } = observer.for(context);
     let originalFunc = context[funcName];
-    let proxyFuncName = callbackName || funcName;
+    let beforeFuncName = callbackName[0] || funcName;
+    let afterFuncName = callbackName[1] || callbackName[0] || funcName;
 
     context[funcName] = function(...glArgs) {
-      if (timing == 0 && !observer.suppressHandlers) {
-        let glBreak = observer[proxyFuncName](glArgs, cache, proxy);
+      if (timing <= 0 && !observer.suppressHandlers) {
+        let glBreak = observer[beforeFuncName](glArgs, cache, proxy);
         if (glBreak) return undefined;
       }
 
       let glResult = originalFunc.apply(this, glArgs);
 
-      if (timing == 1 && !observer.suppressHandlers) {
-        let glBreak = observer[proxyFuncName](glArgs, glResult, cache, proxy);
+      if (timing >= 0 && !observer.suppressHandlers) {
+        let glBreak = observer[afterFuncName](glArgs, glResult, cache, proxy);
         if (glBreak) return undefined;
       }
 
@@ -516,19 +507,28 @@ let WebGLInstrumenter = {
       "linkProgram", "getAttribLocation", "getUniformLocation"
     ]
   }, {
-    callback: "toggleVertexAttribArray",
+    timing: -1, 
+    callback: [
+      "toggleVertexAttribArray"
+    ],
     functions: [
       "enableVertexAttribArray", "disableVertexAttribArray"
     ]
   }, {
-    callback: "attribute_",
+    timing: -1, 
+    callback: [
+      "attribute_"
+    ],
     functions: [
       "vertexAttrib1f", "vertexAttrib2f", "vertexAttrib3f", "vertexAttrib4f",
       "vertexAttrib1fv", "vertexAttrib2fv", "vertexAttrib3fv", "vertexAttrib4fv",
       "vertexAttribPointer"
     ]
   }, {
-    callback: "uniform_",
+    timing: -1, 
+    callback: [
+      "uniform_"
+    ],
     functions: [
       "uniform1i", "uniform2i", "uniform3i", "uniform4i",
       "uniform1f", "uniform2f", "uniform3f", "uniform4f",
@@ -537,10 +537,17 @@ let WebGLInstrumenter = {
       "uniformMatrix2fv", "uniformMatrix3fv", "uniformMatrix4fv"
     ]
   }, {
-    timing: 1, 
-    functions: ["useProgram"]
+    timing: -1, 
+    functions: [
+      "useProgram", "enable", "disable", "blendColor",
+      "blendEquation", "blendEquationSeparate",
+      "blendFunc", "blendFuncSeparate"
+    ]
   }, {
-    callback: "draw_",
+    timing: 0, 
+    callback: [
+      "beforeDraw_", "afterDraw_"
+    ],
     functions: [
       "drawArrays", "drawElements"
     ]
@@ -573,6 +580,7 @@ WebGLObserver.prototype = {
   registerContextForWindow: function(id, context) {
     let cache = new WebGLCache(id, context);
     let proxy = new WebGLProxy(id, context, cache, this);
+    cache.refreshState(proxy);
 
     this._contexts.set(context, {
       ownerWindow: id,
@@ -713,9 +721,7 @@ WebGLObserver.prototype = {
 
 
 
-
-
-  useProgram: function(glArgs, glResult, cache) {
+  useProgram: function(glArgs, cache) {
     
     
     cache.currentProgram = glArgs[0];
@@ -729,10 +735,141 @@ WebGLObserver.prototype = {
 
 
 
+  enable: function(glArgs, cache) {
+    cache.currentState[glArgs[0]] = true;
+  },
 
-  draw_: function(glArgs, cache) {
+  
+
+
+
+
+
+
+
+  disable: function(glArgs, cache) {
+    cache.currentState[glArgs[0]] = false;
+  },
+
+  
+
+
+
+
+
+
+
+  blendColor: function(glArgs, cache) {
+    let blendColor = cache.currentState.blendColor;
+    blendColor[0] = glArgs[0];
+    blendColor[1] = glArgs[1];
+    blendColor[2] = glArgs[2];
+    blendColor[3] = glArgs[3];
+  },
+
+  
+
+
+
+
+
+
+
+  blendEquation: function(glArgs, cache) {
+    let state = cache.currentState;
+    state.blendEquationRgb = state.blendEquationAlpha = glArgs[0];
+  },
+
+  
+
+
+
+
+
+
+
+  blendEquationSeparate: function(glArgs, cache) {
+    let state = cache.currentState;
+    state.blendEquationRgb = glArgs[0];
+    state.blendEquationAlpha = glArgs[1];
+  },
+
+  
+
+
+
+
+
+
+
+  blendFunc: function(glArgs, cache) {
+    let state = cache.currentState;
+    state.blendSrcRgb = state.blendSrcAlpha = glArgs[0];
+    state.blendDstRgb = state.blendDstAlpha = glArgs[1];
+  },
+
+  
+
+
+
+
+
+
+
+  blendFuncSeparate: function(glArgs, cache) {
+    let state = cache.currentState;
+    state.blendSrcRgb = glArgs[0];
+    state.blendDstRgb = glArgs[1];
+    state.blendSrcAlpha = glArgs[2];
+    state.blendDstAlpha = glArgs[3];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  beforeDraw_: function(glArgs, cache, proxy) {
+    let traits = cache.currentProgramTraits;
+
     
-    return cache.currentProgramTraits & PROGRAM_BLACKBOX_TRAIT;
+    if (traits & PROGRAM_BLACKBOX_TRAIT) {
+      return true; 
+    }
+    
+    if (traits & PROGRAM_HIGHLIGHT_TRAIT) {
+      proxy.enableHighlighting();
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  afterDraw_: function(glArgs, glResult, cache, proxy) {
+    let traits = cache.currentProgramTraits;
+
+    
+    if (traits & PROGRAM_HIGHLIGHT_TRAIT) {
+      proxy.disableHighlighting();
+    }
   }
 };
 
@@ -749,6 +886,7 @@ function WebGLCache(id, context) {
   this._id = id;
   this._gl = context;
   this._programs = new Map();
+  this.currentState = {};
 }
 
 WebGLCache.prototype = {
@@ -761,6 +899,35 @@ WebGLCache.prototype = {
 
   get ownerWindow() this._id,
   get ownerContext() this._gl,
+
+  
+
+
+
+
+  currentState: null,
+
+  
+
+
+
+
+
+  refreshState: function(proxy) {
+    let gl = this._gl;
+    let s = this.currentState;
+
+    
+    
+    s[gl.BLEND] = proxy.isEnabled("BLEND");
+    s.blendColor = proxy.getParameter("BLEND_COLOR");
+    s.blendEquationRgb = proxy.getParameter("BLEND_EQUATION_RGB");
+    s.blendEquationAlpha = proxy.getParameter("BLEND_EQUATION_ALPHA");
+    s.blendSrcRgb = proxy.getParameter("BLEND_SRC_RGB");
+    s.blendSrcAlpha = proxy.getParameter("BLEND_SRC_ALPHA");
+    s.blendDstRgb = proxy.getParameter("BLEND_DST_RGB");
+    s.blendDstAlpha = proxy.getParameter("BLEND_DST_ALPHA");
+  },
 
   
 
@@ -947,10 +1114,14 @@ function WebGLProxy(id, context, cache, observer) {
   this._observer = observer;
 
   let exports = [
+    "isEnabled",
+    "getParameter",
     "getAttachedShaders",
     "getShaderSource",
     "getShaderOfType",
-    "compileShader"
+    "compileShader",
+    "enableHighlighting",
+    "disableHighlighting"
   ];
   exports.forEach(e => this[e] = (...args) => this._call(e, args));
 }
@@ -963,6 +1134,64 @@ WebGLProxy.prototype = {
 
   get ownerWindow() this._id,
   get ownerContext() this._gl,
+
+  
+
+
+
+
+
+
+
+  _isEnabled: function(name) {
+    return this._gl.isEnabled(this._gl[name]);
+  },
+
+  
+
+
+
+
+
+
+
+  _getParameter: function(name) {
+    return this._gl.getParameter(this._gl[name]);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getRenderbufferParameter: function(name) {
+    if (!this._getParameter("RENDERBUFFER_BINDING")) {
+      return null;
+    }
+    let gl = this._gl;
+    return gl.getRenderbufferParameter(gl.RENDERBUFFER, gl[name]);
+  },
+
+  
+
+
+
+
+
+
+
+
+  _getFramebufferAttachmentParameter: function(type, name) {
+    if (!this._getParameter("FRAMEBUFFER_BINDING")) {
+      return null;
+    }
+    let gl = this._gl;
+    return gl.getFramebufferAttachmentParameter(gl.RENDERBUFFER, gl[type], gl[name]);
+  },
 
   
 
@@ -1045,6 +1274,48 @@ WebGLProxy.prototype = {
 
     return error;
   },
+
+  
+
+
+  _enableHighlighting: function() {
+    let gl = this._gl;
+
+    
+    let format = this._getRenderbufferParameter("RENDERBUFFER_INTERNAL_FORMAT");
+    if (format == gl.DEPTH_COMPONENT16) {
+      return;
+    }
+
+    
+    
+    
+    gl.enable(gl.BLEND);
+    gl.blendColor.apply(gl, this.highlightTint);
+    gl.blendEquation(gl.FUNC_ADD);
+    gl.blendFunc(gl.CONSTANT_COLOR, gl.ONE_MINUS_SRC_ALPHA, gl.CONSTANT_COLOR, gl.ZERO);
+    this.wasHighlighting = true;
+  },
+
+  
+
+
+
+  _disableHighlighting: function() {
+    let gl = this._gl;
+    let s = this._cache.currentState;
+
+    gl[s[gl.BLEND] ? "enable" : "disable"](gl.BLEND);
+    gl.blendColor.apply(gl, s.blendColor);
+    gl.blendEquationSeparate(s.blendEquationRgb, s.blendEquationAlpha);
+    gl.blendFuncSeparate(s.blendSrcRgb, s.blendDstRgb, s.blendSrcAlpha, s.blendDstAlpha);
+  },
+
+  
+
+
+
+  highlightTint: [0, 0, 0, 0],
 
   
 

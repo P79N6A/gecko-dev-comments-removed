@@ -32,7 +32,7 @@ const EVENTS = {
 };
 
 const STRINGS_URI = "chrome://browser/locale/devtools/shadereditor.properties"
-const HIGHLIGHT_COLOR = [1, 0, 0, 1]; 
+const HIGHLIGHT_TINT = [1, 0, 0.25, 1]; 
 const TYPING_MAX_DELAY = 500; 
 const SHADERS_AUTOGROW_ITEMS = 4;
 const GUTTER_ERROR_PANEL_OFFSET_X = 7; 
@@ -297,7 +297,7 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
   _onProgramMouseEnter: function(e) {
     let sourceItem = this.getItemForElement(e.target, { noSiblings: true });
     if (sourceItem && !sourceItem.attachment.isBlackBoxed) {
-      sourceItem.attachment.programActor.highlight(HIGHLIGHT_COLOR);
+      sourceItem.attachment.programActor.highlight(HIGHLIGHT_TINT);
 
       if (e instanceof Event) {
         e.preventDefault();
