@@ -24,6 +24,7 @@ let gFxAccounts = {
     
     delete this.topics;
     return this.topics = [
+      "weave:service:ready",
       "weave:service:sync:start",
       "weave:service:login:error",
       FxAccountsCommon.ONLOGIN_NOTIFICATION,
