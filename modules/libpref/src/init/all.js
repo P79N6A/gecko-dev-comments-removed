@@ -182,6 +182,8 @@ pref("media.gstreamer.enabled", true);
 pref("media.navigator.enabled", true);
 pref("media.peerconnection.enabled", false);
 pref("media.navigator.permission.disabled", false);
+pref("media.peerconnection.default_iceservers", "[{\"url\": \"stun:23.21.150.121\"}]");
+pref("media.peerconnection.use_document_iceservers", true);
 
 
 
