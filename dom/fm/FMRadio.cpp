@@ -251,14 +251,23 @@ NS_IMETHODIMP FMRadio::CanPlayChanged(bool canPlay)
   nsCOMPtr<nsIAudioManager> audioManager =
     do_GetService(NS_AUDIOMANAGER_CONTRACTID);
   NS_ENSURE_TRUE(audioManager, NS_OK);
+
+  bool AudioEnabled;
+  audioManager->GetFmRadioAudioEnabled(&AudioEnabled);
+  if (AudioEnabled == canPlay) {
+    return NS_OK;
+  }
+
   
   if (canPlay) {
+    audioManager->SetFmRadioAudioEnabled(true);
     int32_t volIdx = 0;
     
     audioManager->GetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_MUSIC, &volIdx);
     audioManager->SetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_FM, volIdx);
   } else {
     audioManager->SetStreamVolumeIndex(nsIAudioManager::STREAM_TYPE_FM, 0);
+    audioManager->SetFmRadioAudioEnabled(false);
   }
   return NS_OK;
 }
