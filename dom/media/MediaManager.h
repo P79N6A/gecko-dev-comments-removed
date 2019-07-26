@@ -97,6 +97,9 @@ public:
       mVideoSource->Stop();
       mVideoSource->Deallocate();
     }
+    
+    mStream->GetStream()->AsSourceStream()->Finish();
+
     nsCOMPtr<GetUserMediaNotificationEvent> event =
       new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STOPPING);
 
