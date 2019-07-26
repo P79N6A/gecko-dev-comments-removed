@@ -370,13 +370,6 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
     void fireNewScript(JSContext *cx, HandleScript script);
 
-    
-
-
-
-    bool getScriptFrameWithIter(JSContext *cx, AbstractFramePtr frame,
-                                const ScriptFrameIter *maybeIter, MutableHandleValue vp);
-
     inline Breakpoint *firstBreakpoint() const;
 
     static inline Debugger *fromOnNewGlobalObjectWatchersLink(JSCList *link);
@@ -490,9 +483,7 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
 
-    bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp) {
-        return getScriptFrameWithIter(cx, frame, nullptr, vp);
-    }
+    bool getScriptFrame(JSContext *cx, AbstractFramePtr frame, MutableHandleValue vp);
 
     
 
@@ -503,7 +494,11 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     bool getScriptFrame(JSContext *cx, const ScriptFrameIter &iter, MutableHandleValue vp) {
-        return getScriptFrameWithIter(cx, iter.abstractFramePtr(), &iter, vp);
+        AbstractFramePtr data = iter.copyDataAsAbstractFramePtr();
+        if (!data || !getScriptFrame(cx, iter.abstractFramePtr(), vp))
+            return false;
+        vp.toObject().setPrivate(data.raw());
+        return true;
     }
 
     
