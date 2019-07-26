@@ -2338,9 +2338,11 @@ enum InterruptMode {
 
 
 static InterruptMode sInterruptMode = ModeEvent;
+#ifndef XP_WIN
 
 
 static uint32_t sInterruptSeed = 1;
+#endif
 
 
 

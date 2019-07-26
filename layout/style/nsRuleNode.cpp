@@ -3050,25 +3050,23 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
       
       
 
-      
-      
-      
-      
-      switch (fontID) {
+      if (fontID == LookAndFeel::eFont_Field ||
+          fontID == LookAndFeel::eFont_Button ||
+          fontID == LookAndFeel::eFont_List) {
         
         
         
         
         
         
-      case LookAndFeel::eFont_Field:
-      case LookAndFeel::eFont_Button:
-      case LookAndFeel::eFont_List:
+        
+        
+        
+        
         
         systemFont.size =
           NS_MAX(defaultVariableFont->size -
                  nsPresContext::CSSPointsToAppUnits(2), 0);
-        break;
       }
 #endif
     }
