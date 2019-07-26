@@ -23,6 +23,7 @@
 #include <sys/syscall.h>
 #include <sys/resource.h>
 #include <time.h>
+#include <asm/page.h>
 
 #include "android/log.h"
 #include "cutils/properties.h"
@@ -926,7 +927,7 @@ SetAlarm(int32_t aSeconds, int32_t aNanoseconds)
 }
 
 static int
-oomAdjOfOomScoreAdj(int aOomScoreAdj)
+OomAdjOfOomScoreAdj(int aOomScoreAdj)
 {
   
   
@@ -942,10 +943,92 @@ oomAdjOfOomScoreAdj(int aOomScoreAdj)
   return adj;
 }
 
+static void
+EnsureKernelLowMemKillerParamsSet()
+{
+  static bool kernelLowMemKillerParamsSet;
+  if (kernelLowMemKillerParamsSet) {
+    return;
+  }
+  kernelLowMemKillerParamsSet = true;
+
+  HAL_LOG(("Setting kernel's low-mem killer parameters."));
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  nsAutoCString adjParams;
+  nsAutoCString minfreeParams;
+
+  const char* priorityClasses[] = {"master", "foreground", "background"};
+  for (size_t i = 0; i < NS_ARRAY_LENGTH(priorityClasses); i++) {
+    int32_t oomScoreAdj;
+    if (!NS_SUCCEEDED(Preferences::GetInt(nsPrintfCString(
+          "hal.processPriorityManager.gonk.%sOomScoreAdjust",
+          priorityClasses[i]).get(), &oomScoreAdj))) {
+      continue;
+    }
+
+    int32_t killUnderMB;
+    if (!NS_SUCCEEDED(Preferences::GetInt(nsPrintfCString(
+          "hal.processPriorityManager.gonk.%sKillUnderMB",
+          priorityClasses[i]).get(), &killUnderMB))) {
+      continue;
+    }
+
+    
+    adjParams.AppendPrintf("%d,", OomAdjOfOomScoreAdj(oomScoreAdj));
+
+    
+    minfreeParams.AppendPrintf("%d,", killUnderMB * 1024 * 1024 / PAGE_SIZE);
+  }
+
+  
+  adjParams.Cut(adjParams.Length() - 1, 1);
+  minfreeParams.Cut(minfreeParams.Length() - 1, 1);
+  if (!adjParams.IsEmpty() && !minfreeParams.IsEmpty()) {
+    WriteToFile("/sys/module/lowmemorykiller/parameters/adj", adjParams.get());
+    WriteToFile("/sys/module/lowmemorykiller/parameters/minfree", minfreeParams.get());
+  }
+
+  
+  int32_t lowMemNotifyThresholdMB;
+  if (NS_SUCCEEDED(Preferences::GetInt(
+        "hal.processPriorityManager.gonk.notifyLowMemUnderMB",
+        &lowMemNotifyThresholdMB))) {
+
+    
+    WriteToFile("/sys/module/lowmemorykiller/parameters/notify_trigger",
+      nsPrintfCString("%d", lowMemNotifyThresholdMB * 1024 * 1024 / PAGE_SIZE).get());
+  }
+}
+
 void
 SetProcessPriority(int aPid, ProcessPriority aPriority)
 {
   HAL_LOG(("SetProcessPriority(pid=%d, priority=%d)", aPid, aPriority));
+
+  
+  
+  
+  
+  
+  
+  
+  EnsureKernelLowMemKillerParamsSet();
 
   const char* priorityStr = NULL;
   switch (aPriority) {
@@ -988,7 +1071,7 @@ SetProcessPriority(int aPid, ProcessPriority aPriority)
     if (!WriteToFile(nsPrintfCString("/proc/%d/oom_score_adj", aPid).get(),
                      nsPrintfCString("%d", clampedOomScoreAdj).get()))
     {
-      int oomAdj = oomAdjOfOomScoreAdj(clampedOomScoreAdj);
+      int oomAdj = OomAdjOfOomScoreAdj(clampedOomScoreAdj);
 
       WriteToFile(nsPrintfCString("/proc/%d/oom_adj", aPid).get(),
                   nsPrintfCString("%d", oomAdj).get());

@@ -530,9 +530,18 @@ pref("ui.showHideScrollbars", 1);
 
 pref("dom.ipc.processPriorityManager.enabled", true);
 pref("dom.ipc.processPriorityManager.gracePeriodMS", 1000);
+
+
+pref("gonk.systemMemoryPressureRecoveryPollMS", 5000);
 pref("hal.processPriorityManager.gonk.masterOomScoreAdjust", 0);
+pref("hal.processPriorityManager.gonk.masterKillUnderMB", 1);
 pref("hal.processPriorityManager.gonk.foregroundOomScoreAdjust", 67);
+pref("hal.processPriorityManager.gonk.foregroundKillUnderMB", 4);
 pref("hal.processPriorityManager.gonk.backgroundOomScoreAdjust", 400);
+pref("hal.processPriorityManager.gonk.backgroundKillUnderMB", 8);
+pref("hal.processPriorityManager.gonk.notifyLowMemUnderMB", 10);
+
+
 pref("hal.processPriorityManager.gonk.masterNice", -1);
 pref("hal.processPriorityManager.gonk.foregroundNice", 0);
 pref("hal.processPriorityManager.gonk.backgroundNice", 10);
