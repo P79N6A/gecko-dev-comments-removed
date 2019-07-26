@@ -2272,7 +2272,17 @@ MmsService.prototype = {
       
       let serviceId;
       try {
-        serviceId = gRil.getClientIdByIccId(aMessageRecord.iccId);
+        if (aMessageRecord.iccId == null) {
+          
+          
+          
+          
+          
+          
+          serviceId = 0;
+        } else {
+          serviceId = gRil.getClientIdByIccId(aMessageRecord.iccId);
+        }
       } catch (e) {
         if (DEBUG) debug("RIL service is not available for ICC ID.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR);
@@ -2410,7 +2420,17 @@ MmsService.prototype = {
     
     let serviceId;
     try {
-      serviceId = gRil.getClientIdByIccId(iccId);
+      if (iccId == null) {
+        
+        
+        
+        
+        
+        
+        serviceId = 0;
+      } else {
+        serviceId = gRil.getClientIdByIccId(iccId);
+      }
     } catch (e) {
       if (DEBUG) debug("RIL service is not available for ICC ID.");
       return;
