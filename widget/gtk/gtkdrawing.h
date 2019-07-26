@@ -297,6 +297,16 @@ moz_gtk_button_get_inner_border(GtkWidget* widget, GtkBorder* inner_border);
 
 
 
+gint
+moz_gtk_get_focus_outline_size(gint* focus_h_width, gint* focus_v_width);
+
+
+
+
+
+
+
+
 
 
 gint
