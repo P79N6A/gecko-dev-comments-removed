@@ -3,6 +3,12 @@
 
 
 
+#ifdef XP_WIN
+
+#include "Windows.h"
+#include "Mmsystem.h"
+#endif
+ 
 #include "mozilla/DebugOnly.h"
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Util.h"
@@ -421,6 +427,14 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   if (mAmpleVideoFrames < 2) {
     mAmpleVideoFrames = 2;
   }
+#ifdef XP_WIN
+  
+  
+  
+  
+  
+  timeBeginPeriod(1);
+#endif
 }
 
 MediaDecoderStateMachine::~MediaDecoderStateMachine()
@@ -439,6 +453,9 @@ MediaDecoderStateMachine::~MediaDecoderStateMachine()
   mReader = nullptr;
  
   StateMachineTracker::Instance().CleanupGlobalStateMachine();
+#ifdef XP_WIN
+  timeEndPeriod(1);
+#endif
 }
 
 bool MediaDecoderStateMachine::HasFutureAudio() const {
