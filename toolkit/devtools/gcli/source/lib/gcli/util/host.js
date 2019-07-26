@@ -16,11 +16,10 @@
 
 'use strict';
 
-var Cu = require('chrome').Cu;
 var Cc = require('chrome').Cc;
 var Ci = require('chrome').Ci;
 
-var OS = Cu.import('resource://gre/modules/osfile.jsm', {}).OS;
+var Task = require('resource://gre/modules/Task.jsm').Task;
 
 var promise = require('./promise');
 var util = require('./util');
@@ -61,8 +60,15 @@ exports.Highlighter = Highlighter;
 
 
 
-exports.exec = function(execSpec) {
+exports.spawn = function(spawnSpec) {
   throw new Error('Not supported');
+};
+
+
+
+
+exports.exec = function(task) {
+  return Task.spawn(task);
 };
 
 
