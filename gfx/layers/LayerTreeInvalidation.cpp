@@ -151,9 +151,7 @@ struct LayerPropertiesBase : public LayerProperties
     {
       aGeometryChanged = true;
       result = OldTransformedBounds();
-      if (transformChanged) {
-        AddRegion(result, NewTransformedBounds());
-      }
+      AddRegion(result, NewTransformedBounds());
 
       
       
