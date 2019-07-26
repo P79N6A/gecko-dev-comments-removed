@@ -375,9 +375,12 @@ def parsefile(pathname):
 
 _depfilesplitter = re.compile(r':(?![\\/])')
 
+_vars = re.compile('\$\((\w+)\)')
+
 def parsedepfile(pathname):
     """
     Parse a filename listing only depencencies into a parserdata.StatementList.
+    Simple variable references are allowed in such files.
     """
     def continuation_iter(lines):
         current_line = []
@@ -394,12 +397,29 @@ def parsedepfile(pathname):
         if current_line:
             yield ''.join(current_line)
 
+    def get_expansion(s):
+        if '$' in s:
+            expansion = data.Expansion()
+            
+            
+            
+            for i, element in enumerate(_vars.split(s)):
+                if i % 2:
+                    expansion.appendfunc(functions.VariableRef(None,
+                        data.StringExpansion(element, None)))
+                elif element:
+                    expansion.appendstr(element)
+
+            return expansion
+
+        return data.StringExpansion(s, None)
+
     pathname = os.path.realpath(pathname)
     stmts = parserdata.StatementList()
     for line in continuation_iter(open(pathname).readlines()):
         target, deps = _depfilesplitter.split(line, 1)
-        stmts.append(parserdata.Rule(data.StringExpansion(target, None),
-                                     data.StringExpansion(deps, None), False))
+        stmts.append(parserdata.Rule(get_expansion(target),
+                                     get_expansion(deps), False))
     return stmts
 
 def parsestring(s, filename):
