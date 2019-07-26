@@ -2686,17 +2686,20 @@ static const uint32_t ReplaceOptArg = 2;
 
 
 
-static JSObject *
-LambdaIsGetElem(JSObject &lambda)
+static bool
+LambdaIsGetElem(JSContext *cx, JSObject &lambda, MutableHandleObject pobj)
 {
     if (!lambda.isFunction())
-        return NULL;
+        return true;
 
     JSFunction *fun = lambda.toFunction();
-    if (!fun->hasScript())
-        return NULL;
+    if (!fun->isInterpreted())
+        return true;
 
-    JSScript *script = fun->nonLazyScript();
+    JSScript *script = fun->getOrCreateScript(cx);
+    if (!script)
+        return false;
+
     jsbytecode *pc = script->code;
 
     
@@ -2705,7 +2708,7 @@ LambdaIsGetElem(JSObject &lambda)
 
 
     if (JSOp(*pc) != JSOP_GETALIASEDVAR || fun->isHeavyweight())
-        return NULL;
+        return true;
     ScopeCoordinate sc(pc);
     ScopeObject *scope = &fun->environment()->asScope();
     for (unsigned i = 0; i < sc.hops; ++i)
@@ -2715,28 +2718,29 @@ LambdaIsGetElem(JSObject &lambda)
 
     
     if (JSOp(*pc) != JSOP_GETARG || GET_SLOTNO(pc) != 0)
-        return NULL;
+        return true;
     pc += JSOP_GETARG_LENGTH;
 
     
     if (JSOp(*pc) != JSOP_GETELEM)
-        return NULL;
+        return true;
     pc += JSOP_GETELEM_LENGTH;
 
     
     if (JSOp(*pc) != JSOP_RETURN)
-        return NULL;
+        return true;
 
     
     if (!b.isObject())
-        return NULL;
+        return true;
 
     JSObject &bobj = b.toObject();
     Class *clasp = bobj.getClass();
     if (!clasp->isNative() || clasp->ops.lookupProperty || clasp->ops.getProperty)
-        return NULL;
+        return true;
 
-    return &bobj;
+    pobj.set(&bobj);
+    return true;
 }
 
 JSBool
@@ -2759,8 +2763,8 @@ js::str_replace(JSContext *cx, unsigned argc, Value *vp)
         rdata.repstr = NULL;
         rdata.dollar = rdata.dollarEnd = NULL;
 
-        if (JSObject *base = LambdaIsGetElem(*rdata.lambda))
-            rdata.elembase = base;
+        if (!LambdaIsGetElem(cx, *rdata.lambda, &rdata.elembase))
+            return false;
     } else {
         rdata.lambda = NULL;
         rdata.elembase = NULL;
