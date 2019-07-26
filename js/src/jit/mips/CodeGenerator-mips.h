@@ -33,12 +33,6 @@ class CodeGeneratorMIPS : public CodeGeneratorShared
         MOZ_ASSERT(a.isMemory());
         int32_t offset = ToStackOffset(&a);
 
-        
-        
-        
-        if (gen->compilingAsmJS())
-            offset -= AlignmentMidPrologue;
-
         return Address(StackPointer, offset);
     }
 
@@ -54,12 +48,6 @@ class CodeGeneratorMIPS : public CodeGeneratorShared
 
         MOZ_ASSERT(a.isMemory());
         int32_t offset = ToStackOffset(&a);
-
-        
-        
-        
-        if (gen->compilingAsmJS())
-            offset -= AlignmentMidPrologue;
 
         return Operand(StackPointer, offset);
     }

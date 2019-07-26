@@ -422,7 +422,9 @@ class MacroAssemblerMIPSCompat : public MacroAssemblerMIPS
     }
 
     void appendCallSite(const CallSiteDesc &desc) {
-        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_));
+        
+        
+        enoughMemory_ &= append(CallSite(desc, currentOffset(), framePushed_ + sizeof(void*)));
     }
 
     void call(const CallSiteDesc &desc, const Register reg) {
@@ -1235,7 +1237,7 @@ public:
     bool buildOOLFakeExitFrame(void *fakeReturnAddr);
 
   private:
-    void callWithABIPre(uint32_t *stackAdjust);
+    void callWithABIPre(uint32_t *stackAdjust, bool callFromAsmJS = false);
     void callWithABIPost(uint32_t stackAdjust, MoveOp::Type result);
 
   public:
