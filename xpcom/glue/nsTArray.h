@@ -1056,6 +1056,26 @@ public:
     base_type::mHdr->mLength = 0;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  void SetLengthAndRetainStorage(size_type newLen) {
+    MOZ_ASSERT(newLen <= base_type::Capacity());
+    size_type oldLen = Length();
+    if (newLen > oldLen) {
+      InsertElementsAt(oldLen, newLen - oldLen);
+      return;
+    }
+    if (newLen < oldLen) {
+      DestructRange(newLen, oldLen - newLen);
+      base_type::mHdr->mLength = newLen;
+    }
+  }
 
   
   

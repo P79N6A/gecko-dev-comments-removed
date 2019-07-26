@@ -794,7 +794,8 @@ NS_FillArray(FallibleTArray<char>& aDest, nsIInputStream *aInput,
   }
   
   
-  aDest.SetLength(aKeep + *aNewBytes);
+  
+  aDest.SetLengthAndRetainStorage(aKeep + *aNewBytes);
 
   MOZ_ASSERT(aDest.Length() <= aDest.Capacity(), "buffer overflow");
   return rv;
