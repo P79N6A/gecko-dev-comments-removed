@@ -72,6 +72,11 @@ class SystemPageAllocator
     
     
     static const int    MaxLastDitchAttempts = 8;
+
+public:
+    void *testMapAlignedPagesLastDitch(size_t size, size_t alignment) {
+        return mapAlignedPagesLastDitch(size, alignment);
+    }
 };
 
 } 
