@@ -2,11 +2,39 @@
 
 
 
-import os
-
 from mozboot.base import BaseBootstrapper
 
 class DebianBootstrapper(BaseBootstrapper):
+    
+    
+    COMMON_PACKAGES = [
+        'autoconf2.13',
+        'build-essential',
+        'ccache',
+        'libasound2-dev',
+        'libcurl4-openssl-dev',
+        'libdbus-1-dev',
+        'libdbus-glib-1-dev',
+        'libgconf2-dev',
+        'libgstreamer0.10-dev',
+        'libgstreamer-plugins-base0.10-dev',
+        'libgtk2.0-dev',
+        'libiw-dev',
+        'libnotify-dev',
+        'libxt-dev',
+        'mercurial',
+        'mesa-common-dev',
+        'python-dev',
+        'unzip',
+        'uuid',
+        'yasm',
+        'xvfb',
+        'zip',
+    ]
+
+    
+    DISTRO_PACKAGES = []
+
     def __init__(self, version, dist_id):
         BaseBootstrapper.__init__(self)
 
@@ -14,18 +42,8 @@ class DebianBootstrapper(BaseBootstrapper):
         self.dist_id = dist_id
 
     def install_system_packages(self):
-        self.run_as_root(['apt-get', 'build-dep', 'iceweasel'])
+        packages = self.COMMON_PACKAGES + self.DISTRO_PACKAGES
+        self.apt_install(*packages)
 
-        self.apt_install(
-            'autoconf2.13',
-            'libasound2-dev',
-            'libcurl4-openssl-dev',
-            'libgstreamer0.10-dev',
-            'libgstreamer-plugins-base0.10-dev',
-            'libiw-dev',
-            'libnotify-dev',
-            'libxt-dev',
-            'mercurial',
-            'mesa-common-dev',
-            'uuid',
-            'yasm')
+    def _update_package_manager(self):
+        self.run_as_root(['apt-get', 'update'])

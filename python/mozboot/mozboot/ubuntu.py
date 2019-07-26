@@ -4,36 +4,35 @@
 
 import os
 
-from mozboot.base import BaseBootstrapper
+from mozboot.debian import DebianBootstrapper
 
-class UbuntuBootstrapper(BaseBootstrapper):
-    def __init__(self, version, dist_id):
-        BaseBootstrapper.__init__(self)
 
-        self.version = version
-        self.dist_id = dist_id
+MERCURIAL_PPA = '''
+Ubuntu does not provide a modern Mercurial in its package repository. So,
+we will install a PPA that does.
+'''.strip()
 
-    def install_system_packages(self):
-        self.run_as_root(['apt-get', 'build-dep', 'firefox'])
 
-        self.apt_install(
-            'autoconf2.13',
-            'libasound2-dev',
-            'libcurl4-openssl-dev',
-            'libgstreamer0.10-dev',
-            'libgstreamer-plugins-base0.10-dev',
-            'libiw-dev',
-            'libnotify-dev',
-            'libxt-dev',
-            'mercurial',
-            'mesa-common-dev',
-            'uuid',
-            'yasm')
-
-    def _update_package_manager(self):
-        self.run_as_root(['apt-get', 'update'])
+class UbuntuBootstrapper(DebianBootstrapper):
+    DISTRO_PACKAGES = [
+        
+        'software-properties-common',
+    ]
 
     def upgrade_mercurial(self, current):
-        self._ensure_package_manager_updated()
+        
+        
+        self._add_ppa('mercurial-ppa/releases')
+        self._update_package_manager()
         self.apt_install('mercurial')
 
+    def _add_ppa(self, ppa):
+        
+        
+        
+        list_file = ppa.replace('/', '-')
+        for source in os.listdir('/etc/apt/sources.list.d'):
+            if source.startswith(list_file) and source.endswith('.list'):
+                return
+
+        self.run_as_root(['add-apt-repository', 'ppa:%s' % ppa])
