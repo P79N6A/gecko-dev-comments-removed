@@ -11,41 +11,10 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 Cu.import("resource://gre/modules/Promise.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "LanguageDetector",
-  "resource:///modules/translation/LanguageDetector.jsm");
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-this.Translation = function(aBrowser) {
-  this.browser = aBrowser;
-};
-
-this.Translation.prototype = {
+this.Translation = {
   supportedSourceLanguages: ["en", "zh", "ja", "es", "de", "fr", "ru", "ar", "ko", "pt"],
   supportedTargetLanguages: ["en", "pl", "tr", "vi"],
-
-  STATE_OFFER: 0,
-  STATE_TRANSLATING: 1,
-  STATE_TRANSLATED: 2,
-  STATE_ERROR: 3,
 
   _defaultTargetLanguage: "",
   get defaultTargetLanguage() {
@@ -57,6 +26,43 @@ this.Translation.prototype = {
     }
     return this._defaultTargetLanguage;
   },
+
+  languageDetected: function(aBrowser, aDetectedLanguage) {
+    if (this.supportedSourceLanguages.indexOf(aDetectedLanguage) != -1 &&
+        aDetectedLanguage != this.defaultTargetLanguage) {
+      if (!aBrowser.translationUI)
+        aBrowser.translationUI = new TranslationUI(aBrowser);
+
+      aBrowser.translationUI.showTranslationUI(aDetectedLanguage);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function TranslationUI(aBrowser) {
+  this.browser = aBrowser;
+}
+
+TranslationUI.prototype = {
+  STATE_OFFER: 0,
+  STATE_TRANSLATING: 1,
+  STATE_TRANSLATED: 2,
+  STATE_ERROR: 3,
 
   get doc() this.browser.contentDocument,
 

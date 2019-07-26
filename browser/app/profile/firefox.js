@@ -1425,6 +1425,8 @@ pref("browser.cache.auto_delete_cache_version", 1);
 
 pref("browser.cache.frecency_experiment", 0);
 
+pref("browser.translation.detectLanguage", false);
+
 
 pref("experiments.enabled", false);
 pref("experiments.manifest.fetchIntervalSeconds", 86400);
