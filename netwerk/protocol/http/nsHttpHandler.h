@@ -100,7 +100,9 @@ public:
 
     bool           PromptTempRedirect()      { return mPromptTempRedirect; }
 
-    nsHttpAuthCache     *AuthCache() { return &mAuthCache; }
+    nsHttpAuthCache     *AuthCache(bool aPrivate) {
+        return aPrivate ? &mPrivateAuthCache : &mAuthCache;
+    }
     nsHttpConnectionMgr *ConnMgr()   { return mConnMgr; }
 
     
@@ -269,6 +271,7 @@ private:
 
     
     nsHttpAuthCache mAuthCache;
+    nsHttpAuthCache mPrivateAuthCache;
 
     
     nsHttpConnectionMgr *mConnMgr;

@@ -216,8 +216,9 @@ Sanitizer.prototype = {
         sdr.logoutAndTeardown();
 
         
-        var authMgr = Cc['@mozilla.org/network/http-auth-manager;1'].getService(Ci.nsIHttpAuthManager);
-        authMgr.clearAll();
+        var os = Components.classes["@mozilla.org/observer-service;1"]
+                           .getService(Components.interfaces.nsIObserverService);
+        os.notifyObservers(null, "net:clear-active-logins", null);
       },
 
       get canClear()
