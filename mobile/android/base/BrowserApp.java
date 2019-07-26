@@ -1920,7 +1920,7 @@ abstract public class BrowserApp extends GeckoApp
 
     private void addAddonMenuItemToMenu(final Menu menu, final MenuItemInfo info) {
         info.added = true;
-        
+
         final Menu destination;
         if (info.parent == 0) {
             destination = menu;
@@ -2470,7 +2470,7 @@ abstract public class BrowserApp extends GeckoApp
     
 
 
- 
+
     @Override
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -2572,7 +2572,7 @@ abstract public class BrowserApp extends GeckoApp
     @Override
     public void onNewTabs(String[] urls) {
         final EnumSet<OnUrlOpenListener.Flags> flags = EnumSet.of(OnUrlOpenListener.Flags.ALLOW_SWITCH_TO_TAB);
- 
+
         for (String url : urls) {
             if (!maybeSwitchToTab(url, flags)) {
                 openUrlAndStopEditing(url, true);
