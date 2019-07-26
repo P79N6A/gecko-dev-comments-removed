@@ -92,6 +92,13 @@ public:
 
   double GetValueAtEventPoint(nsGUIEvent* aEvent);
 
+  
+
+
+
+
+  void UpdateThumbPositionForValueChange();
+
 private:
 
   
