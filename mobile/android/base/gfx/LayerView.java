@@ -60,10 +60,8 @@ public class LayerView extends FrameLayout {
     private Listener mListener;
 
     
-
-    public static final int PAINT_NONE = 0;
-    public static final int PAINT_BEFORE_FIRST = 1;
-    public static final int PAINT_AFTER_FIRST = 2;
+    public static final int PAINT_BEFORE_FIRST = 0;
+    public static final int PAINT_AFTER_FIRST = 1;
 
     boolean shouldUseTextureView() {
         
@@ -88,10 +86,11 @@ public class LayerView extends FrameLayout {
         if (shouldUseTextureView()) {
             mTextureView = new TextureView(context);
             mTextureView.setSurfaceTextureListener(new SurfaceTextureListener());
-
+            mTextureView.setBackgroundColor(Color.WHITE);
             addView(mTextureView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         } else {
             mSurfaceView = new SurfaceView(context);
+            mSurfaceView.setBackgroundColor(Color.WHITE);
             addView(mSurfaceView, ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
             SurfaceHolder holder = mSurfaceView.getHolder();
@@ -100,7 +99,7 @@ public class LayerView extends FrameLayout {
         }
 
         mGLController = new GLController(this);
-        mPaintState = PAINT_NONE;
+        mPaintState = PAINT_BEFORE_FIRST;
         mCheckerboardColor = Color.WHITE;
         mCheckerboardShouldShowChecks = true;
     }
@@ -262,12 +261,9 @@ public class LayerView extends FrameLayout {
     }
 
     
-
     public void setPaintState(int paintState) {
-        if (paintState > mPaintState) {
-            Log.d(LOGTAG, "LayerView paint state set to " + paintState);
-            mPaintState = paintState;
-        }
+        Log.d(LOGTAG, "LayerView paint state set to " + paintState);
+        mPaintState = paintState;
     }
 
     public int getPaintState() {

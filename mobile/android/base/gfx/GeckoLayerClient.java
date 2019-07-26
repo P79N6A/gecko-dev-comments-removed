@@ -491,7 +491,6 @@ public class GeckoLayerClient
             
             
             abortPanZoomAnimation();
-            mView.setPaintState(LayerView.PAINT_BEFORE_FIRST);
         }
         DisplayPortCalculator.resetPageState();
         mDrawTimingQueue.reset();
