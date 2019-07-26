@@ -588,7 +588,7 @@ pref("browser.gesture.twist.left", "cmd_gestureRotateLeft");
 pref("browser.gesture.twist.end", "cmd_gestureRotateEnd");
 pref("browser.gesture.tap", "cmd_fullZoomReset");
 
-pref("browser.snapshots.limit", 5);
+pref("browser.snapshots.limit", 0);
 
 
 
@@ -1167,6 +1167,9 @@ pref("devtools.styleeditor.enabled", true);
 pref("devtools.styleeditor.transitions", true);
 
 
+pref("devtools.shadereditor.enabled", false);
+
+
 pref("devtools.chrome.enabled", false);
 
 
@@ -1184,6 +1187,7 @@ pref("devtools.webconsole.filter.networkinfo", true);
 pref("devtools.webconsole.filter.netwarn", true);
 pref("devtools.webconsole.filter.csserror", true);
 pref("devtools.webconsole.filter.cssparser", true);
+pref("devtools.webconsole.filter.csslog", false);
 pref("devtools.webconsole.filter.exception", true);
 pref("devtools.webconsole.filter.jswarn", true);
 pref("devtools.webconsole.filter.jslog", true);
@@ -1200,6 +1204,7 @@ pref("devtools.browserconsole.filter.networkinfo", true);
 pref("devtools.browserconsole.filter.netwarn", true);
 pref("devtools.browserconsole.filter.csserror", true);
 pref("devtools.browserconsole.filter.cssparser", true);
+pref("devtools.browserconsole.filter.csslog", false);
 pref("devtools.browserconsole.filter.exception", true);
 pref("devtools.browserconsole.filter.jswarn", true);
 pref("devtools.browserconsole.filter.jslog", true);
@@ -1295,8 +1300,10 @@ pref("pdfjs.firstRun", true);
 pref("pdfjs.previousHandler.preferredAction", 0);
 pref("pdfjs.previousHandler.alwaysAskBeforeHandling", false);
 
+#ifdef NIGHTLY_BUILD
 
 pref("shumway.disabled", true);
+#endif
 
 
 
