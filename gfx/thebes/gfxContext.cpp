@@ -207,7 +207,7 @@ gfxContext::Restore()
 
     mStateStack.RemoveElementAt(mStateStack.Length() - 1);
 
-    if (mPathBuilder || mPath || mPathIsRect) {
+    if ((mPathBuilder || mPath || mPathIsRect) && !mTransformChanged) {
       
       
       
