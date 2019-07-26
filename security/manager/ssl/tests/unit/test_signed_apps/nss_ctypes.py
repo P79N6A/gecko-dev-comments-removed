@@ -63,6 +63,10 @@ PK11PasswordFunc = CFUNCTYPE(c_char_p, c_void_p, PRBool, c_char_p)
 
 nss.PK11_SetPasswordFunc.argtypes = [PK11PasswordFunc]
 nss.PK11_SetPasswordFunc.restype = None
+
+
+plc.PL_strdup.argtypes = [c_char_p]
+plc.PL_strdup.restype = c_void_p
 def SetPasswordContext(password):
   def callback(slot, retry, arg):
     return plc.PL_strdup(password)
