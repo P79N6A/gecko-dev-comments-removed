@@ -582,24 +582,6 @@ nsFrameMessageManager::AssertAppHasPermission(const nsAString& aPermission,
                                aHasPermission);
 }
 
-NS_IMETHODIMP
-nsFrameMessageManager::CheckAppHasStatus(unsigned short aStatus,
-                                         bool* aHasStatus)
-{
-  *aHasStatus = false;
-
-  
-  if (!mChrome || mIsBroadcaster) {
-    return NS_ERROR_NOT_IMPLEMENTED;
-  }
-  if (!mCallback) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
-  *aHasStatus = mCallback->CheckAppHasStatus(aStatus);
-
-  return NS_OK;
-}
-
 class MMListenerRemover
 {
 public:
@@ -1123,9 +1105,11 @@ nsFrameScriptExecutor::InitTabChildGlobalInternal(nsISupports* aScope,
 
   JS_SetContextPrivate(cx, aScope);
 
+  JS::CompartmentOptions options;
+  options.setZone(JS::SystemZone);
   nsresult rv =
     xpc->InitClassesWithNewWrappedGlobal(cx, aScope, mPrincipal,
-                                         flags, JS::SystemZone, getter_AddRefs(mGlobal));
+                                         flags, options, getter_AddRefs(mGlobal));
   NS_ENSURE_SUCCESS(rv, false);
 
 
