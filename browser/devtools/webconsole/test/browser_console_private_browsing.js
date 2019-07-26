@@ -15,6 +15,10 @@ function test()
   let privateWindow, privateBrowser, privateTab, privateContent;
   let hud, expectedMessages, nonPrivateMessage;
 
+  
+  
+  
+  requestLongerTimeout(2);
   start();
 
   function start()
