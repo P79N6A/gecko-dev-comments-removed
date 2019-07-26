@@ -37,11 +37,17 @@ var Downloads = {
     Services.obs.addObserver(this, "last-pb-context-exited", true);
   },
 
-  openDownload: function dl_openDownload(aFileURI) {
-    let f = this._getLocalFile(aFileURI);
+  openDownload: function dl_openDownload(aDownload) {
+    let fileUri = aDownload.target.spec;
+    let guid = aDownload.guid;
+    let f = this._getLocalFile(fileUri);
     try {
       f.launch();
-    } catch (ex) { }
+    } catch (ex) { 
+      
+      
+      BrowserApp.addTab("about:downloads?id=" + guid);
+    }
   },
 
   cancelDownload: function dl_cancelDownload(aDownload) {
@@ -65,7 +71,7 @@ var Downloads = {
         if (aTopic == "alertclickcallback") {
           if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_FINISHED) {
             
-            self.openDownload(aDownload.target.spec);
+            self.openDownload(aDownload);
           } else if (aDownload.state == Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING &&
                      !cancelPrompt) {
             cancelPrompt = true;
