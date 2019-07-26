@@ -445,22 +445,14 @@ RunFile(JSContext *cx, Handle<JSObject*> obj, const char *filename, FILE *file, 
 static void
 ReadEvalPrintLoop(JSContext *cx, JSObject *obj, FILE *file, bool compileOnly)
 {
-    bool ok, hitEOF;
     RootedScript script(cx);
     RootedValue result(cx);
     RootedString str(cx);
-    char *buffer;
-    size_t size;
-    jschar *uc_buffer;
-    size_t uc_len;
-    int lineno;
-    int startline;
-    uint32_t oldopts;
 
-    lineno = 1;
-    hitEOF = false;
-    buffer = NULL;
-    size = 0;           
+    int lineno = 1;
+    bool hitEOF = false;
+    char *buffer = NULL;
+    size_t size = 0;           
     do {
         
 
@@ -468,7 +460,7 @@ ReadEvalPrintLoop(JSContext *cx, JSObject *obj, FILE *file, bool compileOnly)
 
 
 
-        startline = lineno;
+        int startline = lineno;
         size_t len = 0; 
         do {
             ScheduleWatchdog(cx->runtime, -1);
@@ -522,20 +514,21 @@ ReadEvalPrintLoop(JSContext *cx, JSObject *obj, FILE *file, bool compileOnly)
         if (hitEOF && !buffer)
             break;
 
+        size_t uc_len;
         if (!InflateUTF8StringToBuffer(cx, buffer, len, NULL, &uc_len)) {
             JS_ReportError(cx, "Invalid UTF-8 in input");
             gExitCode = EXITCODE_RUNTIME_ERROR;
             return;
         }
 
-        uc_buffer = (jschar*)malloc(uc_len * sizeof(jschar));
+        jschar *uc_buffer = (jschar*)malloc(uc_len * sizeof(jschar));
         InflateUTF8StringToBuffer(cx, buffer, len, uc_buffer, &uc_len);
 
         
         JS_ClearPendingException(cx);
 
         
-        oldopts = JS_GetOptions(cx);
+        uint32_t oldopts = JS_GetOptions(cx);
         gGotError = false;
         if (!compileOnly)
             JS_SetOptions(cx, oldopts | JSOPTION_COMPILE_N_GO);
@@ -546,7 +539,7 @@ ReadEvalPrintLoop(JSContext *cx, JSObject *obj, FILE *file, bool compileOnly)
         JS_ASSERT_IF(!script, gGotError);
 
         if (script && !compileOnly) {
-            ok = JS_ExecuteScript(cx, obj, script, result.address());
+            bool ok = JS_ExecuteScript(cx, obj, script, result.address());
             if (ok && !JSVAL_IS_VOID(result)) {
                 str = JS_ValueToSource(cx, result);
                 ok = !!str;
