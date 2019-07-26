@@ -846,10 +846,10 @@ var Scratchpad = {
 
         
         let stack;
-        if (typeof error.stack == "string") {
+        if (typeof error.stack == "string" && error.stack) {
           stack = error.stack;
         }
-        else if (typeof error.fileName == "number") {
+        else if (typeof error.fileName == "string") {
           stack = "@" + error.fileName;
           if (typeof error.lineNumber == "number") {
             stack += ":" + error.lineNumber;
