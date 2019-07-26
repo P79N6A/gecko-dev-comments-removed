@@ -21,12 +21,6 @@ class TimeRanges;
 class RequestSampleCallback;
 class MediaDecoderReader;
 
-template <>
-struct HasDangerousPublicDestructor<MediaDecoderReader>
-{
-  static const bool value = true;
-};
-
 
 
 
@@ -38,7 +32,6 @@ public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
 
   MediaDecoderReader(AbstractMediaDecoder* aDecoder);
-  virtual ~MediaDecoderReader();
 
   
   
@@ -181,6 +174,7 @@ public:
   MediaInfo GetMediaInfo() { return mInfo; }
 
 protected:
+  virtual ~MediaDecoderReader();
 
   
   
