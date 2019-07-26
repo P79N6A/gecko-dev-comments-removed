@@ -411,6 +411,10 @@ struct Object {
             return fixedSlots()[slot];
         return slots[slot - nfixed];
     }
+
+    
+    
+    static const uint32_t MAX_FIXED_SLOTS = 16;
 };
 
 struct Function {
