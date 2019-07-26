@@ -4,7 +4,7 @@
 
 
 
-#include "vm/GlobalObject-inl.h"
+#include "vm/GlobalObject.h"
 
 #include "jscntxt.h"
 #include "jsdate.h"
