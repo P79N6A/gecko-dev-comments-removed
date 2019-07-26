@@ -182,7 +182,7 @@ void PeriodicWave::createBandLimitedTables(const float* realData, const float* i
         
         
         float minusOne = -1;
-        AudioBufferInPlaceScale(imagP, 1, minusOne, halfSize);
+        AudioBufferInPlaceScale(imagP, minusOne, halfSize);
 
         
         
@@ -224,7 +224,7 @@ void PeriodicWave::createBandLimitedTables(const float* realData, const float* i
         }
 
         
-        AudioBufferInPlaceScale(data, 1, normalizationScale, m_periodicWaveSize);
+        AudioBufferInPlaceScale(data, normalizationScale, m_periodicWaveSize);
     }
 }
 
