@@ -3050,6 +3050,12 @@ typedef uint64_t EGLTime;
 #define LOCAL_GL_WAIT_FAILED                      0x911D
 
 
+#define LOCAL_GL_ANY_SAMPLES_PASSED               0x8C2F
+
+
+#define LOCAL_GL_ANY_SAMPLES_PASSED_CONSERVATIVE  0x8D6A
+
+
 #define LOCAL_GL_TEXTURE_EXTERNAL                 0x8D65
 
 #define LOCAL_GL_MAX_VERTEX_UNIFORM_VECTORS       0x8DFB
