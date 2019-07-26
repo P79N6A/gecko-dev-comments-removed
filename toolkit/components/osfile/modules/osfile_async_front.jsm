@@ -55,6 +55,8 @@ Components.utils.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this
 
 Components.utils.import("resource://gre/modules/Services.jsm", this);
 
+Components.utils.import("resource://gre/modules/AsyncShutdown.jsm", this);
+
 LOG("Checking profileDir", OS.Constants.Path);
 
 
@@ -139,12 +141,35 @@ let clone = function clone(object, refs = noRefs) {
 let worker = new PromiseWorker(
   "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
 let Scheduler = {
+  
+
+
+  launched: false,
+
+  
+
+
+
+  shutdown: false,
+
+  
+
+
+  latestPromise: Promise.resolve("OS.File scheduler hasn't been launched yet"),
+
   post: function post(...args) {
+    this.launched = true;
+
+    if (this.shutdown) {
+      LOG("OS.File is not available anymore. The following request has been rejected.", args);
+      return Promise.reject(new Error("OS.File has been shut down."));
+    }
+
     
     let methodArgs = args[1];
     let options = methodArgs ? methodArgs[methodArgs.length - 1] : null;
     let promise = worker.post.apply(worker, args);
-    return promise.then(
+    return this.latestPromise = promise.then(
       function onSuccess(data) {
         
         if (!options) {
@@ -230,7 +255,6 @@ if (OS.Shared.DEBUG === true) {
 
 
 const WEB_WORKERS_SHUTDOWN_TOPIC = "web-workers-shutdown";
-const TEST_WEB_WORKERS_SHUTDOWN_TOPIC = "test.osfile.web-workers-shutdown";
 
 
 const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
@@ -239,32 +263,40 @@ const PREF_OSFILE_TEST_SHUTDOWN_OBSERVER =
 
 
 
-let removeTestObserver = function removeTestObserver() {
-  try {
-    Services.obs.removeObserver(webWorkersShutdownObserver,
-      TEST_WEB_WORKERS_SHUTDOWN_TOPIC);
-  } catch (ex) {
+
+
+
+
+
+
+
+
+function warnAboutUnclosedFiles(shutdown = true) {
+  if (!Scheduler.launched) {
     
-  }
-};
-
-
-
-
-let webWorkersShutdownObserver = function webWorkersShutdownObserver(aSubject, aTopic) {
-  if (aTopic == WEB_WORKERS_SHUTDOWN_TOPIC) {
-    Services.obs.removeObserver(webWorkersShutdownObserver, WEB_WORKERS_SHUTDOWN_TOPIC);
-    removeTestObserver();
+    
+    
+    return null;
   }
   
-  Scheduler.post("System_shutdown").then(function onSuccess(opened) {
+  let promise = Scheduler.post("System_shutdown");
+
+  
+  if (shutdown) {
+    Scheduler.shutdown = true;
+  }
+
+  return promise.then(function onSuccess(opened) {
     let msg = "";
     if (opened.openedFiles.length > 0) {
-      msg += "The following files are still opened:\n" +
+      msg += "The following files are still open:\n" +
         opened.openedFiles.join("\n");
     }
+    if (msg) {
+      msg += "\n";
+    }
     if (opened.openedDirectoryIterators.length > 0) {
-      msg += "The following directory iterators are still opened:\n" +
+      msg += "The following directory iterators are still open:\n" +
         opened.openedDirectoryIterators.join("\n");
     }
     
@@ -274,8 +306,11 @@ let webWorkersShutdownObserver = function webWorkersShutdownObserver(aSubject, a
   });
 };
 
-Services.obs.addObserver(webWorkersShutdownObserver,
-  WEB_WORKERS_SHUTDOWN_TOPIC, false);
+AsyncShutdown.webWorkersShutdown.addBlocker(
+  "OS.File: flush pending requests, warn about unclosed files, shut down service.",
+  () => warnAboutUnclosedFiles(true)
+);
+
 
 
 
@@ -283,21 +318,23 @@ Services.obs.addObserver(webWorkersShutdownObserver,
 
 Services.prefs.addObserver(PREF_OSFILE_TEST_SHUTDOWN_OBSERVER,
   function prefObserver() {
-    let addObserver;
+    
+    
+    let TOPIC = null;
     try {
-      addObserver = Services.prefs.getBoolPref(
+      TOPIC = Services.prefs.getCharPref(
         PREF_OSFILE_TEST_SHUTDOWN_OBSERVER);
     } catch (x) {
-      
-      addObserver = false;
     }
-    if (addObserver) {
+    if (TOPIC) {
       
-      Services.obs.addObserver(webWorkersShutdownObserver,
-        TEST_WEB_WORKERS_SHUTDOWN_TOPIC, false);
-    } else {
       
-      removeTestObserver();
+      
+      let phase = AsyncShutdown._getPhase(TOPIC);
+      phase.addBlocker(
+        "(for testing purposes) OS.File: warn about unclosed files",
+        () => warnAboutUnclosedFiles(false)
+      );
     }
   }, false);
 
@@ -929,11 +966,11 @@ DirectoryIterator.prototype = {
 
   close: function close() {
     if (this._isClosed) {
-      return;
+      return Promise.resolve();
     }
     this._isClosed = true;
     let self = this;
-    this._itmsg.then(
+    return this._itmsg.then(
       function withIterator(iterator) {
         self._itmsg = Promise.reject(StopIteration);
         return Scheduler.post("DirectoryIterator_prototype_close", [iterator]);
@@ -965,3 +1002,16 @@ Object.defineProperty(File, "POS_END", {value: OS.Shared.POS_END});
 OS.File = File;
 OS.File.Error = OSError;
 OS.File.DirectoryIterator = DirectoryIterator;
+
+
+
+
+
+
+AsyncShutdown.profileBeforeChange.addBlocker(
+  "OS.File: flush I/O queued before profile-before-change",
+  () =>
+    
+    Scheduler.latestPromise.then(null,
+      function onError() { })
+);
