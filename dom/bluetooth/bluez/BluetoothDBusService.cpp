@@ -1860,10 +1860,20 @@ public:
 
   void Run()
   {
+    MOZ_ASSERT(!sDBusConnection);
+
+    sDBusConnection = mConnection;
+
     mConnection->Watch();
 
-    
+    nsRefPtr<nsRunnable> runnable =
+      new BluetoothService::ToggleBtAck(true);
+    if (NS_FAILED(NS_DispatchToMainThread(runnable))) {
+      BT_WARNING("Failed to dispatch to main thread!");
+      return;
+    }
 
+    
 
 
 
@@ -1891,16 +1901,6 @@ BluetoothDBusService::StartInternal()
 {
   
   MOZ_ASSERT(!NS_IsMainThread()); 
-
-  if (sDBusConnection) {
-    
-    BT_WARNING("Bluetooth is already running");
-    nsCOMPtr<nsIRunnable> ackTask = new BluetoothService::ToggleBtAck(true);
-    if (NS_FAILED(NS_DispatchToMainThread(ackTask))) {
-      BT_WARNING("Failed to dispatch to main thread!");
-    }
-    return NS_OK;
-  }
 
 #ifdef MOZ_WIDGET_GONK
   if (!sBluedroid.Enable()) {
@@ -1955,15 +1955,8 @@ BluetoothDBusService::StartInternal()
     sPairingReqTable = new nsDataHashtable<nsStringHashKey, DBusMessage* >;
   }
 
-  sDBusConnection = connection;
-
   Task* task = new StartDBusConnectionTask(connection, sAdapterPath.IsEmpty());
   DispatchToDBusThread(task);
-
-  nsCOMPtr<nsIRunnable> ackTask = new BluetoothService::ToggleBtAck(true);
-  if (NS_FAILED(NS_DispatchToMainThread(ackTask))) {
-    BT_WARNING("Failed to dispatch to main thread!");
-  }
 
   return NS_OK;
 }
