@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsGZFileWriter.h"
 #include "nsIFile.h"
 #include "nsString.h"
@@ -39,10 +40,10 @@ nsGZFileWriter::Init(nsIFile* aFile)
   
 
   FILE* file;
-  nsresult rv = aFile->OpenANSIFileDesc("w", &file);
+  nsresult rv = aFile->OpenANSIFileDesc("wb", &file);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  mGZFile = gzdopen(dup(fileno(file)), "w");
+  mGZFile = gzdopen(dup(fileno(file)), "wb");
   fclose(file);
 
   

@@ -31,6 +31,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
+const CC = Components.Constructor;
 
 const KIND_NONHEAP           = Ci.nsIMemoryReporter.KIND_NONHEAP;
 const KIND_HEAP              = Ci.nsIMemoryReporter.KIND_HEAP;
@@ -40,8 +41,22 @@ const UNITS_COUNT            = Ci.nsIMemoryReporter.UNITS_COUNT;
 const UNITS_COUNT_CUMULATIVE = Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE;
 const UNITS_PERCENTAGE       = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
-let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"].
-           getService(Ci.nsIMemoryReporterManager);
+Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+XPCOMUtils.defineLazyGetter(this, "nsBinaryStream",
+                            () => CC("@mozilla.org/binaryinputstream;1",
+                                     "nsIBinaryInputStream",
+                                     "setInputStream"));
+XPCOMUtils.defineLazyGetter(this, "nsFile",
+                            () => CC("@mozilla.org/file/local;1",
+                                     "nsIFile", "initWithPath"));
+XPCOMUtils.defineLazyGetter(this, "nsGzipConverter",
+                            () => CC("@mozilla.org/streamconv;1?from=gzip&to=uncompressed",
+                                     "nsIStreamConverter"));
+
+let gMgr = Cc["@mozilla.org/memory-reporter-manager;1"]
+             .getService(Ci.nsIMemoryReporterManager);
 
 let gUnnamedProcessStr = "Main Process";
 
@@ -68,10 +83,6 @@ let gIsDiff = false;
 }
 
 let gChildMemoryListener = undefined;
-
-
-String.prototype.startsWith =
-  function(s) { return this.lastIndexOf(s, 0) === 0; }
 
 
 
@@ -140,8 +151,8 @@ function badInput(x)
 
 function addChildObserversAndUpdate(aUpdateFn)
 {
-  let os = Cc["@mozilla.org/observer-service;1"].
-      getService(Ci.nsIObserverService);
+  let os = Cc["@mozilla.org/observer-service;1"]
+             .getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-memory-reporter-request", null);
 
   gChildMemoryListener = aUpdateFn;
@@ -167,8 +178,8 @@ function onUnload()
   
   
   if (gChildMemoryListener) {
-    let os = Cc["@mozilla.org/observer-service;1"].
-        getService(Ci.nsIObserverService);
+    let os = Cc["@mozilla.org/observer-service;1"]
+               .getService(Ci.nsIObserverService);
     os.removeObserver(gChildMemoryListener, "child-memory-reporter-update");
   }
 }
@@ -373,9 +384,7 @@ function onLoadAboutMemory()
     for (let i = 0; i < searchSplit.length; i++) {
       if (searchSplit[i].toLowerCase().startsWith('file=')) {
         let filename = searchSplit[i].substring('file='.length);
-        let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsIFile);
-        file.initWithPath(decodeURIComponent(filename));
-        updateAboutMemoryFromFile(file);
+        updateAboutMemoryFromFile(decodeURIComponent(filename));
         return;
       }
     }
@@ -388,7 +397,7 @@ function doGlobalGC()
 {
   Cu.forceGC();
   let os = Cc["@mozilla.org/observer-service;1"]
-            .getService(Ci.nsIObserverService);
+             .getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-gc-request", null);
   updateAboutMemory();
 }
@@ -399,7 +408,7 @@ function doCC()
         .getInterface(Ci.nsIDOMWindowUtils)
         .cycleCollect();
   let os = Cc["@mozilla.org/observer-service;1"]
-            .getService(Ci.nsIObserverService);
+             .getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-cc-request", null);
   updateAboutMemory();
 }
@@ -435,6 +444,18 @@ function updateAboutMemory()
 
 
 var gCurrentFileFormatVersion = 1;
+
+
+
+
+
+
+
+function clearBodyAndHandleException(aEx) {
+  let body = clearBody();
+  handleException(aEx);
+  appendAboutMemoryFooter(body);
+}
 
 
 
@@ -478,31 +499,49 @@ function updateAboutMemoryFromJSONString(aJSONString)
 
 
 
-function updateAboutMemoryFromFile(aFile)
+function updateAboutMemoryFromFile(aFilename)
 {
-  
-  
-  
-
   try {
-    
-    let file = aFile;
-    if (aFile instanceof Ci.nsILocalFile) {
-      file = new File(aFile);
-    }
-
     let reader = new FileReader();
-    reader.onerror = function(aEvent) { throw "FileReader.onerror"; };
-    reader.onabort = function(aEvent) { throw "FileReader.onabort"; };
-    reader.onload = function(aEvent) {
+    reader.onerror = () => { throw "FileReader.onerror"; };
+    reader.onabort = () => { throw "FileReader.onabort"; };
+    reader.onload = (aEvent) => {
       updateAboutMemoryFromJSONString(aEvent.target.result);
     };
-    reader.readAsText(file);
+
+    
+    if (!aFilename.endsWith(".gz")) {
+      reader.readAsText(new File(aFilename));
+      return;
+    }
+
+    
+    let converter = new nsGzipConverter();
+    converter.asyncConvertData("gzip", "uncompressed", {
+      data: [],
+      onStartRequest: function(aR, aC) {},
+      onDataAvailable: function(aR, aC, aStream, aO, aCount) {
+        let bi = new nsBinaryStream(aStream);
+        this.data.push(bi.readBytes(aCount));
+      },
+      onStopRequest: function(aR, aC, aStatusCode) {
+        try {
+          if (!Components.isSuccessCode(aStatusCode)) {
+            throw aStatusCode;
+          }
+          reader.readAsText(new Blob(this.data));
+        } catch (ex) {
+          clearBodyAndHandleException(ex);
+        }
+      }
+    }, null);
+
+    let file = new nsFile(aFilename);
+    let fileChan = Services.io.newChannelFromURI(Services.io.newFileURI(file));
+    fileChan.asyncOpen(converter, null);
 
   } catch (ex) {
-    let body = clearBody();
-    handleException(ex);
-    appendAboutMemoryFooter(body);
+    clearBodyAndHandleException(ex);
   }
 }
 
@@ -513,8 +552,8 @@ function updateAboutMemoryFromFile(aFile)
 function updateAboutMemoryFromClipboard()
 {
   
-  let cb = Cc["@mozilla.org/widget/clipboard;1"]
-             .getService(Components.interfaces.nsIClipboard);
+  let cb = Cc["@mozilla.org/widget/clipboard;1"].
+           getService(Components.interfaces.nsIClipboard);
   let transferable = Cc["@mozilla.org/widget/transferable;1"]
                        .createInstance(Ci.nsITransferable);
   let loadContext = window.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -532,10 +571,9 @@ function updateAboutMemoryFromClipboard()
 
     
     updateAboutMemoryFromJSONString(cbString);
+
   } catch (ex) {
-    let body = clearBody();
-    handleException(ex);
-    appendAboutMemoryFooter(body);
+    clearBodyAndHandleException(ex);
   }
 }
 
@@ -634,6 +672,7 @@ function appendAboutMemoryFooter(aBody)
                  "flushing various caches.";
   const RdDesc = "Read memory report data from a file.";
   const CbDesc = "Read memory report data from the clipboard.";
+  const WrDesc = "Write memory report data to a file.";
 
   function appendButton(aP, aTitle, aOnClick, aText, aId)
   {
@@ -662,13 +701,16 @@ function appendAboutMemoryFooter(aBody)
   input.id = "fileInput";   
   input.addEventListener("change", function() {
     let file = this.files[0];
-    updateAboutMemoryFromFile(file);
+    updateAboutMemoryFromFile(file.mozFullPath);
   }); 
   appendButton(div1, RdDesc, function() { input.click() },
                "Read reports from a file", "readReportsFromFileButton");
 
   appendButton(div1, CbDesc, updateAboutMemoryFromClipboard,
                "Read reports from clipboard", "readReportsFromClipboardButton");
+
+  appendButton(div1, WrDesc, writeReportsToFile,
+               "Write reports to a file", "writeReportsToAFileButton");
 
   let div2 = appendElement(section, "div");
   if (gVerbose) {
@@ -1632,6 +1674,31 @@ function appendSectionHeader(aP, aText)
 
 
 
+function writeReportsToFile()
+{
+  let fp = Cc["@mozilla.org/filepicker;1"].createInstance(Ci.nsIFilePicker);
+  fp.init(window, "Save Memory Reports", Ci.nsIFilePicker.modeSave);
+  fp.appendFilter("Zipped JSON files", "*.json.gz");
+  fp.appendFilters(Ci.nsIFilePicker.filterAll);
+  fp.filterIndex = 0;
+  fp.addToRecentDocs = true;
+  fp.defaultString = "memory-report.json.gz";
+
+  let fpCallback = function(aResult) {
+    if (aResult == Ci.nsIFilePicker.returnOK ||
+        aResult == Ci.nsIFilePicker.returnReplace) {
+
+      let dumper = Cc["@mozilla.org/memory-info-dumper;1"]
+                     .getService(Ci.nsIMemoryInfoDumper);
+
+      dumper.dumpMemoryReportsToNamedFile(fp.file.path);
+    }
+  };
+  fp.open(fpCallback);
+}
+
+
+
 
 
 function onLoadAboutCompartments()
@@ -1695,7 +1762,7 @@ function Compartment(aUnsafeName, aIsSystemCompartment)
 }
 
 Compartment.prototype = {
-  merge: function(r) {
+  merge: function(aR) {
     this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
   }
 };

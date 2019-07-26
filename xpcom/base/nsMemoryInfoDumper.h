@@ -37,10 +37,6 @@ public:
 
 
   static nsresult OpenTempFile(const nsACString &aFilename, nsIFile* *aFile);
-
-private:
-  static nsresult
-  DumpMemoryReportsToFileImpl(const nsAString& aIdentifier);
 };
 
 #define NS_MEMORY_INFO_DUMPER_CID \

@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsIGZFileWriter.h"
 #include <stdio.h>
 #include "zlib.h"
