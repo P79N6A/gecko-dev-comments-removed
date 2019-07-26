@@ -361,11 +361,6 @@ SetScrollableFrameMetrics(Layer* aLayer, FrameMetrics::ViewID aScrollId, MockCon
   metrics.mViewport = CSSRect(layerBound.x, layerBound.y,
                               layerBound.width, layerBound.height);
   container->SetFrameMetrics(metrics);
-
-  
-  
-  EXPECT_CALL(*mcc, SendAsyncScrollDOMEvent(_,_,_)).Times(1);
-  EXPECT_CALL(*mcc, RequestContentRepaint(_)).Times(1);
 }
 
 static gfxPoint
