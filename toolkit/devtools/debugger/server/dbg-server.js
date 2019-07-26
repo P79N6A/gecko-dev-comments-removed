@@ -533,7 +533,6 @@ DebuggerServerConnection.prototype = {
                     "': " + safeErrorString(e))
         });
       }
-      instance.parentID = actor.parentID;
       
       
       
