@@ -250,7 +250,7 @@ class TestExpandArgsMore(TestExpandInit):
         '''Test library extraction'''
         
         subprocess_call = subprocess.call
-        extracted = {}
+        subprocess_check_output = subprocess.check_output
         def call(args, **kargs):
             if config.AR == 'lib':
                 self.assertEqual(args[:2], [config.AR, '-NOLOGO'])
@@ -294,31 +294,59 @@ class TestExpandArgsMore(TestExpandInit):
 
         
         self.touch([self.tmpfile('liby', Lib('y'))])
-        with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
-            self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+        for iteration in (1, 2):
+            with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
+                self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+
+                extracted = {}
+                
+                
+                args.extract()
+
+                files = self.files + self.liby_files + self.libx_files
+                
+                
+                
+                extracted_args = []
+                for f in files:
+                    if f.endswith(config.LIB_SUFFIX):
+                        base = os.path.splitext(os.path.basename(f))[0]
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        if iteration == 1:
+                            extracted_args.extend(sorted(extracted[base]))
+                        else:
+                            dirname = os.path.dirname(f[len(self.tmpdir)+1:])
+                            if base.endswith('f'):
+                                dirname = os.path.join(dirname, 'foo', 'bar')
+                            extracted_args.extend([self.tmpfile(dirname, Obj(base)), self.tmpfile(dirname, Obj(base + '2'))])
+                    else:
+                        extracted_args.append(f)
+                self.assertRelEqual(args, ['foo', '-bar'] + extracted_args)
+
+                tmp = args.tmp
+            
+            self.assertEqual(True, all([not os.path.exists(f) for f in tmp]))
 
             
-            
-            args.extract()
-
-            files = self.files + self.liby_files + self.libx_files
-            
-            
-            
-            extracted_args = []
-            for f in files:
-                if f.endswith(config.LIB_SUFFIX):
-                    extracted_args.extend(sorted(extracted[os.path.splitext(os.path.basename(f))[0]]))
-                else:
-                    extracted_args.append(f)
-            self.assertRelEqual(args, ['foo', '-bar'] + extracted_args)
-
-            tmp = args.tmp
-        
-        self.assertEqual(True, all([not os.path.exists(f) for f in tmp]))
+            base = os.path.splitext(Lib('_'))[0]
+            self.touch(self.tmpfile(Obj(base.replace('_', suffix))) for suffix in ('a', 'a2', 'd', 'd2'))
+            try:
+                os.makedirs(self.tmpfile('foo', 'bar'))
+            except:
+                pass
+            self.touch(self.tmpfile('foo', 'bar', Obj(base.replace('_', suffix))) for suffix in ('f', 'f2'))
+            self.touch(self.tmpfile('liby', Obj(base.replace('_', suffix))) for suffix in ('z', 'z2'))
 
         
         subprocess.call = subprocess_call
+        subprocess.check_output = subprocess_check_output
 
 class FakeProcess(object):
     def __init__(self, out, err = ''):
