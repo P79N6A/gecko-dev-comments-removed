@@ -354,9 +354,9 @@ NS_IMPL_RELEASE_INHERITED(XULDocument, XMLDocument)
 
 
 NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(XULDocument)
-    NS_INTERFACE_TABLE_INHERITED4(XULDocument, nsIXULDocument,
+    NS_INTERFACE_TABLE_INHERITED5(XULDocument, nsIXULDocument,
                                   nsIDOMXULDocument, nsIStreamLoaderObserver,
-                                  nsICSSLoaderObserver)
+                                  nsICSSLoaderObserver, nsIOffThreadScriptReceiver)
 NS_INTERFACE_TABLE_TAIL_INHERITING(XMLDocument)
 
 
@@ -3465,7 +3465,6 @@ XULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
     return NS_OK;
 }
 
-
 NS_IMETHODIMP
 XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
                               nsISupports* context,
@@ -3505,6 +3504,61 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
         return NS_OK;
     }
 
+    if (NS_SUCCEEDED(aStatus)) {
+        
+        
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIURI> uri = mCurrentScriptProto->mSrcURI;
+
+        
+
+        MOZ_ASSERT(!mOffThreadCompiling && mOffThreadCompileString.Length() == 0,
+                   "XULDocument can't load multiple scripts at once");
+
+        rv = nsScriptLoader::ConvertToUTF16(channel, string, stringLen,
+                                            EmptyString(), this, mOffThreadCompileString);
+        if (NS_SUCCEEDED(rv)) {
+            rv = mCurrentScriptProto->Compile(mOffThreadCompileString.get(),
+                                              mOffThreadCompileString.Length(),
+                                              uri, 1, this,
+                                              mCurrentPrototype->GetScriptGlobalObject(),
+                                              this);
+            if (NS_SUCCEEDED(rv) && !mCurrentScriptProto->GetScriptObject()) {
+                
+                
+                
+                mOffThreadCompiling = true;
+                BlockOnload();
+                return NS_OK;
+            }
+            mOffThreadCompileString.Truncate();
+        }
+    }
+
+    return OnScriptCompileComplete(mCurrentScriptProto->GetScriptObject(), rv);
+}
+
+NS_IMETHODIMP
+XULDocument::OnScriptCompileComplete(JSScript* aScript, nsresult aStatus)
+{
+    
+    if (mOffThreadCompiling) {
+        mOffThreadCompiling = false;
+        UnblockOnload(false);
+    }
+
+    
+    mOffThreadCompileString.Truncate();
+
+    
+    
+    if (aScript && !mCurrentScriptProto->GetScriptObject())
+        mCurrentScriptProto->Set(aScript);
+
     
     
     
@@ -3516,86 +3570,65 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
     
     scriptProto->mSrcLoading = false;
 
-    if (NS_SUCCEEDED(aStatus)) {
-        
-        
-        
-        
-        
-        
-        
-        nsCOMPtr<nsIURI> uri = scriptProto->mSrcURI;
+    nsresult rv = aStatus;
+    if (NS_SUCCEEDED(rv)) {
+        rv = ExecuteScript(scriptProto);
 
         
-
-        nsString stringStr;
-        rv = nsScriptLoader::ConvertToUTF16(channel, string, stringLen,
-                                            EmptyString(), this, stringStr);
-        if (NS_SUCCEEDED(rv)) {
-            rv = scriptProto->Compile(stringStr.get(), stringStr.Length(),
-                                      uri, 1, this,
-                                      mCurrentPrototype->GetScriptGlobalObject());
-        }
-
-        aStatus = rv;
-        if (NS_SUCCEEDED(rv)) {
-            rv = ExecuteScript(scriptProto);
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
   
-            if (useXULCache && IsChromeURI(mDocumentURI)) {
-                nsXULPrototypeCache::GetInstance()->PutScript(
-                                   scriptProto->mSrcURI,
-                                   scriptProto->GetScriptObject());
-            }
+        if (useXULCache && IsChromeURI(mDocumentURI) && scriptProto->GetScriptObject()) {
+            nsXULPrototypeCache::GetInstance()->PutScript(
+                               scriptProto->mSrcURI,
+                               scriptProto->GetScriptObject());
+        }
 
-            if (mIsWritingFastLoad && mCurrentPrototype != mMasterPrototype) {
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                nsIScriptGlobalObject* global =
-                    mCurrentPrototype->GetScriptGlobalObject();
+        if (mIsWritingFastLoad && mCurrentPrototype != mMasterPrototype) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            nsIScriptGlobalObject* global =
+                mCurrentPrototype->GetScriptGlobalObject();
 
-                NS_ASSERTION(global != nullptr, "master prototype w/o global?!");
-                if (global) {
-                    nsIScriptContext *scriptContext = \
-                          global->GetScriptContext();
-                    NS_ASSERTION(scriptContext != nullptr,
-                                 "Failed to get script context for language");
-                    if (scriptContext)
-                        scriptProto->SerializeOutOfLine(nullptr, global);
-                }
+            NS_ASSERTION(global != nullptr, "master prototype w/o global?!");
+            if (global) {
+                nsIScriptContext *scriptContext =
+                    global->GetScriptContext();
+                NS_ASSERTION(scriptContext != nullptr,
+                             "Failed to get script context for language");
+                if (scriptContext)
+                    scriptProto->SerializeOutOfLine(nullptr, global);
             }
         }
+
         
     }
 
@@ -3627,7 +3660,6 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
 
     return rv;
 }
-
 
 nsresult
 XULDocument::ExecuteScript(nsIScriptContext * aContext,

@@ -17,6 +17,7 @@
 
 #include "jscntxtinlines.h"
 #include "jscompartmentinlines.h"
+#include "jsobjinlines.h"
 
 using namespace js;
 
@@ -165,23 +166,32 @@ static JSClass workerGlobalClass = {
     JS_ConvertStub,   NULL
 };
 
-ParseTask::ParseTask(JSRuntime *rt, ExclusiveContext *cx, const CompileOptions &options,
-                     const jschar *chars, size_t length)
-  : runtime(rt), cx(cx), options(options), chars(chars), length(length),
-    alloc(JSRuntime::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE), script(NULL)
+ParseTask::ParseTask(Zone *zone, ExclusiveContext *cx, const CompileOptions &options,
+                     const jschar *chars, size_t length, JSObject *scopeChain,
+                     JS::OffThreadCompileCallback callback, void *callbackData)
+  : zone(zone), cx(cx), options(options), chars(chars), length(length),
+    alloc(JSRuntime::TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE), scopeChain(scopeChain),
+    callback(callback), callbackData(callbackData), script(NULL)
 {
+    JSRuntime *rt = zone->runtimeFromMainThread();
+
     if (options.principals())
         JS_HoldPrincipals(options.principals());
     if (options.originPrincipals())
         JS_HoldPrincipals(options.originPrincipals());
+    if (!AddObjectRoot(rt, &this->scopeChain, "ParseTask::scopeChain"))
+        MOZ_CRASH();
 }
 
 ParseTask::~ParseTask()
 {
+    JSRuntime *rt = zone->runtimeFromMainThread();
+
     if (options.principals())
-        JS_DropPrincipals(runtime, options.principals());
+        JS_DropPrincipals(rt, options.principals());
     if (options.originPrincipals())
-        JS_DropPrincipals(runtime, options.originPrincipals());
+        JS_DropPrincipals(rt, options.originPrincipals());
+    JS_RemoveObjectRootRT(rt, &scopeChain);
 
     
     js_delete(cx);
@@ -189,8 +199,13 @@ ParseTask::~ParseTask()
 
 bool
 js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
-                              const jschar *chars, size_t length)
+                              const jschar *chars, size_t length, HandleObject scopeChain,
+                              JS::OffThreadCompileCallback callback, void *callbackData)
 {
+    
+    
+    gc::AutoSuppressGC suppress(cx);
+
     frontend::MaybeCallSourceHandler(cx, options, chars, length);
 
     JSRuntime *rt = cx->runtime();
@@ -207,14 +222,25 @@ js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
 
     
     
+    
+    JS_ASSERT(!cx->typeInferenceEnabled());
     global->zone()->types.inferenceEnabled = false;
 
+    JS_SetCompartmentPrincipals(global->compartment(), cx->compartment()->principals);
+
+    RootedObject obj(cx);
+
     
     
+    
+    if (!js_GetClassObject(cx, cx->global(), JSProto_Function, &obj) ||
+        !js_GetClassObject(cx, cx->global(), JSProto_Array, &obj) ||
+        !js_GetClassObject(cx, cx->global(), JSProto_RegExp, &obj))
+    {
+        return false;
+    }
     {
         AutoCompartment ac(cx, global);
-
-        RootedObject obj(cx);
         if (!js_GetClassObject(cx, global, JSProto_Function, &obj) ||
             !js_GetClassObject(cx, global, JSProto_Array, &obj) ||
             !js_GetClassObject(cx, global, JSProto_RegExp, &obj))
@@ -223,7 +249,7 @@ js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
         }
     }
 
-    global->zone()->usedByExclusiveThread = true;
+    cx->runtime()->setUsedByExclusiveThread(global->zone());
 
     ScopedJSDeletePtr<ExclusiveContext> workercx(
         cx->new_<ExclusiveContext>(cx->runtime(), (PerThreadData *) NULL,
@@ -234,7 +260,8 @@ js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
     workercx->enterCompartment(global->compartment());
 
     ScopedJSDeletePtr<ParseTask> task(
-        cx->new_<ParseTask>(cx->runtime(), workercx.get(), options, chars, length));
+        cx->new_<ParseTask>(global->zone(), workercx.get(), options, chars, length,
+                            scopeChain, callback, callbackData));
     if (!task)
         return false;
 
@@ -430,6 +457,82 @@ WorkerThreadState::canStartIonCompile()
     return true;
 }
 
+bool
+WorkerThreadState::canStartParseTask()
+{
+    
+    
+    
+    
+    JS_ASSERT(isLocked());
+    if (parseWorklist.empty())
+        return false;
+    for (size_t i = 0; i < numThreads; i++) {
+        if (threads[i].parseTask)
+            return false;
+    }
+    return true;
+}
+
+void
+WorkerThreadState::finishParseTaskForScript(JSScript *script)
+{
+    JSRuntime *rt = script->compartment()->runtimeFromMainThread();
+    ParseTask *parseTask = NULL;
+
+    {
+        AutoLockWorkerThreadState lock(rt);
+        for (size_t i = 0; i < parseFinishedList.length(); i++) {
+            if (parseFinishedList[i]->script == script) {
+                parseTask = parseFinishedList[i];
+                parseFinishedList[i] = parseFinishedList.back();
+                parseFinishedList.popBack();
+                break;
+            }
+        }
+    }
+    JS_ASSERT(parseTask);
+
+    
+    
+    rt->clearUsedByExclusiveThread(parseTask->zone);
+
+    if (!script) {
+        
+        
+        
+        
+        
+        js_delete(parseTask);
+        return;
+    }
+
+    
+    
+    
+    
+    for (gc::CellIter iter(parseTask->zone, gc::FINALIZE_TYPE_OBJECT); !iter.done(); iter.next()) {
+        types::TypeObject *object = iter.get<types::TypeObject>();
+        JSObject *proto = object->proto;
+        if (!proto)
+            continue;
+
+        JSProtoKey key = js_IdentifyClassPrototype(proto);
+        if (key == JSProto_Null)
+            continue;
+
+        JSObject *newProto = GetClassPrototypePure(&parseTask->scopeChain->global(), key);
+        JS_ASSERT(newProto);
+
+        object->proto = newProto;
+    }
+
+    
+    gc::MergeCompartments(parseTask->script->compartment(), parseTask->scopeChain->compartment());
+
+    js_delete(parseTask);
+}
+
 void
 WorkerThread::destroy()
 {
@@ -548,7 +651,7 @@ void
 WorkerThread::handleParseWorkload(WorkerThreadState &state)
 {
     JS_ASSERT(state.isLocked());
-    JS_ASSERT(!state.parseWorklist.empty());
+    JS_ASSERT(state.canStartParseTask());
     JS_ASSERT(idle());
 
     parseTask = state.parseWorklist.popCopy();
@@ -562,7 +665,13 @@ WorkerThread::handleParseWorkload(WorkerThreadState &state)
                                                     parseTask->chars, parseTask->length);
     }
 
+    
+    parseTask->callback(parseTask->script, parseTask->callbackData);
+
+    
+    
     state.parseFinishedList.append(parseTask);
+
     parseTask = NULL;
 
     
@@ -583,7 +692,7 @@ WorkerThread::threadLoop()
         
         while (!state.canStartIonCompile() &&
                !state.canStartAsmJSCompile() &&
-               state.parseWorklist.empty())
+               !state.canStartParseTask())
         {
             if (state.shouldPause)
                 pause();
@@ -597,7 +706,7 @@ WorkerThread::threadLoop()
             handleAsmJSWorkload(state);
         else if (state.canStartIonCompile())
             handleIonWorkload(state);
-        else if (!state.parseWorklist.empty())
+        else if (state.canStartParseTask())
             handleParseWorkload(state);
     }
 }
@@ -695,7 +804,8 @@ js::CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script)
 
 bool
 js::StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
-                              const jschar *chars, size_t length)
+                              const jschar *chars, size_t length, HandleObject scopeChain,
+                              JS::OffThreadCompileCallback callback, void *callbackData)
 {
     MOZ_ASSUME_UNREACHABLE("Off thread compilation not available in non-THREADSAFE builds");
 }

@@ -88,7 +88,8 @@ class XULDocument MOZ_FINAL : public XMLDocument,
                               public nsIXULDocument,
                               public nsIDOMXULDocument,
                               public nsIStreamLoaderObserver,
-                              public nsICSSLoaderObserver
+                              public nsICSSLoaderObserver,
+                              public nsIOffThreadScriptReceiver
 {
 public:
     XULDocument();
@@ -172,6 +173,8 @@ public:
     virtual int GetDocumentLWTheme() MOZ_OVERRIDE;
 
     virtual void ResetDocumentLWTheme() MOZ_OVERRIDE { mDocLWTheme = Doc_Theme_Uninitialized; }
+
+    NS_IMETHOD OnScriptCompileComplete(JSScript* aScript, nsresult aStatus) MOZ_OVERRIDE;
 
     static bool
     MatchAttribute(nsIContent* aContent,
@@ -438,6 +441,18 @@ protected:
 
 
     nsXULPrototypeScript* mCurrentScriptProto;
+
+    
+
+
+
+    bool mOffThreadCompiling;
+
+    
+
+
+
+    nsString mOffThreadCompileString;
 
     
 

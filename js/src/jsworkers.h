@@ -89,6 +89,7 @@ class WorkerThreadState
 
     bool canStartAsmJSCompile();
     bool canStartIonCompile();
+    bool canStartParseTask();
 
     uint32_t harvestFailedAsmJSJobs() {
         JS_ASSERT(isLocked());
@@ -113,6 +114,8 @@ class WorkerThreadState
     void *maybeAsmJSFailedFunction() const {
         return asmJSFailedFunction;
     }
+
+    void finishParseTaskForScript(JSScript *script);
 
   private:
 
@@ -224,7 +227,8 @@ CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
 
 bool
 StartOffThreadParseScript(JSContext *cx, const CompileOptions &options,
-                          const jschar *chars, size_t length);
+                          const jschar *chars, size_t length, HandleObject scopeChain,
+                          JS::OffThreadCompileCallback callback, void *callbackData);
 
 
 void
@@ -332,17 +336,31 @@ struct AsmJSParallelTask
 
 struct ParseTask
 {
-    JSRuntime *runtime;
+    Zone *zone;
     ExclusiveContext *cx;
     CompileOptions options;
     const jschar *chars;
     size_t length;
     LifoAlloc alloc;
 
+    
+    
+    
+    JSObject *scopeChain;
+
+    
+    JS::OffThreadCompileCallback callback;
+    void *callbackData;
+
+    
+    
+    
     JSScript *script;
 
-    ParseTask(JSRuntime *rt, ExclusiveContext *cx, const CompileOptions &options,
-              const jschar *chars, size_t length);
+    ParseTask(Zone *zone, ExclusiveContext *cx, const CompileOptions &options,
+              const jschar *chars, size_t length, JSObject *scopeChain,
+              JS::OffThreadCompileCallback callback, void *callbackData);
+
     ~ParseTask();
 };
 

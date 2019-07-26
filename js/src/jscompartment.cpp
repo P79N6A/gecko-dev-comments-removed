@@ -617,6 +617,34 @@ JSCompartment::purge()
     dtoaCache.purge();
 }
 
+void
+JSCompartment::clearTables()
+{
+    global_ = NULL;
+
+    regExps.clearTables();
+
+    
+    
+    
+    JS_ASSERT(crossCompartmentWrappers.empty());
+    JS_ASSERT_IF(callsiteClones.initialized(), callsiteClones.empty());
+    JS_ASSERT(!ionCompartment_);
+    JS_ASSERT(!debugScopes);
+    JS_ASSERT(!gcWeakMapList);
+    JS_ASSERT(!analysisLifoAlloc.used());
+    JS_ASSERT(enumerators->next() == enumerators);
+
+    if (baseShapes.initialized())
+        baseShapes.clear();
+    if (initialShapes.initialized())
+        initialShapes.clear();
+    if (newTypeObjects.initialized())
+        newTypeObjects.clear();
+    if (lazyTypeObjects.initialized())
+        lazyTypeObjects.clear();
+}
+
 bool
 JSCompartment::hasScriptsOnStack()
 {

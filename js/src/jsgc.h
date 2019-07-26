@@ -663,6 +663,9 @@ extern bool
 AddObjectRoot(JSContext *cx, JSObject **rp, const char *name);
 
 extern bool
+AddObjectRoot(JSRuntime *rt, JSObject **rp, const char *name);
+
+extern bool
 AddScriptRoot(JSContext *cx, JSScript **rp, const char *name);
 
 } 
@@ -1334,6 +1337,13 @@ SetFullCompartmentChecks(JSContext *cx, bool enabled);
 
 void
 FinishBackgroundFinalize(JSRuntime *rt);
+
+
+
+
+
+void
+MergeCompartments(JSCompartment *source, JSCompartment *target);
 
 const int ZealPokeValue = 1;
 const int ZealAllocValue = 2;

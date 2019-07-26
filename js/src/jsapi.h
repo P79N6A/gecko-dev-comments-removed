@@ -4119,6 +4119,33 @@ Compile(JSContext *cx, JS::Handle<JSObject*> obj, CompileOptions options, FILE *
 extern JS_PUBLIC_API(JSScript *)
 Compile(JSContext *cx, JS::Handle<JSObject*> obj, CompileOptions options, const char *filename);
 
+extern JS_PUBLIC_API(bool)
+CanCompileOffThread(JSContext *cx, const CompileOptions &options);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+CompileOffThread(JSContext *cx, Handle<JSObject*> obj, CompileOptions options,
+                 const jschar *chars, size_t length,
+                 OffThreadCompileCallback callback, void *callbackData);
+
+extern JS_PUBLIC_API(void)
+FinishOffThreadScript(JSRuntime *rt, JSScript *script);
+
 extern JS_PUBLIC_API(JSFunction *)
 CompileFunction(JSContext *cx, JS::Handle<JSObject*> obj, CompileOptions options,
                 const char *name, unsigned nargs, const char **argnames,

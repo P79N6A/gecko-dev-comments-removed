@@ -2548,13 +2548,56 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
     return rv;
 }
 
+class NotifyOffThreadScriptCompletedRunnable : public nsRunnable
+{
+    nsRefPtr<nsIOffThreadScriptReceiver> mReceiver;
+
+    
+    
+    JSScript *mScript;
+
+public:
+    NotifyOffThreadScriptCompletedRunnable(already_AddRefed<nsIOffThreadScriptReceiver> aReceiver,
+                                           JSScript *aScript)
+      : mReceiver(aReceiver), mScript(aScript)
+    {}
+
+    NS_DECL_NSIRUNNABLE
+};
+
+NS_IMETHODIMP
+NotifyOffThreadScriptCompletedRunnable::Run()
+{
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    
+    
+    JS::FinishOffThreadScript(nsJSRuntime::sRuntime, mScript);
+
+    return mReceiver->OnScriptCompileComplete(mScript, mScript ? NS_OK : NS_ERROR_FAILURE);
+}
+
+static void
+OffThreadScriptReceiverCallback(JSScript *script, void *ptr)
+{
+    
+    
+    nsIOffThreadScriptReceiver* aReceiver = static_cast<nsIOffThreadScriptReceiver*>(ptr);
+    nsRefPtr<NotifyOffThreadScriptCompletedRunnable> notify =
+        new NotifyOffThreadScriptCompletedRunnable(
+            already_AddRefed<nsIOffThreadScriptReceiver>(aReceiver), script);
+    NS_DispatchToMainThread(notify);
+}
+
 nsresult
 nsXULPrototypeScript::Compile(const PRUnichar* aText,
                               int32_t aTextLength,
                               nsIURI* aURI,
                               uint32_t aLineNo,
                               nsIDocument* aDocument,
-                              nsIScriptGlobalObject* aGlobal)
+                              nsIScriptGlobalObject* aGlobal,
+                              nsIOffThreadScriptReceiver *aOffThreadReceiver )
 {
     
     
@@ -2604,11 +2647,23 @@ nsXULPrototypeScript::Compile(const PRUnichar* aText,
                                        : JS::CompileOptions::SAVE_SOURCE);
     JS::RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
     xpc_UnmarkGrayObject(scope);
-    JSScript* script = JS::Compile(cx, scope, options,
+
+    if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options)) {
+        if (!JS::CompileOffThread(cx, scope, options,
+                                  static_cast<const jschar*>(aText), aTextLength,
+                                  OffThreadScriptReceiverCallback,
+                                  static_cast<void*>(aOffThreadReceiver))) {
+            return NS_ERROR_OUT_OF_MEMORY;
+        }
+        
+        NS_ADDREF(aOffThreadReceiver);
+    } else {
+        JSScript* script = JS::Compile(cx, scope, options,
                                    static_cast<const jschar*>(aText), aTextLength);
-    if (!script)
-        return NS_ERROR_OUT_OF_MEMORY;
-    Set(script);
+        if (!script)
+            return NS_ERROR_OUT_OF_MEMORY;
+        Set(script);
+    }
     return NS_OK;
 }
 
