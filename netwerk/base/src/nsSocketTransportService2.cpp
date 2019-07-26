@@ -790,7 +790,13 @@ nsSocketTransportService::DoPollIteration(bool wait)
             
             else if (s.mHandler->mPollTimeout != UINT16_MAX) {
                 
-                if (NS_UNLIKELY(pollInterval > (UINT16_MAX - s.mElapsedTime)))
+                
+                
+                
+                
+                if (NS_UNLIKELY(pollInterval >
+                                static_cast<uint32_t>(UINT16_MAX) -
+                                s.mElapsedTime))
                     s.mElapsedTime = UINT16_MAX;
                 else
                     s.mElapsedTime += uint16_t(pollInterval);
