@@ -898,9 +898,6 @@ protected:
   nsMediaNetworkState mNetworkState;
   nsMediaReadyState mReadyState;
 
-  
-  NextFrameStatus mLastNextFrameStatus;
-
   enum LoadAlgorithmState {
     
     
@@ -1112,9 +1109,6 @@ protected:
 
   
   bool mHasAudio;
-
-  
-  bool mHasVideo;
 
   
   bool mDownloadSuspendedByCache;
