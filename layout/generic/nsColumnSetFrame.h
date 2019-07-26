@@ -49,8 +49,7 @@ public:
     return frame->GetContentInsertionFrame();
   }
 
-  virtual nsresult StealFrame(nsIFrame*      aChild,
-                              bool           aForceNormal) MOZ_OVERRIDE
+  virtual nsresult StealFrame(nsIFrame* aChild, bool aForceNormal) MOZ_OVERRIDE
   { 
     return nsContainerFrame::StealFrame(aChild, true);
   }

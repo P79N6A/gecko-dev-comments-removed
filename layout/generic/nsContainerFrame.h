@@ -94,8 +94,7 @@ public:
 
 
 
-  nsresult CreateNextInFlow(nsIFrame*       aFrame,
-                            nsIFrame*&      aNextInFlowResult);
+  nsresult CreateNextInFlow(nsIFrame*  aFrame, nsIFrame*& aNextInFlowResult);
 
   
 
@@ -103,8 +102,8 @@ public:
 
 
 
-  virtual void DeleteNextInFlowChild(nsIFrame*      aNextInFlow,
-                                     bool           aDeletingEmptyFrames);
+  virtual void DeleteNextInFlowChild(nsIFrame* aNextInFlow,
+                                     bool      aDeletingEmptyFrames);
 
   
 
@@ -116,9 +115,9 @@ public:
   
   static void PositionFrameView(nsIFrame* aKidFrame);
 
-  static nsresult ReparentFrameView(nsIFrame*       aChildFrame,
-                                    nsIFrame*       aOldParentFrame,
-                                    nsIFrame*       aNewParentFrame);
+  static nsresult ReparentFrameView(nsIFrame* aChildFrame,
+                                    nsIFrame* aOldParentFrame,
+                                    nsIFrame* aNewParentFrame);
 
   static nsresult ReparentFrameViewList(const nsFrameList& aChildFrameList,
                                         nsIFrame*          aOldParentFrame,
@@ -318,8 +317,8 @@ public:
 
 
 
-  virtual nsresult StealFrame(nsIFrame*      aChild,
-                              bool           aForceNormal = false);
+  virtual nsresult StealFrame(nsIFrame* aChild,
+                              bool      aForceNormal = false);
 
   
 
@@ -475,8 +474,7 @@ protected:
 
 
 
-  void PushChildren(nsIFrame*       aFromChild,
-                    nsIFrame*       aPrevSibling);
+  void PushChildren(nsIFrame* aFromChild, nsIFrame* aPrevSibling);
 
   
   
