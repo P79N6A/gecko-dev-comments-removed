@@ -65,8 +65,9 @@ struct nr_ice_candidate_ {
   char *foundation;                   
   UINT4 priority;                     
   nr_ice_stun_server *stun_server;
-
+  nr_transport_addr stun_server_addr; 
   void *delay_timer;
+  void *resolver_handle;
 
   
   union {
@@ -97,7 +98,7 @@ struct nr_ice_candidate_ {
 extern char *nr_ice_candidate_type_names[];
 
 
-int nr_ice_candidate_create(struct nr_ice_ctx_ *ctx,char *label, nr_ice_component *component, nr_ice_socket *isock, nr_socket *osock, nr_ice_candidate_type ctype, nr_ice_stun_server *stun_server, UCHAR component_id, nr_ice_candidate **candp);
+int nr_ice_candidate_create(struct nr_ice_ctx_ *ctx,nr_ice_component *component, nr_ice_socket *isock, nr_socket *osock, nr_ice_candidate_type ctype, nr_ice_stun_server *stun_server, UCHAR component_id, nr_ice_candidate **candp);
 int nr_ice_candidate_initialize(nr_ice_candidate *cand, NR_async_cb ready_cb, void *cb_arg);
 int nr_ice_candidate_process_stun(nr_ice_candidate *cand, UCHAR *msg, int len, nr_transport_addr *faddr);
 int nr_ice_candidate_destroy(nr_ice_candidate **candp);
