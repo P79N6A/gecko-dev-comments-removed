@@ -615,8 +615,22 @@ MathMLTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
         
         doMathvariantStyling = false;
       }
-      
-      ch2 = ch;
+      if (ch2 != ch) {
+        
+        
+        
+        uint8_t matchType;
+        nsRefPtr<gfxFont> mathFont = fontGroup->
+          FindFontForChar(ch2, 0, HB_SCRIPT_COMMON, nullptr, &matchType);
+        if (mathFont) {
+          
+          
+          doMathvariantStyling = false;
+        } else {
+          
+          ch2 = ch;
+        }
+      }
     }
 
     deletedCharsArray.AppendElement(false);
