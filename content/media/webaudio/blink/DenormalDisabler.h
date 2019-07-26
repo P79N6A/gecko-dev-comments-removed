@@ -33,8 +33,8 @@ namespace WebCore {
 
 
 
-#if defined(XP_WIN) && defined(_MSC_VER)
 #include <float.h>
+#if defined(XP_WIN) && defined(_MSC_VER)
 #define HAVE_DENORMAL
 #endif
 
