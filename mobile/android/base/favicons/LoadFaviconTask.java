@@ -234,6 +234,10 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             } else {
                 
                 mFaviconUrl = Favicons.guessDefaultFaviconURL(mPageUrl);
+
+                if (TextUtils.isEmpty(mFaviconUrl)) {
+                    return null;
+                }
                 isUsingDefaultURL = true;
             }
         }

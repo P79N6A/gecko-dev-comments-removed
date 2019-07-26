@@ -205,6 +205,10 @@ public class FaviconCache {
 
 
     public boolean isFailedFavicon(String faviconURL) {
+        if (faviconURL == null) {
+            return true;
+        }
+
         startRead();
 
         boolean isExpired = false;
@@ -241,7 +245,7 @@ public class FaviconCache {
             
             isAborting = true;
             Log.e(LOGTAG, "FaviconCache exception!", unhandled);
-            return false;
+            return true;
         }  finally {
             if (!isAborting) {
                 if (isExpired) {
