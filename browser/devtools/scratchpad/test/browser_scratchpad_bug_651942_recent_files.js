@@ -27,7 +27,7 @@ var lists = {
 
 
 let gFileName01 = "file01_ForBug651942.tmp"
-let gFileName02 = "file02_ForBug651942.tmp"
+let gFileName02 = "â˜•" 
 let gFileName03 = "file03_ForBug651942.tmp"
 let gFileName04 = "file04_ForBug651942.tmp"
 
