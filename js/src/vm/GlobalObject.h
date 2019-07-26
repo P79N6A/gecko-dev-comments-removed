@@ -590,10 +590,10 @@ class GlobalObject : public JSObject
     
     static bool warnOnceAboutWatch(JSContext *cx, HandleObject obj);
 
-    Value getOriginalEval() const {
-        JS_ASSERT(getSlotRefForCompilation(EVAL).isObject());
-        return getSlotRefForCompilation(EVAL);
-    }
+    bool getOrCreateEval(JSContext *cx, MutableHandleObject eval);
+
+    
+    bool valueIsEval(Value val);
 
     
     static bool initIteratorClasses(JSContext *cx, Handle<GlobalObject*> global);
