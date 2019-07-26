@@ -2803,13 +2803,44 @@ JSScript::setNeedsArgsObj(bool needsArgsObj)
     needsArgsObj_ = needsArgsObj;
 }
 
+void
+js::SetFrameArgumentsObject(JSContext *cx, AbstractFramePtr frame,
+                            HandleScript script, JSObject *argsobj)
+{
+    
+
+
+
+
+    InternalBindingsHandle bindings(script, &script->bindings);
+    const unsigned var = Bindings::argumentsVarIndex(cx, bindings);
+
+    if (script->varIsAliased(var)) {
+        
+
+
+
+        jsbytecode *pc = script->code;
+        while (*pc != JSOP_ARGUMENTS)
+            pc += GetBytecodeLength(pc);
+        pc += JSOP_ARGUMENTS_LENGTH;
+        JS_ASSERT(*pc == JSOP_SETALIASEDVAR);
+
+        if (frame.callObj().asScope().aliasedVar(pc).isMagic(JS_OPTIMIZED_ARGUMENTS))
+            frame.callObj().asScope().setAliasedVar(pc, ObjectValue(*argsobj));
+    } else {
+        if (frame.unaliasedLocal(var).isMagic(JS_OPTIMIZED_ARGUMENTS))
+            frame.unaliasedLocal(var) = ObjectValue(*argsobj);
+    }
+}
+
  bool
 JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 {
     AssertCanGC();
+    JS_ASSERT(script->function());
     JS_ASSERT(script->analyzedArgsUsage());
     JS_ASSERT(script->argumentsHasVarBinding());
-    JS_ASSERT(!script->isGenerator);
 
     
 
@@ -2817,8 +2848,11 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
 
 
 
+
     if (script->needsArgsObj())
         return true;
+
+    JS_ASSERT(!script->isGenerator);
 
     script->needsArgsObj_ = true;
 
@@ -2832,10 +2866,8 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
         script->baselineScript()->setNeedsArgsObj();
 #endif
 
-    InternalBindingsHandle bindings(script, &script->bindings);
-    const unsigned var = Bindings::argumentsVarIndex(cx, bindings);
-
     
+
 
 
 
@@ -2872,9 +2904,7 @@ JSScript::argumentsOptimizationFailed(JSContext *cx, HandleScript script)
                 return false;
             }
 
-            
-            if (frame.unaliasedLocal(var).isMagic(JS_OPTIMIZED_ARGUMENTS))
-                frame.unaliasedLocal(var) = ObjectValue(*argsobj);
+            SetFrameArgumentsObject(cx, frame, script, argsobj);
         }
     }
 

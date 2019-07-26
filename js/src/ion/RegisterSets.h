@@ -198,6 +198,12 @@ class TypedOrValueRegister
     ValueOperand valueReg() {
         return dataValue();
     }
+
+    AnyRegister scratchReg() {
+        if (hasValue())
+            return AnyRegister(valueReg().scratchReg());
+        return typedReg();
+    }
 };
 
 
