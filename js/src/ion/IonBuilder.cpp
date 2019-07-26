@@ -3667,7 +3667,9 @@ IonBuilder::createThis(HandleFunction target, MDefinition *callee)
 
     
     if (target->isNative()) {
-        JS_ASSERT (target->isNativeConstructor());
+        if (!target->isNativeConstructor())
+            return NULL;
+
         MConstant *magic = MConstant::New(MagicValue(JS_IS_CONSTRUCTING));
         current->add(magic);
         return magic;
