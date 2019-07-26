@@ -410,10 +410,7 @@ PrivilegesForApp(mozIApplication* aApp)
     const SpecialPermission specialPermissions[] = {
         
         
-        { "camera", base::PRIVILEGES_CAMERA },
-        
-        
-        { "deprecated-hwvideo", base::PRIVILEGES_VIDEO }
+        { "camera", base::PRIVILEGES_CAMERA }
     };
     for (size_t i = 0; i < ArrayLength(specialPermissions); ++i) {
         const char* const permission = specialPermissions[i].perm;
