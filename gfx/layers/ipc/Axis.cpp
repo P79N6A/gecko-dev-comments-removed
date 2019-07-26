@@ -31,7 +31,7 @@ static float gMaxEventAcceleration = 999.0f;
 
 
 
-static float gFlingFriction = 0.006f;
+static float gFlingFriction = 0.002f;
 
 
 
