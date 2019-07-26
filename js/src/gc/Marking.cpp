@@ -885,6 +885,9 @@ ScanBaseShape(GCMarker *gcmarker, BaseShape *base)
         PushMarkStack(gcmarker, global);
     }
 
+    if (JSObject *metadata = base->getObjectMetadata())
+        PushMarkStack(gcmarker, metadata);
+
     
 
 
