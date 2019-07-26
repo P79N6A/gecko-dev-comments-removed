@@ -24,7 +24,16 @@ var RIL = {};
 Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
 
-const DEBUG = RIL.DEBUG_RIL;
+var DEBUG = RIL.DEBUG_RIL;
+
+
+let debugPref = false;
+try {
+  debugPref = Services.prefs.getBoolPref("ril.debugging.enabled");
+} catch(e) {
+  debugPref = false;
+}
+DEBUG = RIL.DEBUG_RIL || debugPref;
 
 const RADIOINTERFACELAYER_CID =
   Components.ID("{2d831c8d-6017-435b-a80c-e5d422810cea}");
@@ -283,6 +292,10 @@ function RadioInterfaceLayer() {
   this.portAddressedSmsApps[WAP.WDP_PORT_PUSH] = this.handleSmsWdpPortPush.bind(this);
 
   this._targetMessageQueue = [];
+
+  
+  this.worker.postMessage({rilMessageType: "setDebugEnabled",
+                           enabled: debugPref});
 }
 RadioInterfaceLayer.prototype = {
 
