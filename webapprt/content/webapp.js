@@ -24,6 +24,27 @@ let progressListener = {
                                          Ci.nsISupportsWeakReference]),
   onLocationChange: function onLocationChange(progress, request, location,
                                               flags) {
+
+    
+    let pageTooltip = document.getElementById("contentAreaTooltip");
+    let tooltipNode = pageTooltip.triggerNode;
+    if (tooltipNode) {
+      
+      if (progress.isTopLevel) {
+        pageTooltip.hidePopup();
+      }
+      else {
+        for (let tooltipWindow = tooltipNode.ownerDocument.defaultView;
+             tooltipWindow != tooltipWindow.parent;
+             tooltipWindow = tooltipWindow.parent) {
+          if (tooltipWindow == progress.DOMWindow) {
+            pageTooltip.hidePopup();
+            break;
+          }
+        }
+      }
+    }
+
     
     
     
