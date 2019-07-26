@@ -6391,8 +6391,16 @@ class CGMemberJITInfo(CGThing):
                 
                 methodInfal = False
                 args = None
+                movable = False
             else:
                 sig = sigs[0]
+                
+                
+                
+                
+                
+                hasInfallibleImpl = "infallible" in self.descriptor.getExtendedAttributes(self.member)
+                movable = methodPure and hasInfallibleImpl
                 
                 
                 if (len(sig[1]) != 0 or
@@ -6400,19 +6408,19 @@ class CGMemberJITInfo(CGThing):
                     
                     methodInfal = False
                 else:
-                    methodInfal = "infallible" in self.descriptor.getExtendedAttributes(self.member)
+                    methodInfal = hasInfallibleImpl
                 
                 if methodPure:
                     args = sig[1]
                 else:
                     args = None
 
-            if args:
+            if args is not None:
                 aliasSet = "AliasDOMSets"
             else:
                 aliasSet = "AliasEverything"
             result = self.defineJitInfo(methodinfo, method, "Method",
-                                        methodInfal, False, aliasSet, False, "0",
+                                        methodInfal, movable, aliasSet, False, "0",
                                         [s[0] for s in sigs], args)
             return result
         raise TypeError("Illegal member type to CGPropertyJITInfo")
