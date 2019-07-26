@@ -103,7 +103,7 @@ txStylesheetCompiler::startElement(int32_t aNamespaceID, nsIAtom* aLocalName,
 nsresult
 txStylesheetCompiler::startElement(const char16_t *aName,
                                    const char16_t **aAttrs,
-                                   int32_t aAttrCount, int32_t aIDOffset)
+                                   int32_t aAttrCount)
 {
     if (NS_FAILED(mStatus)) {
         
@@ -162,12 +162,8 @@ txStylesheetCompiler::startElement(const char16_t *aName,
                                   getter_AddRefs(localname), &namespaceID);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    int32_t idOffset = aIDOffset;
-    if (idOffset > 0) {
-        idOffset /= 2;
-    }
     return startElementInternal(namespaceID, localname, prefix, atts,
-                                aAttrCount, idOffset);
+                                aAttrCount);
 }
 
 nsresult
@@ -175,8 +171,7 @@ txStylesheetCompiler::startElementInternal(int32_t aNamespaceID,
                                            nsIAtom* aLocalName,
                                            nsIAtom* aPrefix,
                                            txStylesheetAttr* aAttributes,
-                                           int32_t aAttrCount,
-                                           int32_t aIDOffset)
+                                           int32_t aAttrCount)
 {
     nsresult rv = NS_OK;
     int32_t i;
@@ -187,6 +182,16 @@ txStylesheetCompiler::startElementInternal(int32_t aNamespaceID,
     
     for (i = 0; i < aAttrCount; ++i) {
         txStylesheetAttr* attr = aAttributes + i;
+
+        
+        if (mEmbedStatus == eNeedEmbed &&
+            attr->mLocalName == nsGkAtoms::id &&
+            attr->mNamespaceID == kNameSpaceID_None &&
+            attr->mValue.Equals(mTarget)) {
+            
+            
+            mEmbedStatus = eInEmbed;
+        }
 
         
         if (attr->mNamespaceID == kNameSpaceID_XML &&
@@ -277,14 +282,6 @@ txStylesheetCompiler::startElementInternal(int32_t aNamespaceID,
         }
     }
 
-    if (mEmbedStatus == eNeedEmbed) {
-        
-        if (aIDOffset >= 0 && aAttributes[aIDOffset].mValue.Equals(mTarget)) {
-            
-            
-            mEmbedStatus = eInEmbed;
-        }
-    }
     const txElementHandler* handler;
     do {
         handler = isInstruction ?

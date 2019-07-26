@@ -164,22 +164,6 @@ public:
 
 
 
-
-
-  nsIAtom* GetIDAttributeAtom() const
-  {
-    return mIDAttributeAtom;
-  }
-
-  void SetIDAttributeAtom(nsIAtom* aID)
-  {
-    mIDAttributeAtom = aID;
-  }
-
-  
-
-
-
   nsNodeInfoManager *NodeInfoManager() const
   {
     return mOwnerManager;
@@ -330,7 +314,6 @@ protected:
 
   nsNodeInfoInner mInner;
 
-  nsCOMPtr<nsIAtom> mIDAttributeAtom;
   nsRefPtr<nsNodeInfoManager> mOwnerManager;
 
   

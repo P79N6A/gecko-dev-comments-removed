@@ -96,7 +96,6 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual const nsAttrValue* DoGetClasses() const MOZ_OVERRIDE;
   void DidAnimateClass();
 
   
@@ -304,6 +303,13 @@ public:
   }
   virtual nsIAtom* GetTransformListAttrName() const {
     return nullptr;
+  }
+  const nsAttrValue* GetAnimatedClassName() const
+  {
+    if (!mClassAttribute.IsAnimated()) {
+      return nullptr;
+    }
+    return mClassAnimAttr;
   }
 
   virtual nsIDOMNode* AsDOMNode() MOZ_FINAL MOZ_OVERRIDE { return this; }

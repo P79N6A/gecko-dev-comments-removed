@@ -325,13 +325,6 @@ public:
 
 
 
-  virtual nsIAtom *GetIDAttributeName() const = 0;
-
-  
-
-
-
-
 
 
 
@@ -833,7 +826,6 @@ public:
 
 
 
-
   nsIAtom* GetID() const {
     if (HasID()) {
       return DoGetID();
@@ -842,7 +834,6 @@ public:
   }
 
   
-
 
 
 
@@ -957,14 +948,14 @@ protected:
 
 
 
-  virtual nsIAtom* DoGetID() const = 0;
+  nsIAtom* DoGetID() const;
 
 private:
   
 
 
 
-  virtual const nsAttrValue* DoGetClasses() const = 0;
+  const nsAttrValue* DoGetClasses() const;
 
 public:
 #ifdef DEBUG
