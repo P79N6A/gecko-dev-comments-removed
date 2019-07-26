@@ -4051,9 +4051,11 @@ def isResultAlreadyAddRefed(descriptor, extendedAttributes):
     
     return not descriptor.workers and not 'resultNotAddRefed' in extendedAttributes
 
-def needCx(returnType, arguments, extendedAttributes, descriptorProvider):
-    return (typeNeedsCx(returnType, descriptorProvider, True) or
-            any(typeNeedsCx(a.type, descriptorProvider) for a in arguments) or
+def needCx(returnType, arguments, extendedAttributes, descriptorProvider,
+           considerTypes):
+    return (considerTypes and
+            (typeNeedsCx(returnType, descriptorProvider, True) or
+             any(typeNeedsCx(a.type, descriptorProvider) for a in arguments)) or
             'implicitJSContext' in extendedAttributes)
 
 class CGCallGenerator(CGThing):
@@ -4294,9 +4296,11 @@ if (global.Failed()) {
 """ % globalObjectType))
             argsPre.append("global")
 
-        needsCx = (not descriptor.interface.isJSImplemented() and
-                   needCx(returnType, arguments, self.extendedAttributes,
-                          descriptor))
+        
+        
+        
+        needsCx = needCx(returnType, arguments, self.extendedAttributes,
+                         descriptor, not descriptor.interface.isJSImplemented())
         if needsCx and not (static and descriptor.workers):
             argsPre.append("cx")
 
@@ -7967,7 +7971,11 @@ class CGNativeMember(ClassMethod):
                  jsObjectsArePtr=False, variadicIsSequence=False):
         """
         If jsObjectsArePtr is true, typed arrays and "object" will be
-        passed as JSObject*
+        passed as JSObject*.
+
+        If passCxAsNeeded is false, we don't automatically pass in a
+        JSContext* based on the return and argument types.  We can
+        still pass it based on 'implicitJSContext' annotations.
         """
         self.descriptor = descriptor
         self.member = member
@@ -8144,9 +8152,8 @@ class CGNativeMember(ClassMethod):
             assert self.member.isIdentifierLess()
             args.insert(0, Argument("JS::Value", "aThisVal"))
         
-        if (self.passCxAsNeeded and
-            needCx(returnType, argList, self.extendedAttrs,
-                   self.descriptor)):
+        if needCx(returnType, argList, self.extendedAttrs,
+                  self.descriptor, self.passCxAsNeeded):
             args.insert(0, Argument("JSContext*", "cx"))
         
         if self.member.isStatic():
