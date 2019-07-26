@@ -845,35 +845,6 @@ moz_FcPatternRemove(FcPattern *p, const char *object, int id)
 
 
 static bool
-SlantIsAcceptable(FcPattern *aFont, int aRequestedSlant)
-{
-    
-    if (aRequestedSlant == FC_SLANT_ITALIC)
-        return true;
-
-    int slant;
-    FcResult result = FcPatternGetInteger(aFont, FC_SLANT, 0, &slant);
-    
-    
-    if (result != FcResultMatch)
-        return true;
-
-    switch (aRequestedSlant) {
-        case FC_SLANT_ROMAN:
-            
-            return slant == aRequestedSlant;
-        case FC_SLANT_OBLIQUE:
-            
-            
-            return slant != FC_SLANT_ITALIC;
-    }
-
-    return true;
-}
-
-
-
-static bool
 SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
 {
     double size;
@@ -1032,8 +1003,6 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
 
             
             
-            if (!isUserFont && !SlantIsAcceptable(font, requestedSlant))
-                continue;
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
                 continue;
 
@@ -1068,8 +1037,6 @@ gfxFcFontSet::SortPreferredFonts(bool &aWaitForUserFont)
         bool haveLangFont = false;
         for (uint32_t f = 0; f < langFonts.Length(); ++f) {
             FcPattern *font = langFonts[f];
-            if (!SlantIsAcceptable(font, requestedSlant))
-                continue;
             if (requestedSize != -1.0 && !SizeIsAcceptable(font, requestedSize))
                 continue;
 
