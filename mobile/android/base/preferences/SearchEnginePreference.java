@@ -144,6 +144,7 @@ public class SearchEnginePreference extends Preference implements View.OnLongCli
 
 
 
+
     public void setIsDefaultEngine(boolean isDefault) {
         mIsDefaultEngine = isDefault;
         if (isDefault) {
