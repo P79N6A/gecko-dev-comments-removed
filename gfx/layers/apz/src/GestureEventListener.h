@@ -126,6 +126,8 @@ private:
 
   void TriggerSingleTapConfirmedEvent();
 
+  bool MoveDistanceIsLarge();
+
   
 
 
