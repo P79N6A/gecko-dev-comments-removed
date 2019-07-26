@@ -232,7 +232,7 @@ pref("gfx.filter.nearest.force-enabled", false);
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
-pref("gfx.font_rendering.graphite.enabled", false);
+pref("gfx.font_rendering.graphite.enabled", true);
 
 
 
@@ -3984,7 +3984,6 @@ pref("alerts.disableSlidingEffect", false);
 
 pref("full-screen-api.enabled", false);
 pref("full-screen-api.allow-trusted-requests-only", true);
-pref("full-screen-api.exit-on-deactivate", true);
 pref("full-screen-api.pointer-lock.enabled", true);
 
 
@@ -4111,6 +4110,12 @@ pref("dom.placeholder.show_on_focus", true);
 
 pref("wap.UAProf.url", "");
 pref("wap.UAProf.tagname", "x-wap-profile");
+
+
+
+
+
+pref("dom.mms.retrieval_mode", "manual");
 
 
 

@@ -99,7 +99,9 @@ ComputeThis(JSContext *cx, AbstractFramePtr frame)
 
 
 
-        JS_ASSERT(!frame.isEvalFrame());
+
+
+        JS_ASSERT_IF(frame.isEvalFrame(), thisv.isUndefined() || thisv.isNull());
     }
     bool modified;
     if (!BoxNonStrictThis(cx, &thisv, &modified))
