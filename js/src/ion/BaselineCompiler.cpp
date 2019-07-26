@@ -1996,16 +1996,22 @@ BaselineCompiler::emitInitPropGetterSetter()
               JSOp(*pc) == JSOP_INITPROP_SETTER);
 
     
-    frame.popRegsAndSync(1);
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R0);
+
     prepareVMCall();
 
     pushArg(R0);
     pushArg(ImmGCPtr(script->getName(pc)));
-    masm.extractObject(frame.addressOfStackValue(frame.peek(-1)), R0.scratchReg());
+    masm.extractObject(frame.addressOfStackValue(frame.peek(-2)), R0.scratchReg());
     pushArg(R0.scratchReg());
     pushArg(ImmWord(pc));
 
-    return callVM(InitPropGetterSetterInfo);
+    if (!callVM(InitPropGetterSetterInfo))
+        return false;
+
+    frame.pop();
+    return true;
 }
 
 bool
@@ -2032,16 +2038,24 @@ BaselineCompiler::emitInitElemGetterSetter()
               JSOp(*pc) == JSOP_INITELEM_SETTER);
 
     
-    frame.popRegsAndSync(2);
+    
+    frame.syncStack(0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-2)), R0);
+    masm.loadValue(frame.addressOfStackValue(frame.peek(-1)), R1);
+
     prepareVMCall();
 
     pushArg(R1);
     pushArg(R0);
-    masm.extractObject(frame.addressOfStackValue(frame.peek(-1)), R0.scratchReg());
+    masm.extractObject(frame.addressOfStackValue(frame.peek(-3)), R0.scratchReg());
     pushArg(R0.scratchReg());
     pushArg(ImmWord(pc));
 
-    return callVM(InitElemGetterSetterInfo);
+    if (!callVM(InitElemGetterSetterInfo))
+        return false;
+
+    frame.popn(2);
+    return true;
 }
 
 bool
