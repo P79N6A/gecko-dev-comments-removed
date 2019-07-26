@@ -6,7 +6,6 @@ const INT32_MAX   = 2147483647;
 const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
 const UINT32_SIZE = 4;
-const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 
 
@@ -22,6 +21,8 @@ const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 
 let Buf = {
+  PARCEL_SIZE_SIZE: UINT32_SIZE,
+
   mIncomingBufferLength: 1024,
   mIncomingBuffer: null,
   mIncomingBytes: null,
@@ -37,10 +38,7 @@ let Buf = {
   mOutgoingIndex: 0,
   mOutgoingBufferCalSizeQueue: null,
 
-  mToken: 0,
-  mTokenRequestMap: null,
-
-  init: function init() {
+  _init: function _init() {
     this.mIncomingBuffer = new ArrayBuffer(this.mIncomingBufferLength);
     this.mOutgoingBuffer = new ArrayBuffer(this.mOutgoingBufferLength);
 
@@ -52,7 +50,7 @@ let Buf = {
     this.mIncomingReadIndex = 0;
 
     
-    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
+    this.mOutgoingIndex = this.PARCEL_SIZE_SIZE;
 
     
     this.mReadIncoming = 0;
@@ -63,13 +61,6 @@ let Buf = {
     
     
     this.mCurrentParcelSize = 0;
-
-    
-    this.mToken = 1;
-
-    
-    
-    this.mTokenRequestMap = {};
 
     
     this.mOutgoingBufferCalSizeQueue = [];
@@ -499,7 +490,7 @@ let Buf = {
     while (true) {
       if (!this.mCurrentParcelSize) {
         
-        if (this.mReadIncoming < PARCEL_SIZE_SIZE) {
+        if (this.mReadIncoming < this.PARCEL_SIZE_SIZE) {
           
           
           if (DEBUG) debug("Next parcel size unknown, going to sleep.");
@@ -510,7 +501,7 @@ let Buf = {
           debug("New incoming parcel of size " + this.mCurrentParcelSize);
         }
         
-        this.mReadIncoming -= PARCEL_SIZE_SIZE;
+        this.mReadIncoming -= this.PARCEL_SIZE_SIZE;
       }
 
       if (this.mReadIncoming < this.mCurrentParcelSize) {
@@ -564,76 +555,11 @@ let Buf = {
   
 
 
-  processParcel: function processParcel() {
-    let response_type = this.readUint32();
-
-    let request_type, options;
-    if (response_type == RESPONSE_TYPE_SOLICITED) {
-      let token = this.readUint32();
-      let error = this.readUint32();
-
-      options = this.mTokenRequestMap[token];
-      if (!options) {
-        if (DEBUG) {
-          debug("Suspicious uninvited request found: " + token + ". Ignored!");
-        }
-        return;
-      }
-
-      delete this.mTokenRequestMap[token];
-      request_type = options.rilRequestType;
-
-      options.rilRequestError = error;
-      if (DEBUG) {
-        debug("Solicited response for request type " + request_type +
-              ", token " + token + ", error " + error);
-      }
-    } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
-      request_type = this.readUint32();
-      if (DEBUG) debug("Unsolicited response for request type " + request_type);
-    } else {
-      if (DEBUG) debug("Unknown response type: " + response_type);
-      return;
-    }
-
-    RIL.handleParcel(request_type, this.mReadAvailable, options);
-  },
-
-  
-
-
-
-
-
-
-
-
-  newParcel: function newParcel(type, options) {
-    if (DEBUG) debug("New outgoing parcel of type " + type);
-
-    
-    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
-    this.writeUint32(type);
-    this.writeUint32(this.mToken);
-
-    if (!options) {
-      options = {};
-    }
-    options.rilRequestType = type;
-    options.rilRequestError = null;
-    this.mTokenRequestMap[this.mToken] = options;
-    this.mToken++;
-    return this.mToken;
-  },
-
-  
-
-
   sendParcel: function sendParcel() {
     
     
     
-    let parcelSize = this.mOutgoingIndex - PARCEL_SIZE_SIZE;
+    let parcelSize = this.mOutgoingIndex - this.PARCEL_SIZE_SIZE;
     this.writeParcelSize(parcelSize);
 
     
@@ -641,12 +567,7 @@ let Buf = {
     let parcel = this.mOutgoingBytes.subarray(0, this.mOutgoingIndex);
     if (DEBUG) debug("Outgoing parcel: " + Array.slice(parcel));
     this.onSendParcel(parcel);
-    this.mOutgoingIndex = PARCEL_SIZE_SIZE;
-  },
-
-  simpleRequest: function simpleRequest(type, options) {
-    this.newParcel(type, options);
-    this.sendParcel();
+    this.mOutgoingIndex = this.PARCEL_SIZE_SIZE;
   },
 
   getCurrentParcelSize: function getCurrentParcelSize() {
@@ -656,6 +577,18 @@ let Buf = {
   getReadAvailable: function getReadAvailable() {
     return this.mReadAvailable;
   }
+
+  
+
+
+
+
+
+
+  
+  
+  
+  
 
   
 
