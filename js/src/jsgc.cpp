@@ -1959,6 +1959,10 @@ js::TriggerZoneGC(Zone *zone, JS::gcreason::Reason reason)
         return;
     }
 
+    
+    if (zone->usedByExclusiveThread)
+        return;
+
     JSRuntime *rt = zone->runtimeFromMainThread();
 
     
