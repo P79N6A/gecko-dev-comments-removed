@@ -14,6 +14,9 @@
 
 
 
+
+
+
 class nsMathMLmmultiscriptsFrame : public nsMathMLContainerFrame {
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -28,16 +31,21 @@ public:
         bool                 aPlaceOrigin,
         nsHTMLReflowMetrics& aDesiredSize) MOZ_OVERRIDE;
 
+  static nsresult
+  PlaceMultiScript(nsPresContext*      aPresContext,
+                    nsRenderingContext& aRenderingContext,
+                    bool                 aPlaceOrigin,
+                    nsHTMLReflowMetrics& aDesiredSize,
+                    nsMathMLContainerFrame* aForFrame,
+                    nscoord              aUserSubScriptShift,
+                    nscoord              aUserSupScriptShift,
+                    nscoord              aScriptSpace);
+
 protected:
   nsMathMLmmultiscriptsFrame(nsStyleContext* aContext) : nsMathMLContainerFrame(aContext) {}
   virtual ~nsMathMLmmultiscriptsFrame();
   
-private:
-  nscoord mSubScriptShift;
-  nscoord mSupScriptShift;
 
-  void
-  ProcessAttributes();
 };
 
 #endif 
