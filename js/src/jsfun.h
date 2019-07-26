@@ -339,6 +339,16 @@ class JSFunction : public JSObject
         return u.i.s.script_;
     }
 
+    
+    
+    JSFunction* originalFunction() {
+        if (this->hasScript() && this->nonLazyScript()->isCallsiteClone()) {
+            return this->nonLazyScript()->originalFunction();
+        } else {
+            return this;
+        }
+    }
+
     js::HeapPtrScript &mutableScript() {
         JS_ASSERT(isInterpreted());
         return *(js::HeapPtrScript *)&u.i.s.script_;
