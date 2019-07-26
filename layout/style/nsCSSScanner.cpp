@@ -121,11 +121,6 @@ HexDigitValue(int32_t ch)
   }
 }
 
-nsCSSToken::nsCSSToken()
-{
-  mType = eCSSToken_Symbol;
-}
-
 void
 nsCSSToken::AppendToString(nsString& aBuffer) const
 {
@@ -140,7 +135,7 @@ nsCSSToken::AppendToString(nsString& aBuffer) const
       break;
 
     case eCSSToken_ID:
-    case eCSSToken_Ref:
+    case eCSSToken_Hash:
       aBuffer.Append('#');
       nsStyleUtil::AppendEscapedCSSIdent(mIdent, aBuffer);
       break;
@@ -200,7 +195,7 @@ nsCSSToken::AppendToString(nsString& aBuffer) const
       aBuffer.Append(mSymbol);
       break;
 
-    case eCSSToken_WhiteSpace:
+    case eCSSToken_Whitespace:
       aBuffer.Append(' ');
       break;
 
@@ -232,7 +227,7 @@ nsCSSToken::AppendToString(nsString& aBuffer) const
 }
 
 nsCSSScanner::nsCSSScanner(const nsAString& aBuffer, uint32_t aLineNumber)
-  : mReadPointer(aBuffer.BeginReading())
+  : mBuffer(aBuffer.BeginReading())
   , mOffset(0)
   , mCount(aBuffer.Length())
   , mPushback(mLocalPushback)
@@ -259,6 +254,43 @@ nsCSSScanner::~nsCSSScanner()
   }
 }
 
+void
+nsCSSScanner::StartRecording()
+{
+  NS_ASSERTION(!mRecording, "already started recording");
+  mRecording = true;
+  mRecordStartOffset = mOffset - mPushbackCount;
+}
+
+void
+nsCSSScanner::StopRecording()
+{
+  NS_ASSERTION(mRecording, "haven't started recording");
+  mRecording = false;
+}
+
+void
+nsCSSScanner::StopRecording(nsString& aBuffer)
+{
+  NS_ASSERTION(mRecording, "haven't started recording");
+  mRecording = false;
+  aBuffer.Append(mBuffer + mRecordStartOffset,
+                 mOffset - mPushbackCount - mRecordStartOffset);
+}
+
+nsDependentSubstring
+nsCSSScanner::GetCurrentLine() const
+{
+  uint32_t end = mTokenOffset;
+  while (end < mCount &&
+         mBuffer[end] != '\n' && mBuffer[end] != '\r' &&
+         mBuffer[end] != '\f') {
+    end++;
+  }
+  return nsDependentSubstring(mBuffer + mTokenLineOffset,
+                              mBuffer + end);
+}
+
 
 int32_t
 nsCSSScanner::Read()
@@ -270,11 +302,11 @@ nsCSSScanner::Read()
     if (mOffset == mCount) {
       return -1;
     }
-    rv = int32_t(mReadPointer[mOffset++]);
+    rv = int32_t(mBuffer[mOffset++]);
     
     
     if (rv == '\r') {
-      if (mOffset < mCount && mReadPointer[mOffset] == '\n') {
+      if (mOffset < mCount && mBuffer[mOffset] == '\n') {
         mOffset++;
       }
       rv = '\n';
@@ -323,43 +355,6 @@ nsCSSScanner::Pushback(PRUnichar aChar)
   mPushback[mPushbackCount++] = aChar;
 }
 
-void
-nsCSSScanner::StartRecording()
-{
-  NS_ASSERTION(!mRecording, "already started recording");
-  mRecording = true;
-  mRecordStartOffset = mOffset - mPushbackCount;
-}
-
-void
-nsCSSScanner::StopRecording()
-{
-  NS_ASSERTION(mRecording, "haven't started recording");
-  mRecording = false;
-}
-
-void
-nsCSSScanner::StopRecording(nsString& aBuffer)
-{
-  NS_ASSERTION(mRecording, "haven't started recording");
-  mRecording = false;
-  aBuffer.Append(mReadPointer + mRecordStartOffset,
-                 mOffset - mPushbackCount - mRecordStartOffset);
-}
-
-nsDependentSubstring
-nsCSSScanner::GetCurrentLine() const
-{
-  uint32_t end = mTokenOffset;
-  while (end < mCount &&
-         mReadPointer[end] != '\n' && mReadPointer[end] != '\r' &&
-         mReadPointer[end] != '\f') {
-    end++;
-  }
-  return nsDependentSubstring(mReadPointer + mTokenLineOffset,
-                              mReadPointer + end);
-}
-
 bool
 nsCSSScanner::LookAhead(PRUnichar aChar)
 {
@@ -389,7 +384,7 @@ nsCSSScanner::LookAheadOrEOF(PRUnichar aChar)
 }
 
 void
-nsCSSScanner::EatWhiteSpace()
+nsCSSScanner::SkipWhitespace()
 {
   for (;;) {
     int32_t ch = Read();
@@ -403,233 +398,28 @@ nsCSSScanner::EatWhiteSpace()
   }
 }
 
-bool
-nsCSSScanner::Next(nsCSSToken& aToken)
+void
+nsCSSScanner::SkipComment()
 {
-  for (;;) { 
-    mTokenOffset = mOffset;
-    mTokenLineOffset = mLineOffset;
-    mTokenLineNumber = mLineNumber;
-
-    int32_t ch = Read();
-    if (ch < 0) {
-      return false;
-    }
-
-    
-    if ((ch == 'u' || ch == 'U') && Peek() == '+')
-      return ParseURange(ch, aToken);
-
-    
-    if (StartsIdent(ch, Peek()))
-      return ParseIdent(ch, aToken);
-
-    
-    if (ch == '@') {
-      return ParseAtKeyword(aToken);
-    }
-
-    
-    if ((ch == '.') || (ch == '+') || (ch == '-')) {
-      int32_t nextChar = Peek();
-      if (IsDigit(nextChar)) {
-        return ParseNumber(ch, aToken);
-      }
-      else if (('.' == nextChar) && ('.' != ch)) {
-        nextChar = Read();
-        int32_t followingChar = Peek();
-        Pushback(nextChar);
-        if (IsDigit(followingChar))
-          return ParseNumber(ch, aToken);
-      }
-    }
-    if (IsDigit(ch)) {
-      return ParseNumber(ch, aToken);
-    }
-
-    
-    if (ch == '#') {
-      return ParseRef(ch, aToken);
-    }
-
-    
-    if ((ch == '"') || (ch == '\'')) {
-      return ParseString(ch, aToken);
-    }
-
-    
-    if (IsWhitespace(ch)) {
-      aToken.mType = eCSSToken_WhiteSpace;
-      aToken.mIdent.Assign(PRUnichar(ch));
-      EatWhiteSpace();
-      return true;
-    }
-    if (ch == '/' && !IsSVGMode()) {
-      int32_t nextChar = Peek();
-      if (nextChar == '*') {
-        Read();
-        
-        if (!SkipCComment()) {
-          return false;
-        }
-        continue; 
-      }
-    }
-    if (ch == '<') {  
-      if (LookAhead('!')) {
-        if (LookAhead('-')) {
-          if (LookAhead('-')) {
-            aToken.mType = eCSSToken_HTMLComment;
-            aToken.mIdent.AssignLiteral("<!--");
-            return true;
-          }
-          Pushback('-');
-        }
-        Pushback('!');
-      }
-    }
-    if (ch == '-') {  
-      if (LookAhead('-')) {
-        if (LookAhead('>')) {
-          aToken.mType = eCSSToken_HTMLComment;
-          aToken.mIdent.AssignLiteral("-->");
-          return true;
-        }
-        Pushback('-');
-      }
-    }
-
-    
-    if (( ch == '|' ) || ( ch == '~' ) || ( ch == '^' ) ||
-        ( ch == '$' ) || ( ch == '*' )) {
-      int32_t nextChar = Read();
-      if ( nextChar == '=' ) {
-        if (ch == '~') {
-          aToken.mType = eCSSToken_Includes;
-        }
-        else if (ch == '|') {
-          aToken.mType = eCSSToken_Dashmatch;
-        }
-        else if (ch == '^') {
-          aToken.mType = eCSSToken_Beginsmatch;
-        }
-        else if (ch == '$') {
-          aToken.mType = eCSSToken_Endsmatch;
-        }
-        else if (ch == '*') {
-          aToken.mType = eCSSToken_Containsmatch;
-        }
-        return true;
-      } else if (nextChar >= 0) {
-        Pushback(nextChar);
-      }
-    }
-    aToken.mType = eCSSToken_Symbol;
-    aToken.mSymbol = ch;
-    return true;
-  }
-}
-
-bool
-nsCSSScanner::NextURL(nsCSSToken& aToken)
-{
-  EatWhiteSpace();
-
-  int32_t ch = Read();
-  if (ch < 0) {
-    return false;
-  }
-
-  
-  if ((ch == '"') || (ch == '\'')) {
-#ifdef DEBUG
-    bool ok =
-#endif
-      ParseString(ch, aToken);
-    NS_ABORT_IF_FALSE(ok, "ParseString should never fail, "
-                          "since there's always something read");
-
-    NS_ABORT_IF_FALSE(aToken.mType == eCSSToken_String ||
-                      aToken.mType == eCSSToken_Bad_String,
-                      "unexpected token type");
-    if (MOZ_LIKELY(aToken.mType == eCSSToken_String)) {
-      EatWhiteSpace();
-      if (LookAheadOrEOF(')')) {
-        aToken.mType = eCSSToken_URL;
-      } else {
-        aToken.mType = eCSSToken_Bad_URL;
-      }
-    } else {
-      aToken.mType = eCSSToken_Bad_URL;
-    }
-    return true;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  aToken.mType = eCSSToken_Bad_URL;
-  aToken.mSymbol = PRUnichar(0);
-  nsString& ident = aToken.mIdent;
-  ident.SetLength(0);
-
-  
-  bool ok = true;
   for (;;) {
-    if (IsURLChar(ch)) {
-      
-      ident.Append(PRUnichar(ch));
-    } else if (ch == ')') {
-      
-      break;
-    } else if (IsWhitespace(ch)) {
-      
-      EatWhiteSpace();
-      
-      ok = LookAheadOrEOF(')');
-      break;
-    } else if (ch == '\\') {
-      if (!ParseAndAppendEscape(ident, false)) {
-        ok = false;
-        Pushback(ch);
-        break;
+    int32_t ch = Read();
+    if (ch < 0) break;
+    if (ch == '*') {
+      if (LookAhead('/')) {
+        return;
       }
-    } else {
-      
-      ok = false;
-      Pushback(ch); 
-                    
-      break;
-    }
-
-    ch = Read();
-    if (ch < 0) {
-      break;
     }
   }
 
-  
-  
-  if (ok) {
-    aToken.mType = eCSSToken_URL;
-  }
-  return true;
+  mReporter->ReportUnexpectedEOF("PECommentEOF");
 }
 
 
 
 
 
-
 bool
-nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, bool aInString)
+nsCSSScanner::GatherEscape(nsString& aOutput, bool aInString)
 {
   int32_t ch = Read();
   if (ch < 0) {
@@ -717,7 +507,7 @@ bool
 nsCSSScanner::GatherIdent(int32_t aChar, nsString& aIdent)
 {
   if (aChar == '\\') {
-    if (!ParseAndAppendEscape(aIdent, false)) {
+    if (!GatherEscape(aIdent, false)) {
       return false;
     }
   } else {
@@ -730,12 +520,12 @@ nsCSSScanner::GatherIdent(int32_t aChar, nsString& aIdent)
       
       uint32_t n = mOffset;
       
-      while (n < mCount && IsIdent(mReadPointer[n])) {
+      while (n < mCount && IsIdent(mBuffer[n])) {
         ++n;
       }
       
       if (n > mOffset) {
-        aIdent.Append(&mReadPointer[mOffset], n - mOffset);
+        aIdent.Append(&mBuffer[mOffset], n - mOffset);
         mOffset = n;
       }
     }
@@ -743,7 +533,7 @@ nsCSSScanner::GatherIdent(int32_t aChar, nsString& aIdent)
     aChar = Read();
     if (aChar < 0) break;
     if (aChar == '\\') {
-      if (!ParseAndAppendEscape(aIdent, false)) {
+      if (!GatherEscape(aIdent, false)) {
         Pushback(aChar);
         break;
       }
@@ -759,35 +549,7 @@ nsCSSScanner::GatherIdent(int32_t aChar, nsString& aIdent)
 }
 
 bool
-nsCSSScanner::ParseRef(int32_t aChar, nsCSSToken& aToken)
-{
-  
-  aToken.mType = eCSSToken_Symbol;
-  aToken.mSymbol = aChar;
-
-  int32_t ch = Read();
-  if (ch < 0) {
-    return true;
-  }
-  if (IsIdent(ch) || ch == '\\') {
-    
-    
-    nsCSSTokenType type =
-      StartsIdent(ch, Peek()) ? eCSSToken_ID : eCSSToken_Ref;
-    aToken.mIdent.SetLength(0);
-    if (GatherIdent(ch, aToken.mIdent)) {
-      aToken.mType = type;
-      return true;
-    }
-  }
-
-  
-  Pushback(ch);
-  return true;
-}
-
-bool
-nsCSSScanner::ParseIdent(int32_t aChar, nsCSSToken& aToken)
+nsCSSScanner::ScanIdent(int32_t aChar, nsCSSToken& aToken)
 {
   nsString& ident = aToken.mIdent;
   ident.SetLength(0);
@@ -814,7 +576,7 @@ nsCSSScanner::ParseIdent(int32_t aChar, nsCSSToken& aToken)
 }
 
 bool
-nsCSSScanner::ParseAtKeyword(nsCSSToken& aToken)
+nsCSSScanner::ScanAtKeyword(nsCSSToken& aToken)
 {
   int32_t ch = Read();
   if (StartsIdent(ch, Peek())) {
@@ -833,7 +595,35 @@ nsCSSScanner::ParseAtKeyword(nsCSSToken& aToken)
 }
 
 bool
-nsCSSScanner::ParseNumber(int32_t c, nsCSSToken& aToken)
+nsCSSScanner::ScanHash(int32_t aChar, nsCSSToken& aToken)
+{
+  
+  aToken.mType = eCSSToken_Symbol;
+  aToken.mSymbol = aChar;
+
+  int32_t ch = Read();
+  if (ch < 0) {
+    return true;
+  }
+  if (IsIdent(ch) || ch == '\\') {
+    
+    
+    nsCSSTokenType type =
+      StartsIdent(ch, Peek()) ? eCSSToken_ID : eCSSToken_Hash;
+    aToken.mIdent.SetLength(0);
+    if (GatherIdent(ch, aToken.mIdent)) {
+      aToken.mType = type;
+      return true;
+    }
+  }
+
+  
+  Pushback(ch);
+  return true;
+}
+
+bool
+nsCSSScanner::ScanNumber(int32_t c, nsCSSToken& aToken)
 {
   NS_PRECONDITION(c == '.' || c == '+' || c == '-' || IsDigit(c),
                   "Why did we get called?");
@@ -967,24 +757,7 @@ nsCSSScanner::ParseNumber(int32_t c, nsCSSToken& aToken)
 }
 
 bool
-nsCSSScanner::SkipCComment()
-{
-  for (;;) {
-    int32_t ch = Read();
-    if (ch < 0) break;
-    if (ch == '*') {
-      if (LookAhead('/')) {
-        return true;
-      }
-    }
-  }
-
-  mReporter->ReportUnexpectedEOF("PECommentEOF");
-  return false;
-}
-
-bool
-nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
+nsCSSScanner::ScanString(int32_t aStop, nsCSSToken& aToken)
 {
   aToken.mIdent.SetLength(0);
   aToken.mType = eCSSToken_String;
@@ -996,7 +769,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
       uint32_t n = mOffset;
       
       for (;n < mCount; ++n) {
-        PRUnichar nextChar = mReadPointer[n];
+        PRUnichar nextChar = mBuffer[n];
         if ((nextChar == aStop) || (nextChar == '\\') ||
             (nextChar == '\n') || (nextChar == '\r') || (nextChar == '\f')) {
           break;
@@ -1004,7 +777,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
       }
       
       if (n > mOffset) {
-        aToken.mIdent.Append(&mReadPointer[mOffset], n - mOffset);
+        aToken.mIdent.Append(&mBuffer[mOffset], n - mOffset);
         mOffset = n;
       }
     }
@@ -1018,7 +791,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
       break;
     }
     if (ch == '\\') {
-      if (!ParseAndAppendEscape(aToken.mIdent, true)) {
+      if (!GatherEscape(aToken.mIdent, true)) {
         aToken.mType = eCSSToken_Bad_String;
         Pushback(ch);
         
@@ -1052,7 +825,7 @@ nsCSSScanner::ParseString(int32_t aStop, nsCSSToken& aToken)
 
 
 bool
-nsCSSScanner::ParseURange(int32_t aChar, nsCSSToken& aResult)
+nsCSSScanner::ScanURange(int32_t aChar, nsCSSToken& aResult)
 {
   int32_t intro2 = Read();
   int32_t ch = Peek();
@@ -1069,7 +842,7 @@ nsCSSScanner::ParseURange(int32_t aChar, nsCSSToken& aResult)
   if (!IsHexDigit(ch) && ch != '?') {
     Pushback(intro2);
     Pushback(aChar);
-    return ParseIdent(aChar, aResult);
+    return ScanIdent(aChar, aResult);
   }
 
   aResult.mIdent.Truncate();
@@ -1128,4 +901,224 @@ nsCSSScanner::ParseURange(int32_t aChar, nsCSSToken& aResult)
   aResult.mIntegerValid = valid;
   aResult.mType = eCSSToken_URange;
   return true;
+}
+
+bool
+nsCSSScanner::NextURL(nsCSSToken& aToken)
+{
+  SkipWhitespace();
+
+  int32_t ch = Read();
+  if (ch < 0) {
+    return false;
+  }
+
+  
+  if ((ch == '"') || (ch == '\'')) {
+#ifdef DEBUG
+    bool ok =
+#endif
+      ScanString(ch, aToken);
+    NS_ABORT_IF_FALSE(ok, "ScanString should never fail, "
+                          "since there's always something read");
+
+    NS_ABORT_IF_FALSE(aToken.mType == eCSSToken_String ||
+                      aToken.mType == eCSSToken_Bad_String,
+                      "unexpected token type");
+    if (MOZ_LIKELY(aToken.mType == eCSSToken_String)) {
+      SkipWhitespace();
+      if (LookAheadOrEOF(')')) {
+        aToken.mType = eCSSToken_URL;
+      } else {
+        aToken.mType = eCSSToken_Bad_URL;
+      }
+    } else {
+      aToken.mType = eCSSToken_Bad_URL;
+    }
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  aToken.mType = eCSSToken_Bad_URL;
+  aToken.mSymbol = PRUnichar(0);
+  nsString& ident = aToken.mIdent;
+  ident.SetLength(0);
+
+  
+  bool ok = true;
+  for (;;) {
+    if (IsURLChar(ch)) {
+      
+      ident.Append(PRUnichar(ch));
+    } else if (ch == ')') {
+      
+      break;
+    } else if (IsWhitespace(ch)) {
+      
+      SkipWhitespace();
+      
+      ok = LookAheadOrEOF(')');
+      break;
+    } else if (ch == '\\') {
+      if (!GatherEscape(ident, false)) {
+        ok = false;
+        Pushback(ch);
+        break;
+      }
+    } else {
+      
+      ok = false;
+      Pushback(ch); 
+                    
+      break;
+    }
+
+    ch = Read();
+    if (ch < 0) {
+      break;
+    }
+  }
+
+  
+  
+  if (ok) {
+    aToken.mType = eCSSToken_URL;
+  }
+  return true;
+}
+
+bool
+nsCSSScanner::Next(nsCSSToken& aToken, bool aSkipWS)
+{
+  for (;;) { 
+    mTokenOffset = mOffset;
+    mTokenLineOffset = mLineOffset;
+    mTokenLineNumber = mLineNumber;
+
+    int32_t ch = Read();
+    if (ch < 0) {
+      return false;
+    }
+
+    
+    if ((ch == 'u' || ch == 'U') && Peek() == '+')
+      return ScanURange(ch, aToken);
+
+    
+    if (StartsIdent(ch, Peek()))
+      return ScanIdent(ch, aToken);
+
+    
+    if (ch == '@') {
+      return ScanAtKeyword(aToken);
+    }
+
+    
+    if ((ch == '.') || (ch == '+') || (ch == '-')) {
+      int32_t nextChar = Peek();
+      if (IsDigit(nextChar)) {
+        return ScanNumber(ch, aToken);
+      }
+      else if (('.' == nextChar) && ('.' != ch)) {
+        nextChar = Read();
+        int32_t followingChar = Peek();
+        Pushback(nextChar);
+        if (IsDigit(followingChar))
+          return ScanNumber(ch, aToken);
+      }
+    }
+    if (IsDigit(ch)) {
+      return ScanNumber(ch, aToken);
+    }
+
+    
+    if (ch == '#') {
+      return ScanHash(ch, aToken);
+    }
+
+    
+    if ((ch == '"') || (ch == '\'')) {
+      return ScanString(ch, aToken);
+    }
+
+    
+    if (IsWhitespace(ch)) {
+      SkipWhitespace();
+      if (!aSkipWS) {
+        aToken.mType = eCSSToken_Whitespace;
+        return true;
+      }
+      continue; 
+    }
+    if (ch == '/' && !IsSVGMode()) {
+      int32_t nextChar = Peek();
+      if (nextChar == '*') {
+        Read();
+        
+        SkipComment();
+        continue; 
+      }
+    }
+    if (ch == '<') {  
+      if (LookAhead('!')) {
+        if (LookAhead('-')) {
+          if (LookAhead('-')) {
+            aToken.mType = eCSSToken_HTMLComment;
+            aToken.mIdent.AssignLiteral("<!--");
+            return true;
+          }
+          Pushback('-');
+        }
+        Pushback('!');
+      }
+    }
+    if (ch == '-') {  
+      if (LookAhead('-')) {
+        if (LookAhead('>')) {
+          aToken.mType = eCSSToken_HTMLComment;
+          aToken.mIdent.AssignLiteral("-->");
+          return true;
+        }
+        Pushback('-');
+      }
+    }
+
+    
+    if (( ch == '|' ) || ( ch == '~' ) || ( ch == '^' ) ||
+        ( ch == '$' ) || ( ch == '*' )) {
+      int32_t nextChar = Read();
+      if ( nextChar == '=' ) {
+        if (ch == '~') {
+          aToken.mType = eCSSToken_Includes;
+        }
+        else if (ch == '|') {
+          aToken.mType = eCSSToken_Dashmatch;
+        }
+        else if (ch == '^') {
+          aToken.mType = eCSSToken_Beginsmatch;
+        }
+        else if (ch == '$') {
+          aToken.mType = eCSSToken_Endsmatch;
+        }
+        else if (ch == '*') {
+          aToken.mType = eCSSToken_Containsmatch;
+        }
+        return true;
+      } else if (nextChar >= 0) {
+        Pushback(nextChar);
+      }
+    }
+    aToken.mType = eCSSToken_Symbol;
+    aToken.mSymbol = ch;
+    return true;
+  }
 }

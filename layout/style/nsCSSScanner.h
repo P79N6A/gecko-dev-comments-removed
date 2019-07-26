@@ -17,56 +17,86 @@ class ErrorReporter;
 }
 
 
+
+
+
+
+
 enum nsCSSTokenType {
   
-  eCSSToken_Ident,          
+  
+  
+  eCSSToken_Whitespace,     
 
   
+  
+  
+  
+  
+  eCSSToken_Ident,          
+  eCSSToken_Function,       
   eCSSToken_AtKeyword,      
+  eCSSToken_ID,             
+  eCSSToken_Hash,           
 
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   eCSSToken_Number,         
-  eCSSToken_Percentage,     
   eCSSToken_Dimension,      
+  eCSSToken_Percentage,     
 
+  
+  
+  
+  
   
   eCSSToken_String,         
-
-  
-  eCSSToken_WhiteSpace,     
+  eCSSToken_Bad_String,     
+  eCSSToken_URL,            
+  eCSSToken_Bad_URL,        
 
   
   eCSSToken_Symbol,         
 
   
-  eCSSToken_ID,             
   
   
   
-  eCSSToken_Ref,            
-
-  eCSSToken_Function,       
-
-  eCSSToken_URL,            
-  eCSSToken_Bad_URL,        
-
-  eCSSToken_HTMLComment,    
-
   eCSSToken_Includes,       
   eCSSToken_Dashmatch,      
   eCSSToken_Beginsmatch,    
   eCSSToken_Endsmatch,      
   eCSSToken_Containsmatch,  
 
+  
+  
+  
+  
+  
+  
+  
+  
   eCSSToken_URange,         
-                            
-                            
-                            
 
   
-  eCSSToken_Bad_String      
+  
+  
+  
+  
+  
+  eCSSToken_HTMLComment,    
 };
+
+
+
 
 struct nsCSSToken {
   nsAutoString    mIdent NS_OKONHEAP;
@@ -75,18 +105,20 @@ struct nsCSSToken {
   int32_t         mInteger2;
   nsCSSTokenType  mType;
   PRUnichar       mSymbol;
-  bool            mIntegerValid; 
-  bool            mHasSign; 
+  bool            mIntegerValid;
+  bool            mHasSign;
 
-  nsCSSToken();
+  nsCSSToken()
+    : mNumber(0), mInteger(0), mInteger2(0), mType(eCSSToken_Whitespace),
+      mSymbol('\0'), mIntegerValid(false), mHasSign(false)
+  {}
 
-  bool IsSymbol(PRUnichar aSymbol) {
-    return bool((eCSSToken_Symbol == mType) && (mSymbol == aSymbol));
+  bool IsSymbol(PRUnichar aSymbol) const {
+    return mType == eCSSToken_Symbol && mSymbol == aSymbol;
   }
 
   void AppendToString(nsString& aBuffer) const;
 };
-
 
 
 
@@ -124,11 +156,17 @@ class nsCSSScanner {
 
   
   
-  bool Next(nsCSSToken& aTokenResult);
+  
+  bool Next(nsCSSToken& aTokenResult, bool aSkipWS);
 
+  
+  
+  
+  
   
   bool NextURL(nsCSSToken& aTokenResult);
 
+  
   
   
   
@@ -150,20 +188,21 @@ protected:
   int32_t Peek();
   bool LookAhead(PRUnichar aChar);
   bool LookAheadOrEOF(PRUnichar aChar); 
-  void EatWhiteSpace();
 
-  bool ParseAndAppendEscape(nsString& aOutput, bool aInString);
-  bool ParseIdent(int32_t aChar, nsCSSToken& aResult);
-  bool ParseAtKeyword(nsCSSToken& aResult);
-  bool ParseNumber(int32_t aChar, nsCSSToken& aResult);
-  bool ParseRef(int32_t aChar, nsCSSToken& aResult);
-  bool ParseString(int32_t aChar, nsCSSToken& aResult);
-  bool ParseURange(int32_t aChar, nsCSSToken& aResult);
-  bool SkipCComment();
+  void SkipWhitespace();
+  void SkipComment();
 
+  bool GatherEscape(nsString& aOutput, bool aInString);
   bool GatherIdent(int32_t aChar, nsString& aIdent);
 
-  const PRUnichar *mReadPointer;
+  bool ScanIdent(int32_t aChar, nsCSSToken& aResult);
+  bool ScanAtKeyword(nsCSSToken& aResult);
+  bool ScanHash(int32_t aChar, nsCSSToken& aResult);
+  bool ScanNumber(int32_t aChar, nsCSSToken& aResult);
+  bool ScanString(int32_t aChar, nsCSSToken& aResult);
+  bool ScanURange(int32_t aChar, nsCSSToken& aResult);
+
+  const PRUnichar *mBuffer;
   uint32_t mOffset;
   uint32_t mCount;
 

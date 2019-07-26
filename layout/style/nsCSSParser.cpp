@@ -340,15 +340,6 @@ protected:
   bool GetToken(bool aSkipWS);
   void UngetToken();
 
-  
-  
-  
-  
-  
-  
-  
-  bool GetURLInParens(nsString& aURL);
-
   bool ExpectSymbol(PRUnichar aSymbol, bool aSkipWS);
   bool ExpectEndProperty();
   bool CheckEndProperty();
@@ -1437,44 +1428,13 @@ CSSParserImpl::EvaluateSupportsCondition(const nsAString& aDeclaration,
 bool
 CSSParserImpl::GetToken(bool aSkipWS)
 {
-  for (;;) {
-    if (!mHavePushBack) {
-      if (!mScanner->Next(mToken)) {
-        break;
-      }
-    }
+  if (mHavePushBack) {
     mHavePushBack = false;
-    if (aSkipWS && (eCSSToken_WhiteSpace == mToken.mType)) {
-      continue;
+    if (!aSkipWS || mToken.mType != eCSSToken_Whitespace) {
+      return true;
     }
-    return true;
   }
-  return false;
-}
-
-bool
-CSSParserImpl::GetURLInParens(nsString& aURL)
-{
-  NS_ASSERTION(!mHavePushBack, "mustn't have pushback at this point");
-  if (! mScanner->NextURL(mToken)) {
-    
-    return false;
-  }
-
-  aURL = mToken.mIdent;
-
-  if (eCSSToken_URL != mToken.mType) {
-    
-    
-    
-    
-    NS_ABORT_IF_FALSE(mToken.mType == eCSSToken_Bad_URL,
-                      "unexpected token type");
-    SkipUntil(')');
-    return false;
-  }
-
-  return true;
+  return mScanner->Next(mToken, aSkipWS);
 }
 
 void
@@ -2207,9 +2167,10 @@ CSSParserImpl::ParseMozDocumentRule(RuleAppendFunc aAppendFunc, void* aData)
         cur->func = css::DocumentRule::eDomain;
       }
 
-      nsAutoString url;
-      if (!GetURLInParens(url)) {
+      NS_ASSERTION(!mHavePushBack, "mustn't have pushback at this point");
+      if (!mScanner->NextURL(mToken) || mToken.mType != eCSSToken_URL) {
         REPORT_UNEXPECTED_TOKEN(PEMozDocRuleNotURI);
+        SkipUntil(')');
         delete urls;
         return false;
       }
@@ -2217,7 +2178,7 @@ CSSParserImpl::ParseMozDocumentRule(RuleAppendFunc aAppendFunc, void* aData)
       
       
       
-      CopyUTF16toUTF8(url, cur->url);
+      CopyUTF16toUTF8(mToken.mIdent, cur->url);
     }
   } while (ExpectSymbol(',', true));
 
@@ -3039,7 +3000,7 @@ CSSParserImpl::ParseSelectorGroup(nsCSSSelectorList*& aList)
     }
 
     combinator = PRUnichar(0);
-    if (mToken.mType == eCSSToken_WhiteSpace) {
+    if (mToken.mType == eCSSToken_Whitespace) {
       if (!GetToken(true)) {
         break; 
       }
@@ -4121,7 +4082,7 @@ CSSParserImpl::ParseColor(nsCSSValue& aValue)
   nscolor rgba;
   switch (tk->mType) {
     case eCSSToken_ID:
-    case eCSSToken_Ref:
+    case eCSSToken_Hash:
       
       if (NS_HexToRGB(tk->mIdent, &rgba)) {
         aValue.SetColorValue(rgba);
@@ -5031,7 +4992,7 @@ CSSParserImpl::ParseVariant(nsCSSValue& aValue,
   if ((aVariantMask & VARIANT_COLOR) != 0) {
     if (mHashlessColorQuirk || 
         (eCSSToken_ID == tk->mType) ||
-        (eCSSToken_Ref == tk->mType) ||
+        (eCSSToken_Hash == tk->mType) ||
         (eCSSToken_Ident == tk->mType) ||
         ((eCSSToken_Function == tk->mType) &&
          (tk->mIdent.LowerCaseEqualsLiteral("rgb") ||
@@ -5748,7 +5709,7 @@ CSSParserImpl::IsLegacyGradientLine(const nsCSSTokenType& aType,
     }
     
   case eCSSToken_ID:
-  case eCSSToken_Ref:
+  case eCSSToken_Hash:
     
     break;
 
@@ -8021,7 +7982,7 @@ CSSParserImpl::RequireWhitespace()
 {
   if (!GetToken(false))
     return false;
-  if (mToken.mType != eCSSToken_WhiteSpace) {
+  if (mToken.mType != eCSSToken_Whitespace) {
     UngetToken();
     return false;
   }
@@ -8427,7 +8388,7 @@ CSSParserImpl::ParseOneFamily(nsAString& aFamily, bool& aOneKeyword)
       if (eCSSToken_Ident == tk->mType) {
         aOneKeyword = false;
         aFamily.Append(tk->mIdent);
-      } else if (eCSSToken_WhiteSpace == tk->mType) {
+      } else if (eCSSToken_Whitespace == tk->mType) {
         
         
         if (!GetToken(true))
