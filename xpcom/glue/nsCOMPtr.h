@@ -146,22 +146,25 @@ struct already_AddRefed
 
 
   {
-#ifdef MOZ_HAVE_CXX11_NULLPTR
     
 
 
-    already_AddRefed(decltype(nullptr) aNullPtr)
+
+
+    template<typename N>
+    already_AddRefed(N,
+                     typename mozilla::EnableIf<mozilla::IsNullPointer<N>::value,
+                                                int>::Type dummy = 0)
       : mRawPtr(nullptr)
     {
+      
     }
 
-    explicit
-#endif
     already_AddRefed( T* aRawPtr )
-        : mRawPtr(aRawPtr)
-      {
-        
-      }
+      : mRawPtr(aRawPtr)
+    {
+      
+    }
 
     T* get() const { return mRawPtr; }
 

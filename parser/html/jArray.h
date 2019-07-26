@@ -100,24 +100,9 @@ class autoJArray {
       arr = other.arr;
       length = other.length;
     }
-#if defined(MOZ_HAVE_CXX11_NULLPTR)
-#  if defined(__clang__) || defined(_STLPORT_VERSION)
-    
-    typedef decltype(nullptr) jArray_nullptr_t;
-#  else
-    
-    typedef std::nullptr_t jArray_nullptr_t;
-#  endif
-#elif defined(__GNUC__)
-    typedef void* jArray_nullptr_t;
-#elif defined(_WIN64)
-    typedef uint64_t jArray_nullptr_t;
-#else
-    typedef uint32_t jArray_nullptr_t;
-#endif
-    void operator=(jArray_nullptr_t zero) {
+    void operator=(mozilla::NullptrT n) {
       
-      
+      MOZ_ASSERT(n == nullptr);
       delete[] arr;
       arr = nullptr;
       length = 0;

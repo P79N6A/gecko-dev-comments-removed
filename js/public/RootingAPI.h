@@ -506,11 +506,19 @@ class MOZ_STACK_CLASS MutableHandle : public js::MutableHandleBase<T>
   public:
     inline MutableHandle(Rooted<T> *root);
     inline MutableHandle(PersistentRooted<T> *root);
-    MutableHandle(int) MOZ_DELETE;
-#ifdef MOZ_HAVE_CXX11_NULLPTR
-    MutableHandle(decltype(nullptr)) MOZ_DELETE;
-#endif
 
+  private:
+    
+    
+    template<typename N>
+    MutableHandle(N,
+                  typename mozilla::EnableIf<mozilla::IsNullPointer<N>::value ||
+                                             mozilla::IsSame<N, int>::value ||
+                                             mozilla::IsSame<N, long>::value,
+                                             int>::Type dummy = 0)
+    MOZ_DELETE;
+
+  public:
     void set(T v) {
         JS_ASSERT(!js::GCMethods<T>::poisoned(v));
         *ptr = v;

@@ -13,12 +13,10 @@
 #define mozilla_NullPtr_h
 
 #if defined(__clang__)
-#  ifndef __has_extension
-#    define __has_extension __has_feature
+#  if !__has_extension(cxx_nullptr)
+#    error "clang version natively supporting nullptr is required."
 #  endif
-#  if __has_extension(cxx_nullptr)
-#    define MOZ_HAVE_CXX11_NULLPTR
-#  endif
+#  define MOZ_HAVE_CXX11_NULLPTR
 #elif defined(__GNUC__)
 #  if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L
 #    include "mozilla/Compiler.h"
@@ -26,23 +24,89 @@
 #      define MOZ_HAVE_CXX11_NULLPTR
 #    endif
 #  endif
-#elif _MSC_VER >= 1600
-# define MOZ_HAVE_CXX11_NULLPTR
+#elif defined(_MSC_VER)
+   
+#  define MOZ_HAVE_CXX11_NULLPTR
 #endif
 
+namespace mozilla {
 
 
 
 
 
-#ifndef MOZ_HAVE_CXX11_NULLPTR
-#  if defined(__GNUC__)
-#    define nullptr __null
-#  elif defined(_WIN64)
-#    define nullptr 0LL
-#  else
-#    define nullptr 0L
-#  endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct IsNullPointer { static const bool value = false; };
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef MOZ_HAVE_CXX11_NULLPTR
+  
+  namespace mozilla {
+  typedef decltype(nullptr) NullptrT;
+  template<>
+  struct IsNullPointer<decltype(nullptr)> { static const bool value = true; };
+  }
+#  undef MOZ_HAVE_CXX11_NULLPTR
+#elif MOZ_IS_GCC
+#  define nullptr __null
+  
+  
+  
+  namespace mozilla { typedef void* NullptrT; }
+#else
+#  error "No compiler support for nullptr or its emulation."
 #endif
 
 #endif 
