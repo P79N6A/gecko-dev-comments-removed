@@ -918,6 +918,11 @@ CheckFrame(StackFrame *fp)
         return false;
     }
 
+    if (fp->annotation()) {
+        IonSpew(IonSpew_Abort, "frame is annotated");
+        return false;
+    }
+
     
     
     if (fp->isFunctionFrame() &&

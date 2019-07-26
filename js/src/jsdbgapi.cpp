@@ -34,6 +34,7 @@
 #include "frontend/BytecodeEmitter.h"
 #include "frontend/Parser.h"
 #include "vm/Debugger.h"
+#include "ion/Ion.h"
 
 #include "jsatominlines.h"
 #include "jsinferinlines.h"
@@ -534,9 +535,27 @@ JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fpArg)
 }
 
 JS_PUBLIC_API(void)
-JS_SetFrameAnnotation(JSContext *cx, JSStackFrame *fp, void *annotation)
+JS_SetTopFrameAnnotation(JSContext *cx, void *annotation)
 {
-    Valueify(fp)->setAnnotation(annotation);
+    StackFrame *fp = cx->fp();
+    JS_ASSERT_IF(fp->beginsIonActivation(), !fp->annotation());
+
+    
+    
+    
+    
+    
+    fp->setAnnotation(annotation);
+
+    JSScript *script = fp->maybeScript();
+    if (!script)
+        return;
+
+    ReleaseAllJITCode(cx->runtime->defaultFreeOp());
+
+    
+    JS_ASSERT(!script->hasIonScript());
+    script->ion = ION_DISABLED_SCRIPT;
 }
 
 JS_PUBLIC_API(JSBool)
