@@ -270,14 +270,18 @@ IsCacheableGetProp(JSObject *obj, JSObject *holder, const Shape *shape)
 bool
 js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value *vp)
 {
-    JSScript *script = GetTopIonJSScript(cx);
-    IonScript *ion = script->ionScript();
+    JSScript *topScript = GetTopIonJSScript(cx);
+    IonScript *ion = topScript->ionScript();
 
     IonCacheGetProperty &cache = ion->getCache(cacheIndex).toGetProperty();
     JSAtom *atom = cache.atom();
 
+    JSScript *script;
+    jsbytecode *pc;
+    cache.getScriptedLocation(&script, &pc);
+
     
-    AutoDetectInvalidation adi(cx, vp, script);
+    AutoDetectInvalidation adi(cx, vp, topScript);
 
     
     
@@ -300,15 +304,11 @@ js::ion::GetPropertyCache(JSContext *cx, size_t cacheIndex, JSObject *obj, Value
         }
     }
 
-    if (!obj->getGeneric(cx, obj, ATOM_TO_JSID(atom), vp))
+    if (!GetPropertyOperation(cx, pc, ObjectValue(*obj), vp))
         return false;
 
-    {
-        JSScript *script;
-        jsbytecode *pc;
-        cache.getScriptedLocation(&script, &pc);
-        types::TypeScript::Monitor(cx, script, pc, *vp);
-    }
+    
+    types::TypeScript::Monitor(cx, script, pc, *vp);
 
     return true;
 }
