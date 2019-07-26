@@ -90,6 +90,14 @@ void WriteZeroesToAudioBlock(AudioChunk* aChunk, uint32_t aStart, uint32_t aLeng
 
 
 
+void AudioBufferCopyWithScale(const float* aInput,
+                              float aScale,
+                              float* aOutput,
+                              uint32_t aSize);
+
+
+
+
 void AudioBufferAddWithScale(const float* aInput,
                              float aScale,
                              float* aOutput,
