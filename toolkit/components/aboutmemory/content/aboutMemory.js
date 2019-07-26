@@ -1066,6 +1066,7 @@ function TreeNode(aUnsafeName, aUnits, aIsDegenerate)
   
   
   
+  
 }
 
 TreeNode.prototype = {
@@ -1078,6 +1079,32 @@ TreeNode.prototype = {
       }
     }
     return undefined;
+  },
+
+  
+  
+  
+  
+  
+  
+  maxAbsDescendant: function() {
+    if (!this._kids) {
+      
+      return max = Math.abs(this._amount);
+    }
+
+    if ('_maxAbsDescendant' in this) {
+      
+      return this._maxAbsDescendant;
+    }
+
+    
+    let max = Math.abs(this._amount);
+    for (let i = 0; i < this._kids.length; i++) {
+      max = Math.max(max, this._kids[i].maxAbsDescendant());
+    }
+    this._maxAbsDescendant = max;
+    return max;
   },
 
   toString: function() {
@@ -1098,8 +1125,8 @@ TreeNode.prototype = {
 TreeNode.compareAmounts = function(aA, aB) {
   let a, b;
   if (gIsDiff) {
-    a = Math.abs(aA._amount);
-    b = Math.abs(aB._amount);
+    a = aA.maxAbsDescendant();
+    b = aB.maxAbsDescendant();
   } else {
     a = aA._amount;
     b = aB._amount;
@@ -1234,8 +1261,13 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
 
   function isInsignificant(aT)
   {
-    return !gVerbose.checked &&
-           (100 * aT._amount / aTotalBytes) < kSignificanceThresholdPerc;
+    if (gVerbose.checked)
+      return false;
+
+    let perc = gIsDiff
+             ? 100 * aT.maxAbsDescendant() / Math.abs(aTotalBytes)
+             : 100 * aT._amount / aTotalBytes;
+    return perc < kSignificanceThresholdPerc;
   }
 
   if (!aT._kids) {
