@@ -7,6 +7,8 @@
 #ifndef jsatom_h___
 #define jsatom_h___
 
+#include "mozilla/HashFunctions.h"
+
 #include <stddef.h>
 #include "jsalloc.h"
 #include "jsapi.h"
@@ -19,7 +21,7 @@
 
 #include "gc/Barrier.h"
 #include "js/HashTable.h"
-#include "mozilla/HashFunctions.h"
+#include "vm/CommonPropertyNames.h"
 
 struct JSIdArray {
     int length;
@@ -144,111 +146,66 @@ class PropertyName;
 
 }  
 
-struct JSAtomState
-{
-    js::AtomSet         atoms;
-
-    
-
-
-
-
-
-
-
-
-
-    
-    js::PropertyName    *emptyAtom;
-
-    
-
-
-
-    js::PropertyName    *booleanAtoms[2];
-    js::PropertyName    *typeAtoms[JSTYPE_LIMIT];
-    js::PropertyName    *nullAtom;
-
-    
-    js::PropertyName    *classAtoms[JSProto_LIMIT];
-
-    
-#define DEFINE_ATOM(id, text)          js::PropertyName *id##Atom;
-#define DEFINE_PROTOTYPE_ATOM(id)      js::PropertyName *id##Atom;
-#define DEFINE_KEYWORD_ATOM(id)        js::PropertyName *id##Atom;
-#include "jsatom.tbl"
-#undef DEFINE_ATOM
-#undef DEFINE_PROTOTYPE_ATOM
-#undef DEFINE_KEYWORD_ATOM
-
-    static const size_t commonAtomsOffset;
-
-    void junkAtoms() {
-#ifdef DEBUG
-        memset(commonAtomsStart(), JS_FREE_PATTERN, sizeof(*this) - commonAtomsOffset);
-#endif
-    }
-
-    JSAtom **commonAtomsStart() {
-        return reinterpret_cast<JSAtom **>(&emptyAtom);
-    }
-
-    void checkStaticInvariants();
-};
-
 extern bool
 AtomIsInterned(JSContext *cx, JSAtom *atom);
-
-#define ATOM(name) js::HandlePropertyName::fromMarkedLocation(&cx->runtime->atomState.name##Atom)
-
-#define COMMON_ATOM_INDEX(name)                                               \
-    ((offsetof(JSAtomState, name##Atom) - JSAtomState::commonAtomsOffset)     \
-     / sizeof(JSAtom*))
-#define COMMON_TYPE_ATOM_INDEX(type)                                          \
-    ((offsetof(JSAtomState, typeAtoms[type]) - JSAtomState::commonAtomsOffset)\
-     / sizeof(JSAtom*))
-
-#define NAME_OFFSET(name)       offsetof(JSAtomState, name##Atom)
-#define OFFSET_TO_NAME(rt,off)  (*(js::PropertyName **)((char*)&(rt)->atomState + (off)))
-#define CLASS_NAME_OFFSET(name) offsetof(JSAtomState, classAtoms[JSProto_##name])
-#define CLASS_NAME(cx,name)     ((cx)->runtime->atomState.classAtoms[JSProto_##name])
-
-extern const char *const js_common_atom_names[];
-extern const size_t      js_common_atom_count;
-
-
-
-
-#define JS_BOOLEAN_STR(type) (js_common_atom_names[1 + (type)])
-#define JS_TYPE_STR(type)    (js_common_atom_names[1 + 2 + (type)])
-
-
-extern const char   js_object_str[];
-extern const char   js_undefined_str[];
 
 
 #define DECLARE_PROTO_STR(name,code,init) extern const char js_##name##_str[];
 JS_FOR_EACH_PROTOTYPE(DECLARE_PROTO_STR)
 #undef DECLARE_PROTO_STR
 
-#define DEFINE_ATOM(id, text)  extern const char js_##id##_str[];
-#define DEFINE_PROTOTYPE_ATOM(id)
-#define DEFINE_KEYWORD_ATOM(id)
-#include "jsatom.tbl"
-#undef DEFINE_ATOM
-#undef DEFINE_PROTOTYPE_ATOM
-#undef DEFINE_KEYWORD_ATOM
+#define DECLARE_CONST_CHAR_STR(id, text)  extern const char js_##id##_str[];
+FOR_EACH_COMMON_PROPERTYNAME(DECLARE_CONST_CHAR_STR)
+#undef DECLARE_CONST_CHAR_STR
 
+
+extern const char js_break_str[];
+extern const char js_case_str[];
+extern const char js_catch_str[];
+extern const char js_class_str[];
+extern const char js_const_str[];
+extern const char js_continue_str[];
+extern const char js_debugger_str[];
+extern const char js_default_str[];
+extern const char js_do_str[];
+extern const char js_else_str[];
+extern const char js_enum_str[];
+extern const char js_export_str[];
+extern const char js_extends_str[];
+extern const char js_finally_str[];
+extern const char js_for_str[];
+extern const char js_getter_str[];
+extern const char js_if_str[];
+extern const char js_implements_str[];
+extern const char js_import_str[];
+extern const char js_in_str[];
+extern const char js_instanceof_str[];
+extern const char js_interface_str[];
+extern const char js_let_str[];
+extern const char js_new_str[];
+extern const char js_package_str[];
+extern const char js_private_str[];
+extern const char js_protected_str[];
+extern const char js_public_str[];
+extern const char js_setter_str[];
+extern const char js_static_str[];
+extern const char js_super_str[];
+extern const char js_switch_str[];
+extern const char js_this_str[];
+extern const char js_try_str[];
+extern const char js_typeof_str[];
+extern const char js_void_str[];
+extern const char js_while_str[];
+extern const char js_with_str[];
+extern const char js_yield_str[];
 #if JS_HAS_GENERATORS
 extern const char   js_close_str[];
 extern const char   js_send_str[];
 #endif
 
-
-extern const char   js_getter_str[];
-extern const char   js_setter_str[];
-
 namespace js {
+
+extern const char * TypeStrings[];
 
 
 
@@ -256,29 +213,29 @@ namespace js {
 
 
 extern JSBool
-InitAtomState(JSRuntime *rt);
+InitAtoms(JSRuntime *rt);
 
 
 
 
 
 extern void
-FinishAtomState(JSRuntime *rt);
+FinishAtoms(JSRuntime *rt);
 
 
 
 
 extern void
-MarkAtomState(JSTracer *trc);
+MarkAtoms(JSTracer *trc);
 
 extern void
-SweepAtomState(JSRuntime *rt);
+SweepAtoms(JSRuntime *rt);
 
 extern bool
-InitCommonAtoms(JSContext *cx);
+InitCommonNames(JSContext *cx);
 
 extern void
-FinishCommonAtoms(JSRuntime *rt);
+FinishCommonNames(JSRuntime *rt);
 
 
 enum InternBehavior
