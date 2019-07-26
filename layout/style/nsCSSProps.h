@@ -471,6 +471,7 @@ public:
   static const int32_t kCursorKTable[];
   static const int32_t kDirectionKTable[];
   
+  
   static int32_t kDisplayKTable[];
   static const int32_t kElevationKTable[];
   static const int32_t kEmptyCellsKTable[];
