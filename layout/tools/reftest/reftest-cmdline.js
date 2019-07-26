@@ -107,6 +107,13 @@ RefTestCmdLineHandler.prototype =
     branch.setBoolPref("security.fileuri.strict_origin_policy", false);
     
     branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
+    
+    branch.setBoolPref("layers.async-pan-zoom.enabled", true);
+    
+    
+    
+    
+    branch.setIntPref("browser.viewport.desktopWidth", 800);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);
