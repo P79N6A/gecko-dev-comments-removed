@@ -163,6 +163,16 @@ public:
     }
   }
 
+  
+
+
+
+
+
+
+
+
+
   static bool IsHandlingUserInput()
   {
     if (sUserInputEventDepth <= 0) {
@@ -173,18 +183,6 @@ public:
            (TimeStamp::Now() - sHandlingInputStart) <= timeout;
   }
 
-  
-
-
-
-
-
-
-
-
-
-  NS_IMETHOD_(bool) IsHandlingUserInputExternal() { return IsHandlingUserInput(); }
-  
   nsPresContext* GetPresContext() { return mPresContext; }
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsEventStateManager,

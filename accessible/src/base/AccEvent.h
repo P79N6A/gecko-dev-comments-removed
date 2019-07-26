@@ -115,13 +115,6 @@ public:
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(AccEvent)
 
 protected:
-
-  
-
-
-
-  void CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput);
-
   bool mIsFromUserInput;
   uint32_t mEventType;
   EEventRule mEventRule;
