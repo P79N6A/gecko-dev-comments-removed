@@ -24,6 +24,7 @@
 #include "BluetoothScoManager.h"
 #include "BluetoothServiceUuid.h"
 #include "BluetoothUnixSocketConnector.h"
+#include "BluetoothUtils.h"
 
 #include <cstdio>
 #include <dbus/dbus.h>
@@ -153,37 +154,6 @@ static nsString sDefaultAdapterPath;
 static nsTArray<uint32_t> sServiceHandles;
 
 typedef void (*UnpackFunc)(DBusMessage*, DBusError*, BluetoothValue&, nsAString&);
-
-static nsString
-GetObjectPathFromAddress(const nsAString& aAdapterPath,
-                         const nsAString& aDeviceAddress)
-{
-  
-  
-  
-  nsString devicePath(aAdapterPath);
-  devicePath.AppendLiteral("/dev_");
-  devicePath.Append(aDeviceAddress);
-  devicePath.ReplaceChar(':', '_');
-  return devicePath;
-}
-
-static nsString
-GetAddressFromObjectPath(const nsAString& aObjectPath)
-{
-  
-  
-  
-  nsString address(aObjectPath);
-  int addressHead = address.RFind("/") + 5;
-
-  MOZ_ASSERT(addressHead + BLUETOOTH_ADDRESS_LENGTH == address.Length());
-
-  address.Cut(0, addressHead);
-  address.ReplaceChar('_', ':');
-
-  return address;
-}
 
 class DistributeBluetoothSignalTask : public nsRunnable {
   BluetoothSignal mSignal;
