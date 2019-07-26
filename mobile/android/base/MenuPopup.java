@@ -107,7 +107,8 @@ public class MenuPopup extends PopupWindow {
             ((LayoutParams) mArrowBottom.getLayoutParams()).rightMargin = mArrowMargin;
         }
 
-        if (anchorLocation[1] + anchor.getHeight() + mPanel.getMeasuredHeight() >= screenHeight) {
+        if ((anchorLocation[1] + anchor.getHeight() + mPanel.getMeasuredHeight() >= screenHeight) &&
+            (anchorLocation[1] > mPanel.getMeasuredHeight())) {
             
             mArrowTop.setVisibility(View.GONE);
             mArrowBottom.setVisibility(View.VISIBLE);
