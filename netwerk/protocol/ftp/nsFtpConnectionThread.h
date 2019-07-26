@@ -144,7 +144,6 @@ private:
     void ConvertDirspecFromVMS(nsCString& fileSpec);
     nsresult BuildStreamConverter(nsIStreamListener** convertStreamListener);
     nsresult SetContentType();
-    nsresult ConvertUTF8PathToCharset(const nsACString &aCharset);
 
     
 
