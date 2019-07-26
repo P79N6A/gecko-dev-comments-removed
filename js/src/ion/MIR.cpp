@@ -1283,7 +1283,7 @@ MBinaryArithInstruction::infer(BaselineInspector *inspector,
 
     
     
-    if (isMul() || isDiv()) {
+    if ((isMul() || isDiv()) && lhs == MIRType_Int32 && rhs == MIRType_Int32) {
         bool typeChange = false;
         EvaluateConstantOperands(this, &typeChange);
         if (typeChange)
