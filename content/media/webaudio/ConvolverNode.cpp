@@ -127,6 +127,10 @@ public:
 
       mLeftOverData -= WEBAUDIO_BLOCK_SIZE;
       if (mLeftOverData <= 0) {
+        
+        
+        
+        
         mLeftOverData = 0;
         nsRefPtr<PlayingRefChanged> refchanged =
           new PlayingRefChanged(aStream, PlayingRefChanged::RELEASE);
@@ -173,6 +177,7 @@ ConvolverNode::ConvolverNode(AudioContext* aContext)
               2,
               ChannelCountMode::Clamped_max,
               ChannelInterpretation::Speakers)
+  , mMediaStreamGraphUpdateIndexAtLastInputConnection(0)
   , mNormalize(true)
 {
   ConvolverNodeEngine* engine = new ConvolverNodeEngine(this, mNormalize);

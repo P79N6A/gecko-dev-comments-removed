@@ -121,7 +121,10 @@ public:
     } else if (mLeftOverData != INT32_MIN) {
       mLeftOverData -= WEBAUDIO_BLOCK_SIZE;
       if (mLeftOverData <= 0) {
-        mLeftOverData = INT32_MIN;
+        
+        
+        
+        mLeftOverData = 0;
         playedBackAllLeftOvers = true;
 
         nsRefPtr<PlayingRefChanged> refchanged =
@@ -244,6 +247,7 @@ DelayNode::DelayNode(AudioContext* aContext, double aMaxDelay)
               2,
               ChannelCountMode::Max,
               ChannelInterpretation::Speakers)
+  , mMediaStreamGraphUpdateIndexAtLastInputConnection(0)
   , mDelay(new AudioParam(MOZ_THIS_IN_INITIALIZER_LIST(),
                           SendDelayToStream, 0.0f))
 {

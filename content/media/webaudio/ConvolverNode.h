@@ -39,9 +39,23 @@ public:
 
   void SetNormalize(bool aNormal);
 
+  virtual void NotifyInputConnected() MOZ_OVERRIDE
+  {
+    mMediaStreamGraphUpdateIndexAtLastInputConnection =
+      mStream->Graph()->GetCurrentGraphUpdateIndex();
+  }
+  bool AcceptPlayingRefRelease(int64_t aLastGraphUpdateIndexProcessed) const
+  {
+    
+    
+    
+    return aLastGraphUpdateIndexProcessed >= mMediaStreamGraphUpdateIndexAtLastInputConnection;
+  }
+
 private:
   friend class PlayingRefChangeHandler<ConvolverNode>;
 
+  int64_t mMediaStreamGraphUpdateIndexAtLastInputConnection;
   nsRefPtr<AudioBuffer> mBuffer;
   SelfReference<ConvolverNode> mPlayingRef;
   bool mNormalize;
