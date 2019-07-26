@@ -600,12 +600,14 @@ enum audio_device_e {
     DEVICE_EXTERNAL_SPEAKER = 0x800             
 };
 
+#if ANDROID_VERSION < 17
 
 enum audio_mode_e {
     AUDIO_MODE_NORMAL,      
     AUDIO_MODE_RINGTONE,    
     AUDIO_MODE_IN_CALL      
 };
+#endif
 
 
 
