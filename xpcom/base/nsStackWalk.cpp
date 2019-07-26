@@ -1211,8 +1211,17 @@ NS_StackWalk(NS_WalkStackCallback aCallback, uint32_t aSkipFrames,
     info.closure = aClosure;
 
     _Unwind_Reason_Code t = _Unwind_Backtrace(unwind_callback, &info);
+#if defined(ANDROID) && defined(__arm__)
+    
+    
+    
+    
+    
+    
+#else
     if (t != _URC_END_OF_STACK)
         return NS_ERROR_UNEXPECTED;
+#endif
     return NS_OK;
 }
 
