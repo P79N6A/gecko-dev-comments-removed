@@ -4339,13 +4339,7 @@ nsGlobalWindow::GetOwnPropertyNames(JSContext* aCx, nsTArray<nsString>& aNames,
 nsGlobalWindow::IsChromeWindow(JSContext* aCx, JSObject* aObj)
 {
   
-  nsGlobalWindow* win;
-  nsresult rv = UNWRAP_OBJECT(Window, aObj, win);
-  if (NS_FAILED(rv)) {
-    nsCOMPtr<nsPIDOMWindow> piWin = do_QueryWrapper(aCx, aObj);
-    win = static_cast<nsGlobalWindow*>(piWin.get());
-  }
-  return win->IsChromeWindow();
+  return xpc::WindowOrNull(aObj)->IsChromeWindow();
 }
 
 nsIDOMOfflineResourceList*
@@ -4471,9 +4465,9 @@ nsGlobalWindow::GetControllers(nsIControllers** aResult)
 }
 
 nsIDOMWindow*
-nsGlobalWindow::GetOpener(ErrorResult& aError)
+nsGlobalWindow::GetOpenerWindow(ErrorResult& aError)
 {
-  FORWARD_TO_OUTER_OR_THROW(GetOpener, (aError), aError, nullptr);
+  FORWARD_TO_OUTER_OR_THROW(GetOpenerWindow, (aError), aError, nullptr);
 
   nsCOMPtr<nsPIDOMWindow> opener = do_QueryReferent(mOpener);
   if (!opener) {
@@ -4512,18 +4506,41 @@ nsGlobalWindow::GetOpener(ErrorResult& aError)
   return nullptr;
 }
 
+JS::Value
+nsGlobalWindow::GetOpener(JSContext* aCx, ErrorResult& aError)
+{
+  nsCOMPtr<nsIDOMWindow> opener = GetOpenerWindow(aError);
+  if (aError.Failed() || !opener) {
+    return JS::NullValue();
+  }
+
+  JS::Rooted<JS::Value> val(aCx);
+  aError = nsContentUtils::WrapNative(aCx, opener, &val);
+  return val;
+}
+
 NS_IMETHODIMP
-nsGlobalWindow::GetOpener(nsIDOMWindow** aOpener)
+nsGlobalWindow::GetScriptableOpener(JSContext* aCx,
+                                    JS::MutableHandle<JS::Value> aOpener)
 {
   ErrorResult rv;
-  nsCOMPtr<nsIDOMWindow> opener = GetOpener(rv);
-  opener.forget(aOpener);
+  aOpener.set(GetOpener(aCx, rv));
 
   return rv.ErrorCode();
 }
 
+NS_IMETHODIMP
+nsGlobalWindow::GetOpener(nsIDOMWindow** aOpener)
+{
+  ErrorResult rv;
+  nsCOMPtr<nsIDOMWindow> opener = GetOpenerWindow(rv);
+  opener.forget(aOpener);
+  return rv.ErrorCode();
+}
+
 void
-nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener, ErrorResult& aError)
+nsGlobalWindow::SetOpener(JSContext* aCx, JS::Handle<JS::Value> aOpener,
+                          ErrorResult& aError)
 {
   
   
@@ -4531,35 +4548,15 @@ nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener, ErrorResult& aError)
   
   
   
-  if (aOpener && !nsContentUtils::IsCallerChrome()) {
-    
-    nsCOMPtr<nsIGlobalObject> glob = do_QueryInterface(aOpener);
-    if (!glob) {
-      aError.Throw(NS_ERROR_UNEXPECTED);
-      return;
-    }
-
-    AutoJSContext cx;
-    JSAutoRequest ar(cx);
-    
-    
-    
-
-    JS::Rooted<JSObject*> otherObj(cx, glob->GetGlobalJSObject());
-    if (!otherObj) {
-      aError.Throw(NS_ERROR_UNEXPECTED);
-      return;
-    }
-
-    JS::Rooted<JSObject*> thisObj(cx, GetWrapperPreserveColor());
+  if (!aOpener.isNull() && !nsContentUtils::IsCallerChrome()) {
+    JS::Rooted<JSObject*> thisObj(aCx, GetWrapperPreserveColor());
     if (!thisObj) {
       aError.Throw(NS_ERROR_UNEXPECTED);
       return;
     }
 
-    if (!JS_WrapObject(cx, &otherObj) ||
-        !JS_WrapObject(cx, &thisObj) ||
-        !JS_DefineProperty(cx, thisObj, "opener", otherObj, JSPROP_ENUMERATE,
+    if (!JS_WrapObject(aCx, &thisObj) ||
+        !JS_DefineProperty(aCx, thisObj, "opener", aOpener, JSPROP_ENUMERATE,
                            JS_PropertyStub, JS_StrictPropertyStub)) {
       aError.Throw(NS_ERROR_FAILURE);
     }
@@ -4567,16 +4564,47 @@ nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener, ErrorResult& aError)
     return;
   }
 
-  SetOpenerWindow(aOpener, false);
+  if (!aOpener.isObjectOrNull()) {
+    
+    aError.Throw(NS_ERROR_INVALID_ARG);
+    return;
+  }
+
+  nsGlobalWindow* win = nullptr;
+  if (aOpener.isObject()) {
+    JSObject* unwrapped = js::CheckedUnwrap(&aOpener.toObject(),
+                                             false);
+    if (!unwrapped) {
+      aError.Throw(NS_ERROR_DOM_SECURITY_ERR);
+      return;
+    }
+
+    win = xpc::WindowOrNull(unwrapped);
+    if (!win) {
+      
+      aError.Throw(NS_ERROR_INVALID_ARG);
+      return;
+    }
+  }
+
+  SetOpenerWindow(win, false);
+}
+
+NS_IMETHODIMP
+nsGlobalWindow::SetScriptableOpener(JSContext* aCx,
+                                    JS::Handle<JS::Value> aOpener)
+{
+  ErrorResult rv;
+  SetOpener(aCx, aOpener, rv);
+
+  return rv.ErrorCode();
 }
 
 NS_IMETHODIMP
 nsGlobalWindow::SetOpener(nsIDOMWindow* aOpener)
 {
-  ErrorResult rv;
-  SetOpener(aOpener, rv);
-
-  return rv.ErrorCode();
+  SetOpenerWindow(aOpener, false);
+  return NS_OK;
 }
 
 void
@@ -13699,13 +13727,7 @@ bool
 nsGlobalWindow::IsModalContentWindow(JSContext* aCx, JSObject* aGlobal)
 {
   
-  nsGlobalWindow* win;
-  nsresult rv = UNWRAP_OBJECT(Window, aGlobal, win);
-  if (NS_FAILED(rv)) {
-    nsCOMPtr<nsPIDOMWindow> piWin = do_QueryWrapper(aCx, aGlobal);
-    win = static_cast<nsGlobalWindow*>(piWin.get());
-  }
-  return win->IsModalContentWindow();
+  return xpc::WindowOrNull(aGlobal)->IsModalContentWindow();
 }
 
 NS_IMETHODIMP
