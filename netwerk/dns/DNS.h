@@ -48,8 +48,17 @@ namespace net {
 
 
 
+
+
+
+#ifdef XP_WIN
+
+const int kIPv4CStrBufSize = 22;
+const int kIPv6CStrBufSize = 65;
+#else
 const int kIPv4CStrBufSize = 16;
 const int kIPv6CStrBufSize = 46;
+#endif
 
 
 
