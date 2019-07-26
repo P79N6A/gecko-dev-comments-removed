@@ -1318,6 +1318,7 @@ DataChannelConnection::HandleDataMessage(uint32_t ppid,
     
     
     LOG(("Queuing data for stream %u, length %u", stream, length));
+    
     mQueuedData.AppendElement(new QueuedDataMessage(stream, ppid, data, length));
     return;
   }
@@ -1326,7 +1327,7 @@ DataChannelConnection::HandleDataMessage(uint32_t ppid,
   NS_ENSURE_TRUE_VOID(channel->mState != CLOSED);
 
   {
-    nsAutoCString recvData(buffer, length);
+    nsAutoCString recvData(buffer, length); 
     bool is_binary = true;
 
     if (ppid == DATA_CHANNEL_PPID_DOMSTRING ||
@@ -1933,6 +1934,11 @@ DataChannelConnection::ReceiveCallback(struct socket* sock, void *data, size_t d
       HandleMessage(data, datalen, ntohl(rcv.rcv_ppid), rcv.rcv_sid);
     }
   }
+  
+  
+  
+  
+  free(data);
   
   return 1;
 }
