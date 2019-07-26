@@ -212,6 +212,51 @@ function ArrayForEach(callbackfn) {
     return void 0;
 }
 
+
+function ArrayMap(callbackfn) {
+    
+    var O = ToObject(this);
+
+    
+    var len = TO_UINT32(O.length);
+
+    
+    if (arguments.length === 0)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.prototype.map');
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(0, callbackfn));
+
+    
+    var T = arguments.length > 1 ? arguments[1] : void 0;
+
+    
+    var A = NewDenseArray(len);
+
+    
+    
+    for (var k = 0; k < len; k++) {
+        
+        if (k in O) {
+            
+            var mappedValue = callFunction(callbackfn, T, O[k], k, O);
+            
+            UnsafeSetElement(A, k, mappedValue);
+        }
+    }
+
+    
+    return A;
+}
+
+function ArrayStaticMap(list, callbackfn) {
+    if (arguments.length < 2)
+        ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.map');
+    if (!IsCallable(callbackfn))
+        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, callbackfn));
+    var T = arguments.length > 2 ? arguments[2] : void 0;
+    return callFunction(ArrayMap, list, callbackfn, T);
+}
+
 function ArrayStaticForEach(list, callbackfn) {
     if (arguments.length < 2)
         ThrowError(JSMSG_MISSING_FUN_ARG, 0, 'Array.forEach');
