@@ -15,6 +15,7 @@
 #include "prlog.h"
 
 #include "gfxPlatform.h"
+#include "gfxPrefs.h"
 
 #ifdef XP_WIN
 #include <process.h>
@@ -372,6 +373,13 @@ gfxPlatform::Init()
     }
     gEverInitialized = true;
 
+    
+    MigratePrefs();
+
+    
+    
+    gfxPrefs::One();
+
 #ifdef PR_LOGGING
     sFontlistLog = PR_NewLogModule("fontlist");
     sFontInitLog = PR_NewLogModule("fontinit");
@@ -455,9 +463,6 @@ gfxPlatform::Init()
     if (NS_FAILED(rv)) {
         NS_RUNTIMEABORT("Could not initialize gfxFontCache");
     }
-
-    
-    MigratePrefs();
 
     
     gPlatform->mSRGBOverrideObserver = new SRGBOverrideObserver();
@@ -572,6 +577,8 @@ gfxPlatform::Shutdown()
     CompositorParent::ShutDown();
 
     delete gGfxPlatformPrefsLock;
+
+    gfxPrefs::Destroy();
 
     delete gPlatform;
     gPlatform = nullptr;
@@ -1880,6 +1887,9 @@ static void ShutdownCMS()
 static void MigratePrefs()
 {
     
+
+
+
 
     if (Preferences::HasUserValue(GFX_PREF_CMS_ENABLED_OBSOLETE)) {
         if (Preferences::GetBool(GFX_PREF_CMS_ENABLED_OBSOLETE, false)) {
