@@ -660,69 +660,6 @@ function ArrayKeys() {
     return CreateArrayIterator(this, ITEM_KIND_KEY);
 }
 
-
-function ArrayFrom(arrayLike, mapfn=undefined, thisArg=undefined) {
-    
-    var C = this;
-
-    
-    var items = ToObject(arrayLike);
-
-    
-    var mapping = (mapfn !== undefined);
-    if (mapping && !IsCallable(mapfn))
-        ThrowError(JSMSG_NOT_FUNCTION, DecompileArg(1, mapfn));
-
-    
-    var attrs = ATTR_CONFIGURABLE | ATTR_ENUMERABLE | ATTR_WRITABLE;
-
-    
-    if (items["@@iterator"] !== undefined) {
-        
-        var A = IsConstructor(C) ? new C() : [];
-
-        
-        var k = 0;
-
-        
-        for (var nextValue of items) {
-            
-            var mappedValue = mapping ? callFunction(mapfn, thisArg, nextValue, k) : nextValue;
-
-            
-            _DefineDataProperty(A, k++, mappedValue, attrs);
-        }
-
-        
-    } else {
-        
-        
-
-        
-        
-        var len = ToInteger(items.length);
-
-        
-        var A = IsConstructor(C) ? new C(len) : NewDenseArray(len);
-
-        
-        for (var k = 0; k < len; k++) {
-            
-            var kValue = items[k];
-
-            
-            var mappedValue = mapping ? callFunction(mapfn, thisArg, kValue, k) : kValue;
-
-            
-            _DefineDataProperty(A, k, mappedValue, attrs);
-        }
-    }
-
-    
-    A.length = k;
-    return A;
-}
-
 #ifdef ENABLE_PARALLEL_JS
 
 
