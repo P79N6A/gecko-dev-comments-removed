@@ -130,7 +130,7 @@ StyleEditor.prototype = {
   {
     let document = this.contentDocument;
     if (this._styleSheetIndex == -1) {
-      for (let i = 0; i < document.styleSheets.length; i++) {
+      for (let i = 0; i < document.styleSheets.length; ++i) {
         if (document.styleSheets[i] == this.styleSheet) {
           this._styleSheetIndex = i;
           break;
@@ -1004,9 +1004,8 @@ StyleEditor.prototype = {
 
     
     let listeners = this._actionListeners.concat();
-
     
-    for (let i = 0; i < listeners.length; i++) {
+    for (let i = 0; i < listeners.length; ++i) {
       let listener = listeners[i];
       let actionHandler = listener["on" + aName];
       if (actionHandler) {

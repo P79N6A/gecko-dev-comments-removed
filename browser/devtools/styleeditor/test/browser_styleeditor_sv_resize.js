@@ -12,8 +12,15 @@ function test()
   waitForExplicitFinish();
 
   addTabAndLaunchStyleEditorChromeWhenLoaded(function (aChrome) {
-    run(aChrome);
+    if (aChrome.isContentAttached) {
+      run(aChrome);
+    } else {
+      aChrome.addChromeListener({
+        onContentAttach: run
+      });
+    }
   });
+
   content.location = TESTCASE_URI;
 }
 
@@ -24,13 +31,13 @@ function run(aChrome)
 
   aChrome.editors[0].addActionListener({
     onAttach: function onEditorAttached(aEditor) {
+      let originalSourceEditor = aEditor.sourceEditor;
+      aEditor.sourceEditor.setCaretOffset(4); 
+
+      
+      
       executeSoon(function () {
         waitForFocus(function () {
-          
-          
-          let originalSourceEditor = aEditor.sourceEditor;
-          aEditor.sourceEditor.setCaretOffset(4); 
-
           gOriginalWidth = gChromeWindow.outerWidth;
           gOriginalHeight = gChromeWindow.outerHeight;
           gChromeWindow.resizeTo(120, 480);
