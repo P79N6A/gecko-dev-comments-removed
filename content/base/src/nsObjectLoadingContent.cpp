@@ -1869,8 +1869,20 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     
     mIsLoading = false;
     mFinalListener = finalListener;
-    finalListener->OnStartRequest(mChannel, nullptr);
+    rv = finalListener->OnStartRequest(mChannel, nullptr);
     mSrcStreamLoading = false;
+    if (NS_FAILED(rv)) {
+      
+      
+      
+      mType = eType_Null;
+      
+      
+      mIsLoading = true;
+      UnloadObject(false);
+      NS_ENSURE_TRUE(mIsLoading, NS_OK);
+      LoadFallback(fallbackType, true);
+    }
   }
 
   return NS_OK;
