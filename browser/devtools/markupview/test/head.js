@@ -3,7 +3,6 @@
 
 
 const Cu = Components.utils;
-
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
 let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
@@ -11,21 +10,44 @@ let promise = devtools.require("sdk/core/promise");
 let {getInplaceEditorForSpan: inplaceEditor} = devtools.require("devtools/shared/inplace-editor");
 
 
+waitForExplicitFinish();
+
+
+
 
 gDevTools.testing = true;
-SimpleTest.registerCleanupFunction(() => {
-  gDevTools.testing = false;
-});
+registerCleanupFunction(() => gDevTools.testing = false);
 
 
-function clearUserPrefs() {
+registerCleanupFunction(() => {
   Services.prefs.clearUserPref("devtools.inspector.htmlPanelOpen");
   Services.prefs.clearUserPref("devtools.inspector.sidebarOpen");
   Services.prefs.clearUserPref("devtools.inspector.activeSidebar");
   Services.prefs.clearUserPref("devtools.dump.emit");
-}
+  Services.prefs.clearUserPref("devtools.markup.pagesize");
+});
 
-registerCleanupFunction(clearUserPrefs);
+
+registerCleanupFunction(() => {
+  try {
+    let target = TargetFactory.forTab(gBrowser.selectedTab);
+    gDevTools.closeToolbox(target);
+  } catch (ex) {
+    dump(ex);
+  }
+  while (gBrowser.tabs.length > 1) {
+    gBrowser.removeCurrentTab();
+  }
+});
+
+const TEST_URL_ROOT = "http://mochi.test:8888/browser/browser/devtools/markupview/test/";
+
+
+
+
+function asyncTest(generator) {
+  return () => Task.spawn(generator).then(null, ok.bind(null, false)).then(finish);
+}
 
 
 
@@ -33,13 +55,16 @@ registerCleanupFunction(clearUserPrefs);
 
 
 function addTab(url) {
+  info("Adding a new tab with URL: '" + url + "'");
   let def = promise.defer();
 
-  gBrowser.selectedTab = gBrowser.addTab();
+  let tab = gBrowser.selectedTab = gBrowser.addTab();
   gBrowser.selectedBrowser.addEventListener("load", function onload() {
     gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    info("URL " + url + " loading complete into new test tab");
-    waitForFocus(def.resolve, content);
+    info("URL '" + url + "' loading complete");
+    waitForFocus(() => {
+      def.resolve(tab);
+    }, content);
   }, true);
   content.location = url;
 
@@ -50,15 +75,28 @@ function addTab(url) {
 
 
 
+
+function reloadPage(inspector) {
+  info("Reloading the page");
+  let newRoot = inspector.once("new-root");
+  content.location.reload();
+  return newRoot;
+}
+
+
+
+
+
 function openInspector() {
+  info("Opening the inspector panel");
   let def = promise.defer();
 
   let target = TargetFactory.forTab(gBrowser.selectedTab);
   gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-    info("Toolbox open");
+    info("The toolbox is open");
     let inspector = toolbox.getCurrentPanel();
     inspector.once("inspector-updated", () => {
-      info("Inspector panel active and ready");
+      info("The inspector panel is active and ready");
       def.resolve({toolbox: toolbox, inspector: inspector});
     });
   }).then(null, console.error);
@@ -72,28 +110,11 @@ function openInspector() {
 
 
 
-
-function getContainerForRawNode(markupView, rawNode) {
-  let front = markupView.walker.frontForRawNode(rawNode);
-  let container = markupView.getContainer(front);
-  return container;
-}
-
-
-
-
-
-
-
 function getNode(nodeOrSelector) {
-  let node = nodeOrSelector;
-
-  if (typeof nodeOrSelector === "string") {
-    node = content.document.querySelector(nodeOrSelector);
-    ok(node, "A node was found for selector " + nodeOrSelector);
-  }
-
-  return node;
+  info("Getting the node for '" + nodeOrSelector + "'");
+  return typeof nodeOrSelector === "string" ?
+    content.document.querySelector(nodeOrSelector) :
+    nodeOrSelector;
 }
 
 
@@ -106,7 +127,7 @@ function getNode(nodeOrSelector) {
 
 
 function selectNode(nodeOrSelector, inspector, reason="test") {
-  info("Selecting the node " + nodeOrSelector);
+  info("Selecting the node for '" + nodeOrSelector + "'");
   let node = getNode(nodeOrSelector);
   let updated = inspector.once("inspector-updated");
   inspector.selection.setNode(node, reason);
@@ -121,10 +142,26 @@ function selectNode(nodeOrSelector, inspector, reason="test") {
 
 
 
+
+function getContainerForRawNode(nodeOrSelector, {markup}) {
+  let front = markup.walker.frontForRawNode(getNode(nodeOrSelector));
+  let container = markup.getContainer(front);
+  info("Markup-container object for " + nodeOrSelector + " " + container);
+  return container;
+}
+
+
+
+
+
+
+
+
+
 function hoverContainer(nodeOrSelector, inspector) {
   info("Hovering over the markup-container for node " + nodeOrSelector);
   let highlit = inspector.toolbox.once("node-highlight");
-  let container = getContainerForRawNode(inspector.markup, getNode(nodeOrSelector));
+  let container = getContainerForRawNode(getNode(nodeOrSelector), inspector);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousemove"},
     inspector.markup.doc.defaultView);
   return highlit;
@@ -140,7 +177,7 @@ function hoverContainer(nodeOrSelector, inspector) {
 function clickContainer(nodeOrSelector, inspector) {
   info("Clicking on the markup-container for node " + nodeOrSelector);
   let updated = inspector.once("inspector-updated");
-  let container = getContainerForRawNode(inspector.markup, getNode(nodeOrSelector));
+  let container = getContainerForRawNode(getNode(nodeOrSelector), inspector);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mousedown"},
     inspector.markup.doc.defaultView);
   EventUtils.synthesizeMouseAtCenter(container.tagLine, {type: "mouseup"},
@@ -183,6 +220,8 @@ function mouseLeaveMarkupView(inspector) {
 
 
 
+
+
 function setEditableFieldValue(field, value, inspector) {
   field.focus();
   EventUtils.sendKey("return", inspector.panelWin);
@@ -202,14 +241,17 @@ function setEditableFieldValue(field, value, inspector) {
 
 
 
-function assertAttributes(element, attrs) {
-  is(element.attributes.length, Object.keys(attrs).length,
+function assertAttributes(nodeOrSelector, attrs) {
+  let node = getNode(nodeOrSelector);
+
+  is(node.attributes.length, Object.keys(attrs).length,
     "Node has the correct number of attributes.");
   for (let attr in attrs) {
-    is(element.getAttribute(attr), attrs[attr],
+    is(node.getAttribute(attr), attrs[attr],
       "Node has the correct " + attr + " attribute.");
   }
 }
+
 
 
 
@@ -229,6 +271,7 @@ function undoChange(inspector) {
   inspector.markup.undo.undo();
   return mutated;
 }
+
 
 
 

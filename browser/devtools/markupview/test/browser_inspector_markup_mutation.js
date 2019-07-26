@@ -10,181 +10,145 @@
 
 
 
-function fail(err) {
-  ok(false, err)
-}
 
-function test() {
-  waitForExplicitFinish();
+const TEST_URL = TEST_URL_ROOT + "browser_inspector_markup_mutation.html";
 
-  
-  let contentTab;
-  let doc;
-
-  
-  let markup;
-
-  
-  let parseTab;
-  let parseDoc;
-
-  let inspector;
-
-  
-  function stripWhitespace(node)
+const TEST_DATA = [
   {
-    node.normalize();
-    let iter = node.ownerDocument.createNodeIterator(node, NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT,
-      null);
-
-    while ((node = iter.nextNode())) {
-      node.nodeValue = node.nodeValue.replace(/\s+/g, '');
-      if (node.nodeType == Node.TEXT_NODE &&
-        !/[^\s]/.exec(node.nodeValue)) {
-        node.parentNode.removeChild(node);
-      }
-    }
-  }
-
-  
-  function checkMarkup()
-  {
-    return markup.expandAll().then(checkMarkup2);
-  }
-
-  function checkMarkup2()
-  {
-    let contentNode = doc.querySelector("body");
-    let panelNode = getContainerForRawNode(markup, contentNode).elt;
-    let parseNode = parseDoc.querySelector("body");
-
-    
-    let sel = panelNode.ownerDocument.defaultView.getSelection();
-    sel.selectAllChildren(panelNode);
-
-    
-    parseNode.outerHTML = sel;
-    parseNode = parseDoc.querySelector("body");
-
-    
-    
-    stripWhitespace(parseNode);
-
-    ok(contentNode.isEqualNode(parseNode), "Markup panel should match document.");
-  }
-
-  
-  let mutations = [
-    
-    function() {
-      let node1 = doc.querySelector("#node1");
+    desc: "Adding an attribute",
+    test: () => {
+      let node1 = getNode("#node1");
       node1.setAttribute("newattr", "newattrval");
-    },
-    function() {
-      let node1 = doc.querySelector("#node1");
+    }
+  },
+  {
+    desc: "Removing an attribute",
+    test: () => {
+      let node1 = getNode("#node1");
       node1.removeAttribute("newattr");
-    },
-    function() {
-      let node1 = doc.querySelector("#node1");
+    }
+  },
+  {
+    desc: "Updating the text-content",
+    test: () => {
+      let node1 = getNode("#node1");
       node1.textContent = "newtext";
-    },
-    function() {
-      let node2 = doc.querySelector("#node2");
+    }
+  },
+  {
+    desc: "Updating the innerHTML",
+    test: () => {
+      let node2 = getNode("#node2");
       node2.innerHTML = "<div><span>foo</span></div>";
-    },
-
-    function() {
-      let node4 = doc.querySelector("#node4");
+    }
+  },
+  {
+    desc: "Removing child nodes",
+    test: () => {
+      let node4 = getNode("#node4");
       while (node4.firstChild) {
         node4.removeChild(node4.firstChild);
       }
-    },
-    function() {
-      
-      let node17 = doc.querySelector("#node17");
-      let node1 = doc.querySelector("#node2");
+    }
+  },
+  {
+    desc: "Appending a child to a different parent",
+    test: () => {
+      let node17 = getNode("#node17");
+      let node1 = getNode("#node2");
       node1.appendChild(node17);
-    },
+    }
+  },
+  {
+    desc: "Swapping a parent and child element, putting them in the same tree",
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    test: () => {
+      let node18 = getNode("#node18");
+      let node20 = getNode("#node20");
 
-    function() {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      let node18 = doc.querySelector("#node18");
-      let node20 = doc.querySelector("#node20");
-
-      let node1 = doc.querySelector("#node1");
+      let node1 = getNode("#node1");
 
       node1.appendChild(node20);
       node20.appendChild(node18);
-    },
-  ];
+    }
+  }
+];
+
+let test = asyncTest(function*() {
+  info("Creating the helper tab for parsing");
+  let parseTab = yield addTab("data:text/html,<html></html>");
+  let parseDoc = content.document;
+
+  info("Creating the test tab");
+  let contentTab = yield addTab(TEST_URL);
+  let doc = content.document;
+  
+  stripWhitespace(doc.documentElement);
+
+  let {inspector} = yield openInspector();
+  let markup = inspector.markup;
+
+  info("Expanding all markup-view nodes");
+  yield markup.expandAll();
+
+  for (let step of TEST_DATA) {
+    info("Starting test: " + step.desc);
+
+    info("Executing the test markup mutation, listening for inspector-updated before moving on");
+    let updated = inspector.once("inspector-updated");
+    step.test();
+    yield updated;
+
+    info("Expanding all markup-view nodes to make sure new nodes are imported");
+    yield markup.expandAll();
+
+    info("Comparing the markup-view markup with the content document");
+    compareMarkup(parseDoc, inspector);
+  }
+});
+
+function stripWhitespace(node) {
+  node.normalize();
+  let iter = node.ownerDocument.createNodeIterator(node,
+    NodeFilter.SHOW_TEXT + NodeFilter.SHOW_COMMENT, null);
+
+  while ((node = iter.nextNode())) {
+    node.nodeValue = node.nodeValue.replace(/\s+/g, '');
+    if (node.nodeType == Node.TEXT_NODE &&
+      !/[^\s]/.exec(node.nodeValue)) {
+      node.parentNode.removeChild(node);
+    }
+  }
+}
+
+function compareMarkup(parseDoc, inspector) {
+  
+  let markupContainerEl = getContainerForRawNode("body", inspector).elt;
+  let sel = markupContainerEl.ownerDocument.defaultView.getSelection();
+  sel.selectAllChildren(markupContainerEl);
 
   
-  parseTab = gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    parseDoc = content.document;
+  let parseNode = parseDoc.querySelector("body");
+  parseNode.outerHTML = sel;
+  parseNode = parseDoc.querySelector("body");
 
-    
-    contentTab = gBrowser.selectedTab = gBrowser.addTab();
-    gBrowser.selectedBrowser.addEventListener("load", function onload2() {
-      gBrowser.selectedBrowser.removeEventListener("load", onload2, true);
-      doc = content.document;
-      
-      stripWhitespace(doc.documentElement);
-      waitForFocus(setupTest, content);
-    }, true);
-    content.location = "http://mochi.test:8888/browser/browser/devtools/markupview/test/browser_inspector_markup_mutation.html";
-  }, true);
+  
+  
+  stripWhitespace(parseNode);
 
-  content.location = "data:text/html,<html></html>";
-
-  function setupTest() {
-    var target = TargetFactory.forTab(gBrowser.selectedTab);
-    gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-      inspector = toolbox.getCurrentPanel();
-      startTests();
-    });
-  }
-
-  function startTests() {
-    markup = inspector.markup;
-    checkMarkup().then(() => {
-      nextStep(0);
-    }).then(null, fail);
-  }
-
-  function nextStep(cursor) {
-    if (cursor >= mutations.length) {
-      finishUp();
-      return;
-    }
-    mutations[cursor]();
-    inspector.once("markupmutation", function() {
-      executeSoon(function() {
-        checkMarkup().then(() => {
-          nextStep(cursor + 1);
-        }).then(null, fail);
-      });
-    });
-  }
-
-  function finishUp() {
-    doc = inspector = null;
-    gBrowser.removeTab(contentTab);
-    gBrowser.removeTab(parseTab);
-    finish();
-  }
+  
+  ok(getNode("body").isEqualNode(parseNode),
+    "Markup panel matches what's in the content document.");
 }

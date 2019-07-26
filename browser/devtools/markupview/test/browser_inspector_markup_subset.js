@@ -5,146 +5,80 @@
 
 
 
-
-registerCleanupFunction(function() {
-  Services.prefs.clearUserPref("devtools.markup.pagesize");
-});
 Services.prefs.setIntPref("devtools.markup.pagesize", 5);
 
-
-function test() {
-  waitForExplicitFinish();
-
+const TEST_URL = TEST_URL_ROOT + "browser_inspector_markup_subset.html";
+const TEST_DATA = [{
+  desc: "Select the last item",
+  selector: "#z",
+  expected: "*more*vwxyz"
+}, {
+  desc: "Select the first item",
+  selector: "#a",
+  expected: "abcde*more*"
+}, {
+  desc: "Select the last item",
+  selector: "#z",
+  expected: "*more*vwxyz"
+}, {
+  desc: "Select an already-visible item",
+  selector: "#v",
   
-  let doc;
-
-  let inspector;
-
   
-  let markup;
+  expected: "*more*vwxyz"
+}, {
+  desc: "Verify childrenDirty reloads the page",
+  selector: "#w",
+  forceReload: true,
+  
+  
+  expected: "*more*uvwxy*more*"
+}];
 
-  function assertChildren(expected)
-  {
-    let container = getContainerForRawNode(markup, doc.querySelector("body"));
-    let found = [];
-    for (let child of container.children.children) {
-      if (child.classList.contains("more-nodes")) {
-        found += "*more*";
-      } else {
-        found += child.container.node.getAttribute("id");
-      }
+let test = asyncTest(function*() {
+  let {inspector} = yield addTab(TEST_URL).then(openInspector);
+
+  info("Start iterating through the test data");
+  for (let step of TEST_DATA) {
+    info("Start test: " + step.desc);
+
+    if (step.forceReload) {
+      forceReload(inspector);
     }
-    is(found, expected, "Got the expected children.");
+    info("Selecting the node that corresponds to " + step.selector);
+    yield selectNode(step.selector, inspector);
+
+    info("Checking that the right nodes are shwon");
+    assertChildren(step.expected, inspector);
   }
 
-  function forceReload()
-  {
-    let container = getContainerForRawNode(markup, doc.querySelector("body"));
-    container.childrenDirty = true;
-  }
+  info("Checking that clicking the more button loads everything");
+  clickShowMoreNodes(inspector);
+  yield inspector.markup._waitForChildren();
+  assertChildren("abcdefghijklmnopqrstuvwxyz", inspector);
+});
 
-  let selections = [
-    {
-      desc: "Select the last item",
-      selector: "#z",
-      before: function() {},
-      after: function() {
-        assertChildren("*more*vwxyz");
-      }
-    },
-    {
-      desc: "Select the first item",
-      selector: "#a",
-      before: function() {
-      },
-      after: function() {
-        assertChildren("abcde*more*");
-      }
-    },
-    {
-      desc: "Select the last item",
-      selector: "#z",
-      before: function() {},
-      after: function() {
-        assertChildren("*more*vwxyz");
-      }
-    },
-    {
-      desc: "Select an already-visible item",
-      selector: "#v",
-      before: function() {},
-      after: function() {
-        
-        
-        assertChildren("*more*vwxyz");
-      },
-    },
-    {
-      desc: "Verify childrenDirty reloads the page",
-      selector: "#w",
-      before: function() {
-        forceReload();
-      },
-      after: function() {
-        
-        
-        assertChildren("*more*uvwxy*more*");
-      },
-    },
-  ];
-
-  
-  gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function onload() {
-    gBrowser.selectedBrowser.removeEventListener("load", onload, true);
-    doc = content.document;
-    waitForFocus(setupTest, content);
-  }, true);
-  content.location = "http://mochi.test:8888/browser/browser/devtools/markupview/test/browser_inspector_markup_subset.html";
-
-  function setupTest() {
-    var target = TargetFactory.forTab(gBrowser.selectedTab);
-    let toolbox = gDevTools.showToolbox(target, "inspector").then(function(toolbox) {
-      inspector = toolbox.getCurrentPanel();
-      markup = inspector.markup;
-      inspector.once("inspector-updated", runNextSelection);
-    });
-  }
-
-  function runNextSelection() {
-    let selection = selections.shift();
-    if (!selection) {
-      clickMore();
-      return;
+function assertChildren(expected, inspector) {
+  let container = getContainerForRawNode("body", inspector);
+  let found = "";
+  for (let child of container.children.children) {
+    if (child.classList.contains("more-nodes")) {
+      found += "*more*";
+    } else {
+      found += child.container.node.getAttribute("id");
     }
-
-    info(selection.desc);
-    selection.before();
-    inspector.once("inspector-updated", function() {
-      selection.after();
-      runNextSelection();
-    });
-    inspector.selection.setNode(doc.querySelector(selection.selector));
   }
+  is(found, expected, "Got the expected children.");
+}
 
-  function clickMore() {
-    info("Check that clicking more loads the whole thing.");
-    
-    let container = getContainerForRawNode(markup, doc.querySelector("body"));
-    let button = container.elt.querySelector("button");
-    let win = button.ownerDocument.defaultView;
+function forceReload(inspector) {
+  let container = getContainerForRawNode("body", inspector);
+  container.childrenDirty = true;
+}
 
-    EventUtils.sendMouseEvent({type: "click"}, button, win);
-
-    markup._waitForChildren().then(() => {
-      assertChildren("abcdefghijklmnopqrstuvwxyz");
-      finishUp();
-    });
-  }
-
-  function finishUp() {
-    doc = inspector = markup = null;
-    gBrowser.removeCurrentTab();
-    finish();
-  }
+function clickShowMoreNodes(inspector) {
+  let container = getContainerForRawNode("body", inspector);
+  let button = container.elt.querySelector("button");
+  let win = button.ownerDocument.defaultView;
+  EventUtils.sendMouseEvent({type: "click"}, button, win);
 }
