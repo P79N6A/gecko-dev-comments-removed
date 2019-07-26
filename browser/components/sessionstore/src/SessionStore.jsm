@@ -4337,7 +4337,12 @@ let TabState = {
       let storage = yield Messenger.send(tab, "SessionStore:collectSessionStorage");
 
       
-      let options = {omitSessionHistory: true, omitSessionStorage: true};
+      let disallow = yield Messenger.send(tab, "SessionStore:collectDocShellCapabilities");
+
+      
+      let options = {omitSessionHistory: true,
+                     omitSessionStorage: true,
+                     omitDocShellCapabilities: true};
       let tabData = new TabData(this._collectBaseTabData(tab, options));
 
       
@@ -4346,6 +4351,10 @@ let TabState = {
 
       if (Object.keys(storage).length) {
         tabData.storage = storage;
+      }
+
+      if (disallow.length > 0) {
+	tabData.disallow = disallow.join(",");
       }
 
       
@@ -4439,6 +4448,7 @@ let TabState = {
 
 
 
+
   _collectBaseTabData: function (tab, options = {}) {
     let tabData = {entries: [], lastAccessed: tab.lastAccessed };
     let browser = tab.linkedBrowser;
@@ -4488,11 +4498,13 @@ let TabState = {
       delete tabData.pinned;
     tabData.hidden = tab.hidden;
 
-    let disallow = DocShellCapabilities.collect(browser.docShell);
-    if (disallow.length > 0)
-      tabData.disallow = disallow.join(",");
-    else if (tabData.disallow)
-      delete tabData.disallow;
+    if (!options || !options.omitDocShellCapabilities) {
+      let disallow = DocShellCapabilities.collect(browser.docShell);
+      if (disallow.length > 0)
+	tabData.disallow = disallow.join(",");
+      else if (tabData.disallow)
+	delete tabData.disallow;
+    }
 
     
     tabData.attributes = TabAttributes.get(tab);
