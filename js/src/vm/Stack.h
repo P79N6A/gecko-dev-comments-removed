@@ -75,8 +75,7 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 #ifdef DEBUG
 extern void
-CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script,
-                    StaticBlockObject *maybeBlock, unsigned i);
+CheckLocalUnaliased(MaybeCheckAliasing checkAliasing, JSScript *script, unsigned i);
 #endif
 
 namespace jit {
@@ -591,12 +590,6 @@ class StackFrame
     inline void popOffScopeChain();
 
     
-
-
-
-
-
-
 
 
 
