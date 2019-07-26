@@ -68,6 +68,10 @@ public:
   void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
   bool ExtractBlobHeaders();
   nsresult HandleShutdown();
+
+  
+  
+  bool IsTransferring();
 private:
   BluetoothOppManager();
   void StartFileTransfer();
