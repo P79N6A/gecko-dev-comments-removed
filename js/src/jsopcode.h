@@ -296,14 +296,6 @@ StackDefs(JSScript *script, jsbytecode *pc);
 
 
 
-extern JSBool
-js_DecompileScript(JSPrinter *jp, JSScript *script);
-
-extern JSBool
-js_DecompileFunctionBody(JSPrinter *jp);
-
-extern JSBool
-js_DecompileFunction(JSPrinter *jp);
 
 
 
