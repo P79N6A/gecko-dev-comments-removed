@@ -583,6 +583,10 @@ public:
         return true;
       }
       if (aFrame->IsFrameOfType(nsIFrame::eReplacedContainsBlock)) {
+        if (type == nsGkAtoms::textInputFrame) {
+          
+          return false;
+        }
         return true;
       }
     }
