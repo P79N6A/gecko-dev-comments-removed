@@ -1926,7 +1926,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
                               aParentFrame);
 
   
-  InitAndRestoreFrame(aState, content, geometricParent, nullptr, newFrame);  
+  InitAndRestoreFrame(aState, content, geometricParent, newFrame);  
 
   
   nsIFrame* innerFrame;
@@ -1935,7 +1935,7 @@ nsCSSFrameConstructor::ConstructTable(nsFrameConstructorState& aState,
   else
     innerFrame = NS_NewTableFrame(mPresShell, styleContext);
 
-  InitAndRestoreFrame(aState, content, newFrame, nullptr, innerFrame);
+  InitAndRestoreFrame(aState, content, newFrame, innerFrame);
 
   
   SetInitialSingleChild(newFrame, innerFrame);
@@ -2000,7 +2000,7 @@ nsCSSFrameConstructor::ConstructTableRow(nsFrameConstructorState& aState,
   else
     newFrame = NS_NewTableRowFrame(mPresShell, styleContext);
 
-  InitAndRestoreFrame(aState, content, aParentFrame, nullptr, newFrame);
+  InitAndRestoreFrame(aState, content, aParentFrame, newFrame);
 
   nsFrameItems childItems;
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
@@ -2027,7 +2027,7 @@ nsCSSFrameConstructor::ConstructTableCol(nsFrameConstructorState& aState,
   nsStyleContext* const styleContext = aItem.mStyleContext;
 
   nsTableColFrame* colFrame = NS_NewTableColFrame(mPresShell, styleContext);
-  InitAndRestoreFrame(aState, content, aParentFrame, nullptr, colFrame);
+  InitAndRestoreFrame(aState, content, aParentFrame, colFrame);
 
   NS_ASSERTION(colFrame->StyleContext() == styleContext,
                "Unexpected style context");
@@ -2038,8 +2038,7 @@ nsCSSFrameConstructor::ConstructTableCol(nsFrameConstructorState& aState,
   int32_t span = colFrame->GetSpan();
   for (int32_t spanX = 1; spanX < span; spanX++) {
     nsTableColFrame* newCol = NS_NewTableColFrame(mPresShell, styleContext);
-    InitAndRestoreFrame(aState, content, aParentFrame, nullptr, newCol,
-                        false);
+    InitAndRestoreFrame(aState, content, aParentFrame, newCol, false);
     aFrameItems.LastChild()->SetNextContinuation(newCol);
     newCol->SetPrevContinuation(aFrameItems.LastChild());
     aFrameItems.AddChild(newCol);
@@ -2081,7 +2080,7 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
     newFrame = NS_NewTableCellFrame(mPresShell, styleContext, borderCollapse);
 
   
-  InitAndRestoreFrame(aState, content, aParentFrame, nullptr, newFrame);
+  InitAndRestoreFrame(aState, content, aParentFrame, newFrame);
   
   
   nsRefPtr<nsStyleContext> innerPseudoStyle;
@@ -2099,7 +2098,7 @@ nsCSSFrameConstructor::ConstructTableCell(nsFrameConstructorState& aState,
     isBlock = true;
   }
 
-  InitAndRestoreFrame(aState, content, newFrame, nullptr, cellInnerFrame);
+  InitAndRestoreFrame(aState, content, newFrame, cellInnerFrame);
 
   nsFrameItems childItems;
   if (aItem.mFCData->mBits & FCDATA_USE_CHILD_ITEMS) {
@@ -2381,7 +2380,7 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
 #ifdef MOZ_XUL
   if (aDocElement->IsXUL()) {
     contentFrame = NS_NewDocElementBoxFrame(mPresShell, styleContext);
-    InitAndRestoreFrame(state, aDocElement, mDocElementContainingBlock, nullptr,
+    InitAndRestoreFrame(state, aDocElement, mDocElementContainingBlock,
                         contentFrame);
     newFrame = contentFrame;
     processChildren = true;
@@ -2895,7 +2894,7 @@ nsCSSFrameConstructor::ConstructSelectFrame(nsFrameConstructorState& aState,
     
     InitAndRestoreFrame(aState, content,
                         aState.GetGeometricParent(aStyleDisplay, aParentFrame),
-                        nullptr, comboboxFrame);
+                        comboboxFrame);
 
     aState.AddChild(comboboxFrame, aFrameItems, content, styleContext,
                     aParentFrame);
@@ -3047,7 +3046,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   
   InitAndRestoreFrame(aState, content,
                       aState.GetGeometricParent(aStyleDisplay, aParentFrame),
-                      nullptr, newFrame);
+                      newFrame);
 
   
   nsRefPtr<nsStyleContext> fieldsetContentStyle;
@@ -3057,7 +3056,7 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
   nsIFrame* blockFrame = NS_NewBlockFrame(mPresShell, fieldsetContentStyle,
                                           NS_BLOCK_FLOAT_MGR |
                                           NS_BLOCK_MARGIN_ROOT);
-  InitAndRestoreFrame(aState, content, newFrame, nullptr, blockFrame);
+  InitAndRestoreFrame(aState, content, newFrame, blockFrame);
 
   aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
   
@@ -3165,7 +3164,7 @@ nsCSSFrameConstructor::ConstructTextFrame(const FrameConstructionData* aData,
 
   nsIFrame* newFrame = (*aData->mFunc.mCreationFunc)(mPresShell, aStyleContext);
 
-  InitAndRestoreFrame(aState, aContent, aParentFrame, nullptr, newFrame);
+  InitAndRestoreFrame(aState, aContent, aParentFrame, newFrame);
 
   
 
@@ -3557,7 +3556,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       BuildScrollFrame(aState, content, styleContext, newFrame,
                        geometricParent, frameToAddToList);
     } else {
-      InitAndRestoreFrame(aState, content, geometricParent, nullptr, newFrame);
+      InitAndRestoreFrame(aState, content, geometricParent, newFrame);
       
       nsContainerFrame::CreateViewForFrame(newFrame, false);
       frameToAddToList = newFrame;
@@ -3582,7 +3581,7 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
       nsIFrame* blockFrame =
         NS_NewBlockFormattingContext(mPresShell, blockContext);
 
-      InitAndRestoreFrame(aState, content, newFrame, nullptr, blockFrame);
+      InitAndRestoreFrame(aState, content, newFrame, blockFrame);
 
       SetInitialSingleChild(newFrame, blockFrame);
 
@@ -4121,7 +4120,7 @@ nsCSSFrameConstructor::BeginBuildingScrollFrame(nsFrameConstructorState& aState,
       gfxScrollFrame = NS_NewHTMLScrollFrame(mPresShell, contentStyle, aIsRoot);
     }
 
-    InitAndRestoreFrame(aState, aContent, aParentFrame, nullptr, gfxScrollFrame);
+    InitAndRestoreFrame(aState, aContent, aParentFrame, gfxScrollFrame);
   }
 
   
@@ -4200,7 +4199,7 @@ nsCSSFrameConstructor::BuildScrollFrame(nsFrameConstructorState& aState,
                                false, aNewFrame);
     
     aScrolledFrame->SetStyleContextWithoutNotification(scrolledContentStyle);
-    InitAndRestoreFrame(aState, aContent, aNewFrame, nullptr, aScrolledFrame);
+    InitAndRestoreFrame(aState, aContent, aNewFrame, aScrolledFrame);
 
     FinishBuildingScrollFrame(aNewFrame, aScrolledFrame);
     return NS_OK;
@@ -4416,7 +4415,6 @@ void
 nsCSSFrameConstructor::InitAndRestoreFrame(const nsFrameConstructorState& aState,
                                            nsIContent*              aContent,
                                            nsIFrame*                aParentFrame,
-                                           nsIFrame*                aPrevInFlow,
                                            nsIFrame*                aNewFrame,
                                            bool                     aAllowCounters)
 {
@@ -4426,7 +4424,7 @@ nsCSSFrameConstructor::InitAndRestoreFrame(const nsFrameConstructorState& aState
   MOZ_ASSERT(aNewFrame, "Null frame cannot be initialized");
 
   
-  aNewFrame->Init(aContent, aParentFrame, aPrevInFlow);
+  aNewFrame->Init(aContent, aParentFrame, nullptr);
   aNewFrame->AddStateBits(aState.mAdditionalStateBits);
 
   if (aState.mFrameState) {
@@ -4434,7 +4432,7 @@ nsCSSFrameConstructor::InitAndRestoreFrame(const nsFrameConstructorState& aState
     RestoreFrameStateFor(aNewFrame, aState.mFrameState);
   }
 
-  if (aAllowCounters && !aPrevInFlow &&
+  if (aAllowCounters &&
       mCounterManager.AddCounterResetsAndIncrements(aNewFrame)) {
     CountersDirty();
   }
@@ -4521,7 +4519,7 @@ nsCSSFrameConstructor::FlushAccumulatedBlock(nsFrameConstructorState& aState,
       NS_NewMathMLmathBlockFrame(mPresShell, blockContext,
                                  NS_BLOCK_FLOAT_MGR | NS_BLOCK_MARGIN_ROOT);
 
-  InitAndRestoreFrame(aState, aContent, aParentFrame, nullptr, blockFrame);
+  InitAndRestoreFrame(aState, aContent, aParentFrame, blockFrame);
   ReparentFrames(this, blockFrame, aBlockItems);
   
   
@@ -4626,7 +4624,7 @@ nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
     aState.GetGeometricParent(styleContext->StyleDisplay(),
                               aParentFrame);
 
-  InitAndRestoreFrame(aState, content, geometricParent, nullptr, newFrame);
+  InitAndRestoreFrame(aState, content, geometricParent, newFrame);
 
   
   nsRefPtr<nsStyleContext> scForAnon;
@@ -4637,7 +4635,7 @@ nsCSSFrameConstructor::ConstructOuterSVG(nsFrameConstructorState& aState,
   
   nsIFrame* innerFrame = NS_NewSVGOuterSVGAnonChildFrame(mPresShell, scForAnon);
 
-  InitAndRestoreFrame(aState, content, newFrame, nullptr, innerFrame);
+  InitAndRestoreFrame(aState, content, newFrame, innerFrame);
 
   
   SetInitialSingleChild(newFrame, innerFrame);
@@ -10002,8 +10000,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
     
     
 
-    InitAndRestoreFrame(aState, aContent, aFrame, nullptr,
-                        blockFrame, false);
+    InitAndRestoreFrame(aState, aContent, aFrame, blockFrame, false);
 
     NS_ASSERTION(!blockFrame->HasView(), "need to do view reparenting");
     ReparentFrames(this, blockFrame, aFrameItems);
@@ -10064,8 +10061,7 @@ nsCSSFrameConstructor::WrapFramesInFirstLineFrame(
     aLineFrame = NS_NewFirstLineFrame(mPresShell, firstLineStyle);
 
     
-    InitAndRestoreFrame(aState, aBlockContent, aBlockFrame, nullptr,
-                        aLineFrame);
+    InitAndRestoreFrame(aState, aBlockContent, aBlockFrame, aLineFrame);
 
     
     
@@ -10182,8 +10178,7 @@ nsCSSFrameConstructor::InsertFirstLineFrames(
             GetFirstLineStyle(aContent, parentStyle);
 
           
-          InitAndRestoreFrame(aState, aContent, aBlockFrame,
-                              nullptr, lineFrame);
+          InitAndRestoreFrame(aState, aContent, aBlockFrame, lineFrame);
 
           
           
@@ -10356,8 +10351,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   nsIContent* letterContent = aTextContent->GetParent();
   nsIFrame* containingBlock = aState.GetGeometricParent(
     aStyleContext->StyleDisplay(), aParentFrame);
-  InitAndRestoreFrame(aState, letterContent, containingBlock, nullptr,
-                      letterFrame);
+  InitAndRestoreFrame(aState, letterContent, containingBlock, letterFrame);
 
   
   
@@ -10366,7 +10360,7 @@ nsCSSFrameConstructor::CreateFloatingLetterFrame(
   nsRefPtr<nsStyleContext> textSC;
   textSC = styleSet->ResolveStyleForNonElement(aStyleContext);
   aTextFrame->SetStyleContextWithoutNotification(textSC);
-  InitAndRestoreFrame(aState, aTextContent, letterFrame, nullptr, aTextFrame);
+  InitAndRestoreFrame(aState, aTextContent, letterFrame, aTextFrame);
 
   
   SetInitialSingleChild(letterFrame, aTextFrame);
@@ -10475,8 +10469,7 @@ nsCSSFrameConstructor::CreateLetterFrame(nsIFrame* aBlockFrame,
       nsIContent* letterContent = aTextContent->GetParent();
       letterFrame->Init(letterContent, aParentFrame, nullptr);
 
-      InitAndRestoreFrame(state, aTextContent, letterFrame, nullptr,
-                          textFrame);
+      InitAndRestoreFrame(state, aTextContent, letterFrame, textFrame);
 
       SetInitialSingleChild(letterFrame, textFrame);
       aResult.Clear();
@@ -10913,7 +10906,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
     nsIFrame* columnSetFrame = nullptr;
     columnSetFrame = NS_NewColumnSetFrame(mPresShell, aStyleContext, 0);
 
-    InitAndRestoreFrame(aState, aContent, aParentFrame, nullptr, columnSetFrame);
+    InitAndRestoreFrame(aState, aContent, aParentFrame, columnSetFrame);
     blockStyle = mPresShell->StyleSet()->
       ResolveAnonymousBoxStyle(nsCSSAnonBoxes::columnContent, aStyleContext);
     parent = columnSetFrame;
@@ -10923,7 +10916,7 @@ nsCSSFrameConstructor::ConstructBlock(nsFrameConstructorState& aState,
   }
 
   blockFrame->SetStyleContextWithoutNotification(blockStyle);
-  InitAndRestoreFrame(aState, aContent, parent, nullptr, blockFrame);
+  InitAndRestoreFrame(aState, aContent, parent, blockFrame);
 
   aState.AddChild(*aNewFrame, aFrameItems, aContent, aStyleContext,
                   aContentParentFrame ? aContentParentFrame :
@@ -11031,7 +11024,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
   nsIFrame* newFrame = NS_NewInlineFrame(mPresShell, styleContext);
 
   
-  InitAndRestoreFrame(aState, content, aParentFrame, nullptr, newFrame);
+  InitAndRestoreFrame(aState, content, aParentFrame, newFrame);
 
   
   newFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT);
@@ -11120,8 +11113,7 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     nsIFrame* blockFrame;
     blockFrame = NS_NewBlockFrame(mPresShell, blockSC);
 
-    InitAndRestoreFrame(aState, content, parentFrame, nullptr, blockFrame,
-                        false);
+    InitAndRestoreFrame(aState, content, parentFrame, blockFrame, false);
 
     
     
@@ -11138,8 +11130,7 @@ nsCSSFrameConstructor::CreateIBSiblings(nsFrameConstructorState& aState,
     
     nsIFrame* inlineFrame = NS_NewInlineFrame(mPresShell, styleContext);
 
-    InitAndRestoreFrame(aState, content, parentFrame, nullptr, inlineFrame,
-                        false);
+    InitAndRestoreFrame(aState, content, parentFrame, inlineFrame, false);
 
     inlineFrame->AddStateBits(NS_FRAME_MAY_HAVE_GENERATED_CONTENT |
                               NS_FRAME_CAN_HAVE_ABSPOS_CHILDREN);
