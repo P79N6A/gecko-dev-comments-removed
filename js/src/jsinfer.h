@@ -150,13 +150,7 @@ enum ExecutionMode {
 
 
 
-    DefinitePropertiesAnalysis,
-
-    
-
-
-
-    ArgumentsUsageAnalysis
+    DefinitePropertiesAnalysis
 };
 
 
@@ -190,6 +184,10 @@ namespace jit {
     struct IonScript;
     class IonAllocPolicy;
     class TempAllocator;
+}
+
+namespace analyze {
+    class ScriptAnalysis;
 }
 
 namespace types {
@@ -1244,6 +1242,9 @@ class TypeScript
 {
     friend class ::JSScript;
 
+    
+    analyze::ScriptAnalysis *analysis;
+
   public:
     
     StackTypeSet *typeArray() const { return (StackTypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
@@ -1257,7 +1258,7 @@ class TypeScript
     static inline StackTypeSet *BytecodeTypes(JSScript *script, jsbytecode *pc);
 
     template <typename TYPESET>
-    static inline TYPESET *BytecodeTypes(JSScript *script, jsbytecode *pc, uint32_t *bytecodeMap,
+    static inline TYPESET *BytecodeTypes(JSScript *script, jsbytecode *pc,
                                          uint32_t *hint, TYPESET *typeArray);
 
     
@@ -1308,9 +1309,6 @@ class TypeScript
     void printTypes(JSContext *cx, HandleScript script) const;
 #endif
 };
-
-void
-FillBytecodeTypeMap(JSScript *script, uint32_t *bytecodeMap);
 
 class RecompileInfo;
 

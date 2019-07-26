@@ -1482,6 +1482,12 @@ IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
 
     ExecutionMode executionMode = info().executionMode();
     switch (executionMode) {
+      case SequentialExecution:
+      case DefinitePropertiesAnalysis:
+        
+        
+        return InliningStatus_NotInlined;
+
       case ParallelExecution: {
         
         
@@ -1492,11 +1498,6 @@ IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
         current->push(ins);
         return InliningStatus_Inlined;
       }
-
-      default:
-        
-        
-        return InliningStatus_NotInlined;
     }
 
     MOZ_ASSUME_UNREACHABLE("Invalid execution mode");
@@ -1521,6 +1522,11 @@ IonBuilder::inlineForkJoinGetSlice(CallInfo &callInfo)
     callInfo.setImplicitlyUsedUnchecked();
 
     switch (info().executionMode()) {
+      case SequentialExecution:
+      case DefinitePropertiesAnalysis:
+        
+        current->push(callInfo.getArg(0));
+        return InliningStatus_Inlined;
       case ParallelExecution:
         if (LIRGenerator::allowInlineForkJoinGetSlice()) {
             MForkJoinGetSlice *getSlice = MForkJoinGetSlice::New(alloc(),
@@ -1530,11 +1536,6 @@ IonBuilder::inlineForkJoinGetSlice(CallInfo &callInfo)
             return InliningStatus_Inlined;
         }
         return InliningStatus_NotInlined;
-
-      default:
-        
-        current->push(callInfo.getArg(0));
-        return InliningStatus_Inlined;
     }
 
     MOZ_ASSUME_UNREACHABLE("Invalid execution mode");
@@ -1550,10 +1551,11 @@ IonBuilder::inlineNewDenseArray(CallInfo &callInfo)
     
     ExecutionMode executionMode = info().executionMode();
     switch (executionMode) {
+      case SequentialExecution:
+      case DefinitePropertiesAnalysis:
+        return inlineNewDenseArrayForSequentialExecution(callInfo);
       case ParallelExecution:
         return inlineNewDenseArrayForParallelExecution(callInfo);
-      default:
-        return inlineNewDenseArrayForSequentialExecution(callInfo);
     }
 
     MOZ_ASSUME_UNREACHABLE("unknown ExecutionMode");

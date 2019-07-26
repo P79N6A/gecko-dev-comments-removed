@@ -10,7 +10,6 @@
 #include "jit/BaselineIC.h"
 #include "jit/BaselineJIT.h"
 #include "jit/FixedList.h"
-#include "jit/IonAnalysis.h"
 #include "jit/IonLinker.h"
 #include "jit/IonSpewer.h"
 #ifdef JS_ION_PERF
@@ -80,8 +79,15 @@ BaselineCompiler::compile()
     AutoTraceLog logScript(logger, TraceLogCreateTextId(logger, script));
     AutoTraceLog logCompile(logger, TraceLogger::BaselineCompilation);
 
-    if (!script->ensureHasTypes(cx) || !script->ensureHasAnalyzedArgsUsage(cx))
+    if (!script->ensureHasTypes(cx))
         return Method_Error;
+
+    
+    
+    if (script->argumentsHasVarBinding()) {
+        if (!script->ensureRanAnalysis(cx))
+            return Method_Error;
+    }
 
     
     types::AutoEnterAnalysis autoEnterAnalysis(cx);
@@ -234,7 +240,18 @@ BaselineCompiler::compile()
         baselineScript->toggleSPS(true);
 
     uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
-    types::FillBytecodeTypeMap(script, bytecodeMap);
+
+    uint32_t added = 0;
+    for (jsbytecode *pc = script->code(); pc < script->codeEnd(); pc += GetBytecodeLength(pc)) {
+        JSOp op = JSOp(*pc);
+        if (js_CodeSpec[op].format & JOF_TYPESET) {
+            bytecodeMap[added++] = script->pcToOffset(pc);
+            if (added == script->nTypeSets())
+                break;
+        }
+    }
+
+    JS_ASSERT(added == script->nTypeSets());
 
     
     
