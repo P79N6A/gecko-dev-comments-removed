@@ -914,6 +914,9 @@ pref("network.protocol-handler.external.moz-icon", false);
 pref("network.protocol-handler.expose-all", true);
 
 
+pref("network.warnOnAboutNetworking", true);
+
+
 
 
 
