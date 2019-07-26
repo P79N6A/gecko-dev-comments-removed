@@ -46,7 +46,9 @@ public:
   
   void SetCurrentFrame(const gfxIntSize& aIntrinsicSize, Image* aImage,
                        TimeStamp aTargetTime);
-  void ClearCurrentFrame();
+  void ClearCurrentFrame(bool aResetSize = false);
+  
+  void Reset();
   
   
   
