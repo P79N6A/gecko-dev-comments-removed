@@ -263,6 +263,32 @@ public:
 
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
   
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
+                          nsReflowStatus*          aStatus,
+                          nscoord                  aContentHeight,
+                          const nsMargin&          aBorderPadding,
+                          nsHTMLReflowMetrics&     aMetrics,
+                          nscoord                  aConsumed);
+
   NS_IMETHOD Reflow(nsPresContext*          aPresContext,
                     nsHTMLReflowMetrics&     aDesiredSize,
                     const nsHTMLReflowState& aReflowState,

@@ -1338,48 +1338,13 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
     bottomEdgeOfChildren = std::max(bottomEdgeOfChildren, floatHeight);
   }
 
-  
-  if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()) {
-    
-    
-    nscoord computedHeightLeftOver = GetEffectiveComputedHeight(aReflowState);
-    NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
-                    && computedHeightLeftOver ),
-                 "overflow container must not have computedHeightLeftOver");
-
-    aMetrics.height =
-      NSCoordSaturatingAdd(NSCoordSaturatingAdd(borderPadding.top,
-                                                computedHeightLeftOver),
-                           borderPadding.bottom);
-
-    if (NS_FRAME_IS_NOT_COMPLETE(aState.mReflowStatus)
-        && aMetrics.height < aReflowState.availableHeight) {
-      
-      
-      NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
-    }
-
-    if (NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
-      if (computedHeightLeftOver > 0 &&
-          NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
-          aMetrics.height > aReflowState.availableHeight) {
-        if (ShouldAvoidBreakInside(aReflowState)) {
-          aState.mReflowStatus = NS_INLINE_LINE_BREAK_BEFORE();
-          return;
-        }
-        
-        
-        
-        
-        
-        aMetrics.height = std::max(aReflowState.availableHeight,
-                                 aState.mY + nonCarriedOutVerticalMargin);
-        NS_FRAME_SET_INCOMPLETE(aState.mReflowStatus);
-        if (!GetNextInFlow())
-          aState.mReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
-      }
-    }
-    else {
+  if (NS_UNCONSTRAINEDSIZE != aReflowState.ComputedHeight()
+      && (mParent->GetType() != nsGkAtoms::columnSetFrame ||
+          aReflowState.parentReflowState->availableHeight == NS_UNCONSTRAINEDSIZE)) {
+    ComputeFinalHeight(aReflowState, &aState.mReflowStatus,
+                       aState.mY + nonCarriedOutVerticalMargin,
+                       borderPadding, aMetrics, aState.mConsumedHeight);
+    if (!NS_FRAME_IS_COMPLETE(aState.mReflowStatus)) {
       
       
       
@@ -1387,8 +1352,10 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       aMetrics.height = std::max(aReflowState.availableHeight,
                                aState.mY + nonCarriedOutVerticalMargin);
       
+      nscoord effectiveComputedHeight =
+        GetEffectiveComputedHeight(aReflowState, aState.GetConsumedHeight());
       aMetrics.height = std::min(aMetrics.height,
-                               borderPadding.top + computedHeightLeftOver);
+                               borderPadding.top + effectiveComputedHeight);
       
       
       
@@ -7083,6 +7050,57 @@ nsBlockFrame::GetNearestAncestorBlock(nsIFrame* aCandidate)
   }
   NS_NOTREACHED("Fell off frame tree looking for ancestor block!");
   return nullptr;
+}
+
+void
+nsBlockFrame::ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
+                                      nsReflowStatus*          aStatus,
+                                      nscoord                  aContentHeight,
+                                      const nsMargin&          aBorderPadding,
+                                      nsHTMLReflowMetrics&     aMetrics,
+                                      nscoord                  aConsumed)
+{
+
+  
+  
+  nscoord computedHeightLeftOver = GetEffectiveComputedHeight(aReflowState,
+                                                              aConsumed);
+  NS_ASSERTION(!( IS_TRUE_OVERFLOW_CONTAINER(this)
+                  && computedHeightLeftOver ),
+               "overflow container must not have computedHeightLeftOver");
+
+  aMetrics.height =
+    NSCoordSaturatingAdd(NSCoordSaturatingAdd(aBorderPadding.top,
+                                              computedHeightLeftOver),
+                         aBorderPadding.bottom);
+
+  if (NS_FRAME_IS_NOT_COMPLETE(*aStatus)
+      && aMetrics.height < aReflowState.availableHeight) {
+    
+    
+    NS_FRAME_SET_OVERFLOW_INCOMPLETE(*aStatus);
+  }
+
+  if (NS_FRAME_IS_COMPLETE(*aStatus)) {
+    if (computedHeightLeftOver > 0 &&
+        NS_UNCONSTRAINEDSIZE != aReflowState.availableHeight &&
+        aMetrics.height > aReflowState.availableHeight) {
+      if (ShouldAvoidBreakInside(aReflowState)) {
+        *aStatus = NS_INLINE_LINE_BREAK_BEFORE();
+        return;
+      }
+      
+      
+      
+      
+      
+      aMetrics.height = std::max(aReflowState.availableHeight,
+                                 aContentHeight);
+      NS_FRAME_SET_INCOMPLETE(*aStatus);
+      if (!GetNextInFlow())
+        *aStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
+    }
+  }
 }
 
 #ifdef IBMBIDI

@@ -232,7 +232,7 @@ nsSplittableFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowSt
 
   height -= aConsumedHeight;
 
-  if (aConsumedHeight != NS_INTRINSICSIZE) {
+  if (aConsumedHeight != 0 && aConsumedHeight != NS_INTRINSICSIZE) {
     
     
     height += aReflowState.mComputedBorderPadding.top;
