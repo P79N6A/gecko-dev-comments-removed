@@ -110,7 +110,10 @@ class IonFrameIterator
         return current_;
     }
 
-    inline IonCommonFrameLayout *current() const;
+    IonCommonFrameLayout *current() const {
+        return (IonCommonFrameLayout *)current_;
+    }
+
     inline uint8_t *returnAddress() const;
 
     IonJSFrameLayout *jsFrame() const {
@@ -177,7 +180,10 @@ class IonFrameIterator
 
     
     
-    inline size_t frameSize() const;
+    size_t frameSize() const {
+        JS_ASSERT(type_ != IonFrame_Exit);
+        return frameSize_;
+    }
 
     
     
