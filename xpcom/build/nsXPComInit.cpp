@@ -588,10 +588,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         
         
         if (observerService) {
-            
-            
-            
-            
             observerService->
                 EnumerateObservers(NS_XPCOM_SHUTDOWN_LOADERS_OBSERVER_ID,
                                    getter_AddRefs(moduleLoaders));
@@ -625,12 +621,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     
     NS_IF_RELEASE(nsDirectoryService::gService);
 
-    SAMPLE_MARKER("Shutdown xpcom");
-    
-    if (gShutdownChecks != SCM_NOTHING) {
-        mozilla::PoisonWrite();
-    }
-
     nsCycleCollector_shutdown();
 
     if (moduleLoaders) {
@@ -644,6 +634,10 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
             
             
 
+            
+            
+            
+            
             nsCOMPtr<nsIObserver> obs(do_QueryInterface(el));
             if (obs)
                 (void) obs->Observe(nullptr,
@@ -652,6 +646,12 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         }
 
         moduleLoaders = nullptr;
+    }
+
+    SAMPLE_MARKER("Shutdown xpcom");
+    
+    if (gShutdownChecks != SCM_NOTHING) {
+        mozilla::PoisonWrite();
     }
 
     
