@@ -55,13 +55,11 @@ private:
   
   nsresult FetchUpdate(nsIURI *aURI,
                        const nsACString &aRequestBody,
-                       const nsACString &aTable,
-                       const nsACString &aServerMAC);
+                       const nsACString &aTable);
   
   nsresult FetchUpdate(const nsACString &aURI,
                        const nsACString &aRequestBody,
-                       const nsACString &aTable,
-                       const nsACString &aServerMAC);
+                       const nsACString &aTable);
 
   
   nsresult FetchNext();
@@ -72,7 +70,6 @@ private:
   bool mBeganStream;
   nsCOMPtr<nsIURI> mUpdateUrl;
   nsCString mStreamTable;
-  nsCString mServerMAC;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIUrlClassifierDBService> mDBService;
   nsCOMPtr<nsITimer> mTimer;
@@ -80,7 +77,6 @@ private:
   struct PendingUpdate {
     nsCString mUrl;
     nsCString mTable;
-    nsCString mServerMAC;
   };
   nsTArray<PendingUpdate> mPendingUpdates;
 

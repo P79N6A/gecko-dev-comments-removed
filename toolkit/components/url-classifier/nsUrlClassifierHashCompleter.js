@@ -30,21 +30,12 @@ const BACKOFF_TIME = 5 * 60;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
-let keyFactory = Cc["@mozilla.org/security/keyobjectfactory;1"]
-                   .getService(Ci.nsIKeyObjectFactory);
 
 function HashCompleter() {
   
   
   
   this._currentRequest = null;
-
-  
-  
-  this._clientKey = "";
-  
-  
-  this._wrappedKey = "";
 
   
   this._shuttingDown = false;
@@ -110,10 +101,6 @@ HashCompleter.prototype = {
     }
 
     let url = this._getHashUrl;
-    if (this._clientKey) {
-      this._currentRequest.clientKey = this._clientKey;
-      url += "&wrkey=" + this._wrappedKey;
-    }
 
     let uri = Services.io.newURI(url, null, null);
     this._currentRequest.setURI(uri);
@@ -125,32 +112,6 @@ HashCompleter.prototype = {
     finally {
       this._currentRequest = null;
     }
-  },
-
-  
-  
-  
-  
-  rekeyRequested: function HC_rekeyRequested() {
-    this.setKeys("", "");
-
-    Services.obs.notifyObservers(this, "url-classifier-rekey-requested", null);
-  },
-
-  
-  
-  
-  setKeys: function HC_setKeys(aClientKey, aWrappedKey) {
-    if (aClientKey == "") {
-      this._clientKey = "";
-      this._wrappedKey = "";
-      return;
-    }
-
-    
-    
-    this._clientKey = atob(unUrlsafeBase64(aClientKey));
-    this._wrappedKey = aWrappedKey;
   },
 
   get gethashUrl() {
@@ -232,14 +193,6 @@ function HashCompleterRequest(aCompleter) {
   this._channel = null;
   
   this._response = "";
-  
-  this._clientKey = "";
-  
-  
-  this._rescheduled = false;
-  
-  
-  this._verified = false;
   
   this._shuttingDown = false;
 }
@@ -351,67 +304,12 @@ HashCompleterRequest.prototype = {
     }
 
     let start = 0;
-    if (this._clientKey) {
-      start = this.handleMAC(start);
-
-      if (this._rescheduled) {
-        return;
-      }
-    }
 
     let length = this._response.length;
     while (start != length)
       start = this.handleTable(start);
   },
 
-  
-  
-  
-  handleMAC: function HCR_handleMAC(aStart) {
-    this._verified = false;
-
-    let body = this._response.substring(aStart);
-
-    
-    
-    
-    let newlineIndex = body.indexOf("\n");
-    if (newlineIndex == -1) {
-      throw errorWithStack();
-    }
-
-    let serverMAC = body.substring(0, newlineIndex);
-    if (serverMAC == "e:pleaserekey") {
-      this.rescheduleItems();
-
-      this._completer.rekeyRequested();
-      return this._response.length;
-    }
-
-    serverMAC = unUrlsafeBase64(serverMAC);
-
-    let keyObject = keyFactory.keyFromString(Ci.nsIKeyObject.HMAC,
-                                             this._clientKey);
-
-    let data = body.substring(newlineIndex + 1).split("")
-                                              .map(function(x) x.charCodeAt(0));
-
-    let hmac = Cc["@mozilla.org/security/hmac;1"]
-                 .createInstance(Ci.nsICryptoHMAC);
-    hmac.init(Ci.nsICryptoHMAC.SHA1, keyObject);
-    hmac.update(data, data.length);
-    let clientMAC = hmac.finish(true);
-
-    if (clientMAC != serverMAC) {
-      throw errorWithStack();
-    }
-
-    this._verified = true;
-
-    return aStart + newlineIndex + 1;
-  },
-
-  
   
   
   handleTable: function HCR_handleTable(aStart) {
@@ -473,7 +371,7 @@ HashCompleterRequest.prototype = {
       for (let j = 0; j < request.responses.length; j++) {
         let response = request.responses[j];
         request.callback.completion(response.completeHash, response.tableName,
-                                    response.chunkId, this._verified);
+                                    response.chunkId);
       }
 
       request.callback.completionFinished(Cr.NS_OK);
@@ -484,23 +382,6 @@ HashCompleterRequest.prototype = {
       let request = this._requests[i];
       request.callback.completionFinished(aStatus);
     }
-  },
-
-  
-  
-  
-  rescheduleItems: function HCR_rescheduleItems() {
-    for (let i = 0; i < this._requests[i]; i++) {
-      let request = this._requests[i];
-      try {
-        this._completer.complete(request.partialHash, request.callback);
-      }
-      catch (err) {
-        request.callback.completionFinished(err);
-      }
-    }
-
-    this._rescheduled = true;
   },
 
   onDataAvailable: function HCR_onDataAvailable(aRequest, aContext,
@@ -545,17 +426,11 @@ HashCompleterRequest.prototype = {
       }
     }
 
-    if (!this._rescheduled) {
-      if (success) {
-        this.notifySuccess();
-      } else {
-        this.notifyFailure(aStatusCode);
-      }
+    if (success) {
+      this.notifySuccess();
+    } else {
+      this.notifyFailure(aStatusCode);
     }
-  },
-
-  set clientKey(aVal) {
-    this._clientKey = aVal;
   },
 
   observe: function HCR_observe(aSubject, aTopic, aData) {

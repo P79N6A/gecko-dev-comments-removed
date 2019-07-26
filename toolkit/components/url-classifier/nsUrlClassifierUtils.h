@@ -73,14 +73,6 @@ public:
                     bool allowOctal,
                     nsACString & _retval);
 
-  
-  
-  static void UnUrlsafeBase64(nsACString & str);
-
-  
-  
-  static nsresult DecodeClientKey(const nsACString & clientKey,
-                                  nsACString & _retval);
 private:
   
   nsUrlClassifierUtils(const nsUrlClassifierUtils&);
