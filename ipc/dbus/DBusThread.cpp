@@ -481,6 +481,85 @@ DBusThread::StopEventLoop()
 
 
 
+class DBusPollTask : public nsRunnable
+{
+public:
+  DBusPollTask(DBusThread* aConnection)
+  : mConnection(aConnection)
+  { }
+
+  NS_IMETHOD Run()
+  {
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    bool exitThread = false;
+
+    while (!exitThread) {
+
+      int res = TEMP_FAILURE_RETRY(poll(mConnection->mPollData.Elements(),
+                                        mConnection->mPollData.Length(),
+                                        -1));
+      NS_ENSURE_TRUE(res > 0, NS_OK);
+
+      nsTArray<pollfd>::size_type i = 0;
+
+      while (i < mConnection->mPollData.Length()) {
+        if (mConnection->mPollData[i].revents == POLLIN) {
+
+          if (mConnection->mPollData[i].fd == mConnection->mControlFdR.get()) {
+            char data;
+            res = TEMP_FAILURE_RETRY(read(mConnection->mControlFdR.get(), &data, sizeof(data)));
+            NS_ENSURE_TRUE(res > 0, NS_OK);
+
+            switch (data) {
+            case DBUS_EVENT_LOOP_EXIT:
+              exitThread = true;
+              break;
+            case DBUS_EVENT_LOOP_ADD:
+              HandleWatchAdd(mConnection);
+              break;
+            case DBUS_EVENT_LOOP_REMOVE:
+              HandleWatchRemove(mConnection);
+              
+              continue;
+            case DBUS_EVENT_LOOP_WAKEUP:
+              NS_ProcessPendingEvents(NS_GetCurrentThread(),
+                                      PR_INTERVAL_NO_TIMEOUT);
+              break;
+            default:
+#if DEBUG
+              nsCString warning("unknown command ");
+              warning.AppendInt(data);
+              NS_WARNING(warning.get());
+#endif
+              break;
+            }
+          } else {
+            short events = mConnection->mPollData[i].revents;
+            unsigned int flags = UnixEventsToDBusFlags(events);
+            dbus_watch_handle(mConnection->mWatchData[i], flags);
+            mConnection->mPollData[i].revents = 0;
+            
+            
+            break;
+          }
+          while (dbus_connection_dispatch(mConnection->GetConnection()) ==
+                 DBUS_DISPATCH_DATA_REMAINS)
+          {}
+        }
+        ++i;
+      }
+    }
+
+    return NS_OK;
+  }
+
+private:
+  DBusThread* mConnection;
+};
+
+
+
 bool
 StartDBus()
 {
