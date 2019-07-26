@@ -84,7 +84,7 @@ public class LightweightTheme implements GeckoEventListener {
             stream.close();
 
             
-            if (mBitmap != null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
+            if (mBitmap == null || mBitmap.getWidth() == 0 || mBitmap.getHeight() == 0) {
                 mBitmap = null;
                 return;
             }
