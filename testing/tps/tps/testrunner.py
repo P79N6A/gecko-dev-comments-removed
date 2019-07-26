@@ -314,8 +314,10 @@ class TPSTestRunner(object):
             self.preferences.update({'services.sync.client.type' : 'mobile'})
 
         
-        if self.config.get('auth_type', 'fx_account') != 'fx_account':
-            self.preferences.update({'services.sync.fxaccounts.enabled' : False})
+        
+        dummy = {'fx_account': 'dummy@somewhere', 'sync_account': 'dummy'}
+        auth_type = self.config.get('auth_type', 'fx_account')
+        self.preferences.update({'services.sync.username': dummy[auth_type]})
 
         
         
