@@ -623,16 +623,12 @@ function findLocation(pre, line, node, offset, interlinePosition, result)
 function wrapLongLines()
 {
   var myWrap = window.content.document.body;
-
-  if (myWrap.className == '')
-    myWrap.className = 'wrap';
-  else
-    myWrap.className = '';
+  myWrap.classList.toggle("wrap");
 
   
   
   
-  Services.prefs.setBoolPref("view_source.wrap_long_lines", myWrap.className != '');
+  Services.prefs.setBoolPref("view_source.wrap_long_lines", myWrap.classList.contains("wrap"));
 }
 
 
