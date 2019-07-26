@@ -1241,62 +1241,135 @@ public class GeckoAppShell
         return true;
     }
 
-    static boolean openUriExternal(String aUriSpec, String aMimeType, String aPackageName,
-                                   String aClassName, String aAction, String aTitle) {
-        Intent intent = getIntentForActionString(aAction);
-        if (aAction.equalsIgnoreCase(Intent.ACTION_SEND)) {
-            Intent shareIntent = getIntentForActionString(aAction);
-            shareIntent.putExtra(Intent.EXTRA_TEXT, aUriSpec);
-            shareIntent.putExtra(Intent.EXTRA_SUBJECT, aTitle);
-            if (aMimeType != null && aMimeType.length() > 0)
-                shareIntent.setType(aMimeType);
-            intent = Intent.createChooser(shareIntent, GeckoApp.mAppContext.getResources().getString(R.string.share_title)); 
-        } else if (aMimeType.length() > 0) {
-            intent.setDataAndType(Uri.parse(aUriSpec), aMimeType);
-        } else {
-            Uri uri = Uri.parse(aUriSpec);
-            if (isUriSafeForScheme(uri) == false) {
-                return false;
-            }
-            
-            final String scheme = uri.getScheme();
-            if ("sms".equals(scheme)) {
-                
-                
-                final String query = uri.getEncodedQuery();
-                if (query != null && query.length() > 0) {
-                    final String[] fields = query.split("&");
-                    boolean foundBody = false;
-                    String resultQuery = "";
-                    for (int i = 0; i < fields.length; i++) {
-                        final String field = fields[i];
-                        if (field.length() > 5 && "body=".equals(field.substring(0, 5))) {
-                            final String body = Uri.decode(field.substring(5));
-                            intent.putExtra("sms_body", body);
-                            foundBody = true;
-                        } else {
-                            resultQuery = resultQuery.concat(resultQuery.length() > 0 ? "&" + field : field);
-                        }
-                    }
-                    if (foundBody) {
-                        
-                        final String prefix = aUriSpec.substring(0, aUriSpec.indexOf('?'));
-                        uri = Uri.parse(resultQuery.length() > 0 ? prefix + "?" + resultQuery : prefix);
-                    }
-                }
-            }
-            intent.setData(uri);
+    
+
+
+
+
+
+
+
+
+
+
+
+    static boolean openUriExternal(String targetURI,
+                                   String mimeType,
+                                   String packageName,
+                                   String className,
+                                   String action,
+                                   String title) {
+        final Context context = GeckoApp.mAppContext;
+        final Intent intent = getOpenURIIntent(context, targetURI,
+                                               mimeType, action, title);
+
+        if (intent == null) {
+            return false;
         }
-        if (aPackageName.length() > 0 && aClassName.length() > 0)
-            intent.setClassName(aPackageName, aClassName);
+
+        if (packageName.length() > 0 && className.length() > 0) {
+            intent.setClassName(packageName, className);
+        }
 
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
         try {
-            GeckoApp.mAppContext.startActivity(intent);
+            context.startActivity(intent);
             return true;
-        } catch(ActivityNotFoundException e) {
+        } catch (ActivityNotFoundException e) {
             return false;
         }
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    static Intent getOpenURIIntent(final Context context,
+                                   final String targetURI,
+                                   final String mimeType,
+                                   final String action,
+                                   final String title) {
+
+        if (action.equalsIgnoreCase(Intent.ACTION_SEND)) {
+            Intent shareIntent = getIntentForActionString(action);
+            shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+
+            if (mimeType != null && mimeType.length() > 0) {
+                shareIntent.setType(mimeType);
+            }
+
+            return Intent.createChooser(shareIntent,
+                                        context.getResources().getString(R.string.share_title)); 
+        }
+
+        if (mimeType.length() > 0) {
+            Intent intent = getIntentForActionString(action);
+            intent.setDataAndType(Uri.parse(targetURI), mimeType);
+            return intent;
+        }
+
+        final Uri uri = Uri.parse(targetURI);
+        if (!isUriSafeForScheme(uri)) {
+            return null;
+        }
+        
+        final String scheme = uri.getScheme();
+        final Intent intent = getIntentForActionString(action);
+
+        
+        
+        intent.setDataAndNormalize(uri);
+
+        
+        
+        if (!"sms".equals(scheme)) {
+            return intent;
+        }
+
+        final String query = uri.getEncodedQuery();
+        if (TextUtils.isEmpty(query)) {
+            return intent;
+        }
+
+        final String[] fields = query.split("&");
+        boolean foundBody = false;
+        String resultQuery = "";
+        for (String field : fields) {
+            if (foundBody || !field.startsWith("body=")) {
+                resultQuery = resultQuery.concat(resultQuery.length() > 0 ? "&" + field : field);
+                continue;
+            }
+
+            
+            final String body = Uri.decode(field.substring(5));
+            intent.putExtra("sms_body", body);
+            foundBody = true;
+        }
+
+        if (!foundBody) {
+            
+            return intent;
+        }
+
+        
+        
+        final String prefix = targetURI.substring(0, targetURI.indexOf('?'));
+        final String newQuery = resultQuery.length() > 0 ? "?" + resultQuery : "";
+        final Uri pruned = Uri.parse(prefix + newQuery);
+        intent.setDataAndNormalize(pruned);
+
+        return intent;
     }
 
     static SynchronousQueue<String> sClipboardQueue =
