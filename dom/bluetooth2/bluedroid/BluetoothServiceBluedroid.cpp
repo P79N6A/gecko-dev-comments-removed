@@ -50,12 +50,12 @@ USING_BLUETOOTH_NAMESPACE
 static nsString sAdapterBdAddress;
 static nsString sAdapterBdName;
 static InfallibleTArray<nsString> sAdapterBondedAddressArray;
-static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sChangeAdapterStateRunnableArray;
 
 
 static const bt_interface_t* sBtInterface;
 static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 static nsTArray<int> sRequestedDeviceCountArray;
+static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sChangeAdapterStateRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sChangeDiscoveryRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
@@ -295,6 +295,27 @@ PlayStatusStringToControlPlayStatus(const nsAString& aPlayStatus)
   return playStatus;
 }
 
+class AdapterStateChangedCallbackTask MOZ_FINAL : public nsRunnable
+{
+public:
+  NS_IMETHOD
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    
+    if (!sChangeAdapterStateRunnableArray.IsEmpty()) {
+      BluetoothValue values(true);
+      DispatchBluetoothReply(sChangeAdapterStateRunnableArray[0],
+                             values, EmptyString());
+
+      sChangeAdapterStateRunnableArray.RemoveElementAt(0);
+    }
+
+    return NS_OK;
+  }
+};
+
 
 
 
@@ -328,12 +349,7 @@ AdapterStateChangeCallback(bt_state_t aStatus)
   }
 
   
-  if(!sChangeAdapterStateRunnableArray.IsEmpty()) {
-    DispatchBluetoothReply(sChangeAdapterStateRunnableArray[0],
-                           BluetoothValue(true),
-                           EmptyString());
-    sChangeAdapterStateRunnableArray.RemoveElementAt(0);
-  }
+  NS_DispatchToMainThread(new AdapterStateChangedCallbackTask());
 }
 
 class AdapterPropertiesCallbackTask MOZ_FINAL : public nsRunnable
