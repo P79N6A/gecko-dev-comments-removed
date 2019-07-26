@@ -746,13 +746,17 @@ public:
   
   
   
+  
+  
   PlayState mPlayState;
 
   
   
   
   
-  PlayState mNextState;	
+  
+  
+  PlayState mNextState;
 
   
   

@@ -1557,15 +1557,6 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
         return NS_OK;
     }
 
-    bool crosscompartment = js::GetObjectCompartment(aOldScope->GetGlobalJSObject()) !=
-                            js::GetObjectCompartment(aNewScope->GetGlobalJSObject());
-#ifdef DEBUG
-    if (crosscompartment) {
-        NS_ASSERTION(aNewParent, "won't be able to find the new parent");
-        NS_ASSERTION(wrapper, "can't transplant slim wrappers");
-    }
-#endif
-
     
     
     
@@ -1584,6 +1575,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
         
         AutoMarkingWrappedNativeProtoPtr oldProto(ccx);
         AutoMarkingWrappedNativeProtoPtr newProto(ccx);
+
+        
+        MOZ_ASSERT(js::GetObjectCompartment(aOldScope->GetGlobalJSObject()) !=
+                   js::GetObjectCompartment(aNewScope->GetGlobalJSObject()));
+        NS_ASSERTION(aNewParent, "won't be able to find the new parent");
+        NS_ASSERTION(wrapper, "can't transplant slim wrappers");
 
         if (!wrapper)
             oldProto = GetSlimWrapperProto(flat);
@@ -1639,108 +1636,100 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 (void) newMap->Add(wrapper);
             }
 
+            JSObject *newobj = JS_CloneObject(ccx, flat,
+                                              newProto->GetJSProtoObject(),
+                                              aNewParent);
+            if (!newobj)
+                return NS_ERROR_FAILURE;
+
+            JSObject *propertyHolder =
+                JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
+            if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
+                return NS_ERROR_OUT_OF_MEMORY;
+
             
             
-
-            if (crosscompartment) {
-                JSObject *newobj = JS_CloneObject(ccx, flat,
-                                                  newProto->GetJSProtoObject(),
-                                                  aNewParent);
-                if (!newobj)
+            
+            {
+                JSAutoEnterCompartment innerAC;
+                if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
+                    !wrapper->GetSameCompartmentSecurityWrapper(ccx))
                     return NS_ERROR_FAILURE;
-
-                JS_SetPrivate(flat, nsnull);
-
-                JSObject *propertyHolder =
-                    JS_NewObjectWithGivenProto(ccx, NULL, NULL, aNewParent);
-                if (!propertyHolder || !JS_CopyPropertiesFrom(ccx, propertyHolder, flat))
-                    return NS_ERROR_OUT_OF_MEMORY;
-
-                
-                
-                
-                {
-                    JSAutoEnterCompartment innerAC;
-                    if (!innerAC.enter(ccx, aOldScope->GetGlobalJSObject()) ||
-                        !wrapper->GetSameCompartmentSecurityWrapper(ccx))
-                        return NS_ERROR_FAILURE;
-                }
-
-                JSObject *ww = wrapper->GetWrapper();
-                if (ww) {
-                    JSObject *newwrapper;
-                    MOZ_ASSERT(!xpc::WrapperFactory::IsComponentsObject(flat), 
-                               "Components object should never get here");
-                    if (xpc::WrapperFactory::IsLocationObject(flat)) {
-                        newwrapper = xpc::WrapperFactory::WrapLocationObject(ccx, newobj);
-                        if (!newwrapper)
-                            return NS_ERROR_FAILURE;
-                    } else {
-                        NS_ASSERTION(wrapper->NeedsSOW(), "weird wrapper wrapper");
-                        newwrapper = xpc::WrapperFactory::WrapSOWObject(ccx, newobj);
-                        if (!newwrapper)
-                            return NS_ERROR_FAILURE;
-                    }
-
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    JSObject *wwsaved = ww;
-                    wrapper->SetWrapper(newwrapper);
-                    ww = js_TransplantObjectWithWrapper(ccx, flat, ww, newobj,
-                                                        newwrapper);
-                    if (!ww) {
-                        wrapper->SetWrapper(wwsaved);
-                        return NS_ERROR_FAILURE;
-                    }
-
-                    flat = newobj;
-                } else {
-                    flat = JS_TransplantObject(ccx, flat, newobj);
-                    if (!flat)
-                        return NS_ERROR_FAILURE;
-                }
-
-                wrapper->mFlatJSObject = flat;
-                if (cache)
-                    cache->SetWrapper(flat);
-                if (!JS_CopyPropertiesFrom(ccx, flat, propertyHolder))
-                    return NS_ERROR_FAILURE;
-            } else {
-                if (wrapper->HasProto() &&
-                    js::GetObjectProto(flat) == oldProto->GetJSProtoObject()) {
-                    if (!JS_SetPrototype(ccx, flat, newProto->GetJSProtoObject())) {
-                        
-                        NS_ERROR("JS_SetPrototype failed");
-                        return NS_ERROR_FAILURE;
-                    }
-                } else {
-                    NS_WARNING("Moving XPConnect wrappedNative to new scope, "
-                               "but can't fixup __proto__");
-                }
             }
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            JS_SetPrivate(flat, nsnull);
+
+            JSObject *ww = wrapper->GetWrapper();
+            if (ww) {
+                JSObject *newwrapper;
+                MOZ_ASSERT(!xpc::WrapperFactory::IsComponentsObject(flat), 
+                           "Components object should never get here");
+                if (xpc::WrapperFactory::IsLocationObject(flat)) {
+                    newwrapper = xpc::WrapperFactory::WrapLocationObject(ccx, newobj);
+                    if (!newwrapper)
+                        return NS_ERROR_FAILURE;
+                } else {
+                    NS_ASSERTION(wrapper->NeedsSOW(), "weird wrapper wrapper");
+                    newwrapper = xpc::WrapperFactory::WrapSOWObject(ccx, newobj);
+                    if (!newwrapper)
+                        return NS_ERROR_FAILURE;
+                }
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                JSObject *wwsaved = ww;
+                wrapper->SetWrapper(newwrapper);
+                ww = js_TransplantObjectWithWrapper(ccx, flat, ww, newobj,
+                                                    newwrapper);
+                if (!ww) {
+                    wrapper->SetWrapper(wwsaved);
+                    return NS_ERROR_FAILURE;
+                }
+
+                flat = newobj;
+            } else {
+                flat = JS_TransplantObject(ccx, flat, newobj);
+                if (!flat)
+                    return NS_ERROR_FAILURE;
+            }
+
+            wrapper->mFlatJSObject = flat;
+            if (cache)
+                cache->SetWrapper(flat);
+            if (!JS_CopyPropertiesFrom(ccx, flat, propertyHolder))
+                return NS_ERROR_FAILURE;
         } else {
             JS_SetReservedSlot(flat, 0,
                                PRIVATE_TO_JSVAL(newProto.get()));
@@ -1870,8 +1859,8 @@ return_tearoff:
 
         
         JSObject *unsafeObj = cx
-                              ? XPCWrapper::Unwrap(cx, cur)
-                              : XPCWrapper::UnsafeUnwrapSecurityWrapper(cur);
+                              ? XPCWrapper::Unwrap(cx, cur,  false)
+                              : js::UnwrapObject(cur,  false);
         if (unsafeObj) {
             obj = unsafeObj;
             goto restart;

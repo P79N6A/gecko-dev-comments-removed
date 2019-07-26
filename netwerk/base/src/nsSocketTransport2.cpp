@@ -564,8 +564,7 @@ nsSocketOutputStream::Write(const char *buf, PRUint32 count, PRUint32 *countWrit
     *countWritten = 0;
 
     
-    if (count == 0 && mByteCount)
-        return NS_OK;
+    
 
     PRFileDesc* fd = nsnull;
     {

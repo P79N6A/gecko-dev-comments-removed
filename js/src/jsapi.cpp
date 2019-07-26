@@ -797,6 +797,7 @@ JSRuntime::JSRuntime()
     pendingProxyOperation(NULL),
     trustedPrincipals_(NULL),
     wrapObjectCallback(TransparentObjectWrapper),
+    sameCompartmentWrapObjectCallback(NULL),
     preWrapObjectCallback(NULL),
     preserveWrapperCallback(NULL),
 #ifdef DEBUG
@@ -1356,10 +1357,12 @@ JS_SetDestroyCompartmentCallback(JSRuntime *rt, JSDestroyCompartmentCallback cal
 JS_PUBLIC_API(JSWrapObjectCallback)
 JS_SetWrapObjectCallbacks(JSRuntime *rt,
                           JSWrapObjectCallback callback,
+                          JSSameCompartmentWrapObjectCallback sccallback,
                           JSPreWrapCallback precallback)
 {
     JSWrapObjectCallback old = rt->wrapObjectCallback;
     rt->wrapObjectCallback = callback;
+    rt->sameCompartmentWrapObjectCallback = sccallback;
     rt->preWrapObjectCallback = precallback;
     return old;
 }
@@ -1521,57 +1524,104 @@ JS_WrapValue(JSContext *cx, jsval *vp)
     return cx->compartment->wrap(cx, vp);
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target);
+
 JS_PUBLIC_API(JSObject *)
 JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
     AssertNoGC(cx);
+    JS_ASSERT(origobj != target);
 
-     
-     
-     
     JSCompartment *destination = target->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
     Value origv = ObjectValue(*origobj);
-    JSObject *obj;
+    JSObject *newIdentity;
 
     if (origobj->compartment() == destination) {
         
         
         
         
-        
-        
-        
-        
-        if (origobj != target && !origobj->swap(cx, target))
+        if (!origobj->swap(cx, target))
             return NULL;
-        obj = origobj;
+        newIdentity = origobj;
     } else if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
         
-        
-        
-        obj = &p->value.toObject();
+        newIdentity = &p->value.toObject();
         map.remove(p);
-        if (!obj->swap(cx, target))
+        if (!newIdentity->swap(cx, target))
             return NULL;
     } else {
         
-        
-        obj = target;
+        newIdentity = target;
     }
 
     
     
+    if (!RemapWrappers(cx, origobj, newIdentity))
+        return NULL;
+
+    
+    if (origobj->compartment() != destination) {
+        AutoCompartment ac(cx, origobj);
+        JSObject *newIdentityWrapper = newIdentity;
+        if (!ac.enter() || !JS_WrapObject(cx, &newIdentityWrapper))
+            return NULL;
+        if (!origobj->swap(cx, newIdentityWrapper))
+            return NULL;
+        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity),
+                                                             origv);
+    }
+
     
     
-    
-    Value targetv = ObjectValue(*obj);
+    return newIdentity;
+}
+
+
+
+
+
+static bool
+RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target)
+{
+    Value origv = ObjectValue(*orig);
+    Value targetv = ObjectValue(*target);
+
     CompartmentVector &vector = cx->runtime->compartments;
     AutoValueVector toTransplant(cx);
     if (!toTransplant.reserve(vector.length()))
-        return NULL;
+        return false;
 
     for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
         WrapperMap &pmap = (*p)->crossCompartmentWrappers;
@@ -1591,9 +1641,9 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         
         AutoCompartment ac(cx, wobj);
-        JSObject *tobj = obj;
+        JSObject *tobj = target;
         if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
-            return NULL;
+            return false;
 
         
         
@@ -1601,22 +1651,11 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         JS_ASSERT(tobj != wobj);
         if (!wobj->swap(cx, tobj))
-            return NULL;
+            return false;
         pmap.put(targetv, ObjectValue(*wobj));
     }
 
-    
-    if (origobj->compartment() != destination) {
-        AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
-        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
-            return NULL;
-        if (!origobj->swap(cx, tobj))
-            return NULL;
-        origobj->compartment()->crossCompartmentWrappers.put(targetv, origv);
-    }
-
-    return obj;
+    return true;
 }
 
 
@@ -1636,7 +1675,7 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 {
     AssertNoGC(cx);
 
-    JSObject *obj;
+    JSObject *newWrapper;
     JSCompartment *destination = targetobj->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
 
@@ -1649,74 +1688,49 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
-        obj = &p->value.toObject();
+        newWrapper = &p->value.toObject();
         map.remove(p);
-        if (!obj->swap(cx, targetwrapper))
+        if (!newWrapper->swap(cx, targetwrapper))
             return NULL;
     } else {
         
-        
-        obj = targetwrapper;
+        newWrapper = targetwrapper;
     }
 
     
     
     
-    
-    Value targetv = ObjectValue(*targetobj);
-    CompartmentVector &vector = cx->runtime->compartments;
-    AutoValueVector toTransplant(cx);
-    if (!toTransplant.reserve(vector.length()))
+    if (!RemapWrappers(cx, origobj, targetobj))
         return NULL;
 
-    for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
-        WrapperMap &pmap = (*p)->crossCompartmentWrappers;
-        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
-            
-            toTransplant.infallibleAppend(wp->value);
-        }
-    }
-
-    for (Value *begin = toTransplant.begin(), *end = toTransplant.end(); begin != end; ++begin) {
-        JSObject *wobj = &begin->toObject();
-        JSCompartment *wcompartment = wobj->compartment();
-        WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
-        JS_ASSERT(pmap.lookup(origv));
-        pmap.remove(origv);
-
-        
-        
-        AutoCompartment ac(cx, wobj);
-
-        JSObject *tobj = targetobj;
-        if (!ac.enter() || !wcompartment->wrap(cx, &tobj))
-            return NULL;
-
-        
-        
-        
-        
-        JS_ASSERT(tobj != wobj);
-        if (!wobj->swap(cx, tobj))
-            return NULL;
-        pmap.put(targetv, ObjectValue(*wobj));
-    }
-
+    
+    
     
     
     
     {
         AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
-        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
+        JSObject *wrapperGuts = targetobj;
+        if (!ac.enter() || !JS_WrapObject(cx, &wrapperGuts))
             return NULL;
-        if (!origwrapper->swap(cx, tobj))
+        if (!origwrapper->swap(cx, wrapperGuts))
             return NULL;
-        origwrapper->compartment()->crossCompartmentWrappers.put(targetv,
+        origwrapper->compartment()->crossCompartmentWrappers.put(ObjectValue(*targetobj),
                                                                  ObjectValue(*origwrapper));
     }
 
-    return obj;
+    return newWrapper;
+}
+
+
+
+
+
+
+JS_PUBLIC_API(JSBool)
+JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *obj)
+{
+    return RemapWrappers(cx, obj, obj);
 }
 
 JS_PUBLIC_API(JSObject *)
@@ -4806,13 +4820,6 @@ struct AutoLastFrameCheck {
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-inline static uint32_t
-JS_OPTIONS_TO_TCFLAGS(JSContext *cx)
-{
-    return (cx->hasRunOption(JSOPTION_COMPILE_N_GO) ? TCF_COMPILE_N_GO : 0) |
-           (cx->hasRunOption(JSOPTION_NO_SCRIPT_RVAL) ? TCF_NO_SCRIPT_RVAL : 0);
-}
-
 static JSScript *
 CompileUCScriptForPrincipalsCommon(JSContext *cx, JSObject *obj,
                                    JSPrincipals *principals, JSPrincipals *originPrincipals,
@@ -4825,8 +4832,11 @@ CompileUCScriptForPrincipalsCommon(JSContext *cx, JSObject *obj,
     assertSameCompartment(cx, obj, principals);
     AutoLastFrameCheck lfc(cx);
 
-    uint32_t tcflags = JS_OPTIONS_TO_TCFLAGS(cx) | TCF_NEED_SCRIPT_GLOBAL;
-    return frontend::CompileScript(cx, obj, NULL, principals, originPrincipals, tcflags,
+    bool compileAndGo = cx->hasRunOption(JSOPTION_COMPILE_N_GO);
+    bool noScriptRval = cx->hasRunOption(JSOPTION_NO_SCRIPT_RVAL);
+    bool needScriptGlobal = true;
+    return frontend::CompileScript(cx, obj, NULL, principals, originPrincipals,
+                                   compileAndGo, noScriptRval, needScriptGlobal,
                                    chars, length, filename, lineno, version);
 }
 
@@ -5020,10 +5030,12 @@ CompileUTF8FileHelper(JSContext *cx, JSObject *obj, JSPrincipals *principals,
     size_t decodelen = len;
     jschar *decodebuf = (jschar *)cx->malloc_(decodelen * sizeof(jschar));
     if (JS_DecodeUTF8(cx, buf, len, decodebuf, &decodelen)) {
-        uint32_t tcflags = JS_OPTIONS_TO_TCFLAGS(cx) | TCF_NEED_SCRIPT_GLOBAL;
+        bool compileAndGo = cx->hasRunOption(JSOPTION_COMPILE_N_GO);
+        bool noScriptRval = cx->hasRunOption(JSOPTION_NO_SCRIPT_RVAL);
+        bool needScriptGlobal = true;
         script = frontend::CompileScript(cx, obj, NULL, principals, NULL,
-                                         tcflags, decodebuf, decodelen,
-                                         filename, 1, cx->findVersion());
+                                         compileAndGo, noScriptRval, needScriptGlobal,
+                                         decodebuf, decodelen, filename, 1, cx->findVersion());
     } else {
         script = NULL;
     }
@@ -5314,15 +5326,15 @@ EvaluateUCScriptForPrincipalsCommon(JSContext *cx, JSObject *obj_,
 
     RootedVarObject obj(cx, obj_);
 
-    uint32_t flags = TCF_COMPILE_N_GO | TCF_NEED_SCRIPT_GLOBAL;
-    if (!rval)
-        flags |= TCF_NO_SCRIPT_RVAL;
+    bool compileAndGo = true;
+    bool noScriptRval = !rval;
+    bool needScriptGlobal = true;
 
     CHECK_REQUEST(cx);
     AutoLastFrameCheck lfc(cx);
     JSScript *script = frontend::CompileScript(cx, obj, NULL, principals, originPrincipals,
-                                               flags, chars, length, filename, lineno,
-                                               compileVersion);
+                                               compileAndGo, noScriptRval, needScriptGlobal,
+                                               chars, length, filename, lineno, compileVersion);
     if (!script)
         return false;
 

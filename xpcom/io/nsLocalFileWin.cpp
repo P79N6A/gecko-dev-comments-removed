@@ -253,9 +253,21 @@ private:
         seinfo.lpParameters =  NULL;
         seinfo.lpDirectory  = NULL;
         seinfo.nShow  = SW_SHOWNORMAL;
+
         
-        if (ShellExecuteExW(&seinfo))
+        
+        
+        WCHAR workingDirectory[MAX_PATH + 1] = { L'\0' };
+        wcsncpy(workingDirectory,  mResolvedPath.get(), MAX_PATH);
+        if (PathRemoveFileSpecW(workingDirectory)) {
+            seinfo.lpDirectory = workingDirectory;
+        } else {
+            NS_WARNING("Could not set working directory for launched file.");
+        }
+        
+        if (ShellExecuteExW(&seinfo)) {
             return NS_OK;
+        }
         DWORD r = GetLastError();
         
         

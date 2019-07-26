@@ -159,6 +159,15 @@ public:
   
 
 
+
+
+
+
+
+  virtual void ScrollToCSSPixels(nsIntPoint aScrollPosition) = 0;
+  
+
+
   enum ScrollUnit { DEVICE_PIXELS, LINES, PAGES, WHOLE };
   
 

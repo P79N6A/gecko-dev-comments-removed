@@ -3958,6 +3958,12 @@ var FullScreen = {
     
     document.getElementById("View:FullScreen").setAttribute("checked", enterFS);
 
+#ifdef XP_MACOSX
+    
+    document.getElementById("enterFullScreenItem").hidden = enterFS;
+    document.getElementById("exitFullScreenItem").hidden = !enterFS;
+#endif
+
     
     
     

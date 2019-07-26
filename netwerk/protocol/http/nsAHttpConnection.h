@@ -153,9 +153,13 @@ public:
     
     virtual nsAHttpTransaction::Classifier Classification() = 0;
     virtual void Classify(nsAHttpTransaction::Classifier newclass) = 0;
+
+    
+    
+    virtual PRInt64 BytesWritten() = 0;
 };
 
-#define NS_DECL_NSAHTTPCONNECTION \
+#define NS_DECL_NSAHTTPCONNECTION(fwdObject)                    \
     nsresult OnHeadersAvailable(nsAHttpTransaction *, nsHttpRequestHead *, nsHttpResponseHead *, bool *reset); \
     nsresult ResumeSend(); \
     nsresult ResumeRecv(); \
@@ -176,6 +180,8 @@ public:
     nsISocketTransport *Transport();        \
     PRUint32 CancelPipeline(nsresult originalReason);   \
     nsAHttpTransaction::Classifier Classification();    \
-    void Classify(nsAHttpTransaction::Classifier);
+    void Classify(nsAHttpTransaction::Classifier);      \
+    PRInt64 BytesWritten() \
+    {     return fwdObject ? (fwdObject)->BytesWritten() : 0; }
 
 #endif 

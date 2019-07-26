@@ -75,13 +75,16 @@ static const PRUint8 IS_HEX_DIGIT  = 0x01;
 static const PRUint8 START_IDENT   = 0x02;
 static const PRUint8 IS_IDENT      = 0x04;
 static const PRUint8 IS_WHITESPACE = 0x08;
+static const PRUint8 IS_URL_CHAR   = 0x10;
 
-#define W   IS_WHITESPACE
-#define I   IS_IDENT
-#define S            START_IDENT
-#define SI  IS_IDENT|START_IDENT
-#define XI  IS_IDENT            |IS_HEX_DIGIT
-#define XSI IS_IDENT|START_IDENT|IS_HEX_DIGIT
+#define W    IS_WHITESPACE
+#define I    IS_IDENT
+#define U                                      IS_URL_CHAR
+#define S             START_IDENT
+#define UI   IS_IDENT                         |IS_URL_CHAR
+#define USI  IS_IDENT|START_IDENT             |IS_URL_CHAR
+#define UXI  IS_IDENT            |IS_HEX_DIGIT|IS_URL_CHAR
+#define UXSI IS_IDENT|START_IDENT|IS_HEX_DIGIT|IS_URL_CHAR
 
 static const PRUint8 gLexTable[] = {
 
@@ -89,33 +92,33 @@ static const PRUint8 gLexTable[] = {
 
    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 
-   W,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  I,  0,  0,
+   W,  U,  0,  U,  U,  U,  U,  0,  0,  0,  U,  U,  U,  UI, U,  U,
 
-   XI, XI, XI, XI, XI, XI, XI, XI, XI, XI, 0,  0,  0,  0,  0,  0,
+   UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,UXI,U,  U,  U,  U,  U,  U,
 
-   0,  XSI,XSI,XSI,XSI,XSI,XSI,SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   U,UXSI,UXSI,UXSI,UXSI,UXSI,UXSI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, 0,  S,  0,  0,  SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,U,  S,  U,  U,  USI,
 
-   0,  XSI,XSI,XSI,XSI,XSI,XSI,SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   U,UXSI,UXSI,UXSI,UXSI,UXSI,UXSI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, 0,  0,  0,  0,  0,
-
-   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,U,  U,  U,  U,  0,
 
    0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
 
-   SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,
+
+   USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI,USI
 };
 
 MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(gLexTable) == 256,
@@ -124,9 +127,11 @@ MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(gLexTable) == 256,
 #undef W
 #undef S
 #undef I
-#undef XI
-#undef SI
-#undef XSI
+#undef U
+#undef UI
+#undef USI
+#undef UXI
+#undef UXSI
 
 static inline bool
 IsIdentStart(PRInt32 aChar)
@@ -160,6 +165,11 @@ IsHexDigit(PRInt32 ch) {
 static inline bool
 IsIdent(PRInt32 ch) {
   return ch >= 0 && (ch >= 256 || (gLexTable[ch] & IS_IDENT) != 0);
+}
+
+static inline bool
+IsURLChar(PRInt32 ch) {
+  return ch >= 0 && (ch >= 256 || (gLexTable[ch] & IS_URL_CHAR) != 0);
 }
 
 static inline PRUint32
@@ -887,37 +897,38 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
   nsString& ident = aToken.mIdent;
   ident.SetLength(0);
 
-  Pushback(ch);
-
   
   bool ok = true;
   for (;;) {
-    ch = Read();
-    if (ch < 0) break;
-    if (ch == '\\') {
-      if (!ParseAndAppendEscape(ident, false)) {
-        ok = false;
-        Pushback(ch);
-        break;
-      }
+    if (IsURLChar(ch)) {
+      
+      ident.Append(PRUnichar(ch));
+    } else if (ch == ')') {
+      
+      break;
     } else if (IsWhitespace(ch)) {
       
       EatWhiteSpace();
       
       ok = LookAheadOrEOF(')');
       break;
-    } else if (ch == '"' || ch == '\'' || ch == '(' || ch < PRUnichar(' ')) {
+    } else if (ch == '\\') {
+      if (!ParseAndAppendEscape(ident, false)) {
+        ok = false;
+        Pushback(ch);
+        break;
+      }
+    } else {
       
       ok = false;
       Pushback(ch); 
                     
       break;
-    } else if (ch == ')') {
-      
+    }
+
+    ch = Read();
+    if (ch < 0) {
       break;
-    } else {
-      
-      ident.Append(PRUnichar(ch));
     }
   }
 

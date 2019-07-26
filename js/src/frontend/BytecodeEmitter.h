@@ -1,49 +1,49 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=79:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef BytecodeEmitter_h__
 #define BytecodeEmitter_h__
 
-/*
- * JS bytecode generation.
- */
+
+
+
 #include "jstypes.h"
 #include "jsatom.h"
 #include "jsopcode.h"
@@ -59,14 +59,14 @@
 
 namespace js {
 
-/*
- * To reuse space in StmtInfo, rename breaks and continues for use during
- * try/catch/finally code generation and backpatching. To match most common
- * use cases, the macro argument is a struct, not a struct pointer. Only a
- * loop, switch, or label statement info record can have breaks and continues,
- * and only a for loop has an update backpatch chain, so it's safe to overlay
- * these for the "trying" StmtTypes.
- */
+
+
+
+
+
+
+
+
 #define CATCHNOTE(stmt)  ((stmt).update)
 #define GOSUBS(stmt)     ((stmt).breaks)
 #define GUARDJUMP(stmt)  ((stmt).continues)
@@ -77,8 +77,8 @@ struct TryNode {
 };
 
 struct CGObjectList {
-    uint32_t            length;     /* number of emitted so far objects */
-    ObjectBox           *lastbox;   /* last emitted object */
+    uint32_t            length;     
+    ObjectBox           *lastbox;   
 
     CGObjectList() : length(0), lastbox(NULL) {}
 
@@ -103,72 +103,76 @@ struct GlobalScope {
     RootedVarObject globalObj;
 };
 
-struct BytecodeEmitter : public TreeContext
+struct BytecodeEmitter
 {
+    SharedContext   *sc;            
+
+    BytecodeEmitter *parent;        
+
     struct {
-        jsbytecode  *base;          /* base of JS bytecode vector */
-        jsbytecode  *limit;         /* one byte beyond end of bytecode */
-        jsbytecode  *next;          /* pointer to next free bytecode */
-        jssrcnote   *notes;         /* source notes, see below */
-        unsigned    noteCount;      /* number of source notes so far */
-        unsigned    noteLimit;      /* limit number for source notes in notePool */
-        ptrdiff_t   lastNoteOffset; /* code offset for last source note */
-        unsigned    currentLine;    /* line number for tree-based srcnote gen */
+        jsbytecode  *base;          
+        jsbytecode  *limit;         
+        jsbytecode  *next;          
+        jssrcnote   *notes;         
+        unsigned    noteCount;      
+        unsigned    noteLimit;      
+        ptrdiff_t   lastNoteOffset; 
+        unsigned    currentLine;    
     } prolog, main, *current;
 
-    Parser          *parser;        /* the parser */
+    Parser          *parser;        
 
-    OwnedAtomIndexMapPtr atomIndices; /* literals indexed for mapping */
+    OwnedAtomIndexMapPtr atomIndices; 
     AtomDefnMapPtr  roLexdeps;
-    unsigned        firstLine;      /* first line, for JSScript::NewScriptFromEmitter */
+    unsigned        firstLine;      
 
-    int             stackDepth;     /* current stack depth in script frame */
-    unsigned        maxStackDepth;  /* maximum stack depth so far */
+    int             stackDepth;     
+    unsigned        maxStackDepth;  
 
-    unsigned        ntrynotes;      /* number of allocated so far try notes */
-    TryNode         *lastTryNode;   /* the last allocated try node */
+    unsigned        ntrynotes;      
+    TryNode         *lastTryNode;   
 
-    unsigned        arrayCompDepth; /* stack depth of array in comprehension */
+    unsigned        arrayCompDepth; 
 
-    unsigned        emitLevel;      /* js::frontend::EmitTree recursion level */
+    unsigned        emitLevel;      
 
     typedef HashMap<JSAtom *, Value> ConstMap;
-    ConstMap        constMap;       /* compile time constants */
+    ConstMap        constMap;       
 
-    GCConstList     constList;      /* constants to be included with the script */
+    GCConstList     constList;      
 
-    CGObjectList    objectList;     /* list of emitted objects */
-    CGObjectList    regexpList;     /* list of emitted regexp that will be
-                                       cloned during execution */
+    CGObjectList    objectList;     
+    CGObjectList    regexpList;     
 
-    GlobalScope     *globalScope;   /* frontend::CompileScript global scope, or null */
 
-    /* Vectors of pn_cookie slot values. */
+    GlobalScope     *globalScope;   
+
+    
     typedef Vector<uint32_t, 8> SlotVector;
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
-    uint16_t        typesetCount;   /* Number of JOF_TYPESET opcodes generated */
+    uint16_t        typesetCount;   
 
-    BytecodeEmitter(Parser *parser, unsigned lineno);
-    bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
+    
+    const bool      noScriptRval:1;     
+    const bool      needScriptGlobal:1; 
 
-    // This is a down-cast.  It's necessary and safe -- although
-    // TreeContext::parent is a |TreeContext *|, a BytecodeEmitter's parent is
-    // always itself a BytecodeEmitter.
-    BytecodeEmitter *parentBCE() {
-        return static_cast<BytecodeEmitter *>(parent);
-    }
 
-    /*
-     * Note that BytecodeEmitters are magic: they own the arena "top-of-stack"
-     * space above their tempMark points. This means that you cannot alloc from
-     * tempLifoAlloc and save the pointer beyond the next BytecodeEmitter
-     * destructor call.
-     */
+    bool            hasSingletons:1;    
+
+    BytecodeEmitter(Parser *parser, SharedContext *sc, unsigned lineno,
+                    bool noScriptRval, bool needScriptGlobal);
+    bool init();
+
+    
+
+
+
+
+
     ~BytecodeEmitter();
 
-    bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
     JSVersion version() const { return parser->versionWithFlags(); }
 
     bool isAliasedName(ParseNode *pn);
@@ -193,13 +197,13 @@ struct BytecodeEmitter : public TreeContext
     }
 
     bool checkSingletonContext() {
-        if (!compileAndGo() || inFunction())
+        if (!parser->compileAndGo || sc->inFunction)
             return false;
-        for (StmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
+        for (StmtInfo *stmt = sc->topStmt; stmt; stmt = stmt->down) {
             if (STMT_IS_LOOP(stmt))
                 return false;
         }
-        flags |= TCF_HAS_SINGLETONS;
+        hasSingletons = true;
         return true;
     }
 
@@ -228,154 +232,154 @@ struct BytecodeEmitter : public TreeContext
 
 namespace frontend {
 
-/*
- * Emit one bytecode.
- */
+
+
+
 ptrdiff_t
 Emit1(JSContext *cx, BytecodeEmitter *bce, JSOp op);
 
-/*
- * Emit two bytecodes, an opcode (op) with a byte of immediate operand (op1).
- */
+
+
+
 ptrdiff_t
 Emit2(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1);
 
-/*
- * Emit three bytecodes, an opcode with two bytes of immediate operands.
- */
+
+
+
 ptrdiff_t
 Emit3(JSContext *cx, BytecodeEmitter *bce, JSOp op, jsbytecode op1, jsbytecode op2);
 
-/*
- * Emit (1 + extra) bytecodes, for N bytes of op and its immediate operand.
- */
+
+
+
 ptrdiff_t
 EmitN(JSContext *cx, BytecodeEmitter *bce, JSOp op, size_t extra);
 
-/*
- * Like PopStatementTC(bce), also patch breaks and continues unless the top
- * statement info record represents a try-catch-finally suite. May fail if a
- * jump offset overflows.
- */
+
+
+
+
+
 JSBool
 PopStatementBCE(JSContext *cx, BytecodeEmitter *bce);
 
-/*
- * Define and lookup a primitive jsval associated with the const named by atom.
- * DefineCompileTimeConstant analyzes the constant-folded initializer at pn
- * and saves the const's value in bce->constList, if it can be used at compile
- * time. It returns true unless an error occurred.
- *
- * If the initializer's value could not be saved, DefineCompileTimeConstant
- * calls will return the undefined value. DefineCompileTimeConstant tries
- * to find a const value memorized for atom, returning true with *vp set to a
- * value other than undefined if the constant was found, true with *vp set to
- * JSVAL_VOID if not found, and false on error.
- */
+
+
+
+
+
+
+
+
+
+
+
+
 JSBool
 DefineCompileTimeConstant(JSContext *cx, BytecodeEmitter *bce, JSAtom *atom, ParseNode *pn);
 
-/*
- * Emit code into bce for the tree rooted at pn.
- */
+
+
+
 JSBool
 EmitTree(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn);
 
-/*
- * Emit function code using bce for the tree rooted at body.
- */
+
+
+
 JSBool
 EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *body);
 
-} /* namespace frontend */
+} 
 
-/*
- * Source notes generated along with bytecode for decompiling and debugging.
- * A source note is a uint8_t with 5 bits of type and 3 of offset from the pc
- * of the previous note. If 3 bits of offset aren't enough, extended delta
- * notes (SRC_XDELTA) consisting of 2 set high order bits followed by 6 offset
- * bits are emitted before the next note. Some notes have operand offsets
- * encoded immediately after them, in note bytes or byte-triples.
- *
- *                 Source Note               Extended Delta
- *              +7-6-5-4-3+2-1-0+           +7-6-5+4-3-2-1-0+
- *              |note-type|delta|           |1 1| ext-delta |
- *              +---------+-----+           +---+-----------+
- *
- * At most one "gettable" note (i.e., a note of type other than SRC_NEWLINE,
- * SRC_SETLINE, and SRC_XDELTA) applies to a given bytecode.
- *
- * NB: the js_SrcNoteSpec array in BytecodeEmitter.cpp is indexed by this
- * enum, so its initializers need to match the order here.
- *
- * Note on adding new source notes: every pair of bytecodes (A, B) where A and
- * B have disjoint sets of source notes that could apply to each bytecode may
- * reuse the same note type value for two notes (snA, snB) that have the same
- * arity in JSSrcNoteSpec. This is why SRC_IF and SRC_INITPROP have the same
- * value below.
- *
- * Don't forget to update XDR_BYTECODE_VERSION in vm/Xdr.h for all such
- * incompatible source note or other bytecode changes.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 enum SrcNoteType {
-    SRC_NULL        = 0,        /* terminates a note vector */
-    SRC_IF          = 1,        /* JSOP_IFEQ bytecode is from an if-then */
-    SRC_BREAK       = 1,        /* JSOP_GOTO is a break */
-    SRC_INITPROP    = 1,        /* disjoint meaning applied to JSOP_INITELEM or
-                                   to an index label in a regular (structuring)
-                                   or a destructuring object initialiser */
-    SRC_GENEXP      = 1,        /* JSOP_LAMBDA from generator expression */
-    SRC_IF_ELSE     = 2,        /* JSOP_IFEQ bytecode is from an if-then-else */
-    SRC_FOR_IN      = 2,        /* JSOP_GOTO to for-in loop condition from
-                                   before loop (same arity as SRC_IF_ELSE) */
-    SRC_FOR         = 3,        /* JSOP_NOP or JSOP_POP in for(;;) loop head */
-    SRC_WHILE       = 4,        /* JSOP_GOTO to for or while loop condition
-                                   from before loop, else JSOP_NOP at top of
-                                   do-while loop */
-    SRC_CONTINUE    = 5,        /* JSOP_GOTO is a continue, not a break;
-                                   JSOP_ENDINIT needs extra comma at end of
-                                   array literal: [1,2,,];
-                                   JSOP_DUP continuing destructuring pattern;
-                                   JSOP_POP at end of for-in */
-    SRC_DECL        = 6,        /* type of a declaration (var, const, let*) */
-    SRC_DESTRUCT    = 6,        /* JSOP_DUP starting a destructuring assignment
-                                   operation, with SRC_DECL_* offset operand */
-    SRC_PCDELTA     = 7,        /* distance forward from comma-operator to
-                                   next POP, or from CONDSWITCH to first CASE
-                                   opcode, etc. -- always a forward delta */
-    SRC_GROUPASSIGN = 7,        /* SRC_DESTRUCT variant for [a, b] = [c, d] */
-    SRC_DESTRUCTLET = 7,        /* JSOP_DUP starting a destructuring let
-                                   operation, with offset to JSOP_ENTERLET0 */
-    SRC_ASSIGNOP    = 8,        /* += or another assign-op follows */
-    SRC_COND        = 9,        /* JSOP_IFEQ is from conditional ?: operator */
-    SRC_BRACE       = 10,       /* mandatory brace, for scope or to avoid
-                                   dangling else */
-    SRC_HIDDEN      = 11,       /* opcode shouldn't be decompiled */
-    SRC_PCBASE      = 12,       /* distance back from annotated getprop or
-                                   setprop op to left-most obj.prop.subprop
-                                   bytecode -- always a backward delta */
-    SRC_LABEL       = 13,       /* JSOP_LABEL for label: with atomid immediate */
-    SRC_LABELBRACE  = 14,       /* JSOP_LABEL for label: {...} begin brace */
-    SRC_ENDBRACE    = 15,       /* JSOP_NOP for label: {...} end brace */
-    SRC_BREAK2LABEL = 16,       /* JSOP_GOTO for 'break label' with atomid */
-    SRC_CONT2LABEL  = 17,       /* JSOP_GOTO for 'continue label' with atomid */
-    SRC_SWITCH      = 18,       /* JSOP_*SWITCH with offset to end of switch,
-                                   2nd off to first JSOP_CASE if condswitch */
-    SRC_SWITCHBREAK = 18,       /* JSOP_GOTO is a break in a switch */
-    SRC_FUNCDEF     = 19,       /* JSOP_NOP for function f() with atomid */
-    SRC_CATCH       = 20,       /* catch block has guard */
-                                /* 21 is unused */
-    SRC_NEWLINE     = 22,       /* bytecode follows a source newline */
-    SRC_SETLINE     = 23,       /* a file-absolute source line number note */
-    SRC_XDELTA      = 24        /* 24-31 are for extended delta notes */
+    SRC_NULL        = 0,        
+    SRC_IF          = 1,        
+    SRC_BREAK       = 1,        
+    SRC_INITPROP    = 1,        
+
+
+    SRC_GENEXP      = 1,        
+    SRC_IF_ELSE     = 2,        
+    SRC_FOR_IN      = 2,        
+
+    SRC_FOR         = 3,        
+    SRC_WHILE       = 4,        
+
+
+    SRC_CONTINUE    = 5,        
+
+
+
+
+    SRC_DECL        = 6,        
+    SRC_DESTRUCT    = 6,        
+
+    SRC_PCDELTA     = 7,        
+
+
+    SRC_GROUPASSIGN = 7,        
+    SRC_DESTRUCTLET = 7,        
+
+    SRC_ASSIGNOP    = 8,        
+    SRC_COND        = 9,        
+    SRC_BRACE       = 10,       
+
+    SRC_HIDDEN      = 11,       
+    SRC_PCBASE      = 12,       
+
+
+    SRC_LABEL       = 13,       
+    SRC_LABELBRACE  = 14,       
+    SRC_ENDBRACE    = 15,       
+    SRC_BREAK2LABEL = 16,       
+    SRC_CONT2LABEL  = 17,       
+    SRC_SWITCH      = 18,       
+
+    SRC_SWITCHBREAK = 18,       
+    SRC_FUNCDEF     = 19,       
+    SRC_CATCH       = 20,       
+                                
+    SRC_NEWLINE     = 22,       
+    SRC_SETLINE     = 23,       
+    SRC_XDELTA      = 24        
 };
 
-/*
- * Constants for the SRC_DECL source note.
- *
- * NB: the var_prefix array in jsopcode.c depends on these dense indexes from
- * SRC_DECL_VAR through SRC_DECL_LET.
- */
+
+
+
+
+
+
 #define SRC_DECL_VAR            0
 #define SRC_DECL_CONST          1
 #define SRC_DECL_LET            2
@@ -412,11 +416,11 @@ enum SrcNoteType {
 #define SN_DELTA_LIMIT          ((ptrdiff_t)JS_BIT(SN_DELTA_BITS))
 #define SN_XDELTA_LIMIT         ((ptrdiff_t)JS_BIT(SN_XDELTA_BITS))
 
-/*
- * Offset fields follow certain notes and are frequency-encoded: an offset in
- * [0,0x7f] consumes one byte, an offset in [0x80,0x7fffff] takes three, and
- * the high bit of the first byte is set.
- */
+
+
+
+
+
 #define SN_3BYTE_OFFSET_FLAG    0x80
 #define SN_3BYTE_OFFSET_MASK    0x7f
 
@@ -426,18 +430,18 @@ enum SrcNoteType {
                                  : js_SrcNoteLength(sn))
 #define SN_NEXT(sn)             ((sn) + SN_LENGTH(sn))
 
-/* A source note array is terminated by an all-zero element. */
+
 #define SN_MAKE_TERMINATOR(sn)  (*(sn) = SRC_NULL)
 #define SN_IS_TERMINATOR(sn)    (*(sn) == SRC_NULL)
 
 namespace frontend {
 
-/*
- * Append a new source note of the given type (and therefore size) to bce's
- * notes dynamic array, updating bce->noteCount. Return the new note's index
- * within the array pointed at by bce->current->notes. Return -1 if out of
- * memory.
- */
+
+
+
+
+
+
 int
 NewSrcNote(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type);
 
@@ -448,9 +452,9 @@ int
 NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset1,
                ptrdiff_t offset2);
 
-/*
- * NB: this function can add at most one extra extended delta note.
- */
+
+
+
 jssrcnote *
 AddToSrcNoteDelta(JSContext *cx, BytecodeEmitter *bce, jssrcnote *sn, ptrdiff_t delta);
 
@@ -460,18 +464,18 @@ FinishTakingSrcNotes(JSContext *cx, BytecodeEmitter *bce, jssrcnote *notes);
 void
 FinishTakingTryNotes(BytecodeEmitter *bce, TryNoteArray *array);
 
-} /* namespace frontend */
+} 
 
-/*
- * Finish taking source notes in cx's notePool, copying final notes to the new
- * stable store allocated by the caller and passed in via notes. Return false
- * on malloc failure, which means this function reported an error.
- *
- * Use this to compute the number of jssrcnotes to allocate and pass in via
- * notes. This method knows a lot about details of FinishTakingSrcNotes, so
- * DON'T CHANGE js::frontend::FinishTakingSrcNotes WITHOUT CHECKING WHETHER
- * THIS METHOD NEEDS CORRESPONDING CHANGES!
- */
+
+
+
+
+
+
+
+
+
+
 inline ptrdiff_t
 BytecodeEmitter::countFinalSourceNotes()
 {
@@ -494,12 +498,12 @@ BytecodeEmitter::countFinalSourceNotes()
     return cnt;
 }
 
-/*
- * To avoid offending js_SrcNoteSpec[SRC_DECL].arity, pack the two data needed
- * to decompile let into one ptrdiff_t:
- *   offset: offset to the LEAVEBLOCK(EXPR) op (not including ENTER/LEAVE)
- *   groupAssign: whether this was an optimized group assign ([x,y] = [a,b])
- */
+
+
+
+
+
+
 inline ptrdiff_t PackLetData(size_t offset, bool groupAssign)
 {
     JS_ASSERT(offset <= (size_t(-1) >> 1));
@@ -516,20 +520,20 @@ inline bool LetDataToGroupAssign(ptrdiff_t w)
     return size_t(w) & 1;
 }
 
-} /* namespace js */
+} 
 
 struct JSSrcNoteSpec {
-    const char      *name;      /* name for disassembly/debugging output */
-    int8_t          arity;      /* number of offset operands */
+    const char      *name;      
+    int8_t          arity;      
 };
 
 extern JS_FRIEND_DATA(JSSrcNoteSpec)  js_SrcNoteSpec[];
 extern JS_FRIEND_API(unsigned)         js_SrcNoteLength(jssrcnote *sn);
 
-/*
- * Get and set the offset operand identified by which (0 for the first, etc.).
- */
+
+
+
 extern JS_FRIEND_API(ptrdiff_t)
 js_GetSrcNoteOffset(jssrcnote *sn, unsigned which);
 
-#endif /* BytecodeEmitter_h__ */
+#endif 

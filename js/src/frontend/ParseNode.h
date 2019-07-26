@@ -1065,9 +1065,9 @@ struct FunctionNode : public ParseNode {
 };
 
 struct NameNode : public ParseNode {
-    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, TreeContext *tc);
+    static NameNode *create(ParseNodeKind kind, JSAtom *atom, Parser *parser, SharedContext *sc);
 
-    inline void initCommon(TreeContext *tc);
+    inline void initCommon(SharedContext *sc);
 
 #ifdef DEBUG
     inline void dump(int indent);
@@ -1543,6 +1543,9 @@ struct FunctionBox : public ObjectBox
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
     uint32_t            tcflags;
+    bool                inWith:1;               
+
+    bool                inGenexpLambda:1;       
 
     JSFunction *function() const { return (JSFunction *) object; }
 

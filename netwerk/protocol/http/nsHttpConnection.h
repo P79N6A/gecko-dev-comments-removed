@@ -182,6 +182,8 @@ public:
     
     void  ReadTimeoutTick();
 
+    PRInt64 BytesWritten() { return mTotalBytesWritten; }
+
 private:
     
     nsresult ProxyStartSSL();
@@ -239,6 +241,7 @@ private:
     PRInt64                         mCurrentBytesRead;   
     PRInt64                         mMaxBytesRead;       
     PRInt64                         mTotalBytesRead;     
+    PRInt64                         mTotalBytesWritten;  
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 

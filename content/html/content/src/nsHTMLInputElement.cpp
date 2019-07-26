@@ -3311,15 +3311,13 @@ void
 nsHTMLInputElement::AddedToRadioGroup()
 {
   
-  bool notify = !mParserCreating;
-
   
-  
-  
-  
-  if (!mForm && !(IsInDoc() && GetParent())) {
+  if (!mForm && !IsInDoc()) {
     return;
   }
+
+  
+  bool notify = !mParserCreating;
 
   
   
