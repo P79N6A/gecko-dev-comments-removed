@@ -72,17 +72,10 @@ nsJARManifestItem::~nsJARManifestItem()
 
 
 
-static bool
-DeleteManifestEntry(nsHashKey* aKey, void* aData, void* closure)
-{
-
-  delete (nsJARManifestItem*)aData;
-  return true;
-}
 
 
 nsJAR::nsJAR(): mZip(new nsZipArchive()),
-                mManifestData(nullptr, nullptr, DeleteManifestEntry, nullptr, 10),
+                mManifestData(10),
                 mParsedManifest(false),
                 mGlobalStatus(JAR_MANIFEST_NOT_PARSED),
                 mReleaseTime(PR_INTERVAL_NO_TIMEOUT),
@@ -189,7 +182,7 @@ nsJAR::Close()
 {
   mOpened = false;
   mParsedManifest = false;
-  mManifestData.Reset();
+  mManifestData.Clear();
   mGlobalStatus = JAR_MANIFEST_NOT_PARSED;
   mTotalItemsInManifest = 0;
 
@@ -359,8 +352,7 @@ nsJAR::GetCertificatePrincipal(const nsACString &aFilename, nsICertificatePrinci
   if (!aFilename.IsEmpty())
   {
     
-    nsCStringKey key(aFilename);
-    nsJARManifestItem* manItem = static_cast<nsJARManifestItem*>(mManifestData.Get(&key));
+    nsJARManifestItem* manItem = mManifestData.Get(aFilename);
     if (!manItem)
       return NS_OK;
     
@@ -660,9 +652,9 @@ nsJAR::ParseOneFile(const char* filebuf, int16_t aFileType)
                 curItemMF->mType = JAR_INVALID;
             }
             
-            nsCStringKey key(curItemName);
-            if (mManifestData.Exists(&key))
+            if (mManifestData.Contains(curItemName)) {
               curItemMF->mType = JAR_INVALID;
+            }
           }
         }
 
@@ -674,8 +666,7 @@ nsJAR::ParseOneFile(const char* filebuf, int16_t aFileType)
           CalculateDigest(sectionStart, sectionLength,
                           curItemMF->calculatedSectionDigest);
           
-          nsCStringKey itemKey(curItemName);
-          mManifestData.Put(&itemKey, (void*)curItemMF);
+          mManifestData.Put(curItemName, curItemMF);
         }
         if (nextLineStart == nullptr) 
           break;
@@ -690,9 +681,7 @@ nsJAR::ParseOneFile(const char* filebuf, int16_t aFileType)
       {
         if (foundName)
         {
-          nsJARManifestItem* curItemSF;
-          nsCStringKey key(curItemName);
-          curItemSF = (nsJARManifestItem*)mManifestData.Get(&key);
+          nsJARManifestItem* curItemSF = mManifestData.Get(curItemName);
           if(curItemSF)
           {
             NS_ASSERTION(curItemSF->status == JAR_NOT_SIGNED,
