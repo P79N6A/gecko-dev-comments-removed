@@ -56,6 +56,9 @@ Dump(Writer aWriter);
 
 
 
+
+
+
 MOZ_EXPORT void
 FpWrite(void* aFp, const char* aFmt, va_list aAp);
 
