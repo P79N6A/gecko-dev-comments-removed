@@ -371,19 +371,20 @@ nsScreen::MozLockOrientation(const Sequence<nsString>& aOrientations,
     case LOCK_ALLOWED:
       return hal::LockScreenOrientation(orientation);
     case FULLSCREEN_LOCK_ALLOWED: {
-      if (!hal::LockScreenOrientation(orientation)) {
-        return false;
-      }
-
+      
       
       
       
       nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(GetOwner());
       if (!target) {
-        
-        return true;
+        return false;
       }
 
+      if (!hal::LockScreenOrientation(orientation)) {
+        return false;
+      }
+
+      
       if (!mEventListener) {
         mEventListener = new FullScreenEventListener();
       }
