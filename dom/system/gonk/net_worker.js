@@ -253,21 +253,6 @@ function setDefaultRouteAndDNS(options) {
 
 
 
-
-function runDHCPAndSetDefaultRouteAndDNS(options) {
-  let dhcp = libnetutils.dhcp_do_request(options.ifname);
-  dhcp.ifname = options.ifname;
-  dhcp.oldIfname = options.oldIfname;
-
-  
-  
-  
-  setDefaultRouteAndDNS(dhcp);
-}
-
-
-
-
 function removeDefaultRoute(options) {
   libnetutils.ifc_remove_default_route(options.ifname);
 }

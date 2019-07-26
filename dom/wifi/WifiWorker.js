@@ -1826,10 +1826,6 @@ let WifiNetworkInterface = {
 
   name: null,
 
-  
-  
-  dhcp: false,
-
   ip: null,
 
   netmask: null,
