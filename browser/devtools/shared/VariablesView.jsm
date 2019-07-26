@@ -45,13 +45,26 @@ VariablesView.prototype = {
 
 
 
+  set rawObject(aObject) {
+    this.empty();
+    this.addScope().addVar().populate(aObject);
+  },
 
-  addScope: function VV_addScope(aName) {
+  
+
+
+
+
+
+
+
+  addScope: function VV_addScope(aName = "") {
     this._removeEmptyNotice();
 
     let scope = new Scope(this, aName);
     this._store.set(scope.id, scope);
     this._currHierarchy.set(aName, scope);
+    scope.header = !!aName;
     return scope;
   },
 
@@ -382,7 +395,7 @@ Scope.prototype = {
 
 
 
-  addVar: function S_addVar(aName, aDescriptor = {}) {
+  addVar: function S_addVar(aName = "", aDescriptor = {}) {
     if (this._store.has(aName)) {
       return null;
     }
@@ -390,6 +403,7 @@ Scope.prototype = {
     let variable = new Variable(this, aName, aDescriptor);
     this._store.set(aName, variable);
     this._variablesView._currHierarchy.set(variable._absoluteName, variable);
+    variable.header = !!aName;
     return variable;
   },
 
@@ -489,6 +503,24 @@ Scope.prototype = {
   
 
 
+  showHeader: function S_showHeader() {
+    this._target.removeAttribute("non-header");
+    this._isHeaderVisible = true;
+  },
+
+  
+
+
+
+  hideHeader: function S_hideHeader() {
+    this.expand();
+    this._target.setAttribute("non-header", "");
+    this._isHeaderVisible = false;
+  },
+
+  
+
+
   showArrow: function S_showArrow() {
     this._arrow.removeAttribute("invisible");
     this._isArrowVisible = true;
@@ -518,6 +550,12 @@ Scope.prototype = {
 
 
 
+  get header() this._isHeaderVisible,
+
+  
+
+
+
   get twisty() this._isArrowVisible,
 
   
@@ -531,6 +569,12 @@ Scope.prototype = {
 
 
   set expanded(aFlag) aFlag ? this.expand() : this.collapse(),
+
+  
+
+
+
+  set header(aFlag) aFlag ? this.showHeader() : this.hideHeader(),
 
   
 
@@ -760,11 +804,13 @@ Scope.prototype = {
 
   ownerView: null,
   eval: null,
+  fetched: false,
   _committed: false,
   _locked: false,
   _isShown: true,
   _isExpanded: false,
   _wasToggled: false,
+  _isHeaderVisible: true,
   _isArrowVisible: true,
   _isMatch: true,
   _store: null,
@@ -823,7 +869,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
-  addProperty: function V_addProperty(aName, aDescriptor = {}) {
+  addProperty: function V_addProperty(aName = "", aDescriptor = {}) {
     if (this._store.has(aName)) {
       return null;
     }
@@ -831,6 +877,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
     let property = new Property(this, aName, aDescriptor);
     this._store.set(aName, property);
     this._variablesView._currHierarchy.set(property._absoluteName, property);
+    property.header = !!aName;
     return property;
   },
 
@@ -859,6 +906,88 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this.addProperty(name, aProperties[name]);
     }
   },
+
+  
+
+
+
+
+
+  populate: function V_populate(aObject) {
+    
+    if (this.fetched) {
+      return;
+    }
+
+    
+    let sortedPropertyNames = Object.getOwnPropertyNames(aObject).sort();
+    let prototype = Object.getPrototypeOf(aObject);
+
+    
+    for (let name of sortedPropertyNames) {
+      let descriptor = Object.getOwnPropertyDescriptor(aObject, name);
+      if (descriptor.get || descriptor.set) {
+        this._addRawNonValueProperty(name, descriptor);
+      } else {
+        this._addRawValueProperty(name, descriptor, aObject[name]);
+      }
+    }
+    
+    if (prototype) {
+      this._addRawValueProperty("__proto__", {}, prototype);
+    }
+
+    this.fetched = true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _addRawValueProperty: function V__addRawValueProperty(aName, aDescriptor, aValue) {
+    let descriptor = Object.create(aDescriptor);
+    descriptor.value = VariablesView.getGrip(aValue);
+
+    let propertyItem = this.addProperty(aName, descriptor);
+
+    
+    
+    if (!VariablesView.isPrimitive(descriptor)) {
+      propertyItem.onexpand = this.populate.bind(propertyItem, aValue);
+    }
+
+    return propertyItem;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _addRawNonValueProperty: function V__addRawNonValueProperty(aName, aDescriptor) {
+    let descriptor = Object.create(aDescriptor);
+    descriptor.get = VariablesView.getGrip(aDescriptor.get);
+    descriptor.set = VariablesView.getGrip(aDescriptor.set);
+
+    let propertyItem = this.addProperty(aName, descriptor);
+    return propertyItem;
+  },
+
+  
+
+
+  get value() this._initialDescriptor.value,
 
   
 
@@ -961,8 +1090,8 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       this.hideArrow();
     }
     if (aDescriptor.get || aDescriptor.set) {
-      this.addProperty("get ", { value: aDescriptor.get });
-      this.addProperty("set ", { value: aDescriptor.set });
+      this.addProperty("get", { value: aDescriptor.get });
+      this.addProperty("set", { value: aDescriptor.set });
       this.expand(true);
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
@@ -1297,6 +1426,31 @@ VariablesView.isPrimitive = function VV_isPrimitive(aDescriptor) {
   }
 
   return false;
+};
+
+
+
+
+
+
+
+
+
+VariablesView.getGrip = function VV_getGrip(aValue) {
+  if (aValue === undefined) {
+    return { type: "undefined" };
+  }
+  if (aValue === null) {
+    return { type: "null" };
+  }
+  if (typeof aValue == "object" || typeof aValue == "function") {
+    if (aValue.constructor) {
+      return { type: "object", class: aValue.constructor.name };
+    } else {
+      return { type: "object", class: "Object" };
+    }
+  }
+  return aValue;
 };
 
 
