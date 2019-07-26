@@ -13,6 +13,7 @@
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/ISurfaceAllocator.h"  
 #include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/TextureClient.h"  
 #include "nsRegion.h"                   
 
 struct nsIntPoint;
@@ -27,10 +28,8 @@ class SurfaceDescriptor;
 class SurfaceDescriptorTiles;
 class ThebesBufferData;
 class DeprecatedTextureClient;
-class TextureClient;
 class BasicTiledLayerBuffer;
 class PTextureChild;
-class TextureClientData;
 
 
 
@@ -166,6 +165,29 @@ public:
 
 
 
+  virtual void AddForceRemovingTexture(TextureClient* aClient)
+  {
+    if (aClient) {
+      mForceRemovingTextures.AppendElement(aClient);
+    }
+  }
+
+  
+
+
+
+  virtual void ForceRemoveTexturesIfNecessary()
+  {
+    for (uint32_t i = 0; i < mForceRemovingTextures.Length(); i++) {
+       mForceRemovingTextures[i]->ForceRemove();
+    }
+    mForceRemovingTextures.Clear();
+  }
+
+  
+
+
+
   virtual void UseTexture(CompositableClient* aCompositable,
                           TextureClient* aClient) = 0;
 
@@ -219,6 +241,7 @@ public:
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
   bool mMultiProcess;
+  nsTArray<RefPtr<TextureClient> > mForceRemovingTextures;
 };
 
 } 
