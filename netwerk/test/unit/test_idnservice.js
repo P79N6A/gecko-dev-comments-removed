@@ -29,6 +29,11 @@ function run_test() {
   pbi.setBoolPref("network.IDN.whitelist.es", true);
 
   
+  
+  var oldProfile = pbi.getCharPref("network.IDN.restriction_profile", "moderate");
+  pbi.setCharPref("network.IDN.restriction_profile", "ASCII");
+
+  
   var isASCII = {};
   do_check_eq(idnService.convertToDisplayIDN("b\u00FCcher.es", isASCII), "b\u00FCcher.es");
   do_check_eq(isASCII.value, false);
@@ -45,4 +50,7 @@ function run_test() {
   do_check_eq(isASCII.value, false);
   do_check_eq(idnService.convertToDisplayIDN("test.xn--k-dha", isASCII), "test.\u00FCk");
   do_check_eq(isASCII.value, false);
+
+  
+  pbi.setCharPref("network.IDN.restriction_profile", oldProfile);
 }
