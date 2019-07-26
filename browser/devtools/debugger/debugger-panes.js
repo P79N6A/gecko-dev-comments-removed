@@ -1815,12 +1815,6 @@ VariableBubbleView.prototype = {
 
 
 
-  _ignoreLiterals: true,
-
-  
-
-
-
 
 
 
@@ -1856,8 +1850,7 @@ VariableBubbleView.prototype = {
     let identifierInfo = parsedSource.getIdentifierAt({
       line: scriptLine + 1,
       column: scriptColumn,
-      scriptIndex: scriptInfo.index,
-      ignoreLiterals: this._ignoreLiterals
+      scriptIndex: scriptInfo.index
     });
 
     
