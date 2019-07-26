@@ -487,7 +487,7 @@ abstract public class BrowserApp extends GeckoApp
             Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
         }
 
-        ((GeckoApp.MainLayout) mMainLayout).setTouchEventInterceptor(new HideOnTouchListener());
+        ((GeckoApp.MainLayout) mMainLayout).setTouchEventInterceptor(new HideTabsTouchListener());
         ((GeckoApp.MainLayout) mMainLayout).setMotionEventInterceptor(new MotionEventInterceptor() {
             @Override
             public boolean onInterceptMotionEvent(View view, MotionEvent event) {
@@ -1985,17 +1985,11 @@ abstract public class BrowserApp extends GeckoApp
         mBrowserSearch.setUserVisibleHint(false);
     }
 
-    
-
-
-
-    private class HideOnTouchListener implements TouchEventInterceptor {
+    private class HideTabsTouchListener implements TouchEventInterceptor {
         private boolean mIsHidingTabs = false;
 
         @Override
         public boolean onInterceptTouchEvent(View view, MotionEvent event) {
-            getButtonToast().hide(false, ButtonToast.ReasonHidden.TOUCH_OUTSIDE);
-
             
             
             
