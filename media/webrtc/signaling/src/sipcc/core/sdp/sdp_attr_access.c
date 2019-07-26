@@ -4023,6 +4023,43 @@ sdp_result_e sdp_attr_set_ice_attribute(void *sdp_ptr, u16 level,
 
 
 
+tinybool sdp_attr_is_present (void *sdp_ptr, sdp_attr_e attr_type, u16 level,
+                              u8 cap_num)
+{
+    sdp_t       *sdp_p = (sdp_t *)sdp_ptr;
+    sdp_attr_t  *attr_p;
+
+    if (sdp_verify_sdp_ptr(sdp_p) == FALSE) {
+        return (FALSE);
+    }
+
+    attr_p = sdp_find_attr(sdp_p, level, cap_num, attr_type, 1);
+    if (attr_p != NULL) {
+        return (TRUE);
+    }
+    if (sdp_p->debug_flag[SDP_DEBUG_WARNINGS]) {
+        CSFLogDebug(logTag, "%s Attribute %s, level %u not found.",
+                    sdp_p->debug_str, sdp_get_attr_name(attr_type), level);
+    }
+
+    return (FALSE);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 sdp_result_e sdp_attr_get_rtcp_mux_attribute (void *sdp_ptr, u16 level,
                                   u8 cap_num, sdp_attr_e sdp_attr, u16 inst_num,

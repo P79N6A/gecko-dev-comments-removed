@@ -225,6 +225,8 @@ class NrIceCtx {
   
   nsresult SetControlling(Controlling controlling);
 
+  Controlling GetControlling();
+
   
   
   nsresult SetStunServers(const std::vector<NrIceStunServer>& stun_servers);

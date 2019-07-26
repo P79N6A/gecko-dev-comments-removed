@@ -469,7 +469,9 @@ short vcmGetIceParams(const char *peerconnection, char **ufragp, char **pwdp);
 
 
 
-short vcmSetIceSessionParams(const char *peerconnection, char *ufrag, char *pwd);
+
+short vcmSetIceSessionParams(const char *peerconnection, char *ufrag, char *pwd,
+                             cc_boolean icelite);
 
 
 

@@ -803,9 +803,11 @@ short vcmGetIceParams(const char *peerconnection,
 
 
 
+
 static short vcmSetIceSessionParams_m(const char *peerconnection,
                                       char *ufrag,
-                                      char *pwd)
+                                      char *pwd,
+                                      cc_boolean icelite)
 {
   CSFLogDebug( logTag, "%s: PC = %s", __FUNCTION__, peerconnection);
 
@@ -818,7 +820,9 @@ static short vcmSetIceSessionParams_m(const char *peerconnection,
     attributes.push_back(ufrag);
   if (pwd)
     attributes.push_back(pwd);
-
+  if (icelite) {
+    attributes.push_back("ice-lite");
+  }
   nsresult res = pc.impl()->media()->ice_ctx()->
     ParseGlobalAttributes(attributes);
 
@@ -840,9 +844,11 @@ static short vcmSetIceSessionParams_m(const char *peerconnection,
 
 
 
+
 short vcmSetIceSessionParams(const char *peerconnection,
                              char *ufrag,
-                             char *pwd)
+                             char *pwd,
+                             cc_boolean icelite)
 {
   short ret;
 
@@ -851,6 +857,7 @@ short vcmSetIceSessionParams(const char *peerconnection,
                         peerconnection,
                         ufrag,
                         pwd,
+                        icelite,
                         &ret));
 
   return ret;
