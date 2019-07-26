@@ -1324,6 +1324,23 @@ MarionetteDriverActor.prototype = {
     }
   },
 
+
+
+
+
+
+
+ sendMouseEvent: function MDA_sendMouseEvent(aRequest) {
+   this.command_id = this.getCommandId();
+   if (this.context == "chrome") {
+     this.sendError("Not in Chrome", 500, null, this.command_id);
+    }
+    else {
+      this.sendAsync("sendMouseEvent", {value: aRequest.value,
+                                        command_id: this.command_id});
+    }
+ },
+
   
 
 
@@ -2308,6 +2325,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "executeAsyncScript": MarionetteDriverActor.prototype.executeWithCallback,
   "executeJSScript": MarionetteDriverActor.prototype.executeJSScript,
   "setSearchTimeout": MarionetteDriverActor.prototype.setSearchTimeout,
+  "sendMouseEvent": MarionetteDriverActor.prototype.sendMouseEvent,
   "findElement": MarionetteDriverActor.prototype.findElement,
   "findElements": MarionetteDriverActor.prototype.findElements,
   "clickElement": MarionetteDriverActor.prototype.clickElement,
