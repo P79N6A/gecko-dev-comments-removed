@@ -756,11 +756,11 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
     
     gfxFloat inverseResolution = 1 / CalculateResolution(mFrameMetrics).width;
 
-    int32_t xDisplacement = mX.GetDisplacementForDuration(inverseResolution,
-                                                          timeDelta);
-    int32_t yDisplacement = mY.GetDisplacementForDuration(inverseResolution,
-                                                          timeDelta);
-    if (!xDisplacement && !yDisplacement) {
+    float xDisplacement = mX.GetDisplacementForDuration(inverseResolution,
+                                                        timeDelta);
+    float yDisplacement = mY.GetDisplacementForDuration(inverseResolution,
+                                                        timeDelta);
+    if (fabs(xDisplacement) <= EPSILON && fabs(yDisplacement) <= EPSILON) {
       return;
     }
 
