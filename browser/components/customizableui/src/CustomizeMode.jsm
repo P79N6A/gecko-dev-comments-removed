@@ -136,6 +136,11 @@ CustomizeMode.prototype = {
 
     this._handler.isEnteringCustomizeMode = true;
 
+    
+    
+    let resetButton = this.document.getElementById("customization-reset-button");
+    resetButton.setAttribute("disabled", "true");
+
     Task.spawn(function() {
       
       if (!this.window.gBrowserInit.delayedStartupFinished) {
@@ -312,6 +317,11 @@ CustomizeMode.prototype = {
     
     let panelContents = window.PanelUI.contents;
     panelContents.setAttribute("customize-transitioning", "true");
+
+    
+    let resetButton = this.document.getElementById("customization-reset-button");
+    let undoResetButton = this.document.getElementById("customization-undo-reset-button");
+    undoResetButton.hidden = resetButton.disabled = true;
 
     this._transitioning = true;
 
