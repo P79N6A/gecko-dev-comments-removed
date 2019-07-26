@@ -30,6 +30,19 @@
 
   function waitForPaints(callback, subdoc, flushMode) {
     
+    var utils = SpecialPowers.getDOMWindowUtils(window);
+    if (utils.paintingSuppressed) {
+      if (debug) {
+        dump("waiting for paint suppression to end...\n");
+      }
+      onpaint = function() {};
+      window.setTimeout(function() {
+        waitForPaints(callback, subdoc, flushMode);
+      }, 0);
+      return;
+    }
+
+    
     
     
     if (flushMode === FlushModes.FLUSH) {
@@ -38,21 +51,26 @@
         subdoc.documentElement.getBoundingClientRect();
       }
     }
-    var utils = SpecialPowers.getDOMWindowUtils(window);
-    if (!utils.isMozAfterPaintPending) {
+
+    if (utils.isMozAfterPaintPending) {
       if (debug) {
-        dump("done...\n");
+        dump("waiting for paint...\n");
       }
-      var result = accumulatedRect || [ 0, 0, 0, 0 ];
-      accumulatedRect = null;
-      onpaint = function() {};
-      callback.apply(null, result);
+      onpaint =
+        function() { waitForPaints(callback, subdoc, FlushModes.NOFLUSH); };
+      if (utils.isTestControllingRefreshes) {
+        utils.advanceTimeAndRefresh(0);
+      }
       return;
     }
+
     if (debug) {
-      dump("waiting for paint...\n");
+      dump("done...\n");
     }
-    onpaint = function() { waitForPaints(callback, subdoc, flushMode); };
+    var result = accumulatedRect || [ 0, 0, 0, 0 ];
+    accumulatedRect = null;
+    onpaint = function() {};
+    callback.apply(null, result);
   }
 
   window.waitForAllPaintsFlushed = function(callback, subdoc) {
