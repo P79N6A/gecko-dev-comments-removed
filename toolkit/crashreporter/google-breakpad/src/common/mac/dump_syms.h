@@ -47,13 +47,15 @@
 #include "common/byte_cursor.h"
 #include "common/mac/macho_reader.h"
 #include "common/module.h"
+#include "common/symbol_data.h"
 
 namespace google_breakpad {
 
 class DumpSymbols {
  public:
-  DumpSymbols()
-      : input_pathname_(),
+  explicit DumpSymbols(SymbolData symbol_data)
+      : symbol_data_(symbol_data),
+        input_pathname_(),
         object_filename_(),
         contents_(),
         selected_object_file_(),
@@ -112,7 +114,7 @@ class DumpSymbols {
   
   
   
-  bool WriteSymbolFile(std::ostream &stream, bool cfi);
+  bool WriteSymbolFile(std::ostream &stream);
 
  private:
   
@@ -138,6 +140,9 @@ class DumpSymbols {
                const mach_o::Reader &macho_reader,
                const mach_o::Section &section,
                bool eh_frame) const;
+
+  
+  const SymbolData symbol_data_;
 
   
   

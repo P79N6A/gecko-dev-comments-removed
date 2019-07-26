@@ -39,6 +39,7 @@
 #include <string>
 #include <vector>
 
+#include "common/symbol_data.h"
 #include "common/using_std_string.h"
 
 namespace google_breakpad {
@@ -53,7 +54,7 @@ class Module;
 
 bool WriteSymbolFile(const string &obj_file,
                      const std::vector<string>& debug_dirs,
-                     bool cfi,
+                     SymbolData symbol_data,
                      std::ostream &sym_stream);
 
 
@@ -61,7 +62,7 @@ bool WriteSymbolFile(const string &obj_file,
 
 bool ReadSymbolData(const string& obj_file,
                     const std::vector<string>& debug_dirs,
-                    bool cfi,
+                    SymbolData symbol_data,
                     Module** module);
 
 }  

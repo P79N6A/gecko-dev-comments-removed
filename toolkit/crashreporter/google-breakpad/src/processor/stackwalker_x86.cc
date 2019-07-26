@@ -58,23 +58,23 @@ StackwalkerX86::cfi_register_map_[] = {
   
   
   
-  { "$eip", ".ra",  false,
+  { toUniqueString("$eip"), toUniqueString(".ra"),  false,
     StackFrameX86::CONTEXT_VALID_EIP, &MDRawContextX86::eip },
-  { "$esp", ".cfa", false,
+  { toUniqueString("$esp"), toUniqueString(".cfa"), false,
     StackFrameX86::CONTEXT_VALID_ESP, &MDRawContextX86::esp },
-  { "$ebp", NULL,   true,
+  { toUniqueString("$ebp"), NULL,   true,
     StackFrameX86::CONTEXT_VALID_EBP, &MDRawContextX86::ebp },
-  { "$eax", NULL,   false,
+  { toUniqueString("$eax"), NULL,   false,
     StackFrameX86::CONTEXT_VALID_EAX, &MDRawContextX86::eax },
-  { "$ebx", NULL,   true,
+  { toUniqueString("$ebx"), NULL,   true,
     StackFrameX86::CONTEXT_VALID_EBX, &MDRawContextX86::ebx },
-  { "$ecx", NULL,   false,
+  { toUniqueString("$ecx"), NULL,   false,
     StackFrameX86::CONTEXT_VALID_ECX, &MDRawContextX86::ecx },
-  { "$edx", NULL,   false,
+  { toUniqueString("$edx"), NULL,   false,
     StackFrameX86::CONTEXT_VALID_EDX, &MDRawContextX86::edx },
-  { "$esi", NULL,   true,
+  { toUniqueString("$esi"), NULL,   true,
     StackFrameX86::CONTEXT_VALID_ESI, &MDRawContextX86::esi },
-  { "$edi", NULL,   true,
+  { toUniqueString("$edi"), NULL,   true,
     StackFrameX86::CONTEXT_VALID_EDI, &MDRawContextX86::edi },
 };
 
@@ -199,16 +199,16 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
   
   PostfixEvaluator<u_int32_t>::DictionaryType dictionary;
   
-  dictionary["$ebp"] = last_frame->context.ebp;
-  dictionary["$esp"] = last_frame->context.esp;
+  dictionary.set(ustr__ZSebp(), last_frame->context.ebp);
+  dictionary.set(ustr__ZSesp(), last_frame->context.esp);
   
   
   
   
   
-  dictionary[".cbCalleeParams"] = last_frame_callee_parameter_size;
-  dictionary[".cbSavedRegs"] = last_frame_info->saved_register_size;
-  dictionary[".cbLocals"] = last_frame_info->local_size;
+  dictionary.set(ustr__ZDcbCalleeParams(), last_frame_callee_parameter_size);
+  dictionary.set(ustr__ZDcbSavedRegs(), last_frame_info->saved_register_size);
+  dictionary.set(ustr__ZDcbLocals(), last_frame_info->local_size);
 
   u_int32_t raSearchStart = last_frame->context.esp +
                             last_frame_callee_parameter_size +
@@ -237,10 +237,10 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
 
   
   
-  dictionary[".raSearchStart"] = raSearchStart;
-  dictionary[".raSearch"] = raSearchStart;
+  dictionary.set(ustr__ZDraSearchStart(), raSearchStart);
+  dictionary.set(ustr__ZDraSearch(), raSearchStart);
 
-  dictionary[".cbParams"] = last_frame_info->parameter_size;
+  dictionary.set(ustr__ZDcbParams(), last_frame_info->parameter_size);
 
   
   
@@ -330,8 +330,8 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
       PostfixEvaluator<u_int32_t>(&dictionary, memory_);
   PostfixEvaluator<u_int32_t>::DictionaryValidityType dictionary_validity;
   if (!evaluator.Evaluate(program_string, &dictionary_validity) ||
-      dictionary_validity.find("$eip") == dictionary_validity.end() ||
-      dictionary_validity.find("$esp") == dictionary_validity.end()) {
+      !dictionary_validity.have(ustr__ZSeip()) ||
+      !dictionary_validity.have(ustr__ZSesp())) {
     
     
     
@@ -349,8 +349,8 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
     
     
     
-    dictionary["$eip"] = eip;
-    dictionary["$esp"] = location + 4;
+    dictionary.set(ustr__ZSeip(), eip);
+    dictionary.set(ustr__ZSesp(), location + 4);
     trust = StackFrame::FRAME_TRUST_SCAN;
   }
 
@@ -361,7 +361,8 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
   
   
   
-  if (dictionary["$eip"] != 0 || dictionary["$ebp"] != 0) {
+  if (dictionary.get(ustr__ZSeip()) != 0 ||
+      dictionary.get(ustr__ZSebp()) != 0) {
     int offset = 0;
 
     
@@ -376,18 +377,18 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
     
     
 
-    u_int32_t eip = dictionary["$eip"];
+    u_int32_t eip = dictionary.get(ustr__ZSeip());
     if (modules_ && !modules_->GetModuleForAddress(eip)) {
       
       
-      u_int32_t location_start = dictionary[".raSearchStart"] + 4;
+      u_int32_t location_start = dictionary.get(ustr__ZDraSearchStart()) + 4;
       u_int32_t location;
       if (ScanForReturnAddress(location_start, &location, &eip)) {
         
         
         
-        dictionary["$eip"] = eip;
-        dictionary["$esp"] = location + 4;
+        dictionary.set(ustr__ZSeip(), eip);
+        dictionary.set(ustr__ZSesp(), location + 4);
         offset = location - location_start;
         trust = StackFrame::FRAME_TRUST_CFI_SCAN;
       }
@@ -401,7 +402,7 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
       
       
       
-      u_int32_t ebp = dictionary["$ebp"];
+      u_int32_t ebp = dictionary.get(ustr__ZSebp());
 
       
       
@@ -425,7 +426,7 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
           if (memory_->GetMemoryAtAddress(ebp, &value)) {
             
             
-            dictionary["$ebp"] = ebp;
+            dictionary.set(ustr__ZSebp(), ebp);
             break;
           }
         }
@@ -439,25 +440,25 @@ StackFrameX86* StackwalkerX86::GetCallerByWindowsFrameInfo(
 
   frame->trust = trust;
   frame->context = last_frame->context;
-  frame->context.eip = dictionary["$eip"];
-  frame->context.esp = dictionary["$esp"];
-  frame->context.ebp = dictionary["$ebp"];
+  frame->context.eip = dictionary.get(ustr__ZSeip());
+  frame->context.esp = dictionary.get(ustr__ZSesp());
+  frame->context.ebp = dictionary.get(ustr__ZSebp());
   frame->context_validity = StackFrameX86::CONTEXT_VALID_EIP |
                                 StackFrameX86::CONTEXT_VALID_ESP |
                                 StackFrameX86::CONTEXT_VALID_EBP;
 
   
   
-  if (dictionary_validity.find("$ebx") != dictionary_validity.end()) {
-    frame->context.ebx = dictionary["$ebx"];
+  if (dictionary_validity.have(ustr__ZSebx())) {
+    frame->context.ebx = dictionary.get(ustr__ZSebx());
     frame->context_validity |= StackFrameX86::CONTEXT_VALID_EBX;
   }
-  if (dictionary_validity.find("$esi") != dictionary_validity.end()) {
-    frame->context.esi = dictionary["$esi"];
+  if (dictionary_validity.have(ustr__ZSesi())) {
+    frame->context.esi = dictionary.get(ustr__ZSesi());
     frame->context_validity |= StackFrameX86::CONTEXT_VALID_ESI;
   }
-  if (dictionary_validity.find("$edi") != dictionary_validity.end()) {
-    frame->context.edi = dictionary["$edi"];
+  if (dictionary_validity.have(ustr__ZSedi())) {
+    frame->context.edi = dictionary.get(ustr__ZSedi());
     frame->context_validity |= StackFrameX86::CONTEXT_VALID_EDI;
   }
 

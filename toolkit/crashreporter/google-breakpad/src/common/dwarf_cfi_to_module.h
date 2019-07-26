@@ -49,6 +49,7 @@
 #include "common/module.h"
 #include "common/dwarf/dwarf2reader.h"
 #include "common/using_std_string.h"
+#include "common/unique_string.h"
 
 namespace google_breakpad {
 
@@ -83,13 +84,15 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
 
     
     
-    virtual void UndefinedNotSupported(size_t offset, const string &reg);
+    virtual void UndefinedNotSupported(size_t offset,
+                                       const UniqueString* reg);
 
     
     
     
     
-    virtual void ExpressionsNotSupported(size_t offset, const string &reg);
+    virtual void ExpressionsNotSupported(size_t offset,
+                                         const UniqueString* reg);
 
   protected:
     string file_, section_;
@@ -101,18 +104,19 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
   class RegisterNames {
    public:
     
-    static vector<string> I386();
+    static vector<const UniqueString*> I386();
 
     
-    static vector<string> X86_64();
+    static vector<const UniqueString*> X86_64();
 
     
-    static vector<string> ARM();
+    static vector<const UniqueString*> ARM();
 
    private:
     
     
-    static vector<string> MakeVector(const char * const *strings, size_t size);
+    static vector<const UniqueString*> MakeVector(const char * const *strings,
+                                                  size_t size);
   };
 
   
@@ -124,10 +128,11 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
   
   
   
-  DwarfCFIToModule(Module *module, const vector<string> &register_names,
+  DwarfCFIToModule(Module *module,
+                   const vector<const UniqueString*> &register_names,
                    Reporter *reporter)
       : module_(module), register_names_(register_names), reporter_(reporter),
-        entry_(NULL), return_address_(-1), cfa_name_(".cfa"), ra_name_(".ra") {
+        entry_(NULL), return_address_(-1) {
   }
   virtual ~DwarfCFIToModule() { delete entry_; }
 
@@ -149,16 +154,16 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
 
  private:
   
-  string RegisterName(int i);
+  const UniqueString* RegisterName(int i);
 
   
-  void Record(Module::Address address, int reg, const string &rule);
+  void Record(Module::Address address, int reg, const Module::Expr &rule);
 
   
   Module *module_;
 
   
-  const vector<string> &register_names_;
+  const vector<const UniqueString*> &register_names_;
 
   
   Reporter *reporter_;
@@ -172,23 +177,6 @@ class DwarfCFIToModule: public CallFrameInfo::Handler {
 
   
   unsigned return_address_;
-
-  
-  
-  
-  
-  string cfa_name_, ra_name_;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  set<string> common_strings_;
 };
 
 } 

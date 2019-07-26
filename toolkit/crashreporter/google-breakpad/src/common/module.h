@@ -44,7 +44,9 @@
 #include <string>
 #include <vector>
 
+#include "common/symbol_data.h"
 #include "common/using_std_string.h"
+#include "common/unique_string.h"
 #include "google_breakpad/common/breakpad_types.h"
 
 namespace google_breakpad {
@@ -127,7 +129,67 @@ class Module {
   
   
   
-  typedef map<string, string> RuleMap;
+  enum ExprHow {
+    kExprInvalid = 1,
+    kExprPostfix,
+    kExprSimple,
+    kExprSimpleMem
+  };
+  struct Expr {
+    
+    Expr(const UniqueString* ident, long offset, bool deref) {
+      if (ident == ustr__empty()) {
+        Expr();
+      } else {
+        postfix_ = "";
+        ident_ = ident;
+        offset_ = offset;
+        how_ = deref ? kExprSimpleMem : kExprSimple;
+      }
+    }
+    
+    Expr(string postfix) {
+      if (postfix.empty()) {
+        Expr();
+      } else {
+        postfix_ = postfix;
+        ident_ = NULL;
+        offset_ = 0;
+        how_ = kExprPostfix;
+      }
+    }
+    
+    Expr() {
+      postfix_ = "";
+      ident_ = NULL;
+      offset_ = 0;
+      how_ = kExprInvalid;
+    }
+    bool invalid() const { return how_ == kExprInvalid; }
+    bool operator==(const Expr& other) const {
+      return how_ == other.how_ &&
+          ident_ == other.ident_ &&
+          offset_ == other.offset_ &&
+          postfix_ == other.postfix_;
+    }
+
+    
+    const UniqueString* ident_;
+    
+    long    offset_;
+    
+    string  postfix_;
+    
+    ExprHow how_;
+
+    friend std::ostream& operator<<(std::ostream& stream, const Expr& expr);
+  };
+
+  
+  
+  
+  
+  typedef map<const UniqueString*, Expr> RuleMap;
 
   
   
@@ -164,6 +226,13 @@ class Module {
   struct ExternCompare {
     bool operator() (const Extern *lhs,
                      const Extern *rhs) const {
+      return lhs->address < rhs->address;
+    }
+  };
+
+  struct StackFrameEntryCompare {
+    bool operator() (const StackFrameEntry* lhs,
+                     const StackFrameEntry* rhs) const {
       return lhs->address < rhs->address;
     }
   };
@@ -229,10 +298,18 @@ class Module {
 
   
   
+  Function* FindFunctionByAddress(Address address);
+
+  
+  
   
   
   
   void GetExterns(vector<Extern *> *vec, vector<Extern *>::iterator i);
+
+  
+  
+  Extern* FindExternByAddress(Address address);
 
   
   
@@ -247,6 +324,10 @@ class Module {
   
   
   void GetStackFrameEntries(vector<StackFrameEntry *> *vec);
+
+  
+  
+  StackFrameEntry* FindStackFrameEntryByAddress(Address address);
 
   
   
@@ -265,7 +346,9 @@ class Module {
   
   
   
-  bool Write(std::ostream &stream, bool cfi);
+  
+  
+  bool Write(std::ostream &stream, SymbolData symbol_data);
 
  private:
   
@@ -302,6 +385,9 @@ class Module {
   typedef set<Extern *, ExternCompare> ExternSet;
 
   
+  typedef set<StackFrameEntry*, StackFrameEntryCompare> StackFrameEntrySet;
+
+  
   
   
   FileByNameMap files_;    
@@ -309,7 +395,7 @@ class Module {
 
   
   
-  vector<StackFrameEntry *> stack_frame_entries_;
+  StackFrameEntrySet stack_frame_entries_;
 
   
   

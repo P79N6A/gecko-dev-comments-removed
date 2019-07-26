@@ -42,7 +42,9 @@
 #include <string>
 
 #include "common/using_std_string.h"
+#include "common/unique_string.h"
 #include "google_breakpad/common/breakpad_types.h"
+#include "common/module.h"
 
 namespace google_breakpad {
 
@@ -66,16 +68,17 @@ class MemoryRegion;
 class CFIFrameInfo {
  public:
   
-  template<typename ValueType> class RegisterValueMap: 
-    public map<string, ValueType> { };
+  template<typename ValueType> class RegisterValueMap:
+    public UniqueStringMap<ValueType> { };
 
   
   
   
-  void SetCFARule(const string &expression) { cfa_rule_ = expression; }
-  void SetRARule(const string &expression)  { ra_rule_ = expression; }
-  void SetRegisterRule(const string &register_name, const string &expression) {
-    register_rules_[register_name] = expression;
+  void SetCFARule(const Module::Expr& rule) { cfa_rule_ = rule; }
+  void SetRARule(const Module::Expr& rule)  { ra_rule_ = rule; }
+  void SetRegisterRule(const UniqueString* register_name,
+                       const Module::Expr& rule) {
+    register_rules_[register_name] = rule;
   }
 
   
@@ -107,17 +110,14 @@ class CFIFrameInfo {
  private:
 
   
-  typedef map<string, string> RuleMap;
+  typedef map<const UniqueString*, Module::Expr> RuleMap;
 
   
   
-
   
   
   
-  
-  
-  string cfa_rule_;
+  Module::Expr cfa_rule_;
 
   
   
@@ -125,8 +125,7 @@ class CFIFrameInfo {
   
 
   
-  
-  string ra_rule_;
+  Module::Expr ra_rule_;
 
   
   
@@ -152,7 +151,8 @@ class CFIRuleParser {
     virtual void RARule(const string &expression) = 0;
 
     
-    virtual void RegisterRule(const string &name, const string &expression) = 0;
+    virtual void RegisterRule(const UniqueString* name,
+                              const string &expression) = 0;
   };
     
   
@@ -172,7 +172,8 @@ class CFIRuleParser {
   Handler *handler_;
 
   
-  string name_, expression_;
+  const UniqueString* name_;
+  string expression_;
 };
 
 
@@ -185,7 +186,7 @@ class CFIFrameInfoParseHandler: public CFIRuleParser::Handler {
 
   void CFARule(const string &expression);
   void RARule(const string &expression);
-  void RegisterRule(const string &name, const string &expression);
+  void RegisterRule(const UniqueString* name, const string &expression);
 
  private:
   CFIFrameInfo *frame_info_;
@@ -212,14 +213,14 @@ class SimpleCFIWalker {
   
   struct RegisterSet {
     
-    const char *name;
+    const UniqueString* name;
 
     
     
     
     
     
-    const char *alternate_name;
+    const UniqueString* alternate_name;
 
     
     
