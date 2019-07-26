@@ -1008,7 +1008,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
      (NS_SUCCEEDED(aStatus) || aStatus == NS_ERROR_PARSED_DATA_CACHED)) {
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent event(true, NS_LOAD);
-    event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+    event.mFlags.mBubbles = false;
      
     event.target = mDocument;
 
@@ -1289,7 +1289,7 @@ nsDocumentViewer::PageHide(bool aIsUnload)
     
     nsEventStatus status = nsEventStatus_eIgnore;
     nsEvent event(true, NS_PAGE_UNLOAD);
-    event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+    event.mFlags.mBubbles = false;
     
     event.target = mDocument;
 

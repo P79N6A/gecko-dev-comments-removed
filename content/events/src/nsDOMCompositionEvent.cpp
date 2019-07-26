@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set ts=2 et sw=2 tw=80: */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "nsDOMCompositionEvent.h"
 #include "nsDOMClassInfoID.h"
@@ -21,14 +21,14 @@ nsDOMCompositionEvent::nsDOMCompositionEvent(nsPresContext* aPresContext,
     mEventIsInternal = true;
     mEvent->time = PR_Now();
 
-    // XXX compositionstart is cancelable in draft of DOM3 Events.
-    //     However, it doesn't make sence for us, we cannot cancel composition
-    //     when we sends compositionstart event.
-    mEvent->flags |= NS_EVENT_FLAG_CANT_CANCEL;
+    
+    
+    
+    mEvent->mFlags.mCancelable = false;
   }
 
   mData = static_cast<nsCompositionEvent*>(mEvent)->data;
-  // TODO: Native event should have locale information.
+  
 }
 
 nsDOMCompositionEvent::~nsDOMCompositionEvent()

@@ -32,7 +32,7 @@ nsDOMSVGZoomEvent::nsDOMSVGZoomEvent(nsPresContext* aPresContext,
     mEvent->time = PR_Now();
   }
 
-  mEvent->flags |= NS_EVENT_FLAG_CANT_CANCEL;
+  mEvent->mFlags.mCancelable = false;
 
   
   

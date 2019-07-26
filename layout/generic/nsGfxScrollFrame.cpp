@@ -2847,7 +2847,7 @@ nsGfxScrollFrameInner::FireScrollEvent()
   } else {
     
     
-    event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+    event.mFlags.mBubbles = false;
     nsEventDispatcher::Dispatch(content, prescontext, &event, nullptr, &status);
   }
 }

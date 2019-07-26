@@ -20,7 +20,7 @@ nsHtml5SVGLoadDispatcher::Run()
 {
   nsEvent event(true, NS_SVG_LOAD);
   event.eventStructType = NS_SVG_EVENT;
-  event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+  event.mFlags.mBubbles = false;
   
   
   

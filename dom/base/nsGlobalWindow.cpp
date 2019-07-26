@@ -2664,7 +2664,7 @@ nsGlobalWindow::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 
       nsEventStatus status = nsEventStatus_eIgnore;
       nsEvent event(aVisitor.mEvent->mFlags.mIsTrusted, NS_LOAD);
-      event.flags |= NS_EVENT_FLAG_CANT_BUBBLE;
+      event.mFlags.mBubbles = false;
 
       
       
