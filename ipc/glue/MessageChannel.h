@@ -94,6 +94,8 @@ class MessageChannel : HasResultCodes
     
     bool Call(Message* aMsg, Message* aReply);
 
+    bool CanSend() const;
+
     void SetReplyTimeoutMs(int32_t aTimeoutMs);
 
     bool IsOnCxxStack() const {
