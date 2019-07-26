@@ -1227,12 +1227,8 @@ nsLocalFile::GetDiskSpaceAvailable(int64_t *aDiskSpaceAvailable)
 #endif
         return NS_ERROR_FAILURE;
     }
-    
 
-
-
-
-    *aDiskSpaceAvailable = (int64_t)fs_buf.F_BSIZE * (fs_buf.f_bavail - 1);
+    *aDiskSpaceAvailable = (int64_t) fs_buf.F_BSIZE * fs_buf.f_bavail;
 
 #ifdef DEBUG_DISK_SPACE
     printf("DiskSpaceAvailable: %lu bytes\n",
