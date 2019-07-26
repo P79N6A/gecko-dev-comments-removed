@@ -278,17 +278,28 @@ class TreeMetadataEmitter(LoggingMixin):
 
             finder = FileFinder(base=manifest_dir, find_executables=False)
 
+            
+            
+            
+            
+            
+            
+            extras = (('head', set()),
+                      ('tail', set()),
+                      ('support-files', set()))
+
             for test in filtered:
                 obj.tests.append(test)
 
                 obj.installs[mozpath.normpath(test['path'])] = \
                     mozpath.join(out_dir, test['relpath'])
 
-                
-                
-                
-                for thing in ('head', 'tail', 'support-files'):
-                    for pattern in test.get(thing, '').split():
+                for thing, seen in extras:
+                    value = test.get(thing, '')
+                    if value in seen:
+                        continue
+                    seen.add(value)
+                    for pattern in value.split():
                         
                         
                         
