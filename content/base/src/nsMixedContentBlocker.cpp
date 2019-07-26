@@ -260,6 +260,8 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   
   
   
+  
+  
 
 
   static_assert(TYPE_DATAREQUEST == TYPE_XMLHTTPREQUEST,
@@ -285,6 +287,7 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
     case TYPE_MEDIA:
     case TYPE_OBJECT_SUBREQUEST:
     case TYPE_PING:
+    case TYPE_BEACON:
       classification = eMixedDisplay;
       break;
 
