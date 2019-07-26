@@ -73,6 +73,7 @@ public:
 
 class nsOggCodecState {
 public:
+  typedef mozilla::MetadataTags MetadataTags;
   
   enum CodecType {
     TYPE_VORBIS=0,

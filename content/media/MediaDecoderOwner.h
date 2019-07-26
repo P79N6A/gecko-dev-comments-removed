@@ -6,9 +6,13 @@
 #ifndef MediaDecoderOwner_h_
 #define MediaDecoderOwner_h_
 
-#include "nsBuiltinDecoder.h"
+class nsHTMLMediaElement;
 
 namespace mozilla {
+
+class VideoFrameContainer;
+
+typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
 
 class MediaDecoderOwner
 {
@@ -116,15 +120,26 @@ public:
   virtual void NotifyDecoderPrincipalChanged() = 0;
 
   
-  
-  
-  
-  
-  virtual void UpdateReadyStateForData(nsBuiltinDecoder::NextFrameStatus aNextFrame) = 0;
+  enum NextFrameStatus {
+    
+    NEXT_FRAME_AVAILABLE,
+    
+    
+    NEXT_FRAME_UNAVAILABLE_BUFFERING,
+    
+    NEXT_FRAME_UNAVAILABLE
+  };
 
   
   
-  virtual mozilla::VideoFrameContainer* GetVideoFrameContainer() = 0;
+  
+  
+  
+  virtual void UpdateReadyStateForData(NextFrameStatus aNextFrame) = 0;
+
+  
+  
+  virtual VideoFrameContainer* GetVideoFrameContainer() = 0;
 };
 
 }

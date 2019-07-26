@@ -191,6 +191,7 @@
 #include "MediaResource.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "MediaStreamGraph.h"
+#include "MediaDecoderOwner.h"
 
 namespace mozilla {
 namespace layers {
@@ -198,7 +199,6 @@ class Image;
 } 
 class nsMediaByteRange;
 class VideoFrameContainer;
-class MediaDecoderOwner;
 } 
 
 class nsAudioStream;
@@ -223,8 +223,6 @@ static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
 
-typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
-
 class nsBuiltinDecoder : public nsIObserver
 {
 public:
@@ -240,6 +238,8 @@ public:
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
   typedef mozilla::layers::Image Image;
+  typedef mozilla::MetadataTags MetadataTags;
+  typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
 
   class DecodedStreamMainThreadListener;
 
@@ -691,17 +691,6 @@ public:
 
   
   virtual void DecodeError();
-
-  
-  enum NextFrameStatus {
-    
-    NEXT_FRAME_AVAILABLE,
-    
-    
-    NEXT_FRAME_UNAVAILABLE_BUFFERING,
-    
-    NEXT_FRAME_UNAVAILABLE
-  };
 
 #ifdef MOZ_RAW
   static bool IsRawEnabled();

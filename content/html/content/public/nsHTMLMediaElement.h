@@ -49,6 +49,8 @@ public:
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
   typedef mozilla::MediaStream MediaStream;
   typedef mozilla::MediaResource MediaResource;
+  typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
+  typedef mozilla::MetadataTags MetadataTags;
 
 #ifdef MOZ_DASH
   friend class nsDASHDecoder;
@@ -191,11 +193,7 @@ public:
   
   
   virtual VideoFrameContainer* GetVideoFrameContainer() MOZ_FINAL MOZ_OVERRIDE;
-  ImageContainer* GetImageContainer()
-  {
-    VideoFrameContainer* container = GetVideoFrameContainer();
-    return container ? container->GetImageContainer() : nullptr;
-  }
+  ImageContainer* GetImageContainer();
 
   
   
@@ -217,7 +215,7 @@ public:
   
   
   
-  virtual void UpdateReadyStateForData(nsBuiltinDecoder::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
