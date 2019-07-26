@@ -21,6 +21,8 @@ namespace mozilla {
 
 
 
+
+
 template<typename T, T Value>
 struct IntegralConstant
 {
@@ -32,6 +34,32 @@ struct IntegralConstant
 
 typedef IntegralConstant<bool, true> TrueType;
 typedef IntegralConstant<bool, false> FalseType;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 namespace detail {
 
