@@ -5,6 +5,7 @@
 
 
 #include "GonkMemoryPressureMonitoring.h"
+#include "mozilla/ArrayUtils.h"
 #include "mozilla/FileUtils.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/Preferences.h"
@@ -145,7 +146,7 @@ public:
 
       int pollRv;
       do {
-        pollRv = poll(pollfds, NS_ARRAY_LENGTH(pollfds),  -1);
+        pollRv = poll(pollfds, ArrayLength(pollfds),  -1);
       } while (pollRv == -1 && errno == EINTR);
 
       if (pollfds[1].revents) {

@@ -3,6 +3,8 @@
 
 
 
+#include "mozilla/ArrayUtils.h"
+
 #include "inDOMUtils.h"
 #include "inLayoutUtils.h"
 
@@ -761,7 +763,7 @@ GetStatesForPseudoClass(const nsAString& aStatePseudo)
     nsEventStates(),
     nsEventStates()
   };
-  static_assert(NS_ARRAY_LENGTH(sPseudoClassStates) ==
+  static_assert(MOZ_ARRAY_LENGTH(sPseudoClassStates) ==
                 nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1,
                 "Length of PseudoClassStates array is incorrect");
 

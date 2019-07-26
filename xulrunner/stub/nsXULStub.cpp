@@ -5,7 +5,6 @@
 #include "nsXPCOMGlue.h"
 #include "nsINIParser.h"
 #include "nsXPCOMPrivate.h" 
-#include "nsMemory.h" 
 #include "nsXULAppAPI.h"
 #include "nsIFile.h"
 
