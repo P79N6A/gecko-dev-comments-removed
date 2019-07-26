@@ -240,11 +240,9 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     
     
     
-    nscoord leftSpace = std::max(onePixel,
-                               NS_MATHML_IS_RTL(mPresentationData.flags) ?
+    nscoord leftSpace = std::max(onePixel, StyleVisibility()->mDirection ?
                                coreData.trailingSpace : coreData.leadingSpace);
-    nscoord rightSpace = std::max(onePixel,
-                                NS_MATHML_IS_RTL(mPresentationData.flags) ?
+    nscoord rightSpace = std::max(onePixel, StyleVisibility()->mDirection ?
                                 coreData.leadingSpace : coreData.trailingSpace);
 
     
@@ -456,7 +454,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     }
 
     
-    if (NS_MATHML_IS_RTL(mPresentationData.flags)) {
+    if (StyleVisibility()->mDirection) {
       mBoundingMetrics.leftBearing = trailingSpace + bmDen.leftBearing;
       mBoundingMetrics.rightBearing = trailingSpace + bmDen.width + mLineRect.width + bmNum.rightBearing;
     } else {
@@ -595,5 +593,5 @@ nsMathMLmfracFrame::DisplaySlash(nsDisplayListBuilder* aBuilder,
 
   aLists.Content()->AppendNewToTop(new (aBuilder)
     nsDisplayMathMLSlash(aBuilder, aFrame, aRect, aThickness,
-                         NS_MATHML_IS_RTL(mPresentationData.flags)));
+                         StyleVisibility()->mDirection));
 }

@@ -417,14 +417,14 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   
   
 
-  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
+  if ((StyleVisibility()->mDirection ?
        mWidthSign : mLeadingSpaceSign) != NS_MATHML_SIGN_INVALID) {
     
     
     mBoundingMetrics.leftBearing = 0;
   }
 
-  if ((NS_MATHML_IS_RTL(mPresentationData.flags) ?
+  if ((StyleVisibility()->mDirection ?
        mLeadingSpaceSign : mWidthSign) != NS_MATHML_SIGN_INVALID) {
     
     
@@ -433,8 +433,8 @@ nsMathMLmpaddedFrame::Place(nsRenderingContext& aRenderingContext,
   }
 
   nscoord dy = height - mBoundingMetrics.ascent;
-  nscoord dx = NS_MATHML_IS_RTL(mPresentationData.flags) ?
-    width - initialWidth - lspace : lspace;
+  nscoord dx = (StyleVisibility()->mDirection ?
+                width - initialWidth - lspace : lspace);
     
   aDesiredSize.ascent += dy;
   aDesiredSize.width = mBoundingMetrics.width;

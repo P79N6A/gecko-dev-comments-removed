@@ -137,11 +137,6 @@ public:
                        nsPresentationData& aPresentationData);
 
   
-  static void
-  FindAttrDirectionality(nsIContent*         aContent,
-                         nsPresentationData& aPresentationData);
-
-  
   
   
   
