@@ -22,6 +22,10 @@ var SelectionHandler = {
   _activeType: 0, 
   _draggingHandles: false, 
   _ignoreCompositionChanges: false, 
+  _prevHandlePositions: [], 
+
+  
+  _prevTargetElementHasText: null,
 
   
   get _contentWindow() {
@@ -59,6 +63,7 @@ var SelectionHandler = {
     Services.obs.addObserver(this, "TextSelection:Position", false);
     Services.obs.addObserver(this, "TextSelection:End", false);
     Services.obs.addObserver(this, "TextSelection:Action", false);
+    Services.obs.addObserver(this, "TextSelection:LayerReflow", false);
 
     BrowserApp.deck.addEventListener("pagehide", this, false);
     BrowserApp.deck.addEventListener("blur", this, true);
@@ -73,6 +78,7 @@ var SelectionHandler = {
     Services.obs.removeObserver(this, "TextSelection:Position");
     Services.obs.removeObserver(this, "TextSelection:End");
     Services.obs.removeObserver(this, "TextSelection:Action");
+    Services.obs.removeObserver(this, "TextSelection:LayerReflow");
 
     BrowserApp.deck.removeEventListener("pagehide", this, false);
     BrowserApp.deck.removeEventListener("blur", this, true);
@@ -81,6 +87,18 @@ var SelectionHandler = {
 
   observe: function sh_observe(aSubject, aTopic, aData) {
     switch (aTopic) {
+      
+      
+      case "TextSelection:LayerReflow": {
+        if (this._activeType == this.TYPE_SELECTION) {
+          this._updateCacheForSelection();
+        }
+        if (this._activeType != this.TYPE_NONE) {
+          this._positionHandlesOnChange();
+        }
+        break;
+      }
+
       
       case "TextSelection:UpdateCaretPos":
         
@@ -125,6 +143,8 @@ var SelectionHandler = {
           this._moveSelection(data.handleType == this.HANDLE_TYPE_START, data.x, data.y);
 
         } else if (this._activeType == this.TYPE_CURSOR) {
+          this._startDraggingHandles();
+
           
           this._ignoreCompositionChanges = true;
 
@@ -160,10 +180,13 @@ var SelectionHandler = {
 
           this._stopDraggingHandles();
           this._positionHandles();
+          
+          this._updateMenu();
 
         } else if (this._activeType == this.TYPE_CURSOR) {
           
           this._ignoreCompositionChanges = false;
+          this._stopDraggingHandles();
           this._positionHandles();
 
         } else {
@@ -205,7 +228,7 @@ var SelectionHandler = {
     switch (aEvent.type) {
       case "scroll":
         
-        this._positionHandles();
+        this._positionHandlesOnChange();
         break;
 
       case "pagehide":
@@ -354,8 +377,13 @@ var SelectionHandler = {
         return false;
     }
 
+    
     this._positionHandles(positions);
-    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]);
+    sendMessageToJava({
+      type: "TextSelection:ShowHandles",
+      handles: [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]
+    });
+    this._updateMenu();
     return true;
   },
 
@@ -433,7 +461,31 @@ var SelectionHandler = {
     return obj[name];
   },
 
-  _sendMessage: function(msgType, handles) {
+  addAction: function(action) {
+    if (!action.id)
+      action.id = uuidgen.generateUUID().toString()
+
+    if (this.actions[action.id])
+      throw "Action with id " + action.id + " already added";
+
+    
+    this.actions[action.id] = action;
+    this._updateMenu();
+    return action.id;
+  },
+
+  removeAction: function(id) {
+    
+    delete this.actions[id];
+    this._updateMenu();
+  },
+
+  _updateMenu: function() {
+    if (this._activeType == this.TYPE_NONE) {
+      return;
+    }
+
+    
     let actions = [];
     for (let type in this.actions) {
       let action = this.actions[type];
@@ -452,29 +504,9 @@ var SelectionHandler = {
     actions.sort((a, b) => b.order - a.order);
 
     sendMessageToJava({
-      type: msgType,
-      handles: handles,
-      actions: actions,
+      type: "TextSelection:Update",
+      actions: actions
     });
-  },
-
-  _updateMenu: function() {
-    this._sendMessage("TextSelection:Update");
-  },
-
-  addAction: function(action) {
-    if (!action.id)
-      action.id = uuidgen.generateUUID().toString()
-
-    if (this.actions[action.id])
-      throw "Action with id " + action.id + " already added";
-
-    this.actions[action.id] = action;
-    return action.id;
-  },
-
-  removeAction: function(id) {
-    delete this.actions[id];
   },
 
   
@@ -632,9 +664,14 @@ var SelectionHandler = {
     BrowserApp.deck.addEventListener("compositionend", this, false);
 
     this._activeType = this.TYPE_CURSOR;
-    this._positionHandles();
 
-    this._sendMessage("TextSelection:ShowHandles", [this.HANDLE_TYPE_MIDDLE]);
+    
+    this._positionHandles();
+    sendMessageToJava({
+      type: "TextSelection:ShowHandles",
+      handles: [this.HANDLE_TYPE_MIDDLE]
+    });
+    this._updateMenu();
   },
 
   
@@ -906,6 +943,7 @@ var SelectionHandler = {
 
   _deactivate: function sh_deactivate() {
     this._stopDraggingHandles();
+    
     sendMessageToJava({ type: "TextSelection:HideHandles" });
 
     this._removeObservers();
@@ -923,6 +961,8 @@ var SelectionHandler = {
     this._isRTL = false;
     this._cache = null;
     this._ignoreCompositionChanges = false;
+    this._prevHandlePositions = [];
+    this._prevTargetElementHasText = null;
 
     this._activeType = this.TYPE_NONE;
   },
@@ -1030,6 +1070,32 @@ var SelectionHandler = {
 
   
   
+  _positionHandlesOnChange: function() {
+    
+    let samePositions = function(aPrev, aCurr) {
+      if (aPrev.length != aCurr.length) {
+        return false;
+      }
+      for (let i = 0; i < aPrev.length; i++) {
+        if (aPrev[i].left != aCurr[i].left ||
+            aPrev[i].top != aCurr[i].top ||
+            aPrev[i].hidden != aCurr[i].hidden) {
+          return false;
+        }
+      }
+      return true;
+    }
+
+    let positions = this._getHandlePositions(this._getScrollPos());
+    if (!samePositions(this._prevHandlePositions, positions)) {
+      this._positionHandles(positions);
+    }
+  },
+
+  
+  
+  
+  
   _positionHandles: function sh_positionHandles(positions) {
     if (!positions) {
       positions = this._getHandlePositions(this._getScrollPos());
@@ -1039,7 +1105,14 @@ var SelectionHandler = {
       positions: positions,
       rtl: this._isRTL
     });
-    this._updateMenu();
+    this._prevHandlePositions = positions;
+
+    
+    let currTargetElementHasText = (this._targetElement.textLength > 0);
+    if (currTargetElementHasText != this._prevTargetElementHasText) {
+      this._prevTargetElementHasText = currTargetElementHasText;
+      this._updateMenu();
+    }
   },
 
   subdocumentScrolled: function sh_subdocumentScrolled(aElement) {
