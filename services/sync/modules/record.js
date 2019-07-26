@@ -2,8 +2,13 @@
 
 
 
-const EXPORTED_SYMBOLS = ["WBORecord", "RecordManager", "Records",
-                          "CryptoWrapper", "CollectionKeys", "Collection"];
+const EXPORTED_SYMBOLS = [
+  "WBORecord",
+  "RecordManager",
+  "CryptoWrapper",
+  "CollectionKeys",
+  "Collection",
+];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -93,11 +98,12 @@ WBORecord.prototype = {
 
 Utils.deferGetSet(WBORecord, "data", ["id", "modified", "sortindex", "payload"]);
 
-XPCOMUtils.defineLazyGetter(this, "Records", function () {
-  return new RecordManager();
-});
 
-function RecordManager() {
+
+
+function RecordManager(service) {
+  this.service = service;
+
   this._log = Log4Moz.repository.getLogger(this._logName);
   this._records = {};
 }
