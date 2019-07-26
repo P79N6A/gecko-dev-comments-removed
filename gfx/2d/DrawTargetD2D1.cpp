@@ -3,6 +3,7 @@
 
 
 
+#include <initguid.h>
 #include "DrawTargetD2D1.h"
 #include "DrawTargetD2D.h"
 #include "FilterNodeSoftware.h"
