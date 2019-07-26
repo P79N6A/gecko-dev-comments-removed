@@ -2200,8 +2200,24 @@ eventSource(EnvironmentClient.prototype);
 this.debuggerSocketConnect = function debuggerSocketConnect(aHost, aPort)
 {
   let s = socketTransportService.createTransport(null, 0, aHost, aPort, null);
-  let transport = new DebuggerTransport(s.openInputStream(0, 0, 0),
-                                        s.openOutputStream(0, 0, 0));
+  
+  
+  
+  s.setTimeout(Ci.nsISocketTransport.TIMEOUT_CONNECT, 2);
+
+  
+  
+  
+  let transport;
+  try {
+    transport = new DebuggerTransport(s.openInputStream(0, 0, 0),
+                                      s.openOutputStream(0, 0, 0));
+  } catch(e) {
+    let msg = e + ": " + e.stack;
+    Cu.reportError(msg);
+    dumpn(msg);
+    throw e;
+  }
   return transport;
 }
 

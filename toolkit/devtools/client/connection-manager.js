@@ -221,7 +221,17 @@ Connection.prototype = {
     if (!this.host) {
       transport = DebuggerServer.connectPipe();
     } else {
-      transport = debuggerSocketConnect(this.host, this.port);
+      try {
+        transport = debuggerSocketConnect(this.host, this.port);
+      } catch (e) {
+        
+        
+        
+        
+        
+        this._onDisconnected();
+        return;
+      }
     }
     this._client = new DebuggerClient(transport);
     this._client.addOneTimeListener("closed", this._onDisconnected);
@@ -244,7 +254,7 @@ Connection.prototype = {
     this._client = null;
 
     if (this._status == Connection.Status.CONNECTING && this.keepConnecting) {
-      setTimeout(() => this._clientConnect(), 0);
+      setTimeout(() => this._clientConnect(), 100);
       return;
     }
 

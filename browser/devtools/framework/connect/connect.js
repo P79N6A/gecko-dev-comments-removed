@@ -54,7 +54,14 @@ function submit() {
   Services.prefs.setIntPref("devtools.debugger.remote-port", port);
 
   
-  let transport = debuggerSocketConnect(host, port);
+  let transport;
+  try {
+    transport = debuggerSocketConnect(host, port);
+  } catch(e) {
+    
+    showError("unexpected");
+    return;
+  }
   gClient = new DebuggerClient(transport);
   let delay = Services.prefs.getIntPref("devtools.debugger.remote-timeout");
   gConnectionTimeout = setTimeout(handleConnectionTimeout, delay);
