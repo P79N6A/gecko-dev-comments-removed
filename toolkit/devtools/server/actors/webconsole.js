@@ -59,9 +59,13 @@ function WebConsoleActor(aConnection, aParentActor)
   this.dbg = new Debugger();
 
   this._protoChains = new Map();
+  this._dbgGlobals = new Map();
   this._netEvents = new Map();
+  this._getDebuggerGlobal(this.window);
 
   this._onObserverNotification = this._onObserverNotification.bind(this);
+  Services.obs.addObserver(this._onObserverNotification,
+                           "inner-window-destroyed", false);
   if (this.parentActor.isRootActor) {
     Services.obs.addObserver(this._onObserverNotification,
                              "last-pb-context-exited", false);
@@ -91,6 +95,14 @@ WebConsoleActor.prototype =
 
 
   _prefs: null,
+
+  
+
+
+
+
+
+  _dbgGlobals: null,
 
   
 
@@ -187,6 +199,8 @@ WebConsoleActor.prototype =
       this.consoleProgressListener = null;
     }
     this.conn.removeActorPool(this._actorPool);
+    Services.obs.removeObserver(this._onObserverNotification,
+                                "inner-window-destroyed");
     if (this.parentActor.isRootActor) {
       Services.obs.removeObserver(this._onObserverNotification,
                                   "last-pb-context-exited");
@@ -195,6 +209,7 @@ WebConsoleActor.prototype =
 
     this._netEvents.clear();
     this._protoChains.clear();
+    this._dbgGlobals.clear();
     this.dbg.enabled = false;
     this.dbg = null;
     this.conn = null;
@@ -233,7 +248,16 @@ WebConsoleActor.prototype =
         
       }
     }
-    let dbgGlobal = this.dbg.makeGlobalObjectReference(global);
+    let dbgGlobal = null;
+    try {
+      dbgGlobal = this._getDebuggerGlobal(global);
+    }
+    catch (ex) {
+      
+      
+      
+      dbgGlobal = this._getDebuggerGlobal(this.window);
+    }
     return dbgGlobal.makeDebuggeeValue(aValue);
   },
 
@@ -653,6 +677,27 @@ WebConsoleActor.prototype =
 
 
 
+  _getDebuggerGlobal: function WCA__getDebuggerGlobal(aGlobal)
+  {
+    let windowId = WebConsoleUtils.getInnerWindowId(aGlobal);
+    if (!this._dbgGlobals.has(windowId)) {
+      let dbgGlobal = this.dbg.addDebuggee(aGlobal);
+      this.dbg.removeDebuggee(aGlobal);
+      this._dbgGlobals.set(windowId, dbgGlobal);
+    }
+    return this._dbgGlobals.get(windowId);
+  },
+
+  
+
+
+
+
+
+
+
+
+
 
 
 
@@ -743,6 +788,16 @@ WebConsoleActor.prototype =
     }
 
     
+    
+    let bindSelf = null;
+    if (aOptions.bindObjectActor) {
+      let objActor = this.getActorByID(aOptions.bindObjectActor);
+      if (objActor) {
+        bindSelf = objActor.obj;
+      }
+    }
+
+    
     let frame = null, frameActor = null;
     if (aOptions.frameActor) {
       frameActor = this.conn.getActor(aOptions.frameActor);
@@ -759,27 +814,32 @@ WebConsoleActor.prototype =
     
     
     
-    
-    
-    let dbg = frame ? frameActor.threadActor.dbg : this.dbg;
-    let dbgWindow = dbg.makeGlobalObjectReference(this.window);
+    let dbg = this.dbg;
+    let dbgWindow = this._getDebuggerGlobal(this.window);
+    if (frame) {
+      dbg = frameActor.threadActor.dbg;
+      dbgWindow = dbg.addDebuggee(this.window);
+    }
 
     
     
-    let bindSelf = null;
-    let dbgWindow = dbg.makeGlobalObjectReference(this.window);
-    if (aOptions.bindObjectActor) {
-      let objActor = this.getActorByID(aOptions.bindObjectActor);
-      if (objActor) {
-        let jsObj = objActor.obj.unsafeDereference();
+    if (bindSelf) {
+      let jsObj = bindSelf.unsafeDereference();
+      let global = Cu.getGlobalForObject(jsObj);
+
+      
+      if (global != this.window) {
+        dbgWindow = dbg.addDebuggee(global);
+
         
         
         
-        
-        let global = Cu.getGlobalForObject(jsObj);
-        dbgWindow = dbg.makeGlobalObjectReference(global);
-        bindSelf = dbgWindow.makeDebuggeeValue(jsObj);
+        if (dbg == this.dbg) {
+          dbg.removeDebuggee(global);
+        }
       }
+
+      bindSelf = dbgWindow.makeDebuggeeValue(jsObj);
     }
 
     
@@ -1094,9 +1154,17 @@ WebConsoleActor.prototype =
 
 
 
+
   _onObserverNotification: function WCA__onObserverNotification(aSubject, aTopic)
   {
     switch (aTopic) {
+      case "inner-window-destroyed": {
+        let windowId = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+        if (this._dbgGlobals.has(windowId)) {
+          this._dbgGlobals.delete(windowId);
+        }
+        break;
+      }
       case "last-pb-context-exited":
         this.conn.send({
           from: this.actorID,
