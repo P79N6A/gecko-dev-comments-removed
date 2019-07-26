@@ -1309,6 +1309,24 @@ nsDOMCameraControl::OnUserError(CameraControlListener::UserContext aContext, nsr
       errorCb = mStartRecordingOnErrorCb.forget();
       break;
 
+    case CameraControlListener::kInStartFaceDetection:
+      
+      
+      NS_WARNING("Failed to start face detection");
+      return;
+
+    case CameraControlListener::kInStopFaceDetection:
+      
+      
+      NS_WARNING("Failed to stop face detection");
+      return;
+
+    case CameraControlListener::kInResumeContinuousFocus:
+      
+      
+      NS_WARNING("Failed to resume continuous focus");
+      return;
+
     case CameraControlListener::kInStopRecording:
       
       
