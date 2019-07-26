@@ -18,6 +18,10 @@ class ScaledFontCairo : public ScaledFontBase
 public:
 
   ScaledFontCairo(cairo_scaled_font_t* aScaledFont, Float aSize);
+
+#if defined(USE_SKIA) && defined(MOZ_ENABLE_FREETYPE)
+  virtual SkTypeface* GetSkTypeface();
+#endif
 };
 
 
