@@ -271,6 +271,9 @@ public:
   }
 
   
+  static bool IsInherited(nsCSSProperty aProperty);
+
+  
   static nsCSSFontDesc LookupFontDesc(const nsAString& aProperty);
   static nsCSSFontDesc LookupFontDesc(const nsACString& aProperty);
 

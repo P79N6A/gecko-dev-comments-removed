@@ -350,6 +350,15 @@ nsCSSProps::ReleaseTable(void)
 #define VAR_PREFIX_LENGTH 4
 
  bool
+nsCSSProps::IsInherited(nsCSSProperty aProperty)
+{
+  MOZ_ASSERT(!IsShorthand(aProperty));
+
+  nsStyleStructID sid = kSIDTable[aProperty];
+  return nsCachedStyleData::IsInherited(sid);
+}
+
+ bool
 nsCSSProps::IsCustomPropertyName(const nsACString& aProperty)
 {
   
