@@ -513,11 +513,11 @@ var gPluginHandler = {
     
     let mimetype = pluginInfo.mimetype.split(";")[0];
     if (!this.canInstallThisMimeType(mimetype))
-      return;
+      return false;
 
     let pluginIdentifier = this.nameForSupportedPlugin(mimetype);
     if (!pluginIdentifier)
-      return;
+      return false;
 
     let displayName = this.supportedPlugins.plugins[pluginIdentifier].displayName;
 
