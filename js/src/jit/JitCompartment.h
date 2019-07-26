@@ -4,8 +4,8 @@
 
 
 
-#ifndef jit_IonCompartment_h
-#define jit_IonCompartment_h
+#ifndef jit_JitCompartment_h
+#define jit_JitCompartment_h
 
 #ifdef JS_ION
 
@@ -126,7 +126,7 @@ struct FallbackICStubSpace : public ICStubSpace
 
 class PatchableBackedge : public InlineListNode<PatchableBackedge>
 {
-    friend class IonRuntime;
+    friend class JitRuntime;
 
     CodeLocationJump backedge;
     CodeLocationLabel loopHeader;
@@ -140,9 +140,9 @@ class PatchableBackedge : public InlineListNode<PatchableBackedge>
     {}
 };
 
-class IonRuntime
+class JitRuntime
 {
-    friend class IonCompartment;
+    friend class JitCompartment;
 
     
     
@@ -226,8 +226,8 @@ class IonRuntime
     JSC::ExecutableAllocator *createIonAlloc(JSContext *cx);
 
   public:
-    IonRuntime();
-    ~IonRuntime();
+    JitRuntime();
+    ~JitRuntime();
     bool initialize(JSContext *cx);
 
     uint8_t *allocateOsrTempData(size_t size);
@@ -325,12 +325,12 @@ class IonRuntime
     }
 };
 
-class IonCompartment
+class JitCompartment
 {
     friend class JitActivation;
 
     
-    IonRuntime *rt;
+    JitRuntime *rt;
 
     
     
@@ -409,8 +409,8 @@ class IonCompartment
     JSC::ExecutableAllocator *createIonAlloc();
 
   public:
-    IonCompartment(IonRuntime *rt);
-    ~IonCompartment();
+    JitCompartment(JitRuntime *rt);
+    ~JitCompartment();
 
     bool initialize(JSContext *cx);
 

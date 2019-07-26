@@ -10,8 +10,8 @@
 #include "builtin/TypedObject.h"
 #include "frontend/BytecodeCompiler.h"
 #include "jit/BaselineIC.h"
-#include "jit/IonCompartment.h"
 #include "jit/IonFrames.h"
+#include "jit/JitCompartment.h"
 #include "vm/ArrayObject.h"
 #include "vm/Debugger.h"
 #include "vm/Interpreter.h"
@@ -465,8 +465,8 @@ InterruptCheck(JSContext *cx)
     
     
     
-    cx->runtime()->ionRuntime()->patchIonBackedges(cx->runtime(),
-                                                   IonRuntime::BackedgeLoopHeader);
+    cx->runtime()->jitRuntime()->patchIonBackedges(cx->runtime(),
+                                                   JitRuntime::BackedgeLoopHeader);
 
     return !!js_HandleExecutionInterrupt(cx);
 }

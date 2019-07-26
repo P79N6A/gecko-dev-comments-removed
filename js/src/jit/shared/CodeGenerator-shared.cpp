@@ -639,7 +639,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 #endif
 
     
-    IonCode *wrapper = gen->ionRuntime()->getVMWrapper(fun);
+    IonCode *wrapper = gen->jitRuntime()->getVMWrapper(fun);
     if (!wrapper)
         return false;
 
