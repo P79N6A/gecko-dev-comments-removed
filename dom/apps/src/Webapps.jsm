@@ -1950,9 +1950,14 @@ this.DOMApplicationRegistry = {
         } catch(e) { }
 
         
+        
         let manFile = dir.clone();
         manFile.append("manifest.webapp");
         this._writeFile(manFile, JSON.stringify(aManifest), function() { });
+        if (this._manifestCache[aId]) {
+          delete this._manifestCache[aId];
+        }
+
         
         app.installState = "installed";
         app.downloading = false;
