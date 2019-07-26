@@ -191,6 +191,33 @@
 
 
 
+
+
+
+     File.prototype.setPermissions = function setPermissions(options = {}) {
+       throw_on_negative("setPermissions",
+                         UnixFile.fchmod(this.fd, unixMode(options)),
+                         this._path);
+     };
+
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
      if (SharedAll.Constants.Sys.Name != "Android") {
        File.prototype.setDates = function(accessDate, modificationDate) {
          let {value, ptr} = datesToTimevals(accessDate, modificationDate);
@@ -913,6 +940,34 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     File.setPermissions = function setPermissions(path, options = {}) {
+       throw_on_negative("setPermissions",
+                         UnixFile.chmod(path, unixMode(options)),
+                         path);
+     };
+
+     
+
+
+
      function datesToTimevals(accessDate, modificationDate) {
        accessDate = normalizeDate("File.setDates", accessDate);
        modificationDate = normalizeDate("File.setDates", modificationDate);
@@ -1110,6 +1165,25 @@
        }
        return date;
      };
+
+     
+
+
+     function unixMode(options) {
+       let mode = 438; 
+       let unixHonorUmask = true;
+       if ("unixMode" in options) {
+         unixHonorUmask = false;
+         mode = options.unixMode;
+       }
+       if ("unixHonorUmask" in options) {
+         unixHonorUmask = options.unixHonorUmask;
+       }
+       if (unixHonorUmask) {
+         mode &= ~SharedAll.Constants.Sys.umask;
+       }
+       return mode;
+     }
 
      File.Unix = exports.OS.Unix.File;
      File.Error = SysAll.Error;

@@ -835,6 +835,33 @@ File.prototype = {
   flush: function flush() {
     return Scheduler.post("File_prototype_flush",
       [this._fdmsg]);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setPermissions: function setPermissions(options = {}) {
+    return Scheduler.post("File_prototype_setPermissions",
+                          [this._fdmsg, options]);
   }
 };
 
@@ -933,6 +960,35 @@ File.setDates = function setDates(path, accessDate, modificationDate) {
   return Scheduler.post("setDates",
                         [Type.path.toMsg(path), accessDate, modificationDate],
                         this);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+File.setPermissions = function setPermissions(path, options = {}) {
+  return Scheduler.post("setPermissions",
+                        [Type.path.toMsg(path), options]);
 };
 
 
