@@ -4,6 +4,7 @@
 
 
 #include "nsDOMKeyboardEvent.h"
+#include "prtime.h"
 
 nsDOMKeyboardEvent::nsDOMKeyboardEvent(mozilla::dom::EventTarget* aOwner,
                                        nsPresContext* aPresContext,

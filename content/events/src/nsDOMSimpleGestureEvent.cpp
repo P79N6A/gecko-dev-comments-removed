@@ -4,6 +4,7 @@
 
 
 #include "nsDOMSimpleGestureEvent.h"
+#include "prtime.h"
 
 nsDOMSimpleGestureEvent::nsDOMSimpleGestureEvent(mozilla::dom::EventTarget* aOwner,
                                                  nsPresContext* aPresContext,

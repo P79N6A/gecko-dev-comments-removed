@@ -17,6 +17,7 @@
 #include "nsIURI.h"
 #include "nsString.h"
 #include "nsTHashtable.h"
+#include "prtime.h"
 
 
 #define NS_STRICT_TRANSPORT_SECURITY_CID \
