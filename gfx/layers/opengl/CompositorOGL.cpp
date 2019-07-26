@@ -836,20 +836,9 @@ CompositorOGL::BeginFrame(const nsIntRegion& aInvalidRegion,
 
   mGLContext->fEnable(LOCAL_GL_SCISSOR_TEST);
 
-  if (!aClipRectIn) {
-    mGLContext->fScissor(0, FlipY(height), width, height);
-    if (aClipRectOut) {
-      aClipRectOut->SetRect(0, 0, width, height);
-    }
-  } else {
-    mGLContext->fScissor(aClipRectIn->x,
-                         FlipY(aClipRectIn->y + aClipRectIn->height),
-                         aClipRectIn->width,
-                         aClipRectIn->height);
+  if (aClipRectOut && !aClipRectIn) {
+    aClipRectOut->SetRect(0, 0, width, height);
   }
-
-  
-  mGLContext->PushScissorRect();
 
   
   
@@ -1399,9 +1388,6 @@ CompositorOGL::EndFrame()
     mCurrentRenderTarget = nullptr;
     return;
   }
-
-  
-  mGLContext->PopScissorRect();
 
   mCurrentRenderTarget = nullptr;
 
