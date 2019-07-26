@@ -25,14 +25,8 @@
 
 
 
-
-
 #ifndef LIBFFI_TARGET_H
 #define LIBFFI_TARGET_H
-
-#ifndef LIBFFI_H
-#error "Please do not include ffitarget.h directly into your source.  Use ffi.h instead."
-#endif
 
 
 
@@ -63,14 +57,18 @@ typedef enum ffi_abi {
   FFI_LINUX64,
   FFI_LINUX,
   FFI_LINUX_SOFT_FLOAT,
-# if defined(POWERPC64)
+# ifdef POWERPC64
   FFI_DEFAULT_ABI = FFI_LINUX64,
-# elif defined(__NO_FPRS__)
-  FFI_DEFAULT_ABI = FFI_LINUX_SOFT_FLOAT,
-# elif (__LDBL_MANT_DIG__ == 106)
-  FFI_DEFAULT_ABI = FFI_LINUX,
 # else
+#  if (!defined(__NO_FPRS__) && (__LDBL_MANT_DIG__ == 106))
+  FFI_DEFAULT_ABI = FFI_LINUX,
+#  else
+#   ifdef __NO_FPRS__
+  FFI_DEFAULT_ABI = FFI_LINUX_SOFT_FLOAT,
+#   else
   FFI_DEFAULT_ABI = FFI_GCC_SYSV,
+#   endif
+#  endif
 # endif
 #endif
 
@@ -103,10 +101,6 @@ typedef enum ffi_abi {
 
 #define FFI_CLOSURES 1
 #define FFI_NATIVE_RAW_API 0
-#if defined (POWERPC) || defined (POWERPC_FREEBSD)
-# define FFI_TARGET_SPECIFIC_VARIADIC 1
-# define FFI_EXTRA_CIF_FIELDS unsigned nfixedargs
-#endif
 
 
 
@@ -119,19 +113,10 @@ typedef enum ffi_abi {
 
 #define FFI_SYSV_TYPE_SMALL_STRUCT (FFI_TYPE_LAST + 2)
 
-
-#define FFI_V2_TYPE_FLOAT_HOMOG		(FFI_TYPE_LAST + 1)
-#define FFI_V2_TYPE_DOUBLE_HOMOG	(FFI_TYPE_LAST + 2)
-#define FFI_V2_TYPE_SMALL_STRUCT	(FFI_TYPE_LAST + 3)
-
-#if _CALL_ELF == 2
-# define FFI_TRAMPOLINE_SIZE 32
-#else
-# if defined(POWERPC64) || defined(POWERPC_AIX)
-#  define FFI_TRAMPOLINE_SIZE 24
-# else 
-#  define FFI_TRAMPOLINE_SIZE 40
-# endif
+#if defined(POWERPC64) || defined(POWERPC_AIX)
+#define FFI_TRAMPOLINE_SIZE 24
+#else 
+#define FFI_TRAMPOLINE_SIZE 40
 #endif
 
 #ifndef LIBFFI_ASM
