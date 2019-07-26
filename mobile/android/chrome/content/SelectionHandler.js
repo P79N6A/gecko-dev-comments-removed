@@ -71,20 +71,22 @@ var SelectionHandler = {
       case "Gesture:SingleTap": {
         if (this._activeType == this.TYPE_SELECTION) {
           let data = JSON.parse(aData);
-          this.endSelection(data.x, data.y);
+          if (this._pointInSelection(data.x, data.y))
+            this.copySelection();
+          else
+            this._closeSelection();
         }
         break;
       }
       case "Tab:Selected":
-        if (this._activeType == this.TYPE_CURSOR) {
-          this.hideThumb();
-        }
-        
+        this._closeSelection();
+        break;
+  
       case "Window:Resize": {
         if (this._activeType == this.TYPE_SELECTION) {
           
           
-          this.endSelection();
+          this._closeSelection();
         }
         break;
       }
@@ -138,22 +140,15 @@ var SelectionHandler = {
   handleEvent: function sh_handleEvent(aEvent) {
     switch (aEvent.type) {
       case "pagehide":
-        if (this._activeType == this.TYPE_SELECTION)
-          this.endSelection();
-        else
-          this.hideThumb();
-        break;
-
+      
       case "keydown":
       case "blur":
-        if (this._activeType == this.TYPE_CURSOR)
-          this.hideThumb();
+        this._closeSelection();
         break;
 
       case "compositionend":
-        
         if (this._activeType == this.TYPE_CURSOR) {
-          this.hideThumb();
+          this._closeSelection();
         }
         break;
     }
@@ -175,7 +170,7 @@ var SelectionHandler = {
       }
 
       
-      this.endSelection();
+      this._closeSelection();
     }
 
     this._ignoreCollapsedSelection = false;
@@ -193,12 +188,7 @@ var SelectionHandler = {
   
   startSelection: function sh_startSelection(aElement, aX, aY) {
     
-    if (this._activeType == this.TYPE_SELECTION) {
-      this.endSelection();
-    } else if (this._activeType == this.TYPE_CURSOR) {
-      
-      this.hideThumb();
-    }
+    this._closeSelection();
 
     
     this._view = aElement.ownerDocument.defaultView;
@@ -230,14 +220,14 @@ var SelectionHandler = {
       selectionController.wordMove(!this._isRTL, true);
     } catch(e) {
       
-      this._cleanUp();
+      this._closeSelection();
       return;
     }
 
     
     if (!selection.rangeCount || !selection.getRangeAt(0) || !selection.toString().trim().length) {
       selection.collapseToStart();
-      this._cleanUp();
+      this._closeSelection();
       return;
     }
 
@@ -265,6 +255,13 @@ var SelectionHandler = {
       return this._target.QueryInterface(Ci.nsIDOMNSEditableElement).editor.selection;
     else
       return this._target.getSelection();
+  },
+
+  _getSelectedText: function sh_getSelectedText() {
+    let selection = this.getSelection();
+    if (selection)
+      return selection.toString().trim();
+    return "";
   },
 
   getSelectionController: function sh_getSelectionController() {
@@ -370,57 +367,53 @@ var SelectionHandler = {
     this._cwu.sendMouseEventToWindow("mouseup", aX, aY, 0, 0, useShift ? Ci.nsIDOMNSEvent.SHIFT_MASK : 0, true);
   },
 
+  copySelection: function sh_copySelection() {
+    let selectedText = this._getSelectedText();
+    if (selectedText.length) {
+      let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
+      clipboard.copyString(selectedText, this._view.document);
+      NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
+    }
+    this._closeSelection();
+  },
+
+  shareSelection: function sh_shareSelection() {
+    let selectedText = this._getSelectedText();
+    if (selectedText.length) {
+      sendMessageToJava({
+        type: "Share:Text",
+        text: selectedText
+      });
+    }
+    this._closeSelection();
+  },
+
   
-  endSelection: function sh_endSelection(aX, aY) {
-    if (this._activeType != this.TYPE_SELECTION)
-      return "";
-
-    this._activeType = this.TYPE_NONE;
-    sendMessageToJava({
-      type: "TextSelection:HideHandles",
-      handles: [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]
-    });
 
 
-    let selectedText = "";
-    let pointInSelection = false;
-    if (this._view) {
+  _closeSelection: function sh_closeSelection() {
+    
+    if (this._activeType == this.TYPE_NONE)
+      return;
+
+    if (this._activeType == this.TYPE_SELECTION) {
       let selection = this.getSelection();
       if (selection) {
         
-        selectedText = selection.toString().trim();
-
         
-        if (arguments.length == 2 && this._pointInSelection(aX, aY))
-          pointInSelection = true;
-
-        selection.removeAllRanges();
         selection.QueryInterface(Ci.nsISelectionPrivate).removeSelectionListener(this);
+        selection.removeAllRanges();
       }
     }
 
-    
-    if (pointInSelection && selectedText.length) {
-      let element = ElementTouchHelper.anyElementFromPoint(aX, aY);
-      
-      if (element.ownerDocument.defaultView == this._view) {
-        let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
-        clipboard.copyString(selectedText, element.ownerDocument);
-        NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
-      }
-    }
+    this._activeType = this.TYPE_NONE;
 
-    this._cleanUp();
+    sendMessageToJava({ type: "TextSelection:HideHandles" });
 
-    return selectedText;
-  },
-
-  _cleanUp: function sh_cleanUp() {
     this._removeObservers();
     this._view.removeEventListener("pagehide", this, false);
     this._view.removeEventListener("keydown", this, false);
     this._view.removeEventListener("blur", this, true);
-    this._activeType = this.TYPE_NONE;
     this._view = null;
     this._target = null;
     this._isRTL = false;
@@ -492,16 +485,6 @@ var SelectionHandler = {
 
     sendMessageToJava({
       type: "TextSelection:ShowHandles",
-      handles: [this.HANDLE_TYPE_MIDDLE]
-    });
-  },
-
-  hideThumb: function sh_hideThumb() {
-    this._activeType = this.TYPE_NONE;
-    this._cleanUp();
-
-    sendMessageToJava({
-      type: "TextSelection:HideHandles",
       handles: [this.HANDLE_TYPE_MIDDLE]
     });
   },
