@@ -210,12 +210,9 @@ nscoord
 nsSplittableFrame::GetConsumedHeight() const
 {
   nscoord height = 0;
-
-  
   for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
-    height += prev->GetRect().height;
+    height += prev->GetContentRectRelativeToSelf().height;
   }
-
   return height;
 }
 
@@ -234,16 +231,8 @@ nsSplittableFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowSt
 
   height -= aConsumedHeight;
 
-  if (aConsumedHeight != 0 && aConsumedHeight != NS_INTRINSICSIZE) {
-    
-    
-    height += aReflowState.ComputedPhysicalBorderPadding().top;
-  }
-
   
-  height = std::max(0, height);
-
-  return height;
+  return std::max(0, height);
 }
 
 int
@@ -271,7 +260,8 @@ nsSplittableFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) co
 
     if (NS_UNCONSTRAINEDSIZE != aReflowState->AvailableHeight()) {
       nscoord effectiveCH = this->GetEffectiveComputedHeight(*aReflowState);
-      if (effectiveCH > aReflowState->AvailableHeight()) {
+      if (effectiveCH != NS_INTRINSICSIZE &&
+          effectiveCH > aReflowState->AvailableHeight()) {
         
         
         skip |= LOGICAL_SIDE_B_END;
