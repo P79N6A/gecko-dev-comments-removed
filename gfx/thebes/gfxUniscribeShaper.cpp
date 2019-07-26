@@ -3,7 +3,6 @@
 
 
 
-#include "prtypes.h"
 #include "gfxTypes.h"
 
 #include "gfxContext.h"

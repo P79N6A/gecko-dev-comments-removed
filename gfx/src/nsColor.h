@@ -10,7 +10,6 @@
 #include <stdint.h>                     
 #include "gfxCore.h"                    
 #include "nscore.h"                     
-#include "prtypes.h"                    
 
 class nsAString;
 class nsString;
