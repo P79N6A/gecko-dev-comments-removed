@@ -128,6 +128,7 @@ var ContextUI = {
     
     
     if (this.navbarVisible) {
+      BrowserUI.blurNavBar();
       this.dismissNavbar();
       dismissed = true;
     }

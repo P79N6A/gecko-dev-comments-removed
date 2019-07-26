@@ -62,11 +62,8 @@ var StartUI = {
   onClick: function onClick(aEvent) {
     
     
-    if (this.chromeWin.BrowserUI.blurNavBar()) {
-      
-      
-      this.chromeWin.ContentAreaObserver.navBarWillBlur();
-    }
+    this.chromeWin.BrowserUI.blurNavBar();
+
     if (aEvent.button == 0) {
       this.chromeWin.ContextUI.dismissTabs();
     }

@@ -564,6 +564,11 @@ var BrowserUI = {
   blurNavBar: function blurNavBar() {
     if (this._edit.focused) {
       this._edit.blur();
+
+      
+      
+      ContentAreaObserver.navBarWillBlur();
+
       return true;
     }
     return false;
