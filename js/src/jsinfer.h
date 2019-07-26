@@ -328,7 +328,7 @@ public:
 
 
 
-    virtual void newObjectState(JSContext *cx, TypeObject *object, bool force) {}
+    virtual void newObjectState(JSContext *cx, TypeObject *object) {}
 };
 
 
@@ -1256,13 +1256,16 @@ struct TypeObjectKey {
 
     bool unknownProperties();
     bool hasFlags(CompilerConstraintList *constraints, TypeObjectFlags flags);
-    void watchStateChange(CompilerConstraintList *constraints);
+    void watchStateChangeForInlinedCall(CompilerConstraintList *constraints);
+    void watchStateChangeForNewScriptTemplate(CompilerConstraintList *constraints);
+    void watchStateChangeForTypedArrayBuffer(CompilerConstraintList *constraints);
     HeapTypeSetKey property(jsid id);
 };
 
 class HeapTypeSetKey
 {
   public:
+    TypeObject *actualObject;
     HeapTypeSet *actualTypes;
 
     void freeze(CompilerConstraintList *constraints);

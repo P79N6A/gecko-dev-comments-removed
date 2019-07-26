@@ -3960,7 +3960,7 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 
     
     types::TypeObjectKey *targetType = types::TypeObjectKey::get(target);
-    targetType->watchStateChange(constraints());
+    targetType->watchStateChangeForInlinedCall(constraints());
 
     return true;
 }
@@ -4643,7 +4643,7 @@ IonBuilder::createThisScriptedSingleton(JSFunction *target, MDefinition *callee)
     
     types::TypeObjectKey *templateType = types::TypeObjectKey::get(templateObject);
     if (templateType->newScript())
-        templateType->watchStateChange(constraints());
+        templateType->watchStateChangeForNewScriptTemplate(constraints());
 
     MCreateThisWithTemplate *createThis = MCreateThisWithTemplate::New(templateObject);
     current->add(createThis);
@@ -6886,7 +6886,7 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
         
         
         types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
-        tarrType->watchStateChange(constraints());
+        tarrType->watchStateChangeForTypedArrayBuffer(constraints());
 
         obj->setFoldedUnchecked();
         return MConstantElements::New(data);
