@@ -35,15 +35,16 @@
 #ifndef STACK_ALLOC_H
 #define STACK_ALLOC_H
 
-#ifdef USE_ALLOCA
-# ifdef WIN32
-#  include <malloc.h>
+#ifdef WIN32
+# include <malloc.h>
+# ifndef alloca
+#   define alloca(_x) _alloca(_x);
+# endif
+#else
+#ifdef HAVE_ALLOCA_H
+#  include <alloca.h>
 # else
-#  ifdef HAVE_ALLOCA_H
-#   include <alloca.h>
-#  else
-#   include <stdlib.h>
-#  endif
+#  include <stdlib.h>
 # endif
 #endif
 
@@ -101,7 +102,7 @@
 #endif
 
 #if defined(VAR_ARRAYS)
-#define VARDECL(var) 
+#define VARDECL(var)
 #define ALLOC(var, size, type) type var[size]
 #elif defined(USE_ALLOCA)
 #define VARDECL(var) var
