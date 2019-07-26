@@ -213,6 +213,13 @@ ToJSValue(JSContext* aCx, JS::Handle<JS::Value> aArgument,
 }
 
 
+
+bool
+ToJSValue(JSContext* aCx,
+          nsresult aArgument,
+          JS::MutableHandle<JS::Value> aValue);
+
+
 template <typename T>
 bool
 ToJSValue(JSContext* aCx,
