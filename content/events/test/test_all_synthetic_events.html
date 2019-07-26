@@ -171,10 +171,6 @@ const kEventConstructors = {
                                                          return new HashChangeEvent(aName, aProps);
                                                        },
                                              },
-  IccChangeEvent:                            { create: function (aName, aProps) {
-                                                         return new IccChangeEvent(aName, aProps);
-                                                       },
-                                             },
   IDBVersionChangeEvent:                     { create: function (aName, aProps) {
                                                          return new IDBVersionChangeEvent(aName, aProps);
                                                        },
@@ -296,6 +292,10 @@ const kEventConstructors = {
                                              },
   PageTransitionEvent:                       { create: function (aName, aProps) {
                                                          return new PageTransitionEvent(aName, aProps);
+                                                       },
+                                             },
+  PointerEvent:                              { create: function (aName, aProps) {
+                                                         return new PointerEvent(aName, aProps);
                                                        },
                                              },
   PopStateEvent:                             { create: function (aName, aProps) {
