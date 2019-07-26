@@ -52,17 +52,13 @@ let HomeBanner = (function () {
   
   let _messages = {};
 
-  
-  let _queue = [];
-
 
   let _handleGet = function() {
     
-    
-    let id = _queue.shift();
-    _queue.push(id);
+    let keys = Object.keys(_messages);
+    let randomId = keys[Math.floor(Math.random() * keys.length)];
+    let message = _messages[randomId];
 
-    let message = _messages[id];
     sendMessageToJava({
       type: "HomeBanner:Data",
       id: message.id,
@@ -120,9 +116,6 @@ let HomeBanner = (function () {
       _messages[message.id] = message;
 
       
-      _queue.push(message.id);
-
-      
       
       if (Object.keys(_messages).length == 1) {
         Services.obs.addObserver(this, "HomeBanner:Get", false);
@@ -149,10 +142,6 @@ let HomeBanner = (function () {
       }
 
       delete _messages[id];
-
-      
-      let index = _queue.indexOf(id);
-      _queue.splice(index, 1);
 
       
       if (Object.keys(_messages).length == 0) {
