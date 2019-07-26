@@ -7,6 +7,7 @@
 #ifndef nsTArray_h__
 #define nsTArray_h__
 
+#include "nsTArrayForwardDeclare.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Util.h"
 
@@ -19,6 +20,49 @@
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
 #include NEW_H
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -417,41 +461,16 @@ template <class E> class FallibleTArray;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template<class E, class Alloc=nsTArrayInfallibleAllocator>
-class nsTArray : public nsTArray_base<Alloc>,
-                 public nsTArray_SafeElementAtHelper<E, nsTArray<E, Alloc> >
+template<class E, class Alloc>
+class nsTArray_Impl : public nsTArray_base<Alloc>,
+                      public nsTArray_SafeElementAtHelper<E, nsTArray_Impl<E, Alloc> >
 {
 public:
   typedef nsTArray_base<Alloc>           base_type;
   typedef typename base_type::size_type  size_type;
   typedef typename base_type::index_type index_type;
   typedef E                              elem_type;
-  typedef nsTArray<E, Alloc>             self_type;
+  typedef nsTArray_Impl<E, Alloc>        self_type;
   typedef nsTArrayElementTraits<E>       elem_traits;
   typedef nsTArray_SafeElementAtHelper<E, self_type> safeelementat_helper_type;
 
@@ -470,38 +489,46 @@ public:
   
   
 
-  ~nsTArray() { Clear(); }
+  ~nsTArray_Impl() { Clear(); }
 
   
   
   
 
-  nsTArray() {}
+  nsTArray_Impl() {}
 
   
-  explicit nsTArray(size_type capacity) {
+  explicit nsTArray_Impl(size_type capacity) {
     SetCapacity(capacity);
   }
 
   
   
-  explicit nsTArray(const self_type& other) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  explicit nsTArray_Impl(const self_type& other) {
     AppendElements(other);
   }
 
-  template<typename Allocator>
-  explicit nsTArray(const nsTArray<E, Allocator>& other) {
-    AppendElements(other);
-  }
-
   
   
   template<typename Allocator>
-  operator const nsTArray<E, Allocator>&() const {
-    return *reinterpret_cast<const nsTArray<E, Allocator>*>(this);
+  operator const nsTArray_Impl<E, Allocator>&() const {
+    return *reinterpret_cast<const nsTArray_Impl<E, Allocator>*>(this);
   }
   
-  operator const InfallibleTArray<E>&() const {
+  operator const nsTArray<E>&() const {
     return *reinterpret_cast<const InfallibleTArray<E>*>(this);
   }
   operator const FallibleTArray<E>&() const {
@@ -511,7 +538,7 @@ public:
   
   
   
-  nsTArray& operator=(const self_type& other) {
+  self_type& operator=(const self_type& other) {
     ReplaceElementsAt(0, Length(), other.Elements(), other.Length());
     return *this;
   }
@@ -519,7 +546,7 @@ public:
   
   
   template<typename Allocator>
-  bool operator==(const nsTArray<E, Allocator>& other) const {
+  bool operator==(const nsTArray_Impl<E, Allocator>& other) const {
     size_type len = Length();
     if (len != other.Length())
       return false;
@@ -539,7 +566,7 @@ public:
   }
 
   template<typename Allocator>
-  nsTArray& operator=(const nsTArray<E, Allocator>& other) {
+  self_type& operator=(const nsTArray_Impl<E, Allocator>& other) {
     ReplaceElementsAt(0, Length(), other.Elements(), other.Length());
     return *this;
   }
@@ -810,8 +837,8 @@ public:
   }
 
   
-  template<class Item>
-  elem_type *InsertElementsAt(index_type index, const nsTArray<Item>& array) {
+  template<class Item, class Allocator>
+  elem_type *InsertElementsAt(index_type index, const nsTArray_Impl<Item, Allocator>& array) {
     return ReplaceElementsAt(index, 0, array.Elements(), array.Length());
   }
 
@@ -931,7 +958,7 @@ public:
 
   
   template<class Item, class Allocator>
-  elem_type *AppendElements(const nsTArray<Item, Allocator>& array) {
+  elem_type *AppendElements(const nsTArray_Impl<Item, Allocator>& array) {
     return AppendElements(array.Elements(), array.Length());
   }
 
@@ -967,7 +994,7 @@ public:
   
   
   template<class Item, class Allocator>
-  elem_type *MoveElementsFrom(nsTArray<Item, Allocator>& array) {
+  elem_type *MoveElementsFrom(nsTArray_Impl<Item, Allocator>& array) {
     MOZ_ASSERT(&array != this, "argument must be different array");
     index_type len = Length();
     index_type otherLen = array.Length();
@@ -1047,7 +1074,7 @@ public:
   
   
   template<class Allocator>
-  bool SwapElements(nsTArray<E, Allocator>& other) {
+  bool SwapElements(nsTArray_Impl<E, Allocator>& other) {
     return this->SwapArrayElements(other, sizeof(elem_type), MOZ_ALIGNOF(elem_type));
   }
 
@@ -1317,7 +1344,7 @@ protected:
 
 template <typename E, typename Alloc>
 inline void
-ImplCycleCollectionUnlink(nsTArray<E, Alloc>& aField)
+ImplCycleCollectionUnlink(nsTArray_Impl<E, Alloc>& aField)
 {
   aField.Clear();
 }
@@ -1325,7 +1352,7 @@ ImplCycleCollectionUnlink(nsTArray<E, Alloc>& aField)
 template <typename E, typename Alloc>
 inline void
 ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            nsTArray<E, Alloc>& aField,
+                            nsTArray_Impl<E, Alloc>& aField,
                             const char* aName,
                             uint32_t aFlags = 0)
 {
@@ -1339,82 +1366,60 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
 
 
 
+
 template <class E>
-class FallibleTArray : public nsTArray<E, nsTArrayFallibleAllocator>
+class nsTArray : public nsTArray_Impl<E, nsTArrayInfallibleAllocator>
 {
 public:
-  typedef nsTArray<E, nsTArrayFallibleAllocator>   base_type;
-  typedef typename base_type::size_type            size_type;
+  typedef nsTArray_Impl<E, nsTArrayInfallibleAllocator> base_type;
+  typedef nsTArray<E>                                   self_type;
+  typedef typename base_type::size_type                 size_type;
+
+  nsTArray() {}
+  explicit nsTArray(size_type capacity) : base_type(capacity) {}
+  nsTArray(const nsTArray& other) : base_type(other) {}
+
+  template<class Allocator>
+  nsTArray(const nsTArray_Impl<E, Allocator>& other) : base_type(other) {}
+};
+
+
+
+
+template <class E>
+class FallibleTArray : public nsTArray_Impl<E, nsTArrayFallibleAllocator>
+{
+public:
+  typedef nsTArray_Impl<E, nsTArrayFallibleAllocator>   base_type;
+  typedef FallibleTArray<E>                             self_type;
+  typedef typename base_type::size_type                 size_type;
 
   FallibleTArray() {}
   explicit FallibleTArray(size_type capacity) : base_type(capacity) {}
-  FallibleTArray(const FallibleTArray& other) : base_type(other) {}
+  FallibleTArray(const FallibleTArray<E>& other) : base_type(other) {}
+
+  template<class Allocator>
+  FallibleTArray(const nsTArray_Impl<E, Allocator>& other) : base_type(other) {}
 };
 
-template <typename E>
-inline void
-ImplCycleCollectionUnlink(FallibleTArray<E>& aField)
-{
-  aField.Clear();
-}
-
-template <typename E>
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            FallibleTArray<E>& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
-  aFlags |= CycleCollectionEdgeNameArrayFlag;
-  size_t length = aField.Length();
-  for (size_t i = 0; i < length; ++i) {
-    ImplCycleCollectionTraverse(aCallback, aField[i], aName, aFlags);
-  }
-}
 
 
-#ifdef MOZALLOC_HAVE_XMALLOC
-template <class E>
-class InfallibleTArray : public nsTArray<E, nsTArrayInfallibleAllocator>
-{
-public:
-  typedef nsTArray<E, nsTArrayInfallibleAllocator> base_type;
-  typedef typename base_type::size_type            size_type;
- 
-  InfallibleTArray() {}
-  explicit InfallibleTArray(size_type capacity) : base_type(capacity) {}
-  InfallibleTArray(const InfallibleTArray& other) : base_type(other) {}
-};
 
-template <typename E>
-inline void ImplCycleCollectionUnlink(InfallibleTArray<E>& aField)
-{
-  aField.Clear();
-}
-
-template <typename E>
-inline void
-ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
-                            InfallibleTArray<E>& aField,
-                            const char* aName,
-                            uint32_t aFlags = 0)
-{
-  aFlags |= CycleCollectionEdgeNameArrayFlag;
-  size_t length = aField.Length();
-  for (size_t i = 0; i < length; ++i) {
-    ImplCycleCollectionTraverse(aCallback, aField[i], aName, aFlags);
-  }
-}
-
-#endif
 
 template <class TArrayBase, uint32_t N>
 class nsAutoArrayBase : public TArrayBase
 {
 public:
+  typedef nsAutoArrayBase<TArrayBase, N> self_type;
   typedef TArrayBase base_type;
   typedef typename base_type::Header Header;
   typedef typename base_type::elem_type elem_type;
+
+  template<typename Allocator>
+  self_type& operator=(const nsTArray_Impl<elem_type, Allocator>& other) {
+    base_type::operator=(other);
+    return *this;
+  }
 
 protected:
   nsAutoArrayBase() {
@@ -1464,17 +1469,53 @@ private:
   };
 };
 
-template<class E, uint32_t N, class Alloc=nsTArrayInfallibleAllocator>
-class nsAutoTArray : public nsAutoArrayBase<nsTArray<E, Alloc>, N>
+
+
+
+
+
+
+
+
+template<class E, uint32_t N>
+class nsAutoTArray : public nsAutoArrayBase<nsTArray<E>, N>
 {
-  typedef nsAutoArrayBase<nsTArray<E, Alloc>, N> Base;
+  typedef nsAutoTArray<E, N> self_type;
+  typedef nsAutoArrayBase<nsTArray<E>, N> Base;
 
 public:
   nsAutoTArray() {}
 
   template<typename Allocator>
-  nsAutoTArray(const nsTArray<E, Allocator>& other) {
+  nsAutoTArray(const nsTArray_Impl<E, Allocator>& other) {
     Base::AppendElements(other);
+  }
+
+  operator const AutoFallibleTArray<E, N>&() const {
+    return *reinterpret_cast<const AutoFallibleTArray<E, N>*>(this);
+  }
+};
+
+
+
+
+
+template<class E, uint32_t N>
+class AutoFallibleTArray : public nsAutoArrayBase<FallibleTArray<E>, N>
+{
+  typedef AutoFallibleTArray<E, N> self_type;
+  typedef nsAutoArrayBase<FallibleTArray<E>, N> Base;
+
+public:
+  AutoFallibleTArray() {}
+
+  template<typename Allocator>
+  AutoFallibleTArray(const nsTArray_Impl<E, Allocator>& other) {
+    Base::AppendElements(other);
+  }
+
+  operator const nsAutoTArray<E, N>&() const {
+    return *reinterpret_cast<const nsAutoTArray<E, N>*>(this);
   }
 };
 
@@ -1496,64 +1537,6 @@ MOZ_STATIC_ASSERT(sizeof(nsAutoTArray<uint32_t, 2>) ==
                   "nsAutoTArray shouldn't contain any extra padding, "
                   "see the comment");
 
-template<class E, uint32_t N>
-class AutoFallibleTArray : public nsAutoArrayBase<FallibleTArray<E>, N>
-{
-  typedef nsAutoArrayBase<FallibleTArray<E>, N> Base;
-
-public:
-  AutoFallibleTArray() {}
-
-  template<typename Allocator>
-  AutoFallibleTArray(const nsTArray<E, Allocator>& other) {
-    Base::AppendElements(other);
-  }
-};
-
-#if defined(MOZALLOC_HAVE_XMALLOC)
-template<class E, uint32_t N>
-class AutoInfallibleTArray : public nsAutoArrayBase<InfallibleTArray<E>, N>
-{
-  typedef nsAutoArrayBase<InfallibleTArray<E>, N> Base;
-
-public:
-  AutoInfallibleTArray() {}
-
-  template<typename Allocator>
-  AutoInfallibleTArray(const nsTArray<E, Allocator>& other) {
-    Base::AppendElements(other);
-  }
-};
-#endif
-
-
-
-template<class E>
-class nsAutoTArray<E, 0, nsTArrayInfallibleAllocator> :
-  public nsAutoArrayBase< nsTArray<E, nsTArrayInfallibleAllocator>, 0>
-{
-public:
-  nsAutoTArray() {}
-};
-
-template<class E>
-class AutoFallibleTArray<E, 0> :
-  public nsAutoArrayBase< FallibleTArray<E>, 0>
-{
-public:
-  AutoFallibleTArray() {}
-};
-
-#if defined(MOZALLOC_HAVE_XMALLOC)
-template<class E>
-class AutoInfallibleTArray<E, 0> :
-  public nsAutoArrayBase< InfallibleTArray<E>, 0>
-{
-public:
-  AutoInfallibleTArray() {}
-};
-#endif
- 
 
 #include "nsTArray-inl.h"
 

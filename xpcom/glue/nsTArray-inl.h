@@ -370,7 +370,7 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   
   
   
-  nsAutoTArray<uint8_t, 64, Alloc> temp;
+  nsAutoArrayBase<nsTArray_Impl<uint8_t, Alloc>, 64> temp;
   if (!temp.SetCapacity(smallerLength * elemSize)) {
     return false;
   }
