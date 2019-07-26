@@ -29,12 +29,12 @@
 
 
 
-#toolbar-menubar:not([inactive]) {
-  margin-bottom: 3px;
+#toolbar-menubar:not([inactive]) ~ #TabsToolbar {
+  margin-top: 3px;
 }
 
-#main-window[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] {
-  margin-bottom: 15px;
+#main-window[sizemode="normal"] #toolbar-menubar[autohide="true"][inactive] ~ #TabsToolbar {
+  margin-top: 15px;
 }
 
 #toolbar-menubar:not([autohide="true"]) {
