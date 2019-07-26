@@ -64,6 +64,8 @@ struct EventFlags;
 
 
 struct AlternativeCharCode;
+
+
 struct TextRangeStyle;
 struct TextRange;
 
