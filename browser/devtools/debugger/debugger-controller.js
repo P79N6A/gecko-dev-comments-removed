@@ -191,15 +191,13 @@ let DebuggerController = {
     this._connection = startedDebugging.promise;
 
     let target = this._target;
-    let { client, form: { chromeDebugger, traceActor, addonActor } } = target;
+    let { client, form: { chromeDebugger, traceActor } } = target;
     target.on("close", this._onTabDetached);
     target.on("navigate", this._onTabNavigated);
     target.on("will-navigate", this._onTabNavigated);
     this.client = client;
 
-    if (addonActor) {
-      this._startAddonDebugging(addonActor, startedDebugging.resolve);
-    } else if (target.chrome) {
+    if (target.chrome) {
       this._startChromeDebugging(chromeDebugger, startedDebugging.resolve);
     } else {
       this._startDebuggingTab(startedDebugging.resolve);
@@ -308,20 +306,6 @@ let DebuggerController = {
       if (aCallback) {
         aCallback();
       }
-    });
-  },
-
-  
-
-
-
-
-
-
-
-  _startAddonDebugging: function(aAddonActor, aCallback) {
-    this.client.attachAddon(aAddonActor, (aResponse) => {
-      return this._startChromeDebugging(aResponse.threadActor, aCallback);
     });
   },
 
@@ -2174,22 +2158,6 @@ Object.defineProperties(window, {
     get: function() CALL_STACK_PAGE_SIZE
   }
 });
-
-
-
-
-
-
-
-
-
-function getSDKModuleName(url) {
-  let match = (url || "").match(/^resource:\/\/gre\/modules\/commonjs\/(.*)/);
-  if (match) {
-    return match[1];
-  }
-  return null;
-}
 
 
 

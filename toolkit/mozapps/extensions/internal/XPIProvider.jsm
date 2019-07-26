@@ -6189,8 +6189,6 @@ function AddonWrapper(aAddon) {
   });
 #endif
 
-  let wrapper = this;
-
   function chooseValue(aObj, aProp) {
     let repositoryAddon = aAddon._repositoryAddon;
     let objValue = aObj[aProp];
@@ -6481,11 +6479,6 @@ function AddonWrapper(aAddon) {
     return ops;
   });
 
-  this.__defineGetter__("isDebuggable", function AddonWrapper_isDebuggable() {
-    
-    return this.isActive && isCommonJS();
-  });
-
   this.__defineGetter__("permissions", function AddonWrapper_permisionsGetter() {
     let permissions = 0;
 
@@ -6661,20 +6654,6 @@ function AddonWrapper(aAddon) {
       return NetUtil.newURI(aAddon._sourceBundle);
 
     return getURIForResourceInFile(aAddon._sourceBundle, aPath);
-  }
-
-  
-
-
-
-  function isBootstrapped () {
-    return aAddon.bootstrap;
-  }
-
-  function isCommonJS () {
-    
-    
-    return isBootstrapped() && wrapper.hasResource("harness-options.json");
   }
 }
 
