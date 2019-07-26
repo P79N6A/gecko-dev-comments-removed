@@ -922,8 +922,24 @@ RasterImage::GetFrame(uint32_t aWhichFrame,
   nsIntRect framerect = frame->GetRect();
   if (framerect.x == 0 && framerect.y == 0 &&
       framerect.width == mSize.width &&
-      framerect.height == mSize.height)
+      framerect.height == mSize.height) {
     frame->GetSurface(getter_AddRefs(framesurf));
+    if (!framesurf && !frame->IsSinglePixel()) {
+      
+      if (!(aFlags & FLAG_SYNC_DECODE))
+        return nullptr;
+
+      
+      
+      
+      
+      
+      
+      
+      ForceDiscard();
+      return GetFrame(aWhichFrame, aFlags);
+    }
+  }
 
   
   
@@ -947,7 +963,15 @@ RasterImage::GetCurrentImage()
   }
 
   nsRefPtr<gfxASurface> imageSurface = GetFrame(FRAME_CURRENT, FLAG_NONE);
-  NS_ENSURE_TRUE(imageSurface, nullptr);
+  if (!imageSurface) {
+    
+    
+    
+    
+    ForceDiscard();
+    RequestDecodeCore(ASYNCHRONOUS);
+    return nullptr;
+  }
 
   if (!mImageContainer) {
     mImageContainer = LayerManager::CreateImageContainer();
@@ -981,6 +1005,10 @@ RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
     mStatusTracker->OnUnlockedDraw();
   }
 
+  if (!mImageContainer) {
+    mImageContainer = mImageContainerCache;
+  }
+
   if (mImageContainer) {
     *_retval = mImageContainer;
     NS_ADDREF(*_retval);
@@ -995,6 +1023,13 @@ RasterImage::GetImageContainer(LayerManager* aManager, ImageContainer **_retval)
 
   *_retval = mImageContainer;
   NS_ADDREF(*_retval);
+  
+  
+  if (CanForciblyDiscardAndRedecode()) {
+    mImageContainerCache = mImageContainer->asWeakPtr();
+    mImageContainer = nullptr;
+  }
+
   return NS_OK;
 }
 
@@ -1392,6 +1427,12 @@ RasterImage::DecodingComplete()
   
   
   if ((GetNumFrames() == 1) && !mMultipart) {
+    
+    
+    
+    if (DiscardingEnabled() && CanForciblyDiscard()) {
+      mFrameBlender.RawGetFrame(0)->SetDiscardable();
+    }
     rv = mFrameBlender.RawGetFrame(0)->Optimize();
     NS_ENSURE_SUCCESS(rv, rv);
   }
@@ -2095,13 +2136,6 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 
   
   
-  if (GetNumFrames() > 0) {
-    imgFrame *curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
-    curframe->UnlockImageData();
-  }
-
-  
-  
   
   nsRefPtr<Decoder> decoder = mDecoder;
   mDecoder = nullptr;
@@ -2111,6 +2145,13 @@ RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
   decoder->Finish(aIntent);
   mInDecoder = false;
   mFinishing = false;
+
+  
+  
+  if (GetNumFrames() > 0) {
+    imgFrame *curframe = mFrameBlender.RawGetFrame(GetNumFrames() - 1);
+    curframe->UnlockImageData();
+  }
 
   
   
@@ -2675,6 +2716,17 @@ RasterImage::Draw(gfxContext *aContext,
   imgFrame* frame = GetDrawableImgFrame(frameIndex);
   if (!frame) {
     return NS_OK; 
+  }
+
+  nsRefPtr<gfxASurface> surf;
+  if (!frame->IsSinglePixel()) {
+    frame->GetSurface(getter_AddRefs(surf));
+    if (!surf) {
+      
+      ForceDiscard();
+      WantDecodedFrames();
+      return NS_OK;
+    }
   }
 
   DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter, aUserSpaceToImageSpace, aFill, aSubimage, aFlags);
