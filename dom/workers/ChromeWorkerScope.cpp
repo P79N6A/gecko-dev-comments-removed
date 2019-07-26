@@ -48,7 +48,7 @@ UnicodeToNative(JSContext* aCx, const jschar* aSource, size_t aSourceLen)
 BEGIN_WORKERS_NAMESPACE
 
 bool
-DefineChromeWorkerFunctions(JSContext* aCx, JSObject* aGlobal)
+DefineChromeWorkerFunctions(JSContext* aCx, JS::Handle<JSObject*> aGlobal)
 {
   
 #ifdef BUILD_CTYPES

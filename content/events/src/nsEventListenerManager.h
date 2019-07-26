@@ -441,7 +441,7 @@ protected:
 
 
   nsresult SetEventHandlerInternal(nsIScriptContext *aContext,
-                                   JSObject* aScopeGlobal,
+                                   JS::Handle<JSObject*> aScopeGlobal,
                                    nsIAtom* aName,
                                    const nsEventHandler& aHandler,
                                    bool aPermitUntrustedEvents,

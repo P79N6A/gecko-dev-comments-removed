@@ -22,14 +22,14 @@ PluginIdentifierParent::RecvRetain()
   mTemporaryRefs = 0;
 
   
-  jsid id = NPIdentifierToJSId(mIdentifier);
+  SafeAutoJSContext cx;
+  JS::Rooted<jsid> id(cx, NPIdentifierToJSId(mIdentifier));
   if (JSID_IS_INT(id)) {
     return true;
   }
 
   
   
-  SafeAutoJSContext cx;
   JSAutoRequest ar(cx);
   JSString* str = JSID_TO_STRING(id);
   JSString* str2 = JS_InternJSString(cx, str);

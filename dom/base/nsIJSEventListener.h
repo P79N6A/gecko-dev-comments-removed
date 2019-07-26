@@ -211,7 +211,7 @@ public:
   
   
   void SetHandler(const nsEventHandler& aHandler, nsIScriptContext* aContext,
-                  JSObject* aScopeObject)
+                  JS::Handle<JSObject*> aScopeObject)
   {
     mHandler.SetHandler(aHandler);
     mContext = aContext;
@@ -259,7 +259,7 @@ protected:
 
   
   
-  virtual void UpdateScopeObject(JSObject* aScopeObject) = 0;
+  virtual void UpdateScopeObject(JS::Handle<JSObject*> aScopeObject) = 0;
 
   nsCOMPtr<nsIScriptContext> mContext;
   JSObject* mScopeObject;

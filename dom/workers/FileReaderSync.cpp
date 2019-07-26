@@ -87,7 +87,7 @@ FileReaderSync::ReadAsArrayBuffer(JSContext* aCx, JSObject& aBlob,
     return nullptr;
   }
 
-  JSObject* jsArrayBuffer = JS_NewArrayBuffer(aCx, blobSize);
+  JS::Rooted<JSObject*> jsArrayBuffer(aCx, JS_NewArrayBuffer(aCx, blobSize));
   if (!jsArrayBuffer) {
     
     

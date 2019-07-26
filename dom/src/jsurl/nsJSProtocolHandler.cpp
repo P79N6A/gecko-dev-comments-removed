@@ -217,8 +217,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     nsCOMPtr<nsIScriptGlobalObject> innerGlobal = do_QueryInterface(innerWin);
 
-    JSObject *globalJSObject = innerGlobal->GetGlobalJSObject();
-
     nsCOMPtr<nsIDOMWindow> domWindow(do_QueryInterface(global, &rv));
     if (NS_FAILED(rv)) {
         return NS_ERROR_FAILURE;
@@ -242,6 +240,9 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     bool useSandbox =
         (aExecutionPolicy == nsIScriptChannel::EXECUTE_IN_SANDBOX);
 
+    AutoPushJSContext cx(scriptContext->GetNativeContext());
+    JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
+
     if (!useSandbox) {
         
         
@@ -255,10 +256,9 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         useSandbox = !subsumes;
     }
 
-    JS::Value v = JS::UndefinedValue();
+    JS::Rooted<JS::Value> v (cx, JS::UndefinedValue());
     
 
-    AutoPushJSContext cx(scriptContext->GetNativeContext());
     JSAutoRequest ar(cx);
     if (useSandbox) {
         
@@ -290,8 +290,8 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         
         
         
-        JSObject *sandboxObj;
-        rv = sandbox->GetJSObject(&sandboxObj);
+        JS::Rooted<JSObject*> sandboxObj(cx);
+        rv = sandbox->GetJSObject(sandboxObj.address());
         NS_ENSURE_SUCCESS(rv, rv);
         sandboxObj = js::UncheckedUnwrap(sandboxObj);
         JSAutoCompartment ac(cx, sandboxObj);
@@ -302,7 +302,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         pusher.Push(cx);
         rv = xpc->EvalInSandboxObject(NS_ConvertUTF8toUTF16(script),
                                        nullptr, cx,
-                                      sandboxObj, true, &v);
+                                      sandboxObj, true, v.address());
 
         
         
@@ -317,7 +317,8 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
                .setVersion(JSVERSION_DEFAULT);
         rv = scriptContext->EvaluateString(NS_ConvertUTF8toUTF16(script),
                                            *globalJSObject, options,
-                                            true, &v);
+                                            true,
+                                           v.address());
 
         
         
@@ -331,7 +332,7 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     
     
-    if (!JS_WrapValue(cx, &v)) {
+    if (!JS_WrapValue(cx, v.address())) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
 
