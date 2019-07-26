@@ -1432,6 +1432,9 @@ nsDocument::~nsDocument()
 
     if (!isAboutScheme) {
       
+      uint32_t pageLoaded = 1;
+      Accumulate(Telemetry::MIXED_CONTENT_UNBLOCK_COUNTER, pageLoaded);
+      
       enum {
         NO_MIXED_CONTENT = 0, 
         MIXED_DISPLAY_CONTENT = 1, 
