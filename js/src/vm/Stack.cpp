@@ -4,7 +4,7 @@
 
 
 
-#include "vm/Stack.h"
+#include "vm/Stack-inl.h"
 
 #include "mozilla/PodOperations.h"
 
@@ -15,9 +15,7 @@
 #include "ion/BaselineFrame.h"
 #include "ion/IonCompartment.h"
 #endif
-
 #include "vm/Interpreter-inl.h"
-#include "vm/Stack-inl.h"
 #include "vm/Probes-inl.h"
 
 using namespace js;

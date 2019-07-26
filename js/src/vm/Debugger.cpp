@@ -4,7 +4,7 @@
 
 
 
-#include "vm/Debugger.h"
+#include "vm/Debugger-inl.h"
 
 #include "jsapi.h"
 #include "jscntxt.h"
