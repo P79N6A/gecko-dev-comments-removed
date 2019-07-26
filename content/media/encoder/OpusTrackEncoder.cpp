@@ -116,7 +116,6 @@ SerializeOpusCommentHeader(const nsCString& aVendor,
 OpusTrackEncoder::OpusTrackEncoder()
   : AudioTrackEncoder()
   , mEncoder(nullptr)
-  , mSourceSegment(new AudioSegment())
   , mLookahead(0)
   , mResampler(nullptr)
 {
@@ -129,8 +128,8 @@ OpusTrackEncoder::~OpusTrackEncoder()
   }
   if (mResampler) {
     speex_resampler_destroy(mResampler);
+    mResampler = nullptr;
   }
-
 }
 
 nsresult
@@ -142,7 +141,7 @@ OpusTrackEncoder::Init(int aChannels, int aSamplingRate)
   
   
   
-  mChannels = aChannels > 2 ? 2 : aChannels;
+  mChannels = aChannels > MAX_CHANNELS ? MAX_CHANNELS : aChannels;
 
   if (aChannels <= 0) {
     return NS_ERROR_FAILURE;
@@ -195,12 +194,12 @@ OpusTrackEncoder::GetMetadata()
   {
     
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    while (!mCanceled && !mEncoder) {
+    while (!mCanceled && !mInitialized) {
       mReentrantMonitor.Wait();
     }
   }
 
-  if (mCanceled || mDoneEncoding) {
+  if (mCanceled || mEncodingComplete) {
     return nullptr;
   }
 
@@ -238,29 +237,30 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
 
     
     
-    while (!mCanceled && (!mEncoder || (mRawSegment->GetDuration() +
-           mSourceSegment->GetDuration() < GetPacketDuration() &&
+    while (!mCanceled && (!mInitialized || (mRawSegment.GetDuration() +
+           mSourceSegment.GetDuration() < GetPacketDuration() &&
            !mEndOfStream))) {
       mReentrantMonitor.Wait();
     }
 
-    if (mCanceled || mDoneEncoding) {
+    if (mCanceled || mEncodingComplete) {
       return NS_ERROR_FAILURE;
     }
 
-    mSourceSegment->AppendFrom(mRawSegment);
+    mSourceSegment.AppendFrom(&mRawSegment);
 
     
     
-    if (mEndOfStream) {
-      mSourceSegment->AppendNullData(mLookahead);
+    if (mEndOfStream && !mEosSetInEncoder) {
+      mEosSetInEncoder = true;
+      mSourceSegment.AppendNullData(mLookahead);
     }
   }
 
   
   nsAutoTArray<AudioDataValue, 9600> pcm;
   pcm.SetLength(GetPacketDuration() * mChannels);
-  AudioSegment::ChunkIterator iter(*mSourceSegment);
+  AudioSegment::ChunkIterator iter(mSourceSegment);
   int frameCopied = 0;
   while (!iter.IsEnded() && frameCopied < GetPacketDuration()) {
     AudioChunk chunk = *iter;
@@ -319,12 +319,12 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   
   
   
-  mSourceSegment->RemoveLeading(frameCopied);
+  mSourceSegment.RemoveLeading(frameCopied);
 
   
   
-  if (mSourceSegment->GetDuration() == 0 && mEndOfStream) {
-    mDoneEncoding = true;
+  if (mSourceSegment.GetDuration() == 0 && mEndOfStream) {
+    mEncodingComplete = true;
     LOG("[Opus] Done encoding.");
   }
 
@@ -353,7 +353,7 @@ OpusTrackEncoder::GetEncodedTrack(EncodedFrameContainer& aData)
   if (result < 0) {
     LOG("[Opus] Fail to encode data! Result: %s.", opus_strerror(result));
   }
-  if (mDoneEncoding) {
+  if (mEncodingComplete) {
     if (mResampler) {
       speex_resampler_destroy(mResampler);
       mResampler = nullptr;

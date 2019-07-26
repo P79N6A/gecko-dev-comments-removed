@@ -9,9 +9,9 @@
 #include "mozilla/ReentrantMonitor.h"
 
 #include "AudioSegment.h"
+#include "EncodedFrameContainer.h"
 #include "StreamBuffer.h"
 #include "TrackMetadataBase.h"
-#include "EncodedFrameContainer.h"
 
 namespace mozilla {
 
@@ -30,7 +30,15 @@ class MediaStreamGraph;
 class TrackEncoder
 {
 public:
-  TrackEncoder() {}
+  TrackEncoder()
+    : mReentrantMonitor("media.TrackEncoder")
+    , mEncodingComplete(false)
+    , mEosSetInEncoder(false)
+    , mInitialized(false)
+    , mEndOfStream(false)
+    , mCanceled(false)
+  {}
+
   virtual ~TrackEncoder() {}
 
   
@@ -47,9 +55,10 @@ public:
 
 
 
-  virtual void NotifyRemoved(MediaStreamGraph* aGraph) = 0;
+  void NotifyRemoved(MediaStreamGraph* aGraph) { NotifyEndOfStream(); }
 
   
+
 
 
   virtual already_AddRefed<TrackMetadataBase> GetMetadata() = 0;
@@ -57,37 +66,14 @@ public:
   
 
 
+
   virtual nsresult GetEncodedTrack(EncodedFrameContainer& aData) = 0;
-};
 
-class AudioTrackEncoder : public TrackEncoder
-{
-public:
-  AudioTrackEncoder()
-    : TrackEncoder()
-    , mChannels(0)
-    , mSamplingRate(0)
-    , mInitialized(false)
-    , mDoneEncoding(false)
-    , mReentrantMonitor("media.AudioEncoder")
-    , mRawSegment(new AudioSegment())
-    , mEndOfStream(false)
-    , mCanceled(false)
-    , mSilentDuration(0)
-  {}
+  
 
-  void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
-                                TrackRate aTrackRate,
-                                TrackTicks aTrackOffset,
-                                uint32_t aTrackEvents,
-                                const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
 
-  void NotifyRemoved(MediaStreamGraph* aGraph) MOZ_OVERRIDE;
 
-  bool IsEncodingComplete()
-  {
-    return mDoneEncoding;
-  }
+  bool IsEncodingComplete() { return mEncodingComplete; }
 
   
 
@@ -105,8 +91,69 @@ protected:
 
 
 
+  virtual void NotifyEndOfStream() = 0;
 
-  virtual int GetPacketDuration() = 0;
+  
+
+
+
+
+
+  ReentrantMonitor mReentrantMonitor;
+
+  
+
+
+  bool mEncodingComplete;
+
+  
+
+
+
+  bool mEosSetInEncoder;
+
+  
+
+
+
+  bool mInitialized;
+
+  
+
+
+
+
+  bool mEndOfStream;
+
+  
+
+
+
+  bool mCanceled;
+};
+
+class AudioTrackEncoder : public TrackEncoder
+{
+public:
+  AudioTrackEncoder()
+    : TrackEncoder()
+    , mChannels(0)
+    , mSamplingRate(0)
+  {}
+
+  void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
+                                TrackRate aTrackRate,
+                                TrackTicks aTrackOffset,
+                                uint32_t aTrackEvents,
+                                const MediaSegment& aQueuedMedia) MOZ_OVERRIDE;
+
+protected:
+  
+
+
+
+
+  virtual int GetPacketDuration() { return 0; }
 
   
 
@@ -123,13 +170,13 @@ protected:
 
 
 
-  nsresult AppendAudioSegment(MediaSegment* aSegment);
+  nsresult AppendAudioSegment(const AudioSegment& aSegment);
 
   
 
 
 
-  void NotifyEndOfStream();
+  virtual void NotifyEndOfStream() MOZ_OVERRIDE;
 
   
 
@@ -147,38 +194,16 @@ protected:
 
 
   int mChannels;
+
+  
+
+
   int mSamplingRate;
-  bool mInitialized;
-  bool mDoneEncoding;
 
   
 
 
-  ReentrantMonitor mReentrantMonitor;
-
-  
-
-
-  nsAutoPtr<AudioSegment> mRawSegment;
-
-  
-
-
-
-
-  bool mEndOfStream;
-
-  
-
-
-
-  bool mCanceled;
-
-  
-
-
-
-  TrackTicks mSilentDuration;
+  AudioSegment mRawSegment;
 };
 
 class VideoTrackEncoder : public TrackEncoder

@@ -3,21 +3,22 @@
 
 
 #include "TrackEncoder.h"
-#include "MediaStreamGraph.h"
 #include "AudioChannelFormat.h"
+#include "MediaStreamGraph.h"
+#include "VideoUtils.h"
 
 #undef LOG
 #ifdef MOZ_WIDGET_GONK
 #include <android/log.h>
-#define LOG(args...) __android_log_print(ANDROID_LOG_INFO, "MediakEncoder", ## args);
+#define LOG(args...) __android_log_print(ANDROID_LOG_INFO, "MediaEncoder", ## args);
 #else
 #define LOG(args, ...)
 #endif
 
 namespace mozilla {
 
-static const int  DEFAULT_CHANNELS = 1;
-static const int  DEFAULT_SAMPLING_RATE = 16000;
+static const int DEFAULT_CHANNELS = 1;
+static const int DEFAULT_SAMPLING_RATE = 16000;
 
 void
 AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
@@ -31,12 +32,11 @@ AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
     return;
   }
 
-  AudioSegment* audio = const_cast<AudioSegment*>
-                        (static_cast<const AudioSegment*>(&aQueuedMedia));
+  const AudioSegment& audio = static_cast<const AudioSegment&>(aQueuedMedia);
 
   
   if (!mInitialized) {
-    AudioSegment::ChunkIterator iter(*audio);
+    AudioSegment::ChunkIterator iter(const_cast<AudioSegment&>(audio));
     while (!iter.IsEnded()) {
       AudioChunk chunk = *iter;
 
@@ -49,17 +49,15 @@ AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
           NotifyCancel();
         }
         break;
-      } else {
-        mSilentDuration += chunk.mDuration;
       }
+
       iter.Next();
     }
   }
 
   
-  if (mInitialized) {
-    AppendAudioSegment(audio);
-  }
+  AppendAudioSegment(audio);
+
 
   
   if (aTrackEvents == MediaStreamListener::TRACK_EVENT_ENDED) {
@@ -69,23 +67,12 @@ AudioTrackEncoder::NotifyQueuedTrackChanges(MediaStreamGraph* aGraph,
 }
 
 void
-AudioTrackEncoder::NotifyRemoved(MediaStreamGraph* aGraph)
-{
-  
-  LOG("[AudioTrackEncoder]: NotifyRemoved.");
-  NotifyEndOfStream();
-}
-
-void
 AudioTrackEncoder::NotifyEndOfStream()
 {
   
   
-  
   if (!mCanceled && !mInitialized) {
     Init(DEFAULT_CHANNELS, DEFAULT_SAMPLING_RATE);
-    mRawSegment->AppendNullData(mSilentDuration);
-    mSilentDuration = 0;
   }
 
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -94,27 +81,19 @@ AudioTrackEncoder::NotifyEndOfStream()
 }
 
 nsresult
-AudioTrackEncoder::AppendAudioSegment(MediaSegment* aSegment)
+AudioTrackEncoder::AppendAudioSegment(const AudioSegment& aSegment)
 {
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
 
-  AudioSegment* audio = static_cast<AudioSegment*>(aSegment);
-  AudioSegment::ChunkIterator iter(*audio);
-
-  
-  
-  if (mSilentDuration > 0) {
-    mRawSegment->AppendNullData(mSilentDuration);
-    mSilentDuration = 0;
-  }
-
+  AudioSegment::ChunkIterator iter(const_cast<AudioSegment&>(aSegment));
   while (!iter.IsEnded()) {
     AudioChunk chunk = *iter;
     
-    mRawSegment->AppendAndConsumeChunk(&chunk);
+    mRawSegment.AppendAndConsumeChunk(&chunk);
     iter.Next();
   }
-  if (mRawSegment->GetDuration() >= GetPacketDuration()) {
+
+  if (mRawSegment.GetDuration() >= GetPacketDuration()) {
     mReentrantMonitor.NotifyAll();
   }
 
