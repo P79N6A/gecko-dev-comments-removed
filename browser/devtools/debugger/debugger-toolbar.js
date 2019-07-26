@@ -27,6 +27,7 @@ ToolbarView.prototype = {
     dumpn("Initializing the ToolbarView");
 
     this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
+    this._resumeOrderPanel = document.getElementById("resumption-order-panel");
     this._resumeButton = document.getElementById("resume");
     this._stepOverButton = document.getElementById("step-over");
     this._stepInButton = document.getElementById("step-in");
@@ -95,6 +96,19 @@ ToolbarView.prototype = {
 
 
 
+
+  showResumeWarning: function DVT_showResumeWarning(aPausedUrl) {
+    let label = L10N.getFormatStr("resumptionOrderPanelTitle", [aPausedUrl]);
+    document.getElementById("resumption-panel-desc").textContent = label;
+    this._resumeOrderPanel.openPopup(this._resumeButton);
+  },
+
+  
+
+
+
+
+
   toggleChromeGlobalsContainer: function DVT_toggleChromeGlobalsContainer(aVisibleFlag) {
     this._chromeGlobals.setAttribute("hidden", !aVisibleFlag);
   },
@@ -115,7 +129,8 @@ ToolbarView.prototype = {
 
   _onResumePressed: function DVT__onResumePressed() {
     if (DebuggerController.activeThread.paused) {
-      DebuggerController.activeThread.resume();
+      let warn = DebuggerController._ensureResumptionOrder;
+      DebuggerController.activeThread.resume(warn);
     } else {
       DebuggerController.activeThread.interrupt();
     }
@@ -149,6 +164,7 @@ ToolbarView.prototype = {
   },
 
   _instrumentsPaneToggleButton: null,
+  _resumeOrderPanel: null,
   _resumeButton: null,
   _stepOverButton: null,
   _stepInButton: null,

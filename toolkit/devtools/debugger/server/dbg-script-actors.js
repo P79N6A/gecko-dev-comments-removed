@@ -155,14 +155,14 @@ ThreadActor.prototype = {
           aGlobal.hostAnnotations.type == "document" &&
           aGlobal.hostAnnotations.element === this.global) {
         this.addDebuggee(aGlobal);
-      }
-      
-      this.conn.send({
-        from: this.actorID,
-        type: "newGlobal",
         
-        hostAnnotations: aGlobal.hostAnnotations
-      });
+        this.conn.send({
+          from: this.actorID,
+          type: "newGlobal",
+          
+          hostAnnotations: aGlobal.hostAnnotations
+        });
+      }
     }
   },
 
@@ -268,6 +268,18 @@ ThreadActor.prototype = {
 
 
   onResume: function TA_onResume(aRequest) {
+    
+    
+    
+    if (DebuggerServer.xpcInspector.eventLoopNestLevel > 1) {
+      let lastNestRequestor = DebuggerServer.xpcInspector.lastNestRequestor;
+      if (lastNestRequestor.connection != this.conn) {
+        return { error: "wrongOrder",
+                 message: "trying to resume in the wrong order.",
+                 lastPausedUrl: lastNestRequestor.url };
+      }
+    }
+
     if (aRequest && aRequest.forceCompletion) {
       
       
@@ -728,7 +740,10 @@ ThreadActor.prototype = {
       var nestData = this._hooks.preNest();
     }
 
-    DebuggerServer.xpcInspector.enterNestedEventLoop();
+    let requestor = Object.create(null);
+    requestor.url = this._hooks.url;
+    requestor.connection = this.conn;
+    DebuggerServer.xpcInspector.enterNestedEventLoop(requestor);
 
     dbg_assert(this.state === "running");
 
