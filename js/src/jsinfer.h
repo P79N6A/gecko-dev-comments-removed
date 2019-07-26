@@ -242,6 +242,10 @@ class Type
         return data > JSVAL_TYPE_UNKNOWN;
     }
 
+    bool isObjectUnchecked() const {
+        return data > JSVAL_TYPE_UNKNOWN;
+    }
+
     inline TypeObjectKey *objectKey() const;
 
     
@@ -335,7 +339,7 @@ public:
 
 
 
-    virtual TypeConstraint *sweep(TypeZone &zone) = 0;
+    virtual bool sweep(TypeZone &zone, TypeConstraint **res) = 0;
 };
 
 
@@ -528,7 +532,7 @@ class TypeSet
     static TemporaryTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
 
     
-    inline bool addType(Type type, LifoAlloc *alloc);
+    inline void addType(Type type, LifoAlloc *alloc);
 
     
     typedef Vector<Type, 1, SystemAllocPolicy> TypeList;
@@ -543,7 +547,6 @@ class TypeSet
     inline TypeObjectKey *getObject(unsigned i) const;
     inline JSObject *getSingleObject(unsigned i) const;
     inline TypeObject *getTypeObject(unsigned i) const;
-    inline bool getTypeOrSingleObject(JSContext *cx, unsigned i, TypeObject **obj) const;
 
     
     inline const Class *getObjectClass(unsigned i) const;
@@ -568,7 +571,7 @@ class TypeSet
     bool isSubset(TypeSet *other);
 
     
-    void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
+    bool addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
 
     
     TemporaryTypeSet *clone(LifoAlloc *alloc) const;
@@ -599,7 +602,7 @@ class ConstraintTypeSet : public TypeSet
     inline void addType(ExclusiveContext *cx, Type type);
 
     
-    void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
+    bool addConstraint(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
 
     inline void sweep(JS::Zone *zone);
 };
@@ -739,7 +742,7 @@ class TemporaryTypeSet : public TypeSet
 bool
 AddClearDefiniteGetterSetterForPrototypeChain(JSContext *cx, TypeObject *type, HandleId id);
 
-void
+bool
 AddClearDefiniteFunctionUsesInScript(JSContext *cx, TypeObject *type,
                                      JSScript *script, JSScript *calleeScript);
 
@@ -1108,8 +1111,6 @@ struct TypeObject : gc::BarrieredCell<TypeObject>
     void addPrototype(JSContext *cx, TypeObject *proto);
     void addPropertyType(ExclusiveContext *cx, jsid id, Type type);
     void addPropertyType(ExclusiveContext *cx, jsid id, const Value &value);
-    void addPropertyType(ExclusiveContext *cx, const char *name, Type type);
-    void addPropertyType(ExclusiveContext *cx, const char *name, const Value &value);
     void markPropertyNonData(ExclusiveContext *cx, jsid id);
     void markPropertyNonWritable(ExclusiveContext *cx, jsid id);
     void markStateChange(ExclusiveContext *cx);
@@ -1528,9 +1529,6 @@ struct TypeCompartment
     TypeObject *addAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);
 
     
-    void setPendingNukeTypes(ExclusiveContext *cx);
-
-    
     void markSetsUnknown(JSContext *cx, TypeObject *obj);
 
     void sweep(FreeOp *fop);
@@ -1563,12 +1561,6 @@ struct TypeZone
     Vector<RecompileInfo> *pendingRecompiles;
 
     
-
-
-
-    bool                         pendingNukeTypes;
-
-    
     bool                         inferenceEnabled;
 
     TypeZone(JS::Zone *zone);
@@ -1580,15 +1572,10 @@ struct TypeZone
     void sweep(FreeOp *fop, bool releaseTypes);
 
     
-    void setPendingNukeTypes();
-
-    
     void addPendingRecompile(JSContext *cx, const RecompileInfo &info);
     void addPendingRecompile(JSContext *cx, JSScript *script);
 
     void processPendingRecompiles(FreeOp *fop);
-
-    void nukeTypes(FreeOp *fop);
 };
 
 enum SpewChannel {
