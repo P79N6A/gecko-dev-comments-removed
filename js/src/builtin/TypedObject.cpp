@@ -2215,22 +2215,16 @@ TypedObject::obj_enumerate(JSContext *cx, HandleObject obj, JSIterateOp enum_op,
 }
 
  size_t
-TypedObject::offsetOfOwnerSlot()
+TypedObject::ownerOffset()
 {
     return JSObject::getFixedSlotOffset(JS_TYPEDOBJ_SLOT_OWNER);
 }
 
  size_t
-TypedObject::offsetOfDataSlot()
+TypedObject::dataOffset()
 {
     
     return JSObject::getPrivateDataOffset(JS_TYPEDOBJ_SLOT_DATA);
-}
-
- size_t
-TypedObject::offsetOfByteOffsetSlot()
-{
-    return JSObject::getFixedSlotOffset(JS_TYPEDOBJ_SLOT_BYTEOFFSET);
 }
 
 void
@@ -2702,8 +2696,8 @@ JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(js::AttachTypedObjectJitInfo,
                                       AttachTypedObjectJitInfo,
                                       js::AttachTypedObject);
 
-static bool
-SetTypedObjectOffset(ThreadSafeContext *, unsigned argc, Value *vp)
+bool
+js::SetTypedObjectOffset(ThreadSafeContext *, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
     JS_ASSERT(args.length() == 2);
@@ -2718,21 +2712,12 @@ SetTypedObjectOffset(ThreadSafeContext *, unsigned argc, Value *vp)
 
     typedObj.setPrivate(typedObj.owner().dataPointer() + offset);
     typedObj.setReservedSlot(JS_TYPEDOBJ_SLOT_BYTEOFFSET, Int32Value(offset));
-    args.rval().setUndefined();
     return true;
 }
 
-bool
-js::intrinsic_SetTypedObjectOffset(JSContext *cx, unsigned argc, Value *vp)
-{
-    
-    
-    return SetTypedObjectOffset(cx, argc, vp);
-}
-
-JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(js::intrinsic_SetTypedObjectOffsetJitInfo,
+JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(js::SetTypedObjectOffsetJitInfo,
                                       SetTypedObjectJitInfo,
-                                      SetTypedObjectOffset);
+                                      js::SetTypedObjectOffset);
 
 bool
 js::ObjectIsTypeDescr(ThreadSafeContext *, unsigned argc, Value *vp)

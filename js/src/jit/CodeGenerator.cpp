@@ -4106,7 +4106,7 @@ CodeGenerator::visitNeuterCheck(LNeuterCheck *lir)
     Register obj = ToRegister(lir->object());
     Register temp = ToRegister(lir->temp());
 
-    masm.extractObject(Address(obj, TypedObject::offsetOfOwnerSlot()), temp);
+    masm.extractObject(Address(obj, TypedObject::ownerOffset()), temp);
     masm.unboxInt32(Address(temp, ArrayBufferObject::flagsOffset()), temp);
     masm.and32(Imm32(ArrayBufferObject::neuteredFlag()), temp);
 
@@ -4120,56 +4120,7 @@ CodeGenerator::visitTypedObjectElements(LTypedObjectElements *lir)
 {
     Register obj = ToRegister(lir->object());
     Register out = ToRegister(lir->output());
-    masm.loadPtr(Address(obj, TypedObject::offsetOfDataSlot()), out);
-    return true;
-}
-
-bool
-CodeGenerator::visitSetTypedObjectOffset(LSetTypedObjectOffset *lir)
-{
-    Register object = ToRegister(lir->object());
-    Register offset = ToRegister(lir->offset());
-    Register temp0 = ToRegister(lir->temp0());
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    masm.unboxInt32(Address(object, TypedObject::offsetOfByteOffsetSlot()), temp0);
-
-    
-    masm.subPtr(offset, temp0);
-
-    
-    masm.subPtr(temp0, Address(object, TypedObject::offsetOfDataSlot()));
-
-    
-    masm.storeValue(JSVAL_TYPE_INT32, offset,
-                    Address(object, TypedObject::offsetOfByteOffsetSlot()));
-
+    masm.loadPtr(Address(obj, TypedObject::dataOffset()), out);
     return true;
 }
 
