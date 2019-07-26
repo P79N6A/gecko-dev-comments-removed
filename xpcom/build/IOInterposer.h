@@ -199,6 +199,12 @@ public:
 
 
 
+  static void Disable();
+
+  
+
+
+
 
 
 
@@ -222,14 +228,7 @@ public:
 
 
 
-  static inline bool IsObservedOperation(IOInterposeObserver::Operation aOp) {
-    
-    
-    
-    
-    
-    return (sObservedOperations & aOp);
-  }
+  static bool IsObservedOperation(IOInterposeObserver::Operation aOp);
 
   
 
@@ -269,6 +268,7 @@ class IOInterposer MOZ_FINAL
 public:
   static inline void Init()                                               {}
   static inline void Clear()                                              {}
+  static inline void Disable()                                            {}
   static inline void Report(IOInterposeObserver::Observation& aOb)        {}
   static inline void Register(IOInterposeObserver::Operation aOp,
                               IOInterposeObserver* aObserver)             {}

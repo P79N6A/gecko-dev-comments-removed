@@ -7,6 +7,7 @@
 
 #include "IOInterposer.h"
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/ThreadLocal.h"
@@ -23,8 +24,9 @@ namespace {
 
 struct ObserverLists {
   ObserverLists()
+    : mObserverListsLock(PR_NewLock())
+    , mIsEnabled(true)
   {
-    mObserverListsLock = PR_NewLock();
     
     
     
@@ -37,6 +39,9 @@ struct ObserverLists {
   
   
   PRLock* mObserverListsLock;
+
+  
+  mozilla::Atomic<bool>              mIsEnabled;
 
   ~ObserverLists()
   {
@@ -185,6 +190,15 @@ IOInterposeObserver::IsMainThread()
   }
 }
 
+ void
+IOInterposer::Disable()
+{
+  if (!sObserverLists) {
+    return;
+  }
+  sObserverLists->mIsEnabled = false;
+}
+
  void IOInterposer::Report(
   IOInterposeObserver::Observation& aObservation)
 {
@@ -252,6 +266,13 @@ IOInterposeObserver::IsMainThread()
   for (uint32_t i = 0; i < nObservers; ++i) {
     (*observers)[i]->Observe(aObservation);
   }
+}
+
+ bool
+IOInterposer::IsObservedOperation(IOInterposeObserver::Operation aOp)
+{
+  return sObserverLists && sObserverLists->mIsEnabled &&
+         !!(sObservedOperations & aOp);
 }
 
  void IOInterposer::Register(IOInterposeObserver::Operation aOp,
