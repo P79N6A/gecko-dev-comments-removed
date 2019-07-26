@@ -7,14 +7,13 @@
 
 #include "mozilla/Attributes.h"
 #include "nsGenericHTMLElement.h"
-#include "nsIDOMHTMLDataListElement.h"
 #include "nsContentList.h"
 
 namespace mozilla {
 namespace dom {
 
 class HTMLDataListElement MOZ_FINAL : public nsGenericHTMLElement,
-                                      public nsIDOMHTMLDataListElement
+                                      public nsIDOMHTMLElement
 {
 public:
   HTMLDataListElement(already_AddRefed<nsINodeInfo> aNodeInfo)
@@ -34,9 +33,6 @@ public:
 
   
   NS_FORWARD_NSIDOMHTMLELEMENT_TO_GENERIC
-
-  
-  NS_DECL_NSIDOMHTMLDATALISTELEMENT
 
   nsContentList* Options()
   {
