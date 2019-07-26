@@ -56,7 +56,8 @@ public:
 
 
 
-  virtual bool TryRender(Layer* aRoot, const gfx::Matrix& aWorldTransform) = 0;
+  virtual bool TryRender(Layer* aRoot, const gfx::Matrix& aWorldTransform,
+                         bool aGeometryChanged) = 0;
 };
 
 } 
