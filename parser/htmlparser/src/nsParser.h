@@ -49,7 +49,6 @@
 #include "nsParserCIID.h"
 #include "nsITokenizer.h"
 #include "nsHTMLTags.h"
-#include "nsDTDUtils.h"
 #include "nsIContentSink.h"
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
@@ -58,6 +57,7 @@
 class nsICharsetConverterManager;
 class nsIDTD;
 class nsScanner;
+class nsIRunnable;
 
 #ifdef _MSC_VER
 #pragma warning( disable : 4275 )
@@ -370,17 +370,6 @@ private:
     
 
 
-
-
-
-
-
-
-    bool DidTokenize(bool aIsFinalChunk = false);
-
-    
-
-
     nsresult Parse(const nsAString& aSourceBuffer,
                    void* aKey,
                    bool aLastCall);
@@ -396,9 +385,7 @@ protected:
     nsCOMPtr<nsIRequestObserver> mObserver;
     nsCOMPtr<nsIContentSink>     mSink;
     nsIRunnable*                 mContinueEvent;  
-   
-    nsTokenAllocator          mTokenAllocator;
-    
+
     eParserCommands     mCommand;
     nsresult            mInternalState;
     nsresult            mStreamStatus;

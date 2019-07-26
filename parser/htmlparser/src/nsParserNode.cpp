@@ -4,26 +4,8 @@
 
 
 
-#include "nsIAtom.h"
-#include "nsParserNode.h" 
-#include <string.h>
-#include "nsHTMLTokens.h"
-#include "nsITokenizer.h"
-#include "nsDTDUtils.h"
-
-
-
-
-
-nsCParserNode::nsCParserNode()
-  : mRefCnt(0), mGenericState(false), mUseCount(0), mToken(nullptr),
-    mTokenAllocator(nullptr)
-{
-  MOZ_COUNT_CTOR(nsCParserNode);
-#ifdef HEAP_ALLOCATED_NODES
-  mNodeAllocator = nullptr;
-#endif
-}
+#include "nsParserNode.h"
+#include "nsToken.h"
 
 
 
@@ -32,74 +14,8 @@ nsCParserNode::nsCParserNode()
 
 
 
-nsCParserNode::nsCParserNode(CToken* aToken,
-                             nsTokenAllocator* aTokenAllocator,
-                             nsNodeAllocator* aNodeAllocator)
-  : mRefCnt(0), mGenericState(false), mUseCount(0), mToken(aToken),
-    mTokenAllocator(aTokenAllocator)
-{
-  MOZ_COUNT_CTOR(nsCParserNode);
-
-  static int theNodeCount = 0;
-  ++theNodeCount;
-  if (mTokenAllocator) {
-    IF_HOLD(mToken);
-  } 
-
-#ifdef HEAP_ALLOCATED_NODES
-  mNodeAllocator = aNodeAllocator;
-#endif
-}
-
-
-
-
-
-
-
-
-
-nsCParserNode::~nsCParserNode() {
-  MOZ_COUNT_DTOR(nsCParserNode);
-  ReleaseAll();
-#ifdef HEAP_ALLOCATED_NODES
-  if(mNodeAllocator) {
-    mNodeAllocator->Recycle(this);
-  }
-  mNodeAllocator = nullptr;
-#endif
-  mTokenAllocator = 0;
-}
-
-
-
-
-
-
-
-
-
-
-nsresult
-nsCParserNode::Init(CToken* aToken,
-                    nsTokenAllocator* aTokenAllocator,
-                    nsNodeAllocator* aNodeAllocator) 
-{
-  mTokenAllocator = aTokenAllocator;
-  mToken = aToken;
-  if (mTokenAllocator) {
-    IF_HOLD(mToken);
-  } 
-  mGenericState = false;
-  mUseCount=0;
-#ifdef HEAP_ALLOCATED_NODES
-  mNodeAllocator = aNodeAllocator;
-#endif
-  return NS_OK;
-}
-
-void
-nsCParserNode::AddAttribute(CToken* aToken) 
+nsParserNode::nsParserNode(eHTMLTags aTag)
+  : mTag(aTag)
 {
 }
 
@@ -111,41 +27,7 @@ nsCParserNode::AddAttribute(CToken* aToken)
 
 
 
-const nsAString&
-nsCParserNode::GetTagName() const {
-  return EmptyString();
-}
-
-
-
-
-
-
-
-
-
-
-const nsAString& 
-nsCParserNode::GetText() const 
-{
-  if (mToken) {
-    return mToken->GetStringValue();
-  }
-  return EmptyString();
-}
-
-
-
-
-
-
-
-
-
-int32_t 
-nsCParserNode::GetNodeType(void) const
-{
-  return (mToken) ? mToken->GetTypeID() : 0;
+nsParserNode::~nsParserNode() {
 }
 
 
@@ -158,9 +40,24 @@ nsCParserNode::GetNodeType(void) const
 
 
 int32_t 
-nsCParserNode::GetTokenType(void) const
+nsParserNode::GetNodeType(void) const
 {
-  return (mToken) ? mToken->GetTokenType() : 0;
+   return mTag;
+}
+
+
+
+
+
+
+
+
+
+
+int32_t 
+nsParserNode::GetTokenType(void) const
+{
+  return eToken_start;
 }
 
 
@@ -172,7 +69,7 @@ nsCParserNode::GetTokenType(void) const
 
 
 int32_t 
-nsCParserNode::GetAttributeCount(bool askToken) const
+nsParserNode::GetAttributeCount() const
 {
   return 0;
 }
@@ -186,11 +83,10 @@ nsCParserNode::GetAttributeCount(bool askToken) const
 
 
 const nsAString&
-nsCParserNode::GetKeyAt(uint32_t anIndex) const 
+nsParserNode::GetKeyAt(uint32_t anIndex) const
 {
   return EmptyString();
 }
-
 
 
 
@@ -200,171 +96,7 @@ nsCParserNode::GetKeyAt(uint32_t anIndex) const
 
 
 const nsAString&
-nsCParserNode::GetValueAt(uint32_t anIndex) const 
+nsParserNode::GetValueAt(uint32_t anIndex) const
 {
   return EmptyString();
 }
-
-int32_t 
-nsCParserNode::TranslateToUnicodeStr(nsString& aString) const
-{
-  if (eToken_entity == mToken->GetTokenType()) {
-    return ((CEntityToken*)mToken)->TranslateToUnicodeStr(aString);
-  }
-  return -1;
-}
-
-
-
-
-
-
-
-int32_t
-nsCParserNode::GetSourceLineNumber(void) const {
-  return mToken ? mToken->GetLineNumber() : 0;
-}
-
-
-
-
-
-
-
-CToken* 
-nsCParserNode::PopAttributeToken() {
-  return 0;
-}
-
-CToken* 
-nsCParserNode::PopAttributeTokenFront() {
-  return 0;
-}
-
-
-
-
-
-void 
-nsCParserNode::GetSource(nsString& aString) const
-{
-  eHTMLTags theTag = mToken ? (eHTMLTags)mToken->GetTypeID() : eHTMLTag_unknown;
-  aString.Assign(PRUnichar('<'));
-  const PRUnichar* theTagName = nsHTMLTags::GetStringValue(theTag);
-  if(theTagName) {
-    aString.Append(theTagName);
-  }
-  aString.Append(PRUnichar('>'));
-}
-
-
-
-
-
-nsresult 
-nsCParserNode::ReleaseAll() 
-{
-  if(mTokenAllocator) {
-    IF_FREE(mToken,mTokenAllocator);
-  }
-  return NS_OK;
-}
-
-nsresult 
-nsCParserStartNode::Init(CToken* aToken,
-                         nsTokenAllocator* aTokenAllocator,
-                         nsNodeAllocator* aNodeAllocator) 
-{
-  NS_ASSERTION(mAttributes.GetSize() == 0, "attributes not recycled!");
-  return nsCParserNode::Init(aToken, aTokenAllocator, aNodeAllocator);
-}
-
-void nsCParserStartNode::AddAttribute(CToken* aToken) 
-{
-  NS_ASSERTION(0 != aToken, "Error: Token shouldn't be null!");
-  mAttributes.Push(aToken);
-}
-
-int32_t 
-nsCParserStartNode::GetAttributeCount(bool askToken) const
-{
-  int32_t result = 0;
-  if (askToken) {
-    result = mToken ? mToken->GetAttributeCount() : 0;
-  }
-  else {
-    result = mAttributes.GetSize();
-  }
-  return result;
-}
-
-const nsAString&
-nsCParserStartNode::GetKeyAt(uint32_t anIndex) const 
-{
-  if ((int32_t)anIndex < mAttributes.GetSize()) {
-    CAttributeToken* attr = 
-      static_cast<CAttributeToken*>(mAttributes.ObjectAt(anIndex));
-    if (attr) {
-      return attr->GetKey();
-    }
-  }
-  return EmptyString();
-}
-
-const nsAString&
-nsCParserStartNode::GetValueAt(uint32_t anIndex) const 
-{
-  if (int32_t(anIndex) < mAttributes.GetSize()) {
-    CAttributeToken* attr = 
-      static_cast<CAttributeToken*>(mAttributes.ObjectAt(anIndex));
-    if (attr) {
-      return attr->GetValue();
-    }
-  }
-  return EmptyString();
-}
-
-CToken* 
-nsCParserStartNode::PopAttributeToken() 
-{
-  return static_cast<CToken*>(mAttributes.Pop());
-}
-
-CToken* 
-nsCParserStartNode::PopAttributeTokenFront() 
-{
-  return static_cast<CToken*>(mAttributes.PopFront());
-}
-
-void nsCParserStartNode::GetSource(nsString& aString) const
-{
-  aString.Assign(PRUnichar('<'));
-  const PRUnichar* theTagName = 
-    nsHTMLTags::GetStringValue(nsHTMLTag(mToken->GetTypeID()));
-  if (theTagName) {
-    aString.Append(theTagName);
-  }
-  int32_t index;
-  int32_t size = mAttributes.GetSize();
-  for (index = 0 ; index < size; ++index) {
-    CAttributeToken *theToken = 
-      static_cast<CAttributeToken*>(mAttributes.ObjectAt(index));
-    if (theToken) {
-      theToken->AppendSourceTo(aString);
-      aString.Append(PRUnichar(' ')); 
-    }
-  }
-  aString.Append(PRUnichar('>'));
-}
-
-nsresult nsCParserStartNode::ReleaseAll() 
-{
-  NS_ASSERTION(0!=mTokenAllocator, "Error: no token allocator");
-  CToken* theAttrToken;
-  while ((theAttrToken = static_cast<CToken*>(mAttributes.Pop()))) {
-    IF_FREE(theAttrToken, mTokenAllocator);
-  }
-  nsCParserNode::ReleaseAll();
-  return NS_OK; 
-}
-

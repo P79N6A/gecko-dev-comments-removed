@@ -67,8 +67,6 @@ public:
                                     const PRUnichar* aNotationName);
 
 private:
-  nsresult HandleToken(CToken* aToken);
-
   
   nsresult OpenInputStreamFromExternalDTD(const PRUnichar* aFPIStr,
                                           const PRUnichar* aURLStr,

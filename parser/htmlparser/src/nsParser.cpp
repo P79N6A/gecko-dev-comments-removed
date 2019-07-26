@@ -40,6 +40,8 @@
 #include "nsParserConstants.h"
 #include "nsCharsetSource.h"
 #include "nsContentUtils.h"
+#include "nsThreadUtils.h"
+#include "nsIHTMLContentSink.h"
 
 #include "mozilla/dom/EncodingUtils.h"
 
@@ -1009,12 +1011,6 @@ nsParser::PopContext()
       if (mParserContext->mStreamListenerState != eOnStop) {
         mParserContext->mStreamListenerState = oldContext->mStreamListenerState;
       }
-      
-      
-      
-      if (mParserContext->mTokenizer) {
-        mParserContext->mTokenizer->CopyState(oldContext->mTokenizer);
-      }
     }
   }
   return oldContext;
@@ -1619,11 +1615,7 @@ nsParser::BuildModel()
 
   if (NS_SUCCEEDED(result)) {
     if (mDTD) {
-      bool inDocWrite = !!mParserContext->mPrevContext;
-      result = mDTD->BuildModel(theTokenizer,
-                                
-                                !inDocWrite, 
-                                &mCharset);
+      result = mDTD->BuildModel(theTokenizer, mSink);
     }
   } else {
     mInternalState = result = NS_ERROR_HTMLPARSER_BADTOKENIZER;
@@ -1994,8 +1986,7 @@ nsParser::WillTokenize(bool aIsFinalChunk)
   nsITokenizer* theTokenizer;
   nsresult result = mParserContext->GetTokenizer(mDTD, mSink, theTokenizer);
   NS_ENSURE_SUCCESS(result, false);
-  return NS_SUCCEEDED(theTokenizer->WillTokenize(aIsFinalChunk,
-                                                 &mTokenAllocator));
+  return NS_SUCCEEDED(theTokenizer->WillTokenize(aIsFinalChunk));
 }
 
 
@@ -2014,18 +2005,6 @@ nsresult nsParser::Tokenize(bool aIsFinalChunk)
   }
 
   if (NS_SUCCEEDED(result)) {
-    if (mFlags & NS_PARSER_FLAG_FLUSH_TOKENS) {
-      
-      
-      
-      if (theTokenizer->GetCount() != 0) {
-        return result;
-      }
-
-      
-      mFlags &= ~NS_PARSER_FLAG_FLUSH_TOKENS;
-    }
-
     bool flushTokens = false;
 
     mParserContext->mNumConsumed = 0;
@@ -2056,7 +2035,6 @@ nsresult nsParser::Tokenize(bool aIsFinalChunk)
         break;
       }
     }
-    DidTokenize(aIsFinalChunk);
 
     if (killSink) {
       mSink = nullptr;
@@ -2066,26 +2044,6 @@ nsresult nsParser::Tokenize(bool aIsFinalChunk)
   }
 
   return result;
-}
-
-
-
-
-
-
-bool
-nsParser::DidTokenize(bool aIsFinalChunk)
-{
-  if (!mParserContext) {
-    return true;
-  }
-
-  nsITokenizer* theTokenizer;
-  nsresult rv = mParserContext->GetTokenizer(mDTD, mSink, theTokenizer);
-  NS_ENSURE_SUCCESS(rv, false);
-
-  rv = theTokenizer->DidTokenize(aIsFinalChunk);
-  return NS_SUCCEEDED(rv);
 }
 
 
