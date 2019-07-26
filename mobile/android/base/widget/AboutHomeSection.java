@@ -2,8 +2,10 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.widget;
 
+import org.mozilla.gecko.GeckoLinearLayout;
+import org.mozilla.gecko.R;
 import org.mozilla.gecko.util.GamepadUtils;
 
 import android.content.Context;
