@@ -802,6 +802,8 @@ CallTypeSniffers(void *aClosure, const uint8_t *aData, uint32_t aCount)
 nsresult
 nsHttpChannel::CallOnStartRequest()
 {
+    nsresult rv;
+
     mTracingEnabled = false;
 
     
@@ -842,7 +844,7 @@ nsHttpChannel::CallOnStartRequest()
             
 
             nsCOMPtr<nsIStreamConverterService> serv;
-            nsresult rv = gHttpHandler->
+            rv = gHttpHandler->
                 GetStreamConverterService(getter_AddRefs(serv));
             
             if (NS_SUCCEEDED(rv)) {
@@ -865,15 +867,19 @@ nsHttpChannel::CallOnStartRequest()
     if (mResponseHead && mCacheEntry) {
         
         
-        nsresult rv = mCacheEntry->SetPredictedDataSize(
+        rv = mCacheEntry->SetPredictedDataSize(
             mResponseHead->ContentLength());
-        NS_ENSURE_SUCCESS(rv, rv);
+        if (NS_ERROR_FILE_TOO_BIG == rv) {
+          mCacheEntry = nullptr;
+          LOG(("  entry too big, throwing away"));
+        } else {
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
     }
 
     LOG(("  calling mListener->OnStartRequest\n"));
-    nsresult rv;
     if (mListener) {
-        nsresult rv = mListener->OnStartRequest(this, mListenerContext);
+        rv = mListener->OnStartRequest(this, mListenerContext);
         if (NS_FAILED(rv))
             return rv;
     } else {
