@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"
 
 #include "nsCSSProperty.h"
+#include "nsCSSScanner.h"
 #include "nsCOMPtr.h"
 #include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
@@ -24,6 +25,7 @@ class nsCSSKeyframeRule;
 class nsCSSValue;
 
 namespace mozilla {
+class CSSVariableValues;
 namespace css {
 class Rule;
 class Declaration;
@@ -196,6 +198,27 @@ public:
                                  nsIURI* aDocURL,
                                  nsIURI* aBaseURL,
                                  nsIPrincipal* aDocPrincipal);
+
+  typedef void (*VariableEnumFunc)(const nsAString&, void*);
+
+  
+
+
+
+
+  bool EnumerateVariableReferences(const nsAString& aPropertyValue,
+                                   VariableEnumFunc aFunc,
+                                   void* aData);
+
+  
+
+
+
+  bool ResolveVariableValue(const nsAString& aPropertyValue,
+                            const mozilla::CSSVariableValues* aVariables,
+                            nsString& aResult,
+                            nsCSSTokenSerializationType& aFirstToken,
+                            nsCSSTokenSerializationType& aLastToken);
 
 protected:
   

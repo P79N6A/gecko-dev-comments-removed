@@ -230,6 +230,13 @@ class nsCSSScanner {
   
   void StopRecording(nsString& aBuffer);
 
+  
+  uint32_t RecordingLength() const;
+
+#ifdef DEBUG
+  bool IsRecording() const;
+#endif
+
   enum EOFCharacters {
     eEOFCharacters_None =                    0x0000,
 
@@ -256,8 +263,9 @@ class nsCSSScanner {
   
   
   
-  static void AdjustTokenStreamForEOFCharacters(EOFCharacters aEOFCharacters,
-                                                nsAString& aString);
+  
+  static void AppendImpliedEOFCharacters(EOFCharacters aEOFCharacters,
+                                         nsAString& aString);
 
   EOFCharacters GetEOFCharacters() const {
 #ifdef DEBUG

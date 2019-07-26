@@ -7,6 +7,8 @@
 
 #include "CSSVariableDeclarations.h"
 
+#include "CSSVariableResolver.h"
+#include "nsCSSScanner.h"
 #include "nsRuleData.h"
 
 
@@ -145,6 +147,45 @@ CSSVariableDeclarations::MapRuleInfoInto(nsRuleData* aRuleData)
     mVariables.EnumerateRead(EnumerateVariableForMapRuleInfoInto,
                              aRuleData->mVariables.get());
   }
+}
+
+ PLDHashOperator
+CSSVariableDeclarations::EnumerateVariableForAddVariablesToResolver(
+                                                         const nsAString& aName,
+                                                         nsString aValue,
+                                                         void* aData)
+{
+  CSSVariableResolver* resolver = static_cast<CSSVariableResolver*>(aData);
+  if (aValue.EqualsLiteral(INITIAL_VALUE)) {
+    
+    
+    resolver->Put(aName, EmptyString(),
+                  eCSSTokenSerialization_Nothing,
+                  eCSSTokenSerialization_Nothing,
+                  false);
+  } else if (aValue.EqualsLiteral(INHERIT_VALUE)) {
+    
+    
+    
+    
+  } else {
+    
+    
+    
+    resolver->Put(aName, aValue,
+                  eCSSTokenSerialization_Nothing,
+                  eCSSTokenSerialization_Nothing,
+                  false);
+  }
+  return PL_DHASH_NEXT;
+}
+
+void
+CSSVariableDeclarations::AddVariablesToResolver(
+                                           CSSVariableResolver* aResolver) const
+{
+  mVariables.EnumerateRead(EnumerateVariableForAddVariablesToResolver,
+                           aResolver);
 }
 
 static size_t

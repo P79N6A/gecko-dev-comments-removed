@@ -154,6 +154,44 @@ public:
                                  nsIURI* aBaseURL,
                                  nsIPrincipal* aDocPrincipal);
 
+  typedef nsCSSParser::VariableEnumFunc VariableEnumFunc;
+
+  
+
+
+
+
+
+
+
+
+
+
+  bool EnumerateVariableReferences(const nsAString& aPropertyValue,
+                                   VariableEnumFunc aFunc,
+                                   void* aData);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  bool ResolveVariableValue(const nsAString& aPropertyValue,
+                            const CSSVariableValues* aVariables,
+                            nsString& aResult,
+                            nsCSSTokenSerializationType& aFirstToken,
+                            nsCSSTokenSerializationType& aLastToken);
+
 protected:
   class nsAutoParseCompoundProperty;
   friend class nsAutoParseCompoundProperty;
@@ -267,6 +305,10 @@ protected:
   
   typedef nsAutoTArray<PRUnichar, 16> StopSymbolCharStack;
   void SkipUntilAllOf(const StopSymbolCharStack& aStopSymbolChars);
+  
+  
+  
+  bool SkipBalancedContentUntil(PRUnichar aStopSymbol);
 
   void SkipRuleSet(bool aInsideBraces);
   bool SkipAtRule(bool aInsideBlock);
@@ -323,6 +365,29 @@ protected:
   bool ParseSupportsConditionTermsAfterOperator(
                                        bool& aConditionMet,
                                        SupportsConditionTermOperator aOperator);
+
+  
+
+
+
+
+
+
+
+
+
+
+  bool ResolveValueWithVariableReferences(
+                              const CSSVariableValues* aVariables,
+                              nsString& aResult,
+                              nsCSSTokenSerializationType& aResultFirstToken,
+                              nsCSSTokenSerializationType& aResultLastToken);
+  
+  bool ResolveValueWithVariableReferencesRec(
+                             nsString& aResult,
+                             nsCSSTokenSerializationType& aResultFirstToken,
+                             nsCSSTokenSerializationType& aResultLastToken,
+                             const CSSVariableValues* aVariables);
 
   enum nsSelectorParsingStatus {
     
@@ -573,8 +638,29 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
   bool ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
-                               nsString& aClosingChars);
+                               bool* aDropBackslash,
+                               nsString& aImpliedCharacters,
+                               void (*aFunc)(const nsAString&, void*),
+                               void* aData);
+
+  
+
+
+  bool BackslashDropped();
+
+  
+
+
+  void AppendImpliedEOFCharacters(nsAString& aResult);
 
   
   void AppendValue(nsCSSProperty aPropID, const nsCSSValue& aValue);
@@ -1373,6 +1459,521 @@ CSSParserImpl::EvaluateSupportsCondition(const nsAString& aDeclaration,
   ReleaseScanner();
 
   return parsedOK && conditionMet;
+}
+
+bool
+CSSParserImpl::EnumerateVariableReferences(const nsAString& aPropertyValue,
+                                           VariableEnumFunc aFunc,
+                                           void* aData)
+{
+  nsCSSScanner scanner(aPropertyValue, 0);
+  css::ErrorReporter reporter(scanner, nullptr, nullptr, nullptr);
+  InitScanner(scanner, reporter, nullptr, nullptr, nullptr);
+  nsAutoSuppressErrors suppressErrors(this);
+
+  CSSVariableDeclarations::Type type;
+  bool dropBackslash;
+  nsString impliedCharacters;
+  bool result = ParseValueWithVariables(&type, &dropBackslash,
+                                        impliedCharacters, aFunc, aData) &&
+                !GetToken(true);
+
+  ReleaseScanner();
+
+  return result;
+}
+
+static bool
+SeparatorRequiredBetweenTokens(nsCSSTokenSerializationType aToken1,
+                               nsCSSTokenSerializationType aToken2)
+{
+  
+  
+  
+  switch (aToken1) {
+    case eCSSTokenSerialization_Ident:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_URL_or_BadURL ||
+             aToken2 == eCSSTokenSerialization_Symbol_Minus ||
+             aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension ||
+             aToken2 == eCSSTokenSerialization_URange ||
+             aToken2 == eCSSTokenSerialization_CDC ||
+             aToken2 == eCSSTokenSerialization_Symbol_OpenParen;
+    case eCSSTokenSerialization_AtKeyword_or_Hash:
+    case eCSSTokenSerialization_Dimension:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_URL_or_BadURL ||
+             aToken2 == eCSSTokenSerialization_Symbol_Minus ||
+             aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension ||
+             aToken2 == eCSSTokenSerialization_URange ||
+             aToken2 == eCSSTokenSerialization_CDC;
+    case eCSSTokenSerialization_Symbol_Hash:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_URL_or_BadURL ||
+             aToken2 == eCSSTokenSerialization_Symbol_Minus ||
+             aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension ||
+             aToken2 == eCSSTokenSerialization_URange;
+    case eCSSTokenSerialization_Symbol_Minus:
+    case eCSSTokenSerialization_Number:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_URL_or_BadURL ||
+             aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension ||
+             aToken2 == eCSSTokenSerialization_URange;
+    case eCSSTokenSerialization_Symbol_At:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_URL_or_BadURL ||
+             aToken2 == eCSSTokenSerialization_Symbol_Minus ||
+             aToken2 == eCSSTokenSerialization_URange;
+    case eCSSTokenSerialization_URange:
+      return aToken2 == eCSSTokenSerialization_Ident ||
+             aToken2 == eCSSTokenSerialization_Function ||
+             aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension ||
+             aToken2 == eCSSTokenSerialization_Symbol_Question;
+    case eCSSTokenSerialization_Symbol_Dot_or_Plus:
+      return aToken2 == eCSSTokenSerialization_Number ||
+             aToken2 == eCSSTokenSerialization_Percentage ||
+             aToken2 == eCSSTokenSerialization_Dimension;
+    case eCSSTokenSerialization_Symbol_Assorted:
+    case eCSSTokenSerialization_Symbol_Asterisk:
+      return aToken2 == eCSSTokenSerialization_Symbol_Equals;
+    case eCSSTokenSerialization_Symbol_Bar:
+      return aToken2 == eCSSTokenSerialization_Symbol_Equals ||
+             aToken2 == eCSSTokenSerialization_Symbol_Bar ||
+             aToken2 == eCSSTokenSerialization_DashMatch;              
+    case eCSSTokenSerialization_Symbol_Slash:
+      return aToken2 == eCSSTokenSerialization_Symbol_Asterisk ||
+             aToken2 == eCSSTokenSerialization_ContainsMatch;          
+    default:
+      MOZ_ASSERT(aToken1 == eCSSTokenSerialization_Nothing ||
+                 aToken1 == eCSSTokenSerialization_Whitespace ||
+                 aToken1 == eCSSTokenSerialization_Percentage ||
+                 aToken1 == eCSSTokenSerialization_URL_or_BadURL ||
+                 aToken1 == eCSSTokenSerialization_Function ||
+                 aToken1 == eCSSTokenSerialization_CDC ||
+                 aToken1 == eCSSTokenSerialization_Symbol_OpenParen ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Question ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Assorted ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Asterisk ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Equals ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Bar ||
+                 aToken1 == eCSSTokenSerialization_Symbol_Slash ||
+                 aToken1 == eCSSTokenSerialization_Other ||
+                 "unexpected nsCSSTokenSerializationType value");
+      return false;
+  }
+}
+
+
+
+
+
+
+static void
+AppendTokens(nsAString& aResult,
+             nsCSSTokenSerializationType& aResultFirstToken,
+             nsCSSTokenSerializationType& aResultLastToken,
+             nsCSSTokenSerializationType aValueFirstToken,
+             nsCSSTokenSerializationType aValueLastToken,
+             const nsAString& aValue)
+{
+  if (SeparatorRequiredBetweenTokens(aResultLastToken, aValueFirstToken)) {
+    aResult.AppendLiteral("/**/");
+  }
+  aResult.Append(aValue);
+  if (aResultFirstToken == eCSSTokenSerialization_Nothing) {
+    aResultFirstToken = aValueFirstToken;
+  }
+  if (aValueLastToken != eCSSTokenSerialization_Nothing) {
+    aResultLastToken = aValueLastToken;
+  }
+}
+
+
+
+
+
+
+static void
+StopRecordingAndAppendTokens(nsString& aResult,
+                             nsCSSTokenSerializationType& aResultFirstToken,
+                             nsCSSTokenSerializationType& aResultLastToken,
+                             nsCSSTokenSerializationType aValueFirstToken,
+                             nsCSSTokenSerializationType aValueLastToken,
+                             nsCSSScanner* aScanner)
+{
+  if (SeparatorRequiredBetweenTokens(aResultLastToken, aValueFirstToken)) {
+    aResult.AppendLiteral("/**/");
+  }
+  aScanner->StopRecording(aResult);
+  if (aResultFirstToken == eCSSTokenSerialization_Nothing) {
+    aResultFirstToken = aValueFirstToken;
+  }
+  if (aValueLastToken != eCSSTokenSerialization_Nothing) {
+    aResultLastToken = aValueLastToken;
+  }
+}
+
+bool
+CSSParserImpl::ResolveValueWithVariableReferencesRec(
+                                     nsString& aResult,
+                                     nsCSSTokenSerializationType& aResultFirstToken,
+                                     nsCSSTokenSerializationType& aResultLastToken,
+                                     const CSSVariableValues* aVariables)
+{
+  
+  
+  MOZ_ASSERT(mScanner->IsRecording());
+  MOZ_ASSERT(aResult.IsEmpty());
+
+  
+  nsAutoTArray<PRUnichar, 16> stack;
+
+  
+  nsString value;
+
+  
+  
+  
+  
+  uint32_t lengthBeforeVar = 0;
+
+  
+  
+  
+  
+  nsCSSTokenSerializationType valueFirstToken = eCSSTokenSerialization_Nothing,
+                              valueLastToken  = eCSSTokenSerialization_Nothing,
+                              recFirstToken   = eCSSTokenSerialization_Nothing,
+                              recLastToken    = eCSSTokenSerialization_Nothing;
+
+#define UPDATE_RECORDING_TOKENS(type)                    \
+  if (recFirstToken == eCSSTokenSerialization_Nothing) { \
+    recFirstToken = type;                                \
+  }                                                      \
+  recLastToken = type;
+
+  while (GetToken(false)) {
+    switch (mToken.mType) {
+      case eCSSToken_Symbol: {
+        nsCSSTokenSerializationType type = eCSSTokenSerialization_Other;
+        if (mToken.mSymbol == '(') {
+          stack.AppendElement(')');
+          type = eCSSTokenSerialization_Symbol_OpenParen;
+        } else if (mToken.mSymbol == '[') {
+          stack.AppendElement(']');
+        } else if (mToken.mSymbol == '{') {
+          stack.AppendElement('}');
+        } else if (mToken.mSymbol == ';') {
+          if (stack.IsEmpty()) {
+            
+            
+            return false;
+          }
+        } else if (mToken.mSymbol == '!') {
+          if (stack.IsEmpty()) {
+            
+            
+            return false;
+          }
+        } else if (mToken.mSymbol == ')' &&
+                   stack.IsEmpty()) {
+          
+          nsString finalTokens;
+          mScanner->StopRecording(finalTokens);
+          MOZ_ASSERT(finalTokens[finalTokens.Length() - 1] == ')');
+          finalTokens.Truncate(finalTokens.Length() - 1);
+          aResult.Append(value);
+
+          AppendTokens(aResult, valueFirstToken, valueLastToken,
+                       recFirstToken, recLastToken, finalTokens);
+
+          mScanner->StartRecording();
+          UngetToken();
+          aResultFirstToken = valueFirstToken;
+          aResultLastToken = valueLastToken;
+          return true;
+        } else if (mToken.mSymbol == ')' ||
+                   mToken.mSymbol == ']' ||
+                   mToken.mSymbol == '}') {
+          if (stack.IsEmpty() ||
+              stack.LastElement() != mToken.mSymbol) {
+            
+            return false;
+          }
+          stack.TruncateLength(stack.Length() - 1);
+        } else if (mToken.mSymbol == '#') {
+          type = eCSSTokenSerialization_Symbol_Hash;
+        } else if (mToken.mSymbol == '@') {
+          type = eCSSTokenSerialization_Symbol_At;
+        } else if (mToken.mSymbol == '.' ||
+                   mToken.mSymbol == '+') {
+          type = eCSSTokenSerialization_Symbol_Dot_or_Plus;
+        } else if (mToken.mSymbol == '-') {
+          type = eCSSTokenSerialization_Symbol_Minus;
+        } else if (mToken.mSymbol == '?') {
+          type = eCSSTokenSerialization_Symbol_Question;
+        } else if (mToken.mSymbol == '$' ||
+                   mToken.mSymbol == '^' ||
+                   mToken.mSymbol == '~') {
+          type = eCSSTokenSerialization_Symbol_Assorted;
+        } else if (mToken.mSymbol == '=') {
+          type = eCSSTokenSerialization_Symbol_Equals;
+        } else if (mToken.mSymbol == '|') {
+          type = eCSSTokenSerialization_Symbol_Bar;
+        } else if (mToken.mSymbol == '/') {
+          type = eCSSTokenSerialization_Symbol_Slash;
+        } else if (mToken.mSymbol == '*') {
+          type = eCSSTokenSerialization_Symbol_Asterisk;
+        }
+        UPDATE_RECORDING_TOKENS(type);
+        break;
+      }
+
+      case eCSSToken_Function:
+        if (mToken.mIdent.LowerCaseEqualsLiteral("var")) {
+          
+          nsString recording;
+          mScanner->StopRecording(recording);
+          recording.Truncate(lengthBeforeVar);
+          AppendTokens(value, valueFirstToken, valueLastToken,
+                       recFirstToken, recLastToken, recording);
+          recFirstToken = eCSSTokenSerialization_Nothing;
+          recLastToken = eCSSTokenSerialization_Nothing;
+
+          if (!GetToken(true) ||
+              mToken.mType != eCSSToken_Ident) {
+            
+            return false;
+          }
+
+          
+          
+          
+          
+          const nsString& variableName = mToken.mIdent;
+          nsString variableValue;
+          nsCSSTokenSerializationType varFirstToken, varLastToken;
+          bool valid = aVariables->Get(variableName, variableValue,
+                                       varFirstToken, varLastToken) &&
+                       !variableValue.IsEmpty();
+
+          if (!GetToken(true) ||
+              mToken.IsSymbol(')')) {
+            mScanner->StartRecording();
+            if (!valid) {
+              
+              return false;
+            }
+            
+            AppendTokens(value, valueFirstToken, valueLastToken,
+                         varFirstToken, varLastToken, variableValue);
+          } else if (mToken.IsSymbol(',')) {
+            mScanner->StartRecording();
+            if (!GetToken(false) ||
+                mToken.IsSymbol(')')) {
+              
+              return false;
+            }
+            UngetToken();
+            if (valid) {
+              
+              mScanner->StopRecording();
+              AppendTokens(value, valueFirstToken, valueLastToken,
+                           varFirstToken, varLastToken, variableValue);
+              bool ok = SkipBalancedContentUntil(')');
+              mScanner->StartRecording();
+              if (!ok) {
+                return false;
+              }
+            } else {
+              nsString fallback;
+              if (!ResolveValueWithVariableReferencesRec(fallback,
+                                                         varFirstToken,
+                                                         varLastToken,
+                                                         aVariables)) {
+                
+                
+                return false;
+              }
+              AppendTokens(value, valueFirstToken, valueLastToken,
+                           varFirstToken, varLastToken, fallback);
+              
+              
+              DebugOnly<bool> gotToken = GetToken(false);
+              MOZ_ASSERT(!gotToken || mToken.IsSymbol(')'));
+            }
+          } else {
+            
+            mScanner->StartRecording();
+            return false;
+          }
+        } else {
+          stack.AppendElement(')');
+          UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Function);
+        }
+        break;
+
+      case eCSSToken_Bad_String:
+      case eCSSToken_Bad_URL:
+        return false;
+
+      case eCSSToken_Whitespace:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Whitespace);
+        break;
+
+      case eCSSToken_AtKeyword:
+      case eCSSToken_Hash:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_AtKeyword_or_Hash);
+        break;
+
+      case eCSSToken_Number:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Number);
+        break;
+
+      case eCSSToken_Dimension:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Dimension);
+        break;
+
+      case eCSSToken_Ident:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Ident);
+        break;
+
+      case eCSSToken_Percentage:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Percentage);
+        break;
+
+      case eCSSToken_URange:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_URange);
+        break;
+
+      case eCSSToken_URL:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_URL_or_BadURL);
+        break;
+
+      case eCSSToken_HTMLComment:
+        if (mToken.mIdent[0] == '-') {
+          UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_CDC);
+        } else {
+          UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Other);
+        }
+        break;
+
+      case eCSSToken_Dashmatch:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_DashMatch);
+        break;
+
+      case eCSSToken_Containsmatch:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_ContainsMatch);
+        break;
+
+      default:
+        NS_NOTREACHED("unexpected token type");
+        
+      case eCSSToken_ID:
+      case eCSSToken_String:
+      case eCSSToken_Includes:
+      case eCSSToken_Beginsmatch:
+      case eCSSToken_Endsmatch:
+        UPDATE_RECORDING_TOKENS(eCSSTokenSerialization_Other);
+        break;
+    }
+
+    lengthBeforeVar = mScanner->RecordingLength();
+  }
+
+#undef UPDATE_RECORDING_TOKENS
+
+  aResult.Append(value);
+  StopRecordingAndAppendTokens(aResult, valueFirstToken, valueLastToken,
+                               recFirstToken, recLastToken, mScanner);
+
+  
+  if (!stack.IsEmpty()) {
+    do {
+      aResult.Append(stack.LastElement());
+      stack.TruncateLength(stack.Length() - 1);
+    } while (!stack.IsEmpty());
+    valueLastToken = eCSSTokenSerialization_Other;
+  }
+
+  mScanner->StartRecording();
+  aResultFirstToken = valueFirstToken;
+  aResultLastToken = valueLastToken;
+  return true;
+}
+
+bool
+CSSParserImpl::ResolveValueWithVariableReferences(
+                                        const CSSVariableValues* aVariables,
+                                        nsString& aResult,
+                                        nsCSSTokenSerializationType& aFirstToken,
+                                        nsCSSTokenSerializationType& aLastToken)
+{
+  aResult.Truncate(0);
+
+  
+  mScanner->StartRecording();
+
+  if (!GetToken(false)) {
+    
+    mScanner->StopRecording();
+    return false;
+  }
+
+  UngetToken();
+
+  nsString value;
+  nsCSSTokenSerializationType firstToken, lastToken;
+  bool ok = ResolveValueWithVariableReferencesRec(value, firstToken, lastToken, aVariables) &&
+            !GetToken(true);
+
+  mScanner->StopRecording();
+
+  if (ok) {
+    aResult = value;
+    aFirstToken = firstToken;
+    aLastToken = lastToken;
+  }
+  return ok;
+}
+
+bool
+CSSParserImpl::ResolveVariableValue(const nsAString& aPropertyValue,
+                                    const CSSVariableValues* aVariables,
+                                    nsString& aResult,
+                                    nsCSSTokenSerializationType& aFirstToken,
+                                    nsCSSTokenSerializationType& aLastToken)
+{
+  nsCSSScanner scanner(aPropertyValue, 0);
+
+  
+  
+  
+  
+  
+  css::ErrorReporter reporter(scanner, nullptr, nullptr, nullptr);
+  InitScanner(scanner, reporter, nullptr, nullptr, nullptr);
+
+  bool valid = ResolveValueWithVariableReferences(aVariables, aResult,
+                                                  aFirstToken, aLastToken);
+
+  ReleaseScanner();
+  return valid;
 }
 
 
@@ -2973,6 +3574,47 @@ CSSParserImpl::SkipUntil(PRUnichar aStopSymbol)
         stack.AppendElement(']');
       } else if ('(' == symbol) {
         stack.AppendElement(')');
+      }
+    } else if (eCSSToken_Function == tk->mType ||
+               eCSSToken_Bad_URL == tk->mType) {
+      stack.AppendElement(')');
+    }
+  }
+}
+
+bool
+CSSParserImpl::SkipBalancedContentUntil(PRUnichar aStopSymbol)
+{
+  nsCSSToken* tk = &mToken;
+  nsAutoTArray<PRUnichar, 16> stack;
+  stack.AppendElement(aStopSymbol);
+  for (;;) {
+    if (!GetToken(true)) {
+      return true;
+    }
+    if (eCSSToken_Symbol == tk->mType) {
+      PRUnichar symbol = tk->mSymbol;
+      uint32_t stackTopIndex = stack.Length() - 1;
+      if (symbol == stack.ElementAt(stackTopIndex)) {
+        stack.RemoveElementAt(stackTopIndex);
+        if (stackTopIndex == 0) {
+          return true;
+        }
+
+      
+      
+      
+      } else if ('{' == symbol) {
+        stack.AppendElement('}');
+      } else if ('[' == symbol) {
+        stack.AppendElement(']');
+      } else if ('(' == symbol) {
+        stack.AppendElement(')');
+      } else if (')' == symbol ||
+                 ']' == symbol ||
+                 '}' == symbol) {
+        UngetToken();
+        return false;
       }
     } else if (eCSSToken_Function == tk->mType ||
                eCSSToken_Bad_URL == tk->mType) {
@@ -11280,6 +11922,20 @@ CSSParserImpl::ParsePaintOrder()
 }
 
 bool
+CSSParserImpl::BackslashDropped()
+{
+  return mScanner->GetEOFCharacters() &
+         nsCSSScanner::eEOFCharacters_DropBackslash;
+}
+
+void
+CSSParserImpl::AppendImpliedEOFCharacters(nsAString& aResult)
+{
+  nsCSSScanner::AppendImpliedEOFCharacters(mScanner->GetEOFCharacters(),
+                                           aResult);
+}
+
+bool
 CSSParserImpl::ParseAll()
 {
   nsCSSValue value;
@@ -11299,11 +11955,13 @@ CSSParserImpl::ParseVariableDeclaration(CSSVariableDeclarations::Type* aType,
 {
   CSSVariableDeclarations::Type type;
   nsString variableValue;
-  nsString closingBrackets;
+  bool dropBackslash;
+  nsString impliedCharacters;
 
   
   mScanner->StartRecording();
-  if (!ParseValueWithVariables(&type, closingBrackets)) {
+  if (!ParseValueWithVariables(&type, &dropBackslash, impliedCharacters,
+                               nullptr, nullptr)) {
     mScanner->StopRecording();
     return false;
   }
@@ -11311,7 +11969,12 @@ CSSParserImpl::ParseVariableDeclaration(CSSVariableDeclarations::Type* aType,
   if (type == CSSVariableDeclarations::eTokenStream) {
     
     mScanner->StopRecording(variableValue);
-    variableValue.Append(closingBrackets);
+    if (dropBackslash) {
+      MOZ_ASSERT(!variableValue.IsEmpty() &&
+                 variableValue[variableValue.Length() - 1] == '\\');
+      variableValue.Truncate(variableValue.Length() - 1);
+    }
+    variableValue.Append(impliedCharacters);
   } else {
     
     mScanner->StopRecording();
@@ -11338,7 +12001,10 @@ CSSParserImpl::ParseVariableDeclaration(CSSVariableDeclarations::Type* aType,
 
 bool
 CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
-                                       nsString& aClosingChars)
+                                       bool* aDropBackslash,
+                                       nsString& aImpliedCharacters,
+                                       void (*aFunc)(const nsAString&, void*),
+                                       void* aData)
 {
   
   
@@ -11386,7 +12052,10 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
   if (mToken.mType == eCSSToken_Whitespace) {
     if (!GetToken(true)) {
       
+      MOZ_ASSERT(!BackslashDropped());
       *aType = CSSVariableDeclarations::eTokenStream;
+      *aDropBackslash = false;
+      AppendImpliedEOFCharacters(aImpliedCharacters);
       return true;
     }
   }
@@ -11404,7 +12073,10 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
   if (type != CSSVariableDeclarations::eTokenStream) {
     if (!GetToken(true)) {
       
+      MOZ_ASSERT(!BackslashDropped());
       *aType = type;
+      *aDropBackslash = false;
+      AppendImpliedEOFCharacters(aImpliedCharacters);
       return true;
     }
     UngetToken();
@@ -11416,7 +12088,9 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
          mToken.mSymbol == '}')) {
       
       
+      MOZ_ASSERT(!BackslashDropped());
       *aType = type;
+      *aDropBackslash = false;
       return true;
     }
   }
@@ -11434,7 +12108,9 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
                    mToken.mSymbol == '!') {
           if (stack.IsEmpty()) {
             UngetToken();
+            MOZ_ASSERT(!BackslashDropped());
             *aType = CSSVariableDeclarations::eTokenStream;
+            *aDropBackslash = false;
             return true;
           } else if (!references.IsEmpty() &&
                      references.LastElement() == stack.Length() - 1) {
@@ -11447,7 +12123,9 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
           for (;;) {
             if (stack.IsEmpty()) {
               UngetToken();
+              MOZ_ASSERT(!BackslashDropped());
               *aType = CSSVariableDeclarations::eTokenStream;
+              *aDropBackslash = false;
               return true;
             }
             PRUnichar c = stack.LastElement();
@@ -11465,24 +12143,38 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
 
       case eCSSToken_Function:
         if (mToken.mIdent.LowerCaseEqualsLiteral("var")) {
-          if (GetToken(true)) {
-            if (mToken.mType != eCSSToken_Ident) {
-              UngetToken();
-              SkipUntil(')');
-              SkipUntilAllOf(stack);
-              return false;
-            }
+          if (!GetToken(true)) {
+            
+            return false;
           }
-          if (ExpectSymbol(',', true)) {
-            if (ExpectSymbol(')', false)) {
+          if (mToken.mType != eCSSToken_Ident) {
+            
+            UngetToken();
+            SkipUntil(')');
+            SkipUntilAllOf(stack);
+            return false;
+          }
+          if (aFunc) {
+            aFunc(mToken.mIdent, aData);
+          }
+          if (!GetToken(true)) {
+            
+            stack.AppendElement(')');
+          } else if (mToken.IsSymbol(',')) {
+            
+            if (!GetToken(false) || mToken.IsSymbol(')')) {
               
               SkipUntilAllOf(stack);
               return false;
             }
+            UngetToken();
             references.AppendElement(stack.Length());
             stack.AppendElement(')');
-          } else if (!ExpectSymbol(')', true)) {
-            UngetToken();
+          } else if (mToken.IsSymbol(')')) {
+            
+          } else {
+            
+            SkipUntil(')');
             SkipUntilAllOf(stack);
             return false;
           }
@@ -11506,9 +12198,11 @@ CSSParserImpl::ParseValueWithVariables(CSSVariableDeclarations::Type* aType,
   } while (GetToken(true));
 
   
+  *aDropBackslash = BackslashDropped();
+  AppendImpliedEOFCharacters(aImpliedCharacters);
   uint32_t i = stack.Length();
   while (i--) {
-    aClosingChars.Append(stack[i]);
+    aImpliedCharacters.Append(stack[i]);
   }
 
   *aType = type;
@@ -11725,4 +12419,25 @@ nsCSSParser::EvaluateSupportsCondition(const nsAString& aCondition,
 {
   return static_cast<CSSParserImpl*>(mImpl)->
     EvaluateSupportsCondition(aCondition, aDocURL, aBaseURL, aDocPrincipal);
+}
+
+bool
+nsCSSParser::EnumerateVariableReferences(const nsAString& aPropertyValue,
+                                         VariableEnumFunc aFunc,
+                                         void* aData)
+{
+  return static_cast<CSSParserImpl*>(mImpl)->
+    EnumerateVariableReferences(aPropertyValue, aFunc, aData);
+}
+
+bool
+nsCSSParser::ResolveVariableValue(const nsAString& aPropertyValue,
+                                  const CSSVariableValues* aVariables,
+                                  nsString& aResult,
+                                  nsCSSTokenSerializationType& aFirstToken,
+                                  nsCSSTokenSerializationType& aLastToken)
+{
+  return static_cast<CSSParserImpl*>(mImpl)->
+    ResolveVariableValue(aPropertyValue, aVariables,
+                         aResult, aFirstToken, aLastToken);
 }
