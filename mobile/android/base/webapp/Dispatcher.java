@@ -45,7 +45,7 @@ public class Dispatcher extends Activity {
         Intent intent = new Intent(getIntent());
 
         
-        intent.setClassName(getApplicationContext(), "org.mozilla.gecko.WebApps$WebApp" + index);
+        intent.setClassName(getApplicationContext(), "org.mozilla.gecko.webapp.Webapps$Webapp" + index);
 
         
         intent.putExtra("isInstalled", isInstalled);
