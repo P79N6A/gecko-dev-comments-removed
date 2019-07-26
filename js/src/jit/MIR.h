@@ -2360,8 +2360,13 @@ class MGuardString
 class MAssertRange
   : public MUnaryInstruction
 {
-    MAssertRange(MDefinition *ins)
-      : MUnaryInstruction(ins)
+    
+    
+    
+    const Range *assertedRange_;
+
+    MAssertRange(MDefinition *ins, const Range *assertedRange)
+      : MUnaryInstruction(ins), assertedRange_(assertedRange)
     {
         setGuard();
         setMovable();
@@ -2371,13 +2376,19 @@ class MAssertRange
   public:
     INSTRUCTION_HEADER(AssertRange)
 
-    static MAssertRange *New(MDefinition *ins) {
-        return new MAssertRange(ins);
+    static MAssertRange *New(MDefinition *ins, const Range *assertedRange) {
+        return new MAssertRange(ins, assertedRange);
+    }
+
+    const Range *assertedRange() const {
+        return assertedRange_;
     }
 
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
+
+    void printOpcode(FILE *fp) const;
 };
 
 
@@ -4211,7 +4222,12 @@ class MPhi MOZ_FINAL : public MDefinition, public InlineForwardListNode<MPhi>
 class MBeta : public MUnaryInstruction
 {
   private:
+    
+    
+    
+    
     const Range *comparison_;
+
     MBeta(MDefinition *val, const Range *comp)
         : MUnaryInstruction(val),
           comparison_(comp)
