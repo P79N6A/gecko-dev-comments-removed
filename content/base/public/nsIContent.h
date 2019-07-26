@@ -372,8 +372,10 @@ public:
 
 
 
-  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName, 
-                         nsAString& aResult) const = 0;
+
+
+  bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+               nsAString& aResult) const;
 
   
 
