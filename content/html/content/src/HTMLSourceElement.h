@@ -12,6 +12,8 @@
 #include "nsGenericHTMLElement.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 
+class nsMediaList;
+
 namespace mozilla {
 namespace dom {
 
@@ -25,6 +27,8 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLSourceElement, source)
+
   
   NS_DECL_NSIDOMHTMLSOURCEELEMENT
 
@@ -35,6 +39,10 @@ public:
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers) MOZ_OVERRIDE;
+
+  
+  
+  bool MatchesCurrentMedia();
 
   
   void GetSrc(nsString& aSrc)
@@ -98,6 +106,14 @@ protected:
 protected:
   virtual void GetItemValueText(nsAString& text) MOZ_OVERRIDE;
   virtual void SetItemValueText(const nsAString& text) MOZ_OVERRIDE;
+
+  virtual nsresult AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
+                                const nsAttrValue* aValue,
+                                bool aNotify) MOZ_OVERRIDE;
+
+
+private:
+  nsRefPtr<nsMediaList> mMediaList;
 };
 
 } 
