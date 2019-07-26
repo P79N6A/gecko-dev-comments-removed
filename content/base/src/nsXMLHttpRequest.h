@@ -597,7 +597,6 @@ protected:
   nsCOMPtr<nsIDOMBlob> mResponseBlob;
   
   
-  
   nsRefPtr<nsDOMFile> mDOMFile;
   
   
