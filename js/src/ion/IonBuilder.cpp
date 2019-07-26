@@ -1265,6 +1265,7 @@ IonBuilder::processIfEnd(CFGState &state)
     }
 
     current = state.branch.ifFalse;
+    graph().moveBlockToEnd(current);
     pc = current->pc();
     return ControlStatus_Joined;
 }
@@ -1279,6 +1280,7 @@ IonBuilder::processIfElseTrueEnd(CFGState &state)
     state.stopAt = state.branch.falseEnd;
     pc = state.branch.ifFalse->pc();
     current = state.branch.ifFalse;
+    graph().moveBlockToEnd(current);
     return ControlStatus_Jumped;
 }
 
@@ -1337,7 +1339,10 @@ IonBuilder::processBrokenLoop(CFGState &state)
     
     
     current = state.loop.successor;
-    JS_ASSERT_IF(current, current->loopDepth() == loopDepth_);
+    if (current) {
+        JS_ASSERT(current->loopDepth() == loopDepth_);
+        graph().moveBlockToEnd(current);
+    }
 
     
     if (state.loop.breaks) {
@@ -1379,8 +1384,10 @@ IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
     
     if (!state.loop.entry->setBackedge(current))
         return ControlStatus_Error;
-    if (successor)
+    if (successor) {
+        graph().moveBlockToEnd(successor);
         successor->inheritPhis(state.loop.entry);
+    }
 
     if (state.loop.breaks) {
         
@@ -1636,6 +1643,9 @@ IonBuilder::processNextTableSwitchCase(CFGState &state)
     }
 
     
+    graph().moveBlockToEnd(successor);
+
+    
     
     if (state.tableswitch.currentBlock+1 < state.tableswitch.ins->numBlocks())
         state.stopAt = state.tableswitch.ins->getBlock(state.tableswitch.currentBlock+1)->pc();
@@ -1658,6 +1668,7 @@ IonBuilder::processAndOrEnd(CFGState &state)
         return ControlStatus_Error;
 
     current = state.branch.ifFalse;
+    graph().moveBlockToEnd(current);
     pc = current->pc();
     return ControlStatus_Joined;
 }
@@ -2204,6 +2215,9 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
         pc2 += JUMP_OFFSET_LEN;
     }
 
+    
+    graph().moveBlockToEnd(defaultcase);
+
     JS_ASSERT(tableswitch->numCases() == (uint32_t)(high - low + 1));
     JS_ASSERT(tableswitch->numSuccessors() > 0);
 
@@ -2528,6 +2542,9 @@ IonBuilder::processCondSwitchBody(CFGState &state)
     
     MBasicBlock *nextBody = bodies[currentIdx++];
     JS_ASSERT_IF(current, pc == nextBody->pc());
+
+    
+    graph().moveBlockToEnd(nextBody);
 
     
     if (current) {
@@ -3861,6 +3878,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
     
     JS_ASSERT(returnBlock->stackDepth() == dispatchBlock->stackDepth() - callInfo.numFormals() + 1);
 
+    graph().moveBlockToEnd(returnBlock);
     current = returnBlock;
     return true;
 }
