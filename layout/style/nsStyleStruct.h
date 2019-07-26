@@ -1323,10 +1323,6 @@ struct nsStylePosition {
   float         mFlexGrow;              
   float         mFlexShrink;            
   nsStyleCoord  mZIndex;                
-  
-  
-  
-  
   nsStyleGridTemplate mGridTemplateColumns;
   nsStyleGridTemplate mGridTemplateRows;
 
