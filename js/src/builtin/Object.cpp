@@ -105,6 +105,46 @@ obj_toSource(JSContext *cx, unsigned argc, Value *vp)
     return true;
 }
 
+
+
+
+
+template <typename CharT>
+static bool
+ArgsAndBodySubstring(mozilla::Range<const CharT> chars, size_t *outOffset, size_t *outLen)
+{
+    const CharT *const start = chars.start().get();
+    const CharT *const end = chars.end().get();
+    const CharT *s = start;
+
+    uint8_t parenChomp = 0;
+    if (s[0] == '(') {
+        s++;
+        parenChomp = 1;
+    }
+
+    
+    s = js_strchr_limit(s, ' ', end);
+    if (!s)
+        return false;
+
+    
+
+
+
+    s = js_strchr_limit(s, '(', end);
+    if (!s)
+        return false;
+
+    if (*s == ' ')
+        s++;
+
+    *outOffset = s - start;
+    *outLen = end - s - parenChomp;
+    MOZ_ASSERT(*outOffset + *outLen <= chars.length());
+    return true;
+}
+
 JSString *
 js::ObjectToSource(JSContext *cx, HandleObject obj)
 {
@@ -200,14 +240,15 @@ js::ObjectToSource(JSContext *cx, HandleObject obj)
                 continue;
 
             
-            RootedString valstr(cx, ValueToSource(cx, val[j]));
-            if (!valstr)
-                return nullptr;
-            const jschar *vchars = valstr->getChars(cx);
-            if (!vchars)
+            JSString *valsource = ValueToSource(cx, val[j]);
+            if (!valsource)
                 return nullptr;
 
-            const jschar *start = vchars;
+            RootedLinearString valstr(cx, valsource->ensureLinear(cx));
+            if (!valstr)
+                return nullptr;
+
+            size_t voffset = 0;
             size_t vlength = valstr->length();
 
             
@@ -215,49 +256,30 @@ js::ObjectToSource(JSContext *cx, HandleObject obj)
 
 
             if (gsop[j] && IsFunctionObject(val[j])) {
-                const jschar *end = vchars + vlength;
-
-                uint8_t parenChomp = 0;
-                if (vchars[0] == '(') {
-                    vchars++;
-                    parenChomp = 1;
-                }
-
-                
-                if (vchars)
-                    vchars = js_strchr_limit(vchars, ' ', end);
-
-                
-
-
-
-                if (vchars)
-                    vchars = js_strchr_limit(vchars, '(', end);
-
-                if (vchars) {
-                    if (*vchars == ' ')
-                        vchars++;
-                    vlength = end - vchars - parenChomp;
-                } else {
+                bool success;
+                JS::AutoCheckCannotGC nogc;
+                if (valstr->hasLatin1Chars())
+                    success = ArgsAndBodySubstring(valstr->latin1Range(nogc), &voffset, &vlength);
+                else
+                    success = ArgsAndBodySubstring(valstr->twoByteRange(nogc), &voffset, &vlength);
+                if (!success)
                     gsop[j].set(nullptr);
-                    vchars = start;
-                }
             }
 
             if (comma && !buf.append(", "))
                 return nullptr;
             comma = true;
 
-            if (gsop[j])
+            if (gsop[j]) {
                 if (!buf.append(gsop[j]) || !buf.append(' '))
                     return nullptr;
-
+            }
             if (!buf.append(idstr))
                 return nullptr;
             if (!buf.append(gsop[j] ? ' ' : ':'))
                 return nullptr;
 
-            if (!buf.appendSubstring(valstr, vchars - start, vlength))
+            if (!buf.appendSubstring(valstr, voffset, vlength))
                 return nullptr;
         }
     }
