@@ -24,8 +24,6 @@ struct DOMPoint {
   int32_t idx;
 };
 
-enum EGetTextType { eGetBefore=-1, eGetAt=0, eGetAfter=1 };
-
 
 
 const PRUnichar kEmbeddedObjectChar = 0xfffc;
@@ -170,46 +168,44 @@ public:
   
 
 
-  bool CharAt(int32_t aOffset, nsAString& aChar)
+  bool CharAt(int32_t aOffset, nsAString& aChar,
+              int32_t* aStartOffset = nullptr, int32_t* aEndOffset = nullptr)
   {
+    NS_ASSERTION(!aStartOffset == !aEndOffset,
+                 "Offsets should be both defined or both undefined!");
+
     int32_t childIdx = GetChildIndexAtOffset(aOffset);
     if (childIdx == -1)
       return false;
 
     Accessible* child = GetChildAt(childIdx);
     child->AppendTextTo(aChar, aOffset - GetChildOffset(childIdx), 1);
+
+    if (aStartOffset && aEndOffset) {
+      *aStartOffset = aOffset;
+      *aEndOffset = aOffset + aChar.Length();
+    }
     return true;
+  }
+
+  PRUnichar CharAt(int32_t aOffset)
+  {
+    nsAutoString charAtOffset;
+    CharAt(aOffset, charAtOffset);
+    return charAtOffset.CharAt(0);
   }
 
   
 
 
-  bool IsCharAt(int32_t aOffset, char aChar)
-  {
-    nsAutoString charAtOffset;
-    CharAt(aOffset, charAtOffset);
-    return charAtOffset.CharAt(0) == aChar;
-  }
+  bool IsCharAt(int32_t aOffset, PRUnichar aChar)
+    { return CharAt(aOffset) == aChar; }
 
   
 
 
   bool IsLineEndCharAt(int32_t aOffset)
     { return IsCharAt(aOffset, '\n'); }
-
-  
-
-
-
-
-
-
-
-
-
-
-  bool GetCharAt(int32_t aOffset, EGetTextType aShift, nsAString& aChar,
-                 int32_t* aStartOffset = nullptr, int32_t* aEndOffset = nullptr);
 
   
 

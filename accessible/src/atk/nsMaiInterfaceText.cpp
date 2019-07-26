@@ -188,17 +188,7 @@ getCharacterAtOffsetCB(AtkText* aText, gint aOffset)
     return 0;
 
   
-  
-  PRUnichar uniChar = 0;
-  nsresult rv = text->GetCharacterAtOffset(aOffset, &uniChar);
-  if (NS_FAILED(rv))
-    return 0;
-
-  
-  if (accWrap->NativeRole() == roles::PASSWORD_TEXT)
-    uniChar = '*';
-
-  return static_cast<gunichar>(uniChar);
+  return static_cast<gunichar>(text->CharAt(aOffset));
 }
 
 static gchar*
