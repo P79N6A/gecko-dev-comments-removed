@@ -52,6 +52,7 @@ const STR = Services.strings.createBundle(DBG_STRINGS_URI);
 
 this.VariablesView = function VariablesView(aParentNode, aFlags = {}) {
   this._store = new Map();
+  this._items = [];
   this._itemsByElement = new WeakMap();
   this._prevHierarchy = new Map();
   this._currHierarchy = new Map();
@@ -103,6 +104,7 @@ VariablesView.prototype = {
 
     let scope = new Scope(this, aName);
     this._store.set(scope.id, scope);
+    this._items.push(scope);
     this._currHierarchy.set(aName, scope);
     this._itemsByElement.set(scope._target, scope);
     scope.header = !!aName;
@@ -135,6 +137,7 @@ VariablesView.prototype = {
     }
 
     this._store.clear();
+    this._items.length = 0;
     this._itemsByElement.clear();
 
     this._appendEmptyNotice();
@@ -161,6 +164,7 @@ VariablesView.prototype = {
     let currList = this._list = this.document.createElement("scrollbox");
 
     this._store.clear();
+    this._items.length = 0;
     this._itemsByElement.clear();
 
     this._emptyTimeout = this.window.setTimeout(function() {
@@ -531,30 +535,55 @@ VariablesView.prototype = {
   
 
 
-  focusFirstVisibleNode: function VV_focusFirstVisibleNode() {
-    let property, variable, scope;
 
-    for (let [, item] of this._currHierarchy) {
-      if (!item.focusable) {
-        continue;
-      }
-      if (item instanceof Property) {
-        property = item;
-        break;
-      } else if (item instanceof Variable) {
-        variable = item;
-        break;
-      } else if (item instanceof Scope) {
-        scope = item;
-        break;
+
+
+
+
+
+
+
+  _findInVisibleItems: function VV__findInVisibleItems(aPredicate) {
+    for (let scope of this._items) {
+      let result = scope._findInVisibleItems(aPredicate);
+      if (result) {
+        return result;
       }
     }
-    if (scope) {
-      this._focusItem(scope);
-    } else if (variable) {
-      this._focusItem(variable);
-    } else if (property) {
-      this._focusItem(property);
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _findInVisibleItemsReverse: function VV__findInVisibleItemsReverse(aPredicate) {
+    for (let i = this._items.length - 1; i >= 0; i--) {
+      let scope = this._items[i];
+      let result = scope._findInVisibleItemsReverse(aPredicate);
+      if (result) {
+        return result;
+      }
+    }
+    return null;
+  },
+
+  
+
+
+  focusFirstVisibleNode: function VV_focusFirstVisibleNode() {
+    let focusableItem = this._findInVisibleItems(item => item.focusable);
+
+    if (focusableItem) {
+      this._focusItem(focusableItem);
     }
     this._parent.scrollTop = 0;
     this._parent.scrollLeft = 0;
@@ -564,29 +593,13 @@ VariablesView.prototype = {
 
 
   focusLastVisibleNode: function VV_focusLastVisibleNode() {
-    let property, variable, scope;
+    let focusableItem = this._findInVisibleItemsReverse(item => item.focusable);
 
-    for (let [, item] of this._currHierarchy) {
-      if (!item.focusable) {
-        continue;
-      }
-      if (item instanceof Property) {
-        property = item;
-      } else if (item instanceof Variable) {
-        variable = item;
-      } else if (item instanceof Scope) {
-        scope = item;
-      }
+    if (focusableItem) {
+      this._focusItem(focusableItem);
     }
-    if (property && (!variable || property.isDescendantOf(variable))) {
-      this._focusItem(property);
-    } else if (variable && (!scope || variable.isDescendantOf(scope))) {
-      this._focusItem(variable);
-    } else if (scope) {
-      this._focusItem(scope);
-      this._parent.scrollTop = this._parent.scrollHeight;
-      this._parent.scrollLeft = 0;
-    }
+    this._parent.scrollTop = this._parent.scrollHeight;
+    this._parent.scrollLeft = 0;
   },
 
   
@@ -888,6 +901,7 @@ VariablesView.prototype = {
   _window: null,
 
   _store: null,
+  _items: null,
   _prevHierarchy: null,
   _currHierarchy: null,
   _enumVisible: true,
@@ -1082,6 +1096,8 @@ function Scope(aView, aName, aFlags = {}) {
   this.separatorStr = aView.separatorStr;
 
   this._store = new Map();
+  this._enumItems = [];
+  this._nonEnumItems = [];
   this._init(aName.trim(), aFlags);
 }
 
@@ -1789,6 +1805,89 @@ Scope.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+  _findInVisibleItems: function S__findInVisibleItems(aPredicate) {
+    if (aPredicate(this)) {
+      return this;
+    }
+
+    if (this._isExpanded) {
+      if (this._variablesView._enumVisible) {
+        for (let item of this._enumItems) {
+          let result = item._findInVisibleItems(aPredicate);
+          if (result) {
+            return result;
+          }
+        }
+      }
+
+      if (this._variablesView._nonEnumVisible) {
+        for (let item of this._nonEnumItems) {
+          let result = item._findInVisibleItems(aPredicate);
+          if (result) {
+            return result;
+          }
+        }
+      }
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _findInVisibleItemsReverse: function S__findInVisibleItemsReverse(aPredicate) {
+    if (this._isExpanded) {
+      if (this._variablesView._nonEnumVisible) {
+        for (let i = this._nonEnumItems.length - 1; i >= 0; i--) {
+          let item = this._nonEnumItems[i];
+          let result = item._findInVisibleItemsReverse(aPredicate);
+          if (result) {
+            return result;
+          }
+        }
+      }
+
+      if (this._variablesView._enumVisible) {
+        for (let i = this._enumItems.length - 1; i >= 0; i--) {
+          let item = this._enumItems[i];
+          let result = item._findInVisibleItemsReverse(aPredicate);
+          if (result) {
+            return result;
+          }
+        }
+      }
+    }
+
+    if (aPredicate(this)) {
+      return this;
+    }
+
+    return null;
+  },
+
+  
+
+
+
   get _variablesView() this._topView || (this._topView = (function(self) {
     let parentView = self.ownerView;
     let topView;
@@ -1854,7 +1953,9 @@ Scope.prototype = {
   _name: null,
   _title: null,
   _enum: null,
+  _enumItems: null,
   _nonenum: null,
+  _nonEnumItems: null,
   _throbber: null
 };
 
@@ -2167,8 +2268,10 @@ ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
         this._nameString == "this" ||
         this._nameString == "<exception>") {
       this.ownerView._lazyAppend(aImmediateFlag, true, this._target);
+      this.ownerView._enumItems.push(this);
     } else {
       this.ownerView._lazyAppend(aImmediateFlag, false, this._target);
+      this.ownerView._nonEnumItems.push(this);
     }
   },
 
@@ -2674,8 +2777,10 @@ ViewHelpers.create({ constructor: Property, proto: Variable.prototype }, {
   _onInit: function P__onInit(aImmediateFlag) {
     if (this._initialDescriptor.enumerable) {
       this.ownerView._lazyAppend(aImmediateFlag, true, this._target);
+      this.ownerView._enumItems.push(this);
     } else {
       this.ownerView._lazyAppend(aImmediateFlag, false, this._target);
+      this.ownerView._nonEnumItems.push(this);
     }
   }
 });
