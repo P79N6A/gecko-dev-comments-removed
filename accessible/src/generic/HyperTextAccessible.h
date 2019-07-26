@@ -266,6 +266,26 @@ protected:
   
 
 
+  int32_t AdjustCaretOffset(int32_t aOffset)
+  {
+    
+    
+    
+    
+    
+    if (aOffset > 0) {
+      nsRefPtr<nsFrameSelection> frameSelection = FrameSelection();
+      if (frameSelection &&
+          frameSelection->GetHint() == nsFrameSelection::HINTLEFT) {
+        return aOffset - 1;
+      }
+    }
+    return aOffset;
+  }
+
+  
+
+
   int32_t FindWordBoundary(int32_t aOffset, nsDirection aDirection,
                            EWordMovementType aWordMovementType)
   {
