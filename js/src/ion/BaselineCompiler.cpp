@@ -207,12 +207,6 @@ BaselineCompiler::emitPrologue()
 
     
     
-    
-    if (!addPCMappingEntry())
-        return Method_Error;
-
-    
-    
     if (!initScopeChain())
         return false;
 

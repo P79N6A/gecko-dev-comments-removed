@@ -1080,7 +1080,7 @@ InlineFrameIterator::findNextFrame()
     script_ = frame_->script();
     pc_ = script_->code + si_.pcOffset();
 #ifdef DEBUG
-    numActualArgs_ = 0xbad;
+    numActualArgs_ = 0xbadbad;
 #endif
 
     
@@ -1090,7 +1090,10 @@ InlineFrameIterator::findNextFrame()
         JS_ASSERT(js_CodeSpec[*pc_].format & JOF_INVOKE);
 
         
-        numActualArgs_ = GET_ARGC(pc_);
+        if (JSOp(*pc_) != JSOP_FUNAPPLY)
+            numActualArgs_ = GET_ARGC(pc_);
+
+        JS_ASSERT(numActualArgs_ != 0xbadbad);
 
         
         unsigned skipCount = (si_.slots() - 1) - numActualArgs_ - 1;

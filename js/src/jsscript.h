@@ -13,10 +13,10 @@
 #include "jsdbgapi.h"
 #include "jsinfer.h"
 #include "jsopcode.h"
-#include "jsscope.h"
 
 #include "gc/Barrier.h"
 #include "gc/Root.h"
+#include "vm/Shape.h"
 
 ForwardDeclareJS(Script);
 
@@ -658,10 +658,10 @@ class JSScript : public js::gc::Cell
 
 
 
-    static inline bool ensureRanAnalysis(JSContext *cx, JS::HandleScript script);
+    inline bool ensureRanAnalysis(JSContext *cx);
 
     
-    static inline bool ensureRanInference(JSContext *cx, JS::HandleScript script);
+    inline bool ensureRanInference(JSContext *cx);
 
     inline bool hasAnalysis();
     inline void clearAnalysis();
