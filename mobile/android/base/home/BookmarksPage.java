@@ -120,7 +120,6 @@ public class BookmarksPage extends HomeFragment {
         refreshListWithCursor(null);
 
         EventHandlers eventHandlers = new EventHandlers();
-        mList.setOnTouchListener(eventHandlers);
         mList.setOnItemClickListener(eventHandlers);
         mList.setOnCreateContextMenuListener(eventHandlers);
         mList.setOnKeyListener(GamepadUtils.getListItemClickDispatcher());
@@ -185,8 +184,7 @@ public class BookmarksPage extends HomeFragment {
 
 
     private class EventHandlers implements AdapterView.OnItemClickListener,
-                                           View.OnCreateContextMenuListener,
-                                           View.OnTouchListener {
+                                           View.OnCreateContextMenuListener {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             final ListView list = (ListView) parent;
@@ -224,15 +222,6 @@ public class BookmarksPage extends HomeFragment {
                 }
              }
          }
-
-        @Override
-        public boolean onTouch(View view, MotionEvent event) {
-            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                
-                view.requestFocus();
-            }
-            return false;
-        }
 
         @Override
         public void onCreateContextMenu(ContextMenu menu, View view, ContextMenuInfo menuInfo) {
