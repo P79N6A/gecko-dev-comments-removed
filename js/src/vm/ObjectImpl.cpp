@@ -257,7 +257,7 @@ js::ObjectImpl::slotInRange(uint32_t slot, SentinelAllowed sentinel) const
 
 MOZ_NEVER_INLINE
 #endif
-const Shape *
+Shape *
 js::ObjectImpl::nativeLookup(JSContext *cx, jsid id)
 {
     MOZ_ASSERT(isNative());
@@ -265,14 +265,12 @@ js::ObjectImpl::nativeLookup(JSContext *cx, jsid id)
     return Shape::search(cx, lastProperty(), id, &spp);
 }
 
-#ifdef DEBUG
-const Shape *
-js::ObjectImpl::nativeLookupNoAllocation(JSContext *cx, jsid id)
+Shape *
+js::ObjectImpl::nativeLookupNoAllocation(jsid id)
 {
     MOZ_ASSERT(isNative());
-    return Shape::searchNoAllocation(cx, lastProperty(), id);
+    return Shape::searchNoAllocation(lastProperty(), id);
 }
-#endif
 
 void
 js::ObjectImpl::markChildren(JSTracer *trc)
@@ -416,14 +414,15 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
 
 
 
-    if (!obj->isExtensible()) {
+    if (!obj->asObjectPtr()->isExtensible()) {
         *succeeded = false;
         if (!shouldThrow)
             return true;
+        RootedValue val(cx, ObjectValue(*obj));
         MOZ_ALWAYS_FALSE(js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_OBJECT_NOT_EXTENSIBLE,
                                                   JSDVG_IGNORE_STACK,
-                                                  ObjectValue(*obj),
-                                                  NULL, NULL, NULL));
+                                                  val, NullPtr(),
+                                                  NULL, NULL));
         return false;
     }
 
@@ -449,14 +448,14 @@ DenseElementsHeader::defineElement(JSContext *cx, Handle<ObjectImpl*> obj, uint3
     return true;
 }
 
-static JSObject *
-ArrayBufferDelegate(JSContext *cx, Handle<ObjectImpl*> obj)
+JSObject *
+js::ArrayBufferDelegate(JSContext *cx, Handle<ObjectImpl*> obj)
 {
     MOZ_ASSERT(obj->hasClass(&ArrayBufferClass));
     if (obj->getPrivate())
         return static_cast<JSObject *>(obj->getPrivate());
     JSObject *delegate = NewObjectWithGivenProto(cx, &ObjectClass, obj->getProto(), NULL);
-    obj->setPrivate(delegate);
+    obj->setPrivateGCThing(delegate);
     return delegate;
 }
 
@@ -468,10 +467,11 @@ TypedElementsHeader<T>::defineElement(JSContext *cx, Handle<ObjectImpl*> obj,
 {
     
     *succeeded = false;
+
+    RootedValue val(cx, ObjectValue(*obj));
     js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_OBJECT_NOT_EXTENSIBLE,
                              JSDVG_IGNORE_STACK,
-                             ObjectValue(*obj),
-                             NULL, NULL, NULL);
+                             val, NullPtr(), NULL, NULL);
     return false;
 }
 
@@ -498,23 +498,23 @@ js::GetOwnProperty(JSContext *cx, Handle<ObjectImpl*> obj, PropertyId pid_, unsi
 
     Rooted<PropertyId> pid(cx, pid_);
 
-    if (static_cast<JSObject *>(obj.value())->isProxy()) {
+    if (static_cast<JSObject *>(obj.get())->isProxy()) {
         MOZ_NOT_REACHED("NYI: proxy [[GetOwnProperty]]");
         return false;
     }
 
-    const Shape *shape = obj->nativeLookup(cx, pid);
+    Shape *shape = obj->nativeLookup(cx, pid);
     if (!shape) {
         
         Class *clasp = obj->getClass();
         JSResolveOp resolve = clasp->resolve;
         if (resolve != JS_ResolveStub) {
-            Rooted<jsid> id(cx, pid.reference().asId());
-            Rooted<JSObject*> robj(cx, static_cast<JSObject*>(obj.value()));
+            Rooted<jsid> id(cx, pid.get().asId());
+            Rooted<JSObject*> robj(cx, static_cast<JSObject*>(obj.get()));
             if (clasp->flags & JSCLASS_NEW_RESOLVE) {
                 Rooted<JSObject*> obj2(cx, NULL);
                 JSNewResolveOp op = reinterpret_cast<JSNewResolveOp>(resolve);
-                if (!op(cx, robj, id, resolveFlags, obj2.address()))
+                if (!op(cx, robj, id, resolveFlags, &obj2))
                     return false;
             } else {
                 if (!resolve(cx, robj, id))
@@ -583,6 +583,73 @@ js::GetOwnElement(JSContext *cx, Handle<ObjectImpl*> obj, uint32_t index, unsign
 }
 
 bool
+js::GetProperty(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver,
+                Handle<PropertyId> pid, unsigned resolveFlags, MutableHandle<Value> vp)
+{
+    NEW_OBJECT_REPRESENTATION_ONLY();
+
+    MOZ_ASSERT(receiver);
+
+    Rooted<ObjectImpl*> current(cx, obj);
+
+    do {
+        MOZ_ASSERT(obj);
+
+        if (Downcast(current)->isProxy()) {
+            MOZ_NOT_REACHED("NYI: proxy [[GetP]]");
+            return false;
+        }
+
+        PropDesc desc;
+        if (!GetOwnProperty(cx, current, pid, resolveFlags, &desc))
+            return false;
+
+        
+        if (desc.isUndefined()) {
+            current = current->getProto();
+            if (current)
+                continue;
+
+            vp.setUndefined();
+            return true;
+        }
+
+        
+        if (desc.isDataDescriptor()) {
+            vp.set(desc.value());
+            return true;
+        }
+
+        
+        if (desc.isAccessorDescriptor()) {
+            Rooted<Value> get(cx, desc.getterValue());
+            if (get.isUndefined()) {
+                vp.setUndefined();
+                return true;
+            }
+
+            InvokeArgsGuard args;
+            if (!cx->stack.pushInvokeArgs(cx, 0, &args))
+                return false;
+
+            args.setCallee(get);
+            args.setThis(ObjectValue(*receiver));
+
+            bool ok = Invoke(cx, args);
+            vp.set(args.rval());
+            return ok;
+        }
+
+        
+        MOZ_NOT_REACHED("NYI: handle PropertyOp'd properties here");
+        return false;
+    } while (false);
+
+    MOZ_NOT_REACHED("buggy control flow");
+    return false;
+}
+
+bool
 js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> receiver, uint32_t index,
                unsigned resolveFlags, Value *vp)
 {
@@ -631,8 +698,8 @@ js::GetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
                 return false;
 
             
-            args.calleev() = get;
-            args.thisv() = ObjectValue(*current);
+            args.setCallee(get);
+            args.setThis(ObjectValue(*current));
 
             bool ok = Invoke(cx, args);
             *vp = args.rval();
@@ -822,6 +889,8 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
 
     Rooted<ObjectImpl*> current(cx, obj);
 
+    MOZ_ASSERT(receiver);
+
     do {
         MOZ_ASSERT(current);
 
@@ -863,8 +932,8 @@ js::SetElement(JSContext *cx, Handle<ObjectImpl*> obj, Handle<ObjectImpl*> recei
                     return false;
 
                 
-                args.calleev() = setter;
-                args.thisv() = ObjectValue(*current);
+                args.setCallee(setter);
+                args.setThis(ObjectValue(*current));
                 args[0] = v;
 
                 *succeeded = true;

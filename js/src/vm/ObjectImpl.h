@@ -1016,8 +1016,6 @@ class ObjectImpl : public gc::Cell
         return type_->proto;
     }
 
-    inline bool isExtensible() const;
-
     
 
 

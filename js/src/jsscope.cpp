@@ -1029,11 +1029,20 @@ Shape::setObjectParent(JSContext *cx, JSObject *parent, TaggedProto proto, Shape
 }
 
 bool
+JSObject::isExtensible() const
+{
+    if (isProxy())
+        return Proxy::isExtensible(const_cast<JSObject *>(this));
+    return !lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
+}
+
+bool
 JSObject::preventExtensions(JSContext *cx)
 {
     JS_ASSERT(isExtensible());
-
     RootedObject self(cx, this);
+    if (self->isProxy())
+        return Proxy::preventExtensions(cx, self);
 
     
 
@@ -1047,6 +1056,38 @@ JSObject::preventExtensions(JSContext *cx)
         self->makeDenseArraySlow(cx, self);
 
     return self->setFlag(cx, BaseShape::NOT_EXTENSIBLE, GENERATE_SHAPE);
+}
+
+
+
+
+
+
+
+
+
+
+bool
+BaseProxyHandler::isExtensible(JSObject *proxy)
+{
+    return !proxy->lastProperty()->hasObjectFlag(js::BaseShape::NOT_EXTENSIBLE);
+}
+
+bool
+BaseProxyHandler::preventExtensions(JSContext *cx, JSObject *proxy_)
+{
+    JS_ASSERT(isExtensible());
+    RootedObject proxy(cx, proxy_);
+
+    
+
+
+
+    AutoIdVector props(cx);
+    if (!js::GetPropertyNames(cx, proxy, JSITER_HIDDEN | JSITER_OWNONLY, &props))
+        return false;
+    JS_ASSERT(!proxy->isDenseArray());
+    return proxy_->setFlag(cx, BaseShape::NOT_EXTENSIBLE, JSObject::GENERATE_SHAPE);
 }
 
 bool
