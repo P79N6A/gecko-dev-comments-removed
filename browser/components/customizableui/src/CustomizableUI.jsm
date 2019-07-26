@@ -1082,16 +1082,15 @@ let CustomizableUIInternal = {
     let node;
     if (aWidget.type == "custom") {
       if (aWidget.onBuild) {
-        try {
-          node = aWidget.onBuild(aDocument);
-        } catch (ex) {
-          ERROR("Custom widget with id " + aWidget.id + " threw an error: " + ex.message);
-        }
+        node = aWidget.onBuild(aDocument);
       }
       if (!node || !(node instanceof aDocument.defaultView.XULElement))
         ERROR("Custom widget with id " + aWidget.id + " does not return a valid node");
     }
     else {
+      if (aWidget.onBeforeCreated) {
+        aWidget.onBeforeCreated(aDocument);
+      }
       node = aDocument.createElementNS(kNSXUL, "toolbarbutton");
 
       node.setAttribute("id", aWidget.id);
@@ -1971,6 +1970,7 @@ let CustomizableUIInternal = {
 
     widget.disabled = aData.disabled === true;
 
+    this.wrapWidgetEventHandler("onBeforeCreated", widget);
     this.wrapWidgetEventHandler("onClick", widget);
     this.wrapWidgetEventHandler("onCreated", widget);
 
@@ -2709,6 +2709,12 @@ this.CustomizableUI = {
     CustomizableUIInternal.endBatchUpdate(aForceDirty);
   },
   
+
+
+
+
+
+
 
 
 
