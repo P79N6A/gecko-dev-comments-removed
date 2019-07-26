@@ -491,6 +491,19 @@ SpecialPowersAPI.prototype = {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
   pushPrefEnv: function(inPrefs, callback) {
     var prefs = Components.classes["@mozilla.org/preferences-service;1"].
                            getService(Components.interfaces.nsIPrefBranch);
