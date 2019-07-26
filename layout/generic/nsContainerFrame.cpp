@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* base class #1 for rendering objects that have child lists */
+
+
+
+
+
 
 #include "nsContainerFrame.h"
 
@@ -59,9 +59,9 @@ nsContainerFrame::Init(nsIContent* aContent,
 {
   nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
   if (aPrevInFlow) {
-    // Make sure we copy bits from our prev-in-flow that will affect
-    // us. A continuation for a container frame needs to know if it
-    // has a child with a view so that we'll properly reposition it.
+    
+    
+    
     if (aPrevInFlow->GetStateBits() & NS_FRAME_HAS_CHILD_WITH_VIEW)
       AddStateBits(NS_FRAME_HAS_CHILD_WITH_VIEW);
   }
@@ -73,12 +73,12 @@ nsContainerFrame::SetInitialChildList(ChildListID  aListID,
 {
   nsresult  result;
   if (mFrames.NotEmpty()) {
-    // We already have child frames which means we've already been
-    // initialized
+    
+    
     NS_NOTREACHED("unexpected second call to SetInitialChildList");
     result = NS_ERROR_UNEXPECTED;
   } else if (aListID != kPrincipalList) {
-    // All we know about is the principal child list.
+    
     NS_NOTREACHED("unknown frame list");
     result = NS_ERROR_INVALID_ARG;
   } else {
@@ -107,7 +107,7 @@ nsContainerFrame::AppendFrames(ChildListID  aListID,
   if (aFrameList.NotEmpty()) {
     mFrames.AppendFrames(this, aFrameList);
 
-    // Ask the parent frame to reflow me.
+    
 #ifdef IBMBIDI
     if (aListID == kPrincipalList)
 #endif
@@ -138,7 +138,7 @@ nsContainerFrame::InsertFrames(ChildListID aListID,
     }
   }
   if (aFrameList.NotEmpty()) {
-    // Insert frames after aPrevFrame
+    
     mFrames.InsertFrames(this, aPrevFrame, aFrameList);
 
 #ifdef IBMBIDI
@@ -167,9 +167,9 @@ nsContainerFrame::RemoveFrame(ChildListID aListID,
     }
   }
 
-  // Loop and destroy aOldFrame and all of its continuations.
-  // Request a reflow on the parent frames involved unless we were explicitly
-  // told not to (kNoReflowPrincipalList).
+  
+  
+  
   bool generateReflowCommand = true;
 #ifdef IBMBIDI
   if (kNoReflowPrincipalList == aListID) {
@@ -179,10 +179,10 @@ nsContainerFrame::RemoveFrame(ChildListID aListID,
   nsIPresShell* shell = PresContext()->PresShell();
   nsContainerFrame* lastParent = nullptr;
   while (aOldFrame) {
-    //XXXfr probably should use StealFrame here. I'm not sure if we need to
-    //      check the overflow lists atm, but we'll need a prescontext lookup
-    //      for overflow containers once we can split abspos elements with
-    //      inline containing blocks.
+    
+    
+    
+    
     nsIFrame* oldFrameNextContinuation = aOldFrame->GetNextContinuation();
     nsContainerFrame* parent =
       static_cast<nsContainerFrame*>(aOldFrame->GetParent());
@@ -213,9 +213,9 @@ nsContainerFrame::SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
                                              FramePropertyTable* aPropTable,
                                              const FramePropertyDescriptor* aProp)
 {
-  // Note that the last frame can be removed through another route and thus
-  // delete the property -- that's why we fetch the property again before
-  // removing each frame rather than fetching it once and iterating the list.
+  
+  
+  
   while (nsFrameList* frameList =
            static_cast<nsFrameList*>(aPropTable->Get(this, aProp))) {
     nsIFrame* frame = frameList->RemoveFirstChild();
@@ -232,17 +232,17 @@ nsContainerFrame::SafelyDestroyFrameListProp(nsIFrame* aDestructRoot,
 void
 nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
-  // Prevent event dispatch during destruction.
+  
   if (HasView()) {
     GetView()->SetFrame(nullptr);
   }
 
   DestroyAbsoluteFrames(aDestructRoot);
 
-  // Destroy frames on the principal child list.
+  
   mFrames.DestroyFramesFrom(aDestructRoot);
 
-  // Destroy frames on the auxiliary frame lists and delete the lists.
+  
   nsPresContext* pc = PresContext();
   nsIPresShell* shell = pc->PresShell();
   FramePropertyTable* props = pc->PropertyTable();
@@ -261,13 +261,13 @@ nsContainerFrame::DestroyFrom(nsIFrame* aDestructRoot)
   nsSplittableFrame::DestroyFrom(aDestructRoot);
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Child frame enumeration
+
+
 
 const nsFrameList&
 nsContainerFrame::GetChildList(ChildListID aListID) const
 {
-  // We only know about the principal child list and the overflow lists.
+  
   switch (aListID) {
     case kPrincipalList:
       return mFrames;
@@ -318,8 +318,8 @@ nsContainerFrame::GetChildLists(nsTArray<ChildList>* aLists) const
   nsSplittableFrame::GetChildLists(aLists);
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Painting/Events
+
+
 
 void
 nsContainerFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
@@ -338,16 +338,16 @@ nsContainerFrame::BuildDisplayListForNonBlockChildren(nsDisplayListBuilder*   aB
                                                       uint32_t                aFlags)
 {
   nsIFrame* kid = mFrames.FirstChild();
-  // Put each child's background directly onto the content list
+  
   nsDisplayListSet set(aLists, aLists.Content());
-  // The children should be in content order
+  
   while (kid) {
     BuildDisplayListForChild(aBuilder, kid, aDirtyRect, set, aFlags);
     kid = kid->GetNextSibling();
   }
 }
 
-/* virtual */ void
+ void
 nsContainerFrame::ChildIsDirty(nsIFrame* aChild)
 {
   NS_ASSERTION(NS_SUBTREE_DIRTY(aChild), "child isn't actually dirty");
@@ -365,7 +365,7 @@ bool
 nsContainerFrame::PeekOffsetNoAmount(bool aForward, int32_t* aOffset)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
-  // Don't allow the caret to stay in an empty (leaf) container frame.
+  
   return false;
 }
 
@@ -374,12 +374,12 @@ nsContainerFrame::PeekOffsetCharacter(bool aForward, int32_t* aOffset,
                                       bool aRespectClusters)
 {
   NS_ASSERTION (aOffset && *aOffset <= 1, "aOffset out of range");
-  // Don't allow the caret to stay in an empty (leaf) container frame.
+  
   return false;
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Helper member functions
+
+
 
 static nsresult
 ReparentFrameViewTo(nsIFrame*       aFrame,
@@ -388,32 +388,32 @@ ReparentFrameViewTo(nsIFrame*       aFrame,
                     nsView*        aOldParentView)
 {
 
-  // XXX What to do about placeholder views for "position: fixed" elements?
-  // They should be reparented too.
+  
+  
 
-  // Does aFrame have a view?
+  
   if (aFrame->HasView()) {
 #ifdef MOZ_XUL
     if (aFrame->GetType() == nsGkAtoms::menuPopupFrame) {
-      // This view must be parented by the root view, don't reparent it.
+      
       return NS_OK;
     }
 #endif
     nsView* view = aFrame->GetView();
-    // Verify that the current parent view is what we think it is
-    //nsView*  parentView;
-    //NS_ASSERTION(parentView == aOldParentView, "unexpected parent view");
+    
+    
+    
 
     aViewManager->RemoveChild(view);
     
-    // The view will remember the Z-order and other attributes that have been set on it.
+    
     nsView* insertBefore = nsLayoutUtils::FindSiblingViewFor(aNewParentView, aFrame);
     aViewManager->InsertChild(aNewParentView, view, insertBefore, insertBefore != nullptr);
   } else {
     nsIFrame::ChildListIterator lists(aFrame);
     for (; !lists.IsDone(); lists.Next()) {
-      // Iterate the child frames, and check each child frame to see if it has
-      // a view
+      
+      
       nsFrameList::Enumerator childFrames(lists.CurrentList());
       for (; !childFrames.AtEnd(); childFrames.Next()) {
         ReparentFrameViewTo(childFrames.get(), aViewManager,
@@ -433,9 +433,9 @@ nsContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
     return;
   }
 
-  // If we don't yet have a view, see if we need a view
+  
   if (!aForce && !aFrame->NeedsView()) {
-    // don't need a view
+    
     return;
   }
 
@@ -445,28 +445,28 @@ nsContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
   nsViewManager* viewManager = parentView->GetViewManager();
   NS_ASSERTION(viewManager, "null view manager");
 
-  // Create a view
+  
   nsView* view = viewManager->CreateView(aFrame->GetRect(), parentView);
 
   SyncFrameViewProperties(aFrame->PresContext(), aFrame, nullptr, view);
 
   nsView* insertBefore = nsLayoutUtils::FindSiblingViewFor(parentView, aFrame);
-  // we insert this view 'above' the insertBefore view, unless insertBefore is null,
-  // in which case we want to call with aAbove == false to insert at the beginning
-  // in document order
+  
+  
+  
   viewManager->InsertChild(parentView, view, insertBefore, insertBefore != nullptr);
 
-  // REVIEW: Don't create a widget for fixed-pos elements anymore.
-  // ComputeRepaintRegionForCopy will calculate the right area to repaint
-  // when we scroll.
-  // Reparent views on any child frames (or their descendants) to this
-  // view. We can just call ReparentFrameViewTo on this frame because
-  // we know this frame has no view, so it will crawl the children. Also,
-  // we know that any descendants with views must have 'parentView' as their
-  // parent view.
+  
+  
+  
+  
+  
+  
+  
+  
   ReparentFrameViewTo(aFrame, viewManager, view, parentView);
 
-  // Remember our view
+  
   aFrame->SetView(view);
 
   NS_FRAME_LOG(NS_FRAME_TRACE_CALLS,
@@ -474,11 +474,11 @@ nsContainerFrame::CreateViewForFrame(nsIFrame* aFrame,
                 aFrame));
 }
 
-/**
- * Position the view associated with |aKidFrame|, if there is one. A
- * container frame should call this method after positioning a frame,
- * but before |Reflow|.
- */
+
+
+
+
+
 void
 nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
 {
@@ -494,8 +494,8 @@ nsContainerFrame::PositionFrameView(nsIFrame* aKidFrame)
   if (ancestorView != view->GetParent()) {
     NS_ASSERTION(ancestorView == view->GetParent()->GetParent(),
                  "Allowed only one anonymous view between frames");
-    // parentFrame is responsible for positioning aKidFrame's view
-    // explicitly
+    
+    
     return;
   }
 
@@ -513,47 +513,47 @@ nsContainerFrame::ReparentFrameView(nsIFrame* aChildFrame,
   NS_PRECONDITION(aNewParentFrame, "null new parent frame pointer");
   NS_PRECONDITION(aOldParentFrame != aNewParentFrame, "same old and new parent frame");
 
-  // See if either the old parent frame or the new parent frame have a view
+  
   while (!aOldParentFrame->HasView() && !aNewParentFrame->HasView()) {
-    // Walk up both the old parent frame and the new parent frame nodes
-    // stopping when we either find a common parent or views for one
-    // or both of the frames.
-    //
-    // This works well in the common case where we push/pull and the old parent
-    // frame and the new parent frame are part of the same flow. They will
-    // typically be the same distance (height wise) from the
+    
+    
+    
+    
+    
+    
+    
     aOldParentFrame = aOldParentFrame->GetParent();
     aNewParentFrame = aNewParentFrame->GetParent();
     
-    // We should never walk all the way to the root frame without finding
-    // a view
+    
+    
     NS_ASSERTION(aOldParentFrame && aNewParentFrame, "didn't find view");
 
-    // See if we reached a common ancestor
+    
     if (aOldParentFrame == aNewParentFrame) {
       break;
     }
   }
 
-  // See if we found a common parent frame
+  
   if (aOldParentFrame == aNewParentFrame) {
-    // We found a common parent and there are no views between the old parent
-    // and the common parent or the new parent frame and the common parent.
-    // Because neither the old parent frame nor the new parent frame have views,
-    // then any child views don't need reparenting
+    
+    
+    
+    
     return NS_OK;
   }
 
-  // We found views for one or both of the ancestor frames before we
-  // found a common ancestor.
+  
+  
   nsView* oldParentView = aOldParentFrame->GetClosestView();
   nsView* newParentView = aNewParentFrame->GetClosestView();
   
-  // See if the old parent frame and the new parent frame are in the
-  // same view sub-hierarchy. If they are then we don't have to do
-  // anything
+  
+  
+  
   if (oldParentView != newParentView) {
-    // They're not so we need to reparent any child views
+    
     return ReparentFrameViewTo(aChildFrame, oldParentView->GetViewManager(), newParentView,
                                oldParentView);
   }
@@ -571,50 +571,50 @@ nsContainerFrame::ReparentFrameViewList(const nsFrameList& aChildFrameList,
   NS_PRECONDITION(aNewParentFrame, "null new parent frame pointer");
   NS_PRECONDITION(aOldParentFrame != aNewParentFrame, "same old and new parent frame");
 
-  // See if either the old parent frame or the new parent frame have a view
+  
   while (!aOldParentFrame->HasView() && !aNewParentFrame->HasView()) {
-    // Walk up both the old parent frame and the new parent frame nodes
-    // stopping when we either find a common parent or views for one
-    // or both of the frames.
-    //
-    // This works well in the common case where we push/pull and the old parent
-    // frame and the new parent frame are part of the same flow. They will
-    // typically be the same distance (height wise) from the
+    
+    
+    
+    
+    
+    
+    
     aOldParentFrame = aOldParentFrame->GetParent();
     aNewParentFrame = aNewParentFrame->GetParent();
     
-    // We should never walk all the way to the root frame without finding
-    // a view
+    
+    
     NS_ASSERTION(aOldParentFrame && aNewParentFrame, "didn't find view");
 
-    // See if we reached a common ancestor
+    
     if (aOldParentFrame == aNewParentFrame) {
       break;
     }
   }
 
 
-  // See if we found a common parent frame
+  
   if (aOldParentFrame == aNewParentFrame) {
-    // We found a common parent and there are no views between the old parent
-    // and the common parent or the new parent frame and the common parent.
-    // Because neither the old parent frame nor the new parent frame have views,
-    // then any child views don't need reparenting
+    
+    
+    
+    
     return NS_OK;
   }
 
-  // We found views for one or both of the ancestor frames before we
-  // found a common ancestor.
+  
+  
   nsView* oldParentView = aOldParentFrame->GetClosestView();
   nsView* newParentView = aNewParentFrame->GetClosestView();
   
-  // See if the old parent frame and the new parent frame are in the
-  // same view sub-hierarchy. If they are then we don't have to do
-  // anything
+  
+  
+  
   if (oldParentView != newParentView) {
     nsViewManager* viewManager = oldParentView->GetViewManager();
 
-    // They're not so we need to reparent any child views
+    
     for (nsFrameList::Enumerator e(aChildFrameList); !e.AtEnd(); e.Next()) {
       ReparentFrameViewTo(e.get(), viewManager, newParentView, oldParentView);
     }
@@ -644,7 +644,7 @@ IsTopLevelWidget(nsIWidget* aWidget)
   return windowType == eWindowType_toplevel ||
          windowType == eWindowType_dialog ||
          windowType == eWindowType_sheet;
-  // popups aren't toplevel so they're not handled here
+  
 }
 
 void
@@ -669,21 +669,21 @@ nsContainerFrame::SyncWindowProperties(nsPresContext*       aPresContext,
 
   Element* rootElement = aPresContext->Document()->GetRootElement();
   if (!rootElement || !rootElement->IsXUL()) {
-    // Scrollframes use native widgets which don't work well with
-    // translucent windows, at least in Windows XP. So if the document
-    // has a root scrollrame it's useless to try to make it transparent,
-    // we'll just get something broken.
-    // nsCSSFrameConstructor::ConstructRootFrame constructs root
-    // scrollframes whenever the root element is not a XUL element, so
-    // we test for that here. We can't just call
-    // presShell->GetRootScrollFrame() since that might not have
-    // been constructed yet.
-    // We can change this to allow translucent toplevel HTML documents
-    // (e.g. to do something like Dashboard widgets), once we
-    // have broad support for translucent scrolled documents, but be
-    // careful because apparently some Firefox extensions expect
-    // openDialog("something.html") to produce an opaque window
-    // even if the HTML doesn't have a background-color set.
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     return;
   }
 
@@ -720,9 +720,9 @@ void nsContainerFrame::SetSizeConstraints(nsPresContext* aPresContext,
                          aPresContext->AppUnitsToDevPixels(aMaxSize.height));
   widget::SizeConstraints constraints(devMinSize, devMaxSize);
 
-  // The sizes are in inner window sizes, so convert them into outer window sizes.
-  // Use a size of (200, 200) as only the difference between the inner and outer
-  // size is needed.
+  
+  
+  
   nsIntSize windowSize = aWidget->ClientToWindowSize(nsIntSize(200, 200));
   if (constraints.mMinSize.width)
     constraints.mMinSize.width += windowSize.width - 200;
@@ -747,7 +747,7 @@ nsContainerFrame::SyncFrameViewAfterReflow(nsPresContext* aPresContext,
     return;
   }
 
-  // Make sure the view is sized and positioned correctly
+  
   if (0 == (aFlags & NS_FRAME_NO_MOVE_VIEW)) {
     PositionFrameView(aFrame);
   }
@@ -779,17 +779,17 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
     aStyleContext = aFrame->StyleContext();
   }
 
-  // Make sure visibility is correct. This only affects nsSubdocumentFrame.
+  
   if (0 == (aFlags & NS_FRAME_NO_VISIBILITY) &&
       !aFrame->SupportsVisibilityHidden()) {
-    // See if the view should be hidden or visible
+    
     vm->SetViewVisibility(aView,
         aStyleContext->StyleVisibility()->IsVisible()
             ? nsViewVisibility_kShow : nsViewVisibility_kHide);
   }
 
-  // See if the frame is being relatively positioned or absolutely
-  // positioned
+  
+  
   bool isPositioned = aFrame->IsPositioned();
 
   int32_t zIndex = 0;
@@ -798,7 +798,7 @@ nsContainerFrame::SyncFrameViewProperties(nsPresContext*  aPresContext,
   if (!isPositioned) {
     autoZIndex = true;
   } else {
-    // Make sure z-index is correct
+    
     const nsStylePosition* position = aStyleContext->StylePosition();
 
     if (position->mZIndex.GetUnit() == eStyleUnit_Integer) {
@@ -825,7 +825,7 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
                                          nsLayoutUtils::IntrinsicWidthType aType)
 {
   if (GetPrevInFlow())
-    return; // Already added.
+    return; 
 
   NS_PRECONDITION(aType == nsLayoutUtils::MIN_WIDTH ||
                   aType == nsLayoutUtils::PREF_WIDTH, "bad type");
@@ -843,16 +843,16 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
   const nsStyleBorder *styleBorder = StyleBorder();
   const nsStyleMargin *styleMargin = StyleMargin();
 
-  // This goes at the beginning no matter how things are broken and how
-  // messy the bidi situations are, since per CSS2.1 section 8.6
-  // (implemented in bug 328168), the startSide border is always on the
-  // first line.
-  // This frame is a first-in-flow, but it might have a previous bidi
-  // continuation, in which case that continuation should handle the startSide
-  // border.
+  
+  
+  
+  
+  
+  
+  
   if (!GetPrevContinuation()) {
     aData->currentLine +=
-      // clamp negative calc() to 0
+      
       std::max(GetCoord(stylePadding->mPadding.Get(startSide), 0), 0) +
       styleBorder->GetComputedBorderWidth(startSide) +
       GetCoord(styleMargin->mMargin.Get(startSide), 0);
@@ -874,8 +874,8 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
                                 static_cast<InlinePrefWidthData*>(aData));
     }
 
-    // After we advance to our next-in-flow, the stored line and line container
-    // may no longer be correct. Just forget them.
+    
+    
     aData->line = nullptr;
     aData->lineContainer = nullptr;
 
@@ -885,23 +885,23 @@ nsContainerFrame::DoInlineIntrinsicWidth(nsRenderingContext *aRenderingContext,
   aData->line = savedLine;
   aData->lineContainer = savedLineContainer;
 
-  // This goes at the end no matter how things are broken and how
-  // messy the bidi situations are, since per CSS2.1 section 8.6
-  // (implemented in bug 328168), the endSide border is always on the
-  // last line.
-  // We reached the last-in-flow, but it might have a next bidi
-  // continuation, in which case that continuation should handle
-  // the endSide border.
+  
+  
+  
+  
+  
+  
+  
   if (!lastInFlow->GetNextContinuation()) {
     aData->currentLine +=
-      // clamp negative calc() to 0
+      
       std::max(GetCoord(stylePadding->mPadding.Get(endSide), 0), 0) +
       styleBorder->GetComputedBorderWidth(endSide) +
       GetCoord(styleMargin->mMargin.Get(endSide), 0);
   }
 }
 
-/* virtual */ nsSize
+ nsSize
 nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
                                   nsSize aCBSize, nscoord aAvailableWidth,
                                   nsSize aMargin, nsSize aBorder,
@@ -910,9 +910,9 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   nsSize result(0xdeadbeef, NS_UNCONSTRAINEDSIZE);
   nscoord availBased = aAvailableWidth - aMargin.width - aBorder.width -
                        aPadding.width;
-  // replaced elements always shrink-wrap
+  
   if (aShrinkWrap || IsFrameOfType(eReplaced)) {
-    // don't bother setting it if the result won't be used
+    
     if (StylePosition()->mWidth.GetUnit() == eStyleUnit_Auto) {
       result.width = ShrinkWidthToFit(aRenderingContext, availBased);
     }
@@ -922,11 +922,11 @@ nsContainerFrame::ComputeAutoSize(nsRenderingContext *aRenderingContext,
   return result;
 }
 
-/**
- * Invokes the WillReflow() function, positions the frame and its view (if
- * requested), and then calls Reflow(). If the reflow succeeds and the child
- * frame is complete, deletes any next-in-flows using DeleteNextInFlowChild()
- */
+
+
+
+
+
 nsresult
 nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
                               nsPresContext*           aPresContext,
@@ -942,8 +942,8 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
 
   nsresult  result;
 
-  // Send the WillReflow() notification, and position the child frame
-  // and its view if requested
+  
+  
   aKidFrame->WillReflow(aPresContext);
 
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
@@ -954,19 +954,19 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
     PositionFrameView(aKidFrame);
   }
 
-  // Reflow the child frame
+  
   result = aKidFrame->Reflow(aPresContext, aDesiredSize, aReflowState,
                              aStatus);
 
-  // If the reflow was successful and the child frame is complete, delete any
-  // next-in-flows, but only if the NO_DELETE_NEXT_IN_FLOW flag isn't set.
+  
+  
   if (NS_SUCCEEDED(result) && NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
       !(aFlags & NS_FRAME_NO_DELETE_NEXT_IN_FLOW_CHILD)) {
     nsIFrame* kidNextInFlow = aKidFrame->GetNextInFlow();
     if (kidNextInFlow) {
-      // Remove all of the childs next-in-flows. Make sure that we ask
-      // the right parent to do the removal (it's possible that the
-      // parent is not this because we are executing pullup code)
+      
+      
+      
       nsOverflowContinuationTracker::AutoFinish fini(aTracker, aKidFrame);
       static_cast<nsContainerFrame*>(kidNextInFlow->GetParent())
         ->DeleteNextInFlowChild(kidNextInFlow, true);
@@ -976,10 +976,10 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
 }
 
 
-/**
- * Position the views of |aFrame|'s descendants. A container frame
- * should call this method if it moves a frame after |Reflow|.
- */
+
+
+
+
 void
 nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
 {
@@ -987,11 +987,11 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
     return;
   }
 
-  // Recursively walk aFrame's child frames.
-  // Process the additional child lists, but skip the popup list as the
-  // view for popups is managed by the parent. Currently only nsMenuFrame
-  // and nsPopupSetFrame have a popupList and during layout will adjust the
-  // view manually to position the popup.
+  
+  
+  
+  
+  
   ChildListIterator lists(aFrame);
   for (; !lists.IsDone(); lists.Next()) {
     if (lists.CurrentID() == kPopupList) {
@@ -999,8 +999,8 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
     }
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
-      // Position the frame's view (if it has one) otherwise recursively
-      // process its children
+      
+      
       nsIFrame* childFrame = childFrames.get();
       if (childFrame->HasView()) {
         PositionFrameView(childFrame);
@@ -1011,23 +1011,23 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
   }
 }
 
-/**
- * The second half of frame reflow. Does the following:
- * - sets the frame's bounds
- * - sizes and positions (if requested) the frame's view. If the frame's final
- *   position differs from the current position and the frame itself does not
- *   have a view, then any child frames with views are positioned so they stay
- *   in sync
- * - sets the view's visibility, opacity, content transparency, and clip
- * - invoked the DidReflow() function
- *
- * Flags:
- * NS_FRAME_NO_MOVE_FRAME - don't move the frame. aX and aY are ignored in this
- *    case. Also implies NS_FRAME_NO_MOVE_VIEW
- * NS_FRAME_NO_MOVE_VIEW - don't position the frame's view. Set this if you
- *    don't want to automatically sync the frame and view
- * NS_FRAME_NO_SIZE_VIEW - don't size the frame's view
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 nsresult
 nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
                                     nsPresContext*             aPresContext,
@@ -1047,8 +1047,8 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
 
   if (aKidFrame->HasView()) {
     nsView* view = aKidFrame->GetView();
-    // Make sure the frame's view is properly sized and positioned and has
-    // things like opacity correct
+    
+    
     SyncFrameViewAfterReflow(aPresContext, aKidFrame, view,
                              aDesiredSize.VisualOverflow(), aFlags);
   }
@@ -1056,8 +1056,8 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
   if (!(aFlags & NS_FRAME_NO_MOVE_VIEW) &&
       (curOrigin.x != aX || curOrigin.y != aY)) {
     if (!aKidFrame->HasView()) {
-      // If the frame has moved, then we need to make sure any child views are
-      // correctly positioned
+      
+      
       PositionChildViews(aKidFrame);
     }
   }
@@ -1084,7 +1084,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
                "conflicting overflow containers lists");
 
   if (!overflowContainers) {
-    // Drain excess from previnflow
+    
     nsContainerFrame* prev = (nsContainerFrame*) GetPrevInFlow();
     if (prev) {
       nsFrameList* excessFrames =
@@ -1098,8 +1098,8 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
     }
   }
 
-  // Our own excess overflow containers from a previous reflow can still be
-  // present if our next-in-flow hasn't been reflown yet.
+  
+  
   nsFrameList* selfExcessOCFrames =
     RemovePropTableFrames(ExcessOverflowContainersProperty());
   if (selfExcessOCFrames) {
@@ -1112,7 +1112,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
     }
   }
   if (!overflowContainers) {
-    return NS_OK; // nothing to reflow
+    return NS_OK; 
   }
 
   nsOverflowContinuationTracker tracker(this, false, false);
@@ -1121,14 +1121,14 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
   for (nsIFrame* frame = overflowContainers->FirstChild(); frame;
        frame = frame->GetNextSibling()) {
     if (frame->GetPrevInFlow()->GetParent() != GetPrevInFlow()) {
-      // frame's prevInFlow has moved, skip reflowing this frame;
-      // it will get reflowed once it's been placed
+      
+      
       continue;
     }
-    // If the available vertical height has changed, we need to reflow
-    // even if the frame isn't dirty.
+    
+    
     if (shouldReflowAllKids || NS_SUBTREE_DIRTY(frame)) {
-      // Get prev-in-flow
+      
       nsIFrame* prevInFlow = frame->GetPrevInFlow();
       NS_ASSERTION(prevInFlow,
                    "overflow container frame must have a prev-in-flow");
@@ -1136,28 +1136,28 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
                    "overflow container frame must have overflow container bit set");
       nsRect prevRect = prevInFlow->GetRect();
 
-      // Initialize reflow params
+      
       nsSize availSpace(prevRect.width, aReflowState.AvailableHeight());
-      nsHTMLReflowMetrics desiredSize(aReflowState.GetWritingMode());
+      nsHTMLReflowMetrics desiredSize(aReflowState);
       nsHTMLReflowState frameState(aPresContext, aReflowState,
                                    frame, availSpace);
       nsReflowStatus frameStatus;
 
-      // Reflow
+      
       rv = ReflowChild(frame, aPresContext, desiredSize, frameState,
                        prevRect.x, 0, aFlags, frameStatus, &tracker);
       NS_ENSURE_SUCCESS(rv, rv);
-      //XXXfr Do we need to override any shrinkwrap effects here?
-      // e.g. desiredSize.Width() = prevRect.width;
+      
+      
       rv = FinishReflowChild(frame, aPresContext, desiredSize, &frameState,
                              prevRect.x, 0, aFlags);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      // Handle continuations
+      
       if (!NS_FRAME_IS_FULLY_COMPLETE(frameStatus)) {
         if (frame->GetStateBits() & NS_FRAME_OUT_OF_FLOW) {
-          // Abspos frames can't cause their parent to be incomplete,
-          // only overflow incomplete.
+          
+          
           NS_FRAME_SET_OVERFLOW_INCOMPLETE(frameStatus);
         }
         else {
@@ -1165,7 +1165,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
                        "overflow container frames can't be incomplete, only overflow-incomplete");
         }
 
-        // Acquire a next-in-flow, creating it if necessary
+        
         nsIFrame* nif = frame->GetNextInFlow();
         if (!nif) {
           NS_ASSERTION(frameStatus & NS_FRAME_REFLOW_NEXTINFLOW,
@@ -1174,7 +1174,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
             CreateContinuingFrame(aPresContext, frame, this);
         }
         else if (!(nif->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
-          // used to be a normal next-in-flow; steal it from the child list
+          
           rv = static_cast<nsContainerFrame*>(nif->GetParent())
                  ->StealFrame(nif);
           NS_ENSURE_SUCCESS(rv, rv);
@@ -1183,9 +1183,9 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
         tracker.Insert(nif, frameStatus);
       }
       NS_MergeReflowStatusInto(&aStatus, frameStatus);
-      // At this point it would be nice to assert !frame->GetOverflowRect().IsEmpty(),
-      // but we have some unsplittable frames that, when taller than
-      // availableHeight will push zero-height content into a next-in-flow.
+      
+      
+      
     }
     else {
       tracker.Skip(frame, aStatus);
@@ -1218,7 +1218,7 @@ TryRemoveFrame(nsIFrame* aFrame, FramePropertyTable* aPropTable,
 {
   nsFrameList* list = static_cast<nsFrameList*>(aPropTable->Get(aFrame, aProp));
   if (list && list->StartRemoveFrame(aChildToRemove)) {
-    // aChildToRemove *may* have been removed from this list.
+    
     if (list->IsEmpty()) {
       aPropTable->Remove(aFrame, aProp);
       list->Delete(aFrame->PresContext()->PresShell());
@@ -1253,11 +1253,11 @@ nsContainerFrame::StealFrame(nsIFrame* aChild,
   if ((aChild->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)
       && !aForceNormal) {
     FramePropertyTable* propTable = PresContext()->PropertyTable();
-    // Try removing from the overflow container list.
+    
     removed = ::TryRemoveFrame(this, propTable, OverflowContainersProperty(),
                                aChild);
     if (!removed) {
-      // It must be in the excess overflow container list.
+      
       removed = ::TryRemoveFrame(this, propTable,
                                  ExcessOverflowContainersProperty(),
                                  aChild);
@@ -1265,8 +1265,8 @@ nsContainerFrame::StealFrame(nsIFrame* aChild,
   } else {
     removed = mFrames.StartRemoveFrame(aChild);
     if (!removed) {
-      // We didn't find the child in our principal child list.
-      // Maybe it's on the overflow list?
+      
+      
       nsFrameList* frameList = GetOverflowFrames();
       if (frameList) {
         removed = frameList->ContinueRemoveFrame(aChild);
@@ -1302,8 +1302,8 @@ nsContainerFrame::StealFramesAfter(nsIFrame* aChild)
     }
   }
 
-  // We didn't find the child in the principal child list.
-  // Maybe it's on the overflow list?
+  
+  
   nsFrameList* overflowFrames = GetOverflowFrames();
   if (overflowFrames) {
     for (nsFrameList::FrameLinkEnumerator iter(*overflowFrames); !iter.AtEnd();
@@ -1318,11 +1318,11 @@ nsContainerFrame::StealFramesAfter(nsIFrame* aChild)
   return nsFrameList::EmptyList();
 }
 
-/*
- * Create a next-in-flow for aFrame. Will return the newly created
- * frame in aNextInFlowResult <b>if and only if</b> a new frame is
- * created; otherwise nullptr is returned in aNextInFlowResult.
- */
+
+
+
+
+
 nsresult
 nsContainerFrame::CreateNextInFlow(nsIFrame*  aFrame,
                                    nsIFrame*& aNextInFlowResult)
@@ -1336,8 +1336,8 @@ nsContainerFrame::CreateNextInFlow(nsIFrame*  aFrame,
 
   nsIFrame* nextInFlow = aFrame->GetNextInFlow();
   if (nullptr == nextInFlow) {
-    // Create a continuation frame for the child frame and insert it
-    // into our child list.
+    
+    
     nextInFlow = pc->PresShell()->FrameConstructor()->
       CreateContinuingFrame(pc, aFrame, this);
     mFrames.InsertFrame(nullptr, aFrame, nextInFlow);
@@ -1351,10 +1351,10 @@ nsContainerFrame::CreateNextInFlow(nsIFrame*  aFrame,
   return NS_OK;
 }
 
-/**
- * Remove and delete aNextInFlow and its next-in-flows. Updates the sibling and flow
- * pointers
- */
+
+
+
+
 void
 nsContainerFrame::DeleteNextInFlowChild(nsIFrame* aNextInFlow,
                                         bool      aDeletingEmptyFrames)
@@ -1364,10 +1364,10 @@ nsContainerFrame::DeleteNextInFlowChild(nsIFrame* aNextInFlow,
 #endif
   NS_PRECONDITION(prevInFlow, "bad prev-in-flow");
 
-  // If the next-in-flow has a next-in-flow then delete it, too (and
-  // delete it first).
-  // Do this in a loop so we don't overflow the stack for frames
-  // with very many next-in-flows
+  
+  
+  
+  
   nsIFrame* nextNextInFlow = aNextInFlow->GetNextInFlow();
   if (nextNextInFlow) {
     nsAutoTArray<nsIFrame*, 8> frames;
@@ -1381,7 +1381,7 @@ nsContainerFrame::DeleteNextInFlowChild(nsIFrame* aNextInFlow,
     }
   }
 
-  // Take the next-in-flow out of the parent's child list
+  
   DebugOnly<nsresult> rv = StealFrame(aNextInFlow);
   NS_ASSERTION(NS_SUCCEEDED(rv), "StealFrame failure");
 
@@ -1391,16 +1391,16 @@ nsContainerFrame::DeleteNextInFlowChild(nsIFrame* aNextInFlow,
   }
 #endif
 
-  // Delete the next-in-flow frame and its descendants. This will also
-  // remove it from its next-in-flow/prev-in-flow chain.
+  
+  
   aNextInFlow->Destroy();
 
   NS_POSTCONDITION(!prevInFlow->GetNextInFlow(), "non null next-in-flow");
 }
 
-/**
- * Set the frames on the overflow list
- */
+
+
+
 void
 nsContainerFrame::SetOverflowFrames(const nsFrameList& aOverflowFrames)
 {
@@ -1440,20 +1440,20 @@ nsContainerFrame::SetPropTableFrames(nsFrameList*                   aFrameList,
   PresContext()->PropertyTable()->Set(this, aProperty, aFrameList);
 }
 
-/**
- * Push aFromChild and its next siblings to the next-in-flow. Change the
- * geometric parent of each frame that's pushed. If there is no next-in-flow
- * the frames are placed on the overflow list (and the geometric parent is
- * left unchanged).
- *
- * Updates the next-in-flow's child count. Does <b>not</b> update the
- * pusher's child count.
- *
- * @param   aFromChild the first child frame to push. It is disconnected from
- *            aPrevSibling
- * @param   aPrevSibling aFromChild's previous sibling. Must not be null. It's
- *            an error to push a parent's first child frame
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 void
 nsContainerFrame::PushChildren(nsIFrame* aFromChild,
                                nsIFrame* aPrevSibling)
@@ -1462,53 +1462,53 @@ nsContainerFrame::PushChildren(nsIFrame* aFromChild,
   NS_PRECONDITION(aPrevSibling, "pushing first child");
   NS_PRECONDITION(aPrevSibling->GetNextSibling() == aFromChild, "bad prev sibling");
 
-  // Disconnect aFromChild from its previous sibling
+  
   nsFrameList tail = mFrames.RemoveFramesAfter(aPrevSibling);
 
   nsContainerFrame* nextInFlow =
     static_cast<nsContainerFrame*>(GetNextInFlow());
   if (nextInFlow) {
-    // XXX This is not a very good thing to do. If it gets removed
-    // then remove the copy of this routine that doesn't do this from
-    // nsInlineFrame.
-    // When pushing and pulling frames we need to check for whether any
-    // views need to be reparented.
+    
+    
+    
+    
+    
     for (nsIFrame* f = aFromChild; f; f = f->GetNextSibling()) {
       nsContainerFrame::ReparentFrameView(f, this, nextInFlow);
     }
     nextInFlow->mFrames.InsertFrames(nextInFlow, nullptr, tail);
   }
   else {
-    // Add the frames to our overflow list
+    
     SetOverflowFrames(tail);
   }
 }
 
-/**
- * Moves any frames on the overflow lists (the prev-in-flow's overflow list and
- * the receiver's overflow list) to the child list.
- *
- * Updates this frame's child count and content mapping.
- *
- * @return  true if any frames were moved and false otherwise
- */
+
+
+
+
+
+
+
+
 bool
 nsContainerFrame::MoveOverflowToChildList()
 {
   bool result = false;
 
-  // Check for an overflow list with our prev-in-flow
+  
   nsContainerFrame* prevInFlow = (nsContainerFrame*)GetPrevInFlow();
   if (nullptr != prevInFlow) {
     AutoFrameListPtr prevOverflowFrames(PresContext(),
                                         prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
-      // Tables are special; they can have repeated header/footer
-      // frames on mFrames at this point.
+      
+      
       NS_ASSERTION(mFrames.IsEmpty() || GetType() == nsGkAtoms::tableFrame,
                    "bad overflow list");
-      // When pushing and pulling frames we need to check for whether any
-      // views need to be reparented.
+      
+      
       nsContainerFrame::ReparentFrameViewList(*prevOverflowFrames,
                                               prevInFlow, this);
       mFrames.AppendFrames(this, *prevOverflowFrames);
@@ -1516,7 +1516,7 @@ nsContainerFrame::MoveOverflowToChildList()
     }
   }
 
-  // It's also possible that we have an overflow list for ourselves.
+  
   return DrainSelfOverflowList() || result;
 }
 
@@ -1570,10 +1570,10 @@ nsOverflowContinuationTracker::SetupOverflowContList()
   }
 }
 
-/**
- * Helper function to walk past overflow continuations whose prev-in-flow
- * isn't a normal child and to set mSentry and mPrevOverflowCont correctly.
- */
+
+
+
+
 void
 nsOverflowContinuationTracker::SetUpListWalker()
 {
@@ -1599,18 +1599,18 @@ nsOverflowContinuationTracker::SetUpListWalker()
   }
 }
 
-/**
- * Helper function to step forward through the overflow continuations list.
- * Sets mSentry and mPrevOverflowCont, skipping over OOF or non-OOF frames
- * as appropriate. May only be called when we have already set up an
- * mOverflowContList; mOverflowContList cannot be null.
- */
+
+
+
+
+
+
 void
 nsOverflowContinuationTracker::StepForward()
 {
   NS_PRECONDITION(mOverflowContList, "null list");
 
-  // Step forward
+  
   if (mPrevOverflowCont) {
     mPrevOverflowCont = mPrevOverflowCont->GetNextSibling();
   }
@@ -1618,7 +1618,7 @@ nsOverflowContinuationTracker::StepForward()
     mPrevOverflowCont = mOverflowContList->FirstChild();
   }
 
-  // Skip over oof or non-oof frames as appropriate
+  
   if (mSkipOverflowContainerChildren) {
     nsIFrame* cur = mPrevOverflowCont->GetNextSibling();
     while (cur && (!(cur->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
@@ -1628,7 +1628,7 @@ nsOverflowContinuationTracker::StepForward()
     }
   }
 
-  // Set up the sentry
+  
   mSentry = (mPrevOverflowCont->GetNextSibling())
             ? mPrevOverflowCont->GetNextSibling()->GetPrevInFlow()
             : nullptr;
@@ -1649,8 +1649,8 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
   nsPresContext* presContext = aOverflowCont->PresContext();
   bool addToList = !mSentry || aOverflowCont != mSentry->GetNextInFlow();
 
-  // If we have a list and aOverflowCont is already in it then don't try to
-  // add it again.
+  
+  
   if (addToList && aOverflowCont->GetParent() == mParent &&
       (aOverflowCont->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) &&
       mOverflowContList && mOverflowContList->ContainsFrame(aOverflowCont)) {
@@ -1660,8 +1660,8 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
 
   if (addToList) {
     if (aOverflowCont->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-      // aOverflowCont is in some other overflow container list,
-      // steal it first
+      
+      
       NS_ASSERTION(!(mOverflowContList &&
                      mOverflowContList->ContainsFrame(aOverflowCont)),
                    "overflow containers out of order");
@@ -1685,9 +1685,9 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
       reparented = true;
     }
 
-    // If aOverflowCont has a prev/next-in-flow that might be in
-    // mOverflowContList we need to find it and insert after/before it to
-    // maintain the order amongst next-in-flows in this list.
+    
+    
+    
     nsIFrame* pif = aOverflowCont->GetPrevInFlow();
     nsIFrame* nif = aOverflowCont->GetNextInFlow();
     if ((pif && pif->GetParent() == mParent && pif != mPrevOverflowCont) ||
@@ -1709,11 +1709,11 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
     aReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
   }
 
-  // If we need to reflow it, mark it dirty
+  
   if (aReflowStatus & NS_FRAME_REFLOW_NEXTINFLOW)
     aOverflowCont->AddStateBits(NS_FRAME_IS_DIRTY);
 
-  // It's in our list, just step forward
+  
   StepForward();
   NS_ASSERTION(mPrevOverflowCont == aOverflowCont ||
                (mSkipOverflowContainerChildren &&
@@ -1722,10 +1722,10 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
               "OverflowContTracker in unexpected state");
 
   if (addToList) {
-    // Convert all non-overflow-container continuations of aOverflowCont
-    // into overflow containers and move them to our overflow
-    // tracker. This preserves the invariant that the next-continuations
-    // of an overflow container are also overflow containers.
+    
+    
+    
+    
     nsIFrame* f = aOverflowCont->GetNextContinuation();
     if (f && (!(f->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) ||
               (!reparented && f->GetParent() == mParent) ||
@@ -1748,7 +1748,7 @@ nsOverflowContinuationTracker::BeginFinish(nsIFrame* aChild)
   NS_PRECONDITION(aChild->GetNextInFlow(),
                   "supposed to call Finish *before* deleting next-in-flow!");
   for (nsIFrame* f = aChild; f; f = f->GetNextInFlow()) {
-    // We'll update these in EndFinish after the next-in-flows are gone.
+    
     if (f == mPrevOverflowCont) {
       mSentry = nullptr;
       mPrevOverflowCont = nullptr;
@@ -1767,7 +1767,7 @@ nsOverflowContinuationTracker::EndFinish(nsIFrame* aChild)
   if (!mOverflowContList) {
     return;
   }
-  // Forget mOverflowContList if it was deleted.
+  
   nsPresContext* pc = aChild->PresContext();
   FramePropertyTable* propTable = pc->PropertyTable();
   nsFrameList* eoc = static_cast<nsFrameList*>(propTable->Get(mParent,
@@ -1776,7 +1776,7 @@ nsOverflowContinuationTracker::EndFinish(nsIFrame* aChild)
     nsFrameList* oc = static_cast<nsFrameList*>(propTable->Get(mParent,
                         nsContainerFrame::OverflowContainersProperty()));
     if (oc != mOverflowContList) {
-      // mOverflowContList was deleted
+      
       mPrevOverflowCont = nullptr;
       mSentry = nullptr;
       mParent = static_cast<nsContainerFrame*>(aChild->GetParent());
@@ -1785,21 +1785,21 @@ nsOverflowContinuationTracker::EndFinish(nsIFrame* aChild)
       return;
     }
   }
-  // The list survived, update mSentry if needed.
+  
   if (!mSentry) {
     if (!mPrevOverflowCont) {
       SetUpListWalker();
     } else {
       mozilla::AutoRestore<nsIFrame*> saved(mPrevOverflowCont);
-      // step backward to make StepForward() use our current mPrevOverflowCont
+      
       mPrevOverflowCont = mPrevOverflowCont->GetPrevSibling();
       StepForward();
     }
   }
 }
 
-/////////////////////////////////////////////////////////////////////////////
-// Debugging
+
+
 
 #ifdef DEBUG_FRAME_DUMP
 void
@@ -1808,7 +1808,7 @@ nsContainerFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
   nsCString str;
   ListGeneric(str, aPrefix, aFlags);
 
-  // Output the children
+  
   bool outputOneList = false;
   ChildListIterator lists(this);
   for (; !lists.IsDone(); lists.Next()) {
@@ -1828,10 +1828,10 @@ nsContainerFrame::List(FILE* out, const char* aPrefix, uint32_t aFlags) const
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* kid = childFrames.get();
-      // Verify the child frame's parent frame pointer is correct
+      
       NS_ASSERTION(kid->GetParent() == this, "bad parent frame pointer");
 
-      // Have the child frame list
+      
       nsCString pfx(aPrefix);
       pfx += "  ";
       kid->List(out, pfx.get(), aFlags);

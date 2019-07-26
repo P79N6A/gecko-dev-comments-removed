@@ -200,7 +200,7 @@ nsSimplePageSequenceFrame::Reflow(nsPresContext*          aPresContext,
   nscoord maxXMost = 0;
 
   
-  nsHTMLReflowMetrics kidSize(aReflowState.GetWritingMode());
+  nsHTMLReflowMetrics kidSize(aReflowState);
   for (nsIFrame* kidFrame = mFrames.FirstChild(); nullptr != kidFrame; ) {
     
     nsPageFrame * pf = static_cast<nsPageFrame*>(kidFrame);

@@ -995,7 +995,7 @@ nsFlexContainerFrame::
     childRSForMeasuringHeight.mFlags.mVResize = true;
   }
 
-  nsHTMLReflowMetrics childDesiredSize(childRSForMeasuringHeight.GetWritingMode());
+  nsHTMLReflowMetrics childDesiredSize(childRSForMeasuringHeight);
   nsReflowStatus childReflowStatus;
   const uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
   nsresult rv = ReflowChild(aFlexItem.Frame(), aPresContext,
@@ -2613,7 +2613,7 @@ nsFlexContainerFrame::SizeItemInCrossAxis(
     
     aChildReflowState.mFlags.mVResize = true;
   }
-  nsHTMLReflowMetrics childDesiredSize(aChildReflowState.GetWritingMode());
+  nsHTMLReflowMetrics childDesiredSize(aChildReflowState);
   nsReflowStatus childReflowStatus;
   const uint32_t flags = NS_FRAME_NO_MOVE_FRAME;
   nsresult rv = ReflowChild(aItem.Frame(), aPresContext,
@@ -2987,7 +2987,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
 
-      nsHTMLReflowMetrics childDesiredSize(childReflowState.GetWritingMode());
+      nsHTMLReflowMetrics childDesiredSize(childReflowState);
       nsReflowStatus childReflowStatus;
       nsresult rv = ReflowChild(curItem.Frame(), aPresContext,
                                 childDesiredSize, childReflowState,

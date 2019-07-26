@@ -14,6 +14,8 @@
 
 
 
+class nsHTMLReflowState;
+
 
 #define NS_REFLOW_CALC_BOUNDING_METRICS  0x0001
 
@@ -209,6 +211,8 @@ public:
     , mFlags(aFlags)
     , mWritingMode(aWritingMode)
   {}
+
+  nsHTMLReflowMetrics(const nsHTMLReflowState& aState, uint32_t aFlags = 0);
 
   
   
