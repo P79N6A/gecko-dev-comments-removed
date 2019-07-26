@@ -16,6 +16,7 @@ namespace gl {
 class GLContextWGL : public GLContext
 {
 public:
+    MOZ_DECLARE_REFCOUNTED_VIRTUAL_TYPENAME(GLContextWGL)
     
     GLContextWGL(const SurfaceCaps& caps,
                  GLContext* sharedContext,
