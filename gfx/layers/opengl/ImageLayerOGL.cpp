@@ -990,20 +990,26 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
     if (gl()->CanUploadNonPowerOfTwo()) {
       do {
-        TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
-        colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
-        mOGLManager->BindAndDrawQuad(colorProgram);
+        nsIntRect rect = mTexImage->GetTileRect();
+        if (!rect.IsEmpty()) {
+          TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+          colorProgram->SetLayerQuadRect(rect);
+          mOGLManager->BindAndDrawQuad(colorProgram);
+        }
       } while (mTexImage->NextTile());
     } else {
       do {
-        TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
-        colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
-        
-        
-        mOGLManager->BindAndDrawQuadWithTextureRect(colorProgram,
-                                                    nsIntRect(0, 0, mTexImage->GetTileRect().width,
-                                                                    mTexImage->GetTileRect().height),
-                                                    mTexImage->GetTileRect().Size());
+        nsIntRect rect = mTexImage->GetTileRect();
+        if (!rect.IsEmpty()) {
+          TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
+          colorProgram->SetLayerQuadRect(rect);
+          
+          
+          mOGLManager->BindAndDrawQuadWithTextureRect(colorProgram,
+                                                      nsIntRect(0, 0, mTexImage->GetTileRect().width,
+                                                                mTexImage->GetTileRect().height),
+                                                      mTexImage->GetTileRect().Size());
+        }
       } while (mTexImage->NextTile());
     }
 #ifdef MOZ_WIDGET_GONK
