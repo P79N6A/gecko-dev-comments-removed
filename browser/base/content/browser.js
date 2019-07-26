@@ -946,7 +946,6 @@ var gBrowserInit = {
     
     CombinedStopReload.init();
     TabsOnTop.init();
-    BookmarksMenuButton.init();
     gPrivateBrowsingUI.init();
     TabsInTitlebar.init();
     retrieveToolbarIconsizesFromTheme();
@@ -1317,7 +1316,7 @@ var gBrowserInit = {
     } catch (ex) {
     }
 
-    PlacesStarButton.uninit();
+    BookmarksMenuButton.uninit();
 
     TabsOnTop.uninit();
 
@@ -2235,6 +2234,8 @@ function UpdatePageProxyState()
 
 function SetPageProxyState(aState)
 {
+  BookmarksMenuButton.onPageProxyStateChanged(aState);
+
   if (!gURLBar)
     return;
 
@@ -3406,7 +3407,7 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   if (gURLBar) {
     URLBarSetURI();
     XULBrowserWindow.asyncUpdateUI();
-    PlacesStarButton.updateState();
+    BookmarksMenuButton.updateStarState();
     SocialShareButton.updateShareState();
   }
 
@@ -3880,7 +3881,7 @@ var XULBrowserWindow = {
         URLBarSetURI(aLocationURI);
 
         
-        PlacesStarButton.updateState();
+        BookmarksMenuButton.updateStarState();
         SocialShareButton.updateShareState();
       }
 
@@ -4498,7 +4499,7 @@ function setToolbarVisibility(toolbar, isVisible) {
   document.persist(toolbar.id, hidingAttribute);
 
   PlacesToolbarHelper.init();
-  BookmarksMenuButton.updatePosition();
+  BookmarksMenuButton.onToolbarVisibilityChange();
   gBrowser.updateWindowResizers();
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -6766,9 +6767,7 @@ let gPrivateBrowsingUI = {
       }
     }
 
-    if (gURLBar &&
-        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
-      
+    if (gURLBar) {
       
       gURLBar.setAttribute("autocompletesearchparam", "");
     }
@@ -6793,9 +6792,8 @@ function switchToTabHavingURI(aURI, aOpenNew) {
   function switchIfURIInWindow(aWindow) {
     
     
-    if ((PrivateBrowsingUtils.isWindowPrivate(window) ||
-        PrivateBrowsingUtils.isWindowPrivate(aWindow)) &&
-        !PrivateBrowsingUtils.permanentPrivateBrowsing) {
+    if (PrivateBrowsingUtils.isWindowPrivate(window) ||
+        PrivateBrowsingUtils.isWindowPrivate(aWindow)) {
       return false;
     }
 
