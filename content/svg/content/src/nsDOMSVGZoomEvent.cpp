@@ -122,7 +122,7 @@ nsDOMSVGZoomEvent::GetPreviousScale(float *aPreviousScale)
 
 
 NS_IMETHODIMP
-nsDOMSVGZoomEvent::GetPreviousTranslate(nsIDOMSVGPoint **aPreviousTranslate)
+nsDOMSVGZoomEvent::GetPreviousTranslate(nsISupports **aPreviousTranslate)
 {
   *aPreviousTranslate = mPreviousTranslate;
   NS_IF_ADDREF(*aPreviousTranslate);
@@ -138,7 +138,7 @@ NS_IMETHODIMP nsDOMSVGZoomEvent::GetNewScale(float *aNewScale)
 
 
 NS_IMETHODIMP
-nsDOMSVGZoomEvent::GetNewTranslate(nsIDOMSVGPoint **aNewTranslate)
+nsDOMSVGZoomEvent::GetNewTranslate(nsISupports **aNewTranslate)
 {
   *aNewTranslate = mNewTranslate;
   NS_IF_ADDREF(*aNewTranslate);
