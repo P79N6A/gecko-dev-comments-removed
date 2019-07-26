@@ -478,6 +478,14 @@
   transform: scale(1.75, 1.75);
 }
 
+.theme-dark .dbg-source-results:not(.selected):hover {
+  background-color: #181d20; 
+}
+
+.theme-light .dbg-source-results:not(.selected):hover {
+  background-color: #f7f7f7; 
+}
+
 .theme-dark .dbg-results-header {
   background-color: #252c33; 
   color: #b8c8d9; 
