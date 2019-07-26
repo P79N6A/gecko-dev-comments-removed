@@ -1237,6 +1237,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
 
+    void incrementInt32Value(const Address &addr) {
+        addPtr(Imm32(1), addr);
+    }
+
     
     
     void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {

@@ -1035,6 +1035,9 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         bind(&noOverflow);
     }
 
+    void incrementInt32Value(const Address &addr) {
+        addl(Imm32(1), payloadOf(addr));
+    }
 
     
     
