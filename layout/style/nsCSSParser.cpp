@@ -474,6 +474,8 @@ protected:
 
   
   bool ParseFlex();
+  
+  bool ParseFlexFlow();
 
   
   bool ParseRect(nsCSSProperty aPropID);
@@ -5738,6 +5740,39 @@ CSSParserImpl::ParseFlex()
 
 
 bool
+CSSParserImpl::ParseFlexFlow()
+{
+  static const nsCSSProperty kFlexFlowSubprops[] = {
+    eCSSProperty_flex_direction,
+    eCSSProperty_flex_wrap
+  };
+  const size_t numProps = NS_ARRAY_LENGTH(kFlexFlowSubprops);
+  nsCSSValue values[numProps];
+
+  int32_t found = ParseChoice(values, kFlexFlowSubprops, numProps);
+
+  
+  if (found < 1 || !ExpectEndProperty()) {
+    return false;
+  }
+
+  
+  if ((found & 1) == 0) {
+    values[0].SetIntValue(NS_STYLE_FLEX_DIRECTION_ROW, eCSSUnit_Enumerated);
+  }
+  if ((found & 2) == 0) {
+    values[1].SetIntValue(NS_STYLE_FLEX_WRAP_NOWRAP, eCSSUnit_Enumerated);
+  }
+
+  
+  for (size_t i = 0; i < numProps; i++) {
+    AppendValue(kFlexFlowSubprops[i], values[i]);
+  }
+  return true;
+}
+
+
+bool
 CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 {
   nsCSSValueGradientStop* stop = aGradient->mStops.AppendElement();
@@ -6581,6 +6616,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
     return ParseFilter();
   case eCSSProperty_flex:
     return ParseFlex();
+  case eCSSProperty_flex_flow:
+    return ParseFlexFlow();
   case eCSSProperty_font:
     return ParseFont();
   case eCSSProperty_image_region:

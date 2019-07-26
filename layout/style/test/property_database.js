@@ -3842,6 +3842,46 @@ var gCSSProperties = {
 		other_values: [ "row-reverse", "column", "column-reverse" ],
 		invalid_values: [ "10px", "30%", "justify", "column wrap" ]
 	},
+	"flex-flow": {
+		domProp: "flexFlow",
+		inherited: false,
+		type: CSS_TYPE_TRUE_SHORTHAND,
+		subproperties: [
+			"flex-direction",
+			"flex-wrap"
+		],
+		initial_values: [ "row nowrap", "nowrap row", "row", "nowrap" ],
+		other_values: [
+			
+			"column",
+			"wrap",
+			"wrap-reverse",
+			
+			"row wrap",
+			"row wrap-reverse",
+			"column wrap",
+			"column wrap-reverse",
+			
+			"wrap row",
+			"wrap column",
+			"wrap-reverse row",
+			"wrap-reverse column",
+		],
+		invalid_values: [
+			
+			"row column",
+			"row column nowrap",
+			"row nowrap column",
+			"nowrap row column",
+			
+			"nowrap wrap-reverse",
+			"nowrap wrap-reverse row",
+			"nowrap row wrap-reverse",
+			"row nowrap wrap-reverse",
+			
+			"1px", "5%", "justify", "none"
+		]
+	},
 	"flex-grow": {
 		domProp: "flexGrow",
 		inherited: false,
