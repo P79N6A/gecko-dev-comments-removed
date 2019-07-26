@@ -547,7 +547,7 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   
   
   nsCString mrFilename;
-  MakeFilename("memory-report", aIdentifier, ".json.gz", mrFilename);
+  MakeFilename("memory-report", aIdentifier, "json.gz", mrFilename);
 
   nsCOMPtr<nsIFile> mrTmpFile;
   nsresult rv;
@@ -640,7 +640,7 @@ nsMemoryInfoDumper::DumpMemoryReportsToFileImpl(
   
 
   nsCString dmdFilename;
-  MakeFilename("dmd", aIdentifier, ".txt.gz", dmdFilename);
+  MakeFilename("dmd", aIdentifier, "txt.gz", dmdFilename);
 
   nsCOMPtr<nsIFile> dmdFile;
   rv = OpenTempFile(dmdFilename, getter_AddRefs(dmdFile));
