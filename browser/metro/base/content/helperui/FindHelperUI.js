@@ -51,10 +51,6 @@ var FindHelperUI = {
     messageManager.addMessageListener("FindAssist:Hide", this);
 
     
-    Elements.browsers.addEventListener("PanBegin", this, false);
-    Elements.browsers.addEventListener("PanFinished", this, false);
-
-    
     Elements.tabList.addEventListener("TabSelect", this, true);
     Elements.browsers.addEventListener("URLChanged", this, true);
     window.addEventListener("MozContextUIShow", this, true);
@@ -89,16 +85,6 @@ var FindHelperUI = {
       case "URLChanged":
         if (aEvent.detail && aEvent.target == getBrowser())
           this.hide();
-        break;
-
-      case "PanBegin":
-        this._container.style.visibility = "hidden";
-        this._textbox.collapsed = true;
-        break;
-
-      case "PanFinished":
-        this._container.style.visibility = "visible";
-        this._textbox.collapsed = false;
         break;
 
       case "keydown":
