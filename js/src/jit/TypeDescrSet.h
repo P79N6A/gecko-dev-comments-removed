@@ -100,7 +100,7 @@ class TypeDescrSet {
     
     
     
-    bool allHaveSameSize(size_t *out);
+    bool allHaveSameSize(int32_t *out);
 
     types::TemporaryTypeSet *suitableTypeSet(IonBuilder &builder,
                                              const Class *knownClass);
@@ -150,7 +150,7 @@ class TypeDescrSet {
     
     
     
-    bool hasKnownArrayLength(size_t *length);
+    bool hasKnownArrayLength(int32_t *length);
 
     
     
@@ -181,7 +181,7 @@ class TypeDescrSet {
     
     bool fieldNamed(IonBuilder &builder,
                     jsid id,
-                    size_t *offset,
+                    int32_t *offset,
                     TypeDescrSet *out,
                     size_t *index);
 };

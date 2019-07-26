@@ -468,7 +468,7 @@ class IonBuilder : public MIRGenerator
                                      bool canBeNeutered,
                                      bool racy,
                                      MDefinition *value);
-    bool checkTypedObjectIndexInBounds(size_t elemSize,
+    bool checkTypedObjectIndexInBounds(int32_t elemSize,
                                        MDefinition *obj,
                                        MDefinition *index,
                                        TypeDescrSet objTypeDescrs,
@@ -506,7 +506,7 @@ class IonBuilder : public MIRGenerator
                                            TypeDescrSet objTypeReprs,
                                            MDefinition *value,
                                            TypeDescrSet elemTypeReprs,
-                                           size_t elemSize);
+                                           int32_t elemSize);
 
     
     bool getElemTryDense(bool *emitted, MDefinition *obj, MDefinition *index);
@@ -522,13 +522,13 @@ class IonBuilder : public MIRGenerator
                                            MDefinition *index,
                                            TypeDescrSet objTypeReprs,
                                            TypeDescrSet elemTypeReprs,
-                                           size_t elemSize);
+                                           int32_t elemSize);
     bool getElemTryComplexElemOfTypedObject(bool *emitted,
                                             MDefinition *obj,
                                             MDefinition *index,
                                             TypeDescrSet objTypeReprs,
                                             TypeDescrSet elemTypeReprs,
-                                            size_t elemSize);
+                                            int32_t elemSize);
 
     
     MInstruction *getTypedArrayLength(MDefinition *obj);
