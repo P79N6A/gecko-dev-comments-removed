@@ -2358,8 +2358,8 @@ nsCSSFrameConstructor::ConstructDocElementFrame(Element*                 aDocEle
     return nullptr;
   }
 
-  TreeMatchContext::AutoAncestorPusher
-    ancestorPusher(true, state.mTreeMatchContext, aDocElement);
+  TreeMatchContext::AutoAncestorPusher ancestorPusher(state.mTreeMatchContext);
+  ancestorPusher.PushAncestorAndStyleScope(aDocElement);
 
   
   styleContext->StartBackgroundImageLoads();
@@ -3552,12 +3552,15 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   
   
   nsIContent* parent = content->GetParent();
-  bool pushInsertionPoint = aState.mTreeMatchContext.mAncestorFilter.HasFilter() &&
-    parent && parent->IsActiveChildrenElement();
   TreeMatchContext::AutoAncestorPusher
-    insertionPointPusher(pushInsertionPoint,
-                         aState.mTreeMatchContext,
-                         parent && parent->IsElement() ? parent->AsElement() : nullptr);
+    insertionPointPusher(aState.mTreeMatchContext);
+  if (parent && parent->IsActiveChildrenElement()) {
+    if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+      insertionPointPusher.PushAncestorAndStyleScope(parent);
+    } else {
+      insertionPointPusher.PushStyleScope(parent);
+    }
+  }
 
   
   
@@ -3568,9 +3571,12 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   
   
   TreeMatchContext::AutoAncestorPusher
-    ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
-                   content->IsElement() ? content->AsElement() : nullptr);
+    ancestorPusher(aState.mTreeMatchContext);
+  if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+    ancestorPusher.PushAncestorAndStyleScope(content);
+  } else {
+    ancestorPusher.PushStyleScope(content);
+  }
 
   nsIFrame* newFrame;
   nsIFrame* primaryFrame;
@@ -3792,10 +3798,12 @@ nsCSSFrameConstructor::CreateAnonymousFrames(nsFrameConstructorState& aState,
 
   nsFrameConstructorState::PendingBindingAutoPusher pusher(aState,
                                                            aPendingBinding);
-  TreeMatchContext::AutoAncestorPusher
-    ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
-                   aParent->AsElement());
+  TreeMatchContext::AutoAncestorPusher ancestorPusher(aState.mTreeMatchContext);
+  if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+    ancestorPusher.PushAncestorAndStyleScope(aParent->AsElement());
+  } else {
+    ancestorPusher.PushStyleScope(aParent->AsElement());
+  }
 
   nsIAnonymousContentCreator* creator = do_QueryFrame(aParentFrame);
   NS_ASSERTION(creator,
@@ -9313,11 +9321,14 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
       nsIContent* parent = child->GetParent();
       MOZ_ASSERT(parent, "Parent must be non-null because we are iterating children.");
       MOZ_ASSERT(parent->IsElement());
-      bool pushInsertionPoint = parent != aContent &&
-        aState.mTreeMatchContext.mAncestorFilter.HasFilter();
-      TreeMatchContext::AutoAncestorPusher
-        ancestorPusher(pushInsertionPoint, aState.mTreeMatchContext,
-                       parent->AsElement());
+      TreeMatchContext::AutoAncestorPusher ancestorPusher(aState.mTreeMatchContext);
+      if (parent != aContent) {
+        if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+          ancestorPusher.PushAncestorAndStyleScope(parent->AsElement());
+        } else {
+          ancestorPusher.PushStyleScope(parent->AsElement());
+        }
+      }
 
       
       
@@ -10566,10 +10577,12 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
   nsStyleContext* const parentStyleContext = aParentItem.mStyleContext;
   nsIContent* const parentContent = aParentItem.mContent;
 
-  TreeMatchContext::AutoAncestorPusher
-    ancestorPusher(aState.mTreeMatchContext.mAncestorFilter.HasFilter(),
-                   aState.mTreeMatchContext,
-                   parentContent->AsElement());
+  TreeMatchContext::AutoAncestorPusher ancestorPusher(aState.mTreeMatchContext);
+  if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+    ancestorPusher.PushAncestorAndStyleScope(parentContent->AsElement());
+  } else {
+    ancestorPusher.PushStyleScope(parentContent->AsElement());
+  }
   
   if (!aItemIsWithinSVGText) {
     
@@ -10605,11 +10618,14 @@ nsCSSFrameConstructor::BuildInlineChildItems(nsFrameConstructorState& aState,
       nsIContent* contentParent = content->GetParent();
       MOZ_ASSERT(contentParent, "Parent must be non-null because we are iterating children.");
       MOZ_ASSERT(contentParent->IsElement());
-      bool pushInsertionPoint = contentParent != parentContent &&
-        aState.mTreeMatchContext.mAncestorFilter.HasFilter();
-      TreeMatchContext::AutoAncestorPusher
-        insertionPointPusher(pushInsertionPoint, aState.mTreeMatchContext,
-                             contentParent->AsElement());
+      TreeMatchContext::AutoAncestorPusher insertionPointPusher(aState.mTreeMatchContext);
+      if (contentParent != parentContent) {
+        if (aState.mTreeMatchContext.mAncestorFilter.HasFilter()) {
+          insertionPointPusher.PushAncestorAndStyleScope(contentParent->AsElement());
+        } else {
+          insertionPointPusher.PushStyleScope(contentParent->AsElement());
+        }
+      }
 
       
       
