@@ -67,6 +67,9 @@ ScriptDebugEpilogue(JSContext *cx, StackFrame *fp, bool ok);
 extern bool
 BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 
+extern bool
+BoxNonStrictThis(JSContext *cx, MutableHandleValue thisv, bool *modified);
+
 
 
 
