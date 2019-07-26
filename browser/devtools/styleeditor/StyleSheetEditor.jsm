@@ -596,7 +596,7 @@ function prettifyCSS(text)
 
     if (shouldIndent) {
       let la = text[i+1]; 
-      if (!/\s/.test(la)) {
+      if (!/\n/.test(la) || /^\s+$/.test(text.substring(i+1, text.length))) {
         
         
         parts.push(indent + text.substring(partStart, i + 1));
