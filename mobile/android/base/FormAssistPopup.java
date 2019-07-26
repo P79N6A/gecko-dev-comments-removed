@@ -52,7 +52,7 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
     private static RelativeLayout.LayoutParams sValidationTextLayoutNormal;
     private static RelativeLayout.LayoutParams sValidationTextLayoutInverted;
 
-    private static final String LOGTAG = "FormAssistPopup";
+    private static final String LOGTAG = "GeckoFormAssistPopup";
 
     
     private static final Collection<String> sInputMethodBlocklist = Arrays.asList(new String[] {
@@ -184,18 +184,12 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
         positionAndShowPopup(rect, false);
     }
 
-    
-    private boolean positionAndShowPopup(JSONObject rect, boolean isAutoComplete) {
+    private void positionAndShowPopup(JSONObject rect, boolean isAutoComplete) {
         
         InputMethodManager imm =
                 (InputMethodManager) GeckoApp.mAppContext.getSystemService(Context.INPUT_METHOD_SERVICE);
         if (imm.isFullscreenMode())
-            return false;
-
-        if (!isShown()) {
-            setVisibility(VISIBLE);
-            startAnimation(mAnimation);
-        }
+            return;
 
         
         if (mAutoCompleteList != null)
@@ -225,7 +219,11 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
             top = (int) (rect.getDouble("y") * zoom - viewportMetrics.viewportRectTop);
             width = (int) (rect.getDouble("w") * zoom);
             height = (int) (rect.getDouble("h") * zoom);
-        } catch (JSONException e) { } 
+        } catch (JSONException e) {
+            
+            Log.e(LOGTAG, "Error getting FormAssistPopup dimensions", e);
+            return;
+        }
 
         int popupWidth = RelativeLayout.LayoutParams.FILL_PARENT;
         int popupLeft = left < 0 ? 0 : left;
@@ -292,7 +290,10 @@ public class FormAssistPopup extends RelativeLayout implements GeckoEventListene
         setLayoutParams(layoutParams);
         requestLayout();
 
-        return true;
+        if (!isShown()) {
+            setVisibility(VISIBLE);
+            startAnimation(mAnimation);
+        }
     }
 
     public void hide() {
