@@ -45,6 +45,7 @@ class nsFontFaceList;
 class nsIImageLoadingContent;
 class nsStyleContext;
 class nsBlockFrame;
+class nsContainerFrame;
 class gfxASurface;
 class gfxDrawable;
 class nsView;
@@ -384,7 +385,7 @@ public:
 
 
 
-  static nsIFrame* LastContinuationWithChild(nsIFrame* aFrame);
+  static nsContainerFrame* LastContinuationWithChild(nsContainerFrame* aFrame);
 
   
 

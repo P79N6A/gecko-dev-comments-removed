@@ -568,7 +568,7 @@ public:
 
 
 
-  virtual nsIFrame* GetContentInsertionFrame() { return this; }
+  virtual nsContainerFrame* GetContentInsertionFrame() { return nullptr; }
 
   
 

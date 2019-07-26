@@ -336,7 +336,7 @@ AssertAnonymousFlexOrGridItemParent(const nsIFrame* aChild,
 #define AssertAnonymousFlexOrGridItemParent(x, y) do { /* nothing */ } while(0)
 #endif
 
-static inline nsIFrame*
+static inline nsContainerFrame*
 GetFieldSetBlockFrame(nsIFrame* aFieldsetFrame)
 {
   
@@ -444,29 +444,29 @@ IsFramePartOfIBSplit(nsIFrame* aFrame)
   return (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) != 0;
 }
 
-static nsIFrame* GetIBSplitSibling(nsIFrame* aFrame)
+static nsContainerFrame* GetIBSplitSibling(nsIFrame* aFrame)
 {
   NS_PRECONDITION(IsFramePartOfIBSplit(aFrame), "Shouldn't call this");
 
   
   
-  return static_cast<nsIFrame*>
+  return static_cast<nsContainerFrame*>
     (aFrame->FirstContinuation()->
        Properties().Get(nsIFrame::IBSplitSibling()));
 }
 
-static nsIFrame* GetIBSplitPrevSibling(nsIFrame* aFrame)
+static nsContainerFrame* GetIBSplitPrevSibling(nsIFrame* aFrame)
 {
   NS_PRECONDITION(IsFramePartOfIBSplit(aFrame), "Shouldn't call this");
 
   
   
-  return static_cast<nsIFrame*>
+  return static_cast<nsContainerFrame*>
     (aFrame->FirstContinuation()->
        Properties().Get(nsIFrame::IBSplitPrevSibling()));
 }
 
-static nsIFrame*
+static nsContainerFrame*
 GetLastIBSplitSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
 {
   for (nsIFrame *frame = aFrame, *next; ; frame = next) {
@@ -476,7 +476,7 @@ GetLastIBSplitSibling(nsIFrame* aFrame, bool aReturnEmptyTrailingInline)
          !GetIBSplitSibling(next))) {
       NS_ASSERTION(!next || !frame->IsInlineOutside(),
                    "Should have a block here!");
-      return frame;
+      return static_cast<nsContainerFrame*>(frame);
     }
   }
   NS_NOTREACHED("unreachable code");
@@ -591,7 +591,7 @@ SetInitialSingleChild(nsIFrame* aParent, nsIFrame* aFrame)
   aParent->SetInitialChildList(kPrincipalList, temp);
 }
 
-static nsIFrame*
+static nsContainerFrame*
 GetContentInsertionFrameFor(nsIContent* aContent)
 {
   
@@ -607,9 +607,9 @@ GetContentInsertionFrameFor(nsIContent* aContent)
     return nullptr;
   }
 
-  nsIFrame* insertionFrame = frame->GetContentInsertionFrame();
+  nsContainerFrame* insertionFrame = frame->GetContentInsertionFrame();
 
-  NS_ASSERTION(insertionFrame == frame || !frame->IsLeaf(),
+  NS_ASSERTION(!insertionFrame || insertionFrame == frame || !frame->IsLeaf(),
     "The insertion frame is the primary frame or the primary frame isn't a leaf");
 
   return insertionFrame;
@@ -3173,7 +3173,8 @@ nsCSSFrameConstructor::ConstructFieldSetFrame(nsFrameConstructorState& aState,
 
   for (nsFrameList::Enumerator e(childItems); !e.AtEnd(); e.Next()) {
     nsIFrame* child = e.get();
-    if (child->GetContentInsertionFrame()->GetType() == nsGkAtoms::legendFrame) {
+    nsContainerFrame* cif = child->GetContentInsertionFrame();
+    if (cif && cif->GetType() == nsGkAtoms::legendFrame) {
       
       
       
@@ -5765,10 +5766,10 @@ nsCSSFrameConstructor::GetFloatContainingBlock(nsIFrame* aFrame)
 
 
 
-static nsIFrame*
+static nsContainerFrame*
 AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
                                   nsIContent* aContainer,
-                                  nsIFrame* aParentFrame,
+                                  nsContainerFrame* aParentFrame,
                                   nsIFrame** aAfterFrame)
 {
   
@@ -5795,7 +5796,7 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
     
     
     
-    nsIFrame* trailingInline = GetIBSplitSibling(aParentFrame);
+    nsContainerFrame* trailingInline = GetIBSplitSibling(aParentFrame);
     if (trailingInline) {
       aParentFrame = trailingInline;
     }
@@ -5806,7 +5807,8 @@ AdjustAppendParentForAfterContent(nsPresContext* aPresContext,
     
     
     
-    aParentFrame = aParentFrame->LastContinuation();
+    aParentFrame =
+      static_cast<nsContainerFrame*>(aParentFrame->LastContinuation());
   }
 
   return aParentFrame;
@@ -6023,7 +6025,10 @@ nsCSSFrameConstructor::IsValidSibling(nsIFrame*              aSibling,
 
   if (IsFrameForFieldSet(parentFrame, parentType)) {
     
-    nsIAtom* sibType = aSibling->GetContentInsertionFrame()->GetType();
+    if (nsContainerFrame* cif = aSibling->GetContentInsertionFrame()) {
+      aSibling = cif;
+    }
+    nsIAtom* sibType = aSibling->GetType();
     bool legendContent = aContent->IsHTML(nsGkAtoms::legend);
 
     if ((legendContent  && (nsGkAtoms::legendFrame != sibType)) ||
@@ -6119,15 +6124,15 @@ nsCSSFrameConstructor::FindNextSibling(FlattenedChildIterator aIter,
 }
 
 
-static nsIFrame*
-GetAdjustedParentFrame(nsIFrame*       aParentFrame,
-                       nsIAtom*        aParentFrameType,
-                       nsIContent*     aChildContent)
+static nsContainerFrame*
+GetAdjustedParentFrame(nsContainerFrame* aParentFrame,
+                       nsIAtom*          aParentFrameType,
+                       nsIContent*       aChildContent)
 {
   NS_PRECONDITION(nsGkAtoms::tableOuterFrame != aParentFrameType,
                   "Shouldn't be happening!");
 
-  nsIFrame* newParent = nullptr;
+  nsContainerFrame* newParent = nullptr;
 
   if (nsGkAtoms::fieldSetFrame == aParentFrameType) {
     
@@ -6136,11 +6141,11 @@ GetAdjustedParentFrame(nsIFrame*       aParentFrame,
       newParent = GetFieldSetBlockFrame(aParentFrame);
     }
   }
-  return (newParent) ? newParent : aParentFrame;
+  return newParent ? newParent : aParentFrame;
 }
 
 nsIFrame*
-nsCSSFrameConstructor::GetInsertionPrevSibling(nsIFrame*& aParentFrame,
+nsCSSFrameConstructor::GetInsertionPrevSibling(nsContainerFrame*& aParentFrame,
                                                nsIContent* aContainer,
                                                nsIContent* aChild,
                                                bool* aIsAppend,
@@ -6504,7 +6509,7 @@ nsCSSFrameConstructor::IssueSingleInsertNofications(nsIContent* aContainer,
   }
 }
 
-nsIFrame*
+nsContainerFrame*
 nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
                                               nsIContent* aStartChild,
                                               nsIContent* aEndChild,
@@ -6514,7 +6519,7 @@ nsCSSFrameConstructor::GetRangeInsertionPoint(nsIContent* aContainer,
   
   
   bool multiple = false;
-  nsIFrame* insertionPoint = GetInsertionPoint(aContainer, nullptr, &multiple);
+  nsContainerFrame* insertionPoint = GetInsertionPoint(aContainer, nullptr, &multiple);
   if (!insertionPoint && !multiple)
     return nullptr; 
 
@@ -6645,7 +6650,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   }
 
   
-  nsIFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
+  nsContainerFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
 
   
   if (!parentFrame && !aContainer->IsActiveChildrenElement()) {
@@ -7078,7 +7083,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     return rv;
   }
 
-  nsIFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
+  nsContainerFrame* parentFrame = ::GetContentInsertionFrameFor(aContainer);
   
   
   
@@ -7408,7 +7413,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
     
     
     
-    nsIFrame* captionParent = parentFrame;
+    nsContainerFrame* captionParent = parentFrame;
     bool captionIsAppend;
     nsIFrame* captionPrevSibling = nullptr;
 
@@ -8340,7 +8345,7 @@ nsCSSFrameConstructor::ReplicateFixedFrames(nsPageContentFrame* aParentFrame)
   return NS_OK;
 }
 
-nsIFrame*
+nsContainerFrame*
 nsCSSFrameConstructor::GetInsertionPoint(nsIContent*   aContainer,
                                          nsIContent*   aChildContent,
                                          bool*         aMultiple)
@@ -8375,7 +8380,8 @@ nsCSSFrameConstructor::GetInsertionPoint(nsIContent*   aContainer,
     insertionElement = aContainer;
   }
 
-  nsIFrame* insertionPoint = ::GetContentInsertionFrameFor(insertionElement);
+  nsContainerFrame* insertionPoint =
+    ::GetContentInsertionFrameFor(insertionElement);
 
   
   
@@ -8502,7 +8508,8 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
     return true;
   }
 
-  if (aFrame->GetContentInsertionFrame()->GetType() == nsGkAtoms::legendFrame &&
+  nsContainerFrame* insertionFrame = aFrame->GetContentInsertionFrame();
+  if (insertionFrame && insertionFrame->GetType() == nsGkAtoms::legendFrame &&
       aFrame->GetParent()->GetType() == nsGkAtoms::fieldSetFrame) {
     
     
@@ -9311,7 +9318,8 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                        nsIFrame*                aPossiblyLeafFrame)
 {
   NS_PRECONDITION(aFrame, "Must have parent frame here");
-  NS_PRECONDITION(aFrame->GetContentInsertionFrame() == aFrame,
+  NS_PRECONDITION(!aFrame->GetContentInsertionFrame() ||
+                  aFrame->GetContentInsertionFrame() == aFrame,
                   "Parent frame in ProcessChildren should be its own "
                   "content insertion frame");
   const uint32_t kMaxDepth = 2 * MAX_REFLOW_DEPTH;
@@ -9612,7 +9620,7 @@ nsCSSFrameConstructor::InsertFirstLineFrames(
   nsFrameConstructorState& aState,
   nsIContent*              aContent,
   nsIFrame*                aBlockFrame,
-  nsIFrame**               aParentFrame,
+  nsContainerFrame**               aParentFrame,
   nsIFrame*                aPrevSibling,
   nsFrameItems&            aFrameItems)
 {

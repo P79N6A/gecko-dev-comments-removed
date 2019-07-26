@@ -29,6 +29,7 @@ struct nsStyleDisplay;
 class nsIDOMHTMLSelectElement;
 struct nsGenConInitializer;
 
+class nsContainerFrame;
 class nsFirstLineFrame;
 class nsICSSAnonBoxPseudo;
 class nsPageContentFrame;
@@ -111,10 +112,10 @@ private:
   
   
   
-  nsIFrame* GetRangeInsertionPoint(nsIContent* aContainer,
-                                   nsIContent* aStartChild,
-                                   nsIContent* aEndChild,
-                                   bool aAllowLazyConstruction);
+  nsContainerFrame* GetRangeInsertionPoint(nsIContent* aContainer,
+                                           nsIContent* aStartChild,
+                                           nsIContent* aEndChild,
+                                           bool aAllowLazyConstruction);
 
   
   bool MaybeRecreateForFrameset(nsIFrame* aParentFrame,
@@ -233,9 +234,9 @@ public:
   nsresult ReplicateFixedFrames(nsPageContentFrame* aParentFrame);
 
   
-  nsIFrame* GetInsertionPoint(nsIContent* aContainer,
-                              nsIContent* aChildContent,
-                              bool*       aMultiple = nullptr);
+  nsContainerFrame* GetInsertionPoint(nsIContent* aContainer,
+                                      nsIContent* aChildContent,
+                                      bool*       aMultiple = nullptr);
 
   nsresult CreateListBoxContent(nsPresContext* aPresContext,
                                 nsIFrame*       aParentFrame,
@@ -1687,7 +1688,7 @@ private:
   nsresult InsertFirstLineFrames(nsFrameConstructorState& aState,
                                  nsIContent*              aContent,
                                  nsIFrame*                aBlockFrame,
-                                 nsIFrame**               aParentFrame,
+                                 nsContainerFrame**       aParentFrame,
                                  nsIFrame*                aPrevSibling,
                                  nsFrameItems&            aFrameItems);
 
@@ -1728,7 +1729,7 @@ private:
   
   
   
-  nsIFrame* GetInsertionPrevSibling(nsIFrame*& aParentFrame, 
+  nsIFrame* GetInsertionPrevSibling(nsContainerFrame*& aParentFrame, 
                                     nsIContent* aContainer,
                                     nsIContent* aChild,
                                     bool* aIsAppend,

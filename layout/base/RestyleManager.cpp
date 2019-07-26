@@ -2677,11 +2677,12 @@ ElementRestyler::RestyleBeforePseudo()
 {
   
   
+  nsContainerFrame* cif;
   if (!mFrame->StyleContext()->GetPseudo() &&
       ((mFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        
-       (mFrame->GetContentInsertionFrame()->GetStateBits() &
-        NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+       ((cif = mFrame->GetContentInsertionFrame()) &&
+        (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
     nsIFrame* prevContinuation = mFrame->GetPrevContinuation();
@@ -2711,11 +2712,12 @@ ElementRestyler::RestyleAfterPseudo(nsIFrame* aFrame)
 {
   
   
+  nsContainerFrame* cif;
   if (!aFrame->StyleContext()->GetPseudo() &&
       ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
        
-       (aFrame->GetContentInsertionFrame()->GetStateBits() &
-        NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+       ((cif = aFrame->GetContentInsertionFrame()) &&
+        (cif->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT)))) {
     
     
     nsIFrame* nextContinuation = aFrame->GetNextContinuation();

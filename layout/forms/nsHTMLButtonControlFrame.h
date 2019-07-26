@@ -80,7 +80,7 @@ public:
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
 
   
-  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     return GetFirstPrincipalChild()->GetContentInsertionFrame();
   }
 

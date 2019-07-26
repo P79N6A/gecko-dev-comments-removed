@@ -1622,7 +1622,7 @@ nsMenuPopupFrame::FindMenuWithShortcut(nsIDOMKeyEvent* aKeyEvent, bool& doAction
   doAction = false;
 
   
-  nsIFrame* immediateParent = PresContext()->PresShell()->
+  nsContainerFrame* immediateParent = PresContext()->PresShell()->
     FrameConstructor()->GetInsertionPoint(GetContent(), nullptr);
   if (!immediateParent)
     immediateParent = this;

@@ -79,7 +79,7 @@ public:
   }
 #endif
 
-  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
+  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE {
     
     NS_ABORT_IF_FALSE(GetFirstPrincipalChild() &&
                       GetFirstPrincipalChild()->GetType() ==

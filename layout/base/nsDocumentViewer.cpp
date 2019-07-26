@@ -2478,9 +2478,8 @@ nsDocumentViewer::FindContainerView()
       if (!parentPresShell) {
         NS_WARNING("Subdocument container has no presshell");
       } else {
-        nsIFrame* f = parentPresShell->GetRealPrimaryFrameFor(containerElement);
-        if (f) {
-          nsIFrame* subdocFrame = f->GetContentInsertionFrame();
+        nsIFrame* subdocFrame = parentPresShell->GetRealPrimaryFrameFor(containerElement);
+        if (subdocFrame) {
           
           
           

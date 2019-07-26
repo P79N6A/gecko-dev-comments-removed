@@ -108,7 +108,7 @@ public:
   virtual const nsFrameList& GetChildList(ChildListID aListID) const MOZ_OVERRIDE;
   virtual void GetChildLists(nsTArray<ChildList>* aLists) const MOZ_OVERRIDE;
 
-  virtual nsIFrame* GetContentInsertionFrame() MOZ_OVERRIDE;
+  virtual nsContainerFrame* GetContentInsertionFrame() MOZ_OVERRIDE;
 
   
   virtual nsresult SetFormProperty(nsIAtom* aName, const nsAString& aValue) MOZ_OVERRIDE;
@@ -255,7 +255,7 @@ protected:
   nsFrameList              mPopupFrames;             
   nsCOMPtr<nsIContent>     mDisplayContent;          
   nsCOMPtr<nsIContent>     mButtonContent;           
-  nsIFrame*                mDisplayFrame;            
+  nsContainerFrame*        mDisplayFrame;            
   nsIFrame*                mButtonFrame;             
   nsIFrame*                mDropdownFrame;           
   nsIListControlFrame *    mListControlFrame;        
