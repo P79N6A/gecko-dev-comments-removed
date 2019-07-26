@@ -412,6 +412,14 @@ IonBuilder::inlineArrayConcat(CallInfo &callInfo)
 
     
     
+    if (!thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED) &&
+        argTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_PACKED))
+    {
+        return InliningStatus_NotInlined;
+    }
+
+    
+    
     
     types::HeapTypeSet *thisElemTypes = thisType->getProperty(cx, JSID_VOID, false);
     if (!thisElemTypes)
