@@ -38,6 +38,7 @@
 #include "nsContentUtils.h"
 #include "CSSCalc.h"
 #include "nsPrintfCString.h"
+#include "nsRenderingContext.h"
 
 #include "mozilla/LookAndFeel.h"
 
@@ -229,6 +230,51 @@ GetMetricsFor(nsPresContext* aPresContext,
   return fm.forget();
 }
 
+
+static nsSize CalcViewportUnitsScale(nsPresContext* aPresContext)
+{
+  
+  
+  
+  aPresContext->SetUsesViewportUnits(true);
+
+  
+  
+  
+  
+  nsSize viewportSize(aPresContext->GetVisibleArea().Size());
+
+  
+  
+  nsIScrollableFrame* scrollFrame =
+    aPresContext->PresShell()->GetRootScrollFrameAsScrollable();
+  if (scrollFrame) {
+    nsPresContext::ScrollbarStyles styles(scrollFrame->GetScrollbarStyles());
+
+    if (styles.mHorizontal == NS_STYLE_OVERFLOW_SCROLL ||
+        styles.mVertical == NS_STYLE_OVERFLOW_SCROLL) {
+      
+      nsRefPtr<nsRenderingContext> context =
+        aPresContext->PresShell()->GetReferenceRenderingContext();
+      nsMargin sizes(scrollFrame->GetDesiredScrollbarSizes(aPresContext, context));
+
+      if (styles.mHorizontal == NS_STYLE_OVERFLOW_SCROLL) {
+        
+        
+        viewportSize.height -= sizes.TopBottom();
+      }
+
+      if (styles.mVertical == NS_STYLE_OVERFLOW_SCROLL) {
+        
+        
+        viewportSize.width -= sizes.LeftRight();
+      }
+    }
+  }
+
+  return viewportSize;
+}
+
 static nscoord CalcLengthWith(const nsCSSValue& aValue,
                               nscoord aFontSize,
                               const nsStyleFont* aStyleFont,
@@ -286,22 +332,18 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
     
     
     case eCSSUnit_ViewportWidth: {
-      aPresContext->SetUsesViewportUnits(true);
-      return ScaleCoord(aValue, 0.01f * aPresContext->GetVisibleArea().width);
+      return ScaleCoord(aValue, 0.01f * CalcViewportUnitsScale(aPresContext).width);
     }
     case eCSSUnit_ViewportHeight: {
-      aPresContext->SetUsesViewportUnits(true);
-      return ScaleCoord(aValue, 0.01f * aPresContext->GetVisibleArea().height);
+      return ScaleCoord(aValue, 0.01f * CalcViewportUnitsScale(aPresContext).height);
     }
     case eCSSUnit_ViewportMin: {
-      aPresContext->SetUsesViewportUnits(true);
-      nsSize viewportSize = aPresContext->GetVisibleArea().Size();
-      return ScaleCoord(aValue, 0.01f * min(viewportSize.width, viewportSize.height));
+      nsSize vuScale(CalcViewportUnitsScale(aPresContext));
+      return ScaleCoord(aValue, 0.01f * min(vuScale.width, vuScale.height));
     }
     case eCSSUnit_ViewportMax: {
-      aPresContext->SetUsesViewportUnits(true);
-      nsSize viewportSize = aPresContext->GetVisibleArea().Size();
-      return ScaleCoord(aValue, 0.01f * max(viewportSize.width, viewportSize.height));
+      nsSize vuScale(CalcViewportUnitsScale(aPresContext));
+      return ScaleCoord(aValue, 0.01f * max(vuScale.width, vuScale.height));
     }
     
     
