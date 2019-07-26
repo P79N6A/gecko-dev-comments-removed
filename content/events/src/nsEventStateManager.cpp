@@ -1553,7 +1553,7 @@ nsEventStateManager::MapEventCoordinatesForChildProcess(
     nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
     
     
-    const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
+    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       nsIDOMTouch* touch = touches[i];
       if (touch) {
@@ -1637,7 +1637,7 @@ nsEventStateManager::HandleCrossProcessEvent(nsEvent *aEvent,
     
     
     nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(aEvent);
-    const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
+    const nsTArray< nsRefPtr<Touch> >& touches = touchEvent->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       nsIDOMTouch* touch = touches[i];
       
