@@ -857,7 +857,6 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   
   mCurrentScript = oldCurrent;
 
-  JSAutoRequest ar(cx);
   context->SetProcessingScriptTag(oldProcessingScriptTag);
   return rv;
 }

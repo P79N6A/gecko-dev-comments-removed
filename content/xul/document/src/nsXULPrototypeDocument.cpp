@@ -762,8 +762,6 @@ nsXULPDGlobalObject::EnsureScriptEnvironment()
   
   {
     AutoPushJSContext cx(ctxNew->GetNativeContext());
-    JSAutoRequest ar(cx);
-
     JS::Rooted<JSObject*> newGlob(cx,
       JS_NewGlobalObject(cx, &gSharedGlobalClass,
                          nsJSPrincipals::get(GetPrincipal()), JS::SystemZone));

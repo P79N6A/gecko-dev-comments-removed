@@ -1859,8 +1859,6 @@ nsCrypto::GenerateCRMFRequest(nsIDOMCRMFObject** aReturn)
 
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
 
-  JSAutoRequest ar(cx);
-
   
 
 

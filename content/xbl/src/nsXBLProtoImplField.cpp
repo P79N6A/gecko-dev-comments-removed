@@ -411,8 +411,6 @@ nsXBLProtoImplField::InstallField(nsIScriptContext* aContext,
   
   nsCOMPtr<nsIScriptContext> context = aContext;
 
-  JSAutoRequest ar(cx);
-
   
   
   JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, aBoundNode));

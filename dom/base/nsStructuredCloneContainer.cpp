@@ -51,7 +51,6 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
 
   
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
-  JSAutoRequest ar(aCx);
   JS_WrapValue(aCx, jsData.address());
 
   uint64_t* jsBytes = nullptr;

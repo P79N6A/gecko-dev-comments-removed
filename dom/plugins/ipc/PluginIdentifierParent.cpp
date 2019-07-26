@@ -32,7 +32,6 @@ PluginIdentifierParent::RecvRetain()
 
   
   
-  JSAutoRequest ar(cx);
   JSString* str = JSID_TO_STRING(id);
   JSString* str2 = JS_InternJSString(cx, str);
   if (!str2) {

@@ -278,7 +278,6 @@ nsXBLDocGlobalObject::EnsureScriptEnvironment()
   mScriptContext = newCtx;
 
   AutoPushJSContext cx(mScriptContext->GetNativeContext());
-  JSAutoRequest ar(cx);
 
   
   

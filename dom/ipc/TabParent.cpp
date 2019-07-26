@@ -1098,7 +1098,6 @@ TabParent::ReceiveMessage(const nsString& aMessage,
     nsRefPtr<nsFrameMessageManager> manager =
       frameLoader->GetFrameMessageManager();
     AutoPushJSContext ctx(manager->GetJSContext());
-    JSAutoRequest ar(ctx);
     uint32_t len = 0; 
     
     

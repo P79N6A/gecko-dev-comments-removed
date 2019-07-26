@@ -259,8 +259,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
 
     JS::Rooted<JS::Value> v (cx, JS::UndefinedValue());
     
-
-    JSAutoRequest ar(cx);
     if (useSandbox) {
         
         

@@ -1042,8 +1042,6 @@ PluginScriptableObjectParent::AnswerEnumerate(InfallibleTArray<PPluginIdentifier
   aProperties->SetCapacity(idCount);
 
   mozilla::AutoSafeJSContext cx;
-  JSAutoRequest ar(cx);
-
   for (uint32_t index = 0; index < idCount; index++) {
     
     

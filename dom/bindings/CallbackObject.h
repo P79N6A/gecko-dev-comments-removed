@@ -147,10 +147,6 @@ protected:
 
     
     
-    Maybe<XPCAutoRequest> mAr;
-
-    
-    
     
     Maybe<JS::Rooted<JSObject*> > mRootedCallable;
 

@@ -81,7 +81,6 @@ public:
 
     
     if (aResult.isString()) {
-      JSAutoRequest ar(cx);
       return TimeZoneSettingObserver::SetTimeZone(aResult, cx);
     }
 

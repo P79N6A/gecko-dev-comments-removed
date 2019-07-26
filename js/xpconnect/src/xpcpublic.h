@@ -205,15 +205,6 @@ xpc_UnmarkGrayContext(JSContext *cx)
     return cx;
 }
 
-#ifdef __cplusplus
-class XPCAutoRequest : public JSAutoRequest {
-public:
-    XPCAutoRequest(JSContext *cx) : JSAutoRequest(cx) {
-        xpc_UnmarkGrayContext(cx);
-    }
-};
-#endif
-
 
 
 extern void

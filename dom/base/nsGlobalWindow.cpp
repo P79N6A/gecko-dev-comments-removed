@@ -1459,7 +1459,6 @@ nsGlobalWindow::FreeInnerObjects()
   
   nsIScriptContext *scx = GetContextInternal();
   AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
-  JSAutoRequest ar(cx);
   mozilla::dom::workers::CancelWorkersForWindow(cx, this);
 
   
@@ -2255,8 +2254,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   nsCxPusher cxPusher;
   cxPusher.Push(cx);
-
-  XPCAutoRequest ar(cx);
 
   nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
   NS_ASSERTION(!aState || wsh, "What kind of weird state are you giving me here?");
@@ -6732,7 +6729,6 @@ PostMessageEvent::Run()
   
   JS::Rooted<JS::Value> messageData(cx);
   {
-    JSAutoRequest ar(cx);
     StructuredCloneInfo scInfo;
     scInfo.event = this;
 
@@ -7380,7 +7376,6 @@ public:
       JS::Rooted<JSObject*> obj(cx, currentInner->FastGetGlobalJSObject());
       
       if (obj && !js::IsSystemCompartment(js::GetObjectCompartment(obj))) {
-        JSAutoRequest ar(cx);
         js::NukeCrossCompartmentWrappers(cx,
                                          js::ChromeCompartmentsOnly(),
                                          js::SingleCompartment(js::GetObjectCompartment(obj)),
@@ -10929,7 +10924,6 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
   
     nsIScriptContext *scx = GetContextInternal();
     AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
-    JSAutoRequest ar(cx);
     mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
 
     TimeStamp now = TimeStamp::Now();
@@ -11022,7 +11016,6 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
     
     nsIScriptContext *scx = GetContextInternal();
     AutoPushJSContext cx(scx ? scx->GetNativeContext() : nsContentUtils::GetSafeJSContext());
-    JSAutoRequest ar(cx);
     mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
 
     

@@ -2962,7 +2962,6 @@ nsObjectLoadingContent::SetupProtoChain(JSContext* aCx,
   
   MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
 
-  JSAutoRequest ar(aCx);
   JSAutoCompartment ac(aCx, aObject);
 
   nsRefPtr<nsNPAPIPluginInstance> pi;
@@ -3072,8 +3071,6 @@ nsObjectLoadingContent::GetPluginJSObject(JSContext *cx,
   *plugin_obj = nullptr;
   *plugin_proto = nullptr;
 
-  JSAutoRequest ar(cx);
-
   
   
   
@@ -3104,7 +3101,6 @@ nsObjectLoadingContent::TeardownProtoChain()
   NS_ENSURE_TRUE(obj, );
 
   JS::Rooted<JSObject*> proto(cx);
-  JSAutoRequest ar(cx);
   JSAutoCompartment ac(cx, obj);
 
   
