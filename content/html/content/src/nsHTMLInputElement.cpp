@@ -2569,6 +2569,17 @@ SelectTextFieldOnFocus()
   return gSelectTextFieldOnFocus == 1;
 }
 
+static bool
+IsLTR(Element* aElement)
+{
+  nsIFrame *frame = aElement->GetPrimaryFrame();
+  if (frame) {
+    return frame->StyleVisibility()->mDirection == NS_STYLE_DIRECTION_LTR;
+  }
+  
+  return aElement->GetDirectionality() == eDir_LTR;
+}
+
 nsresult
 nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
 {
@@ -2833,6 +2844,74 @@ nsHTMLInputElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
             FireChangeEventIfNeeded();
             rv = MaybeSubmitForm(aVisitor.mPresContext);
             NS_ENSURE_SUCCESS(rv, rv);
+          }
+
+          if (aVisitor.mEvent->message == NS_KEY_PRESS &&
+              mType == NS_FORM_INPUT_RANGE && !keyEvent->IsAlt() &&
+              !keyEvent->IsControl() && !keyEvent->IsMeta() &&
+              (keyEvent->keyCode == NS_VK_LEFT ||
+               keyEvent->keyCode == NS_VK_RIGHT ||
+               keyEvent->keyCode == NS_VK_UP ||
+               keyEvent->keyCode == NS_VK_DOWN ||
+               keyEvent->keyCode == NS_VK_PAGE_UP ||
+               keyEvent->keyCode == NS_VK_PAGE_DOWN ||
+               keyEvent->keyCode == NS_VK_HOME ||
+               keyEvent->keyCode == NS_VK_END)) {
+            double minimum = GetMinimum();
+            double maximum = GetMaximum();
+            MOZ_ASSERT(MOZ_DOUBLE_IS_FINITE(minimum) &&
+                       MOZ_DOUBLE_IS_FINITE(maximum));
+            if (minimum < maximum) { 
+              double value = GetValueAsDouble();
+              double step = GetStep();
+              if (step == kStepAny) {
+                step = GetDefaultStep();
+              }
+              MOZ_ASSERT(MOZ_DOUBLE_IS_FINITE(value) &&
+                         MOZ_DOUBLE_IS_FINITE(step));
+              double newValue;
+              switch (keyEvent->keyCode) {
+                case  NS_VK_LEFT:
+                  newValue = value + (IsLTR(this) ? -step : step);
+                  break;
+                case  NS_VK_RIGHT:
+                  newValue = value + (IsLTR(this) ? step : -step);
+                  break;
+                case  NS_VK_UP:
+                  
+                  newValue = value + step;
+                  break;
+                case  NS_VK_DOWN:
+                  
+                  newValue = value - step;
+                  break;
+                case  NS_VK_HOME:
+                  newValue = minimum;
+                  break;
+                case  NS_VK_END:
+                  newValue = maximum;
+                  break;
+                case  NS_VK_PAGE_UP:
+                  
+                  
+                  newValue = value + std::max(step, 0.1 * (maximum - minimum));
+                  break;
+                case  NS_VK_PAGE_DOWN:
+                  newValue = value - std::max(step, 0.1 * (maximum - minimum));
+                  break;
+              }
+              MOZ_ASSERT(MOZ_DOUBLE_IS_FINITE(newValue));
+              nsAutoString val;
+              ConvertNumberToString(newValue, val);
+              SetValueInternal(val, true, true);
+              nsIFrame* frame = GetPrimaryFrame();
+              if (frame) {
+                
+                frame->PresContext()->GetPresShell()->
+                  FrameNeedsReflow(frame, nsIPresShell::eResize, NS_FRAME_IS_DIRTY);
+              }
+              aVisitor.mEventStatus = nsEventStatus_eConsumeNoDefault;
+            }
           }
 
         } break; 
@@ -4353,7 +4432,8 @@ nsHTMLInputElement::IsHTMLFocusable(bool aWithMouse, bool *aIsFocusable, int32_t
     return true;
   }
 
-  if (IsSingleLineTextControl(false)) {
+  if (IsSingleLineTextControl(false) ||
+      mType == NS_FORM_INPUT_RANGE) {
     *aIsFocusable = true;
     return false;
   }
