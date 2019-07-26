@@ -4958,21 +4958,23 @@ NodeListType.prototype.name = 'nodelist';
 
 define('util/host', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-  'use strict';
+'use strict';
 
+
+
+
+
+exports.chromeWindow = undefined;
+
+
+
+
+exports.flashNodes = function(nodes, match) {
+  
   
 
 
 
-  exports.chromeWindow = undefined;
-
-  
-
-
-
-  exports.flashNodes = function(nodes, match) {
-    
-    
 
 
 
@@ -4980,10 +4982,14 @@ define('util/host', ['require', 'exports', 'module' ], function(require, exports
 
 
 
+};
 
 
 
-  };
+
+exports.exec = function(execSpec) {
+  throw new Error('Not supported');
+};
 
 
 });
@@ -6264,6 +6270,10 @@ function Requisition(environment, doc, commandOutputManager) {
   }
 
   this.commandOutputManager = commandOutputManager || new CommandOutputManager();
+  this.shell = {
+    cwd: '/', 
+    env: {}   
+  };
 
   
   
@@ -6346,6 +6356,10 @@ Object.defineProperty(Requisition.prototype, 'executionContext', {
       Object.defineProperty(this._executionContext, 'environment', {
         get: function() { return requisition.environment; },
         enumerable: true
+      });
+      Object.defineProperty(this._executionContext, 'shell', {
+        get: function() { return requisition.shell; },
+        enumerable : true
       });
 
       
