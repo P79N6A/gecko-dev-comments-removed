@@ -7413,79 +7413,8 @@ var MemoryObserver = {
   },
 
   dumpMemoryStats: function(aLabel) {
-    
-    
-    
     let memMgr = Cc["@mozilla.org/memory-reporter-manager;1"].getService(Ci.nsIMemoryReporterManager);
-
-    let timestamp = new Date();
-    let memory = {};
-
-    
-    
-    
-    memory['manager_explicit'] = memMgr.explicit;
-    memory['manager_resident'] = memMgr.resident;
-
-    let knownHeap = 0;
-
-    function addReport(path, amount, kind, units) {
-      if (units !== undefined && units != Ci.nsIMemoryReporter.UNITS_BYTES)
-        
-        return;
-
-      if (memory[path])
-        memory[path] += amount;
-      else
-        memory[path] = amount;
-      if (kind !== undefined && kind == Ci.nsIMemoryReporter.KIND_HEAP
-          && path.indexOf('explicit/') == 0)
-        knownHeap += amount;
-    }
-
-    
-    let reporters = memMgr.enumerateReporters();
-    while (reporters.hasMoreElements()) {
-      let r = reporters.getNext();
-      r instanceof Ci.nsIMemoryReporter;
-      if (r.path.length) {
-        addReport(r.path, r.amount, r.kind, r.units);
-      }
-    }
-
-    
-    if (memMgr.enumerateMultiReporters) {
-      let multireporters = memMgr.enumerateMultiReporters();
-
-      while (multireporters.hasMoreElements()) {
-        let mr = multireporters.getNext();
-        mr instanceof Ci.nsIMemoryMultiReporter;
-        mr.collectReports(function (proc, path, kind, units, amount, description, closure) {
-          addReport(path, amount, kind, units);
-        }, null);
-      }
-    }
-
-    let heapAllocated = memory['heap-allocated'];
-    
-    if (!heapAllocated) heapAllocated = memory['heap-used'];
-    
-    
-    if (knownHeap && heapAllocated)
-      memory['explicit/heap-unclassified'] = memory['heap-allocated'] - knownHeap;
-
-    
-    
-    if (!memory['resident'])
-      memory['resident'] = memory['manager_resident']
-    if (!memory['explicit'])
-      memory['explicit'] = memory['manager_explicit']
-
-    let label = "[AboutMemoryDump|" + aLabel + "] ";
-    dump(label + timestamp);
-    for (let type in memory) {
-      dump(label + type + " = " + memory[type]);
-    }
+    memMgr.dumpMemoryReportsToFile(aLabel, false, true);
   },
 };
 
