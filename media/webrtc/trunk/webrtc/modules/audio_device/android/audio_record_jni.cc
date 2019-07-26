@@ -15,6 +15,7 @@
 
 
 
+#include "AndroidJNIWrapper.h"
 #include "webrtc/modules/audio_device/android/audio_record_jni.h"
 
 #include <android/log.h>
