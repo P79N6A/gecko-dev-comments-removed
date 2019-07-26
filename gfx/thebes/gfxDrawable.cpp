@@ -7,6 +7,7 @@
 #include "gfxASurface.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#include "gfxColor.h"
 #ifdef MOZ_X11
 #include "cairo.h"
 #include "gfxXlibSurface.h"
@@ -165,6 +166,9 @@ gfxSurfaceDrawable::Draw(gfxContext* aContext,
     aContext->SetPattern(pattern);
     aContext->Rectangle(aFillRect);
     aContext->Fill();
+    
+    
+    aContext->SetDeviceColor(gfxRGBA(0.0, 0.0, 0.0, 0.0));
     return true;
 }
 
