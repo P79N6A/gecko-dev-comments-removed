@@ -4515,10 +4515,10 @@ nsRect nsIFrame::GetScreenRectInAppUnits() const
 
 
 void
-nsFrame::GetOffsetFromView(nsPoint& aOffset, nsView** aView) const
+nsIFrame::GetOffsetFromView(nsPoint& aOffset, nsView** aView) const
 {
   NS_PRECONDITION(nullptr != aView, "null OUT parameter pointer");
-  nsIFrame* frame = const_cast<nsFrame*>(this);
+  nsIFrame* frame = const_cast<nsIFrame*>(this);
 
   *aView = nullptr;
   aOffset.MoveTo(0, 0);

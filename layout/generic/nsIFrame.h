@@ -2039,7 +2039,7 @@ public:
 
 
 
-  virtual void GetOffsetFromView(nsPoint& aOffset, nsView** aView) const = 0;
+  void GetOffsetFromView(nsPoint& aOffset, nsView** aView) const;
 
   
 
