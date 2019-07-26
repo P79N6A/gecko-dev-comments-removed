@@ -1719,7 +1719,7 @@ MacroAssembler::convertValueToInt(ValueOperand value, MDefinition *maybeInput,
     
     if (isNull.used())
         bind(&isNull);
-    mov(Imm32(0), output);
+    mov(ImmWord(0), output);
     jump(&done);
 
     

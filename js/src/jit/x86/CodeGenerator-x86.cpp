@@ -115,7 +115,7 @@ CodeGeneratorX86::visitBox(LBox *box)
     
     
     
-    masm.movl(Imm32(MIRTypeToTag(box->type())), ToRegister(type));
+    masm.mov(ImmWord(MIRTypeToTag(box->type())), ToRegister(type));
     return true;
 }
 
