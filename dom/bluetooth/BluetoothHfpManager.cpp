@@ -604,7 +604,7 @@ BluetoothHfpManager::ReceiveSocketData(UnixSocketRawData* aMessage)
   
   
   if (msg.Find("AT+BRSF=") != -1) {
-    SendCommand("+BRSF: ", 23);
+    SendCommand("+BRSF: ", 33);
   } else if (msg.Find("AT+CIND=?") != -1) {
     
     SendCommand("+CIND: ", 0);
@@ -831,6 +831,7 @@ BluetoothHfpManager::Disconnect()
     return;
   }
 
+  CloseScoSocket();
   CloseSocket();
 }
 
