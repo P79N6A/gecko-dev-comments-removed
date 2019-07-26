@@ -259,6 +259,11 @@ const PanelUI = {
   
 
 
+  anchorElement: null,
+
+  
+
+
 
 
 
@@ -270,12 +275,16 @@ const PanelUI = {
       let anchorRect = aAnchor.getBoundingClientRect();
       let mainViewRect = this.mainView.getBoundingClientRect();
       let leftEdge = anchorRect.left - mainViewRect.left;
-      let center = (anchorRect.width / 2);
+      let center = aAnchor.clientWidth / 2;
       let target = leftEdge + center;
       this.mainView.style.transform = "translateX(-" + target + "px)";
+      aAnchor.classList.add("panelui-mainview-anchor");
     } else {
       this.mainView.style.transform = "";
+      if (this.anchorElement)
+        this.anchorElement.classList.remove("panelui-mainview-anchor");
     }
+    this.anchorElement = aAnchor;
   },
 
   
