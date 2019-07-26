@@ -30,6 +30,9 @@ public class DoorHangerPopup extends ArrowPopup
     
     private HashSet<DoorHanger> mDoorHangers;
 
+    
+    private boolean mDisabled;
+
     DoorHangerPopup(GeckoApp activity, View anchor) {
         super(activity, anchor);
 
@@ -44,6 +47,24 @@ public class DoorHangerPopup extends ArrowPopup
         unregisterEventListener("Doorhanger:Add");
         unregisterEventListener("Doorhanger:Remove");
         Tabs.unregisterOnTabsChangedListener(this);
+    }
+
+    
+
+
+
+
+    void disable() {
+        mDisabled = true;
+        updatePopup();
+    }
+
+    
+
+
+    void enable() {
+        mDisabled = false;
+        updatePopup();
     }
 
     @Override
@@ -246,12 +267,13 @@ public class DoorHangerPopup extends ArrowPopup
 
 
 
-    void updatePopup() {
+    private void updatePopup() {
+        
         
         
         
         Tab tab = Tabs.getInstance().getSelectedTab();
-        if (tab == null || mDoorHangers.size() == 0 || !mInflated) {
+        if (tab == null || mDoorHangers.size() == 0 || !mInflated || mDisabled) {
             dismiss();
             return;
         }

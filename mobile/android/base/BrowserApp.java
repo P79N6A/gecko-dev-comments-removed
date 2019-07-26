@@ -451,6 +451,20 @@ abstract public class BrowserApp extends GeckoApp
             }
         });
 
+        mBrowserToolbar.setOnStartEditingListener(new BrowserToolbar.OnStartEditingListener() {
+            public void onStartEditing() {
+                
+                mDoorHangerPopup.disable();
+            }
+        });
+
+        mBrowserToolbar.setOnStopEditingListener(new BrowserToolbar.OnStopEditingListener() {
+            public void onStopEditing() {
+                
+                mDoorHangerPopup.enable();
+            }
+        });
+
         
         mBrowserToolbar.setOnKeyListener(this);
 
@@ -1392,7 +1406,7 @@ abstract public class BrowserApp extends GeckoApp
         animator.start();
     }
 
-    void commitEditingMode() {
+    private void commitEditingMode() {
         if (!mBrowserToolbar.isEditing()) {
             return;
         }
@@ -1467,7 +1481,7 @@ abstract public class BrowserApp extends GeckoApp
         }
     }
 
-    boolean dismissEditingMode() {
+    private boolean dismissEditingMode() {
         if (!mBrowserToolbar.isEditing()) {
             return false;
         }
