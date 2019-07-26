@@ -557,6 +557,33 @@ function setEmulatorGsmLocation(aLac, aCid) {
 
 
 
+
+
+
+
+function setEmulatorGsmLocationAndWait(aLac, aCid,
+                                       aWaitVoice = true, aWaitData = false) {
+  let promises = [];
+  if (aWaitVoice) {
+    promises.push(waitForManagerEvent("voicechange"));
+  }
+  if (aWaitData) {
+    promises.push(waitForManagerEvent("datachange"));
+  }
+  promises.push(setEmulatorGsmLocation(aLac, aCid));
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+
 function getEmulatorOperatorNames() {
   let cmd = "operator dumpall";
   return runEmulatorCmdSafe(cmd)
@@ -620,6 +647,43 @@ function setEmulatorOperatorNames(aOperator, aLongName, aShortName, aMcc, aMnc) 
       ok(aResults[index].match(new RegExp(exp)),
          "Long/short name and/or mcc/mnc should be changed.");
     });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function setEmulatorOperatorNamesAndWait(aOperator, aLongName, aShortName,
+                                         aMcc, aMnc,
+                                         aWaitVoice = true, aWaitData = false) {
+  let promises = [];
+  if (aWaitVoice) {
+    promises.push(waitForManagerEvent("voicechange"));
+  }
+  if (aWaitData) {
+    promises.push(waitForManagerEvent("datachange"));
+  }
+  promises.push(setEmulatorOperatorNames(aOperator, aLongName, aShortName,
+                                         aMcc, aMnc));
+  return Promise.all(promises);
 }
 
 let _networkManager;
