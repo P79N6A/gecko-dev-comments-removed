@@ -434,6 +434,7 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
         hwcLayer.transform = colorLayer->GetColor().Packed();
     }
 
+    mHwcLayerMap.AppendElement(static_cast<LayerComposite*>(aLayer->ImplData()));
     mList->numHwLayers++;
     return true;
 }
@@ -461,11 +462,27 @@ HwcComposer2D::TryHwComposition()
 
     Prepare(fbsurface->lastHandle, -1);
 
+    bool fullHwcComposite = true;
     for (int j = 0; j < idx; j++) {
         if (mList->hwLayers[j].compositionType == HWC_FRAMEBUFFER) {
+            
+            
             LOGD("GPU or Partial HWC Composition");
-            return false;
+            fullHwcComposite = false;
+            break;
         }
+    }
+
+    if (!fullHwcComposite) {
+        for (int k=0; k < idx; k++) {
+            if (mList->hwLayers[k].compositionType == HWC_OVERLAY) {
+                
+                
+                
+                mHwcLayerMap[k]->SetLayerComposited(true);
+            }
+        }
+        return false;
     }
 
     
@@ -554,28 +571,26 @@ HwcComposer2D::Commit()
 
     int err = mHwc->set(mHwc, HWC_NUM_DISPLAY_TYPES, displays);
 
-    for (int i = 0; i <= MAX_HWC_LAYERS; i++) {
-        if (mPrevRelFd[i] <= 0) {
-            break;
+    if (!mPrevReleaseFds.IsEmpty()) {
+        
+        
+        
+        
+        sp<Fence> fence = new Fence(mPrevReleaseFds[0]);
+        if (fence->wait(1000) == -ETIME) {
+            LOGE("Wait timed-out for retireFenceFd %d", mPrevReleaseFds[0]);
         }
-        if (!i) {
-            
-            
-            
-            
-            sp<Fence> fence = new Fence(mPrevRelFd[i]);
-            if (fence->wait(1000) == -ETIME) {
-                LOGE("Wait timed-out for retireFenceFd %d", mPrevRelFd[i]);
-            }
+
+        for (int i = 0; i < mPrevReleaseFds.Length(); i++) {
+            close(mPrevReleaseFds[i]);
         }
-        close(mPrevRelFd[i]);
-        mPrevRelFd[i] = -1;
+        mPrevReleaseFds.Clear();
     }
 
-    mPrevRelFd[0] = mList->retireFenceFd;
-    for (uint32_t j = 0; j < (mList->numHwLayers - 1); j++) {
+    mPrevReleaseFds.AppendElement(mList->retireFenceFd);
+    for (uint32_t j=0; j < (mList->numHwLayers - 1); j++) {
         if (mList->hwLayers[j].compositionType == HWC_OVERLAY) {
-            mPrevRelFd[j + 1] = mList->hwLayers[j].releaseFenceFd;
+            mPrevReleaseFds.AppendElement(mList->hwLayers[j].releaseFenceFd);
             mList->hwLayers[j].releaseFenceFd = -1;
         }
     }
@@ -609,12 +624,14 @@ HwcComposer2D::TryRender(Layer* aRoot,
     MOZ_ASSERT(Initialized());
     if (mList) {
         mList->numHwLayers = 0;
+        mHwcLayerMap.Clear();
     }
 
     
     
     mVisibleRegions.clear();
 
+    MOZ_ASSERT(mHwcLayerMap.IsEmpty());
     if (!PrepareLayerList(aRoot,
                           mScreenRect,
                           gfxMatrix(),

@@ -24,8 +24,6 @@
 
 #include <hardware/hwcomposer.h>
 
-#define MAX_HWC_LAYERS 15
-
 namespace mozilla {
 
 namespace layers {
@@ -83,7 +81,8 @@ private:
     
     
     std::list<RectVector>   mVisibleRegions;
-    int                     mPrevRelFd[MAX_HWC_LAYERS + 1];
+    nsTArray<int>           mPrevReleaseFds;
+    nsTArray<layers::LayerComposite*> mHwcLayerMap;
 };
 
 } 

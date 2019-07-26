@@ -198,7 +198,13 @@ ContainerRender(ContainerT* aContainer,
       continue;
     }
 
-    layerToRender->RenderLayer(childOffset, clipRect);
+    if (layerToRender->HasLayerBeenComposited()) {
+      
+      
+      layerToRender->SetLayerComposited(false);
+    } else {
+      layerToRender->RenderLayer(childOffset, clipRect);
+    }
     
     
   }
