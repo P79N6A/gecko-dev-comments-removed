@@ -698,7 +698,7 @@ Scope.prototype = {
 
 
   showHeader: function S_showHeader() {
-    if (this._isHeaderVisible) {
+    if (this._isHeaderVisible || !this._nameString) {
       return;
     }
     this._target.removeAttribute("non-header");
@@ -1400,24 +1400,21 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
 
 
+
+
   _setGrip: function V__setGrip(aGrip) {
+    
+    if (!this._nameString) {
+      return;
+    }
+
     if (aGrip === undefined) {
       aGrip = { type: "undefined" };
     }
     if (aGrip === null) {
       aGrip = { type: "null" };
     }
-    this._applyGrip(aGrip);
-  },
 
-  
-
-
-
-
-
-
-  _applyGrip: function V__applyGrip(aGrip) {
     let prevGrip = this._valueGrip;
     if (prevGrip) {
       this._valueLabel.classList.remove(VariablesView.getClass(prevGrip));
@@ -1441,11 +1438,16 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _init: function V__init(aName, aDescriptor) {
     this._idString = generateId(this._nameString = aName);
     this._displayScope(aName, "variable");
-    this._displayVariable();
-    this._customizeVariable();
-    this._prepareTooltip();
-    this._setAttributes();
-    this._addEventListeners();
+
+    
+    if (this._nameString) {
+      this._displayVariable();
+      this._customizeVariable();
+      this._prepareTooltip();
+      this._setAttributes();
+      this._addEventListeners();
+    }
+
     this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
   },
 
@@ -1530,18 +1532,16 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       let document = this.document;
 
       let tooltip = document.createElement("tooltip");
-      tooltip.id = "tooltip-" + this.id;
+      tooltip.id = "tooltip-" + this._idString;
 
       let configurableLabel = document.createElement("label");
-      configurableLabel.setAttribute("value", "configurable");
-
       let enumerableLabel = document.createElement("label");
-      enumerableLabel.setAttribute("value", "enumerable");
-
       let writableLabel = document.createElement("label");
+      configurableLabel.setAttribute("value", "configurable");
+      enumerableLabel.setAttribute("value", "enumerable");
       writableLabel.setAttribute("value", "writable");
 
-      tooltip.setAttribute("orient", "horizontal")
+      tooltip.setAttribute("orient", "horizontal");
       tooltip.appendChild(configurableLabel);
       tooltip.appendChild(enumerableLabel);
       tooltip.appendChild(writableLabel);
@@ -1847,11 +1847,16 @@ create({ constructor: Property, proto: Variable.prototype }, {
   _init: function P__init(aName, aDescriptor) {
     this._idString = generateId(this._nameString = aName);
     this._displayScope(aName, "property");
-    this._displayVariable();
-    this._customizeVariable();
-    this._prepareTooltip();
-    this._setAttributes();
-    this._addEventListeners();
+
+    
+    if (this._nameString) {
+      this._displayVariable();
+      this._customizeVariable();
+      this._prepareTooltip();
+      this._setAttributes();
+      this._addEventListeners();
+    }
+
     this._onInit(this.ownerView._store.size < LAZY_APPEND_BATCH);
   },
 
