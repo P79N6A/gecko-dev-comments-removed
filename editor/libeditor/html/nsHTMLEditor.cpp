@@ -763,7 +763,11 @@ nsHTMLEditor::NodeIsBlockStatic(const dom::Element* aElement)
   }
 
   bool isBlock;
-  DebugOnly<nsresult> rv = nsContentUtils::GetParserService()->
+#ifdef DEBUG
+  
+  nsresult rv =
+#endif
+    nsContentUtils::GetParserService()->
     IsBlock(nsContentUtils::GetParserService()->HTMLAtomTagToId(tagAtom),
             isBlock);
   MOZ_ASSERT(rv == NS_OK);
