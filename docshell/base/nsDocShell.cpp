@@ -8631,7 +8631,20 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     int16_t shouldLoad = nsIContentPolicy::ACCEPT;
     uint32_t contentType;
-    if (IsFrame()) {
+    bool isNewDocShell = false;
+    nsCOMPtr<nsIDocShell> targetDocShell;
+    if (aWindowTarget && *aWindowTarget) {
+        
+        nsCOMPtr<nsIDocShellTreeItem> targetItem;
+        FindItemWithName(aWindowTarget, nullptr, this,
+                         getter_AddRefs(targetItem));
+
+        targetDocShell = do_QueryInterface(targetItem);
+        
+        
+        isNewDocShell = !targetDocShell;
+    }
+    if (IsFrame() && !isNewDocShell) {
         NS_ASSERTION(requestingElement, "A frame but no DOM element!?");
         contentType = nsIContentPolicy::TYPE_SUBDOCUMENT;
     } else {
@@ -8733,15 +8746,6 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         aFlags = aFlags & ~INTERNAL_LOAD_FLAGS_INHERIT_OWNER;
-        
-        
-        
-        
-        nsCOMPtr<nsIDocShellTreeItem> targetItem;
-        FindItemWithName(aWindowTarget, nullptr, this,
-                         getter_AddRefs(targetItem));
-
-        nsCOMPtr<nsIDocShell> targetDocShell = do_QueryInterface(targetItem);
         
         bool isNewWindow = false;
         if (!targetDocShell) {
