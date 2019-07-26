@@ -99,8 +99,8 @@ nsPrefBranch::~nsPrefBranch()
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsPrefBranch)
-NS_IMPL_THREADSAFE_RELEASE(nsPrefBranch)
+NS_IMPL_ADDREF(nsPrefBranch)
+NS_IMPL_RELEASE(nsPrefBranch)
 
 NS_INTERFACE_MAP_BEGIN(nsPrefBranch)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIPrefBranch)
@@ -833,8 +833,8 @@ nsPrefLocalizedString::~nsPrefLocalizedString()
 
 
 
-NS_IMPL_THREADSAFE_ADDREF(nsPrefLocalizedString)
-NS_IMPL_THREADSAFE_RELEASE(nsPrefLocalizedString)
+NS_IMPL_ADDREF(nsPrefLocalizedString)
+NS_IMPL_RELEASE(nsPrefLocalizedString)
 
 NS_INTERFACE_MAP_BEGIN(nsPrefLocalizedString)
     NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIPrefLocalizedString)
@@ -887,7 +887,7 @@ nsPrefLocalizedString::SetDataWithLength(uint32_t aLength,
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsRelativeFilePref, nsIRelativeFilePref)
+NS_IMPL_ISUPPORTS1(nsRelativeFilePref, nsIRelativeFilePref)
 
 nsRelativeFilePref::nsRelativeFilePref()
 {

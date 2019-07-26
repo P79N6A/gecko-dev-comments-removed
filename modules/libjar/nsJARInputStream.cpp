@@ -22,7 +22,7 @@
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsJARInputStream, nsIInputStream)
+NS_IMPL_ISUPPORTS1(nsJARInputStream, nsIInputStream)
 
 
 

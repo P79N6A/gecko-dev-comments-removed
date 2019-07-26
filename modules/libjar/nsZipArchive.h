@@ -20,6 +20,7 @@
 #include "zipstruct.h"
 #include "nsAutoPtr.h"
 #include "nsIFile.h"
+#include "nsISupportsImpl.h" 
 #include "mozilla/FileUtils.h"
 #include "mozilla/FileLocation.h"
 
@@ -204,7 +205,8 @@ public:
 
 private:
   
-  nsrefcnt      mRefCnt; 
+  mozilla::ThreadSafeAutoRefCnt mRefCnt; 
+  NS_DECL_OWNINGTHREAD
 
   nsZipItem*    mFiles[ZIP_TABSIZE];
   PLArenaPool   mArena;
@@ -396,9 +398,10 @@ private:
 
   PRFileMap *                       mMap;    
   nsAutoPtr<nsZipItemPtr<uint8_t> > mBuf;
-  nsrefcnt                          mRefCnt; 
+  mozilla::ThreadSafeAutoRefCnt     mRefCnt; 
+  NS_DECL_OWNINGTHREAD
 };
 
 nsresult gZlibInit(z_stream *zs);
 
-#endif 
+#endif

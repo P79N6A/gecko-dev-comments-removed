@@ -22,7 +22,7 @@
 
 
 
-NS_IMPL_THREADSAFE_ISUPPORTS2(nsZipDataStream, nsIStreamListener,
+NS_IMPL_ISUPPORTS2(nsZipDataStream, nsIStreamListener,
                                                nsIRequestObserver)
 
 nsresult nsZipDataStream::Init(nsZipWriter *aWriter,
