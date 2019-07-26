@@ -755,7 +755,11 @@ pref("network.activity.blipIntervalMilliseconds", 250);
 
 pref("network.gonk.manage-offline-status", true);
 
+
+
+#ifndef MOZ_MULET
 pref("jsloader.reuseGlobal", true);
+#endif
 
 
 pref("font.size.inflation.minTwips", 120);

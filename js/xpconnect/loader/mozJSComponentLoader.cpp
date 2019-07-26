@@ -351,7 +351,8 @@ mozJSComponentLoader::ReallyInit()
 
     
     
-#ifdef MOZ_B2G
+    
+#if defined(MOZ_B2G) && !defined(MOZ_MULET)
     mReuseLoaderGlobal = true;
 #endif
 
