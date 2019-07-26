@@ -513,9 +513,7 @@ class TypeSet
     TypeFlags baseFlags() const { return flags & TYPE_FLAG_BASE_MASK; }
     bool unknown() const { return !!(flags & TYPE_FLAG_UNKNOWN); }
     bool unknownObject() const { return !!(flags & (TYPE_FLAG_UNKNOWN | TYPE_FLAG_ANYOBJECT)); }
-
     bool empty() const { return !baseFlags() && !baseObjectCount(); }
-    bool noConstraints() const { return constraintList == nullptr; }
 
     bool hasAnyFlag(TypeFlags flags) const {
         JS_ASSERT((flags & TYPE_FLAG_BASE_MASK) == flags);
@@ -533,6 +531,9 @@ class TypeSet
 
     
     static TemporaryTypeSet *unionSets(TypeSet *a, TypeSet *b, LifoAlloc *alloc);
+
+    
+    inline bool addType(Type type, LifoAlloc *alloc, bool *padded = NULL);
 
     
 
@@ -577,6 +578,9 @@ class TypeSet
     }
 
     
+    bool mightBeType(JSValueType type);
+
+    
 
 
 
@@ -592,10 +596,8 @@ class TypeSet
     inline HeapTypeSet *toHeapSet();
 
     
-
-
-
     TemporaryTypeSet *clone(LifoAlloc *alloc) const;
+    bool clone(LifoAlloc *alloc, TemporaryTypeSet *result) const;
 
   protected:
     uint32_t baseObjectCount() const {
@@ -620,6 +622,9 @@ class HeapTypeSet : public TypeSet
 
 class CompilerConstraintList;
 
+CompilerConstraintList *
+NewCompilerConstraintList();
+
 class TemporaryTypeSet : public TypeSet
 {
   public:
@@ -633,9 +638,6 @@ class TemporaryTypeSet : public TypeSet
     }
 
     
-    bool addObject(TypeObjectKey *key, LifoAlloc *alloc);
-
-    
 
 
 
@@ -646,9 +648,6 @@ class TemporaryTypeSet : public TypeSet
 
     
     JSValueType getKnownTypeTag();
-
-    
-    bool mightBeType(JSValueType type);
 
     bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
 
@@ -1158,7 +1157,7 @@ class TypeScript
 
   public:
     
-    TypeSet *typeArray() const { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
+    StackTypeSet *typeArray() const { return (StackTypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
 
     static inline unsigned NumTypeSets(JSScript *script);
 
@@ -1168,8 +1167,9 @@ class TypeScript
     
     static inline StackTypeSet *BytecodeTypes(JSScript *script, jsbytecode *pc);
 
-    
-    static inline TypeObject *StandardType(JSContext *cx, JSProtoKey kind);
+    template <typename TYPESET>
+    static inline TYPESET *BytecodeTypes(JSScript *script, jsbytecode *pc,
+                                         uint32_t *hint, TYPESET *typeArray);
 
     
     static inline TypeObject *InitObject(JSContext *cx, JSScript *script, jsbytecode *pc,
@@ -1196,7 +1196,16 @@ class TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg,
                                    const js::Value &value);
 
-    static void AddFreezeConstraints(JSContext *cx, JSScript *script);
+    
+
+
+
+
+    static bool FreezeTypeSets(CompilerConstraintList *constraints, JSScript *script,
+                               TemporaryTypeSet **pThisTypes,
+                               TemporaryTypeSet **pArgTypes,
+                               TemporaryTypeSet **pBytecodeTypes);
+
     static void Purge(JSContext *cx, HandleScript script);
 
     static void Sweep(FreeOp *fop, JSScript *script);
@@ -1210,6 +1219,15 @@ class TypeScript
     void printTypes(JSContext *cx, HandleScript script) const;
 #endif
 };
+
+class RecompileInfo;
+
+
+
+
+bool
+FinishCompilation(JSContext *cx, JSScript *script, ExecutionMode executionMode,
+                  CompilerConstraintList *constraints, RecompileInfo *precompileInfo);
 
 struct ArrayTableKey;
 typedef HashMap<ArrayTableKey,ReadBarriered<TypeObject>,ArrayTableKey,SystemAllocPolicy> ArrayTypeTable;
