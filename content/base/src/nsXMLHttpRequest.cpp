@@ -401,7 +401,7 @@ nsXMLHttpRequest::InitParameters(bool aAnon, bool aSystem)
 
   
   
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     nsCOMPtr<nsIDocument> doc = window->GetExtantDoc();
     if (!doc) {
       return;
@@ -1228,7 +1228,7 @@ bool
 nsXMLHttpRequest::IsSafeHeader(const nsACString& header, nsIHttpChannel* httpChannel)
 {
   
-  if (!nsContentUtils::IsCallerChrome() &&
+  if (!IsSystemXHR() &&
        (header.LowerCaseEqualsASCII("set-cookie") ||
         header.LowerCaseEqualsASCII("set-cookie2"))) {
     NS_WARNING("blocked access to response header");
@@ -2993,7 +2993,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
   
   
   bool isInvalidHeader = false;
-  const char *kInvalidHeaders[] = {
+  static const char *kInvalidHeaders[] = {
     "accept-charset", "accept-encoding", "access-control-request-headers",
     "access-control-request-method", "connection", "content-length",
     "cookie", "cookie2", "content-transfer-encoding", "date", "dnt",
@@ -3008,7 +3008,7 @@ nsXMLHttpRequest::SetRequestHeader(const nsACString& header,
     }
   }
 
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     
     if (isInvalidHeader) {
       NS_WARNING("refusing to set request header");
@@ -3198,7 +3198,7 @@ nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest)
 void
 nsXMLHttpRequest::SetMozBackgroundRequest(bool aMozBackgroundRequest, nsresult& aRv)
 {
-  if (!nsContentUtils::IsCallerChrome()) {
+  if (!IsSystemXHR()) {
     aRv = NS_ERROR_DOM_SECURITY_ERR;
     return;
   }
