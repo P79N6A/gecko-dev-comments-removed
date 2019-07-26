@@ -163,16 +163,14 @@ nsStreamConverterService::AddAdjacency(const char *aContractID) {
     SCTableData *fromEdges = (SCTableData*)mAdjacencyList.Get(&fromKey);
     if (!fromEdges) {
         
-        SCTableData *data = new SCTableData();
-        mAdjacencyList.Put(&fromKey, data);
-        fromEdges = data;
+        fromEdges = new SCTableData();
+        mAdjacencyList.Put(&fromKey, fromEdges);
     }
 
     nsCStringKey toKey(toStr);
     if (!mAdjacencyList.Get(&toKey)) {
         
-        SCTableData *data = new SCTableData();
-        mAdjacencyList.Put(&toKey, data);
+        mAdjacencyList.Put(&toKey, new SCTableData());
     }
 
     
