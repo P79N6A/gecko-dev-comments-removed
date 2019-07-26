@@ -2478,22 +2478,6 @@ frontend::EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *bod
         bce->switchToMain();
     }
 
-    
-
-
-
-
-    bool runOnce = bce->parent &&
-        bce->parent->emittingRunOnceLambda &&
-        !funbox->argumentsHasLocalBinding() &&
-        !funbox->isGenerator();
-    if (runOnce) {
-        bce->switchToProlog();
-        if (!Emit1(cx, bce, JSOP_RUNONCE) < 0)
-            return false;
-        bce->switchToMain();
-    }
-
     if (!EmitTree(cx, bce, body))
         return false;
 
@@ -2511,10 +2495,8 @@ frontend::EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *bod
 
 
 
-    if (runOnce) {
+    if (bce->parent && bce->parent->emittingRunOnceLambda)
         bce->script->treatAsRunOnce = true;
-        JS_ASSERT(!bce->script->hasRunOnce);
-    }
 
     
 
