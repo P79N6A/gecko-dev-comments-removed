@@ -89,9 +89,9 @@ class ChunkPool {
 };
 
 static inline JSGCTraceKind
-MapAllocToTraceKind(AllocKind thingKind)
+MapAllocToTraceKind(AllocKind kind)
 {
-    static const JSGCTraceKind map[FINALIZE_LIMIT] = {
+    static const JSGCTraceKind map[] = {
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
         JSTRACE_OBJECT,     
@@ -116,14 +116,15 @@ MapAllocToTraceKind(AllocKind thingKind)
         JSTRACE_STRING,     
         JSTRACE_IONCODE,    
     };
-    return map[thingKind];
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
+    return map[kind];
 }
 
 static inline bool
 IsNurseryAllocable(AllocKind kind)
 {
     JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
-    static const bool map[FINALIZE_LIMIT] = {
+    static const bool map[] = {
         false,     
         true,      
         false,     
@@ -145,8 +146,10 @@ IsNurseryAllocable(AllocKind kind)
 #endif
         true,      
         true,      
-        false      
+        false,     
+        false,     
     };
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
 }
 
@@ -154,7 +157,7 @@ static inline bool
 IsBackgroundFinalized(AllocKind kind)
 {
     JS_ASSERT(kind >= 0 && unsigned(kind) < FINALIZE_LIMIT);
-    static const bool map[FINALIZE_LIMIT] = {
+    static const bool map[] = {
         false,     
         true,      
         false,     
@@ -176,8 +179,10 @@ IsBackgroundFinalized(AllocKind kind)
 #endif
         true,      
         true,      
-        false      
+        false,     
+        false,     
     };
+    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(map) == FINALIZE_LIMIT);
     return map[kind];
 }
 
