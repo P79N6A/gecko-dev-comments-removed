@@ -6,6 +6,7 @@
 #include "nsIOService.h"
 #include "nsIEventTarget.h"
 #include "nsStreamUtils.h"
+#include "nsThreadUtils.h"
 #include "nsNetUtil.h"
 #include "prlog.h"
 
@@ -22,12 +23,51 @@ static PRLogModuleInfo *gStreamCopierLog = nullptr;
 
 
 
+
+class AsyncApplyBufferingPolicyEvent MOZ_FINAL: public nsRunnable
+{
+public:
+    
+
+
+
+    AsyncApplyBufferingPolicyEvent(nsAsyncStreamCopier* aCopier)
+        : mCopier(aCopier)
+      , mTarget(NS_GetCurrentThread())
+      { }
+    NS_METHOD Run()
+    {
+      nsresult rv = mCopier->ApplyBufferingPolicy();
+      if (NS_FAILED(rv)) {
+          mCopier->Cancel(rv);
+          return NS_OK;
+      }
+
+      nsCOMPtr<nsIRunnable> event = NS_NewRunnableMethod(mCopier, &nsAsyncStreamCopier::AsyncCopyInternal);
+      rv = mTarget->Dispatch(event, NS_DISPATCH_NORMAL);
+      MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+      if (NS_FAILED(rv)) {
+          mCopier->Cancel(rv);
+      }
+      return NS_OK;
+    }
+private:
+      nsRefPtr<nsAsyncStreamCopier> mCopier;
+      nsCOMPtr<nsIEventTarget> mTarget;
+};
+
+
+
+
+
 nsAsyncStreamCopier::nsAsyncStreamCopier()
     : mLock("nsAsyncStreamCopier.mLock")
     , mMode(NS_ASYNCCOPY_VIA_READSEGMENTS)
     , mChunkSize(nsIOService::gDefaultSegmentSize)
     , mStatus(NS_OK)
     , mIsPending(false)
+    , mShouldSniffBuffering(false)
 {
 #if defined(PR_LOGGING)
     if (!gStreamCopierLog)
@@ -48,6 +88,12 @@ nsAsyncStreamCopier::IsComplete(nsresult *status)
     if (status)
         *status = mStatus;
     return !mIsPending;
+}
+
+nsIRequest*
+nsAsyncStreamCopier::AsRequest()
+{
+    return static_cast<nsIRequest*>(static_cast<nsIAsyncStreamCopier*>(this));
 }
 
 void
@@ -73,7 +119,7 @@ nsAsyncStreamCopier::Complete(nsresult status)
 
     if (observer) {
         LOG(("  calling OnStopRequest [status=%x]\n", status));
-        observer->OnStopRequest(this, ctx, status);
+        observer->OnStopRequest(AsRequest(), ctx, status);
     }
 }
 
@@ -88,9 +134,19 @@ nsAsyncStreamCopier::OnAsyncCopyComplete(void *closure, nsresult status)
 
 
 
-NS_IMPL_ISUPPORTS2(nsAsyncStreamCopier,
-                              nsIRequest,
-                              nsIAsyncStreamCopier)
+
+
+
+NS_IMPL_ADDREF(nsAsyncStreamCopier)
+NS_IMPL_RELEASE(nsAsyncStreamCopier)
+NS_INTERFACE_TABLE_HEAD(nsAsyncStreamCopier)
+NS_INTERFACE_TABLE_BEGIN
+NS_INTERFACE_TABLE_ENTRY(nsAsyncStreamCopier, nsIAsyncStreamCopier)
+NS_INTERFACE_TABLE_ENTRY(nsAsyncStreamCopier, nsIAsyncStreamCopier2)
+NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(nsAsyncStreamCopier, nsIRequest, nsIAsyncStreamCopier)
+NS_INTERFACE_TABLE_ENTRY_AMBIGUOUS(nsAsyncStreamCopier, nsISupports, nsIAsyncStreamCopier)
+NS_INTERFACE_TABLE_END
+NS_INTERFACE_TABLE_TAIL
 
 
 
@@ -178,6 +234,38 @@ nsAsyncStreamCopier::SetLoadGroup(nsILoadGroup *aLoadGroup)
     return NS_OK;
 }
 
+nsresult
+nsAsyncStreamCopier::InitInternal(nsIInputStream *source,
+                                  nsIOutputStream *sink,
+                                  nsIEventTarget *target,
+                                  uint32_t chunkSize,
+                                  bool closeSource,
+                                  bool closeSink)
+{
+    NS_ASSERTION(!mSource && !mSink, "Init() called more than once");
+    if (chunkSize == 0) {
+        chunkSize = nsIOService::gDefaultSegmentSize;
+    }
+    mChunkSize = chunkSize;
+
+    mSource = source;
+    mSink = sink;
+    mCloseSource = closeSource;
+    mCloseSink = closeSink;
+
+    if (target) {
+        mTarget = target;
+    } else {
+        nsresult rv;
+        mTarget = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
+        if (NS_FAILED(rv)) {
+            return rv;
+        }
+    }
+
+    return NS_OK;
+}
+
 
 
 
@@ -192,27 +280,70 @@ nsAsyncStreamCopier::Init(nsIInputStream *source,
                           bool closeSink)
 {
     NS_ASSERTION(sourceBuffered || sinkBuffered, "at least one stream must be buffered");
-
-    if (chunkSize == 0)
-        chunkSize = nsIOService::gDefaultSegmentSize;
-    mChunkSize = chunkSize;
-
-    mSource = source;
-    mSink = sink;
-    mCloseSource = closeSource;
-    mCloseSink = closeSink;
-
     mMode = sourceBuffered ? NS_ASYNCCOPY_VIA_READSEGMENTS
                            : NS_ASYNCCOPY_VIA_WRITESEGMENTS;
-    if (target)
-        mTarget = target;
-    else {
-        nsresult rv;
-        mTarget = do_GetService(NS_STREAMTRANSPORTSERVICE_CONTRACTID, &rv);
-        if (NS_FAILED(rv)) return rv;
+
+    return InitInternal(source, sink, target, chunkSize, closeSource, closeSink);
+}
+
+
+
+
+NS_IMETHODIMP
+nsAsyncStreamCopier::Init(nsIInputStream *source,
+                          nsIOutputStream *sink,
+                          nsIEventTarget *target,
+                          uint32_t chunkSize,
+                          bool closeSource,
+                          bool closeSink)
+{
+    mShouldSniffBuffering = true;
+
+    return InitInternal(source, sink, target, chunkSize, closeSource, closeSink);
+}
+
+
+
+
+
+nsresult
+nsAsyncStreamCopier::ApplyBufferingPolicy()
+{
+    
+    
+    MOZ_ASSERT(!NS_IsMainThread());
+
+    if (NS_OutputStreamIsBuffered(mSink)) {
+      
+      mMode = NS_ASYNCCOPY_VIA_WRITESEGMENTS;
+      return NS_OK;
     }
+    if (NS_InputStreamIsBuffered(mSource)) {
+      
+      mMode = NS_ASYNCCOPY_VIA_READSEGMENTS;
+      return NS_OK;
+    }
+
+    
+    nsresult rv;
+    nsCOMPtr<nsIBufferedOutputStream> sink =
+      do_CreateInstance(NS_BUFFEREDOUTPUTSTREAM_CONTRACTID, &rv);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    rv = sink->Init(mSink, mChunkSize);
+    if (NS_FAILED(rv)) {
+      return rv;
+    }
+
+    mMode = NS_ASYNCCOPY_VIA_WRITESEGMENTS;
+    mSink = sink;
     return NS_OK;
 }
+
+
+
 
 NS_IMETHODIMP
 nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
@@ -233,11 +364,46 @@ nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
     mIsPending = true;
 
     if (mObserver) {
-        rv = mObserver->OnStartRequest(this, nullptr);
+        rv = mObserver->OnStartRequest(AsRequest(), nullptr);
         if (NS_FAILED(rv))
             Cancel(rv);
     }
 
+    if (!mShouldSniffBuffering) {
+        
+        AsyncCopyInternal();
+        return NS_OK;
+    }
+
+    if (NS_IsMainThread()) {
+        
+        nsCOMPtr<AsyncApplyBufferingPolicyEvent> event
+            = new AsyncApplyBufferingPolicyEvent(this);
+        rv = mTarget->Dispatch(event, NS_DISPATCH_NORMAL);
+        if (NS_FAILED(rv)) {
+          Cancel(rv);
+        }
+        return NS_OK;
+    }
+
+    
+    rv = ApplyBufferingPolicy();
+    if (NS_FAILED(rv)) {
+        Cancel(rv);
+    }
+    AsyncCopyInternal();
+    return NS_OK;
+}
+
+
+
+void
+nsAsyncStreamCopier::AsyncCopyInternal()
+{
+  MOZ_ASSERT(mMode ==  NS_ASYNCCOPY_VIA_READSEGMENTS
+             || mMode == NS_ASYNCCOPY_VIA_WRITESEGMENTS);
+
+    nsresult rv;
     
     
     NS_ADDREF_THIS();
@@ -251,6 +417,6 @@ nsAsyncStreamCopier::AsyncCopy(nsIRequestObserver *observer, nsISupports *ctx)
         NS_RELEASE_THIS();
         Cancel(rv);
     }
-
-    return NS_OK;
 }
+
+
