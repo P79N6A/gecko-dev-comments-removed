@@ -2,13 +2,14 @@
 
 
 
- 
+
 #ifndef nsXMLPrettyPrinter_h__
 #define nsXMLPrettyPrinter_h__
 
 #include "nsStubDocumentObserver.h"
-#include "nsIDocument.h"
 #include "nsCOMPtr.h"
+
+class nsIDocument;
 
 class nsXMLPrettyPrinter : public nsStubDocumentObserver
 {
