@@ -109,12 +109,6 @@ public:
     virtual ~DataConnectionListener() {}
 
     
-    virtual void NotifyConnection() = 0;
-
-    
-    virtual void NotifyClosedConnection() = 0;
-
-    
     virtual void NotifyDataChannel(already_AddRefed<DataChannel> channel) = 0;
   };
 
@@ -480,11 +474,9 @@ public:
 
   
   DataChannelOnMessageAvailable(int32_t     aType,
-                                DataChannelConnection *aConnection,
-                                bool aResult = true)
+                                DataChannelConnection *aConnection)
     : mType(aType),
-      mConnection(aConnection),
-      mResult(aResult) {}
+      mConnection(aConnection) {}
 
   NS_IMETHOD Run()
   {
@@ -533,14 +525,7 @@ public:
             
             mConnection->mListener->NotifyDataChannel(mChannel.forget());
             break;
-          case ON_CONNECTION:
-            if (mResult) {
-              mConnection->mListener->NotifyConnection();
-            }
-            
-            break;
-          case ON_DISCONNECTED:
-            mConnection->mListener->NotifyClosedConnection();
+          default:
             break;
         }
         break;
@@ -560,7 +545,6 @@ private:
   nsRefPtr<DataChannelConnection>   mConnection;
   nsCString                         mData;
   int32_t                           mLen;
-  bool                              mResult;
 };
 
 }

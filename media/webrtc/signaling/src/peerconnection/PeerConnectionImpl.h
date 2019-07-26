@@ -246,8 +246,6 @@ public:
   void onCallEvent(const OnCallEventArgs &args);
 
   
-  void NotifyConnection();
-  void NotifyClosedConnection();
   void NotifyDataChannel(already_AddRefed<mozilla::DataChannel> aChannel);
 
   
