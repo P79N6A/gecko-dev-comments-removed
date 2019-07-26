@@ -459,6 +459,9 @@ private:
   
   
   uint32_t mEventMode;
+
+  
+  bool mPendingFrameSent;
 };
 
 #endif

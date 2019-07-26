@@ -87,7 +87,7 @@ function visibilityChangeHandler(e) {
 }
 
 this.BrowserElementParentBuilder = {
-  create: function create(frameLoader, hasRemoteFrame) {
+  create: function create(frameLoader, hasRemoteFrame, isPendingFrame) {
     return new BrowserElementParent(frameLoader, hasRemoteFrame);
   }
 }
@@ -96,7 +96,7 @@ this.BrowserElementParentBuilder = {
 
 let activeInputFrame = null;
 
-function BrowserElementParent(frameLoader, hasRemoteFrame) {
+function BrowserElementParent(frameLoader, hasRemoteFrame, isPendingFrame) {
   debug("Creating new BrowserElementParent object for " + frameLoader);
   this._domRequestCounter = 0;
   this._pendingDOMRequests = {};
@@ -105,55 +105,11 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
 
   this._frameLoader = frameLoader;
   this._frameElement = frameLoader.QueryInterface(Ci.nsIFrameLoader).ownerElement;
+  let self = this;
   if (!this._frameElement) {
     debug("No frame element?");
     return;
   }
-
-  this._mm = frameLoader.messageManager;
-  let self = this;
-
-  
-  
-  
-  
-  let mmCalls = {
-    "hello": this._recvHello,
-    "contextmenu": this._fireCtxMenuEvent,
-    "locationchange": this._fireEventFromMsg,
-    "loadstart": this._fireEventFromMsg,
-    "loadend": this._fireEventFromMsg,
-    "titlechange": this._fireEventFromMsg,
-    "iconchange": this._fireEventFromMsg,
-    "close": this._fireEventFromMsg,
-    "resize": this._fireEventFromMsg,
-    "activitydone": this._fireEventFromMsg,
-    "opensearch": this._fireEventFromMsg,
-    "securitychange": this._fireEventFromMsg,
-    "error": this._fireEventFromMsg,
-    "scroll": this._fireEventFromMsg,
-    "firstpaint": this._fireEventFromMsg,
-    "documentfirstpaint": this._fireEventFromMsg,
-    "nextpaint": this._recvNextPaint,
-    "keyevent": this._fireKeyEvent,
-    "showmodalprompt": this._handleShowModalPrompt,
-    "got-purge-history": this._gotDOMRequestResult,
-    "got-screenshot": this._gotDOMRequestResult,
-    "got-can-go-back": this._gotDOMRequestResult,
-    "got-can-go-forward": this._gotDOMRequestResult,
-    "fullscreen-origin-change": this._remoteFullscreenOriginChange,
-    "rollback-fullscreen": this._remoteFrameFullscreenReverted,
-    "exit-fullscreen": this._exitFullscreen,
-    "got-visible": this._gotDOMRequestResult,
-    "visibilitychange": this._childVisibilityChange,
-    "got-set-input-method-active": this._gotDOMRequestResult
-  }
-
-  this._mm.addMessageListener('browser-element-api:call', function(aMsg) {
-    if (self._isAlive() && (aMsg.data.msg_name in mmCalls)) {
-      return mmCalls[aMsg.data.msg_name].apply(self, arguments);
-    }
-  });
 
   Services.obs.addObserver(this, 'ask-children-to-exit-fullscreen',  true);
   Services.obs.addObserver(this, 'oop-frameloader-crashed',  true);
@@ -166,8 +122,26 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
     };
   }
 
+  let defineNoReturnMethod = function(name, fn) {
+    XPCNativeWrapper.unwrap(self._frameElement)[name] = function method() {
+      if (!self._mm) {
+        
+        let args = Array.slice(arguments);
+        args.unshift(self);
+        self._pendingAPICalls.push(method.bind.apply(fn, args));
+        return;
+      }
+      if (self._isAlive()) {
+        fn.apply(self, arguments);
+      }
+    };
+  };
+
   let defineDOMRequestMethod = function(domName, msgName) {
     XPCNativeWrapper.unwrap(self._frameElement)[domName] = function() {
+      if (!self._mm) {
+        return self._queueDOMRequest;
+      }
       if (self._isAlive()) {
         return self._sendDOMRequest(msgName);
       }
@@ -175,19 +149,19 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
   }
 
   
-  defineMethod('setVisible', this._setVisible);
+  defineNoReturnMethod('setVisible', this._setVisible);
   defineDOMRequestMethod('getVisible', 'get-visible');
-  defineMethod('sendMouseEvent', this._sendMouseEvent);
+  defineNoReturnMethod('sendMouseEvent', this._sendMouseEvent);
 
   
   if (getIntPref(TOUCH_EVENTS_ENABLED_PREF, 0) != 0) {
-    defineMethod('sendTouchEvent', this._sendTouchEvent);
+    defineNoReturnMethod('sendTouchEvent', this._sendTouchEvent);
   }
-  defineMethod('goBack', this._goBack);
-  defineMethod('goForward', this._goForward);
-  defineMethod('reload', this._reload);
-  defineMethod('stop', this._stop);
-  defineMethod('purgeHistory', this._purgeHistory);
+  defineNoReturnMethod('goBack', this._goBack);
+  defineNoReturnMethod('goForward', this._goForward);
+  defineNoReturnMethod('reload', this._reload);
+  defineNoReturnMethod('stop', this._stop);
+  defineDOMRequestMethod('purgeHistory', 'purge-history');
   defineMethod('getScreenshot', this._getScreenshot);
   defineMethod('addNextPaintListener', this._addNextPaintListener);
   defineMethod('removeNextPaintListener', this._removeNextPaintListener);
@@ -223,17 +197,14 @@ function BrowserElementParent(frameLoader, hasRemoteFrame) {
 
   
   BrowserElementPromptService.mapFrameToBrowserElementParent(this._frameElement, this);
-
-  
-  
-  let appManifestURL =
-    this._frameElement.QueryInterface(Ci.nsIMozBrowserFrame).appManifestURL;
-  if (appManifestURL) {
-    let appId =
-      DOMApplicationRegistry.getAppLocalIdByManifestURL(appManifestURL);
-    if (appId != Ci.nsIScriptSecurityManager.NO_APP_ID) {
-      DOMApplicationRegistry.registerBrowserElementParentForApp(this, appId);
-    }
+  if (!isPendingFrame) {
+    this._setupMessageListener();
+    this._registerAppManifest();
+  } else {
+    
+    
+    this._pendingAPICalls = [];
+    Services.obs.addObserver(this, 'remote-browser-frame-shown',  true);
   }
 }
 
@@ -241,6 +212,82 @@ BrowserElementParent.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
                                          Ci.nsISupportsWeakReference]),
+
+  _runPendingAPICall: function() {
+    if (!this._pendingAPICalls) {
+      return;
+    }
+    for (let i = 0; i < this._pendingAPICalls.length; i++) {
+      try {
+        this._pendingAPICalls[i]();
+      } catch (e) {
+        
+        debug('Exception when running pending API call: ' +  e);
+      }
+    }
+    delete this._pendingAPICalls;
+  },
+
+  _registerAppManifest: function() {
+    
+    
+    let appManifestURL =
+          this._frameElement.QueryInterface(Ci.nsIMozBrowserFrame).appManifestURL;
+    if (appManifestURL) {
+      let appId =
+            DOMApplicationRegistry.getAppLocalIdByManifestURL(appManifestURL);
+      if (appId != Ci.nsIScriptSecurityManager.NO_APP_ID) {
+        DOMApplicationRegistry.registerBrowserElementParentForApp(this, appId);
+      }
+    }
+  },
+
+  _setupMessageListener: function() {
+    this._mm = this._frameLoader.messageManager;
+    let self = this;
+
+    
+    
+    
+    
+    let mmCalls = {
+      "hello": this._recvHello,
+      "contextmenu": this._fireCtxMenuEvent,
+      "locationchange": this._fireEventFromMsg,
+      "loadstart": this._fireEventFromMsg,
+      "loadend": this._fireEventFromMsg,
+      "titlechange": this._fireEventFromMsg,
+      "iconchange": this._fireEventFromMsg,
+      "close": this._fireEventFromMsg,
+      "resize": this._fireEventFromMsg,
+      "activitydone": this._fireEventFromMsg,
+      "opensearch": this._fireEventFromMsg,
+      "securitychange": this._fireEventFromMsg,
+      "error": this._fireEventFromMsg,
+      "scroll": this._fireEventFromMsg,
+      "firstpaint": this._fireEventFromMsg,
+      "documentfirstpaint": this._fireEventFromMsg,
+      "nextpaint": this._recvNextPaint,
+      "keyevent": this._fireKeyEvent,
+      "showmodalprompt": this._handleShowModalPrompt,
+      "got-purge-history": this._gotDOMRequestResult,
+      "got-screenshot": this._gotDOMRequestResult,
+      "got-can-go-back": this._gotDOMRequestResult,
+      "got-can-go-forward": this._gotDOMRequestResult,
+      "fullscreen-origin-change": this._remoteFullscreenOriginChange,
+      "rollback-fullscreen": this._remoteFrameFullscreenReverted,
+      "exit-fullscreen": this._exitFullscreen,
+      "got-visible": this._gotDOMRequestResult,
+      "visibilitychange": this._childVisibilityChange,
+      "got-set-input-method-active": this._gotDOMRequestResult
+    };
+
+    this._mm.addMessageListener('browser-element-api:call', function(aMsg) {
+      if (self._isAlive() && (aMsg.data.msg_name in mmCalls)) {
+        return mmCalls[aMsg.data.msg_name].apply(self, arguments);
+      }
+    });
+  },
 
   
 
@@ -450,6 +497,32 @@ BrowserElementParent.prototype = {
 
 
 
+  _queueDOMRequest: function(msgName, args) {
+    if (!this._pendingAPICalls) {
+      return;
+    }
+
+    let req = Services.DOMRequest.createRequest(this._window);
+    let self = this;
+    let getRealDOMRequest = function() {
+      let realReq = self._sendDOMRequest(msgName, args);
+      realReq.onsuccess = function(v) {
+        Services.DOMRequest.fireSuccess(req, v);
+      };
+      realReq.onerror = function(v) {
+        Services.DOMRequest.fireError(req, v);
+      };
+    };
+    this._pendingAPICalls.push(getRealDOMRequest);
+    return req;
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -543,10 +616,6 @@ BrowserElementParent.prototype = {
     this._sendAsyncMsg('stop');
   },
 
-  _purgeHistory: function() {
-    return this._sendDOMRequest('purge-history');
-  },
-
   _getScreenshot: function(_width, _height, _mimeType) {
     let width = parseInt(_width);
     let height = parseInt(_height);
@@ -555,6 +624,13 @@ BrowserElementParent.prototype = {
     if (isNaN(width) || isNaN(height) || width < 0 || height < 0) {
       throw Components.Exception("Invalid argument",
                                  Cr.NS_ERROR_INVALID_ARG);
+    }
+
+    if (!this._mm) {
+      
+      return this._queueDOMRequest('get-screenshot',
+                                   {width: width, height: height,
+                                    mimeType: mimeType});
     }
 
     return this._sendDOMRequest('get-screenshot',
@@ -578,23 +654,39 @@ BrowserElementParent.prototype = {
     if (typeof listener != 'function')
       throw Components.Exception("Invalid argument", Cr.NS_ERROR_INVALID_ARG);
 
-    if (this._nextPaintListeners.push(listener) == 1)
-      this._sendAsyncMsg('activate-next-paint-listener');
+    let self = this;
+    let run = function() {
+      if (self._nextPaintListeners.push(listener) == 1)
+        self._sendAsyncMsg('activate-next-paint-listener');
+    };
+    if (!this._mm) {
+      this._pendingAPICalls.push(run);
+    } else {
+      run();
+    }
   },
 
   _removeNextPaintListener: function(listener) {
     if (typeof listener != 'function')
       throw Components.Exception("Invalid argument", Cr.NS_ERROR_INVALID_ARG);
 
-    for (let i = this._nextPaintListeners.length - 1; i >= 0; i--) {
-      if (this._nextPaintListeners[i] == listener) {
-        this._nextPaintListeners.splice(i, 1);
-        break;
+    let self = this;
+    let run = function() {
+      for (let i = self._nextPaintListeners.length - 1; i >= 0; i--) {
+        if (self._nextPaintListeners[i] == listener) {
+          self._nextPaintListeners.splice(i, 1);
+          break;
+        }
       }
-    }
 
-    if (this._nextPaintListeners.length == 0)
-      this._sendAsyncMsg('deactivate-next-paint-listener');
+      if (self._nextPaintListeners.length == 0)
+        self._sendAsyncMsg('deactivate-next-paint-listener');
+    };
+    if (!this._mm) {
+      this._pendingAPICalls.push(run);
+    } else {
+      run();
+    }
   },
 
   _setInputMethodActive: function(isActive) {
@@ -704,6 +796,15 @@ BrowserElementParent.prototype = {
         this._sendAsyncMsg('exit-fullscreen');
       }
       break;
+    case 'remote-browser-frame-shown':
+      if (this._frameLoader == subject) {
+        if (!this._mm) {
+          this._setupMessageListener();
+          this._registerAppManifest();
+          this._runPendingAPICall();
+        }
+        Services.obs.removeObserver(this, 'remote-browser-frame-shown');
+      }
     default:
       debug('Unknown topic: ' + topic);
       break;
