@@ -204,8 +204,11 @@ public:
     gfxFontFamily *FindFamilyFor(gfxFontEntry *aFontEntry) const;
 
     
+    
+    
     virtual nsresult CheckFontLoad(const gfxFontFaceSrc *aFontFaceSrc,
-                                   nsIPrincipal **aPrincipal) = 0;
+                                   nsIPrincipal **aPrincipal,
+                                   bool *aBypassCache) = 0;
 
     
     
