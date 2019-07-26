@@ -220,17 +220,6 @@ var FirefoxCom = (function FirefoxComClosure() {
 
 
 var Settings = (function SettingsClosure() {
-  var isLocalStorageEnabled = (function localStorageEnabledTest() {
-    
-    
-    
-    try {
-      return 'localStorage' in window && window['localStorage'] !== null &&
-          localStorage;
-    } catch (e) {
-      return false;
-    }
-  })();
 
   function Settings(fingerprint) {
     this.fingerprint = fingerprint;
@@ -274,7 +263,10 @@ var Settings = (function SettingsClosure() {
       var file = this.file;
       file[name] = val;
       var database = JSON.stringify(this.database);
+
+
       FirefoxCom.requestSync('setDatabase', database);
+
     },
 
     get: function settingsGet(name, defaultValue) {
@@ -3107,6 +3099,9 @@ window.addEventListener('scalechange', function scalechange(evt) {
     customScaleOption.textContent = Math.round(evt.scale * 10000) / 100 + '%';
     customScaleOption.selected = true;
   }
+  
+  document.getElementById('zoom_out').disabled = (evt.scale === MIN_SCALE);
+  document.getElementById('zoom_in').disabled = (evt.scale === MAX_SCALE);
 
   updateViewarea();
 }, true);
@@ -3256,6 +3251,12 @@ window.addEventListener('keydown', function keydown(evt) {
       case 80: 
         PDFView.page--;
         handled = true;
+        break;
+      case 27: 
+        if (!PDFView.supportsIntegratedFind && PDFFindBar.opened) {
+          PDFFindBar.close();
+          handled = true;
+        }
         break;
       case 40: 
       case 34: 
