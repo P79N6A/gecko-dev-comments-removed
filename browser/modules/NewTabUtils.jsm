@@ -199,9 +199,17 @@ LinksStorage.prototype = {
   
 
 
+
+  remove: function Storage_remove(aKey) {
+    Services.prefs.clearUserPref(this._prefs[aKey]);
+  },
+
+  
+
+
   clear: function Storage_clear() {
-    for each (let pref in this._prefs) {
-      Services.prefs.clearUserPref(pref);
+    for (let key in this._prefs) {
+      this.remove(key);
     }
   }
 };
@@ -811,6 +819,18 @@ this.NewTabUtils = {
     Links.populateCache(function () {
       AllPages.update();
     }, true);
+  },
+
+  
+
+
+
+
+  undoAll: function NewTabUtils_undoAll(aCallback) {
+    Storage.remove("blockedLinks");
+    Links.resetCache();
+    BlockedLinks.resetCache();
+    Links.populateCache(aCallback, true);
   },
 
   links: Links,

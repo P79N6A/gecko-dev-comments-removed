@@ -19,6 +19,19 @@ input[type=button] {
 }
 
 
+#newtab-undo-container {
+  transition: opacity 100ms ease-out;
+  display: -moz-box;
+  -moz-box-align: center;
+  -moz-box-pack: center;
+}
+
+#newtab-undo-container[undo-disabled] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+
 #newtab-toggle {
   position: absolute;
   top: 12px;
@@ -41,7 +54,10 @@ input[type=button] {
 #newtab-margin-top {
   min-height: 50px;
   max-height: 80px;
+  display: -moz-box;
   -moz-box-flex: 1;
+  -moz-box-align: center;
+  -moz-box-pack: center;
 }
 
 #newtab-margin-bottom {
