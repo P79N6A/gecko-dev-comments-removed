@@ -597,6 +597,14 @@ this.UtteranceGenerator = {
 
     rowheader: function rowheader() {
       return this.objectOutputFunctions.cell.apply(this, arguments);
+    },
+
+    statictext: function statictext(aAccessible) {
+      if (Utils.isListItemDecorator(aAccessible, true)) {
+        return [];
+      }
+
+      return this.objectOutputFunctions.defaultFunc.apply(this, arguments);
     }
   },
 
@@ -778,7 +786,7 @@ this.BrailleGenerator = {
     statictext: function statictext(aAccessible, aRoleStr, aState, aFlags) {
       
       
-      if (aAccessible.parent.role == Roles.LISTITEM) {
+      if (Utils.isListItemDecorator(aAccessible)) {
         return [];
       }
 
