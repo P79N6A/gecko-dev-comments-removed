@@ -87,11 +87,7 @@
 #include "nsIDownloadHistory.h" 
 #include "nsDocShellCID.h"
 
-#include "nsIDOMWindow.h"
-#include "nsIDocShell.h"
-
 #include "nsCRT.h"
-
 #include "nsLocalHandlerApp.h"
 
 #include "nsIRandomGenerator.h"
@@ -293,7 +289,10 @@ static bool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
 
 
-static nsresult GetDownloadDirectory(nsIFile **_directory)
+
+
+static nsresult GetDownloadDirectory(nsIFile **_directory,
+                                     bool aSkipChecks = false)
 {
   nsCOMPtr<nsIFile> dir;
 #ifdef XP_MACOSX
@@ -308,6 +307,12 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
                                 NS_GET_IID(nsIFile),
                                 getter_AddRefs(dir));
         if (!dir) break;
+
+        
+        if (aSkipChecks) {
+          dir.forget(_directory);
+          return NS_OK;
+        }
 
         
         bool dirExists = false;
@@ -342,13 +347,35 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   nsString storageName;
   nsDOMDeviceStorage::GetDefaultStorageName(NS_LITERAL_STRING("sdcard"),
                                             storageName);
-  NS_ENSURE_TRUE(!storageName.IsEmpty(), NS_ERROR_FAILURE);
 
   DeviceStorageFile dsf(NS_LITERAL_STRING("sdcard"),
                         storageName,
                         NS_LITERAL_STRING("downloads"));
   NS_ENSURE_TRUE(dsf.mFile, NS_ERROR_FILE_ACCESS_DENIED);
-  NS_ENSURE_TRUE(dsf.IsAvailable(), NS_ERROR_FILE_ACCESS_DENIED);
+
+  
+  if (aSkipChecks) {
+    dsf.mFile.forget(_directory);
+    return NS_OK;
+  }
+
+  
+  nsString storageStatus;
+  dsf.GetStatus(storageStatus);
+
+  
+  
+  
+  if (storageStatus.EqualsLiteral("unavailable") ||
+      storageStatus.IsEmpty()) {
+    return NS_ERROR_FILE_NOT_FOUND;
+  }
+
+  
+  
+  if (!storageStatus.EqualsLiteral("available")) {
+    return NS_ERROR_FILE_ACCESS_DENIED;
+  }
 
   bool alreadyThere;
   nsresult rv = dsf.mFile->Exists(&alreadyThere);
@@ -366,11 +393,17 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   char* downloadDir = getenv("DOWNLOADS_DIRECTORY");
   nsresult rv;
   if (downloadDir) {
-    nsCOMPtr<nsIFile> ldir; 
+    nsCOMPtr<nsIFile> ldir;
     rv = NS_NewNativeLocalFile(nsDependentCString(downloadDir),
                                true, getter_AddRefs(ldir));
     NS_ENSURE_SUCCESS(rv, rv);
     dir = do_QueryInterface(ldir);
+
+    
+    if (aSkipChecks) {
+      dir.forget(_directory);
+      return NS_OK;
+    }
   }
   else {
     return NS_ERROR_FAILURE;
@@ -1621,12 +1654,25 @@ NS_IMETHODIMP nsExternalAppHandler::OnStartRequest(nsIRequest *request, nsISuppo
 
   rv = SetUpTempFile(aChannel);
   if (NS_FAILED(rv)) {
+    nsresult transferError = rv;
+
+    rv = CreateFailedTransfer(aChannel && NS_UsePrivateBrowsing(aChannel));
+#ifdef PR_LOGGING
+    if (NS_FAILED(rv)) {
+      LOG(("Failed to create transfer to report failure."
+           "Will fallback to prompter!"));
+    }
+#endif
+
     mCanceled = true;
-    request->Cancel(rv);
+    request->Cancel(transferError);
+
     nsAutoString path;
     if (mTempFile)
       mTempFile->GetPath(path);
-    SendStatusChange(kWriteError, rv, request, path);
+
+    SendStatusChange(kWriteError, transferError, request, path);
+
     return NS_OK;
   }
 
@@ -1787,7 +1833,8 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
           
 #if defined(ANDROID)
           
-          msgId.AssignLiteral("accessErrorSD");
+          
+          msgId.AssignLiteral("SDAccessErrorCardReadOnly");
 #else
           msgId.AssignLiteral("accessError");
 #endif
@@ -1806,6 +1853,14 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
           msgId.AssignLiteral("helperAppNotFound");
           break;
         }
+#if defined(ANDROID)
+        else if (type == kWriteError) {
+          
+          
+          msgId.AssignLiteral("SDAccessErrorCardMissing");
+          break;
+        }
+#endif
         
 
     default:
@@ -2135,6 +2190,39 @@ nsresult nsExternalAppHandler::CreateTransfer()
   }
 
   return rv;
+}
+
+nsresult nsExternalAppHandler::CreateFailedTransfer(bool aIsPrivateBrowsing)
+{
+  nsresult rv;
+  nsCOMPtr<nsITransfer> transfer =
+    do_CreateInstance(NS_TRANSFER_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsCOMPtr<nsIFile> pseudoFile;
+  rv = GetDownloadDirectory(getter_AddRefs(pseudoFile), true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  rv = pseudoFile->Append(mSuggestedFileName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIURI> pseudoTarget;
+  rv = NS_NewFileURI(getter_AddRefs(pseudoTarget), pseudoFile);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  rv = transfer->Init(mSourceUrl, pseudoTarget, EmptyString(),
+                      mMimeInfo, mTimeDownloadStarted, nullptr, this,
+                      aIsPrivateBrowsing);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  mTransfer = transfer.forget();
+
+  return NS_OK;
 }
 
 nsresult nsExternalAppHandler::SaveDestinationAvailable(nsIFile * aFile)

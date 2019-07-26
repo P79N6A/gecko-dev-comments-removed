@@ -360,6 +360,12 @@ protected:
 
 
 
+  nsresult CreateFailedTransfer(bool aIsPrivateBrowsing);
+
+  
+
+
+
 
 
 
