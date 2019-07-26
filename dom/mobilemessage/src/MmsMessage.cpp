@@ -18,7 +18,6 @@
 #include "nsCxPusher.h"
 #include "MessageUtils.h"
 
-using namespace mozilla::idl;
 using namespace mozilla::dom::mobilemessage;
 
 DOMCI_DATA(MozMmsMessage, mozilla::dom::MmsMessage)
@@ -47,7 +46,7 @@ MmsMessage::MmsMessage(int32_t                          aId,
                        bool                             aRead,
                        const nsAString&                 aSubject,
                        const nsAString&                 aSmil,
-                       const nsTArray<MmsAttachment>&   aAttachments,
+                       const nsTArray<Attachment>&      aAttachments,
                        uint64_t                         aExpiryDate,
                        bool                             aReadReportRequested)
   : mId(aId),
@@ -88,12 +87,12 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
   for (uint32_t i = 0; i < len; i++) {
     MmsAttachment att;
     const MmsAttachmentData &element = aData.attachments()[i];
-    att.id = element.id();
-    att.location = element.location();
+    att.mId = element.id();
+    att.mLocation = element.location();
     if (element.contentParent()) {
-      att.content = static_cast<BlobParent*>(element.contentParent())->GetBlob();
+      att.mContent = static_cast<BlobParent*>(element.contentParent())->GetBlob();
     } else if (element.contentChild()) {
-      att.content = static_cast<BlobChild*>(element.contentChild())->GetBlob();
+      att.mContent = static_cast<BlobChild*>(element.contentChild())->GetBlob();
     } else {
       NS_WARNING("MmsMessage: Unable to get attachment content.");
     }
@@ -107,7 +106,7 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
     const MmsDeliveryInfoData &infoData = aData.deliveryInfo()[i];
 
     
-    info.receiver = infoData.receiver();
+    info.mReceiver = infoData.receiver();
 
     
     nsString statusStr;
@@ -134,10 +133,10 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
       default:
         MOZ_CRASH("We shouldn't get any other delivery status!");
     }
-    info.deliveryStatus = statusStr;
+    info.mDeliveryStatus = statusStr;
 
     
-    info.deliveryTimestamp = infoData.deliveryTimestamp();
+    info.mDeliveryTimestamp = infoData.deliveryTimestamp();
 
     
     nsString statusReadString;
@@ -158,10 +157,10 @@ MmsMessage::MmsMessage(const mobilemessage::MmsMessageData& aData)
       default:
         MOZ_CRASH("We shouldn't get any other read status!");
     }
-    info.readStatus = statusReadString;
+    info.mReadStatus = statusReadString;
 
     
-    info.readTimestamp = infoData.readTimestamp();
+    info.mReadTimestamp = infoData.readTimestamp();
 
     mDeliveryInfo.AppendElement(info);
   }
@@ -225,8 +224,9 @@ MmsMessage::Create(int32_t               aId,
     }
 
     MmsDeliveryInfo info;
-    nsresult rv = info.Init(aCx, infoJsVal.address());
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (!info.Init(aCx, infoJsVal)) {
+      return NS_ERROR_TYPE_ERR;
+    }
 
     deliveryInfo.AppendElement(info);
   }
@@ -274,7 +274,7 @@ MmsMessage::Create(int32_t               aId,
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsTArray<MmsAttachment> attachments;
+  nsTArray<Attachment> attachments;
   MOZ_ALWAYS_TRUE(JS_GetArrayLength(aCx, attachmentsObj, &length));
 
   JS::Rooted<JS::Value> attachmentJsVal(aCx);
@@ -284,8 +284,9 @@ MmsMessage::Create(int32_t               aId,
     }
 
     MmsAttachment attachment;
-    rv = attachment.Init(aCx, attachmentJsVal.address());
-    NS_ENSURE_SUCCESS(rv, rv);
+    if (!attachment.Init(aCx, attachmentJsVal)) {
+      return NS_ERROR_TYPE_ERR;
+    }
 
     attachments.AppendElement(attachment);
   }
@@ -340,21 +341,21 @@ MmsMessage::GetData(ContentParent* aParent,
     const MmsDeliveryInfo &info = mDeliveryInfo[i];
 
     
-    infoData.receiver().Assign(info.receiver);
+    infoData.receiver().Assign(info.mReceiver);
 
     
     DeliveryStatus status;
-    if (info.deliveryStatus.Equals(DELIVERY_STATUS_NOT_APPLICABLE)) {
+    if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_NOT_APPLICABLE)) {
       status = eDeliveryStatus_NotApplicable;
-    } else if (info.deliveryStatus.Equals(DELIVERY_STATUS_SUCCESS)) {
+    } else if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_SUCCESS)) {
       status = eDeliveryStatus_Success;
-    } else if (info.deliveryStatus.Equals(DELIVERY_STATUS_PENDING)) {
+    } else if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_PENDING)) {
       status = eDeliveryStatus_Pending;
-    } else if (info.deliveryStatus.Equals(DELIVERY_STATUS_ERROR)) {
+    } else if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_ERROR)) {
       status = eDeliveryStatus_Error;
-    } else if (info.deliveryStatus.Equals(DELIVERY_STATUS_REJECTED)) {
+    } else if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_REJECTED)) {
       status = eDeliveryStatus_Reject;
-    } else if (info.deliveryStatus.Equals(DELIVERY_STATUS_MANUAL)) {
+    } else if (info.mDeliveryStatus.Equals(DELIVERY_STATUS_MANUAL)) {
       status = eDeliveryStatus_Manual;
     } else {
       return false;
@@ -362,17 +363,17 @@ MmsMessage::GetData(ContentParent* aParent,
     infoData.deliveryStatus() = status;
 
     
-    infoData.deliveryTimestamp() = info.deliveryTimestamp;
+    infoData.deliveryTimestamp() = info.mDeliveryTimestamp;
 
     
     ReadStatus readStatus;
-    if (info.readStatus.Equals(READ_STATUS_NOT_APPLICABLE)) {
+    if (info.mReadStatus.Equals(READ_STATUS_NOT_APPLICABLE)) {
       readStatus = eReadStatus_NotApplicable;
-    } else if (info.readStatus.Equals(READ_STATUS_SUCCESS)) {
+    } else if (info.mReadStatus.Equals(READ_STATUS_SUCCESS)) {
       readStatus = eReadStatus_Success;
-    } else if (info.readStatus.Equals(READ_STATUS_PENDING)) {
+    } else if (info.mReadStatus.Equals(READ_STATUS_PENDING)) {
       readStatus = eReadStatus_Pending;
-    } else if (info.readStatus.Equals(READ_STATUS_ERROR)) {
+    } else if (info.mReadStatus.Equals(READ_STATUS_ERROR)) {
       readStatus = eReadStatus_Error;
     } else {
       return false;
@@ -380,7 +381,7 @@ MmsMessage::GetData(ContentParent* aParent,
     infoData.readStatus() = readStatus;
 
     
-    infoData.readTimestamp() = info.readTimestamp;
+    infoData.readTimestamp() = info.mReadTimestamp;
 
     aData.deliveryInfo().AppendElement(infoData);
   }
@@ -388,7 +389,7 @@ MmsMessage::GetData(ContentParent* aParent,
   aData.attachments().SetCapacity(mAttachments.Length());
   for (uint32_t i = 0; i < mAttachments.Length(); i++) {
     MmsAttachmentData mma;
-    const MmsAttachment &element = mAttachments[i];
+    const Attachment &element = mAttachments[i];
     mma.id().Assign(element.id);
     mma.location().Assign(element.location);
 
@@ -498,8 +499,8 @@ MmsMessage::GetDeliveryInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aDelive
 
     
     tmpJsStr = JS_NewUCStringCopyN(aCx,
-                                   info.receiver.get(),
-                                   info.receiver.Length());
+                                   info.mReceiver.get(),
+                                   info.mReceiver.Length());
     NS_ENSURE_TRUE(tmpJsStr, NS_ERROR_OUT_OF_MEMORY);
 
     tmpJsVal.setString(tmpJsStr);
@@ -510,8 +511,8 @@ MmsMessage::GetDeliveryInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aDelive
 
     
     tmpJsStr = JS_NewUCStringCopyN(aCx,
-                                   info.deliveryStatus.get(),
-                                   info.deliveryStatus.Length());
+                                   info.mDeliveryStatus.get(),
+                                   info.mDeliveryStatus.Length());
     NS_ENSURE_TRUE(tmpJsStr, NS_ERROR_OUT_OF_MEMORY);
 
     tmpJsVal.setString(tmpJsStr);
@@ -521,7 +522,7 @@ MmsMessage::GetDeliveryInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aDelive
     }
 
     
-    tmpJsVal.setNumber(static_cast<double>(info.deliveryTimestamp));
+    tmpJsVal.setNumber(static_cast<double>(info.mDeliveryTimestamp));
     if (!JS_DefineProperty(aCx, infoJsObj, "deliveryTimestamp", tmpJsVal,
                            nullptr, nullptr, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
@@ -529,8 +530,8 @@ MmsMessage::GetDeliveryInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aDelive
 
     
     tmpJsStr = JS_NewUCStringCopyN(aCx,
-                                   info.readStatus.get(),
-                                   info.readStatus.Length());
+                                   info.mReadStatus.get(),
+                                   info.mReadStatus.Length());
     NS_ENSURE_TRUE(tmpJsStr, NS_ERROR_OUT_OF_MEMORY);
 
     tmpJsVal.setString(tmpJsStr);
@@ -540,7 +541,7 @@ MmsMessage::GetDeliveryInfo(JSContext* aCx, JS::MutableHandle<JS::Value> aDelive
     }
 
     
-    tmpJsVal.setNumber(static_cast<double>(info.readTimestamp));
+    tmpJsVal.setNumber(static_cast<double>(info.mReadTimestamp));
     if (!JS_DefineProperty(aCx, infoJsObj, "readTimestamp", tmpJsVal,
                            nullptr, nullptr, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
@@ -618,7 +619,7 @@ MmsMessage::GetAttachments(JSContext* aCx, JS::MutableHandle<JS::Value> aAttachm
   NS_ENSURE_TRUE(attachments, NS_ERROR_OUT_OF_MEMORY);
 
   for (uint32_t i = 0; i < length; ++i) {
-    const MmsAttachment &attachment = mAttachments[i];
+    const Attachment &attachment = mAttachments[i];
 
     JS::Rooted<JSObject*> attachmentObj(
       aCx, JS_NewObject(aCx, nullptr, JS::NullPtr(), JS::NullPtr()));
