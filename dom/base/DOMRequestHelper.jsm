@@ -185,12 +185,13 @@ DOMRequestIpcHelper.prototype = {
 
     this._listeners = null;
     this._requests = null;
-    this._window = null;
 
     
     if (this.uninit) {
       this.uninit();
     }
+
+    this._window = null;
   },
 
   observe: function(aSubject, aTopic, aData) {
