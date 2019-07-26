@@ -220,14 +220,6 @@ Sanitizer.prototype = {
         }
         catch (e) { }
 
-        
-        var prefs = Components.classes["@mozilla.org/preferences-service;1"]
-                              .getService(Components.interfaces.nsIPrefBranch);
-        try {
-          prefs.clearUserPref("general.open_location.last_url");
-        }
-        catch (e) { }
-
         try {
           var seer = Components.classes["@mozilla.org/network/seer;1"]
                                .getService(Components.interfaces.nsINetworkSeer);
