@@ -8,8 +8,6 @@ function verifyDataCellLocationInfo(aLac, aCid) {
   let cell = mobileConnection.data.cell;
   ok(cell, "location available");
 
-  
-  
   is(cell.gsmLocationAreaCode, aLac, "data.cell.gsmLocationAreaCode");
   is(cell.gsmCellId, aCid, "data.cell.gsmCellId");
   is(cell.cdmaBaseStationId, -1, "data.cell.cdmaBaseStationId");
