@@ -211,7 +211,8 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
 
   int32_t index = Index();
   uint32_t mask = HTMLSelectElement::SET_DISABLED;
-  if (aValue) {
+  bool defaultSelected = aValue;
+  if (defaultSelected) {
     mask |= HTMLSelectElement::IS_SELECTED;
   }
 
@@ -227,8 +228,10 @@ HTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
   
   
   mIsInSetDefaultSelected = inSetDefaultSelected;
-  mSelectedChanged = false;
   
+  
+  
+  mSelectedChanged = mIsSelected != defaultSelected;
 
   return NS_OK;
 }
