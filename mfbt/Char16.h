@@ -169,6 +169,10 @@ typedef const char16_t* char16ptr_t;
 #endif
 
 
+#define __PRUNICHAR__
+typedef char16_t PRUnichar;
+
+
 
 
 
