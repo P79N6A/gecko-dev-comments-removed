@@ -2,12 +2,15 @@
 
 
 
+
+
 #ifndef mozilla_dom_UDPSocketParent_h__
 #define mozilla_dom_UDPSocketParent_h__
 
 #include "mozilla/net/PUDPSocketParent.h"
 #include "nsCOMPtr.h"
 #include "nsIUDPSocket.h"
+#include "nsIUDPSocketFilter.h"
 
 namespace mozilla {
 namespace dom {
@@ -19,7 +22,10 @@ public:
   NS_DECL_THREADSAFE_ISUPPORTS
   NS_DECL_NSIUDPSOCKETLISTENER
 
-  UDPSocketParent() : mIPCOpen(true) {}
+  UDPSocketParent(nsIUDPSocketFilter* filter) :
+    mIPCOpen(true),
+    mFilter(filter) {}
+
   virtual ~UDPSocketParent();
 
   bool Init(const nsCString& aHost, const uint16_t aPort);
@@ -37,6 +43,7 @@ private:
 
   bool mIPCOpen;
   nsCOMPtr<nsIUDPSocket> mSocket;
+  nsCOMPtr<nsIUDPSocketFilter> mFilter;
 };
 
 } 
