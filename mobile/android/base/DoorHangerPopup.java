@@ -66,23 +66,28 @@ public class DoorHangerPopup extends PopupWindow
     public void handleMessage(String event, JSONObject geckoObject) {
         try {
             if (event.equals("Doorhanger:Add")) {
-                int tabId = geckoObject.getInt("tabID");
-                String value = geckoObject.getString("value");
-                String message = geckoObject.getString("message");
-                JSONArray buttons = geckoObject.getJSONArray("buttons");
-                JSONObject options = geckoObject.getJSONObject("options");
+                final int tabId = geckoObject.getInt("tabID");
+                final String value = geckoObject.getString("value");
+                final String message = geckoObject.getString("message");
+                final JSONArray buttons = geckoObject.getJSONArray("buttons");
+                final JSONObject options = geckoObject.getJSONObject("options");
 
-                addDoorHanger(tabId, value, message, buttons, options);
-            } else if (event.equals("Doorhanger:Remove")) {
-                int tabId = geckoObject.getInt("tabID");
-                String value = geckoObject.getString("value");
-                DoorHanger doorHanger = getDoorHanger(tabId, value);
-                if (doorHanger == null)
-                    return;
-
-                removeDoorHanger(doorHanger);
                 mActivity.runOnUiThread(new Runnable() {
                     public void run() {
+                        addDoorHanger(tabId, value, message, buttons, options);
+                    }
+                });
+            } else if (event.equals("Doorhanger:Remove")) {
+                final int tabId = geckoObject.getInt("tabID");
+                final String value = geckoObject.getString("value");
+
+                mActivity.runOnUiThread(new Runnable() {
+                    public void run() {
+                        DoorHanger doorHanger = getDoorHanger(tabId, value);
+                        if (doorHanger == null)
+                            return;
+
+                        removeDoorHanger(doorHanger);
                         updatePopup();
                     }
                 });
@@ -92,7 +97,8 @@ public class DoorHangerPopup extends PopupWindow
         }
     }
 
-    public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
+    
+    public void onTabChanged(final Tab tab, final Tabs.TabEvents msg, final Object data) {
         switch(msg) {
             case CLOSED:
                 
@@ -140,6 +146,11 @@ public class DoorHangerPopup extends PopupWindow
         mInflated = true;
     }
 
+    
+
+
+
+
     void addDoorHanger(final int tabId, final String value, final String message,
                        final JSONArray buttons, final JSONObject options) {
         
@@ -154,21 +165,21 @@ public class DoorHangerPopup extends PopupWindow
         final DoorHanger newDoorHanger = new DoorHanger(mActivity, this, tabId, value);
         mDoorHangers.add(newDoorHanger);
 
+        if (!mInflated)
+            init();
+
+        newDoorHanger.init(message, buttons, options);
+        mContent.addView(newDoorHanger);
+
         
-        mActivity.runOnUiThread(new Runnable() {
-            public void run() {
-                if (!mInflated)
-                    init();
-
-                newDoorHanger.init(message, buttons, options);
-                mContent.addView(newDoorHanger);
-
-                
-                if (tabId == Tabs.getInstance().getSelectedTab().getId())
-                    updatePopup();
-            }
-        });
+        if (tabId == Tabs.getInstance().getSelectedTab().getId())
+            updatePopup();
     }
+
+    
+
+
+
 
     DoorHanger getDoorHanger(int tabId, String value) {
         for (DoorHanger dh : mDoorHangers) {
@@ -180,16 +191,20 @@ public class DoorHangerPopup extends PopupWindow
         return null;
     }
 
+    
+
+
+
+
     void removeDoorHanger(final DoorHanger doorHanger) {
         mDoorHangers.remove(doorHanger);
-
-        
-        mActivity.runOnUiThread(new Runnable() {
-            public void run() {
-                mContent.removeView(doorHanger);
-            }
-        });        
+        mContent.removeView(doorHanger);
     }
+
+    
+
+
+
 
     void removeTransientDoorHangers(int tabId) {
         
@@ -204,6 +219,11 @@ public class DoorHangerPopup extends PopupWindow
             removeDoorHanger(dh);
         }
     }
+
+    
+
+
+
 
     void updatePopup() {
         
