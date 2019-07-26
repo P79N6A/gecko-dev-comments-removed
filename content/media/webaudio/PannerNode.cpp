@@ -18,9 +18,10 @@ using namespace std;
 class PannerNodeEngine : public AudioNodeEngine
 {
 public:
-  PannerNodeEngine()
+  explicit PannerNodeEngine(AudioNode* aNode)
+    : AudioNodeEngine(aNode)
     
-    : mPanningModel(PanningModelTypeValues::HRTF)
+    , mPanningModel(PanningModelTypeValues::HRTF)
     , mPanningModelFunction(&PannerNodeEngine::HRTFPanningFunction)
     , mDistanceModel(DistanceModelTypeValues::Inverse)
     , mDistanceModelFunction(&PannerNodeEngine::InverseGainFunction)
@@ -172,7 +173,7 @@ PannerNode::PannerNode(AudioContext* aContext)
   , mConeOuterAngle(360.)
   , mConeOuterGain(0.)
 {
-  mStream = aContext->Graph()->CreateAudioNodeStream(new PannerNodeEngine(),
+  mStream = aContext->Graph()->CreateAudioNodeStream(new PannerNodeEngine(this),
                                                      MediaStreamGraph::INTERNAL_STREAM);
   
   Context()->Listener()->RegisterPannerNode(this);

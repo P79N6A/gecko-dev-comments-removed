@@ -83,6 +83,7 @@ public:
   virtual void DestroyMediaStream()
   {
     if (mStream) {
+      UnbindFromEngine();
       mStream->Destroy();
       mStream = nullptr;
     }
@@ -151,6 +152,8 @@ public:
 private:
   
   void DisconnectFromGraph();
+
+  void UnbindFromEngine();
 
 protected:
   static void Callback(AudioNode* aNode) {  }
