@@ -453,7 +453,7 @@ add_test(function test_sendMMI_call_forwarding_interrogation() {
       0,   
       145, 
       49,  
-      Ci.nsIDOMMozMobileCFInfo.CALL_FORWARD_REASON_UNCONDITIONAL, 
+      CALL_FORWARD_REASON_UNCONDITIONAL, 
       1,   
       1    
     ];
@@ -472,8 +472,7 @@ add_test(function test_sendMMI_call_forwarding_interrogation() {
   do_check_true(Array.isArray(postedMessage.rules));
   do_check_eq(postedMessage.rules.length, 1);
   do_check_true(postedMessage.rules[0].active);
-  do_check_eq(postedMessage.rules[0].reason,
-              Ci.nsIDOMMozMobileCFInfo.CALL_FORWARD_REASON_UNCONDITIONAL);
+  do_check_eq(postedMessage.rules[0].reason, CALL_FORWARD_REASON_UNCONDITIONAL);
   do_check_eq(postedMessage.rules[0].number, "+34666222333");
   run_next_test();
 });
