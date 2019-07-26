@@ -2,6 +2,9 @@
 
 
 
+
+
+
 for (var inf of [Infinity, -Infinity]) {
     assertEq(Math.hypot(inf, 0), Infinity);
     assertEq(Math.hypot(0, inf), Infinity);
