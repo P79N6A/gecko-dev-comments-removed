@@ -3,8 +3,10 @@
 
 
 
-#pragma once
+#ifndef MOZILLA_CONTENT_SVGPRESERVEASPECTRATIO_H_
+#define MOZILLA_CONTENT_SVGPRESERVEASPECTRATIO_H_
 
+#include "mozilla/HashFunctions.h"  
 #include "mozilla/TypedEnum.h"
 
 #include "nsWrapperCache.h"
@@ -98,6 +100,10 @@ public:
     return mDefer;
   }
 
+  uint32_t Hash() const {
+    return HashGeneric(mAlign, mMeetOrSlice, mDefer);
+  }
+
 private:
   
   uint8_t mAlign;
@@ -141,3 +147,5 @@ protected:
 
 } 
 } 
+
+#endif
