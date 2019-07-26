@@ -179,9 +179,13 @@ public:
   
   static int MaxNumberOfChannels();
 
+  static void InitPreferredSampleRate();
   
   
-  static int PreferredSampleRate();
+  static int PreferredSampleRate() {
+    MOZ_ASSERT(sPreferredSampleRate);
+    return sPreferredSampleRate;
+  }
 
   AudioStream();
   ~AudioStream();
@@ -374,12 +378,12 @@ private:
   StreamState mState;
 
   
-  static StaticMutex sMutex;
-  static cubeb* sCubebContext;
-
-  
   
   static uint32_t sPreferredSampleRate;
+
+  
+  static StaticMutex sMutex;
+  static cubeb* sCubebContext;
 
   static double sVolumeScale;
   static uint32_t sCubebLatency;

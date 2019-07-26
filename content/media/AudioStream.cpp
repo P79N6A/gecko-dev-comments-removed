@@ -161,6 +161,8 @@ AudioStream::~AudioStream()
   Preferences::RegisterCallback(PrefChanged, PREF_VOLUME_SCALE);
   PrefChanged(PREF_CUBEB_LATENCY, nullptr);
   Preferences::RegisterCallback(PrefChanged, PREF_CUBEB_LATENCY);
+
+  InitPreferredSampleRate();
 }
 
  void AudioStream::ShutdownLibrary()
@@ -265,28 +267,16 @@ int64_t AudioStream::GetWritten()
   return 0;
 }
 
- int AudioStream::PreferredSampleRate()
+ void AudioStream::InitPreferredSampleRate()
 {
-  const int fallbackSampleRate = 44100;
-  StaticMutexAutoLock lock(sMutex);
-  if (sPreferredSampleRate != 0) {
-    return sPreferredSampleRate;
-  }
-
-  cubeb* cubebContext = GetCubebContextUnlocked();
-  if (!cubebContext) {
-    sPreferredSampleRate = fallbackSampleRate;
-  }
   
   
   
   
-  if (cubeb_get_preferred_sample_rate(cubebContext,
+  if (cubeb_get_preferred_sample_rate(GetCubebContext(),
                                       &sPreferredSampleRate) != CUBEB_OK) {
-    sPreferredSampleRate = fallbackSampleRate;
+    sPreferredSampleRate = 44100;
   }
-
-  return sPreferredSampleRate;
 }
 
 static void SetUint16LE(uint8_t* aDest, uint16_t aValue)
