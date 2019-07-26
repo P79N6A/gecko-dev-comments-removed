@@ -87,12 +87,6 @@ private:
   nsTHashtable<DOMStorageCacheHashKey> mCaches;
   const nsPIDOMStorage::StorageType mType;
 
-  
-  
-  
-  bool mLowDiskSpace;
-  bool IsLowDiskSpace() const { return mLowDiskSpace; };
-
   static PLDHashOperator ClearCacheEnumerator(DOMStorageCacheHashKey* aCache,
                                               void* aClosure);
 
