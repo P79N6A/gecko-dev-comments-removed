@@ -143,6 +143,8 @@ public:
     mozilla::dom::DefineInterface aDefineDOMInterface,
     mozilla::dom::PrefEnabled aPrefEnabled);
 
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
+
 private:
   
   
