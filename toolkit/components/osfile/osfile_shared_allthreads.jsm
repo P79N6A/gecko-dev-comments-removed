@@ -26,51 +26,9 @@
      
      
      if (typeof Components != "undefined") {
-       const Cu = Components.utils;
-       Cu.import("resource://gre/modules/ctypes.jsm");
+       Components.utils.import("resource://gre/modules/ctypes.jsm");
        Components.classes["@mozilla.org/net/osfileconstantsservice;1"].
          getService(Components.interfaces.nsIOSFileConstantsService).init();
-
-       if (typeof exports.OS.Shared.DEBUG !== "undefined") {
-         return; 
-       }
-
-       Cu.import("resource://gre/modules/Services.jsm");
-
-       const PREF_OSFILE_LOG = "toolkit.osfile.log";
-
-       
-
-
-
-
-
-
-       let readDebugPref = function readDebugPref(oldPref) {
-         let pref;
-         try {
-           pref = Services.prefs.getBoolPref(PREF_OSFILE_LOG);
-         } catch (x) {
-           
-           pref = oldPref;
-         }
-         
-         return pref || false;
-       };
-
-       
-
-
-       exports.OS.Shared.DEBUG = readDebugPref(exports.OS.Shared.DEBUG);
-
-       
-
-
-
-       Services.prefs.addObserver(PREF_OSFILE_LOG,
-         function prefObserver(aSubject, aTopic, aData) {
-           exports.OS.Shared.DEBUG = readDebugPref(exports.OS.Shared.DEBUG);
-         }, false);
      }
 
      
@@ -89,6 +47,10 @@
      };
      exports.OS.Shared.defineLazyGetter = defineLazyGetter;
 
+     
+
+
+     exports.OS.Shared.DEBUG = false;
      let LOG;
      if (typeof console != "undefined" && console.log) {
        LOG = console.log.bind(console, "OS");
