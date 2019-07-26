@@ -303,6 +303,15 @@ GLenum WebGLContext::CheckedBufferData(GLenum target,
                                        const GLvoid *data,
                                        GLenum usage)
 {
+#ifdef XP_MACOSX
+    
+    if (gl->WorkAroundDriverBugs() &&
+        int64_t(size) > INT32_MAX) 
+    {
+        GenerateWarning("Rejecting valid bufferData call with size %lu to avoid a Mac bug", size);
+        return LOCAL_GL_INVALID_VALUE;
+    }
+#endif
     WebGLBuffer *boundBuffer = NULL;
     if (target == LOCAL_GL_ARRAY_BUFFER) {
         boundBuffer = mBoundArrayBuffer;
