@@ -5,6 +5,10 @@
 
 
 
+#sources-pane {
+  min-width: 50px;
+}
+
 #sources-pane > tabs {
   -moz-border-end: 1px solid #222426; 
 }
@@ -69,7 +73,6 @@
 #source-progress-container {
   background: url(background-noise-toolbar.png) rgb(61,69,76);
   
-  min-width: 1px;
   min-height: 1px;
   color: white;
 }
