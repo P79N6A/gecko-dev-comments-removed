@@ -65,7 +65,7 @@ function get_modules_under(uri) {
 }
 
 function load_modules_under(spec, uri) {
-  var entries = get_modules_under(uri);
+  var entries = get_modules_under(uri).sort();
   
   
   
