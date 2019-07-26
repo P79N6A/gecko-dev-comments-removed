@@ -313,8 +313,7 @@ public:
 
 
 
-  void Restyle(nsIContent        *aParentContent,
-               nsStyleChangeList *aChangeList,
+  void Restyle(nsStyleChangeList *aChangeList,
                nsChangeHint       aParentFrameHintsNotHandledForDescendants,
                nsRestyleHint      aRestyleHint,
                RestyleTracker&    aRestyleTracker,
@@ -334,7 +333,6 @@ public:
 private:
   void CaptureChange(nsStyleContext* aOldContext,
                      nsStyleContext* aNewContext,
-                     nsIContent* aContent,
                      nsStyleChangeList* aChangeList,
                      nsChangeHint aParentHintsNotHandledForDescendants,
                      nsChangeHint &aHintsNotHandledForDescendants,
@@ -343,6 +341,11 @@ private:
 private:
   nsPresContext* const mPresContext;
   nsIFrame* const mFrame;
+  nsIContent* const mParentContent;
+  
+  
+  
+  nsIContent* const mContent;
   
   
   
