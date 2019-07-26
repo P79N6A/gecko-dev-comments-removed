@@ -740,7 +740,8 @@ public class AwesomeBar extends GeckoActivity
 
         
         
-        if (!hasCompositionString(s)) {
+        if (!hasCompositionString(s) ||
+            InputMethods.isGestureKeyboard(mText.getContext())) {
             updateGoButton(text);
         }
 

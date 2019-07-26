@@ -26,6 +26,8 @@ public class StringUtils {
 
 
     public static boolean isSearchQuery(String text, boolean wasSearchQuery) {
+        
+        text = text.trim();
         if (text.length() == 0)
             return wasSearchQuery;
 
