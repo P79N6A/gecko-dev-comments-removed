@@ -468,7 +468,10 @@ ICTypeMonitor_Fallback::resetMonitorStubChain(Zone *zone)
         
         
         
-        this->trace(zone->barrierTracer());
+        if (hasFallbackStub_) {
+            for (ICStub *s = firstMonitorStub_; !s->isTypeMonitor_Fallback(); s = s->next())
+                s->trace(zone->barrierTracer());
+        }
     }
 
     firstMonitorStub_ = this;
