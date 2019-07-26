@@ -719,38 +719,41 @@ struct JSRuntime : public JS::shadow::Runtime,
     
     JSOperationCallback operationCallback;
 
-#ifdef JS_THREADSAFE
   private:
     
 
 
 
+#ifdef JS_THREADSAFE
     PRLock *operationCallbackLock;
     PRThread *operationCallbackOwner;
-  public:
+#else
+    bool operationCallbackLockTaken;
 #endif 
+  public:
 
     class AutoLockForOperationCallback {
-#ifdef JS_THREADSAFE
         JSRuntime *rt;
       public:
         AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) : rt(rt) {
             MOZ_GUARD_OBJECT_NOTIFIER_INIT;
             JS_ASSERT(!rt->currentThreadOwnsOperationCallbackLock());
+#ifdef JS_THREADSAFE
             PR_Lock(rt->operationCallbackLock);
             rt->operationCallbackOwner = PR_GetCurrentThread();
+#else
+            rt->operationCallbackLockTaken = true;
+#endif 
         }
         ~AutoLockForOperationCallback() {
-            JS_ASSERT(rt->operationCallbackOwner == PR_GetCurrentThread());
+            JS_ASSERT(rt->currentThreadOwnsOperationCallbackLock());
+#ifdef JS_THREADSAFE
             rt->operationCallbackOwner = nullptr;
             PR_Unlock(rt->operationCallbackLock);
-        }
-#else 
-      public:
-        AutoLockForOperationCallback(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
-            MOZ_GUARD_OBJECT_NOTIFIER_INIT;
-        }
+#else
+            rt->operationCallbackLockTaken = false;
 #endif 
+        }
 
         MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
     };
@@ -759,7 +762,7 @@ struct JSRuntime : public JS::shadow::Runtime,
 #if defined(JS_THREADSAFE)
         return operationCallbackOwner == PR_GetCurrentThread();
 #else
-        return true;
+        return operationCallbackLockTaken;
 #endif
     }
 
