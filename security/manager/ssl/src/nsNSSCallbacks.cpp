@@ -854,7 +854,6 @@ PreliminaryHandshakeDone(PRFileDesc* fd)
     return;
 
   infoObject->SetPreliminaryHandshakeDone();
-  infoObject->SetFirstServerHelloReceived();
 
   
   SSLNextProtoState state;
@@ -1031,7 +1030,8 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
   
   
   
-  bool isResumedSession = !(infoObject->GetFirstServerHelloReceived());
+  bool isResumedSession = !infoObject->IsFullHandshake();
+
   
   
   
