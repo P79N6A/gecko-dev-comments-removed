@@ -443,10 +443,7 @@ protected:
   
 
 
-
-
-  void DestroyOverflowList(nsPresContext* aPresContext,
-                           nsIFrame*      aDestructRoot);
+  inline void DestroyOverflowList(nsPresContext* aPresContext);
 
   
 
@@ -676,6 +673,14 @@ nsContainerFrame::StealOverflowFrames()
     static_cast<nsFrameList*>(Properties().Remove(OverflowProperty()));
   NS_ASSERTION(!list || !list->IsEmpty(), "Unexpected empty overflow list");
   return list;
+}
+
+inline void
+nsContainerFrame::DestroyOverflowList(nsPresContext* aPresContext)
+{
+  nsFrameList* list = RemovePropTableFrames(aPresContext, OverflowProperty());
+  MOZ_ASSERT(list && list->IsEmpty());
+  delete list;
 }
 
 #endif 
