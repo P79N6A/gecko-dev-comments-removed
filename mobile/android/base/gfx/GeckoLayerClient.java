@@ -76,7 +76,7 @@ public class GeckoLayerClient
 
     
     private final ProgressiveUpdateData mProgressiveUpdateData;
-    private boolean mProgressiveUpdateIsCurrent;
+    private RectF mProgressiveUpdateDisplayPort;
 
     
     private volatile boolean mCompositorCreated;
@@ -116,6 +116,7 @@ public class GeckoLayerClient
         mDrawTimingQueue = new DrawTimingQueue();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
         mProgressiveUpdateData = new ProgressiveUpdateData();
+        mProgressiveUpdateDisplayPort = new RectF();
         mCompositorCreated = false;
 
         mForceRedraw = true;
@@ -371,6 +372,14 @@ public class GeckoLayerClient
 
         
         
+        if (!FloatUtils.fuzzyEquals(resolution, viewportMetrics.zoomFactor)) {
+            Log.d(LOGTAG, "Aborting draw due to resolution change");
+            mProgressiveUpdateData.abort = true;
+            return mProgressiveUpdateData;
+        }
+
+        
+        
         
         
         
@@ -380,21 +389,12 @@ public class GeckoLayerClient
         
         
         if (!lowPrecision) {
-            mProgressiveUpdateIsCurrent =
-              Math.abs(displayPort.getLeft() - x) <= 2 &&
-              Math.abs(displayPort.getTop() - y) <= 2 &&
-              Math.abs(displayPort.getBottom() - (y + height)) <= 2 &&
-              Math.abs(displayPort.getRight() - (x + width)) <= 2;
+            mProgressiveUpdateDisplayPort.set(x, y, x + width, y + height);
         }
-        if (mProgressiveUpdateIsCurrent) {
-            return mProgressiveUpdateData;
-        }
-
-        
-        
-        if (!FloatUtils.fuzzyEquals(resolution, displayPort.resolution)) {
-            Log.d(LOGTAG, "Aborting draw due to resolution change");
-            mProgressiveUpdateData.abort = true;
+        if (Math.abs(displayPort.getLeft() - mProgressiveUpdateDisplayPort.left) <= 2 &&
+            Math.abs(displayPort.getTop() - mProgressiveUpdateDisplayPort.top) <= 2 &&
+            Math.abs(displayPort.getBottom() - mProgressiveUpdateDisplayPort.bottom) <= 2 &&
+            Math.abs(displayPort.getRight() - mProgressiveUpdateDisplayPort.right) <= 2) {
             return mProgressiveUpdateData;
         }
 
