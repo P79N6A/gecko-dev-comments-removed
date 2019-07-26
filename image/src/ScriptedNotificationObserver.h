@@ -4,6 +4,9 @@
 
 
 
+#ifndef ScriptedNotificationObserver_h
+#define ScriptedNotificationObserver_h
+
 #include "imgINotificationObserver.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -28,3 +31,5 @@ private:
 };
 
 }}
+
+#endif
