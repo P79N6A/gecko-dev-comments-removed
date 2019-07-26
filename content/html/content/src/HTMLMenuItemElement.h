@@ -3,22 +3,28 @@
 
 
 
+#ifndef mozilla_dom_HTMLMenuItemElement_h
+#define mozilla_dom_HTMLMenuItemElement_h
+
 #include "nsIDOMHTMLMenuItemElement.h"
 #include "nsGenericHTMLElement.h"
 
+namespace mozilla {
+namespace dom {
+
 class Visitor;
 
-class nsHTMLMenuItemElement : public nsGenericHTMLElement,
-                              public nsIDOMHTMLMenuItemElement
+class HTMLMenuItemElement : public nsGenericHTMLElement,
+                            public nsIDOMHTMLMenuItemElement
 {
 public:
   using mozilla::dom::Element::GetText;
 
-  nsHTMLMenuItemElement(already_AddRefed<nsINodeInfo> aNodeInfo,
-                        mozilla::dom::FromParser aFromParser);
-  virtual ~nsHTMLMenuItemElement();
+  HTMLMenuItemElement(already_AddRefed<nsINodeInfo> aNodeInfo,
+                      mozilla::dom::FromParser aFromParser);
+  virtual ~HTMLMenuItemElement();
 
-  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(nsHTMLMenuItemElement, menuitem)
+  NS_IMPL_FROMCONTENT_HTML_WITH_TAG(HTMLMenuItemElement, menuitem)
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -74,7 +80,7 @@ protected:
 
   void WalkRadioGroup(Visitor* aVisitor);
 
-  nsHTMLMenuItemElement* GetSelectedRadio();
+  HTMLMenuItemElement* GetSelectedRadio();
 
   void AddedToRadioGroup();
 
@@ -93,3 +99,8 @@ private:
   bool mCheckedDirty : 1;
   bool mChecked : 1;
 };
+
+} 
+} 
+
+#endif 
