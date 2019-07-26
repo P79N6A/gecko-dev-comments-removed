@@ -140,7 +140,9 @@ public:
   
 
 
-  virtual void NotifyOutput(MediaStreamGraph* aGraph) {}
+
+
+  virtual void NotifyOutput(MediaStreamGraph* aGraph, GraphTime aCurrentTime) {}
 
   
 
