@@ -7,11 +7,11 @@
 #define AudioStream_h_
 
 #include "AudioSampleFormat.h"
+#include "AudioChannelCommon.h"
 #include "nsAutoPtr.h"
 #include "nsAutoRef.h"
 #include "nsCOMPtr.h"
 #include "Latency.h"
-#include "mozilla/dom/AudioChannelBinding.h"
 #include "mozilla/StaticMutex.h"
 
 #include "cubeb/cubeb.h"
@@ -198,7 +198,7 @@ public:
   
   
   nsresult Init(int32_t aNumChannels, int32_t aRate,
-                const dom::AudioChannel aAudioStreamChannel,
+                const dom::AudioChannelType aAudioStreamType,
                 LatencyRequest aLatencyRequest);
 
   

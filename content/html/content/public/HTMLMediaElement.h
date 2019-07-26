@@ -496,11 +496,7 @@ public:
 
   double MozFragmentEnd();
 
-  AudioChannel MozAudioChannelType() const
-  {
-    return mAudioChannel;
-  }
-
+  AudioChannel MozAudioChannelType() const;
   void SetMozAudioChannelType(AudioChannel aValue, ErrorResult& aRv);
 
   TextTrackList* TextTracks();
@@ -1127,7 +1123,7 @@ protected:
   bool mDownloadSuspendedByCache;
 
   
-  AudioChannel mAudioChannel;
+  AudioChannelType mAudioChannelType;
 
   
   bool mAudioChannelFaded;

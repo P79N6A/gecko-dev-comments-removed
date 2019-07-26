@@ -699,7 +699,7 @@ nsDOMCameraControl::StartRecording(const CameraStartRecordingOptions& aOptions,
     mAudioChannelAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1");
     if (mAudioChannelAgent) {
       
-      mAudioChannelAgent->Init(mWindow, (int32_t)AudioChannel::Content, nullptr);
+      mAudioChannelAgent->Init(mWindow, AUDIO_CHANNEL_CONTENT, nullptr);
       
       int32_t canPlay;
       mAudioChannelAgent->StartPlaying(&canPlay);

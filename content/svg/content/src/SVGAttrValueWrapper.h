@@ -12,7 +12,7 @@
 
 
 
-#include "nsStringGlue.h"
+#include "nsString.h"
 
 class nsSVGAngle;
 class nsSVGIntegerPair;
