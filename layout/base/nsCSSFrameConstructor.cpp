@@ -4647,11 +4647,12 @@ nsCSSFrameConstructor::ConstructFrameWithAnonymousChild(
   
   nsIFrame* newFrame = aConstructor(mPresShell, styleContext);
 
-  nsIFrame* geometricParent =
-    aState.GetGeometricParent(styleContext->StyleDisplay(),
-                              aParentFrame);
-
-  InitAndRestoreFrame(aState, content, geometricParent, newFrame);
+  InitAndRestoreFrame(aState, content,
+                      aCandidateRootFrame ?
+                        aState.GetGeometricParent(styleContext->StyleDisplay(),
+                                                  aParentFrame) :
+                        aParentFrame,
+                      newFrame);
 
   
   nsRefPtr<nsStyleContext> scForAnon;
@@ -4666,7 +4667,8 @@ nsCSSFrameConstructor::ConstructFrameWithAnonymousChild(
   
   SetInitialSingleChild(newFrame, innerFrame);
 
-  aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame);
+  aState.AddChild(newFrame, aFrameItems, content, styleContext, aParentFrame,
+                  aCandidateRootFrame, aCandidateRootFrame);
 
   if (!mRootElementFrame && aCandidateRootFrame) {
     
