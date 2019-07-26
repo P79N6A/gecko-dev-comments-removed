@@ -248,3 +248,143 @@ function IsStructurallyValidLanguageTag(locale) {
     return !callFunction(std_RegExp_test, duplicateVariantRE, locale) &&
            !callFunction(std_RegExp_test, duplicateSingletonRE, locale);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function CanonicalizeLanguageTag(locale) {
+    assert(IsStructurallyValidLanguageTag(locale), "CanonicalizeLanguageTag");
+
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    locale = callFunction(std_String_toLowerCase, locale);
+
+    
+    if (callFunction(std_Object_hasOwnProperty, langTagMappings, locale))
+        return langTagMappings[locale];
+
+    var subtags = callFunction(std_String_split, locale, "-");
+    var i = 0;
+
+    
+    
+    while (i < subtags.length) {
+        var subtag = subtags[i];
+
+        
+        
+        
+        
+        
+        if (subtag.length === 1 && (i > 0 || subtag === "x"))
+            break;
+
+        if (subtag.length === 4) {
+            
+            
+            subtag = callFunction(std_String_toUpperCase, subtag[0]) +
+                     callFunction(std_String_substring, subtag, 1);
+        } else if (i !== 0 && subtag.length === 2) {
+            
+            
+            subtag = callFunction(std_String_toUpperCase, subtag);
+        }
+        if (callFunction(std_Object_hasOwnProperty, langSubtagMappings, subtag)) {
+            
+            
+            
+            
+            
+            
+            
+            
+            subtag = langSubtagMappings[subtag];
+        } else if (callFunction(std_Object_hasOwnProperty, extlangMappings, subtag)) {
+            
+            
+            
+            
+            
+            subtag = extlangMappings[subtag].preferred;
+            if (i === 1 && extlangMappings[subtag].prefix === subtags[0]) {
+                callFunction(std_Array_shift, subtags);
+                i--;
+            }
+        }
+        subtags[i] = subtag;
+        i++;
+    }
+    var normal = callFunction(std_Array_join, callFunction(std_Array_slice, subtags, 0, i), "-");
+
+    
+    
+    var extensions = new List();
+    while (i < subtags.length && subtags[i] !== "x") {
+        var extensionStart = i;
+        i++;
+        while (i < subtags.length && subtags[i].length > 1)
+            i++;
+        var extension = callFunction(std_Array_join, callFunction(std_Array_slice, subtags, extensionStart, i), "-");
+        extensions.push(extension);
+    }
+    extensions.sort();
+
+    
+    var privateUse = "";
+    if (i < subtags.length)
+        privateUse = callFunction(std_Array_join, callFunction(std_Array_slice, subtags, i), "-");
+
+    
+    var canonical = normal;
+    if (extensions.length > 0)
+        canonical += "-" + extensions.join("-");
+    if (privateUse.length > 0) {
+        
+        if (canonical.length > 0)
+            canonical += "-" + privateUse;
+        else
+            canonical = privateUse;
+    }
+
+    return canonical;
+}
+
+
+
+
+
+
+
+function IsWellFormedCurrencyCode(currency) {
+    var c = ToString(currency);
+    var normalized = toASCIIUpperCase(c);
+    if (normalized.length !== 3)
+        return false;
+    return !callFunction(std_RegExp_test, /[^A-Z]/, normalized);
+}
