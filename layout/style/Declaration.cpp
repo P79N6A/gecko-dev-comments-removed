@@ -172,7 +172,7 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
   
   
   uint32_t totalCount = 0, importantCount = 0,
-           initialCount = 0, inheritCount = 0;
+           initialCount = 0, inheritCount = 0, unsetCount = 0;
   CSSPROPS_FOR_SHORTHAND_SUBPROPERTIES(p, aProperty) {
     if (*p == eCSSProperty__x_system_font ||
          nsCSSProps::PropHasFlags(*p, CSS_PROPERTY_DIRECTIONAL_SOURCE)) {
@@ -195,6 +195,8 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
       ++inheritCount;
     } else if (val->GetUnit() == eCSSUnit_Initial) {
       ++initialCount;
+    } else if (val->GetUnit() == eCSSUnit_Unset) {
+      ++unsetCount;
     }
   }
   if (importantCount != 0 && importantCount != totalCount) {
@@ -211,7 +213,12 @@ Declaration::GetValue(nsCSSProperty aProperty, nsAString& aValue) const
     nsCSSValue(eCSSUnit_Inherit).AppendToString(eCSSProperty_UNKNOWN, aValue);
     return;
   }
-  if (initialCount != 0 || inheritCount != 0) {
+  if (unsetCount == totalCount) {
+    
+    nsCSSValue(eCSSUnit_Unset).AppendToString(eCSSProperty_UNKNOWN, aValue);
+    return;
+  }
+  if (initialCount != 0 || inheritCount != 0 || unsetCount != 0) {
     
     return;
   }
