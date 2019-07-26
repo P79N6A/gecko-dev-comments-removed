@@ -66,10 +66,12 @@ var tabPreviews = {
     ctx.drawWindow(win, win.scrollX, win.scrollY,
                    snippetWidth, snippetWidth * this.aspectRatio, "rgb(255,255,255)");
 
-    if (aStore) {
+    if (aStore &&
+        aTab.linkedBrowser ) {
       aTab.__thumbnail = thumbnail;
       aTab.__thumbnail_lastURI = aTab.linkedBrowser.currentURI.spec;
     }
+
     return thumbnail;
   },
 
