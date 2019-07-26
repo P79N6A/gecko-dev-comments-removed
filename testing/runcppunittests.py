@@ -14,7 +14,7 @@ log = mozlog.getLogger('cppunittests')
 
 class CPPUnitTests(object):
     
-    TEST_PROC_TIMEOUT = 1200
+    TEST_PROC_TIMEOUT = 900
     
     TEST_PROC_NO_OUTPUT_TIMEOUT = 300
 
