@@ -189,12 +189,8 @@ public final class GeckoProfile {
             profile.mInGuestMode = false;
 
             
-            ThreadUtils.postToBackgroundThread(new Runnable() {
-                @Override
-                public void run() {
-                    removeGuestProfile(context);
-                }
-            });
+            removeGuestProfile(context);
+
             return true;
         }
         return false;
