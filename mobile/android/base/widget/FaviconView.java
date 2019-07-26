@@ -5,14 +5,14 @@
 
 package org.mozilla.gecko.widget;
 
-import org.mozilla.gecko.favicons.Favicons;
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.favicons.Favicons;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Color;
-import android.graphics.PorterDuff.Mode;
-import android.graphics.drawable.Drawable;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.util.AttributeSet;
 import android.widget.ImageView;
 
@@ -38,22 +38,79 @@ public class FaviconView extends ImageView {
     
     private boolean mScalingExpected;
 
+    
+    private int mDominantColor;
+
+    
+    private static float sStrokeWidth;
+
+    
+    private static Paint sStrokePaint;
+
+    
+    private static Paint sBackgroundPaint;
+
+    
+    private final RectF mStrokeRect;
+
+    
+    private final RectF mBackgroundRect;
+
+    
+    static {
+        sStrokePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        sStrokePaint.setStyle(Paint.Style.STROKE);
+
+        sBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        sBackgroundPaint.setStyle(Paint.Style.FILL);
+    }
+
     public FaviconView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setScaleType(ImageView.ScaleType.CENTER);
+
+        mStrokeRect = new RectF();
+        mBackgroundRect = new RectF();
+
+        if (sStrokeWidth == 0) {
+            sStrokeWidth = getResources().getDisplayMetrics().density;
+            sStrokePaint.setStrokeWidth(sStrokeWidth);
+        }
+
+        mStrokeRect.left = mStrokeRect.top = sStrokeWidth;
+        mBackgroundRect.left = mBackgroundRect.top = sStrokeWidth * 2.0f;
     }
 
     @Override
-    protected void onSizeChanged(int xNew, int yNew, int xOld, int yOld){
-        super.onSizeChanged(xNew, yNew, xOld, yOld);
+    protected void onSizeChanged(int w, int h, int oldw, int oldh){
+        super.onSizeChanged(w, h, oldw, oldh);
 
         
-        if (xNew == mActualHeight && yNew == mActualWidth) {
+        if (w == mActualWidth && h == mActualHeight) {
             return;
         }
-        mActualWidth = xNew;
-        mActualHeight = yNew;
+
+        mActualWidth = w;
+        mActualHeight = h;
+
+        mStrokeRect.right = w - sStrokeWidth;
+        mStrokeRect.bottom = h - sStrokeWidth;
+        mBackgroundRect.right = mStrokeRect.right - sStrokeWidth;
+        mBackgroundRect.bottom = mStrokeRect.bottom - sStrokeWidth;
+
         formatImage();
+    }
+
+    @Override
+    public void onDraw(Canvas canvas) {
+        super.onDraw(canvas);
+
+        
+        sBackgroundPaint.setColor(mDominantColor & 0x46FFFFFF);
+        canvas.drawRect(mStrokeRect, sBackgroundPaint);
+
+        sStrokePaint.setColor(mDominantColor);
+        canvas.drawRoundRect(mStrokeRect, sStrokeWidth, sStrokeWidth, sStrokePaint);
     }
 
     
@@ -81,9 +138,12 @@ public class FaviconView extends ImageView {
         
         
         if (Math.abs(mIconBitmap.getWidth() - mActualWidth) > 3) {
-            showBackground();
+            mDominantColor = Favicons.getFaviconColor(mIconKey);
+            if (mDominantColor == -1) {
+                mDominantColor = 0;
+            }
         } else {
-            hideBackground();
+            mDominantColor = 0;
         }
     }
 
@@ -99,29 +159,6 @@ public class FaviconView extends ImageView {
             
             mIconBitmap = Bitmap.createScaledBitmap(mIconBitmap, mActualWidth, mActualWidth, true);
         }
-    }
-
-    
-
-
-
-    private void showBackground() {
-        int color = Favicons.getFaviconColor(mIconKey);
-        if (color == -1) {
-            hideBackground();
-            return;
-        }
-        color = Color.argb(70, Color.red(color), Color.green(color), Color.blue(color));
-        final Drawable drawable = getResources().getDrawable(R.drawable.favicon_bg);
-        drawable.setColorFilter(color, Mode.SRC_ATOP);
-        setBackgroundDrawable(drawable);
-    }
-
-    
-
-
-    private void hideBackground() {
-        setBackgroundResource(0);
     }
 
     
@@ -158,12 +195,12 @@ public class FaviconView extends ImageView {
 
     public void showDefaultFavicon() {
         setImageResource(R.drawable.favicon);
-        hideBackground();
+        mDominantColor = 0;
     }
 
     private void showNoImage() {
         setImageBitmap(null);
-        hideBackground();
+        mDominantColor = 0;
     }
 
     
