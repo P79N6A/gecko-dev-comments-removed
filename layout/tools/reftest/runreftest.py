@@ -171,6 +171,9 @@ class RefTest(object):
     
     prefs['browser.safebrowsing.enabled'] = False
     prefs['browser.safebrowsing.malware.enabled'] = False
+    
+    prefs['browser.snippets.enabled'] = False
+    prefs['browser.snippets.syncPromo.enabled'] = False
 
     if options.e10s:
       prefs['browser.tabs.remote.autostart'] = True
