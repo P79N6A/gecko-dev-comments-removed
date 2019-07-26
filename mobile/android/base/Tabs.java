@@ -156,6 +156,14 @@ public class Tabs implements GeckoEventListener {
             return null;
     }
 
+    
+
+
+
+
+
+
+
     public Tab getSelectedTab() {
         return mSelectedTab;
     }

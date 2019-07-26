@@ -575,7 +575,14 @@ public class AllPagesTab extends AwesomeBarTab implements GeckoEventListener {
                 if (name.equals(suggestEngine) && suggestTemplate != null) {
                     
                     mSearchEngines.add(0, new SearchEngine(name, icon));
-                    mSuggestClient = new SuggestClient(GeckoApp.mAppContext, suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
+
+                    
+                    
+                    
+                    
+                    Tab tab = Tabs.getInstance().getSelectedTab();
+                    if (tab == null || !tab.isPrivate())
+                        mSuggestClient = new SuggestClient(GeckoApp.mAppContext, suggestTemplate, SUGGESTION_TIMEOUT, SUGGESTION_MAX);
                 } else {
                     mSearchEngines.add(new SearchEngine(name, icon));
                 }
