@@ -2922,34 +2922,61 @@ private:
 
 
 
-class nsXPCComponents : public nsIXPCComponents
+
+class nsXPCComponentsBase : public nsIXPCComponentsBase
 {
 public:
-    NS_DECL_THREADSAFE_ISUPPORTS
-    NS_DECL_NSIXPCCOMPONENTS
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIXPCCOMPONENTSBASE
 
 public:
     void SystemIsBeingShutDown() { ClearMembers(); }
-    virtual ~nsXPCComponents();
+    virtual ~nsXPCComponentsBase() { ClearMembers(); }
 
     XPCWrappedNativeScope *GetScope() { return mScope; }
 
-private:
-    nsXPCComponents(XPCWrappedNativeScope* aScope);
-    void ClearMembers();
+protected:
+    nsXPCComponentsBase(XPCWrappedNativeScope* aScope);
+    virtual void ClearMembers();
 
-private:
-    friend class XPCWrappedNativeScope;
     XPCWrappedNativeScope*          mScope;
+
+    
     nsXPCComponents_Interfaces*     mInterfaces;
     nsXPCComponents_InterfacesByID* mInterfacesByID;
+    nsXPCComponents_Results*        mResults;
+
+    friend class XPCWrappedNativeScope;
+};
+
+class nsXPCComponents : public nsXPCComponentsBase,
+                        public nsIXPCComponents
+{
+public:
+    NS_DECL_ISUPPORTS
+    NS_FORWARD_NSIXPCCOMPONENTSBASE(nsXPCComponentsBase::)
+    NS_DECL_NSIXPCCOMPONENTS
+
+protected:
+    nsXPCComponents(XPCWrappedNativeScope* aScope);
+
+    
+    
+    
+    
+    
+    virtual ~nsXPCComponents() { ClearMembers(); }
+    virtual void ClearMembers() MOZ_OVERRIDE;
+
+    
     nsXPCComponents_Classes*        mClasses;
     nsXPCComponents_ClassesByID*    mClassesByID;
-    nsXPCComponents_Results*        mResults;
     nsXPCComponents_ID*             mID;
     nsXPCComponents_Exception*      mException;
     nsXPCComponents_Constructor*    mConstructor;
     nsXPCComponents_Utils*          mUtils;
+
+    friend class XPCWrappedNativeScope;
 };
 
 
