@@ -1436,15 +1436,18 @@ nsXBLBinding::LookupMember(JSContext* aCx, JS::HandleId aId,
   }
 
   
+  
   JSObject* boundScope =
     js::GetGlobalForObjectCrossCompartment(mBoundElement->GetWrapper());
+  JSObject* xblScope = xpc::GetXBLScope(aCx, boundScope);
+  MOZ_ASSERT(boundScope != xblScope);
 
   
   {
-    JSAutoCompartment ac(aCx, boundScope);
+    JSAutoCompartment ac(aCx, xblScope);
     js::RootedId id(aCx, aId);
     if (!JS_WrapId(aCx, id.address()) ||
-        !LookupMemberInternal(aCx, name, id, aDesc, boundScope))
+        !LookupMemberInternal(aCx, name, id, aDesc, xblScope))
     {
       return false;
     }
@@ -1458,7 +1461,7 @@ bool
 nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
                                    JS::HandleId aNameAsId,
                                    JSPropertyDescriptor* aDesc,
-                                   JSObject* aBoundScope)
+                                   JSObject* aXBLScope)
 {
   
   
@@ -1467,13 +1470,13 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
       return true;
     }
     return mNextBinding->LookupMemberInternal(aCx, aName, aNameAsId,
-                                              aDesc, aBoundScope);
+                                              aDesc, aXBLScope);
   }
 
   
   
   js::RootedValue classObject(aCx);
-  if (!JS_GetProperty(aCx, aBoundScope, mJSClass->name, classObject.address())) {
+  if (!JS_GetProperty(aCx, aXBLScope, mJSClass->name, classObject.address())) {
     return false;
   }
   MOZ_ASSERT(classObject.isObject());
@@ -1491,7 +1494,7 @@ nsXBLBinding::LookupMemberInternal(JSContext* aCx, nsString& aName,
   }
 
   return mNextBinding->LookupMemberInternal(aCx, aName, aNameAsId, aDesc,
-                                            aBoundScope);
+                                            aXBLScope);
 }
 
 bool
