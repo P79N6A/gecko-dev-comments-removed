@@ -114,6 +114,9 @@ public:
   virtual ~TiledThebesLayerOGL();
 
   
+  const nsIntRegion& GetValidLowPrecisionRegion() const { return mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion(); }
+
+  
   void Destroy() {}
   Layer* GetLayer() { return this; }
   virtual void RenderLayer(int aPreviousFrameBuffer,
@@ -132,7 +135,6 @@ public:
   void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* mTiledBuffer);
   void ProcessUploadQueue();
   void ProcessLowPrecisionUploadQueue();
-  const nsIntRegion& GetValidLowPrecisionRegion() const { return mLowPrecisionVideoMemoryTiledBuffer.GetValidRegion(); }
 
   void MemoryPressure();
 

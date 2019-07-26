@@ -1684,21 +1684,8 @@ LayerManagerOGL::ComputeRenderIntegrityInternal(Layer* aLayer,
     SubtractTransformedRegion(aScreenRegion, incompleteRegion, transformToScreen);
 
     
-    TiledLayerComposer* composer = nullptr;
-    ShadowLayer* shadow = aLayer->AsShadowLayer();
-    if (shadow) {
-      composer = shadow->AsTiledLayerComposer();
-      if (composer) {
-        incompleteRegion.Sub(incompleteRegion, composer->GetValidLowPrecisionRegion());
-        if (!incompleteRegion.IsEmpty()) {
-          SubtractTransformedRegion(aLowPrecisionScreenRegion, incompleteRegion, transformToScreen);
-        }
-      }
-    }
-
-    
-    
-    if (!composer) {
+    incompleteRegion.Sub(incompleteRegion, thebesLayer->GetValidLowPrecisionRegion());
+    if (!incompleteRegion.IsEmpty()) {
       SubtractTransformedRegion(aLowPrecisionScreenRegion, incompleteRegion, transformToScreen);
     }
   }
@@ -1761,6 +1748,7 @@ LayerManagerOGL::ComputeRenderIntegrity()
 #ifdef MOZ_ANDROID_OMTC
   
   
+  bool hasLowPrecision = true;
   Layer* primaryScrollable = GetPrimaryScrollableLayer();
   if (primaryScrollable) {
     
@@ -1781,37 +1769,15 @@ LayerManagerOGL::ComputeRenderIntegrity()
     }
 
     
-    gfxRect documentBounds =
-      transform.TransformBounds(gfxRect(metrics.mScrollableRect.x - metrics.mScrollOffset.x,
-                                        metrics.mScrollableRect.y - metrics.mScrollOffset.y,
-                                        metrics.mScrollableRect.width,
-                                        metrics.mScrollableRect.height));
-    documentBounds.RoundOut();
-    screenRect = screenRect.Intersect(nsIntRect(documentBounds.x, documentBounds.y,
-                                                documentBounds.width, documentBounds.height));
-
-    
-    
-    if (screenRect.IsEmpty()) {
-      return 1.0f;
-    }
-
-    
-    bool hasLowPrecision = false;
     if (!metrics.mDisplayPort.IsEmpty()) {
       if (hasLowPrecision) {
         lowPrecisionMultiplier =
           GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
       } else {
-        lowPrecisionMultiplier = highPrecisionMultiplier =
+        highPrecisionMultiplier =
           GetDisplayportCoverage(metrics.mDisplayPort, transform, screenRect);
       }
     }
-  }
-
-  
-  if (highPrecisionMultiplier <= 0.0f && lowPrecisionMultiplier <= 0.0f) {
-    return 0.0f;
   }
 #endif 
 
@@ -1832,7 +1798,7 @@ LayerManagerOGL::ComputeRenderIntegrity()
     }
 
     return ((highPrecisionIntegrity * highPrecisionMultiplier) +
-            (lowPrecisionIntegrity * lowPrecisionMultiplier)) / 2;
+            (lowPrecisionIntegrity * lowPrecisionMultiplier)) / 2.f;
   }
 
   return 1.f;
