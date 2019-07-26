@@ -232,7 +232,7 @@ pref("gfx.filter.nearest.force-enabled", false);
 
 pref("gfx.font_rendering.fallback.always_use_cmaps", false);
 
-pref("gfx.font_rendering.graphite.enabled", false);
+pref("gfx.font_rendering.graphite.enabled", true);
 
 
 
