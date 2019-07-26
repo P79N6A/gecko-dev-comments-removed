@@ -1014,5 +1014,12 @@ nsUserFontSet::GetPrivateBrowsing()
 void
 nsUserFontSet::DoRebuildUserFontSet()
 {
+  if (!mPresContext) {
+    
+    
+    
+    return;
+  }
+
   mPresContext->RebuildUserFontSet();
 }
