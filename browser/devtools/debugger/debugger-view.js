@@ -6,7 +6,6 @@
 "use strict";
 
 const BREAKPOINT_LINE_TOOLTIP_MAX_SIZE = 1000; 
-const PANES_APPEARANCE_DELAY = 50; 
 const PROPERTY_VIEW_FLASH_DURATION = 400; 
 const GLOBAL_SEARCH_MATCH_FLASH_DURATION = 100; 
 const GLOBAL_SEARCH_URL_MAX_SIZE = 100; 
@@ -104,8 +103,8 @@ let DebuggerView = {
     this._stackframesAndBreakpoints.setAttribute("width", Prefs.stackframesWidth);
     this._variables.setAttribute("width", Prefs.variablesWidth);
 
-    this.toggleStackframesAndBreakpointsPane({ silent: true });
-    this.toggleVariablesPane({ silent: true });
+    this.showStackframesAndBreakpointsPane(Prefs.stackframesPaneVisible);
+    this.showVariablesPane(Prefs.variablesPaneVisible);
   },
 
   
@@ -174,22 +173,18 @@ let DebuggerView = {
 
 
   _onTogglePanesButtonPressed: function DV__onTogglePanesButtonPressed() {
-    this.toggleStackframesAndBreakpointsPane({
-      visible: !!this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden"),
-      animated: true
-    });
-    this.toggleVariablesPane({
-      visible: !!this._togglePanesButton.getAttribute("variablesHidden"),
-      animated: true
-    });
-    this._onPanesToggle();
+    this.showStackframesAndBreakpointsPane(
+      this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden"), true);
+
+    this.showVariablesPane(
+      this._togglePanesButton.getAttribute("variablesHidden"), true);
   },
 
   
 
 
 
-  toggleCloseButton: function DV_toggleCloseButton(aVisibleFlag) {
+  showCloseButton: function DV_showCloseButton(aVisibleFlag) {
     document.getElementById("close").setAttribute("hidden", !aVisibleFlag);
   },
 
@@ -198,18 +193,14 @@ let DebuggerView = {
 
 
 
-
-
-
-
-  toggleStackframesAndBreakpointsPane:
-  function DV_toggleStackframesAndBreakpointsPane(aFlags = {}) {
-    if (aFlags.animated) {
+  showStackframesAndBreakpointsPane:
+  function DV_showStackframesAndBreakpointsPane(aVisibleFlag, aAnimatedFlag) {
+    if (aAnimatedFlag) {
       this._stackframesAndBreakpoints.setAttribute("animated", "");
     } else {
       this._stackframesAndBreakpoints.removeAttribute("animated");
     }
-    if (aFlags.visible) {
+    if (aVisibleFlag) {
       this._stackframesAndBreakpoints.style.marginLeft = "0";
       this._togglePanesButton.removeAttribute("stackframesAndBreakpointsHidden");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
@@ -219,9 +210,7 @@ let DebuggerView = {
       this._togglePanesButton.setAttribute("stackframesAndBreakpointsHidden", "true");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
     }
-    if (!aFlags.silent) {
-      Prefs.stackframesPaneVisible = !!aFlags.visible;
-    }
+    Prefs.stackframesPaneVisible = aVisibleFlag;
   },
 
   
@@ -229,18 +218,14 @@ let DebuggerView = {
 
 
 
-
-
-
-
-  toggleVariablesPane:
-  function DV_toggleVariablesPane(aFlags = {}) {
-    if (aFlags.animated) {
+  showVariablesPane:
+  function DV_showVariablesPane(aVisibleFlag, aAnimatedFlag) {
+    if (aAnimatedFlag) {
       this._variables.setAttribute("animated", "");
     } else {
       this._variables.removeAttribute("animated");
     }
-    if (aFlags.visible) {
+    if (aVisibleFlag) {
       this._variables.style.marginRight = "0";
       this._togglePanesButton.removeAttribute("variablesHidden");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
@@ -250,54 +235,7 @@ let DebuggerView = {
       this._togglePanesButton.setAttribute("variablesHidden", "true");
       this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
     }
-    if (!aFlags.silent) {
-      Prefs.variablesPaneVisible = !!aFlags.visible;
-    }
-  },
-
-  
-
-
-
-  showPanesIfAllowed: function DV_showPanesIfAllowed() {
-    
-    window.setTimeout(function() {
-      let shown;
-
-      if (Prefs.stackframesPaneVisible &&
-          this._togglePanesButton.getAttribute("stackframesAndBreakpointsHidden")) {
-        this.toggleStackframesAndBreakpointsPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        shown = true;
-      }
-      if (Prefs.variablesPaneVisible &&
-          this._togglePanesButton.getAttribute("variablesHidden")) {
-        this.toggleVariablesPane({
-          visible: true,
-          animated: true,
-          silent: true
-        });
-        shown = true;
-      }
-      if (shown) {
-        this._onPanesToggle();
-      }
-    }.bind(this), PANES_APPEARANCE_DELAY);
-  },
-
-  
-
-
-
-
-  _onPanesToggle: function DV__onPanesToggle() {
-    document.addEventListener("transitionend", function onEvent() {
-      document.removeEventListener("transitionend", onEvent);
-      DebuggerController.StackFrames.updateEditorLocation();
-    });
+    Prefs.variablesPaneVisible = aVisibleFlag;
   },
 
   
@@ -1687,8 +1625,6 @@ StackFramesView.prototype = {
     if (document.getElementById("stackframe-" + aDepth)) {
       return null;
     }
-    
-    DebuggerView.showPanesIfAllowed();
 
     let frame = document.createElement("box");
     let frameName = document.createElement("label");
