@@ -17,10 +17,17 @@ class nsIDOMEventTarget;
 class nsXBLSpecialDocInfo;
 class nsXBLPrototypeHandler;
 
+namespace mozilla {
+namespace dom {
+class Element;
+class EventTarget;
+}
+}
+
 class nsXBLWindowKeyHandler : public nsIDOMEventListener
 {
 public:
-  nsXBLWindowKeyHandler(nsIDOMElement* aElement, nsIDOMEventTarget* aTarget);
+  nsXBLWindowKeyHandler(nsIDOMElement* aElement, mozilla::dom::EventTarget* aTarget);
   virtual ~nsXBLWindowKeyHandler();
 
   NS_DECL_ISUPPORTS
@@ -56,10 +63,10 @@ protected:
 
   
   
-  already_AddRefed<nsIDOMElement> GetElement();
+  already_AddRefed<mozilla::dom::Element> GetElement();
   
   nsWeakPtr              mWeakPtrForElement;
-  nsIDOMEventTarget*    mTarget; 
+  mozilla::dom::EventTarget* mTarget; 
 
   
   
@@ -71,9 +78,8 @@ protected:
   static uint32_t sRefCnt;
 };
 
-nsresult
+already_AddRefed<nsXBLWindowKeyHandler>
 NS_NewXBLWindowKeyHandler(nsIDOMElement* aElement,
-                          nsIDOMEventTarget* aTarget,
-                          nsXBLWindowKeyHandler** aResult);
+                          mozilla::dom::EventTarget* aTarget);
 
 #endif
