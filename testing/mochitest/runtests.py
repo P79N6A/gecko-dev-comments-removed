@@ -2,7 +2,6 @@
 
 
 
-
 """
 Runs the Mochitest test harness.
 """
@@ -887,8 +886,13 @@ class Mochitest(MochitestUtilsMixin):
     
     self.lastTestSeen = self.test_name
     startTime = datetime.now()
-    runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
-                                       mozrunner.Runner)
+
+    
+    if mozinfo.info.get('appname') == 'b2g' and mozinfo.info.get('toolkit') != 'gonk':
+        runner_cls = mozrunner.FirefoxRunner
+    else:
+        runner_cls = mozrunner.runners.get(mozinfo.info.get('appname', 'firefox'),
+                                           mozrunner.Runner)
     runner = runner_cls(profile=self.profile,
                         binary=cmd,
                         cmdargs=args,
