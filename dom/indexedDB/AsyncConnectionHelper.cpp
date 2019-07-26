@@ -579,7 +579,7 @@ AsyncConnectionHelper::OnParentProcessRequestComplete(
 
 
 nsresult
-AsyncConnectionHelper::ConvertCloneReadInfosToArray(
+AsyncConnectionHelper::ConvertToArrayAndCleanup(
                                   JSContext* aCx,
                                   nsTArray<StructuredCloneReadInfo>& aReadInfos,
                                   jsval* aResult)

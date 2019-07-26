@@ -212,7 +212,7 @@ protected:
   
 
 
-  static nsresult ConvertCloneReadInfosToArray(
+  static nsresult ConvertToArrayAndCleanup(
                                 JSContext* aCx,
                                 nsTArray<StructuredCloneReadInfo>& aReadInfos,
                                 jsval* aResult);
