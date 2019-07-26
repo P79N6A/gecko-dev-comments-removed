@@ -62,17 +62,6 @@ struct ElementAnimations MOZ_FINAL
 
   
   
-  
-  
-  
-  
-  
-  static mozilla::ComputedTiming GetPositionInIteration(
-    TimeDuration aElapsedDuration,
-    const mozilla::AnimationTiming& aTiming);
-
-  
-  
   void EnsureStyleRuleFor(TimeStamp aRefreshTime, bool aIsThrottled);
   void GetEventsAt(TimeStamp aRefreshTime, EventArray &aEventsToDispatch);
 

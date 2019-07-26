@@ -317,6 +317,15 @@ struct ElementAnimation
   
   
   
+  
+  
+  
+  static ComputedTiming GetComputedTimingAt(TimeDuration aElapsedDuration,
+                                            const AnimationTiming& aTiming);
+
+  
+  
+  
   mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
   mozilla::TimeDuration mDelay;

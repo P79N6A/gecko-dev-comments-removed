@@ -49,88 +49,6 @@ ElementAnimationsPropertyDtor(void           *aObject,
   delete ea;
 }
 
-ComputedTiming
-ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
-                                          const AnimationTiming& aTiming)
-{
-  
-  ComputedTiming result;
-
-  
-  
-  double currentIterationCount = aElapsedDuration / aTiming.mIterationDuration;
-  if (currentIterationCount >= aTiming.mIterationCount) {
-    result.mPhase = ComputedTiming::AnimationPhase_After;
-    if (!aTiming.FillsForwards()) {
-      
-      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
-      return result;
-    }
-    currentIterationCount = aTiming.mIterationCount;
-  } else if (currentIterationCount < 0.0) {
-    result.mPhase = ComputedTiming::AnimationPhase_Before;
-    if (!aTiming.FillsBackwards()) {
-      
-      result.mTimeFraction = ComputedTiming::kNullTimeFraction;
-      return result;
-    }
-    currentIterationCount = 0.0;
-  } else {
-    result.mPhase = ComputedTiming::AnimationPhase_Active;
-  }
-
-  
-  
-  NS_ABORT_IF_FALSE(currentIterationCount >= 0.0, "must be positive");
-  double positionInIteration = fmod(currentIterationCount, 1);
-
-  
-  
-  
-  
-  
-  uint64_t whichIteration = static_cast<uint64_t>(currentIterationCount);
-
-  
-  if (whichIteration != 0 &&
-      result.mPhase == ComputedTiming::AnimationPhase_After &&
-      aTiming.mIterationCount == floor(aTiming.mIterationCount)) {
-    
-    
-    
-    whichIteration -= 1;
-    positionInIteration = 1.0;
-  }
-
-  bool thisIterationReverse = false;
-  switch (aTiming.mDirection) {
-    case NS_STYLE_ANIMATION_DIRECTION_NORMAL:
-      thisIterationReverse = false;
-      break;
-    case NS_STYLE_ANIMATION_DIRECTION_REVERSE:
-      thisIterationReverse = true;
-      break;
-    case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE:
-      
-      
-      
-      
-      thisIterationReverse = (whichIteration & 1) == 1;
-      break;
-    case NS_STYLE_ANIMATION_DIRECTION_ALTERNATE_REVERSE:
-      
-      thisIterationReverse = (whichIteration & 1) == 0;
-      break;
-  }
-  if (thisIterationReverse) {
-    positionInIteration = 1.0 - positionInIteration;
-  }
-
-  result.mTimeFraction = positionInIteration;
-  result.mCurrentIteration = whichIteration;
-  return result;
-}
-
 void
 ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
                                       bool aIsThrottled)
@@ -157,10 +75,11 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
+      TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
       AnimationTiming timing = anim->mTiming;
       timing.mFillMode = NS_STYLE_ANIMATION_FILL_MODE_BOTH;
       ComputedTiming computedTiming =
-        GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime), timing);
+        ElementAnimation::GetComputedTimingAt(elapsedDuration, timing);
 
       
       
@@ -204,9 +123,9 @@ ElementAnimations::EnsureStyleRuleFor(TimeStamp aRefreshTime,
 
       
       
+      TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
       ComputedTiming computedTiming =
-        GetPositionInIteration(anim->ElapsedDurationAt(aRefreshTime),
-                               anim->mTiming);
+        ElementAnimation::GetComputedTimingAt(elapsedDuration, anim->mTiming);
 
       if ((computedTiming.mPhase == ComputedTiming::AnimationPhase_Before ||
            computedTiming.mPhase == ComputedTiming::AnimationPhase_Active) &&
@@ -305,6 +224,7 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
     
     
     
+    
     if (anim->mProperties.IsEmpty() ||
         anim->mTiming.mIterationDuration.ToMilliseconds() <= 0.0) {
       
@@ -313,7 +233,7 @@ ElementAnimations::GetEventsAt(TimeStamp aRefreshTime,
 
     TimeDuration elapsedDuration = anim->ElapsedDurationAt(aRefreshTime);
     ComputedTiming computedTiming =
-      GetPositionInIteration(elapsedDuration, anim->mTiming);
+      ElementAnimation::GetComputedTimingAt(elapsedDuration, anim->mTiming);
 
     
     
