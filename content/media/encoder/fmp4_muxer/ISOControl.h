@@ -136,7 +136,7 @@ class ISOControl {
 friend class Box;
 
 public:
-  ISOControl();
+  ISOControl(uint32_t aMuxingType);
   ~ISOControl();
 
   nsresult GenerateFtyp();
@@ -188,6 +188,8 @@ public:
   nsresult SetFragment(FragmentBuffer* aFragment);
   FragmentBuffer* GetFragment(uint32_t aType);
 
+  uint32_t GetMuxingType() { return mMuxingType; }
+
   nsresult SetMetadata(TrackMetadataBase* aTrackMeta);
   nsresult GetAudioMetadata(nsRefPtr<AACTrackMetadata>& aAudMeta);
   nsresult GetVideoMetadata(nsRefPtr<AVCTrackMetadata>& aVidMeta);
@@ -203,6 +205,10 @@ private:
   uint32_t GetBufPos();
   nsresult FlushBuf();
 
+  
+  uint32_t mMuxingType;
+
+  
   
   
   FragmentBuffer* mAudioFragmentBuffer;

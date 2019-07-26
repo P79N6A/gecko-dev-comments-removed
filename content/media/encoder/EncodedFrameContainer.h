@@ -45,7 +45,7 @@ public:
   EncodedFrame() :
     mTimeStamp(0),
     mDuration(0),
-    mFrameType(UNKNOW)
+    mFrameType(UNKNOWN)
   {}
   enum FrameType {
     I_FRAME,      
@@ -54,7 +54,7 @@ public:
     AUDIO_FRAME,  
     AAC_CSD,      
     AVC_CSD,      
-    UNKNOW        
+    UNKNOWN       
   };
   nsresult SwapInFrameData(nsTArray<uint8_t>& aData)
   {
@@ -63,10 +63,10 @@ public:
   }
   nsresult SwapOutFrameData(nsTArray<uint8_t>& aData)
   {
-    if (mFrameType != UNKNOW) {
+    if (mFrameType != UNKNOWN) {
       
       mFrameData.SwapElements(aData);
-      mFrameType = UNKNOW;
+      mFrameType = UNKNOWN;
       return NS_OK;
     }
     return NS_ERROR_FAILURE;

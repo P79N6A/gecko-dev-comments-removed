@@ -500,6 +500,19 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 class SampleEntryBox : public Box {
 public:
   
@@ -507,8 +520,7 @@ public:
   uint16_t data_reference_index;
 
   
-  SampleEntryBox(const nsACString& aFormat, uint32_t aTrackType,
-                 ISOControl* aControl);
+  SampleEntryBox(const nsACString& aFormat, ISOControl* aControl);
 
   
   nsresult Write() MOZ_OVERRIDE;
@@ -516,7 +528,6 @@ public:
 protected:
   SampleEntryBox() MOZ_DELETE;
 
-  uint32_t mTrackType;
   MetaHelper mMeta;
 };
 
@@ -538,6 +549,58 @@ public:
 
 protected:
   uint32_t mTrackType;
+};
+
+
+
+
+class AudioSampleEntry : public SampleEntryBox {
+public:
+  
+  uint16_t sound_version;
+  uint8_t reserved2[6];
+  uint16_t channels;
+  uint16_t sample_size;
+  uint16_t compressionId;
+  uint16_t packet_size;
+  uint32_t timeScale;  
+
+  
+  nsresult Write() MOZ_OVERRIDE;
+
+  ~AudioSampleEntry();
+
+protected:
+  AudioSampleEntry(const nsACString& aFormat, ISOControl* aControl);
+};
+
+
+
+
+class VisualSampleEntry : public SampleEntryBox {
+public:
+  
+  uint8_t reserved[16];
+  uint16_t width;
+  uint16_t height;
+
+  uint32_t horizresolution; 
+  uint32_t vertresolution;  
+  uint32_t reserved2;
+  uint16_t frame_count;     
+
+  uint8_t compressorName[32];
+  uint16_t depth;       
+  uint16_t pre_defined; 
+
+  
+  nsresult Write() MOZ_OVERRIDE;
+
+  
+  ~VisualSampleEntry();
+
+protected:
+  VisualSampleEntry(const nsACString& aFormat, ISOControl* aControl);
 };
 
 

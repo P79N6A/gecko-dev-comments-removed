@@ -20,6 +20,25 @@ class ISOMediaWriterRunnable;
 class ISOMediaWriter : public ContainerWriter
 {
 public:
+  
+  
+  const static uint32_t TYPE_FRAG_MP4 = 1 << 0;
+
+  
+  
+  
+  const static uint32_t TYPE_FRAG_3GP = 1 << 1;
+
+  
+  
+  
+  
+  
+  
+  ISOMediaWriter(uint32_t aType, uint32_t aHint = TYPE_FRAG_MP4);
+  ~ISOMediaWriter();
+
+  
   nsresult WriteEncodedTrack(const EncodedFrameContainer &aData,
                              uint32_t aFlags = 0) MOZ_OVERRIDE;
 
@@ -27,9 +46,6 @@ public:
                             uint32_t aFlags = 0) MOZ_OVERRIDE;
 
   nsresult SetMetadata(TrackMetadataBase* aMetadata) MOZ_OVERRIDE;
-
-  ISOMediaWriter(uint32_t aType);
-  ~ISOMediaWriter();
 
 protected:
   

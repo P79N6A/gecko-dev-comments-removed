@@ -41,22 +41,9 @@ public:
 
 
 
-class VisualSampleEntry : public SampleEntryBox {
+class AVCSampleEntry : public VisualSampleEntry {
 public:
   
-  uint8_t reserved[16];
-  uint16_t width;
-  uint16_t height;
-
-  uint32_t horizresolution; 
-  uint32_t vertresolution;  
-  uint32_t reserved2;
-  uint16_t frame_count;     
-
-  uint8_t compressorName[32];
-  uint16_t depth;       
-  uint16_t pre_defined; 
-
   nsRefPtr<AVCConfigurationBox> avcConfigBox;
 
   
@@ -64,8 +51,8 @@ public:
   nsresult Write() MOZ_OVERRIDE;
 
   
-  VisualSampleEntry(ISOControl* aControl);
-  ~VisualSampleEntry();
+  AVCSampleEntry(ISOControl* aControl);
+  ~AVCSampleEntry();
 };
 
 }
