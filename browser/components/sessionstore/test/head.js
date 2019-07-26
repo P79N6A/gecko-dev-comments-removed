@@ -236,7 +236,7 @@ function waitForTopic(aTopic, aTimeout, aCallback) {
 
 
 function waitForSaveState(aCallback) {
-  let timeout = 1000 +
+  let timeout = 100 +
     Services.prefs.getIntPref("browser.sessionstore.interval");
   return waitForTopic("sessionstore-state-write", timeout, aCallback);
 }
