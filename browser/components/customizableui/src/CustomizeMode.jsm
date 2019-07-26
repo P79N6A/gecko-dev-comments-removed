@@ -195,6 +195,7 @@ CustomizeMode.prototype = {
 
       
       this.visiblePalette.hidden = true;
+      this.visiblePalette.removeAttribute("showing");
 
       
       
@@ -262,6 +263,12 @@ CustomizeMode.prototype = {
 
       
       this.visiblePalette.hidden = false;
+      window.setTimeout(() => {
+        
+        
+        this.visiblePalette.clientTop;
+        this.visiblePalette.setAttribute("showing", "true");
+      }, 0);
       this.paletteSpacer.hidden = true;
       this._updateEmptyPaletteNotice();
 
@@ -338,6 +345,7 @@ CustomizeMode.prototype = {
     
     this.paletteSpacer.hidden = false;
     this.visiblePalette.hidden = true;
+    this.visiblePalette.removeAttribute("showing");
     this.paletteEmptyNotice.hidden = true;
 
     
