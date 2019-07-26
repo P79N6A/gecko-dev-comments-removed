@@ -4043,6 +4043,12 @@ EndSweepPhase(JSRuntime *rt, JSGCInvocationKind gckind, bool lastGC)
         
         if (JSC::ExecutableAllocator *execAlloc = rt->maybeExecAlloc())
             execAlloc->purge();
+#ifdef JS_ION
+        if (rt->jitRuntime() && rt->jitRuntime()->hasIonAlloc()) {
+            JSRuntime::AutoLockForInterrupt lock(rt);
+            rt->jitRuntime()->ionAlloc(rt)->purge();
+        }
+#endif
 
         
 
