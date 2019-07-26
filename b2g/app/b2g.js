@@ -284,7 +284,7 @@ pref("media.video-queue.default-size", 3);
 
 
 pref("image.mem.decodeondraw", true);
-pref("image.mem.allow_locking_in_content_processes", false); 
+pref("content.image.allow_locking", false); 
 pref("image.mem.min_discard_timeout_ms", 86400000); 
 pref("image.mem.max_decoded_image_kb", 30000); 
 pref("image.onload.decode.limit", 24); 
@@ -602,6 +602,11 @@ pref("ui.showHideScrollbars", 1);
 pref("dom.ipc.processPriorityManager.enabled", true);
 pref("dom.ipc.processPriorityManager.backgroundGracePeriodMS", 1000);
 pref("dom.ipc.processPriorityManager.temporaryPriorityLockMS", 5000);
+
+
+
+
+pref("dom.ipc.processPriorityManager.backgroundLRUPoolLevels", 5);
 
 
 

@@ -126,7 +126,8 @@ public:
 
 
   void SetProcessPriority(ContentParent* aContentParent,
-                          ProcessPriority aPriority);
+                          ProcessPriority aPriority,
+                          uint32_t aBackgroundLRU = 0);
 
   
 
@@ -226,6 +227,7 @@ public:
 
   int32_t Pid() const;
   uint64_t ChildID() const;
+  bool IsPreallocated() const;
 
   
 
@@ -260,10 +262,12 @@ public:
 
 
 
-  void SetPriorityNow(ProcessPriority aPriority);
+  void SetPriorityNow(ProcessPriority aPriority,
+                      uint32_t aBackgroundLRU = 0);
 
   void SetPriorityNow(ProcessPriority aPriority,
-                      ProcessCPUPriority aCPUPriority);
+                      ProcessCPUPriority aCPUPriority,
+                      uint32_t aBackgroundLRU = 0);
 
   void ShutDown();
 
@@ -289,6 +293,46 @@ private:
   nsAutoCString mNameWithComma;
 
   nsCOMPtr<nsITimer> mResetPriorityTimer;
+};
+
+class BackgroundProcessLRUPool MOZ_FINAL
+{
+public:
+  static BackgroundProcessLRUPool* Singleton();
+
+  
+
+
+
+  void RemoveFromBackgroundLRUPool(ContentParent* aContentParent);
+
+  
+
+
+
+  void AddIntoBackgroundLRUPool(ContentParent* aContentParent);
+
+private:
+  static StaticAutoPtr<BackgroundProcessLRUPool> sSingleton;
+
+  int32_t mLRUPoolLevels;
+  int32_t mLRUPoolSize;
+  int32_t mLRUPoolAvailableIndex;
+  nsTArray<ContentParent*> mLRUPool;
+
+  uint32_t CalculateLRULevel(uint32_t aBackgroundLRUPoolIndex);
+
+  nsresult UpdateAvailableIndexInLRUPool(
+      ContentParent* aContentParent,
+      int32_t aTargetIndex = -1);
+
+  void ShiftLRUPool();
+
+  void EnsureLRUPool();
+
+  BackgroundProcessLRUPool();
+  DISALLOW_EVIL_CONSTRUCTORS(BackgroundProcessLRUPool);
+
 };
 
  bool ProcessPriorityManagerImpl::sInitialized = false;
@@ -421,12 +465,13 @@ ProcessPriorityManagerImpl::GetParticularProcessPriorityManager(
 
 void
 ProcessPriorityManagerImpl::SetProcessPriority(ContentParent* aContentParent,
-                                               ProcessPriority aPriority)
+                                               ProcessPriority aPriority,
+                                               uint32_t aBackgroundLRU)
 {
   MOZ_ASSERT(aContentParent);
   nsRefPtr<ParticularProcessPriorityManager> pppm =
     GetParticularProcessPriorityManager(aContentParent);
-  pppm->SetPriorityNow(aPriority);
+  pppm->SetPriorityNow(aPriority, aBackgroundLRU);
 }
 
 void
@@ -655,6 +700,12 @@ int32_t
 ParticularProcessPriorityManager::Pid() const
 {
   return mContentParent ? mContentParent->Pid() : -1;
+}
+
+bool
+ParticularProcessPriorityManager::IsPreallocated() const
+{
+  return mContentParent ? mContentParent->IsPreallocated() : false;
 }
 
 const nsAutoCString&
@@ -896,18 +947,33 @@ ParticularProcessPriorityManager::ResetCPUPriorityNow()
 }
 
 void
-ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority)
+ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
+                                                 uint32_t aBackgroundLRU)
 {
-  SetPriorityNow(aPriority, ComputeCPUPriority());
+  SetPriorityNow(aPriority, ComputeCPUPriority(), aBackgroundLRU);
 }
 
 void
 ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
-                                                 ProcessCPUPriority aCPUPriority)
+                                                 ProcessCPUPriority aCPUPriority,
+                                                 uint32_t aBackgroundLRU)
 {
   if (aPriority == PROCESS_PRIORITY_UNKNOWN) {
     MOZ_ASSERT(false);
     return;
+  }
+
+  if (aBackgroundLRU > 0 &&
+      aPriority == PROCESS_PRIORITY_BACKGROUND &&
+      mPriority == PROCESS_PRIORITY_BACKGROUND) {
+    hal::SetProcessPriority(Pid(), mPriority, mCPUPriority, aBackgroundLRU);
+
+    nsPrintfCString ProcessPriorityWithBackgroundLRU("%s:%d",
+      ProcessPriorityToString(mPriority, mCPUPriority),
+      aBackgroundLRU);
+
+    FireTestOnlyObserverNotification("process-priority-with-background-LRU-set",
+      ProcessPriorityWithBackgroundLRU.get());
   }
 
   if (!mContentParent ||
@@ -922,6 +988,18 @@ ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
   
   if (!ProcessPriorityManagerImpl::PrefsEnabled()) {
     return;
+  }
+
+  if (aPriority == PROCESS_PRIORITY_BACKGROUND &&
+      mPriority != PROCESS_PRIORITY_BACKGROUND &&
+      !IsPreallocated()) {
+    ProcessPriorityManager::AddIntoBackgroundLRUPool(mContentParent);
+  }
+
+  if (aPriority != PROCESS_PRIORITY_BACKGROUND &&
+      mPriority == PROCESS_PRIORITY_BACKGROUND &&
+      !IsPreallocated()) {
+    ProcessPriorityManager::RemoveFromBackgroundLRUPool(mContentParent);
   }
 
   LOGP("Changing priority from %s to %s.",
@@ -944,6 +1022,13 @@ ParticularProcessPriorityManager::SetPriorityNow(ProcessPriority aPriority,
     unused << mContentParent->SendMinimizeMemoryUsage();
   }
 
+  nsPrintfCString ProcessPriorityWithBackgroundLRU("%s:%d",
+    ProcessPriorityToString(mPriority, mCPUPriority),
+    aBackgroundLRU);
+
+  FireTestOnlyObserverNotification("process-priority-with-background-LRU-set",
+    ProcessPriorityWithBackgroundLRU.get());
+
   FireTestOnlyObserverNotification("process-priority-set",
     ProcessPriorityToString(mPriority, mCPUPriority));
 
@@ -964,6 +1049,8 @@ ParticularProcessPriorityManager::ShutDown()
     mResetPriorityTimer->Cancel();
     mResetPriorityTimer = nullptr;
   }
+
+  ProcessPriorityManager::RemoveFromBackgroundLRUPool(mContentParent);
 
   mContentParent = nullptr;
 }
@@ -1098,6 +1185,181 @@ ProcessPriorityManagerChild::CurrentProcessIsForeground()
          mCachedPriority >= PROCESS_PRIORITY_FOREGROUND;
 }
 
+ StaticAutoPtr<BackgroundProcessLRUPool>
+BackgroundProcessLRUPool::sSingleton;
+
+ BackgroundProcessLRUPool*
+BackgroundProcessLRUPool::Singleton()
+{
+  if (!sSingleton) {
+    sSingleton = new BackgroundProcessLRUPool();
+    ClearOnShutdown(&sSingleton);
+  }
+  return sSingleton;
+}
+
+BackgroundProcessLRUPool::BackgroundProcessLRUPool()
+{
+  EnsureLRUPool();
+}
+
+uint32_t
+BackgroundProcessLRUPool::CalculateLRULevel(uint32_t aBackgroundLRUPoolIndex)
+{
+  
+
+  
+  
+  
+  
+  
+  
+  
+
+  return (uint32_t)(log((float)aBackgroundLRUPoolIndex) / log(2.0));
+}
+
+void
+BackgroundProcessLRUPool::EnsureLRUPool()
+{
+  
+  
+  if (!NS_SUCCEEDED(Preferences::GetInt(
+        "dom.ipc.processPriorityManager.backgroundLRUPoolLevels",
+        &mLRUPoolLevels))) {
+    mLRUPoolLevels = 1;
+  }
+
+  if (mLRUPoolLevels <= 0) {
+    MOZ_CRASH();
+  }
+
+  
+  
+  
+  
+  MOZ_ASSERT(mLRUPoolLevels <= 6);
+
+  
+  mLRUPoolSize = (1 << mLRUPoolLevels) - 1;
+
+  mLRUPoolAvailableIndex = 0;
+
+  LOG("Making background LRU pool with size(%d)", mLRUPoolSize);
+
+  mLRUPool.InsertElementsAt(0, mLRUPoolSize, (ContentParent*)nullptr);
+}
+
+void
+BackgroundProcessLRUPool::RemoveFromBackgroundLRUPool(
+    ContentParent* aContentParent)
+{
+  for (int32_t i = 0; i < mLRUPoolSize; i++) {
+    if (mLRUPool[i]) {
+      if (mLRUPool[i]->ChildID() == aContentParent->ChildID()) {
+
+        mLRUPool[i] = nullptr;
+        LOG("Remove ChildID(%llu) from LRU pool", aContentParent->ChildID());
+
+        
+        
+        
+        UpdateAvailableIndexInLRUPool(aContentParent, i);
+        break;
+      }
+    }
+  }
+}
+
+nsresult
+BackgroundProcessLRUPool::UpdateAvailableIndexInLRUPool(
+    ContentParent* aContentParent,
+    int32_t aTargetIndex)
+{
+  
+  
+  
+  if (aTargetIndex >= 0 && aTargetIndex < mLRUPoolSize &&
+      aTargetIndex < mLRUPoolAvailableIndex &&
+      !mLRUPool[aTargetIndex]) {
+    mLRUPoolAvailableIndex = aTargetIndex;
+    return NS_OK;
+  }
+
+  
+  
+  if (mLRUPoolAvailableIndex >= 0 && mLRUPoolAvailableIndex < mLRUPoolSize &&
+      !(mLRUPool[mLRUPoolAvailableIndex])) {
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  
+  mLRUPoolAvailableIndex = -1;
+
+  for (int32_t i = 0; i < mLRUPoolSize; i++) {
+    if (mLRUPool[i]) {
+      if (mLRUPool[i]->ChildID() == aContentParent->ChildID()) {
+        LOG("ChildID(%llu) already in LRU pool", aContentParent->ChildID());
+        MOZ_ASSERT(false);
+        return NS_ERROR_UNEXPECTED;
+      }
+      continue;
+    } else {
+      if (mLRUPoolAvailableIndex == -1) {
+        mLRUPoolAvailableIndex = i;
+      }
+    }
+  }
+
+  
+  
+  
+  
+  
+  mLRUPoolAvailableIndex =
+    (mLRUPoolAvailableIndex + mLRUPoolSize) % mLRUPoolSize;
+
+  return NS_OK;
+}
+
+void
+BackgroundProcessLRUPool::ShiftLRUPool()
+{
+  for (int32_t i = mLRUPoolAvailableIndex; i > 0; i--) {
+    mLRUPool[i] = mLRUPool[i - 1];
+    
+    
+    
+    if (!((i + 1) & i)) {
+      ProcessPriorityManagerImpl::GetSingleton()->SetProcessPriority(
+        mLRUPool[i], PROCESS_PRIORITY_BACKGROUND, CalculateLRULevel(i + 1));
+    }
+  }
+}
+
+void
+BackgroundProcessLRUPool::AddIntoBackgroundLRUPool(
+    ContentParent* aContentParent)
+{
+  
+  if (!NS_SUCCEEDED(
+      UpdateAvailableIndexInLRUPool(aContentParent))) {
+    return;
+  }
+
+  
+  
+  ShiftLRUPool();
+
+  mLRUPool[0] = aContentParent;
+
+  LOG("Add ChildID(%llu) into LRU pool", aContentParent->ChildID());
+}
+
 } 
 
 namespace mozilla {
@@ -1119,6 +1381,31 @@ ProcessPriorityManager::SetProcessPriority(ContentParent* aContentParent,
     ProcessPriorityManagerImpl::GetSingleton();
   if (singleton) {
     singleton->SetProcessPriority(aContentParent, aPriority);
+  }
+}
+
+ void
+ProcessPriorityManager::RemoveFromBackgroundLRUPool(
+    ContentParent* aContentParent)
+{
+  MOZ_ASSERT(aContentParent);
+
+  BackgroundProcessLRUPool* singleton =
+    BackgroundProcessLRUPool::Singleton();
+  if (singleton) {
+    singleton->RemoveFromBackgroundLRUPool(aContentParent);
+  }
+}
+
+ void
+ProcessPriorityManager::AddIntoBackgroundLRUPool(ContentParent* aContentParent)
+{
+  MOZ_ASSERT(aContentParent);
+
+  BackgroundProcessLRUPool* singleton =
+    BackgroundProcessLRUPool::Singleton();
+  if (singleton) {
+    singleton->AddIntoBackgroundLRUPool(aContentParent);
   }
 }
 
