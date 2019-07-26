@@ -12,7 +12,7 @@
 #include "base/task.h"                  
 #include "base/tracked.h"               
 #include "gfxPoint.h"                   
-#include "mozilla/ipc/AsyncChannel.h"   
+#include "mozilla/ipc/MessageChannel.h" 
 #include "mozilla/ipc/ProtocolUtils.h"
 #include "mozilla/ipc/Transport.h"      
 #include "mozilla/layers/CompositableTransactionParent.h"
@@ -99,8 +99,7 @@ ConnectImageBridgeInParentProcess(ImageBridgeParent* aBridge,
                                   Transport* aTransport,
                                   ProcessHandle aOtherProcess)
 {
-  aBridge->Open(aTransport, aOtherProcess,
-                XRE_GetIOMessageLoop(), AsyncChannel::Parent);
+  aBridge->Open(aTransport, aOtherProcess, XRE_GetIOMessageLoop(), ipc::ParentSide);
 }
 
  bool

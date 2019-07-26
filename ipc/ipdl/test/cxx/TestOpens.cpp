@@ -60,7 +60,7 @@ OpenParent(TestOpensOpenedParent* aParent,
     
     
     if (!aParent->Open(aTransport, aOtherProcess,
-                       XRE_GetIOMessageLoop(), AsyncChannel::Parent))
+                       XRE_GetIOMessageLoop(), ipc::ParentSide))
         fail("opening Parent");
 }
 
@@ -169,7 +169,7 @@ OpenChild(TestOpensOpenedChild* aChild,
     
     
     if (!aChild->Open(aTransport, aOtherProcess,
-                      XRE_GetIOMessageLoop(), AsyncChannel::Child))
+                      XRE_GetIOMessageLoop(), ipc::ChildSide))
         fail("opening Child");
 
     

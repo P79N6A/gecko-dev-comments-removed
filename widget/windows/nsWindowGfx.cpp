@@ -177,7 +177,7 @@ bool nsWindow::OnPaint(HDC aDC, uint32_t aNestingLevel)
   
   
   
-  if (mozilla::ipc::RPCChannel::IsSpinLoopActive() && mPainting)
+  if (mozilla::ipc::MessageChannel::IsSpinLoopActive() && mPainting)
     return false;
 
   if (mWindowType == eWindowType_plugin) {

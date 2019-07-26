@@ -20,7 +20,7 @@
 #include "mozilla/Assertions.h"         
 #include "mozilla/Monitor.h"            
 #include "mozilla/ReentrantMonitor.h"   
-#include "mozilla/ipc/AsyncChannel.h"   
+#include "mozilla/ipc/MessageChannel.h" 
 #include "mozilla/ipc/Transport.h"      
 #include "mozilla/layers/CompositableClient.h"  
 #include "mozilla/layers/ISurfaceAllocator.h"  
@@ -289,8 +289,8 @@ static void DeallocSurfaceDescriptorGrallocSync(const SurfaceDescriptor& aBuffer
 static void ConnectImageBridge(ImageBridgeChild * child, ImageBridgeParent * parent)
 {
   MessageLoop *parentMsgLoop = parent->GetMessageLoop();
-  ipc::AsyncChannel *parentChannel = parent->GetIPCChannel();
-  child->Open(parentChannel, parentMsgLoop, mozilla::ipc::AsyncChannel::Child);
+  ipc::MessageChannel *parentChannel = parent->GetIPCChannel();
+  child->Open(parentChannel, parentMsgLoop, mozilla::ipc::ChildSide);
 }
 
 ImageBridgeChild::ImageBridgeChild()
@@ -358,7 +358,7 @@ ConnectImageBridgeInChildProcess(Transport* aTransport,
   
   sImageBridgeChildSingleton->Open(aTransport, aOtherProcess,
                                    XRE_GetIOMessageLoop(),
-                                   AsyncChannel::Child);
+                                   ipc::ChildSide);
 }
 
 static void ReleaseImageClientNow(ImageClient* aClient)

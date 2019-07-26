@@ -42,7 +42,7 @@ enum {
 namespace mozilla {
 namespace ipc {
 
-class AsyncChannel;
+class MessageChannel;
 
 
 
@@ -99,7 +99,7 @@ public:
 
     
     virtual ProcessHandle OtherProcess() const = 0;
-    virtual AsyncChannel* GetIPCChannel() = 0;
+    virtual MessageChannel* GetIPCChannel() = 0;
 };
 
 
@@ -126,12 +126,12 @@ struct PrivateIPDLInterface {};
 
 bool
 Bridge(const PrivateIPDLInterface&,
-       AsyncChannel*, base::ProcessHandle, AsyncChannel*, base::ProcessHandle,
+       MessageChannel*, base::ProcessHandle, MessageChannel*, base::ProcessHandle,
        ProtocolId, ProtocolId);
 
 bool
 Open(const PrivateIPDLInterface&,
-     AsyncChannel*, base::ProcessHandle, Transport::Mode,
+     MessageChannel*, base::ProcessHandle, Transport::Mode,
      ProtocolId, ProtocolId);
 
 bool

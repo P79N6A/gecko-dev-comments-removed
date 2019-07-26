@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/ipc/RPCChannel.h"
+#include "mozilla/ipc/MessageChannel.h"
 #include "nsAppShell.h"
 #include "nsToolkit.h"
 #include "nsThreadUtils.h"
@@ -175,7 +175,7 @@ bool
 nsAppShell::ProcessNextNativeEvent(bool mayWait)
 {
   
-  mozilla::ipc::RPCChannel::NotifyGeckoEventDispatch();
+  mozilla::ipc::MessageChannel::NotifyGeckoEventDispatch();
 
   bool gotMessage = false;
 
