@@ -55,8 +55,13 @@ MetroApp::CreateView(ABI::Windows::ApplicationModel::Core::IFrameworkView **aVie
   
   
 
+  
+  
+  
+
   LogFunction();
 
+  sFrameworkView = Make<FrameworkView>(this);
   sFrameworkView.Get()->AddRef();
   *aViewProvider = sFrameworkView.Get();
   return !sFrameworkView ? E_FAIL : S_OK;
@@ -134,6 +139,31 @@ MetroApp::CoreExit()
   }
 }
 
+void
+MetroApp::ActivateBaseView()
+{
+  if (sFrameworkView) {
+    sFrameworkView->ActivateView();
+  }
+}
+
+
+
+
+
+
+void
+MetroApp::SetWidget(MetroWidget* aPtr)
+{
+  LogThread();
+
+  NS_ASSERTION(aPtr, "setting null base widget?");
+
+  
+  aPtr->SetView(sFrameworkView.Get());
+  sFrameworkView->SetWidget(aPtr);
+}
+
 
 
 
@@ -160,19 +190,6 @@ MetroApp::OnAsyncTileCreated(ABI::Windows::Foundation::IAsyncOperation<bool>* aO
   WinUtils::Log("Async operation status: %d", aStatus);
   MetroUtils::FireObserver("metro_on_async_tile_created");
   return S_OK;
-}
-
-
-void
-MetroApp::SetBaseWidget(MetroWidget* aPtr)
-{
-  LogThread();
-
-  NS_ASSERTION(aPtr, "setting null base widget?");
-
-  
-  aPtr->SetView(sFrameworkView.Get());
-  sFrameworkView->SetWidget(aPtr);
 }
 
 
@@ -251,9 +268,7 @@ XRE_MetroCoreApplicationRun()
     return false;
   }
 
-  sFrameworkView = Make<FrameworkView>(sMetroApp.Get());
   hr = sCoreApp->Run(sMetroApp.Get());
-  sFrameworkView = nullptr;
 
   WinUtils::Log("Exiting CoreApplication::Run");
 
