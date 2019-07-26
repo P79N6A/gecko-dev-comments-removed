@@ -244,18 +244,10 @@ struct Token {
     TokenKind           type;           
     TokenPos            pos;            
     union {
-        struct {                        
-            JSOp        op;             
-            union {
-              private:
-                friend struct Token;
-                PropertyName *name;     
-                JSAtom       *atom;     
-            } n;
-        } s;
-
       private:
         friend struct Token;
+        PropertyName *name;             
+        JSAtom       *atom;             
         struct {
             double       value;         
             DecimalPoint decimalPoint;  
@@ -271,18 +263,14 @@ struct Token {
 
 
 
-    void setName(JSOp op, PropertyName *name) {
-        JS_ASSERT(op == JSOP_NAME);
+    void setName(PropertyName *name) {
         JS_ASSERT(!IsPoisonedPtr(name));
-        u.s.op = op;
-        u.s.n.name = name;
+        u.name = name;
     }
 
-    void setAtom(JSOp op, JSAtom *atom) {
-        JS_ASSERT(op == JSOP_STRING);
+    void setAtom(JSAtom *atom) {
         JS_ASSERT(!IsPoisonedPtr(atom));
-        u.s.op = op;
-        u.s.n.atom = atom;
+        u.atom = atom;
     }
 
     void setRegExpFlags(js::RegExpFlag flags) {
@@ -299,12 +287,12 @@ struct Token {
 
     PropertyName *name() const {
         JS_ASSERT(type == TOK_NAME);
-        return u.s.n.name->asPropertyName(); 
+        return u.name->asPropertyName(); 
     }
 
     JSAtom *atom() const {
         JS_ASSERT(type == TOK_STRING);
-        return u.s.n.atom;
+        return u.atom;
     }
 
     js::RegExpFlag regExpFlags() const {
@@ -323,8 +311,6 @@ struct Token {
         return u.number.decimalPoint;
     }
 };
-
-#define t_op            u.s.op
 
 enum TokenStreamFlags
 {
@@ -698,9 +684,7 @@ class MOZ_STACK_CLASS TokenStream
 
 
 
-
-
-    bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp, JSOp *topp);
+    bool checkForKeyword(const jschar *s, size_t length, TokenKind *ttp);
 
     
     
