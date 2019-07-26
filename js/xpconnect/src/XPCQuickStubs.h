@@ -637,7 +637,7 @@ xpc_qsSameResult(int32_t result1, int32_t result2)
 
 
 template<typename Op>
-static inline JSBool ApplyPropertyOp(JSContext *cx, Op op, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
+inline JSBool ApplyPropertyOp(JSContext *cx, Op op, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp);
 
 template<>
 inline JSBool
