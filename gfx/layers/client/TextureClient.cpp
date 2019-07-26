@@ -350,7 +350,8 @@ TextureClient::CreateTextureClientForDrawing(ISurfaceAllocator* aAllocator,
     result = CreateBufferTextureClient(aAllocator, aFormat, aTextureFlags, aMoz2DBackend);
   }
 
-  MOZ_ASSERT(!result || result->CanExposeDrawTarget(), "texture cannot expose a DrawTarget?");
+  MOZ_ASSERT(!result || result->AsTextureClientDrawTarget(),
+             "Not a TextureClientDrawTarget?");
   return result;
 }
 
@@ -484,12 +485,12 @@ bool TextureClient::CopyToTextureClient(TextureClient* aTarget,
   MOZ_ASSERT(IsLocked());
   MOZ_ASSERT(aTarget->IsLocked());
 
-  if (!aTarget->CanExposeDrawTarget() || !CanExposeDrawTarget()) {
+  if (!aTarget->AsTextureClientDrawTarget() || !AsTextureClientDrawTarget()) {
     return false;
   }
 
-  RefPtr<DrawTarget> destinationTarget = aTarget->GetAsDrawTarget();
-  RefPtr<DrawTarget> sourceTarget = GetAsDrawTarget();
+  RefPtr<DrawTarget> destinationTarget = aTarget->AsTextureClientDrawTarget()->GetAsDrawTarget();
+  RefPtr<DrawTarget> sourceTarget = AsTextureClientDrawTarget()->GetAsDrawTarget();
   RefPtr<gfx::SourceSurface> source = sourceTarget->Snapshot();
   destinationTarget->CopySurface(source,
                                  aRect ? *aRect : gfx::IntRect(gfx::IntPoint(0, 0), GetSize()),
@@ -660,6 +661,51 @@ ISurfaceAllocator*
 BufferTextureClient::GetAllocator() const
 {
   return mAllocator;
+}
+
+bool
+BufferTextureClient::UpdateSurface(gfxASurface* aSurface)
+{
+  MOZ_ASSERT(mLocked);
+  MOZ_ASSERT(aSurface);
+  MOZ_ASSERT(!IsImmutable());
+  MOZ_ASSERT(IsValid());
+
+  ImageDataSerializer serializer(GetBuffer(), GetBufferSize());
+  if (!serializer.IsValid()) {
+    return false;
+  }
+
+  RefPtr<DrawTarget> dt = GetAsDrawTarget();
+  RefPtr<SourceSurface> source = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, aSurface);
+
+  dt->CopySurface(source, IntRect(IntPoint(), serializer.GetSize()), IntPoint());
+  
+  
+  
+
+  if (TextureRequiresLocking(mFlags) && !ImplementsLocking()) {
+    
+    
+    MarkImmutable();
+  }
+  return true;
+}
+
+already_AddRefed<gfxASurface>
+BufferTextureClient::GetAsSurface()
+{
+  MOZ_ASSERT(mLocked);
+  MOZ_ASSERT(IsValid());
+
+  ImageDataSerializer serializer(GetBuffer(), GetBufferSize());
+  if (!serializer.IsValid()) {
+    return nullptr;
+  }
+
+  RefPtr<gfxImageSurface> surf = serializer.GetAsThebesSurface();
+  nsRefPtr<gfxASurface> result = surf.get();
+  return result.forget();
 }
 
 bool

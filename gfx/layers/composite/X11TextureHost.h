@@ -8,7 +8,7 @@
 
 #include "mozilla/layers/TextureHost.h"
 #include "mozilla/layers/LayersSurfaces.h"
-#include "mozilla/gfx/Types.h"
+#include "mozilla/gfx/2D.h"
 
 class gfxXlibSurface;
 
@@ -23,11 +23,8 @@ public:
                  const SurfaceDescriptorX11& aDescriptor);
 
   virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
-
   virtual bool Lock() MOZ_OVERRIDE;
-
   virtual gfx::SurfaceFormat GetFormat() const MOZ_OVERRIDE;
-
   virtual gfx::IntSize GetSize() const MOZ_OVERRIDE;
 
   virtual NewTextureSource* GetTextureSources() MOZ_OVERRIDE
