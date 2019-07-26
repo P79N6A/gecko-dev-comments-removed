@@ -532,6 +532,14 @@ class StaticBlockObject : public BlockObject
         return reinterpret_cast<frontend::Definition *>(v.toPrivate());
     }
 
+    
+
+
+
+
+
+    static const unsigned LOCAL_INDEX_LIMIT = JS_BIT(16);
+
     static Shape *addVar(ExclusiveContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                          unsigned index, bool *redeclared);
 };
