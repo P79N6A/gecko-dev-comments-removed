@@ -294,15 +294,6 @@ const nsHTMLElement gHTMLElements[] = {
                 0,0,
   },
   {
-                                 eHTMLTag_blink,
-              eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kFontStyle, (kFlowEntity|kSelf), kNone,
-           0, kDefaultPropRange,
-                0,0,
-  },
-  {
                                  eHTMLTag_blockquote,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
@@ -1808,7 +1799,6 @@ bool nsHTMLElement::IsResidualStyleTag(eHTMLTags aChild) {
     case eHTMLTag_b:
     case eHTMLTag_bdo:     
     case eHTMLTag_big:       
-    case eHTMLTag_blink:
     case eHTMLTag_del:
     case eHTMLTag_em:
     case eHTMLTag_font:    
