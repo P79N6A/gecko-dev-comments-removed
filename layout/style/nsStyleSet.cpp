@@ -331,6 +331,29 @@ nsStyleSet::ReplaceSheets(sheetType aType,
   return NS_OK;
 }
 
+nsresult
+nsStyleSet::InsertStyleSheetBefore(sheetType aType, nsIStyleSheet *aNewSheet,
+                                   nsIStyleSheet *aReferenceSheet)
+{
+  NS_PRECONDITION(aNewSheet && aReferenceSheet, "null arg");
+  NS_ASSERTION(aNewSheet->IsApplicable(),
+               "Inapplicable sheet being placed in style set");
+
+  mSheets[aType].RemoveObject(aNewSheet);
+  int32_t idx = mSheets[aType].IndexOf(aReferenceSheet);
+  if (idx < 0)
+    return NS_ERROR_INVALID_ARG;
+  
+  if (!mSheets[aType].InsertObjectAt(aNewSheet, idx))
+    return NS_ERROR_OUT_OF_MEMORY;
+
+  if (!mBatching)
+    return GatherRuleProcessors(aType);
+
+  mDirty |= 1 << aType;
+  return NS_OK;
+}
+
 bool
 nsStyleSet::GetAuthorStyleDisabled()
 {
@@ -379,9 +402,11 @@ nsStyleSet::AddDocStyleSheet(nsIStyleSheet* aSheet, nsIDocument* aDocument)
     
     
     
+    
     if (sheetDocIndex < 0 &&
-        sheetService &&
-        sheetService->AuthorStyleSheets()->IndexOf(sheet) >= 0)
+        ((sheetService &&
+        sheetService->AuthorStyleSheets()->IndexOf(sheet) >= 0) ||
+        sheet == aDocument->FirstAdditionalAuthorSheet()))
         break;
   }
   if (!docSheets.InsertObjectAt(aSheet, index))

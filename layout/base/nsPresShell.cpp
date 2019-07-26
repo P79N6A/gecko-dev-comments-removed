@@ -1523,7 +1523,15 @@ PresShell::AddAuthorSheet(nsISupports* aSheet)
     return;
   }
 
-  mStyleSet->AppendStyleSheet(nsStyleSet::eDocSheet, sheet);
+  
+  
+  nsIStyleSheet* firstAuthorSheet = mDocument->FirstAdditionalAuthorSheet();
+  if (firstAuthorSheet) {
+    mStyleSet->InsertStyleSheetBefore(nsStyleSet::eDocSheet, sheet, firstAuthorSheet);
+  } else {
+    mStyleSet->AppendStyleSheet(nsStyleSet::eDocSheet, sheet);  
+  }
+
   ReconstructStyleData();
 }
 
