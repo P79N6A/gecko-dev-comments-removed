@@ -806,17 +806,10 @@ public:
   MacIOSurfaceImage()
     : Image(NULL, MAC_IO_SURFACE)
     , mSize(0, 0)
-    , mPluginInstanceOwner(NULL)
-    , mUpdateCallback(NULL)
-    , mDestroyCallback(NULL)
     {}
 
   virtual ~MacIOSurfaceImage()
-  {
-    if (mDestroyCallback) {
-      mDestroyCallback(mPluginInstanceOwner);
-    }
-  }
+  { }
 
  
 
@@ -824,24 +817,6 @@ public:
 
 
   virtual void SetData(const Data& aData);
-
-  
-
-
-
-
-  typedef void (*UpdateSurfaceCallback)(ImageContainer* aContainer, void* aInstanceOwner);
-  virtual void SetUpdateCallback(UpdateSurfaceCallback aCallback, void* aInstanceOwner)
-  {
-    mUpdateCallback = aCallback;
-    mPluginInstanceOwner = aInstanceOwner;
-  }
-
-  typedef void (*DestroyCallback)(void* aInstanceOwner);
-  virtual void SetDestroyCallback(DestroyCallback aCallback)
-  {
-    mDestroyCallback = aCallback;
-  }
 
   virtual gfxIntSize GetSize()
   {
@@ -853,16 +828,11 @@ public:
     return mIOSurface;
   }
 
-  void Update(ImageContainer* aContainer);
-
   virtual already_AddRefed<gfxASurface> GetAsSurface();
 
 private:
   gfxIntSize mSize;
   RefPtr<MacIOSurface> mIOSurface;
-  void* mPluginInstanceOwner;
-  UpdateSurfaceCallback mUpdateCallback;
-  DestroyCallback mDestroyCallback;
 };
 #endif
 

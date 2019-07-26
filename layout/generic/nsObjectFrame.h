@@ -159,8 +159,6 @@ public:
   virtual bool ReflowFinished() MOZ_OVERRIDE;
   virtual void ReflowCallbackCanceled() MOZ_OVERRIDE;
 
-  void UpdateImageLayer(const gfxRect& aRect);
-
   
 
 
