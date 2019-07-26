@@ -273,27 +273,6 @@ intrinsic_ParallelSlices(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-
-
-JSBool
-js::intrinsic_NewParallelArray(JSContext *cx, unsigned argc, Value *vp)
-{
-    CallArgs args = CallArgsFromVp(argc, vp);
-
-    JS_ASSERT(args[0].isObject() && args[0].toObject().isFunction());
-
-    RootedFunction init(cx, args[0].toObject().toFunction());
-    CallArgs args0 = CallArgsFromVp(argc - 1, vp + 1);
-    if (!js::ParallelArrayObject::constructHelper(cx, &init, args0))
-        return false;
-    args.rval().set(args0.rval());
-    return true;
-}
-
-
-
-
-
 JSBool
 js::intrinsic_NewDenseArray(JSContext *cx, unsigned argc, Value *vp)
 {
@@ -464,7 +443,6 @@ JSFunctionSpec intrinsic_functions[] = {
 
     JS_FN("ParallelDo",           intrinsic_ParallelDo,           2,0),
     JS_FN("ParallelSlices",       intrinsic_ParallelSlices,       0,0),
-    JS_FN("NewParallelArray",     intrinsic_NewParallelArray,     3,0),
     JS_FN("NewDenseArray",        intrinsic_NewDenseArray,        1,0),
     JS_FN("UnsafeSetElement",     intrinsic_UnsafeSetElement,     3,0),
     JS_FN("ShouldForceSequential", intrinsic_ShouldForceSequential, 0,0),

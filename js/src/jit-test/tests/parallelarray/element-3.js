@@ -7,5 +7,4 @@ function testElement() {
   assertEq(desc.value, 9);
 }
 
-
-
+testElement();
