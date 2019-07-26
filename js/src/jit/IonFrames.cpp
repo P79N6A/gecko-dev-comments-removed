@@ -549,16 +549,12 @@ HandleException(ResumeFromException *rfe)
             
             
             InlineFrameIterator frames(cx, &iter);
-
-            
-            IonScript *ionScript = nullptr;
-            bool invalidated = iter.checkInvalidation(&ionScript);
-
             for (;;) {
                 HandleExceptionIon(cx, frames, rfe, &overrecursed);
 
                 if (rfe->kind == ResumeFromException::RESUME_BAILOUT) {
-                    if (invalidated)
+                    IonScript *ionScript = nullptr;
+                    if (iter.checkInvalidation(&ionScript))
                         ionScript->decref(cx->runtime()->defaultFreeOp());
                     return;
                 }
@@ -568,22 +564,15 @@ HandleException(ResumeFromException *rfe)
                 
                 
                 
-                
-                bool popSPSFrame = cx->runtime()->spsProfiler.enabled();
-                if (invalidated)
-                    popSPSFrame = ionScript->hasSPSInstrumentation();
-
-                
-                
-                
                 JSScript *script = frames.script();
-                probes::ExitScript(cx, script, script->function(), popSPSFrame);
+                probes::ExitScript(cx, script, script->function(), nullptr);
                 if (!frames.more())
                     break;
                 ++frames;
             }
 
-            if (invalidated)
+            IonScript *ionScript = nullptr;
+            if (iter.checkInvalidation(&ionScript))
                 ionScript->decref(cx->runtime()->defaultFreeOp());
 
         } else if (iter.isBaselineJS()) {
@@ -596,8 +585,7 @@ HandleException(ResumeFromException *rfe)
 
             
             JSScript *script = iter.script();
-            probes::ExitScript(cx, script, script->function(),
-                               iter.baselineFrame()->hasPushedSPSFrame());
+            probes::ExitScript(cx, script, script->function(), iter.baselineFrame());
             
             
             
