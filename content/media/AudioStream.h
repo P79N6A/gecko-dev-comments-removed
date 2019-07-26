@@ -252,6 +252,7 @@ public:
 
   int GetRate() { return mOutRate; }
   int GetChannels() { return mChannels; }
+  int GetOutChannels() { return mOutChannels; }
 
   
   nsresult EnsureTimeStretcherInitialized();
@@ -309,6 +310,7 @@ private:
   
   int mOutRate;
   int mChannels;
+  int mOutChannels;
   
   int64_t mWritten;
   AudioClock mAudioClock;

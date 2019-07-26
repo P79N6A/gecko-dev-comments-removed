@@ -710,12 +710,8 @@ bool WebMReader::DecodeAudioPacket(nestegg_packet* aPacket, int64_t aOffset)
 #endif
 
       
-      if (channels > 2) {
-        
-        
-        if (channels > 8)
-          return false;
-        OggReader::DownmixToStereo(buffer, channels, frames);
+      if (channels > 8) {
+        return false;
       }
 
       CheckedInt64 duration = FramesToUsecs(frames, rate);
