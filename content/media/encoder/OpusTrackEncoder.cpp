@@ -212,8 +212,9 @@ OpusTrackEncoder::GetMetadata()
   }
 
   
-  SerializeOpusIdHeader(mChannels, mLookahead*(kOpusSamplingRate/mSamplingRate),
-                        mSamplingRate, &meta->mIdHeader);
+  SerializeOpusIdHeader(mChannels, mLookahead * (kOpusSamplingRate /
+                        GetOutputSampleRate()), mSamplingRate,
+                        &meta->mIdHeader);
 
   nsCString vendor;
   vendor.AppendASCII(opus_get_version_string());
