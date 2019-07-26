@@ -1,16 +1,15 @@
 
 
 
-
 "use strict";
 
-const observers = require("../deprecated/observer-service");
+const { on } = require("../system/events");
 const core = require("./core");
 const { id: jetpackId} = require('../self');
 
 const OPTIONS_DISPLAYED = "addon-options-displayed";
 
-function onOptionsDisplayed(document, addonId) {
+function onOptionsDisplayed({ subjec: document, data: addonId }) {
   if (addonId !== jetpackId)
     return;
   let query = 'setting[data-jetpack-id="' + jetpackId + '"][pref-name], ' +
@@ -40,5 +39,4 @@ function onOptionsDisplayed(document, addonId) {
     }
   }
 }
-
-observers.add(OPTIONS_DISPLAYED, onOptionsDisplayed);
+on(OPTIONS_DISPLAYED, onOptionsDisplayed);

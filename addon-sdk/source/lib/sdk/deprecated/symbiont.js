@@ -4,13 +4,13 @@
 "use strict";
 
 module.metadata = {
-  "stability": "unstable"
+  "stability": "deprecated"
 };
 
-const { Worker } = require('./worker');
-const { Loader } = require('./loader');
+const { Worker } = require('./traits-worker');
+const { Loader } = require('../content/loader');
 const hiddenFrames = require('../frame/hidden-frame');
-const observers = require('../deprecated/observer-service');
+const { on, off } = require('../system/events');
 const unload = require('../system/unload');
 const { getDocShell } = require("../frame/utils");
 const { ignoreWindow } = require('../private-browsing/utils');
@@ -28,7 +28,7 @@ const Symbiont = Worker.resolve({
     constructor: '_initWorker',
     destroy: '_workerDestroy'
   }).compose(Loader, {
-  
+
   
 
 
@@ -80,7 +80,7 @@ const Symbiont = Worker.resolve({
 
     unload.ensure(this._public, "destroy");
   },
-  
+
   destroy: function destroy() {
     this._workerDestroy();
     this._unregisterListener();
@@ -90,14 +90,14 @@ const Symbiont = Worker.resolve({
       this._hiddenFrame = null;
     }
   },
-  
+
   
 
 
 
 
   _frame: null,
-  
+
   
 
 
@@ -105,7 +105,7 @@ const Symbiont = Worker.resolve({
   _initFrame: function _initFrame(frame) {
     if (this._loadListener)
       this._unregisterListener();
-    
+
     this._frame = frame;
 
     if (getDocShell(frame)) {
@@ -113,16 +113,16 @@ const Symbiont = Worker.resolve({
     }
     else {
       if (this._waitForFrame) {
-        observers.remove('content-document-global-created', this._waitForFrame);
+        off('content-document-global-created', this._waitForFrame);
       }
       this._waitForFrame = this.__waitForFrame.bind(this, frame);
-      observers.add('content-document-global-created', this._waitForFrame);
+      on('content-document-global-created', this._waitForFrame);
     }
   },
 
-  __waitForFrame: function _waitForFrame(frame, win, topic) {
+  __waitForFrame: function _waitForFrame(frame, { subject: win }) {
     if (frame.contentWindow == win) {
-      observers.remove('content-document-global-created', this._waitForFrame);
+      off('content-document-global-created', this._waitForFrame);
       delete this._waitForFrame;
       this._reallyInitFrame(frame);
     }
@@ -157,13 +157,13 @@ const Symbiont = Worker.resolve({
       this._onInit();
       return;
     }
-    
+
     let self = this;
-    
+
     if ('start' == this.contentScriptWhen) {
       this._loadEvent = 'start';
-      observers.add('document-element-inserted', 
-        this._loadListener = function onStart(doc) {
+      on('document-element-inserted',
+        this._loadListener = function onStart({ subject: doc }) {
           let window = doc.defaultView;
 
           if (ignoreWindow(window)) {
@@ -174,41 +174,41 @@ const Symbiont = Worker.resolve({
             self._unregisterListener();
             self._onInit();
           }
-          
+
         });
       return;
     }
-    
+
     let eventName = 'end' == this.contentScriptWhen ? 'load' : 'DOMContentLoaded';
     let self = this;
     this._loadEvent = eventName;
-    frame.addEventListener(eventName, 
+    frame.addEventListener(eventName,
       this._loadListener = function _onReady(event) {
-      
+
         if (event.target != frame.contentDocument)
           return;
         self._unregisterListener();
-        
+
         self._onInit();
-        
+
       }, true);
-    
+
   },
-  
+
   
 
 
 
   _unregisterListener: function _unregisterListener() {
     if (this._waitForFrame) {
-      observers.remove('content-document-global-created', this._waitForFrame);
+      off('content-document-global-created', this._waitForFrame);
       delete this._waitForFrame;
     }
 
     if (!this._loadListener)
       return;
     if (this._loadEvent == "start") {
-      observers.remove('document-element-inserted', this._loadListener);
+      off('document-element-inserted', this._loadListener);
     }
     else {
       this._frame.removeEventListener(this._loadEvent, this._loadListener,
@@ -216,7 +216,7 @@ const Symbiont = Worker.resolve({
     }
     this._loadListener = null;
   },
-  
+
   
 
 
@@ -224,6 +224,6 @@ const Symbiont = Worker.resolve({
   _onInit: function () {
     this._initWorker({ window: this._frame.contentWindow });
   }
-  
+
 });
 exports.Symbiont = Symbiont;

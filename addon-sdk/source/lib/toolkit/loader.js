@@ -613,8 +613,20 @@ const Require = iced(function Require(loader, requirer) {
     
     
     if (!(uri in modules)) {
+      
+      
+      
       module = modules[uri] = Module(requirement, uri);
-      freeze(load(loader, module));
+      try {
+        freeze(load(loader, module));
+      }
+      catch (e) {
+        
+        delete modules[uri];
+        
+        delete loader.sandboxes[uri];
+        throw e;
+      }
     }
 
     return module.exports;

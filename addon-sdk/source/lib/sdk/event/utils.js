@@ -7,7 +7,7 @@ module.metadata = {
   "stability": "unstable"
 };
 
-let { emit, on, once, off } = require("./core");
+let { emit, on, once, off, EVENT_TYPE_PATTERN } = require("./core");
 
 
 
@@ -255,3 +255,21 @@ Reactor.prototype.run = function(input) {
   this.onStart(input.value);
 };
 exports.Reactor = Reactor;
+
+
+
+
+
+
+
+
+
+
+function stripListeners (object) {
+  return Object.keys(object).reduce((agg, key) => {
+    if (!EVENT_TYPE_PATTERN.test(key))
+      agg[key] = object[key];
+    return agg;
+  }, {});
+}
+exports.stripListeners = stripListeners;

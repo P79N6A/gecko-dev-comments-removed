@@ -39,29 +39,6 @@ const { isArray } = Array;
 
 
 
-exports.publicConstructor = function publicConstructor(privateCtor) {
-  function PublicCtor() {
-    let obj = { constructor: PublicCtor, __proto__: PublicCtor.prototype };
-    memory.track(obj, privateCtor.name);
-    privateCtor.apply(obj, arguments);
-    return obj;
-  }
-  PublicCtor.prototype = { __proto__: privateCtor.prototype };
-  return PublicCtor;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

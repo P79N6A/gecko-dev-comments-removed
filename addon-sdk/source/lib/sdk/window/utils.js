@@ -9,7 +9,6 @@ module.metadata = {
 
 const { Cc, Ci } = require('chrome');
 const array = require('../util/array');
-const observers = require('../deprecated/observer-service');
 const { defer } = require('sdk/core/promise');
 
 const windowWatcher = Cc['@mozilla.org/embedcomp/window-watcher;1'].
@@ -150,25 +149,6 @@ exports.getWindowLoadingContext = getWindowLoadingContext;
 
 const isTopLevel = window => window && getToplevelWindow(window) === window;
 exports.isTopLevel = isTopLevel;
-
-
-
-
-
-
-
-
-function backgroundify(window, options) {
-  let base = getBaseWindow(window);
-  base.visibility = false;
-  base.enabled = false;
-  appShellService.unregisterTopLevelWindow(getXULWindow(window));
-  if (!options || options.close !== false)
-    observers.add('quit-application-granted', window.close.bind(window));
-
-  return window;
-}
-exports.backgroundify = backgroundify;
 
 
 

@@ -363,10 +363,12 @@ let menuRules = mix(labelledItemRules, {
   }
 });
 
-let ContextWorker = Worker.compose({
+let ContextWorker = Class({
+  implements: [ Worker ],
+
   
   anyContextListeners: function anyContextListeners() {
-    return this._contentWorker.hasListenerFor("context");
+    return this.getSandbox().hasListenerFor("context");
   },
 
   
@@ -374,7 +376,7 @@ let ContextWorker = Worker.compose({
   
   
   getMatchedContext: function getCurrentContexts(popupNode) {
-    let results = this._contentWorker.emitSync("context", popupNode);
+    let results = this.getSandbox().emitSync("context", popupNode);
     return results.reduce(function(val, result) val || result, null);
   },
 
@@ -382,7 +384,7 @@ let ContextWorker = Worker.compose({
   
   
   fireClick: function fireClick(popupNode, clickedItemData) {
-    this._contentWorker.emitSync("click", popupNode, clickedItemData);
+    this.getSandbox().emitSync("click", popupNode, clickedItemData);
   }
 });
 
