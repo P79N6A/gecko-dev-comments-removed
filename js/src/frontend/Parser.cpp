@@ -3994,20 +3994,12 @@ Parser<ParseHandler>::doWhileStatement()
         return null();
     PopStatementPC(tokenStream, pc);
 
-    if (versionNumber() == JSVERSION_ECMA_3) {
-        
-        
-        if (!MatchOrInsertSemicolon(tokenStream))
-            return null();
-    } else {
-        
-        
-        
-        
-        
-        (void) tokenStream.matchToken(TOK_SEMI);
-    }
-
+    
+    
+    
+    
+    
+    tokenStream.matchToken(TOK_SEMI);
     return handler.newDoWhileStatement(body, cond, TokenPos(begin, pos().end));
 }
 
