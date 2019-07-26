@@ -256,7 +256,7 @@ struct IonScript
     uint32_t backedgeEntries_;
 
     
-    size_t refcount_;
+    uint32_t refcount_;
 
     
     types::RecompileInfo recompileInfo_;
@@ -347,6 +347,9 @@ struct IonScript
     }
     static inline size_t offsetOfSkipArgCheckEntryOffset() {
         return offsetof(IonScript, skipArgCheckEntryOffset_);
+    }
+    static inline size_t offsetOfRefcount() {
+        return offsetof(IonScript, refcount_);
     }
 
   public:
