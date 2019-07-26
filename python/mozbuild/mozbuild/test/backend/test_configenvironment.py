@@ -38,7 +38,7 @@ class TestEnvironment(unittest.TestCase):
         '''
         env = ConfigEnvironment('.', '.',
                   defines = [ ('foo', 'bar'), ('baz', 'qux 42'),
-                              ('abc', 'def'), ('extra', 'foobar') ],
+                              ('abc', "d'e'f"), ('extra', 'foobar') ],
                   non_global_defines = ['extra', 'ignore'],
                   substs = [ ('FOO', 'bar'), ('FOOBAR', ''), ('ABC', 'def'),
                              ('bar', 'baz qux'), ('zzz', '"abc def"'),
@@ -46,15 +46,15 @@ class TestEnvironment(unittest.TestCase):
         
         
         
-        self.assertEqual(env.substs['ACDEFINES'], '''-Dfoo=bar -Dbaz=qux\ 42 -Dabc=def''')
+        self.assertEqual(env.substs['ACDEFINES'], """-Dfoo='bar' -Dbaz='qux 42' -Dabc='d'\\''e'\\''f'""")
         
-        self.assertEqual(env.substs['ALLDEFINES'], '''#define abc def
+        self.assertEqual(env.substs['ALLDEFINES'], '''#define abc d'e'f
 #define baz qux 42
 #define foo bar''')
         
         
         self.assertEqual(env.substs['ALLSUBSTS'], '''ABC = def
-ACDEFINES = -Dfoo=bar -Dbaz=qux\ 42 -Dabc=def
+ACDEFINES = -Dfoo='bar' -Dbaz='qux 42' -Dabc='d'\\''e'\\''f'
 FOO = bar
 bar = baz qux
 zzz = "abc def"''')
