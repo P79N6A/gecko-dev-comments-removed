@@ -1390,20 +1390,16 @@ TokenStream::getTokenInternal(Modifier modifier)
         } else if (JS7_ISDEC(c)) {
             radix = 8;
             numStart = userbuf.addressOfNextRawChar() - 1;  
+
+            
+            if (!reportStrictModeError(JSMSG_DEPRECATED_OCTAL))
+                goto error;
+
             while (JS7_ISDEC(c)) {
                 
-                if (!reportStrictModeError(JSMSG_DEPRECATED_OCTAL))
-                    goto error;
-
-                
-                
-                
-                
                 if (c >= '8') {
-                    if (!reportWarning(JSMSG_BAD_OCTAL, c == '8' ? "08" : "09")) {
-                        goto error;
-                    }
-                    goto decimal;   
+                    reportError(JSMSG_BAD_OCTAL, c == '8' ? "8" : "9");
+                    goto error;
                 }
                 c = getCharIgnoreEOL();
             }
