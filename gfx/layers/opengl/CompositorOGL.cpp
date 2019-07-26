@@ -1487,17 +1487,14 @@ CompositorOGL::CopyToTarget(DrawTarget *aTarget, const gfxMatrix& aTransform)
 
   RefPtr<DataSourceSurface> source =
         Factory::CreateDataSourceSurface(rect.Size(), gfx::SurfaceFormat::B8G8R8A8);
-
-  DataSourceSurface::MappedSurface map;
-  source->Map(DataSourceSurface::MapType::WRITE, &map);
   
   nsRefPtr<gfxImageSurface> surf =
-    new gfxImageSurface(map.mData,
+    new gfxImageSurface(source->GetData(),
                         gfxIntSize(width, height),
-                        map.mStride,
+                        source->Stride(),
                         gfxImageFormatARGB32);
   ReadPixelsIntoImageSurface(mGLContext, surf);
-  source->Unmap();
+  source->MarkDirty();
 
   
   Matrix glToCairoTransform = ToMatrix(aTransform);

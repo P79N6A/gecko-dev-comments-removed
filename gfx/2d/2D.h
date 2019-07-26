@@ -23,8 +23,6 @@
 
 #include "mozilla/RefPtr.h"
 
-#include "mozilla/DebugOnly.h"
-
 #ifdef MOZ_ENABLE_FREETYPE
 #include <string>
 #endif
@@ -339,22 +337,6 @@ public:
 class DataSourceSurface : public SourceSurface
 {
 public:
-  DataSourceSurface()
-    : mIsMapped(false)
-  {
-  }
-
-  struct MappedSurface {
-    uint8_t *mData;
-    int32_t mStride;
-  };
-
-  enum MapType {
-    READ,
-    WRITE,
-    READ_WRITE
-  };
-
   virtual SurfaceType GetType() const { return SurfaceType::DATA; }
   
 
@@ -369,27 +351,17 @@ public:
 
   virtual int32_t Stride() = 0;
 
-  virtual bool Map(MapType, MappedSurface *aMappedSurface)
-  {
-    aMappedSurface->mData = GetData();
-    aMappedSurface->mStride = Stride();
-    mIsMapped = true;
-    return true;
-  }
+  
 
-  virtual void Unmap()
-  {
-    MOZ_ASSERT(mIsMapped);
-    mIsMapped = false;
-  }
+
+
+  virtual void MarkDirty() {}
 
   
 
 
 
   virtual TemporaryRef<DataSourceSurface> GetDataSurface();
-
-  DebugOnly<bool> mIsMapped;
 };
 
 
