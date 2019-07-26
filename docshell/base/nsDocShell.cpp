@@ -220,7 +220,10 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 
-static int32_t gNumberOfDocumentsLoading = 0;
+
+
+
+static int32_t gNumberOfActiveDocumentsLoading = 0;
 
 
 static int32_t gDocShellCount = 0;
@@ -783,6 +786,7 @@ nsDocShell::nsDocShell():
     mInEnsureScriptEnv(false),
 #endif
     mAffectPrivateSessionLifetime(true),
+    mTurnOffFavorPerfMode(false),
     mFrameType(eFrameTypeRegular),
     mOwnOrContainingAppId(nsIScriptSecurityManager::UNKNOWN_APP_ID),
     mParentCharsetSource(0)
@@ -6716,8 +6720,9 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
         
         
         
-        if (--gNumberOfDocumentsLoading == 0) {
+        if (mTurnOffFavorPerfMode && --gNumberOfActiveDocumentsLoading == 0) {
           
+          mTurnOffFavorPerfMode = false;
           FavorPerformanceHint(false);
         }
     }
@@ -7722,8 +7727,12 @@ nsDocShell::RestoreFromHistory()
 
     
     
-    if (++gNumberOfDocumentsLoading == 1)
-        FavorPerformanceHint(true);
+    if (mIsActive) {
+        mTurnOffFavorPerfMode = true;
+        if (++gNumberOfActiveDocumentsLoading == 1) {
+          FavorPerformanceHint(true);
+        }
+    }
 
 
     if (oldMUDV && newMUDV) {
@@ -8124,11 +8133,14 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     
     
     
-    if (++gNumberOfDocumentsLoading == 1) {
+    if (mIsActive) {
       
       
       
-      FavorPerformanceHint(true);
+      mTurnOffFavorPerfMode = true;
+      if (++gNumberOfActiveDocumentsLoading == 1) {
+        FavorPerformanceHint(true);
+      }
     }
 
     if (onLocationChangeNeeded) {
