@@ -1,0 +1,14 @@
+
+
+
+
+
+
+
+
+
+
+
+"use strict";
+throw NotEarlyError;
+var arguments;
