@@ -657,6 +657,8 @@ pref("plugins.update.notifyUser", false);
 
 pref("plugins.click_to_play", true);
 
+pref("plugins.hideMissingPluginsNotification", false);
+
 #ifdef RELEASE_BUILD
 
 
