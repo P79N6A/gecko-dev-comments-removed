@@ -130,9 +130,17 @@ const BackgroundPageThumbs = {
     browser.setAttribute("remote", "true");
     browser.setAttribute("privatebrowsing", "true");
 
-    let [width, height] = PageThumbs._getThumbnailSize();
-    browser.style.width = width + "px";
-    browser.style.height = height + "px";
+    
+    
+    
+    let width = {};
+    let height = {};
+    Cc["@mozilla.org/gfx/screenmanager;1"].
+      getService(Ci.nsIScreenManager).
+      primaryScreen.
+      GetRectDisplayPix({}, {}, width, height);
+    browser.style.width = width.value + "px";
+    browser.style.height = height.value + "px";
 
     this._parentWin.document.documentElement.appendChild(browser);
 
