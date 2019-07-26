@@ -451,18 +451,16 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
 }
 
-nsresult
+void
 nsSVGOuterSVGFrame::DidReflow(nsPresContext*   aPresContext,
                               const nsHTMLReflowState*  aReflowState,
                               nsDidReflowStatus aStatus)
 {
-  nsresult rv = nsSVGOuterSVGFrameBase::DidReflow(aPresContext,aReflowState,aStatus);
+  nsSVGOuterSVGFrameBase::DidReflow(aPresContext,aReflowState,aStatus);
 
   
   
   PresContext()->PresShell()->SynthesizeMouseMove(false);
-
-  return rv;
 }
 
  bool

@@ -1885,9 +1885,9 @@ public:
 
 
 
-  virtual nsresult  DidReflow(nsPresContext*           aPresContext,
-                              const nsHTMLReflowState*  aReflowState,
-                              nsDidReflowStatus         aStatus) = 0;
+  virtual void DidReflow(nsPresContext*           aPresContext,
+                         const nsHTMLReflowState* aReflowState,
+                         nsDidReflowStatus        aStatus) = 0;
 
   
 
