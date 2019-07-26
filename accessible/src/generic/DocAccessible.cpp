@@ -1427,7 +1427,11 @@ DocAccessible::CacheChildren()
 {
   
   
-  TreeWalker walker(this, mDocumentNode->GetRootElement());
+  dom::Element* rootElm = mDocumentNode->GetRootElement();
+  if (!rootElm)
+    return;
+
+  TreeWalker walker(this, rootElm);
 
   Accessible* child = nullptr;
   while ((child = walker.NextChild()) && AppendChild(child));
