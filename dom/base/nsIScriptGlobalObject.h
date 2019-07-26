@@ -15,12 +15,6 @@
 class nsIScriptContext;
 class nsIScriptGlobalObject;
 
-namespace mozilla {
-namespace dom {
-class ErrorEventInit;
-} 
-} 
-
 
 
 
@@ -28,13 +22,13 @@ class ErrorEventInit;
 
 bool
 NS_HandleScriptError(nsIScriptGlobalObject *aScriptGlobal,
-                     const mozilla::dom::ErrorEventInit &aErrorEvent,
+                     mozilla::InternalScriptErrorEvent *aErrorEvent,
                      nsEventStatus *aStatus);
 
 
 #define NS_ISCRIPTGLOBALOBJECT_IID \
-{ 0x6995e1ff, 0x9fc5, 0x44a7, \
- { 0xbd, 0x7c, 0xe7, 0xcd, 0x44, 0x47, 0x22, 0x87 } }
+{ 0x30c64680, 0x909a, 0x4435, \
+  { 0x90, 0x3b, 0x29, 0x3e, 0xb5, 0x5d, 0xc7, 0xa0 } }
 
 
 
@@ -80,9 +74,9 @@ public:
 
 
   virtual nsresult HandleScriptError(
-                     const mozilla::dom::ErrorEventInit &aErrorEventInit,
+                     mozilla::InternalScriptErrorEvent *aErrorEvent,
                      nsEventStatus *aEventStatus) {
-    NS_ENSURE_STATE(NS_HandleScriptError(this, aErrorEventInit, aEventStatus));
+    NS_ENSURE_STATE(NS_HandleScriptError(this, aErrorEvent, aEventStatus));
     return NS_OK;
   }
 

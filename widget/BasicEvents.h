@@ -49,6 +49,7 @@ enum nsEventStructType
   NS_TOUCH_EVENT,                    
 
   
+  NS_SCRIPT_ERROR_EVENT,             
   NS_SCROLLPORT_EVENT,               
   NS_SCROLLAREA_EVENT,               
   NS_FORM_EVENT,                     
