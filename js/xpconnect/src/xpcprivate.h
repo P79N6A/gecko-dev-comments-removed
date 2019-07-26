@@ -277,6 +277,18 @@ extern const char XPC_XPCONNECT_CONTRACTID[];
 
 #define WN_XRAYEXPANDOCHAIN_SLOT 0
 
+
+
+static inline bool IS_WN_CLASS(const js::Class* clazz)
+{
+    return clazz->ext.isWrappedNative;
+}
+
+static inline bool IS_WN_REFLECTOR(JSObject *obj)
+{
+    return IS_WN_CLASS(js::GetObjectClass(obj));
+}
+
 inline void SetWNExpandoChain(JSObject *obj, JSObject *chain)
 {
     MOZ_ASSERT(IS_WN_REFLECTOR(obj));
@@ -2169,6 +2181,9 @@ private:
 
 void *xpc_GetJSPrivate(JSObject *obj);
 
+void
+TraceXPCGlobal(JSTracer *trc, JSObject *obj);
+
 
 
 
@@ -3820,7 +3835,42 @@ bool IsOutObject(JSContext* cx, JSObject* obj);
 
 nsresult HasInstance(JSContext *cx, JS::HandleObject objArg, const nsID *iid, bool *bp);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, uint32_t flags,
+                     uint32_t interfaceCount, const nsIID **interfaceArray);
+
+nsIPrincipal *GetObjectPrincipal(JSObject *obj);
+
 } 
+
+namespace mozilla {
+namespace dom {
+extern bool
+DefineStaticJSVals(JSContext *cx);
+} 
+} 
+
+NS_EXPORT_(bool)
+xpc_LocalizeRuntime(JSRuntime *rt);
+NS_EXPORT_(void)
+xpc_DelocalizeRuntime(JSRuntime *rt);
 
 
 

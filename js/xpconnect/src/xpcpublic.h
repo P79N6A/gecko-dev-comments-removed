@@ -22,13 +22,12 @@
 #include "mozilla/dom/JSSlots.h"
 #include "nsMathUtils.h"
 #include "nsStringBuffer.h"
-#include "nsIGlobalObject.h"
 #include "mozilla/dom/BindingDeclarations.h"
 
 class nsIPrincipal;
-class nsIXPConnectWrappedJS;
 class nsScriptNameSpaceManager;
 class nsIGlobalObject;
+class nsIMemoryReporterCallback;
 
 #ifndef BAD_TLS_INDEX
 #define BAD_TLS_INDEX ((uint32_t) -1)
@@ -76,27 +75,6 @@ struct RuntimeStats;
 #define XPCONNECT_GLOBAL_EXTRA_SLOT_OFFSET (JSCLASS_GLOBAL_SLOT_COUNT + DOM_GLOBAL_SLOTS)
 
 #define XPCONNECT_GLOBAL_FLAGS XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(0)
-
-void
-TraceXPCGlobal(JSTracer *trc, JSObject *obj);
-
-
-NS_EXPORT_(bool)
-xpc_LocalizeRuntime(JSRuntime *rt);
-NS_EXPORT_(void)
-xpc_DelocalizeRuntime(JSRuntime *rt);
-
-
-
-
-static inline bool IS_WN_CLASS(const js::Class* clazz)
-{
-    return clazz->ext.isWrappedNative;
-}
-static inline bool IS_WN_REFLECTOR(JSObject *obj)
-{
-    return IS_WN_CLASS(js::GetObjectClass(obj));
-}
 
 extern bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache);
@@ -157,8 +135,6 @@ xpc_UnmarkSkippableJSHolders();
 
 NS_EXPORT_(void)
 xpc_ActivateDebugMode();
-
-class nsIMemoryReporterCallback;
 
 
 class XPCStringConvert
@@ -288,34 +264,11 @@ bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 }
 
 nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
-nsIPrincipal *GetObjectPrincipal(JSObject *obj);
 
 bool IsXBLScope(JSCompartment *compartment);
 
 void SetLocationForGlobal(JSObject *global, const nsACString& location);
 void SetLocationForGlobal(JSObject *global, nsIURI *locationURI);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-bool
-DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, uint32_t flags,
-                     uint32_t interfaceCount, const nsIID **interfaceArray);
-
 
 
 
@@ -427,8 +380,6 @@ typedef JSObject*
 typedef bool
 (ConstructorEnabled)(JSContext* cx, JS::Handle<JSObject*> obj);
 
-extern bool
-DefineStaticJSVals(JSContext *cx);
 void
 Register(nsScriptNameSpaceManager* aNameSpaceManager);
 
