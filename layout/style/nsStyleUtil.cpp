@@ -77,7 +77,7 @@ void nsStyleUtil::AppendEscapedCSSString(const nsAString& aString,
   aReturn.Append(quoteChar);
 }
 
- void
+ bool
 nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
 {
   
@@ -93,7 +93,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
   const char16_t* const end = aIdent.EndReading();
 
   if (in == end)
-    return;
+    return true;
 
   
   
@@ -120,6 +120,9 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
 
   for (; in != end; ++in) {
     char16_t ch = *in;
+    if (ch == 0x00) {
+      return false;
+    }
     if (ch < 0x20 || (0x7F <= ch && ch < 0xA0)) {
       
       aReturn.AppendPrintf("\\%hX ", *in);
@@ -136,6 +139,7 @@ nsStyleUtil::AppendEscapedCSSIdent(const nsAString& aIdent, nsAString& aReturn)
       aReturn.Append(ch);
     }
   }
+  return true;
 }
 
  void
