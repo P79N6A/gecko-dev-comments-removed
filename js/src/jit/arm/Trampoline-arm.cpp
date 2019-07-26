@@ -33,13 +33,13 @@ static const FloatRegisterSet NonVolatileFloatRegs =
                      (1 << FloatRegisters::d15));
 
 static void
-GenerateReturn(MacroAssembler &masm, int returnCode)
+GenerateReturn(MacroAssembler &masm, int returnCode, SPSProfiler *prof)
 {
     
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsLoad, StackPointer, IA);
 
     
-    masm.as_add(sp, sp, Imm8(4));
+    masm.spsUnmarkJit(prof, r8);
 
     
     masm.ma_mov(Imm32(returnCode), r0);
@@ -71,7 +71,7 @@ struct EnterJITStack
     double d14;
     double d15;
 
-    void *r0; 
+    size_t hasSPSMark;
 
     
     void *r4;
@@ -119,7 +119,6 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
     
     masm.startDataTransferM(IsStore, sp, DB, WriteBack);
-    masm.transferReg(r0); 
     masm.transferReg(r4); 
     masm.transferReg(r5); 
     masm.transferReg(r6); 
@@ -132,6 +131,12 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     masm.transferReg(lr);  
     
     masm.finishDataTransfer();
+
+    
+    masm.movePtr(sp, r8);
+    masm.spsMarkJit(&cx->runtime()->spsProfiler, r8, r9);
+
+    
     masm.transferMultipleByRuns(NonVolatileFloatRegs, IsStore, sp, DB);
 
     
@@ -324,7 +329,7 @@ JitRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
     
 
     
-    GenerateReturn(masm, true);
+    GenerateReturn(masm, true, &cx->runtime()->spsProfiler);
 
     Linker linker(masm);
     JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);

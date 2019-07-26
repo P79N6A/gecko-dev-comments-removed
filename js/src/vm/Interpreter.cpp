@@ -1711,6 +1711,7 @@ CASE(JSOP_LOOPENTRY)
         if (status == jit::Method_Error)
             goto error;
         if (status == jit::Method_Compiled) {
+            bool wasSPS = REGS.fp()->hasPushedSPSFrame();
             jit::IonExecStatus maybeOsr = jit::EnterBaselineAtBranch(cx, REGS.fp(), REGS.pc);
 
             
@@ -1718,6 +1719,11 @@ CASE(JSOP_LOOPENTRY)
                 goto error;
 
             interpReturnOK = (maybeOsr == jit::IonExec_Ok);
+
+            
+            
+            if (wasSPS)
+                cx->runtime()->spsProfiler.exit(script, script->functionNonDelazifying());
 
             if (activation.entryFrame() != REGS.fp())
                 goto jit_return_pop_frame;
