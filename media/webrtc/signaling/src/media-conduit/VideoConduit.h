@@ -12,9 +12,14 @@
 
 
 #include "webrtc/common_types.h"
+#ifdef FF
+#undef FF // Avoid name collision between scoped_ptr.h and nsCRTGlue.h.
+#endif
+#include "webrtc/modules/video_coding/codecs/interface/video_codec_interface.h"
 #include "webrtc/video_engine/include/vie_base.h"
 #include "webrtc/video_engine/include/vie_capture.h"
 #include "webrtc/video_engine/include/vie_codec.h"
+#include "webrtc/video_engine/include/vie_external_codec.h"
 #include "webrtc/video_engine/include/vie_render.h"
 #include "webrtc/video_engine/include/vie_network.h"
 #include "webrtc/video_engine/include/vie_rtp_rtcp.h"
@@ -29,11 +34,21 @@
  using  webrtc::ViECapture;
  using  webrtc::ViERender;
  using  webrtc::ViEExternalCapture;
-
+ using  webrtc::ViEExternalCodec;
 
 namespace mozilla {
 
 class WebrtcAudioConduit;
+
+
+class WebrtcVideoEncoder:public VideoEncoder
+                         ,public webrtc::VideoEncoder
+{};
+
+
+class WebrtcVideoDecoder:public VideoDecoder
+                         ,public webrtc::VideoDecoder
+{};
 
 
 
@@ -127,6 +142,19 @@ public:
                                                 VideoType video_type,
                                                 uint64_t capture_time);
 
+  
+
+
+
+  virtual MediaConduitErrorCode SetExternalSendCodec(int pltype,
+                                                     VideoEncoder* encoder);
+
+  
+
+
+
+  virtual MediaConduitErrorCode SetExternalRecvCodec(int pltype,
+                                                     VideoDecoder* decoder);
 
 
   
@@ -265,6 +293,7 @@ private:
   ScopedCustomReleasePtr<webrtc::ViENetwork> mPtrViENetwork;
   ScopedCustomReleasePtr<webrtc::ViERender> mPtrViERender;
   ScopedCustomReleasePtr<webrtc::ViERTP_RTCP> mPtrRTP;
+  ScopedCustomReleasePtr<webrtc::ViEExternalCodec> mPtrExtCodec;
 
   webrtc::ViEExternalCapture* mPtrExtCapture; 
 

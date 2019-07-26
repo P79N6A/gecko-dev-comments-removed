@@ -163,6 +163,22 @@ public:
 };
 
 
+class VideoEncoder
+{
+public:
+  virtual ~VideoEncoder() {};
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoEncoder);
+};
+
+class VideoDecoder
+{
+public:
+  virtual ~VideoDecoder() {};
+
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(VideoDecoder);
+};
+
 
 
 
@@ -241,6 +257,21 @@ public:
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
                                 const std::vector<VideoCodecConfig* >& recvCodecConfigList) = 0;
 
+  
+
+
+
+
+  virtual MediaConduitErrorCode SetExternalSendCodec(int pltype,
+                                                     VideoEncoder* encoder) = 0;
+
+  
+
+
+
+
+  virtual MediaConduitErrorCode SetExternalRecvCodec(int pltype,
+                                                     VideoDecoder* decoder) = 0;
 
   
 
@@ -361,7 +392,3 @@ public:
 };
 }
 #endif
-
-
-
-
