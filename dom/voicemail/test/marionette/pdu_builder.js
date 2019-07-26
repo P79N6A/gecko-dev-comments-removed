@@ -2,10 +2,8 @@
 
 "use strict";
 
-let Cu = SpecialPowers.wrap(Components).utils;
 let RIL = {};
-
-Cu.import("resource://gre/modules/ril_consts.js", RIL);
+SpecialPowers.Cu.import("resource://gre/modules/ril_consts.js", RIL);
 
 
 
