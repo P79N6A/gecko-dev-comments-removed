@@ -66,6 +66,12 @@ SideMenuWidget.prototype = {
   
 
 
+
+  maintainSelectionVisible: true,
+
+  
+
+
   sortedGroups: true,
 
   
@@ -84,7 +90,9 @@ SideMenuWidget.prototype = {
 
 
   insertItemAt: function SMW_insertItemAt(aIndex, aContents, aTooltip = "", aGroup = "") {
-    this.ensureSelectionIsVisible(true, true); 
+    if (this.maintainSelectionVisible) {
+      this.ensureSelectionIsVisible(true, true); 
+    }
 
     let group = this._getGroupForName(aGroup);
     return group.insertItemAt(aIndex, aContents, aTooltip, this._showArrows);
