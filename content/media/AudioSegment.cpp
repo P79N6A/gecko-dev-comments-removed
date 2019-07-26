@@ -52,6 +52,9 @@ InterleaveAndConvertBuffer(const void** aSourceChannels,
                                aChannels,
                                aOutput);
     break;
+   case AUDIO_FORMAT_SILENCE:
+    
+    break;
   }
 }
 
@@ -121,7 +124,18 @@ void AudioSegment::ResampleChunks(SpeexResamplerState* aResampler)
 
   speex_resampler_get_rate(aResampler, &inRate, &outRate);
 
-  switch (mChunks[0].mBufferFormat) {
+  AudioSampleFormat format = AUDIO_FORMAT_SILENCE;
+  for (ChunkIterator ci(*this); !ci.IsEnded(); ci.Next()) {
+    if (ci->mBufferFormat != AUDIO_FORMAT_SILENCE) {
+      format = ci->mBufferFormat;
+    }
+  }
+
+  switch (format) {
+    
+    
+    
+    case AUDIO_FORMAT_SILENCE:
     case AUDIO_FORMAT_FLOAT32:
       Resample<float>(aResampler, inRate, outRate);
     break;
