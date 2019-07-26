@@ -2988,16 +2988,6 @@ XPCWrappedNative::GetObjectPrincipal() const
 }
 
 
-NS_IMETHODIMP XPCWrappedNative::GetXPConnect(nsIXPConnect * *aXPConnect)
-{
-    if (IsValid()) {
-        NS_IF_ADDREF(*aXPConnect = nsXPConnect::XPConnect());
-    } else
-        *aXPConnect = nullptr;
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP XPCWrappedNative::FindInterfaceWithMember(HandleId name,
                                                         nsIInterfaceInfo * *_retval)
 {
