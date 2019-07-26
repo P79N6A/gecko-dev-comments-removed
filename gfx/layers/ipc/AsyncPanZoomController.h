@@ -541,6 +541,11 @@ private:
   
 
 
+  bool TouchActionAllowZoom();
+
+  
+
+
 
 
   TouchBehaviorFlags GetTouchBehavior(uint32_t touchIndex);
