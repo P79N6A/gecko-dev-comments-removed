@@ -539,3 +539,7 @@ NS_NewStorageStream(uint32_t segmentSize, uint32_t maxSize, nsIStorageStream **r
     *result = storageStream;
     return NS_OK;
 }
+
+
+
+#undef LOG
