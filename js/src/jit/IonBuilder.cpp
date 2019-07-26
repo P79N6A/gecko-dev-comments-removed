@@ -66,6 +66,12 @@ IonBuilder::clearForBackEnd()
 {
     cx = nullptr;
     baselineFrame_ = nullptr;
+
+    
+    
+    
+    
+    gsn.purge();
 }
 
 bool
