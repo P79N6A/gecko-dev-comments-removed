@@ -437,6 +437,73 @@ bool SetAlarm(int32_t aSeconds, int32_t aNanoseconds);
 
 void SetProcessPriority(int aPid, hal::ProcessPriority aPriority);
 
+
+
+
+void RegisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
+
+
+
+
+void UnregisterFMRadioObserver(hal::FMRadioObserver* aRadioObserver);
+
+
+
+
+
+void NotifyFMRadioStatus(const hal::FMRadioOperationInformation& aRadioState);
+
+
+
+
+void EnableFMRadio(const hal::FMRadioSettings& aInfo);
+
+
+
+
+void DisableFMRadio();
+
+
+
+
+
+void FMRadioSeek(const hal::FMRadioSeekDirection& aDirection);
+
+
+
+
+void GetFMRadioSettings(hal::FMRadioSettings* aInfo);
+
+
+
+
+void SetFMRadioFrequency(const uint32_t frequency);
+
+
+
+
+uint32_t GetFMRadioFrequency();
+
+
+
+
+bool IsFMRadioOn();
+
+
+
+
+uint32_t GetFMRadioSignalStrength();
+
+
+
+
+void CancelFMRadioSeek();
+
+
+
+
+hal::FMRadioSettings GetFMBandSettings(hal::FMRadioCountry aCountry);
+
 } 
 } 
 
