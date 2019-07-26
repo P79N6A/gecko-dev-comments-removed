@@ -48,29 +48,10 @@ const ERRORS = {
     "The request() method may only be invoked when handling user input",
 };
 
-function nsDOMIdentity(aIdentityInternal) {
-  this._identityInternal = aIdentityInternal;
+function nsDOMIdentity() {
 }
+
 nsDOMIdentity.prototype = {
-  __exposedProps__: {
-    
-    watch: 'r',
-    request: 'r',
-    logout: 'r',
-    get: 'r',
-    getVerifiedEmail: 'r',
-
-    
-    beginProvisioning: 'r',
-    genKeyPair: 'r',
-    registerCertificate: 'r',
-    raiseProvisioningFailure: 'r',
-
-    
-    beginAuthentication: 'r',
-    completeAuthentication: 'r',
-    raiseAuthenticationFailure: 'r'
-  },
 
   
   get nativeEventsRequired() {
@@ -149,7 +130,7 @@ nsDOMIdentity.prototype = {
       
       return;
     }
-    this._identityInternal._mm.sendAsyncMessage("Identity:RP:Watch", message);
+    this._mm.sendAsyncMessage("Identity:RP:Watch", message);
   },
 
   request: function nsDOMIdentity_request(aOptions = {}) {
@@ -219,7 +200,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._rpCalls++;
-    this._identityInternal._mm.sendAsyncMessage("Identity:RP:Request", message);
+    this._mm.sendAsyncMessage("Identity:RP:Request", message);
   },
 
   logout: function nsDOMIdentity_logout() {
@@ -239,7 +220,7 @@ nsDOMIdentity.prototype = {
       return;
     }
 
-    this._identityInternal._mm.sendAsyncMessage("Identity:RP:Logout", message);
+    this._mm.sendAsyncMessage("Identity:RP:Logout", message);
   },
 
   
@@ -322,7 +303,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._beginProvisioningCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:BeginProvisioning",
+    this._mm.sendAsyncMessage("Identity:IDP:BeginProvisioning",
                                                 this.DOMIdentityMessage());
   },
 
@@ -339,7 +320,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._genKeyPairCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:GenKeyPair",
+    this._mm.sendAsyncMessage("Identity:IDP:GenKeyPair",
                                                 this.DOMIdentityMessage());
   },
 
@@ -355,7 +336,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.cert = aCertificate;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:RegisterCertificate", message);
+    this._mm.sendAsyncMessage("Identity:IDP:RegisterCertificate", message);
   },
 
   raiseProvisioningFailure: function nsDOMIdentity_raiseProvisioningFailure(aReason) {
@@ -370,7 +351,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.reason = aReason;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:ProvisioningFailure", message);
+    this._mm.sendAsyncMessage("Identity:IDP:ProvisioningFailure", message);
   },
 
   
@@ -390,7 +371,7 @@ nsDOMIdentity.prototype = {
     }
 
     this._beginAuthenticationCallback = aCallback;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:BeginAuthentication",
+    this._mm.sendAsyncMessage("Identity:IDP:BeginAuthentication",
                                                 this.DOMIdentityMessage());
   },
 
@@ -403,7 +384,7 @@ nsDOMIdentity.prototype = {
     }
     this._authenticationEnded = true;
 
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:CompleteAuthentication",
+    this._mm.sendAsyncMessage("Identity:IDP:CompleteAuthentication",
                                                 this.DOMIdentityMessage());
   },
 
@@ -417,27 +398,7 @@ nsDOMIdentity.prototype = {
 
     let message = this.DOMIdentityMessage();
     message.reason = aReason;
-    this._identityInternal._mm.sendAsyncMessage("Identity:IDP:AuthenticationFailure", message);
-  },
-
-  
-  _init: function nsDOMIdentity__init(aWindow) {
-
-    this._initializeState();
-
-    
-    this._window = aWindow;
-    this._origin = aWindow.document.nodePrincipal.origin;
-    this._appStatus = aWindow.document.nodePrincipal.appStatus;
-    this._appId = aWindow.document.nodePrincipal.appId;
-
-    
-    let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                      .getInterface(Ci.nsIDOMWindowUtils);
-
-    
-    
-    this._id = this._identityInternal._id;
+    this._mm.sendAsyncMessage("Identity:IDP:AuthenticationFailure", message);
   },
 
   
@@ -457,12 +418,18 @@ nsDOMIdentity.prototype = {
     this._beginAuthenticationCallback = null;
   },
 
-  _receiveMessage: function nsDOMIdentity_receiveMessage(aMessage) {
+  
+  receiveMessage: function nsDOMIdentity_receiveMessage(aMessage) {
     let msg = aMessage.json;
+
+    
+    if (msg.id != this._id) {
+      return;
+    }
 
     switch (aMessage.name) {
       case "Identity:ResetState":
-        if (!this._identityInternal._debug) {
+        if (!this._debug) {
           return;
         }
         this._initializeState();
@@ -536,10 +503,6 @@ nsDOMIdentity.prototype = {
         this._callBeginAuthenticationCallback(msg);
         break;
     }
-  },
-
-  _log: function nsDOMIdentity__log(msg) {
-    this._identityInternal._log(msg);
   },
 
   _callGenKeyPairCallback: function nsDOMIdentity__callGenKeyPairCallback(message) {
@@ -642,32 +605,10 @@ nsDOMIdentity.prototype = {
     return message;
   },
 
-  uninit: function DOMIdentity_uninit() {
-    this._log("nsDOMIdentity uninit() " + this._id);
-    this._identityInternal._mm.sendAsyncMessage(
-      "Identity:RP:Unwatch",
-      { id: this._id }
-    );
-  }
-
-};
-
-
-
-
-function nsDOMIdentityInternal() {
-}
-nsDOMIdentityInternal.prototype = {
-
   
-  receiveMessage: function nsDOMIdentityInternal_receiveMessage(aMessage) {
-    let msg = aMessage.json;
-    
-    if (msg.id != this._id) {
-      return;
-    }
-    this._identity._receiveMessage(aMessage);
-  },
+
+
+
 
   
   observe: function nsDOMIdentityInternal_observe(aSubject, aTopic, aData) {
@@ -676,11 +617,10 @@ nsDOMIdentityInternal.prototype = {
       return;
     }
 
-    this._identity.uninit();
+    this.uninit();
 
     Services.obs.removeObserver(this, "inner-window-destroyed");
-    this._identity._initializeState();
-    this._identity = null;
+    this._initializeState();
 
     
     
@@ -696,6 +636,7 @@ nsDOMIdentityInternal.prototype = {
     this._mm = null;
   },
 
+  
   
   init: function nsDOMIdentityInternal_init(aWindow) {
     if (Services.prefs.getPrefType(PREF_ENABLED) != Ci.nsIPrefBranch.PREF_BOOL
@@ -720,8 +661,17 @@ nsDOMIdentityInternal.prototype = {
 
     
     
-    this._identity = new nsDOMIdentity(this);
-    this._identity._init(aWindow);
+    this._initializeState();
+
+    
+    this._window = aWindow;
+    this._origin = aWindow.document.nodePrincipal.origin;
+    this._appStatus = aWindow.document.nodePrincipal.appStatus;
+    this._appId = aWindow.document.nodePrincipal.appId;
+
+    
+    let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                      .getInterface(Ci.nsIDOMWindowUtils);
 
     this._log("init was called from " + aWindow.document.location);
 
@@ -745,8 +695,14 @@ nsDOMIdentityInternal.prototype = {
 
     
     Services.obs.addObserver(this, "inner-window-destroyed", false);
+  },
 
-    return this._identity;
+  uninit: function DOMIdentity_uninit() {
+    this._log("nsDOMIdentity uninit() " + this._id);
+    this._mm.sendAsyncMessage(
+      "Identity:RP:Unwatch",
+      { id: this._id }
+    );
   },
 
   
@@ -760,9 +716,11 @@ nsDOMIdentityInternal.prototype = {
   
   classID: Components.ID("{210853d9-2c97-4669-9761-b1ab9cbf57ef}"),
 
-  QueryInterface: XPCOMUtils.generateQI(
-    [Ci.nsIDOMGlobalPropertyInitializer, Ci.nsIMessageListener]
-  ),
+  QueryInterface: XPCOMUtils.generateQI([
+      Ci.nsIMessageListener,
+      Ci.nsIObserver,
+      Ci.nsIDOMGlobalPropertyInitializer
+  ]),
 
   classInfo: XPCOMUtils.generateCI({
     classID: Components.ID("{210853d9-2c97-4669-9761-b1ab9cbf57ef}"),
@@ -804,4 +762,4 @@ function assertCorrectCallbacks(aOptions) {
   }
 }
 
-this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentityInternal]);
+this.NSGetFactory = XPCOMUtils.generateNSGetFactory([nsDOMIdentity]);
