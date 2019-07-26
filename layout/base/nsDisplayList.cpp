@@ -4019,6 +4019,10 @@ already_AddRefed<Layer> nsDisplayTransform::BuildLayer(nsDisplayListBuilder *aBu
     BuildContainerLayerFor(aBuilder, aManager, mFrame, this, *mStoredList.GetChildren(),
                            aContainerParameters, &newTransformMatrix);
 
+  if (!container) {
+    return nullptr;
+  }
+
   
   
   if (mFrame->Preserves3D() || mFrame->Preserves3DChildren()) {
