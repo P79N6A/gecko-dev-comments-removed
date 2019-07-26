@@ -1553,8 +1553,8 @@ nsDocShell::LoadURI(nsIURI * aURI,
         bool isSystem;
         rv = secMan->IsSystemPrincipal(ownerPrincipal, &isSystem);
         NS_ENSURE_SUCCESS(rv, rv);
-
-        if (isSystem) {
+        nsCOMPtr<nsIExpandedPrincipal> ep = do_QueryInterface(ownerPrincipal);
+        if (isSystem || ep) {
             if (ownerIsExplicit) {
                 return NS_ERROR_DOM_SECURITY_ERR;
             }
