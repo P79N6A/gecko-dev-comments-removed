@@ -353,9 +353,8 @@ enum TokenStreamFlags
     TSF_UNEXPECTED_EOF = 0x10,  
     TSF_KEYWORD_IS_NAME = 0x20, 
     TSF_DIRTYLINE = 0x40,       
-    TSF_OWNFILENAME = 0x80,     
-    TSF_OCTAL_CHAR = 0x100,     
-    TSF_HAD_ERROR = 0x200,      
+    TSF_OCTAL_CHAR = 0x80,      
+    TSF_HAD_ERROR = 0x100,      
 
     
 
@@ -376,7 +375,7 @@ enum TokenStreamFlags
 
 
 
-    TSF_IN_HTML_COMMENT = 0x2000
+    TSF_IN_HTML_COMMENT = 0x200
 };
 
 struct CompileError {
@@ -768,7 +767,6 @@ class TokenStream
     bool matchUnicodeEscapeIdStart(int32_t *c);
     bool matchUnicodeEscapeIdent(int32_t *c);
     bool peekChars(int n, jschar *cp);
-    bool getAtLine();
     bool getAtSourceMappingURL();
 
     bool matchChar(int32_t expect) {
