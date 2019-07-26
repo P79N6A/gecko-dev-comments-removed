@@ -53,6 +53,21 @@ public:
 
   void virtualDestroyNSSReference();
 
+  
+
+
+  static uint32_t sThreadCount;
+
+  
+
+
+
+
+
+
+  static uint32_t sTelemetryMaxThreadCount;
+
+
 protected:
   virtual ~BackgroundFileSaver();
 
