@@ -1,6 +1,7 @@
 
 
 
+"use strict";
 
 
 
@@ -776,7 +777,7 @@ SelectionPrototype.prototype = {
     }
 
     
-    r = this._getTargetClientRect();
+    let r = this._getTargetClientRect();
     seldata.element.left = r.left + this._contentOffset.x;
     seldata.element.top = r.top + this._contentOffset.y;
     seldata.element.right = r.right + this._contentOffset.x;
