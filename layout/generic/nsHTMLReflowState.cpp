@@ -1796,6 +1796,27 @@ GetFlexContainer(nsIFrame* aFrame)
 
 
 
+
+
+static nscoord
+VerticalOffsetPercentBasis(const nsIFrame* aFrame,
+                           nscoord aContainingBlockWidth,
+                           nscoord aContainingBlockHeight)
+{
+  if (!aFrame->IsFlexItem()) {
+    return aContainingBlockWidth;
+  }
+
+  if (aContainingBlockHeight == NS_AUTOHEIGHT) {
+    return 0;
+  }
+
+  return aContainingBlockHeight;
+}
+
+
+
+
 void
 nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
                                    nscoord         aContainingBlockWidth,
@@ -1811,16 +1832,10 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
   
   
   if (nullptr == parentReflowState) {
-    MOZ_ASSERT(!frame->IsFlexItem(),
-               "the root frame can't be a flex item, since being a flex item "
-               "requires that you have a parent");
-    
-    
-    
-    
     
     InitOffsets(aContainingBlockWidth,
-                aContainingBlockWidth,
+                VerticalOffsetPercentBasis(frame, aContainingBlockWidth,
+                                           aContainingBlockHeight),
                 aFrameType, aBorder, aPadding);
     
     
@@ -1870,17 +1885,9 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
     
     
-    
-    
-    
-    
-    
-    nscoord verticalPercentBasis = aContainingBlockWidth;
-    if (frame->IsFlexItem()) {
-      verticalPercentBasis =
-        aContainingBlockHeight == NS_AUTOHEIGHT ? 0 : aContainingBlockHeight;
-    }
-    InitOffsets(aContainingBlockWidth, verticalPercentBasis,
+    InitOffsets(aContainingBlockWidth,
+                VerticalOffsetPercentBasis(frame, aContainingBlockWidth,
+                                           aContainingBlockHeight),
                 aFrameType, aBorder, aPadding);
 
     const nsStyleCoord &height = mStylePosition->mHeight;
