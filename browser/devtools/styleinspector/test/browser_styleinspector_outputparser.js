@@ -2,6 +2,8 @@
 
 
 
+"use strict";
+
 
 
 
@@ -14,8 +16,6 @@ const COLOR_CLASS = "color-class";
 const URL_CLASS = "url-class";
 
 function test() {
-  waitForExplicitFinish();
-
   function countAll(fragment) {
     return fragment.querySelectorAll("*").length;
   }
