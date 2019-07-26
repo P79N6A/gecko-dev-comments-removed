@@ -286,6 +286,11 @@ static bool gCrossSlideEnabled = false;
 
 
 
+static bool gAllowCheckerboarding = true;
+
+
+
+
 static bool gUseProgressiveTilePainting = false;
 
 
@@ -419,6 +424,7 @@ AsyncPanZoomController::InitializeGlobalState()
   Preferences::AddIntVarCache(&gAsyncScrollTimeout, "apz.asyncscroll.timeout", gAsyncScrollTimeout);
   Preferences::AddBoolVarCache(&gCrossSlideEnabled, "apz.cross_slide.enabled", gCrossSlideEnabled);
   Preferences::AddIntVarCache(&gAxisLockMode, "apz.axis_lock_mode", gAxisLockMode);
+  Preferences::AddBoolVarCache(&gAllowCheckerboarding, "apz.allow-checkerboarding", gAllowCheckerboarding);
   gUseProgressiveTilePainting = gfxPlatform::UseProgressiveTilePainting();
   Preferences::AddBoolVarCache(&gEnlargeDisplayPortWhenOnlyScrollable, "apz.enlarge_displayport_when_only_scrollable",
     gEnlargeDisplayPortWhenOnlyScrollable);
@@ -1562,7 +1568,28 @@ ViewTransform AsyncPanZoomController::GetCurrentAsyncTransform() {
   if (mLastContentPaintMetrics.IsScrollable()) {
     lastPaintScrollOffset = mLastContentPaintMetrics.mScrollOffset;
   }
-  LayerPoint translation = (mFrameMetrics.mScrollOffset - lastPaintScrollOffset)
+
+  CSSPoint currentScrollOffset = mFrameMetrics.mScrollOffset;
+
+  
+  
+  if (!gAllowCheckerboarding &&
+      !mLastContentPaintMetrics.mDisplayPort.IsEmpty()) {
+    CSSRect compositedRect = mLastContentPaintMetrics.CalculateCompositedRectInCssPixels();
+    CSSPoint maxScrollOffset = lastPaintScrollOffset +
+      CSSPoint(mLastContentPaintMetrics.mDisplayPort.XMost() - compositedRect.width,
+               mLastContentPaintMetrics.mDisplayPort.YMost() - compositedRect.height);
+    CSSPoint minScrollOffset = lastPaintScrollOffset + mLastContentPaintMetrics.mDisplayPort.TopLeft();
+
+    if (minScrollOffset.x < maxScrollOffset.x) {
+      currentScrollOffset.x = clamped(currentScrollOffset.x, minScrollOffset.x, maxScrollOffset.x);
+    }
+    if (minScrollOffset.y < maxScrollOffset.y) {
+      currentScrollOffset.y = clamped(currentScrollOffset.y, minScrollOffset.y, maxScrollOffset.y);
+    }
+  }
+
+  LayerPoint translation = (currentScrollOffset - lastPaintScrollOffset)
                          * mLastContentPaintMetrics.LayersPixelsPerCSSPixel();
 
   return ViewTransform(-translation,
