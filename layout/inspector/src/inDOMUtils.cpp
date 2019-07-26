@@ -63,14 +63,6 @@ inDOMUtils::IsIgnorableWhitespace(nsIDOMCharacterData *aDataNode,
 
   
   
-
-  nsCOMPtr<nsIDOMWindow> win = inLayoutUtils::GetWindowFor(aDataNode);
-  if (!win) {
-    
-    NS_ERROR("No window!");
-    return NS_OK;
-  }
-
   nsIFrame* frame = content->GetPrimaryFrame();
   if (frame) {
     const nsStyleText* text = frame->GetStyleText();
