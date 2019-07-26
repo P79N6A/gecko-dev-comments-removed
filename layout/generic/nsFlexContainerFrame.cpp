@@ -622,6 +622,9 @@ public:
   nsTArray<FlexItem> mItems; 
 
 private:
+  
+  void FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
+                                       bool aIsFinalIteration);
   nscoord mTotalInnerHypotheticalMainSize;
   nscoord mTotalOuterHypotheticalMainSize;
   nscoord mLineCrossSize;
@@ -1475,10 +1478,9 @@ nsFlexContainerFrame::SanityCheckAnonymousFlexItems() const
 
 
 
-static void
-FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
-                                nsTArray<FlexItem>& aItems,
-                                bool aFinalIteration)
+void
+FlexLine::FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
+                                          bool aIsFinalIteration)
 {
   enum FreezeType {
     eFreezeEverything,
@@ -1495,8 +1497,8 @@ FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
     freezeType = eFreezeMaxViolations;
   }
 
-  for (uint32_t i = 0; i < aItems.Length(); i++) {
-    FlexItem& item = aItems[i];
+  for (uint32_t i = 0; i < mItems.Length(); i++) {
+    FlexItem& item = mItems[i];
     MOZ_ASSERT(!item.HadMinViolation() || !item.HadMaxViolation(),
                "Can have either min or max violation, but not both");
 
@@ -1511,7 +1513,7 @@ FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
                    "Freezing item at a size above its maximum");
 
         item.Freeze();
-      } else if (MOZ_UNLIKELY(aFinalIteration)) {
+      } else if (MOZ_UNLIKELY(aIsFinalIteration)) {
         
         
         NS_ERROR("Final iteration still has unfrozen items, this shouldn't"
@@ -1696,7 +1698,7 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
       }
     }
 
-    FreezeOrRestoreEachFlexibleSize(totalViolation, mItems,
+    FreezeOrRestoreEachFlexibleSize(totalViolation,
                                     iterationCounter + 1 == mItems.Length());
 
     PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
@@ -1731,12 +1733,12 @@ MainAxisPositionTracker::
   
   
   for (uint32_t i = 0; i < aItems.Length(); i++) {
-    const FlexItem& curItem = aItems[i];
+    const FlexItem& item = aItems[i];
     nscoord itemMarginBoxMainSize =
-      curItem.GetMainSize() +
-      curItem.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
+      item.GetMainSize() +
+      item.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetMainAxis());
     mPackingSpaceRemaining -= itemMarginBoxMainSize;
-    mNumAutoMarginsInMainAxis += curItem.GetNumAutoMarginsInAxis(mAxis);
+    mNumAutoMarginsInMainAxis += item.GetNumAutoMarginsInAxis(mAxis);
   }
 
   if (mPackingSpaceRemaining <= 0) {
@@ -2013,12 +2015,12 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
   nscoord crossEndToFurthestBaseline = nscoord_MIN;
   nscoord largestOuterCrossSize = 0;
   for (uint32_t i = 0; i < mItems.Length(); ++i) {
-    const FlexItem& curItem = mItems[i];
-    nscoord curOuterCrossSize = curItem.GetCrossSize() +
-      curItem.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetCrossAxis());
+    const FlexItem& item = mItems[i];
+    nscoord curOuterCrossSize = item.GetCrossSize() +
+      item.GetMarginBorderPaddingSizeInAxis(aAxisTracker.GetCrossAxis());
 
-    if (curItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE &&
-        curItem.GetNumAutoMarginsInAxis(aAxisTracker.GetCrossAxis()) == 0) {
+    if (item.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_BASELINE &&
+        item.GetNumAutoMarginsInAxis(aAxisTracker.GetCrossAxis()) == 0) {
       
       
 
@@ -2049,7 +2051,7 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
       
 
       nscoord crossStartToBaseline =
-        curItem.GetBaselineOffsetFromOuterCrossStart(aAxisTracker.GetCrossAxis());
+        item.GetBaselineOffsetFromOuterCrossStart(aAxisTracker.GetCrossAxis());
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       
@@ -2818,24 +2820,24 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   for (uint32_t lineIdx = 0; lineIdx < lines.Length(); ++lineIdx) {
     FlexLine& line = lines[lineIdx];
     for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
-      FlexItem& curItem = line.mItems[i];
+      FlexItem& item = line.mItems[i];
 
       
       
-      if (!curItem.IsStretched() && !curItem.IsStrut()) {
+      if (!item.IsStretched() && !item.IsStrut()) {
         nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                           curItem.Frame(),
+                                           item.Frame(),
                                            nsSize(aReflowState.ComputedWidth(),
                                                   NS_UNCONSTRAINEDSIZE));
         
         if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-          childReflowState.SetComputedWidth(curItem.GetMainSize());
+          childReflowState.SetComputedWidth(item.GetMainSize());
         } else {
-          childReflowState.SetComputedHeight(curItem.GetMainSize());
+          childReflowState.SetComputedHeight(item.GetMainSize());
         }
 
         nsresult rv = SizeItemInCrossAxis(aPresContext, aAxisTracker,
-                                          childReflowState, curItem);
+                                          childReflowState, item);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }
@@ -2922,11 +2924,11 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
   for (uint32_t lineIdx = 0; lineIdx < lines.Length(); ++lineIdx) {
     FlexLine& line = lines[lineIdx];
     for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
-      FlexItem& curItem = line.mItems[i];
+      FlexItem& item = line.mItems[i];
 
       nsPoint physicalPosn = aAxisTracker.PhysicalPointFromLogicalPoint(
-                               curItem.GetMainPosition(),
-                               curItem.GetCrossPosition(),
+                               item.GetMainPosition(),
+                               item.GetCrossPosition(),
                                aContentBoxMainSize,
                                contentBoxCrossSize);
       
@@ -2934,7 +2936,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       physicalPosn += containerContentBoxOrigin;
 
       nsHTMLReflowState childReflowState(aPresContext, aReflowState,
-                                         curItem.Frame(),
+                                         item.Frame(),
                                          nsSize(aReflowState.ComputedWidth(),
                                                 NS_UNCONSTRAINEDSIZE));
 
@@ -2945,24 +2947,24 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       
       if (IsAxisHorizontal(aAxisTracker.GetMainAxis())) {
-        childReflowState.SetComputedWidth(curItem.GetMainSize());
+        childReflowState.SetComputedWidth(item.GetMainSize());
         didOverrideComputedWidth = true;
       } else {
-        childReflowState.SetComputedHeight(curItem.GetMainSize());
+        childReflowState.SetComputedHeight(item.GetMainSize());
         didOverrideComputedHeight = true;
       }
 
       
-      if (curItem.IsStretched()) {
-        MOZ_ASSERT(curItem.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_STRETCH,
+      if (item.IsStretched()) {
+        MOZ_ASSERT(item.GetAlignSelf() == NS_STYLE_ALIGN_ITEMS_STRETCH,
                    "stretched item w/o 'align-self: stretch'?");
         if (IsAxisHorizontal(aAxisTracker.GetCrossAxis())) {
-          childReflowState.SetComputedWidth(curItem.GetCrossSize());
+          childReflowState.SetComputedWidth(item.GetCrossSize());
           didOverrideComputedWidth = true;
         } else {
           
-          curItem.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
-          childReflowState.SetComputedHeight(curItem.GetCrossSize());
+          item.Frame()->AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+          childReflowState.SetComputedHeight(item.GetCrossSize());
           didOverrideComputedHeight = true;
         }
       }
@@ -2974,7 +2976,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
       
-      if (curItem.HadMeasuringReflow()) {
+      if (item.HadMeasuringReflow()) {
         if (didOverrideComputedWidth) {
           
           
@@ -2992,7 +2994,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       nsHTMLReflowMetrics childDesiredSize(childReflowState);
       nsReflowStatus childReflowStatus;
-      nsresult rv = ReflowChild(curItem.Frame(), aPresContext,
+      nsresult rv = ReflowChild(item.Frame(), aPresContext,
                                 childDesiredSize, childReflowState,
                                 physicalPosn.x, physicalPosn.y,
                                 0, childReflowStatus);
@@ -3008,7 +3010,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
 
       childReflowState.ApplyRelativePositioning(&physicalPosn);
 
-      rv = FinishReflowChild(curItem.Frame(), aPresContext,
+      rv = FinishReflowChild(item.Frame(), aPresContext,
                              childDesiredSize, &childReflowState,
                              physicalPosn.x, physicalPosn.y, 0);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -3017,12 +3019,12 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
       
       
       if (lineIdx == 0 && i == 0 && flexContainerAscent == nscoord_MIN) {
-        ResolveReflowedChildAscent(curItem.Frame(), childDesiredSize);
+        ResolveReflowedChildAscent(item.Frame(), childDesiredSize);
 
         
         
         
-        flexContainerAscent = curItem.Frame()->GetNormalPosition().y +
+        flexContainerAscent = item.Frame()->GetNormalPosition().y +
           childDesiredSize.TopAscent();
       }
     }
