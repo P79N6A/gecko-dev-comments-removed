@@ -613,6 +613,19 @@ private:
     while (getNextNALUnit(&data, &size, &nalStart, &nalSize, true) == OK) {
       nalu._buffer = const_cast<uint8_t*>(nalStart);
       nalu._length = nalSize;
+      
+      
+      
+      
+      switch (nalStart[0] & 0x1f) {
+        case 7:
+          nalu._timeStamp -= 100;
+        case 8:
+          nalu._timeStamp -= 50;
+          break;
+        default:
+          break;
+      }
       mCallback->Encoded(nalu, nullptr, nullptr);
     }
   }
