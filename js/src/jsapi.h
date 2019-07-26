@@ -3723,6 +3723,17 @@ JS_ExecuteScript(JSContext *cx, JS::HandleObject obj, JS::HandleScript script, J
 extern JS_PUBLIC_API(bool)
 JS_ExecuteScript(JSContext *cx, JS::HandleObject obj, JS::HandleScript script);
 
+namespace JS {
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+CloneAndExecuteScript(JSContext *cx, JS::Handle<JSObject*> obj, JS::Handle<JSScript*> script);
+
+} 
+
 extern JS_PUBLIC_API(bool)
 JS_ExecuteScriptVersion(JSContext *cx, JS::HandleObject obj, JS::HandleScript script,
                         JS::MutableHandleValue rval, JSVersion version);
