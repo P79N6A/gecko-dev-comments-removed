@@ -3215,7 +3215,7 @@ public:
     
     NS_DECLARE_STATIC_IID_ACCESSOR(XPCVARIANT_IID)
 
-    static XPCVariant* newVariant(JSContext* cx, jsval aJSVal);
+    static already_AddRefed<XPCVariant> newVariant(JSContext* cx, jsval aJSVal);
 
     
 
