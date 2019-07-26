@@ -212,6 +212,18 @@ struct IonScript
     uint32_t scriptEntries_;
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    uint32_t parallelInvalidatedScriptList_;
+    uint32_t parallelInvalidatedScriptEntries_;
+
+    
     size_t refcount_;
 
     types::RecompileInfo recompileInfo_;
@@ -244,6 +256,10 @@ struct IonScript
     JSScript **scriptList() const {
         return (JSScript **)(reinterpret_cast<const uint8_t *>(this) + scriptList_);
     }
+    JSScript **parallelInvalidatedScriptList() {
+        return (JSScript **)(reinterpret_cast<const uint8_t *>(this) +
+                             parallelInvalidatedScriptList_);
+    }
 
   private:
     void trace(JSTracer *trc);
@@ -255,7 +271,8 @@ struct IonScript
     static IonScript *New(JSContext *cx, uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsSize, size_t snapshotEntries,
                           size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
-                          size_t cacheEntries, size_t safepointsSize, size_t scriptEntries);
+                          size_t cacheEntries, size_t safepointsSize, size_t scriptEntries,
+                          size_t parallelInvalidatedScriptEntries);
     static void Trace(JSTracer *trc, IonScript *script);
     static void Destroy(FreeOp *fop, IonScript *script);
 
@@ -339,6 +356,15 @@ struct IonScript
     size_t scriptEntries() const {
         return scriptEntries_;
     }
+    size_t parallelInvalidatedScriptEntries() const {
+        return parallelInvalidatedScriptEntries_;
+    }
+    RawScript getAndZeroParallelInvalidatedScript(uint32_t i) {
+        JS_ASSERT(i < parallelInvalidatedScriptEntries_);
+        RawScript script = parallelInvalidatedScriptList()[i];
+        parallelInvalidatedScriptList()[i] = NULL;
+        return script;
+    }
     size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
         return mallocSizeOf(this);
     }
@@ -380,6 +406,7 @@ struct IonScript
     void copyCacheEntries(const IonCache *caches, MacroAssembler &masm);
     void copySafepoints(const SafepointWriter *writer);
     void copyScriptEntries(JSScript **scripts);
+    void zeroParallelInvalidatedScripts();
 
     bool invalidated() const {
         return refcount_ != 0;

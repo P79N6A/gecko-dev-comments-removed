@@ -80,6 +80,7 @@
 #include "vm/ForkJoin.h"
 #include "vm/Shape.h"
 #include "vm/String.h"
+#include "vm/ForkJoin.h"
 #include "ion/IonCode.h"
 #ifdef JS_ION
 # include "ion/IonMacroAssembler.h"

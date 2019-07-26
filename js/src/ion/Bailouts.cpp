@@ -239,6 +239,8 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
 #ifdef DEBUG
     
     
+    
+    
     if (it.script()->ion == it.ionScript()) {
         IonSpew(IonSpew_Bailouts, " Current script use count is %u",
                 it.script()->getUseCount());

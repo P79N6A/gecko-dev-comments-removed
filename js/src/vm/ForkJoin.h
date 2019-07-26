@@ -9,6 +9,7 @@
 #define ForkJoin_h__
 
 #include "vm/ThreadPool.h"
+#include "jsgc.h"
 
 
 
@@ -125,8 +126,7 @@ class AutoRendezvous;
 class AutoSetForkJoinSlice;
 
 #ifdef DEBUG
-struct IonTraceData
-{
+struct IonLIRTraceData {
     uint32_t bblock;
     uint32_t lir;
     uint32_t execModeInt;
@@ -157,9 +157,9 @@ struct ForkJoinSlice
     
     JSScript *abortedScript;
 
-    
 #ifdef DEBUG
-    IonTraceData traceData;
+    
+    IonLIRTraceData traceData;
 #endif
 
     ForkJoinSlice(PerThreadData *perThreadData, uint32_t sliceId, uint32_t numSlices,
@@ -175,19 +175,18 @@ struct ForkJoinSlice
     
     
     
-    bool setFatal();
-
-    
-    
-    
-    
-    
-    
-    
     
     void requestGC(gcreason::Reason reason);
     void requestZoneGC(JS::Zone *zone, gcreason::Reason reason);
 
+    
+    
+    
+    
+    
+    
+    
+    
     
     
     

@@ -64,11 +64,12 @@ enum MIRType
     MIRType_Object,
     MIRType_Magic,
     MIRType_Value,
-    MIRType_None,       
-    MIRType_Slots,      
-    MIRType_Elements,   
-    MIRType_StackFrame, 
-    MIRType_Shape       
+    MIRType_None,         
+    MIRType_Slots,        
+    MIRType_Elements,     
+    MIRType_StackFrame,   
+    MIRType_Shape,        
+    MIRType_ForkJoinSlice 
 };
 
 #ifdef DEBUG

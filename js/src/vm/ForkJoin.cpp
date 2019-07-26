@@ -56,18 +56,14 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     
     
     
+    
 
-    
-    
-    
     
     volatile bool abort_;
 
     
     volatile bool fatal_;
 
-    
-    
     
     volatile bool rendezvous_;
 
@@ -122,14 +118,11 @@ class js::ForkJoinShared : public TaskExecutor, public Monitor
     bool check(ForkJoinSlice &threadCx);
 
     
-    bool setFatal();
-
-    
     void requestGC(gcreason::Reason reason);
     void requestZoneGC(JS::Zone *zone, gcreason::Reason reason);
 
     
-    void setAbortFlag();
+    void setAbortFlag(bool fatal);
 
     JSRuntime *runtime() { return cx_->runtime; }
 };
@@ -310,7 +303,7 @@ ForkJoinShared::executeFromWorker(uint32_t workerId, uintptr_t stackLimit)
 void
 ForkJoinShared::executeFromMainThread()
 {
-    executePortion(&cx_->runtime->mainThread, numSlices_ - 1);
+    executePortion(&cx_->mainThread(), numSlices_ - 1);
 }
 
 void
@@ -322,22 +315,14 @@ ForkJoinShared::executePortion(PerThreadData *perThread,
     AutoSetForkJoinSlice autoContext(&slice);
 
     if (!op_.parallel(slice))
-        setAbortFlag();
-}
-
-bool
-ForkJoinShared::setFatal()
-{
-    
-    
-    setAbortFlag();
-    fatal_ = true;
-    return false;
+        setAbortFlag(false);
 }
 
 bool
 ForkJoinShared::check(ForkJoinSlice &slice)
 {
+    JS_ASSERT(cx_->runtime->interrupt);
+
     if (abort_)
         return false;
 
@@ -355,7 +340,7 @@ ForkJoinShared::check(ForkJoinSlice &slice)
             
             
             
-            setAbortFlag();
+            setAbortFlag(false);
             return false;
         }
     } else if (rendezvous_) {
@@ -399,6 +384,7 @@ ForkJoinShared::initiateRendezvous(ForkJoinSlice &slice)
 
     JS_ASSERT(slice.isMainThread());
     JS_ASSERT(!rendezvous_ && blocked_ == 0);
+    JS_ASSERT(cx_->runtime->interrupt);
 
     AutoLockMonitor lock(*this);
 
@@ -440,16 +426,21 @@ ForkJoinShared::endRendezvous(ForkJoinSlice &slice)
     AutoLockMonitor lock(*this);
     rendezvous_ = false;
     blocked_ = 0;
-    rendezvousIndex_ += 1;
+    rendezvousIndex_++;
 
     
     PR_NotifyAllCondVar(rendezvousEnd_);
 }
 
 void
-ForkJoinShared::setAbortFlag()
+ForkJoinShared::setAbortFlag(bool fatal)
 {
+    AutoLockMonitor lock(*this);
+
     abort_ = true;
+    fatal_ = fatal_ || fatal;
+
+    cx_->runtime->triggerOperationCallback();
 }
 
 void
@@ -522,17 +513,10 @@ bool
 ForkJoinSlice::check()
 {
 #ifdef JS_THREADSAFE
-    return shared->check(*this);
-#else
-    return false;
-#endif
-}
-
-bool
-ForkJoinSlice::setFatal()
-{
-#ifdef JS_THREADSAFE
-    return shared->setFatal();
+    if (runtime()->interrupt)
+        return shared->check(*this);
+    else
+        return true;
 #else
     return false;
 #endif
@@ -571,7 +555,7 @@ ForkJoinSlice::requestZoneGC(JS::Zone *zone, gcreason::Reason reason)
 void
 ForkJoinSlice::triggerAbort()
 {
-    shared->setAbortFlag();
+    shared->setAbortFlag(false);
 
     
     

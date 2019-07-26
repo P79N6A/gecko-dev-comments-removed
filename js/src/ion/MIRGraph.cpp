@@ -67,6 +67,37 @@ MIRGraph::unmarkBlocks() {
         i->unmark();
 }
 
+MDefinition *
+MIRGraph::parSlice() {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    MBasicBlock *entry = entryBlock();
+    JS_ASSERT(entry->info().executionMode() == ParallelExecution);
+
+    MInstruction *start = NULL;
+    for (MInstructionIterator ins(entry->begin()); ins != entry->end(); ins++) {
+        if (ins->isParSlice())
+            return *ins;
+        else if (ins->isStart())
+            start = *ins;
+    }
+    JS_ASSERT(start);
+
+    MParSlice *parSlice = new MParSlice();
+    entry->insertAfter(start, parSlice);
+    return parSlice;
+}
+
 MBasicBlock *
 MBasicBlock::New(MIRGraph &graph, CompileInfo &info,
                  MBasicBlock *pred, jsbytecode *entryPc, Kind kind)
@@ -125,6 +156,22 @@ MBasicBlock *
 MBasicBlock::NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred)
 {
     return MBasicBlock::New(graph, info, pred, pred->pc(), SPLIT_EDGE);
+}
+
+MBasicBlock *
+MBasicBlock::NewParBailout(MIRGraph &graph, CompileInfo &info,
+                           MBasicBlock *pred, jsbytecode *entryPc)
+{
+    MBasicBlock *block = MBasicBlock::New(graph, info, pred, entryPc, NORMAL);
+    if (!block)
+        return NULL;
+
+    MParBailout *bailout = new MParBailout();
+    if (!bailout)
+        return NULL;
+
+    block->end(bailout);
+    return block;
 }
 
 MBasicBlock::MBasicBlock(MIRGraph &graph, CompileInfo &info, jsbytecode *pc, Kind kind)
@@ -730,14 +777,27 @@ MBasicBlock::getSuccessor(size_t index) const
     return lastIns()->getSuccessor(index);
 }
 
+size_t
+MBasicBlock::getSuccessorIndex(MBasicBlock *block) const
+{
+    JS_ASSERT(lastIns());
+    for (size_t i = 0; i < numSuccessors(); i++) {
+        if (getSuccessor(i) == block)
+            return i;
+    }
+    JS_NOT_REACHED("Invalid successor");
+}
+
 void
 MBasicBlock::replaceSuccessor(size_t pos, MBasicBlock *split)
 {
     JS_ASSERT(lastIns());
-    lastIns()->replaceSuccessor(pos, split);
 
     
-    JS_ASSERT(!successorWithPhis_);
+    
+    JS_ASSERT_IF(successorWithPhis_, successorWithPhis_ != getSuccessor(pos));
+
+    lastIns()->replaceSuccessor(pos, split);
 }
 
 void
@@ -793,6 +853,7 @@ MBasicBlock::removePredecessor(MBasicBlock *pred)
         predecessors_.erase(ptr);
         return;
     }
+
     JS_NOT_REACHED("predecessor was not found");
 }
 

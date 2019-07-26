@@ -7,6 +7,8 @@
 
 #include "jslibmath.h"
 #include "jsmath.h"
+#include "builtin/ParallelArray.h"
+#include "builtin/TestingFunctions.h"
 
 #include "MIR.h"
 #include "MIRGraph.h"
@@ -75,6 +77,22 @@ IonBuilder::inlineNativeCall(CallInfo &callInfo, JSNative native)
         return inlineRegExpTest(callInfo);
     if (native == regexp_test)
         return inlineRegExpTest(callInfo);
+
+    
+    if (native == intrinsic_UnsafeSetElement)
+        return inlineUnsafeSetElement(callInfo);
+    if (native == testingFunc_inParallelSection)
+        return inlineForceSequentialOrInParallelSection(callInfo);
+    if (native == intrinsic_NewDenseArray)
+        return inlineNewDenseArray(callInfo);
+
+    
+    if (native == intrinsic_ThrowError)
+        return inlineThrowError(callInfo);
+#ifdef DEBUG
+    if (native == intrinsic_Dump)
+        return inlineDump(callInfo);
+#endif
 
     return InliningStatus_NotInlined;
 }
@@ -842,6 +860,287 @@ IonBuilder::inlineRegExpTest(CallInfo &callInfo)
     current->push(match);
     if (!resumeAfter(match))
         return InliningStatus_Error;
+
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineUnsafeSetElement(CallInfo &callInfo)
+{
+    uint32_t argc = callInfo.argc();
+    if (argc < 3 || (argc % 3) != 0 || callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    
+
+
+
+
+
+
+
+    for (uint32_t base = 0; base < argc; base += 3) {
+        uint32_t arri = base + 1;
+        uint32_t idxi = base + 2;
+
+        types::StackTypeSet *obj = getInlineArgTypeSet(callInfo, arri);
+        types::StackTypeSet *id = getInlineArgTypeSet(callInfo, idxi);
+
+        int arrayType;
+        if (!oracle->elementAccessIsDenseNative(obj, id) &&
+            !oracle->elementAccessIsTypedArray(obj, id, &arrayType))
+        {
+            return InliningStatus_NotInlined;
+        }
+    }
+
+    callInfo.unwrapArgs();
+
+    
+    
+    MConstant *udef = MConstant::New(UndefinedValue());
+    current->add(udef);
+    current->push(udef);
+
+    for (uint32_t base = 0; base < argc; base += 3) {
+        uint32_t arri = base + 1;
+        uint32_t idxi = base + 2;
+
+        types::StackTypeSet *obj = getInlineArgTypeSet(callInfo, arri);
+        types::StackTypeSet *id = getInlineArgTypeSet(callInfo, idxi);
+
+        if (oracle->elementAccessIsDenseNative(obj, id)) {
+            if (!inlineUnsafeSetDenseArrayElement(callInfo, base))
+                return InliningStatus_Error;
+            continue;
+        }
+
+        int arrayType;
+        if (oracle->elementAccessIsTypedArray(obj, id, &arrayType)) {
+            if (!inlineUnsafeSetTypedArrayElement(callInfo, base, arrayType))
+                return InliningStatus_Error;
+            continue;
+        }
+
+        JS_NOT_REACHED("Element access not dense array nor typed array");
+    }
+
+    return InliningStatus_Inlined;
+}
+
+bool
+IonBuilder::inlineUnsafeSetDenseArrayElement(CallInfo &callInfo, uint32_t base)
+{
+    
+    
+    
+    
+    
+    
+
+    uint32_t arri = base + 1;
+    uint32_t idxi = base + 2;
+    uint32_t elemi = base + 3;
+
+    MElements *elements = MElements::New(callInfo.getArg(arri));
+    current->add(elements);
+
+    MToInt32 *id = MToInt32::New(callInfo.getArg(idxi));
+    current->add(id);
+
+    
+    
+    
+
+    MStoreElement *store = MStoreElement::New(elements, id,
+                                              callInfo.getArg(elemi),
+                                               false);
+    store->setRacy();
+
+    current->add(store);
+
+    if (!resumeAfter(store))
+        return false;
+
+    return true;
+}
+
+bool
+IonBuilder::inlineUnsafeSetTypedArrayElement(CallInfo &callInfo,
+                                             uint32_t base,
+                                             int arrayType)
+{
+    
+    
+    
+    
+
+    uint32_t arri = base + 1;
+    uint32_t idxi = base + 2;
+    uint32_t elemi = base + 3;
+
+    MInstruction *elements = getTypedArrayElements(callInfo.getArg(arri));
+    current->add(elements);
+
+    MToInt32 *id = MToInt32::New(callInfo.getArg(idxi));
+    current->add(id);
+
+    MDefinition *value = callInfo.getArg(elemi);
+    if (arrayType == TypedArray::TYPE_UINT8_CLAMPED) {
+        value = MClampToUint8::New(value);
+        current->add(value->toInstruction());
+    }
+
+    MStoreTypedArrayElement *store = MStoreTypedArrayElement::New(elements, id, value, arrayType);
+    store->setRacy();
+
+    current->add(store);
+
+    if (!resumeAfter(store))
+        return false;
+
+    return true;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineForceSequentialOrInParallelSection(CallInfo &callInfo)
+{
+    if (callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    ExecutionMode executionMode = info().executionMode();
+    switch (executionMode) {
+      case SequentialExecution:
+        
+        
+        return InliningStatus_NotInlined;
+
+      case ParallelExecution:
+        
+        
+        
+        callInfo.unwrapArgs();
+        MConstant *ins = MConstant::New(BooleanValue(true));
+        current->add(ins);
+        current->push(ins);
+        return InliningStatus_Inlined;
+    }
+
+    JS_NOT_REACHED("Invalid execution mode");
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineNewDenseArray(CallInfo &callInfo)
+{
+    if (callInfo.constructing() || callInfo.argc() != 1)
+        return InliningStatus_NotInlined;
+
+    
+    
+    ExecutionMode executionMode = info().executionMode();
+    switch (executionMode) {
+      case SequentialExecution:
+        return inlineNewDenseArrayForSequentialExecution(callInfo);
+      case ParallelExecution:
+        return inlineNewDenseArrayForParallelExecution(callInfo);
+    }
+
+    JS_NOT_REACHED("unknown ExecutionMode");
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineNewDenseArrayForSequentialExecution(CallInfo &callInfo)
+{
+    
+    return InliningStatus_NotInlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineNewDenseArrayForParallelExecution(CallInfo &callInfo)
+{
+    
+    
+    
+    types::StackTypeSet *returnTypes = getInlineReturnTypeSet();
+    if (returnTypes->getKnownTypeTag() != JSVAL_TYPE_OBJECT)
+        return InliningStatus_NotInlined;
+    if (returnTypes->getObjectCount() != 1)
+        return InliningStatus_NotInlined;
+    types::TypeObject *typeObject = returnTypes->getTypeObject(0);
+
+    RootedObject templateObject(cx, NewDenseAllocatedArray(cx, 0));
+    if (!templateObject)
+        return InliningStatus_Error;
+    templateObject->setType(typeObject);
+
+    MParNewDenseArray *newObject = new MParNewDenseArray(graph().parSlice(),
+                                                         callInfo.getArg(1),
+                                                         templateObject);
+    current->add(newObject);
+    current->push(newObject);
+
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineThrowError(CallInfo &callInfo)
+{
+    
+
+    if (callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    ExecutionMode executionMode = info().executionMode();
+    switch (executionMode) {
+      case SequentialExecution:
+        return InliningStatus_NotInlined;
+      case ParallelExecution:
+        break;
+    }
+
+    callInfo.unwrapArgs();
+
+    MParBailout *bailout = new MParBailout();
+    if (!bailout)
+        return InliningStatus_Error;
+    current->end(bailout);
+
+    current = newBlock(pc);
+    if (!current)
+        return InliningStatus_Error;
+
+    MConstant *udef = MConstant::New(UndefinedValue());
+    current->add(udef);
+    current->push(udef);
+
+    return InliningStatus_Inlined;
+}
+
+IonBuilder::InliningStatus
+IonBuilder::inlineDump(CallInfo &callInfo)
+{
+    
+    
+
+    if (callInfo.constructing())
+        return InliningStatus_NotInlined;
+
+    ExecutionMode executionMode = info().executionMode();
+    switch (executionMode) {
+      case SequentialExecution:
+        return InliningStatus_NotInlined;
+      case ParallelExecution:
+        break;
+    }
+
+    callInfo.unwrapArgs();
+
+    MParDump *dump = new MParDump(callInfo.getArg(1));
+    current->add(dump);
+
+    MConstant *udef = MConstant::New(UndefinedValue());
+    current->add(udef);
+    current->push(udef);
 
     return InliningStatus_Inlined;
 }

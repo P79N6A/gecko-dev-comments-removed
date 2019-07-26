@@ -18,6 +18,9 @@
 #include "ion/IonCompartment.h"
 #include "ion/IonInstrumentation.h"
 #include "ion/TypeOracle.h"
+#include "ion/ParallelFunctions.h"
+
+#include "vm/ForkJoin.h"
 
 #include "jstypedarray.h"
 #include "jscompartment.h"
@@ -489,7 +492,18 @@ class MacroAssembler : public MacroAssemblerSpecific
 
     
     void newGCThing(const Register &result, JSObject *templateObject, Label *fail);
+    void parNewGCThing(const Register &result,
+                       const Register &threadContextReg,
+                       const Register &tempReg1,
+                       const Register &tempReg2,
+                       JSObject *templateObject,
+                       Label *fail);
     void initGCThing(const Register &obj, JSObject *templateObject);
+
+    
+    
+    void parCheckInterruptFlags(const Register &tempReg,
+                                Label *fail);
 
     
     

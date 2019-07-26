@@ -310,6 +310,7 @@ class MDefinition : public MNode
     { }
 
     virtual Opcode op() const = 0;
+    virtual const char *opName() const = 0;
     void printName(FILE *fp);
     static void PrintOpcodeName(FILE *fp, Opcode op);
     virtual void printOpcode(FILE *fp);
@@ -579,6 +580,9 @@ class MInstruction
     Opcode op() const {                                                     \
         return MDefinition::Op_##opcode;                                    \
     }                                                                       \
+    const char *opName() const {                                            \
+        return #opcode;                                                     \
+    }                                                                       \
     bool accept(MInstructionVisitor *visitor) {                             \
         return visitor->visit##opcode(this);                                \
     }
@@ -609,6 +613,15 @@ class MAryInstruction : public MInstruction
 
 class MNullaryInstruction : public MAryInstruction<0>
 { };
+
+class MUnaryInstruction : public MAryInstruction<1>
+{
+  protected:
+    MUnaryInstruction(MDefinition *ins)
+    {
+        setOperand(0, ins);
+    }
+};
 
 
 class MStart : public MNullaryInstruction
@@ -1068,6 +1081,28 @@ class MThrow
     }
 };
 
+class MNewParallelArray : public MNullaryInstruction
+{
+    CompilerRootObject templateObject_;
+
+    MNewParallelArray(JSObject *templateObject)
+      : templateObject_(templateObject)
+    {
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(NewParallelArray);
+
+    static MNewParallelArray *New(JSObject *templateObject) {
+        return new MNewParallelArray(templateObject);
+    }
+
+    JSObject *templateObject() const {
+        return templateObject_;
+    }
+};
+
 class MNewArray : public MNullaryInstruction
 {
   public:
@@ -1109,6 +1144,10 @@ class MNewArray : public MNullaryInstruction
 
     
     
+    bool shouldUseVM() const;
+
+    
+    
     
     
     
@@ -1135,8 +1174,51 @@ class MNewObject : public MNullaryInstruction
         return new MNewObject(templateObject);
     }
 
+    
+    
+    bool shouldUseVM() const;
+
     JSObject *templateObject() const {
         return templateObject_;
+    }
+};
+
+
+class MParNew : public MUnaryInstruction
+{
+    CompilerRootObject templateObject_;
+
+  public:
+    INSTRUCTION_HEADER(ParNew);
+
+    MParNew(MDefinition *parSlice,
+            JSObject *templateObject)
+      : MUnaryInstruction(parSlice),
+        templateObject_(templateObject)
+    {
+        setResultType(MIRType_Object);
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+
+    JSObject *templateObject() const {
+        return templateObject_;
+    }
+};
+
+
+class MParBailout : public MAryControlInstruction<0, 0>
+{
+  public:
+    INSTRUCTION_HEADER(ParBailout);
+
+    MParBailout()
+      : MAryControlInstruction()
+    {
+        setResultType(MIRType_Undefined);
+        setGuard();
     }
 };
 
@@ -1357,15 +1439,6 @@ class MApplyArgs
 
     TypePolicy *typePolicy() {
         return this;
-    }
-};
-
-class MUnaryInstruction : public MAryInstruction<1>
-{
-  protected:
-    MUnaryInstruction(MDefinition *ins)
-    {
-        setOperand(0, ins);
     }
 };
 
@@ -3190,6 +3263,45 @@ class MCheckOverRecursed : public MNullaryInstruction
 
 
 
+class MParCheckOverRecursed : public MUnaryInstruction
+{
+  public:
+    INSTRUCTION_HEADER(ParCheckOverRecursed);
+
+    MParCheckOverRecursed(MDefinition *parForkJoinSlice)
+      : MUnaryInstruction(parForkJoinSlice)
+    {
+        setResultType(MIRType_None);
+        setGuard();
+        setMovable();
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+};
+
+
+class MParCheckInterrupt : public MUnaryInstruction
+{
+  public:
+    INSTRUCTION_HEADER(ParCheckInterrupt);
+
+    MParCheckInterrupt(MDefinition *parForkJoinSlice)
+      : MUnaryInstruction(parForkJoinSlice)
+    {
+        setResultType(MIRType_None);
+        setGuard();
+        setMovable();
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+};
+
+
+
 class MRecompileCheck : public MNullaryInstruction
 {
     uint32_t minUses_;
@@ -3398,6 +3510,47 @@ class MLambda
     }
     TypePolicy *typePolicy() {
         return this;
+    }
+};
+
+class MParLambda
+  : public MBinaryInstruction,
+    public SingleObjectPolicy
+{
+    CompilerRootFunction fun_;
+
+    MParLambda(MDefinition *parSlice,
+               MDefinition *scopeChain, JSFunction *fun)
+      : MBinaryInstruction(parSlice, scopeChain), fun_(fun)
+    {
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ParLambda);
+
+    static MParLambda *New(MDefinition *parSlice,
+                           MDefinition *scopeChain, JSFunction *fun) {
+        return new MParLambda(parSlice, scopeChain, fun);
+    }
+
+    static MParLambda *New(MDefinition *parSlice,
+                           MLambda *originalInstruction) {
+        return New(parSlice,
+                   originalInstruction->scopeChain(),
+                   originalInstruction->fun());
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+
+    MDefinition *scopeChain() const {
+        return getOperand(1);
+    }
+
+    JSFunction *fun() const {
+        return fun_;
     }
 };
 
@@ -3960,11 +4113,13 @@ class MStoreElementCommon
 {
     bool needsBarrier_;
     MIRType elementType_;
+    bool racy_; 
 
   protected:
     MStoreElementCommon()
       : needsBarrier_(false),
-        elementType_(MIRType_Value)
+        elementType_(MIRType_Value),
+        racy_(false)
     { }
 
   public:
@@ -3980,6 +4135,12 @@ class MStoreElementCommon
     }
     void setNeedsBarrier() {
         needsBarrier_ = true;
+    }
+    bool racy() const {
+        return racy_;
+    }
+    void setRacy() {
+        racy_ = true;
     }
 };
 
@@ -4288,9 +4449,12 @@ class MStoreTypedArrayElement
 {
     int arrayType_;
 
+    
+    bool racy_;
+
     MStoreTypedArrayElement(MDefinition *elements, MDefinition *index, MDefinition *value,
                             int arrayType)
-      : MTernaryInstruction(elements, index, value), arrayType_(arrayType)
+      : MTernaryInstruction(elements, index, value), arrayType_(arrayType), racy_(false)
     {
         setResultType(MIRType_Value);
         setMovable();
@@ -4333,6 +4497,12 @@ class MStoreTypedArrayElement
     }
     AliasSet getAliasSet() const {
         return AliasSet::Store(AliasSet::TypedArrayElement);
+    }
+    bool racy() const {
+        return racy_;
+    }
+    void setRacy() {
+        racy_ = true;
     }
 };
 
@@ -5051,6 +5221,27 @@ class MFunctionEnvironment
 
     MDefinition *function() const {
         return getOperand(0);
+    }
+};
+
+
+
+class MParSlice
+  : public MNullaryInstruction
+{
+  public:
+    MParSlice()
+        : MNullaryInstruction()
+    {
+        setResultType(MIRType_ForkJoinSlice);
+    }
+
+    INSTRUCTION_HEADER(ParSlice);
+
+    AliasSet getAliasSet() const {
+        
+        
+        return AliasSet::None();
     }
 };
 
@@ -5895,6 +6086,62 @@ class MGetArgument
    }
 };
 
+class MParWriteGuard
+  : public MBinaryInstruction,
+    public ObjectPolicy<1>
+{
+    MParWriteGuard(MDefinition *parThreadContext,
+                   MDefinition *obj)
+      : MBinaryInstruction(parThreadContext, obj)
+    {
+        setResultType(MIRType_None);
+        setGuard();
+        setMovable();
+    }
+
+  public:
+    INSTRUCTION_HEADER(ParWriteGuard);
+
+    static MParWriteGuard *New(MDefinition *parThreadContext, MDefinition *obj) {
+        return new MParWriteGuard(parThreadContext, obj);
+    }
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+    MDefinition *object() const {
+        return getOperand(1);
+    }
+    BailoutKind bailoutKind() const {
+        return Bailout_Normal;
+    }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+class MParDump
+  : public MUnaryInstruction,
+    public BoxPolicy<0>
+{
+  public:
+    INSTRUCTION_HEADER(ParDump);
+
+    MParDump(MDefinition *v)
+      : MUnaryInstruction(v)
+    {
+        setResultType(MIRType_None);
+    }
+
+    MDefinition *value() const {
+        return getOperand(0);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
+
 
 
 class MTypeBarrier : public MUnaryInstruction
@@ -6045,9 +6292,54 @@ class MNewCallObject : public MUnaryInstruction
     MDefinition *slots() {
         return getOperand(0);
     }
-    JSObject *templateObj() {
+    JSObject *templateObject() {
         return templateObj_;
     }
+    AliasSet getAliasSet() const {
+        return AliasSet::None();
+    }
+};
+
+class MParNewCallObject : public MBinaryInstruction
+{
+    CompilerRootObject templateObj_;
+
+    MParNewCallObject(MDefinition *parSlice,
+                      JSObject *templateObj, MDefinition *slots)
+        : MBinaryInstruction(parSlice, slots),
+          templateObj_(templateObj)
+    {
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ParNewCallObject);
+
+    static MParNewCallObject *New(MDefinition *parSlice,
+                                  JSObject *templateObj,
+                                  MDefinition *slots) {
+        return new MParNewCallObject(parSlice, templateObj, slots);
+    }
+
+    static MParNewCallObject *New(MDefinition *parSlice,
+                                  MNewCallObject *originalInstruction) {
+        return New(parSlice,
+                   originalInstruction->templateObject(),
+                   originalInstruction->slots());
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+
+    MDefinition *slots() const {
+        return getOperand(1);
+    }
+
+    JSObject *templateObj() const {
+        return templateObj_;
+    }
+
     AliasSet getAliasSet() const {
         return AliasSet::None();
     }
@@ -6155,6 +6447,38 @@ class MEnclosingScope : public MLoadFixedSlot
     AliasSet getAliasSet() const {
         
         return AliasSet::None();
+    }
+};
+
+
+
+
+class MParNewDenseArray : public MBinaryInstruction
+{
+    CompilerRootObject templateObject_;
+
+  public:
+    INSTRUCTION_HEADER(ParNewDenseArray);
+
+    MParNewDenseArray(MDefinition *parSlice,
+                      MDefinition *length,
+                      JSObject *templateObject)
+      : MBinaryInstruction(parSlice, length),
+        templateObject_(templateObject)
+    {
+        setResultType(MIRType_Object);
+    }
+
+    MDefinition *parSlice() const {
+        return getOperand(0);
+    }
+
+    MDefinition *length() const {
+        return getOperand(1);
+    }
+
+    JSObject *templateObject() const {
+        return templateObject_;
     }
 };
 

@@ -26,6 +26,7 @@ class UnreachableCodeElimination
     bool prunePointlessBranchesAndMarkReachableBlocks();
     void removeUsesFromUnmarkedBlocks(MDefinition *instr);
     bool removeUnmarkedBlocksAndClearDominators();
+    bool removeUnmarkedBlocksAndCleanup();
 
   public:
     UnreachableCodeElimination(MIRGenerator *mir, MIRGraph &graph)
@@ -35,7 +36,13 @@ class UnreachableCodeElimination
         redundantPhis_(false)
     {}
 
+    
     bool analyze();
+
+    
+    
+    
+    bool removeUnmarkedBlocks(size_t marked);
 };
 
 } 

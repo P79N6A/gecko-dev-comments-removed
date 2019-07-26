@@ -35,8 +35,23 @@ UnreachableCodeElimination::analyze()
     
     if (!prunePointlessBranchesAndMarkReachableBlocks())
         return false;
+
+    return removeUnmarkedBlocksAndCleanup();
+}
+
+bool
+UnreachableCodeElimination::removeUnmarkedBlocks(size_t marked)
+{
+    marked_ = marked;
+    return removeUnmarkedBlocksAndCleanup();
+}
+
+bool
+UnreachableCodeElimination::removeUnmarkedBlocksAndCleanup()
+{
+    
+    JS_ASSERT(marked_ <= graph_.numBlocks());
     if (marked_ == graph_.numBlocks()) {
-        
         graph_.unmarkBlocks();
         return true;
     }
@@ -45,6 +60,10 @@ UnreachableCodeElimination::analyze()
     if (!removeUnmarkedBlocksAndClearDominators())
         return false;
     graph_.unmarkBlocks();
+
+    AssertGraphCoherency(graph_);
+
+    IonSpewPass("UCEMidPoint");
 
     
     BuildDominatorTree(graph_);

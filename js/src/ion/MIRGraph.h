@@ -79,6 +79,8 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     static MBasicBlock *NewPendingLoopHeader(MIRGraph &graph, CompileInfo &info,
                                              MBasicBlock *pred, jsbytecode *entryPc);
     static MBasicBlock *NewSplitEdge(MIRGraph &graph, CompileInfo &info, MBasicBlock *pred);
+    static MBasicBlock *NewParBailout(MIRGraph &graph, CompileInfo &info,
+                                      MBasicBlock *pred, jsbytecode *entryPc);
 
     bool dominates(MBasicBlock *other);
 
@@ -165,6 +167,9 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void inheritSlots(MBasicBlock *parent);
     bool initEntrySlots();
 
+    
+    
+    
     
     
     void replacePredecessor(MBasicBlock *old, MBasicBlock *split);
@@ -394,6 +399,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     }
     size_t numSuccessors() const;
     MBasicBlock *getSuccessor(size_t index) const;
+    size_t getSuccessorIndex(MBasicBlock *) const;
 
     
     void setLoopHeader(MBasicBlock *loop) {
@@ -608,6 +614,14 @@ class MIRGraph
     JSScript **scripts() {
         return scripts_.begin();
     }
+
+    
+    
+    
+    
+    
+    
+    MDefinition *parSlice();
 };
 
 class MDefinitionIterator
