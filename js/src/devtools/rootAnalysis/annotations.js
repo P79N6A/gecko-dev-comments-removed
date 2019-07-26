@@ -79,6 +79,7 @@ var ignoreCallees = {
     "mozilla::CycleCollectedJSRuntime.DescribeCustomObjects" : true, 
     "mozilla::CycleCollectedJSRuntime.NoteCustomGCThingXPCOMChildren" : true, 
     "nsIThreadManager.GetIsMainThread" : true,
+    "PLDHashTableOps.hashKey" : true,
 };
 
 function fieldCallCannotGC(csu, fullfield)
