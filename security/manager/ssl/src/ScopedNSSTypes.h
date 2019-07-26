@@ -16,6 +16,8 @@
 #include "pk11pub.h"
 #include "sechash.h"
 
+namespace mozilla {
+
 
 MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedPRFileDesc,
                                           PRFileDesc,
@@ -74,5 +76,6 @@ MOZ_TYPE_SPECIFIC_SCOPED_POINTER_TEMPLATE(ScopedSECKEYPublicKey,
                                           SECKEYPublicKey,
                                           SECKEY_DestroyPublicKey)
 
+} 
 
 #endif 
