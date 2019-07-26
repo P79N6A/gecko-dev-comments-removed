@@ -3084,6 +3084,15 @@ let RIL = {
       return PDU_FCS_OK;
     }
 
+    
+    if ((message.messageClass != PDU_DCS_MSG_CLASS_0) && !true) {
+      
+      
+      
+      
+      return PDU_FCS_UNSPECIFIED;
+    }
+
     if (message.header && (message.header.segmentMaxSeq > 1)) {
       message = this._processReceivedSmsSegment(message);
     } else {
