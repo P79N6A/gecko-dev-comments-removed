@@ -6,6 +6,8 @@
 #ifndef WEBGLTYPES_H_
 #define WEBGLTYPES_H_
 
+#include "mozilla/TypedEnum.h"
+
 
 #include "GLTypes.h"
 
@@ -22,6 +24,22 @@ enum FakeBlackStatus { DoNotNeedFakeBlack, DoNeedFakeBlack, DontKnowIfNeedFakeBl
 struct VertexAttrib0Status {
     enum { Default, EmulatedUninitializedArray, EmulatedInitializedArray };
 };
+
+
+
+
+
+
+
+
+
+
+
+MOZ_BEGIN_ENUM_CLASS(WebGLImageDataStatus, int)
+    NoImageData,
+    UninitializedImageData,
+    InitializedImageData
+MOZ_END_ENUM_CLASS(WebGLImageDataStatus)
 
 namespace WebGLTexelConversions {
 
