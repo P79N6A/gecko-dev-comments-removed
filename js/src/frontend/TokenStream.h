@@ -398,7 +398,7 @@ struct CompileError {
 inline bool
 StrictModeFromContext(JSContext *cx)
 {
-    return cx->hasRunOption(JSOPTION_STRICT_MODE);
+    return cx->hasOption(JSOPTION_STRICT_MODE);
 }
 
 
