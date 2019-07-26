@@ -719,17 +719,22 @@ HyperTextAccessible::GetRelativeOffset(nsIPresShell* aPresShell,
                          aWordMovementType);
   rv = aFromFrame->PeekOffset(&pos);
   if (NS_FAILED(rv)) {
+    pos.mResultContent = aFromFrame->GetContent();
     if (aDirection == eDirPrevious) {
       
       
       
       
-      pos.mResultContent = aFromFrame->GetContent();
       int32_t endOffsetUnused;
       aFromFrame->GetOffsets(pos.mContentOffset, endOffsetUnused);
     }
     else {
-      return -1;
+      
+      
+      
+      
+      int32_t startOffsetUnused;
+      aFromFrame->GetOffsets(startOffsetUnused, pos.mContentOffset);
     }
   }
 
