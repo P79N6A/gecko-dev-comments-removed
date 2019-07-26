@@ -517,6 +517,11 @@ hal::FMRadioSettings GetFMBandSettings(hal::FMRadioCountry aCountry);
 
 void StartForceQuitWatchdog(hal::ShutdownMode aMode, int32_t aTimeoutSecs);
 
+
+
+
+void FactoryReset();
+
 } 
 } 
 
