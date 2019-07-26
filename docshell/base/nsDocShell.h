@@ -643,8 +643,6 @@ protected:
     
     nsresult GetControllerForCommand(const char *inCommand,
                                      nsIController** outController);
-    nsresult IsCommandEnabled(const char * inCommand, bool* outEnabled);
-    nsresult DoCommand(const char * inCommand);
     nsresult EnsureCommandHandler();
 
     nsIChannel* GetCurrentDocChannel();
