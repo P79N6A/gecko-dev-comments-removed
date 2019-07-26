@@ -60,7 +60,7 @@ struct EnterJITStack
     
     
     CalleeToken token;
-    JSObject *evalScopeChain;
+    JSObject *scopeChain;
     Value *vp;
 };
 
@@ -82,7 +82,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     const Address slot_token(sp, offsetof(EnterJITStack, token));
     const Address slot_vp(sp, offsetof(EnterJITStack, vp));
-    const Address slot_evalScopeChain(sp, offsetof(EnterJITStack, evalScopeChain));
+    const Address slot_scopeChain(sp, offsetof(EnterJITStack, scopeChain));
 
     JS_ASSERT(OsrFrameReg == reg_frame);
 
@@ -116,7 +116,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
 
     
     if (type == EnterJitBaseline)
-        masm.loadPtr(slot_evalScopeChain, r11);
+        masm.loadPtr(slot_scopeChain, r11);
 
     
     masm.loadPtr(slot_vp, r10);

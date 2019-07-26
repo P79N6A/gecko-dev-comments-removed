@@ -150,12 +150,13 @@ EnterBaseline(JSContext *cx, StackFrame *fp, void *jitcode)
         IonActivation activation(cx, fp);
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
 
-        JSObject *evalScopeChain = NULL;
-        if (fp->isEvalFrame())
-            evalScopeChain = fp->scopeChain();
+        
+        JSObject *scopeChain = NULL;
+        if (!fp->isNonEvalFunctionFrame())
+            scopeChain = fp->scopeChain();
 
         
-        enter(jitcode, maxArgc, maxArgv, fp, calleeToken, evalScopeChain, result.address());
+        enter(jitcode, maxArgc, maxArgv, fp, calleeToken, scopeChain, result.address());
     }
 
     JS_ASSERT(fp == cx->fp());

@@ -333,11 +333,11 @@ BaselineCompiler::initScopeChain()
             if (!callVM(HeavyweightFunPrologueInfo))
                 return false;
         }
-    } else if (script->isForEval()) {
+    } else {
         
         masm.storePtr(R1.scratchReg(), frame.addressOfScopeChain());
 
-        if (script->strict) {
+        if (script->isForEval() && script->strict) {
             
             prepareVMCall();
 
@@ -347,9 +347,6 @@ BaselineCompiler::initScopeChain()
             if (!callVM(StrictEvalPrologueInfo))
                 return false;
         }
-    } else {
-        
-        masm.storePtr(ImmGCPtr(&script->global()), frame.addressOfScopeChain());
     }
 
     return true;
