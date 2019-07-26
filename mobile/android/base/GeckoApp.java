@@ -1543,7 +1543,6 @@ abstract public class GeckoApp
                 
                 
                 
-                
                 GeckoPreferences.broadcastAnnouncementsPref(context);
                 GeckoPreferences.broadcastHealthReportUploadPref(context);
 
@@ -1938,6 +1937,7 @@ abstract public class GeckoApp
     public void onPause()
     {
         final BrowserHealthRecorder rec = mHealthRecorder;
+        final Context context = this;
 
         
         
@@ -1952,6 +1952,11 @@ abstract public class GeckoApp
                     rec.recordSessionEnd("P", editor);
                 }
                 editor.commit();
+
+                
+                
+                
+                GeckoPreferences.broadcastHealthReportPrune(context);
             }
         });
 
