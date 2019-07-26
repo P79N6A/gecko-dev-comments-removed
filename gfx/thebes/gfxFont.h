@@ -605,11 +605,12 @@ private:
 
         FontTableHashEntry(KeyTypePointer aTag)
             : KeyClass(aTag), mBlob() { }
-        
-        FontTableHashEntry(FontTableHashEntry& toCopy)
-            : KeyClass(toCopy), mBlob(toCopy.mBlob)
+
+        FontTableHashEntry(FontTableHashEntry&& toMove)
+            : KeyClass(mozilla::Move(toMove))
+            , mBlob(mozilla::Move(toMove.mBlob))
         {
-            toCopy.mBlob = nullptr;
+            toMove.mBlob = nullptr;
         }
 
         ~FontTableHashEntry() { Clear(); }

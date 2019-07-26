@@ -91,12 +91,19 @@ class nsAutoPtr
         {
         }
 
+      
+      
       nsAutoPtr( nsAutoPtr<T>& aSmartPtr )
             : mRawPtr( aSmartPtr.forget() )
           
         {
         }
 
+      nsAutoPtr( nsAutoPtr<T>&& aSmartPtr )
+            : mRawPtr( aSmartPtr.forget() )
+          
+        {
+        }
 
         
 

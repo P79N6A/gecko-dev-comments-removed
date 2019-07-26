@@ -9,10 +9,12 @@
 #include "nscore.h"
 #include "pldhash.h"
 #include "nsDebug.h"
-#include <new>
+#include "mozilla/MemoryChecking.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Move.h"
 #include "mozilla/fallible.h"
+
+#include <new>
 
 
 NS_COM_GLUE PLDHashOperator
@@ -90,7 +92,7 @@ public:
 
   ~nsTHashtable();
 
-  nsTHashtable(mozilla::MoveRef<nsTHashtable<EntryType> > aOther);
+  nsTHashtable(nsTHashtable<EntryType>&& aOther);
 
   
 
@@ -379,16 +381,22 @@ template<class EntryType>
 nsTHashtable<EntryType>::nsTHashtable()
 {
   
+  
   mTable.entrySize = 0;
 }
 
 template<class EntryType>
 nsTHashtable<EntryType>::nsTHashtable(
-  mozilla::MoveRef<nsTHashtable<EntryType> > aOther)
-  : mTable(aOther->mTable)
+  nsTHashtable<EntryType>&& aOther)
+  : mTable(mozilla::Move(aOther.mTable))
 {
-  aOther->mTable = PLDHashTable();
-  aOther->mTable.entrySize = 0;
+  
+  
+  MOZ_MAKE_MEM_UNDEFINED(aOther.mTable, sizeof(aOther.mTable));
+
+  
+  
+  aOther.mTable.entrySize = 0;
 }
 
 template<class EntryType>
@@ -461,12 +469,10 @@ nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable          *table,
                                      const PLDHashEntryHdr *from,
                                      PLDHashEntryHdr       *to)
 {
-  using mozilla::Move;
-
   EntryType* fromEntry =
     const_cast<EntryType*>(reinterpret_cast<const EntryType*>(from));
 
-  new(to) EntryType(Move(*fromEntry));
+  new(to) EntryType(mozilla::Move(*fromEntry));
 
   fromEntry->~EntryType();
 }

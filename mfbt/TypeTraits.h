@@ -422,6 +422,16 @@ struct IsConvertible
 
 
 
+template<typename T>
+struct IsLvalueReference : FalseType {};
+
+template<typename T>
+struct IsLvalueReference<T&> : TrueType {};
+
+
+
+
+
 
 
 
@@ -477,6 +487,32 @@ struct RemoveCV
 };
 
 
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct RemoveReference
+{
+    typedef T Type;
+};
+
+template<typename T>
+struct RemoveReference<T&>
+{
+    typedef T Type;
+};
+
+template<typename T>
+struct RemoveReference<T&&>
+{
+    typedef T Type;
+};
 
 
 
