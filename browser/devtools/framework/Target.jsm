@@ -286,7 +286,8 @@ TabWebProgressListener.prototype = {
       return;
     }
 
-    if (this.target) {
+    
+    if (this.target && this.target.window == progress.DOMWindow) {
       this.target.emit("will-navigate", request);
     }
   },
