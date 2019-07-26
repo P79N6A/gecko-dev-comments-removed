@@ -59,20 +59,13 @@ function identityCall(message) {
   sendAsyncMessage(kIdentityControllerDoMethod, message);
 }
 
-function identityFinished() {
-  log("identity finished.  closing dialog");
-  closeIdentityDialog(function notifySuccess() {
-    
-    func = null; options = null;
-
-    sendAsyncMessage(kIdentityDelegateFinished);
-  });
-}
 
 
 
 
-function closeIdentityDialog(aCallback) {
+
+
+function closeIdentityDialog() {
   let randomId = uuidgen.generateUUID().toString();
   let id = kReceivedIdentityAssertion + "-" + randomId;
   let browser = Services.wm.getMostRecentWindow("navigator:browser");
@@ -94,6 +87,11 @@ function closeIdentityDialog(aCallback) {
     }
   });
 
+  
+  func = null; options = null;
+  sendAsyncMessage(kIdentityDelegateFinished);
+
+  
   browser.shell.sendChromeEvent(detail);
 }
 
@@ -111,7 +109,7 @@ function doInternalWatch() {
         identityCall(aParams);
         if (aParams.method === "ready") {
           log("watch finished.");
-          identityFinished();
+          closeIdentityDialog();
         }
       },
       JSON.stringify({loggedInUser: options.loggedInUser, origin: options.origin}),
@@ -132,7 +130,7 @@ function doInternalRequest() {
           log("request -> assertion, so do login");
           identityCall({method:'login',assertion:assertion});
         }
-        identityFinished();
+        closeIdentityDialog();
       },
       options);
   }
@@ -145,7 +143,7 @@ function doInternalLogout(aOptions) {
     log("logging you out of ", options.origin);
     BrowserID.internal.logout(options.origin, function() {
       identityCall({method:'logout'});
-      identityFinished();
+      closeIdentityDialog();
     });
   }
 }
