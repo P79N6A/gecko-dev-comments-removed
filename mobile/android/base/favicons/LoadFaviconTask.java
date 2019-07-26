@@ -88,7 +88,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
     }
 
     
-    private Bitmap loadFaviconFromDB() {
+    private Bitmap loadFaviconFromDb() {
         ContentResolver resolver = sContext.getContentResolver();
         return BrowserDB.getFaviconForFaviconUrl(resolver, mFaviconUrl);
     }
@@ -240,14 +240,14 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         
         if (TextUtils.isEmpty(mFaviconUrl)) {
             
-            storedFaviconUrl = Favicons.getFaviconURLForPageURLFromCache(mPageUrl);
+            storedFaviconUrl = Favicons.getFaviconUrlForPageUrlFromCache(mPageUrl);
 
             
             if (storedFaviconUrl == null) {
-                storedFaviconUrl = Favicons.getFaviconURLForPageURL(mPageUrl);
+                storedFaviconUrl = Favicons.getFaviconUrlForPageUrl(mPageUrl);
                 if (storedFaviconUrl != null) {
                     
-                    Favicons.putFaviconURLForPageURLInCache(mPageUrl, storedFaviconUrl);
+                    Favicons.putFaviconUrlForPageUrlInCache(mPageUrl, storedFaviconUrl);
                 }
             }
 
@@ -256,7 +256,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
                 mFaviconUrl = storedFaviconUrl;
             } else {
                 
-                mFaviconUrl = Favicons.guessDefaultFaviconURL(mPageUrl);
+                mFaviconUrl = Favicons.guessDefaultFaviconUrl(mPageUrl);
 
                 if (TextUtils.isEmpty(mFaviconUrl)) {
                     return null;
@@ -299,7 +299,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             return null;
         }
 
-        image = loadFaviconFromDB();
+        image = loadFaviconFromDb();
         if (imageIsValid(image)) {
             return image;
         }
@@ -335,7 +335,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         
-        final String guessed = Favicons.guessDefaultFaviconURL(mPageUrl);
+        final String guessed = Favicons.guessDefaultFaviconUrl(mPageUrl);
         if (guessed == null) {
             Favicons.putFaviconInFailedCache(mFaviconUrl);
             return null;

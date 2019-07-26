@@ -65,7 +65,7 @@ public class Favicons {
     
     private static final NonEvictingLruCache<String, String> sPageURLMappings = new NonEvictingLruCache<String, String>(NUM_PAGE_URL_MAPPINGS_TO_STORE);
 
-    public static String getFaviconURLForPageURLFromCache(String pageURL) {
+    public static String getFaviconUrlForPageUrlFromCache(String pageURL) {
         return sPageURLMappings.get(pageURL);
     }
 
@@ -73,7 +73,7 @@ public class Favicons {
 
 
 
-    public static void putFaviconURLForPageURLInCache(String pageURL, String faviconURL) {
+    public static void putFaviconUrlForPageUrlInCache(String pageURL, String faviconURL) {
         sPageURLMappings.put(pageURL, faviconURL);
     }
 
@@ -143,7 +143,7 @@ public class Favicons {
 
         
         if (cacheURL == null)  {
-            cacheURL = guessDefaultFaviconURL(pageURL);
+            cacheURL = guessDefaultFaviconUrl(pageURL);
         }
 
         
@@ -231,7 +231,7 @@ public class Favicons {
 
 
 
-    public static String getFaviconURLForPageURL(String pageURL) {
+    public static String getFaviconUrlForPageUrl(String pageURL) {
         
         
         String targetURL;
@@ -246,7 +246,7 @@ public class Favicons {
         targetURL = BrowserDB.getFaviconUrlForHistoryUrl(sContext.getContentResolver(), pageURL);
         if (targetURL == null) {
             
-            targetURL = guessDefaultFaviconURL(pageURL);
+            targetURL = guessDefaultFaviconUrl(pageURL);
         }
         return targetURL;
     }
@@ -407,7 +407,7 @@ public class Favicons {
 
 
 
-    public static String guessDefaultFaviconURL(String pageURL) {
+    public static String guessDefaultFaviconUrl(String pageURL) {
         
         
         
