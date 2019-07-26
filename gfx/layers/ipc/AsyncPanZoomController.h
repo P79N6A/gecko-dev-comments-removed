@@ -456,14 +456,6 @@ protected:
 
 
 
-  void SetZoomAndResolution(const mozilla::CSSToScreenScale& aZoom);
-
-  
-
-
-
-
-
   void FireAsyncScrollOnTimeout();
 
 private:

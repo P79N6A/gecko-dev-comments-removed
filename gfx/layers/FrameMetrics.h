@@ -229,12 +229,9 @@ public:
   
   
   
-  
-  
-  
-  
   ParentLayerToLayerScale mResolution;
 
+  
   
   
   LayoutDeviceToLayerScale mCumulativeResolution;
