@@ -29,6 +29,7 @@
 
 #include "nsIDOMElement.h"
 #include "nsPIDOMWindow.h"
+#include "nsGlobalWindow.h"
 #include "nsIDocument.h"
 #include "nsIContent.h"
 #include "nsIScriptGlobalObject.h"
@@ -1206,13 +1207,16 @@ _getwindowobject(NPP npp)
     NPN_PLUGIN_LOG(PLUGIN_LOG_ALWAYS,("NPN_getwindowobject called from the wrong thread\n"));
     return nullptr;
   }
-  AutoPushJSContext cx(GetJSContextFromNPP(npp));
-  NS_ENSURE_TRUE(cx, nullptr);
 
   
   
-  
-  JS::Rooted<JSObject*> global(cx, ::JS_GetGlobalObject(cx));
+  nsIDocument* doc = GetDocumentFromNPP(npp);
+  NS_ENSURE_TRUE(doc, nullptr);
+  nsCOMPtr<nsPIDOMWindow> outer = do_QueryInterface(doc->GetWindow());
+  NS_ENSURE_TRUE(outer, nullptr);
+
+  AutoJSContext cx;
+  JS::Rooted<JSObject*> global(cx, static_cast<nsGlobalWindow*>(outer.get())->GetGlobalJSObject());
   return nsJSObjWrapper::GetNewOrUsed(npp, cx, global);
 }
 
@@ -1236,12 +1240,13 @@ _getpluginelement(NPP npp)
 
   AutoPushJSContext cx(GetJSContextFromNPP(npp));
   NS_ENSURE_TRUE(cx, nullptr);
+  JSAutoRequest ar(cx); 
 
   nsCOMPtr<nsIXPConnect> xpc(do_GetService(nsIXPConnect::GetCID()));
   NS_ENSURE_TRUE(xpc, nullptr);
 
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  xpc->WrapNative(cx, ::JS_GetGlobalObject(cx), element,
+  xpc->WrapNative(cx, ::JS_GetGlobalForScopeChain(cx), element,
                   NS_GET_IID(nsIDOMElement),
                   getter_AddRefs(holder));
   NS_ENSURE_TRUE(holder, nullptr);
