@@ -290,14 +290,7 @@ let HiddenBrowsers = {
 
 function HiddenBrowser(width, height) {
   this.resize(width, height);
-
-  HostFrame.get().then(aFrame => {
-    let doc = aFrame.document;
-    this._browser = doc.createElementNS(XUL_NS, "browser");
-    this._browser.setAttribute("type", "content");
-    this._browser.setAttribute("src", NEWTAB_URL);
-    doc.getElementById("win").appendChild(this._browser);
-  });
+  this._createBrowser();
 }
 
 HiddenBrowser.prototype = {
@@ -317,13 +310,23 @@ HiddenBrowser.prototype = {
       return false;
     }
 
-    let tabbrowser = aTab.ownerDocument.defaultView.gBrowser;
+    let win = aTab.ownerDocument.defaultView;
+    let tabbrowser = win.gBrowser;
+
     if (!tabbrowser) {
       return false;
     }
 
     
     tabbrowser.swapNewTabWithBrowser(aTab, this._browser);
+
+    
+    let mm = aTab.linkedBrowser.messageManager;
+    let scripts = win.messageManager.getDelayedFrameScripts();
+    Array.forEach(scripts, script => mm.loadFrameScript(script, true));
+
+    
+    this._removeBrowser();
 
     
     this._timer = createTimer(this, PRELOADER_INTERVAL_MS);
@@ -336,7 +339,7 @@ HiddenBrowser.prototype = {
     this._timer = null;
 
     
-    this._browser.loadURI(NEWTAB_URL);
+    this._createBrowser();
   },
 
   resize: function (width, height) {
@@ -350,12 +353,25 @@ HiddenBrowser.prototype = {
   },
 
   destroy: function () {
+    this._removeBrowser();
+    this._timer = clearTimer(this._timer);
+  },
+
+  _createBrowser: function () {
+    HostFrame.get().then(aFrame => {
+      let doc = aFrame.document;
+      this._browser = doc.createElementNS(XUL_NS, "browser");
+      this._browser.setAttribute("type", "content");
+      this._browser.setAttribute("src", NEWTAB_URL);
+      doc.getElementById("win").appendChild(this._browser);
+    });
+  },
+
+  _removeBrowser: function () {
     if (this._browser) {
       this._browser.remove();
       this._browser = null;
     }
-
-    this._timer = clearTimer(this._timer);
   }
 };
 
