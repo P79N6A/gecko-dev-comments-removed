@@ -605,12 +605,13 @@ int main(int argc, char* argv[])
 #ifdef HAS_DLL_BLOCKLIST
   DllBlocklist_Initialize();
 
+#ifdef DEBUG
   
   
-  
-  
-  
-  MOZ_ASSERT(!GetModuleHandleA("user32.dll"));
+  if (GetModuleHandleA("user32.dll")) {
+    fprintf(stderr, "DLL blocklist was unable to intercept AppInit DLLs.\n");
+  }
+#endif
 #endif
 
   nsresult rv = InitXPCOMGlue(argv[0], &xreDirectory);
