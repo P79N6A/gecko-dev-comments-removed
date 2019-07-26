@@ -198,6 +198,12 @@
           ThreeDHighlight 1px, ThreeDHighlight 2px,
           ActiveBorder 2px, ActiveBorder 4px, transparent 4px);
   }
+
+  
+
+  #main-window[tabsintitlebar]:not([inFullscreen]) :-moz-any(#TabsToolbar, #toolbar-menubar) toolbarbutton:not(:-moz-lwtheme) {
+    color: inherit;
+  }
 }
 
 
