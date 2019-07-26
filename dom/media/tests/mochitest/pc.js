@@ -435,6 +435,11 @@ function PCT_createOffer(peer, onSuccess) {
   });
 };
 
+PeerConnectionTest.prototype.setIdentityProvider =
+function(peer, provider, protocol, identity) {
+  peer.setIdentityProvider(provider, protocol, identity);
+};
+
 
 
 
@@ -670,7 +675,7 @@ DataChannelTest.prototype = Object.create(PeerConnectionTest.prototype, {
           });
         } else {
           check_next_test();
-	}
+        }
       });
     }
   },
@@ -1107,6 +1112,10 @@ PeerConnectionWrapper.prototype = {
 
   get iceConnectionState() {
     return this._pc.iceConnectionState;
+  },
+
+  setIdentityProvider: function(provider, protocol, identity) {
+      this._pc.setIdentityProvider(provider, protocol, identity);
   },
 
   
