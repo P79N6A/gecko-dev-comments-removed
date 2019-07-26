@@ -221,6 +221,8 @@ function startup(data, reasonCode) {
       
       resultFile: options.resultFile,
       
+      logFile: options.logFile,
+      
       staticArgs: options.staticArgs,
 
       

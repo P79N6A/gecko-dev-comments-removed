@@ -68,11 +68,19 @@ exports.exit = function exit(code) {
   appStartup.quit(code ? E_ATTEMPT : E_FORCE);
 };
 
-
-
-let stdout = Object.freeze({ write: dump, end: dump });
-exports.stdout = stdout;
-exports.stderr = stdout;
+exports.stdout = new function() {
+  let write = dump
+  if ('logFile' in options && options.logFile) {
+    let mode = PR_WRONLY | PR_CREATE_FILE | PR_APPEND;
+    let stream = openFile(options.logFile, mode);
+    write = function write(data) {
+      let text = String(data);
+      stream.write(text, text.length);
+      stream.flush();
+    }
+  }
+  return Object.freeze({ write: write });
+};
 
 
 

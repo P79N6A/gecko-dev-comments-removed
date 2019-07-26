@@ -30,7 +30,7 @@ PARSEABLE_TEST_NAME = re.compile(r'TEST-START \| ([^\n]+)\n')
 
 
 
-RUN_TIMEOUT = 1.5 * 60 * 60 
+RUN_TIMEOUT = 45 * 60 
 
 
 
@@ -495,6 +495,9 @@ def run_app(harness_root_dir, manifest_rdf, harness_options,
 
     logfile = os.path.abspath(os.path.expanduser(logfile))
     maybe_remove_logfile()
+
+    if app_type != "fennec-on-device":
+        harness_options['logFile'] = logfile
 
     env = {}
     env.update(os.environ)

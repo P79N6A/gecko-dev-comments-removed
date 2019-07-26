@@ -8,43 +8,97 @@ module.metadata = {
   "stability": "experimental"
 };
 
-const { CC, Cc, Ci, Cu, Cr, components } = require("chrome");
 const { EventTarget } = require("../event/target");
 const { emit } = require("../event/core");
 const { Buffer } = require("./buffer");
 const { Class } = require("../core/heritage");
 const { setTimeout } = require("../timers");
+const { ns } = require("../core/namespace");
 
-
-const MultiplexInputStream = CC("@mozilla.org/io/multiplex-input-stream;1",
-                                "nsIMultiplexInputStream");
-const AsyncStreamCopier = CC("@mozilla.org/network/async-stream-copier;1",
-                             "nsIAsyncStreamCopier", "init");
-const StringInputStream = CC("@mozilla.org/io/string-input-stream;1",
-                             "nsIStringInputStream");
-const ArrayBufferInputStream = CC("@mozilla.org/io/arraybuffer-input-stream;1",
-                                  "nsIArrayBufferInputStream");
-
-const BinaryInputStream = CC("@mozilla.org/binaryinputstream;1",
-                             "nsIBinaryInputStream", "setInputStream");
-const InputStreamPump = CC("@mozilla.org/network/input-stream-pump;1",
-                           "nsIInputStreamPump", "init");
-
-const threadManager = Cc["@mozilla.org/thread-manager;1"].
-                      getService(Ci.nsIThreadManager);
-
-const eventTarget = Cc["@mozilla.org/network/socket-transport-service;1"].
-                    getService(Ci.nsIEventTarget);
-
-let isFunction = value => typeof(value) === "function"
+function isFunction(value) typeof value === "function"
 
 function accessor() {
   let map = new WeakMap();
-  return function(target, value) {
-    if (value)
-      map.set(target, value);
-    return map.get(target);
+  return function(fd, value) {
+    if (value === null) map.delete(fd);
+    if (value !== undefined) map.set(fd, value);
+    return map.get(fd);
   }
+}
+
+let nsIInputStreamPump = accessor();
+let nsIAsyncOutputStream = accessor();
+let nsIInputStream = accessor();
+let nsIOutputStream = accessor();
+
+
+
+
+
+function isClosed(stream) {
+  
+  let isClosed = false;
+  stream.asyncWait({
+    
+    
+    
+    onOutputStreamReady: function onClose() isClosed = true
+
+  
+  
+  
+  }, stream.WAIT_CLOSURE_ONLY, 0, null);
+  return isClosed;
+}
+
+
+
+
+
+
+
+
+
+
+function onStateChange(stream, target) {
+  let isAsync = false;
+  stream.asyncWait({
+    onOutputStreamReady: function onOutputStreamReady() {
+      
+      
+      
+      if (!isAsync)
+        return setTimeout(onOutputStreamReady, 0);
+
+      
+      
+      
+      emit(target, isClosed(stream) ? "close" : "drain");
+    }
+  }, 0, 0, null);
+  isAsync = true;
+}
+
+function pump(stream) {
+  let input = nsIInputStream(stream);
+  nsIInputStreamPump(stream).asyncRead({
+    onStartRequest: function onStartRequest() {
+      emit(stream, "start");
+    },
+    onDataAvailable: function onDataAvailable(req, c, is, offset, count) {
+      try {
+        let bytes = input.readByteArray(count);
+        emit(stream, "data", new Buffer(bytes, stream.encoding));
+      } catch (error) {
+        emit(stream, "error", error);
+        stream.readable = false;
+      }
+    },
+    onStopRequest: function onStopRequest() {
+      stream.readable = false;
+      emit(stream, "end");
+    }
+  }, null);
 }
 
 const Stream = Class({
@@ -66,8 +120,7 @@ const Stream = Class({
       }
     }
     function onDrain() {
-      if (source.readable)
-        source.resume();
+      if (source.readable) source.resume();
     }
     function onEnd() {
       target.end();
@@ -123,69 +176,18 @@ const Stream = Class({
 });
 exports.Stream = Stream;
 
-
-let nsIStreamListener = accessor();
-let nsIInputStreamPump = accessor();
-let nsIAsyncInputStream = accessor();
-let nsIBinaryInputStream = accessor();
-
-const StreamListener = Class({
-  initialize: function(stream) {
-    this.stream = stream;
-  },
-
-  
-  
-  onDataAvailable: function(request, context, input, offset, count) {
-    let stream = this.stream;
-    let buffer = new ArrayBuffer(count);
-    nsIBinaryInputStream(stream).readArrayBuffer(count, buffer);
-    emit(stream, "data", new Buffer(buffer, stream.encoding));
-  },
-
-  
-  
-  onStartRequest: function() {},
-  
-  
-  onStopRequest: function(request, context, status) {
-    let stream = this.stream;
-    stream.readable = false;
-    if (!components.isSuccessCode(status))
-      emit(stream, "error", status);
-    else
-      emit(stream, "end");
-  }
-});
-
-
 const InputStream = Class({
   extends: Stream,
-  readable: false,
-  paused: false,
   initialize: function initialize(options) {
-    let { asyncInputStream } = options;
+    let { input, pump } = options;
 
     this.readable = true;
-
-    let binaryInputStream = new BinaryInputStream(asyncInputStream);
-    let inputStreamPump = new InputStreamPump(asyncInputStream,
-                                              -1, -1, 0, 0, false);
-    let streamListener = new StreamListener(this);
-
-    nsIAsyncInputStream(this, asyncInputStream);
-    nsIInputStreamPump(this, inputStreamPump);
-    nsIBinaryInputStream(this, binaryInputStream);
-    nsIStreamListener(this, streamListener);
-
-    this.asyncInputStream = asyncInputStream;
-    this.inputStreamPump = inputStreamPump;
-    this.binaryInputStream = binaryInputStream;
+    this.paused = false;
+    nsIInputStream(this, input);
+    nsIInputStreamPump(this, pump);
   },
   get status() nsIInputStreamPump(this).status,
-  read: function() {
-    nsIInputStreamPump(this).asyncRead(nsIStreamListener(this), null);
-  },
+  read: function() pump(this),
   pause: function pause() {
     this.paused = true;
     nsIInputStreamPump(this).suspend();
@@ -196,176 +198,67 @@ const InputStream = Class({
     nsIInputStreamPump(this).resume();
     emit(this, "resume");
   },
-  close: function close() {
-    this.readable = false;
-    nsIInputStreamPump(this).cancel(Cr.NS_OK);
-    nsIBinaryInputStream(this).close();
-    nsIAsyncInputStream(this).close();
-  },
   destroy: function destroy() {
-    this.close();
+    this.readable = false;
+    try {
+      emit(this, "close", null);
+      nsIInputStreamPump(this).cancel(null);
+      nsIInputStreamPump(this, null);
 
-    nsIInputStreamPump(this);
-    nsIAsyncInputStream(this);
-    nsIBinaryInputStream(this);
-    nsIStreamListener(this);
+      nsIInputStream(this).close();
+      nsIInputStream(this, null);
+    } catch (error) {
+      emit(this, "error", error);
+    }
   }
 });
 exports.InputStream = InputStream;
 
-
-
-let nsIRequestObserver = accessor();
-let nsIAsyncOutputStream = accessor();
-let nsIAsyncStreamCopier = accessor();
-let nsIMultiplexInputStream = accessor();
-
-const RequestObserver = Class({
-  initialize: function(stream) {
-    this.stream = stream;
-  },
-  
-  
-  onStartRequest: function() {},
-  
-  
-  onStopRequest: function(request, context, status) {
-    let stream = this.stream;
-    stream.drained = true;
-
-    
-    let multiplexInputStream = nsIMultiplexInputStream(stream);
-    multiplexInputStream.removeStream(0);
-
-    
-    if (!components.isSuccessCode(status))
-      emit(stream, "error", status);
-
-    
-    else if (multiplexInputStream.count)
-      stream.flush();
-
-    
-    else if (stream.writable)
-      emit(stream, "drain");
-
-    
-    else {
-      nsIAsyncStreamCopier(stream).cancel(Cr.NS_OK);
-      nsIMultiplexInputStream(stream).close();
-      nsIAsyncOutputStream(stream).close();
-      nsIAsyncOutputStream(stream).flush();
-    }
-  }
-});
-
-const OutputStreamCallback = Class({
-  initialize: function(stream) {
-    this.stream = stream;
-  },
-  
-  
-  
-  
-  
-  onOutputStreamReady: function(nsIAsyncOutputStream) {
-    emit(this.stream, "finish");
-  }
-});
-
 const OutputStream = Class({
   extends: Stream,
-  writable: false,
-  drained: true,
-  get bufferSize() {
-    let multiplexInputStream = nsIMultiplexInputStream(this);
-    return multiplexInputStream && multiplexInputStream.available();
-  },
   initialize: function initialize(options) {
-    let { asyncOutputStream, output } = options;
+    let { output, asyncOutputStream } = options;
+
     this.writable = true;
-
-    
-    asyncOutputStream.QueryInterface(Ci.nsIAsyncOutputStream);
-
-    
-    
-    
-    let multiplexInputStream = MultiplexInputStream();
-    let asyncStreamCopier = AsyncStreamCopier(multiplexInputStream,
-                                              output || asyncOutputStream,
-                                              eventTarget,
-                                              
-                                              
-                                              true,
-                                              
-                                              
-                                              
-                                              false,
-                                              
-                                              null,
-                                              
-                                              false,
-                                              
-                                              false);
-
-    
-    
-    let requestObserver = RequestObserver(this);
-
-
-    
-    
-    
-    asyncOutputStream.asyncWait(OutputStreamCallback(this),
-                                asyncOutputStream.WAIT_CLOSURE_ONLY,
-                                0,
-                                threadManager.currentThread);
-
-    nsIRequestObserver(this, requestObserver);
+    nsIOutputStream(this, output);
     nsIAsyncOutputStream(this, asyncOutputStream);
-    nsIMultiplexInputStream(this, multiplexInputStream);
-    nsIAsyncStreamCopier(this, asyncStreamCopier);
-
-    this.asyncOutputStream = asyncOutputStream;
-    this.multiplexInputStream = multiplexInputStream;
-    this.asyncStreamCopier = asyncStreamCopier;
   },
   write: function write(content, encoding, callback) {
+    let output = nsIOutputStream(this);
+    let asyncOutputStream = nsIAsyncOutputStream(this);
+
     if (isFunction(encoding)) {
       callback = encoding;
       encoding = callback;
     }
 
     
-    if (!this.writable) throw Error("stream is not writable");
-
-    let chunk = null;
-
     
-    if (Buffer.isBuffer(content)) {
-      chunk = new ArrayBufferInputStream();
-      chunk.setData(content.buffer, 0, content.length);
-    }
-    else {
-      chunk = new StringInputStream();
-      chunk.setData(content, content.length);
-    }
-
-    if (callback)
-      this.once("drain", callback);
-
+    let isWritten = false;
     
-    nsIMultiplexInputStream(this).appendStream(chunk);
-    this.flush();
+    if (!this.writable)
+      throw Error("stream not writable");
 
-    return this.drained;
+    try {
+      
+      if (!Buffer.isBuffer(content))
+        content = new Buffer(content, encoding);
+
+      
+      
+      output.writeByteArray(content.valueOf(), content.length);
+      output.flush();
+
+      if (callback) this.once("drain", callback);
+      onStateChange(asyncOutputStream, this);
+      return true;
+    } catch (error) {
+      
+      emit(this, "error", error);
+    }
   },
-  flush: function() {
-    if (this.drained) {
-      this.drained = false;
-      nsIAsyncStreamCopier(this).asyncCopy(nsIRequestObserver(this), null);
-    }
+  flush: function flush() {
+    nsIOutputStream(this).flush();
   },
   end: function end(content, encoding, callback) {
     if (isFunction(content)) {
@@ -379,57 +272,51 @@ const OutputStream = Class({
 
     
     if (isFunction(callback))
-      this.once("finish", callback);
+      this.once("close", callback);
 
-
+    
     if (content)
-      this.write(content, encoding);
-    this.writable = false;
-
+      this.write(content, encoding, end.bind(this));
     
-    
-    
-    
-    if (this.drained)
-      nsIAsyncOutputStream(this).close();
+    else
+      nsIOutputStream(this).close();
   },
-  destroy: function destroy() {
-    nsIAsyncOutputStream(this).close();
-    nsIAsyncOutputStream(this);
-    nsIMultiplexInputStream(this);
-    nsIAsyncStreamCopier(this);
-    nsIRequestObserver(this);
+  destroy: function destroy(callback) {
+    try {
+      this.end(callback);
+      nsIOutputStream(this, null);
+      nsIAsyncOutputStream(this, null);
+    } catch (error) {
+      emit(this, "error", error);
+    }
   }
 });
 exports.OutputStream = OutputStream;
 
 const DuplexStream = Class({
   extends: Stream,
-  implements: [InputStream, OutputStream],
-  allowHalfOpen: true,
   initialize: function initialize(options) {
-    options = options || {};
-    let { readable, writable, allowHalfOpen } = options;
+    let { input, output, pump } = options;
 
-    InputStream.prototype.initialize.call(this, options);
-    OutputStream.prototype.initialize.call(this, options);
+    this.writable = true;
+    this.readable = true;
+    this.encoding = null;
 
-    if (readable === false)
-      this.readable = false;
-
-    if (writable === false)
-      this.writable = false;
-
-    if (allowHalfOpen === false)
-      this.allowHalfOpen = false;
-
-    
-    this.once("end", () => {
-      if (!this.allowHalfOpen && (!this.readable || !this.writable))
-        this.end();
-    });
+    nsIInputStream(this, input);
+    nsIOutputStream(this, output);
+    nsIInputStreamPump(this, pump);
   },
+  read: InputStream.prototype.read,
+  pause: InputStream.prototype.pause,
+  resume: InputStream.prototype.resume,
+
+  write: OutputStream.prototype.write,
+  flush: OutputStream.prototype.flush,
+  end: OutputStream.prototype.end,
+
   destroy: function destroy(error) {
+    if (error)
+      emit(this, "error", error);
     InputStream.prototype.destroy.call(this);
     OutputStream.prototype.destroy.call(this);
   }

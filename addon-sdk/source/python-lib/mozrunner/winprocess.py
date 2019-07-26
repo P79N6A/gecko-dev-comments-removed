@@ -330,9 +330,13 @@ GetExitCodeProcess = GetExitCodeProcessProto(
 GetExitCodeProcess.errcheck = ErrCheckBool
 
 def CanCreateJobObject():
-    
-    
-    return False
+    currentProc = GetCurrentProcess()
+    if IsProcessInJob(currentProc):
+        jobinfo = QueryInformationJobObject(HANDLE(0), 'JobObjectExtendedLimitInformation')
+        limitflags = jobinfo['BasicLimitInformation']['LimitFlags']
+        return bool(limitflags & JOB_OBJECT_LIMIT_BREAKAWAY_OK) or bool(limitflags & JOB_OBJECT_LIMIT_SILENT_BREAKAWAY_OK)
+    else:
+        return True
 
 
 
