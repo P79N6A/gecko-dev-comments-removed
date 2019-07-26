@@ -864,6 +864,16 @@ static inline mozilla::css::Side operator++(mozilla::css::Side& side, int) {
 #define NS_STYLE_MASK_TYPE_ALPHA                1
 
 
+#define NS_STYLE_PAINT_ORDER_NORMAL             0
+#define NS_STYLE_PAINT_ORDER_FILL               1
+#define NS_STYLE_PAINT_ORDER_STROKE             2
+#define NS_STYLE_PAINT_ORDER_MARKERS            3
+#define NS_STYLE_PAINT_ORDER_LAST_VALUE NS_STYLE_PAINT_ORDER_MARKERS
+
+
+#define NS_STYLE_PAINT_ORDER_BITWIDTH           2
+
+
 #define NS_STYLE_SHAPE_RENDERING_AUTO               0
 #define NS_STYLE_SHAPE_RENDERING_OPTIMIZESPEED      1
 #define NS_STYLE_SHAPE_RENDERING_CRISPEDGES         2

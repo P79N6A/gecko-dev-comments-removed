@@ -1194,7 +1194,10 @@ public:
         GLYPH_STROKE = 2,
         
         
-        GLYPH_PATH = 4
+        GLYPH_PATH = 4,
+        
+        
+        GLYPH_STROKE_UNDERNEATH = 8
     } DrawMode;
 
 protected:
