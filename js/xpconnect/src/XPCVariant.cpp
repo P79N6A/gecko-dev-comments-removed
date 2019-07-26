@@ -32,7 +32,7 @@ XPCVariant::XPCVariant(JSContext* cx, jsval aJSVal)
     : mJSVal(aJSVal), mCCGeneration(0)
 {
     nsVariant::Initialize(&mData);
-    if (!JSVAL_IS_PRIMITIVE(mJSVal)) {
+    if (!mJSVal.isPrimitive()) {
         
         
         
@@ -42,8 +42,9 @@ XPCVariant::XPCVariant(JSContext* cx, jsval aJSVal)
         
         
         
-        JSObject *obj = JS_ObjectToInnerObject(cx, JSVAL_TO_OBJECT(mJSVal));
-        mJSVal = OBJECT_TO_JSVAL(obj);
+        JS::RootedObject obj(cx, &mJSVal.toObject());
+        obj = JS_ObjectToInnerObject(cx, obj);
+        mJSVal = JS::ObjectValue(*obj);
 
         JSObject *unwrapped = js::CheckedUnwrap(obj,  false);
         mReturnRawObject = !(unwrapped && IS_WN_REFLECTOR(unwrapped));

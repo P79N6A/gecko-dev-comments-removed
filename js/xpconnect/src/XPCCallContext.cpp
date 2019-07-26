@@ -355,7 +355,10 @@ XPCCallContext::UnwrapThisIfAllowed(HandleObject obj, HandleObject fun, unsigned
     
     MOZ_ASSERT(js::IsWrapper(obj));
     RootedObject unwrapped(mJSContext, js::UncheckedUnwrap(obj,  false));
-    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, js::Wrapper::wrappedObject(obj)));
+#ifdef DEBUG
+    JS::Rooted<JSObject*> wrappedObj(mJSContext, js::Wrapper::wrappedObject(obj));
+    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, wrappedObj));
+#endif
 
     
     if (!IS_WN_REFLECTOR(unwrapped))
