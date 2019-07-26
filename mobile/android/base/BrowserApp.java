@@ -493,8 +493,14 @@ abstract public class BrowserApp extends GeckoApp
         mBrowserToolbar.setOnStopEditingListener(new BrowserToolbar.OnStopEditingListener() {
             public void onStopEditing() {
                 selectTargetTabForEditingMode();
-                hideHomePager();
+
+                
+                
+                
+                
+                
                 hideBrowserSearch();
+                hideHomePager();
 
                 
                 mDoorHangerPopup.enable();
@@ -1542,12 +1548,6 @@ abstract public class BrowserApp extends GeckoApp
             return false;
         }
 
-        
-        
-        
-        
-        mHomePager.setVisibility(View.VISIBLE);
-
         mBrowserToolbar.cancelEdit();
 
         return true;
@@ -1555,11 +1555,9 @@ abstract public class BrowserApp extends GeckoApp
 
     void filterEditingMode(String searchTerm, AutocompleteHandler handler) {
         if (TextUtils.isEmpty(searchTerm)) {
-            mHomePager.setVisibility(View.VISIBLE);
             hideBrowserSearch();
         } else {
             showBrowserSearch();
-            mHomePager.setVisibility(View.INVISIBLE);
             mBrowserSearch.filter(searchTerm, handler);
         }
     }
@@ -1700,6 +1698,9 @@ abstract public class BrowserApp extends GeckoApp
 
         mBrowserSearchContainer.setVisibility(View.VISIBLE);
 
+        
+        mHomePager.setVisibility(View.INVISIBLE);
+
         final FragmentManager fm = getSupportFragmentManager();
 
         
@@ -1717,6 +1718,10 @@ abstract public class BrowserApp extends GeckoApp
         if (!mBrowserSearch.getUserVisibleHint()) {
             return;
         }
+
+        
+        
+        mHomePager.setVisibility(View.VISIBLE);
 
         mBrowserSearchContainer.setVisibility(View.INVISIBLE);
 
