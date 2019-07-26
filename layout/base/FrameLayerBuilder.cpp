@@ -329,7 +329,8 @@ protected:
       mNeedComponentAlpha(false),
       mForceTransparentSurface(false),
       mImage(nullptr),
-      mCommonClipCount(-1) {}
+      mCommonClipCount(-1),
+      mAllDrawingAbove(false) {}
     
 
 
@@ -357,6 +358,61 @@ protected:
 
     already_AddRefed<ImageContainer> CanOptimizeImageLayer(nsDisplayListBuilder* aBuilder);
 
+    void AddDrawAboveRegion(const nsIntRegion& aAbove)
+    {
+      if (!mAllDrawingAbove) {
+        mDrawAboveRegion.Or(mDrawAboveRegion, aAbove);
+        mDrawAboveRegion.SimplifyOutward(4);
+      }
+    }
+
+    void AddVisibleAboveRegion(const nsIntRegion& aAbove)
+    {
+      if (!mAllDrawingAbove) {
+        mVisibleAboveRegion.Or(mVisibleAboveRegion, aAbove);
+        mVisibleAboveRegion.SimplifyOutward(4);
+      }
+    }
+
+    void CopyAboveRegion(ThebesLayerData* aOther)
+    {
+      if (aOther->mAllDrawingAbove || mAllDrawingAbove) {
+        SetAllDrawingAbove();
+      } else {
+        mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleAboveRegion);
+        mVisibleAboveRegion.Or(mVisibleAboveRegion, aOther->mVisibleRegion);
+        mVisibleAboveRegion.SimplifyOutward(4);
+        mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawAboveRegion);
+        mDrawAboveRegion.Or(mDrawAboveRegion, aOther->mDrawRegion);
+        mDrawAboveRegion.SimplifyOutward(4);
+     }
+    }
+
+    void SetAllDrawingAbove()
+    {
+      mAllDrawingAbove = true;
+      mDrawAboveRegion.SetEmpty();
+      mVisibleAboveRegion.SetEmpty();
+    }
+
+    bool IsBelow(const nsIntRect& aRect)
+    {
+      return mAllDrawingAbove || mDrawAboveRegion.Intersects(aRect);
+    }
+
+    bool IntersectsVisibleAboveRegion(const nsIntRegion& aVisibleRegion)
+    {
+      if (mAllDrawingAbove) {
+        return true;
+      }
+      nsIntRegion visibleAboveIntersection;
+      visibleAboveIntersection.And(mVisibleAboveRegion, aVisibleRegion);
+      if (visibleAboveIntersection.IsEmpty()) {
+        return false;
+      }
+      return true;
+    }
+
     
 
 
@@ -369,24 +425,7 @@ protected:
 
 
 
-
-    nsIntRegion  mVisibleAboveRegion;
-    
-
-
-
-
-
     nsIntRegion  mDrawRegion;
-    
-
-
-
-
-
-
-
-    nsIntRegion  mDrawAboveRegion;
     
 
 
@@ -449,6 +488,30 @@ protected:
 
 
     void UpdateCommonClipCount(const DisplayItemClip& aCurrentClip);
+
+  private:
+    
+
+
+
+
+
+
+    nsIntRegion  mVisibleAboveRegion;
+    
+
+
+
+
+
+
+
+    nsIntRegion  mDrawAboveRegion;
+    
+
+
+
+    bool mAllDrawingAbove;
   };
   friend class ThebesLayerData;
 
@@ -1452,9 +1515,7 @@ ContainerState::FindOpaqueBackgroundColorFor(int32_t aThebesLayerIndex)
   ThebesLayerData* target = mThebesLayerDataStack[aThebesLayerIndex];
   for (int32_t i = aThebesLayerIndex - 1; i >= 0; --i) {
     ThebesLayerData* candidate = mThebesLayerDataStack[i];
-    nsIntRegion visibleAboveIntersection;
-    visibleAboveIntersection.And(candidate->mVisibleAboveRegion, target->mVisibleRegion);
-    if (!visibleAboveIntersection.IsEmpty()) {
+    if (candidate->IntersectsVisibleAboveRegion(target->mVisibleRegion)) {
       
       
       break;
@@ -1663,16 +1724,7 @@ ContainerState::PopThebesLayerData()
     
     
     ThebesLayerData* nextData = mThebesLayerDataStack[lastIndex - 1];
-    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
-                                     data->mVisibleAboveRegion);
-    nextData->mVisibleAboveRegion.Or(nextData->mVisibleAboveRegion,
-                                     data->mVisibleRegion);
-    nextData->mVisibleAboveRegion.SimplifyOutward(4);
-    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
-                                     data->mDrawAboveRegion);
-    nextData->mDrawAboveRegion.Or(nextData->mDrawAboveRegion,
-                                     data->mDrawRegion);
-    nextData->mDrawAboveRegion.SimplifyOutward(4);
+    nextData->CopyAboveRegion(data);
   }
 
   mThebesLayerDataStack.RemoveElementAt(lastIndex);
@@ -1850,7 +1902,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
   int32_t topmostLayerWithScrolledRoot = -1;
   for (i = mThebesLayerDataStack.Length() - 1; i >= 0; --i) {
     ThebesLayerData* data = mThebesLayerDataStack[i];
-    if (data->mDrawAboveRegion.Intersects(aVisibleRect)) {
+    if (data->IsBelow(aVisibleRect)) {
       ++i;
       break;
     }
@@ -2160,14 +2212,24 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
       }
       ThebesLayerData* data = GetTopThebesLayerData();
       if (data) {
-        data->mVisibleAboveRegion.Or(data->mVisibleAboveRegion, itemVisibleRect);
-        data->mVisibleAboveRegion.SimplifyOutward(4);
         
         
         
         
-        data->mDrawAboveRegion.Or(data->mDrawAboveRegion, itemDrawRect);
-        data->mDrawAboveRegion.SimplifyOutward(4);
+        if (item->GetType() == nsDisplayItem::TYPE_TRANSFORM &&
+            nsDisplayTransform::ShouldPrerenderTransformedContent(mBuilder,
+                                                                  item->Frame(),
+                                                                  false)) {
+          data->SetAllDrawingAbove();
+        } else {
+          data->AddVisibleAboveRegion(itemVisibleRect);
+
+          
+          
+          
+          
+          data->AddDrawAboveRegion(itemDrawRect);
+        }
       }
       itemVisibleRect.MoveBy(mParameters.mOffset);
       if (setVisibleRegion) {
