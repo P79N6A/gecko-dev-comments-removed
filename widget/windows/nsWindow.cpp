@@ -1515,8 +1515,7 @@ nsWindow::BeginResizeDrag(WidgetGUIEvent* aEvent,
     return NS_ERROR_INVALID_ARG;
   }
 
-  WidgetMouseEvent* mouseEvent = static_cast<WidgetMouseEvent*>(aEvent);
-  if (mouseEvent->button != WidgetMouseEvent::eLeftButton) {
+  if (aEvent->AsMouseEvent()->button != WidgetMouseEvent::eLeftButton) {
     
     return NS_ERROR_INVALID_ARG;
   }
