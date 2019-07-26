@@ -163,13 +163,6 @@ td > ol:-moz-only-whitespace:-moz-last-node, th > ol:-moz-only-whitespace:-moz-l
 
 
 
-pre[wrap], pre[cols], pre[width] {
-  white-space: pre-wrap;
-}
-
-
-
-
 :not(dl) > dd {
   display: inline;
   margin: 0;
