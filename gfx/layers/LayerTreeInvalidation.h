@@ -57,8 +57,8 @@ struct LayerProperties
 
 
 
-  virtual nsIntRect ComputeDifferences(Layer* aRoot, 
-                                       NotifySubDocInvalidationFunc aCallback) = 0;
+  virtual nsIntRegion ComputeDifferences(Layer* aRoot, 
+                                         NotifySubDocInvalidationFunc aCallback) = 0;
   
   
   virtual void MoveBy(const nsIntPoint& aOffset) = 0;
