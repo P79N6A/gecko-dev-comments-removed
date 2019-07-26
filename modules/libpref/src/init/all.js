@@ -4062,10 +4062,6 @@ pref("layers.acceleration.draw-fps", false);
 pref("layers.draw-borders", false);
 pref("layers.frame-counter", false);
 
-
-pref("layers.max-active", -1);
-
-
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 #else
