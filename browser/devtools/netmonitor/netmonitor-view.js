@@ -7,6 +7,7 @@
 
 const HTML_NS = "http://www.w3.org/1999/xhtml";
 const EPSILON = 0.001;
+const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 102400; 
 const RESIZE_REFRESH_RATE = 50; 
 const REQUESTS_REFRESH_RATE = 50; 
 const REQUESTS_HEADERS_SAFE_BOUNDS = 30; 
@@ -1562,10 +1563,13 @@ NetworkDetailsView.prototype = {
           aEditor.setText(aString);
 
           
-          for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
-            if (mimeType.contains(key)) {
-              aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
-              break;
+          
+          if (aString.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+            for (let key in CONTENT_MIME_TYPE_MAPPINGS) {
+              if (mimeType.contains(key)) {
+                aEditor.setMode(CONTENT_MIME_TYPE_MAPPINGS[key]);
+                break;
+              }
             }
           }
         });
