@@ -129,7 +129,11 @@ let StyleSheetsActor = protocol.ActorClass({
 
         
         for (let iframe of doc.getElementsByTagName("iframe")) {
-          documents.push(iframe.contentDocument);
+          if (iframe.contentDocument) {
+            
+            
+            documents.push(iframe.contentDocument);
+          }
         }
       }
       throw new Task.Result(actors);
