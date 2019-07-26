@@ -2468,6 +2468,9 @@ DoBinaryArithFallback(JSContext *cx, BaselineFrame *frame, ICBinaryArith_Fallbac
         return false;
     }
 
+    if (ret.isDouble())
+        stub->setSawDoubleResult();
+
     
     if (stub->numOptimizedStubs() >= ICBinaryArith_Fallback::MAX_OPTIMIZED_STUBS) {
         
@@ -2969,6 +2972,9 @@ DoUnaryArithFallback(JSContext *cx, BaselineFrame *frame, ICUnaryArith_Fallback 
         JS_NOT_REACHED("Unexpected op");
         return false;
     }
+
+    if (res.isDouble())
+        stub->setSawDoubleResult();
 
     if (stub->numOptimizedStubs() >= ICUnaryArith_Fallback::MAX_OPTIMIZED_STUBS) {
         
