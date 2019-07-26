@@ -169,21 +169,22 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
         if (uri.startsWith("jar:jar:")) {
             Log.d(LOGTAG, "Fetching favicon from JAR.");
-            return GeckoJarReader.getBitmap(sContext.getResources(), uri);
+            try {
+                return GeckoJarReader.getBitmap(sContext.getResources(), uri);
+            } catch (Exception e) {
+                
+                Log.w(LOGTAG, "Error fetching favicon from JAR.", e);
+                return null;
+            }
         }
         return null;
     }
 
     
+    
     private Bitmap downloadFavicon(URI targetFaviconURI) {
         if (targetFaviconURI == null) {
             return null;
-        }
-
-        final String uriString = targetFaviconURI.toString();
-        Bitmap image = fetchJARFavicon(uriString);
-        if (image != null) {
-            return image;
         }
 
         
@@ -191,6 +192,8 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         if (!"http".equals(scheme) && !"https".equals(scheme)) {
             return null;
         }
+
+        Bitmap image = null;
 
         
         
@@ -297,7 +300,7 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
         }
 
         image = loadFaviconFromDb();
-        if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
+        if (imageIsValid(image)) {
             return image;
         }
 
@@ -321,22 +324,48 @@ public class LoadFaviconTask extends UiAsyncTask<Void, Void, Bitmap> {
             Log.e(LOGTAG, "Couldn't download favicon.", e);
         }
 
-        
-        if (image == null && !isUsingDefaultURL) {
-            try {
-                image = downloadFavicon(new URI(Favicons.guessDefaultFaviconURL(mPageUrl)));
-            } catch (URISyntaxException e){
-                
-            }
-        }
-
-        if (image != null && image.getWidth() > 0 && image.getHeight() > 0) {
+        if (imageIsValid(image)) {
             saveFaviconToDb(image);
-        } else {
-            Favicons.putFaviconInFailedCache(mFaviconUrl);
+            return image;
         }
 
-        return image;
+        if (isUsingDefaultURL) {
+            Favicons.putFaviconInFailedCache(mFaviconUrl);
+            return null;
+        }
+
+        
+        final String guessed = Favicons.guessDefaultFaviconURL(mPageUrl);
+        if (guessed == null) {
+            Favicons.putFaviconInFailedCache(mFaviconUrl);
+            return null;
+        }
+
+        image = fetchJARFavicon(guessed);
+        if (imageIsValid(image)) {
+            
+            return image;
+        }
+
+        try {
+            image = downloadFavicon(new URI(guessed));
+        } catch (Exception e) {
+            
+            return null;
+        }
+
+        if (imageIsValid(image)) {
+            saveFaviconToDb(image);
+            return image;
+        }
+
+        return null;
+    }
+
+    private static boolean imageIsValid(final Bitmap image) {
+        return image != null &&
+               image.getWidth() > 0 &&
+               image.getHeight() > 0;
     }
 
     @Override
