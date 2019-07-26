@@ -246,11 +246,6 @@ GetCTMInternal(nsSVGElement *aElement, bool aScreenCTM, bool aHaveRecursed)
 gfxMatrix
 SVGContentUtils::GetCTM(nsSVGElement *aElement, bool aScreenCTM)
 {
-  nsIDocument* currentDoc = aElement->GetCurrentDoc();
-  if (currentDoc) {
-    
-    currentDoc->FlushPendingNotifications(Flush_Layout);
-  }
   return GetCTMInternal(aElement, aScreenCTM, false);
 }
 
