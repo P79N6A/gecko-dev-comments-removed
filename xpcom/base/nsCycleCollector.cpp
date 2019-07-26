@@ -215,6 +215,11 @@ using namespace mozilla;
 
 
 
+
+
+
+
+
 MOZ_NEVER_INLINE void
 CC_AbortIfNull(void *ptr)
 {
@@ -230,17 +235,27 @@ struct nsCycleCollectorParams
     bool mLogAll;
     bool mLogShutdown;
     bool mAllTracesAtShutdown;
+    bool mLogThisThread;
 
     nsCycleCollectorParams() :
         mLogAll      (PR_GetEnv("MOZ_CC_LOG_ALL") != nullptr),
         mLogShutdown (PR_GetEnv("MOZ_CC_LOG_SHUTDOWN") != nullptr),
-        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr)
+        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr),
+        mLogThisThread(true)
     {
+        const char* logThreadEnv = PR_GetEnv("MOZ_CC_LOG_THREAD");
+        if (logThreadEnv && !!strcmp(logThreadEnv, "all")) {
+            if (NS_IsMainThread()) {
+                mLogThisThread = !strcmp(logThreadEnv, "main");
+            } else {
+                mLogThisThread = !strcmp(logThreadEnv, "worker");
+            }
+        }
     }
 
     bool LogThisCC(bool aIsShutdown)
     {
-        return mLogAll || (aIsShutdown && mLogShutdown);
+        return (mLogAll || (aIsShutdown && mLogShutdown)) && mLogThisThread;
     }
 };
 
