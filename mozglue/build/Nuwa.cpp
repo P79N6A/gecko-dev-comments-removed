@@ -142,12 +142,7 @@ TLSInfoList;
 
 
 #ifndef NUWA_STACK_SIZE
-#if !defined(PAGE_SIZE)
-#warning "PAGE_SIZE not defined, using 4096 bytes"
-#define PAGE_SIZE 4096ul
-#elif PAGE_SIZE != 4096ul
-#warning "System page size not 4096 bytes"
-#endif
+#define PAGE_SIZE 4096
 #define PAGE_ALIGN_MASK 0xfffff000
 #define NUWA_STACK_SIZE (1024 * 128)
 #endif
