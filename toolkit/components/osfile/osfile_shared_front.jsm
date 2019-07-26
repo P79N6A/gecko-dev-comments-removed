@@ -201,6 +201,22 @@ AbstractFile.AbstractIterator.prototype = {
 
   __iterator__: function __iterator__() {
     return this;
+  },
+  
+
+
+
+
+
+
+
+
+
+  forEach: function forEach(cb) {
+    let index = 0;
+    for (let entry in this) {
+      cb(entry, index++, this);
+    }
   }
 };
 
