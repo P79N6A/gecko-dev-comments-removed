@@ -1717,7 +1717,7 @@ public:
 
 
   static bool InvalidationDebuggingIsEnabled() {
-    return sInvalidationDebuggingIsEnabled;
+    return sInvalidationDebuggingIsEnabled || getenv("MOZ_DUMP_INVALIDATION") != 0;
   }
 
   static void Initialize();
