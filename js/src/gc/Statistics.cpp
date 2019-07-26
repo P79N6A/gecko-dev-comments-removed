@@ -4,6 +4,8 @@
 
 
 
+#include "gc/Statistics.h"
+
 #include <stdio.h>
 #include <stdarg.h>
 
@@ -14,15 +16,13 @@
 #include "jscrashformat.h"
 #include "jscrashreport.h"
 #include "jsprf.h"
-#include "jsprobes.h"
 #include "jsutil.h"
 #include "prmjtime.h"
-
 #include "gc/Memory.h"
-#include "gc/Statistics.h"
 
 #include "jscntxtinlines.h"
 #include "gc/Barrier-inl.h"
+#include "vm/Probes-inl.h"
 
 using namespace js;
 using namespace js::gcstats;

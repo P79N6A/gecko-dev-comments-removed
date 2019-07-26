@@ -4,126 +4,18 @@
 
 
 
-#ifndef _JSPROBES_H
-#define _JSPROBES_H
+#ifndef Probes_inl_h__
+#define Probes_inl_h__
 
-#ifdef INCLUDE_MOZILLA_DTRACE
-#include "javascript-trace.h"
-#endif
-#include "jspubtd.h"
-#include "jsprvtd.h"
+#include "vm/Probes.h"
+
 #include "jscntxt.h"
 #include "jsobj.h"
 #include "jsscript.h"
 
+#include "vm/Stack-inl.h"
+
 namespace js {
-
-namespace Probes {
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern bool ProfilingActive;
-
-extern const char nullName[];
-extern const char anonymousName[];
-
-
-
-
-
-
-bool callTrackingActive(JSContext *);
-
-
-
-
-
-bool wantNativeAddressInfo(JSContext *);
-
-
-bool enterScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
-
-
-bool exitScript(JSContext *, JSScript *, JSFunction *, AbstractFramePtr);
-bool exitScript(JSContext *, JSScript *, JSFunction *, StackFrame *);
-
-
-bool startExecution(JSScript *script);
-
-
-bool stopExecution(JSScript *script);
-
-
-
-
-bool createObject(JSContext *cx, JSObject *obj);
-
-
-
-
-
-bool finalizeObject(JSObject *obj);
-
-
-
-enum JITReportGranularity {
-    JITREPORT_GRANULARITY_NONE = 0,
-    JITREPORT_GRANULARITY_FUNCTION = 1,
-    JITREPORT_GRANULARITY_LINE = 2,
-    JITREPORT_GRANULARITY_OP = 3
-};
-
-
-
-
-JITReportGranularity
-JITGranularityRequested(JSContext *cx);
-
-
-
-
-
-void
-discardExecutableRegion(void *start, size_t size);
-
-
-
-
-
-
-
-void DTraceEnterJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-void DTraceExitJSFun(JSContext *cx, JSFunction *fun, JSScript *script);
-
-} 
 
 
 
@@ -206,49 +98,6 @@ Probes::exitScript(JSContext *cx, JSScript *script, JSFunction *maybeFun,
     return Probes::exitScript(cx, script, maybeFun, fp ? AbstractFramePtr(fp) : AbstractFramePtr());
 }
 
-#ifdef INCLUDE_MOZILLA_DTRACE
-static const char *ObjectClassname(JSObject *obj) {
-    if (!obj)
-        return "(null object)";
-    Class *clasp = obj->getClass();
-    if (!clasp)
-        return "(null)";
-    const char *class_name = clasp->name;
-    if (!class_name)
-        return "(null class name)";
-    return class_name;
-}
-#endif
-
-inline bool
-Probes::createObject(JSContext *cx, JSObject *obj)
-{
-    bool ok = true;
-
-#ifdef INCLUDE_MOZILLA_DTRACE
-    if (JAVASCRIPT_OBJECT_CREATE_ENABLED())
-        JAVASCRIPT_OBJECT_CREATE(ObjectClassname(obj), (uintptr_t)obj);
-#endif
-
-    return ok;
-}
-
-inline bool
-Probes::finalizeObject(JSObject *obj)
-{
-    bool ok = true;
-
-#ifdef INCLUDE_MOZILLA_DTRACE
-    if (JAVASCRIPT_OBJECT_FINALIZE_ENABLED()) {
-        Class *clasp = obj->getClass();
-
-        
-        JAVASCRIPT_OBJECT_FINALIZE(NULL, (char *)clasp->name, (uintptr_t)obj);
-    }
-#endif
-
-    return ok;
-}
 inline bool
 Probes::startExecution(JSScript *script)
 {
@@ -278,10 +127,5 @@ Probes::stopExecution(JSScript *script)
 }
 
 } 
-
-
-
-
-
-
-#endif 
+ 
+#endif  

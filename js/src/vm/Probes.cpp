@@ -4,7 +4,7 @@
 
 
 
-#include "jsprobes.h"
+#include "Probes-inl.h"
 
 #include "jscntxt.h"
 #include "jsscript.h"
