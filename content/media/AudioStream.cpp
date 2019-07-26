@@ -44,6 +44,9 @@ static uint32_t gCubebLatency;
 static bool gCubebLatencyPrefSet;
 static const uint32_t CUBEB_NORMAL_LATENCY_MS = 100;
 
+StaticMutex AudioStream::mMutex;
+uint32_t AudioStream::mPreferredSampleRate = 0;
+
 
 
 
@@ -439,6 +442,23 @@ int AudioStream::MaxNumberOfChannels()
   }
 
   return static_cast<int>(maxNumberOfChannels);
+}
+
+int AudioStream::PreferredSampleRate()
+{
+  StaticMutexAutoLock lock(AudioStream::mMutex);
+  
+  
+  
+  
+  const int fallbackSampleRate = 44100;
+  if (mPreferredSampleRate == 0) {
+    if (cubeb_get_preferred_sample_rate(GetCubebContext(), &mPreferredSampleRate) != CUBEB_OK) {
+      mPreferredSampleRate = fallbackSampleRate;
+    }
+  }
+
+  return mPreferredSampleRate;
 }
 
 static void SetUint16LE(uint8_t* aDest, uint16_t aValue)

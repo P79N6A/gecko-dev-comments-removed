@@ -11,6 +11,7 @@
 #include "nsAutoPtr.h"
 #include "nsCOMPtr.h"
 #include "Latency.h"
+#include "mozilla/StaticMutex.h"
 
 namespace soundtouch {
 class SoundTouch;
@@ -118,6 +119,10 @@ public:
 
   
   
+  static int PreferredSampleRate();
+
+  
+  
   
   virtual nsresult Init(int32_t aNumChannels, int32_t aRate,
                         const dom::AudioChannelType aAudioStreamType,
@@ -183,6 +188,11 @@ public:
   virtual nsresult SetPreservesPitch(bool aPreservesPitch);
 
 protected:
+  
+  static StaticMutex mMutex;
+  
+  
+  static uint32_t mPreferredSampleRate;
   
   int mInRate;
   
