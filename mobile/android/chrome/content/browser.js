@@ -249,6 +249,7 @@ var BrowserApp = {
   _tabs: [],
   _selectedTab: null,
   _prefObservers: [],
+  _promptHandlers: {},
 
   get isTablet() {
     let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
@@ -298,6 +299,7 @@ var BrowserApp = {
     Services.obs.addObserver(this, "FormHistory:Init", false);
     Services.obs.addObserver(this, "gather-telemetry", false);
     Services.obs.addObserver(this, "keyword-search", false);
+    Services.obs.addObserver(this, "Prompt:Reply", false);
 
     Services.obs.addObserver(this, "sessionstore-state-purge-complete", false);
 
@@ -1426,6 +1428,18 @@ var BrowserApp = {
         browser.contentDocument.mozCancelFullScreen();
         break;
 
+      case "Prompt:Reply":
+        {
+            let data = JSON.parse(aData);
+            let guid = data.guid;
+            let handler = this._promptHandlers[guid];
+            if (!handler)
+              break;
+            this._promptHandlers[guid];
+            handler(data);
+        }
+        break;
+
       case "Viewport:Change":
         if (this.isBrowserContentDocumentDisplayed())
           this.selectedTab.setViewport(JSON.parse(aData));
@@ -1490,26 +1504,35 @@ var BrowserApp = {
   
   showHistory: function(fromIndex, toIndex, selIndex) {
     let browser = this.selectedBrowser;
+    let guid = uuidgen.generateUUID().toString();
+    let result = {
+      type: "Prompt:Show",
+      multiple: false,
+      async: true,
+      guid: guid,
+      selected: [],
+      listitems: []
+    };
     let hist = browser.sessionHistory;
-    let listitems = [];
     for (let i = toIndex; i >= fromIndex; i--) {
       let entry = hist.getEntryAtIndex(i, false);
       let item = {
         label: entry.title || entry.URI.spec,
-        selected: (i == selIndex)
+        isGroup: false,
+        inGroup: false,
+        disabled: false,
+        id: i
       };
-      listitems.push(item);
+      result.listitems.push(item);
+      result.selected.push(i == selIndex);
     }
-
-    let p = new Prompt({
-      window: browser.contentWindow
-    }).setSingleChoiceItems(listitems).show(function(data) {
+    this._promptHandlers[guid] = function (data) {
         let selected = data.button;
         if (selected == -1)
           return;
-
         browser.gotoIndex(toIndex-selected);
-    });
+    };
+    sendMessageToJava(result);
   },
 };
 
@@ -1889,8 +1912,10 @@ var NativeWindow = {
               icon: item.icon,
               label: item.label,
               id: id,
+              isGroup: false,
+              inGroup: false,
               disabled: item.disabled,
-              parent: item instanceof Ci.nsIDOMHTMLMenuElement
+              isParent: item instanceof Ci.nsIDOMHTMLMenuElement
             }
           }
         };
@@ -2015,36 +2040,36 @@ var NativeWindow = {
       if (itemArray.length == 0)
         return;
 
-      let prompt = new Prompt({
-        window: aTarget.ownerDocument.defaultView,
-        title: title
-      }).setSingleChoiceItems(itemArray)
-      .show(function(data) {
-        if (data.button == -1) {
+      let msg = {
+        type: "Prompt:Show",
+        title: title,
+        listitems: itemArray
+      };
+      let data = JSON.parse(sendMessageToJava(msg));
+      if (data.button == -1) {
+        
+        return;
+      }
+
+      let selectedId = itemArray[data.button].id;
+      let selectedItem = this._getMenuItemForId(selectedId);
+
+      this.menuitems = null;
+      if (selectedItem && selectedItem.callback) {
+        if (selectedItem.matches) {
           
-          return;
-        }
-
-        let selectedId = itemArray[data.button].id;
-        let selectedItem = this._getMenuItemForId(selectedId);
-
-        this.menuitems = null;
-        if (selectedItem && selectedItem.callback) {
-          if (selectedItem.matches) {
-            
-            while (aTarget) {
-              if (selectedItem.matches(aTarget, aX, aY)) {
-                selectedItem.callback.call(selectedItem, aTarget, aX, aY);
-                break;
-              }
-              aTarget = aTarget.parentNode;
+          while (aTarget) {
+            if (selectedItem.matches(aTarget, aX, aY)) {
+              selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+              break;
             }
-          } else {
-            
-            selectedItem.callback.call(selectedItem, aTarget, aX, aY);
+            aTarget = aTarget.parentNode;
           }
+        } else {
+          
+          selectedItem.callback.call(selectedItem, aTarget, aX, aY);
         }
-      });
+      }
     },
 
     handleEvent: function(aEvent) {

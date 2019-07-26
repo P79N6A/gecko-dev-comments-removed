@@ -72,26 +72,34 @@ var FeedHandler = {
       
       let feedIndex = -1;
       if (feeds.length > 1) {
-        let p = new Prompt({
-          window: browser.contentWindow,
-        }).setSingleChoiceItems(feeds.map(function(feed) {
-          return { label: feed.title || feed.href }
-        })).show((function(data) {
-          feedIndex = data.button;
-          if (feedIndex == -1)
-            return;
+        
+        let feedResult = {
+          type: "Prompt:Show",
+          multiple: false,
+          selected: [],
+          listitems: []
+        };
 
-          this.loadFeed(feeds[feedIndex], browser);
-        }).bind(this));
-        return;
+        
+        for (let i = 0; i < feeds.length; i++) {
+          let item = {
+            label: feeds[i].title || feeds[i].href,
+            isGroup: false,
+            inGroup: false,
+            disabled: false,
+            id: i
+          };
+          feedResult.listitems.push(item);
+        }
+        feedIndex = JSON.parse(sendMessageToJava(feedResult)).button;
+      } else {
+        
+        feedIndex = 0;
       }
 
-      this.loadFeed(feeds[0], browser);
-    }
-  },
-
-  loadFeed: function fh_loadFeed(aFeed, aBrowser) {
-      let feedURL = aFeed.href;
+      if (feedIndex == -1)
+        return;
+      let feedURL = feeds[feedIndex].href;
 
       
       let handlers = this.getContentHandlers(this.TYPE_MAYBE_FEED);
@@ -99,21 +107,34 @@ var FeedHandler = {
         return;
 
       
-      let p = new Prompt({
-        window: aBrowser.contentWindow
-      }).setSingleChoiceItems(handlers.map(function(handler) {
-        return { label: handler.name };
-      })).show(function(data) {
-        if (data.button == -1)
-          return;
+      let handlerResult = {
+        type: "Prompt:Show",
+        multiple: false,
+        selected: [],
+        listitems: []
+      };
 
-        
-        let readerURL = handlers[data.button].uri;
-        readerURL = readerURL.replace(/%s/gi, encodeURIComponent(feedURL));
+      
+      for (let i = 0; i < handlers.length; ++i) {
+        let item = {
+          label: handlers[i].name,
+          isGroup: false,
+          inGroup: false,
+          disabled: false,
+          id: i
+        };
+        handlerResult.listitems.push(item);
+      }
+      let handlerIndex = JSON.parse(sendMessageToJava(handlerResult)).button;
+      if (handlerIndex == -1)
+        return;
 
-        
-        BrowserApp.addTab(readerURL, { parentId: BrowserApp.selectedTab.id });
-      });
+      
+      let readerURL = handlers[handlerIndex].uri;
+      readerURL = readerURL.replace(/%s/gi, encodeURIComponent(feedURL));
 
+      
+      BrowserApp.addTab(readerURL, { parentId: BrowserApp.selectedTab.id });
+    }
   }
 };

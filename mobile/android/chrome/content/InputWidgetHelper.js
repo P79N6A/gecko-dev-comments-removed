@@ -23,41 +23,44 @@ var InputWidgetHelper = {
 
   show: function(aElement) {
     let type = aElement.getAttribute('type');
-    let p = new Prompt({
-      window: aElement.ownerDocument.defaultView,
+    let msg = {
+      type: "Prompt:Show",
       title: Strings.browser.GetStringFromName("inputWidgetHelper." + aElement.getAttribute('type')),
       buttons: [
         Strings.browser.GetStringFromName("inputWidgetHelper.set"),
         Strings.browser.GetStringFromName("inputWidgetHelper.clear"),
         Strings.browser.GetStringFromName("inputWidgetHelper.cancel")
       ],
-    }).addDatePicker({
-      value: aElement.value,
-      type: type,
-    }).show((function(data) {
-      let changed = false;
-      if (data.button == -1) {
-        
-        return;
-      }
-      if (data.button == 1) {
-        
-        if (aElement.value != "") {
-          aElement.value = "";
-          changed = true;
-        }
-      } else if (data.button == 0) {
-        
-        if (aElement.value != data[type]) {
-          aElement.value = data[type + "0"];
-          changed = true;
-        }
-      }
-      
+      inputs: [
+        { type: type, value: aElement.value }
+      ]
+    };
 
-      if (changed)
-        this.fireOnChange(aElement);
-    }).bind(this));
+    let data = JSON.parse(sendMessageToJava(msg));
+
+    let changed = false;
+    if (data.button == -1) {
+      
+      return;
+    }
+    if (data.button == 1) {
+      
+      if (aElement.value != "") {
+        aElement.value = "";
+        changed = true;
+      }
+    } else if (data.button == 0) {
+      
+      if (aElement.value != data[type]) {
+        aElement.value = data[type];
+        changed = true;
+      }
+    }
+    
+
+    if (changed)
+      this.fireOnChange(aElement);
+
   },
 
   _isValidInput: function(aElement) {
