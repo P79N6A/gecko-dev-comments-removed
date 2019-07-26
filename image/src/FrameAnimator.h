@@ -79,12 +79,6 @@ public:
 
 
 
-  void SetLoopCount(int32_t aLoopCount);
-
-  
-
-
-
 
   void SetAnimationMode(uint16_t aAnimationMode);
 
@@ -127,7 +121,8 @@ private:
 
 
 
-  uint32_t GetSingleLoopTime() const;
+
+  int32_t GetSingleLoopTime() const;
 
   
 
@@ -161,7 +156,7 @@ private:
   uint32_t mCurrentAnimationFrameIndex;
 
   
-  int32_t mLoopCount;
+  int32_t mLoopCounter;
 
   
   FrameBlender& mFrameBlender;

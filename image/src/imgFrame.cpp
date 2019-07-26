@@ -745,28 +745,12 @@ void imgFrame::ApplyDirtToSurfaces()
   }
 }
 
-int32_t imgFrame::GetTimeout() const
+int32_t imgFrame::GetRawTimeout() const
 {
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mTimeout >= 0 && mTimeout <= 10)
-    return 100;
-  else
-    return mTimeout;
+  return mTimeout;
 }
 
-void imgFrame::SetTimeout(int32_t aTimeout)
+void imgFrame::SetRawTimeout(int32_t aTimeout)
 {
   mTimeout = aTimeout;
 }

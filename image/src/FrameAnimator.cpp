@@ -13,36 +13,36 @@ using namespace mozilla;
 
 FrameAnimator::FrameAnimator(FrameBlender& aFrameBlender)
   : mCurrentAnimationFrameIndex(0)
-  , mLoopCount(-1)
+  , mLoopCounter(-1)
   , mFrameBlender(aFrameBlender)
   , mAnimationMode(imgIContainer::kNormalAnimMode)
   , mDoneDecoding(false)
 {
 }
 
-uint32_t
+int32_t
 FrameAnimator::GetSingleLoopTime() const
 {
   
   if (!mDoneDecoding) {
-    return 0;
+    return -1;
   }
 
   
   if (mAnimationMode != imgIContainer::kNormalAnimMode) {
-    return 0;
+    return -1;
   }
 
   uint32_t looptime = 0;
   for (uint32_t i = 0; i < mFrameBlender.GetNumFrames(); ++i) {
-    int32_t timeout = mFrameBlender.RawGetFrame(i)->GetTimeout();
-    if (timeout > 0) {
+    int32_t timeout = mFrameBlender.GetTimeoutForFrame(i);
+    if (timeout >= 0) {
       looptime += static_cast<uint32_t>(timeout);
     } else {
       
       
       NS_WARNING("Negative frame timeout - how did this happen?");
-      return 0;
+      return -1;
     }
   }
 
@@ -52,9 +52,8 @@ FrameAnimator::GetSingleLoopTime() const
 TimeStamp
 FrameAnimator::GetCurrentImgFrameEndTime() const
 {
-  imgFrame* currentFrame = mFrameBlender.RawGetFrame(mCurrentAnimationFrameIndex);
   TimeStamp currentFrameTime = mCurrentAnimationFrameTime;
-  int64_t timeout = currentFrame->GetTimeout();
+  int32_t timeout = mFrameBlender.GetTimeoutForFrame(mCurrentAnimationFrameIndex);
 
   if (timeout < 0) {
     
@@ -82,7 +81,7 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
 
   uint32_t currentFrameIndex = mCurrentAnimationFrameIndex;
   uint32_t nextFrameIndex = currentFrameIndex + 1;
-  uint32_t timeout = 0;
+  int32_t timeout = 0;
 
   RefreshResult ret;
 
@@ -104,14 +103,19 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
       
 
       
-      if (mAnimationMode == imgIContainer::kLoopOnceAnimMode || mLoopCount == 0) {
+      if (mLoopCounter < 0 && mFrameBlender.GetLoopCount() >= 0) {
+        mLoopCounter = mFrameBlender.GetLoopCount();
+      }
+
+      
+      if (mAnimationMode == imgIContainer::kLoopOnceAnimMode || mLoopCounter == 0) {
         ret.animationFinished = true;
       }
 
       nextFrameIndex = 0;
 
-      if (mLoopCount > 0) {
-        mLoopCount--;
+      if (mLoopCounter > 0) {
+        mLoopCounter--;
       }
 
       
@@ -120,11 +124,11 @@ FrameAnimator::AdvanceFrame(TimeStamp aTime)
       }
     }
 
-    timeout = mFrameBlender.GetFrame(nextFrameIndex)->GetTimeout();
+    timeout = mFrameBlender.GetTimeoutForFrame(nextFrameIndex);
   }
 
   
-  if (!(timeout > 0)) {
+  if (timeout < 0) {
     ret.animationFinished = true;
     ret.error = true;
   }
@@ -244,12 +248,6 @@ void
 FrameAnimator::UnionFirstFrameRefreshArea(const nsIntRect& aRect)
 {
   mFirstFrameRefreshArea.UnionRect(mFirstFrameRefreshArea, aRect);
-}
-
-void
-FrameAnimator::SetLoopCount(int loopcount)
-{
-  mLoopCount = loopcount;
 }
 
 uint32_t

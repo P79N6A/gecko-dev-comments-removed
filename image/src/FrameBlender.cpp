@@ -19,6 +19,7 @@ namespace image {
 FrameBlender::FrameBlender(FrameSequence* aSequenceToUse )
  : mFrames(aSequenceToUse)
  , mAnim(nullptr)
+ , mLoopCount(-1)
 {
   if (!mFrames) {
     mFrames = new FrameSequence();
@@ -64,6 +65,40 @@ uint32_t
 FrameBlender::GetNumFrames() const
 {
   return mFrames->GetNumFrames();
+}
+
+int32_t
+FrameBlender::GetTimeoutForFrame(uint32_t framenum) const
+{
+  const int32_t timeout = RawGetFrame(framenum)->GetRawTimeout();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (timeout >= 0 && timeout <= 10 && mLoopCount != 0)
+    return 100;
+  return timeout;
+}
+
+void
+FrameBlender::SetLoopCount(int32_t aLoopCount)
+{
+  mLoopCount = aLoopCount;
+}
+
+int32_t
+FrameBlender::GetLoopCount() const
+{
+  return mLoopCount;
 }
 
 void
@@ -381,8 +416,8 @@ FrameBlender::DoBlend(nsIntRect* aDirtyRect,
 
   
   
-  int32_t timeout = nextFrame->GetTimeout();
-  mAnim->compositingFrame->SetTimeout(timeout);
+  int32_t timeout = nextFrame->GetRawTimeout();
+  mAnim->compositingFrame->SetRawTimeout(timeout);
 
   
   nsresult rv = mAnim->compositingFrame->ImageUpdated(mAnim->compositingFrame->GetRect());

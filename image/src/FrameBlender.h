@@ -59,6 +59,20 @@ public:
   
   uint32_t GetNumFrames() const;
 
+  
+
+
+
+
+  int32_t GetTimeoutForFrame(uint32_t framenum) const;
+
+  
+
+
+
+  void SetLoopCount(int32_t aLoopCount);
+  int32_t GetLoopCount() const;
+
   void Discard();
 
   void SetSize(nsIntSize aSize) { mSize = aSize; }
@@ -169,6 +183,7 @@ private:
   nsRefPtr<FrameSequence> mFrames;
   nsIntSize mSize;
   Anim* mAnim;
+  int32_t mLoopCount;
 };
 
 } 
