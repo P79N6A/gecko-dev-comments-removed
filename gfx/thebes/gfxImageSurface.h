@@ -7,6 +7,7 @@
 #define GFX_IMAGESURFACE_H
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/RefPtr.h"
 #include "gfxASurface.h"
 #include "nsAutoPtr.h"
 #include "nsSize.h"
@@ -17,6 +18,7 @@ class gfxSubimageSurface;
 
 namespace mozilla {
 namespace gfx {
+class DataSourceSurface;
 class SourceSurface;
 }
 }
@@ -107,6 +109,11 @@ public:
 
 
     bool CopyTo (mozilla::gfx::SourceSurface *aSurface);
+
+    
+
+
+    mozilla::TemporaryRef<mozilla::gfx::DataSourceSurface> CopyToB8G8R8A8DataSourceSurface();
 
     
 
