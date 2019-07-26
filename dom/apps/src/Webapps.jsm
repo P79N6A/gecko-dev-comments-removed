@@ -1036,6 +1036,12 @@ this.DOMApplicationRegistry = {
     } catch(e) { }
 
     
+    
+    let zipFile = dir.clone();
+    zipFile.append("application.zip");
+    Services.obs.notifyObservers(zipFile, "flush-cache-entry", null);
+
+    
     this.getManifestFor(app.origin, (function(aData) {
       app.downloading = false;
       app.downloadAvailable = false;
