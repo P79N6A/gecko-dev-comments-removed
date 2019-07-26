@@ -2252,6 +2252,15 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       NS_ABORT_IF_FALSE(firstStop >= 0.0, "Failed to fix stop offsets");
     }
 
+    if (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR && !aGradient->mRepeating) {
+      
+      
+      
+      
+      
+      firstStop = 0;
+    }
+
     double lastStop = stops[stops.Length() - 1].mPosition;
     
     
