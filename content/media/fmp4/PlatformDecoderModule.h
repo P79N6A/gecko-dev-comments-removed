@@ -143,10 +143,12 @@ public:
 
 
 
-class MediaDataDecoder : public AtomicRefCounted<MediaDataDecoder> {
-public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(MediaDataDecoder)
+class MediaDataDecoder {
+protected:
   virtual ~MediaDataDecoder() {};
+
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDataDecoder)
 
   
   

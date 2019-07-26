@@ -28,7 +28,7 @@ namespace mozilla {
 
 
 
-class BackgroundHangManager : public AtomicRefCounted<BackgroundHangManager>
+class BackgroundHangManager
 {
 private:
   
@@ -62,7 +62,7 @@ private:
   void RunMonitorThread();
 
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(BackgroundHangManager)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(BackgroundHangManager)
   static StaticRefPtr<BackgroundHangManager> sInstance;
 
   

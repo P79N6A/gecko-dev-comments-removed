@@ -47,10 +47,12 @@ class ClientLayerManager;
 
 
 
-class gfxSharedReadLock : public AtomicRefCounted<gfxSharedReadLock> {
-public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(gfxSharedReadLock)
+class gfxSharedReadLock {
+protected:
   virtual ~gfxSharedReadLock() {}
+
+public:
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(gfxSharedReadLock)
 
   virtual int32_t ReadLock() = 0;
   virtual int32_t ReadUnlock() = 0;

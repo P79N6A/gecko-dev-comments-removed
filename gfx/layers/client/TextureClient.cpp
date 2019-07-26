@@ -75,23 +75,17 @@ namespace layers {
 
 
 
-class TextureChild : public PTextureChild
-                   , public AtomicRefCounted<TextureChild>
+class TextureChild MOZ_FINAL : public PTextureChild
 {
 public:
-  MOZ_DECLARE_REFCOUNTED_TYPENAME(TextureChild)
+  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(TextureChild)
+
   TextureChild()
   : mForwarder(nullptr)
   , mTextureData(nullptr)
   , mTextureClient(nullptr)
   , mIPCOpen(false)
   {
-    MOZ_COUNT_CTOR(TextureChild);
-  }
-
-  ~TextureChild()
-  {
-    MOZ_COUNT_DTOR(TextureChild);
   }
 
   bool Recv__delete__() MOZ_OVERRIDE;
