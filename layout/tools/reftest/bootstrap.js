@@ -38,6 +38,10 @@ function setDefaultPrefs() {
     branch.setIntPref("urlclassifier.updateinterval", 172800);
     
     branch.setBoolPref("image.high_quality_downscaling.enabled", false);
+    
+    
+    
+    branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
 }
 
 var windowListener = {

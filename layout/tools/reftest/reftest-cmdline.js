@@ -114,6 +114,10 @@ RefTestCmdLineHandler.prototype =
     
     
     branch.setIntPref("browser.viewport.desktopWidth", 800);
+    
+    
+    
+    branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
 
     var wwatch = Components.classes["@mozilla.org/embedcomp/window-watcher;1"]
                            .getService(nsIWindowWatcher);

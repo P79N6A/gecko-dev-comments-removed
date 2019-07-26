@@ -38,6 +38,10 @@ function setDefaultPrefs() {
     branch.setBoolPref("security.fileuri.strict_origin_policy", false);
     
     branch.setBoolPref("browser.pagethumbnails.capturing_disabled", true);
+    
+    
+    
+    branch.setBoolPref("layout.testing.overlay-scrollbars.always-visible", true);
 }
 
 function setPermissions() {
