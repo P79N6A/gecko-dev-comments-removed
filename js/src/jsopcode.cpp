@@ -1432,25 +1432,52 @@ js_QuoteString(ExclusiveContext *cx, JSString *str, jschar quote)
 
 
 
-static JSObject *
-GetBlockChainAtPC(JSContext *cx, JSScript *script, jsbytecode *pc)
+StaticBlockObject *
+js::GetBlockChainAtPC(JSScript *script, jsbytecode *pc)
 {
     JS_ASSERT(script->containsPC(pc));
-    JS_ASSERT(pc >= script->main());
-
-    ptrdiff_t offset = pc - script->main();
 
     if (!script->hasBlockScopes())
         return nullptr;
 
+    if (pc < script->main())
+        return nullptr;
+    ptrdiff_t offset = pc - script->main();
+
     BlockScopeArray *blockScopes = script->blockScopes();
-    JSObject *blockChain = nullptr;
-    for (uint32_t n = 0; n < blockScopes->length; n++) {
-        const BlockScopeNote *note = &blockScopes->vector[n];
-        if (note->start > offset)
-            break;
-        if (offset <= note->start + note->length)
-            blockChain = script->getObject(note->index);
+    StaticBlockObject *blockChain = nullptr;
+
+    
+    size_t bottom = 0;
+    size_t top = blockScopes->length;
+
+    while (bottom < top) {
+        size_t mid = bottom + (top - bottom) / 2;
+        const BlockScopeNote *note = &blockScopes->vector[mid];
+        if (note->start <= offset) {
+            
+            
+            
+            
+            
+            size_t check = mid;
+            while (check >= bottom) {
+                const BlockScopeNote *checkNote = &blockScopes->vector[check];
+                JS_ASSERT(checkNote->start <= offset);
+                if (offset <= checkNote->start + checkNote->length) {
+                    
+                    
+                    blockChain = &script->getObject(checkNote->index)->as<StaticBlockObject>();
+                    break;
+                }
+                if (checkNote->parent == UINT32_MAX)
+                    break;
+                check = checkNote->parent;
+            }
+            bottom = mid + 1;
+        } else {
+            top = mid;
+        }
     }
 
     return blockChain;
@@ -1716,7 +1743,7 @@ JSAtom *
 ExpressionDecompiler::findLetVar(jsbytecode *pc, unsigned depth)
 {
     if (script->hasObjects()) {
-        JSObject *chain = GetBlockChainAtPC(cx, script, pc);
+        JSObject *chain = GetBlockChainAtPC(script, pc);
         if (!chain)
             return nullptr;
         JS_ASSERT(chain->is<BlockObject>());
