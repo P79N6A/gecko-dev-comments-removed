@@ -486,7 +486,7 @@ function eventQueue(aEventType)
 
         
         
-        if (!checker.unexptected && checker.unique &&
+        if (!checker.unexpected && checker.unique &&
             eventQueue.compareEventTypes(checker, aEvent)) {
           var isExppected = false;
           for (var jdx = 0; jdx < eventSeq.length; jdx++) {
