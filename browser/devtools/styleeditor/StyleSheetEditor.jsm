@@ -14,7 +14,6 @@ const Cu = Components.utils;
 const require = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools.require;
 const Editor  = require("devtools/sourceeditor/editor");
 const promise = require("sdk/core/promise");
-const {CssLogic} = require("devtools/styleinspector/css-logic");
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
@@ -22,7 +21,6 @@ Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource:///modules/devtools/shared/event-emitter.js");
 Cu.import("resource:///modules/devtools/StyleEditorUtil.jsm");
 
-const LOAD_ERROR = "error-load";
 const SAVE_ERROR = "error-save";
 
 
@@ -59,19 +57,13 @@ function StyleSheetEditor(styleSheet, win, file, isNew) {
 
   this.errorMessage = null;
 
-  let readOnly = false;
-  if (styleSheet.isOriginalSource) {
-    
-    readOnly = true;
-  }
-
   this._state = {   
     text: "",
     selection: {
       start: {line: 0, ch: 0},
       end: {line: 0, ch: 0}
     },
-    readOnly: readOnly,
+    readOnly: false,
     topIndex: 0,              
   };
 
@@ -81,11 +73,13 @@ function StyleSheetEditor(styleSheet, win, file, isNew) {
     this._styleSheetFilePath = this.styleSheet.href;
   }
 
+  this._onSourceLoad = this._onSourceLoad.bind(this);
   this._onPropertyChange = this._onPropertyChange.bind(this);
   this._onError = this._onError.bind(this);
 
   this._focusOnSourceEditorReady = false;
 
+  this.styleSheet.once("source-load", this._onSourceLoad);
   this.styleSheet.on("property-change", this._onPropertyChange);
   this.styleSheet.on("error", this._onError);
 }
@@ -94,8 +88,15 @@ StyleSheetEditor.prototype = {
   
 
 
+  get sourceEditor() {
+    return this._sourceEditor;
+  },
+
+  
+
+
   get unsaved() {
-    return this.sourceEditor && !this.sourceEditor.isClean();
+    return this._sourceEditor && !this._sourceEditor.isClean();
   },
 
   
@@ -112,23 +113,37 @@ StyleSheetEditor.prototype = {
 
 
   get friendlyName() {
-    if (this.savedFile) {
+    if (this.savedFile) { 
       return this.savedFile.leafName;
     }
 
     if (this._isNew) {
-      let index = this.styleSheet.styleSheetIndex + 1;
+      let index = this.styleSheet.styleSheetIndex + 1; 
       return _("newStyleSheet", index);
     }
 
     if (!this.styleSheet.href) {
-      let index = this.styleSheet.styleSheetIndex + 1;
+      let index = this.styleSheet.styleSheetIndex + 1; 
       return _("inlineStyleSheet", index);
     }
 
     if (!this._friendlyName) {
       let sheetURI = this.styleSheet.href;
-      this._friendlyName = CssLogic.shortSource({ href: sheetURI });
+      let contentURI = this.styleSheet.debuggee.baseURI;
+      let contentURIScheme = contentURI.scheme;
+      let contentURILeafIndex = contentURI.specIgnoringRef.lastIndexOf("/");
+      contentURI = contentURI.specIgnoringRef;
+
+      
+      if (contentURILeafIndex > contentURIScheme.length) {
+        contentURI = contentURI.substring(0, contentURILeafIndex + 1);
+      }
+
+      
+      
+      this._friendlyName = (sheetURI.indexOf(contentURI) == 0)
+                           ? sheetURI.substring(contentURI.length)
+                           : sheetURI;
       try {
         this._friendlyName = decodeURI(this._friendlyName);
       } catch (ex) {
@@ -140,17 +155,8 @@ StyleSheetEditor.prototype = {
   
 
 
-  fetchSource: function(callback) {
-    this.styleSheet.getText().then((longStr) => {
-      longStr.string().then((source) => {
-        this._state.text = prettifyCSS(source);
-        this.sourceLoaded = true;
-
-        callback(source);
-      });
-    }, e => {
-      this.emit("error", LOAD_ERROR, this.styleSheet.href);
-    })
+  fetchSource: function() {
+    this.styleSheet.fetchSource();
   },
 
   
@@ -161,8 +167,22 @@ StyleSheetEditor.prototype = {
 
 
 
-  _onPropertyChange: function(property, value) {
-    this.emit("property-change", property, value);
+  _onSourceLoad: function(event, source) {
+    this._state.text = prettifyCSS(source);
+    this.sourceLoaded = true;
+    this.emit("source-load");
+  },
+
+  
+
+
+
+
+
+
+
+  _onPropertyChange: function(event, property) {
+    this.emit("property-change", property);
   },
 
   
@@ -200,7 +220,7 @@ StyleSheetEditor.prototype = {
         this.updateStyleSheet();
       });
 
-      this.sourceEditor = sourceEditor;
+      this._sourceEditor = sourceEditor;
 
       if (this._focusOnSourceEditorReady) {
         this._focusOnSourceEditorReady = false;
@@ -300,7 +320,7 @@ StyleSheetEditor.prototype = {
       this._state.text = this.sourceEditor.getText();
     }
 
-    this.styleSheet.update(this._state.text, true);
+    this.styleSheet.update(this._state.text);
   },
 
   
@@ -354,8 +374,6 @@ StyleSheetEditor.prototype = {
           callback(returnFile);
         }
         this.sourceEditor.setClean();
-
-        this.emit("property-change");
       }.bind(this));
     };
 
@@ -386,6 +404,7 @@ StyleSheetEditor.prototype = {
 
 
   destroy: function() {
+    this.styleSheet.off("source-load", this._onSourceLoad);
     this.styleSheet.off("property-change", this._onPropertyChange);
     this.styleSheet.off("error", this._onError);
   }

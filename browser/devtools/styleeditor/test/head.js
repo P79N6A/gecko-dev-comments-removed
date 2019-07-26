@@ -46,9 +46,45 @@ function openStyleEditorInWindow(win, callback) {
     gPanelWindow = panel._panelWin;
 
     panel.UI._alwaysDisableAnimations = true;
+
+    
+
+
+
+
     callback(panel);
   });
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function checkDiskCacheFor(host, done)
 {

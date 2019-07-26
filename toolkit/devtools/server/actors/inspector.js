@@ -722,7 +722,7 @@ var NodeListActor = exports.NodeListActor = protocol.ActorClass({
 
 
 
-var NodeListFront = exports.NodeListFront = protocol.FrontClass(NodeListActor, {
+var NodeListFront = exports.NodeLIstFront = protocol.FrontClass(NodeListActor, {
   initialize: function(client, form) {
     protocol.Front.prototype.initialize.call(this, client, form);
   },

@@ -19,25 +19,25 @@ function test()
 
   waitForExplicitFinish();
   addTabAndOpenStyleEditor(function (aPanel) {
-    let UI = aPanel.UI;
+    let debuggee = aPanel._debuggee;
 
     
     
     const SPAM_COUNT = 2;
     for (let i=0; i<SPAM_COUNT; ++i) {
-      UI._onNewDocument();
+      debuggee._onNewDocument();
     }
 
     
     
     let loadCount = 0;
-    UI.on("stylesheets-reset", function () {
+    debuggee.on("document-load", function () {
       ++loadCount;
       if (loadCount == SPAM_COUNT) {
         
         
         
-        is(UI.editors.length, 1, "correct style sheet count");
+        is(debuggee.styleSheets.length, 1, "correct style sheet count");
         finish();
       }
     });

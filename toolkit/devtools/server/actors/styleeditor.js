@@ -4,21 +4,14 @@
 
 "use strict";
 
-let { components, Cc, Ci, Cu } = require('chrome');
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+let Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
-Cu.import("resource://gre/modules/devtools/SourceMap.jsm");
-
-const promise = require("sdk/core/promise");
-const events = require("sdk/event/core");
-const protocol = require("devtools/server/protocol");
-const {Arg, Option, method, RetVal, types} = protocol;
-const {LongStringActor, ShortLongString} = require("devtools/server/actors/string");
-
-loader.lazyGetter(this, "CssLogic", () => require("devtools/styleinspector/css-logic").CssLogic);
 
 let TRANSITION_CLASS = "moz-styleeditor-transitioning";
 let TRANSITION_DURATION_MS = 500;
@@ -32,25 +25,34 @@ transition-property: all !important;\
 
 let LOAD_ERROR = "error-load";
 
-exports.register = function(handle) {
-  handle.addTabActor(StyleSheetsActor, "styleSheetsActor");
-  handle.addGlobalActor(StyleSheetsActor, "styleSheetsActor");
-};
-
-exports.unregister = function(handle) {
-  handle.removeTabActor(StyleSheetsActor);
-  handle.removeGlobalActor(StyleSheetsActor);
-};
-
-types.addActorType("stylesheet");
-types.addActorType("originalsource");
 
 
 
 
+function StyleEditorActor(aConnection, aParentActor)
+{
+  this.conn = aConnection;
+  this._onDocumentLoaded = this._onDocumentLoaded.bind(this);
+  this._onSheetLoaded = this._onSheetLoaded.bind(this);
+  this.parentActor = aParentActor;
 
-let StyleSheetsActor = protocol.ActorClass({
-  typeName: "stylesheets",
+  
+  this._sheets = new Map();
+
+  this._actorPool = new ActorPool(this.conn);
+  this.conn.addActorPool(this._actorPool);
+}
+
+StyleEditorActor.prototype = {
+  
+
+
+  _actorPool: null,
+
+  
+
+
+  conn: null,
 
   
 
@@ -62,65 +64,97 @@ let StyleSheetsActor = protocol.ActorClass({
 
   get document() this.window.document,
 
+  actorPrefix: "styleEditor",
+
   form: function()
   {
     return { actor: this.actorID };
   },
 
-  initialize: function (conn, tabActor) {
-    protocol.Actor.prototype.initialize.call(this, null);
-
-    this.parentActor = tabActor;
-
-    
-    this._sheets = new Map();
-  },
-
   
 
 
-  destroy: function()
+  disconnect: function()
   {
-    this._sheets.clear();
-  },
-
-  
-
-
-
-  getStyleSheets: method(function() {
-    let deferred = promise.defer();
-
-    let window = this.window;
-    var domReady = () => {
-      window.removeEventListener("DOMContentLoaded", domReady, true);
-
-      let documents = [this.document];
-      let actors = [];
-      for (let doc of documents) {
-        let sheets = this._addStyleSheets(doc.styleSheets);
-        actors = actors.concat(sheets);
-        
-        for (let iframe of doc.getElementsByTagName("iframe")) {
-          documents.push(iframe.contentDocument);
-        }
-      }
-      deferred.resolve(actors);
-    };
-
-    if (window.document.readyState === "loading") {
-      window.addEventListener("DOMContentLoaded", domReady, true);
-    } else {
-      domReady();
+    if (this._observer) {
+      this._observer.disconnect();
+      delete this._observer;
     }
 
-    return deferred.promise;
-  }, {
-    request: {},
-    response: { styleSheets: RetVal("array:stylesheet") }
-  }),
+    this._sheets.clear();
+
+    this.conn.removeActorPool(this._actorPool);
+    this._actorPool = null;
+    this.conn = null;
+  },
 
   
+
+
+  releaseActor: function(actor)
+  {
+    if (this._actorPool) {
+      this._actorPool.removeActor(actor.actorID);
+    }
+  },
+
+  
+
+
+
+
+  onGetBaseURI: function() {
+    return { baseURI: this.document.baseURIObject.spec };
+  },
+
+  
+
+
+
+  onNewDocument: function() {
+    
+    this._clearStyleSheetActors();
+
+    
+    
+    if (this.document.readyState == "complete") {
+      this._onDocumentLoaded();
+    }
+    else {
+      this.window.addEventListener("load", this._onDocumentLoaded, false);
+    }
+    return {};
+  },
+
+  
+
+
+
+  _onDocumentLoaded: function(event) {
+    if (event) {
+      this.window.removeEventListener("load", this._onDocumentLoaded, false);
+    }
+
+    let documents = [this.document];
+    var forms = [];
+    for (let doc of documents) {
+      let sheetForms = this._addStyleSheets(doc.styleSheets);
+      forms = forms.concat(sheetForms);
+      
+      for (let iframe of doc.getElementsByTagName("iframe")) {
+        documents.push(iframe.contentDocument);
+      }
+    }
+
+    this.conn.send({
+      from: this.actorID,
+      type: "documentLoad",
+      styleSheets: forms
+    });
+  },
+
+  
+
 
 
 
@@ -140,9 +174,13 @@ let StyleSheetsActor = protocol.ActorClass({
       let imports = this._getImported(styleSheet);
       sheets = sheets.concat(imports);
     }
-    let actors = sheets.map(this._createStyleSheetActor.bind(this));
 
-    return actors;
+    let forms = sheets.map((sheet) => {
+      let actor = this._createStyleSheetActor(sheet);
+      return actor.form();
+    });
+
+    return forms;
   },
 
   
@@ -185,16 +223,15 @@ let StyleSheetsActor = protocol.ActorClass({
 
 
 
-  _createStyleSheetActor: function(styleSheet)
+
+  _createStyleSheetActor: function(aStyleSheet)
   {
-    if (this._sheets.has(styleSheet)) {
-      return this._sheets.get(styleSheet);
+    if (this._sheets.has(aStyleSheet)) {
+      return this._sheets.get(aStyleSheet);
     }
-    let actor = new StyleSheetActor(styleSheet, this);
-
-    this.manage(actor);
-    this._sheets.set(styleSheet, actor);
-
+    let actor = new StyleSheetActor(aStyleSheet, this);
+    this._actorPool.addActor(actor);
+    this._sheets.set(aStyleSheet, actor);
     return actor;
   },
 
@@ -203,7 +240,7 @@ let StyleSheetsActor = protocol.ActorClass({
 
   _clearStyleSheetActors: function() {
     for (let actor in this._sheets) {
-      this.unmanage(this._sheets[actor]);
+      this.releaseActor(this._sheets[actor]);
     }
     this._sheets.clear();
   },
@@ -213,79 +250,104 @@ let StyleSheetsActor = protocol.ActorClass({
 
 
 
+  onGetStyleSheets: function() {
+    let forms = this._addStyleSheets(this.document.styleSheets);
+    return { "styleSheets": forms };
+  },
+
+  
 
 
 
 
-  addStyleSheet: method(function(text) {
+
+  _onSheetLoaded: function(event) {
+    let style = event.target;
+    style.removeEventListener("load", this._onSheetLoaded, false);
+
+    let actor = this._createStyleSheetActor(style.sheet);
+    this._notifyStyleSheetsAdded([actor.form()]);
+  },
+
+  
+
+
+
+
+
+
+
+
+  onNewStyleSheet: function(request) {
     let parent = this.document.documentElement;
     let style = this.document.createElementNS("http://www.w3.org/1999/xhtml", "style");
     style.setAttribute("type", "text/css");
 
-    if (text) {
-      style.appendChild(this.document.createTextNode(text));
+    if (request.text) {
+      style.appendChild(this.document.createTextNode(request.text));
     }
     parent.appendChild(style);
 
     let actor = this._createStyleSheetActor(style.sheet);
-    return actor;
-  }, {
-    request: { text: Arg(0, "string") },
-    response: { styleSheet: RetVal("stylesheet") }
-  })
-});
-
-
-
-
-let StyleSheetsFront = protocol.FrontClass(StyleSheetsActor, {
-  initialize: function(client, tabForm) {
-    protocol.Front.prototype.initialize.call(this, client);
-    this.actorID = tabForm.styleSheetsActor;
-
-    client.addActorPool(this);
-    this.manage(this);
+    return { styleSheet: actor.form() };
   }
-});
+};
 
 
 
 
-let StyleSheetActor = protocol.ActorClass({
-  typeName: "stylesheet",
+StyleEditorActor.prototype.requestTypes = {
+  "getStyleSheets": StyleEditorActor.prototype.onGetStyleSheets,
+  "newStyleSheet": StyleEditorActor.prototype.onNewStyleSheet,
+  "getBaseURI": StyleEditorActor.prototype.onGetBaseURI,
+  "newDocument": StyleEditorActor.prototype.onNewDocument
+};
 
-  events: {
-    "property-change" : {
-      type: "propertyChange",
-      property: Arg(0, "string"),
-      value: Arg(1, "json")
-    },
-    "style-applied" : {
-      type: "styleApplied"
-    }
-  },
+
+function StyleSheetActor(aStyleSheet, aParentActor) {
+  this.styleSheet = aStyleSheet;
+  this.parentActor = aParentActor;
 
   
-  _originalSources: null,
+  this.text = null;
+  this._styleSheetIndex = -1;
+
+  this._transitionRefCount = 0;
+
+  this._onSourceLoad = this._onSourceLoad.bind(this);
+
+  
+  let ownerNode = this.styleSheet.ownerNode;
+  if (ownerNode) {
+    let onSheetLoaded = function(event) {
+      ownerNode.removeEventListener("load", onSheetLoaded, false);
+      this._notifyPropertyChanged("ruleCount");
+    }.bind(this);
+
+    ownerNode.addEventListener("load", onSheetLoaded, false);
+  }
+}
+
+StyleSheetActor.prototype = {
+  actorPrefix: "stylesheet",
 
   toString: function() {
     return "[StyleSheetActor " + this.actorID + "]";
   },
 
+  disconnect: function() {
+    this.parentActor.releaseActor(this);
+  },
+
   
 
 
-  get window() this._window || this.parentActor.window,
+  get window() this.parentActor.window,
 
   
 
 
   get document() this.window.document,
-
-  
-
-
-  get href() this.rawSheet.href,
 
   
 
@@ -296,40 +358,13 @@ let StyleSheetActor = protocol.ActorClass({
   {
     if (this._styleSheetIndex == -1) {
       for (let i = 0; i < this.document.styleSheets.length; i++) {
-        if (this.document.styleSheets[i] == this.rawSheet) {
+        if (this.document.styleSheets[i] == this.styleSheet) {
           this._styleSheetIndex = i;
           break;
         }
       }
     }
     return this._styleSheetIndex;
-  },
-
-  initialize: function(aStyleSheet, aParentActor, aWindow) {
-    protocol.Actor.prototype.initialize.call(this, null);
-
-    this.rawSheet = aStyleSheet;
-    this.parentActor = aParentActor;
-    this.conn = this.parentActor.conn;
-
-    this._window = aWindow;
-
-    
-    this.text = null;
-    this._styleSheetIndex = -1;
-
-    this._transitionRefCount = 0;
-
-    
-    let ownerNode = this.rawSheet.ownerNode;
-    if (ownerNode) {
-      let onSheetLoaded = function(event) {
-        ownerNode.removeEventListener("load", onSheetLoaded, false);
-        this._notifyPropertyChanged("ruleCount");
-      }.bind(this);
-
-      ownerNode.addEventListener("load", onSheetLoaded, false);
-    }
   },
 
   
@@ -339,43 +374,29 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
-  form: function(detail) {
-    if (detail === "actorid") {
-      return this.actorID;
-    }
-
-    let docHref;
-    if (this.rawSheet.ownerNode) {
-      if (this.rawSheet.ownerNode instanceof Ci.nsIDOMHTMLDocument) {
-        docHref = this.rawSheet.ownerNode.location.href;
-      }
-      if (this.rawSheet.ownerNode.ownerDocument) {
-        docHref = this.rawSheet.ownerNode.ownerDocument.location.href;
-      }
-    }
-
+  form: function() {
     let form = {
       actor: this.actorID,  
-      href: this.href,
-      nodeHref: docHref,
-      disabled: this.rawSheet.disabled,
-      title: this.rawSheet.title,
-      system: !CssLogic.isContentStylesheet(this.rawSheet),
-      styleSheetIndex: this.styleSheetIndex
+      href: this.styleSheet.href,
+      disabled: this.styleSheet.disabled,
+      title: this.styleSheet.title,
+      styleSheetIndex: this.styleSheetIndex,
+      text: this.text
     }
 
     
-    let parent = this.rawSheet.parentStyleSheet;
+    let parent = this.styleSheet.parentStyleSheet;
     if (parent) {
       form.parentActor = this.parentActor._sheets.get(parent).form();
     }
 
     try {
-      form.ruleCount = this.rawSheet.cssRules.length;
+      form.ruleCount = this.styleSheet.cssRules.length;
     }
     catch(e) {
       
     }
+
     return form;
   },
 
@@ -385,14 +406,12 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
-  toggleDisabled: method(function() {
-    this.rawSheet.disabled = !this.rawSheet.disabled;
+  onToggleDisabled: function() {
+    this.styleSheet.disabled = !this.styleSheet.disabled;
     this._notifyPropertyChanged("disabled");
 
-    return this.rawSheet.disabled;
-  }, {
-    response: { disabled: RetVal("boolean")}
-  }),
+    return { disabled: this.styleSheet.disabled };
+  },
 
   
 
@@ -402,90 +421,11 @@ let StyleSheetActor = protocol.ActorClass({
 
 
   _notifyPropertyChanged: function(property) {
-    events.emit(this, "property-change", property, this.form()[property]);
-  },
-
-  
-
-
-  getText: method(function() {
-    return this._getText().then((text) => {
-      return new LongStringActor(this.conn, text || "");
-    });
-  }, {
-    response: {
-      text: RetVal("longstring")
-    }
-  }),
-
-  
-
-
-
-
-
-
-  _getText: function() {
-    if (this.text) {
-      return promise.resolve(this.text);
-    }
-
-    if (!this.href) {
-      
-      let content = this.rawSheet.ownerNode.textContent;
-      this.text = content;
-      return promise.resolve(content);
-    }
-
-    let options = {
-      window: this.window,
-      charset: this._getCSSCharset()
-    };
-
-    return fetch(this.href, options).then(({ content }) => {
-      this.text = content;
-      return content;
-    });
-  },
-
-  
-
-
-
-  getOriginalSources: method(function() {
-    if (this._originalSources) {
-      return promise.resolve(this._originalSources);
-    }
-    return this._fetchOriginalSources();
-  }, {
-    request: {},
-    response: {
-      originalSources: RetVal("nullable:array:originalsource")
-    }
-  }),
-
-  
-
-
-
-
-
-
-  _fetchOriginalSources: function() {
-    this._clearOriginalSources();
-    this._originalSources = [];
-
-    return this.getSourceMap().then((sourceMap) => {
-      if (!sourceMap) {
-        return;
-      }
-      for (let url of sourceMap.sources) {
-        let actor = new OriginalSourceActor(url, sourceMap, this);
-
-        this.manage(actor);
-        this._originalSources.push(actor);
-      }
-      return this._originalSources;
+    this.conn.send({
+      from: this.actorID,
+      type: "propertyChange",
+      property: property,
+      value: this.form()[property]
     })
   },
 
@@ -496,83 +436,51 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
-  getSourceMap: function() {
-    if (this._sourceMap) {
-      return this._sourceMap;
+
+
+
+
+  _onSourceLoad: function(error, source, charset) {
+    let message = {
+      from: this.actorID,
+      type: "sourceLoad",
+    };
+
+    if (error) {
+      message.error = error;
     }
-    return this._fetchSourceMap();
-  },
-
-  
-
-
-
-
-
-  _fetchSourceMap: function() {
-    let deferred = promise.defer();
-
-    this._getText().then((content) => {
-      let url = this._extractSourceMapUrl(content);
-      if (!url) {
-        
-        return deferred.resolve(null);
-      };
-
-      url = normalize(url, this.href);
-
-      let map = fetch(url, { loadFromCache: false, window: this.window })
-        .then(({content}) => {
-          let map = new SourceMapConsumer(content);
-          this._setSourceMapRoot(map, url, this.href);
-          this._sourceMap = promise.resolve(map);
-
-          deferred.resolve(map);
-          return map;
-        }, deferred.reject);
-
-      this._sourceMap = map;
-    }, deferred.reject);
-
-    return deferred.promise;
-  },
-
-  
-
-
-  _clearOriginalSources: function() {
-    for (actor in this._originalSources) {
-      this.unmanage(actor);
+    else {
+      this.text = this._decodeCSSCharset(source, charset || "");
+      message.source = this.text;
     }
-    this._originalSources = null;
+
+    this.conn.send(message);
   },
 
   
 
 
-  _setSourceMapRoot: function(aSourceMap, aAbsSourceMapURL, aScriptURL) {
-    const base = dirname(
-      aAbsSourceMapURL.indexOf("data:") === 0
-        ? aScriptURL
-        : aAbsSourceMapURL);
-    aSourceMap.sourceRoot = aSourceMap.sourceRoot
-      ? normalize(aSourceMap.sourceRoot, base)
-      : base;
-  },
-
-  
-
-
-
-
-
-
-
-  _extractSourceMapUrl: function(content) {
-    var matches = /sourceMappingURL\=([^\s\*]*)/.exec(content);
-    if (matches) {
-      return matches[1];
+  onFetchSource: function() {
+    if (!this.styleSheet.href) {
+      
+      let source = this.styleSheet.ownerNode.textContent;
+      this._onSourceLoad(null, source);
+      return {};
     }
+
+    let scheme = Services.io.extractScheme(this.styleSheet.href);
+    switch (scheme) {
+      case "file":
+        this._styleSheetFilePath = this.styleSheet.href;
+      case "chrome":
+      case "resource":
+        this._loadSourceFromFile(this.styleSheet.href);
+        break;
+      default:
+        this._loadSourceFromCache(this.styleSheet.href);
+        break;
+    }
+    return {};
   },
 
   
@@ -580,45 +488,22 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
-  getOriginalLocation: method(function(line, column) {
-    return this.getSourceMap().then((sourceMap) => {
-      if (sourceMap) {
-        return sourceMap.originalPositionFor({ line: line, column: column });
-      }
-      return {
-        source: this.href,
-        line: line,
-        column: column
-      }
-    });
-  }, {
-    request: {
-      line: Arg(0, "number"),
-      column: Arg(1, "number")
-    },
-    response: RetVal(types.addDictType("originallocationresponse", {
-      source: "string",
-      line: "number",
-      column: "number"
-    }))
-  }),
-
-  
 
 
 
 
 
 
-  _getCSSCharset: function(channelCharset)
+  _decodeCSSCharset: function(string, channelCharset)
   {
     
-    if (channelCharset && channelCharset.length > 0) {
+
+    if (channelCharset.length > 0) {
       
-      return channelCharset;
+      return this._convertToUnicode(string, channelCharset);
     }
 
-    let sheet = this.rawSheet;
+    let sheet = this.styleSheet;
     if (sheet) {
       
       
@@ -626,7 +511,7 @@ let StyleSheetActor = protocol.ActorClass({
         let rules = sheet.cssRules;
         if (rules.length
             && rules.item(0).type == Ci.nsIDOMCSSRule.CHARSET_RULE) {
-          return rules.item(0).encoding;
+          return this._convertToUnicode(string, rules.item(0).encoding);
         }
       }
 
@@ -634,7 +519,7 @@ let StyleSheetActor = protocol.ActorClass({
       if (sheet.ownerNode && sheet.ownerNode.getAttribute) {
         let linkCharset = sheet.ownerNode.getAttribute("charset");
         if (linkCharset != null) {
-          return linkCharset;
+          return this._convertToUnicode(string, linkCharset);
         }
       }
 
@@ -642,17 +527,19 @@ let StyleSheetActor = protocol.ActorClass({
       let parentSheet = sheet.parentStyleSheet;
       if (parentSheet && parentSheet.cssRules &&
           parentSheet.cssRules[0].type == Ci.nsIDOMCSSRule.CHARSET_RULE) {
-        return parentSheet.cssRules[0].encoding;
+        return this._convertToUnicode(string,
+            parentSheet.cssRules[0].encoding);
       }
 
       
       if (sheet.ownerNode && sheet.ownerNode.ownerDocument.characterSet) {
-        return sheet.ownerNode.ownerDocument.characterSet;
+        return this._convertToUnicode(string,
+            sheet.ownerNode.ownerDocument.characterSet);
       }
     }
 
     
-    return "UTF-8";
+    return this._convertToUnicode(string, "UTF-8");
   },
 
   
@@ -662,25 +549,108 @@ let StyleSheetActor = protocol.ActorClass({
 
 
 
-  update: method(function(text, transition) {
-    DOMUtils.parseStyleSheet(this.rawSheet, text);
 
-    this.text = text;
+
+
+  _convertToUnicode: function(string, charset) {
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+        .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    try {
+      converter.charset = charset;
+      return converter.ConvertToUnicode(string);
+    } catch(e) {
+      return string;
+    }
+  },
+
+  
+
+
+
+
+
+  _loadSourceFromFile: function(href)
+  {
+    try {
+      NetUtil.asyncFetch(href, (stream, status) => {
+        if (!Components.isSuccessCode(status)) {
+          this._onSourceLoad(LOAD_ERROR);
+          return;
+        }
+        let source = NetUtil.readInputStreamToString(stream, stream.available());
+        stream.close();
+        this._onSourceLoad(null, source);
+      });
+    } catch (ex) {
+      this._onSourceLoad(LOAD_ERROR);
+    }
+  },
+
+  
+
+
+
+
+
+  _loadSourceFromCache: function(href)
+  {
+    let channel = Services.io.newChannel(href, null, null);
+    let chunks = [];
+    let channelCharset = "";
+    let streamListener = { 
+      onStartRequest: (aRequest, aContext, aStatusCode) => {
+        if (!Components.isSuccessCode(aStatusCode)) {
+          this._onSourceLoad(LOAD_ERROR);
+        }
+      },
+      onDataAvailable: (aRequest, aContext, aStream, aOffset, aCount) => {
+        let channel = aRequest.QueryInterface(Ci.nsIChannel);
+        if (!channelCharset) {
+          channelCharset = channel.contentCharset;
+        }
+        chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
+      },
+      onStopRequest: (aRequest, aContext, aStatusCode) => {
+        if (!Components.isSuccessCode(aStatusCode)) {
+          this._onSourceLoad(LOAD_ERROR);
+          return;
+        }
+        let source = chunks.join("");
+        this._onSourceLoad(null, source, channelCharset);
+      }
+    };
+
+    channel.loadGroup = this.window.QueryInterface(Ci.nsIInterfaceRequestor)
+                            .getInterface(Ci.nsIWebNavigation)
+                            .QueryInterface(Ci.nsIDocumentLoader)
+                            .loadGroup;
+    channel.loadFlags = channel.LOAD_FROM_CACHE;
+    channel.asyncOpen(streamListener, null);
+  },
+
+  
+
+
+
+
+
+
+  onUpdate: function(request) {
+    DOMUtils.parseStyleSheet(this.styleSheet, request.text);
 
     this._notifyPropertyChanged("ruleCount");
 
-    if (transition) {
+    if (request.transition) {
       this._insertTransistionRule();
     }
     else {
       this._notifyStyleApplied();
     }
-  }, {
-    request: {
-      text: Arg(0, "string"),
-      transition: Arg(1, "boolean")
-    }
-  }),
+
+    return {};
+  },
 
   
 
@@ -691,7 +661,7 @@ let StyleSheetActor = protocol.ActorClass({
     
     
     if (this._transitionRefCount == 0) {
-      this.rawSheet.insertRule(TRANSITION_RULE, this.rawSheet.cssRules.length);
+      this.styleSheet.insertRule(TRANSITION_RULE, this.styleSheet.cssRules.length);
       this.document.documentElement.classList.add(TRANSITION_CLASS);
     }
 
@@ -711,280 +681,33 @@ let StyleSheetActor = protocol.ActorClass({
   {
     if (--this._transitionRefCount == 0) {
       this.document.documentElement.classList.remove(TRANSITION_CLASS);
-      this.rawSheet.deleteRule(this.rawSheet.cssRules.length - 1);
+      this.styleSheet.deleteRule(this.styleSheet.cssRules.length - 1);
     }
 
-    events.emit(this, "style-applied");
-  }
-})
-
-
-
-
-var StyleSheetFront = protocol.FrontClass(StyleSheetActor, {
-  initialize: function(conn, form, ctx, detail) {
-    protocol.Front.prototype.initialize.call(this, conn, form, ctx, detail);
-
-    this._onPropertyChange = this._onPropertyChange.bind(this);
-    events.on(this, "property-change", this._onPropertyChange);
-  },
-
-  destroy: function() {
-    events.off(this, "property-change", this._onPropertyChange);
-
-    protocol.Front.prototype.destroy.call(this);
-  },
-
-  _onPropertyChange: function(property, value) {
-    this._form[property] = value;
-  },
-
-  form: function(form, detail) {
-    if (detail === "actorid") {
-      this.actorID = form;
-      return;
-    }
-    this.actorID = form.actor;
-    this._form = form;
-  },
-
-  get href() this._form.href,
-  get nodeHref() this._form.nodeHref,
-  get disabled() !!this._form.disabled,
-  get title() this._form.title,
-  get isSystem() this._form.system,
-  get styleSheetIndex() this._form.styleSheetIndex,
-  get ruleCount() this._form.ruleCount
-});
-
-
-
-
-
-let OriginalSourceActor = protocol.ActorClass({
-  typeName: "originalsource",
-
-  initialize: function(aUrl, aSourceMap, aParentActor) {
-    protocol.Actor.prototype.initialize.call(this, null);
-
-    this.url = aUrl;
-    this.sourceMap = aSourceMap;
-    this.parentActor = aParentActor;
-    this.conn = this.parentActor.conn;
-
-    this.text = null;
-  },
-
-  form: function() {
-    return {
-      actor: this.actorID, 
-      url: this.url,
-      parentSource: this.parentActor.actorID
-    };
-  },
-
-  _getText: function() {
-    if (this.text) {
-      return promise.resolve(this.text);
-    }
-    return fetch(this.url, { window: this.window }).then(({content}) => {
-      this.text = content;
-      return content;
-    });
+    this._notifyStyleApplied();
   },
 
   
 
 
-  getText: method(function() {
-    return this._getText().then((text) => {
-      return new LongStringActor(this.conn, text || "");
-    });
-  }, {
-    response: {
-      text: RetVal("longstring")
-    }
-  })
-})
+  _notifyStyleApplied: function()
+  {
+    this.conn.send({
+      from: this.actorID,
+      type: "styleApplied"
+    })
+  }
+}
 
+StyleSheetActor.prototype.requestTypes = {
+  "toggleDisabled": StyleSheetActor.prototype.onToggleDisabled,
+  "fetchSource": StyleSheetActor.prototype.onFetchSource,
+  "update": StyleSheetActor.prototype.onUpdate
+};
 
-
-
-let OriginalSourceFront = protocol.FrontClass(OriginalSourceActor, {
-  initialize: function(client, form) {
-    protocol.Front.prototype.initialize.call(this, client, form);
-
-    this.isOriginalSource = true;
-  },
-
-  form: function(form, detail) {
-    if (detail === "actorid") {
-      this.actorID = form;
-      return;
-    }
-    this.actorID = form.actor;
-    this._form = form;
-  },
-
-  get href() this._form.url,
-  get url() this._form.url
-});
-
+DebuggerServer.addTabActor(StyleEditorActor, "styleEditorActor");
+DebuggerServer.addGlobalActor(StyleEditorActor, "styleEditorActor");
 
 XPCOMUtils.defineLazyGetter(this, "DOMUtils", function () {
   return Cc["@mozilla.org/inspector/dom-utils;1"].getService(Ci.inIDOMUtils);
 });
-
-exports.StyleSheetsActor = StyleSheetsActor;
-exports.StyleSheetsFront = StyleSheetsFront;
-
-exports.StyleSheetActor = StyleSheetActor;
-exports.StyleSheetFront = StyleSheetFront;
-
-
-
-
-
-
-
-
-
-
-function fetch(aURL, aOptions={ loadFromCache: true, window: null,
-                                charset: null}) {
-  let deferred = promise.defer();
-  let scheme;
-  let url = aURL.split(" -> ").pop();
-  let charset;
-  let contentType;
-
-  try {
-    scheme = Services.io.extractScheme(url);
-  } catch (e) {
-    
-    
-    
-    url = "file://" + url;
-    scheme = Services.io.extractScheme(url);
-  }
-
-  switch (scheme) {
-    case "file":
-    case "chrome":
-    case "resource":
-      try {
-        NetUtil.asyncFetch(url, function onFetch(aStream, aStatus, aRequest) {
-          if (!components.isSuccessCode(aStatus)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatus
-                                      + " after NetUtil.asyncFetch for url = "
-                                      + url));
-            return;
-          }
-
-          let source = NetUtil.readInputStreamToString(aStream, aStream.available());
-          contentType = aRequest.contentType;
-          deferred.resolve(source);
-          aStream.close();
-        });
-      } catch (ex) {
-        deferred.reject(ex);
-      }
-      break;
-
-    default:
-      let channel;
-      try {
-        channel = Services.io.newChannel(url, null, null);
-      } catch (e if e.name == "NS_ERROR_UNKNOWN_PROTOCOL") {
-        
-        
-        url = "file:///" + url;
-        channel = Services.io.newChannel(url, null, null);
-      }
-      let chunks = [];
-      let streamListener = {
-        onStartRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStartRequest handler for url = "
-                                      + url));
-          }
-        },
-        onDataAvailable: function(aRequest, aContext, aStream, aOffset, aCount) {
-          chunks.push(NetUtil.readInputStreamToString(aStream, aCount));
-        },
-        onStopRequest: function(aRequest, aContext, aStatusCode) {
-          if (!components.isSuccessCode(aStatusCode)) {
-            deferred.reject(new Error("Request failed with status code = "
-                                      + aStatusCode
-                                      + " in onStopRequest handler for url = "
-                                      + url));
-            return;
-          }
-
-          charset = channel.contentCharset || charset;
-          contentType = channel.contentType;
-          deferred.resolve(chunks.join(""));
-        }
-      };
-
-      if (aOptions.window) {
-        
-        channel.loadGroup = aOptions.window.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebNavigation)
-                              .QueryInterface(Ci.nsIDocumentLoader)
-                              .loadGroup;
-      }
-      channel.loadFlags = aOptions.loadFromCache
-        ? channel.LOAD_FROM_CACHE
-        : channel.LOAD_BYPASS_CACHE;
-      channel.asyncOpen(streamListener, null);
-      break;
-  }
-
-  return deferred.promise.then(source => {
-    return {
-      content: convertToUnicode(source, charset),
-      contentType: contentType
-    };
-  });
-}
-
-
-
-
-
-
-
-
-
-function convertToUnicode(aString, aCharset=null) {
-  
-  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
-    .createInstance(Ci.nsIScriptableUnicodeConverter);
-  try {
-    converter.charset = aCharset || "UTF-8";
-    return converter.ConvertToUnicode(aString);
-  } catch(e) {
-    return aString;
-  }
-}
-
-
-
-
-function normalize(...aURLs) {
-  let base = Services.io.newURI(aURLs.pop(), null, null);
-  let url;
-  while ((url = aURLs.pop())) {
-    base = Services.io.newURI(url, null, base);
-  }
-  return base.spec;
-}
-
-function dirname(aPath) {
-  return Services.io.newURI(
-    ".", null, Services.io.newURI(aPath, null, null)).spec;
-}
