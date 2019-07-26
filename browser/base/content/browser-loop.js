@@ -7,6 +7,7 @@ let LoopUI;
 
 XPCOMUtils.defineLazyModuleGetter(this, "injectLoopAPI", "resource:///modules/loop/MozLoopAPI.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/loop/MozLoopService.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame", "resource:///modules/PanelFrame.jsm");
 
 
 (function() {
@@ -19,41 +20,24 @@ XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/l
 
 
     openCallPanel: function(event) {
-      let panel = document.getElementById("loop-panel");
-      let anchor = event.target;
-      let iframe = document.getElementById("loop-panel-frame");
+      let callback = iframe => {
+        iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
+          iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
+          injectLoopAPI(iframe.contentWindow);
 
-      if (!iframe) {
-        
-        iframe = document.createElement("iframe");
-        iframe.setAttribute("id", "loop-panel-frame");
-        iframe.setAttribute("type", "content");
-        iframe.setAttribute("class", "loop-frame social-panel-frame");
-        iframe.setAttribute("flex", "1");
-        panel.appendChild(iframe);
-      }
+          
+          
+          iframe.contentWindow.addEventListener("loopPanelInitialized",
+            function documentLoaded() {
+              iframe.contentWindow.removeEventListener("loopPanelInitialized",
+                                                       documentLoaded, true);
+            }, true);
 
-      
-      iframe.addEventListener("DOMContentLoaded", function documentDOMLoaded() {
-        iframe.removeEventListener("DOMContentLoaded", documentDOMLoaded, true);
-        injectLoopAPI(iframe.contentWindow);
+        }, true);
+      };
 
-        
-        
-        iframe.contentWindow.addEventListener("loopPanelInitialized",
-          function documentLoaded() {
-            iframe.contentWindow.removeEventListener("loopPanelInitialized",
-                                                     documentLoaded, true);
-            
-            
-            sizeSocialPanelToContent(panel, iframe);
-          }, true);
-
-      }, true);
-
-      iframe.setAttribute("src", "about:looppanel");
-      panel.hidden = false;
-      panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
+      PanelFrame.showPopup(window, PanelUI, event.target, "loop", null,
+                           "about:looppanel", null, callback);
     },
 
     
@@ -63,6 +47,5 @@ XPCOMUtils.defineLazyModuleGetter(this, "MozLoopService", "resource:///modules/l
     initialize: function() {
       MozLoopService.initialize();
     },
-
   };
 })();

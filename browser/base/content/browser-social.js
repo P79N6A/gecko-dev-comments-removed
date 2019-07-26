@@ -12,12 +12,11 @@ let SocialUI,
 
 (function() {
 
-
-const PANEL_MIN_HEIGHT = 100;
-const PANEL_MIN_WIDTH = 330;
-
 XPCOMUtils.defineLazyModuleGetter(this, "SharedFrame",
   "resource:///modules/SharedFrame.jsm");
+
+XPCOMUtils.defineLazyModuleGetter(this, "PanelFrame",
+  "resource:///modules/PanelFrame.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "OpenGraphBuilder", function() {
   let tmp = {};
@@ -1145,66 +1144,6 @@ SocialStatus = {
     return this._toolbarHelper;
   },
 
-  get _dynamicResizer() {
-    delete this._dynamicResizer;
-    this._dynamicResizer = new DynamicResizeWatcher();
-    return this._dynamicResizer;
-  },
-
-  
-  
-  _attachNotificatonPanel: function(aParent, aButton, provider) {
-    aParent.hidden = !SocialUI.enabled;
-    let notificationFrameId = "social-status-" + provider.origin;
-    let frame = document.getElementById(notificationFrameId);
-
-    
-    
-    if (frame && frame.parentNode != aParent) {
-      SharedFrame.forgetGroup(frame.id);
-      frame.parentNode.removeChild(frame);
-      frame = null;
-    }
-
-    if (!frame) {
-      let size = provider.getPageSize("status");
-      let {width, height} = size ? size : {width: PANEL_MIN_WIDTH, height: PANEL_MIN_HEIGHT};
-
-      frame = SharedFrame.createFrame(
-        notificationFrameId, 
-        aParent, 
-        {
-          "type": "content",
-          "mozbrowser": "true",
-          "class": "social-panel-frame",
-          "id": notificationFrameId,
-          "tooltip": "aHTMLTooltip",
-          "context": "contentAreaContextMenu",
-          "flex": "1",
-
-          
-          
-          "style": "width: " + width + "px; height: " + height + "px;",
-          "dynamicresizer": !size,
-
-          "origin": provider.origin,
-          "src": provider.statusURL
-        }
-      );
-
-      if (frame.socialErrorListener)
-        frame.socialErrorListener.remove();
-      if (frame.docShell) {
-        frame.docShell.isActive = false;
-        Social.setErrorListener(frame, this.setPanelErrorMessage.bind(this));
-      }
-    } else {
-      frame.setAttribute("origin", provider.origin);
-      SharedFrame.updateURL(notificationFrameId, provider.statusURL);
-    }
-    aButton.setAttribute("notificationFrameId", notificationFrameId);
-  },
-
   updateButton: function(origin) {
     let id = this._toolbarHelper.idFromOrigin(origin);
     let widget = CustomizableUI.getWidget(id);
@@ -1249,96 +1188,8 @@ SocialStatus = {
     let origin = aToolbarButton.getAttribute("origin");
     let provider = Social._getProviderFromOrigin(origin);
 
-    
-    let widgetGroup = CustomizableUI.getWidget(aToolbarButton.getAttribute("id"));
-    let widget = widgetGroup.forWindow(window);
-    let panel, showingEvent, hidingEvent;
-    let inMenuPanel = widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL;
-    if (inMenuPanel) {
-      panel = document.getElementById("PanelUI-socialapi");
-      this._attachNotificatonPanel(panel, aToolbarButton, provider);
-      widget.node.setAttribute("closemenu", "none");
-      showingEvent = "ViewShowing";
-      hidingEvent = "ViewHiding";
-    } else {
-      panel = document.getElementById("social-notification-panel");
-      this._attachNotificatonPanel(panel, aToolbarButton, provider);
-      showingEvent = "popupshown";
-      hidingEvent = "popuphidden";
-    }
-    let notificationFrameId = aToolbarButton.getAttribute("notificationFrameId");
-    let notificationFrame = document.getElementById(notificationFrameId);
-
-    let wasAlive = SharedFrame.isGroupAlive(notificationFrameId);
-    SharedFrame.setOwner(notificationFrameId, notificationFrame);
-
-    
-    
-    let frameIter = panel.firstElementChild;
-    while (frameIter) {
-      frameIter.collapsed = (frameIter != notificationFrame);
-      frameIter = frameIter.nextElementSibling;
-    }
-
-    function dispatchPanelEvent(name) {
-      let evt = notificationFrame.contentDocument.createEvent("CustomEvent");
-      evt.initCustomEvent(name, true, true, {});
-      notificationFrame.contentDocument.documentElement.dispatchEvent(evt);
-    }
-
-    
-    let dynamicResizer;
-    if (!inMenuPanel && notificationFrame.getAttribute("dynamicresizer") == "true") {
-      dynamicResizer = this._dynamicResizer;
-    }
-    panel.addEventListener(hidingEvent, function onpopuphiding() {
-      panel.removeEventListener(hidingEvent, onpopuphiding);
-      aToolbarButton.removeAttribute("open");
-      if (dynamicResizer)
-        dynamicResizer.stop();
-      notificationFrame.docShell.isActive = false;
-      dispatchPanelEvent("socialFrameHide");
-    });
-
-    panel.addEventListener(showingEvent, function onpopupshown() {
-      panel.removeEventListener(showingEvent, onpopupshown);
-      
-      
-      
-      
-      
-      let initFrameShow = () => {
-        notificationFrame.docShell.isActive = true;
-        notificationFrame.docShell.isAppTab = true;
-        if (dynamicResizer)
-          dynamicResizer.start(panel, notificationFrame);
-        dispatchPanelEvent("socialFrameShow");
-      };
-      if (!inMenuPanel)
-        aToolbarButton.setAttribute("open", "true");
-      if (notificationFrame.contentDocument &&
-          notificationFrame.contentDocument.readyState == "complete" && wasAlive) {
-        initFrameShow();
-      } else {
-        
-        notificationFrame.addEventListener("load", function panelBrowserOnload(e) {
-          notificationFrame.removeEventListener("load", panelBrowserOnload, true);
-          initFrameShow();
-        }, true);
-      }
-    });
-
-    if (inMenuPanel) {
-      PanelUI.showSubView("PanelUI-socialapi", widget.node,
-                          CustomizableUI.AREA_PANEL);
-    } else {
-      let anchor = document.getAnonymousElementByAttribute(aToolbarButton, "class", "toolbarbutton-badge-container");
-      
-      
-      setTimeout(function() {
-        panel.openPopup(anchor, "bottomcenter topright", 0, 0, false, false);
-      }, 0);
-    }
+    PanelFrame.showPopup(window, PanelUI, aToolbarButton, "social", origin,
+                         provider.statusURL, provider.getPageSize("status"));
   },
 
   setPanelErrorMessage: function(aNotificationFrame) {
