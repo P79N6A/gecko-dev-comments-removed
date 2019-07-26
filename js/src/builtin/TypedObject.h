@@ -559,6 +559,8 @@ class TypedObject : public ArrayBufferViewObject
                               MutableHandleValue statep, MutableHandleId idp);
 
   public:
+    static size_t ownerOffset();
+
     
     
     
@@ -614,7 +616,7 @@ class TypedObject : public ArrayBufferViewObject
     void attach(TypedObject &typedObj, int32_t offset);
 
     
-    void neuter(JSContext *cx);
+    void neuter(void *newData);
 
     int32_t offset() const {
         return getReservedSlot(JS_TYPEDOBJ_SLOT_BYTEOFFSET).toInt32();
@@ -634,6 +636,10 @@ class TypedObject : public ArrayBufferViewObject
 
     uint8_t *typedMem() const {
         return (uint8_t*) getPrivate();
+    }
+
+    size_t byteLength() const {
+        return getReservedSlot(JS_TYPEDOBJ_SLOT_BYTELENGTH).toInt32();
     }
 
     size_t length() const {

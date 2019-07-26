@@ -3690,7 +3690,6 @@ class LTypedObjectElements : public LInstructionHelper<1, 1, 0>
 };
 
 
-
 class LNeuterCheck : public LInstructionHelper<0, 1, 1>
 {
   public:
