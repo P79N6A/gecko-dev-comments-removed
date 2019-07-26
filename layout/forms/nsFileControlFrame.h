@@ -145,21 +145,12 @@ protected:
   
 
 
-  nsTextControlFrame* GetTextControlFrame();
-
-  
-
-
-
-
-
-  void SyncAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                int32_t aWhichControls);
-
-  
-
-
   void SyncDisabledState();
+
+  
+
+
+  void UpdateDisplayedValue(const nsAString& aValue, bool aNotify);
 };
 
 #endif
