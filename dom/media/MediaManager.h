@@ -3,9 +3,7 @@
 
 
 #include "MediaEngine.h"
-#include "mozilla/dom/ContentChild.h"
 #include "mozilla/Services.h"
-#include "mozilla/unused.h"
 #include "nsIMediaManager.h"
 
 #include "nsHashKeys.h"
@@ -16,7 +14,6 @@
 
 #include "nsPIDOMWindow.h"
 #include "nsIDOMNavigatorUserMedia.h"
-#include "nsXULAppAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/StaticPtr.h"
 #include "prlog.h"
@@ -52,20 +49,10 @@ class GetUserMediaNotificationEvent: public nsRunnable
         obs->NotifyObservers(nullptr,
             "recording-device-events",
             NS_LITERAL_STRING("starting").get());
-        
-        
-        if (XRE_GetProcessType() != GeckoProcessType_Default) {
-          unused << mozilla::dom::ContentChild::GetSingleton()->SendRecordingDeviceEvents(NS_LITERAL_STRING("starting"));
-        }
       } else {
         obs->NotifyObservers(nullptr,
             "recording-device-events",
             NS_LITERAL_STRING("shutdown").get());
-        
-        
-        if (XRE_GetProcessType() != GeckoProcessType_Default) {
-          unused << mozilla::dom::ContentChild::GetSingleton()->SendRecordingDeviceEvents(NS_LITERAL_STRING("shutdown"));
-        }
       }
       return NS_OK;
     }
