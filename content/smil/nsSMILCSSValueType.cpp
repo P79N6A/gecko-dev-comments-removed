@@ -31,20 +31,18 @@ struct ValueWrapper {
 
 
 
-static const nsStyleAnimation::Value
-  sZeroCoord(0, nsStyleAnimation::Value::CoordConstructor);
-static const nsStyleAnimation::Value
-  sZeroPercent(0.0f, nsStyleAnimation::Value::PercentConstructor);
-static const nsStyleAnimation::Value
-  sZeroFloat(0.0f,  nsStyleAnimation::Value::FloatConstructor);
-static const nsStyleAnimation::Value
-  sZeroColor(NS_RGB(0,0,0), nsStyleAnimation::Value::ColorConstructor);
-
-
-
 static const nsStyleAnimation::Value*
 GetZeroValueForUnit(nsStyleAnimation::Unit aUnit)
 {
+  static const nsStyleAnimation::Value
+    sZeroCoord(0, nsStyleAnimation::Value::CoordConstructor);
+  static const nsStyleAnimation::Value
+    sZeroPercent(0.0f, nsStyleAnimation::Value::PercentConstructor);
+  static const nsStyleAnimation::Value
+    sZeroFloat(0.0f,  nsStyleAnimation::Value::FloatConstructor);
+  static const nsStyleAnimation::Value
+    sZeroColor(NS_RGB(0,0,0), nsStyleAnimation::Value::ColorConstructor);
+
   NS_ABORT_IF_FALSE(aUnit != nsStyleAnimation::eUnit_Null,
                     "Need non-null unit for a zero value");
   switch (aUnit) {
@@ -93,12 +91,14 @@ FinalizeStyleAnimationValues(const nsStyleAnimation::Value*& aValue1,
   
   
   
-  if (*aValue1 == sZeroCoord &&
+  const nsStyleAnimation::Value& zeroCoord =
+    *GetZeroValueForUnit(nsStyleAnimation::eUnit_Coord);
+  if (*aValue1 == zeroCoord &&
       aValue2->GetUnit() == nsStyleAnimation::eUnit_Float) {
-    aValue1 = &sZeroFloat;
-  } else if (*aValue2 == sZeroCoord &&
+    aValue1 = GetZeroValueForUnit(nsStyleAnimation::eUnit_Float);
+  } else if (*aValue2 == zeroCoord &&
              aValue1->GetUnit() == nsStyleAnimation::eUnit_Float) {
-    aValue2 = &sZeroFloat;
+    aValue2 = GetZeroValueForUnit(nsStyleAnimation::eUnit_Float);
   }
 
   return true;
