@@ -41,6 +41,10 @@ public class AboutHomeComponent extends BaseComponent {
         HISTORY
     }
 
+    
+    
+    private static final float SWIPE_PERCENTAGE = 0.70f;
+
     public AboutHomeComponent(final UITestContext testContext) {
         super(testContext);
     }
@@ -70,35 +74,33 @@ public class AboutHomeComponent extends BaseComponent {
         return this;
     }
 
-    
     public AboutHomeComponent swipeToPageOnRight() {
         mTestContext.dumpLog("Swiping to the page on the right.");
-        swipe(Solo.LEFT);
+        swipeToPage(Solo.RIGHT);
         return this;
     }
 
     public AboutHomeComponent swipeToPageOnLeft() {
         mTestContext.dumpLog("Swiping to the page on the left.");
-        swipe(Solo.RIGHT);
+        swipeToPage(Solo.LEFT);
         return this;
     }
 
-    private void swipe(final int direction) {
+    private void swipeToPage(final int pageDirection) {
+        assertTrue("Swiping in a vaild direction",
+                pageDirection == Solo.LEFT || pageDirection == Solo.RIGHT);
         assertVisible();
 
         final int pageIndex = getHomePagerView().getCurrentItem();
-        if (direction == Solo.LEFT) {
-            GestureHelper.swipeLeft();
-        } else {
-            GestureHelper.swipeRight();
-        }
 
-        final PagerAdapter adapter = getHomePagerView().getAdapter();
-        assertNotNull("The HomePager's PagerAdapter is not null", adapter);
+        mSolo.scrollViewToSide(getHomePagerView(), pageDirection, SWIPE_PERCENTAGE);
 
         
-        final int unboundedPageIndex = pageIndex + (direction == Solo.LEFT ? 1 : -1);
-        final int expectedPageIndex = Math.min(Math.max(0, unboundedPageIndex), adapter.getCount() - 1);
+        final int unboundedPageIndex = pageIndex + (pageDirection == Solo.LEFT ? -1 : 1);
+        final int pageCount = DeviceHelper.isTablet() ?
+                TabletPage.values().length : PhonePage.values().length;
+        final int maxPageIndex = pageCount - 1;
+        final int expectedPageIndex = Math.min(Math.max(0, unboundedPageIndex), maxPageIndex);
 
         waitForPageIndex(expectedPageIndex);
     }
