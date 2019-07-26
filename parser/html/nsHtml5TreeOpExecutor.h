@@ -228,6 +228,7 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
 
     inline nsresult IsBroken() {
+      NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
       return mBroken;
     }
 
