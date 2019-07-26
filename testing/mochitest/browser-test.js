@@ -13,6 +13,9 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "BrowserNewTabPreloader",
+  "resource:///modules/BrowserNewTabPreloader.jsm", "BrowserNewTabPreloader");
+
 window.addEventListener("load", testOnLoad, false);
 
 function testOnLoad() {
@@ -380,6 +383,36 @@ Tester.prototype = {
         if (window.gBrowser) {
           gBrowser.addTab();
           gBrowser.removeCurrentTab();
+        }
+
+        
+        
+        
+        if (gConfig.testRoot == "browser") {
+          
+          
+          
+          
+          let sidebar = document.getElementById("sidebar");
+          sidebar.setAttribute("src", "data:text/html;charset=utf-8,");
+          sidebar.docShell.createAboutBlankContentViewer(null);
+          sidebar.setAttribute("src", "about:blank");
+
+          
+          let socialSidebar = document.getElementById("social-sidebar-browser");
+          socialSidebar.setAttribute("src", "data:text/html;charset=utf-8,");
+          socialSidebar.docShell.createAboutBlankContentViewer(null);
+          socialSidebar.setAttribute("src", "about:blank");
+
+          
+          let {BackgroundPageThumbs} =
+            Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", {});
+          BackgroundPageThumbs._destroy();
+
+          BrowserNewTabPreloader.uninit();
+          SocialFlyout.unload();
+          SocialShare.uninit();
+          TabView.uninit();
         }
 
         
