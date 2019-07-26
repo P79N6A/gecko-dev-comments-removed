@@ -43,10 +43,12 @@ public:
 
 
   AudioNodeStream(AudioNodeEngine* aEngine,
-                  MediaStreamGraph::AudioNodeStreamKind aKind)
+                  MediaStreamGraph::AudioNodeStreamKind aKind,
+                  uint32_t aNumberOfInputChannels = 0)
     : ProcessedMediaStream(nullptr),
       mEngine(aEngine),
-      mKind(aKind)
+      mKind(aKind),
+      mNumberOfInputChannels(aNumberOfInputChannels)
   {
     
     mHasCurrentData = true;
@@ -91,6 +93,8 @@ protected:
   AudioChunk mLastChunk;
   
   MediaStreamGraph::AudioNodeStreamKind mKind;
+  
+  uint32_t mNumberOfInputChannels;
 };
 
 }
