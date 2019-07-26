@@ -72,6 +72,8 @@ nsresult MediaPipeline::Init() {
 
 void MediaPipeline::DetachTransportInt() {
   transport_->Detach();
+  rtp_transport_ = NULL;
+  rtcp_transport_ = NULL;
 }
 
 void MediaPipeline::DetachTransport() {
