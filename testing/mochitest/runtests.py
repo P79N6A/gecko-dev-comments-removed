@@ -1374,7 +1374,10 @@ class Mochitest(MochitestUtilsMixin):
       options.testPath = dir
       print "testpath: %s" % options.testPath
 
-      options.profilePath = tempfile.mkdtemp()
+      
+      
+      
+      options.profilePath = None
       self.urlOpts = []
       self.doTests(options, onLaunch)
 
@@ -1412,17 +1415,17 @@ class Mochitest(MochitestUtilsMixin):
         return 1
       self.mediaDevices = devices
 
-    self.leak_report_file = os.path.join(options.profilePath, "runtests_leaks.log")
-
-    self.browserEnv = self.buildBrowserEnv(options, debuggerInfo is not None)
-    if self.browserEnv is None:
-      return 1
-
     
     
     
     self.manifest = self.buildProfile(options)
     if self.manifest is None:
+      return 1
+
+    self.leak_report_file = os.path.join(options.profilePath, "runtests_leaks.log")
+
+    self.browserEnv = self.buildBrowserEnv(options, debuggerInfo is not None)
+    if self.browserEnv is None:
       return 1
 
     try:
