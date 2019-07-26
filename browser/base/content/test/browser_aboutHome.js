@@ -107,7 +107,8 @@ let gTests = [
     let engineName = doc.documentElement.getAttribute("searchEngineName");
 
     doc.addEventListener("AboutHomeSearchEvent", function onSearch(e) {
-      is(e.detail, engineName, "Detail is search engine name");
+      let data = JSON.parse(e.detail);
+      is(data.engineName, engineName, "Detail is search engine name");
 
       
       
@@ -287,7 +288,7 @@ let gTests = [
       
       let mutationObserver = new MutationObserver(function (mutations) {
         for (let mutation of mutations) {
-          if (mutation.attributeName == "searchEngineURL") {
+          if (mutation.attributeName == "searchEngineName") {
             searchText.value = needle;
             searchText.focus();
             EventUtils.synthesizeKey("VK_RETURN", {});
@@ -445,7 +446,7 @@ function promiseBrowserAttributes(aTab)
       }
 
       
-      if (mutation.attributeName == "searchEngineURL") {
+      if (mutation.attributeName == "searchEngineName") {
         info("Remove attributes observer");
         observer.disconnect();
         
