@@ -171,8 +171,8 @@ XPCJSContextStack::GetSafeJSContext()
 
     
     
-    nsCOMPtr<nsIScriptObjectPrincipal> sop = new SandboxPrivate(principal, glob);
-    JS_SetPrivate(glob, sop.forget().get());
+    nsRefPtr<SandboxPrivate> sp = new SandboxPrivate(principal, glob);
+    JS_SetPrivate(glob, sp.forget().get());
 
     
     
