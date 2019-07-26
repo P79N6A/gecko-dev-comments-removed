@@ -48,6 +48,16 @@
   display: none;
 }
 
+
+.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(ltr),
+.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(rtl) {
+  -moz-box-ordinal-group: 1000;
+}
+.titlebar-placeholder[type="caption-buttons"]:-moz-locale-dir(ltr),
+.titlebar-placeholder[type="fullscreen-button"]:-moz-locale-dir(rtl) {
+  -moz-box-ordinal-group: 0;
+}
+
 #titlebar {
   padding-top: 9px;
 }
