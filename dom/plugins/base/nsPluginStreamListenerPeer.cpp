@@ -828,7 +828,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnDataAvailable(nsIRequest *request,
       if (!mDataForwardToRequest)
         return NS_ERROR_FAILURE;
       
-      int64_t absoluteOffset64 = LL_ZERO;
+      int64_t absoluteOffset64 = 0;
       brr->GetStartRange(&absoluteOffset64);
       
       
@@ -909,7 +909,7 @@ NS_IMETHODIMP nsPluginStreamListenerPeer::OnStopRequest(nsIRequest *request,
   
   nsCOMPtr<nsIByteRangeRequest> brr = do_QueryInterface(request);
   if (brr) {
-    int64_t absoluteOffset64 = LL_ZERO;
+    int64_t absoluteOffset64 = 0;
     brr->GetStartRange(&absoluteOffset64);
     
     int32_t absoluteOffset = (int32_t)int64_t(absoluteOffset64);
