@@ -759,39 +759,41 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   
   
-  if (haveCurrentTransition) {
-    if (!oldPT->IsRemovedSentinel() &&
-        oldPT->mStartForReversingTest == pt.mEndValue) {
-      
-      
-      double valuePortion =
-        oldPT->ValuePortionFor(mostRecentRefresh) * oldPT->mReversePortion +
-        (1.0 - oldPT->mReversePortion);
-      
-      
-      
-      
-      if (valuePortion < 0.0)
-        valuePortion = -valuePortion;
-      
-      
-      
-      
-      
-      if (valuePortion > 1.0)
-        valuePortion = 1.0;
-
-      
-      
-      
-      if (delay < 0.0f)
-        delay *= valuePortion;
-
-      duration *= valuePortion;
-
-      pt.mStartForReversingTest = oldPT->mEndValue;
-      pt.mReversePortion = valuePortion;
+  if (haveCurrentTransition &&
+      !oldPT->IsRemovedSentinel() &&
+      oldPT->mStartForReversingTest == pt.mEndValue) {
+    
+    
+    double valuePortion =
+      oldPT->ValuePortionFor(mostRecentRefresh) * oldPT->mReversePortion +
+      (1.0 - oldPT->mReversePortion);
+    
+    
+    
+    
+    if (valuePortion < 0.0) {
+      valuePortion = -valuePortion;
     }
+    
+    
+    
+    
+    
+    if (valuePortion > 1.0) {
+      valuePortion = 1.0;
+    }
+
+    
+    
+    
+    if (delay < 0.0f) {
+      delay *= valuePortion;
+    }
+
+    duration *= valuePortion;
+
+    pt.mStartForReversingTest = oldPT->mEndValue;
+    pt.mReversePortion = valuePortion;
   }
 
   pt.mProperty = aProperty;
