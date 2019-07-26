@@ -326,6 +326,16 @@ AsyncCompositionManager::AlignFixedAndStickyLayers(Layer* aLayer,
     return;
   }
 
+  
+  
+  
+  if (aLayer->AsContainerLayer() &&
+      aLayer->AsContainerLayer()->GetFrameMetrics().IsScrollable() &&
+      aLayer != aTransformedSubtreeRoot) {
+    AlignFixedAndStickyLayers(aLayer, aLayer, aLayer->GetTransform(), LayerMargin(0, 0, 0, 0));
+    return;
+  }
+
   for (Layer* child = aLayer->GetFirstChild();
        child; child = child->GetNextSibling()) {
     AlignFixedAndStickyLayers(child, aTransformedSubtreeRoot,
