@@ -28,17 +28,23 @@ static mozilla::ThreadLocal<GLContext*> sGLContext;
 
 extern "C" {
 
-void EnsureGLContext(const GrGLInterface* i)
+static void SetStaticGLContext(GLContext* context)
 {
-    const SkiaGLGlue* contextSkia = reinterpret_cast<const SkiaGLGlue*>(i->fCallbackData);
-    GLContext* gl = contextSkia->GetGLContext();
-    gl->MakeCurrent();
-
     if (!sGLContext.initialized()) {
       mozilla::DebugOnly<bool> success = sGLContext.init();
       MOZ_ASSERT(success);
     }
-    sGLContext.set(gl);
+
+    sGLContext.set(context);
+}
+
+void EnsureGLContext(const GrGLInterface* i)
+{
+    const SkiaGLGlue* contextSkia = reinterpret_cast<const SkiaGLGlue*>(i->fCallbackData);
+    MOZ_ASSERT(contextSkia);
+    GLContext* gl = contextSkia->GetGLContext();
+    gl->MakeCurrent();
+    SetStaticGLContext(gl);
 }
 
 
@@ -755,9 +761,27 @@ GrGLvoid glTexGenfv_mozilla(GrGLenum coord, GrGLenum pname, const GrGLfloat* par
 
 static GrGLInterface* CreateGrGLInterfaceFromGLContext(GLContext* context)
 {
+    SetStaticGLContext(context);
+
     GrGLInterface* i = new GrGLInterface();
     i->fCallback = EnsureGLContext;
     i->fCallbackData = 0; 
+
+    context->MakeCurrent();
+
+    
+    if (context->IsGLES2()) {
+        i->fStandard = kGLES_GrGLStandard;
+    } else {
+        i->fStandard = kGL_GrGLStandard;
+    }
+
+    GrGLExtensions extensions;
+    if (!extensions.init(i->fStandard, glGetString_mozilla, NULL, glGetIntegerv_mozilla)) {
+        return nullptr;
+    }
+
+    i->fExtensions.swap(&extensions);
 
     
     i->fFunctions.fActiveTexture = glActiveTexture_mozilla;
@@ -897,13 +921,6 @@ static GrGLInterface* CreateGrGLInterfaceFromGLContext(GLContext* context)
     i->fFunctions.fMatrixMode = glMatrixMode_mozilla;
     i->fFunctions.fTexGenfv = glTexGenfv_mozilla;
     i->fFunctions.fTexGeni = glTexGeni_mozilla;
-
-    
-    if (context->IsGLES2()) {
-        i->fBindingsExported = kGLES_GrGLStandard;
-    } else {
-        i->fStandard = kGL_GrGLStandard;
-    }
 
     return i;
 }
