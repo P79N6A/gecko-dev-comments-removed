@@ -1376,18 +1376,13 @@ urlInlineComplete.prototype = {
     
     let lastSlashIndex = this._currentSearchString.lastIndexOf("/");
 
-    let maybeSearchURL = () => {
-      
+    
+    if (lastSlashIndex != -1) {
       
       if (lastSlashIndex < this._currentSearchString.length - 1)
         this._queryURL();
       else
         this._finishSearch();
-    };
-
-    
-    if (lastSlashIndex != -1) {
-      maybeSearchURL();
       return;
     }
 
@@ -1398,9 +1393,7 @@ urlInlineComplete.prototype = {
     TelemetryStopwatch.start(DOMAIN_QUERY_TELEMETRY);
     let ac = this;
     let wrapper = new AutoCompleteStatementCallbackWrapper(this, {
-      _hasResult: false,
       handleResult: function (aResultSet) {
-        this._hasResult = true;
         let row = aResultSet.getNextRow();
         let trimmedHost = row.getResultByIndex(0);
         let untrimmedHost = row.getResultByIndex(1);
@@ -1427,10 +1420,7 @@ urlInlineComplete.prototype = {
 
       handleCompletion: function (aReason) {
         TelemetryStopwatch.finish(DOMAIN_QUERY_TELEMETRY);
-        if (this._hasResult)
-          ac._finishSearch();
-        else
-          maybeSearchURL();
+        ac._finishSearch();
       }
     }, this._db);
     this._pendingQuery = wrapper.executeAsync([query]);
