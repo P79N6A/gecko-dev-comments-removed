@@ -27,8 +27,48 @@ class IsBaseOf
   private:
     static char test(Base* b);
     static int test(...);
+
   public:
-    static const bool value = (sizeof(test(static_cast<Derived*>(0))) == sizeof(char));
+    static const bool value =
+      sizeof(test(static_cast<Derived*>(0))) == sizeof(char);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename From, typename To>
+struct IsConvertible
+{
+  private:
+    static From create();
+
+    template<typename From1, typename To1>
+    static char test(To to);
+
+    template<typename From1, typename To1>
+    static int test(...);
+
+  public:
+    static const bool value =
+      sizeof(test<From, To>(create())) == sizeof(char);
 };
 
 
