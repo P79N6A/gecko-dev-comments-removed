@@ -243,6 +243,17 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
       }
     },
 
+    removePeerTarget: function removePeerTarget(target) {
+      let targets = this.peerTargetsMap;
+      Object.keys(targets).forEach((appId) => {
+        let targetInfo = targets[appId];
+        if (targetInfo && targetInfo.target === target) {
+          
+          delete targets[appId];
+        }
+      });
+    },
+
     isRegisteredP2PTarget: function isRegisteredP2PTarget(appId, event) {
       let targetInfo = this.peerTargetsMap[appId];
       
@@ -281,6 +292,7 @@ XPCOMUtils.defineLazyGetter(this, "gMessageManager", function () {
         
         
         this._unregisterMessageTarget(null, msg.target);
+        this.removePeerTarget(msg.target);
         return null;
       }
 
