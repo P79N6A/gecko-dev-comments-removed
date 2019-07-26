@@ -355,23 +355,6 @@ class JSObject : public js::ObjectImpl
     inline bool hasUncacheableProto() const;
     inline bool setUncacheableProto(JSContext *cx);
 
-    bool generateOwnShape(JSContext *cx, js::Shape *newShape = NULL) {
-        return replaceWithNewEquivalentShape(cx, lastProperty(), newShape);
-    }
-
-  private:
-    js::Shape *replaceWithNewEquivalentShape(JSContext *cx, js::Shape *existingShape,
-                                             js::Shape *newShape = NULL);
-
-    enum GenerateShape {
-        GENERATE_NONE,
-        GENERATE_SHAPE
-    };
-
-    bool setFlag(JSContext *cx,  uint32_t flag,
-                 GenerateShape generateShape = GENERATE_NONE);
-    bool clearFlag(JSContext *cx,  uint32_t flag);
-
   public:
     inline bool nativeEmpty() const;
 
@@ -467,7 +450,7 @@ class JSObject : public js::ObjectImpl
 
 
     inline JSObject *getProto() const;
-    inline js::TaggedProto getTaggedProto() const;
+    using js::ObjectImpl::getTaggedProto;
     static inline bool getProto(JSContext *cx, js::HandleObject obj,
                                 js::MutableHandleObject protop);
 
@@ -539,7 +522,7 @@ class JSObject : public js::ObjectImpl
     inline JSObject *enclosingScope();
 
     inline js::GlobalObject &global() const;
-    inline JSCompartment *compartment() const;
+    using js::ObjectImpl::compartment;
 
     
     static inline bool clearType(JSContext *cx, js::HandleObject obj);
@@ -756,8 +739,6 @@ class JSObject : public js::ObjectImpl
                                             bool allowDictionary);
 
   private:
-    bool toDictionaryMode(JSContext *cx);
-
     struct TradeGutsReserved;
     static bool ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
                                     TradeGutsReserved &reserved);
