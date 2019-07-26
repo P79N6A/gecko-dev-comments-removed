@@ -21,7 +21,7 @@ MoveResolver::resetState()
 }
 
 bool
-MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
+MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, MoveOp::Kind kind)
 {
     
     JS_ASSERT(!(from == to));

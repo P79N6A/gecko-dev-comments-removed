@@ -27,7 +27,7 @@ MoveEmitterX86::characterizeCycle(const MoveResolver &moves, size_t i,
     size_t swapCount = 0;
 
     for (size_t j = i; ; j++) {
-        const Move &move = moves.getMove(j);
+        const MoveOp &move = moves.getMove(j);
 
         
         
@@ -56,7 +56,7 @@ MoveEmitterX86::characterizeCycle(const MoveResolver &moves, size_t i,
     }
 
     
-    const Move &move = moves.getMove(i + swapCount);
+    const MoveOp &move = moves.getMove(i + swapCount);
     if (move.from() != moves.getMove(i).to()) {
         *allGeneralRegs = false;
         *allFloatRegs = false;
@@ -99,7 +99,7 @@ void
 MoveEmitterX86::emit(const MoveResolver &moves)
 {
     for (size_t i = 0; i < moves.numMoves(); i++) {
-        const Move &move = moves.getMove(i);
+        const MoveOp &move = moves.getMove(i);
         const MoveOperand &from = move.from();
         const MoveOperand &to = move.to();
 
@@ -128,7 +128,7 @@ MoveEmitterX86::emit(const MoveResolver &moves)
         }
 
         
-        if (move.kind() == Move::DOUBLE)
+        if (move.kind() == MoveOp::DOUBLE)
             emitDoubleMove(from, to);
         else
             emitGeneralMove(from, to);
@@ -204,7 +204,7 @@ MoveEmitterX86::toPopOperand(const MoveOperand &operand) const
 }
 
 void
-MoveEmitterX86::breakCycle(const MoveOperand &to, Move::Kind kind)
+MoveEmitterX86::breakCycle(const MoveOperand &to, MoveOp::Kind kind)
 {
     
     
@@ -212,7 +212,7 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, Move::Kind kind)
     
     
     
-    if (kind == Move::DOUBLE) {
+    if (kind == MoveOp::DOUBLE) {
         if (to.isMemory()) {
             masm.loadDouble(toAddress(to), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, cycleSlot());
@@ -225,7 +225,7 @@ MoveEmitterX86::breakCycle(const MoveOperand &to, Move::Kind kind)
 }
 
 void
-MoveEmitterX86::completeCycle(const MoveOperand &to, Move::Kind kind)
+MoveEmitterX86::completeCycle(const MoveOperand &to, MoveOp::Kind kind)
 {
     
     
@@ -233,7 +233,7 @@ MoveEmitterX86::completeCycle(const MoveOperand &to, Move::Kind kind)
     
     
     
-    if (kind == Move::DOUBLE) {
+    if (kind == MoveOp::DOUBLE) {
         if (to.isMemory()) {
             masm.loadDouble(cycleSlot(), ScratchFloatReg);
             masm.storeDouble(ScratchFloatReg, toAddress(to));

@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_x64_MacroAssembler_x64_h
 #define jit_x64_MacroAssembler_x64_h
@@ -34,8 +34,8 @@ struct ImmTag : public Imm32
 
 class MacroAssemblerX64 : public MacroAssemblerX86Shared
 {
-    
-    
+    // Number of bytes the stack is adjusted inside a call to C. Calls to C may
+    // not be nested.
     bool inCall_;
     uint32_t args_;
     uint32_t passedIntArgs_;
@@ -44,9 +44,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     bool dynamicAlignment_;
     bool enoughMemory_;
 
-    
-    
-    
+    // These use SystemAllocPolicy since asm.js releases memory after each
+    // function is compiled, and these need to live until after all functions
+    // are compiled.
     struct Double {
         double value;
         NonAssertingLabel uses;
@@ -85,26 +85,23 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         FLOAT
     };
 
-    typedef MoveResolver::MoveOperand MoveOperand;
-    typedef MoveResolver::Move Move;
-
     MacroAssemblerX64()
       : inCall_(false),
         enoughMemory_(true)
     {
     }
 
-    
-    
+    // The buffer is about to be linked, make sure any constant pools or excess
+    // bookkeeping has been flushed to the instruction stream.
     void finish();
 
     bool oom() const {
         return MacroAssemblerX86Shared::oom() || !enoughMemory_;
     }
 
-    
-    
-    
+    /////////////////////////////////////////////////////////////////
+    // X64 helpers.
+    /////////////////////////////////////////////////////////////////
     void call(ImmWord target) {
         mov(target, rax);
         call(rax);
@@ -117,8 +114,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(rax);
     }
 
-    
-    
+    // Refers to the upper 32 bits of a 64-bit Value operand.
+    // On x86_64, the upper 32 bits do not necessarily only contain the type.
     Operand ToUpper32(Operand base) {
         switch (base.kind()) {
           case Operand::MEM_REG_DISP:
@@ -140,7 +137,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
 
     uint32_t Upper32Of(JSValueShiftedTag tag) {
-        union { 
+        union { // Implemented in this way to appease MSVC++.
             uint64_t tag;
             struct {
                 uint32_t lo32;
@@ -155,9 +152,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         return (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
     }
 
-    
-    
-    
+    /////////////////////////////////////////////////////////////////
+    // X86/X64-common interface.
+    /////////////////////////////////////////////////////////////////
     void storeValue(ValueOperand val, Operand dest) {
         movq(val.valueReg(), dest);
     }
@@ -166,7 +163,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
     template <typename T>
     void storeValue(JSValueType type, Register reg, const T &dest) {
-        
+        // Value types with 32-bit payloads can be emitted as two 32-bit moves.
         if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
             movl(reg, Operand(dest));
             movl(Imm32(Upper32Of(GetShiftedTag(type))), ToUpper32(Operand(dest)));
@@ -507,9 +504,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     Condition testNegativeZero(const FloatRegister &reg, const Register &scratch);
     Condition testNegativeZeroFloat32(const FloatRegister &reg, const Register &scratch);
 
-    
-    
-    
+    /////////////////////////////////////////////////////////////////
+    // Common interface.
+    /////////////////////////////////////////////////////////////////
     void reserveStack(uint32_t amount) {
         if (amount)
             subq(Imm32(amount), StackPointer);
@@ -579,7 +576,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
 
-    
+    // Specialization for AbsoluteAddress.
     void branchPtr(Condition cond, const AbsoluteAddress &addr, const Register &ptr, Label *label) {
         JS_ASSERT(ptr != ScratchReg);
         if (JSC::X86Assembler::isAddressImmediate(addr.addr)) {
@@ -760,7 +757,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         splitTag(Operand(operand), dest);
     }
 
-    
+    // Extracts the tag of a value and places it in ScratchReg.
     Register splitTagForTest(const ValueOperand &value) {
         splitTag(value, ScratchReg);
         return ScratchReg;
@@ -803,9 +800,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         j(cond, label);
     }
 
-    
-    
-    
+    // x64 can test for certain types directly from memory when the payload
+    // of the type is limited to 32 bits. This avoids loading into a register,
+    // accesses half as much memory, and removes a right-shift.
     void branchTestUndefined(Condition cond, const Operand &operand, Label *label) {
         JS_ASSERT(cond == Equal || cond == NotEqual);
         cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_UNDEFINED))));
@@ -844,8 +841,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         j(cond, label);
     }
 
-    
-    
+    // Perform a type-test on a full Value loaded into a register.
+    // Clobbers the ScratchReg.
     void branchTestUndefined(Condition cond, const ValueOperand &src, Label *label) {
         cond = testUndefined(cond, src);
         j(cond, label);
@@ -897,11 +894,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
                               Label *label)
     {
         JS_ASSERT(cond == Equal || cond == NotEqual);
-        
+        // Test for magic
         Label notmagic;
         Condition testCond = testMagic(cond, val);
         j(InvertCondition(testCond), &notmagic);
-        
+        // Test magic value
         unboxMagic(val, ScratchReg);
         branch32(cond, ScratchReg, Imm32(static_cast<int32_t>(why)), label);
         bind(&notmagic);
@@ -934,8 +931,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         boxValue(type, src, dest.valueReg());
     }
 
-    
-    
+    // Note that the |dest| register here may be ScratchReg, so we shouldn't
+    // use it.
     void unboxInt32(const ValueOperand &src, const Register &dest) {
         movl(src.valueReg(), dest);
     }
@@ -985,12 +982,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         xorq(Imm32(1), val.valueReg());
     }
 
-    
-    
+    // Unbox any non-double value into dest. Prefer unboxInt32 or unboxBoolean
+    // instead if the source type is known.
     void unboxNonDouble(const ValueOperand &src, const Register &dest) {
-        
-        
-        
+        // In a non-trivial coupling, we're not permitted to use ScratchReg when
+        // src and dest are different registers, because of how extractObject is
+        // implemented.
         if (src.valueReg() == dest) {
             mov(ImmWord(JSVAL_PAYLOAD_MASK), ScratchReg);
             andq(ScratchReg, dest);
@@ -1000,7 +997,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
     void unboxNonDouble(const Operand &src, const Register &dest) {
-        
+        // Explicitly permits |dest| to be used in |src|.
         JS_ASSERT(dest != ScratchReg);
         mov(ImmWord(JSVAL_PAYLOAD_MASK), ScratchReg);
         movq(src, dest);
@@ -1013,14 +1010,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void unboxObject(const ValueOperand &src, const Register &dest) { unboxNonDouble(src, dest); }
     void unboxObject(const Operand &src, const Register &dest) { unboxNonDouble(src, dest); }
 
-    
-    
-    
+    // Extended unboxing API. If the payload is already in a register, returns
+    // that register. Otherwise, provides a move to the given scratch register,
+    // and returns that.
     Register extractObject(const Address &address, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         loadPtr(address, ScratchReg);
-        
-        
+        // We have a special coupling with unboxObject. As long as the registers
+        // aren't equal, it doesn't use ScratchReg.
         unboxObject(ValueOperand(ScratchReg), scratch);
         return scratch;
     }
@@ -1065,7 +1062,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
 
-    
+    // These two functions use the low 32-bits of the full value register.
     void boolValueToDouble(const ValueOperand &operand, const FloatRegister &dest) {
         convertInt32ToDouble(operand.valueReg(), dest);
     }
@@ -1086,22 +1083,22 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void branchTruncateDouble(const FloatRegister &src, const Register &dest, Label *fail) {
         cvttsd2sq(src, dest);
 
-        
-        
-        
+        // cvttsd2sq returns 0x8000000000000000 on failure. Test for it by
+        // subtracting 1 and testing overflow (this avoids the need to
+        // materialize that value in a register).
         cmpq(dest, Imm32(1));
         j(Assembler::Overflow, fail);
 
-        movl(dest, dest); 
+        movl(dest, dest); // Zero upper 32-bits.
     }
     void branchTruncateFloat32(const FloatRegister &src, const Register &dest, Label *fail) {
         cvttss2sq(src, dest);
 
-        
+        // Same trick as for Doubles
         cmpq(dest, Imm32(1));
         j(Assembler::Overflow, fail);
 
-        movl(dest, dest); 
+        movl(dest, dest); // Zero upper 32-bits.
     }
 
     Condition testInt32Truthy(bool truthy, const ValueOperand &operand) {
@@ -1112,7 +1109,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         testl(operand.valueReg(), operand.valueReg());
         j(truthy ? NonZero : Zero, label);
     }
-    
+    // This returns the tag in ScratchReg.
     Condition testStringTruthy(bool truthy, const ValueOperand &value) {
         unboxString(value, ScratchReg);
 
@@ -1165,8 +1162,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         }
     }
 
-    
-    
+    // If source is a double, load it into dest. If source is int32,
+    // convert it to double. Else, branch to failure.
     void ensureDouble(const ValueOperand &source, FloatRegister dest, Label *failure) {
         Label isDouble, done;
         Register tag = splitTagForTest(source);
@@ -1183,25 +1180,25 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         bind(&done);
     }
 
-    
-    
-    
-    
-    
-    
-    
+    // Setup a call to C/C++ code, given the number of general arguments it
+    // takes. Note that this only supports cdecl.
+    //
+    // In order for alignment to work correctly, the MacroAssembler must have a
+    // consistent view of the stack displacement. It is okay to call "push"
+    // manually, however, if the stack alignment were to change, the macro
+    // assembler should be notified before starting a call.
     void setupAlignedABICall(uint32_t args);
 
-    
-    
+    // Sets up an ABI call for when the alignment is not known. This may need a
+    // scratch register.
     void setupUnalignedABICall(uint32_t args, const Register &scratch);
 
-    
-    
-    
-    
-    
-    
+    // Arguments must be assigned to a C/C++ call in order. They are moved
+    // in parallel immediately before performing the call. This process may
+    // temporarily use more stack, in which case esp-relative addresses will be
+    // automatically adjusted. It is extremely important that esp-relative
+    // addresses are computed *after* setupABICall(). Furthermore, no
+    // operations should be emitted while setting arguments.
     void passABIArg(const MoveOperand &from);
     void passABIArg(const Register &reg);
     void passABIArg(const FloatRegister &reg);
@@ -1211,7 +1208,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     void callWithABIPost(uint32_t stackAdjust, Result result);
 
   public:
-    
+    // Emits a call to a C/C++ function, resolving all argument moves.
     void callWithABI(void *fun, Result result = GENERAL);
     void callWithABI(AsmJSImmPtr imm, Result result = GENERAL);
     void callWithABI(Address fun, Result result = GENERAL);
@@ -1224,8 +1221,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         orq(Imm32(type), frameSizeReg);
     }
 
-    
-    
+    // Save an exit frame (which must be aligned to the stack pointer) to
+    // ThreadData::ionTop of the main thread.
     void linkExitFrame() {
         storePtr(StackPointer,
                  AbsoluteAddress(GetIonContext()->runtime->addressOfIonTop()));
@@ -1238,21 +1235,21 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(target);
     }
 
-    
-    
+    // Save an exit frame to the thread data of the current thread, given a
+    // register that holds a PerThreadData *.
     void linkParallelExitFrame(const Register &pt) {
         storePtr(StackPointer, Address(pt, offsetof(PerThreadData, ionTop)));
     }
 
     void enterOsr(Register calleeToken, Register code) {
-        push(Imm32(0)); 
+        push(Imm32(0)); // num actual args.
         push(calleeToken);
         push(Imm32(MakeFrameDescriptor(0, IonFrame_Osr)));
         call(code);
         addq(Imm32(sizeof(uintptr_t) * 2), rsp);
     }
 
-    
+    // See CodeGeneratorX64 calls to noteAsmJSGlobalAccess.
     void patchAsmJSGlobalAccess(CodeOffsetLabel patchAt, uint8_t *code, uint8_t *globalData,
                                 unsigned globalDataOffset)
     {
@@ -1270,7 +1267,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
 typedef MacroAssemblerX64 MacroAssemblerSpecific;
 
-} 
-} 
+} // namespace jit
+} // namespace js
 
-#endif 
+#endif /* jit_x64_MacroAssembler_x64_h */

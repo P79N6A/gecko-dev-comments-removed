@@ -100,7 +100,7 @@ MoveEmitterARM::tempReg()
 }
 
 void
-MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
+MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Kind kind)
 {
     
     
@@ -108,7 +108,7 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, Move:
     
     
     
-    if (kind == Move::DOUBLE) {
+    if (kind == MoveOp::DOUBLE) {
         if (to.isMemory()) {
             FloatRegister temp = ScratchFloatReg;
             masm.ma_vldr(toOperand(to, true), temp);
@@ -134,7 +134,7 @@ MoveEmitterARM::breakCycle(const MoveOperand &from, const MoveOperand &to, Move:
 }
 
 void
-MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
+MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, MoveOp::Kind kind)
 {
     
     
@@ -142,7 +142,7 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
     
     
     
-    if (kind == Move::DOUBLE) {
+    if (kind == MoveOp::DOUBLE) {
         if (to.isMemory()) {
             FloatRegister temp = ScratchFloatReg;
             masm.ma_vldr(cycleSlot(), temp);
@@ -232,7 +232,7 @@ MoveEmitterARM::emitDoubleMove(const MoveOperand &from, const MoveOperand &to)
 }
 
 void
-MoveEmitterARM::emit(const Move &move)
+MoveEmitterARM::emit(const MoveOp &move)
 {
     const MoveOperand &from = move.from();
     const MoveOperand &to = move.to();
@@ -248,7 +248,7 @@ MoveEmitterARM::emit(const Move &move)
         inCycle_ = true;
     }
 
-    if (move.kind() == Move::DOUBLE)
+    if (move.kind() == MoveOp::DOUBLE)
         emitDoubleMove(from, to);
     else
         emitMove(from, to);
