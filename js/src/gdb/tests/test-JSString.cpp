@@ -1,5 +1,6 @@
 #include "gdb-tests.h"
 #include "jsatom.h"
+#include "jscntxt.h"
 
 
 

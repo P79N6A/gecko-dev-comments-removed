@@ -4447,7 +4447,7 @@ IonBuilder::createThisScriptedSingleton(HandleFunction target, MDefinition *call
 
     
     
-    types::TypeObject *type = proto->getNewType(cx, &ObjectClass, target);
+    types::TypeObject *type = cx->getNewType(&ObjectClass, proto.get(), target);
     if (!type)
         return NULL;
     if (!types::TypeScript::ThisTypes(target->nonLazyScript())->hasType(types::Type::ObjectType(type)))

@@ -30,6 +30,17 @@
 #pragma warning(disable:4355) /* Silence warning about "this" used in base member initializer list */
 #endif
 
+struct DtoaState;
+
+extern void
+js_ReportOutOfMemory(js::ThreadSafeContext *cx);
+
+extern void
+js_ReportAllocationOverflow(js::ThreadSafeContext *cx);
+
+extern void
+js_ReportOverRecursed(js::ThreadSafeContext *cx);
+
 namespace js {
 
 struct CallsiteCloneKey {
@@ -98,6 +109,8 @@ TraceCycleDetectionSet(JSTracer *trc, ObjectSet &set);
 struct AutoResolving;
 
 class ForkJoinSlice;
+class RegExpCompartment;
+class DtoaCache;
 
 
 
@@ -115,12 +128,25 @@ class ForkJoinSlice;
 
 
 
-struct ThreadSafeContext : js::ContextFriendFields,
+
+
+
+
+
+
+
+
+
+
+
+
+struct ThreadSafeContext : ContextFriendFields,
                            public MallocProvider<ThreadSafeContext>
 {
   public:
     enum ContextKind {
         Context_JS,
+        Context_Exclusive,
         Context_ForkJoin
     };
 
@@ -130,14 +156,46 @@ struct ThreadSafeContext : js::ContextFriendFields,
   public:
     PerThreadData *perThreadData;
 
-    explicit ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind);
+    ThreadSafeContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind);
 
-    bool isJSContext() const;
-    JSContext *asJSContext();
+    bool isJSContext() const {
+        return contextKind_ == Context_JS;
+    }
+
+    JSContext *maybeJSContext() const {
+        if (isJSContext())
+            return (JSContext *) this;
+        return NULL;
+    }
+
+    JSContext *asJSContext() const {
+        
+        
+        
+        
+        JS_ASSERT(isJSContext());
+        return maybeJSContext();
+    }
+
+    bool isExclusiveContext() const {
+        return contextKind_ == Context_JS || contextKind_ == Context_Exclusive;
+    }
+
+    ExclusiveContext *maybeExclusiveContext() const {
+        if (isExclusiveContext())
+            return (ExclusiveContext *) this;
+        return NULL;
+    }
+
+    ExclusiveContext *asExclusiveContext() const {
+        JS_ASSERT(isExclusiveContext());
+        return maybeExclusiveContext();
+    }
 
     bool isForkJoinSlice() const;
     ForkJoinSlice *asForkJoinSlice();
 
+    
 #ifdef JSGC_GENERATIONAL
     inline bool hasNursery() const {
         return isJSContext();
@@ -148,10 +206,6 @@ struct ThreadSafeContext : js::ContextFriendFields,
         return runtime_->gcNursery;
     }
 #endif
-
-    
-    StaticStrings &staticStrings() { return runtime_->staticStrings; }
-    JSAtomState &names() { return runtime_->atomState; }
 
     
 
@@ -173,38 +227,105 @@ struct ThreadSafeContext : js::ContextFriendFields,
     inline Allocator *const allocator();
 
     
-    AllowGC allowGC() const {
-        switch (contextKind_) {
-          case Context_JS:
-            return CanGC;
-          case Context_ForkJoin:
-            return NoGC;
-          default:
-            
-            MOZ_ASSUME_UNREACHABLE("Bad context kind");
-        }
-    }
+    inline AllowGC allowGC() const { return isJSContext() ? CanGC : NoGC; }
 
     template <typename T>
     bool isInsideCurrentZone(T thing) const {
         return thing->isInsideZone(zone_);
     }
 
-    void *onOutOfMemory(void *p, size_t nbytes) {
-        return runtime_->onOutOfMemory(p, nbytes, isJSContext() ? asJSContext() : NULL);
+    template <typename T>
+    inline bool isInsideCurrentCompartment(T thing) const {
+        return thing->compartment() == compartment_;
     }
+
+    void *onOutOfMemory(void *p, size_t nbytes) {
+        return runtime_->onOutOfMemory(p, nbytes, maybeJSContext());
+    }
+
     inline void updateMallocCounter(size_t nbytes) {
         
         runtime_->updateMallocCounter(zone_, nbytes);
     }
+
     void reportAllocationOverflow() {
-        js_ReportAllocationOverflow(isJSContext() ? asJSContext() : NULL);
+        js_ReportAllocationOverflow(this);
+    }
+
+    
+    JSAtomState &names() { return runtime_->atomState; }
+    StaticStrings &staticStrings() { return runtime_->staticStrings; }
+    PropertyName *emptyString() { return runtime_->emptyString; }
+
+    
+    uint64_t gcNumber() { return runtime_->gcNumber; }
+    bool isHeapBusy() { return runtime_->isHeapBusy(); }
+
+    
+    DtoaState *dtoaState() {
+        return perThreadData->dtoaState;
     }
 };
 
+class ExclusiveContext : public ThreadSafeContext
+{
+    friend class gc::ArenaLists;
+    friend class CompartmentChecker;
+    friend class AutoEnterAtomsCompartment;
+    friend struct StackBaseShape;
+    friend void JSScript::initCompartmentAndPrincipals(ExclusiveContext *cx,
+                                                       const JS::CompileOptions &options);
+
+    inline void privateSetCompartment(JSCompartment *comp);
+
+  public:
+
+    ExclusiveContext(JSRuntime *rt, PerThreadData *pt, ContextKind kind)
+      : ThreadSafeContext(rt, pt, kind)
+    {}
+
+    inline bool typeInferenceEnabled() const;
+
+    
+    inline RegExpCompartment &regExps();
+    inline RegExpStatics *regExpStatics();
+    inline PropertyTree &propertyTree();
+    inline BaseShapeSet &baseShapes();
+    inline InitialShapeSet &initialShapes();
+    inline DtoaCache &dtoaCache();
+    types::TypeObject *getNewType(Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
+
+    
+    
+    inline js::Handle<js::GlobalObject*> global() const;
+
+    
+
+    frontend::ParseMapPool &parseMapPool() {
+        runtime_->assertValidThread();
+        return runtime_->parseMapPool;
+    }
+
+    AtomSet &atoms() {
+        runtime_->assertValidThread();
+        return runtime_->atoms;
+    }
+
+    ScriptDataTable &scriptDataTable() {
+        runtime_->assertValidThread();
+        return runtime_->scriptDataTable;
+    }
+};
+
+inline void
+MaybeCheckStackRoots(ExclusiveContext *cx)
+{
+    MaybeCheckStackRoots(cx->maybeJSContext());
+}
+
 } 
 
-struct JSContext : js::ThreadSafeContext,
+struct JSContext : public js::ExclusiveContext,
                    public mozilla::LinkedListElement<JSContext>
 {
     explicit JSContext(JSRuntime *rt);
@@ -295,12 +416,6 @@ struct JSContext : js::ThreadSafeContext,
     JSObject *maybeDefaultCompartmentObject() const { return defaultCompartmentObject_; }
 
     
-
-
-
-    inline js::Handle<js::GlobalObject*> global() const;
-
-    
     void wrapPendingException();
 
     
@@ -315,8 +430,6 @@ struct JSContext : js::ThreadSafeContext,
     
     void                *data;
     void                *data2;
-
-    inline js::RegExpStatics *regExpStatics();
 
   public:
 
@@ -349,8 +462,6 @@ struct JSContext : js::ThreadSafeContext,
     inline js::LifoAlloc &analysisLifoAlloc();
     inline js::LifoAlloc &typeLifoAlloc();
 
-    inline js::PropertyTree &propertyTree();
-
 #ifdef JS_THREADSAFE
     unsigned            outstandingRequests;
 
@@ -364,8 +475,6 @@ struct JSContext : js::ThreadSafeContext,
     js::Value           iterValue;
 
     bool jitIsBroken;
-
-    inline bool typeInferenceEnabled() const;
 
     void updateJITEnabled();
 
@@ -604,13 +713,13 @@ extern bool
 js_ReportErrorNumberUCArray(JSContext *cx, unsigned flags, JSErrorCallback callback,
                             void *userRef, const unsigned errorNumber,
                             const jschar **args);
+#endif
 
 extern JSBool
 js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
                         void *userRef, const unsigned errorNumber,
                         char **message, JSErrorReport *reportp,
                         js::ErrorArgumentsType argumentsType, va_list ap);
-#endif
 
 namespace js {
 

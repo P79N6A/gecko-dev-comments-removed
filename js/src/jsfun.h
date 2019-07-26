@@ -356,7 +356,7 @@ class JSFunction : public JSObject
     inline const js::Value &getExtendedSlot(size_t which) const;
 
     
-    static bool setTypeForScriptedFunction(JSContext *cx, js::HandleFunction fun,
+    static bool setTypeForScriptedFunction(js::ExclusiveContext *cx, js::HandleFunction fun,
                                            bool singleton = false);
 
     
@@ -386,7 +386,7 @@ extern JSBool
 Function(JSContext *cx, unsigned argc, Value *vp);
 
 extern JSFunction *
-NewFunction(JSContext *cx, HandleObject funobj, JSNative native, unsigned nargs,
+NewFunction(ExclusiveContext *cx, HandleObject funobj, JSNative native, unsigned nargs,
             JSFunction::Flags flags, HandleObject parent, HandleAtom atom,
             gc::AllocKind allocKind = JSFunction::FinalizeKind,
             NewObjectKind newKind = GenericObject);

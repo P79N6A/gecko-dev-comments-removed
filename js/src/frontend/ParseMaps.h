@@ -30,7 +30,7 @@ typedef InlineMap<JSAtom *, DefinitionList, 24> AtomDefnListMap;
 
 
 void
-InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
+InitAtomMap(AtomIndexMap *indices, HeapPtr<JSAtom> *atoms);
 
 
 
@@ -127,8 +127,8 @@ struct AtomThingMapPtr
 
     void init() { clearMap(); }
 
-    bool ensureMap(JSContext *cx);
-    void releaseMap(JSContext *cx);
+    bool ensureMap(ExclusiveContext *cx);
+    void releaseMap(ExclusiveContext *cx);
 
     bool hasMap() const { return map_; }
     Map *getMap() { return map_; }
@@ -149,10 +149,10 @@ typedef AtomThingMapPtr<AtomIndexMap> AtomIndexMapPtr;
 template <typename AtomThingMapPtrT>
 class OwnedAtomThingMapPtr : public AtomThingMapPtrT
 {
-    JSContext *cx;
+    ExclusiveContext *cx;
 
   public:
-    explicit OwnedAtomThingMapPtr(JSContext *cx) : cx(cx) {
+    explicit OwnedAtomThingMapPtr(ExclusiveContext *cx) : cx(cx) {
         AtomThingMapPtrT::init();
     }
 
@@ -244,8 +244,8 @@ class DefinitionList
     }
 
     static Node *
-    allocNode(JSContext *cx, uintptr_t bits, Node *tail);
-            
+    allocNode(ExclusiveContext *cx, LifoAlloc &alloc, uintptr_t bits, Node *tail);
+
   public:
     class Range
     {
@@ -336,17 +336,18 @@ class DefinitionList
 
 
     template <typename ParseHandler>
-    bool pushFront(JSContext *cx, typename ParseHandler::DefinitionNode defn) {
+    bool pushFront(ExclusiveContext *cx, LifoAlloc &alloc,
+                   typename ParseHandler::DefinitionNode defn) {
         Node *tail;
         if (isMultiple()) {
             tail = firstNode();
         } else {
-            tail = allocNode(cx, u.bits, NULL);
+            tail = allocNode(cx, alloc, u.bits, NULL);
             if (!tail)
                 return false;
         }
 
-        Node *node = allocNode(cx, ParseHandler::definitionToBits(defn), tail);
+        Node *node = allocNode(cx, alloc, ParseHandler::definitionToBits(defn), tail);
         if (!node)
             return false;
         *this = DefinitionList(node);
@@ -404,14 +405,15 @@ class AtomDecls
     
     friend class AtomDeclsIter;
 
-    JSContext   *cx;
+    ExclusiveContext *cx;
+    LifoAlloc &alloc;
     AtomDefnListMap  *map;
 
     AtomDecls(const AtomDecls &other) MOZ_DELETE;
     void operator=(const AtomDecls &other) MOZ_DELETE;
 
   public:
-    explicit AtomDecls(JSContext *cx) : cx(cx), map(NULL) {}
+    explicit AtomDecls(ExclusiveContext *cx, LifoAlloc &alloc) : cx(cx), alloc(alloc), map(NULL) {}
 
     ~AtomDecls();
 

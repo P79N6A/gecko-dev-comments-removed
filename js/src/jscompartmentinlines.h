@@ -50,19 +50,19 @@ namespace js {
 
 class AutoEnterAtomsCompartment
 {
-    JSContext *cx;
+    ExclusiveContext *cx;
     JSCompartment *oldCompartment;
   public:
-    AutoEnterAtomsCompartment(JSContext *cx)
+    AutoEnterAtomsCompartment(ExclusiveContext *cx)
       : cx(cx),
-        oldCompartment(cx->compartment())
+        oldCompartment(cx->compartment_)
     {
-        cx->setCompartment(cx->runtime()->atomsCompartment);
+        cx->privateSetCompartment(cx->runtime_->atomsCompartment);
     }
 
     ~AutoEnterAtomsCompartment()
     {
-        cx->setCompartment(oldCompartment);
+        cx->privateSetCompartment(oldCompartment);
     }
 };
 

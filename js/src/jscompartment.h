@@ -135,6 +135,7 @@ struct JSCompartment
   private:
     friend struct JSRuntime;
     friend struct JSContext;
+    friend class js::ExclusiveContext;
     js::ReadBarriered<js::GlobalObject> global_;
 
     unsigned                     enterCompartmentDepth;
@@ -224,9 +225,6 @@ struct JSCompartment
     js::types::TypeObjectSet     newTypeObjects;
     js::types::TypeObjectSet     lazyTypeObjects;
     void sweepNewTypeObjectTable(js::types::TypeObjectSet &table);
-
-    js::types::TypeObject *getNewType(JSContext *cx, js::Class *clasp, js::TaggedProto proto,
-                                      JSFunction *fun = NULL);
 
     js::types::TypeObject *getLazyType(JSContext *cx, js::Class *clasp, js::TaggedProto proto);
 
@@ -411,14 +409,20 @@ class js::AutoDebugModeGC
     }
 };
 
+namespace js {
+
 inline bool
-JSContext::typeInferenceEnabled() const
+ExclusiveContext::typeInferenceEnabled() const
 {
-    return compartment()->zone()->types.inferenceEnabled;
+    
+    
+    
+    JS_ASSERT_IF(!isJSContext(), !compartment_->zone()->types.inferenceEnabled);
+    return compartment_->zone()->types.inferenceEnabled;
 }
 
 inline js::Handle<js::GlobalObject*>
-JSContext::global() const
+ExclusiveContext::global() const
 {
     
 
@@ -426,10 +430,8 @@ JSContext::global() const
 
 
 
-    return js::Handle<js::GlobalObject*>::fromMarkedLocation(compartment()->global_.unsafeGet());
+    return Handle<GlobalObject*>::fromMarkedLocation(compartment_->global_.unsafeGet());
 }
-
-namespace js {
 
 class AssertCompartmentUnchanged
 {

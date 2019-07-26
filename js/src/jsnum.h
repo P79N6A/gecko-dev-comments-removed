@@ -55,7 +55,7 @@ namespace js {
 
 template <AllowGC allowGC>
 extern JSFlatString *
-Int32ToString(ThreadSafeContext *tcx, int32_t i);
+Int32ToString(ThreadSafeContext *cx, int32_t i);
 
 
 
@@ -128,11 +128,11 @@ ParseDecimalNumber(const JS::TwoByteChars chars);
 
 
 extern bool
-GetPrefixInteger(JSContext *cx, const jschar *start, const jschar *end, int base,
+GetPrefixInteger(ExclusiveContext *cx, const jschar *start, const jschar *end, int base,
                  const jschar **endp, double *dp);
 
 extern bool
-StringToNumber(JSContext *cx, JSString *str, double *result);
+StringToNumber(ExclusiveContext *cx, JSString *str, double *result);
 
 
 JS_ALWAYS_INLINE bool
@@ -169,7 +169,7 @@ num_parseInt(JSContext *cx, unsigned argc, Value *vp);
 
 
 extern JSBool
-js_strtod(JSContext *cx, const jschar *s, const jschar *send,
+js_strtod(js::ExclusiveContext *cx, const jschar *s, const jschar *send,
           const jschar **ep, double *dp);
 
 extern JSBool
@@ -261,6 +261,21 @@ SafeMul(int32_t one, int32_t two, int32_t *res)
     *res = one * two;
     int64_t ores = (int64_t)one * (int64_t)two;
     return ores == (int64_t)*res;
+}
+
+extern bool
+ToNumberSlow(ExclusiveContext *cx, Value v, double *dp);
+
+
+
+JS_ALWAYS_INLINE bool
+ToNumber(ExclusiveContext *cx, const Value &v, double *out)
+{
+    if (v.isNumber()) {
+        *out = v.toNumber();
+        return true;
+    }
+    return ToNumberSlow(cx, v, out);
 }
 
 } 

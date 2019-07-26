@@ -83,7 +83,7 @@ bool stopExecution(JSScript *script);
 
 
 
-bool createObject(JSContext *cx, JSObject *obj);
+bool createObject(ExclusiveContext *cx, JSObject *obj);
 
 
 
@@ -139,7 +139,7 @@ static const char *ObjectClassname(JSObject *obj) {
 #endif
 
 inline bool
-Probes::createObject(JSContext *cx, JSObject *obj)
+Probes::createObject(ExclusiveContext *cx, JSObject *obj)
 {
     bool ok = true;
 

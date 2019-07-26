@@ -117,7 +117,7 @@ extern const char js_encodeURIComponent_str[];
 
 template <js::AllowGC allowGC>
 extern JSStableString *
-js_NewString(js::ThreadSafeContext *tcx, jschar *chars, size_t length);
+js_NewString(js::ThreadSafeContext *cx, jschar *chars, size_t length);
 
 extern JSLinearString *
 js_NewDependentString(JSContext *cx, JSString *base, size_t start, size_t length);
@@ -125,20 +125,20 @@ js_NewDependentString(JSContext *cx, JSString *base, size_t start, size_t length
 
 template <js::AllowGC allowGC>
 extern JSFlatString *
-js_NewStringCopyN(JSContext *cx, const jschar *s, size_t n);
+js_NewStringCopyN(js::ExclusiveContext *cx, const jschar *s, size_t n);
 
 template <js::AllowGC allowGC>
 extern JSFlatString *
-js_NewStringCopyN(js::ThreadSafeContext *tcx, const char *s, size_t n);
+js_NewStringCopyN(js::ThreadSafeContext *cx, const char *s, size_t n);
 
 
 template <js::AllowGC allowGC>
 extern JSFlatString *
-js_NewStringCopyZ(JSContext *cx, const jschar *s);
+js_NewStringCopyZ(js::ExclusiveContext *cx, const jschar *s);
 
 template <js::AllowGC allowGC>
 extern JSFlatString *
-js_NewStringCopyZ(js::ThreadSafeContext *tcx, const char *s);
+js_NewStringCopyZ(js::ThreadSafeContext *cx, const char *s);
 
 
 
@@ -155,7 +155,7 @@ namespace js {
 
 template <AllowGC allowGC>
 extern JSString *
-ToStringSlow(JSContext *cx, typename MaybeRooted<Value, allowGC>::HandleType arg);
+ToStringSlow(ExclusiveContext *cx, typename MaybeRooted<Value, allowGC>::HandleType arg);
 
 
 
@@ -280,7 +280,7 @@ InflateUTF8String(JSContext *cx, const char *bytes, size_t *length);
 
 
 extern bool
-InflateStringToBuffer(JSContext *cx, const char *bytes, size_t length,
+InflateStringToBuffer(JSContext *maybecx, const char *bytes, size_t length,
                       jschar *chars, size_t *charsLength);
 
 extern bool

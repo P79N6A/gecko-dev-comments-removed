@@ -1412,7 +1412,7 @@ struct TypeCompartment
 
 
 
-    TypeObject *newTypeObject(JSContext *cx, Class *clasp, Handle<TaggedProto> proto,
+    TypeObject *newTypeObject(ExclusiveContext *cx, Class *clasp, Handle<TaggedProto> proto,
                               bool unknown = false);
 
     

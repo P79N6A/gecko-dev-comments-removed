@@ -662,6 +662,20 @@ JSRuntime::initSelfHosting(JSContext *cx)
     if (!JS_DefineFunctions(cx, shg, intrinsic_functions))
         return false;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
     CompileOptions options(cx);
     options.setFileAndLine("self-hosted", 1);
     options.setSelfHostingMode(true);

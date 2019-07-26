@@ -29,7 +29,7 @@ struct StmtInfoPC : public StmtInfoBase {
 
     uint32_t        blockid;        
 
-    StmtInfoPC(JSContext *cx) : StmtInfoBase(cx) {}
+    StmtInfoPC(ExclusiveContext *cx) : StmtInfoBase(cx) {}
 };
 
 typedef HashSet<JSAtom *> FuncStmtSet;
@@ -155,7 +155,7 @@ struct ParseContext : public GenericParseContext
 
 
 
-    bool define(JSContext *cx, HandlePropertyName name, Node pn, Definition::Kind);
+    bool define(TokenStream &ts, PropertyName *name, Node pn, Definition::Kind);
 
     
 
@@ -187,7 +187,8 @@ struct ParseContext : public GenericParseContext
 
 
 
-    bool generateFunctionBindings(JSContext *cx, InternalHandle<Bindings*> bindings) const;
+    bool generateFunctionBindings(ExclusiveContext *cx, LifoAlloc &alloc,
+                                  InternalHandle<Bindings*> bindings) const;
 
   public:
     uint32_t         yieldOffset;   
@@ -240,7 +241,7 @@ struct ParseContext : public GenericParseContext
         parenDepth(0),
         yieldCount(0),
         blockNode(ParseHandler::null()),
-        decls_(prs->context),
+        decls_(prs->context, prs->alloc),
         args_(prs->context),
         vars_(prs->context),
         yieldOffset(0),
@@ -304,7 +305,9 @@ template <typename ParseHandler>
 class Parser : private AutoGCRooter, public StrictModeGetter
 {
   public:
-    JSContext           *const context; 
+    ExclusiveContext *const context;
+    LifoAlloc &alloc;
+
     TokenStream         tokenStream;
     LifoAlloc::Mark     tempPoolMark;
 
@@ -323,25 +326,6 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     const bool          foldConstants:1;
 
   private:
-    
-    const bool          compileAndGo:1;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    const bool          selfHostingMode:1;
-
     
 
 
@@ -364,7 +348,7 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     bool reportWithOffset(ParseReportKind kind, bool strict, uint32_t offset, unsigned errorNumber,
                           ...);
 
-    Parser(JSContext *cx, const CompileOptions &options,
+    Parser(ExclusiveContext *cx, LifoAlloc *alloc, const CompileOptions &options,
            const jschar *chars, size_t length, bool foldConstants,
            Parser<SyntaxParseHandler> *syntaxParser,
            LazyScript *lazyOuterFunction);
@@ -438,6 +422,10 @@ class Parser : private AutoGCRooter, public StrictModeGetter
                                     FunctionSyntaxKind kind, bool strict, bool *becameStrict);
 
     virtual bool strictMode() { return pc->sc->strict; }
+
+    const CompileOptions &options() const {
+        return tokenStream.options();
+    }
 
   private:
     
@@ -563,15 +551,15 @@ class Parser : private AutoGCRooter, public StrictModeGetter
     }
 
     static bool
-    bindDestructuringArg(JSContext *cx, BindData<ParseHandler> *data,
+    bindDestructuringArg(BindData<ParseHandler> *data,
                          HandlePropertyName name, Parser<ParseHandler> *parser);
 
     static bool
-    bindLet(JSContext *cx, BindData<ParseHandler> *data,
+    bindLet(BindData<ParseHandler> *data,
             HandlePropertyName name, Parser<ParseHandler> *parser);
 
     static bool
-    bindVarOrConst(JSContext *cx, BindData<ParseHandler> *data,
+    bindVarOrConst(BindData<ParseHandler> *data,
                    HandlePropertyName name, Parser<ParseHandler> *parser);
 
     static Node null() { return ParseHandler::null(); }
