@@ -90,6 +90,8 @@ public:
 
 
 
+
+
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers) = 0;

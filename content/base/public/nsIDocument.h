@@ -1213,13 +1213,31 @@ public:
                                  nsAString& aEncoding,
                                  nsAString& Standalone) = 0;
 
+  
+
+
+
+
+
   bool IsHTML() const
   {
     return mIsRegularHTML;
   }
+  bool IsXML() const
+  {
+    return !IsHTML();
+  }
   bool IsXUL() const
   {
     return mIsXUL;
+  }
+  bool IsUnstyledDocument()
+  {
+    return IsLoadedAsData() || IsLoadedAsInteractiveData();
+  }
+  bool LoadsFullXULStyleSheetUpFront()
+  {
+    return IsXUL() || AllowXULXBL();
   }
 
   virtual bool IsScriptEnabled() = 0;

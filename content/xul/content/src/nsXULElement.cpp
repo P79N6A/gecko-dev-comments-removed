@@ -33,6 +33,7 @@
 #include "nsIDOMElementCSSInlineStyle.h"
 #include "nsIDOMXULSelectCntrlItemEl.h"
 #include "nsIDocument.h"
+#include "nsLayoutStylesheetCache.h"
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/EventStateManager.h"
 #include "mozilla/EventStates.h"
@@ -729,6 +730,68 @@ nsXULElement::UpdateEditableState(bool aNotify)
     UpdateState(aNotify);
 }
 
+
+
+
+
+static inline bool XULElementsRulesInMinimalXULSheet(nsIAtom* aTag)
+{
+  return 
+         aTag == nsGkAtoms::scrollbar ||
+         aTag == nsGkAtoms::scrollbarbutton ||
+         aTag == nsGkAtoms::scrollcorner ||
+         aTag == nsGkAtoms::slider ||
+         aTag == nsGkAtoms::thumb ||
+         aTag == nsGkAtoms::scale ||
+         
+         aTag == nsGkAtoms::resizer ||
+         aTag == nsGkAtoms::label ||
+         aTag == nsGkAtoms::videocontrols;
+}
+
+#ifdef DEBUG
+
+
+
+
+
+static inline bool
+IsInVideoControls(nsXULElement* aElement)
+{
+  nsIContent* ancestor = aElement->GetParent();
+  while (ancestor) {
+    if (ancestor->NodeInfo()->Equals(nsGkAtoms::videocontrols, kNameSpaceID_XUL)) {
+      return true;
+    }
+    ancestor = ancestor->GetParent();
+  }
+  return false;
+}
+
+
+
+
+
+
+
+
+bool
+IsInFeedSubscribeLine(nsXULElement* aElement)
+{
+  nsIContent* bindingParent = aElement->GetBindingParent();
+  if (bindingParent) {
+    while (bindingParent->GetBindingParent()) {
+      bindingParent = bindingParent->GetBindingParent();
+    }
+    nsIAtom* idAtom = bindingParent->GetID();
+    if (idAtom && idAtom->Equals(NS_LITERAL_STRING("feedSubscribeLine"))) {
+      return true;
+    }
+  }
+  return false;
+}
+#endif
+
 nsresult
 nsXULElement::BindToTree(nsIDocument* aDocument,
                          nsIContent* aParent,
@@ -739,6 +802,38 @@ nsXULElement::BindToTree(nsIDocument* aDocument,
                                             aBindingParent,
                                             aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  if (aDocument &&
+      !aDocument->LoadsFullXULStyleSheetUpFront() &&
+      !aDocument->IsUnstyledDocument()) {
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (!XULElementsRulesInMinimalXULSheet(Tag())) {
+      aDocument->EnsureOnDemandBuiltInUASheet(nsLayoutStylesheetCache::XULSheet());
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      NS_ASSERTION(IsInVideoControls(this) ||
+                   IsInFeedSubscribeLine(this),
+                   "Unexpected XUL element in non-XUL doc");
+    }
+  }
 
   if (aDocument) {
       NS_ASSERTION(!nsContentUtils::IsSafeToRunScript(),

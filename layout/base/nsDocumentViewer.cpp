@@ -2280,6 +2280,20 @@ nsDocumentViewer::CreateStyleSet(nsIDocument* aDocument,
   
   styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, quirkClone);
   styleSet->SetQuirkStyleSheet(quirkClone);
+  if (aDocument->LoadsFullXULStyleSheetUpFront()) {
+    
+    
+    sheet = nsLayoutStylesheetCache::XULSheet();
+    if (sheet) {
+      styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+    }
+  }
+  sheet = nsLayoutStylesheetCache::MinimalXULSheet();
+  if (sheet) {
+    
+    
+    styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet, sheet);
+  }
   styleSet->PrependStyleSheet(nsStyleSet::eAgentSheet,
                               nsLayoutStylesheetCache::UASheet());
 
