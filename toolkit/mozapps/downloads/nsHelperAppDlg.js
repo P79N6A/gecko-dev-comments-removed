@@ -781,10 +781,8 @@ nsUnknownContentTypeDialog.prototype = {
     
     
     
-    if (this.mLauncher.MIMEInfo.preferredAction == this.nsIMIMEInfo.handleInternally &&
-        !this.dialogElement("rememberChoice").checked) {
-      return false;
-    }
+    var discardUpdate = this.mLauncher.MIMEInfo.preferredAction == this.nsIMIMEInfo.handleInternally &&
+                        !this.dialogElement("rememberChoice").checked;
 
     var needUpdate = false;
     
@@ -824,7 +822,7 @@ nsUnknownContentTypeDialog.prototype = {
     
     this.mLauncher.MIMEInfo.alwaysAskBeforeHandling = !this.dialogElement("rememberChoice").checked;
 
-    return needUpdate;
+    return needUpdate && !discardUpdate;
   },
 
   
