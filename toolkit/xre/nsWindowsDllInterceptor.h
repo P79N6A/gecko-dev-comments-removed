@@ -236,7 +236,8 @@ public:
 #else
 #error "Unknown processor type"
 #endif
-      byteptr_t origBytes = *((byteptr_t *)p);
+      Trampoline *tramp = (Trampoline*)p;
+      byteptr_t origBytes = (byteptr_t)tramp->origFunction;
 
       
       if (!origBytes) {
@@ -264,7 +265,7 @@ public:
       }
       
       
-      intptr_t dest = (intptr_t)(p + sizeof(void *));
+      intptr_t dest = (intptr_t)(&tramp->code[0]);
 #if defined(_M_IX86)
       *((intptr_t*)(origBytes+1)) = dest - (intptr_t)(origBytes+5); 
 #elif defined(_M_X64)
@@ -344,6 +345,7 @@ public:
 protected:
   const static int kPageSize = 4096;
   const static int kHookSize = 128;
+  const static int kCodeSize = 100;
 
   const static uint8_t opTrampolineRelativeJump = 0xe9;
   const static uint16_t opTrampolineRegLoad = 0xbb49;
@@ -353,13 +355,21 @@ protected:
   int mMaxHooks;
   int mCurHooks;
 
+  struct Trampoline
+  {
+    void *origFunction;
+    uint8_t code[kCodeSize];
+  };
+
+  static_assert(sizeof(Trampoline) <= kHookSize, "Trampolines too big");
+
   void CreateTrampoline(void *origFunction,
                         intptr_t dest,
                         void **outTramp)
   {
     *outTramp = nullptr;
 
-    byteptr_t tramp = FindTrampolineSpace();
+    Trampoline *tramp = FindTrampolineSpace();
     if (!tramp)
       return;
 
@@ -580,17 +590,16 @@ protected:
 #error "Unknown processor type"
 #endif
 
-    if (nBytes > 100) {
+    if (nBytes > kCodeSize) {
       
       return;
     }
 
     
     
-    *((void **)tramp) = origFunction;
-    tramp += sizeof(void *);
+    tramp->origFunction = origFunction;
 
-    memcpy(tramp, origFunction, nBytes);
+    memcpy(&tramp->code[0], origFunction, nBytes);
 
     
     byteptr_t trampDest = origBytes + nBytes;
@@ -600,36 +609,36 @@ protected:
       
       
       
-      *((intptr_t*)(tramp+pJmp32+1)) += origBytes - tramp;
+      *((intptr_t*)(&tramp->code[pJmp32+1])) += origBytes - &tramp->code[0];
     } else {
-      tramp[nBytes] = opTrampolineRelativeJump; 
-      *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
+      tramp->code[nBytes] = opTrampolineRelativeJump; 
+      *((intptr_t*)(&tramp->code[nBytes+1])) = (intptr_t)trampDest - (intptr_t)(&tramp->code[nBytes+5]); 
     }
 #elif defined(_M_X64)
     
     if (pJmp32 >= 0) {
       
-      *((uint16_t*)(tramp+pJmp32)) = opTrampolineRegLoad;
-      *((intptr_t*)(tramp+pJmp32+2)) = (intptr_t)directJmpAddr;
+      *((uint16_t*)(&tramp->code[pJmp32])) = opTrampolineRegLoad;
+      *((intptr_t*)(&tramp->code[pJmp32+2])) = (intptr_t)directJmpAddr;
 
       
-      tramp[pJmp32+10] = 0x41;
-      tramp[pJmp32+11] = 0xff;
-      tramp[pJmp32+12] = 0xe3;
+      tramp->code[pJmp32+10] = 0x41;
+      tramp->code[pJmp32+11] = 0xff;
+      tramp->code[pJmp32+12] = 0xe3;
     } else {
       
-      *((uint16_t*)(tramp+nBytes)) = opTrampolineRegLoad;
-      *((intptr_t*)(tramp+nBytes+2)) = (intptr_t)trampDest;
+      *((uint16_t*)(&tramp->code[nBytes])) = opTrampolineRegLoad;
+      *((intptr_t*)(&tramp->code[nBytes+2])) = (intptr_t)trampDest;
 
       
-      tramp[nBytes+10] = 0x41;
-      tramp[nBytes+11] = 0xff;
-      tramp[nBytes+12] = 0xe3;
+      tramp->code[nBytes+10] = 0x41;
+      tramp->code[nBytes+11] = 0xff;
+      tramp->code[nBytes+12] = 0xe3;
     }
 #endif
 
     
-    *outTramp = tramp;
+    *outTramp = &tramp->code[0];
 
     
     DWORD op;
@@ -657,16 +666,16 @@ protected:
     VirtualProtectEx(GetCurrentProcess(), origFunction, nBytes, op, &op);
   }
 
-  byteptr_t FindTrampolineSpace()
+  Trampoline* FindTrampolineSpace()
   {
     if (mCurHooks >= mMaxHooks)
-      return 0;
+      return nullptr;
 
     byteptr_t p = mHookPage + mCurHooks*kHookSize;
 
     mCurHooks++;
 
-    return p;
+    return (Trampoline*)p;
   }
 };
 
