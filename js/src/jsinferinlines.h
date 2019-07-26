@@ -733,7 +733,7 @@ TypeScript::MonitorAssign(JSContext *cx, HandleObject obj, jsid id)
         
         
         TypeObject* type = obj->type();
-        if (type->getPropertyCount() < 8)
+        if (type->getPropertyCount() < 128)
             return;
         MarkTypeObjectUnknownProperties(cx, type);
     }
