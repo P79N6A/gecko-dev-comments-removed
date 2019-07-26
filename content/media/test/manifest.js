@@ -154,10 +154,10 @@ var gPlayTests = [
 
   
   { name:"split.webm", type:"video/webm", duration:1.967 },
-
+  
   
   { name:"seek.yuv", type:"video/x-raw-yuv", duration:1.833 },
-
+  
   
   
   
@@ -593,7 +593,7 @@ function MediaTestManager() {
     SimpleTest.waitForExplicitFinish();
     this.nextTest();
   }
-
+  
   
   
   this.started = function(token) {
@@ -601,7 +601,7 @@ function MediaTestManager() {
     this.numTestsRunning++;
     is(this.numTestsRunning, this.tokens.length, "[started " + token + "] Length of array should match number of running tests");
   }
-
+  
   
   
   
@@ -626,7 +626,7 @@ function MediaTestManager() {
     
     
     SpecialPowers.forceGC();
-
+    
     while (this.testNum < this.tests.length && this.tokens.length < PARALLEL_TESTS) {
       var test = this.tests[this.testNum];
       var token = (test.name ? (test.name + "-"): "") + this.testNum;
@@ -635,11 +635,11 @@ function MediaTestManager() {
       if (DEBUG_TEST_LOOP_FOREVER && this.testNum == this.tests.length) {
         this.testNum = 0;
       }
-
+      
       
       if (test.type && !document.createElement('video').canPlayType(test.type))
         continue;
-
+      
       
       this.startTest(test, token);
     }
