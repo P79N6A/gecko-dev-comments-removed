@@ -5,7 +5,10 @@ content.document.title = "Hello, Kitty";
 (function start() {
     sync_test();
     async_test();
-    sendAsyncMessage("cpows:done", {});
+    
+    
+    
+    sendSyncMessage("cpows:done", {});
   }
 )();
 
