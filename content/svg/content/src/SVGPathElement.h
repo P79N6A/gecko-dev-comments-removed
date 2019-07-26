@@ -82,7 +82,7 @@ public:
 
 
 
-  gfxFloat GetPathLengthScale(PathLengthScaleForType aFor);
+  float GetPathLengthScale(PathLengthScaleForType aFor);
 
   
   already_AddRefed<SVGAnimatedNumber> PathLength();
