@@ -35,7 +35,6 @@
 #include "nsIObserverService.h"
 #include "nsIObserver.h"
 #include "mozilla/Services.h"
-#include "nsThread.h"
 #include "nsThreadUtils.h"
 #include "nsAutoPtr.h"
 #include "nsNetUtil.h"
@@ -216,23 +215,13 @@ DataChannelConnection::~DataChannelConnection()
 
   
   
-  if (!IsSTSThread()) {
-    ASSERT_WEBRTC(NS_IsMainThread());
-    if (mTransportFlow) {
-      ASSERT_WEBRTC(mSTS);
-      RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow.forget()),
-                    NS_DISPATCH_NORMAL);
-    }
+  if (mTransportFlow && !IsSTSThread()) {
+    ASSERT_WEBRTC(mSTS);
+    RUN_ON_THREAD(mSTS, WrapRunnableNM(ReleaseTransportFlow, mTransportFlow.forget()),
+                  NS_DISPATCH_NORMAL);
+  }
 
-    if (mInternalIOThread) {
-      
-      
-      NS_DispatchToMainThread(WrapRunnable(nsCOMPtr<nsIThread>(mInternalIOThread),
-                                           &nsIThread::Shutdown),
-                              NS_DISPATCH_NORMAL);
-    }
-  } else {
-    
+  if (mInternalIOThread) {
     mInternalIOThread->Shutdown();
   }
 }
@@ -2278,9 +2267,7 @@ public:
   { }
 
   NS_IMETHODIMP Run() {
-    
-    DataChannelConnection *self = mConnection;
-    self->ReadBlob(mConnection.forget(), mStream, mBlob);
+    mConnection->ReadBlob(mStream, mBlob);
     return NS_OK;
   }
 
@@ -2288,9 +2275,7 @@ private:
   
   
   
-  
-  
-  nsRefPtr<DataChannelConnection> mConnection;
+  DataChannelConnection* mConnection;
   uint16_t mStream;
   
   nsRefPtr<nsIInputStream> mBlob;
@@ -2314,14 +2299,11 @@ DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream *aBlob)
   return 0;
 }
 
-void
-DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
-                                uint16_t aStream, nsIInputStream* aBlob)
+int32_t
+DataChannelConnection::ReadBlob(uint16_t aStream, nsIInputStream* aBlob)
 {
-  
-  
-  
-
+  DataChannel *channel = mStreams[aStream];
+  NS_ENSURE_TRUE(channel, 0);
   
   
   
@@ -2334,20 +2316,16 @@ DataChannelConnection::ReadBlob(already_AddRefed<DataChannelConnection> aThis,
   uint64_t len;
   aBlob->Available(&len);
   nsresult rv = NS_ReadInputStreamToString(aBlob, temp, len);
-  if (NS_FAILED(rv)) {
-    
-    
-    
-    nsRefPtr<DataChannelConnection> self(aThis);
-    return;
-  }
+
+  NS_ENSURE_SUCCESS(rv, 0);
   aBlob->Close();
   nsCOMPtr<nsIThread> mainThread;
   NS_GetMainThread(getter_AddRefs(mainThread));
-  RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(aThis),
+  RUN_ON_THREAD(mainThread, WrapRunnable(nsRefPtr<DataChannelConnection>(this),
                                &DataChannelConnection::SendBinaryMsg,
                                aStream, temp),
                 NS_DISPATCH_NORMAL);
+  return 0;
 }
 
 int32_t
