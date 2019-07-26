@@ -296,7 +296,11 @@ public:
 
 
   nsIntRect CharBounds(int32_t aOffset, uint32_t aCoordType)
-    { return TextBounds(aOffset, aOffset + 1, aCoordType); }
+  {
+    int32_t endOffset = aOffset == static_cast<int32_t>(CharacterCount()) ?
+      aOffset : aOffset + 1;
+    return TextBounds(aOffset, endOffset, aCoordType);
+  }
 
   
 
@@ -421,7 +425,7 @@ protected:
   
 
 
-  uint32_t ConvertMagicOffset(int32_t aOffset) const;
+  index_t ConvertMagicOffset(int32_t aOffset) const;
 
   
 
