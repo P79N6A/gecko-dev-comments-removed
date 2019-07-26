@@ -512,7 +512,9 @@ public:
   static const KTableValue kControlCharacterVisibilityKTable[];
   static const KTableValue kCursorKTable[];
   static const KTableValue kDirectionKTable[];
-  static const KTableValue kDisplayKTable[];
+  
+  
+  static KTableValue kDisplayKTable[];
   static const KTableValue kElevationKTable[];
   static const KTableValue kEmptyCellsKTable[];
   static const KTableValue kAlignContentKTable[];

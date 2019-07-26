@@ -362,7 +362,9 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
   if (!aSkipFlexItemStyleFixup && mParent) {
     const nsStyleDisplay* parentDisp = mParent->StyleDisplay();
     if ((parentDisp->mDisplay == NS_STYLE_DISPLAY_FLEX ||
-         parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_FLEX) &&
+         parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_FLEX ||
+         parentDisp->mDisplay == NS_STYLE_DISPLAY_GRID ||
+         parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_GRID) &&
         GetPseudo() != nsCSSAnonBoxes::mozNonElement) {
       uint8_t displayVal = disp->mDisplay;
       
