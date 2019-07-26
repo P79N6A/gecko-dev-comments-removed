@@ -16,9 +16,6 @@ if (typeof Components != "undefined") {
 
 let LOG = exports.OS.Shared.LOG.bind(OS.Shared, "Shared front-end");
 
-const noOptions = {};
-
-
 
 
 
@@ -80,7 +77,7 @@ AbstractFile.prototype = {
 
 
 
-  readTo: function readTo(buffer, options = noOptions) {
+  readTo: function readTo(buffer, options = {}) {
     let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes);
     let pos = 0;
     while (pos < bytes) {
@@ -112,7 +109,7 @@ AbstractFile.prototype = {
 
 
 
-  write: function write(buffer, options = noOptions) {
+  write: function write(buffer, options = {}) {
 
     let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes);
 
@@ -340,7 +337,7 @@ AbstractFile.read = function read(path, bytes) {
 
 
 AbstractFile.writeAtomic =
-     function writeAtomic(path, buffer, options = noOptions) {
+     function writeAtomic(path, buffer, options = {}) {
 
   
   if (typeof path != "string" || path == "") {

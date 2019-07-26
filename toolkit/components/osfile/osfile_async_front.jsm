@@ -111,11 +111,6 @@ let clone = function clone(object, refs = noRefs) {
   return result;
 };
 
-
-
-
-const noOptions = {};
-
 let worker = new PromiseWorker(
   "resource://gre/modules/osfile/osfile_async_worker.js", LOG);
 let Scheduler = {
@@ -313,7 +308,7 @@ File.prototype = {
 
 
 
-  readTo: function readTo(buffer, options = noOptions) {
+  readTo: function readTo(buffer, options = {}) {
     
     
     
@@ -351,7 +346,7 @@ File.prototype = {
 
 
 
-  write: function write(buffer, options = noOptions) {
+  write: function write(buffer, options = {}) {
     
     
     
@@ -652,7 +647,7 @@ File.exists = function exists(path) {
 
 
 
-File.writeAtomic = function writeAtomic(path, buffer, options = noOptions) {
+File.writeAtomic = function writeAtomic(path, buffer, options = {}) {
   
   
   options = clone(options, ["outExecutionDuration"]);
