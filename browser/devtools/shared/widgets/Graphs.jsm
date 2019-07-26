@@ -290,10 +290,23 @@ AbstractCanvasGraph.prototype = {
 
 
 
+  setDataWhenReady: Task.async(function*(data) {
+    yield this.ready();
+    this.setData(data);
+  }),
+
+  
+
+
+
+
+
+
+
 
   setRegions: function(regions) {
     if (!this._cachedGraphImage) {
-      throw "Can't highlighted regions on a graph with no data displayed.";
+      throw "Can't highlight regions on a graph with no data displayed.";
     }
     if (this._regions) {
       throw "Regions were already highlighted on the graph.";
