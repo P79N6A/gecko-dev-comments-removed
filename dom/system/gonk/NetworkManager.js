@@ -148,6 +148,25 @@ function NetworkManager() {
   settingsLock.get(SETTINGS_USB_DHCPSERVER_ENDIP, this);
 
   this.setAndConfigureActive();
+
+  let self = this;
+  this.waitForConnectionReadyCallback = null;
+  settingsLock.get(SETTINGS_WIFI_ENABLED, {
+    handle: function (aName, aResult) {
+      if (!aResult) {
+        return;
+      }
+      
+      self.waitForConnectionReadyCallback = (function callback() {
+        let settingsLock = gSettingsService.createLock();
+        settingsLock.set(SETTINGS_WIFI_ENABLED, aResult, null);
+      });
+    },
+
+    handleError: function (aErrorMessage) {
+      debug("Error reading the 'tethering.wifi.enabled' setting: " + aErrorMessage);
+    }
+  });
 }
 NetworkManager.prototype = {
   classID:   NETWORKMANAGER_CID,
@@ -184,6 +203,11 @@ NetworkManager.prototype = {
             
             this.removeDefaultRoute(network.name);
             this.setAndConfigureActive();
+            
+            if (this.waitForConnectionReadyCallback) {
+              this.waitForConnectionReadyCallback.call(this);
+              this.waitForConnectionReadyCallback = null;
+            }
             break;
           case Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED:
             
@@ -647,7 +671,8 @@ NetworkManager.prototype = {
     if (resetSettings) {
       let settingsLock = gSettingsService.createLock();
       this.tetheringSettings[SETTINGS_WIFI_ENABLED] = false;
-      settingsLock.set("tethering.wifi.enabled", false, null);
+      
+      settingsLock.set("tethering.wifi.enabled", false, null, msg);
     }
 
     debug("setWifiTethering: " + (msg ? msg : "success"));
@@ -675,6 +700,9 @@ NetworkManager.prototype = {
       this.notifyError(true, callback, "mobile interface is not registered");
       return;
     }
+    
+    this.waitForConnectionReadyCallback = null;
+
     this._tetheringInterface[TETHERING_TYPE_WIFI].externalInterface = mobile.name;
 
     let params = this.getWifiTetheringParameters(enable, this._tetheringInterface[TETHERING_TYPE_WIFI]);
