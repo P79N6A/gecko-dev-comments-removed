@@ -12,11 +12,13 @@
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
 #include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/2D.h"
 #include "mozilla/gfx/Point.h"          
 #include "mozilla/gfx/Rect.h"           
 #include "mozilla/gfx/Types.h"          
 #include "mozilla/layers/CompositorTypes.h"
 #include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/RefPtr.h"
 #include "nsAString.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMPtr.h"                   
@@ -66,6 +68,10 @@ struct FPSState;
 
 class LayerManagerComposite : public LayerManager
 {
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::IntSize IntSize;
+  typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+
 public:
   LayerManagerComposite(Compositor* aCompositor);
   ~LayerManagerComposite();
@@ -147,8 +153,8 @@ public:
     MOZ_CRASH("Shouldn't be called for composited layer manager");
   }
 
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfx::IntSize &aSize) MOZ_OVERRIDE;
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalMaskDrawTarget(const IntSize &aSize) MOZ_OVERRIDE;
 
   virtual const char* Name() const MOZ_OVERRIDE { return ""; }
 

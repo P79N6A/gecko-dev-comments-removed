@@ -165,6 +165,11 @@ static void LayerManagerUserDataDestroy(void *data)
 class LayerManager {
   NS_INLINE_DECL_REFCOUNTING(LayerManager)
 
+protected:
+  typedef mozilla::gfx::DrawTarget DrawTarget;
+  typedef mozilla::gfx::IntSize IntSize;
+  typedef mozilla::gfx::SurfaceFormat SurfaceFormat;
+
 public:
   LayerManager()
     : mDestroyed(false)
@@ -430,9 +435,9 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalSurface(const gfx::IntSize &aSize,
-                         gfxImageFormat imageFormat);
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalDrawTarget(const IntSize &aSize,
+                            SurfaceFormat imageFormat);
 
   
 
@@ -440,8 +445,8 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface>
-    CreateOptimalMaskSurface(const gfx::IntSize &aSize);
+  virtual TemporaryRef<DrawTarget>
+    CreateOptimalMaskDrawTarget(const IntSize &aSize);
 
   
 

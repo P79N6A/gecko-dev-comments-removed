@@ -3934,17 +3934,17 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
     IntSize surfaceSizeInt(NSToIntCeil(surfaceSize.width),
                            NSToIntCeil(surfaceSize.height));
     
-    nsRefPtr<gfxASurface> surface =
-      aLayer->Manager()->CreateOptimalMaskSurface(surfaceSizeInt);
+    RefPtr<DrawTarget> dt =
+      aLayer->Manager()->CreateOptimalMaskDrawTarget(surfaceSizeInt);
 
     
-    if (!surface || surface->CairoStatus()) {
-      NS_WARNING("Could not create surface for mask layer.");
+    if (!dt) {
+      NS_WARNING("Could not create DrawTarget for mask layer.");
       SetClipCount(thebesData, 0);
       return;
     }
 
-    nsRefPtr<gfxContext> context = new gfxContext(surface);
+    nsRefPtr<gfxContext> context = new gfxContext(dt);
     context->Multiply(ThebesMatrix(imageTransform));
 
     
@@ -3954,15 +3954,20 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const DisplayItemClip& aClip,
                              0,
                              aRoundedRectClipCount);
 
+    RefPtr<SourceSurface> surface = dt->Snapshot();
+
     
     container = aLayer->Manager()->CreateImageContainer();
     NS_ASSERTION(container, "Could not create image container for mask layer.");
     nsRefPtr<Image> image = container->CreateImage(ImageFormat::CAIRO_SURFACE);
     NS_ASSERTION(image, "Could not create image container for mask layer.");
     CairoImage::Data data;
-    data.mDeprecatedSurface = surface;
+    
+    
+    data.mDeprecatedSurface = nullptr;
     data.mSize = surfaceSizeInt;
-    data.mSourceSurface = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(nullptr, surface);
+    data.mSourceSurface = surface;
+
     static_cast<CairoImage*>(image.get())->SetData(data);
     container->SetCurrentImageInTransaction(image);
 
