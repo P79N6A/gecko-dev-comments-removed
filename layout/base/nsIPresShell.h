@@ -103,8 +103,12 @@ class Touch;
 class ShadowRoot;
 } 
 
-namespace layers{
+namespace layers {
 class LayerManager;
+} 
+
+namespace gfx {
+class SourceSurface;
 } 
 } 
 
@@ -129,10 +133,9 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 
-
 #define NS_IPRESSHELL_IID \
-{ 0xdb8d5e1e, 0x6392, 0x4ec1, \
-  {0x9a, 0x29, 0x18, 0xee, 0x2e, 0xc0, 0x88, 0x9b}}
+{ 0xbccc1c01, 0x5123, 0x4f49, \
+  {0x95, 0x72, 0xc0, 0xbf, 0x50, 0x6b, 0x64, 0x18}}
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -178,6 +181,7 @@ class nsIPresShell : public nsIPresShell_base
 {
 protected:
   typedef mozilla::layers::LayerManager LayerManager;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
 
   enum eRenderFlag {
     STATE_IGNORING_VIEWPORT_SCROLLING = 0x1,
@@ -1031,10 +1035,11 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface> RenderNode(nsIDOMNode* aNode,
-                                                   nsIntRegion* aRegion,
-                                                   nsIntPoint& aPoint,
-                                                   nsIntRect* aScreenRect) = 0;
+  virtual mozilla::TemporaryRef<SourceSurface>
+  RenderNode(nsIDOMNode* aNode,
+             nsIntRegion* aRegion,
+             nsIntPoint& aPoint,
+             nsIntRect* aScreenRect) = 0;
 
   
 
@@ -1051,9 +1056,10 @@ public:
 
 
 
-  virtual already_AddRefed<gfxASurface> RenderSelection(nsISelection* aSelection,
-                                                        nsIntPoint& aPoint,
-                                                        nsIntRect* aScreenRect) = 0;
+  virtual mozilla::TemporaryRef<SourceSurface>
+  RenderSelection(nsISelection* aSelection,
+                  nsIntPoint& aPoint,
+                  nsIntRect* aScreenRect) = 0;
 
   void AddWeakFrameInternal(nsWeakFrame* aWeakFrame);
   virtual void AddWeakFrameExternal(nsWeakFrame* aWeakFrame);
