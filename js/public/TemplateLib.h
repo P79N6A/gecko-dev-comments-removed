@@ -65,16 +65,16 @@ template <class T> struct BitSize {
 };
 
 
-template <bool> struct StaticAssert {};
-template <> struct StaticAssert<true> { typedef int result; };
-
-
 
 
 
 template <size_t N> struct NBitMask {
-    typedef typename StaticAssert<N < BitSize<size_t>::result>::result _;
-    static const size_t result = (size_t(1) << N) - 1;
+    
+    
+    
+    
+    static const size_t checkPrecondition = 0 / (N < BitSize<size_t>::result);
+    static const size_t result = (size_t(1) << N) - 1 + checkPrecondition;
 };
 template <> struct NBitMask<BitSize<size_t>::result> {
     static const size_t result = size_t(-1);
