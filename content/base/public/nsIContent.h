@@ -23,6 +23,7 @@ class nsXBLBinding;
 namespace mozilla {
 namespace dom {
 class ShadowRoot;
+struct CustomElementData;
 } 
 namespace widget {
 struct IMEState;
@@ -675,6 +676,22 @@ public:
 
 
   nsIContent *GetFlattenedTreeParent() const;
+
+  
+
+
+
+
+
+  virtual mozilla::dom::CustomElementData *GetCustomElementData() const = 0;
+
+  
+
+
+
+
+
+  virtual void SetCustomElementData(mozilla::dom::CustomElementData* aData) = 0;
 
   
 

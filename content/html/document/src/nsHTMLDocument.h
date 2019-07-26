@@ -86,6 +86,8 @@ public:
   virtual NS_HIDDEN_(nsContentList*) GetFormControls();
  
   
+  using nsDocument::CreateElement;
+  using nsDocument::CreateElementNS;
   NS_FORWARD_NSIDOMDOCUMENT(nsDocument::)
 
   

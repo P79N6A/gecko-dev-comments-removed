@@ -144,6 +144,8 @@ public:
     NS_FORWARD_NSIDOMNODE_TO_NSINODE
 
     
+    using nsDocument::CreateElement;
+    using nsDocument::CreateElementNS;
     NS_FORWARD_NSIDOMDOCUMENT(XMLDocument::)
     
     using nsDocument::GetImplementation;

@@ -361,6 +361,22 @@ Element::WrapObject(JSContext *aCx, JS::Handle<JSObject*> aScope)
     return nullptr;
   }
 
+  
+  CustomElementData* data = GetCustomElementData();
+  if (obj && data) {
+    
+    JSAutoCompartment ac(aCx, obj);
+    nsDocument* document = static_cast<nsDocument*>(OwnerDoc());
+    JS::Rooted<JSObject*> prototype(aCx);
+    document->GetCustomPrototype(NodeInfo()->NamespaceID(), data->mType, &prototype);
+    if (prototype) {
+      if (!JS_WrapObject(aCx, &prototype) || !JS_SetPrototype(aCx, obj, prototype)) {
+        dom::Throw(aCx, NS_ERROR_FAILURE);
+        return nullptr;
+      }
+    }
+  }
+
   nsIDocument* doc;
   if (HasFlag(NODE_FORCE_XBL_BINDINGS)) {
     doc = OwnerDoc();
@@ -1141,6 +1157,11 @@ Element::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     SetInDocument();
 
+    if (GetCustomElementData()) {
+      
+      aDocument->EnqueueLifecycleCallback(nsIDocument::eEnteredView, this);
+    }
+
     
     UnsetFlags(NODE_FORCE_XBL_BINDINGS |
                
@@ -1298,6 +1319,11 @@ Element::UnbindFromTree(bool aDeep, bool aNullParent)
     }
 
     document->ClearBoxObjectFor(this);
+
+    if (GetCustomElementData()) {
+      
+      document->EnqueueLifecycleCallback(nsIDocument::eLeftView, this);
+    }
   }
 
   
@@ -1666,7 +1692,9 @@ Element::MaybeCheckSameAttrVal(int32_t aNamespaceID,
     if (info.mValue) {
       
       
-      if (*aHasListeners) {
+      
+      
+      if (*aHasListeners || GetCustomElementData()) {
         
         
         
@@ -1852,6 +1880,20 @@ Element::SetAttrAndNotify(int32_t aNamespaceID,
 
   UpdateState(aNotify);
 
+  nsIDocument* ownerDoc = OwnerDoc();
+  if (ownerDoc && GetCustomElementData()) {
+    nsCOMPtr<nsIAtom> oldValueAtom = aOldValue.GetAsAtom();
+    nsCOMPtr<nsIAtom> newValueAtom = aValueForAfterSetAttr.GetAsAtom();
+    LifecycleCallbackArgs args = {
+      nsDependentAtomString(aName),
+      aModType == nsIDOMMutationEvent::ADDITION ?
+        NullString() : nsDependentAtomString(oldValueAtom),
+      nsDependentAtomString(newValueAtom)
+    };
+
+    ownerDoc->EnqueueLifecycleCallback(nsIDocument::eAttributeChanged, this, &args);
+  }
+
   if (aCallAfterSetAttr) {
     rv = AfterSetAttr(aNamespaceID, aName, &aValueForAfterSetAttr, aNotify);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2034,6 +2076,18 @@ Element::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   }
 
   UpdateState(aNotify);
+
+  nsIDocument* ownerDoc = OwnerDoc();
+  if (ownerDoc && GetCustomElementData()) {
+    nsCOMPtr<nsIAtom> oldValueAtom = oldValue.GetAsAtom();
+    LifecycleCallbackArgs args = {
+      nsDependentAtomString(aName),
+      nsDependentAtomString(oldValueAtom),
+      NullString()
+    };
+
+    ownerDoc->EnqueueLifecycleCallback(nsIDocument::eAttributeChanged, this, &args);
+  }
 
   if (aNotify) {
     nsNodeUtils::AttributeChanged(this, aNameSpaceID, aName,

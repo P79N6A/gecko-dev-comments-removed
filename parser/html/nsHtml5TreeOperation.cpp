@@ -435,6 +435,9 @@ nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
         
         nsCOMPtr<nsIAtom> localName =
           Reget(attributes->getLocalNameNoBoundsCheck(i));
+        nsCOMPtr<nsIAtom> prefix = attributes->getPrefixNoBoundsCheck(i);
+        int32_t nsuri = attributes->getURINoBoundsCheck(i);
+
         if (ns == kNameSpaceID_XHTML &&
             nsHtml5Atoms::a == name &&
             nsHtml5Atoms::name == localName) {
@@ -442,17 +445,30 @@ nsHtml5TreeOperation::Perform(nsHtml5TreeOpExecutor* aBuilder,
           
           NS_ConvertUTF16toUTF8 cname(*(attributes->getValueNoBoundsCheck(i)));
           NS_ConvertUTF8toUTF16 uv(nsUnescape(cname.BeginWriting()));
-          newContent->SetAttr(attributes->getURINoBoundsCheck(i),
+          newContent->SetAttr(nsuri,
                               localName,
-                              attributes->getPrefixNoBoundsCheck(i),
+                              prefix,
                               uv,
                               false);
         } else {
-          newContent->SetAttr(attributes->getURINoBoundsCheck(i),
+          nsString& value = *(attributes->getValueNoBoundsCheck(i));
+
+          newContent->SetAttr(nsuri,
                               localName,
-                              attributes->getPrefixNoBoundsCheck(i),
-                              *(attributes->getValueNoBoundsCheck(i)),
+                              prefix,
+                              value,
                               false);
+
+          
+          
+          if (kNameSpaceID_None == nsuri && !prefix && nsGkAtoms::is == localName) {
+            ErrorResult errorResult;
+            newContent->OwnerDoc()->SwizzleCustomElement(newContent,
+                                                         value,
+                                                         newContent->GetNameSpaceID(),
+                                                         errorResult);
+
+          }
         }
       }
 

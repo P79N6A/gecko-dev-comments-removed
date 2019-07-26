@@ -257,9 +257,31 @@ NS_NewHTMLElement(Element** aResult, already_AddRefed<nsINodeInfo> aNodeInfo,
 
   NS_ASSERTION(nodeInfo->NamespaceEquals(kNameSpaceID_XHTML), 
                "Trying to HTML elements that don't have the XHTML namespace");
+
   
-  *aResult = CreateHTMLElement(parserService->
-                                 HTMLCaseSensitiveAtomTagToId(name),
+  
+  int32_t tag = parserService->HTMLCaseSensitiveAtomTagToId(name);
+  if (tag == eHTMLTag_userdefined &&
+      nsContentUtils::IsCustomElementName(name)) {
+    NS_IF_ADDREF(*aResult = NS_NewHTMLElement(nodeInfo.forget(), aFromParser));
+    if (!*aResult) {
+      return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    nsIDocument* doc = aNodeInfo.get()->GetDocument();
+
+    
+    doc->RegisterUnresolvedElement(*aResult);
+
+    
+    
+    
+    doc->EnqueueLifecycleCallback(nsIDocument::eCreated, *aResult);
+
+    return NS_OK;
+  }
+
+  *aResult = CreateHTMLElement(tag,
                                nodeInfo.forget(), aFromParser).get();
   return *aResult ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }

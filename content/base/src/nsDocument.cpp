@@ -163,6 +163,7 @@
 #include "nsSMILAnimationController.h"
 #include "imgIContainer.h"
 #include "nsSVGUtils.h"
+#include "SVGElementFactory.h"
 
 #include "nsRefreshDriver.h"
 
@@ -177,6 +178,7 @@
 #include "nsTextNode.h"
 #include "mozilla/dom/Link.h"
 #include "mozilla/dom/HTMLElementBinding.h"
+#include "mozilla/dom/SVGElementBinding.h"
 #include "nsXULAppAPI.h"
 #include "nsDOMTouchEvent.h"
 #include "mozilla/dom/Touch.h"
@@ -311,6 +313,95 @@ struct FireChangeArgs {
   bool mImageOnly;
   bool mHaveImageOverride;
 };
+
+namespace mozilla {
+namespace dom {
+
+void
+CustomElementCallback::Call()
+{
+  ErrorResult rv;
+  switch (mType) {
+    case nsIDocument::eCreated:
+      
+      
+      mOwnerData->mElementIsBeingCreated = true;
+      mOwnerData->mCreatedCallbackInvoked = true;
+      static_cast<LifecycleCreatedCallback *>(mCallback.get())->Call(mThisObject, rv);
+      mOwnerData->mElementIsBeingCreated = false;
+      break;
+    case nsIDocument::eEnteredView:
+      static_cast<LifecycleEnteredViewCallback *>(mCallback.get())->Call(mThisObject, rv);
+      break;
+    case nsIDocument::eLeftView:
+      static_cast<LifecycleLeftViewCallback *>(mCallback.get())->Call(mThisObject, rv);
+      break;
+    case nsIDocument::eAttributeChanged:
+      static_cast<LifecycleAttributeChangedCallback *>(mCallback.get())->Call(mThisObject,
+        mArgs.name, mArgs.oldValue, mArgs.newValue, rv);
+      break;
+  }
+}
+
+void
+CustomElementCallback::Traverse(nsCycleCollectionTraversalCallback& aCb) const
+{
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(aCb, "mThisObject");
+  aCb.NoteXPCOMChild(mThisObject);
+
+  NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(aCb, "mCallback");
+  aCb.NoteXPCOMChild(mCallback);
+}
+
+CustomElementCallback::CustomElementCallback(Element* aThisObject,
+                                             nsIDocument::ElementCallbackType aCallbackType,
+                                             mozilla::dom::CallbackFunction* aCallback,
+                                             CustomElementData* aOwnerData)
+  : mThisObject(aThisObject),
+    mCallback(aCallback),
+    mType(aCallbackType),
+    mOwnerData(aOwnerData)
+{
+}
+
+CustomElementDefinition::CustomElementDefinition(JSObject* aPrototype,
+                                                 nsIAtom* aType,
+                                                 nsIAtom* aLocalName,
+                                                 LifecycleCallbacks* aCallbacks,
+                                                 uint32_t aNamespaceID,
+                                                 uint32_t aDocOrder)
+  : mPrototype(aPrototype),
+    mType(aType),
+    mLocalName(aLocalName),
+    mCallbacks(aCallbacks),
+    mNamespaceID(aNamespaceID),
+    mDocOrder(aDocOrder)
+{
+}
+
+CustomElementData::CustomElementData(nsIAtom* aType)
+  : mType(aType),
+    mCurrentCallback(-1),
+    mElementIsBeingCreated(false),
+    mCreatedCallbackInvoked(true),
+    mAssociatedMicroTask(-1)
+{
+}
+
+void
+CustomElementData::RunCallbackQueue()
+{
+  
+  while (static_cast<uint32_t>(++mCurrentCallback) < mCallbackQueue.Length()) {
+    mCallbackQueue[mCurrentCallback]->Call();
+  }
+
+  mCallbackQueue.Clear();
+  mCurrentCallback = -1;
+}
+
+} 
+} 
 
 static PLDHashOperator
 FireChangeEnumerator(nsIdentifierMapEntry::ChangeCallbackEntry *aEntry, void *aArg)
@@ -1438,6 +1529,12 @@ nsDocument::nsDocument(const char* aContentType)
 
   
   SetDOMStringToNull(mLastStyleSheetSet);
+
+  if (sProcessingStack.empty()) {
+    sProcessingStack.construct();
+    
+    sProcessingStack.ref().AppendElement((CustomElementData*) nullptr);
+  }
 }
 
 static PLDHashOperator
@@ -1513,7 +1610,9 @@ nsDocument::~nsDocument()
   mInDestructor = true;
   mInUnlinkOrDeletion = true;
 
-  mCustomPrototypes.Clear();
+  if (mRegistry) {
+    mRegistry->Clear();
+  }
 
   mozilla::DropJSObjects(this);
 
@@ -1683,6 +1782,57 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsDocument)
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
 static PLDHashOperator
+CustomDefinitionsTraverse(CustomElementHashKey* aKey,
+                          CustomElementDefinition* aDefinition,
+                          void* aArg)
+{
+  nsCycleCollectionTraversalCallback* cb =
+    static_cast<nsCycleCollectionTraversalCallback*>(aArg);
+
+  nsAutoPtr<LifecycleCallbacks>& callbacks = aDefinition->mCallbacks;
+
+  if (callbacks->mAttributeChangedCallback.WasPassed()) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb,
+      "mCustomDefinitions->mCallbacks->mAttributeChangedCallback");
+    cb->NoteXPCOMChild(aDefinition->mCallbacks->mAttributeChangedCallback.Value());
+  }
+
+  if (callbacks->mCreatedCallback.WasPassed()) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb,
+      "mCustomDefinitions->mCallbacks->mCreatedCallback");
+    cb->NoteXPCOMChild(aDefinition->mCallbacks->mCreatedCallback.Value());
+  }
+
+  if (callbacks->mEnteredViewCallback.WasPassed()) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb,
+      "mCustomDefinitions->mCallbacks->mEnteredViewCallback");
+    cb->NoteXPCOMChild(aDefinition->mCallbacks->mEnteredViewCallback.Value());
+  }
+
+  if (callbacks->mLeftViewCallback.WasPassed()) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb,
+      "mCustomDefinitions->mCallbacks->mLeftViewCallback");
+    cb->NoteXPCOMChild(aDefinition->mCallbacks->mLeftViewCallback.Value());
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
+CandidatesTraverse(CustomElementHashKey* aKey,
+                   nsTArray<nsRefPtr<Element>>* aData,
+                   void* aArg)
+{
+  nsCycleCollectionTraversalCallback *cb =
+    static_cast<nsCycleCollectionTraversalCallback*>(aArg);
+  for (size_t i = 0; i < aData->Length(); ++i) {
+    NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(*cb, "mCandidatesMap->Element");
+    cb->NoteXPCOMChild(aData->ElementAt(i));
+  }
+  return PL_DHASH_NEXT;
+}
+
+static PLDHashOperator
 SubDocTraverser(PLDHashTable *table, PLDHashEntryHdr *hdr, uint32_t number,
                 void *arg)
 {
@@ -1847,6 +1997,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsDocument)
     tmp->mAnimationController->Traverse(&cb);
   }
 
+  if (tmp->mRegistry) {
+    tmp->mRegistry->mCustomDefinitions.EnumerateRead(CustomDefinitionsTraverse, &cb);
+    tmp->mRegistry->mCandidatesMap.EnumerateRead(CandidatesTraverse, &cb);
+  }
+
   if (tmp->mSubDocuments && tmp->mSubDocuments->ops) {
     PL_DHashTableEnumerate(tmp->mSubDocuments, SubDocTraverser, &cb);
   }
@@ -1860,27 +2015,32 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsDocument)
   }
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-
-struct CustomPrototypeTraceArgs {
+struct CustomDefinitionTraceArgs
+{
   const TraceCallbacks& callbacks;
   void* closure;
 };
 
-
 static PLDHashOperator
-CustomPrototypeTrace(const nsAString& aName, JS::Heap<JSObject*>& aObject, void *aArg)
+CustomDefinitionTrace(CustomElementHashKey *aKey,
+                      CustomElementDefinition *aData,
+                      void *aArg)
 {
-  CustomPrototypeTraceArgs* traceArgs = static_cast<CustomPrototypeTraceArgs*>(aArg);
-  MOZ_ASSERT(aObject, "Protocol object value must not be null");
-  traceArgs->callbacks.Trace(&aObject, "mCustomPrototypes entry", traceArgs->closure);
+  CustomDefinitionTraceArgs* traceArgs = static_cast<CustomDefinitionTraceArgs*>(aArg);
+  MOZ_ASSERT(aData, "Definition must not be null");
+  traceArgs->callbacks.Trace(&aData->mPrototype, "mCustomDefinitions prototype",
+                             traceArgs->closure);
   return PL_DHASH_NEXT;
 }
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsDocument)
 
 NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsDocument)
-  CustomPrototypeTraceArgs customPrototypeArgs = { aCallbacks, aClosure };
-  tmp->mCustomPrototypes.Enumerate(CustomPrototypeTrace, &customPrototypeArgs);
+  CustomDefinitionTraceArgs customDefinitionArgs = { aCallbacks, aClosure };
+  if (tmp->mRegistry) {
+    tmp->mRegistry->mCustomDefinitions.EnumerateRead(CustomDefinitionTrace,
+                                                     &customDefinitionArgs);
+  }
   if (tmp->PreservingWrapper()) {
     NS_IMPL_CYCLE_COLLECTION_TRACE_JSVAL_MEMBER_CALLBACK(mExpandoAndGeneration.expando);
   }
@@ -1951,7 +2111,9 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDocument)
   tmp->mIdentifierMap.Clear();
   tmp->mExpandoAndGeneration.Unlink();
 
-  tmp->mCustomPrototypes.Clear();
+  if (tmp->mRegistry) {
+    tmp->mRegistry->Clear();
+  }
 
   if (tmp->mAnimationController) {
     tmp->mAnimationController->Unlink();
@@ -2155,7 +2317,9 @@ nsDocument::ResetToURI(nsIURI *aURI, nsILoadGroup *aLoadGroup,
   }
   mInUnlinkOrDeletion = oldVal;
 
-  mCustomPrototypes.Clear();
+  if (mRegistry) {
+    mRegistry->Clear();
+  }
 
   
   ResetStylesheetsToURI(aURI);
@@ -4347,6 +4511,7 @@ nsDocument::SetScriptGlobalObject(nsIScriptGlobalObject *aScriptGlobalObject)
     }
 
     MaybeRescheduleAnimationFrameNotifications();
+    mRegistry = new Registry();
   }
 
   
@@ -4990,6 +5155,64 @@ nsIDocument::CreateElement(const nsAString& aTagName, ErrorResult& rv)
   return dont_AddRef(content.forget().get()->AsElement());
 }
 
+void
+nsDocument::SwizzleCustomElement(Element* aElement,
+                                 const nsAString& aTypeExtension,
+                                 uint32_t aNamespaceID,
+                                 ErrorResult& rv)
+{
+  nsCOMPtr<nsIAtom> typeAtom(do_GetAtom(aTypeExtension));
+  nsCOMPtr<nsIAtom> tagAtom = aElement->Tag();
+  if (!mRegistry || tagAtom == typeAtom) {
+    return;
+  }
+
+  CustomElementDefinition* data;
+  CustomElementHashKey key(aNamespaceID, typeAtom);
+  if (!mRegistry->mCustomDefinitions.Get(&key, &data)) {
+    
+    
+    
+    RegisterUnresolvedElement(aElement, typeAtom);
+    return;
+  }
+
+  if (data->mLocalName != tagAtom) {
+    
+    
+    
+    return;
+  }
+
+  if (!aElement->HasAttr(kNameSpaceID_None, nsGkAtoms::is)) {
+    
+    aElement->SetAttr(kNameSpaceID_None, nsGkAtoms::is, aTypeExtension, true);
+  }
+
+  
+  
+  EnqueueLifecycleCallback(nsIDocument::eCreated, aElement, nullptr, data);
+}
+
+already_AddRefed<Element>
+nsDocument::CreateElement(const nsAString& aTagName,
+                          const nsAString& aTypeExtension,
+                          ErrorResult& rv)
+{
+  nsRefPtr<Element> elem = nsIDocument::CreateElement(aTagName, rv);
+  if (rv.Failed()) {
+    return nullptr;
+  }
+
+  SwizzleCustomElement(elem, aTypeExtension,
+                       GetDefaultNamespaceID(), rv);
+  if (rv.Failed()) {
+    return nullptr;
+  }
+
+  return elem.forget();
+}
+
 NS_IMETHODIMP
 nsDocument::CreateElementNS(const nsAString& aNamespaceURI,
                             const nsAString& aQualifiedName,
@@ -5025,6 +5248,36 @@ nsIDocument::CreateElementNS(const nsAString& aNamespaceURI,
     return nullptr;
   }
   return element.forget();
+}
+
+already_AddRefed<Element>
+nsDocument::CreateElementNS(const nsAString& aNamespaceURI,
+                            const nsAString& aQualifiedName,
+                            const nsAString& aTypeExtension,
+                            ErrorResult& rv)
+{
+  nsRefPtr<Element> elem = nsIDocument::CreateElementNS(aNamespaceURI,
+                                                        aQualifiedName,
+                                                        rv);
+  if (rv.Failed()) {
+    return nullptr;
+  }
+
+  int32_t nameSpaceId = kNameSpaceID_Wildcard;
+  if (!aNamespaceURI.EqualsLiteral("*")) {
+    rv = nsContentUtils::NameSpaceManager()->RegisterNameSpace(aNamespaceURI,
+                                                               nameSpaceId);
+    if (rv.Failed()) {
+      return nullptr;
+    }
+  }
+
+  SwizzleCustomElement(elem, aTypeExtension, nameSpaceId, rv);
+  if (rv.Failed()) {
+    return nullptr;
+  }
+
+  return elem.forget();
 }
 
 NS_IMETHODIMP
@@ -5211,8 +5464,8 @@ nsIDocument::CreateAttributeNS(const nsAString& aNamespaceURI,
   return attribute.forget();
 }
 
-static bool
-CustomElementConstructor(JSContext *aCx, unsigned aArgc, JS::Value* aVp)
+bool
+nsDocument::CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp)
 {
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
 
@@ -5221,24 +5474,283 @@ CustomElementConstructor(JSContext *aCx, unsigned aArgc, JS::Value* aVp)
   nsCOMPtr<nsPIDOMWindow> window = do_QueryWrapper(aCx, global);
   MOZ_ASSERT(window, "Should have a non-null window");
 
-  nsIDocument* document = window->GetDoc();
+  nsDocument* document = static_cast<nsDocument*>(window->GetDoc());
 
   
   JSString* jsFunName =
     JS_GetFunctionId(JS_ValueToFunction(aCx, args.calleev()));
   nsDependentJSString elemName;
   if (!elemName.init(aCx, jsFunName)) {
-    return false;
+    return true;
   }
 
+  nsCOMPtr<nsIAtom> typeAtom(do_GetAtom(elemName));
+  CustomElementHashKey key(kNameSpaceID_None, typeAtom);
+  CustomElementDefinition* definition;
+  if (!document->mRegistry->mCustomDefinitions.Get(&key, &definition)) {
+    return true;
+  }
+
+  nsDependentAtomString localName(definition->mLocalName);
+
   nsCOMPtr<nsIContent> newElement;
-  nsresult rv = document->CreateElem(elemName, nullptr, kNameSpaceID_XHTML,
+  nsresult rv = document->CreateElem(localName, nullptr,
+                                     definition->mNamespaceID,
                                      getter_AddRefs(newElement));
+  NS_ENSURE_SUCCESS(rv, true);
+
+  ErrorResult errorResult;
+  nsCOMPtr<Element> element = do_QueryInterface(newElement);
+  document->SwizzleCustomElement(element, elemName, definition->mNamespaceID,
+                                 errorResult);
+  if (errorResult.Failed()) {
+    return true;
+  }
+
   rv = nsContentUtils::WrapNative(aCx, global, newElement, newElement,
                                   args.rval());
-  NS_ENSURE_SUCCESS(rv, false);
+  NS_ENSURE_SUCCESS(rv, true);
 
   return true;
+}
+
+nsresult
+nsDocument::RegisterUnresolvedElement(Element* aElement, nsIAtom* aTypeName)
+{
+  if (!mRegistry) {
+    return NS_OK;
+  }
+
+  nsINodeInfo* info = aElement->NodeInfo();
+
+  
+  
+  
+  nsCOMPtr<nsIAtom> typeName = aTypeName;
+  if (!typeName) {
+    typeName = info->NameAtom();
+  }
+
+  CustomElementHashKey key(info->NamespaceID(), typeName);
+  if (mRegistry->mCustomDefinitions.Get(&key)) {
+    return NS_OK;
+  }
+
+  nsTArray<nsRefPtr<Element>>* unresolved;
+  mRegistry->mCandidatesMap.Get(&key, &unresolved);
+  if (!unresolved) {
+    unresolved = new nsTArray<nsRefPtr<Element>>();
+    
+    mRegistry->mCandidatesMap.Put(&key, unresolved);
+  }
+
+  nsRefPtr<Element>* elem = unresolved->AppendElement();
+  *elem = aElement;
+
+  return NS_OK;
+}
+
+namespace {
+
+class ProcessStackRunner MOZ_FINAL : public nsIRunnable
+{
+  public:
+  ProcessStackRunner(bool aIsBaseQueue = false)
+    : mIsBaseQueue(aIsBaseQueue)
+  {
+  }
+  NS_DECL_ISUPPORTS
+  NS_IMETHOD Run() MOZ_OVERRIDE
+  {
+    nsDocument::ProcessTopElementQueue(mIsBaseQueue);
+    return NS_OK;
+  }
+  bool mIsBaseQueue;
+};
+
+NS_IMPL_ISUPPORTS1(ProcessStackRunner, nsIRunnable);
+
+} 
+
+void
+nsDocument::EnqueueLifecycleCallback(nsIDocument::ElementCallbackType aType,
+                                     Element* aCustomElement,
+                                     LifecycleCallbackArgs* aArgs,
+                                     CustomElementDefinition* aDefinition)
+{
+  if (!mRegistry) {
+    
+    
+    return;
+  }
+
+  CustomElementData* elementData = aCustomElement->GetCustomElementData();
+
+  
+  CustomElementDefinition* definition = aDefinition;
+  if (!definition) {
+    nsINodeInfo* info = aCustomElement->NodeInfo();
+
+    
+    
+    nsCOMPtr<nsIAtom> typeAtom = elementData ?
+      elementData->mType.get() : info->NameAtom();
+
+    CustomElementHashKey key(info->NamespaceID(), typeAtom);
+    if (!mRegistry->mCustomDefinitions.Get(&key, &definition) ||
+        definition->mLocalName != info->NameAtom()) {
+      
+      
+      return;
+    }
+  }
+
+  if (!elementData) {
+    
+    
+    elementData = new CustomElementData(definition->mType);
+    
+    aCustomElement->SetCustomElementData(elementData);
+    MOZ_ASSERT(aType == nsIDocument::eCreated,
+               "First callback should be the created callback");
+  }
+
+  
+  CallbackFunction* func = nullptr;
+  switch (aType) {
+    case nsIDocument::eCreated:
+      if (definition->mCallbacks->mCreatedCallback.WasPassed()) {
+        func = definition->mCallbacks->mCreatedCallback.Value();
+      }
+      break;
+
+    case nsIDocument::eEnteredView:
+      if (definition->mCallbacks->mEnteredViewCallback.WasPassed()) {
+        func = definition->mCallbacks->mEnteredViewCallback.Value();
+      }
+      break;
+
+    case nsIDocument::eLeftView:
+      if (definition->mCallbacks->mLeftViewCallback.WasPassed()) {
+        func = definition->mCallbacks->mLeftViewCallback.Value();
+      }
+      break;
+
+    case nsIDocument::eAttributeChanged:
+      if (definition->mCallbacks->mAttributeChangedCallback.WasPassed()) {
+        func = definition->mCallbacks->mAttributeChangedCallback.Value();
+      }
+      break;
+  }
+
+  
+  if (!func) {
+    return;
+  }
+
+  if (aType == nsIDocument::eCreated) {
+    elementData->mCreatedCallbackInvoked = false;
+  } else if (!elementData->mCreatedCallbackInvoked) {
+    
+    
+    return;
+  }
+
+  
+  CustomElementCallback* callback = new CustomElementCallback(aCustomElement,
+                                                              aType,
+                                                              func,
+                                                              elementData);
+  
+  elementData->mCallbackQueue.AppendElement(callback);
+  if (aArgs) {
+    callback->SetArgs(*aArgs);
+  }
+
+  if (!elementData->mElementIsBeingCreated) {
+    CustomElementData* lastData =
+      sProcessingStack.ref().SafeLastElement(nullptr);
+
+    
+    
+    
+    
+    
+    bool shouldPushElementQueue = nsContentUtils::MicroTaskLevel() > 0 &&
+      (!lastData || lastData->mAssociatedMicroTask <
+         static_cast<int32_t>(nsContentUtils::MicroTaskLevel()));
+
+    
+    
+    if (shouldPushElementQueue) {
+      
+      
+      sProcessingStack.ref().AppendElement((CustomElementData*) nullptr);
+    }
+
+    sProcessingStack.ref().AppendElement(elementData);
+    elementData->mAssociatedMicroTask =
+      static_cast<int32_t>(nsContentUtils::MicroTaskLevel());
+
+    
+    
+    if (shouldPushElementQueue) {
+      
+      
+      
+      
+      nsContentUtils::AddScriptRunner(new ProcessStackRunner());
+    }
+  }
+}
+
+
+void
+nsDocument::ProcessBaseElementQueue()
+{
+  
+  
+  if (sProcessingBaseElementQueue || sProcessingStack.empty()) {
+    return;
+  }
+
+  MOZ_ASSERT(nsContentUtils::MicroTaskLevel() == 0);
+  sProcessingBaseElementQueue = true;
+  nsContentUtils::AddScriptRunner(new ProcessStackRunner(true));
+}
+
+
+void
+nsDocument::ProcessTopElementQueue(bool aIsBaseQueue)
+{
+  MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
+
+  nsTArray<CustomElementData*>& stack = sProcessingStack.ref();
+  uint32_t firstQueue = stack.LastIndexOf((CustomElementData*) nullptr);
+
+  if (aIsBaseQueue && firstQueue != 0) {
+    return;
+  }
+
+  for (uint32_t i = firstQueue + 1; i < stack.Length(); ++i) {
+    
+    
+    
+    if (stack[i]->mAssociatedMicroTask != -1) {
+      stack[i]->RunCallbackQueue();
+      stack[i]->mAssociatedMicroTask = -1;
+    }
+  }
+
+  
+  
+  if (firstQueue != 0) {
+    stack.SetLength(firstQueue);
+  } else {
+    
+    stack.SetLength(1);
+    sProcessingBaseElementQueue = false;
+  }
 }
 
 bool
@@ -5249,19 +5761,51 @@ nsDocument::RegisterEnabled()
   return sPrefValue;
 }
 
+
+Maybe<nsTArray<mozilla::dom::CustomElementData*>>
+nsDocument::sProcessingStack;
+
+
+bool
+nsDocument::sProcessingBaseElementQueue;
+
 JSObject*
-nsDocument::Register(JSContext* aCx, const nsAString& aName,
-                     const ElementRegistrationOptions& aOptions,
-                     ErrorResult& rv)
+nsDocument::RegisterElement(JSContext* aCx, const nsAString& aType,
+                            const ElementRegistrationOptions& aOptions,
+                            ErrorResult& rv)
 {
-  nsAutoString lcName;
-  nsContentUtils::ASCIIToLower(aName, lcName);
-  if (!StringBeginsWith(lcName, NS_LITERAL_STRING("x-"))) {
-    rv.Throw(NS_ERROR_DOM_INVALID_CHARACTER_ERR);
+  if (!mRegistry) {
+    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
-  if (NS_FAILED(nsContentUtils::CheckQName(lcName, false))) {
-    rv.Throw(NS_ERROR_DOM_INVALID_CHARACTER_ERR);
+
+  Registry::DefinitionMap& definitions = mRegistry->mCustomDefinitions;
+
+  
+  nsAutoString lcType;
+  nsContentUtils::ASCIIToLower(aType, lcType);
+
+  
+  
+  nsAutoString lcName;
+  if (IsHTML()) {
+    nsContentUtils::ASCIIToLower(aOptions.mExtends, lcName);
+  } else {
+    lcName.Assign(aOptions.mExtends);
+  }
+
+  nsCOMPtr<nsIAtom> typeAtom(do_GetAtom(lcType));
+  if (!nsContentUtils::IsCustomElementName(typeAtom)) {
+    rv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+    return nullptr;
+  }
+
+  
+  
+  
+  CustomElementHashKey duplicateFinder(kNameSpaceID_None, typeAtom);
+  if (definitions.Get(&duplicateFinder)) {
+    rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
     return nullptr;
   }
 
@@ -5281,6 +5825,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
     return nullptr;
   }
 
+  int32_t namespaceID = kNameSpaceID_XHTML;
   JS::Rooted<JSObject*> protoObject(aCx);
   if (!aOptions.mPrototype) {
     protoObject = JS_NewObject(aCx, nullptr, htmlProto, JS::NullPtr());
@@ -5292,98 +5837,159 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
     
     
     protoObject = aOptions.mPrototype;
-    if (!JS_WrapObject(aCx, &protoObject)) {
+    if (JS_GetGlobalForObject(aCx, protoObject) != global) {
+      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return nullptr;
+    }
+
+    
+    
+    
+    const js::Class* clasp = js::GetObjectClass(protoObject);
+    if (IsDOMIfaceAndProtoClass(clasp)) {
+      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
+      return nullptr;
+    }
+
+    JS::Rooted<JSPropertyDescriptor> descRoot(aCx);
+    JS::MutableHandle<JSPropertyDescriptor> desc(&descRoot);
+    if(!JS_GetPropertyDescriptor(aCx, protoObject, "constructor", 0, desc)) {
       rv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
 
     
-    JS::Rooted<JSObject*> protoProto(aCx);
-    if (!JS_GetPrototype(aCx, protoObject, &protoProto)) {
-      rv.Throw(NS_ERROR_UNEXPECTED);
+    if (desc.isPermanent()) {
+      rv.Throw(NS_ERROR_DOM_NOT_SUPPORTED_ERR);
       return nullptr;
     }
+
+    JS::Handle<JSObject*> svgProto(
+      SVGElementBinding::GetProtoObject(aCx, global));
+    if (!svgProto) {
+      rv.Throw(NS_ERROR_OUT_OF_MEMORY);
+      return nullptr;
+    }
+
+    JS::Rooted<JSObject*> protoProto(aCx, protoObject);
+
+    
+    
     while (protoProto) {
       if (protoProto == htmlProto) {
         break;
       }
+
+      if (protoProto == svgProto) {
+        namespaceID = kNameSpaceID_SVG;
+        break;
+      }
+
       if (!JS_GetPrototype(aCx, protoProto, &protoProto)) {
         rv.Throw(NS_ERROR_UNEXPECTED);
         return nullptr;
       }
     }
+  }
 
-    if (!protoProto) {
-      rv.Throw(NS_ERROR_DOM_TYPE_MISMATCH_ERR);
+  
+  nsCOMPtr<nsIAtom> nameAtom;
+  if (!lcName.IsEmpty()) {
+    
+    bool known = false;
+    nameAtom = do_GetAtom(lcName);
+    if (namespaceID == kNameSpaceID_XHTML) {
+      nsIParserService* ps = nsContentUtils::GetParserService();
+      if (!ps) {
+        rv.Throw(NS_ERROR_UNEXPECTED);
+        return nullptr;
+      }
+
+      known =
+        ps->HTMLCaseSensitiveAtomTagToId(nameAtom) != eHTMLTag_userdefined;
+    } else {
+      known = SVGElementFactory::Exists(nameAtom);
+    }
+
+    
+    
+    
+    if (!known) {
+      rv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
       return nullptr;
+    }
+  } else {
+    
+    if (namespaceID == kNameSpaceID_SVG) {
+      rv.Throw(NS_ERROR_UNEXPECTED);
+      return nullptr;
+    }
+
+    nameAtom = typeAtom;
+  }
+
+  nsAutoPtr<LifecycleCallbacks> callbacksHolder(new LifecycleCallbacks());
+  JS::RootedValue rootedv(aCx, JS::ObjectValue(*protoObject));
+  if (!callbacksHolder->Init(aCx, rootedv)) {
+    return nullptr;
+  }
+
+  
+  CustomElementHashKey key(namespaceID, typeAtom);
+  LifecycleCallbacks* callbacks = callbacksHolder.forget();
+  CustomElementDefinition* definition =
+    new CustomElementDefinition(protoObject,
+                                typeAtom,
+                                nameAtom,
+                                callbacks,
+                                namespaceID,
+                                0 );
+  definitions.Put(&key, definition);
+
+  
+  nsAutoPtr<nsTArray<nsRefPtr<Element>>> candidates;
+  mRegistry->mCandidatesMap.RemoveAndForget(&key, candidates);
+  if (candidates) {
+    for (size_t i = 0; i < candidates->Length(); ++i) {
+      Element *elem = candidates->ElementAt(i);
+
+      
+      
+      
+      if (elem->NodeInfo()->NameAtom() != nameAtom) {
+        
+        continue;
+      }
+
+      nsWrapperCache* cache;
+      CallQueryInterface(elem, &cache);
+      MOZ_ASSERT(cache, "Element doesn't support wrapper cache?");
+
+      JS::RootedObject wrapper(aCx);
+      if ((wrapper = cache->GetWrapper())) {
+        if (!JS_SetPrototype(aCx, wrapper, protoObject)) {
+          continue;
+        }
+      }
+
+      EnqueueLifecycleCallback(nsIDocument::eCreated, elem, nullptr, definition);
+      if (elem->GetCurrentDoc()) {
+        
+        
+        
+        
+        elem->GetCustomElementData()->mCreatedCallbackInvoked = true;
+
+        EnqueueLifecycleCallback(nsIDocument::eEnteredView, elem, nullptr, definition);
+      }
     }
   }
 
   
-  mCustomPrototypes.Put(lcName, protoObject);
-
   
-  nsRefPtr<nsContentList> list = GetElementsByTagName(lcName);
-  for (uint32_t i = 0; i < list->Length(false); i++) {
-    nsCOMPtr<nsINode> oldNode = list->Item(i, false);
-
-    
-    
-    nsCOMPtr<nsINode> newNode;
-    rv = nsNodeUtils::Clone(oldNode, true, getter_AddRefs(newNode));
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    nsINode* parentNode = oldNode->GetParentNode();
-    MOZ_ASSERT(parentNode, "Node obtained by GetElementsByTagName.");
-    nsCOMPtr<Element> newElement = do_QueryInterface(newNode);
-    MOZ_ASSERT(newElement, "Cloned of node obtained by GetElementsByTagName.");
-
-    parentNode->ReplaceChild(*newNode, *oldNode, rv);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    
-    nsCOMPtr<nsIDOMEvent> event;
-    rv = CreateEvent(NS_LITERAL_STRING("elementreplace"), getter_AddRefs(event));
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    if (aOptions.mLifecycle.mCreated) {
-      
-      
-      ErrorResult dummy;
-      aOptions.mLifecycle.mCreated->Call(newElement, dummy);
-    }
-
-    nsCOMPtr<nsIDOMElementReplaceEvent> ptEvent = do_QueryInterface(event);
-    MOZ_ASSERT(ptEvent);
-
-    nsCOMPtr<nsIDOMElement> element = do_QueryInterface(newElement);
-    rv = ptEvent->InitElementReplaceEvent(NS_LITERAL_STRING("elementreplace"),
-                                          false, false, element);
-    if (rv.Failed()) {
-      return nullptr;
-    }
-
-    event->SetTrusted(true);
-    event->SetTarget(oldNode);
-    nsEventDispatcher::DispatchDOMEvent(oldNode, nullptr, event,
-                                        nullptr, nullptr);
-  }
-
-  nsContentUtils::DispatchTrustedEvent(this, static_cast<nsIDocument*>(this),
-                                       NS_LITERAL_STRING("elementupgrade"),
-                                       true, true);
-
-  
-  
-  JSFunction* constructor = JS_NewFunction(aCx, CustomElementConstructor, 0,
+  JSFunction* constructor = JS_NewFunction(aCx, nsDocument::CustomElementConstructor, 0,
                                            JSFUN_CONSTRUCTOR, JS::NullPtr(),
-                                           NS_ConvertUTF16toUTF8(lcName).get());
+                                           NS_ConvertUTF16toUTF8(lcType).get());
   JSObject* constructorObject = JS_GetFunctionObject(constructor);
   return constructorObject;
 }
@@ -7851,7 +8457,9 @@ nsDocument::Destroy()
   
   mExternalResourceMap.Shutdown();
 
-  mCustomPrototypes.Clear();
+  if (mRegistry) {
+    mRegistry->Clear();
+  }
 
   
   
@@ -11107,6 +11715,7 @@ void
 nsDocument::XPCOMShutdown()
 {
   gPendingPointerLockRequest = nullptr;
+  sProcessingStack.destroyIfConstructed();
 }
 
 void

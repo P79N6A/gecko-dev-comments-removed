@@ -7,6 +7,7 @@
 
 
 
+
 #ifndef nsDocument_h___
 #define nsDocument_h___
 
@@ -99,6 +100,8 @@ class nsISecurityConsoleMessage;
 namespace mozilla {
 namespace dom {
 class UndoManager;
+class LifecycleCallbacks;
+class CallbackFunction;
 }
 }
 
@@ -236,6 +239,153 @@ private:
   nsAutoPtr<nsTHashtable<ChangeCallbackEntry> > mChangeCallbacks;
   nsRefPtr<Element> mImageElement;
 };
+
+namespace mozilla {
+namespace dom {
+
+class CustomElementHashKey : public PLDHashEntryHdr
+{
+public:
+  typedef CustomElementHashKey *KeyType;
+  typedef const CustomElementHashKey *KeyTypePointer;
+
+  CustomElementHashKey(int32_t aNamespaceID, nsIAtom *aAtom)
+    : mNamespaceID(aNamespaceID),
+      mAtom(aAtom)
+  {}
+  CustomElementHashKey(const CustomElementHashKey *aKey)
+    : mNamespaceID(aKey->mNamespaceID),
+      mAtom(aKey->mAtom)
+  {}
+  ~CustomElementHashKey()
+  {}
+
+  KeyType GetKey() const { return const_cast<KeyType>(this); }
+  bool KeyEquals(const KeyTypePointer aKey) const
+  {
+    MOZ_ASSERT(mNamespaceID != kNameSpaceID_None,
+               "This equals method is not transitive, nor symmetric. "
+               "A key with a namespace of kNamespaceID_None should "
+               "not be stored in a hashtable.");
+    return (kNameSpaceID_None == aKey->mNamespaceID ||
+            mNamespaceID == aKey->mNamespaceID) &&
+           aKey->mAtom == mAtom;
+  }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
+  static PLDHashNumber HashKey(const KeyTypePointer aKey)
+  {
+    return aKey->mAtom->hash();
+  }
+  enum { ALLOW_MEMMOVE = true };
+
+private:
+  int32_t mNamespaceID;
+  nsCOMPtr<nsIAtom> mAtom;
+};
+
+struct LifecycleCallbackArgs
+{
+  nsString name;
+  nsString oldValue;
+  nsString newValue;
+};
+
+struct CustomElementData;
+
+class CustomElementCallback
+{
+public:
+  CustomElementCallback(Element* aThisObject,
+                        nsIDocument::ElementCallbackType aCallbackType,
+                        mozilla::dom::CallbackFunction* aCallback,
+                        CustomElementData* aOwnerData);
+  void Traverse(nsCycleCollectionTraversalCallback& aCb) const;
+  void Call();
+  void SetArgs(LifecycleCallbackArgs& aArgs)
+  {
+    MOZ_ASSERT(mType == nsIDocument::eAttributeChanged,
+               "Arguments are only used by attribute changed callback.");
+    mArgs = aArgs;
+  }
+
+private:
+  
+  nsRefPtr<mozilla::dom::Element> mThisObject;
+  nsRefPtr<mozilla::dom::CallbackFunction> mCallback;
+  
+  nsIDocument::ElementCallbackType mType;
+  
+  
+  LifecycleCallbackArgs mArgs;
+  
+  
+  CustomElementData* mOwnerData;
+};
+
+
+
+struct CustomElementData
+{
+  CustomElementData(nsIAtom* aType);
+  
+  
+  nsTArray<nsAutoPtr<CustomElementCallback>> mCallbackQueue;
+  
+  
+  nsCOMPtr<nsIAtom> mType;
+  
+  int32_t mCurrentCallback;
+  
+  bool mElementIsBeingCreated;
+  
+  
+  bool mCreatedCallbackInvoked;
+  
+  
+  
+  int32_t mAssociatedMicroTask;
+
+  
+  void RunCallbackQueue();
+};
+
+
+
+struct CustomElementDefinition
+{
+  CustomElementDefinition(JSObject* aPrototype,
+                          nsIAtom* aType,
+                          nsIAtom* aLocalName,
+                          mozilla::dom::LifecycleCallbacks* aCallbacks,
+                          uint32_t aNamespaceID,
+                          uint32_t aDocOrder);
+
+  
+  JS::Heap<JSObject *> mPrototype;
+
+  
+  nsCOMPtr<nsIAtom> mType;
+
+  
+  nsCOMPtr<nsIAtom> mLocalName;
+
+  
+  nsAutoPtr<mozilla::dom::LifecycleCallbacks> mCallbacks;
+
+  
+  
+  bool mElementIsBeingCreated;
+
+  
+  int32_t mNamespaceID;
+
+  
+  uint32_t mDocOrder;
+};
+
+} 
+} 
 
 class nsDocHeaderData
 {
@@ -996,25 +1146,57 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() MOZ_OVERRIDE { return this; }
 
-  void GetCustomPrototype(const nsAString& aElementName, JS::MutableHandle<JSObject*> prototype)
+  virtual void EnqueueLifecycleCallback(nsIDocument::ElementCallbackType aType,
+                                        Element* aCustomElement,
+                                        mozilla::dom::LifecycleCallbackArgs* aArgs = nullptr,
+                                        mozilla::dom::CustomElementDefinition* aDefinition = nullptr) MOZ_OVERRIDE;
+
+  static void ProcessTopElementQueue(bool aIsBaseQueue = false);
+
+  void GetCustomPrototype(int32_t aNamespaceID,
+                          nsIAtom* aAtom,
+                          JS::MutableHandle<JSObject*> prototype)
   {
-    mCustomPrototypes.Get(aElementName, prototype.address());
+    if (!mRegistry) {
+      prototype.set(nullptr);
+      return;
+    }
+
+    mozilla::dom::CustomElementHashKey key(aNamespaceID, aAtom);
+    mozilla::dom::CustomElementDefinition* definition;
+    if (mRegistry->mCustomDefinitions.Get(&key, &definition)) {
+      prototype.set(definition->mPrototype);
+    } else {
+      prototype.set(nullptr);
+    }
   }
 
   static bool RegisterEnabled();
+
+  virtual nsresult RegisterUnresolvedElement(mozilla::dom::Element* aElement,
+                                             nsIAtom* aTypeName = nullptr) MOZ_OVERRIDE;
 
   
   virtual mozilla::dom::DOMImplementation*
     GetImplementation(mozilla::ErrorResult& rv) MOZ_OVERRIDE;
   virtual JSObject*
-  Register(JSContext* aCx, const nsAString& aName,
-           const mozilla::dom::ElementRegistrationOptions& aOptions,
-           mozilla::ErrorResult& rv) MOZ_OVERRIDE;
+    RegisterElement(JSContext* aCx, const nsAString& aName,
+                    const mozilla::dom::ElementRegistrationOptions& aOptions,
+                    mozilla::ErrorResult& rv) MOZ_OVERRIDE;
   virtual nsIDOMStyleSheetList* StyleSheets() MOZ_OVERRIDE;
   virtual void SetSelectedStyleSheetSet(const nsAString& aSheetSet) MOZ_OVERRIDE;
   virtual void GetLastStyleSheetSet(nsString& aSheetSet) MOZ_OVERRIDE;
   virtual nsIDOMDOMStringList* StyleSheetSets() MOZ_OVERRIDE;
   virtual void EnableStyleSheetsForSet(const nsAString& aSheetSet) MOZ_OVERRIDE;
+  using nsIDocument::CreateElement;
+  using nsIDocument::CreateElementNS;
+  virtual already_AddRefed<Element> CreateElement(const nsAString& aTagName,
+                                                  const nsAString& aTypeExtension,
+                                                  mozilla::ErrorResult& rv) MOZ_OVERRIDE;
+  virtual already_AddRefed<Element> CreateElementNS(const nsAString& aNamespaceURI,
+                                                    const nsAString& aQualifiedName,
+                                                    const nsAString& aTypeExtension,
+                                                    mozilla::ErrorResult& rv) MOZ_OVERRIDE;
 
 protected:
   friend class nsNodeUtils;
@@ -1175,9 +1357,59 @@ protected:
   
   nsWeakPtr mFullscreenRoot;
 
+private:
+  struct Registry
+  {
+    NS_INLINE_DECL_REFCOUNTING(Registry)
+
+    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                             mozilla::dom::CustomElementDefinition>
+      DefinitionMap;
+    typedef nsClassHashtable<mozilla::dom::CustomElementHashKey,
+                             nsTArray<nsRefPtr<mozilla::dom::Element>>>
+      CandidateMap;
+
+    
+    
+    DefinitionMap mCustomDefinitions;
+
+    
+    
+    
+    CandidateMap mCandidatesMap;
+
+    void Clear()
+    {
+      mCustomDefinitions.Clear();
+      mCandidatesMap.Clear();
+    }
+  };
+
   
   
-  nsJSThingHashtable<nsStringHashKey, JSObject*> mCustomPrototypes;
+  
+  
+  
+  
+  static mozilla::Maybe<nsTArray<mozilla::dom::CustomElementData*>> sProcessingStack;
+
+  
+  
+  static bool sProcessingBaseElementQueue;
+
+  static bool CustomElementConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp);
+
+public:
+  static void ProcessBaseElementQueue();
+
+  
+  virtual void SwizzleCustomElement(Element* aElement,
+                                    const nsAString& aTypeExtension,
+                                    uint32_t aNamespaceID,
+                                    mozilla::ErrorResult& rv);
+
+  
+  nsRefPtr<Registry> mRegistry;
 
   nsRefPtr<nsEventListenerManager> mListenerManager;
   nsCOMPtr<nsIDOMStyleSheetList> mDOMStyleSheets;

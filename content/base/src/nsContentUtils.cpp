@@ -65,6 +65,7 @@
 #include "nsCycleCollector.h"
 #include "nsDataHashtable.h"
 #include "nsDocShellCID.h"
+#include "nsDocument.h"
 #include "nsDOMCID.h"
 #include "nsDOMDataTransfer.h"
 #include "nsDOMJSUtils.h"
@@ -2423,6 +2424,39 @@ nsContentUtils::NewURIWithDocumentCharset(nsIURI** aResult,
 }
 
 
+bool
+nsContentUtils::IsCustomElementName(nsIAtom* aName)
+{
+  
+  
+  
+  nsDependentAtomString str(aName);
+  const char16_t* colon;
+  if (NS_FAILED(nsContentUtils::CheckQName(str, false, &colon)) || colon ||
+      str.FindChar('-') == -1) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  return aName != nsGkAtoms::annotation_xml_ &&
+         aName != nsGkAtoms::colorProfile &&
+         aName != nsGkAtoms::font_face &&
+         aName != nsGkAtoms::font_face_src &&
+         aName != nsGkAtoms::font_face_uri &&
+         aName != nsGkAtoms::font_face_format &&
+         aName != nsGkAtoms::font_face_name &&
+         aName != nsGkAtoms::missingGlyph;
+}
+
+
 nsresult
 nsContentUtils::CheckQName(const nsAString& aQualifiedName,
                            bool aNamespaceAware,
@@ -4757,6 +4791,7 @@ nsContentUtils::LeaveMicroTask()
   MOZ_ASSERT(NS_IsMainThread());
   if (--sMicroTaskLevel == 0) {
     nsDOMMutationObserver::HandleMutations();
+    nsDocument::ProcessBaseElementQueue();
   }
 }
 
