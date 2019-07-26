@@ -7,7 +7,7 @@ Cu.import("resource:///modules/devtools/dbg-client.jsm");
 function run_test()
 {
   
-  DebuggerServer.init(function () { return true; });
+  DebuggerServer.init(function () true);
   DebuggerServer.addActors("resource://test/testactors.js");
 
   add_test(test_socket_conn);
@@ -59,8 +59,33 @@ function test_socket_conn()
 
 function test_socket_shutdown()
 {
-  do_check_eq(DebuggerServer._socketConnections, 1);
-  do_check_true(DebuggerServer.closeListener());
+  let count = 0;
+  wait_for_server_shutdown(count);
+}
+
+function wait_for_server_shutdown(aCount)
+{
+  do_timeout(100, function() {
+    dump("count: "+aCount+" ");
+    if (++aCount > 20) {
+      do_throw("Timed out waiting for the server to shut down.");
+      return;
+    }
+    if (DebuggerServer.initialized) {
+      wait_for_server_shutdown(aCount);
+      return;
+    }
+    real_test_socket_shutdown(aCount);
+  });
+}
+
+function real_test_socket_shutdown()
+{
+  
+  
+  DebuggerServer.init(function () true);
+  DebuggerServer.addActors("resource://test/testactors.js");
+
   do_check_eq(DebuggerServer._socketConnections, 0);
   
   do_check_false(DebuggerServer.closeListener());
