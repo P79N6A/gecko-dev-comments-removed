@@ -3,11 +3,9 @@
 
 
 
-#include "GTestRunner.h"
 #include "gtest/gtest.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/NullPtr.h"
-#include "prenv.h"
 
 using ::testing::EmptyTestEventListener;
 using ::testing::InitGoogleTest;
@@ -67,7 +65,7 @@ static void ReplaceGTestLogger()
   listeners.Append(new MozillaPrinter);
 }
 
-int RunGTestFunc()
+int RunGTest()
 {
   int c = 0;
   InitGoogleTest(&c, static_cast<char**>(nullptr));
@@ -76,20 +74,9 @@ int RunGTestFunc()
     ReplaceGTestLogger();
   }
 
-  PR_SetEnv("XPCOM_DEBUG_BREAK=stack-and-abort");
+  setenv("XPCOM_DEBUG_BREAK", "stack-and-abort", false);
 
   return RUN_ALL_TESTS();
 }
-
-
-
-
-
-class _InitRunGTest {
-public:
-  _InitRunGTest() {
-    RunGTest = RunGTestFunc;
-  }
-} InitRunGTest;
 
 }
