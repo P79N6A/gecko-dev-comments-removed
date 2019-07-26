@@ -2853,17 +2853,18 @@ Parser<ParseHandler>::bindVarOrConst(BindData<ParseHandler> *data,
         if (pc->sc->isFunctionBox()) {
             FunctionBox *funbox = pc->sc->asFunctionBox();
             funbox->setMightAliasLocals();
-
-            
-
-
-
-
-
-
-            if (name == cx->names().arguments)
-                funbox->setHasDebuggerStatement();
         }
+
+        
+
+
+
+
+
+
+        if (name == cx->names().arguments)
+            pc->sc->setHasDebuggerStatement();
+
         return true;
     }
 
