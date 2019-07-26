@@ -18,6 +18,7 @@
 #include "jsobj.h"
 
 #include "builtin/Intl.h"
+#include "vm/DateTime.h"
 #include "vm/GlobalObject.h"
 #include "vm/Stack.h"
 #include "vm/StringBuffer.h"
@@ -1411,9 +1412,9 @@ intl_FormatNumber(JSContext *cx, UNumberFormat *nf, double x, MutableHandleValue
         return false;
     UErrorCode status = U_ZERO_ERROR;
     int size = unum_formatDouble(nf, x, chars.begin(), INITIAL_STRING_BUFFER_SIZE, NULL, &status);
-    if (!chars.resize(size))
-        return false;
     if (status == U_BUFFER_OVERFLOW_ERROR) {
+        if (!chars.resize(size))
+            return false;
         status = U_ZERO_ERROR;
         unum_formatDouble(nf, x, chars.begin(), size, NULL, &status);
     }
@@ -1790,6 +1791,157 @@ js::intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp)
 
 
 
+
+static UDateFormat *
+NewUDateFormat(JSContext *cx, HandleObject dateTimeFormat)
+{
+    RootedValue value(cx);
+
+    RootedObject internals(cx);
+    if (!GetInternals(cx, dateTimeFormat, &internals))
+       return NULL;
+
+    if (!JSObject::getProperty(cx, internals, internals, cx->names().locale, &value)) {
+        return NULL;
+    }
+    JSAutoByteString locale(cx, value.toString());
+    if (!locale)
+        return NULL;
+
+    
+    const UChar *uTimeZone = NULL;
+    uint32_t uTimeZoneLength = 0;
+    const UChar *uPattern = NULL;
+    uint32_t uPatternLength = 0;
+
+    SkipRoot skipTimeZone(cx, &uTimeZone);
+    SkipRoot skipPattern(cx, &uPattern);
+
+    
+    
+    
+
+    RootedId id(cx, NameToId(cx->names().timeZone));
+    bool hasP;
+    if (!JSObject::hasProperty(cx, internals, id, &hasP))
+        return NULL;
+    if (hasP) {
+        if (!JSObject::getProperty(cx, internals, internals, cx->names().timeZone, &value))
+            return NULL;
+        if (!value.isUndefined()) {
+            uTimeZone = JS_GetStringCharsZ(cx, value.toString());
+            if (!uTimeZone)
+                return NULL;
+            uTimeZoneLength = u_strlen(uTimeZone);
+        }
+    }
+    if (!JSObject::getProperty(cx, internals, internals, cx->names().pattern, &value))
+        return NULL;
+    uPattern = JS_GetStringCharsZ(cx, value.toString());
+    if (!uPattern)
+        return NULL;
+    uPatternLength = u_strlen(uPattern);
+
+    UErrorCode status = U_ZERO_ERROR;
+
+    
+    
+    UDateFormat *df =
+        udat_open(UDAT_PATTERN, UDAT_PATTERN, icuLocale(locale.ptr()), uTimeZone, uTimeZoneLength,
+                  uPattern, uPatternLength, &status);
+    if (U_FAILURE(status)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+        return NULL;
+    }
+
+    
+    
+    UCalendar *cal = (UCalendar *) udat_getCalendar(df);
+    ucal_setGregorianChange(cal, StartOfTime, &status);
+
+    
+
+    return df;
+}
+
+static bool
+intl_FormatDateTime(JSContext *cx, UDateFormat *df, double x, MutableHandleValue result)
+{
+    if (!MOZ_DOUBLE_IS_FINITE(x)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DATE_NOT_FINITE);
+        return false;
+    }
+
+    StringBuffer chars(cx);
+    if (!chars.resize(INITIAL_STRING_BUFFER_SIZE))
+        return false;
+    UErrorCode status = U_ZERO_ERROR;
+    int size = udat_format(df, x, chars.begin(), INITIAL_STRING_BUFFER_SIZE, NULL, &status);
+    if (status == U_BUFFER_OVERFLOW_ERROR) {
+        if (!chars.resize(size))
+            return false;
+        status = U_ZERO_ERROR;
+        udat_format(df, x, chars.begin(), size, NULL, &status);
+    }
+    if (U_FAILURE(status)) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_INTERNAL_INTL_ERROR);
+        return false;
+    }
+
+    RootedString str(cx, chars.finishString());
+    if (!str)
+        return false;
+
+    result.setString(str);
+    return true;
+}
+
+JSBool
+js::intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp)
+{
+    CallArgs args = CallArgsFromVp(argc, vp);
+    JS_ASSERT(args.length() == 2);
+    JS_ASSERT(args[0].isObject());
+    JS_ASSERT(args[1].isNumber());
+
+    RootedObject dateTimeFormat(cx, &args[0].toObject());
+
+    
+    bool isDateTimeFormatInstance = dateTimeFormat->getClass() == &DateTimeFormatClass;
+    UDateFormat *df;
+    if (isDateTimeFormatInstance) {
+        df = static_cast<UDateFormat*>(dateTimeFormat->getReservedSlot(UDATE_FORMAT_SLOT).toPrivate());
+        if (!df) {
+            df = NewUDateFormat(cx, dateTimeFormat);
+            if (!df)
+                return false;
+            dateTimeFormat->setReservedSlot(UDATE_FORMAT_SLOT, PrivateValue(df));
+        }
+    } else {
+        
+        
+        
+        
+        df = NewUDateFormat(cx, dateTimeFormat);
+        if (!df)
+            return false;
+    }
+
+    
+    RootedValue result(cx);
+    bool success = intl_FormatDateTime(cx, df, args[1].toNumber(), &result);
+
+    if (!isDateTimeFormatInstance)
+        udat_close(df);
+    if (!success)
+        return false;
+    args.rval().set(result);
+    return true;
+}
+
+
+
+
 Class js::IntlClass = {
     js_Object_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_Intl),
@@ -1838,7 +1990,8 @@ js_InitIntlClass(JSContext *cx, HandleObject obj)
 
     RootedValue IntlValue(cx, ObjectValue(*Intl));
     if (!JSObject::defineProperty(cx, global, cx->names().Intl, IntlValue,
-                                  JS_PropertyStub, JS_StrictPropertyStub, 0)) {
+                                  JS_PropertyStub, JS_StrictPropertyStub, 0))
+    {
         return NULL;
     }
 

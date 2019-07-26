@@ -140,6 +140,18 @@ intl_availableCalendars(JSContext *cx, unsigned argc, Value *vp);
 extern JSBool
 intl_patternForSkeleton(JSContext *cx, unsigned argc, Value *vp);
 
+
+
+
+
+
+
+
+
+
+extern JSBool
+intl_FormatDateTime(JSContext *cx, unsigned argc, Value *vp);
+
 } 
 
 #endif 
