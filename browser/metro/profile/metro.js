@@ -648,3 +648,7 @@ pref("full-screen-api.ignore-widgets", true);
 pref("layout.imagevisibility.enabled", true);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);
+
+
+
+pref("dom.forms.color", false);
