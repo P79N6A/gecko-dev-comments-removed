@@ -597,6 +597,7 @@ var qrcode = function() {
 		Q : 3,
 		H : 2
 	};
+        
         exports.QRErrorCorrectLevel = QRErrorCorrectLevel;
 
 	

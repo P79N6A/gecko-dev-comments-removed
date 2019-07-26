@@ -4,7 +4,23 @@
 
 "use strict";
 
-let { Encoder, QRRSBlock, QRErrorCorrectLevel } = require("./encoder/index");
+const { Cu } = require("chrome");
+const { Promise: promise } =
+  Cu.import("resource://gre/modules/Promise.jsm", {});
+
+
+Object.defineProperty(this, "Encoder", {
+  get: () => require("./encoder/index").Encoder
+});
+Object.defineProperty(this, "QRRSBlock", {
+  get: () => require("./encoder/index").QRRSBlock
+});
+Object.defineProperty(this, "QRErrorCorrectLevel", {
+  get: () => require("./encoder/index").QRErrorCorrectLevel
+});
+Object.defineProperty(this, "decoder", {
+  get: () => require("./decoder/index")
+});
 
 
 
@@ -59,4 +75,29 @@ exports.encodeToDataURI = function(message, quality, version) {
   encoder.addData(message);
   encoder.make();
   return encoder.createImgData();
+};
+
+
+
+
+
+
+
+
+
+exports.decodeFromURI = function(URI) {
+  let deferred = promise.defer();
+  decoder.decodeFromURI(URI, deferred.resolve, deferred.reject);
+  return deferred.promise;
+};
+
+
+
+
+
+
+
+
+exports.decodeFromCanvas = function(canvas) {
+  return decoder.decodeFromCanvas(canvas);
 };
