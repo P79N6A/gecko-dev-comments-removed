@@ -393,7 +393,9 @@ waitFor(
             self.add_prefs_to_profile()
             self.restart_b2g()
 
-        if load_early:
+        
+        
+        if True:
             
             
             
