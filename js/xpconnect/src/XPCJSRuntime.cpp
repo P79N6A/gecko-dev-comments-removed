@@ -2820,21 +2820,20 @@ JSBool
 XPCJSRuntime::OnJSContextNew(JSContext *cx)
 {
     
+    
+    
+    JSAutoRequest ar(cx);
+
+    
     if (JSID_IS_VOID(mStrIDs[0])) {
-        JS_SetGCParameterForThread(cx, JSGC_MAX_CODE_CACHE_BYTES, 16 * 1024 * 1024);
-        {
-            
-            
-            JSAutoRequest ar(cx);
-            RootedString str(cx);
-            for (unsigned i = 0; i < IDX_TOTAL_COUNT; i++) {
-                str = JS_InternString(cx, mStrings[i]);
-                if (!str || !JS_ValueToId(cx, STRING_TO_JSVAL(str), &mStrIDs[i])) {
-                    mStrIDs[0] = JSID_VOID;
-                    return false;
-                }
-                mStrJSVals[i] = STRING_TO_JSVAL(str);
+        RootedString str(cx);
+        for (unsigned i = 0; i < IDX_TOTAL_COUNT; i++) {
+            str = JS_InternString(cx, mStrings[i]);
+            if (!str || !JS_ValueToId(cx, STRING_TO_JSVAL(str), &mStrIDs[i])) {
+                mStrIDs[0] = JSID_VOID;
+                return false;
             }
+            mStrJSVals[i] = STRING_TO_JSVAL(str);
         }
 
         if (!mozilla::dom::DefineStaticJSVals(cx) ||
