@@ -801,6 +801,23 @@ typedef HashSet<GlobalObject *, DefaultHasher<GlobalObject *>, SystemAllocPolicy
 
 
 
+JSObject *
+CreateObjectPrototype(JSContext *cx, JSProtoKey key);
+
+JSObject *
+CreateFunctionPrototype(JSContext *cx, JSProtoKey key);
+
+JSObject *
+CreateObjectConstructor(JSContext *cx, JSProtoKey key);
+
+JSObject *
+CreateFunctionConstructor(JSContext *cx, JSProtoKey key);
+
+
+
+
+
+
 template<JSNative ctor, size_t atomOffset, unsigned length>
 JSObject *
 GenericCreateConstructor(JSContext *cx, JSProtoKey key)
