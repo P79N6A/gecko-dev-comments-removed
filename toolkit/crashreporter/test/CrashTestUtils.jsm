@@ -22,8 +22,9 @@ let CrashTestUtils = {
 };
 
 
+Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/ctypes.jsm");
-let dir = __LOCATION__.parent;
+let dir = Services.dirsvc.get("CurWorkD", Components.interfaces.nsILocalFile);
 let file = dir.clone();
 file.append(ctypes.libraryName("testcrasher"));
 let lib = ctypes.open(file.path);
