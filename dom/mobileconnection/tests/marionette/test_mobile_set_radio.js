@@ -147,7 +147,9 @@ function testDisableRadioWhenDataConnected() {
       
       is(connection.data.connected, false);
     })
-    .then(setRadioEnabled.bind(null, true, "enabling", "enabled"));
+    .then(setRadioEnabled.bind(null, true, "enabling", "enabled"))
+    
+    .then(setSetting.bind(null, DATA_KEY, false));
 }
 
 function cleanUp() {
