@@ -506,6 +506,8 @@ class Debugger : private mozilla::LinkedListElement<Debugger>
 
 
     bool unwrapDebuggeeValue(JSContext *cx, MutableHandleValue vp);
+    bool unwrapPropDescInto(JSContext *cx, HandleObject obj, Handle<PropDesc> wrapped,
+                            MutableHandle<PropDesc> unwrapped);
 
     
 
