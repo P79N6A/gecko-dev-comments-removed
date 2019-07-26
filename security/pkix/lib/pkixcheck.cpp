@@ -336,14 +336,96 @@ CheckNameConstraints(BackCert& cert)
 
 
 
-Result
-CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
-                      SECOidTag requiredEKU)
+static der::Result
+MatchEKU(der::Input& value, KeyPurposeId requiredEKU,
+         EndEntityOrCA endEntityOrCA,  bool& found,
+          bool& foundOCSPSigning)
 {
   
   
-  
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  static const uint8_t server[] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 1 };
+  static const uint8_t client[] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 2 };
+  static const uint8_t code  [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 3 };
+  static const uint8_t email [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 4 };
+  static const uint8_t ocsp  [] = { (40*1)+3, 6, 1, 5, 5, 7, 3, 9 };
+
+  
+  
+  
+  static const uint8_t serverStepUp[] =
+    { (40*2)+16, 128+6,72, 1, 128+6,128+120,66, 4, 1 };
+
+  bool match = false;
+
+  if (!found) {
+    switch (requiredEKU) {
+      case KeyPurposeId::id_kp_serverAuth:
+        
+        
+        
+        
+        match = value.MatchBytes(server) ||
+                (endEntityOrCA == EndEntityOrCA::MustBeCA &&
+                 value.MatchBytes(serverStepUp));
+        break;
+
+      case KeyPurposeId::id_kp_clientAuth:
+        match = value.MatchBytes(client);
+        break;
+
+      case KeyPurposeId::id_kp_codeSigning:
+        match = value.MatchBytes(code);
+        break;
+
+      case KeyPurposeId::id_kp_emailProtection:
+        match = value.MatchBytes(email);
+        break;
+
+      case KeyPurposeId::id_kp_OCSPSigning:
+        match = value.MatchBytes(ocsp);
+        break;
+
+      case KeyPurposeId::anyExtendedKeyUsage:
+        PR_NOT_REACHED("anyExtendedKeyUsage should start with found==true");
+        return der::Fail(SEC_ERROR_LIBRARY_FAILURE);
+
+      default:
+        PR_NOT_REACHED("unrecognized EKU");
+        return der::Fail(SEC_ERROR_LIBRARY_FAILURE);
+    }
+  }
+
+  if (match) {
+    if (value.AtEnd()) {
+      found = true;
+      if (requiredEKU == KeyPurposeId::id_kp_OCSPSigning) {
+        foundOCSPSigning = true;
+      }
+    }
+  } else if (value.MatchBytes(ocsp) && value.AtEnd()) {
+    foundOCSPSigning = true;
+  }
+
+  value.SkipToEnd(); 
+
+  return der::Success;
+}
+
+Result
+CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA,
+                      const SECItem* encodedExtendedKeyUsage,
+                      KeyPurposeId requiredEKU)
+{
   
   
   
@@ -351,35 +433,22 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
 
   bool foundOCSPSigning = false;
 
-  if (encodedEKUs) {
-    ScopedPtr<CERTOidSequence, CERT_DestroyOidSequence>
-      seq(CERT_DecodeOidSequence(encodedEKUs));
-    if (!seq) {
-      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
-      return RecoverableError;
+  if (encodedExtendedKeyUsage) {
+    bool found = requiredEKU == KeyPurposeId::anyExtendedKeyUsage;
+
+    der::Input input;
+    if (input.Init(encodedExtendedKeyUsage->data,
+                   encodedExtendedKeyUsage->len) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
     }
-
-    bool found = false;
-
-    
-    for (const SECItem* const* oids = seq->oids; oids && *oids; ++oids) {
-      SECOidTag oidTag = SECOID_FindOIDTag(*oids);
-      if (requiredEKU != SEC_OID_UNKNOWN && oidTag == requiredEKU) {
-        found = true;
-      } else {
-        
-        
-        
-        
-        if (endEntityOrCA == EndEntityOrCA::MustBeCA &&
-            requiredEKU == SEC_OID_EXT_KEY_USAGE_SERVER_AUTH &&
-            oidTag == SEC_OID_NS_KEY_USAGE_GOVT_APPROVED) {
-          found = true;
-        }
-      }
-      if (oidTag == SEC_OID_OCSP_RESPONDER) {
-        foundOCSPSigning = true;
-      }
+    if (der::NestedOf(input, der::SEQUENCE, der::OIDTag, der::EmptyAllowed::No,
+                      bind(MatchEKU, _1, requiredEKU, endEntityOrCA,
+                           ref(found), ref(foundOCSPSigning)))
+          != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
+    }
+    if (der::End(input) != der::Success) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
     }
 
     
@@ -404,9 +473,8 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
     
     
     
-    if (foundOCSPSigning && requiredEKU != SEC_OID_OCSP_RESPONDER) {
-      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
-      return RecoverableError;
+    if (foundOCSPSigning && requiredEKU != KeyPurposeId::id_kp_OCSPSigning) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
     }
     
     
@@ -417,9 +485,8 @@ CheckExtendedKeyUsage(EndEntityOrCA endEntityOrCA, const SECItem* encodedEKUs,
     
     
     
-    if (!foundOCSPSigning && requiredEKU == SEC_OID_OCSP_RESPONDER) {
-      PR_SetError(SEC_ERROR_INADEQUATE_CERT_TYPE, 0);
-      return RecoverableError;
+    if (!foundOCSPSigning && requiredEKU == KeyPurposeId::id_kp_OCSPSigning) {
+      return Fail(RecoverableError, SEC_ERROR_INADEQUATE_CERT_TYPE);
     }
   }
 
@@ -432,7 +499,7 @@ CheckIssuerIndependentProperties(TrustDomain& trustDomain,
                                  PRTime time,
                                  EndEntityOrCA endEntityOrCA,
                                  KeyUsages requiredKeyUsagesIfPresent,
-                                 SECOidTag requiredEKUIfPresent,
+                                 KeyPurposeId requiredEKUIfPresent,
                                  SECOidTag requiredPolicy,
                                  unsigned int subCACount,
                  TrustLevel* trustLevelOut)
