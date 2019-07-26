@@ -846,6 +846,12 @@ let TabItems = {
   _isComplete: function TabItems__isComplete(tab, callback) {
     Utils.assertThrow(tab, "tab");
 
+    
+    if (tab.hasAttribute("pending")) {
+      setTimeout(() => callback(false));
+      return;
+    }
+
     let mm = tab.linkedBrowser.messageManager;
     let message = "Panorama:isDocumentLoaded";
 
