@@ -71,7 +71,6 @@ SessionStartup.prototype = {
 
 
   init: function sss_init() {
-    debug("init starting");
     
     if (PrivateBrowsingUtils.permanentPrivateBrowsing)
       return;
@@ -79,7 +78,6 @@ SessionStartup.prototype = {
     _SessionFile.read().then(
       this._onSessionFileRead.bind(this)
     );
-    debug("init launched");
   },
 
   
@@ -91,9 +89,7 @@ SessionStartup.prototype = {
   },
 
   _onSessionFileRead: function sss_onSessionFileRead(aStateString) {
-    debug("onSessionFileRead ");
     if (this._initialized) {
-      debug("onSessionFileRead: Initialization is already complete");
       
       return;
     }
@@ -300,7 +296,6 @@ SessionStartup.prototype = {
   
   _ensureInitialized: function sss__ensureInitialized() {
     try {
-      debug("_ensureInitialized: " + this._initialState);
       if (this._initialized) {
         
         return;
@@ -317,7 +312,7 @@ SessionStartup.prototype = {
   QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver,
                                           Ci.nsISupportsWeakReference,
                                           Ci.nsISessionStartup]),
-  classID:          Components.ID("{ec7a6c20-e081-11da-8ad9-0800200c9a66}"),
+  classID:          Components.ID("{ec7a6c20-e081-11da-8ad9-0800200c9a66}")
 };
 
 this.NSGetFactory = XPCOMUtils.generateNSGetFactory([SessionStartup]);
