@@ -1,3 +1,7 @@
+
+
+
+
 package org.mozilla.gecko.tests;
 
 import android.content.ContentProvider;
@@ -208,7 +212,7 @@ abstract class ContentProviderTest extends BaseTest {
         mResolver.addProvider(mProviderAuthority, mProvider);
     }
 
-    public Uri appendUriParam(Uri uri, String param, String value) {
+    public static Uri appendUriParam(Uri uri, String param, String value) {
         return uri.buildUpon().appendQueryParameter(param, value).build();
     }
 

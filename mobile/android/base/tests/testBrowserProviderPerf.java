@@ -1,22 +1,47 @@
+
+
+
+
 package org.mozilla.gecko.tests;
 
+import java.io.File;
+import java.util.Random;
+import java.util.UUID;
+
+import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.db.BrowserProvider;
+import org.mozilla.gecko.db.LocalBrowserDB;
+import org.mozilla.gecko.util.FileUtils;
+
+import android.app.Activity;
+import android.content.ContentProvider;
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.os.SystemClock;
-
-import java.util.UUID;
-import java.util.Random;
-
-import org.mozilla.gecko.GeckoProfile;
-import org.mozilla.gecko.db.BrowserContract;
-import org.mozilla.gecko.db.BrowserDB;
-import org.mozilla.gecko.db.BrowserProvider;
+import android.util.Log;
 
 
 
 
 
-public class testBrowserProviderPerf extends ContentProviderTest {
+
+
+
+
+
+
+
+
+@SuppressWarnings("unchecked")
+public class testBrowserProviderPerf extends BaseRobocopTest {
+    private static final String LAUNCH_ACTIVITY_FULL_CLASSNAME = TestConstants.ANDROID_PACKAGE_NAME + ".App";
+
+    private static Class<Activity> mLauncherActivityClass;
+
     private final int NUMBER_OF_BASIC_HISTORY_URLS = 10000;
     private final int NUMBER_OF_BASIC_BOOKMARK_URLS = 500;
     private final int NUMBER_OF_COMBINED_URLS = 500;
@@ -32,6 +57,23 @@ public class testBrowserProviderPerf extends ContentProviderTest {
 
     private final String MOBILE_FOLDER_GUID = "mobile";
     private long mMobileFolderId;
+    private ContentResolver mResolver;
+    private String mProfile;
+    private Uri mHistoryURI;
+    private Uri mBookmarksURI;
+    private Uri mFaviconsURI;
+
+    static {
+        try {
+            mLauncherActivityClass = (Class<Activity>) Class.forName(LAUNCH_ACTIVITY_FULL_CLASSNAME);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public testBrowserProviderPerf() {
+        super(TARGET_PACKAGE_ID, mLauncherActivityClass);
+    }
 
     @Override
     protected int getTestType() {
@@ -39,7 +81,7 @@ public class testBrowserProviderPerf extends ContentProviderTest {
     }
 
     private void loadMobileFolderId() throws Exception {
-        Cursor c = mProvider.query(BrowserContract.Bookmarks.CONTENT_URI, null,
+        Cursor c = mResolver.query(mBookmarksURI, null,
                                    BrowserContract.Bookmarks.GUID + " = ?",
                                    new String[] { MOBILE_FOLDER_GUID },
                                    null);
@@ -131,7 +173,7 @@ public class testBrowserProviderPerf extends ContentProviderTest {
                 bookmarkEntries[j] = createRandomBookmarkEntry();
             }
 
-            mProvider.bulkInsert(BrowserContract.Bookmarks.CONTENT_URI, bookmarkEntries);
+            mResolver.bulkInsert(mBookmarksURI, bookmarkEntries);
         }
 
         
@@ -147,8 +189,8 @@ public class testBrowserProviderPerf extends ContentProviderTest {
                 faviconEntries[j] = createFaviconEntryWithUrl(historyEntries[j].getAsString(BrowserContract.History.URL));
             }
 
-            mProvider.bulkInsert(BrowserContract.History.CONTENT_URI, historyEntries);
-            mProvider.bulkInsert(BrowserContract.Favicons.CONTENT_URI, faviconEntries);
+            mResolver.bulkInsert(mHistoryURI, historyEntries);
+            mResolver.bulkInsert(mFaviconsURI, faviconEntries);
         }
 
 
@@ -164,9 +206,9 @@ public class testBrowserProviderPerf extends ContentProviderTest {
                 faviconEntries[j] = createFaviconEntryWithUrl(url);
             }
 
-            mProvider.bulkInsert(BrowserContract.Bookmarks.CONTENT_URI, bookmarkEntries);
-            mProvider.bulkInsert(BrowserContract.History.CONTENT_URI, historyEntries);
-            mProvider.bulkInsert(BrowserContract.Favicons.CONTENT_URI, faviconEntries);
+            mResolver.bulkInsert(mBookmarksURI, bookmarkEntries);
+            mResolver.bulkInsert(mHistoryURI, historyEntries);
+            mResolver.bulkInsert(mFaviconsURI, faviconEntries);
         }
 
         
@@ -177,34 +219,112 @@ public class testBrowserProviderPerf extends ContentProviderTest {
             faviconEntries[i] = createFaviconEntryWithUrl(historyEntries[i].getAsString(BrowserContract.History.URL));
         }
 
-        mProvider.bulkInsert(BrowserContract.History.CONTENT_URI, historyEntries);
-        mProvider.bulkInsert(BrowserContract.Favicons.CONTENT_URI, faviconEntries);
+        mResolver.bulkInsert(mHistoryURI, historyEntries);
+        mResolver.bulkInsert(mFaviconsURI, faviconEntries);
     }
 
     @Override
     public void setUp() throws Exception {
-        super.setUp(sBrowserProviderCallable, BrowserContract.AUTHORITY, "browser.db");
+        super.setUp();
+
+        mProfile = "prof" + System.currentTimeMillis();
+
+        mHistoryURI = prepUri(BrowserContract.History.CONTENT_URI);
+        mBookmarksURI = prepUri(BrowserContract.Bookmarks.CONTENT_URI);
+        mFaviconsURI = prepUri(BrowserContract.Favicons.CONTENT_URI);
+
+        mResolver = getActivity().getApplicationContext().getContentResolver();
 
         mGenerator = new Random(19580427);
     }
 
-    public void testBrowserProviderPerf() throws Exception {
-        BrowserDB.initialize(GeckoProfile.DEFAULT_PROFILE);
+    @Override
+    public void tearDown() {
+        final ContentProviderClient client = mResolver.acquireContentProviderClient(mBookmarksURI);
+        try {
+            final ContentProvider cp = client.getLocalContentProvider();
+            final BrowserProvider bp = ((BrowserProvider) cp);
 
+            
+            final SQLiteDatabase db = bp.getWritableDatabaseForTesting(mBookmarksURI);
+            try {
+                db.close();
+            } catch (Throwable e) {
+                
+            }
+        } finally {
+            try {
+                client.release();
+            } catch (Throwable e) {
+                
+            }
+
+            try {
+                FileUtils.delTree(new File(mProfile), null, true);
+            } catch (Exception e) {
+                Log.w("GeckoTest", "Unable to delete profile " + mProfile, e);
+            }
+        }
+    }
+
+    public Uri prepUri(Uri uri) {
+        return uri.buildUpon()
+                  .appendQueryParameter(BrowserContract.PARAM_PROFILE, mProfile)
+                  .appendQueryParameter(BrowserContract.PARAM_IS_SYNC, "1")       
+                  .build();
+    }
+
+    
+
+
+
+
+
+
+    public void testBrowserProviderQueryPerf() throws Exception {
+        
+        final int limit = 100;
+
+        
+        final LocalBrowserDB db = new LocalBrowserDB(mProfile);
+
+        final Cursor before = db.filter(mResolver, KNOWN_PREFIX, limit);
+        try {
+            mAsserter.is(before.getCount(), 0, "Starts empty");
+        } finally {
+            before.close();
+        }
+
+        
         loadMobileFolderId();
         addTonsOfUrls();
 
-        long start = SystemClock.uptimeMillis();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        Thread.sleep(5000);
 
-        final Cursor c = BrowserDB.filter(mResolver, KNOWN_PREFIX, 100);
-        c.getCount(); 
+        
+        final long start = SystemClock.uptimeMillis();
+        final Cursor c = db.filter(mResolver, KNOWN_PREFIX, limit);
 
-        long end = SystemClock.uptimeMillis();
+        try {
+            final int count = c.getCount();
+            final long end = SystemClock.uptimeMillis();
 
-        mAsserter.dumpLog("__start_report" + Long.toString(end - start) + "__end_report");
-        mAsserter.dumpLog("__startTimestamp" + Long.toString(end - start) + "__endTimestamp");
-
-        c.close();
+            mAsserter.is(count, limit, "Retrieved results");
+            mAsserter.dumpLog("Results: " + count);
+            mAsserter.dumpLog("__start_report" + Long.toString(end - start) + "__end_report");
+            mAsserter.dumpLog("__startTimestamp" + Long.toString(end - start) + "__endTimestamp");
+        } finally {
+            c.close();
+        }
     }
-
 }
