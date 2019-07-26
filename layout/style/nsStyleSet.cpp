@@ -1726,6 +1726,14 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
     flags |= eDoAnimation;
   }
 
+  if (aElement && aElement->IsRootOfAnonymousSubtree()) {
+    
+    
+    
+    
+    flags |= eSkipFlexItemStyleFixup;
+  }
+
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,
                     pseudoTag, pseudoType,
                     aElement, flags);
