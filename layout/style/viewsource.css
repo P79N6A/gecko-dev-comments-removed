@@ -39,9 +39,6 @@ span[id]:before {
   font-weight: normal;
   font-style: normal;
 }
-span[id]:after {
-  content: "\200e"; 
-}
 .start-tag {
  color: purple;
  font-weight: bold;
