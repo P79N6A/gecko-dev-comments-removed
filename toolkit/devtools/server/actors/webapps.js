@@ -204,6 +204,10 @@ WebappsActor.prototype = {
   actorPrefix: "webapps",
 
   disconnect: function () {
+    try {
+      this.unwatchApps();
+    } catch(e) {}
+
     
     for (let upload of this._uploads) {
       upload.remove();
