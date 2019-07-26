@@ -6305,8 +6305,10 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     masm.align(CodeAlignment);
     m.setInterpExitOffset(exitIndex);
     masm.setFramePushed(0);
+#if defined(JS_CODEGEN_ARM)
+    masm.Push(lr);
+#endif
 
-#if defined(JS_CODEGEN_X86) || defined(JS_CODEGEN_X64)
     MIRType typeArray[] = { MIRType_Pointer,   
                             MIRType_Pointer,   
                             MIRType_Int32,     
@@ -6321,7 +6323,7 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     masm.reserveStack(stackDec);
 
     
-    unsigned offsetToCallerStackArgs = NativeFrameSize + masm.framePushed();
+    unsigned offsetToCallerStackArgs = AlignmentAtPrologue + masm.framePushed();
     unsigned offsetToArgv = StackArgBytes(invokeArgTypes);
     Register scratch = ABIArgGenerator::NonArgReturnVolatileReg0;
     FillArgumentArray(m, exit.sig().args(), offsetToArgv, offsetToCallerStackArgs, scratch);
@@ -6392,59 +6394,6 @@ GenerateFFIInterpreterExit(ModuleCompiler &m, const ModuleCompiler::ExitDescript
     
     masm.freeStack(stackDec);
     masm.ret();
-#else
-    const unsigned arrayLength = Max<size_t>(1, exit.sig().args().length());
-    const unsigned arraySize = arrayLength * sizeof(Value);
-    const unsigned reserveSize = AlignBytes(arraySize, StackAlignment) +
-        ShadowStackSpace;
-    const unsigned callerArgsOffset = reserveSize + NativeFrameSize + sizeof(int32_t);
-    masm.setFramePushed(0);
-    masm.Push(lr);
-    masm.reserveStack(reserveSize + sizeof(int32_t));
-
-    
-    FillArgumentArray(m, exit.sig().args(), ShadowStackSpace, callerArgsOffset, IntArgReg0);
-
-    
-    Register activation = IntArgReg3;
-    LoadAsmJSActivationIntoRegister(masm, activation);
-
-    LoadJSContextFromActivation(masm, activation, IntArgReg0);
-
-    
-    masm.mov(ImmWord(exitIndex), IntArgReg1);
-
-    
-    masm.mov(ImmWord(exit.sig().args().length()), IntArgReg2);
-
-    
-    Address argv(StackPointer, ShadowStackSpace);
-    masm.lea(Operand(argv), IntArgReg3);
-
-    AssertStackAlignment(masm);
-    switch (exit.sig().retType().which()) {
-      case RetType::Void:
-        masm.call(AsmJSImm_InvokeFromAsmJS_Ignore);
-        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
-        break;
-      case RetType::Signed:
-        masm.call(AsmJSImm_InvokeFromAsmJS_ToInt32);
-        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
-        masm.unboxInt32(argv, ReturnReg);
-        break;
-      case RetType::Double:
-        masm.call(AsmJSImm_InvokeFromAsmJS_ToNumber);
-        masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, throwLabel);
-        masm.loadDouble(argv, ReturnFloatReg);
-        break;
-      case RetType::Float:
-        MOZ_ASSUME_UNREACHABLE("Float32 shouldn't be returned from a FFI");
-        break;
-    }
-
-    masm.freeStack(reserveSize + sizeof(int32_t));
-    masm.ret();
-#endif
 }
 
 static void
