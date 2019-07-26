@@ -109,8 +109,18 @@ class nsCSSScanner {
     return mSVGMode;
   }
 
-  uint32_t GetLineNumber() const { return mLineNumber; }
-  uint32_t GetColumnNumber() const { return mOffset - mLineOffset + 1; }
+  
+  
+  uint32_t GetLineNumber() const { return mTokenLineNumber; }
+
+  
+  
+  uint32_t GetColumnNumber() const
+  { return mTokenOffset - mTokenLineOffset; }
+
+  
+  
+  nsDependentSubstring GetCurrentLine() const;
 
   
   
@@ -164,9 +174,15 @@ protected:
 
   uint32_t mLineNumber;
   uint32_t mLineOffset;
+
+  uint32_t mTokenLineNumber;
+  uint32_t mTokenLineOffset;
+  uint32_t mTokenOffset;
+
   uint32_t mRecordStartOffset;
 
   mozilla::css::ErrorReporter *mReporter;
+
   
   bool mSVGMode;
   bool mRecording;
