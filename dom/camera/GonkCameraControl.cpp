@@ -14,7 +14,6 @@
 
 
 
-#include <time.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -796,28 +795,6 @@ nsGonkCameraControl::TakePictureImpl(TakePictureTask* aTakePicture)
   if (!isnan(aTakePicture->mPosition.timestamp)) {
     DOM_CAMERA_LOGI("setting picture timestamp to %lf\n", aTakePicture->mPosition.timestamp);
     SetParameter(CameraParameters::KEY_GPS_TIMESTAMP, nsPrintfCString("%lf", aTakePicture->mPosition.timestamp).get());
-  }
-
-  
-  
-  
-  
-  time_t time = aTakePicture->mDateTime;
-  if (time != aTakePicture->mDateTime) {
-    DOM_CAMERA_LOGE("picture date/time '%llu' is too far in the future\n", aTakePicture->mDateTime);
-  } else {
-    struct tm t;
-    if (localtime_r(&time, &t)) {
-      char dateTime[20];
-      if (strftime(dateTime, sizeof(dateTime), "%Y:%m:%d %T", &t)) {
-        DOM_CAMERA_LOGI("setting picture date/time to %s\n", dateTime);
-        SetParameter(CameraParameters::KEY_EXIF_DATETIME, dateTime);
-      } else {
-        DOM_CAMERA_LOGE("picture date/time couldn't be converted to string\n");
-      }
-    } else {
-      DOM_CAMERA_LOGE("picture date/time couldn't be converted to local time: (%d) %s\n", errno, strerror(errno));
-    }
   }
 
   mDeferConfigUpdate = false;
