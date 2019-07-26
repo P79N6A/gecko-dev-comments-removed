@@ -22,19 +22,6 @@ this.EXPORTED_SYMBOLS = ["BreadcrumbsWidget"];
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;

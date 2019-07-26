@@ -553,9 +553,6 @@ NetMonitorController.NetworkEventsHandler = new NetworkEventsHandler();
 
 
 Object.defineProperties(window, {
-  "create": {
-    get: function() ViewHelpers.create
-  },
   "gNetwork": {
     get: function() NetMonitorController.NetworkEventsHandler
   }

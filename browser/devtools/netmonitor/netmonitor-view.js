@@ -270,20 +270,20 @@ function RequestsMenuView() {
   this._byType = this._byType.bind(this);
 }
 
-create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
+RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
   initialize: function() {
     dumpn("Initializing the RequestsMenuView");
 
-    this.node = new SideMenuWidget($("#requests-menu-contents"), false);
+    this.widget = new SideMenuWidget($("#requests-menu-contents"), false);
     this._summary = $("#request-menu-network-summary");
 
-    this.node.maintainSelectionVisible = false;
-    this.node.autoscrollWithAppendedItems = true;
+    this.widget.maintainSelectionVisible = false;
+    this.widget.autoscrollWithAppendedItems = true;
 
-    this.node.addEventListener("select", this._onSelect, false);
+    this.widget.addEventListener("select", this._onSelect, false);
     window.addEventListener("resize", this._onResize, false);
   },
 
@@ -293,7 +293,7 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   destroy: function() {
     dumpn("Destroying the SourcesView");
 
-    this.node.removeEventListener("select", this._onSelect, false);
+    this.widget.removeEventListener("select", this._onSelect, false);
     window.removeEventListener("resize", this._onResize, false);
   },
 
@@ -1246,26 +1246,26 @@ NetworkDetailsView.prototype = {
   initialize: function() {
     dumpn("Initializing the RequestsMenuView");
 
-    this.node = $("#details-pane");
+    this.widget = $("#details-pane");
 
     this._headers = new VariablesView($("#all-headers"),
-      Object.create(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        emptyText: { value: L10N.getStr("headersEmptyText"), enumerable: true },
-        searchPlaceholder: { value: L10N.getStr("headersFilterText"), enumerable: true }
+      Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
+        emptyText: L10N.getStr("headersEmptyText"),
+        searchPlaceholder: L10N.getStr("headersFilterText")
       }));
     this._cookies = new VariablesView($("#all-cookies"),
-      Object.create(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        emptyText: { value: L10N.getStr("cookiesEmptyText"), enumerable: true },
-        searchPlaceholder: { value: L10N.getStr("cookiesFilterText"), enumerable: true }
+      Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
+        emptyText: L10N.getStr("cookiesEmptyText"),
+        searchPlaceholder: L10N.getStr("cookiesFilterText")
       }));
     this._params = new VariablesView($("#request-params"),
-      Object.create(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        emptyText: { value: L10N.getStr("paramsEmptyText"), enumerable: true },
-        searchPlaceholder: { value: L10N.getStr("paramsFilterText"), enumerable: true }
+      Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
+        emptyText: L10N.getStr("paramsEmptyText"),
+        searchPlaceholder: L10N.getStr("paramsFilterText")
       }));
     this._json = new VariablesView($("#response-content-json"),
-      Object.create(GENERIC_VARIABLES_VIEW_SETTINGS, {
-        searchPlaceholder: { value: L10N.getStr("jsonFilterText"), enumerable: true }
+      Heritage.extend(GENERIC_VARIABLES_VIEW_SETTINGS, {
+        searchPlaceholder: L10N.getStr("jsonFilterText")
       }));
 
     this._paramsQueryString = L10N.getStr("paramsQueryString");
@@ -1276,7 +1276,7 @@ NetworkDetailsView.prototype = {
     this._requestCookies = L10N.getStr("requestCookies");
     this._responseCookies = L10N.getStr("responseCookies");
 
-    $("tabpanels", this.node).addEventListener("select", this._onTabSelect);
+    $("tabpanels", this.widget).addEventListener("select", this._onTabSelect);
   },
 
   
@@ -1334,7 +1334,7 @@ NetworkDetailsView.prototype = {
 
   _onTabSelect: function() {
     let { src, populated } = this._dataSrc || {};
-    let tab = this.node.selectedIndex;
+    let tab = this.widget.selectedIndex;
 
     
     if (!src || populated[tab]) {

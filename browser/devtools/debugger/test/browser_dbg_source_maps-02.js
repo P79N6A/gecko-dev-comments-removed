@@ -103,7 +103,7 @@ function testHitBreakpoint() {
 
     activeThread.addOneTimeListener("framesadded", function (aEvent, aPacket) {
       
-      let frames = gDebugger.DebuggerView.StackFrames._container._list;
+      let frames = gDebugger.DebuggerView.StackFrames.widget._list;
       let childNodes = frames.childNodes;
 
       is(frames.querySelectorAll(".dbg-stackframe").length, 1,
@@ -142,7 +142,7 @@ function testToggleOnPause() {
        "The debugger's editor should have the JS source displayed.");
 
     
-    let frames = gDebugger.DebuggerView.StackFrames._container._list;
+    let frames = gDebugger.DebuggerView.StackFrames.widget._list;
     let childNodes = frames.childNodes;
 
     is(frames.querySelectorAll(".dbg-stackframe").length, 1,

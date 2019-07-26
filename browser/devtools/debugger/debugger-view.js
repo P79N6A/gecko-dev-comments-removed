@@ -716,7 +716,7 @@ ListWidget.prototype = {
 function ResultsPanelContainer() {
 }
 
-create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
+ResultsPanelContainer.prototype = Heritage.extend(WidgetMethods, {
   
 
 
@@ -734,17 +734,17 @@ create({ constructor: ResultsPanelContainer, proto: MenuContainer.prototype }, {
         this._panel.setAttribute("noautofocus", "true");
         document.documentElement.appendChild(this._panel);
       }
-      if (!this.node) {
-        this.node = new ListWidget(this._panel);
-        this.node.itemType = "vbox";
-        this.node.itemFactory = this._createItemView;
+      if (!this.widget) {
+        this.widget = new ListWidget(this._panel);
+        this.widget.itemType = "vbox";
+        this.widget.itemFactory = this._createItemView;
       }
     }
     
     else {
       this._panel.remove();
       this._panel = null;
-      this.node = null;
+      this.widget = null;
     }
   },
 

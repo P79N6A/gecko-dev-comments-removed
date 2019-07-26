@@ -28,19 +28,6 @@ this.EXPORTED_SYMBOLS = ["SideMenuWidget"];
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 this.SideMenuWidget = function SideMenuWidget(aNode, aShowArrows = true) {
   this.document = aNode.ownerDocument;
   this.window = this.document.defaultView;

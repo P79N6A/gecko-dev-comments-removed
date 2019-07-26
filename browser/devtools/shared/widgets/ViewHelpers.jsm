@@ -15,33 +15,35 @@ const PAGE_SIZE_ITEM_COUNT_RATIO = 5;
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-this.EXPORTED_SYMBOLS = ["ViewHelpers", "MenuItem", "MenuContainer"];
+this.EXPORTED_SYMBOLS = ["Heritage", "ViewHelpers", "WidgetMethods"];
+
+
+
+
+
+this.Heritage = {
+  
+
+
+  extend: function(aPrototype, aProperties = {}) {
+    return Object.create(aPrototype, this.getOwnPropertyDescriptors(aProperties));
+  },
+
+  
+
+
+  getOwnPropertyDescriptors: function(aObject) {
+    return Object.getOwnPropertyNames(aObject).reduce((aDescriptor, aName) => {
+      aDescriptor[aName] = Object.getOwnPropertyDescriptor(aObject, aName);
+      return aDescriptor;
+    }, {});
+  }
+};
 
 
 
 
 this.ViewHelpers = {
-  
-
-
-
-
-
-
-
-
-
-
-  create: function({ constructor, proto }, aProperties = {}) {
-    let descriptors = {
-      constructor: { value: constructor }
-    };
-    for (let name in aProperties) {
-      descriptors[name] = Object.getOwnPropertyDescriptor(aProperties, name);
-    }
-    constructor.prototype = Object.create(proto, descriptors);
-  },
-
   
 
 
@@ -75,7 +77,6 @@ this.ViewHelpers = {
 
 
 
-
   delegateWidgetAttributeMethods: function(aWidget, aNode) {
     aWidget.getAttribute = aNode.getAttribute.bind(aNode);
     aWidget.setAttribute = aNode.setAttribute.bind(aNode);
@@ -83,7 +84,6 @@ this.ViewHelpers = {
   },
 
   
-
 
 
 
@@ -358,7 +358,7 @@ ViewHelpers.Prefs.prototype = {
 
 
 
-this.MenuItem = function MenuItem(aAttachment, aContents = []) {
+function Item(aAttachment, aContents = []) {
   this.attachment = aAttachment;
 
   
@@ -377,7 +377,7 @@ this.MenuItem = function MenuItem(aAttachment, aContents = []) {
   XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
 };
 
-MenuItem.prototype = {
+Item.prototype = {
   get label() this._label,
   get value() this._value,
   get description() this._description,
@@ -397,7 +397,7 @@ MenuItem.prototype = {
 
 
   append: function(aElement, aOptions = {}) {
-    let item = new MenuItem(aOptions.attachment);
+    let item = new Item(aOptions.attachment);
 
     
     this._entangleItem(item, this._target.appendChild(aElement));
@@ -521,25 +521,36 @@ MenuItem.prototype = {
 
 
 
-this.MenuContainer = function MenuContainer() {
-};
 
-MenuContainer.prototype = {
+
+
+
+
+
+
+
+
+
+
+this.WidgetMethods = {
   
 
 
 
-  set node(aWidget) {
-    this._container = aWidget;
-    this._itemsByLabel = new Map();   
-    this._itemsByValue = new Map();   
-    this._itemsByElement = new Map(); 
-    this._stagedItems = [];
+  set widget(aWidget) {
+    this._widget = aWidget;
 
     
-    if (ViewHelpers.isEventEmitter(this._container)) {
-      this._container.on("keyPress", this._onWidgetKeyPress.bind(this));
-      this._container.on("mousePress", this._onWidgetMousePress.bind(this));
+    
+    XPCOMUtils.defineLazyGetter(this, "_itemsByLabel", () => new Map());
+    XPCOMUtils.defineLazyGetter(this, "_itemsByValue", () => new Map());
+    XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
+    XPCOMUtils.defineLazyGetter(this, "_stagedItems", () => []);
+
+    
+    if (ViewHelpers.isEventEmitter(aWidget)) {
+      aWidget.on("keyPress", this._onWidgetKeyPress.bind(this));
+      aWidget.on("mousePress", this._onWidgetMousePress.bind(this));
     }
   },
 
@@ -547,7 +558,7 @@ MenuContainer.prototype = {
 
 
 
-  get node() this._container,
+  get widget() this._widget,
 
   
 
@@ -587,7 +598,7 @@ MenuContainer.prototype = {
 
 
   push: function(aContents, aOptions = {}) {
-    let item = new MenuItem(aOptions.attachment, aContents);
+    let item = new Item(aOptions.attachment, aContents);
 
     
     if (aOptions.staged) {
@@ -639,9 +650,9 @@ MenuContainer.prototype = {
     if (!selectedItem) {
       return false;
     }
-    this._container.removeAttribute("notice");
-    this._container.setAttribute("label", selectedItem._label);
-    this._container.setAttribute("tooltiptext", selectedItem._value);
+    this._widget.removeAttribute("notice");
+    this._widget.setAttribute("label", selectedItem._label);
+    this._widget.setAttribute("tooltiptext", selectedItem._value);
     return true;
   },
 
@@ -655,7 +666,7 @@ MenuContainer.prototype = {
     if (!aItem) {
       return;
     }
-    this._container.removeChild(aItem._target);
+    this._widget.removeChild(aItem._target);
     this._untangleItem(aItem);
   },
 
@@ -674,11 +685,11 @@ MenuContainer.prototype = {
 
   empty: function() {
     this._preferredValue = this.selectedValue;
-    this._container.selectedItem = null;
-    this._container.removeAllItems();
-    this._container.setAttribute("notice", this.emptyText);
-    this._container.setAttribute("label", this.emptyText);
-    this._container.removeAttribute("tooltiptext");
+    this._widget.selectedItem = null;
+    this._widget.removeAllItems();
+    this._widget.setAttribute("notice", this.emptyText);
+    this._widget.setAttribute("label", this.emptyText);
+    this._widget.removeAttribute("tooltiptext");
 
     for (let [, item] of this._itemsByElement) {
       this._untangleItem(item);
@@ -695,9 +706,9 @@ MenuContainer.prototype = {
 
 
   setUnavailable: function() {
-    this._container.setAttribute("notice", this.unavailableText);
-    this._container.setAttribute("label", this.unavailableText);
-    this._container.removeAttribute("tooltiptext");
+    this._widget.setAttribute("notice", this.unavailableText);
+    this._widget.setAttribute("label", this.unavailableText);
+    this._widget.removeAttribute("tooltiptext");
   },
 
   
@@ -712,7 +723,6 @@ MenuContainer.prototype = {
   unavailableText: "",
 
   
-
 
 
 
@@ -792,7 +802,7 @@ MenuContainer.prototype = {
     let j = this._indexOfElement(secondTarget);
 
     
-    let selectedTarget = this._container.selectedItem;
+    let selectedTarget = this._widget.selectedItem;
     let selectedIndex = -1;
     if (selectedTarget == firstTarget) {
       selectedIndex = i;
@@ -801,8 +811,8 @@ MenuContainer.prototype = {
     }
 
     
-    this._container.removeChild(firstTarget);
-    this._container.removeChild(secondTarget);
+    this._widget.removeChild(firstTarget);
+    this._widget.removeChild(secondTarget);
     this._unlinkItem(aFirst);
     this._unlinkItem(aSecond);
 
@@ -812,9 +822,9 @@ MenuContainer.prototype = {
 
     
     if (selectedIndex == i) {
-      this._container.selectedItem = aFirst._target;
+      this._widget.selectedItem = aFirst._target;
     } else if (selectedIndex == j) {
-      this._container.selectedItem = aSecond._target;
+      this._widget.selectedItem = aSecond._target;
     }
   },
 
@@ -870,7 +880,7 @@ MenuContainer.prototype = {
 
 
   get selectedItem() {
-    let selectedElement = this._container.selectedItem;
+    let selectedElement = this._widget.selectedItem;
     if (selectedElement) {
       return this._itemsByElement.get(selectedElement);
     }
@@ -882,7 +892,7 @@ MenuContainer.prototype = {
 
 
   get selectedIndex() {
-    let selectedElement = this._container.selectedItem;
+    let selectedElement = this._widget.selectedItem;
     if (selectedElement) {
       return this._indexOfElement(selectedElement);
     }
@@ -894,7 +904,7 @@ MenuContainer.prototype = {
 
 
   get selectedLabel() {
-    let selectedElement = this._container.selectedItem;
+    let selectedElement = this._widget.selectedItem;
     if (selectedElement) {
       return this._itemsByElement.get(selectedElement)._label;
     }
@@ -906,7 +916,7 @@ MenuContainer.prototype = {
 
 
   get selectedValue() {
-    let selectedElement = this._container.selectedItem;
+    let selectedElement = this._widget.selectedItem;
     if (selectedElement) {
       return this._itemsByElement.get(selectedElement)._value;
     }
@@ -926,7 +936,7 @@ MenuContainer.prototype = {
 
     
     let targetElement = aItem ? aItem._target : null;
-    let prevElement = this._container.selectedItem;
+    let prevElement = this._widget.selectedItem;
 
     
     if (this.autoFocusOnSelection && targetElement) {
@@ -938,7 +948,7 @@ MenuContainer.prototype = {
     if (targetElement == prevElement) {
       return;
     }
-    this._container.selectedItem = targetElement;
+    this._widget.selectedItem = targetElement;
     ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
 
     
@@ -951,7 +961,7 @@ MenuContainer.prototype = {
 
 
   set selectedIndex(aIndex) {
-    let targetElement = this._container.getItemAtIndex(aIndex);
+    let targetElement = this._widget.getItemAtIndex(aIndex);
     if (targetElement) {
       this.selectedItem = this._itemsByElement.get(targetElement);
       return;
@@ -1049,7 +1059,7 @@ MenuContainer.prototype = {
     
     
     
-    let selectedElement = this._container.selectedItem;
+    let selectedElement = this._widget.selectedItem;
     if (selectedElement) {
       selectedElement.focus();
     } else {
@@ -1104,7 +1114,7 @@ MenuContainer.prototype = {
     if (this._cachedCommandDispatcher) {
       return this._cachedCommandDispatcher;
     }
-    let someElement = this._container.getItemAtIndex(0);
+    let someElement = this._widget.getItemAtIndex(0);
     if (someElement) {
       let commandDispatcher = someElement.ownerDocument.commandDispatcher;
       return this._cachedCommandDispatcher = commandDispatcher;
@@ -1135,7 +1145,7 @@ MenuContainer.prototype = {
 
 
   getItemAtIndex: function(aIndex) {
-    return this.getItemForElement(this._container.getItemAtIndex(aIndex));
+    return this.getItemForElement(this._widget.getItemAtIndex(aIndex));
   },
 
   
@@ -1225,15 +1235,30 @@ MenuContainer.prototype = {
 
 
   _indexOfElement: function(aElement) {
-    let container = this._container;
-    let itemCount = this._itemsByElement.size;
-
-    for (let i = 0; i < itemCount; i++) {
-      if (container.getItemAtIndex(i) == aElement) {
+    for (let i = 0; i < this._itemsByElement.size; i++) {
+      if (this._widget.getItemAtIndex(i) == aElement) {
         return i;
       }
     }
     return -1;
+  },
+
+  
+
+
+
+  get itemCount() this._itemsByElement.size,
+
+  
+
+
+
+  get items() {
+    let items = [];
+    for (let [, item] of this._itemsByElement) {
+      items.push(item);
+    }
+    return items;
   },
 
   
@@ -1264,13 +1289,16 @@ MenuContainer.prototype = {
 
 
 
-  get itemCount() this._itemsByElement.size,
 
-  
-
-
-
-  get visibleItemsCount() this.visibleItems.length,
+  get visibleItems() {
+    let items = [];
+    for (let [element, item] of this._itemsByElement) {
+      if (!element.hidden) {
+        items.push(item);
+      }
+    }
+    return items;
+  },
 
   
 
@@ -1296,21 +1324,6 @@ MenuContainer.prototype = {
     for (let i = 0; i < itemCount; i++) {
       let item = this.getItemAtIndex(i);
       if (!item._target.hidden) {
-        items.push(item);
-      }
-    }
-    return items;
-  },
-
-  
-
-
-
-
-  get visibleItems() {
-    let items = [];
-    for (let [element, item] of this._itemsByElement) {
-      if (!element.hidden) {
         items.push(item);
       }
     }
@@ -1360,9 +1373,12 @@ MenuContainer.prototype = {
 
 
   isEligible: function(aItem) {
-    return aItem._prebuiltTarget || (this.isUnique(aItem) &&
-           aItem._label != "undefined" && aItem._label != "null" &&
-           aItem._value != "undefined" && aItem._value != "null");
+    let isUnique = this.isUnique(aItem);
+    let isPrebuilt = !!aItem._prebuiltTarget;
+    let isDegenerate = aItem._label == "undefined" || aItem._label == "null" ||
+                       aItem._value == "undefined" || aItem._value == "null";
+
+    return isPrebuilt || (isUnique && !isDegenerate);
   },
 
   
@@ -1408,7 +1424,7 @@ MenuContainer.prototype = {
     }
 
     
-    this._entangleItem(aItem, this._container.insertItemAt(aIndex,
+    this._entangleItem(aItem, this._widget.insertItemAt(aIndex,
       aItem._prebuiltTarget || aItem._label, 
       aItem._value,
       aItem._description,
@@ -1561,11 +1577,7 @@ MenuContainer.prototype = {
     return +(aFirst._label.toLowerCase() > aSecond._label.toLowerCase());
   },
 
-  _container: null,
-  _stagedItems: null,
-  _itemsByLabel: null,
-  _itemsByValue: null,
-  _itemsByElement: null,
+  _widget: null,
   _preferredValue: null,
   _cachedCommandDispatcher: null
 };
@@ -1573,8 +1585,8 @@ MenuContainer.prototype = {
 
 
 
-MenuItem.prototype.__iterator__ =
-MenuContainer.prototype.__iterator__ = function() {
+Item.prototype.__iterator__ =
+WidgetMethods.__iterator__ = function() {
   for (let [, item] of this._itemsByElement) {
     yield item;
   }

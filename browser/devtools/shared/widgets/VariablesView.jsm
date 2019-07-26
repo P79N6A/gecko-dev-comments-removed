@@ -2051,7 +2051,7 @@ function Variable(aScope, aName, aDescriptor) {
   this._absoluteName = aScope.name + "[\"" + aName + "\"]";
 }
 
-ViewHelpers.create({ constructor: Variable, proto: Scope.prototype }, {
+Variable.prototype = Heritage.extend(Scope.prototype, {
   
 
 
@@ -2776,7 +2776,7 @@ function Property(aVar, aName, aDescriptor) {
   this._absoluteName = aVar._absoluteName + "[\"" + aName + "\"]";
 }
 
-ViewHelpers.create({ constructor: Property, proto: Variable.prototype }, {
+Property.prototype = Heritage.extend(Variable.prototype, {
   
 
 

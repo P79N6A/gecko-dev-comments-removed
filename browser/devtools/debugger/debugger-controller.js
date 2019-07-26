@@ -1561,9 +1561,6 @@ DebuggerController.Breakpoints = new Breakpoints();
 
 
 Object.defineProperties(window, {
-  "create": {
-    get: function() ViewHelpers.create,
-  },
   "dispatchEvent": {
     get: function() ViewHelpers.dispatchEvent,
   },
