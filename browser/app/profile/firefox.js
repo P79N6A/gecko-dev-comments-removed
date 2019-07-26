@@ -307,6 +307,9 @@ pref("browser.urlbar.trimURLs", true);
 pref("browser.altClickSave", false);
 
 
+pref("browser.download.debug", false);
+
+
 
 
 
