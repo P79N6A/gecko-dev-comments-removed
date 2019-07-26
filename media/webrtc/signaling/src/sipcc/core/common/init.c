@@ -211,6 +211,8 @@ ccInit ()
 
     platInit();
 
+    strlib_init();
+
     
 
 
