@@ -1681,6 +1681,8 @@ nsHTMLDocument::Open(JSContext* cx,
     }
   }
 
+  mDidDocumentOpen = true;
+
   
   Reset(channel, group);
   if (baseURI) {

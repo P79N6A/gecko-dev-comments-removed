@@ -116,8 +116,8 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x62cca591, 0xa030, 0x4117, \
- { 0x9b, 0x80, 0xdc, 0xd3, 0x66, 0xbb, 0xb5, 0x9 } }
+{ 0x56a350f4, 0xc286, 0x440c, \
+  { 0x85, 0xb1, 0xb6, 0x55, 0x77, 0xeb, 0x63, 0xfd } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -655,6 +655,9 @@ public:
 
   nsresult GetSrcdocData(nsAString& aSrcdocData);
 
+  bool DidDocumentOpen() {
+    return mDidDocumentOpen;
+  }
 
 protected:
   virtual Element *GetRootElementInternal() const = 0;
@@ -2337,6 +2340,11 @@ protected:
 
   
   bool mIsSrcdocDocument;
+
+  
+  
+  
+  bool mDidDocumentOpen;
 
   
   
