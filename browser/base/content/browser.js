@@ -1175,6 +1175,14 @@ var gBrowserInit = {
     }
 
     
+    let appMgrEnabled = gPrefService.getBoolPref("devtools.appmanager.enabled");
+    if (appMgrEnabled) {
+      let cmd = document.getElementById("Tools:DevAppMgr");
+      cmd.removeAttribute("disabled");
+      cmd.removeAttribute("hidden");
+    }
+
+    
     let chromeEnabled = gPrefService.getBoolPref("devtools.chrome.enabled");
     let remoteEnabled = chromeEnabled &&
                         gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&

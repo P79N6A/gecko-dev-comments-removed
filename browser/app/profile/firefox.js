@@ -1066,6 +1066,9 @@ pref("devtools.gcli.allowSet", false);
 pref("devtools.commands.dir", "");
 
 
+pref("devtools.appmanager.enabled", false);
+
+
 pref("devtools.toolbox.footer.height", 250);
 pref("devtools.toolbox.sidebar.width", 500);
 pref("devtools.toolbox.host", "bottom");
