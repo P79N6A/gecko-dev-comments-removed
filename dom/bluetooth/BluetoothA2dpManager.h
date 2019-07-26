@@ -73,13 +73,11 @@ private:
   void HandleShutdown();
 
   void NotifyStatusChanged();
-  void NotifyAudioManager();
-
-  nsString mDeviceAddress;
 
   
   bool mA2dpConnected;
   bool mPlaying;
+  nsString mDeviceAddress;
   SinkState mSinkState;
 
   

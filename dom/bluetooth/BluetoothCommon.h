@@ -55,6 +55,7 @@ extern bool gBluetoothDebugFlag;
 
 
 
+#define BLUETOOTH_HFP_STATUS_CHANGED_ID      "bluetooth-hfp-status-changed"
 #define BLUETOOTH_SCO_STATUS_CHANGED_ID      "bluetooth-sco-status-changed"
 #define BLUETOOTH_A2DP_STATUS_CHANGED_ID     "bluetooth-a2dp-status-changed"
 
