@@ -252,17 +252,6 @@ IndexedDatabaseManager::Get()
   return gDBManager;
 }
 
-
-IndexedDatabaseManager*
-IndexedDatabaseManager::FactoryCreate()
-{
-  
-  
-  IndexedDatabaseManager* mgr = GetOrCreate();
-  NS_IF_ADDREF(mgr);
-  return mgr;
-}
-
 nsresult
 IndexedDatabaseManager::Init()
 {
