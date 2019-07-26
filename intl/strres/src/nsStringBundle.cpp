@@ -488,7 +488,7 @@ nsresult nsExtensibleStringBundle::GetSimpleEnumeration(nsISimpleEnumerator ** a
 #define MAX_CACHED_BUNDLES 16
 
 struct bundleCacheEntry_t : public LinkedListElement<bundleCacheEntry_t> {
-  nsCStringKey *mHashKey;
+  nsAutoPtr<nsCStringKey> mHashKey;
   
   nsIStringBundle* mBundle;
 };
@@ -658,7 +658,6 @@ nsStringBundleService::insertIntoCache(nsIStringBundle* aBundle,
 void
 nsStringBundleService::recycleEntry(bundleCacheEntry_t *aEntry)
 {
-  delete aEntry->mHashKey;
   NS_RELEASE(aEntry->mBundle);
 }
 
