@@ -120,10 +120,6 @@ enum nsEventStructType {
 
 #define NS_PRIV_EVENT_UNTRUSTED_PERMITTED 0x8000
 
-#define NS_EVENT_RETARGET_TO_NON_NATIVE_ANONYMOUS 0x40000
-
-#define NS_EVENT_FLAG_DONT_FORWARD_CROSS_PROCESS 0x100000
-
 #define NS_EVENT_CAPTURE_MASK             (~(NS_EVENT_FLAG_BUBBLE | NS_EVENT_FLAG_NO_CONTENT_DISPATCH))
 #define NS_EVENT_BUBBLE_MASK              (~(NS_EVENT_FLAG_CAPTURE | NS_EVENT_FLAG_NO_CONTENT_DISPATCH))
 
@@ -540,6 +536,12 @@ public:
   
   
   bool    mExceptionHasBeenRisen : 1;
+  
+  
+  bool    mRetargetToNonNativeAnonymous : 1;
+  
+  
+  bool    mNoCrossProcessBoundaryForwarding : 1;
 
   
   bool InTargetPhase() const
