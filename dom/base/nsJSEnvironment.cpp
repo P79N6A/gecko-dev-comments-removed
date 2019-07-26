@@ -2069,15 +2069,11 @@ CycleCollectorStats::PrepareForCycleCollectionSlice(int32_t aExtraForgetSkippabl
   mBeginSliceTime = TimeStamp::Now();
 
   
-  TimeStamp endGCTime;
   if (sCCLockedOut) {
     mAnyLockedOut = true;
     FinishAnyIncrementalGC();
-    endGCTime = TimeStamp::Now();
-    uint32_t gcTime = TimeBetween(mBeginSliceTime, endGCTime);
+    uint32_t gcTime = TimeBetween(mBeginSliceTime, TimeStamp::Now());
     mMaxGCDuration = std::max(mMaxGCDuration, gcTime);
-  } else {
-    endGCTime = mBeginSliceTime;
   }
 
   mExtraForgetSkippableCalls = aExtraForgetSkippableCalls;
