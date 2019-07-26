@@ -202,6 +202,35 @@ AbstractHealthReporter.prototype = Object.freeze({
     Services.obs.addObserver(this, "idle-daily", false);
 
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!this._policy.healthReportUploadEnabled) {
+      this._log.info("Upload not enabled. Scheduling daily collection.");
+      
+      
+      
+      try {
+        let timerName = this._branch.replace(".", "-", "g") + "lastDailyCollection";
+        let tm = Cc["@mozilla.org/updates/timer-manager;1"]
+                   .getService(Ci.nsIUpdateTimerManager);
+        tm.registerTimer(timerName, this.collectMeasurements.bind(this),
+                         24 * 60 * 60);
+      } catch (ex) {
+        this._log.error("Error registering collection timer: " +
+                        CommonUtils.exceptionStr(ex));
+      }
+    }
+
+    
     this._storage.compact();
     this._initializedDeferred.resolve(this);
   },
