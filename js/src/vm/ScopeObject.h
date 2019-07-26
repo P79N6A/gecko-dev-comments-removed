@@ -56,11 +56,11 @@ namespace js {
 
 class StaticScopeIter
 {
-    JSObject *obj;
+    RootedObject obj;
     bool onNamedLambda;
 
   public:
-    explicit StaticScopeIter(JSObject *obj);
+    explicit StaticScopeIter(JSContext *cx, HandleObject obj);
 
     bool done() const;
     void operator++(int);
@@ -100,12 +100,12 @@ struct ScopeCoordinate
 
 
 
-extern StaticScopeIter
-ScopeCoordinateToStaticScope(JSScript *script, jsbytecode *pc);
+extern UnrootedShape
+ScopeCoordinateToStaticScopeShape(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 extern PropertyName *
-ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
+ScopeCoordinateName(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 
