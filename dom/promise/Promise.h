@@ -101,6 +101,10 @@ private:
   void AppendCallbacks(PromiseCallback* aResolveCallback,
                        PromiseCallback* aRejectCallback);
 
+  
+  
+  void MaybeReportRejected();
+
   nsRefPtr<nsPIDOMWindow> mWindow;
 
   nsRefPtr<PromiseResolver> mResolver;
@@ -111,6 +115,7 @@ private:
   JS::Heap<JS::Value> mResult;
   PromiseState mState;
   bool mTaskPending;
+  bool mHadRejectCallback;
 };
 
 } 

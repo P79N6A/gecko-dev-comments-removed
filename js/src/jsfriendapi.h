@@ -35,6 +35,7 @@ class JSAtom;
 struct JSErrorFormatString;
 class JSLinearString;
 struct JSJitInfo;
+class JSErrorReport;
 
 namespace JS {
 template <class T>
@@ -575,6 +576,14 @@ SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
 
 JS_FRIEND_API(bool)
 IsObjectInContextCompartment(JSObject *obj, const JSContext *cx);
+
+
+
+
+
+
+JS_FRIEND_API(JSErrorReport*)
+ErrorFromException(JS::Value val);
 
 
 
