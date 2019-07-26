@@ -848,7 +848,7 @@ MediaStreamGraphImpl::CreateOrDestroyAudioStreams(GraphTime aAudioOutputStartTim
         
         
         audioOutputStream->mStream->Init(2, IdealAudioRate(),
-                                         aStream->mAudioChannelType,
+                                         AudioChannel::Normal,
                                          AudioStream::LowLatency);
         audioOutputStream->mTrackID = tracks->GetID();
 
