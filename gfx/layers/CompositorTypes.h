@@ -37,6 +37,9 @@ const TextureFlags HostRelease        = 0x20;
 
 const TextureFlags ComponentAlpha     = 0x40;
 
+const TextureFlags OwnByClient        = 0x80;
+
+
 
 
 
