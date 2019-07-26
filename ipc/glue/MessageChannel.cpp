@@ -283,6 +283,15 @@ MessageChannel::Clear()
         mChannelErrorTask->Cancel();
         mChannelErrorTask = nullptr;
     }
+
+    
+    mPending.clear();
+    mPendingUrgentRequest = nullptr;
+    mPendingRPCCall = nullptr;
+    mOutOfTurnReplies.clear();
+    while (!mDeferred.empty()) {
+        mDeferred.pop();
+    }
 }
 
 bool
