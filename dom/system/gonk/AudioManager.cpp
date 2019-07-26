@@ -37,19 +37,18 @@ using namespace mozilla;
 
 
 static int sMaxStreamVolumeTbl[AUDIO_STREAM_CNT] = {
-  10,  
+  5,   
   15,  
-  7,   
   15,  
-  7,   
-  7,   
   15,  
-  7,   
+  15,  
+  15,  
+  15,  
+  15,  
   15,  
   15,  
   15,  
 };
-
 
 static int sHeadsetState;
 static int kBtSampleRate = 8000;
