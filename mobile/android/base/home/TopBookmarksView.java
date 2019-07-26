@@ -18,8 +18,6 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View;
-import android.view.animation.AnimationUtils;
-import android.view.animation.GridLayoutAnimationController;
 import android.widget.AbsListView;
 import android.widget.AdapterView;
 import android.widget.GridView;
@@ -49,6 +47,12 @@ public class TopBookmarksView extends GridView {
 
     
     private final int mVerticalSpacing;
+
+    
+    private int mMeasuredWidth;
+
+    
+    private int mMeasuredHeight;
 
     
     private OnUrlOpenListener mUrlOpenListener;
@@ -114,9 +118,6 @@ public class TopBookmarksView extends GridView {
                 return showContextMenuForChild(TopBookmarksView.this);
             }
         });
-
-        final GridLayoutAnimationController controller = new GridLayoutAnimationController(AnimationUtils.loadAnimation(getContext(), R.anim.grow_fade_in_center));
-        setLayoutAnimation(controller);
     }
 
     @Override
@@ -147,52 +148,45 @@ public class TopBookmarksView extends GridView {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
 
         final int measuredWidth = getMeasuredWidth();
+        if (measuredWidth == mMeasuredWidth) {
+            
+            setMeasuredDimension(mMeasuredWidth, mMeasuredHeight);
+            return;
+        }
+
         final int childWidth = getColumnWidth();
-        int childHeight = 0;
 
         
         ThumbnailHelper.getInstance().setThumbnailWidth(childWidth);
 
         
-        final TopBookmarksAdapter adapter = (TopBookmarksAdapter) getAdapter();
-        final int count;
+        final View child = new TopBookmarkItemView(getContext());
 
         
-        if (adapter == null || (count = adapter.getCount()) == 0) {
-            setMeasuredDimension(0, 0);
-            return;
+        AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
+        if (params == null) {
+            params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
+                                                  AbsListView.LayoutParams.WRAP_CONTENT);
+            child.setLayoutParams(params);
         }
 
         
-        final View child = adapter.getView(0, null, this);
-        if (child != null) {
-            
-            AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
-            if (params == null) {
-                params = new AbsListView.LayoutParams(AbsListView.LayoutParams.WRAP_CONTENT,
-                                                      AbsListView.LayoutParams.WRAP_CONTENT);
-                child.setLayoutParams(params);
-            }
-
-            
-            
-            int childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY);
-            int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
-            child.measure(childWidthSpec, childHeightSpec);
-            childHeight = child.getMeasuredHeight();
-        }
+        
+        int childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY);
+        int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
+        child.measure(childWidthSpec, childHeightSpec);
+        final int childHeight = child.getMeasuredHeight();
 
         
-        final int total = Math.min(count > 0 ? count : Integer.MAX_VALUE, mMaxBookmarks);
-
-        
-        final int rows = (int) Math.ceil((double) total / mNumColumns);
+        final int rows = (int) Math.ceil((double) mMaxBookmarks / mNumColumns);
         final int childrenHeight = childHeight * rows;
         final int totalVerticalSpacing = rows > 0 ? (rows - 1) * mVerticalSpacing : 0;
 
         
         final int measuredHeight = childrenHeight + getPaddingTop() + getPaddingBottom() + totalVerticalSpacing;
         setMeasuredDimension(measuredWidth, measuredHeight);
+        mMeasuredWidth = measuredWidth;
+        mMeasuredHeight = measuredHeight;
     }
 
     @Override
