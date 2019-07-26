@@ -950,15 +950,6 @@ public:
                            bool aDumpAll = true) const = 0;
 #endif
 
-  
-
-
-
-
-  virtual void Describe(nsAString& aOutDescription) const {
-    aOutDescription = NS_LITERAL_STRING("(not an element)");
-  }
-
   enum ETabFocusType {
   
     eTabFocus_formElementsMask = (1<<1),  
