@@ -234,9 +234,11 @@ public:
   
   static gfxPrefs& GetSingleton()
   {
+    MOZ_ASSERT(!sInstanceHasBeenDestroyed, "Should never recreate a gfxPrefs instance!");
     if (!sInstance) {
       sInstance = new gfxPrefs;
     }
+    MOZ_ASSERT(SingletonExists());
     return *sInstance;
   }
   static void DestroySingleton();
@@ -244,6 +246,7 @@ public:
 
 private:
   static gfxPrefs* sInstance;
+  static bool sInstanceHasBeenDestroyed;
 
 private:
   
