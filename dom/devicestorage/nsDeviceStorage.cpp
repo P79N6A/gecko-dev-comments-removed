@@ -181,9 +181,9 @@ public:
   nsCOMPtr<nsIFile> pictures;
   nsCOMPtr<nsIFile> videos;
   nsCOMPtr<nsIFile> music;
-  nsCOMPtr<nsIFile> apps;
   nsCOMPtr<nsIFile> sdcard;
 #endif
+  nsCOMPtr<nsIFile> apps;
   nsCOMPtr<nsIFile> crashes;
   nsCOMPtr<nsIFile> temp;
 };
@@ -576,6 +576,9 @@ DeviceStorageFile::Init()
   NS_ASSERTION(typeChecker, "DeviceStorageTypeChecker is null");
 }
 
+
+
+
 static void
 InitDirs()
 {
@@ -624,11 +627,17 @@ InitDirs()
                   getter_AddRefs(sDirs->music));
 #endif
 
+#ifdef MOZ_WIDGET_GONK
+  NS_NewLocalFile(NS_LITERAL_STRING("/data"),
+                  false,
+                  getter_AddRefs(sDirs->apps));
+#else
   dirService->Get(NS_APP_USER_PROFILE_50_DIR, NS_GET_IID(nsIFile),
                   getter_AddRefs(sDirs->apps));
   if (sDirs->apps) {
     sDirs->apps->AppendRelativeNativePath(NS_LITERAL_CSTRING("webapps"));
   }
+#endif
 
   
   
@@ -683,6 +692,9 @@ DeviceStorageFile::GetFullPath(nsAString &aFullPath)
 }
 
 
+
+
+
 void
 DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
                                            const nsAString& aStorageName,
@@ -735,11 +747,7 @@ DeviceStorageFile::GetRootDirectoryForType(const nsAString& aStorageType,
 
   
   else if (aStorageType.EqualsLiteral(DEVICESTORAGE_APPS)) {
-#ifdef MOZ_WIDGET_GONK
-    NS_NewLocalFile(NS_LITERAL_STRING("/data"), false, getter_AddRefs(f));
-#else
     f = sDirs->apps;
-#endif
   }
 
    
@@ -2514,7 +2522,7 @@ nsDOMDeviceStorage::Init(nsPIDOMWindow* aWindow, const nsAString &aType,
 
   
   
-  if (aType.EqualsLiteral("apps")) {
+  if (aType.EqualsLiteral(DEVICESTORAGE_APPS)) {
     nsCOMPtr<nsIPermissionManager> permissionManager
       = do_GetService(NS_PERMISSIONMANAGER_CONTRACTID);
     NS_ENSURE_TRUE(permissionManager, NS_ERROR_FAILURE);
