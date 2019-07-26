@@ -5,9 +5,9 @@ MARIONETTE_TIMEOUT = 30000;
 
 SpecialPowers.addPermission("mobileconnection", true, document);
 
-let connection = navigator.mozMobileConnection;
-ok(connection instanceof MozMobileConnection,
-   "connection is instanceof " + connection.constructor);
+let icc = navigator.mozIccManager;
+ok(icc instanceof MozIccManager,
+   "icc is instanceof " + icc.constructor);
 
 let emulatorCmdPendingCount = 0;
 function sendEmulatorCommand(cmd, callback) {
@@ -28,8 +28,8 @@ function setEmulatorMccMnc(mcc, mnc) {
 }
 
 function waitForIccInfoChange(callback) {
-  connection.addEventListener("iccinfochange", function handler() {
-    connection.removeEventListener("iccinfochange", handler);
+  icc.addEventListener("iccinfochange", function handler() {
+    icc.removeEventListener("iccinfochange", handler);
     callback();
   });
 }
@@ -39,18 +39,20 @@ function finalize() {
   finish();
 }
 
-
-
-is(connection.iccInfo.iccid, 89014103211118510720);
+let iccInfo = icc.iccInfo;
 
 
 
-is(connection.iccInfo.mcc, 310);
-is(connection.iccInfo.mnc, 260);
-is(connection.iccInfo.spn, "Android");
+is(iccInfo.iccid, 89014103211118510720);
 
 
-is(connection.iccInfo.msisdn, "15555215554");
+
+is(iccInfo.mcc, 310);
+is(iccInfo.mnc, 260);
+is(iccInfo.spn, "Android");
+
+
+is(iccInfo.msisdn, "15555215554");
 
 
 function testDisplayConditionChange(func, caseArray, oncomplete) {
@@ -64,9 +66,9 @@ function testDisplayConditionChange(func, caseArray, oncomplete) {
 function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
                   expectedIsDisplaySpnRequired, callback) {
   waitForIccInfoChange(function() {
-    is(connection.iccInfo.isDisplayNetworkNameRequired,
+    is(iccInfo.isDisplayNetworkNameRequired,
        expectedIsDisplayNetworkNameRequired);
-    is(connection.iccInfo.isDisplaySpnRequired,
+    is(iccInfo.isDisplaySpnRequired,
        expectedIsDisplaySpnRequired);
     
     window.setTimeout(callback, 100);
