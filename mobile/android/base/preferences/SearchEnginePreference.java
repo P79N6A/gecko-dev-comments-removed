@@ -16,8 +16,10 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
 import org.json.JSONException;
 import org.json.JSONObject;
+
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -26,7 +28,7 @@ import org.mozilla.gecko.widget.FaviconView;
 
 
 
-public class SearchEnginePreference extends Preference {
+public class SearchEnginePreference extends Preference implements View.OnLongClickListener {
     private static final String LOGTAG = "SearchEnginePreference";
 
     
@@ -102,6 +104,13 @@ public class SearchEnginePreference extends Preference {
         
         mFaviconView = ((FaviconView) view.findViewById(R.id.search_engine_icon));
         mFaviconView.updateAndScaleImage(mIconBitmap, getTitle().toString());
+    }
+
+    @Override
+    public boolean onLongClick(View view) {
+        
+        showDialog();
+        return true;
     }
 
     

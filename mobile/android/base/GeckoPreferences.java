@@ -8,6 +8,7 @@ package org.mozilla.gecko;
 import org.mozilla.gecko.background.announcements.AnnouncementsConstants;
 import org.mozilla.gecko.background.common.GlobalConstants;
 import org.mozilla.gecko.background.healthreport.HealthReportConstants;
+import org.mozilla.gecko.preferences.SearchEnginePreference;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.GeckoPreferenceFragment;
 import org.mozilla.gecko.util.ThreadUtils;
@@ -44,8 +45,11 @@ import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ListAdapter;
+import android.widget.ListView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -87,9 +91,15 @@ public class GeckoPreferences
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         
+        
+        
+        
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB &&
             !getIntent().hasExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT)) {
+            
             setupTopLevelFragmentIntent();
         }
 
@@ -97,6 +107,10 @@ public class GeckoPreferences
 
         
         Bundle intentExtras = getIntent().getExtras();
+
+        
+        
+        
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
             int res = 0;
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
@@ -118,6 +132,25 @@ public class GeckoPreferences
         }
 
         registerEventListener("Sanitize:Finished");
+
+        
+        
+        final ListView mListView = getListView();
+        mListView.setOnItemLongClickListener(new AdapterView.OnItemLongClickListener() {
+            @Override
+            public boolean onItemLongClick(AdapterView<?> parent, View view, int position, long id) {
+                
+                final ListAdapter listAdapter = ((ListView) parent).getAdapter();
+                final Object listItem = listAdapter.getItem(position);
+
+                
+                if (listItem instanceof SearchEnginePreference && listItem instanceof View.OnLongClickListener) {
+                    final View.OnLongClickListener longClickListener = (View.OnLongClickListener) listItem;
+                    return longClickListener.onLongClick(view);
+                }
+                return false;
+            }
+        });
 
         if (Build.VERSION.SDK_INT >= 14)
             getActionBar().setHomeButtonEnabled(true);
