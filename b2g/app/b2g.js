@@ -623,7 +623,6 @@ pref("wap.UAProf.tagname", "x-wap-profile");
 pref("dom.identity.enabled", true);
 
 
-
 pref("layers.orientation.sync.timeout", 1000);
 
 
