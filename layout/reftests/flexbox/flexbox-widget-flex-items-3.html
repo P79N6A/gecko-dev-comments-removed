@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+<html>
+<head>
+  <style>
+    div.flexbox {
+      display: -moz-flex;
+      -moz-align-items: flex-start;
+      background: lightgray;
+      width: 400px;
+      height: 30px;
+      margin-bottom: 10px;
+    }
+    div.flexbox > * {
+      max-width: 3px;
+      min-width: 0; /* to override default 'min-width:auto' */
+      outline: 1px dashed black;
+      margin: 0;
+      vertical-align: top;
+    }
+  </style>
+</head>
+<body>
+  <div class="flexbox"><input type="button"></div>
+  <div class="flexbox"><input type="checkbox"></div>
+  <div class="flexbox"><input type="file"></div>
+  <div class="flexbox"><input type="image"></div>
+  <div class="flexbox"><input type="password"></div>
+  <div class="flexbox"><input type="radio"></div>
+  <div class="flexbox"><input type="reset"></div>
+  <div class="flexbox"><input type="submit"></div>
+  <div class="flexbox"><input type="text"></div>
+</body>
+</html>

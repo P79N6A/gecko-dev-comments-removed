@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+
+
+
+
+
+
+
+
+
+
+<html class="reftest-wait">
+  <head>
+    <script>
+      function tweak() {
+        var outer = document.getElementById("outer");
+        outer.style.marginLeft = "40px";
+
+        document.documentElement.removeAttribute("class");
+      }
+
+      window.addEventListener("MozReftestInvalidate", tweak, false);
+    </script>
+    <style>
+      div#flexContainer {
+        width: 100px;
+        height: 50px;
+        background: lightgray;
+        display: -moz-flex;
+        -moz-justify-content: center;
+      }
+
+      div#flexItem {
+        border: 1px solid black;
+        height: 200%;
+        background: purple;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="outer">
+      <div id="flexContainer">
+        <div id="flexItem">item</div>
+      </div>
+    </div>
+  </body>
+</html>
