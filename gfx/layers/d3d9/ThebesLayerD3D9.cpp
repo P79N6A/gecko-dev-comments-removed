@@ -450,7 +450,7 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
       
       
       nsRefPtr<gfxWindowsSurface> dest = new gfxWindowsSurface(
-          gfxIntSize(bounds.width, bounds.height), gfxImageFormatARGB32);
+          gfxIntSize(bounds.width, bounds.height), gfxImageFormat::ARGB32);
       
       
       
@@ -539,7 +539,7 @@ ThebesLayerD3D9::DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode,
         new gfxImageSurface((unsigned char *)r.pBits,
                             bounds.Size(),
                             r.Pitch,
-                            gfxImageFormatARGB32);
+                            gfxImageFormat::ARGB32);
 
       if (destinationSurface) {
         nsRefPtr<gfxContext> context = new gfxContext(imgSurface);

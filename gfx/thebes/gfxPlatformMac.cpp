@@ -372,8 +372,8 @@ gfxPlatformMac::CreateThebesSurfaceAliasForDrawTarget_hack(mozilla::gfx::DrawTar
     size_t stride = CGBitmapContextGetBytesPerRow(cg);
     gfxIntSize size(aTarget->GetSize().width, aTarget->GetSize().height);
     nsRefPtr<gfxImageSurface> imageSurface = new gfxImageSurface(data, size, stride, bpp == 2
-                                                                                     ? gfxImageFormatRGB16_565
-                                                                                     : gfxImageFormatARGB32);
+                                                                                     ? gfxImageFormat::RGB16_565
+                                                                                     : gfxImageFormat::ARGB32);
     
     
     
@@ -391,9 +391,9 @@ gfxPlatformMac::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
     RefPtr<DataSourceSurface> sourceData = source->GetDataSurface();
     unsigned char* data = sourceData->GetData();
     nsRefPtr<gfxImageSurface> surf = new gfxImageSurface(data, ThebesIntSize(sourceData->GetSize()), sourceData->Stride(),
-                                                         gfxImageFormatARGB32);
+                                                         gfxImageFormat::ARGB32);
     
-    nsRefPtr<gfxImageSurface> cpy = new gfxImageSurface(ThebesIntSize(sourceData->GetSize()), gfxImageFormatARGB32);
+    nsRefPtr<gfxImageSurface> cpy = new gfxImageSurface(ThebesIntSize(sourceData->GetSize()), gfxImageFormat::ARGB32);
     cpy->CopyFrom(surf);
     return cpy.forget();
   } else if (aTarget->GetType() == BackendType::COREGRAPHICS) {

@@ -35,12 +35,12 @@ public:
 
     
     gfxWindowsSurface(const gfxIntSize& size,
-                      gfxImageFormat imageFormat = gfxImageFormatRGB24);
+                      gfxImageFormat imageFormat = gfxImageFormat::RGB24);
 
     
     gfxWindowsSurface(HDC dc,
                       const gfxIntSize& size,
-                      gfxImageFormat imageFormat = gfxImageFormatRGB24);
+                      gfxImageFormat imageFormat = gfxImageFormat::RGB24);
 
     gfxWindowsSurface(cairo_surface_t *csurf);
 

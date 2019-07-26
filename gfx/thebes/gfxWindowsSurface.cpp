@@ -55,7 +55,7 @@ gfxWindowsSurface::gfxWindowsSurface(const gfxIntSize& realSize, gfxImageFormat 
     if (!CheckSurfaceSize(size))
         MakeInvalid(size);
 
-    cairo_surface_t *surf = cairo_win32_surface_create_with_dib((cairo_format_t)imageFormat,
+    cairo_surface_t *surf = cairo_win32_surface_create_with_dib((cairo_format_t)(int)imageFormat,
                                                                 size.width, size.height);
 
     Init(surf);
@@ -75,14 +75,14 @@ gfxWindowsSurface::gfxWindowsSurface(HDC dc, const gfxIntSize& realSize, gfxImag
     if (!CheckSurfaceSize(size))
         MakeInvalid(size);
 
-    cairo_surface_t *surf = cairo_win32_surface_create_with_ddb(dc, (cairo_format_t)imageFormat,
+    cairo_surface_t *surf = cairo_win32_surface_create_with_ddb(dc, (cairo_format_t)(int)imageFormat,
                                                                 size.width, size.height);
 
     Init(surf);
 
     if (mSurfaceValid) {
         
-        int bytesPerPixel = ((imageFormat == gfxImageFormatRGB24) ? 3 : 4);
+        int bytesPerPixel = ((imageFormat == gfxImageFormat::RGB24) ? 3 : 4);
         RecordMemoryUsed(size.width * size.height * bytesPerPixel + sizeof(gfxWindowsSurface));
     }
 
@@ -135,7 +135,7 @@ gfxWindowsSurface::CreateSimilarSurface(gfxContentType aContent,
         
         
         surface =
-          cairo_win32_surface_create_with_dib(cairo_format_t(gfxPlatform::GetPlatform()->OptimalFormatForContent(aContent)),
+          cairo_win32_surface_create_with_dib((cairo_format_t)(int)gfxPlatform::GetPlatform()->OptimalFormatForContent(aContent),
                                               aSize.width, aSize.height);
     } else {
         surface =

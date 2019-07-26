@@ -326,7 +326,7 @@ public:
     
     request->dstFrame = new imgFrame();
     nsresult rv = request->dstFrame->Init(0, 0, request->dstSize.width, request->dstSize.height,
-                                          gfxImageFormatARGB32);
+                                          gfxImageFormat::ARGB32);
 
     if (NS_FAILED(rv) || !request->GetSurfaces(aSrcFrame)) {
       return;
@@ -864,7 +864,7 @@ RasterImage::CopyFrame(uint32_t aWhichFrame,
   
   
   nsRefPtr<gfxImageSurface> imgsurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                                             gfxImageFormatARGB32);
+                                                             gfxImageFormat::ARGB32);
   gfxContext ctx(imgsurface);
   ctx.SetOperator(gfxContext::OPERATOR_SOURCE);
   ctx.Rectangle(framerect);
@@ -2034,7 +2034,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
     
     
     mDecoder->NeedNewFrame(0, 0, 0, mSize.width, mSize.height,
-                           gfxImageFormatARGB32);
+                           gfxImageFormat::ARGB32);
     mDecoder->AllocateFrame();
   }
   mDecoder->Init();

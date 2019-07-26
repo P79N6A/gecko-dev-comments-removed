@@ -1494,7 +1494,7 @@ HBITMAP nsWindow::CreateTransparencyMask(gfxImageFormat format,
 
   
   
-  if (format == gfxImageFormatARGB32) {
+  if (format == gfxImageFormat::ARGB32) {
 
     
     int32_t* pSrc = (int32_t*)aImageData;

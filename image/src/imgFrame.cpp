@@ -236,12 +236,12 @@ nsresult imgFrame::Optimize()
 
     if (pixelCount == 0) {
       
-      if (mFormat == gfxImageFormatARGB32 ||
-          mFormat == gfxImageFormatRGB24)
+      if (mFormat == gfxImageFormat::ARGB32 ||
+          mFormat == gfxImageFormat::RGB24)
       {
         
         gfxRGBA::PackedColorType inputType = gfxRGBA::PACKED_XRGB;
-        if (mFormat == gfxImageFormatARGB32)
+        if (mFormat == gfxImageFormat::ARGB32)
           inputType = gfxRGBA::PACKED_ARGB_PREMULTIPLIED;
 
         mSinglePixelColor = gfxRGBA(firstPixel, inputType);
@@ -356,7 +356,7 @@ imgFrame::SurfaceForDrawing(bool               aDoPadding,
     
     
     
-    gfxImageFormat format = gfxImageFormatARGB32;
+    gfxImageFormat format = gfxImageFormat::ARGB32;
     nsRefPtr<gfxASurface> surface =
       gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxImageSurface::ContentFromFormat(format));
     if (!surface || surface->CairoStatus())
@@ -474,7 +474,7 @@ gfxImageFormat imgFrame::GetFormat() const
 bool imgFrame::GetNeedsBackground() const
 {
   
-  return (mFormat == gfxImageFormatARGB32 || !ImageComplete());
+  return (mFormat == gfxImageFormat::ARGB32 || !ImageComplete());
 }
 
 uint32_t imgFrame::GetImageBytesPerRow() const
@@ -524,7 +524,7 @@ bool imgFrame::GetIsPaletted() const
 
 bool imgFrame::GetHasAlpha() const
 {
-  return mFormat == gfxImageFormatARGB32;
+  return mFormat == gfxImageFormat::ARGB32;
 }
 
 void imgFrame::GetPaletteData(uint32_t **aPalette, uint32_t *length) const
@@ -571,7 +571,7 @@ nsresult imgFrame::LockImageData()
   if ((mOptSurface || mSinglePixel) && !mImageSurface) {
     
     mImageSurface = new gfxImageSurface(gfxIntSize(mSize.width, mSize.height),
-                                        gfxImageFormatARGB32);
+                                        gfxImageFormat::ARGB32);
     if (!mImageSurface || mImageSurface->CairoStatus())
       return NS_ERROR_OUT_OF_MEMORY;
 
@@ -742,8 +742,8 @@ bool imgFrame::ImageComplete() const
 
 void imgFrame::SetHasNoAlpha()
 {
-  if (mFormat == gfxImageFormatARGB32) {
-      mFormat = gfxImageFormatRGB24;
+  if (mFormat == gfxImageFormat::ARGB32) {
+      mFormat = gfxImageFormat::RGB24;
       mFormatChanged = true;
       ThebesSurface()->SetOpaqueRect(gfxRect(0, 0, mSize.width, mSize.height));
   }

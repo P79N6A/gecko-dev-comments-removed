@@ -45,18 +45,18 @@ MOZ_BEGIN_ENUM_CLASS(gfxBreakPriority)
   eNormalBreak
 MOZ_END_ENUM_CLASS(gfxBreakPriority)
 
-    
 
 
 
-    enum gfxImageFormat {
-        gfxImageFormatARGB32, 
-        gfxImageFormatRGB24,  
-        gfxImageFormatA8,     
-        gfxImageFormatA1,     
-        gfxImageFormatRGB16_565,  
-        gfxImageFormatUnknown
-    };
+
+MOZ_BEGIN_ENUM_CLASS(gfxImageFormat)
+  ARGB32, 
+  RGB24,  
+  A8,     
+  A1,     
+  RGB16_565,  
+  Unknown
+MOZ_END_ENUM_CLASS(gfxImageFormat)
 
     enum gfxSurfaceType {
         gfxSurfaceTypeImage,
@@ -105,4 +105,4 @@ MOZ_END_ENUM_CLASS(gfxBreakPriority)
       GFX_MEMORY_OUT_OF_PROCESS
     };
 
-#endif 
+#endif

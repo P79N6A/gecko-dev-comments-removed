@@ -595,7 +595,7 @@ public:
     virtual gfxImageFormat OptimalFormatForContent(gfxContentType aContent);
 
     virtual gfxImageFormat GetOffscreenFormat()
-    { return gfxImageFormatRGB24; }
+    { return gfxImageFormat::RGB24; }
 
     
 

@@ -223,11 +223,19 @@ struct ParamTraits<mozilla::layers::ScaleMode>
 {};
 
 template <>
-struct ParamTraits<mozilla::PixelFormat>
-  : public EnumSerializer<mozilla::PixelFormat,
-                          gfxImageFormatARGB32,
-                          gfxImageFormatUnknown>
+struct ParamTraits<gfxImageFormat>
+  : public TypedEnumSerializer<gfxImageFormat,
+                               gfxImageFormat::ARGB32,
+                               gfxImageFormat::Unknown>
 {};
+
+
+
+
+
+
+
+
 
 
 template<>

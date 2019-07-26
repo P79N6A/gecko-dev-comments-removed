@@ -245,22 +245,22 @@ ReadPixelsIntoImageSurface(GLContext* gl, gfxImageSurface* dest) {
 
 
 
-    bool hasAlpha = dest->Format() == gfxImageFormatARGB32;
+    bool hasAlpha = dest->Format() == gfxImageFormat::ARGB32;
 
     int destPixelSize;
     GLenum destFormat;
     GLenum destType;
 
     switch (dest->Format()) {
-        case gfxImageFormatRGB24: 
-        case gfxImageFormatARGB32:
+        case gfxImageFormat::RGB24: 
+        case gfxImageFormat::ARGB32:
             destPixelSize = 4;
             
             destFormat = LOCAL_GL_BGRA;
             destType = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
             break;
 
-        case gfxImageFormatRGB16_565:
+        case gfxImageFormat::RGB16_565:
             destPixelSize = 2;
             destFormat = LOCAL_GL_RGB;
             destType = LOCAL_GL_UNSIGNED_SHORT_5_6_5_REV;
@@ -379,7 +379,7 @@ ReadPixelsIntoImageSurface(GLContext* gl, gfxImageSurface* dest) {
 #ifdef XP_MACOSX
     if (gl->WorkAroundDriverBugs() &&
         gl->Vendor() == gl::GLVendor::NVIDIA &&
-        dest->Format() == gfxImageFormatARGB32 &&
+        dest->Format() == gfxImageFormat::ARGB32 &&
         width && height)
     {
         GLint alphaBits = 0;
@@ -503,7 +503,7 @@ GLReadTexImageHelper::ReadTexImage(GLuint aTextureId,
     mGL->MakeCurrent();
 
     
-    nsRefPtr<gfxImageSurface> isurf = new gfxImageSurface(aSize, gfxImageFormatARGB32);
+    nsRefPtr<gfxImageSurface> isurf = new gfxImageSurface(aSize, gfxImageFormat::ARGB32);
     if (!isurf || isurf->CairoStatus()) {
         return nullptr;
     }

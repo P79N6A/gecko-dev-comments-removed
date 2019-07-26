@@ -49,7 +49,7 @@ gfxUtils::PremultiplyImageSurface(gfxImageSurface *aSourceSurface,
                "Source surface stride isn't tightly packed");
 
     
-    if (aSourceSurface->Format() != gfxImageFormatARGB32) {
+    if (aSourceSurface->Format() != gfxImageFormat::ARGB32) {
         if (aDestSurface != aSourceSurface) {
             memcpy(aDestSurface->Data(), aSourceSurface->Data(),
                    aSourceSurface->Stride() * aSourceSurface->Height());
@@ -99,7 +99,7 @@ gfxUtils::UnpremultiplyImageSurface(gfxImageSurface *aSourceSurface,
                "Source and destination surfaces don't have identical characteristics");
 
     
-    if (aSourceSurface->Format() != gfxImageFormatARGB32) {
+    if (aSourceSurface->Format() != gfxImageFormat::ARGB32) {
         if (aDestSurface != aSourceSurface) {
             aDestSurface->CopyFrom(aSourceSurface);
         }
@@ -154,7 +154,7 @@ gfxUtils::ConvertBGRAtoRGBA(gfxImageSurface *aSourceSurface,
     MOZ_ASSERT(aSourceSurface->Stride() == aSourceSurface->Width() * 4,
                "Source surface stride isn't tightly packed");
 
-    MOZ_ASSERT(aSourceSurface->Format() == gfxImageFormatARGB32 || aSourceSurface->Format() == gfxImageFormatRGB24,
+    MOZ_ASSERT(aSourceSurface->Format() == gfxImageFormat::ARGB32 || aSourceSurface->Format() == gfxImageFormat::RGB24,
                "Surfaces must be ARGB32 or RGB24");
 
     uint8_t *src = aSourceSurface->Data();
@@ -491,11 +491,11 @@ gfxUtils::DrawPixelSnapped(gfxContext*      aContext,
 gfxUtils::ImageFormatToDepth(gfxImageFormat aFormat)
 {
     switch (aFormat) {
-        case gfxImageFormatARGB32:
+        case gfxImageFormat::ARGB32:
             return 32;
-        case gfxImageFormatRGB24:
+        case gfxImageFormat::RGB24:
             return 24;
-        case gfxImageFormatRGB16_565:
+        case gfxImageFormat::RGB16_565:
             return 16;
         default:
             break;
@@ -700,7 +700,7 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
   bool prescale = aSuggestedSize.width > 0 && aSuggestedSize.height > 0 &&
                     ToIntSize(aSuggestedSize) != aData.mPicSize;
 
-  if (aSuggestedFormat == gfxImageFormatRGB16_565) {
+  if (aSuggestedFormat == gfxImageFormat::RGB16_565) {
 #if defined(HAVE_YCBCR_TO_RGB565)
     if (prescale &&
         !IsScaleYCbCrToRGB565Fast(aData.mPicX,
@@ -720,14 +720,14 @@ gfxUtils::GetYCbCrToRGBDestFormatAndSize(const PlanarYCbCrData& aData,
     }
 #else
     
-    aSuggestedFormat = gfxImageFormatRGB24;
+    aSuggestedFormat = gfxImageFormat::RGB24;
 #endif
   }
-  else if (aSuggestedFormat != gfxImageFormatRGB24) {
+  else if (aSuggestedFormat != gfxImageFormat::RGB24) {
     
-    aSuggestedFormat = gfxImageFormatRGB24;
+    aSuggestedFormat = gfxImageFormat::RGB24;
   }
-  if (aSuggestedFormat == gfxImageFormatRGB24) {
+  if (aSuggestedFormat == gfxImageFormat::RGB24) {
     
 
     if (aData.mPicX != 0 || aData.mPicY != 0 || yuvtype == YV24)
@@ -760,7 +760,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
   
   if (ToIntSize(aDestSize) != aData.mPicSize) {
 #if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == gfxImageFormatRGB16_565) {
+    if (aDestFormat == gfxImageFormat::RGB16_565) {
       ScaleYCbCrToRGB565(aData.mYChannel,
                               aData.mCbChannel,
                               aData.mCrChannel,
@@ -794,7 +794,7 @@ gfxUtils::ConvertYCbCrToRGB(const PlanarYCbCrData& aData,
                              FILTER_BILINEAR);
   } else { 
 #if defined(HAVE_YCBCR_TO_RGB565)
-    if (aDestFormat == gfxImageFormatRGB16_565) {
+    if (aDestFormat == gfxImageFormat::RGB16_565) {
       ConvertYCbCrToRGB565(aData.mYChannel,
                                 aData.mCbChannel,
                                 aData.mCrChannel,

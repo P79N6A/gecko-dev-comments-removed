@@ -100,7 +100,7 @@ ISurfaceAllocator::AllocSurfaceDescriptorWithCaps(const gfx::IntSize& aSize,
 #ifdef XP_MACOSX
     
     
-    if (format == gfxImageFormatA8) {
+    if (format == gfxImageFormat::A8) {
       memset(data, 0, stride * aSize.height);
     }
 #endif
