@@ -1784,7 +1784,8 @@ GetPrevContinuationWithPossiblySameStyle(nsIFrame* aFrame)
   
   
   nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
-  if (!prevContinuation && (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+  if (!prevContinuation &&
+      (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     
     
     prevContinuation = static_cast<nsIFrame*>(
@@ -1844,7 +1845,8 @@ GetNextContinuationWithSameStyle(nsIFrame* aFrame,
   
 
   nsIFrame *nextContinuation = aFrame->GetNextContinuation();
-  if (!nextContinuation && (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+  if (!nextContinuation &&
+      (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     
     
     nextContinuation = static_cast<nsIFrame*>(aFrame->FirstContinuation()->
@@ -2016,7 +2018,7 @@ RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
       
       
       
-      if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+      if ((aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) &&
           !aFrame->GetPrevContinuation()) {
         nsIFrame* sib = static_cast<nsIFrame*>
           (aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
@@ -2839,7 +2841,7 @@ GetNextBlockInInlineSibling(FramePropertyTable* aPropTable, nsIFrame* aFrame)
   NS_ASSERTION(!aFrame->GetPrevContinuation(),
                "must start with the first continuation");
   
-  if (!(aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+  if (!(aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     
     return nullptr;
   }

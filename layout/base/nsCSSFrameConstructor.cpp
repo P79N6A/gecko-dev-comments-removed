@@ -413,7 +413,7 @@ ReparentFrames(nsCSSFrameConstructor* aFrameConstructor,
 static inline bool
 IsFrameSpecial(nsIFrame* aFrame)
 {
-  return (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) != 0;
+  return (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT) != 0;
 }
 
 static nsIFrame* GetSpecialSibling(nsIFrame* aFrame)
@@ -468,7 +468,7 @@ SetFrameIsSpecial(nsIFrame* aFrame, nsIFrame* aSpecialSibling)
                "should have no non-special continuations here");
 
   
-  aFrame->AddStateBits(NS_FRAME_IS_SPECIAL);
+  aFrame->AddStateBits(NS_FRAME_PART_OF_IBSPLIT);
 
   if (aSpecialSibling) {
     NS_ASSERTION(!aSpecialSibling->GetPrevContinuation(),
@@ -10391,6 +10391,7 @@ nsCSSFrameConstructor::ConstructInline(nsFrameConstructorState& aState,
                                        const nsStyleDisplay*    aDisplay,
                                        nsFrameItems&            aFrameItems)
 {
+  
   
   
   

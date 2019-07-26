@@ -1334,7 +1334,7 @@ nsBidiPresUtils::IsLeftOrRightMost(nsIFrame*              aFrame,
                         : !firstFrameState->mHasContOnPrevLines);
 
   if ((aIsLeftMost || aIsRightMost) &&
-      (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+      (aFrame->GetStateBits() & NS_FRAME_PART_OF_IBSPLIT)) {
     
     
     
