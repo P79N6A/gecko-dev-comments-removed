@@ -18,9 +18,12 @@
 
 class nsICycleCollectorListener;
 class nsIXPConnectJSObjectHolder;
-class nsRootedJSValueArray;
 class nsScriptNameSpaceManager;
 class nsCycleCollectionNoteRootCallback;
+
+namespace JS {
+class AutoValueVector;
+}
 
 namespace mozilla {
 template <class> class Maybe;
@@ -147,9 +150,7 @@ protected:
   
   nsresult ConvertSupportsTojsvals(nsISupports *aArgs,
                                    JS::Handle<JSObject*> aScope,
-                                   uint32_t *aArgc,
-                                   JS::Value **aArgv,
-                                   mozilla::Maybe<nsRootedJSValueArray> &aPoolRelease);
+                                   JS::AutoValueVector &aArgsOut);
 
   nsresult AddSupportsPrimitiveTojsvals(nsISupports *aArg, JS::Value *aArgv);
 
