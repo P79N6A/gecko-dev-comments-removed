@@ -133,7 +133,7 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
         return;
 
     if (!FilterContainsLocation(function->filename, function->lineno)) {
-        JS_ASSERT(!this->function);
+        JS_ASSERT(!this->graph);
         
         filteredOutCompilations++;
         return;
