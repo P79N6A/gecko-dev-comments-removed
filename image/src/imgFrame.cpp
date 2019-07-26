@@ -28,13 +28,6 @@ static bool gDisableOptimize = false;
 
 #define USE_WIN_SURFACE 1
 
-static uint32_t gTotalDDBs = 0;
-static uint32_t gTotalDDBSize = 0;
-
-#define kMaxDDBSize (64*1024*1024)
-
-#define kMaxSingleDDBSize (4*1024*1024)
-
 #endif
 
 using namespace mozilla;
@@ -113,9 +106,6 @@ imgFrame::imgFrame() :
   mFormatChanged(false),
   mCompositingFailed(false),
   mNonPremult(false),
-#ifdef USE_WIN_SURFACE
-  mIsDDBSurface(false),
-#endif
   mInformedDiscardTracker(false),
   mDirty(false)
 {
@@ -132,12 +122,6 @@ imgFrame::~imgFrame()
 {
   moz_free(mPalettedImageData);
   mPalettedImageData = nullptr;
-#ifdef USE_WIN_SURFACE
-  if (mIsDDBSurface) {
-      gTotalDDBs--;
-      gTotalDDBSize -= mSize.width * mSize.height * 4;
-  }
-#endif
 
   if (mInformedDiscardTracker) {
     DiscardTracker::InformAllocation(-4 * mSize.height * mSize.width);
@@ -296,40 +280,8 @@ nsresult imgFrame::Optimize()
   mOptSurface = nullptr;
 
 #ifdef USE_WIN_SURFACE
-  
-  
-  
   if (mWinSurface) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    uint32_t ddbSize = mSize.width * mSize.height * 4;
-    if (ddbSize <= kMaxSingleDDBSize &&
-        ddbSize + gTotalDDBSize <= kMaxDDBSize)
-    {
-      nsRefPtr<gfxWindowsSurface> wsurf = mWinSurface->OptimizeToDDB(nullptr, gfxIntSize(mSize.width, mSize.height), mFormat);
-      if (wsurf) {
-        gTotalDDBs++;
-        gTotalDDBSize += ddbSize;
-        mIsDDBSurface = true;
-        mOptSurface = wsurf;
-      }
-    }
-    if (!mOptSurface && !mFormatChanged) {
+    if (!mFormatChanged) {
       
       mOptSurface = mWinSurface;
     }
