@@ -93,6 +93,7 @@ this.DataStoreCursor.prototype = {
   _revision: null,
   _revisionsList: null,
   _objectId: 0,
+  _maxObjectId: 0,
 
   _state: STATE_INIT,
 
@@ -149,9 +150,12 @@ this.DataStoreCursor.prototype = {
     let request = aRevisionStore.openCursor(null, 'prev');
     request.onsuccess = function(aEvent) {
       self._revision = aEvent.target.result.value;
-      self._objectId = 0;
-      self._state = STATE_SEND_ALL;
-      aResolve(ObjectWrapper.wrap({ operation: 'clear' }, self._window));
+      self.getMaxObjectId(aStore,
+        function() {
+          self._state = STATE_SEND_ALL;
+          aResolve(ObjectWrapper.wrap({ operation: 'clear' }, self._window));
+        }
+      );
     }
   },
 
@@ -166,7 +170,6 @@ this.DataStoreCursor.prototype = {
         
         if (aInternalRevisionId == undefined) {
           self._revisionId = null;
-          self._objectId = 0;
           self._state = STATE_INIT;
           self.stateMachine(aStore, aRevisionStore, aResolve, aReject);
           return;
@@ -235,10 +238,13 @@ this.DataStoreCursor.prototype = {
               return;
             }
 
-            self._revisionId = null;
-            self._objectId = 0;
-            self._state = STATE_INIT;
-            self.stateMachine(aStore, aRevisionStore, aResolve, aReject);
+            self.getMaxObjectId(aStore,
+              function() {
+                self._revisionId = null;
+                self._state = STATE_INIT;
+                self.stateMachine(aStore, aRevisionStore, aResolve, aReject);
+              }
+            );
             return;
         }
       }
@@ -286,28 +292,18 @@ this.DataStoreCursor.prototype = {
     debug('StateMachineSendAll');
 
     let self = this;
-    let request = aRevisionStore.openCursor(null, 'prev');
+    let request = aStore.openCursor(self._window.IDBKeyRange.lowerBound(this._objectId, true));
     request.onsuccess = function(aEvent) {
-      if (self._revision.revisionId != aEvent.target.result.value.revisionId) {
-        self._revision = aEvent.target.result.value;
-        self._objectId = 0;
-        aResolve(ObjectWrapper.wrap({ operation: 'clear' }, self._window));
+      let cursor = aEvent.target.result;
+      if (!cursor || cursor.key > self._maxObjectId) {
+        self._state = STATE_REVISION_CHECK;
+        self.stateMachine(aStore, aRevisionStore, aResolve, aReject);
         return;
       }
 
-      let request = aStore.openCursor(self._window.IDBKeyRange.lowerBound(self._objectId, true));
-      request.onsuccess = function(aEvent) {
-        let cursor = aEvent.target.result;
-        if (!cursor) {
-          self._state = STATE_REVISION_CHECK;
-          self.stateMachine(aStore, aRevisionStore, aResolve, aReject);
-          return;
-        }
-
-        self._objectId = cursor.key;
-        aResolve(ObjectWrapper.wrap({ operation: 'add', id: self._objectId,
-                                      data: cursor.value }, self._window));
-      };
+      self._objectId = cursor.key;
+      aResolve(ObjectWrapper.wrap({ operation: 'add', id: self._objectId,
+                                    data: cursor.value }, self._window));
     };
   },
 
@@ -379,6 +375,17 @@ this.DataStoreCursor.prototype = {
     this.close();
     aResolve(ObjectWrapper.wrap({ revisionId: this._revision.revisionId,
                                   operation: 'done' }, this._window));
+  },
+
+  getMaxObjectId: function(aStore, aCallback) {
+    let self = this;
+    let request = aStore.openCursor(null, 'prev');
+    request.onsuccess = function(aEvent) {
+      if (aEvent.target.result) {
+        self._maxObjectId = aEvent.target.result.key;
+      }
+      aCallback();
+    }
   },
 
   
