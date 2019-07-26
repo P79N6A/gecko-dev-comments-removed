@@ -749,6 +749,11 @@ let RIL = {
   
 
 
+  cellBroadcastDisabled: false,
+
+  
+
+
 
   cellBroadcastConfigs: null,
   mergedCellBroadcastConfig: null,
@@ -890,6 +895,7 @@ let RIL = {
     this.cellBroadcastConfigs = {
       MMI: cbmmi || null
     };
+    this.mergedCellBroadcastConfig = null;
   },
 
   get muted() {
@@ -1898,6 +1904,19 @@ let RIL = {
     Buf.sendParcel();
   },
 
+  setCellBroadcastDisabled: function setCellBroadcastDisabled(options) {
+    this.cellBroadcastDisabled = options.disabled;
+
+    
+    
+    
+    
+    
+    if (this.mergedCellBroadcastConfig) {
+      this.updateCellBroadcastConfig();
+    }
+  },
+
   setCellBroadcastSearchList: function setCellBroadcastSearchList(options) {
     try {
       let str = options.searchListStr;
@@ -1915,8 +1934,9 @@ let RIL = {
   },
 
   updateCellBroadcastConfig: function updateCellBroadcastConfig() {
-    let activate = (this.mergedCellBroadcastConfig != null)
-                   && (this.mergedCellBroadcastConfig.length > 0);
+    let activate = !this.cellBroadcastDisabled &&
+                   (this.mergedCellBroadcastConfig != null) &&
+                   (this.mergedCellBroadcastConfig.length > 0);
     if (activate) {
       this.setGsmSmsBroadcastConfig(this.mergedCellBroadcastConfig);
     } else {
@@ -4340,6 +4360,7 @@ let RIL = {
   setInitialOptions: function setInitialOptions(options) {
     DEBUG = DEBUG_WORKER || options.debug;
     CLIENT_ID = options.clientId;
+    this.cellBroadcastDisabled = options.cellBroadcastDisabled;
   }
 };
 
