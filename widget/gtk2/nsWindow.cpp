@@ -1012,15 +1012,17 @@ nsWindow::Show(bool aState)
 }
 
 NS_IMETHODIMP
-nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
+nsWindow::Resize(double aWidth, double aHeight, bool aRepaint)
 {
-    ConstrainSize(&aWidth, &aHeight);
+    int32_t width = NSToIntRound(aWidth);
+    int32_t height = NSToIntRound(aHeight);
+    ConstrainSize(&width, &height);
 
     
     
     
 
-    mBounds.SizeTo(aWidth, aHeight);
+    mBounds.SizeTo(width, height);
 
     if (!mCreated)
         return NS_OK;
@@ -1070,7 +1072,7 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
             
             
             
-            NativeResize(aWidth, aHeight, aRepaint);
+            NativeResize(width, height, aRepaint);
         }
         else {
             mNeedsResize = true;
@@ -1081,21 +1083,25 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
 
     
     if (mIsTopLevel || mListenForResizes) {
-        DispatchResized(aWidth, aHeight);
+        DispatchResized(width, height);
     }
 
     return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
-                       bool aRepaint)
+nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
+                 bool aRepaint)
 {
-    ConstrainSize(&aWidth, &aHeight);
+    int32_t width = NSToIntRound(aWidth);
+    int32_t height = NSToIntRound(aHeight);
+    ConstrainSize(&width, &height);
 
-    mBounds.x = aX;
-    mBounds.y = aY;
-    mBounds.SizeTo(aWidth, aHeight);
+    int32_t x = NSToIntRound(aX);
+    int32_t y = NSToIntRound(aY);
+    mBounds.x = x;
+    mBounds.y = y;
+    mBounds.SizeTo(width, height);
 
     mNeedsMove = true;
 
@@ -1111,7 +1117,7 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
         
         if (AreBoundsSane()) {
             
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+            NativeResize(x, y, width, height, aRepaint);
             
             if (mNeedsShow)
                 NativeShow(true);
@@ -1136,7 +1142,7 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
             
             
             
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+            NativeResize(x, y, width, height, aRepaint);
         }
         else {
             mNeedsResize = true;
@@ -1146,7 +1152,7 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
     NotifyRollupGeometryChange();
 
     if (mIsTopLevel || mListenForResizes) {
-        DispatchResized(aWidth, aHeight);
+        DispatchResized(width, height);
     }
 
     return NS_OK;
@@ -1169,10 +1175,13 @@ nsWindow::IsEnabled() const
 
 
 NS_IMETHODIMP
-nsWindow::Move(int32_t aX, int32_t aY)
+nsWindow::Move(double aX, double aY)
 {
-    LOG(("nsWindow::Move [%p] %d %d\n", (void *)this,
+    LOG(("nsWindow::Move [%p] %f %f\n", (void *)this,
          aX, aY));
+
+    int32_t x = NSToIntRound(aX);
+    int32_t y = NSToIntRound(aY);
 
     if (mWindowType == eWindowType_toplevel ||
         mWindowType == eWindowType_dialog) {
@@ -1182,14 +1191,14 @@ nsWindow::Move(int32_t aX, int32_t aY)
     
     
     
-    if (aX == mBounds.x && aY == mBounds.y &&
+    if (x == mBounds.x && y == mBounds.y &&
         mWindowType != eWindowType_popup)
         return NS_OK;
 
     
 
-    mBounds.x = aX;
-    mBounds.y = aY;
+    mBounds.x = x;
+    mBounds.y = y;
 
     if (!mCreated)
         return NS_OK;
@@ -1197,10 +1206,10 @@ nsWindow::Move(int32_t aX, int32_t aY)
     mNeedsMove = false;
 
     if (mIsTopLevel) {
-        gtk_window_move(GTK_WINDOW(mShell), aX, aY);
+        gtk_window_move(GTK_WINDOW(mShell), x, y);
     }
     else if (mGdkWindow) {
-        gdk_window_move(mGdkWindow, aX, aY);
+        gdk_window_move(mGdkWindow, x, y);
     }
 
     NotifyRollupGeometryChange();

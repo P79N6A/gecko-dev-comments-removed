@@ -92,8 +92,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xdb9b0931, 0xebf9, 0x4e0d, \
-    { 0xb2, 0x0a, 0xf7, 0x5f, 0xcb, 0x17, 0xe6, 0xe1 } }
+  { 0x476D5716, 0xE225, 0x4497, \
+    { 0x80, 0x41, 0x92, 0xF8, 0x67, 0x59, 0xC4, 0x38 } }
 
 
 
@@ -701,45 +701,11 @@ class nsIWidget : public nsISupports {
 
 
 
-    
 
 
 
 
 
-
-
-
-
-    NS_IMETHOD Move(int32_t aX, int32_t aY) = 0;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    NS_IMETHOD MoveClient(int32_t aX, int32_t aY) = 0;
-
-    
-
-
-
-
-
-
-
-
-    NS_IMETHOD Resize(int32_t aWidth,
-                      int32_t aHeight,
-                      bool     aRepaint) = 0;
 
     
 
@@ -751,24 +717,7 @@ class nsIWidget : public nsISupports {
 
 
 
-
-    NS_IMETHOD Resize(int32_t aX,
-                      int32_t aY,
-                      int32_t aWidth,
-                      int32_t aHeight,
-                      bool     aRepaint) = 0;
-
-    
-
-
-
-
-
-
-
-    NS_IMETHOD ResizeClient(int32_t aWidth,
-                            int32_t aHeight,
-                            bool  aRepaint) = 0;
+    NS_IMETHOD Move(double aX, double aY) = 0;
 
     
 
@@ -783,15 +732,72 @@ class nsIWidget : public nsISupports {
 
 
 
+    NS_IMETHOD MoveClient(double aX, double aY) = 0;
+
+    
 
 
 
 
-    NS_IMETHOD ResizeClient(int32_t aX,
-                            int32_t aY,
-                            int32_t aWidth,
-                            int32_t aHeight,
-                            bool    aRepaint) = 0;
+
+
+
+
+    NS_IMETHOD Resize(double aWidth,
+                      double aHeight,
+                      bool   aRepaint) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD Resize(double aX,
+                      double aY,
+                      double aWidth,
+                      double aHeight,
+                      bool   aRepaint) = 0;
+
+    
+
+
+
+
+
+
+
+    NS_IMETHOD ResizeClient(double aWidth,
+                            double aHeight,
+                            bool   aRepaint) = 0;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    NS_IMETHOD ResizeClient(double aX,
+                            double aY,
+                            double aWidth,
+                            double aHeight,
+                            bool   aRepaint) = 0;
 
     
 

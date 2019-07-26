@@ -545,26 +545,29 @@ nsWindow::ConstrainPosition(bool aAllowSlop, int32_t *aX, int32_t *aY)
 }
 
 NS_IMETHODIMP
-nsWindow::Move(int32_t aX, int32_t aY)
+nsWindow::Move(double aX, double aY)
 {
-    LOG(("nsWindow::Move [%p] %d %d\n", (void *)this,
+    LOG(("nsWindow::Move [%p] %f %f\n", (void *)this,
          aX, aY));
+
+    int32_t x = NSToIntRound(aX);
+    int32_t y = NSToIntRound(aY);
 
     if (mIsTopLevel) {
         SetSizeMode(nsSizeMode_Normal);
     }
 
-    if (aX == mBounds.x && aY == mBounds.y)
+    if (x == mBounds.x && y == mBounds.y)
         return NS_OK;
 
     mNeedsMove = false;
 
     
-    QPointF pos( aX, aY );
+    QPointF pos( x, y );
     if (mIsTopLevel) {
         QWidget *widget = GetViewWidget();
         NS_ENSURE_TRUE(widget, NS_OK);
-        widget->move(aX, aY);
+        widget->move(x, y);
     }
     else if (mWidget) {
         
@@ -2952,10 +2955,10 @@ nsWindow::Show(bool aState)
 }
 
 NS_IMETHODIMP
-nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
+nsWindow::Resize(double aWidth, int32_t double, bool aRepaint)
 {
-    mBounds.width = aWidth;
-    mBounds.height = aHeight;
+    mBounds.width = NSToIntRound(aWidth);
+    mBounds.height = NSToIntRound(aHeight);
 
     if (!mWidget)
         return NS_OK;
@@ -2989,7 +2992,7 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
         
         
         
-        NativeResize(aWidth, aHeight, aRepaint);
+        NativeResize(mBounds.width, mBounds.height, aRepaint);
     }
     else {
         mNeedsResize = true;
@@ -2997,9 +3000,8 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
 
     
     if (mIsTopLevel || mListenForResizes) {
-        nsIntRect rect(mBounds.x, mBounds.y, aWidth, aHeight);
         nsEventStatus status;
-        DispatchResizeEvent(rect, status);
+        DispatchResizeEvent(mBounds, status);
     }
 
     NotifyRollupGeometryChange();
@@ -3007,13 +3009,13 @@ nsWindow::Resize(int32_t aWidth, int32_t aHeight, bool aRepaint)
 }
 
 NS_IMETHODIMP
-nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
+nsWindow::Resize(double aX, double aY, double aWidth, double aHeight,
                  bool aRepaint)
 {
-    mBounds.x = aX;
-    mBounds.y = aY;
-    mBounds.width = aWidth;
-    mBounds.height = aHeight;
+    mBounds.x = NSToIntRound(aX);
+    mBounds.y = NSToIntRound(aY);
+    mBounds.width = NSToIntRound(aWidth);
+    mBounds.height = NSToIntRound(aHeight);
 
     mPlaced = true;
 
@@ -3025,7 +3027,8 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
         
         if (AreBoundsSane()) {
             
-            NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+            NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                         aRepaint);
             
             if (mNeedsShow)
                 NativeShow(true);
@@ -3049,7 +3052,8 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
         
         
         
-        NativeResize(aX, aY, aWidth, aHeight, aRepaint);
+        NativeResize(mBounds.x, mBounds.y, mBounds.width, mBounds.height,
+                     aRepaint);
     }
     else {
         mNeedsResize = true;
@@ -3058,9 +3062,8 @@ nsWindow::Resize(int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
 
     if (mIsTopLevel || mListenForResizes) {
         
-        nsIntRect rect(aX, aY, aWidth, aHeight);
         nsEventStatus status;
-        DispatchResizeEvent(rect, status);
+        DispatchResizeEvent(mBounds, status);
     }
 
     if (aRepaint)
