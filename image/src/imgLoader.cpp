@@ -13,13 +13,6 @@
 
 #include "RasterImage.h"
 
-
-
-
-
-
-#undef LoadImage
-
 #include "nsCOMPtr.h"
 
 #include "nsContentUtils.h"

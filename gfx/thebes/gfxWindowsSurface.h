@@ -9,7 +9,10 @@
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
 
+
 #include <windows.h>
+
+#undef LoadImage
 
 class gfxContext;
 

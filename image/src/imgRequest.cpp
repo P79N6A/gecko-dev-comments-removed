@@ -7,14 +7,6 @@
 #include "imgRequest.h"
 #include "ImageLogging.h"
 
-
-
-
-
-
-
-#undef LoadImage
-
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
 #include "imgStatusTracker.h"
