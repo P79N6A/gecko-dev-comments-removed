@@ -1106,7 +1106,7 @@ struct TypeObject : gc::Cell
 
 
 
-struct TypeObjectEntry
+struct TypeObjectEntry : DefaultHasher<ReadBarriered<TypeObject> >
 {
     struct Lookup {
         Class *clasp;
