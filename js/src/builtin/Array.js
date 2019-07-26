@@ -715,7 +715,7 @@ function ArrayMapPar(func, mode) {
     UnsafePutElements(buffer, i, func(self[i], i, self));
   return buffer;
 
-  function mapThread(warmup) {
+  function mapThread(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var indexStart = SLICE_START(slicesInfo, sliceId);
@@ -770,7 +770,7 @@ function ArrayReducePar(func, mode) {
     accumulator = func(accumulator, self[i]);
   return accumulator;
 
-  function reduceThread(warmup) {
+  function reduceThread(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var indexStart = SLICE_START(slicesInfo, sliceId);
@@ -867,7 +867,7 @@ function ArrayScanPar(func, mode) {
 
 
 
-  function phase1(warmup) {
+  function phase1(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var indexStart = SLICE_START(slicesInfo, sliceId);
@@ -919,7 +919,7 @@ function ArrayScanPar(func, mode) {
 
 
 
-  function phase2(warmup) {
+  function phase2(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var indexPos = SLICE_START(slicesInfo, sliceId);
@@ -1087,7 +1087,7 @@ function ArrayFilterPar(func, mode) {
 
 
 
-  function findSurvivorsThread(warmup) {
+  function findSurvivorsThread(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var count = 0;
@@ -1112,7 +1112,7 @@ function ArrayFilterPar(func, mode) {
     }
   }
 
-  function copySurvivorsThread(warmup) {
+  function copySurvivorsThread(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       
@@ -1214,7 +1214,7 @@ function ArrayStaticBuildPar(length, func, mode) {
     UnsafePutElements(buffer, i, func(i));
   return buffer;
 
-  function constructThread(warmup) {
+  function constructThread(_, warmup) {
     var sliceId;
     while (GET_SLICE(slicesInfo, sliceId)) {
       var indexStart = SLICE_START(slicesInfo, sliceId);
