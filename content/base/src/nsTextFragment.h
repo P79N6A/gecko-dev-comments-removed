@@ -78,7 +78,7 @@ public:
   
 
 
-  const PRUnichar *Get2b() const
+  const char16_t *Get2b() const
   {
     NS_ASSERTION(Is2b(), "not 2b text"); 
     return m2b;
@@ -112,14 +112,14 @@ public:
 
 
 
-  bool SetTo(const PRUnichar* aBuffer, int32_t aLength, bool aUpdateBidi);
+  bool SetTo(const char16_t* aBuffer, int32_t aLength, bool aUpdateBidi);
 
   
 
 
 
 
-  bool Append(const PRUnichar* aBuffer, uint32_t aLength, bool aUpdateBidi);
+  bool Append(const char16_t* aBuffer, uint32_t aLength, bool aUpdateBidi);
 
   
 
@@ -151,13 +151,13 @@ public:
 
 
 
-  void CopyTo(PRUnichar *aDest, int32_t aOffset, int32_t aCount);
+  void CopyTo(char16_t *aDest, int32_t aOffset, int32_t aCount);
 
   
 
 
 
-  PRUnichar CharAt(int32_t aIndex) const
+  char16_t CharAt(int32_t aIndex) const
   {
     NS_ASSERTION(uint32_t(aIndex) < mState.mLength, "bad index");
     return mState.mIs2b ? m2b[aIndex] : static_cast<unsigned char>(m1b[aIndex]);
@@ -184,10 +184,10 @@ private:
 
 
 
-  void UpdateBidiFlag(const PRUnichar* aBuffer, uint32_t aLength);
+  void UpdateBidiFlag(const char16_t* aBuffer, uint32_t aLength);
  
   union {
-    PRUnichar *m2b;
+    char16_t *m2b;
     const char *m1b; 
   };
 

@@ -92,7 +92,7 @@ void nsPKCS11Slot::destructorSafeDestroyNSSReference()
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetName(PRUnichar **aName)
+nsPKCS11Slot::GetName(char16_t **aName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -116,7 +116,7 @@ nsPKCS11Slot::GetName(PRUnichar **aName)
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetDesc(PRUnichar **aDesc)
+nsPKCS11Slot::GetDesc(char16_t **aDesc)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -133,7 +133,7 @@ nsPKCS11Slot::GetDesc(PRUnichar **aDesc)
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetManID(PRUnichar **aManID)
+nsPKCS11Slot::GetManID(char16_t **aManID)
 {
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
     refreshSlotInfo();
@@ -145,7 +145,7 @@ nsPKCS11Slot::GetManID(PRUnichar **aManID)
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetHWVersion(PRUnichar **aHWVersion)
+nsPKCS11Slot::GetHWVersion(char16_t **aHWVersion)
 {
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
     refreshSlotInfo();
@@ -157,7 +157,7 @@ nsPKCS11Slot::GetHWVersion(PRUnichar **aHWVersion)
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetFWVersion(PRUnichar **aFWVersion)
+nsPKCS11Slot::GetFWVersion(char16_t **aFWVersion)
 {
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
     refreshSlotInfo();
@@ -183,7 +183,7 @@ nsPKCS11Slot::GetToken(nsIPK11Token **_retval)
 
 
 NS_IMETHODIMP 
-nsPKCS11Slot::GetTokenName(PRUnichar **aName)
+nsPKCS11Slot::GetTokenName(char16_t **aName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -266,7 +266,7 @@ void nsPKCS11Module::destructorSafeDestroyNSSReference()
 
 
 NS_IMETHODIMP 
-nsPKCS11Module::GetName(PRUnichar **aName)
+nsPKCS11Module::GetName(char16_t **aName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -278,7 +278,7 @@ nsPKCS11Module::GetName(PRUnichar **aName)
 
 
 NS_IMETHODIMP 
-nsPKCS11Module::GetLibName(PRUnichar **aName)
+nsPKCS11Module::GetLibName(char16_t **aName)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -294,7 +294,7 @@ nsPKCS11Module::GetLibName(PRUnichar **aName)
 
 
 NS_IMETHODIMP 
-nsPKCS11Module::FindSlotByName(const PRUnichar *aName,
+nsPKCS11Module::FindSlotByName(const char16_t *aName,
                                nsIPKCS11Slot **_retval)
 {
   nsNSSShutDownPreventionLock locker;
@@ -409,7 +409,7 @@ nsPKCS11ModuleDB::GetInternalFIPS(nsIPKCS11Module **_retval)
 
 
 NS_IMETHODIMP 
-nsPKCS11ModuleDB::FindModuleByName(const PRUnichar *aName,
+nsPKCS11ModuleDB::FindModuleByName(const char16_t *aName,
                                    nsIPKCS11Module **_retval)
 {
   nsNSSShutDownPreventionLock locker;
@@ -430,7 +430,7 @@ nsPKCS11ModuleDB::FindModuleByName(const PRUnichar *aName,
 
 
 NS_IMETHODIMP 
-nsPKCS11ModuleDB::FindSlotByName(const PRUnichar *aName,
+nsPKCS11ModuleDB::FindSlotByName(const char16_t *aName,
                                  nsIPKCS11Slot **_retval)
 {
   nsNSSShutDownPreventionLock locker;

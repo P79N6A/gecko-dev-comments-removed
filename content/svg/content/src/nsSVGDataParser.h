@@ -19,7 +19,7 @@ public:
   nsSVGDataParser(const nsAString& aValue);
 
 protected:
-  static bool IsAlpha(PRUnichar aCh) {
+  static bool IsAlpha(char16_t aCh) {
     
     return (aCh & 0x7f) == aCh && isalpha(aCh);
   }
@@ -30,8 +30,8 @@ protected:
   
   bool SkipWsp();
 
-  mozilla::RangedPtr<const PRUnichar> mIter;
-  const mozilla::RangedPtr<const PRUnichar> mEnd;
+  mozilla::RangedPtr<const char16_t> mIter;
+  const mozilla::RangedPtr<const char16_t> mEnd;
 };
 
 

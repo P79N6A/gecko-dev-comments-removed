@@ -29,9 +29,9 @@ class nsParser;
 
 class nsReadEndCondition {
 public:
-  const PRUnichar *mChars;
-  PRUnichar mFilter;
-  explicit nsReadEndCondition(const PRUnichar* aTerminateChars);
+  const char16_t *mChars;
+  char16_t mFilter;
+  explicit nsReadEndCondition(const char16_t* aTerminateChars);
 private:
   nsReadEndCondition(const nsReadEndCondition& aOther); 
   void operator=(const nsReadEndCondition& aOther); 
@@ -60,7 +60,7 @@ class nsScanner {
 
 
 
-      nsresult GetChar(PRUnichar& ch);
+      nsresult GetChar(char16_t& ch);
 
       
 
@@ -70,7 +70,7 @@ class nsScanner {
 
 
 
-      nsresult Peek(PRUnichar& ch, uint32_t aOffset=0);
+      nsresult Peek(char16_t& ch, uint32_t aOffset=0);
 
       nsresult Peek(nsAString& aStr, int32_t aNumChars, int32_t aOffset = 0);
 
@@ -81,7 +81,7 @@ class nsScanner {
 
 
 
-      nsresult SkipOver(PRUnichar aSkipChar);
+      nsresult SkipOver(char16_t aSkipChar);
 
       
 
@@ -125,7 +125,7 @@ class nsScanner {
 
 
       nsresult ReadUntil(nsAString& aString,
-                         PRUnichar aTerminal,
+                         char16_t aTerminal,
                          bool addTerminal);
 
       
@@ -242,7 +242,7 @@ class nsScanner {
                        bool aTruncate = false,
                        bool aReverse = false);
       void ReplaceCharacter(nsScannerIterator& aPosition,
-                            PRUnichar aChar);
+                            char16_t aChar);
 
       
 
@@ -270,7 +270,7 @@ class nsScanner {
 
 
 
-      void OverrideReplacementCharacter(PRUnichar aReplacementCharacter);
+      void OverrideReplacementCharacter(char16_t aReplacementCharacter);
 
   protected:
 
@@ -294,7 +294,7 @@ class nsScanner {
                                        
       bool            mIncremental;
       bool            mHasInvalidCharacter;
-      PRUnichar       mReplacementCharacter;
+      char16_t       mReplacementCharacter;
       int32_t         mFirstNonWhitespacePosition;
       int32_t         mCharsetSource;
       nsCString       mCharset;

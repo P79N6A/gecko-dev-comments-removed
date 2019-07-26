@@ -51,7 +51,7 @@ clipboard_clear_cb(GtkClipboard *aGtkClipboard,
 static void
 ConvertHTMLtoUCS2          (guchar             *data,
                             int32_t             dataLength,
-                            PRUnichar         **unicodeData,
+                            char16_t         **unicodeData,
                             int32_t            &outUnicodeLen);
 
 static void
@@ -100,7 +100,7 @@ nsClipboard::Init(void)
 }
 
 NS_IMETHODIMP
-nsClipboard::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
+nsClipboard::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
 {
     if (strcmp(aTopic, "quit-application") == 0) {
         
@@ -324,7 +324,7 @@ nsClipboard::GetData(nsITransferable *aTransferable, int32_t aWhichClipboard)
                 length = gtk_selection_data_get_length(selectionData);
                 
                 if (!strcmp(flavorStr, kHTMLMime)) {
-                    PRUnichar* htmlBody= nullptr;
+                    char16_t* htmlBody= nullptr;
                     int32_t htmlBodyLen = 0;
                     
                     ConvertHTMLtoUCS2(const_cast<guchar*>(clipboardData), length,
@@ -606,10 +606,10 @@ nsClipboard::SelectionGetEvent(GtkClipboard     *aClipboard,
 
 
             guchar *buffer = (guchar *)
-                    nsMemory::Alloc((len * sizeof(guchar)) + sizeof(PRUnichar));
+                    nsMemory::Alloc((len * sizeof(guchar)) + sizeof(char16_t));
             if (!buffer)
                 return;
-            PRUnichar prefix = 0xFEFF;
+            char16_t prefix = 0xFEFF;
             memcpy(buffer, &prefix, sizeof(prefix));
             memcpy(buffer + sizeof(prefix), primitive_data, len);
             nsMemory::Free((guchar *)primitive_data);
@@ -681,18 +681,18 @@ clipboard_clear_cb(GtkClipboard *aGtkClipboard,
 
 
 void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
-                       PRUnichar** unicodeData, int32_t& outUnicodeLen)
+                       char16_t** unicodeData, int32_t& outUnicodeLen)
 {
     nsAutoCString charset;
     GetHTMLCharset(data, dataLength, charset);
     if (charset.EqualsLiteral("UTF-16")) {
         outUnicodeLen = (dataLength / 2) - 1;
-        *unicodeData = reinterpret_cast<PRUnichar*>
+        *unicodeData = reinterpret_cast<char16_t*>
                                        (nsMemory::Alloc((outUnicodeLen + sizeof('\0')) *
-                       sizeof(PRUnichar)));
+                       sizeof(char16_t)));
         if (*unicodeData) {
-            memcpy(*unicodeData, data + sizeof(PRUnichar),
-                   outUnicodeLen * sizeof(PRUnichar));
+            memcpy(*unicodeData, data + sizeof(char16_t),
+                   outUnicodeLen * sizeof(char16_t));
             (*unicodeData)[outUnicodeLen] = '\0';
         }
     } else if (charset.EqualsLiteral("UNKNOWN")) {
@@ -724,9 +724,9 @@ void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
         decoder->GetMaxLength((const char *)data, dataLength, &outUnicodeLen);
         
         if (outUnicodeLen) {
-            *unicodeData = reinterpret_cast<PRUnichar*>
+            *unicodeData = reinterpret_cast<char16_t*>
                                            (nsMemory::Alloc((outUnicodeLen + sizeof('\0')) *
-                           sizeof(PRUnichar)));
+                           sizeof(char16_t)));
             if (*unicodeData) {
                 int32_t numberTmp = dataLength;
                 decoder->Convert((const char *)data, &numberTmp,
@@ -752,7 +752,7 @@ void ConvertHTMLtoUCS2(guchar * data, int32_t dataLength,
 void GetHTMLCharset(guchar * data, int32_t dataLength, nsCString& str)
 {
     
-    PRUnichar* beginChar =  (PRUnichar*)data;
+    char16_t* beginChar =  (char16_t*)data;
     if ((beginChar[0] == 0xFFFE) || (beginChar[0] == 0xFEFF)) {
         str.AssignLiteral("UTF-16");
         return;

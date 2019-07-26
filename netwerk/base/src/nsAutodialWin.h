@@ -106,7 +106,7 @@ public:
     nsresult Init();
 
     
-    nsresult DialDefault(const PRUnichar* hostName);
+    nsresult DialDefault(const char16_t* hostName);
 
     
     bool ShouldDialOnNetworkError();

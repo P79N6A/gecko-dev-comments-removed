@@ -565,7 +565,7 @@ NS_IMETHODIMP
 HttpChannelParent::OnStatus(nsIRequest *aRequest,
                             nsISupports *aContext,
                             nsresult aStatus,
-                            const PRUnichar *aStatusArg)
+                            const char16_t *aStatusArg)
 {
   
   if (aStatus == NS_NET_STATUS_RECEIVING_FROM ||

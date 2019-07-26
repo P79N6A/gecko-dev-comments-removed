@@ -307,7 +307,7 @@ public:
   
 
 
-  static bool IsWhitespace(PRUnichar aChar)
+  static bool IsWhitespace(char16_t aChar)
   {
     return aChar == ' ' || aChar == '\n' ||
       aChar == '\r' || aChar == '\t' || aChar == 0xa0;

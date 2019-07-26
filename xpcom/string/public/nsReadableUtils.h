@@ -18,7 +18,7 @@
 
 template<class E> class nsTArray;
 
-inline size_t Distance( const nsReadingIterator<PRUnichar>& start, const nsReadingIterator<PRUnichar>& end )
+inline size_t Distance( const nsReadingIterator<char16_t>& start, const nsReadingIterator<char16_t>& end )
   {
     return end.get() - start.get();
   }
@@ -30,19 +30,19 @@ inline size_t Distance( const nsReadingIterator<char>& start, const nsReadingIte
 void LossyCopyUTF16toASCII( const nsAString& aSource, nsACString& aDest );
 void CopyASCIItoUTF16( const nsACString& aSource, nsAString& aDest );
 
-void LossyCopyUTF16toASCII( const PRUnichar* aSource, nsACString& aDest );
+void LossyCopyUTF16toASCII( const char16_t* aSource, nsACString& aDest );
 void CopyASCIItoUTF16( const char* aSource, nsAString& aDest );
 
 void CopyUTF16toUTF8( const nsAString& aSource, nsACString& aDest );
 void CopyUTF8toUTF16( const nsACString& aSource, nsAString& aDest );
 
-void CopyUTF16toUTF8( const PRUnichar* aSource, nsACString& aDest );
+void CopyUTF16toUTF8( const char16_t* aSource, nsACString& aDest );
 void CopyUTF8toUTF16( const char* aSource, nsAString& aDest );
 
 void LossyAppendUTF16toASCII( const nsAString& aSource, nsACString& aDest );
 void AppendASCIItoUTF16( const nsACString& aSource, nsAString& aDest );
 
-void LossyAppendUTF16toASCII( const PRUnichar* aSource, nsACString& aDest );
+void LossyAppendUTF16toASCII( const char16_t* aSource, nsACString& aDest );
 void AppendASCIItoUTF16( const char* aSource, nsAString& aDest );
 
 void AppendUTF16toUTF8( const nsAString& aSource, nsACString& aDest );
@@ -50,7 +50,7 @@ void AppendUTF8toUTF16( const nsACString& aSource, nsAString& aDest );
 bool AppendUTF8toUTF16( const nsACString& aSource, nsAString& aDest,
                         const mozilla::fallible_t& ) NS_WARN_UNUSED_RESULT;
 
-void AppendUTF16toUTF8( const PRUnichar* aSource, nsACString& aDest );
+void AppendUTF16toUTF8( const char16_t* aSource, nsACString& aDest );
 void AppendUTF8toUTF16( const char* aSource, nsAString& aDest );
 
 #ifdef MOZ_USE_CHAR16_WRAPPER
@@ -115,7 +115,7 @@ char* ToNewUTF8String( const nsAString& aSource, uint32_t *aUTF8Count = nullptr 
 
 
 
-PRUnichar* ToNewUnicode( const nsAString& aSource );
+char16_t* ToNewUnicode( const nsAString& aSource );
 
 
   
@@ -129,7 +129,7 @@ PRUnichar* ToNewUnicode( const nsAString& aSource );
 
 
 
-PRUnichar* ToNewUnicode( const nsACString& aSource );
+char16_t* ToNewUnicode( const nsACString& aSource );
 
   
 
@@ -159,8 +159,8 @@ uint32_t CalcUTF8ToUnicodeLength( const nsACString& aSource );
 
 
 
-PRUnichar* UTF8ToUnicodeBuffer( const nsACString& aSource,
-                                PRUnichar *aBuffer,
+char16_t* UTF8ToUnicodeBuffer( const nsACString& aSource,
+                                char16_t *aBuffer,
                                 uint32_t *aUTF16Count = nullptr );
 
   
@@ -178,7 +178,7 @@ PRUnichar* UTF8ToUnicodeBuffer( const nsACString& aSource,
 
 
 
-PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = nullptr );
+char16_t* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = nullptr );
 
   
 
@@ -192,9 +192,9 @@ PRUnichar* UTF8ToNewUnicode( const nsACString& aSource, uint32_t *aUTF16Count = 
 
 
 
-PRUnichar* CopyUnicodeTo( const nsAString& aSource,
+char16_t* CopyUnicodeTo( const nsAString& aSource,
                                  uint32_t aSrcOffset,
-                                 PRUnichar* aDest,
+                                 char16_t* aDest,
                                  uint32_t aLength );
 
 
@@ -346,14 +346,14 @@ bool RFindInReadable( const nsACString& aPattern, nsACString::const_iterator&, n
 
 
 
-bool FindCharInReadable( PRUnichar aChar, nsAString::const_iterator& aSearchStart, const nsAString::const_iterator& aSearchEnd );
+bool FindCharInReadable( char16_t aChar, nsAString::const_iterator& aSearchStart, const nsAString::const_iterator& aSearchEnd );
 bool FindCharInReadable( char aChar, nsACString::const_iterator& aSearchStart, const nsACString::const_iterator& aSearchEnd );
 
     
 
 
 uint32_t CountCharInReadable( const nsAString& aStr,
-                                     PRUnichar aChar );
+                                     char16_t aChar );
 uint32_t CountCharInReadable( const nsACString& aStr,
                                      char aChar );
 

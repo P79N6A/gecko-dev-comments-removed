@@ -207,7 +207,7 @@ finish:
   
   if (srv != SECSuccess) {
     if (SEC_ERROR_BAD_PASSWORD == PORT_GetError()) {
-      if (unicodePw.len == sizeof(PRUnichar))
+      if (unicodePw.len == sizeof(char16_t))
       {
         
         
@@ -241,7 +241,7 @@ finish:
 
 
 nsresult
-nsPKCS12Blob::LoadCerts(const PRUnichar **certNames, int numCerts)
+nsPKCS12Blob::LoadCerts(const char16_t **certNames, int numCerts)
 {
   nsresult rv;
   char namecpy[256];
@@ -461,11 +461,11 @@ finish:
 
 
 void
-nsPKCS12Blob::unicodeToItem(const PRUnichar *uni, SECItem *item)
+nsPKCS12Blob::unicodeToItem(const char16_t *uni, SECItem *item)
 {
   int len = 0;
   while (uni[len++] != 0);
-  SECITEM_AllocItem(nullptr, item, sizeof(PRUnichar) * len);
+  SECITEM_AllocItem(nullptr, item, sizeof(char16_t) * len);
 #ifdef IS_LITTLE_ENDIAN
   int i = 0;
   for (i=0; i<len; i++) {

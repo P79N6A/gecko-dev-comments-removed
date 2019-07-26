@@ -353,7 +353,7 @@ nsOSHelperAppService::GetTypeAndDescriptionFromMimetypesFile(const nsAString& aF
       entry.Append(buf);
       if (entry.Last() == '\\') {
         entry.Truncate(entry.Length() - 1);
-        entry.Append(PRUnichar(' '));  
+        entry.Append(char16_t(' '));  
       } else {  
         LOG(("Current entry: '%s'\n",
              NS_LossyConvertUTF16toASCII(entry).get()));
@@ -521,7 +521,7 @@ nsOSHelperAppService::GetExtensionsAndDescriptionFromMimetypesFile(const nsAStri
       entry.Append(buf);
       if (entry.Last() == '\\') {
         entry.Truncate(entry.Length() - 1);
-        entry.Append(PRUnichar(' '));  
+        entry.Append(char16_t(' '));  
       } else {  
         LOG(("Current entry: '%s'\n",
              NS_LossyConvertUTF16toASCII(entry).get()));
@@ -827,7 +827,7 @@ nsOSHelperAppService::ParseNormalMIMETypesEntry(const nsAString& aEntry,
     }
     aExtensions.Append(Substring(start_iter, iter));
     if (iter != end_iter) { 
-      aExtensions.Append(PRUnichar(','));
+      aExtensions.Append(char16_t(','));
     }
   }
 
@@ -985,7 +985,7 @@ nsOSHelperAppService::GetHandlerAndDescriptionFromMailcapFile(const nsAString& a
       entry.Append(buffer);
       if (entry.Last() == '\\') {  
         entry.Truncate(entry.Length()-1);
-        entry.Append(PRUnichar(' ')); 
+        entry.Append(char16_t(' ')); 
       } else {  
         LOG(("Current entry: '%s'\n",
              NS_LossyConvertUTF16toASCII(entry).get()));
@@ -1178,7 +1178,7 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
 #endif
 }
 
-nsresult nsOSHelperAppService::GetFileTokenForPath(const PRUnichar * platformAppPath, nsIFile ** aFile)
+nsresult nsOSHelperAppService::GetFileTokenForPath(const char16_t * platformAppPath, nsIFile ** aFile)
 {
   LOG(("-- nsOSHelperAppService::GetFileTokenForPath: '%s'\n",
        NS_LossyConvertUTF16toASCII(platformAppPath).get()));
@@ -1198,7 +1198,7 @@ nsresult nsOSHelperAppService::GetFileTokenForPath(const PRUnichar * platformApp
     return rv;
 
   
-  NS_ASSERTION(*platformAppPath != PRUnichar('/'), "Unexpected absolute path");
+  NS_ASSERTION(*platformAppPath != char16_t('/'), "Unexpected absolute path");
 
   nsCOMPtr<nsIFile> localFile (do_CreateInstance(NS_LOCAL_FILE_CONTRACTID));
 

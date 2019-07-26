@@ -41,7 +41,7 @@ public:
   
   
   
-  virtual nsresult GetFileTokenForPath(const PRUnichar * platformAppPath, nsIFile ** aFile);
+  virtual nsresult GetFileTokenForPath(const char16_t * platformAppPath, nsIFile ** aFile);
   
 protected:
   already_AddRefed<nsMIMEInfoBase> GetFromType(const nsCString& aMimeType);

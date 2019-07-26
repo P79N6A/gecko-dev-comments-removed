@@ -504,7 +504,7 @@ nsXBLProtoImpl::Write(nsIObjectOutputStream* aStream,
 
 nsresult
 NS_NewXBLProtoImpl(nsXBLPrototypeBinding* aBinding, 
-                   const PRUnichar* aClassName, 
+                   const char16_t* aClassName, 
                    nsXBLProtoImpl** aResult)
 {
   nsXBLProtoImpl* impl = new nsXBLProtoImpl();

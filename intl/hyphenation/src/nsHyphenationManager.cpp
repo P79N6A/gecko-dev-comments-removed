@@ -33,7 +33,7 @@ NS_IMPL_ISUPPORTS1(nsHyphenationManager::MemoryPressureObserver,
 NS_IMETHODIMP
 nsHyphenationManager::MemoryPressureObserver::Observe(nsISupports *aSubject,
                                                       const char *aTopic,
-                                                      const PRUnichar *aData)
+                                                      const char16_t *aData)
 {
   if (!nsCRT::strcmp(aTopic, kMemoryPressureNotification)) {
     

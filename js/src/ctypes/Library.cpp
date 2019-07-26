@@ -107,7 +107,7 @@ Library::Create(JSContext* cx, jsval path_, JSCTypesCallbacks* callbacks)
 #ifdef XP_WIN
   
   
-  const PRUnichar* pathChars = JS_GetFlatStringChars(pathStr);
+  const char16_t* pathChars = JS_GetFlatStringChars(pathStr);
   if (!pathChars)
     return nullptr;
 

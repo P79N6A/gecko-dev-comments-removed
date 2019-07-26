@@ -198,7 +198,7 @@ private:
   
   
   nsString  mGlyphCache;
-  PRUnichar mCharCache;
+  char16_t mCharCache;
 };
 
 nsGlyphCode
@@ -239,7 +239,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
   }
 
   
-  PRUnichar uchar = aChar->mData[0];
+  char16_t uchar = aChar->mData[0];
   if (mCharCache != uchar) {
     
     
@@ -262,7 +262,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
     int32_t length = value.Length();
     int32_t i = 0; 
     while (i < length) {
-      PRUnichar code = value[i];
+      char16_t code = value[i];
       ++i;
       buffer.Append(code);
       
@@ -270,15 +270,15 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
         code = value[i];
         ++i;
       } else {
-        code = PRUnichar('\0');
+        code = char16_t('\0');
       }
       buffer.Append(code);
 
       
       
-      PRUnichar font = 0;
-      if (i+1 < length && value[i] == PRUnichar('@') &&
-          value[i+1] >= PRUnichar('0') && value[i+1] <= PRUnichar('9')) {
+      char16_t font = 0;
+      if (i+1 < length && value[i] == char16_t('@') &&
+          value[i+1] >= char16_t('0') && value[i+1] <= char16_t('9')) {
         ++i;
         font = value[i] - '0';
         ++i;
@@ -305,7 +305,7 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
   ch.code[0] = mGlyphCache.CharAt(index);
   ch.code[1] = mGlyphCache.CharAt(index + 1);
   ch.font = mGlyphCache.CharAt(index + 2);
-  return ch.code[0] == PRUnichar(0xFFFD) ? kNullGlyph : ch;
+  return ch.code[0] == char16_t(0xFFFD) ? kNullGlyph : ch;
 }
 
 bool
@@ -396,7 +396,7 @@ static bool gGlyphTableInitialized = false;
 NS_IMETHODIMP
 nsGlyphTableList::Observe(nsISupports*     aSubject,
                           const char* aTopic,
-                          const PRUnichar* someData)
+                          const char16_t* someData)
 {
   Finalize();
   return NS_OK;
@@ -487,7 +487,7 @@ nsGlyphTableList::GetGlyphTableFor(const nsAString& aFamily)
 
 
 static bool
-GetFontExtensionPref(PRUnichar aChar,
+GetFontExtensionPref(char16_t aChar,
                      nsMathfontPrefExtension aExtension, nsString& aValue)
 {
   
@@ -844,16 +844,16 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
     return;
   }
 
-  static const PRUnichar kSingleQuote  = PRUnichar('\'');
-  static const PRUnichar kDoubleQuote  = PRUnichar('\"');
-  static const PRUnichar kComma        = PRUnichar(',');
+  static const char16_t kSingleQuote  = char16_t('\'');
+  static const char16_t kDoubleQuote  = char16_t('\"');
+  static const char16_t kComma        = char16_t(',');
 
-  const PRUnichar *p_begin, *p_end;
+  const char16_t *p_begin, *p_end;
   aFontName.BeginReading(p_begin);
   aFontName.EndReading(p_end);
 
-  const PRUnichar *p = p_begin;
-  const PRUnichar *p_name = nullptr;
+  const char16_t *p = p_begin;
+  const char16_t *p_name = nullptr;
   while (p < p_end) {
     while (nsCRT::IsAsciiSpace(*p))
       if (++p == p_end)
@@ -862,7 +862,7 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
     p_name = p;
     if (*p == kSingleQuote || *p == kDoubleQuote) {
       
-      PRUnichar quoteMark = *p;
+      char16_t quoteMark = *p;
       if (++p == p_end)
         goto insert;
 
@@ -876,7 +876,7 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
 
     } else {
       
-      const PRUnichar *nameStart = p;
+      const char16_t *nameStart = p;
       while (++p != p_end && *p != kComma)
          ;
 

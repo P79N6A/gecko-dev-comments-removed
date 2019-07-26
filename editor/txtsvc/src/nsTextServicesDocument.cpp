@@ -3639,7 +3639,7 @@ nsTextServicesDocument::FindWordBounds(nsTArray<OffsetEntry*> *aOffsetTable,
   
   
 
-  const PRUnichar *str = aBlockStr->get();
+  const char16_t *str = aBlockStr->get();
   uint32_t strLen = aBlockStr->Length();
 
   nsIWordBreaker* wordBreaker = nsContentUtils::WordBreaker();

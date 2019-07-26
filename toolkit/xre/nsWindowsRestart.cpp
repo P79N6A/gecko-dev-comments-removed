@@ -152,12 +152,12 @@ MakeCommandLine(int argc, wchar_t **argv)
 
 
 
-static PRUnichar*
+static char16_t*
 AllocConvertUTF8toUTF16(const char *arg)
 {
   
   int len = strlen(arg);
-  PRUnichar *s = new PRUnichar[(len + 1) * sizeof(PRUnichar)];
+  char16_t *s = new char16_t[(len + 1) * sizeof(char16_t)];
   if (!s)
     return nullptr;
 

@@ -423,7 +423,7 @@ void TimerThread::DoAfterSleep()
 
 
 NS_IMETHODIMP
-TimerThread::Observe(nsISupports* , const char *aTopic, const PRUnichar* )
+TimerThread::Observe(nsISupports* , const char *aTopic, const char16_t* )
 {
   if (strcmp(aTopic, "sleep_notification") == 0 ||
       strcmp(aTopic, "suspend_process_notification") == 0)

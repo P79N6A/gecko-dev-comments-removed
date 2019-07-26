@@ -127,30 +127,30 @@ public:
     return type;
   }
 
-  static PRUnichar GetPathSegTypeAsLetter(uint32_t aType) {
+  static char16_t GetPathSegTypeAsLetter(uint32_t aType) {
     NS_ABORT_IF_FALSE(IsValidType(aType), "Seg type not recognized");
 
-    static const PRUnichar table[] = {
-      PRUnichar('x'),  
-      PRUnichar('z'),  
-      PRUnichar('M'),  
-      PRUnichar('m'),  
-      PRUnichar('L'),  
-      PRUnichar('l'),  
-      PRUnichar('C'),  
-      PRUnichar('c'),  
-      PRUnichar('Q'),  
-      PRUnichar('q'),  
-      PRUnichar('A'),  
-      PRUnichar('a'),  
-      PRUnichar('H'),  
-      PRUnichar('h'),  
-      PRUnichar('V'),  
-      PRUnichar('v'),  
-      PRUnichar('S'),  
-      PRUnichar('s'),  
-      PRUnichar('T'),  
-      PRUnichar('t')   
+    static const char16_t table[] = {
+      char16_t('x'),  
+      char16_t('z'),  
+      char16_t('M'),  
+      char16_t('m'),  
+      char16_t('L'),  
+      char16_t('l'),  
+      char16_t('C'),  
+      char16_t('c'),  
+      char16_t('Q'),  
+      char16_t('q'),  
+      char16_t('A'),  
+      char16_t('a'),  
+      char16_t('H'),  
+      char16_t('h'),  
+      char16_t('V'),  
+      char16_t('v'),  
+      char16_t('S'),  
+      char16_t('s'),  
+      char16_t('T'),  
+      char16_t('t')   
     };
     static_assert(NS_ARRAY_LENGTH(table) == NS_SVG_PATH_SEG_TYPE_COUNT, "Unexpected table size");
 

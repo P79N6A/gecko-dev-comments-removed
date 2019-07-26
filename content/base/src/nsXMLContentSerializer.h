@@ -72,7 +72,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
 
 
-  void AppendToString(const PRUnichar aChar,
+  void AppendToString(const char16_t aChar,
                       nsAString& aOutputStr);
 
   

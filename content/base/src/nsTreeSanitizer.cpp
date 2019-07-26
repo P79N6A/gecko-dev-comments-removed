@@ -1228,7 +1228,7 @@ nsTreeSanitizer::SanitizeAttributes(mozilla::dom::Element* aElement,
         
         continue;
       }
-      const PRUnichar* localStr = attrLocal->GetUTF16String();
+      const char16_t* localStr = attrLocal->GetUTF16String();
       
       
       if (*localStr == '_' || (attrLocal->GetLength() > 5 && localStr[0] == 'd'

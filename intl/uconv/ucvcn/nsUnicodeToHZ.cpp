@@ -29,7 +29,7 @@ nsUnicodeToHZ::nsUnicodeToHZ() : nsEncoderSupport(6)
   mHZState = HZ_STATE_ASCII;	
 }
 NS_IMETHODIMP nsUnicodeToHZ::ConvertNoBuff(
-  const PRUnichar * aSrc, 
+  const char16_t * aSrc, 
   int32_t * aSrcLength, 
   char * aDest, 
   int32_t * aDestLength)
@@ -84,7 +84,7 @@ NS_IMETHODIMP nsUnicodeToHZ::ConvertNoBuff(
         
 	
         
-        *aDest = (char) ( (PRUnichar)(*aSrc) );
+        *aDest = (char) ( (char16_t)(*aSrc) );
         aDest++; 
         iDestLength +=1;
       }

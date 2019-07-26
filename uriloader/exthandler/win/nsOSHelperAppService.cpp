@@ -98,12 +98,12 @@ static nsresult GetExtensionFrom4xRegistryInfo(const nsACString& aMimeType,
   if (NS_FAILED(rv))
     return NS_OK;
 
-  aFileExtension.Insert(PRUnichar('.'), 0);
+  aFileExtension.Insert(char16_t('.'), 0);
       
   
   
 
-  int32_t pos = aFileExtension.FindChar(PRUnichar(','));
+  int32_t pos = aFileExtension.FindChar(char16_t(','));
   if (pos > 0) {
     
     
@@ -238,13 +238,13 @@ nsresult nsOSHelperAppService::GetMIMEInfoFromRegistry(const nsAFlatString& file
 
 
  bool
-nsOSHelperAppService::typeFromExtEquals(const PRUnichar* aExt, const char *aType)
+nsOSHelperAppService::typeFromExtEquals(const char16_t* aExt, const char *aType)
 {
   if (!aType)
     return false;
   nsAutoString fileExtToUse;
-  if (aExt[0] != PRUnichar('.'))
-    fileExtToUse = PRUnichar('.');
+  if (aExt[0] != char16_t('.'))
+    fileExtToUse = char16_t('.');
 
   fileExtToUse.Append(aExt);
 
@@ -498,8 +498,8 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
   
   
   nsAutoString fileExtToUse;
-  if (aFileExt.First() != PRUnichar('.'))
-    fileExtToUse = PRUnichar('.');
+  if (aFileExt.First() != char16_t('.'))
+    fileExtToUse = char16_t('.');
 
   fileExtToUse.Append(aFileExt);
 

@@ -216,7 +216,7 @@ private:
 
 
 
-    static bool isXPathDigit(PRUnichar ch)
+    static bool isXPathDigit(char16_t ch)
     {
         return (ch >= '0' && ch <= '9');
     }

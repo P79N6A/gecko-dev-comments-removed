@@ -13,7 +13,7 @@ nsUnicodeToGB2312V2::nsUnicodeToGB2312V2() :
 {
 }
 
-NS_IMETHODIMP nsUnicodeToGB2312V2::ConvertNoBuff(const PRUnichar * aSrc, 
+NS_IMETHODIMP nsUnicodeToGB2312V2::ConvertNoBuff(const char16_t * aSrc, 
                                                  int32_t * aSrcLength, 
                                                  char * aDest, 
                                                  int32_t * aDestLength)

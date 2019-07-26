@@ -296,7 +296,7 @@ public:
 
 
 
-    virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const PRUnichar *aString);
+    virtual void SetupClusterBoundaries(gfxTextRun *aTextRun, const char16_t *aString);
 
     
 

@@ -105,7 +105,7 @@ NS_IMETHODIMP mozPersonalDictionary::Load()
   
   mDictionaryTable.Clear();
 
-  PRUnichar c;
+  char16_t c;
   uint32_t nRead;
   bool done = false;
   do{  
@@ -200,7 +200,7 @@ NS_IMETHODIMP mozPersonalDictionary::GetWordList(nsIStringEnumerator **aWords)
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::Check(const PRUnichar *aWord, const PRUnichar *aLanguage, bool *aResult)
+NS_IMETHODIMP mozPersonalDictionary::Check(const char16_t *aWord, const char16_t *aLanguage, bool *aResult)
 {
   NS_ENSURE_ARG_POINTER(aWord);
   NS_ENSURE_ARG_POINTER(aResult);
@@ -210,7 +210,7 @@ NS_IMETHODIMP mozPersonalDictionary::Check(const PRUnichar *aWord, const PRUnich
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::AddWord(const PRUnichar *aWord, const PRUnichar *aLang)
+NS_IMETHODIMP mozPersonalDictionary::AddWord(const char16_t *aWord, const char16_t *aLang)
 {
   mDictionaryTable.PutEntry(aWord);
   mDirty = true;
@@ -218,7 +218,7 @@ NS_IMETHODIMP mozPersonalDictionary::AddWord(const PRUnichar *aWord, const PRUni
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const PRUnichar *aWord, const PRUnichar *aLang)
+NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const char16_t *aWord, const char16_t *aLang)
 {
   mDictionaryTable.RemoveEntry(aWord);
   mDirty = true;
@@ -226,7 +226,7 @@ NS_IMETHODIMP mozPersonalDictionary::RemoveWord(const PRUnichar *aWord, const PR
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::IgnoreWord(const PRUnichar *aWord)
+NS_IMETHODIMP mozPersonalDictionary::IgnoreWord(const char16_t *aWord)
 {
   
   if (aWord && !mIgnoreTable.GetEntry(aWord)) 
@@ -243,25 +243,25 @@ NS_IMETHODIMP mozPersonalDictionary::EndSession()
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::AddCorrection(const PRUnichar *word, const PRUnichar *correction, const PRUnichar *lang)
+NS_IMETHODIMP mozPersonalDictionary::AddCorrection(const char16_t *word, const char16_t *correction, const char16_t *lang)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::RemoveCorrection(const PRUnichar *word, const PRUnichar *correction, const PRUnichar *lang)
+NS_IMETHODIMP mozPersonalDictionary::RemoveCorrection(const char16_t *word, const char16_t *correction, const char16_t *lang)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const PRUnichar *word, PRUnichar ***words, uint32_t *count)
+NS_IMETHODIMP mozPersonalDictionary::GetCorrection(const char16_t *word, char16_t ***words, uint32_t *count)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *aData)
+NS_IMETHODIMP mozPersonalDictionary::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *aData)
 {
   if (!nsCRT::strcmp(aTopic, "profile-do-change")) {
     Load();  

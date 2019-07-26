@@ -144,8 +144,8 @@ GetLocationProperty(JSContext *cx, HandleObject obj, HandleId id, MutableHandleV
 
         
         
-        PRUnichar* start = filenameString.BeginWriting();
-        PRUnichar* end = filenameString.EndWriting();
+        char16_t* start = filenameString.BeginWriting();
+        char16_t* end = filenameString.EndWriting();
 
         while (start != end) {
             if (*start == L'/')

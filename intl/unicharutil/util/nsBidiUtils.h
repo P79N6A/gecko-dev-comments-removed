@@ -66,7 +66,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNumFlag);
+  char16_t HandleNumberInChar(char16_t aChar, bool aPrevCharArabic, uint32_t aNumFlag);
 
   
 
@@ -78,7 +78,7 @@ typedef enum nsCharType nsCharType;
 
 
 
-  nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t  aNumFlag);
+  nsresult HandleNumbers(char16_t* aBuffer, uint32_t aSize, uint32_t  aNumFlag);
 
   
 

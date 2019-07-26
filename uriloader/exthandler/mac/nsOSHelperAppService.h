@@ -36,7 +36,7 @@ public:
   
   
   
-  virtual nsresult GetFileTokenForPath(const PRUnichar * platformAppPath, nsIFile ** aFile);
+  virtual nsresult GetFileTokenForPath(const char16_t * platformAppPath, nsIFile ** aFile);
 
   nsresult OSProtocolHandlerExists(const char * aScheme,
                                    bool * aHandlerExists);

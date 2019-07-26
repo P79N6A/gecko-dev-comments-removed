@@ -81,7 +81,7 @@ public:
   
   
   NS_IMETHOD GetInputStream(const char *aMimeType,
-                            const PRUnichar *aEncoderOptions,
+                            const char16_t *aEncoderOptions,
                             nsIInputStream **aStream) = 0;
 
   

@@ -1379,8 +1379,8 @@ nsPlaintextEditor::InsertAsQuotation(const nsAString& aQuotedText,
 
   
   
-  if (!aQuotedText.IsEmpty() && (aQuotedText.Last() != PRUnichar('\n')))
-    quotedStuff.Append(PRUnichar('\n'));
+  if (!aQuotedText.IsEmpty() && (aQuotedText.Last() != char16_t('\n')))
+    quotedStuff.Append(char16_t('\n'));
 
   
   nsRefPtr<Selection> selection = GetSelection();

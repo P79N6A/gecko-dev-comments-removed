@@ -505,7 +505,7 @@ public:
 
 
 
-  virtual nsresult SetText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual nsresult SetText(const char16_t* aBuffer, uint32_t aLength,
                            bool aNotify) = 0;
 
   
@@ -513,7 +513,7 @@ public:
 
 
 
-  virtual nsresult AppendText(const PRUnichar* aBuffer, uint32_t aLength,
+  virtual nsresult AppendText(const char16_t* aBuffer, uint32_t aLength,
                               bool aNotify) = 0;
 
   

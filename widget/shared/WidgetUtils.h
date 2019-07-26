@@ -58,7 +58,7 @@ public:
 
 
 
-  static KeyNameIndex GetDeadKeyNameIndex(PRUnichar aChar);
+  static KeyNameIndex GetDeadKeyNameIndex(char16_t aChar);
 };
 
 } 

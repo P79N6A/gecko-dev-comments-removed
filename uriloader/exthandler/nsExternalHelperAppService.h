@@ -107,7 +107,7 @@ public:
 
 
 
-  virtual nsresult GetFileTokenForPath(const PRUnichar * platformAppPath,
+  virtual nsresult GetFileTokenForPath(const char16_t * platformAppPath,
                                        nsIFile ** aFile);
 
   virtual NS_HIDDEN_(nsresult) OSProtocolHandlerExists(const char *aScheme,

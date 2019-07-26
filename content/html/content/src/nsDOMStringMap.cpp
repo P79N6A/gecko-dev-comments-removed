@@ -183,22 +183,22 @@ bool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
   
   
   
-  const PRUnichar* start = aProp.BeginReading();
-  const PRUnichar* end = aProp.EndReading();
-  const PRUnichar* cur = start;
+  const char16_t* start = aProp.BeginReading();
+  const char16_t* end = aProp.EndReading();
+  const char16_t* cur = start;
   for (; cur < end; ++cur) {
-    const PRUnichar* next = cur + 1;
-    if (PRUnichar('-') == *cur && next < end &&
-        PRUnichar('a') <= *next && *next <= PRUnichar('z')) {
+    const char16_t* next = cur + 1;
+    if (char16_t('-') == *cur && next < end &&
+        char16_t('a') <= *next && *next <= char16_t('z')) {
       
       return false;
     }
 
-    if (PRUnichar('A') <= *cur && *cur <= PRUnichar('Z')) {
+    if (char16_t('A') <= *cur && *cur <= char16_t('Z')) {
       
       aResult.Append(start, cur - start);
       
-      aResult.Append(PRUnichar('-'));
+      aResult.Append(char16_t('-'));
       aResult.Append(*cur - 'A' + 'a');
       start = next; 
     }
@@ -223,8 +223,8 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
   }
 
   
-  const PRUnichar* cur = aAttr.BeginReading() + 5;
-  const PRUnichar* end = aAttr.EndReading();
+  const char16_t* cur = aAttr.BeginReading() + 5;
+  const char16_t* end = aAttr.EndReading();
 
   
   
@@ -234,9 +234,9 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
   
   
   for (; cur < end; ++cur) {
-    const PRUnichar* next = cur + 1;
-    if (PRUnichar('-') == *cur && next < end && 
-        PRUnichar('a') <= *next && *next <= PRUnichar('z')) {
+    const char16_t* next = cur + 1;
+    if (char16_t('-') == *cur && next < end && 
+        char16_t('a') <= *next && *next <= char16_t('z')) {
       
       aResult.Append(*next - 'a' + 'A');
       

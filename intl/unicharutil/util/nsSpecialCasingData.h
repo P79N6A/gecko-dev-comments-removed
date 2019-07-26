@@ -13,8 +13,8 @@ namespace unicode {
 
 
 struct MultiCharMapping {
-  PRUnichar mOriginalChar;
-  PRUnichar mMappedChars[3];
+  char16_t mOriginalChar;
+  char16_t mMappedChars[3];
 };
 
 

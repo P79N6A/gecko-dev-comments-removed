@@ -9,7 +9,7 @@ nsresult TestGoodSurrogatePair()
 {
   
   
-  const PRUnichar goodPairData[] = {  0xD800, 0xDF02, 0x65, 0x78, 0x0 };
+  const char16_t goodPairData[] = {  0xD800, 0xDF02, 0x65, 0x78, 0x0 };
   nsDependentString goodPair16(goodPairData);
 
   uint32_t byteCount = 0;
@@ -53,7 +53,7 @@ nsresult TestBackwardsSurrogatePair()
 {
   
   
-  const PRUnichar backwardsPairData[] = { 0xDDDD, 0xD863, 0x65, 0x78, 0x0 };
+  const char16_t backwardsPairData[] = { 0xDDDD, 0xD863, 0x65, 0x78, 0x0 };
   nsDependentString backwardsPair16(backwardsPairData);
 
   uint32_t byteCount = 0;
@@ -97,7 +97,7 @@ nsresult TestMalformedUTF16OrphanHighSurrogate()
 {
   
   
-  const PRUnichar highSurrogateData[] = { 0xD863, 0x74, 0x65, 0x78, 0x74, 0x0 };
+  const char16_t highSurrogateData[] = { 0xD863, 0x74, 0x65, 0x78, 0x74, 0x0 };
   nsDependentString highSurrogate16(highSurrogateData);
 
   uint32_t byteCount = 0;
@@ -141,7 +141,7 @@ nsresult TestMalformedUTF16OrphanLowSurrogate()
 {
   
   
-  const PRUnichar lowSurrogateData[] = { 0xDDDD, 0x74, 0x65, 0x78, 0x74, 0x0 };
+  const char16_t lowSurrogateData[] = { 0xDDDD, 0x74, 0x65, 0x78, 0x74, 0x0 };
   nsDependentString lowSurrogate16(lowSurrogateData);
 
   uint32_t byteCount = 0;

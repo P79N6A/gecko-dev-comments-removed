@@ -1051,7 +1051,7 @@ nsMemoryReporterManager::GetReports(
         
         
         obs->NotifyObservers(nullptr, "child-memory-reporter-request",
-                             (const PRUnichar*)(uintptr_t)generation);
+                             (const char16_t*)(uintptr_t)generation);
 
         nsCOMPtr<nsITimer> timer = do_CreateInstance(NS_TIMER_CONTRACTID);
         NS_ENSURE_TRUE(timer, NS_ERROR_FAILURE);

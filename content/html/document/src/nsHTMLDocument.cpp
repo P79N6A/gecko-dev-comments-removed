@@ -3083,8 +3083,8 @@ ConvertToMidasInternalCommandInner(const nsAString& inCommandID,
   
   
   if (outCommandID.EqualsLiteral("cmd_paragraphState")) {
-    const PRUnichar* start = inParam.BeginReading();
-    const PRUnichar* end = inParam.EndReading();
+    const char16_t* start = inParam.BeginReading();
+    const char16_t* end = inParam.EndReading();
     if (start != end && *start == '<' && *(end - 1) == '>') {
       ++start;
       --end;

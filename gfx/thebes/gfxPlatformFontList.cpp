@@ -66,7 +66,7 @@ NS_IMPL_ISUPPORTS1(gfxFontListPrefObserver, nsIObserver)
 NS_IMETHODIMP
 gfxFontListPrefObserver::Observe(nsISupports     *aSubject,
                                  const char      *aTopic,
-                                 const PRUnichar *aData)
+                                 const char16_t *aData)
 {
     NS_ASSERTION(!strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID), "invalid topic");
     

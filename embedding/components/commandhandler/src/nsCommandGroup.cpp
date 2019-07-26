@@ -185,7 +185,7 @@ nsNamedGroupEnumerator::GetNext(nsISupports **_retval)
   if (mIndex >= int32_t(mGroupArray->Length()))
     return NS_ERROR_FAILURE;
     
-  PRUnichar   *thisGroupName = (PRUnichar*)mGroupArray->ElementAt(mIndex);
+  char16_t   *thisGroupName = (char16_t*)mGroupArray->ElementAt(mIndex);
   NS_ASSERTION(thisGroupName, "Bad Element in mGroupArray");
   
   nsresult rv;

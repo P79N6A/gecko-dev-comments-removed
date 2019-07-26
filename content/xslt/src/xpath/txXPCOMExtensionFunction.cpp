@@ -180,9 +180,9 @@ LookupFunction(const char *aContractID, nsIAtom* aName, nsIID &aIID,
     
     
     
-    const PRUnichar *name = aName->GetUTF16String();
+    const char16_t *name = aName->GetUTF16String();
     nsAutoCString methodName;
-    PRUnichar letter;
+    char16_t letter;
     bool upperNext = false;
     while ((letter = *name)) {
         if (letter == '-') {

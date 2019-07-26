@@ -282,7 +282,7 @@ static bool GetFilenameAndExtensionFromChannel(nsIChannel* aChannel,
 
       
       nsAutoString fileNameStr(aFileName);
-      int32_t idx = fileNameStr.RFindChar(PRUnichar('.'));
+      int32_t idx = fileNameStr.RFindChar(char16_t('.'));
       if (idx != kNotFound)
         CopyUTF16toUTF8(StringTail(fileNameStr, fileNameStr.Length() - idx - 1), aExtension);
     }
@@ -862,7 +862,7 @@ NS_IMETHODIMP nsExternalHelperAppService::ApplyDecodingForExtension(const nsACSt
   return NS_OK;
 }
 
-nsresult nsExternalHelperAppService::GetFileTokenForPath(const PRUnichar * aPlatformAppPath,
+nsresult nsExternalHelperAppService::GetFileTokenForPath(const char16_t * aPlatformAppPath,
                                                          nsIFile ** aFile)
 {
   nsDependentString platformAppPath(aPlatformAppPath);
@@ -1180,7 +1180,7 @@ nsExternalHelperAppService::SetProtocolHandlerDefaults(nsIHandlerInfo *aHandlerI
  
 
 NS_IMETHODIMP
-nsExternalHelperAppService::Observe(nsISupports *aSubject, const char *aTopic, const PRUnichar *someData )
+nsExternalHelperAppService::Observe(nsISupports *aSubject, const char *aTopic, const char16_t *someData )
 {
   if (!strcmp(aTopic, "profile-before-change")) {
     ExpungeTemporaryFiles();
@@ -1233,7 +1233,7 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
 
   
   if (!aTempFileExtension.IsEmpty() && aTempFileExtension.First() != '.')
-    mTempFileExtension = PRUnichar('.');
+    mTempFileExtension = char16_t('.');
   AppendUTF8toUTF16(aTempFileExtension, mTempFileExtension);
 
   
@@ -1241,19 +1241,19 @@ nsExternalAppHandler::nsExternalAppHandler(nsIMIMEInfo * aMIMEInfo,
   mTempFileExtension.ReplaceChar(FILE_PATH_SEPARATOR FILE_ILLEGAL_CHARACTERS, '_');
 
   
-  const PRUnichar unsafeBidiCharacters[] = {
-    PRUnichar(0x061c), 
-    PRUnichar(0x200e), 
-    PRUnichar(0x200f), 
-    PRUnichar(0x202a), 
-    PRUnichar(0x202b), 
-    PRUnichar(0x202c), 
-    PRUnichar(0x202d), 
-    PRUnichar(0x202e), 
-    PRUnichar(0x2066), 
-    PRUnichar(0x2067), 
-    PRUnichar(0x2068), 
-    PRUnichar(0x2069)  
+  const char16_t unsafeBidiCharacters[] = {
+    char16_t(0x061c), 
+    char16_t(0x200e), 
+    char16_t(0x200f), 
+    char16_t(0x202a), 
+    char16_t(0x202b), 
+    char16_t(0x202c), 
+    char16_t(0x202d), 
+    char16_t(0x202e), 
+    char16_t(0x2066), 
+    char16_t(0x2067), 
+    char16_t(0x2068), 
+    char16_t(0x2069)  
   };
   for (uint32_t i = 0; i < ArrayLength(unsafeBidiCharacters); ++i) {
     mSuggestedFileName.ReplaceChar(unsafeBidiCharacters[i], '_');
@@ -1827,7 +1827,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
         if (NS_SUCCEEDED(stringService->CreateBundle("chrome://global/locale/nsWebBrowserPersist.properties", getter_AddRefs(bundle))))
         {
             nsXPIDLString msgText;
-            const PRUnichar *strings[] = { path.get() };
+            const char16_t *strings[] = { path.get() };
             if(NS_SUCCEEDED(bundle->FormatStringFromName(msgId.get(), strings, 1, getter_Copies(msgText))))
             {
               if (mDialogProgressListener)
@@ -2717,7 +2717,7 @@ NS_IMETHODIMP nsExternalHelperAppService::GetTypeFromFile(nsIFile* aFile, nsACSt
     int32_t len = fileName.Length(); 
     for (int32_t i = len; i >= 0; i--) 
     {
-      if (fileName[i] == PRUnichar('.'))
+      if (fileName[i] == char16_t('.'))
       {
         CopyUTF16toUTF8(fileName.get() + i + 1, fileExt);
         break;

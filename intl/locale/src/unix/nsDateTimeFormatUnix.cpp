@@ -227,7 +227,7 @@ nsresult nsDateTimeFormatUnix::FormatTMTime(nsILocale* locale,
   
   int32_t srcLength = (int32_t) strlen(strOut);
   int32_t unicharLength = NSDATETIME_FORMAT_BUFFER_LEN*2;
-  PRUnichar unichars[NSDATETIME_FORMAT_BUFFER_LEN*2];   
+  char16_t unichars[NSDATETIME_FORMAT_BUFFER_LEN*2];   
 
   rv = mDecoder->Convert(strOut, &srcLength, unichars, &unicharLength);
   if (NS_FAILED(rv))

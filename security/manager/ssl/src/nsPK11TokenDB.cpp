@@ -107,7 +107,7 @@ void nsPK11Token::destructorSafeDestroyNSSReference()
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenName(PRUnichar * *aTokenName)
+NS_IMETHODIMP nsPK11Token::GetTokenName(char16_t * *aTokenName)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -120,7 +120,7 @@ NS_IMETHODIMP nsPK11Token::GetTokenName(PRUnichar * *aTokenName)
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenLabel(PRUnichar **aTokLabel)
+NS_IMETHODIMP nsPK11Token::GetTokenLabel(char16_t **aTokLabel)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -132,7 +132,7 @@ NS_IMETHODIMP nsPK11Token::GetTokenLabel(PRUnichar **aTokLabel)
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenManID(PRUnichar **aTokManID)
+NS_IMETHODIMP nsPK11Token::GetTokenManID(char16_t **aTokManID)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -144,7 +144,7 @@ NS_IMETHODIMP nsPK11Token::GetTokenManID(PRUnichar **aTokManID)
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenHWVersion(PRUnichar **aTokHWVersion)
+NS_IMETHODIMP nsPK11Token::GetTokenHWVersion(char16_t **aTokHWVersion)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -156,7 +156,7 @@ NS_IMETHODIMP nsPK11Token::GetTokenHWVersion(PRUnichar **aTokHWVersion)
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenFWVersion(PRUnichar **aTokFWVersion)
+NS_IMETHODIMP nsPK11Token::GetTokenFWVersion(char16_t **aTokFWVersion)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -168,7 +168,7 @@ NS_IMETHODIMP nsPK11Token::GetTokenFWVersion(PRUnichar **aTokFWVersion)
 }
 
 
-NS_IMETHODIMP nsPK11Token::GetTokenSerialNumber(PRUnichar **aTokSerialNum)
+NS_IMETHODIMP nsPK11Token::GetTokenSerialNumber(char16_t **aTokSerialNum)
 {
   
   if (mSeries != PK11_GetSlotSeries(mSlot)) {
@@ -279,7 +279,7 @@ NS_IMETHODIMP nsPK11Token::GetNeedsUserInit(bool *aNeedsUserInit)
 }
 
 
-NS_IMETHODIMP nsPK11Token::CheckPassword(const PRUnichar *password, bool *_retval)
+NS_IMETHODIMP nsPK11Token::CheckPassword(const char16_t *password, bool *_retval)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -304,7 +304,7 @@ NS_IMETHODIMP nsPK11Token::CheckPassword(const PRUnichar *password, bool *_retva
 }
 
 
-NS_IMETHODIMP nsPK11Token::InitPassword(const PRUnichar *initialPassword)
+NS_IMETHODIMP nsPK11Token::InitPassword(const char16_t *initialPassword)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -365,7 +365,7 @@ nsPK11Token::SetAskPasswordDefaults(const int32_t askTimes,
 }
 
 
-NS_IMETHODIMP nsPK11Token::ChangePassword(const PRUnichar *oldPassword, const PRUnichar *newPassword)
+NS_IMETHODIMP nsPK11Token::ChangePassword(const char16_t *oldPassword, const char16_t *newPassword)
 {
   nsNSSShutDownPreventionLock locker;
   if (isAlreadyShutDown())
@@ -459,7 +459,7 @@ done:
 
 
 NS_IMETHODIMP nsPK11TokenDB::
-FindTokenByName(const PRUnichar* tokenName, nsIPK11Token **_retval)
+FindTokenByName(const char16_t* tokenName, nsIPK11Token **_retval)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;

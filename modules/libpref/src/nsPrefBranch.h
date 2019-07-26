@@ -202,7 +202,7 @@ protected:
   nsPrefBranch()    
     { }
 
-  nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf);
+  nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, char16_t **return_buf);
   
   nsresult   SetCharPrefInternal(const char *aPrefName, const char *aValue);
   
@@ -242,9 +242,9 @@ public:
   nsresult Init();
 
 private:
-  NS_IMETHOD GetData(PRUnichar**);
-  NS_IMETHOD SetData(const PRUnichar* aData);
-  NS_IMETHOD SetDataWithLength(uint32_t aLength, const PRUnichar *aData);
+  NS_IMETHOD GetData(char16_t**);
+  NS_IMETHOD SetData(const char16_t* aData);
+  NS_IMETHOD SetDataWithLength(uint32_t aLength, const char16_t *aData);
 
   nsCOMPtr<nsISupportsString> mUnicodeString;
 };

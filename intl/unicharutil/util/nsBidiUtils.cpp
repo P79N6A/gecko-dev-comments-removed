@@ -27,7 +27,7 @@
     ((c) + (uint16_t)ARABIC_TO_PERSIAN_DIGIT_INCREMENT) : \
      (c)))
 
-PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNumFlag)
+char16_t HandleNumberInChar(char16_t aChar, bool aPrevCharArabic, uint32_t aNumFlag)
 {
   
   
@@ -61,7 +61,7 @@ PRUnichar HandleNumberInChar(PRUnichar aChar, bool aPrevCharArabic, uint32_t aNu
   }
 }
 
-nsresult HandleNumbers(PRUnichar* aBuffer, uint32_t aSize, uint32_t aNumFlag)
+nsresult HandleNumbers(char16_t* aBuffer, uint32_t aSize, uint32_t aNumFlag)
 {
   uint32_t i;
 
@@ -90,7 +90,7 @@ bool HasRTLChars(const nsAString& aString)
 
   int32_t length = aString.Length();
   for (int32_t i = 0; i < length; i++) {
-    PRUnichar ch = aString.CharAt(i);
+    char16_t ch = aString.CharAt(i);
     if (ch >= 0xD800 || IS_IN_BMP_RTL_BLOCK(ch)) {
       return true;
     }

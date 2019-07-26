@@ -82,7 +82,7 @@ public:
 class XMLUtils {
 
 public:
-    static nsresult splitExpatName(const PRUnichar *aExpatName,
+    static nsresult splitExpatName(const char16_t *aExpatName,
                                    nsIAtom **aPrefix, nsIAtom **aLocalName,
                                    int32_t* aNameSpaceID);
     static nsresult splitQName(const nsAString& aName, nsIAtom** aPrefix,
@@ -91,7 +91,7 @@ public:
     
 
 
-    static bool isWhitespace(const PRUnichar& aChar)
+    static bool isWhitespace(const char16_t& aChar)
     {
         return (aChar <= ' ' &&
                 (aChar == ' ' || aChar == '\r' ||
@@ -112,12 +112,12 @@ public:
 
 
     static bool isValidQName(const nsAFlatString& aQName,
-                             const PRUnichar** aColon);
+                             const char16_t** aColon);
 
     
 
 
-    static bool isLetter(PRUnichar aChar)
+    static bool isLetter(char16_t aChar)
     {
         return !!MOZ_XMLIsLetter(reinterpret_cast<const char*>(&aChar));
     }   
@@ -125,7 +125,7 @@ public:
     
 
 
-    static bool isNCNameChar(PRUnichar aChar)
+    static bool isNCNameChar(char16_t aChar)
     {
         return !!MOZ_XMLIsNCNameChar(reinterpret_cast<const char*>(&aChar));
     }

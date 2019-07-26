@@ -34,7 +34,7 @@ public:
   virtual mozilla::dom::Function *GetCallback() = 0;
 
   
-  virtual const PRUnichar *GetHandlerText() = 0;
+  virtual const char16_t *GetHandlerText() = 0;
 
   
   

@@ -193,7 +193,7 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    void SetEncodingFromExpat(const PRUnichar* aEncoding);
+    void SetEncodingFromExpat(const char16_t* aEncoding);
 
     
 

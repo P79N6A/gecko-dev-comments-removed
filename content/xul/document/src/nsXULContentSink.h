@@ -55,20 +55,20 @@ public:
 
 protected:
     
-    PRUnichar* mText;
+    char16_t* mText;
     int32_t mTextLength;
     int32_t mTextSize;
     bool mConstrainSize;
 
-    nsresult AddAttributes(const PRUnichar** aAttributes,
+    nsresult AddAttributes(const char16_t** aAttributes,
                            const uint32_t aAttrLen,
                            nsXULPrototypeElement* aElement);
 
-    nsresult OpenRoot(const PRUnichar** aAttributes,
+    nsresult OpenRoot(const char16_t** aAttributes,
                       const uint32_t aAttrLen,
                       nsINodeInfo *aNodeInfo);
 
-    nsresult OpenTag(const PRUnichar** aAttributes,
+    nsresult OpenTag(const char16_t** aAttributes,
                      const uint32_t aAttrLen,
                      const uint32_t aLineNumber,
                      nsINodeInfo *aNodeInfo);
@@ -79,19 +79,19 @@ protected:
     
     
     
-    nsresult OpenScript(const PRUnichar** aAttributes,
+    nsresult OpenScript(const char16_t** aAttributes,
                         const uint32_t aLineNumber);
 
-    static bool IsDataInBuffer(PRUnichar* aBuffer, int32_t aLength);
+    static bool IsDataInBuffer(char16_t* aBuffer, int32_t aLength);
 
     
     nsresult FlushText(bool aCreateTextNode = true);
-    nsresult AddText(const PRUnichar* aText, int32_t aLength);
+    nsresult AddText(const char16_t* aText, int32_t aLength);
 
 
     nsRefPtr<nsNodeInfoManager> mNodeInfoManager;
 
-    nsresult NormalizeAttributeString(const PRUnichar *aExpatName,
+    nsresult NormalizeAttributeString(const char16_t *aExpatName,
                                       nsAttrName &aName);
     nsresult CreateElement(nsINodeInfo *aNodeInfo,
                            nsXULPrototypeElement** aResult);

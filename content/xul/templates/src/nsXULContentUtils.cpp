@@ -193,7 +193,7 @@ nsXULContentUtils::GetElementResource(nsIContent* aElement, nsIRDFResource** aRe
     
     nsresult rv;
 
-    PRUnichar buf[128];
+    char16_t buf[128];
     nsFixedString id(buf, ArrayLength(buf), 0);
 
     
@@ -233,7 +233,7 @@ nsXULContentUtils::GetTextForNode(nsIRDFNode* aNode, nsAString& aResult)
     
     nsCOMPtr<nsIRDFLiteral> literal = do_QueryInterface(aNode);
     if (literal) {
-        const PRUnichar* p;
+        const char16_t* p;
         rv = literal->GetValueConst(&p);
         if (NS_FAILED(rv)) return rv;
 
@@ -384,7 +384,7 @@ nsXULContentUtils::GetResource(int32_t aNameSpaceID, const nsAString& aAttribute
 
     nsresult rv;
 
-    PRUnichar buf[256];
+    char16_t buf[256];
     nsFixedString uri(buf, ArrayLength(buf), 0);
     if (aNameSpaceID != kNameSpaceID_Unknown && aNameSpaceID != kNameSpaceID_None) {
         rv = nsContentUtils::NameSpaceManager()->GetNameSpaceURI(aNameSpaceID, uri);
@@ -393,7 +393,7 @@ nsXULContentUtils::GetResource(int32_t aNameSpaceID, const nsAString& aAttribute
 
     
     if (!uri.IsEmpty()  && uri.Last() != '#' && uri.Last() != '/' && aAttribute.First() != '#')
-        uri.Append(PRUnichar('#'));
+        uri.Append(char16_t('#'));
 
     uri.Append(aAttribute);
 

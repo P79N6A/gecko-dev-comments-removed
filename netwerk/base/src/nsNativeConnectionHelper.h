@@ -17,7 +17,7 @@ public:
 
 
 
-    static bool OnConnectionFailed(const PRUnichar* hostName);
+    static bool OnConnectionFailed(const char16_t* hostName);
 
     
 

@@ -50,7 +50,7 @@ txExprParser::createAVT(const nsSubstring& aAttrValue,
             
             literalString.Truncate();
             while (iter != end) {
-                PRUnichar q = *iter;
+                char16_t q = *iter;
                 if (q == '{' || q == '}') {
                     
                     
@@ -96,7 +96,7 @@ txExprParser::createAVT(const nsSubstring& aAttrValue,
                     break;
                 }
                 else if (*iter == '\'' || *iter == '"') {
-                    PRUnichar q = *iter;
+                    char16_t q = *iter;
                     while (++iter != end && *iter != q) {} 
                     if (iter == end) {
                         break;

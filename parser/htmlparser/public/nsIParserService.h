@@ -68,7 +68,7 @@ class nsIParserService : public nsISupports {
 
 
 
-  virtual const PRUnichar *HTMLIdToStringTag(int32_t aId) const = 0;
+  virtual const char16_t *HTMLIdToStringTag(int32_t aId) const = 0;
 
   
 

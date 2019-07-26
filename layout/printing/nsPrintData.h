@@ -82,7 +82,7 @@ public:
   nsCOMPtr<nsIPrintSettings>  mPrintSettings;
   nsPrintPreviewListener*     mPPEventListeners;
 
-  PRUnichar*            mBrandName; 
+  char16_t*            mBrandName; 
 
 private:
   nsPrintData() MOZ_DELETE;

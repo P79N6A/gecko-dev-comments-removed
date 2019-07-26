@@ -152,13 +152,13 @@ NS_IMETHODIMP nsXPCTestParams::TestString(const char * a, char * *b, char * *_re
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestWchar(PRUnichar a, PRUnichar *b, PRUnichar *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestWchar(char16_t a, char16_t *b, char16_t *_retval)
 {
     GENERIC_METHOD_IMPL;
 }
 
 
-NS_IMETHODIMP nsXPCTestParams::TestWstring(const PRUnichar * a, PRUnichar * *b, PRUnichar * *_retval)
+NS_IMETHODIMP nsXPCTestParams::TestWstring(const char16_t * a, char16_t * *b, char16_t * *_retval)
 {
     nsDependentString aprime(a);
     nsDependentString bprime(*b);
@@ -238,11 +238,11 @@ NS_IMETHODIMP nsXPCTestParams::TestStringArray(uint32_t aLength, const char * *a
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestWstringArray(uint32_t aLength, const PRUnichar * *a,
-                                                uint32_t *bLength, PRUnichar * **b,
-                                                uint32_t *rvLength, PRUnichar * **rv)
+NS_IMETHODIMP nsXPCTestParams::TestWstringArray(uint32_t aLength, const char16_t * *a,
+                                                uint32_t *bLength, char16_t * **b,
+                                                uint32_t *rvLength, char16_t * **rv)
 {
-    BUFFER_METHOD_IMPL(PRUnichar*, 0, TAKE_OWNERSHIP_WSTRING);
+    BUFFER_METHOD_IMPL(char16_t*, 0, TAKE_OWNERSHIP_WSTRING);
 }
 
 
@@ -268,11 +268,11 @@ NS_IMETHODIMP nsXPCTestParams::TestSizedString(uint32_t aLength, const char * a,
 
 
 
-NS_IMETHODIMP nsXPCTestParams::TestSizedWstring(uint32_t aLength, const PRUnichar * a,
-                                                uint32_t *bLength, PRUnichar * *b,
-                                                uint32_t *rvLength, PRUnichar * *rv)
+NS_IMETHODIMP nsXPCTestParams::TestSizedWstring(uint32_t aLength, const char16_t * a,
+                                                uint32_t *bLength, char16_t * *b,
+                                                uint32_t *rvLength, char16_t * *rv)
 {
-    BUFFER_METHOD_IMPL(PRUnichar, 1, TAKE_OWNERSHIP_NOOP);
+    BUFFER_METHOD_IMPL(char16_t, 1, TAKE_OWNERSHIP_NOOP);
 }
 
 

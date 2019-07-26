@@ -21,23 +21,23 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_ICASECONVERSION_IID)
 
   
-  NS_IMETHOD ToUpper( PRUnichar aChar, PRUnichar* aReturn) = 0;
+  NS_IMETHOD ToUpper( char16_t aChar, char16_t* aReturn) = 0;
 
   
-  NS_IMETHOD ToLower( PRUnichar aChar, PRUnichar* aReturn) = 0;
+  NS_IMETHOD ToLower( char16_t aChar, char16_t* aReturn) = 0;
 
   
-  NS_IMETHOD ToTitle( PRUnichar aChar, PRUnichar* aReturn) = 0;
+  NS_IMETHOD ToTitle( char16_t aChar, char16_t* aReturn) = 0;
 
   
-  NS_IMETHOD ToUpper( const PRUnichar* anArray, PRUnichar* aReturn, uint32_t aLen) = 0;
+  NS_IMETHOD ToUpper( const char16_t* anArray, char16_t* aReturn, uint32_t aLen) = 0;
 
   
-  NS_IMETHOD ToLower( const PRUnichar* anArray, PRUnichar* aReturn, uint32_t aLen) = 0;
+  NS_IMETHOD ToLower( const char16_t* anArray, char16_t* aReturn, uint32_t aLen) = 0;
 
   
   
-  NS_IMETHOD CaseInsensitiveCompare(const PRUnichar* aLeft, const PRUnichar* aRight, uint32_t aLength, int32_t* aResult) = 0;
+  NS_IMETHOD CaseInsensitiveCompare(const char16_t* aLeft, const char16_t* aRight, uint32_t aLength, int32_t* aResult) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsICaseConversion, NS_ICASECONVERSION_IID)

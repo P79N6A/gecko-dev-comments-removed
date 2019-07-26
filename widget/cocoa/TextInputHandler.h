@@ -292,7 +292,7 @@ protected:
 
 
   void InitKeyPressEvent(NSEvent *aNativeKeyEvent,
-                         PRUnichar aInsertChar,
+                         char16_t aInsertChar,
                          WidgetKeyboardEvent& aKeyEvent,
                          UInt32 aKbType);
 
@@ -635,7 +635,7 @@ protected:
 
 
 
-  static bool IsPrintableChar(PRUnichar aChar);
+  static bool IsPrintableChar(char16_t aChar);
 
   
 

@@ -207,7 +207,7 @@ int nsAutodial::QueryAutodialBehavior()
 
 
 
-nsresult nsAutodial::DialDefault(const PRUnichar* hostName)
+nsresult nsAutodial::DialDefault(const char16_t* hostName)
 {
     mDontRetryUntil = 0;
 

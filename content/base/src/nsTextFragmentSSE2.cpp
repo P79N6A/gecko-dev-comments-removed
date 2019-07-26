@@ -22,7 +22,7 @@ is_zero (__m128i x)
 }
 
 int32_t
-FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
+FirstNon8Bit(const char16_t *str, const char16_t *end)
 {
   const uint32_t numUnicharsPerVector = 8;
   typedef Non8BitParameters<sizeof(size_t)> p;
@@ -34,7 +34,7 @@ FirstNon8Bit(const PRUnichar *str, const PRUnichar *end)
   
   
   int32_t alignLen =
-    std::min(len, int32_t(((-NS_PTR_TO_INT32(str)) & 0xf) / sizeof(PRUnichar)));
+    std::min(len, int32_t(((-NS_PTR_TO_INT32(str)) & 0xf) / sizeof(char16_t)));
   for (; i < alignLen; i++) {
     if (str[i] > 255)
       return i;

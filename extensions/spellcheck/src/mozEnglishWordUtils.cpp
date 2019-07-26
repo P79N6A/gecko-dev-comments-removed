@@ -37,7 +37,7 @@ mozEnglishWordUtils::~mozEnglishWordUtils()
 }
 
 
-NS_IMETHODIMP mozEnglishWordUtils::GetLanguage(PRUnichar * *aLanguage)
+NS_IMETHODIMP mozEnglishWordUtils::GetLanguage(char16_t * *aLanguage)
 {
   nsresult rv = NS_OK;
   NS_ENSURE_ARG_POINTER(aLanguage);
@@ -49,10 +49,10 @@ NS_IMETHODIMP mozEnglishWordUtils::GetLanguage(PRUnichar * *aLanguage)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t type, PRUnichar ***words, uint32_t *count)
+NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const char16_t *aWord, uint32_t type, char16_t ***words, uint32_t *count)
 {
   nsAutoString word(aWord);
-  PRUnichar **tmpPtr;
+  char16_t **tmpPtr;
   int32_t length = word.Length();
 
   *count = 0;
@@ -62,7 +62,7 @@ NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t 
     {
     case HuhCap:
     case NoCap: 
-      tmpPtr = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *));
+      tmpPtr = (char16_t **)nsMemory::Alloc(sizeof(char16_t *));
       if (!tmpPtr)
         return NS_ERROR_OUT_OF_MEMORY;
       tmpPtr[0] = ToNewUnicode(word);
@@ -76,7 +76,7 @@ NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t 
     
 
     case AllCap:
-      tmpPtr = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *) * 3);
+      tmpPtr = (char16_t **)nsMemory::Alloc(sizeof(char16_t *) * 3);
       if (!tmpPtr)
         return NS_ERROR_OUT_OF_MEMORY;
       tmpPtr[0] = ToNewUnicode(word);
@@ -105,7 +105,7 @@ NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t 
       break;
  
     case InitCap:  
-      tmpPtr = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *) * 2);
+      tmpPtr = (char16_t **)nsMemory::Alloc(sizeof(char16_t *) * 2);
       if (!tmpPtr)
         return NS_ERROR_OUT_OF_MEMORY;
 
@@ -132,18 +132,18 @@ NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t 
 }
 
 
-bool mozEnglishWordUtils::ucIsAlpha(PRUnichar aChar)
+bool mozEnglishWordUtils::ucIsAlpha(char16_t aChar)
 {
   
   return nsIUGenCategory::kLetter == mozilla::unicode::GetGenCategory(aChar);
 }
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, uint32_t length, uint32_t offset, int32_t *begin, int32_t *end)
+NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const char16_t *word, uint32_t length, uint32_t offset, int32_t *begin, int32_t *end)
 {
-  const PRUnichar *p = word + offset;
-  const PRUnichar *endbuf = word + length;
-  const PRUnichar *startWord=p;
+  const char16_t *p = word + offset;
+  const char16_t *endbuf = word + length;
+  const char16_t *startWord=p;
   if(p<endbuf){
     
     
@@ -211,7 +211,7 @@ NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, uint32_t 
 mozEnglishWordUtils::myspCapitalization 
 mozEnglishWordUtils::captype(const nsString &word)
 {
-  PRUnichar* lword=ToNewUnicode(word);  
+  char16_t* lword=ToNewUnicode(word);  
   ToUpperCase(lword,lword,word.Length());
   if(word.Equals(lword)){
     nsMemory::Free(lword);
@@ -234,25 +234,25 @@ mozEnglishWordUtils::captype(const nsString &word)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const PRUnichar *aWord, const PRUnichar **iwords, uint32_t icount, PRUnichar ***owords, uint32_t *ocount)
+NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const char16_t *aWord, const char16_t **iwords, uint32_t icount, char16_t ***owords, uint32_t *ocount)
 {
   nsAutoString word(aWord);
   nsresult rv = NS_OK;
 
   int32_t length;
-  PRUnichar **tmpPtr  = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *)*icount);
+  char16_t **tmpPtr  = (char16_t **)nsMemory::Alloc(sizeof(char16_t *)*icount);
   if (!tmpPtr)
     return NS_ERROR_OUT_OF_MEMORY;
 
   mozEnglishWordUtils::myspCapitalization ct = captype(word);
   for(uint32_t i = 0; i < icount; ++i) {
     length = NS_strlen(iwords[i]);
-    tmpPtr[i] = (PRUnichar *) nsMemory::Alloc(sizeof(PRUnichar) * (length + 1));
+    tmpPtr[i] = (char16_t *) nsMemory::Alloc(sizeof(char16_t) * (length + 1));
     if (MOZ_UNLIKELY(!tmpPtr[i])) {
       NS_FREE_XPCOM_ALLOCATED_POINTER_ARRAY(i, tmpPtr);
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    memcpy(tmpPtr[i], iwords[i], (length + 1) * sizeof(PRUnichar));
+    memcpy(tmpPtr[i], iwords[i], (length + 1) * sizeof(char16_t));
 
     nsAutoString capTest(tmpPtr[i]);
     mozEnglishWordUtils::myspCapitalization newCt=captype(capTest);

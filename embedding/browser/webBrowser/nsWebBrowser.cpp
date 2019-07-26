@@ -25,9 +25,7 @@
 #include "nsIWebBrowserFocus.h"
 #include "nsIWebBrowserStream.h"
 #include "nsIPresShell.h"
-#include "nsIDocShellHistory.h"
 #include "nsIURIContentListener.h"
-#include "nsGUIEvent.h"
 #include "nsISHistoryListener.h"
 #include "nsIURI.h"
 #include "nsIWebBrowserPersist.h"
@@ -37,6 +35,7 @@
 #include "nsFocusManager.h"
 #include "Layers.h"
 #include "gfxContext.h"
+#include "nsILoadContext.h"
 
 
 #include "mozilla/LookAndFeel.h"
@@ -54,7 +53,6 @@
 using namespace mozilla;
 using namespace mozilla::layers;
 
-static NS_DEFINE_IID(kWindowCID, NS_WINDOW_CID);
 static NS_DEFINE_CID(kChildCID, NS_CHILD_CID);
 
 
@@ -314,13 +312,9 @@ NS_IMETHODIMP nsWebBrowser::UnBindListener(nsISupports *aListener, const nsIID& 
 
 NS_IMETHODIMP nsWebBrowser::EnableGlobalHistory(bool aEnable)
 {
-    nsresult rv;
-    
     NS_ENSURE_STATE(mDocShell);
-    nsCOMPtr<nsIDocShellHistory> dsHistory(do_QueryInterface(mDocShell, &rv));
-    if (NS_FAILED(rv)) return rv;
     
-    return dsHistory->SetUseGlobalHistory(aEnable);
+    return mDocShell->SetUseGlobalHistory(aEnable);
 }
 
 NS_IMETHODIMP nsWebBrowser::GetContainerWindow(nsIWebBrowserChrome** aTopWindow)
@@ -422,7 +416,7 @@ NS_IMETHODIMP nsWebBrowser::SetName(const nsAString& aName)
    return NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::NameEquals(const PRUnichar *aName, bool *_retval)
+NS_IMETHODIMP nsWebBrowser::NameEquals(const char16_t *aName, bool *_retval)
 {
     NS_ENSURE_ARG_POINTER(aName);
     NS_ENSURE_ARG_POINTER(_retval);
@@ -501,7 +495,7 @@ NS_IMETHODIMP nsWebBrowser::GetSameTypeRootTreeItem(nsIDocShellTreeItem** aRootT
    return NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::FindItemWithName(const PRUnichar *aName, 
+NS_IMETHODIMP nsWebBrowser::FindItemWithName(const char16_t *aName, 
    nsISupports* aRequestor, nsIDocShellTreeItem* aOriginalRequestor,
    nsIDocShellTreeItem **_retval)
 {
@@ -566,7 +560,7 @@ NS_IMETHODIMP nsWebBrowser::GetChildAt(int32_t aIndex,
 }
 
 NS_IMETHODIMP nsWebBrowser::FindChildWithName(
-                                       const PRUnichar * aName,
+                                       const char16_t * aName,
                                        bool aRecurse, bool aSameType,
                                        nsIDocShellTreeItem * aRequestor,
                                        nsIDocShellTreeItem * aOriginalRequestor,
@@ -610,7 +604,7 @@ NS_IMETHODIMP nsWebBrowser::GoForward()
    return mDocShellAsNav->GoForward();
 }
 
-NS_IMETHODIMP nsWebBrowser::LoadURI(const PRUnichar* aURI,
+NS_IMETHODIMP nsWebBrowser::LoadURI(const char16_t* aURI,
                                     uint32_t aLoadFlags,
                                     nsIURI* aReferringURI,
                                     nsIInputStream* aPostDataStream,
@@ -706,49 +700,63 @@ NS_IMETHODIMP nsWebBrowser::SetProperty(uint32_t aId, uint32_t aValue)
     case nsIWebBrowserSetup::SETUP_ALLOW_PLUGINS:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            mDocShell->SetAllowPlugins(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_ALLOW_JAVASCRIPT:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            mDocShell->SetAllowJavascript(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_ALLOW_META_REDIRECTS:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            mDocShell->SetAllowMetaRedirects(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_ALLOW_SUBFRAMES:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            mDocShell->SetAllowSubframes(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_ALLOW_IMAGES:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            mDocShell->SetAllowImages(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_ALLOW_DNS_PREFETCH:
         {
             NS_ENSURE_STATE(mDocShell);
-            NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+            NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
             mDocShell->SetAllowDNSPrefetch(!!aValue);
         }
         break;
     case nsIWebBrowserSetup::SETUP_USE_GLOBAL_HISTORY:
         {
            NS_ENSURE_STATE(mDocShell);
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            rv = EnableGlobalHistory(!!aValue);
            mShouldEnableHistory = aValue;
         }
@@ -760,7 +768,9 @@ NS_IMETHODIMP nsWebBrowser::SetProperty(uint32_t aId, uint32_t aValue)
         break;
     case nsIWebBrowserSetup::SETUP_IS_CHROME_WRAPPER:
         {
-           NS_ENSURE_TRUE((aValue == true || aValue == false), NS_ERROR_INVALID_ARG);
+           NS_ENSURE_TRUE((aValue == static_cast<uint32_t>(true) ||
+                           aValue == static_cast<uint32_t>(false)),
+                          NS_ERROR_INVALID_ARG);
            SetItemType(aValue ? static_cast<int32_t>(typeChromeWrapper)
                               : static_cast<int32_t>(typeContentWrapper));
         }
@@ -820,7 +830,7 @@ NS_IMETHODIMP nsWebBrowser::OnLocationChange(nsIWebProgress *aWebProgress, nsIRe
 }
 
 
-NS_IMETHODIMP nsWebBrowser::OnStatusChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsresult aStatus, const PRUnichar *aMessage)
+NS_IMETHODIMP nsWebBrowser::OnStatusChange(nsIWebProgress *aWebProgress, nsIRequest *aRequest, nsresult aStatus, const char16_t *aMessage)
 {
     if (mProgressListener)
     {
@@ -1234,7 +1244,7 @@ NS_IMETHODIMP nsWebBrowser::Destroy()
 
 NS_IMETHODIMP nsWebBrowser::GetUnscaledDevicePixelsPerCSSPixel(double *aScale)
 {
-  *aScale = mParentWidget ? mParentWidget->GetDefaultScale() : 1.0;
+  *aScale = mParentWidget ? mParentWidget->GetDefaultScale().scale : 1.0;
   return NS_OK;
 }
 
@@ -1457,7 +1467,7 @@ NS_IMETHODIMP nsWebBrowser::SetFocus()
   return fm ? fm->SetFocusedWindow(window) : NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::GetTitle(PRUnichar** aTitle)
+NS_IMETHODIMP nsWebBrowser::GetTitle(char16_t** aTitle)
 {
    NS_ENSURE_ARG_POINTER(aTitle);
    NS_ENSURE_STATE(mDocShell);
@@ -1467,7 +1477,7 @@ NS_IMETHODIMP nsWebBrowser::GetTitle(PRUnichar** aTitle)
    return NS_OK;
 }
 
-NS_IMETHODIMP nsWebBrowser::SetTitle(const PRUnichar* aTitle)
+NS_IMETHODIMP nsWebBrowser::SetTitle(const char16_t* aTitle)
 {
    NS_ENSURE_STATE(mDocShell);
 
@@ -1652,6 +1662,7 @@ NS_IMETHODIMP nsWebBrowser::EnsureDocShellTreeOwner()
 static void DrawThebesLayer(ThebesLayer* aLayer,
                             gfxContext* aContext,
                             const nsIntRegion& aRegionToDraw,
+                            DrawRegionClip aClip,
                             const nsIntRegion& aRegionToInvalidate,
                             void* aCallbackData)
 {

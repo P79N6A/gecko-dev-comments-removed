@@ -491,13 +491,13 @@ nsWyciwygChannel::WriteToCacheEntryInternal(const nsAString &aData)
 
     
     
-    PRUnichar bom = 0xFEFF;
+    char16_t bom = 0xFEFF;
     rv = mCacheOutputStream->Write((char *)&bom, sizeof(bom), &out);
     if (NS_FAILED(rv)) return rv;
   }
 
   return mCacheOutputStream->Write((const char *)PromiseFlatString(aData).get(),
-                                   aData.Length() * sizeof(PRUnichar), &out);
+                                   aData.Length() * sizeof(char16_t), &out);
 }
 
 

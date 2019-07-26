@@ -784,8 +784,8 @@ bool nsDefaultURIFixup::PossiblyByteExpandedFileName(const nsAString& aIn)
     
     
 
-    nsReadingIterator<PRUnichar> iter;
-    nsReadingIterator<PRUnichar> iterEnd;
+    nsReadingIterator<char16_t> iter;
+    nsReadingIterator<char16_t> iterEnd;
     aIn.BeginReading(iter);
     aIn.EndReading(iterEnd);
     while (iter != iterEnd)

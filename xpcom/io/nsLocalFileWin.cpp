@@ -1021,7 +1021,7 @@ nsLocalFile::ResolveShortcut()
     if (mResolvedPath.Length() != MAX_PATH)
         return NS_ERROR_OUT_OF_MEMORY;
 
-    PRUnichar *resolvedPath = mResolvedPath.BeginWriting();
+    char16_t *resolvedPath = mResolvedPath.BeginWriting();
 
     
     nsresult rv = gResolver->Resolve(mWorkingPath.get(), resolvedPath);
@@ -1178,8 +1178,8 @@ nsLocalFile::InitWithPath(const nsAString &filePath)
     if (begin == end)
         return NS_ERROR_FAILURE;
 
-    PRUnichar firstChar = *begin;
-    PRUnichar secondChar = *(++begin);
+    char16_t firstChar = *begin;
+    char16_t secondChar = *(++begin);
 
     
     
@@ -1256,7 +1256,7 @@ nsLocalFile::Create(uint32_t type, uint32_t attributes)
     
     
 
-    PRUnichar* path = mResolvedPath.BeginWriting();
+    char16_t* path = mResolvedPath.BeginWriting();
 
     if (path[0] == L'\\' && path[1] == L'\\')
     {
@@ -1484,7 +1484,7 @@ nsLocalFile::Normalize()
         return NS_OK;
 
     
-    const PRUnichar * pathBuffer = path.get();  
+    const char16_t * pathBuffer = path.get();  
     mWorkingPath.SetCapacity(path.Length()); 
     mWorkingPath.Assign(pathBuffer, rootIdx);
 
@@ -1672,7 +1672,7 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
                 queryResult = ::VerQueryValueW(ver, subBlock, &value, &size);
                 if (queryResult && value)
                 {
-                    _retval.Assign(static_cast<PRUnichar*>(value));
+                    _retval.Assign(static_cast<char16_t*>(value));
                     if (!_retval.IsEmpty()) 
                     {
                         rv = NS_OK;
@@ -1690,8 +1690,8 @@ nsLocalFile::GetVersionInfoField(const char* aField, nsAString& _retval)
 NS_IMETHODIMP
 nsLocalFile::SetShortcut(nsIFile* targetFile,
                          nsIFile* workingDir,
-                         const PRUnichar* args,
-                         const PRUnichar* description,
+                         const char16_t* args,
+                         const char16_t* description,
                          nsIFile* iconFile,
                          int32_t iconIndex)
 {
@@ -2343,7 +2343,7 @@ nsLocalFile::SetLastModifiedTimeOfLink(PRTime aLastModifiedTime)
 }
 
 nsresult
-nsLocalFile::SetModDate(PRTime aLastModifiedTime, const PRUnichar *filePath)
+nsLocalFile::SetModDate(PRTime aLastModifiedTime, const char16_t *filePath)
 {
     
     
@@ -2603,7 +2603,7 @@ nsLocalFile::GetParent(nsIFile * *aParent)
         return NS_OK;
     }
 
-    int32_t offset = mWorkingPath.RFindChar(PRUnichar('\\'));
+    int32_t offset = mWorkingPath.RFindChar(char16_t('\\'));
     
     
     
@@ -2763,10 +2763,10 @@ nsLocalFile::IsExecutable(bool *_retval)
     } 
 
     
-    int32_t dotIdx = path.RFindChar(PRUnichar('.'));
+    int32_t dotIdx = path.RFindChar(char16_t('.'));
     if ( dotIdx != kNotFound ) {
         
-        PRUnichar *p = path.BeginWriting();
+        char16_t *p = path.BeginWriting();
         for( p+= dotIdx + 1; *p; p++ )
             *p +=  (*p >= L'A' && *p <= L'Z') ? 'a' - 'A' : 0; 
         

@@ -41,19 +41,19 @@ NS_strtok(const char *delims, char **str);
 
 
 NS_COM_GLUE uint32_t
-NS_strlen(const PRUnichar *aString);
+NS_strlen(const char16_t *aString);
 
 
 
 
 NS_COM_GLUE int
-NS_strcmp(const PRUnichar *a, const PRUnichar *b);
+NS_strcmp(const char16_t *a, const char16_t *b);
 
 
 
 
-NS_COM_GLUE PRUnichar*
-NS_strdup(const PRUnichar *aString);
+NS_COM_GLUE char16_t*
+NS_strdup(const char16_t *aString);
 
 
 
@@ -65,8 +65,8 @@ NS_strdup(const char *aString);
 
 
 
-NS_COM_GLUE PRUnichar*
-NS_strndup(const PRUnichar *aString, uint32_t aLen);
+NS_COM_GLUE char16_t*
+NS_strndup(const char16_t *aString, uint32_t aLen);
 
 
 
@@ -91,11 +91,11 @@ inline char NS_ToLower(char aChar)
 NS_COM_GLUE bool NS_IsUpper(char aChar);
 NS_COM_GLUE bool NS_IsLower(char aChar);
 
-NS_COM_GLUE bool NS_IsAscii(PRUnichar aChar);
-NS_COM_GLUE bool NS_IsAscii(const PRUnichar* aString);
-NS_COM_GLUE bool NS_IsAsciiAlpha(PRUnichar aChar);
-NS_COM_GLUE bool NS_IsAsciiDigit(PRUnichar aChar);
-NS_COM_GLUE bool NS_IsAsciiWhitespace(PRUnichar aChar);
+NS_COM_GLUE bool NS_IsAscii(char16_t aChar);
+NS_COM_GLUE bool NS_IsAscii(const char16_t* aString);
+NS_COM_GLUE bool NS_IsAsciiAlpha(char16_t aChar);
+NS_COM_GLUE bool NS_IsAsciiDigit(char16_t aChar);
+NS_COM_GLUE bool NS_IsAsciiWhitespace(char16_t aChar);
 NS_COM_GLUE bool NS_IsAscii(const char* aString);
 NS_COM_GLUE bool NS_IsAscii(const char* aString, uint32_t aLength);
 

@@ -113,7 +113,7 @@ public:
 
 
 
-    virtual void SetText(const PRUnichar*   aText,
+    virtual void SetText(const char16_t*   aText,
                          int32_t            aLength,
                          nsBidiDirection    aDirection) = 0;
 
@@ -169,7 +169,7 @@ public:
 
 
   static nsresult FormatUnicodeText(nsPresContext* aPresContext,
-                                    PRUnichar*      aText,
+                                    char16_t*      aText,
                                     int32_t&        aTextLength,
                                     nsCharType      aCharType,
                                     bool            aIsOddLevel);
@@ -198,7 +198,7 @@ public:
 
 
 
-  static nsresult RenderText(const PRUnichar*       aText,
+  static nsresult RenderText(const char16_t*       aText,
                              int32_t                aLength,
                              nsBidiLevel            aBaseLevel,
                              nsPresContext*         aPresContext,
@@ -213,7 +213,7 @@ public:
                                           aTextRunConstructionContext, MODE_DRAW, aX, aY, aPosResolve, aPosResolveCount, nullptr);
   }
   
-  static nscoord MeasureTextWidth(const PRUnichar*     aText,
+  static nscoord MeasureTextWidth(const char16_t*     aText,
                                   int32_t              aLength,
                                   nsBidiLevel          aBaseLevel,
                                   nsPresContext*       aPresContext,
@@ -307,7 +307,7 @@ public:
 
 
 
-  static nsresult ProcessText(const PRUnichar*       aText,
+  static nsresult ProcessText(const char16_t*       aText,
                               int32_t                aLength,
                               nsBidiLevel            aBaseLevel,
                               nsPresContext*         aPresContext,
@@ -352,7 +352,7 @@ public:
 
 private:
   static nsresult
-  ProcessTextForRenderingContext(const PRUnichar*       aText,
+  ProcessTextForRenderingContext(const char16_t*       aText,
                                  int32_t                aLength,
                                  nsBidiLevel            aBaseLevel,
                                  nsPresContext*         aPresContext,
@@ -481,7 +481,7 @@ private:
                                      int32_t            aLastIndex,
                                      int32_t&           aOffset);
   static void CalculateCharType(nsBidi*          aBidiEngine,
-                                const PRUnichar* aText,
+                                const char16_t* aText,
                                 int32_t&         aOffset,
                                 int32_t          aCharTypeLimit,
                                 int32_t&         aRunLimit,
@@ -490,18 +490,18 @@ private:
                                 uint8_t&         aCharType,
                                 uint8_t&         aPrevCharType);
   
-  static void StripBidiControlCharacters(PRUnichar* aText,
+  static void StripBidiControlCharacters(char16_t* aText,
                                          int32_t&   aTextLength);
 
-  static bool WriteLogicalToVisual(const PRUnichar* aSrc,
+  static bool WriteLogicalToVisual(const char16_t* aSrc,
                                      uint32_t aSrcLength,
-                                     PRUnichar* aDest,
+                                     char16_t* aDest,
                                      nsBidiLevel aBaseDirection,
                                      nsBidi* aBidiEngine);
 
-  static void WriteReverse(const PRUnichar* aSrc,
+  static void WriteReverse(const char16_t* aSrc,
                            uint32_t aSrcLength,
-                           PRUnichar* aDest);
+                           char16_t* aDest);
 };
 
 #endif 

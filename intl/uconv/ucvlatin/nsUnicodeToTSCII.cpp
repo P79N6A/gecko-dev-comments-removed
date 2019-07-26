@@ -78,18 +78,18 @@ static const uint8_t consonant_with_virama[18] =
 
 
 NS_IMETHODIMP 
-nsUnicodeToTSCII::Convert(const PRUnichar * aSrc, int32_t * aSrcLength, 
+nsUnicodeToTSCII::Convert(const char16_t * aSrc, int32_t * aSrcLength, 
                           char * aDest, int32_t * aDestLength)
 {
-  const PRUnichar * src = aSrc;
-  const PRUnichar * srcEnd = aSrc + *aSrcLength;
+  const char16_t * src = aSrc;
+  const char16_t * srcEnd = aSrc + *aSrcLength;
   char * dest = aDest;
   char * destEnd = dest + *aDestLength;
 
   nsresult rv = NS_OK;
                       
   while (src < srcEnd && dest < destEnd) {
-    PRUnichar ch = *src;
+    char16_t ch = *src;
     if (mBuffer) {                        
       
       uint32_t last = mBuffer;
@@ -347,7 +347,7 @@ nsUnicodeToTSCII::Reset()
 }
 
 NS_IMETHODIMP 
-nsUnicodeToTSCII::GetMaxLength(const PRUnichar * aSrc, int32_t aSrcLength,
+nsUnicodeToTSCII::GetMaxLength(const char16_t * aSrc, int32_t aSrcLength,
                                  int32_t * aDestLength)
 {
   
@@ -359,14 +359,14 @@ nsUnicodeToTSCII::GetMaxLength(const PRUnichar * aSrc, int32_t aSrcLength,
 NS_IMETHODIMP 
 nsUnicodeToTSCII::SetOutputErrorBehavior(int32_t aBehavior, 
                                            nsIUnicharEncoder *aEncoder, 
-                                           PRUnichar aChar)
+                                           char16_t aChar)
 {
   return NS_OK;
 }
 
 
 
-const static PRUnichar gTSCIIToTTF[] = {
+const static char16_t gTSCIIToTTF[] = {
   0x20AC, 0x0081, 0x201A, 0x0192, 0x201E, 0x2026, 0x2020, 0x2021,
   0x02C6, 0x2030, 0x0160, 0x2039, 0x0152, 0x008D, 0x017D, 0x008F,
   0x0090, 0x2018, 0x2019, 0x201C, 0x201D, 0x2022, 0x2013, 0x2014,
@@ -379,7 +379,7 @@ const static PRUnichar gTSCIIToTTF[] = {
 NS_IMPL_ISUPPORTS_INHERITED0(nsUnicodeToTamilTTF, nsUnicodeToTSCII)
 
 NS_IMETHODIMP 
-nsUnicodeToTamilTTF::Convert(const PRUnichar * aSrc, 
+nsUnicodeToTamilTTF::Convert(const char16_t * aSrc, 
                              int32_t * aSrcLength, char * aDest, 
                              int32_t * aDestLength)
 {
@@ -415,7 +415,7 @@ nsUnicodeToTamilTTF::Convert(const PRUnichar * aSrc,
   
   for (i = 0, j = 0; i < medLen; i++) {
     
-    PRUnichar ucs2 = (med[i] & 0xe0) == 0x80 ? 
+    char16_t ucs2 = (med[i] & 0xe0) == 0x80 ? 
                      gTSCIIToTTF[med[i] & 0x7f] : uint8_t(med[i]);
     
     
@@ -433,7 +433,7 @@ nsUnicodeToTamilTTF::Convert(const PRUnichar * aSrc,
 }
 
 NS_IMETHODIMP
-nsUnicodeToTamilTTF::GetMaxLength(const PRUnichar * aSrc, int32_t aSrcLength, int32_t * aDestLength)
+nsUnicodeToTamilTTF::GetMaxLength(const char16_t * aSrc, int32_t aSrcLength, int32_t * aDestLength)
 {
   
   
@@ -446,7 +446,7 @@ nsUnicodeToTamilTTF::GetMaxLength(const PRUnichar * aSrc, int32_t aSrcLength, in
 NS_IMETHODIMP 
 nsUnicodeToTamilTTF::SetOutputErrorBehavior(int32_t aBehavior, 
                                             nsIUnicharEncoder *aEncoder, 
-                                            PRUnichar aChar)
+                                            char16_t aChar)
 {
   if (aBehavior == kOnError_CallBack && aEncoder == nullptr)
     return NS_ERROR_NULL_POINTER;

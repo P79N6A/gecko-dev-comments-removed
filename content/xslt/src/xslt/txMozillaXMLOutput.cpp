@@ -856,7 +856,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, int32_t aNsID
 
         
         
-        static const PRUnichar kOneDotZero[] = { '1', '.', '0', '\0' };
+        static const char16_t kOneDotZero[] = { '1', '.', '0', '\0' };
         mDocument->SetXMLDeclaration(kOneDotZero, mOutputFormat.mEncoding.get(),
                                      standalone);
     }

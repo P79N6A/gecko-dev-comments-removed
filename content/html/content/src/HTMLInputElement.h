@@ -1191,7 +1191,7 @@ protected:
     
 
 
-    PRUnichar*               mValue;
+    char16_t*               mValue;
     
 
 

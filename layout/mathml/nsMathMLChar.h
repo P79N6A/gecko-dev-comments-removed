@@ -47,10 +47,10 @@ enum {
 
 
 struct nsGlyphCode {
-  PRUnichar code[2]; 
+  char16_t code[2]; 
   int32_t   font;
 
-  int32_t Length() { return (code[1] == PRUnichar('\0') ? 1 : 2); }
+  int32_t Length() { return (code[1] == char16_t('\0') ? 1 : 2); }
   bool Exists() const
   {
     return (code[0] != 0);
@@ -128,7 +128,7 @@ public:
 
   
   
-  const PRUnichar*
+  const char16_t*
   get() {
     return mData.get();
   }

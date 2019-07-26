@@ -1013,7 +1013,7 @@ nsComboboxControlFrame::ActuallyDisplayText(bool aNotify)
   if (mDisplayedOptionText.IsEmpty()) {
     
     
-    static const PRUnichar space = 0xA0;
+    static const char16_t space = 0xA0;
     mDisplayContent->SetText(&space, 1, aNotify);
   } else {
     mDisplayContent->SetText(mDisplayedOptionText, aNotify);

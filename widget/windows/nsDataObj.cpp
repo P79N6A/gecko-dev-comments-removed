@@ -912,7 +912,7 @@ MangleTextToValidFilename(nsString & aText)
     nameLen = (uint32_t) strlen(forbiddenNames[n]);
     if (aText.EqualsIgnoreCase(forbiddenNames[n], nameLen)) {
       
-      if (aText.Length() == nameLen || aText.CharAt(nameLen) == PRUnichar('.')) {
+      if (aText.Length() == nameLen || aText.CharAt(nameLen) == char16_t('.')) {
         aText.Truncate();
         break;
       }
@@ -984,7 +984,7 @@ CreateFilenameFromTextW(nsString & aText, const wchar_t * aExtension,
 #define PAGEINFO_PROPERTIES "chrome://navigator/locale/pageInfo.properties"
 
 static bool
-GetLocalizedString(const PRUnichar * aName, nsXPIDLString & aString)
+GetLocalizedString(const char16_t * aName, nsXPIDLString & aString)
 {
   nsCOMPtr<nsIStringBundleService> stringService =
     mozilla::services::GetStringBundleService();
@@ -1269,7 +1269,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
     
     
     char* plainTextData = nullptr;
-    PRUnichar* castedUnicode = reinterpret_cast<PRUnichar*>(data);
+    char16_t* castedUnicode = reinterpret_cast<char16_t*>(data);
     int32_t plainTextLen = 0;
     nsPrimitiveHelpers::ConvertUnicodeToPlatformPlainText ( castedUnicode, len / 2, &plainTextData, &plainTextLen );
    
@@ -1288,7 +1288,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   else if ( aFE.cfFormat == nsClipboard::CF_HTML ) {
     
     
-    NS_ConvertUTF16toUTF8 converter ( reinterpret_cast<PRUnichar*>(data) );
+    NS_ConvertUTF16toUTF8 converter ( reinterpret_cast<char16_t*>(data) );
     char* utf8HTML = nullptr;
     nsresult rv = BuildPlatformHTML ( converter.get(), &utf8HTML );      
     
@@ -1306,7 +1306,7 @@ HRESULT nsDataObj::GetText(const nsACString & aDataFlavor, FORMATETC& aFE, STGME
   else {
     
     
-    allocLen += sizeof(PRUnichar);
+    allocLen += sizeof(char16_t);
   }
 
   hGlobalMemory = (HGLOBAL)GlobalAlloc(GMEM_MOVEABLE, allocLen);
@@ -1376,10 +1376,10 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
 
   uint32_t allocLen = path.Length() + 2;
   HGLOBAL hGlobalMemory = nullptr;
-  PRUnichar *dest;
+  char16_t *dest;
 
   hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) +
-                                             allocLen * sizeof(PRUnichar));
+                                             allocLen * sizeof(char16_t));
   if (!hGlobalMemory)
     return E_FAIL;
 
@@ -1393,8 +1393,8 @@ HRESULT nsDataObj::DropFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   pDropFile->fWide  = TRUE;
 
   
-  dest = (PRUnichar*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(), (allocLen - 1) * sizeof(PRUnichar));
+  dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
+  memcpy(dest, path.get(), (allocLen - 1) * sizeof(char16_t));
 
   
   
@@ -1519,7 +1519,7 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
   aSTG.tymed = TYMED_HGLOBAL;
   aSTG.pUnkForRelease = nullptr;
 
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) + allocLen * sizeof(PRUnichar));
+  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) + allocLen * sizeof(char16_t));
   if (!hGlobalMemory)
     return E_FAIL;
 
@@ -1533,8 +1533,8 @@ HRESULT nsDataObj::DropImage(FORMATETC& aFE, STGMEDIUM& aSTG)
   pDropFile->fWide  = TRUE;
 
   
-  PRUnichar* dest = (PRUnichar*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(), (allocLen - 1) * sizeof(PRUnichar)); 
+  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
+  memcpy(dest, path.get(), (allocLen - 1) * sizeof(char16_t)); 
 
   
   
@@ -1620,7 +1620,7 @@ HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   aSTG.tymed = TYMED_HGLOBAL;
   aSTG.pUnkForRelease = nullptr;
 
-  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) + allocLen * sizeof(PRUnichar));
+  hGlobalMemory = GlobalAlloc(GMEM_MOVEABLE, sizeof(DROPFILES) + allocLen * sizeof(char16_t));
   if (!hGlobalMemory)
     return E_FAIL;
 
@@ -1634,8 +1634,8 @@ HRESULT nsDataObj::DropTempFile(FORMATETC& aFE, STGMEDIUM& aSTG)
   pDropFile->fWide  = TRUE;
 
   
-  PRUnichar* dest = (PRUnichar*)(((char*)pDropFile) + pDropFile->pFiles);
-  memcpy(dest, path.get(), (allocLen - 1) * sizeof(PRUnichar)); 
+  char16_t* dest = (char16_t*)(((char*)pDropFile) + pDropFile->pFiles);
+  memcpy(dest, path.get(), (allocLen - 1) * sizeof(char16_t)); 
 
   
   
@@ -1964,7 +1964,7 @@ nsDataObj::ExtractUniformResourceLocatorW(FORMATETC& aFE, STGMEDIUM& aSTG )
   if (NS_FAILED(ExtractShortcutURL(url)))
     return E_OUTOFMEMORY;
 
-  const int totalLen = (url.Length() + 1) * sizeof(PRUnichar);
+  const int totalLen = (url.Length() + 1) * sizeof(char16_t);
   HGLOBAL hGlobalMemory = GlobalAlloc(GMEM_ZEROINIT|GMEM_SHARE, totalLen);
   if (!hGlobalMemory)
     return E_OUTOFMEMORY;

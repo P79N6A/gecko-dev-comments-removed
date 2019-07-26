@@ -437,7 +437,7 @@ public:
     return aBuffer;
   }
 
-  const PRUnichar* GetStringBufferValue() const
+  const char16_t* GetStringBufferValue() const
   {
     NS_ABORT_IF_FALSE(UnitHasStringValue(), "not a string value");
     return GetBufferValue(mValue.mString);
@@ -508,7 +508,7 @@ public:
     return mValue.mImage;
   }
 
-  const PRUnichar* GetOriginalURLValue() const
+  const char16_t* GetOriginalURLValue() const
   {
     NS_ABORT_IF_FALSE(mUnit == eCSSUnit_URL || mUnit == eCSSUnit_Image,
                       "not a URL value");
@@ -588,8 +588,8 @@ public:
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
 private:
-  static const PRUnichar* GetBufferValue(nsStringBuffer* aBuffer) {
-    return static_cast<PRUnichar*>(aBuffer->Data());
+  static const char16_t* GetBufferValue(nsStringBuffer* aBuffer) {
+    return static_cast<char16_t*>(aBuffer->Data());
   }
 
 protected:

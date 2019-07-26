@@ -181,13 +181,13 @@ static bool IsGenericFontFamily(const nsString& aFamily)
   return generic != kGenericFont_NONE;
 }
 
-const PRUnichar kSingleQuote  = PRUnichar('\'');
-const PRUnichar kDoubleQuote  = PRUnichar('\"');
-const PRUnichar kComma        = PRUnichar(',');
+const char16_t kSingleQuote  = char16_t('\'');
+const char16_t kDoubleQuote  = char16_t('\"');
+const char16_t kComma        = char16_t(',');
 
 bool nsFont::EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const
 {
-  const PRUnichar *p, *p_end;
+  const char16_t *p, *p_end;
   name.BeginReading(p);
   name.EndReading(p_end);
   nsAutoString family;
@@ -200,10 +200,10 @@ bool nsFont::EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const
     bool generic;
     if (*p == kSingleQuote || *p == kDoubleQuote) {
       
-      PRUnichar quoteMark = *p;
+      char16_t quoteMark = *p;
       if (++p == p_end)
         return true;
-      const PRUnichar *nameStart = p;
+      const char16_t *nameStart = p;
 
       
       while (*p != quoteMark)
@@ -218,7 +218,7 @@ bool nsFont::EnumerateFamilies(nsFontFamilyEnumFunc aFunc, void* aData) const
 
     } else {
       
-      const PRUnichar *nameStart = p;
+      const char16_t *nameStart = p;
       while (++p != p_end && *p != kComma)
          ;
 

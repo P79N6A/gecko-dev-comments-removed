@@ -56,7 +56,7 @@ namespace dom {
 
 
 
-inline bool IsSpaceCharacter(PRUnichar aChar) {
+inline bool IsSpaceCharacter(char16_t aChar) {
   return aChar == ' ' || aChar == '\t' || aChar == '\n' || aChar == '\r' ||
          aChar == '\f';
 }

@@ -44,7 +44,7 @@ void LossyConvertUTF8toUTF16(const char* aInput, uint32_t aLength, nsAString& aO
 {
   JS::UTF8Chars src(aInput, aLength);
 
-  PRUnichar dst[aLength]; 
+  char16_t dst[aLength]; 
 
   
   
@@ -54,7 +54,7 @@ void LossyConvertUTF8toUTF16(const char* aInput, uint32_t aLength, nsAString& aO
     uint32_t v = uint32_t(src[i]);
     if (!(v & 0x80)) {
       
-      dst[j] = PRUnichar(v);
+      dst[j] = char16_t(v);
     } else {
       
       uint32_t n = 1;

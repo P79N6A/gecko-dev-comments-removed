@@ -247,8 +247,8 @@ public:
 
 
   nsresult
-  ReportParseError(const PRUnichar*           aAttribute,
-                   const PRUnichar*           aValue);
+  ReportParseError(const char16_t*           aAttribute,
+                   const char16_t*           aValue);
 
   
 
@@ -271,7 +271,7 @@ public:
 
   nsresult
   ReportErrorToConsole(const char*       aErrorMsgId,
-                       const PRUnichar** aParams = nullptr,
+                       const char16_t** aParams = nullptr,
                        uint32_t          aParamCount = 0);
 
   

@@ -3296,7 +3296,7 @@ nsRuleNode::SetFont(nsPresContext* aPresContext, nsStyleContext* aContext,
     if (aGenericFontID == kGenericFont_NONE) {
       
       if (!aFont->mFont.name.IsEmpty())
-        aFont->mFont.name.Append((PRUnichar)',');
+        aFont->mFont.name.Append((char16_t)',');
       
       aFont->mFont.name.Append(defaultVariableFont->name);
     }

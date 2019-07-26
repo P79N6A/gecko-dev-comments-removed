@@ -155,7 +155,7 @@ class nsHtml5Highlighter
 
 
 
-    void StartSpan(const PRUnichar* aClass);
+    void StartSpan(const char16_t* aClass);
 
     
 
@@ -201,7 +201,7 @@ class nsHtml5Highlighter
 
 
 
-    void AddClass(const PRUnichar* aClass);
+    void AddClass(const char16_t* aClass);
 
     
 
@@ -253,7 +253,7 @@ class nsHtml5Highlighter
 
 
 
-    void AppendCharacters(const PRUnichar* aBuffer,
+    void AppendCharacters(const char16_t* aBuffer,
                           int32_t aStart,
                           int32_t aLength);
 
@@ -358,47 +358,47 @@ class nsHtml5Highlighter
     
 
 
-    static PRUnichar sComment[];
+    static char16_t sComment[];
 
     
 
 
-    static PRUnichar sCdata[];
+    static char16_t sCdata[];
 
     
 
 
-    static PRUnichar sStartTag[];
+    static char16_t sStartTag[];
 
     
 
 
-    static PRUnichar sAttributeName[];
+    static char16_t sAttributeName[];
 
     
 
 
-    static PRUnichar sAttributeValue[];
+    static char16_t sAttributeValue[];
 
     
 
 
-    static PRUnichar sEndTag[];
+    static char16_t sEndTag[];
 
     
 
 
-    static PRUnichar sDoctype[];
+    static char16_t sDoctype[];
 
     
 
 
-    static PRUnichar sEntity[];
+    static char16_t sEntity[];
 
     
 
 
-    static PRUnichar sPi[];
+    static char16_t sPi[];
 };
 
 #endif 

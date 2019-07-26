@@ -17,21 +17,21 @@ struct PropertyTableEntry : public PLDHashEntryHdr
 {
   
   const char *mKey;
-  const PRUnichar *mValue;
+  const char16_t *mValue;
 };
 
-static PRUnichar*
+static char16_t*
 ArenaStrdup(const nsAFlatString& aString, PLArenaPool* aArena)
 {
   void *mem;
   
-  int32_t len = (aString.Length()+1) * sizeof(PRUnichar);
+  int32_t len = (aString.Length()+1) * sizeof(char16_t);
   PL_ARENA_ALLOCATE(mem, aArena, len);
   NS_ASSERTION(mem, "Couldn't allocate space!\n");
   if (mem) {
     memcpy(mem, aString.get(), len);
   }
-  return static_cast<PRUnichar*>(mem);
+  return static_cast<char16_t*>(mem);
 }
 
 static char*
@@ -87,7 +87,7 @@ public:
     mKey.Trim(trimThese, false, true);
 
     
-    PRUnichar backup_char;
+    char16_t backup_char;
     uint32_t minLength = mMinLength;
     if (minLength)
     {
@@ -107,18 +107,18 @@ public:
 
   static NS_METHOD SegmentWriter(nsIUnicharInputStream* aStream,
                                  void* aClosure,
-                                 const PRUnichar *aFromSegment,
+                                 const char16_t *aFromSegment,
                                  uint32_t aToOffset,
                                  uint32_t aCount,
                                  uint32_t *aWriteCount);
 
-  nsresult ParseBuffer(const PRUnichar* aBuffer, uint32_t aBufferLength);
+  nsresult ParseBuffer(const char16_t* aBuffer, uint32_t aBufferLength);
 
 private:
   bool ParseValueCharacter(
-    PRUnichar c,                  
-    const PRUnichar* cur,         
-    const PRUnichar* &tokenStart, 
+    char16_t c,                  
+    const char16_t* cur,         
+    const char16_t* &tokenStart, 
                                   
                                   
     nsAString& oldValue);         
@@ -153,7 +153,7 @@ private:
   nsAutoString mValue;
 
   uint32_t  mUnicodeValuesRead; 
-  PRUnichar mUnicodeValue;      
+  char16_t mUnicodeValue;      
   bool      mHaveMultiLine;     
                                 
                                 
@@ -170,20 +170,20 @@ private:
   nsIPersistentProperties* mProps;
 };
 
-inline bool IsWhiteSpace(PRUnichar aChar)
+inline bool IsWhiteSpace(char16_t aChar)
 {
   return (aChar == ' ') || (aChar == '\t') ||
          (aChar == '\r') || (aChar == '\n');
 }
 
-inline bool IsEOL(PRUnichar aChar)
+inline bool IsEOL(char16_t aChar)
 {
   return (aChar == '\r') || (aChar == '\n');
 }
 
 
 bool nsPropertiesParser::ParseValueCharacter(
-    PRUnichar c, const PRUnichar* cur, const PRUnichar* &tokenStart,
+    char16_t c, const char16_t* cur, const char16_t* &tokenStart,
     nsAString& oldValue)
 {
   switch (mSpecialState) {
@@ -254,19 +254,19 @@ bool nsPropertiesParser::ParseValueCharacter(
 
       
     case 't':
-      mValue += PRUnichar('\t');
+      mValue += char16_t('\t');
       mMinLength = mValue.Length();
       break;
     case 'n':
-      mValue += PRUnichar('\n');
+      mValue += char16_t('\n');
       mMinLength = mValue.Length();
       break;
     case 'r':
-      mValue += PRUnichar('\r');
+      mValue += char16_t('\r');
       mMinLength = mValue.Length();
       break;
     case '\\':
-      mValue += PRUnichar('\\');
+      mValue += char16_t('\\');
       break;
 
       
@@ -333,7 +333,7 @@ bool nsPropertiesParser::ParseValueCharacter(
 
 NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
                                             void* aClosure,
-                                            const PRUnichar *aFromSegment,
+                                            const char16_t *aFromSegment,
                                             uint32_t aToOffset,
                                             uint32_t aCount,
                                             uint32_t *aWriteCount)
@@ -347,14 +347,14 @@ NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
   return NS_OK;
 }
 
-nsresult nsPropertiesParser::ParseBuffer(const PRUnichar* aBuffer,
+nsresult nsPropertiesParser::ParseBuffer(const char16_t* aBuffer,
                                          uint32_t aBufferLength)
 {
-  const PRUnichar* cur = aBuffer;
-  const PRUnichar* end = aBuffer + aBufferLength;
+  const char16_t* cur = aBuffer;
+  const char16_t* end = aBuffer + aBufferLength;
 
   
-  const PRUnichar* tokenStart = nullptr;
+  const char16_t* tokenStart = nullptr;
 
   
   
@@ -367,7 +367,7 @@ nsresult nsPropertiesParser::ParseBuffer(const PRUnichar* aBuffer,
 
   while (cur != end) {
 
-    PRUnichar c = *cur;
+    char16_t c = *cur;
 
     switch (mState) {
     case eParserState_AwaitingKey:

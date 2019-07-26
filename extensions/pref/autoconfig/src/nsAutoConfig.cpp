@@ -175,7 +175,7 @@ NS_IMETHODIMP nsAutoConfig::Notify(nsITimer *timer)
 
 NS_IMETHODIMP nsAutoConfig::Observe(nsISupports *aSubject, 
                                     const char *aTopic, 
-                                    const PRUnichar *someData)
+                                    const char16_t *someData)
 {
     nsresult rv = NS_OK;
     if (!nsCRT::strcmp(aTopic, "profile-after-change")) {
@@ -208,7 +208,7 @@ nsresult nsAutoConfig::downloadAutoConfig()
     
     
     
-    int32_t index = mConfigURL.RFindChar((PRUnichar)'?');
+    int32_t index = mConfigURL.RFindChar((char16_t)'?');
     if (index != -1)
         mConfigURL.Truncate(index);
 

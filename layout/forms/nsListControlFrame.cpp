@@ -2289,7 +2289,7 @@ nsListControlFrame::KeyPress(nsIDOMEvent* aKeyEvent)
   gLastKeyTime = keyEvent->time;
 
   
-  PRUnichar uniChar = ToLowerCase(static_cast<PRUnichar>(keyEvent->charCode));
+  char16_t uniChar = ToLowerCase(static_cast<char16_t>(keyEvent->charCode));
   GetIncrementalString().Append(uniChar);
 
   

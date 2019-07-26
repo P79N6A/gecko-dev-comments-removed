@@ -26,7 +26,7 @@ NS_SetAuthInfo(nsIAuthInformation* aAuthInfo, const nsString& user,
   aAuthInfo->GetFlags(&flags);
   if (flags & nsIAuthInformation::NEED_DOMAIN) {
     
-    int32_t idx = user.FindChar(PRUnichar('\\'));
+    int32_t idx = user.FindChar(char16_t('\\'));
     if (idx == kNotFound) {
       aAuthInfo->SetUsername(user);
     } else {

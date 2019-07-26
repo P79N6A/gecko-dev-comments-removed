@@ -38,8 +38,8 @@ public:
   }
 
   int32_t           lineNr;
-  const PRUnichar*  errorMsg;
-  const PRUnichar*  fileName;
+  const char16_t*  errorMsg;
+  const char16_t*  fileName;
 
   
   void AssignScriptErrorEventData(const InternalScriptErrorEvent& aEvent,

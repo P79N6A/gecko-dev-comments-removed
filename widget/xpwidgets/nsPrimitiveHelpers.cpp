@@ -73,11 +73,11 @@ nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, const void* 
       
         memcpy(buffer, aDataBuff, aDataLen);
         buffer[aDataLen] = 0;
-        const PRUnichar* start = reinterpret_cast<const PRUnichar*>(buffer.get());
+        const char16_t* start = reinterpret_cast<const char16_t*>(buffer.get());
         
         primitive->SetData(Substring(start, start + (aDataLen + 1) / 2));
       } else {
-        const PRUnichar* start = reinterpret_cast<const PRUnichar*>(aDataBuff);
+        const char16_t* start = reinterpret_cast<const char16_t*>(aDataBuff);
         
         primitive->SetData(Substring(start, start + (aDataLen / 2)));
       }
@@ -133,7 +133,7 @@ nsPrimitiveHelpers :: CreateDataFromPrimitive ( const char* aFlavor, nsISupports
 
 
 nsresult
-nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( PRUnichar* inUnicode, int32_t inUnicodeLen, 
+nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, int32_t inUnicodeLen, 
                                                             char** outPlainTextData, int32_t* outPlainTextLen )
 {
   if ( !outPlainTextData || !outPlainTextLen )
@@ -179,7 +179,7 @@ nsPrimitiveHelpers :: ConvertUnicodeToPlatformPlainText ( PRUnichar* inUnicode, 
 
 nsresult
 nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, int32_t inTextLen, 
-                                                            PRUnichar** outUnicode, int32_t* outUnicodeLen )
+                                                            char16_t** outUnicode, int32_t* outUnicodeLen )
 {
   if ( !outUnicode || !outUnicodeLen )
     return NS_ERROR_INVALID_ARG;
@@ -215,7 +215,7 @@ nsPrimitiveHelpers :: ConvertPlatformPlainTextToUnicode ( const char* inText, in
   
   decoder->GetMaxLength(inText, inTextLen, outUnicodeLen);   
   if ( *outUnicodeLen ) {
-    *outUnicode = reinterpret_cast<PRUnichar*>(nsMemory::Alloc((*outUnicodeLen + 1) * sizeof(PRUnichar)));
+    *outUnicode = reinterpret_cast<char16_t*>(nsMemory::Alloc((*outUnicodeLen + 1) * sizeof(char16_t)));
     if ( *outUnicode ) {
       rv = decoder->Convert(inText, &inTextLen, *outUnicode, outUnicodeLen);
       (*outUnicode)[*outUnicodeLen] = '\0';                   
@@ -264,17 +264,17 @@ nsLinebreakHelpers :: ConvertPlatformToDOMLinebreaks ( const char* inFlavor, voi
     
   }
   else {       
-    PRUnichar* buffAsUnichar = reinterpret_cast<PRUnichar*>(*ioData);
-    PRUnichar* oldBuffer = buffAsUnichar;
+    char16_t* buffAsUnichar = reinterpret_cast<char16_t*>(*ioData);
+    char16_t* oldBuffer = buffAsUnichar;
     int32_t newLengthInChars;
     retVal = nsLinebreakConverter::ConvertUnicharLineBreaksInSitu ( &buffAsUnichar, nsLinebreakConverter::eLinebreakAny, 
                                                                      nsLinebreakConverter::eLinebreakContent, 
-                                                                     *ioLengthInBytes / sizeof(PRUnichar), &newLengthInChars );
+                                                                     *ioLengthInBytes / sizeof(char16_t), &newLengthInChars );
     if ( NS_SUCCEEDED(retVal) ) {
       if ( buffAsUnichar != oldBuffer )           
         nsMemory::Free ( oldBuffer );
       *ioData = buffAsUnichar;
-      *ioLengthInBytes = newLengthInChars * sizeof(PRUnichar);
+      *ioLengthInBytes = newLengthInChars * sizeof(char16_t);
     }
   }
   

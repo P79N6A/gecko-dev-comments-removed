@@ -1841,7 +1841,7 @@ nsTextEditorState::SetValue(const nsAString& aValue, bool aUserInput,
       
       
       nsString newValue(aValue);
-      if (aValue.FindChar(PRUnichar('\r')) != -1) {
+      if (aValue.FindChar(char16_t('\r')) != -1) {
         nsContentUtils::PlatformToDOMLineBreaks(newValue);
       }
 

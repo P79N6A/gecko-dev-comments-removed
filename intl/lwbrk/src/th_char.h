@@ -16,7 +16,7 @@
 typedef unsigned char	tis_char;
 
 #ifdef TH_UNICODE
-typedef PRUnichar	th_char;
+typedef char16_t	th_char;
 #define TH_THAIBEGIN_	0x0e00
 #define th_isthai(c)	(0x0e00 <= (c) && (c) <= 0x0e5f)
 #else

@@ -20,10 +20,10 @@
 
 
 
-static const PRUnichar kLongDivChar = ')';
+static const char16_t kLongDivChar = ')';
 
 
-static const PRUnichar kRadicalChar = 0x221A;
+static const char16_t kRadicalChar = 0x221A;
 
 
 static const uint8_t kArrowHeadSize = 10;
@@ -334,7 +334,7 @@ nsMathMLmencloseFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
   GetRuleThickness(aRenderingContext, fm, mRuleThickness);
   GetEmHeight(fm, mEmHeight);
 
-  PRUnichar one = '1';
+  char16_t one = '1';
   nsBoundingMetrics bmOne = aRenderingContext.GetBoundingMetrics(&one, 1);
 
   

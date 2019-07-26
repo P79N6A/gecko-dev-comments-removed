@@ -226,7 +226,7 @@ nsAlertsIconListener::SendClosed()
 
 NS_IMETHODIMP
 nsAlertsIconListener::Observe(nsISupports *aSubject, const char *aTopic,
-                              const PRUnichar *aData) {
+                              const char16_t *aData) {
   
   
   if (!nsCRT::strcmp(aTopic, "quit-application") && mNotification) {

@@ -45,7 +45,7 @@ public:
   
 
 
-  static bool GetValueString(HKEY hKey, const PRUnichar* pValueName, nsAString& result);
+  static bool GetValueString(HKEY hKey, const char16_t* pValueName, nsAString& result);
 
   
   static bool CleanupCmdHandlerPath(nsAString& aCommandHandler);
@@ -58,7 +58,7 @@ protected:
 
   static nsresult GetMIMEInfoFromRegistry(const nsAFlatString& fileType, nsIMIMEInfo *pInfo);
   
-  static bool typeFromExtEquals(const PRUnichar* aExt, const char *aType);
+  static bool typeFromExtEquals(const char16_t* aExt, const char *aType);
 
 private:
   IApplicationAssociationRegistration* mAppAssoc;

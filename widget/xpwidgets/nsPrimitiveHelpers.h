@@ -33,7 +33,7 @@ public:
     
     
     
-  static nsresult ConvertUnicodeToPlatformPlainText ( PRUnichar* inUnicode, int32_t inUnicodeLen, 
+  static nsresult ConvertUnicodeToPlatformPlainText ( char16_t* inUnicode, int32_t inUnicodeLen, 
                                                     char** outPlainTextData, int32_t* outPlainTextLen ) ;
 
     
@@ -41,7 +41,7 @@ public:
     
     
   static nsresult ConvertPlatformPlainTextToUnicode ( const char* inText, int32_t inTextLen, 
-                                                    PRUnichar** outUnicode, int32_t* outUnicodeLen ) ;
+                                                    char16_t** outUnicode, int32_t* outUnicodeLen ) ;
 
 }; 
 

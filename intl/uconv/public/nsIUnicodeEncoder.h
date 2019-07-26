@@ -40,7 +40,7 @@ public:
   
 
 
-  NS_IMETHOD Convert(PRUnichar aChar, char * aDest, int32_t * aDestLength) = 0;
+  NS_IMETHOD Convert(char16_t aChar, char * aDest, int32_t * aDestLength) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIUnicharEncoder, NS_IUNICHARENCODER_IID)
@@ -132,7 +132,7 @@ public:
 
 
 
-  NS_IMETHOD Convert(const PRUnichar * aSrc, int32_t * aSrcLength, 
+  NS_IMETHOD Convert(const char16_t * aSrc, int32_t * aSrcLength, 
       char * aDest, int32_t * aDestLength) = 0;
 
   
@@ -158,7 +158,7 @@ public:
 
 
 
-  NS_IMETHOD GetMaxLength(const PRUnichar * aSrc, int32_t aSrcLength, 
+  NS_IMETHOD GetMaxLength(const char16_t * aSrc, int32_t aSrcLength, 
       int32_t * aDestLength) = 0;
 
   
@@ -173,7 +173,7 @@ public:
 
 
   NS_IMETHOD SetOutputErrorBehavior(int32_t aBehavior, 
-      nsIUnicharEncoder * aEncoder, PRUnichar aChar) = 0;
+      nsIUnicharEncoder * aEncoder, char16_t aChar) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIUnicodeEncoder, NS_IUNICODEENCODER_IID)

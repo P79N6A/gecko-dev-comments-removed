@@ -908,7 +908,7 @@ void WebBrowserChromeUI::SetFocus(nsIWebBrowserChrome *chrome)
 
 
 
-void WebBrowserChromeUI::UpdateStatusBarText(nsIWebBrowserChrome *aChrome, const PRUnichar* aStatusText)
+void WebBrowserChromeUI::UpdateStatusBarText(nsIWebBrowserChrome *aChrome, const char16_t* aStatusText)
 {
     HWND hwndDlg = GetBrowserDlgFromChrome(aChrome);
     nsCString status; 
@@ -1004,7 +1004,7 @@ void WebBrowserChromeUI::ShowContextMenu(nsIWebBrowserChrome *aChrome, uint32_t 
 
 
 
-void WebBrowserChromeUI::ShowTooltip(nsIWebBrowserChrome *aChrome, int32_t aXCoords, int32_t aYCoords, const PRUnichar *aTipText)
+void WebBrowserChromeUI::ShowTooltip(nsIWebBrowserChrome *aChrome, int32_t aXCoords, int32_t aYCoords, const char16_t *aTipText)
 {
     
 }

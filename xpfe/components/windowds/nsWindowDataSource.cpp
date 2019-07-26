@@ -85,7 +85,7 @@ nsWindowDataSource::~nsWindowDataSource()
 }
 
 NS_IMETHODIMP
-nsWindowDataSource::Observe(nsISupports *aSubject, const char* aTopic, const PRUnichar *aData)
+nsWindowDataSource::Observe(nsISupports *aSubject, const char* aTopic, const char16_t *aData)
 {
     if (strcmp(aTopic, NS_XPCOM_SHUTDOWN_OBSERVER_ID) == 0) {
         
@@ -123,7 +123,7 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
 nsWindowDataSource::OnWindowTitleChange(nsIXULWindow *window,
-                                        const PRUnichar *newTitle)
+                                        const char16_t *newTitle)
 {
     nsresult rv;
     

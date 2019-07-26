@@ -14,7 +14,7 @@ class nsHtml5OwningUTF16Buffer : public nsHtml5UTF16Buffer
     
 
 
-    nsHtml5OwningUTF16Buffer(PRUnichar* aBuffer);
+    nsHtml5OwningUTF16Buffer(char16_t* aBuffer);
 
   public:
 

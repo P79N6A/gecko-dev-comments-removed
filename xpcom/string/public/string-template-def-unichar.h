@@ -5,7 +5,7 @@
 
 
 
-#define CharT                               PRUnichar
+#define CharT                               char16_t
 #define CharT_is_PRUnichar                  1
 #define nsTAString_IncompatibleCharT        nsACString
 #define nsTString_CharT                     nsString

@@ -203,12 +203,12 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
       AppendIndentation(aStr);
     }
     else if (mAddSpace) {
-      AppendToString(PRUnichar(' '), aStr);
+      AppendToString(char16_t(' '), aStr);
       mAddSpace = false;
     }
   }
   else if (mAddSpace) {
-    AppendToString(PRUnichar(' '), aStr);
+    AppendToString(char16_t(' '), aStr);
     mAddSpace = false;
   }
   else {
@@ -362,12 +362,12 @@ nsHTMLContentSerializer::AppendElementEnd(Element* aElement,
       AppendIndentation(aStr);
     }
     else if (mAddSpace) {
-      AppendToString(PRUnichar(' '), aStr);
+      AppendToString(char16_t(' '), aStr);
       mAddSpace = false;
     }
   }
   else if (mAddSpace) {
-    AppendToString(PRUnichar(' '), aStr);
+    AppendToString(char16_t(' '), aStr);
     mAddSpace = false;
   }
 
@@ -442,7 +442,7 @@ uint32_t FindNextBasicEntity(const nsAString& aStr,
   for (; aIndex < aLen; ++aIndex) {
     
     
-    PRUnichar val = aStr[aIndex];
+    char16_t val = aStr[aIndex];
     if (val <= kValNBSP && aEntityTable[val]) {
       *aEntity = aEntityTable[val];
       return aIndex;
@@ -495,12 +495,12 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       return;
     }
 
-    nsReadingIterator<PRUnichar> done_reading;
+    nsReadingIterator<char16_t> done_reading;
     aStr.EndReading(done_reading);
 
     
     uint32_t advanceLength = 0;
-    nsReadingIterator<PRUnichar> iter;
+    nsReadingIterator<char16_t> iter;
 
     const char **entityTable = mInAttribute ? kAttrEntities : kEntities;
     nsAutoCString entityReplacement;
@@ -511,9 +511,9 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       uint32_t fragmentLength = iter.size_forward();
       uint32_t lengthReplaced = 0; 
                                     
-      const PRUnichar* c = iter.get();
-      const PRUnichar* fragmentStart = c;
-      const PRUnichar* fragmentEnd = c + fragmentLength;
+      const char16_t* c = iter.get();
+      const char16_t* fragmentStart = c;
+      const char16_t* fragmentEnd = c + fragmentLength;
       const char* entityText = nullptr;
       const char* fullConstEntityText = nullptr;
       char* fullEntityText = nullptr;
@@ -522,7 +522,7 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
       
       
       for (; c < fragmentEnd; c++, advanceLength++) {
-        PRUnichar val = *c;
+        char16_t val = *c;
         if (val <= kValNBSP && entityTable[val]) {
           fullConstEntityText = entityTable[val];
           break;
@@ -565,9 +565,9 @@ nsHTMLContentSerializer::AppendAndTranslateEntities(const nsAString& aStr,
 
       aOutputStr.Append(fragmentStart, advanceLength);
       if (entityText) {
-        aOutputStr.Append(PRUnichar('&'));
+        aOutputStr.Append(char16_t('&'));
         AppendASCIItoUTF16(entityText, aOutputStr);
-        aOutputStr.Append(PRUnichar(';'));
+        aOutputStr.Append(char16_t(';'));
         advanceLength++;
       }
       else if (fullConstEntityText) {

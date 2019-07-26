@@ -42,7 +42,7 @@ typedef struct PrefParseState {
     const char *smatch;     
     int         sindex;     
                             
-    PRUnichar   utf16[2];   
+    char16_t   utf16[2];   
     int         esclen;     
     char        esctmp[6];  
     char        quotechar;  

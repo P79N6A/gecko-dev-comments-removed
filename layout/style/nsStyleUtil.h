@@ -32,7 +32,7 @@ public:
   
   static void AppendEscapedCSSString(const nsAString& aString,
                                      nsAString& aResult,
-                                     PRUnichar quoteChar = '"');
+                                     char16_t quoteChar = '"');
 
   
   

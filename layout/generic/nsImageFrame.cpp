@@ -925,7 +925,7 @@ nsImageFrame::ReflowCallbackCanceled()
 
 
 nscoord
-nsImageFrame::MeasureString(const PRUnichar*     aString,
+nsImageFrame::MeasureString(const char16_t*     aString,
                             int32_t              aLength,
                             nscoord              aMaxWidth,
                             uint32_t&            aMaxFit,
@@ -1008,7 +1008,7 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
   
   
   
-  const PRUnichar* str = aAltText.get();
+  const char16_t* str = aAltText.get();
   int32_t          strLen = aAltText.Length();
   nscoord          y = aRect.y;
 
@@ -1944,7 +1944,7 @@ nsImageFrame::IconLoad::Shutdown()
 
 NS_IMETHODIMP
 nsImageFrame::IconLoad::Observe(nsISupports *aSubject, const char* aTopic,
-                                const PRUnichar* aData)
+                                const char16_t* aData)
 {
   NS_ASSERTION(!nsCRT::strcmp(aTopic, NS_PREFBRANCH_PREFCHANGE_TOPIC_ID),
                "wrong topic");

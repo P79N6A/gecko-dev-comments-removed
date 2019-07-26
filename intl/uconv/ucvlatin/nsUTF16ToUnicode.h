@@ -17,7 +17,7 @@ protected:
   nsUTF16ToUnicodeBase() { Reset();}
 
   nsresult UTF16ConvertToUnicode(const char * aSrc,
-                                 int32_t * aSrcLength, PRUnichar * aDest,
+                                 int32_t * aSrcLength, char16_t * aDest,
                                  int32_t * aDestLength, bool aSwapBytes);
 
 public: 
@@ -33,9 +33,9 @@ protected:
   
   uint8_t mOddByte;
   
-  PRUnichar mOddHighSurrogate;
+  char16_t mOddHighSurrogate;
   
-  PRUnichar mOddLowSurrogate;
+  char16_t mOddLowSurrogate;
 };
 
 
@@ -44,7 +44,7 @@ class nsUTF16BEToUnicode : public nsUTF16ToUnicodeBase
 public:
 
   NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
-      PRUnichar * aDest, int32_t * aDestLength); 
+      char16_t * aDest, int32_t * aDestLength); 
 };
 
 
@@ -53,7 +53,7 @@ class nsUTF16LEToUnicode : public nsUTF16ToUnicodeBase
 public:
 
   NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
-      PRUnichar * aDest, int32_t * aDestLength); 
+      char16_t * aDest, int32_t * aDestLength); 
 };
 
 
@@ -63,7 +63,7 @@ public:
 
   nsUTF16ToUnicode() { Reset();}
   NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
-      PRUnichar * aDest, int32_t * aDestLength); 
+      char16_t * aDest, int32_t * aDestLength); 
 
   NS_IMETHOD Reset();
 

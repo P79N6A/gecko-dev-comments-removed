@@ -188,10 +188,10 @@ protected:
 
   void ConfirmCancelDownloads(int32_t aCount,
                               nsISupportsPRBool *aCancelDownloads,
-                              const PRUnichar *aTitle,
-                              const PRUnichar *aCancelMessageMultiple,
-                              const PRUnichar *aCancelMessageSingle,
-                              const PRUnichar *aDontCancelButton);
+                              const char16_t *aTitle,
+                              const char16_t *aCancelMessageMultiple,
+                              const char16_t *aCancelMessageSingle,
+                              const char16_t *aDontCancelButton);
 
   int32_t GetRetentionBehavior();
 
@@ -362,7 +362,7 @@ protected:
 
 
 
-  nsresult FailDownload(nsresult aStatus, const PRUnichar *aMessage);
+  nsresult FailDownload(nsresult aStatus, const char16_t *aMessage);
 
   
 

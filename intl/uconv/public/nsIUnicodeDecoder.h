@@ -92,7 +92,7 @@ public:
 
 
   NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength, 
-      PRUnichar * aDest, int32_t * aDestLength) = 0;
+      char16_t * aDest, int32_t * aDestLength) = 0;
 
   
 
@@ -126,7 +126,7 @@ public:
   
 
 
-  virtual PRUnichar GetCharacterForUnMapped() = 0;
+  virtual char16_t GetCharacterForUnMapped() = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIUnicodeDecoder, NS_IUNICODEDECODER_IID)

@@ -73,7 +73,7 @@ static bool EqualImages(imgIRequest *aImage1, imgIRequest* aImage2)
 }
 
 
-static int safe_strcmp(const PRUnichar* a, const PRUnichar* b)
+static int safe_strcmp(const char16_t* a, const char16_t* b)
 {
   if (!a || !b) {
     return (int)(a - b);
@@ -142,7 +142,7 @@ nsStyleFont::Init(nsPresContext* aPresContext)
   
   
   if (!language.IsEmpty() &&
-      language.FindChar(PRUnichar(',')) == kNotFound) {
+      language.FindChar(char16_t(',')) == kNotFound) {
     mLanguage = do_GetAtom(language);
     
     
@@ -1735,7 +1735,7 @@ nsStyleImage::SetGradientData(nsStyleGradient* aGradient)
 }
 
 void
-nsStyleImage::SetElementId(const PRUnichar* aElementId)
+nsStyleImage::SetElementId(const char16_t* aElementId)
 {
   if (mType != eStyleImageType_Null)
     SetNull();
@@ -2857,7 +2857,7 @@ nsStyleQuotes::SetInitial()
   
   
   
-  static const PRUnichar initialQuotes[8] = {
+  static const char16_t initialQuotes[8] = {
     0x201C, 0, 0x201D, 0, 0x2018, 0, 0x2019, 0
   };
   

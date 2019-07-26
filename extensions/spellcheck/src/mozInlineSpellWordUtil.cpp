@@ -30,7 +30,7 @@ using namespace mozilla;
 
 
 
-inline bool IsIgnorableCharacter(PRUnichar ch)
+inline bool IsIgnorableCharacter(char16_t ch)
 {
   return (ch == 0xAD ||   
           ch == 0x1806);  
@@ -41,7 +41,7 @@ inline bool IsIgnorableCharacter(PRUnichar ch)
 
 
 
-inline bool IsConditionalPunctuation(PRUnichar ch)
+inline bool IsConditionalPunctuation(char16_t ch)
 {
   return (ch == '\'' ||
           ch == 0x2019 || 
@@ -258,7 +258,7 @@ NormalizeWord(const nsSubstring& aInput, int32_t aPos, int32_t aLen, nsAString& 
 {
   aOutput.Truncate();
   for (int32_t i = 0; i < aLen; i++) {
-    PRUnichar ch = aInput.CharAt(i + aPos);
+    char16_t ch = aInput.CharAt(i + aPos);
 
     
     if (IsIgnorableCharacter(ch))
@@ -343,7 +343,7 @@ mozInlineSpellWordUtil::MakeRange(NodeOffset aBegin, NodeOffset aEnd,
 
 
 static bool
-IsDOMWordSeparator(PRUnichar ch)
+IsDOMWordSeparator(char16_t ch)
 {
   
   if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')

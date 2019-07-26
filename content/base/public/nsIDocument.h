@@ -1176,8 +1176,8 @@ public:
 
 
 
-  virtual void SetXMLDeclaration(const PRUnichar *aVersion,
-                                 const PRUnichar *aEncoding,
+  virtual void SetXMLDeclaration(const char16_t *aVersion,
+                                 const char16_t *aEncoding,
                                  const int32_t aStandalone) = 0;
   virtual void GetXMLDeclaration(nsAString& aVersion,
                                  nsAString& aEncoding,

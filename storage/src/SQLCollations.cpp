@@ -80,15 +80,15 @@ localeCollationHelper16(void *aService,
                         const void *aStr2,
                         int32_t aComparisonStrength)
 {
-  const PRUnichar *buf1 = static_cast<const PRUnichar *>(aStr1);
-  const PRUnichar *buf2 = static_cast<const PRUnichar *>(aStr2);
+  const char16_t *buf1 = static_cast<const char16_t *>(aStr1);
+  const char16_t *buf2 = static_cast<const char16_t *>(aStr2);
 
   
   
   
   
-  nsDependentSubstring str1(buf1, buf1 + (aLen1 / sizeof(PRUnichar)));
-  nsDependentSubstring str2(buf2, buf2 + (aLen2 / sizeof(PRUnichar)));
+  nsDependentSubstring str1(buf1, buf1 + (aLen1 / sizeof(char16_t)));
+  nsDependentSubstring str2(buf2, buf2 + (aLen2 / sizeof(char16_t)));
   Service *serv = static_cast<Service *>(aService);
   return serv->localeCompareStrings(str1, str2, aComparisonStrength);
 }

@@ -1192,7 +1192,7 @@ nsLookAndFeel::Init()
     
     guint value;
     g_object_get (entry, "invisible-char", &value, nullptr);
-    sInvisibleCharacter = PRUnichar(value);
+    sInvisibleCharacter = char16_t(value);
 
     
     gtk_widget_style_get(entry,
@@ -1203,7 +1203,7 @@ nsLookAndFeel::Init()
 }
 
 
-PRUnichar
+char16_t
 nsLookAndFeel::GetPasswordCharacterImpl()
 {
     return sInvisibleCharacter;

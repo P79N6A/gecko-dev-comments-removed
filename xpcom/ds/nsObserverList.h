@@ -59,7 +59,7 @@ public:
 
   void NotifyObservers(nsISupports *aSubject,
                        const char *aTopic,
-                       const PRUnichar *someData);
+                       const char16_t *someData);
   nsresult GetObserverList(nsISimpleEnumerator** anEnumerator);
 
   

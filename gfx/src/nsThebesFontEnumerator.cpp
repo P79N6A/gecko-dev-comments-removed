@@ -25,7 +25,7 @@ nsThebesFontEnumerator::nsThebesFontEnumerator()
 
 NS_IMETHODIMP
 nsThebesFontEnumerator::EnumerateAllFonts(uint32_t *aCount,
-                                          PRUnichar ***aResult)
+                                          char16_t ***aResult)
 {
     return EnumerateFonts (nullptr, nullptr, aCount, aResult);
 }
@@ -34,7 +34,7 @@ NS_IMETHODIMP
 nsThebesFontEnumerator::EnumerateFonts(const char *aLangGroup,
                                        const char *aGeneric,
                                        uint32_t *aCount,
-                                       PRUnichar ***aResult)
+                                       char16_t ***aResult)
 {
     NS_ENSURE_ARG_POINTER(aCount);
     NS_ENSURE_ARG_POINTER(aResult);
@@ -64,8 +64,8 @@ nsThebesFontEnumerator::EnumerateFonts(const char *aLangGroup,
         return NS_OK;
     }
 
-    PRUnichar **fs = static_cast<PRUnichar **>
-                                (nsMemory::Alloc(fontList.Length() * sizeof(PRUnichar*)));
+    char16_t **fs = static_cast<char16_t **>
+                                (nsMemory::Alloc(fontList.Length() * sizeof(char16_t*)));
     for (uint32_t i = 0; i < fontList.Length(); i++) {
         fs[i] = ToNewUnicode(fontList[i]);
     }
@@ -89,7 +89,7 @@ nsThebesFontEnumerator::HaveFontFor(const char *aLangGroup,
 NS_IMETHODIMP
 nsThebesFontEnumerator::GetDefaultFont(const char *aLangGroup,
                                        const char *aGeneric,
-                                       PRUnichar **aResult)
+                                       char16_t **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     *aResult = nullptr;
@@ -105,8 +105,8 @@ nsThebesFontEnumerator::UpdateFontList(bool *_retval)
 }
 
 NS_IMETHODIMP
-nsThebesFontEnumerator::GetStandardFamilyName(const PRUnichar *aName,
-                                              PRUnichar **aResult)
+nsThebesFontEnumerator::GetStandardFamilyName(const char16_t *aName,
+                                              char16_t **aResult)
 {
     NS_ENSURE_ARG_POINTER(aResult);
     NS_ENSURE_ARG_POINTER(aName);

@@ -548,7 +548,7 @@ public:
 
 
 
-  static PRUnichar GetPasswordCharacter();
+  static char16_t GetPasswordCharacter();
 
   
 

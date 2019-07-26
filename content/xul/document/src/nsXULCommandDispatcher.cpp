@@ -443,14 +443,14 @@ nsXULCommandDispatcher::Matches(const nsString& aList,
   
   
   if (indx > 0) {
-    PRUnichar ch = aList[indx - 1];
-    if (! nsCRT::IsAsciiSpace(ch) && ch != PRUnichar(','))
+    char16_t ch = aList[indx - 1];
+    if (! nsCRT::IsAsciiSpace(ch) && ch != char16_t(','))
       return false;
   }
 
   if (indx + aElement.Length() < aList.Length()) {
-    PRUnichar ch = aList[indx + aElement.Length()];
-    if (! nsCRT::IsAsciiSpace(ch) && ch != PRUnichar(','))
+    char16_t ch = aList[indx + aElement.Length()];
+    if (! nsCRT::IsAsciiSpace(ch) && ch != char16_t(','))
       return false;
   }
 
