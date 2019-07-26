@@ -303,7 +303,6 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
 
     ViewID viewId;
     uint32_t presShellId;
-    nsIScrollableFrame* scrollFrame = nullptr;
 
     nsCOMPtr<nsIContent> content;
     if (nsCOMPtr<nsIDocument> doc = do_QueryInterface(target))
@@ -317,27 +316,19 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
     if (!nsLayoutUtils::FindIDFor(content, &viewId))
       return NS_ERROR_UNEXPECTED;
 
-    
-    
-    
-    
-    
+    nsIScrollableFrame* scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
+    if (!scrollFrame)
+      return NS_OK;
 
-    CSSIntPoint scrollOffset;
-    if (viewId != FrameMetrics::ROOT_SCROLL_ID) {
-      scrollFrame = nsLayoutUtils::FindScrollableFrameFor(viewId);
-      if (!scrollFrame) {
-        return NS_OK;
-      }
-      scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
-    } else {
+    CSSIntPoint scrollOffset = scrollFrame->GetScrollPositionCSSPixels();
+
+    if (viewId == mLastMetrics.mScrollId) {
       
       
       
       
       
       
-      utils->GetScrollXY(false, &scrollOffset.x, &scrollOffset.y);
       if (RoundedToInt(mLastMetrics.mScrollOffset) == scrollOffset) {
         return NS_OK;
       }
@@ -347,6 +338,7 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
       
       mLastMetrics.mScrollOffset = scrollOffset;
     }
+
     SendUpdateScrollOffset(presShellId, viewId, scrollOffset);
   }
 
@@ -547,6 +539,7 @@ TabChild::HandlePossibleViewportChange()
   nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, mInnerSize);
   SendUpdateZoomConstraints(presShellId,
                             viewId,
+                             true,
                             viewportInfo.IsZoomAllowed(),
                             viewportInfo.GetMinZoom(),
                             viewportInfo.GetMaxZoom());
@@ -1537,7 +1530,7 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
 {
   MOZ_ASSERT(aFrameMetrics.mScrollId != FrameMetrics::NULL_SCROLL_ID);
 
-  if (aFrameMetrics.mScrollId == FrameMetrics::ROOT_SCROLL_ID) {
+  if (aFrameMetrics.mIsRoot) {
     nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
     if (APZCCallbackHelper::HasValidPresShellId(utils, aFrameMetrics)) {
       return ProcessUpdateFrame(aFrameMetrics);

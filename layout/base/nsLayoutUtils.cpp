@@ -528,22 +528,12 @@ nsLayoutUtils::FindIDFor(const nsIContent* aContent, ViewID* aOutViewId)
 }
 
 ViewID
-nsLayoutUtils::FindOrCreateIDFor(nsIContent* aContent, bool aRoot)
+nsLayoutUtils::FindOrCreateIDFor(nsIContent* aContent)
 {
   ViewID scrollId;
 
   if (!FindIDFor(aContent, &scrollId)) {
-    scrollId = aRoot ? FrameMetrics::ROOT_SCROLL_ID : sScrollIdCounter++;
-    if (aRoot) {
-      
-      
-      
-      nsIContent* oldRoot;
-      bool oldExists = GetContentMap().Get(scrollId, &oldRoot);
-      if (oldExists) {
-        oldRoot->DeleteProperty(nsGkAtoms::RemoteId);
-      }
-    }
+    scrollId = sScrollIdCounter++;
     aContent->SetProperty(nsGkAtoms::RemoteId, new ViewID(scrollId),
                           DestroyViewID);
     GetContentMap().Put(scrollId, aContent);

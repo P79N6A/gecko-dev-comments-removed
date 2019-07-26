@@ -299,7 +299,7 @@ APZController::HandleLongTap(const CSSIntPoint& aPoint)
 
 
 void
-APZController::SendAsyncScrollDOMEvent(FrameMetrics::ViewID aScrollId,
+APZController::SendAsyncScrollDOMEvent(bool aIsRoot,
                                        const CSSRect &aContentRect,
                                        const CSSSize &aScrollableSize)
 {

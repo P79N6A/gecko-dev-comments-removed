@@ -97,8 +97,7 @@ public:
 
 
 
-
-  static ViewID FindOrCreateIDFor(nsIContent* aContent, bool aRoot = false);
+  static ViewID FindOrCreateIDFor(nsIContent* aContent);
 
   
 
