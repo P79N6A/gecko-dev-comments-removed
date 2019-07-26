@@ -735,6 +735,7 @@ protected:
 
     
     
+    
     nsCOMPtr<nsIChannel>       mMixedContentChannel;
 
     
