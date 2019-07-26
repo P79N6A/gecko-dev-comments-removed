@@ -738,6 +738,8 @@ private:
     mozilla::gfx::AntialiasMode aaMode;
     bool patternTransformChanged;
     Matrix patternTransform;
+    
+    mozilla::gfx::Point deviceOffset;
   };
 
   
@@ -748,6 +750,9 @@ private:
   void PushClipsToDT(mozilla::gfx::DrawTarget *aDT);
   CompositionOp GetOp();
   void ChangeTransform(const mozilla::gfx::Matrix &aNewMatrix);
+  Rect GetAzureDeviceSpaceClipBounds();
+  Matrix GetDeviceTransform() const;
+  Matrix GetDTTransform() const;
 
   bool mPathIsRect;
   bool mTransformChanged;
