@@ -180,11 +180,6 @@ public:
 #endif
 
 protected:
-  
-  
-  nsresult AddAttributes(const nsIParserNode& aNode, nsIContent* aContent,
-                         bool aNotify = false,
-                         bool aCheckIfPresent = false);
   already_AddRefed<nsGenericHTMLElement>
   CreateContentObject(const nsIParserNode& aNode, nsHTMLTag aNodeType);
 
@@ -332,91 +327,6 @@ HTMLContentSink::SinkTraceNode(uint32_t aBit,
   }
 }
 #endif
-
-nsresult
-HTMLContentSink::AddAttributes(const nsIParserNode& aNode,
-                               nsIContent* aContent, bool aNotify,
-                               bool aCheckIfPresent)
-{
-  
-
-  int32_t ac = aNode.GetAttributeCount();
-
-  if (ac == 0) {
-    
-    
-
-    return NS_OK;
-  }
-
-  nsHTMLTag nodeType = nsHTMLTag(aNode.GetNodeType());
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  int32_t i, limit, step;
-  if (aCheckIfPresent) {
-    i = 0;
-    limit = ac;
-    step = 1;
-  } else {
-    i = ac - 1;
-    limit = -1;
-    step = -1;
-  }
-  
-  nsAutoString key;
-  for (; i != limit; i += step) {
-    
-    nsresult rv = nsContentUtils::ASCIIToLower(aNode.GetKeyAt(i), key);
-    if (NS_FAILED(rv)) {
-      return rv;
-    }
-
-    nsCOMPtr<nsIAtom> keyAtom = do_GetAtom(key);
-
-    if (aCheckIfPresent && aContent->HasAttr(kNameSpaceID_None, keyAtom)) {
-      continue;
-    }
-
-    
-    static const char* kWhitespace = "\n\r\t\b";
-
-    
-    
-    
-    const nsAString& v =
-      nsContentUtils::TrimCharsInSet(
-        (nodeType == eHTMLTag_input &&
-          keyAtom == nsGkAtoms::value) ?
-        "" : kWhitespace, aNode.GetValueAt(i));
-
-    if (nodeType == eHTMLTag_a && keyAtom == nsGkAtoms::name) {
-      NS_ConvertUTF16toUTF8 cname(v);
-      NS_ConvertUTF8toUTF16 uv(nsUnescape(cname.BeginWriting()));
-
-      
-      aContent->SetAttr(kNameSpaceID_None, keyAtom, uv, aNotify);
-    } else {
-      
-      aContent->SetAttr(kNameSpaceID_None, keyAtom, v, aNotify);
-    }
-  }
-
-  return NS_OK;
-}
 
 
 
@@ -641,13 +551,7 @@ SinkContext::OpenContainer(const nsIParserNode& aNode)
   mStack[mStackPos].mNumFlushed = 0;
   mStack[mStackPos].mInsertionPoint = -1;
   ++mStackPos;
-
-  rv = mSink->AddAttributes(aNode, content);
-
   mStack[mStackPos - 2].Add(content);
-
-  NS_ENSURE_SUCCESS(rv, rv);
-
   if (mSink->IsMonolithicContainer(nodeType)) {
     mSink->mInMonolithicContainer++;
   }
@@ -828,9 +732,6 @@ SinkContext::AddLeaf(const nsIParserNode& aNode)
       nsRefPtr<nsGenericHTMLElement> content =
         mSink->CreateContentObject(aNode, nodeType);
       NS_ENSURE_TRUE(content, NS_ERROR_OUT_OF_MEMORY);
-
-      rv = mSink->AddAttributes(aNode, content);
-      NS_ENSURE_SUCCESS(rv, rv);
 
       
       AddLeaf(content);
@@ -1616,7 +1517,6 @@ HTMLContentSink::OpenBody(const nsIParserNode& aNode)
 
   
   if (mBody) {
-    AddAttributes(aNode, mBody, true, true);
     return NS_OK;
   }
 
@@ -1714,7 +1614,6 @@ HTMLContentSink::OpenContainer(const nsIParserNode& aNode)
     case eHTMLTag_head:
       rv = OpenHeadContext();
       if (NS_SUCCEEDED(rv)) {
-        rv = AddAttributes(aNode, mHead, true, mHaveSeenHead);
         mHaveSeenHead = true;
       }
       break;
@@ -1724,8 +1623,6 @@ HTMLContentSink::OpenContainer(const nsIParserNode& aNode)
     case eHTMLTag_html:
       if (mRoot) {
         
-        
-        AddAttributes(aNode, mRoot, true, mNotifiedRootInsertion);
         if (!mNotifiedRootInsertion) {
           NotifyRootInsertion();
         }
