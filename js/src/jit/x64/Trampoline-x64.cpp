@@ -11,7 +11,6 @@
 #ifdef JS_ION_PERF
 # include "jit/PerfSpewer.h"
 #endif
-#include "jit/ParallelFunctions.h"
 #include "jit/VMFunctions.h"
 #include "jit/x64/BaselineHelpers-x64.h"
 
@@ -447,19 +446,13 @@ JitRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 }
 
 static void
-PushBailoutFrame(MacroAssembler &masm, Register spArg)
+GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 {
     
     masm.PushRegsInMask(AllRegs);
 
     
-    masm.movq(rsp, spArg);
-}
-
-static void
-GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
-{
-    PushBailoutFrame(masm, r8);
+    masm.movq(rsp, r8);
 
     
     masm.reserveStack(sizeof(void *));
@@ -481,7 +474,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     
     
     static const uint32_t BailoutDataSize = sizeof(void *) * Registers::Total +
-                                            sizeof(double) * FloatRegisters::Total;
+                                          sizeof(double) * FloatRegisters::Total;
     masm.addq(Imm32(BailoutDataSize), rsp);
     masm.pop(rcx);
     masm.lea(Operand(rsp, rcx, TimesOne, sizeof(void *)), rsp);
@@ -491,31 +484,6 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
     masm.jmp(bailoutTail);
 }
 
-static void
-GenerateParallelBailoutThunk(MacroAssembler &masm)
-{
-    
-    
-    
-
-    PushBailoutFrame(masm, r8);
-
-    
-    
-    masm.reserveStack(sizeof(uint8_t *));
-    masm.movePtr(rsp, r9);
-
-    masm.setupUnalignedABICall(2, rax);
-    masm.passABIArg(r8);
-    masm.passABIArg(r9);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, BailoutPar));
-
-    
-    masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
-    masm.loadPtr(Address(rsp, 0), rsp);
-    masm.ret();
-}
-
 JitCode *
 JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
 {
@@ -523,20 +491,11 @@ JitRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
 }
 
 JitCode *
-JitRuntime::generateBailoutHandler(JSContext *cx, ExecutionMode mode)
+JitRuntime::generateBailoutHandler(JSContext *cx)
 {
     MacroAssembler masm;
 
-    switch (mode) {
-      case SequentialExecution:
-        GenerateBailoutThunk(cx, masm, NO_FRAME_SIZE_CLASS_ID);
-        break;
-      case ParallelExecution:
-        GenerateParallelBailoutThunk(masm);
-        break;
-      default:
-        MOZ_ASSUME_UNREACHABLE("No such execution mode");
-    }
+    GenerateBailoutThunk(cx, masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
     JitCode *code = linker.newCode<NoGC>(cx, JSC::OTHER_CODE);

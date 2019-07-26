@@ -1338,10 +1338,11 @@ class JitActivation : public Activation
     
     
     
-    typedef Vector<RematerializedFrame *> RematerializedFrameVector;
+    typedef Vector<RematerializedFrame *, 1> RematerializedFrameVector;
     typedef HashMap<uint8_t *, RematerializedFrameVector> RematerializedFrameTable;
     RematerializedFrameTable *rematerializedFrames_;
 
+    void freeRematerializedFramesInVector(RematerializedFrameVector &frames);
     void clearRematerializedFrames();
 #endif
 
@@ -1399,10 +1400,7 @@ class JitActivation : public Activation
     
     
     
-    
-    
-    template <class T>
-    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, const T &iter,
+    RematerializedFrame *getRematerializedFrame(ThreadSafeContext *cx, JitFrameIterator &iter,
                                                 size_t inlineDepth = 0);
 
     

@@ -30,9 +30,6 @@ class RematerializedFrame
     
     uint8_t *top_;
 
-    
-    jsbytecode *pc_;
-
     size_t frameNo_;
     unsigned numActualArgs_;
 
@@ -44,25 +41,11 @@ class RematerializedFrame
     Value thisValue_;
     Value slots_[1];
 
-    RematerializedFrame(ThreadSafeContext *cx, uint8_t *top, unsigned numActualArgs,
-                        InlineFrameIterator &iter);
+    RematerializedFrame(ThreadSafeContext *cx, uint8_t *top, InlineFrameIterator &iter);
 
   public:
     static RematerializedFrame *New(ThreadSafeContext *cx, uint8_t *top,
                                     InlineFrameIterator &iter);
-
-    
-    
-    static bool RematerializeInlineFrames(ThreadSafeContext *cx, uint8_t *top,
-                                          InlineFrameIterator &iter,
-                                          Vector<RematerializedFrame *> &frames);
-
-    
-    
-    static void FreeInVector(Vector<RematerializedFrame *> &frames);
-
-    
-    static void MarkInVector(JSTracer *trc, Vector<RematerializedFrame *> &frames);
 
     bool prevUpToDate() const {
         return prevUpToDate_;
@@ -73,9 +56,6 @@ class RematerializedFrame
 
     uint8_t *top() const {
         return top_;
-    }
-    jsbytecode *pc() const {
-        return pc_;
     }
     size_t frameNo() const {
         return frameNo_;

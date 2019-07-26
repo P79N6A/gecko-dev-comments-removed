@@ -26,6 +26,9 @@ class ParallelSafetyAnalysis
     MIRGenerator *mir_;
     MIRGraph &graph_;
 
+    bool removeResumePointOperands();
+    void replaceOperandsOnResumePoint(MResumePoint *resumePoint, MDefinition *withDef);
+
   public:
     ParallelSafetyAnalysis(MIRGenerator *mir,
                            MIRGraph &graph)

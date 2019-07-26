@@ -26,6 +26,8 @@ class OutOfLineCode;
 class CodeGenerator;
 class MacroAssembler;
 class IonCache;
+class OutOfLineAbortPar;
+class OutOfLinePropagateAbortPar;
 
 template <class ArgSeq, class StoreOutputTo>
 class OutOfLineCallVM;
@@ -466,6 +468,28 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     bool omitOverRecursedCheck() const;
 
+  public:
+    bool callTraceLIR(uint32_t blockIndex, LInstruction *lir, const char *bailoutName = nullptr);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    OutOfLineAbortPar *oolAbortPar(ParallelBailoutCause cause, MBasicBlock *basicBlock,
+                                   jsbytecode *bytecode);
+    OutOfLineAbortPar *oolAbortPar(ParallelBailoutCause cause, LInstruction *lir);
+    OutOfLinePropagateAbortPar *oolPropagateAbortPar(LInstruction *lir);
+    virtual bool visitOutOfLineAbortPar(OutOfLineAbortPar *ool) = 0;
+    virtual bool visitOutOfLinePropagateAbortPar(OutOfLinePropagateAbortPar *ool) = 0;
+
 #ifdef JS_TRACE_LOGGING
   protected:
     bool emitTracelogScript(bool isStart);
@@ -745,6 +769,53 @@ CodeGeneratorShared::visitOutOfLineCallVM(OutOfLineCallVM<ArgSeq, StoreOutputTo>
     masm.jump(ool->rejoin());
     return true;
 }
+
+
+
+class OutOfLineAbortPar : public OutOfLineCode
+{
+  private:
+    ParallelBailoutCause cause_;
+    MBasicBlock *basicBlock_;
+    jsbytecode *bytecode_;
+
+  public:
+    OutOfLineAbortPar(ParallelBailoutCause cause, MBasicBlock *basicBlock, jsbytecode *bytecode)
+      : cause_(cause),
+        basicBlock_(basicBlock),
+        bytecode_(bytecode)
+    { }
+
+    ParallelBailoutCause cause() {
+        return cause_;
+    }
+
+    MBasicBlock *basicBlock() {
+        return basicBlock_;
+    }
+
+    jsbytecode *bytecode() {
+        return bytecode_;
+    }
+
+    bool generate(CodeGeneratorShared *codegen);
+};
+
+
+class OutOfLinePropagateAbortPar : public OutOfLineCode
+{
+  private:
+    LInstruction *lir_;
+
+  public:
+    explicit OutOfLinePropagateAbortPar(LInstruction *lir)
+      : lir_(lir)
+    { }
+
+    LInstruction *lir() { return lir_; }
+
+    bool generate(CodeGeneratorShared *codegen);
+};
 
 } 
 } 
