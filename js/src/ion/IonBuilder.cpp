@@ -5264,6 +5264,8 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
             curObj = typeObj->proto;
         } else {
             
+            
+            
             if (!isGetter && curObj->watched())
                 return true;
 
@@ -5329,7 +5331,7 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
             
             
             
-            if (!isGetter && curObj->watched())
+            if (curObj->watched())
                 return true;
 
             curObj = curObj->getProto();
