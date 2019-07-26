@@ -759,13 +759,6 @@ pref("dom.payment.provider.0.type", "mozilla/payments/pay/v1");
 pref("dom.payment.provider.0.requestMethod", "GET");
 #endif
 
-#ifdef NIGHTLY_BUILD
-
-pref("dom.mozContacts.enabled", true);
-pref("dom.navigator-property.disable.mozContacts", false);
-pref("dom.global-constructor.disable.mozContact", false);
-#endif
-
 
 
 pref("dom.phonenumber.substringmatching.BR", 8);
