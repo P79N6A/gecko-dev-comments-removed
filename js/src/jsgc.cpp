@@ -5561,12 +5561,19 @@ JS::GetGCNumber()
 }
 
 JS::AutoAssertNoGC::AutoAssertNoGC()
-  : runtime(nullptr)
+  : runtime(nullptr), gcNumber(0)
 {
     js::PerThreadData *data = js::TlsPerThreadData.get();
     if (data) {
-        runtime = data->runtimeFromMainThread();
-        gcNumber = runtime->gcNumber;
+        
+
+
+
+
+
+        runtime = data->runtimeIfOnOwnerThread();
+        if (runtime)
+            gcNumber = runtime->gcNumber;
     }
 }
 
@@ -5579,7 +5586,5 @@ JS::AutoAssertNoGC::~AutoAssertNoGC()
 {
     if (runtime)
         MOZ_ASSERT(gcNumber == runtime->gcNumber, "GC ran inside an AutoAssertNoGC scope.");
-    else
-        MOZ_ASSERT(!js::TlsPerThreadData.get(), "Runtime created within AutoAssertNoGC scope?");
 }
 #endif
