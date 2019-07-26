@@ -186,7 +186,6 @@ protected:
   nsRefPtr<gfxContext> mDefaultTarget;
   
   nsRefPtr<gfxContext> mTarget;
-  nsRefPtr<gfxContext> mDummyTarget;
   
   nsRefPtr<ImageFactory> mFactory;
 

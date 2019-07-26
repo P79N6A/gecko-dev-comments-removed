@@ -73,6 +73,9 @@ public:
                            void* aCallbackData,
                            ReadbackProcessor* aReadback) {}
 
+  virtual void Validate(LayerManager::DrawThebesLayerCallback aCallback,
+                        void* aCallbackData) {}
+
   
 
 
