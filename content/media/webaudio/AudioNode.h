@@ -13,7 +13,6 @@
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
 #include "AudioContext.h"
-#include "MediaStreamGraph.h"
 
 struct JSContext;
 
@@ -23,25 +22,6 @@ class ErrorResult;
 
 namespace dom {
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class AudioNode : public nsISupports,
                   public EnableWebAudioCheck
 {
@@ -49,33 +29,8 @@ public:
   explicit AudioNode(AudioContext* aContext);
   virtual ~AudioNode();
 
-  
-  
-  
-  virtual void DestroyMediaStream()
-  {
-    if (mStream) {
-      mStream->Destroy();
-      mStream = nullptr;
-    }
-  }
-
-  
-  
-  virtual bool SupportsMediaStreams() const
-  {
-    return false;
-  }
-
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(AudioNode)
-
-  void JSBindingFinalized()
-  {
-    NS_ASSERTION(!mJSBindingFinalized, "JS binding already finalized");
-    mJSBindingFinalized = true;
-    UpdateOutputEnded();
-  }
 
   AudioContext* GetParentObject() const
   {
@@ -98,49 +53,19 @@ public:
   virtual uint32_t NumberOfInputs() const { return 1; }
   virtual uint32_t NumberOfOutputs() const { return 1; }
 
-  
-  void UpdateOutputEnded();
-  bool IsOutputEnded() const { return mOutputEnded; }
-
   struct InputNode {
-    ~InputNode()
-    {
-      if (mStreamPort) {
-        mStreamPort->Destroy();
-      }
-    }
-
     
     
     nsRefPtr<AudioNode> mInputNode;
-    nsRefPtr<MediaInputPort> mStreamPort;
     
     uint32_t mInputPort;
     
     uint32_t mOutputPort;
   };
 
-  MediaStream* Stream() { return mStream; }
-
-  
-  
-  void SetProduceOwnOutput(bool aCanProduceOwnOutput)
-  {
-    mCanProduceOwnOutput = aCanProduceOwnOutput;
-    if (!aCanProduceOwnOutput) {
-      UpdateOutputEnded();
-    }
-  }
-
 private:
   nsRefPtr<AudioContext> mContext;
 
-protected:
-  
-  
-  nsRefPtr<MediaStream> mStream;
-
-private:
   
   
   nsTArray<InputNode> mInputNodes;
@@ -149,15 +74,6 @@ private:
   
   
   nsTArray<nsRefPtr<AudioNode> > mOutputNodes;
-  
-  
-  bool mJSBindingFinalized;
-  
-  
-  bool mCanProduceOwnOutput;
-  
-  
-  bool mOutputEnded;
 };
 
 }

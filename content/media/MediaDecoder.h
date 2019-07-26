@@ -235,6 +235,7 @@ class MediaDecoder : public nsIObserver,
 {
 public:
   typedef mozilla::layers::Image Image;
+  class DecodedStreamMainThreadListener;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -339,7 +340,7 @@ public:
   
   
 
-  struct DecodedStreamData MOZ_FINAL : public MainThreadMediaStreamListener {
+  struct DecodedStreamData {
     DecodedStreamData(MediaDecoder* aDecoder,
                       int64_t aInitialTime, SourceMediaStream* aStream);
     ~DecodedStreamData();
@@ -357,7 +358,6 @@ public:
     
     
     int64_t mNextVideoTime; 
-    MediaDecoder* mDecoder;
     
     
     nsRefPtr<Image> mLastVideoImage;
@@ -374,9 +374,10 @@ public:
     const nsRefPtr<SourceMediaStream> mStream;
     
     
+    const nsRefPtr<DecodedStreamMainThreadListener> mMainThreadListener;
+    
+    
     bool mHaveBlockedForPlayState;
-
-    virtual void NotifyMainThreadStateChanged() MOZ_OVERRIDE;
   };
   struct OutputStreamData {
     void Init(ProcessedMediaStream* aStream, bool aFinishWhenEnded)
@@ -420,6 +421,16 @@ public:
     GetReentrantMonitor().AssertCurrentThreadIn();
     return mDecodedStream;
   }
+  class DecodedStreamMainThreadListener : public MainThreadMediaStreamListener {
+  public:
+    DecodedStreamMainThreadListener(MediaDecoder* aDecoder)
+      : mDecoder(aDecoder) {}
+    virtual void NotifyMainThreadStateChanged()
+    {
+      mDecoder->NotifyDecodedStreamMainThreadStateChanged();
+    }
+    MediaDecoder* mDecoder;
+  };
 
   
   

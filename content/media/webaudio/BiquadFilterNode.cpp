@@ -22,7 +22,9 @@ NS_IMPL_RELEASE_INHERITED(BiquadFilterNode, AudioNode)
 static float
 Nyquist(AudioContext* aContext)
 {
-  return 0.5f * aContext->SampleRate();
+  
+  
+  return 0.5f * 44100;
 }
 
 BiquadFilterNode::BiquadFilterNode(AudioContext* aContext)

@@ -179,9 +179,12 @@ public:
 
 
 
-
 class MainThreadMediaStreamListener {
 public:
+  virtual ~MainThreadMediaStreamListener() {}
+
+  NS_INLINE_DECL_REFCOUNTING(MainThreadMediaStreamListener)
+
   virtual void NotifyMainThreadStateChanged() = 0;
 };
 
@@ -189,9 +192,6 @@ class MediaStreamGraphImpl;
 class SourceMediaStream;
 class ProcessedMediaStream;
 class MediaInputPort;
-class AudioNodeStream;
-class AudioNodeEngine;
-struct AudioChunk;
 
 
 
@@ -274,12 +274,7 @@ public:
     , mMainThreadDestroyed(false)
   {
   }
-  virtual ~MediaStream()
-  {
-    NS_ASSERTION(mMainThreadDestroyed, "Should have been destroyed already");
-    NS_ASSERTION(mMainThreadListeners.IsEmpty(),
-                 "All main thread listeners should have been removed");
-  }
+  virtual ~MediaStream() {}
 
   
 
@@ -308,15 +303,11 @@ public:
   
   void AddListener(MediaStreamListener* aListener);
   void RemoveListener(MediaStreamListener* aListener);
-  
-  
   void AddMainThreadListener(MainThreadMediaStreamListener* aListener)
   {
     NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
     mMainThreadListeners.AppendElement(aListener);
   }
-  
-  
   void RemoveMainThreadListener(MainThreadMediaStreamListener* aListener)
   {
     NS_ASSERTION(NS_IsMainThread(), "Call only on main thread");
@@ -348,7 +339,6 @@ public:
 
   virtual SourceMediaStream* AsSourceStream() { return nullptr; }
   virtual ProcessedMediaStream* AsProcessedStream() { return nullptr; }
-  virtual AudioNodeStream* AsAudioNodeStream() { return nullptr; }
 
   
   void Init();
@@ -374,7 +364,7 @@ public:
   {
     mVideoOutputs.RemoveElement(aContainer);
   }
-  void ChangeExplicitBlockerCountImpl(GraphTime aTime, int32_t aDelta)
+  void ChangeExplicitBlockerCountImpl(StreamTime aTime, int32_t aDelta)
   {
     mExplicitBlockerCount.SetAtAndAfter(aTime, mExplicitBlockerCount.GetAt(aTime) + aDelta);
   }
@@ -392,24 +382,7 @@ public:
   }
   const StreamBuffer& GetStreamBuffer() { return mBuffer; }
   GraphTime GetStreamBufferStartTime() { return mBufferStartTime; }
-  
-
-
-
-
   StreamTime GraphTimeToStreamTime(GraphTime aTime);
-  
-
-
-
-
-  StreamTime GraphTimeToStreamTimeOptimistic(GraphTime aTime);
-  
-
-
-
-
-  GraphTime StreamTimeToGraphTime(StreamTime aTime);
   bool IsFinishedOnGraphThread() { return mFinished; }
   void FinishOnGraphThread();
 
@@ -451,7 +424,7 @@ protected:
   
   TimeVarying<GraphTime,uint32_t> mExplicitBlockerCount;
   nsTArray<nsRefPtr<MediaStreamListener> > mListeners;
-  nsTArray<MainThreadMediaStreamListener*> mMainThreadListeners;
+  nsTArray<nsRefPtr<MainThreadMediaStreamListener> > mMainThreadListeners;
 
   
   
@@ -770,8 +743,7 @@ public:
 
 
 
-  already_AddRefed<MediaInputPort> AllocateInputPort(MediaStream* aStream,
-                                                     uint32_t aFlags = 0);
+  MediaInputPort* AllocateInputPort(MediaStream* aStream, uint32_t aFlags = 0);
   
 
 
@@ -824,19 +796,11 @@ protected:
 };
 
 
-inline TrackRate IdealAudioRate() { return 48000; }
-
-
 
 
 
 class MediaStreamGraph {
 public:
-  
-  
-  
-  
-
   
   static MediaStreamGraph* GetInstance();
   
@@ -864,11 +828,6 @@ public:
 
 
 
-  AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine);
-  
-
-
-
 
   int64_t GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
 
@@ -878,9 +837,9 @@ public:
 
 
 
-  void DispatchToMainThreadAfterStreamStateUpdate(already_AddRefed<nsIRunnable> aRunnable)
+  void DispatchToMainThreadAfterStreamStateUpdate(nsIRunnable* aRunnable)
   {
-    *mPendingUpdateRunnables.AppendElement() = aRunnable;
+    mPendingUpdateRunnables.AppendElement(aRunnable);
   }
 
 protected:

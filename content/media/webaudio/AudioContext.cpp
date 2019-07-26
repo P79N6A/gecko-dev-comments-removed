@@ -1,14 +1,13 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim:set ts=2 sw=2 sts=2 et cindent: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AudioContext.h"
 #include "nsContentUtils.h"
 #include "nsIDOMWindow.h"
 #include "mozilla/ErrorResult.h"
-#include "MediaStreamGraph.h"
 #include "AudioDestinationNode.h"
 #include "AudioBufferSourceNode.h"
 #include "AudioBuffer.h"
@@ -29,14 +28,11 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_3(AudioContext,
 NS_IMPL_CYCLE_COLLECTION_ROOT_NATIVE(AudioContext, AddRef)
 NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AudioContext, Release)
 
-static uint8_t gWebAudioOutputKey;
-
 AudioContext::AudioContext(nsIDOMWindow* aWindow)
   : mWindow(aWindow)
-  , mDestination(new AudioDestinationNode(this, MediaStreamGraph::GetInstance()))
+  , mDestination(new AudioDestinationNode(this))
+  , mSampleRate(44100) // hard-code for now
 {
-  
-  mDestination->Stream()->AddAudioOutput(&gWebAudioOutputKey);
   SetIsDOMBinding();
 }
 
@@ -51,7 +47,7 @@ AudioContext::WrapObject(JSContext* aCx, JSObject* aScope,
   return AudioContextBinding::Wrap(aCx, aScope, this, aTriedToWrap);
 }
 
- already_AddRefed<AudioContext>
+/* static */ already_AddRefed<AudioContext>
 AudioContext::Constructor(const GlobalObject& aGlobal, ErrorResult& aRv)
 {
   nsCOMPtr<nsPIDOMWindow> window = do_QueryInterface(aGlobal.Get());
@@ -79,18 +75,11 @@ AudioContext::CreateBuffer(JSContext* aJSContext, uint32_t aNumberOfChannels,
                            uint32_t aLength, float aSampleRate,
                            ErrorResult& aRv)
 {
-  if (aLength > INT32_MAX) {
-    aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
-    return nullptr;
-  }
-
-  nsRefPtr<AudioBuffer> buffer =
-    new AudioBuffer(this, int32_t(aLength), aSampleRate);
+  nsRefPtr<AudioBuffer> buffer = new AudioBuffer(this, aLength, aSampleRate);
   if (!buffer->InitializeBuffers(aNumberOfChannels, aJSContext)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
   }
-
   return buffer.forget();
 }
 
@@ -149,8 +138,8 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                               DecodeSuccessCallback& aSuccessCallback,
                               const Optional<OwningNonNull<DecodeErrorCallback> >& aFailureCallback)
 {
-  
-  
+  // Sniff the content of the media.
+  // Failed type sniffing will be handled by AsyncDecodeMedia.
   nsAutoCString contentType;
   NS_SniffContent(NS_DATA_SNIFFER_CATEGORY, nullptr,
                   aBuffer.Data(), aBuffer.Length(),
@@ -165,7 +154,7 @@ AudioContext::DecodeAudioData(const ArrayBuffer& aBuffer,
                           &aSuccessCallback, failureCallback));
   mDecoder.AsyncDecodeMedia(contentType.get(),
                             job->mBuffer, job->mLength, *job);
-  
+  // Transfer the ownership to mDecodeJobs
   mDecodeJobs.AppendElement(job.forget());
 }
 
@@ -175,17 +164,6 @@ AudioContext::RemoveFromDecodeQueue(WebAudioDecodeJob* aDecodeJob)
   mDecodeJobs.RemoveElement(aDecodeJob);
 }
 
-MediaStreamGraph*
-AudioContext::Graph() const
-{
-  return Destination()->Stream()->Graph();
+}
 }
 
-MediaStream*
-AudioContext::DestinationStream() const
-{
-  return Destination()->Stream();
-}
-
-}
-}
