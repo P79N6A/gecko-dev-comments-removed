@@ -10,7 +10,6 @@
 #define FORCE_PR_LOG
 #endif
 
-#include "NSPRFormatTime.h" 
 #include "mozilla/net/CookieServiceChild.h"
 #include "mozilla/net/NeckoCommon.h"
 

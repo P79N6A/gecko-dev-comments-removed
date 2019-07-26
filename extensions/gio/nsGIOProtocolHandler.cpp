@@ -7,7 +7,6 @@
 
 
 
-#include "NSPRFormatTime.h" 
 #include "mozilla/ModuleUtils.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
