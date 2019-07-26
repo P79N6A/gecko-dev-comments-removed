@@ -19,7 +19,6 @@ NS_IMETHODIMP
 nsHtml5SVGLoadDispatcher::Run()
 {
   nsEvent event(true, NS_SVG_LOAD);
-  event.eventStructType = NS_SVG_EVENT;
   event.mFlags.mBubbles = false;
   
   

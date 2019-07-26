@@ -90,7 +90,6 @@ enum nsEventStructType {
   NS_CLIPBOARD_EVENT,                
 
   
-  NS_SVG_EVENT,                      
   NS_SVGZOOM_EVENT,                  
   NS_SMIL_TIME_EVENT,                
 
