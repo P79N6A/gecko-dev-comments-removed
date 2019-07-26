@@ -13,11 +13,14 @@
 #include "nsIThread.h"
 #include "nsIRunnable.h"
 #include "Latency.h"
+#include "mozilla/WeakPtr.h"
 
 namespace mozilla {
 
 template <typename T>
 class LinkedList;
+
+class AudioMixer;
 
 
 
@@ -51,10 +54,6 @@ static const int AUDIO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
 
 static const int VIDEO_TARGET_MS = 2*MEDIA_GRAPH_TARGET_PERIOD_MS +
     SCHEDULE_SAFETY_MARGIN_MS;
-
-
-
-
 
 
 
@@ -329,7 +328,7 @@ public:
 
 
 
-  void PlayAudio(MediaStream* aStream, GraphTime aFrom, GraphTime aTo);
+  TrackTicks PlayAudio(MediaStream* aStream, GraphTime aFrom, GraphTime aTo);
   
 
 
@@ -575,6 +574,10 @@ public:
 
 
   nsRefPtr<AsyncLatencyLogger> mLatencyLog;
+  
+
+
+  nsAutoPtr<AudioMixer> mMixer;
 };
 
 }

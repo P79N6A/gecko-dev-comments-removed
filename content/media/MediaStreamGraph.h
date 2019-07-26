@@ -18,6 +18,7 @@
 #include "MainThreadUtils.h"
 #include "nsAutoRef.h"
 #include "speex/speex_resampler.h"
+#include "AudioMixer.h"
 
 class nsIRunnable;
 
@@ -572,6 +573,8 @@ protected:
     
     
     MediaTime mBlockedAudioTime;
+    
+    TrackTicks mLastTickWritten;
     nsAutoPtr<AudioStream> mStream;
     TrackID mTrackID;
   };
@@ -782,6 +785,9 @@ public:
     bool mHaveEnough;
   };
 
+  void RegisterForAudioMixing();
+  bool NeedsMixing();
+
 protected:
   TrackData* FindDataForTrack(TrackID aID)
   {
@@ -815,6 +821,7 @@ protected:
   bool mPullEnabled;
   bool mUpdateFinished;
   bool mDestroyed;
+  bool mNeedsMixing;
 };
 
 
