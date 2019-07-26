@@ -1411,13 +1411,13 @@ public:
 
 
 
-  virtual void InsertAfter(Layer* aChild, Layer* aAfter) = 0;
+  virtual void InsertAfter(Layer* aChild, Layer* aAfter);
   
 
 
 
 
-  virtual void RemoveChild(Layer* aChild) = 0;
+  virtual void RemoveChild(Layer* aChild);
   
 
 
@@ -1425,7 +1425,7 @@ public:
 
 
 
-  virtual void RepositionChild(Layer* aChild, Layer* aAfter) = 0;
+  virtual void RepositionChild(Layer* aChild, Layer* aAfter);
 
   
 
@@ -1529,6 +1529,8 @@ public:
 
 protected:
   friend class ReadbackProcessor;
+
+  static bool HasOpaqueAncestorLayer(Layer* aLayer);
 
   void DidInsertChild(Layer* aLayer);
   void DidRemoveChild(Layer* aLayer);

@@ -15,6 +15,9 @@
 #include "nsISupportsImpl.h"            
 #include "nsPoint.h"                    
 #include "nsRect.h"                     
+#include "gfx3DMatrix.h"                
+#include "gfxMatrix.h"                  
+#include "nsRegion.h"                   
 
 using namespace mozilla::gfx;
 
@@ -24,10 +27,46 @@ namespace layers {
 BasicContainerLayer::~BasicContainerLayer()
 {
   while (mFirstChild) {
-    ContainerRemoveChild(mFirstChild, this);
+    ContainerLayer::RemoveChild(mFirstChild);
   }
 
   MOZ_COUNT_DTOR(BasicContainerLayer);
+}
+
+void
+BasicContainerLayer::ComputeEffectiveTransforms(const gfx3DMatrix& aTransformToSurface)
+{
+  
+  
+  
+  gfxMatrix residual;
+  gfx3DMatrix idealTransform = GetLocalTransform()*aTransformToSurface;
+  idealTransform.ProjectTo2D();
+
+  if (!idealTransform.CanDraw2D()) {
+    mEffectiveTransform = idealTransform;
+    ComputeEffectiveTransformsForChildren(gfx3DMatrix());
+    ComputeEffectiveTransformForMaskLayer(gfx3DMatrix());
+    mUseIntermediateSurface = true;
+    return;
+  }
+
+  mEffectiveTransform = SnapTransformTranslation(idealTransform, &residual);
+  
+  
+  ComputeEffectiveTransformsForChildren(idealTransform);
+
+  ComputeEffectiveTransformForMaskLayer(aTransformToSurface);
+
+  
+
+
+
+
+
+  mUseIntermediateSurface =
+    GetMaskLayer() || (GetEffectiveOpacity() != 1.0 &&
+                       HasMultipleChildren());
 }
 
 bool
