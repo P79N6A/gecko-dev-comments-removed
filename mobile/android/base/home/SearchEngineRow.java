@@ -126,6 +126,14 @@ class SearchEngineRow extends AnimatedHeightLayout {
                 }
             }
         });
+
+        
+        setOnLongClickListener(new OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                return true;
+            }
+        });
     }
 
     private String getSuggestionTextFromView(View v) {
