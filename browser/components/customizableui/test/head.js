@@ -5,7 +5,7 @@
 
 
 let tmp = {};
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js", tmp);
+Cu.import("resource://gre/modules/Promise.jsm", tmp);
 Cu.import("resource://gre/modules/Task.jsm", tmp);
 Cu.import("resource:///modules/CustomizableUI.jsm", tmp);
 let {Promise, Task, CustomizableUI} = tmp;
@@ -47,12 +47,7 @@ function removeCustomToolbars() {
 }
 
 function resetCustomization() {
-  if (document.documentElement.hasAttribute("customizing")) {
-    window.gCustomizeMode.reset();
-    window.gCustomizeMode.exit();
-  } else {
-    CustomizableUI.reset();
-  }
+  return CustomizableUI.reset();
 }
 
 function assertAreaPlacements(areaId, expectedPlacements) {
@@ -97,26 +92,27 @@ function endCustomizing() {
   window.gNavToolbox.addEventListener("aftercustomization", onCustomizationEnds);
   window.gCustomizeMode.exit();
 
-  let deferredLoadNewTab = Promise.defer();
+  return deferredEndCustomizing.promise.then(function() {
+    let deferredLoadNewTab = Promise.defer();
 
-  
-  let newTabBrowser = window.gBrowser.selectedBrowser;
-  newTabBrowser.stop();
+    
+    let newTabBrowser = window.gBrowser.selectedBrowser;
+    newTabBrowser.stop();
 
-  
-  if (newTabBrowser.contentDocument.location.href == "about:blank") {
-    return deferredEndCustomizing.promise;
-  }
+    
+    if (newTabBrowser.contentDocument.location.href == "about:blank") {
+      return;
+    }
 
-  
-  function onNewTabLoaded(e) {
-    newTabBrowser.removeEventListener("load", onNewTabLoaded, true);
-    deferredLoadNewTab.resolve();
-  }
-  newTabBrowser.addEventListener("load", onNewTabLoaded, true);
-  newTabBrowser.contentDocument.location.replace("about:blank");
-
-  return Promise.all(deferredEndCustomizing.promise, deferredLoadNewTab.promise);
+    
+    function onNewTabLoaded(e) {
+      newTabBrowser.removeEventListener("load", onNewTabLoaded, true);
+      deferredLoadNewTab.resolve();
+    }
+    newTabBrowser.addEventListener("load", onNewTabLoaded, true);
+    newTabBrowser.contentDocument.location.replace("about:blank");
+    return deferredLoadNewTab.promise;
+  });
 }
 
 function startCustomizing() {
@@ -130,7 +126,7 @@ function startCustomizing() {
   return deferred.promise;
 }
 
-function testRunner(testAry) {
+function testRunner(testAry, asyncCleanup) {
   for (let test of testAry) {
     info(test.desc);
 
@@ -143,10 +139,13 @@ function testRunner(testAry) {
     if (test.teardown)
       yield test.teardown();
   }
+  if (asyncCleanup) {
+    yield asyncCleanup();
+  }
 }
 
-function runTests(testAry) {
-  Task.spawn(testRunner(gTests)).then(finish, ex => {
+function runTests(testAry, asyncCleanup) {
+  Task.spawn(testRunner(gTests, asyncCleanup)).then(finish, ex => {
     ok(false, "Unexpected exception: " + ex);
     finish();
   });
