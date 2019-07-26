@@ -71,13 +71,13 @@ enum TracingMetadata {
 
 
 
-#define PROFILER_LABEL(name_space, info) do {} while (0)
+#define PROFILER_LABEL(name_space, info, category) do {} while (0)
 
 
 
 
 
-#define PROFILER_LABEL_PRINTF(name_space, info, format, ...) do {} while (0)
+#define PROFILER_LABEL_PRINTF(name_space, info, category, format, ...) do {} while (0)
 
 
 
@@ -87,8 +87,8 @@ enum TracingMetadata {
 #define PROFILER_MARKER_PAYLOAD(info, payload) do {} while (0)
 
 
-#define PROFILER_MAIN_THREAD_LABEL(name_space, info) do {} while (0)
-#define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, format, ...) do {} while (0)
+#define PROFILER_MAIN_THREAD_LABEL(name_space, info, category) do {} while (0)
+#define PROFILER_MAIN_THREAD_LABEL_PRINTF(name_space, info, category, format, ...) do {} while (0)
 
 static inline void profiler_tracing(const char* aCategory, const char* aInfo,
                                     TracingMetadata metaData = TRACING_DEFAULT) {}

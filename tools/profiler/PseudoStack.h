@@ -343,12 +343,13 @@ public:
     return mPendingMarkers.getPendingMarkers();
   }
 
-  void push(const char *aName, uint32_t line)
+  void push(const char *aName, js::ProfileEntry::Category aCategory, uint32_t line)
   {
-    push(aName, nullptr, false, line);
+    push(aName, aCategory, nullptr, false, line);
   }
 
-  void push(const char *aName, void *aStackAddress, bool aCopy, uint32_t line)
+  void push(const char *aName, js::ProfileEntry::Category aCategory,
+    void *aStackAddress, bool aCopy, uint32_t line)
   {
     if (size_t(mStackPointer) >= mozilla::ArrayLength(mStack)) {
       mStackPointer++;
@@ -361,6 +362,13 @@ public:
     
     entry.setLabel(aName);
     entry.setCppFrame(aStackAddress, line);
+
+    uint32_t uint_category = static_cast<uint32_t>(aCategory);
+    MOZ_ASSERT(
+      uint_category >= static_cast<uint32_t>(js::ProfileEntry::Category::FIRST) &&
+      uint_category <= static_cast<uint32_t>(js::ProfileEntry::Category::LAST));
+
+    entry.setFlag(uint_category);
 
     
     if (aCopy)
