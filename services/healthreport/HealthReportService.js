@@ -10,9 +10,29 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://services-common/preferences.js");
 
 
-const INITIAL_STARTUP_DELAY_MSEC = 10 * 1000;
 const BRANCH = "healthreport.";
-const JS_PROVIDERS_CATEGORY = "healthreport-js-provider";
+const DEFAULT_LOAD_DELAY_MSEC = 10 * 1000;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -28,7 +48,8 @@ const JS_PROVIDERS_CATEGORY = "healthreport-js-provider";
 this.HealthReportService = function HealthReportService() {
   this.wrappedJSObject = this;
 
-  this.prefs = new Preferences(BRANCH);
+  this._prefs = new Preferences(BRANCH);
+
   this._reporter = null;
 }
 
@@ -40,7 +61,7 @@ HealthReportService.prototype = {
 
   observe: function observe(subject, topic, data) {
     
-    if (!this.prefs.get("serviceEnabled", true)) {
+    if (!this._prefs.get("service.enabled", true)) {
       return;
     }
 
@@ -54,7 +75,9 @@ HealthReportService.prototype = {
 
       case "final-ui-startup":
         os.removeObserver(this, "final-ui-startup");
-        os.addObserver(this, "quit-application", true);
+
+        let delayInterval = this._prefs.get("service.loadDelayMsec") ||
+                            DEFAULT_LOAD_DELAY_MSEC;
 
         
         
@@ -66,16 +89,8 @@ HealthReportService.prototype = {
             let reporter = this.reporter;
             delete this.timer;
           }.bind(this),
-        }, INITIAL_STARTUP_DELAY_MSEC, this.timer.TYPE_ONE_SHOT);
+        }, delayInterval, this.timer.TYPE_ONE_SHOT);
 
-        break;
-
-      case "quit-application-granted":
-        if (this.reporter) {
-          this.reporter.stop();
-        }
-
-        os.removeObserver(this, "quit-application");
         break;
     }
   },
@@ -83,8 +98,12 @@ HealthReportService.prototype = {
   
 
 
+
+
+
+
   get reporter() {
-    if (!this.prefs.get("serviceEnabled", true)) {
+    if (!this._prefs.get("service.enabled", true)) {
       return null;
     }
 
@@ -92,18 +111,19 @@ HealthReportService.prototype = {
       return this._reporter;
     }
 
-    
     let ns = {};
-    Cu.import("resource://services-common/log4moz.js", ns);
+    
+    Cu.import("resource://gre/modules/Task.jsm", ns);
     Cu.import("resource://gre/modules/services/healthreport/healthreporter.jsm", ns);
+    Cu.import("resource://services-common/log4moz.js", ns);
 
     
     
     const LOGGERS = [
-      "Metrics",
       "Services.HealthReport",
       "Services.Metrics",
       "Services.BagheeraClient",
+      "Sqlite.Connection.healthreport",
     ];
 
     let prefs = new Preferences(BRANCH + "logging.");
@@ -118,9 +138,8 @@ HealthReportService.prototype = {
       }
     }
 
+    
     this._reporter = new ns.HealthReporter(BRANCH);
-    this._reporter.registerProvidersFromCategoryManager(JS_PROVIDERS_CATEGORY);
-    this._reporter.start();
 
     return this._reporter;
   },
