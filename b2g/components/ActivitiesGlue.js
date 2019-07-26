@@ -60,7 +60,7 @@ ActivitiesDialog.prototype = {
   chooseActivity: function ap_chooseActivity(aOptions, aActivities, aCallback) {
     
     if (aActivities.length === 0) {
-      aCallback(Ci.nsIActivityUIGlueCallback.WEBAPPS_ACTIVITY, -1);
+      aCallback.handleEvent(Ci.nsIActivityUIGlueCallback.WEBAPPS_ACTIVITY, -1);
       return;
     }
 
