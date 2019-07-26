@@ -1157,14 +1157,27 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove, bool aS
   }
 
   
-  nsRect parentRect = aAnchorFrame->GetScreenRectInAppUnits();
+  nsPresContext* rootPresContext = presContext->GetRootPresContext();
 
   
+  if (!rootPresContext) {
+    return NS_OK;
+  }
+
   
+  nsIFrame* referenceFrame = rootPresContext->FrameManager()->GetRootFrame();
+
   
-  parentRect = parentRect.ConvertAppUnitsRoundOut(
-    aAnchorFrame->PresContext()->AppUnitsPerDevPixel(),
-    presContext->AppUnitsPerDevPixel());
+  nsRect parentRect = aAnchorFrame->GetRectRelativeToSelf();
+  
+  parentRect = nsLayoutUtils::TransformFrameRectToAncestor(aAnchorFrame,
+                                                           parentRect,
+                                                           referenceFrame);
+  
+  parentRect.MoveBy(referenceFrame->GetScreenRectInAppUnits().TopLeft());
+  
+  parentRect.ConvertAppUnitsRoundOut(rootPresContext->AppUnitsPerDevPixel(),
+                                     presContext->AppUnitsPerDevPixel());
 
   
   
