@@ -6001,87 +6001,14 @@ nsGlobalWindow::CanMoveResizeWindows()
   return true;
 }
 
-void
-nsGlobalWindow::Alert(const nsAString& aMessage, mozilla::ErrorResult& aError)
-{
-  FORWARD_TO_OUTER_OR_THROW(Alert, (aMessage, aError), aError, );
-
-  if (!AreDialogsEnabled()) {
-    aError.Throw(NS_ERROR_NOT_AVAILABLE);
-    return;
-  }
-
-  
-  
-  
-  nsAutoPopupStatePusher popupStatePusher(openAbused, true);
-
-  
-  
-  EnsureReflowFlushAndPaint();
-
-  nsAutoString title;
-  MakeScriptDialogTitle(title);
-
-  
-  
-  nsAutoString final;
-  nsContentUtils::StripNullChars(aMessage, final);
-
-  
-  
-  bool allowTabModal = GetIsTabModalPromptAllowed();
-
-  nsresult rv;
-  nsCOMPtr<nsIPromptFactory> promptFac =
-    do_GetService("@mozilla.org/prompter;1", &rv);
-  if (NS_FAILED(rv)) {
-    aError.Throw(rv);
-    return;
-  }
-
-  nsCOMPtr<nsIPrompt> prompt;
-  aError = promptFac->GetPrompt(this, NS_GET_IID(nsIPrompt),
-                                reinterpret_cast<void**>(&prompt));
-  if (aError.Failed()) {
-    return;
-  }
-
-  nsCOMPtr<nsIWritablePropertyBag2> promptBag = do_QueryInterface(prompt);
-  if (promptBag)
-    promptBag->SetPropertyAsBool(NS_LITERAL_STRING("allowTabModal"), allowTabModal);
-
-  nsAutoSyncOperation sync(GetCurrentInnerWindowInternal() ? 
-                             GetCurrentInnerWindowInternal()->mDoc :
-                             nullptr);
-  if (ShouldPromptToBlockDialogs()) {
-    bool disallowDialog = false;
-    nsXPIDLString label;
-    nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
-                                       "ScriptDialogLabel", label);
-
-    aError = prompt->AlertCheck(title.get(), final.get(), label.get(),
-                                &disallowDialog);
-    if (disallowDialog)
-      DisableDialogs();
-  } else {
-    aError = prompt->Alert(title.get(), final.get());
-  }
-}
-
-NS_IMETHODIMP
-nsGlobalWindow::Alert(const nsAString& aString)
-{
-  ErrorResult rv;
-  Alert(aString, rv);
-
-  return rv.ErrorCode();
-}
-
 bool
-nsGlobalWindow::Confirm(const nsAString& aMessage, ErrorResult& aError)
+nsGlobalWindow::AlertOrConfirm(bool aAlert,
+                               const nsAString& aMessage,
+                               mozilla::ErrorResult& aError)
 {
-  FORWARD_TO_OUTER_OR_THROW(Confirm, (aMessage, aError), aError, false);
+  
+  
+  MOZ_ASSERT(IsOuterWindow());
 
   if (!AreDialogsEnabled()) {
     aError.Throw(NS_ERROR_NOT_AVAILABLE);
@@ -6138,15 +6065,45 @@ nsGlobalWindow::Confirm(const nsAString& aMessage, ErrorResult& aError)
     nsContentUtils::GetLocalizedString(nsContentUtils::eCOMMON_DIALOG_PROPERTIES,
                                        "ScriptDialogLabel", label);
 
-    aError = prompt->ConfirmCheck(title.get(), final.get(), label.get(),
-                                  &disallowDialog, &result);
+    aError = aAlert ?
+               prompt->AlertCheck(title.get(), final.get(), label.get(),
+                                  &disallowDialog) :
+               prompt->ConfirmCheck(title.get(), final.get(), label.get(),
+                                    &disallowDialog, &result);
+
     if (disallowDialog)
       DisableDialogs();
   } else {
-    aError = prompt->Confirm(title.get(), final.get(), &result);
+    aError = aAlert ?
+               prompt->Alert(title.get(), final.get()) :
+               prompt->Confirm(title.get(), final.get(), &result);
   }
 
   return result;
+}
+
+void
+nsGlobalWindow::Alert(const nsAString& aMessage, mozilla::ErrorResult& aError)
+{
+  FORWARD_TO_OUTER_OR_THROW(Alert, (aMessage, aError), aError, );
+  AlertOrConfirm( true, aMessage, aError);
+}
+
+NS_IMETHODIMP
+nsGlobalWindow::Alert(const nsAString& aString)
+{
+  ErrorResult rv;
+  Alert(aString, rv);
+
+  return rv.ErrorCode();
+}
+
+bool
+nsGlobalWindow::Confirm(const nsAString& aMessage, ErrorResult& aError)
+{
+  FORWARD_TO_OUTER_OR_THROW(Confirm, (aMessage, aError), aError, false);
+
+  return AlertOrConfirm( false, aMessage, aError);
 }
 
 NS_IMETHODIMP
@@ -6162,6 +6119,8 @@ void
 nsGlobalWindow::Prompt(const nsAString& aMessage, const nsAString& aInitial,
                        nsAString& aReturn, ErrorResult& aError)
 {
+  
+  
   FORWARD_TO_OUTER_OR_THROW(Prompt, (aMessage, aInitial, aReturn, aError),
                             aError, );
 
