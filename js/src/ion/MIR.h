@@ -695,8 +695,7 @@ class MControlInstruction : public MInstruction
 };
 
 class MTableSwitch
-  : public MControlInstruction,
-    public TableSwitchPolicy
+  : public MControlInstruction
 {
     
     
@@ -799,10 +798,6 @@ class MTableSwitch
 
     size_t numOperands() const {
         return 1;
-    }
-
-    TypePolicy *typePolicy() {
-        return this;
     }
 };
 

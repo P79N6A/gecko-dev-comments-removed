@@ -26,20 +26,20 @@ using namespace js::ion;
 
 class DeferredJumpTable : public DeferredData
 {
-    LTableSwitch *lswitch;
+    MTableSwitch *mswitch;
     BufferOffset off;
     MacroAssembler *masm;
   public:
-    DeferredJumpTable(LTableSwitch *lswitch, BufferOffset off_, MacroAssembler *masm_)
-      : lswitch(lswitch), off(off_), masm(masm_)
+    DeferredJumpTable(MTableSwitch *mswitch, BufferOffset off_, MacroAssembler *masm_)
+      : mswitch(mswitch), off(off_), masm(masm_)
     { }
 
     void copy(IonCode *code, uint8 *ignore__) const {
         void **jumpData = (void **)(((char*)code->raw()) + masm->actualOffset(off).getOffset());
-        int numCases =  lswitch->mir()->numCases();
+        int numCases =  mswitch->numCases();
         
         for (int j = 0; j < numCases; j++) {
-            LBlock *caseblock = lswitch->mir()->getCase(numCases - 1 - j)->lir();
+            LBlock *caseblock = mswitch->getCase(numCases - 1 - j)->lir();
             Label *caseheader = caseblock->label();
 
             uint32 offset = caseheader->offset();
@@ -841,7 +841,8 @@ CodeGeneratorARM::visitMoveGroup(LMoveGroup *group)
 }
 
 bool
-CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
+CodeGeneratorARM::emitTableSwitchDispatch(MTableSwitch *mir, const Register &index,
+                                          const Register &base)
 {
     
     
@@ -869,29 +870,16 @@ CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
     
     
     
-    MTableSwitch *mir = ins->mir();
-        Label *defaultcase = mir->getDefault()->lir()->label();
-    const LAllocation *temp;
-
-    if (ins->index()->isDouble()) {
-        temp = ins->tempInt();
-
-        
-        
-        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase, false);
-    } else {
-        temp = ins->index();
-    }
+    Label *defaultcase = mir->getDefault()->lir()->label();
 
     int32 cases = mir->numCases();
-    Register tempReg = ToRegister(temp);
     
-    masm.ma_sub(tempReg, Imm32(mir->low()), tempReg, SetCond);
-    masm.ma_rsb(tempReg, Imm32(cases - 1), tempReg, SetCond, Assembler::Unsigned);
+    masm.ma_sub(index, Imm32(mir->low()), index, SetCond);
+    masm.ma_rsb(index, Imm32(cases - 1), index, SetCond, Assembler::Unsigned);
     AutoForbidPools afp(&masm);
-    masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(tempReg, LSL, 2)), pc, Offset, Assembler::Unsigned);
+    masm.ma_ldr(DTRAddr(pc, DtrRegImmShift(index, LSL, 2)), pc, Offset, Assembler::Unsigned);
     masm.ma_b(defaultcase);
-    DeferredJumpTable *d = new DeferredJumpTable(ins, masm.nextOffset(), &masm);
+    DeferredJumpTable *d = new DeferredJumpTable(mir, masm.nextOffset(), &masm);
     masm.as_jumpPool(cases);
 
     if (!masm.addDeferredData(d, 0))

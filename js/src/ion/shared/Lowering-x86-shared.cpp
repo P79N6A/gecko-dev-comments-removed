@@ -12,34 +12,17 @@
 using namespace js;
 using namespace js::ion;
 
-bool
-LIRGeneratorX86Shared::visitTableSwitch(MTableSwitch *tableswitch)
+LTableSwitch *
+LIRGeneratorX86Shared::newLTableSwitch(const LAllocation &in, const LDefinition &inputCopy,
+                                       MTableSwitch *tableswitch)
 {
-    MDefinition *opd = tableswitch->getOperand(0);
+    return new LTableSwitch(in, inputCopy, temp(), tableswitch);
+}
 
-    
-    JS_ASSERT(tableswitch->numSuccessors() > 0);
-
-    
-    if (tableswitch->numSuccessors() == 1)
-        return add(new LGoto(tableswitch->getDefault()));
-
-    
-    if (opd->type() != MIRType_Int32 && opd->type() != MIRType_Double)
-        return add(new LGoto(tableswitch->getDefault()));
-
-    
-    
-    LAllocation index;
-    LDefinition tempInt;
-    if (opd->type() == MIRType_Int32) {
-        index = useRegisterAtStart(opd);
-        tempInt = tempCopy(opd, 0);
-    } else {
-        index = useRegister(opd);
-        tempInt = temp(LDefinition::GENERAL);
-    }
-    return add(new LTableSwitch(index, tempInt, temp(LDefinition::GENERAL), tableswitch));
+LTableSwitchV *
+LIRGeneratorX86Shared::newLTableSwitchV(MTableSwitch *tableswitch)
+{
+    return new LTableSwitchV(temp(), tempFloat(), temp(), tableswitch);
 }
 
 bool
