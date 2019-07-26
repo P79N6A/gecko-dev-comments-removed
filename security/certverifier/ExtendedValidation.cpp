@@ -363,34 +363,6 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
-    "2.16.840.1.114413.1.7.23.3",
-    "Go Daddy EV OID a",
-    SEC_OID_UNKNOWN,
-    { 0x31, 0x7A, 0x2A, 0xD0, 0x7F, 0x2B, 0x33, 0x5E, 0xF5, 0xA1,
-      0xC3, 0x4E, 0x4B, 0x57, 0xE8, 0xB7, 0xD8, 0xF1, 0xFC, 0xA6 },
-    "MIG7MSQwIgYDVQQHExtWYWxpQ2VydCBWYWxpZGF0aW9uIE5ldHdvcmsxFzAVBgNV"
-    "BAoTDlZhbGlDZXJ0LCBJbmMuMTUwMwYDVQQLEyxWYWxpQ2VydCBDbGFzcyAyIFBv"
-    "bGljeSBWYWxpZGF0aW9uIEF1dGhvcml0eTEhMB8GA1UEAxMYaHR0cDovL3d3dy52"
-    "YWxpY2VydC5jb20vMSAwHgYJKoZIhvcNAQkBFhFpbmZvQHZhbGljZXJ0LmNvbQ==",
-    "AQ==",
-    nullptr
-  },
-  {
-    
-    "2.16.840.1.114414.1.7.23.3",
-    "Go Daddy EV OID b",
-    SEC_OID_UNKNOWN,
-    { 0x31, 0x7A, 0x2A, 0xD0, 0x7F, 0x2B, 0x33, 0x5E, 0xF5, 0xA1,
-      0xC3, 0x4E, 0x4B, 0x57, 0xE8, 0xB7, 0xD8, 0xF1, 0xFC, 0xA6 },
-    "MIG7MSQwIgYDVQQHExtWYWxpQ2VydCBWYWxpZGF0aW9uIE5ldHdvcmsxFzAVBgNV"
-    "BAoTDlZhbGlDZXJ0LCBJbmMuMTUwMwYDVQQLEyxWYWxpQ2VydCBDbGFzcyAyIFBv"
-    "bGljeSBWYWxpZGF0aW9uIEF1dGhvcml0eTEhMB8GA1UEAxMYaHR0cDovL3d3dy52"
-    "YWxpY2VydC5jb20vMSAwHgYJKoZIhvcNAQkBFhFpbmZvQHZhbGljZXJ0LmNvbQ==",
-    "AQ==",
-    nullptr
-  },
-  {
-    
     "2.16.840.1.114414.1.7.23.3",
     "Go Daddy EV OID b",
     SEC_OID_UNKNOWN,
