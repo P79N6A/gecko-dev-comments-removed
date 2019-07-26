@@ -810,9 +810,10 @@ nsXULElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
       
       if (!controlElement)
         GetParentTree(getter_AddRefs(controlElement));
+      nsCOMPtr<nsIDOMXULElement> xulElement(do_QueryInterface(controlElement));
 
       nsCOMPtr<nsIDOMElement> oldKidElem = do_QueryInterface(oldKid);
-      if (controlElement && oldKidElem) {
+      if (xulElement && oldKidElem) {
         
         
         int32_t length;
@@ -836,7 +837,7 @@ nsXULElement::RemoveChildAt(uint32_t aIndex, bool aNotify)
         if (curNode && nsContentUtils::ContentIsDescendantOf(curNode, oldKid)) {
             
             nsCOMPtr<nsIBoxObject> box;
-            controlElement->GetBoxObject(getter_AddRefs(box));
+            xulElement->GetBoxObject(getter_AddRefs(box));
             listBox = do_QueryInterface(box);
             if (listBox && oldKidElem) {
               listBox->GetIndexOfItem(oldKidElem, &newCurrentIndex);
