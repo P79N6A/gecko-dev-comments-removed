@@ -548,12 +548,17 @@ public:
       mInput->mProgressTimer->Cancel();
     }
 
+    mInput->MaybeDispatchProgressEvent(true);        
+    mInput->mDirPickerFileListBuilderTask = nullptr; 
+
+    if (mCanceled) { 
+      return NS_OK;
+    }
+
     
     
     
     mInput->SetFiles(mFileList, true);
-    mInput->MaybeDispatchProgressEvent(true);        
-    mInput->mDirPickerFileListBuilderTask = nullptr; 
     nsresult rv =
       nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
                                            static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
@@ -2609,12 +2614,16 @@ HTMLInputElement::DispatchProgressEvent(const nsAString& aType,
     return;
   }
 
-  progress->InitProgressEvent(aType, false, false, aLengthComputable,
+  progress->InitProgressEvent(aType, false, true, aLengthComputable,
                               aLoaded, (aTotal == UINT64_MAX) ? 0 : aTotal);
 
   event->SetTrusted(true);
 
-  DispatchDOMEvent(nullptr, event, nullptr, nullptr);
+  bool doDefaultAction;
+  rv = DispatchEvent(event, &doDefaultAction);
+  if (NS_SUCCEEDED(rv) && !doDefaultAction) {
+    CancelDirectoryPickerScanIfRunning();
+  }
 }
 
 nsresult
