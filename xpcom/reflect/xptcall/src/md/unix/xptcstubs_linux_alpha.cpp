@@ -10,11 +10,11 @@
 
 
 static nsresult
-PrepareAndDispatch(nsXPTCStubBase* self, uint32 methodIndex, uint64_t* args)
+PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint64_t* args)
 __asm__("PrepareAndDispatch") __attribute__((used));
 
 static nsresult
-PrepareAndDispatch(nsXPTCStubBase* self, uint32 methodIndex, uint64_t* args)
+PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint64_t* args)
 {
     const uint8_t PARAM_BUFFER_COUNT = 16;
     const uint8_t NUM_ARG_REGS = 6-1;        

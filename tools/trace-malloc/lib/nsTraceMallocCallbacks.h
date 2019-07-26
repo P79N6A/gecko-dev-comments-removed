@@ -28,7 +28,7 @@ struct tm_thread {
 
 
 
-    uint32 suppress_tracing;
+    uint32_t suppress_tracing;
 
     
     stack_buffer_info backtrace_buf;

@@ -48,7 +48,7 @@ main(int argc, char **argv)
     XPTCursor curs, *cursor = &curs;
     char *data, *head;
     FILE *out;
-    uint32 len, header_sz;
+    uint32_t len, header_sz;
 
     PRBool ok;
 

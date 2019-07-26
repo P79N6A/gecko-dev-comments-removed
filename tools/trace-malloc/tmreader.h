@@ -27,41 +27,41 @@ typedef struct tmmethodnode tmmethodnode;
 
 struct tmevent {
     char            type;
-    uint32          serial;
+    uint32_t          serial;
     union {
         char        *libname;
         char        *srcname;
         struct {
-            uint32  library;
-            uint32  filename;
-            uint32  linenumber;
+            uint32_t  library;
+            uint32_t  filename;
+            uint32_t  linenumber;
             char    *name;
         } method;
         struct {
-            uint32  parent;
-            uint32  method;
-            uint32  offset;
+            uint32_t  parent;
+            uint32_t  method;
+            uint32_t  offset;
         } site;
         struct {
-            uint32  interval; 
-            uint32  ptr;
-            uint32  size;
-            uint32  oldserial;
-            uint32  oldptr;
-            uint32  oldsize;
-            uint32  cost;     
+            uint32_t  interval; 
+            uint32_t  ptr;
+            uint32_t  size;
+            uint32_t  oldserial;
+            uint32_t  oldptr;
+            uint32_t  oldsize;
+            uint32_t  cost;     
         } alloc;
         struct {
             nsTMStats tmstats;
-            uint32  calltree_maxkids_parent;
-            uint32  calltree_maxstack_top;
+            uint32_t  calltree_maxkids_parent;
+            uint32_t  calltree_maxstack_top;
         } stats;
     } u;
 };
 
 struct tmcounts {
-    uint32          direct;     
-    uint32          total;      
+    uint32_t          direct;     
+    uint32_t          total;      
 };
 
 struct tmallcounts {
@@ -86,13 +86,13 @@ struct tmgraphnode {
 struct tmmethodnode {
     tmgraphnode   graphnode;
     char          *sourcefile;
-    uint32        linenumber;
+    uint32_t        linenumber;
 };
 
 #define tmgraphnode_name(node)  ((char*) (node)->entry.value)
 #define tmmethodnode_name(node)  ((char*) (node)->graphnode.entry.value)
 
-#define tmlibrary_serial(lib)   ((uint32) (lib)->entry.key)
+#define tmlibrary_serial(lib)   ((uint32_t) (lib)->entry.key)
 #define tmcomponent_name(comp)  ((const char*) (comp)->entry.key)
 #define filename_name(hashentry) ((char*)hashentry->value)
 
@@ -126,7 +126,7 @@ struct tmcallsite {
     tmcallsite      *siblings;  
     tmcallsite      *kids;      
     tmmethodnode    *method;    
-    uint32          offset;     
+    uint32_t          offset;     
     tmallcounts     allocs;
     tmallcounts     frees;
     void            *data;      
@@ -144,7 +144,7 @@ struct tmreader {
     PLHashTable     *callsites;
     PLArenaPool     arena;
     tmcallsite      calltree_root;
-    uint32          ticksPerSec;
+    uint32_t          ticksPerSec;
 };
 
 typedef void (*tmeventhandler)(tmreader *tmr, tmevent *event);
@@ -161,11 +161,11 @@ extern int          tmreader_eventloop(tmreader *tmr, const char *filename,
                                        tmeventhandler eventhandler);
 
 
-extern tmgraphnode  *tmreader_library(tmreader *tmr, uint32 serial);
-extern tmgraphnode  *tmreader_filename(tmreader *tmr, uint32 serial);
+extern tmgraphnode  *tmreader_library(tmreader *tmr, uint32_t serial);
+extern tmgraphnode  *tmreader_filename(tmreader *tmr, uint32_t serial);
 extern tmgraphnode  *tmreader_component(tmreader *tmr, const char *name);
-extern tmmethodnode  *tmreader_method(tmreader *tmr, uint32 serial);
-extern tmcallsite   *tmreader_callsite(tmreader *tmr, uint32 serial);
+extern tmmethodnode  *tmreader_method(tmreader *tmr, uint32_t serial);
+extern tmcallsite   *tmreader_callsite(tmreader *tmr, uint32_t serial);
 
 
 

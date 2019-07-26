@@ -45,8 +45,8 @@ extern PRLogModuleInfo *gUrlClassifierDbServiceLog;
 namespace mozilla {
 namespace safebrowsing {
 
-const uint32 LOOKUPCACHE_MAGIC = 0x1231af3e;
-const uint32 CURRENT_VERSION = 1;
+const uint32_t LOOKUPCACHE_MAGIC = 0x1231af3e;
+const uint32_t CURRENT_VERSION = 1;
 
 LookupCache::LookupCache(const nsACString& aTableName, nsIFile* aStoreDir,
                          bool aPerClientRandomize)
@@ -159,7 +159,7 @@ LookupCache::Build(AddPrefixArray& aAddPrefixes,
 
   mCompletions.Clear();
   mCompletions.SetCapacity(aAddCompletes.Length());
-  for (uint32 i = 0; i < aAddCompletes.Length(); i++) {
+  for (uint32_t i = 0; i < aAddCompletes.Length(); i++) {
     mCompletions.AppendElement(aAddCompletes[i].CompleteHash());
   }
   aAddCompletes.Clear();
@@ -182,7 +182,7 @@ LookupCache::Dump()
   if (!LOG_ENABLED())
     return;
 
-  for (uint32 i = 0; i < mCompletions.Length(); i++) {
+  for (uint32_t i = 0; i < mCompletions.Length(); i++) {
     nsAutoCString str;
     mCompletions[i].ToString(str);
     LOG(("Completion: %s", str.get()));
@@ -681,7 +681,7 @@ LookupCache::ConstructPrefixSet(AddPrefixArray& aAddPrefixes)
   nsTArray<uint32_t> array;
   array.SetCapacity(aAddPrefixes.Length());
 
-  for (uint32 i = 0; i < aAddPrefixes.Length(); i++) {
+  for (uint32_t i = 0; i < aAddPrefixes.Length(); i++) {
     array.AppendElement(aAddPrefixes[i].PrefixHash().ToUint32());
   }
   aAddPrefixes.Clear();

@@ -12,10 +12,10 @@
 #endif
 
 
-static nsresult PrepareAndDispatch(nsXPTCStubBase* self, uint32 methodIndex, uint32_t* args) asm("_PrepareAndDispatch");
+static nsresult PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args) asm("_PrepareAndDispatch");
 
 static nsresult
-PrepareAndDispatch(nsXPTCStubBase* self, uint32 methodIndex, uint32_t* args)
+PrepareAndDispatch(nsXPTCStubBase* self, uint32_t methodIndex, uint32_t* args)
 {
 #define PARAM_BUFFER_COUNT     16
 

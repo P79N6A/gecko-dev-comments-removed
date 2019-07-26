@@ -16,7 +16,7 @@
 #endif 
 
 #if PR_BYTES_PER_INT != 4
-#define int int32
+#define int int32_t
 #endif 
 
 
