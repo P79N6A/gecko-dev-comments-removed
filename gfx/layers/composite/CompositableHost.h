@@ -295,7 +295,7 @@ public:
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix) { }
 
   void AddTextureHost(TextureHost* aTexture);
-  virtual void UseTextureHost(TextureHost* aTexture) {}
+  virtual void UseTextureHost(TextureHost* aTexture);
   
   
   

@@ -384,6 +384,13 @@ BufferTextureHost::MaybeUpload(nsIntRegion *aRegion)
 bool
 BufferTextureHost::Upload(nsIntRegion *aRegion)
 {
+  if (!mCompositor) {
+    NS_WARNING("Tried to upload without a compositor. Skipping texture upload...");
+    
+    
+    
+    return false;
+  }
   if (mFormat == gfx::FORMAT_UNKNOWN) {
     NS_WARNING("BufferTextureHost: unsupported format!");
     return false;
