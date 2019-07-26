@@ -24,7 +24,7 @@ function test() {
 
     
     
-    yield FullZoomHelper.enlarge();
+    FullZoom.enlarge();
     var zoomLevel = ZoomManager.zoom;
 
     

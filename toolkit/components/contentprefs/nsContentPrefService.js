@@ -430,9 +430,9 @@ ContentPrefService.prototype = {
     
     if (aContext && aContext.usePrivateBrowsing) {
         
-        this._privModeStorage.removeGrouped();
+        this._privModeStorage.removeAllGroups();
     }
-    this._cache.removeGrouped();
+    this._cache.removeAllGroups();
     this._dbConnection.beginTransaction();
     try {
       this._dbConnection.executeSimpleSQL("DELETE FROM prefs WHERE groupID IS NOT NULL");

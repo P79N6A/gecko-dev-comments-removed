@@ -41,10 +41,9 @@ function test() {
       is(aWindow.ZoomManager.zoom, 1,
          "Zoom level for freshly loaded about:blank should be 1");
       
-      aWindow.FullZoom.enlarge(function () {
-        isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
-        aCallback();
-      });
+      aWindow.FullZoom.enlarge();
+      isnot(aWindow.ZoomManager.zoom, 1, "Zoom level for about:blank should be changed");
+      aCallback();
       return;
     }
     
@@ -54,18 +53,10 @@ function test() {
 
   function finishTest() {
     
-    let numWindows = windowsToReset.length;
-    if (!numWindows) {
-      finish();
-      return;
-    }
     windowsToReset.forEach(function(win) {
-      win.FullZoom.reset(function onReset() {
-        numWindows--;
-        if (!numWindows)
-          finish();
-      });
+      win.FullZoom.reset();
     });
+    finish();
   }
 
   function testOnWindow(options, callback) {
