@@ -20,6 +20,7 @@
 #include "mozilla/dom/EventTarget.h" 
 #include "js/TypeDecls.h"     
 #include "mozilla/dom/DOMString.h"
+#include "mozilla/dom/BindingDeclarations.h"
 
 
 #ifdef XP_WIN
@@ -392,17 +393,17 @@ protected:
     return nullptr;
   }
 
-public:
-  nsIDocument* GetParentObject() const
-  {
-    
-    
-    
-    
-    
-    
-    return OwnerDoc();
+  
+  
+  
+  mozilla::dom::ParentObject GetParentObjectInternal(nsINode* aNativeParent) const {
+    mozilla::dom::ParentObject p(aNativeParent);
+    p.mUseXBLScope = ChromeOnlyAccess();
+    return p;
   }
+
+public:
+  mozilla::dom::ParentObject GetParentObject() const; 
 
   
 
