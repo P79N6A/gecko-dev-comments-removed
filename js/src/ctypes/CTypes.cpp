@@ -5790,9 +5790,7 @@ FunctionType::Call(JSContext* cx,
   }
 
   
-  js::CTypesActivityCallback activityCallback = cx->runtime->ctypesActivityCallback;
-  if (activityCallback)
-    activityCallback(cx, js::CTYPES_CALL_BEGIN);
+  js::AutoCTypesActivityCallback autoCallback(cx, js::CTYPES_CALL_BEGIN, js::CTYPES_CALL_END);
 
   uintptr_t fn = *reinterpret_cast<uintptr_t*>(CData::GetData(obj));
 
@@ -5821,8 +5819,8 @@ FunctionType::Call(JSContext* cx,
 
   errno = savedErrno;
 
-  if (activityCallback)
-    activityCallback(cx, js::CTYPES_CALL_END);
+  
+  autoCallback.DoEndCallback();
 
   
   JSObject *objCTypes = CType::GetGlobalCTypes(cx, typeObj);
@@ -6105,6 +6103,12 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   ClosureInfo* cinfo = static_cast<ClosureInfo*>(userData);
   JSContext* cx = cinfo->cx;
+
+  
+  
+  js::AutoCTypesActivityCallback autoCallback(cx, js::CTYPES_CALLBACK_BEGIN,
+                                              js::CTYPES_CALLBACK_END);
+
   RootedObject typeObj(cx, cinfo->typeObj);
   RootedObject thisObj(cx, cinfo->thisObj);
   RootedObject jsfnObj(cx, cinfo->jsfnObj);
