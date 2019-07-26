@@ -31,70 +31,25 @@ import android.util.Log;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public class GeckoNetworkManager extends BroadcastReceiver {
     private static final String LOGTAG = "GeckoNetworkManager";
 
     static private final GeckoNetworkManager sInstance = new GeckoNetworkManager();
 
-    static private final double  kDefaultBandwidth    = -1.0;
-    static private final boolean kDefaultCanBeMetered = false;
+    
+    private enum ConnectionType {
+        CELLULAR(0),
+        BLUETOOTH(1),
+        ETHERNET(2),
+        WIFI(3),
+        OTHER(4),
+        NONE(5);
 
-    static private final double  kMaxBandwidth = 20.0;
+        public final int value;
 
-    static private final double  kNetworkSpeedEthernet = 20.0;           
-    static private final double  kNetworkSpeedWifi     = 20.0;           
-    static private final double  kNetworkSpeedWiMax    = 40.0;           
-    static private final double  kNetworkSpeed_2_G     = 15.0 / 1024.0;  
-    static private final double  kNetworkSpeed_2_5_G   = 60.0 / 1024.0;  
-    static private final double  kNetworkSpeed_2_75_G  = 200.0 / 1024.0; 
-    static private final double  kNetworkSpeed_3_G     = 300.0 / 1024.0; 
-    static private final double  kNetworkSpeed_3_5_G   = 7.0;            
-    static private final double  kNetworkSpeed_3_75_G  = 20.0;           
-    static private final double  kNetworkSpeed_3_9_G   = 50.0;           
-
-    private enum NetworkType {
-        NETWORK_NONE,
-        NETWORK_ETHERNET,
-        NETWORK_WIFI,
-        NETWORK_WIMAX,
-        NETWORK_2_G,    
-        NETWORK_2_5_G,  
-        NETWORK_2_75_G, 
-        NETWORK_3_G,    
-        NETWORK_3_5_G,  
-        NETWORK_3_75_G, 
-        NETWORK_3_9_G,  
-        NETWORK_UNKNOWN
+        private ConnectionType(int value) {
+            this.value = value;
+        }
     }
 
     private enum InfoType {
@@ -102,8 +57,10 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         MNC
     }
 
+    static private final ConnectionType kDefaultConnectionType = ConnectionType.NONE;
+
     private Context mApplicationContext;
-    private NetworkType mNetworkType = NetworkType.NETWORK_NONE;
+    private ConnectionType mConnectionType = ConnectionType.NONE;
     private final IntentFilter mNetworkFilter = new IntentFilter();
 
     
@@ -119,7 +76,7 @@ public class GeckoNetworkManager extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context aContext, Intent aIntent) {
-        updateNetworkType();
+        updateConnectionType();
     }
 
     public void start(final Context context) {
@@ -127,11 +84,11 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         if (mApplicationContext == null) {
             mApplicationContext = context.getApplicationContext();
             mNetworkFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            mNetworkType = getNetworkType();
+            mConnectionType = getConnectionType();
         }
 
         mShouldBeListening = true;
-        updateNetworkType();
+        updateConnectionType();
 
         if (mShouldNotify) {
             startListening();
@@ -155,7 +112,7 @@ public class GeckoNetworkManager extends BroadcastReceiver {
     }
 
     private int wifiDhcpGatewayAddress() {
-        if (mNetworkType != NetworkType.NETWORK_WIFI) {
+        if (mConnectionType != ConnectionType.WIFI) {
             return 0;
         }
         try {
@@ -175,33 +132,31 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         }
     }
 
-    private void updateNetworkType() {
-        NetworkType previousNetworkType = mNetworkType;
-        mNetworkType = getNetworkType();
+    private void updateConnectionType() {
+        ConnectionType previousConnectionType = mConnectionType;
+        mConnectionType = getConnectionType();
 
-        if (mNetworkType == previousNetworkType || !mShouldNotify) {
+        if (mConnectionType == previousConnectionType || !mShouldNotify) {
             return;
         }
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createNetworkEvent(
-                                       getNetworkSpeed(mNetworkType),
-                                       isNetworkUsuallyMetered(mNetworkType),
-                                       mNetworkType == NetworkType.NETWORK_WIFI,
+                                       mConnectionType.value,
+                                       mConnectionType == ConnectionType.WIFI,
                                        wifiDhcpGatewayAddress()));
     }
 
     public double[] getCurrentInformation() {
-        return new double[] { getNetworkSpeed(mNetworkType),
-                              isNetworkUsuallyMetered(mNetworkType) ? 1.0 : 0.0,
-                              (mNetworkType == NetworkType.NETWORK_WIFI) ? 1.0 : 0.0,
+        return new double[] { mConnectionType.value,
+                              (mConnectionType == ConnectionType.WIFI) ? 1.0 : 0.0,
                               wifiDhcpGatewayAddress()};
     }
 
     public void enableNotifications() {
         
         
-        mNetworkType = NetworkType.NETWORK_NONE; 
-        updateNetworkType();
+        mConnectionType = ConnectionType.NONE; 
+        updateConnectionType();
         mShouldNotify = true;
 
         if (mShouldBeListening) {
@@ -217,12 +172,12 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         }
     }
 
-    private static NetworkType getNetworkType() {
+    private static ConnectionType getConnectionType() {
         ConnectivityManager cm =
             (ConnectivityManager)sInstance.mApplicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
         if (cm == null) {
             Log.e(LOGTAG, "Connectivity service does not exist");
-            return NetworkType.NETWORK_NONE;
+            return ConnectionType.NONE;
         }
 
         NetworkInfo ni = null;
@@ -231,109 +186,22 @@ public class GeckoNetworkManager extends BroadcastReceiver {
         } catch (SecurityException se) {} 
 
         if (ni == null) {
-            return NetworkType.NETWORK_NONE;
+            return ConnectionType.NONE;
         }
 
         switch (ni.getType()) {
+        case ConnectivityManager.TYPE_BLUETOOTH:
+            return ConnectionType.BLUETOOTH;
         case ConnectivityManager.TYPE_ETHERNET:
-            return NetworkType.NETWORK_ETHERNET;
-        case ConnectivityManager.TYPE_WIFI:
-            return NetworkType.NETWORK_WIFI;
-        case ConnectivityManager.TYPE_WIMAX:
-            return NetworkType.NETWORK_WIMAX;
+            return ConnectionType.ETHERNET;
         case ConnectivityManager.TYPE_MOBILE:
-            break; 
+        case ConnectivityManager.TYPE_WIMAX:
+            return ConnectionType.CELLULAR;
+        case ConnectivityManager.TYPE_WIFI:
+            return ConnectionType.WIFI;
         default:
             Log.w(LOGTAG, "Ignoring the current network type.");
-            return NetworkType.NETWORK_UNKNOWN;
-        }
-
-        TelephonyManager tm =
-            (TelephonyManager)sInstance.mApplicationContext.getSystemService(Context.TELEPHONY_SERVICE);
-        if (tm == null) {
-            Log.e(LOGTAG, "Telephony service does not exist");
-            return NetworkType.NETWORK_UNKNOWN;
-        }
-
-        switch (tm.getNetworkType()) {
-        case TelephonyManager.NETWORK_TYPE_IDEN:
-        case TelephonyManager.NETWORK_TYPE_CDMA:
-            return NetworkType.NETWORK_2_G;
-        case TelephonyManager.NETWORK_TYPE_GPRS:
-        case TelephonyManager.NETWORK_TYPE_1xRTT:
-            return NetworkType.NETWORK_2_5_G;
-        case TelephonyManager.NETWORK_TYPE_EDGE:
-            return NetworkType.NETWORK_2_75_G;
-        case TelephonyManager.NETWORK_TYPE_UMTS:
-        case TelephonyManager.NETWORK_TYPE_EVDO_0:
-            return NetworkType.NETWORK_3_G;
-        case TelephonyManager.NETWORK_TYPE_HSPA:
-        case TelephonyManager.NETWORK_TYPE_HSDPA:
-        case TelephonyManager.NETWORK_TYPE_HSUPA:
-        case TelephonyManager.NETWORK_TYPE_EVDO_A:
-        case TelephonyManager.NETWORK_TYPE_EVDO_B:
-        case TelephonyManager.NETWORK_TYPE_EHRPD:
-            return NetworkType.NETWORK_3_5_G;
-        case TelephonyManager.NETWORK_TYPE_HSPAP:
-            return NetworkType.NETWORK_3_75_G;
-        case TelephonyManager.NETWORK_TYPE_LTE:
-            return NetworkType.NETWORK_3_9_G;
-        case TelephonyManager.NETWORK_TYPE_UNKNOWN:
-        default:
-            Log.w(LOGTAG, "Connected to an unknown mobile network!");
-            return NetworkType.NETWORK_UNKNOWN;
-        }
-    }
-
-    private static double getNetworkSpeed(NetworkType aType) {
-        switch (aType) {
-        case NETWORK_NONE:
-            return 0.0;
-        case NETWORK_ETHERNET:
-            return kNetworkSpeedEthernet;
-        case NETWORK_WIFI:
-            return kNetworkSpeedWifi;
-        case NETWORK_WIMAX:
-            return kNetworkSpeedWiMax;
-        case NETWORK_2_G:
-            return kNetworkSpeed_2_G;
-        case NETWORK_2_5_G:
-            return kNetworkSpeed_2_5_G;
-        case NETWORK_2_75_G:
-            return kNetworkSpeed_2_75_G;
-        case NETWORK_3_G:
-            return kNetworkSpeed_3_G;
-        case NETWORK_3_5_G:
-            return kNetworkSpeed_3_5_G;
-        case NETWORK_3_75_G:
-            return kNetworkSpeed_3_75_G;
-        case NETWORK_3_9_G:
-            return kNetworkSpeed_3_9_G;
-        case NETWORK_UNKNOWN:
-        default:
-            return kDefaultBandwidth;
-        }
-    }
-
-    private static boolean isNetworkUsuallyMetered(NetworkType aType) {
-        switch (aType) {
-        case NETWORK_NONE:
-        case NETWORK_UNKNOWN:
-        case NETWORK_ETHERNET:
-        case NETWORK_WIFI:
-        case NETWORK_WIMAX:
-            return false;
-        case NETWORK_2_G:
-        case NETWORK_2_5_G:
-        case NETWORK_2_75_G:
-        case NETWORK_3_G:
-        case NETWORK_3_5_G:
-        case NETWORK_3_75_G:
-        case NETWORK_3_9_G:
-            return true;
-        default:
-            Log.e(LOGTAG, "Got an unexpected network type!");
-            return false;
+            return ConnectionType.OTHER;
         }
     }
 

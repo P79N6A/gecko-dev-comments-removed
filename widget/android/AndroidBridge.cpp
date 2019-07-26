@@ -1144,16 +1144,15 @@ AndroidBridge::GetCurrentNetworkInformation(hal::NetworkInformation* aNetworkInf
     
 
     jdoubleArray arr = GeckoAppShell::GetCurrentNetworkInformationWrapper();
-    if (!arr || env->GetArrayLength(arr) != 4) {
+    if (!arr || env->GetArrayLength(arr) != 3) {
         return;
     }
 
     jdouble* info = env->GetDoubleArrayElements(arr, 0);
 
-    aNetworkInfo->bandwidth() = info[0];
-    aNetworkInfo->canBeMetered() = info[1] == 1.0f;
-    aNetworkInfo->isWifi() = info[2] == 1.0f;
-    aNetworkInfo->dhcpGateway() = info[3];
+    aNetworkInfo->type() = info[0];
+    aNetworkInfo->isWifi() = info[1] == 1.0f;
+    aNetworkInfo->dhcpGateway() = info[2];
 
     env->ReleaseDoubleArrayElements(arr, info, 0);
 }
