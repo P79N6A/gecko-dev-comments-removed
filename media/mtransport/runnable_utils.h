@@ -45,12 +45,7 @@ static inline nsresult RUN_ON_THREAD(nsIEventTarget *thread, nsIRunnable *runnab
     bool on;
     nsresult rv;
     rv = thread->IsOnCurrentThread(&on);
-
-    
-    if (rv != NS_ERROR_NOT_INITIALIZED) {
-      MOZ_ASSERT(NS_SUCCEEDED(rv));
-    }
-
+    MOZ_ASSERT(NS_SUCCEEDED(rv));
     NS_ENSURE_SUCCESS(rv, rv);
     if(!on) {
       return thread->Dispatch(runnable_ref, flags);
