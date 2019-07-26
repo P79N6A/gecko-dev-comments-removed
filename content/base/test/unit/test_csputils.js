@@ -372,15 +372,6 @@ test(
       
       do_check_has_key(cspr._directives, SD.DEFAULT_SRC);
 
-      
-      
-      cspr_allowval = cspr._directives[SD.DEFAULT_SRC];
-      for(var d in SD) {
-        
-        do_check_has_key(cspr._directives, SD[d]);
-        
-        do_check_eq(cspr._directives[SD[d]].toString(), cspr_allowval.toString());
-      }
     });
 
 
@@ -396,22 +387,11 @@ test(
 
       
       
-      cspr_default_val = cspr._directives[SD.DEFAULT_SRC];
-      for (var d in SD) {
-        do_check_has_key(cspr._directives, SD[d]);
-        
-        do_check_eq(cspr._directives[SD[d]].toString(), cspr_default_val.toString());
-      }
-
-      
-      
       cspr = CSPRep.fromString("default-src *", URI("http://self.com:80"));
       cspr_allow = CSPRep.fromString("allow *", URI("http://self.com:80"));
 
-      for (var d in SD) {
-        do_check_equivalent(cspr._directives[SD[d]],
-                            cspr_allow._directives[SD[d]]);
-      }
+      do_check_equivalent(cspr._directives['default-src'],
+                          cspr_allow._directives['default-src']);
     });
 
 

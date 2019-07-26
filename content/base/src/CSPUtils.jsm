@@ -474,10 +474,11 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
 
   
   
-  
-  if (aCSPR.makeExplicit())
-    return aCSPR;
-  return CSPRep.fromString("default-src 'none'", selfUri);
+  if (!aCSPR._directives[SD.DEFAULT_SRC]) {
+    cspWarn(aCSPR, CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
+    return CSPRep.fromString("default-src 'none'", selfUri);
+  }
+  return aCSPR;
 };
 
 
@@ -690,12 +691,7 @@ CSPRep.fromStringSpecCompliant = function(aStr, self, docRequest, csp) {
 
   } 
 
-  
-  
-  
-  if (aCSPR.makeExplicit())
-    return aCSPR;
-  return CSPRep.fromStringSpecCompliant("default-src 'none'", self);
+  return aCSPR;
 };
 
 CSPRep.prototype = {
@@ -766,16 +762,48 @@ CSPRep.prototype = {
     
     let DIRS = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
 
+    let contextIsSrcDir = false;
     for (var i in DIRS) {
       if (DIRS[i] === aContext) {
-        return this._directives[aContext].permits(aURI);
+        
+        contextIsSrcDir = true;
+        if (this._directives.hasOwnProperty(aContext)) {
+          return this._directives[aContext].permits(aURI);
+        }
+        
+        break;
       }
     }
 
-    return false;
+    
+    if (aContext === DIRS.FRAME_ANCESTORS)
+      return true;
+
+    
+    
+    if (!contextIsSrcDir) {
+      
+      
+      CSPdebug("permits called with invalid load type: " + aContext);
+      return false;
+    }
+
+    
+    
+    
+    
+    if (this._directives.hasOwnProperty(DIRS.DEFAULT_SRC)) {
+      return this._directives[DIRS.DEFAULT_SRC].permits(aURI);
+    }
+
+    
+    
+    return this._specCompliant;
   },
 
   
+
+
 
 
 
@@ -790,12 +818,71 @@ CSPRep.prototype = {
     let DIRS = aCSPRep._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW :
                                         CSPRep.SRC_DIRECTIVES_OLD;
 
+    
+    
+    
+    let thisHasDefault = this._directives.hasOwnProperty(DIRS.DEFAULT_SRC),
+        thatHasDefault = aCSPRep._directives.hasOwnProperty(DIRS.DEFAULT_SRC);
     for (var dir in DIRS) {
-      var dirv = DIRS[dir];
-      if (this._directives.hasOwnProperty(dirv))
-        newRep._directives[dirv] = this._directives[dirv].intersectWith(aCSPRep._directives[dirv]);
-      else
-        newRep._directives[dirv] = aCSPRep._directives[dirv];
+      let dirv = DIRS[dir];
+      let thisHasDir = this._directives.hasOwnProperty(dirv),
+          thatHasDir = aCSPRep._directives.hasOwnProperty(dirv);
+
+
+      
+      
+      if (!thisHasDir && !thatHasDir) {
+        continue;
+      }
+
+      
+      
+      
+      if (dirv === DIRS.FRAME_ANCESTORS) {
+        if (thisHasDir && thatHasDir) {
+          
+          newRep._directives[dirv] =
+            aCSPRep._directives[dirv].intersectWith(this._directives[dirv]);
+        } else if (thisHasDir || thatHasDir) {
+          
+          newRep._directives[dirv] =
+            ( thisHasDir ? this : aCSPRep )._directives[dirv].clone();
+        }
+      }
+      else if (aCSPRep._specCompliant) {
+        
+        
+
+        if (!thisHasDir && !thisHasDefault) {
+          
+          newRep._directives[dirv] = aCSPRep._directives[dirv].clone();
+        }
+        else if (!thatHasDir && !thatHasDefault) {
+          
+          newRep._directives[dirv] = this._directives[dirv].clone();
+        }
+        else {
+          
+          var isect1 = thisHasDir ?
+                       this._directives[dirv] :
+                       this._directives[DIRS.DEFAULT_SRC];
+          var isect2 = thatHasDir ?
+                       aCSPRep._directives[dirv] :
+                       aCSPRep._directives[DIRS.DEFAULT_SRC];
+          newRep._directives[dirv] = isect1.intersectWith(isect2);
+        }
+      }
+      else {
+        
+        
+        var isect1 = thisHasDir ?
+                     this._directives[dirv] :
+                     this._directives[DIRS.DEFAULT_SRC];
+        var isect2 = thatHasDir ?
+                     aCSPRep._directives[dirv] :
+                     aCSPRep._directives[DIRS.DEFAULT_SRC];
+        newRep._directives[dirv] = isect1.intersectWith(isect2);
+      }
     }
 
     
@@ -826,55 +913,6 @@ CSPRep.prototype = {
                               this._innerWindowID : aCSPRep._innerWindowID;
 
     return newRep;
-  },
-
-  
-
-
-
-
-
-  makeExplicit:
-  function cspsd_makeExplicit() {
-    let SD = this._specCompliant ? CSPRep.SRC_DIRECTIVES_NEW : CSPRep.SRC_DIRECTIVES_OLD;
-
-    
-    
-    
-    
-    if (!this._directives[SD.DEFAULT_SRC]) {
-      if(!this._specCompliant) {
-        this.warn(CSPLocalizer.getStr("allowOrDefaultSrcRequired"));
-        return false;
-      }
-
-      
-      
-      
-      
-      this._directives[SD.DEFAULT_SRC]
-            = CSPSourceList.fromString("*", this, this._self, true);
-      this._directives[SD.DEFAULT_SRC]._isImplicit = true;
-    }
-
-    var defaultSrcDir = this._directives[SD.DEFAULT_SRC];
-
-    for (var dir in SD) {
-      var dirv = SD[dir];
-      if (dirv === SD.DEFAULT_SRC) continue;
-      if (!this._directives[dirv]) {
-        
-        
-        if (dirv === SD.FRAME_ANCESTORS)
-          this._directives[dirv] = CSPSourceList.fromString("*",this);
-        else
-          this._directives[dirv] = defaultSrcDir.clone();
-        this._directives[dirv]._isImplicit = true;
-      }
-    }
-
-    this._isInitialized = true;
-    return true;
   },
 
   
@@ -941,10 +979,6 @@ CSPRep.prototype = {
 this.CSPSourceList = function CSPSourceList() {
   this._sources = [];
   this._permitAllSources = false;
-
-  
-  
-  this._isImplicit = false;
 
   
   this._allowUnsafeInline = false;
@@ -1174,9 +1208,6 @@ CSPSourceList.prototype = {
       newCSPSrcList = new CSPSourceList();
       newCSPSrcList._sources = isrcs;
     }
-
-    
-    newCSPSrcList._isImplicit = this._isImplicit && that._isImplicit;
 
     if ((!newCSPSrcList._CSPRep) && that._CSPRep) {
       newCSPSrcList._CSPRep = that._CSPRep;
