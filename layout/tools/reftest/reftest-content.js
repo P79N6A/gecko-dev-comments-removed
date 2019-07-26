@@ -241,6 +241,14 @@ function shouldWaitForReftestWaitRemoval(contentRootElement) {
                              .indexOf("reftest-wait") != -1;
 }
 
+function shouldSnapshotWholePage(contentRootElement) {
+    
+    return contentRootElement &&
+           contentRootElement.hasAttribute('class') &&
+           contentRootElement.getAttribute('class').split(/\s+/)
+                             .indexOf("reftest-snapshot-all") != -1;
+}
+
 function getNoPaintElements(contentRootElement) {
   return contentRootElement.getElementsByClassName('reftest-no-paint');
 }
@@ -306,7 +314,7 @@ function WaitForTestEnd(contentRootElement, inPrintMode, spellCheckedElements) {
             return;
         }
 
-        SendUpdateCanvasForEvent(event);
+        SendUpdateCanvasForEvent(event, contentRootElement);
         
         
         
@@ -840,12 +848,24 @@ function roundTo(x, fraction)
     return Math.round(x/fraction)*fraction;
 }
 
-function SendUpdateCanvasForEvent(event)
+function SendUpdateCanvasForEvent(event, contentRootElement)
 {
     var win = content;
     var scale = markupDocumentViewer().fullZoom;
 
     var rects = [ ];
+    if (shouldSnapshotWholePage) {
+      
+      
+      if (!gBrowserIsRemote) {
+          sendSyncMessage("reftest:UpdateWholeCanvasForInvalidation");
+      } else {
+          SynchronizeForSnapshot(SYNC_ALLOW_DISABLE);
+          sendAsyncMessage("reftest:UpdateWholeCanvasForInvalidation");
+      }
+      return;
+    }
+    
     var rectList = event.clientRects;
     LogInfo("SendUpdateCanvasForEvent with " + rectList.length + " rects");
     for (var i = 0; i < rectList.length; ++i) {
