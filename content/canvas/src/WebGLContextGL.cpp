@@ -3787,63 +3787,16 @@ WebGLContext::TexImage2D_base(GLenum target, GLint level, GLenum internalformat,
         }
         imageInfoStatusIfSuccess = WebGLImageDataStatus::InitializedImageData;
     } else {
-        if (isDepthTexture && !gl->IsSupported(GLFeature::depth_texture)) {
-            
-            
-            
-
-            
-            MOZ_ASSERT(gl->IsExtensionSupported(GLContext::ANGLE_depth_texture));
-            
-            
-            MOZ_ASSERT(target == LOCAL_GL_TEXTURE_2D && level == 0 && data == nullptr);
-
-            
-            
-            error = CheckedTexImage2D(LOCAL_GL_TEXTURE_2D, 0, internalformat, width, height,
-                                      border, format, type, nullptr);
-
+        if (isDepthTexture) {
             
             
             
             
-
-            bool success = false;
-            GLuint fb = 0;
-
             
-            do {
-                gl->fGenFramebuffers(1, &fb);
-                if (!fb)
-                    break;
-
-                ScopedBindFramebuffer autoBindFB(gl, fb);
-
-                gl->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
-                                          LOCAL_GL_DEPTH_ATTACHMENT,
-                                          LOCAL_GL_TEXTURE_2D,
-                                          tex->GLName(),
-                                          0);
-                if (format == LOCAL_GL_DEPTH_STENCIL) {
-                    gl->fFramebufferTexture2D(LOCAL_GL_FRAMEBUFFER,
-                                              LOCAL_GL_STENCIL_ATTACHMENT,
-                                              LOCAL_GL_TEXTURE_2D,
-                                              tex->GLName(),
-                                              0);
-                }
-                if (gl->fCheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER) != LOCAL_GL_FRAMEBUFFER_COMPLETE)
-                    break;
-
-                gl->ClearSafely();
-                success = true;
-            } while(false);
-
-            gl->fDeleteFramebuffers(1, &fb);
-
-            if (!success) {
-                return ErrorOutOfMemory("texImage2D: sorry, ran out of ways to initialize a depth texture.");
-            }
-            imageInfoStatusIfSuccess = WebGLImageDataStatus::InitializedImageData;
+            
+            error = CheckedTexImage2D(target, level, internalformat,
+                                      width, height, border, format, type, nullptr);
+            imageInfoStatusIfSuccess = WebGLImageDataStatus::UninitializedImageData;
         } else {
             
             
