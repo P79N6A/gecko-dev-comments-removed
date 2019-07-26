@@ -11,6 +11,9 @@
 #include "IonTypes.h"
 #include "gc/Heap.h"
 
+
+#include "jsinfer.h"
+
 namespace JSC {
     class ExecutablePool;
 }
@@ -204,6 +207,8 @@ struct IonScript
     
     uint32 slowCallCount;
 
+    types::RecompileInfo recompileInfo_;
+
     SnapshotOffset *bailoutTable() {
         return (SnapshotOffset *)(reinterpret_cast<uint8 *>(this) + bailoutTable_);
     }
@@ -376,6 +381,9 @@ struct IonScript
         refcount_--;
         if (!refcount_)
             Destroy(fop, this);
+    }
+    const types::RecompileInfo& recompileInfo() const {
+        return recompileInfo_;
     }
 };
 

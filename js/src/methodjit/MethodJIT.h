@@ -670,6 +670,8 @@ struct JITChunk
     ExecPoolVector execPools;
 #endif
 
+    types::RecompileInfo recompileInfo;
+
     
     Vector<NativeCallStub, 0, SystemAllocPolicy> nativeCallStubs;
 

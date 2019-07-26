@@ -1305,6 +1305,10 @@ JITScript::destroyChunk(FreeOp *fop, unsigned chunkIndex, bool resetUses)
 
     if (desc.chunk) {
         
+        types::TypeCompartment &types = script->compartment()->types;
+        desc.chunk->recompileInfo.compilerOutput(types)->invalidate();
+
+        
 
 
 
