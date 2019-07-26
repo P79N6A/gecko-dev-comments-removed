@@ -71,6 +71,7 @@ public:
   const bool mOCSPGETEnabled;
 };
 
+void InitCertVerifierLog();
 } } 
 
 #endif 
