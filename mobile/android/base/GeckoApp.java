@@ -409,7 +409,7 @@ abstract public class GeckoApp
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
         
-        if (Build.VERSION.SDK_INT >= 11 && keyCode == KeyEvent.KEYCODE_MENU) {
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
             openOptionsMenu();
             return true;
         }
