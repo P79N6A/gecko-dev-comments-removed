@@ -39,7 +39,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "VariablesView",
                                   "resource:///modules/devtools/VariablesView.jsm");
 
 this.EXPORTED_SYMBOLS = ["WebConsoleUtils", "JSPropertyProvider", "JSTermHelpers",
-                         "ConsoleServiceListener", "ConsoleAPIListener",
+                         "PageErrorListener", "ConsoleAPIListener",
                          "NetworkResponseListener", "NetworkMonitor",
                          "ConsoleProgressListener"];
 
@@ -885,13 +885,13 @@ return JSPropertyProvider;
 
 
 
-this.ConsoleServiceListener = function ConsoleServiceListener(aWindow, aListener)
+this.PageErrorListener = function PageErrorListener(aWindow, aListener)
 {
   this.window = aWindow;
   this.listener = aListener;
 }
 
-ConsoleServiceListener.prototype =
+PageErrorListener.prototype =
 {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIConsoleListener]),
 
@@ -905,12 +905,13 @@ ConsoleServiceListener.prototype =
 
 
 
+
   listener: null,
 
   
 
 
-  init: function CSL_init()
+  init: function PEL_init()
   {
     Services.console.registerListener(this);
   },
@@ -923,27 +924,27 @@ ConsoleServiceListener.prototype =
 
 
 
-  observe: function CSL_observe(aMessage)
+  observe: function PEL_observe(aScriptError)
   {
-    if (!this.listener) {
+    if (!this.listener ||
+        !(aScriptError instanceof Ci.nsIScriptError)) {
       return;
     }
 
     if (this.window) {
-      if (!aMessage.outerWindowID ||
-          !this.isCategoryAllowed(aMessage.category)) {
+      if (!aScriptError.outerWindowID ||
+          !this.isCategoryAllowed(aScriptError.category)) {
         return;
       }
 
-      let errorWindow = Services.wm.getOuterWindowWithId(aMessage.outerWindowID);
+      let errorWindow =
+        Services.wm.getOuterWindowWithId(aScriptError.outerWindowID);
       if (!errorWindow || errorWindow.top != this.window) {
         return;
       }
     }
 
-    if (aMessage.message) {
-      this.listener.onConsoleServiceMessage(aMessage);
-    }
+    this.listener.onPageError(aScriptError);
   },
 
   
@@ -955,12 +956,8 @@ ConsoleServiceListener.prototype =
 
 
 
-  isCategoryAllowed: function CSL_isCategoryAllowed(aCategory)
+  isCategoryAllowed: function PEL_isCategoryAllowed(aCategory)
   {
-    if (!aCategory) {
-      return false;
-    }
-
     switch (aCategory) {
       case "XPConnect JavaScript":
       case "component javascript":
@@ -983,23 +980,25 @@ ConsoleServiceListener.prototype =
 
 
 
-  getCachedMessages: function CSL_getCachedMessages()
+
+  getCachedMessages: function PEL_getCachedMessages()
   {
     let innerWindowId = this.window ?
                         WebConsoleUtils.getInnerWindowId(this.window) : null;
     let errors = Services.console.getMessageArray() || [];
 
-    return errors.filter((aError) => {
-      return !innerWindowId ||
+    return errors.filter(function(aError) {
+      return aError instanceof Ci.nsIScriptError &&
+             (!innerWindowId ||
               (aError.innerWindowID == innerWindowId &&
-               this.isCategoryAllowed(aError.category));
-    });
+               this.isCategoryAllowed(aError.category)));
+    }, this);
   },
 
   
 
 
-  destroy: function CSL_destroy()
+  destroy: function PEL_destroy()
   {
     Services.console.unregisterListener(this);
     this.listener = this.window = null;
@@ -1089,6 +1088,7 @@ ConsoleAPIListener.prototype =
   },
 
   
+
 
 
 
