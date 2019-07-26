@@ -427,8 +427,11 @@ let Histogram = {
 
 
 
-  render: function Histogram_render(aParent, aName, aHgram) {
+
+
+  render: function Histogram_render(aParent, aName, aHgram, aOptions) {
     let hgram = this.unpack(aHgram);
+    let options = aOptions || {};
 
     let outerDiv = document.createElement("div");
     outerDiv.className = "histogram";
@@ -450,7 +453,8 @@ let Histogram = {
     if (isRTL())
       hgram.values.reverse();
 
-    let textData = this.renderValues(outerDiv, hgram.values, hgram.max, hgram.sample_count);
+    let textData = this.renderValues(outerDiv, hgram.values, hgram.max,
+                                     hgram.sample_count, options);
 
     
     let copyButton = document.createElement("button");
@@ -520,24 +524,39 @@ let Histogram = {
 
 
 
+  getLogValue: function(aNumber) {
+    return Math.max(0, Math.log10(aNumber) + 1);
+  },
+
+  
 
 
 
 
-  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue, aSumValues) {
+
+
+
+
+
+
+  renderValues: function Histogram_renderValues(aDiv, aValues, aMaxValue, aSumValues, aOptions) {
     let text = "";
     
     let labelPadTo = String(aValues[aValues.length -1][0]).length;
+    let maxBarValue = aOptions.exponential ? this.getLogValue(aMaxValue) : aMaxValue;
 
     for (let [label, value] of aValues) {
+      let barValue = aOptions.exponential ? this.getLogValue(value) : value;
+
       
       text += EOL
               + " ".repeat(Math.max(0, labelPadTo - String(label).length)) + label 
-              + " |" + "#".repeat(Math.round(MAX_BAR_CHARS * value / aMaxValue)) + value 
+              + " |" + "#".repeat(Math.round(MAX_BAR_CHARS * barValue / maxBarValue)) 
+              + "  " + value 
               + "  " + Math.round(100 * value / aSumValues) + "%"; 
 
       
-      let belowEm = Math.round(MAX_BAR_HEIGHT * (value / aMaxValue) * 10) / 10;
+      let belowEm = Math.round(MAX_BAR_HEIGHT * (barValue / maxBarValue) * 10) / 10;
       let aboveEm = MAX_BAR_HEIGHT - belowEm;
 
       let barDiv = document.createElement("div");
