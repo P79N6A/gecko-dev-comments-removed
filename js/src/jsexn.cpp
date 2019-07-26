@@ -571,9 +571,6 @@ Exception(JSContext *cx, unsigned argc, Value *vp)
     NonBuiltinScriptFrameIter iter(cx);
 
     
-    SkipRoot skip(cx, &iter);
-
-    
     RootedScript script(cx, iter.script());
     RootedString filename(cx);
     if (args.length() > 1) {
