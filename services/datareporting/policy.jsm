@@ -912,12 +912,16 @@ DataReportingPolicy.prototype = Object.freeze({
     
     if (notifyState == this.STATE_NOTIFY_WAIT) {
       
-      let implicitAcceptanceDate =
-        new Date(this._dataSubmissionPolicyNotifiedDate.getTime() +
-                 this.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC);
+      let implicitAcceptance =
+        this._dataSubmissionPolicyNotifiedDate.getTime() +
+        this.IMPLICIT_ACCEPTANCE_INTERVAL_MSEC;
 
-      if (now.getTime() < implicitAcceptanceDate.getTime()) {
-        this._log.debug("Still waiting for reaction or implicit acceptance.");
+      this._log.debug("Now: " + now.getTime());
+      this._log.debug("Will accept: " + implicitAcceptance);
+      if (now.getTime() < implicitAcceptance) {
+        this._log.debug("Still waiting for reaction or implicit acceptance. " +
+                        "Now: " + now.getTime() + " < " +
+                        "Accept: " + implicitAcceptance);
         return false;
       }
 
