@@ -78,6 +78,11 @@
 
 
 
+
+
+
+
+
 this.EXPORTED_SYMBOLS = ["FormHistory"];
 
 const Cc = Components.classes;
@@ -206,8 +211,14 @@ const searchFilters = [
 ];
 
 function validateOpData(aData, aDataType) {
+  let thisValidFields = validFields;
+  
+  
+  if (aDataType == "Update" && "newGuid" in aData) {
+    thisValidFields = ["guid", "newGuid"];
+  }
   for (let field in aData) {
-    if (field != "op" && validFields.indexOf(field) == -1) {
+    if (field != "op" && thisValidFields.indexOf(field) == -1) {
       throw Components.Exception(
         aDataType + " query contains an unrecognized field: " + field,
         Cr.NS_ERROR_ILLEGAL_VALUE);
@@ -309,8 +320,8 @@ function makeUpdateStatement(aGuid, aNewData, aBindingArrays) {
                                Cr.NS_ERROR_ILLEGAL_VALUE);
   }
 
-  query += queryTerms + " WHERE guid = :guid";
-  aNewData["guid"] = aGuid;
+  query += queryTerms + " WHERE guid = :existing_guid";
+  aNewData["existing_guid"] = aGuid;
 
   return dbCreateAsyncStatement(query, aNewData, aBindingArrays);
 }
@@ -632,12 +643,18 @@ function updateFormHistoryWrite(aChanges, aCallbacks) {
         if ("timeDeleted" in change)
           delete change.timeDeleted;
         stmt = makeRemoveStatement(change, bindingArrays);
-        notifications.push([ "formhistory-remove", null ]);
+        notifications.push([ "formhistory-remove", change.guid ]);
         break;
       case "update":
         log("Update form history " + change);
         let guid = change.guid;
         delete change.guid;
+        
+        
+        if (change.newGuid) {
+          change.guid = change.newGuid
+          delete change.newGuid;
+        }
         stmt = makeUpdateStatement(guid, change, bindingArrays);
         notifications.push([ "formhistory-update", guid ]);
         break;
