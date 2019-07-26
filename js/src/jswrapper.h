@@ -32,11 +32,7 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
     bool mSafeToUnwrap;
 
   public:
-    enum Action {
-        GET,
-        SET,
-        CALL
-    };
+    using BaseProxyHandler::Action;
 
     enum Flags {
         CROSS_COMPARTMENT = 1 << 0,
@@ -64,17 +60,6 @@ class JS_FRIEND_API(Wrapper) : public DirectProxyHandler
     unsigned flags() const {
         return mFlags;
     }
-
-    
-
-
-
-
-
-
-
-    virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
-                       bool *bp);
 
     explicit Wrapper(unsigned flags, bool hasPrototype = false);
 

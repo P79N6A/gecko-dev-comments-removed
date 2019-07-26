@@ -78,6 +78,22 @@ class JS_FRIEND_API(BaseProxyHandler) {
     }
 
     
+
+
+
+
+
+
+
+    enum Action {
+        GET,
+        SET,
+        CALL
+    };
+    virtual bool enter(JSContext *cx, JSObject *wrapper, jsid id, Action act,
+                       bool *bp);
+
+    
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id,
                                        PropertyDescriptor *desc, unsigned flags) = 0;
     virtual bool getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
