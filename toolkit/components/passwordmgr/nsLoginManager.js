@@ -10,8 +10,12 @@ Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
 Components.utils.import("resource://gre/modules/PrivateBrowsingUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this,
-  "LoginManagerContent", "resource://gre/modules/LoginManagerContent.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "LoginManagerContent",
+                                  "resource://gre/modules/LoginManagerContent.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Promise",
+                                  "resource://gre/modules/Promise.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "Task",
+                                  "resource://gre/modules/Task.jsm");
 
 var debug = false;
 function log(...pieces) {
@@ -55,12 +59,17 @@ LoginManager.prototype = {
                                             Ci.nsISupportsWeakReference,
                                             Ci.nsIInterfaceRequestor]),
     getInterface : function(aIID) {
-      if (aIID.equals(Ci.mozIStorageConnection) && this._storage) {
-        let ir = this._storage.QueryInterface(Ci.nsIInterfaceRequestor);
-        return ir.getInterface(aIID);
-      }
+        if (aIID.equals(Ci.mozIStorageConnection) && this._storage) {
+          let ir = this._storage.QueryInterface(Ci.nsIInterfaceRequestor);
+          return ir.getInterface(aIID);
+        }
 
-      throw Cr.NS_ERROR_NO_INTERFACE;
+        if (aIID.equals(Ci.nsIVariant)) {
+            
+            return this;
+        }
+
+        throw Cr.NS_ERROR_NO_INTERFACE;
     },
 
 
@@ -77,34 +86,7 @@ LoginManager.prototype = {
     },
 
 
-    __storage : null, 
-    get _storage() {
-        if (!this.__storage) {
-
-            var contractID = "@mozilla.org/login-manager/storage/mozStorage;1";
-            try {
-                var catMan = Cc["@mozilla.org/categorymanager;1"].
-                             getService(Ci.nsICategoryManager);
-                contractID = catMan.getCategoryEntry("login-manager-storage",
-                                                     "nsILoginManagerStorage");
-                log("Found alternate nsILoginManagerStorage with contract ID:", contractID);
-            } catch (e) {
-                log("No alternate nsILoginManagerStorage registered");
-            }
-
-            this.__storage = Cc[contractID].
-                             createInstance(Ci.nsILoginManagerStorage);
-            try {
-                this.__storage.init();
-            } catch (e) {
-                log("Initialization of storage component failed:", e);
-                this.__storage = null;
-            }
-        }
-
-        return this.__storage;
-    },
-
+    _storage : null, 
     _prefBranch  : null, 
     _remember : true,  
 
@@ -134,6 +116,29 @@ LoginManager.prototype = {
 
         
         Services.obs.addObserver(this._observer, "xpcom-shutdown", false);
+        Services.obs.addObserver(this._observer, "passwordmgr-storage-replace",
+                                 false);
+
+        
+        this._initStorage();
+    },
+
+
+    _initStorage : function () {
+        var contractID = "@mozilla.org/login-manager/storage/mozStorage;1";
+        try {
+            var catMan = Cc["@mozilla.org/categorymanager;1"].
+                         getService(Ci.nsICategoryManager);
+            contractID = catMan.getCategoryEntry("login-manager-storage",
+                                                 "nsILoginManagerStorage");
+            log("Found alternate nsILoginManagerStorage with contract ID:", contractID);
+        } catch (e) {
+            log("No alternate nsILoginManagerStorage registered");
+        }
+
+        this._storage = Cc[contractID].
+                        createInstance(Ci.nsILoginManagerStorage);
+        this.initializationPromise = this._storage.initialize();
     },
 
 
@@ -174,6 +179,14 @@ LoginManager.prototype = {
                   } catch(ex) {}
                 }
                 this._pwmgr = null;
+            } else if (topic == "passwordmgr-storage-replace") {
+                Task.spawn(function () {
+                  yield this._pwmgr._storage.terminate();
+                  this._pwmgr._initStorage();
+                  yield this._pwmgr.initializationPromise;
+                  Services.obs.notifyObservers(null,
+                               "passwordmgr-storage-replace-complete", null);
+                }.bind(this));
             } else {
                 log("Oops! Unexpected notification:", topic);
             }
@@ -187,6 +200,15 @@ LoginManager.prototype = {
     
 
 
+
+
+    
+
+
+
+
+
+    initializationPromise : null,
 
 
     
