@@ -2183,28 +2183,31 @@ let RIL = {
     let mmiString = options.mmi;
     let mmi = this._parseMMI(mmiString);
 
-    let _sendMMIError = (function _sendMMIError(errorMsg) {
+    let _sendMMIError = (function _sendMMIError(errorMsg, mmiServiceCode) {
       options.rilMessageType = "sendMMI";
       options.errorMsg = errorMsg;
+      if (mmiServiceCode) {
+        options.mmiServiceCode = mmiServiceCode;
+      }
       this.sendDOMMessage(options);
     }).bind(this);
 
-    function _isValidPINPUKRequest() {
+    function _isValidPINPUKRequest(mmiServiceCode) {
       
       
       if (!mmi.procedure || mmi.procedure != MMI_PROCEDURE_REGISTRATION ) {
-        _sendMMIError("WRONG_MMI_PROCEDURE");
+        _sendMMIError(MMI_ERROR_KS_INVALID_ACTION, mmiServiceCode);
         return;
       }
 
       if (!mmi.sia || !mmi.sia.length || !mmi.sib || !mmi.sib.length ||
           !mmi.sic || !mmi.sic.length) {
-        _sendMMIError("MISSING_SUPPLEMENTARY_INFORMATION");
+        _sendMMIError(MMI_ERROR_KS_ERROR, mmiServiceCode);
         return;
       }
 
       if (mmi.sib != mmi.sic) {
-        _sendMMIError("NEW_PIN_MISMATCH");
+        _sendMMIError(MMI_ERROR_KS_MISMATCH_PIN, mmiServiceCode);
         return;
       }
 
@@ -2217,7 +2220,7 @@ let RIL = {
         this.sendUSSD(options);
         return;
       }
-      _sendMMIError("NO_VALID_MMI_STRING");
+      _sendMMIError(MMI_ERROR_KS_ERROR);
       return;
     }
 
@@ -2241,6 +2244,7 @@ let RIL = {
         
         
         
+        options.mmiServiceCode = MMI_KS_SC_CALL_FORWARDING;
         options.action = MMI_PROC_TO_CF_ACTION[mmi.procedure];
         options.rilMessageType = "sendMMI";
         options.reason = MMI_SC_TO_CF_REASON[sc];
@@ -2263,10 +2267,11 @@ let RIL = {
         
         
         
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PIN)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PIN;
         options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
@@ -2279,10 +2284,11 @@ let RIL = {
         
         
         
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PIN2)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PIN2;
         options.rilRequestType = "sendMMI";
         options.pin = mmi.sia;
         options.newPin = mmi.sib;
@@ -2295,10 +2301,11 @@ let RIL = {
         
         
         
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PUK)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PUK;
         options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
@@ -2311,10 +2318,11 @@ let RIL = {
         
         
         
-        if (!_isValidPINPUKRequest()) {
+        if (!_isValidPINPUKRequest(MMI_KS_SC_PUK2)) {
           return;
         }
 
+        options.mmiServiceCode = MMI_KS_SC_PUK2;
         options.rilRequestType = "sendMMI";
         options.puk = mmi.sia;
         options.newPin = mmi.sib;
@@ -2329,6 +2337,7 @@ let RIL = {
           return;
         }
         
+        options.mmiServiceCode = MMI_KS_SC_IMEI;
         options.rilMessageType = "sendMMI";
         options.success = true;
         options.result = this.IMEI;
@@ -2344,12 +2353,13 @@ let RIL = {
       case MMI_SC_BA_ALL:
       case MMI_SC_BA_MO:
       case MMI_SC_BA_MT:
-        _sendMMIError("CALL_BARRING_NOT_SUPPORTED_VIA_MMI");
-        return;
-
       
       case MMI_SC_CALL_WAITING:
-        _sendMMIError("CALL_WAITING_NOT_SUPPORTED_VIA_MMI");
+      
+      case MMI_SC_CLIP:
+      
+      case MMI_SC_CLIR:
+        _sendMMIError(MMI_ERROR_KS_NOT_SUPPORTED);
         return;
     }
 
@@ -2358,13 +2368,14 @@ let RIL = {
     if (mmi.fullMMI &&
         (mmiString.charAt(mmiString.length - 1) == MMI_END_OF_USSD)) {
       options.ussd = mmi.fullMMI;
+      options.mmiServiceCode = MMI_KS_SC_USSD;
       this.sendUSSD(options);
       return;
     }
 
     
     
-    _sendMMIError("NOT_VALID_MMI_STRING");
+    _sendMMIError(MMI_ERROR_KS_ERROR);
   },
 
   
@@ -2384,6 +2395,7 @@ let RIL = {
 
 
    cancelUSSD: function cancelUSSD(options) {
+     options.mmiServiceCode = MMI_KS_SC_USSD;
      Buf.simpleRequest(REQUEST_CANCEL_USSD, options);
    },
 
@@ -4847,6 +4859,7 @@ RIL[REQUEST_GET_IMEI] = function REQUEST_GET_IMEI(length, options) {
     return;
   }
 
+  options.mmiServiceCode = MMI_KS_SC_IMEI;
   options.rilMessageType = "sendMMI";
   options.success = (options.rilRequestError === 0);
   options.errorMsg = RIL_ERROR_TO_GECKO_ERROR[options.rilRequestError];
