@@ -1741,6 +1741,17 @@ BinaryBlock::createNull(JSContext *cx, HandleObject type, HandleValue owner)
     obj->setFixedSlot(SLOT_DATATYPE, ObjectValue(*type));
     obj->setFixedSlot(SLOT_BLOCKREFOWNER, owner);
 
+    
+    
+    if (cx->typeInferenceEnabled()) {
+        RootedTypeObject typeObj(cx, obj->getType(cx));
+        if (typeObj) {
+            TypeRepresentation *typeRepr = typeRepresentation(type);
+            if (!typeObj->addBinaryDataAddendum(cx, typeRepr))
+                return NULL;
+        }
+    }
+
     return obj;
 }
 
