@@ -1301,7 +1301,7 @@ nsBoxFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (GetContent()->IsXUL()) {
-      const nsStyleDisplay* styles = mStyleContext->GetStyleDisplay();
+      const nsStyleDisplay* styles = GetStyleDisplay();
       if (styles && styles->mAppearance == NS_THEME_WIN_EXCLUDE_GLASS) {
         nsRect rect = nsRect(aBuilder->ToReferenceFrame(this), GetSize());
         aBuilder->AddExcludedGlassRegion(rect);
