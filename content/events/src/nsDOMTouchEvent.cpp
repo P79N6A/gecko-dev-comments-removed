@@ -288,7 +288,7 @@ nsDOMTouchEvent::GetTouches(nsIDOMTouchList** aTouches)
   if (mEvent->message == NS_TOUCH_END || mEvent->message == NS_TOUCH_CANCEL) {
     
     nsTArray<nsCOMPtr<nsIDOMTouch> > unchangedTouches;
-    nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
+    const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
     for (uint32_t i = 0; i < touches.Length(); ++i) {
       if (!touches[i]->mChanged) {
         unchangedTouches.AppendElement(touches[i]);
@@ -314,7 +314,7 @@ nsDOMTouchEvent::GetTargetTouches(nsIDOMTouchList** aTargetTouches)
 
   nsTArray<nsCOMPtr<nsIDOMTouch> > targetTouches;
   nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(mEvent);
-  nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
+  const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
   for (uint32_t i = 0; i < touches.Length(); ++i) {
     
     
@@ -342,7 +342,7 @@ nsDOMTouchEvent::GetChangedTouches(nsIDOMTouchList** aChangedTouches)
 
   nsTArray<nsCOMPtr<nsIDOMTouch> > changedTouches;
   nsTouchEvent* touchEvent = static_cast<nsTouchEvent*>(mEvent);
-  nsTArray<nsCOMPtr<nsIDOMTouch> > touches = touchEvent->touches;
+  const nsTArray<nsCOMPtr<nsIDOMTouch> >& touches = touchEvent->touches;
   for (uint32_t i = 0; i < touches.Length(); ++i) {
     if (touches[i]->mChanged) {
       changedTouches.AppendElement(touches[i]);
