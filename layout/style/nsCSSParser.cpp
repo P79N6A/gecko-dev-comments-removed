@@ -13346,6 +13346,7 @@ CSSParserImpl::ParseAnimationOrTransitionShorthand(
   for (;;) { 
     
     
+    bool haveAnyProperty = false;
     for (size_t i = 0; i < aNumProperties; ++i) {
       parsedProperty[i] = false;
     }
@@ -13369,6 +13370,7 @@ CSSParserImpl::ParseAnimationOrTransitionShorthand(
             parsedProperty[i] = true;
             cur[i] = AppendValueToList(aValues[i], cur[i], tempValue);
             foundProperty = true;
+            haveAnyProperty = true;
             break; 
           }
         }
@@ -13378,6 +13380,11 @@ CSSParserImpl::ParseAnimationOrTransitionShorthand(
         
         return eParseAnimationOrTransitionShorthand_Error;
       }
+    }
+
+    if (!haveAnyProperty) {
+      
+      return eParseAnimationOrTransitionShorthand_Error;
     }
 
     
