@@ -180,3 +180,79 @@ function runOMTATest(aTestFunction, aOnSkip) {
     });
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+(function() {
+  var tests = [];
+
+  window.addAsyncAnimTest = function(generator) {
+    tests.push(generator);
+  };
+
+  
+  window.runAllAsyncAnimTests = function(aOnAbort) {
+    
+    
+    return tests.reduce(function(sequence, test) {
+        return sequence.then(function() {
+          return runAsyncAnimTest(test, aOnAbort);
+        });
+      }, Promise.resolve() );
+  };
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  function runAsyncAnimTest(aTestFunc, aOnAbort) {
+    var generator;
+
+    function step(arg) {
+      var next;
+      try {
+        next = generator.next(arg);
+      } catch (e) {
+        return Promise.reject(e);
+      }
+      if (next.done) {
+        return Promise.resolve(next.value);
+      } else {
+        return Promise.resolve(next.value)
+               .then(step, function(err) { throw err; });
+      }
+    }
+
+    
+    SpecialPowers.DOMWindowUtils.advanceTimeAndRefresh(0);
+
+    
+    generator = aTestFunc();
+    return step()
+    .catch(function(err) {
+      ok(false, err.message);
+      if (typeof aOnAbort == "function") {
+        aOnAbort();
+      }
+    }).then(function() {
+      
+      SpecialPowers.DOMWindowUtils.restoreNormalRefresh();
+    });
+  }
+})();
