@@ -113,6 +113,7 @@ OutputParser.prototype = {
 
 
   parseHTMLAttribute: function(value, options={}) {
+    options.isHTMLAttribute = true;
     options = this._mergeOptions(options);
 
     return this._parse(value, options);
@@ -132,78 +133,128 @@ OutputParser.prototype = {
   _parse: function(text, options={}) {
     text = text.trim();
     this.parsed.length = 0;
-    let dirty = false;
-    let matched = null;
     let i = 0;
 
-    let trimMatchFromStart = function(match) {
-      text = text.substr(match.length);
-      dirty = true;
-      matched = null;
-    };
-
     while (text.length > 0) {
+      let matched = null;
+
+      
+      
+      
+      i++;
+      if (i > MAX_ITERATIONS) {
+        this._appendTextNode(text);
+        text = "";
+        break;
+      }
+
       matched = text.match(REGEX_QUOTES);
       if (matched) {
         let match = matched[0];
-        trimMatchFromStart(match);
+
+        text = this._trimMatchFromStart(text, match);
         this._appendTextNode(match);
+        continue;
       }
 
       matched = text.match(REGEX_WHITESPACE);
       if (matched) {
         let match = matched[0];
-        trimMatchFromStart(match);
+
+        text = this._trimMatchFromStart(text, match);
         this._appendTextNode(match);
+        continue;
       }
 
       matched = text.match(REGEX_URL);
       if (matched) {
         let [match, url] = matched;
-        trimMatchFromStart(match);
+
+        text = this._trimMatchFromStart(text, match);
         this._appendURL(match, url, options);
+        continue;
       }
 
       matched = text.match(REGEX_ALL_CSS_PROPERTIES);
       if (matched) {
         let [match] = matched;
-        trimMatchFromStart(match);
+
+        text = this._trimMatchFromStart(text, match);
         this._appendTextNode(match);
 
-        dirty = true;
+        if (options.isHTMLAttribute) {
+          [text] = this._appendColorOnMatch(text, options);
+        }
+        continue;
       }
 
-      matched = text.match(REGEX_ALL_COLORS);
+      if (!options.isHTMLAttribute) {
+        let dirty;
+
+        [text, dirty] = this._appendColorOnMatch(text, options);
+
+        if (dirty) {
+          continue;
+        }
+      }
+
+      
+      
+      matched = text.match(REGEX_FIRST_WORD_OR_CHAR);
       if (matched) {
         let match = matched[0];
-        if (this._appendColor(match, options)) {
-          trimMatchFromStart(match);
-        }
-      }
 
-      if (!dirty) {
-        
-        
-        matched = text.match(REGEX_FIRST_WORD_OR_CHAR);
-        if (matched) {
-          let match = matched[0];
-          trimMatchFromStart(match);
-          this._appendTextNode(match);
-        }
-      }
-
-      dirty = false;
-
-      
-      
-      i++;
-      if (i > MAX_ITERATIONS) {
-        trimMatchFromStart(text);
-        this._appendTextNode(text);
+        text = this._trimMatchFromStart(text, match);
+        this._appendTextNode(match);
       }
     }
 
     return this._toDOM();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _trimMatchFromStart: function(text, match) {
+    return text.substr(match.length);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  _appendColorOnMatch: function(text, options) {
+    let dirty;
+    let matched = text.match(REGEX_ALL_COLORS);
+
+    if (matched) {
+      let match = matched[0];
+      if (this._appendColor(match, options)) {
+        text = this._trimMatchFromStart(text, match);
+        dirty = true;
+      }
+    } else {
+      dirty = false;
+    }
+
+    return [text, dirty];
   },
 
   
@@ -332,7 +383,7 @@ OutputParser.prototype = {
   _appendTextNode: function(text) {
     let lastItem = this.parsed[this.parsed.length - 1];
     if (typeof lastItem === "string") {
-      this.parsed[this.parsed.length - 1] = lastItem + text
+      this.parsed[this.parsed.length - 1] = lastItem + text;
     } else {
       this.parsed.push(text);
     }
@@ -377,10 +428,18 @@ OutputParser.prototype = {
 
 
 
+
+
+
+
+
+
+
   _mergeOptions: function(overrides) {
     let defaults = {
       defaultColorType: true,
       colorSwatchClass: "",
+      isHTMLAttribute: false,
       urlClass: "",
       baseURI: ""
     };
