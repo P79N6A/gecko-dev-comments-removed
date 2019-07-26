@@ -104,7 +104,8 @@ enum DeprecatedTextureClientType
   TEXTURE_SHARED_GL_EXTERNAL, 
                               
                               
-  TEXTURE_STREAM_GL           
+  TEXTURE_STREAM_GL,          
+  TEXTURE_FALLBACK            
 };
 
 

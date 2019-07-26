@@ -2208,14 +2208,19 @@ TabChild::InitRenderingState()
     if (id != 0) {
         
         
-		PCompositorChild* compositorChild = CompositorChild::Get();
+        PCompositorChild* compositorChild = CompositorChild::Get();
         if (!compositorChild) {
           NS_WARNING("failed to get CompositorChild instance");
           return false;
         }
+        bool success;
         shadowManager =
             compositorChild->SendPLayerTransactionConstructor(mTextureFactoryIdentifier.mParentBackend,
-                                                              id, &mTextureFactoryIdentifier);
+                                                              id, &mTextureFactoryIdentifier, &success);
+        if (!success) {
+          NS_WARNING("failed to properly allocate layer transaction");
+          return false;
+        }
     } else {
         
         shadowManager = remoteFrame->SendPLayerTransactionConstructor();
