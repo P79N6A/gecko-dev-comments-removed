@@ -363,10 +363,6 @@ class TestManifest(SandboxDerived):
 
         
         
-        'pattern_installs',
-
-        
-        
         'install_prefix',
 
         
@@ -404,7 +400,6 @@ class TestManifest(SandboxDerived):
         self.manifest_relpath = relpath
         self.dupe_manifest = dupe_manifest
         self.installs = {}
-        self.pattern_installs = []
         self.tests = []
         self.external_installs = set()
 
