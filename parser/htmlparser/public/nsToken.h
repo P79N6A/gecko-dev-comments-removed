@@ -24,40 +24,30 @@
 
 
 
-
-
-
-
-
-
-
-
-
 #ifndef CTOKEN__
 #define CTOKEN__
 
 #include "prtypes.h"
 #include "nsString.h"
 #include "nsError.h"
-#include "nsFixedSizeAllocator.h"
 
 class nsScanner;
 class nsTokenAllocator;
+
+
+
+
+class nsDummyAllocator {
+public:
+  void* Alloc(size_t aSize) { return malloc(aSize); }
+  void Free(void* aPtr) { free(aPtr); }
+};
 
 enum eContainerInfo {
   eWellFormed,
   eMalformed,
   eFormUnknown
 };
-
-
-
-
-
-#define CTOKEN_IMPL_SIZEOF                                \
-protected:                                                \
-  virtual size_t SizeOf() const { return sizeof(*this); } \
-public:
 
 
 
@@ -85,7 +75,7 @@ class CToken {
 
 
 
-    static void * operator new (size_t aSize,nsFixedSizeAllocator& anArena) CPP_THROW_NEW
+    static void * operator new (size_t aSize, nsDummyAllocator& anArena) CPP_THROW_NEW
     {
       return anArena.Alloc(aSize);
     }
@@ -106,11 +96,10 @@ class CToken {
     
 
 
-    static void Destroy(CToken* aToken,nsFixedSizeAllocator& aArenaPool)
+    static void Destroy(CToken* aToken, nsDummyAllocator& aArenaPool)
     {
-      size_t sz = aToken->SizeOf();
       aToken->~CToken();
-      aArenaPool.Free(aToken, sz);
+      aArenaPool.Free(aToken);
     }
 
   public:
@@ -127,7 +116,7 @@ class CToken {
 
 
 
-    void Release(nsFixedSizeAllocator& aArenaPool) {
+    void Release(nsDummyAllocator& aArenaPool) {
       --mUseCount;
       NS_LOG_RELEASE(this, mUseCount, "CToken");
       if (mUseCount==0)
@@ -259,11 +248,6 @@ class CToken {
     
 
 protected:
-    
-
-
-    virtual size_t SizeOf() const = 0;
-
     int32_t mTypeID;
     int32_t mUseCount;
     int32_t mNewlineCount;
