@@ -218,8 +218,6 @@ let SessionHistoryListener = {
     
     
     
-    
-    
     gFrameTree.addObserver(this);
 
     
