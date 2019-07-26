@@ -614,19 +614,11 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         return NS_OK;
     }
 
-    nsXPCWrappedJS* sibling;
-
     
     
     
-    if (nullptr != (sibling = self->Find(aIID))) {
-        NS_ADDREF(sibling);
-        *aInstancePtr = sibling->GetXPTCStub();
-        return NS_OK;
-    }
-
     
-    if (nullptr != (sibling = self->FindInherited(aIID))) {
+    if (nsXPCWrappedJS* sibling = self->FindOrFindInherited(aIID)) {
         NS_ADDREF(sibling);
         *aInstancePtr = sibling->GetXPTCStub();
         return NS_OK;
