@@ -515,6 +515,15 @@ protected:
 
 
 
+  void SetContentResponseTimer();
+
+  
+
+
+
+
+
+
   void TimeoutContentResponse();
 
   

@@ -42,27 +42,35 @@ public:
 
 
 
-  virtual void HandleDoubleTap(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
+  virtual void HandleDoubleTap(const CSSIntPoint& aPoint,
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) = 0;
 
   
 
 
 
 
-  virtual void HandleSingleTap(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
+  virtual void HandleSingleTap(const CSSIntPoint& aPoint,
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) = 0;
 
   
 
 
 
-  virtual void HandleLongTap(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
+  virtual void HandleLongTap(const CSSIntPoint& aPoint,
+                             int32_t aModifiers,
+                             const ScrollableLayerGuid& aGuid) = 0;
 
   
 
 
 
 
-  virtual void HandleLongTapUp(const CSSIntPoint& aPoint, int32_t aModifiers) = 0;
+  virtual void HandleLongTapUp(const CSSIntPoint& aPoint,
+                               int32_t aModifiers,
+                               const ScrollableLayerGuid& aGuid) = 0;
 
   
 
