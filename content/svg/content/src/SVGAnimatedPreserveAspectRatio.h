@@ -84,34 +84,7 @@ private:
   bool mIsAnimated;
   bool mIsBaseSet;
 
-  nsresult ToDOMBaseVal(nsIDOMSVGPreserveAspectRatio **aResult,
-                        nsSVGElement* aSVGElement);
-  nsresult ToDOMAnimVal(nsIDOMSVGPreserveAspectRatio **aResult,
-                        nsSVGElement* aSVGElement);
-
 public:
-  struct DOMAnimPAspectRatio MOZ_FINAL : public nsIDOMSVGAnimatedPreserveAspectRatio
-  {
-    NS_DECL_CYCLE_COLLECTING_ISUPPORTS
-    NS_DECL_CYCLE_COLLECTION_CLASS(DOMAnimPAspectRatio)
-
-    DOMAnimPAspectRatio(SVGAnimatedPreserveAspectRatio* aVal,
-                        nsSVGElement *aSVGElement)
-      : mVal(aVal), mSVGElement(aSVGElement) {}
-    virtual ~DOMAnimPAspectRatio();
-
-    
-    SVGAnimatedPreserveAspectRatio* mVal;
-
-    nsRefPtr<nsSVGElement> mSVGElement;
-
-    NS_IMETHOD GetBaseVal(nsIDOMSVGPreserveAspectRatio **aBaseVal)
-      { return mVal->ToDOMBaseVal(aBaseVal, mSVGElement); }
-
-    NS_IMETHOD GetAnimVal(nsIDOMSVGPreserveAspectRatio **aAnimVal)
-      { return mVal->ToDOMAnimVal(aAnimVal, mSVGElement); }
-  };
-
   struct SMILPreserveAspectRatio MOZ_FINAL : public nsISMILAttr
   {
   public:
@@ -136,6 +109,42 @@ public:
   };
 };
 
+namespace dom {
+class DOMSVGAnimatedPreserveAspectRatio MOZ_FINAL : public nsIDOMSVGAnimatedPreserveAspectRatio,
+                                                    public nsWrapperCache
+{
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGAnimatedPreserveAspectRatio)
+
+  DOMSVGAnimatedPreserveAspectRatio(SVGAnimatedPreserveAspectRatio* aVal,
+                                    nsSVGElement *aSVGElement)
+    : mVal(aVal), mSVGElement(aSVGElement)
+  {
+    SetIsDOMBinding();
+  }
+  ~DOMSVGAnimatedPreserveAspectRatio();
+
+  NS_IMETHOD GetBaseVal(nsIDOMSVGPreserveAspectRatio **aBaseVal)
+    { *aBaseVal = BaseVal().get(); return NS_OK; }
+
+  NS_IMETHOD GetAnimVal(nsIDOMSVGPreserveAspectRatio **aAnimVal)
+    { *aAnimVal = AnimVal().get(); return NS_OK; }
+
+  
+  nsSVGElement* GetParentObject() const { return mSVGElement; }
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
+
+  
+  already_AddRefed<DOMSVGPreserveAspectRatio> BaseVal();
+  already_AddRefed<DOMSVGPreserveAspectRatio> AnimVal();
+
+protected:
+  
+  SVGAnimatedPreserveAspectRatio* mVal;
+  nsRefPtr<nsSVGElement> mSVGElement;
+};
+
+} 
 } 
 
 #endif 
