@@ -58,8 +58,6 @@ public class ToolbarEditText extends CustomEditText
 
     
     private TextType mToolbarTextType;
-    
-    private TextType mKeyboardTextType;
 
     private OnCommitListener mCommitListener;
     private OnDismissListener mDismissListener;
@@ -72,14 +70,11 @@ public class ToolbarEditText extends CustomEditText
     
     private String mAutoCompletePrefix = null;
 
-    private boolean mDelayRestartInput;
-
     public ToolbarEditText(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
 
         mToolbarTextType = TextType.EMPTY;
-        mKeyboardTextType = TextType.URL;
     }
 
     void setOnCommitListener(OnCommitListener listener) {
@@ -158,23 +153,6 @@ public class ToolbarEditText extends CustomEditText
         mAutoCompletePrefix = null;
     }
 
-    private void updateKeyboardInputType() {
-        
-        
-        
-        
-        final String text = getText().toString();
-        final int currentInputType = getInputType();
-
-        final int newInputType = StringUtils.isSearchQuery(text, false)
-                                 ? (currentInputType & ~InputType.TYPE_TEXT_VARIATION_URI) 
-                                 : (currentInputType | InputType.TYPE_TEXT_VARIATION_URI); 
-
-        if (newInputType != currentInputType) {
-            setRawInputType(newInputType);
-        }
-    }
-
     private static boolean hasCompositionString(Editable content) {
         Object[] spans = content.getSpans(0, content.length(), Object.class);
 
@@ -193,9 +171,6 @@ public class ToolbarEditText extends CustomEditText
     private void setTextType(TextType textType) {
         mToolbarTextType = textType;
 
-        if (textType != TextType.EMPTY) {
-            mKeyboardTextType = textType;
-        }
         if (mTextTypeListener != null) {
             mTextTypeListener.onTextTypeChange(this, textType);
         }
@@ -207,58 +182,13 @@ public class ToolbarEditText extends CustomEditText
             return;
         }
 
-        if (InputMethods.shouldDisableUrlBarUpdate(mContext)) {
-            
-            setTextType(mKeyboardTextType);
-            return;
-        }
-
-        final int actionBits = getImeOptions() & EditorInfo.IME_MASK_ACTION;
-
-        final int imeAction;
-        if (StringUtils.isSearchQuery(text, actionBits == EditorInfo.IME_ACTION_SEARCH)) {
-            imeAction = EditorInfo.IME_ACTION_SEARCH;
+        final TextType newType;
+        if (StringUtils.isSearchQuery(text, mToolbarTextType == TextType.SEARCH_QUERY)) {
+            newType = TextType.SEARCH_QUERY;
         } else {
-            imeAction = EditorInfo.IME_ACTION_GO;
+            newType = TextType.URL;
         }
-
-        InputMethodManager imm = InputMethods.getInputMethodManager(mContext);
-        if (imm == null) {
-            return;
-        }
-
-        boolean restartInput = false;
-        if (actionBits != imeAction) {
-            int optionBits = getImeOptions() & ~EditorInfo.IME_MASK_ACTION;
-            setImeOptions(optionBits | imeAction);
-
-            mDelayRestartInput = (imeAction == EditorInfo.IME_ACTION_GO) &&
-                                 (InputMethods.shouldDelayUrlBarUpdate(mContext));
-
-            if (!mDelayRestartInput) {
-                restartInput = true;
-            }
-        } else if (mDelayRestartInput) {
-            
-            
-            
-            mDelayRestartInput = false;
-            restartInput = true;
-        }
-
-        if (!restartInput) {
-            
-            
-            
-            
-            setTextType(mKeyboardTextType);
-            return;
-        }
-        updateKeyboardInputType();
-        imm.restartInput(ToolbarEditText.this);
-
-        setTextType(imeAction == EditorInfo.IME_ACTION_GO ?
-                    TextType.URL : TextType.SEARCH_QUERY);
+        setTextType(newType);
     }
 
     private class TextChangeListener implements TextWatcher {
@@ -301,11 +231,7 @@ public class ToolbarEditText extends CustomEditText
                 }
             }
 
-            
-            
-            if (!hasCompositionString(s) || InputMethods.isGestureKeyboard(mContext)) {
-                updateTextTypeFromText(text);
-            }
+            updateTextTypeFromText(text);
         }
 
         @Override
