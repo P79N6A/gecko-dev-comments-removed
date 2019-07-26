@@ -406,6 +406,14 @@ Editor.prototype = {
   
 
 
+  hasMultipleSelections: function () {
+    let cm = editors.get(this);
+    return cm.listSelections().length > 1;
+  },
+
+  
+
+
   getFirstVisibleLine: function () {
     let cm = editors.get(this);
     return cm.lineAtHeight(0, "local");

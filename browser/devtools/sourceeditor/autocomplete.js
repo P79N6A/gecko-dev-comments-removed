@@ -103,10 +103,12 @@ function autoComplete({ ed, cm }) {
     
     
     
+
+    let cursorElement = cm.display.cursorDiv.querySelector(".CodeMirror-cursor");
     let left = suggestions[0].preLabel.length * cm.defaultCharWidth() + 4;
     popup.hidePopup();
     popup.setItems(suggestions);
-    popup.openPopup(cm.display.cursor, -1 * left, 0);
+    popup.openPopup(cursorElement, -1 * left, 0);
     private.suggestionInsertedOnce = false;
     
     ed.emit("after-suggest");
@@ -159,6 +161,14 @@ function cycleSuggestions(ed, reverse) {
 
 function onEditorKeypress({ ed, Editor }, event) {
   let private = privates.get(ed);
+
+  
+  if (ed.hasMultipleSelections()) {
+    private.doNotAutocomplete = true;
+    private.popup.hidePopup();
+    return;
+  }
+
   switch (event.keyCode) {
     case event.DOM_VK_ESCAPE:
       if (private.popup.isOpen)
