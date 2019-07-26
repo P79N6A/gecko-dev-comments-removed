@@ -537,7 +537,10 @@ bool
 XPCWrappedNativeXrayTraits::isResolving(JSContext *cx, JSObject *holder,
                                         jsid id)
 {
-    return ResolvingId::getResolvingId(holder)->isResolving(id);
+    ResolvingId *cur = ResolvingId::getResolvingId(holder);
+    if (!cur)
+        return false;
+    return cur->isResolving(id);
 }
 
 
