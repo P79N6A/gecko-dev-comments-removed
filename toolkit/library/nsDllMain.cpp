@@ -7,6 +7,9 @@
 #include <delayimp.h>
 #include "nsToolkit.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/WindowsVersion.h"
+
+using mozilla::IsWin8OrLater;
 
 #if defined(__GNUC__)
 
@@ -63,22 +66,6 @@ BOOL APIENTRY DllMain(
 
 
 
-static bool IsWin8OrHigher()
-{
-  static int32_t version = 0;
-
-  if (version) {
-    return (version >= 0x602);
-  }
-
-  
-  OSVERSIONINFOEX osInfo;
-  osInfo.dwOSVersionInfoSize = sizeof(OSVERSIONINFOEX);
-  ::GetVersionEx((OSVERSIONINFO*)&osInfo);
-  version =
-    (osInfo.dwMajorVersion & 0xff) << 8 | (osInfo.dwMinorVersion & 0xff);
-  return (version >= 0x602);
-}
 
 const char* kvccorlib = "vccorlib";
 const char* kwinrtprelim = "api-ms-win-core-winrt";
@@ -86,13 +73,13 @@ const char* kfailfast = "?__abi_FailFast";
 
 static bool IsWinRTDLLNotPresent(PDelayLoadInfo pdli, const char* aLibToken)
 {
-  return (!IsWin8OrHigher() && pdli->szDll &&
+  return (!IsWin8OrLater() && pdli->szDll &&
           !strnicmp(pdli->szDll, aLibToken, strlen(aLibToken)));
 }
 
 static bool IsWinRTDLLPresent(PDelayLoadInfo pdli, const char* aLibToken)
 {
-  return (IsWin8OrHigher() && pdli->szDll &&
+  return (IsWin8OrLater() && pdli->szDll &&
           !strnicmp(pdli->szDll, aLibToken, strlen(aLibToken)));
 }
 
