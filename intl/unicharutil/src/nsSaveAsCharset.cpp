@@ -4,6 +4,7 @@
 
 
 
+
 #include "prmem.h"
 #include "prprf.h"
 #include "nsIServiceManager.h"
@@ -127,6 +128,8 @@ nsSaveAsCharset::GetCharset(char * *aCharset)
 
 
 
+#define RESERVE_FALLBACK_BYTES 512
+
 
 
 NS_IMETHODIMP
@@ -144,14 +147,16 @@ nsSaveAsCharset::HandleFallBack(uint32_t character, char **outString, int32_t *b
 
     
     if ((tempLen + estimatedLength) >= (*bufferLength - *currentPos)) {
-      char *temp = (char *) PR_Realloc(*outString, *bufferLength + tempLen);
+      int32_t addLength = tempLen + RESERVE_FALLBACK_BYTES;
+      
+      char *temp = (char *) PR_Realloc(*outString, *bufferLength + addLength + 1);
       if (temp) {
         
-        *bufferLength += tempLen;
+        *bufferLength += addLength;
         *outString = temp;
       } else {
         *outString = nullptr;
-        *bufferLength =0;
+        *bufferLength = 0;
         return NS_ERROR_OUT_OF_MEMORY;
       }
     }
@@ -180,12 +185,19 @@ nsSaveAsCharset::DoCharsetConversion(const PRUnichar *inString, char **outString
   rv = mEncoder->GetMaxLength(inString, inStringLength, &dstLength);
   if (NS_FAILED(rv)) return rv;
 
-  bufferLength = dstLength + 512; 
-  char *dstPtr = (char *) PR_Malloc(bufferLength);
+  bufferLength = dstLength + RESERVE_FALLBACK_BYTES; 
+  
+  
+  
+  char *dstPtr = (char *) PR_Malloc(bufferLength + 1);
+  if (!dstPtr) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
   
   for (pos1 = 0, pos2 = 0; pos1 < inStringLength;) {
     
     dstLength = bufferLength - pos2;
+    NS_ASSERTION(dstLength >= 0, "out of bounds write");
     rv = mEncoder->Convert(&inString[pos1], &srcLength, &dstPtr[pos2], &dstLength);
 
     pos1 += srcLength ? srcLength : 1;
