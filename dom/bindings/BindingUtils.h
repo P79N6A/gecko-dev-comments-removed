@@ -187,7 +187,7 @@ IsDOMObject(JSObject* obj)
 
 
 template <prototypes::ID PrototypeID, class T, typename U>
-MOZ_ALWAYS_INLINE nsresult
+inline nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
@@ -497,20 +497,6 @@ CheckWrapperCacheCast<T, true>
 };
 #endif
 
-MOZ_ALWAYS_INLINE bool
-CouldBeDOMBinding(void*)
-{
-  return true;
-}
-
-MOZ_ALWAYS_INLINE bool
-CouldBeDOMBinding(nsWrapperCache* aCache)
-{
-  return aCache->IsDOMBinding();
-}
-
-
-
 
 
 
@@ -525,12 +511,9 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
       *vp = JS::ObjectValue(*obj);
       return true;
     }
-  } else {
-    
-    if (!CouldBeDOMBinding(value)) {
-      return false;
-    }
+  }
 
+  if (!obj) {
     bool triedToWrap;
     obj = value->WrapObject(cx, scope, &triedToWrap);
     if (!obj) {
@@ -573,6 +556,8 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 
 
 
+
+
 template <class T>
 inline bool
 WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
@@ -611,45 +596,24 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope,
 
 
 
+
+
 bool
-NativeInterface2JSObjectAndThrowIfFailed(JSContext* aCx,
-                                         JSObject* aScope,
-                                         JS::Value* aRetval,
-                                         xpcObjectHelper& aHelper,
-                                         const nsIID* aIID,
-                                         bool aAllowNativeWrapper);
-
-inline nsWrapperCache*
-GetWrapperCache(nsWrapperCache* cache)
-{
-  return cache;
-}
-
-inline nsWrapperCache*
-GetWrapperCache(nsGlobalWindow* not_allowed);
-
-inline nsWrapperCache*
-GetWrapperCache(void* p)
-{
-  return NULL;
-}
+DoHandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope,
+                                  nsISupports* value, JS::Value* vp);
 
 
 
 
 
 template <class T>
-MOZ_ALWAYS_INLINE bool
+bool
 HandleNewBindingWrappingFailure(JSContext* cx, JSObject* scope, T* value,
                                 JS::Value* vp)
 {
-  if (JS_IsExceptionPending(cx)) {
-    return false;
-  }
-
-  qsObjectHelper helper(value, GetWrapperCache(value));
-  return NativeInterface2JSObjectAndThrowIfFailed(cx, scope, vp, helper,
-                                                  nullptr, true);
+  nsCOMPtr<nsISupports> val;
+  CallQueryInterface(value, getter_AddRefs(val));
+  return DoHandleNewBindingWrappingFailure(cx, scope, val, vp);
 }
 
 
@@ -735,6 +699,21 @@ FindEnumStringIndex(JSContext* cx, JS::Value v, const EnumEntry* values,
 
   *ok = EnumValueNotFound<InvalidValueFatal>(cx, chars, length, type);
   return -1;
+}
+
+inline nsWrapperCache*
+GetWrapperCache(nsWrapperCache* cache)
+{
+  return cache;
+}
+
+inline nsWrapperCache*
+GetWrapperCache(nsGlobalWindow* not_allowed);
+
+inline nsWrapperCache*
+GetWrapperCache(void* p)
+{
+  return NULL;
 }
 
 struct ParentObject {

@@ -100,7 +100,6 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "nsHTMLDocument.h"
-#include "nsDOMTouchEvent.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2905,24 +2904,6 @@ nsGenericHTMLElement::IsLabelable() const
 {
   return Tag() == nsGkAtoms::progress ||
          Tag() == nsGkAtoms::meter;
-}
-
-
-bool
-nsGenericHTMLElement::PrefEnabled()
-{
-  
-  
-  
-  
-  
-  static bool sDidSetPref = false;
-  if (!sDidSetPref) {
-    sDidSetPref = true;
-    Preferences::SetBool("dom.w3c_touch_events.expose",
-                         nsDOMTouchEvent::PrefEnabled());
-  }
-  return true;
 }
 
 
