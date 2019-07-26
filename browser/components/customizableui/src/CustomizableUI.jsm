@@ -720,6 +720,11 @@ let CustomizableUIInternal = {
       throw new Error("Build window not registered");
     }
 
+    if (!aId) {
+      ERROR("findWidgetInWindow was passed an empty string.");
+      return null;
+    }
+
     let document = aWindow.document;
 
     
