@@ -15,6 +15,7 @@ var Appbar = {
     window.addEventListener('MozContextUIShow', this, false);
     window.addEventListener('MozPrecisePointer', this, false);
     window.addEventListener('MozImprecisePointer', this, false);
+    window.addEventListener('MozContextActionsChange', this, false);
 
     this._updateDebugButtons();
     this._updateZoomButtons();
@@ -32,6 +33,11 @@ var Appbar = {
       case 'MozPrecisePointer':
       case 'MozImprecisePointer':
         this._updateZoomButtons();
+        break;
+      case 'MozContextActionsChange':
+        let actions = aEvent.actions;
+        
+        this.showContextualActions(actions);
         break;
       case "selectionchange":
         let nodeName = aEvent.target.nodeName;
@@ -139,13 +145,13 @@ var Appbar = {
       
       let event = document.createEvent("Events");
       event.action = aActionName;
-      event.initEvent("context-action", true, false);
+      event.initEvent("context-action", true, true); 
       activeTileset.dispatchEvent(event);
-
-      
-      activeTileset.clearSelection();
+      if (!event.defaultPrevented) {
+        activeTileset.clearSelection();
+        this.appbar.dismiss();
+      }
     }
-    this.appbar.dismiss();
   },
 
   showContextualActions: function(aVerbs){
@@ -199,10 +205,13 @@ var Appbar = {
     let verbs = [v for (v of contextActions)];
 
     
-    this.showContextualActions(verbs);
+    let event = document.createEvent("Events");
+    event.actions = verbs;
+    event.initEvent("MozContextActionsChange", true, false);
+    this.appbar.dispatchEvent(event);
 
     if (verbs.length) {
-      this.appbar.show();
+      this.appbar.show(); 
     } else {
       this.appbar.dismiss();
     }

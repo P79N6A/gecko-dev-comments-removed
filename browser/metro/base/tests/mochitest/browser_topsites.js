@@ -331,3 +331,96 @@ gTests.push({
     ok( !NewTabUtils.pinnedLinks.isPinned(site), "2nd item should no longer be pinned" );
   }
 });
+
+gTests.push({
+  desc: "block/unblock sites",
+  setUp: function() {
+    
+    yield setLinks(
+      "brian,dougal,dylan,ermintrude,florence,moose,sgtsam,train,zebedee,zeebad",
+      ",dougal"
+    );
+    yield updatePagesAndWait();
+
+    
+    yield waitForCondition(function(){
+      let grid = document.getElementById("start-topsites-grid");
+      return !grid.controller.isUpdating;
+    });
+  },
+  run: function() {
+    try {
+      
+      
+      let grid = document.getElementById("start-topsites-grid"),
+          items = grid.children;
+      is(items.length, 8, this.desc + ": should be 8 topsites");
+
+      let brianSite = {
+        url: items[0].getAttribute("value"),
+        title: items[0].getAttribute("label")
+      };
+      let dougalSite = {
+        url: items[1].getAttribute("value"),
+        title: items[1].getAttribute("label")
+      };
+
+      
+      TopSites.hideSite(brianSite);
+
+      
+      yield waitForCondition(function(){
+        return !grid.controller.isUpdating;
+      });
+
+      
+      ok( (new Site(brianSite)).blocked, "Site has truthy blocked property" );
+      ok( NewTabUtils.blockedLinks.isBlocked(brianSite), "Site was blocked" );
+      is( grid.querySelectorAll("[value='"+brianSite.url+"']").length, 0, "Blocked site was removed from grid");
+
+      
+      is(items.length, 8, this.desc + ": should be 8 topsites");
+
+      
+      TopSites.hideSite(dougalSite);
+
+      
+      yield waitForCondition(function(){
+        return !grid.controller.isUpdating;
+      });
+
+      
+      ok( (new Site(dougalSite)).blocked, "Site has truthy blocked property" );
+      ok( NewTabUtils.blockedLinks.isBlocked(dougalSite), "Site was blocked" );
+      ok( !NewTabUtils.pinnedLinks.isPinned(dougalSite), "Blocked Site is no longer pinned" );
+      is( grid.querySelectorAll("[value='"+dougalSite.url+"']").length, 0, "Blocked site was removed from grid");
+
+      
+      is(items.length, 8, this.desc + ": should be 8 topsites");
+
+      TopSites.restoreSite(brianSite);
+      TopSites.restoreSite(dougalSite);
+
+      yield waitForCondition(function(){
+        return !grid.controller.isUpdating;
+      });
+
+      
+      ok( !NewTabUtils.blockedLinks.isBlocked(brianSite), "site was unblocked" );
+      is( grid.querySelectorAll("[value='"+brianSite.url+"']").length, 1, "Unblocked site is back in the grid");
+
+      ok( !NewTabUtils.blockedLinks.isBlocked(dougalSite), "site was unblocked" );
+      is( grid.querySelectorAll("[value='"+dougalSite.url+"']").length, 1, "Unblocked site is back in the grid");
+      
+      ok( NewTabUtils.pinnedLinks.isPinned(dougalSite), "Restoring previously pinned site makes it pinned again" );
+      is( grid.children[1].getAttribute("value"), dougalSite.url, "Blocked Site restored to pinned index" );
+
+    } catch(ex) {
+      ok(false, this.desc+": Caught exception in test: " + ex);
+      info("trace: " + ex.stack);
+    }
+
+  }
+});
+
+

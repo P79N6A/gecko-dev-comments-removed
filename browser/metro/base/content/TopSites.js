@@ -98,13 +98,29 @@ let TopSites = {
     if (!(aSite && aSite.url)) {
       throw Cr.NS_ERROR_INVALID_ARG
     }
+
+    aSite._restorePinIndex = NewTabUtils.pinnedLinks._indexOfLink(aSite);
     
+    NewTabUtils.blockedLinks.block(aSite);
+    
+    this._sites = null;
+    this._sitesDirty.clear();
+    this.update();
   },
   restoreSite: function(aSite) {
     if (!(aSite && aSite.url)) {
       throw Cr.NS_ERROR_INVALID_ARG
     }
+    NewTabUtils.blockedLinks.unblock(aSite);
+    let pinIndex = aSite._restorePinIndex;
+
+    if (!isNaN(pinIndex) && pinIndex > -1) {
+      NewTabUtils.pinnedLinks.pin(aSite, pinIndex);
+    }
     
+    this._sites = null;
+    this._sitesDirty.clear();
+    this.update();
   },
   _linkFromNode: function _linkFromNode(aNode) {
     return {
@@ -124,6 +140,9 @@ function TopSitesView(aGrid, aMaxSites, aUseThumbnails) {
   
   this._set.addEventListener("context-action", this, false);
 
+  
+  window.addEventListener('MozAppbarDismissing', this, false);
+
   let history = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
   history.addObserver(this, false);
@@ -142,6 +161,8 @@ TopSitesView.prototype = {
   _set:null,
   _topSitesMax: null,
   
+  _lastSelectedSites: null,
+  
   isUpdating: false,
 
   handleItemClick: function tabview_handleItemClick(aItem) {
@@ -149,52 +170,77 @@ TopSitesView.prototype = {
     BrowserUI.goToURI(url);
   },
 
-  doActionOnSelectedTiles: function(aActionName) {
+  doActionOnSelectedTiles: function(aActionName, aEvent) {
     let tileGroup = this._set;
     let selectedTiles = tileGroup.selectedItems;
+    let nextContextActions = new Set();
 
     switch (aActionName){
       case "delete":
         Array.forEach(selectedTiles, function(aNode) {
           let site = TopSites._linkFromNode(aNode);
           
+          aNode.contextActions.delete('delete');
+          
+          nextContextActions.add('restore');
           TopSites.hideSite(site);
-          if (aNode.contextActions){
-            aNode.contextActions.delete('delete');
-            aNode.contextActions.add('restore');
+          if (!this._lastSelectedSites) {
+            this._lastSelectedSites = [];
           }
-        });
+          this._lastSelectedSites.push(site);
+        }, this);
+        break;
+      case "restore":
+        
+        if (this._lastSelectedSites) {
+          for (let site of this._lastSelectedSites) {
+            TopSites.restoreSite(site);
+          }
+        }
         break;
       case "pin":
         Array.forEach(selectedTiles, function(aNode) {
           let site = TopSites._linkFromNode(aNode);
           let index = Array.indexOf(aNode.control.children, aNode);
+          aNode.contextActions.delete('pin');
+          aNode.contextActions.add('unpin');
           TopSites.pinSite(site, index);
-          if (aNode.contextActions) {
-            aNode.contextActions.delete('pin');
-            aNode.contextActions.add('unpin');
-          }
         });
         break;
       case "unpin":
         Array.forEach(selectedTiles, function(aNode) {
           let site = TopSites._linkFromNode(aNode);
+          aNode.contextActions.delete('unpin');
+          aNode.contextActions.add('pin');
           TopSites.unpinSite(site);
-          if (aNode.contextActions) {
-            aNode.contextActions.delete('unpin');
-            aNode.contextActions.add('pin');
-          }
         });
         break;
       
+    }
+    if (nextContextActions.size) {
+      
+      aEvent.preventDefault();
+      
+      setTimeout(function(){
+        
+        let event = document.createEvent("Events");
+        event.actions = [...nextContextActions];
+        event.initEvent("MozContextActionsChange", true, false);
+        tileGroup.dispatchEvent(event);
+      },0);
     }
   },
 
   handleEvent: function(aEvent) {
     switch (aEvent.type){
       case "context-action":
-        this.doActionOnSelectedTiles(aEvent.action);
+        this.doActionOnSelectedTiles(aEvent.action, aEvent);
+        aEvent.stopPropagation(); 
         break;
+      case "MozAppbarDismissing":
+        
+        this._lastSelectedSites = null;
+        this._set.clearSelection();
     }
   },
 
@@ -297,6 +343,7 @@ TopSitesView.prototype = {
       Services.obs.removeObserver(this, "Metro:RefreshTopsiteThumbnail");
       PageThumbs.removeExpirationFilter(this);
     }
+    window.removeEventListener('MozAppbarDismissing', this, false);
   },
 
   
