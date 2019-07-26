@@ -522,12 +522,12 @@ MacroAssembler::newGCThingPar(Register result, Register cx, Register tempReg1, R
 
     
     
-    loadPtr(Address(tempReg1, offsetof(gc::FreeSpan, first)), tempReg2);
+    loadPtr(Address(tempReg1, gc::FreeList::offsetOfFirst()), tempReg2);
 
     
     
     branchPtr(Assembler::BelowOrEqual,
-              Address(tempReg1, offsetof(gc::FreeSpan, last)),
+              Address(tempReg1, gc::FreeList::offsetOfLast()),
               tempReg2,
               fail);
 
@@ -539,7 +539,7 @@ MacroAssembler::newGCThingPar(Register result, Register cx, Register tempReg1, R
 
     
     
-    storePtr(tempReg2, Address(tempReg1, offsetof(gc::FreeSpan, first)));
+    storePtr(tempReg2, Address(tempReg1, gc::FreeList::offsetOfFirst()));
 }
 
 void
