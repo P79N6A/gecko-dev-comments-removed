@@ -814,6 +814,23 @@ void MediaDecoder::ResourceLoaded()
   }
 }
 
+void MediaDecoder::ResetConnectionState()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+  if (mShuttingDown)
+    return;
+
+  if (mOwner) {
+    
+    mOwner->ResetConnectionState();
+  }
+
+  
+  
+  
+  Shutdown();
+}
+
 void MediaDecoder::NetworkError()
 {
   MOZ_ASSERT(NS_IsMainThread());
