@@ -658,6 +658,19 @@ BluetoothHfpManager::HandleVoiceConnectionChanged()
   NS_ENSURE_TRUE(network, NS_ERROR_FAILURE);
   network->GetLongName(mOperatorName);
 
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mOperatorName.Length() > 16) {
+    NS_WARNING("The operator name was longer than 16 characters. We cut it.");
+    mOperatorName.Left(mOperatorName, 16);
+  }
+
   return NS_OK;
 }
 
