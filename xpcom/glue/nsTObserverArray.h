@@ -95,6 +95,7 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     
     
     
+    
     elem_type& ElementAt(index_type i) {
       return mArray.ElementAt(i);
     }
@@ -119,14 +120,8 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
     }
 
     
-    elem_type& operator[](index_type i) {
-      return ElementAt(i);
-    }
-
     
-    const elem_type& operator[](index_type i) const {
-      return ElementAt(i);
-    }
+    
 
     
     
@@ -392,7 +387,7 @@ ImplCycleCollectionTraverse(nsCycleCollectionTraversalCallback& aCallback,
   aFlags |= CycleCollectionEdgeNameArrayFlag;
   size_t length = aField.Length();
   for (size_t i = 0; i < length; ++i) {
-    ImplCycleCollectionTraverse(aCallback, aField[i], aName, aFlags);
+    ImplCycleCollectionTraverse(aCallback, aField.ElementAt(i), aName, aFlags);
   }
 }
 
