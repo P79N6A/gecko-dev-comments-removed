@@ -1,33 +1,43 @@
-const {DevToolsUtils} = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
-const {DebuggerServer, ActorPool} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
-
-if (!DebuggerServer.initialized) {
-  DebuggerServer.init();
-}
 
 
 
 
+"use strict";
 
-DebuggerServer.addChildActors();
 
-let onConnect = DevToolsUtils.makeInfallible(function (msg) {
-  removeMessageListener("debug:connect", onConnect);
 
-  let mm = msg.target;
+(function () {
+  const {DevToolsUtils} = Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm", {});
+  const {DebuggerServer, ActorPool} = Cu.import("resource://gre/modules/devtools/dbg-server.jsm", {});
 
-  let prefix = msg.data.prefix + docShell.appId;
+  if (!DebuggerServer.initialized) {
+    DebuggerServer.init();
+  }
 
-  let conn = DebuggerServer.connectToParent(prefix, mm);
+  
+  
+  
+  
+  DebuggerServer.addChildActors();
 
-  let actor = new DebuggerServer.ContentAppActor(conn, content);
-  let actorPool = new ActorPool(conn);
-  actorPool.addActor(actor);
-  conn.addActorPool(actorPool);
+  let onConnect = DevToolsUtils.makeInfallible(function (msg) {
+    removeMessageListener("debug:connect", onConnect);
 
-  sendAsyncMessage("debug:actor", {actor: actor.grip(),
-                                   appId: docShell.appId,
-                                   prefix: prefix});
-});
+    let mm = msg.target;
 
-addMessageListener("debug:connect", onConnect);
+    let prefix = msg.data.prefix + docShell.appId;
+
+    let conn = DebuggerServer.connectToParent(prefix, mm);
+
+    let actor = new DebuggerServer.ContentAppActor(conn, content);
+    let actorPool = new ActorPool(conn);
+    actorPool.addActor(actor);
+    conn.addActorPool(actorPool);
+
+    sendAsyncMessage("debug:actor", {actor: actor.grip(),
+                                     appId: docShell.appId,
+                                     prefix: prefix});
+  });
+
+  addMessageListener("debug:connect", onConnect);
+})();
