@@ -270,12 +270,12 @@ JSCompartment::wrap(JSContext *cx, Value *vp, JSObject *existingArg)
         JSString *str = vp->toString();
 
         
-        if (str->compartment() == this)
+        if (str->zone() == zone())
             return true;
 
         
         if (str->isAtom()) {
-            JS_ASSERT(str->compartment() == cx->runtime->atomsCompartment);
+            JS_ASSERT(str->zone() == cx->runtime->atomsCompartment->zone());
             return true;
         }
     }
