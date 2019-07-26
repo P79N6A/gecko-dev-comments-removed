@@ -4923,7 +4923,7 @@ nsContextBoxBlur::Init(const nsRect& aRect, nscoord aSpreadRadius,
                          blurRadius, &dirtyRect, &skipRect);
   } else {
     mContext = blur.Init(rect, spreadRadius,
-                         blurRadius, &dirtyRect, NULL);
+                         blurRadius, &dirtyRect, nullptr);
   }
 
   if (mContext) {

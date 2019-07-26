@@ -62,6 +62,7 @@ class GradientStops;
 
 
 
+
 typedef enum {
   BorderColorStyleNone,
   BorderColorStyleSolid,

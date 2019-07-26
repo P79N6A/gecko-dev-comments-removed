@@ -1348,7 +1348,8 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
     return;
   }
   GWorldPtr gWorld;
-  if (::NewGWorldFromPtr(&gWorld, k32ARGBPixelFormat, &gwBounds, NULL, NULL, 0,
+  if (::NewGWorldFromPtr(&gWorld, k32ARGBPixelFormat, &gwBounds,
+                         nullptr, nullptr, 0,
                          buffer.Elements(), window.width * 4) != noErr) {
     ::CGContextRelease(cgBuffer);
     nativeDraw.EndNativeDrawing();
@@ -1742,7 +1743,7 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
 
       
       gfxRect tmpRect(0, 0, 0, 0);
-      mInstanceOwner->Paint(tmpRect, NULL);
+      mInstanceOwner->Paint(tmpRect, nullptr);
     }
   }
 #elif defined(MOZ_X11)

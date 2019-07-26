@@ -620,7 +620,7 @@ nsSimplePageSequenceFrame::PrePrintNextPage(nsITimerCallback* aCallback, bool* a
         }
 
           
-        ctx->InitializeWithSurface(NULL, printSurface, size.width, size.height);
+        ctx->InitializeWithSurface(nullptr, printSurface, size.width, size.height);
 
         
         nsWeakFrame weakFrame = this;

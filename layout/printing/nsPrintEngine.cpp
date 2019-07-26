@@ -3018,7 +3018,7 @@ nsPrintEngine::CleanupDocTitleArray(PRUnichar**& aArray, int32_t& aCount)
     nsMemory::Free(aArray[i]);
   }
   nsMemory::Free(aArray);
-  aArray = NULL;
+  aArray = nullptr;
   aCount = 0;
 }
 

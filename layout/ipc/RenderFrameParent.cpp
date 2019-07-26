@@ -114,14 +114,14 @@ static nsContentView*
 FindViewForId(const ViewMap& aMap, ViewID aId)
 {
   ViewMap::const_iterator iter = aMap.find(aId);
-  return iter != aMap.end() ? iter->second : NULL;
+  return iter != aMap.end() ? iter->second : nullptr;
 }
 
 static const FrameMetrics*
 GetFrameMetrics(Layer* aLayer)
 {
   ContainerLayer* container = aLayer->AsContainerLayer();
-  return container ? &container->GetFrameMetrics() : NULL;
+  return container ? &container->GetFrameMetrics() : nullptr;
 }
 
 
@@ -933,7 +933,7 @@ RenderFrameParent::BuildViewMap()
     for (ViewMap::const_iterator iter = mContentViews.begin();
          iter != mContentViews.end();
          ++iter) {
-      iter->second->mFrameLoader = NULL;
+      iter->second->mFrameLoader = nullptr;
     }
 
     mozilla::layout::BuildViewMap(mContentViews, newContentViews, mFrameLoader, GetRootLayer());
