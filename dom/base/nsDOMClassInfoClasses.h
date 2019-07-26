@@ -151,7 +151,7 @@ DOMCI_CLASS(TreeContentView)
 
 DOMCI_CLASS(Crypto)
 DOMCI_CLASS(CRMFObject)
-
+  
 
 DOMCI_CLASS(TreeWalker)
 
@@ -163,10 +163,10 @@ DOMCI_CLASS(ChromeWindow)
 
 
 DOMCI_CLASS(ContentList)
-
+  
 
 DOMCI_CLASS(XMLStylesheetProcessingInstruction)
-
+  
 DOMCI_CLASS(ImageDocument)
 
 #ifdef MOZ_XUL
@@ -407,7 +407,6 @@ DOMCI_CLASS(CameraCapabilities)
 
 DOMCI_CLASS(DOMError)
 DOMCI_CLASS(DOMRequest)
-DOMCI_CLASS(DOMCursor)
 DOMCI_CLASS(OpenWindowEventDetail)
 DOMCI_CLASS(AsyncScrollEventDetail)
 
