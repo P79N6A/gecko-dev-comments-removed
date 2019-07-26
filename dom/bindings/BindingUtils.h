@@ -1370,6 +1370,10 @@ public:
     return mImpl.ref();
   }
 
+  
+  
+  
+
 private:
   
   Optional(const Optional& other) MOZ_DELETE;
