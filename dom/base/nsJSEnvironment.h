@@ -111,9 +111,7 @@ public:
                               int32_t aExtraForgetSkippableCalls = 0);
 
   
-  
-  
-  static void RunCycleCollectorSlice(int64_t aSliceTime);
+  static void RunCycleCollectorSlice();
 
   static void BeginCycleCollectionCallback();
   static void EndCycleCollectionCallback(mozilla::CycleCollectorResults &aResults);

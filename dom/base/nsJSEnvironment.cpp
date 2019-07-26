@@ -2124,7 +2124,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
 
 
 void
-nsJSContext::RunCycleCollectorSlice(int64_t aSliceTime)
+nsJSContext::RunCycleCollectorSlice()
 {
   if (!NS_IsMainThread()) {
     return;
@@ -2135,7 +2135,7 @@ nsJSContext::RunCycleCollectorSlice(int64_t aSliceTime)
   
   
   gCCStats.PrepareForCycleCollectionSlice();
-  nsCycleCollector_collectSlice(aSliceTime);
+  nsCycleCollector_collectSlice(ICCSliceTime());
   gCCStats.FinishCycleCollectionSlice();
 }
 
@@ -2160,7 +2160,7 @@ ICCTimerFired(nsITimer* aTimer, void* aClosure)
     }
   }
 
-  nsJSContext::RunCycleCollectorSlice(ICCSliceTime());
+  nsJSContext::RunCycleCollectorSlice();
 }
 
 
@@ -2436,7 +2436,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
       
       
       
-      nsJSContext::RunCycleCollectorSlice(ICCSliceTime());
+      nsJSContext::RunCycleCollectorSlice();
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
       
