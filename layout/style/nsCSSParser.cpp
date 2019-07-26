@@ -5197,16 +5197,21 @@ CSSParserImpl::ParseFlex()
   
   
 
-  
-  
-  
-  
-  
-  
-  uint32_t variantMask = VARIANT_NUMBER |
+  uint32_t flexBasisVariantMask =
     (nsCSSProps::ParserVariant(eCSSProperty_flex_basis) & ~(VARIANT_INHERIT));
 
-  if (!ParseNonNegativeVariant(tmpVal, variantMask, nsCSSProps::kWidthKTable)) {
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!ParseNonNegativeVariant(tmpVal, flexBasisVariantMask | VARIANT_NUMBER,
+                               nsCSSProps::kWidthKTable)) {
     
     return false;
   }
@@ -5243,14 +5248,18 @@ CSSParserImpl::ParseFlex()
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (!wasFirstComponentFlexBasis &&
-        ParseNonNegativeVariant(tmpVal, variantMask,
+        ParseNonNegativeVariant(tmpVal, flexBasisVariantMask,
                                 nsCSSProps::kWidthKTable)) {
-      if (tmpVal.GetUnit() == eCSSUnit_Number) {
-        
-        
-        return false;
-      }
       flexBasis = tmpVal;
     }
   }
