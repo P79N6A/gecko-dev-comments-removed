@@ -58,6 +58,9 @@ const MESSAGES = [
   "SessionStore:update",
 
   
+  "SessionStore:load",
+
+  
   "SessionStore:restoreHistoryComplete",
 
   
@@ -589,6 +592,9 @@ let SessionStoreInternal = {
         this.recordTelemetry(aMessage.data.telemetry);
         TabState.update(browser, aMessage.data);
         this.saveStateDelayed(win);
+        break;
+      case "SessionStore:load":
+        this.onTabLoad(win, browser);
         break;
       case "SessionStore:restoreHistoryComplete":
         if (this.isCurrentEpoch(browser, aMessage.data.epoch)) {
@@ -1370,6 +1376,26 @@ let SessionStoreInternal = {
       if (length > this._max_tabs_undo)
         this._windows[aWindow.__SSi]._closedTabs.splice(this._max_tabs_undo, length - this._max_tabs_undo);
     }
+  },
+
+  
+
+
+
+
+
+
+
+  onTabLoad: function ssi_onTabLoad(aWindow, aBrowser) {
+    
+    
+    if (aBrowser.__SS_restoreState &&
+        aBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
+      return;
+    }
+
+    delete aBrowser.__SS_data;
+    this.saveStateDelayed(aWindow);
   },
 
   

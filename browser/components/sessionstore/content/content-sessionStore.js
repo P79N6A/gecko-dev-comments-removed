@@ -87,15 +87,16 @@ let EventListener = {
     
     
     let epoch = gContentRestore.getRestoreEpoch();
-    if (!epoch) {
-      return;
+    if (epoch) {
+      
+      gContentRestore.restoreDocument();
+
+      
+      sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
     }
 
     
-    gContentRestore.restoreDocument();
-
-    
-    sendAsyncMessage("SessionStore:restoreDocumentComplete", {epoch: epoch});
+    sendAsyncMessage("SessionStore:load");
   }
 };
 
