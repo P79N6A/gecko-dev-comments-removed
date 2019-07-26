@@ -228,16 +228,30 @@ protected:
     
     void InitOtherFamilyNames();
 
-    static PLDHashOperator InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
-                                                    nsRefPtr<gfxFontFamily>& aFamilyEntry,
-                                                    void* userArg);
+    static PLDHashOperator
+    InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
+                             nsRefPtr<gfxFontFamily>& aFamilyEntry,
+                             void* userArg);
 
     
-    void InitFaceNameLists();
+    
+    
+    gfxFontEntry* SearchFamiliesForFaceName(const nsAString& aFaceName);
 
-    static PLDHashOperator InitFaceNameListsProc(nsStringHashKey::KeyType aKey,
-                                                 nsRefPtr<gfxFontFamily>& aFamilyEntry,
-                                                 void* userArg);
+    static PLDHashOperator
+    ReadFaceNamesProc(nsStringHashKey::KeyType aKey,
+                      nsRefPtr<gfxFontFamily>& aFamilyEntry,
+                      void* userArg);
+
+    
+    gfxFontEntry* FindFaceName(const nsAString& aFaceName);
+
+    
+    
+    virtual gfxFontEntry* LookupInFaceNameLists(const nsAString& aFontName);
+
+    static PLDHashOperator LookupMissedFaceNamesProc(nsStringHashKey *aKey,
+                                                     void *aUserArg);
 
     
     virtual void PreloadNamesList();
@@ -286,7 +300,7 @@ protected:
     bool mOtherFamilyNamesInitialized;
 
     
-    bool mFaceNamesInitialized;
+    bool mFaceNameListsInitialized;
 
     struct ExtraNames {
       ExtraNames() : mFullnames(100), mPostscriptNames(100) {}
@@ -296,6 +310,9 @@ protected:
       nsRefPtrHashtable<nsStringHashKey, gfxFontEntry> mPostscriptNames;
     };
     nsAutoPtr<ExtraNames> mExtraNames;
+
+    
+    nsAutoPtr<nsTHashtable<nsStringHashKey> > mFaceNamesMissed;
 
     
     

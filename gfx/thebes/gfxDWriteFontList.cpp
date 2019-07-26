@@ -749,17 +749,11 @@ gfxDWriteFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 {
     gfxFontEntry *lookup;
 
-    
-    if (!mFaceNamesInitialized) {
-        InitFaceNameLists();
-    }
-
-    
-    if (!(lookup = mExtraNames->mPostscriptNames.GetWeak(aFullname)) &&
-        !(lookup = mExtraNames->mFullnames.GetWeak(aFullname)))
-    {
+    lookup = LookupInFaceNameLists(aFullname);
+    if (!lookup) {
         return nullptr;
     }
+
     gfxDWriteFontEntry* dwriteLookup = static_cast<gfxDWriteFontEntry*>(lookup);
     gfxDWriteFontEntry *fe =
         new gfxDWriteFontEntry(lookup->Name(),

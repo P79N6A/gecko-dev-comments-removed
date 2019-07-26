@@ -127,7 +127,7 @@ gfxPlatformFontList::gfxPlatformFontList(bool aNeedFullnamePostscriptNames)
     if (aNeedFullnamePostscriptNames) {
         mExtraNames = new ExtraNames();
     }
-    mFaceNamesInitialized = false;
+    mFaceNameListsInitialized = false;
 
     LoadBadUnderlineList();
 
@@ -159,7 +159,7 @@ gfxPlatformFontList::InitFontList()
         mExtraNames->mFullnames.Clear();
         mExtraNames->mPostscriptNames.Clear();
     }
-    mFaceNamesInitialized = false;
+    mFaceNameListsInitialized = false;
     mPrefFonts.Clear();
     mReplacementCharFallbackFamily = nullptr;
     CancelLoader();
@@ -201,7 +201,7 @@ gfxPlatformFontList::InitOtherFamilyNames()
     }
 #endif
 }
-                                                         
+
 PLDHashOperator
 gfxPlatformFontList::InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
                                               nsRefPtr<gfxFontFamily>& aFamilyEntry,
@@ -212,15 +212,34 @@ gfxPlatformFontList::InitOtherFamilyNamesProc(nsStringHashKey::KeyType aKey,
     return PL_DHASH_NEXT;
 }
 
-void
-gfxPlatformFontList::InitFaceNameLists()
-{
-    mFaceNamesInitialized = true;
+struct ReadFaceNamesData {
+    ReadFaceNamesData(gfxPlatformFontList *aFontList, TimeStamp aStartTime)
+        : mFontList(aFontList), mStartTime(aStartTime), mTimedOut(false)
+    {}
 
-    TimeStamp start = TimeStamp::Now();
+    gfxPlatformFontList *mFontList;
+    TimeStamp mStartTime;
+    bool mTimedOut;
 
     
-    mFontFamilies.Enumerate(gfxPlatformFontList::InitFaceNameListsProc, this);
+    
+    nsString mFirstChar;
+};
+
+gfxFontEntry*
+gfxPlatformFontList::SearchFamiliesForFaceName(const nsAString& aFaceName)
+{
+    TimeStamp start = TimeStamp::Now();
+    gfxFontEntry *lookup = nullptr;
+
+    ReadFaceNamesData faceNameListsData(this, start);
+
+    
+    faceNameListsData.mFirstChar.Assign(aFaceName.CharAt(0));
+    ToLowerCase(faceNameListsData.mFirstChar);
+    mFontFamilies.Enumerate(gfxPlatformFontList::ReadFaceNamesProc,
+                            &faceNameListsData);
+    lookup = FindFaceName(aFaceName);
 
     TimeStamp end = TimeStamp::Now();
     Telemetry::AccumulateTimeDelta(Telemetry::FONTLIST_INITFACENAMELISTS,
@@ -228,20 +247,88 @@ gfxPlatformFontList::InitFaceNameLists()
 #ifdef PR_LOGGING
     if (LOG_FONTINIT_ENABLED()) {
         TimeDuration elapsed = end - start;
-        LOG_FONTINIT(("(fontinit) InitFaceNameLists took %8.2f ms",
-                      elapsed.ToMilliseconds()));
+        LOG_FONTINIT(("(fontinit) SearchFamiliesForFaceName took %8.2f ms %s %s",
+                      elapsed.ToMilliseconds(),
+                      (lookup ? "found name" : ""),
+                      (faceNameListsData.mTimedOut ? "timeout" : "")));
     }
 #endif
+
+    return lookup;
 }
 
+
+#define NAMELIST_TIMEOUT  200
+
 PLDHashOperator
-gfxPlatformFontList::InitFaceNameListsProc(nsStringHashKey::KeyType aKey,
-                                           nsRefPtr<gfxFontFamily>& aFamilyEntry,
-                                           void* userArg)
+gfxPlatformFontList::ReadFaceNamesProc(nsStringHashKey::KeyType aKey,
+                                       nsRefPtr<gfxFontFamily>& aFamilyEntry,
+                                       void* userArg)
 {
-    gfxPlatformFontList *fc = static_cast<gfxPlatformFontList*>(userArg);
+    ReadFaceNamesData *data = static_cast<ReadFaceNamesData*>(userArg);
+    gfxPlatformFontList *fc = data->mFontList;
+
+    
+    if (!(data->mFirstChar.IsEmpty())) {
+        char16_t firstChar = aKey.CharAt(0);
+        nsAutoString firstCharStr(&firstChar, 1);
+        ToLowerCase(firstCharStr);
+        if (!firstCharStr.Equals(data->mFirstChar)) {
+            return PL_DHASH_NEXT;
+        }
+    }
     aFamilyEntry->ReadFaceNames(fc, fc->NeedFullnamePostscriptNames());
+
+    TimeDuration elapsed = TimeStamp::Now() - data->mStartTime;
+    if (elapsed.ToMilliseconds() > NAMELIST_TIMEOUT) {
+        data->mTimedOut = true;
+        return PL_DHASH_STOP;
+    }
     return PL_DHASH_NEXT;
+}
+
+gfxFontEntry*
+gfxPlatformFontList::FindFaceName(const nsAString& aFaceName)
+{
+    gfxFontEntry *lookup;
+
+    
+    if (mExtraNames &&
+        ((lookup = mExtraNames->mPostscriptNames.GetWeak(aFaceName)) ||
+         (lookup = mExtraNames->mFullnames.GetWeak(aFaceName)))) {
+        return lookup;
+    }
+
+    return nullptr;
+}
+
+gfxFontEntry*
+gfxPlatformFontList::LookupInFaceNameLists(const nsAString& aFaceName)
+{
+    gfxFontEntry *lookup = nullptr;
+
+    
+    
+    
+    if (!mFaceNameListsInitialized) {
+        lookup = SearchFamiliesForFaceName(aFaceName);
+        if (lookup) {
+            return lookup;
+        }
+    }
+
+    
+    if (!(lookup = FindFaceName(aFaceName))) {
+        
+        if (!mFaceNameListsInitialized) {
+            if (!mFaceNamesMissed) {
+                mFaceNamesMissed = new nsTHashtable<nsStringHashKey>(4);
+            }
+            mFaceNamesMissed->PutEntry(aFaceName);
+        }
+    }
+
+    return lookup;
 }
 
 void
@@ -815,10 +902,32 @@ gfxPlatformFontList::LoadFontInfo()
 
     if (done) {
         mOtherFamilyNamesInitialized = true;
-        mFaceNamesInitialized = true;
+        mFaceNameListsInitialized = true;
     }
 
     return done;
+}
+
+struct LookupMissedFaceNamesData {
+    LookupMissedFaceNamesData(gfxPlatformFontList *aFontList)
+        : mFontList(aFontList), mFoundName(false) {}
+
+    gfxPlatformFontList *mFontList;
+    bool mFoundName;
+};
+
+ PLDHashOperator
+gfxPlatformFontList::LookupMissedFaceNamesProc(nsStringHashKey *aKey,
+                                               void *aUserArg)
+{
+    LookupMissedFaceNamesData *data =
+        reinterpret_cast<LookupMissedFaceNamesData*>(aUserArg);
+
+    if (data->mFontList->FindFaceName(aKey->GetKey())) {
+        data->mFoundName = true;
+        return PL_DHASH_STOP;
+    }
+    return PL_DHASH_NEXT;
 }
 
 void 
@@ -826,18 +935,32 @@ gfxPlatformFontList::CleanupLoader()
 {
     mFontFamiliesToLoad.Clear();
     mNumFamilies = 0;
+    bool rebuilt = false;
+
+    
+    if (mFaceNamesMissed &&
+        mFaceNamesMissed->Count() != 0) {
+        LookupMissedFaceNamesData namedata(this);
+        mFaceNamesMissed->EnumerateEntries(LookupMissedFaceNamesProc, &namedata);
+        if (namedata.mFoundName) {
+            rebuilt = true;
+            mUserFontSetList.EnumerateEntries(RebuildLocalFonts, nullptr);
+        }
+        mFaceNamesMissed = nullptr;
+    }
 
 #ifdef PR_LOGGING
     if (LOG_FONTINIT_ENABLED() && mFontInfo) {
         LOG_FONTINIT(("(fontinit) fontloader load thread took %8.2f ms "
                       "%d families %d fonts %d cmaps "
-                      "%d facenames %d othernames",
+                      "%d facenames %d othernames %s",
                       mLoadTime.ToMilliseconds(),
                       mFontInfo->mLoadStats.families,
                       mFontInfo->mLoadStats.fonts,
                       mFontInfo->mLoadStats.cmaps,
                       mFontInfo->mLoadStats.facenames,
-                      mFontInfo->mLoadStats.othernames));
+                      mFontInfo->mLoadStats.othernames,
+                      (rebuilt ? "(userfont sets rebuilt)" : "")));
     }
 #endif
 
