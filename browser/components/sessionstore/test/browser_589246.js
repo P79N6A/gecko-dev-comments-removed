@@ -153,7 +153,7 @@ function setupForTest(aConditions) {
 
 function onStateRestored(aSubject, aTopic, aData) {
   info("test #" + testNum + ": onStateRestored");
-  Services.obs.removeObserver(onStateRestored, "sessionstore-browser-state-restored", false);
+  Services.obs.removeObserver(onStateRestored, "sessionstore-browser-state-restored");
 
   
   
@@ -204,7 +204,7 @@ function onStateRestored(aSubject, aTopic, aData) {
 
 function onLastWindowClosed(aSubject, aTopic, aData) {
   info("test #" + testNum + ": onLastWindowClosed");
-  Services.obs.removeObserver(onLastWindowClosed, "browser-lastwindow-close-granted", false);
+  Services.obs.removeObserver(onLastWindowClosed, "browser-lastwindow-close-granted");
   gotLastWindowClosedTopic = true;
 }
 

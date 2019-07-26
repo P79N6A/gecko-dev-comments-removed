@@ -29,7 +29,7 @@ TestPilotComponent.prototype = {
     case "sessionstore-windows-restored":
       
 
-      os.removeObserver(this, "sessionstore-windows-restored", false);
+      os.removeObserver(this, "sessionstore-windows-restored");
       
 
 

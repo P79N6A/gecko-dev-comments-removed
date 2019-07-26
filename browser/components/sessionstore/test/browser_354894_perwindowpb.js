@@ -167,7 +167,7 @@ function test() {
   function cleanupTestsuite(callback) {
     
     for (let o in observing)
-      Services.obs.removeObserver(observer, o, false);
+      Services.obs.removeObserver(observer, o);
 
     
     [
