@@ -38,6 +38,8 @@ public:
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
     
+    NS_ASSERTION(!IsAllowedToDispatchDOMEvent(),
+      "WidgetQueryContentEvent needs to support Duplicate()");
     MOZ_CRASH("WidgetQueryContentEvent doesn't support Duplicate()");
     return nullptr;
   }
@@ -150,13 +152,27 @@ public:
   virtual WidgetEvent* Duplicate() const MOZ_OVERRIDE
   {
     
-    MOZ_CRASH("WidgetQueryContentEvent doesn't support Duplicate()");
-    return nullptr;
+    
+    MOZ_ASSERT(eventStructType == NS_PLUGIN_EVENT,
+               "Duplicate() must be overridden by sub class");
+    
+    WidgetPluginEvent* result = new WidgetPluginEvent(false, message, nullptr);
+    result->AssignPluginEventData(*this, true);
+    result->mFlags = mFlags;
+    return result;
   }
 
   
   
   bool retargetToFocusedDocument;
+
+  void AssignPluginEventData(const WidgetPluginEvent& aEvent,
+                             bool aCopyTargets)
+  {
+    AssignGUIEventData(aEvent, aCopyTargets);
+
+    retargetToFocusedDocument = aEvent.retargetToFocusedDocument;
+  }
 };
 
 } 
