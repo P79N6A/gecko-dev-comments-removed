@@ -208,6 +208,9 @@ pref("media.dash.enabled", false);
 #ifdef MOZ_GSTREAMER
 pref("media.gstreamer.enabled", true);
 #endif
+#ifdef MOZ_APPLEMEDIA
+pref("media.apple.mp3.enabled", true);
+#endif
 #ifdef MOZ_WEBRTC
 pref("media.navigator.enabled", true);
 pref("media.navigator.video.default_width",640);
@@ -454,7 +457,7 @@ pref("toolkit.telemetry.enabledPreRelease", true);
 #else
 pref("toolkit.telemetry.enabled", false);
 #endif
-pref("toolkit.telemetry.server", "https://data.mozilla.com");
+pref("toolkit.telemetry.server", "https://incoming.telemetry.mozilla.org");
 
 pref("toolkit.telemetry.server_owner", "Mozilla");
 
@@ -481,6 +484,8 @@ pref("devtools.debugger.force-local", true);
 pref("devtools.debugger.prompt-connection", true);
 
 pref("devtools.debugger.enable-content-actors", true);
+
+pref("devtools.debugger.forbid-certified-apps", true);
 
 
 pref("view_source.syntax_highlight", true);
@@ -797,9 +802,7 @@ pref("dom.min_background_timeout_value", 1000);
 
 
 pref("dom.experimental_forms", false);
-
-
-pref("dom.experimental_forms_range", true);
+pref("dom.forms.number", false);
 
 
 pref("dom.forms.color", false);
@@ -4398,6 +4401,9 @@ pref("dom.forms.inputmode", false);
 #else
 pref("dom.forms.inputmode", true);
 #endif
+
+
+pref("dom.telephony.enabled", false);
 
 
 pref("dom.inter-app-communication-api.enabled", false);

@@ -159,10 +159,11 @@ SocialUI = {
           }
           break;
         case "social:profile-changed":
+          
+          
+          
           if (this._matchesCurrentProvider(data)) {
             SocialToolbar.updateProvider();
-            SocialMarks.update();
-            SocialChatBar.update();
           }
           break;
         case "social:frameworker-error":
@@ -215,13 +216,20 @@ SocialUI = {
       
       let provider = Social.provider || Social.defaultProvider;
       
-      let label = gNavigatorBundle.getFormattedString(Social.provider ?
-                                                        "social.turnOff.label" :
-                                                        "social.turnOn.label",
-                                                      [provider.name]);
-      let accesskey = gNavigatorBundle.getString(Social.provider ?
-                                                   "social.turnOff.accesskey" :
-                                                   "social.turnOn.accesskey");
+      let label;
+      if (Social.providers.length == 1) {
+        label = gNavigatorBundle.getFormattedString(Social.provider
+                                                    ? "social.turnOff.label"
+                                                    : "social.turnOn.label",
+                                                    [provider.name]);
+      } else {
+        label = gNavigatorBundle.getString(Social.provider
+                                           ? "social.turnOffAll.label"
+                                           : "social.turnOnAll.label");
+      }
+      let accesskey = gNavigatorBundle.getString(Social.provider
+                                                 ? "social.turnOff.accesskey"
+                                                 : "social.turnOn.accesskey");
       toggleCommand.setAttribute("label", label);
       toggleCommand.setAttribute("accesskey", accesskey);
     }
@@ -866,17 +874,19 @@ SocialToolbar = {
     toggleNotificationsCommand.setAttribute("hidden", !socialEnabled);
 
     let parent = document.getElementById("social-notification-panel");
-    while (parent.hasChildNodes()) {
-      let frame = parent.firstChild;
-      SharedFrame.forgetGroup(frame.id);
-      parent.removeChild(frame);
-    }
-
     let tbi = document.getElementById("social-provider-button");
     if (tbi) {
       
+      
       while (tbi.nextSibling) {
-        tbi.parentNode.removeChild(tbi.nextSibling);
+        let tb = tbi.nextSibling;
+        let nid = tb.getAttribute("notificationFrameId");
+        let frame = document.getElementById(nid);
+        if (frame) {
+          SharedFrame.forgetGroup(frame.id);
+          parent.removeChild(frame);
+        }
+        tbi.parentNode.removeChild(tb);
       }
     }
   },

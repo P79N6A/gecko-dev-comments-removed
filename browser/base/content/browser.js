@@ -143,6 +143,11 @@ XPCOMUtils.defineLazyModuleGetter(this, "SitePermissions",
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStore",
   "resource:///modules/sessionstore/SessionStore.jsm");
 
+#ifdef MOZ_CRASHREPORTER
+XPCOMUtils.defineLazyModuleGetter(this, "TabCrashReporter",
+  "resource:///modules/TabCrashReporter.jsm");
+#endif
+
 let gInitialPages = [
   "about:blank",
   "about:newtab",
@@ -1043,6 +1048,11 @@ var gBrowserInit = {
     
     Services.logins;
 
+#ifdef MOZ_CRASHREPORTER
+    if (gMultiProcessBrowser)
+      TabCrashReporter.init();
+#endif
+
     if (mustLoadSidebar) {
       let sidebar = document.getElementById("sidebar");
       let sidebarBox = document.getElementById("sidebar-box");
@@ -1101,18 +1111,25 @@ var gBrowserInit = {
     
     
     setTimeout(function() {
-      let DownloadsCommon =
-        Cu.import("resource:///modules/DownloadsCommon.jsm", {}).DownloadsCommon;
-      if (DownloadsCommon.useJSTransfer) {
-        
-        DownloadsCommon.initializeAllDataLinks();
-      } else {
-        
-        Services.downloads;
+      try {
+        let DownloadsCommon =
+          Cu.import("resource:///modules/DownloadsCommon.jsm", {}).DownloadsCommon;
+        if (DownloadsCommon.useJSTransfer) {
+          
+          DownloadsCommon.initializeAllDataLinks();
+          let DownloadsTaskbar =
+            Cu.import("resource:///modules/DownloadsTaskbar.jsm", {}).DownloadsTaskbar;
+          DownloadsTaskbar.registerIndicator(window);
+        } else {
+          
+          Services.downloads;
+          let DownloadTaskbarProgress =
+            Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
+          DownloadTaskbarProgress.onBrowserWindowLoad(window);
+        }
+      } catch (ex) {
+        Cu.reportError(ex);
       }
-      let DownloadTaskbarProgress =
-        Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm", {}).DownloadTaskbarProgress;
-      DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }, 10000);
 
     
@@ -2129,6 +2146,9 @@ function BrowserPageInfo(doc, initialTab, imageElement) {
   
   while (windows.hasMoreElements()) {
     var currentWindow = windows.getNext();
+    if (currentWindow.closed) {
+      continue;
+    }
     if (currentWindow.document.documentElement.getAttribute("relatedUrl") == documentURL) {
       currentWindow.focus();
       currentWindow.resetPageInfo(args);
@@ -2447,6 +2467,12 @@ let BrowserOnClick = {
 
     let button = aEvent.originalTarget;
     if (button.id == "tryAgain") {
+#ifdef MOZ_CRASHREPORTER
+      if (aOwnerDoc.getElementById("checkSendReport").checked) {
+        let browser = gBrowser.getBrowserForDocument(aOwnerDoc);
+        TabCrashReporter.submitCrashReport(browser);
+      }
+#endif
       openUILinkIn(button.getAttribute("url"), "current");
     }
   },
@@ -3990,6 +4016,11 @@ var TabsProgressListener = {
         if (event.target.documentElement)
           event.target.documentElement.removeAttribute("hasBrowserHandlers");
       }, true);
+
+#ifdef MOZ_CRASHREPORTER
+      if (doc.documentURI.startsWith("about:tabcrashed"))
+        TabCrashReporter.onAboutTabCrashedLoad(aBrowser);
+#endif
     }
   },
 
@@ -5831,7 +5862,7 @@ function warnAboutClosingWindow() {
   let nonPopupPresent = false;
   while (e.hasMoreElements()) {
     let win = e.getNext();
-    if (win != window) {
+    if (!win.closed && win != window) {
       if (isPBWindow && PrivateBrowsingUtils.isWindowPrivate(win))
         otherPBWindowExists = true;
       if (win.toolbar.visible)
