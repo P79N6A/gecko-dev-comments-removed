@@ -923,6 +923,23 @@ function do_register_cleanup(aFunction)
 
 
 
+function do_get_tempdir() {
+  let env = Components.classes["@mozilla.org/process/environment;1"]
+                      .getService(Components.interfaces.nsIEnvironment);
+  
+  let path = env.get("XPCSHELL_TEST_TEMP_DIR");
+  let file = Components.classes["@mozilla.org/file/local;1"]
+                       .createInstance(Components.interfaces.nsILocalFile);
+  file.initWithPath(path);
+  return file;
+}
+
+
+
+
+
+
+
 function do_get_profile() {
   if (!runningInParent) {
     _dump("TEST-INFO | (xpcshell/head.js) | Ignoring profile creation from child process.\n");
