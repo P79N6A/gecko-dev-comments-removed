@@ -28,6 +28,11 @@ public class TopBookmarksView extends GridView {
     private static final String LOGTAG = "GeckoTopBookmarksView";
 
     
+    public static interface OnPinBookmarkListener {
+        public void onPinBookmark(int position);
+    }
+
+    
     private final int mMaxBookmarks;
 
     
@@ -35,6 +40,9 @@ public class TopBookmarksView extends GridView {
 
     
     private OnUrlOpenListener mUrlOpenListener;
+
+    
+    private OnPinBookmarkListener mPinBookmarkListener;
 
     
     private Map<String, Thumbnail> mThumbnailsCache;
@@ -83,8 +91,16 @@ public class TopBookmarksView extends GridView {
                 TopBookmarkItemView row = (TopBookmarkItemView) view;
                 String url = row.getUrl();
 
-                if (mUrlOpenListener != null && !TextUtils.isEmpty(url)) {
-                    mUrlOpenListener.onUrlOpen(url);
+                
+                
+                if (!TextUtils.isEmpty(url)) {
+                    if (mUrlOpenListener != null) {
+                        mUrlOpenListener.onUrlOpen(url);
+                    }
+                } else {
+                    if (mPinBookmarkListener != null) {
+                        mPinBookmarkListener.onPinBookmark(position);
+                    }
                 }
             }
         });
@@ -173,6 +189,15 @@ public class TopBookmarksView extends GridView {
 
     public void setOnUrlOpenListener(OnUrlOpenListener listener) {
         mUrlOpenListener = listener;
+    }
+
+    
+
+
+
+
+    public void setOnPinBookmarkListener(OnPinBookmarkListener listener) {
+        mPinBookmarkListener = listener;
     }
 
     
