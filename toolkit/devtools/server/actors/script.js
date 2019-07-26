@@ -718,6 +718,210 @@ ThreadActor.prototype = {
   
 
 
+
+
+
+
+  _forceCompletion: function TA__forceCompletion(aRequest) {
+    
+    
+    return {
+      error: "notImplemented",
+      message: "forced completion is not yet implemented."
+    };
+  },
+
+  _makeOnEnterFrame: function TA__makeOnEnterFrame({ pauseAndRespond }) {
+    return aFrame => {
+      const generatedLocation = getFrameLocation(aFrame);
+      let { url } = this.synchronize(this.sources.getOriginalLocation(
+        generatedLocation));
+
+      return this.sources.isBlackBoxed(url)
+        ? undefined
+        : pauseAndRespond(aFrame);
+    };
+  },
+
+  _makeOnPop: function TA__makeOnPop({ thread, pauseAndRespond, createValueGrip }) {
+    return function (aCompletion) {
+      
+
+      const generatedLocation = getFrameLocation(this);
+      const { url } = thread.synchronize(thread.sources.getOriginalLocation(
+        generatedLocation));
+
+      if (thread.sources.isBlackBoxed(url)) {
+        return undefined;
+      }
+
+      
+      
+      this.reportedPop = true;
+
+      return pauseAndRespond(this, aPacket => {
+        aPacket.why.frameFinished = {};
+        if (!aCompletion) {
+          aPacket.why.frameFinished.terminated = true;
+        } else if (aCompletion.hasOwnProperty("return")) {
+          aPacket.why.frameFinished.return = createValueGrip(aCompletion.return);
+        } else if (aCompletion.hasOwnProperty("yield")) {
+          aPacket.why.frameFinished.return = createValueGrip(aCompletion.yield);
+        } else {
+          aPacket.why.frameFinished.throw = createValueGrip(aCompletion.throw);
+        }
+        return aPacket;
+      });
+    };
+  },
+
+  _makeOnStep: function TA__makeOnStep({ thread, pauseAndRespond, startFrame,
+                                         startLocation }) {
+    return function () {
+      
+
+      const generatedLocation = getFrameLocation(this);
+      const newLocation = thread.synchronize(thread.sources.getOriginalLocation(
+        generatedLocation));
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      
+      if (newLocation.url == null
+          || thread.sources.isBlackBoxed(newLocation.url)) {
+        return undefined;
+      }
+
+      
+      if (this !== startFrame
+          || startLocation.url !== newLocation.url
+          || startLocation.line !== newLocation.line) {
+        return pauseAndRespond(this);
+      }
+
+      
+      
+      return undefined;
+    };
+  },
+
+  
+
+
+  _makeSteppingHooks: function TA__makeSteppingHooks(aStartLocation) {
+    
+    
+    
+    
+    const steppingHookState = {
+      pauseAndRespond: (aFrame, onPacket=(k)=>k) => {
+        this._pauseAndRespond(aFrame, { type: "resumeLimit" }, onPacket);
+      },
+      createValueGrip: this.createValueGrip.bind(this),
+      thread: this,
+      startFrame: this.youngestFrame,
+      startLocation: aStartLocation
+    };
+
+    return {
+      onEnterFrame: this._makeOnEnterFrame(steppingHookState),
+      onPop: this._makeOnPop(steppingHookState),
+      onStep: this._makeOnStep(steppingHookState)
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+  _handleResumeLimit: function TA__handleResumeLimit(aRequest) {
+    let steppingType = aRequest.resumeLimit.type;
+    if (["step", "next", "finish"].indexOf(steppingType) == -1) {
+      return reject({ error: "badParameterType",
+                      message: "Unknown resumeLimit type" });
+    }
+
+    const generatedLocation = getFrameLocation(this.youngestFrame);
+    return this.sources.getOriginalLocation(generatedLocation)
+      .then(originalLocation => {
+        const { onEnterFrame, onPop, onStep } = this._makeSteppingHooks(originalLocation);
+
+        
+        
+        let stepFrame = this._getNextStepFrame(this.youngestFrame);
+        if (stepFrame) {
+          switch (steppingType) {
+            case "step":
+              this.dbg.onEnterFrame = onEnterFrame;
+              
+            case "next":
+              stepFrame.onStep = onStep;
+              stepFrame.onPop = onPop;
+              break;
+            case "finish":
+              stepFrame.onPop = onPop;
+          }
+        }
+
+        return true;
+      });
+  },
+
+  
+
+
+
+
+
+
+  _clearSteppingHooks: function TA__clearSteppingHooks(aFrame) {
+    while (aFrame) {
+      aFrame.onStep = undefined;
+      aFrame.onPop = undefined;
+      aFrame = aFrame.older;
+    }
+  },
+
+  
+
+
+
+
+
+  _maybeListenToEvents: function TA__maybeListenToEvents(aRequest) {
+    
+    let events = aRequest.pauseOnDOMEvents;
+    if (this.global && events &&
+        (events == "*" ||
+        (Array.isArray(events) && events.length))) {
+      this._pauseOnDOMEvents = events;
+      let els = Cc["@mozilla.org/eventlistenerservice;1"]
+                .getService(Ci.nsIEventListenerService);
+      els.addListenerForAllEvents(this.global, this._allEventsListener, true);
+    }
+  },
+
+  
+
+
   onResume: function TA_onResume(aRequest) {
     if (this._state !== "paused") {
       return {
@@ -740,147 +944,14 @@ ThreadActor.prototype = {
     }
 
     if (aRequest && aRequest.forceCompletion) {
-      
-      
-      if (typeof this.frame.pop != "function") {
-        return { error: "notImplemented",
-                 message: "forced completion is not yet implemented." };
-      }
-
-      this.dbg.getNewestFrame().pop(aRequest.completionValue);
-      let packet = this._resumed();
-      this._popThreadPause();
-      return { type: "resumeLimit", frameFinished: aRequest.forceCompletion };
+      return this._forceCompletion(aRequest);
     }
 
     let resumeLimitHandled;
     if (aRequest && aRequest.resumeLimit) {
-      
-      
-      let pauseAndRespond = (aFrame, onPacket=function (k) k) => {
-        this._pauseAndRespond(aFrame, { type: "resumeLimit" }, onPacket);
-      };
-      let createValueGrip = this.createValueGrip.bind(this);
-
-      let startFrame = this.youngestFrame;
-      const generatedLocation = getFrameLocation(this.youngestFrame);
-      resumeLimitHandled = this.sources.getOriginalLocation(generatedLocation)
-        .then((startLocation) => {
-          
-
-          let onEnterFrame = aFrame => {
-            const generatedLocation = getFrameLocation(aFrame);
-            let { url } = this.synchronize(this.sources.getOriginalLocation(
-              generatedLocation));
-
-            return this.sources.isBlackBoxed(url)
-              ? undefined
-              : pauseAndRespond(aFrame);
-          };
-
-          let thread = this;
-
-          let onPop = function TA_onPop(aCompletion) {
-            
-
-            const generatedLocation = getFrameLocation(this);
-            let { url } = thread.synchronize(thread.sources.getOriginalLocation(
-              generatedLocation));
-
-            if (thread.sources.isBlackBoxed(url)) {
-              return undefined;
-            }
-
-            
-            
-            this.reportedPop = true;
-
-            return pauseAndRespond(this, aPacket => {
-              aPacket.why.frameFinished = {};
-              if (!aCompletion) {
-                aPacket.why.frameFinished.terminated = true;
-              } else if (aCompletion.hasOwnProperty("return")) {
-                aPacket.why.frameFinished.return = createValueGrip(aCompletion.return);
-              } else if (aCompletion.hasOwnProperty("yield")) {
-                aPacket.why.frameFinished.return = createValueGrip(aCompletion.yield);
-              } else {
-                aPacket.why.frameFinished.throw = createValueGrip(aCompletion.throw);
-              }
-              return aPacket;
-            });
-          };
-
-          let onStep = function TA_onStep() {
-            
-
-            const generatedLocation = getFrameLocation(this);
-            const newLocation = thread.synchronize(
-              thread.sources.getOriginalLocation(generatedLocation));
-
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-
-            
-            if (newLocation.url == null
-                || thread.sources.isBlackBoxed(newLocation.url)) {
-              return undefined;
-            }
-
-            
-            if (this !== startFrame
-                || startLocation.url !== newLocation.url
-                || startLocation.line !== newLocation.line) {
-              return pauseAndRespond(this);
-            }
-
-            
-            
-            return undefined;
-          };
-
-          let steppingType = aRequest.resumeLimit.type;
-          if (["step", "next", "finish"].indexOf(steppingType) == -1) {
-            throw { error: "badParameterType",
-                    message: "Unknown resumeLimit type" };
-          }
-          
-          
-          let stepFrame = this._getNextStepFrame(startFrame);
-          if (stepFrame) {
-            switch (steppingType) {
-              case "step":
-                this.dbg.onEnterFrame = onEnterFrame;
-                
-              case "next":
-                stepFrame.onStep = onStep;
-                stepFrame.onPop = onPop;
-                break;
-              case "finish":
-                stepFrame.onPop = onPop;
-            }
-          }
-          return true;
-        });
+      resumeLimitHandled = this._handleResumeLimit(aRequest)
     } else {
-      
-      let frame = this.youngestFrame;
-      while (frame) {
-        frame.onStep = undefined;
-        frame.onPop = undefined;
-        frame = frame.older;
-      }
+      this._clearSteppingHooks(this.youngestFrame);
       resumeLimitHandled = resolve(true);
     }
 
@@ -889,16 +960,7 @@ ThreadActor.prototype = {
         this._options.pauseOnExceptions = aRequest.pauseOnExceptions;
         this._options.ignoreCaughtExceptions = aRequest.ignoreCaughtExceptions;
         this.maybePauseOnExceptions();
-        
-        let events = aRequest.pauseOnDOMEvents;
-        if (this.global && events &&
-            (events == "*" ||
-             (Array.isArray(events) && events.length))) {
-          this._pauseOnDOMEvents = events;
-          let els = Cc["@mozilla.org/eventlistenerservice;1"]
-            .getService(Ci.nsIEventListenerService);
-          els.addListenerForAllEvents(this.global, this._allEventsListener, true);
-        }
+        this._maybeListenToEvents(aRequest);
       }
 
       let packet = this._resumed();
