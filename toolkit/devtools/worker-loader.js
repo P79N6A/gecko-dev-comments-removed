@@ -262,6 +262,10 @@ function WorkerDebuggerLoader(options) {
 
 this.WorkerDebuggerLoader = WorkerDebuggerLoader;
 
+const chrome = { CC: undefined, Cc: undefined, ChromeWorker: undefined,
+                 Cm: undefined, Ci: undefined, Cu: undefined,
+                 Cr: undefined, components: undefined };
+
 
 
 if (typeof Components === "object") {
@@ -303,38 +307,35 @@ if (typeof Components === "object") {
     })();
 
     
-    
     const { Promise } = Cu.import("resource://gre/modules/Promise.jsm", {});;
-    const { Services } = Cu.import("resource://gre/modules/Services.jsm", {});;
-    let SourceMap = {};
-    Cu.import("resource://gre/modules/devtools/SourceMap.jsm", SourceMap);
     const Timer = Cu.import("resource://gre/modules/Timer.jsm", {});
-    const chrome = { CC: undefined, Cc: undefined, ChromeWorker: undefined,
-                     Cm: undefined, Ci: undefined, Cu: undefined,
-                     Cr: undefined, components: undefined };
     const xpcInspector = Cc["@mozilla.org/jsinspector;1"].
                          getService(Ci.nsIJSInspector);
 
     this.worker = new WorkerDebuggerLoader({
       createSandbox: createSandbox,
       globals: {
+        "isWorker": true,
+        "Debugger": Debugger,
         "promise": Promise,
         "reportError": Cu.reportError,
+        "setInterval": Timer.setInterval,
+        "setTimeout": Timer.setTimeout,
+        "clearInterval": Timer.clearInterval,
+        "clearTimeout": Timer.clearTimeout,
+        "xpcInspector": xpcInspector,
       },
       loadInSandbox: loadInSandbox,
       modules: {
-        "Debugger": Debugger,
-        "Services": Object.create(Services),
-        "Timer": Object.create(Timer),
+        "Services": {},
         "chrome": chrome,
-        "source-map": SourceMap,
-        "xpcInspector": xpcInspector,
       },
       paths: {
         "": "resource://gre/modules/commonjs/",
         "devtools": "resource:///modules/devtools",
         "devtools/server": "resource://gre/modules/devtools/server",
         "devtools/toolkit": "resource://gre/modules/devtools",
+        "source-map": "resource://gre/modules/devtools/source-map",
         "xpcshell-test": "resource://test",
       }
     });

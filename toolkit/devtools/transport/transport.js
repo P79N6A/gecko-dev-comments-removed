@@ -450,12 +450,12 @@ DebuggerTransport.prototype = {
 
 
   _onJSONObjectReady: function(object) {
-    Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
+    DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
       
       if (this.active) {
         this.hooks.onPacket(object);
       }
-    }, "DebuggerTransport instance's this.hooks.onPacket"), 0);
+    }, "DebuggerTransport instance's this.hooks.onPacket"));
   },
 
   
@@ -465,12 +465,12 @@ DebuggerTransport.prototype = {
 
 
   _onBulkReadReady: function(...args) {
-    Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
+    DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
       
       if (this.active) {
         this.hooks.onBulkPacket(...args);
       }
-    }, "DebuggerTransport instance's this.hooks.onBulkPacket"), 0);
+    }, "DebuggerTransport instance's this.hooks.onBulkPacket"));
   },
 
   
@@ -531,7 +531,7 @@ LocalDebuggerTransport.prototype = {
     this._deepFreeze(packet);
     let other = this.other;
     if (other) {
-      Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
+      DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
         
         if (dumpn.wantLogging) {
           dumpn("Received packet " + serial + ": " + JSON.stringify(packet, null, 2));
@@ -539,7 +539,7 @@ LocalDebuggerTransport.prototype = {
         if (other.hooks) {
           other.hooks.onPacket(packet);
         }
-      }, "LocalDebuggerTransport instance's this.other.hooks.onPacket"), 0);
+      }, "LocalDebuggerTransport instance's this.other.hooks.onPacket"));
     }
   },
 
@@ -562,7 +562,7 @@ LocalDebuggerTransport.prototype = {
 
     let pipe = new Pipe(true, true, 0, 0, null);
 
-    Services.tm.currentThread.dispatch(DevToolsUtils.makeInfallible(() => {
+    DevToolsUtils.executeSoon(DevToolsUtils.makeInfallible(() => {
       dumpn("Received bulk packet " + serial);
       if (!this.other.hooks) {
         return;
@@ -586,14 +586,14 @@ LocalDebuggerTransport.prototype = {
 
       
       deferred.promise.then(() => pipe.inputStream.close(), this.close);
-    }, "LocalDebuggerTransport instance's this.other.hooks.onBulkPacket"), 0);
+    }, "LocalDebuggerTransport instance's this.other.hooks.onBulkPacket"));
 
     
     let sendDeferred = promise.defer();
 
     
     
-    Services.tm.currentThread.dispatch(() => {
+    DevToolsUtils.executeSoon(() => {
       let copyDeferred = promise.defer();
 
       sendDeferred.resolve({
@@ -608,7 +608,7 @@ LocalDebuggerTransport.prototype = {
 
       
       copyDeferred.promise.then(() => pipe.outputStream.close(), this.close);
-    }, 0);
+    });
 
     return sendDeferred.promise;
   },

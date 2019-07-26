@@ -10,7 +10,6 @@
 
 var { Ci, Cu } = require("chrome");
 var Services = require("Services");
-var { setTimeout } = require("Timer");
 
 
 
@@ -122,9 +121,13 @@ exports.zip = function zip(a, b) {
 
 
 exports.executeSoon = function executeSoon(aFn) {
-  Services.tm.mainThread.dispatch({
-    run: exports.makeInfallible(aFn)
-  }, Ci.nsIThread.DISPATCH_NORMAL);
+  if (isWorker) {
+    setTimeout(aFn, 0);
+  } else {
+    Services.tm.mainThread.dispatch({
+      run: exports.makeInfallible(aFn)
+    }, Ci.nsIThread.DISPATCH_NORMAL);
+  }
 };
 
 
@@ -292,7 +295,7 @@ exports.hasSafeGetter = function hasSafeGetter(aDesc) {
 exports.isSafeJSObject = function isSafeJSObject(aObj) {
   
   
-  if (!Cu) {
+  if (isWorker) {
     return false;
   }
 

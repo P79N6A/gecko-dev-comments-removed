@@ -145,7 +145,7 @@ RootActor.prototype = {
   
 
 
-  get window() Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType),
+  get window() isWorker ? null : Services.wm.getMostRecentWindow(DebuggerServer.chromeWindowType),
 
   
 
