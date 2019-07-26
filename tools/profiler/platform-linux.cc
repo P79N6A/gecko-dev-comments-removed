@@ -83,6 +83,10 @@
 #include <stdio.h>
 #include <list>
 
+#ifdef MOZ_NUWA_PROCESS
+#include "ipc/Nuwa.h"
+#endif
+
 #define SIGNAL_SAVE_PROFILE SIGUSR2
 
 #if defined(__GLIBC__)
@@ -229,9 +233,15 @@ static void ProfilerSignalHandler(int signal, siginfo_t* info, void* context) {
   sem_post(&sSignalHandlingDone);
 }
 
+
+
+#ifdef MOZ_NUWA_PROCESS
+extern "C" MFBT_API int tgkill(pid_t tgid, pid_t tid, int signalno);
+#else
 int tgkill(pid_t tgid, pid_t tid, int signalno) {
   return syscall(SYS_tgkill, tgid, tid, signalno);
 }
+#endif
 
 class PlatformData : public Malloced {
  public:
@@ -262,6 +272,18 @@ static void* SignalSender(void* arg) {
   
   static void* initialize_atfork = setup_atfork();
 # endif
+
+#ifdef MOZ_NUWA_PROCESS
+  
+  
+  
+  if(IsNuwaProcess()) {
+    NuwaMarkCurrentThread(nullptr, nullptr);
+    
+    
+    NuwaFreezeCurrentThread();
+  }
+#endif
 
   int vm_tgid_ = getpid();
 
