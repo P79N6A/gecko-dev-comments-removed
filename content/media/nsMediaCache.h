@@ -17,7 +17,6 @@ class ChannelMediaResource;
 class MediaByteRange;
 class MediaResource;
 class ReentrantMonitorAutoEnter;
-}
 
 
 
@@ -181,11 +180,6 @@ class nsMediaCache;
 
 class nsMediaCacheStream {
 public:
-  typedef mozilla::ChannelMediaResource ChannelMediaResource;
-  typedef mozilla::MediaByteRange MediaByteRange;
-  typedef mozilla::MediaResource MediaResource;
-  typedef mozilla::ReentrantMonitorAutoEnter ReentrantMonitorAutoEnter;
-
   enum {
     
     BLOCK_SIZE = 32768
@@ -505,5 +499,7 @@ private:
   
   int64_t           mPartialBlockBuffer[BLOCK_SIZE/sizeof(int64_t)];
 };
+
+} 
 
 #endif

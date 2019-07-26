@@ -12,6 +12,8 @@
 #include "nsAutoPtr.h"
 #include "AudioSampleFormat.h"
 
+namespace mozilla {
+
 
 
 
@@ -104,5 +106,7 @@ protected:
   int mRate;
   int mChannels;
 };
+
+} 
 
 #endif

@@ -22,6 +22,8 @@
 #include "nsWebMReader.h"
 #include "nsBuiltinDecoder.h"
 
+namespace mozilla {
+
 class nsDASHDecoder;
 
 class nsDASHRepDecoder : public nsBuiltinDecoder
@@ -184,5 +186,7 @@ private:
   
   nsBuiltinDecoderReader*   mReader;
 };
+
+} 
 
 #endif 

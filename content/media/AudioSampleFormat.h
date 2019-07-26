@@ -130,6 +130,6 @@ ConvertAudioSamplesWithScale(const int16_t* aFrom, int16_t* aTo, int aCount, flo
   }
 }
 
-}
+} 
 
 #endif 

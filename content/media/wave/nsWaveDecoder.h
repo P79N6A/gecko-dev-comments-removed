@@ -19,6 +19,7 @@
 
 
 
+namespace mozilla {
 
 class nsWaveDecoder : public nsBuiltinDecoder
 {
@@ -31,5 +32,7 @@ public:
   }
   virtual nsBuiltinDecoderStateMachine* CreateStateMachine();
 };
+
+} 
 
 #endif

@@ -39,6 +39,7 @@
 
 #include "nsEventDispatcher.h"
 #include "nsMediaError.h"
+#include "nsBuiltinDecoder.h"
 #include "nsICategoryManager.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "MediaResource.h"
@@ -117,6 +118,7 @@ static PRLogModuleInfo* gMediaElementEventsLog;
 using namespace mozilla;
 using namespace mozilla::dom;
 using namespace mozilla::layers;
+
 
 
 #define TIMEUPDATE_MS 250

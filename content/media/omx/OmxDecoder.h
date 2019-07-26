@@ -31,6 +31,7 @@ namespace android {
 
 class MediaStreamSource : public DataSource {
   typedef mozilla::MediaResource MediaResource;
+  typedef mozilla::nsBuiltinDecoder nsBuiltinDecoder;
 
   MediaResource *mResource;
   nsBuiltinDecoder *mDecoder;
@@ -65,6 +66,7 @@ class OmxDecoder {
   typedef MPAPI::AudioFrame AudioFrame;
   typedef MPAPI::VideoFrame VideoFrame;
   typedef mozilla::MediaResource MediaResource;
+  typedef mozilla::nsBuiltinDecoder nsBuiltinDecoder;
 
   enum {
     kPreferSoftwareCodecs = 1

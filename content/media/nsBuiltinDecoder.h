@@ -193,21 +193,22 @@
 #include "MediaStreamGraph.h"
 #include "MediaDecoderOwner.h"
 
-namespace mozilla {
-namespace layers {
-class Image;
-} 
-class nsMediaByteRange;
-class VideoFrameContainer;
-} 
-
-class nsAudioStream;
-class nsBuiltinDecoderStateMachine;
 class nsIStreamListener;
 class nsTimeRanges;
 class nsIMemoryReporter;
 class nsIPrincipal;
 class nsITimer;
+
+namespace mozilla {
+namespace layers {
+class Image;
+} 
+
+class MediaByteRange;
+class VideoFrameContainer;
+class nsAudioStream;
+class nsBuiltinDecoderStateMachine;
+class MediaDecoderOwner;
 
 
 
@@ -226,21 +227,7 @@ static inline bool IsCurrentThread(nsIThread* aThread) {
 class nsBuiltinDecoder : public nsIObserver
 {
 public:
-  typedef mozilla::MediaChannelStatistics MediaChannelStatistics;
-  typedef mozilla::MediaResource MediaResource;
-  typedef mozilla::MediaByteRange MediaByteRange;
-  typedef mozilla::ReentrantMonitor ReentrantMonitor;
-  typedef mozilla::SourceMediaStream SourceMediaStream;
-  typedef mozilla::ProcessedMediaStream ProcessedMediaStream;
-  typedef mozilla::MediaInputPort MediaInputPort;
-  typedef mozilla::MainThreadMediaStreamListener MainThreadMediaStreamListener;
-  typedef mozilla::TimeStamp TimeStamp;
-  typedef mozilla::TimeDuration TimeDuration;
-  typedef mozilla::VideoFrameContainer VideoFrameContainer;
   typedef mozilla::layers::Image Image;
-  typedef mozilla::MetadataTags MetadataTags;
-  typedef mozilla::MediaDecoderOwner MediaDecoderOwner;
-
   class DecodedStreamMainThreadListener;
 
   NS_DECL_ISUPPORTS
@@ -1041,5 +1028,7 @@ protected:
   
   bool mShuttingDown;
 };
+
+} 
 
 #endif

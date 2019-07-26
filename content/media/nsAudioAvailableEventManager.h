@@ -12,6 +12,7 @@
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 
+namespace mozilla {
 
 class nsAudioAvailableEventManager
 {
@@ -29,7 +30,7 @@ public:
 
   
   
-  void QueueWrittenAudioData(mozilla::AudioDataValue* aAudioData,
+  void QueueWrittenAudioData(AudioDataValue* aAudioData,
                              uint32_t aAudioDataLength,
                              uint64_t aEndTimeSampleOffset);
 
@@ -78,12 +79,14 @@ private:
 
   
   
-  mozilla::ReentrantMonitor mReentrantMonitor;
+  ReentrantMonitor mReentrantMonitor;
 
   
   
   
   bool mHasListener;
 };
+
+} 
 
 #endif

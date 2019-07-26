@@ -19,7 +19,7 @@ extern "C" {
 #include "mozilla/TimeStamp.h"
 #include "VorbisUtils.h"
 
-using namespace mozilla;
+namespace mozilla {
 
 
 
@@ -1728,3 +1728,6 @@ bool nsOggReader::IsKnownStream(uint32_t aSerial)
 
   return false;
 }
+
+} 
+

@@ -13,7 +13,7 @@
 
 #include "mozilla/StandardInteger.h"
 
-using namespace mozilla;
+namespace mozilla {
 
 
 
@@ -542,3 +542,5 @@ nsWaveReader::GetPosition()
 {
   return mDecoder->GetResource()->Tell();
 }
+
+} 

@@ -17,8 +17,18 @@
 #include "vpx/vp8dx.h"
 #include "vpx/vpx_decoder.h"
 
-using namespace mozilla;
-using namespace mozilla::layers;
+using mozilla::NesteggPacketHolder;
+
+template <>
+class nsAutoRefTraits<NesteggPacketHolder> : public nsPointerRefTraits<NesteggPacketHolder>
+{
+public:
+  static void Release(NesteggPacketHolder* aHolder) { delete aHolder; }
+};
+
+namespace mozilla {
+
+using namespace layers;
 
 
 
@@ -43,13 +53,6 @@ static const double NS_PER_S = 1e9;
 
 
 static const int SEEK_DECODE_MARGIN = 250000;
-
-template <>
-class nsAutoRefTraits<NesteggPacketHolder> : public nsPointerRefTraits<NesteggPacketHolder>
-{
-public:
-  static void Release(NesteggPacketHolder* aHolder) { delete aHolder; }
-};
 
 
 
@@ -840,3 +843,7 @@ nsWebMReader::GetIndexByteRanges(nsTArray<MediaByteRange>& aByteRanges)
 
   return NS_OK;
 }
+
+} 
+
+

@@ -11,7 +11,8 @@
 #include "mozilla/ReentrantMonitor.h"
 
 class nsTimeRanges;
-using mozilla::ReentrantMonitor;
+
+namespace mozilla {
 
 
 
@@ -207,5 +208,7 @@ private:
   
   nsTArray<nsWebMBufferedParser> mRangeParsers;
 };
+
+} 
 
 #endif
