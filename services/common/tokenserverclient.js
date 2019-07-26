@@ -17,6 +17,7 @@ Cu.import("resource://gre/modules/Preferences.jsm");
 Cu.import("resource://gre/modules/Log.jsm");
 Cu.import("resource://services-common/rest.js");
 Cu.import("resource://services-common/utils.js");
+Cu.import("resource://services-common/observers.js");
 
 const Prefs = new Preferences("services.common.tokenserverclient.");
 
@@ -329,6 +330,9 @@ TokenServerClient.prototype = {
     }
 
     
+    this._maybeNotifyBackoff(response, "x-backoff");
+
+    
     if (response.status != 200) {
       
       
@@ -379,6 +383,10 @@ TokenServerClient.prototype = {
         error.cause = "unknown-service";
       }
 
+      
+      
+      this._maybeNotifyBackoff(response, "retry-after");
+
       cb(error, null);
       return;
     }
@@ -403,6 +411,23 @@ TokenServerClient.prototype = {
       uid:      result.uid,
       duration: result.duration,
     });
+  },
+
+  
+  _maybeNotifyBackoff: function (response, headerName) {
+    let headerVal = response.headers[headerName];
+    if (!headerVal) {
+      return;
+    }
+    let backoffInterval;
+    try {
+      backoffInterval = parseInt(headerVal, 10);
+    } catch (ex) {
+      this._log.error("TokenServer response had invalid backoff value in '" +
+                      headerName + "' header: " + headerVal);
+      return;
+    }
+    Observers.notify("tokenserver:backoff:interval", backoffInterval);
   },
 
   

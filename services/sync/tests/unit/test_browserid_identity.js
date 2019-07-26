@@ -13,6 +13,7 @@ Cu.import("resource://gre/modules/FxAccounts.jsm");
 Cu.import("resource://gre/modules/FxAccountsClient.jsm");
 Cu.import("resource://gre/modules/FxAccountsCommon.js");
 Cu.import("resource://services-common/tokenserverclient.js");
+Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/status.js");
 Cu.import("resource://services-sync/constants.js");
 
@@ -361,6 +362,36 @@ add_task(function test_getTokenErrors() {
     body: "",
   });
   Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login state is LOGIN_FAILED_NETWORK_ERROR");
+});
+
+add_task(function test_getTokenErrorWithRetry() {
+  _("tokenserver sends an observer notification on various backoff headers.");
+
+  
+  
+  Status.backoffInterval = 0;
+  _("Arrange for a 503 with a Retry-After header.");
+  yield initializeIdentityWithTokenServerFailure({
+    status: 503,
+    headers: {"content-type": "application/json",
+              "retry-after": "100"},
+    body: JSON.stringify({}),
+  });
+  
+  Assert.equal(Status.login, LOGIN_FAILED_NETWORK_ERROR, "login was rejected");
+  
+  Assert.ok(Status.backoffInterval >= 100000);
+
+  _("Arrange for a 200 with an X-Backoff header.");
+  Status.backoffInterval = 0;
+  yield initializeIdentityWithTokenServerFailure({
+    status: 503,
+    headers: {"content-type": "application/json",
+              "x-backoff": "200"},
+    body: JSON.stringify({}),
+  });
+  
+  Assert.ok(Status.backoffInterval >= 200000);
 });
 
 add_task(function test_getHAWKErrors() {
