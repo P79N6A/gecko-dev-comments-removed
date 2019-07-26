@@ -490,17 +490,40 @@
   
 
 
-  function sanitizeNewlines(str) {
-    return str.replace(/\n/g, "\\n");
-  }
 
-  
+  var sanitize = (function () {
+    var escapeCharacters = {
+      
+      "\\": "\\\\",
+      
+      "\n": "\\n",
+      
+      "\r": "\\r",
+      
+      "\t": "\\t",
+      
+      "\v": "\\v",
+      
+      "\f": "\\f",
+      
+      "\0": "\\0",
+      
+      "'": "\\'"
+    };
 
+    var regExpString = "("
+      + Object.keys(escapeCharacters)
+              .map(function (c) { return escapeCharacters[c]; })
+              .join("|")
+      + ")";
+    var escapeCharactersRegExp = new RegExp(regExpString, "g");
 
-  function sanitizeSingleQuotes(str) {
-    return str.replace(/\'/g, "\\'");
-  }
-
+    return function(str) {
+      return str.replace(escapeCharactersRegExp, function (_, c) {
+        return escapeCharacters[c];
+      });
+    }
+  }());
   
 
 
@@ -513,7 +536,7 @@
 
   function addToken(token, write, options) {
     if (token.type.type == "string") {
-      write("'" + sanitizeSingleQuotes(sanitizeNewlines(token.value)) + "'",
+      write("'" + sanitize(token.value) + "'",
             token.startLoc.line,
             token.startLoc.column);
     } else {
