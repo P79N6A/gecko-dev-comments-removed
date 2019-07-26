@@ -2,6 +2,8 @@
 
 
 
+from __future__ import print_function, unicode_literals
+
 import platform
 import sys
 
@@ -10,6 +12,18 @@ from mozboot.fedora import FedoraBootstrapper
 from mozboot.mint import MintBootstrapper
 from mozboot.osx import OSXBootstrapper
 from mozboot.ubuntu import UbuntuBootstrapper
+
+
+FINISHED = '''
+Your system should be ready to build Firefox! If you have not already,
+obtain a copy of the source code by running:
+
+    hg clone https://hg.mozilla.org/mozilla-central
+
+Or, if you prefer Git:
+
+    git clone git://github.com/mozilla/mozilla-central.git
+'''
 
 
 class Bootstrapper(object):
@@ -52,3 +66,5 @@ class Bootstrapper(object):
 
         instance = cls(**args)
         instance.install_system_packages()
+
+        print(FINISHED)
