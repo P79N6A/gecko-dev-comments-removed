@@ -11,7 +11,6 @@
 #include "nsSVGPathDataParser.h"
 #include "nsSVGPathGeometryElement.h" 
 #include <stdarg.h>
-#include "string.h"
 #include "SVGContentUtils.h"
 #include "SVGPathSegUtils.h"
 
