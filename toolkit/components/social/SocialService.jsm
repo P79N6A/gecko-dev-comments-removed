@@ -734,12 +734,13 @@ SocialProvider.prototype = {
     
     let promptImages = {};
     let promptMessages = {};
+    let self = this;
     function reportError(reason) {
       Cu.reportError("Invalid page-mark data from provider: " + reason + ": marking is disabled for this provider");
       
       
-      this._pageMarkInfo = null;
-      Services.obs.notifyObservers(null, "social:page-mark-config", this.origin);
+      self._pageMarkInfo = null;
+      Services.obs.notifyObservers(null, "social:page-mark-config", self.origin);
     }
     if (!data ||
         !data.images || typeof data.images != "object" ||
