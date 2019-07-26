@@ -25,11 +25,14 @@
 # include "vm/Monitor.h"
 #endif
 
-#if defined(DEBUG) && defined(JS_THREADSAFE) && defined(JS_ION)
-# include "jit/Ion.h"
-# include "jit/JitCompartment.h"
-# include "jit/MIR.h"
-# include "jit/MIRGraph.h"
+#if defined(JS_THREADSAFE) && defined(JS_ION)
+# include "jit/JitCommon.h"
+# ifdef DEBUG
+#  include "jit/Ion.h"
+#  include "jit/JitCompartment.h"
+#  include "jit/MIR.h"
+#  include "jit/MIRGraph.h"
+# endif
 #endif 
 
 #include "vm/Interpreter-inl.h"
