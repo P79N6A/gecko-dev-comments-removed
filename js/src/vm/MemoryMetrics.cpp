@@ -51,7 +51,7 @@ InefficientNonFlatteningStringHashPolicy::hash(const Lookup &l)
         chars = l->pureChars();
     } else {
         
-        if (!l->copyNonPureChars( NULL, ownedChars))
+        if (!l->copyNonPureChars( nullptr, ownedChars))
             MOZ_CRASH("oom");
         chars = ownedChars;
     }
@@ -71,7 +71,7 @@ InefficientNonFlatteningStringHashPolicy::match(const JSString *const &k, const 
     if (k->hasPureChars()) {
         c1 = k->pureChars();
     } else {
-        if (!k->copyNonPureChars( NULL, ownedChars1))
+        if (!k->copyNonPureChars( nullptr, ownedChars1))
             MOZ_CRASH("oom");
         c1 = ownedChars1;
     }
@@ -81,7 +81,7 @@ InefficientNonFlatteningStringHashPolicy::match(const JSString *const &k, const 
     if (l->hasPureChars()) {
         c2 = l->pureChars();
     } else {
-        if (!l->copyNonPureChars( NULL, ownedChars2))
+        if (!l->copyNonPureChars( nullptr, ownedChars2))
             MOZ_CRASH("oom");
         c2 = ownedChars2;
     }
@@ -113,7 +113,7 @@ NotableStringInfo::NotableStringInfo(JSString *str, const StringInfo &info)
     if (str->hasPureChars()) {
         chars = str->pureChars();
     } else {
-        if (!str->copyNonPureChars( NULL, ownedChars))
+        if (!str->copyNonPureChars( nullptr, ownedChars))
             MOZ_CRASH("oom");
         chars = ownedChars;
     }
@@ -139,7 +139,7 @@ NotableStringInfo::NotableStringInfo(MoveRef<NotableStringInfo> info)
     : StringInfo(info)
 {
     buffer = info->buffer;
-    info->buffer = NULL;
+    info->buffer = nullptr;
 }
 
 NotableStringInfo &NotableStringInfo::operator=(MoveRef<NotableStringInfo> info)
@@ -480,7 +480,7 @@ JS::CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats, ObjectPrivateVisit
 #endif
 
     for (CompartmentsIter comp(rt); !comp.done(); comp.next())
-        comp->compartmentStats = NULL;
+        comp->compartmentStats = nullptr;
 
     size_t numDirtyChunks =
         (rtStats->gcHeapChunkTotal - rtStats->gcHeapUnusedChunks) / gc::ChunkSize;
