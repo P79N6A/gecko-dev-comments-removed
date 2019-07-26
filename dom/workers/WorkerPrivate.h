@@ -771,22 +771,6 @@ public:
   void
   EndCTypesCall();
 
-  void
-  BeginCTypesCallback()
-  {
-    
-    
-    EndCTypesCall();
-  }
-
-  void
-  EndCTypesCallback()
-  {
-    
-    
-    BeginCTypesCall();
-  }
-
 private:
   WorkerPrivate(JSContext* aCx, JSObject* aObject, WorkerPrivate* aParent,
                 JSContext* aParentJSContext, const nsAString& aScriptURL,
