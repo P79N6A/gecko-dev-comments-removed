@@ -574,6 +574,10 @@ protected:
 
   
   
+  bool                  mMouseTransparent;
+
+  
+  
   TimeStamp mLastPaintEndTime;
 
   

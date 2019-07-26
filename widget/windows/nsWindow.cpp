@@ -334,6 +334,8 @@ nsWindow::nsWindow() : nsWindowBase()
   mFullscreenMode       = false;
   mMousePresent         = false;
   mDestroyCalled        = false;
+  mHasTaskbarIconBeenCreated = false;
+  mMouseTransparent     = false;
   mPickerDisplayCount   = 0;
   mWindowType           = eWindowType_child;
   mBorderStyle          = eBorderStyle_default;
@@ -362,7 +364,6 @@ nsWindow::nsWindow() : nsWindowBase()
   mForeground           = ::GetSysColor(COLOR_WINDOWTEXT);
 
   mTaskbarPreview = nullptr;
-  mHasTaskbarIconBeenCreated = false;
 
   
   if (!sInstanceCount) {
@@ -490,8 +491,9 @@ nsWindow::Create(nsIWidget *aParent,
       extendedStyle |= WS_EX_COMPOSITED;
     }
 
-    if (aInitData->mIsDragPopup) {
+    if (aInitData->mMouseTransparent) {
       
+      mMouseTransparent = true;
       extendedStyle |= WS_EX_TRANSPARENT;
     }
   } else if (mWindowType == eWindowType_invisible) {
@@ -4673,6 +4675,13 @@ nsWindow::ProcessMessage(UINT msg, WPARAM& wParam, LPARAM& lParam,
 
     case WM_NCHITTEST:
     {
+      if (mMouseTransparent) {
+        
+        *aRetValue = HTTRANSPARENT;
+        result = true;
+        break;
+      }
+
       
 
 

@@ -96,7 +96,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mShouldAutoPosition(true),
   mInContentShell(true),
   mIsMenuLocked(false),
-  mIsDragPopup(false),
+  mMouseTransparent(false),
   mHFlip(false),
   mVFlip(false)
 {
@@ -139,12 +139,6 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
       mPopupType = ePopupTypeMenu;
     else if (tag == nsGkAtoms::tooltip)
       mPopupType = ePopupTypeTooltip;
-  }
-
-  if (mPopupType == ePopupTypePanel &&
-      aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
-                            nsGkAtoms::drag, eIgnoreCase)) {
-    mIsDragPopup = true;
   }
 
   nsCOMPtr<nsIDocShellTreeItem> dsti = PresContext()->GetDocShell();
@@ -243,7 +237,22 @@ nsMenuPopupFrame::CreateWidgetForView(nsView* aView)
   widgetData.clipSiblings = true;
   widgetData.mPopupHint = mPopupType;
   widgetData.mNoAutoHide = IsNoAutoHide();
-  widgetData.mIsDragPopup = mIsDragPopup;
+
+  if (!mInContentShell) {
+    
+    bool isDragPopup = false;
+    if (mPopupType == ePopupTypePanel &&
+        mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
+                              nsGkAtoms::drag, eIgnoreCase)) {
+      widgetData.mIsDragPopup = true;
+      isDragPopup = true;
+    }
+
+    
+    
+    mMouseTransparent = GetStateBits() & NS_FRAME_MOUSE_THROUGH_ALWAYS;
+    widgetData.mMouseTransparent = mMouseTransparent;
+  }
 
   nsAutoString title;
   if (mContent && widgetData.mNoAutoHide) {
@@ -1812,19 +1821,6 @@ void
 nsMenuPopupFrame::AttachedDismissalListener()
 {
   mConsumeRollupEvent = nsIPopupBoxObject::ROLLUP_DEFAULT;
-}
-
-void
-nsMenuPopupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                   const nsRect&           aDirtyRect,
-                                   const nsDisplayListSet& aLists)
-{
-  
-  if (aBuilder->IsForEventDelivery() && mIsDragPopup) {
-    return;
-  }
-
-  nsBoxFrame::BuildDisplayList(aBuilder, aDirtyRect, aLists);
 }
 
 

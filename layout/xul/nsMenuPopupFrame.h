@@ -230,7 +230,7 @@ public:
   bool IsMenu() MOZ_OVERRIDE { return mPopupType == ePopupTypeMenu; }
   bool IsOpen() MOZ_OVERRIDE { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
 
-  bool IsDragPopup() { return mIsDragPopup; }
+  bool IsMouseTransparent() { return mMouseTransparent; }
 
   static nsIContent* GetTriggerContent(nsMenuPopupFrame* aMenuPopupFrame);
   void ClearTriggerContent() { mTriggerContent = nullptr; }
@@ -333,10 +333,6 @@ public:
   
   
   nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
-
-  virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
-                                const nsRect&           aDirtyRect,
-                                const nsDisplayListSet& aLists) MOZ_OVERRIDE;
 
   nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
 
@@ -480,7 +476,7 @@ protected:
   bool mShouldAutoPosition; 
   bool mInContentShell; 
   bool mIsMenuLocked; 
-  bool mIsDragPopup; 
+  bool mMouseTransparent; 
 
   
   bool mHFlip;
