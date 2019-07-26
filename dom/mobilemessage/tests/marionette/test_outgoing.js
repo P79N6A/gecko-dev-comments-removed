@@ -10,7 +10,7 @@ SpecialPowers.addPermission("sms", true, document);
 
 const SENDER = "15555215554"; 
 
-let manager = window.navigator.mozMobileMessage;
+let sms = window.navigator.mozSms;
 const SHORT_BODY = "Hello SMS world!";
 const LONG_BODY = "Let me not to the marriage of true minds\n"
                 + "Admit impediments. Love is not love\n"
@@ -59,8 +59,8 @@ function doSendMessageAndCheckSuccess(receivers, body, callback) {
       }
     }
 
-    manager.removeEventListener("sending", onSmsSending);
-    manager.removeEventListener("sent", onSmsSent);
+    sms.removeEventListener("sending", onSmsSending);
+    sms.removeEventListener("sent", onSmsSent);
 
     log("Done!");
     window.setTimeout(callback, 0);
@@ -104,7 +104,7 @@ function doSendMessageAndCheckSuccess(receivers, body, callback) {
   }
 
   function onSmsSending(event) {
-    log("onsending event received.");
+    log("SmsManager.onsending event received.");
 
     
     
@@ -135,7 +135,7 @@ function doSendMessageAndCheckSuccess(receivers, body, callback) {
   }
 
   function onSmsSent(event) {
-    log("onsent event received.");
+    log("SmsManager.onsent event received.");
 
     
     
@@ -145,10 +145,10 @@ function doSendMessageAndCheckSuccess(receivers, body, callback) {
     checkSentMessage(event.message, "onSentCalled");
   }
 
-  manager.addEventListener("sending", onSmsSending);
-  manager.addEventListener("sent", onSmsSent);
+  sms.addEventListener("sending", onSmsSending);
+  sms.addEventListener("sent", onSmsSent);
 
-  let result = manager.send(receivers, body);
+  let result = sms.send(receivers, body);
   is(Array.isArray(result), Array.isArray(receivers),
      "send() returns an array of requests if receivers is an array");
   if (Array.isArray(receivers)) {

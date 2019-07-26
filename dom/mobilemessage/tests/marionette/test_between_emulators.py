@@ -17,17 +17,17 @@ class SMSTest(MarionetteTestCase):
         
         
         message = 'hello world!'
-        self.assertTrue(receiver.execute_script("return window.navigator.mozMobileMessage != null;"))
+        self.assertTrue(receiver.execute_script("return window.navigator.mozSms != null;"))
         receiver.execute_script("""
 global.smsreceived = null;
-window.navigator.mozMobileMessage.addEventListener("received", function(e) {
+window.navigator.mozSms.addEventListener("received", function(e) {
     global.smsreceived = e.message.body;
 });
 """, new_sandbox=False)
 
         
         sender.execute_script("""
-window.navigator.mozMobileMessage.send("%d", "%s");
+window.navigator.mozSms.send("%d", "%s");
 """ % (receiver.emulator.port, message))
 
         
