@@ -1202,16 +1202,7 @@ var gBrowserInit = {
     }
 
     
-    if (chromeEnabled) {
-      let cmd = document.getElementById("Tools:BrowserConsole");
-      cmd.removeAttribute("disabled");
-      cmd.removeAttribute("hidden");
-    }
-
-    
-    
-    let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled") ||
-                         chromeEnabled;
+    let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
     if (consoleEnabled) {
       let cmd = document.getElementById("Tools:ErrorConsole");
       cmd.removeAttribute("disabled");
