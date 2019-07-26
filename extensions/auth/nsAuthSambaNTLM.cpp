@@ -265,8 +265,8 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
         return NS_ERROR_FAILURE;
     
     *outToken = nsMemory::Clone(buf, *outTokenLen);
+    free(buf);
     if (!*outToken) {
-        free(buf);
         return NS_ERROR_OUT_OF_MEMORY;
     }
     
