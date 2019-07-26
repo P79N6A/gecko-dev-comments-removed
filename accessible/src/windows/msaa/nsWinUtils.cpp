@@ -22,7 +22,7 @@ using namespace mozilla::a11y;
 
 
 
-const PRUnichar* kPropNameTabContent = L"AccessibleTabWindow";
+const wchar_t* kPropNameTabContent = L"AccessibleTabWindow";
 
 
 

@@ -121,7 +121,7 @@ nsresult nsOSHelperAppService::OSProtocolHandlerExists(const char * aProtocolSch
   {
     
     if (mAppAssoc) {
-      PRUnichar * pResult = nullptr;
+      wchar_t * pResult = nullptr;
       NS_ConvertASCIItoUTF16 scheme(aProtocolScheme);
       
       HRESULT hr = mAppAssoc->QueryCurrentDefault(scheme.get(),
@@ -164,7 +164,7 @@ NS_IMETHODIMP nsOSHelperAppService::GetApplicationDescription(const nsACString& 
 
   
   if (mAppAssoc) {
-    PRUnichar * pResult = nullptr;
+    wchar_t * pResult = nullptr;
     
     HRESULT hr = mAppAssoc->QueryCurrentDefault(buf.get(),
                                                 AT_URLPROTOCOL, AL_EFFECTIVE,
@@ -352,14 +352,14 @@ static void StripRundll32(nsString& aCommandString)
   if (bufLength == 0) 
     return false;
 
-  nsAutoArrayPtr<PRUnichar> destination(new PRUnichar[bufLength]);
+  nsAutoArrayPtr<wchar_t> destination(new wchar_t[bufLength]);
   if (!destination)
     return false;
   if (!::ExpandEnvironmentStringsW(handlerCommand.get(), destination,
                                    bufLength))
     return false;
 
-  handlerCommand = destination;
+  handlerCommand = static_cast<const wchar_t*>(destination);
 
   
   handlerCommand.StripChars("\"");
@@ -543,7 +543,7 @@ already_AddRefed<nsMIMEInfoWin> nsOSHelperAppService::GetByExtension(const nsAFl
     
     
     nsString assocType(fileExtToUse);
-    PRUnichar * pResult = nullptr;
+    wchar_t * pResult = nullptr;
     HRESULT hr = mAppAssoc->QueryCurrentDefault(assocType.get(),
                                                 AT_FILEEXTENSION, AL_EFFECTIVE,
                                                 &pResult);

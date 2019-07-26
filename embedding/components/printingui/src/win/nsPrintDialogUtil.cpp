@@ -688,7 +688,7 @@ static HGLOBAL CreateGlobalDevModeAndInit(const nsXPIDLString& aPrintName, nsIPr
 
   HANDLE hPrinter = nullptr;
   
-  LPWSTR printName = const_cast<wchar_t*>(aPrintName.get());
+  LPWSTR printName = const_cast<wchar_t*>(static_cast<const wchar_t*>(aPrintName.get()));
   BOOL status = ::OpenPrinterW(printName, &hPrinter, nullptr);
   if (status) {
 
@@ -806,7 +806,7 @@ ShowNativePrintDialog(HWND              aHWnd,
     GetDefaultPrinterNameFromGlobalPrinters(printerName);
   } else {
     HANDLE hPrinter = nullptr;
-    if(!::OpenPrinterW(const_cast<wchar_t*>(printerName.get()), &hPrinter, nullptr)) {
+    if(!::OpenPrinterW(const_cast<wchar_t*>(static_cast<const wchar_t*>(printerName.get())), &hPrinter, nullptr)) {
       
       GetDefaultPrinterNameFromGlobalPrinters(printerName);
     } else {
@@ -910,8 +910,8 @@ ShowNativePrintDialog(HWND              aHWnd,
       return NS_ERROR_FAILURE;
     }
 
-    wchar_t* device = &(((wchar_t *)devnames)[devnames->wDeviceOffset]);
-    wchar_t* driver = &(((wchar_t *)devnames)[devnames->wDriverOffset]);
+    char16_t* device = &(((char16_t *)devnames)[devnames->wDeviceOffset]);
+    char16_t* driver = &(((char16_t *)devnames)[devnames->wDriverOffset]);
 
     
     
@@ -922,7 +922,7 @@ ShowNativePrintDialog(HWND              aHWnd,
     
     
     if (prntdlg.Flags & PD_PRINTTOFILE) {
-      wchar_t* fileName = &(((wchar_t *)devnames)[devnames->wOutputOffset]);
+      char16ptr_t fileName = &(((wchar_t *)devnames)[devnames->wOutputOffset]);
       NS_ASSERTION(wcscmp(fileName, L"FILE:") == 0, "FileName must be `FILE:`");
       aPrintSettings->SetToFileName(fileName);
       aPrintSettings->SetPrintToFile(true);

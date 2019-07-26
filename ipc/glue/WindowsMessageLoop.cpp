@@ -70,7 +70,7 @@ using namespace mozilla::ipc::windows;
 
 #if defined(ACCESSIBILITY)
 
-extern const PRUnichar* kPropNameTabContent;
+extern const wchar_t* kPropNameTabContent;
 #endif
 
 

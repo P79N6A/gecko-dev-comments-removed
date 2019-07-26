@@ -755,7 +755,7 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   
 
   
-  cmdLine.AppendLooseValue(std::wstring(mGroupId.get()));
+  cmdLine.AppendLooseValue(mGroupId.get());
 
   
   cmdLine.AppendLooseValue(UTF8ToWide(pidstring));
