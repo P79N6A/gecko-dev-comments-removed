@@ -33,7 +33,9 @@
 
 
 
-#  if !defined(__linux__) && \
+
+
+#  if !defined(__linux__) && !defined(__OpenBSD__) && \
       (__cplusplus >= 201103L || defined(__GXX_EXPERIMENTAL_CXX0X__)) && \
       __has_include(<atomic>)
 #    define MOZ_HAVE_CXX11_ATOMICS
