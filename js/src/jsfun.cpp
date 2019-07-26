@@ -409,6 +409,13 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
 
         atom = fun->displayAtom();
         flagsword = (fun->nargs() << 16) | fun->flags();
+
+        
+        
+        
+        JS_ASSERT_IF(fun->hasSingletonType() &&
+                     !((lazy && lazy->hasBeenCloned()) || (script && script->hasBeenCloned())),
+                     fun->environment() == nullptr);
     }
 
     if (!xdr->codeUint32(&firstword))
@@ -421,8 +428,9 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
             if (!proto)
                 return false;
         }
+
         fun = NewFunctionWithProto(cx, NullPtr(), nullptr, 0, JSFunction::INTERPRETED,
-                                   NullPtr(), NullPtr(), proto,
+                                    NullPtr(), NullPtr(), proto,
                                    JSFunction::FinalizeKind, TenuredObject);
         if (!fun)
             return false;
