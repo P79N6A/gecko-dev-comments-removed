@@ -7,7 +7,6 @@
 
 
 #include "nsIntervalSet.h"
-#include "nsAlgorithm.h"
 #include <new>
 #include <algorithm>
 

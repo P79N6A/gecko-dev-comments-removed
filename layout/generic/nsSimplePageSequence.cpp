@@ -2,8 +2,7 @@
 
 
 
-#include "nsCOMPtr.h" 
-#include "nsReadableUtils.h"
+#include "nsCOMPtr.h"
 #include "nsSimplePageSequence.h"
 #include "nsPresContext.h"
 #include "gfxContext.h"
@@ -13,15 +12,15 @@
 #include "nsIPrintSettings.h"
 #include "nsPageFrame.h"
 #include "nsSubDocumentFrame.h"
-#include "nsStyleConsts.h"
 #include "nsRegion.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsContentUtils.h"
 #include "nsDisplayList.h"
-#include "mozilla/Preferences.h"
 #include "nsHTMLCanvasFrame.h"
 #include "mozilla/dom/HTMLCanvasElement.h"
 #include "nsICanvasRenderingContextInternal.h"
+#include "nsIDateTimeFormat.h"
+#include "nsServiceManagerUtils.h"
 #include <algorithm>
 
 
@@ -31,8 +30,6 @@
 
 
 #include "nsIPrintOptions.h"
-#include "nsGfxCIID.h"
-#include "nsIServiceManager.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;

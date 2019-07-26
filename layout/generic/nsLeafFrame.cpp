@@ -5,10 +5,7 @@
 
 
 
-#include "nsCOMPtr.h"
 #include "nsLeafFrame.h"
-#include "nsContainerFrame.h"
-#include "nsHTMLParts.h"
 #include "nsPresContext.h"
 
 nsLeafFrame::~nsLeafFrame()

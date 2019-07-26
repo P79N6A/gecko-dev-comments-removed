@@ -6,14 +6,11 @@
 
 
 #include "nsInlineFrame.h"
-#include "nsCOMPtr.h"
 #include "nsLineLayout.h"
 #include "nsBlockFrame.h"
 #include "nsPlaceholderFrame.h"
 #include "nsGkAtoms.h"
-#include "nsHTMLParts.h"
 #include "nsStyleContext.h"
-#include "nsIPresShell.h"
 #include "nsPresContext.h"
 #include "nsRenderingContext.h"
 #include "nsCSSAnonBoxes.h"

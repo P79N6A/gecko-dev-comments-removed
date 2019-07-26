@@ -993,7 +993,6 @@ private:
 
 
 
-class SingleLineCrossAxisPositionTracker;
 class MOZ_STACK_CLASS CrossAxisPositionTracker : public PositionTracker {
 public:
   CrossAxisPositionTracker(nsFlexContainerFrame* aFlexContainerFrame,

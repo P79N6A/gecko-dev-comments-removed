@@ -5,7 +5,6 @@
 
 
 
-#include "nsCOMPtr.h"
 #include "nsFirstLetterFrame.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"

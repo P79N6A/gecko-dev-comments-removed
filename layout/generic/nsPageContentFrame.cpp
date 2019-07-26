@@ -3,18 +3,11 @@
 
 
 #include "nsPageContentFrame.h"
-#include "nsPageFrame.h"
-#include "nsPlaceholderFrame.h"
 #include "nsCSSFrameConstructor.h"
-#include "nsContainerFrame.h"
-#include "nsHTMLParts.h"
-#include "nsIContent.h"
 #include "nsPresContext.h"
 #include "nsGkAtoms.h"
 #include "nsIPresShell.h"
-#include "nsReadableUtils.h"
 #include "nsSimplePageSequence.h"
-#include "nsDisplayList.h"
 
 nsIFrame*
 NS_NewPageContentFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)

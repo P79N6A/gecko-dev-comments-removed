@@ -6,26 +6,22 @@
 
 
 #include "nsCanvasFrame.h"
-#include "nsIServiceManager.h"
-#include "nsHTMLParts.h"
 #include "nsContainerFrame.h"
 #include "nsCSSRendering.h"
 #include "nsPresContext.h"
 #include "nsStyleContext.h"
 #include "nsRenderingContext.h"
-#include "nsGUIEvent.h"
-#include "nsStyleConsts.h"
 #include "nsGkAtoms.h"
-#include "nsEventStateManager.h"
 #include "nsIPresShell.h"
-#include "nsIScrollPositionListener.h"
 #include "nsDisplayList.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsFrameManager.h"
 
 
 #include "nsIScrollableFrame.h"
+#ifdef DEBUG_CANVAS_FOCUS
 #include "nsIDocShell.h"
+#endif
 
 
 
