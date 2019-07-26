@@ -145,12 +145,11 @@ protected:
     
     nsAutoMicroTask mMt;
 
-    
+    nsCxPusher mCxPusher;
+
     
     
     Maybe<JS::Rooted<JSObject*> > mRootedCallable;
-
-    nsCxPusher mCxPusher;
 
     
     

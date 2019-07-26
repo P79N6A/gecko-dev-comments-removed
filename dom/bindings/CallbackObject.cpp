@@ -43,8 +43,6 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   , mErrorResult(aRv)
   , mExceptionHandling(aExceptionHandling)
 {
-  xpc_UnmarkGrayObject(aCallback);
-
   
   
   
@@ -91,12 +89,18 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   }
 
   
-  
-  
-  mRootedCallable.construct(cx, aCallback);
+  mCxPusher.Push(cx);
 
   
-  mCxPusher.Push(cx);
+  
+  
+  
+  
+  
+  
+  
+  xpc_UnmarkGrayObject(aCallback);
+  mRootedCallable.construct(cx, aCallback);
 
   
   
