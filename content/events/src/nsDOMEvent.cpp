@@ -323,6 +323,9 @@ nsDOMEvent::SetTrusted(bool aTrusted)
 bool
 nsDOMEvent::Init(mozilla::dom::EventTarget* aGlobal)
 {
+  if (!mIsMainThreadEvent) {
+    return nsContentUtils::ThreadsafeIsCallerChrome();
+  }
   bool trusted = false;
   nsCOMPtr<nsPIDOMWindow> w = do_QueryInterface(aGlobal);
   if (w) {
@@ -468,7 +471,7 @@ nsDOMEvent::InitEvent(const nsAString& aEventTypeArg, bool aCanBubbleArg, bool a
 
   if (IsTrusted()) {
     
-    if (!nsContentUtils::IsCallerChrome()) {
+    if (!nsContentUtils::ThreadsafeIsCallerChrome()) {
       SetTrusted(false);
     }
   }
