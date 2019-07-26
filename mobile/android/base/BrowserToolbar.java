@@ -650,6 +650,10 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
                 buttonsAnimator.start();
 
                 mAnimatingEntry = false;
+
+                
+                
+                updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
             }
         });
 
@@ -775,14 +779,28 @@ public class BrowserToolbar implements Tabs.OnTabsChangedListener,
             return;
         }
 
-        mTabsCounter.setCount(count);
+        
+        
+        
+        
+        if (!mLayout.isSelected()) {
+            mTabsCounter.setCount(count);
 
-        mTabs.setContentDescription((count > 1) ?
-                                    mActivity.getString(R.string.num_tabs, count) :
-                                    mActivity.getString(R.string.one_tab));
+            mTabs.setContentDescription((count > 1) ?
+                                        mActivity.getString(R.string.num_tabs, count) :
+                                        mActivity.getString(R.string.one_tab));
+        }
     }
 
     public void updateTabCount(int count) {
+        
+        
+        
+        
+        if (mLayout.isSelected()) {
+            return;
+        }
+
         mTabsCounter.setCurrentText(String.valueOf(count));
         mTabs.setContentDescription((count > 1) ?
                                     mActivity.getString(R.string.num_tabs, count) :
