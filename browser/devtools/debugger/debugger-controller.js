@@ -509,7 +509,7 @@ StackFrames.prototype = {
       
       
       if (this.currentEvaluation.throw) {
-        DebuggerView.WatchExpressions.removeExpression(0);
+        DebuggerView.WatchExpressions.removeExpressionAt(0);
         DebuggerController.StackFrames.syncWatchExpressions();
         return;
       }
@@ -600,11 +600,15 @@ StackFrames.prototype = {
 
     
     
-    if (watchExpressionsEvaluation) {
+    if (this.syncedWatchExpressions && watchExpressionsEvaluation) {
       let label = L10N.getStr("watchExpressionsScopeLabel");
       let arrow = L10N.getStr("watchExpressionsSeparatorLabel");
       let scope = DebuggerView.Variables.addScope(label);
       scope.separator = arrow;
+      scope.allowNameInput = true;
+      scope.allowDeletion = true;
+      scope.switch = DebuggerView.WatchExpressions.switchExpression;
+      scope.delete = DebuggerView.WatchExpressions.deleteExpression;
 
       
       
@@ -939,6 +943,7 @@ StackFrames.prototype = {
       this.syncedWatchExpressions =
         this.currentWatchExpressions = null;
     }
+    this.currentFrame = null;
     this._onFrames();
   },
 

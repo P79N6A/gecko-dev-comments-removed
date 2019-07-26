@@ -25,6 +25,8 @@ this.EXPORTED_SYMBOLS = ["VariablesView", "create"];
 
 
 
+
+
 this.VariablesView = function VariablesView(aParentNode) {
   this._store = new Map();
   this._prevHierarchy = new Map();
@@ -415,6 +417,8 @@ function Scope(aView, aName, aFlags = {}) {
 
   this.ownerView = aView;
   this.eval = aView.eval;
+  this.switch = aView.switch;
+  this.delete = aView.delete;
 
   this._store = new Map();
   this._init(aName.trim(), aFlags);
@@ -634,6 +638,24 @@ Scope.prototype = {
 
 
   set twisty(aFlag) aFlag ? this.showArrow() : this.hideArrow(),
+
+  
+
+
+
+  allowNameInput: false,
+
+  
+
+
+
+  allowValueInput: true,
+
+  
+
+
+
+  allowDeletion: false,
 
   
 
@@ -917,11 +939,14 @@ Scope.prototype = {
 
 
 function Variable(aScope, aName, aDescriptor) {
+  this._onClose = this._onClose.bind(this);
   this._displayTooltip = this._displayTooltip.bind(this);
-  this._activateInput = this._activateInput.bind(this);
-  this._deactivateInput = this._deactivateInput.bind(this);
-  this._saveInput = this._saveInput.bind(this);
-  this._onInputKeyPress = this._onInputKeyPress.bind(this);
+  this._activateNameInput = this._activateNameInput.bind(this);
+  this._activateValueInput = this._activateValueInput.bind(this);
+  this._deactivateNameInput = this._deactivateNameInput.bind(this);
+  this._deactivateValueInput = this._deactivateValueInput.bind(this);
+  this._onNameInputKeyPress = this._onNameInputKeyPress.bind(this);
+  this._onValueInputKeyPress = this._onValueInputKeyPress.bind(this);
 
   Scope.call(this, aScope, aName, aDescriptor);
   this._setGrip(aDescriptor.value);
@@ -1180,6 +1205,12 @@ create({ constructor: Variable, proto: Scope.prototype }, {
       separatorLabel.hidden = true;
       valueLabel.hidden = true;
     }
+    if (this.ownerView.allowDeletion) {
+      let closeNode = this._closeNode = document.createElement("toolbarbutton");
+      closeNode.className = "dbg-variables-delete plain devtools-closebutton";
+      closeNode.addEventListener("click", this._onClose, false);
+      this._title.appendChild(closeNode);
+    }
   },
 
   
@@ -1215,6 +1246,16 @@ create({ constructor: Variable, proto: Scope.prototype }, {
 
     this._target.appendChild(tooltip);
     this._target.setAttribute("tooltip", tooltip.id);
+
+    if (this.ownerView.allowNameInput) {
+      this._name.setAttribute("tooltiptext", L10N.getStr("variablesEditableNameTooltip"));
+    }
+    if (this.ownerView.allowValueInput) {
+      this._valueLabel.setAttribute("tooltiptext", L10N.getStr("variablesEditableValueTooltip"));
+    }
+    if (this.ownerView.allowDeletion) {
+      this._closeNode.setAttribute("tooltiptext", L10N.getStr("variablesCloseButtonTooltip"));
+    }
   },
 
   
@@ -1255,44 +1296,54 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _addEventListeners: function V__addEventListeners() {
     this._arrow.addEventListener("mousedown", this.toggle, false);
     this._name.addEventListener("mousedown", this.toggle, false);
-    this._valueLabel.addEventListener("click", this._activateInput, false);
+    this._name.addEventListener("dblclick", this._activateNameInput, false);
+    this._valueLabel.addEventListener("click", this._activateValueInput, false);
   },
 
   
 
 
-  _activateInput: function V__activateInput(e) {
-    if (!this.eval) {
-      return;
-    }
-    let window = this.window;
-    let document = this.document;
+  _onClose: function V__onClose() {
+    this.hide();
 
-    let title = this._title;
-    let valueLabel = this._valueLabel;
-    let initialString = this._valueLabel.getAttribute("value");
+    if (this.delete) {
+      this.delete(this);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _activateInput: function V__activateInput(aLabel, aClassName, aCallbacks) {
+    let initialString = aLabel.getAttribute("value");
 
     
     
     let input = this.document.createElement("textbox");
     input.setAttribute("value", initialString);
-    input.className = "plain element-input";
+    input.className = "plain " + aClassName;
     input.width = this._target.clientWidth;
 
-    title.removeChild(valueLabel);
-    title.appendChild(input);
+    aLabel.parentNode.replaceChild(input, aLabel);
     input.select();
 
     
     
     
-    if (valueLabel.getAttribute("value").match(/^"[^"]*"$/)) {
+    if (aLabel.getAttribute("value").match(/^"[^"]*"$/)) {
       input.selectionEnd--;
       input.selectionStart++;
     }
 
-    input.addEventListener("keypress", this._onInputKeyPress, false);
-    input.addEventListener("blur", this._deactivateInput, false);
+    input.addEventListener("keypress", aCallbacks.onKeypress, false);
+    input.addEventListener("blur", aCallbacks.onBlur, false);
 
     this._prevExpandable = this.twisty;
     this._prevExpanded = this.expanded;
@@ -1304,16 +1355,15 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _deactivateInput: function V__deactivateInput(e) {
-    let input = e.target;
-    let title = this._title;
-    let valueLabel = this._valueLabel;
 
-    title.removeChild(input);
-    title.appendChild(valueLabel);
 
-    input.removeEventListener("keypress", this._onInputKeyPress, false);
-    input.removeEventListener("blur", this._deactivateInput, false);
+
+
+
+  _deactivateInput: function V__deactivateInput(aLabel, aInput, aCallbacks) {
+    aInput.parentNode.replaceChild(aLabel, aInput);
+    aInput.removeEventListener("keypress", aCallbacks.onKeypress, false);
+    aInput.removeEventListener("blur", aCallbacks.onBlur, false);
 
     this._locked = false;
     this.twisty = this._prevExpandable;
@@ -1323,35 +1373,121 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   
 
 
-  _saveInput: function V__saveInput(e) {
-    let input = e.target;
-    let valueLabel = this._valueLabel;
-    let initialString = this._valueLabel.getAttribute("value");
-    let currentString = input.value;
+  _activateNameInput: function V__activateNameInput() {
+    if (!this.ownerView.allowNameInput || !this.switch) {
+      return;
+    }
+    this._activateInput(this._name, "element-name-input", {
+      onKeypress: this._onNameInputKeyPress,
+      onBlur: this._deactivateNameInput
+    });
+    this._separatorLabel.hidden = true;
+    this._valueLabel.hidden = true;
+  },
 
-    this._deactivateInput(e);
+  
+
+
+  _deactivateNameInput: function V__deactivateNameInput(e) {
+    this._deactivateInput(this._name, e.target, {
+      onKeypress: this._onNameInputKeyPress,
+      onBlur: this._deactivateNameInput
+    });
+    this._separatorLabel.hidden = false;
+    this._valueLabel.hidden = false;
+  },
+
+  
+
+
+  _activateValueInput: function V__activateValueInput() {
+    if (!this.ownerView.allowValueInput || !this.eval) {
+      return;
+    }
+    this._activateInput(this._valueLabel, "element-value-input", {
+      onKeypress: this._onValueInputKeyPress,
+      onBlur: this._deactivateValueInput
+    });
+  },
+
+  
+
+
+  _deactivateValueInput: function V__deactivateValueInput(e) {
+    this._deactivateInput(this._valueLabel, e.target, {
+      onKeypress: this._onValueInputKeyPress,
+      onBlur: this._deactivateValueInput
+    });
+  },
+
+  
+
+
+  _disable: function V__disable() {
+    this.twisty = false;
+    this._separatorLabel.hidden = true;
+    this._valueLabel.hidden = true;
+    this._enum.hidden = true;
+    this._nonenum.hidden = true;
+  },
+
+  
+
+
+  _saveNameInput: function V__saveNameInput(e) {
+    let input = e.target;
+    let initialString = this._name.getAttribute("value");
+    let currentString = input.value.trim();
+    this._deactivateNameInput(e);
 
     if (initialString != currentString) {
-      this._arrow.setAttribute("invisible", "");
-      this._separatorLabel.hidden = true;
-      this._valueLabel.hidden = true;
-      this._enum.hidden = true;
-      this._nonenum.hidden = true;
-      this.eval("(" + this._symbolicName + "=" + currentString + ")");
+      this._disable();
+      this._name.value = currentString;
+      this.switch(this, currentString);
     }
   },
 
   
 
 
-  _onInputKeyPress: function V__onInputKeyPress(e) {
+  _saveValueInput: function V__saveValueInput(e) {
+    let input = e.target;
+    let initialString = this._valueLabel.getAttribute("value");
+    let currentString = input.value.trim();
+    this._deactivateValueInput(e);
+
+    if (initialString != currentString) {
+      this._disable();
+      this.eval(this._symbolicName + "=" + currentString);
+    }
+  },
+
+  
+
+
+  _onNameInputKeyPress: function V__onNameInputKeyPress(e) {
     switch(e.keyCode) {
       case e.DOM_VK_RETURN:
       case e.DOM_VK_ENTER:
-        this._saveInput(e);
+        this._saveNameInput(e);
         return;
       case e.DOM_VK_ESCAPE:
-        this._deactivateInput(e);
+        this._deactivateNameInput(e);
+        return;
+    }
+  },
+
+  
+
+
+  _onValueInputKeyPress: function V__onValueInputKeyPress(e) {
+    switch(e.keyCode) {
+      case e.DOM_VK_RETURN:
+      case e.DOM_VK_ENTER:
+        this._saveValueInput(e);
+        return;
+      case e.DOM_VK_ESCAPE:
+        this._deactivateValueInput(e);
         return;
     }
   },
@@ -1361,6 +1497,7 @@ create({ constructor: Variable, proto: Scope.prototype }, {
   _initialDescriptor: null,
   _separatorLabel: null,
   _valueLabel: null,
+  _closeNode: null,
   _tooltip: null,
   _valueGrip: null,
   _valueString: "",
@@ -1697,6 +1834,7 @@ let L10N = {
 XPCOMUtils.defineLazyGetter(L10N, "stringBundle", function() {
   return Services.strings.createBundle(DBG_STRINGS_URI);
 });
+
 
 
 

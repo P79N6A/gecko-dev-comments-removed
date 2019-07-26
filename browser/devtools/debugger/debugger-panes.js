@@ -945,6 +945,8 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 function WatchExpressionsView() {
   dumpn("WatchExpressionsView was instantiated");
   MenuContainer.call(this);
+  this.switchExpression = this.switchExpression.bind(this);
+  this.deleteExpression = this.deleteExpression.bind(this);
   this._createItemView = this._createItemView.bind(this);
   this._onClick = this._onClick.bind(this);
   this._onClose = this._onClose.bind(this);
@@ -1028,9 +1030,52 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
 
 
-  removeExpression: function DVWE_removeExpression(aIndex) {
+  removeExpressionAt: function DVWE_removeExpressionAt(aIndex) {
     this.remove(this._cache[aIndex]);
     this._cache.splice(aIndex, 1);
+  },
+
+  
+
+
+
+
+
+
+
+  switchExpression: function DVWE_switchExpression(aVar, aExpression) {
+    let expressionItem =
+      [i for (i of this._cache) if (i.attachment.expression == aVar.name)][0];
+
+    
+    if (!aExpression || this.getExpressions().indexOf(aExpression) != -1) {
+      this.deleteExpression(aVar);
+      return;
+    }
+
+    
+    expressionItem.attachment.expression = aExpression;
+    expressionItem.target.inputNode.value = aExpression;
+
+    
+    DebuggerController.StackFrames.syncWatchExpressions();
+  },
+
+  
+
+
+
+
+
+  deleteExpression: function DVWE_deleteExpression(aVar) {
+    let expressionItem =
+      [i for (i of this._cache) if (i.attachment.expression == aVar.name)][0];
+
+    
+    this.removeExpressionAt(this._cache.indexOf(expressionItem));
+
+    
+    DebuggerController.StackFrames.syncWatchExpressions();
   },
 
   
@@ -1101,7 +1146,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   _onClose: function DVWE__onClose(e) {
     let expressionItem = this.getItemForElement(e.target);
-    this.removeExpression(this._cache.indexOf(expressionItem));
+    this.removeExpressionAt(this._cache.indexOf(expressionItem));
 
     
     DebuggerController.StackFrames.syncWatchExpressions();
@@ -1116,15 +1161,15 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
   _onBlur: function DVWE__onBlur({ target: textbox }) {
     let expressionItem = this.getItemForElement(textbox);
     let oldExpression = expressionItem.attachment.expression;
-    let newExpression = textbox.value;
+    let newExpression = textbox.value.trim();
 
     
     if (!newExpression) {
-      this.removeExpression(this._cache.indexOf(expressionItem));
+      this.removeExpressionAt(this._cache.indexOf(expressionItem));
     }
     
     else if (!oldExpression && this.getExpressions().indexOf(newExpression) != -1) {
-      this.removeExpression(this._cache.indexOf(expressionItem));
+      this.removeExpressionAt(this._cache.indexOf(expressionItem));
     }
     
     else {
