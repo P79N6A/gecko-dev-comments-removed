@@ -7,61 +7,8 @@
 "use strict";
 Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
-
-function safeErrorString(aError) {
-  try {
-    var s = aError.toString();
-    if (typeof s === "string")
-      return s;
-  } catch (ee) { }
-
-  return "<failed trying to find error description>";
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function makeInfallible(aHandler, aName) {
-  if (!aName)
-    aName = aHandler.name;
-
-  return function () {
-    try {
-      return aHandler.apply(this, arguments);
-    } catch (ex) {
-      let msg = "Handler function ";
-      if (aName) {
-        msg += aName + " ";
-      }
-      msg += "threw an exception: " + safeErrorString(ex);
-      if (ex.stack) {
-        msg += "\nCall stack:\n" + ex.stack;
-      }
-
-      dump(msg + "\n");
-
-      if (Cu.reportError) {
-        
-
-
-
-
-        Cu.reportError(msg);
-      }
-    }
-  }
-}
+Components.utils.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
+var { makeInfallible } = DevToolsUtils;
 
 
 
@@ -173,10 +120,7 @@ DebuggerTransport.prototype = {
   onStopRequest:
   makeInfallible(function DT_onStopRequest(aRequest, aContext, aStatus) {
     this.close();
-    if (this.hooks) {
-      this.hooks.onClosed(aStatus);
-      this.hooks = null;
-    }
+    this.hooks.onClosed(aStatus);
   }, "DebuggerTransport.prototype.onStopRequest"),
 
   onDataAvailable:
@@ -295,10 +239,7 @@ LocalDebuggerTransport.prototype = {
       delete this.other;
       other.close();
     }
-    if (this.hooks) {
-      this.hooks.onClosed();
-      this.hooks = null;
-    }
+    this.hooks.onClosed();
   },
 
   
