@@ -65,6 +65,18 @@ WeaveService.prototype = {
     Weave.Service;
   },
 
+  get fxAccountsEnabled() {
+    let fxAccountsEnabled = false;
+    try {
+      fxAccountsEnabled = Services.prefs.getBoolPref("identity.fxaccounts.enabled");
+    } catch (_) {
+    }
+    
+    
+    delete this.fxAccountsEnabled;
+    return this.fxAccountsEnabled = fxAccountsEnabled;
+  },
+
   maybeInitWithFxAccountsAndEnsureLoaded: function() {
     Components.utils.import("resource://services-sync/main.js");
     
@@ -125,20 +137,29 @@ WeaveService.prototype = {
       this.timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
       this.timer.initWithCallback({
         notify: function() {
-          
-          let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
-          if (!prefs.prefHasUserValue("username")) {
-            return;
-          }
+          if (this.fxAccountsEnabled) {
+            
+            this.maybeInitWithFxAccountsAndEnsureLoaded();
+          } else {
+            
+            
+            let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+            if (!prefs.prefHasUserValue("username")) {
+              return;
+            }
 
-          
-          
-          
-          
-          
-          this.maybeInitWithFxAccountsAndEnsureLoaded();
+            
+            
+            
+            
+            
+            Components.utils.import("resource://services-sync/main.js");
+            if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED) {
+              this.ensureLoaded();
+            }
+          }
         }.bind(this)
-      }, 1000, Ci.nsITimer.TYPE_ONE_SHOT);
+      }, 10000, Ci.nsITimer.TYPE_ONE_SHOT);
       break;
 
     case 'fxaccounts:onlogin':
