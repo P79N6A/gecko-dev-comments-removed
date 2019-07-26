@@ -1219,80 +1219,101 @@ ElementEditor.prototype = {
     return this.node.startModifyingAttributes();
   },
 
-  _createAttribute: function EE_createAttribute(aAttr, aBefore)
+  _createAttribute: function EE_createAttribute(aAttr, aBefore = null)
   {
-    if (this.attrs.hasOwnProperty(aAttr.name)) {
-      var attr = this.attrs[aAttr.name];
-      var name = attr.querySelector(".attrname");
-      var val = attr.querySelector(".attrvalue");
-    } else {
-      
-      let data = {
-        attrName: aAttr.name,
-      };
-      this.template("attribute", data);
-      var {attr, inner, name, val} = data;
+    
+    let data = {
+      attrName: aAttr.name,
+    };
+    this.template("attribute", data);
+    var {attr, inner, name, val} = data;
 
-      
-      let before = aBefore || null;
-      if (aAttr.name == "id") {
-        before = this.attrList.firstChild;
-      } else if (aAttr.name == "class") {
-        let idNode = this.attrs["id"];
-        before = idNode ? idNode.nextSibling : this.attrList.firstChild;
-      }
-      this.attrList.insertBefore(attr, before);
+    
+    
+    
+    let editValueDisplayed = aAttr.value;
+    let hasDoubleQuote = editValueDisplayed.contains('"');
+    let hasSingleQuote = editValueDisplayed.contains("'");
+    let initial = aAttr.name + '="' + editValueDisplayed + '"';
 
-      
-      editableField({
-        element: inner,
-        trigger: "dblclick",
-        stopOnReturn: true,
-        selectAll: false,
-        contentType: InplaceEditor.CONTENT_TYPES.CSS_MIXED,
-        popup: this.markup.popup,
-        start: (aEditor, aEvent) => {
-          
-          
-          if (aEvent && aEvent.target === name) {
-            aEditor.input.setSelectionRange(0, name.textContent.length);
-          } else if (aEvent && aEvent.target === val) {
-            let length = val.textContent.length;
-            let editorLength = aEditor.input.value.length;
-            let start = editorLength - (length + 1);
-            aEditor.input.setSelectionRange(start, start + length);
-          } else {
-            aEditor.input.select();
-          }
-        },
-        done: (aVal, aCommit) => {
-          if (!aCommit) {
-            return;
-          }
-
-          let doMods = this._startModifyingAttributes();
-          let undoMods = this._startModifyingAttributes();
-
-          
-          
-          
-          try {
-            this._saveAttribute(aAttr.name, undoMods);
-            doMods.removeAttribute(aAttr.name);
-            this._applyAttributes(aVal, attr, doMods, undoMods);
-            this.undo.do(() => {
-              doMods.apply();
-            }, () => {
-              undoMods.apply();
-            })
-          } catch(ex) {
-            console.error(ex);
-          }
-        }
-      });
-
-      this.attrs[aAttr.name] = attr;
+    
+    if (hasDoubleQuote && hasSingleQuote) {
+        editValueDisplayed = editValueDisplayed.replace(/\"/g, "&quot;");
+        initial = aAttr.name + '="' + editValueDisplayed + '"';
     }
+
+    
+    if (hasDoubleQuote && !hasSingleQuote) {
+        initial = aAttr.name + "='" + editValueDisplayed + "'";
+    }
+
+    
+    editableField({
+      element: inner,
+      trigger: "dblclick",
+      stopOnReturn: true,
+      selectAll: false,
+      initial: initial,
+      contentType: InplaceEditor.CONTENT_TYPES.CSS_MIXED,
+      popup: this.markup.popup,
+      start: (aEditor, aEvent) => {
+        
+        
+        if (aEvent && aEvent.target === name) {
+          aEditor.input.setSelectionRange(0, name.textContent.length);
+        } else if (aEvent && aEvent.target === val) {
+          let length = editValueDisplayed.length;
+          let editorLength = aEditor.input.value.length;
+          let start = editorLength - (length + 1);
+          aEditor.input.setSelectionRange(start, start + length);
+        } else {
+          aEditor.input.select();
+        }
+      },
+      done: (aVal, aCommit) => {
+        if (!aCommit) {
+          return;
+        }
+
+        let doMods = this._startModifyingAttributes();
+        let undoMods = this._startModifyingAttributes();
+
+        
+        
+        
+        try {
+          this._saveAttribute(aAttr.name, undoMods);
+          doMods.removeAttribute(aAttr.name);
+          this._applyAttributes(aVal, attr, doMods, undoMods);
+          this.undo.do(() => {
+            doMods.apply();
+          }, () => {
+            undoMods.apply();
+          })
+        } catch(ex) {
+          console.error(ex);
+        }
+      }
+    });
+
+
+    
+    let before = aBefore;
+    if (aAttr.name == "id") {
+      before = this.attrList.firstChild;
+    } else if (aAttr.name == "class") {
+      let idNode = this.attrs["id"];
+      before = idNode ? idNode.nextSibling : this.attrList.firstChild;
+    }
+    this.attrList.insertBefore(attr, before);
+
+    
+    let oldAttr = this.attrs[aAttr.name];
+    if (oldAttr && oldAttr.parentNode) {
+      oldAttr.parentNode.removeChild(oldAttr);
+    }
+
+    this.attrs[aAttr.name] = attr;
 
     name.textContent = aAttr.name;
     val.textContent = aAttr.value;
