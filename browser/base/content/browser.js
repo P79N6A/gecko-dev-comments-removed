@@ -1046,7 +1046,7 @@ var gBrowserInit = {
     FullZoom.init();
     PanelUI.init();
     SocialUI.init();
-    LightweightThemeListener.init();
+    AddonManager.addAddonListener(AddonsMgrListener);
     WebrtcIndicator.init();
 
     
@@ -3843,26 +3843,11 @@ var XULBrowserWindow = {
         gURLBar.removeAttribute("level");
     }
 
-    if (gMultiProcessBrowser)
-      return;
-
-    
-    
-    
-    var location = gBrowser.contentWindow.location;
-    var locationObj = {};
+    let uri = gBrowser.currentURI;
     try {
-      
-      locationObj.protocol = location == "about:blank" ? "http:" : location.protocol;
-      locationObj.host = location.host;
-      locationObj.hostname = location.hostname;
-      locationObj.port = location.port;
-    } catch (ex) {
-      
-      
-      
-    }
-    gIdentityHandler.checkIdentity(this._state, locationObj);
+      uri = Services.uriFixup.createExposableURI(uri);
+    } catch (e) {}
+    gIdentityHandler.checkIdentity(this._state, uri);
   },
 
   
@@ -6209,7 +6194,7 @@ var gIdentityHandler = {
 
   
   _lastStatus : null,
-  _lastLocation : null,
+  _lastUri : null,
   _mode : "unknownIdentity",
 
   
@@ -6369,17 +6354,27 @@ var gIdentityHandler = {
 
 
 
-
-  checkIdentity : function(state, location) {
+  checkIdentity : function(state, uri) {
     var currentStatus = gBrowser.securityUI
                                 .QueryInterface(Components.interfaces.nsISSLStatusProvider)
                                 .SSLStatus;
     this._lastStatus = currentStatus;
-    this._lastLocation = location;
+    this._lastUri = uri;
 
     let nsIWebProgressListener = Ci.nsIWebProgressListener;
-    if (location.protocol == "chrome:" || location.protocol == "about:") {
+
+    
+    
+    let unknown = false;
+    try {
+      uri.host;
+    } catch (e) { unknown = true; }
+
+    if ((uri.scheme == "chrome" || uri.scheme == "about") &&
+        uri.spec !== "about:blank") {
       this.setMode(this.IDENTITY_MODE_CHROMEUI);
+    } else if (unknown) {
+      this.setMode(this.IDENTITY_MODE_UNKNOWN);
     } else if (state & nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL) {
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
     } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
@@ -6450,12 +6445,12 @@ var gIdentityHandler = {
                          .getService(Ci.nsIIDNService);
     try {
       let baseDomain =
-        Services.eTLD.getBaseDomainFromHost(this._lastLocation.hostname);
+        Services.eTLD.getBaseDomainFromHost(this._lastUri.host);
       return this._IDNService.convertToDisplayIDN(baseDomain, {});
     } catch (e) {
       
       
-      return this._lastLocation.hostname;
+      return this._lastUri.host;
     }
   },
 
@@ -6503,18 +6498,16 @@ var gIdentityHandler = {
                                                     [iData.caOrg]);
 
       
-      
-      
-      
-      
-      
-      
-      
-      if (this._lastLocation.hostname &&
-          this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
-                                                    (this._lastLocation.port || 443),
-                                                    iData.cert, {}, {}))
+      let host = this._lastUri.host;
+      let port = 443;
+      try {
+        if (this._lastUri.port > 0)
+          port = this._lastUri.port;
+      } catch (e) {}
+
+      if (this._overrideService.hasMatchingOverride(host, port, iData.cert, {}, {}))
         tooltip = gNavigatorBundle.getString("identity.identified.verified_by_you");
+
       break; }
     case this.IDENTITY_MODE_IDENTIFIED: {
       
@@ -6722,6 +6715,8 @@ var gIdentityHandler = {
     let menulist = document.createElement("menulist");
     let menupopup = document.createElement("menupopup");
     for (let state of SitePermissions.getAvailableStates(aPermission)) {
+      if (state == SitePermissions.UNKNOWN)
+        continue;
       let menuitem = document.createElement("menuitem");
       menuitem.setAttribute("value", state);
       menuitem.setAttribute("label", SitePermissions.getStateLabel(state));

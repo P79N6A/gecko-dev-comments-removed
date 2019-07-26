@@ -297,18 +297,11 @@ let FullZoomHelper = {
         deferred.resolve();
     }, true);
 
-    
-    
-    
-    if (tab == gBrowser.selectedTab) {
-      this.selectTabAndWaitForLocationChange(null).then(function () {
-        didZoom = true;
-        if (didLoad)
-          deferred.resolve();
-      });
-    }
-    else
+    this.selectTabAndWaitForLocationChange(null).then(function () {
       didZoom = true;
+      if (didLoad)
+        deferred.resolve();
+    });
 
     tab.linkedBrowser.loadURI(url);
 
