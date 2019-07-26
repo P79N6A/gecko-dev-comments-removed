@@ -197,6 +197,14 @@ class IonCompartment
     
     OptimizedICStubSpace optimizedStubSpace_;
 
+    
+    
+    
+    
+    ReadBarriered<IonCode> stringConcatStub_;
+
+    IonCode *generateStringConcatStub(JSContext *cx);
+
   public:
     IonCode *getVMWrapper(const VMFunction &f);
 
@@ -234,6 +242,9 @@ class IonCompartment
     ~IonCompartment();
 
     bool initialize(JSContext *cx);
+
+    
+    bool ensureIonStubsExist(JSContext *cx);
 
     void mark(JSTracer *trc, JSCompartment *compartment);
     void sweep(FreeOp *fop);
@@ -282,6 +293,10 @@ class IonCompartment
 
     IonCode *debugTrapHandler(JSContext *cx) {
         return rt->debugTrapHandler(cx);
+    }
+
+    IonCode *stringConcatStub() {
+        return stringConcatStub_;
     }
 
     AutoFlushCache *flusher() {

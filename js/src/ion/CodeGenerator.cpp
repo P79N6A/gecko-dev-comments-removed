@@ -3590,52 +3590,152 @@ CodeGenerator::visitConcat(LConcat *lir)
     Register rhs = ToRegister(lir->rhs());
 
     Register output = ToRegister(lir->output());
-    Register temp = ToRegister(lir->temp());
+
+    JS_ASSERT(lhs == CallTempReg0);
+    JS_ASSERT(rhs == CallTempReg1);
+    JS_ASSERT(ToRegister(lir->temp1()) == CallTempReg2);
+    JS_ASSERT(ToRegister(lir->temp2()) == CallTempReg3);
+    JS_ASSERT(ToRegister(lir->temp3()) == CallTempReg4);
+    JS_ASSERT(ToRegister(lir->temp4()) == CallTempReg5);
+    JS_ASSERT(output == CallTempReg6);
 
     OutOfLineCode *ool = oolCallVM(ConcatStringsInfo, lir, (ArgList(), lhs, rhs),
                                    StoreRegisterTo(output));
     if (!ool)
         return false;
 
-    Label done;
+    IonCode *stringConcatStub = gen->ionCompartment()->stringConcatStub();
+    masm.call(stringConcatStub);
+    masm.branchTestPtr(Assembler::Zero, output, output, ool->entry());
+
+    masm.bind(ool->rejoin());
+    return true;
+}
+
+static void
+CopyStringChars(MacroAssembler &masm, Register to, Register from, Register len, Register scratch)
+{
+    
+    
+
+#ifdef DEBUG
+    Label ok;
+    masm.branch32(Assembler::GreaterThan, len, Imm32(0), &ok);
+    masm.breakpoint();
+    masm.bind(&ok);
+#endif
+
+    JS_STATIC_ASSERT(sizeof(jschar) == 2);
+
+    Label start;
+    masm.bind(&start);
+    masm.load16ZeroExtend(Address(from, 0), scratch);
+    masm.store16(scratch, Address(to, 0));
+    masm.addPtr(Imm32(2), from);
+    masm.addPtr(Imm32(2), to);
+    masm.sub32(Imm32(1), len);
+    masm.j(Assembler::NonZero, &start);
+}
+
+IonCode *
+IonCompartment::generateStringConcatStub(JSContext *cx)
+{
+    MacroAssembler masm(cx);
+
+    Register lhs = CallTempReg0;
+    Register rhs = CallTempReg1;
+    Register temp1 = CallTempReg2;
+    Register temp2 = CallTempReg3;
+    Register temp3 = CallTempReg4;
+    Register temp4 = CallTempReg5;
+    Register output = CallTempReg6;
+
+    Label failure;
 
     
     Label leftEmpty;
-    masm.loadStringLength(lhs, temp);
-    masm.branchTest32(Assembler::Zero, temp, temp, &leftEmpty);
+    masm.loadStringLength(lhs, temp1);
+    masm.branchTest32(Assembler::Zero, temp1, temp1, &leftEmpty);
 
     
     Label rightEmpty;
-    masm.loadStringLength(rhs, output);
-    masm.branchTest32(Assembler::Zero, output, output, &rightEmpty);
+    masm.loadStringLength(rhs, temp2);
+    masm.branchTest32(Assembler::Zero, temp2, temp2, &rightEmpty);
+
+    masm.add32(temp1, temp2);
 
     
-    masm.add32(output, temp);
-    masm.branch32(Assembler::Above, temp, Imm32(JSString::MAX_LENGTH), ool->entry());
+    Label isShort;
+    masm.branch32(Assembler::BelowOrEqual, temp2, Imm32(JSShortString::MAX_SHORT_LENGTH),
+                  &isShort);
 
     
-    masm.newGCString(output, ool->entry());
+    masm.branch32(Assembler::Above, temp1, Imm32(JSString::MAX_LENGTH), &failure);
+
+    
+    masm.newGCString(output, &failure);
 
     
     JS_STATIC_ASSERT(JSString::ROPE_FLAGS == 0);
-    masm.lshiftPtr(Imm32(JSString::LENGTH_SHIFT), temp);
-    masm.storePtr(temp, Address(output, JSString::offsetOfLengthAndFlags()));
+    masm.lshiftPtr(Imm32(JSString::LENGTH_SHIFT), temp2);
+    masm.storePtr(temp2, Address(output, JSString::offsetOfLengthAndFlags()));
 
     
     masm.storePtr(lhs, Address(output, JSRope::offsetOfLeft()));
     masm.storePtr(rhs, Address(output, JSRope::offsetOfRight()));
-    masm.jump(&done);
+    masm.ret();
 
     masm.bind(&leftEmpty);
     masm.mov(rhs, output);
-    masm.jump(&done);
+    masm.ret();
 
     masm.bind(&rightEmpty);
     masm.mov(lhs, output);
+    masm.ret();
 
-    masm.bind(&done);
-    masm.bind(ool->rejoin());
-    return true;
+    masm.bind(&isShort);
+
+    
+
+    
+    JS_STATIC_ASSERT(JSString::ROPE_FLAGS == 0);
+    masm.branchTestPtr(Assembler::Zero, Address(lhs, JSString::offsetOfLengthAndFlags()),
+                       Imm32(JSString::FLAGS_MASK), &failure);
+    masm.branchTestPtr(Assembler::Zero, Address(rhs, JSString::offsetOfLengthAndFlags()),
+                       Imm32(JSString::FLAGS_MASK), &failure);
+
+    
+    masm.newGCShortString(output, &failure);
+
+    
+    masm.lshiftPtr(Imm32(JSString::LENGTH_SHIFT), temp2);
+    masm.orPtr(Imm32(JSString::FIXED_FLAGS), temp2);
+    masm.storePtr(temp2, Address(output, JSString::offsetOfLengthAndFlags()));
+
+    
+    masm.computeEffectiveAddress(Address(output, JSShortString::offsetOfInlineStorage()), temp2);
+    masm.storePtr(temp2, Address(output, JSShortString::offsetOfChars()));
+
+    
+    
+    masm.loadPtr(Address(lhs, JSString::offsetOfChars()), temp3);
+    CopyStringChars(masm, temp2, temp3, temp1, temp4);
+
+    
+    masm.loadPtr(Address(rhs, JSString::offsetOfChars()), temp3);
+    masm.loadStringLength(rhs, temp1);
+    CopyStringChars(masm, temp2, temp3, temp1, temp4);
+
+    
+    masm.store16(Imm32(0), Address(temp2, 0));
+    masm.ret();
+
+    masm.bind(&failure);
+    masm.movePtr(ImmWord((void *)NULL), output);
+    masm.ret();
+
+    Linker linker(masm);
+    return linker.newCode(cx, JSC::OTHER_CODE);
 }
 
 typedef bool (*CharCodeAtFn)(JSContext *, HandleString, int32_t, uint32_t *);
