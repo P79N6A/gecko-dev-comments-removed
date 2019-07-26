@@ -560,14 +560,9 @@ int nr_ice_component_pair_candidates(nr_ice_peer_ctx *pctx, nr_ice_component *lc
         case HOST:
           break;
         case SERVER_REFLEXIVE:
-          
-          goto next_cand;
-          break;
         case PEER_REFLEXIVE:
           
-
-          assert(0);
-          ABORT(R_INTERNAL);
+          goto next_cand;
           break;
         case RELAYED:
           break;
