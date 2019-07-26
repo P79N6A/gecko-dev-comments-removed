@@ -790,21 +790,22 @@ class GeckoInputConnection
     }
 
     @Override
-    public void notifyIME(final int type, final int state) {
+    public void notifyIME(int type) {
         switch (type) {
 
-            case NOTIFY_IME_CANCELCOMPOSITION:
+            case NOTIFY_IME_TO_CANCEL_COMPOSITION:
                 
                 setComposingText("", 0);
                 
 
-            case NOTIFY_IME_RESETINPUTSTATE:
+            case NOTIFY_IME_TO_COMMIT_COMPOSITION:
                 
                 finishComposingText();
                 tryRestartInput();
                 break;
 
-            case NOTIFY_IME_FOCUSCHANGE:
+            case NOTIFY_IME_OF_FOCUS:
+            case NOTIFY_IME_OF_BLUR:
                 
                 resetInputConnection();
                 break;

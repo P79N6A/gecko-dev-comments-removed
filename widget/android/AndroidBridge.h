@@ -103,10 +103,9 @@ class AndroidBridge
 {
 public:
     enum {
-        NOTIFY_IME_RESETINPUTSTATE = 0,
-        NOTIFY_IME_REPLY_EVENT = 1,
-        NOTIFY_IME_CANCELCOMPOSITION = 2,
-        NOTIFY_IME_FOCUSCHANGE = 3
+        
+        
+        NOTIFY_IME_REPLY_EVENT = -1,
     };
 
     enum {
@@ -152,7 +151,7 @@ public:
     bool SetMainThread(void *thr);
 
     
-    static void NotifyIME(int aType, int aState);
+    static void NotifyIME(int aType);
 
     static void NotifyIMEContext(int aState, const nsAString& aTypeHint,
                                  const nsAString& aModeHint, const nsAString& aActionHint);
