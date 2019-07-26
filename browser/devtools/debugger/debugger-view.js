@@ -27,6 +27,13 @@ const SEARCH_FUNCTION_FLAG = "@";
 const SEARCH_TOKEN_FLAG = "#";
 const SEARCH_LINE_FLAG = ":";
 const SEARCH_VARIABLE_FLAG = "*";
+const DEFAULT_EDITOR_CONFIG = {
+  mode: SourceEditor.MODES.TEXT,
+  readOnly: true,
+  showLineNumbers: true,
+  showAnnotationRuler: true,
+  showOverviewRuler: true
+};
 
 Cu.import("resource://gre/modules/devtools/DevToolsUtils.jsm");
 
@@ -167,17 +174,8 @@ let DebuggerView = {
   _initializeEditor: function(aCallback) {
     dumpn("Initializing the DebuggerView editor");
 
-    let placeholder = document.getElementById("editor");
-    let config = {
-      mode: SourceEditor.MODES.JAVASCRIPT,
-      readOnly: true,
-      showLineNumbers: true,
-      showAnnotationRuler: true,
-      showOverviewRuler: true
-    };
-
     this.editor = new SourceEditor();
-    this.editor.init(placeholder, config, () => {
+    this.editor.init(document.getElementById("editor"), DEFAULT_EDITOR_CONFIG, () => {
       this._loadingText = L10N.getStr("loadingText");
       this._onEditorLoad(aCallback);
     });
@@ -222,11 +220,24 @@ let DebuggerView = {
 
 
 
+  _setEditorText: function(aTextContent = "") {
+    this.editor.setMode(SourceEditor.MODES.TEXT);
+    this.editor.setText(aTextContent);
+    this.editor.resetUndo();
+  },
+
+  
 
 
 
 
-  setEditorMode: function(aUrl, aContentType = "", aTextContent = "") {
+
+
+
+
+
+
+  _setEditorMode: function(aUrl, aContentType = "", aTextContent = "") {
     
     if (aTextContent.length >= SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
       this.editor.setMode(SourceEditor.MODES.TEXT);
@@ -262,33 +273,28 @@ let DebuggerView = {
 
 
 
-  set editorSource(aSource) {
-    if (!this._isInitialized || this._isDestroyed || this._editorSource == aSource) {
-      return;
+
+
+  _setEditorSource: function(aSource) {
+    
+    if (this._editorSource.url == aSource.url) {
+      return this._editorSource.promise;
     }
 
-    dumpn("Setting the DebuggerView editor source: " + aSource.url +
-          ", fetched: " + !!aSource._fetched);
+    let deferred = promise.defer();
 
-    this.editor.setMode(SourceEditor.MODES.TEXT);
-    this.editor.setText(L10N.getStr("loadingText"));
-    this.editor.resetUndo();
-    this._editorSource = aSource;
+    this._setEditorText(L10N.getStr("loadingText"));
+    this._editorSource = { url: aSource.url, promise: deferred.promise };
 
     DebuggerController.SourceScripts.getTextForSource(aSource).then(([, aText]) => {
       
       
-      if (this._editorSource != aSource) {
+      if (this._editorSource.url != aSource.url) {
         return;
       }
 
-      this.editor.setText(aText);
-      this.editor.resetUndo();
-      this.setEditorMode(aSource.url, aSource.contentType, aText);
-
-      
-      
-      this.updateEditor();
+      this._setEditorText(aText);
+      this._setEditorMode(aSource.url, aSource.contentType, aText);
 
       
       DebuggerView.Sources.selectedValue = aSource.url;
@@ -296,15 +302,20 @@ let DebuggerView = {
 
       
       window.dispatchEvent(document, "Debugger:SourceShown", aSource);
+      deferred.resolve([aSource, aText]);
     },
     ([, aError]) => {
-      
       let msg = L10N.getStr("errorLoadingText") + DevToolsUtils.safeErrorString(aError);
-      this.editor.setText(msg);
-      window.dispatchEvent(document, "Debugger:SourceErrorShown", aError);
-      dumpn(msg);
+      this._setEditorText(msg);
       Cu.reportError(msg);
+      dumpn(msg);
+
+      
+      window.dispatchEvent(document, "Debugger:SourceErrorShown", aError);
+      deferred.reject([aSource, aError]);
     });
+
+    return deferred.promise;
   },
 
   
@@ -313,9 +324,6 @@ let DebuggerView = {
 
 
 
-  get editorSource() this._editorSource,
-
-  
 
 
 
@@ -328,64 +336,46 @@ let DebuggerView = {
 
 
 
-
-
-
-
-
-  updateEditor: function(aUrl, aLine, aFlags = {}) {
-    if (!this._isInitialized || this._isDestroyed) {
-      return;
+  setEditorLocation: function(aUrl, aLine = 0, aFlags = {}) {
+    
+    if (!this.Sources.containsValue(aUrl)) {
+      return promise.reject(new Error("Unknown source for the specified URL."));
     }
     
     
-    if (!aUrl && !aLine) {
+    if (!aLine) {
       let cachedFrames = DebuggerController.activeThread.cachedFrames;
-      let currentFrame = DebuggerController.StackFrames.currentFrame;
-      let frame = cachedFrames[currentFrame];
-      if (frame) {
-        let { url, line } = frame.where;
-        this.updateEditor(url, line, { noSwitch: true });
+      let currentDepth = DebuggerController.StackFrames.currentFrameDepth;
+      let frame = cachedFrames[currentDepth];
+      if (frame && frame.where.url == aUrl) {
+        aLine = frame.where.line;
       }
-      return;
     }
 
-    dumpn("Updating the DebuggerView editor: " + aUrl + " @ " + aLine +
-          ", flags: " + aFlags.toSource());
-
-    
-    if (this.Sources.selectedValue == aUrl) {
-      set(aLine);
-    }
-    
-    else if (this.Sources.containsValue(aUrl) && !aFlags.noSwitch) {
-      this.Sources.selectedValue = aUrl;
-      set(aLine);
-    }
-    
-    else {
-      set(0);
-    }
+    let sourceItem = this.Sources.getItemByValue(aUrl);
+    let sourceClient = sourceItem.attachment.source;
 
     
     
-    function set(aLine) {
-      let editor = DebuggerView.editor;
-
+    return this._setEditorSource(sourceClient).then(() => {
       
+      
+      if (aLine < 1) {
+        return;
+      }
       if (aFlags.charOffset) {
-        aLine += editor.getLineAtOffset(aFlags.charOffset);
+        aLine += this.editor.getLineAtOffset(aFlags.charOffset);
       }
       if (aFlags.lineOffset) {
         aLine += aFlags.lineOffset;
       }
       if (!aFlags.noCaret) {
-        editor.setCaretPosition(aLine - 1, aFlags.columnOffset);
+        this.editor.setCaretPosition(aLine - 1, aFlags.columnOffset);
       }
       if (!aFlags.noDebug) {
-        editor.setDebugLocation(aLine - 1, aFlags.columnOffset);
+        this.editor.setDebugLocation(aLine - 1, aFlags.columnOffset);
       }
-    }
+    });
   },
 
   
@@ -478,9 +468,10 @@ let DebuggerView = {
     this.Variables.empty();
 
     if (this.editor) {
+      this.editor.setMode(SourceEditor.MODES.TEXT);
       this.editor.setText("");
-      this.editor.focus();
-      this._editorSource = null;
+      this.editor.resetUndo();
+      this._editorSource = {};
     }
   },
 
@@ -497,8 +488,8 @@ let DebuggerView = {
   Sources: null,
   Variables: null,
   WatchExpressions: null,
-  _editor: null,
-  _editorSource: null,
+  editor: null,
+  _editorSource: {},
   _loadingText: "",
   _sourcesPane: null,
   _instrumentsPane: null,

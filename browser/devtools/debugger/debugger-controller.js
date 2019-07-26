@@ -453,7 +453,6 @@ StackFrames.prototype = {
   currentEvaluation: null,
   currentException: null,
   currentReturnedValue: null,
-  _dontSwitchSources: false,
 
   
 
@@ -684,7 +683,6 @@ StackFrames.prototype = {
 
   _onBlackBoxChange: function() {
     if (this.activeThread.state == "paused") {
-      this._dontSwitchSources = true;
       this.currentFrame = null;
       this._refillFrames();
     }
@@ -727,11 +725,8 @@ StackFrames.prototype = {
       return;
     }
 
-    let noSwitch = this._dontSwitchSources;
-    this._dontSwitchSources = false;
-
     
-    DebuggerView.updateEditor(where.url, where.line, { noSwitch: noSwitch });
+    DebuggerView.setEditorLocation(where.url, where.line);
     
     DebuggerView.Sources.highlightBreakpoint(where, { noEditorUpdate: true });
     
@@ -740,7 +735,6 @@ StackFrames.prototype = {
     DebuggerView.Variables.createHierarchy();
     
     DebuggerView.Variables.empty();
-
 
     
     
@@ -942,6 +936,7 @@ SourceScripts.prototype = {
   get activeThread() DebuggerController.activeThread,
   get debuggerClient() DebuggerController.client,
   _newSourceTimeout: null,
+  _cache: new Map(),
 
   
 
@@ -980,6 +975,7 @@ SourceScripts.prototype = {
 
     
     
+    this._cache.clear();
     this.activeThread.getSources(this._onSourcesAdded);
   },
 
@@ -1123,12 +1119,13 @@ SourceScripts.prototype = {
 
   getTextForSource: function(aSource, aOnTimeout, aDelay = FETCH_SOURCE_RESPONSE_DELAY) {
     
-    if (aSource._fetched) {
-      return aSource._fetched;
+    let textPromise = this._cache.get(aSource.url);
+    if (textPromise) {
+      return textPromise;
     }
 
     let deferred = promise.defer();
-    aSource._fetched = deferred.promise;
+    this._cache.set(aSource.url, deferred.promise);
 
     
     if (aOnTimeout) {
