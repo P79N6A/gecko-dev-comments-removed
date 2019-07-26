@@ -176,14 +176,18 @@ function getUsage(usageHandler)
   let quotaManager = comp.classes["@mozilla.org/dom/quota/manager;1"]
                          .getService(comp.interfaces.nsIQuotaManager);
 
-  let uri = SpecialPowers.getDocumentURIObject(window.document);
-  let callback = {
-    onUsageResult: function(uri, usage, fileUsage) {
-      usageHandler(usage, fileUsage);
-    }
-  };
+  
+  
+  
+  
+  var sysPrin = SpecialPowers.Services.scriptSecurityManager.getSystemPrincipal();
+  var sb = new SpecialPowers.Cu.Sandbox(sysPrin);
+  sb.usageHandler = usageHandler;
+  var cb = SpecialPowers.Cu.evalInSandbox((function(uri, usage, fileUsage) {
+                                           usageHandler(usage, fileUsage); }).toSource(), sb);
 
-  quotaManager.getUsageForURI(uri, callback);
+  let uri = SpecialPowers.wrap(window).document.documentURIObject;
+  quotaManager.getUsageForURI(uri, cb);
 }
 
 function scheduleGC()
