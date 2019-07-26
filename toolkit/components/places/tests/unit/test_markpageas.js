@@ -6,24 +6,10 @@
 
 
 try {
-  var gh = Cc["@mozilla.org/browser/global-history;2"].getService(Ci.nsIBrowserHistory);
-} catch(ex) {
-  do_throw("Could not get global history service\n");
-} 
-
-
-try {
   var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].getService(Ci.nsINavHistoryService);
 } catch(ex) {
   do_throw("Could not get history service\n");
 } 
-
-function add_uri_to_history(aURI) {
-  gh.addURI(aURI,
-            false, 
-            true, 
-            null); 
-}
 
 var gVisits = [{url: "http://www.mozilla.com/",
                 transition: histsvc.TRANSITION_TYPED},
@@ -32,22 +18,28 @@ var gVisits = [{url: "http://www.mozilla.com/",
                {url: "http://www.espn.com/",
                 transition: histsvc.TRANSITION_LINK}];
 
+function run_test()
+{
+  run_next_test();
+}
 
-function run_test() {
+add_task(function test_execute()
+{
   for each (var visit in gVisits) {
     if (visit.transition == histsvc.TRANSITION_TYPED)
-      gh.markPageAsTyped(uri(visit.url));
+      histsvc.markPageAsTyped(uri(visit.url));
     else if (visit.transition == histsvc.TRANSITION_BOOKMARK)
-      gh.markPageAsFollowedBookmark(uri(visit.url))
+      histsvc.markPageAsFollowedBookmark(uri(visit.url))
     else {
      
      
     }
-    add_uri_to_history(uri(visit.url));
+    yield promiseAddVisits({uri: uri(visit.url),
+                            transition: visit.transition});
   }
 
   do_test_pending();
-}
+});
 
 
 var observer = {

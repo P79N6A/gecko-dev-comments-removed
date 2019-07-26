@@ -7,8 +7,6 @@
 
 var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
               getService(Ci.nsINavHistoryService);
-var gh = histsvc.QueryInterface(Ci.nsIGlobalHistory2);
-var bh = histsvc.QueryInterface(Ci.nsIBrowserHistory);
 
 
 
