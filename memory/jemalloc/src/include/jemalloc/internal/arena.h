@@ -41,7 +41,7 @@
 
 
 
-#define	LG_DIRTY_MULT_DEFAULT	5
+#define	LG_DIRTY_MULT_DEFAULT	3
 
 typedef struct arena_chunk_map_s arena_chunk_map_t;
 typedef struct arena_chunk_s arena_chunk_t;
@@ -162,20 +162,16 @@ typedef rb_tree(arena_chunk_map_t) arena_run_tree_t;
 
 struct arena_chunk_s {
 	
-	arena_t		*arena;
+	arena_t			*arena;
 
 	
-	ql_elm(arena_chunk_t) link_dirty;
+	rb_node(arena_chunk_t)	dirty_link;
 
 	
-
-
-
-
-	bool		dirtied;
+	size_t			ndirty;
 
 	
-	size_t		ndirty;
+	size_t			nruns_avail;
 
 	
 
@@ -183,7 +179,15 @@ struct arena_chunk_s {
 
 
 
-	arena_chunk_map_t map[1]; 
+	size_t			nruns_adjac;
+
+	
+
+
+
+
+
+	arena_chunk_map_t	map[1]; 
 };
 typedef rb_tree(arena_chunk_t) arena_chunk_tree_t;
 
@@ -331,8 +335,10 @@ struct arena_s {
 
 	uint64_t		prof_accumbytes;
 
+	dss_prec_t		dss_prec;
+
 	
-	ql_head(arena_chunk_t)	chunks_dirty;
+	arena_chunk_tree_t	chunks_dirty;
 
 	
 
@@ -369,16 +375,7 @@ struct arena_s {
 
 
 
-
-
-
-
-
-
-
-
-	arena_avail_tree_t	runs_avail_clean;
-	arena_avail_tree_t	runs_avail_dirty;
+	arena_avail_tree_t	runs_avail;
 
 	
 	arena_bin_t		bins[NBINS];
@@ -403,7 +400,6 @@ extern arena_bin_info_t	arena_bin_info[NBINS];
 #define			nlclasses (chunk_npages - map_bias)
 
 void	arena_purge_all(arena_t *arena);
-void	arena_prof_accum(arena_t *arena, uint64_t accumbytes);
 void	arena_tcache_fill_small(arena_t *arena, tcache_bin_t *tbin,
     size_t binind, uint64_t prof_accumbytes);
 void	arena_alloc_junk_small(void *ptr, arena_bin_info_t *bin_info,
@@ -422,13 +418,16 @@ void	arena_dalloc_small(arena_t *arena, arena_chunk_t *chunk, void *ptr,
 void	arena_dalloc_large_locked(arena_t *arena, arena_chunk_t *chunk,
     void *ptr);
 void	arena_dalloc_large(arena_t *arena, arena_chunk_t *chunk, void *ptr);
-void	arena_stats_merge(arena_t *arena, size_t *nactive, size_t *ndirty,
-    arena_stats_t *astats, malloc_bin_stats_t *bstats,
-    malloc_large_stats_t *lstats);
 void	*arena_ralloc_no_move(void *ptr, size_t oldsize, size_t size,
     size_t extra, bool zero);
-void	*arena_ralloc(void *ptr, size_t oldsize, size_t size, size_t extra,
-    size_t alignment, bool zero, bool try_tcache);
+void	*arena_ralloc(arena_t *arena, void *ptr, size_t oldsize, size_t size,
+    size_t extra, size_t alignment, bool zero, bool try_tcache_alloc,
+    bool try_tcache_dalloc);
+dss_prec_t	arena_dss_prec_get(arena_t *arena);
+void	arena_dss_prec_set(arena_t *arena, dss_prec_t dss_prec);
+void	arena_stats_merge(arena_t *arena, const char **dss, size_t *nactive,
+    size_t *ndirty, arena_stats_t *astats, malloc_bin_stats_t *bstats,
+    malloc_large_stats_t *lstats);
 bool	arena_new(arena_t *arena, unsigned ind);
 void	arena_boot(void);
 void	arena_prefork(arena_t *arena);
@@ -464,6 +463,9 @@ void	arena_mapbits_small_set(arena_chunk_t *chunk, size_t pageind,
     size_t runind, size_t binind, size_t flags);
 void	arena_mapbits_unzeroed_set(arena_chunk_t *chunk, size_t pageind,
     size_t unzeroed);
+void	arena_prof_accum_impl(arena_t *arena, uint64_t accumbytes);
+void	arena_prof_accum_locked(arena_t *arena, uint64_t accumbytes);
+void	arena_prof_accum(arena_t *arena, uint64_t accumbytes);
 size_t	arena_ptr_small_binind_get(const void *ptr, size_t mapbits);
 size_t	arena_bin_index(arena_t *arena, arena_bin_t *bin);
 unsigned	arena_run_regind(arena_run_t *run, arena_bin_info_t *bin_info,
@@ -659,6 +661,44 @@ arena_mapbits_unzeroed_set(arena_chunk_t *chunk, size_t pageind,
 
 	mapbitsp = arena_mapbitsp_get(chunk, pageind);
 	*mapbitsp = (*mapbitsp & ~CHUNK_MAP_UNZEROED) | unzeroed;
+}
+
+JEMALLOC_INLINE void
+arena_prof_accum_impl(arena_t *arena, uint64_t accumbytes)
+{
+
+	cassert(config_prof);
+	assert(prof_interval != 0);
+
+	arena->prof_accumbytes += accumbytes;
+	if (arena->prof_accumbytes >= prof_interval) {
+		prof_idump();
+		arena->prof_accumbytes -= prof_interval;
+	}
+}
+
+JEMALLOC_INLINE void
+arena_prof_accum_locked(arena_t *arena, uint64_t accumbytes)
+{
+
+	cassert(config_prof);
+
+	if (prof_interval == 0)
+		return;
+	arena_prof_accum_impl(arena, accumbytes);
+}
+
+JEMALLOC_INLINE void
+arena_prof_accum(arena_t *arena, uint64_t accumbytes)
+{
+
+	cassert(config_prof);
+
+	if (prof_interval == 0)
+		return;
+	malloc_mutex_lock(&arena->lock);
+	arena_prof_accum_impl(arena, accumbytes);
+	malloc_mutex_unlock(&arena->lock);
 }
 
 JEMALLOC_INLINE size_t

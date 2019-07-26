@@ -28,6 +28,7 @@
 #ifdef JEMALLOC_H_EXTERNS
 
 extern size_t		opt_lg_chunk;
+extern const char	*opt_dss;
 
 
 extern malloc_mutex_t	chunks_mtx;
@@ -42,7 +43,9 @@ extern size_t		chunk_npages;
 extern size_t		map_bias; 
 extern size_t		arena_maxclass; 
 
-void	*chunk_alloc(size_t size, size_t alignment, bool base, bool *zero);
+void	*chunk_alloc(size_t size, size_t alignment, bool base, bool *zero,
+    dss_prec_t dss_prec);
+void	chunk_unmap(void *chunk, size_t size);
 void	chunk_dealloc(void *chunk, size_t size, bool unmap);
 bool	chunk_boot(void);
 void	chunk_prefork(void);
