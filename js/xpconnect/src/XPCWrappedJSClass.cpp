@@ -24,6 +24,7 @@
 using namespace xpc;
 using namespace JS;
 using namespace mozilla;
+using namespace mozilla::dom;
 
 NS_IMPL_ISUPPORTS(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
@@ -232,7 +233,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                 if (jsexception.isObject()) {
                     
                     
-                    using namespace mozilla::dom;
                     Exception *e = nullptr;
                     UNWRAP_OBJECT(Exception, &jsexception.toObject(), e);
 
@@ -450,29 +450,6 @@ nsXPCWrappedJSClass::IsWrappedJS(nsISupports* aPtr)
            result == WrappedJSIdentity::GetSingleton();
 }
 
-
-
-static JSContext *
-GetContextFromObjectOrDefault(nsXPCWrappedJS* wrapper)
-{
-    
-    XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    if (stack->Peek())
-        return stack->Peek();
-
-    
-    JSCompartment *c = js::GetObjectCompartment(wrapper->GetJSObject());
-    XPCContext *xpcc = EnsureCompartmentPrivate(c)->scope->GetContext();
-    if (xpcc) {
-        JSContext *cx = xpcc->GetJSContext();
-        JS_AbortIfWrongThread(JS_GetRuntime(cx));
-        return cx;
-    }
-
-    
-    return stack->GetSafeJSContext();
-}
-
 NS_IMETHODIMP
 nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
                                              REFNSIID aIID,
@@ -512,8 +489,12 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
         return NS_NOINTERFACE;
     }
 
-    AutoPushJSContext context(GetContextFromObjectOrDefault(self));
-    XPCCallContext ccx(NATIVE_CALLER, context);
+    
+    
+    nsIGlobalObject* nativeGlobal =
+      GetNativeForGlobal(js::GetGlobalForObjectCrossCompartment(self->GetJSObject()));
+    AutoEntryScript aes(nativeGlobal,  true);
+    XPCCallContext ccx(NATIVE_CALLER, aes.cx());
     if (!ccx.IsValid()) {
         *aInstancePtr = nullptr;
         return NS_NOINTERFACE;
@@ -976,8 +957,14 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
     
     
     
-    AutoPushJSContext context(GetContextFromObjectOrDefault(wrapper));
-    XPCCallContext ccx(NATIVE_CALLER, context);
+    
+    
+    
+    
+    nsIGlobalObject* nativeGlobal =
+      GetNativeForGlobal(js::GetGlobalForObjectCrossCompartment(wrapper->GetJSObject()));
+    AutoEntryScript aes(nativeGlobal,  true);
+    XPCCallContext ccx(NATIVE_CALLER, aes.cx());
     if (!ccx.IsValid())
         return retval;
 
