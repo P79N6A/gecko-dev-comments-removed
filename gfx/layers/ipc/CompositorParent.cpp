@@ -330,8 +330,7 @@ CompositorParent::RecvFlushRendering()
   
   
   if (mCurrentCompositeTask) {
-    mCurrentCompositeTask->Cancel();
-    mCurrentCompositeTask = nullptr;
+    CancelCurrentCompositeTask();
     ForceComposeToTarget(nullptr);
   }
   return true;
@@ -376,9 +375,15 @@ CompositorParent::RecvSetTestSampleTime(const TimeStamp& aTime)
 
   mIsTesting = true;
   mTestTime = aTime;
-  if (mCompositionManager) {
-    mCompositionManager->TransformShadowTree(aTime);
+
+  
+  if (mCompositionManager && mCurrentCompositeTask) {
+    bool requestNextFrame = mCompositionManager->TransformShadowTree(aTime);
+    if (!requestNextFrame) {
+      CancelCurrentCompositeTask();
+    }
   }
+
   return true;
 }
 
@@ -462,6 +467,15 @@ CompositorParent::ForceComposition()
   
   mForceCompositionTask = nullptr;
   ScheduleRenderOnCompositorThread();
+}
+
+void
+CompositorParent::CancelCurrentCompositeTask()
+{
+  if (mCurrentCompositeTask) {
+    mCurrentCompositeTask->Cancel();
+    mCurrentCompositeTask = nullptr;
+  }
 }
 
 void
@@ -757,12 +771,22 @@ CompositorParent::ShadowLayersUpdated(LayerTransactionParent* aLayerTree,
 
   if (root) {
     SetShadowProperties(root);
-    if (mIsTesting) {
-      mCompositionManager->TransformShadowTree(mTestTime);
-    }
   }
   if (aScheduleComposite) {
     ScheduleComposition();
+    
+    
+    
+    
+    
+    
+    if (mIsTesting && root && mCurrentCompositeTask) {
+      bool requestNextFrame =
+        mCompositionManager->TransformShadowTree(mTestTime);
+      if (!requestNextFrame) {
+        CancelCurrentCompositeTask();
+      }
+    }
   }
   mLayerManager->NotifyShadowTreeTransaction();
 }
