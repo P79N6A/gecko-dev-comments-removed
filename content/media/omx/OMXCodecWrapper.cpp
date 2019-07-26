@@ -230,6 +230,72 @@ ConvertPlanarYCbCrToNV12(const PlanarYCbCrData* aSource, uint8_t* aDestination)
   }
 }
 
+
+
+
+
+
+static
+void
+ConvertGrallocImageToNV12(GrallocImage* aSource, uint8_t* aDestination)
+{
+  
+  SurfaceDescriptor handle = aSource->GetSurfaceDescriptor();
+  SurfaceDescriptorGralloc gralloc = handle.get_SurfaceDescriptorGralloc();
+  sp<GraphicBuffer> graphicBuffer = GrallocBufferActor::GetFrom(gralloc);
+
+  int pixelFormat = graphicBuffer->getPixelFormat();
+  
+  NS_ENSURE_TRUE_VOID(pixelFormat == HAL_PIXEL_FORMAT_YCrCb_420_SP ||
+                      pixelFormat == HAL_PIXEL_FORMAT_YV12);
+
+  void* imgPtr = nullptr;
+  graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &imgPtr);
+  
+  PlanarYCbCrData yuv;
+  switch (pixelFormat) {
+    case HAL_PIXEL_FORMAT_YCrCb_420_SP: 
+      yuv.mYChannel = static_cast<uint8_t*>(imgPtr);
+      yuv.mYSkip = 0;
+      yuv.mYSize.width = graphicBuffer->getWidth();
+      yuv.mYSize.height = graphicBuffer->getHeight();
+      yuv.mYStride = graphicBuffer->getStride();
+      
+      yuv.mCbCrSize.width = yuv.mYSize.width / 2;
+      yuv.mCbCrSize.height = yuv.mYSize.height / 2;
+      
+      yuv.mCrChannel = yuv.mYChannel + (yuv.mYStride * yuv.mYSize.height);
+      yuv.mCrSkip = 1;
+      yuv.mCbChannel = yuv.mCrChannel + 1;
+      yuv.mCbSkip = 1;
+      yuv.mCbCrStride = yuv.mYStride;
+      ConvertPlanarYCbCrToNV12(&yuv, aDestination);
+      break;
+    case HAL_PIXEL_FORMAT_YV12: 
+      
+      yuv.mYChannel = static_cast<uint8_t*>(imgPtr);
+      yuv.mYSkip = 0;
+      yuv.mYSize.width = graphicBuffer->getWidth();
+      yuv.mYSize.height = graphicBuffer->getHeight();
+      yuv.mYStride = graphicBuffer->getStride();
+      
+      yuv.mCbCrSize.width = yuv.mYSize.width / 2;
+      yuv.mCbCrSize.height = yuv.mYSize.height / 2;
+      yuv.mCrChannel = yuv.mYChannel + (yuv.mYStride * yuv.mYSize.height);
+      
+      yuv.mCbCrStride = (yuv.mYStride / 2 + 15) & ~0x0F;
+      yuv.mCrSkip = 0;
+      yuv.mCbChannel = yuv.mCrChannel + (yuv.mCbCrStride * yuv.mCbCrSize.height);
+      yuv.mCbSkip = 0;
+      ConvertPlanarYCbCrToNV12(&yuv, aDestination);
+      break;
+    default:
+      NS_ERROR("Unsupported input gralloc image type. Should never be here.");
+  }
+
+  graphicBuffer->unlock();
+}
+
 nsresult
 OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
                         int64_t aTimestamp, int aInputFlags)
@@ -252,7 +318,6 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
 
   size_t yLen = aWidth * aHeight;
   size_t uvLen = yLen / 2;
-
   
   MOZ_ASSERT(dstSize >= yLen + uvLen);
 
@@ -273,40 +338,7 @@ OMXVideoEncoder::Encode(const Image* aImage, int aWidth, int aHeight,
                aHeight == img->GetSize().height);
 
     if (format == ImageFormat::GRALLOC_PLANAR_YCBCR) {
-      
-      void* imgPtr = nullptr;
-      GrallocImage* nativeImage = static_cast<GrallocImage*>(img);
-      SurfaceDescriptor handle = nativeImage->GetSurfaceDescriptor();
-      SurfaceDescriptorGralloc gralloc = handle.get_SurfaceDescriptorGralloc();
-      sp<GraphicBuffer> graphicBuffer = GrallocBufferActor::GetFrom(gralloc);
-      graphicBuffer->lock(GraphicBuffer::USAGE_SW_READ_MASK, &imgPtr);
-      uint8_t* src = static_cast<uint8_t*>(imgPtr);
-
-      
-      MOZ_ASSERT(graphicBuffer->getPixelFormat() ==
-                 HAL_PIXEL_FORMAT_YCrCb_420_SP);
-
-      
-      PlanarYCbCrData nv21;
-      
-      nv21.mYChannel = src;
-      nv21.mYSize.width = aWidth;
-      nv21.mYSize.height = aHeight;
-      nv21.mYStride = aWidth;
-      nv21.mYSkip = 0;
-      
-      nv21.mCrChannel = src + yLen;
-      nv21.mCrSkip = 1;
-      nv21.mCbChannel = nv21.mCrChannel + 1;
-      nv21.mCbSkip = 1;
-      nv21.mCbCrStride = aWidth;
-      
-      nv21.mCbCrSize.width = aWidth / 2;
-      nv21.mCbCrSize.height = aHeight / 2;
-
-      ConvertPlanarYCbCrToNV12(&nv21, dst);
-
-      graphicBuffer->unlock();
+      ConvertGrallocImageToNV12(static_cast<GrallocImage*>(img), dst);
     } else if (format == ImageFormat::PLANAR_YCBCR) {
       ConvertPlanarYCbCrToNV12(static_cast<PlanarYCbCrImage*>(img)->GetData(),
                              dst);
