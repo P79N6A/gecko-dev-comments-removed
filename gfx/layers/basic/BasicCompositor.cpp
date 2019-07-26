@@ -378,7 +378,6 @@ BasicCompositor::BeginFrame(const nsIntRegion& aInvalidRegion,
 {
   nsIntRect intRect;
   mWidget->GetClientBounds(intRect);
-  mWidgetSize = gfx::ToIntSize(intRect.Size());
 
   
   

@@ -285,11 +285,6 @@ private:
                                 const gfx::Matrix4x4 &aTransformi,
                                 GLuint aDrawMode);
 
-  virtual gfx::IntSize GetWidgetSize() const MOZ_OVERRIDE
-  {
-    return gfx::ToIntSize(mWidgetSize);
-  }
-
   
 
 
