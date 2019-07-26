@@ -11,28 +11,7 @@ const CACHE_MAX_GROUP_ENTRIES = 100;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-
-
-
-
-function electrolify(service) {
-  
-  
-  
-  service.wrappedJSObject = service;
-
-  var appInfo = Cc["@mozilla.org/xre/app-info;1"];
-  if (appInfo && appInfo.getService(Ci.nsIXULRuntime).processType !=
-      Ci.nsIXULRuntime.PROCESS_TYPE_DEFAULT)
-  {
-    
-    service._dbInit = function(){}; 
-  }
-}
-
 function ContentPrefService() {
-  electrolify(this);
-
   
   
   
@@ -72,7 +51,6 @@ ContentPrefService.prototype = {
   QueryInterface: function CPS_QueryInterface(iid) {
     let supportedIIDs = [
       Ci.nsIContentPrefService,
-      Ci.nsIFrameMessageListener,
       Ci.nsISupports,
     ];
     if (supportedIIDs.some(function (i) iid.equals(i)))
