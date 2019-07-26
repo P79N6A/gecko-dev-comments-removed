@@ -1592,21 +1592,24 @@ class ScriptFrameIter
     inline void ionForEachCanonicalActualArg(JSContext *cx, Op op);
 };
 
+#ifdef DEBUG
+bool SelfHostedFramesVisible();
+#else
+static inline bool
+SelfHostedFramesVisible()
+{
+    return false;
+}
+#endif
+
 
 class NonBuiltinScriptFrameIter : public ScriptFrameIter
 {
-#ifdef DEBUG
-    static bool includeSelfhostedFrames();
-#else
-    static bool includeSelfhostedFrames() {
-        return false;
-    }
-#endif
-
     void settle() {
-        if (!includeSelfhostedFrames())
+        if (!SelfHostedFramesVisible()) {
             while (!done() && script()->selfHosted())
                 ScriptFrameIter::operator++();
+        }
     }
 
   public:
