@@ -69,6 +69,19 @@ struct ScopedClosePRFDTraits
 typedef Scoped<ScopedClosePRFDTraits> AutoFDClose;
 
 
+struct ScopedCloseFileTraits
+{
+  typedef FILE *type;
+  static type empty() { return nullptr; }
+  static void release(type f) {
+    if (f) {
+      fclose(f);
+    }
+  }
+};
+typedef Scoped<ScopedCloseFileTraits> ScopedCloseFile;
+
+
 
 
 
