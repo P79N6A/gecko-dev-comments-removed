@@ -12,14 +12,16 @@ function SourcesView() {
   dumpn("SourcesView was instantiated");
 
   this.togglePrettyPrint = this.togglePrettyPrint.bind(this);
+  this.toggleBlackBoxing = this.toggleBlackBoxing.bind(this);
+  this.toggleBreakpoints = this.toggleBreakpoints.bind(this);
+
   this._onEditorLoad = this._onEditorLoad.bind(this);
   this._onEditorUnload = this._onEditorUnload.bind(this);
   this._onEditorCursorActivity = this._onEditorCursorActivity.bind(this);
   this._onSourceSelect = this._onSourceSelect.bind(this);
   this._onSourceClick = this._onSourceClick.bind(this);
-  this._onBreakpointRemoved = this._onBreakpointRemoved.bind(this);
-  this.toggleBlackBoxing = this.toggleBlackBoxing.bind(this);
   this._onStopBlackBoxing = this._onStopBlackBoxing.bind(this);
+  this._onBreakpointRemoved = this._onBreakpointRemoved.bind(this);
   this._onBreakpointClick = this._onBreakpointClick.bind(this);
   this._onBreakpointCheckboxClick = this._onBreakpointCheckboxClick.bind(this);
   this._onConditionalPopupShowing = this._onConditionalPopupShowing.bind(this);
@@ -27,6 +29,7 @@ function SourcesView() {
   this._onConditionalPopupHiding = this._onConditionalPopupHiding.bind(this);
   this._onConditionalTextboxInput = this._onConditionalTextboxInput.bind(this);
   this._onConditionalTextboxKeyPress = this._onConditionalTextboxKeyPress.bind(this);
+
   this.updateToolbarButtonsState = this.updateToolbarButtonsState.bind(this);
 }
 
@@ -52,6 +55,7 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     this._blackBoxButton = document.getElementById("black-box");
     this._stopBlackBoxButton = document.getElementById("black-boxed-message-button");
     this._prettyPrintButton = document.getElementById("pretty-print");
+    this._toggleBreakpointsButton = document.getElementById("toggle-breakpoints");
 
     if (Prefs.prettyPrintEnabled) {
       this._prettyPrintButton.removeAttribute("hidden");
@@ -226,6 +230,16 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
 
 
+  getAllBreakpoints: function(aStore = []) {
+    return this.getOtherBreakpoints(undefined, aStore);
+  },
+
+  
+
+
+
+
+
 
 
 
@@ -273,6 +287,9 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
     let disableSelfId = prefix + "disableSelf-" + identifier + "-menuitem";
     document.getElementById(enableSelfId).setAttribute("hidden", "true");
     document.getElementById(disableSelfId).removeAttribute("hidden");
+
+    
+    this._toggleBreakpointsButton.removeAttribute("checked");
 
     
     if (!aOptions.silent) {
@@ -377,6 +394,29 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+
+  updateToolbarButtonsState: function() {
+    const { source } = this.selectedItem.attachment;
+    const sourceClient = gThreadClient.source(source);
+
+    if (sourceClient.isBlackBoxed) {
+      this._prettyPrintButton.setAttribute("disabled", true);
+      this._blackBoxButton.setAttribute("checked", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("disabled");
+      this._blackBoxButton.removeAttribute("checked");
+    }
+
+    if (sourceClient.isPrettyPrinted) {
+      this._prettyPrintButton.setAttribute("checked", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("checked");
+    }
+  },
+
+  
+
+
   togglePrettyPrint: function() {
     if (this._prettyPrintButton.hasAttribute("disabled")) {
       return;
@@ -395,17 +435,63 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
 
     DebuggerView.showProgressBar();
     const { source } = this.selectedItem.attachment;
+    const sourceClient = gThreadClient.source(source);
+    const shouldPrettyPrint = !sourceClient.isPrettyPrinted;
 
-    if (gThreadClient.source(source).isPrettyPrinted) {
-      this._prettyPrintButton.removeAttribute("checked");
-    } else {
+    if (shouldPrettyPrint) {
       this._prettyPrintButton.setAttribute("checked", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("checked");
     }
 
     DebuggerController.SourceScripts.togglePrettyPrint(source)
       .then(resetEditor, printError)
       .then(DebuggerView.showEditor)
       .then(this.updateToolbarButtonsState);
+  },
+
+  
+
+
+  toggleBlackBoxing: function() {
+    const { source } = this.selectedItem.attachment;
+    const sourceClient = gThreadClient.source(source);
+    const shouldBlackBox = !sourceClient.isBlackBoxed;
+
+    
+    
+    
+    
+    
+
+    if (shouldBlackBox) {
+      this._prettyPrintButton.setAttribute("disabled", true);
+      this._blackBoxButton.setAttribute("checked", true);
+    } else {
+      this._prettyPrintButton.removeAttribute("disabled");
+      this._blackBoxButton.removeAttribute("checked");
+    }
+
+    DebuggerController.SourceScripts.setBlackBoxing(source, shouldBlackBox)
+      .then(this.updateToolbarButtonsState,
+            this.updateToolbarButtonsState);
+  },
+
+  
+
+
+  toggleBreakpoints: function() {
+    let breakpoints = this.getAllBreakpoints();
+    let hasBreakpoints = breakpoints.length > 0;
+    let hasEnabledBreakpoints = breakpoints.some(e => !e.attachment.disabled);
+
+    if (hasBreakpoints && hasEnabledBreakpoints) {
+      this._toggleBreakpointsButton.setAttribute("checked", true);
+      this._onDisableAll();
+    } else {
+      this._toggleBreakpointsButton.removeAttribute("checked");
+      this._onEnableAll();
+    }
   },
 
   
@@ -697,29 +783,6 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-
-  updateToolbarButtonsState: function() {
-    const { source } = this.selectedItem.attachment;
-    const sourceClient = gThreadClient.source(source);
-
-    if (sourceClient.isBlackBoxed) {
-      this._prettyPrintButton.setAttribute("disabled", true);
-      this._blackBoxButton.setAttribute("checked", true);
-    } else {
-      this._prettyPrintButton.removeAttribute("disabled");
-      this._blackBoxButton.removeAttribute("checked");
-    }
-
-    if (sourceClient.isPrettyPrinted) {
-      this._prettyPrintButton.setAttribute("checked", true);
-    } else {
-      this._prettyPrintButton.removeAttribute("checked");
-    }
-  },
-
-  
-
-
   _onSourceClick: function() {
     
     DebuggerView.Filtering.target = this;
@@ -728,36 +791,10 @@ SourcesView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  toggleBlackBoxing: function() {
-    const { source } = this.selectedItem.attachment;
-    const sourceClient = gThreadClient.source(source);
-    const shouldBlackBox = !sourceClient.isBlackBoxed;
-
-    
-    
-    
-    
-    
-
-    if (shouldBlackBox) {
-      this._prettyPrintButton.setAttribute("disabled", true);
-      this._blackBoxButton.setAttribute("checked", true);
-    } else {
-      this._prettyPrintButton.removeAttribute("disabled");
-      this._blackBoxButton.removeAttribute("checked");
-    }
-
-    DebuggerController.SourceScripts.blackBox(source, shouldBlackBox)
-      .then(this.updateToolbarButtonsState,
-            this.updateToolbarButtonsState);
-  },
-
-  
-
-
   _onStopBlackBoxing: function() {
-    let sourceForm = this.selectedItem.attachment.source;
-    DebuggerController.SourceScripts.blackBox(sourceForm, false)
+    const { source } = this.selectedItem.attachment;
+
+    DebuggerController.SourceScripts.setBlackBoxing(source, false)
       .then(this.updateToolbarButtonsState,
             this.updateToolbarButtonsState);
   },
