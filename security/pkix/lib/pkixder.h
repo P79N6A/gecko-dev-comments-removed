@@ -47,6 +47,8 @@
 #include "secoidt.h"
 #include "stdint.h"
 
+typedef struct CERTSignedDataStr CERTSignedData;
+
 namespace mozilla { namespace pkix { namespace der {
 
 enum Class
@@ -647,6 +649,25 @@ OptionalVersion(Input& input,  uint8_t& version)
   }
   return Success;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Result
+SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData);
 
 } } } 
 

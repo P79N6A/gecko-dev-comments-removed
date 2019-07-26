@@ -90,4 +90,47 @@ ExpectTagAndGetLength(Input& input, uint8_t expectedTag, uint16_t& length)
 
 } 
 
+Result
+SignedData(Input& input,  Input& tbs,  CERTSignedData& signedData)
+{
+  Input::Mark mark(input.GetMark());
+
+  if (ExpectTagAndGetValue(input, SEQUENCE, tbs) != Success) {
+    return Failure;
+  }
+
+  if (input.GetSECItem(siBuffer, mark, signedData.data) != Success) {
+    return Failure;
+  }
+
+  if (Nested(input, SEQUENCE,
+             bind(AlgorithmIdentifier, _1, ref(signedData.signatureAlgorithm)))
+        != Success) {
+    return Failure;
+  }
+
+  if (ExpectTagAndGetValue(input, BIT_STRING, signedData.signature)
+        != Success) {
+    return Failure;
+  }
+  if (signedData.signature.len == 0) {
+    return Fail(SEC_ERROR_BAD_SIGNATURE);
+  }
+  unsigned int unusedBitsAtEnd = signedData.signature.data[0];
+  
+  
+  
+  
+  
+  
+  if (unusedBitsAtEnd != 0) {
+    return Fail(SEC_ERROR_BAD_SIGNATURE);
+  }
+  ++signedData.signature.data;
+  --signedData.signature.len;
+  signedData.signature.len = (signedData.signature.len << 3); 
+
+  return Success;
+}
+
 } } } 

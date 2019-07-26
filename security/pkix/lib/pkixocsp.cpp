@@ -450,49 +450,14 @@ ResponseBytes(der::Input& input, Context& context)
 der::Result
 BasicResponse(der::Input& input, Context& context)
 {
-  der::Input::Mark mark(input.GetMark());
-
-  
-  
-  
-  
-
   der::Input tbsResponseData;
-  if (der::ExpectTagAndGetValue(input, der::SEQUENCE, tbsResponseData)
-        != der::Success) {
-    return der::Failure;
-  }
-
   CERTSignedData signedData;
-
-  if (input.GetSECItem(siBuffer, mark, signedData.data) != der::Success) {
+  if (der::SignedData(input, tbsResponseData, signedData) != der::Success) {
+    if (PR_GetError() == SEC_ERROR_BAD_SIGNATURE) {
+      PR_SetError(SEC_ERROR_OCSP_BAD_SIGNATURE, 0);
+    }
     return der::Failure;
   }
-
-  if (der::Nested(input, der::SEQUENCE,
-                  bind(der::AlgorithmIdentifier, _1,
-                       ref(signedData.signatureAlgorithm))) != der::Success) {
-    return der::Failure;
-  }
-
-  if (der::ExpectTagAndGetValue(input, der::BIT_STRING, signedData.signature)
-        != der::Success) {
-    return der::Failure;
-  }
-  if (signedData.signature.len == 0) {
-    return der::Fail(SEC_ERROR_OCSP_BAD_SIGNATURE);
-  }
-  unsigned int unusedBitsAtEnd = signedData.signature.data[0];
-  
-  
-  
-  
-  if (unusedBitsAtEnd != 0) {
-    return der::Fail(SEC_ERROR_OCSP_BAD_SIGNATURE);
-  }
-  ++signedData.signature.data;
-  --signedData.signature.len;
-  signedData.signature.len = (signedData.signature.len << 3); 
 
   
 
