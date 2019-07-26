@@ -19,6 +19,7 @@
 
 class nsIntRegion;
 
+#include "pixman.h"
 
 
 
@@ -26,115 +27,136 @@ class nsIntRegion;
 
 
 
-class NS_GFX nsRegion
+
+
+
+
+
+
+
+
+class nsRegionRectIterator;
+
+class nsRegion
 {
+
   friend class nsRegionRectIterator;
-  friend class RgnRectMemoryAllocator;
-
-
-
-
-
-
-
-
-  struct nsRectFast : public nsRect
-  {
-    nsRectFast () {}      
-    nsRectFast (int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight) : nsRect (aX, aY, aWidth, aHeight) {}
-    nsRectFast (const nsRect& aRect) : nsRect (aRect) {}
-
-    
-    inline bool Contains (const nsRect& aRect) const;
-    inline bool Intersects (const nsRect& aRect) const;
-    inline bool IntersectRect (const nsRect& aRect1, const nsRect& aRect2);
-    inline void UnionRect (const nsRect& aRect1, const nsRect& aRect2);
-  };
-
-
-  struct RgnRect : public nsRectFast
-  {
-    RgnRect* prev;
-    RgnRect* next;
-
-    RgnRect () {}                           
-    RgnRect (int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight) : nsRectFast (aX, aY, aWidth, aHeight) {}
-    RgnRect (const nsRectFast& aRect) : nsRectFast (aRect) {}
-
-    void* operator new (size_t) CPP_THROW_NEW;
-    void  operator delete (void* aRect, size_t);
-
-    RgnRect& operator = (const RgnRect& aRect)      
-    {
-      x = aRect.x;
-      y = aRect.y;
-      width = aRect.width;
-      height = aRect.height;
-      return *this;
-    }
-  };
-
 
 public:
-  nsRegion () { Init (); }
-  nsRegion (const nsRect& aRect) { Init (); Copy (aRect); }
-  nsRegion (const nsRegion& aRegion) { Init (); Copy (aRegion); }
- ~nsRegion () { SetToElements (0); }
+  nsRegion () { pixman_region32_init(&mImpl); }
+  nsRegion (const nsRect& aRect) { pixman_region32_init_rect(&mImpl,
+                                                                    aRect.x,
+                                                                    aRect.y,
+                                                                    aRect.width,
+                                                                    aRect.height); }
+  nsRegion (const nsRegion& aRegion) { pixman_region32_init(&mImpl); pixman_region32_copy(&mImpl,aRegion.Impl()); }
+ ~nsRegion () { pixman_region32_fini(&mImpl); }
   nsRegion& operator = (const nsRect& aRect) { Copy (aRect); return *this; }
   nsRegion& operator = (const nsRegion& aRegion) { Copy (aRegion); return *this; }
-
-
-  nsRegion& And  (const nsRegion& aRgn1,   const nsRegion& aRgn2);
-  nsRegion& And  (const nsRegion& aRegion, const nsRect& aRect);
-  nsRegion& And  (const nsRect& aRect, const nsRegion& aRegion)
+  bool operator==(const nsRegion& aRgn) const
   {
-    return  And  (aRegion, aRect);
+    return IsEqual(aRgn);
   }
-  nsRegion& And  (const nsRect& aRect1, const nsRect& aRect2)
+
+  static
+  nsresult InitStatic()
+  {
+    return NS_OK;
+  }
+
+  static
+  void ShutdownStatic() {}
+
+  nsRegion& And(const nsRegion& aRgn1,   const nsRegion& aRgn2)
+  {
+    pixman_region32_intersect(&mImpl, aRgn1.Impl(), aRgn2.Impl());
+    return *this;
+  }
+  nsRegion& And(const nsRect& aRect, const nsRegion& aRegion)
+  {
+    return And(aRegion, aRect);
+  }
+  nsRegion& And(const nsRegion& aRegion, const nsRect& aRect)
+  {
+    pixman_region32_intersect_rect(&mImpl, aRegion.Impl(), aRect.x, aRect.y, aRect.width, aRect.height);
+    return *this;
+  }
+  nsRegion& And(const nsRect& aRect1, const nsRect& aRect2)
   {
     nsRect TmpRect;
 
-    TmpRect.IntersectRect (aRect1, aRect2);
-    return Copy (TmpRect);
+    TmpRect.IntersectRect(aRect1, aRect2);
+    return Copy(TmpRect);
   }
 
-  nsRegion& Or   (const nsRegion& aRgn1,   const nsRegion& aRgn2);
-  nsRegion& Or   (const nsRegion& aRegion, const nsRect& aRect);
-  nsRegion& Or   (const nsRect& aRect, const nsRegion& aRegion)
+  nsRegion& Or(const nsRegion& aRgn1, const nsRegion& aRgn2)
   {
-    return  Or   (aRegion, aRect);
+    pixman_region32_union(&mImpl, aRgn1.Impl(), aRgn2.Impl());
+    return *this;
   }
-  nsRegion& Or   (const nsRect& aRect1, const nsRect& aRect2)
+  nsRegion& Or(const nsRegion& aRegion, const nsRect& aRect)
+  {
+    pixman_region32_union_rect(&mImpl, aRegion.Impl(), aRect.x, aRect.y, aRect.width, aRect.height);
+    return *this;
+  }
+  nsRegion& Or(const nsRect& aRect, const nsRegion& aRegion)
+  {
+    return  Or(aRegion, aRect);
+  }
+  nsRegion& Or(const nsRect& aRect1, const nsRect& aRect2)
   {
     Copy (aRect1);
     return Or (*this, aRect2);
   }
 
-  nsRegion& Xor  (const nsRegion& aRgn1,   const nsRegion& aRgn2);
-  nsRegion& Xor  (const nsRegion& aRegion, const nsRect& aRect);
-  nsRegion& Xor  (const nsRect& aRect, const nsRegion& aRegion)
+  nsRegion& Xor(const nsRegion& aRgn1,   const nsRegion& aRgn2)
   {
-    return  Xor  (aRegion, aRect);
+    
+    
+    nsRegion p;
+    p.Sub(aRgn1, aRgn2);
+    nsRegion q;
+    q.Sub(aRgn2, aRgn1);
+    return Or(p, q);
   }
-  nsRegion& Xor  (const nsRect& aRect1, const nsRect& aRect2)
+  nsRegion& Xor(const nsRegion& aRegion, const nsRect& aRect)
   {
-    Copy (aRect1);
-    return Xor (*this, aRect2);
+    return Xor(aRegion, nsRegion(aRect));
+  }
+  nsRegion& Xor(const nsRect& aRect, const nsRegion& aRegion)
+  {
+    return Xor(nsRegion(aRect), aRegion);
+  }
+  nsRegion& Xor(const nsRect& aRect1, const nsRect& aRect2)
+  {
+    return Xor(nsRegion(aRect1), nsRegion(aRect2));
   }
 
-  nsRegion& Sub  (const nsRegion& aRgn1,   const nsRegion& aRgn2);
-  nsRegion& Sub  (const nsRegion& aRegion, const nsRect& aRect);
-  nsRegion& Sub  (const nsRect& aRect, const nsRegion& aRegion)
+  nsRegion ToAppUnits (nscoord aAppUnitsPerPixel) const;
+  nsRegion& Sub(const nsRegion& aRgn1, const nsRegion& aRgn2)
   {
-    return Sub (nsRegion (aRect), aRegion);
+    pixman_region32_subtract(&mImpl, aRgn1.Impl(), aRgn2.Impl());
+    return *this;
   }
-  nsRegion& Sub  (const nsRect& aRect1, const nsRect& aRect2)
+  nsRegion& Sub(const nsRegion& aRegion, const nsRect& aRect)
   {
-    Copy (aRect1);
-    return Sub (*this, aRect2);
+    return Sub(aRegion, nsRegion(aRect));
+  }
+  nsRegion& Sub(const nsRect& aRect, const nsRegion& aRegion)
+  {
+    return Sub(nsRegion(aRect), aRegion);
+  }
+  nsRegion& Sub(const nsRect& aRect1, const nsRect& aRect2)
+  {
+    Copy(aRect1);
+    return Sub(*this, aRect2);
   }
 
-  bool Contains (const nsRect& aRect) const;
+  bool Contains (const nsRect& aRect) const
+  {
+    pixman_box32_t box = RectToBox(aRect);
+    return pixman_region32_contains_rectangle(Impl(), &box) == PIXMAN_REGION_IN;
+  }
   bool Contains (const nsRegion& aRgn) const;
   bool Intersects (const nsRect& aRect) const;
 
@@ -142,18 +164,20 @@ public:
   {
     MoveBy (nsPoint (aXOffset, aYOffset));
   }
-  void MoveBy (nsPoint aPt);
+  void MoveBy (nsPoint aPt) { pixman_region32_translate(&mImpl, aPt.x, aPt.y); }
   void SetEmpty ()
   {
-    SetToElements (0);
-    mBoundRect.SetRect (0, 0, 0, 0);
+    pixman_region32_clear(&mImpl);
   }
 
-  bool IsEmpty () const { return mRectCount == 0; }
-  bool IsComplex () const { return mRectCount > 1; }
-  bool IsEqual (const nsRegion& aRegion) const;
-  uint32_t GetNumRects () const { return mRectCount; }
-  const nsRect& GetBounds () const { return mBoundRect; }
+  bool IsEmpty () const { return !pixman_region32_not_empty(Impl()); }
+  bool IsComplex () const { return GetNumRects() > 1; }
+  bool IsEqual (const nsRegion& aRegion) const
+  {
+    return pixman_region32_equal(Impl(), aRegion.Impl());
+  }
+  uint32_t GetNumRects () const { return pixman_region32_n_rects(Impl()); }
+  const nsRect GetBounds () const { return BoxToRect(mImpl.extents); }
   uint64_t Area () const;
   
   
@@ -189,95 +213,91 @@ public:
 
 
   void SimplifyInward (uint32_t aMaxRects);
-  
-
-
-
-
-
-
-  void SimpleSubtract (const nsRect& aRect);
-  
-
-
-
-
-
-
-
-  void SimpleSubtract (const nsRegion& aRegion);
 
   nsCString ToString() const;
-
-  
-
-
-  static nsresult InitStatic();
-
-  
-
-
-  static void ShutdownStatic();
-
 private:
-  uint32_t    mRectCount;
-  RgnRect*    mCurRect;
-  RgnRect     mRectListHead;
-  nsRectFast  mBoundRect;
+  pixman_region32_t mImpl;
 
-  void Init ();
-  nsRegion& Copy (const nsRegion& aRegion);
-  nsRegion& Copy (const nsRect& aRect);
-  void InsertBefore (RgnRect* aNewRect, RgnRect* aRelativeRect);
-  void InsertAfter (RgnRect* aNewRect, RgnRect* aRelativeRect);
-  void SetToElements (uint32_t aCount);
-  RgnRect* Remove (RgnRect* aRect);
-  void InsertInPlace (RgnRect* aRect, bool aOptimizeOnFly = false);
-  inline void SaveLinkChain ();
-  inline void RestoreLinkChain ();
-  void Optimize ();
-  void SubRegion (const nsRegion& aRegion, nsRegion& aResult) const;
-  void SubRect (const nsRectFast& aRect, nsRegion& aResult, nsRegion& aCompleted) const;
-  void SubRect (const nsRectFast& aRect, nsRegion& aResult) const
-  {    SubRect (aRect, aResult, aResult);  }
-  void Merge (const nsRegion& aRgn1, const nsRegion& aRgn2);
-  void MoveInto (nsRegion& aDestRegion, const RgnRect* aStartRect);
-  void MoveInto (nsRegion& aDestRegion)
-  {    MoveInto (aDestRegion, mRectListHead.next);  }
   nsIntRegion ToPixels(nscoord aAppUnitsPerPixel, bool aOutsidePixels) const;
+
+  nsRegion& Copy (const nsRegion& aRegion)
+  {
+    pixman_region32_copy(&mImpl, aRegion.Impl());
+    return *this;
+  }
+
+  nsRegion& Copy (const nsRect& aRect)
+  {
+    pixman_box32_t box = RectToBox(aRect);
+    pixman_region32_reset(&mImpl, &box);
+    return *this;
+  }
+
+  static inline pixman_box32_t RectToBox(const nsRect &aRect)
+  {
+    pixman_box32_t box = { aRect.x, aRect.y, aRect.XMost(), aRect.YMost() };
+    return box;
+  }
+
+  static inline pixman_box32_t RectToBox(const nsIntRect &aRect)
+  {
+    pixman_box32_t box = { aRect.x, aRect.y, aRect.XMost(), aRect.YMost() };
+    return box;
+  }
+
+
+  static inline nsRect BoxToRect(const pixman_box32_t &aBox)
+  {
+    return nsRect(aBox.x1, aBox.y1,
+                  aBox.x2 - aBox.x1,
+                  aBox.y2 - aBox.y1);
+  }
+
+  pixman_region32_t* Impl() const
+  {
+    return const_cast<pixman_region32_t*>(&mImpl);
+  }
+
 };
-
-
-
 
 
 class NS_GFX nsRegionRectIterator
 {
   const nsRegion*  mRegion;
-  const nsRegion::RgnRect* mCurPtr;
+  int i;
+  int n;
+  nsRect rect;
+  pixman_box32_t *boxes;
 
 public:
   nsRegionRectIterator (const nsRegion& aRegion)
   {
     mRegion = &aRegion;
-    mCurPtr = &aRegion.mRectListHead;
+    i = 0;
+    boxes = pixman_region32_rectangles(aRegion.Impl(), &n);
   }
 
   const nsRect* Next ()
   {
-    mCurPtr = mCurPtr->next;
-    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nullptr;
+    if (i == n)
+      return nullptr;
+    rect = nsRegion::BoxToRect(boxes[i]);
+    i++;
+    return &rect;
   }
 
   const nsRect* Prev ()
   {
-    mCurPtr = mCurPtr->prev;
-    return (mCurPtr != &mRegion->mRectListHead) ? mCurPtr : nullptr;
+    if (i == -1)
+      return nullptr;
+    rect = nsRegion::BoxToRect(boxes[i]);
+    i--;
+    return &rect;
   }
 
   void Reset ()
   {
-    mCurPtr = &mRegion->mRectListHead;
+    i = 0;
   }
 };
 
@@ -287,6 +307,7 @@ public:
 class NS_GFX nsIntRegion
 {
   friend class nsIntRegionRectIterator;
+  friend class nsRegion;
 
 public:
   nsIntRegion () {}
@@ -449,29 +470,6 @@ public:
   {
     mImpl.SimplifyInward (aMaxRects);
   }
-  
-
-
-
-
-
-
-  void SimpleSubtract (const nsIntRect& aRect)
-  {
-    mImpl.SimpleSubtract (ToRect (aRect));
-  }
-  
-
-
-
-
-
-
-
-  void SimpleSubtract (const nsIntRegion& aRegion)
-  {
-    mImpl.SimpleSubtract (aRegion.mImpl);
-  }
 
   nsCString ToString() const { return mImpl.ToString(); }
 
@@ -519,5 +517,4 @@ public:
     mImpl.Reset ();
   }
 };
-
 #endif

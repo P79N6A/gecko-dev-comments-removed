@@ -85,7 +85,19 @@
 
 
 #if 1
-#   define PIXMAN_EXPORT cairo_public
+#include "prcpucfg.h"
+
+#ifdef HAVE_VISIBILITY_HIDDEN_ATTRIBUTE
+#define CVISIBILITY_HIDDEN __attribute__((visibility("hidden")))
+#elif defined(__SUNPRO_C) && (__SUNPRO_C >= 0x550)
+#define CVISIBILITY_HIDDEN __hidden
+#else
+#define CVISIBILITY_HIDDEN
+#endif
+
+
+#define PIXMAN_EXPORT extern CVISIBILITY_HIDDEN
+
 #else
 
 
