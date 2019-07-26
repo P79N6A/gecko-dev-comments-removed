@@ -197,8 +197,6 @@ class Range : public TempObject {
 
     Range(const MDefinition *def);
 
-    static Range *Truncate(int64_t l, int64_t h);
-
     void print(Sprinter &sp) const;
     bool update(const Range *other);
     bool update(const Range &other) {
@@ -330,7 +328,7 @@ class Range : public TempObject {
         max_exponent_ = MaxInt32Exponent;
     }
 
-    inline void set(int64_t l, int64_t h, bool d, uint16_t e) {
+    inline void set(int64_t l, int64_t h, bool d = false, uint16_t e = MaxInt32Exponent) {
         setLowerInit(l);
         setUpperInit(h);
         decimal_ = d;
@@ -341,10 +339,20 @@ class Range : public TempObject {
     }
 
     
-    void truncate();
+    
+    void clampToInt32();
 
     
-    void truncateToBoolean();
+    
+    void wrapAroundToInt32();
+
+    
+    
+    void wrapAroundToShiftCount();
+
+    
+    
+    void wrapAroundToBoolean();
 
     
     
