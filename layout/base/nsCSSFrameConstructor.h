@@ -1801,6 +1801,7 @@ private:
   bool                mIsDestroyingFrameTree : 1;
   
   bool                mHasRootAbsPosContainingBlock : 1;
+  bool                mAlwaysCreateFramesForIgnorableWhitespace : 1;
 
   nsCOMPtr<nsILayoutHistoryState> mTempFrameTreeState;
 };
