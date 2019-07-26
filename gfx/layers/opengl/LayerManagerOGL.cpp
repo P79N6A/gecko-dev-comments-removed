@@ -14,7 +14,6 @@
 #include "FPSCounter.h"                 
 #include "GLContext.h"                  
 #include "GLContextProvider.h"          
-#include "GeckoProfilerFunc.h"          
 #include "GeckoProfiler.h"              
 #include "ImageLayerOGL.h"              
 #include "ImageLayers.h"                

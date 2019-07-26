@@ -8,7 +8,6 @@
 
 #include <stdint.h>                     
 #include <sys/types.h>                  
-#include "GeckoProfilerFunc.h"          
 #include "ImageTypes.h"                 
 #include "gfxASurface.h"                
 #include "gfxPoint.h"                   

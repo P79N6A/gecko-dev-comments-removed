@@ -6,7 +6,6 @@
 #ifndef GFX_ASYNCCOMPOSITIONMANAGER_H
 #define GFX_ASYNCCOMPOSITIONMANAGER_H
 
-#include "GeckoProfilerFunc.h"          
 #include "Units.h"                      
 #include "mozilla/layers/LayerManagerComposite.h"  
 #include "gfx3DMatrix.h"                

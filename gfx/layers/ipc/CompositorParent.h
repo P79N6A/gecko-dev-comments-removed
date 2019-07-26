@@ -16,7 +16,6 @@
 
 
 #include <stdint.h>                     
-#include "GeckoProfilerFunc.h"          
 #include "Layers.h"                     
 #include "ShadowLayersManager.h"        
 #include "base/basictypes.h"            

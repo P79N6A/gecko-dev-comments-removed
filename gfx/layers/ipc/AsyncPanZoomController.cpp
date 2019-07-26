@@ -12,7 +12,6 @@
 #include "AsyncPanZoomController.h"     
 #include "CompositorParent.h"           
 #include "FrameMetrics.h"               
-#include "GeckoProfilerFunc.h"          
 #include "GestureEventListener.h"       
 #include "InputData.h"                  
 #include "Units.h"                      

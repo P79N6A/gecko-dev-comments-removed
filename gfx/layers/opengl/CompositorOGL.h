@@ -10,7 +10,6 @@
 #include "GLContext.h"                  
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
-#include "GeckoProfilerFunc.h"          
 #include "LayerManagerOGLProgram.h"     
 #include "Units.h"                      
 #include "gfxContext.h"                 

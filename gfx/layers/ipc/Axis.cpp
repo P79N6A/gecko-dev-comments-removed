@@ -9,7 +9,6 @@
 #include <algorithm>                    
 #include "AsyncPanZoomController.h"     
 #include "FrameMetrics.h"               
-#include "GeckoProfilerFunc.h"          
 #include "mozilla/Attributes.h"         
 #include "mozilla/Preferences.h"        
 #include "mozilla/gfx/Rect.h"           

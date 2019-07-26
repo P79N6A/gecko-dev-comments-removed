@@ -9,7 +9,6 @@
 #include <algorithm>                    
 #include "AnimationCommon.h"            
 #include "CompositableHost.h"           
-#include "GeckoProfilerFunc.h"          
 #include "ImageContainer.h"             
 #include "ImageLayers.h"                
 #include "LayerSorter.h"                
