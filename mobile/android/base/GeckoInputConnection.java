@@ -517,6 +517,14 @@ class GeckoInputConnection
         mIMEModeHint = (modeHint == null) ? "" : modeHint;
         mIMEActionHint = (actionHint == null) ? "" : actionHint;
 
+        View v = getView();
+        if (v == null || !v.hasFocus()) {
+            
+            
+            
+            
+            return;
+        }
         restartInput();
         GeckoApp.mAppContext.mMainHandler.postDelayed(new Runnable() {
             public void run() {
