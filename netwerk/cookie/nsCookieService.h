@@ -239,6 +239,14 @@ class nsCookieService : public nsICookieService
     static nsICookieService*      GetXPCOMSingleton();
     nsresult                      Init();
 
+  
+
+
+
+
+
+  static void AppUninstallObserverInit();
+
   protected:
     void                          PrefChanged(nsIPrefBranch *aPrefBranch);
     void                          InitDBStates();
