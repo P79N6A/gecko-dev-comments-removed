@@ -209,6 +209,22 @@ public:
     const gfx::Point& aAcceleration,
     double aEstimatedPaintDuration);
 
+  
+
+
+
+  static gfxSize CalculateIntrinsicScale(const FrameMetrics& aMetrics);
+
+  
+
+
+
+
+
+  static gfxSize CalculateResolution(const FrameMetrics& aMetrics);
+
+  static gfx::Rect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
+
 protected:
   
 

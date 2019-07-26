@@ -342,7 +342,8 @@ private:
     
     
     
-    void HandlePossibleMetaViewportChange();
+    
+    void HandlePossibleViewportChange();
 
     
     

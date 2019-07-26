@@ -183,7 +183,7 @@ TabChild::HandleEvent(nsIDOMEvent* aEvent)
   if (eventType.EqualsLiteral("DOMMetaAdded")) {
     
     
-    HandlePossibleMetaViewportChange();
+    HandlePossibleViewportChange();
   }
 
   return NS_OK;
@@ -224,19 +224,25 @@ TabChild::Observe(nsISupports *aSubject,
 
         
         
+        
         SetCSSViewport(kDefaultViewportSize.width, kDefaultViewportSize.height);
 
         
         
         
-        float resolution = float(mInnerSize.width) / float(kDefaultViewportSize.width);
-        mLastMetrics.mZoom.width = mLastMetrics.mZoom.height =
-          mLastMetrics.mResolution.width = mLastMetrics.mResolution.height =
-            resolution;
+        mLastMetrics.mZoom = gfxSize(1.0, 1.0);
+        mLastMetrics.mViewport =
+            gfx::Rect(0, 0,
+                      kDefaultViewportSize.width, kDefaultViewportSize.height);
+        mLastMetrics.mCompositionBounds = nsIntRect(nsIntPoint(0, 0),
+                                                    mInnerSize);
+        mLastMetrics.mResolution =
+          AsyncPanZoomController::CalculateResolution(mLastMetrics);
         mLastMetrics.mScrollOffset = gfx::Point(0, 0);
-        utils->SetResolution(resolution, resolution);
+        utils->SetResolution(mLastMetrics.mResolution.width,
+                             mLastMetrics.mResolution.height);
 
-        HandlePossibleMetaViewportChange();
+        HandlePossibleViewportChange();
       }
     }
   }
@@ -350,7 +356,7 @@ TabChild::SetCSSViewport(float aWidth, float aHeight)
 }
 
 void
-TabChild::HandlePossibleMetaViewportChange()
+TabChild::HandlePossibleViewportChange()
 {
   if (!IsAsyncPanZoomEnabled()) {
     return;
@@ -362,16 +368,16 @@ TabChild::HandlePossibleMetaViewportChange()
 
   nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
 
-  ViewportInfo viewportMetaData =
+  ViewportInfo viewportInfo =
     nsContentUtils::GetViewportInfo(document, mInnerSize.width, mInnerSize.height);
-  SendUpdateZoomConstraints(viewportMetaData.allowZoom,
-                            viewportMetaData.minZoom,
-                            viewportMetaData.maxZoom);
+  SendUpdateZoomConstraints(viewportInfo.allowZoom,
+                            viewportInfo.minZoom,
+                            viewportInfo.maxZoom);
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
-  float viewportW = viewportMetaData.width;
-  float viewportH = viewportMetaData.height;
+  float viewportW = viewportInfo.width;
+  float viewportH = viewportInfo.height;
 
   
   
@@ -385,8 +391,8 @@ TabChild::HandlePossibleMetaViewportChange()
   
   
   float oldBrowserWidth = mOldViewportWidth;
-  mLastMetrics.mViewport.width = viewportMetaData.width;
-  mLastMetrics.mViewport.height = viewportMetaData.height;
+  mLastMetrics.mViewport.width = viewportInfo.width;
+  mLastMetrics.mViewport.height = viewportInfo.height;
   if (!oldBrowserWidth) {
     oldBrowserWidth = kDefaultViewportSize.width;
   }
@@ -425,7 +431,7 @@ TabChild::HandlePossibleMetaViewportChange()
   float pageHeight = NS_MAX(htmlHeight, bodyHeight);
 
   minScale = mInnerSize.width / pageWidth;
-  minScale = clamped((double)minScale, viewportMetaData.minZoom, viewportMetaData.maxZoom);
+  minScale = clamped((double)minScale, viewportInfo.minZoom, viewportInfo.maxZoom);
 
   viewportH = NS_MAX(viewportH, screenH / minScale);
   SetCSSViewport(viewportW, viewportH);
@@ -446,23 +452,42 @@ TabChild::HandlePossibleMetaViewportChange()
   if (!oldScreenWidth) {
     oldScreenWidth = mInnerSize.width;
   }
-  float zoomScale = (screenW * oldBrowserWidth) / (oldScreenWidth * viewportW);
-
-  float zoom = clamped(double(mLastMetrics.mZoom.width * zoomScale),
-                       viewportMetaData.minZoom, viewportMetaData.maxZoom);
-  utils->SetResolution(zoom, zoom);
 
   FrameMetrics metrics(mLastMetrics);
   metrics.mViewport = gfx::Rect(0.0f, 0.0f, viewportW, viewportH);
   metrics.mScrollableRect = gfx::Rect(0.0f, 0.0f, pageWidth, pageHeight);
   metrics.mCompositionBounds = nsIntRect(0, 0, mInnerSize.width, mInnerSize.height);
-  metrics.mZoom.width = metrics.mZoom.height =
-    metrics.mResolution.width = metrics.mResolution.height = zoom;
+
+  gfxSize intrinsicScale =
+      AsyncPanZoomController::CalculateIntrinsicScale(metrics);
+  
+  
+  
+  if (viewportInfo.defaultZoom < 0.01f) {
+    viewportInfo.defaultZoom = intrinsicScale.width;
+  }
+  MOZ_ASSERT(viewportInfo.minZoom <= viewportInfo.defaultZoom &&
+             viewportInfo.defaultZoom <= viewportInfo.maxZoom);
+  
+  
+  metrics.mZoom = gfxSize(viewportInfo.defaultZoom / intrinsicScale.width,
+                          viewportInfo.defaultZoom / intrinsicScale.height);
+
   metrics.mDisplayPort = AsyncPanZoomController::CalculatePendingDisplayPort(
     
     
     
     metrics, gfx::Point(0.0f, 0.0f), gfx::Point(0.0f, 0.0f), 0.0);
+  gfxSize resolution = AsyncPanZoomController::CalculateResolution(metrics);
+  
+  
+  gfxFloat hysteresis =
+    gfxFloat(oldBrowserWidth) / gfxFloat(oldScreenWidth);
+  resolution.width *= hysteresis;
+  resolution.height *= hysteresis;
+  metrics.mResolution = resolution;
+  utils->SetResolution(metrics.mResolution.width, metrics.mResolution.height);
+
   
   
   RecvUpdateFrame(metrics);
@@ -1077,10 +1102,6 @@ TabChild::RecvShow(const nsIntSize& size)
 bool
 TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size)
 {
-#ifdef DEBUG
-    printf("[TabChild] Update Dimensions to (x,y,w,h)= (%ud, %ud, %ud, %ud) and move to (w,h)= (%ud, %ud)\n", rect.x, rect.y, rect.width, rect.height, size.width, size.height);
-#endif
-
     if (!mRemoteFrame) {
         return true;
     }
@@ -1098,7 +1119,7 @@ TabChild::RecvUpdateDimensions(const nsRect& rect, const nsIntSize& size)
     baseWin->SetPositionAndSize(0, 0, size.width, size.height,
                                 true);
 
-    HandlePossibleMetaViewportChange();
+    HandlePossibleViewportChange();
 
     return true;
 }
@@ -1141,15 +1162,15 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     nsCString data;
     data += nsPrintfCString("{ \"x\" : %d", NS_lround(aFrameMetrics.mScrollOffset.x));
     data += nsPrintfCString(", \"y\" : %d", NS_lround(aFrameMetrics.mScrollOffset.y));
-    
-    
-    data += nsPrintfCString(", \"zoom\" : %f", aFrameMetrics.mZoom.width);
+    data += nsPrintfCString(", \"viewport\" : ");
+        data += nsPrintfCString("{ \"width\" : %f", aFrameMetrics.mViewport.width);
+        data += nsPrintfCString(", \"height\" : %f", aFrameMetrics.mViewport.height);
+        data += nsPrintfCString(" }");
     data += nsPrintfCString(", \"displayPort\" : ");
         data += nsPrintfCString("{ \"x\" : %f", aFrameMetrics.mDisplayPort.x);
         data += nsPrintfCString(", \"y\" : %f", aFrameMetrics.mDisplayPort.y);
         data += nsPrintfCString(", \"width\" : %f", aFrameMetrics.mDisplayPort.width);
         data += nsPrintfCString(", \"height\" : %f", aFrameMetrics.mDisplayPort.height);
-        data += nsPrintfCString(", \"resolution\" : %f", aFrameMetrics.mResolution.width);
         data += nsPrintfCString(" }");
     data += nsPrintfCString(", \"compositionBounds\" : ");
         data += nsPrintfCString("{ \"x\" : %d", aFrameMetrics.mCompositionBounds.x);
@@ -1170,13 +1191,15 @@ TabChild::RecvUpdateFrame(const FrameMetrics& aFrameMetrics)
     nsCOMPtr<nsIDOMWindowUtils> utils(GetDOMWindowUtils());
     nsCOMPtr<nsIDOMWindow> window = do_GetInterface(mWebNav);
 
+    gfx::Rect cssCompositedRect =
+      AsyncPanZoomController::CalculateCompositedRectInCssPixels(aFrameMetrics);
     utils->SetScrollPositionClampingScrollPortSize(
-      aFrameMetrics.mCompositionBounds.width / aFrameMetrics.mZoom.width,
-      aFrameMetrics.mCompositionBounds.height / aFrameMetrics.mZoom.width);
+      cssCompositedRect.width, cssCompositedRect.height);
     window->ScrollTo(aFrameMetrics.mScrollOffset.x,
                      aFrameMetrics.mScrollOffset.y);
-    utils->SetResolution(aFrameMetrics.mResolution.width,
-                         aFrameMetrics.mResolution.width);
+    gfxSize resolution = AsyncPanZoomController::CalculateResolution(
+      aFrameMetrics);
+    utils->SetResolution(resolution.width, resolution.height);
 
     nsCOMPtr<nsIDOMDocument> domDoc;
     nsCOMPtr<nsIDOMElement> docElement;

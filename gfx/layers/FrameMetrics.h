@@ -38,6 +38,7 @@ public:
     , mScrollId(NULL_SCROLL_ID)
     , mScrollableRect(0, 0, 0, 0)
     , mResolution(1, 1)
+    , mZoom(1, 1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
   {}
@@ -204,6 +205,8 @@ public:
   
   gfxSize mResolution;
 
+  
+  
   
   
   
