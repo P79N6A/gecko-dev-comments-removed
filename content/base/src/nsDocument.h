@@ -1311,6 +1311,16 @@ private:
   }
 
   
+
+
+
+
+
+
+
+  nsIContent* GetContentInThisDocument(nsIFrame* aFrame) const;
+
+  
   
   
   void EnableStyleSheetsForSetInternal(const nsAString& aSheetSet,
