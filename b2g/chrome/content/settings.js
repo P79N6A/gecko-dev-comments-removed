@@ -146,7 +146,6 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
 
   let appInfo = Cc["@mozilla.org/xre/app-info;1"]
                   .getService(Ci.nsIXULAppInfo);
-  let update_channel = Services.prefs.getCharPref('app.update.channel');
 
   
   let hardware_info = null;
@@ -164,7 +163,6 @@ Components.utils.import('resource://gre/modules/ctypes.jsm');
     'deviceinfo.software': software,
     'deviceinfo.platform_version': appInfo.platformVersion,
     'deviceinfo.platform_build_id': appInfo.platformBuildID,
-    'deviceinfo.update_channel': update_channel,
     'deviceinfo.hardware': hardware_info,
     'deviceinfo.firmware_revision': firmware_revision,
     'deviceinfo.product_model': product_model
@@ -547,6 +545,7 @@ function setUpdateTrackingId() {
 setUpdateTrackingId();
 
 
+
 (function Composer2DSettingToPref() {
   
   
@@ -680,6 +679,12 @@ let settingsToObserve = {
   },
   'layers.draw-borders': false,
   'app.update.interval': 86400,
+  'app.update.url': {
+    resetToPref: true
+  },
+  'app.update.channel': {
+    resetToPref: true
+  },
   'debug.log-animations.enabled': {
     prefName: 'layers.offmainthreadcomposition.log-animations',
     defaultValue: false
@@ -690,33 +695,50 @@ for (let key in settingsToObserve) {
   let setting = settingsToObserve[key];
 
   
-  let prefName = key;
-  let defaultValue = setting;
+  let prefName = setting.prefName || key;
+  let defaultValue = setting.defaultValue || setting;
+
+  let prefs = Services.prefs;
 
   
-  if (typeof setting == 'object') {
-    prefName = setting.prefName;
-    defaultValue = setting.defaultValue;
+  if (setting.resetToPref) {
+    switch (prefs.getPrefType(prefName)) {
+      case Ci.nsIPrefBranch.PREF_BOOL:
+        defaultValue = prefs.getBoolPref(prefName);
+        break;
+
+      case Ci.nsIPrefBranch.PREF_INT:
+        defaultValue = prefs.getIntPref(prefName);
+        break;
+
+      case Ci.nsIPrefBranch.PREF_STRING:
+        defaultValue = prefs.getCharPref(prefName);
+        break;
+    }
+
+    let setting = {};
+    setting[key] = defaultValue;
+    window.navigator.mozSettings.createLock().set(setting);
   }
 
-  switch (typeof defaultValue) {
+  
+  let setPref;
+  switch(typeof defaultValue) {
     case 'boolean':
-      SettingsListener.observe(key, defaultValue, function(value) {
-        Services.prefs.setBoolPref(prefName, value);
-      });
-      break;
-
-    case 'string':
-      SettingsListener.observe(key, defaultValue, function(value) {
-        Services.prefs.setCharPref(prefName, value);
-      });
+      setPref = prefs.setBoolPref.bind(prefs);
       break;
 
     case 'number':
-      SettingsListener.observe(key, defaultValue, function(value) {
-        Services.prefs.setIntPref(prefName, value);
-      });
+      setPref = prefs.setIntPref.bind(prefs);
+      break;
+
+    case 'string':
+      setPref = prefs.setCharPref.bind(prefs);
       break;
   }
+
+  SettingsListener.observe(key, defaultValue, function(value) {
+    setPref(prefName, value);
+  });
 };
 
