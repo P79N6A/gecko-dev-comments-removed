@@ -17,12 +17,17 @@
 
 
 
+#if defined(ATK_DISABLE_SINGLE_INCLUDES) && !defined (__ATK_H_INSIDE__) && !defined (ATK_COMPILATION)
+#error "Only <atk/atk.h> can be included directly."
+#endif
+
 #ifndef __ATK_RELATION_TYPE_H__
 #define __ATK_RELATION_TYPE_H__
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <glib.h>
+
+G_BEGIN_DECLS
+
 
 
 
@@ -69,11 +74,10 @@ typedef enum
   ATK_RELATION_PARENT_WINDOW_OF, 
   ATK_RELATION_DESCRIBED_BY,
   ATK_RELATION_DESCRIPTION_FOR,
+  ATK_RELATION_NODE_PARENT_OF,
   ATK_RELATION_LAST_DEFINED
 } AtkRelationType;
 
-#ifdef __cplusplus
-}
-#endif 
+G_END_DECLS
 
-#endif
+#endif 
