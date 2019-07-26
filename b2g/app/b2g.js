@@ -974,3 +974,6 @@ pref("dom.wakelock.enabled", true);
 pref("services.sync.fxaccounts.enabled", true);
 pref("identity.fxaccounts.enabled", true);
 #endif
+
+
+pref("dom.mapped_arraybuffer.enabled", true);

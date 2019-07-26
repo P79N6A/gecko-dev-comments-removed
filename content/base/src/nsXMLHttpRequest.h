@@ -65,6 +65,7 @@ class ArrayBufferBuilder
   uint8_t* mDataPtr;
   uint32_t mCapacity;
   uint32_t mLength;
+  void* mMapPtr;
 public:
   ArrayBufferBuilder();
   ~ArrayBufferBuilder();
@@ -88,6 +89,14 @@ public:
   uint32_t capacity() { return mCapacity; }
 
   JSObject* getArrayBuffer(JSContext* aCx);
+
+  
+  
+  
+  
+  
+  
+  nsresult mapToFileInPackage(const nsCString& aFile, nsIFile* aJarFile);
 
 protected:
   static bool areOverlappingRegions(const uint8_t* aStart1, uint32_t aLength1,
@@ -727,6 +736,7 @@ protected:
 
   mozilla::ArrayBufferBuilder mArrayBufferBuilder;
   JS::Heap<JSObject*> mResultArrayBuffer;
+  bool mIsMappedArrayBuffer;
 
   void ResetResponse();
 
