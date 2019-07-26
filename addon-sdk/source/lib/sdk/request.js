@@ -56,6 +56,8 @@ function runRequest(mode, target) {
   let source = request(target)
   let { xhr, url, content, contentType, headers, overrideMimeType } = source;
 
+  let isGetOrHead = (mode == "GET" || mode == "HEAD");
+
   
   
   if (xhr)
@@ -67,7 +69,7 @@ function runRequest(mode, target) {
   
   let data = stringify(content);
   
-  if (mode == "GET" && data)
+  if (isGetOrHead && data)
     url = url + (/\?/.test(url) ? "&" : "?") + data;
 
   
@@ -98,7 +100,7 @@ function runRequest(mode, target) {
 
   
   
-  xhr.send(mode !== "GET" ? data : null);
+  xhr.send(!isGetOrHead ? data : null);
 }
 
 const Request = Class({
@@ -137,6 +139,10 @@ const Request = Class({
   },
   put: function() {
     runRequest('PUT', this);
+    return this;
+  },
+  head: function() {
+    runRequest('HEAD', this);
     return this;
   }
 });
