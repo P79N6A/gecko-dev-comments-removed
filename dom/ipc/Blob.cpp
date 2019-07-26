@@ -1296,25 +1296,27 @@ Blob<Parent>::RecvPBlobStreamConstructor(StreamType* aActor)
   nsresult rv = mBlob->GetInternalStream(getter_AddRefs(stream));
   NS_ENSURE_SUCCESS(rv, false);
 
-  nsCOMPtr<nsIIPCSerializableInputStream> serializableStream;
-
   nsCOMPtr<nsIRemoteBlob> remoteBlob = do_QueryInterface(mBlob);
+
+  nsCOMPtr<IPrivateRemoteInputStream> remoteStream;
   if (remoteBlob) {
-    
-    nsCOMPtr<IPrivateRemoteInputStream> remoteStream =
-      do_QueryInterface(stream);
-    if (!remoteStream) {
-      MOZ_ASSERT(false, "Remote blob didn't return a remote stream!");
-      return false;
-    }
+    remoteStream = do_QueryInterface(stream);
   }
 
   
   
   
   
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIIPCSerializableInputStream> serializableStream;
   if (!remoteBlob ||
-      static_cast<ProtocolType*>(remoteBlob->GetPBlob()) == this) {
+      static_cast<ProtocolType*>(remoteBlob->GetPBlob()) == this ||
+      !remoteStream) {
     serializableStream = do_QueryInterface(stream);
     if (!serializableStream) {
       MOZ_ASSERT(false, "Must be serializable!");
