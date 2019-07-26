@@ -408,6 +408,9 @@ pref("view_source.editor.path", "");
 pref("view_source.editor.args", "");
 
 
+pref("plain_text.wrap_long_lines", false);
+
+
 pref("nglayout.events.dispatchLeftClickOnly", true);
 
 
