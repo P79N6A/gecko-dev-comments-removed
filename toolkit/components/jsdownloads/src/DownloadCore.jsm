@@ -71,7 +71,7 @@ const BackgroundFileSaverStreamListener = Components.Constructor(
 
 function Download()
 {
-  this._deferStopped = Promise.defer();
+  this._deferSucceeded = Promise.defer();
 }
 
 Download.prototype = {
@@ -95,15 +95,27 @@ Download.prototype = {
 
 
 
-  stopped: false,
+
+  stopped: true,
 
   
+
+
+  succeeded: false,
+
+  
+
+
+
+
+
 
 
 
   canceled: false,
 
   
+
 
 
 
@@ -167,9 +179,30 @@ Download.prototype = {
 
 
 
-  _deferStopped: null,
+
+
+
+
+
+
+
+
+  _currentAttempt: null,
 
   
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -178,36 +211,172 @@ Download.prototype = {
 
   start: function D_start()
   {
-    this._deferStopped.resolve(Task.spawn(function task_D_start() {
+    
+    if (this.succeeded) {
+      return Promise.resolve();
+    }
+
+    
+    
+    
+    if (this._currentAttempt) {
+      return this._currentAttempt;
+    }
+
+    
+    this.stopped = false;
+    this.canceled = false;
+    this.error = null;
+    this.hasProgress = false;
+    this.progress = 0;
+    this.totalBytes = 0;
+    this.currentBytes = 0;
+
+    
+    
+    let deferAttempt = Promise.defer();
+    let currentAttempt = deferAttempt.promise;
+    this._currentAttempt = currentAttempt;
+
+    
+    
+    function DS_setProgressBytes(aCurrentBytes, aTotalBytes)
+    {
+      if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
+        this._setBytes(aCurrentBytes, aTotalBytes);
+      }
+    }
+
+    
+    
+    deferAttempt.resolve(Task.spawn(function task_D_start() {
+      
+      if (this._promiseCanceled) {
+        yield this._promiseCanceled;
+      }
+
       try {
-        yield this.saver.execute();
+        
+        yield this.saver.execute(DS_setProgressBytes.bind(this));
+
+        
         this.progress = 100;
+        this.succeeded = true;
       } catch (ex) {
-        if (this.canceled) {
+        
+        
+        
+        if (this._promiseCanceled) {
           throw new DownloadError(Cr.NS_ERROR_FAILURE, "Download canceled.");
         }
-        this.error = ex;
+
+        
+        
+        if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
+          this.error = ex;
+        }
         throw ex;
       } finally {
-        this.stopped = true;
-        this._notifyChange();
+        
+        this._promiseCanceled = null;
+
+        
+        if (this._currentAttempt == currentAttempt || !this._currentAttempt) {
+          this._currentAttempt = null;
+          this.stopped = true;
+          this._notifyChange();
+          if (this.succeeded) {
+            this._deferSucceeded.resolve();
+          }
+        }
       }
     }.bind(this)));
 
-    return this._deferStopped.promise;
+    
+    this._notifyChange();
+    return this._currentAttempt;
   },
 
   
 
 
+
+
+  _promiseCanceled: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   cancel: function D_cancel()
   {
-    if (this.stopped || this.canceled) {
-      return;
+    
+    if (this.stopped) {
+      return Promise.resolve();
     }
 
-    this.canceled = true;
-    this.saver.cancel();
+    if (!this._promiseCanceled) {
+      
+      let deferCanceled = Promise.defer();
+      this._currentAttempt.then(function () deferCanceled.resolve(),
+                                function () deferCanceled.resolve());
+      this._promiseCanceled = deferCanceled.promise;
+
+      
+      this._currentAttempt = null;
+
+      
+      this.canceled = true;
+      this._notifyChange();
+
+      
+      this.saver.cancel();
+    }
+
+    return this._promiseCanceled;
+  },
+
+  
+
+
+
+
+  _deferSucceeded: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  whenSucceeded: function D_whenSucceeded()
+  {
+    return this._deferSucceeded.promise;
   },
 
   
@@ -341,7 +510,13 @@ DownloadSaver.prototype = {
 
 
 
-  execute: function DS_execute()
+
+
+
+
+
+
+  execute: function DS_execute(aSetProgressBytesFn)
   {
     throw new Error("Not implemented.");
   },
@@ -374,7 +549,7 @@ DownloadCopySaver.prototype = {
   
 
 
-  execute: function DCS_execute()
+  execute: function DCS_execute(aSetProgressBytesFn)
   {
     let deferred = Promise.defer();
     let download = this.download;
@@ -388,6 +563,11 @@ DownloadCopySaver.prototype = {
         onTargetChange: function () { },
         onSaveComplete: function DCSE_onSaveComplete(aSaver, aStatus)
         {
+          
+          backgroundFileSaver.observer = null;
+          this._backgroundFileSaver = null;
+
+          
           if (Components.isSuccessCode(aStatus)) {
             deferred.resolve();
           } else {
@@ -395,9 +575,6 @@ DownloadCopySaver.prototype = {
             
             deferred.reject(new DownloadError(aStatus, null, true));
           }
-
-          
-          backgroundFileSaver.observer = null;
         },
       };
 
@@ -413,7 +590,7 @@ DownloadCopySaver.prototype = {
         onProgress: function DCSE_onProgress(aRequest, aContext, aProgress,
                                              aProgressMax)
         {
-          download._setBytes(aProgress, aProgressMax);
+          aSetProgressBytesFn(aProgress, aProgressMax);
         },
         onStatus: function () { },
       };
