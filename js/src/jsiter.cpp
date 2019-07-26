@@ -1557,7 +1557,7 @@ js_NewGenerator(JSContext *cx, const FrameRegs &stackRegs)
         RootedObject fun(cx, stackfp->fun());
         
         
-        if (!JSObject::getProperty(cx, fun, fun, cx->names().classPrototype, &pval))
+        if (!JSObject::getProperty(cx, fun, fun, cx->names().prototype, &pval))
             return nullptr;
         JSObject *proto = pval.isObject() ? &pval.toObject() : nullptr;
         if (!proto) {

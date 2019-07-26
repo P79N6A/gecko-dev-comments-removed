@@ -142,7 +142,7 @@ intrinsic_MakeConstructible(JSContext *cx, unsigned argc, Value *vp)
     
     
     RootedObject ctor(cx, &args[0].toObject());
-    if (!JSObject::defineProperty(cx, ctor, cx->names().classPrototype, args[1],
+    if (!JSObject::defineProperty(cx, ctor, cx->names().prototype, args[1],
                                   JS_PropertyStub, JS_StrictPropertyStub,
                                   JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT))
     {

@@ -1922,7 +1922,7 @@ AnalyzePoppedThis(JSContext *cx, types::TypeObject *type,
         
         
         
-        if (setprop->name() == cx->names().classPrototype ||
+        if (setprop->name() == cx->names().prototype ||
             setprop->name() == cx->names().proto ||
             setprop->name() == cx->names().constructor)
         {
