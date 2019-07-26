@@ -5032,7 +5032,7 @@ NS_IMETHODIMP
 nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                         JSObject *obj, jsid id, jsval *vp, bool *_retval)
 {
-  nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
+  DebugOnly<nsGlobalWindow*> win = nsGlobalWindow::FromWrapper(wrapper);
 
   JSAutoRequest ar(cx);
 
@@ -5058,48 +5058,6 @@ nsWindowSH::GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   
   
   
-
-  if (JSID_IS_INT(id) && JSID_TO_INT(id) >= 0) {
-    
-    
-    
-    
-    uint32_t index = uint32_t(JSID_TO_INT(id));
-    bool found = false;
-    if (nsCOMPtr<nsIDOMWindow> frame = win->IndexedGetter(index, found)) {
-      
-      
-      
-
-      nsGlobalWindow *frameWin = (nsGlobalWindow *)frame.get();
-      NS_ASSERTION(frameWin->IsOuterWindow(), "IndexedGetter gave us an inner?");
-
-      frameWin->EnsureInnerWindow();
-      JSObject *global = frameWin->GetGlobalJSObject();
-
-      
-      
-      
-      if (MOZ_UNLIKELY(!global)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-      jsval v;
-      nsresult rv = WrapNative(cx, xpc_UnmarkGrayObject(global), frame,
-                               &NS_GET_IID(nsIDOMWindow), true, &v,
-                               getter_AddRefs(holder));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      if (!JS_WrapValue(cx, &v)) {
-        return NS_ERROR_FAILURE;
-      }
-
-      *vp = v;
-    }
-
-    return NS_SUCCESS_I_DID_SOMETHING;
-  }
 
   if (JSID_IS_STRING(id) && !JSVAL_IS_PRIMITIVE(*vp) &&
       ::JS_TypeOfValue(cx, *vp) != JSTYPE_FUNCTION) {
@@ -6600,33 +6558,12 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   js::RootedObject obj(cx, obj_);
   js::RootedId id(cx, id_);
 
-  nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
-  MOZ_ASSERT(win->IsInnerWindow());
-
   if (!JSID_IS_STRING(id)) {
-    if (JSID_IS_INT(id) && JSID_TO_INT(id) >= 0 && !(flags & JSRESOLVE_ASSIGNING)) {
-      
-      
-      
-      
-      uint32_t index = uint32_t(JSID_TO_INT(id));
-      bool found;
-      nsCOMPtr<nsIDOMWindow> frame = win->IndexedGetter(index, found);
-      if (found) {
-        
-        
-
-        *_retval = ::JS_DefineElement(cx, obj, index, JSVAL_VOID,
-                                      nullptr, nullptr, JSPROP_SHARED);
-
-        if (*_retval) {
-          *objp = obj;
-        }
-      }
-    }
-
     return NS_OK;
   }
+
+  nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
+  MOZ_ASSERT(win->IsInnerWindow());
 
   nsIScriptContext *my_context = win->GetContextInternal();
 

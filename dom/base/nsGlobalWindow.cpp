@@ -534,10 +534,59 @@ public:
   }
   virtual JSString *obj_toString(JSContext *cx, JSObject *wrapper) MOZ_OVERRIDE;
   virtual void finalize(JSFreeOp *fop, JSObject *proxy) MOZ_OVERRIDE;
+
+  
+  virtual bool getPropertyDescriptor(JSContext* cx, JSObject* proxy,
+                                     jsid id, JSPropertyDescriptor* desc,
+                                     unsigned flags) MOZ_OVERRIDE;
+  virtual bool getOwnPropertyDescriptor(JSContext* cx, JSObject* proxy,
+                                        jsid id, JSPropertyDescriptor* desc,
+                                        unsigned flags) MOZ_OVERRIDE;
+  virtual bool defineProperty(JSContext* cx, JSObject* proxy,
+                              jsid id, JSPropertyDescriptor* desc) MOZ_OVERRIDE;
+  virtual bool getOwnPropertyNames(JSContext *cx, JSObject *proxy,
+                                   JS::AutoIdVector &props) MOZ_OVERRIDE;
+  virtual bool delete_(JSContext *cx, JSObject *proxy, jsid id,
+                       bool *bp) MOZ_OVERRIDE;
+  virtual bool enumerate(JSContext *cx, JSObject *proxy,
+                         JS::AutoIdVector &props) MOZ_OVERRIDE;
+
+  
+  virtual bool has(JSContext *cx, JSObject *proxy, jsid id,
+                   bool *bp) MOZ_OVERRIDE;
+  virtual bool hasOwn(JSContext *cx, JSObject *proxy, jsid id,
+                      bool *bp) MOZ_OVERRIDE;
   virtual bool get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
-                   jsid id, js::Value *vp) MOZ_OVERRIDE;
+                   jsid id, JS::Value *vp) MOZ_OVERRIDE;
+  virtual bool set(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                   jsid id, bool strict, JS::Value *vp) MOZ_OVERRIDE;
+  virtual bool keys(JSContext *cx, JSObject *proxy,
+                    JS::AutoIdVector &props) MOZ_OVERRIDE;
+  virtual bool iterate(JSContext *cx, JSObject *proxy, unsigned flags,
+                       JS::Value *vp) MOZ_OVERRIDE;
 
   static nsOuterWindowProxy singleton;
+
+protected:
+  nsGlobalWindow* GetWindow(JSObject *proxy)
+  {
+    return nsGlobalWindow::FromSupports(
+      static_cast<nsISupports*>(js::GetProxyExtra(proxy, 0).toPrivate()));
+  }
+
+  
+  
+  bool GetSubframeWindow(JSContext *cx, JSObject *proxy, jsid id,
+                         JS::Value *vp, bool &found);
+
+  
+  
+  already_AddRefed<nsIDOMWindow> GetSubframeWindow(JSContext *cx,
+                                                   JSObject *proxy,
+                                                   jsid id);
+
+  bool AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
+                                  JS::AutoIdVector &props);
 };
 
 
@@ -552,18 +601,136 @@ nsOuterWindowProxy::obj_toString(JSContext *cx, JSObject *proxy)
 void
 nsOuterWindowProxy::finalize(JSFreeOp *fop, JSObject *proxy)
 {
-  nsISupports *global =
-    static_cast<nsISupports*>(js::GetProxyExtra(proxy, 0).toPrivate());
+  nsGlobalWindow* global = GetWindow(proxy);
   if (global) {
-    nsWrapperCache *cache;
-    CallQueryInterface(global, &cache);
-    cache->ClearWrapper();
+    global->ClearWrapper();
   }
 }
 
 bool
+nsOuterWindowProxy::getPropertyDescriptor(JSContext* cx, JSObject* proxy,
+                                          jsid id,
+                                          JSPropertyDescriptor* desc,
+                                          unsigned flags)
+{
+  
+  
+  
+  desc->obj = nullptr;
+  if (!getOwnPropertyDescriptor(cx, proxy, id, desc, flags)) {
+    return false;
+  }
+
+  if (desc->obj) {
+    return true;
+  }
+
+  return js::Wrapper::getPropertyDescriptor(cx, proxy, id, desc, flags);
+}
+
+bool
+nsOuterWindowProxy::getOwnPropertyDescriptor(JSContext* cx, JSObject* proxy,
+                                             jsid id,
+                                             JSPropertyDescriptor* desc,
+                                             unsigned flags)
+{
+  bool found;
+  if (!GetSubframeWindow(cx, proxy, id, &desc->value, found)) {
+    return false;
+  }
+  if (found) {
+    FillPropertyDescriptor(desc, proxy, true);
+    return true;
+  }
+  
+
+  return js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc, flags);
+}
+
+bool
+nsOuterWindowProxy::defineProperty(JSContext* cx, JSObject* proxy,
+                                   jsid id, JSPropertyDescriptor* desc)
+{
+  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+    
+    
+    return true;
+  }
+
+  return js::Wrapper::defineProperty(cx, proxy, id, desc);
+}
+
+bool
+nsOuterWindowProxy::getOwnPropertyNames(JSContext *cx, JSObject *proxy,
+                                        JS::AutoIdVector &props)
+{
+  
+  if (!AppendIndexedPropertyNames(cx, proxy, props)) {
+    return false;
+  }
+
+  JS::AutoIdVector innerProps(cx);
+  if (!js::Wrapper::getOwnPropertyNames(cx, proxy, innerProps)) {
+    return false;
+  }
+  return js::AppendUnique(cx, props, innerProps);
+}
+
+bool
+nsOuterWindowProxy::delete_(JSContext *cx, JSObject *proxy, jsid id,
+                            bool *bp)
+{
+  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+    
+    
+    *bp = false;
+    return true;
+  }
+
+  return js::Wrapper::delete_(cx, proxy, id, bp);
+}
+
+bool
+nsOuterWindowProxy::enumerate(JSContext *cx, JSObject *proxy,
+                              JS::AutoIdVector &props)
+{
+  
+  if (!AppendIndexedPropertyNames(cx, proxy, props)) {
+    return false;
+  }
+
+  JS::AutoIdVector innerProps(cx);
+  if (!js::Wrapper::enumerate(cx, proxy, innerProps)) {
+    return false;
+  }
+  return js::AppendUnique(cx, props, innerProps);
+}
+
+bool
+nsOuterWindowProxy::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
+{
+  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+    *bp = true;
+    return true;
+  }
+
+  return js::Wrapper::has(cx, proxy, id, bp);
+}
+
+bool
+nsOuterWindowProxy::hasOwn(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
+{
+  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+    *bp = true;
+    return true;
+  }
+
+  return js::Wrapper::hasOwn(cx, proxy, id, bp);
+}
+
+bool
 nsOuterWindowProxy::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
-                        jsid id, js::Value *vp)
+                        jsid id, JS::Value *vp)
 {
   if (id == nsDOMClassInfo::sWrappedJSObject_id &&
       xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
@@ -571,7 +738,104 @@ nsOuterWindowProxy::get(JSContext *cx, JSObject *wrapper, JSObject *receiver,
     return true;
   }
 
+  bool found;
+  if (!GetSubframeWindow(cx, wrapper, id, vp, found)) {
+    return false;
+  }
+  if (found) {
+    return true;
+  }
+  
+
   return js::Wrapper::get(cx, wrapper, receiver, id, vp);
+}
+
+bool
+nsOuterWindowProxy::set(JSContext *cx, JSObject *proxy, JSObject *receiver,
+                        jsid id, bool strict, JS::Value *vp)
+{
+  if (nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id)) {
+    
+    if (strict) {
+      
+    }
+    return true;
+  }
+
+  return js::Wrapper::set(cx, proxy, receiver, id, strict, vp);
+}
+
+bool
+nsOuterWindowProxy::keys(JSContext *cx, JSObject *proxy,
+                         JS::AutoIdVector &props)
+{
+  
+  
+  return js::BaseProxyHandler::keys(cx, proxy, props);
+}
+
+bool
+nsOuterWindowProxy::iterate(JSContext *cx, JSObject *proxy, unsigned flags,
+                            JS::Value *vp)
+{
+  
+  
+  return js::BaseProxyHandler::iterate(cx, proxy, flags, vp);
+}
+
+bool
+nsOuterWindowProxy::GetSubframeWindow(JSContext *cx, JSObject *proxy,
+                                      jsid id, JS::Value* vp,
+                                      bool& found)
+{
+  nsCOMPtr<nsIDOMWindow> frame = GetSubframeWindow(cx, proxy, id);
+  if (!frame) {
+    found = false;
+    return true;
+  }
+
+  found = true;
+  
+  nsGlobalWindow* global = static_cast<nsGlobalWindow*>(frame.get());
+  global->EnsureInnerWindow();
+  JSObject* obj = global->FastGetGlobalJSObject();
+  
+  
+  
+  if (MOZ_UNLIKELY(!obj)) {
+    return xpc::Throw(cx, NS_ERROR_FAILURE);
+  }
+  *vp = JS::ObjectValue(*obj);
+  return JS_WrapValue(cx, vp);
+}
+
+already_AddRefed<nsIDOMWindow>
+nsOuterWindowProxy::GetSubframeWindow(JSContext *cx, JSObject *proxy, jsid id)
+{
+  int32_t index = GetArrayIndexFromId(cx, id);
+  if (!IsArrayIndex(index)) {
+    return nullptr;
+  }
+
+  nsGlobalWindow* win = GetWindow(proxy);
+  bool unused;
+  return win->IndexedGetter(index, unused);
+}
+
+bool
+nsOuterWindowProxy::AppendIndexedPropertyNames(JSContext *cx, JSObject *proxy,
+                                               JS::AutoIdVector &props)
+{
+  uint32_t length = GetWindow(proxy)->GetLength();
+  MOZ_ASSERT(int32_t(length) >= 0);
+  if (!props.reserve(props.length() + length)) {
+    return false;
+  }
+  for (int32_t i = 0; i < int32_t(length); ++i) {
+    props.append(INT_TO_JSID(i));
+  }
+
+  return true;
 }
 
 nsOuterWindowProxy

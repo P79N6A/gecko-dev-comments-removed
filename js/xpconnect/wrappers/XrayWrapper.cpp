@@ -22,6 +22,7 @@
 #include "nsJSUtils.h"
 
 #include "mozilla/dom/BindingUtils.h"
+#include "nsGlobalWindow.h"
 
 using namespace mozilla::dom;
 
@@ -653,12 +654,19 @@ XPCWrappedNativeXrayTraits::resolveDOMCollectionProperty(JSContext *cx, JSObject
 }
 
 template <typename T>
-static bool
-Is(JSObject *wrapper)
+static T*
+As(JSObject *wrapper)
 {
     XPCWrappedNative *wn = XPCWrappedNativeXrayTraits::getWN(wrapper);
     nsCOMPtr<T> native = do_QueryWrappedNative(wn);
-    return !!native;
+    return native;
+}
+
+template <typename T>
+static bool
+Is(JSObject *wrapper)
+{
+    return !!As<T>(wrapper);
 }
 
 static nsQueryInterface
@@ -946,6 +954,30 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
         return ok;
 
     
+    int32_t index = GetArrayIndexFromId(cx, id);
+    if (IsArrayIndex(index)) {
+        nsGlobalWindow* win =
+            static_cast<nsGlobalWindow*>(As<nsIDOMWindow>(wrapper));
+        
+        if (win) {
+            bool unused;
+            nsCOMPtr<nsIDOMWindow> subframe = win->IndexedGetter(index, unused);
+            if (subframe) {
+                nsGlobalWindow* global = static_cast<nsGlobalWindow*>(subframe.get());
+                global->EnsureInnerWindow();
+                JSObject* obj = global->FastGetGlobalJSObject();
+                if (MOZ_UNLIKELY(!obj)) {
+                    
+                    return xpc::Throw(cx, NS_ERROR_FAILURE);
+                }
+                desc->value = JS::ObjectValue(*obj);
+                mozilla::dom::FillPropertyDescriptor(desc, wrapper, true);
+                return JS_WrapPropertyDescriptor(cx, desc);
+            }
+        }
+    }
+
+    
     
     MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
@@ -1008,7 +1040,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
 
 bool
 XPCWrappedNativeXrayTraits::defineProperty(JSContext *cx, JSObject *wrapper, jsid id,
-                                      PropertyDescriptor *desc, bool *defined)
+                                           PropertyDescriptor *desc, bool *defined)
 {
     *defined = false;
     JSObject *holder = singleton.ensureHolder(cx, wrapper);
@@ -1024,6 +1056,15 @@ XPCWrappedNativeXrayTraits::defineProperty(JSContext *cx, JSObject *wrapper, jsi
         return JS_DefinePropertyById(cx, holder, id, desc->value, desc->getter, desc->setter,
                                      desc->attrs);
     }
+
+    
+    
+    int32_t index = GetArrayIndexFromId(cx, id);
+    if (IsArrayIndex(index) && Is<nsIDOMWindow>(wrapper)) {
+        *defined = true;
+        return true;
+    }
+
     return true;
 }
 
