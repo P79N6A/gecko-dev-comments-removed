@@ -97,6 +97,11 @@ class Message : public Pickle {
   }
 
   
+  bool is_rpc() const {
+    return (header()->flags & RPC_BIT) != 0;
+  }
+
+  
   bool compress() const {
     return (header()->flags & COMPRESS_BIT) != 0;
   }
@@ -151,6 +156,14 @@ class Message : public Pickle {
 
   void set_routing_id(int32_t new_id) {
     header()->routing = new_id;
+  }
+
+  int32_t transaction_id() const {
+    return header()->txid;
+  }
+
+  void set_transaction_id(int32_t txid) {
+    header()->txid = txid;
   }
 
   uint32_t interrupt_remote_stack_depth_guess() const {
@@ -279,6 +292,10 @@ class Message : public Pickle {
     header()->flags |= URGENT_BIT;
   }
 
+  void set_rpc() {
+    header()->flags |= RPC_BIT;
+  }
+
 #if !defined(OS_MACOSX)
  protected:
 #endif
@@ -294,7 +311,8 @@ class Message : public Pickle {
     HAS_SENT_TIME_BIT = 0x0080,
     INTERRUPT_BIT   = 0x0100,
     COMPRESS_BIT    = 0x0200,
-    URGENT_BIT      = 0x0400
+    URGENT_BIT      = 0x0400,
+    RPC_BIT         = 0x0800
   };
 
   struct Header : Pickle::Header {
@@ -307,8 +325,13 @@ class Message : public Pickle {
     uint32_t cookie;  
 # endif
 #endif
-    
-    uint32_t interrupt_remote_stack_depth_guess;
+    union {
+      
+      uint32_t interrupt_remote_stack_depth_guess;
+
+      
+      int32_t txid;
+    };
     
     uint32_t interrupt_local_stack_depth;
     

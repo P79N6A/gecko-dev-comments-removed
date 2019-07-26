@@ -51,6 +51,8 @@ MessageChannel::MessageChannel(MessageListener *aListener)
     mNextSeqno(0),
     mPendingSyncReplies(0),
     mPendingUrgentReplies(0),
+    mPendingRPCReplies(0),
+    mCurrentRPCTransaction(0),
     mDispatchingSyncMessage(false),
     mRemoteStackDepthGuess(false),
     mSawInterruptOutMsg(false)
@@ -274,7 +276,8 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
     
     
     if ((AwaitingSyncReply() && aMsg.is_sync()) ||
-        (AwaitingUrgentReply() && aMsg.is_urgent()))
+        (AwaitingUrgentReply() && aMsg.is_urgent()) ||
+        (AwaitingRPCReply() && aMsg.is_rpc()))
     {
         mRecvd = new Message(aMsg);
         NotifyWorkerThread();
@@ -295,12 +298,11 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
         mPending.pop_back();
     }
 
-    if (aMsg.is_urgent()) {
-        MOZ_ASSERT(!mPendingUrgentRequest);
-        mPendingUrgentRequest = new Message(aMsg);
-    } else {
-        mPending.push_back(aMsg);
-    }
+    bool shouldWakeUp = AwaitingInterruptReply() ||
+                        
+                        (AwaitingUrgentReply() && aMsg.is_rpc()) ||
+                        
+                        ((AwaitingSyncReply() || AwaitingRPCReply()) && aMsg.is_urgent());
 
     
     
@@ -321,7 +323,47 @@ MessageChannel::OnMessageReceivedFromLink(const Message& aMsg)
     
     
     
-    if (AwaitingInterruptReply() || (AwaitingSyncReply() && aMsg.is_urgent())) {
+    
+
+    if (shouldWakeUp && (AwaitingUrgentReply() && aMsg.is_rpc())) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        if (aMsg.transaction_id() != mCurrentRPCTransaction)
+            shouldWakeUp = false;
+    }
+
+    if (aMsg.is_urgent()) {
+        MOZ_ASSERT(!mPendingUrgentRequest);
+        mPendingUrgentRequest = new Message(aMsg);
+    } else if (aMsg.is_rpc() && shouldWakeUp) {
+        
+        
+        MOZ_ASSERT(!mPendingRPCCall);
+        mPendingRPCCall = new Message(aMsg);
+    } else {
+        mPending.push_back(aMsg);
+    }
+
+    if (shouldWakeUp) {
+        
         
         
         NotifyWorkerThread();
@@ -355,14 +397,7 @@ MessageChannel::Send(Message* aMsg, Message* aReply)
 
     IPC_ASSERT(aMsg->is_sync(), "can only Send() sync messages here");
     IPC_ASSERT(!DispatchingSyncMessage(), "violation of sync handler invariant");
-
-    if (AwaitingSyncReply()) {
-        
-        
-        
-        NS_ERROR("Nested sync messages are not supported");
-        return false;
-    }
+    IPC_ASSERT(!AwaitingSyncReply(), "nested sync messages are not supported");
 
     AutoEnterPendingReply replies(mPendingSyncReplies);
     if (!SendAndWait(aMsg, aReply))
@@ -388,17 +423,47 @@ MessageChannel::UrgentCall(Message* aMsg, Message* aReply)
 
     MonitorAutoLock lock(*mMonitor);
 
-    
-    
-    IPC_ASSERT(!AwaitingUrgentReply(), "urgent calls cannot nest");
     IPC_ASSERT(!AwaitingInterruptReply(), "urgent calls cannot be issued within Interrupt calls");
     IPC_ASSERT(!AwaitingSyncReply(), "urgent calls cannot be issued within sync sends");
+
+    AutoEnterRPCTransaction transact(this);
+    aMsg->set_transaction_id(mCurrentRPCTransaction);
 
     AutoEnterPendingReply replies(mPendingUrgentReplies);
     if (!SendAndWait(aMsg, aReply))
         return false;
 
     NS_ABORT_IF_FALSE(aReply->is_urgent(), "reply is not urgent");
+    return true;
+}
+
+bool
+MessageChannel::RPCCall(Message* aMsg, Message* aReply)
+{
+    AssertWorkerThread();
+    mMonitor->AssertNotCurrentThreadOwns();
+    IPC_ASSERT(mSide == ChildSide, "cannot send rpc messages from parent");
+
+#ifdef OS_WIN
+    SyncStackFrame frame(this, false);
+#endif
+
+    Message copy = *aMsg;
+    CxxStackFrame f(*this, OUT_MESSAGE, &copy);
+
+    MonitorAutoLock lock(*mMonitor);
+
+    
+    IPC_ASSERT(!AwaitingInterruptReply(), "rpc calls cannot be issued within interrupts");
+
+    AutoEnterRPCTransaction transact(this);
+    aMsg->set_transaction_id(mCurrentRPCTransaction);
+
+    AutoEnterPendingReply replies(mPendingRPCReplies);
+    if (!SendAndWait(aMsg, aReply))
+        return false;
+
+    NS_ABORT_IF_FALSE(aReply->is_rpc(), "expected rpc reply");
     return true;
 }
 
@@ -424,7 +489,7 @@ MessageChannel::SendAndWait(Message* aMsg, Message* aReply)
     while (true) {
         
         while (true) {
-            if (mRecvd || mPendingUrgentRequest)
+            if (mRecvd || mPendingUrgentRequest || mPendingRPCCall)
                 break;
 
             bool maybeTimedOut = !WaitForSyncNotify();
@@ -438,28 +503,11 @@ MessageChannel::SendAndWait(Message* aMsg, Message* aReply)
                 return false;
         }
 
-        if (mPendingUrgentRequest) {
-            
-            
-            
-            
-            
-            
-            
-            bool hadSyncReply = !!mRecvd;
+        if (mPendingUrgentRequest && !ProcessPendingUrgentRequest())
+            return false;
 
-            nsAutoPtr<Message> recvd(mPendingUrgentRequest.forget());
-            {
-                MonitorAutoUnlock unlock(*mMonitor);
-                DispatchMessage(*recvd);
-            }
-            if (!Connected()) {
-                ReportConnectionError("MessageChannel::DispatchMessage");
-                return false;
-            }
-
-            IPC_ASSERT(!hadSyncReply || !mRecvd, "incoherent mRecvd state");
-        }
+        if (mPendingRPCCall && !ProcessPendingRPCCall())
+            return false;
 
         if (mRecvd) {
             NS_ABORT_IF_FALSE(mRecvd->is_reply(), "expected reply");
@@ -486,6 +534,8 @@ MessageChannel::Call(Message* aMsg, Message* aReply)
 {
     if (aMsg->is_urgent())
         return UrgentCall(aMsg, aReply);
+    if (aMsg->is_rpc())
+        return RPCCall(aMsg, aReply);
     return InterruptCall(aMsg, aReply);
 }
 
@@ -563,6 +613,9 @@ MessageChannel::InterruptCall(Message* aMsg, Message* aReply)
         if (mPendingUrgentRequest) {
             recvd = *mPendingUrgentRequest;
             mPendingUrgentRequest = nullptr;
+        } else if (mPendingRPCCall) {
+            recvd = *mPendingRPCCall;
+            mPendingRPCCall = nullptr;
         } else if ((it = mOutOfTurnReplies.find(mInterruptStack.top().seqno()))
                     != mOutOfTurnReplies.end())
         {
@@ -586,6 +639,7 @@ MessageChannel::InterruptCall(Message* aMsg, Message* aReply)
             IPC_ASSERT(!recvd.is_sync() || mPending.empty(), "other side should be blocked");
 
             {
+                AutoEnterRPCTransaction transaction(this, &recvd);
                 MonitorAutoUnlock unlock(*mMonitor);
                 CxxStackFrame frame(*this, IN_MESSAGE, &recvd);
                 DispatchMessage(recvd);
@@ -667,9 +721,124 @@ MessageChannel::InterruptEventOccurred()
     return (!Connected() ||
             !mPending.empty() ||
             mPendingUrgentRequest ||
+            mPendingRPCCall ||
             (!mOutOfTurnReplies.empty() &&
              mOutOfTurnReplies.find(mInterruptStack.top().seqno()) !=
              mOutOfTurnReplies.end()));
+}
+
+bool
+MessageChannel::ProcessPendingUrgentRequest()
+{
+    AssertWorkerThread();
+    mMonitor->AssertCurrentThreadOwns();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    nsAutoPtr<Message> savedReply(mRecvd.forget());
+
+    
+    IPC_ASSERT(!mPendingRPCCall, "unexpected RPC call");
+
+    nsAutoPtr<Message> recvd(mPendingUrgentRequest.forget());
+    {
+        
+        
+        AutoEnterRPCTransaction transaction(this, recvd);
+
+        MonitorAutoUnlock unlock(*mMonitor);
+        DispatchUrgentMessage(*recvd);
+    }
+    if (!Connected()) {
+        ReportConnectionError("MessageChannel::DispatchUrgentMessage");
+        return false;
+    }
+
+    
+    
+    
+    
+    IPC_ASSERT(!mRecvd || !savedReply, "unknown reply");
+    if (!mRecvd)
+        mRecvd = savedReply.forget();
+    return true;
+}
+
+bool
+MessageChannel::ProcessPendingRPCCall()
+{
+    AssertWorkerThread();
+    mMonitor->AssertCurrentThreadOwns();
+
+    
+    nsAutoPtr<Message> savedReply(mRecvd.forget());
+
+    IPC_ASSERT(!mPendingUrgentRequest, "unexpected urgent message");
+
+    nsAutoPtr<Message> recvd(mPendingRPCCall.forget());
+    {
+        
+        
+        
+        
+        AutoEnterRPCTransaction transaction(this, recvd);
+
+        MonitorAutoUnlock unlock(*mMonitor);
+        DispatchRPCMessage(*recvd);
+    }
+    if (!Connected()) {
+        ReportConnectionError("MessageChannel::DispatchRPCMessage");
+        return false;
+    }
+
+    
+    
+    
+    
+    IPC_ASSERT(!mRecvd || !savedReply, "unknown reply");
+    if (!mRecvd)
+        mRecvd = savedReply.forget();
+    return true;
+}
+
+bool
+MessageChannel::DequeueOne(Message *recvd)
+{
+    AssertWorkerThread();
+    mMonitor->AssertCurrentThreadOwns();
+
+    if (!Connected()) {
+        ReportConnectionError("OnMaybeDequeueOne");
+        return false;
+    }
+
+    if (mPendingUrgentRequest) {
+        *recvd = *mPendingUrgentRequest;
+        mPendingUrgentRequest = nullptr;
+        return true;
+    }
+
+    if (mPendingRPCCall) {
+        *recvd = *mPendingRPCCall;
+        mPendingRPCCall = nullptr;
+        return true;
+    }
+
+    if (!mDeferred.empty())
+        MaybeUndeferIncall();
+
+    if (mPending.empty())
+        return false;
+
+    *recvd = mPending.front();
+    mPending.pop_front();
+    return true;
 }
 
 bool
@@ -679,29 +848,10 @@ MessageChannel::OnMaybeDequeueOne()
     mMonitor->AssertNotCurrentThreadOwns();
 
     Message recvd;
-    do {
-        MonitorAutoLock lock(*mMonitor);
 
-        if (!Connected()) {
-            ReportConnectionError("OnMaybeDequeueOne");
-            return false;
-        }
-
-        if (mPendingUrgentRequest) {
-            recvd = *mPendingUrgentRequest;
-            mPendingUrgentRequest = nullptr;
-            break;
-        }
-
-        if (!mDeferred.empty())
-            MaybeUndeferIncall();
-
-        if (mPending.empty())
-            return false;
-
-        recvd = mPending.front();
-        mPending.pop_front();
-    } while (0);
+    MonitorAutoLock lock(*mMonitor);
+    if (!DequeueOne(&recvd))
+        return false;
 
     if (IsOnCxxStack() && recvd.is_interrupt() && recvd.is_reply()) {
         
@@ -710,8 +860,16 @@ MessageChannel::OnMaybeDequeueOne()
         return false;
     }
 
-    CxxStackFrame frame(*this, IN_MESSAGE, &recvd);
-    DispatchMessage(recvd);
+    {
+        
+        MOZ_ASSERT(mCurrentRPCTransaction == 0);
+        AutoEnterRPCTransaction transaction(this, &recvd);
+
+        MonitorAutoUnlock unlock(*mMonitor);
+
+        CxxStackFrame frame(*this, IN_MESSAGE, &recvd);
+        DispatchMessage(recvd);
+    }
     return true;
 }
 
@@ -724,6 +882,8 @@ MessageChannel::DispatchMessage(const Message &aMsg)
         DispatchUrgentMessage(aMsg);
     else if (aMsg.is_interrupt())
         DispatchInterruptMessage(aMsg, 0);
+    else if (aMsg.is_rpc())
+        DispatchRPCMessage(aMsg);
     else
         DispatchAsyncMessage(aMsg);
 }
@@ -770,6 +930,28 @@ MessageChannel::DispatchUrgentMessage(const Message& aMsg)
     }
     reply->set_seqno(aMsg.seqno());
 
+    MonitorAutoLock lock(*mMonitor);
+    if (ChannelConnected == mChannelState)
+        mLink->SendMessage(reply);
+}
+
+void
+MessageChannel::DispatchRPCMessage(const Message& aMsg)
+{
+    AssertWorkerThread();
+    MOZ_ASSERT(aMsg.is_rpc());
+
+    Message *reply = nullptr;
+
+    if (!MaybeHandleError(mListener->OnCallReceived(aMsg, reply), "DispatchRPCMessage")) {
+        delete reply;
+        reply = new Message();
+        reply->set_rpc();
+        reply->set_reply();
+        reply->set_reply_error();
+    }
+    reply->set_seqno(aMsg.seqno());
+    
     MonitorAutoLock lock(*mMonitor);
     if (ChannelConnected == mChannelState)
         mLink->SendMessage(reply);
@@ -1158,7 +1340,7 @@ MessageChannel::OnChannelErrorFromLink()
     if (InterruptStackDepth() > 0)
         NotifyWorkerThread();
 
-    if (AwaitingSyncReply())
+    if (AwaitingSyncReply() || AwaitingRPCReply() || AwaitingUrgentReply())
         NotifyWorkerThread();
 
     if (ChannelClosing != mChannelState) {

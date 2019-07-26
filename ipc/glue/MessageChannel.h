@@ -42,6 +42,7 @@ class MessageChannel : HasResultCodes
 {
     friend class ProcessLink;
     friend class ThreadLink;
+    friend class AutoEnterRPCTransaction;
 
     typedef mozilla::Monitor Monitor;
 
@@ -189,16 +190,21 @@ class MessageChannel : HasResultCodes
     
     bool SendAndWait(Message* aMsg, Message* aReply);
 
+    bool RPCCall(Message* aMsg, Message* aReply);
     bool InterruptCall(Message* aMsg, Message* aReply);
     bool UrgentCall(Message* aMsg, Message* aReply);
 
     bool InterruptEventOccurred();
+
+    bool ProcessPendingUrgentRequest();
+    bool ProcessPendingRPCCall();
 
     void MaybeUndeferIncall();
     void EnqueuePendingMessages();
 
     
     bool OnMaybeDequeueOne();
+    bool DequeueOne(Message *recvd);
 
     
     void DispatchMessage(const Message &aMsg);
@@ -208,6 +214,7 @@ class MessageChannel : HasResultCodes
     void DispatchSyncMessage(const Message &aMsg);
     void DispatchUrgentMessage(const Message &aMsg);
     void DispatchAsyncMessage(const Message &aMsg);
+    void DispatchRPCMessage(const Message &aMsg);
     void DispatchInterruptMessage(const Message &aMsg, size_t aStackDepth);
 
     
@@ -362,6 +369,10 @@ class MessageChannel : HasResultCodes
         mMonitor->AssertCurrentThreadOwns();
         return mPendingUrgentReplies > 0;
     }
+    bool AwaitingRPCReply() const {
+        mMonitor->AssertCurrentThreadOwns();
+        return mPendingRPCReplies > 0;
+    }
     bool AwaitingInterruptReply() const {
         mMonitor->AssertCurrentThreadOwns();
         return !mInterruptStack.empty();
@@ -498,7 +509,64 @@ class MessageChannel : HasResultCodes
 
     
     
+    
     size_t mPendingUrgentReplies;
+    size_t mPendingRPCReplies;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    int32_t mCurrentRPCTransaction;
+
+    class AutoEnterRPCTransaction
+    {
+      public:
+       AutoEnterRPCTransaction(MessageChannel *aChan)
+        : mChan(aChan),
+          mOldTransaction(mChan->mCurrentRPCTransaction)
+       {
+           mChan->mMonitor->AssertCurrentThreadOwns();
+           if (mChan->mCurrentRPCTransaction == 0)
+               mChan->mCurrentRPCTransaction = mChan->NextSeqno();
+       }
+       AutoEnterRPCTransaction(MessageChannel *aChan, Message *message)
+        : mChan(aChan),
+          mOldTransaction(mChan->mCurrentRPCTransaction)
+       {
+           mChan->mMonitor->AssertCurrentThreadOwns();
+
+           if (!message->is_rpc() && !message->is_urgent())
+               return;
+
+           MOZ_ASSERT_IF(mChan->mSide == ParentSide,
+                         !mOldTransaction || mOldTransaction == message->transaction_id());
+           mChan->mCurrentRPCTransaction = message->transaction_id();
+       }
+       ~AutoEnterRPCTransaction() {
+           mChan->mMonitor->AssertCurrentThreadOwns();
+           mChan->mCurrentRPCTransaction = mOldTransaction;
+       }
+
+      private:
+       MessageChannel *mChan;
+       int32_t mOldTransaction;
+    };
 
     
     
@@ -544,7 +612,18 @@ class MessageChannel : HasResultCodes
     
     
     MessageQueue mPending;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
     nsAutoPtr<Message> mPendingUrgentRequest;
+    nsAutoPtr<Message> mPendingRPCCall;
 
     
     
