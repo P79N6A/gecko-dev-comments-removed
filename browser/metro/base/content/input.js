@@ -239,7 +239,6 @@ var TouchModule = {
     
     let deck = document.getElementById("browsers");
     if (Services.prefs.getBoolPref(kAsyncPanZoomEnabled) &&
-        !StartUI.isStartPageVisible &&
         this._targetScrollbox == deck) {
       return;
     }
@@ -368,7 +367,6 @@ var TouchModule = {
       
       let deck = document.getElementById("browsers");
       if (!Services.prefs.getBoolPref(kAsyncPanZoomEnabled) ||
-          StartUI.isStartPageVisible ||
           this._targetScrollbox != deck) {
         this._kinetic.start();
       }
