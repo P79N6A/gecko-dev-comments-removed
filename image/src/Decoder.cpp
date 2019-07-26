@@ -227,6 +227,11 @@ Decoder::PostFrameStart()
   
   NS_ABORT_IF_FALSE(mFrameCount == mImage.GetNumFrames(),
                     "Decoder frame count doesn't match image's!");
+
+  
+  if (mObserver) {
+    mObserver->OnStartFrame();
+  }
 }
 
 void

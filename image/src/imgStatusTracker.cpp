@@ -76,6 +76,18 @@ public:
     }
   }
 
+  virtual void OnStartFrame()
+  {
+    LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::OnStartFrame");
+    NS_ABORT_IF_FALSE(mTracker->GetImage(),
+                      "OnStartFrame callback before we've created our image");
+
+    mTracker->RecordStartFrame();
+
+    
+    
+  }
+
   virtual void FrameChanged(const nsIntRect* dirtyRect)
   {
     LOG_SCOPE(GetImgLog(), "imgStatusTrackerObserver::FrameChanged");
@@ -491,6 +503,13 @@ imgStatusTracker::SendStartContainer(imgRequestProxy* aProxy)
   if (!aProxy->NotificationsDeferred())
     aProxy->OnStartContainer();
 }
+
+void
+imgStatusTracker::RecordStartFrame()
+{
+}
+
+
 
 void
 imgStatusTracker::RecordStopFrame()
