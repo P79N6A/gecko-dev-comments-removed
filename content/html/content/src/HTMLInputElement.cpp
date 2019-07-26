@@ -96,6 +96,8 @@
 
 #include <limits>
 
+#include "nsIColorPicker.h"
+
 
 #include "js/Date.h"
 
@@ -377,6 +379,103 @@ HTMLInputElement::nsFilePickerShownCallback::Done(int16_t aResult)
 NS_IMPL_ISUPPORTS1(HTMLInputElement::nsFilePickerShownCallback,
                    nsIFilePickerShownCallback)
 
+class nsColorPickerShownCallback MOZ_FINAL
+  : public nsIColorPickerShownCallback
+{
+public:
+  nsColorPickerShownCallback(HTMLInputElement* aInput,
+                             nsIColorPicker* aColorPicker)
+    : mInput(aInput)
+    , mColorPicker(aColorPicker)
+    , mValueChanged(false)
+  {}
+
+  NS_DECL_ISUPPORTS
+
+  NS_IMETHOD Update(const nsAString& aColor) MOZ_OVERRIDE;
+  NS_IMETHOD Done(const nsAString& aColor) MOZ_OVERRIDE;
+
+private:
+  
+
+
+
+
+  nsresult UpdateInternal(const nsAString& aColor, bool aTrustedUpdate);
+
+  nsRefPtr<HTMLInputElement> mInput;
+  nsCOMPtr<nsIColorPicker>   mColorPicker;
+  bool                       mValueChanged;
+};
+
+nsresult
+nsColorPickerShownCallback::UpdateInternal(const nsAString& aColor,
+                                           bool aTrustedUpdate)
+{
+  bool valueChanged = false;
+
+  nsAutoString oldValue;
+  if (aTrustedUpdate) {
+    valueChanged = true;
+  } else {
+    mInput->GetValue(oldValue);
+  }
+
+  mInput->SetValue(aColor);
+
+  if (!aTrustedUpdate) {
+    nsAutoString newValue;
+    mInput->GetValue(newValue);
+    if (!oldValue.Equals(newValue)) {
+      valueChanged = true;
+    }
+  }
+
+  if (valueChanged) {
+    mValueChanged = true;
+    return nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                                static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                                NS_LITERAL_STRING("input"), true,
+                                                false);
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsColorPickerShownCallback::Update(const nsAString& aColor)
+{
+  return UpdateInternal(aColor, true);
+}
+
+NS_IMETHODIMP
+nsColorPickerShownCallback::Done(const nsAString& aColor)
+{
+  
+
+
+
+
+
+
+  nsresult rv = NS_OK;
+
+  if (!aColor.IsEmpty()) {
+    UpdateInternal(aColor, false);
+  }
+
+  if (mValueChanged) {
+    rv = nsContentUtils::DispatchTrustedEvent(mInput->OwnerDoc(),
+                                              static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                              NS_LITERAL_STRING("change"), true,
+                                              false);
+  }
+
+  return rv;
+}
+
+NS_IMPL_ISUPPORTS1(nsColorPickerShownCallback, nsIColorPickerShownCallback)
+
 HTMLInputElement::AsyncClickHandler::AsyncClickHandler(HTMLInputElement* aInput)
   : mInput(aInput)
 {
@@ -401,7 +500,49 @@ nsresult
 HTMLInputElement::AsyncClickHandler::InitColorPicker()
 {
   
-  return NS_OK;
+  nsCOMPtr<nsIDocument> doc = mInput->OwnerDoc();
+
+  nsCOMPtr<nsPIDOMWindow> win = doc->GetWindow();
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  if (mPopupControlState > openControlled) {
+    nsCOMPtr<nsIPopupWindowManager> pm =
+      do_GetService(NS_POPUPWINDOWMANAGER_CONTRACTID);
+
+    if (!pm) {
+      return NS_OK;
+    }
+
+    uint32_t permission;
+    pm->TestPermission(doc->NodePrincipal(), &permission);
+    if (permission == nsIPopupWindowManager::DENY_POPUP) {
+      nsGlobalWindow::FirePopupBlockedEvent(doc, win, nullptr, EmptyString(), EmptyString());
+      return NS_OK;
+    }
+  }
+
+  
+  nsXPIDLString title;
+  nsContentUtils::GetLocalizedString(nsContentUtils::eFORMS_PROPERTIES,
+                                     "ColorPicker", title);
+
+  nsCOMPtr<nsIColorPicker> colorPicker = do_CreateInstance("@mozilla.org/colorpicker;1");
+  if (!colorPicker) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsAutoString initialValue;
+  mInput->GetValueInternal(initialValue);
+  nsresult rv = colorPicker->Init(win, title, initialValue);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<nsIColorPickerShownCallback> callback =
+    new nsColorPickerShownCallback(mInput, colorPicker);
+
+  return colorPicker->Open(callback);
 }
 
 nsresult
