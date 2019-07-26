@@ -564,9 +564,6 @@ var shell = {
       extra: msg.extra
     }
     this.sendCustomEvent('open-app', payload);
-    
-    payload.type = 'open-app';
-    this.sendChromeEvent(payload);
   },
 
   receiveMessage: function shell_receiveMessage(message) {
@@ -969,10 +966,6 @@ var WebappsHelper = {
             manifestURL: json.manifestURL
           }
           shell.sendEvent(getContentWindow(), "webapps-launch", payload);
-          
-          payload.type = "webapps-launch";
-          delete payload.__exposedProps__;
-          shell.sendChromeEvent(payload);
         });
         break;
       case "webapps-ask-install":
@@ -989,9 +982,6 @@ var WebappsHelper = {
             __exposedProps__: { "manifestURL": "r" },
             "manifestURL": json.manifestURL
           });
-        
-        shell.sendChromeEvent({ type: "webapps-close",
-                                "manifestURL": json.manifestURL });
         break;
     }
   }
