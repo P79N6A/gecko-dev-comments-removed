@@ -643,6 +643,12 @@ PluginScriptableObjectParent::DropNPObject()
   unused << SendUnprotect();
 }
 
+void
+PluginScriptableObjectParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  
+}
+
 bool
 PluginScriptableObjectParent::AnswerHasMethod(PPluginIdentifierParent* aId,
                                               bool* aHasMethod)

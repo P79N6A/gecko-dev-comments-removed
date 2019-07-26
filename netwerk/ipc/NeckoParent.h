@@ -1,9 +1,9 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* vim: set sw=2 ts=8 et tw=80 : */
 
-
-
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/net/PNeckoParent.h"
 #include "mozilla/net/NeckoCommon.h"
@@ -14,14 +14,14 @@
 namespace mozilla {
 namespace net {
 
-
+// Used to override channel Private Browsing status if needed.
 enum PBOverrideStatus {
   kPBOverride_Unset = 0,
   kPBOverride_Private,
   kPBOverride_NotPrivate
 };
 
-
+// Header file contents
 class NeckoParent :
   public PNeckoParent
 {
@@ -43,19 +43,21 @@ public:
                       uint32_t* aAppId,
                       bool* aInBrowserElement);
 
-  
-
-
-
-
-
-
+  /*
+   * Creates LoadContext for parent-side of an e10s channel.
+   *
+   * PContentParent corresponds to the process that is requesting the load.
+   *
+   * Returns null if successful, or an error string if failed.
+   */
   MOZ_WARN_UNUSED_RESULT
   static const char*
   CreateChannelLoadContext(PBrowserParent* aBrowser,
                            PContentParent* aContent,
                            const SerializedLoadContext& aSerialized,
                            nsCOMPtr<nsILoadContext> &aResult);
+
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
 
   virtual void
   CloneManagees(ProtocolBase* aSource,
@@ -166,7 +168,7 @@ private:
   nsCString mWebAppsBasePath;
 };
 
-} 
-} 
+} // namespace net
+} // namespace mozilla
 
-#endif 
+#endif // mozilla_net_NeckoParent_h

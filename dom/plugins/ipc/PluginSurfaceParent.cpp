@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/plugins/PluginSurfaceParent.h"
 #include "mozilla/gfx/SharedDIBSurface.h"
@@ -22,6 +22,12 @@ PluginSurfaceParent::PluginSurfaceParent(const WindowsSharedMemoryHandle& handle
 
 PluginSurfaceParent::~PluginSurfaceParent()
 {
+}
+
+void
+PluginSurfaceParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  // Implement me! Bug 1005167
 }
 
 }

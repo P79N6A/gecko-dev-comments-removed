@@ -30,6 +30,12 @@ BrowserStreamParent::~BrowserStreamParent()
 {
 }
 
+void
+BrowserStreamParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  
+}
+
 bool
 BrowserStreamParent::AnswerNPN_RequestRead(const IPCByteRanges& ranges,
                                            NPError* result)

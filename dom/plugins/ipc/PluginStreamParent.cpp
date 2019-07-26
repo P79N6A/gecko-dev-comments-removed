@@ -26,6 +26,12 @@ PluginStreamParent::PluginStreamParent(PluginInstanceParent* npp,
     mStream = nullptr;
 }
 
+void
+PluginStreamParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  
+}
+
 bool
 PluginStreamParent::AnswerNPN_Write(const Buffer& data, int32_t* written)
 {

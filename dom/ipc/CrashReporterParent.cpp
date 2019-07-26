@@ -26,6 +26,12 @@ CrashReporterParent::AnnotateCrashReport(const nsCString& key,
 #endif
 }
 
+void
+CrashReporterParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  
+}
+
 bool
 CrashReporterParent::RecvAppendAppNotes(const nsCString& data)
 {

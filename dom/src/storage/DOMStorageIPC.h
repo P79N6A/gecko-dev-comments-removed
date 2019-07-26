@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsDOMStorageIPC_h___
 #define nsDOMStorageIPC_h___
@@ -18,10 +18,10 @@ namespace dom {
 
 class DOMLocalStorageManager;
 
-
-
-
-
+// Child side of the IPC protocol, exposes as DB interface but
+// is responsible to send all requests to the parent process
+// and expects asynchronous answers. Those are then transparently
+// forwarded back to consumers on the child process.
 class DOMStorageDBChild MOZ_FINAL : public DOMStorageDBBridge
                                   , public PStorageChild
 {
@@ -51,12 +51,12 @@ public:
   virtual void AsyncClearAll()
   {
     if (mScopesHavingData) {
-      mScopesHavingData->Clear(); 
+      mScopesHavingData->Clear(); /* NO-OP on the child process otherwise */
     }
   }
 
   virtual void AsyncClearMatchingScope(const nsACString& aScope)
-    {  }
+    { /* NO-OP on the child process */ }
 
   virtual void AsyncFlush()
     { SendAsyncFlush(); }
@@ -83,28 +83,28 @@ private:
   ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 
-  
+  // Held to get caches to forward answers to.
   nsRefPtr<DOMLocalStorageManager> mManager;
 
-  
+  // Scopes having data hash, for optimization purposes only
   nsAutoPtr<nsTHashtable<nsCStringHashKey> > mScopesHavingData;
 
-  
-  
+  // List of caches waiting for preload.  This ensures the contract that
+  // AsyncPreload call references the cache for time of the preload.
   nsTHashtable<nsRefPtrHashKey<DOMStorageCacheBridge> > mLoadingCaches;
 
-  
+  // Status of the remote database
   nsresult mStatus;
 
   bool mIPCOpen;
 };
 
 
-
-
-
-
-
+// Receives async requests from child processes and is responsible
+// to send back responses from the DB thread.  Exposes as a fake
+// DOMStorageCache consumer.
+// Also responsible for forwardning all chrome operation notifications
+// such as cookie cleaning etc to the child process.
 class DOMStorageDBParent MOZ_FINAL : public PStorageParent
                                    , public DOMStorageObserverSink
 {
@@ -125,15 +125,15 @@ public:
   bool IPCOpen() { return mIPCOpen; }
 
 public:
-  
-  
+  // Fake cache class receiving async callbacks from DB thread, sending
+  // them back to appropriate cache object on the child process.
   class CacheParentBridge : public DOMStorageCacheBridge {
   public:
     CacheParentBridge(DOMStorageDBParent* aParentDB, const nsACString& aScope)
       : mParent(aParentDB), mScope(aScope), mLoaded(false), mLoadedCount(0) {}
     virtual ~CacheParentBridge() {}
 
-    
+    // DOMStorageCacheBridge
     virtual const nsCString& Scope() const
       { return mScope; }
     virtual bool Loaded()
@@ -152,7 +152,7 @@ public:
     uint32_t mLoadedCount;
   };
 
-  
+  // Fake usage class receiving async callbacks from DB thread
   class UsageParentBridge : public DOMStorageUsageBridge
   {
   public:
@@ -160,7 +160,7 @@ public:
       : mParent(aParentDB), mScope(aScope) {}
     virtual ~UsageParentBridge() {}
 
-    
+    // DOMStorageUsageBridge
     virtual const nsCString& Scope() { return mScope; }
     virtual void LoadUsage(const int64_t usage);
 
@@ -170,7 +170,8 @@ public:
   };
 
 private:
-  
+  // IPC
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
   bool RecvAsyncPreload(const nsCString& aScope, const bool& aPriority);
   bool RecvPreload(const nsCString& aScope, const uint32_t& aAlreadyLoadedCount,
                    InfallibleTArray<nsString>* aKeys, InfallibleTArray<nsString>* aValues,
@@ -182,7 +183,7 @@ private:
   bool RecvAsyncClear(const nsCString& aScope);
   bool RecvAsyncFlush();
 
-  
+  // DOMStorageObserverSink
   virtual nsresult Observe(const char* aTopic, const nsACString& aScopePrefix);
 
 private:
@@ -191,11 +192,11 @@ private:
   ThreadSafeAutoRefCnt mRefCnt;
   NS_DECL_OWNINGTHREAD
 	
-	
+	// True when IPC channel is open and Send*() methods are OK to use.
   bool mIPCOpen;
 };
 
-} 
-} 
+} // ::dom
+} // ::mozilla
 
 #endif

@@ -178,6 +178,12 @@ NeckoParent::CreateChannelLoadContext(PBrowserParent* aBrowser,
   return nullptr;
 }
 
+void
+NeckoParent::ActorDestroy(ActorDestroyReason aWhy)
+{
+  
+}
+
 PHttpChannelParent*
 NeckoParent::AllocPHttpChannelParent(PBrowserParent* aBrowser,
                                      const SerializedLoadContext& aSerialized,

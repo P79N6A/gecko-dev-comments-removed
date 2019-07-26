@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: sw=2 ts=2 et :
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef dom_plugins_PluginIdentifierParent_h
 #define dom_plugins_PluginIdentifierParent_h
@@ -31,9 +31,9 @@ public:
     return !!mTemporaryRefs;
   }
 
-  
-
-
+  /**
+   * Holds a perhaps-temporary identifier for the current stack frame.
+   */
   class MOZ_STACK_CLASS StackIdentifier
   {
   public:
@@ -64,15 +64,17 @@ protected:
     MOZ_COUNT_DTOR(PluginIdentifierParent);
   }
 
+  virtual void ActorDestroy(ActorDestroyReason aWhy) MOZ_OVERRIDE;
+
   virtual bool RecvRetain() MOZ_OVERRIDE;
 
   void AddTemporaryRef() {
     mTemporaryRefs++;
   }
 
-  
-
-
+  /**
+   * @returns true if the last temporary reference was removed.
+   */
   bool RemoveTemporaryRef() {
     --mTemporaryRefs;
     return !mTemporaryRefs;
@@ -83,7 +85,7 @@ private:
   unsigned int mTemporaryRefs;
 };
 
-} 
-} 
+} // namespace plugins
+} // namespace mozilla
 
-#endif 
+#endif // dom_plugins_PluginIdentifierParent_h
