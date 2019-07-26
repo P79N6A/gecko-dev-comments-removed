@@ -437,9 +437,6 @@ var BrowserApp = {
       this.onAppUpdated();
 
     
-    this.gUseLowPrecision = Services.prefs.getBoolPref("layers.low-precision-buffer");
-
-    
     sendMessageToJava({ type: "Gecko:Ready" });
 
 #ifdef MOZ_SAFE_BROWSING
@@ -3293,32 +3290,9 @@ Tab.prototype = {
         !fuzzyEquals(displayPort.y, this._oldDisplayPort.y) ||
         !fuzzyEquals(displayPort.width, this._oldDisplayPort.width) ||
         !fuzzyEquals(displayPort.height, this._oldDisplayPort.height)) {
-      if (BrowserApp.gUseLowPrecision) {
-        
-        
-        
-        
-        
-        let pageRect = cwu.getRootBounds();
-        let pageXMost = pageRect.right - geckoScrollX;
-        let pageYMost = pageRect.bottom - geckoScrollY;
-
-        let dpW = Math.min(pageRect.right - pageRect.left, displayPort.width * 4);
-        let dpH = Math.min(pageRect.bottom - pageRect.top, displayPort.height * 4);
-
-        let dpX = Math.min(Math.max(displayPort.x - displayPort.width * 1.5,
-                                    pageRect.left - geckoScrollX), pageXMost - dpW);
-        let dpY = Math.min(Math.max(displayPort.y - displayPort.height * 1.5,
-                                    pageRect.top - geckoScrollY), pageYMost - dpH);
-        cwu.setDisplayPortForElement(dpX, dpY, dpW, dpH, element, 0);
-        cwu.setCriticalDisplayPortForElement(displayPort.x, displayPort.y,
-                                             displayPort.width, displayPort.height,
-                                             element);
-      } else {
-        cwu.setDisplayPortForElement(displayPort.x, displayPort.y,
-                                     displayPort.width, displayPort.height,
-                                     element, 0);
-      }
+      cwu.setDisplayPortForElement(displayPort.x, displayPort.y,
+                                   displayPort.width, displayPort.height,
+                                   element, 0);
     }
 
     this._oldDisplayPort = displayPort;
@@ -7434,7 +7408,7 @@ var RemoteDebugger = {
       if (!DebuggerServer.initialized) {
         DebuggerServer.init(this._showConnectionPrompt.bind(this));
         DebuggerServer.addBrowserActors();
-        DebuggerServer.registerModule("resource://gre/modules/dbg-browser-actors.js");
+        DebuggerServer.addActors("chrome://browser/content/dbg-browser-actors.js");
       }
 
       let port = this._getPort();
