@@ -90,6 +90,8 @@ public:
     
   }
 
+  virtual void ClearRect(const gfx::Rect& aRect) MOZ_OVERRIDE;
+
   virtual void DrawQuad(const gfx::Rect &aRect,
                         const gfx::Rect &aClipRect,
                         const EffectChain &aEffectChain,
