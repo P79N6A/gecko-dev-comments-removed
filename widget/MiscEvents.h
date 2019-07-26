@@ -115,7 +115,4 @@ public:
 
 } 
 
-
-typedef mozilla::WidgetContentCommandEvent nsContentCommandEvent;
-
 #endif 

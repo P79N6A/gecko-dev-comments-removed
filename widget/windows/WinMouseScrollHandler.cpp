@@ -556,33 +556,40 @@ MouseScrollHandler::ProcessNativeScrollMessage(nsWindowBase* aWidget,
      aWParam, aLParam));
 
   
-  nsContentCommandEvent commandEvent(true, NS_CONTENT_COMMAND_SCROLL, aWidget);
+  WidgetContentCommandEvent commandEvent(true, NS_CONTENT_COMMAND_SCROLL,
+                                         aWidget);
 
   commandEvent.mScroll.mIsHorizontal = (aMessage == WM_HSCROLL);
 
   switch (LOWORD(aWParam)) {
     case SB_LINEUP:   
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Line;
       commandEvent.mScroll.mAmount = -1;
       break;
     case SB_LINEDOWN: 
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Line;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Line;
       commandEvent.mScroll.mAmount = 1;
       break;
     case SB_PAGEUP:   
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Page;
       commandEvent.mScroll.mAmount = -1;
       break;
     case SB_PAGEDOWN: 
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Page;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Page;
       commandEvent.mScroll.mAmount = 1;
       break;
     case SB_TOP:      
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Whole;
       commandEvent.mScroll.mAmount = -1;
       break;
     case SB_BOTTOM:   
-      commandEvent.mScroll.mUnit = nsContentCommandEvent::eCmdScrollUnit_Whole;
+      commandEvent.mScroll.mUnit =
+        WidgetContentCommandEvent::eCmdScrollUnit_Whole;
       commandEvent.mScroll.mAmount = 1;
       break;
     default:
