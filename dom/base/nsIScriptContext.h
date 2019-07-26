@@ -329,12 +329,6 @@ public:
   
   
   virtual nsresult SetProperty(JSObject* aTarget, const char* aPropName, nsISupports* aVal) = 0;
-  
-
-
-
-  virtual bool GetProcessingScriptTag() = 0;
-  virtual void SetProcessingScriptTag(bool aResult) = 0;
 
   
 
