@@ -13,6 +13,11 @@
 
 class nsXULTemplateResultXML;
 class nsXMLBindingValues;
+namespace mozilla {
+namespace dom {
+class XPathResult;
+}
+}
 
 
 
@@ -92,7 +97,7 @@ protected:
 
 
 
-  nsCOMArray<nsIDOMXPathResult> mValues;
+  nsTArray<nsRefPtr<mozilla::dom::XPathResult> > mValues;
 
 public:
 
@@ -118,13 +123,11 @@ public:
 
 
 
-
-  void
+  mozilla::dom::XPathResult*
   GetAssignmentFor(nsXULTemplateResultXML* aResult,
                    nsXMLBinding* aBinding,
                    int32_t idx,
-                   uint16_t type,
-                   nsIDOMXPathResult** aValue);
+                   uint16_t type);
 
   void
   GetNodeAssignmentFor(nsXULTemplateResultXML* aResult,
