@@ -128,15 +128,22 @@ function updateMenuItems() {
 #endif
 }
 
+#ifndef XP_MACOSX
+let gEditUIVisible = true;
+#endif
+
 function updateEditUIVisibility() {
 #ifndef XP_MACOSX
   let editMenuPopupState = document.getElementById("menu_EditPopup").state;
+  let contextMenuPopupState = document.getElementById("contentAreaContextMenu").state;
 
   
   
   
   gEditUIVisible = editMenuPopupState == "showing" ||
-                   editMenuPopupState == "open";
+                   editMenuPopupState == "open" ||
+                   contextMenuPopupState == "showing" ||
+                   contextMenuPopupState == "open";
 
   
   
@@ -177,3 +184,60 @@ function updateCrashReportURL(aURI) {
   gCrashReporter.annotateCrashReport("URL", uri.spec);
 #endif
 }
+
+
+
+
+
+let gContextMenu = null;
+
+XPCOMUtils.defineLazyGetter(this, "PageMenu", function() {
+  let tmp = {};
+  Cu.import("resource://gre/modules/PageMenu.jsm", tmp);
+  return new tmp.PageMenu();
+});
+
+function showContextMenu(aEvent, aXULMenu) {
+  if (aEvent.target != aXULMenu) {
+    return true;
+  }
+
+  gContextMenu = new nsContextMenu(aXULMenu);
+  if (gContextMenu.shouldDisplay) {
+    updateEditUIVisibility();
+  }
+
+  return gContextMenu.shouldDisplay;
+}
+
+function hideContextMenu(aEvent, aXULMenu) {
+  if (aEvent.target != aXULMenu) {
+    return;
+  }
+
+  gContextMenu = null;
+
+  updateEditUIVisibility();
+}
+
+function nsContextMenu(aXULMenu) {
+  this.initMenu(aXULMenu);
+}
+
+nsContextMenu.prototype = {
+  initMenu: function(aXULMenu) {
+    this.hasPageMenu = PageMenu.maybeBuildAndAttachMenu(document.popupNode,
+                                                        aXULMenu);
+    this.shouldDisplay = this.hasPageMenu;
+
+    this.showItem("page-menu-separator", this.hasPageMenu);
+  },
+
+  showItem: function(aItemOrID, aShow) {
+    let item = aItemOrID.constructor == String ?
+      document.getElementById(aItemOrID) : aItemOrID;
+    if (item) {
+      item.hidden = !aShow;
+    }
+  }
+};
