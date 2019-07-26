@@ -1218,6 +1218,21 @@ const CSSRect AsyncPanZoomController::CalculatePendingDisplayPort(
     scrollOffset.y = scrollableRect.y;
   }
 
+  
+  
+  
+  
+  if (displayPort.x + displayPort.width < compositionBounds.width) {
+    displayPort.x = -(displayPort.width - compositionBounds.width);
+  } else if (displayPort.x > 0) {
+    displayPort.x = 0;
+  }
+  if (displayPort.y + displayPort.height < compositionBounds.height) {
+    displayPort.y = -(displayPort.height - compositionBounds.height);
+  } else if (displayPort.y > 0) {
+    displayPort.y = 0;
+  }
+
   CSSRect shiftedDisplayPort = displayPort + scrollOffset;
   return scrollableRect.ClampRect(shiftedDisplayPort) - scrollOffset;
 }
