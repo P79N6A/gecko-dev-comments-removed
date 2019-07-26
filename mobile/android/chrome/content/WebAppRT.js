@@ -80,11 +80,14 @@ let WebAppRT = {
           return;
         }
       }
-      aCallback("");
+
+      
+      aCallback(aUrl);
     };
 
     request.onerror = function() {
-      aCallback("");
+      
+      aCallback(aUrl);
     };
   },
 
