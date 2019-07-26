@@ -804,7 +804,7 @@ static void RecordFrameMetrics(nsIFrame* aForFrame,
     }
   }
 
-  metrics.mPresShellId = presShell->GetPresShellId();
+  metrics.SetPresShellId(presShell->GetPresShellId());
 
   
   
