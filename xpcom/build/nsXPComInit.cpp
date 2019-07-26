@@ -6,6 +6,7 @@
 
 #include "base/basictypes.h"
 
+#include "mozilla/Atomics.h"
 #include "mozilla/Poison.h"
 #include "mozilla/XPCOM.h"
 #include "nsXULAppAPI.h"
@@ -128,6 +129,8 @@ extern nsresult nsStringInputStreamConstructor(nsISupports *, REFNSIID, void **)
 #endif
 
 #include "GeckoProfiler.h"
+
+#include "jsapi.h"
 
 using namespace mozilla;
 using base::AtExitManager;
@@ -332,6 +335,52 @@ NS_InitXPCOM(nsIServiceManager* *result,
     return NS_InitXPCOM2(result, binDirectory, nullptr);
 }
 
+
+
+static Atomic<size_t> sSizeOfICU;
+
+static int64_t
+GetICUSize()
+{
+    return sSizeOfICU;
+}
+
+NS_MEMORY_REPORTER_IMPLEMENT(ICU,
+    "explicit/icu",
+    KIND_HEAP,
+    UNITS_BYTES,
+    GetICUSize,
+    "Memory used by ICU, a Unicode and globalization support library."
+)
+
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_ALLOC_FUN(ICUMallocSizeOfOnAlloc)
+NS_MEMORY_REPORTER_MALLOC_SIZEOF_ON_FREE_FUN(ICUMallocSizeOfOnFree)
+
+static void*
+ICUAlloc(const void*, size_t size)
+{
+    void* p = malloc(size);
+    sSizeOfICU += ICUMallocSizeOfOnAlloc(p);
+    return p;
+}
+
+static void*
+ICURealloc(const void*, void* p, size_t size)
+{
+    size_t delta = 0 - ICUMallocSizeOfOnFree(p);
+    void* pnew = realloc(p, size);
+    delta += pnew ? ICUMallocSizeOfOnAlloc(pnew) : ICUMallocSizeOfOnAlloc(p);
+    sSizeOfICU += delta;
+    return pnew;
+}
+
+static void
+ICUFree(const void*, void* p)
+{
+    sSizeOfICU -= ICUMallocSizeOfOnFree(p);
+    free(p);
+}
+
 EXPORT_XPCOM_API(nsresult)
 NS_InitXPCOM2(nsIServiceManager* *result,
               nsIFile* binDirectory,
@@ -471,6 +520,21 @@ NS_InitXPCOM2(nsIServiceManager* *result,
     rv = nsCycleCollector_startup(CCSingleThread);
     if (NS_FAILED(rv)) return rv;
 
+    
+    
+    
+    
+    
+    
+    if (!JS_SetICUMemoryFunctions(ICUAlloc, ICURealloc, ICUFree)) {
+        NS_RUNTIMEABORT("JS_SetICUMemoryFunctions failed.");
+    }
+
+    
+    if (!JS_Init()) {
+        NS_RUNTIMEABORT("JS_Init failed");
+    }
+
     rv = nsComponentManagerImpl::gComponentManager->Init();
     if (NS_FAILED(rv))
     {
@@ -507,6 +571,10 @@ NS_InitXPCOM2(nsIServiceManager* *result,
 #endif
 
     mozilla::MapsMemoryReporter::Init();
+
+    
+    
+    NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(ICU));
 
     mozilla::Telemetry::Init();
 
@@ -700,8 +768,12 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     if (nsComponentManagerImpl::gComponentManager) {
         rv = (nsComponentManagerImpl::gComponentManager)->Shutdown();
         NS_ASSERTION(NS_SUCCEEDED(rv), "Component Manager shutdown failed.");
-    } else
+    } else {
         NS_WARNING("Component Manager was never created ...");
+    }
+
+    
+    JS_ShutDown();
 
     
     

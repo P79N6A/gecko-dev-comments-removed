@@ -10,9 +10,9 @@
 
 #include "jsapi.h"
 
+#include "mozilla/DebugOnly.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/PodOperations.h"
-#include "mozilla/ThreadLocal.h"
 
 #include <ctype.h>
 #include <stdarg.h>
@@ -79,6 +79,7 @@
 #include "vm/ErrorObject.h"
 #include "vm/Interpreter.h"
 #include "vm/NumericConversions.h"
+#include "vm/Runtime.h"
 #include "vm/Shape.h"
 #include "vm/StopIterationObject.h"
 #include "vm/StringBuffer.h"
@@ -102,6 +103,7 @@ using namespace js;
 using namespace js::gc;
 using namespace js::types;
 
+using mozilla::DebugOnly;
 using mozilla::Maybe;
 using mozilla::PodCopy;
 using mozilla::PodZero;
@@ -635,12 +637,83 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun)
 
 
 
-static JSBool js_NewRuntimeWasCalled = JS_FALSE;
 
 
 
 
-mozilla::ThreadLocal<PerThreadData *> js::TlsPerThreadData;
+
+
+
+
+
+
+
+
+enum InitState { Uninitialized, Running, ShutDown };
+static InitState jsInitState = Uninitialized;
+
+JS_PUBLIC_API(JSBool)
+JS_Init(void)
+{
+    MOZ_ASSERT(jsInitState == Uninitialized,
+               "must call JS_Init once before any JSAPI operation except "
+               "JS_SetICUMemoryFunctions");
+    MOZ_ASSERT(!JSRuntime::hasLiveRuntimes(),
+               "how do we have live runtimes before JS_Init?");
+
+#ifdef DEBUG
+    
+    
+    
+    int errorNumber = 0;
+#define MSG_DEF(name, number, count, exception, format)                       \
+    JS_ASSERT(name == errorNumber++);
+#include "js.msg"
+#undef MSG_DEF
+
+    
+    
+#define MSG_DEF(name, number, count, exception, format)                       \
+    JS_BEGIN_MACRO                                                            \
+        unsigned numfmtspecs = 0;                                             \
+        for (const char *fmt = format; *fmt != '\0'; fmt++) {                 \
+            if (*fmt == '{' && isdigit(fmt[1]))                               \
+                ++numfmtspecs;                                                \
+        }                                                                     \
+        JS_ASSERT(count == numfmtspecs);                                      \
+    JS_END_MACRO;
+#include "js.msg"
+#undef MSG_DEF
+#endif 
+
+    using js::TlsPerThreadData;
+    if (!TlsPerThreadData.initialized() && !TlsPerThreadData.init())
+        return false;
+
+#if defined(JS_ION)
+    if (!ion::InitializeIon())
+        return false;
+#endif
+
+    if (!ForkJoinSlice::InitializeTLS())
+        return false;
+
+    jsInitState = Running;
+    return true;
+}
+
+JS_PUBLIC_API(void)
+JS_ShutDown(void)
+{
+    MOZ_ASSERT(jsInitState == Running,
+               "JS_ShutDown must only be called after JS_Init and can't race with it");
+    MOZ_ASSERT(!JSRuntime::hasLiveRuntimes(),
+               "forgot to destroy a runtime before shutting down");
+
+    PRMJ_NowShutdown();
+
+    jsInitState = ShutDown;
+}
 
 #ifdef DEBUG
 JS_FRIEND_API(bool)
@@ -898,6 +971,10 @@ JSRuntime::JSRuntime(JSUseHelperThreads useHelperThreads)
     , enteredPolicy(NULL)
 #endif
 {
+    MOZ_ASSERT(jsInitState == Running,
+               "must call JS_Init prior to creating any JSRuntimes");
+    liveRuntimesCount++;
+
     
     JS_INIT_CLIST(&onNewGlobalObjectWatchers);
 
@@ -1056,6 +1133,9 @@ JSRuntime::~JSRuntime()
     gcStoreBuffer.disable();
     gcNursery.disable();
 #endif
+
+    DebugOnly<size_t> oldCount = liveRuntimesCount--;
+    JS_ASSERT(oldCount > 0);
 }
 
 #ifdef JS_THREADSAFE
@@ -1064,7 +1144,7 @@ JSRuntime::setOwnerThread()
 {
     JS_ASSERT(ownerThread_ == (void *)0xc1ea12);  
     JS_ASSERT(requestDepth == 0);
-    JS_ASSERT(js_NewRuntimeWasCalled);
+    JS_ASSERT(jsInitState == Running);
     JS_ASSERT(js::TlsPerThreadData.get() == NULL);
     ownerThread_ = PR_GetCurrentThread();
     js::TlsPerThreadData.set(&mainThread);
@@ -1081,7 +1161,7 @@ JSRuntime::clearOwnerThread()
 {
     assertValidThread();
     JS_ASSERT(requestDepth == 0);
-    JS_ASSERT(js_NewRuntimeWasCalled);
+    JS_ASSERT(jsInitState == Running);
     ownerThread_ = (void *)0xc1ea12;  
     js::TlsPerThreadData.set(NULL);
     nativeStackBase = 0;
@@ -1117,50 +1197,8 @@ JSRuntime::assertValidThread() const
 JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32_t maxbytes, JSUseHelperThreads useHelperThreads)
 {
-    if (!js_NewRuntimeWasCalled) {
-#ifdef DEBUG
-        
-
-
-
-
-
-        int errorNumber = 0;
-#define MSG_DEF(name, number, count, exception, format)                       \
-    JS_ASSERT(name == errorNumber++);
-#include "js.msg"
-#undef MSG_DEF
-
-#define MSG_DEF(name, number, count, exception, format)                       \
-    JS_BEGIN_MACRO                                                            \
-        unsigned numfmtspecs = 0;                                                \
-        const char *fmt;                                                      \
-        for (fmt = format; *fmt != '\0'; fmt++) {                             \
-            if (*fmt == '{' && isdigit(fmt[1]))                               \
-                ++numfmtspecs;                                                \
-        }                                                                     \
-        JS_ASSERT(count == numfmtspecs);                                      \
-    JS_END_MACRO;
-#include "js.msg"
-#undef MSG_DEF
-#endif 
-
-        if (!js::TlsPerThreadData.init())
-            return NULL;
-
-        js_NewRuntimeWasCalled = JS_TRUE;
-    }
-
     JSRuntime *rt = js_new<JSRuntime>(useHelperThreads);
     if (!rt)
-        return NULL;
-
-#if defined(JS_ION)
-    if (!ion::InitializeIon())
-        return NULL;
-#endif
-
-    if (!ForkJoinSlice::InitializeTLS())
         return NULL;
 
     if (!rt->init(maxbytes)) {
@@ -1181,6 +1219,10 @@ JS_DestroyRuntime(JSRuntime *rt)
 JS_PUBLIC_API(bool)
 JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_ICUFreeFn freeFn)
 {
+    MOZ_ASSERT(jsInitState == Uninitialized,
+               "must call JS_SetICUMemoryFunctions before any other JSAPI "
+               "operation (including JS_Init)");
+
 #if ENABLE_INTL_API
     UErrorCode status = U_ZERO_ERROR;
     u_setMemoryFunctions( NULL, allocFn, reallocFn, freeFn, &status);
@@ -1188,12 +1230,6 @@ JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn, JS_ICUReallocFn reallocFn, JS_IC
 #else
     return true;
 #endif
-}
-
-JS_PUBLIC_API(void)
-JS_ShutDown(void)
-{
-    PRMJ_NowShutdown();
 }
 
 JS_PUBLIC_API(void *)
