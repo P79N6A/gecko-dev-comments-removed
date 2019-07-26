@@ -726,7 +726,8 @@ gfxASurface::WriteAsPNG_internal(FILE* aFile, bool aBinary)
   nsRefPtr<gfxImageSurface> imgsurf = GetAsImageSurface();
   gfxIntSize size;
 
-  if (!imgsurf) {
+  
+  if (!imgsurf || imgsurf->Format() == ImageFormatRGB16_565) {
     size = GetSize();
     if (size.width == -1 && size.height == -1) {
       printf("Could not determine surface size\n");
