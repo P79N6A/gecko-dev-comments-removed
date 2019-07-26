@@ -958,7 +958,7 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
     int32_t index = GetArrayIndexFromId(cx, id);
     if (IsArrayIndex(index)) {
         nsGlobalWindow* win =
-            static_cast<nsGlobalWindow*>(As<nsIDOMWindow>(wrapper));
+            static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper));
         
         if (win) {
             bool unused;
@@ -1471,7 +1471,7 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
     
     nsGlobalWindow *win;
     if (Traits::Type == XrayForWrappedNative && JSID_IS_STRING(id) &&
-        (win = static_cast<nsGlobalWindow*>(As<nsIDOMWindow>(wrapper))))
+        (win = static_cast<nsGlobalWindow*>(As<nsPIDOMWindow>(wrapper))))
     {
         nsCOMPtr<nsIDOMWindow> childDOMWin = win->GetChildWindow(id);
         if (childDOMWin) {
