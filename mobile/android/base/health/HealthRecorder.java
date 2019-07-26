@@ -13,6 +13,11 @@ import org.json.JSONObject;
 
 
 public interface HealthRecorder {
+    
+
+
+    public boolean isEnabled();
+
     public void setCurrentSession(SessionInformation session);
     public void checkForOrphanSessions();
 
