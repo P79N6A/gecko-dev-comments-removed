@@ -121,25 +121,6 @@ nsSVGElement::GetStyle(ErrorResult& rv)
 }
 
 
-NS_IMETHODIMP
-nsSVGElement::GetPresentationAttribute(const nsAString& aName,
-                                       nsIDOMCSSValue** aReturn)
-{
-  
-  
-  
-
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-already_AddRefed<CSSValue>
-nsSVGElement::GetPresentationAttribute(const nsAString& aName, ErrorResult& rv)
-{
-  rv.Throw(NS_ERROR_NOT_IMPLEMENTED);
-  return nullptr;
-}
-
-
 
 
 void

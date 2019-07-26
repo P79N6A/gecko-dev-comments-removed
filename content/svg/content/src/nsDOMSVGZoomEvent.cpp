@@ -90,27 +90,6 @@ NS_INTERFACE_MAP_END_INHERITING(nsDOMUIEvent)
 
 
 
-NS_IMETHODIMP nsDOMSVGZoomEvent::GetZoomRectScreen(nsIDOMSVGRect **aZoomRectScreen)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  *aZoomRectScreen = nullptr;
-  NS_NOTYETIMPLEMENTED("nsDOMSVGZoomEvent::GetZoomRectScreen");
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
 NS_IMETHODIMP
 nsDOMSVGZoomEvent::GetPreviousScale(float *aPreviousScale)
 {

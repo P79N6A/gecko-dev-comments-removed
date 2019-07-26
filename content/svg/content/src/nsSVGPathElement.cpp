@@ -327,24 +327,12 @@ NS_IMETHODIMP nsSVGPathElement::GetPathSegList(nsISupports * *aPathSegList)
 }
 
 
-NS_IMETHODIMP nsSVGPathElement::GetNormalizedPathSegList(nsISupports * *aNormalizedPathSegList)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
-}
-
-
 NS_IMETHODIMP nsSVGPathElement::GetAnimatedPathSegList(nsISupports * *aAnimatedPathSegList)
 {
   void *key = mD.GetAnimValKey();
   *aAnimatedPathSegList =
     DOMSVGPathSegList::GetDOMWrapper(key, this, true).get();
   return *aAnimatedPathSegList ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
-}
-
-
-NS_IMETHODIMP nsSVGPathElement::GetAnimatedNormalizedPathSegList(nsISupports * *aAnimatedNormalizedPathSegList)
-{
-  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
