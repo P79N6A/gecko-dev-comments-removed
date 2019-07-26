@@ -13,6 +13,7 @@
 #include "nsCOMPtr.h"
 #include "nsStringGlue.h"
 #include "mozilla/Base64.h"
+#include "ScopedNSSTypes.h"
 
 #include "nss.h"
 #include "pk11pub.h"
@@ -58,34 +59,6 @@ Base64UrlEncodeImpl(const nsACString & utf8Input, nsACString & result)
   }
 
   return NS_OK;
-}
-
-
-nsresult
-PRErrorCode_to_nsresult(PRErrorCode error)
-{
-  if (!error) {
-    MOZ_NOT_REACHED("Function failed without calling PR_GetError");
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  
-  
-  return (nsresult)NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_SECURITY,
-                                             -1 * error);
-}
-
-
-
-
-nsresult
-MapSECStatus(SECStatus rv)
-{
-  if (rv == SECSuccess)
-    return NS_OK;
-
-  PRErrorCode error = PR_GetError();
-  return PRErrorCode_to_nsresult(error);
 }
 
 #define DSA_KEY_TYPE_STRING (NS_LITERAL_CSTRING("DS160"))
