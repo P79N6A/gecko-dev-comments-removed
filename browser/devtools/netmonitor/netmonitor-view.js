@@ -55,8 +55,7 @@ const GENERIC_VARIABLES_VIEW_SETTINGS = {
   editableNameTooltip: "",
   preventDisableOnChange: true,
   preventDescriptorModifiers: true,
-  eval: () => {},
-  switch: () => {}
+  eval: () => {}
 };
 const NETWORK_ANALYSIS_PIE_CHART_DIAMETER = 200; 
 
@@ -2101,32 +2100,45 @@ NetworkDetailsView.prototype = {
     if (!aHeadersResponse || !aPostDataResponse) {
       return promise.resolve();
     }
-    return gNetwork.getString(aPostDataResponse.postData.text).then(aString => {
-      
-      let cType = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
-      let cString = cType ? cType.value : "";
-      if (cString.contains("x-www-form-urlencoded") ||
-          aString.contains("x-www-form-urlencoded")) {
-        let formDataGroups = aString.split(/\r\n|\n|\r/);
-        for (let group of formDataGroups) {
-          this._addParams(this._paramsFormData, group);
-        }
-      }
-      
-      else {
-        
-        
-        
-        $("#request-params-box").removeAttribute("flex");
-        let paramsScope = this._params.addScope(this._paramsPostPayload);
-        paramsScope.expanded = true;
-        paramsScope.locked = true;
+    return gNetwork.getString(aPostDataResponse.postData.text).then(aPostData => {
+      let contentTypeHeader = aHeadersResponse.headers.filter(({ name }) => name == "Content-Type")[0];
+      let contentTypeLongString = contentTypeHeader ? contentTypeHeader.value : "";
 
-        $("#request-post-data-textarea-box").hidden = false;
-        return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
-          aEditor.setText(aString);
-        });
-      }
+      return gNetwork.getString(contentTypeLongString).then(aContentType => {
+        let urlencoded = "x-www-form-urlencoded";
+
+        
+        if (aContentType.contains(urlencoded)) {
+          let formDataGroups = aPostData.split(/\r\n|\r|\n/);
+          for (let group of formDataGroups) {
+            this._addParams(this._paramsFormData, group);
+          }
+        }
+        
+        else {
+          
+          
+          
+          $("#request-params-box").removeAttribute("flex");
+          let paramsScope = this._params.addScope(this._paramsPostPayload);
+          paramsScope.expanded = true;
+          paramsScope.locked = true;
+
+          $("#request-post-data-textarea-box").hidden = false;
+          return NetMonitorView.editor("#request-post-data-textarea").then(aEditor => {
+            
+            
+            try {
+              JSON.parse(aPostData);
+              aEditor.setMode(Editor.modes.js);
+            } catch (e) {
+              aEditor.setMode(Editor.modes.text);
+            } finally {
+              aEditor.setText(aPostData);
+            }
+          });
+        }
+      });
     }).then(() => window.emit(EVENTS.REQUEST_POST_PARAMS_DISPLAYED));
   },
 
@@ -2147,8 +2159,8 @@ NetworkDetailsView.prototype = {
     paramsScope.expanded = true;
 
     for (let param of paramsArray) {
-      let headerVar = paramsScope.addItem(param.name, {}, true);
-      headerVar.setGrip(param.value);
+      let paramVar = paramsScope.addItem(param.name, {}, true);
+      paramVar.setGrip(param.value);
     }
   },
 
@@ -2591,14 +2603,16 @@ nsIURL.store = new Map();
 
 function parseQueryString(aQueryString) {
   
-  if (!aQueryString || !aQueryString.contains("=")) {
+  
+  
+  if (!aQueryString) {
     return;
   }
   
   let paramsArray = aQueryString.replace(/^[?&]/, "").split("&").map(e =>
     let (param = e.split("=")) {
-      name: NetworkHelper.convertToUnicode(unescape(param[0])),
-      value: NetworkHelper.convertToUnicode(unescape(param[1]))
+      name: param[0] ? NetworkHelper.convertToUnicode(unescape(param[0])) : "",
+      value: param[1] ? NetworkHelper.convertToUnicode(unescape(param[1])) : ""
     });
   return paramsArray;
 }
