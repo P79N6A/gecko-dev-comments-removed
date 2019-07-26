@@ -1908,6 +1908,9 @@ MediaInputPort::Destroy()
     {
       Run();
     }
+    
+    
+    
     MediaInputPort* mPort;
   };
   GraphImpl()->AppendMessage(new Message(this));
@@ -1948,10 +1951,6 @@ ProcessedMediaStream::AllocateInputPort(MediaStream* aStream, uint32_t aFlags,
       mPort->Init();
       
       mPort.forget();
-    }
-    virtual void RunDuringShutdown()
-    {
-      Run();
     }
     nsRefPtr<MediaInputPort> mPort;
   };
