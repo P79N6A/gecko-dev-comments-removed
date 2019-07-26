@@ -190,40 +190,6 @@ namespace gfx {
 
 
 
-#if defined(__arm__)
-    #define CountLeadingZeroes(x) __builtin_clz(x)
-#else
-
-#define sub_shift(zeros, x, n)  \
-    zeros -= n;                 \
-    x >>= n
-
-static inline int CountLeadingZeroes(uint32_t aNumber)
-{
-    if (aNumber == 0) {
-        return 32;
-    }
-    int zeros = 31;
-    if (aNumber & 0xFFFF0000) {
-        sub_shift(zeros, aNumber, 16);
-    }
-    if (aNumber & 0xFF00) {
-        sub_shift(zeros, aNumber, 8);
-    }
-    if (aNumber & 0xF0) {
-        sub_shift(zeros, aNumber, 4);
-    }
-    if (aNumber & 0xC) {
-        sub_shift(zeros, aNumber, 2);
-    }
-    if (aNumber & 0x2) {
-        sub_shift(zeros, aNumber, 1);
-    }
-    return zeros;
-}
-#endif
-
-
 
 
 static inline bool
@@ -239,7 +205,17 @@ IsPowerOfTwo(int aNumber)
 static inline int
 NextPowerOfTwo(int aNumber)
 {
-    return 1 << (32 - CountLeadingZeroes(aNumber - 1));
+#if defined(__arm__)
+    return 1 << (32 - __builtin_clz(aNumber - 1));
+#else
+    --aNumber;
+    aNumber |= aNumber >> 1;
+    aNumber |= aNumber >> 2;
+    aNumber |= aNumber >> 4;
+    aNumber |= aNumber >> 8;
+    aNumber |= aNumber >> 16;
+    return ++aNumber;
+#endif
 }
 
 } 

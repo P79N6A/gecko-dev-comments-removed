@@ -301,9 +301,6 @@ pref("accessibility.typeaheadfind.prefillwithselection", true);
 pref("gfx.use_text_smoothing_setting", false);
 
 
-pref("gfx.show_checkerboard_pattern", true);
-
-
 pref("browser.frames.enabled", true);
 
 
@@ -820,6 +817,8 @@ pref("network.http.pipelining.max-optimistic-requests" , 4);
 
 pref("network.http.pipelining.aggressive", false);
 pref("network.http.pipelining.maxsize" , 300000);
+pref("network.http.pipelining.reschedule-on-timeout", true);
+pref("network.http.pipelining.reschedule-timeout", 1500);
 
 
 
@@ -3492,6 +3491,7 @@ pref("full-screen-api.allow-trusted-requests-only", true);
 pref("full-screen-api.key-input-restricted", true);
 pref("full-screen-api.warning.enabled", true);
 pref("full-screen-api.exit-on-deactivate", true);
+pref("full-screen-api.pointer-lock.enabled", true);
 
 
 

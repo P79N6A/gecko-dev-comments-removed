@@ -6792,13 +6792,17 @@ CSSParserImpl::ParseBorderImage()
 
         
         if (ExpectSymbol('/', true)) {
-          ParseBorderImageWidth(false);
+          bool foundBorderImageWidth = ParseBorderImageWidth(false);
 
           
           if (ExpectSymbol('/', true)) {
             if (!ParseBorderImageOutset(false)) {
               return false;
             }
+          } else if (!foundBorderImageWidth) {
+            
+            
+            return false;
           }
         }
 

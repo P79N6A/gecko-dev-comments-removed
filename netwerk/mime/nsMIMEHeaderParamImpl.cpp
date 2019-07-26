@@ -40,7 +40,6 @@
 
 
 
-
 #include <string.h>
 #include "prtypes.h"
 #include "prmem.h"
@@ -923,7 +922,7 @@ static const char especials[] = "()<>@,;:\\\"/[]?.=";
 nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset, 
                           bool aOverrideCharset, nsACString &aResult)
 {
-  const char *p, *q, *r;
+  const char *p, *q = nsnull, *r;
   char *decodedText;
   const char *begin; 
   PRInt32 isLastEncodedWord = 0;
@@ -1059,4 +1058,3 @@ nsresult DecodeRFC2047Str(const char *aHeader, const char *aDefaultCharset,
 
   return NS_OK;
 }
-

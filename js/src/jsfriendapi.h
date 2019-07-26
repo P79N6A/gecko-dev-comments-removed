@@ -189,17 +189,6 @@ JS_END_EXTERN_C
 
 namespace js {
 
-struct ContextFriendFields {
-    JSRuntime *const    runtime;
-
-    ContextFriendFields(JSRuntime *rt)
-      : runtime(rt) { }
-
-    static const ContextFriendFields *get(const JSContext *cx) {
-        return reinterpret_cast<const ContextFriendFields *>(cx);
-    }
-};
-
 struct RuntimeFriendFields {
     
 
@@ -791,6 +780,15 @@ CastToJSFreeOp(FreeOp *fop)
 {
     return reinterpret_cast<JSFreeOp *>(fop);
 }
+
+
+
+
+
+
+
+extern JS_FRIEND_API(const jschar*)
+GetErrorTypeNameFromNumber(JSContext* cx, const unsigned errorNumber);
 
 } 
 

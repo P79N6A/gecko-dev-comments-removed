@@ -75,18 +75,6 @@ struct NativeIterator;
 
 namespace mjit { class Compiler; }
 
-static inline PropertyOp
-CastAsPropertyOp(JSObject *object)
-{
-    return JS_DATA_TO_FUNC_PTR(PropertyOp, object);
-}
-
-static inline StrictPropertyOp
-CastAsStrictPropertyOp(JSObject *object)
-{
-    return JS_DATA_TO_FUNC_PTR(StrictPropertyOp, object);
-}
-
 inline JSObject *
 CastAsObject(PropertyOp op)
 {
@@ -127,115 +115,6 @@ CastAsObjectJsval(StrictPropertyOp op)
 
 
 
-
-
-
-
-struct PropDesc {
-    
-
-
-
-    js::Value pd;
-
-    js::Value value, get, set;
-
-    
-    uint8_t attrs;
-
-    
-    bool hasGet : 1;
-    bool hasSet : 1;
-    bool hasValue : 1;
-    bool hasWritable : 1;
-    bool hasEnumerable : 1;
-    bool hasConfigurable : 1;
-
-    friend class js::AutoPropDescArrayRooter;
-
-    PropDesc();
-
-    
-
-
-
-
-
-
-
-
-
-    bool initialize(JSContext* cx, const js::Value &v, bool checkAccessors=true);
-
-    
-
-
-
-
-
-
-
-
-    void initFromPropertyDescriptor(const PropertyDescriptor &desc);
-    bool makeObject(JSContext *cx);
-
-    
-    bool isAccessorDescriptor() const {
-        return hasGet || hasSet;
-    }
-
-    
-    bool isDataDescriptor() const {
-        return hasValue || hasWritable;
-    }
-
-    
-    bool isGenericDescriptor() const {
-        return !isAccessorDescriptor() && !isDataDescriptor();
-    }
-
-    bool configurable() const {
-        return (attrs & JSPROP_PERMANENT) == 0;
-    }
-
-    bool enumerable() const {
-        return (attrs & JSPROP_ENUMERATE) != 0;
-    }
-
-    bool writable() const {
-        return (attrs & JSPROP_READONLY) == 0;
-    }
-
-    JSObject* getterObject() const {
-        return get.isUndefined() ? NULL : &get.toObject();
-    }
-    JSObject* setterObject() const {
-        return set.isUndefined() ? NULL : &set.toObject();
-    }
-
-    const js::Value &getterValue() const {
-        return get;
-    }
-    const js::Value &setterValue() const {
-        return set;
-    }
-
-    PropertyOp getter() const {
-        return js::CastAsPropertyOp(getterObject());
-    }
-    StrictPropertyOp setter() const {
-        return js::CastAsStrictPropertyOp(setterObject());
-    }
-
-    
-
-
-
-
-    inline bool checkGetter(JSContext *cx);
-    inline bool checkSetter(JSContext *cx);
-};
-
 typedef Vector<PropDesc, 1> PropDescArray;
 
 } 
@@ -273,19 +152,19 @@ js_DefineElement(JSContext *cx, JSObject *obj, uint32_t index, const js::Value *
                  JSPropertyOp getter, JSStrictPropertyOp setter, unsigned attrs);
 
 extern JSBool
-js_GetProperty(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, js::Value *vp);
+js_GetProperty(JSContext *cx, js::HandleObject obj, js::HandleObject receiver, jsid id, js::Value *vp);
 
 extern JSBool
-js_GetElement(JSContext *cx, JSObject *obj, JSObject *receiver, uint32_t, js::Value *vp);
+js_GetElement(JSContext *cx, js::HandleObject obj, js::HandleObject receiver, uint32_t, js::Value *vp);
 
 inline JSBool
-js_GetProperty(JSContext *cx, JSObject *obj, jsid id, js::Value *vp)
+js_GetProperty(JSContext *cx, js::HandleObject obj, jsid id, js::Value *vp)
 {
     return js_GetProperty(cx, obj, obj, id, vp);
 }
 
 inline JSBool
-js_GetElement(JSContext *cx, JSObject *obj, uint32_t index, js::Value *vp)
+js_GetElement(JSContext *cx, js::HandleObject obj, uint32_t index, js::Value *vp)
 {
     return js_GetElement(cx, obj, obj, index, vp);
 }
@@ -293,18 +172,18 @@ js_GetElement(JSContext *cx, JSObject *obj, uint32_t index, js::Value *vp)
 namespace js {
 
 extern JSBool
-GetPropertyDefault(JSContext *cx, JSObject *obj, jsid id, const Value &def, Value *vp);
+GetPropertyDefault(JSContext *cx, js::HandleObject obj, js::HandleId id, const Value &def, Value *vp);
 
 } 
 
 extern JSBool
-js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, unsigned defineHow,
+js_SetPropertyHelper(JSContext *cx, js::HandleObject obj, jsid id, unsigned defineHow,
                      js::Value *vp, JSBool strict);
 
 namespace js {
 
 inline bool
-SetPropertyHelper(JSContext *cx, JSObject *obj, PropertyName *name, unsigned defineHow,
+SetPropertyHelper(JSContext *cx, HandleObject obj, PropertyName *name, unsigned defineHow,
                   Value *vp, JSBool strict)
 {
     return !!js_SetPropertyHelper(cx, obj, ATOM_TO_JSID(name), defineHow, vp, strict);
@@ -313,7 +192,7 @@ SetPropertyHelper(JSContext *cx, JSObject *obj, PropertyName *name, unsigned def
 } 
 
 extern JSBool
-js_SetElementHelper(JSContext *cx, JSObject *obj, uint32_t index, unsigned defineHow,
+js_SetElementHelper(JSContext *cx, js::HandleObject obj, uint32_t index, unsigned defineHow,
                     js::Value *vp, JSBool strict);
 
 extern JSBool
@@ -347,7 +226,7 @@ namespace js {
 
 
 extern JSBool
-DefaultValue(JSContext *cx, JSObject *obj, JSType hint, Value *vp);
+DefaultValue(JSContext *cx, HandleObject obj, JSType hint, Value *vp);
 
 extern Class ArrayClass;
 extern Class ArrayBufferClass;
@@ -741,7 +620,7 @@ struct JSObject : public js::ObjectImpl
 
     bool willBeSparseDenseArray(unsigned requiredCapacity, unsigned newElementsHint);
 
-    JSBool makeDenseArraySlow(JSContext *cx);
+    static bool makeDenseArraySlow(JSContext *cx, js::HandleObject obj);
 
     
 
@@ -1182,7 +1061,7 @@ js_HasOwnPropertyHelper(JSContext *cx, js::LookupGenericOp lookup, unsigned argc
                         js::Value *vp);
 
 extern JSBool
-js_HasOwnProperty(JSContext *cx, js::LookupGenericOp lookup, JSObject *obj, jsid id,
+js_HasOwnProperty(JSContext *cx, js::LookupGenericOp lookup, js::HandleObject obj, jsid id,
                   JSObject **objp, JSProperty **propp);
 
 extern JSBool
@@ -1301,7 +1180,7 @@ extern const char js_lookupSetter_str[];
 #endif
 
 extern JSBool
-js_PopulateObject(JSContext *cx, JSObject *newborn, JSObject *props);
+js_PopulateObject(JSContext *cx, js::HandleObject newborn, JSObject *props);
 
 
 
@@ -1321,11 +1200,11 @@ js_FindClassObject(JSContext *cx, JSObject *start, JSProtoKey key,
 
 
 extern JSObject *
-js_CreateThisForFunctionWithProto(JSContext *cx, JSObject *callee, JSObject *proto);
+js_CreateThisForFunctionWithProto(JSContext *cx, js::HandleObject callee, JSObject *proto);
 
 
 extern JSObject *
-js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType);
+js_CreateThisForFunction(JSContext *cx, js::HandleObject callee, bool newType);
 
 
 extern JSObject *
@@ -1344,7 +1223,7 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      unsigned attrs, unsigned flags, int shortid);
 
 extern JSBool
-js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
+js_DefineOwnProperty(JSContext *cx, js::HandleObject obj, js::HandleId id,
                      const js::Value &descriptor, JSBool *bp);
 
 namespace js {
@@ -1363,12 +1242,12 @@ const unsigned DNP_SKIP_TYPE    = 8;
 
 
 extern const Shape *
-DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &value,
+DefineNativeProperty(JSContext *cx, HandleObject obj, jsid id, const Value &value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                      unsigned flags, int shortid, unsigned defineHow = 0);
 
 inline const Shape *
-DefineNativeProperty(JSContext *cx, JSObject *obj, PropertyName *name, const Value &value,
+DefineNativeProperty(JSContext *cx, HandleObject obj, PropertyName *name, const Value &value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                      unsigned flags, int shortid, unsigned defineHow = 0)
 {
@@ -1399,7 +1278,8 @@ LookupPropertyWithFlags(JSContext *cx, JSObject *obj, PropertyName *name, unsign
 
 
 extern bool
-DefineProperty(JSContext *cx, JSObject *obj, const jsid &id, const PropDesc &desc, bool throwError,
+DefineProperty(JSContext *cx, js::HandleObject obj,
+               js::HandleId id, const PropDesc &desc, bool throwError,
                bool *rval);
 
 
@@ -1420,7 +1300,8 @@ static const unsigned RESOLVE_INFER = 0xffff;
 
 
 extern bool
-FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, JSObject *scopeChain,
+FindPropertyHelper(JSContext *cx, HandlePropertyName name,
+                   bool cacheResult, HandleObject scopeChain,
                    JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
 
@@ -1428,7 +1309,7 @@ FindPropertyHelper(JSContext *cx, PropertyName *name, bool cacheResult, JSObject
 
 
 extern bool
-FindProperty(JSContext *cx, PropertyName *name, JSObject *scopeChain,
+FindProperty(JSContext *cx, HandlePropertyName name, HandleObject scopeChain,
              JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
 extern JSObject *
@@ -1459,19 +1340,19 @@ js_NativeSet(JSContext *cx, JSObject *obj, const js::Shape *shape, bool added,
 namespace js {
 
 bool
-GetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uint32_t getHow, Value *vp);
+GetPropertyHelper(JSContext *cx, HandleObject obj, jsid id, uint32_t getHow, Value *vp);
 
 inline bool
-GetPropertyHelper(JSContext *cx, JSObject *obj, PropertyName *name, uint32_t getHow, Value *vp)
+GetPropertyHelper(JSContext *cx, HandleObject obj, PropertyName *name, uint32_t getHow, Value *vp)
 {
     return GetPropertyHelper(cx, obj, ATOM_TO_JSID(name), getHow, vp);
 }
 
 bool
-GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, PropertyDescriptor *desc);
+GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id, PropertyDescriptor *desc);
 
 bool
-GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, HandleId id, Value *vp);
 
 bool
 NewPropertyDescriptorObject(JSContext *cx, const PropertyDescriptor *desc, Value *vp);
@@ -1479,12 +1360,12 @@ NewPropertyDescriptorObject(JSContext *cx, const PropertyDescriptor *desc, Value
 } 
 
 extern JSBool
-js_GetMethod(JSContext *cx, JSObject *obj, jsid id, unsigned getHow, js::Value *vp);
+js_GetMethod(JSContext *cx, js::HandleObject obj, jsid id, unsigned getHow, js::Value *vp);
 
 namespace js {
 
 inline bool
-GetMethod(JSContext *cx, JSObject *obj, PropertyName *name, unsigned getHow, Value *vp)
+GetMethod(JSContext *cx, HandleObject obj, PropertyName *name, unsigned getHow, Value *vp)
 {
     return js_GetMethod(cx, obj, ATOM_TO_JSID(name), getHow, vp);
 }
@@ -1499,10 +1380,10 @@ namespace js {
 
 
 extern bool
-HasDataProperty(JSContext *cx, JSObject *obj, jsid id, Value *vp);
+HasDataProperty(JSContext *cx, HandleObject obj, jsid id, Value *vp);
 
 inline bool
-HasDataProperty(JSContext *cx, JSObject *obj, JSAtom *atom, Value *vp)
+HasDataProperty(JSContext *cx, HandleObject obj, JSAtom *atom, Value *vp)
 {
     return HasDataProperty(cx, obj, js_CheckForStringIndex(ATOM_TO_JSID(atom)), vp);
 }

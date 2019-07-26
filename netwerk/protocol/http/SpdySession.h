@@ -91,10 +91,19 @@ public:
   const static PRUint8 kFlag_Data_UNI  = 0x02;
   const static PRUint8 kFlag_Data_ZLIB = 0x02;
   
-  const static PRUint8 kPri00   = 0x00;
-  const static PRUint8 kPri01   = 0x40;
-  const static PRUint8 kPri02   = 0x80;
-  const static PRUint8 kPri03   = 0xC0;
+  
+  
+  
+  
+  
+  
+  
+  
+
+  const static PRUint8 kPri00   = 0 << 6; 
+  const static PRUint8 kPri01   = 1 << 6;
+  const static PRUint8 kPri02   = 2 << 6;
+  const static PRUint8 kPri03   = 3 << 6; 
 
   enum
   {

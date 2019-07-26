@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xe7af49c1, 0xd11b, 0x4070, \
-    { 0x99, 0x7a, 0x2d, 0x2b, 0x7, 0x4b, 0xea, 0xf4 } }
+  { 0xb5bb55c7, 0x9a50, 0x4fa8, \
+    { 0xa7, 0x6e, 0xbd, 0x31, 0x6f, 0x3e, 0x9c, 0x13 } }
 
 
 
@@ -1379,6 +1379,11 @@ class nsIWidget : public nsISupports {
     
 
 
+    virtual nsresult SynthesizeNativeMouseMove(nsIntPoint aPoint) = 0;
+
+    
+
+
 
 
 
@@ -1584,6 +1589,12 @@ class nsIWidget : public nsISupports {
 
 
     virtual PRUint32 GetGLFrameBufferFormat() { return 0;  }
+
+    
+
+
+    virtual bool HasGLContext() { return false; }
+
 protected:
 
     

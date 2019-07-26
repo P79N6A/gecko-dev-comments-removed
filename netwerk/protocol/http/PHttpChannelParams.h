@@ -37,7 +37,6 @@
 
 
 
-
 #ifndef mozilla_net_PHttpChannelParams_h
 #define mozilla_net_PHttpChannelParams_h
 

@@ -145,6 +145,44 @@ bool NS_SMILEnabled();
 
 
 
+
+
+class SVGBBox {
+public:
+  SVGBBox() 
+    : mIsEmpty(true) {}
+
+  SVGBBox(const gfxRect& aRect) 
+    : mBBox(aRect), mIsEmpty(false) {}
+
+  SVGBBox& operator=(const gfxRect& aRect) {
+    mBBox = aRect;
+    mIsEmpty = false;
+    return *this;
+  }
+
+  operator const gfxRect& () const {
+    return mBBox;
+  }
+
+  bool IsEmpty() const {
+    return mIsEmpty;
+  }
+
+  void UnionEdges(const SVGBBox& aSVGBBox) {
+    if (aSVGBBox.mIsEmpty) {
+      return;
+    }
+    mBBox = mIsEmpty ? aSVGBBox.mBBox : mBBox.UnionEdges(aSVGBBox.mBBox);
+    mIsEmpty = false;
+  }
+
+private:
+  gfxRect mBBox;
+  bool    mIsEmpty;
+};
+
+
 #undef CLIP_MASK
 
 class NS_STACK_CLASS SVGAutoRenderState
@@ -542,6 +580,8 @@ public:
   static gfxRect GetBBox(nsIFrame *aFrame, PRUint32 aFlags = eBBoxIncludeFill);
 
   
+
+
 
 
 

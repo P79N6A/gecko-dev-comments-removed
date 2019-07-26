@@ -189,6 +189,8 @@ nsHttpHandler::nsHttpHandler()
     , mMaxOptimisticPipelinedRequests(4)
     , mPipelineAggressive(false)
     , mMaxPipelineObjectSize(300000)
+    , mPipelineRescheduleOnTimeout(true)
+    , mPipelineRescheduleTimeout(PR_MillisecondsToInterval(1500))
     , mPipelineReadTimeout(PR_MillisecondsToInterval(30000))
     , mRedirectionLimit(10)
     , mPhishyUserPassLength(1)
@@ -1055,14 +1057,34 @@ nsHttpHandler::PrefsChanged(nsIPrefBranch *prefs, const char *pref)
         }
     }
 
+    
+    
+    if (PREF_CHANGED(HTTP_PREF("pipelining.reschedule-on-timeout"))) {
+        rv = prefs->GetBoolPref(HTTP_PREF("pipelining.reschedule-on-timeout"),
+                                &cVar);
+        if (NS_SUCCEEDED(rv))
+            mPipelineRescheduleOnTimeout = cVar;
+    }
+
+    
+    
+    if (PREF_CHANGED(HTTP_PREF("pipelining.reschedule-timeout"))) {
+        rv = prefs->GetIntPref(HTTP_PREF("pipelining.reschedule-timeout"),
+                               &val);
+        if (NS_SUCCEEDED(rv)) {
+            mPipelineRescheduleTimeout =
+                PR_MillisecondsToInterval((PRUint16) clamped(val, 500, 0xffff));
+        }
+    }
+
+    
+    
     if (PREF_CHANGED(HTTP_PREF("pipelining.read-timeout"))) {
         rv = prefs->GetIntPref(HTTP_PREF("pipelining.read-timeout"), &val);
         if (NS_SUCCEEDED(rv)) {
-            if (!val)
-                mPipelineReadTimeout = 0;
-            else
-                mPipelineReadTimeout =
-                    PR_MillisecondsToInterval(clamped(val, 500, 0xffff));
+            mPipelineReadTimeout =
+                PR_MillisecondsToInterval((PRUint16) clamped(val, 5000,
+                                                             0xffff));
         }
     }
 

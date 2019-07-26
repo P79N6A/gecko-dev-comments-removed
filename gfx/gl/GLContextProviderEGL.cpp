@@ -1379,50 +1379,6 @@ DepthToGLFormat(int aDepth)
 
 static nsRefPtr<GLContext> gGlobalContext;
 
-#ifdef MOZ_WIDGET_QT
-already_AddRefed<GLContext>
-GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
-{
-    if (!sEGLLibrary.EnsureInitialized()) {
-        return nsnull;
-    }
-
-    QGLContext* context = const_cast<QGLContext*>(QGLContext::currentContext());
-    if (context && context->device()) {
-        
-        
-        nsRefPtr<GLContextEGL> glContext =
-            new GLContextEGL(ContextFormat(DepthToGLFormat(context->device()->depth())),
-                             gGlobalContext,
-                             NULL,
-                             sEGLLibrary.fGetCurrentSurface(LOCAL_EGL_DRAW), 
-                             sEGLLibrary.fGetCurrentContext(),
-                             false);
-
-        if (!glContext->Init())
-            return nsnull;
-
-        glContext->SetIsDoubleBuffered(context->format().doubleBuffer());
-
-        glContext->SetPlatformContext(context);
-        if (!gGlobalContext) {
-            gGlobalContext = glContext;
-        }
-
-        return glContext.forget();
-    }
-
-    
-    
-    
-    NS_ERROR("Failed to get QGLContext");
-
-    
-    return nsnull;
-}
-
-#else
-
 static const EGLint kEGLConfigAttribsRGB16[] = {
     LOCAL_EGL_SURFACE_TYPE,    LOCAL_EGL_WINDOW_BIT,
     LOCAL_EGL_RENDERABLE_TYPE, LOCAL_EGL_OPENGL_ES2_BIT,
@@ -1448,7 +1404,6 @@ static bool
 CreateConfig(EGLConfig* aConfig, PRInt32 depth)
 {
     EGLConfig configs[64];
-    gfxASurface::gfxImageFormat format;
     const EGLint* attribs = depth == 16 ? kEGLConfigAttribsRGB16 :
                                           kEGLConfigAttribsRGBA32;
     EGLint ncfg = ArrayLength(configs);
@@ -1481,6 +1436,17 @@ CreateConfig(EGLConfig* aConfig, PRInt32 depth)
     return false;
 }
 
+static int
+GetScreenDepth()
+{
+    nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
+    nsCOMPtr<nsIScreen> screen;
+    screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
+    PRInt32 depth = 24;
+    screen->GetColorDepth(&depth);
+    return depth;
+}
+
 
 
 
@@ -1489,12 +1455,7 @@ CreateConfig(EGLConfig* aConfig, PRInt32 depth)
 static bool
 CreateConfig(EGLConfig* aConfig)
 {
-    nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
-    nsCOMPtr<nsIScreen> screen;
-    screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-    PRInt32 depth = 24;
-    screen->GetColorDepth(&depth);
-
+    PRInt32 depth = GetScreenDepth();
     if (!CreateConfig(aConfig, depth)) {
 #ifdef MOZ_WIDGET_ANDROID
         
@@ -1568,6 +1529,45 @@ GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
         return nsnull;
     }
 
+#if defined(XP_WIN) || defined(ANDROID) || defined(MOZ_PLATFORM_MAEMO)
+    bool doubleBuffered = true;
+#else
+    bool doubleBuffered = false;
+#endif
+
+    void* currentContext = sEGLLibrary.fGetCurrentContext();
+    if (aWidget->HasGLContext() && currentContext) {
+        PRInt32 depth = GetScreenDepth();
+        void* platformContext = currentContext;
+#ifdef MOZ_WIDGET_QT
+        QGLContext* context = const_cast<QGLContext*>(QGLContext::currentContext());
+        if (context && context->device()) {
+            depth = context->device()->depth();
+        }
+        doubleBuffered = context->format().doubleBuffer();
+        platformContext = context;
+#endif
+        nsRefPtr<GLContextEGL> glContext =
+            new GLContextEGL(ContextFormat(DepthToGLFormat(depth)),
+                             gGlobalContext,
+                             NULL,
+                             sEGLLibrary.fGetCurrentSurface(LOCAL_EGL_DRAW), 
+                             currentContext,
+                             false);
+
+        if (!glContext->Init())
+            return nsnull;
+
+        glContext->SetIsDoubleBuffered(doubleBuffered);
+
+        glContext->SetPlatformContext(platformContext);
+        if (!gGlobalContext) {
+            gGlobalContext = glContext;
+        }
+
+        return glContext.forget();
+    }
+
     if (!CreateConfig(&config)) {
         printf_stderr("Failed to create EGL config!\n");
         return nsnull;
@@ -1601,13 +1601,10 @@ GLContextProviderEGL::CreateForWindow(nsIWidget *aWidget)
         return nsnull;
     }
 
-#if defined(XP_WIN) || defined(ANDROID) || defined(MOZ_PLATFORM_MAEMO)
-    glContext->SetIsDoubleBuffered(true);
-#endif
+    glContext->SetIsDoubleBuffered(doubleBuffered);
 
     return glContext.forget();
 }
-#endif
 
 static void
 FillPBufferAttribs(nsTArray<EGLint>& aAttrs,

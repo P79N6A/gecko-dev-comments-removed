@@ -50,7 +50,6 @@
 #include "nsIAccessibleRole.h"
 #include "nsIAccessibleStates.h"
 
-#include "nsARIAMap.h"
 #include "nsStringGlue.h"
 #include "nsTArray.h"
 #include "nsRefPtrHashtable.h"
@@ -64,6 +63,7 @@ class nsHyperTextAccessible;
 class nsHTMLImageAccessible;
 class nsHTMLImageMapAccessible;
 class nsHTMLLIAccessible;
+struct nsRoleMapEntry;
 class Relation;
 namespace mozilla {
 namespace a11y {
@@ -180,33 +180,19 @@ public:
   
 
 
-  inline mozilla::a11y::role Role()
-  {
-    if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
-      return ARIATransformRole(NativeRole());
-
-    return ARIATransformRole(mRoleMapEntry->role);
-  }
+  mozilla::a11y::role Role();
 
   
 
 
-  inline bool HasARIARole() const
-  {
-    return mRoleMapEntry;
-  }
+  bool HasARIARole() const
+    { return mRoleMapEntry; }
 
   
 
 
 
-  inline mozilla::a11y::role ARIARole()
-  {
-    if (!mRoleMapEntry || mRoleMapEntry->roleRule != kUseMapRole)
-      return mozilla::a11y::roles::NOTHING;
-
-    return ARIATransformRole(mRoleMapEntry->role);
-  }
+  mozilla::a11y::role ARIARole();
 
   
 
@@ -290,7 +276,7 @@ public:
 
 
 
-  virtual void SetRoleMapEntry(nsRoleMapEntry *aRoleMapEntry);
+  virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
   
 
@@ -850,8 +836,11 @@ protected:
 
   nsAutoPtr<AccGroupInfo> mGroupInfo;
   friend class AccGroupInfo;
+  
+  
 
-  nsRoleMapEntry *mRoleMapEntry; 
+
+  nsRoleMapEntry* mRoleMapEntry;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsAccessible,

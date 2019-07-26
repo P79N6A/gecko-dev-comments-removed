@@ -48,6 +48,8 @@
 #include "nsPluginLogging.h"
 #include "nsPluginStreamListenerPeer.h"
 
+#include "mozilla/StandardInteger.h"
+
 NS_IMPL_ISUPPORTS1(nsPluginStreamToFile, nsIOutputStream)
 
 nsPluginStreamToFile::nsPluginStreamToFile(const char* target,
@@ -653,7 +655,7 @@ nsNPAPIPluginStreamListener::OnDataAvailable(nsIPluginStreamInfo* pluginInfo,
           
           
           
-          if (writeCount % sizeof(PRWord)) {
+          if (writeCount % sizeof(intptr_t)) {
             
             memmove(mStreamBuffer, ptrStreamBuffer + writeCount,
                     mStreamBufferByteCount);

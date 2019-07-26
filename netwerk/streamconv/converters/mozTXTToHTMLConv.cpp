@@ -804,7 +804,7 @@ mozTXTToHTMLConv::GlyphHit(const PRUnichar * aInString, PRInt32 aInLength, bool 
   
   nsAutoString outputHTML;
   bool bTestSmilie;
-  bool bArg;
+  bool bArg = false;
   int i;
 
   

@@ -177,18 +177,20 @@ nsSVGMarkerFrame::PaintMark(nsRenderingContext *aContext,
   return NS_OK;
 }
 
-gfxRect
+SVGBBox
 nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                           PRUint32 aFlags,
                                           nsSVGPathGeometryFrame *aMarkedFrame,
                                           const nsSVGMark *aMark,
                                           float aStrokeWidth)
 {
+  SVGBBox bbox;
+
   
   
   
   if (mInUse)
-    return gfxRect();
+    return bbox;
 
   AutoMarkerReferencer markerRef(this, aMarkedFrame);
 
@@ -197,7 +199,7 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   const nsSVGViewBoxRect viewBox = content->GetViewBoxRect();
 
   if (viewBox.width <= 0.0f || viewBox.height <= 0.0f) {
-    return gfxRect();
+    return bbox;
   }
 
   mStrokeWidth = aStrokeWidth;
@@ -211,9 +213,6 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
   gfxMatrix tm = viewBoxTM * markerTM * aToBBoxUserspace;
 
-  gfxRect bbox;
-  bool firstChild = true;
-
   for (nsIFrame* kid = mFrames.FirstChild();
        kid;
        kid = kid->GetNextSibling()) {
@@ -225,14 +224,7 @@ nsSVGMarkerFrame::GetMarkBBoxContribution(const gfxMatrix &aToBBoxUserspace,
 
       
       
-      
-      gfxRect childBBox = child->GetBBoxContribution(tm, aFlags);
-      if (firstChild && (childBBox.Width() > 0 || childBBox.Height() > 0)) {
-        bbox = childBBox;
-        firstChild = false;
-        continue;
-      }
-      bbox = bbox.UnionEdges(childBBox);
+      bbox.UnionEdges(child->GetBBoxContribution(tm, aFlags));
     }
   }
 

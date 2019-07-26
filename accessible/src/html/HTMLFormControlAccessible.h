@@ -3,11 +3,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_A11Y_HTMLFormControlAccessible_H_
 #define MOZILLA_A11Y_HTMLFormControlAccessible_H_
 
 #include "FormControlAccessible.h"
-#include "HyperTextAccessibleWrap.h"
+#include "nsHyperTextAccessibleWrap.h"
 
 namespace mozilla {
 namespace a11y {
@@ -20,24 +53,24 @@ typedef ProgressMeterAccessible<1> HTMLProgressMeterAccessible;
 
 
 
-class HTMLCheckboxAccessible : public LeafAccessible
+class HTMLCheckboxAccessible : public nsLeafAccessible
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  HTMLCheckboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
 
   
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual bool IsWidget() const;
@@ -51,12 +84,12 @@ class HTMLRadioButtonAccessible : public RadioButtonAccessible
 {
 
 public:
-  HTMLRadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  virtual uint64_t NativeState();
-  virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
-                                          int32_t *aSetSize);
+  virtual PRUint64 NativeState();
+  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
+                                          PRInt32 *aSetSize);
 };
 
 
@@ -64,26 +97,26 @@ public:
 
 
 
-class HTMLButtonAccessible : public HyperTextAccessibleWrap
+class HTMLButtonAccessible : public nsHyperTextAccessibleWrap
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  HTMLButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t State();
-  virtual uint64_t NativeState();
+  virtual PRUint64 State();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual bool IsWidget() const;
@@ -93,47 +126,47 @@ public:
 
 
 
-class HTMLTextFieldAccessible : public HyperTextAccessibleWrap
+class HTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
 {
 
 public:
   enum { eAction_Click = 0 };
 
-  HTMLTextFieldAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
 
   
   virtual already_AddRefed<nsIEditor> GetEditor() const;
 
   
   virtual void Value(nsString& aValue);
-  virtual void ApplyARIAState(uint64_t* aState) const;
+  virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t State();
-  virtual uint64_t NativeState();
+  virtual PRUint64 State();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual bool IsWidget() const;
-  virtual Accessible* ContainerWidget() const;
+  virtual nsAccessible* ContainerWidget() const;
 };
 
 
 
 
 
-class HTMLFileInputAccessible : public HyperTextAccessibleWrap
+class HTMLFileInputAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  HTMLFileInputAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLFileInputAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
@@ -143,15 +176,15 @@ public:
 
 
 
-class HTMLGroupboxAccessible : public HyperTextAccessibleWrap
+class HTMLGroupboxAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  HTMLGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
 
 protected:
   nsIContent* GetLegend();
@@ -161,29 +194,29 @@ protected:
 
 
 
-class HTMLLegendAccessible : public HyperTextAccessibleWrap
+class HTMLLegendAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  HTMLLegendAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLLegendAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
 };
 
 
 
 
-class HTMLFigureAccessible : public HyperTextAccessibleWrap
+class HTMLFigureAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  HTMLFigureAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLFigureAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties* aAttributes);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
 
 protected:
   nsIContent* Caption() const;
@@ -193,14 +226,14 @@ protected:
 
 
 
-class HTMLFigcaptionAccessible : public HyperTextAccessibleWrap
+class HTMLFigcaptionAccessible : public nsHyperTextAccessibleWrap
 {
 public:
-  HTMLFigcaptionAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  HTMLFigcaptionAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
   virtual mozilla::a11y::role NativeRole();
-  virtual Relation RelationByType(uint32_t aType);
+  virtual Relation RelationByType(PRUint32 aType);
 };
 
 } 

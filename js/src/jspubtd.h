@@ -245,4 +245,67 @@ typedef JSBool                 (*JSInitCallback)(void);
 
 JS_END_EXTERN_C
 
+#ifdef __cplusplus
+
+namespace JS {
+
+template <typename T>
+class Root;
+
+class SkipRoot;
+
+enum ThingRootKind
+{
+    THING_ROOT_OBJECT,
+    THING_ROOT_SHAPE,
+    THING_ROOT_BASE_SHAPE,
+    THING_ROOT_TYPE_OBJECT,
+    THING_ROOT_STRING,
+    THING_ROOT_SCRIPT,
+    THING_ROOT_ID,
+    THING_ROOT_VALUE,
+    THING_ROOT_LIMIT
+};
+
+struct ContextFriendFields {
+    JSRuntime *const    runtime;
+
+    ContextFriendFields(JSRuntime *rt)
+      : runtime(rt) { }
+
+    static const ContextFriendFields *get(const JSContext *cx) {
+        return reinterpret_cast<const ContextFriendFields *>(cx);
+    }
+
+    static ContextFriendFields *get(JSContext *cx) {
+        return reinterpret_cast<ContextFriendFields *>(cx);
+    }
+
+#ifdef JSGC_ROOT_ANALYSIS
+
+    
+
+
+
+    Root<void*> *thingGCRooters[THING_ROOT_LIMIT];
+
+#ifdef DEBUG
+    
+
+
+
+
+
+
+
+    SkipRoot *skipGCRooters;
+#endif
+
+#endif 
+};
+
+} 
+
+#endif 
+
 #endif 

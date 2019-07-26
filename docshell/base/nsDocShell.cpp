@@ -169,6 +169,7 @@
 #include "nsIEditingSession.h"
 
 #include "nsPIDOMWindow.h"
+#include "nsGlobalWindow.h"
 #include "nsPIWindowRoot.h"
 #include "nsIDOMDocument.h"
 #include "nsICachingChannel.h"
@@ -7895,7 +7896,6 @@ namespace
 
 
 
-
 class nsCopyFaviconCallback : public nsIFaviconDataCallback
 {
 public:
@@ -7907,9 +7907,14 @@ public:
     }
 
     NS_IMETHODIMP
-    OnFaviconDataAvailable(nsIURI *aFaviconURI, PRUint32 aDataLen,
-                           const PRUint8 *aData, const nsACString &aMimeType)
+    OnComplete(nsIURI *aFaviconURI, PRUint32 aDataLen,
+               const PRUint8 *aData, const nsACString &aMimeType)
     {
+        
+        if (!aFaviconURI) {
+          return NS_OK;
+        }
+
         NS_ASSERTION(aDataLen == 0,
                      "We weren't expecting the callback to deliver data.");
         nsCOMPtr<mozIAsyncFavicons> favSvc =
@@ -9721,7 +9726,12 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
             }
         }
 
-        mCurrentURI->Equals(newURI, &equalURIs);
+        if (mCurrentURI) {
+            mCurrentURI->Equals(newURI, &equalURIs);
+        }
+        else {
+            equalURIs = false;
+        }
 
     } 
 
@@ -10851,10 +10861,6 @@ nsDocShell::EnsureScriptEnvironment()
     mInEnsureScriptEnv = true;
 #endif
 
-    nsCOMPtr<nsIDOMScriptObjectFactory> factory =
-        do_GetService(kDOMScriptObjectFactoryCID);
-    NS_ENSURE_TRUE(factory, NS_ERROR_FAILURE);
-
     nsCOMPtr<nsIWebBrowserChrome> browserChrome(do_GetInterface(mTreeOwner));
     NS_ENSURE_TRUE(browserChrome, NS_ERROR_NOT_AVAILABLE);
 
@@ -10867,20 +10873,15 @@ nsDocShell::EnsureScriptEnvironment()
 
     
     
-    factory->NewScriptGlobalObject(mItemType == typeChrome,
-                                   isModalContentWindow,
-                                   getter_AddRefs(mScriptGlobal));
-    NS_ENSURE_TRUE(mScriptGlobal, NS_ERROR_FAILURE);
+    nsRefPtr<nsGlobalWindow> window =
+        NS_NewScriptGlobalObject(mItemType == typeChrome, isModalContentWindow);
+    MOZ_ASSERT(window);
+    mScriptGlobal = window;
 
-    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
-    win->SetDocShell(static_cast<nsIDocShell *>(this));
+    window->SetDocShell(this);
 
     
-    nsresult rv;
-    rv = mScriptGlobal->EnsureScriptEnvironment();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    return NS_OK;
+    return mScriptGlobal->EnsureScriptEnvironment();
 }
 
 

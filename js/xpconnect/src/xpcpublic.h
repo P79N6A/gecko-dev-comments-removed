@@ -209,6 +209,8 @@ xpc_UnmarkSkippableJSHolders();
 NS_EXPORT_(void)
 xpc_ActivateDebugMode();
 
+class nsIMemoryMultiReporterCallback;
+
 namespace xpc {
 
 
@@ -228,13 +230,27 @@ nsIPrincipal *GetCompartmentPrincipal(JSCompartment *compartment);
 #ifdef DEBUG
 void DumpJSHeap(FILE* file);
 #endif
-} 
 
-class nsIMemoryMultiReporterCallback;
 
-namespace mozilla {
-namespace xpconnect {
-namespace memory {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+bool
+DOM_DefineQuickStubs(JSContext *cx, JSObject *proto, PRUint32 flags,
+                     PRUint32 interfaceCount, const nsIID **interfaceArray);
 
 
 
@@ -244,9 +260,49 @@ ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats,
                                  nsIMemoryMultiReporterCallback *cb,
                                  nsISupports *closure);
 
-} 
+
+
+
+inline bool
+ValueToInt64(JSContext *cx, JS::Value v, int64_t *result)
+{
+    if (JSVAL_IS_INT(v)) {
+        int32_t intval;
+        if (!JS_ValueToECMAInt32(cx, v, &intval))
+            return false;
+        *result = static_cast<int64_t>(intval);
+    } else {
+        double doubleval;
+        if (!JS_ValueToNumber(cx, v, &doubleval))
+            return false;
+        *result = static_cast<int64_t>(doubleval);
+    }
+    return true;
+}
+
+
+
+
+inline bool
+ValueToUint64(JSContext *cx, JS::Value v, uint64_t *result)
+{
+    if (JSVAL_IS_INT(v)) {
+        uint32_t intval;
+        if (!JS_ValueToECMAUint32(cx, v, &intval))
+            return false;
+        *result = static_cast<uint64_t>(intval);
+    } else {
+        double doubleval;
+        if (!JS_ValueToNumber(cx, v, &doubleval))
+            return false;
+        *result = static_cast<uint64_t>(doubleval);
+    }
+    return true;
+}
+
 } 
 
+namespace mozilla {
 namespace dom {
 namespace binding {
 

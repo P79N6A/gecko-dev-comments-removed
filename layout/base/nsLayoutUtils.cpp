@@ -3991,6 +3991,10 @@ nsLayoutUtils::GetRectDifferenceStrips(const nsRect& aR1, const nsRect& aR2,
 nsDeviceContext*
 nsLayoutUtils::GetDeviceContextForScreenInfo(nsPIDOMWindow* aWindow)
 {
+  if (!aWindow) {
+    return nsnull;
+  }
+
   nsCOMPtr<nsIDocShell> docShell = aWindow->GetDocShell();
   while (docShell) {
     
@@ -4664,6 +4668,28 @@ nsLayoutUtils::FontSizeInflationInner(const nsIFrame *aFrame,
   if (aMinFontSize <= 0) {
     
     return 1.0;
+  }
+
+  
+  
+  
+  for (const nsIFrame* f = aFrame;
+       f && !IsContainerForFontSizeInflation(f);
+       f = f->GetParent()) {
+    nsIContent* content = f->GetContent();
+    
+    
+    if (!(f->GetParent() &&
+          f->GetParent()->GetContent() == content) &&
+        f->GetType() != nsGkAtoms::inlineFrame) {
+      nsStyleCoord stylePosWidth = f->GetStylePosition()->mWidth;
+      nsStyleCoord stylePosHeight = f->GetStylePosition()->mHeight;
+      if (stylePosWidth.GetUnit() != eStyleUnit_Auto ||
+          stylePosHeight.GetUnit() != eStyleUnit_Auto) {
+
+        return 1.0;
+      }
+    }
   }
 
   

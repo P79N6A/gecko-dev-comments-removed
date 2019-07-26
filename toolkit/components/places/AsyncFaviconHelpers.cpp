@@ -880,11 +880,7 @@ AsyncGetFaviconURLForPage::Run()
 
   nsCAutoString iconSpec;
   nsresult rv = FetchIconURL(mDB, mPageSpec, iconSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (iconSpec.IsEmpty())
-    return NS_OK;
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   
   IconData iconData;
@@ -949,11 +945,7 @@ AsyncGetFaviconDataForPage::Run()
 
   nsCAutoString iconSpec;
   nsresult rv = FetchIconURL(mDB, mPageSpec, iconSpec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (!iconSpec.Length()) {
-    return NS_ERROR_NOT_AVAILABLE;
-  }
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
 
   IconData iconData;
   iconData.spec.Assign(iconSpec);
@@ -961,8 +953,13 @@ AsyncGetFaviconDataForPage::Run()
   PageData pageData;
   pageData.spec.Assign(mPageSpec);
 
-  rv = FetchIconInfo(mDB, iconData);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!iconSpec.IsEmpty()) {
+    rv = FetchIconInfo(mDB, iconData);
+    if (NS_FAILED(rv)) {
+      iconData.spec.Truncate();
+      MOZ_NOT_REACHED("Fetching favicon information failed unexpectedly.");
+    }
+  }
 
   nsCOMPtr<nsIRunnable> event =
     new NotifyIconObservers(iconData, pageData, mCallback);
@@ -1091,44 +1088,53 @@ NotifyIconObservers::Run()
                   "This should be called on the main thread");
 
   nsCOMPtr<nsIURI> iconURI;
-  nsresult rv = NS_NewURI(getter_AddRefs(iconURI), mIcon.spec);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  if (mIcon.status & ICON_STATUS_SAVED ||
-      mIcon.status & ICON_STATUS_ASSOCIATED) {
-    nsCOMPtr<nsIURI> pageURI;
-    rv = NS_NewURI(getter_AddRefs(pageURI), mPage.spec);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsFaviconService* favicons = nsFaviconService::GetFaviconService();
-    NS_ENSURE_STATE(favicons);
-    (void)favicons->SendFaviconNotifications(pageURI, iconURI, mPage.guid);
-
-    
-    
-    if (!mPage.bookmarkedSpec.IsEmpty() &&
-        !mPage.bookmarkedSpec.Equals(mPage.spec)) {
+  if (!mIcon.spec.IsEmpty()) {
+    MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_NewURI(getter_AddRefs(iconURI), mIcon.spec)));
+    if (iconURI)
+    {
       
-      PageData bookmarkedPage;
-      bookmarkedPage.spec = mPage.bookmarkedSpec;
-
-      
-      nsCOMPtr<nsIFaviconDataCallback> nullCallback;
-      nsRefPtr<AsyncAssociateIconToPage> event =
-          new AsyncAssociateIconToPage(mIcon, bookmarkedPage, nullCallback);
-      mDB->DispatchToAsyncThread(event);
+      if (mIcon.status & ICON_STATUS_SAVED ||
+          mIcon.status & ICON_STATUS_ASSOCIATED) {
+        SendGlobalNotifications(iconURI);
+      }
     }
   }
 
   if (mCallback) {
-    (void)mCallback->OnFaviconDataAvailable(iconURI,
-                                            mIcon.data.Length(),
-                                            TO_INTBUFFER(mIcon.data),
-                                            mIcon.mimeType);
+    (void)mCallback->OnComplete(iconURI, mIcon.data.Length(),
+                                TO_INTBUFFER(mIcon.data), mIcon.mimeType);
   }
 
   return NS_OK;
+}
+
+void
+NotifyIconObservers::SendGlobalNotifications(nsIURI* aIconURI)
+{
+  nsCOMPtr<nsIURI> pageURI;
+  MOZ_ALWAYS_TRUE(NS_SUCCEEDED(NS_NewURI(getter_AddRefs(pageURI), mPage.spec)));
+  if (pageURI) {
+    nsFaviconService* favicons = nsFaviconService::GetFaviconService();
+    MOZ_ASSERT(favicons);
+    if (favicons) {
+      (void)favicons->SendFaviconNotifications(pageURI, aIconURI, mPage.guid);
+    }
+  }
+
+  
+  
+  if (!mPage.bookmarkedSpec.IsEmpty() &&
+      !mPage.bookmarkedSpec.Equals(mPage.spec)) {
+    
+    PageData bookmarkedPage;
+    bookmarkedPage.spec = mPage.bookmarkedSpec;
+
+    
+    nsCOMPtr<nsIFaviconDataCallback> nullCallback;
+    nsRefPtr<AsyncAssociateIconToPage> event =
+        new AsyncAssociateIconToPage(mIcon, bookmarkedPage, nullCallback);
+    mDB->DispatchToAsyncThread(event);
+  }
 }
 
 } 

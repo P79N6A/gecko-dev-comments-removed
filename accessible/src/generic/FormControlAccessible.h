@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef MOZILLA_A11Y_FormControlAccessible_H_
 #define MOZILLA_A11Y_FormControlAccessible_H_
 
-#include "BaseAccessibles.h"
+#include "nsBaseWidgetAccessible.h"
 
 namespace mozilla {
 namespace a11y {
@@ -15,11 +48,11 @@ namespace a11y {
 
 
 template<int Max>
-class ProgressMeterAccessible : public LeafAccessible
+class ProgressMeterAccessible : public nsLeafAccessible
 {
 public:
-  ProgressMeterAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-    LeafAccessible(aContent, aDoc)
+  ProgressMeterAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+    nsLeafAccessible(aContent, aDoc)
   {
   }
 
@@ -29,7 +62,7 @@ public:
   
   virtual void Value(nsString& aValue);
   virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
   virtual bool IsWidget() const;
@@ -38,21 +71,21 @@ public:
 
 
 
-class RadioButtonAccessible : public LeafAccessible
+class RadioButtonAccessible : public nsLeafAccessible
 {
 
 public:
-  RadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  RadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
   virtual mozilla::a11y::role NativeRole();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   enum { eAction_Click = 0 };
 

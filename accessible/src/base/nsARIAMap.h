@@ -40,12 +40,12 @@
 #ifndef _nsARIAMap_H_
 #define _nsARIAMap_H_
 
-#include "mozilla/a11y/ARIAStateMap.h"
+#include "ARIAStateMap.h"
 #include "mozilla/a11y/Role.h"
-#include "prtypes.h"
 
 class nsIAtom;
 class nsIContent;
+class nsINode;
 
 
 
@@ -214,18 +214,6 @@ struct nsARIAMap
   
 
 
-  static nsRoleMapEntry gWAIRoleMap[];
-  static PRUint32 gWAIRoleMapLength;
-
-  
-
-
-
-  static nsRoleMapEntry gLandmarkRoleMap;
-
-  
-
-
 
 
   static nsRoleMapEntry gEmptyRoleMap;
@@ -257,5 +245,23 @@ struct nsARIAMap
     return state;
   }
 };
+
+namespace mozilla {
+namespace a11y {
+namespace aria {
+
+
+
+
+
+
+
+
+
+nsRoleMapEntry* GetRoleMap(nsINode* aNode);
+
+} 
+} 
+} 
 
 #endif

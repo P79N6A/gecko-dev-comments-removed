@@ -333,16 +333,14 @@ SpdyStream::ParseHttpRequestHeaders(const char *buf,
   
   
   
-  
-  
   if (mPriority >= nsISupportsPriority::PRIORITY_LOW)
-    mTxInlineFrame[16] = SpdySession::kPri00;
-  else if (mPriority >= nsISupportsPriority::PRIORITY_NORMAL)
-    mTxInlineFrame[16] = SpdySession::kPri01;
-  else if (mPriority >= nsISupportsPriority::PRIORITY_HIGH)
-    mTxInlineFrame[16] = SpdySession::kPri02;
-  else
     mTxInlineFrame[16] = SpdySession::kPri03;
+  else if (mPriority >= nsISupportsPriority::PRIORITY_NORMAL)
+    mTxInlineFrame[16] = SpdySession::kPri02;
+  else if (mPriority >= nsISupportsPriority::PRIORITY_HIGH)
+    mTxInlineFrame[16] = SpdySession::kPri01;
+  else
+    mTxInlineFrame[16] = SpdySession::kPri00;
 
   mTxInlineFrame[17] = 0;                         
   

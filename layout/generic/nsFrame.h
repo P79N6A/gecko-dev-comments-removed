@@ -130,6 +130,7 @@
 
 
 struct nsBoxLayoutMetrics;
+class nsDisplayBackground;
 
 
 
@@ -510,9 +511,12 @@ public:
 
 
 
+
+
   nsresult DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                           const nsDisplayListSet& aLists,
-                                          bool aForceBackground = false);
+                                          bool aForceBackground,
+                                          nsDisplayBackground** aBackground);
   
 
 
@@ -608,8 +612,8 @@ public:
     
     
     return
-      aFrame->PresContext()->IsPaginated() &&
       (aFrame->GetStateBits() & NS_BLOCK_CLIP_PAGINATED_OVERFLOW) != 0 &&
+      aFrame->PresContext()->IsPaginated() &&
       aFrame->GetType() == nsGkAtoms::blockFrame;
   }
 

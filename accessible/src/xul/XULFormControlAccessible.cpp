@@ -3,6 +3,40 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "XULFormControlAccessible.h"
 
 #include "Accessible-inl.h"
@@ -10,13 +44,14 @@
 #include "nsAccUtils.h"
 #include "nsAccTreeWalker.h"
 #include "nsCoreUtils.h"
-#include "DocAccessible.h"
+#include "nsDocAccessible.h"
 #include "nsIAccessibleRelation.h"
+#include "nsXULMenuAccessible.h"
 #include "Relation.h"
 #include "Role.h"
 #include "States.h"
-#include "XULMenuAccessible.h"
 
+#include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNSEditableElement.h"
 #include "nsIDOMXULButtonElement.h"
 #include "nsIDOMXULCheckboxElement.h"
@@ -36,8 +71,8 @@ using namespace mozilla::a11y;
 
 
 XULButtonAccessible::
-  XULButtonAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  XULButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsAccessibleWrap(aContent, aDoc)
 {
   if (ContainsMenu())
     mFlags |= eMenuButtonAccessible;
@@ -46,19 +81,19 @@ XULButtonAccessible::
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED0(XULButtonAccessible, Accessible)
+NS_IMPL_ISUPPORTS_INHERITED0(XULButtonAccessible, nsAccessible)
 
 
 
 
-uint8_t
+PRUint8
 XULButtonAccessible::ActionCount()
 {
   return 1;
 }
 
 NS_IMETHODIMP
-XULButtonAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+XULButtonAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     aName.AssignLiteral("press"); 
@@ -68,7 +103,7 @@ XULButtonAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
 }
 
 NS_IMETHODIMP
-XULButtonAccessible::DoAction(uint8_t aIndex)
+XULButtonAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != 0)
     return NS_ERROR_INVALID_ARG;
@@ -86,13 +121,23 @@ XULButtonAccessible::NativeRole()
   return roles::PUSHBUTTON;
 }
 
-uint64_t
+PRUint64
 XULButtonAccessible::NativeState()
 {
   
 
   
-  uint64_t state = Accessible::NativeState();
+  PRUint64 state = nsAccessible::NativeState();
+
+  bool disabled = false;
+  nsCOMPtr<nsIDOMXULControlElement> xulFormElement(do_QueryInterface(mContent));
+  if (xulFormElement) {
+    xulFormElement->GetDisabled(&disabled);
+    if (disabled)
+      state |= states::UNAVAILABLE;
+    else 
+      state |= states::FOCUSABLE;
+  }
 
   
   nsCOMPtr<nsIDOMXULButtonElement> xulButtonElement(do_QueryInterface(mContent));
@@ -102,7 +147,7 @@ XULButtonAccessible::NativeState()
     if (type.EqualsLiteral("checkbox") || type.EqualsLiteral("radio")) {
       state |= states::CHECKABLE;
       bool checked = false;
-      int32_t checkState = 0;
+      PRInt32 checkState = 0;
       xulButtonElement->GetChecked(&checked);
       if (checked) {
         state |= states::PRESSED;
@@ -142,7 +187,7 @@ bool
 XULButtonAccessible::AreItemsOperable() const
 {
   if (IsMenuButton()) {
-    Accessible* menuPopup = mChildren.SafeElementAt(0, nullptr);
+    nsAccessible* menuPopup = mChildren.SafeElementAt(0, nsnull);
     if (menuPopup) {
       nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(menuPopup->GetFrame());
       return menuPopupFrame->IsOpen();
@@ -151,12 +196,12 @@ XULButtonAccessible::AreItemsOperable() const
   return false; 
 }
 
-Accessible*
+nsAccessible*
 XULButtonAccessible::ContainerWidget() const
 {
   if (IsMenuButton() && mParent && mParent->IsAutoComplete())
     return mParent;
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -185,12 +230,12 @@ XULButtonAccessible::CacheChildren()
   if (!isMenu && !isMenuButton)
     return;
 
-  Accessible* menupopup = nullptr;
-  Accessible* button = nullptr;
+  nsAccessible* menupopup = nsnull;
+  nsAccessible* button = nsnull;
 
   nsAccTreeWalker walker(mDoc, mContent, true);
 
-  Accessible* child = nullptr;
+  nsAccessible* child = nsnull;
   while ((child = walker.NextChild())) {
     roles::Role role = child->Role();
 
@@ -225,7 +270,7 @@ bool
 XULButtonAccessible::ContainsMenu()
 {
   static nsIContent::AttrValuesArray strings[] =
-    {&nsGkAtoms::menu, &nsGkAtoms::menuButton, nullptr};
+    {&nsGkAtoms::menu, &nsGkAtoms::menuButton, nsnull};
 
   return mContent->FindAttrValueIn(kNameSpaceID_None,
                                    nsGkAtoms::type,
@@ -237,12 +282,12 @@ XULButtonAccessible::ContainsMenu()
 
 
 XULDropmarkerAccessible::
-  XULDropmarkerAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LeafAccessible(aContent, aDoc)
+  XULDropmarkerAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsLeafAccessible(aContent, aDoc)
 {
 }
 
-uint8_t
+PRUint8
 XULDropmarkerAccessible::ActionCount()
 {
   return 1;
@@ -278,7 +323,7 @@ XULDropmarkerAccessible::DropmarkerOpen(bool aToggleOpen)
 
 
 NS_IMETHODIMP
-XULDropmarkerAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+XULDropmarkerAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     if (DropmarkerOpen(false))
@@ -295,7 +340,7 @@ XULDropmarkerAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
 
 
 NS_IMETHODIMP
-XULDropmarkerAccessible::DoAction(uint8_t index)
+XULDropmarkerAccessible::DoAction(PRUint8 index)
 {
   if (index == eAction_Click) {
     DropmarkerOpen(true); 
@@ -310,7 +355,7 @@ XULDropmarkerAccessible::NativeRole()
   return roles::PUSHBUTTON;
 }
 
-uint64_t
+PRUint64
 XULDropmarkerAccessible::NativeState()
 {
   return DropmarkerOpen(false) ? states::PRESSED : 0;
@@ -321,8 +366,8 @@ XULDropmarkerAccessible::NativeState()
 
 
 XULCheckboxAccessible::
-  XULCheckboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LeafAccessible(aContent, aDoc)
+  XULCheckboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsLeafAccessible(aContent, aDoc)
 {
 }
 
@@ -332,7 +377,7 @@ XULCheckboxAccessible::NativeRole()
   return roles::CHECKBUTTON;
 }
 
-uint8_t
+PRUint8
 XULCheckboxAccessible::ActionCount()
 {
   return 1;
@@ -342,7 +387,7 @@ XULCheckboxAccessible::ActionCount()
 
 
 NS_IMETHODIMP
-XULCheckboxAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+XULCheckboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     
@@ -361,7 +406,7 @@ XULCheckboxAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
 
 
 NS_IMETHODIMP
-XULCheckboxAccessible::DoAction(uint8_t aIndex)
+XULCheckboxAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Click)
     return NS_ERROR_INVALID_ARG;
@@ -370,12 +415,12 @@ XULCheckboxAccessible::DoAction(uint8_t aIndex)
   return NS_OK;
 }
 
-uint64_t
+PRUint64
 XULCheckboxAccessible::NativeState()
 {
   
   
-  uint64_t state = LeafAccessible::NativeState();
+  PRUint64 state = nsLeafAccessible::NativeState();
   
   state |= states::CHECKABLE;
   
@@ -387,7 +432,7 @@ XULCheckboxAccessible::NativeState()
     xulCheckboxElement->GetChecked(&checked);
     if (checked) {
       state |= states::CHECKED;
-      int32_t checkState = 0;
+      PRInt32 checkState = 0;
       xulCheckboxElement->GetCheckState(&checkState);
       if (checkState == nsIDOMXULCheckboxElement::CHECKSTATE_MIXED)
         state |= states::MIXED;
@@ -402,8 +447,8 @@ XULCheckboxAccessible::NativeState()
 
 
 XULGroupboxAccessible::
-  XULGroupboxAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  XULGroupboxAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsAccessibleWrap(aContent, aDoc)
 {
 }
 
@@ -417,7 +462,7 @@ nsresult
 XULGroupboxAccessible::GetNameInternal(nsAString& aName)
 {
   
-  Accessible* label =
+  nsAccessible* label =
     RelationByType(nsIAccessibleRelation::RELATION_LABELLED_BY).Next();
   if (label)
     return label->GetName(aName);
@@ -426,23 +471,23 @@ XULGroupboxAccessible::GetNameInternal(nsAString& aName)
 }
 
 Relation
-XULGroupboxAccessible::RelationByType(uint32_t aType)
+XULGroupboxAccessible::RelationByType(PRUint32 aType)
 {
-  Relation rel = AccessibleWrap::RelationByType(aType);
+  Relation rel = nsAccessibleWrap::RelationByType(aType);
   if (aType != nsIAccessibleRelation::RELATION_LABELLED_BY)
     return rel;
 
   
   
   
-  uint32_t childCount = ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* childAcc = GetChildAt(childIdx);
+  PRInt32 childCount = GetChildCount();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible *childAcc = GetChildAt(childIdx);
     if (childAcc->Role() == roles::LABEL) {
       
       Relation reverseRel =
         childAcc->RelationByType(nsIAccessibleRelation::RELATION_LABEL_FOR);
-      Accessible* testGroupbox = nullptr;
+      nsAccessible* testGroupbox = nsnull;
       while ((testGroupbox = reverseRel.Next()))
         if (testGroupbox == this) {
           
@@ -459,16 +504,19 @@ XULGroupboxAccessible::RelationByType(uint32_t aType)
 
 
 XULRadioButtonAccessible::
-  XULRadioButtonAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  XULRadioButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
   RadioButtonAccessible(aContent, aDoc)
 {
 }
 
-uint64_t
+PRUint64
 XULRadioButtonAccessible::NativeState()
 {
-  uint64_t state = LeafAccessible::NativeState();
+  PRUint64 state = nsLeafAccessible::NativeState();
   state |= states::CHECKABLE;
+
+  if (!(state & states::UNAVAILABLE))
+    state |= states::FOCUSABLE;
 
   nsCOMPtr<nsIDOMXULSelectControlItemElement> radioButton =
     do_QueryInterface(mContent);
@@ -483,16 +531,10 @@ XULRadioButtonAccessible::NativeState()
   return state;
 }
 
-uint64_t
-XULRadioButtonAccessible::NativeInteractiveState() const
-{
-  return NativelyUnavailable() ? states::UNAVAILABLE : states::FOCUSABLE;
-}
 
 
 
-
-Accessible*
+nsAccessible*
 XULRadioButtonAccessible::ContainerWidget() const
 {
   return mParent;
@@ -513,7 +555,7 @@ XULRadioButtonAccessible::ContainerWidget() const
 
 
 XULRadioGroupAccessible::
-  XULRadioGroupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  XULRadioGroupAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
   XULSelectControlAccessible(aContent, aDoc)
 { 
 }
@@ -524,13 +566,13 @@ XULRadioGroupAccessible::NativeRole()
   return roles::GROUPING;
 }
 
-uint64_t
-XULRadioGroupAccessible::NativeInteractiveState() const
+PRUint64
+XULRadioGroupAccessible::NativeState()
 {
   
   
   
-  return NativelyUnavailable() ? states::UNAVAILABLE : 0;
+  return nsAccessible::NativeState() & ~(states::FOCUSABLE | states::FOCUSED);
 }
 
 
@@ -560,8 +602,8 @@ XULRadioGroupAccessible::AreItemsOperable() const
 
 
 XULStatusBarAccessible::
-  XULStatusBarAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  XULStatusBarAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsAccessibleWrap(aContent, aDoc)
 {
 }
 
@@ -577,25 +619,25 @@ XULStatusBarAccessible::NativeRole()
 
 
 XULToolbarButtonAccessible::
-  XULToolbarButtonAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  XULToolbarButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
   XULButtonAccessible(aContent, aDoc)
 {
 }
 
 void
-XULToolbarButtonAccessible::GetPositionAndSizeInternal(int32_t* aPosInSet,
-                                                       int32_t* aSetSize)
+XULToolbarButtonAccessible::GetPositionAndSizeInternal(PRInt32* aPosInSet,
+                                                       PRInt32* aSetSize)
 {
-  int32_t setSize = 0;
-  int32_t posInSet = 0;
+  PRInt32 setSize = 0;
+  PRInt32 posInSet = 0;
 
-  Accessible* parent = Parent();
+  nsAccessible* parent = Parent();
   if (!parent)
     return;
 
-  uint32_t childCount = parent->ChildCount();
-  for (uint32_t childIdx = 0; childIdx < childCount; childIdx++) {
-    Accessible* child = parent->GetChildAt(childIdx);
+  PRInt32 childCount = parent->GetChildCount();
+  for (PRInt32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible* child = parent->GetChildAt(childIdx);
     if (IsSeparator(child)) { 
       if (posInSet)
         break; 
@@ -615,7 +657,7 @@ XULToolbarButtonAccessible::GetPositionAndSizeInternal(int32_t* aPosInSet,
 }
 
 bool
-XULToolbarButtonAccessible::IsSeparator(Accessible* aAccessible)
+XULToolbarButtonAccessible::IsSeparator(nsAccessible* aAccessible)
 {
   nsIContent* content = aAccessible->GetContent();
   return content && ((content->Tag() == nsGkAtoms::toolbarseparator) ||
@@ -628,8 +670,8 @@ XULToolbarButtonAccessible::IsSeparator(Accessible* aAccessible)
 
 
 XULToolbarAccessible::
-  XULToolbarAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+  XULToolbarAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsAccessibleWrap(aContent, aDoc)
 {
 }
 
@@ -657,8 +699,8 @@ XULToolbarAccessible::GetNameInternal(nsAString& aName)
 
 
 XULToolbarSeparatorAccessible::
-  XULToolbarSeparatorAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  LeafAccessible(aContent, aDoc)
+  XULToolbarSeparatorAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+  nsLeafAccessible(aContent, aDoc)
 {
 }
 
@@ -668,7 +710,7 @@ XULToolbarSeparatorAccessible::NativeRole()
   return roles::SEPARATOR;
 }
 
-uint64_t
+PRUint64
 XULToolbarSeparatorAccessible::NativeState()
 {
   return 0;
@@ -679,13 +721,14 @@ XULToolbarSeparatorAccessible::NativeState()
 
 
 XULTextFieldAccessible::
- XULTextFieldAccessible(nsIContent* aContent, DocAccessible* aDoc) :
- HyperTextAccessibleWrap(aContent, aDoc)
+ XULTextFieldAccessible(nsIContent* aContent, nsDocAccessible* aDoc) :
+ nsHyperTextAccessibleWrap(aContent, aDoc)
 {
 }
 
-NS_IMPL_ISUPPORTS_INHERITED2(XULTextFieldAccessible,
-                             Accessible,
+NS_IMPL_ISUPPORTS_INHERITED3(XULTextFieldAccessible,
+                             nsAccessible,
+                             nsHyperTextAccessible,
                              nsIAccessibleText,
                              nsIAccessibleEditableText)
 
@@ -711,17 +754,18 @@ XULTextFieldAccessible::Value(nsString& aValue)
 }
 
 void
-XULTextFieldAccessible::ApplyARIAState(uint64_t* aState) const
+XULTextFieldAccessible::ApplyARIAState(PRUint64* aState)
 {
-  HyperTextAccessibleWrap::ApplyARIAState(aState);
+  nsHyperTextAccessibleWrap::ApplyARIAState(aState);
 
   aria::MapToState(aria::eARIAAutoComplete, mContent->AsElement(), aState);
+
 }
 
-uint64_t
+PRUint64
 XULTextFieldAccessible::NativeState()
 {
-  uint64_t state = HyperTextAccessibleWrap::NativeState();
+  PRUint64 state = nsHyperTextAccessibleWrap::NativeState();
 
   nsCOMPtr<nsIContent> inputField(GetInputField());
   NS_ENSURE_TRUE(inputField, state);
@@ -761,7 +805,7 @@ XULTextFieldAccessible::NativeRole()
 
 
 
-uint8_t
+PRUint8
 XULTextFieldAccessible::ActionCount()
 {
   return 1;
@@ -771,7 +815,7 @@ XULTextFieldAccessible::ActionCount()
 
 
 NS_IMETHODIMP
-XULTextFieldAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+XULTextFieldAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     aName.AssignLiteral("activate"); 
@@ -784,7 +828,7 @@ XULTextFieldAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
 
 
 NS_IMETHODIMP
-XULTextFieldAccessible::DoAction(uint8_t index)
+XULTextFieldAccessible::DoAction(PRUint8 index)
 {
   if (index == 0) {
     nsCOMPtr<nsIDOMXULElement> element(do_QueryInterface(mContent));
@@ -810,7 +854,7 @@ XULTextFieldAccessible::GetEditor() const
   nsCOMPtr<nsIContent> inputField = GetInputField();
   nsCOMPtr<nsIDOMNSEditableElement> editableElt(do_QueryInterface(inputField));
   if (!editableElt)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<nsIEditor> editor;
   editableElt->GetEditor(getter_AddRefs(editor));
@@ -832,7 +876,7 @@ XULTextFieldAccessible::CacheChildren()
 
   nsAccTreeWalker walker(mDoc, inputContent, false);
 
-  Accessible* child = nullptr;
+  nsAccessible* child = nsnull;
   while ((child = walker.NextChild()) && AppendChild(child));
 }
 
@@ -844,7 +888,7 @@ XULTextFieldAccessible::FrameSelection()
 {
   nsCOMPtr<nsIContent> inputContent(GetInputField());
   nsIFrame* frame = inputContent->GetPrimaryFrame();
-  return frame ? frame->GetFrameSelection() : nullptr;
+  return frame ? frame->GetFrameSelection() : nsnull;
 }
 
 
@@ -867,7 +911,7 @@ XULTextFieldAccessible::GetInputField() const
 
   NS_ASSERTION(inputFieldDOMNode, "No input field for XULTextFieldAccessible");
 
-  nsIContent* inputField = nullptr;
+  nsIContent* inputField = nsnull;
   if (inputFieldDOMNode)
     CallQueryInterface(inputFieldDOMNode, &inputField);
 

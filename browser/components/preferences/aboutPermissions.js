@@ -92,28 +92,28 @@ Site.prototype = {
 
 
   getFavicon: function Site_getFavicon(aCallback) {
-    let callbackExecuted = false;
-    function faviconDataCallback(aURI, aDataLen, aData, aMimeType) {
-      
-      
-      if (callbackExecuted) {
-        return;
-      }
+    function invokeCallback(aFaviconURI) {
       try {
         
         
-        aCallback(gFaviconService.getFaviconLinkForIcon(aURI).spec);
-        callbackExecuted = true;
+        aCallback(gFaviconService.getFaviconLinkForIcon(aFaviconURI).spec);
       } catch (e) {
         Cu.reportError("AboutPermissions: " + e);
       }
     }
 
     
-    
-    
-    gFaviconService.getFaviconURLForPage(this.httpsURI, faviconDataCallback);
-    gFaviconService.getFaviconURLForPage(this.httpURI, faviconDataCallback);
+    gFaviconService.getFaviconURLForPage(this.httpsURI, function (aURI) {
+      if (aURI) {
+        invokeCallback(aURI);
+      } else {
+        gFaviconService.getFaviconURLForPage(this.httpURI, function (aURI) {
+          if (aURI) {
+            invokeCallback(aURI);
+          }
+        });
+      }
+    }.bind(this));
   },
 
   

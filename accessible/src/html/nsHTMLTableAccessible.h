@@ -129,6 +129,7 @@ public:
 
   
   virtual nsAccessible* Caption();
+  virtual void Summary(nsString& aSummary);
   virtual bool IsProbablyLayoutTable();
 
   

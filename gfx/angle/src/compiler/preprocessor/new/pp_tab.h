@@ -33,7 +33,6 @@
 
 
 
-
 #ifndef YYTOKENTYPE
 # define YYTOKENTYPE
 
@@ -61,44 +60,24 @@
    };
 #endif
 
-#define HASH 258
-#define HASH_UNDEF 259
-#define HASH_IF 260
-#define HASH_IFDEF 261
-#define HASH_IFNDEF 262
-#define HASH_ELSE 263
-#define HASH_ELIF 264
-#define HASH_ENDIF 265
-#define DEFINED 266
-#define HASH_ERROR 267
-#define HASH_PRAGMA 268
-#define HASH_EXTENSION 269
-#define HASH_VERSION 270
-#define HASH_LINE 271
-#define HASH_DEFINE_OBJ 272
-#define HASH_DEFINE_FUNC 273
-#define INT_CONSTANT 274
-#define FLOAT_CONSTANT 275
-#define IDENTIFIER 276
-
-
 
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-
 {
+
+
     int ival;
     std::string* sval;
     pp::Token* tval;
     pp::TokenVector* tlist;
-}
 
 
-	YYSTYPE;
+
+} YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
-# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 
@@ -115,5 +94,6 @@ typedef struct YYLTYPE
 # define YYLTYPE_IS_DECLARED 1
 # define YYLTYPE_IS_TRIVIAL 1
 #endif
+
 
 

@@ -261,7 +261,7 @@ nsSVGTextFrame::UpdateBounds()
   
 }
 
-gfxRect
+SVGBBox
 nsSVGTextFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                     PRUint32 aFlags)
 {

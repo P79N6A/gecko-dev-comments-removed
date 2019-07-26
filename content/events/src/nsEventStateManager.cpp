@@ -137,6 +137,8 @@
 #include "mozilla/LookAndFeel.h"
 #include "sampler.h"
 
+#include "nsIDOMClientRect.h"
+
 #ifdef XP_MACOSX
 #import <ApplicationServices/ApplicationServices.h>
 #endif
@@ -159,6 +161,15 @@ bool nsEventStateManager::sNormalLMouseEventInProcess = false;
 nsEventStateManager* nsEventStateManager::sActiveESM = nsnull;
 nsIDocument* nsEventStateManager::sMouseOverDocument = nsnull;
 nsWeakFrame nsEventStateManager::sLastDragOverFrame = nsnull;
+nsIntPoint nsEventStateManager::sLastRefPoint = nsIntPoint(0,0);
+nsIntPoint nsEventStateManager::sLastScreenOffset = nsIntPoint(0,0);
+nsIntPoint nsEventStateManager::sLastScreenPoint = nsIntPoint(0,0);
+nsIntPoint nsEventStateManager::sLastClientPoint = nsIntPoint(0,0);
+bool nsEventStateManager::sIsPointerLocked = false;
+
+nsWeakPtr nsEventStateManager::sPointerLockedElement;
+
+nsWeakPtr nsEventStateManager::sPointerLockedDoc;
 nsCOMPtr<nsIContent> nsEventStateManager::sDragOverContent = nsnull;
 
 static PRUint32 gMouseOrKeyboardEventCounter = 0;
@@ -772,6 +783,7 @@ nsMouseWheelTransaction::LimitToOnePageScroll(PRInt32 aScrollLines,
 
 nsEventStateManager::nsEventStateManager()
   : mLockCursor(0),
+    mPreLockPoint(0,0),
     mCurrentTarget(nsnull),
     mLastMouseOverFrame(nsnull),
     
@@ -1045,6 +1057,23 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
   if (NS_EVENT_NEEDS_FRAME(aEvent)) {
     NS_ASSERTION(mCurrentTarget, "mCurrentTarget is null.  this should not happen.  see bug #13007");
     if (!mCurrentTarget) return NS_ERROR_NULL_POINTER;
+  }
+#ifdef DEBUG
+  if (NS_IS_DRAG_EVENT(aEvent) && sIsPointerLocked) {
+    NS_ASSERTION(sIsPointerLocked,
+      "sIsPointerLocked is true. Drag events should be suppressed when the pointer is locked.");
+  }
+#endif
+  
+  
+  if (NS_IS_TRUSTED_EVENT(aEvent) &&
+      (NS_IS_MOUSE_EVENT_STRUCT(aEvent) &&
+       IsMouseEventReal(aEvent)) ||
+       aEvent->eventStructType == NS_MOUSE_SCROLL_EVENT) {
+    if (!sIsPointerLocked) {
+      sLastScreenPoint = nsDOMUIEvent::CalculateScreenPoint(aPresContext, aEvent);
+      sLastClientPoint = nsDOMUIEvent::CalculateClientPoint(aPresContext, aEvent, nsnull);
+    }
   }
 
   
@@ -3779,6 +3808,25 @@ nsEventStateManager::DispatchMouseEvent(nsGUIEvent* aEvent, PRUint32 aMessage,
                                         nsIContent* aTargetContent,
                                         nsIContent* aRelatedContent)
 {
+  
+  
+  
+  if (sIsPointerLocked &&
+      (aMessage == NS_MOUSELEAVE ||
+       aMessage == NS_MOUSEENTER ||
+       aMessage == NS_MOUSE_ENTER_SYNTH ||
+       aMessage == NS_MOUSE_EXIT_SYNTH)) {
+    mCurrentTargetContent = nsnull;
+    nsCOMPtr<Element> pointerLockedElement =
+      do_QueryReferent(nsEventStateManager::sPointerLockedElement);
+    if (!pointerLockedElement) {
+      NS_WARNING("Should have pointer locked element, but didn't.");
+      return nsnull;
+    }
+    nsCOMPtr<nsIContent> content = do_QueryInterface(pointerLockedElement);
+    return mPresContext->GetPrimaryFrameFor(content);
+  }
+
   SAMPLE_LABEL("Input", "DispatchMouseEvent");
   nsEventStatus status = nsEventStatus_eIgnore;
   nsMouseEvent event(NS_IS_TRUSTED_EVENT(aEvent), aMessage, aEvent->widget,
@@ -3989,6 +4037,26 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
   switch(aEvent->message) {
   case NS_MOUSE_MOVE:
     {
+      if (sIsPointerLocked && aEvent->widget) {
+        
+        nsIntRect bounds;
+        aEvent->widget->GetScreenBounds(bounds);
+        aEvent->lastRefPoint = GetMouseCoords(bounds);
+
+        
+        if (aEvent->refPoint.x == aEvent->lastRefPoint.x &&
+            aEvent->refPoint.y == aEvent->lastRefPoint.y) {
+          aEvent->refPoint = sLastRefPoint;
+        } else {
+          aEvent->widget->SynthesizeNativeMouseMove(aEvent->lastRefPoint);
+        }
+      } else {
+        aEvent->lastRefPoint = nsIntPoint(sLastRefPoint.x, sLastRefPoint.y);
+      }
+
+      
+      sLastRefPoint = nsIntPoint(aEvent->refPoint.x, aEvent->refPoint.y);
+
       
       nsCOMPtr<nsIContent> targetElement = GetEventTargetContent(aEvent);
       if (!targetElement) {
@@ -4022,6 +4090,79 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
 
   
   mCurrentTargetContent = targetBeforeEvent;
+}
+
+void
+nsEventStateManager::SetPointerLock(nsIWidget* aWidget,
+                                    nsIContent* aElement)
+{
+  
+  sIsPointerLocked = !!aElement;
+
+  if (!aWidget) {
+    return;
+  }
+
+  
+  nsMouseWheelTransaction::EndTransaction();
+
+  
+  nsCOMPtr<nsIDragService> dragService =
+    do_GetService("@mozilla.org/widget/dragservice;1");
+
+  if (sIsPointerLocked) {
+    
+    mPreLockPoint = sLastRefPoint + sLastScreenOffset;
+
+    nsIntRect bounds;
+    aWidget->GetScreenBounds(bounds);
+    sLastRefPoint = GetMouseCoords(bounds);
+    aWidget->SynthesizeNativeMouseMove(sLastRefPoint);
+
+    
+    nsIPresShell::SetCapturingContent(aElement, CAPTURE_POINTERLOCK);
+
+    
+    if (dragService) {
+      dragService->Suppress();
+    }
+  } else {
+    
+    aWidget->SynthesizeNativeMouseMove(sLastScreenPoint);
+
+    
+    nsIPresShell::SetCapturingContent(nsnull, CAPTURE_POINTERLOCK);
+
+    
+    if (dragService) {
+      dragService->Unsuppress();
+    }
+  }
+}
+
+nsIntPoint
+nsEventStateManager::GetMouseCoords(nsIntRect aBounds)
+{
+  NS_ASSERTION(sIsPointerLocked, "GetMouseCoords when not pointer locked!");
+
+  nsCOMPtr<nsIDocument> pointerLockedDoc =
+    do_QueryReferent(nsEventStateManager::sPointerLockedDoc);
+  if (!pointerLockedDoc) {
+    NS_WARNING("GetMouseCoords(): No Document");
+    return nsIntPoint(0, 0);
+  }
+
+  nsCOMPtr<nsPIDOMWindow> domWin = pointerLockedDoc->GetInnerWindow();
+  if (!domWin) {
+    NS_WARNING("GetMouseCoords(): No Window");
+    return nsIntPoint(0, 0);
+  }
+
+  int innerHeight;
+  domWin->GetInnerHeight(&innerHeight);
+
+  return nsIntPoint((aBounds.width / 2) + aBounds.x,
+                    (innerHeight / 2) + (aBounds.y + (aBounds.height - innerHeight)));
 }
 
 void

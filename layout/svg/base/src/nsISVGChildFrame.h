@@ -48,6 +48,7 @@ class nsRenderingContext;
 
 struct gfxMatrix;
 struct nsPoint;
+class SVGBBox;
 
 namespace mozilla {
 class SVGAnimatedLengthList;
@@ -134,7 +135,7 @@ public:
 
 
 
-  virtual gfxRect GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
+  virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
                                       PRUint32 aFlags) = 0;
 
   

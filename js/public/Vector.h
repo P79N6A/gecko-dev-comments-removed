@@ -5,6 +5,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsvector_h_
 #define jsvector_h_
 
@@ -180,7 +213,7 @@ struct VectorImpl<T, N, AP, true>
 template <class T, size_t N, class AllocPolicy>
 class Vector : private AllocPolicy
 {
-    typedef typename tl::StaticAssert<tl::IsRelocatableHeapType<T>::result>::result _;
+    
 
     
 
@@ -563,12 +596,7 @@ Vector<T,N,AP>::~Vector()
 
 template <class T, size_t N, class AP>
 STATIC_POSTCONDITION(!return || newCap >= curLength + lengthInc)
-#ifdef DEBUG
-
-JS_NEVER_INLINE bool
-#else
 inline bool
-#endif
 Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
                                      size_t &newCap)
 {

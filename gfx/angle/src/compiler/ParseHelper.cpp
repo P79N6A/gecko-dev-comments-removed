@@ -463,10 +463,8 @@ bool TParseContext::reservedErrorCheck(int line, const TString& identifier)
             }
         }
         if (identifier.find("__") != TString::npos) {
-            
-            
-            infoSink.info.message(EPrefixWarning, "Two consecutive underscores are reserved for future use.", line);
-            return false;
+            error(line, "identifiers containing two consecutive underscores (__) are reserved as possible future keywords", identifier.c_str(), "", "");
+            return true;
         }
     }
 
@@ -1490,8 +1488,9 @@ int PaParseStrings(int count, const char* const string[], const int length[],
     if (glslang_initialize(context))
         return 1;
 
-    glslang_scan(count, string, length, context);
-    int error = glslang_parse(context);
+    int error = glslang_scan(count, string, length, context);
+    if (!error)
+        error = glslang_parse(context);
 
     glslang_finalize(context);
     FinalizePreprocessor();

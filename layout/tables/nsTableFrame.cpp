@@ -1281,7 +1281,8 @@ nsTableFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       if (deflate == nsMargin(0, 0, 0, 0)) {
-        nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false);
+        nsDisplayBackground* bg;
+        nsresult rv = DisplayBackgroundUnconditional(aBuilder, aLists, false, &bg);
         NS_ENSURE_SUCCESS(rv, rv);
       }
     }

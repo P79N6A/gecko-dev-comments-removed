@@ -54,6 +54,8 @@
 #include "frontend/Parser.h"
 #include "frontend/ParseMaps.h"
 
+#include "vm/ScopeObject.h"
+
 namespace js {
 
 typedef HashSet<JSAtom *> FuncStmtSet;
@@ -136,12 +138,12 @@ struct StmtInfo {
     ptrdiff_t       update;         
     ptrdiff_t       breaks;         
     ptrdiff_t       continues;      
-    union {
-        JSAtom      *label;         
-        StaticBlockObject *blockObj;
-    };
+    RootedVarAtom   label;          
+    RootedVar<StaticBlockObject *> blockObj; 
     StmtInfo        *down;          
     StmtInfo        *downScope;     
+
+    StmtInfo(JSContext *cx) : label(cx), blockObj(cx) {}
 };
 
 #define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
@@ -166,6 +168,12 @@ struct StmtInfo {
 JS_ENUM_HEADER(TreeContextFlags, uint32_t)
 {
     
+
+
+
+
+
+
     TCF_COMPILING =                            0x1,
 
     
@@ -336,7 +344,8 @@ struct TreeContext {
 
     StmtInfo        *topStmt;       
     StmtInfo        *topScopeStmt;  
-    StaticBlockObject *blockChain;  
+    RootedVar<StaticBlockObject *> blockChain;
+                                    
 
 
     ParseNode       *blockNode;     
@@ -351,11 +360,9 @@ struct TreeContext {
 
 
   private:
-    union {
-        JSFunction  *fun_;          
+    RootedVarFunction fun_;         
 
-        JSObject    *scopeChain_;   
-    };
+    RootedVarObject   scopeChain_;  
 
   public:
     JSFunction *fun() const {
@@ -376,8 +383,16 @@ struct TreeContext {
     }
 
     OwnedAtomDefnMapPtr lexdeps;    
-    TreeContext     *parent;        
-    unsigned           staticLevel;    
+
+    
+
+
+
+
+
+    TreeContext     *parent;
+
+    unsigned        staticLevel;    
 
     FunctionBox     *funbox;        
 
@@ -428,19 +443,11 @@ struct TreeContext {
 
     bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
-    
-    bool inStatement(StmtType type);
-
     bool inStrictMode() const {
         return flags & TCF_STRICT_MODE_CODE;
     }
 
     inline bool needStrictChecks();
-
-    
-    
-    
-    bool skipSpansGenerator(unsigned skip);
 
     bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
@@ -544,7 +551,8 @@ class GCConstList {
 
 struct GlobalScope {
     GlobalScope(JSContext *cx, JSObject *globalObj, BytecodeEmitter *bce)
-      : globalObj(globalObj), bce(bce), defs(cx), names(cx)
+      : globalObj(cx, globalObj), bce(bce), defs(cx), names(cx),
+        defsRoot(cx, &defs), namesRoot(cx, &names)
     { }
 
     struct GlobalDef {
@@ -558,7 +566,7 @@ struct GlobalScope {
         GlobalDef(JSAtom *atom, FunctionBox *box) : atom(atom), funbox(box) { }
     };
 
-    JSObject        *globalObj;
+    RootedVarObject globalObj;
     BytecodeEmitter *bce;
 
     
@@ -571,6 +579,13 @@ struct GlobalScope {
 
     Vector<GlobalDef, 16> defs;
     AtomIndexMap      names;
+
+    
+
+
+
+    JS::SkipRoot      defsRoot;
+    JS::SkipRoot      namesRoot;
 };
 
 struct BytecodeEmitter : public TreeContext

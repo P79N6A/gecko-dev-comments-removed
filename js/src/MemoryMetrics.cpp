@@ -286,15 +286,21 @@ CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats)
     rtStats->gcHeapChunkAdmin = numDirtyChunks * perChunkAdmin;
     rtStats->gcHeapChunkDirtyUnused -= rtStats->gcHeapChunkAdmin;
 
+    rtStats->gcHeapUnused = rtStats->gcHeapChunkDirtyUnused +
+                            rtStats->gcHeapChunkCleanUnused +
+                            rtStats->gcHeapArenaUnused;
+
+    rtStats->gcHeapCommitted = rtStats->gcHeapChunkTotal -
+                               rtStats->gcHeapChunkCleanDecommitted -
+                               rtStats->gcHeapChunkDirtyDecommitted;
+
     
     
     
-    rtStats->gcHeapUnusedPercentage = (rtStats->gcHeapChunkCleanUnused +
-                                       rtStats->gcHeapChunkDirtyUnused +
-                                       rtStats->gcHeapChunkCleanDecommitted +
-                                       rtStats->gcHeapChunkDirtyDecommitted +
-                                       rtStats->gcHeapArenaUnused) * 10000 /
-                                       rtStats->gcHeapChunkTotal;
+    rtStats->gcHeapFragmentationPercentage = (rtStats->gcHeapChunkCleanUnused +
+                                              rtStats->gcHeapChunkDirtyUnused +
+                                              rtStats->gcHeapArenaUnused) * 10000 /
+                                              rtStats->gcHeapCommitted;
 
     return true;
 }

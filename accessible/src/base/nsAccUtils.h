@@ -44,7 +44,6 @@
 #include "nsIAccessibleText.h"
 #include "nsIAccessibleTable.h"
 
-#include "nsARIAMap.h"
 #include "nsAccessibilityService.h"
 #include "nsCoreUtils.h"
 
@@ -60,6 +59,7 @@ class nsAccessible;
 class nsHyperTextAccessible;
 class nsHTMLTableAccessible;
 class nsDocAccessible;
+struct nsRoleMapEntry;
 #ifdef MOZ_XUL
 class nsXULTreeAccessible;
 #endif
@@ -248,16 +248,6 @@ public:
 
 
   static nsIntPoint GetScreenCoordsForParent(nsAccessNode *aAccessNode);
-
-  
-
-
-
-
-
-
-
-  static nsRoleMapEntry *GetRoleMapEntry(nsINode *aNode);
 
   
 

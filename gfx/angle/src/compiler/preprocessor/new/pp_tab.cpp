@@ -42,12 +42,10 @@
 
 
 
-
-
 #define YYBISON 1
 
 
-#define YYBISON_VERSION "2.3"
+#define YYBISON_VERSION "2.4.2"
 
 
 #define YYSKELETON_NAME "yacc.c"
@@ -56,17 +54,64 @@
 #define YYPURE 1
 
 
+#define YYPUSH 0
+
+
+#define YYPULL 1
+
+
 #define YYLSP_NEEDED 1
 
 
-#define yyparse ppparse
-#define yylex   pplex
-#define yyerror pperror
-#define yylval  pplval
-#define yychar  ppchar
-#define yydebug ppdebug
-#define yynerrs ppnerrs
-#define yylloc pplloc
+#define yyparse         ppparse
+#define yylex           pplex
+#define yyerror         pperror
+#define yylval          pplval
+#define yychar          ppchar
+#define yydebug         ppdebug
+#define yynerrs         ppnerrs
+#define yylloc          pplloc
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(__GNUC__)
+#elif defined(_MSC_VER)
+#pragma warning(disable: 4065)
+#endif
+
+#include "Context.h"
+
+#define YYDEBUG 1
+
+
+
+
+#ifndef YYDEBUG
+# define YYDEBUG 0
+#endif
+
+
+#ifdef YYERROR_VERBOSE
+# undef YYERROR_VERBOSE
+# define YYERROR_VERBOSE 1
+#else
+# define YYERROR_VERBOSE 0
+#endif
+
+
+#ifndef YYTOKEN_TABLE
+# define YYTOKEN_TABLE 0
+#endif
+
 
 
 #ifndef YYTOKENTYPE
@@ -96,79 +141,24 @@
    };
 #endif
 
-#define HASH 258
-#define HASH_UNDEF 259
-#define HASH_IF 260
-#define HASH_IFDEF 261
-#define HASH_IFNDEF 262
-#define HASH_ELSE 263
-#define HASH_ELIF 264
-#define HASH_ENDIF 265
-#define DEFINED 266
-#define HASH_ERROR 267
-#define HASH_PRAGMA 268
-#define HASH_EXTENSION 269
-#define HASH_VERSION 270
-#define HASH_LINE 271
-#define HASH_DEFINE_OBJ 272
-#define HASH_DEFINE_FUNC 273
-#define INT_CONSTANT 274
-#define FLOAT_CONSTANT 275
-#define IDENTIFIER 276
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "Context.h"
-
-#define YYLEX_PARAM context->lexer()
-#define YYDEBUG 1
-
-
-
-#ifndef YYDEBUG
-# define YYDEBUG 0
-#endif
-
-
-#ifdef YYERROR_VERBOSE
-# undef YYERROR_VERBOSE
-# define YYERROR_VERBOSE 1
-#else
-# define YYERROR_VERBOSE 0
-#endif
-
-
-#ifndef YYTOKEN_TABLE
-# define YYTOKEN_TABLE 0
-#endif
 
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 typedef union YYSTYPE
-
 {
+
+
     int ival;
     std::string* sval;
     pp::Token* tval;
     pp::TokenVector* tlist;
-}
 
 
-	YYSTYPE;
+
+} YYSTYPE;
+# define YYSTYPE_IS_TRIVIAL 1
 # define yystype YYSTYPE /* obsolescent; will be withdrawn */
 # define YYSTYPE_IS_DECLARED 1
-# define YYSTYPE_IS_TRIVIAL 1
 #endif
 
 #if ! defined YYLTYPE && ! defined YYLTYPE_IS_DECLARED
@@ -188,15 +178,13 @@ typedef struct YYLTYPE
 
 
 
-extern int yylex(YYSTYPE* lvalp, YYLTYPE* llocp, void* lexer);
+static int yylex(YYSTYPE* lvalp, YYLTYPE* llocp, pp::Context* context);
 static void yyerror(YYLTYPE* llocp,
                     pp::Context* context,
                     const char* reason);
 
 static void pushConditionalBlock(pp::Context* context, bool condition);
 static void popConditionalBlock(pp::Context* context);
-
-
 
 
 
@@ -248,7 +236,7 @@ typedef short int yytype_int16;
 #define YYSIZE_MAXIMUM ((YYSIZE_T) -1)
 
 #ifndef YY_
-# if YYENABLE_NLS
+# if defined YYENABLE_NLS && YYENABLE_NLS
 #  if ENABLE_NLS
 #   include <libintl.h> 
 #   define YY_(msgid) dgettext ("bison-runtime", msgid)
@@ -273,14 +261,14 @@ typedef short int yytype_int16;
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static int
-YYID (int i)
+YYID (int yyi)
 #else
 static int
-YYID (i)
-    int i;
+YYID (yyi)
+    int yyi;
 #endif
 {
-  return i;
+  return yyi;
 }
 #endif
 
@@ -362,9 +350,9 @@ void free (void *);
 
 union yyalloc
 {
-  yytype_int16 yyss;
-  YYSTYPE yyvs;
-    YYLTYPE yyls;
+  yytype_int16 yyss_alloc;
+  YYSTYPE yyvs_alloc;
+  YYLTYPE yyls_alloc;
 };
 
 
@@ -399,12 +387,12 @@ union yyalloc
 
 
 
-# define YYSTACK_RELOCATE(Stack)					\
+# define YYSTACK_RELOCATE(Stack_alloc, Stack)				\
     do									\
       {									\
 	YYSIZE_T yynewbytes;						\
-	YYCOPY (&yyptr->Stack, Stack, yysize);				\
-	Stack = &yyptr->Stack;						\
+	YYCOPY (&yyptr->Stack_alloc, Stack, yysize);			\
+	Stack = &yyptr->Stack_alloc;					\
 	yynewbytes = yystacksize * sizeof (*Stack) + YYSTACK_GAP_MAXIMUM; \
 	yyptr += yynewbytes / sizeof (*yyptr);				\
       }									\
@@ -504,13 +492,13 @@ static const yytype_int8 yyrhs[] =
 
 static const yytype_uint8 yyrline[] =
 {
-       0,    63,    63,    65,    69,    70,    74,    75,    84,    85,
-      88,    91,    94,    97,   100,   103,   105,   107,   110,   111,
-     112,   113,   114,   118,   119,   122,   123,   127,   133,   137,
-     144,   148,   155,   157,   159,   163,   166,   169,   172,   178,
-     179,   180,   181,   182,   183,   184,   185,   186,   187,   188,
-     189,   190,   191,   192,   193,   194,   195,   196,   197,   198,
-     199,   200,   201
+       0,    68,    68,    70,    74,    75,    79,    80,    89,    90,
+      93,    96,    99,   102,   105,   108,   110,   112,   115,   116,
+     117,   118,   119,   123,   124,   127,   128,   132,   138,   142,
+     149,   153,   160,   162,   164,   168,   171,   174,   177,   183,
+     184,   185,   186,   187,   188,   189,   190,   191,   192,   193,
+     194,   195,   196,   197,   198,   199,   200,   201,   202,   203,
+     204,   205,   206
 };
 #endif
 
@@ -710,7 +698,16 @@ static const yytype_uint8 yystos[] =
 
 
 
+
+
+
 #define YYFAIL		goto yyerrlab
+#if defined YYFAIL
+  
+
+
+
+#endif
 
 #define YYRECOVERING()  (!!yyerrstatus)
 
@@ -767,7 +764,7 @@ while (YYID (0))
 
 
 #ifndef YY_LOCATION_PRINT
-# if YYLTYPE_IS_TRIVIAL
+# if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
 #  define YY_LOCATION_PRINT(File, Loc)			\
      fprintf (File, "%d.%d-%d.%d",			\
 	      (Loc).first_line, (Loc).first_column,	\
@@ -783,7 +780,7 @@ while (YYID (0))
 #ifdef YYLEX_PARAM
 # define YYLEX yylex (&yylval, &yylloc, YYLEX_PARAM)
 #else
-# define YYLEX yylex (&yylval, &yylloc)
+# define YYLEX yylex (&yylval, &yylloc, context)
 #endif
 
 
@@ -886,17 +883,20 @@ yy_symbol_print (yyoutput, yytype, yyvaluep, yylocationp, context)
 #if (defined __STDC__ || defined __C99__FUNC__ \
      || defined __cplusplus || defined _MSC_VER)
 static void
-yy_stack_print (yytype_int16 *bottom, yytype_int16 *top)
+yy_stack_print (yytype_int16 *yybottom, yytype_int16 *yytop)
 #else
 static void
-yy_stack_print (bottom, top)
-    yytype_int16 *bottom;
-    yytype_int16 *top;
+yy_stack_print (yybottom, yytop)
+    yytype_int16 *yybottom;
+    yytype_int16 *yytop;
 #endif
 {
   YYFPRINTF (stderr, "Stack now");
-  for (; bottom <= top; ++bottom)
-    YYFPRINTF (stderr, " %d", *bottom);
+  for (; yybottom <= yytop; yybottom++)
+    {
+      int yybot = *yybottom;
+      YYFPRINTF (stderr, " %d", yybot);
+    }
   YYFPRINTF (stderr, "\n");
 }
 
@@ -932,11 +932,11 @@ yy_reduce_print (yyvsp, yylsp, yyrule, context)
   
   for (yyi = 0; yyi < yynrhs; yyi++)
     {
-      fprintf (stderr, "   $%d = ", yyi + 1);
+      YYFPRINTF (stderr, "   $%d = ", yyi + 1);
       yy_symbol_print (stderr, yyrhs[yyprhs[yyrule] + yyi],
 		       &(yyvsp[(yyi + 1) - (yynrhs)])
 		       , &(yylsp[(yyi + 1) - (yynrhs)])		       , context);
-      fprintf (stderr, "\n");
+      YYFPRINTF (stderr, "\n");
     }
 }
 
@@ -1220,8 +1220,6 @@ yydestruct (yymsg, yytype, yyvaluep, yylocationp, context)
 	break;
     }
 }
-
-
 
 
 #ifdef YYPARSE_PARAM
@@ -1237,7 +1235,6 @@ int yyparse (pp::Context* context);
 int yyparse ();
 #endif
 #endif 
-
 
 
 
@@ -1269,24 +1266,59 @@ yyparse (context)
 #endif
 #endif
 {
-  
+
 int yychar;
 
 
 YYSTYPE yylval;
 
 
-int yynerrs;
-
 YYLTYPE yylloc;
 
-  int yystate;
+    
+    int yynerrs;
+
+    int yystate;
+    
+    int yyerrstatus;
+
+    
+
+
+
+
+
+
+
+    
+    yytype_int16 yyssa[YYINITDEPTH];
+    yytype_int16 *yyss;
+    yytype_int16 *yyssp;
+
+    
+    YYSTYPE yyvsa[YYINITDEPTH];
+    YYSTYPE *yyvs;
+    YYSTYPE *yyvsp;
+
+    
+    YYLTYPE yylsa[YYINITDEPTH];
+    YYLTYPE *yyls;
+    YYLTYPE *yylsp;
+
+    
+    YYLTYPE yyerror_range[2];
+
+    YYSIZE_T yystacksize;
+
   int yyn;
   int yyresult;
   
-  int yyerrstatus;
+  int yytoken;
   
-  int yytoken = 0;
+
+  YYSTYPE yyval;
+  YYLTYPE yyloc;
+
 #if YYERROR_VERBOSE
   
   char yymsgbuf[128];
@@ -1294,63 +1326,37 @@ YYLTYPE yylloc;
   YYSIZE_T yymsg_alloc = sizeof yymsgbuf;
 #endif
 
-  
-
-
-
-
-
-
-
-  
-  yytype_int16 yyssa[YYINITDEPTH];
-  yytype_int16 *yyss = yyssa;
-  yytype_int16 *yyssp;
-
-  
-  YYSTYPE yyvsa[YYINITDEPTH];
-  YYSTYPE *yyvs = yyvsa;
-  YYSTYPE *yyvsp;
-
-  
-  YYLTYPE yylsa[YYINITDEPTH];
-  YYLTYPE *yyls = yylsa;
-  YYLTYPE *yylsp;
-  
-  YYLTYPE yyerror_range[2];
-
 #define YYPOPSTACK(N)   (yyvsp -= (N), yyssp -= (N), yylsp -= (N))
-
-  YYSIZE_T yystacksize = YYINITDEPTH;
-
-  
-
-  YYSTYPE yyval;
-  YYLTYPE yyloc;
 
   
 
   int yylen = 0;
+
+  yytoken = 0;
+  yyss = yyssa;
+  yyvs = yyvsa;
+  yyls = yylsa;
+  yystacksize = YYINITDEPTH;
 
   YYDPRINTF ((stderr, "Starting parse\n"));
 
   yystate = 0;
   yyerrstatus = 0;
   yynerrs = 0;
-  yychar = YYEMPTY;		
+  yychar = YYEMPTY; 
 
   
-
 
 
 
   yyssp = yyss;
   yyvsp = yyvs;
   yylsp = yyls;
-#if YYLTYPE_IS_TRIVIAL
+
+#if defined YYLTYPE_IS_TRIVIAL && YYLTYPE_IS_TRIVIAL
   
   yylloc.first_line   = yylloc.last_line   = 1;
-  yylloc.first_column = yylloc.last_column = 0;
+  yylloc.first_column = yylloc.last_column = 1;
 #endif
 
   goto yysetstate;
@@ -1389,6 +1395,7 @@ YYLTYPE yylloc;
 		    &yyvs1, yysize * sizeof (*yyvsp),
 		    &yyls1, yysize * sizeof (*yylsp),
 		    &yystacksize);
+
 	yyls = yyls1;
 	yyss = yyss1;
 	yyvs = yyvs1;
@@ -1410,9 +1417,9 @@ YYLTYPE yylloc;
 	  (union yyalloc *) YYSTACK_ALLOC (YYSTACK_BYTES (yystacksize));
 	if (! yyptr)
 	  goto yyexhaustedlab;
-	YYSTACK_RELOCATE (yyss);
-	YYSTACK_RELOCATE (yyvs);
-	YYSTACK_RELOCATE (yyls);
+	YYSTACK_RELOCATE (yyss_alloc, yyss);
+	YYSTACK_RELOCATE (yyvs_alloc, yyvs);
+	YYSTACK_RELOCATE (yyls_alloc, yyls);
 #  undef YYSTACK_RELOCATE
 	if (yyss1 != yyssa)
 	  YYSTACK_FREE (yyss1);
@@ -1432,6 +1439,9 @@ YYLTYPE yylloc;
     }
 
   YYDPRINTF ((stderr, "Entering state %d\n", yystate));
+
+  if (yystate == YYFINAL)
+    YYACCEPT;
 
   goto yybackup;
 
@@ -1482,9 +1492,6 @@ yybackup:
       goto yyreduce;
     }
 
-  if (yyn == YYFINAL)
-    YYACCEPT;
-
   
 
   if (yyerrstatus)
@@ -1494,8 +1501,7 @@ yybackup:
   YY_SYMBOL_PRINT ("Shifting", yytoken, &yylval, &yylloc);
 
   
-  if (yychar != YYEOF)
-    yychar = YYEMPTY;
+  yychar = YYEMPTY;
 
   yystate = yyn;
   *++yyvsp = yylval;
@@ -1542,78 +1548,78 @@ yyreduce:
         pp::TokenVector* out = context->output();
         out->insert(out->end(), (yyvsp[(1) - (2)].tlist)->begin(), (yyvsp[(1) - (2)].tlist)->end());
         delete (yyvsp[(1) - (2)].tlist);
-    ;}
+    }
     break;
 
   case 9:
 
     {
         context->defineMacro((yylsp[(1) - (3)]).first_line, pp::Macro::kTypeObj, (yyvsp[(1) - (3)].sval), NULL, (yyvsp[(2) - (3)].tlist));
-    ;}
+    }
     break;
 
   case 10:
 
     {
         context->defineMacro((yylsp[(1) - (6)]).first_line, pp::Macro::kTypeFunc, (yyvsp[(1) - (6)].sval), (yyvsp[(3) - (6)].tlist), (yyvsp[(5) - (6)].tlist));
-    ;}
+    }
     break;
 
   case 11:
 
     {
         context->undefineMacro((yyvsp[(2) - (3)].sval));
-    ;}
+    }
     break;
 
   case 12:
 
     {
         pushConditionalBlock(context, (yyvsp[(2) - (3)].tlist) ? true : false);
-    ;}
+    }
     break;
 
   case 13:
 
     {
         pushConditionalBlock(context, context->isMacroDefined((yyvsp[(2) - (3)].sval)));
-    ;}
+    }
     break;
 
   case 14:
 
     {
         pushConditionalBlock(context, !context->isMacroDefined((yyvsp[(2) - (3)].sval)));
-    ;}
+    }
     break;
 
   case 15:
 
     {
-    ;}
+    }
     break;
 
   case 16:
 
     {
-    ;}
+    }
     break;
 
   case 17:
 
     {
         popConditionalBlock(context);
-    ;}
+    }
     break;
 
   case 23:
 
-    { (yyval.tlist) = NULL; ;}
+    { (yyval.tlist) = NULL; }
     break;
 
   case 25:
 
-    { (yyval.tlist) = NULL; ;}
+    { (yyval.tlist) = NULL; }
     break;
 
   case 26:
@@ -1621,7 +1627,7 @@ yyreduce:
     {
         (yyval.tlist) = new pp::TokenVector;
         (yyval.tlist)->push_back(new pp::Token((yylsp[(1) - (1)]).first_line, IDENTIFIER, (yyvsp[(1) - (1)].sval)));
-    ;}
+    }
     break;
 
   case 27:
@@ -1629,7 +1635,7 @@ yyreduce:
     {
         (yyval.tlist) = (yyvsp[(1) - (3)].tlist);
         (yyval.tlist)->push_back(new pp::Token((yylsp[(3) - (3)]).first_line, IDENTIFIER, (yyvsp[(3) - (3)].sval)));
-    ;}
+    }
     break;
 
   case 28:
@@ -1637,7 +1643,7 @@ yyreduce:
     {
         (yyval.tlist) = new pp::TokenVector;
         (yyval.tlist)->push_back((yyvsp[(1) - (1)].tval));
-    ;}
+    }
     break;
 
   case 29:
@@ -1645,7 +1651,7 @@ yyreduce:
     {
         (yyval.tlist) = (yyvsp[(1) - (2)].tlist);
         (yyval.tlist)->push_back((yyvsp[(2) - (2)].tval));
-    ;}
+    }
     break;
 
   case 30:
@@ -1653,7 +1659,7 @@ yyreduce:
     {
         (yyval.tlist) = new pp::TokenVector;
         (yyval.tlist)->push_back((yyvsp[(1) - (1)].tval));
-    ;}
+    }
     break;
 
   case 31:
@@ -1661,169 +1667,168 @@ yyreduce:
     {
         (yyval.tlist) = (yyvsp[(1) - (2)].tlist);
         (yyval.tlist)->push_back((yyvsp[(2) - (2)].tval));
-    ;}
+    }
     break;
 
   case 32:
 
     {
-    ;}
+    }
     break;
 
   case 33:
 
     {
-    ;}
+    }
     break;
 
   case 35:
 
     {
         (yyval.tval) = new pp::Token((yylsp[(1) - (1)]).first_line, (yyvsp[(1) - (1)].ival), NULL);
-    ;}
+    }
     break;
 
   case 36:
 
     {
         (yyval.tval) = new pp::Token((yylsp[(1) - (1)]).first_line, INT_CONSTANT, (yyvsp[(1) - (1)].sval));
-    ;}
+    }
     break;
 
   case 37:
 
     {
         (yyval.tval) = new pp::Token((yylsp[(1) - (1)]).first_line, FLOAT_CONSTANT, (yyvsp[(1) - (1)].sval));
-    ;}
+    }
     break;
 
   case 38:
 
     {
         (yyval.tval) = new pp::Token((yylsp[(1) - (1)]).first_line, IDENTIFIER, (yyvsp[(1) - (1)].sval));
-    ;}
+    }
     break;
 
   case 39:
 
-    { (yyval.ival) = '['; ;}
+    { (yyval.ival) = '['; }
     break;
 
   case 40:
 
-    { (yyval.ival) = ']'; ;}
+    { (yyval.ival) = ']'; }
     break;
 
   case 41:
 
-    { (yyval.ival) = '<'; ;}
+    { (yyval.ival) = '<'; }
     break;
 
   case 42:
 
-    { (yyval.ival) = '>'; ;}
+    { (yyval.ival) = '>'; }
     break;
 
   case 43:
 
-    { (yyval.ival) = '('; ;}
+    { (yyval.ival) = '('; }
     break;
 
   case 44:
 
-    { (yyval.ival) = ')'; ;}
+    { (yyval.ival) = ')'; }
     break;
 
   case 45:
 
-    { (yyval.ival) = '{'; ;}
+    { (yyval.ival) = '{'; }
     break;
 
   case 46:
 
-    { (yyval.ival) = '}'; ;}
+    { (yyval.ival) = '}'; }
     break;
 
   case 47:
 
-    { (yyval.ival) = '.'; ;}
+    { (yyval.ival) = '.'; }
     break;
 
   case 48:
 
-    { (yyval.ival) = '+'; ;}
+    { (yyval.ival) = '+'; }
     break;
 
   case 49:
 
-    { (yyval.ival) = '-'; ;}
+    { (yyval.ival) = '-'; }
     break;
 
   case 50:
 
-    { (yyval.ival) = '/'; ;}
+    { (yyval.ival) = '/'; }
     break;
 
   case 51:
 
-    { (yyval.ival) = '*'; ;}
+    { (yyval.ival) = '*'; }
     break;
 
   case 52:
 
-    { (yyval.ival) = '%'; ;}
+    { (yyval.ival) = '%'; }
     break;
 
   case 53:
 
-    { (yyval.ival) = '^'; ;}
+    { (yyval.ival) = '^'; }
     break;
 
   case 54:
 
-    { (yyval.ival) = '|'; ;}
+    { (yyval.ival) = '|'; }
     break;
 
   case 55:
 
-    { (yyval.ival) = '&'; ;}
+    { (yyval.ival) = '&'; }
     break;
 
   case 56:
 
-    { (yyval.ival) = '~'; ;}
+    { (yyval.ival) = '~'; }
     break;
 
   case 57:
 
-    { (yyval.ival) = '='; ;}
+    { (yyval.ival) = '='; }
     break;
 
   case 58:
 
-    { (yyval.ival) = '!'; ;}
+    { (yyval.ival) = '!'; }
     break;
 
   case 59:
 
-    { (yyval.ival) = ':'; ;}
+    { (yyval.ival) = ':'; }
     break;
 
   case 60:
 
-    { (yyval.ival) = ';'; ;}
+    { (yyval.ival) = ';'; }
     break;
 
   case 61:
 
-    { (yyval.ival) = ','; ;}
+    { (yyval.ival) = ','; }
     break;
 
   case 62:
 
-    { (yyval.ival) = '?'; ;}
+    { (yyval.ival) = '?'; }
     break;
-
 
 
 
@@ -1977,9 +1982,6 @@ yyerrlab1:
       YY_STACK_PRINT (yyss, yyssp);
     }
 
-  if (yyn == YYFINAL)
-    YYACCEPT;
-
   *++yyvsp = yylval;
 
   yyerror_range[1] = yylloc;
@@ -2009,7 +2011,7 @@ yyabortlab:
   yyresult = 1;
   goto yyreturn;
 
-#ifndef yyoverflow
+#if !defined(yyoverflow) || YYERROR_VERBOSE
 
 
 
@@ -2020,7 +2022,7 @@ yyexhaustedlab:
 #endif
 
 yyreturn:
-  if (yychar != YYEOF && yychar != YYEMPTY)
+  if (yychar != YYEMPTY)
      yydestruct ("Cleanup: discarding lookahead",
 		 yytoken, &yylval, &yylloc, context);
   
@@ -2048,6 +2050,11 @@ yyreturn:
 
 
 
+
+int yylex(YYSTYPE* lvalp, YYLTYPE* llocp, pp::Context* context)
+{
+    return context->lex(lvalp, llocp);
+}
 
 void yyerror(YYLTYPE* llocp, pp::Context* context, const char* reason)
 {

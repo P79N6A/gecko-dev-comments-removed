@@ -46,12 +46,20 @@
 #include "gfxContext.h"
 #include "nsContentUtils.h"
 #include "nsUnicharUtils.h"
+#include "nsUnicodeProperties.h"
 
 #define SZLIG 0x00DF
 
 
 #define LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE  0x0130
 #define LATIN_SMALL_LETTER_DOTLESS_I           0x0131
+
+
+
+
+#define GREEK_CAPITAL_LETTER_SIGMA      0x03A3
+#define GREEK_SMALL_LETTER_FINAL_SIGMA  0x03C2
+#define GREEK_SMALL_LETTER_SIGMA        0x03C3
 
 nsTransformedTextRun *
 nsTransformedTextRun::Create(const gfxTextRunFactory::Parameters* aParams,
@@ -182,7 +190,7 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
     PRUint32 mergeRunStart = iter.GetStringStart();
     PRUint32 k;
     for (k = iter.GetStringStart(); k < iter.GetStringEnd(); ++k) {
-      gfxTextRun::CompressedGlyph g = aSrc->GetCharacterGlyphs()[k];
+      const gfxTextRun::CompressedGlyph g = aSrc->GetCharacterGlyphs()[k];
       if (g.IsSimpleGlyph()) {
         if (!anyMissing) {
           gfxTextRun::DetailedGlyph details;
@@ -222,12 +230,14 @@ MergeCharactersInTextRun(gfxTextRun* aDest, gfxTextRun* aSrc,
       
       
       if (!aCharsToMerge[mergeRunStart]) {
+        gfxTextRun::CompressedGlyph mergedGlyphs =
+          aSrc->GetCharacterGlyphs()[mergeRunStart];
         if (anyMissing) {
-          g.SetMissing(glyphs.Length());
+          mergedGlyphs.SetMissing(glyphs.Length());
         } else {
-          g.SetComplex(true, true, glyphs.Length());
+          mergedGlyphs.SetComplex(true, true, glyphs.Length());
         }
-        aDest->SetGlyphs(offset, g, glyphs.Elements());
+        aDest->SetGlyphs(offset, mergedGlyphs, glyphs.Elements());
         ++offset;
       }
 
@@ -374,7 +384,10 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
   } languageSpecificCasing = eNone;
 
   const nsIAtom* lang = nsnull;
-  bool capitalizeDutchIJ = false;  
+  bool capitalizeDutchIJ = false;
+  bool prevIsLetter = false;
+  PRUint32 sigmaIndex = PRUint32(-1);
+  nsIUGenCategory::nsUGenCategory cat;
   PRUint32 i;
   for (i = 0; i < length; ++i) {
     PRUint32 ch = str[i];
@@ -409,21 +422,82 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
     case NS_STYLE_TEXT_TRANSFORM_LOWERCASE:
       if (languageSpecificCasing == eTurkish && ch == 'I') {
         ch = LATIN_SMALL_LETTER_DOTLESS_I;
-      } else {
-        ch = ToLowerCase(ch);
+        prevIsLetter = true;
+        sigmaIndex = PRUint32(-1);
+        break;
+      }
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+
+      cat = mozilla::unicode::GetGenCategory(ch);
+
+      
+      
+      
+      if (sigmaIndex != PRUint32(-1)) {
+        if (cat == nsIUGenCategory::kLetter) {
+          convertedString.SetCharAt(GREEK_SMALL_LETTER_SIGMA, sigmaIndex);
+        }
+      }
+
+      if (ch == GREEK_CAPITAL_LETTER_SIGMA) {
+        
+        
+        
+        if (prevIsLetter) {
+          ch = GREEK_SMALL_LETTER_FINAL_SIGMA;
+          sigmaIndex = convertedString.Length();
+        } else {
+          
+          
+          ch = GREEK_SMALL_LETTER_SIGMA;
+          sigmaIndex = PRUint32(-1);
+        }
+        prevIsLetter = true;
+        break;
+      }
+
+      ch = ToLowerCase(ch);
+
+      
+      
+      
+      if (cat != nsIUGenCategory::kMark) {
+        prevIsLetter = (cat == nsIUGenCategory::kLetter);
+        sigmaIndex = PRUint32(-1);
       }
       break;
+
     case NS_STYLE_TEXT_TRANSFORM_UPPERCASE:
       if (ch == SZLIG) {
         convertedString.Append('S');
         extraChar = true;
         ch = 'S';
-      } else if (languageSpecificCasing == eTurkish && ch == 'i') {
-        ch = LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE;
-      } else {
-        ch = ToUpperCase(ch);
+        break;
       }
+      if (languageSpecificCasing == eTurkish && ch == 'i') {
+        ch = LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE;
+        break;
+      }
+      ch = ToUpperCase(ch);
       break;
+
     case NS_STYLE_TEXT_TRANSFORM_CAPITALIZE:
       if (capitalizeDutchIJ && ch == 'j') {
         ch = 'J';
@@ -436,16 +510,21 @@ nsCaseTransformTextRunFactory::RebuildTextRun(nsTransformedTextRun* aTextRun,
           convertedString.Append('S');
           extraChar = true;
           ch = 'S';
-        } else if (languageSpecificCasing == eTurkish && ch == 'i') {
+          break;
+        }
+        if (languageSpecificCasing == eTurkish && ch == 'i') {
           ch = LATIN_CAPITAL_LETTER_I_WITH_DOT_ABOVE;
-        } else if (languageSpecificCasing == eDutch && ch == 'i') {
+          break;
+        }
+        if (languageSpecificCasing == eDutch && ch == 'i') {
           ch = 'I';
           capitalizeDutchIJ = true;
-        } else {
-          ch = ToTitleCase(ch);
+          break;
         }
+        ch = ToTitleCase(ch);
       }
       break;
+
     default:
       break;
     }

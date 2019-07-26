@@ -106,6 +106,10 @@ public:
     void ConditionallyStopPruneDeadConnectionsTimer();
 
     
+    
+    void ConditionallyStopReadTimeoutTick();
+
+    
     nsresult AddTransaction(nsHttpTransaction *, PRInt32 priority);
 
     

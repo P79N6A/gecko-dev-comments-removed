@@ -79,6 +79,8 @@ struct Parser : private AutoGCRooter
     ParseNodeAllocator  allocator;
     uint32_t            functionCount;  
     ObjectBox           *traceListHead; 
+
+    
     TreeContext         *tc;            
 
     
@@ -243,7 +245,7 @@ struct Parser : private AutoGCRooter
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(TreeContext &funtc, FunctionBox *funbox, ParseNode **list);
 
-    ParseNode *functionDef(PropertyName *name, FunctionType type, FunctionSyntaxKind kind);
+    ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
 
     ParseNode *unaryOpExpr(ParseNodeKind kind, JSOp op);
 

@@ -395,9 +395,6 @@ public:
 
   static PRUint32 CopyNewlineNormalizedUnicodeTo(nsReadingIterator<PRUnichar>& aSrcStart, const nsReadingIterator<PRUnichar>& aSrcEnd, nsAString& aDest);
 
-  static nsISupports *
-  GetClassInfoInstance(nsDOMClassInfoID aID);
-
   static const nsDependentSubstring TrimCharsInSet(const char* aSet,
                                                    const nsAString& aValue);
 
@@ -2210,81 +2207,6 @@ public:
       return NS_ERROR_OUT_OF_MEMORY;                                          \
     }                                                                         \
   } else
-
-
-
-
-
-
-
-
-
-
-
-
-#if defined(__arm) || defined(__arm32__) || defined(__arm26__) || defined(__arm__)
-#if !defined(__VFP_FP__)
-#define FPU_IS_ARM_FPA
-#endif
-#endif
-
-typedef union dpun {
-    struct {
-#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
-        PRUint32 lo, hi;
-#else
-        PRUint32 hi, lo;
-#endif
-    } s;
-    PRFloat64 d;
-public:
-    operator double() const {
-        return d;
-    }
-} dpun;
-
-
-
-
-#if (__GNUC__ == 2 && __GNUC_MINOR__ > 95) || __GNUC__ > 2
-
-
-
-
-#define DOUBLE_HI32(x) (__extension__ ({ dpun u; u.d = (x); u.s.hi; }))
-#define DOUBLE_LO32(x) (__extension__ ({ dpun u; u.d = (x); u.s.lo; }))
-
-#else 
-
-
-
-
-
-#if defined(IS_LITTLE_ENDIAN) && !defined(FPU_IS_ARM_FPA)
-#define DOUBLE_HI32(x)        (((PRUint32 *)&(x))[1])
-#define DOUBLE_LO32(x)        (((PRUint32 *)&(x))[0])
-#else
-#define DOUBLE_HI32(x)        (((PRUint32 *)&(x))[0])
-#define DOUBLE_LO32(x)        (((PRUint32 *)&(x))[1])
-#endif
-
-#endif 
-
-#define DOUBLE_HI32_SIGNBIT   0x80000000
-#define DOUBLE_HI32_EXPMASK   0x7ff00000
-#define DOUBLE_HI32_MANTMASK  0x000fffff
-
-#define DOUBLE_IS_NaN(x)                                                \
-((DOUBLE_HI32(x) & DOUBLE_HI32_EXPMASK) == DOUBLE_HI32_EXPMASK && \
- (DOUBLE_LO32(x) || (DOUBLE_HI32(x) & DOUBLE_HI32_MANTMASK)))
-
-#ifdef IS_BIG_ENDIAN
-#define DOUBLE_NaN {{DOUBLE_HI32_EXPMASK | DOUBLE_HI32_MANTMASK,   \
-                        0xffffffff}}
-#else
-#define DOUBLE_NaN {{0xffffffff,                                         \
-                        DOUBLE_HI32_EXPMASK | DOUBLE_HI32_MANTMASK}}
-#endif
 
 
 
