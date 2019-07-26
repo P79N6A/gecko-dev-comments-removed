@@ -1116,6 +1116,38 @@ public class GeckoAppShell
 
 
 
+    static Intent getShareIntent(final Context context,
+                                 final String targetURI,
+                                 final String mimeType,
+                                 final String title) {
+        Intent shareIntent = getIntentForActionString(Intent.ACTION_SEND);
+        shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
+        shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
+
+        
+        
+        
+        shareIntent.putExtra(Intent.EXTRA_TITLE, title);
+
+        if (mimeType != null && mimeType.length() > 0) {
+            shareIntent.setType(mimeType);
+        }
+
+        return shareIntent;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
 
 
     static Intent getOpenURIIntent(final Context context,
@@ -1125,19 +1157,7 @@ public class GeckoAppShell
                                    final String title) {
 
         if (action.equalsIgnoreCase(Intent.ACTION_SEND)) {
-            Intent shareIntent = getIntentForActionString(action);
-            shareIntent.putExtra(Intent.EXTRA_TEXT, targetURI);
-            shareIntent.putExtra(Intent.EXTRA_SUBJECT, title);
-
-            
-            
-            
-            shareIntent.putExtra(Intent.EXTRA_TITLE, title);
-
-            if (mimeType != null && mimeType.length() > 0) {
-                shareIntent.setType(mimeType);
-            }
-
+            Intent shareIntent = getShareIntent(context, targetURI, mimeType, title);
             return Intent.createChooser(shareIntent,
                                         context.getResources().getString(R.string.share_title)); 
         }
