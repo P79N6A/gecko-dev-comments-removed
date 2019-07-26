@@ -30,9 +30,6 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 
 
 
@@ -78,7 +75,7 @@ class JavaPanZoomController
     private static final float MAX_ZOOM_DELTA = 0.125f;
 
     
-    private static final int BOUNCE_ANIMATION_DURATION = 250;
+    private static final int BOUNCE_FRAME_NUMBER = 15;
 
     private enum PanZoomState {
         NOTHING,                
@@ -116,9 +113,7 @@ class JavaPanZoomController
     private final EventDispatcher mEventDispatcher;
 
     
-    private Timer mAnimationTimer;
-    
-    private AnimationRunnable mAnimationRunnable;
+    private PanZoomRenderTask mAnimationRenderTask;
     
     private PointF mLastZoomFocus;
     
@@ -419,7 +414,7 @@ class JavaPanZoomController
     private boolean handleTouchStart(MotionEvent event) {
         
         
-        stopAnimationTimer();
+        stopAnimationTask();
 
         switch (mState) {
         case ANIMATED_ZOOM:
@@ -606,7 +601,7 @@ class JavaPanZoomController
 
         if (mState == PanZoomState.NOTHING) {
             setState(PanZoomState.AUTONAV);
-            startAnimationTimer(new AutonavRunnable());
+            startAnimationRenderTask(new AutonavRenderTask());
         }
         if (mState == PanZoomState.AUTONAV) {
             mX.setAutoscrollVelocity(velocityX);
@@ -732,18 +727,18 @@ class JavaPanZoomController
     private void fling() {
         updatePosition();
 
-        stopAnimationTimer();
+        stopAnimationTask();
 
         boolean stopped = stopped();
         mX.startFling(stopped);
         mY.startFling(stopped);
 
-        startAnimationTimer(new FlingRunnable());
+        startAnimationRenderTask(new FlingRenderTask());
     }
 
     
     private void bounce(ImmutableViewportMetrics metrics, PanZoomState state) {
-        stopAnimationTimer();
+        stopAnimationTask();
 
         ImmutableViewportMetrics bounceStartMetrics = getMetrics();
         if (bounceStartMetrics.fuzzyEquals(metrics)) {
@@ -758,7 +753,7 @@ class JavaPanZoomController
         
         
         mTarget.setAnimationTarget(metrics);
-        startAnimationTimer(new BounceRunnable(bounceStartMetrics, metrics));
+        startAnimationRenderTask(new BounceRenderTask(bounceStartMetrics, metrics));
     }
 
     
@@ -767,29 +762,22 @@ class JavaPanZoomController
     }
 
     
-    private void startAnimationTimer(final AnimationRunnable runnable) {
-        if (mAnimationTimer != null) {
-            Log.e(LOGTAG, "Attempted to start a new timer without canceling the old one!");
-            stopAnimationTimer();
+    private void startAnimationRenderTask(final PanZoomRenderTask task) {
+        if (mAnimationRenderTask != null) {
+            Log.e(LOGTAG, "Attempted to start a new task without canceling the old one!");
+            stopAnimationTask();
         }
 
-        mAnimationTimer = new Timer("Animation Timer");
-        mAnimationRunnable = runnable;
-        mAnimationTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() { mTarget.post(runnable); }
-        }, 0, (int)Axis.MS_PER_FRAME);
+        mAnimationRenderTask = task;
+        mTarget.postRenderTask(mAnimationRenderTask);
     }
 
     
-    private void stopAnimationTimer() {
-        if (mAnimationTimer != null) {
-            mAnimationTimer.cancel();
-            mAnimationTimer = null;
-        }
-        if (mAnimationRunnable != null) {
-            mAnimationRunnable.terminate();
-            mAnimationRunnable = null;
+    private void stopAnimationTask() {
+        if (mAnimationRenderTask != null) {
+            mAnimationRenderTask.terminate();
+            mTarget.removeRenderTask(mAnimationRenderTask);
+            mAnimationRenderTask = null;
         }
     }
 
@@ -830,33 +818,52 @@ class JavaPanZoomController
         }
     }
 
-    private abstract class AnimationRunnable implements Runnable {
-        private boolean mAnimationTerminated;
+    
+
+
+
+    private abstract class PanZoomRenderTask extends RenderTask {
+
+        private final Runnable mRunnable = new Runnable() {
+            @Override
+            public final void run() {
+                if (mContinueAnimation) {
+                    animateFrame();
+                }
+            }
+        };
+
+        private boolean mContinueAnimation = true;
+
+        public PanZoomRenderTask() {
+            super(false);
+        }
+
+        @Override
+        protected final boolean internalRun(long timeDelta, long currentFrameStartTime) {
+
+            mTarget.post(mRunnable);
+            return mContinueAnimation;
+        }
 
         
-        @Override
-        public final void run() {
-            
 
-
-
-
-
-            if (mAnimationTerminated) {
-                return;
-            }
-            animateFrame();
-        }
 
         protected abstract void animateFrame();
 
         
-        protected final void terminate() {
-            mAnimationTerminated = true;
+
+
+        public void terminate() {
+            mContinueAnimation = false;
         }
     }
 
-    private class AutonavRunnable extends AnimationRunnable {
+    private class AutonavRenderTask extends PanZoomRenderTask {
+        public AutonavRenderTask() {
+            super();
+        }
+
         @Override
         protected void animateFrame() {
             if (mState != PanZoomState.AUTONAV) {
@@ -872,17 +879,18 @@ class JavaPanZoomController
     }
 
     
-    private class BounceRunnable extends AnimationRunnable {
-        
-        private int mBounceFrame;
+    private class BounceRenderTask extends PanZoomRenderTask {
+
         
 
 
 
         private ImmutableViewportMetrics mBounceStartMetrics;
         private ImmutableViewportMetrics mBounceEndMetrics;
+        private int mBounceFrame;
 
-        BounceRunnable(ImmutableViewportMetrics startMetrics, ImmutableViewportMetrics endMetrics) {
+        BounceRenderTask(ImmutableViewportMetrics startMetrics, ImmutableViewportMetrics endMetrics) {
+            super();
             mBounceStartMetrics = startMetrics;
             mBounceEndMetrics = endMetrics;
         }
@@ -900,7 +908,7 @@ class JavaPanZoomController
             }
 
             
-            if (mBounceFrame < (int)(BOUNCE_ANIMATION_DURATION / Axis.MS_PER_FRAME)) {
+            if (mBounceFrame < BOUNCE_FRAME_NUMBER) {
                 advanceBounce();
                 return;
             }
@@ -914,7 +922,7 @@ class JavaPanZoomController
         
         private void advanceBounce() {
             synchronized (mTarget.getLock()) {
-                float t = easeOut(mBounceFrame * Axis.MS_PER_FRAME / BOUNCE_ANIMATION_DURATION);
+                float t = easeOut(((float)mBounceFrame) / BOUNCE_FRAME_NUMBER);
                 ImmutableViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
                 mTarget.setViewportMetrics(newMetrics);
                 mBounceFrame++;
@@ -931,7 +939,12 @@ class JavaPanZoomController
     }
 
     
-    private class FlingRunnable extends AnimationRunnable {
+    private class FlingRenderTask extends PanZoomRenderTask {
+
+        public FlingRenderTask() {
+            super();
+        }
+
         @Override
         protected void animateFrame() {
             
@@ -983,7 +996,7 @@ class JavaPanZoomController
     private void finishAnimation() {
         checkMainThread();
 
-        stopAnimationTimer();
+        stopAnimationTask();
 
         
         mTarget.forceRedraw(null);
