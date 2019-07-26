@@ -78,6 +78,8 @@ public:
   virtual void CopySurface(SourceSurface *aSurface,
                            const IntRect &aSourceRect,
                            const IntPoint &aDestination);
+  virtual void CopyRect(const IntRect &aSourceRect,
+                        const IntPoint &aDestination);
 
   virtual void FillRect(const Rect &aRect,
                         const Pattern &aPattern,
@@ -160,6 +162,10 @@ private:
                    const StrokeOptions& aStrokeOptions,
                    const DrawOptions& aOptions,
                    DrawPatternType aDrawType);
+
+  void CopySurfaceInternal(cairo_surface_t* aSurface,
+                           const IntRect& aSource,
+                           const IntPoint& aDest);
 
   
   
