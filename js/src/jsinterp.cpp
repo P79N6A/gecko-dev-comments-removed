@@ -2832,96 +2832,8 @@ BEGIN_CASE(JSOP_DEFFUN)
     RootedFunction &fun = rootFunction0;
     fun = script->getFunction(GET_UINT32_INDEX(regs.pc));
 
-    
-
-
-
-
-
-
-
-
-    HandleObject scopeChain = regs.fp()->scopeChain();
-    if (fun->environment() != scopeChain) {
-        fun = CloneFunctionObjectIfNotSingleton(cx, fun, scopeChain);
-        if (!fun)
-            goto error;
-    } else {
-        JS_ASSERT(script->compileAndGo);
-        JS_ASSERT(regs.fp()->isGlobalFrame() || regs.fp()->isEvalInFunction());
-    }
-
-    
-
-
-
-    unsigned attrs = regs.fp()->isEvalFrame()
-                  ? JSPROP_ENUMERATE
-                  : JSPROP_ENUMERATE | JSPROP_PERMANENT;
-
-    
-
-
-
-
-    RootedObject &parent = rootObject0;
-    parent = &regs.fp()->varObj();
-
-    
-    RootedPropertyName &name = rootName0;
-    name = fun->atom()->asPropertyName();
-    RootedShape &shape = rootShape0;
-    RootedObject &pobj = rootObject1;
-    if (!JSObject::lookupProperty(cx, parent, name, &pobj, &shape))
+    if (!DefFunOperation(cx, script, regs.fp()->scopeChain(), fun))
         goto error;
-
-    RootedValue &rval = rootValue0;
-    rval = ObjectValue(*fun);
-
-    do {
-        
-        if (!shape || pobj != parent) {
-            if (!JSObject::defineProperty(cx, parent, name, rval,
-                                          JS_PropertyStub, JS_StrictPropertyStub, attrs))
-            {
-                goto error;
-            }
-            break;
-        }
-
-        
-        JS_ASSERT(parent->isNative());
-        if (parent->isGlobal()) {
-            if (shape->configurable()) {
-                if (!JSObject::defineProperty(cx, parent, name, rval,
-                                              JS_PropertyStub, JS_StrictPropertyStub, attrs))
-                {
-                    goto error;
-                }
-                break;
-            }
-
-            if (shape->isAccessorDescriptor() || !shape->writable() || !shape->enumerable()) {
-                JSAutoByteString bytes;
-                if (js_AtomToPrintableString(cx, name, &bytes)) {
-                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                                         JSMSG_CANT_REDEFINE_PROP, bytes.ptr());
-                }
-                goto error;
-            }
-        }
-
-        
-
-
-
-
-
-
-        
-        if (!JSObject::setProperty(cx, parent, parent, name, &rval, script->strict))
-            goto error;
-    } while (false);
 }
 END_CASE(JSOP_DEFFUN)
 
@@ -3234,9 +3146,12 @@ END_VARLEN_CASE
 }
 
 BEGIN_CASE(JSOP_EXCEPTION)
-    PUSH_COPY(cx->getPendingException());
-    cx->clearPendingException();
-    CHECK_BRANCH();
+{
+    PUSH_NULL();
+    MutableHandleValue res = MutableHandleValue::fromMarkedLocation(&regs.sp[-1]);
+    if (!GetAndClearException(cx, res))
+        goto error;
+}
 END_CASE(JSOP_EXCEPTION)
 
 BEGIN_CASE(JSOP_FINALLY)
@@ -3946,6 +3861,106 @@ js::Lambda(JSContext *cx, HandleFunction fun, HandleObject parent)
 
     JS_ASSERT(clone->global() == clone->global());
     return clone;
+}
+
+bool
+js::DefFunOperation(JSContext *cx, HandleScript script, HandleObject scopeChain,
+                    HandleFunction funArg)
+{
+    
+
+
+
+
+
+
+
+
+    RootedFunction fun(cx, funArg);
+    if (fun->environment() != scopeChain) {
+        fun = CloneFunctionObjectIfNotSingleton(cx, fun, scopeChain);
+        if (!fun)
+            return false;
+    } else {
+        JS_ASSERT(script->compileAndGo);
+        JS_ASSERT_IF(!cx->fp()->beginsIonActivation(),
+                     cx->fp()->isGlobalFrame() || cx->fp()->isEvalInFunction());
+    }
+
+    
+
+
+
+
+    RootedObject parent(cx, scopeChain);
+    while (!parent->isVarObj())
+        parent = parent->enclosingScope();
+
+    
+    RootedPropertyName name(cx, fun->atom()->asPropertyName());
+
+    RootedShape shape(cx);
+    RootedObject pobj(cx);
+    if (!JSObject::lookupProperty(cx, parent, name, &pobj, &shape))
+        return false;
+
+    RootedValue rval(cx, ObjectValue(*fun));
+
+    
+
+
+
+    unsigned attrs = script->isActiveEval
+                     ? JSPROP_ENUMERATE
+                     : JSPROP_ENUMERATE | JSPROP_PERMANENT;
+
+    
+    if (!shape || pobj != parent) {
+        return JSObject::defineProperty(cx, parent, name, rval, JS_PropertyStub,
+                                        JS_StrictPropertyStub, attrs);
+    }
+
+    
+    JS_ASSERT(parent->isNative());
+    if (parent->isGlobal()) {
+        if (shape->configurable()) {
+            return JSObject::defineProperty(cx, parent, name, rval, JS_PropertyStub,
+                                            JS_StrictPropertyStub, attrs);
+        }
+
+        if (shape->isAccessorDescriptor() || !shape->writable() || !shape->enumerable()) {
+            JSAutoByteString bytes;
+            if (js_AtomToPrintableString(cx, name, &bytes)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CANT_REDEFINE_PROP,
+                                     bytes.ptr());
+            }
+
+            return false;
+        }
+    }
+
+    
+
+
+
+
+
+
+    
+    return JSObject::setProperty(cx, parent, parent, name, &rval, script->strict);
+}
+
+bool
+js::GetAndClearException(JSContext *cx, MutableHandleValue res)
+{
+    
+    
+    if (cx->runtime->interrupt && !js_HandleExecutionInterrupt(cx))
+        return false;
+
+    res.set(cx->getPendingException());
+    cx->clearPendingException();
+    return true;
 }
 
 template <bool strict>

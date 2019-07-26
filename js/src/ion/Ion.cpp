@@ -973,7 +973,7 @@ CompileBackEnd(MIRGenerator *mir)
     
     
     
-    if (!EliminateRedundantBoundsChecks(graph))
+    if (!EliminateRedundantChecks(graph))
         return NULL;
     IonSpewPass("Bounds Check Elimination");
     AssertGraphCoherency(graph);
@@ -1191,7 +1191,8 @@ IonCompile(JSContext *cx, HandleScript script, HandleFunction fun, jsbytecode *o
     AutoFlushCache afc("IonCompile");
 
     types::AutoEnterCompilation enterCompiler(cx, CompilerOutputKind(executionMode));
-    enterCompiler.init(script, false, 0);
+    if (!enterCompiler.init(script, false, 0))
+        return false;
 
     AutoTempAllocatorRooter root(cx, temp);
 

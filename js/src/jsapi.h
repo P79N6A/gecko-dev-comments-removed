@@ -1846,7 +1846,6 @@ typedef JSBool
 
 
 
-
 typedef JSBool
 (* JSNewResolveOp)(JSContext *cx, JSHandleObject obj, JSHandleId id, unsigned flags,
                    JSMutableHandleObject objp);
@@ -4233,8 +4232,7 @@ JS_IdToValue(JSContext *cx, jsid id, jsval *vp);
 
 
 
-#define JSRESOLVE_QUALIFIED     0x01    /* resolve a qualified property id */
-#define JSRESOLVE_ASSIGNING     0x02    /* resolve on the left of assignment */
+#define JSRESOLVE_ASSIGNING     0x01    /* resolve on the left of assignment */
 
 
 
