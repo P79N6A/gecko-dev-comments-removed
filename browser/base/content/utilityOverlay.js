@@ -618,48 +618,39 @@ function makeURLAbsolute(aBase, aUrl)
 
 
 
-
-
-
-
  
 function openNewTabWith(aURL, aDocument, aPostData, aEvent,
                         aAllowThirdPartyFixup, aReferrer) {
-  if (aDocument)
-    urlSecurityCheck(aURL, aDocument.nodePrincipal);
 
   
   
-  var originCharset = aDocument && aDocument.characterSet;
-  if (!originCharset &&
-      document.documentElement.getAttribute("windowtype") == "navigator:browser")
-    originCharset = window.content.document.characterSet;
+  let originCharset = null;
+  if (document.documentElement.getAttribute("windowtype") == "navigator:browser")
+    originCharset = gBrowser.selectedBrowser.characterSet;
 
   openLinkIn(aURL, aEvent && aEvent.shiftKey ? "tabshifted" : "tab",
              { charset: originCharset,
                postData: aPostData,
                allowThirdPartyFixup: aAllowThirdPartyFixup,
-               referrerURI: aDocument ? aDocument.documentURIObject : aReferrer });
+               referrerURI: aReferrer });
 }
 
-function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup, aReferrer) {
-  if (aDocument)
-    urlSecurityCheck(aURL, aDocument.nodePrincipal);
 
+
+
+
+function openNewWindowWith(aURL, aDocument, aPostData, aAllowThirdPartyFixup, aReferrer) {
   
   
-  
-  
-  var originCharset = aDocument && aDocument.characterSet;
-  if (!originCharset &&
-      document.documentElement.getAttribute("windowtype") == "navigator:browser")
-    originCharset = window.content.document.characterSet;
+  let originCharset = null;
+  if (document.documentElement.getAttribute("windowtype") == "navigator:browser")
+    originCharset = gBrowser.selectedBrowser.characterSet;
 
   openLinkIn(aURL, "window",
              { charset: originCharset,
                postData: aPostData,
                allowThirdPartyFixup: aAllowThirdPartyFixup,
-               referrerURI: aDocument ? aDocument.documentURIObject : aReferrer });
+               referrerURI: aReferrer });
 }
 
 
