@@ -55,7 +55,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private static final int NANOS_PER_SECOND = 1000000000;
 
     private final LayerView mView;
-    private final NinePatchTileLayer mShadowLayer;
     private TextLayer mFrameRateLayer;
     private final ScrollbarLayer mHorizScrollLayer;
     private final ScrollbarLayer mVertScrollLayer;
@@ -65,7 +64,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
     private RenderContext mLastPageContext;
     private int mMaxTextureSize;
     private int mBackgroundColor;
-    private int mOverscrollColor;
 
     private long mLastFrameTime;
     private final CopyOnWriteArrayList<RenderTask> mTasks;
@@ -136,10 +134,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
 
     public LayerRenderer(LayerView view) {
         mView = view;
-        mOverscrollColor = view.getContext().getResources().getColor(R.color.background_normal);
-
-        CairoImage shadowImage = new BufferedCairoImage(view.getShadowPattern());
-        mShadowLayer = new NinePatchTileLayer(shadowImage);
 
         Bitmap scrollbarImage = view.getScrollbarImage();
         IntSize size = new IntSize(scrollbarImage.getWidth(), scrollbarImage.getHeight());
@@ -186,7 +180,6 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
         DirectBufferAllocator.free(mCoordByteBuffer);
         mCoordByteBuffer = null;
         mCoordBuffer = null;
-        mShadowLayer.destroy();
         mHorizScrollLayer.destroy();
         mVertScrollLayer.destroy();
         if (mFrameRateLayer != null) {
@@ -518,14 +511,22 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             mLastPageContext = mPageContext;
 
             
-            if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);  
-            mUpdated &= mShadowLayer.update(mPageContext);  
-            if (mFrameRateLayer != null) mUpdated &= mFrameRateLayer.update(mScreenContext); 
+            if (rootLayer != null) {
+                
+                mUpdated &= rootLayer.update(mPageContext);
+            }
+
+            if (mFrameRateLayer != null) {
+                
+                mUpdated &= mFrameRateLayer.update(mScreenContext);
+            }
+
             mUpdated &= mVertScrollLayer.update(mPageContext);  
             mUpdated &= mHorizScrollLayer.update(mPageContext); 
 
-            for (Layer layer : mExtraLayers)
+            for (Layer layer : mExtraLayers) {
                 mUpdated &= layer.update(mPageContext); 
+            }
         }
 
         
@@ -587,21 +588,12 @@ public class LayerRenderer implements Tabs.OnTabsChangedListener {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
             
-            clear(mOverscrollColor);
-
-            
             mBackgroundColor = mView.getBackgroundColor();
 
             
             setScissorRect();
             clear(mBackgroundColor);
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
-
-            
-            RectF offsetAbsPageRect = new RectF(mAbsolutePageRect);
-            offsetAbsPageRect.offset(mRenderOffset.x, mRenderOffset.y);
-            if (!offsetAbsPageRect.contains(mFrameMetrics.getViewport()))
-                mShadowLayer.draw(mPageContext);
         }
 
         
