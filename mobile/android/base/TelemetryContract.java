@@ -43,6 +43,9 @@ public interface TelemetryContract {
         
         
         public static final String UNSAVE = "unsave.1";
+
+        
+        public static final String LOAD_URL = "loadurl.1";
     }
 
     
@@ -58,6 +61,9 @@ public interface TelemetryContract {
 
         
         public static final String DIALOG = "dialog";
+
+        
+        public static final String INTENT = "intent";
     }
 
     

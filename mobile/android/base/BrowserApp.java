@@ -487,6 +487,8 @@ abstract public class BrowserApp extends GeckoApp
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             
             mBrowserToolbar.setTitle(intent.getDataString());
+
+            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
         }
 
         ((GeckoApp.MainLayout) mMainLayout).setTouchEventInterceptor(new HideTabsTouchListener());
@@ -2543,9 +2545,11 @@ abstract public class BrowserApp extends GeckoApp
             return;
         }
 
-        
         if (Intent.ACTION_VIEW.equals(action)) {
+            
             mBrowserToolbar.cancelEdit();
+
+            Telemetry.sendUIEvent(TelemetryContract.Event.LOAD_URL, TelemetryContract.Method.INTENT);
             return;
         }
 
