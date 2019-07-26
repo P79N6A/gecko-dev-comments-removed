@@ -1763,8 +1763,14 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
         return;
     }
     switch (ae->Action()) {
+    case AndroidGeckoEvent::IME_FLUSH_CHANGES:
+        {
+            FlushIMEChanges();
+        }
+        break;
     case AndroidGeckoEvent::IME_SYNCHRONIZE:
         {
+            FlushIMEChanges();
             AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_REPLY_EVENT, 0);
         }
         break;
@@ -1807,6 +1813,7 @@ nsWindow::OnIMEEvent(AndroidGeckoEvent *ae)
                 event.data = ae->Characters();
                 DispatchEvent(&event);
             }
+            FlushIMEChanges();
             AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_REPLY_EVENT, 0);
         }
         break;
@@ -2046,19 +2053,69 @@ nsWindow::OnIMEFocusChange(bool aFocus)
     ALOGIME("IME: OnIMEFocusChange: f=%d", aFocus);
 
     if (aFocus) {
+        mIMETextChanges.Clear();
+        mIMESelectionChange = IMEChange();
+        
         OnIMETextChange(0, INT32_MAX, INT32_MAX);
-        OnIMESelectionChange();
+        FlushIMEChanges();
     } else {
         
         
         
         mIMEMaskEventsCount++;
+        mIMEComposing = false;
+        mIMEComposingText.Truncate();
     }
 
     AndroidBridge::NotifyIME(AndroidBridge::NOTIFY_IME_FOCUSCHANGE,
                              int(aFocus));
 
     return NS_OK;
+}
+
+void
+nsWindow::PostFlushIMEChanges()
+{
+    if (!mIMETextChanges.IsEmpty() || !mIMESelectionChange.IsEmpty()) {
+        
+        return;
+    }
+    AndroidGeckoEvent *event = new AndroidGeckoEvent(
+            AndroidGeckoEvent::IME_EVENT, AndroidGeckoEvent::IME_FLUSH_CHANGES);
+    nsAppShell::gAppShell->PostEvent(event);
+}
+
+void
+nsWindow::FlushIMEChanges()
+{
+    nsRefPtr<nsWindow> kungFuDeathGrip(this);
+    for (uint32_t i = 0; i < mIMETextChanges.Length(); i++) {
+        IMEChange &change = mIMETextChanges[i];
+        MOZ_ASSERT(change.IsTextChange());
+
+        nsQueryContentEvent event(true, NS_QUERY_TEXT_CONTENT, this);
+        InitEvent(event, nullptr);
+        event.InitForQueryTextContent(change.mStart,
+                                      change.mNewEnd - change.mStart);
+        DispatchEvent(&event);
+        if (!event.mSucceeded)
+            return;
+
+        AndroidBridge::NotifyIMEChange(event.mReply.mString.get(),
+                                       event.mReply.mString.Length(),
+                                       change.mStart,
+                                       change.mOldEnd,
+                                       change.mNewEnd);
+    }
+    mIMETextChanges.Clear();
+
+    if (!mIMESelectionChange.IsEmpty()) {
+        MOZ_ASSERT(!mIMESelectionChange.IsTextChange());
+        AndroidBridge::NotifyIMEChange(nullptr, 0,
+                                       mIMESelectionChange.mStart,
+                                       mIMESelectionChange.mOldEnd, -1);
+        mIMESelectionChange = IMEChange();
+    }
 }
 
 NS_IMETHODIMP
@@ -2070,21 +2127,67 @@ nsWindow::OnIMETextChange(uint32_t aStart, uint32_t aOldEnd, uint32_t aNewEnd)
     ALOGIME("IME: OnIMETextChange: s=%d, oe=%d, ne=%d",
             aStart, aOldEnd, aNewEnd);
 
-    nsRefPtr<nsWindow> kungFuDeathGrip(this);
-    nsQueryContentEvent event(true, NS_QUERY_TEXT_CONTENT, this);
-    InitEvent(event, nullptr);
-    event.InitForQueryTextContent(aStart, aNewEnd - aStart);
+    
+    mIMESelectionChange = IMEChange();
+    OnIMESelectionChange();
+    PostFlushIMEChanges();
 
-    DispatchEvent(&event);
-    if (!event.mSucceeded)
-        return NS_OK;
-
-    AndroidBridge::NotifyIMEChange(event.mReply.mString.get(),
-                                   event.mReply.mString.Length(),
-                                   aStart, aOldEnd, aNewEnd);
+    mIMETextChanges.AppendElement(IMEChange(aStart, aOldEnd, aNewEnd));
+    
+    
+    
+    
+    int32_t delta = (int32_t)(aNewEnd - aOldEnd);
+    for (int32_t i = mIMETextChanges.Length() - 2; i >= 0; i--) {
+        IMEChange &previousChange = mIMETextChanges[i];
+        if (previousChange.mStart > (int32_t)aOldEnd) {
+            previousChange.mStart += delta;
+            previousChange.mOldEnd += delta;
+            previousChange.mNewEnd += delta;
+        }
+    }
 
     
-    OnIMESelectionChange();
+    
+    
+    int32_t srcIndex = mIMETextChanges.Length() - 1;
+    int32_t dstIndex = srcIndex;
+
+    while (--dstIndex >= 0) {
+        IMEChange &src = mIMETextChanges[srcIndex];
+        IMEChange &dst = mIMETextChanges[dstIndex];
+        
+        
+        
+        if (src.mOldEnd < dst.mStart || dst.mNewEnd < src.mStart) {
+            
+            continue;
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        dst.mStart = std::min(dst.mStart, src.mStart);
+        if (src.mOldEnd < dst.mNewEnd) {
+            
+            dst.mNewEnd += src.mNewEnd - src.mOldEnd;
+        } else { 
+            
+            dst.mOldEnd += src.mOldEnd - dst.mNewEnd;
+            dst.mNewEnd = src.mNewEnd;
+        }
+        
+        mIMETextChanges.RemoveElementAt(srcIndex);
+        
+        
+        srcIndex = dstIndex;
+    }
     return NS_OK;
 }
 
@@ -2104,8 +2207,9 @@ nsWindow::OnIMESelectionChange(void)
     if (!event.mSucceeded)
         return NS_OK;
 
-    AndroidBridge::NotifyIMEChange(nullptr, 0, int(event.GetSelectionStart()),
-                                   int(event.GetSelectionEnd()), -1);
+    PostFlushIMEChanges();
+    mIMESelectionChange = IMEChange((int32_t)event.GetSelectionStart(),
+                                    (int32_t)event.GetSelectionEnd());
     return NS_OK;
 }
 
