@@ -307,9 +307,6 @@ public:
   void
   RemoveObserverFromTable(const nsAString& key);
 
-  void
-  DispatchToCommandThread(nsRunnable* aRunnable);
-
 protected:
   BluetoothService()
   : mEnabled(false)
@@ -387,26 +384,21 @@ protected:
   static BluetoothService*
   Create();
 
-  
-
-
-
-
-
-
-
-
-
-
-
-  nsCOMPtr<nsIThread> mBluetoothCommandThread;
-
   typedef nsClassHashtable<nsStringHashKey, BluetoothSignalObserverList >
   BluetoothSignalObserverTable;
 
   BluetoothSignalObserverTable mBluetoothSignalObserverTable;
 
   bool mEnabled;
+
+private:
+  
+
+
+
+
+
+  nsCOMPtr<nsIThread> mBluetoothThread;
 };
 
 END_BLUETOOTH_NAMESPACE
