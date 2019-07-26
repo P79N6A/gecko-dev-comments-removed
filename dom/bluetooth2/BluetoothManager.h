@@ -7,59 +7,130 @@
 #ifndef mozilla_dom_bluetooth_bluetoothmanager_h__
 #define mozilla_dom_bluetooth_bluetoothmanager_h__
 
+#include "BluetoothCommon.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/dom/BluetoothAdapterEvent.h"
+#include "mozilla/dom/BluetoothAttributeEvent.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/Observer.h"
-#include "BluetoothCommon.h"
-#include "BluetoothPropertyContainer.h"
 #include "nsISupportsImpl.h"
-
-namespace mozilla {
-namespace dom {
-class DOMRequest;
-}
-}
 
 BEGIN_BLUETOOTH_NAMESPACE
 
-class BluetoothNamedValue;
+class BluetoothAdapter;
+class BluetoothValue;
 
 class BluetoothManager : public DOMEventTargetHelper
                        , public BluetoothSignalObserver
-                       , public BluetoothPropertyContainer
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  static already_AddRefed<BluetoothManager>
-    Create(nsPIDOMWindow* aWindow);
+  static already_AddRefed<BluetoothManager> Create(nsPIDOMWindow* aWindow);
   static bool CheckPermission(nsPIDOMWindow* aWindow);
-  void Notify(const BluetoothSignal& aData);
-  virtual void SetPropertyByValue(const BluetoothNamedValue& aValue) MOZ_OVERRIDE;
 
-  bool GetEnabled(ErrorResult& aRv);
-  bool IsConnected(uint16_t aProfileId, ErrorResult& aRv);
+  
 
-  already_AddRefed<DOMRequest> GetDefaultAdapter(ErrorResult& aRv);
 
-  IMPL_EVENT_HANDLER(enabled);
-  IMPL_EVENT_HANDLER(disabled);
+
+  BluetoothAdapter* GetDefaultAdapter();
+
+  
+
+
+
+
+
+  void GetAdapters(nsTArray<nsRefPtr<BluetoothAdapter> >& aAdapters);
+
+  
+
+
+
+
+
+  void AppendAdapter(const BluetoothValue& aValue);
+
+  IMPL_EVENT_HANDLER(attributechanged);
   IMPL_EVENT_HANDLER(adapteradded);
+  IMPL_EVENT_HANDLER(adapterremoved);
 
+  void Notify(const BluetoothSignal& aData); 
   nsPIDOMWindow* GetParentObject() const
   {
-     return GetOwner();
+    return GetOwner();
   }
 
-  virtual JSObject*
-    WrapObject(JSContext* aCx) MOZ_OVERRIDE;
-
+  virtual JSObject* WrapObject(JSContext* aCx) MOZ_OVERRIDE;
   virtual void DisconnectFromOwner() MOZ_OVERRIDE;
 
 private:
   BluetoothManager(nsPIDOMWindow* aWindow);
   ~BluetoothManager();
+
+  
+
+
+
+
+  void ListenToBluetoothSignal(bool aStart);
+
+  
+
+
+  bool DefaultAdapterExists()
+  {
+    return (mDefaultAdapterIndex >= 0);
+  }
+
+  
+
+
+
+
+  void HandleAdapterAdded(const BluetoothValue& aValue);
+
+  
+
+
+
+
+  void HandleAdapterRemoved(const BluetoothValue& aValue);
+
+  
+
+
+
+  void ReselectDefaultAdapter();
+
+  
+
+
+
+
+
+
+  void DispatchAdapterEvent(const nsAString& aType,
+                            const BluetoothAdapterEventInit& aInit);
+
+  
+
+
+  void DispatchAttributeEvent();
+
+  
+
+
+  
+
+
+  int mDefaultAdapterIndex;
+
+  
+
+
+  nsTArray<nsRefPtr<BluetoothAdapter> > mAdapters;
 };
 
 END_BLUETOOTH_NAMESPACE
