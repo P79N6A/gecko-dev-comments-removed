@@ -1,4 +1,14 @@
-(function() {
+
+
+
+(function(mod) {
+  if (typeof exports == "object" && typeof module == "object") 
+    mod(require("../../lib/codemirror"));
+  else if (typeof define == "function" && define.amd) 
+    define(["../../lib/codemirror"], mod);
+  else 
+    mod(CodeMirror);
+})(function(CodeMirror) {
   "use strict";
 
   var Pos = CodeMirror.Pos;
@@ -136,8 +146,6 @@
       }
     }
   });
-  CodeMirror.tagRangeFinder = CodeMirror.fold.xml; 
-
   CodeMirror.findMatchingTag = function(cm, pos, range) {
     var iter = new Iter(cm, pos.line, pos.ch, range);
     if (iter.text.indexOf(">") == -1 && iter.text.indexOf("<") == -1) return;
@@ -168,6 +176,6 @@
   
   CodeMirror.scanForClosingTag = function(cm, pos, name, end) {
     var iter = new Iter(cm, pos.line, pos.ch, end ? {from: 0, to: end} : null);
-    return !!findMatchingClose(iter, name);
+    return findMatchingClose(iter, name);
   };
-})();
+});

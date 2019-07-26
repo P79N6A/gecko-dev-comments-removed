@@ -1,3 +1,16 @@
+
+
+
+(function(mod) {
+  if (typeof exports == "object" && typeof module == "object") 
+    mod(require("../../lib/codemirror"));
+  else if (typeof define == "function" && define.amd) 
+    define(["../../lib/codemirror"], mod);
+  else 
+    mod(CodeMirror);
+})(function(CodeMirror) {
+"use strict";
+
 CodeMirror.registerGlobalHelper("fold", "comment", function(mode) {
   return mode.blockCommentStart && mode.blockCommentEnd;
 }, function(cm, start) {
@@ -39,4 +52,6 @@ CodeMirror.registerGlobalHelper("fold", "comment", function(mode) {
   if (end == null || line == end && endCh == startCh) return;
   return {from: CodeMirror.Pos(line, startCh),
           to: CodeMirror.Pos(end, endCh)};
+});
+
 });

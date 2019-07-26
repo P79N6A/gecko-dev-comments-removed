@@ -1,4 +1,14 @@
-(function() {
+
+
+
+(function(mod) {
+  if (typeof exports == "object" && typeof module == "object") 
+    mod(require("../../lib/codemirror"), require("./foldcode"));
+  else if (typeof define == "function" && define.amd) 
+    define(["../../lib/codemirror", "./foldcode"], mod);
+  else 
+    mod(CodeMirror);
+})(function(CodeMirror) {
   "use strict";
 
   CodeMirror.defineOption("foldGutter", false, function(cm, val, old) {
@@ -121,4 +131,4 @@
     if (line >= state.from && line < state.to)
       updateFoldInfo(cm, line, line + 1);
   }
-})();
+});
