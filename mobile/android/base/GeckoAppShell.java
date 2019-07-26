@@ -1586,7 +1586,6 @@ public class GeckoAppShell
         }
     }
 
-    @WrapElementForJNI
     public static void setSelectedLocale(String localeCode) {
         
 
