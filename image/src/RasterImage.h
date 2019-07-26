@@ -308,6 +308,9 @@ public:
 
   const char* GetURIString() { return mURIString.get();}
 
+  
+  static void Initialize();
+
 private:
   struct Anim
   {

@@ -53,7 +53,6 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 
 
 
-static bool gInitializedPrefCaches = false;
 static uint32_t gDecodeBytesAtATime = 0;
 static uint32_t gMaxMSBeforeYield = 0;
 
@@ -64,7 +63,6 @@ InitPrefCaches()
                                "image.mem.decode_bytes_at_a_time", 200000);
   Preferences::AddUintVarCache(&gMaxMSBeforeYield,
                                "image.mem.max_ms_before_yield", 400);
-  gInitializedPrefCaches = true;
 }
 
 
@@ -181,10 +179,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   
   num_containers++;
 
-  
-  if (NS_UNLIKELY(!gInitializedPrefCaches)) {
-    InitPrefCaches();
-  }
 }
 
 
@@ -222,6 +216,16 @@ RasterImage::~RasterImage()
   
   num_containers--;
   total_source_bytes -= mSourceData.Length();
+}
+
+void
+RasterImage::Initialize()
+{
+  InitPrefCaches();
+
+  
+  
+  DecodeWorker::Singleton();
 }
 
 nsresult
