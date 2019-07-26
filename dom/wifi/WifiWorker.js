@@ -51,6 +51,8 @@ var WifiManager = (function() {
   var controlWorker = new ChromeWorker(WIFIWORKER_WORKER);
   var eventWorker = new ChromeWorker(WIFIWORKER_WORKER);
 
+  var manager = {};
+
   
   var controlCallbacks = Object.create(null);
   var idgen = 0;
@@ -242,16 +244,19 @@ var WifiManager = (function() {
   
   
   var reEnableBackgroundScan = false;
-  var backgroundScanEnabled = false;
+
+  
+  manager.backgroundScanEnabled = false;
   function setBackgroundScan(enable, callback) {
     var doEnable = (enable === "ON");
-    if (doEnable === backgroundScanEnabled) {
+    if (doEnable === manager.backgroundScanEnabled) {
       callback(false, true);
       return;
     }
 
-    backgroundScanEnabled = doEnable;
-    doBooleanCommand("SET pno " + (backgroundScanEnabled ? "1" : "0"), "OK",
+    manager.backgroundScanEnabled = doEnable;
+    doBooleanCommand("SET pno " + (manager.backgroundScanEnabled ? "1" : "0"),
+                     "OK",
                      function(ok) {
                        callback(true, ok);
                      });
@@ -616,8 +621,6 @@ var WifiManager = (function() {
     });
   }
 
-  var manager = {};
-
   var suppressEvents = false;
   function notify(eventName, eventObject) {
     if (suppressEvents)
@@ -644,7 +647,7 @@ var WifiManager = (function() {
     }
 
     
-    if (backgroundScanEnabled &&
+    if (manager.backgroundScanEnabled &&
         (fields.state === "ASSOCIATING" ||
          fields.state === "ASSOCIATED" ||
          fields.state === "FOUR_WAY_HANDSHAKE" ||
@@ -708,21 +711,8 @@ var WifiManager = (function() {
 
     
     
-    
-    
-    switch (state) {
-      case "COMPLETED":
-        onconnected();
-        break;
-
-      case "DISCONNECTED":
-      case "INACTIVE":
-      case "SCANNING":
-        setBackgroundScan("ON", function(){});
-
-      default:
-        break;
-    }
+    if (state === "COMPLETED")
+      onconnected();
   }
 
   
@@ -1536,6 +1526,36 @@ function WifiWorker() {
   this._reconnectOnDisconnect = false;
 
   
+  
+  
+  
+  
+  
+  
+  
+
+  
+  const SCAN_STUCK_WAIT = 12000;
+  this._scanStuckTimer = null;
+  this._turnOnBackgroundScan = false;
+
+  function startScanStuckTimer() {
+    self._scanStuckTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    self._scanStuckTimer.initWithCallback(scanIsStuck, SCAN_STUCK_WAIT,
+                                          Ci.nsITimer.TYPE_ONE_SHOT);
+  }
+
+  function scanIsStuck() {
+    
+    
+    
+    
+    debug("Determined that scanning is stuck, turning on background scanning!");
+    WifiManager.disconnect(function(ok) {});
+    self._turnOnBackgroundScan = true;
+  }
+
+  
   this._stateRequests = [];
 
   
@@ -1646,6 +1666,8 @@ function WifiWorker() {
 
     
     self._fireEvent("wifiUp", {});
+    if (WifiManager.state === "SCANNING")
+      startScanStuckTimer();
   };
 
   WifiManager.onsupplicantlost = function() {
@@ -1690,6 +1712,12 @@ function WifiWorker() {
         this.state !== "CONNECTED" &&
         this.state !== "COMPLETED") {
       self._stopConnectionInfoTimer();
+    }
+
+    if (this.state !== "SCANNING" &&
+        self._scanStuckTimer) {
+      self._scanStuckTimer.cancel();
+      self._scanStuckTimer = null;
     }
 
     switch (this.state) {
@@ -1754,6 +1782,13 @@ function WifiWorker() {
         self.currentNetwork = null;
         self.ipAddress = "";
 
+        if (self._turnOnBackgroundScan) {
+          self._turnOnBackgroundScan = false;
+          WifiManager.setBackgroundScan("ON", function(did_something, ok) {
+            WifiManager.reassociate(function() {});
+          });
+        }
+
         WifiManager.connectionDropped(function() {
           
           
@@ -1762,8 +1797,6 @@ function WifiWorker() {
             WifiManager.reconnect(function(){});
           }
         });
-
-        WifiManager.setBackgroundScan("ON", function(){});
 
         WifiNetworkInterface.state =
           Ci.nsINetworkInterface.NETWORK_STATE_DISCONNECTED;
@@ -1786,6 +1819,12 @@ function WifiWorker() {
         break;
       case "WPS_OVERLAP_DETECTED":
         self._fireEvent("onwpsoverlap", {});
+        break;
+      case "SCANNING":
+        
+        
+        if (!WifiManager.backgroundScanEnabled && WifiManager.enabled)
+          startScanStuckTimer();
         break;
     }
   };
@@ -1818,6 +1857,13 @@ function WifiWorker() {
   };
 
   WifiManager.onscanresultsavailable = function() {
+    if (self._scanStuckTimer) {
+      
+      self._scanStuckTimer.cancel();
+      self._scanStuckTimer.initWithCallback(scanIsStuck, SCAN_STUCK_WAIT,
+                                            Ci.nsITimer.TYPE_ONE_SHOT);
+    }
+
     if (self.wantScanResults.length === 0) {
       debug("Scan results available, but we don't need them");
       return;
