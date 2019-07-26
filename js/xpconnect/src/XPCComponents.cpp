@@ -2711,12 +2711,11 @@ nsXPCComponents_Utils::LookupMethod(const JS::Value& object,
     
     
     
-    if (js::IsCrossCompartmentWrapper(obj)) {
-        obj = js::UnwrapOneChecked(obj);
-        if (!obj)
-            return NS_ERROR_XPC_BAD_CONVERT_JS;
+    obj = js::UnwrapObjectChecked(obj);
+    if (!obj) {
+        JS_ReportError(cx, "Permission denied to unwrap object");
+        return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
-
     {
         
         JSAutoCompartment ac(cx, obj);
