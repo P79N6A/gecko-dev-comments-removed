@@ -1458,9 +1458,6 @@ XRE_XPCShellMain(int argc, char **argv, char **envp)
             return 1;
         }
 
-        
-        JS::ContextOptionsRef(cx).setBaseline(true);
-
         argc--;
         argv++;
         ProcessArgsForCompartment(cx, argv, argc);
