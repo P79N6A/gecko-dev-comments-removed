@@ -65,7 +65,7 @@ public class Favicons {
     
     private static final NonEvictingLruCache<String, String> sPageURLMappings = new NonEvictingLruCache<String, String>(NUM_PAGE_URL_MAPPINGS_TO_STORE);
 
-    public static String getFaviconURLForPageURLFromCache(String pageURL) {
+    public static String getFaviconUrlForPageUrlFromCache(String pageURL) {
         return sPageURLMappings.get(pageURL);
     }
 
@@ -73,7 +73,7 @@ public class Favicons {
 
 
 
-    public static void putFaviconURLForPageURLInCache(String pageURL, String faviconURL) {
+    public static void putFaviconUrlForPageUrlInCache(String pageURL, String faviconURL) {
         sPageURLMappings.put(pageURL, faviconURL);
     }
 
@@ -111,7 +111,7 @@ public class Favicons {
 
 
 
-    public static Bitmap getCachedFaviconForSize(final String pageURL, int targetSize) {
+    public static Bitmap getSizedFaviconForPageFromCache(final String pageURL, int targetSize) {
         final String faviconURL = sPageURLMappings.get(pageURL);
         if (faviconURL == null) {
             return null;
@@ -134,7 +134,7 @@ public class Favicons {
 
 
 
-    public static int getFaviconForSize(String pageURL, String faviconURL, int targetSize, int flags, OnFaviconLoadedListener listener) {
+    public static int getSizedFavicon(String pageURL, String faviconURL, int targetSize, int flags, OnFaviconLoadedListener listener) {
         
         String cacheURL = faviconURL;
         if (cacheURL == null) {
@@ -143,7 +143,7 @@ public class Favicons {
 
         
         if (cacheURL == null)  {
-            cacheURL = guessDefaultFaviconURL(pageURL);
+            cacheURL = guessDefaultFaviconUrl(pageURL);
         }
 
         
@@ -222,6 +222,7 @@ public class Favicons {
     public static int getSizedFaviconForPageFromLocal(final String pageURL, final OnFaviconLoadedListener callback) {
         return getSizedFaviconForPageFromLocal(pageURL, sDefaultFaviconSize, callback);
     }
+
     
 
 
@@ -245,7 +246,7 @@ public class Favicons {
         targetURL = BrowserDB.getFaviconUrlForHistoryUrl(sContext.getContentResolver(), pageURL);
         if (targetURL == null) {
             
-            targetURL = guessDefaultFaviconURL(pageURL);
+            targetURL = guessDefaultFaviconUrl(pageURL);
         }
         return targetURL;
     }
@@ -406,7 +407,7 @@ public class Favicons {
 
 
 
-    public static String guessDefaultFaviconURL(String pageURL) {
+    public static String guessDefaultFaviconUrl(String pageURL) {
         
         
         
