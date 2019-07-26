@@ -1467,10 +1467,8 @@ nsNavHistory::GetNewQuery(nsINavHistoryQuery **_retval)
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG_POINTER(_retval);
 
-  *_retval = new nsNavHistoryQuery();
-  if (! *_retval)
-    return NS_ERROR_OUT_OF_MEMORY;
-  NS_ADDREF(*_retval);
+  nsRefPtr<nsNavHistoryQuery> query = new nsNavHistoryQuery();
+  query.forget(_retval);
   return NS_OK;
 }
 
@@ -1482,9 +1480,8 @@ nsNavHistory::GetNewQueryOptions(nsINavHistoryQueryOptions **_retval)
   NS_ASSERTION(NS_IsMainThread(), "This can only be called on the main thread");
   NS_ENSURE_ARG_POINTER(_retval);
 
-  *_retval = new nsNavHistoryQueryOptions();
-  NS_ENSURE_TRUE(*_retval, NS_ERROR_OUT_OF_MEMORY);
-  NS_ADDREF(*_retval);
+  nsRefPtr<nsNavHistoryQueryOptions> queryOptions = new nsNavHistoryQueryOptions();
+  queryOptions.forget(_retval);
   return NS_OK;
 }
 
@@ -1575,7 +1572,7 @@ nsNavHistory::ExecuteQueries(nsINavHistoryQuery** aQueries, uint32_t aQueryCount
                                             getter_AddRefs(result));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  NS_ADDREF(*_retval = result);
+  result.forget(_retval);
   return NS_OK;
 }
 
@@ -3544,7 +3541,9 @@ NS_IMETHODIMP
 nsNavHistory::GetDBConnection(mozIStorageConnection **_DBConnection)
 {
   NS_ENSURE_ARG_POINTER(_DBConnection);
-  NS_IF_ADDREF(*_DBConnection = mDB->MainConn());
+  nsRefPtr<mozIStorageConnection> connection = mDB->MainConn();
+  connection.forget(_DBConnection);
+
   return NS_OK;
 }
 
@@ -4172,7 +4171,7 @@ const int64_t UNDEFINED_URN_VALUE = -1;
 
 nsresult
 CreatePlacesPersistURN(nsNavHistoryQueryResultNode *aResultNode, 
-                      int64_t aValue, const nsCString& aTitle, nsCString& aURN)
+                       int64_t aValue, const nsCString& aTitle, nsCString& aURN)
 {
   nsAutoCString uri;
   nsresult rv = aResultNode->GetUri(uri);
@@ -4393,7 +4392,6 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
                           nsNavHistoryResultNode** aResult)
 {
   NS_ASSERTION(aRow && aOptions && aResult, "Null pointer in RowToResult");
-  *aResult = nullptr;
 
   
   nsAutoCString url;
@@ -4447,45 +4445,48 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon, aResult);
-    NS_ENSURE_STATE(*aResult);
+    nsRefPtr<nsNavHistoryResultNode> resultNode;
+    rv = QueryRowToResult(itemId, url, title, accessCount, time, favicon,
+                          getter_AddRefs(resultNode));
+    NS_ENSURE_SUCCESS(rv,rv);
+
     if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_TAG_QUERY) {
       
-      (*aResult)->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
-      (*aResult)->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
+      resultNode->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
+      resultNode->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
     }
-    else if ((*aResult)->IsFolder()) {
+    else if (resultNode->IsFolder()) {
       
       
       
-      (*aResult)->GetAsContainer()->mOptions = aOptions;
+      resultNode->GetAsContainer()->mOptions = aOptions;
     }
 
+    resultNode.forget(aResult);
     return rv;
   } else if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_URI ||
              aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_TAG_CONTENTS) {
-    *aResult = new nsNavHistoryResultNode(url, title, accessCount, time,
-                                          favicon);
-    if (!*aResult)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsRefPtr<nsNavHistoryResultNode> resultNode =
+      new nsNavHistoryResultNode(url, title, accessCount, time, favicon);
 
     if (itemId != -1) {
-      (*aResult)->mItemId = itemId;
-      (*aResult)->mFolderId = parentId;
-      (*aResult)->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
-      (*aResult)->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
+      resultNode->mItemId = itemId;
+      resultNode->mFolderId = parentId;
+      resultNode->mDateAdded = aRow->AsInt64(kGetInfoIndex_ItemDateAdded);
+      resultNode->mLastModified = aRow->AsInt64(kGetInfoIndex_ItemLastModified);
     }
 
-    (*aResult)->mFrecency = aRow->AsInt32(kGetInfoIndex_Frecency);
-    (*aResult)->mHidden = !!aRow->AsInt32(kGetInfoIndex_Hidden);
+    resultNode->mFrecency = aRow->AsInt32(kGetInfoIndex_Frecency);
+    resultNode->mHidden = !!aRow->AsInt32(kGetInfoIndex_Hidden);
 
     nsAutoString tags;
     rv = aRow->GetString(kGetInfoIndex_ItemTags, tags);
     NS_ENSURE_SUCCESS(rv, rv);
-    if (!tags.IsVoid())
-      (*aResult)->mTags.Assign(tags);
+    if (!tags.IsVoid()) {
+      resultNode->mTags.Assign(tags);
+    }
 
-    NS_ADDREF(*aResult);
+    resultNode.forget(aResult);
     return NS_OK;
   }
   
@@ -4494,17 +4495,16 @@ nsNavHistory::RowToResult(mozIStorageValueArray* aRow,
   int64_t session = aRow->AsInt64(kGetInfoIndex_SessionId);
 
   if (aOptions->ResultType() == nsNavHistoryQueryOptions::RESULTS_AS_VISIT) {
-    *aResult = new nsNavHistoryVisitResultNode(url, title, accessCount, time,
-                                               favicon, session);
-    if (! *aResult)
-      return NS_ERROR_OUT_OF_MEMORY;
+    nsRefPtr<nsNavHistoryResultNode> resultNode =
+      new nsNavHistoryVisitResultNode(url, title, accessCount, time,
+                                      favicon, session);
 
     nsAutoString tags;
     rv = aRow->GetString(kGetInfoIndex_ItemTags, tags);
     if (!tags.IsVoid())
-      (*aResult)->mTags.Assign(tags);
+      resultNode->mTags.Assign(tags);
 
-    NS_ADDREF(*aResult);
+    resultNode.forget(aResult);
     return NS_OK;
   }
 
@@ -4528,6 +4528,8 @@ nsNavHistory::QueryRowToResult(int64_t itemId, const nsACString& aURI,
   nsCOMPtr<nsNavHistoryQueryOptions> options;
   nsresult rv = QueryStringToQueryArray(aURI, &queries,
                                         getter_AddRefs(options));
+
+  nsRefPtr<nsNavHistoryResultNode> resultNode;
   
   
   if (NS_SUCCEEDED(rv)) {
@@ -4537,27 +4539,26 @@ nsNavHistory::QueryRowToResult(int64_t itemId, const nsACString& aURI,
       nsNavBookmarks *bookmarks = nsNavBookmarks::GetBookmarksService();
       NS_ENSURE_TRUE(bookmarks, NS_ERROR_OUT_OF_MEMORY);
 
-      
-      rv = bookmarks->ResultNodeForContainer(folderId, options, aNode);
+      rv = bookmarks->ResultNodeForContainer(folderId, options,
+                                             getter_AddRefs(resultNode));
       
       
       if (NS_SUCCEEDED(rv)) {
         
-        (*aNode)->GetAsFolder()->mQueryItemId = itemId;
+        resultNode->GetAsFolder()->mQueryItemId = itemId;
 
         
         
         if (!aTitle.IsVoid()) {
-          (*aNode)->mTitle = aTitle;
+          resultNode->mTitle = aTitle;
         }
       }
     }
     else {
       
-      *aNode = new nsNavHistoryQueryResultNode(aTitle, EmptyCString(), aTime,
-                                               queries, options);
-      (*aNode)->mItemId = itemId;
-      NS_ADDREF(*aNode);
+      resultNode = new nsNavHistoryQueryResultNode(aTitle, EmptyCString(),
+                                                   aTime, queries, options);
+      resultNode->mItemId = itemId;
     }
   }
 
@@ -4566,13 +4567,13 @@ nsNavHistory::QueryRowToResult(int64_t itemId, const nsACString& aURI,
     
     
     
-    *aNode = new nsNavHistoryQueryResultNode(aTitle, aFavicon, aURI);
-    (*aNode)->mItemId = itemId;
+    resultNode = new nsNavHistoryQueryResultNode(aTitle, aFavicon, aURI);
+    resultNode->mItemId = itemId;
     
-    (*aNode)->GetAsQuery()->Options()->SetExcludeItems(true);
-    NS_ADDREF(*aNode);
+    resultNode->GetAsQuery()->Options()->SetExcludeItems(true);
   }
 
+  resultNode.forget(aNode);
   return NS_OK;
 }
 
