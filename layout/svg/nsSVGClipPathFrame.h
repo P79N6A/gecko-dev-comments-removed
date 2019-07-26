@@ -75,6 +75,9 @@ public:
   }
 #endif
 
+  SVGBBox 
+  GetBBoxForClipPathFrame(const SVGBBox &aBBox, const gfxMatrix &aMatrix);
+
  private:
   
   
