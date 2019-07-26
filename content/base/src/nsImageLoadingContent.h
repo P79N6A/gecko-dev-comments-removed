@@ -331,13 +331,7 @@ protected:
 
 
 
-
-
-
-  enum {
-    SKIP_FRAME_CHECK = 0x1
-  };
-  void TrackImage(imgIRequest* aImage, uint32_t aFlags = 0);
+  void TrackImage(imgIRequest* aImage);
   enum {
     REQUEST_DISCARD = 0x1
   };
@@ -418,6 +412,9 @@ private:
   
   bool mCurrentRequestRegistered;
   bool mPendingRequestRegistered;
+
+  
+  bool mFrameCreateCalled;
 
   uint32_t mVisibleCount;
 };

@@ -89,6 +89,7 @@ nsImageLoadingContent::nsImageLoadingContent()
     mStateChangerDepth(0),
     mCurrentRequestRegistered(false),
     mPendingRequestRegistered(false),
+    mFrameCreateCalled(false),
     mVisibleCount(0)
 {
   if (!nsContentUtils::GetImgLoaderForChannel(nullptr)) {
@@ -422,15 +423,15 @@ nsImageLoadingContent::FrameCreated(nsIFrame* aFrame)
 {
   NS_ASSERTION(aFrame, "aFrame is null");
 
+  mFrameCreateCalled = true;
+
   if (aFrame->HasAnyStateBits(NS_FRAME_IN_POPUP)) {
     
     IncrementVisibleCount();
   }
 
-  
-  
-  TrackImage(mCurrentRequest, SKIP_FRAME_CHECK);
-  TrackImage(mPendingRequest, SKIP_FRAME_CHECK);
+  TrackImage(mCurrentRequest);
+  TrackImage(mPendingRequest);
 
   
   
@@ -450,6 +451,8 @@ NS_IMETHODIMP_(void)
 nsImageLoadingContent::FrameDestroyed(nsIFrame* aFrame)
 {
   NS_ASSERTION(aFrame, "aFrame is null");
+
+  mFrameCreateCalled = false;
 
   
   if (mCurrentRequest) {
@@ -1277,7 +1280,7 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
 }
 
 void
-nsImageLoadingContent::TrackImage(imgIRequest* aImage, uint32_t aFlags )
+nsImageLoadingContent::TrackImage(imgIRequest* aImage)
 {
   if (!aImage)
     return;
@@ -1286,7 +1289,7 @@ nsImageLoadingContent::TrackImage(imgIRequest* aImage, uint32_t aFlags )
              "Why haven't we heard of this request?");
 
   nsIDocument* doc = GetOurCurrentDoc();
-  if (doc && ((aFlags & SKIP_FRAME_CHECK) || GetOurPrimaryFrame()) &&
+  if (doc && (mFrameCreateCalled || GetOurPrimaryFrame()) &&
       (mVisibleCount > 0)) {
     if (aImage == mCurrentRequest && !(mCurrentRequestFlags & REQUEST_IS_TRACKED)) {
       mCurrentRequestFlags |= REQUEST_IS_TRACKED;
