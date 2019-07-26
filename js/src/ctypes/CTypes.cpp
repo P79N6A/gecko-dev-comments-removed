@@ -6185,8 +6185,7 @@ CClosure::ClosureStub(ffi_cif* cif, void* result, void** args, void* userData)
   
   
   RootedValue rval(cx);
-  bool success = JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj),
-                                        cif->nargs, argv.begin(), rval.address());
+  bool success = JS_CallFunctionValue(cx, thisObj, OBJECT_TO_JSVAL(jsfnObj), argv, rval.address());
 
   
   

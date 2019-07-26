@@ -5388,10 +5388,10 @@ WorkerPrivate::RunExpiredTimeouts(JSContext* aCx)
 
 
 
-      if (!JS_CallFunctionValue(aCx, global, info->mTimeoutCallable,
-                                info->mExtraArgVals.Length(),
-                                info->mExtraArgVals.Elements()->unsafeGet(),
-                                rval.address()) &&
+      JS::HandleValueArray args =
+        JS::HandleValueArray::fromMarkedLocation(info->mExtraArgVals.Length(),
+                                                 info->mExtraArgVals.Elements()->unsafeGet());
+      if (!JS_CallFunctionValue(aCx, global, info->mTimeoutCallable, args, rval.address()) &&
           !JS_ReportPendingException(aCx)) {
         retval = false;
         break;
