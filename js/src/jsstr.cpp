@@ -1648,13 +1648,11 @@ namespace {
 
 
 
-class StringRegExpGuard
+class MOZ_STACK_CLASS StringRegExpGuard
 {
-    StringRegExpGuard(const StringRegExpGuard &) MOZ_DELETE;
-    void operator=(const StringRegExpGuard &) MOZ_DELETE;
-
     RegExpGuard re_;
     FlatMatch   fm;
+    RootedObject obj_;
 
     
 
@@ -1686,15 +1684,15 @@ class StringRegExpGuard
 
   public:
     StringRegExpGuard(JSContext *cx)
-      : re_(cx), fm(cx)
+      : re_(cx), fm(cx), obj_(cx)
     { }
 
     
     bool init(JSContext *cx, CallArgs args, bool convertVoid = false)
     {
         if (args.length() != 0 && IsObjectWithClass(args[0], ESClass_RegExp, cx)) {
-            RootedObject obj(cx, &args[0].toObject());
-            if (!RegExpToShared(cx, obj, &re_))
+            obj_ = &args[0].toObject();
+            if (!RegExpToShared(cx, obj_, &re_))
                 return false;
         } else {
             if (convertVoid && !args.hasDefined(0)) {
@@ -1786,6 +1784,16 @@ class StringRegExpGuard
     }
 
     RegExpShared &regExp() { return *re_; }
+
+    bool regExpIsObject() { return obj_ != NULL; }
+    HandleObject regExpObject() {
+        JS_ASSERT(regExpIsObject());
+        return obj_;
+    }
+
+  private:
+    StringRegExpGuard(const StringRegExpGuard &) MOZ_DELETE;
+    void operator=(const StringRegExpGuard &) MOZ_DELETE;
 };
 
 } 
@@ -1818,33 +1826,86 @@ DoMatchLocal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearSt
     return true;
 }
 
+
 static bool
 DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearString*> input,
-              RegExpShared &re)
+              StringRegExpGuard &g)
 {
-    size_t charsLen = input->length();
-    const jschar *chars = input->chars();
-
-    AutoValueVector elements(cx);
-
-    MatchPair match;
-    size_t i = 0; 
-    size_t lastMatch = 0; 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (g.regExpIsObject()) {
+        
+        
+        RootedValue zero(cx, Int32Value(0));
+        HandleObject regex = g.regExpObject();
+        if (!JSObject::setProperty(cx, regex, regex, cx->names().lastIndex, &zero, true))
+            return false;
+    }
 
     
-    while (i <= charsLen) {
+    AutoValueVector elements(cx);
+
+    size_t lastSuccessfulStart = 0;
+
+    
+    
+
+    
+    MatchPair match;
+    size_t charsLen = input->length();
+    const jschar *chars = input->chars();
+    RegExpShared &re = g.regExp();
+    for (size_t searchIndex = 0; searchIndex <= charsLen; ) {
         if (!JS_CHECK_OPERATION_LIMIT(cx))
             return false;
 
-        size_t i_orig = i;
-
-        RegExpRunStatus status = re.executeMatchOnly(cx, chars, charsLen, &i, match);
+        
+        size_t nextSearchIndex = searchIndex;
+        RegExpRunStatus status = re.executeMatchOnly(cx, chars, charsLen, &nextSearchIndex, match);
         if (status == RegExpRunStatus_Error)
             return false;
+
+        
         if (status == RegExpRunStatus_Success_NotFound)
             break;
 
-        lastMatch = i_orig;
+        lastSuccessfulStart = searchIndex;
+
+        
+        searchIndex = match.isEmpty() ? nextSearchIndex + 1 : nextSearchIndex;
 
         
         JSLinearString *str = js_NewDependentString(cx, input, match.start, match.length());
@@ -1852,9 +1913,6 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
             return false;
         if (!elements.append(StringValue(str)))
             return false;
-
-        if (match.isEmpty())
-            ++i;
     }
 
     
@@ -1864,7 +1922,9 @@ DoMatchGlobal(JSContext *cx, CallArgs args, RegExpStatics *res, Handle<JSLinearS
     }
 
     
-    res->updateLazily(cx, input, &re, lastMatch);
+    
+    
+    res->updateLazily(cx, input, &re, lastSuccessfulStart);
 
     
     JSObject *array = NewDenseCopiedArray(cx, elements.length(), elements.begin());
@@ -1903,18 +1963,23 @@ BuildFlatMatchArray(JSContext *cx, HandleString textstr, const FlatMatch &fm, Ca
     return true;
 }
 
+
 bool
 js::str_match(JSContext *cx, unsigned argc, Value *vp)
 {
     CallArgs args = CallArgsFromVp(argc, vp);
+
+    
     RootedString str(cx, ThisToStringForStringProto(cx, args));
     if (!str)
         return false;
 
+    
     StringRegExpGuard g(cx);
     if (!g.init(cx, args, true))
         return false;
 
+    
     if (const FlatMatch *fm = g.tryFlatMatch(cx, str, 1, args.length()))
         return BuildFlatMatchArray(cx, str, *fm, &args);
 
@@ -1922,6 +1987,7 @@ js::str_match(JSContext *cx, unsigned argc, Value *vp)
     if (cx->isExceptionPending())
         return false;
 
+    
     if (!g.normalizeRegExp(cx, false, 1, args))
         return false;
 
@@ -1930,9 +1996,12 @@ js::str_match(JSContext *cx, unsigned argc, Value *vp)
     if (!linearStr)
         return false;
 
-    if (g.regExp().global())
-        return DoMatchGlobal(cx, args, res, linearStr, g.regExp());
-    return DoMatchLocal(cx, args, res, linearStr, g.regExp());
+    
+    if (!g.regExp().global())
+        return DoMatchLocal(cx, args, res, linearStr, g.regExp());
+
+    
+    return DoMatchGlobal(cx, args, res, linearStr, g);
 }
 
 bool
