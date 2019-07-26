@@ -1507,9 +1507,27 @@ update(ObjectActor.prototype, {
 
 
   grip: function OA_grip() {
-    return { "type": "object",
-             "class": this.obj.class,
-             "actor": this.actorID };
+    let g = { "type": "object",
+              "class": this.obj.class,
+              "actor": this.actorID };
+
+    
+    if (this.obj.class === "Function") {
+      if (this.obj.name) {
+        g.name = this.obj.name;
+      } else if (this.obj.displayName) {
+        g.displayName = this.obj.displayName;
+      }
+
+      
+      
+      let desc = this.obj.getOwnPropertyDescriptor("displayName");
+      if (desc && desc.value && typeof desc.value == "string") {
+        g.userDisplayName = this.threadActor.createValueGrip(desc.value);
+      }
+    }
+
+    return g;
   },
 
   
