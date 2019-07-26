@@ -98,11 +98,16 @@ public:
 
 
 
+  nsEventStatus ReceiveMainThreadInputEvent(const nsInputEvent& aEvent);
+
+  
 
 
 
-  nsEventStatus ReceiveInputEvent(const nsInputEvent& aEvent,
-                                  nsInputEvent* aOutEvent);
+
+
+
+  void ApplyZoomCompensationToEvent(nsInputEvent* aEvent);
 
   
 

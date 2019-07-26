@@ -637,6 +637,10 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
 {
   MOZ_ASSERT(sEventCapturer == this && mEventCaptureDepth > 0);
 
+  if (mIsDestroyed) {
+    return false;
+  }
+
   if (aEvent.eventStructType != NS_TOUCH_EVENT) {
     
     return false;
@@ -657,19 +661,29 @@ TabParent::TryCapture(const nsGUIEvent& aEvent)
     return false;
   }
 
-  
-  nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
-
-  if (!frameLoader) {
+  if (RenderFrameParent* rfp = GetRenderFrame()) {
     
-    sEventCapturer = nullptr;
-    return false;
+    
+    rfp->NotifyInputEvent(event);
+
+    
+    nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
+
+    if (!frameLoader) {
+      
+      sEventCapturer = nullptr;
+      return false;
+    }
+
+    
+    nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader,
+                                                            &event);
+    rfp->ApplyZoomCompensationToEvent(&event);
   }
 
-  nsEventStateManager::MapEventCoordinatesForChildProcess(frameLoader, &event);
-
-  SendRealTouchEvent(event);
-  return true;
+  return (event.message == NS_TOUCH_MOVE) ?
+    PBrowserParent::SendRealTouchMoveEvent(event) :
+    PBrowserParent::SendRealTouchEvent(event);
 }
 
 bool
@@ -1381,7 +1395,8 @@ TabParent::MaybeForwardEventToRenderFrame(const nsInputEvent& aEvent,
                                           nsInputEvent* aOutEvent)
 {
   if (RenderFrameParent* rfp = GetRenderFrame()) {
-    rfp->NotifyInputEvent(aEvent, aOutEvent);
+    rfp->NotifyInputEvent(aEvent);
+    rfp->ApplyZoomCompensationToEvent(aOutEvent);
   }
 }
 
