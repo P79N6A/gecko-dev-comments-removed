@@ -2311,7 +2311,8 @@ AndroidBridge::RegisterSurfaceTextureFrameListener(jobject surfaceTexture, int i
 void
 AndroidBridge::UnregisterSurfaceTextureFrameListener(jobject surfaceTexture)
 {
-    JNIEnv* env = GetJNIEnv();
+    
+    JNIEnv* env = GetJNIForThread();
     if (!env)
         return;
 
