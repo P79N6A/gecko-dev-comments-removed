@@ -207,11 +207,21 @@ bool ThreadPosix::Start(unsigned int& thread_id)
   int result = pthread_attr_setdetachstate(&attr_, PTHREAD_CREATE_DETACHED);
   
   result |= pthread_attr_setstacksize(&attr_, 1024 * 1024);
+#if 0
+
+
+
+
+
 #ifdef WEBRTC_THREAD_RR
   const int policy = SCHED_RR;
 #else
   const int policy = SCHED_FIFO;
 #endif
+#else
+  const int policy = SCHED_OTHER;
+#endif
+
   event_->Reset();
   
   
