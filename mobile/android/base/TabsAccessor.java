@@ -63,18 +63,18 @@ public final class TabsAccessor {
 
     
     
-    public static void getTabs(final Context context, final OnQueryTabsCompleteListener listener, Handler uiHandler) {
-        getTabs(context, 0, listener, uiHandler);
+    public static void getTabs(final Context context, final OnQueryTabsCompleteListener listener) {
+        getTabs(context, 0, listener);
     }
 
     
     
-    public static void getTabs(final Context context, final int limit, final OnQueryTabsCompleteListener listener, Handler uiHandler) {
+    public static void getTabs(final Context context, final int limit, final OnQueryTabsCompleteListener listener) {
         
         if (listener == null)
             return;
 
-        (new UiAsyncTask<Void, Void, List<RemoteTab>>(uiHandler, GeckoAppShell.getHandler()) {
+        (new UiAsyncTask<Void, Void, List<RemoteTab>>(GeckoAppShell.getHandler()) {
             @Override
             protected List<RemoteTab> doInBackground(Void... unused) {
                 Uri uri = BrowserContract.Tabs.CONTENT_URI;

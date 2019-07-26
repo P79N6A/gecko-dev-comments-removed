@@ -6,6 +6,11 @@
 package org.mozilla.gecko.util;
 
 import android.os.Handler;
+import android.os.Looper;
+
+
+
+
 
 
 
@@ -13,11 +18,22 @@ import android.os.Handler;
 public abstract class UiAsyncTask<Params, Progress, Result> {
     private volatile boolean mCancelled = false;
     private final Handler mBackgroundThreadHandler;
-    private final Handler mUiHandler;
+    private static Handler sHandler;
 
-    public UiAsyncTask(Handler uiHandler, Handler backgroundThreadHandler) {
-        mUiHandler = uiHandler;
+    
+
+
+
+
+    public UiAsyncTask(Handler backgroundThreadHandler) {
         mBackgroundThreadHandler = backgroundThreadHandler;
+    }
+
+    private static synchronized Handler getUiHandler() {
+        if (sHandler == null) {
+            sHandler = new Handler(Looper.getMainLooper());
+        }
+        return sHandler;
     }
 
     private final class BackgroundTaskRunnable implements Runnable {
@@ -30,7 +46,7 @@ public abstract class UiAsyncTask<Params, Progress, Result> {
         public void run() {
             final Result result = doInBackground(mParams);
 
-            mUiHandler.post(new Runnable() {
+            getUiHandler().post(new Runnable() {
                 public void run() {
                     if (mCancelled)
                         onCancelled();
@@ -42,7 +58,7 @@ public abstract class UiAsyncTask<Params, Progress, Result> {
     }
 
     public final void execute(final Params... params) {
-        mUiHandler.post(new Runnable() {
+        getUiHandler().post(new Runnable() {
             public void run() {
                 onPreExecute();
                 mBackgroundThreadHandler.post(new BackgroundTaskRunnable(params));

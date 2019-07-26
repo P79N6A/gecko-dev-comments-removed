@@ -421,7 +421,7 @@ public class AboutHomeContent extends ScrollView
         if (urls.size() == 0)
             return;
 
-        (new UiAsyncTask<Void, Void, Cursor>(getHandler(), GeckoAppShell.getHandler()) {
+        (new UiAsyncTask<Void, Void, Cursor>(GeckoAppShell.getHandler()) {
             @Override
             public Cursor doInBackground(Void... params) {
                 return BrowserDB.getThumbnailsForUrls(cr, urls);
@@ -711,7 +711,7 @@ public class AboutHomeContent extends ScrollView
             return;
         }
 
-        TabsAccessor.getTabs(getContext(), NUMBER_OF_REMOTE_TABS, this, getHandler());
+        TabsAccessor.getTabs(getContext(), NUMBER_OF_REMOTE_TABS, this);
     }
 
     @Override
@@ -993,7 +993,7 @@ public class AboutHomeContent extends ScrollView
         final String url = holder.getUrl();
         
         clearThumbnail(holder);
-        (new UiAsyncTask<Void, Void, Void>(getHandler(), GeckoAppShell.getHandler()) {
+        (new UiAsyncTask<Void, Void, Void>(GeckoAppShell.getHandler()) {
             @Override
             public Void doInBackground(Void... params) {
                 final ContentResolver resolver = mActivity.getContentResolver();
@@ -1014,7 +1014,7 @@ public class AboutHomeContent extends ScrollView
         holder.setPinned(true);
 
         
-        (new UiAsyncTask<Void, Void, Void>(getHandler(), GeckoAppShell.getHandler()) {
+        (new UiAsyncTask<Void, Void, Void>(GeckoAppShell.getHandler()) {
             @Override
             public Void doInBackground(Void... params) {
                 final ContentResolver resolver = mActivity.getContentResolver();
@@ -1058,7 +1058,7 @@ public class AboutHomeContent extends ScrollView
                 holder.setPinned(true);
 
                 
-                (new UiAsyncTask<Void, Void, Bitmap>(getHandler(), GeckoAppShell.getHandler()) {
+                (new UiAsyncTask<Void, Void, Bitmap>(GeckoAppShell.getHandler()) {
                     @Override
                     public Bitmap doInBackground(Void... params) {
                         final ContentResolver resolver = mActivity.getContentResolver();
