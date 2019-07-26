@@ -893,12 +893,14 @@ var gFlexboxTestcases =
      ]
  },
  
+ 
+ 
  {
    items:
      [
        {
          "flex": "0.4 70px",
-         "_main-size": [ null, "110px" ] 
+         "_main-size": [ null, "118px" ] 
        },
        {
          "flex": "0.2 30px",
@@ -1009,10 +1011,9 @@ var gFlexboxTestcases =
  
  
  
- 
- 
- 
  {
+   
+   
    
    
    
@@ -1020,7 +1021,7 @@ var gFlexboxTestcases =
      [
        {
          "flex": "0.5 100px",
-         "_main-size": [ null,  "101px" ]
+         "_main-size": [ null,  "130px" ]
        },
        {
          "flex": "1 98px",
@@ -1030,9 +1031,6 @@ var gFlexboxTestcases =
      ]
  },
  {
-   
-   
-   
    
    
    
@@ -1050,25 +1048,21 @@ var gFlexboxTestcases =
      ]
  },
 
- 
- 
- 
- 
- 
- 
- 
  {
+   
+   
+   
    
    
    items:
      [
        {
          "flex": "0.4 50px",
-         "_main-size": [ null,  "54px" ]
+         "_main-size": [ null,  "90px" ]
        },
        {
          "flex": "0.5 50px",
-         "_main-size": [ null,  "55px" ]
+         "_main-size": [ null,  "100px" ]
        },
        {
          "flex": "0 90px",
@@ -1078,7 +1072,6 @@ var gFlexboxTestcases =
      ]
  },
  {
-   
    
    
    
@@ -1202,17 +1195,19 @@ var gFlexboxTestcases =
  },
 
  
+ 
+ 
  {
    items:
      [
        {
          "flex": "0 0.3 100px",
-         "_main-size": [ null,  "70px" ]
+         "_main-size": [ null,  "55px" ] 
        },
        {
          "flex": "0 0.1 200px",
          "_min-main-size": "250px",
-         "_main-size": [ null,  "250px" ]
+         "_main-size": [ null,  "250px" ] 
        }
      ]
      
@@ -1310,11 +1305,11 @@ var gFlexboxTestcases =
      [
        {
          "flex": "0 0.3 100px",
-         "_main-size": [ null,  "84px" ]
+         "_main-size": [ null,  "76px" ]
        },
        {
          "flex": "0 0.1 150px",
-         "_main-size": [ null,  "142px" ]
+         "_main-size": [ null,  "138px" ]
        },
        {
          "flex": "0 0.8 10px",
@@ -1340,43 +1335,64 @@ var gFlexboxTestcases =
      
      
      
-     
  },
 
  
  
  
  
+ 
  {
    items:
      [
        {
-         "flex": "0 .3 150px",
-         "_main-size": [ null,  "90px" ]
+         "flex": "0 .5 300px",
+         "_main-size": [ null,  "200px" ]
        },
        {
-         "flex": "0 .2 150px",
-         "_main-size": [ null,  "110px" ]
+         "flex": "0 5 0px",
+         "_main-size": [ null,  "0px" ]
+       }
+     ]
+ },
+
+ 
+ 
+ 
+ 
+ 
+ 
+ {
+   items:
+     [
+       {
+         "flex": "0 .5 300px",
+         "_main-size": [ null,  "200px" ]
        },
        {
-         "flex": "0 2 0px",
+         "flex": "0 1 0.01px",
          "_main-size": [ null,  "0px" ]
        }
      ]
  },
  
  
+ 
+ 
+ 
+ 
+ 
  {
    items:
      [
        {
-         "flex": "0 3 150px",
-         "_main-size": [ null,  "90px" ]
+         "flex": "0 .5 300px",
+         "_main-size": [ null,  "250px" ]
        },
        {
-         "flex": "0 2 150px",
-         "_main-size": [ null,  "110px" ]
-       },
+         "flex": "0 5 0.01px",
+         "_main-size": [ null,  "0px" ]
+       }
      ]
- }
+ },
 ];

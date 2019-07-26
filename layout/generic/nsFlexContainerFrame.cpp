@@ -460,6 +460,7 @@ public:
 
   
   
+  
   void SetFlexBaseSizeAndMainSize(nscoord aNewFlexBaseSize)
   {
     MOZ_ASSERT(!mIsFrozen || mFlexBaseSize == NS_INTRINSICSIZE,
@@ -724,6 +725,8 @@ public:
 
 private:
   
+  void FreezeItemsEarly(bool aIsUsingFlexGrow);
+
   void FreezeOrRestoreEachFlexibleSize(const nscoord aTotalViolation,
                                        bool aIsFinalIteration);
 
@@ -1592,6 +1595,56 @@ nsFlexContainerFrame::SanityCheckAnonymousFlexItems() const
 }
 #endif 
 
+void
+FlexLine::FreezeItemsEarly(bool aIsUsingFlexGrow)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  uint32_t numUnfrozenItemsToBeSeen = mNumItems - mNumFrozenItems;
+  for (FlexItem* item = mItems.getFirst();
+       numUnfrozenItemsToBeSeen > 0; item = item->getNext()) {
+    MOZ_ASSERT(item, "numUnfrozenItemsToBeSeen says items remain to be seen");
+
+    if (!item->IsFrozen()) {
+      numUnfrozenItemsToBeSeen--;
+      bool shouldFreeze = (0.0f == item->GetFlexFactor(aIsUsingFlexGrow));
+      if (!shouldFreeze) {
+        if (aIsUsingFlexGrow) {
+          if (item->GetFlexBaseSize() > item->GetMainSize()) {
+            shouldFreeze = true;
+          }
+        } else { 
+          if (item->GetFlexBaseSize() < item->GetMainSize()) {
+            shouldFreeze = true;
+          }
+        }
+      }
+      if (shouldFreeze) {
+        
+        item->Freeze();
+        mNumFrozenItems++;
+      }
+    }
+  }
+}
+
 
 
 void
@@ -1656,11 +1709,19 @@ void
 FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
 {
   PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG, ("ResolveFlexibleLengths\n"));
+
+  
+  const bool isUsingFlexGrow =
+    (mTotalOuterHypotheticalMainSize < aFlexContainerMainSize);
+
+  
+  
+  FreezeItemsEarly(isUsingFlexGrow);
+
   if (mNumFrozenItems == mNumItems) {
     
     return;
   }
-
   MOZ_ASSERT(!IsEmpty(), "empty lines should take the early-return above");
 
   
@@ -1671,10 +1732,6 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
 
   nscoord spaceAvailableForFlexItemsContentBoxes =
     aFlexContainerMainSize - spaceReservedForMarginBorderPadding;
-
-  
-  const bool isUsingFlexGrow =
-    (mTotalOuterHypotheticalMainSize < aFlexContainerMainSize);
 
   nscoord origAvailableFreeSpace;
   bool isOrigAvailFreeSpaceInitialized = false;
@@ -1702,6 +1759,9 @@ FlexLine::ResolveFlexibleLengths(nscoord aFlexContainerMainSize)
     PR_LOG(GetFlexContainerLog(), PR_LOG_DEBUG,
            (" available free space = %d\n", availableFreeSpace));
 
+    
+    
+    
     
     
     if ((availableFreeSpace > 0 && isUsingFlexGrow) ||
