@@ -2186,16 +2186,6 @@ abstract public class GeckoApp
     }
 
     @Override
-    public void onLowMemory()
-    {
-        Log.e(LOGTAG, "low memory");
-        if (checkLaunchState(LaunchState.GeckoRunning))
-            GeckoAppShell.onLowMemory();
-        super.onLowMemory();
-        GeckoAppShell.geckoEventSync();
-    }
-
-    @Override
     public Object onRetainNonConfigurationInstance() {
         
         
