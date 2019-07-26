@@ -32,7 +32,8 @@ nsMathMLTokenFrame::InheritAutomaticData(nsIFrame* aParent)
   
   nsMathMLContainerFrame::InheritAutomaticData(aParent);
 
-  if (mContent->Tag() != nsGkAtoms::mspace_) {
+  if (mContent->Tag() != nsGkAtoms::mspace_ &&
+      mContent->Tag() != nsGkAtoms::annotation_) {
     
     nsMathMLFrame::FindAttrDirectionality(mContent, mPresentationData);
   }

@@ -411,23 +411,6 @@ mtd[_moz-math-columnline="dashed"] {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-semantics > :not(:first-child) {
-  display: none;
-}
-
-
-
 *|*::-moz-mathml-anonymous-block {
   display: inline-block !important;
   position: static !important;
