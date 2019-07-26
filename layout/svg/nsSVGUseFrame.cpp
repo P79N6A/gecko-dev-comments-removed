@@ -197,8 +197,8 @@ nsSVGUseFrame::NotifySVGChanged(uint32_t aFlags)
     
     
     SVGUseElement *use = static_cast<SVGUseElement*>(mContent);
-    if (use->mLengthAttributes[SVGUseElement::X].IsPercentage() ||
-        use->mLengthAttributes[SVGUseElement::Y].IsPercentage()) {
+    if (use->mLengthAttributes[SVGUseElement::ATTR_X].IsPercentage() ||
+        use->mLengthAttributes[SVGUseElement::ATTR_Y].IsPercentage()) {
       aFlags |= TRANSFORM_CHANGED;
       
       
