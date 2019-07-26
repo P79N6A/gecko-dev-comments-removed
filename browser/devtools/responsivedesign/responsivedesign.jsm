@@ -213,7 +213,8 @@ function ResponsiveUI(aWindow, aTab)
     this.onPageLoad();
   }
 
-  ResponsiveUIManager.emit("on", this.tab, this);
+  
+  ResponsiveUIManager.emit("on", { tab: this.tab });
 }
 
 ResponsiveUI.prototype = {
@@ -305,7 +306,8 @@ ResponsiveUI.prototype = {
     if (this.touchEventHandler)
       this.touchEventHandler.stop();
     this._telemetry.toolClosed("responsive");
-    ResponsiveUIManager.emit("off", this.tab, this);
+    
+    ResponsiveUIManager.emit("off", { tab: this.tab });
   },
 
   

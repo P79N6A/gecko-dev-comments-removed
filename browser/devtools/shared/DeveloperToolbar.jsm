@@ -125,18 +125,42 @@ let CommandUtils = {
         
         if (command.state) {
           button.setAttribute("autocheck", false);
-          let onChange = (event, eventTab) => {
-            if (eventTab == target.tab) {
-              if (command.state.isChecked(target)) {
-                button.setAttribute("checked", true);
+
+          
+
+
+
+
+
+          let onChange = (eventName, ev) => {
+            if (ev.target == target || ev.tab == target.tab) {
+
+              let updateChecked = (checked) => {
+                if (checked) {
+                  button.setAttribute("checked", true);
+                }
+                else if (button.hasAttribute("checked")) {
+                  button.removeAttribute("checked");
+                }
+              };
+
+              
+              
+              
+              
+              
+              let reply = command.state.isChecked(target);
+              if (typeof reply.then == "function") {
+                reply.then(updateChecked, console.error);
               }
-              else if (button.hasAttribute("checked")) {
-                button.removeAttribute("checked");
+              else {
+                updateChecked(reply);
               }
             }
           };
+
           command.state.onChange(target, onChange);
-          onChange(null, target.tab);
+          onChange("", { target: target });
           document.defaultView.addEventListener("unload", () => {
             command.state.offChange(target, onChange);
           }, false);
