@@ -3669,9 +3669,7 @@ var XULBrowserWindow = {
     this.throbberElement = document.getElementById("navigator-throbber");
 
     
-    
     var securityUI = gBrowser.securityUI;
-    this._hostChanged = true;
     this.onSecurityChange(null, null, securityUI.state);
   },
 
@@ -3862,7 +3860,6 @@ var XULBrowserWindow = {
 
   onLocationChange: function (aWebProgress, aRequest, aLocationURI, aFlags) {
     var location = aLocationURI ? aLocationURI.spec : "";
-    this._hostChanged = true;
 
     
     if (gFormSubmitObserver.panel) {
@@ -4004,37 +4001,18 @@ var XULBrowserWindow = {
 
   
   _state: null,
-  _hostChanged: false, 
+  _lastLocation: null,
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
+    let uri = gBrowser.currentURI;
+    let spec = uri.spec;
     if (this._state == aState &&
-        !this._hostChanged) {
-#ifdef DEBUG
-      try {
-        var contentHost = gBrowser.contentWindow.location.host;
-        if (this._host !== undefined && this._host != contentHost) {
-            Components.utils.reportError(
-              "ASSERTION: browser.js host is inconsistent. Content window has " +
-              "<" + contentHost + "> but cached host is <" + this._host + ">.\n"
-            );
-        }
-      } catch (ex) {}
-#endif
+        this._lastLocation == spec)
       return;
-    }
     this._state = aState;
-
-#ifdef DEBUG
-    try {
-      this._host = gBrowser.contentWindow.location.host;
-    } catch(ex) {
-      this._host = null;
-    }
-#endif
-
-    this._hostChanged = false;
+    this._lastLocation = spec;
 
     
     
@@ -4063,7 +4041,6 @@ var XULBrowserWindow = {
         gURLBar.removeAttribute("level");
     }
 
-    let uri = gBrowser.currentURI;
     try {
       uri = Services.uriFixup.createExposableURI(uri);
     } catch (e) {}
