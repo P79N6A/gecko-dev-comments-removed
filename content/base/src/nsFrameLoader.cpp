@@ -53,6 +53,7 @@
 #include "nsIMozBrowserFrame.h"
 #include "nsIPermissionManager.h"
 #include "nsISHistory.h"
+#include "nsNullPrincipal.h"
 
 #include "nsLayoutUtils.h"
 #include "nsView.h"
@@ -535,7 +536,17 @@ nsFrameLoader::ReallyStartLoadingInternal()
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  loadInfo->SetReferrer(referrer);
+  
+  
+  
+  
+  if (referrer) {
+    bool isNullPrincipalScheme;
+    rv = referrer->SchemeIs(NS_NULLPRINCIPAL_SCHEME, &isNullPrincipalScheme);
+    if (NS_SUCCEEDED(rv) && !isNullPrincipalScheme) {
+      loadInfo->SetReferrer(referrer);
+    }
+  }
 
   
   int32_t flags = nsIWebNavigation::LOAD_FLAGS_NONE;

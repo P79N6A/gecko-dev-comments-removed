@@ -30,6 +30,7 @@
 #include "nsContentUtils.h"
 #include "mozilla/Likely.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsNullPrincipal.h"
 #include "ScriptSettings.h"
 
 static nsresult
@@ -145,7 +146,18 @@ nsLocation::CheckURL(nsIURI* aURI, nsIDocShellLoadInfo** aLoadInfo)
       sourceURI = docCurrentURI;
     }
     else {
-      sourceURI = principalURI;
+      
+      
+      
+      
+      if (principalURI) {
+        bool isNullPrincipalScheme;
+        rv = principalURI->SchemeIs(NS_NULLPRINCIPAL_SCHEME,
+                                    &isNullPrincipalScheme);
+        if (NS_SUCCEEDED(rv) && !isNullPrincipalScheme) {
+          sourceURI = principalURI;
+        }
+      }
     }
 
     owner = do_QueryInterface(ssm->GetCxSubjectPrincipal(cx));
