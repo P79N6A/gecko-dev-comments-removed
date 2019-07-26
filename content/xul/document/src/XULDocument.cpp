@@ -1171,7 +1171,6 @@ XULDocument::ResolveForwardReferences()
     
     
 
-    nsresult rv = NS_OK;
     const nsForwardReference::Phase* pass = nsForwardReference::kPasses;
     while ((mResolutionPhase = *pass) != nsForwardReference::eDone) {
         uint32_t previous = 0;
@@ -1186,10 +1185,8 @@ XULDocument::ResolveForwardReferences()
                     nsForwardReference::Result result = fwdref->Resolve();
 
                     switch (result) {
-                    case nsForwardReference::eResolve_Error:
-                        rv = NS_ERROR_FAILURE;
-                        
                     case nsForwardReference::eResolve_Succeeded:
+                    case nsForwardReference::eResolve_Error:
                         mForwardReferences.RemoveElementAt(i);
 
                         
@@ -1205,7 +1202,7 @@ XULDocument::ResolveForwardReferences()
                         
                         
                         
-                        return rv;
+                        return NS_OK;
                     }
                 }
             }
@@ -1215,7 +1212,7 @@ XULDocument::ResolveForwardReferences()
     }
 
     mForwardReferences.Clear();
-    return rv;
+    return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -3874,10 +3871,8 @@ XULDocument::CreateTemplateBuilder(nsIContent* aElement)
         if (! builder)
             return NS_ERROR_FAILURE;
 
-        nsresult rv = builder->Init(aElement);
-        NS_ENSURE_SUCCESS(rv, rv);
-        rv = builder->CreateContents(aElement, false);
-        NS_ENSURE_SUCCESS(rv, rv);
+        builder->Init(aElement);
+        builder->CreateContents(aElement, false);
     }
 
     return NS_OK;

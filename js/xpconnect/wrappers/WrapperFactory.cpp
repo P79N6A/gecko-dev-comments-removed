@@ -297,26 +297,26 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
         nsXPConnect::XPConnect()->WrapNativeToJSVal(cx, wrapScope, wn->Native(), nullptr,
                                                     &NS_GET_IID(nsISupports), false,
                                                     v.address(), getter_AddRefs(holder));
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    if (NS_SUCCEEDED(rv)) {
+        obj = JSVAL_TO_OBJECT(v);
+        NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
 
-    obj = JSVAL_TO_OBJECT(v);
-    NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    XPCWrappedNative *newwn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
-    XPCNativeSet *unionSet = XPCNativeSet::GetNewOrUsed(ccx, newwn->GetSet(),
-                                                        wn->GetSet(), false);
-    if (!unionSet)
-        return nullptr;
-    newwn->SetSet(unionSet);
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        XPCWrappedNative *newwn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
+        XPCNativeSet *unionSet = XPCNativeSet::GetNewOrUsed(ccx, newwn->GetSet(),
+                                                            wn->GetSet(), false);
+        if (!unionSet)
+            return nullptr;
+        newwn->SetSet(unionSet);
+    }
 
     return DoubleWrap(cx, obj, flags);
 }
