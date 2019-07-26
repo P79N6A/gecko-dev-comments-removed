@@ -1303,6 +1303,11 @@ private:
     GlyphWidths             mContainedGlyphWidths;
     nsTHashtable<HashEntry> mTightGlyphExtents;
     int32_t                 mAppUnitsPerDevUnit;
+
+private:
+    
+    gfxGlyphExtents(const gfxGlyphExtents& aOther) MOZ_DELETE;
+    gfxGlyphExtents& operator=(const gfxGlyphExtents& aOther) MOZ_DELETE;
 };
 
 
