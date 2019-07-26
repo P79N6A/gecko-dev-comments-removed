@@ -2029,7 +2029,7 @@ function WifiWorker() {
               flags = match[4];
 
           
-          if (flags.indexOf("[IBSS]") >= 0)
+          if (flags && flags.indexOf("[IBSS]") >= 0)
             continue;
 
           
