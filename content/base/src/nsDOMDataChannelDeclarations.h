@@ -4,8 +4,8 @@
 
 
 
-#ifndef nsDOMDataChannel_h__
-#define nsDOMDataChannel_h__
+#ifndef nsDOMDataChannelDeclarations_h
+#define nsDOMDataChannelDeclarations_h
 
 
 
@@ -27,4 +27,4 @@ NS_NewDOMDataChannel(already_AddRefed<mozilla::DataChannel> dataChannel,
 
 void NS_DataChannelAppReady(nsIDOMDataChannel* domDataChannel);
 
-#endif
+#endif 
