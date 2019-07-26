@@ -79,27 +79,28 @@ WebappsRegistry.prototype = {
     return uri.prePath;
   },
 
-  _validateURL: function(aURL) {
+  
+  
+  _validateURL: function(aURL, aRequest) {
     let uri;
     let res;
+
     try {
       uri = Services.io.newURI(aURL, null, null);
       if (uri.schemeIs("http") || uri.schemeIs("https")) {
         res = uri.spec;
       }
     } catch(e) {
-      throw new Components.Exception(
-        "INVALID_URL: '" + aURL + "'", Cr.NS_ERROR_FAILURE
-      );
+      Services.DOMRequest.fireErrorAsync(aRequest, "INVALID_URL");
+      return false;
     }
 
     
     if (!res) {
-      throw new Components.Exception(
-        "INVALID_URL_SCHEME: '" + uri.scheme + "'; must be 'http' or 'https'",
-        Cr.NS_ERROR_FAILURE
-      );
+      Services.DOMRequest.fireErrorAsync(aRequest, "INVALID_URL");
+      return false;
     }
+
     return uri.spec;
   },
 
@@ -113,13 +114,7 @@ WebappsRegistry.prototype = {
       return true;
     }
 
-    let runnable = {
-      run: function run() {
-        Services.DOMRequest.fireError(aRequest, "BACKGROUND_APP");
-      }
-    }
-    Services.tm.currentThread.dispatch(runnable,
-                                       Ci.nsIThread.DISPATCH_NORMAL);
+    Services.DOMRequest.fireErrorAsync(aRequest, "BACKGROUND_APP");
     return false;
   },
 
@@ -155,11 +150,11 @@ WebappsRegistry.prototype = {
   
 
   install: function(aURL, aParams) {
-    let uri = this._validateURL(aURL);
-
     let request = this.createRequest();
 
-    if (this._ensureForeground(request)) {
+    let uri = this._validateURL(aURL, request);
+
+    if (uri && this._ensureForeground(request)) {
       this.addMessageListeners("Webapps:Install:Return:KO");
       cpmm.sendAsyncMessage("Webapps:Install",
                             this._prepareInstall(uri, request, aParams, false));
@@ -218,11 +213,11 @@ WebappsRegistry.prototype = {
   },
 
   installPackage: function(aURL, aParams) {
-    let uri = this._validateURL(aURL);
-
     let request = this.createRequest();
 
-    if (this._ensureForeground(request)) {
+    let uri = this._validateURL(aURL, request);
+
+    if (uri && this._ensureForeground(request)) {
       this.addMessageListeners("Webapps:Install:Return:KO");
       cpmm.sendAsyncMessage("Webapps:InstallPackage",
                             this._prepareInstall(uri, request, aParams, true));
@@ -471,13 +466,7 @@ WebappsApplication.prototype = {
           requestID: this.getRequestId(request) }
       );
     } else {
-      let runnable = {
-        run: function run() {
-          Services.DOMRequest.fireError(request, "NO_CLEARABLE_BROWSER");
-        }
-      }
-      Services.tm.currentThread.dispatch(runnable,
-                                         Ci.nsIThread.DISPATCH_NORMAL);
+      Services.DOMRequest.fireErrorAsync(request, "NO_CLEARABLE_BROWSER");
     }
     return request;
   },
