@@ -148,9 +148,6 @@ public:
   virtual void OnActorDestroy() = 0;
 
 protected:
-  
-  uint64_t NextTextureID();
-
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;
 };
