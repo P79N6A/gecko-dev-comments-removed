@@ -3186,6 +3186,7 @@ public:
     
     
     JSBool IsSubjectToFinalization() const {return IsValid() && mRefCnt == 1;}
+    JSBool IsObjectAboutToBeFinalized() {return JS_IsAboutToBeFinalized(&mJSObj);}
 
     JSBool IsAggregatedToNative() const {return mRoot->mOuter != nullptr;}
     nsISupports* GetAggregatedNativeObject() const {return mRoot->mOuter;}
