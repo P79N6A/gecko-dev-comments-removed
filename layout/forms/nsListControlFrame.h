@@ -186,13 +186,6 @@ public:
   static already_AddRefed<nsIDOMHTMLOptionElement>
     GetOption(nsIDOMHTMLOptionsCollection* aOptions, int32_t aIndex);
 
-  
-
-
-
-  static already_AddRefed<nsIContent>
-    GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection,int32_t aIndex);
-
   static void ComboboxFocusSet();
 
   
@@ -287,8 +280,8 @@ protected:
   void       DropDownToggleKey(nsIDOMEvent* aKeyEvent);
 
   nsresult   IsOptionDisabled(int32_t anIndex, bool &aIsDisabled);
-  nsresult   ScrollToFrame(nsIContent * aOptElement);
-  nsresult   ScrollToIndex(int32_t anIndex);
+  void ScrollToFrame(mozilla::dom::HTMLOptionElement& aOptElement);
+  void ScrollToIndex(int32_t anIndex);
 
   
 
@@ -329,12 +322,6 @@ protected:
 
 
   nsresult GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent, int32_t& aCurIndex);
-
-  
-
-
-
-  already_AddRefed<nsIContent> GetOptionContent(int32_t aIndex) const;
 
   bool     CheckIfAllFramesHere();
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
