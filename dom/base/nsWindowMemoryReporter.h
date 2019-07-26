@@ -124,10 +124,27 @@ private:
 
 
 
-  class GhostWindowsReporter MOZ_FINAL : public mozilla::MemoryUniReporter
+
+  class GhostURLsReporter MOZ_FINAL : public nsIMemoryReporter
   {
   public:
-    GhostWindowsReporter()
+    GhostURLsReporter(nsWindowMemoryReporter* aWindowReporter);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIMEMORYREPORTER
+
+  private:
+    nsRefPtr<nsWindowMemoryReporter> mWindowReporter;
+  };
+
+  
+
+
+
+  class NumGhostsReporter MOZ_FINAL : public mozilla::MemoryUniReporter
+  {
+  public:
+    NumGhostsReporter(nsWindowMemoryReporter* aWindowReporter)
       : MemoryUniReporter("ghost-windows", KIND_OTHER, UNITS_COUNT,
 "The number of ghost windows present (the number of nodes underneath "
 "explicit/window-objects/top(none)/ghost, modulo race conditions).  A ghost "
@@ -137,12 +154,13 @@ private:
 "about:memory's minimize memory usage button.\n\n"
 "Ghost windows can happen legitimately, but they are often indicative of "
 "leaks in the browser or add-ons.")
+      , mWindowReporter(aWindowReporter)
     {}
 
-    static int64_t DistinguishedAmount();
-
   private:
-    int64_t Amount() MOZ_OVERRIDE { return DistinguishedAmount(); }
+    int64_t Amount() MOZ_OVERRIDE;
+
+    nsRefPtr<nsWindowMemoryReporter> mWindowReporter;
   };
 
   

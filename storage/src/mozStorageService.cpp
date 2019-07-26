@@ -53,13 +53,22 @@ namespace storage {
 
 
 
-static int64_t
-StorageSQLiteDistinguishedAmount()
-{
-  return ::sqlite3_memory_used();
-}
 
-class StorageSQLiteReporter MOZ_FINAL : public nsIMemoryReporter
+
+
+
+class StorageSQLiteUniReporter MOZ_FINAL : public MemoryUniReporter
+{
+public:
+  StorageSQLiteUniReporter()
+    : MemoryUniReporter("storage-sqlite", KIND_OTHER, UNITS_BYTES,
+                         "Memory used by SQLite.")
+  {}
+private:
+  int64_t Amount() MOZ_OVERRIDE { return ::sqlite3_memory_used(); }
+};
+
+class StorageSQLiteMultiReporter MOZ_FINAL : public nsIMemoryReporter
 {
 private:
   Service *mService;    
@@ -70,7 +79,7 @@ private:
 public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  StorageSQLiteReporter(Service *aService)
+  StorageSQLiteMultiReporter(Service *aService)
   : mService(aService)
   {
     mStmtDesc = NS_LITERAL_CSTRING(
@@ -205,7 +214,7 @@ private:
 };
 
 NS_IMPL_ISUPPORTS1(
-  StorageSQLiteReporter,
+  StorageSQLiteMultiReporter,
   nsIMemoryReporter
 )
 
@@ -298,8 +307,8 @@ Service::Service()
 
 Service::~Service()
 {
-  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteReporter);
-  mozilla::UnregisterStorageSQLiteDistinguishedAmount();
+  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteUniReporter);
+  (void)::NS_UnregisterMemoryReporter(mStorageSQLiteMultiReporter);
 
   int rc = sqlite3_vfs_unregister(mSqliteVFS);
   if (rc != SQLITE_OK)
@@ -531,10 +540,10 @@ Service::initialize()
 
   
   
-  
-  mStorageSQLiteReporter = new StorageSQLiteReporter(this);
-  (void)::NS_RegisterMemoryReporter(mStorageSQLiteReporter);
-  mozilla::RegisterStorageSQLiteDistinguishedAmount(StorageSQLiteDistinguishedAmount);
+  mStorageSQLiteUniReporter = new StorageSQLiteUniReporter();
+  mStorageSQLiteMultiReporter = new StorageSQLiteMultiReporter(this);
+  (void)::NS_RegisterMemoryReporter(mStorageSQLiteUniReporter);
+  (void)::NS_RegisterMemoryReporter(mStorageSQLiteMultiReporter);
 
   return NS_OK;
 }

@@ -1575,34 +1575,66 @@ GetCompartmentName(JSCompartment *c, nsCString &name, bool replaceSlashes)
     }
 }
 
-static int64_t
-JSMainRuntimeGCHeapDistinguishedAmount()
-{
-    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-    return int64_t(JS_GetGCParameter(rt, JSGC_TOTAL_CHUNKS)) *
-           js::gc::ChunkSize;
-}
 
-static int64_t
-JSMainRuntimeTemporaryPeakDistinguishedAmount()
-{
-    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-    return JS::PeakSizeOfTemporary(rt);
-}
 
-static int64_t
-JSMainRuntimeCompartmentsSystemDistinguishedAmount()
+class JSMainRuntimeGCHeapReporter MOZ_FINAL : public MemoryUniReporter
 {
-    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-    return JS::SystemCompartmentCount(rt);
-}
+public:
+    JSMainRuntimeGCHeapReporter()
+      : MemoryUniReporter("js-main-runtime-gc-heap", KIND_OTHER, UNITS_BYTES,
+"Memory used by the garbage-collected heap in the main JSRuntime.")
+    {}
+private:
+    int64_t Amount() MOZ_OVERRIDE
+    {
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+        return int64_t(JS_GetGCParameter(rt, JSGC_TOTAL_CHUNKS)) *
+               js::gc::ChunkSize;
+    }
+};
 
-static int64_t
-JSMainRuntimeCompartmentsUserDistinguishedAmount()
+
+
+
+
+
+
+
+class RedundantJSMainRuntimeCompartmentsSystemReporter MOZ_FINAL : public MemoryUniReporter
 {
-    JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
-    return JS::UserCompartmentCount(rt);
-}
+public:
+    
+    
+    RedundantJSMainRuntimeCompartmentsSystemReporter()
+      : MemoryUniReporter("redundant/js-main-runtime-compartments/system",
+                          KIND_OTHER, UNITS_COUNT, "")
+    {}
+private:
+    int64_t Amount() MOZ_OVERRIDE
+    {
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+        return JS::SystemCompartmentCount(rt);
+    }
+};
+
+class RedundantJSMainRuntimeCompartmentsUserReporter MOZ_FINAL : public MemoryUniReporter
+{
+public:
+    
+    
+    RedundantJSMainRuntimeCompartmentsUserReporter()
+      : MemoryUniReporter("redundant/js-main-runtime-compartments/user",
+                          KIND_OTHER, UNITS_COUNT,
+"The number of JavaScript compartments for user code in the main JSRuntime.")
+    {}
+private:
+    int64_t Amount() MOZ_OVERRIDE
+    {
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+        return JS::UserCompartmentCount(rt);
+    }
+};
+
 
 class JSMainRuntimeTemporaryPeakReporter MOZ_FINAL : public MemoryUniReporter
 {
@@ -1616,7 +1648,8 @@ public:
 private:
     int64_t Amount() MOZ_OVERRIDE
     {
-        return JSMainRuntimeTemporaryPeakDistinguishedAmount();
+        JSRuntime *rt = nsXPConnect::GetRuntimeInstance()->Runtime();
+        return JS::PeakSizeOfTemporary(rt);
     }
 };
 
@@ -3023,13 +3056,11 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     if (!xpc_LocalizeRuntime(runtime))
         NS_RUNTIMEABORT("xpc_LocalizeRuntime failed.");
 
-    
-    NS_RegisterMemoryReporter(new JSMainRuntimeCompartmentsReporter);
+    NS_RegisterMemoryReporter(new JSMainRuntimeGCHeapReporter());
+    NS_RegisterMemoryReporter(new RedundantJSMainRuntimeCompartmentsSystemReporter());
+    NS_RegisterMemoryReporter(new RedundantJSMainRuntimeCompartmentsUserReporter());
     NS_RegisterMemoryReporter(new JSMainRuntimeTemporaryPeakReporter());
-    RegisterJSMainRuntimeGCHeapDistinguishedAmount(JSMainRuntimeGCHeapDistinguishedAmount);
-    RegisterJSMainRuntimeTemporaryPeakDistinguishedAmount(JSMainRuntimeTemporaryPeakDistinguishedAmount);
-    RegisterJSMainRuntimeCompartmentsSystemDistinguishedAmount(JSMainRuntimeCompartmentsSystemDistinguishedAmount);
-    RegisterJSMainRuntimeCompartmentsUserDistinguishedAmount(JSMainRuntimeCompartmentsUserDistinguishedAmount);
+    NS_RegisterMemoryReporter(new JSMainRuntimeCompartmentsReporter);
 
     
 #ifdef DEBUG
