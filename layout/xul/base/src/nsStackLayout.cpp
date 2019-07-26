@@ -340,8 +340,7 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
           child->Layout(aState);
 
           
-          nsRect childRectNoMargin;
-          childRectNoMargin = childRect = child->GetRect();
+          childRect = child->GetRect();
           childRect.Inflate(margin);
 
           if (child->GetStyleXUL()->mStretchStack) {
@@ -355,16 +354,6 @@ nsStackLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
               clientRect.height = childRect.height + offset.TopBottom();
               grow = true;
             }
-          }
-
-          if (!childRectNoMargin.IsEqualInterior(oldRect))
-          {
-            
-            
-            
-            
-            
-            aBox->Redraw(aState);
           }
        }
 
