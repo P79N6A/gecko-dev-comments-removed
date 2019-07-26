@@ -44,7 +44,11 @@
 
 function runTest()
 {
-  var sheet = document.getElementById("style").sheet;
+  // re-parse the style sheet with the pref turned on
+  var style = document.getElementById("style");
+  style.textContent += " ";
+
+  var sheet = style.sheet;
 
   var conditions = [
     "url(\"http://www.example.com/\")",
