@@ -3,8 +3,12 @@
 
 
 
-'use strict';
-Components.utils.import("resource://services-sync/main.js");
+"use strict";
+
+const Cu = Components.utils;
+
+Cu.import("resource://services-sync/main.js");
+Cu.import("resource://gre/modules/PlacesUtils.jsm", this);
 
 
 
@@ -63,6 +67,18 @@ RemoteTabsView.prototype = Util.extend(Object.create(View.prototype), {
     }
   },
 
+  getIcon: function (iconUri, defaultIcon) {
+    try {
+      let iconURI = Weave.Utils.makeURI(iconUri);
+      return PlacesUtils.favicons.getFaviconLinkForIcon(iconURI).spec;
+    } catch(ex) {
+      
+    }
+
+    
+    return defaultIcon || PlacesUtils.favicons.defaultFavicon.spec;
+  },
+
   populateGrid: function populateGrid() {
 
     let tabsEngine = Weave.Service.engineManager.get("tabs");
@@ -88,7 +104,7 @@ RemoteTabsView.prototype = Util.extend(Object.create(View.prototype), {
         
 
         let item = this._set.appendItem((title || url), url);
-        item.setAttribute("iconURI", Weave.Utils.getIcon(icon));
+        item.setAttribute("iconURI", this.getIcon(icon));
 
       }, this);
     }

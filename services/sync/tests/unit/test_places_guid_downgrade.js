@@ -1,6 +1,7 @@
 
 
 
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
 Cu.import("resource://services-common/async.js");
 Cu.import("resource://services-sync/util.js");
 Cu.import("resource://services-sync/engines.js");

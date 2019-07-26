@@ -2,6 +2,7 @@
 
 
 _("Rewrite place: URIs.");
+Cu.import("resource://gre/modules/PlacesUtils.jsm");
 Cu.import("resource://services-sync/engines/bookmarks.js");
 Cu.import("resource://services-sync/service.js");
 Cu.import("resource://services-sync/util.js");
