@@ -238,6 +238,8 @@ public:
   using nsIConstraintValidation::CheckValidity;
   
 
+  using nsINode::Remove;
+
 
   
   virtual JSObject*
