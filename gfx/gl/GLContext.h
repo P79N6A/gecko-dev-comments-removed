@@ -288,16 +288,6 @@ public:
 
     virtual bool IsCurrent() = 0;
 
-    
-
-
-
-
-    inline bool IsGLES2() const {
-        return IsAtLeast(ContextProfile::OpenGLES, 200);
-    }
-
-
 protected:
 
     bool mInitialized;
