@@ -197,8 +197,6 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
         return NS_ERROR_FAILURE;
     }
 
-    nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(global));
-
     
     
     nsIDocument* doc = aOriginalInnerWindow->GetExtantDoc();
@@ -207,9 +205,10 @@ nsresult nsJSThunk::EvaluateScript(nsIChannel *aChannel,
     }
 
     
-    nsAutoPopupStatePusher popupStatePusher(win, aPopupState);
+    nsAutoPopupStatePusher popupStatePusher(aPopupState);
 
     
+    nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(global);
     nsPIDOMWindow *innerWin = win->GetCurrentInnerWindow();
 
     if (innerWin != aOriginalInnerWindow) {

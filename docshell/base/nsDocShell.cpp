@@ -4134,7 +4134,7 @@ nsDocShell::LoadURI(const PRUnichar * aURI,
     } else {
         popupState = openOverridden;
     }
-    nsAutoPopupStatePusher statePusher(mScriptGlobal, popupState);
+    nsAutoPopupStatePusher statePusher(popupState);
 
     
     
@@ -12123,8 +12123,7 @@ public:
                    bool aIsTrusted);
 
   NS_IMETHOD Run() {
-    nsRefPtr<nsGlobalWindow> window = mHandler->mScriptGlobal.get();
-    nsAutoPopupStatePusher popupStatePusher(window, mPopupState);
+    nsAutoPopupStatePusher popupStatePusher(mPopupState);
 
     nsCxPusher pusher;
     if (mIsTrusted || pusher.Push(mContent)) {

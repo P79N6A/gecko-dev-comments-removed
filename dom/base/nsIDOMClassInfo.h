@@ -34,7 +34,7 @@
    nsIXPCScriptable::CLASSINFO_INTERFACES_ONLY)
 
 
-#ifdef _IMPL_NS_LAYOUT
+#ifdef MOZILLA_INTERNAL_API
 
 
 

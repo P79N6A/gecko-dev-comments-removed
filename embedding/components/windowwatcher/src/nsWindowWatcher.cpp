@@ -966,17 +966,10 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     NS_ENSURE_TRUE(newChrome, NS_ERROR_NOT_AVAILABLE);
 
-    nsCOMPtr<nsPIDOMWindow> modalContentWindow;
-
     
     
     
     
-
-    if (windowIsModalContentDialog) {
-      modalContentWindow = do_QueryInterface(*_retval);
-    }
-
     nsAutoWindowStateHelper windowStateHelper(aParent);
 
     if (!windowStateHelper.DefaultEnabled()) {
@@ -1000,7 +993,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
       
       
       
-      nsAutoPopupStatePusher popupStatePusher(modalContentWindow, openAbused);
+      nsAutoPopupStatePusher popupStatePusher(openAbused);
   
       newChrome->ShowAsModal();
     }
