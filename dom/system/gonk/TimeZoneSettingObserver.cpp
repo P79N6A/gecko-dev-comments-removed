@@ -53,10 +53,8 @@ public:
 
   NS_IMETHOD Handle(const nsAString &aName, const JS::Value &aResult) {
 
-    JSContext *cx = nsContentUtils::GetSafeJSContext();
+    JSContext *cx = nsContentUtils::GetCurrentJSContext();
     NS_ENSURE_TRUE(cx, NS_OK);
-    JSAutoRequest ar(cx);
-    JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(aResult));
 
     
     
@@ -83,6 +81,8 @@ public:
 
     
     if (aResult.isString()) {
+      JSAutoRequest ar(cx);
+      JSAutoCompartment ac(cx, JSVAL_TO_OBJECT(aResult));
       return TimeZoneSettingObserver::SetTimeZone(aResult, cx);
     }
 
