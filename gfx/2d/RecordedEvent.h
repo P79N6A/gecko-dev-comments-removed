@@ -20,7 +20,7 @@ namespace gfx {
 
 
 
-const uint16_t kMajorRevision = 2;
+const uint16_t kMajorRevision = 3;
 
 
 const uint16_t kMinorRevision = 1;
@@ -222,8 +222,10 @@ protected:
 
 class RecordedDrawTargetCreation : public RecordedEvent {
 public:
-  RecordedDrawTargetCreation(ReferencePtr aRefPtr, BackendType aType, const IntSize &aSize, SurfaceFormat aFormat)
+  RecordedDrawTargetCreation(ReferencePtr aRefPtr, BackendType aType, const IntSize &aSize, SurfaceFormat aFormat,
+                             bool aHasExistingData = false, SourceSurface *aExistingData = nullptr)
     : RecordedEvent(DRAWTARGETCREATION), mRefPtr(aRefPtr), mBackendType(aType), mSize(aSize), mFormat(aFormat)
+    , mHasExistingData(aHasExistingData), mExistingData(aExistingData)
   {}
 
   virtual void PlayEvent(Translator *aTranslator) const;
@@ -238,6 +240,8 @@ public:
   BackendType mBackendType;
   IntSize mSize;
   SurfaceFormat mFormat;
+  bool mHasExistingData;
+  RefPtr<SourceSurface> mExistingData;
   
 private:
   friend class RecordedEvent;
