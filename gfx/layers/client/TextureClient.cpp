@@ -289,12 +289,16 @@ void TextureClient::ForceRemove()
 void
 TextureClient::Finalize()
 {
-  if (mActor) {
+  
+  
+  RefPtr<TextureChild> actor = mActor;
+
+  if (actor) {
     
-    mActor->GetForwarder()->RemoveTexture(this);
+    actor->GetForwarder()->RemoveTexture(this);
 
     
-    mActor->mTextureClient = nullptr;
+    actor->mTextureClient = nullptr;
   }
 }
 
