@@ -417,6 +417,10 @@ GuessPhiType(MPhi *phi)
         }
         if (type != in->type()) {
             
+            if (in->resultTypeSet() && in->resultTypeSet()->empty())
+                continue;
+
+            
             if (IsNumberType(type) && IsNumberType(in->type()))
                 type = MIRType_Double;
             else
@@ -520,6 +524,10 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
                 MToDouble *toDouble = MToDouble::New(in);
                 in->block()->insertBefore(in->block()->lastIns(), toDouble);
                 phi->replaceOperand(i, toDouble);
+            } else if (in->type() == MIRType_Value) {
+                MUnbox *unbox = MUnbox::New(in, MIRType_Double, MUnbox::Fallible);
+                in->block()->insertBefore(in->block()->lastIns(), unbox);
+                phi->replaceOperand(i, unbox);
             } else {
                 JS_ASSERT(in->type() == MIRType_Double);
             }
@@ -527,8 +535,26 @@ TypeAnalyzer::adjustPhiInputs(MPhi *phi)
         return;
     }
 
-    if (phiType != MIRType_Value)
+    
+    
+    
+    if (phiType != MIRType_Value) {
+        for (size_t i = 0, e = phi->numOperands(); i < e; i++) {
+            MDefinition *in = phi->getOperand(i);
+            if (in->type() == phiType)
+                continue;
+
+            if (in->isBox() && in->toBox()->input()->type() == phiType) {
+                phi->replaceOperand(i, in->toBox()->input());
+            } else {
+                MUnbox *unbox = MUnbox::New(in, phiType, MUnbox::Fallible);
+                in->block()->insertBefore(in->block()->lastIns(), unbox);
+                phi->replaceOperand(i, unbox);
+            }
+        }
+
         return;
+    }
 
     
     for (size_t i = 0, e = phi->numOperands(); i < e; i++) {
