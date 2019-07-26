@@ -3570,7 +3570,14 @@ CodeGenerator::visitNewCallObject(LNewCallObject *lir)
     if (!ool)
         return false;
 
-    if (lir->mir()->needsSingletonType()) {
+    if (lir->mir()->needsSingletonType()
+#ifdef JSGC_GENERATIONAL
+        
+        
+        || lir->mir()->templateObject()->hasDynamicSlots()
+#endif
+       )
+    {
         
         masm.jump(ool->entry());
     } else {
