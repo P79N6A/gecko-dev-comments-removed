@@ -3,9 +3,6 @@
 
 
 
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-
 const gDashboard = Cc['@mozilla.org/network/dashboard;1']
   .getService(Ci.nsIDashboard);
 

@@ -3,8 +3,6 @@
 
 
 
-const Cu = Components.utils;
-
 Cu.import("resource://testing-common/httpd.js");
 
 const gDashboard = Cc['@mozilla.org/network/dashboard;1']
