@@ -2200,6 +2200,9 @@ this.AddonManager = {
   PERM_CAN_DISABLE: 4,
   
   PERM_CAN_UPGRADE: 8,
+  
+  
+  PERM_CAN_ASK_TO_ACTIVATE: 16,
 
   
   
@@ -2217,6 +2220,10 @@ this.AddonManager = {
   VIEW_TYPE_LIST: "list",
 
   TYPE_UI_HIDE_EMPTY: 16,
+  
+  
+  
+  TYPE_SUPPORTS_ASK_TO_ACTIVATE: 32,
 
   
   
@@ -2263,6 +2270,12 @@ this.AddonManager = {
   
   
   STARTUP_CHANGE_ENABLED: "enabled",
+
+  
+  
+  
+  
+  STATE_ASK_TO_ACTIVATE: "askToActivate",
 
 #ifdef MOZ_EM_DEBUG
   get __AddonManagerInternal__() {

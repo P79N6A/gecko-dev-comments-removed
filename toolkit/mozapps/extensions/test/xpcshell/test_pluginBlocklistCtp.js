@@ -140,8 +140,13 @@ function test_disable_blocklist() {
   do_check_false(gPluginHost.isPluginClickToPlayForType("application/x-test"));
 
   
+  
   Services.prefs.setBoolPref("plugins.click_to_play", true);
+  let previousEnabledState = plugin.enabledState;
+  plugin.enabledState = Components.interfaces.nsIPluginTag.STATE_CLICKTOPLAY;
   do_check_true(gPluginHost.isPluginClickToPlayForType("application/x-test"));
+  
+  plugin.enabledState = previousEnabledState;
 
   gServer.stop(do_test_finished);
 }
