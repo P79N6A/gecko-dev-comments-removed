@@ -110,6 +110,7 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
 
 
 
+#ifdef DEBUG
   {
     
     
@@ -125,6 +126,7 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
     "AK/FPSJmJkky",
     nullptr
   },
+#endif
   {
     
     "1.2.392.200091.100.721.1",
@@ -1008,10 +1010,12 @@ nsNSSComponent::IdentityInfoInit()
 
     entry.cert = CERT_FindCertByIssuerAndSN(nullptr, &ias);
 
+#ifdef DEBUG
     
     if (iEV != 0) {
        NS_ASSERTION(entry.cert, "Could not find EV root in NSS storage");
     }
+#endif
 
     SECITEM_FreeItem(&ias.derIssuer, false);
     SECITEM_FreeItem(&ias.serialNumber, false);
