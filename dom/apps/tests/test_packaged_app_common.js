@@ -12,31 +12,18 @@ var PackagedTestHelper = (function PackagedTestHelper() {
   var gAppName = "appname";
   var gApp = null;
   var gInstallOrigin = "http://mochi.test:8888";
-  var timeoutID;
-
-  function timeoutError() {
-    ok(false, "Timeout! Probably waiting on a app installation event");
-    info("Finishing this test suite!");
-    finish();
-  }
 
   function debug(aMsg) {
     
   }
 
   function next() {
-    if (timeoutID) {
-      clearTimeout(timeoutID);
-    }
     index += 1;
     if (index >= steps.length) {
       ok(false, "Shouldn't get here!");
       return;
     }
     try {
-      
-      
-      timeoutID = setTimeout(timeoutError, 30000);
       steps[index]();
     } catch(ex) {
       ok(false, "Caught exception", ex);
@@ -48,9 +35,6 @@ var PackagedTestHelper = (function PackagedTestHelper() {
   }
 
   function finish() {
-    if (timeoutID) {
-      clearTimeout(timeoutID);
-    }
     SpecialPowers.removePermission("webapps-manage", document);
     SpecialPowers.removePermission("browser", document);
     SimpleTest.finish();
