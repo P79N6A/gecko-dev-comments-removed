@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko.home;
 
+import org.mozilla.gecko.AutocompleteHandler;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.R;
@@ -15,6 +16,7 @@ import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserDB.URLColumns;
 import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.StringUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.widget.FaviconView;
 
@@ -27,6 +29,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
@@ -46,6 +49,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.List;
 
 
 
@@ -69,6 +73,10 @@ public class BrowserSearch extends HomeFragment
 
     
     private static final int SUGGESTION_MAX = 3;
+
+    
+    
+    private static final int MAX_AUTOCOMPLETE_SEARCH = 20;
 
     
     private String mSearchTerm;
@@ -96,6 +104,9 @@ public class BrowserSearch extends HomeFragment
 
     
     private LayoutInflater mInflater;
+
+    
+    private AutocompleteHandler mAutocompleteHandler;
 
     
     private OnUrlOpenListener mUrlOpenListener;
@@ -179,6 +190,7 @@ public class BrowserSearch extends HomeFragment
         super.onDetach();
 
         mInflater = null;
+        mAutocompleteHandler = null;
         mUrlOpenListener = null;
         mSearchListener = null;
         mEditSuggestionListener = null;
@@ -240,6 +252,62 @@ public class BrowserSearch extends HomeFragment
                 }
             });
         }
+    }
+
+    private void handleAutocomplete(String searchTerm, Cursor c) {
+        if (TextUtils.isEmpty(mSearchTerm) || c == null || mAutocompleteHandler == null) {
+            return;
+        }
+
+        
+        
+        final boolean searchPath = (searchTerm.indexOf("/") > 0);
+        final String autocompletion = findAutocompletion(searchTerm, c, searchPath);
+
+        if (autocompletion != null && mAutocompleteHandler != null) {
+            mAutocompleteHandler.onAutocomplete(autocompletion);
+            mAutocompleteHandler = null;
+        }
+    }
+
+    private String findAutocompletion(String searchTerm, Cursor c, boolean searchPath) {
+        if (!c.moveToFirst()) {
+            return null;
+        }
+
+        final int urlIndex = c.getColumnIndexOrThrow(URLColumns.URL);
+        int searchCount = 0;
+
+        do {
+            final Uri url = Uri.parse(c.getString(urlIndex));
+            final String host = StringUtils.stripCommonSubdomains(url.getHost());
+
+            
+            if (host == null) {
+                continue;
+            }
+
+            final StringBuilder hostBuilder = new StringBuilder(host);
+            if (hostBuilder.indexOf(searchTerm) == 0) {
+                return hostBuilder.append("/").toString();
+            }
+
+            if (searchPath) {
+                final List<String> path = url.getPathSegments();
+
+                for (String s : path) {
+                    hostBuilder.append("/").append(s);
+
+                    if (hostBuilder.indexOf(searchTerm) == 0) {
+                        return hostBuilder.append("/").toString();
+                    }
+                }
+            }
+
+            searchCount++;
+        } while (searchCount < MAX_AUTOCOMPLETE_SEARCH && c.moveToNext());
+
+        return null;
     }
 
     private void filterSuggestions() {
@@ -317,7 +385,7 @@ public class BrowserSearch extends HomeFragment
         GeckoAppShell.unregisterEventListener(eventName, this);
     }
 
-    public void filter(String searchTerm) {
+    public void filter(String searchTerm, AutocompleteHandler handler) {
         if (TextUtils.isEmpty(searchTerm)) {
             return;
         }
@@ -327,6 +395,7 @@ public class BrowserSearch extends HomeFragment
         }
 
         mSearchTerm = searchTerm;
+        mAutocompleteHandler = handler;
 
         if (isVisible()) {
             
@@ -359,6 +428,10 @@ public class BrowserSearch extends HomeFragment
 
             final ContentResolver cr = getContext().getContentResolver();
             return BrowserDB.filter(cr, mSearchTerm, SEARCH_LIMIT);
+        }
+
+        public String getSearchTerm() {
+            return mSearchTerm;
         }
     }
 
@@ -561,6 +634,12 @@ public class BrowserSearch extends HomeFragment
             switch(loaderId) {
             case SEARCH_LOADER_ID:
                 mAdapter.swapCursor(c);
+
+                
+                
+                
+                SearchCursorLoader searchLoader = (SearchCursorLoader) loader;
+                handleAutocomplete(searchLoader.getSearchTerm(), c);
 
                 FaviconsLoader.restartFromCursor(getLoaderManager(), FAVICONS_LOADER_ID,
                         mCursorLoaderCallbacks, c);
