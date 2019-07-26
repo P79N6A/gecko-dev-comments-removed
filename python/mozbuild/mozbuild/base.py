@@ -57,6 +57,7 @@ class ObjdirMismatchException(BadEnvironmentException):
     def __str__(self):
         return "Objdir mismatch: %s != %s" % (self.objdir1, self.objdir2)
 
+
 class MozbuildObject(ProcessExecutionMixin):
     """Base class providing basic functionality useful to many modules.
 
@@ -153,16 +154,20 @@ class MozbuildObject(ProcessExecutionMixin):
         loader = MozconfigLoader(topsrcdir)
         config = loader.read_mozconfig(mozconfig)
 
-        
-        
-        
-        
-        if topobjdir and config['topobjdir'] \
-            and not samepath(topobjdir, config['topobjdir']):
+        config_topobjdir = MozbuildObject.resolve_mozconfig_topobjdir(
+            topsrcdir, config)
 
-            raise ObjdirMismatchException(topobjdir, config['topobjdir'])
+        
+        
+        
+        
+        
+        if topobjdir and config_topobjdir \
+            and not samepath(topobjdir, config_topobjdir):
 
-        topobjdir = config['topobjdir'] or topobjdir
+            raise ObjdirMismatchException(topobjdir, config_topobjdir)
+
+        topobjdir = config_topobjdir or topobjdir
         if topobjdir:
             topobjdir = os.path.normpath(topobjdir)
 
@@ -170,14 +175,26 @@ class MozbuildObject(ProcessExecutionMixin):
         
         return cls(topsrcdir, None, None, topobjdir=topobjdir)
 
+    @staticmethod
+    def resolve_mozconfig_topobjdir(topsrcdir, mozconfig, default=None):
+        topobjdir = mozconfig['topobjdir'] or default
+        if not topobjdir:
+            return None
+
+        if '@CONFIG_GUESS@' in topobjdir:
+            topobjdir = topobjdir.replace('@CONFIG_GUESS@',
+                MozbuildObject.resolve_config_guess(mozconfig, topsrcdir))
+
+        if not os.path.isabs(topobjdir):
+            topobjdir = os.path.abspath(os.path.join(topsrcdir, topobjdir))
+
+        return os.path.normpath(topobjdir)
+
     @property
     def topobjdir(self):
         if self._topobjdir is None:
-            topobj = self.mozconfig['topobjdir'] or 'obj-@CONFIG_GUESS@'
-            if not os.path.isabs(topobj):
-                topobj = os.path.abspath(os.path.join(self.topsrcdir, topobj))
-            topobj = topobj.replace("@CONFIG_GUESS@", self._config_guess)
-            self._topobjdir = os.path.normpath(topobj)
+            self._topobjdir = MozbuildObject.resolve_mozconfig_topobjdir(
+                self.topsrcdir, self.mozconfig, default='obj-@CONFIG_GUESS@')
 
         return self._topobjdir
 
@@ -282,19 +299,32 @@ class MozbuildObject(ProcessExecutionMixin):
 
         return path
 
+    @staticmethod
+    def resolve_config_guess(mozconfig, topsrcdir):
+        make_extra = mozconfig['make_extra'] or []
+        make_extra = dict(m.split('=', 1) for m in make_extra)
+
+        config_guess = make_extra.get('CONFIG_GUESS', None)
+
+        if config_guess:
+            return config_guess
+
+        p = os.path.join(topsrcdir, 'build', 'autoconf', 'config.guess')
+
+        
+        
+        
+        
+        o = MozbuildObject(topsrcdir, None, None, None)
+        args = o._normalize_command([p], True)
+
+        return subprocess.check_output(args, cwd=topsrcdir).strip()
+
     @property
     def _config_guess(self):
         if self._config_guess_output is None:
-            make_extra = self.mozconfig['make_extra'] or []
-            make_extra = dict(m.split('=', 1) for m in make_extra)
-            self._config_guess_output = make_extra.get('CONFIG_GUESS', None)
-
-        if self._config_guess_output is None:
-            p = os.path.join(self.topsrcdir, 'build', 'autoconf',
-                'config.guess')
-            args = self._normalize_command([p], True)
-            self._config_guess_output = subprocess.check_output(args,
-                cwd=self.topsrcdir).strip()
+            self._config_guess_output = MozbuildObject.resolve_config_guess(
+                self.mozconfig, self.topsrcdir)
 
         return self._config_guess_output
 
