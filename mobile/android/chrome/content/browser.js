@@ -3494,6 +3494,60 @@ Tab.prototype = {
             };
             sendMessageToJava(json);
           } catch (e) {}
+        } else if (list.indexOf("[search]" != -1)) {
+          let type = target.type && target.type.toLowerCase();
+
+          
+          type = type.replace(/^\s+|\s*(?:;.*)?$/g, "");
+
+          
+          let isOpenSearch = (type == "application/opensearchdescription+xml");
+          if (isOpenSearch && target.title && /^(?:https?|ftp):/i.test(target.href)) {
+            let visibleEngines = Services.search.getVisibleEngines();
+            
+            
+            if (visibleEngines.some(function(e) {
+              return e.name == target.title;
+            })) {
+              
+              return;
+            }
+
+            if (this.browser.engines) {
+              
+              if (this.browser.engines.some(function(e) {
+                return e.url == target.href;
+              })) {
+                  return;
+              }
+            } else {
+              this.browser.engines = [];
+            }
+
+            
+            let iconURL = target.ownerDocument.documentURIObject.prePath + "/favicon.ico";
+
+            let newEngine = {
+              title: target.title,
+              url: target.href,
+              iconURL: iconURL
+            };
+
+            this.browser.engines.push(newEngine);
+
+            
+            if (this.browser.engines.length > 1)
+              return;
+
+            
+            let newEngineMessage = {
+              type: "Link:OpenSearch",
+              tabID: this.id,
+              visible: true
+            };
+
+            sendMessageToJava(newEngineMessage);
+          }
         }
         break;
       }
