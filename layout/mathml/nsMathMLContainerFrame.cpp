@@ -528,10 +528,10 @@ nsMathMLContainerFrame::FinalizeReflow(nsRenderingContext& aRenderingContext,
   }
 
   
-  FixInterFrameSpacing(aDesiredSize);
+  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
 
   
-  aDesiredSize.mBoundingMetrics = mBoundingMetrics;
+  FixInterFrameSpacing(aDesiredSize);
 
   if (!parentWillFireStretch) {
     
@@ -971,6 +971,9 @@ nsMathMLContainerFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
+static nscoord AddInterFrameSpacingToSize(nsHTMLReflowMetrics&    aDesiredSize,
+                                          nsMathMLContainerFrame* aFrame);
+
  nscoord
 nsMathMLContainerFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
 {
@@ -978,10 +981,12 @@ nsMathMLContainerFrame::GetMinWidth(nsRenderingContext *aRenderingContext)
   DISPLAY_MIN_WIDTH(this, result);
   nsHTMLReflowMetrics desiredSize(GetWritingMode());
   GetIntrinsicWidthMetrics(aRenderingContext, desiredSize);
-  nsBoundingMetrics bm = desiredSize.mBoundingMetrics;
+
   
-  result = std::max(bm.width, bm.rightBearing) - std::min(0, bm.leftBearing);
-  return result;
+  
+  AddInterFrameSpacingToSize(desiredSize, this);
+
+  return desiredSize.Width();
 }
 
  nscoord
@@ -991,10 +996,12 @@ nsMathMLContainerFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
   DISPLAY_MIN_WIDTH(this, result);
   nsHTMLReflowMetrics desiredSize(GetWritingMode());
   GetIntrinsicWidthMetrics(aRenderingContext, desiredSize);
-  nsBoundingMetrics bm = desiredSize.mBoundingMetrics;
+
   
-  result = std::max(bm.width, bm.rightBearing) - std::min(0, bm.leftBearing);
-  return result;
+  
+  AddInterFrameSpacingToSize(desiredSize, this);
+
+  return desiredSize.Width();
 }
 
  void
@@ -1385,36 +1392,50 @@ GetInterFrameSpacingFor(int32_t         aScriptLevel,
   return 0;
 }
 
-nscoord
-nsMathMLContainerFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
+static nscoord
+AddInterFrameSpacingToSize(nsHTMLReflowMetrics&    aDesiredSize,
+                           nsMathMLContainerFrame* aFrame)
 {
   nscoord gap = 0;
-  nsIContent* parentContent = mParent->GetContent();
+  nsIFrame* parent = aFrame->GetParent();
+  nsIContent* parentContent = parent->GetContent();
   if (MOZ_UNLIKELY(!parentContent)) {
     return 0;
   }
   nsIAtom *parentTag = parentContent->Tag();
   if (parentContent->GetNameSpaceID() == kNameSpaceID_MathML && 
       (parentTag == nsGkAtoms::math || parentTag == nsGkAtoms::mtd_)) {
-    gap = GetInterFrameSpacingFor(StyleFont()->mScriptLevel, mParent, this);
+    gap = GetInterFrameSpacingFor(aFrame->StyleFont()->mScriptLevel,
+                                  parent, aFrame);
     
     nscoord leftCorrection = 0, italicCorrection = 0;
-    GetItalicCorrection(mBoundingMetrics, leftCorrection, italicCorrection);
+    aFrame->GetItalicCorrection(aDesiredSize.mBoundingMetrics,
+                                leftCorrection, italicCorrection);
     gap += leftCorrection;
-    
     if (gap) {
-      nsIFrame* childFrame = mFrames.FirstChild();
-      while (childFrame) {
-        childFrame->SetPosition(childFrame->GetPosition() + nsPoint(gap, 0));
-        childFrame = childFrame->GetNextSibling();
-      }
-      mBoundingMetrics.leftBearing += gap;
-      mBoundingMetrics.rightBearing += gap;
-      mBoundingMetrics.width += gap;
+      aDesiredSize.mBoundingMetrics.leftBearing += gap;
+      aDesiredSize.mBoundingMetrics.rightBearing += gap;
+      aDesiredSize.mBoundingMetrics.width += gap;
       aDesiredSize.Width() += gap;
     }
-    mBoundingMetrics.width += italicCorrection;
+    aDesiredSize.mBoundingMetrics.width += italicCorrection;
     aDesiredSize.Width() += italicCorrection;
+  }
+  return gap;
+}
+
+nscoord
+nsMathMLContainerFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
+{
+  nscoord gap = 0;
+  gap = AddInterFrameSpacingToSize(aDesiredSize, this);
+  if (gap) {
+    
+    nsIFrame* childFrame = mFrames.FirstChild();
+    while (childFrame) {
+      childFrame->SetPosition(childFrame->GetPosition() + nsPoint(gap, 0));
+      childFrame = childFrame->GetNextSibling();
+    }
   }
   return gap;
 }
