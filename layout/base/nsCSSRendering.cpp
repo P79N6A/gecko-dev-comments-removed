@@ -1154,12 +1154,11 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
 }
 
 bool
-nsCSSRendering::FindBackground(nsPresContext* aPresContext,
-                               nsIFrame* aForFrame,
+nsCSSRendering::FindBackground(nsIFrame* aForFrame,
                                nsStyleContext** aBackgroundSC)
 {
   nsIFrame* rootElementFrame =
-    aPresContext->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
+    aForFrame->PresContext()->PresShell()->FrameConstructor()->GetRootElementStyleFrame();
   if (IsCanvasFrame(aForFrame)) {
     *aBackgroundSC = FindCanvasBackground(aForFrame, rootElementFrame);
     return true;
@@ -1547,7 +1546,7 @@ nsCSSRendering::PaintBackground(nsPresContext* aPresContext,
                   "Frame is expected to be provided to PaintBackground");
 
   nsStyleContext *sc;
-  if (!FindBackground(aPresContext, aForFrame, &sc)) {
+  if (!FindBackground(aForFrame, &sc)) {
     
     
     
@@ -1584,7 +1583,7 @@ nsCSSRendering::PaintBackgroundColor(nsPresContext* aPresContext,
                   "Frame is expected to be provided to PaintBackground");
 
   nsStyleContext *sc;
-  if (!FindBackground(aPresContext, aForFrame, &sc)) {
+  if (!FindBackground(aForFrame, &sc)) {
     
     
     

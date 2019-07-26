@@ -7962,7 +7962,7 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
   
   
   nsStyleContext *bgSC;
-  while (!nsCSSRendering::FindBackground(aPresContext, aFrame, &bgSC)) {
+  while (!nsCSSRendering::FindBackground(aFrame, &bgSC)) {
     aFrame = aFrame->GetParent();
     NS_ASSERTION(aFrame, "root frame must paint");
   }

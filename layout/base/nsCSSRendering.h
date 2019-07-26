@@ -243,9 +243,8 @@ struct nsCSSRendering {
 
 
 
-  static bool FindBackground(nsPresContext* aPresContext,
-                               nsIFrame* aForFrame,
-                               nsStyleContext** aBackgroundSC);
+  static bool FindBackground(nsIFrame* aForFrame,
+                             nsStyleContext** aBackgroundSC);
 
   
 
