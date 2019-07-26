@@ -38,7 +38,6 @@
 
 #ifdef XP_WIN
 #include <windows.h>
-#include <shlobj.h>
 #endif
 
 
@@ -1667,44 +1666,6 @@ XPCShellDirProvider::GetFile(const char *prop, bool *persistent,
             return NS_ERROR_FAILURE;
         NS_ADDREF(*result = file);
         return NS_OK;
-    } else if (mAppFile && !strcmp(prop, XRE_UPDATE_ROOT_DIR)) {
-        
-        
-        
-        *persistent = true;
-#ifdef XP_WIN
-        char appData[MAX_PATH] = {'\0'};
-        char path[MAX_PATH] = {'\0'};
-        LPITEMIDLIST pItemIDList;
-        if (FAILED(SHGetSpecialFolderLocation(nullptr, CSIDL_LOCAL_APPDATA, &pItemIDList)) ||
-            FAILED(SHGetPathFromIDListA(pItemIDList, appData))) {
-            return NS_ERROR_FAILURE;
-        }
-        nsAutoString pathName;
-        pathName.AssignASCII(appData);
-        nsCOMPtr<nsIFile> localFile;
-        nsresult rv = NS_NewLocalFile(pathName, true, getter_AddRefs(localFile));
-        if (NS_FAILED(rv)) {
-            return rv;
-        }
-
-#ifdef MOZ_APP_PROFILE
-        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_PROFILE));
-#else
-        
-#ifdef MOZ_APP_VENDOR
-        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_VENDOR));
-#endif
-#ifdef MOZ_APP_BASENAME
-        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_BASENAME));
-#endif
-        
-        localFile->AppendNative(NS_LITERAL_CSTRING(MOZ_APP_NAME));
-#endif
-        return localFile->Clone(result);
-#else
-        return mAppFile->GetParent(result);
-#endif
     }
 
     return NS_ERROR_FAILURE;
