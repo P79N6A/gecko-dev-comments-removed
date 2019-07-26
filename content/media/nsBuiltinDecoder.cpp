@@ -131,7 +131,7 @@ void nsBuiltinDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs)
   DestroyDecodedStream();
 
   mDecodedStream = new DecodedStreamData(this, aStartTimeUSecs,
-    MediaStreamGraph::GetInstance()->CreateInputStream(nullptr));
+    MediaStreamGraph::GetInstance()->CreateSourceStream(nullptr));
 
   
   

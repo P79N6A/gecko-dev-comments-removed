@@ -797,7 +797,7 @@ public:
 
 
 
-  SourceMediaStream* CreateInputStream(nsDOMMediaStream* aWrapper);
+  SourceMediaStream* CreateSourceStream(nsDOMMediaStream* aWrapper);
   
 
 

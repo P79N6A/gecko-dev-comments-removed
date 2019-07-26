@@ -56,7 +56,7 @@ public:
   
 
 
-  static already_AddRefed<nsDOMMediaStream> CreateInputStream(uint32_t aHintContents);
+  static already_AddRefed<nsDOMMediaStream> CreateSourceStream(uint32_t aHintContents);
 
   
   
@@ -101,7 +101,7 @@ public:
   
 
 
-  static already_AddRefed<nsDOMLocalMediaStream> CreateInputStream(uint32_t aHintContents);
+  static already_AddRefed<nsDOMLocalMediaStream> CreateSourceStream(uint32_t aHintContents);
 
   
 
