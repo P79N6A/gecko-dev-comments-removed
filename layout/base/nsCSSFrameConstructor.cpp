@@ -8035,7 +8035,6 @@ NeedToReframeForAddingOrRemovingTransform(nsIFrame* aFrame)
   MOZ_STATIC_ASSERT(0 <= NS_STYLE_POSITION_FIXED &&
                     NS_STYLE_POSITION_FIXED < 32, "Style constant out of range");
 
-  const nsStyleDisplay* style = aFrame->GetStyleDisplay();
   uint32_t positionMask;
   
   
