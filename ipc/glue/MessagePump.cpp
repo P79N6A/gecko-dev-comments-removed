@@ -106,7 +106,7 @@ MessagePump::Run(MessagePump::Delegate* aDelegate)
     
     
     if (MOZ_LIKELY(AndroidBridge::HasEnv())) {
-        did_work |= mozilla::widget::android::GeckoAppShell::PumpMessageLoop();
+        did_work |= GeckoAppShell::PumpMessageLoop();
     }
 #endif
 

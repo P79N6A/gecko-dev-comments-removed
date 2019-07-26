@@ -48,6 +48,8 @@ class Thread;
 
 typedef void* EGLSurface;
 
+using namespace mozilla::widget::android;
+
 namespace mozilla {
 
 namespace hal {
@@ -179,7 +181,7 @@ public:
         jthrowable e = aEnv->ExceptionOccurred();
         MOZ_ASSERT(e);
         aEnv->ExceptionClear();
-        mozilla::widget::android::GeckoAppShell::HandleUncaughtException(nullptr, e);
+        GeckoAppShell::HandleUncaughtException(nullptr, e);
         
         MOZ_CRASH("Failed to handle uncaught exception");
     }
@@ -203,7 +205,7 @@ public:
     bool ProgressiveUpdateCallback(bool aHasPendingNewThebesContent, const LayerRect& aDisplayPort, float aDisplayResolution, bool aDrawingCritical, ScreenRect& aCompositionBounds, CSSToScreenScale& aZoom);
 
     void SetLayerClient(JNIEnv* env, jobject jobj);
-    mozilla::widget::android::GeckoLayerClient* GetLayerClient() { return mLayerClient; }
+    GeckoLayerClient* GetLayerClient() { return mLayerClient; }
 
     bool GetHandlersForURL(const nsAString& aURL,
                            nsIMutableArray* handlersArray = nullptr,
@@ -354,7 +356,7 @@ protected:
     JNIEnv *mJNIEnv;
     pthread_t mThread;
 
-    mozilla::widget::android::GeckoLayerClient *mLayerClient;
+    GeckoLayerClient *mLayerClient;
 
     
     jclass mAndroidSmsMessageClass;
@@ -395,7 +397,7 @@ protected:
     jclass jLayerView;
 
     jfieldID jEGLSurfacePointerField;
-    mozilla::widget::android::GLController *mGLControllerObj;
+    GLController *mGLControllerObj;
 
     
     jclass jStringClass;
@@ -419,14 +421,14 @@ protected:
     void (* Region_set)(void* region, void* rect);
 
 private:
-     mozilla::widget::android::NativePanZoomController* mNativePanZoomController;
+    NativePanZoomController* mNativePanZoomController;
     
     
     
     nsTArray<DelayedTask*> mDelayedTaskQueue;
 
 public:
-     mozilla::widget::android::NativePanZoomController* SetNativePanZoomController(jobject obj);
+    NativePanZoomController* SetNativePanZoomController(jobject obj);
     
     void RequestContentRepaint(const mozilla::layers::FrameMetrics& aFrameMetrics) MOZ_OVERRIDE;
     void AcknowledgeScrollUpdate(const mozilla::layers::FrameMetrics::ViewID& aScrollId,
