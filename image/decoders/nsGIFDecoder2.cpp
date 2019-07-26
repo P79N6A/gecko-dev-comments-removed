@@ -762,39 +762,30 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
       break;
 
     case gif_extension:
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
       mGIFStruct.bytes_to_consume = q[1];
       if (mGIFStruct.bytes_to_consume) {
         switch (*q) {
         case GIF_GRAPHIC_CONTROL_LABEL:
+          
+          
+          
+          
           mGIFStruct.state = gif_control_extension;
           mGIFStruct.bytes_to_consume = std::max(mGIFStruct.bytes_to_consume, 4u);
           break;
 
+        
+        
+        
+        
+        
+        
         case GIF_APPLICATION_EXTENSION_LABEL:
           mGIFStruct.state = gif_application_extension;
-          mGIFStruct.bytes_to_consume = std::max(mGIFStruct.bytes_to_consume, 11u);
           break;
 
         case GIF_PLAIN_TEXT_LABEL:
           mGIFStruct.state = gif_skip_block;
-          mGIFStruct.bytes_to_consume = std::max(mGIFStruct.bytes_to_consume, 12u);
           break;
 
         case GIF_COMMENT_LABEL:
@@ -845,8 +836,9 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, uint32_t aCount)
 
     case gif_application_extension:
       
-      if (!strncmp((char*)q, "NETSCAPE2.0", 11) ||
-        !strncmp((char*)q, "ANIMEXTS1.0", 11))
+      if (mGIFStruct.bytes_to_consume == 11 &&
+          (!strncmp((char*)q, "NETSCAPE2.0", 11) ||
+           !strncmp((char*)q, "ANIMEXTS1.0", 11)))
         GETN(1, gif_netscape_extension_block);
       else
         GETN(1, gif_consume_block);
