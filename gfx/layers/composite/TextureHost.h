@@ -488,7 +488,7 @@ public:
 
 protected:
   mozilla::ipc::Shmem* mShmem;
-  ISurfaceAllocator* mDeallocator;
+  RefPtr<ISurfaceAllocator> mDeallocator;
 };
 
 
@@ -705,12 +705,7 @@ public:
 
   
   
-  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator)
-  {
-    MOZ_ASSERT(!mBuffer || mBuffer == aBuffer, "Will leak the old mBuffer");
-    mBuffer = aBuffer;
-    mDeAllocator = aAllocator;
-  }
+  virtual void SetBuffer(SurfaceDescriptor* aBuffer, ISurfaceAllocator* aAllocator);
 
   
   
@@ -762,7 +757,7 @@ protected:
                               
                               
                               
-  ISurfaceAllocator* mDeAllocator;
+  RefPtr<ISurfaceAllocator> mDeAllocator;
   gfx::SurfaceFormat mFormat;
 };
 
