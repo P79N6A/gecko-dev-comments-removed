@@ -1389,6 +1389,27 @@ MarionetteDriverActor.prototype = {
 
 
 
+
+
+  multiAction: function MDA_multiAction(aRequest) {
+    this.command_id = this.getCommandId();
+    if (this.context == "chrome") {
+       this.sendError("Not in Chrome", 500, null, this.command_id);
+    }
+    else {
+      this.sendAsync("multiAction", {value: aRequest.value,
+                                     maxlen: aRequest.max_length,
+                                     command_id: this.command_id});
+   }
+ },
+
+  
+
+
+
+
+
+
   findElement: function MDA_findElement(aRequest) {
     let command_id = this.command_id = this.getCommandId();
     if (this.context == "chrome") {
@@ -2127,6 +2148,7 @@ MarionetteDriverActor.prototype.requestTypes = {
   "press": MarionetteDriverActor.prototype.press,
   "release": MarionetteDriverActor.prototype.release,
   "actionChain": MarionetteDriverActor.prototype.actionChain,
+  "multiAction": MarionetteDriverActor.prototype.multiAction,
   "executeAsyncScript": MarionetteDriverActor.prototype.executeWithCallback,
   "executeJSScript": MarionetteDriverActor.prototype.executeJSScript,
   "setSearchTimeout": MarionetteDriverActor.prototype.setSearchTimeout,

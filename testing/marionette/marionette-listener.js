@@ -65,6 +65,8 @@ let touches = [];
 let nextTouchId = 1000;
 let touchIds = {};
 
+let multiLast = {};
+
 let lastTouch = null;
 
 
@@ -109,6 +111,7 @@ function startListeners() {
   addMessageListenerId("Marionette:press", press);
   addMessageListenerId("Marionette:release", release);
   addMessageListenerId("Marionette:actionChain", actionChain);
+  addMessageListenerId("Marionette:multiAction", multiAction);
   addMessageListenerId("Marionette:setSearchTimeout", setSearchTimeout);
   addMessageListenerId("Marionette:goUrl", goUrl);
   addMessageListenerId("Marionette:getUrl", getUrl);
@@ -201,6 +204,7 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:press", press);
   removeMessageListenerId("Marionette:release", release);
   removeMessageListenerId("Marionette:actionChain", actionChain);
+  removeMessageListenerId("Marionette:multiAction", multiAction);
   removeMessageListenerId("Marionette:setSearchTimeout", setSearchTimeout);
   removeMessageListenerId("Marionette:goUrl", goUrl);
   removeMessageListenerId("Marionette:getTitle", getTitle);
@@ -987,6 +991,185 @@ function actionChain(msg) {
     let touchId = nextTouchId++;
     
     actions(commandArray, touchId, command_id);
+  }
+  catch (e) {
+    sendError(e.message, e.code, e.stack, msg.json.command_id);
+  }
+}
+
+
+
+
+
+function emitMultiEvents(type, touch, touches) {
+  let target = touch.target;
+  let doc = target.ownerDocument;
+  let win = doc.defaultView;
+  
+  let documentTouches = doc.createTouchList(touches.filter(function(t) {
+    return t.target.ownerDocument === doc;
+  }));
+  
+  let targetTouches = doc.createTouchList(touches.filter(function(t) {
+    return t.target === target;
+  }));
+  
+  let changedTouches = doc.createTouchList(touch);
+  
+  let event = curWindow.document.createEvent('TouchEvent');
+  event.initTouchEvent(type,
+                       true,
+                       true,
+                       win,
+                       0,
+                       false, false, false, false,
+                       documentTouches,
+                       targetTouches,
+                       changedTouches);
+  target.dispatchEvent(event);
+}
+
+
+
+
+
+function setDispatch(batches, touches, command_id, batchIndex) {
+  if (typeof batchIndex === "undefined") {
+    batchIndex = 0;
+  }
+  
+  if (batchIndex >= batches.length) {
+    multiLast = {};
+    sendOk(command_id);
+    return;
+  }
+  
+  let batch = batches[batchIndex];
+  
+  let pack;
+  
+  let touchId;
+  
+  let command;
+  
+  let el;
+  let corx;
+  let cory;
+  let touch;
+  let lastTouch;
+  let touchIndex;
+  let waitTime = 0;
+  let maxTime = 0;
+  batchIndex++;
+  
+  for (let i = 0; i < batch.length; i++) {
+    pack = batch[i];
+    touchId = pack[0];
+    command = pack[1];
+    switch (command) {
+      case 'press':
+        el = elementManager.getKnownElement(pack[2], curWindow);
+        
+        if (!checkVisible(el, command_id)) {
+           sendError("Element is not currently visible and may not be manipulated", 11, null, command_id);
+           return;
+        }
+        corx = pack[3];
+        cory = pack[4];
+        touch = createATouch(el, corx, cory, touchId);
+        multiLast[touchId] = touch;
+        touches.push(touch);
+        emitMultiEvents('touchstart', touch, touches);
+        break;
+      case 'release':
+        touch = multiLast[touchId];
+        
+        touchIndex = touches.indexOf(touch);
+        touches.splice(touchIndex, 1);
+        emitMultiEvents('touchend', touch, touches);
+        break;
+      case 'move':
+        el = elementManager.getKnownElement(pack[2], curWindow);
+        lastTouch = multiLast[touchId];
+        let boxTarget = el.getBoundingClientRect();
+        let startTarget = lastTouch.target;
+        let boxStart = startTarget.getBoundingClientRect();
+        
+        
+        corx = boxTarget.left - boxStart.left + boxTarget.width * 0.5;
+        cory = boxTarget.top - boxStart.top + boxTarget.height * 0.5;
+        touch = createATouch(startTarget, corx, cory, touchId);
+        touchIndex = touches.indexOf(lastTouch);
+        touches[touchIndex] = touch;
+        multiLast[touchId] = touch;
+        emitMultiEvents('touchmove', touch, touches);
+        break;
+      case 'moveByOffset':
+        el = multiLast[touchId].target;
+        lastTouch = multiLast[touchId];
+        touchIndex = touches.indexOf(lastTouch);
+        let doc = el.ownerDocument;
+        let win = doc.defaultView;
+        
+        let clientX = lastTouch.clientX + pack[2],
+            clientY = lastTouch.clientY + pack[3];
+        let pageX = clientX + win.pageXOffset,
+            pageY = clientY + win.pageYOffset;
+        let screenX = clientX + win.mozInnerScreenX,
+            screenY = clientY + win.mozInnerScreenY;
+        touch = doc.createTouch(win, el, touchId, pageX, pageY, screenX, screenY, clientX, clientY);
+        touches[touchIndex] = touch;
+        multiLast[touchId] = touch;
+        emitMultiEvents('touchmove', touch, touches);
+        break;
+      case 'wait':
+        if (pack[2] != undefined ) {
+          waitTime = pack[2]*1000;
+          if (waitTime > maxTime) {
+            maxTime = waitTime;
+          }
+        }
+        break;
+    }
+  }
+  if (maxTime != 0) {
+    checkTimer.initWithCallback(function(){setDispatch(batches, touches, command_id, batchIndex);}, maxTime, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
+  else {
+    setDispatch(batches, touches, command_id, batchIndex);
+  }
+}
+
+
+
+
+function multiAction(msg) {
+  let command_id = msg.json.command_id;
+  let args = msg.json.value;
+  
+  let maxlen = msg.json.maxlen;
+  try {
+    
+    let commandArray = elementManager.convertWrappedArguments(args, curWindow);
+    let concurrentEvent = [];
+    let temp;
+    for (let i = 0; i < maxlen; i++) {
+      let row = [];
+      for (let j = 0; j < commandArray.length; j++) {
+        if (commandArray[j][i] != undefined) {
+          
+          temp = commandArray[j][i];
+          temp.unshift(j);
+          row.push(temp);
+        }
+      }
+      concurrentEvent.push(row);
+    }
+    
+    
+    
+    let pendingTouches = [];
+    setDispatch(concurrentEvent, pendingTouches, command_id);
   }
   catch (e) {
     sendError(e.message, e.code, e.stack, msg.json.command_id);
