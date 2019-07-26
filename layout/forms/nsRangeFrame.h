@@ -85,6 +85,10 @@ public:
 
   bool IsHorizontal(const nsSize *aFrameSizeOverride = nullptr) const;
 
+  double GetMin() const;
+  double GetMax() const;
+  double GetValue() const;
+
   
 
 

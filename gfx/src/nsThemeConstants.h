@@ -198,6 +198,10 @@
 #define NS_THEME_SCALE_TICK                               117
 
 
+#define NS_THEME_RANGE                                    120
+#define NS_THEME_RANGE_THUMB                              121
+
+
 #define NS_THEME_GROUPBOX                                  149
 
 
