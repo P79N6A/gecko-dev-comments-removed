@@ -80,11 +80,11 @@ function AutocompletePopup(aDocument, aOptions = {})
     this._panel.appendChild(this._list);
 
     
-    this._panel.openPopup(null, this.popup, 0, 0);
+    this._panel.openPopup(null, this.position, 0, 0);
     this._panel.hidePopup();
   }
 
-  this._list.flex = 1;
+  this._list.setAttribute("flex", "1");
   this._list.setAttribute("seltype", "single");
 
   if (aOptions.listBoxId) {
@@ -253,21 +253,20 @@ AutocompletePopup.prototype = {
   {
     
     
-    this._document.defaultView.setTimeout(function() {
+    Services.tm.currentThread.dispatch({ run: () => {
       if (!this._panel) {
         return;
       }
-      this._list.width = this._panel.clientWidth +
-                         this._scrollbarWidth;
+      this._list.width = this._panel.clientWidth + this._scrollbarWidth;
       
       
-      this._list.height = this._panel.clientHeight;
+      this._list.height = this._list.clientHeight;
       
       this._list.top = 0;
       
       
       this._list.ensureIndexIsVisible(this._list.selectedIndex);
-    }.bind(this), 5);
+    }}, 0);
   },
 
   
