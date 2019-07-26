@@ -1539,12 +1539,12 @@ public:
 
   
   
-  static void EnterMicroTask() { ++sMicroTaskLevel; }
+  static void EnterMicroTask();
   static void LeaveMicroTask();
 
-  static bool IsInMicroTask() { return sMicroTaskLevel != 0; }
-  static uint32_t MicroTaskLevel() { return sMicroTaskLevel; }
-  static void SetMicroTaskLevel(uint32_t aLevel) { sMicroTaskLevel = aLevel; }
+  static bool IsInMicroTask();
+  static uint32_t MicroTaskLevel();
+  static void SetMicroTaskLevel(uint32_t aLevel);
 
   
 
