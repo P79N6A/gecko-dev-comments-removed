@@ -14,6 +14,21 @@ class nsViewSourceHandler MOZ_FINAL : public nsIProtocolHandler
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSIPROTOCOLHANDLER
+
+    nsViewSourceHandler();
+
+    ~nsViewSourceHandler();
+
+    
+    
+    nsresult NewSrcdocChannel(nsIURI* uri, const nsAString &srcdoc, 
+                              nsIChannel** result);
+
+    static nsViewSourceHandler* GetInstance();
+
+private:
+    static nsViewSourceHandler* gInstance;
+
 };
 
-#endif
+#endif 
