@@ -5,6 +5,8 @@
 
 
 #include "mozilla/dom/ipc/ProcessPriorityManager.h"
+#include "mozilla/dom/ContentChild.h"
+#include "mozilla/dom/TabChild.h"
 #include "mozilla/Hal.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
@@ -67,6 +69,33 @@ GetPPMLog()
 #else
 #define LOG(fmt, ...)
 #endif
+
+
+
+
+ProcessPriority
+GetBackgroundPriority()
+{
+  bool isHomescreen = false;
+
+  ContentChild* contentChild = ContentChild::GetSingleton();
+  if (contentChild) {
+    const InfallibleTArray<PBrowserChild*>& browsers =
+      contentChild->ManagedPBrowserChild();
+    for (uint32_t i = 0; i < browsers.Length(); i++) {
+      nsAutoString appType;
+      static_cast<TabChild*>(browsers[i])->GetAppType(appType);
+      if (appType.EqualsLiteral("homescreen")) {
+        isHomescreen = true;
+        break;
+      }
+    }
+  }
+
+  return isHomescreen ?
+         PROCESS_PRIORITY_BACKGROUND_HOMESCREEN :
+         PROCESS_PRIORITY_BACKGROUND;
+}
 
 
 
@@ -251,7 +280,7 @@ ProcessPriorityManager::RecomputeNumVisibleWindows()
   }
 
   SetPriority(allHidden ?
-              PROCESS_PRIORITY_BACKGROUND :
+              GetBackgroundPriority() :
               PROCESS_PRIORITY_FOREGROUND);
 }
 
@@ -262,7 +291,8 @@ ProcessPriorityManager::SetPriority(ProcessPriority aPriority)
     return;
   }
 
-  if (aPriority == PROCESS_PRIORITY_BACKGROUND) {
+  if (aPriority == PROCESS_PRIORITY_BACKGROUND ||
+      aPriority == PROCESS_PRIORITY_BACKGROUND_HOMESCREEN) {
     
     
     uint32_t gracePeriodMS = Preferences::GetUint("dom.ipc.processPriorityManager.gracePeriodMS", 1000);
@@ -304,15 +334,16 @@ void
 ProcessPriorityManager::OnGracePeriodTimerFired()
 {
   LOG("Grace period timer fired; setting priority to %d.",
-      PROCESS_PRIORITY_BACKGROUND);
+      mProcessPriority);
 
   
   
   
-  MOZ_ASSERT(mProcessPriority == PROCESS_PRIORITY_BACKGROUND);
+  MOZ_ASSERT(mProcessPriority == PROCESS_PRIORITY_BACKGROUND ||
+             mProcessPriority == PROCESS_PRIORITY_BACKGROUND_HOMESCREEN);
 
   mGracePeriodTimer = nullptr;
-  hal::SetProcessPriority(getpid(), PROCESS_PRIORITY_BACKGROUND);
+  hal::SetProcessPriority(getpid(), mProcessPriority);
 
   
   nsCOMPtr<nsIMemoryReporterManager> mgr =
