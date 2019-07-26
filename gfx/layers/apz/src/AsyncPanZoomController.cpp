@@ -277,6 +277,14 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -1466,8 +1474,14 @@ bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
     return true;
   }
 
-  bool shouldContinueFlingX = mApzc.mX.FlingApplyFrictionOrCancel(aDelta),
-       shouldContinueFlingY = mApzc.mY.FlingApplyFrictionOrCancel(aDelta);
+  bool overscrolled = mApzc.IsOverscrolled();
+  float friction = overscrolled ? gfxPrefs::APZOverscrollFlingFriction()
+                                : gfxPrefs::APZFlingFriction();
+  float threshold = overscrolled ? gfxPrefs::APZOverscrollFlingStoppedThreshold()
+                                 : gfxPrefs::APZFlingStoppedThreshold();
+
+  bool shouldContinueFlingX = mApzc.mX.FlingApplyFrictionOrCancel(aDelta, friction, threshold),
+       shouldContinueFlingY = mApzc.mY.FlingApplyFrictionOrCancel(aDelta, friction, threshold);
   
   if (!shouldContinueFlingX && !shouldContinueFlingY) {
     

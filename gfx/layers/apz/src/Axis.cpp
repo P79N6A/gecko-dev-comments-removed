@@ -210,15 +210,17 @@ bool Axis::CanScrollNow() const {
   return !mAxisLocked && CanScroll();
 }
 
-bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta) {
-  if (fabsf(mVelocity) <= gfxPrefs::APZFlingStoppedThreshold()) {
+bool Axis::FlingApplyFrictionOrCancel(const TimeDuration& aDelta,
+                                      float aFriction,
+                                      float aThreshold) {
+  if (fabsf(mVelocity) <= aThreshold) {
     
     
     
     mVelocity = 0.0f;
     return false;
   } else {
-    mVelocity *= pow(1.0f - gfxPrefs::APZFlingFriction(), float(aDelta.ToMilliseconds()));
+    mVelocity *= pow(1.0f - aFriction, float(aDelta.ToMilliseconds()));
   }
   return true;
 }

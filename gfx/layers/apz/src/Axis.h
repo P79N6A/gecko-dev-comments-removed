@@ -133,7 +133,12 @@ public:
 
 
 
-  bool FlingApplyFrictionOrCancel(const TimeDuration& aDelta);
+
+
+
+  bool FlingApplyFrictionOrCancel(const TimeDuration& aDelta,
+                                  float aFriction,
+                                  float aThreshold);
 
   
 
