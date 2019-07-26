@@ -3030,6 +3030,9 @@ typedef uint64_t EGLTime;
 #define LOCAL_GL_WIN_swap_hint 1
 
 
+#define LOCAL_GL_VERTEX_ARRAY_BINDING             0x85B5
+
+
 #define LOCAL_GL_MAX_SERVER_WAIT_TIMEOUT          0x9111
 #define LOCAL_GL_OBJECT_TYPE                      0x9112
 #define LOCAL_GL_SYNC_CONDITION                   0x9113
