@@ -399,6 +399,7 @@ protected:
   bool                 mIsAnimationSuppressed;
 
   bool                 mInReportMoveEvent; 
+  bool                 mInResize; 
 
   int32_t              mNumModalDescendents;
   InputContext         mInputContext;
