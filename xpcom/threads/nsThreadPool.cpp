@@ -285,7 +285,10 @@ nsThreadPool::SetThreadLimit(uint32_t value)
   mThreadLimit = value;
   if (mIdleThreadLimit > mThreadLimit)
     mIdleThreadLimit = mThreadLimit;
-  mon.NotifyAll();  
+
+  if (static_cast<uint32_t>(mThreads.Count()) > mThreadLimit) {
+    mon.NotifyAll();  
+  }
   return NS_OK;
 }
 
@@ -303,7 +306,11 @@ nsThreadPool::SetIdleThreadLimit(uint32_t value)
   mIdleThreadLimit = value;
   if (mIdleThreadLimit > mThreadLimit)
     mIdleThreadLimit = mThreadLimit;
-  mon.NotifyAll();  
+
+  
+  if (mIdleCount > mIdleThreadLimit) {
+    mon.NotifyAll();  
+  }
   return NS_OK;
 }
 
@@ -318,8 +325,13 @@ NS_IMETHODIMP
 nsThreadPool::SetIdleThreadTimeout(uint32_t value)
 {
   ReentrantMonitorAutoEnter mon(mEvents.GetReentrantMonitor());
+  uint32_t oldTimeout = mIdleThreadTimeout;
   mIdleThreadTimeout = value;
-  mon.NotifyAll();  
+
+  
+  if (mIdleThreadTimeout < oldTimeout && mIdleCount > 0) {
+    mon.NotifyAll();  
+  }
   return NS_OK;
 }
 
