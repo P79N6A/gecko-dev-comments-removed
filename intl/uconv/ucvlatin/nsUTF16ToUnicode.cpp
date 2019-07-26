@@ -78,7 +78,7 @@ nsUTF16ToUnicodeBase::UTF16ConvertToUnicode(const char * aSrc,
     
     mState = STATE_NORMAL;
 #ifdef IS_BIG_ENDIAN
-    u = (mOddByte << 8) | *src++; 
+    u = (mOddByte << 8) | uint8_t(*src++); 
 #else
     u = (*src++ << 8) | mOddByte; 
 #endif
