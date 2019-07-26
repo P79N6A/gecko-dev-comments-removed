@@ -1667,7 +1667,7 @@ WrapPreserve3DListInternal(nsIFrame* aFrame, nsDisplayListBuilder *aBuilder, nsD
 
   nsresult rv = NS_OK;
   while (nsDisplayItem *item = aList->RemoveBottom()) {
-    nsIFrame *childFrame = item->GetUnderlyingFrame();
+    nsIFrame *childFrame = item->Frame();
 
     
     
@@ -1867,7 +1867,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   for (;;) {
     nsDisplayItem* item = set.PositionedDescendants()->GetBottom();
     if (item) {
-      nsIFrame* f = item->GetUnderlyingFrame();
+      nsIFrame* f = item->Frame();
       if (nsLayoutUtils::GetZIndex(f) < 0) {
         set.PositionedDescendants()->RemoveBottom();
         resultList.AppendToTop(item);
@@ -1963,7 +1963,7 @@ WrapInWrapList(nsDisplayListBuilder* aBuilder,
                nsIFrame* aFrame, nsDisplayList* aList)
 {
   nsDisplayItem* item = aList->GetBottom();
-  if (!item || item->GetAbove() || item->GetUnderlyingFrame() != aFrame) {
+  if (!item || item->GetAbove() || item->Frame() != aFrame) {
     return new (aBuilder) nsDisplayWrapList(aBuilder, aFrame, aList);
   }
   aList->RemoveBottom();
@@ -2219,7 +2219,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
           nsDisplayList fixedPosDescendantList;
           fixedPosDescendantList.AppendToTop(item);
           aLists.PositionedDescendants()->AppendNewToTop(
-              new (aBuilder) nsDisplayFixedPosition(aBuilder, item->GetUnderlyingFrame(),
+              new (aBuilder) nsDisplayFixedPosition(aBuilder, item->Frame(),
                                                     child, &fixedPosDescendantList));
         }
       }

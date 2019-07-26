@@ -420,7 +420,7 @@ PruneDisplayListForExtraPage(nsDisplayListBuilder* aBuilder,
       PruneDisplayListForExtraPage(aBuilder, aPage, aExtraPage, subList);
       i->UpdateBounds(aBuilder);
     } else {
-      nsIFrame* f = i->GetUnderlyingFrame();
+      nsIFrame* f = i->Frame();
       if (!nsLayoutUtils::IsProperAncestorFrameCrossDoc(aPage, f)) {
         
         
