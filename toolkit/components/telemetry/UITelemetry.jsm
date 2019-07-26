@@ -7,7 +7,7 @@
 const Cu = Components.utils;
 
 this.EXPORTED_SYMBOLS = [
-  "UITelemetry"
+  "UITelemetry",
 ];
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -15,32 +15,18 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-this.UITelemetry =  {
 
-  measurements: [],
 
-  init: function init() {
-    Services.obs.addObserver(this, "UITelemetry:Event", false);
-    Services.obs.addObserver(this, "UITelemetry:Session", false);
-  },
+this.UITelemetry = Object.freeze({
+  _activeSessions: {},
+  _measurements: [],
 
-  observe: function observe(aMessage, aTopic, aData) {
-    switch(aTopic) {
-      case "UITelemetry:Event":
-        let args = JSON.parse(aData);
-        this.addEvent(args.action, args.method, args.extras, args.timestamp);
-        break;
-      case "UITelemetry:Session":
-        args = JSON.parse(aData);
-        let sessionName = args.name;
-        let timestamp = args.timestamp;
-        if (args.state == "start") {
-          this.startSession(sessionName, timestamp);
-        } else if (args.state == "stop") {
-          this.stopSession(sessionName, timestamp);
-        }
-        break;
-    }
+  
+
+
+
+  get wrappedJSObject() {
+    return this;
   },
 
   
@@ -48,39 +34,51 @@ this.UITelemetry =  {
 
 
 
-  addEvent: function addEvent(aAction, aMethod, aExtras, aTimestamp) {
-    let timestamp = aTimestamp || Date.now();
+  _simpleMeasureFunctions: {},
+
+  
+
+
+
+
+
+
+
+
+  addEvent: function(aAction, aMethod, aTimestamp, aExtras) {
+    let sessions = Object.keys(this._activeSessions);
     let aEvent = {
       type: "event",
       action: aAction,
       method: aMethod,
-      timestamp: timestamp
+      sessions: sessions,
+      timestamp: aTimestamp,
     };
 
-    if (aExtras) aEvent.extras = aExtras;
-    this._logEvent(aEvent);
-  },
+    if (aExtras) {
+      aEvent.extras = aExtras;
+    }
 
-  activeSessions: {},
-
-  
-
-
-  startSession: function startSession(aName, aTimestamp) {
-   let timestamp = aTimestamp || Date.now();
-   if (this.activeSessions[aName]) {
-    
-    return;
-   }
-   this.activeSessions[aName] = timestamp;
+    this._recordEvent(aEvent);
   },
 
   
 
 
-  stopSession: function stopSession(aName, aTimestamp) {
-    let timestamp = aTimestamp || Date.now();
-    let sessionStart = this.activeSessions[aName];
+  startSession: function(aName, aTimestamp) {
+    if (this._activeSessions[aName]) {
+      
+      return;
+    }
+    this._activeSessions[aName] = aTimestamp;
+  },
+
+  
+
+
+  stopSession: function(aName, aReason, aTimestamp) {
+    let sessionStart = this._activeSessions[aName];
+    delete this._activeSessions[aName];
 
     if (!sessionStart) {
       Services.console.logStringMessage("UITelemetry error: no session [" + aName + "] to stop!");
@@ -90,23 +88,17 @@ this.UITelemetry =  {
     let aEvent = {
       type: "session",
       name: aName,
+      reason: aReason,
       start: sessionStart,
-      end: timestamp
+      end: aTimestamp,
     };
 
-    this._logEvent(aEvent);
+    this._recordEvent(aEvent);
   },
 
-  _logEvent: function sendEvent(aEvent) {
-    this.measurements.push(aEvent);
+  _recordEvent: function(aEvent) {
+    this._measurements.push(aEvent);
   },
-
-  
-
-
-
-
-  _simpleMeasureFuncs: {},
 
   
 
@@ -116,8 +108,8 @@ this.UITelemetry =  {
 
   getSimpleMeasures: function() {
     let result = {};
-    for (let name in this._simpleMeasureFuncs) {
-      result[name] = this._simpleMeasureFuncs[name]();
+    for (let name in this._simpleMeasureFunctions) {
+      result[name] = this._simpleMeasureFunctions[name]();
     }
     return result;
   },
@@ -132,22 +124,22 @@ this.UITelemetry =  {
 
 
   addSimpleMeasureFunction: function(aName, aFunction) {
-    if (aName in this._simpleMeasureFuncs) {
-      throw new Error("A simple measurement function is already registered for "
-                      + aName);
-    }
-    if (!aFunction || typeof aFunction !== 'function') {
-      throw new Error("A function must be passed as the second argument.");
+    if (aName in this._simpleMeasureFunctions) {
+      throw new Error("A simple measurement function is already registered for " + aName);
     }
 
-    this._simpleMeasureFuncs[aName] = aFunction;
+    if (!aFunction || typeof aFunction !== 'function') {
+      throw new Error("addSimpleMeasureFunction called with non-function argument.");
+    }
+
+    this._simpleMeasureFunctions[aName] = aFunction;
   },
 
   removeSimpleMeasureFunction: function(aName) {
-    delete this._simpleMeasureFuncs[aName];
+    delete this._simpleMeasureFunctions[aName];
   },
 
   getUIMeasurements: function getUIMeasurements() {
-    return this.measurements.slice();
+    return this._measurements.slice();
   }
-};
+});
