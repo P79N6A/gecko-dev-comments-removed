@@ -270,6 +270,7 @@ OnSharedPreferenceChangeListener
         checkLocale();
 
         
+        
         localeSwitchingIsEnabled = BrowserLocaleManager.getInstance().isEnabled();
 
         
@@ -287,10 +288,17 @@ OnSharedPreferenceChangeListener
                 updateTitle(getString(R.string.pref_header_customize));
             }
 
-            
-            
             if (onIsMultiPane()) {
+                
+                
                 updateActionBarTitle(R.string.settings_title);
+
+                if (Build.VERSION.SDK_INT < 13) {
+                    
+                    
+                    
+                    localeSwitchingIsEnabled = false;
+                }
             }
         }
 
