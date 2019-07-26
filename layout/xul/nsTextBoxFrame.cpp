@@ -208,7 +208,7 @@ nsTextBoxFrame::UpdateAccesskey(nsWeakFrame& aWeakThis)
 
     if (!accesskey.Equals(mAccessKey)) {
         
-        mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, mTitle);
+        RecomputeTitle();
         mAccessKey = accesskey;
         UpdateAccessTitle();
         PresContext()->PresShell()->
@@ -258,7 +258,7 @@ nsTextBoxFrame::UpdateAttributes(nsIAtom*         aAttribute,
     }
 
     if (aAttribute == nullptr || aAttribute == nsGkAtoms::value) {
-        mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, mTitle);
+        RecomputeTitle();
         doUpdateTitle = true;
     }
 
@@ -869,6 +869,43 @@ nsTextBoxFrame::UpdateAccessIndex()
                 mAccessKeyInfo->mAccesskeyIndex = kNotFound;
         }
     }
+}
+
+void
+nsTextBoxFrame::RecomputeTitle()
+{
+  mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::value, mTitle);
+
+  
+  
+  uint8_t textTransform = StyleText()->mTextTransform;
+  if (textTransform == NS_STYLE_TEXT_TRANSFORM_UPPERCASE) {
+    ToUpperCase(mTitle);
+  } else if (textTransform == NS_STYLE_TEXT_TRANSFORM_LOWERCASE) {
+    ToLowerCase(mTitle);
+  }
+  
+  
+  
+}
+
+void
+nsTextBoxFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
+{
+  if (!aOldStyleContext) {
+    
+    return;
+  }
+
+  const nsStyleText* oldTextStyle = aOldStyleContext->PeekStyleText();
+  
+  
+  
+  if (!oldTextStyle ||
+      oldTextStyle->mTextTransform != StyleText()->mTextTransform) {
+    RecomputeTitle();
+    UpdateAccessTitle();
+  }
 }
 
 NS_IMETHODIMP

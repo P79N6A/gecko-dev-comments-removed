@@ -64,6 +64,8 @@ public:
 
   void GetCroppedTitle(nsString& aTitle) const { aTitle = mCroppedTitle; }
 
+  virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext) MOZ_OVERRIDE;
+
 protected:
   friend class nsAsyncAccesskeyUpdate;
   friend class nsDisplayXULTextBox;
@@ -72,6 +74,10 @@ protected:
   bool UpdateAccesskey(nsWeakFrame& aWeakThis);
   void UpdateAccessTitle();
   void UpdateAccessIndex();
+
+  
+  
+  void RecomputeTitle();
 
   
   void LayoutTitle(nsPresContext*      aPresContext,
