@@ -4,10 +4,10 @@
 
 
 
-#include "jscntxt.h"
 #include "jslock.h"
 
 #include "vm/Monitor.h"
+#include "vm/Runtime.h"
 #include "vm/ThreadPool.h"
 
 #ifdef JS_THREADSAFE

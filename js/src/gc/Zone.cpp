@@ -4,16 +4,15 @@
 
 
 
-#include "jscntxt.h"
 #include "jsgc.h"
-
-#include "vm/Debugger.h"
 
 #ifdef JS_ION
 #include "ion/BaselineJIT.h"
 #include "ion/IonCompartment.h"
 #include "ion/Ion.h"
 #endif
+#include "vm/Debugger.h"
+#include "vm/Runtime.h"
 
 #include "jsgcinlines.h"
 

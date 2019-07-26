@@ -5,11 +5,11 @@
 
 
 #include "jsapi.h"
-#include "jscntxt.h"
 #include "jsgc.h"
 
 #include "js/HashTable.h"
 #include "gc/GCInternals.h"
+#include "vm/Runtime.h"
 
 #include "jsgcinlines.h"
 
