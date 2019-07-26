@@ -85,6 +85,7 @@ class SyncMessage : public Message {
 class MessageReplyDeserializer {
  public:
   bool SerializeOutputParameters(const Message& msg);
+  virtual ~MessageReplyDeserializer() {}
  private:
   
   
