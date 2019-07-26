@@ -24,8 +24,9 @@
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <vector>
-#include "mozilla/Util.h"
+#include "mozilla/FileUtils.h"
 #include "mozilla/NullPtr.h"
+#include "mozilla/Util.h"
 #include "png.h"
 
 #include "android/log.h"
@@ -627,6 +628,21 @@ NativeWindow()
     
     
     set_screen_state(1);
+
+    
+    
+    
+    {
+        char buf;
+        int len = 0;
+        ScopedClose fd(open("/sys/power/wait_for_fb_wake", O_RDONLY, 0));
+        do {
+            len = read(fd.get(), &buf, 1);
+        } while (len < 0 && errno == EINTR);
+        if (len < 0) {
+            LOGE("BootAnimation: wait_for_fb_sleep failed errno: %d", errno);
+        }
+    }
 
     
     
