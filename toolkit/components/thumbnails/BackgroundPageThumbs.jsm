@@ -17,11 +17,6 @@ const DEFAULT_CAPTURE_TIMEOUT = 30000;
 const DESTROY_BROWSER_TIMEOUT = 60000; 
 const FRAME_SCRIPT_URL = "chrome://global/content/backgroundPageThumbsContent.js";
 
-
-
-
-const MAX_THUMBNAIL_AGE_SECS = 172800; 
-
 const TELEMETRY_HISTOGRAM_ID_PREFIX = "FX_THUMBNAILS_BG_";
 
 
@@ -63,7 +58,7 @@ const BackgroundPageThumbs = {
   capture: function (url, options={}) {
     if (!PageThumbs._prefEnabled()) {
       if (options.onDone)
-        schedule(() => options.onDone(null));
+        schedule(() => options.onDone(url));
       return;
     }
     this._captureQueue = this._captureQueue || [];
@@ -99,22 +94,21 @@ const BackgroundPageThumbs = {
 
 
 
-
-
-
-  captureIfStale: function PageThumbs_captureIfStale(url, options={}) {
-    PageThumbsStorage.isFileRecentForURL(url, MAX_THUMBNAIL_AGE_SECS).then(
-      result => {
-        if (result.ok) {
-          if (options.onDone)
-            options.onDone(url);
-          return;
-        }
-        this.capture(url, options);
-      }, err => {
+  captureIfMissing: function (url, options={}) {
+    
+    
+    
+    PageThumbsStorage.fileExistsForURL(url).then(exists => {
+      if (exists.ok) {
         if (options.onDone)
           options.onDone(url);
-      });
+        return;
+      }
+      this.capture(url, options);
+    }, err => {
+      if (options.onDone)
+        options.onDone(url);
+    });
   },
 
   
@@ -387,7 +381,7 @@ Capture.prototype = {
       return;
     }
 
-    PageThumbs._store(this.url, data.finalURL, data.imageData, data.wasErrorResponse)
+    PageThumbs._store(this.url, data.finalURL, data.imageData, true)
               .then(done, done);
   },
 };

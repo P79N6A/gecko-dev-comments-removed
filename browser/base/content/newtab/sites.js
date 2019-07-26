@@ -134,7 +134,7 @@ Site.prototype = {
 #ifndef RELEASE_BUILD
     
     
-    BackgroundPageThumbs.captureIfStale(this.url);
+    BackgroundPageThumbs.captureIfMissing(this.url);
     
 #endif
     this.refreshThumbnail();

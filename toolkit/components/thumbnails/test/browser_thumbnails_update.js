@@ -5,21 +5,14 @@
 
 
 
-
-const imports = {};
-Cu.import("resource://gre/modules/BackgroundPageThumbs.jsm", imports);
-registerCleanupFunction(function () {
-  imports.BackgroundPageThumbs._destroy();
-});
-
 function runTests() {
   
   let tests = [
     simpleCaptureTest,
-    errorResponseUpdateTest,
-    goodResponseUpdateTest,
-    foregroundErrorResponseUpdateTest,
-    foregroundGoodResponseUpdateTest
+    capIfStaleErrorResponseUpdateTest,
+    capIfStaleGoodResponseUpdateTest,
+    regularCapErrorResponseUpdateTest,
+    regularCapGoodResponseUpdateTest
   ];
   for (let test of tests) {
     info("Running subtest " + test.name);
@@ -58,6 +51,7 @@ function simpleCaptureTest() {
     if (++numNotifications == 2) {
       
       Services.obs.removeObserver(observe, "page-thumbnail:create");
+      gBrowser.removeTab(gBrowser.selectedTab);
       next();
     }
   }
@@ -70,17 +64,15 @@ function simpleCaptureTest() {
   
   PageThumbs.captureAndStore(browser, function () {
     
-    gBrowser.removeTab(gBrowser.selectedTab);
-    
     is(numNotifications, 1, "got notification of item being created.");
     
     
-    imports.BackgroundPageThumbs.captureIfStale(URL);
+    PageThumbs.captureAndStoreIfStale(browser);
     is(numNotifications, 1, "still only 1 notification of item being created.");
 
     ensureThumbnailStale(URL);
     
-    imports.BackgroundPageThumbs.captureIfStale(URL);
+    PageThumbs.captureAndStoreIfStale(browser);
     
     
   });
@@ -90,29 +82,29 @@ function simpleCaptureTest() {
 
 
 
-function errorResponseUpdateTest() {
+function capIfStaleErrorResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?fail";
   yield addTab(URL);
 
   yield captureAndCheckColor(0, 255, 0, "we have a green thumbnail");
-  gBrowser.removeTab(gBrowser.selectedTab);
-  
   
   
   
   
   ensureThumbnailStale(URL);
+  yield navigateTo(URL);
   
   
   
   let now = Date.now() - 1000 ;
-  imports.BackgroundPageThumbs.captureIfStale(URL, { onDone: () => {
-    ok(getThumbnailModifiedTime(URL) >= now, "modified time should be >= now");
+  PageThumbs.captureAndStoreIfStale(gBrowser.selectedBrowser, () => {
+    ok(getThumbnailModifiedTime(URL) < now, "modified time should be < now");
     retrieveImageDataForURL(URL, function ([r, g, b]) {
       is("" + [r,g,b], "" + [0, 255, 0], "thumbnail is still green");
+      gBrowser.removeTab(gBrowser.selectedTab);
       next();
     });
-  }});
+  });
   yield undefined; 
 }
 
@@ -120,7 +112,7 @@ function errorResponseUpdateTest() {
 
 
 
-function goodResponseUpdateTest() {
+function capIfStaleGoodResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?ok";
   yield addTab(URL);
   let browser = gBrowser.selectedBrowser;
@@ -130,11 +122,12 @@ function goodResponseUpdateTest() {
   
   
   ensureThumbnailStale(URL);
+  yield navigateTo(URL);
   
   
   
   let now = Date.now() - 1000 ;
-  imports.BackgroundPageThumbs.captureIfStale(URL, { onDone: () => {
+  PageThumbs.captureAndStoreIfStale(browser, () => {
     ok(getThumbnailModifiedTime(URL) >= now, "modified time should be >= now");
     
     
@@ -142,14 +135,14 @@ function goodResponseUpdateTest() {
       is("" + [r,g,b], "" + [255, 0, 0], "thumbnail is now red");
       next();
     });
-  }});
+  });
   yield undefined; 
 }
 
 
 
 
-function foregroundErrorResponseUpdateTest() {
+function regularCapErrorResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?fail";
   yield addTab(URL);
   yield captureAndCheckColor(0, 255, 0, "we have a green thumbnail");
@@ -160,7 +153,10 @@ function foregroundErrorResponseUpdateTest() {
   yield captureAndCheckColor(0, 255, 0, "we still have a green thumbnail");
 }
 
-function foregroundGoodResponseUpdateTest() {
+
+
+
+function regularCapGoodResponseUpdateTest() {
   const URL = "http://mochi.test:8888/browser/toolkit/components/thumbnails/test/thumbnails_update.sjs?ok";
   yield addTab(URL);
   yield captureAndCheckColor(0, 255, 0, "we have a green thumbnail");

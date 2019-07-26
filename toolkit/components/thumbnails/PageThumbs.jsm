@@ -20,6 +20,11 @@ const EXPIRATION_INTERVAL_SECS = 3600;
 
 
 
+const MAX_THUMBNAIL_AGE_SECS = 172800; 
+
+
+
+
 const THUMBNAIL_DIRECTORY = "thumbnails";
 
 
@@ -317,28 +322,40 @@ this.PageThumbs = {
 
 
 
-
-
-
-  _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData, aWasErrorResponse) {
-    return TaskUtils.spawn(function () {
-      
-      
-      
-      if (aWasErrorResponse) {
-        let result = yield PageThumbsStorage.touchIfExists(aFinalURL);
-        let exists = result.ok;
-        if (exists) {
-          if (aFinalURL != aOriginalURL) {
-             yield PageThumbsStorage.touchIfExists(aOriginalURL);
-          }
-          return;
-        }
-        
-        
+  captureAndStoreIfStale: function PageThumbs_captureAndStoreIfStale(aBrowser, aCallback) {
+    let url = aBrowser.currentURI.spec;
+    PageThumbsStorage.isFileRecentForURL(url).then(recent => {
+      if (!recent.ok &&
+          
+          
+          aBrowser.currentURI &&
+          aBrowser.currentURI.spec == url) {
+        this.captureAndStore(aBrowser, aCallback);
+      } else if (aCallback) {
+        aCallback(true);
       }
+    }, err => {
+      if (aCallback)
+        aCallback(false);
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _store: function PageThumbs__store(aOriginalURL, aFinalURL, aData, aNoOverwrite) {
+    return TaskUtils.spawn(function () {
       let telemetryStoreTime = new Date();
-      yield PageThumbsStorage.writeData(aFinalURL, aData);
+      yield PageThumbsStorage.writeData(aFinalURL, aData, aNoOverwrite);
       Services.telemetry.getHistogramById("FX_THUMBNAILS_STORE_TIME_MS")
         .add(new Date() - telemetryStoreTime);
 
@@ -355,7 +372,7 @@ this.PageThumbs = {
       
       
       if (aFinalURL != aOriginalURL) {
-        yield PageThumbsStorage.copy(aFinalURL, aOriginalURL);
+        yield PageThumbsStorage.copy(aFinalURL, aOriginalURL, aNoOverwrite);
         Services.obs.notifyObservers(null, "page-thumbnail:create", aOriginalURL);
       }
     });
@@ -533,7 +550,9 @@ this.PageThumbsStorage = {
 
 
 
-  writeData: function Storage_writeData(aURL, aData) {
+
+
+  writeData: function Storage_writeData(aURL, aData, aNoOverwrite) {
     let path = this.getFilePathForURL(aURL);
     this.ensurePath();
     aData = new Uint8Array(aData);
@@ -543,12 +562,14 @@ this.PageThumbsStorage = {
       {
         tmpPath: path + ".tmp",
         bytes: aData.byteLength,
+        noOverwrite: aNoOverwrite,
         flush: false 
       }];
     return PageThumbsWorker.post("writeAtomic", msg,
       msg 
 
-);
+).
+      then(null, this._eatNoOverwriteError(aNoOverwrite));
   },
 
   
@@ -559,11 +580,15 @@ this.PageThumbsStorage = {
 
 
 
-  copy: function Storage_copy(aSourceURL, aTargetURL) {
+
+
+  copy: function Storage_copy(aSourceURL, aTargetURL, aNoOverwrite) {
     this.ensurePath();
     let sourceFile = this.getFilePathForURL(aSourceURL);
     let targetFile = this.getFilePathForURL(aTargetURL);
-    return PageThumbsWorker.post("copy", [sourceFile, targetFile]);
+    let options = { noOverwrite: aNoOverwrite };
+    return PageThumbsWorker.post("copy", [sourceFile, targetFile, options]).
+      then(null, this._eatNoOverwriteError(aNoOverwrite));
   },
 
   
@@ -584,20 +609,14 @@ this.PageThumbsStorage = {
     return PageThumbsWorker.post("wipe", [this.path]);
   },
 
-  
-
-
-
-
-
-
-  touchIfExists: function Storage_touchIfExists(aURL) {
-    return PageThumbsWorker.post("touchIfExists", [this.getFilePathForURL(aURL)]);
+  fileExistsForURL: function Storage_fileExistsForURL(aURL) {
+    return PageThumbsWorker.post("exists", [this.getFilePathForURL(aURL)]);
   },
 
-  isFileRecentForURL: function Storage_isFileRecentForURL(aURL, aMaxSecs) {
+  isFileRecentForURL: function Storage_isFileRecentForURL(aURL) {
     return PageThumbsWorker.post("isFileRecent",
-                                 [this.getFilePathForURL(aURL), aMaxSecs]);
+                                 [this.getFilePathForURL(aURL),
+                                  MAX_THUMBNAIL_AGE_SECS]);
   },
 
   _calculateMD5Hash: function Storage_calculateMD5Hash(aValue) {
@@ -614,6 +633,26 @@ this.PageThumbsStorage = {
     for (let i = 0; i < aData.length; i++)
       hex += ("0" + aData.charCodeAt(i).toString(16)).slice(-2);
     return hex;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _eatNoOverwriteError: function Storage__eatNoOverwriteError(aNoOverwrite) {
+    return function onError(err) {
+      if (!aNoOverwrite ||
+          !(err instanceof OS.File.Error) ||
+          !err.becauseExists) {
+        throw err;
+      }
+    };
   },
 
   
