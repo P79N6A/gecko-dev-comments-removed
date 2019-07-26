@@ -1486,7 +1486,6 @@ function ScratchpadSidebar()
   let ToolSidebar = devtools.require("devtools/framework/sidebar").ToolSidebar;
   let tabbox = document.querySelector("#scratchpad-sidebar");
   this._sidebar = new ToolSidebar(tabbox, this);
-  this._splitter = document.querySelector(".devtools-side-splitter");
 }
 
 ScratchpadSidebar.prototype = {
@@ -1494,11 +1493,6 @@ ScratchpadSidebar.prototype = {
 
 
   _sidebar: null,
-
-  
-
-
-  _splitter: null,
 
   
 
@@ -1555,7 +1549,6 @@ ScratchpadSidebar.prototype = {
     if (!this.visible) {
       this.visible = true;
       this._sidebar.show();
-      this._splitter.setAttribute("state", "open");
     }
   },
 
@@ -1567,7 +1560,6 @@ ScratchpadSidebar.prototype = {
     if (this.visible) {
       this.visible = false;
       this._sidebar.hide();
-      this._splitter.setAttribute("state", "collapsed");
     }
   },
 
