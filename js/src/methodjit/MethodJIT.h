@@ -4,6 +4,7 @@
 
 
 
+
 #if !defined jsjaeger_h__ && defined JS_METHODJIT
 #define jsjaeger_h__
 

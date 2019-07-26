@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_codegen_inl_h__
 #define jsion_codegen_inl_h__
 

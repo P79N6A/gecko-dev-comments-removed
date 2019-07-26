@@ -23,8 +23,6 @@
 
 
 
-
-
 #ifndef YarrCanonicalizeUCS2_H
 #define YarrCanonicalizeUCS2_H
 

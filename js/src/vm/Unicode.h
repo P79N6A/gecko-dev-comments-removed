@@ -2,8 +2,6 @@
 
 
 
-
-
 #ifndef Unicode_h__
 #define Unicode_h__
 

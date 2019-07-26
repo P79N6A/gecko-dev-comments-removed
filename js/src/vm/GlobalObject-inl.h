@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef GlobalObject_inl_h___
 #define GlobalObject_inl_h___
 

@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef mozilla_jsipc_ObjectWrapperChild_h__
 #define mozilla_jsipc_ObjectWrapperChild_h__
 

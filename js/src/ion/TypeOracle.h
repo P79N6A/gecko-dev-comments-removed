@@ -1,8 +1,9 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef js_ion_type_oracle_h__
 #define js_ion_type_oracle_h__
@@ -147,9 +148,9 @@ class TypeOracle
         return MIRType_None;
     }
 
-    
+    /* |pc| must be a |JSOP_CALL|. */
     virtual types::StackTypeSet *getCallTarget(RawScript caller, uint32_t argc, jsbytecode *pc) {
-        
+        // Same assertion as TypeInferenceOracle::getCallTarget.
         JS_ASSERT(js_CodeSpec[*pc].format & JOF_INVOKE && JSOp(*pc) != JSOP_EVAL);
         return NULL;
     }
@@ -415,7 +416,7 @@ IsNullOrUndefined(MIRType type)
     return type == MIRType_Null || type == MIRType_Undefined;
 }
 
-} 
-} 
+} /* ion */
+} /* js */
 
-#endif 
+#endif // js_ion_type_oracle_h__

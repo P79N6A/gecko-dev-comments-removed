@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_compileinfo_inl_h__
 #define jsion_compileinfo_inl_h__
 

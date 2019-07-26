@@ -4,6 +4,7 @@
 
 
 
+
 #ifdef JS_METHODJIT
 
 #include "mozilla/DebugOnly.h"

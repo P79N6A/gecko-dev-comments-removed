@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsion_type_policy_h__
 #define jsion_type_policy_h__
 

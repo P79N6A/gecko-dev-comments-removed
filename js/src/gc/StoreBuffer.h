@@ -4,6 +4,7 @@
 
 
 
+
 #ifdef JSGC_GENERATIONAL
 #ifndef jsgc_storebuffer_h___
 #define jsgc_storebuffer_h___

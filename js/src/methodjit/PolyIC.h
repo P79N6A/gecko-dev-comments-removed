@@ -4,6 +4,7 @@
 
 
 
+
 #if !defined jsjaeger_poly_ic_h__ && defined JS_METHODJIT
 #define jsjaeger_poly_ic_h__
 

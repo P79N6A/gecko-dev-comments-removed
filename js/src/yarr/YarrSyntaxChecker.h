@@ -23,8 +23,6 @@
 
 
 
-
-
 #ifndef YarrSyntaxChecker_h
 #define YarrSyntaxChecker_h
 

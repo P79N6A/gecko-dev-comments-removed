@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef jsstr_h___
 #define jsstr_h___
 

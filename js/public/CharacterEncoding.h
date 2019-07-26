@@ -4,6 +4,7 @@
 
 
 
+
 #ifndef js_CharacterEncoding_h___
 #define js_CharacterEncoding_h___
 
