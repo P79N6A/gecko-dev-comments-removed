@@ -560,6 +560,17 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
+  clear: function() {
+    NetMonitorView.Sidebar.toggle(false);
+    $("#details-pane-toggle").disabled = true;
+
+    this.empty();
+    this.refreshSummary();
+  },
+
+  
+
+
 
 
 
