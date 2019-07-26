@@ -34,7 +34,6 @@ enum FormControlsTypes {
   
   
   
-  
   NS_FORM_BUTTON_ELEMENT = 0x40, 
   NS_FORM_INPUT_ELEMENT  = 0x80  
 };

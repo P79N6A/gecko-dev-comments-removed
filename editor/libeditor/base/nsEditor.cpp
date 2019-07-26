@@ -567,6 +567,17 @@ nsEditor::GetPresShell()
   return ps.forget();
 }
 
+already_AddRefed<nsIWidget>
+nsEditor::GetWidget()
+{
+  nsCOMPtr<nsIPresShell> ps = GetPresShell();
+  NS_ENSURE_TRUE(ps, nullptr);
+  nsPresContext* pc = ps->GetPresContext();
+  NS_ENSURE_TRUE(pc, nullptr);
+  nsCOMPtr<nsIWidget> widget = pc->GetRootWidget();
+  NS_ENSURE_TRUE(widget.get(), nullptr);
+  return widget.forget();
+}
 
 
 NS_IMETHODIMP
@@ -1804,8 +1815,11 @@ class EditorInputEventDispatcher : public nsRunnable
 {
 public:
   EditorInputEventDispatcher(nsEditor* aEditor,
-                             nsIContent* aTarget) :
-    mEditor(aEditor), mTarget(aTarget)
+                             nsIContent* aTarget,
+                             bool aIsComposing)
+    : mEditor(aEditor)
+    , mTarget(aTarget)
+    , mIsComposing(aIsComposing)
   {
   }
 
@@ -1823,11 +1837,16 @@ public:
       return NS_OK;
     }
 
+    nsCOMPtr<nsIWidget> widget = mEditor->GetWidget();
+    if (!widget) {
+      return NS_OK;
+    }
+
     
     
-    WidgetEvent inputEvent(true, NS_FORM_INPUT);
-    inputEvent.mFlags.mCancelable = false;
+    InternalEditorInputEvent inputEvent(true, NS_EDITOR_INPUT, widget);
     inputEvent.time = static_cast<uint64_t>(PR_Now() / 1000);
+    inputEvent.mIsComposing = mIsComposing;
     nsEventStatus status = nsEventStatus_eIgnore;
     nsresult rv =
       ps->HandleEventWithTarget(&inputEvent, nullptr, mTarget, &status);
@@ -1838,6 +1857,7 @@ public:
 private:
   nsRefPtr<nsEditor> mEditor;
   nsCOMPtr<nsIContent> mTarget;
+  bool mIsComposing;
 };
 
 void nsEditor::NotifyEditorObservers(void)
@@ -1864,8 +1884,11 @@ nsEditor::FireInputEvent()
   nsCOMPtr<nsIContent> target = GetInputEventTargetContent();
   NS_ENSURE_TRUE_VOID(target);
 
+  
+  
+  
   nsContentUtils::AddScriptRunner(
-    new EditorInputEventDispatcher(this, target));
+    new EditorInputEventDispatcher(this, target, !!GetComposition()));
 }
 
 NS_IMETHODIMP
