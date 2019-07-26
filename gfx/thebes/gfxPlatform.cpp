@@ -1333,13 +1333,6 @@ gfxPlatform::GetCMSMode()
     return gCMSMode;
 }
 
-
-
-
-#define INTENT_DEFAULT QCMS_INTENT_PERCEPTUAL
-#define INTENT_MIN 0
-#define INTENT_MAX 3
-
 int
 gfxPlatform::GetRenderingIntent()
 {
@@ -1349,7 +1342,7 @@ gfxPlatform::GetRenderingIntent()
         int32_t pIntent;
         if (NS_SUCCEEDED(Preferences::GetInt("gfx.color_management.rendering_intent", &pIntent))) {
             
-            if ((pIntent >= INTENT_MIN) && (pIntent <= INTENT_MAX)) {
+            if ((pIntent >= QCMS_INTENT_MIN) && (pIntent <= QCMS_INTENT_MAX)) {
                 gCMSIntent = pIntent;
             }
             
@@ -1359,7 +1352,7 @@ gfxPlatform::GetRenderingIntent()
         }
         
         else {
-            gCMSIntent = INTENT_DEFAULT;
+            gCMSIntent = QCMS_INTENT_DEFAULT;
         }
     }
     return gCMSIntent;
