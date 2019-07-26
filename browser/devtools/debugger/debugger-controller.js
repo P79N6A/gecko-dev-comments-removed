@@ -2133,16 +2133,6 @@ Breakpoints.prototype = {
 
 
 
-  get _addedOrDisabled() {
-    for (let [, value] of this._added) yield value;
-    for (let [, value] of this._disabled) yield value;
-  },
-
-  
-
-
-
-
 
 
 
@@ -2179,6 +2169,22 @@ Breakpoints.prototype = {
     return aLocation.url + ":" + aLocation.line;
   }
 };
+
+
+
+
+
+
+Object.defineProperty(Breakpoints.prototype, "_addedOrDisabled", {
+  get: function* () {
+    for (let [, value] of this._added) {
+      yield value;
+    }
+    for (let [, value] of this._disabled) {
+      yield value;
+    }
+  }
+});
 
 
 
