@@ -144,6 +144,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
     
     private String mAutoCompletePrefix = null;
 
+    private boolean mIsEditing;
     private boolean mAnimatingEntry;
 
     private AlphaAnimation mLockFadeIn;
@@ -187,6 +188,7 @@ public class BrowserToolbar extends GeckoRelativeLayout
         Tabs.registerOnTabsChangedListener(this);
         mSwitchingTabs = true;
 
+        mIsEditing = false;
         mAnimatingEntry = false;
         mShowUrl = false;
 
@@ -357,6 +359,11 @@ public class BrowserToolbar extends GeckoRelativeLayout
                     }
                 }
 
+                if (keyCode == KeyEvent.KEYCODE_BACK) {
+                    clearFocus();
+                    return true;
+                }
+
                 return false;
             }
         });
@@ -386,7 +393,12 @@ public class BrowserToolbar extends GeckoRelativeLayout
         mUrlEditText.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View v, boolean hasFocus) {
-                if (v == null || hasFocus) {
+                if (v == null) {
+                    return;
+                }
+
+                setSelected(hasFocus);
+                if (hasFocus) {
                     return;
                 }
 
@@ -1248,8 +1260,12 @@ public class BrowserToolbar extends GeckoRelativeLayout
         });
     }
 
+    
+
+
+
     public boolean isEditing() {
-        return isSelected();
+        return mIsEditing;
     }
 
     public void startEditing(String url, PropertyAnimator animator) {
@@ -1258,10 +1274,10 @@ public class BrowserToolbar extends GeckoRelativeLayout
         }
 
         mUrlEditText.setText(url != null ? url : "");
+        mIsEditing = true;
 
         
         if (HardwareUtils.isTablet()) {
-            setSelected(true);
             showUrlEditContainer();
             return;
         }
@@ -1350,9 +1366,9 @@ public class BrowserToolbar extends GeckoRelativeLayout
         if (!isEditing()) {
             return url;
         }
+        mIsEditing = false;
 
         if (HardwareUtils.isTablet()) {
-            setSelected(false);
             hideUrlEditContainer();
             updateTabCountAndAnimate(Tabs.getInstance().getDisplayCount());
             return url;
@@ -1398,8 +1414,6 @@ public class BrowserToolbar extends GeckoRelativeLayout
 
             @Override
             public void onPropertyAnimationEnd() {
-                
-                setSelected(false);
                 setShadowVisibility(true);
 
                 PropertyAnimator buttonsAnimator = new PropertyAnimator(300);

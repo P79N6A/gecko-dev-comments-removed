@@ -16,6 +16,7 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
 import android.view.ViewGroup;
 
 import java.util.ArrayList;
@@ -178,5 +179,19 @@ public class HomePager extends ViewPager {
 
             mPages.remove(mTabs.get(position).page);
         }
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            
+            
+            
+            
+            requestFocusFromTouch();
+            clearFocus();
+        }
+
+        return super.onInterceptTouchEvent(event);
     }
 }
