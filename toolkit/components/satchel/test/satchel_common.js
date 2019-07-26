@@ -135,17 +135,27 @@ function getFormSubmitButton(formNum) {
 
 
 
-function countEntries(name, value, then){
+function countEntries(name, value, then) {
   var obj = {};
   if (name !== null)
     obj.fieldname = name;
   if (value !== null)
     obj.value = value;
 
-  SpecialPowers.formHistory.count(obj,
-    { onSuccess: then,
-      onFailure: function (error) {
-        do_throw("Error occurred searching form history: " + error);
-      }
-    });
+  var count = 0;
+  SpecialPowers.formHistory.count(obj, { handleResult: function (result) { count = result },
+                                         handleError: function (error) {
+                                           do_throw("Error occurred searching form history: " + error);
+                                         },
+                                         handleCompletion: function (reason) { if (!reason) then(count); }
+                                       });
+}
+
+
+function updateFormHistory(changes, then) {
+  SpecialPowers.formHistory.update(changes, { handleError: function (error) {
+                                                do_throw("Error occurred updating form history: " + error);
+                                              },
+                                              handleCompletion: function (reason) { if (!reason) then(); },
+                                            });
 }

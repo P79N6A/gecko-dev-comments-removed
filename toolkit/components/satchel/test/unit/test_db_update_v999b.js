@@ -57,14 +57,7 @@ function tests()
   
   do_check_false(bakFile.exists());
   
-  yield FormHistory.count({}, {
-    onSuccess : function(aNumEntries) {
-      next_test();
-    },
-    onFailure : function(aError) {
-      do_throw("DB initialization failed.");
-    }
-  });
+  yield countEntries("", "", next_test);
 
   do_check_true(bakFile.exists());
   bakFile.remove(false);

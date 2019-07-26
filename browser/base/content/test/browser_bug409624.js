@@ -11,10 +11,10 @@ function test() {
   
   
   FormHistory.update({ op: "remove" },
-                     { onSuccess: function () { test2(); },
-                       onFailure: function (error) {
-                         do_throw("Error occurred removing form history: " + error);
-                       }
+                     { handleError: function (error) {
+                         do_throw("Error occurred updating form history: " + error);
+                       },
+                       handleCompletion: function (reason) { if (!reason) test2(); },
                      });
 }
 
