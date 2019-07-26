@@ -753,7 +753,7 @@ protected:
   
 
 
-  nsRootPresContext*                  mRootPresContext;
+  nsRefPtr<nsRootPresContext>         mRootPresContext;
 
   
 
