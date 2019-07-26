@@ -253,7 +253,7 @@ Bookmarks.prototype = {
       else {
         
         
-        let matches = entry.leafName.match(/(.+)\.url$/);
+        let matches = entry.leafName.match(/(.+)\.url$/i);
         if (matches) {
           let fileHandler = Cc["@mozilla.org/network/protocol;1?name=file"].
                             getService(Ci.nsIFileProtocolHandler);
