@@ -407,6 +407,10 @@ public:
   
   bool mHasBeenScrolled:1;
 
+  
+  
+  bool mIsResolutionSet:1;
+
 protected:
   
 
@@ -657,6 +661,9 @@ public:
   }
   virtual void ResetScrollPositionForLayerPixelAlignment() MOZ_OVERRIDE {
     mHelper.ResetScrollPositionForLayerPixelAlignment();
+  }
+  virtual bool IsResolutionSet() const MOZ_OVERRIDE {
+    return mHelper.mIsResolutionSet;
   }
   virtual bool DidHistoryRestore() const MOZ_OVERRIDE {
     return mHelper.mDidHistoryRestore;
@@ -971,6 +978,9 @@ public:
   }
   virtual void ResetScrollPositionForLayerPixelAlignment() MOZ_OVERRIDE {
     mHelper.ResetScrollPositionForLayerPixelAlignment();
+  }
+  virtual bool IsResolutionSet() const MOZ_OVERRIDE {
+    return mHelper.mIsResolutionSet;
   }
   virtual bool DidHistoryRestore() const MOZ_OVERRIDE {
     return mHelper.mDidHistoryRestore;

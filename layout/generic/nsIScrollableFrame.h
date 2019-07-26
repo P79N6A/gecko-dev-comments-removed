@@ -274,6 +274,10 @@ public:
   
 
 
+  virtual bool IsResolutionSet() const = 0;
+  
+
+
 
 
   virtual void ClearDidHistoryRestore() = 0;
