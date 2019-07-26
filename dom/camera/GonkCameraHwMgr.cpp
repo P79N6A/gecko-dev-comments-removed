@@ -173,6 +173,9 @@ GonkCameraHardware::Init()
   }
   DOM_CAMERA_LOGI("Sensor orientation: base=%d, offset=%d, final=%d\n", info.orientation, offset, mSensorOrientation);
 
+  
+  mCamera->sendCommand(CAMERA_CMD_ENABLE_SHUTTER_SOUND, 0, 0);
+
   mNativeWindow = new GonkNativeWindow();
   mNativeWindow->setNewFrameCallback(this);
   mCamera->setListener(this);
