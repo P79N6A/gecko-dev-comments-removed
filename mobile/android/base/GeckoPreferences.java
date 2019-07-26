@@ -14,6 +14,8 @@ import android.app.AlertDialog;
 import android.app.Dialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.EditTextPreference;
@@ -22,6 +24,7 @@ import android.preference.Preference;
 import android.preference.Preference.OnPreferenceChangeListener;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceGroup;
+import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
 import android.text.Editable;
 import android.text.InputType;
@@ -50,6 +53,7 @@ public class GeckoPreferences
     
     public static String PREFS_MP_ENABLED         = "privacy.masterpassword.enabled";
     public static String PREFS_MENU_CHAR_ENCODING = "browser.menu.showCharacterEncoding";
+    public static String PREFS_ANNOUNCEMENTS_ENABLED = NON_PREF_PREFIX + "privacy.announcements.enabled";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -137,6 +141,63 @@ public class GeckoPreferences
         return sIsCharEncodingEnabled;
     }
 
+    
+
+
+
+
+    public static void broadcastPrefAction(final Context context,
+                                           final String action,
+                                           final String pref,
+                                           final boolean value) {
+        final Intent intent = new Intent(action);
+        intent.setAction(action);
+        intent.putExtra("pref", pref);
+        intent.putExtra("branch", GeckoApp.PREFS_NAME);
+        intent.putExtra("enabled", value);
+        Log.d(LOGTAG, "Broadcast: " + action + ", " + pref + ", " + GeckoApp.PREFS_NAME + ", " + value);
+        context.sendBroadcast(intent);
+    }
+
+    
+
+
+
+    public static void broadcastAnnouncementsPref(final Context context, final boolean value) {
+        broadcastPrefAction(context,
+                            GeckoApp.ACTION_ANNOUNCEMENTS_PREF,
+                            PREFS_ANNOUNCEMENTS_ENABLED,
+                            value);
+    }
+
+    
+
+
+
+    public static void broadcastAnnouncementsPref(final Context context) {
+        broadcastPrefAction(context,
+                            GeckoApp.ACTION_ANNOUNCEMENTS_PREF,
+                            PREFS_ANNOUNCEMENTS_ENABLED,
+                            getBooleanPref(context, PREFS_ANNOUNCEMENTS_ENABLED, true));
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    public static boolean getBooleanPref(final Context context, final String name, boolean def) {
+        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(context);
+        return prefs.getBoolean(name, def);
+    }
+
     @Override
     public boolean onPreferenceChange(Preference preference, Object newValue) {
         String prefName = preference.getKey();
@@ -145,6 +206,10 @@ public class GeckoPreferences
             return false;
         } else if (prefName != null && prefName.equals(PREFS_MENU_CHAR_ENCODING)) {
             setCharEncodingState(((String) newValue).equals("true"));
+        } else if (prefName != null && prefName.equals(PREFS_ANNOUNCEMENTS_ENABLED)) {
+            
+            
+            broadcastAnnouncementsPref(GeckoApp.mAppContext, ((Boolean) newValue).booleanValue());
         }
 
         if (!TextUtils.isEmpty(prefName)) {
