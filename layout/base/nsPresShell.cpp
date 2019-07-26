@@ -3714,7 +3714,21 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
 
 
 
-  SAMPLE_LABEL("layout", "FlushPendingNotifications");
+#ifdef MOZ_ENABLE_PROFILER_SPS
+  static const char flushTypeNames[][20] = {
+    "Content",
+    "ContentAndNotify",
+    "Style",
+    "InterruptibleLayout",
+    "Layout",
+    "Display"
+  };
+  
+  MOZ_ASSERT(aType <= ArrayLength(flushTypeNames));
+
+  SAMPLE_LABEL_PRINTF("layout", "Flush", "(Flush_%s)",
+                      flushTypeNames[aType - 1]);
+#endif
 
 #ifdef ACCESSIBILITY
 #ifdef DEBUG
