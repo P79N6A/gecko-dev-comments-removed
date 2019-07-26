@@ -1826,13 +1826,6 @@ JS_GetObjectPrototype(JSContext *cx, JS::HandleObject forObj);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetArrayPrototype(JSContext *cx, JS::HandleObject forObj);
 
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetErrorPrototype(JSContext *cx);
-
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForObject(JSContext *cx, JSObject *obj);
 
