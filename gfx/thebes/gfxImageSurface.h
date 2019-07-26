@@ -105,6 +105,12 @@ public:
     
 
 
+
+    bool CopyTo (mozilla::gfx::SourceSurface *aSurface);
+
+    
+
+
     already_AddRefed<gfxSubimageSurface> GetSubimage(const gfxRect& aRect);
 
     virtual already_AddRefed<gfxImageSurface> GetAsImageSurface();
