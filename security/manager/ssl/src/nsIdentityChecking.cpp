@@ -127,18 +127,6 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
-    "2.16.840.1.114171.500.9",
-    "WellsSecure EV OID",
-    SEC_OID_UNKNOWN,
-    "E7:B4:F6:9D:61:EC:90:69:DB:7E:90:A7:40:1A:3C:F4:7D:4F:E8:EE",
-    "MIGFMQswCQYDVQQGEwJVUzEgMB4GA1UECgwXV2VsbHMgRmFyZ28gV2VsbHNTZWN1"
-    "cmUxHDAaBgNVBAsME1dlbGxzIEZhcmdvIEJhbmsgTkExNjA0BgNVBAMMLVdlbGxz"
-    "U2VjdXJlIFB1YmxpYyBSb290IENlcnRpZmljYXRlIEF1dGhvcml0eQ==",
-    "AQ==",
-    nullptr
-  },
-  {
-    
     "1.2.392.200091.100.721.1",
     "SECOM EV OID",
     SEC_OID_UNKNOWN,
