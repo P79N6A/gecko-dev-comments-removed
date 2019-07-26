@@ -189,14 +189,28 @@ public:
 
 
 
-    void *buf = ::mmap(NULL, length + PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+
+
+    size_t anon_mapping_length = length + 2 * PAGE_SIZE;
+    void *buf = ::mmap(NULL, anon_mapping_length, PROT_NONE,
+                       MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
     if (buf != MAP_FAILED) {
-      ::mmap(reinterpret_cast<char *>(buf) + ((length + PAGE_SIZE - 1) & PAGE_MASK),
-             PAGE_SIZE, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
-             -1, 0);
-      DEBUG_LOG("Decompression buffer of size %d in ashmem \"%s\", mapped @%p",
-                length, str, buf);
-      return new _MappableBuffer(fd.forget(), buf, length);
+      char *first_page = reinterpret_cast<char *>(buf);
+      char *map_page = first_page + PAGE_SIZE;
+      char *last_page = map_page + ((length + PAGE_SIZE - 1) & PAGE_MASK);
+
+      void *actual_buf = ::mmap(map_page, last_page - map_page, PROT_READ | PROT_WRITE,
+                                MAP_FIXED | MAP_SHARED, fd, 0);
+      if (actual_buf == MAP_FAILED) {
+        ::munmap(buf, anon_mapping_length);
+        DEBUG_LOG("Fixed allocation of decompression buffer at %p failed", map_page);
+        return NULL;
+      }
+
+      DEBUG_LOG("Decompression buffer of size 0x%x in ashmem \"%s\", mapped @%p",
+                length, str, actual_buf);
+      return new _MappableBuffer(fd.forget(), actual_buf, length);
     }
 #else
     
@@ -237,7 +251,7 @@ public:
 #ifdef ANDROID
   ~_MappableBuffer() {
     
-    ::munmap(*this + ((GetLength() + PAGE_SIZE - 1) & PAGE_MASK), PAGE_SIZE);
+    ::munmap(*this - PAGE_SIZE, GetLength() + 2 * PAGE_SIZE);
   }
 #endif
 
