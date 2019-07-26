@@ -110,18 +110,14 @@ function testReload() {
     info("in stores update of testReload");
     
     
+    
+    
     if (data.deleted) {
       markOutMatched(shouldBeEmptyFirst, data.deleted, true);
     }
 
     if (!Object.keys(shouldBeEmptyFirst).length) {
       info("shouldBeEmptyFirst is empty now");
-    }
-    else if (!data.added || !Object.keys(data.added).length) {
-      info(JSON.stringify(data));
-      ok(false, "deleted object should have something if an added object " +
-         "does not have anything");
-      endTestReloaded();
     }
 
     
@@ -164,7 +160,6 @@ function testAddIframe() {
   };
 
   let onStoresUpdate = data => {
-    info(JSON.stringify(data));
     info("checking if the hosts list is correct for this iframe addition");
 
     markOutMatched(shouldBeEmpty, data.added);
