@@ -3323,7 +3323,7 @@ Simulator::execute()
             int32_t rpc = resume_pc_;
             if (MOZ_UNLIKELY(rpc != 0)) {
                 
-                activation->setResumePC((void *)get_pc());
+                activation->setInterrupted((void *)get_pc());
                 set_pc(rpc);
                 resume_pc_ = 0;
             }
