@@ -1030,6 +1030,7 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
 
   } else {
     
+    aToken.mSymbol = PRUnichar(0);
     GatherText(IS_URL_CHAR, aToken.mIdent);
   }
 
