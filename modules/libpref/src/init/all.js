@@ -2045,7 +2045,7 @@ pref("plugins.click_to_play", false);
 
 
 
-pref("plugins.enumerable_names", "Java,QuickTime,Shockwave");
+pref("plugins.enumerable_names", "Java,Nexus Personal,QuickTime,Shockwave");
 
 
 pref("plugin.default.state", 2);
