@@ -74,7 +74,7 @@ BaselineCompiler::compile()
     IonSpew(IonSpew_Codegen, "# Emitting baseline code for script %s:%d",
             script->filename(), script->lineno());
 
-    if (cx->typeInferenceEnabled() && !script->ensureHasTypes(cx))
+    if (!script->ensureHasTypes(cx))
         return Method_Error;
 
     
@@ -172,7 +172,7 @@ BaselineCompiler::compile()
     spsPushToggleOffset_.fixup(&masm);
 
     
-    size_t bytecodeTypeMapEntries = cx->typeInferenceEnabled() ? script->nTypeSets() + 1 : 0;
+    size_t bytecodeTypeMapEntries = script->nTypeSets() + 1;
 
     BaselineScript *baselineScript = BaselineScript::New(cx, prologueOffset_.offset(),
                                                          spsPushToggleOffset_.offset(),
@@ -229,25 +229,23 @@ BaselineCompiler::compile()
     if (cx->runtime()->spsProfiler.enabled())
         baselineScript->toggleSPS(true);
 
-    if (cx->typeInferenceEnabled()) {
-        uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
+    uint32_t *bytecodeMap = baselineScript->bytecodeTypeMap();
 
-        uint32_t added = 0;
-        for (jsbytecode *pc = script->code(); pc < script->codeEnd(); pc += GetBytecodeLength(pc)) {
-            JSOp op = JSOp(*pc);
-            if (js_CodeSpec[op].format & JOF_TYPESET) {
-                bytecodeMap[added++] = script->pcToOffset(pc);
-                if (added == script->nTypeSets())
-                    break;
-            }
+    uint32_t added = 0;
+    for (jsbytecode *pc = script->code(); pc < script->codeEnd(); pc += GetBytecodeLength(pc)) {
+        JSOp op = JSOp(*pc);
+        if (js_CodeSpec[op].format & JOF_TYPESET) {
+            bytecodeMap[added++] = script->pcToOffset(pc);
+            if (added == script->nTypeSets())
+                break;
         }
-
-        JS_ASSERT(added == script->nTypeSets());
-
-        
-        
-        bytecodeMap[script->nTypeSets()] = 0;
     }
+
+    JS_ASSERT(added == script->nTypeSets());
+
+    
+    
+    bytecodeMap[script->nTypeSets()] = 0;
 
     if (script->compartment()->debugMode())
         baselineScript->setDebugMode();

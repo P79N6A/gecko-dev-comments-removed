@@ -162,7 +162,6 @@ ArraySetLength(typename ExecutionModeTraits<mode>::ContextType cx,
 
 
 
-
 class ObjectElements
 {
   public:

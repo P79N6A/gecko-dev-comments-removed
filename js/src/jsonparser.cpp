@@ -572,9 +572,9 @@ JSONParser::createFinishedObject(PropertyVector &properties)
 
 
 
-    if (cx->typeInferenceEnabled()) {
+    {
         JSObject *obj = cx->compartment()->types.newTypedObject(cx, properties.begin(),
-                                                              properties.length());
+                                                                properties.length());
         if (obj)
             return obj;
     }
@@ -605,8 +605,7 @@ JSONParser::createFinishedObject(PropertyVector &properties)
 
 
 
-    if (cx->typeInferenceEnabled())
-        cx->compartment()->types.fixObjectType(cx, obj);
+    cx->compartment()->types.fixObjectType(cx, obj);
 
     return obj;
 }
@@ -637,8 +636,7 @@ JSONParser::finishArray(MutableHandleValue vp, ElementVector &elements)
         return false;
 
     
-    if (cx->typeInferenceEnabled())
-        cx->compartment()->types.fixArrayType(cx, obj);
+    cx->compartment()->types.fixArrayType(cx, obj);
 
     vp.setObject(*obj);
     if (!freeElements.append(&elements))

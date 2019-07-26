@@ -236,7 +236,7 @@ types::TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &val
 
 
 
-    if (cx->typeInferenceEnabled() && !obj->unknownProperties() && !value.isUndefined()) {
+    if (!obj->unknownProperties() && !value.isUndefined()) {
         id = IdToTypeId(id);
 
         
@@ -1871,27 +1871,11 @@ TypeCompartment::TypeCompartment()
     PodZero(this);
 }
 
-void
-TypeZone::init(JSContext *cx)
-{
-    if (!cx ||
-        !cx->runtime()->options().typeInference() ||
-        !cx->runtime()->jitSupportsFloatingPoint)
-    {
-        return;
-    }
-
-    inferenceEnabled = true;
-}
-
 TypeObject *
 TypeCompartment::newTypeObject(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
                                TypeObjectFlags initialFlags)
 {
     JS_ASSERT_IF(proto.isObject(), cx->isInsideCurrentCompartment(proto.toObject()));
-
-    if (!cx->typeInferenceEnabled())
-        initialFlags |= OBJECT_FLAG_UNKNOWN_MASK;
 
     if (cx->isJSContext()) {
         if (proto.isObject() && IsInsideNursery(cx->asJSContext()->runtime(), proto.toObject()))
@@ -2058,8 +2042,6 @@ GetAtomId(JSContext *cx, JSScript *script, const jsbytecode *pc, unsigned offset
 bool
 types::UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
-    JS_ASSERT(cx->typeInferenceEnabled());
-
     
 
 
@@ -2457,8 +2439,7 @@ TypeCompartment::fixArrayType(ExclusiveContext *cx, JSObject *obj)
 void
 types::FixRestArgumentsType(ExclusiveContext *cx, JSObject *obj)
 {
-    if (cx->typeInferenceEnabled())
-        cx->compartment()->types.fixRestArgumentsType(cx, obj);
+    cx->compartment()->types.fixRestArgumentsType(cx, obj);
 }
 
 void
@@ -3555,16 +3536,6 @@ JSScript::makeTypes(JSContext *cx)
 {
     JS_ASSERT(!types);
 
-    if (!cx->typeInferenceEnabled()) {
-        types = cx->pod_calloc<TypeScript>();
-        if (!types) {
-            js_ReportOutOfMemory(cx);
-            return false;
-        }
-        new(types) TypeScript();
-        return analyzedArgsUsage() || ensureRanAnalysis(cx);
-    }
-
     AutoEnterAnalysis enter(cx);
 
     unsigned count = TypeScript::NumTypeSets(this);
@@ -3630,9 +3601,6 @@ JSScript::makeAnalysis(JSContext *cx)
 JSFunction::setTypeForScriptedFunction(ExclusiveContext *cx, HandleFunction fun,
                                        bool singleton )
 {
-    if (!cx->typeInferenceEnabled())
-        return true;
-
     if (singleton) {
         if (!setSingletonType(cx, fun))
             return false;
@@ -3663,11 +3631,9 @@ JSObject::shouldSplicePrototype(JSContext *cx)
 
 
 
-
-
     if (getProto() != nullptr)
         return false;
-    return !cx->typeInferenceEnabled() || hasSingletonType();
+    return hasSingletonType();
 }
 
 bool
@@ -3682,8 +3648,7 @@ JSObject::splicePrototype(JSContext *cx, const Class *clasp, Handle<TaggedProto>
 
 
 
-
-    JS_ASSERT_IF(cx->typeInferenceEnabled(), self->hasSingletonType());
+    JS_ASSERT(self->hasSingletonType());
 
     
     JS_ASSERT_IF(proto.isObject(), !proto.toObject()->getClass()->ext.outerObject);
@@ -3702,14 +3667,6 @@ JSObject::splicePrototype(JSContext *cx, const Class *clasp, Handle<TaggedProto>
             return false;
     }
 
-    if (!cx->typeInferenceEnabled()) {
-        TypeObject *type = cx->getNewType(clasp, proto);
-        if (!type)
-            return false;
-        self->type_ = type;
-        return true;
-    }
-
     type->setClasp(clasp);
     type->setProto(cx, proto);
     return true;
@@ -3720,7 +3677,6 @@ JSObject::makeLazyType(JSContext *cx, HandleObject obj)
 {
     JS_ASSERT(obj->hasLazyType());
     JS_ASSERT(cx->compartment() == obj->compartment());
-    JS_ASSERT(cx->typeInferenceEnabled());
 
     
     if (obj->is<JSFunction>() && obj->as<JSFunction>().isInterpretedLazy()) {
@@ -3906,9 +3862,6 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto, JSFunction *
             NewTypeObjectsSetRef(&newTypeObjects, clasp, proto.toObject(), fun));
     }
 #endif
-
-    if (!typeInferenceEnabled())
-        return type;
 
     if (proto.isObject()) {
         RootedObject obj(this, proto.toObject());
@@ -4264,7 +4217,6 @@ TypeScript::Sweep(FreeOp *fop, JSScript *script)
 {
     JSCompartment *compartment = script->compartment();
     JS_ASSERT(compartment->zone()->isGCSweeping());
-    JS_ASSERT(compartment->zone()->types.inferenceEnabled);
 
     unsigned num = NumTypeSets(script);
     StackTypeSet *typeArray = script->types->typeArray();
@@ -4332,8 +4284,7 @@ TypeZone::TypeZone(Zone *zone)
   : zone_(zone),
     typeLifoAlloc(TYPE_LIFO_ALLOC_PRIMARY_CHUNK_SIZE),
     compilerOutputs(nullptr),
-    pendingRecompiles(nullptr),
-    inferenceEnabled(false)
+    pendingRecompiles(nullptr)
 {
 }
 
@@ -4372,7 +4323,7 @@ TypeZone::sweep(FreeOp *fop, bool releaseTypes)
         }
     }
 
-    if (inferenceEnabled) {
+    {
         gcstats::AutoPhase ap2(rt->gcStats, gcstats::PHASE_DISCARD_TI);
 
         for (CellIterUnderGC i(zone(), FINALIZE_SCRIPT); !i.done(); i.next()) {
@@ -4511,9 +4462,6 @@ TypeObject::setAddendum(TypeObjectAddendum *addendum)
 bool
 TypeObject::addTypedObjectAddendum(JSContext *cx, Handle<TypeDescr*> descr)
 {
-    if (!cx->typeInferenceEnabled())
-        return true;
-
     
     
     

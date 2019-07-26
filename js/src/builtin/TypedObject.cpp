@@ -1411,8 +1411,7 @@ TypedObject::createUnattachedWithClass(JSContext *cx,
 
     
     
-    if (cx->typeInferenceEnabled() && !type->is<SimpleTypeDescr>()) {
-        
+    if (!type->is<SimpleTypeDescr>()) { 
         RootedTypeObject typeObj(cx, obj->getType(cx));
         if (typeObj) {
             if (!typeObj->addTypedObjectAddendum(cx, type))

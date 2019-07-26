@@ -1563,12 +1563,8 @@ struct TypeZone
     
     Vector<RecompileInfo> *pendingRecompiles;
 
-    
-    bool                         inferenceEnabled;
-
     TypeZone(JS::Zone *zone);
     ~TypeZone();
-    void init(JSContext *cx);
 
     JS::Zone *zone() const { return zone_; }
 
