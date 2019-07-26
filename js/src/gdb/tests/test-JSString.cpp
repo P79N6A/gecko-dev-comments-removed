@@ -1,6 +1,10 @@
 #include "gdb-tests.h"
 #include "jsatom.h"
 
+
+
+#include "vm/String.h"
+
 FRAGMENT(JSString, simple) {
   js::Rooted<JSString *> empty(cx, JS_NewStringCopyN(cx, NULL, 0));
   js::Rooted<JSString *> x(cx, JS_NewStringCopyN(cx, "x", 1));
