@@ -292,6 +292,7 @@ APZController::GetRootZoomConstraints(ZoomConstraints* aOutConstraints)
     
     
     aOutConstraints->mAllowZoom = true;
+    aOutConstraints->mAllowDoubleTapZoom = false;
     aOutConstraints->mMinZoom = CSSToScreenScale(0.25f);
     aOutConstraints->mMaxZoom = CSSToScreenScale(4.0f);
     return true;

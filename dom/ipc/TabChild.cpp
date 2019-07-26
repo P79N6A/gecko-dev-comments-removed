@@ -551,10 +551,12 @@ TabChild::HandlePossibleViewportChange()
   nsViewportInfo viewportInfo = nsContentUtils::GetViewportInfo(document, mInnerSize);
   uint32_t presShellId;
   ViewID viewId;
-  if (APZCCallbackHelper::GetScrollIdentifiers(document->GetDocumentElement(),
-                                               &presShellId, &viewId)) {
+  bool scrollIdentifiersValid = APZCCallbackHelper::GetScrollIdentifiers(
+        document->GetDocumentElement(), &presShellId, &viewId);
+  if (scrollIdentifiersValid) {
     ZoomConstraints constraints(
       viewportInfo.IsZoomAllowed(),
+      viewportInfo.IsDoubleTapZoomAllowed(),
       viewportInfo.GetMinZoom(),
       viewportInfo.GetMaxZoom());
     SendUpdateZoomConstraints(presShellId,
@@ -562,7 +564,6 @@ TabChild::HandlePossibleViewportChange()
                                true,
                               constraints);
   }
-
 
   float screenW = mInnerSize.width;
   float screenH = mInnerSize.height;
@@ -666,6 +667,25 @@ TabChild::HandlePossibleViewportChange()
   
   
   ProcessUpdateFrame(metrics);
+
+  if (viewportInfo.IsZoomAllowed() && scrollIdentifiersValid) {
+    
+    
+    bool allowDoubleTapZoom = (viewport.width > screenW / metrics.mDevPixelsPerCSSPixel.scale);
+    if (allowDoubleTapZoom != viewportInfo.IsDoubleTapZoomAllowed()) {
+      viewportInfo.SetAllowDoubleTapZoom(allowDoubleTapZoom);
+
+      ZoomConstraints constraints(
+        viewportInfo.IsZoomAllowed(),
+        viewportInfo.IsDoubleTapZoomAllowed(),
+        viewportInfo.GetMinZoom(),
+        viewportInfo.GetMaxZoom());
+      SendUpdateZoomConstraints(presShellId,
+                                viewId,
+                                 true,
+                                constraints);
+    }
+  }
 }
 
 nsresult
