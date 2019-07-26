@@ -42,7 +42,7 @@ public:
   
   
   virtual nsresult GetFileTokenForPath(const char16_t * platformAppPath, nsIFile ** aFile);
-  
+
 protected:
   already_AddRefed<nsMIMEInfoBase> GetFromType(const nsCString& aMimeType);
   already_AddRefed<nsMIMEInfoBase> GetFromExtension(const nsCString& aFileExt);
@@ -112,7 +112,7 @@ private:
                                               nsAString& aHandler,
                                               nsAString& aDescription,
                                               nsAString& aMozillaFlags);
-  
+
   static nsresult DoLookUpHandlerAndDescription(const nsAString& aMajorType,
                                                 const nsAString& aMinorType,
                                                 nsHashtable& aTypeOptions,
@@ -120,7 +120,7 @@ private:
                                                 nsAString& aDescription,
                                                 nsAString& aMozillaFlags,
                                                 bool aUserData);
-  
+
   static nsresult GetHandlerAndDescriptionFromMailcapFile(const nsAString& aFilename,
                                                           const nsAString& aMajorType,
                                                           const nsAString& aMinorType,
