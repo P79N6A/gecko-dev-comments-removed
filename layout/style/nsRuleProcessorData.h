@@ -19,6 +19,7 @@
 #include "nsRuleWalker.h"
 #include "nsNthIndexCache.h"
 #include "nsILoadContext.h"
+#include "mozilla/AutoRestore.h"
 #include "mozilla/BloomFilter.h"
 #include "mozilla/GuardObjects.h"
 
@@ -242,6 +243,23 @@ struct NS_STACK_CLASS TreeMatchContext {
   };
 
   
+
+  class NS_STACK_CLASS AutoFlexItemStyleFixupSkipper {
+  public:
+    AutoFlexItemStyleFixupSkipper(TreeMatchContext& aTreeMatchContext
+                                  MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mAutoRestorer(aTreeMatchContext.mSkippingFlexItemStyleFixup)
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+      aTreeMatchContext.mSkippingFlexItemStyleFixup = true;
+    }
+
+  private:
+    mozilla::AutoRestore<bool> mAutoRestorer;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  };
+
+  
   
   
   const bool mForStyling;
@@ -292,6 +310,11 @@ struct NS_STACK_CLASS TreeMatchContext {
 
   
   
+  
+  bool mSkippingFlexItemStyleFixup;
+
+  
+  
   bool mForScopedStyle;
 
   enum MatchVisited {
@@ -320,6 +343,7 @@ struct NS_STACK_CLASS TreeMatchContext {
     , mIsHTMLDocument(aDocument->IsHTML())
     , mCompatMode(aDocument->GetCompatibilityMode())
     , mUsingPrivateBrowsing(false)
+    , mSkippingFlexItemStyleFixup(false)
     , mForScopedStyle(false)
     , mCurrentStyleScope(nullptr)
   {

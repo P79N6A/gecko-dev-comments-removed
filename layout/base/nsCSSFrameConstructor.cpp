@@ -5108,9 +5108,21 @@ nsCSSFrameConstructor::ConstructFrame(nsFrameConstructorState& aState,
                                       nsFrameItems&            aFrameItems)
 
 {
-  NS_PRECONDITION(nullptr != aParentFrame, "no parent frame");
+  NS_PRECONDITION(aParentFrame, "no parent frame");
+  
+  
+  
+  NS_PRECONDITION(aContent->IsRootOfNativeAnonymousSubtree(),
+                  "ConstructFrame should only be used for anonymous content");
+
   FrameConstructionItemList items;
-  AddFrameConstructionItems(aState, aContent, true, aParentFrame, items);
+  {
+    
+    TreeMatchContext::AutoFlexItemStyleFixupSkipper
+      flexItemStyleFixupSkipper(aState.mTreeMatchContext);
+
+    AddFrameConstructionItems(aState, aContent, true, aParentFrame, items);
+  }
   items.SetTriedConstructingFrames();
 
   for (FCItemIterator iter(items); !iter.IsDone(); iter.Next()) {
