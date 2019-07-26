@@ -1054,6 +1054,7 @@ var BrowserApp = {
       
       
       switch (prefName) {
+        case "browser.chrome.titlebarMode":
         case "network.cookie.cookieBehavior":
         case "font.size.inflation.minTwips":
           pref.type = "string";
@@ -1144,6 +1145,7 @@ var BrowserApp = {
       
       
       
+      case "browser.chrome.titlebarMode":
       case "network.cookie.cookieBehavior":
       case "font.size.inflation.minTwips":
         json.type = "int";

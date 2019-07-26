@@ -700,6 +700,11 @@ pref("layout.imagevisibility.enabled", false);
 
 pref("browser.chrome.dynamictoolbar", true);
 
+
+
+
+pref("browser.chrome.titlebarMode", 0);
+
 #ifdef MOZ_PKG_SPECIAL
 
 
