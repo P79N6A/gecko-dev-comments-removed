@@ -3,12 +3,29 @@
 
 "use strict";
 
+const { Cc, Ci, Cu } = require('chrome');
 const { Loader } = require("sdk/test/loader");
 const { setTimeout } = require("sdk/timers");
 const { emit } = require("sdk/system/events");
-const { id } = require("sdk/self");
 const simplePrefs = require("sdk/simple-prefs");
 const { prefs: sp } = simplePrefs;
+const { defer, resolve, reject, all } = require("sdk/core/promise");
+const AddonInstaller = require("sdk/addon/installer");
+const fixtures = require("./fixtures");
+const { pathFor } = require("sdk/system");
+const file = require("sdk/io/file");
+const { install, uninstall } = require("sdk/addon/installer");
+const { open } = require('sdk/preferences/utils');
+const { toFilename } = require('sdk/url');
+const { AddonManager } = Cu.import('resource://gre/modules/AddonManager.jsm', {});
+const { ZipWriter } = require('./zip/utils');
+const { getTabForId } = require('sdk/tabs/utils');
+const { preferencesBranch, id } = require('sdk/self');
+const { Tab } = require('sdk/tabs/tab');
+require('sdk/tabs');
+
+const prefsrv = Cc['@mozilla.org/preferences-service;1'].
+                    getService(Ci.nsIPrefService);
 
 const specialChars = "!@#$%^&*()_-=+[]{}~`\'\"<>,./?;:";
 
@@ -230,4 +247,104 @@ exports.testPrefJSONStringification = function(assert) {
       "JSON stringification should work.");
 };
 
-require('sdk/test').run(exports);
+exports.testUnloadOfDynamicPrefGeneration = function(assert, done) {
+  let loader = Loader(module);
+  let branch = prefsrv.getDefaultBranch('extensions.' + preferencesBranch);
+
+  let { enable } = loader.require("sdk/preferences/native-options");
+
+  let addon_id = "test-bootstrap-addon@mozilla.com";
+  let xpi_path = file.join(pathFor("ProfD"), addon_id + ".xpi");
+
+  
+  let zip = new ZipWriter(xpi_path);
+  assert.pass("start creating the xpi");
+  zip.addFile("", toFilename(fixtures.url("bootstrap-addon/"))).
+  then(zip.close()).
+  then(_ => install(xpi_path)).
+  
+  then(id => {
+    let { promise, resolve } = defer();
+    AddonManager.getAddonByID(id, resolve);
+    return promise;
+  }).
+  
+  then(addon => {
+    assert.pass('installed');
+
+    assert.pass('addon id: ' + addon.id);
+    addon.userDisabled = false;
+    assert.ok(!addon.userDisabled, 'the add-on is enabled');
+    assert.ok(addon.isActive, 'the add-on is enabled');
+
+    
+    return enable({
+      id: addon.id,
+      preferences: [{
+        "name": "test",
+        "description": "test",
+        "title": "Test",
+        "type": "string",
+        "value": "default"
+      }, {
+        "name": "test-int",
+        "description": "test",
+        "type": "integer",
+        "value": 5,
+        "title": "How Many?"
+      }]
+    });
+  }).
+  then(args => {
+    assert.pass('enabled');
+    return args;
+  }).
+  
+  then(open).
+  then(args => {
+    assert.pass('opened');
+    return args;
+  }).
+  
+  then(args => {
+    let results = args.document.querySelectorAll("*[data-jetpack-id=\"" +args.id + "\"]");
+    assert.ok(results.length > 0, "the prefs were setup");
+    return args;
+  }).
+  
+  then(args => {
+    loader.unload();
+    assert.pass('unload');
+    return args;
+  }).
+  
+  then(({ tabId, id, document }) => {
+    let { promise, resolve } = defer();
+    let tab = Tab({ tab: getTabForId(tabId) });
+
+    tab.close(_ => resolve({ id: id }));
+
+    return promise;
+  }).
+  
+  then(open).
+  
+  then(({ id, tabId, document }) => {
+    let { promise, resolve } = defer();
+    let tab = Tab({ tab: getTabForId(tabId) });
+
+    let results = document.querySelectorAll("*[data-jetpack-id=\"" + id + "\"]");
+    assert.equal(0, results.length, "the prefs were not setup after unload");
+
+    tab.close(_ => resolve({ id: id }));
+
+    return promise;
+  }).
+  
+  then(({ id }) => uninstall(id)).
+  
+  then(_ => branch.deleteBranch('')).
+  then(done, assert.fail);
+}
+
+require("sdk/test").run(exports);
