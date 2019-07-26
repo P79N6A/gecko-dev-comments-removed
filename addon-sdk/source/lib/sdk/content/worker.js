@@ -39,7 +39,6 @@ const ERR_FROZEN = "The page is currently hidden and can no longer be used " +
 
 
 
-
 const Worker = Class({
   implements: [EventTarget],
   initialize: function WorkerConstructor (options) {
@@ -162,11 +161,14 @@ attach.define(Worker, function (worker, window) {
 
 
 
-detach.define(Worker, function (worker) {
+detach.define(Worker, function (worker, reason) {
   let model = modelFor(worker);
+
   
-  if (model.contentWorker)
-    model.contentWorker.destroy();
+  if (model.contentWorker) {
+    model.contentWorker.destroy(reason);
+  }
+
   model.contentWorker = null;
   if (model.window) {
     model.window.removeEventListener("pageshow", model.pageShow, true);
@@ -188,8 +190,8 @@ detach.define(Worker, function (worker) {
 
 
 
-destroy.define(Worker, function (worker) {
-  detach(worker);
+destroy.define(Worker, function (worker, reason) {
+  detach(worker, reason);
   modelFor(worker).inited = true;
   
   
@@ -233,7 +235,6 @@ function processMessage (worker, ...args) {
     throw new Error(ERR_DESTROYED);
   if (model.frozen)
     throw new Error(ERR_FROZEN);
-
   model.contentWorker.emit.apply(null, args);
 }
 
@@ -279,4 +280,3 @@ function emitEventToContent (worker, ...eventArgs) {
   }
   processMessage.apply(null, [worker].concat(args));
 }
-

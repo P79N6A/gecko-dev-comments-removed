@@ -107,7 +107,9 @@ freeze(String.prototype);
 
 
 function iced(f) {
-  f.prototype = undefined;
+  if (!Object.isFrozen(f)) {
+    f.prototype = undefined;
+  }
   return freeze(f);
 }
 
@@ -131,14 +133,17 @@ exports.sourceURI = iced(sourceURI);
 
 function isntLoaderFrame(frame) { return frame.fileName !== module.uri }
 
-var parseStack = iced(function parseStack(stack) {
+function parseURI(uri) { return String(uri).split(" -> ").pop(); }
+exports.parseURI = parseURI;
+
+function parseStack(stack) {
   let lines = String(stack).split("\n");
   return lines.reduce(function(frames, line) {
     if (line) {
       let atIndex = line.indexOf("@");
       let columnIndex = line.lastIndexOf(":");
       let lineIndex = line.lastIndexOf(":", columnIndex - 1);
-      let fileName = sourceURI(line.slice(atIndex + 1, lineIndex));
+      let fileName = parseURI(line.slice(atIndex + 1, lineIndex));
       let lineNumber = parseInt(line.slice(lineIndex + 1, columnIndex));
       let columnNumber = parseInt(line.slice(columnIndex + 1));
       let name = line.slice(0, atIndex).split("(").shift();
@@ -151,10 +156,10 @@ var parseStack = iced(function parseStack(stack) {
     }
     return frames;
   }, []);
-})
-exports.parseStack = parseStack
+}
+exports.parseStack = parseStack;
 
-var serializeStack = iced(function serializeStack(frames) {
+function serializeStack(frames) {
   return frames.reduce(function(stack, frame) {
     return frame.name + "@" +
            frame.fileName + ":" +
@@ -162,8 +167,8 @@ var serializeStack = iced(function serializeStack(frames) {
            frame.columnNumber + "\n" +
            stack;
   }, "");
-})
-exports.serializeStack = serializeStack
+}
+exports.serializeStack = serializeStack;
 
 function readURI(uri) {
   let stream = NetUtil.newChannel(uri, 'UTF-8', null).open();

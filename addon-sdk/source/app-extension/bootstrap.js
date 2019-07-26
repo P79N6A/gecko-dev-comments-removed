@@ -37,6 +37,12 @@ let unload = null;
 let cuddlefishSandbox = null;
 let nukeTimer = null;
 
+let resourceDomains = [];
+function setResourceSubstitution(domain, uri) {
+  resourceDomains.push(domain);
+  resourceHandler.setSubstitution(domain, uri);
+}
+
 
 
 function readURI(uri) {
@@ -105,7 +111,7 @@ function startup(data, reasonCode) {
 
     let prefixURI = 'resource://' + domain + '/';
     let resourcesURI = ioService.newURI(rootURI + '/resources/', null, null);
-    resourceHandler.setSubstitution(domain, resourcesURI);
+    setResourceSubstitution(domain, resourcesURI);
 
     
     let paths = {
@@ -169,7 +175,7 @@ function startup(data, reasonCode) {
       
       let resourcesURI = ioService.newURI(fileURI, null, null);
       let resName = 'extensions.modules.' + domain + '.commonjs.path' + name;
-      resourceHandler.setSubstitution(resName, resourcesURI);
+      setResourceSubstitution(resName, resourcesURI);
 
       result[path] = 'resource://' + resName + '/';
       return result;
@@ -305,6 +311,11 @@ function shutdown(data, reasonCode) {
       
       
       nukeTimer = setTimeout(nukeModules, 1000);
+
+      
+      resourceDomains.forEach(domain => {
+        resourceHandler.setSubstitution(domain, null);
+      })
     }
   }
 };

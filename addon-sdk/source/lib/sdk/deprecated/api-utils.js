@@ -11,7 +11,7 @@ const memory = require("./memory");
 
 const { merge } = require("../util/object");
 const { union } = require("../util/array");
-const { isNil } = require("../lang/type");
+const { isNil, isRegExp } = require("../lang/type");
 
 
 const VALID_TYPES = [
@@ -23,6 +23,7 @@ const VALID_TYPES = [
   "object",
   "string",
   "undefined",
+  "regexp"
 ];
 
 const { isArray } = Array;
@@ -136,6 +137,8 @@ let getTypeOf = exports.getTypeOf = function getTypeOf(val) {
       return "null";
     if (isArray(val))
       return "array";
+    if (isRegExp(val))
+      return "regexp";
   }
   return typ;
 }

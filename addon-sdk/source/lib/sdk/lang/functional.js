@@ -328,3 +328,36 @@ exports.is = is;
 
 const isnt = complement(is);
 exports.isnt = isnt;
+
+
+
+
+
+
+
+const debounce = function debounce (fn, wait) {
+  let timeout, args, context, timestamp, result;
+
+  let later = function () {
+    let last = Date.now() - timestamp;
+    if (last < wait) {
+      timeout = setTimeout(later, wait - last);
+    } else {
+      timeout = null;
+      result = fn.apply(context, args);
+      context = args = null;
+    }
+  };
+
+  return function (...aArgs) {
+    context = this;
+    args = aArgs;
+    timestamp  = Date.now();
+    if (!timeout) {
+      timeout = setTimeout(later, wait);
+    }
+
+    return result;
+  };
+};
+exports.debounce = debounce;

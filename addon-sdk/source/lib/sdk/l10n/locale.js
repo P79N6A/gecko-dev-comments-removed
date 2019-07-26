@@ -16,15 +16,16 @@ const { Services } = Cu.import("resource://gre/modules/Services.jsm");
 
 
 
-
 const PREF_MATCH_OS_LOCALE  = "intl.locale.matchOS";
 const PREF_SELECTED_LOCALE  = "general.useragent.locale";
 const PREF_ACCEPT_LANGUAGES = "intl.accept_languages";
-exports.getPreferedLocales = function getPreferedLocales() {
-  let locales = [];
 
+function getPreferedLocales(caseSensitve) {
+  let locales = [];
   function addLocale(locale) {
-    locale = locale.toLowerCase();
+    locale = locale.trim();
+    if (!caseSensitve)
+      locale = locale.toLowerCase();
     if (locales.indexOf(locale) === -1)
       locales.push(locale);
   }
@@ -48,7 +49,6 @@ exports.getPreferedLocales = function getPreferedLocales() {
   if (browserUiLocale)
     addLocale(browserUiLocale);
 
-
   
   let contentLocales = prefs.get(PREF_ACCEPT_LANGUAGES, "");
   if (contentLocales) {
@@ -63,6 +63,7 @@ exports.getPreferedLocales = function getPreferedLocales() {
 
   return locales;
 }
+exports.getPreferedLocales = getPreferedLocales;
 
 
 
@@ -78,8 +79,7 @@ exports.getPreferedLocales = function getPreferedLocales() {
 
 
 exports.findClosestLocale = function findClosestLocale(aLocales, aMatchLocales) {
-
-  aMatchLocales = aMatchLocales || exports.getPreferedLocales();
+  aMatchLocales = aMatchLocales || getPreferedLocales();
 
   
   let bestmatch = null;

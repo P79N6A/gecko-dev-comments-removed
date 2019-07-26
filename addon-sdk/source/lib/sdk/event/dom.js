@@ -8,7 +8,7 @@ module.metadata = {
   "stability": "unstable"
 };
 
-let { emit, on, off } = require("./core");
+let { emit } = require("./core");
 
 
 

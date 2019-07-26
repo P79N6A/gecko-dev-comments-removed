@@ -10,19 +10,13 @@ module.metadata = {
 const { Class } = require('../core/heritage');
 const { EventTarget } = require('../event/target');
 const { on, off, emit } = require('../event/core');
-const {
-  requiresAddonGlobal,
-  attach, detach, destroy
-} = require('./utils');
+const { requiresAddonGlobal } = require('./utils');
 const { delay: async } = require('../lang/functional');
 const { Ci, Cu, Cc } = require('chrome');
 const timer = require('../timers');
 const { URL } = require('../url');
 const { sandbox, evaluate, load } = require('../loader/sandbox');
 const { merge } = require('../util/object');
-const xulApp = require('../system/xul-app');
-const USE_JS_PROXIES = !xulApp.versionInRange(xulApp.platformVersion,
-                                              '17.0a2', '*');
 const { getTabForContentWindow } = require('../tabs/utils');
 
 
@@ -45,20 +39,23 @@ const EXPANDED_PRINCIPALS = permissions['cross-domain-content'] || [];
 const JS_VERSION = '1.8';
 
 const WorkerSandbox = Class({
+  implements: [ EventTarget ],
 
-  implements: [
-    EventTarget
-  ],
-  
   
 
 
-  emit: function emit(...args) {
+  emit: function emit(type, ...args) {
     
-    let self = this;
-    async(function () {
-      emitToContent(self, JSON.stringify(args, replacer));
-    });
+    
+    let replacer = (k, v) =>
+      typeof(v) === "function"
+        ? (type === "console" ? Function.toString.call(v) : void(0))
+        : v;
+
+    
+    async(() =>
+      emitToContent(this, JSON.stringify([type, ...args], replacer))
+    );
   },
 
   
@@ -134,7 +131,7 @@ const WorkerSandbox = Class({
       metadata: { SDKContentScript: true }
     });
     model.sandbox = content;
-    
+
     
     
     
@@ -249,8 +246,10 @@ const WorkerSandbox = Class({
       );
     }
   },
-  destroy: function destroy() {
-    this.emitSync('detach');
+  destroy: function destroy(reason) {
+    if (typeof reason != 'string')
+      reason = '';
+    this.emitSync('event', 'detach', reason);
     let model = modelFor(this);
     model.sandbox = null
     model.worker = null;
@@ -354,14 +353,6 @@ function onContentEvent (workerSandbox, args) {
 
 function modelFor (workerSandbox) {
   return sandboxes.get(workerSandbox);
-}
-
-
-
-
-
-function replacer (k, v) {
-  return typeof v === 'function' ? undefined : v;
 }
 
 function getUnsafeWindow (win) {
