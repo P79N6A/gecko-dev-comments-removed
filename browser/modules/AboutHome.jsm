@@ -29,6 +29,21 @@ this.AboutHomeUtils = {
 
 
 
+  get defaultSearchEngine() {
+    let defaultEngine = Services.search.defaultEngine;
+    let submission = defaultEngine.getSubmission("_searchTerms_", null, "homepage");
+
+    return Object.freeze({
+      name: defaultEngine.name,
+      searchURL: submission.uri.spec,
+      postDataString: submission.postDataString
+    });
+  },
+
+  
+
+
+
 
 
 
@@ -158,19 +173,9 @@ let AboutHome = {
         break;
 
       case "AboutHome:Search":
-        let data;
-        try {
-          data = JSON.parse(aMessage.data.searchData);
-        } catch(ex) {
-          Cu.reportError(ex);
-          break;
-        }
 #ifdef MOZ_SERVICES_HEALTHREPORT
-        window.BrowserSearch.recordSearchInHealthReport(data.engineName, "abouthome");
+        window.BrowserSearch.recordSearchInHealthReport(aMessage.data.engineName, "abouthome");
 #endif
-        
-        let submission = Services.search.currentEngine.getSubmission(data.searchTerms);
-        window.loadURI(submission.uri.spec, null, submission.postData);
         break;
     }
   },
@@ -184,7 +189,8 @@ let AboutHome = {
       showRestoreLastSession: ss.canRestoreLastSession,
       snippetsURL: AboutHomeUtils.snippetsURL,
       showKnowYourRights: AboutHomeUtils.showKnowYourRights,
-      snippetsVersion: AboutHomeUtils.snippetsVersion
+      snippetsVersion: AboutHomeUtils.snippetsVersion,
+      defaultSearchEngine: AboutHomeUtils.defaultSearchEngine
     };
 
     if (AboutHomeUtils.showKnowYourRights) {
