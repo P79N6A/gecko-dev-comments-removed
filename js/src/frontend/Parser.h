@@ -100,8 +100,8 @@ struct ParseContext : public GenericParseContext
     StmtInfoPC      *topStmt;       
     StmtInfoPC      *topScopeStmt;  
     Rooted<StaticBlockObject *> blockChain;
-    Node            maybeFunction;  
                                     
+    Node            maybeFunction;  
 
     const unsigned  staticLevel;    
 
