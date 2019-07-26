@@ -191,6 +191,11 @@ this.DOMApplicationRegistry = {
             }
 
             
+            if (this.webapps[id].role === undefined) {
+              this.webapps[id].role = "";
+            }
+
+            
             
             app.downloading = false;
             app.readyToApplyDownload = false;
@@ -249,6 +254,7 @@ this.DOMApplicationRegistry = {
         aResults.forEach(function registerManifest(aResult) {
           let app = this.webapps[aResult.id];
           app.csp = aResult.manifest.csp || "";
+          app.role = aResult.manifest.role || "";
           if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
             app.redirects = this.sanitizeRedirects(aResult.redirects);
           }
@@ -459,7 +465,7 @@ this.DOMApplicationRegistry = {
     debug("Fixing indexedDb folder names");
     let idbDir = FileUtils.getDir("indexedDBPDir", ["indexedDB"]);
 
-    if (!idbDir.exists() || !idbDir.isDirectory()) {
+    if (!idbDir.isDirectory()) {
       return;
     }
 
@@ -734,6 +740,7 @@ this.DOMApplicationRegistry = {
         let manifest = aResult.manifest;
         app.name = manifest.name;
         app.csp = manifest.csp || "";
+        app.role = manifest.role || "";
         if (app.appStatus >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED) {
           app.redirects = this.sanitizeRedirects(manifest.redirects);
         }
@@ -1477,6 +1484,7 @@ this.DOMApplicationRegistry = {
 
         app.name = manifest.name;
         app.csp = manifest.csp || "";
+        app.role = manifest.role || "";
         app.updateTime = Date.now();
       } else {
         manifest = new ManifestHelper(aOldManifest, app.origin);
@@ -2057,6 +2065,7 @@ this.DOMApplicationRegistry = {
 
     appObject.name = manifest.name;
     appObject.csp = manifest.csp || "";
+    appObject.role = manifest.role || "";
 
     appObject.installerAppId = aData.appId;
     appObject.installerIsBrowser = aData.isBrowser;
