@@ -440,6 +440,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   
   
   bool compare = mRuleNode != aOther->mRuleNode;
+  DebugOnly<int> styleStructCount = 0;
 
 #define DO_STRUCT_DIFFERENCE(struct_)                                         \
   PR_BEGIN_MACRO                                                              \
@@ -458,6 +459,7 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
         NS_UpdateHint(hint, this##struct_->CalcDifference(*other##struct_));  \
       }                                                                       \
     }                                                                         \
+    styleStructCount++;                                                       \
   PR_END_MACRO
 
   
@@ -490,6 +492,9 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther,
   DO_STRUCT_DIFFERENCE(Color);
 
 #undef DO_STRUCT_DIFFERENCE
+
+  MOZ_ASSERT(styleStructCount == nsStyleStructID_Length,
+             "missing a call to DO_STRUCT_DIFFERENCE");
 
   
   
