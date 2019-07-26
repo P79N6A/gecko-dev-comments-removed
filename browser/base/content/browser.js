@@ -4562,8 +4562,17 @@ var TabsInTitlebar = {
 
     
     
-    this.allowedBy("sizemode", false);
-
+    
+    
+    
+    
+    
+    
+    
+    
+    let menu = document.getElementById("toolbar-menubar");
+    this._menuObserver = new MutationObserver(this._onMenuMutate);
+    this._menuObserver.observe(menu, {attributes: true});
     this._initialized = true;
 #endif
   },
@@ -4573,14 +4582,20 @@ var TabsInTitlebar = {
     if (allow) {
       if (condition in this._disallowed) {
         delete this._disallowed[condition];
-        this._update();
+        this._update(true);
       }
     } else {
       if (!(condition in this._disallowed)) {
         this._disallowed[condition] = null;
-        this._update();
+        this._update(true);
       }
     }
+#endif
+  },
+
+  updateAppearance: function updateAppearance(aForce) {
+#ifdef CAN_DRAW_IN_TITLEBAR
+    this._update(aForce);
 #endif
   },
 
@@ -4594,35 +4609,73 @@ var TabsInTitlebar = {
       this._readPref();
   },
 
+  _onMenuMutate: function (aMutations) {
+    
+    
+    if (document.documentElement.getAttribute("sizemode") == "normal") {
+      return;
+    }
+
+    for (let mutation of aMutations) {
+      if (mutation.attributeName == "inactive" ||
+          mutation.attributeName == "autohide") {
+        TabsInTitlebar._update(true);
+        return;
+      }
+    }
+  },
+
   _initialized: false,
   _disallowed: {},
   _prefName: "browser.tabs.drawInTitlebar",
+  _lastSizeMode: null,
 
   _readPref: function () {
     this.allowedBy("pref",
                    Services.prefs.getBoolPref(this._prefName));
   },
 
-  _update: function () {
+  _update: function (aForce=false) {
     if (!this._initialized || window.fullScreen)
       return;
 
     let allowed = true;
+
+    if (!aForce) {
+      
+      
+      
+      
+      let sizemode = document.documentElement.getAttribute("sizemode");
+      if (this._lastSizeMode == sizemode) {
+        return;
+      }
+      this._lastSizeMode = sizemode;
+    }
+
     for (let something in this._disallowed) {
       allowed = false;
       break;
     }
 
-    if (allowed == this.enabled)
-      return;
-
     function $(id) document.getElementById(id);
+
     let titlebar = $("titlebar");
+    let titlebarContent = $("titlebar-content");
+    let menubar = $("toolbar-menubar");
+
+    
+    
+    titlebarContent.style.marginBottom = "";
+    titlebar.style.marginBottom = "";
+    menubar.style.marginBottom = "";
 
     if (allowed) {
-      function rect(ele)   ele.getBoundingClientRect();
+      
+      
+      document.documentElement.setAttribute("tabsintitlebar", "true");
 
-      let tabsToolbar       = $("TabsToolbar");
+      function rect(ele)   ele.getBoundingClientRect();
 
 #ifdef MENUBAR_CAN_AUTOHIDE
       let appmenuButtonBox  = $("appmenu-button-container");
@@ -4631,25 +4684,58 @@ var TabsInTitlebar = {
       let captionButtonsBox = $("titlebar-buttonbox");
       this._sizePlaceholder("caption-buttons", rect(captionButtonsBox).width);
 
-      let tabsToolbarRect = rect(tabsToolbar);
-      let titlebarTop = rect($("titlebar-content")).top;
-      titlebar.style.marginBottom = - Math.min(tabsToolbarRect.top - titlebarTop,
-                                               tabsToolbarRect.height) + "px";
+      let titlebarContentHeight = rect(titlebarContent).height;
+      let menuHeight = this._outerHeight(menubar);
 
-      document.documentElement.setAttribute("tabsintitlebar", "true");
+      
+      
+      if (menuHeight && titlebarContentHeight > menuHeight) {
+        let menuTitlebarDelta = titlebarContentHeight - menuHeight;
+        menubar.style.marginBottom = menuTitlebarDelta + "px";
+        menuHeight += menuTitlebarDelta;
+      }
 
-      if (!this._draghandle) {
+      
+      
+      let tabsToolbar = $("TabsToolbar");
+      let tabAndMenuHeight = this._outerHeight(tabsToolbar) + menuHeight;
+      titlebarContent.style.marginBottom = tabAndMenuHeight + "px";
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      let baseHeight = tabAndMenuHeight;
+      baseHeight += (titlebarContentHeight > tabAndMenuHeight) ? tabAndMenuHeight
+                                                               : titlebarContentHeight;
+      titlebar.style.marginBottom = "-" + baseHeight + "px";
+
+      if (!this._draghandles) {
+        this._draghandles = {};
         let tmp = {};
         Components.utils.import("resource://gre/modules/WindowDraggingUtils.jsm", tmp);
-        this._draghandle = new tmp.WindowDraggingElement(tabsToolbar);
-        this._draghandle.mouseDownCheck = function () {
+
+        let mouseDownCheck = function () {
           return !this._dragBindingAlive && TabsInTitlebar.enabled;
         };
+
+        this._draghandles.tabsToolbar = new tmp.WindowDraggingElement(tabsToolbar);
+        this._draghandles.tabsToolbar.mouseDownCheck = mouseDownCheck;
+
+        this._draghandles.navToolbox = new tmp.WindowDraggingElement(gNavToolbox);
+        this._draghandles.navToolbox.mouseDownCheck = mouseDownCheck;
       }
     } else {
       document.documentElement.removeAttribute("tabsintitlebar");
-
-      titlebar.style.marginBottom = "";
     }
   },
 
@@ -4657,12 +4743,30 @@ var TabsInTitlebar = {
     Array.forEach(document.querySelectorAll(".titlebar-placeholder[type='"+ type +"']"),
                   function (node) { node.width = width; });
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _outerHeight: function (ele) {
+    let cstyle = document.defaultView.getComputedStyle(ele);
+    let margins = parseInt(cstyle.marginTop) + parseInt(cstyle.marginBottom);
+    let height = ele.getBoundingClientRect().height;
+    return height > 0 ? Math.abs(height + margins) : 0;
+  },
 #endif
 
   uninit: function () {
 #ifdef CAN_DRAW_IN_TITLEBAR
     this._initialized = false;
     Services.prefs.removeObserver(this._prefName, this);
+    this._menuObserver.disconnect();
 #endif
   }
 };
@@ -4675,14 +4779,14 @@ function updateAppButtonDisplay() {
     document.getElementById("toolbar-menubar").getAttribute("autohide") == "true";
 
 #ifdef CAN_DRAW_IN_TITLEBAR
-  document.getElementById("titlebar").hidden = !displayAppButton;
+  document.getElementById("titlebar").hidden = gInPrintPreviewMode;
 
-  if (displayAppButton)
+  if (!gInPrintPreviewMode)
     document.documentElement.setAttribute("chromemargin", "0,2,2,2");
   else
     document.documentElement.removeAttribute("chromemargin");
 
-  TabsInTitlebar.allowedBy("drawing-in-titlebar", displayAppButton);
+  TabsInTitlebar.allowedBy("drawing-in-titlebar", !gInPrintPreviewMode);
 #else
   document.getElementById("appmenu-toolbar-button").hidden =
     !displayAppButton;
