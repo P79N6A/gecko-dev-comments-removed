@@ -231,14 +231,21 @@ public final class GeckoProfile {
             return mLocked == LockState.LOCKED;
         }
 
-        File lockFile = new File(getDir(), LOCK_FILE_NAME);
-        boolean res = lockFile.exists();
-        mLocked = res ? LockState.LOCKED : LockState.UNLOCKED;
-        return res;
+        
+        if (mDir != null && mDir.exists()) {
+            File lockFile = new File(mDir, LOCK_FILE_NAME);
+            boolean res = lockFile.exists();
+            mLocked = res ? LockState.LOCKED : LockState.UNLOCKED;
+        } else {
+            mLocked = LockState.UNLOCKED;
+        }
+
+        return mLocked == LockState.LOCKED;
     }
 
     public boolean lock() {
         try {
+            
             File lockFile = new File(getDir(), LOCK_FILE_NAME);
             boolean result = lockFile.createNewFile();
             if (result) {
@@ -255,8 +262,13 @@ public final class GeckoProfile {
     }
 
     public boolean unlock() {
+        
+        if (mDir == null || !mDir.exists()) {
+            return true;
+        }
+
         try {
-            File lockFile = new File(getDir(), LOCK_FILE_NAME);
+            File lockFile = new File(mDir, LOCK_FILE_NAME);
             boolean result = delete(lockFile);
             if (result) {
                 mLocked = LockState.UNLOCKED;
