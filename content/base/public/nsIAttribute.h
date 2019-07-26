@@ -43,6 +43,7 @@ protected:
   nsIAttribute(nsDOMAttributeMap *aAttrMap, already_AddRefed<nsINodeInfo> aNodeInfo,
                bool aNsAware);
 #endif 
+  virtual ~nsIAttribute();
 
   nsRefPtr<nsDOMAttributeMap> mAttrMap;
   bool mNsAware;
