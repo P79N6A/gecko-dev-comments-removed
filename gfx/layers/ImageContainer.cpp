@@ -624,7 +624,7 @@ CairoImage::GetTextureClient(CompositableClient *aClient)
 
   
   textureClient = aClient->CreateTextureClientForDrawing(surface->GetFormat(),
-                                                         TEXTURE_FLAGS_DEFAULT,
+                                                         TextureFlags::DEFAULT,
                                                          gfx::BackendType::NONE,
                                                          surface->GetSize());
   MOZ_ASSERT(textureClient->CanExposeDrawTarget());
