@@ -7,8 +7,9 @@
 #define GFX_FONTMISSINGGLYPHS_H
 
 #include "gfxTypes.h"
-#include "gfxContext.h"
 #include "gfxRect.h"
+
+class gfxContext;
 
 
 

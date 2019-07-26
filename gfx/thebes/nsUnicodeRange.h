@@ -3,7 +3,7 @@
 
 
 
-#include "nscore.h"
+#include <stdint.h>
 
 class nsIAtom;
 

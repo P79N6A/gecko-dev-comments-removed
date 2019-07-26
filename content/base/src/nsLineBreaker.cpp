@@ -9,6 +9,7 @@
 #include "gfxFont.h" 
 #include "nsHyphenationManager.h"
 #include "nsHyphenator.h"
+#include "mozilla/gfx/2D.h"
 
 nsLineBreaker::nsLineBreaker()
   : mCurrentWordLanguage(nullptr),

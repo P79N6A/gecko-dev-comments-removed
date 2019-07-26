@@ -8,7 +8,6 @@
 
 #include "nsAutoPtr.h"
 #include "nsTArray.h"
-#include "gfxTypes.h"
 
 
 

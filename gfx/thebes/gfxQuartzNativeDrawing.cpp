@@ -3,8 +3,6 @@
 
 
 
-#include "nsMathUtils.h"
-
 #include "gfxQuartzNativeDrawing.h"
 #include "gfxQuartzSurface.h"
 #include "cairo-quartz.h"

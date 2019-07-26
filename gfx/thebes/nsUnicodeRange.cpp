@@ -4,8 +4,8 @@
 
 
 #include "nsUnicodeRange.h"
-#include "nsIAtom.h"
 #include "nsGkAtoms.h"
+#include "mozilla/NullPtr.h"
 
 
 

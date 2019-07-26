@@ -3,26 +3,14 @@
 
 
 
-#include "nsString.h"
-#include "nsBidiUtils.h"
-#include "nsMathUtils.h"
-
-#include "gfxTypes.h"
-
-#include "gfxContext.h"
-#include "gfxPlatform.h"
 #include "gfxGraphiteShaper.h"
-#include "gfxFontUtils.h"
+#include "nsString.h"
+#include "gfxContext.h"
 
 #include "graphite2/Font.h"
 #include "graphite2/Segment.h"
 
 #include "harfbuzz/hb.h"
-
-#include "cairo.h"
-
-#include "nsUnicodeRange.h"
-#include "nsCRT.h"
 
 #define FloatToFixed(f) (65536 * (f))
 #define FixedToFloat(f) ((f) * (1.0 / 65536.0))

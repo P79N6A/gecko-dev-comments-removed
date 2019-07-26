@@ -21,6 +21,7 @@
 #include "nsSize.h"                     
 #include "gfxReusableSharedImageSurfaceWrapper.h"
 #include "nsMathUtils.h"               
+#include "gfx2DGlue.h"
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
 #include "cairo.h"

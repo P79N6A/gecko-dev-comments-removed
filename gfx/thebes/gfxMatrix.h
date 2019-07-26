@@ -9,7 +9,6 @@
 #include "gfxPoint.h"
 #include "gfxTypes.h"
 #include "gfxRect.h"
-#include "nsMathUtils.h"
 
 
 

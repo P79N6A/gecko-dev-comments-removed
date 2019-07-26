@@ -3,8 +3,9 @@
 
 
 
-#include "mozilla/SSE.h"
 #include "gfxAlphaRecovery.h"
+#include "gfxImageSurface.h"
+#include "nsRect.h"
 #include <emmintrin.h>
 
 

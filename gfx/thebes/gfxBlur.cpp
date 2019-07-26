@@ -4,6 +4,8 @@
 
 
 #include "gfxBlur.h"
+#include "gfxContext.h"
+#include "gfxImageSurface.h"
 
 #include "mozilla/gfx/Blur.h"
 

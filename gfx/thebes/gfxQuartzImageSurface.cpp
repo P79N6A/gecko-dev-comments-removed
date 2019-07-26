@@ -4,8 +4,8 @@
 
 
 #include "gfxQuartzImageSurface.h"
+#include "gfxImageSurface.h"
 
-#include "cairo-quartz.h"
 #include "cairo-quartz-image.h"
 
 gfxQuartzImageSurface::gfxQuartzImageSurface(gfxImageSurface *imageSurface)

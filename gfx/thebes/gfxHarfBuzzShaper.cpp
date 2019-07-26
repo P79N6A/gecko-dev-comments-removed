@@ -3,15 +3,8 @@
 
 
 
-#include "nsAlgorithm.h"
 #include "nsString.h"
-#include "nsBidiUtils.h"
-#include "nsMathUtils.h"
-
-#include "gfxTypes.h"
-
 #include "gfxContext.h"
-#include "gfxPlatform.h"
 #include "gfxHarfBuzzShaper.h"
 #include "gfxFontUtils.h"
 #include "nsUnicodeProperties.h"
@@ -21,9 +14,6 @@
 #include "harfbuzz/hb.h"
 #include "harfbuzz/hb-ot.h"
 
-#include "cairo.h"
-
-#include "nsCRT.h"
 #include <algorithm>
 
 #define FloatToFixed(f) (65536 * (f))

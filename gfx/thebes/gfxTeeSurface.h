@@ -7,8 +7,10 @@
 #define GFX_TEESURFACE_H
 
 #include "gfxASurface.h"
-#include "nsTArray.h"
+#include "nsTArrayForwardDeclare.h"
 #include "nsSize.h"
+
+template<class T> class nsRefPtr;
 
 
 

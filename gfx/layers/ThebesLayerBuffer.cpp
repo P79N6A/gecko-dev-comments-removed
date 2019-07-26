@@ -30,6 +30,7 @@
 #include "mozilla/layers/ShadowLayers.h"  
 #include "mozilla/layers/TextureClient.h"  
 #include "nsSize.h"                     
+#include "gfx2DGlue.h"
 
 namespace mozilla {
 
