@@ -42,16 +42,9 @@ SocialUI = {
 
     gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler.bind(this), true, true);
 
-    SocialChatBar.init();
-    SocialMark.init();
-    SocialShare.init();
-    SocialMenu.init();
-    SocialToolbar.init();
-    SocialSidebar.init();
-
     if (!Social.initialized) {
       Social.init();
-    } else {
+    } else if (Social.enabled) {
       
       
       this.observe(null, "social:providers-changed", null);
@@ -346,8 +339,6 @@ SocialUI = {
 }
 
 SocialChatBar = {
-  init: function() {
-  },
   closeWindows: function() {
     
     let windows = Services.wm.getEnumerator("Social:Chat");
@@ -586,9 +577,6 @@ SocialFlyout = {
 }
 
 SocialShare = {
-  
-  init: function() {},
-
   get panel() {
     return document.getElementById("social-share-panel");
   },
@@ -844,10 +832,6 @@ SocialShare = {
 };
 
 SocialMark = {
-  
-  init: function SSB_init() {
-  },
-
   get button() {
     return document.getElementById("social-mark-button");
   },
@@ -923,9 +907,6 @@ SocialMark = {
 };
 
 SocialMenu = {
-  init: function SocialMenu_init() {
-  },
-
   populate: function SocialMenu_populate() {
     let submenu = document.getElementById("menu_social-statusarea-popup");
     let ambientMenuItems = submenu.getElementsByClassName("ambient-menuitem");
@@ -959,8 +940,10 @@ SocialMenu = {
 SocialToolbar = {
   
   
-  init: function SocialToolbar_init() {
+  get _dynamicResizer() {
+    delete this._dynamicResizer;
     this._dynamicResizer = new DynamicResizeWatcher();
+    return this._dynamicResizer;
   },
 
   update: function() {
@@ -1296,14 +1279,6 @@ SocialToolbar = {
 
 SocialSidebar = {
   
-  init: function SocialSidebar_init() {
-    let sbrowser = document.getElementById("social-sidebar-browser");
-    Social.setErrorListener(sbrowser, this.setSidebarErrorMessage.bind(this));
-    
-    sbrowser.docShell.isAppTab = true;
-  },
-
-  
   get canShow() {
     return SocialUI.enabled && Social.provider.sidebarURL;
   },
@@ -1363,6 +1338,9 @@ SocialSidebar = {
 
       
       if (sbrowser.getAttribute("src") != Social.provider.sidebarURL) {
+        Social.setErrorListener(sbrowser, this.setSidebarErrorMessage.bind(this));
+        
+        sbrowser.docShell.isAppTab = true;
         sbrowser.setAttribute("src", Social.provider.sidebarURL);
         PopupNotifications.locationChange(sbrowser);
       }
