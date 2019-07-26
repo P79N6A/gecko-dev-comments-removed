@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_framestate_h__ && defined JS_METHODJIT
 #define jsjaeger_framestate_h__
 

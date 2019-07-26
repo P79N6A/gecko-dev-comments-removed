@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef js_typedarray_ic_h___
 #define js_typedarray_ic_h___
 

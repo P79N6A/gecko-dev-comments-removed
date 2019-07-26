@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_compilemode_h__
 #define jsion_compilemode_h__
 

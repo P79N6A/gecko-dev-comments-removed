@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_bytecode_analyzer_h__
 #define jsion_bytecode_analyzer_h__
 

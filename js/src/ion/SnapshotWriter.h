@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_snapshot_writer_h__
 #define jsion_snapshot_writer_h__
 

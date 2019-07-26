@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_cpu_x64_assembler_h__
 #define jsion_cpu_x64_assembler_h__
 

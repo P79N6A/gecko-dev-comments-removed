@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined(jsion_baseline_frame_inl_h__) && defined(JS_ION)
 #define jsion_baseline_frame_inl_h__
 

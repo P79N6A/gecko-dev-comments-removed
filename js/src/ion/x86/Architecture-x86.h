@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_architecture_x86_h__
 #define jsion_architecture_x86_h__
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_assembler_x86_shared__
 #define jsion_assembler_x86_shared__
 #include <cstddef>

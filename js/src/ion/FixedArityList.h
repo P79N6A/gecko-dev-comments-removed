@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_ion_fixed_arity_list_h__
 #define jsion_ion_fixed_arity_list_h__
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef MapObject_h__
 #define MapObject_h__
 

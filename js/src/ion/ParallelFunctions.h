@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jsion_parallel_functions_h__
 #define jsion_parallel_functions_h__
 

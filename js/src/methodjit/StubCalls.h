@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jslogic_h__ && defined JS_METHODJIT
 #define jslogic_h__
 

@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef jspriorityqueue_h_
 #define jspriorityqueue_h_
 

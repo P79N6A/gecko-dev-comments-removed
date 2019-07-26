@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined jsjaeger_ic_labels_h__ && defined JS_METHODJIT
 #define jsjaeger_ic_labels_h__
 

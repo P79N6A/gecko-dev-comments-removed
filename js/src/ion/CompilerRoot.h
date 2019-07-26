@@ -4,7 +4,6 @@
 
 
 
-
 #if !defined(jsion_ion_gc_h__) && defined(JS_ION)
 #define jsion_ion_gc_h__
 

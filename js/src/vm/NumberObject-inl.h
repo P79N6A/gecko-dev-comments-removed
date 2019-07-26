@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef NumberObject_inl_h___
 #define NumberObject_inl_h___
 

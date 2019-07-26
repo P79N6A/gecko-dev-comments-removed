@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef js_ion_type_oracle_h__
 #define js_ion_type_oracle_h__
 

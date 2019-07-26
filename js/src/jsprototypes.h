@@ -6,7 +6,6 @@
 
 
 
-
 #ifndef jsprototypes_h___
 #define jsprototypes_h___
 
