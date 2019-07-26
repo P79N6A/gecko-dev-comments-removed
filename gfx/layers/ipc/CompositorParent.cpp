@@ -1114,28 +1114,6 @@ CompositorParent::SyncViewportInfo(const nsIntRect& aDisplayPort,
 #endif
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 PLayersParent*
 CompositorParent::AllocPLayers(const LayersBackend& aBackendHint,
                                const uint64_t& aId,
