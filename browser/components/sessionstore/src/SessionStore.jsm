@@ -321,6 +321,10 @@ let SessionStoreInternal = {
 
   
   
+  _disabledForMultiProcess: false,
+
+  
+  
   
   
   
@@ -366,6 +370,8 @@ let SessionStoreInternal = {
 
     
     this._migratePrefs();
+
+    this._disabledForMultiProcess = this._prefBranch.getBoolPref("tabs.remote");
 
     
     this._sessionhistory_max_entries =
@@ -591,6 +597,9 @@ let SessionStoreInternal = {
 
 
   observe: function ssi_observe(aSubject, aTopic, aData) {
+    if (this._disabledForMultiProcess)
+      return;
+
     switch (aTopic) {
       case "domwindowopened": 
         this.onOpen(aSubject);
@@ -654,6 +663,9 @@ let SessionStoreInternal = {
 
 
   handleEvent: function ssi_handleEvent(aEvent) {
+    if (this._disabledForMultiProcess)
+      return;
+
     var win = aEvent.currentTarget.ownerDocument.defaultView;
     switch (aEvent.type) {
       case "load":
