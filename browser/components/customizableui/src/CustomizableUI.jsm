@@ -359,6 +359,12 @@ let CustomizableUIInternal = {
 
     this.beginBatchUpdate();
 
+    
+    
+    if (aArea == CustomizableUI.AREA_NAVBAR) {
+      aAreaNode.collapsed = false;
+    }
+
     let currentNode = container.firstChild;
     let placementsToRemove = new Set();
     for (let id of aPlacements) {
