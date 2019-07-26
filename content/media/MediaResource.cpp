@@ -487,8 +487,7 @@ ChannelMediaResource::OnChannelRedirect(nsIChannel* aOld, nsIChannel* aNew,
                                         uint32_t aFlags)
 {
   mChannel = aNew;
-  SetupChannelHeaders();
-  return NS_OK;
+  return SetupChannelHeaders();
 }
 
 struct CopySegmentClosure {
@@ -609,7 +608,8 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
     *aStreamListener = mListener;
     NS_ADDREF(*aStreamListener);
   } else {
-    mChannel->SetNotificationCallbacks(mListener.get());
+    nsresult rv = mChannel->SetNotificationCallbacks(mListener.get());
+    NS_ENSURE_SUCCESS(rv, rv);
 
     nsCOMPtr<nsIStreamListener> listener = mListener.get();
 
@@ -624,21 +624,22 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
         new nsCORSListenerProxy(mListener,
                                 element->NodePrincipal(),
                                 false);
-      nsresult rv = crossSiteListener->Init(mChannel);
-      listener = crossSiteListener;
       NS_ENSURE_TRUE(crossSiteListener, NS_ERROR_OUT_OF_MEMORY);
+      rv = crossSiteListener->Init(mChannel);
       NS_ENSURE_SUCCESS(rv, rv);
+      listener = crossSiteListener;
     } else {
-      nsresult rv = nsContentUtils::GetSecurityManager()->
+      rv = nsContentUtils::GetSecurityManager()->
         CheckLoadURIWithPrincipal(element->NodePrincipal(),
                                   mURI,
                                   nsIScriptSecurityManager::STANDARD);
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    SetupChannelHeaders();
+    rv = SetupChannelHeaders();
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    nsresult rv = mChannel->AsyncOpen(listener, nullptr);
+    rv = mChannel->AsyncOpen(listener, nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
     
     element->DownloadResumed(true);
@@ -647,7 +648,7 @@ nsresult ChannelMediaResource::OpenChannel(nsIStreamListener** aStreamListener)
   return NS_OK;
 }
 
-void ChannelMediaResource::SetupChannelHeaders()
+nsresult ChannelMediaResource::SetupChannelHeaders()
 {
   
   
@@ -668,22 +669,21 @@ void ChannelMediaResource::SetupChannelHeaders()
     if (!mByteRange.IsNull()) {
       rangeString.AppendInt(mByteRange.mEnd);
     }
-    hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, false);
+    nsresult rv = hc->SetRequestHeader(NS_LITERAL_CSTRING("Range"), rangeString, false);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     NS_ASSERTION(NS_IsMainThread(), "Don't call on non-main thread");
     MediaDecoderOwner* owner = mDecoder->GetMediaOwner();
-    if (!owner) {
-      return;
-    }
+    NS_ENSURE_TRUE(owner, NS_ERROR_FAILURE);
     dom::HTMLMediaElement* element = owner->GetMediaElement();
-    if (!element) {
-      return;
-    }
+    NS_ENSURE_TRUE(element, NS_ERROR_FAILURE);
     element->SetRequestHeaders(hc);
   } else {
     NS_ASSERTION(mOffset == 0, "Don't know how to seek on this channel type");
+    return NS_ERROR_FAILURE;
   }
+  return NS_OK;
 }
 
 nsresult ChannelMediaResource::Close()
@@ -945,6 +945,9 @@ ChannelMediaResource::RecreateChannel()
   NS_ASSERTION(!GetContentType().IsEmpty(),
       "When recreating a channel, we should know the Content-Type.");
   mChannel->SetContentType(GetContentType());
+
+  
+  mCacheStream.NotifyChannelRecreated();
 
   return rv;
 }

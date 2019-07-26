@@ -274,6 +274,10 @@ public:
 
   
   
+  void NotifyChannelRecreated();
+
+  
+  
   
   void Pin();
   void Unpin();

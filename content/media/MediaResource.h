@@ -639,7 +639,7 @@ protected:
   nsresult OpenChannel(nsIStreamListener** aStreamListener);
   nsresult RecreateChannel();
   
-  void SetupChannelHeaders();
+  nsresult SetupChannelHeaders();
   
   void CloseChannel();
 
