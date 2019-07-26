@@ -78,8 +78,6 @@ class AudioClock
     
     bool mPreservesPitch;
     
-    double mPlaybackRate;
-    
     bool mCompensatingLatency;
 };
 
