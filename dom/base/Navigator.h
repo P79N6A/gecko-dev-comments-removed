@@ -250,7 +250,7 @@ public:
   }
   static bool HasMobileMessageSupport(JSContext* ,
                                       JSObject* aGlobal);
-  static bool HasTelephonySupport(JSContext* ,
+  static bool HasTelephonySupport(JSContext* cx,
                                   JSObject* aGlobal);
   static bool HasCameraSupport(JSContext* ,
                                JSObject* aGlobal);
@@ -286,7 +286,7 @@ public:
 
   static bool HasInputMethodSupport(JSContext* , JSObject* aGlobal);
 
-  static bool HasDataStoreSupport(JSContext* , JSObject* aGlobal);
+  static bool HasDataStoreSupport(JSContext* cx, JSObject* aGlobal);
 
   nsPIDOMWindow* GetParentObject() const
   {

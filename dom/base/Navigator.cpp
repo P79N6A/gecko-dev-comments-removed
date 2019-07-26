@@ -1703,14 +1703,16 @@ Navigator::HasMobileMessageSupport(JSContext* , JSObject* aGlobal)
 
 
 bool
-Navigator::HasTelephonySupport(JSContext* , JSObject* aGlobal)
+Navigator::HasTelephonySupport(JSContext* cx, JSObject* aGlobal)
 {
+  JS::Rooted<JSObject*> global(cx, aGlobal);
+
   
   bool enabled = false;
   Preferences::GetBool("dom.telephony.enabled", &enabled);
   NS_ENSURE_TRUE(enabled, false);
 
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
   return win && CheckPermission(win, "telephony");
 }
 
@@ -1854,8 +1856,10 @@ bool Navigator::HasInputMethodSupport(JSContext* ,
 
 
 bool
-Navigator::HasDataStoreSupport(JSContext* , JSObject* aGlobal)
+Navigator::HasDataStoreSupport(JSContext* cx, JSObject* aGlobal)
 {
+  JS::Rooted<JSObject*> global(cx, aGlobal);
+
   
   bool enabled = false;
   Preferences::GetBool("dom.datastore.enabled", &enabled);
@@ -1866,7 +1870,7 @@ Navigator::HasDataStoreSupport(JSContext* , JSObject* aGlobal)
     return true;
   }
 
-  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
+  nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(global);
   if (!win) {
     return false;
   }
