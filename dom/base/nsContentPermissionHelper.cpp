@@ -2,6 +2,10 @@
 
 
 
+#ifdef MOZ_WIDGET_GONK
+#include "GonkPermission.h"
+#include "mozilla/dom/ContentParent.h"
+#endif 
 #include "nsContentPermissionHelper.h"
 #include "nsIContentPermissionPrompt.h"
 #include "nsCOMPtr.h"
@@ -14,6 +18,7 @@
 
 using mozilla::unused;          
 using namespace mozilla::dom;
+using namespace mozilla;
 
 nsContentPermissionRequestProxy::nsContentPermissionRequestProxy()
 {
@@ -129,6 +134,14 @@ nsContentPermissionRequestProxy::Allow()
   if (mParent->IsBeingDestroyed()) {
     return NS_ERROR_FAILURE;
   }
+
+#ifdef MOZ_WIDGET_GONK
+  if (mType.Equals("audio-capture")) {
+    GonkPermissionService::GetInstance()->addGrantInfo(
+      "android.permission.RECORD_AUDIO",
+      static_cast<TabParent*>(mParent->Manager())->Manager()->Pid());
+  }
+#endif
 
   unused << ContentPermissionRequestParent::Send__delete__(mParent, true);
   mParent = nullptr;
