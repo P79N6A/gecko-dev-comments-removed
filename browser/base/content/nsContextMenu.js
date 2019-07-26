@@ -849,7 +849,7 @@ nsContextMenu.prototype = {
     
     var persistDisableMCBInChildTab = false;
 
-    if (this.browser.docShell.mixedContentChannel) {
+    if (this.browser.docShell && this.browser.docShell.mixedContentChannel) {
       const sm = Services.scriptSecurityManager;
       try {
         var targetURI = this.linkURI;
