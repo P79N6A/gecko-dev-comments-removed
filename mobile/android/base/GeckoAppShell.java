@@ -820,11 +820,6 @@ public class GeckoAppShell
         Bitmap bitmap = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
         Canvas canvas = new Canvas(bitmap);
 
-        if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP)) {
-            Rect iconBounds = new Rect(0, 0, size, size);
-            canvas.drawBitmap(aSource, null, iconBounds, null);
-            return bitmap;
-        }
 
         
         Paint paint = new Paint();
@@ -832,6 +827,11 @@ public class GeckoAppShell
             
             paint.setColor(Color.HSVToColor(DEFAULT_LAUNCHER_ICON_HSV));
             canvas.drawRoundRect(new RectF(kOffset, kOffset, size - kOffset, size - kOffset), kRadius, kRadius, paint);
+        } else if (aType.equalsIgnoreCase(SHORTCUT_TYPE_WEBAPP) || aSource.getWidth() >= insetSize || aSource.getHeight() >= insetSize) {
+            
+            Rect iconBounds = new Rect(0, 0, size, size);
+            canvas.drawBitmap(aSource, null, iconBounds, null);
+            return bitmap;
         } else {
             
             int color = BitmapUtils.getDominantColor(aSource);
@@ -852,13 +852,6 @@ public class GeckoAppShell
         
         int sWidth = insetSize / 2;
         int sHeight = sWidth;
-
-        if (aSource.getWidth() > insetSize || aSource.getHeight() > insetSize) {
-            
-            
-            sWidth = Math.min(size / 3, aSource.getWidth() / 2);
-            sHeight = Math.min(size / 3, aSource.getHeight() / 2);
-        }
 
         int halfSize = size / 2;
         canvas.drawBitmap(aSource,
