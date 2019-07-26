@@ -4,9 +4,10 @@
 
 
 
-#include "nsError.h"
 #include "nsDOMNotifyAudioAvailableEvent.h"
-#include "nsCycleCollectionHoldDrop.h"
+
+#include "nsError.h"
+#include "mozilla/HoldDropJSObjects.h"
 #include "jsfriendapi.h"
 
 using namespace mozilla;
