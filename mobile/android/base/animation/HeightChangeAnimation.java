@@ -2,7 +2,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.animation;
 
 import android.view.View;
 import android.view.animation.Animation;

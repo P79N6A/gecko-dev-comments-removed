@@ -3,7 +3,7 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.animation;
 
 import android.support.v4.view.ViewCompat;
 import android.os.Build;
