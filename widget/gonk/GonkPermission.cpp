@@ -14,7 +14,6 @@
 
 
 
-#include <utils/Unicode.h>
 #include <binder/IPCThreadState.h>
 #include <binder/ProcessState.h>
 #include <binder/IServiceManager.h>
