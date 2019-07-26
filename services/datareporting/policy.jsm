@@ -310,7 +310,7 @@ this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
   
   
   this._inProgressSubmissionRequest = null;
-}
+};
 
 DataReportingPolicy.prototype = Object.freeze({
   

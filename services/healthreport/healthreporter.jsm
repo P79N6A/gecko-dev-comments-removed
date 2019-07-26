@@ -13,8 +13,9 @@ const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
 const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
 
 Cu.import("resource://gre/modules/Metrics.jsm");
-Cu.import("resource://services-common/bagheeraclient.js");
 Cu.import("resource://services-common/async.js");
+
+Cu.import("resource://services-common/bagheeraclient.js");
 #endif
 
 Cu.import("resource://services-common/log4moz.js");
@@ -48,55 +49,7 @@ const TELEMETRY_SHUTDOWN_DELAY = "HEALTHREPORT_SHUTDOWN_DELAY_MS";
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function HealthReporter(branch, policy, sessionRecorder) {
+function AbstractHealthReporter(branch, policy, sessionRecorder) {
   if (!branch.endsWith(".")) {
     throw new Error("Branch must end with a period (.): " + branch);
   }
@@ -110,14 +63,6 @@ function HealthReporter(branch, policy, sessionRecorder) {
 
   this._branch = branch;
   this._prefs = new Preferences(branch);
-
-  if (!this.serverURI) {
-    throw new Error("No server URI defined. Did you forget to define the pref?");
-  }
-
-  if (!this.serverNamespace) {
-    throw new Error("No server namespace defined. Did you forget a pref?");
-  }
 
   this._policy = policy;
   this.sessionRecorder = sessionRecorder;
@@ -140,15 +85,15 @@ function HealthReporter(branch, policy, sessionRecorder) {
   this._constantOnlyProvidersRegistered = false;
   this._lastDailyDate = null;
 
+  
   TelemetryStopwatch.start(TELEMETRY_INIT, this);
 
   this._ensureDirectoryExists(this._stateDir)
       .then(this._onStateDirCreated.bind(this),
             this._onInitError.bind(this));
-
 }
 
-HealthReporter.prototype = Object.freeze({
+AbstractHealthReporter.prototype = Object.freeze({
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
 
   
@@ -158,98 +103,6 @@ HealthReporter.prototype = Object.freeze({
 
   get initialized() {
     return this._initialized;
-  },
-
-  
-
-
-
-
-
-
-  get lastPingDate() {
-    return CommonUtils.getDatePref(this._prefs, "lastPingTime", 0, this._log,
-                                   OLDEST_ALLOWED_YEAR);
-  },
-
-  set lastPingDate(value) {
-    CommonUtils.setDatePref(this._prefs, "lastPingTime", value,
-                            OLDEST_ALLOWED_YEAR);
-  },
-
-  
-
-
-
-
-
-  get serverURI() {
-    return this._prefs.get("documentServerURI", null);
-  },
-
-  set serverURI(value) {
-    if (!value) {
-      throw new Error("serverURI must have a value.");
-    }
-
-    if (typeof(value) != "string") {
-      throw new Error("serverURI must be a string: " + value);
-    }
-
-    this._prefs.set("documentServerURI", value);
-  },
-
-  
-
-
-  get serverNamespace() {
-    return this._prefs.get("documentServerNamespace", "metrics");
-  },
-
-  set serverNamespace(value) {
-    if (!value) {
-      throw new Error("serverNamespace must have a value.");
-    }
-
-    if (typeof(value) != "string") {
-      throw new Error("serverNamespace must be a string: " + value);
-    }
-
-    this._prefs.set("documentServerNamespace", value);
-  },
-
-  
-
-
-
-
-
-
-
-
-  get lastSubmitID() {
-    return this._prefs.get("lastSubmitID", null) || null;
-  },
-
-  set lastSubmitID(value) {
-    this._prefs.set("lastSubmitID", value || "");
-  },
-
-  
-
-
-  get willUploadData() {
-    return this._policy.dataSubmissionPolicyAccepted &&
-           this._policy.healthReportUploadEnabled;
-  },
-
-  
-
-
-
-
-  haveRemoteData: function () {
-    return !!this.lastSubmitID;
   },
 
   
@@ -763,42 +616,6 @@ HealthReporter.prototype = Object.freeze({
     }.bind(this));
   },
 
-  
-
-
-
-
-  requestDataUpload: function (request) {
-    return Task.spawn(function doUpload() {
-      yield this.ensureConstantOnlyProvidersRegistered();
-      try {
-        yield this.collectMeasurements();
-        try {
-          yield this._uploadData(request);
-        } catch (ex) {
-          this._onSubmitDataRequestFailure(ex);
-        }
-      } finally {
-        yield this.ensureConstantOnlyProvidersUnregistered();
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-
-
-
-
-  requestDeleteRemoteData: function (reason) {
-    if (!this.lastSubmitID) {
-      return;
-    }
-
-    return this._policy.deleteRemoteData(reason);
-  },
 
   
 
@@ -849,8 +666,9 @@ HealthReporter.prototype = Object.freeze({
     
     let errors = [];
 
+    
     let lastPingDate = this.lastPingDate;
-    if (lastPingDate.getTime() > 0) {
+    if (lastPingDate && lastPingDate.getTime() > 0) {
       o.lastPingDate = this._formatDate(lastPingDate);
     }
 
@@ -933,6 +751,293 @@ HealthReporter.prototype = Object.freeze({
     this._storage.compact();
 
     throw new Task.Result(asObject ? o : JSON.stringify(o));
+  },
+
+  get _stateDir() {
+    let profD = OS.Constants.Path.profileDir;
+
+    
+    if (!profD || !profD.length) {
+      throw new Error("Could not obtain profile directory. OS.File not " +
+                      "initialized properly?");
+    }
+
+    return OS.Path.join(profD, "healthreport");
+  },
+
+  _ensureDirectoryExists: function (path) {
+    let deferred = Promise.defer();
+
+    OS.File.makeDir(path).then(
+      function onResult() {
+        deferred.resolve(true);
+      },
+      function onError(error) {
+        if (error.becauseExists) {
+          deferred.resolve(true);
+          return;
+        }
+
+        deferred.reject(error);
+      }
+    );
+
+    return deferred.promise;
+  },
+
+  get _lastPayloadPath() {
+    return OS.Path.join(this._stateDir, "lastpayload.json");
+  },
+
+  _saveLastPayload: function (payload) {
+    let path = this._lastPayloadPath;
+    let pathTmp = path + ".tmp";
+
+    let encoder = new TextEncoder();
+    let buffer = encoder.encode(payload);
+
+    return OS.File.writeAtomic(path, buffer, {tmpPath: pathTmp});
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getLastPayload: function () {
+    let path = this._lastPayloadPath;
+
+    return OS.File.read(path).then(
+      function onData(buffer) {
+        let decoder = new TextDecoder();
+        let json = JSON.parse(decoder.decode(buffer));
+
+        return Promise.resolve(json);
+      },
+      function onError(error) {
+        return Promise.reject(error);
+      }
+    );
+  },
+
+  _now: function _now() {
+    return new Date();
+  },
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function HealthReporter(branch, policy, sessionRecorder) {
+  AbstractHealthReporter.call(this, branch, policy, sessionRecorder);
+
+  if (!this.serverURI) {
+    throw new Error("No server URI defined. Did you forget to define the pref?");
+  }
+
+  if (!this.serverNamespace) {
+    throw new Error("No server namespace defined. Did you forget a pref?");
+  }
+}
+
+HealthReporter.prototype = Object.freeze({
+  __proto__: AbstractHealthReporter.prototype,
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
+
+  
+
+
+
+
+
+
+  get lastPingDate() {
+    return CommonUtils.getDatePref(this._prefs, "lastPingTime", 0, this._log,
+                                   OLDEST_ALLOWED_YEAR);
+  },
+
+  set lastPingDate(value) {
+    CommonUtils.setDatePref(this._prefs, "lastPingTime", value,
+                            OLDEST_ALLOWED_YEAR);
+  },
+
+  
+
+
+
+
+
+  get serverURI() {
+    return this._prefs.get("documentServerURI", null);
+  },
+
+  set serverURI(value) {
+    if (!value) {
+      throw new Error("serverURI must have a value.");
+    }
+
+    if (typeof(value) != "string") {
+      throw new Error("serverURI must be a string: " + value);
+    }
+
+    this._prefs.set("documentServerURI", value);
+  },
+
+  
+
+
+  get serverNamespace() {
+    return this._prefs.get("documentServerNamespace", "metrics");
+  },
+
+  set serverNamespace(value) {
+    if (!value) {
+      throw new Error("serverNamespace must have a value.");
+    }
+
+    if (typeof(value) != "string") {
+      throw new Error("serverNamespace must be a string: " + value);
+    }
+
+    this._prefs.set("documentServerNamespace", value);
+  },
+
+  
+
+
+
+
+
+
+
+
+  get lastSubmitID() {
+    return this._prefs.get("lastSubmitID", null) || null;
+  },
+
+  set lastSubmitID(value) {
+    this._prefs.set("lastSubmitID", value || "");
+  },
+
+  
+
+
+  get willUploadData() {
+    return this._policy.dataSubmissionPolicyAccepted &&
+           this._policy.healthReportUploadEnabled;
+  },
+
+  
+
+
+
+
+  haveRemoteData: function () {
+    return !!this.lastSubmitID;
+  },
+
+  
+
+
+
+
+  requestDataUpload: function (request) {
+    return Task.spawn(function doUpload() {
+      yield this.ensureConstantOnlyProvidersRegistered();
+      try {
+        yield this.collectMeasurements();
+        try {
+          yield this._uploadData(request);
+        } catch (ex) {
+          this._onSubmitDataRequestFailure(ex);
+        }
+      } finally {
+        yield this.ensureConstantOnlyProvidersUnregistered();
+      }
+    }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  requestDeleteRemoteData: function (reason) {
+    if (!this.lastSubmitID) {
+      return;
+    }
+
+    return this._policy.deleteRemoteData(reason);
   },
 
   _onBagheeraResult: function (request, isDelete, result) {
@@ -1031,87 +1136,6 @@ HealthReporter.prototype = Object.freeze({
     return client.deleteDocument(this.serverNamespace, this.lastSubmitID)
                  .then(this._onBagheeraResult.bind(this, request, true),
                        this._onSubmitDataRequestFailure.bind(this));
-
   },
-
-  get _stateDir() {
-    let profD = OS.Constants.Path.profileDir;
-
-    
-    if (!profD || !profD.length) {
-      throw new Error("Could not obtain profile directory. OS.File not " +
-                      "initialized properly?");
-    }
-
-    return OS.Path.join(profD, "healthreport");
-  },
-
-  _ensureDirectoryExists: function (path) {
-    let deferred = Promise.defer();
-
-    OS.File.makeDir(path).then(
-      function onResult() {
-        deferred.resolve(true);
-      },
-      function onError(error) {
-        if (error.becauseExists) {
-          deferred.resolve(true);
-          return;
-        }
-
-        deferred.reject(error);
-      }
-    );
-
-    return deferred.promise;
-  },
-
-  get _lastPayloadPath() {
-    return OS.Path.join(this._stateDir, "lastpayload.json");
-  },
-
-  _saveLastPayload: function (payload) {
-    let path = this._lastPayloadPath;
-    let pathTmp = path + ".tmp";
-
-    let encoder = new TextEncoder();
-    let buffer = encoder.encode(payload);
-
-    return OS.File.writeAtomic(path, buffer, {tmpPath: pathTmp});
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  getLastPayload: function () {
-    let path = this._lastPayloadPath;
-
-    return OS.File.read(path).then(
-      function onData(buffer) {
-        let decoder = new TextDecoder();
-        let json = JSON.parse(decoder.decode(buffer));
-
-        return Promise.resolve(json);
-      },
-      function onError(error) {
-        return Promise.reject(error);
-      }
-    );
-  },
-
-  _now: function _now() {
-    return new Date();
-  },
-
 });
 
