@@ -175,6 +175,15 @@ class PinSiteDialog extends DialogFragment {
         filter("");
     }
 
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+
+        
+        
+        setOnSiteSelectedListener(null);
+    }
+
     public void setSearchTerm(String searchTerm) {
         mSearchTerm = searchTerm;
     }
