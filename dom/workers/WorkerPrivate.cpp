@@ -1692,6 +1692,13 @@ WorkerRunnable::Run()
   }
 
   bool result = WorkerRun(cx, mWorkerPrivate);
+  
+  
+  
+  if (mTarget == WorkerThread && ac.empty() &&
+      js::GetDefaultGlobalForContext(cx)) {
+    ac.construct(cx, js::GetDefaultGlobalForContext(cx));
+  }
   PostRun(cx, mWorkerPrivate, result);
   return result ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -2835,6 +2842,7 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
   EnableMemoryReporter();
 
+  Maybe<JSAutoCompartment> maybeAC;
   for (;;) {
     Status currentStatus;
     bool scheduleIdleGC;
@@ -2852,6 +2860,17 @@ WorkerPrivate::DoRunLoop(JSContext* aCx)
 
       {
         MutexAutoUnlock unlock(mMutex);
+
+        
+        
+        
+        
+        
+        
+        
+        if (maybeAC.empty() && js::GetDefaultGlobalForContext(aCx)) {
+          maybeAC.construct(aCx, js::GetDefaultGlobalForContext(aCx));
+        }
 
         if (!normalGCTimerRunning &&
             event != idleGCEvent &&
