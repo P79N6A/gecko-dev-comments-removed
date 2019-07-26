@@ -403,7 +403,7 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
         
         if (mTouchCount == 0) {
           mApzcForInputBlock = nullptr;
-          mOverscrollHandoffChain.clear();
+          ClearOverscrollHandoffChain();
         }
       }
       break;
@@ -517,7 +517,7 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     }
     if (mTouchCount == 0) {
       mApzcForInputBlock = nullptr;
-      mOverscrollHandoffChain.clear();
+      ClearOverscrollHandoffChain();
     }
   }
   return ret;
@@ -677,18 +677,58 @@ APZCTreeManager::ClearTree()
   mRootApzc = nullptr;
 }
 
+
+
+
+
+
+
+
+
+
+
+static void
+TransformDisplacement(APZCTreeManager* aTreeManager,
+                      AsyncPanZoomController* aSource,
+                      AsyncPanZoomController* aTarget,
+                      ScreenPoint& aStartPoint,
+                      ScreenPoint& aEndPoint) {
+  gfx3DMatrix transformToApzc;
+  gfx3DMatrix transformToGecko;  
+
+  
+  aTreeManager->GetInputTransforms(aSource, transformToApzc, transformToGecko);
+  ApplyTransform(&aStartPoint, transformToApzc.Inverse());
+  ApplyTransform(&aEndPoint, transformToApzc.Inverse());
+
+  
+  aTreeManager->GetInputTransforms(aTarget, transformToApzc, transformToGecko);
+  ApplyTransform(&aStartPoint, transformToApzc);
+  ApplyTransform(&aEndPoint, transformToApzc);
+}
+
 void
 APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
                                 uint32_t aOverscrollHandoffChainIndex)
 {
-  
-  
-  if (aOverscrollHandoffChainIndex >= mOverscrollHandoffChain.length()) {
+  nsRefPtr<AsyncPanZoomController> next;
+  {
     
-    return;
+    
+    
+    
+    MonitorAutoLock lock(mTreeLock);
+
+    
+    
+    if (aOverscrollHandoffChainIndex >= mOverscrollHandoffChain.length()) {
+      
+      return;
+    }
+
+    next = mOverscrollHandoffChain[aOverscrollHandoffChainIndex];
   }
 
-  nsRefPtr<AsyncPanZoomController> next = mOverscrollHandoffChain[aOverscrollHandoffChainIndex];
   if (next == nullptr)
     return;
 
@@ -698,18 +738,7 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
   
   
   if (next != aPrev) {
-    gfx3DMatrix transformToApzc;
-    gfx3DMatrix transformToGecko;  
-
-    
-    GetInputTransforms(aPrev, transformToApzc, transformToGecko);
-    ApplyTransform(&aStartPoint, transformToApzc.Inverse());
-    ApplyTransform(&aEndPoint, transformToApzc.Inverse());
-
-    
-    GetInputTransforms(next, transformToApzc, transformToGecko);
-    ApplyTransform(&aStartPoint, transformToApzc);
-    ApplyTransform(&aEndPoint, transformToApzc);
+    TransformDisplacement(this, aPrev, next, aStartPoint, aEndPoint);
   }
 
   
@@ -717,9 +746,69 @@ APZCTreeManager::DispatchScroll(AsyncPanZoomController* aPrev, ScreenPoint aStar
   next->AttemptScroll(aStartPoint, aEndPoint, aOverscrollHandoffChainIndex);
 }
 
+void
+APZCTreeManager::HandOffFling(AsyncPanZoomController* aPrev, ScreenPoint aVelocity)
+{
+  
+  
+  
+  
+  
+  
+  BuildOverscrollHandoffChain(aPrev);
+
+  nsRefPtr<AsyncPanZoomController> next;  
+  {
+    
+    
+    
+    
+    MonitorAutoLock lock(mTreeLock);
+
+    
+    uint32_t i;
+    for (i = 0; i < mOverscrollHandoffChain.length(); ++i) {
+      if (mOverscrollHandoffChain[i] == aPrev) {
+        break;
+      }
+    }
+
+    
+    if (i + 1 < mOverscrollHandoffChain.length()) {
+      next = mOverscrollHandoffChain[i + 1];
+    }
+
+    
+    
+    mOverscrollHandoffChain.clear();
+  }
+
+  
+  if (next == nullptr) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  ScreenPoint startPoint;  
+  ScreenPoint endPoint = startPoint + aVelocity;
+  TransformDisplacement(this, aPrev, next, startPoint, endPoint);
+  ScreenPoint transformedVelocity = endPoint - startPoint;
+
+  
+  next->TakeOverFling(transformedVelocity);
+}
+
+
 bool
 APZCTreeManager::FlushRepaintsForOverscrollHandoffChain()
 {
+  MonitorAutoLock lock(mTreeLock);  
   if (mOverscrollHandoffChain.length() == 0) {
     return false;
   }
@@ -799,6 +888,10 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
   
   
 
+  
+  
+  MonitorAutoLock lock(mTreeLock);
+
   mOverscrollHandoffChain.clear();
 
   
@@ -820,6 +913,13 @@ APZCTreeManager::BuildOverscrollHandoffChain(const nsRefPtr<AsyncPanZoomControll
   
   std::stable_sort(mOverscrollHandoffChain.begin(), mOverscrollHandoffChain.end(),
                    CompareByScrollPriority());
+}
+
+void
+APZCTreeManager::ClearOverscrollHandoffChain()
+{
+  MonitorAutoLock lock(mTreeLock);
+  mOverscrollHandoffChain.clear();
 }
 
 AsyncPanZoomController*

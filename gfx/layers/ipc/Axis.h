@@ -133,6 +133,16 @@ public:
 
 
 
+
+
+
+  void SetVelocity(float aVelocity);
+
+  
+
+
+
+
   Overscroll DisplacementWillOverscroll(float aDisplacement);
 
   

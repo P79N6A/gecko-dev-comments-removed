@@ -256,8 +256,20 @@ public:
 
 
 
+
+
+
   void DispatchScroll(AsyncPanZoomController* aAPZC, ScreenPoint aStartPoint, ScreenPoint aEndPoint,
                       uint32_t aOverscrollHandoffChainIndex);
+
+  
+
+
+
+
+
+
+  void HandOffFling(AsyncPanZoomController* aApzc, ScreenPoint aVelocity);
 
   bool FlushRepaintsForOverscrollHandoffChain();
 
@@ -295,6 +307,7 @@ private:
   nsEventStatus ProcessEvent(WidgetInputEvent& inputEvent, ScrollableLayerGuid* aOutTargetGuid);
   void UpdateZoomConstraintsRecursively(AsyncPanZoomController* aApzc,
                                         const ZoomConstraints& aConstraints);
+  void ClearOverscrollHandoffChain();
 
   
 
@@ -316,6 +329,7 @@ private:
 
 private:
   
+
 
 
 

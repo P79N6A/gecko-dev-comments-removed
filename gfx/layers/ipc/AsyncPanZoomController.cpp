@@ -346,10 +346,9 @@ GetFrameTime() {
 
 class FlingAnimation: public AsyncPanZoomAnimation {
 public:
-  FlingAnimation(AxisX& aX, AxisY& aY)
+  FlingAnimation(AsyncPanZoomController& aApzc)
     : AsyncPanZoomAnimation(TimeDuration::FromMilliseconds(gFlingRepaintInterval))
-    , mX(aX)
-    , mY(aY)
+    , mApzc(aApzc)
   {}
   
 
@@ -361,8 +360,7 @@ public:
                       const TimeDuration& aDelta);
 
 private:
-  AxisX& mX;
-  AxisY& mY;
+  AsyncPanZoomController& mApzc;
 };
 
 class ZoomAnimation: public AsyncPanZoomAnimation {
@@ -772,7 +770,7 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
     mX.EndTouch();
     mY.EndTouch();
     SetState(FLING);
-    StartAnimation(new FlingAnimation(mX, mY));
+    StartAnimation(new FlingAnimation(*this));
     return nsEventStatus_eConsumeNoDefault;
 
   case PINCHING:
@@ -1189,6 +1187,15 @@ void AsyncPanZoomController::AttemptScroll(const ScreenPoint& aStartPoint,
   }
 }
 
+void AsyncPanZoomController::TakeOverFling(ScreenPoint aVelocity) {
+  
+  
+  mX.SetVelocity(mX.GetVelocity() + aVelocity.x);
+  mY.SetVelocity(mY.GetVelocity() + aVelocity.y);
+  SetState(FLING);
+  StartAnimation(new FlingAnimation(*this));
+}
+
 void AsyncPanZoomController::CallDispatchScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                                                 uint32_t aOverscrollHandoffChainIndex) {
   
@@ -1248,24 +1255,76 @@ ScreenIntPoint& AsyncPanZoomController::GetFirstTouchScreenPoint(const MultiTouc
 
 bool FlingAnimation::Sample(FrameMetrics& aFrameMetrics,
                             const TimeDuration& aDelta) {
-  bool shouldContinueFlingX = mX.FlingApplyFrictionOrCancel(aDelta),
-       shouldContinueFlingY = mY.FlingApplyFrictionOrCancel(aDelta);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aDelta.ToMilliseconds() <= 0) {
+    return true;
+  }
+
+  bool shouldContinueFlingX = mApzc.mX.FlingApplyFrictionOrCancel(aDelta),
+       shouldContinueFlingY = mApzc.mY.FlingApplyFrictionOrCancel(aDelta);
   
   if (!shouldContinueFlingX && !shouldContinueFlingY) {
     return false;
   }
 
-  CSSPoint overscroll; 
-  ScreenPoint offset(aDelta.ToMilliseconds() * mX.GetVelocity(),
-                     aDelta.ToMilliseconds() * mY.GetVelocity());
+  
+  
+  
+  
+  ScreenPoint velocity(mApzc.mX.GetVelocity(), mApzc.mY.GetVelocity());
+
+  ScreenPoint offset = velocity * aDelta.ToMilliseconds();
 
   
   
   CSSPoint cssOffset = offset / aFrameMetrics.mZoom;
+  CSSPoint overscroll;
   aFrameMetrics.mScrollOffset += CSSPoint(
-    mX.AdjustDisplacement(cssOffset.x, overscroll.x),
-    mY.AdjustDisplacement(cssOffset.y, overscroll.y)
+    mApzc.mX.AdjustDisplacement(cssOffset.x, overscroll.x),
+    mApzc.mY.AdjustDisplacement(cssOffset.y, overscroll.y)
   );
+
+  
+  
+  if (!IsZero(overscroll)) {
+    
+    
+    
+    if (FuzzyEqualsMultiplicative(overscroll.x, 0.0f)) {
+      velocity.x = 0;
+    } else if (FuzzyEqualsMultiplicative(overscroll.y, 0.0f)) {
+      velocity.y = 0;
+    }
+
+    
+    
+    
+    
+    
+
+    
+    
+    
+    APZCTreeManager* treeManagerLocal = mApzc.mTreeManager;
+    if (treeManagerLocal) {
+      
+      
+      
+      
+      mDeferredTasks.append(NewRunnableMethod(treeManagerLocal,
+                                              &APZCTreeManager::HandOffFling,
+                                              &mApzc,
+                                              velocity));
+    }
+  }
 
   return true;
 }

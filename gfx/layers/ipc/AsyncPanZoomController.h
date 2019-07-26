@@ -40,6 +40,7 @@ class PCompositorParent;
 class ViewTransform;
 class APZCTreeManager;
 class AsyncPanZoomAnimation;
+class FlingAnimation;
 
 
 
@@ -300,6 +301,12 @@ public:
 
   void AttemptScroll(const ScreenPoint& aStartPoint, const ScreenPoint& aEndPoint,
                      uint32_t aOverscrollHandoffChainIndex = 0);
+
+  
+
+
+
+  void TakeOverFling(ScreenPoint aVelocity);
 
   
 
@@ -748,6 +755,7 @@ private:
   RefPtr<AsyncPanZoomAnimation> mAnimation;
 
   friend class Axis;
+  friend class FlingAnimation;
 
   
 
