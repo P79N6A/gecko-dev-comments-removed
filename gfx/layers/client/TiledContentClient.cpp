@@ -20,7 +20,7 @@
 #include "nsISupportsImpl.h"            
 #include "nsSize.h"                     
 #include "gfxReusableSharedImageSurfaceWrapper.h"
- #include "nsMathUtils.h"               
+#include "nsMathUtils.h"               
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
 #include "cairo.h"
