@@ -1640,10 +1640,12 @@ var NativeWindow = {
     add: function(aOptions) {
       let id = uuidgen.generateUUID().toString();
       sendMessageToJava({
-        type: "PageActions:Add",
-        id: id,
-        title: aOptions.title,
-        icon: resolveGeckoUri(aOptions.icon)
+        gecko: {
+          type: "PageActions:Add",
+          id: id,
+          title: aOptions.title,
+          icon: aOptions.icon,
+        }
       });
       this._items[id] = {
         clickCallback: aOptions.clickCallback,
@@ -1653,8 +1655,10 @@ var NativeWindow = {
     },
     remove: function(id) {
       sendMessageToJava({
-        type: "PageActions:Remove",
-        id: id
+        gecko: {
+          type: "PageActions:Remove",
+          id: id
+        }
       });
       delete this._items[id];
     }
@@ -5355,12 +5359,12 @@ let HealthReportStatusListener = {
     return o;
   },
 
-  notifyJava: function (aAddon, aNeedsRestart) {
+  notifyJava: function (aAddon, aNeedsRestart, aAction="Addons:Change") {
     let json = this.jsonForAddon(aAddon);
     if (this._shouldIgnore(aAddon)) {
       json.ignore = true;
     }
-    sendMessageToJava({ type: "Addons:Change", id: aAddon.id, json: json });
+    sendMessageToJava({ type: aAction, id: aAddon.id, json: json });
   },
 
   
@@ -5374,9 +5378,12 @@ let HealthReportStatusListener = {
     this.notifyJava(aAddon, aNeedsRestart);
   },
   onUninstalling: function (aAddon, aNeedsRestart) {
-    this.notifyJava(aAddon, aNeedsRestart);
+    this.notifyJava(aAddon, aNeedsRestart, "Addons:Uninstalling");
   },
   onPropertyChanged: function (aAddon, aProperties) {
+    this.notifyJava(aAddon);
+  },
+  onOperationCancelled: function (aAddon) {
     this.notifyJava(aAddon);
   },
 
@@ -5483,11 +5490,8 @@ var XPInstallObserver = {
     if (needsRestart) {
       this.showRestartPrompt();
     } else {
-      
-      if (!aInstall.existingAddon || !AddonManager.shouldAutoUpdate(aInstall.existingAddon)) {
-        let message = Strings.browser.GetStringFromName("alertAddonsInstalledNoRestart");
-        NativeWindow.toast.show(message, "short");
-      }
+      let message = Strings.browser.GetStringFromName("alertAddonsInstalledNoRestart");
+      NativeWindow.toast.show(message, "short");
     }
   },
 
@@ -6722,9 +6726,10 @@ var WebappsUI = {
   doInstall: function doInstall(aData) {
     let jsonManifest = aData.isPackage ? aData.app.updateManifest : aData.app.manifest;
     let manifest = new ManifestHelper(jsonManifest, aData.app.origin);
+    let name = manifest.name ? manifest.name : manifest.fullLaunchPath();
     let showPrompt = true;
 
-    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), manifest.name + "\n" + aData.app.origin)) {
+    if (!showPrompt || Services.prompt.confirm(null, Strings.browser.GetStringFromName("webapps.installTitle"), name + "\n" + aData.app.origin)) {
       
       let origin = aData.app.origin;
       let profilePath = sendMessageToJava({
@@ -6736,12 +6741,10 @@ var WebappsUI = {
       if (profilePath) {
         let file = Cc["@mozilla.org/file/local;1"].createInstance(Ci.nsILocalFile);
         file.initWithPath(profilePath);
-
+  
         let self = this;
         DOMApplicationRegistry.confirmInstall(aData, false, file, null,
-          function (aManifest) {
-            let localeManifest = new ManifestHelper(aManifest, aData.app.origin);
-
+          function (manifest) {
             
             
             self.makeBase64Icon(self.getBiggestIcon(manifest.icons, Services.io.newURI(aData.app.origin, null, null)),
@@ -6761,7 +6764,7 @@ var WebappsUI = {
                   
                   sendMessageToJava({
                     type: "WebApps:PostInstall",
-                    name: localeManifest.name,
+                    name: manifest.name,
                     manifestURL: aData.app.manifestURL,
                     originalOrigin: origin,
                     origin: aData.app.origin,
@@ -6771,7 +6774,7 @@ var WebappsUI = {
                     
                     let message = Strings.browser.GetStringFromName("webapps.alertSuccess");
                     let alerts = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
-                    alerts.showAlertNotification("drawable://alert_app", localeManifest.name, message, true, "", {
+                    alerts.showAlertNotification("drawable://alert_app", manifest.name, message, true, "", {
                       observe: function () {
                         self.openURL(aData.app.manifestURL, aData.app.origin);
                       }
@@ -6780,7 +6783,7 @@ var WebappsUI = {
                 } catch(ex) {
                   console.log(ex);
                 }
-                self.writeDefaultPrefs(file, localeManifest);
+                self.writeDefaultPrefs(file, manifest);
               }
             );
           }
