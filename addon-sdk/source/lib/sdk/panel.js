@@ -32,9 +32,6 @@ const { filter, pipe } = require("./event/utils");
 const { getNodeView, getActiveView } = require("./view/core");
 const { isNil, isObject } = require("./lang/type");
 
-if (isPrivateBrowsingSupported && isWindowPBSupported)
-  throw Error('The panel module cannot be used with per-window private browsing at the moment, see Bug 816257');
-
 let isArray = Array.isArray;
 let assetsURI = require("./self").data.url();
 
@@ -251,24 +248,24 @@ const Panel = Class({
 exports.Panel = Panel;
 
 
-let panelEvents = filter(function({target}) panelFor(target), events);
+let panelEvents = filter(events, function({target}) panelFor(target));
 
 
-let shows = filter(function({type}) type === "sdk-panel-shown", panelEvents);
+let shows = filter(panelEvents, function({type}) type === "sdk-panel-shown");
 
 
-let hides = filter(function({type}) type === "sdk-panel-hidden", panelEvents);
+let hides = filter(panelEvents, function({type}) type === "sdk-panel-hidden");
 
 
 
 
 
-let ready = filter(function({type, target})
-  getAttachEventType(modelFor(panelFor(target))) === type, panelEvents);
+let ready = filter(panelEvents, function({type, target})
+  getAttachEventType(modelFor(panelFor(target))) === type);
 
 
-let change = filter(function({type}) type === "sdk-panel-content-changed",
-                    panelEvents);
+let change = filter(panelEvents, function({type})
+  type === "sdk-panel-content-changed");
 
 
 on(shows, "data", function({target}) emit(panelFor(target), "show"));

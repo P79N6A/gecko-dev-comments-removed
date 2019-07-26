@@ -39,13 +39,13 @@ function tabEventsFor(window) {
 }
 
 
-let readyEvents = filter(function(e) e.type === "DOMContentLoaded", events);
+let readyEvents = filter(events, function(e) e.type === "DOMContentLoaded");
 
-let futureWindows = map(function(e) e.target, readyEvents);
+let futureWindows = map(readyEvents, function(e) e.target);
 
 
 
-let eventsFromFuture = expand(tabEventsFor, futureWindows);
+let eventsFromFuture = expand(futureWindows, tabEventsFor);
 
 
 

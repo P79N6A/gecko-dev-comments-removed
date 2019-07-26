@@ -25,7 +25,7 @@ let refs = (function() {
   }
 })();
 
-function transform(f, input) {
+function transform(input, f) {
   let output = {};
 
   
@@ -46,16 +46,16 @@ function transform(f, input) {
 
 
 
-function filter(predicate, input) {
-  return transform(function(data, next) {
+function filter(input, predicate) {
+  return transform(input, function(data, next) {
     if (predicate(data)) next(data)
-  }, input);
+  });
 }
 exports.filter = filter;
 
 
 
-function map(f, input) transform(function(data, next) next(f(data)), input)
+function map(input, f) transform(input, function(data, next) next(f(data)))
 exports.map = map;
 
 
@@ -97,7 +97,7 @@ function merge(inputs) {
 }
 exports.merge = merge;
 
-function expand(f, inputs) merge(map(f, inputs))
+function expand(inputs, f) merge(map(inputs, f))
 exports.expand = expand;
 
 function pipe(from, to) on(from, "*", emit.bind(emit, to))

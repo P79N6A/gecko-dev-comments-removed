@@ -9,6 +9,7 @@ let { Cc, Ci } = require("chrome");
 
 const { Loader } = require('sdk/test/loader');
 const timer = require("sdk/timers");
+const { merge } = require("sdk/util/object");
 
 
 const ITEM_CLASS = "addon-context-menu-item";
@@ -1945,6 +1946,7 @@ exports.testParentMenu = function (test) {
 };
 
 
+
 exports.testNewWindow = function (test) {
   test = new TestHelper(test);
   let loader = test.newLoader();
@@ -1974,6 +1976,73 @@ exports.testNewWindowMultipleModules = function (test) {
     test.withNewWindow(function () {
       test.showMenu(null, function (popup) {
         test.checkMenu([item], [], [item]);
+        test.done();
+      });
+    });
+  });
+};
+
+
+
+exports.testNewPrivateWindow = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({ label: "item" });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    popup.hidePopup();
+
+    test.withNewPrivateWindow(function () {
+      test.showMenu(null, function (popup) {
+        test.checkMenu([], [], []);
+        test.done();
+      });
+    });
+  });
+};
+
+
+
+
+exports.testNewPrivateEnabledWindow = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newPrivateLoader();
+
+  let item = new loader.cm.Item({ label: "item" });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    popup.hidePopup();
+
+    test.withNewPrivateWindow(function () {
+      test.showMenu(null, function (popup) {
+        test.checkMenu([item], [], []);
+        test.done();
+      });
+    });
+  });
+};
+
+
+
+
+exports.testNewPrivateEnabledWindowUnloaded = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newPrivateLoader();
+
+  let item = new loader.cm.Item({ label: "item" });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    popup.hidePopup();
+
+    loader.unload();
+
+    test.withNewPrivateWindow(function () {
+      test.showMenu(null, function (popup) {
+        test.checkMenu([], [], []);
         test.done();
       });
     });
@@ -3340,6 +3409,37 @@ TestHelper.prototype = {
   },
 
   
+  newPrivateLoader: function() {
+    let base = require("@loader/options");
+
+    
+    let options = merge({}, base, {
+      metadata: merge({}, base.metadata || {}, {
+        permissions: merge({}, base.metadata.permissions || {}, {
+          'private-browsing': true
+        })
+      })
+    });
+
+    const self = this;
+    let loader = Loader(module, null, options);
+    let wrapper = {
+      loader: loader,
+      cm: loader.require("sdk/context-menu"),
+      globalScope: loader.sandbox("sdk/context-menu"),
+      unload: function () {
+        loader.unload();
+        let idx = self.loaders.indexOf(wrapper);
+        if (idx < 0)
+          throw new Error("Test error: tried to unload nonexistent loader");
+        self.loaders.splice(idx, 1);
+      }
+    };
+    this.loaders.push(wrapper);
+    return wrapper;
+  },
+
+  
   shouldOverflow: function (count) {
     return count >
            (this.loaders.length ?
@@ -3400,6 +3500,15 @@ TestHelper.prototype = {
   
   withNewWindow: function (onloadCallback) {
     let win = this.browserWindow.OpenBrowserWindow();
+    this.delayedEventListener(win, "load", onloadCallback, true);
+    this.oldBrowserWindow = this.browserWindow;
+    this.browserWindow = win;
+  },
+
+  
+  
+  withNewPrivateWindow: function (onloadCallback) {
+    let win = this.browserWindow.OpenBrowserWindow({private: true});
     this.delayedEventListener(win, "load", onloadCallback, true);
     this.oldBrowserWindow = this.browserWindow;
     this.browserWindow = win;

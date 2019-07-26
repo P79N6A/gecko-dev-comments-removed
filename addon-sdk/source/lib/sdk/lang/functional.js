@@ -13,6 +13,7 @@ module.metadata = {
 };
 
 const { setTimeout } = require("../timers");
+const { deprecateFunction } = require("../util/deprecate");
 
 
 
@@ -62,7 +63,8 @@ exports.invoke = invoke;
 
 
 
-function curry(fn) {
+
+function partial(fn) {
   if (typeof fn !== "function")
     throw new TypeError(String(fn) + " is not a function");
 
@@ -70,7 +72,12 @@ function curry(fn) {
 
   return function() fn.apply(this, args.concat(Array.slice(arguments)));
 }
-exports.curry = curry;
+exports.partial = partial;
+
+exports.curry = deprecateFunction(partial,
+  'curry is deprecated, ' +
+  'please use require("sdk/lang/functional").partial instead.'
+);
 
 
 

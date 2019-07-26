@@ -19,8 +19,7 @@ function initialize(instance) {
   
   function handler(event) {
     if (event.subject.wrappedJSObject === unloadSubject) {
-      dispose(instance);
-      instance.dispose();
+      instance.destroy();
     }
   }
 
@@ -66,8 +65,10 @@ let Disposable = Class({
   destroy: function destroy() {
     
     
-    dispose(this);
-    this.dispose();
+    if (disposables.has(this)) {
+      dispose(this);
+      this.dispose();
+    }
   }
 });
 exports.Disposable = Disposable;

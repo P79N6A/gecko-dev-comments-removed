@@ -193,33 +193,6 @@ exports.testTabLocation = function(test) {
 };
 
 
-exports.testTabReload = function(test) {
-  test.waitUntilDone();
-
-  let url = "data:text/html;charset=utf-8,<!doctype%20html><title></title>";
-
-  tabs.open({
-    url: url,
-    onReady: function onReady(tab) {
-      tab.removeListener('ready', onReady);
-
-      tab.once(
-        'ready',
-        function onReload() {
-          test.pass("the tab was loaded again");
-          test.assertEqual(tab.url, url, "the tab has the same URL");
-
-          
-          tab.close(function() test.done());
-        }
-      );
-
-      tab.reload();
-    }
-  });
-};
-
-
 exports.testTabMove = function(test) {
   test.waitUntilDone();
 

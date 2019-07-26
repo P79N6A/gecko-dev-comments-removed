@@ -63,9 +63,15 @@ function incompatibility(module) {
 
   let applications = Object.keys(engines);
 
-  applications.forEach(xulappModule.is);
-
-  let versionRange = engines[xulappModule.name];
+  let versionRange;
+  applications.forEach(function(name) {
+    if (xulappModule.is(name)) {
+      versionRange = engines[name];
+      
+      
+      
+    }
+  });
 
   if (typeof(versionRange) === "string") {
     if (xulappModule.satisfiesVersion(versionRange))
