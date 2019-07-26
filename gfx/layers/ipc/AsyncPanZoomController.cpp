@@ -24,7 +24,13 @@ using namespace mozilla::css;
 namespace mozilla {
 namespace layers {
 
-const float AsyncPanZoomController::TOUCH_START_TOLERANCE = 1.0f/16.0f;
+
+
+
+
+
+
+static float gTouchStartTolerance = 1.0f/16.0f;
 
 static const float EPSILON = 0.0001;
 
@@ -32,19 +38,19 @@ static const float EPSILON = 0.0001;
 
 
 
-static const int32_t PAN_REPAINT_INTERVAL = 250;
+static int32_t gPanRepaintInterval = 250;
 
 
 
 
 
-static const int32_t FLING_REPAINT_INTERVAL = 75;
+static int32_t gFlingRepaintInterval = 75;
 
 
 
 
 
-static const float MIN_SKATE_SPEED = 0.7f;
+static float gMinSkateSpeed = 0.7f;
 
 
 
@@ -72,13 +78,68 @@ static const double MIN_ZOOM = 0.125;
 
 
 
-static const int TOUCH_LISTENER_TIMEOUT = 300;
+static int gTouchListenerTimeout = 300;
 
 
 
 
 
-static const int NUM_PAINT_DURATION_SAMPLES = 3;
+static int gNumPaintDurationSamples = 3;
+
+
+
+
+
+
+
+static float gXSkateSizeMultiplier = 3.0f;
+static float gYSkateSizeMultiplier = 3.5f;
+
+
+
+
+
+
+static float gXStationarySizeMultiplier = 1.5f;
+static float gYStationarySizeMultiplier = 2.5f;
+
+static void ReadAZPCPrefs()
+{
+  Preferences::AddIntVarCache(&gPanRepaintInterval, "gfx.azpc.pan_repaint_interval", gPanRepaintInterval);
+  Preferences::AddIntVarCache(&gFlingRepaintInterval, "gfx.azpc.fling_repaint_interval", gFlingRepaintInterval);
+  Preferences::AddFloatVarCache(&gMinSkateSpeed, "gfx.azpc.min_skate_speed", gMinSkateSpeed);
+  Preferences::AddIntVarCache(&gTouchListenerTimeout, "gfx.azpc.touch_listener_timeout", gTouchListenerTimeout);
+  Preferences::AddIntVarCache(&gNumPaintDurationSamples, "gfx.azpc.num_paint_duration_samples", gNumPaintDurationSamples);
+  Preferences::AddFloatVarCache(&gTouchStartTolerance, "gfx.azpc.touch_start_tolerance", gTouchStartTolerance);
+  Preferences::AddFloatVarCache(&gXSkateSizeMultiplier, "gfx.azpc.x_skate_size_multiplier", gXSkateSizeMultiplier);
+  Preferences::AddFloatVarCache(&gYSkateSizeMultiplier, "gfx.azpc.y_skate_size_multiplier", gYSkateSizeMultiplier);
+  Preferences::AddFloatVarCache(&gXStationarySizeMultiplier, "gfx.azpc.x_stationary_size_multiplier", gXStationarySizeMultiplier);
+  Preferences::AddFloatVarCache(&gYStationarySizeMultiplier, "gfx.azpc.y_stationary_size_multiplier", gYStationarySizeMultiplier);
+}
+
+class ReadAZPCPref MOZ_FINAL : public nsRunnable {
+public:
+  NS_IMETHOD Run()
+  {
+    ReadAZPCPrefs();
+    return NS_OK;
+  }
+};
+
+static void InitAZPCPrefs()
+{
+  static bool sInitialized = false;
+  if (sInitialized)
+    return;
+
+  sInitialized = true;
+  if (NS_IsMainThread()) {
+    ReadAZPCPrefs();
+  } else {
+    
+    NS_DispatchToMainThread(new ReadAZPCPref());
+  }
+}
 
 AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoContentController,
                                                GestureBehavior aGestures)
@@ -106,6 +167,9 @@ AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoCon
      mDelayPanning(false)
 {
   MOZ_ASSERT(NS_IsMainThread());
+
+  InitAZPCPrefs();
+
   if (aGestures == USE_GESTURE_DETECTOR) {
     mGestureEventListener = new GestureEventListener(this);
   }
@@ -125,6 +189,12 @@ AsyncPanZoomController::AsyncPanZoomController(GeckoContentController* aGeckoCon
 
 AsyncPanZoomController::~AsyncPanZoomController() {
 
+}
+
+float
+AsyncPanZoomController::GetTouchStartTolerance()
+{
+  return gTouchStartTolerance;
 }
 
 static gfx::Point
@@ -231,7 +301,7 @@ nsEventStatus AsyncPanZoomController::ReceiveInputEvent(const InputData& aEvent)
         MessageLoop::current()->PostDelayedTask(
           FROM_HERE,
           mTouchListenerTimeoutTask,
-          TOUCH_LISTENER_TIMEOUT);
+          gTouchListenerTimeout);
       }
     }
     return nsEventStatus_eConsumeNoDefault;
@@ -263,7 +333,7 @@ nsEventStatus AsyncPanZoomController::HandleInputEvent(const InputData& aEvent) 
         MessageLoop::current()->PostDelayedTask(
           FROM_HERE,
           mTouchListenerTimeoutTask,
-          TOUCH_LISTENER_TIMEOUT);
+          gTouchListenerTimeout);
       }
       return nsEventStatus_eConsumeNoDefault;
     }
@@ -364,7 +434,7 @@ nsEventStatus AsyncPanZoomController::OnTouchMove(const MultiTouchInput& aEvent)
       return nsEventStatus_eIgnore;
 
     case TOUCHING: {
-      float panThreshold = TOUCH_START_TOLERANCE * mDPI;
+      float panThreshold = gTouchStartTolerance * mDPI;
       UpdateWithTouchAtDevicePoint(aEvent);
 
       if (PanDistance() < panThreshold) {
@@ -697,7 +767,7 @@ void AsyncPanZoomController::TrackTouch(const MultiTouchInput& aEvent) {
     ScheduleComposite();
 
     TimeDuration timePaintDelta = TimeStamp::Now() - mPreviousPaintStartTime;
-    if (timePaintDelta.ToMilliseconds() > PAN_REPAINT_INTERVAL) {
+    if (timePaintDelta.ToMilliseconds() > gPanRepaintInterval) {
       RequestContentRepaint();
     }
   }
@@ -734,7 +804,7 @@ bool AsyncPanZoomController::DoFling(const TimeDuration& aDelta) {
     mY.GetDisplacementForDuration(inverseResolution, aDelta)
   ));
   TimeDuration timePaintDelta = TimeStamp::Now() - mPreviousPaintStartTime;
-  if (timePaintDelta.ToMilliseconds() > FLING_REPAINT_INTERVAL) {
+  if (timePaintDelta.ToMilliseconds() > gFlingRepaintInterval) {
     RequestContentRepaint();
   }
 
@@ -803,7 +873,7 @@ bool AsyncPanZoomController::EnlargeDisplayPortAlongAxis(float aSkateSizeMultipl
                                                          float* aDisplayPortOffset,
                                                          float* aDisplayPortLength)
 {
-  if (fabsf(aVelocity) > MIN_SKATE_SPEED) {
+  if (fabsf(aVelocity) > gMinSkateSpeed) {
     
     *aDisplayPortLength = aCompositionBounds * aSkateSizeMultiplier;
     
@@ -840,21 +910,6 @@ const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
   
   
   
-  const float X_SKATE_SIZE_MULTIPLIER = 3.0f;
-  const float Y_SKATE_SIZE_MULTIPLIER = 3.5f;
-
-  
-  
-  
-  
-  const float X_STATIONARY_SIZE_MULTIPLIER = 1.5f;
-  const float Y_STATIONARY_SIZE_MULTIPLIER = 2.5f;
-
-  
-  
-  
-  
-  
   double estimatedPaintDuration =
     aEstimatedPaintDuration > EPSILON ? aEstimatedPaintDuration : 1.0;
 
@@ -866,18 +921,18 @@ const gfx::Rect AsyncPanZoomController::CalculatePendingDisplayPort(
   gfx::Point scrollOffset = aFrameMetrics.mScrollOffset;
 
   gfx::Rect displayPort(0, 0,
-                        compositionBounds.width * X_STATIONARY_SIZE_MULTIPLIER,
-                        compositionBounds.height * Y_STATIONARY_SIZE_MULTIPLIER);
+                        compositionBounds.width * gXStationarySizeMultiplier,
+                        compositionBounds.height * gYStationarySizeMultiplier);
 
   
   
   
   bool enlargedX = EnlargeDisplayPortAlongAxis(
-    X_SKATE_SIZE_MULTIPLIER, estimatedPaintDuration,
+    gXSkateSizeMultiplier, estimatedPaintDuration,
     compositionBounds.width, aVelocity.x, aAcceleration.x,
     &displayPort.x, &displayPort.width);
   bool enlargedY = EnlargeDisplayPortAlongAxis(
-    Y_SKATE_SIZE_MULTIPLIER, estimatedPaintDuration,
+    gYSkateSizeMultiplier, estimatedPaintDuration,
     compositionBounds.height, aVelocity.y, aAcceleration.y,
     &displayPort.y, &displayPort.height);
 
@@ -1162,7 +1217,7 @@ void AsyncPanZoomController::NotifyLayersUpdated(const FrameMetrics& aViewportFr
   if (mWaitingForContentToPaint) {
     
     
-    if (mPreviousPaintDurations.Length() >= NUM_PAINT_DURATION_SAMPLES) {
+    if (mPreviousPaintDurations.Length() >= gNumPaintDurationSamples) {
       mPreviousPaintDurations.RemoveElementAt(0);
     }
 

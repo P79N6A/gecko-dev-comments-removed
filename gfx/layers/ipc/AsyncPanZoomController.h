@@ -68,7 +68,7 @@ public:
 
 
 
-  static const float TOUCH_START_TOLERANCE;
+  static float GetTouchStartTolerance();
 
   AsyncPanZoomController(GeckoContentController* aController,
                          GestureBehavior aGestures = DEFAULT_GESTURES);
