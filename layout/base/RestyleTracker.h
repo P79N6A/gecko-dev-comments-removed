@@ -230,7 +230,7 @@ class RestyleTracker {
 public:
   typedef mozilla::dom::Element Element;
 
-  RestyleTracker(uint32_t aRestyleBits) :
+  RestyleTracker(Element::FlagsType aRestyleBits) :
     mRestyleBits(aRestyleBits),
     mHaveLaterSiblingRestyles(false)
   {
@@ -280,7 +280,7 @@ public:
   }
 
   
-  uint32_t RootBit() const {
+  Element::FlagsType RootBit() const {
     return mRestyleBits & ~ELEMENT_PENDING_RESTYLE_FLAGS;
   }
   
@@ -331,7 +331,7 @@ private:
   
   
   
-  uint32_t mRestyleBits;
+  Element::FlagsType mRestyleBits;
   RestyleManager* mRestyleManager; 
   
   
