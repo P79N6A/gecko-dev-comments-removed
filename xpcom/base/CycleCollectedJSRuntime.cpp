@@ -518,10 +518,8 @@ CycleCollectedJSRuntime::DescribeGCThing(bool aIsMarked, void* aThing,
   }
 
   char name[72];
-  uint64_t compartmentAddress = 0;
   if (aTraceKind == JSTRACE_OBJECT) {
     JSObject* obj = static_cast<JSObject*>(aThing);
-    compartmentAddress = (uint64_t)js::GetObjectCompartment(obj);
     const js::Class* clasp = js::GetObjectClass(obj);
 
     
@@ -557,7 +555,7 @@ CycleCollectedJSRuntime::DescribeGCThing(bool aIsMarked, void* aThing,
   }
 
   
-  aCb.DescribeGCedNode(aIsMarked, name, compartmentAddress);
+  aCb.DescribeGCedNode(aIsMarked, name);
 }
 
 void
