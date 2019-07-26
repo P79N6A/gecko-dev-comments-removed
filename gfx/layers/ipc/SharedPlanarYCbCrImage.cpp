@@ -143,21 +143,8 @@ SharedPlanarYCbCrImage::SetDataNoCopy(const Data &aData)
 {
   mData = aData;
   mSize = aData.mPicSize;
-  
-
-
-
-
-
   YCbCrImageDataSerializer serializer(mTextureClient->GetBuffer());
-  uint8_t *base = serializer.GetData();
-  uint32_t yOffset = aData.mYChannel - base;
-  uint32_t cbOffset = aData.mCbChannel - base;
-  uint32_t crOffset = aData.mCrChannel - base;
-  serializer.InitializeBufferInfo(yOffset,
-                                  cbOffset,
-                                  crOffset,
-                                  aData.mYSize,
+  serializer.InitializeBufferInfo(aData.mYSize,
                                   aData.mCbCrSize,
                                   aData.mStereoMode);
 }
