@@ -422,6 +422,24 @@ ValueNumberer::analyze()
     return computeValueNumbers() && eliminateRedundancies();
 }
 
+
+bool
+ValueNumberer::clear()
+{
+    IonSpew(IonSpew_GVN, "Clearing value numbers");
+
+    
+    for (ReversePostorderIterator block(graph_.rpoBegin()); block != graph_.rpoEnd(); block++) {
+        if (mir->shouldCancel("Value Numbering (clearing)"))
+            return false;
+        for (MDefinitionIterator iter(*block); iter; iter++)
+            iter->clearValueNumberData();
+        block->lastIns()->clearValueNumberData();
+    }
+
+    return true;
+}
+
 uint32_t
 MDefinition::valueNumber() const
 {
