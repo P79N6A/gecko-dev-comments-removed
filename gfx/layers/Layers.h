@@ -63,6 +63,7 @@ class GLContext;
 
 namespace gfx {
 class DrawTarget;
+class SurfaceStream;
 }
 
 namespace css {
@@ -1790,6 +1791,8 @@ public:
     Data()
       : mDrawTarget(nullptr)
       , mGLContext(nullptr)
+      , mStream(nullptr)
+      , mTexID(0)
       , mSize(0,0)
       , mIsGLAlphaPremult(false)
     { }
@@ -1797,6 +1800,12 @@ public:
     
     mozilla::gfx::DrawTarget *mDrawTarget; 
     mozilla::gl::GLContext* mGLContext; 
+
+    
+    mozilla::gfx::SurfaceStream* mStream;
+
+    
+    uint32_t mTexID;
 
     
     nsIntSize mSize;
