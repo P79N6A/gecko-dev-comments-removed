@@ -974,10 +974,6 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit)
     
     file = fopen(fileName, "r");
     if (file != NULL) {
-	
-
-
-	setvbuf(file, NULL, _IONBF, 0);
 	while (limit > fileBytes) {
 	    bytes = PR_MIN(sizeof buffer, limit - fileBytes);
 	    bytes = fread(buffer, 1, bytes, file);
@@ -1138,9 +1134,6 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
     if (file == NULL) {
 	return rng_systemFromNoise(dest, maxLen);
     }
-    
-
-    setvbuf(file, NULL, _IONBF, 0);
     while (maxLen > fileBytes) {
 	bytes = maxLen - fileBytes;
 	bytes = fread(buffer, 1, bytes, file);
