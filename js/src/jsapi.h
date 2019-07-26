@@ -3161,6 +3161,26 @@ JS_AllocateArrayBufferContents(JSContext *maybecx, uint32_t nbytes, void **conte
 extern JS_PUBLIC_API(bool)
 JS_ReallocateArrayBufferContents(JSContext *cx, uint32_t nbytes, void **contents, uint8_t **data);
 
+
+
+
+
+
+
+extern JS_PUBLIC_API(bool)
+JS_CreateMappedArrayBufferContents(int fd, int *new_fd, size_t offset,
+                                   size_t length, void **contents);
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_ReleaseMappedArrayBufferContents(int fd, void *contents, size_t length);
+
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JSObject *obj);
 

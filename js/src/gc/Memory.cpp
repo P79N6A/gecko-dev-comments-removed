@@ -107,6 +107,21 @@ gc::GetPageFaultCount()
     return pmc.PageFaultCount;
 }
 
+void *
+gc::AllocateMappedObject(int fd, int *new_fd, size_t offset, size_t length,
+                         size_t alignment, size_t header)
+{
+    
+    return nullptr;
+}
+
+
+void
+gc::DeallocateMappedObject(int fd, void *p, size_t length)
+{
+    
+}
+
 #elif defined(SOLARIS)
 
 #include <sys/mman.h>
@@ -165,10 +180,28 @@ gc::GetPageFaultCount()
     return 0;
 }
 
+void *
+gc::AllocateMappedObject(int fd, int *new_fd, size_t offset, size_t length,
+                         size_t alignment, size_t header)
+{
+    
+    return nullptr;
+}
+
+
+void
+gc::DeallocateMappedObject(int fd, void *p, size_t length)
+{
+    
+}
+
 #elif defined(XP_UNIX)
 
+#include <algorithm>
 #include <sys/mman.h>
 #include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 void
@@ -283,6 +316,90 @@ gc::GetPageFaultCount()
     if (err)
         return 0;
     return usage.ru_majflt;
+}
+
+void *
+gc::AllocateMappedObject(int fd, int *new_fd, size_t offset, size_t length,
+                         size_t alignment, size_t header)
+{
+#define NEED_PAGE_ALIGNED 0
+    size_t pa_start; 
+    size_t pa_end; 
+    size_t pa_size; 
+    size_t page_size = sysconf(_SC_PAGESIZE); 
+    bool page_for_header = false; 
+    struct stat st;
+    uint8_t *buf;
+
+    
+    if (fstat(fd, &st) < 0 || offset >= (size_t) st.st_size ||
+        length == 0 || length > (size_t) st.st_size - offset)
+        return nullptr;
+
+    
+#if NEED_PAGE_ALIGNED
+    alignment = std::max(alignment, page_size);
+#endif
+    if (offset & (alignment - 1))
+        return nullptr;
+
+    
+    pa_start = offset & ~(page_size - 1);
+    
+    
+    pa_end = ((offset + length - 1) & ~(page_size - 1)) + page_size;
+    pa_size = pa_end - pa_start;
+
+    
+    if (offset - pa_start < header) {
+        page_for_header = true;
+        pa_size += page_size;
+    }
+
+    
+    buf = (uint8_t *) MapMemory(pa_size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+    if (buf == MAP_FAILED)
+        return nullptr;
+
+    
+    *new_fd = dup(fd);
+
+    
+    if (page_for_header) {
+        buf = (uint8_t *) mmap(buf + page_size, pa_size - page_size,
+                               PROT_READ | PROT_WRITE,
+                               MAP_PRIVATE | MAP_FIXED, *new_fd, pa_start);
+    } else {
+        buf = (uint8_t *) mmap(buf, pa_size, PROT_READ | PROT_WRITE,
+                               MAP_PRIVATE | MAP_FIXED, *new_fd, pa_start);
+    }
+    if (buf == MAP_FAILED) {
+        close(*new_fd);
+        return nullptr;
+    }
+
+    
+    memset(buf, 0, offset - pa_start);
+
+    
+    memset(buf + (offset - pa_start) + length, 0, pa_end - (offset + length));
+
+    return buf + (offset - pa_start) - header;
+}
+
+void
+gc::DeallocateMappedObject(int fd, void *p, size_t length)
+{
+    void *pa_start; 
+    size_t page_size = sysconf(_SC_PAGESIZE); 
+    size_t total_size; 
+
+    
+    close(fd);
+
+    pa_start = (void *)(uintptr_t(p) & ~(page_size - 1));
+    total_size = ((uintptr_t(p) + length) & ~(page_size - 1)) + page_size - uintptr_t(pa_start);
+    munmap(pa_start, total_size);
 }
 
 #else
