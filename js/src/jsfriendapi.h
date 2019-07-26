@@ -8,6 +8,7 @@
 #define jsfriendapi_h
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/TypedEnum.h"
 
 #include "jsbytecode.h"
 #include "jspubtd.h"
@@ -1447,7 +1448,7 @@ typedef bool
                   void *specializedThis, const JSJitMethodCallArgs& args);
 
 struct JSJitInfo {
-    enum OpType {
+    enum OpType MOZ_ENUM_TYPE(uint8_t) {
         Getter,
         Setter,
         Method,
@@ -1475,7 +1476,7 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
-    enum AliasSet {
+    enum AliasSet MOZ_ENUM_TYPE(uint8_t) {
         
         
         
@@ -1525,7 +1526,7 @@ struct JSJitInfo {
 
     
     
-    size_t slotIndex;       
+    uint16_t slotIndex;     
 
     const ArgType* const argTypes; 
 
