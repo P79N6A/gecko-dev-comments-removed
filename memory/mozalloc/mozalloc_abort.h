@@ -27,7 +27,7 @@
 
 
 
-MOZ_NORETURN MOZALLOC_EXPORT void mozalloc_abort(const char* const msg);
+MOZALLOC_EXPORT void mozalloc_abort(const char* const msg);
 
 
 #endif  
