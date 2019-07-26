@@ -231,18 +231,12 @@ HyperTextAccessible::TextSubstring(int32_t aStartOffset, int32_t aEndOffset,
   endChild->AppendTextTo(aText, 0, endOffset - endChildOffset);
 }
 
-Accessible*
-HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
-                                               int32_t aNodeOffset,
-                                               int32_t* aHyperTextOffset,
-                                               bool aIsEndOffset) const
+int32_t
+HyperTextAccessible::DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
+                                      bool aIsEndOffset) const
 {
-  if (!aHyperTextOffset)
-    return nullptr;
-  *aHyperTextOffset = 0;
-
   if (!aNode)
-    return nullptr;
+    return 0;
 
   uint32_t addTextOffset = 0;
   nsINode* findNode = nullptr;
@@ -254,10 +248,11 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
     
     
     
-    nsIFrame *frame = aNode->AsContent()->GetPrimaryFrame();
-    NS_ENSURE_TRUE(frame, nullptr);
+    nsIFrame* frame = aNode->AsContent()->GetPrimaryFrame();
+    NS_ENSURE_TRUE(frame, 0);
+
     nsresult rv = ContentToRenderedOffset(frame, aNodeOffset, &addTextOffset);
-    NS_ENSURE_SUCCESS(rv, nullptr);
+    NS_ENSURE_SUCCESS(rv, 0);
     
     findNode = aNode;
 
@@ -276,8 +271,7 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
         if (aNode == GetNode()) {
           
           
-          *aHyperTextOffset = 0;
-          return nullptr;
+          return 0;
         }
 
         
@@ -295,7 +289,7 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
 
   
   
-  Accessible* descendantAcc = nullptr;
+  Accessible* descendant = nullptr;
   if (findNode) {
     nsCOMPtr<nsIContent> findContent(do_QueryInterface(findNode));
     if (findContent && findContent->IsHTML() &&
@@ -305,18 +299,17 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
                                  nsGkAtoms::_true,
                                  eIgnoreCase)) {
       
-      *aHyperTextOffset = 0;
-      return nullptr;
+      return 0;
     }
-    descendantAcc = GetFirstAvailableAccessible(findNode);
+    descendant = GetFirstAvailableAccessible(findNode);
   }
 
   
-  Accessible* childAccAtOffset = nullptr;
-  while (descendantAcc) {
-    Accessible* parentAcc = descendantAcc->Parent();
-    if (parentAcc == this) {
-      childAccAtOffset = descendantAcc;
+  Accessible* childAtOffset = nullptr;
+  while (descendant) {
+    Accessible* parent = descendant->Parent();
+    if (parent == this) {
+      childAtOffset = descendant;
       break;
     }
 
@@ -328,42 +321,17 @@ HyperTextAccessible::DOMPointToHypertextOffset(nsINode* aNode,
     
     
     if (aIsEndOffset)
-      addTextOffset = (addTextOffset > 0 || descendantAcc->IndexInParent() > 0) ? 1 : 0;
+      addTextOffset = (addTextOffset > 0 || descendant->IndexInParent() > 0) ? 1 : 0;
     else
       addTextOffset = 0;
 
-    descendantAcc = parentAcc;
+    descendant = parent;
   }
 
   
   
-  
-  
-  uint32_t childCount = ChildCount();
-
-  uint32_t childIdx = 0;
-  Accessible* childAcc = nullptr;
-  for (; childIdx < childCount; childIdx++) {
-    childAcc = mChildren[childIdx];
-    if (childAcc == childAccAtOffset)
-      break;
-
-    *aHyperTextOffset += nsAccUtils::TextLength(childAcc);
-  }
-
-  if (childIdx < childCount) {
-    *aHyperTextOffset += addTextOffset;
-    NS_ASSERTION(childAcc == childAccAtOffset,
-                 "These should be equal whenever we exit loop and childAcc != nullptr");
-
-    if (childIdx < childCount - 1 ||
-        addTextOffset < nsAccUtils::TextLength(childAccAtOffset)) {
-      
-      return childAccAtOffset;
-    }
-  }
-
-  return nullptr;
+  return childAtOffset ?
+    GetChildOffset(childAtOffset) + addTextOffset : CharacterCount();
 }
 
 bool
@@ -491,16 +459,13 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
     return -1;
 
   
-  
-  
-  int32_t hyperTextOffset = 0;
-  Accessible* finalAccessible =
-    DOMPointToHypertextOffset(pos.mResultContent, pos.mContentOffset,
-                              &hyperTextOffset, aDirection == eDirNext);
+  int32_t hyperTextOffset = DOMPointToOffset(pos.mResultContent,
+                                             pos.mContentOffset,
+                                             aDirection == eDirNext);
 
   
   
-  if (!finalAccessible && aDirection == eDirPrevious)
+  if (hyperTextOffset == CharacterCount() && aDirection == eDirPrevious)
     return 0;
 
   return hyperTextOffset;
@@ -1173,9 +1138,7 @@ HyperTextAccessible::CaretOffset() const
       return -1;
   }
 
-  int32_t caretOffset = -1;
-  DOMPointToHypertextOffset(focusNode, focusOffset, &caretOffset);
-  return caretOffset;
+  return DOMPointToOffset(focusNode, focusOffset);
 }
 
 int32_t
@@ -1384,13 +1347,8 @@ HyperTextAccessible::SelectionBoundsAt(int32_t aSelectionNum,
     endOffset = tempOffset;
   }
 
-  Accessible* startAccessible =
-    DOMPointToHypertextOffset(startNode, startOffset, aStartOffset);
-  if (!startAccessible) {
-    *aStartOffset = 0; 
-  }
-
-  DOMPointToHypertextOffset(endNode, endOffset, aEndOffset, true);
+  *aStartOffset = DOMPointToOffset(startNode, startOffset);
+  *aEndOffset = DOMPointToOffset(endNode, endOffset, true);
   return true;
 }
 
@@ -1781,7 +1739,7 @@ nsresult
 HyperTextAccessible::RangeBoundToHypertextOffset(nsRange* aRange,
                                                  bool aIsStartBound,
                                                  bool aIsStartHTOffset,
-                                                 int32_t* aHTOffset)
+                                                 int32_t* aOffset)
 {
   nsINode* node = nullptr;
   int32_t nodeOffset = 0;
@@ -1794,12 +1752,7 @@ HyperTextAccessible::RangeBoundToHypertextOffset(nsRange* aRange,
     nodeOffset = aRange->EndOffset();
   }
 
-  Accessible* startAcc =
-    DOMPointToHypertextOffset(node, nodeOffset, aHTOffset);
-
-  if (aIsStartHTOffset && !startAcc)
-    *aHTOffset = 0;
-
+  *aOffset = DOMPointToOffset(node, nodeOffset);
   return NS_OK;
 }
 

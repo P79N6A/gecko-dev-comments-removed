@@ -117,16 +117,8 @@ public:
 
 
 
-
-
-
-
-
-
-  Accessible* DOMPointToHypertextOffset(nsINode *aNode,
-                                        int32_t aNodeOffset,
-                                        int32_t* aHypertextOffset,
-                                        bool aIsEndOffset = false) const;
+  int32_t DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
+                           bool aIsEndOffset = false) const;
 
   
 
