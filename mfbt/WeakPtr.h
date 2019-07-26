@@ -55,10 +55,14 @@
 
 
 
+
+
+
 #ifndef mozilla_WeakPtr_h_
 #define mozilla_WeakPtr_h_
 
 #include "mozilla/Assertions.h"
+#include "mozilla/Atomics.h"
 #include "mozilla/NullPtr.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/TypeTraits.h"
@@ -71,8 +75,8 @@ template <typename T, class WeakReference> class SupportsWeakPtrBase;
 namespace detail {
 
 
-template<class T>
-class WeakReference : public RefCounted<WeakReference<T> >
+template<class T, RefCountAtomicity Atomicity>
+class WeakReference : public RefCounted<WeakReference<T, Atomicity>, Atomicity>
 {
   public:
     explicit WeakReference(T* p) : ptr(p) {}
@@ -81,8 +85,8 @@ class WeakReference : public RefCounted<WeakReference<T> >
     }
 
   private:
-    friend class WeakPtrBase<T, WeakReference<T> >;
-    friend class SupportsWeakPtrBase<T, WeakReference<T> >;
+    friend class WeakPtrBase<T, WeakReference>;
+    friend class SupportsWeakPtrBase<T, WeakReference>;
     void detach() {
       ptr = nullptr;
     }
@@ -116,9 +120,29 @@ class SupportsWeakPtrBase
 };
 
 template <typename T>
-class SupportsWeakPtr : public SupportsWeakPtrBase<T, detail::WeakReference<T> >
+class SupportsWeakPtr
+  : public SupportsWeakPtrBase<T, detail::WeakReference<T, detail::NonAtomicRefCount> >
 {
 };
+
+template <typename T>
+class AtomicSupportsWeakPtr
+  : public SupportsWeakPtrBase<T, detail::WeakReference<T, detail::AtomicRefCount> >
+{
+};
+
+namespace detail {
+
+template <typename T>
+struct WeakReferenceCount
+{
+  static const RefCountAtomicity atomicity =
+    IsBaseOf<AtomicSupportsWeakPtr<T>, T>::value
+    ? AtomicRefCount
+    : NonAtomicRefCount;
+};
+
+}
 
 template <typename T, class WeakReference>
 class WeakPtrBase
@@ -152,9 +176,9 @@ class WeakPtrBase
 };
 
 template <typename T>
-class WeakPtr : public WeakPtrBase<T, detail::WeakReference<T> >
+class WeakPtr : public WeakPtrBase<T, detail::WeakReference<T, detail::WeakReferenceCount<T>::atomicity> >
 {
-    typedef WeakPtrBase<T, detail::WeakReference<T> > Base;
+    typedef WeakPtrBase<T, detail::WeakReference<T, detail::WeakReferenceCount<T>::atomicity> > Base;
   public:
     WeakPtr(const WeakPtr<T>& o) : Base(o) {}
     WeakPtr(const Base& o) : Base(o) {}
