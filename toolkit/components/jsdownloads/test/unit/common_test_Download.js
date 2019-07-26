@@ -45,6 +45,36 @@ function promiseStartDownload(aSourceUrl) {
 
 
 
+
+function promiseDownloadMidway(aDownload) {
+  let deferred = Promise.defer();
+
+  
+  let onchange = function () {
+    if (!aDownload.stopped && !aDownload.canceled && aDownload.progress == 50) {
+      aDownload.onchange = null;
+      deferred.resolve();
+    }
+  };
+
+  
+  
+  aDownload.onchange = onchange;
+  onchange();
+
+  return deferred.promise;
+}
+
+
+
+
+
+
+
+
+
+
+
 function promiseDownloadStopped(aDownload) {
   if (!aDownload.stopped) {
     
