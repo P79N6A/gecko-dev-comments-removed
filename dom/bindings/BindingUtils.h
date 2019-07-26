@@ -625,7 +625,7 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx,
 {
   MOZ_ASSERT(value);
   
-  JSObject* obj;
+  JS::Rooted<JSObject*> obj(cx);
   {
     
     
@@ -670,7 +670,7 @@ WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
     NS_RUNTIMEABORT("Don't try to wrap null objects");
   }
   
-  JSObject* obj;
+  JS::Rooted<JSObject*> obj(cx);
   {
     
     
@@ -688,9 +688,7 @@ WrapNewBindingNonWrapperCachedOwnedObject(JSContext* cx,
 
     bool tookOwnership = false;
     obj = value->WrapObject(cx, scope, &tookOwnership);
-    if (obj) {
-      MOZ_ASSERT(tookOwnership);
-    }
+    MOZ_ASSERT_IF(obj, tookOwnership);
     if (tookOwnership) {
       value.forget();
     }
@@ -1022,8 +1020,8 @@ WrapNativeISupportsParent(JSContext* cx, JS::Handle<JSObject*> scope, T* p,
                           nsWrapperCache* cache)
 {
   qsObjectHelper helper(ToSupports(p), cache);
-  JS::Value v;
-  return XPCOMObjectToJsval(cx, scope, helper, nullptr, false, &v) ?
+  JS::Rooted<JS::Value> v(cx);
+  return XPCOMObjectToJsval(cx, scope, helper, nullptr, false, v.address()) ?
          JSVAL_TO_OBJECT(v) :
          nullptr;
 }
