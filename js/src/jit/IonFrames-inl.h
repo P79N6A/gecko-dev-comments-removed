@@ -17,7 +17,7 @@
 #include "jit/IonFrameIterator-inl.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 inline void
 SafepointIndex::resolve()

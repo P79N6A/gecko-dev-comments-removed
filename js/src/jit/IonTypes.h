@@ -12,7 +12,7 @@
 #include "js/Value.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 typedef uint32_t SnapshotOffset;
 typedef uint32_t BailoutId;

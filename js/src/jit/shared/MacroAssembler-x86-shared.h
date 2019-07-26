@@ -17,7 +17,7 @@
 #endif
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MacroAssemblerX86Shared : public Assembler
 {

@@ -14,13 +14,13 @@
 #include "jit/MIRGraph.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 
 
 
 bool
-ion::SplitCriticalEdges(MIRGraph &graph)
+jit::SplitCriticalEdges(MIRGraph &graph)
 {
     for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
         if (block->numSuccessors() < 2)
@@ -54,7 +54,7 @@ ion::SplitCriticalEdges(MIRGraph &graph)
 
 
 bool
-ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
+jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 {
     
     
@@ -148,7 +148,7 @@ ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 
 
 bool
-ion::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
+jit::EliminateDeadCode(MIRGenerator *mir, MIRGraph &graph)
 {
     
     
@@ -243,7 +243,7 @@ IsPhiRedundant(MPhi *phi)
 }
 
 bool
-ion::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
+jit::EliminatePhis(MIRGenerator *mir, MIRGraph &graph,
                    Observability observe)
 {
     
@@ -666,7 +666,7 @@ TypeAnalyzer::analyze()
 }
 
 bool
-ion::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
+jit::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
 {
     TypeAnalyzer analyzer(mir, graph);
 
@@ -677,7 +677,7 @@ ion::ApplyTypeInformation(MIRGenerator *mir, MIRGraph &graph)
 }
 
 bool
-ion::RenumberBlocks(MIRGraph &graph)
+jit::RenumberBlocks(MIRGraph &graph)
 {
     size_t id = 0;
     for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++)
@@ -783,7 +783,7 @@ ComputeImmediateDominators(MIRGraph &graph)
 }
 
 bool
-ion::BuildDominatorTree(MIRGraph &graph)
+jit::BuildDominatorTree(MIRGraph &graph)
 {
     ComputeImmediateDominators(graph);
 
@@ -846,7 +846,7 @@ ion::BuildDominatorTree(MIRGraph &graph)
 }
 
 bool
-ion::BuildPhiReverseMapping(MIRGraph &graph)
+jit::BuildPhiReverseMapping(MIRGraph &graph)
 {
     
     
@@ -958,7 +958,7 @@ CheckUseImpliesOperand(MInstruction *ins, MUse *use)
 #endif 
 
 void
-ion::AssertBasicGraphCoherency(MIRGraph &graph)
+jit::AssertBasicGraphCoherency(MIRGraph &graph)
 {
 #ifdef DEBUG
     
@@ -1008,7 +1008,7 @@ AssertReversePostOrder(MIRGraph &graph)
 #endif
 
 void
-ion::AssertGraphCoherency(MIRGraph &graph)
+jit::AssertGraphCoherency(MIRGraph &graph)
 {
 #ifdef DEBUG
     AssertBasicGraphCoherency(graph);
@@ -1017,7 +1017,7 @@ ion::AssertGraphCoherency(MIRGraph &graph)
 }
 
 void
-ion::AssertExtendedGraphCoherency(MIRGraph &graph)
+jit::AssertExtendedGraphCoherency(MIRGraph &graph)
 {
     
     
@@ -1113,7 +1113,7 @@ FindDominatingBoundsCheck(BoundsCheckMap &checks, MBoundsCheck *check, size_t in
 
 
 SimpleLinearSum
-ion::ExtractLinearSum(MDefinition *ins)
+jit::ExtractLinearSum(MDefinition *ins)
 {
     if (ins->isBeta())
         ins = ins->getOperand(0);
@@ -1156,7 +1156,7 @@ ion::ExtractLinearSum(MDefinition *ins)
 
 
 bool
-ion::ExtractLinearInequality(MTest *test, BranchDirection direction,
+jit::ExtractLinearInequality(MTest *test, BranchDirection direction,
                              SimpleLinearSum *plhs, MDefinition **prhs, bool *plessEqual)
 {
     if (!test->getOperand(0)->isCompare())
@@ -1379,7 +1379,7 @@ TryEliminateTypeBarrier(MTypeBarrier *barrier, bool *eliminated)
 
 
 bool
-ion::EliminateRedundantChecks(MIRGraph &graph)
+jit::EliminateRedundantChecks(MIRGraph &graph)
 {
     BoundsCheckMap checks;
 
@@ -1465,7 +1465,7 @@ FindLeadingGoto(LBlock *bb)
 
 
 bool
-ion::UnsplitEdges(LIRGraph *lir)
+jit::UnsplitEdges(LIRGraph *lir)
 {
     for (size_t i = 0; i < lir->numBlocks(); i++) {
         LBlock *bb = lir->getBlock(i);

@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jit_shared_BaselineCompiler_shared_h
 #define jit_shared_BaselineCompiler_shared_h
@@ -14,7 +14,7 @@
 #include "jit/IonSpewer.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class BaselineCompilerShared
 {
@@ -33,15 +33,15 @@ class BaselineCompilerShared
     FallbackICStubSpace stubSpace_;
     js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
 
-    // Stores the native code offset for a bytecode pc.
+    
     struct PCMappingEntry
     {
         uint32_t pcOffset;
         uint32_t nativeOffset;
         PCMappingSlotInfo slotInfo;
 
-        // If set, insert a PCMappingIndexEntry before encoding the
-        // current entry.
+        
+        
         bool addIndexEntry;
 
         void fixupNativeOffset(MacroAssembler &masm) {
@@ -54,10 +54,10 @@ class BaselineCompilerShared
 
     js::Vector<PCMappingEntry, 16, SystemAllocPolicy> pcMappingEntries_;
 
-    // Labels for the 'movWithPatch' for loading IC entry pointers in
-    // the generated IC-calling code in the main jitcode.  These need
-    // to be patched with the actual icEntry offsets after the BaselineScript
-    // has been allocated.
+    
+    
+    
+    
     struct ICLoadLabel {
         size_t icEntry;
         CodeOffsetLabel label;
@@ -75,15 +75,15 @@ class BaselineCompilerShared
         if (!stub)
             return NULL;
 
-        // Create the entry and add it to the vector.
+        
         if (!icEntries_.append(ICEntry((uint32_t) (pc - script->code), isForOp)))
             return NULL;
         ICEntry &vecEntry = icEntries_[icEntries_.length() - 1];
 
-        // Set the first stub for the IC entry to the fallback stub
+        
         vecEntry.setFirstStub(stub);
 
-        // Return pointer to the IC entry
+        
         return &vecEntry;
     }
 
@@ -121,10 +121,10 @@ class BaselineCompilerShared
         pushedBeforeCall_ = masm.framePushed();
         inCall_ = true;
 
-        // Ensure everything is synced.
+        
         frame.syncStack(0);
 
-        // Save the frame pointer.
+        
         masm.Push(BaselineFrameReg);
     }
 
@@ -136,7 +136,7 @@ class BaselineCompilerShared
     }
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif /* jit_shared_BaselineCompiler_shared_h */
+#endif 

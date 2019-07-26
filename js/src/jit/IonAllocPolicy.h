@@ -16,7 +16,7 @@
 #include "jit/Ion.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class TempAllocator
 {

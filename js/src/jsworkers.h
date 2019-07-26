@@ -26,7 +26,7 @@ namespace js {
 struct WorkerThread;
 struct AsmJSParallelTask;
 struct ParseTask;
-namespace ion {
+namespace jit {
   class IonBuilder;
 }
 
@@ -55,7 +55,7 @@ class WorkerThreadState
     };
 
     
-    Vector<ion::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
+    Vector<jit::IonBuilder*, 0, SystemAllocPolicy> ionWorklist;
 
     
     Vector<AsmJSParallelTask*, 0, SystemAllocPolicy> asmJSWorklist;
@@ -160,7 +160,7 @@ struct WorkerThread
     bool terminate;
 
     
-    ion::IonBuilder *ionBuilder;
+    jit::IonBuilder *ionBuilder;
 
     
     AsmJSParallelTask *asmData;
@@ -212,7 +212,7 @@ StartOffThreadAsmJSCompile(ExclusiveContext *cx, AsmJSParallelTask *asmData);
 
 
 bool
-StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder);
+StartOffThreadIonCompile(JSContext *cx, jit::IonBuilder *builder);
 
 
 
@@ -319,15 +319,15 @@ struct AsmJSParallelTask
 {
     LifoAlloc lifo;         
     void *func;             
-    ion::MIRGenerator *mir; 
-    ion::LIRGraph *lir;     
+    jit::MIRGenerator *mir; 
+    jit::LIRGraph *lir;     
     unsigned compileTime;
 
     AsmJSParallelTask(size_t defaultChunkSize)
       : lifo(defaultChunkSize), func(NULL), mir(NULL), lir(NULL), compileTime(0)
     { }
 
-    void init(void *func, ion::MIRGenerator *mir) {
+    void init(void *func, jit::MIRGenerator *mir) {
         this->func = func;
         this->mir = mir;
         this->lir = NULL;

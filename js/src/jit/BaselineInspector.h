@@ -14,7 +14,7 @@
 #include "jit/MIR.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class BaselineInspector;
 

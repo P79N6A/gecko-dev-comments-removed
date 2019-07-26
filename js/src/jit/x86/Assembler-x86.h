@@ -15,7 +15,7 @@
 #include "jit/shared/Assembler-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 static MOZ_CONSTEXPR_VAR Register eax = { JSC::X86Registers::eax };
 static MOZ_CONSTEXPR_VAR Register ecx = { JSC::X86Registers::ecx };
@@ -216,7 +216,7 @@ class Operand
 #include "jit/shared/Assembler-x86-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 static inline void
 PatchJump(CodeLocationJump jump, CodeLocationLabel label)

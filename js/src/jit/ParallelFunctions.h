@@ -11,7 +11,7 @@
 #include "vm/ForkJoin.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 ForkJoinSlice *ForkJoinSlicePar();
 JSObject *NewGCThingPar(gc::AllocKind allocKind);

@@ -18,7 +18,7 @@
 #include "vm/ScopeObject.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 inline void
 BaselineFrame::pushOnScopeChain(ScopeObject &scope)

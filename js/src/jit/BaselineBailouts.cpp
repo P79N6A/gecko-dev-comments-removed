@@ -17,7 +17,7 @@
 #include "jit/IonFrames-inl.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 
 
@@ -1179,7 +1179,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 }
 
 uint32_t
-ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIterator &iter,
+jit::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIterator &iter,
                           bool invalidate, BaselineBailoutInfo **bailoutInfo,
                           const ExceptionBailoutInfo *excInfo)
 {
@@ -1396,7 +1396,7 @@ HandleCachedShapeGuardFailure(JSContext *cx, HandleScript outerScript, HandleScr
 }
 
 uint32_t
-ion::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
+jit::FinishBailoutToBaseline(BaselineBailoutInfo *bailoutInfo)
 {
     
     

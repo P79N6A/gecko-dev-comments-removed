@@ -25,7 +25,7 @@ namespace js {
 
 class AsmJSModule;
 
-namespace ion {
+namespace jit {
 
 
 
@@ -752,7 +752,7 @@ struct AutoFlushInhibitor {
 namespace gc {
 
 inline bool
-IsMarked(const ion::VMFunction *)
+IsMarked(const jit::VMFunction *)
 {
     
     

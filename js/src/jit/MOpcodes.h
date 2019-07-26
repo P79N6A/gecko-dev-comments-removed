@@ -8,7 +8,7 @@
 #define jit_MOpcodes_h
 
 namespace js {
-namespace ion {
+namespace jit {
 
 #define MIR_OPCODE_LIST(_)                                                  \
     _(Constant)                                                             \

@@ -13,7 +13,7 @@
 #include "jit/IonAllocPolicy.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 template <typename T>

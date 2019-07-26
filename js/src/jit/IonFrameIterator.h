@@ -20,7 +20,7 @@ namespace js {
 };
 
 namespace js {
-namespace ion {
+namespace jit {
 
 enum FrameType
 {

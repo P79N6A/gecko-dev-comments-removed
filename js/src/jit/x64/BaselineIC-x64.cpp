@@ -11,10 +11,10 @@
 #include "jit/IonLinker.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 

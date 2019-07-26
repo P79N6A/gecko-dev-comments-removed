@@ -13,7 +13,7 @@
 #include "jit/MIRGraph.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 bool
 LIRGeneratorShared::emitAtUses(MInstruction *mir)

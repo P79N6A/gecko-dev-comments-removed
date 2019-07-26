@@ -11,7 +11,7 @@ namespace js {
 
 class SPSProfiler;
 
-namespace ion {
+namespace jit {
 
 class MacroAssembler;
 

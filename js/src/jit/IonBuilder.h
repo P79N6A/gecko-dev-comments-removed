@@ -16,7 +16,7 @@
 #include "jit/MIRGraph.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class CodeGenerator;
 class CallInfo;

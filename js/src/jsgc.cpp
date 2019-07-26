@@ -137,7 +137,7 @@ const uint32_t Arena::ThingSizes[] = {
     sizeof(JSShortString),      
     sizeof(JSString),           
     sizeof(JSExternalString),   
-    sizeof(ion::IonCode),       
+    sizeof(jit::IonCode),       
 };
 
 #define OFFSET(type) uint32_t(sizeof(ArenaHeader) + (ArenaSize - sizeof(ArenaHeader)) % sizeof(type))
@@ -163,7 +163,7 @@ const uint32_t Arena::FirstThingOffsets[] = {
     OFFSET(JSShortString),      
     OFFSET(JSString),           
     OFFSET(JSExternalString),   
-    OFFSET(ion::IonCode),       
+    OFFSET(jit::IonCode),       
 };
 
 #undef OFFSET
@@ -459,7 +459,7 @@ FinalizeArenas(FreeOp *fop,
         
         
         JSRuntime::AutoLockForOperationCallback lock(fop->runtime());
-        return FinalizeTypedArenas<ion::IonCode>(fop, src, dest, thingKind, budget);
+        return FinalizeTypedArenas<jit::IonCode>(fop, src, dest, thingKind, budget);
       }
 #endif
       default:
@@ -4923,19 +4923,19 @@ js::ReleaseAllJITCode(FreeOp *fop)
 # endif
 
         
-        ion::MarkActiveBaselineScripts(zone);
+        jit::MarkActiveBaselineScripts(zone);
 
-        ion::InvalidateAll(fop, zone);
+        jit::InvalidateAll(fop, zone);
 
         for (CellIter i(zone, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
-            ion::FinishInvalidation(fop, script);
+            jit::FinishInvalidation(fop, script);
 
             
 
 
 
-            ion::FinishDiscardBaselineScript(fop, script);
+            jit::FinishDiscardBaselineScript(fop, script);
         }
     }
 
@@ -5052,7 +5052,7 @@ js::PurgeJITCaches(Zone *zone)
         JSScript *script = i.get<JSScript>();
 
         
-        ion::PurgeCaches(script, zone);
+        jit::PurgeCaches(script, zone);
     }
 #endif
 }

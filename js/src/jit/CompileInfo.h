@@ -12,7 +12,7 @@
 #include "jit/Registers.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 inline unsigned
 StartArgSlot(JSScript *script, JSFunction *fun)

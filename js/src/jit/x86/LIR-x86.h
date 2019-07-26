@@ -8,7 +8,7 @@
 #define jit_x86_LIR_x86_h
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class LBox : public LInstructionHelper<2, 1, 0>
 {

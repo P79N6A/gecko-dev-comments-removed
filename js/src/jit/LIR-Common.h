@@ -13,7 +13,7 @@
 
 
 namespace js {
-namespace ion {
+namespace jit {
 
 template <size_t Temps, size_t ExtraUses = 0>
 class LBinaryMath : public LInstructionHelper<1, 2 + ExtraUses, Temps>

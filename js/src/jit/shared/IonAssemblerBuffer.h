@@ -11,7 +11,7 @@
 #include "jit/shared/Assembler-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 

@@ -19,7 +19,7 @@
 #include "vm/Stack-inl.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 
 
@@ -63,7 +63,7 @@ IonBailoutIterator::dump() const
 }
 
 uint32_t
-ion::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
+jit::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
 {
     JS_ASSERT(bailoutInfo);
     JSContext *cx = GetIonContext()->cx;
@@ -91,7 +91,7 @@ ion::Bailout(BailoutStack *sp, BaselineBailoutInfo **bailoutInfo)
 }
 
 uint32_t
-ion::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
+jit::InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut,
                          BaselineBailoutInfo **bailoutInfo)
 {
     sp->checkInvariants();
@@ -154,7 +154,7 @@ IonBailoutIterator::IonBailoutIterator(const JitActivationIterator &activations,
 }
 
 uint32_t
-ion::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
+jit::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
                              const ExceptionBailoutInfo &excInfo,
                              BaselineBailoutInfo **bailoutInfo)
 {
@@ -178,7 +178,7 @@ ion::ExceptionHandlerBailout(JSContext *cx, const InlineFrameIterator &frame,
 
 
 bool
-ion::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
+jit::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
 {
     if (fp.isFunctionFrame() &&
         fp.fun()->isHeavyweight() &&
@@ -190,7 +190,7 @@ ion::EnsureHasScopeObjects(JSContext *cx, AbstractFramePtr fp)
 }
 
 bool
-ion::CheckFrequentBailouts(JSContext *cx, JSScript *script)
+jit::CheckFrequentBailouts(JSContext *cx, JSScript *script)
 {
     if (script->hasIonScript()) {
         

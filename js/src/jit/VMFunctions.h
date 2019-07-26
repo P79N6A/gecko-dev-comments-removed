@@ -18,7 +18,7 @@ namespace js {
 class DeclEnvObject;
 class ForkJoinSlice;
 
-namespace ion {
+namespace jit {
 
 enum DataType {
     Type_Void,

@@ -23,7 +23,7 @@
 #    define JS_SMALL_BRANCH
 #endif
 namespace js {
-namespace ion {
+namespace jit {
 
 enum Scale {
     TimesOne = 0,

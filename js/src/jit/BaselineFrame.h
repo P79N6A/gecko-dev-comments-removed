@@ -16,7 +16,7 @@
 #include "vm/Stack.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 
@@ -348,16 +348,16 @@ class BaselineFrame
 
     
     static size_t offsetOfCalleeToken() {
-        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfCalleeToken();
+        return FramePointerOffset + js::jit::IonJSFrameLayout::offsetOfCalleeToken();
     }
     static size_t offsetOfThis() {
-        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfThis();
+        return FramePointerOffset + js::jit::IonJSFrameLayout::offsetOfThis();
     }
     static size_t offsetOfArg(size_t index) {
-        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfActualArg(index);
+        return FramePointerOffset + js::jit::IonJSFrameLayout::offsetOfActualArg(index);
     }
     static size_t offsetOfNumActualArgs() {
-        return FramePointerOffset + js::ion::IonJSFrameLayout::offsetOfNumActualArgs();
+        return FramePointerOffset + js::jit::IonJSFrameLayout::offsetOfNumActualArgs();
     }
     static size_t Size() {
         return sizeof(BaselineFrame);

@@ -24,7 +24,7 @@ class JSFunction;
 class JSScript;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 typedef void * CalleeToken;
 
@@ -330,7 +330,7 @@ GetTopIonJSScript(ThreadSafeContext *cx, void **returnAddrOut = NULL)
 #endif
 
 namespace js {
-namespace ion {
+namespace jit {
 
 void
 GetPcScript(JSContext *cx, JSScript **scriptRes, jsbytecode **pcRes);

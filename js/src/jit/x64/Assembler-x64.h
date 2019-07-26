@@ -14,7 +14,7 @@
 #include "jit/shared/Assembler-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 static MOZ_CONSTEXPR_VAR Register rax = { JSC::X86Registers::eax };
 static MOZ_CONSTEXPR_VAR Register rbx = { JSC::X86Registers::ebx };
@@ -263,7 +263,7 @@ class Operand
 #include "jit/shared/Assembler-x86-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 static MOZ_CONSTEXPR_VAR ValueOperand JSReturnOperand = ValueOperand(JSReturnReg);

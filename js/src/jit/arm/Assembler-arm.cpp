@@ -18,7 +18,7 @@
 #include "jit/IonCompartment.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 using mozilla::CountLeadingZeroes32;
 
@@ -103,28 +103,28 @@ const Register ABIArgGenerator::NonArgReturnVolatileReg1 = r5;
 
 
 uint32_t
-js::ion::RT(Register r)
+js::jit::RT(Register r)
 {
     JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 12;
 }
 
 uint32_t
-js::ion::RN(Register r)
+js::jit::RN(Register r)
 {
     JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 16;
 }
 
 uint32_t
-js::ion::RD(Register r)
+js::jit::RD(Register r)
 {
     JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 12;
 }
 
 uint32_t
-js::ion::RM(Register r)
+js::jit::RM(Register r)
 {
     JS_ASSERT((r.code() & ~0xf) == 0);
     return r.code() << 8;
@@ -134,7 +134,7 @@ js::ion::RM(Register r)
 
 
 uint32_t
-js::ion::maybeRT(Register r)
+js::jit::maybeRT(Register r)
 {
     if (r == InvalidReg)
         return 0;
@@ -144,7 +144,7 @@ js::ion::maybeRT(Register r)
 }
 
 uint32_t
-js::ion::maybeRN(Register r)
+js::jit::maybeRN(Register r)
 {
     if (r == InvalidReg)
         return 0;
@@ -154,7 +154,7 @@ js::ion::maybeRN(Register r)
 }
 
 uint32_t
-js::ion::maybeRD(Register r)
+js::jit::maybeRD(Register r)
 {
     if (r == InvalidReg)
         return 0;
@@ -164,30 +164,30 @@ js::ion::maybeRD(Register r)
 }
 
 Register
-js::ion::toRD(Instruction &i)
+js::jit::toRD(Instruction &i)
 {
     return Register::FromCode((i.encode()>>12) & 0xf);
 }
 Register
-js::ion::toR(Instruction &i)
+js::jit::toR(Instruction &i)
 {
     return Register::FromCode(i.encode() & 0xf);
 }
 
 Register
-js::ion::toRM(Instruction &i)
+js::jit::toRM(Instruction &i)
 {
     return Register::FromCode((i.encode()>>8) & 0xf);
 }
 
 Register
-js::ion::toRN(Instruction &i)
+js::jit::toRN(Instruction &i)
 {
     return Register::FromCode((i.encode()>>16) & 0xf);
 }
 
 uint32_t
-js::ion::VD(VFPRegister vr)
+js::jit::VD(VFPRegister vr)
 {
     if (vr.isMissing())
         return 0;
@@ -197,7 +197,7 @@ js::ion::VD(VFPRegister vr)
     return s.bit << 22 | s.block << 12;
 }
 uint32_t
-js::ion::VN(VFPRegister vr)
+js::jit::VN(VFPRegister vr)
 {
     if (vr.isMissing())
         return 0;
@@ -207,7 +207,7 @@ js::ion::VN(VFPRegister vr)
     return s.bit << 7 | s.block << 16;
 }
 uint32_t
-js::ion::VM(VFPRegister vr)
+js::jit::VM(VFPRegister vr)
 {
     if (vr.isMissing())
         return 0;
@@ -218,7 +218,7 @@ js::ion::VM(VFPRegister vr)
 }
 
 VFPRegister::VFPRegIndexSplit
-ion::VFPRegister::encode()
+jit::VFPRegister::encode()
 {
     JS_ASSERT(!_isInvalid);
 
@@ -233,7 +233,7 @@ ion::VFPRegister::encode()
     }
 }
 
-VFPRegister js::ion::NoVFPRegister(true);
+VFPRegister js::jit::NoVFPRegister(true);
 
 bool
 InstDTR::isTHIS(const Instruction &i)
@@ -548,7 +548,7 @@ Imm16::Imm16()
 { }
 
 void
-ion::PatchJump(CodeLocationJump &jump_, CodeLocationLabel label)
+jit::PatchJump(CodeLocationJump &jump_, CodeLocationLabel label)
 {
     
     
@@ -825,7 +825,7 @@ TraceDataRelocations(JSTracer *trc, uint8_t *buffer, CompactBufferReader &reader
     while (reader.more()) {
         size_t offset = reader.readUnsigned();
         InstructionIterator iter((Instruction*)(buffer+offset));
-        void *ptr = const_cast<uint32_t *>(js::ion::Assembler::getPtr32Target(&iter));
+        void *ptr = const_cast<uint32_t *>(js::jit::Assembler::getPtr32Target(&iter));
         
         gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void **>(&ptr), "ion-masm-ptr");
     }
@@ -838,7 +838,7 @@ TraceDataRelocations(JSTracer *trc, ARMBuffer *buffer,
     for (unsigned int idx = 0; idx < locs->length(); idx++) {
         BufferOffset bo = (*locs)[idx];
         ARMBuffer::AssemblerBufferInstIterator iter(bo, buffer);
-        void *ptr = const_cast<uint32_t *>(ion::Assembler::getPtr32Target(&iter));
+        void *ptr = const_cast<uint32_t *>(jit::Assembler::getPtr32Target(&iter));
 
         
         gc::MarkGCThingUnbarriered(trc, reinterpret_cast<void **>(&ptr), "ion-masm-ptr");
@@ -1021,7 +1021,7 @@ Imm8::encodeTwoImms(uint32_t imm)
 }
 
 ALUOp
-ion::ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest)
+jit::ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest)
 {
     
     *negDest = dest;
@@ -1062,7 +1062,7 @@ ion::ALUNeg(ALUOp op, Register dest, Imm32 *imm, Register *negDest)
 }
 
 bool
-ion::can_dbl(ALUOp op)
+jit::can_dbl(ALUOp op)
 {
     
     
@@ -1084,7 +1084,7 @@ ion::can_dbl(ALUOp op)
 }
 
 bool
-ion::condsAreSafe(ALUOp op) {
+jit::condsAreSafe(ALUOp op) {
     
     
     
@@ -1112,7 +1112,7 @@ ion::condsAreSafe(ALUOp op) {
 }
 
 ALUOp
-ion::getDestVariant(ALUOp op)
+jit::getDestVariant(ALUOp op)
 {
     
     
@@ -1131,39 +1131,39 @@ ion::getDestVariant(ALUOp op)
 }
 
 O2RegImmShift
-ion::O2Reg(Register r) {
+jit::O2Reg(Register r) {
     return O2RegImmShift(r, LSL, 0);
 }
 
 O2RegImmShift
-ion::lsl(Register r, int amt)
+jit::lsl(Register r, int amt)
 {
     JS_ASSERT(0 <= amt && amt <= 31);
     return O2RegImmShift(r, LSL, amt);
 }
 
 O2RegImmShift
-ion::lsr(Register r, int amt)
+jit::lsr(Register r, int amt)
 {
     JS_ASSERT(1 <= amt && amt <= 32);
     return O2RegImmShift(r, LSR, amt);
 }
 
 O2RegImmShift
-ion::ror(Register r, int amt)
+jit::ror(Register r, int amt)
 {
     JS_ASSERT(1 <= amt && amt <= 31);
     return O2RegImmShift(r, ROR, amt);
 }
 O2RegImmShift
-ion::rol(Register r, int amt)
+jit::rol(Register r, int amt)
 {
     JS_ASSERT(1 <= amt && amt <= 31);
     return O2RegImmShift(r, ROR, 32 - amt);
 }
 
 O2RegImmShift
-ion::asr (Register r, int amt)
+jit::asr (Register r, int amt)
 {
     JS_ASSERT(1 <= amt && amt <= 32);
     return O2RegImmShift(r, ASR, amt);
@@ -1171,31 +1171,31 @@ ion::asr (Register r, int amt)
 
 
 O2RegRegShift
-ion::lsl(Register r, Register amt)
+jit::lsl(Register r, Register amt)
 {
     return O2RegRegShift(r, LSL, amt);
 }
 
 O2RegRegShift
-ion::lsr(Register r, Register amt)
+jit::lsr(Register r, Register amt)
 {
     return O2RegRegShift(r, LSR, amt);
 }
 
 O2RegRegShift
-ion::ror(Register r, Register amt)
+jit::ror(Register r, Register amt)
 {
     return O2RegRegShift(r, ROR, amt);
 }
 
 O2RegRegShift
-ion::asr (Register r, Register amt)
+jit::asr (Register r, Register amt)
 {
     return O2RegRegShift(r, ASR, amt);
 }
 
 
-js::ion::VFPImm::VFPImm(uint32_t top)
+js::jit::VFPImm::VFPImm(uint32_t top)
 {
     data = -1;
     datastore::Imm8VFPImmData tmp;
@@ -1217,7 +1217,7 @@ BOffImm::getDest(Instruction *src)
     return &src[(((int32_t)data<<8)>>8) + 2];
 }
 
-js::ion::DoubleEncoder js::ion::DoubleEncoder::_this;
+js::jit::DoubleEncoder js::jit::DoubleEncoder::_this;
 
 
 VFPRegister

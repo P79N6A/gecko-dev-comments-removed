@@ -14,7 +14,7 @@ namespace js {
 
 class StackFrame;
 
-namespace ion {
+namespace jit {
 
 class MIRGraph;
 class AutoDestroyAllocator;

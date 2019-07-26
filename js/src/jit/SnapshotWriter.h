@@ -14,7 +14,7 @@
 #include "jit/Registers.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 

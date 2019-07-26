@@ -17,7 +17,7 @@
 #include "jit/IonMacroAssembler.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class Linker
 {

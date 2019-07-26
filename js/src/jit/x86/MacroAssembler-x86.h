@@ -14,7 +14,7 @@
 #include "jit/shared/MacroAssembler-x86-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MacroAssemblerX86 : public MacroAssemblerX86Shared
 {

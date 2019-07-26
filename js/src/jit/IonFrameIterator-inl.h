@@ -15,7 +15,7 @@
 #include "jit/BaselineFrame.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 template <AllowGC allowGC>
 inline

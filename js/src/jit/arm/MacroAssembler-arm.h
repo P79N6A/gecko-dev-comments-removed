@@ -19,7 +19,7 @@
 using mozilla::DebugOnly;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 static Register CallReg = ip;
 static const int defaultShift = 3;

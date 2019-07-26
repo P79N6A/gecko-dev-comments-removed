@@ -16,7 +16,7 @@
 #include "js/RootingAPI.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 

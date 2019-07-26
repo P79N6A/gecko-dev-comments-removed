@@ -14,7 +14,7 @@
 #include "js/RootingAPI.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MDefinition;
 class MInstruction;

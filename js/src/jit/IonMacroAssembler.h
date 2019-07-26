@@ -27,7 +27,7 @@
 #include "vm/TypedArrayObject.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 
@@ -104,7 +104,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         sps_(NULL)
     {
         constructRoot(cx);
-        ionContext_.construct(cx, (js::ion::TempAllocator *)NULL);
+        ionContext_.construct(cx, (js::jit::TempAllocator *)NULL);
         alloc_.construct(cx);
 #ifdef JS_CPU_ARM
         initWithAllocator();

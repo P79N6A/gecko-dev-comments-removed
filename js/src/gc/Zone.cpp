@@ -68,7 +68,7 @@ Zone::setNeedsBarrier(bool needs, ShouldUpdateIon updateIon)
 {
 #ifdef JS_ION
     if (updateIon == UpdateIon && needs != ionUsingBarriers_) {
-        ion::ToggleBarriers(this, needs);
+        jit::ToggleBarriers(this, needs);
         ionUsingBarriers_ = needs;
     }
 #endif
@@ -201,20 +201,20 @@ Zone::discardJitCode(FreeOp *fop, bool discardConstraints)
 # endif
 
         
-        ion::MarkActiveBaselineScripts(this);
+        jit::MarkActiveBaselineScripts(this);
 
         
-        ion::InvalidateAll(fop, this);
+        jit::InvalidateAll(fop, this);
 
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
-            ion::FinishInvalidation(fop, script);
+            jit::FinishInvalidation(fop, script);
 
             
 
 
 
-            ion::FinishDiscardBaselineScript(fop, script);
+            jit::FinishDiscardBaselineScript(fop, script);
 
             
 

@@ -1025,7 +1025,7 @@ js_InvokeOperationCallback(JSContext *cx)
 
 
 
-    ion::AttachFinishedCompilations(cx);
+    jit::AttachFinishedCompilations(cx);
 #endif
 
     

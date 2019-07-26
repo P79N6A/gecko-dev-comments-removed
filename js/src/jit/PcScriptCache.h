@@ -13,7 +13,7 @@
 struct JSRuntime;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 struct PcScriptCacheEntry
 {

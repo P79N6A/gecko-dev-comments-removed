@@ -21,7 +21,7 @@
 #include "jit/VMFunctions.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class OutOfLineCode;
 class CodeGenerator;

@@ -15,7 +15,7 @@
 #include "jit/MIR.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MBasicBlock;
 class MIRGraph;

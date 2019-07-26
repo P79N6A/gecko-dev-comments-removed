@@ -10,7 +10,7 @@
 #include "jit/shared/CodeGenerator-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class OutOfLineBailout;
 class OutOfLineUndoALUOperation;

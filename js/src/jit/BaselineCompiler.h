@@ -24,7 +24,7 @@
 #endif
 
 namespace js {
-namespace ion {
+namespace jit {
 
 #define OPCODE_LIST(_)         \
     _(JSOP_NOP)                \

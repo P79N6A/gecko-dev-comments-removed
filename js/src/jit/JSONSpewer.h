@@ -12,7 +12,7 @@
 class JSScript;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MDefinition;
 class MInstruction;

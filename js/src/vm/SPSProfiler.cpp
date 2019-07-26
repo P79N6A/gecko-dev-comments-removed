@@ -65,7 +65,7 @@ SPSProfiler::enable(bool enabled)
 
 
 
-    ion::ToggleBaselineSPS(rt, enabled);
+    jit::ToggleBaselineSPS(rt, enabled);
 #endif
 }
 

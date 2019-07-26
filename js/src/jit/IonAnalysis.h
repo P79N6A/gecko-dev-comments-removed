@@ -13,7 +13,7 @@
 #include "jit/MIR.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MIRGenerator;
 class MIRGraph;

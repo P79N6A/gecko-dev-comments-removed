@@ -19,7 +19,7 @@
 #include "jit/shared/IonAssemblerBufferWithConstantPools.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 
@@ -232,7 +232,7 @@ class VFPRegister
         const uint32_t bit : 1;
 
       private:
-        friend VFPRegIndexSplit js::ion::VFPRegister::encode();
+        friend VFPRegIndexSplit js::jit::VFPRegister::encode();
 
         VFPRegIndexSplit (uint32_t block_, uint32_t bit_)
           : block(block_), bit(bit_)
@@ -1122,7 +1122,7 @@ void
 PatchJump(CodeLocationJump &jump_, CodeLocationLabel label);
 class InstructionIterator;
 class Assembler;
-typedef js::ion::AssemblerBufferWithConstantPool<1024, 4, Instruction, Assembler, 1> ARMBuffer;
+typedef js::jit::AssemblerBufferWithConstantPool<1024, 4, Instruction, Assembler, 1> ARMBuffer;
 
 class Assembler
 {

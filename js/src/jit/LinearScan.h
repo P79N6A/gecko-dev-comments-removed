@@ -12,7 +12,7 @@
 #include "js/Vector.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class LinearScanVirtualRegister : public VirtualRegister
 {

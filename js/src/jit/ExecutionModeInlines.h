@@ -14,7 +14,7 @@
 #include "jsscriptinlines.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 static inline bool
 HasIonScript(JSScript *script, ExecutionMode cmode)

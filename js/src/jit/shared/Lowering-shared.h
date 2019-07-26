@@ -14,7 +14,7 @@
 #include "jit/LIR.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MBasicBlock;
 class MTableSwitch;

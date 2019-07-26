@@ -12,7 +12,7 @@
 
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class StupidAllocator : public RegisterAllocator
 {

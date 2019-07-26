@@ -11,7 +11,7 @@
 #include "jit/x86/Assembler-x86.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class OutOfLineLoadTypedArrayOutOfBounds;
 class OutOfLineTruncate;

@@ -14,7 +14,7 @@
 #include "jit/IonMacroAssembler.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 
 static const size_t ICStackValueOffset = sizeof(void *);

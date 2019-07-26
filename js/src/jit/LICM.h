@@ -15,7 +15,7 @@
 
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class LICM
 {

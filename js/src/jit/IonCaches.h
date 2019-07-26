@@ -22,7 +22,7 @@ namespace js {
 class LockedJSContext;
 class TypedArrayObject;
 
-namespace ion {
+namespace jit {
 
 #define IONCACHE_KIND_LIST(_)                                   \
     _(GetProperty)                                              \

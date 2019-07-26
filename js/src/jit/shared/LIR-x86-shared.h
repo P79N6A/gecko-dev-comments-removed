@@ -8,7 +8,7 @@
 #define jit_shared_LIR_x86_shared_h
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class LDivI : public LBinaryMath<1>
 {

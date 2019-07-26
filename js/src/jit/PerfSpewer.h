@@ -14,7 +14,7 @@
 class JSScript;
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class MBasicBlock;
 class MacroAssembler;

@@ -892,7 +892,7 @@ JSScript::getPCCounts(jsbytecode *pc) {
 }
 
 void
-JSScript::addIonCounts(ion::IonScriptCounts *ionCounts)
+JSScript::addIonCounts(jit::IonScriptCounts *ionCounts)
 {
     ScriptCountsMap::Ptr p = GetScriptCountsMapEntry(this);
     if (p->value.ionCounts)
@@ -900,7 +900,7 @@ JSScript::addIonCounts(ion::IonScriptCounts *ionCounts)
     p->value.ionCounts = ionCounts;
 }
 
-ion::IonScriptCounts *
+jit::IonScriptCounts *
 JSScript::getIonCounts()
 {
     ScriptCountsMap::Ptr p = GetScriptCountsMapEntry(this);
@@ -2096,7 +2096,7 @@ JSScript::finalize(FreeOp *fop)
         types->destroy();
 
 #ifdef JS_ION
-    ion::DestroyIonScripts(fop, this);
+    jit::DestroyIonScripts(fop, this);
 #endif
 
     destroyScriptCounts(fop);
@@ -2830,7 +2830,7 @@ JSScript::markChildren(JSTracer *trc)
     }
 
 #ifdef JS_ION
-    ion::TraceIonScripts(trc, this);
+    jit::TraceIonScripts(trc, this);
 #endif
 }
 

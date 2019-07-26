@@ -20,7 +20,7 @@
 #include "jsscriptinlines.h"
 
 using namespace js;
-using namespace js::ion;
+using namespace js::jit;
 
 
 
@@ -181,7 +181,7 @@ IonRuntime::generateEnterJIT(JSContext *cx, EnterJitType type)
         masm.passABIArg(framePtr); 
         masm.passABIArg(OsrFrameReg); 
         masm.passABIArg(numStackValues);
-        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ion::InitBaselineFrameForOsr));
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, jit::InitBaselineFrameForOsr));
 
         masm.pop(jitcode);
         masm.pop(framePtr);

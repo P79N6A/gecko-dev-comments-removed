@@ -10,7 +10,7 @@
 #include "jit/shared/BaselineCompiler-shared.h"
 
 namespace js {
-namespace ion {
+namespace jit {
 
 class BaselineCompilerARM : public BaselineCompilerShared
 {
