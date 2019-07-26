@@ -4115,10 +4115,6 @@ pref("network.tcp.sendbuffer", 131072);
 #endif
 
 
-
-pref("layers.async-video.enabled",false);
-
-
 pref("layers.acceleration.disabled", false);
 
 
@@ -4143,7 +4139,11 @@ pref("layers.max-active", -1);
 #ifdef XP_MACOSX
 pref("layers.offmainthreadcomposition.enabled", true);
 pref("layers.use-deprecated-textures", false);
+
+
+pref("layers.async-video.enabled",true);
 #else
+pref("layers.async-video.enabled",false);
 #ifdef MOZ_WIDGET_GONK
 pref("layers.use-deprecated-textures", false);
 #else
