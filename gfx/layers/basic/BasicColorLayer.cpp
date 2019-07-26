@@ -3,7 +3,7 @@
 
 
 
-#include "mozilla/layers/PLayerTransactionParent.h"
+#include "mozilla/layers/PLayersParent.h"
 #include "BasicLayersImpl.h"
 
 using namespace mozilla::gfx;

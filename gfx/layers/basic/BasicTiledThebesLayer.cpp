@@ -2,7 +2,7 @@
 
 
 
-#include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/layers/PLayersChild.h"
 #include "BasicTiledThebesLayer.h"
 #include "gfxImageSurface.h"
 #include "GeckoProfiler.h"

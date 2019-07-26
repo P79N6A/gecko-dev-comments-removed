@@ -5,19 +5,19 @@
 
 
 
-#ifndef MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
-#define MOZILLA_LAYERS_LAYERTRANSACTIONCHILD_H
+#ifndef mozilla_layers_ShadowLayersChild_h
+#define mozilla_layers_ShadowLayersChild_h
 
-#include "mozilla/layers/PLayerTransactionChild.h"
+#include "mozilla/layers/PLayersChild.h"
 
 namespace mozilla {
 namespace layers {
 
-class LayerTransactionChild : public PLayerTransactionChild
+class ShadowLayersChild : public PLayersChild
 {
 public:
-  LayerTransactionChild() { }
-  ~LayerTransactionChild() { }
+  ShadowLayersChild() { }
+  ~ShadowLayersChild() { }
 
   
 
