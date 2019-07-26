@@ -8,7 +8,7 @@
 #define mozilla_arm_h_
 
 
-#include "nscore.h"
+#include "mozilla/Types.h"
 
 
 
@@ -104,16 +104,16 @@ namespace mozilla {
   namespace arm_private {
 #if defined(MOZILLA_ARM_HAVE_CPUID_DETECTION)
 #if !defined(MOZILLA_PRESUME_EDSP)
-    extern bool NS_COM_GLUE edsp_enabled;
+    extern bool MFBT_DATA edsp_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_ARMV6)
-    extern bool NS_COM_GLUE armv6_enabled;
+    extern bool MFBT_DATA armv6_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_ARMV7)
-    extern bool NS_COM_GLUE armv7_enabled;
+    extern bool MFBT_DATA armv7_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_NEON)
-    extern bool NS_COM_GLUE neon_enabled;
+    extern bool MFBT_DATA neon_enabled;
 #endif
 #endif
   }

@@ -9,7 +9,7 @@
 #define mozilla_SSE_h_
 
 
-#include "nscore.h"
+#include "mozilla/Types.h"
 
 
 
@@ -176,28 +176,28 @@ namespace mozilla {
   namespace sse_private {
 #if defined(MOZILLA_SSE_HAVE_CPUID_DETECTION)
 #if !defined(MOZILLA_PRESUME_MMX)
-    extern bool NS_COM_GLUE mmx_enabled;
+    extern bool MFBT_DATA mmx_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE)
-    extern bool NS_COM_GLUE sse_enabled;
+    extern bool MFBT_DATA sse_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE2)
-    extern bool NS_COM_GLUE sse2_enabled;
+    extern bool MFBT_DATA sse2_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE3)
-    extern bool NS_COM_GLUE sse3_enabled;
+    extern bool MFBT_DATA sse3_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSSE3)
-    extern bool NS_COM_GLUE ssse3_enabled;
+    extern bool MFBT_DATA ssse3_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE4A)
-    extern bool NS_COM_GLUE sse4a_enabled;
+    extern bool MFBT_DATA sse4a_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE4_1)
-    extern bool NS_COM_GLUE sse4_1_enabled;
+    extern bool MFBT_DATA sse4_1_enabled;
 #endif
 #if !defined(MOZILLA_PRESUME_SSE4_2)
-    extern bool NS_COM_GLUE sse4_2_enabled;
+    extern bool MFBT_DATA sse4_2_enabled;
 #endif
 #endif
   }
