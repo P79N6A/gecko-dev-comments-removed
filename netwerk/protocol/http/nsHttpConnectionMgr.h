@@ -265,10 +265,10 @@ private:
         nsConnectionEntry(nsHttpConnectionInfo *ci);
         ~nsConnectionEntry();
 
-        nsHttpConnectionInfo        *mConnInfo;
-        nsTArray<nsHttpTransaction*> mPendingQ;    
-        nsTArray<nsHttpConnection*>  mActiveConns; 
-        nsTArray<nsHttpConnection*>  mIdleConns;   
+        nsRefPtr<nsHttpConnectionInfo> mConnInfo;
+        nsTArray<nsRefPtr<nsHttpTransaction> > mPendingQ;    
+        nsTArray<nsRefPtr<nsHttpConnection> >  mActiveConns; 
+        nsTArray<nsRefPtr<nsHttpConnection> >  mIdleConns;   
         nsTArray<nsHalfOpenSocket*>  mHalfOpens;   
 
         
@@ -379,16 +379,18 @@ private:
     
     
     
-    class nsConnectionHandle : public nsAHttpConnection
+    class nsConnectionHandle MOZ_FINAL : public nsAHttpConnection
     {
     public:
         NS_DECL_THREADSAFE_ISUPPORTS
         NS_DECL_NSAHTTPCONNECTION(mConn)
 
-        nsConnectionHandle(nsHttpConnection *conn) { NS_ADDREF(mConn = conn); }
+        nsConnectionHandle(nsHttpConnection *conn) : mConn(conn) { }
         virtual ~nsConnectionHandle();
+        void Reset() { mConn = nullptr; }
 
-        nsHttpConnection *mConn;
+    private:
+        nsRefPtr<nsHttpConnection> mConn;
     };
 
     
@@ -520,6 +522,8 @@ private:
     void     StartedConnect();
     void     RecvdConnect();
 
+    static void InsertTransactionSorted(nsTArray<nsRefPtr<nsHttpTransaction> > &,
+                                        nsHttpTransaction *);
     nsConnectionEntry *GetOrCreateConnectionEntry(nsHttpConnectionInfo *);
 
     nsresult MakeNewConnection(nsConnectionEntry *ent,
