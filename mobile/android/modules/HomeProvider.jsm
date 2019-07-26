@@ -91,6 +91,10 @@ var gSyncCallbacks = {};
 
 
 
+var gWritesAreExpected = false;
+
+
+
 
 
 
@@ -154,7 +158,10 @@ this.HomeProvider = Object.freeze({
       return false;
     }
 
+    gWritesAreExpected = true;
     callback(datasetId);
+    gWritesAreExpected = false;
+
     return true;
   },
 
@@ -292,6 +299,10 @@ HomeStorage.prototype = {
 
 
   save: function(data) {
+    if (!gWritesAreExpected) {
+      Cu.reportError("HomeStorage: save() called outside of sync window");
+    }
+
     return Task.spawn(function save_task() {
       let db = yield getDatabaseConnection();
       try {
@@ -331,6 +342,10 @@ HomeStorage.prototype = {
 
 
   deleteAll: function() {
+    if (!gWritesAreExpected) {
+      Cu.reportError("HomeStorage: deleteAll() called outside of sync window");
+    }
+
     return Task.spawn(function delete_all_task() {
       let db = yield getDatabaseConnection();
       try {
