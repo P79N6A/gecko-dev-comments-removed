@@ -263,6 +263,15 @@ public:
     MOZ_ASSERT(mInputCount <= 1 && mOutputCount <= 1);
     *aOutput = aInput;
   }
+  
+
+
+
+
+  virtual void ProduceBlockBeforeInput(AudioChunk* aOutput)
+  {
+    NS_NOTREACHED("ProduceBlockBeforeInput called on wrong engine\n");
+  }
 
   
 
