@@ -479,21 +479,79 @@ CouldBeDOMBinding(nsWrapperCache* aCache)
 
 
 
+inline const JS::Value&
+GetSystemOnlyWrapperSlot(JSObject* obj)
+{
+  MOZ_ASSERT(IsDOMClass(js::GetObjectJSClass(obj)) &&
+             !(js::GetObjectJSClass(obj)->flags & JSCLASS_DOM_GLOBAL));
+  return js::GetReservedSlot(obj, DOM_OBJECT_SLOT_SOW);
+}
+inline void
+SetSystemOnlyWrapperSlot(JSObject* obj, const JS::Value& v)
+{
+  MOZ_ASSERT(IsDOMClass(js::GetObjectJSClass(obj)) &&
+             !(js::GetObjectJSClass(obj)->flags & JSCLASS_DOM_GLOBAL));
+  js::SetReservedSlot(obj, DOM_OBJECT_SLOT_SOW, v);
+}
+
+inline bool
+GetSameCompartmentWrapperForDOMBinding(JSObject*& obj)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  if (dom::IsDOMClass(clasp)) {
+    if (!(clasp->flags & JSCLASS_DOM_GLOBAL)) {
+      JS::Value v = GetSystemOnlyWrapperSlot(obj);
+      if (v.isObject()) {
+        obj = &v.toObject();
+      }
+    }
+    return true;
+  }
+  return IsDOMProxy(obj, clasp);
+}
+
+inline void
+SetSystemOnlyWrapper(JSObject* obj, nsWrapperCache* cache, JSObject& wrapper)
+{
+  SetSystemOnlyWrapperSlot(obj, JS::ObjectValue(wrapper));
+  cache->SetHasSystemOnlyWrapper();
+}
+
+static inline void
+WrapNewBindingForSameCompartment(JSContext* cx, JSObject* obj, void* value,
+                                 JS::Value* vp)
+{
+  *vp = JS::ObjectValue(*obj);
+}
+
+static inline void
+WrapNewBindingForSameCompartment(JSContext* cx, JSObject* obj,
+                                 nsWrapperCache* value, JS::Value* vp)
+{
+  if (value->HasSystemOnlyWrapper()) {
+    *vp = GetSystemOnlyWrapperSlot(obj);
+    MOZ_ASSERT(vp->isObject());
+  } else {
+    *vp = JS::ObjectValue(*obj);
+  }
+}
+
+
+
+
+
 
 template <class T>
 MOZ_ALWAYS_INLINE bool
 WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 {
   JSObject* obj = value->GetWrapperPreserveColor();
+  bool couldBeDOMBinding = CouldBeDOMBinding(value);
   if (obj) {
     xpc_UnmarkNonNullGrayObject(obj);
-    if (js::GetObjectCompartment(obj) == js::GetContextCompartment(cx)) {
-      *vp = JS::ObjectValue(*obj);
-      return true;
-    }
   } else {
     
-    if (!CouldBeDOMBinding(value)) {
+    if (!couldBeDOMBinding) {
       return false;
     }
 
@@ -523,7 +581,6 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
     MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports, IsISupports<T>::Value);
     MOZ_ASSERT(CheckWrapperCacheCast<T>::Check());
   }
-#endif
 
   
   
@@ -531,8 +588,17 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
   
   
   MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
+#endif
+
+  bool sameCompartment =
+    js::GetObjectCompartment(obj) == js::GetContextCompartment(cx);
+  if (sameCompartment && couldBeDOMBinding) {
+    WrapNewBindingForSameCompartment(cx, obj, value, vp);
+    return true;
+  }
+
   *vp = JS::ObjectValue(*obj);
-  return JS_WrapValue(cx, vp);
+  return (sameCompartment && IS_SLIM_WRAPPER(obj)) || JS_WrapValue(cx, vp);
 }
 
 

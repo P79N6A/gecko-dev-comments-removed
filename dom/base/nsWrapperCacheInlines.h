@@ -9,6 +9,16 @@
 #include "nsWrapperCache.h"
 #include "xpcpublic.h"
 
+
+
+
+
+
+
+MOZ_STATIC_ASSERT(sizeof(js::shadow::Object) % 8 == 0 && sizeof(JS::Value) == 8,
+                  "We want to rely on JSObject being aligned on 8 byte "
+                  "boundaries.");
+
 inline JSObject*
 nsWrapperCache::GetWrapper() const
 {

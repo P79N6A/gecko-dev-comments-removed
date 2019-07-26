@@ -19,6 +19,7 @@
 #include "mozilla/Likely.h"
 
 using namespace js;
+using namespace mozilla;
 
 namespace xpc {
 
@@ -469,8 +470,13 @@ WrapperFactory::WrapForSameCompartment(JSContext *cx, JSObject *obj)
     
     
     
-    
-    
+
+    if (dom::GetSameCompartmentWrapperForDOMBinding(obj)) {
+        return obj;
+    }
+
+    MOZ_ASSERT(!dom::IsDOMObject(obj));
+
     if (!IS_WN_WRAPPER(obj))
         return obj;
 
