@@ -1193,7 +1193,7 @@ var WalkerActor = protocol.ActorClass({
     
     let filteredWalker = (node) => {
       return documentWalker(node, this.rootWin, options.whatToShow);
-    }
+    };
 
     
     let rawNode = node.rawNode;
@@ -1384,7 +1384,15 @@ var WalkerActor = protocol.ActorClass({
 
 
   querySelectorAll: method(function(baseNode, selector) {
-    return new NodeListActor(this, baseNode.rawNode.querySelectorAll(selector));
+    let nodeList = null;
+
+    try {
+      nodeList = baseNode.rawNode.querySelectorAll(selector);
+    } catch(e) {
+      
+    }
+
+    return new NodeListActor(this, nodeList);
   }, {
     request: {
       node: Arg(0, "domnode"),
