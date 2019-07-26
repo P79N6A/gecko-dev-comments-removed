@@ -46,6 +46,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Util.h"
+#include "mozilla/MathAlgorithms.h"
 #include "FrameLayerBuilder.h"
 #include "nsSMILKeySpline.h"
 #include "nsSubDocumentFrame.h"
@@ -1794,34 +1795,60 @@ void nsGfxScrollFrameInner::ScrollVisual(nsPoint aOldScrolledFramePos)
 
 
 
+
+
+
 static nscoord
-AlignWithLayerPixels(nscoord aDesired, nscoord aLower,
-                     nscoord aUpper, nscoord aAppUnitsPerPixel,
-                     double aRes, nscoord aCurrent)
+ClampAndAlignWithPixels(nscoord aDesired,
+                        nscoord aBoundLower, nscoord aBoundUpper,
+                        nscoord aDestLower, nscoord aDestUpper,
+                        nscoord aAppUnitsPerPixel, double aRes,
+                        nscoord aCurrent)
 {
+  
+  
+  nscoord destLower = clamped(aDestLower, aBoundLower, aBoundUpper);
+  nscoord destUpper = clamped(aDestUpper, aBoundLower, aBoundUpper);
+
+  nscoord desired = clamped(aDesired, destLower, destUpper);
+
   double currentLayerVal = (aRes*aCurrent)/aAppUnitsPerPixel;
-  double desiredLayerVal = (aRes*aDesired)/aAppUnitsPerPixel;
+  double desiredLayerVal = (aRes*desired)/aAppUnitsPerPixel;
   double delta = desiredLayerVal - currentLayerVal;
-  double nearestVal = NS_round(delta) + currentLayerVal;
+  double nearestLayerVal = NS_round(delta) + currentLayerVal;
 
   
   
-  nscoord nearestAppUnitVal =
-    NSToCoordRoundWithClamp(nearestVal*aAppUnitsPerPixel/aRes);
+  nscoord aligned =
+    NSToCoordRoundWithClamp(nearestLayerVal*aAppUnitsPerPixel/aRes);
 
   
-  if (nearestAppUnitVal >= aLower && nearestAppUnitVal <= aUpper) {
-    return nearestAppUnitVal;
-  } else if (nearestVal != desiredLayerVal) {
-    
-    double oppositeVal = nearestVal + ((nearestVal < desiredLayerVal) ? 1 : -1);
-    nscoord oppositeAppUnitVal =
-      NSToCoordRoundWithClamp(oppositeVal*aAppUnitsPerPixel/aRes);
-    if (oppositeAppUnitVal >= aLower && oppositeAppUnitVal <= aUpper) {
-      return oppositeAppUnitVal;
-    }
+  
+  if (aBoundUpper == destUpper &&
+      static_cast<typeof(Abs(desired))>(aBoundUpper - desired) <
+      Abs(desired - aligned))
+    return aBoundUpper;
+
+  if (aBoundLower == destLower &&
+      static_cast<typeof(Abs(desired))>(desired - aBoundLower) <
+      Abs(aligned - desired))
+    return aBoundLower;
+
+  
+  if (aligned >= destLower && aligned <= destUpper)
+    return aligned;
+
+  
+  double oppositeLayerVal =
+    nearestLayerVal + ((nearestLayerVal < desiredLayerVal) ? 1.0 : -1.0);
+  nscoord opposite =
+    NSToCoordRoundWithClamp(oppositeLayerVal*aAppUnitsPerPixel/aRes);
+  if (opposite >= destLower && opposite <= destUpper) {
+    return opposite;
   }
-  return aDesired;
+
+  
+  return desired;
 }
 
 
@@ -1837,16 +1864,14 @@ ClampAndAlignWithLayerPixels(const nsPoint& aPt,
                              nscoord aAppUnitsPerPixel,
                              const gfxSize& aScale)
 {
-  nsPoint pt = aBounds.ClampPoint(aPt);
-  
-  
-  nsPoint rangeTopLeft = aBounds.ClampPoint(aRange.TopLeft());
-  nsPoint rangeBottomRight = aBounds.ClampPoint(aRange.BottomRight());
-
-  return nsPoint(AlignWithLayerPixels(pt.x, rangeTopLeft.x, rangeBottomRight.x,
-                                      aAppUnitsPerPixel, aScale.width, aCurrent.x),
-                 AlignWithLayerPixels(pt.y, rangeTopLeft.y, rangeBottomRight.y,
-                                      aAppUnitsPerPixel, aScale.height, aCurrent.y));
+  return nsPoint(ClampAndAlignWithPixels(aPt.x, aBounds.x, aBounds.XMost(),
+                                         aRange.x, aRange.XMost(),
+                                         aAppUnitsPerPixel, aScale.width,
+                                         aCurrent.x),
+                 ClampAndAlignWithPixels(aPt.y, aBounds.y, aBounds.YMost(),
+                                         aRange.y, aRange.YMost(),
+                                         aAppUnitsPerPixel, aScale.height,
+                                         aCurrent.y));
 }
 
  void
