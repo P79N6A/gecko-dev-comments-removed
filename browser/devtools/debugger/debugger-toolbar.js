@@ -373,6 +373,20 @@ create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
   
 
 
+
+  set preferredSource(aValue) {
+    this._preferredValue = aValue;
+
+    
+    
+    if (this.containsValue(aValue)) {
+      this.selectedValue = aValue;
+    }
+  },
+
+  
+
+
   _onSelect: function DVS__onSelect() {
     if (!this.refresh()) {
       return;
