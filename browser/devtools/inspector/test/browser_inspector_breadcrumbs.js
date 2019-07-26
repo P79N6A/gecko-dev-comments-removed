@@ -57,7 +57,10 @@ function test()
 
     if (cursor >= nodes.length) {
       inspector.off("breadcrumbs-updated", nodeSelected);
-      finishUp();
+      
+      
+      
+      inspector.once("inspector-updated", finishUp);
     } else {
       let node = nodes[cursor].node;
       inspector.selection.setNode(node);

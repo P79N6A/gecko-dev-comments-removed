@@ -36,6 +36,13 @@ function test() {
   
     .then(function () {
       let deferred = promise.defer();
+      toolbox.getPanel("inspector").once("inspector-updated", deferred.resolve);
+      return deferred.promise;
+    })
+
+  
+    .then(function () {
+      let deferred = promise.defer();
       target.once("navigate", function () deferred.resolve());
       browser.loadURI(URL_2);
       return deferred.promise;

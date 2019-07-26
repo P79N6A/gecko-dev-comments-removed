@@ -34,7 +34,6 @@ function test() {
     
     return toolbox.selectTool("inspector").then(i => {
       inspector = i;
-
       
       let testNode = content.document.querySelector("#one");
       ok(testNode, "We have the test node on page 1");

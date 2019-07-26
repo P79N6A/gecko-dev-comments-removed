@@ -67,22 +67,24 @@ function performTests()
   
   
   inspector.selection.once("pseudoclass", () => {
-    
     inspector.once("rule-view-refreshed", () => {
-      testAdded();
-      
-      inspector.togglePseudoClass(pseudo);
-      inspector.selection.once("pseudoclass", () => {
-        inspector.once("rule-view-refreshed", () => {
-          testRemoved();
-          testRemovedFromUI();
-
-          
-          inspector.togglePseudoClass(pseudo);
-          inspector.selection.once("pseudoclass", () => {
-            testNavigate(() => {
+      testAdded(() => {
+        
+        inspector.togglePseudoClass(pseudo);
+        inspector.selection.once("pseudoclass", () => {
+          inspector.once("rule-view-refreshed", () => {
+            testRemoved();
+            testRemovedFromUI(() => {
               
-              finishUp();
+              inspector.togglePseudoClass(pseudo);
+              inspector.selection.once("pseudoclass", () => {
+                inspector.once("rule-view-refreshed", () => {
+                  testNavigate(() => {
+                    
+                    finishUp();
+                  });
+                });
+              });
             });
           });
         });
@@ -98,46 +100,52 @@ function testNavigate(callback)
 
     
     is(DOMUtils.hasPseudoClassLock(div, pseudo), true,
-         "pseudo-class lock is still applied after inspecting ancestor");
+      "pseudo-class lock is still applied after inspecting ancestor");
 
     inspector.selection.setNode(div2);
     inspector.selection.once("pseudoclass", () => {
       
       is(DOMUtils.hasPseudoClassLock(div, pseudo), false,
-           "pseudo-class lock is removed after inspecting sibling node");
+        "pseudo-class lock is removed after inspecting sibling node");
 
       
       inspector.selection.setNode(div);
       inspector.once("inspector-updated", () => {
         inspector.togglePseudoClass(pseudo);
-        inspector.selection.once("pseudoclass", () => {
-          callback();
-        });
+        inspector.once("computed-view-refreshed", callback);
       });
     });
   });
 }
 
-function testAdded()
+function showPickerOn(node, cb)
+{
+  let highlighter = inspector.toolbox.highlighter;
+  highlighter.showBoxModel(getNodeFront(node)).then(cb);
+}
+
+function testAdded(cb)
 {
   
   let node = div;
   do {
     is(DOMUtils.hasPseudoClassLock(node, pseudo), true,
-       "pseudo-class lock has been applied");
+      "pseudo-class lock has been applied");
     node = node.parentNode;
   } while (node.parentNode)
 
   
-  let pseudoClassesBox = getActiveInspector().highlighter.nodeInfo.pseudoClassesBox;
-  is(pseudoClassesBox.textContent, pseudo, "pseudo-class in infobar selector");
+  let rules = ruleview.element.querySelectorAll(".ruleview-rule.theme-separator");
+  is(rules.length, 3, "rule view is showing 3 rules for pseudo-class locked div");
+  is(rules[1]._ruleEditor.rule.selectorText, "div:hover", "rule view is showing " + pseudo + " rule");
 
   
-  is(ruleview.element.children.length, 3,
-     "rule view is showing 3 rules for pseudo-class locked div");
-
-  is(ruleview.element.children[1]._ruleEditor.rule.selectorText,
-     "div:hover", "rule view is showing " + pseudo + " rule");
+  showPickerOn(div, () => {
+    
+    let pseudoClassesBox = getHighlighter().querySelector(".highlighter-nodeinfobar-pseudo-classes");
+    is(pseudoClassesBox.textContent, pseudo, "pseudo-class in infobar selector");
+    cb();
+  });
 }
 
 function testRemoved()
@@ -151,15 +159,17 @@ function testRemoved()
   } while (node.parentNode)
 }
 
-function testRemovedFromUI()
+function testRemovedFromUI(cb)
 {
   
-  let pseudoClassesBox = getActiveInspector().highlighter.nodeInfo.pseudoClassesBox;
-  is(pseudoClassesBox.textContent, "", "pseudo-class removed from infobar selector");
+  let rules = ruleview.element.querySelectorAll(".ruleview-rule.theme-separator");
+  is(rules.length, 2, "rule view is showing 2 rules after removing lock");
 
-  
-  is(ruleview.element.children.length, 2,
-     "rule view is showing 2 rules after removing lock");
+  showPickerOn(div, () => {
+    let pseudoClassesBox = getHighlighter().querySelector(".highlighter-nodeinfobar-pseudo-classes");
+    is(pseudoClassesBox.textContent, "", "pseudo-class removed from infobar selector");
+    cb();
+  });
 }
 
 function finishUp()
