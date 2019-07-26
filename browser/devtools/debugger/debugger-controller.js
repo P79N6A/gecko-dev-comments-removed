@@ -52,6 +52,7 @@ let DebuggerController = {
 
     DebuggerView.initialize(function() {
       DebuggerView._isInitialized = true;
+
       window.dispatchEvent("Debugger:Loaded");
       this._connect();
     }.bind(this));
@@ -371,6 +372,7 @@ function StackFrames() {
 
 StackFrames.prototype = {
   get activeThread() DebuggerController.activeThread,
+  autoScopeExpand: false,
   currentFrame: null,
   currentException: null,
 
@@ -493,11 +495,11 @@ StackFrames.prototype = {
     if (!frame) {
       return;
     }
-    let env = frame.environment;
+    let environment = frame.environment;
     let { url, line } = frame.where;
 
     
-    if (!env) {
+    if (!environment) {
       return;
     }
 
@@ -512,78 +514,24 @@ StackFrames.prototype = {
     
     DebuggerView.Variables.empty();
 
-    let self = this;
-    let name = "";
-
     do {
       
-      if (!env.parent) {
-        name = L10N.getStr("globalScopeLabel");
-      }
-      
-      else {
-        name = env.type.charAt(0).toUpperCase() + env.type.slice(1);
-      }
-
-      let label = L10N.getFormatStr("scopeLabel", [name]);
-      switch (env.type) {
-        case "with":
-        case "object":
-          label += " [" + env.object.class + "]";
-          break;
-        case "function":
-          label += " [" + env.functionName + "]";
-          break;
-      }
-
-      
+      let label = this._getScopeLabel(environment);
       let scope = DebuggerView.Variables.addScope(label);
 
       
-      if (env == frame.environment) {
+      if (environment == frame.environment) {
+        this._insertScopeFrameReferences(scope, frame);
+        this._fetchScopeVariables(scope, environment);
         
-        if (aDepth == 0 && this.currentException) {
-          let excVar = scope.addVar("<exception>", { value: this.currentException });
-          this._addExpander(excVar, this.currentException);
-        }
-        
-        if (frame.this) {
-          let thisVar = scope.addVar("this", { value: frame.this });
-          this._addExpander(thisVar, frame.this);
-        }
-        
-        scope.expand(true);
+        scope.expand();
       }
-
-      switch (env.type) {
-        case "with":
-        case "object":
-          
-          this.activeThread.pauseGrip(env.object).getPrototypeAndProperties(function(aResponse) {
-            self._addScopeVariables(aResponse.ownProperties, scope);
-
-            
-            window.dispatchEvent("Debugger:FetchedVariables");
-            DebuggerView.Variables.commitHierarchy();
-          });
-          break;
-        case "block":
-        case "function":
-          
-          for (let variable of env.bindings.arguments) {
-            let name = Object.getOwnPropertyNames(variable)[0];
-            let paramVar = scope.addVar(name, variable[name]);
-            let paramVal = variable[name].value;
-            this._addExpander(paramVar, paramVal);
-          }
-          
-          this._addScopeVariables(env.bindings.variables, scope);
-          break;
-        default:
-          Cu.reportError("Unknown Debugger.Environment type: " + env.type);
-          break;
+      
+      else {
+        this._addScopeExpander(scope, environment);
+        this.autoScopeExpand && scope.expand();
       }
-    } while (env = env.parent);
+    } while (environment = environment.parent);
 
     
     window.dispatchEvent("Debugger:FetchedVariables");
@@ -599,10 +547,135 @@ StackFrames.prototype = {
 
 
 
-  _addScopeVariables: function SF_addScopeVariables(aVariables, aScope) {
+  _addScopeExpander: function SF__addScopeExpander(aScope, aEnv) {
+    let callback = this._fetchScopeVariables.bind(this, aScope, aEnv);
+
+    
+    aScope.onmouseover = callback;
+    
+    aScope.onexpand = callback;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _addVarExpander: function SF__addVarExpander(aVar, aGrip) {
+    
+    if (VariablesView.isPrimitive({ value: aGrip })) {
+      return;
+    }
+    let callback = this._fetchVarProperties.bind(this, aVar, aGrip);
+
+    
+    
+    if (aVar.name == "window" || aVar.name == "this") {
+      aVar.onmouseover = callback;
+    }
+    
+    aVar.onexpand = callback;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _fetchScopeVariables: function SF__fetchScopeVariables(aScope, aEnv) {
+    
+    if (aScope.fetched) {
+      return;
+    }
+    aScope.fetched = true;
+
+    switch (aEnv.type) {
+      case "with":
+      case "object":
+        
+        this.activeThread.pauseGrip(aEnv.object).getPrototypeAndProperties(function(aResponse) {
+          this._insertScopeVariables(aResponse.ownProperties, aScope);
+
+          
+          window.dispatchEvent("Debugger:FetchedVariables");
+          DebuggerView.Variables.commitHierarchy();
+        }.bind(this));
+        break;
+      case "block":
+      case "function":
+        
+        this._insertScopeArguments(aEnv.bindings.arguments, aScope);
+        this._insertScopeVariables(aEnv.bindings.variables, aScope);
+        break;
+      default:
+        Cu.reportError("Unknown Debugger.Environment type: " + aEnv.type);
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _insertScopeFrameReferences: function SF__insertScopeFrameReferences(aScope, aFrame) {
+    
+    if (this.currentException) {
+      let excRef = aScope.addVar("<exception>", { value: this.currentException });
+      this._addVarExpander(excRef, this.currentException);
+    }
+    
+    if (aFrame.this) {
+      let thisRef = aScope.addVar("this", { value: aFrame.this });
+      this._addVarExpander(thisRef, aFrame.this);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _insertScopeArguments: function SF__insertScopeArguments(aArguments, aScope) {
+    if (!aArguments) {
+      return;
+    }
+
+    for (let argument of aArguments) {
+      let name = Object.getOwnPropertyNames(argument)[0];
+      let argRef = aScope.addVar(name, argument[name]);
+      let argVal = argument[name].value;
+      this._addVarExpander(argRef, argVal);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+  _insertScopeVariables: function SF__insertScopeVariables(aVariables, aScope) {
     if (!aVariables) {
       return;
     }
+
     let variableNames = Object.keys(aVariables);
 
     
@@ -611,9 +684,9 @@ StackFrames.prototype = {
     }
     
     for (let name of variableNames) {
-      let paramVar = aScope.addVar(name, aVariables[name]);
-      let paramVal = aVariables[name].value;
-      this._addExpander(paramVar, paramVal);
+      let varRef = aScope.addVar(name, aVariables[name]);
+      let varVal = aVariables[name].value;
+      this._addVarExpander(varRef, varVal);
     }
   },
 
@@ -626,28 +699,12 @@ StackFrames.prototype = {
 
 
 
-  _addExpander: function SF__addExpander(aVar, aGrip) {
-    
-    if (VariablesView.isPrimitive({ value: aGrip })) {
-      return;
-    }
-    aVar.onexpand = this._addVarProperties.bind(this, aVar, aGrip);
-  },
-
-  
-
-
-
-
-
-
-
-
-  _addVarProperties: function SF__addVarProperties(aVar, aGrip) {
+  _fetchVarProperties: function SF__fetchVarProperties(aVar, aGrip) {
     
     if (aVar.fetched) {
       return;
     }
+    aVar.fetched = true;
 
     this.activeThread.pauseGrip(aGrip).getPrototypeAndProperties(function(aResponse) {
       let { ownProperties, prototype } = aResponse;
@@ -657,7 +714,7 @@ StackFrames.prototype = {
         aVar.addProperties(ownProperties);
         
         for (let name in ownProperties) {
-          this._addExpander(aVar.get(name), ownProperties[name].value);
+          this._addVarExpander(aVar.get(name), ownProperties[name].value);
         }
       }
 
@@ -665,15 +722,48 @@ StackFrames.prototype = {
       if (prototype.type != "null") {
         aVar.addProperty("__proto__", { value: prototype });
         
-        this._addExpander(aVar.get("__proto__"), prototype);
+        this._addVarExpander(aVar.get("__proto__"), prototype);
       }
 
-      aVar.fetched = true;
+      aVar._retrieved = true;
 
       
       window.dispatchEvent("Debugger:FetchedProperties");
       DebuggerView.Variables.commitHierarchy();
     }.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  _getScopeLabel: function SV__getScopeLabel(aEnv) {
+    let name = "";
+
+    
+    if (!aEnv.parent) {
+      name = L10N.getStr("globalScopeLabel");
+    }
+    
+    else {
+      name = aEnv.type.charAt(0).toUpperCase() + aEnv.type.slice(1);
+    }
+
+    let label = L10N.getFormatStr("scopeLabel", [name]);
+    switch (aEnv.type) {
+      case "with":
+      case "object":
+        label += " [" + aEnv.object.class + "]";
+        break;
+      case "function":
+        label += " [" + aEnv.functionName + "]";
+        break;
+    }
+    return label;
   },
 
   

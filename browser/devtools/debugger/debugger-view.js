@@ -680,7 +680,7 @@ MenuContainer.prototype = {
     this._container.removeAttribute("tooltiptext");
     this._container.removeAllItems();
 
-    for (let [_, item] of this._itemsByElement) {
+    for (let [, item] of this._itemsByElement) {
       this._untangleItem(item);
     }
 
@@ -1057,7 +1057,7 @@ MenuContainer.prototype = {
 
 
   __iterator__: function DVMC_iterator() {
-    for (let [_, item] of this._itemsByElement) {
+    for (let [, item] of this._itemsByElement) {
       yield item;
     }
   },
