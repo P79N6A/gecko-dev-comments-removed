@@ -344,7 +344,6 @@ FrameworkView::OnActivated(ICoreApplicationView* aApplicationView,
 {
   LogFunction();
 
-  
   ApplicationExecutionState state;
   aArgs->get_PreviousExecutionState(&state);
   bool startup = state == ApplicationExecutionState::ApplicationExecutionState_Terminated ||
