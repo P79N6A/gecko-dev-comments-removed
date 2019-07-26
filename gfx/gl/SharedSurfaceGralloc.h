@@ -38,7 +38,7 @@ public:
 
 protected:
     GLLibraryEGL* const mEGL;
-    WeakPtr<layers::ISurfaceAllocator> mAllocator;
+    RefPtr<layers::ISurfaceAllocator> mAllocator;
     
     
     
@@ -64,7 +64,7 @@ protected:
                            size,
                            hasAlpha)
         , mEGL(egl)
-        , mAllocator(allocator->asWeakPtr())
+        , mAllocator(allocator)
         , mDesc(desc)
         , mProdTex(prodTex)
     {}
@@ -93,7 +93,7 @@ class SurfaceFactory_Gralloc
     : public SurfaceFactory_GL
 {
 protected:
-    WeakPtr<layers::ISurfaceAllocator> mAllocator;
+    RefPtr<layers::ISurfaceAllocator> mAllocator;
 
 public:
     SurfaceFactory_Gralloc(GLContext* prodGL,
