@@ -1265,7 +1265,15 @@ LinearScanAllocator::populateSafepoints()
 
                 if (!typeInterval && !payloadInterval)
                     continue;
-                JS_ASSERT(typeInterval && payloadInterval);
+
+                LAllocation *typeAlloc = typeInterval->getAllocation();
+                LAllocation *payloadAlloc = payloadInterval->getAllocation();
+
+                
+                
+                
+                if (payloadAlloc->isArgument())
+                    continue;
 
                 if (IsSpilledAt(type, inputOf(ins)) && IsSpilledAt(payload, inputOf(ins))) {
                     
@@ -1275,9 +1283,6 @@ LinearScanAllocator::populateSafepoints()
                     if (!safepoint->addValueSlot(slot))
                         return false;
                 }
-
-                LAllocation *typeAlloc = typeInterval->getAllocation();
-                LAllocation *payloadAlloc = payloadInterval->getAllocation();
 
                 if (!ins->isCall() &&
                     (!IsSpilledAt(type, inputOf(ins)) || payloadAlloc->isGeneralReg()))
