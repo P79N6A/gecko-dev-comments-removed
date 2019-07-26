@@ -12,38 +12,19 @@ import org.mozilla.gecko.util.HardwareUtils;
 import org.mozilla.gecko.util.ThreadUtils;
 
 import android.app.Application;
-import android.content.res.Configuration;
-import android.util.Log;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 
 public class GeckoApplication extends Application {
 
     private boolean mInited;
     private boolean mInBackground;
     private boolean mPausedGecko;
+    private boolean mNeedsRestart;
 
     private LightweightTheme mLightweightTheme;
-
-    
-
-
-
-    @Override
-    public void onConfigurationChanged(Configuration config) {
-        Log.d("GeckoApplication", "onConfigurationChanged: " + config.locale +
-                                  ", background: " + mInBackground);
-
-        
-        
-        if (mInBackground) {
-            super.onConfigurationChanged(config);
-            return;
-        }
-
-        
-        
-        LocaleManager.correctLocale(getResources(), config);
-        super.onConfigurationChanged(config);
-    }
 
     protected void initialize() {
         if (mInited)
@@ -61,6 +42,14 @@ public class GeckoApplication extends Application {
         GeckoBatteryManager.getInstance().start();
         GeckoNetworkManager.getInstance().init(getApplicationContext());
         MemoryMonitor.getInstance().init(getApplicationContext());
+
+        BroadcastReceiver receiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                mNeedsRestart = true;
+            }
+        };
+        registerReceiver(receiver, new IntentFilter(Intent.ACTION_LOCALE_CHANGED));
 
         mInited = true;
     }
@@ -99,6 +88,10 @@ public class GeckoApplication extends Application {
         GeckoNetworkManager.getInstance().start();
 
         mInBackground = false;
+    }
+
+    protected boolean needsRestart() {
+        return mNeedsRestart;
     }
 
     @Override

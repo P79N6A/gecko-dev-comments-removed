@@ -10,7 +10,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.ActionProvider;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
@@ -115,7 +114,7 @@ public class GeckoMenu extends ListView
         mItems = new ArrayList<GeckoMenuItem>();
         mActionItems = new HashMap<GeckoMenuItem, View>();
 
-        mActionItemBarPresenter = (DefaultActionItemBar) LayoutInflater.from(context).inflate(R.layout.menu_action_bar, null);
+        mActionItemBarPresenter =  (DefaultActionItemBar) LayoutInflater.from(context).inflate(R.layout.menu_action_bar, null);
     }
 
     @Override
@@ -220,25 +219,13 @@ public class GeckoMenu extends ListView
     public void clear() {
         for (GeckoMenuItem menuItem : mItems) {
             if (menuItem.hasSubMenu()) {
-                SubMenu sub = menuItem.getSubMenu();
-                if (sub == null) {
-                    continue;
-                }
-                try {
-                    sub.clear();
-                } catch (Exception ex) {
-                    Log.e(LOGTAG, "Couldn't clear submenu.", ex);
-                }
+                menuItem.getSubMenu().clear();
             }
         }
 
         mAdapter.clear();
+
         mItems.clear();
-
-        
-
-
-
 
         if (mActionItemBarPresenter != null) {
             for (View item : mActionItems.values()) {
