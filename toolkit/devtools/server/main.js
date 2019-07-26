@@ -38,6 +38,7 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 let wantLogging = Services.prefs.getBoolPref("devtools.debugger.log");
 
+Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
 Cu.import("resource://gre/modules/jsdebugger.jsm");
 addDebuggerToGlobal(this);
 
@@ -522,6 +523,73 @@ var DebuggerServer = {
 
     let transport = new ChildDebuggerTransport(aMessageManager, aPrefix);
     return this._onConnection(transport, aPrefix, true);
+  },
+
+  connectToChild: function(aConnection, aMessageManager, aOnDisconnect) {
+    let deferred = Promise.defer();
+
+    let mm = aMessageManager;
+    mm.loadFrameScript("resource://gre/modules/devtools/server/child.js", false);
+
+    let actor, childTransport, prefix;
+
+    let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
+      mm.removeMessageListener("debug:actor", onActorCreated);
+
+      prefix = msg.json.prefix;
+
+      
+      childTransport = new ChildDebuggerTransport(mm, prefix);
+      childTransport.hooks = {
+        onPacket: aConnection.send.bind(aConnection),
+        onClosed: function () {}
+      };
+      childTransport.ready();
+
+      aConnection.setForwarding(prefix, childTransport);
+
+      dumpn("establishing forwarding for app with prefix " + prefix);
+
+      actor = msg.json.actor;
+
+      deferred.resolve(actor);
+    }).bind(this);
+    mm.addMessageListener("debug:actor", onActorCreated);
+
+    let onMessageManagerDisconnect = DevToolsUtils.makeInfallible(function (subject, topic, data) {
+      if (subject == mm) {
+        Services.obs.removeObserver(onMessageManagerDisconnect, topic);
+        if (childTransport) {
+          
+          
+          childTransport.close();
+          aConnection.cancelForwarding(prefix);
+        } else {
+          
+          
+          
+          deferred.resolve(null);
+        }
+        if (actor) {
+          
+          
+          
+          aConnection.send({ from: actor.actor, type: "tabDetached" });
+          actor = null;
+        }
+
+        if (aOnDisconnect) {
+          aOnDisconnect(mm);
+        }
+      }
+    }).bind(this);
+    Services.obs.addObserver(onMessageManagerDisconnect,
+                             "message-manager-disconnect", false);
+
+    let prefixStart = aConnection.prefix + "child";
+    mm.sendAsyncMessage("debug:connect", { prefix: prefixStart });
+
+    return deferred.promise;
   },
 
   

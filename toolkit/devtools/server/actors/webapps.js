@@ -789,73 +789,6 @@ WebappsActor.prototype = {
     });
   },
 
-  _connectToApp: function (aFrame) {
-    let deferred = Promise.defer();
-
-    let mm = aFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager;
-    mm.loadFrameScript("resource://gre/modules/devtools/server/child.js", false);
-
-    let childTransport, prefix;
-
-    let onActorCreated = DevToolsUtils.makeInfallible(function (msg) {
-      mm.removeMessageListener("debug:actor", onActorCreated);
-
-      dump("***** Got debug:actor\n");
-      let { actor, appId } = msg.json;
-      prefix = msg.json.prefix;
-
-      
-      childTransport = new ChildDebuggerTransport(mm, prefix);
-      childTransport.hooks = {
-        onPacket: this.conn.send.bind(this.conn),
-        onClosed: function () {}
-      };
-      childTransport.ready();
-
-      this.conn.setForwarding(prefix, childTransport);
-
-      debug("establishing forwarding for app with prefix " + prefix);
-
-      this._appActorsMap.set(mm, actor);
-
-      deferred.resolve(actor);
-    }).bind(this);
-    mm.addMessageListener("debug:actor", onActorCreated);
-
-    let onMessageManagerDisconnect = DevToolsUtils.makeInfallible(function (subject, topic, data) {
-      if (subject == mm) {
-        Services.obs.removeObserver(onMessageManagerDisconnect, topic);
-        if (childTransport) {
-          
-          
-          childTransport.close();
-          this.conn.cancelForwarding(prefix);
-        } else {
-          
-          
-          
-          deferred.resolve(null);
-        }
-        let actor = this._appActorsMap.get(mm);
-        if (actor) {
-          
-          
-          
-          this.conn.send({ from: actor.actor,
-                           type: "tabDetached" });
-          this._appActorsMap.delete(mm);
-        }
-      }
-    }).bind(this);
-    Services.obs.addObserver(onMessageManagerDisconnect,
-                             "message-manager-disconnect", false);
-
-    let prefixStart = this.conn.prefix + "child";
-    mm.sendAsyncMessage("debug:connect", { prefix: prefixStart });
-
-    return deferred.promise;
-  },
-
   getAppActor: function ({ manifestURL }) {
     debug("getAppActor\n");
 
@@ -884,13 +817,21 @@ WebappsActor.prototype = {
 
       
       
+      let map = this._appActorsMap;
       let mm = appFrame.QueryInterface(Ci.nsIFrameLoaderOwner)
                        .frameLoader
                        .messageManager;
-      let actor = this._appActorsMap.get(mm);
+      let actor = map.get(mm);
       if (!actor) {
-        return this._connectToApp(appFrame)
-                   .then(function (actor) ({ actor: actor }));
+        let onConnect = actor => {
+          map.set(mm, actor);
+          return { actor: actor };
+        };
+        let onDisconnect = mm => {
+          map.delete(mm);
+        };
+        return DebuggerServer.connectToChild(this.conn, mm, onDisconnect)
+                             .then(onConnect);
       }
 
       return { actor: actor };
