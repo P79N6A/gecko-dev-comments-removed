@@ -4,6 +4,7 @@
 
 
 #include "WebGLContext.h"
+#include "WebGLTexture.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"
 
 using namespace mozilla;

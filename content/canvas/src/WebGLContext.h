@@ -7,17 +7,9 @@
 #define WEBGLCONTEXT_H_
 
 #include "mozilla/Attributes.h"
-#include "WebGLElementArrayCache.h"
+#include "GLDefs.h"
+#include "WebGLActiveInfo.h"
 #include "WebGLObjectModel.h"
-#include "WebGLShader.h"
-#include "WebGLBuffer.h"
-#include "WebGLProgram.h"
-#include "WebGLUniformLocation.h"
-#include "WebGLFramebuffer.h"
-#include "WebGLRenderbuffer.h"
-#include "WebGLTexture.h"
-#include "WebGLVertexAttribData.h"
-#include "WebGLShaderPrecisionFormat.h"
 #include <stdarg.h>
 
 #include "nsTArray.h"
@@ -75,60 +67,20 @@ class WebGLMemoryPressureObserver;
 class WebGLContextBoundObject;
 class WebGLActiveInfo;
 class WebGLExtensionBase;
+class WebGLBuffer;
+class WebGLVertexAttribData;
+class WebGLShader;
+class WebGLProgram;
+class WebGLUniformLocation;
+class WebGLFramebuffer;
+class WebGLRenderbuffer;
+class WebGLShaderPrecisionFormat;
+class WebGLTexture;
 
 namespace dom {
 struct WebGLContextAttributes;
 struct WebGLContextAttributesInitializer;
 }
-
-struct VertexAttrib0Status {
-    enum { Default, EmulatedUninitializedArray, EmulatedInitializedArray };
-};
-
-namespace WebGLTexelConversions {
-
-
-
-
-
-
-
-
-
-enum WebGLTexelFormat
-{
-    
-    
-    BadFormat,
-    
-    
-    
-    Auto,
-    
-    R8,
-    A8,
-    D16, 
-    D32, 
-    R32F, 
-    A32F, 
-    
-    RA8,
-    RA32F,
-    D24S8, 
-    
-    RGB8,
-    BGRX8, 
-    RGB565,
-    RGB32F, 
-    
-    RGBA8,
-    BGRA8, 
-    RGBA5551,
-    RGBA4444,
-    RGBA32F 
-};
-
-} 
 
 using WebGLTexelConversions::WebGLTexelFormat;
 
@@ -1188,46 +1140,6 @@ ToSupports(WebGLContext* context)
   return static_cast<nsIDOMWebGLRenderingContext*>(context);
 }
 
-class WebGLActiveInfo MOZ_FINAL
-    : public nsISupports
-{
-public:
-    WebGLActiveInfo(WebGLint size, WebGLenum type, const nsACString& name) :
-        mSize(size),
-        mType(type),
-        mName(NS_ConvertASCIItoUTF16(name))
-    {}
-
-    
-
-    WebGLint Size() const {
-        return mSize;
-    }
-
-    WebGLenum Type() const {
-        return mType;
-    }
-
-    void GetName(nsString& retval) const {
-        retval = mName;
-    }
-
-    JSObject* WrapObject(JSContext *cx, JS::Handle<JSObject*> scope);
-
-    NS_DECL_ISUPPORTS
-
-protected:
-    WebGLint mSize;
-    WebGLenum mType;
-    nsString mName;
-};
-
-
-inline const WebGLRectangleObject *WebGLContext::FramebufferRectangleObject() const {
-    return mBoundFramebuffer ? mBoundFramebuffer->RectangleObject()
-                             : static_cast<const WebGLRectangleObject*>(this);
-}
-
 
 
 
@@ -1298,148 +1210,6 @@ WebGLContext::ValidateObject(const char* info, ObjectType *aObject)
 
     return ValidateObjectAssumeNonNull(info, aObject);
 }
-
-class WebGLMemoryMultiReporterWrapper
-{
-    WebGLMemoryMultiReporterWrapper();
-    ~WebGLMemoryMultiReporterWrapper();
-    static WebGLMemoryMultiReporterWrapper* sUniqueInstance;
-
-    
-    
-    
-    typedef nsTArray<const WebGLContext*> ContextsArrayType;
-    ContextsArrayType mContexts;
-
-    nsCOMPtr<nsIMemoryMultiReporter> mReporter;
-
-    static WebGLMemoryMultiReporterWrapper* UniqueInstance();
-
-    static ContextsArrayType & Contexts() { return UniqueInstance()->mContexts; }
-
-    friend class WebGLContext;
-
-  public:
-
-    static void AddWebGLContext(const WebGLContext* c) {
-        Contexts().AppendElement(c);
-    }
-
-    static void RemoveWebGLContext(const WebGLContext* c) {
-        ContextsArrayType & contexts = Contexts();
-        contexts.RemoveElement(c);
-        if (contexts.IsEmpty()) {
-            delete sUniqueInstance; 
-            sUniqueInstance = nullptr;
-        }
-    }
-
-    static int64_t GetTextureMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLTexture *texture = contexts[i]->mTextures.getFirst();
-                 texture;
-                 texture = texture->getNext())
-            {
-                result += texture->MemoryUsage();
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetTextureCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLTexture *texture = contexts[i]->mTextures.getFirst();
-                 texture;
-                 texture = texture->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetBufferMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLBuffer *buffer = contexts[i]->mBuffers.getFirst();
-                 buffer;
-                 buffer = buffer->getNext())
-            {
-                result += buffer->ByteLength();
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetBufferCacheMemoryUsed();
-
-    static int64_t GetBufferCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLBuffer *buffer = contexts[i]->mBuffers.getFirst();
-                 buffer;
-                 buffer = buffer->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetRenderbufferMemoryUsed() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLRenderbuffer *rb = contexts[i]->mRenderbuffers.getFirst();
-                 rb;
-                 rb = rb->getNext())
-            {
-                result += rb->MemoryUsage();
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetRenderbufferCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLRenderbuffer *rb = contexts[i]->mRenderbuffers.getFirst();
-                 rb;
-                 rb = rb->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetShaderSize();
-
-    static int64_t GetShaderCount() {
-        const ContextsArrayType & contexts = Contexts();
-        int64_t result = 0;
-        for(size_t i = 0; i < contexts.Length(); ++i) {
-            for (const WebGLShader *shader = contexts[i]->mShaders.getFirst();
-                 shader;
-                 shader = shader->getNext())
-            {
-                result++;
-            }
-        }
-        return result;
-    }
-
-    static int64_t GetContextCount() {
-        return Contexts().Length();
-    }
-};
 
 class WebGLMemoryPressureObserver MOZ_FINAL
     : public nsIObserver

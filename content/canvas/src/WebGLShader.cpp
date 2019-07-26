@@ -3,6 +3,7 @@
 
 
 
+#include "WebGLObjectModel.h"
 #include "WebGLShader.h"
 #include "WebGLContext.h"
 #include "mozilla/dom/WebGLRenderingContextBinding.h"

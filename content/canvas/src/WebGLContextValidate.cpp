@@ -4,6 +4,14 @@
 
 
 #include "WebGLContext.h"
+#include "WebGLBuffer.h"
+#include "WebGLVertexAttribData.h"
+#include "WebGLShader.h"
+#include "WebGLProgram.h"
+#include "WebGLUniformLocation.h"
+#include "WebGLFramebuffer.h"
+#include "WebGLRenderbuffer.h"
+#include "WebGLTexture.h"
 
 #include "mozilla/CheckedInt.h"
 #include "mozilla/Preferences.h"

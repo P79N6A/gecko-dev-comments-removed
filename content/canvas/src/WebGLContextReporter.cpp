@@ -4,6 +4,7 @@
 
 
 #include "WebGLContext.h"
+#include "WebGLMemoryMultiReporterWrapper.h"
 #include "nsIMemoryReporter.h"
 
 using namespace mozilla;
