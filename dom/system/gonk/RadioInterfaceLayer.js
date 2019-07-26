@@ -936,6 +936,9 @@ function RadioInterface(options) {
   lock.get("ril.data.apnSettings", this);
 
   
+  lock.get("ril.data.defaultServiceId", this);
+
+  
   
   lock.get(kSettingsClockAutoUpdateEnabled, this);
 
@@ -1742,6 +1745,34 @@ RadioInterface.prototype = {
             apnSetting.types.length);
   },
 
+  handleDataClientIdChange: function handleDataClientIdChange() {
+    
+    
+    
+    if (this.clientId == this._dataDefaultClientId &&
+        this._dataEnabled) {
+      this.dataCallSettings.oldEnabled = this.dataCallSettings.enabled;
+      this.dataCallSettings.enabled = true;
+      if (gNetworkManager.active &&
+          gNetworkManager.active.type == Ci.nsINetworkInterface.NETWORK_TYPE_MOBILE) {
+        if (DEBUG) this.debug("Default data active, wait for it to get disconnected.");
+        this._dataCallSetupPending = true;
+        return;
+      }
+      this.updateRILNetworkInterface();
+      return;
+    }
+
+    
+    
+    if (this.clientId != this._dataDefaultClientId &&
+        this.dataCallSettings.enabled) {
+      this.dataCallSettings.oldEnabled = this.dataCallSettings.enabled;
+      this.dataCallSettings.enabled = false;
+      this.updateRILNetworkInterface();
+    }
+  },
+
   updateRILNetworkInterface: function updateRILNetworkInterface() {
     let apnSetting = this.apnSettings.byType.default;
     if (!this.validateApnSetting(apnSetting)) {
@@ -2359,6 +2390,18 @@ RadioInterface.prototype = {
             this._sntp.request();
           }
         }
+
+        
+        
+        
+        
+        
+        if (network.state == Ci.nsINetworkInterface.NETWORK_STATE_UNKNOWN &&
+            this._dataCallSetupPending) {
+          if (DEBUG) this.debug("Default data disconnected, setup pending data call.");
+          this._dataCallSetupPending = false;
+          this.updateRILNetworkInterface();
+        }
         break;
       case kScreenStateChangedTopic:
         this.workerMessenger.send("setScreenState", { on: (data === "on") });
@@ -2370,6 +2413,17 @@ RadioInterface.prototype = {
   dataCallSettings: null,
 
   apnSettings: null,
+
+  
+  
+  _dataEnabled: null,
+
+  
+  _dataDefaultClientId: null,
+
+  
+  
+  _dataCallSetupPending: false,
 
   
   
@@ -2430,15 +2484,15 @@ RadioInterface.prototype = {
         break;
       case "ril.data.enabled":
         if (DEBUG) this.debug("'ril.data.enabled' is now " + aResult);
-        let enabled;
-        if (Array.isArray(aResult)) {
-          enabled = aResult[this.clientId];
-        } else {
-          
-          enabled = aResult;
+        if (this._dataEnabled == aResult) {
+          break;
+        }
+        this._dataEnabled = aResult;
+        if (this.clientId != this._dataDefaultClientId) {
+          break;
         }
         this.dataCallSettings.oldEnabled = this.dataCallSettings.enabled;
-        this.dataCallSettings.enabled = enabled;
+        this.dataCallSettings.enabled = aResult;
         this.updateRILNetworkInterface();
         break;
       case "ril.data.roaming_enabled":
@@ -2452,6 +2506,15 @@ RadioInterface.prototype = {
           this.updateApnSettings(aResult);
           this.updateRILNetworkInterface();
         }
+        break;
+      case "ril.data.defaultServiceId":
+        aResult = aResult ? aResult : 0;
+        if (DEBUG) this.debug("'ril.data.defaultServiceId' is now " + aResult);
+        if (this._dataDefaultClientId == aResult) {
+          break;
+        }
+        this._dataDefaultClientId = aResult;
+        this.handleDataClientIdChange();
         break;
       case kSettingsClockAutoUpdateEnabled:
         this._clockAutoUpdateEnabled = aResult;
@@ -3682,18 +3745,17 @@ RILNetworkInterface.prototype = {
       this.radioInterface.updateRILNetworkInterface();
     }
 
+    Services.obs.notifyObservers(this,
+                                 kNetworkInterfaceStateChangedTopic,
+                                 null);
+
     if (this.state == RIL.GECKO_NETWORK_STATE_UNKNOWN &&
         this.registeredAsNetworkInterface) {
       gNetworkManager.unregisterNetworkInterface(this);
       this.registeredAsNetworkInterface = false;
       this.cid = null;
       this.connectedTypes = [];
-      return;
     }
-
-    Services.obs.notifyObservers(this,
-                                 kNetworkInterfaceStateChangedTopic,
-                                 null);
   },
 
   receiveDataCallList: function receiveDataCallList(dataCalls, length) {
