@@ -18,11 +18,11 @@ BEGIN_TEST(testLookup_bug522590)
     EXEC("function mkobj() { return {f: function () {return 2;}} }");
 
     
-    EVAL("mkobj().f !== mkobj().f", x.address());
+    EVAL("mkobj().f !== mkobj().f", &x);
     CHECK_SAME(x, JSVAL_TRUE);
 
     
-    EVAL("mkobj()", x.address());
+    EVAL("mkobj()", &x);
     JS::RootedObject xobj(cx, JSVAL_TO_OBJECT(x));
 
     
@@ -89,9 +89,9 @@ BEGIN_TEST(testLookup_bug570195)
     CHECK(obj);
     CHECK(JS_DefineProperty(cx, global, "document", OBJECT_TO_JSVAL(obj), nullptr, nullptr, 0));
     JS::RootedValue v(cx);
-    EVAL("document.all ? true : false", v.address());
+    EVAL("document.all ? true : false", &v);
     CHECK_SAME(v, JSVAL_FALSE);
-    EVAL("document.hasOwnProperty('all')", v.address());
+    EVAL("document.hasOwnProperty('all')", &v);
     CHECK_SAME(v, JSVAL_TRUE);
     return true;
 }
