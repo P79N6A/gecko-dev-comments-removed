@@ -24,6 +24,7 @@
 #include "mozilla/Hal.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/FileUtils.h"
+#include "BootAnimation.h"
 #include "Framebuffer.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
@@ -64,7 +65,6 @@ static nsRefPtr<GLContext> sGLContext;
 static nsTArray<nsWindow *> sTopWindows;
 static nsWindow *gWindowToRedraw = nullptr;
 static nsWindow *gFocusedWindow = nullptr;
-static android::FramebufferNativeWindow *gNativeWindow = nullptr;
 static bool sFramebufferOpen;
 static bool sUsingOMTC;
 static bool sUsingHwc;
@@ -73,37 +73,6 @@ static nsRefPtr<gfxASurface> sOMTCSurface;
 static pthread_t sFramebufferWatchThread;
 
 namespace {
-
-static int
-CancelBufferNoop(ANativeWindow* aWindow, android_native_buffer_t* aBuffer)
-{
-    return 0;
-}
-
-android::FramebufferNativeWindow*
-NativeWindow()
-{
-    if (!gNativeWindow) {
-        
-        
-        
-        
-        
-        
-        hal::SetScreenEnabled(true);
-
-        
-        
-        gNativeWindow = new android::FramebufferNativeWindow();
-
-        
-        
-        
-        
-        gNativeWindow->cancelBuffer = CancelBufferNoop;
-    }
-    return gNativeWindow;
-}
 
 static uint32_t
 EffectiveScreenRotation()
@@ -242,6 +211,8 @@ nsWindow::DoDraw(void)
         LOG("  no window to draw, bailing");
         return;
     }
+
+    StopBootAnimation();
 
     nsIntRegion region = gWindowToRedraw->mDirtyRegion;
     gWindowToRedraw->mDirtyRegion.SetEmpty();
