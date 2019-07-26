@@ -115,6 +115,7 @@ struct TypeInferenceSizes;
 
 namespace js {
 class AutoDebugModeGC;
+class ArrayBufferObject;
 class DebugScopes;
 }
 
@@ -249,7 +250,7 @@ struct JSCompartment
     JSObject                     *gcIncomingGrayPointers;
 
     
-    JSObject                     *gcLiveArrayBuffers;
+    js::ArrayBufferObject        *gcLiveArrayBuffers;
 
     
     js::WeakMapBase              *gcWeakMapList;

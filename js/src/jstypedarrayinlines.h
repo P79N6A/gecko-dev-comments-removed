@@ -16,7 +16,7 @@
 
 
 
-JSObject * const UNSET_BUFFER_LINK = (JSObject*)0x2;
+js::ArrayBufferObject * const UNSET_BUFFER_LINK = reinterpret_cast<js::ArrayBufferObject*>(0x2);
 
 inline void
 js::ArrayBufferObject::setElementsHeader(js::ObjectElements *header, uint32_t bytes)
