@@ -140,7 +140,8 @@ FxAccountsManager._fxAccounts = {
 };
 
 
-const kFxAccountsClient = FxAccountsManager._createFxAccountsClient;
+const kFxAccountsClient = FxAccountsManager._getFxAccountsClient;
+
 
 let FakeFxAccountsClient = {
   _reject: false,
@@ -201,9 +202,11 @@ let FakeFxAccountsClient = {
     return deferred.promise;
   }
 };
-FxAccountsManager._createFxAccountsClient = function() {
+
+FxAccountsManager._getFxAccountsClient = function() {
   return FakeFxAccountsClient;
-}
+};
+
 
 
 
@@ -225,7 +228,7 @@ do_register_cleanup(function() {
   FxAccountsManager._fxAccounts = kFxAccounts;
 
   
-  FxAccountsManager._createFxAccountsClient = kFxAccountsClient;
+  FxAccountsManager._getFxAccountsClient = kFxAccountsClient;
 });
 
 
