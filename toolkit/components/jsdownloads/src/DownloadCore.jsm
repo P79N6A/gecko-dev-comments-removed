@@ -1391,18 +1391,8 @@ this.DownloadSaver.prototype = {
     
     let startPRTime = this.download.startTime.getTime() * 1000;
 
-    try {
-      gDownloadHistory.addDownload(sourceUri, referrerUri, startPRTime,
-                                   targetUri);
-    }
-    catch(ex if ex instanceof Components.Exception &&
-                ex.result == Cr.NS_ERROR_NOT_AVAILABLE) {
-      
-      
-      
-      
-      
-    }
+    gDownloadHistory.addDownload(sourceUri, referrerUri, startPRTime,
+                                 targetUri);
   },
 
   
