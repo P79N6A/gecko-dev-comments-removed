@@ -71,7 +71,11 @@ public:
   int32_t IndexOfChild(const nsINode* aPossibleChild) const;
 
   uint32_t AttrCount() const;
-  const nsAttrValue* GetAttr(nsIAtom* aLocalName, int32_t aNamespaceID = kNameSpaceID_None) const;
+  const nsAttrValue* GetAttr(nsIAtom* aLocalName,
+                             int32_t aNamespaceID = kNameSpaceID_None) const;
+  
+  
+  const nsAttrValue* GetAttr(const nsAString& aName) const;
   
   
   const nsAttrValue* GetAttr(const nsAString& aName,

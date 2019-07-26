@@ -105,6 +105,12 @@ public:
     return reinterpret_cast<uintptr_t>(aAtom) == mBits;
   }
 
+  
+  bool Equals(const nsAString& aLocalName) const
+  {
+    return IsAtom() && Atom()->Equals(aLocalName);
+  }
+
   bool Equals(nsIAtom* aLocalName, int32_t aNamespaceID) const
   {
     if (aNamespaceID == kNameSpaceID_None) {

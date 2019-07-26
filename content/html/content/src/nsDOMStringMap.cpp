@@ -65,7 +65,7 @@ nsDOMStringMap::WrapObject(JSContext *cx, JS::Handle<JSObject*> scope)
 
 void
 nsDOMStringMap::NamedGetter(const nsAString& aProp, bool& found,
-                            nsString& aResult) const
+                            DOMString& aResult) const
 {
   nsAutoString attr;
 
@@ -74,10 +74,7 @@ nsDOMStringMap::NamedGetter(const nsAString& aProp, bool& found,
     return;
   }
 
-  nsCOMPtr<nsIAtom> attrAtom = do_GetAtom(attr);
-  MOZ_ASSERT(attrAtom, "Should be infallible");
-
-  found = mElement->GetAttr(kNameSpaceID_None, attrAtom, aResult);
+  found = mElement->GetAttr(attr, aResult);
 }
 
 void
@@ -139,16 +136,15 @@ nsDOMStringMap::GetSupportedNames(nsTArray<nsString>& aNames)
   
   
   for (uint32_t i = 0; i < attrCount; ++i) {
-    nsAutoString attrString;
     const nsAttrName* attrName = mElement->GetAttrNameAt(i);
     
     if (attrName->NamespaceID() != kNameSpaceID_None) {
       continue;
     }
-    attrName->LocalName()->ToString(attrString);
 
     nsAutoString prop;
-    if (!AttrToDataProp(attrString, prop)) {
+    if (!AttrToDataProp(nsDependentAtomString(attrName->LocalName()),
+                        prop)) {
       continue;
     }
 
@@ -161,23 +157,21 @@ nsDOMStringMap::GetSupportedNames(nsTArray<nsString>& aNames)
 
 
 bool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
-                                      nsAString& aResult)
+                                    nsAutoString& aResult)
 {
-  const PRUnichar* cur = aProp.BeginReading();
+  
+  
+  
+  aResult.AppendLiteral("data-");
+
+  
+  
+  
+  
+  
+  const PRUnichar* start = aProp.BeginReading();
   const PRUnichar* end = aProp.EndReading();
-
-  
-  nsAutoString attr;
-  
-  attr.SetCapacity(aProp.Length() + 5);
-
-  attr.Append(NS_LITERAL_STRING("data-"));
-
-  
-  
-  
-  
-  
+  const PRUnichar* cur = start;
   for (; cur < end; ++cur) {
     const PRUnichar* next = cur + 1;
     if (PRUnichar('-') == *cur && next < end &&
@@ -188,14 +182,16 @@ bool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
 
     if (PRUnichar('A') <= *cur && *cur <= PRUnichar('Z')) {
       
-      attr.Append(PRUnichar('-'));
-      attr.Append(*cur - 'A' + 'a');
-    } else {
-      attr.Append(*cur);
+      aResult.Append(start, cur - start);
+      
+      aResult.Append(PRUnichar('-'));
+      aResult.Append(*cur - 'A' + 'a');
+      start = next; 
     }
   }
 
-  aResult.Assign(attr);
+  aResult.Append(start, cur - start);
+
   return true;
 }
 
@@ -204,7 +200,7 @@ bool nsDOMStringMap::DataPropToAttr(const nsAString& aProp,
 
 
 bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
-                                      nsAString& aResult)
+                                    nsAutoString& aResult)
 {
   
   
@@ -218,7 +214,6 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
 
   
   
-  nsAutoString prop;
 
   
   
@@ -229,15 +224,14 @@ bool nsDOMStringMap::AttrToDataProp(const nsAString& aAttr,
     if (PRUnichar('-') == *cur && next < end && 
         PRUnichar('a') <= *next && *next <= PRUnichar('z')) {
       
-      prop.Append(*next - 'a' + 'A');
+      aResult.Append(*next - 'a' + 'A');
       
       ++cur;
     } else {
       
-      prop.Append(*cur);
+      aResult.Append(*cur);
     }
   }
 
-  aResult.Assign(prop);
   return true;
 }
