@@ -4,6 +4,10 @@
 
 
 
+const {Cu} = require("chrome");
+
+Cu.import("resource://gre/modules/Services.jsm");
+
 var Promise = require("sdk/core/promise");
 var EventEmitter = require("devtools/shared/event-emitter");
 var Telemetry = require("devtools/shared/telemetry");
@@ -21,13 +25,20 @@ const XULNS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 
-function ToolSidebar(tabbox, panel, showTabstripe=true)
+
+
+function ToolSidebar(tabbox, panel, uid, showTabstripe=true)
 {
   EventEmitter.decorate(this);
 
   this._tabbox = tabbox;
+  this._uid = uid;
   this._panelDoc = this._tabbox.ownerDocument;
   this._toolPanel = panel;
+
+  try {
+    this._width = Services.prefs.getIntPref("devtools.toolsidebar-width." + this._uid);
+  } catch(e) {}
 
   this._telemetry = new Telemetry();
 
@@ -165,6 +176,9 @@ ToolSidebar.prototype = {
 
 
   show: function ToolSidebar_show() {
+    if (this._width) {
+      this._tabbox.width = this._width;
+    }
     this._tabbox.removeAttribute("hidden");
   },
 
@@ -172,6 +186,7 @@ ToolSidebar.prototype = {
 
 
   hide: function ToolSidebar_hide() {
+    Services.prefs.setIntPref("devtools.toolsidebar-width." + this._uid, this._tabbox.width);
     this._tabbox.setAttribute("hidden", "true");
   },
 
@@ -195,6 +210,8 @@ ToolSidebar.prototype = {
       return Promise.resolve(null);
     }
     this._destroyed = true;
+
+    Services.prefs.setIntPref("devtools.toolsidebar-width." + this._uid, this._tabbox.width);
 
     this._tabbox.tabpanels.removeEventListener("select", this, true);
 
