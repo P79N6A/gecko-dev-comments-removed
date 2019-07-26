@@ -96,6 +96,7 @@ private:
 
 
 class CSSRuleListImpl;
+class nsICSSRuleList;
 
 
 
@@ -275,7 +276,7 @@ public:
   
   
   nsIDOMCSSRule* GetDOMOwnerRule() const;
-  nsIDOMCSSRuleList* GetCssRules(mozilla::ErrorResult& aRv);
+  nsICSSRuleList* GetCssRules(mozilla::ErrorResult& aRv);
   uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
                       mozilla::ErrorResult& aRv) {
     uint32_t retval;
