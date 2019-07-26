@@ -688,6 +688,9 @@ public:
 
   
   nsCOMPtr<nsIAtom>     userType;
+
+  nsString typeString; 
+
   
   nsCOMPtr<mozilla::dom::EventTarget> target;
   nsCOMPtr<mozilla::dom::EventTarget> currentTarget;
