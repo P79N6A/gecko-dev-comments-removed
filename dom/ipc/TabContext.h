@@ -143,6 +143,11 @@ protected:
   bool SetTabContextForBrowserFrame(mozIApplication* aBrowserFrameOwnerApp,
                                     ScrollingBehavior aRequestedBehavior);
 
+  
+
+
+  bool SetTabContextForNormalFrame(ScrollingBehavior aRequestedBehavior);
+
 private:
   
 
@@ -211,6 +216,11 @@ public:
   {
     return TabContext::SetTabContextForBrowserFrame(aBrowserFrameOwnerApp,
                                                     aRequestedBehavior);
+  }
+
+  bool SetTabContextForNormalFrame(ScrollingBehavior aRequestedBehavior)
+  {
+    return TabContext::SetTabContextForNormalFrame(aRequestedBehavior);
   }
 };
 

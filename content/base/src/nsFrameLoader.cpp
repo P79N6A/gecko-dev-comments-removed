@@ -2099,6 +2099,8 @@ nsFrameLoader::TryRemoteBrowser()
   } else if (OwnerIsBrowserFrame()) {
     
     rv = context.SetTabContextForBrowserFrame(containingApp, scrollingBehavior);
+  } else {
+    rv = context.SetTabContextForNormalFrame(scrollingBehavior);
   }
   NS_ENSURE_TRUE(rv, false);
 
