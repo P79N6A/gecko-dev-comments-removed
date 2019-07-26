@@ -118,7 +118,8 @@ void FocusDispatched(Accessible* aTarget);
 
 
 
-void SelChange(nsISelection* aSelection, DocAccessible* aDocument);
+void SelChange(nsISelection* aSelection, DocAccessible* aDocument,
+               int16_t aReason);
 
 
 

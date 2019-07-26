@@ -38,6 +38,8 @@ class AccEvent;
 
 
 
+struct SelData;
+
 class SelectionManager : public nsISelectionListener
 {
 public:
@@ -83,7 +85,7 @@ protected:
   
 
 
-  void ProcessSelectionChanged(nsISelection* aSelection);
+  void ProcessSelectionChanged(SelData* aSelData);
 
 private:
   
