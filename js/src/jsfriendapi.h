@@ -1448,11 +1448,13 @@ typedef bool
                   void *specializedThis, const JSJitMethodCallArgs& args);
 
 struct JSJitInfo {
-    enum OpType MOZ_ENUM_TYPE(uint8_t) {
+    enum OpType {
         Getter,
         Setter,
         Method,
-        ParallelNative
+        ParallelNative,
+        
+        OpTypeCount
     };
 
     enum ArgType {
@@ -1476,7 +1478,7 @@ struct JSJitInfo {
         ArgTypeListEnd = (1 << 31)
     };
 
-    enum AliasSet MOZ_ENUM_TYPE(uint8_t) {
+    enum AliasSet {
         
         
         
@@ -1491,22 +1493,40 @@ struct JSJitInfo {
 
         
         
-        AliasEverything
+        AliasEverything,
+
+        
+        AliasSetCount
     };
 
     bool hasParallelNative() const
     {
-        return type == ParallelNative;
+        return type() == ParallelNative;
     }
 
     bool isDOMJitInfo() const
     {
-        return type != ParallelNative;
+        return type() != ParallelNative;
     }
 
     bool isTypedMethodJitInfo() const
     {
         return isTypedMethod;
+    }
+
+    OpType type() const
+    {
+        return OpType(type_);
+    }
+
+    AliasSet aliasSet() const
+    {
+        return AliasSet(aliasSet_);
+    }
+
+    JSValueType returnType() const
+    {
+        return JSValueType(returnType_);
     }
 
     union {
@@ -1519,28 +1539,51 @@ struct JSJitInfo {
 
     uint16_t protoID;
     uint16_t depth;
+
+    
+    
+    
+
+#define JITINFO_OP_TYPE_BITS 4
+#define JITINFO_ALIAS_SET_BITS 4
+#define JITINFO_RETURN_TYPE_BITS 8
+
     
     
     
-    OpType type;
-    JSValueType returnType; 
-    uint16_t isInfallible : 1; 
-    uint16_t isMovable : 1;    
+    uint32_t type_ : JITINFO_OP_TYPE_BITS;
+
+    
+    
+    
+    
+    uint32_t aliasSet_ : JITINFO_ALIAS_SET_BITS;
+
+    
+    uint32_t returnType_ : JITINFO_RETURN_TYPE_BITS;
+
+    static_assert(OpTypeCount <= (1 << JITINFO_OP_TYPE_BITS),
+                  "Not enough space for OpType");
+    static_assert(AliasSetCount <= (1 << JITINFO_ALIAS_SET_BITS),
+                  "Not enough space for AliasSet");
+    static_assert((sizeof(JSValueType) * 8) <= JITINFO_RETURN_TYPE_BITS,
+                  "Not enough space for JSValueType");
+
+#undef JITINFO_RETURN_TYPE_BITS
+#undef JITINFO_ALIAS_SET_BITS
+#undef JITINFO_OP_TYPE_BITS
+
+    uint32_t isInfallible : 1; 
+    uint32_t isMovable : 1;    
 
 
 
     
-    uint16_t isInSlot : 1;     
+    uint32_t isInSlot : 1;     
 
-    uint16_t isTypedMethod : 1; 
+    uint32_t isTypedMethod : 1; 
 
-    uint16_t slotIndex : 12;   
-
-
-    AliasSet aliasSet;      
-
-
-
+    uint32_t slotIndex : 12;   
 
 
 private:
@@ -1554,6 +1597,12 @@ private:
         JS_STATIC_ASSERT(Any & Null);
     }
 };
+
+static_assert(sizeof(JSJitInfo) == (sizeof(void*) + 2 * sizeof(uint32_t)),
+              "There are several thousand instances of JSJitInfo stored in "
+              "a binary. Please don't increase its space requirements without "
+              "verifying that there is no other way forward (better packing, "
+              "smaller datatypes for fields, subclassing, etc.).");
 
 struct JSTypedMethodJitInfo
 {
@@ -1604,7 +1653,7 @@ inline int CheckIsParallelNative(JSParallelNative parallelNative);
 
 #define JS_JITINFO_NATIVE_PARALLEL(infoName, parallelOp)                \
     const JSJitInfo infoName =                                          \
-        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSVAL_TYPE_MISSING,false,false,false,false,0,JSJitInfo::AliasEverything}
+        {{JS_CAST_PARALLEL_NATIVE_TO(parallelOp, JSJitGetterOp)},0,0,JSJitInfo::ParallelNative,JSJitInfo::AliasEverything,JSVAL_TYPE_MISSING,false,false,false,false,0}
 
 #define JS_JITINFO_NATIVE_PARALLEL_THREADSAFE(infoName, wrapperName, serialOp) \
     bool wrapperName##_ParallelNativeThreadSafeWrapper(js::ForkJoinSlice *slice, unsigned argc, \

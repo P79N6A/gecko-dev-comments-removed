@@ -4833,14 +4833,14 @@ static const JSJitInfo dom_x_getterinfo = {
     { (JSJitGetterOp)dom_get_x },
     0,        
     0,        
+    JSJitInfo::AliasNone, 
     JSJitInfo::Getter,
     JSVAL_TYPE_UNKNOWN, 
     true,     
     true,     
     false,    
     false,    
-    0,        
-    JSJitInfo::AliasNone 
+    0         
 };
 
 static const JSJitInfo dom_x_setterinfo = {
@@ -4848,13 +4848,13 @@ static const JSJitInfo dom_x_setterinfo = {
     0,        
     0,        
     JSJitInfo::Setter,
+    JSJitInfo::AliasEverything, 
     JSVAL_TYPE_UNKNOWN, 
     false,    
     false,    
     false,    
     false,    
-    0,        
-    JSJitInfo::AliasEverything 
+    0         
 };
 
 static const JSJitInfo doFoo_methodinfo = {
@@ -4862,13 +4862,13 @@ static const JSJitInfo doFoo_methodinfo = {
     0,        
     0,        
     JSJitInfo::Method,
+    JSJitInfo::AliasEverything, 
     JSVAL_TYPE_UNKNOWN, 
     false,    
     false,    
     false,    
     false,    
-    0,        
-    JSJitInfo::AliasEverything 
+    0         
 };
 
 static const JSPropertySpec dom_props[] = {
@@ -4925,7 +4925,7 @@ dom_genericGetter(JSContext *cx, unsigned argc, JS::Value *vp)
     JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
 
     const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
-    MOZ_ASSERT(info->type == JSJitInfo::Getter);
+    MOZ_ASSERT(info->type() == JSJitInfo::Getter);
     JSJitGetterOp getter = info->getter;
     return getter(cx, obj, val.toPrivate(), JSJitGetterCallArgs(args));
 }
@@ -4948,7 +4948,7 @@ dom_genericSetter(JSContext* cx, unsigned argc, JS::Value* vp)
     JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
 
     const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
-    MOZ_ASSERT(info->type == JSJitInfo::Setter);
+    MOZ_ASSERT(info->type() == JSJitInfo::Setter);
     JSJitSetterOp setter = info->setter;
     if (!setter(cx, obj, val.toPrivate(), JSJitSetterCallArgs(args)))
         return false;
@@ -4972,7 +4972,7 @@ dom_genericMethod(JSContext* cx, unsigned argc, JS::Value *vp)
     JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
 
     const JSJitInfo *info = FUNCTION_VALUE_TO_JITINFO(JS_CALLEE(cx, vp));
-    MOZ_ASSERT(info->type == JSJitInfo::Method);
+    MOZ_ASSERT(info->type() == JSJitInfo::Method);
     JSJitMethodOp method = info->method;
     return method(cx, obj, val.toPrivate(), JSJitMethodCallArgs(args));
 }
