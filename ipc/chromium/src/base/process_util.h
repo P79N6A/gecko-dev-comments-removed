@@ -224,18 +224,7 @@ int GetProcessCount(const std::wstring& executable_name,
 
 
 
-
-bool KillProcesses(const std::wstring& executable_name, int exit_code,
-                   const ProcessFilter* filter);
-
-
-
-
-
 bool KillProcess(ProcessHandle process, int exit_code, bool wait);
-#if defined(OS_WIN)
-bool KillProcessById(ProcessId process_id, int exit_code, bool wait);
-#endif
 
 
 
@@ -251,25 +240,6 @@ bool DidProcessCrash(bool* child_exited, ProcessHandle handle);
 
 
 bool WaitForExitCode(ProcessHandle handle, int* exit_code);
-
-
-
-
-
-bool WaitForProcessesToExit(const std::wstring& executable_name,
-                            int wait_milliseconds,
-                            const ProcessFilter* filter);
-
-
-
-
-
-
-
-bool CleanupProcesses(const std::wstring& executable_name,
-                      int wait_milliseconds,
-                      int exit_code,
-                      const ProcessFilter* filter);
 
 
 
