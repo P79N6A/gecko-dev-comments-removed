@@ -37,7 +37,7 @@ typedef uint16_t Modifiers;
 
 enum KeyNameIndex
 {
-#include "nsDOMKeyNameList.h"
+#include "mozilla/KeyNameList.h"
   
   
   KEY_NAME_INDEX_USE_STRING
