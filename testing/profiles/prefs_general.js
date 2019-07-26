@@ -10,7 +10,6 @@ user_pref("dom.allow_scripts_to_close_windows", true);
 user_pref("dom.disable_open_during_load", false);
 user_pref("dom.experimental_forms", true); 
 user_pref("dom.forms.number", true); 
-user_pref("dom.experimental_forms_range", true); 
 user_pref("dom.forms.color", true); 
 user_pref("dom.max_script_run_time", 0); 
 user_pref("hangmonitor.timeout", 0); 
