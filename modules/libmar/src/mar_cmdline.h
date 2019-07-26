@@ -54,10 +54,22 @@ int get_mar_file_info(const char *path,
 
 
 
-int mar_verify_signature(const char *pathToMAR, 
-                         const char *certData,
-                         uint32_t sizeOfCertData,
-                         const char *certName);
+
+
+
+
+
+
+
+
+
+
+
+int mar_verify_signatures(const char *pathToMAR,
+                          const uint8_t * const *certData,
+                          const uint32_t *certDataSizes,
+                          const char * const *certNames,
+                          uint32_t certCount);
 
 
 

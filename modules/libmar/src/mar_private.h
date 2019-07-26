@@ -28,10 +28,6 @@ PR_STATIC_ASSERT(sizeof(uint64_t) == 8);
 
 
 
-#define MAX_SIGNATURES 8
-
-
-
 #define MAX_SIZE_OF_MAR_FILE ((int64_t)524288000)
 
 

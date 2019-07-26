@@ -15,6 +15,12 @@
 extern "C" {
 #endif
 
+
+
+
+#define MAX_SIGNATURES 8
+PR_STATIC_ASSERT(MAX_SIGNATURES <= 9);
+
 struct ProductInformationBlock {
   const char *MARChannelID;
   const char *productVersion;
@@ -135,10 +141,18 @@ int mar_extract(const char *path);
 
 
 
+
+
+
+
+
+
+
 #ifdef XP_WIN
-int mar_verify_signatureW(MarFile *mar, 
-                          const char *certData,
-                          uint32_t sizeOfCertData);
+int mar_verify_signaturesW(MarFile *mar,
+                           const uint8_t * const *certData,
+                           const uint32_t *certDataSizes,
+                           uint32_t certCount);
 #endif
 
 

@@ -120,11 +120,15 @@ NSSSignBegin(const char *certName,
 
 
 
+
+
 int
-WriteAndUpdateSignature(FILE *fpDest, void *buffer, 
-                        uint32_t size, SGNContext *ctx,
-                        const char *err) 
+WriteAndUpdateSignatures(FILE *fpDest, void *buffer,
+                         uint32_t size, SGNContext **ctxs,
+                         uint32_t ctxCount,
+                         const char *err)
 {
+  uint32_t k;
   if (!size) { 
     return 0;
   }
@@ -133,9 +137,12 @@ WriteAndUpdateSignature(FILE *fpDest, void *buffer,
     fprintf(stderr, "ERROR: Could not write %s\n", err);
     return -2;
   }
-  if (SGN_Update(ctx, (const unsigned char *)buffer, size) != SECSuccess) {
-    fprintf(stderr, "ERROR: Could not update signature context for %s\n", err);
-    return -3;
+
+  for (k = 0; k < ctxCount; ++k) {
+    if (SGN_Update(ctxs[k], buffer, size) != SECSuccess) {
+      fprintf(stderr, "ERROR: Could not update signature context for %s\n", err);
+      return -3;
+    }
   }
   return 0;
 }
@@ -181,10 +188,13 @@ AdjustIndexContentOffsets(char *indexBuf, uint32_t indexLength, uint32_t offsetA
 
 
 
+
+
 int
-ReadWriteAndUpdateSignature(FILE *fpSrc, FILE *fpDest, void *buffer, 
-                            uint32_t size, SGNContext *ctx,
-                            const char *err) 
+ReadWriteAndUpdateSignatures(FILE *fpSrc, FILE *fpDest, void *buffer,
+                             uint32_t size, SGNContext **ctxs,
+                             uint32_t ctxCount,
+                             const char *err)
 {
   if (!size) { 
     return 0;
@@ -195,7 +205,7 @@ ReadWriteAndUpdateSignature(FILE *fpSrc, FILE *fpDest, void *buffer,
     return -1;
   }
 
-  return WriteAndUpdateSignature(fpDest, buffer, size, ctx, err);
+  return WriteAndUpdateSignatures(fpDest, buffer, size, ctxs, ctxCount, err);
 }
 
 
@@ -479,28 +489,39 @@ failure:
 
 
 
+
+
 int
 mar_repackage_and_sign(const char *NSSConfigDir, 
-                       const char *certName, 
+                       const char * const *certNames,
+                       uint32_t certCount,
                        const char *src, 
                        const char *dest) 
 {
   uint32_t offsetToIndex, dstOffsetToIndex, indexLength, 
-    numSignatures = 0, signatureLength, leftOver,
-    signatureAlgorithmID, signatureSectionLength;
+    numSignatures = 0, leftOver,
+    signatureAlgorithmID, signatureSectionLength = 0;
+  uint32_t signatureLengths[MAX_SIGNATURES];
   int64_t oldPos, sizeOfEntireMAR = 0, realSizeOfSrcMAR, 
     signaturePlaceholderOffset, numBytesToCopy, 
     numChunks, i;
   FILE *fpSrc = NULL, *fpDest = NULL;
   int rv = -1, hasSignatureBlock;
-  SGNContext *ctx = NULL;
-  SECItem secItem;
+  SGNContext *ctxs[MAX_SIGNATURES];
+  SECItem secItems[MAX_SIGNATURES];
   char buf[BLOCKSIZE];
-  SECKEYPrivateKey *privKey = NULL;
-  CERTCertificate *cert = NULL; 
+  SECKEYPrivateKey *privKeys[MAX_SIGNATURES];
+  CERTCertificate *certs[MAX_SIGNATURES];
   char *indexBuf = NULL, *indexBufLoc;
+  uint32_t k;
 
-  if (!NSSConfigDir || !certName || !src || !dest) {
+  memset(signatureLengths, 0, sizeof(signatureLengths));
+  memset(ctxs, 0, sizeof(ctxs));
+  memset(secItems, 0, sizeof(secItems));
+  memset(privKeys, 0, sizeof(privKeys));
+  memset(certs, 0, sizeof(certs));
+
+  if (!NSSConfigDir || !certNames || certCount == 0 || !src || !dest) {
     fprintf(stderr, "ERROR: Invalid parameter passed in.\n");
     return -1;
   }
@@ -512,11 +533,6 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   PK11_SetPasswordFunc(SECU_GetModulePassword);
 
-  if (NSSSignBegin(certName, &ctx, &privKey, &cert, &signatureLength)) {
-    fprintf(stderr, "ERROR: NSSSignBegin failed\n");
-    goto failure;
-  }
-  
   fpSrc = fopen(src, "rb");
   if (!fpSrc) {
     fprintf(stderr, "ERROR: could not open source file: %s\n", dest);
@@ -535,10 +551,18 @@ mar_repackage_and_sign(const char *NSSConfigDir,
     goto failure;
   }
 
+  for (k = 0; k < certCount; k++) {
+    if (NSSSignBegin(certNames[k], &ctxs[k], &privKeys[k],
+                     &certs[k], &signatureLengths[k])) {
+      fprintf(stderr, "ERROR: NSSSignBegin failed\n");
+      goto failure;
+    }
+  }
+
   
-  if (ReadWriteAndUpdateSignature(fpSrc, fpDest, 
-                                  buf, MAR_ID_SIZE, 
-                                  ctx, "MAR ID")) {
+  if (ReadWriteAndUpdateSignatures(fpSrc, fpDest,
+                                   buf, MAR_ID_SIZE,
+                                   ctxs, certCount, "MAR ID")) {
     goto failure;
   }
 
@@ -582,6 +606,7 @@ mar_repackage_and_sign(const char *NSSConfigDir,
     numSignatures = ntohl(numSignatures);
 
     
+
     if (numSignatures) {
       fprintf(stderr, "ERROR: MAR is already signed\n");
       goto failure;
@@ -596,9 +621,11 @@ mar_repackage_and_sign(const char *NSSConfigDir,
   }
 
   
-  signatureSectionLength = sizeof(signatureAlgorithmID) + 
-                           sizeof(signatureLength) +
-                           signatureLength;
+  for (k = 0; k < certCount; k++) {
+    signatureSectionLength += sizeof(signatureAlgorithmID) +
+                              sizeof(signatureLengths[k]) +
+                              signatureLengths[k];
+  }
   dstOffsetToIndex = offsetToIndex;
   if (!hasSignatureBlock) {
     dstOffsetToIndex += sizeof(sizeOfEntireMAR) + sizeof(numSignatures);
@@ -607,8 +634,9 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   
   dstOffsetToIndex = htonl(dstOffsetToIndex);
-  if (WriteAndUpdateSignature(fpDest, &dstOffsetToIndex, 
-                              sizeof(dstOffsetToIndex), ctx, "index offset")) {
+  if (WriteAndUpdateSignatures(fpDest, &dstOffsetToIndex,
+                               sizeof(dstOffsetToIndex), ctxs, certCount,
+                               "index offset")) {
     goto failure;
   }
   dstOffsetToIndex = ntohl(dstOffsetToIndex);
@@ -621,47 +649,52 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   
   sizeOfEntireMAR = HOST_TO_NETWORK64(sizeOfEntireMAR);
-  if (WriteAndUpdateSignature(fpDest, &sizeOfEntireMAR, 
-                              sizeof(sizeOfEntireMAR), ctx, "size of MAR")) {
+  if (WriteAndUpdateSignatures(fpDest, &sizeOfEntireMAR,
+                               sizeof(sizeOfEntireMAR), ctxs, certCount,
+                               "size of MAR")) {
     goto failure;
   }
   sizeOfEntireMAR = NETWORK_TO_HOST64(sizeOfEntireMAR);
 
   
-  numSignatures = 1;
+  numSignatures = certCount;
   numSignatures = htonl(numSignatures);
-  if (WriteAndUpdateSignature(fpDest, &numSignatures, 
-                              sizeof(numSignatures), ctx, "num signatures")) {
+  if (WriteAndUpdateSignatures(fpDest, &numSignatures,
+                               sizeof(numSignatures), ctxs, certCount,
+                               "num signatures")) {
     goto failure;
   }
   numSignatures = ntohl(numSignatures);
 
-  
-  signatureAlgorithmID = htonl(1);
-  if (WriteAndUpdateSignature(fpDest, &signatureAlgorithmID, 
-                              sizeof(signatureAlgorithmID), 
-                              ctx, "num signatures")) {
-    goto failure;
-  }
-  signatureAlgorithmID = ntohl(signatureAlgorithmID);
-
-  
-  signatureLength = htonl(signatureLength);
-  if (WriteAndUpdateSignature(fpDest, &signatureLength, 
-                              sizeof(signatureLength), 
-                              ctx, "signature length")) {
-    goto failure;
-  }
-  signatureLength = ntohl(signatureLength);
-
-  
-
-
-  memset(buf, 0, sizeof(buf));
   signaturePlaceholderOffset = ftello(fpDest);
-  if (fwrite(buf, signatureLength, 1, fpDest) != 1) {
-    fprintf(stderr, "ERROR: Could not write signature length\n");
-    goto failure;
+
+  for (k = 0; k < certCount; k++) {
+    
+    signatureAlgorithmID = htonl(1);
+    if (WriteAndUpdateSignatures(fpDest, &signatureAlgorithmID,
+                                 sizeof(signatureAlgorithmID),
+                                 ctxs, certCount, "num signatures")) {
+      goto failure;
+    }
+    signatureAlgorithmID = ntohl(signatureAlgorithmID);
+
+    
+    signatureLengths[k] = htonl(signatureLengths[k]);
+    if (WriteAndUpdateSignatures(fpDest, &signatureLengths[k],
+                                 sizeof(signatureLengths[k]),
+                                 ctxs, certCount, "signature length")) {
+      goto failure;
+    }
+    signatureLengths[k] = ntohl(signatureLengths[k]);
+
+    
+
+
+    memset(buf, 0, sizeof(buf));
+    if (fwrite(buf, signatureLengths[k], 1, fpDest) != 1) {
+      fprintf(stderr, "ERROR: Could not write signature length\n");
+      goto failure;
+    }
   }
 
   
@@ -677,21 +710,24 @@ mar_repackage_and_sign(const char *NSSConfigDir,
 
   
   for (i = 0; i < numChunks; ++i) {
-    if (ReadWriteAndUpdateSignature(fpSrc, fpDest, buf, 
-                                    BLOCKSIZE, ctx, "content block")) {
+    if (ReadWriteAndUpdateSignatures(fpSrc, fpDest, buf,
+                                     BLOCKSIZE, ctxs, certCount,
+                                     "content block")) {
       goto failure;
     }
   }
 
   
-  if (ReadWriteAndUpdateSignature(fpSrc, fpDest, buf, 
-                                  leftOver, ctx, "left over content block")) {
+  if (ReadWriteAndUpdateSignatures(fpSrc, fpDest, buf,
+                                   leftOver, ctxs, certCount,
+                                   "left over content block")) {
     goto failure;
   }
 
   
-  if (ReadWriteAndUpdateSignature(fpSrc, fpDest, &indexLength, 
-                                  sizeof(indexLength), ctx, "index length")) {
+  if (ReadWriteAndUpdateSignatures(fpSrc, fpDest, &indexLength,
+                                   sizeof(indexLength), ctxs, certCount,
+                                   "index length")) {
     goto failure;
   }
   indexLength = ntohl(indexLength);
@@ -714,8 +750,8 @@ mar_repackage_and_sign(const char *NSSConfigDir,
                               signatureSectionLength);
   }
 
-  if (WriteAndUpdateSignature(fpDest, indexBuf, 
-                              indexLength, ctx, "index")) {
+  if (WriteAndUpdateSignatures(fpDest, indexBuf,
+                               indexLength, ctxs, certCount, "index")) {
     goto failure;
   }
 
@@ -725,14 +761,16 @@ mar_repackage_and_sign(const char *NSSConfigDir,
     goto failure;
   }
 
-  
-  if (SGN_End(ctx, &secItem) != SECSuccess) {
-    fprintf(stderr, "ERROR: Could not end signature context\n");
-    goto failure;
-  }
-  if (signatureLength != secItem.len) {
-    fprintf(stderr, "ERROR: Signature is not the expected length\n");
-    goto failure;
+  for (k = 0; k < certCount; k++) {
+    
+    if (SGN_End(ctxs[k], &secItems[k]) != SECSuccess) {
+      fprintf(stderr, "ERROR: Could not end signature context\n");
+      goto failure;
+    }
+    if (signatureLengths[k] != secItems[k].len) {
+      fprintf(stderr, "ERROR: Signature is not the expected length\n");
+      goto failure;
+    }
   }
 
   
@@ -741,11 +779,20 @@ mar_repackage_and_sign(const char *NSSConfigDir,
     goto failure;
   }
 
-  
+  for (k = 0; k < certCount; k++) {
+    
+    if (fseeko(fpDest, sizeof(signatureAlgorithmID) +
+               sizeof(signatureLengths[k]), SEEK_CUR)) {
+      fprintf(stderr, "ERROR: Could not seek to signature offset\n");
+      goto failure;
+    }
 
-  if (fwrite(secItem.data, secItem.len, 1, fpDest) != 1) {
-    fprintf(stderr, "ERROR: Could not write signature\n");
-    goto failure;
+    
+
+    if (fwrite(secItems[k].data, secItems[k].len, 1, fpDest) != 1) {
+      fprintf(stderr, "ERROR: Could not write signature\n");
+      goto failure;
+    }
   }
 
   rv = 0;
@@ -766,20 +813,26 @@ failure:
     free(indexBuf);
   }
 
-  if (ctx) {
-    SGN_DestroyContext(ctx, PR_TRUE);
-  }
+  
+  for (k = 0; k < certCount; k++) {
+    if (ctxs[k]) {
+      SGN_DestroyContext(ctxs[k], PR_TRUE);
+    }
 
-  if (cert) {
-    CERT_DestroyCertificate(cert);
-  }
+    if (certs[k]) {
+      CERT_DestroyCertificate(certs[k]);
+    }
 
-  if (privKey) {
-    SECKEY_DestroyPrivateKey(privKey);
+    if (privKeys[k]) {
+      SECKEY_DestroyPrivateKey(privKeys[k]);
+    }
+
+    SECITEM_FreeItem(&secItems[k], PR_FALSE);
   }
 
   if (rv) {
     remove(dest);
   }
+
   return rv;
 }
