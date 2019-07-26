@@ -5,6 +5,7 @@
 
 
 
+
 var gDebuggee;
 var gClient;
 var gThreadClient;
@@ -26,21 +27,33 @@ function run_test()
 function test_thread_lifetime()
 {
   gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
-    let pauseGrip = aPacket.frame.arguments[0];
+    let actors = [];
+    let last;
+    for (let aGrip of aPacket.frame.arguments) {
+      actors.push(aGrip.actor);
+      last = aGrip.actor;
+    }
 
     
-    gClient.request({ to: pauseGrip.actor, type: "threadGrip" }, function(aResponse) {
+    gThreadClient.threadGrips(actors, function(aResponse) {
       
       do_check_eq(aResponse.error, undefined);
+
       gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
         
-        do_check_eq(pauseGrip.actor, aPacket.frame.arguments[0].actor);
+        actors.forEach(function(actor, i) {
+          do_check_eq(actor, aPacket.frame.arguments[i].actor);
+        });
         
-        
-        gClient.request({ to: pauseGrip.actor, type: "bogusRequest"}, function(aResponse) {
-          do_check_eq(aResponse.error, "unrecognizedPacketType");
-          gThreadClient.resume(function() {
-            finishClient(gClient);
+        gThreadClient.releaseMany(actors, function(aResponse) {
+          
+          do_check_eq(aResponse.error, undefined);
+
+          gClient.request({ to: last, type: "bogusRequest" }, function(aResponse) {
+            do_check_eq(aResponse.error, "noSuchActor");
+            gThreadClient.resume(function(aResponse) {
+              finishClient(gClient);
+            });
           });
         });
       });
@@ -49,11 +62,11 @@ function test_thread_lifetime()
   });
 
   gDebuggee.eval("(" + function() {
-    function stopMe(arg1) {
+    function stopMe(arg1, arg2, arg3) {
       debugger;
       debugger;
     };
-    stopMe({obj: true});
+    stopMe({obj: 1}, {obj: 2}, {obj: 3});
     ")"
   } + ")()");
 }

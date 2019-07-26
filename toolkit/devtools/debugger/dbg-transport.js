@@ -204,7 +204,7 @@ LocalDebuggerTransport.prototype = {
     try {
       
       if (wantLogging) {
-        dumpn("Got: " + uneval(aPacket));
+        dumpn("Got: " + JSON.stringify(aPacket, null, 2));
       }
       this._deepFreeze(aPacket);
       let self = this;

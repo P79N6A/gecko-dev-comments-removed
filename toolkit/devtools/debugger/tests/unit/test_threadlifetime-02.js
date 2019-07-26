@@ -34,6 +34,8 @@ function test_thread_lifetime()
       do_check_eq(aResponse.error, undefined);
       gThreadClient.addOneTimeListener("paused", function(aEvent, aPacket) {
         
+        do_check_eq(pauseGrip.actor, aPacket.frame.arguments[0].actor);
+        
         gClient.release(pauseGrip.actor, function(aResponse) {
           gClient.request({ to: pauseGrip.actor, type: "bogusRequest" }, function(aResponse) {
             do_check_eq(aResponse.error, "noSuchActor");

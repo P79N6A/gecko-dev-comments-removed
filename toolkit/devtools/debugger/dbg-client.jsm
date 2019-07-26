@@ -813,6 +813,21 @@ ThreadClient.prototype = {
 
 
 
+  threadGrips: function TC_threadGrips(aActors, aOnResponse) {
+    let packet = {
+      to: this._actor,
+      type: "threadGrips",
+      actors: aActors
+    };
+    this._client.request(packet, aOnResponse);
+  },
+
+  
+
+
+
+
+
   getScripts: function TC_getScripts(aOnResponse) {
     let packet = { to: this._actor, type: "scripts" };
     this._client.request(packet, aOnResponse);
