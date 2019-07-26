@@ -230,7 +230,7 @@ AtomIsInterned(JSContext *cx, JSAtom *atom)
 
 
 
-JS_ALWAYS_INLINE
+MOZ_ALWAYS_INLINE
 static JSAtom *
 AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, InternBehavior ib)
 {
@@ -280,7 +280,7 @@ AtomizeAndTakeOwnership(ExclusiveContext *cx, jschar *tbchars, size_t length, In
 }
 
 
-JS_ALWAYS_INLINE
+MOZ_ALWAYS_INLINE
 static JSAtom *
 AtomizeAndCopyChars(ExclusiveContext *cx, const jschar *tbchars, size_t length, InternBehavior ib)
 {

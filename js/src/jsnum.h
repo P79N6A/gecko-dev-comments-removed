@@ -148,7 +148,7 @@ extern bool
 StringToNumber(ThreadSafeContext *cx, JSString *str, double *result);
 
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 ToNumber(JSContext *cx, JS::MutableHandleValue vp)
 {
 #ifdef DEBUG
@@ -193,7 +193,7 @@ js_num_valueOf(JSContext *cx, unsigned argc, js::Value *vp);
 
 namespace js {
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 ValueFitsInInt32(const Value &v, int32_t *pi)
 {
     if (v.isInt32()) {
@@ -212,7 +212,7 @@ ValueFitsInInt32(const Value &v, int32_t *pi)
 
 
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 IsDefinitelyIndex(const Value &v, uint32_t *indexp)
 {
     if (v.isInt32() && v.toInt32() >= 0) {
@@ -286,7 +286,7 @@ ToNumberSlow(ExclusiveContext *cx, Value v, double *dp);
 
 
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 ToNumber(ExclusiveContext *cx, const Value &v, double *out)
 {
     if (v.isNumber()) {
@@ -329,7 +329,7 @@ NonObjectToInt32(ThreadSafeContext *cx, const Value &v, int32_t *out)
 bool
 NonObjectToUint32Slow(ThreadSafeContext *cx, const Value &v, uint32_t *out);
 
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 NonObjectToUint32(ThreadSafeContext *cx, const Value &v, uint32_t *out)
 {
     if (v.isInt32()) {

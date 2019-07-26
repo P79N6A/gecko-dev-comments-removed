@@ -1545,7 +1545,7 @@ js_IsDebugScopeSlow(ProxyObject *proxy)
 
 
 
- JS_ALWAYS_INLINE void
+ MOZ_ALWAYS_INLINE void
 DebugScopes::proxiedScopesPostWriteBarrier(JSRuntime *rt, ObjectWeakMap *map,
                                            const EncapsulatedPtr<JSObject> &key)
 {
@@ -1591,7 +1591,7 @@ class DebugScopes::MissingScopesRef : public gc::BufferableRef
 };
 #endif
 
- JS_ALWAYS_INLINE void
+ MOZ_ALWAYS_INLINE void
 DebugScopes::missingScopesPostWriteBarrier(JSRuntime *rt, MissingScopeMap *map,
                                            const ScopeIterKey &key)
 {
@@ -1601,7 +1601,7 @@ DebugScopes::missingScopesPostWriteBarrier(JSRuntime *rt, MissingScopeMap *map,
 #endif
 }
 
- JS_ALWAYS_INLINE void
+ MOZ_ALWAYS_INLINE void
 DebugScopes::liveScopesPostWriteBarrier(JSRuntime *rt, LiveScopeMap *map, ScopeObject *key)
 {
 #ifdef JSGC_GENERATIONAL

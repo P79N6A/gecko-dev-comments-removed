@@ -791,7 +791,7 @@ static const JSFunctionSpec sModuleFunctions[] = {
   JS_FS_END
 };
 
-static JS_ALWAYS_INLINE JSString*
+static MOZ_ALWAYS_INLINE JSString*
 NewUCString(JSContext* cx, const AutoString& from)
 {
   return JS_NewUCStringCopyN(cx, from.begin(), from.length());
@@ -802,7 +802,7 @@ NewUCString(JSContext* cx, const AutoString& from)
 
 
 
-static JS_ALWAYS_INLINE size_t
+static MOZ_ALWAYS_INLINE size_t
 Align(size_t val, size_t align)
 {
   
@@ -1423,7 +1423,7 @@ JS_STATIC_ASSERT(NumericLimits<double>::is_signed);
 
 template<class TargetType, class FromType>
 struct ConvertImpl {
-  static JS_ALWAYS_INLINE TargetType Convert(FromType d) {
+  static MOZ_ALWAYS_INLINE TargetType Convert(FromType d) {
     return TargetType(d);
   }
 };
@@ -1433,7 +1433,7 @@ struct ConvertImpl {
 
 template<>
 struct ConvertImpl<uint64_t, double> {
-  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE uint64_t Convert(double d) {
     return d > 0x7fffffffffffffffui64 ?
            uint64_t(d - 0x8000000000000000ui64) + 0x8000000000000000ui64 :
            uint64_t(d);
@@ -1449,7 +1449,7 @@ struct ConvertImpl<uint64_t, double> {
 
 template<>
 struct ConvertImpl<uint64_t, double> {
-  static JS_ALWAYS_INLINE uint64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE uint64_t Convert(double d) {
     return d >= 0xffffffffffffffff ?
            0x8000000000000000 : uint64_t(d);
   }
@@ -1457,7 +1457,7 @@ struct ConvertImpl<uint64_t, double> {
 
 template<>
 struct ConvertImpl<int64_t, double> {
-  static JS_ALWAYS_INLINE int64_t Convert(double d) {
+  static MOZ_ALWAYS_INLINE int64_t Convert(double d) {
     return d >= 0x7fffffffffffffff ?
            0x8000000000000000 : int64_t(d);
   }
@@ -1465,13 +1465,13 @@ struct ConvertImpl<int64_t, double> {
 #endif
 
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE TargetType Convert(FromType d)
+static MOZ_ALWAYS_INLINE TargetType Convert(FromType d)
 {
   return ConvertImpl<TargetType, FromType>::Convert(d);
 }
 
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE bool IsAlwaysExact()
+static MOZ_ALWAYS_INLINE bool IsAlwaysExact()
 {
   
   
@@ -1500,7 +1500,7 @@ static JS_ALWAYS_INLINE bool IsAlwaysExact()
 
 template<class TargetType, class FromType, bool TargetSigned, bool FromSigned>
 struct IsExactImpl {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return FromType(j) == i;
   }
@@ -1509,7 +1509,7 @@ struct IsExactImpl {
 
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, false, true> {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return i >= 0 && FromType(j) == i;
   }
@@ -1518,7 +1518,7 @@ struct IsExactImpl<TargetType, FromType, false, true> {
 
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, true, false> {
-  static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
+  static MOZ_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
     JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return TargetType(i) >= 0 && FromType(j) == i;
   }
@@ -1527,7 +1527,7 @@ struct IsExactImpl<TargetType, FromType, true, false> {
 
 
 template<class TargetType, class FromType>
-static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
+static MOZ_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
 {
   
   JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
@@ -1549,7 +1549,7 @@ static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
 
 template<class Type, bool IsSigned>
 struct IsNegativeImpl {
-  static JS_ALWAYS_INLINE bool Test(Type i) {
+  static MOZ_ALWAYS_INLINE bool Test(Type i) {
     return false;
   }
 };
@@ -1557,14 +1557,14 @@ struct IsNegativeImpl {
 
 template<class Type>
 struct IsNegativeImpl<Type, true> {
-  static JS_ALWAYS_INLINE bool Test(Type i) {
+  static MOZ_ALWAYS_INLINE bool Test(Type i) {
     return i < 0;
   }
 };
 
 
 template<class Type>
-static JS_ALWAYS_INLINE bool IsNegative(Type i)
+static MOZ_ALWAYS_INLINE bool IsNegative(Type i)
 {
   return IsNegativeImpl<Type, NumericLimits<Type>::is_signed>::Test(i);
 }
@@ -5405,7 +5405,7 @@ PrepareReturnType(JSContext* cx, jsval type)
   return result;
 }
 
-static JS_ALWAYS_INLINE bool
+static MOZ_ALWAYS_INLINE bool
 IsEllipsis(JSContext* cx, jsval v, bool* isEllipsis)
 {
   *isEllipsis = false;

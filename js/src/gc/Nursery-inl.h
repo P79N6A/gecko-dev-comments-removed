@@ -68,7 +68,7 @@ class RelocationOverlay
 } 
 
 template <typename T>
-JS_ALWAYS_INLINE bool
+MOZ_ALWAYS_INLINE bool
 js::Nursery::getForwardedPointer(T **ref)
 {
     JS_ASSERT(ref);
