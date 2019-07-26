@@ -887,7 +887,3 @@ pref("apz.asyncscroll.throttle", 40);
 
 
 pref("gfx.canvas.willReadFrequently.enable", true);
-
-
-
-pref("browser.autofocus", false);
