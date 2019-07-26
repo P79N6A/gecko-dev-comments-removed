@@ -85,9 +85,7 @@ public:
     FRAME_TYPE_GOAWAY = 7,
     FRAME_TYPE_WINDOW_UPDATE = 8,
     FRAME_TYPE_CONTINUATION = 9,
-    FRAME_TYPE_ALTSVC = 10,
-    FRAME_TYPE_BLOCKED = 11,
-    FRAME_TYPE_LAST = 12
+    FRAME_TYPE_LAST = 10
   };
 
   
@@ -115,17 +113,14 @@ public:
   const static uint8_t kFlag_END_PUSH_PROMISE = 0x04; 
   const static uint8_t kFlag_ACK = 0x01; 
   const static uint8_t kFlag_END_SEGMENT = 0x02; 
-  const static uint8_t kFlag_PAD_LOW = 0x08; 
-  const static uint8_t kFlag_PAD_HIGH = 0x10; 
-  const static uint8_t kFlag_COMPRESSED = 0x20; 
+  const static uint8_t kFlag_PADDED = 0x08; 
   const static uint8_t kFlag_PRIORITY = 0x20; 
 
   enum {
     SETTINGS_TYPE_HEADER_TABLE_SIZE = 1, 
     SETTINGS_TYPE_ENABLE_PUSH = 2,     
     SETTINGS_TYPE_MAX_CONCURRENT = 3,  
-    SETTINGS_TYPE_INITIAL_WINDOW = 4,  
-    SETTINGS_TYPE_COMPRESS_DATA = 5 
+    SETTINGS_TYPE_INITIAL_WINDOW = 4  
   };
 
   
@@ -166,8 +161,6 @@ public:
   static nsresult RecvGoAway(Http2Session *);
   static nsresult RecvWindowUpdate(Http2Session *);
   static nsresult RecvContinuation(Http2Session *);
-  static nsresult RecvAltSvc(Http2Session *);
-  static nsresult RecvBlocked(Http2Session *);
 
   char       *EnsureOutputBuffer(uint32_t needed);
 
