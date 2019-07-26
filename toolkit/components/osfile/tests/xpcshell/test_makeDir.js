@@ -56,19 +56,9 @@ add_task(function() {
 
   
   if (OS.Constants.Win) {
-    dir = "C:\\";
+    yield OS.File.makeDir("C:");
+    yield OS.File.makeDir("C:\\");
   } else {
-    dir = "/";
+    yield OS.File.makeDir("/");
   }
-
-  yield OS.File.makeDir(dir);
-
-  
-  if (OS.Constants.Win) {
-    dir = "C:\\Program Files";
-  } else {
-    dir = "/tmp";
-  }
-
-  yield OS.File.makeDir(dir);
 });
