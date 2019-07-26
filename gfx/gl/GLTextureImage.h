@@ -13,12 +13,14 @@
 #include "GLContextTypes.h"
 #include "GraphicsFilter.h"
 #include "mozilla/gfx/Rect.h"
+#include "mozilla/RefPtr.h"
 
 class gfxASurface;
 
 namespace mozilla {
 namespace gfx {
 class DataSourceSurface;
+class DrawTarget;
 }
 }
 
@@ -100,7 +102,7 @@ public:
 
 
 
-    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion) = 0;
+    virtual gfx::DrawTarget* BeginUpdate(nsIntRegion& aRegion) = 0;
     
 
 
@@ -278,14 +280,13 @@ public:
 
     virtual void BindTexture(GLenum aTextureUnit);
 
-    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual gfx::DrawTarget* BeginUpdate(nsIntRegion& aRegion);
     virtual void GetUpdateRegion(nsIntRegion& aForRegion);
     virtual void EndUpdate();
     virtual bool DirectUpdate(gfx::DataSourceSurface* aSurf, const nsIntRegion& aRegion, const gfx::IntPoint& aFrom = gfx::IntPoint(0,0));
     virtual GLuint GetTextureID() { return mTexture; }
-    
-    virtual already_AddRefed<gfxASurface>
-      GetSurfaceForUpdate(const gfxIntSize& aSize, ImageFormat aFmt);
+    virtual TemporaryRef<gfx::DrawTarget>
+      GetDrawTargetForUpdate(const gfx::IntSize& aSize, gfx::SurfaceFormat aFmt);
 
     virtual void MarkValid() { mTextureState = Valid; }
 
@@ -297,7 +298,7 @@ public:
     
     virtual void FinishedSurfaceUpload();
 
-    virtual bool InUpdate() const { return !!mUpdateSurface; }
+    virtual bool InUpdate() const { return !!mUpdateDrawTarget; }
 
     virtual void Resize(const gfx::IntSize& aSize);
 
@@ -305,7 +306,7 @@ protected:
     GLuint mTexture;
     TextureState mTextureState;
     nsRefPtr<GLContext> mGLContext;
-    nsRefPtr<gfxASurface> mUpdateSurface;
+    RefPtr<gfx::DrawTarget> mUpdateDrawTarget;
     nsIntRegion mUpdateRegion;
 
     
@@ -328,7 +329,7 @@ public:
                       TextureImage::ImageFormat aImageFormat = gfxImageFormat::Unknown);
     ~TiledTextureImage();
     void DumpDiv();
-    virtual gfxASurface* BeginUpdate(nsIntRegion& aRegion);
+    virtual gfx::DrawTarget* BeginUpdate(nsIntRegion& aRegion);
     virtual void GetUpdateRegion(nsIntRegion& aForRegion);
     virtual void EndUpdate();
     virtual void Resize(const gfx::IntSize& aSize);
@@ -358,7 +359,7 @@ protected:
     unsigned int mRows, mColumns;
     GLContext* mGL;
     
-    nsRefPtr<gfxASurface> mUpdateSurface;
+    RefPtr<gfx::DrawTarget> mUpdateDrawTarget;
     
     nsIntRegion mUpdateRegion;
     TextureState mTextureState;
