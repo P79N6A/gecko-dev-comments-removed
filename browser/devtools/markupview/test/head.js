@@ -6,6 +6,7 @@ const Cu = Components.utils;
 
 let {devtools} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {});
 let TargetFactory = devtools.TargetFactory;
+let {console} = Cu.import("resource://gre/modules/devtools/Console.jsm", {});
 
 
 function clearUserPrefs() {

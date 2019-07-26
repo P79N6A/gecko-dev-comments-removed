@@ -18,6 +18,7 @@ const CONTAINER_FLASHING_DURATION = 500;
 const {UndoStack} = require("devtools/shared/undo");
 const {editableField, InplaceEditor} = require("devtools/shared/inplace-editor");
 const {gDevTools} = Cu.import("resource:///modules/devtools/gDevTools.jsm", {});
+const {HTMLEditor} = require("devtools/markupview/html-editor");
 const {OutputParser} = require("devtools/output-parser");
 const promise = require("sdk/core/promise");
 
@@ -57,6 +58,7 @@ function MarkupView(aInspector, aFrame, aControllerWindow) {
   this.doc = this._frame.contentDocument;
   this._elt = this.doc.querySelector("#root");
   this._outputParser = new OutputParser();
+  this.htmlEditor = new HTMLEditor(this.doc);
 
   this.layoutHelpers = new LayoutHelpers(this.doc.defaultView);
 
@@ -149,6 +151,7 @@ MarkupView.prototype = {
 
 
   _onNewSelection: function() {
+    this.htmlEditor.hide();
     let done = this._inspector.updating("markup-view");
     if (this._inspector.selection.isNode()) {
       this.showNode(this._inspector.selection.nodeFront, true).then(() => {
@@ -336,8 +339,8 @@ MarkupView.prototype = {
     }
 
     let node = aContainer.node;
-    this.markNodeAsSelected(node);
-    this._inspector.selection.setNodeFront(node, "treepanel");
+    this.markNodeAsSelected(node, "treepanel");
+
     
     
     this._inspector.selection.emit("new-node");
@@ -390,6 +393,9 @@ MarkupView.prototype = {
 
   _mutationObserver: function(aMutations) {
     let requiresLayoutChange = false;
+    let reselectParent;
+    let reselectChildIndex;
+
     for (let mutation of aMutations) {
       let type = mutation.type;
       let target = mutation.target;
@@ -418,20 +424,51 @@ MarkupView.prototype = {
           requiresLayoutChange = true;
         }
       } else if (type === "childList") {
+        let isFromOuterHTML = mutation.removed.some((n) => {
+          return n === this._outerHTMLNode;
+        });
+
+        
+        if (isFromOuterHTML) {
+          reselectParent = target;
+          reselectChildIndex = this._outerHTMLChildIndex;
+
+          delete this._outerHTMLNode;
+          delete this._outerHTMLChildIndex;
+        }
+
         container.childrenDirty = true;
         
-        
-        
-        this._updateChildren(container, {flash: true});
+        this._updateChildren(container, {flash: !isFromOuterHTML});
       }
     }
 
     if (requiresLayoutChange) {
       this._inspector.immediateLayoutChange();
     }
-    this._waitForChildren().then(() => {
+    this._waitForChildren().then((nodes) => {
       this._flashMutatedNodes(aMutations);
-      this._inspector.emit("markupmutation");
+      this._inspector.emit("markupmutation", aMutations);
+
+      
+      
+      this.htmlEditor.refresh();
+
+      
+      
+      if (this._inspector.selection.nodeFront === reselectParent) {
+        this.walker.children(reselectParent).then((o) => {
+          let node = o.nodes[reselectChildIndex];
+          let container = this._containers.get(node);
+          if (node && container) {
+            this.markNodeAsSelected(node, "outerhtml");
+            if (container.hasChildren) {
+              this.expandNode(node);
+            }
+          }
+        });
+
+      }
     });
   },
 
@@ -551,6 +588,94 @@ MarkupView.prototype = {
     container.expanded = false;
   },
 
+  
+
+
+
+
+  getNodeOuterHTML: function(aNode) {
+    let def = promise.defer();
+    this.walker.outerHTML(aNode).then(longstr => {
+      longstr.string().then(outerHTML => {
+        longstr.release().then(null, console.error);
+        def.resolve(outerHTML);
+      });
+    });
+    return def.promise;
+  },
+
+  
+
+
+
+
+
+  getNodeChildIndex: function(aNode) {
+    let def = promise.defer();
+    let parentNode = aNode.parentNode();
+
+    
+    
+    if (!parentNode) {
+      def.resolve(-1);
+    } else {
+      this.walker.children(parentNode).then(children => {
+        def.resolve(children.nodes.indexOf(aNode));
+      });
+    }
+
+    return def.promise;
+  },
+
+  
+
+
+
+
+
+
+
+  updateNodeOuterHTML: function(aNode, newValue, oldValue) {
+    let container = this._containers.get(aNode);
+    if (!container) {
+      return;
+    }
+
+    this.getNodeChildIndex(aNode).then((i) => {
+      this._outerHTMLChildIndex = i;
+      this._outerHTMLNode = aNode;
+
+      container.undo.do(() => {
+        this.walker.setOuterHTML(aNode, newValue);
+      }, () => {
+        this.walker.setOuterHTML(aNode, oldValue);
+      });
+    });
+  },
+
+  
+
+
+
+  beginEditingOuterHTML: function(aNode) {
+    this.getNodeOuterHTML(aNode).then((oldValue)=> {
+      let container = this._containers.get(aNode);
+      if (!container) {
+        return;
+      }
+      this.htmlEditor.show(container.tagLine, oldValue);
+      this.htmlEditor.once("popup-hidden", (e, aCommit, aValue) => {
+        if (aCommit) {
+          this.updateNodeOuterHTML(aNode, aValue, oldValue);
+        }
+      });
+    });
+  },
+
+  
+
+
+
   setNodeExpanded: function(aNode, aExpanded) {
     if (aExpanded) {
       this.expandNode(aNode);
@@ -562,7 +687,9 @@ MarkupView.prototype = {
   
 
 
-  markNodeAsSelected: function(aNode) {
+
+
+  markNodeAsSelected: function(aNode, reason) {
     let container = this._containers.get(aNode);
     if (this._selectedContainer === container) {
       return false;
@@ -575,6 +702,7 @@ MarkupView.prototype = {
       this._selectedContainer.selected = true;
     }
 
+    this._inspector.selection.setNodeFront(aNode, reason || "nodeselected");
     return true;
   },
 
@@ -778,6 +906,9 @@ MarkupView.prototype = {
 
   destroy: function() {
     gDevTools.off("pref-changed", this._handlePrefChange);
+
+    this.htmlEditor.destroy();
+    delete this.htmlEditor;
 
     this.undo.destroy();
     delete this.undo;
