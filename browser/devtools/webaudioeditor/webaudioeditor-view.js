@@ -232,7 +232,7 @@ let WebAudioGraphView = {
     if (!node)
       return;
 
-    window.emit(EVENTS.UI_SELECT_NODE, node.getAttribute('data-id'));
+    window.emit(EVENTS.UI_SELECT_NODE, node.getAttribute("data-id"));
   }
 };
 
@@ -256,7 +256,7 @@ let WebAudioInspectorView = {
 
     
     this._inspectorPane.setAttribute("width", INSPECTOR_WIDTH);
-    this.toggleInspector(false);
+    this.toggleInspector({ visible: false, delayed: false, animated: false });
 
     this._onEval = this._onEval.bind(this);
     this._onNodeSelect = this._onNodeSelect.bind(this);
@@ -289,14 +289,18 @@ let WebAudioInspectorView = {
 
 
 
-  toggleInspector: function (visible, index) {
+
+
+
+
+  toggleInspector: function ({ visible, animated, delayed, index }) {
     let pane = this._inspectorPane;
     let button = this._inspectorPaneToggleButton;
 
     let flags = {
       visible: visible,
-      animated: true,
-      delayed: true,
+      animated: animated != null ? animated : true,
+      delayed: delayed != null ? delayed : true,
       callback: () => window.emit(EVENTS.UI_INSPECTOR_TOGGLED, visible)
     };
 
@@ -362,6 +366,9 @@ let WebAudioInspectorView = {
     this._propsView.empty();
     
     this.setCurrentAudioNode();
+
+    
+    this.toggleInspector({ visible: false, animated: false, delayed: false });
   },
 
   
@@ -457,14 +464,14 @@ let WebAudioInspectorView = {
     this.setCurrentAudioNode(getViewNodeById(id));
 
     
-    this.toggleInspector(true);
+    this.toggleInspector({ visible: true });
   },
 
   
 
 
   _onTogglePaneClick: function () {
-    this.toggleInspector(!this.isVisible());
+    this.toggleInspector({ visible: !this.isVisible() });
   },
 
   
