@@ -173,40 +173,6 @@ function getPostUpdateOverridePage(defaultOverridePage) {
 }
 
 
-
-function copyPrefOverride() {
-  try {
-    var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
-                                .getService(Components.interfaces.nsIProperties);
-    const NS_APP_EXISTING_PREF_OVERRIDE = "ExistingPrefOverride";
-    var prefOverride = fileLocator.get(NS_APP_EXISTING_PREF_OVERRIDE,
-                                       Components.interfaces.nsIFile);
-    if (!prefOverride.exists())
-      return; 
-
-    const NS_APP_PREFS_OVERRIDE_DIR     = "PrefDOverride";
-    var prefOverridesDir = fileLocator.get(NS_APP_PREFS_OVERRIDE_DIR,
-                                           Components.interfaces.nsIFile);
-
-    
-    var existingPrefOverridesFile = prefOverridesDir.clone();
-    existingPrefOverridesFile.append(prefOverride.leafName);
-    if (existingPrefOverridesFile.exists())
-      existingPrefOverridesFile.remove(false);
-
-    prefOverride.copyTo(prefOverridesDir, null);
-
-    
-    
-    var prefSvcObs = Components.classes["@mozilla.org/preferences-service;1"]
-                               .getService(Components.interfaces.nsIObserver);
-    prefSvcObs.observe(null, "reload-default-prefs", null);
-  } catch (ex) {
-    Components.utils.reportError(ex);
-  }
-}
-
-
 const NO_EXTERNAL_URIS = 1;
 
 function openWindow(parent, url, target, features, args, noExternalArgs) {
@@ -600,9 +566,6 @@ nsBrowserContentHandler.prototype = {
             overridePage = Services.urlFormatter.formatURLPref("startup.homepage_welcome_url");
             break;
           case OVERRIDE_NEW_MSTONE:
-            
-            copyPrefOverride();
-
             
             
             var ss = Components.classes["@mozilla.org/browser/sessionstartup;1"]
