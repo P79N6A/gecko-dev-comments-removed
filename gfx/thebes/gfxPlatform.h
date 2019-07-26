@@ -19,6 +19,7 @@
 
 #include "gfx2DGlue.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/EnumSet.h"
 #include "GfxInfoCollector.h"
 
 #ifdef XP_OS2
@@ -484,20 +485,23 @@ protected:
 
 
 
-
-    void InitBackendPrefs(uint32_t aCanvasBitmask, uint32_t aContentBitmask);
-
-    
-
-
-
-    static mozilla::gfx::BackendType GetCanvasBackendPref(uint32_t aBackendBitmask);
+    void InitBackendPrefs(
+        mozilla::EnumSet<mozilla::gfx::BackendType> aCanvasSupportedBackends,
+        mozilla::EnumSet<mozilla::gfx::BackendType> aContentSupportedBackends);
 
     
 
 
 
-    static mozilla::gfx::BackendType GetContentBackendPref(uint32_t aBackendBitmask);
+    static mozilla::gfx::BackendType GetCanvasBackendPref(
+        mozilla::EnumSet<mozilla::gfx::BackendType> aSupportedBackends);
+
+    
+
+
+
+    static mozilla::gfx::BackendType GetContentBackendPref(
+        mozilla::EnumSet<mozilla::gfx::BackendType> aSupportedBackends);
 
     
 
@@ -505,9 +509,10 @@ protected:
 
 
 
-    static mozilla::gfx::BackendType GetBackendPref(const char* aEnabledPrefName,
-                                                    const char* aBackendPrefName,
-                                                    uint32_t aBackendBitmask);
+    static mozilla::gfx::BackendType GetBackendPref(
+        const char* aEnabledPrefName, const char* aBackendPrefName,
+        mozilla::EnumSet<mozilla::gfx::BackendType> aSupportedBackends);
+
     
 
 
