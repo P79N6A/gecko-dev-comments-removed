@@ -6420,7 +6420,6 @@ nsBlockFrame::ChildIsDirty(nsIFrame* aChild)
       
       
       if (placeholderPath) {
-        nsIFrame *placeholderPathFC = placeholderPath->GetFirstContinuation();
         for (;;) {
           nsIFrame *parent = placeholderPath->GetParent();
           if (parent->GetContent() == mContent &&
