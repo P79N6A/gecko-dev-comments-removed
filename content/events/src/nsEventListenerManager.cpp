@@ -604,11 +604,7 @@ nsEventListenerManager::SetEventHandler(nsIAtom *aName,
     
     
     doc = node->OwnerDoc();
-    MOZ_ASSERT(!doc->IsLoadedAsData(), "Should not get in here at all");
-
-    
-    
-    global = doc->GetScopeObject();
+    global = doc->GetScriptGlobalObject();
   } else {
     nsCOMPtr<nsPIDOMWindow> win = GetTargetAsInnerWindow();
     if (win) {
@@ -626,13 +622,6 @@ nsEventListenerManager::SetEventHandler(nsIAtom *aName,
     
     return NS_OK;
   }
-
-#ifdef DEBUG
-  nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(global);
-  if (win) {
-    MOZ_ASSERT(win->IsInnerWindow(), "We should not have an outer window here!");
-  }
-#endif
 
   nsresult rv = NS_OK;
   
