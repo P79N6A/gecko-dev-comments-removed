@@ -291,45 +291,71 @@ protected:
   }
 };
 
+
+
+struct ColorStop {
+  ColorStop(double aPosition, gfxRGBA aColor) :
+    mPosition(aPosition), mColor(aColor) {}
+  double mPosition; 
+  gfxRGBA mColor;
+};
+
 struct GradientCacheKey : public PLDHashEntryHdr {
   typedef const GradientCacheKey& KeyType;
   typedef const GradientCacheKey* KeyTypePointer;
   enum { ALLOW_MEMMOVE = true };
-  const nsRefPtr<nsStyleGradient> mGradient;
-  const gfxSize mGradientSize;
-  enum { SINGLE_CELL = 0x01 };
-  const uint32_t mFlags;
+  const nsTArray<gfx::GradientStop> mStops;
+  const bool mRepeating;
   const gfx::BackendType mBackendType;
 
-  GradientCacheKey(nsStyleGradient* aGradient, const gfxSize& aGradientSize,
-                   uint32_t aFlags, gfx::BackendType aBackendType)
-    : mGradient(aGradient), mGradientSize(aGradientSize), mFlags(aFlags),
-      mBackendType(aBackendType)
+  GradientCacheKey(const nsTArray<gfx::GradientStop>& aStops, const bool aRepeating, const gfx::BackendType aBackendType)
+    : mStops(aStops), mRepeating(aRepeating), mBackendType(aBackendType)
   { }
 
   GradientCacheKey(const GradientCacheKey* aOther)
-    : mGradient(aOther->mGradient), mGradientSize(aOther->mGradientSize),
-      mFlags(aOther->mFlags), mBackendType(aOther->mBackendType)
+    : mStops(aOther->mStops), mRepeating(aOther->mRepeating), mBackendType(aOther->mBackendType)
   { }
+
+  union FloatUint32
+  {
+    float    f;
+    uint32_t u;
+  };
 
   static PLDHashNumber
   HashKey(const KeyTypePointer aKey)
   {
     PLDHashNumber hash = 0;
-    hash = AddToHash(hash, aKey->mGradientSize.width);
-    hash = AddToHash(hash, aKey->mGradientSize.height);
-    hash = AddToHash(hash, aKey->mFlags);
+    FloatUint32 convert;
     hash = AddToHash(hash, aKey->mBackendType);
-    hash = aKey->mGradient->Hash(hash);
+    hash = AddToHash(hash, aKey->mRepeating);
+    for (uint32_t i = 0; i < aKey->mStops.Length(); i++) {
+      hash = AddToHash(hash, aKey->mStops[i].color.ToABGR());
+      
+      convert.f = aKey->mStops[i].offset;
+      hash = AddToHash(hash, convert.f ? convert.u : 0);
+    }
     return hash;
   }
 
   bool KeyEquals(KeyTypePointer aKey) const
   {
-    return (*aKey->mGradient == *mGradient) &&
-           (aKey->mGradientSize == mGradientSize) &&
+    bool sameStops = true;
+    if (aKey->mStops.Length() != mStops.Length()) {
+      sameStops = false;
+    } else {
+      for (uint32_t i = 0; i < mStops.Length(); i++) {
+        if (mStops[i].color.ToABGR() != aKey->mStops[i].color.ToABGR() ||
+            mStops[i].offset != aKey->mStops[i].offset) {
+          sameStops = false;
+          break;
+        }
+      }
+    }
+
+    return sameStops &&
            (aKey->mBackendType == mBackendType) &&
-           (aKey->mFlags == mFlags);
+           (aKey->mRepeating == mRepeating);
   }
   static KeyTypePointer KeyToPointer(KeyType aKey)
   {
@@ -342,14 +368,13 @@ struct GradientCacheKey : public PLDHashEntryHdr {
 
 
 struct GradientCacheData {
-  GradientCacheData(gfxPattern* aPattern, bool aCoversTile,
-                    const GradientCacheKey& aKey)
-    : mPattern(aPattern), mCoversTile(aCoversTile), mKey(aKey)
+  GradientCacheData(mozilla::gfx::GradientStops* aStops, const GradientCacheKey& aKey)
+    : mStops(aStops),
+      mKey(aKey)
   {}
 
   GradientCacheData(const GradientCacheData& aOther)
-    : mPattern(aOther.mPattern),
-      mCoversTile(aOther.mCoversTile),
+    : mStops(aOther.mStops),
       mKey(aOther.mKey)
   { }
 
@@ -358,8 +383,7 @@ struct GradientCacheData {
   }
 
   nsExpirationState mExpirationState;
-  nsRefPtr<gfxPattern> mPattern;
-  bool mCoversTile;
+  const mozilla::RefPtr<mozilla::gfx::GradientStops> mStops;
   GradientCacheKey mKey;
 };
 
@@ -396,19 +420,10 @@ class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
       mHashEntries.Remove(aObject->mKey);
     }
 
-    GradientCacheData* Lookup(nsStyleGradient* aKey, const gfxSize& aGradientSize,
-                              uint32_t aFlags, gfx::BackendType aBackendType)
+    GradientCacheData* Lookup(const nsTArray<gfx::GradientStop>& aStops, bool aRepeating, gfx::BackendType aBackendType)
     {
-      
-      
-      
-      
-      if (aKey->HasCalc()) {
-        return nullptr;
-      }
-
       GradientCacheData* gradient =
-        mHashEntries.Get(GradientCacheKey(aKey, aGradientSize, aFlags, aBackendType));
+        mHashEntries.Get(GradientCacheKey(aStops, aRepeating, aBackendType));
 
       if (gradient) {
         MarkUsed(gradient);
@@ -421,11 +436,6 @@ class GradientCache MOZ_FINAL : public nsExpirationTracker<GradientCacheData,4>
     
     bool RegisterEntry(GradientCacheData* aValue)
     {
-      
-      
-      if (aValue->mKey.mGradient->HasCalc()) {
-        return false;
-      }
       nsresult rv = AddObject(aValue);
       if (NS_FAILED(rv)) {
         
@@ -2051,15 +2061,6 @@ ComputeRadialGradientLine(nsPresContext* aPresContext,
 
 
 
-struct ColorStop {
-  ColorStop(double aPosition, nscolor aColor) :
-    mPosition(aPosition), mColor(aColor) {}
-  double mPosition; 
-  gfxRGBA mColor;
-};
-
-
-
 
 static gfxRGBA
 InterpolateColor(const gfxRGBA& aC1, const gfxRGBA& aC2, double aFrac)
@@ -2096,11 +2097,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   nscoord appUnitsPerPixel = aPresContext->AppUnitsPerDevPixel();
   gfxRect oneCellArea =
     nsLayoutUtils::RectToGfxRect(aOneCellArea, appUnitsPerPixel);
-  bool gradientRegistered = true;
-  uint32_t flags = 0;
-  if (aOneCellArea.Contains(aFillArea)) {
-    flags |= GradientCacheKey::SINGLE_CELL;
-  }
+
+  bool cellContainsFill = aOneCellArea.Contains(aFillArea);
 
   gfx::BackendType backendType = gfx::BACKEND_NONE;
   if (ctx->IsCairo()) {
@@ -2111,267 +2109,289 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
     backendType = dt->GetType();
   }
 
-  GradientCacheData* pattern =
-    gGradientCache->Lookup(aGradient, oneCellArea.Size(), flags, backendType);
+  
+  gfxPoint lineStart, lineEnd;
+  double radiusX = 0, radiusY = 0; 
+  if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
+    ComputeLinearGradientLine(aPresContext, aGradient, oneCellArea.Size(),
+                              &lineStart, &lineEnd);
+  } else {
+    ComputeRadialGradientLine(aPresContext, aGradient, oneCellArea.Size(),
+                              &lineStart, &lineEnd, &radiusX, &radiusY);
+  }
+  gfxFloat lineLength = NS_hypot(lineEnd.x - lineStart.x,
+                                  lineEnd.y - lineStart.y);
 
-  if (pattern == nullptr) {
-    
-    gfxPoint lineStart, lineEnd;
-    double radiusX = 0, radiusY = 0; 
-    if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
-      ComputeLinearGradientLine(aPresContext, aGradient, oneCellArea.Size(),
-                                &lineStart, &lineEnd);
-    } else {
-      ComputeRadialGradientLine(aPresContext, aGradient, oneCellArea.Size(),
-                                &lineStart, &lineEnd, &radiusX, &radiusY);
-    }
-    gfxFloat lineLength = NS_hypot(lineEnd.x - lineStart.x,
-                                   lineEnd.y - lineStart.y);
+  NS_ABORT_IF_FALSE(aGradient->mStops.Length() >= 2,
+                    "The parser should reject gradients with less than two stops");
 
-    NS_ABORT_IF_FALSE(aGradient->mStops.Length() >= 2,
-                      "The parser should reject gradients with less than two stops");
-
-    
-    nsTArray<ColorStop> stops;
-    
-    
-    
-    int32_t firstUnsetPosition = -1;
-    for (uint32_t i = 0; i < aGradient->mStops.Length(); ++i) {
-      const nsStyleGradientStop& stop = aGradient->mStops[i];
-      double position;
-      switch (stop.mLocation.GetUnit()) {
-      case eStyleUnit_None:
-        if (i == 0) {
-          
-          position = 0.0;
-        } else if (i == aGradient->mStops.Length() - 1) {
-          
-          position = 1.0;
-        } else {
-          
-          
-          
-          
-          if (firstUnsetPosition < 0) {
-            firstUnsetPosition = i;
-          }
-          stops.AppendElement(ColorStop(0, stop.mColor));
-          continue;
-        }
-        break;
-      case eStyleUnit_Percent:
-        position = stop.mLocation.GetPercentValue();
-        break;
-      case eStyleUnit_Coord:
-        position = lineLength < 1e-6 ? 0.0 :
-            stop.mLocation.GetCoordValue() / appUnitsPerPixel / lineLength;
-        break;
-      case eStyleUnit_Calc:
-        nsStyleCoord::Calc *calc;
-        calc = stop.mLocation.GetCalcValue();
-        position = calc->mPercent +
-            ((lineLength < 1e-6) ? 0.0 :
-            (NSAppUnitsToFloatPixels(calc->mLength, appUnitsPerPixel) / lineLength));
-        break;
-      default:
-        NS_ABORT_IF_FALSE(false, "Unknown stop position type");
-      }
-
-      if (i > 0) {
+  
+  nsTArray<ColorStop> stops;
+  
+  
+  
+  int32_t firstUnsetPosition = -1;
+  for (uint32_t i = 0; i < aGradient->mStops.Length(); ++i) {
+    const nsStyleGradientStop& stop = aGradient->mStops[i];
+    double position;
+    switch (stop.mLocation.GetUnit()) {
+    case eStyleUnit_None:
+      if (i == 0) {
         
+        position = 0.0;
+      } else if (i == aGradient->mStops.Length() - 1) {
         
-        position = std::max(position, stops[i - 1].mPosition);
-      }
-      stops.AppendElement(ColorStop(position, stop.mColor));
-      if (firstUnsetPosition > 0) {
-        
-        double p = stops[firstUnsetPosition - 1].mPosition;
-        double d = (stops[i].mPosition - p)/(i - firstUnsetPosition + 1);
-        for (uint32_t j = firstUnsetPosition; j < i; ++j) {
-          p += d;
-          stops[j].mPosition = p;
-        }
-        firstUnsetPosition = -1;
-      }
-    }
-
-    
-    double firstStop = stops[0].mPosition;
-    if (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR && firstStop < 0.0) {
-      if (aGradient->mRepeating) {
-        
-        
-        double lastStop = stops[stops.Length() - 1].mPosition;
-        double stopDelta = lastStop - firstStop;
-        
-        
-        
-        
-        if (stopDelta >= 1e-6) {
-          double instanceCount = ceil(-firstStop/stopDelta);
-          
-          
-          double offset = instanceCount*stopDelta;
-          for (uint32_t i = 0; i < stops.Length(); i++) {
-            stops[i].mPosition += offset;
-          }
-        }
+        position = 1.0;
       } else {
         
         
         
+        
+        if (firstUnsetPosition < 0) {
+          firstUnsetPosition = i;
+        }
+        stops.AppendElement(ColorStop(0, stop.mColor));
+        continue;
+      }
+      break;
+    case eStyleUnit_Percent:
+      position = stop.mLocation.GetPercentValue();
+      break;
+    case eStyleUnit_Coord:
+      position = lineLength < 1e-6 ? 0.0 :
+          stop.mLocation.GetCoordValue() / appUnitsPerPixel / lineLength;
+      break;
+    case eStyleUnit_Calc:
+      nsStyleCoord::Calc *calc;
+      calc = stop.mLocation.GetCalcValue();
+      position = calc->mPercent +
+          ((lineLength < 1e-6) ? 0.0 :
+          (NSAppUnitsToFloatPixels(calc->mLength, appUnitsPerPixel) / lineLength));
+      break;
+    default:
+      NS_ABORT_IF_FALSE(false, "Unknown stop position type");
+    }
+
+    if (i > 0) {
+      
+      
+      position = std::max(position, stops[i - 1].mPosition);
+    }
+    stops.AppendElement(ColorStop(position, stop.mColor));
+    if (firstUnsetPosition > 0) {
+      
+      double p = stops[firstUnsetPosition - 1].mPosition;
+      double d = (stops[i].mPosition - p)/(i - firstUnsetPosition + 1);
+      for (uint32_t j = firstUnsetPosition; j < i; ++j) {
+        p += d;
+        stops[j].mPosition = p;
+      }
+      firstUnsetPosition = -1;
+    }
+  }
+
+  
+  double firstStop = stops[0].mPosition;
+  if (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR && firstStop < 0.0) {
+    if (aGradient->mRepeating) {
+      
+      
+      double lastStop = stops[stops.Length() - 1].mPosition;
+      double stopDelta = lastStop - firstStop;
+      
+      
+      
+      
+      if (stopDelta >= 1e-6) {
+        double instanceCount = ceil(-firstStop/stopDelta);
+        
+        
+        double offset = instanceCount*stopDelta;
         for (uint32_t i = 0; i < stops.Length(); i++) {
-          double pos = stops[i].mPosition;
-          if (pos < 0.0) {
-            stops[i].mPosition = 0.0;
+          stops[i].mPosition += offset;
+        }
+      }
+    } else {
+      
+      
+      
+      for (uint32_t i = 0; i < stops.Length(); i++) {
+        double pos = stops[i].mPosition;
+        if (pos < 0.0) {
+          stops[i].mPosition = 0.0;
+          
+          
+          if (i < stops.Length() - 1) {
+            double nextPos = stops[i + 1].mPosition;
             
             
-            if (i < stops.Length() - 1) {
-              double nextPos = stops[i + 1].mPosition;
+            
+            
+            
+            
+            if (nextPos >= 0.0 && nextPos - pos >= 1e-6) {
               
               
               
               
-              
-              
-              if (nextPos >= 0.0 && nextPos - pos >= 1e-6) {
-                
-                
-                
-                
-                double frac = (0.0 - pos)/(nextPos - pos);
-                stops[i].mColor =
-                  InterpolateColor(stops[i].mColor, stops[i + 1].mColor, frac);
-              }
+              double frac = (0.0 - pos)/(nextPos - pos);
+              stops[i].mColor =
+                InterpolateColor(stops[i].mColor, stops[i + 1].mColor, frac);
             }
           }
         }
       }
-      firstStop = stops[0].mPosition;
-      NS_ABORT_IF_FALSE(firstStop >= 0.0, "Failed to fix stop offsets");
     }
+    firstStop = stops[0].mPosition;
+    NS_ABORT_IF_FALSE(firstStop >= 0.0, "Failed to fix stop offsets");
+  }
 
-    if (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR && !aGradient->mRepeating) {
-      
-      
-      
-      
-      
-      firstStop = 0;
+  if (aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR && !aGradient->mRepeating) {
+    
+    
+    
+    
+    
+    firstStop = 0;
+  }
+
+  double lastStop = stops[stops.Length() - 1].mPosition;
+  
+  
+  
+  double stopScale;
+  double stopDelta = lastStop - firstStop;
+  bool zeroRadius = aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR &&
+                      (radiusX < 1e-6 || radiusY < 1e-6);
+  if (stopDelta < 1e-6 || lineLength < 1e-6 || zeroRadius) {
+    
+    
+    
+    
+    stopScale = 0.0;
+    if (aGradient->mRepeating || zeroRadius) {
+      radiusX = radiusY = 0.0;
     }
+    lastStop = firstStop;
+  } else {
+    stopScale = 1.0/stopDelta;
+  }
 
-    double lastStop = stops[stops.Length() - 1].mPosition;
+  
+  nsRefPtr<gfxPattern> gradientPattern;
+  bool forceRepeatToCoverTiles = false;
+  if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
     
     
-    
-    double stopScale;
-    double stopDelta = lastStop - firstStop;
-    bool zeroRadius = aGradient->mShape != NS_STYLE_GRADIENT_SHAPE_LINEAR &&
-                        (radiusX < 1e-6 || radiusY < 1e-6);
-    if (stopDelta < 1e-6 || lineLength < 1e-6 || zeroRadius) {
-      
-      
-      
-      
-      stopScale = 0.0;
-      if (aGradient->mRepeating || zeroRadius) {
-        radiusX = radiusY = 0.0;
-      }
-      lastStop = firstStop;
-    } else {
-      stopScale = 1.0/stopDelta;
-    }
+    gfxPoint gradientStart = lineStart + (lineEnd - lineStart)*firstStop;
+    gfxPoint gradientEnd = lineStart + (lineEnd - lineStart)*lastStop;
 
-    
-    nsRefPtr<gfxPattern> gradientPattern;
-    bool forceRepeatToCoverTiles = false;
-    if (aGradient->mShape == NS_STYLE_GRADIENT_SHAPE_LINEAR) {
-      
-      
-      gfxPoint gradientStart = lineStart + (lineEnd - lineStart)*firstStop;
-      gfxPoint gradientEnd = lineStart + (lineEnd - lineStart)*lastStop;
-
-      if (stopScale == 0.0) {
-        
-        
-        
-        
-        
-        
-        gradientEnd = gradientStart + (lineEnd - lineStart);
-      }
-
-      gradientPattern = new gfxPattern(gradientStart.x, gradientStart.y,
-                                       gradientEnd.x, gradientEnd.y);
-
-      
-      
-      
-      if (!(flags & GradientCacheKey::SINGLE_CELL) &&
-          ((gradientStart.y == gradientEnd.y && gradientStart.x == 0 &&
-            gradientEnd.x == oneCellArea.width) ||
-           (gradientStart.x == gradientEnd.x && gradientStart.y == 0 &&
-            gradientEnd.y == oneCellArea.height))) {
-        forceRepeatToCoverTiles = true;
-      }
-    } else {
-      NS_ASSERTION(firstStop >= 0.0,
-                   "Negative stops not allowed for radial gradients");
-
-      
-      
-      double innerRadius = radiusX*firstStop;
-      double outerRadius = radiusX*lastStop;
-      if (stopScale == 0.0) {
-        
-        
-        outerRadius = innerRadius + 1;
-      }
-      gradientPattern = new gfxPattern(lineStart.x, lineStart.y, innerRadius,
-                                       lineStart.x, lineStart.y, outerRadius);
-      if (radiusX != radiusY) {
-        
-        
-        
-        
-        
-        gfxMatrix matrix;
-        matrix.Translate(lineStart);
-        matrix.Scale(1.0, radiusX/radiusY);
-        matrix.Translate(-lineStart);
-        gradientPattern->SetMatrix(matrix);
-      }
-    }
-    if (gradientPattern->CairoStatus())
-      return;
-
-    
     if (stopScale == 0.0) {
       
       
       
       
-      if (!aGradient->mRepeating && !zeroRadius) {
-        gradientPattern->AddColorStop(0.0, stops[0].mColor);
-      }
-      gradientPattern->AddColorStop(0.0, stops[stops.Length() - 1].mColor);
-    } else {
       
-      for (uint32_t i = 0; i < stops.Length(); i++) {
-        double pos = stopScale*(stops[i].mPosition - firstStop);
-        gradientPattern->AddColorStop(pos, stops[i].mColor);
-      }
+      
+      gradientEnd = gradientStart + (lineEnd - lineStart);
     }
 
+    gradientPattern = new gfxPattern(gradientStart.x, gradientStart.y,
+                                      gradientEnd.x, gradientEnd.y);
+
     
-    if (aGradient->mRepeating || forceRepeatToCoverTiles) {
-      gradientPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
+    
+    
+    if (!cellContainsFill &&
+        ((gradientStart.y == gradientEnd.y && gradientStart.x == 0 &&
+          gradientEnd.x == oneCellArea.width) ||
+          (gradientStart.x == gradientEnd.x && gradientStart.y == 0 &&
+          gradientEnd.y == oneCellArea.height))) {
+      forceRepeatToCoverTiles = true;
+    }
+  } else {
+    NS_ASSERTION(firstStop >= 0.0,
+                  "Negative stops not allowed for radial gradients");
+
+    
+    
+    double innerRadius = radiusX*firstStop;
+    double outerRadius = radiusX*lastStop;
+    if (stopScale == 0.0) {
+      
+      
+      outerRadius = innerRadius + 1;
+    }
+    gradientPattern = new gfxPattern(lineStart.x, lineStart.y, innerRadius,
+                                      lineStart.x, lineStart.y, outerRadius);
+    if (radiusX != radiusY) {
+      
+      
+      
+      
+      
+      gfxMatrix matrix;
+      matrix.Translate(lineStart);
+      matrix.Scale(1.0, radiusX/radiusY);
+      matrix.Translate(-lineStart);
+      gradientPattern->SetMatrix(matrix);
+    }
+  }
+  if (gradientPattern->CairoStatus())
+    return;
+
+  if (stopScale == 0.0) {
+    
+    
+    
+    
+    
+    gfxRGBA firstColor(stops[0].mColor);
+    gfxRGBA lastColor(stops.LastElement().mColor);
+    stops.Clear();
+
+    if (!aGradient->mRepeating && !zeroRadius) {
+      stops.AppendElement(ColorStop(firstStop, firstColor));
+    }
+    stops.AppendElement(ColorStop(firstStop, lastColor));
+  }
+
+  bool isRepeat = aGradient->mRepeating || forceRepeatToCoverTiles;
+
+  
+  if (!ctx->IsCairo()) {
+    
+    
+    
+    
+    
+    
+    nsTArray<gfx::GradientStop> rawStops(stops.Length());
+    rawStops.SetLength(stops.Length());
+    for(uint32_t i = 0; i < stops.Length(); i++) {
+      rawStops[i].color = gfx::Color(stops[i].mColor.r, stops[i].mColor.g, stops[i].mColor.b, stops[i].mColor.a);
+      rawStops[i].offset =  stopScale * (stops[i].mPosition - firstStop);
+    }
+    GradientCacheData* cached = gGradientCache->Lookup(rawStops, isRepeat, backendType);
+    mozilla::RefPtr<mozilla::gfx::GradientStops> gs = cached ? cached->mStops : nullptr;
+    if (!gs) {
+      
+      gs = ctx->GetDrawTarget()->CreateGradientStops(rawStops.Elements(), stops.Length(), isRepeat ? gfx::EXTEND_REPEAT : gfx::EXTEND_CLAMP);
+      cached = new GradientCacheData(gs, GradientCacheKey(rawStops, isRepeat, backendType));
+      if (!gGradientCache->RegisterEntry(cached)) {
+        delete cached;
+      }
+    }
+    gradientPattern->SetColorStops(gs);
+  } else {
+    for (uint32_t i = 0; i < stops.Length(); i++) {
+      double pos = stopScale*(stops[i].mPosition - firstStop);
+      gradientPattern->AddColorStop(pos, stops[i].mColor);
     }
     
-    pattern = new GradientCacheData(gradientPattern, forceRepeatToCoverTiles,
-      GradientCacheKey(aGradient, oneCellArea.Size(), flags, backendType));
-    gradientRegistered = gGradientCache->RegisterEntry(pattern);
+    if (isRepeat) {
+      gradientPattern->SetExtend(gfxPattern::EXTEND_REPEAT);
+    }
   }
 
   
@@ -2390,8 +2410,8 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
   
   nscoord xStart = FindTileStart(dirty.x, aOneCellArea.x, aOneCellArea.width);
   nscoord yStart = FindTileStart(dirty.y, aOneCellArea.y, aOneCellArea.height);
-  nscoord xEnd = pattern->mCoversTile ? xStart + aOneCellArea.width : dirty.XMost();
-  nscoord yEnd = pattern->mCoversTile ? yStart + aOneCellArea.height : dirty.YMost();
+  nscoord xEnd = forceRepeatToCoverTiles ? xStart + aOneCellArea.width : dirty.XMost();
+  nscoord yEnd = forceRepeatToCoverTiles ? yStart + aOneCellArea.height : dirty.YMost();
 
   
   for (nscoord y = yStart; y < yEnd; y += aOneCellArea.height) {
@@ -2403,7 +2423,7 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       
       
       gfxRect fillRect =
-        pattern->mCoversTile ? areaToFill : tileRect.Intersect(areaToFill);
+        forceRepeatToCoverTiles ? areaToFill : tileRect.Intersect(areaToFill);
       ctx->NewPath();
       
       
@@ -2432,15 +2452,10 @@ nsCSSRendering::PaintGradient(nsPresContext* aPresContext,
       }
       ctx->Rectangle(fillRect);
       ctx->Translate(tileRect.TopLeft());
-      ctx->SetPattern(pattern->mPattern);
+      ctx->SetPattern(gradientPattern);
       ctx->Fill();
       ctx->SetMatrix(ctm);
     }
-  }
-  
-  
-  if (!gradientRegistered) {
-    delete pattern;
   }
 }
 
