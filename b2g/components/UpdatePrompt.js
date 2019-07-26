@@ -415,7 +415,7 @@ UpdatePrompt.prototype = {
         
         
         
-        if (this._applyPromptTimer == null) {
+        if (this._applyPromptTimer == null && !this._waitingForIdle) {
           this._update = null;
         }
         break;
