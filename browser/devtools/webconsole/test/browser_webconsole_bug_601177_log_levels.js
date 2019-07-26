@@ -12,6 +12,8 @@ const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/te
 
 function test()
 {
+  
+  
   Services.prefs.setBoolPref("javascript.options.strict", true);
   registerCleanupFunction(function() {
     Services.prefs.clearUserPref("javascript.options.strict");

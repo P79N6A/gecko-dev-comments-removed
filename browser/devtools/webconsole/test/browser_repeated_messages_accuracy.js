@@ -101,13 +101,11 @@ function testConsoleRepeats(hud) {
         name: "'undefined' jsterm input message",
         text: "undefined",
         category: CATEGORY_INPUT,
-        repeats: 1,
       },
       {
         name: "'undefined' jsterm output message",
         text: "undefined",
         category: CATEGORY_OUTPUT,
-        repeats: 1,
       },
       {
         name: "'undefined' console.log message",

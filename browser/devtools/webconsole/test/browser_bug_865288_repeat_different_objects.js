@@ -41,9 +41,8 @@ function consoleOpened(aHud) {
   }).then(checkMessages);
 }
 
-function checkMessages(aResults)
+function checkMessages([result])
 {
-  let result = aResults[0];
   let msgs = [...result.matched];
   is(msgs.length, 3, "3 message elements");
   let m = -1;
@@ -54,10 +53,10 @@ function checkMessages(aResults)
     if (msg) {
       ok(msg, "message element #" + m);
 
-      let clickable = msg.querySelector(".hud-clickable");
+      let clickable = msg.querySelector(".body a");
       ok(clickable, "clickable object #" + m);
 
-      scrollOutputToNode(msg);
+      msg.scrollIntoView(false);
       clickObject(clickable);
     }
     else {
