@@ -305,22 +305,13 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
       nsSize viewportSize = aPresContext->GetVisibleArea().Size();
       return ScaleCoord(aValue, 0.01f * max(viewportSize.width, viewportSize.height));
     }
-    default:
-      
-      
-      break;
-  }
-  
-  
-  aCanStoreInRuleTree = false;
-  const nsStyleFont *styleFont =
-    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
-  if (aFontSize == -1) {
     
     
-    aFontSize = styleFont->mFont.size;
-  }
-  switch (aValue.GetUnit()) {
+    
+    
+    
+    
+    
     case eCSSUnit_RootEM: {
       aPresContext->SetUsesRootEMUnits(true);
       nscoord rootFontSize;
@@ -337,12 +328,15 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
         
         
         
+        const nsStyleFont *styleFont =
+          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
         rootFontSize = styleFont->mFont.size;
       } else {
         
         
         nsRefPtr<nsStyleContext> rootStyle;
-        const nsStyleFont *rootStyleFont = styleFont;
+        const nsStyleFont *rootStyleFont =
+          aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
         Element* docElement = aPresContext->Document()->GetRootElement();
 
         if (docElement) {
@@ -358,6 +352,22 @@ static nscoord CalcLengthWith(const nsCSSValue& aValue,
 
       return ScaleCoord(aValue, float(rootFontSize));
     }
+    default:
+      
+      
+      break;
+  }
+  
+  
+  aCanStoreInRuleTree = false;
+  const nsStyleFont *styleFont =
+    aStyleFont ? aStyleFont : aStyleContext->GetStyleFont();
+  if (aFontSize == -1) {
+    
+    
+    aFontSize = styleFont->mFont.size;
+  }
+  switch (aValue.GetUnit()) {
     case eCSSUnit_EM: {
       return ScaleCoord(aValue, float(aFontSize));
       
