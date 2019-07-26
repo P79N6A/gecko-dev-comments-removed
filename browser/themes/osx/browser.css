@@ -2517,7 +2517,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   box-shadow: @focusRingShadow@;
 }
 
-#main-window:not([privatebrowsingmode=temporary]):not([customizing]):not([customize-exiting]) #navigator-toolbox:not(:-moz-lwtheme)::before {
+#main-window:not(:-moz-any([privatebrowsingmode=temporary],[customizing],[customize-exiting],[tabsintitlebar])) #navigator-toolbox:not(:-moz-lwtheme)::before {
   
 
 
