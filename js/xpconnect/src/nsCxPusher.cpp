@@ -125,24 +125,29 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull) : mScriptIsRunning(fal
     MOZ_CRASH();
   }
 
+#ifdef DEBUG
+  mPushedContext = cx;
+  mCompartmentDepthOnEntry = cx ? js::GetEnterCompartmentDepth(cx) : 0;
+#endif
+
+  
+  
   
   
   
   if (cx) {
     mAutoRequest.construct(cx);
+    if (js::GetDefaultGlobalForContext(cx))
+      mAutoCompartment.construct(cx, js::GetDefaultGlobalForContext(cx));
     xpc_UnmarkGrayContext(cx);
   }
-
-#ifdef DEBUG
-  mPushedContext = cx;
-  mCompartmentDepthOnEntry = cx ? js::GetEnterCompartmentDepth(cx) : 0;
-#endif
 }
 
 NS_EXPORT
 AutoCxPusher::~AutoCxPusher()
 {
   
+  mAutoCompartment.destroyIfConstructed();
   mAutoRequest.destroyIfConstructed();
 
   
