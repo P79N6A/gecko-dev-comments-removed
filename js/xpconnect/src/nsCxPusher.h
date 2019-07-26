@@ -1,8 +1,8 @@
 
 
 
-#ifndef nsCxPusher_h___
-#define nsCxPusher_h___
+#ifndef nsCxPusher_h
+#define nsCxPusher_h
 
 #include "jsapi.h"
 #include "mozilla/Util.h"
