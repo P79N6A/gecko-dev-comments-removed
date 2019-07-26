@@ -21,6 +21,7 @@
 #include "jpeglib.h"
 #include "jdhuff.h"		
 #include "jpegcomp.h"
+#include "jstdhuff.c"
 
 
 
@@ -794,6 +795,12 @@ jinit_huff_decoder (j_decompress_ptr cinfo)
 {
   huff_entropy_ptr entropy;
   int i;
+
+  
+
+
+
+  std_huff_tables((j_common_ptr) cinfo);
 
   entropy = (huff_entropy_ptr)
     (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_IMAGE,
