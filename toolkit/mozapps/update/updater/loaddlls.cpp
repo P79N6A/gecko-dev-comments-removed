@@ -12,6 +12,10 @@ struct AutoLoadSystemDependencies
 {
   AutoLoadSystemDependencies()
   {
+    
+    
+    SetDllDirectory(L"");
+
     static LPCWSTR delayDLLs[] = { L"wsock32.dll", L"crypt32.dll",
                                    L"cryptsp.dll", L"cryptbase.dll",
                                    L"msasn1.dll", L"userenv.dll",
