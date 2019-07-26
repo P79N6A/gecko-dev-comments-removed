@@ -48,6 +48,13 @@ extern PRLogModuleInfo* gMediaDecoderLog;
 
 
 
+#ifdef GetCurrentTime
+#undef GetCurrentTime
+#endif
+
+
+
+
 static const uint32_t BUFFERING_WAIT_S = 30;
 
 

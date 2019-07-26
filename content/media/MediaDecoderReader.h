@@ -10,6 +10,7 @@
 #include "MediaInfo.h"
 #include "MediaData.h"
 #include "MediaQueue.h"
+#include "AudioCompactor.h"
 
 namespace mozilla {
 
@@ -104,6 +105,12 @@ protected:
   
   
   MediaQueue<VideoData> mVideoQueue;
+
+  
+  
+  
+  
+  AudioCompactor mAudioCompactor;
 
 public:
   
