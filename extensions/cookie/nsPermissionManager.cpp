@@ -619,7 +619,9 @@ nsPermissionManager::AddFromPrincipal(nsIPrincipal* aPrincipal,
                  NS_ERROR_INVALID_ARG);
 
   
-  if (aExpireType == nsIPermissionManager::EXPIRE_TIME &&
+  
+  if ((aExpireType == nsIPermissionManager::EXPIRE_TIME ||
+       (aExpireType == nsIPermissionManager::EXPIRE_SESSION && aExpireTime != 0)) &&
       aExpireTime <= (PR_Now() / 1000)) {
     return NS_OK;
   }
@@ -702,7 +704,7 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
     
     if (aPermission == oldPermissionEntry.mPermission &&
         aExpireType == oldPermissionEntry.mExpireType &&
-        (aExpireType != nsIPermissionManager::EXPIRE_TIME ||
+        (aExpireType == nsIPermissionManager::EXPIRE_NEVER ||
          aExpireTime == oldPermissionEntry.mExpireTime))
       op = eOperationNone;
     else if (aPermission == nsIPermissionManager::UNKNOWN_ACTION)
@@ -801,14 +803,16 @@ nsPermissionManager::AddInternal(nsIPrincipal* aPrincipal,
           aExpireType == nsIPermissionManager::EXPIRE_SESSION) {
         entry->GetPermissions()[index].mNonSessionPermission = entry->GetPermissions()[index].mPermission;
         entry->GetPermissions()[index].mNonSessionExpireType = entry->GetPermissions()[index].mExpireType;
+        entry->GetPermissions()[index].mNonSessionExpireTime = entry->GetPermissions()[index].mExpireTime;
       } else if (aExpireType != nsIPermissionManager::EXPIRE_SESSION) {
         entry->GetPermissions()[index].mNonSessionPermission = aPermission;
         entry->GetPermissions()[index].mNonSessionExpireType = aExpireType;
-        entry->GetPermissions()[index].mExpireTime = aExpireTime;
+        entry->GetPermissions()[index].mNonSessionExpireTime = aExpireTime;
       }
 
       entry->GetPermissions()[index].mPermission = aPermission;
       entry->GetPermissions()[index].mExpireType = aExpireType;
+      entry->GetPermissions()[index].mExpireTime = aExpireTime;
 
       if (aDBOperation == eWriteToDB && aExpireType != nsIPermissionManager::EXPIRE_SESSION)
         
@@ -1143,7 +1147,10 @@ nsPermissionManager::GetPermissionHashKey(const nsACString& aHost,
     PermissionEntry permEntry = entry->GetPermission(aType);
 
     
-    if (permEntry.mExpireType == nsIPermissionManager::EXPIRE_TIME &&
+    
+    if ((permEntry.mExpireType == nsIPermissionManager::EXPIRE_TIME ||
+         (permEntry.mExpireType == nsIPermissionManager::EXPIRE_SESSION &&
+          permEntry.mExpireTime != 0)) &&
         permEntry.mExpireTime <= (PR_Now() / 1000)) {
       nsCOMPtr<nsIPrincipal> principal;
       if (NS_FAILED(GetPrincipal(aHost, aAppId, aIsInBrowserElement, getter_AddRefs(principal)))) {
@@ -1375,6 +1382,7 @@ nsPermissionManager::RemoveExpiredPermissionsForAppEnumerator(
 
     permEntry.mPermission = permEntry.mNonSessionPermission;
     permEntry.mExpireType = permEntry.mNonSessionExpireType;
+    permEntry.mExpireTime = permEntry.mNonSessionExpireTime;
 
     gPermissionManager->NotifyObserversWithPermission(entry->GetKey()->mHost,
                                                       entry->GetKey()->mAppId,
