@@ -53,12 +53,12 @@ public:
 
   
   
-  nsresult SetStateMachine(nsDecoderStateMachine* aSM);
+  nsresult SetStateMachine(nsBuiltinDecoderStateMachine* aSM);
 
 private:
   
   
-  nsDecoderStateMachine* CreateStateMachine();
+  nsBuiltinDecoderStateMachine* CreateStateMachine();
 
 public:
   
