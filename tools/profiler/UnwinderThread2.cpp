@@ -119,6 +119,9 @@ static int       unwind_thr_exit_now = 0;
 static void thread_register_for_profiling ( void* stackTop );
 
 
+static void do_breakpad_unwind_Buffer_free_singletons();
+
+
 
 static UnwinderThreadBuffer* acquire_empty_buffer();
 
@@ -157,6 +160,7 @@ void uwt__deinit()
   unwind_thr_exit_now = 1;
   do_MBAR();
   int r = pthread_join(unwind_thr, NULL); MOZ_ALWAYS_TRUE(r==0);
+  do_breakpad_unwind_Buffer_free_singletons();
 }
 
 void uwt__register_thread_for_profiling(void* stackTop)
@@ -813,6 +817,14 @@ static void* unwind_thr_fn(void* exit_nowV)
     MOZ_ASSERT(buffers);
     int i;
     for (i = 0; i < N_UNW_THR_BUFFERS; i++) {
+      
+
+
+
+
+
+
+
       buffers[i] = (UnwinderThreadBuffer*)
                    calloc(sizeof(UnwinderThreadBuffer), 1);
       MOZ_ASSERT(buffers[i]);
@@ -1478,6 +1490,22 @@ class MyCodeModules : public google_breakpad::CodeModules
 MyCodeModules* sModules = NULL;
 google_breakpad::LocalDebugInfoSymbolizer* sSymbolizer = NULL;
 
+
+
+static
+void do_breakpad_unwind_Buffer_free_singletons()
+{
+  if (sSymbolizer) {
+    delete sSymbolizer;
+    sSymbolizer = NULL;
+  }
+  if (sModules) {
+    delete sModules;
+    sModules = NULL;
+  }
+}
+
+static
 void do_breakpad_unwind_Buffer(PCandSP** pairs,
                                unsigned int* nPairs,
                                UnwinderThreadBuffer* buff,
