@@ -11,6 +11,7 @@
 #include "nsDebug.h"
 #include <new>
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/Move.h"
 #include "mozilla/fallible.h"
 
 
@@ -19,6 +20,7 @@ PL_DHashStubEnumRemove(PLDHashTable    *table,
                        PLDHashEntryHdr *entry,
                        uint32_t         ordinal,
                        void            *userArg);
+
 
 
 
@@ -87,6 +89,8 @@ public:
 
 
   ~nsTHashtable();
+
+  nsTHashtable(mozilla::MoveRef<nsTHashtable<EntryType> > aOther);
 
   
 
@@ -379,6 +383,15 @@ nsTHashtable<EntryType>::nsTHashtable()
 }
 
 template<class EntryType>
+nsTHashtable<EntryType>::nsTHashtable(
+  mozilla::MoveRef<nsTHashtable<EntryType> > aOther)
+  : mTable(aOther->mTable)
+{
+  aOther->mTable = PLDHashTable();
+  aOther->mTable.entrySize = 0;
+}
+
+template<class EntryType>
 nsTHashtable<EntryType>::~nsTHashtable()
 {
   if (mTable.entrySize)
@@ -448,10 +461,12 @@ nsTHashtable<EntryType>::s_CopyEntry(PLDHashTable          *table,
                                      const PLDHashEntryHdr *from,
                                      PLDHashEntryHdr       *to)
 {
+  using mozilla::Move;
+
   EntryType* fromEntry =
     const_cast<EntryType*>(reinterpret_cast<const EntryType*>(from));
 
-  new(to) EntryType(*fromEntry);
+  new(to) EntryType(Move(*fromEntry));
 
   fromEntry->~EntryType();
 }
