@@ -2506,14 +2506,8 @@ nsDOMWindowUtils::RenderDocument(const nsRect& aRect,
     NS_ENSURE_TRUE(window, NS_ERROR_FAILURE);
 
     
-    nsresult rv;
-    nsCOMPtr<nsIDOMDocument> ddoc;
-    rv = window->GetDocument(getter_AddRefs(ddoc));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    nsCOMPtr<nsIDocument> doc = do_QueryInterface(ddoc, &rv);
-    NS_ENSURE_SUCCESS(rv, rv);
+    nsCOMPtr<nsIDocument> doc = window->GetDoc();
+    NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
     
     nsCOMPtr<nsIPresShell> presShell = doc->GetShell();
@@ -3217,23 +3211,15 @@ nsDOMWindowUtils::LoadSheet(nsIURI *aSheetURI, uint32_t aSheetType)
                 aSheetType == USER_SHEET ||
                 aSheetType == AUTHOR_SHEET);
 
-  nsCOMPtr<nsIDOMWindow> window = do_QueryReferent(mWindow);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_INVALID_ARG);
-  
-  nsCOMPtr<nsIDOMDocument> ddoc;
-  nsresult rv = window->GetDocument(getter_AddRefs(ddoc));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(ddoc, NS_ERROR_FAILURE);
 
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(ddoc);
-  NS_ENSURE_TRUE(doc, NS_ERROR_INVALID_ARG);
+  nsCOMPtr<nsIDocument> doc = window->GetDoc();
+  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   nsIDocument::additionalSheetType type = convertSheetType(aSheetType);
 
-  rv = doc->LoadAdditionalStyleSheet(type, aSheetURI);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
+  return doc->LoadAdditionalStyleSheet(type, aSheetURI);
 }
 
 NS_IMETHODIMP
@@ -3248,16 +3234,11 @@ nsDOMWindowUtils::RemoveSheet(nsIURI *aSheetURI, uint32_t aSheetType)
                 aSheetType == USER_SHEET ||
                 aSheetType == AUTHOR_SHEET);
 
-  nsCOMPtr<nsIDOMWindow> window = do_QueryReferent(mWindow);
+  nsCOMPtr<nsPIDOMWindow> window = do_QueryReferent(mWindow);
   NS_ENSURE_TRUE(window, NS_ERROR_INVALID_ARG);
 
-  nsCOMPtr<nsIDOMDocument> ddoc;
-  nsresult rv = window->GetDocument(getter_AddRefs(ddoc));
-  NS_ENSURE_SUCCESS(rv, rv);
-  NS_ENSURE_TRUE(ddoc, NS_ERROR_FAILURE);
-
-  nsCOMPtr<nsIDocument> doc = do_QueryInterface(ddoc);
-  NS_ENSURE_TRUE(doc, NS_ERROR_INVALID_ARG);
+  nsCOMPtr<nsIDocument> doc = window->GetDoc();
+  NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
   nsIDocument::additionalSheetType type = convertSheetType(aSheetType);
 

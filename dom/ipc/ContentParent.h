@@ -103,7 +103,7 @@ public:
 
     static TabParent*
     CreateBrowserOrApp(const TabContext& aContext,
-                       nsIDOMElement* aFrameElement);
+                       Element* aFrameElement);
 
     static void GetAll(nsTArray<ContentParent*>& aArray);
     static void GetAllEvenIfDead(nsTArray<ContentParent*>& aArray);
@@ -195,7 +195,7 @@ private:
                                     ChildPrivileges aPrivs,
                                     hal::ProcessPriority aInitialPriority);
 
-    static hal::ProcessPriority GetInitialProcessPriority(nsIDOMElement* aFrameElement);
+    static hal::ProcessPriority GetInitialProcessPriority(Element* aFrameElement);
 
     
     
@@ -218,7 +218,7 @@ private:
     
     
     
-    void MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement);
+    void MaybeTakeCPUWakeLock(Element* aFrameElement);
 
     
     

@@ -19,7 +19,6 @@
 #include "nsTArray.h"
 #include "nsIURI.h"
 #include "mozilla/dom/EventTarget.h"
-
 #include "js/RootingAPI.h"
 
 #define DOM_WINDOW_DESTROYED_TOPIC "dom-window-destroyed"
@@ -54,6 +53,7 @@ class nsPIWindowRoot;
 namespace mozilla {
 namespace dom {
 class AudioContext;
+class Element;
 }
 }
 
@@ -196,34 +196,8 @@ public:
   
   
   
-  nsIDOMElement* GetFrameElementInternal() const
-  {
-    if (mOuterWindow) {
-      return mOuterWindow->GetFrameElementInternal();
-    }
-
-    NS_ASSERTION(!IsInnerWindow(),
-                 "GetFrameElementInternal() called on orphan inner window");
-
-    return mFrameElement;
-  }
-
-  void SetFrameElementInternal(nsIDOMElement *aFrameElement)
-  {
-    if (IsOuterWindow()) {
-      mFrameElement = aFrameElement;
-
-      return;
-    }
-
-    if (!mOuterWindow) {
-      NS_ERROR("frameElement set on inner window with no outer!");
-
-      return;
-    }
-
-    mOuterWindow->SetFrameElementInternal(aFrameElement);
-  }
+  mozilla::dom::Element* GetFrameElementInternal() const;
+  void SetFrameElementInternal(mozilla::dom::Element* aFrameElement);
 
   bool IsLoadingOrRunningTimeout() const
   {
@@ -340,8 +314,7 @@ public:
   {
     NS_ASSERTION(IsOuterWindow(), "EnsureInnerWindow called on inner window");
     
-    nsCOMPtr<nsIDOMDocument> doc;
-    GetDocument(getter_AddRefs(doc));
+    GetDoc();
     return GetCurrentInnerWindow();
   }
 
@@ -698,7 +671,7 @@ protected:
   nsCOMPtr<mozilla::dom::EventTarget> mParentTarget; 
 
   
-  nsCOMPtr<nsIDOMElement> mFrameElement;
+  nsCOMPtr<mozilla::dom::Element> mFrameElement;
   nsIDocShell           *mDocShell;  
 
   

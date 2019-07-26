@@ -8624,7 +8624,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     
     
-    nsCOMPtr<nsIDOMElement> requestingElement;
+    nsCOMPtr<Element> requestingElement;
     
     if (mScriptGlobal)
         requestingElement = mScriptGlobal->GetFrameElementInternal();

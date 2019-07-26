@@ -33,6 +33,7 @@
 #include "nsError.h"
 #include "nsEventDispatcher.h"
 #include "nsDOMClassInfoID.h"
+#include "mozilla/dom/Element.h"
 
 #ifdef PR_LOGGING
 static PRLogModuleInfo* gLog;
@@ -203,7 +204,8 @@ nsXULCommandDispatcher::SetFocusedWindow(nsIDOMWindow* aWindow)
   
   
   
-  nsCOMPtr<nsIDOMElement> frameElement = window->GetFrameElementInternal();
+  nsCOMPtr<nsIDOMElement> frameElement =
+    do_QueryInterface(window->GetFrameElementInternal());
   if (frameElement)
     return fm->SetFocus(frameElement, 0);
 

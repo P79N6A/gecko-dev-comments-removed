@@ -96,11 +96,11 @@ inDOMUtils::GetParentForNode(nsIDOMNode* aNode,
   NS_ENSURE_ARG_POINTER(aNode);
 
   
-  nsCOMPtr<nsIDOMDocument> doc(do_QueryInterface(aNode));
+  nsCOMPtr<nsIDocument> doc(do_QueryInterface(aNode));
   nsCOMPtr<nsIDOMNode> parent;
 
   if (doc) {
-    parent = inLayoutUtils::GetContainerFor(doc);
+    parent = inLayoutUtils::GetContainerFor(*doc);
   } else if (aShowingAnonymousContent) {
     nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
     if (content) {

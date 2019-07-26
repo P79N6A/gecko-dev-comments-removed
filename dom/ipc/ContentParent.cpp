@@ -461,7 +461,7 @@ PrivilegesForApp(mozIApplication* aApp)
 }
 
  ProcessPriority
-ContentParent::GetInitialProcessPriority(nsIDOMElement* aFrameElement)
+ContentParent::GetInitialProcessPriority(Element* aFrameElement)
 {
     
     
@@ -470,10 +470,8 @@ ContentParent::GetInitialProcessPriority(nsIDOMElement* aFrameElement)
         return PROCESS_PRIORITY_FOREGROUND;
     }
 
-    nsAutoString appType;
-    nsCOMPtr<Element> frameElement = do_QueryInterface(aFrameElement);
-    frameElement->GetAttr(kNameSpaceID_None, nsGkAtoms::mozapptype, appType);
-    if (appType != NS_LITERAL_STRING("critical")) {
+    if (!aFrameElement->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozapptype,
+                                    NS_LITERAL_STRING("critical"), eCaseMatters)) {
         return PROCESS_PRIORITY_FOREGROUND;
     }
 
@@ -490,7 +488,7 @@ ContentParent::GetInitialProcessPriority(nsIDOMElement* aFrameElement)
 
  TabParent*
 ContentParent::CreateBrowserOrApp(const TabContext& aContext,
-                                  nsIDOMElement* aFrameElement)
+                                  Element* aFrameElement)
 {
     if (!sCanLaunchSubprocesses) {
         return nullptr;
@@ -745,7 +743,7 @@ NS_IMPL_ISUPPORTS1(SystemMessageHandledListener,
 } 
 
 void
-ContentParent::MaybeTakeCPUWakeLock(nsIDOMElement* aFrameElement)
+ContentParent::MaybeTakeCPUWakeLock(Element* aFrameElement)
 {
     
     
