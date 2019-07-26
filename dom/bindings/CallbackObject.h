@@ -157,8 +157,7 @@ protected:
     
     CallSetup(CallbackObject* aCallback, ErrorResult& aRv,
               ExceptionHandling aExceptionHandling,
-              JSCompartment* aCompartment = nullptr,
-              bool aIsJSImplementedWebIDL = false);
+              JSCompartment* aCompartment = nullptr);
     ~CallSetup();
 
     JSContext* GetContext() const

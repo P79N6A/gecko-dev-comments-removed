@@ -12,7 +12,6 @@
 #include "nsCxPusher.h"
 #include "MainThreadUtils.h"
 #include "nsIGlobalObject.h"
-#include "nsIPrincipal.h"
 
 #include "mozilla/Maybe.h"
 
@@ -38,24 +37,6 @@ nsIGlobalObject* BrokenGetEntryGlobal();
 
 
 nsIGlobalObject* GetIncumbentGlobal();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-nsIPrincipal* GetWebIDLCallerPrincipal();
 
 class ScriptSettingsStack;
 struct ScriptSettingsStackEntry {
@@ -90,7 +71,7 @@ private:
 
 
 
-class AutoEntryScript : protected ScriptSettingsStackEntry {
+class AutoEntryScript {
 public:
   AutoEntryScript(nsIGlobalObject* aGlobalObject,
                   bool aIsMainThread = NS_IsMainThread(),
@@ -98,28 +79,24 @@ public:
                   JSContext* aCx = nullptr);
   ~AutoEntryScript();
 
-  void SetWebIDLCallerPrincipal(nsIPrincipal *aPrincipal) {
-    mWebIDLCallerPrincipal = aPrincipal;
-  }
-
 private:
   dom::ScriptSettingsStack& mStack;
-  nsCOMPtr<nsIPrincipal> mWebIDLCallerPrincipal;
-  mozilla::Maybe<AutoCxPusher> mCxPusher;
+  dom::ScriptSettingsStackEntry mEntry;
+  nsCxPusher mCxPusher;
   mozilla::Maybe<JSAutoCompartment> mAc; 
                                          
-  friend nsIPrincipal* GetWebIDLCallerPrincipal();
 };
 
 
 
 
-class AutoIncumbentScript : protected ScriptSettingsStackEntry {
+class AutoIncumbentScript {
 public:
   AutoIncumbentScript(nsIGlobalObject* aGlobalObject);
   ~AutoIncumbentScript();
 private:
   dom::ScriptSettingsStack& mStack;
+  dom::ScriptSettingsStackEntry mEntry;
   JS::AutoHideScriptedCaller mCallerOverride;
 };
 
@@ -134,7 +111,7 @@ public:
   ~AutoSystemCaller();
 private:
   dom::ScriptSettingsStack& mStack;
-  mozilla::Maybe<AutoCxPusher> mCxPusher;
+  nsCxPusher mCxPusher;
 };
 
 } 

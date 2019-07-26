@@ -11289,8 +11289,7 @@ class CallbackMember(CGNativeMember):
         if self.rethrowContentException:
             
             
-            callSetup += ", eRethrowContentExceptions, aCompartment, /* aIsJSImplementedWebIDL = */ "
-            callSetup += toStringBool(isJSImplementedDescriptor(self.descriptorProvider))
+            callSetup += ", eRethrowContentExceptions, aCompartment"
         else:
             callSetup += ", aExceptionHandling"
         callSetup += ");"
