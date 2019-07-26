@@ -303,7 +303,7 @@ let CustomizableUIInternal = {
         
         
         if (!currentNode.hasAttribute("removable")) {
-          currentNode.setAttribute("removable", false);
+          currentNode.setAttribute("removable", this.isWidgetRemovable(id));
         }
 
         currentNode = currentNode.nextSibling;
@@ -346,7 +346,7 @@ let CustomizableUIInternal = {
         
         
         if (node.id) {
-          if (node.getAttribute("removable") == "true") {
+          if (this.isWidgetRemovable(node.id)) {
             if (palette) {
               palette.appendChild(node);
             } else {
@@ -682,6 +682,9 @@ let CustomizableUIInternal = {
     }
     return node;
   },
+
+  
+
 
   findWidgetInWindow: function(aId, aWindow) {
     if (!gBuildWindows.has(aWindow)) {
