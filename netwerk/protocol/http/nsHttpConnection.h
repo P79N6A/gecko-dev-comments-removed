@@ -25,6 +25,7 @@
 
 class nsHttpRequestHead;
 class nsHttpResponseHead;
+class nsHttpHandler;
 
 
 
@@ -205,6 +206,8 @@ private:
     
     
     nsRefPtr<nsAHttpTransaction>    mTransaction;
+
+    nsRefPtr<nsHttpHandler>         mHttpHandler; 
 
     mozilla::Mutex                  mCallbacksLock;
     nsMainThreadPtrHandle<nsIInterfaceRequestor> mCallbacks;

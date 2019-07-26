@@ -59,11 +59,9 @@ HttpBaseChannel::HttpBaseChannel()
   , mSuspendCount(0)
   , mProxyResolveFlags(0)
   , mContentDispositionHint(UINT32_MAX)
+  , mHttpHandler(gHttpHandler)
 {
   LOG(("Creating HttpBaseChannel @%x\n", this));
-
-  
-  NS_ADDREF(gHttpHandler);
 
   
   mSelfAddr.raw.family = PR_AF_UNSPEC;
@@ -76,8 +74,6 @@ HttpBaseChannel::~HttpBaseChannel()
 
   
   CleanRedirectCacheChainIfNecessary();
-
-  gHttpHandler->Release();
 }
 
 nsresult

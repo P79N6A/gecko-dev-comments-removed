@@ -46,19 +46,13 @@ nsHttpChannelAuthProvider::nsHttpChannelAuthProvider()
     , mTriedProxyAuth(false)
     , mTriedHostAuth(false)
     , mSuppressDefensiveAuth(false)
+    , mHttpHandler(gHttpHandler)
 {
-    
-    nsHttpHandler *handler = gHttpHandler;
-    NS_ADDREF(handler);
 }
 
 nsHttpChannelAuthProvider::~nsHttpChannelAuthProvider()
 {
     MOZ_ASSERT(!mAuthChannel, "Disconnect wasn't called");
-
-    
-    nsHttpHandler *handler = gHttpHandler;
-    NS_RELEASE(handler);
 }
 
 NS_IMETHODIMP

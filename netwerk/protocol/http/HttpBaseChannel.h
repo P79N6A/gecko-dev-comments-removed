@@ -307,6 +307,8 @@ protected:
 
   uint32_t                          mContentDispositionHint;
   nsAutoPtr<nsString>               mContentDispositionFilename;
+
+  nsRefPtr<nsHttpHandler>           mHttpHandler;  
 };
 
 
