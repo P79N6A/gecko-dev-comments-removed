@@ -325,7 +325,6 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
   
   
   
-  
   if (aNotify &&
       aNameSpaceID == kNameSpaceID_None &&
       aName == nsGkAtoms::crossorigin) {
@@ -334,29 +333,6 @@ HTMLImageElement::AfterSetAttr(int32_t aNameSpaceID, nsIAtom* aName,
     nsAutoString uri;
     GetAttr(kNameSpaceID_None, nsGkAtoms::src, uri);
     LoadImage(uri, true, aNotify);
-  }
-
-  if (aNotify &&
-      aNameSpaceID == kNameSpaceID_None &&
-      aName == nsGkAtoms::src &&
-      aValue) {
-
-    
-    if (nsContentUtils::IsImageSrcSetDisabled()) {
-      return NS_OK;
-    }
-
-    
-    mNewRequestsWillNeedAnimationReset = true;
-
-    
-    
-    
-    
-    
-    LoadImage(aValue->GetStringValue(), true, aNotify);
-
-    mNewRequestsWillNeedAnimationReset = false;
   }
 
   return nsGenericHTMLElement::AfterSetAttr(aNameSpaceID, aName,
@@ -426,15 +402,38 @@ HTMLImageElement::SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                           nsIAtom* aPrefix, const nsAString& aValue,
                           bool aNotify)
 {
+  
+  
+  
+  
+  
+  
+  
+  
+  if (aNotify &&
+      aNameSpaceID == kNameSpaceID_None &&
+      aName == nsGkAtoms::src) {
+
+    
+    if (nsContentUtils::IsImageSrcSetDisabled()) {
+      return NS_OK;
+    }
+
+    
+    mNewRequestsWillNeedAnimationReset = true;
+
+    
+    
+    
+    
+    
+    LoadImage(aValue, true, aNotify);
+
+    mNewRequestsWillNeedAnimationReset = false;
+  }
+
   return nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
                                        aNotify);
-}
-
-nsresult
-HTMLImageElement::UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttribute,
-                            bool aNotify)
-{
-  return nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute, aNotify);
 }
 
 nsresult
