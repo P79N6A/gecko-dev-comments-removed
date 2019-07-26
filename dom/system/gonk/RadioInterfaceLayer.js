@@ -911,11 +911,11 @@ XPCOMUtils.defineLazyGetter(this, "gDataConnectionManager", function () {
             this.debug("'ril.data.roaming_enabled' is now " + result);
             this.debug("Default id for data call: " + this._dataDefaultClientId);
           }
-          for (let connHandler of this._connectionHandlers) {
+          for (let clientId = 0; clientId < this._connectionHandlers.length; clientId++) {
+            let connHandler = this._connectionHandlers[clientId];
             let settings = connHandler.dataCallSettings;
-            settings.roamingEnabled = result;
+            settings.roamingEnabled = Array.isArray(result) ? result[clientId] : result;
           }
-
           if (this._dataDefaultClientId === -1) {
             
             break;
