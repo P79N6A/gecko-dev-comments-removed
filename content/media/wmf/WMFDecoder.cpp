@@ -10,6 +10,9 @@
 #include "WMFUtils.h"
 #include "MediaDecoderStateMachine.h"
 #include "mozilla/Preferences.h"
+#include "WinUtils.h"
+
+using namespace mozilla::widget;
 
 namespace mozilla {
 
@@ -86,27 +89,12 @@ WMFDecoder::UnloadDLLs()
   wmf::UnloadDLLs();
 }
 
-bool IsWindows7OrLater()
-{
-  OSVERSIONINFO versionInfo;
-  versionInfo.dwOSVersionInfoSize = sizeof (OSVERSIONINFO);
-  if (!GetVersionEx(&versionInfo)) {
-    return false;
-  }
-  
-  
-  
-  return versionInfo.dwMajorVersion > 6 ||
-        (versionInfo.dwMajorVersion == 6 && versionInfo.dwMinorVersion >= 1);
-}
-
 
 bool
 WMFDecoder::IsEnabled()
 {
   
-  
-  return IsWindows7OrLater() &&
+  return WinUtils::GetWindowsVersion() >= WinUtils::VISTA_VERSION &&
          Preferences::GetBool("media.windows-media-foundation.enabled");
 }
 
