@@ -120,6 +120,23 @@ nsSVGPathGeometryFrame::AttributeChanged(int32_t         aNameSpaceID,
   return NS_OK;
 }
 
+ void
+nsSVGPathGeometryFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
+{
+  nsSVGPathGeometryFrameBase::DidSetStyleContext(aOldStyleContext);
+
+  if (aOldStyleContext) {
+    float oldOpacity = aOldStyleContext->PeekStyleDisplay()->mOpacity;
+    float newOpacity = StyleDisplay()->mOpacity;
+    if (newOpacity != oldOpacity &&
+        nsSVGUtils::CanOptimizeOpacity(this)) {
+      
+      
+      InvalidateFrame();
+    }
+  }
+}
+
 nsIAtom *
 nsSVGPathGeometryFrame::GetType() const
 {
