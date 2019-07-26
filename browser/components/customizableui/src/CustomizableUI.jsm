@@ -810,6 +810,8 @@ let CustomizableUIInternal = {
 
       aWindow.addEventListener("unload", this);
       aWindow.addEventListener("command", this, true);
+
+      this.notifyListeners("onWindowOpened", aWindow);
     }
   },
 
@@ -850,6 +852,8 @@ let CustomizableUIInternal = {
         areaMap.delete(toDelete);
       }
     }
+
+    this.notifyListeners("onWindowClosed", aWindow);
   },
 
   setLocationAttributes: function(aNode, aArea) {
@@ -2481,6 +2485,24 @@ this.CustomizableUI = {
 
 
 
+  windows: {
+    "@@iterator": function*() {
+      for (let [window,] of gBuildWindows)
+        yield window;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3274,7 +3296,7 @@ this.CustomizableUI = {
   }
 };
 Object.freeze(this.CustomizableUI);
-
+Object.freeze(this.CustomizableUI.windows);
 
 
 
