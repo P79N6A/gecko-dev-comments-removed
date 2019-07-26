@@ -357,7 +357,10 @@ class CGList(CGThing):
     """
     def __init__(self, children, joiner=""):
         CGThing.__init__(self)
-        self.children = children
+        
+        
+        
+        self.children = list(children)
         self.joiner = joiner
     def append(self, child):
         self.children.append(child)
