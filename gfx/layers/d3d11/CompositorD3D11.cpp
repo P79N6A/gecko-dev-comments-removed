@@ -337,17 +337,8 @@ CompositorD3D11::Initialize()
     swapDesc.BufferCount = 1;
     swapDesc.OutputWindow = mHwnd;
     swapDesc.Windowed = TRUE;
-    
-    
-    
-    
-    
-    
-    if (gfxWindowsPlatform::IsOptimus()) {
-      swapDesc.Flags = 0;
-    } else {
-      swapDesc.Flags = DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE;
-    }
+    swapDesc.Flags = 0;
+
 
     
 
@@ -873,14 +864,10 @@ CompositorD3D11::VerifyBufferSize()
                               DXGI_FORMAT_B8G8R8A8_UNORM,
                               0);
     mDisableSequenceForNextFrame = true;
-  } else if (gfxWindowsPlatform::IsOptimus()) {
-    mSwapChain->ResizeBuffers(1, mSize.width, mSize.height,
-                              DXGI_FORMAT_B8G8R8A8_UNORM,
-                              0);
   } else {
     mSwapChain->ResizeBuffers(1, mSize.width, mSize.height,
                               DXGI_FORMAT_B8G8R8A8_UNORM,
-                              DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE);
+                              0);
   }
 }
 
