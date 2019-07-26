@@ -848,6 +848,10 @@ getIndexInParentCB(AtkObject *aAtkObj)
 static void
 TranslateStates(uint64_t aState, AtkStateSet* aStateSet)
 {
+  
+  
+  if (aState & states::READONLY)
+    aState &= ~states::EDITABLE;
 
   
   uint32_t stateIndex = 0;

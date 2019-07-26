@@ -378,6 +378,10 @@ HTMLTextFieldAccessible::NativeState()
   uint64_t state = HyperTextAccessibleWrap::NativeState();
 
   
+  
+  state |= states::EDITABLE;
+
+  
   if (mContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::type,
                             nsGkAtoms::password, eIgnoreCase)) {
     state |= states::PROTECTED;
@@ -392,8 +396,8 @@ HTMLTextFieldAccessible::NativeState()
   state |= input && input->IsSingleLineTextControl() ?
     states::SINGLE_LINE : states::MULTI_LINE;
 
-  if (!(state & states::EDITABLE) ||
-      (state & (states::PROTECTED | states::MULTI_LINE)))
+  if (state & (states::PROTECTED | states::MULTI_LINE | states::READONLY |
+               states::UNAVAILABLE))
     return state;
 
   
