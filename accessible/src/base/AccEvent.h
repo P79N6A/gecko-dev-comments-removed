@@ -15,8 +15,6 @@ namespace a11y {
 
 class DocAccessible;
 
-class nsAccEvent;
-
 
 enum EIsFromUserInput
 {
@@ -86,11 +84,6 @@ public:
   
 
 
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
-  
-
-
   enum EventGroup {
     eGenericEvent,
     eStateChangeEvent,
@@ -147,8 +140,6 @@ public:
     { mIsEnabled = (mAccessible->State() & mState) != 0; }
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eStateChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -178,8 +169,6 @@ public:
                      EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eTextChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -248,8 +237,6 @@ public:
   AccHideEvent(Accessible* aTarget, nsINode* aTargetNode);
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eHideEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -349,8 +336,6 @@ public:
   virtual ~AccCaretMoveEvent() { }
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eCaretMoveEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -414,8 +399,6 @@ public:
                       int32_t aRowOrColIndex, int32_t aNumRowsOrCols);
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eTableChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -445,8 +428,6 @@ public:
   virtual ~AccVCChangeEvent() { }
 
   
-  virtual already_AddRefed<nsAccEvent> CreateXPCOMObject();
-
   static const EventGroup kEventGroup = eVirtualCursorChangeEvent;
   virtual unsigned int GetEventGroups() const
   {
@@ -486,6 +467,12 @@ public:
 private:
   AccEvent* mRawPtr;
 };
+
+
+
+
+already_AddRefed<nsIAccessibleEvent>
+MakeXPCEvent(AccEvent* aEvent);
 
 } 
 } 

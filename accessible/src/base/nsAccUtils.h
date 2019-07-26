@@ -268,6 +268,13 @@ public:
       *aState2 = static_cast<uint32_t>(aState64 >> 31);
   }
 
+  static uint32_t To32States(uint64_t aState, bool* aIsExtra)
+  {
+    uint32_t extraState = aState >> 31;
+    *aIsExtra = !!extraState;
+    return aState | extraState;
+  }
+
   
 
 
