@@ -1443,21 +1443,27 @@ void AudioDeviceAndroidOpenSLES::RecorderSimpleBufferQueueCallbackHandler(
     }
     audio = rec_queue_.front();
     rec_queue_.pop();
-    rec_voe_audio_queue_.push(audio);
-    rec_timer_.Set(); 
+    
+    if (rec_voe_audio_queue_.size() < N_REC_QUEUE_BUFFERS) {
+      rec_voe_audio_queue_.push(audio);
+      rec_timer_.Set(); 
 
-    if (rec_voe_ready_queue_.size() <= 0) {
-      
-      rec_error_ = 1;
-      WEBRTC_OPENSL_TRACE(kTraceError, kTraceAudioDevice, id_,
-                          "  Audio Rec thread buffers underrun");
-      
-      
-      
-      return;
+      if (rec_voe_ready_queue_.size() <= 0) {
+        
+        rec_error_ = 1;
+        WEBRTC_OPENSL_TRACE(kTraceError, kTraceAudioDevice, id_,
+                            "  Audio Rec thread buffers underrun");
+        
+        
+        
+        return;
+      } else {
+        audio = rec_voe_ready_queue_.front();
+        rec_voe_ready_queue_.pop();
+      }
     } else {
-      audio = rec_voe_ready_queue_.front();
-      rec_voe_ready_queue_.pop();
+      
+      rec_timer_.Set(); 
     }
   }
 
