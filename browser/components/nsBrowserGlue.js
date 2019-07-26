@@ -1059,6 +1059,27 @@ BrowserGlue.prototype = {
         importBookmarks = true;
     } catch(ex) {}
 
+    
+    let autoExportHTML = false;
+    try {
+      autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
+    } catch (ex) {} 
+    if (autoExportHTML) {
+      
+      
+      AsyncShutdown.profileChangeTeardown.addBlocker(
+        "Places: export bookmarks.html",
+        () => Task.spawn(function* () {
+          try {
+            yield BookmarkHTMLUtils.exportToFile(BookmarkHTMLUtils.defaultPath);
+          } catch(ex) {
+            
+            dump("ERROR: Unable to export bookmarks.html " + ex + "\n"
+                                                           + ex.stack + "\n");
+          }
+        }));
+    }
+
     Task.spawn(function() {
       
       
@@ -1116,10 +1137,6 @@ BrowserGlue.prototype = {
         
         
         
-        let autoExportHTML = false;
-        try {
-          autoExportHTML = Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML");
-        } catch(ex) {}
         let smartBookmarksVersion = 0;
         try {
           smartBookmarksVersion = Services.prefs.getIntPref("browser.places.smartBookmarksVersion");
@@ -1222,19 +1239,6 @@ BrowserGlue.prototype = {
       this._idleService.removeIdleObserver(this, this._bookmarksBackupIdleTime);
       delete this._bookmarksBackupIdleTime;
     }
-
-    
-    try {
-      if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
-        
-        
-        AsyncShutdown.profileBeforeChange.addBlocker(
-          "Places: bookmarks.html",
-          () => BookmarkHTMLUtils.exportToFile(BookmarkHTMLUtils.defaultPath)
-                                 .then(null, Cu.reportError)
-        );
-      }
-    } catch (ex) {} 
   },
 
   
