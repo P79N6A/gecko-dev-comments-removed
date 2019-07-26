@@ -770,24 +770,22 @@ PresShell::~PresShell()
 
 
 
-nsresult
+
+
+void
 PresShell::Init(nsIDocument* aDocument,
                 nsPresContext* aPresContext,
                 nsViewManager* aViewManager,
                 nsStyleSet* aStyleSet,
                 nsCompatibility aCompatMode)
 {
-  NS_PRECONDITION(nullptr != aDocument, "null ptr");
-  NS_PRECONDITION(nullptr != aPresContext, "null ptr");
-  NS_PRECONDITION(nullptr != aViewManager, "null ptr");
+  NS_PRECONDITION(aDocument, "null ptr");
+  NS_PRECONDITION(aPresContext, "null ptr");
+  NS_PRECONDITION(aViewManager, "null ptr");
+  NS_PRECONDITION(!mDocument, "already initialized");
 
-  if ((nullptr == aDocument) || (nullptr == aPresContext) ||
-      (nullptr == aViewManager)) {
-    return NS_ERROR_NULL_POINTER;
-  }
-  if (mDocument) {
-    NS_WARNING("PresShell double init'ed");
-    return NS_ERROR_ALREADY_INITIALIZED;
+  if (!aDocument || !aPresContext || !aViewManager || mDocument) {
+    return;
   }
 
   mFramesToDirty.Init();
@@ -811,11 +809,6 @@ PresShell::Init(nsIDocument* aDocument,
 
   
   aStyleSet->Init(aPresContext);
-
-  
-  
-  
-  
   mStyleSet = aStyleSet;
 
   
@@ -894,8 +887,6 @@ PresShell::Init(nsIDocument* aDocument,
 
   
   SetupFontInflation();
-
-  return NS_OK;
 }
 
 void

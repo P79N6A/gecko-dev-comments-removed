@@ -67,12 +67,9 @@ public:
   
   NS_DECL_ISUPPORTS
 
-  
-  virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
-                                   nsPresContext* aPresContext,
-                                   nsViewManager* aViewManager,
-                                   nsStyleSet* aStyleSet,
-                                   nsCompatibility aCompatMode);
+  void Init(nsIDocument* aDocument, nsPresContext* aPresContext,
+            nsViewManager* aViewManager, nsStyleSet* aStyleSet,
+            nsCompatibility aCompatMode);
   virtual NS_HIDDEN_(void) Destroy();
   virtual NS_HIDDEN_(void) MakeZombie();
 
