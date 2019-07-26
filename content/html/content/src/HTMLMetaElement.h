@@ -47,6 +47,30 @@ public:
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
 
+  
+  void SetName(const nsAString& aName, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::name, aName, aRv);
+  }
+  
+  void SetHttpEquiv(const nsAString& aHttpEquiv, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::httpEquiv, aHttpEquiv, aRv);
+  }
+  
+  void SetContent(const nsAString& aContent, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::content, aContent, aRv);
+  }
+  
+  void SetScheme(const nsAString& aScheme, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::scheme, aScheme, aRv);
+  }
+
+  virtual JSObject*
+  WrapNode(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap) MOZ_OVERRIDE;
+
 protected:
   virtual void GetItemValueText(nsAString& text);
   virtual void SetItemValueText(const nsAString& text);
