@@ -243,13 +243,13 @@ public:
     
     JS::Handle<JSScript*> GetScriptObject()
     {
-        return JS::Handle<JSScript*>::fromMarkedLocation(&mScriptObject);
+        return JS::Handle<JSScript*>(mScriptObject);
     }
 
     void TraceScriptObject(JSTracer* aTrc)
     {
         if (mScriptObject) {
-            JS_CallScriptTracer(aTrc, &mScriptObject, "active window XUL prototype script");
+            JS_CallHeapScriptTracer(aTrc, &mScriptObject, "active window XUL prototype script");
         }
     }
 
@@ -267,7 +267,7 @@ public:
     mozilla::dom::XULDocument* mSrcLoadWaiters;   
     uint32_t                 mLangVersion;
 private:
-    JSScript*                mScriptObject;
+    JS::Heap<JSScript*>      mScriptObject;
 };
 
 class nsXULPrototypeText : public nsXULPrototypeNode
