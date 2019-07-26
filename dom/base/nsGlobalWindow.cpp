@@ -1339,7 +1339,7 @@ nsGlobalWindow::FreeInnerObjects()
 
   
   nsIScriptContext *scx = GetContextInternal();
-  JSContext *cx = scx ? scx->GetNativeContext() : nullptr;
+  AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
   mozilla::dom::workers::CancelWorkersForWindow(cx, this);
 
   
@@ -1893,7 +1893,7 @@ NS_IMPL_ISUPPORTS1(WindowStateHolder, WindowStateHolder)
 nsresult
 nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
 {
-  JSContext* cx = mContext->GetNativeContext();
+  AutoPushJSContext cx(mContext->GetNativeContext());
 
   JSObject* outer = NewOuterWindowProxy(cx, aNewInner->FastGetGlobalJSObject(),
                                         IsChromeWindow());
@@ -2995,11 +2995,10 @@ nsGlobalWindow::SetArguments(nsIArray *aArguments, nsIPrincipal *aOrigin)
 nsresult
 nsGlobalWindow::DefineArgumentsProperty(nsIArray *aArguments)
 {
-  JSContext *cx;
   nsIScriptContext *ctx = GetOuterWindowInternal()->mContext;
-  NS_ENSURE_TRUE(aArguments && ctx &&
-                 (cx = ctx->GetNativeContext()),
-                 NS_ERROR_NOT_INITIALIZED);
+  NS_ENSURE_TRUE(aArguments && ctx, NS_ERROR_NOT_INITIALIZED);
+  AutoPushJSContext cx(ctx->GetNativeContext());
+  NS_ENSURE_TRUE(cx, NS_ERROR_NOT_INITIALIZED);
 
   if (mIsModalContentWindow) {
     
@@ -6486,25 +6485,10 @@ PostMessageEvent::Run()
                     "should have been passed an outer window!");
 
   
-  JSContext* cx = nullptr;
   nsIScriptContext* scriptContext = mTargetWindow->GetContext();
-  if (scriptContext) {
-    cx = scriptContext->GetNativeContext();
-  }
-
-  if (!cx) {
-    
-    
-    nsIThreadJSContextStack* cxStack = nsContentUtils::ThreadJSContextStack();
-    if (cxStack) {
-      cx = cxStack->GetSafeJSContext();
-    }
-
-    if (!cx) {
-      NS_WARNING("Cannot find a JSContext!  Leaking PostMessage buffer.");
-      return NS_ERROR_FAILURE;
-    }
-  }
+  AutoPushJSContext cx(scriptContext ? scriptContext->GetNativeContext()
+                                     : nsContentUtils::GetSafeJSContext());
+  MOZ_ASSERT(cx);
 
   
   
@@ -9960,7 +9944,8 @@ nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
     uint32_t lineNo = 0;
     handler->GetLocation(&filename, &lineNo);
 
-    JS::CompileOptions options(aScx->GetNativeContext());
+    AutoPushJSContext cx(aScx->GetNativeContext());
+    JS::CompileOptions options(cx);
     options.setFileAndLine(filename, lineNo)
            .setVersion(JSVERSION_DEFAULT);
     aScx->EvaluateString(nsDependentString(script), *FastGetGlobalJSObject(),
@@ -10753,7 +10738,7 @@ nsGlobalWindow::SuspendTimeouts(uint32_t aIncrease,
 
     
     nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ? scx->GetNativeContext() : nullptr;
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
     mozilla::dom::workers::SuspendWorkersForWindow(cx, this);
 
     TimeStamp now = TimeStamp::Now();
@@ -10833,7 +10818,7 @@ nsGlobalWindow::ResumeTimeouts(bool aThawChildren)
 
     
     nsIScriptContext *scx = GetContextInternal();
-    JSContext *cx = scx ? scx->GetNativeContext() : nullptr;
+    AutoPushJSContext cx(scx ? scx->GetNativeContext() : nullptr);
     mozilla::dom::workers::ResumeWorkersForWindow(cx, this);
 
     
@@ -11335,7 +11320,7 @@ nsGlobalChromeWindow::GetMessageManager(nsIMessageBroadcaster** aManager)
   if (!mMessageManager) {
     nsIScriptContext* scx = GetContextInternal();
     NS_ENSURE_STATE(scx);
-    JSContext* cx = scx->GetNativeContext();
+    AutoPushJSContext cx(scx->GetNativeContext());
     NS_ENSURE_STATE(cx);
     nsCOMPtr<nsIMessageBroadcaster> globalMM =
       do_GetService("@mozilla.org/globalmessagemanager;1");

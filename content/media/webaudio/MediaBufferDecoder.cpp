@@ -663,7 +663,7 @@ WebAudioDecodeJob::FinalizeBufferData()
   MOZ_ASSERT(mOutput);
   MOZ_ASSERT(mChannels == mChannelBuffers.Length());
 
-  JSContext* cx = GetJSContext();
+  AutoPushJSContext cx(GetJSContext());
   if (!cx) {
     return false;
   }
@@ -696,7 +696,7 @@ WebAudioDecodeJob::AllocateBuffer()
   MOZ_ASSERT(NS_IsMainThread());
 
   
-  JSContext* cx = GetJSContext();
+  AutoPushJSContext cx(GetJSContext());
   if (!cx) {
     return false;
   }

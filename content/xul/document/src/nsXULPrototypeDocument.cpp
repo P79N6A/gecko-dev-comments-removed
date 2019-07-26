@@ -33,6 +33,7 @@
 #include "mozilla/dom/BindingUtils.h"
 
 using mozilla::dom::DestroyProtoAndIfaceCache;
+using mozilla::AutoPushJSContext;
 
 static NS_DEFINE_CID(kDOMScriptObjectFactoryCID,
                      NS_DOM_SCRIPT_OBJECT_FACTORY_CID);
@@ -757,7 +758,7 @@ nsXULPDGlobalObject::EnsureScriptEnvironment()
   
   
   {
-    JSContext *cx = ctxNew->GetNativeContext();
+    AutoPushJSContext cx(ctxNew->GetNativeContext());
     JSAutoRequest ar(cx);
 
     JSObject *newGlob = JS_NewGlobalObject(cx, &gSharedGlobalClass,
