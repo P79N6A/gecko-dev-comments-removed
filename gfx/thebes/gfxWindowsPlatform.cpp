@@ -1486,7 +1486,18 @@ gfxWindowsPlatform::GetD3D11Device()
 bool
 gfxWindowsPlatform::IsOptimus()
 {
-  return GetModuleHandleA("nvumdshim.dll");
+    static int knowIsOptimus = -1;
+    if (knowIsOptimus == -1) {
+        
+        if (GetModuleHandleA("nvumdshim.dll") ||
+            GetModuleHandleA("nvumdshimx.dll"))
+        {
+            knowIsOptimus = 1;
+        } else {
+            knowIsOptimus = 0;
+        }
+    }
+    return knowIsOptimus;
 }
 
 int
