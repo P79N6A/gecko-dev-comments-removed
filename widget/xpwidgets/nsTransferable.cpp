@@ -99,13 +99,13 @@ DataStruct::GetData ( nsISupports** aData, uint32_t *aDataLen )
 
 
 
-nsIFile*
-DataStruct::GetFileSpec(const char * aFileName)
+already_AddRefed<nsIFile>
+DataStruct::GetFileSpec(const char* aFileName)
 {
-  nsIFile* cacheFile;
-  NS_GetSpecialDirectory(NS_OS_TEMP_DIR, &cacheFile);
+  nsCOMPtr<nsIFile> cacheFile;
+  NS_GetSpecialDirectory(NS_OS_TEMP_DIR, getter_AddRefs(cacheFile));
   
-  if (cacheFile == nullptr)
+  if (!cacheFile)
     return nullptr;
 
   
@@ -118,7 +118,7 @@ DataStruct::GetFileSpec(const char * aFileName)
     cacheFile->AppendNative(nsDependentCString(aFileName));
   }
   
-  return cacheFile;
+  return cacheFile.forget();
 }
 
 
@@ -127,7 +127,7 @@ nsresult
 DataStruct::WriteCache(nsISupports* aData, uint32_t aDataLen)
 {
   
-  nsCOMPtr<nsIFile> cacheFile ( getter_AddRefs(GetFileSpec(mCacheFileName)) );
+  nsCOMPtr<nsIFile> cacheFile = GetFileSpec(mCacheFileName);
   if (cacheFile) {
     
     if (!mCacheFileName) {
@@ -168,7 +168,7 @@ DataStruct::ReadCache(nsISupports** aData, uint32_t* aDataLen)
     return NS_ERROR_FAILURE;
 
   
-  nsCOMPtr<nsIFile> cacheFile ( getter_AddRefs(GetFileSpec(mCacheFileName)) );
+  nsCOMPtr<nsIFile> cacheFile = GetFileSpec(mCacheFileName);
   bool exists;
   if ( cacheFile && NS_SUCCEEDED(cacheFile->Exists(&exists)) && exists ) {
     
