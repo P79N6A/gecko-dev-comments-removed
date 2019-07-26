@@ -268,27 +268,10 @@ void mozilla_sampler_init()
 
   Sampler::RegisterCurrentThread("Gecko", stack, true);
 
-  if (sps_version2()) {
-    
-    
-    
-    read_profiler_env_vars();
-
-    
-    uwt__init();
-
-# if defined(SPS_PLAT_amd64_linux) || defined(SPS_PLAT_arm_android) \
-     || defined(SPS_PLAT_x86_linux) || defined(SPS_PLAT_x86_android) \
-     || defined(SPS_PLAT_x86_windows) || defined(SPS_PLAT_amd64_windows) 
-    
-    int aLocal;
-    uwt__register_thread_for_profiling( &aLocal );
-# elif defined(SPS_PLAT_amd64_darwin) || defined(SPS_PLAT_x86_darwin)
-    
-# else
-#   error "Unknown plat"
-# endif
-  }
+  
+  
+  
+  read_profiler_env_vars();
 
   
   OS::RegisterStartHandler();
@@ -331,14 +314,6 @@ void mozilla_sampler_shutdown()
         stream.close();
       }
     }
-  }
-
-  
-  
-  
-  
-  if (sps_version2()) {
-    uwt__deinit();
   }
 
   profiler_stop();
@@ -396,13 +371,24 @@ const char** mozilla_sampler_get_features()
 {
   static const char* features[] = {
 #if defined(MOZ_PROFILING) && defined(HAVE_NATIVE_UNWIND)
+    
     "stackwalk",
 #endif
 #if defined(ENABLE_SPS_LEAF_DATA)
+    
+    
     "leaf",
 #endif
+#if !defined(SPS_OS_windows)
+    
+    "unwinder",
+#endif
+    
     "jank",
+    
+    
     "js",
+    
     "threads",
     NULL
   };
@@ -432,15 +418,17 @@ void mozilla_sampler_start(int aProfileEntries, int aInterval,
   profiler_stop();
 
   TableTicker* t;
-  if (sps_version2()) {
-    t = new BreakpadSampler(aInterval ? aInterval : PROFILE_DEFAULT_INTERVAL,
-                           aProfileEntries ? aProfileEntries : PROFILE_DEFAULT_ENTRY,
-                           aFeatures, aFeatureCount);
-  } else {
-    t = new TableTicker(aInterval ? aInterval : PROFILE_DEFAULT_INTERVAL,
-                        aProfileEntries ? aProfileEntries : PROFILE_DEFAULT_ENTRY,
-                        aFeatures, aFeatureCount);
+  t = new TableTicker(aInterval ? aInterval : PROFILE_DEFAULT_INTERVAL,
+                      aProfileEntries ? aProfileEntries : PROFILE_DEFAULT_ENTRY,
+                      aFeatures, aFeatureCount);
+  if (t->HasUnwinderThread()) {
+    int aLocal;
+    uwt__register_thread_for_profiling( &aLocal );
+
+    
+    uwt__init();
   }
+
   tlsTicker.set(t);
   t->Start();
   if (t->ProfileJS()) {
@@ -475,6 +463,15 @@ void mozilla_sampler_stop()
   }
 
   bool disableJS = t->ProfileJS();
+  bool unwinderThreader = t->HasUnwinderThread();
+
+  
+  
+  
+  
+  if (unwinderThreader) {
+    uwt__stop();
+  }
 
   t->Stop();
   delete t;
@@ -484,6 +481,10 @@ void mozilla_sampler_stop()
 
   if (disableJS)
     stack->disableJSSampling();
+
+  if (unwinderThreader) {
+    uwt__deinit();
+  }
 
   sIsProfiling = false;
 

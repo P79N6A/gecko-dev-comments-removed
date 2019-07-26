@@ -156,7 +156,7 @@ void genPseudoBacktraceEntries(UnwinderThreadBuffer* utb,
 }
 
 
-void BreakpadSampler::Tick(TickSample* sample)
+void TableTicker::UnwinderTick(TickSample* sample)
 {
   if (!sample->threadProfile) {
     

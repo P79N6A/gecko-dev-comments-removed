@@ -121,18 +121,6 @@ static void SetThreadName(const char* name) {
 
 static void* ThreadEntry(void* arg) {
   Thread* thread = reinterpret_cast<Thread*>(arg);
-  
-  
-  
-
-  
-  extern bool sps_version2();
-  if (sps_version2()) {
-    
-    int aLocal;
-    uwt__register_thread_for_profiling( &aLocal );
-  }
-  
 
   thread->thread_ = pthread_self();
   SetThreadName(thread->name());

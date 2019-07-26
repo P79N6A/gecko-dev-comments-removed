@@ -71,6 +71,10 @@ void uwt__init()
 {
 }
 
+void uwt__stop()
+{
+}
+
 void uwt__deinit()
 {
 }
@@ -153,13 +157,17 @@ void uwt__init()
   MOZ_ALWAYS_TRUE(r==0);
 }
 
-void uwt__deinit()
+void uwt__stop()
 {
   
   MOZ_ASSERT(unwind_thr_exit_now == 0);
   unwind_thr_exit_now = 1;
   do_MBAR();
   int r = pthread_join(unwind_thr, NULL); MOZ_ALWAYS_TRUE(r==0);
+}
+
+void uwt__deinit()
+{
   do_breakpad_unwind_Buffer_free_singletons();
 }
 
@@ -820,11 +828,6 @@ static void* unwind_thr_fn(void* exit_nowV)
       
 
 
-
-
-
-
-
       buffers[i] = (UnwinderThreadBuffer*)
                    calloc(sizeof(UnwinderThreadBuffer), 1);
       MOZ_ASSERT(buffers[i]);
@@ -872,7 +875,10 @@ static void* unwind_thr_fn(void* exit_nowV)
 
   while (1) {
 
-    if (*exit_now != 0) break;
+    if (*exit_now != 0) {
+      *exit_now = 0;
+      break;
+    }
 
     spinLock_acquire(&g_spinLock);
 
@@ -1528,6 +1534,11 @@ void do_breakpad_unwind_Buffer_free_singletons()
     delete sModules;
     sModules = NULL;
   }
+
+  g_stackLimitsUsed = 0;
+  g_seqNo = 0;
+  free(g_buffers);
+  g_buffers = NULL;
 }
 
 static
