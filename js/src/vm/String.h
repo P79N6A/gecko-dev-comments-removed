@@ -1280,6 +1280,11 @@ CopyChars(CharT *dest, const JSLinearString &str);
 
 
 
+class JSAddonId : public JSAtom
+{};
+
+
+
 MOZ_ALWAYS_INLINE const jschar *
 JSString::getChars(js::ExclusiveContext *cx)
 {
