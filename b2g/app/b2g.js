@@ -756,6 +756,9 @@ pref("memory.free_dirty_pages", true);
 
 pref("memory.system_memory_reporter", true);
 
+
+pref("memory.dump_reports_on_oom", false);
+
 pref("layout.imagevisibility.enabled", true);
 pref("layout.imagevisibility.numscrollportwidths", 1);
 pref("layout.imagevisibility.numscrollportheights", 1);

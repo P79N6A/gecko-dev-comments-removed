@@ -4132,6 +4132,9 @@ pref("memory.system_memory_reporter", false);
 #endif
 
 
+pref("memory.dump_reports_on_oom", false);
+
+
 pref("memory.blob_report.stack_frames", 0);
 
 pref("social.enabled", false);

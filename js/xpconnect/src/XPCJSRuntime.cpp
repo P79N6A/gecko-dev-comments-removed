@@ -16,6 +16,7 @@
 #include "dom_quickstubs.h"
 #include "mozJSComponentLoader.h"
 
+#include "nsIMemoryInfoDumper.h"
 #include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsIDebug2.h"
@@ -1394,6 +1395,25 @@ XPCJSRuntime::OperationCallback(JSContext *cx)
         Preferences::SetInt(prefName, 0);
 
     return true;
+}
+
+ void
+XPCJSRuntime::OutOfMemoryCallback(JSContext *cx)
+{
+    if (!Preferences::GetBool("memory.dump_reports_on_oom")) {
+        return;
+    }
+
+    nsCOMPtr<nsIMemoryInfoDumper> dumper =
+        do_GetService("@mozilla.org/memory-info-dumper;1");
+    if (!dumper) {
+        return;
+    }
+
+    
+    dumper->DumpMemoryInfoToTempDir(NS_LITERAL_STRING("due-to-JS-OOM"),
+                                     false,
+                                     false);
 }
 
 size_t
@@ -3101,6 +3121,7 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     js::SetActivityCallback(runtime, ActivityCallback, this);
     js::SetCTypesActivityCallback(runtime, CTypesActivityCallback);
     JS_SetOperationCallback(runtime, OperationCallback);
+    JS::SetOutOfMemoryCallback(runtime, OutOfMemoryCallback);
 
     
     
