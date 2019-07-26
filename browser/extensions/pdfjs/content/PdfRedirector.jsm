@@ -131,5 +131,3 @@ PdfRedirector.prototype = {
     
   }
 };
-
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([PdfRedirector]);
