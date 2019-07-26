@@ -2354,6 +2354,20 @@ public:
 bool
 ThreadsafeCheckIsChrome(JSContext* aCx, JSObject* aObj);
 
+
+
+
+
+bool
+IsInPrivilegedApp(JSContext* aCx, JSObject* aObj);
+
+
+
+
+
+bool
+IsInCertifiedApp(JSContext* aCx, JSObject* aObj);
+
 void
 TraceGlobal(JSTracer* aTrc, JSObject* aObj);
 
