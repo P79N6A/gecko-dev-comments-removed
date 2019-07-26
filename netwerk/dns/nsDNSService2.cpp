@@ -255,7 +255,7 @@ public:
                       uint16_t          af)
         : mResolver(res)
         , mHost(host)
-        , mListener(new nsMainThreadPtrHolder<nsIDNSListener>(listener))
+        , mListener(listener)
         , mFlags(flags)
         , mAF(af) {}
     ~nsDNSAsyncRequest() {}
@@ -268,7 +268,7 @@ public:
 
     nsRefPtr<nsHostResolver> mResolver;
     nsCString                mHost; 
-    nsMainThreadPtrHandle<nsIDNSListener> mListener;
+    nsCOMPtr<nsIDNSListener> mListener;
     uint16_t                 mFlags;
     uint16_t                 mAF;
 };
@@ -292,6 +292,7 @@ nsDNSAsyncRequest::OnLookupComplete(nsHostResolver *resolver,
     MOZ_EVENT_TRACER_DONE(this, "net::dns::lookup");
 
     mListener->OnLookupComplete(this, rec, status);
+    mListener = nullptr;
 
     
     
