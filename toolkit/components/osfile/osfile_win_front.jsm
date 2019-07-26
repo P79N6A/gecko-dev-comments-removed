@@ -480,6 +480,7 @@
 
 
      File.DirectoryIterator = function DirectoryIterator(path, options) {
+       exports.OS.Shared.AbstractFile.AbstractIterator.call(this);
        if (options && options.winPattern) {
          this._pattern = path + "\\" + options.winPattern;
        } else {
@@ -489,17 +490,14 @@
        this._path = path;
        this._started = false;
      };
-     File.DirectoryIterator.prototype = {
-       __iterator__: function __iterator__() {
-         return this;
-       },
+     File.DirectoryIterator.prototype = Object.create(exports.OS.Shared.AbstractFile.AbstractIterator.prototype);
 
        
 
 
 
 
-       _next: function _next() {
+     File.DirectoryIterator.prototype._next = function _next() {
          
          
          if (!this._started) {
@@ -544,7 +542,7 @@
 
 
 
-       next: function next() {
+     File.DirectoryIterator.prototype.next = function next() {
          
          
          
@@ -556,15 +554,14 @@
            return new File.DirectoryIterator.Entry(entry, this._path);
          }
          throw StopIteration;
-       },
-       close: function close() {
-         if (!this._handle) {
-           return;
-         }
-         throw_on_zero("FindClose",
-           WinFile.FindClose(this._handle));
-         this._handle = null;
+     };
+     File.DirectoryIterator.prototype.close = function close() {
+       if (!this._handle) {
+         return;
        }
+       throw_on_zero("FindClose",
+         WinFile.FindClose(this._handle));
+       this._handle = null;
      };
      File.DirectoryIterator.Entry = function Entry(win_entry, parent) {
        

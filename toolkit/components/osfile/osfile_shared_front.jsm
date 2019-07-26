@@ -193,6 +193,20 @@ AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, 
 
 
 
+AbstractFile.AbstractIterator = function AbstractIterator() {
+};
+AbstractFile.AbstractIterator.prototype = {
+  
+
+
+  __iterator__: function __iterator__() {
+    return this;
+  }
+};
+
+
+
+
 
 
 
