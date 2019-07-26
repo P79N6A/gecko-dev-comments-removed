@@ -278,7 +278,13 @@ struct JSCompartment
     js::WeakMapBase              *gcWeakMapList;
 
   private:
-    enum { DebugFromC = 1, DebugFromJS = 2 };
+    enum {
+        DebugFromC = 1 << 0,
+        DebugFromJS = 1 << 1,
+        DebugNeedDelazification = 1 << 2
+    };
+
+    static const unsigned DebugModeFromMask = DebugFromC | DebugFromJS;
 
     unsigned                     debugModeBits;  
 
@@ -357,12 +363,33 @@ struct JSCompartment
 
 
 
-    bool debugMode() const { return !!debugModeBits; }
+
+
+
+
+    bool debugMode() const {
+        return !!(debugModeBits & DebugModeFromMask);
+    }
 
     
     bool hasScriptsOnStack();
 
+    
+
+
+
+    void scheduleDelazificationForDebugMode() {
+        debugModeBits |= DebugNeedDelazification;
+    }
+
+    
+
+
+
+    bool ensureDelazifyScriptsForDebugMode(JSContext *cx);
+
   private:
+
     
     void updateForDebugMode(js::FreeOp *fop, js::AutoDebugModeInvalidation &invalidate);
 
