@@ -2681,7 +2681,13 @@ SearchService.prototype = {
   get _originalDefaultEngine() {
     let defaultPrefB = Services.prefs.getDefaultBranch(BROWSER_SEARCH_PREF);
     let nsIPLS = Ci.nsIPrefLocalizedString;
-    let defaultEngine = defaultPrefB.getComplexValue("defaultenginename", nsIPLS).data;
+    let defaultEngine;
+    try {
+      defaultEngine = defaultPrefB.getComplexValue("defaultenginename", nsIPLS).data;
+    } catch (ex) {
+      
+      
+    }
     return this.getEngineByName(defaultEngine);
   },
 
