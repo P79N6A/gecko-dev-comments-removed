@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+  <script type="text/javascript">
+    function setToRange()
+    {
+      document.getElementById('i').type='range';
+    }
+    function disableReftestWait()
+    {
+      document.documentElement.className = '';
+    }
+  </script>
+
+  <body onload="setToRange(); disableReftestWait();">
+    <input type='checkbox' id='i' style="-moz-appearance:none;">
+  </body>
+</html>
