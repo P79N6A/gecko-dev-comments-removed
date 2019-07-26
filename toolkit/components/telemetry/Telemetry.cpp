@@ -676,7 +676,7 @@ mHangReportsMutex("Telemetry::mHangReportsMutex")
 {
   
   const char *trackedDBs[] = {
-    "addons.sqlite", "chromeappsstore.sqlite", "content-prefs.sqlite",
+    "addons.sqlite", "content-prefs.sqlite",
     "cookies.sqlite", "downloads.sqlite", "extensions.sqlite",
     "formhistory.sqlite", "index.sqlite", "permissions.sqlite", "places.sqlite",
     "search.sqlite", "signons.sqlite", "urlclassifier3.sqlite",

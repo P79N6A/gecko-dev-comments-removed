@@ -19,9 +19,23 @@ XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
   "resource:///modules/PageThumbs.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
+  "resource://gre/modules/FileUtils.jsm");
+
 XPCOMUtils.defineLazyGetter(this, "gPrincipal", function () {
   let uri = Services.io.newURI("about:newtab", null, null);
   return Services.scriptSecurityManager.getNoAppCodebasePrincipal(uri);
+});
+
+XPCOMUtils.defineLazyGetter(this, "gCryptoHash", function () {
+  return Cc["@mozilla.org/security/hash;1"].createInstance(Ci.nsICryptoHash);
+});
+
+XPCOMUtils.defineLazyGetter(this, "gUnicodeConverter", function () {
+  let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
+  converter.charset = 'utf8';
+  return converter;
 });
 
 
@@ -42,19 +56,114 @@ const TOPIC_GATHER_TELEMETRY = "gather-telemetry";
 
 
 
-let Storage = {
+
+
+
+function toHash(aValue) {
+  let value = gUnicodeConverter.convertToByteArray(aValue);
+  gCryptoHash.init(gCryptoHash.MD5);
+  gCryptoHash.update(value, value.length);
+  return gCryptoHash.finish(true);
+}
+
+
+
+
+XPCOMUtils.defineLazyGetter(this, "Storage", function() {
+  return new LinksStorage();
+});
+
+function LinksStorage() {
+  
+  try {
+    if (this._storedVersion < this._version) {
+      
+      if (this._storedVersion < 1) {
+        this._migrateToV1();
+      }
+      
+    }
+    else {
+      
+      
+      
+      
+      
+    }
+  } catch (ex) {
+    
+    
+    Components.utils.reportError(
+      "Unable to migrate the newTab storage to the current version. "+
+      "Restarting from scratch.\n" + ex);
+    this.clear();
+  }
+
+  
+  this._storedVersion = this._version;
+}
+
+LinksStorage.prototype = {
+  get _version() 1,
+
+  get _prefs() Object.freeze({
+    pinnedLinks: "browser.newtabpage.pinned",
+    blockedLinks: "browser.newtabpage.blocked",
+  }),
+
+  get _storedVersion() {
+    if (this.__storedVersion === undefined) {
+      try {
+        this.__storedVersion =
+          Services.prefs.getIntPref("browser.newtabpage.storageVersion");
+      } catch (ex) {
+        this.__storedVersion = 0;
+      }
+    }
+    return this.__storedVersion;
+  },
+  set _storedVersion(aValue) {
+    Services.prefs.setIntPref("browser.newtabpage.storageVersion", aValue);
+    this.__storedVersion = aValue;
+    return aValue;
+  },
+
   
 
 
-  get domStorage() {
-    let sm = Services.domStorageManager;
-    let storage = sm.getLocalStorageForPrincipal(gPrincipal, "");
-
+  _migrateToV1: function Storage__migrateToV1() {
     
-    let descriptor = {value: storage, enumerable: true};
-    Object.defineProperty(this, "domStorage", descriptor);
-
-    return storage;
+    let file = FileUtils.getFile("ProfD", ["chromeappsstore.sqlite"]);
+    if (!file.exists())
+      return;
+    let db = Services.storage.openUnsharedDatabase(file);
+    let stmt = db.createStatement(
+      "SELECT key, value FROM webappsstore2 WHERE scope = 'batwen.:about'");
+    try {
+      while (stmt.executeStep()) {
+        let key = stmt.row.key;
+        let value = JSON.parse(stmt.row.value);
+        switch (key) {
+          case "pinnedLinks":
+            this.set(key, value);
+            break;
+          case "blockedLinks":
+            
+            let hashes = {};
+            for (let url in value) {
+              hashes[toHash(url)] = 1;
+            }
+            this.set(key, hashes);
+            break;
+          default:
+            
+            break;
+        }
+      }
+    } finally {
+      stmt.finalize();
+      db.close();
+    }
   },
 
   
@@ -65,11 +174,11 @@ let Storage = {
 
   get: function Storage_get(aKey, aDefault) {
     let value;
-
     try {
-      value = JSON.parse(this.domStorage.getItem(aKey));
+      let prefValue = Services.prefs.getComplexValue(this._prefs[aKey],
+                                                     Ci.nsISupportsString).data;
+      value = JSON.parse(prefValue);
     } catch (e) {}
-
     return value || aDefault;
   },
 
@@ -79,18 +188,22 @@ let Storage = {
 
 
   set: function Storage_set(aKey, aValue) {
-    this.domStorage.setItem(aKey, JSON.stringify(aValue));
+    
+    let string = Cc["@mozilla.org/supports-string;1"]
+                   .createInstance(Ci.nsISupportsString);
+    string.data = JSON.stringify(aValue);
+    Services.prefs.setComplexValue(this._prefs[aKey], Ci.nsISupportsString,
+                                   string);
   },
 
   
 
 
   clear: function Storage_clear() {
-    this.domStorage.clear();
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
-                                         Ci.nsISupportsWeakReference])
+    for each (let pref in this._prefs) {
+      Services.prefs.clearUserPref(pref);
+    }
+  }
 };
 
 
@@ -355,7 +468,7 @@ let BlockedLinks = {
 
 
   block: function BlockedLinks_block(aLink) {
-    this.links[aLink.url] = 1;
+    this.links[toHash(aLink.url)] = 1;
     this.save();
 
     
@@ -368,7 +481,7 @@ let BlockedLinks = {
 
   unblock: function BlockedLinks_unblock(aLink) {
     if (this.isBlocked(aLink)) {
-      delete this.links[aLink.url];
+      delete this.links[toHash(aLink.url)];
       this.save();
     }
   },
@@ -385,7 +498,7 @@ let BlockedLinks = {
 
 
   isBlocked: function BlockedLinks_isBlocked(aLink) {
-    return (aLink.url in this.links);
+    return (toHash(aLink.url) in this.links);
   },
 
   
