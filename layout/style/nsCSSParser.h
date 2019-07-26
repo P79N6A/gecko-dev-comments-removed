@@ -13,6 +13,7 @@
 #include "nsCSSProperty.h"
 #include "nsCSSScanner.h"
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "nsStringFwd.h"
 #include "nsTArrayForwardDeclare.h"
 
@@ -20,6 +21,7 @@ class nsIPrincipal;
 class nsIURI;
 struct nsCSSSelectorList;
 class nsMediaList;
+class nsMediaQuery;
 class nsCSSKeyframeRule;
 class nsCSSValue;
 struct nsRuleData;
@@ -151,6 +153,25 @@ public:
                       uint32_t           aLineNumber,
                       nsMediaList*       aMediaList,
                       bool               aHTMLMode);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  bool ParseSourceSizeList(const nsAString& aBuffer,
+                           nsIURI* aURI, 
+                           uint32_t aLineNumber, 
+                           InfallibleTArray< nsAutoPtr<nsMediaQuery> >& aQueries,
+                           InfallibleTArray<nsCSSValue>& aValues,
+                           bool aHTMLMode);
 
   
 
