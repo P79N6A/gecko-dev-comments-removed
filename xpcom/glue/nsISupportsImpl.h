@@ -77,6 +77,7 @@ private:
 
 
 
+
 #define MOZ_COUNT_CTOR(_type)                                 \
 do {                                                          \
   NS_LogCtor((void*)this, #_type, sizeof(*this));             \
