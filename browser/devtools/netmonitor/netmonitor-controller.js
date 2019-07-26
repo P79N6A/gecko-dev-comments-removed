@@ -78,7 +78,11 @@ const EVENTS = {
   
   PLACEHOLDER_CHARTS_DISPLAYED: "NetMonitor:PlaceholderChartsDisplayed",
   PRIMED_CACHE_CHART_DISPLAYED: "NetMonitor:PrimedChartsDisplayed",
-  EMPTY_CACHE_CHART_DISPLAYED: "NetMonitor:EmptyChartsDisplayed"
+  EMPTY_CACHE_CHART_DISPLAYED: "NetMonitor:EmptyChartsDisplayed",
+
+  
+  
+  CONNECTED: "connected",
 };
 
 
@@ -200,7 +204,10 @@ let NetMonitorController = {
       this._startMonitoringTab(client, form, deferred.resolve);
     }
 
-    return deferred.promise;
+    return deferred.promise.then((result) => {
+      window.emit(EVENTS.CONNECTED);
+      return result;
+    });
   },
 
   
@@ -362,6 +369,25 @@ let NetMonitorController = {
     return promise.reject(new Error("Invalid activity type"));
   },
 
+  
+
+
+
+  get supportsCustomRequest() {
+    return this.webConsoleClient &&
+           (this.webConsoleClient.traits.customNetworkRequest ||
+            !this._target.isApp);
+  },
+
+  
+
+
+
+  get supportsPerfStats() {
+    return this.tabClient &&
+           (this.tabClient.traits.reconfigure || !this._target.isApp);
+  },
+
   _startup: null,
   _shutdown: null,
   _connection: null,
@@ -493,6 +519,11 @@ NetworkEventsHandler.prototype = {
 
 
   _onNetworkEvent: function(aType, aPacket) {
+    if (aPacket.from != this.webConsoleClient.actor) {
+      
+      return;
+    }
+
     let { actor, startedDateTime, method, url, isXHR } = aPacket.eventActor;
     NetMonitorView.RequestsMenu.addRequest(actor, startedDateTime, method, url, isXHR);
     window.emit(EVENTS.NETWORK_EVENT);
@@ -508,6 +539,10 @@ NetworkEventsHandler.prototype = {
 
   _onNetworkEventUpdate: function(aType, aPacket) {
     let actor = aPacket.from;
+    if (!NetMonitorView.RequestsMenu.getItemByValue(actor)) {
+      
+      return;
+    }
 
     switch (aPacket.updateType) {
       case "requestHeaders":

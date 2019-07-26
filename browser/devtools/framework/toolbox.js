@@ -253,21 +253,20 @@ Toolbox.prototype = {
         this._addZoomKeys();
         this._loadInitialZoom();
 
-        
-        this._target.makeRemote().then(() => {
-          this._telemetry.toolOpened("toolbox");
+        this._telemetry.toolOpened("toolbox");
 
-          this.selectTool(this._defaultToolId).then(panel => {
-            this.emit("ready");
-            deferred.resolve();
-          });
+        this.selectTool(this._defaultToolId).then(panel => {
+          this.emit("ready");
+          deferred.resolve();
         });
       };
 
-      iframe.setAttribute("src", this._URL);
-
-      let domHelper = new DOMHelpers(iframe.contentWindow);
-      domHelper.onceDOMReady(domReady);
+      
+      this._target.makeRemote().then(() => {
+        iframe.setAttribute("src", this._URL);
+        let domHelper = new DOMHelpers(iframe.contentWindow);
+        domHelper.onceDOMReady(domReady);
+      });
 
       return deferred.promise;
     });
