@@ -1086,17 +1086,21 @@ let CustomizableUIInternal = {
 
 
 
+
   _isOnInteractiveElement: function(aEvent) {
     let target = aEvent.originalTarget;
-    let panel = aEvent.currentTarget;
+    let panel = this._getPanelForNode(aEvent.currentTarget);
     let inInput = false;
     let inMenu = false;
-    while (!inInput && !inMenu && target != aEvent.currentTarget) {
-      inInput = target.localName == "input";
+    let inItem = false;
+    while (!inInput && !inMenu && !inItem && target != panel) {
+      let tagName = target.localName;
+      inInput = tagName == "input";
       inMenu = target.type == "menu";
+      inItem = tagName == "toolbaritem" || tagName == "toolbarbutton";
       target = target.parentNode;
     }
-    return inMenu || inInput;
+    return inMenu || inInput || !inItem;
   },
 
   hidePanelForNode: function(aNode) {
