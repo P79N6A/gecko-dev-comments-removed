@@ -909,6 +909,12 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
         mPresContext->SetPageScale(1.0f);
       }
 #endif
+    } else {
+      
+      if (mPreviousViewer) {
+        mPreviousViewer->Destroy();
+        mPreviousViewer = nullptr;
+      }
     }
   }
 
