@@ -1206,7 +1206,7 @@ class InterpreterActivation : public Activation
     RunState &state_;
     FrameRegs regs_;
     StackFrame *entryFrame_;
-    jsbytecode opMask_; 
+    size_t opMask_; 
 
 #ifdef DEBUG
     size_t oldFrameCount_;
@@ -1229,7 +1229,7 @@ class InterpreterActivation : public Activation
     StackFrame *entryFrame() const {
         return entryFrame_;
     }
-    jsbytecode opMask() const {
+    size_t opMask() const {
         return opMask_;
     }
 
