@@ -515,22 +515,18 @@ function resizeWindowToChatAreaWidth(desired, cb, count = 0) {
   }
   function resize_handler(event) {
     
-    
-    if (event.eventPhase != event.AT_TARGET)
-      return;
-    
     let newSize = window.SocialChatBar.chatbar.getBoundingClientRect().width;
     let sizedOk = widthDeltaCloseEnough(newSize - desired);
     if (!sizedOk)
       return;
-    window.removeEventListener("resize", resize_handler);
+    window.removeEventListener("resize", resize_handler, true);
     info(count + ": resized window width is " + newSize);
     executeSoon(function() {
       cb(sizedOk);
     });
   }
   
-  window.addEventListener("resize", resize_handler);
+  window.addEventListener("resize", resize_handler, true);
   window.resizeBy(delta, 0);
 }
 
