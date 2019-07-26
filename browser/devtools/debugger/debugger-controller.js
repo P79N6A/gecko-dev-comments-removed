@@ -280,10 +280,14 @@ let DebuggerController = {
         DebuggerView._handleTabNavigation();
 
         
+        
+        
+        DebuggerController.SourceScripts.clearCache();
         DebuggerController.Parser.clearCache();
         SourceUtils.clearCache();
 
         
+        clearNamedTimeout("new-source");
         clearNamedTimeout("event-breakpoints-update");
         clearNamedTimeout("event-listeners-fetch");
         break;
@@ -1022,6 +1026,13 @@ SourceScripts.prototype = {
   
 
 
+  clearCache: function() {
+    this._cache.clear();
+  },
+
+  
+
+
   _handleTabNavigation: function() {
     if (!this.activeThread) {
       return;
@@ -1029,11 +1040,7 @@ SourceScripts.prototype = {
     dumpn("Handling tab navigation in the SourceScripts");
 
     
-    clearNamedTimeout("new-source");
-
     
-    
-    this._cache.clear();
     this.activeThread.getSources(this._onSourcesAdded);
   },
 
