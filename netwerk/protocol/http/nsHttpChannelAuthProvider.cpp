@@ -20,6 +20,23 @@
 #include "nsIDNSService.h"
 #include "nsNetCID.h"
 #include "nsIDNSRecord.h"
+#include "nsNetUtil.h"
+
+static void
+GetAppIdAndBrowserStatus(nsIChannel* aChan, uint32_t* aAppId, bool* aInBrowserElem)
+{
+    nsCOMPtr<nsILoadContext> loadContext;
+    if (aChan) {
+        NS_QueryNotificationCallbacks(aChan, loadContext);
+    }
+    if (!loadContext) {
+        *aAppId = NECKO_NO_APP_ID;
+        *aInBrowserElem = false;
+    } else {
+        loadContext->GetAppId(aAppId);
+        loadContext->GetIsInBrowserElement(aInBrowserElem);
+    }
+}
 
 nsHttpChannelAuthProvider::nsHttpChannelAuthProvider()
     : mAuthChannel(nullptr)
@@ -372,6 +389,11 @@ nsHttpChannelAuthProvider::GenCredsAndSetEntry(nsIHttpAuthenticator *auth,
     
     nsHttpAuthCache *authCache = gHttpHandler->AuthCache(mIsPrivate);
 
+    nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
+
     
     
     
@@ -381,6 +403,7 @@ nsHttpChannelAuthProvider::GenCredsAndSetEntry(nsIHttpAuthenticator *auth,
     rv = authCache->SetAuthEntry(scheme, host, port, directory, realm,
                                  saveCreds ? *result : nullptr,
                                  saveChallenge ? challenge : nullptr,
+                                 appId, isInBrowserElement,
                                  saveIdentity ? &ident : nullptr,
                                  sessionState);
     return rv;
@@ -694,6 +717,11 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
         return NS_ERROR_NOT_AVAILABLE;
     }
 
+    nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
+
     
     
     
@@ -702,7 +730,8 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
     
     nsHttpAuthEntry *entry = nullptr;
     authCache->GetAuthEntryForDomain(scheme.get(), host, port,
-                                     realm.get(), &entry);
+                                     realm.get(), appId,
+                                     isInBrowserElement, &entry);
 
     
     
@@ -732,7 +761,8 @@ nsHttpChannelAuthProvider::GetCredentialsForChallenge(const char *challenge,
                     
                     
                     authCache->ClearAuthEntry(scheme.get(), host,
-                                              port, realm.get());
+                                              port, realm.get(),
+                                              appId, isInBrowserElement);
                     entry = nullptr;
                     ident->Clear();
                 }
@@ -1057,10 +1087,17 @@ NS_IMETHODIMP nsHttpChannelAuthProvider::OnAuthAvailable(nsISupports *aContext,
     nsAutoCString realm;
     ParseRealm(mCurrentChallenge.get(), realm);
 
+    nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
+
     nsHttpAuthCache *authCache = gHttpHandler->AuthCache(mIsPrivate);
     nsHttpAuthEntry *entry = nullptr;
     authCache->GetAuthEntryForDomain(scheme.get(), host, port,
-                                     realm.get(), &entry);
+                                     realm.get(), appId,
+                                     isInBrowserElement,
+                                     &entry);
 
     nsCOMPtr<nsISupports> sessionStateGrip;
     if (entry)
@@ -1292,7 +1329,13 @@ nsHttpChannelAuthProvider::SetAuthorizationHeader(nsHttpAuthCache    *authCache,
         continuationState = &mAuthContinuationState;
     }
 
-    rv = authCache->GetAuthEntryForPath(scheme, host, port, path, &entry);
+    nsCOMPtr<nsIChannel> chan = do_QueryInterface(mAuthChannel);
+    uint32_t appId;
+    bool isInBrowserElement;
+    GetAppIdAndBrowserStatus(chan, &appId, &isInBrowserElement);
+
+    rv = authCache->GetAuthEntryForPath(scheme, host, port, path,
+                                        appId, isInBrowserElement, &entry);
     if (NS_SUCCEEDED(rv)) {
         
         
