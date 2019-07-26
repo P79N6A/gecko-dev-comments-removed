@@ -160,7 +160,11 @@ typedef struct {
 
 
 
+
+
 static SETTING gSettings[] = {
+  
+  
   
   { MAKE_KEY_NAME1("FirefoxHTML", SOC), VAL_OPEN, OLD_VAL_OPEN },
 
@@ -355,6 +359,12 @@ IsAARDefaultHTML(IApplicationAssociationRegistration* pAAR,
   return SUCCEEDED(hr);
 }
 
+
+
+
+
+
+
 bool
 nsWindowsShellService::IsDefaultBrowserVista(bool aCheckAllTypes,
                                              bool* aIsDefaultBrowser)
@@ -405,13 +415,6 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
 
   
   
-  if (!aForAllTypes && IsWin8OrLater()) {
-    return IsDefaultBrowserVista(false,
-                                 aIsDefaultBrowser) ? NS_OK : NS_ERROR_FAILURE;
-  }
-
-  
-  
   *aIsDefaultBrowser = true;
 
   PRUnichar exePath[MAX_BUF];
@@ -430,10 +433,15 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   nsresult rv;
   PRUnichar currValue[MAX_BUF];
 
-  SETTING* settings;
+  SETTING* settings = gSettings;
+  if (!aForAllTypes && IsWin8OrLater()) {
+    
+    settings++;
+  }
+
   SETTING* end = gSettings + sizeof(gSettings) / sizeof(SETTING);
 
-  for (settings = gSettings; settings < end; ++settings) {
+  for (; settings < end; ++settings) {
     NS_ConvertUTF8toUTF16 keyName(settings->keyName);
     NS_ConvertUTF8toUTF16 valueData(settings->valueData);
     int32_t offset = valueData.Find("%APPPATH%");
@@ -490,7 +498,7 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   
   
   if (*aIsDefaultBrowser) {
-    IsDefaultBrowserVista(true, aIsDefaultBrowser);
+    IsDefaultBrowserVista(aForAllTypes, aIsDefaultBrowser);
   }
 
   
@@ -498,7 +506,7 @@ nsWindowsShellService::IsDefaultBrowser(bool aStartupCheck,
   
   
   
-  if (*aIsDefaultBrowser) {
+  if (*aIsDefaultBrowser && aForAllTypes) {
     
 
     end = gDDESettings + sizeof(gDDESettings) / sizeof(SETTING);
@@ -607,27 +615,27 @@ DynSHOpenWithDialog(HWND hwndParent, const OPENASINFO *poainfo)
 {
   typedef HRESULT (WINAPI * SHOpenWithDialogPtr)(HWND hwndParent,
                                                  const OPENASINFO *poainfo);
-  static SHOpenWithDialogPtr SHOpenWithDialogFn = nullptr;
-  if (!SHOpenWithDialogFn) {
-    
-    
-    static const PRUnichar kSehllLibraryName[] =  L"shell32.dll";
-    HMODULE shellDLL = ::LoadLibraryW(kSehllLibraryName);
-    if (!shellDLL) {
-      return NS_ERROR_FAILURE;
-    }
-
-    SHOpenWithDialogFn =
-      (SHOpenWithDialogPtr)GetProcAddress(shellDLL, "SHOpenWithDialog");
-    FreeLibrary(shellDLL);
-
-    if (!SHOpenWithDialogFn) {
-      return NS_ERROR_FAILURE;
-    }
+  
+  
+  
+  static const PRUnichar kSehllLibraryName[] =  L"shell32.dll";
+  HMODULE shellDLL = ::LoadLibraryW(kSehllLibraryName);
+  if (!shellDLL) {
+    return NS_ERROR_FAILURE;
   }
 
-  return SUCCEEDED(SHOpenWithDialogFn(hwndParent, poainfo)) ? NS_OK :
-                                                              NS_ERROR_FAILURE;
+  SHOpenWithDialogPtr SHOpenWithDialogFn =
+    (SHOpenWithDialogPtr)GetProcAddress(shellDLL, "SHOpenWithDialog");
+
+  if (!SHOpenWithDialogFn) {
+    return NS_ERROR_FAILURE;
+  }
+
+  nsresult rv = 
+    SUCCEEDED(SHOpenWithDialogFn(hwndParent, poainfo)) ? NS_OK :
+                                                         NS_ERROR_FAILURE;
+  FreeLibrary(shellDLL);
+  return rv;
 }
 
 nsresult
