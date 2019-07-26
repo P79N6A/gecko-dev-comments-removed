@@ -1955,7 +1955,7 @@ nsTableFrame::FixupPositionedTableParts(nsPresContext*           aPresContext,
     
     
     
-    overflowTracker.AddFrame(positionedPart, OverflowChangedTracker::CHILDREN_CHANGED);
+    overflowTracker.AddFrame(positionedPart);
     nsFrame* positionedFrame = static_cast<nsFrame*>(positionedPart);
     positionedFrame->FinishReflowWithAbsoluteFrames(PresContext(),
                                                     desiredSize,
