@@ -457,27 +457,31 @@ nsRangeFrame::AttributeChanged(int32_t  aNameSpaceID,
   NS_ASSERTION(mTrackDiv, "The track div must exist!");
   NS_ASSERTION(mThumbDiv, "The thumb div must exist!");
 
-  if (aNameSpaceID == kNameSpaceID_None &&
-      (aAttribute == nsGkAtoms::value ||
-       aAttribute == nsGkAtoms::min ||
-       aAttribute == nsGkAtoms::max ||
-       aAttribute == nsGkAtoms::step)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
-    bool typeIsRange = static_cast<nsHTMLInputElement*>(mContent)->GetType() ==
-                         NS_FORM_INPUT_RANGE;
-    MOZ_ASSERT(typeIsRange || aAttribute == nsGkAtoms::value, "why?");
-    if (typeIsRange) {
-      UpdateThumbPositionForValueChange();
+  if (aNameSpaceID == kNameSpaceID_None) {
+    if (aAttribute == nsGkAtoms::value ||
+        aAttribute == nsGkAtoms::min ||
+        aAttribute == nsGkAtoms::max ||
+        aAttribute == nsGkAtoms::step) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      MOZ_ASSERT(mContent->IsHTML(nsGkAtoms::input), "bad cast");
+      bool typeIsRange = static_cast<nsHTMLInputElement*>(mContent)->GetType() ==
+                           NS_FORM_INPUT_RANGE;
+      MOZ_ASSERT(typeIsRange || aAttribute == nsGkAtoms::value, "why?");
+      if (typeIsRange) {
+        UpdateThumbPositionForValueChange();
+      }
+    } else if (aAttribute == nsGkAtoms::orient) {
+      PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eResize,
+                                                   NS_FRAME_IS_DIRTY);
     }
   }
 
@@ -554,7 +558,9 @@ nsRangeFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 bool
 nsRangeFrame::IsHorizontal(const nsSize *aFrameSizeOverride) const
 {
-  return true; 
+  nsHTMLInputElement* element = static_cast<nsHTMLInputElement*>(mContent);
+  return !element->AttrValueIs(kNameSpaceID_None, nsGkAtoms::orient,
+                               nsGkAtoms::vertical, eCaseMatters);
 }
 
 double
