@@ -39,13 +39,14 @@ private:
   nsresult Send(JSContext* aCx, JSObject* aGlobal, JS::Handle<JSString*> aNumber,
                 const nsAString& aMessage, JS::Value* aRequest);
 
+  nsresult DispatchTrustedSmsEventToSelf(const nsAString& aEventName,
+                                         nsIDOMMozSmsMessage* aMessage);
+
   
 
 
-  nsresult Delete(int32_t aId, nsIDOMDOMRequest** aRequest);
-
-  nsresult DispatchTrustedSmsEventToSelf(const nsAString& aEventName,
-                                         nsIDOMMozSmsMessage* aMessage);
+  nsresult GetSmsMessageId(AutoPushJSContext &aCx, const JS::Value &aSmsMessage,
+                           int32_t &aId);
 };
 
 } 
