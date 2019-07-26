@@ -122,6 +122,7 @@ public class GeckoEvent {
     private int mFlags;
     private int mKeyCode;
     private int mUnicodeChar;
+    private int mBaseUnicodeChar; 
     private int mRepeatCount;
     private int mCount;
     private int mStart;
@@ -198,11 +199,10 @@ public class GeckoEvent {
         mMetaState = k.getMetaState() | metaState;
         mFlags = k.getFlags();
         mKeyCode = k.getKeyCode();
-        mUnicodeChar = k.getUnicodeChar();
-        if (mUnicodeChar == 0) {
-            
-            mUnicodeChar = k.getUnicodeChar(0);
-        }
+        mUnicodeChar = k.getUnicodeChar(mMetaState);
+        
+        
+        mBaseUnicodeChar = k.getUnicodeChar(0);
         mRepeatCount = k.getRepeatCount();
         mCharacters = k.getCharacters();
         mDomKeyLocation = isJoystickButton(mKeyCode) ? DOM_KEY_LOCATION_JOYSTICK : DOM_KEY_LOCATION_MOBILE;
