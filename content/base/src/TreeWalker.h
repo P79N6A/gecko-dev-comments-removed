@@ -19,7 +19,6 @@
 
 class nsINode;
 class nsIDOMNode;
-class nsIDOMNodeFilter;
 
 namespace mozilla {
 namespace dom {
@@ -37,6 +36,34 @@ public:
 
     NS_DECL_CYCLE_COLLECTION_CLASS(TreeWalker)
 
+    
+    nsINode* Root() const
+    {
+        return mRoot;
+    }
+    uint32_t WhatToShow() const
+    {
+        return mWhatToShow;
+    }
+    already_AddRefed<NodeFilter> GetFilter()
+    {
+        return mFilter.ToWebIDLCallback();
+    }
+    nsINode* CurrentNode() const
+    {
+        return mCurrentNode;
+    }
+    void SetCurrentNode(nsINode& aNode, ErrorResult& aResult);
+    
+    
+    already_AddRefed<nsINode> ParentNode(ErrorResult& aResult);
+    already_AddRefed<nsINode> FirstChild(ErrorResult& aResult);
+    already_AddRefed<nsINode> LastChild(ErrorResult& aResult);
+    already_AddRefed<nsINode> PreviousSibling(ErrorResult& aResult);
+    already_AddRefed<nsINode> NextSibling(ErrorResult& aResult);
+    already_AddRefed<nsINode> PreviousNode(ErrorResult& aResult);
+    already_AddRefed<nsINode> NextNode(ErrorResult& aResult);
+
 private:
     nsCOMPtr<nsINode> mCurrentNode;
 
@@ -47,7 +74,8 @@ private:
 
 
 
-    nsresult FirstChildInternal(bool aReversed, nsIDOMNode **_retval);
+    already_AddRefed<nsINode> FirstChildInternal(bool aReversed,
+                                                 ErrorResult& aResult);
 
     
 
@@ -56,7 +84,21 @@ private:
 
 
 
-    nsresult NextSiblingInternal(bool aReversed, nsIDOMNode **_retval);
+    already_AddRefed<nsINode> NextSiblingInternal(bool aReversed,
+                                                  ErrorResult& aResult);
+
+    
+    typedef already_AddRefed<nsINode> (TreeWalker::*NodeGetter)(ErrorResult&);
+    inline nsresult ImplNodeGetter(NodeGetter aGetter, nsIDOMNode** aRetval)
+    {
+        mozilla::ErrorResult rv;
+        nsCOMPtr<nsINode> node = (this->*aGetter)(rv);
+        if (rv.Failed()) {
+            return rv.ErrorCode();
+        }
+        *aRetval = node ? node.forget().get()->AsDOMNode() : nullptr;
+        return NS_OK;
+    }
 };
 
 } 
