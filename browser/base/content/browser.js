@@ -219,17 +219,14 @@ XPCOMUtils.defineLazyGetter(this, "PageMenu", function() {
 
 
 function pageShowEventHandlers(event) {
-  
-  if (event.target == content.document) {
-    charsetLoadListener();
-    XULBrowserWindow.asyncUpdateUI();
+  charsetLoadListener();
+  XULBrowserWindow.asyncUpdateUI();
 
-    
-    
-    
-    if (event.persisted)
-      gPluginHandler.reshowClickToPlayNotification();
-  }
+  
+  
+  
+  if (event.persisted)
+    gPluginHandler.reshowClickToPlayNotification();
 }
 
 function UpdateBackForwardCommands(aWebNavigation) {
@@ -1273,7 +1270,11 @@ var gBrowserInit = {
     SocialUI.init();
     AddonManager.addAddonListener(AddonsMgrListener);
 
-    gBrowser.addEventListener("pageshow", function(evt) { setTimeout(pageShowEventHandlers, 0, evt); }, true);
+    gBrowser.addEventListener("pageshow", function(event) {
+      
+      if (event.target == content.document)
+        setTimeout(pageShowEventHandlers, 0, event);
+    }, true);
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
