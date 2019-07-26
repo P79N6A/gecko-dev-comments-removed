@@ -218,8 +218,7 @@ private:
   nsRefPtr<nsZipHandle> mFd;
 
   
-  mozilla::AutoFDClose mLog;
-
+  nsCString mURI;
 
 private:
   
