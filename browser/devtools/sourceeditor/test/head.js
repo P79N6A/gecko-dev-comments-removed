@@ -113,3 +113,70 @@ waitForSelection.__defineGetter__("_monotonicCounter", function () {
   return waitForSelection.__monotonicCounter++;
 });
 
+
+
+
+
+
+
+
+
+
+function openSourceEditorWindow(aCallback, aOptions) {
+  const windowUrl = "data:text/xml;charset=UTF-8,<?xml version='1.0'?>" +
+    "<window xmlns='http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul'" +
+    " title='Test for Source Editor' width='600' height='500'><box flex='1'/></window>";
+  const windowFeatures = "chrome,titlebar,toolbar,centerscreen,resizable,dialog=no";
+
+  let editor = null;
+  let testWin = Services.ww.openWindow(null, windowUrl, "_blank",
+                                       windowFeatures, null);
+  testWin.addEventListener("load", function onWindowLoad() {
+    testWin.removeEventListener("load", onWindowLoad, false);
+    waitForFocus(initEditor, testWin);
+  }, false);
+
+  function initEditor()
+  {
+    let tempScope = {};
+    Cu.import("resource:///modules/source-editor.jsm", tempScope);
+
+    let box = testWin.document.querySelector("box");
+    editor = new tempScope.SourceEditor();
+    editor.init(box, aOptions || {}, editorLoaded);
+  }
+
+  function editorLoaded()
+  {
+    editor.focus();
+    waitForFocus(aCallback.bind(null, editor, testWin), testWin);
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function fillEditor(aEditor, aPages) {
+  let view = aEditor._view;
+  let model = aEditor._model;
+
+  let lineHeight = view.getLineHeight();
+  let editorHeight = view.getClientArea().height;
+  let linesPerPage = Math.floor(editorHeight / lineHeight);
+  let totalLines = aPages * linesPerPage;
+
+  let text = "";
+  for (let i = 0; i < totalLines; i++) {
+    text += "l" + i + " lorem ipsum dolor sit amet. lipsum foobaris bazbaz,\n";
+  }
+
+  return text;
+}

@@ -2013,6 +2013,66 @@ SourceEditor.prototype = {
   
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  convertCoordinates: function SE_convertCoordinates(aRect, aFrom, aTo)
+  {
+    return this._view.convert(aRect, aFrom, aTo);
+  },
+
+  
+
+
+
+
+
+
+
+  getOffsetAtLocation: function SE_getOffsetAtLocation(aX, aY)
+  {
+    return this._view.getOffsetAtLocation(aX, aY);
+  },
+
+  
+
+
+
+
+
+
+
+
+  getLocationAtOffset: function SE_getLocationAtOffset(aOffset)
+  {
+    return this._view.getLocationAtOffset(aOffset);
+  },
+
+  
+
+
+
+
+
+
+  getLineAtOffset: function SE_getLineAtOffset(aOffset)
+  {
+    return this._model.getLineAtOffset(aOffset);
+  },
+
+  
+
+
   destroy: function SE_destroy()
   {
     if (this._config.highlightCurrentLine || Services.appinfo.OS == "Linux") {
