@@ -49,7 +49,7 @@ public:
   
   
   
-  explicit CallbackObject(JSObject* aCallback, nsIGlobalObject *aIncumbentGlobal)
+  explicit CallbackObject(JS::Handle<JSObject*> aCallback, nsIGlobalObject *aIncumbentGlobal)
   {
     Init(aCallback, aIncumbentGlobal);
   }
