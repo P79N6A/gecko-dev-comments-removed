@@ -127,6 +127,7 @@ public:
   typedef FrameMetrics::ViewID ViewID;
   typedef mozilla::CSSPoint CSSPoint;
   typedef mozilla::CSSSize CSSSize;
+  typedef mozilla::LayerMargin LayerMargin;
 
   
 
@@ -155,11 +156,38 @@ public:
 
   static bool GetDisplayPort(nsIContent* aContent, nsRect *aResult = nullptr);
 
- 
+  MOZ_BEGIN_NESTED_ENUM_CLASS(RepaintMode, uint8_t)
+    Repaint,
+    DoNotRepaint
+  MOZ_END_NESTED_ENUM_CLASS(RepaintMode)
+
+  
 
 
 
- static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
+
+
+
+
+
+
+
+
+
+
+  static void SetDisplayPortMargins(nsIContent* aContent,
+                                    nsIPresShell* aPresShell,
+                                    const LayerMargin& aMargins,
+                                    uint32_t aAlignmentX,
+                                    uint32_t aAlignmentY,
+                                    uint32_t aPriority = 0,
+                                    RepaintMode aRepaintMode = RepaintMode::Repaint);
+
+  
+
+
+
+  static void SetDisplayPortBase(nsIContent* aContent, const nsRect& aBase);
 
   
 
@@ -2151,6 +2179,8 @@ private:
   static bool sCSSVariablesEnabled;
   static bool sInterruptibleReflowEnabled;
 };
+
+MOZ_FINISH_NESTED_ENUM_CLASS(nsLayoutUtils::RepaintMode)
 
 template<typename PointType, typename RectType, typename CoordType>
  bool
