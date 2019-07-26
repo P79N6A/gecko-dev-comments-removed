@@ -2526,7 +2526,9 @@ let SessionStoreInternal = {
       if (!tabData.entries || tabData.entries.length == 0) {
         
         
-        browser.contentDocument.location = "about:blank";
+        browser.loadURIWithFlags("about:blank",
+                                 Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_HISTORY,
+                                 null, null, null);
         continue;
       }
 
