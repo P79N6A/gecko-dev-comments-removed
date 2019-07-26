@@ -264,16 +264,9 @@ gfxFontEntry::TryGetSVGData()
             return false;
         }
 
-        hb_blob_t *cmapTable = GetFontTable(TRUETYPE_TAG('c','m','a','p'));
-        if (!cmapTable) {
-            NS_NOTREACHED("using a font with no cmap!");
-            hb_blob_destroy(svgTable);
-            return false;
-        }
-
         
         
-        mSVGGlyphs = new gfxSVGGlyphs(svgTable, cmapTable);
+        mSVGGlyphs = new gfxSVGGlyphs(svgTable);
     }
 
     return !!mSVGGlyphs;

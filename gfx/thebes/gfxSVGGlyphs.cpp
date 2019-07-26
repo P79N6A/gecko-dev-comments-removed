@@ -42,7 +42,7 @@ const float gfxSVGGlyphs::SVG_UNITS_PER_EM = 1000.0f;
 
 const gfxRGBA SimpleTextObjectPaint::sZero = gfxRGBA(0.0f, 0.0f, 0.0f, 0.0f);
 
-gfxSVGGlyphs::gfxSVGGlyphs(hb_blob_t *aSVGTable, hb_blob_t *aCmapTable)
+gfxSVGGlyphs::gfxSVGGlyphs(hb_blob_t *aSVGTable)
 {
     mSVGData = aSVGTable;
 
@@ -52,13 +52,11 @@ gfxSVGGlyphs::gfxSVGGlyphs(hb_blob_t *aSVGTable, hb_blob_t *aCmapTable)
 
     mGlyphDocs.Init();
     mGlyphIdMap.Init();
-    mCmapData = aCmapTable;
 }
 
 gfxSVGGlyphs::~gfxSVGGlyphs()
 {
     hb_blob_destroy(mSVGData);
-    hb_blob_destroy(mCmapData);
 }
 
 
@@ -103,7 +101,7 @@ gfxSVGGlyphs::FindOrCreateGlyphsDocument(uint32_t aGlyphId)
     if (!result) {
         const uint8_t *data = (const uint8_t*)hb_blob_get_data(mSVGData, nullptr);
         result = new gfxSVGGlyphsDocument(data + entry->mDocOffset,
-                                          entry->mDocLength, mCmapData);
+                                          entry->mDocLength);
         mGlyphDocs.Put(entry->mDocOffset, result);
     }
 
@@ -157,19 +155,17 @@ gfxSVGGlyphsDocument::SetupPresentation()
 
 
 
-
 void
-gfxSVGGlyphsDocument::FindGlyphElements(Element *aElem, hb_blob_t *aCmapTable)
+gfxSVGGlyphsDocument::FindGlyphElements(Element *aElem)
 {
     for (nsIContent *child = aElem->GetLastChild(); child;
             child = child->GetPreviousSibling()) {
         if (!child->IsElement()) {
             continue;
         }
-        FindGlyphElements(child->AsElement(), aCmapTable);
+        FindGlyphElements(child->AsElement());
     }
 
-    InsertGlyphChar(aElem, aCmapTable);
     InsertGlyphId(aElem);
 }
 
@@ -235,8 +231,7 @@ gfxSVGGlyphsDocument::GetGlyphElement(uint32_t aGlyphId)
     return mGlyphIdMap.Get(aGlyphId);
 }
 
-gfxSVGGlyphsDocument::gfxSVGGlyphsDocument(const uint8_t *aBuffer, uint32_t aBufLen,
-                                           hb_blob_t *aCmapTable)
+gfxSVGGlyphsDocument::gfxSVGGlyphsDocument(const uint8_t *aBuffer, uint32_t aBufLen)
 {
     mGlyphIdMap.Init();
     ParseDocument(aBuffer, aBufLen);
@@ -257,7 +252,7 @@ gfxSVGGlyphsDocument::gfxSVGGlyphsDocument(const uint8_t *aBuffer, uint32_t aBuf
         return;
     }
 
-    FindGlyphElements(root, aCmapTable);
+    FindGlyphElements(root);
 }
 
 static nsresult
@@ -374,71 +369,6 @@ gfxSVGGlyphsDocument::InsertGlyphId(Element *aGlyphElement)
     }
 
     mGlyphIdMap.Put(glyphId, aGlyphElement);
-}
-
-
-
-
-
-
-
-
-
-static uint32_t
-NextUSV(const nsAString& aString, uint32_t& aPos)
-{
-    mozilla::DebugOnly<uint32_t> len = aString.Length();
-    NS_ASSERTION(aPos < len, "already at end of string");
-
-    uint32_t c1 = aString[aPos++];
-    if (NS_IS_HIGH_SURROGATE(c1)) {
-        NS_ASSERTION(aPos < len, "trailing high surrogate");
-        uint32_t c2 = aString[aPos++];
-        NS_ASSERTION(NS_IS_LOW_SURROGATE(c2), "isolated high surrogate");
-        return SURROGATE_TO_UCS4(c1, c2);
-    }
-
-    NS_ASSERTION(!NS_IS_LOW_SURROGATE(c1), "isolated low surrogate");
-    return c1;
-}
-
-void
-gfxSVGGlyphsDocument::InsertGlyphChar(Element *aGlyphElement,
-                                      hb_blob_t *aCmapTable)
-{
-    nsAutoString glyphChar;
-    if (!aGlyphElement->GetAttr(kNameSpaceID_None, nsGkAtoms::glyphchar,
-                                glyphChar)) {
-        return;
-    }
-
-    uint32_t charCode, varSelector = 0, len = glyphChar.Length(), index = 0;
-    if (!len) {
-        NS_WARNING("glyphchar is empty");
-        return;
-    }
-
-    charCode = NextUSV(glyphChar, index);
-    if (index < len) {
-        varSelector = NextUSV(glyphChar, index);
-        if (!gfxFontUtils::IsVarSelector(varSelector)) {
-            NS_WARNING("glyphchar contains more than one character");
-            return;
-        }
-    }
-
-    if (index < len) {
-        NS_WARNING("glyphchar contains more than one character");
-        return;
-    }
-
-    const uint8_t *data = (const uint8_t*)hb_blob_get_data(aCmapTable, &len);
-    uint32_t glyphId =
-        gfxFontUtils::MapCharToGlyph(data, len, charCode, varSelector);
-
-    if (glyphId) {
-        mGlyphIdMap.Put(glyphId, aGlyphElement);
-    }
 }
 
 void
