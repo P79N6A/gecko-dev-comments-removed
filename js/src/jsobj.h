@@ -1386,12 +1386,9 @@ DefineNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id, Handle
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                      unsigned defineHow = 0);
 
-
-
-
 extern bool
-LookupPropertyWithFlags(ExclusiveContext *cx, HandleObject obj, HandleId id, unsigned flags,
-                        js::MutableHandleObject objp, js::MutableHandleShape propp);
+LookupNativeProperty(ExclusiveContext *cx, HandleObject obj, HandleId id,
+                     js::MutableHandleObject objp, js::MutableHandleShape propp);
 
 
 
@@ -1416,12 +1413,6 @@ DefineProperties(JSContext *cx, HandleObject obj, HandleObject props);
 extern bool
 ReadPropertyDescriptors(JSContext *cx, HandleObject props, bool checkAccessors,
                         AutoIdVector *ids, AutoPropDescArrayRooter *descs);
-
-
-
-
-
-static const unsigned RESOLVE_INFER = 0xffff;
 
 
 extern bool
