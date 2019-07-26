@@ -215,10 +215,20 @@ let SyncHandler = {
 
 let SessionHistoryListener = {
   init: function () {
+    
+    
+    
+    
+    
     gFrameTree.addObserver(this);
-    addEventListener("load", this, true);
-    addEventListener("hashchange", this, true);
-    Services.obs.addObserver(this, "browser:purge-session-history", false);
+
+    
+    
+    
+    
+    
+    docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory.
+      addSHistoryListener(this);
 
     
     if (!SessionHistory.isEmpty(docShell)) {
@@ -227,22 +237,9 @@ let SessionHistoryListener = {
   },
 
   uninit: function () {
-    Services.obs.removeObserver(this, "browser:purge-session-history");
-  },
-
-  observe: function () {
-    
-    
-    
-    
-    
-    setTimeout(() => this.collect(), 0);
-  },
-
-  handleEvent: function (event) {
-    
-    if (event.type == "hashchange" || event.target != content.document) {
-      this.collect();
+    let sessionHistory = docShell.QueryInterface(Ci.nsIWebNavigation).sessionHistory;
+    if (sessionHistory) {
+      sessionHistory.removeSHistoryListener(this);
     }
   },
 
@@ -258,7 +255,41 @@ let SessionHistoryListener = {
 
   onFrameTreeReset: function () {
     this.collect();
-  }
+  },
+
+  OnHistoryNewEntry: function (newURI) {
+    this.collect();
+  },
+
+  OnHistoryGoBack: function (backURI) {
+    this.collect();
+    return true;
+  },
+
+  OnHistoryGoForward: function (forwardURI) {
+    this.collect();
+    return true;
+  },
+
+  OnHistoryGotoIndex: function (index, gotoURI) {
+    this.collect();
+    return true;
+  },
+
+  OnHistoryPurge: function (numEntries) {
+    this.collect();
+    return true;
+  },
+
+  OnHistoryReload: function (reloadURI, reloadFlags) {
+    this.collect();
+    return true;
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsISHistoryListener,
+    Ci.nsISupportsWeakReference
+  ])
 };
 
 

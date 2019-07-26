@@ -165,3 +165,71 @@ add_task(function test_subframes() {
   
   gBrowser.removeTab(tab);
 });
+
+
+
+
+add_task(function test_about_page_navigate() {
+  
+  let tab = gBrowser.addTab("about:blank");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+
+  
+  SyncHandlers.get(browser).flush();
+  let {entries} = JSON.parse(ss.getTabState(tab));
+  is(entries.length, 1, "there is one shistory entry");
+  is(entries[0].url, "about:blank", "url is correct");
+
+  browser.loadURI("about:robots");
+  yield promiseBrowserLoaded(browser);
+
+  
+  SyncHandlers.get(browser).flush();
+  let {entries} = JSON.parse(ss.getTabState(tab));
+  is(entries.length, 1, "there is one shistory entry");
+  is(entries[0].url, "about:robots", "url is correct");
+
+  
+  gBrowser.removeTab(tab);
+});
+
+
+
+
+add_task(function test_pushstate_replacestate() {
+  
+  let tab = gBrowser.addTab("http://example.com/1");
+  let browser = tab.linkedBrowser;
+  yield promiseBrowserLoaded(browser);
+
+  
+  SyncHandlers.get(browser).flush();
+  let {entries} = JSON.parse(ss.getTabState(tab));
+  is(entries.length, 1, "there is one shistory entry");
+  is(entries[0].url, "http://example.com/1", "url is correct");
+
+  browser.messageManager.
+    sendAsyncMessage("ss-test:historyPushState", {url: 'test-entry/'});
+  yield promiseContentMessage(browser, "ss-test:historyPushState");
+
+  
+  SyncHandlers.get(browser).flush();
+  let {entries} = JSON.parse(ss.getTabState(tab));
+  is(entries.length, 2, "there is another shistory entry");
+  is(entries[1].url, "http://example.com/test-entry/", "url is correct");
+
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+
+  
+  gBrowser.removeTab(tab);
+});
