@@ -30,18 +30,6 @@ final class InputMethods {
     public static final String METHOD_TOUCHPAL_KEYBOARD = "com.cootek.smartinputv5/com.cootek.smartinput5.TouchPalIME";
 
     
-
-
-
-
-
-
-
-
-
-
-
-    
     private static final Collection<String> sHKBWhiteList = Arrays.asList(new String[] {
                                                             METHOD_ATOK,
                                                             METHOD_GOOGLE_JAPANESE_INPUT,
