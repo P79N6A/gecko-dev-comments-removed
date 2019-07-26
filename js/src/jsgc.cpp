@@ -3895,14 +3895,6 @@ BeginSweepPhase(JSRuntime *rt)
     }
 #ifdef JS_ION
     for (GCCompartmentsIter c(rt); !c.done(); c.next()) {
-        
-
-
-
-
-        if (c == rt->atomsCompartment)
-            continue;
-
         if (c->isGCSweeping()) {
             gcstats::AutoSCC scc(rt->gcStats, partition.getSCC(c));
             c->arenas.queueIonCodeForSweep(&fop);

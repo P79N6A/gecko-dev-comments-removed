@@ -35,10 +35,6 @@ enum DataType {
 struct VMFunction
 {
     
-    static VMFunction *functions;
-    VMFunction *next;
-
-    
     void *wrapped;
 
     
@@ -172,16 +168,6 @@ struct VMFunction
         JS_ASSERT_IF(outParam != Type_Void, returnType == Type_Bool);
         JS_ASSERT(returnType == Type_Bool || returnType == Type_Object);
     }
-
-    VMFunction(const VMFunction &o)
-    {
-        *this = o;
-        addToFunctions();
-    }
-
-  private:
-    
-    void addToFunctions();
 };
 
 template <class> struct TypeToDataType {  };

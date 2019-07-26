@@ -293,8 +293,11 @@ CodeGeneratorX86Shared::generateOutOfLineCode()
         
         masm.push(Imm32(frameSize()));
 
-        IonCompartment *ion = GetIonContext()->compartment->ionCompartment();
-        IonCode *handler = ion->getGenericBailoutHandler();
+        JSContext *cx = GetIonContext()->cx;
+        IonCompartment *ion = cx->compartment->ionCompartment();
+        IonCode *handler = ion->getGenericBailoutHandler(cx);
+        if (!handler)
+            return false;
 
         masm.jmp(handler->raw(), Relocation::IONCODE);
     }
@@ -1311,9 +1314,13 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
 
     masm.bind(&invalidate_);
 
+    JSContext *cx = GetIonContext()->cx;
+
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
-    IonCode *thunk = GetIonContext()->compartment->ionCompartment()->getInvalidationThunk();
+    IonCode *thunk = cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(cx);
+    if (!thunk)
+        return false;
 
     masm.call(thunk);
 
