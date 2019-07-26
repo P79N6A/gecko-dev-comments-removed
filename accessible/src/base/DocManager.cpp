@@ -358,7 +358,7 @@ DocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   nsIPresShell* presShell = aDocument->GetShell();
-  if (!presShell || !presShell->GetRootFrame() || presShell->IsDestroying())
+  if (!presShell || presShell->IsDestroying())
     return nullptr;
 
   bool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);

@@ -75,7 +75,7 @@ DocAccessible::
                   nsIPresShell* aPresShell) :
   HyperTextAccessibleWrap(aRootContent, this),
   mDocumentNode(aDocument), mScrollPositionChangedTicks(0),
-  mLoadState(eTreeConstructionPending), mLoadEventType(0),
+  mLoadState(eTreeConstructionPending), mDocFlags(0), mLoadEventType(0),
   mVirtualCursor(nullptr),
   mPresShell(aPresShell)
 {
@@ -93,18 +93,6 @@ DocAccessible::
   
   if (mDocumentNode && mDocumentNode->IsXUL())
     mGenericTypes &= ~eHyperText;
-
-  
-  if (!mDocumentNode)
-    return;
-
-  
-  
-  AddScrollListener();
-
-  
-  mIsCursorable = (!(mDocumentNode->GetParentDocument()) ||
-                   nsCoreUtils::IsTabDocument(mDocumentNode));
 }
 
 DocAccessible::~DocAccessible()
@@ -145,7 +133,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(DocAccessible)
   NS_INTERFACE_MAP_ENTRY(nsIAccessiblePivotObserver)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIAccessibleDocument)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAccessibleCursorable,
-                                     mIsCursorable)
+                                     (mDocFlags & eCursorable))
     foundInterface = 0;
 
   nsresult status;
@@ -502,7 +490,8 @@ DocAccessible::GetVirtualCursor(nsIAccessiblePivot** aVirtualCursor)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  NS_ENSURE_TRUE(mIsCursorable, NS_ERROR_NOT_IMPLEMENTED);
+  if (!(mDocFlags & eCursorable))
+    return NS_OK;
 
   if (!mVirtualCursor) {
     mVirtualCursor = new nsAccessiblePivot(this);
@@ -795,36 +784,6 @@ DocAccessible::ScrollTimerCallback(nsITimer* aTimer, void* aClosure)
       docAcc->mScrollWatchTimer = nullptr;
       NS_RELEASE(docAcc); 
     }
-  }
-}
-
-
-void
-DocAccessible::AddScrollListener()
-{
-  if (!mPresShell)
-    return;
-
-  nsIScrollableFrame* sf = mPresShell->GetRootScrollFrameAsScrollableExternal();
-  if (sf) {
-    sf->AddScrollPositionListener(this);
-#ifdef A11Y_LOG
-    if (logging::IsEnabled(logging::eDocCreate))
-      logging::Text("add scroll listener");
-#endif
-  }
-}
-
-
-void
-DocAccessible::RemoveScrollListener()
-{
-  if (!mPresShell)
-    return;
- 
-  nsIScrollableFrame* sf = mPresShell->GetRootScrollFrameAsScrollableExternal();
-  if (sf) {
-    sf->RemoveScrollPositionListener(this);
   }
 }
 
@@ -1511,6 +1470,11 @@ DocAccessible::NotifyOfLoading(bool aIsReloading)
 void
 DocAccessible::DoInitialUpdate()
 {
+  
+  if (!(mDocumentNode->GetParentDocument()) ||
+      nsCoreUtils::IsTabDocument(mDocumentNode))
+    mDocFlags |= eCursorable;
+
   mLoadState |= eTreeConstructed;
 
   

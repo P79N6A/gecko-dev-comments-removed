@@ -333,8 +333,11 @@ protected:
 
   void ProcessLoad();
 
-    void AddScrollListener();
-    void RemoveScrollListener();
+  
+
+
+  void AddScrollListener();
+  void RemoveScrollListener();
 
   
 
@@ -485,6 +488,17 @@ protected:
   
 
 
+  enum {
+    
+    eScrollInitialized = 1 << 0,
+
+    
+    eCursorable = 1 << 1
+  };
+
+  
+
+
   AccessibleHashtable mAccessibleCache;
   nsDataHashtable<nsPtrHashKey<const nsINode>, Accessible*>
     mNodeToAccessibleMap;
@@ -496,7 +510,12 @@ protected:
   
 
 
-  uint32_t mLoadState;
+  uint32_t mLoadState : 3;
+
+  
+
+
+  uint32_t mDocFlags : 28;
 
   
 
@@ -515,11 +534,6 @@ protected:
   nsIAtom* mARIAAttrOldValue;
 
   nsTArray<nsRefPtr<DocAccessible> > mChildDocuments;
-
-  
-
-
-  bool mIsCursorable;
 
   
 
