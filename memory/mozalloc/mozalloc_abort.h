@@ -27,7 +27,14 @@
 
 
 
-MOZALLOC_EXPORT void mozalloc_abort(const char* const msg);
+
+
+
+MOZALLOC_EXPORT
+#if !defined(__arm__)
+  MOZ_NORETURN
+#endif
+  void mozalloc_abort(const char* const msg);
 
 
 #endif  
