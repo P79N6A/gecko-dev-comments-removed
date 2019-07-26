@@ -125,14 +125,8 @@ DownloadsStartup.prototype = {
       case "download-manager-change-retention":
         
         
-        
-        
-        
         if (!DownloadsCommon.useToolkitUI) {
-          let removeFinishedDownloads = Services.prefs.getBoolPref(
-                            "browser.download.panel.removeFinishedDownloads");
-          aSubject.QueryInterface(Ci.nsISupportsPRInt32)
-                  .data = removeFinishedDownloads ? 0 : 2;
+          aSubject.QueryInterface(Ci.nsISupportsPRInt32).data = 2;
         }
         break;
 

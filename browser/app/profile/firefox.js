@@ -331,9 +331,6 @@ pref("browser.download.manager.resumeOnWakeDelay", 10000);
 pref("browser.download.useToolkitUI", false);
 
 
-pref("browser.download.panel.removeFinishedDownloads", false);
-
-
 pref("browser.download.panel.shown", false);
 
 
