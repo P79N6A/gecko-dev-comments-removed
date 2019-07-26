@@ -466,7 +466,7 @@ abstract public class BrowserApp extends GeckoApp
             if (mLayerView != null) {
                 mLayerView.getLayerClient().setOnMetricsChangedListener(null);
             }
-            mAboutHome.setPadding(0, 0, 0, 0);
+            mAboutHome.setTopPadding(0);
             if (mBrowserToolbar != null) {
                 mBrowserToolbar.getLayout().scrollTo(0, 0);
             }
@@ -742,7 +742,7 @@ abstract public class BrowserApp extends GeckoApp
                 
                 
                 
-                mAboutHome.setPadding(0, height, 0, 0);
+                mAboutHome.setTopPadding(height);
             } else {
                 setToolbarMargin(height);
                 height = 0;
