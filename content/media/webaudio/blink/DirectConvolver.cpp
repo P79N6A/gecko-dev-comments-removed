@@ -26,76 +26,45 @@
 
 
 
-#include "config.h"
+#include "DirectConvolver.h"
+#include "mozilla/PodOperations.h"
 
-#if ENABLE(WEB_AUDIO)
-
-#include "core/platform/audio/DirectConvolver.h"
-
-#if OS(DARWIN)
-#include <Accelerate/Accelerate.h>
-#endif
-
-#include "core/platform/audio/VectorMath.h"
+using namespace mozilla;
 
 namespace WebCore {
 
-using namespace VectorMath;
-    
 DirectConvolver::DirectConvolver(size_t inputBlockSize)
     : m_inputBlockSize(inputBlockSize)
-#if USE(WEBAUDIO_IPP)
-    , m_overlayBuffer(inputBlockSize)
-#endif 
-    , m_buffer(inputBlockSize * 2)
 {
+  m_buffer.SetLength(inputBlockSize * 2);
+  PodZero(m_buffer.Elements(), inputBlockSize * 2);
 }
 
-void DirectConvolver::process(AudioFloatArray* convolutionKernel, const float* sourceP, float* destP, size_t framesToProcess)
+void DirectConvolver::process(const nsTArray<float>* convolutionKernel, const float* sourceP, float* destP, size_t framesToProcess)
 {
-    ASSERT(framesToProcess == m_inputBlockSize);
+    MOZ_ASSERT(framesToProcess == m_inputBlockSize);
     if (framesToProcess != m_inputBlockSize)
         return;
 
     
-    size_t kernelSize = convolutionKernel->size();
-    ASSERT(kernelSize <= m_inputBlockSize);
+    size_t kernelSize = convolutionKernel->Length();
+    MOZ_ASSERT(kernelSize <= m_inputBlockSize);
     if (kernelSize > m_inputBlockSize)
         return;
 
-    float* kernelP = convolutionKernel->data();
+    const float* kernelP = convolutionKernel->Elements();
 
     
-    bool isCopyGood = kernelP && sourceP && destP && m_buffer.data();
-    ASSERT(isCopyGood);
+    bool isCopyGood = kernelP && sourceP && destP && m_buffer.Elements();
+    MOZ_ASSERT(isCopyGood);
     if (!isCopyGood)
         return;
 
-#if USE(WEBAUDIO_IPP)
-    float* outputBuffer = m_buffer.data();
-    float* overlayBuffer = m_overlayBuffer.data();
-    bool isCopyGood2 = overlayBuffer && m_overlayBuffer.size() >= kernelSize && m_buffer.size() == m_inputBlockSize * 2;
-    ASSERT(isCopyGood2);
-    if (!isCopyGood2)
-        return;
-
-    ippsConv_32f(static_cast<const Ipp32f*>(sourceP), framesToProcess, static_cast<Ipp32f*>(kernelP), kernelSize, static_cast<Ipp32f*>(outputBuffer));
-
-    vadd(outputBuffer, 1, overlayBuffer, 1, destP, 1, framesToProcess);
-    memcpy(overlayBuffer, outputBuffer + m_inputBlockSize, sizeof(float) * kernelSize);
-#else
-    float* inputP = m_buffer.data() + m_inputBlockSize;
+    float* inputP = m_buffer.Elements() + m_inputBlockSize;
 
     
     memcpy(inputP, sourceP, sizeof(float) * framesToProcess);
 
-#if OS(DARWIN)
-#if defined(__ppc__) || defined(__i386__)
-    conv(inputP - kernelSize + 1, 1, kernelP + kernelSize - 1, -1, destP, 1, framesToProcess, kernelSize);
-#else
-    vDSP_conv(inputP - kernelSize + 1, 1, kernelP + kernelSize - 1, -1, destP, 1, framesToProcess, kernelSize);
-#endif 
-#else
     
 #define CONVOLVE_ONE_SAMPLE             \
     sum += inputP[i - j] * kernelP[j];  \
@@ -365,21 +334,14 @@ void DirectConvolver::process(AudioFloatArray* convolutionKernel, const float* s
         }
         destP[i++] = sum;
     }
-#endif 
 
     
-    memcpy(m_buffer.data(), inputP, sizeof(float) * framesToProcess);
-#endif
+    memcpy(m_buffer.Elements(), inputP, sizeof(float) * framesToProcess);
 }
 
 void DirectConvolver::reset()
 {
-    m_buffer.zero();
-#if USE(WEBAUDIO_IPP)
-    m_overlayBuffer.zero();
-#endif 
+    PodZero(m_buffer.Elements(), m_buffer.Length());
 }
 
 } 
-
-#endif 

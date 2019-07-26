@@ -29,9 +29,11 @@
 #ifndef ReverbAccumulationBuffer_h
 #define ReverbAccumulationBuffer_h
 
-#include "core/platform/audio/AudioArray.h"
+#include "nsTArray.h"
 
 namespace WebCore {
+
+typedef nsTArray<float> AudioFloatArray;
 
 
 

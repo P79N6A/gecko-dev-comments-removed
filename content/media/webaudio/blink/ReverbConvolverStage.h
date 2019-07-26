@@ -29,17 +29,18 @@
 #ifndef ReverbConvolverStage_h
 #define ReverbConvolverStage_h
 
-#include "core/platform/audio/AudioArray.h"
-#include "core/platform/audio/FFTFrame.h"
-#include <wtf/OwnPtr.h>
+#include "nsTArray.h"
+#include "mozilla/FFTBlock.h"
 
 namespace WebCore {
+
+using mozilla::FFTBlock;
 
 class ReverbAccumulationBuffer;
 class ReverbConvolver;
 class FFTConvolver;
 class DirectConvolver;
-    
+
 
 
 class ReverbConvolverStage {
@@ -59,10 +60,10 @@ public:
     int inputReadIndex() const { return m_inputReadIndex; }
 
 private:
-    OwnPtr<FFTFrame> m_fftKernel;
-    OwnPtr<FFTConvolver> m_fftConvolver;
+    nsAutoPtr<FFTBlock> m_fftKernel;
+    nsAutoPtr<FFTConvolver> m_fftConvolver;
 
-    AudioFloatArray m_preDelayBuffer;
+    nsTArray<float> m_preDelayBuffer;
 
     ReverbAccumulationBuffer* m_accumulationBuffer;
     int m_accumulationReadIndex;
@@ -73,11 +74,11 @@ private:
     size_t m_preReadWriteIndex;
     size_t m_framesProcessed;
 
-    AudioFloatArray m_temporaryBuffer;
+    nsTArray<float> m_temporaryBuffer;
 
     bool m_directMode;
-    OwnPtr<AudioFloatArray> m_directKernel;
-    OwnPtr<DirectConvolver> m_directConvolver;
+    nsTArray<float> m_directKernel;
+    nsAutoPtr<DirectConvolver> m_directConvolver;
 };
 
 } 
