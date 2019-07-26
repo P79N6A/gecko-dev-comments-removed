@@ -16,7 +16,7 @@ Cu.import("resource://testing-common/httpd.js");
 
 var httpServer = new HttpServer();
 
-const POLICY_FROM_URI = "allow 'self'; img-src *";
+const POLICY_FROM_URI = "default-src 'self'; img-src *";
 const POLICY_PORT = 9000;
 const POLICY_URI = "http://localhost:" + POLICY_PORT + "/policy";
 const POLICY_URI_RELATIVE = "/policy";
@@ -485,6 +485,118 @@ test(function test_CSPRep_fromString_withself() {
 
 
 
+test(
+    function test_CSPRep_fromStringSpecCompliant() {
+
+      var cspr;
+      var cspr_allowval;
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+      var DEFAULTS = [SD.STYLE_SRC, SD.MEDIA_SRC, SD.IMG_SRC, SD.SCRIPT_SRC, SD.FONT_SRC,
+                      SD.OBJECT_SRC, SD.FRAME_SRC, SD.CONNECT_SRC];
+
+      
+      cspr = CSPRep.fromStringSpecCompliant("default-src *", URI("http://self.com:80"));
+      
+      
+      do_check_has_key(cspr._directives, SD.DEFAULT_SRC);
+
+      for(var x in DEFAULTS) {
+        
+        
+        do_check_true(cspr.permits("http://bar.com", DEFAULTS[x]));
+      }
+    });
+
+
+test(
+    function test_CSPRep_fromStringSpecCompliant_oneDir() {
+
+      var cspr;
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+      var DEFAULTS = [SD.STYLE_SRC, SD.MEDIA_SRC, SD.IMG_SRC,
+                      SD.FRAME_SRC, SD.CONNECT_SRC];
+
+      
+      cspr = CSPRep.fromStringSpecCompliant("default-src bar.com; script-src https://foo.com",
+                                            URI("http://self.com"));
+
+      for(var x in DEFAULTS) {
+        
+        do_check_false(cspr.permits("http://bar.com:22", DEFAULTS[x]));
+        
+        do_check_true(cspr.permits("http://bar.com:80", DEFAULTS[x]));
+        
+        do_check_false(cspr.permits("https://foo.com:400", DEFAULTS[x]));
+        
+        do_check_false(cspr.permits("https://foo.com", DEFAULTS[x]));
+      }
+      
+      do_check_false(cspr.permits("http://bar.com:22", SD.SCRIPT_SRC));
+      
+      do_check_true(cspr.permits("https://foo.com:443", SD.SCRIPT_SRC));
+    });
+
+test(
+    function test_CSPRep_fromStringSpecCompliant_twodir() {
+      var cspr;
+
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+
+      var DEFAULTS = [SD.STYLE_SRC, SD.MEDIA_SRC, SD.FRAME_SRC,
+                      SD.CONNECT_SRC];
+
+      
+      var polstr = "default-src allow.com; " +
+                   "script-src https://foo.com; " +
+                   "img-src bar.com:*";
+      cspr = CSPRep.fromStringSpecCompliant(polstr, URI("http://self.com"));
+
+      for(var x in DEFAULTS) {
+        do_check_true(cspr.permits("http://allow.com", DEFAULTS[x]));
+        
+        do_check_false(cspr.permits("https://foo.com:400", DEFAULTS[x]));
+        
+        do_check_false(cspr.permits("http://bar.com:400", DEFAULTS[x]));
+        
+      }
+      
+      do_check_false(cspr.permits("http://allow.com:22", SD.IMG_SRC));
+      
+      do_check_false(cspr.permits("https://foo.com:400", SD.IMG_SRC));
+      
+      do_check_true(cspr.permits("http://bar.com:88", SD.IMG_SRC));
+
+      
+      do_check_false(cspr.permits("http://allow.com:22", SD.SCRIPT_SRC));
+      
+      do_check_true(cspr.permits("https://foo.com:443", SD.SCRIPT_SRC));
+      
+      do_check_false(cspr.permits("http://bar.com:400", SD.SCRIPT_SRC));
+    });
+
+test(function test_CSPRep_fromStringSpecCompliant_withself() {
+      var cspr;
+      var self = "https://self.com:34";
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+
+      
+      cspr = CSPRep.fromStringSpecCompliant("default-src 'self'; script-src 'self' https://*:*",
+                                            URI(self));
+      
+      do_check_false(cspr.permits("https://foo.com:400", SD.IMG_SRC));
+      
+      do_check_true(cspr.permits(self, SD.IMG_SRC));
+      
+      do_check_false(cspr.permits("http://evil.com", SD.SCRIPT_SRC));
+      
+      do_check_true(cspr.permits(self, SD.SCRIPT_SRC));
+      
+      do_check_true(cspr.permits("https://evil.com:100", SD.SCRIPT_SRC));
+     });
+
+
+
+
 test(function test_FrameAncestor_defaults() {
       var cspr;
       var SD = CSPRep.SRC_DIRECTIVES_OLD;
@@ -508,6 +620,31 @@ test(function test_FrameAncestor_defaults() {
       do_check_false(cspr.permits("http://self.com", SD.FRAME_ANCESTORS));
       do_check_false(cspr.permits("http://subd.self.com:34", SD.FRAME_ANCESTORS));
      });
+
+test(function test_FrameAncestor_defaults_specCompliant() {
+      var cspr;
+      var self = "http://self.com:34";
+      var SD = CSPRep.SRC_DIRECTIVES_NEW;
+
+      cspr = CSPRep.fromStringSpecCompliant("default-src 'none'", URI(self));
+
+      
+      do_check_true(cspr.permits("https://foo.com:400", SD.FRAME_ANCESTORS));
+      do_check_true(cspr.permits("http://self.com:34", SD.FRAME_ANCESTORS));
+      do_check_true(cspr.permits("https://self.com:34", SD.FRAME_ANCESTORS));
+      do_check_true(cspr.permits("http://self.com", SD.FRAME_ANCESTORS));
+      do_check_true(cspr.permits("http://subd.self.com:34", SD.FRAME_ANCESTORS));
+
+      cspr = CSPRep.fromStringSpecCompliant("default-src 'none'; frame-ancestors 'self'", URI(self));
+
+      
+      do_check_true(cspr.permits("http://self.com:34", SD.FRAME_ANCESTORS));
+      do_check_false(cspr.permits("https://foo.com:400", SD.FRAME_ANCESTORS));
+      do_check_false(cspr.permits("https://self.com:34", SD.FRAME_ANCESTORS));
+      do_check_false(cspr.permits("http://self.com", SD.FRAME_ANCESTORS));
+      do_check_false(cspr.permits("http://subd.self.com:34", SD.FRAME_ANCESTORS));
+     });
+
 
 test(function test_FrameAncestor_TLD_defaultPorts() {
       var cspr;
