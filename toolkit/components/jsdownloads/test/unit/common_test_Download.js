@@ -806,7 +806,10 @@ add_task(function test_cancel_immediately_restart_immediately()
   continueResponses();
   try {
     yield promiseAttempt;
-    do_throw("The download should have been canceled.");
+    
+    
+    
+    do_print("The download should have been canceled.");
   } catch (ex if ex instanceof Downloads.Error) {
     do_check_false(ex.becauseSourceFailed);
     do_check_false(ex.becauseTargetFailed);
