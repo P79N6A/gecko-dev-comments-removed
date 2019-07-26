@@ -58,7 +58,7 @@ public:
 
 protected:
   
-  nsPIDOMWindow* mWindow; 
+  nsCOMPtr<nsPIDOMWindow> mWindow;
   nsRefPtr<nsEventListenerManager> mListenerManager; 
                                                       
 
