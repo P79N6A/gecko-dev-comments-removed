@@ -365,18 +365,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
   
 
 
-  openRequestInTab: function() {
-    let win = Services.wm.getMostRecentWindow("navigator:browser");
-    let browser = win.getBrowser();
-
-    let selected = this.selectedItem.attachment;
-
-    browser.selectedTab = browser.addTab(selected.url);
-  },
-
-  
-
-
   copyUrl: function() {
     let selected = this.selectedItem.attachment;
 
