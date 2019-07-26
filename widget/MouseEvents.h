@@ -250,7 +250,7 @@ public:
 
   WidgetDragEvent(bool aIsTrusted, uint32_t aMessage, nsIWidget* aWidget) :
     WidgetMouseEvent(aIsTrusted, aMessage, aWidget, NS_DRAG_EVENT, eReal),
-    userCancelled(false)
+    userCancelled(false), mDefaultPreventedOnContent(false)
   {
     mFlags.mCancelable =
       (aMessage != NS_DRAGDROP_EXIT_SYNTH &&
@@ -263,6 +263,8 @@ public:
 
   
   bool userCancelled;
+  
+  bool mDefaultPreventedOnContent;
 
   
   void AssignDragEventData(const WidgetDragEvent& aEvent, bool aCopyTargets)
@@ -272,6 +274,7 @@ public:
     dataTransfer = aEvent.dataTransfer;
     
     userCancelled = false;
+    mDefaultPreventedOnContent = aEvent.mDefaultPreventedOnContent;
   }
 };
 

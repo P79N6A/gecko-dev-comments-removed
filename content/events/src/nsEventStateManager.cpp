@@ -3572,8 +3572,9 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         
         if (aEvent->message == NS_DRAGDROP_OVER && !isChromeDoc) {
           
+          
           dragSession->SetOnlyChromeDrop(
-            !aEvent->mFlags.mDefaultPreventedByContent);
+            !dragEvent->mDefaultPreventedOnContent);
         }
       } else if (aEvent->message == NS_DRAGDROP_OVER && !isChromeDoc) {
         
