@@ -18,6 +18,7 @@ import android.database.Cursor;
 import android.graphics.Rect;
 import android.text.TextUtils;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.ContextMenu.ContextMenuInfo;
 import android.view.View;
 import android.widget.AbsListView;
@@ -179,13 +180,10 @@ public class TopSitesGridView extends GridView {
             return;
         }
 
-        final int childWidth = getColumnWidth();
+        final int columnWidth = getColumnWidth();
 
         
-        ThumbnailHelper.getInstance().setThumbnailWidth(childWidth);
-
-        
-        final View child = new TopSitesGridItemView(getContext());
+        final TopSitesGridItemView child = new TopSitesGridItemView(getContext());
 
         
         AbsListView.LayoutParams params = (AbsListView.LayoutParams) child.getLayoutParams();
@@ -197,10 +195,15 @@ public class TopSitesGridView extends GridView {
 
         
         
-        int childWidthSpec = MeasureSpec.makeMeasureSpec(childWidth, MeasureSpec.EXACTLY);
+        int childWidthSpec = MeasureSpec.makeMeasureSpec(columnWidth, MeasureSpec.EXACTLY);
         int childHeightSpec = MeasureSpec.makeMeasureSpec(0,  MeasureSpec.UNSPECIFIED);
         child.measure(childWidthSpec, childHeightSpec);
         final int childHeight = child.getMeasuredHeight();
+
+        
+        
+        final int thumbnailWidth = child.getMeasuredWidth() - child.getPaddingLeft() - child.getPaddingRight();
+        ThumbnailHelper.getInstance().setThumbnailWidth(thumbnailWidth);
 
         
         final int rows = (int) Math.ceil((double) mMaxSites / mNumColumns);
