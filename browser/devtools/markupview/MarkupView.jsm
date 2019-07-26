@@ -12,6 +12,7 @@ const Ci = Components.interfaces;
 const PAGE_SIZE = 10;
 
 const PREVIEW_AREA = 700;
+const DEFAULT_MAX_CHILDREN = 100;
 
 this.EXPORTED_SYMBOLS = ["MarkupView"];
 
@@ -20,6 +21,7 @@ Cu.import("resource:///modules/devtools/CssRuleView.jsm");
 Cu.import("resource:///modules/devtools/Templater.jsm");
 Cu.import("resource:///modules/devtools/Undo.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 
 
@@ -46,6 +48,12 @@ this.MarkupView = function MarkupView(aInspector, aFrame, aControllerWindow)
   this.doc = this._frame.contentDocument;
   this._elt = this.doc.querySelector("#root");
 
+  try {
+    this.maxChildren = Services.prefs.getIntPref("devtools.markup.pagesize");
+  } catch(ex) {
+    this.maxChildren = DEFAULT_MAX_CHILDREN;
+  }
+
   this.undo = new UndoStack();
   this.undo.installController(aControllerWindow);
 
@@ -69,7 +77,7 @@ this.MarkupView = function MarkupView(aInspector, aFrame, aControllerWindow)
 MarkupView.prototype = {
   _selectedContainer: null,
 
-  template: function MT_template(aName, aDest, aOptions)
+  template: function MT_template(aName, aDest, aOptions={stack: "markup-view.xhtml"})
   {
     let node = this.doc.getElementById("template-" + aName).cloneNode(true);
     node.removeAttribute("id");
@@ -288,7 +296,6 @@ MarkupView.prototype = {
     let walker = documentWalker(aNode);
     let parent = walker.parentNode();
     if (parent) {
-      
       var container = new MarkupContainer(this, aNode);
     } else {
       var container = new RootContainer(this, aNode);
@@ -298,12 +305,15 @@ MarkupView.prototype = {
         
         this._mutationObserver([{target: aEvent.target, type: "childList"}]);
       }.bind(this), true);
-
     }
 
     this._containers.set(aNode, container);
+    
+    
+    aNode.__preserveHack = true;
     container.expanded = aExpand;
 
+    container.childrenDirty = true;
     this._updateChildren(container);
 
     if (parent) {
@@ -327,6 +337,7 @@ MarkupView.prototype = {
       if (mutation.type === "attributes" || mutation.type === "characterData") {
         container.update();
       } else if (mutation.type === "childList") {
+        container.childrenDirty = true;
         this._updateChildren(container);
       }
     }
@@ -339,10 +350,12 @@ MarkupView.prototype = {
 
   showNode: function MT_showNode(aNode, centered)
   {
-    this.importNode(aNode);
+    let container = this.importNode(aNode);
+    this._updateChildren(container);
     let walker = documentWalker(aNode);
     let parent;
     while (parent = walker.parentNode()) {
+      this._updateChildren(this.getContainer(parent));
       this.expandNode(parent);
     }
     LayoutHelpers.scrollIntoViewIfNeeded(this._containers.get(aNode).editor.elt, centered);
@@ -421,7 +434,31 @@ MarkupView.prototype = {
       this._selectedContainer.selected = true;
     }
 
+    this._ensureSelectionVisible();
+    this._selectedContainer.focus();
+
     return true;
+  },
+
+  
+
+
+
+  _ensureSelectionVisible: function MT_ensureSelectionVisible()
+  {
+    let node = this._selectedContainer.node;
+    let walker = documentWalker(node);
+    while (node) {
+      let container = this._containers.get(node);
+      let parent = walker.parentNode();
+      if (!container.elt.parentNode) {
+        let parentContainer = this._containers.get(parent);
+        parentContainer.childrenDirty = true;
+        this._updateChildren(parentContainer, node);
+      }
+
+      node = parent;
+    }
   },
 
   
@@ -449,28 +486,138 @@ MarkupView.prototype = {
 
 
 
-  _updateChildren: function MT__updateChildren(aContainer)
+
+
+
+  _updateChildren: function MT__updateChildren(aContainer, aCentered)
   {
+    if (!aContainer.childrenDirty) {
+      return false;
+    }
+
     
     let treeWalker = documentWalker(aContainer.node);
     let child = treeWalker.firstChild();
     aContainer.hasChildren = !!child;
-    if (aContainer.expanded) {
-      let lastContainer = null;
-      while (child) {
-        let container = this.importNode(child, false);
 
-        
-        let before = lastContainer ? lastContainer.nextSibling : aContainer.children.firstChild;
-        aContainer.children.insertBefore(container.elt, before);
-        lastContainer = container.elt;
-        child = treeWalker.nextSibling();
+    if (!aContainer.expanded) {
+      return;
+    }
+
+    aContainer.childrenDirty = false;
+
+    let children = this._getVisibleChildren(aContainer, aCentered);
+    let fragment = this.doc.createDocumentFragment();
+
+    for (child of children.children) {
+      let container = this.importNode(child, false);
+      fragment.appendChild(container.elt);
+    }
+
+    while (aContainer.children.firstChild) {
+      aContainer.children.removeChild(aContainer.children.firstChild);
+    }
+
+    if (!(children.hasFirst && children.hasLast)) {
+      let data = {
+        showing: this.strings.GetStringFromName("markupView.more.showing"),
+        showAll: this.strings.formatStringFromName(
+                  "markupView.more.showAll",
+                  [aContainer.node.children.length.toString()], 1),
+        allButtonClick: function() {
+          aContainer.maxChildren = -1;
+          aContainer.childrenDirty = true;
+          this._updateChildren(aContainer);
+        }.bind(this)
+      };
+
+      if (!children.hasFirst) {
+        let span = this.template("more-nodes", data);
+        fragment.insertBefore(span, fragment.firstChild);
       }
-
-      while (aContainer.children.lastChild != lastContainer) {
-        aContainer.children.removeChild(aContainer.children.lastChild);
+      if (!children.hasLast) {
+        let span = this.template("more-nodes", data);
+        fragment.appendChild(span);
       }
     }
+
+    aContainer.children.appendChild(fragment);
+
+    return true;
+  },
+
+  
+
+
+  _getVisibleChildren: function MV__getVisibleChildren(aContainer, aCentered)
+  {
+    let maxChildren = aContainer.maxChildren || this.maxChildren;
+    if (maxChildren == -1) {
+      maxChildren = Number.MAX_VALUE;
+    }
+    let firstChild = documentWalker(aContainer.node).firstChild();
+    let lastChild = documentWalker(aContainer.node).lastChild();
+
+    if (!firstChild) {
+      
+      return { hasFirst: true, hasLast: true, children: [] };
+    }
+
+    
+    let start = aCentered || firstChild;
+
+    
+    let nodes = [];
+    let backwardWalker = documentWalker(start);
+    if (backwardWalker.previousSibling()) {
+      let backwardCount = Math.floor(maxChildren / 2);
+      let backwardNodes = this._readBackward(backwardWalker, backwardCount);
+      nodes = backwardNodes;
+    }
+
+    
+    let forwardWalker = documentWalker(start);
+    let forwardCount = maxChildren - nodes.length;
+    nodes = nodes.concat(this._readForward(forwardWalker, forwardCount));
+
+    
+    
+    let remaining = maxChildren - nodes.length;
+    if (remaining > 0 && nodes[0] != firstChild) {
+      let firstNodes = this._readBackward(backwardWalker, remaining);
+
+      
+      nodes = firstNodes.concat(nodes);
+    }
+
+    return {
+      hasFirst: nodes[0] == firstChild,
+      hasLast: nodes[nodes.length - 1] == lastChild,
+      children: nodes
+    };
+  },
+
+  _readForward: function MV__readForward(aWalker, aCount)
+  {
+    let ret = [];
+    let node = aWalker.currentNode;
+    do {
+      ret.push(node);
+      node = aWalker.nextSibling();
+    } while (node && --aCount);
+    return ret;
+  },
+
+  _readBackward: function MV__readBackward(aWalker, aCount)
+  {
+    let ret = [];
+    let node = aWalker.currentNode;
+    do {
+      ret.push(node);
+      node = aWalker.previousSibling();
+    } while(node && --aCount);
+    ret.reverse();
+    return ret;
   },
 
   
@@ -618,9 +765,7 @@ function MarkupContainer(aMarkupView, aNode)
   this.expander = null;
   this.codeBox = null;
   this.children = null;
-  let options = { stack: "markup-view.xhtml" };
-  this.markup.template("container", this, options);
-
+  this.markup.template("container", this);
   this.elt.container = this;
 
   this.expander.addEventListener("click", function() {
@@ -734,7 +879,7 @@ MarkupContainer.prototype = {
     if (focusable) {
       focusable.focus();
     }
-  }
+  },
 }
 
 
@@ -841,13 +986,12 @@ function ElementEditor(aContainer, aNode)
   this.attrList = null;
   this.newAttr = null;
   this.closeElt = null;
-  let options = { stack: "markup-view.xhtml" };
 
   
-  this.template("element", this, options);
+  this.template("element", this);
 
   
-  this.template("elementClose", this, options);
+  this.template("elementClose", this);
 
   
   if (aNode != aNode.ownerDocument.documentElement) {
@@ -927,8 +1071,7 @@ ElementEditor.prototype = {
       let data = {
         attrName: aAttr.name,
       };
-      let options = { stack: "markup-view.xhtml" };
-      this.template("attribute", data, options);
+      this.template("attribute", data);
       var {attr, inner, name, val} = data;
 
       
@@ -1260,3 +1403,8 @@ function whitespaceTextFilter(aNode)
       return Ci.nsIDOMNodeFilter.FILTER_ACCEPT;
     }
 }
+
+XPCOMUtils.defineLazyGetter(MarkupView.prototype, "strings", function () {
+  return Services.strings.createBundle(
+          "chrome://browser/locale/devtools/inspector.properties");
+});
