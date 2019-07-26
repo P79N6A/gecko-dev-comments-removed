@@ -1152,7 +1152,12 @@ nsObjectFrame::DidSetWidgetGeometry()
   if (!mWidget && mInstanceOwner) {
     
     
-    mInstanceOwner->UpdateWindowVisibility(!mNextConfigurationBounds.IsEmpty());
+    
+    
+    
+    mInstanceOwner->UpdateWindowVisibility(
+      nsLayoutUtils::IsPopup(nsLayoutUtils::GetDisplayRootFrame(this)) ||
+      !mNextConfigurationBounds.IsEmpty());
   }
 #endif
 }
