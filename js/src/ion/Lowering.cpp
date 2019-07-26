@@ -1046,7 +1046,11 @@ LIRGenerator::visitRegExp(MRegExp *ins)
 bool
 LIRGenerator::visitLambda(MLambda *ins)
 {
-    if (ins->fun()->hasSingletonType()) {
+    if (ins->fun()->hasSingletonType() || types::UseNewTypeForClone(ins->fun())) {
+        
+        
+        
+        
         
         LLambdaForSingleton *lir = new LLambdaForSingleton(useRegister(ins->scopeChain()));
         return defineVMReturn(lir, ins) && assignSafepoint(lir, ins);
