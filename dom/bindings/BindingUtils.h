@@ -2062,7 +2062,7 @@ InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
 
 
 bool
-ReportLenientThisUnwrappingFailure(JSContext* cx, JS::Handle<JSObject*> obj);
+ReportLenientThisUnwrappingFailure(JSContext* cx, JSObject* obj);
 
 inline JSObject*
 GetUnforgeableHolder(JSObject* aGlobal, prototypes::ID aId)
