@@ -333,6 +333,7 @@ BluetoothOppManager::SendFile(BlobParent* aActor)
   }
 
   SendConnectRequest();
+  mTransferMode = false;
 
   return true;
 }
@@ -379,6 +380,7 @@ BluetoothOppManager::AfterOppConnected()
   sSentFileLength = 0;
   mReceivedDataBufferOffset = 0;
   mAbortFlag = false;
+  mSuccessFlag = false;
   mWaitingForConfirmationFlag = true;
 }
 
@@ -390,6 +392,10 @@ BluetoothOppManager::AfterOppDisconnected()
   mConnected = false;
   mLastCommand = 0;
   mBlob = nullptr;
+
+  
+  
+  
 
   if (mInputStream) {
     mInputStream->Close();
@@ -608,8 +614,6 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
     SendDisconnectRequest();
   } else {
     
-    mTransferMode = true;
-    mSuccessFlag = false;
     ObexHeaderSet pktHeaders(opCode);
 
     if (opCode == ObexRequestCode::Connect) {
@@ -621,6 +625,7 @@ BluetoothOppManager::ReceiveSocketData(UnixSocketRawData* aMessage)
                    &pktHeaders);
       ReplyToConnect();
       AfterOppConnected();
+      mTransferMode = true;
     } else if (opCode == ObexRequestCode::Disconnect) {
       
       
@@ -739,8 +744,6 @@ BluetoothOppManager::SendConnectRequest()
   index += AppendHeaderConnectionId(&req[index], mConnectionId);
   SetObexPacketInfo(req, ObexRequestCode::Connect, index);
   mLastCommand = ObexRequestCode::Connect;
-  mTransferMode = false;
-  mSuccessFlag = false;
 
   UnixSocketRawData* s = new UnixSocketRawData(index);
   memcpy(s->mData, req, s->mSize);
@@ -1109,4 +1112,5 @@ BluetoothOppManager::OnDisconnect()
   
   AfterOppDisconnected();
   mConnectedDeviceAddress.AssignLiteral("00:00:00:00:00:00");
+  mSuccessFlag = false;
 }
