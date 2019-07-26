@@ -50,10 +50,10 @@ private:
     int NumRASEntries();
 
     
-    nsresult GetDefaultEntryName(PRUnichar* entryName, int bufferSize);
+    nsresult GetDefaultEntryName(wchar_t* entryName, int bufferSize);
 
     
-    nsresult GetFirstEntryName(PRUnichar* entryName, int bufferSize);
+    nsresult GetFirstEntryName(wchar_t* entryName, int bufferSize);
 
     
     bool IsRASConnected();
@@ -62,7 +62,7 @@ private:
     int QueryAutodialBehavior();
 
     
-    bool AddAddressToAutodialDirectory(const PRUnichar* hostName);
+    bool AddAddressToAutodialDirectory(char16ptr_t hostName);
 
     
     int GetCurrentLocation();
@@ -88,7 +88,7 @@ private:
     int mNumRASConnectionEntries;
 
     
-    PRUnichar mDefaultEntryName[RAS_MaxEntryName + 1];  
+    wchar_t mDefaultEntryName[RAS_MaxEntryName + 1];
 
     
     static PRIntervalTime mDontRetryUntil;
