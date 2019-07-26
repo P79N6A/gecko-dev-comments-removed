@@ -825,7 +825,6 @@ pref("browser.snippets.statsUrl", "https://snippets-stats.mozilla.org/mobile");
 pref("browser.snippets.enabled", true);
 pref("browser.snippets.syncPromo.enabled", true);
 
-#ifdef MOZ_ANDROID_SYNTHAPKS
 
 pref("browser.webapps.apkFactoryUrl", "https://controller.apk.firefox.com/application.apk");
 
@@ -849,8 +848,6 @@ pref("browser.webapps.checkForUpdates", 1);
 
 
 pref("browser.webapps.updateCheckUrl", "https://controller.apk.firefox.com/app_updates");
-
-#endif
 
 
 

@@ -1090,7 +1090,7 @@ this.DOMApplicationRegistry = {
 
     switch (aMessage.name) {
       case "Webapps:Install": {
-#ifdef MOZ_ANDROID_SYNTHAPKS
+#ifdef MOZ_WIDGET_ANDROID
         Services.obs.notifyObservers(mm, "webapps-runtime-install", JSON.stringify(msg));
 #else
         this.doInstall(msg, mm);
@@ -1119,7 +1119,7 @@ this.DOMApplicationRegistry = {
         this.doGetAll(msg, mm);
         break;
       case "Webapps:InstallPackage": {
-#ifdef MOZ_ANDROID_SYNTHAPKS
+#ifdef MOZ_WIDGET_ANDROID
         Services.obs.notifyObservers(mm, "webapps-runtime-install-package", JSON.stringify(msg));
 #else
         this.doInstallPackage(msg, mm);
@@ -2510,15 +2510,15 @@ this.DOMApplicationRegistry = {
     } else if (manifest.package_path) {
       
       
-#ifdef MOZ_ANDROID_SYNTHAPKS
       
       
+#ifdef MOZ_WIDGET_ANDROID
       dontNeedNetwork = !!aData.app.manifest;
 #else
       if (aData.app.localInstallPath) {
         dontNeedNetwork = true;
         jsonManifest.package_path = "file://" + aData.app.localInstallPath;
-      }
+      }   
 #endif
 
       
