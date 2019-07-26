@@ -12,10 +12,12 @@ function test() {
     workerURL: "https://example.com/browser/browser/base/content/test/social_worker.js",
     iconURL: "https://example.com/browser/browser/base/content/test/moz.png"
   };
+  let oldwidth = window.outerWidth; 
   runSocialTestWithProvider(manifest, function (finishcb) {
     runSocialTests(tests, undefined, undefined, function () {
       let chats = document.getElementById("pinnedchats");
       ok(chats.children.length == 0, "no chatty children left behind");
+      window.resizeTo(oldwidth, window.outerHeight);
       finishcb();
     });
   });
@@ -109,8 +111,8 @@ var tests = {
             chats.selectedChat.close();
           }
           ok(!chats.selectedChat, "chats are all closed");
-          port.close();
           ensureSocialUrlNotRemembered(chatUrl);
+          port.close();
           next();
           break;
       }
@@ -138,6 +140,7 @@ var tests = {
           evt.initCustomEvent("socialTest-CloseSelf", true, true, {});
           doc.documentElement.dispatchEvent(evt);
           ok(!chat.parentNode, "chat is now closed");
+          port.close();
           next();
           break;
       }
@@ -162,6 +165,7 @@ var tests = {
             let chats = document.getElementById("pinnedchats");
             chats.selectedChat.close();
             is(chats.selectedChat, null, "should only have been one chat open");
+            port.close();
             next();
           } else {
             
@@ -173,6 +177,122 @@ var tests = {
     }
     port.postMessage({topic: "test-init", data: { id: 1 }});
   },
+
+  
+  testRemoveAll: function(next, mode) {
+    let port = Social.provider.getWorkerPort();
+    port.postMessage({topic: "test-init"});
+    get3ChatsForCollapsing(mode || "normal", function() {
+      let chatbar = window.SocialChatBar.chatbar;
+      chatbar.removeAll();
+      
+      is(chatbar.childNodes.length, 0, "should be no chats left");
+      checkPopup();
+      is(chatbar.selectedChat, null, "nothing should be selected");
+      is(chatbar.chatboxForURL.size, 0, "chatboxForURL map should be empty");
+      port.close();
+      next();
+    });
+  },
+
+  testRemoveAllMinimized: function(next) {
+    this.testRemoveAll(next, "minimized");
+  },
+
+  
+  testBrowserResize: function(next, mode) {
+    let chats = document.getElementById("pinnedchats");
+    let port = Social.provider.getWorkerPort();
+    port.postMessage({topic: "test-init"});
+    get3ChatsForCollapsing(mode || "normal", function(first, second, third) {
+      let chatWidth = chats.getTotalChildWidth(first);
+      ok(chatWidth, "have a chatwidth");
+      let popupWidth = getPopupWidth();
+      ok(popupWidth, "have a popupwidth");
+      info("starting resize tests - each chat's width is " + chatWidth +
+           " and the popup width is " + popupWidth);
+      resizeAndCheckWidths(first, second, third, [
+        [chatWidth-1, false, false, true, "to < 1 chat width - only last should be visible."],
+        [chatWidth+1, false, false, true, "one pixel more then one fully exposed (not counting popup) - still only 1."],
+        [chatWidth+popupWidth+1, false, false, true, "one pixel more than one fully exposed (including popup) - still only 1."],
+        [chatWidth*2-1, false, false, true, "second not showing by 1 pixel (not counting popup) - only 1 exposed."],
+        [chatWidth*2+popupWidth-1, false, false, true, "second not showing by 1 pixel (including popup) - only 1 exposed."],
+        [chatWidth*2+popupWidth+1, false, true, true, "big enough to fit 2 - nub remains visible as first is still hidden"],
+        [chatWidth*3+popupWidth-1, false, true, true, "one smaller than the size necessary to display all three - first still hidden"],
+        [chatWidth*3+popupWidth+1, true, true, true, "big enough to fit all - all exposed (which removes the nub)"],
+        [chatWidth*3, true, true, true, "now the nub is hidden we can resize back down to chatWidth*3 before overflow."],
+        [chatWidth*3-1, false, true, true, "one pixel less and the first is again collapsed (and the nub re-appears)"],
+        [chatWidth*2+popupWidth+1, false, true, true, "back down to just big enough to fit 2"],
+        [chatWidth*2+popupWidth-1, false, false, true, "back down to just not enough to fit 2"],
+        [chatWidth*3+popupWidth+1, true, true, true, "now a large jump to make all 3 visible (ie, affects 2)"],
+        [chatWidth*1.5, false, false, true, "and a large jump back down to 1 visible (ie, affects 2)"],
+      ], function() {
+        closeAllChats();
+        port.close();
+        next();
+      });
+    });
+  },
+
+  testBrowserResizeMinimized: function(next) {
+    this.testBrowserResize(next, "minimized");
+  },
+
+  testShowWhenCollapsed: function(next) {
+    let port = Social.provider.getWorkerPort();
+    port.postMessage({topic: "test-init"});
+    get3ChatsForCollapsing("normal", function(first, second, third) {
+      let chatbar = window.SocialChatBar.chatbar;
+      chatbar.showChat(first);
+      ok(!first.collapsed, "first should no longer be collapsed");
+      ok(second.collapsed ||  third.collapsed, false, "one of the others should be collapsed");
+      closeAllChats();
+      port.close();
+      next();
+    });
+  },
+
+  testActivity: function(next) {
+    let port = Social.provider.getWorkerPort();
+    port.postMessage({topic: "test-init"});
+    get3ChatsForCollapsing("normal", function(first, second, third) {
+      let chatbar = window.SocialChatBar.chatbar;
+      is(chatbar.selectedChat, third, "third chat should be selected");
+      ok(!chatbar.selectedChat.hasAttribute("activity"), "third chat should have no activity");
+      
+      ok(!second.hasAttribute("activity"), "second chat should have no activity");
+      let iframe2 = second.iframe;
+      let evt = iframe2.contentDocument.createEvent("CustomEvent");
+      evt.initCustomEvent("socialChatActivity", true, true, {});
+      iframe2.contentDocument.documentElement.dispatchEvent(evt);
+      
+      ok(second.hasAttribute("activity"), "second chat should now have activity");
+      
+      chatbar.selectedChat = second;
+      ok(!second.hasAttribute("activity"), "second chat should no longer have activity");
+      
+      ok(!first.hasAttribute("activity"), "first chat should have no activity");
+      let iframe1 = first.iframe;
+      let evt = iframe1.contentDocument.createEvent("CustomEvent");
+      evt.initCustomEvent("socialChatActivity", true, true, {});
+      iframe1.contentDocument.documentElement.dispatchEvent(evt);
+      ok(first.hasAttribute("activity"), "first chat should now have activity");
+      ok(chatbar.nub.hasAttribute("activity"), "nub should also have activity");
+      
+      chatbar.openChat(Social.provider, first.getAttribute("src"));
+      ok(!first.hasAttribute("activity"), "first chat should no longer have activity");
+      
+      todo(!chatbar.nub.hasAttribute("activity"), "Bug 806266 - nub should no longer have activity");
+      
+      
+      closeAllChats();
+      port.close();
+      next();
+    });
+  },
+
+  
+  
   testCloseOnLogout: function(next) {
     const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
     let port = Social.provider.getWorkerPort();
@@ -184,6 +304,7 @@ var tests = {
         case "got-chatbox-message":
           ok(true, "got a chat window opened");
           port.postMessage({topic: "test-logout"});
+          port.close();
           waitForCondition(function() document.getElementById("pinnedchats").firstChild == null,
                            next,
                            "chat windows didn't close");
@@ -191,5 +312,163 @@ var tests = {
       }
     }
     port.postMessage({topic: "test-worker-chat", data: chatUrl});
+  },
+}
+
+
+function get3ChatsForCollapsing(mode, cb) {
+  
+  
+  
+  
+  
+  
+  
+  let chatbar = window.SocialChatBar.chatbar;
+  let chatWidth = undefined;
+  let num = 0;
+  is(chatbar.childNodes.length, 0, "chatbar starting empty");
+  is(chatbar.menupopup.childNodes.length, 0, "popup starting empty");
+
+  makeChat(mode, "first chat", function() {
+    
+    checkPopup();
+    ok(chatbar.menupopup.parentNode.collapsed, "menu selection isn't visible");
+    
+    
+    chatWidth = chatbar.calcTotalWidthOf(chatbar.selectedChat);
+    let desired = chatWidth * 2.5;
+    resizeWindowToChatAreaWidth(desired, function(sizedOk) {
+      ok(sizedOk, "can't do any tests without this width");
+      checkPopup();
+      makeChat(mode, "second chat", function() {
+        is(chatbar.childNodes.length, 2, "now have 2 chats");
+        checkPopup();
+        
+        makeChat(mode, "third chat", function() {
+          is(chatbar.childNodes.length, 3, "now have 3 chats");
+          checkPopup();
+          
+          
+          
+          let second = chatbar.childNodes[2];
+          let first = chatbar.childNodes[1];
+          let third = chatbar.childNodes[0];
+          ok(first.collapsed && !second.collapsed && !third.collapsed, "collapsed state as promised");
+          is(chatbar.selectedChat, third, "third is selected as promised")
+          info("have 3 chats for collapse testing - starting actual test...");
+          cb(first, second, third);
+        }, mode);
+      }, mode);
+    });
+  }, mode);
+}
+
+function makeChat(mode, uniqueid, cb) {
+  const chatUrl = "https://example.com/browser/browser/base/content/test/social_chat.html";
+  let provider = Social.provider;
+  window.SocialChatBar.openChat(provider, chatUrl + "?id=" + uniqueid, function(chat) {
+    
+    
+    
+    chat.document.title = uniqueid;
+    executeSoon(cb);
+  }, mode);
+}
+
+function checkPopup() {
+  
+  let chatbar = window.SocialChatBar.chatbar;
+  let numCollapsed = 0;
+  for (let chat of chatbar.childNodes) {
+    if (chat.collapsed) {
+      numCollapsed += 1;
+      
+      is(chatbar.menuitemMap.get(chat).nodeName, "menuitem", "collapsed chat has a menu item");
+    } else {
+      ok(!chatbar.menuitemMap.has(chat), "open chat has no menu item");
+    }
+  }
+  is(chatbar.menupopup.parentNode.collapsed, numCollapsed == 0, "popup matches child collapsed state");
+  is(chatbar.menupopup.childNodes.length, numCollapsed, "popup has correct count of children");
+  
+}
+
+
+
+
+function resizeWindowToChatAreaWidth(desired, cb) {
+  let current = window.SocialChatBar.chatbar.getBoundingClientRect().width;
+  let delta = desired - current;
+  info("resizing window so chat area is " + desired + " wide, currently it is "
+       + current + ".  Screen avail is " + window.screen.availWidth
+       + ", current outer width is " + window.outerWidth);
+
+  
+  
+  let widthDeltaCloseEnough = function(d) {
+    return Math.abs(d) <= 0.5;
+  }
+
+  
+  
+  if (widthDeltaCloseEnough(delta)) {
+    cb(true);
+    return;
+  }
+  
+  
+  
+  if (window.screen.availWidth - window.outerWidth < delta) {
+    info("skipping this as screen available width is less than necessary");
+    cb(false);
+    return;
+  }
+  
+  window.addEventListener("resize", function resize_handler() {
+    window.removeEventListener("resize", resize_handler);
+    
+    let newSize = window.SocialChatBar.chatbar.getBoundingClientRect().width;
+    let sizedOk = widthDeltaCloseEnough(newSize - desired);
+    if (!sizedOk) {
+      
+      info("skipping this as we can't resize chat area to " + desired + " - got " + newSize);
+    }
+    cb(sizedOk);
+  });
+  window.resizeBy(delta, 0);
+}
+
+function resizeAndCheckWidths(first, second, third, checks, cb) {
+  if (checks.length == 0) {
+    cb(); 
+    return;
+  }
+  let [width, firstVisible, secondVisible, thirdVisible, why] = checks.shift();
+  info("Check: " + why);
+  info("resizing window to " + width + ", expect visibility of " + firstVisible + "/" + secondVisible + "/" + thirdVisible);  
+  resizeWindowToChatAreaWidth(width, function(sizedOk) {
+    checkPopup();
+    if (sizedOk) {
+      is(!first.collapsed, firstVisible, "first should be " + (firstVisible ? "visible" : "hidden"));
+      is(!second.collapsed, secondVisible, "second should be " + (secondVisible ? "visible" : "hidden"));
+      is(!third.collapsed, thirdVisible, "third should be " + (thirdVisible ? "visible" : "hidden"));
+    }
+    resizeAndCheckWidths(first, second, third, checks, cb);
+  });
+}
+
+function getPopupWidth() {
+  let popup = window.SocialChatBar.chatbar.menupopup;
+  ok(!popup.parentNode.collapsed, "asking for popup width when it is visible");
+  let cs = document.defaultView.getComputedStyle(popup.parentNode);
+  let margins = parseInt(cs.marginLeft) + parseInt(cs.marginRight);
+  return popup.parentNode.getBoundingClientRect().width + margins;
+}
+
+function closeAllChats() {
+  let chatbar = window.SocialChatBar.chatbar;
+  while (chatbar.selectedChat) {
+    chatbar.selectedChat.close();
   }
 }
