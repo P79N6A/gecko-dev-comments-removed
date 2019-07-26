@@ -70,9 +70,13 @@ function run_test()
     httpserver.stop(finishIfDone);
   }
 
-  sb.checkResults = checkResults;
   
+  
+  
+  
+  cu.evalInSandbox('var checkResults = ' + checkResults.toSource(), sb);
   sb.do_check_eq = do_check_eq;
+  sb.httpbody = httpbody;
 
   function changeListener(event) {
     if (checkResults(async))
