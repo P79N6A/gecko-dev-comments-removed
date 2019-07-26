@@ -2064,9 +2064,6 @@ IdToValue(jsid id)
     return JS::UndefinedValue();
 }
 
-extern JS_FRIEND_API(bool)
-IsTypedArrayThisCheck(JS::IsAcceptableThis test);
-
 
 
 
