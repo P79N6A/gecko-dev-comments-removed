@@ -380,6 +380,13 @@ static dom::ConstantSpec gLibcProperties[] =
   { "OSFILE_OFFSETOF_DIRENT_D_TYPE", INT_TO_JSVAL(offsetof (struct dirent, d_type)) },
 #endif 
 
+  
+  
+#if defined(dirfd)
+  { "OSFILE_SIZEOF_DIR", INT_TO_JSVAL(sizeof (DIR)) },
+
+  { "OSFILE_OFFSETOF_DIR_DD_FD", INT_TO_JSVAL(offsetof (DIR, __dd_fd)) },
+#endif
 
   
 
