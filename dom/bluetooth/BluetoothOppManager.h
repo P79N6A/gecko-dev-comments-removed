@@ -74,6 +74,7 @@ public:
 
   void ExtractPacketHeaders(const ObexHeaderSet& aHeader);
   bool ExtractBlobHeaders();
+  void CheckPutFinal(uint32_t aNumRead);
 
   
   
@@ -109,6 +110,7 @@ private:
   void ReplyToConnect();
   void ReplyToDisconnectOrAbort();
   void ReplyToPut(bool aFinal, bool aContinue);
+  void ReplyError(uint8_t aError);
   void AfterOppConnected();
   void AfterFirstPut();
   void AfterOppDisconnected();
@@ -190,6 +192,12 @@ private:
 
   bool mWaitingForConfirmationFlag;
 
+  nsString mFileName;
+  nsString mContentType;
+  uint32_t mFileLength;
+  uint32_t mSentFileLength;
+  bool mWaitingToSendPutFinal;
+
   nsAutoArrayPtr<uint8_t> mBodySegment;
   nsAutoArrayPtr<uint8_t> mReceivedDataBuffer;
 
@@ -198,7 +206,6 @@ private:
   nsCOMArray<nsIDOMBlob> mBlobs;
 
   
-
 
 
 
