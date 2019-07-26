@@ -18,7 +18,6 @@
 
 class nsINode;
 class nsIDOMNode;
-class nsIDOMNodeFilter;
 
 namespace mozilla {
 namespace dom {
@@ -40,6 +39,37 @@ public:
 
     NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(NodeIterator, nsIDOMNodeIterator)
 
+    
+    nsINode* Root() const
+    {
+        return mRoot;
+    }
+    nsINode* GetReferenceNode() const
+    {
+        return mPointer.mNode;
+    }
+    bool PointerBeforeReferenceNode() const
+    {
+        return mPointer.mBeforeNode;
+    }
+    uint32_t WhatToShow() const
+    {
+        return mWhatToShow;
+    }
+    already_AddRefed<NodeFilter> GetFilter()
+    {
+        return mFilter.ToWebIDLCallback();
+    }
+    already_AddRefed<nsINode> NextNode(ErrorResult& aResult)
+    {
+        return NextOrPrevNode(&NodePointer::MoveToNext, aResult);
+    }
+    already_AddRefed<nsINode> PreviousNode(ErrorResult& aResult)
+    {
+        return NextOrPrevNode(&NodePointer::MoveToPrevious, aResult);
+    }
+    
+
 private:
     struct NodePointer {
         NodePointer() : mNode(nullptr) {}
@@ -60,9 +90,23 @@ private:
         bool mBeforeNode;
     };
 
-    inline nsresult
-    NextOrPrevNode(NodePointer::MoveToMethodType aMove,
-                   nsIDOMNode **_retval);
+    
+    typedef already_AddRefed<nsINode> (NodeIterator::*NodeGetter)(ErrorResult&);
+    inline nsresult ImplNodeGetter(NodeGetter aGetter, nsIDOMNode** aRetval)
+    {
+        mozilla::ErrorResult rv;
+        nsCOMPtr<nsINode> node = (this->*aGetter)(rv);
+        if (rv.Failed()) {
+            return rv.ErrorCode();
+        }
+        *aRetval = node ? node.forget().get()->AsDOMNode() : nullptr;
+        return NS_OK;
+    }
+
+    
+    
+    already_AddRefed<nsINode>
+    NextOrPrevNode(NodePointer::MoveToMethodType aMove, ErrorResult& aResult);
 
     bool mDetached;
     NodePointer mPointer;
