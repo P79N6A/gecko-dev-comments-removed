@@ -886,9 +886,17 @@ static void qcms_transform_data_rgb_out_linear(qcms_transform *transform, unsign
 }
 #endif
 
+
+
+
+
+
+
+
+
 static struct precache_output *precache_reference(struct precache_output *p)
 {
-	p->ref_count++;
+	qcms_atomic_increment(p->ref_count);
 	return p;
 }
 
@@ -902,7 +910,7 @@ static struct precache_output *precache_create()
 
 void precache_release(struct precache_output *p)
 {
-	if (--p->ref_count == 0) {
+	if (qcms_atomic_decrement(p->ref_count) == 0) {
 		free(p);
 	}
 }
