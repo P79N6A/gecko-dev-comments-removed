@@ -249,8 +249,13 @@ TextureHost::PrintInfo(nsACString& aTo, const char* aPrefix)
 {
   aTo += aPrefix;
   aTo += nsPrintfCString("%s (0x%p)", Name(), this);
-  AppendToString(aTo, GetSize(), " [size=", "]");
-  AppendToString(aTo, GetFormat(), " [format=", "]");
+  
+  
+  if (Lock()) {
+    AppendToString(aTo, GetSize(), " [size=", "]");
+    AppendToString(aTo, GetFormat(), " [format=", "]");
+    Unlock();
+  }
   AppendToString(aTo, mFlags, " [flags=", "]");
 }
 
