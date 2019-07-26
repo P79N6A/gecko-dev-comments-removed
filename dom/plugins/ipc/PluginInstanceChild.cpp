@@ -3333,7 +3333,7 @@ PluginInstanceChild::PaintRectToSurface(const nsIntRect& aRect,
     if (mIsTransparent && !CanPaintOnBackground()) {
        
        nsRefPtr<gfxContext> ctx = new gfxContext(renderSurface);
-       ctx->SetColor(aColor);
+       ctx->SetDeviceColor(aColor);
        ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
        ctx->Rectangle(GfxFromNsRect(plPaintRect));
        ctx->Fill();
