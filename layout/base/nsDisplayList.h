@@ -35,6 +35,7 @@ class nsIContent;
 class nsRenderingContext;
 class nsDisplayTableItem;
 class nsISelection;
+class nsDisplayLayerEventRegions;
 
 namespace mozilla {
 namespace layers {
@@ -296,6 +297,24 @@ public:
   bool AllowMergingAndFlattening() { return mAllowMergingAndFlattening; }
   void SetAllowMergingAndFlattening(bool aAllow) { mAllowMergingAndFlattening = aAllow; }
 
+  nsDisplayLayerEventRegions* GetLayerEventRegions() { return mLayerEventRegions; }
+  void SetLayerEventRegions(nsDisplayLayerEventRegions* aItem)
+  {
+    mLayerEventRegions = aItem;
+  }
+  bool IsBuildingLayerEventRegions()
+  {
+    
+    return false;
+    
+  }
+
+  bool GetAncestorHasTouchEventHandler() { return mAncestorHasTouchEventHandler; }
+  void SetAncestorHasTouchEventHandler(bool aValue)
+  {
+    mAncestorHasTouchEventHandler = aValue;
+  }
+
   bool SetIsCompositingCheap(bool aCompositingCheap) { 
     bool temp = mIsCompositingCheap; 
     mIsCompositingCheap = aCompositingCheap;
@@ -488,8 +507,11 @@ public:
       : mBuilder(aBuilder),
         mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
         mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
+        mPrevLayerEventRegions(aBuilder->mLayerEventRegions),
         mPrevCachedOffset(aBuilder->mCachedOffset),
-        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext) {
+        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext),
+        mPrevAncestorHasTouchEventHandler(aBuilder->mAncestorHasTouchEventHandler)
+    {
       aBuilder->mIsAtRootOfPseudoStackingContext = aIsRoot;
     }
     AutoBuildingDisplayList(nsDisplayListBuilder* aBuilder,
@@ -497,8 +519,10 @@ public:
       : mBuilder(aBuilder),
         mPrevCachedOffsetFrame(aBuilder->mCachedOffsetFrame),
         mPrevCachedReferenceFrame(aBuilder->mCachedReferenceFrame),
+        mPrevLayerEventRegions(aBuilder->mLayerEventRegions),
         mPrevCachedOffset(aBuilder->mCachedOffset),
-        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext)
+        mPrevIsAtRootOfPseudoStackingContext(aBuilder->mIsAtRootOfPseudoStackingContext),
+        mPrevAncestorHasTouchEventHandler(aBuilder->mAncestorHasTouchEventHandler)
     {
       if (aForChild->IsTransformed()) {
         aBuilder->mCachedOffset = nsPoint();
@@ -514,15 +538,19 @@ public:
     ~AutoBuildingDisplayList() {
       mBuilder->mCachedOffsetFrame = mPrevCachedOffsetFrame;
       mBuilder->mCachedReferenceFrame = mPrevCachedReferenceFrame;
+      mBuilder->mLayerEventRegions = mPrevLayerEventRegions;
       mBuilder->mCachedOffset = mPrevCachedOffset;
       mBuilder->mIsAtRootOfPseudoStackingContext = mPrevIsAtRootOfPseudoStackingContext;
+      mBuilder->mAncestorHasTouchEventHandler = mPrevAncestorHasTouchEventHandler;
     }
   private:
     nsDisplayListBuilder* mBuilder;
     const nsIFrame*       mPrevCachedOffsetFrame;
     const nsIFrame*       mPrevCachedReferenceFrame;
+    nsDisplayLayerEventRegions* mPrevLayerEventRegions;
     nsPoint               mPrevCachedOffset;
     bool                  mPrevIsAtRootOfPseudoStackingContext;
+    bool                  mPrevAncestorHasTouchEventHandler;
   };
 
   
@@ -629,6 +657,7 @@ private:
 
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mIgnoreScrollFrame;
+  nsDisplayLayerEventRegions*    mLayerEventRegions;
   PLArenaPool                    mPool;
   nsCOMPtr<nsISelection>         mBoundingSelection;
   nsAutoTArray<PresShellState,8> mPresShellStates;
@@ -665,6 +694,7 @@ private:
   bool                           mIsCompositingCheap;
   bool                           mContainsPluginItem;
   bool                           mContainsBlendMode;
+  bool                           mAncestorHasTouchEventHandler;
 };
 
 class nsDisplayItem;
@@ -2316,6 +2346,66 @@ public:
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames) MOZ_OVERRIDE;
   NS_DISPLAY_DECL_NAME("EventReceiver", TYPE_EVENT_RECEIVER)
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class nsDisplayLayerEventRegions MOZ_FINAL : public nsDisplayItem {
+public:
+  nsDisplayLayerEventRegions(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame)
+    : nsDisplayItem(aBuilder, aFrame)
+  {
+    MOZ_COUNT_CTOR(nsDisplayEventReceiver);
+    AddFrame(aBuilder, aFrame);
+  }
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayLayerEventRegions() {
+    MOZ_COUNT_DTOR(nsDisplayEventReceiver);
+  }
+#endif
+  virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap) MOZ_OVERRIDE
+  {
+    *aSnap = false;
+    return mHitRegion.GetBounds().Union(mMaybeHitRegion.GetBounds());
+  }
+
+  NS_DISPLAY_DECL_NAME("LayerEventRegions", TYPE_LAYER_EVENT_REGIONS)
+
+  
+  
+  void AddFrame(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
+
+  const nsRegion& HitRegion() { return mHitRegion; }
+  const nsRegion& MaybeHitRegion() { return mMaybeHitRegion; }
+  const nsRegion& DispatchToContentHitRegion() { return mDispatchToContentHitRegion; }
+
+private:
+  
+  
+  nsRegion mHitRegion;
+  
+  
+  nsRegion mMaybeHitRegion;
+  
+  
+  nsRegion mDispatchToContentHitRegion;
 };
 
 
