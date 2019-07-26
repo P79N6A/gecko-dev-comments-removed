@@ -12,7 +12,6 @@
 
 
 
-
 class nsIScrollPositionListener {
 public:
 
