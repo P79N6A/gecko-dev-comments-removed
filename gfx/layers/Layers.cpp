@@ -18,7 +18,6 @@
 #include "gfxPlatform.h"                
 #include "gfxUtils.h"                   
 #include "gfx2DGlue.h"
-#include "gfxImageSurface.h"
 #include "mozilla/DebugOnly.h"          
 #include "mozilla/Telemetry.h"          
 #include "mozilla/gfx/2D.h"             

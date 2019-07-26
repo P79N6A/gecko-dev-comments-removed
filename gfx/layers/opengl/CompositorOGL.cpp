@@ -15,7 +15,6 @@
 #include "gfx2DGlue.h"                  
 #include "gfx3DMatrix.h"                
 #include "gfxCrashReporterUtils.h"      
-#include "gfxImageSurface.h"            
 #include "gfxMatrix.h"                  
 #include "GraphicsFilter.h"             
 #include "gfxPlatform.h"                

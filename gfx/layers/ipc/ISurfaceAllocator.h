@@ -55,7 +55,6 @@ enum BufferCapabilities {
   
 
 
-
   MAP_AS_IMAGE_SURFACE = 1 << 0,
   
 
