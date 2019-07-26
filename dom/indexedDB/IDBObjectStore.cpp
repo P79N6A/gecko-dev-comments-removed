@@ -3182,28 +3182,36 @@ AddHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
 
   mKey.BindToStatement(stmt, NS_LITERAL_CSTRING("key_value"));
 
+
   
   const char* uncompressed =
     reinterpret_cast<const char*>(mCloneWriteInfo.mCloneBuffer.data());
   size_t uncompressedLength = mCloneWriteInfo.mCloneBuffer.nbytes();
 
-  static const fallible_t fallible = fallible_t();
-  size_t compressedLength = snappy::MaxCompressedLength(uncompressedLength);
   
   
-  nsAutoArrayPtr<char> compressed(new (fallible) char[compressedLength]);
-  NS_ENSURE_TRUE(compressed, NS_ERROR_OUT_OF_MEMORY);
+  {
+    size_t compressedLength = snappy::MaxCompressedLength(uncompressedLength);
+    
+    
+    char* compressed = (char*)moz_malloc(compressedLength);
+    NS_ENSURE_TRUE(compressed, NS_ERROR_OUT_OF_MEMORY);
 
-  snappy::RawCompress(uncompressed, uncompressedLength, compressed.get(),
-                      &compressedLength);
+    snappy::RawCompress(uncompressed, uncompressedLength, compressed,
+                        &compressedLength);
 
-  const uint8_t* dataBuffer =
-    reinterpret_cast<const uint8_t*>(compressed.get());
-  size_t dataBufferLength = compressedLength;
+    uint8_t* dataBuffer = reinterpret_cast<uint8_t*>(compressed);
+    size_t dataBufferLength = compressedLength;
 
-  rv = stmt->BindBlobByName(NS_LITERAL_CSTRING("data"), dataBuffer,
-                            dataBufferLength);
-  IDB_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+    
+    
+    rv = stmt->BindAdoptedBlobByName(NS_LITERAL_CSTRING("data"), dataBuffer,
+                                     dataBufferLength);
+    if (NS_FAILED(rv)) {
+      moz_free(compressed);
+    }
+    IDB_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+  }
 
   
   uint32_t length = mCloneWriteInfo.mFiles.Length();
