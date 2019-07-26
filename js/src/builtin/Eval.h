@@ -42,10 +42,5 @@ DirectEvalValueFromIon(JSContext *cx,
 extern bool
 IsAnyBuiltinEval(JSFunction *fun);
 
-
-
-extern JSPrincipals *
-PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx);
-
 }  
 #endif 

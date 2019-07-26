@@ -152,12 +152,6 @@ nsJSUtils::CompileFunction(JSContext* aCx,
   MOZ_ASSERT_IF(ctx, ctx->IsContextInitialized());
 
   
-  
-  
-  JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetContextCompartment(aCx));
-  aOptions.setPrincipals(p);
-
-  
   if (aTarget) {
     JS::ExposeObjectToActiveJS(aTarget);
   }
@@ -204,9 +198,6 @@ nsJSUtils::EvaluateString(JSContext* aCx,
   JS::ExposeObjectToActiveJS(aScopeObject);
   nsAutoMicroTask mt;
   nsresult rv = NS_OK;
-
-  JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetObjectCompartment(aScopeObject));
-  aCompileOptions.setPrincipals(p);
 
   bool ok = false;
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();

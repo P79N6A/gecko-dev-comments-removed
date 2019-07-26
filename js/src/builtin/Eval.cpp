@@ -287,8 +287,6 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
     size_t length = flatStr->length();
     ConstTwoByteChars chars(flatStr->chars(), length);
 
-    JSPrincipals *principals = PrincipalsForCompiledCode(args, cx);
-
     RootedScript callerScript(cx, caller ? caller.script() : nullptr);
     EvalJSONResult ejr = TryEvalJSON(cx, callerScript, chars, length, args.rval());
     if (ejr != EvalJSON_NotJSON)
@@ -320,7 +318,6 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, AbstractFrame
                .setCompileAndGo(true)
                .setForEval(true)
                .setNoScriptRval(false)
-               .setPrincipals(principals)
                .setOriginPrincipals(originPrincipals)
                .setIntroductionInfo(introducerFilename, "eval", lineno, maybeScript, pcOffset);
         JSScript *compiled = frontend::CompileScript(cx, &cx->tempLifoAlloc(),
@@ -369,9 +366,6 @@ js::DirectEvalStringFromIon(JSContext *cx,
 
     EvalScriptGuard esg(cx);
 
-    
-    JSPrincipals *principals = cx->compartment()->principals;
-
     esg.lookupInEvalCache(flatStr, callerScript, pc);
 
     if (!esg.foundScript()) {
@@ -392,7 +386,6 @@ js::DirectEvalStringFromIon(JSContext *cx,
                .setCompileAndGo(true)
                .setForEval(true)
                .setNoScriptRval(false)
-               .setPrincipals(principals)
                .setOriginPrincipals(originPrincipals)
                .setIntroductionInfo(introducerFilename, "eval", lineno, maybeScript, pcOffset);
         JSScript *compiled = frontend::CompileScript(cx, &cx->tempLifoAlloc(),
@@ -459,28 +452,4 @@ bool
 js::IsAnyBuiltinEval(JSFunction *fun)
 {
     return fun->maybeNative() == IndirectEval;
-}
-
-JSPrincipals *
-js::PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx)
-{
-    JSObject &callee = call.callee();
-    JS_ASSERT(IsAnyBuiltinEval(&callee.as<JSFunction>()) ||
-              callee.as<JSFunction>().isBuiltinFunctionConstructor());
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    return callee.compartment()->principals;
 }

@@ -277,14 +277,12 @@ TokenStream::TokenStream(ExclusiveContext *cx, const ReadOnlyCompileOptions &opt
     sourceMapURL_(nullptr),
     tokenbuf(cx),
     cx(cx),
-    originPrincipals(options.originPrincipals()),
+    originPrincipals(options.originPrincipals(cx)),
     strictModeGetter(smg),
     tokenSkip(cx, &tokens),
     linebaseSkip(cx, &linebase),
     prevLinebaseSkip(cx, &prevLinebase)
 {
-    JS_ASSERT_IF(options.principals(), options.originPrincipals());
-
     
     
     JS_ASSERT_IF(originPrincipals, originPrincipals->refcount > 0);
