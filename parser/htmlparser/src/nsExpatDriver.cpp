@@ -264,9 +264,9 @@ static const nsCatalogData kCatalogTable[] = {
   { "-//W3C//DTD XHTML 1.0 Strict//EN",          "htmlmathml-f.ent", nullptr },
   { "-//W3C//DTD XHTML 1.0 Frameset//EN",        "htmlmathml-f.ent", nullptr },
   { "-//W3C//DTD XHTML Basic 1.0//EN",           "htmlmathml-f.ent", nullptr },
-  { "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN", "htmlmathml-f.ent", "resource://gre-resources/mathml.css" },
-  { "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN", "htmlmathml-f.ent", "resource://gre-resources/mathml.css" },
-  { "-//W3C//DTD MathML 2.0//EN",                "htmlmathml-f.ent", "resource://gre-resources/mathml.css" },
+  { "-//W3C//DTD XHTML 1.1 plus MathML 2.0//EN", "htmlmathml-f.ent", nullptr },
+  { "-//W3C//DTD XHTML 1.1 plus MathML 2.0 plus SVG 1.1//EN", "htmlmathml-f.ent", nullptr },
+  { "-//W3C//DTD MathML 2.0//EN",                "htmlmathml-f.ent", nullptr },
   { "-//WAPFORUM//DTD XHTML Mobile 1.0//EN",     "htmlmathml-f.ent", nullptr },
   { nullptr, nullptr, nullptr }
 };
@@ -629,9 +629,16 @@ nsExpatDriver::HandleEndDoctypeDecl()
     
     
     nsCOMPtr<nsIURI> data;
+#if 0
     if (mCatalogData && mCatalogData->mAgentSheet) {
       NS_NewURI(getter_AddRefs(data), mCatalogData->mAgentSheet);
     }
+#endif
+
+    
+    
+    MOZ_ASSERT(!mCatalogData || !mCatalogData->mAgentSheet,
+               "Need to add back support for catalog style sheets");
 
     
     nsresult rv = mSink->HandleDoctypeDecl(mInternalSubset, mDoctypeName,

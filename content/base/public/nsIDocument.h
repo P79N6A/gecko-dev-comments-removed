@@ -134,9 +134,6 @@ typedef CallbackObjectHolder<NodeFilter, nsIDOMNodeFilter> NodeFilterHolder;
   { 0x81, 0xec, 0x64, 0x26, 0x9a, 0x4b, 0xef, 0x18 } }
 
 
-#define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
-
-
 enum DocumentFlavor {
   DocumentFlavorLegacyGuess, 
   DocumentFlavorHTML, 
@@ -766,6 +763,28 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual void EnsureOnDemandBuiltInUASheet(const char *aStyleSheetURI) = 0;
+
+  
+
+
+
+
+
   virtual int32_t GetNumberOfStyleSheets() const = 0;
   
   
@@ -820,15 +839,6 @@ public:
 
   virtual void SetStyleSheetApplicableState(nsIStyleSheet* aSheet,
                                             bool aApplicable) = 0;  
-
-  
-
-
-
-  virtual int32_t GetNumberOfCatalogStyleSheets() const = 0;
-  virtual nsIStyleSheet* GetCatalogStyleSheetAt(int32_t aIndex) const = 0;
-  virtual void AddCatalogStyleSheet(nsCSSStyleSheet* aSheet) = 0;
-  virtual void EnsureCatalogStyleSheet(const char *aStyleSheetURI) = 0;
 
   enum additionalSheetType {
     eAgentSheet,

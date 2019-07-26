@@ -754,7 +754,7 @@ SVGSVGElement::BindToTree(nsIDocument* aDocument,
     
     
     
-    aDocument->EnsureCatalogStyleSheet(kSVGStyleSheetURI);
+    aDocument->EnsureOnDemandBuiltInUASheet(kSVGStyleSheetURI);
   }
 
   if (mTimedDocumentRoot && smilController) {

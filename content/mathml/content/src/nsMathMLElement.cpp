@@ -108,7 +108,7 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
       
       
       aDocument->SetMathMLEnabled();
-      aDocument->EnsureCatalogStyleSheet(kMathMLStyleSheetURI);
+      aDocument->EnsureOnDemandBuiltInUASheet(kMathMLStyleSheetURI);
 
       
       
