@@ -7,10 +7,12 @@
 
 
 #include "mozilla/Util.h"
+#include "AccessCheck.h"
 
 #include "xpcprivate.h"
 
 using namespace mozilla;
+using namespace xpc;
 
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                JSContext* cx    ,
@@ -142,10 +144,22 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
 
     mTearOff = nullptr;
     if (wrapperInitOptions == INIT_SHOULD_LOOKUP_WRAPPER) {
-        mWrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(mJSContext, obj,
-                                                                funobj,
-                                                                &mFlattenedJSObject,
-                                                                &mTearOff);
+
+        
+        
+        if (WrapperFactory::IsSecurityWrapper(obj)) {
+            mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
+            if (!mWrapper) {
+                JS_ReportError(mJSContext, "Permission denied to call method on |this|");
+                mState = INIT_FAILED;
+                return;
+            }
+        } else {
+            mWrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(mJSContext,
+                                                                    obj, funobj,
+                                                                    &mFlattenedJSObject,
+                                                                    &mTearOff);
+        }
         if (mWrapper) {
             mFlattenedJSObject = mWrapper->GetFlatJSObject();
 
@@ -431,3 +445,58 @@ XPCLazyCallContext::AssertContextIsTopOfStack(JSContext* cx)
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
 }
 #endif
+
+XPCWrappedNative*
+XPCCallContext::UnwrapThisIfAllowed(JSObject *obj, JSObject *fun, unsigned argc)
+{
+    
+    MOZ_ASSERT(!js::UnwrapObjectChecked(obj));
+    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
+
+    
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    MOZ_ASSERT(js::IsWrapper(obj));
+    JSObject *unwrapped = js::UnwrapObject(obj,  false);
+    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, js::Wrapper::wrappedObject(obj)));
+
+    
+    MOZ_ASSERT(!IS_SLIM_WRAPPER(unwrapped), "security wrapping morphs slim wrappers");
+    if (!IS_WRAPPER_CLASS(js::GetObjectClass(unwrapped)))
+        return nullptr;
+    XPCWrappedNative *wn = (XPCWrappedNative*)js::GetObjectPrivate(unwrapped);
+
+    
+    XPCNativeInterface *interface;
+    XPCNativeMember *member;
+    XPCNativeMember::GetCallInfo(fun, &interface, &member);
+
+    
+    
+    
+    if (!wn->HasInterfaceNoQI(*interface->GetIID()))
+        return nullptr;
+
+    
+    
+    
+    
+    bool set = argc && argc != NO_ARGS && member->IsWritableAttribute();
+    js::Wrapper::Action act = set ? js::Wrapper::SET : js::Wrapper::GET;
+    js::Wrapper *handler = js::Wrapper::wrapperHandler(obj);
+    bool ignored;
+    if (!handler->enter(mJSContext, obj, member->GetName(), act, &ignored))
+        return nullptr;
+
+    
+    return wn;
+}
+
