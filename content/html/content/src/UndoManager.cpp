@@ -617,6 +617,9 @@ UndoMutationObserver::IsManagerForMutation(nsIContent* aContent)
     nsIDocument* doc = aContent->OwnerDoc();
     NS_ENSURE_TRUE(doc, false);
     undoManager = doc->GetUndoManager();
+    
+    
+    NS_ENSURE_TRUE(undoManager, false);
   }
 
   
