@@ -84,6 +84,12 @@ private:
 
 
 
+  bool UseFastPath();
+
+  
+
+
+
 
   void EndPaint(bool aFinish);
 
