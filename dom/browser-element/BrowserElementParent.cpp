@@ -17,7 +17,6 @@
 #include "nsOpenWindowEventDetail.h"
 #include "nsEventDispatcher.h"
 #include "nsIDOMCustomEvent.h"
-#include "nsIInterfaceRequestorUtils.h"
 #include "nsVariant.h"
 
 using mozilla::dom::Element;
@@ -30,14 +29,14 @@ namespace {
 
 
 already_AddRefed<nsHTMLIFrameElement>
-CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
+CreateIframe(Element* aOpenerFrameElement)
 {
   nsNodeInfoManager *nodeInfoManager =
     aOpenerFrameElement->OwnerDoc()->NodeInfoManager();
 
   nsCOMPtr<nsINodeInfo> nodeInfo =
     nodeInfoManager->GetNodeInfo(nsGkAtoms::iframe,
-                                  nullptr,
+                                  nsnull,
                                  kNameSpaceID_XHTML,
                                  nsIDOMNode::ELEMENT_NODE);
 
@@ -54,16 +53,6 @@ CreateIframe(Element* aOpenerFrameElement, const nsAString& aName, bool aRemote)
     popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::mozapp,
                                mozapp,  false);
   }
-
-  
-  popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::name,
-                             aName,  false);
-
-  
-  popupFrameElement->SetAttr(kNameSpaceID_None, nsGkAtoms::Remote,
-                             aRemote ? NS_LITERAL_STRING("true") :
-                                       NS_LITERAL_STRING("false"),
-                              false);
 
   return popupFrameElement.forget();
 }
@@ -102,7 +91,7 @@ DispatchOpenWindowEvent(Element* aOpenerFrameElement,
   }
 
   nsCOMPtr<nsIDOMEvent> domEvent;
-  nsEventDispatcher::CreateEvent(presContext, nullptr,
+  nsEventDispatcher::CreateEvent(presContext, nsnull,
                                  NS_LITERAL_STRING("customevent"),
                                  getter_AddRefs(domEvent));
   NS_ENSURE_TRUE(domEvent, false);
@@ -117,7 +106,7 @@ DispatchOpenWindowEvent(Element* aOpenerFrameElement,
 
   
   nsEventStatus status = nsEventStatus_eIgnore;
-  rv = nsEventDispatcher::DispatchDOMEvent(aOpenerFrameElement, nullptr,
+  rv = nsEventDispatcher::DispatchDOMEvent(aOpenerFrameElement, nsnull,
                                            domEvent, presContext, &status);
   NS_ENSURE_SUCCESS(rv, false);
 
@@ -142,7 +131,7 @@ BrowserElementParent::OpenWindowOOP(mozilla::dom::TabParent* aOpenerTabParent,
     do_QueryInterface(aOpenerTabParent->GetOwnerElement());
   NS_ENSURE_TRUE(openerFrameElement, false);
   nsRefPtr<nsHTMLIFrameElement> popupFrameElement =
-    CreateIframe(openerFrameElement, aName,  true);
+    CreateIframe(openerFrameElement);
 
   
   
@@ -200,13 +189,11 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
     do_QueryInterface(openerFrameDOMElement);
 
   nsRefPtr<nsHTMLIFrameElement> popupFrameElement =
-    CreateIframe(openerFrameElement, aName,  false);
+    CreateIframe(openerFrameElement);
   NS_ENSURE_TRUE(popupFrameElement, false);
 
-  nsAutoCString spec;
-  if (aURI) {
-    aURI->GetSpec(spec);
-  }
+  nsCAutoString spec;
+  aURI->GetSpec(spec);
   bool dispatchSucceeded =
     DispatchOpenWindowEvent(openerFrameElement, popupFrameElement,
                             NS_ConvertUTF8toUTF16(spec),
