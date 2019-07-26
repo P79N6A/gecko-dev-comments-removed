@@ -80,6 +80,8 @@ XPCOMUtils.defineLazyGetter(this, "DownloadsLocalFileCtor", function () {
                                 "nsILocalFile", "initWithPath");
 });
 
+const kPartialDownloadSuffix = ".part";
+
 
 
 
@@ -871,18 +873,47 @@ DownloadsDataItem.prototype = {
 
   get localFile()
   {
+    return this._getFile(this.file);
+  },
+
+  
+
+
+
+
+
+
+  get partFile()
+  {
+    return this._getFile(this.file + kPartialDownloadSuffix);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _getFile: function DDI__getFile(aFilename)
+  {
     
     
     
-    if (this.file.startsWith("file:")) {
+    if (aFilename.startsWith("file:")) {
       
       
-      let fileUrl = NetUtil.newURI(this.file).QueryInterface(Ci.nsIFileURL);
+      let fileUrl = NetUtil.newURI(aFilename).QueryInterface(Ci.nsIFileURL);
       return fileUrl.file.clone().QueryInterface(Ci.nsILocalFile);
     } else {
       
       
-      return new DownloadsLocalFileCtor(this.file);
+      return new DownloadsLocalFileCtor(aFilename);
     }
   }
 };
