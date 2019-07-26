@@ -1374,7 +1374,7 @@ abstract public class GeckoApp
         GeckoAppShell.setNotificationClient(makeNotificationClient());
     }
 
-    protected void initializeChrome(String uri, boolean isExternalURL) {
+    protected void initializeChrome() {
         mDoorHangerPopup = new DoorHangerPopup(this, null);
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
         mFormAssistPopup = (FormAssistPopup) findViewById(R.id.form_assist_popup);
@@ -1390,6 +1390,29 @@ abstract public class GeckoApp
             mLayerView = layerView;
             
             GeckoAppShell.notifyIMEContext(GeckoEditableListener.IME_STATE_DISABLED, "", "", "");
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+    protected void loadStartupTab(String url) {
+        if (url == null) {
+            if (mRestoreMode == RESTORE_NONE) {
+                
+                
+                Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
+            }
+        } else {
+            
+            int flags = Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED;
+            Tabs.getInstance().loadUrl(url, flags);
         }
     }
 
@@ -1426,6 +1449,8 @@ abstract public class GeckoApp
         }
 
         Tabs.registerOnTabsChangedListener(this);
+
+        initializeChrome();
 
         
         String restoreMessage = null;
@@ -1488,6 +1513,10 @@ abstract public class GeckoApp
 
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Session:Restore", restoreMessage));
 
+        if (!mIsRestoringActivity) {
+            loadStartupTab(isExternalURL ? passedUri : null);
+        }
+
         if (mRestoreMode == RESTORE_OOM) {
             
             
@@ -1496,8 +1525,6 @@ abstract public class GeckoApp
             
             getProfile().moveSessionFile();
         }
-
-        initializeChrome(passedUri, isExternalURL);
 
         if (mRestoreMode == RESTORE_NONE) {
             Tabs.getInstance().notifyListeners(null, Tabs.TabEvents.RESTORED);
