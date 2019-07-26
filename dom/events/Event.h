@@ -29,6 +29,7 @@ namespace dom {
 
 class EventTarget;
 class ErrorEvent;
+class ProgressEvent;
 
 
 
@@ -93,6 +94,11 @@ public:
   }
 
   virtual ErrorEvent* AsErrorEvent()
+  {
+    return nullptr;
+  }
+
+  virtual ProgressEvent* AsProgressEvent()
   {
     return nullptr;
   }
