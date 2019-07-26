@@ -145,6 +145,7 @@ class OsiIndex;
 class IonCache;
 struct PatchableBackedgeInfo;
 struct CacheLocation;
+struct LinkVMWrapper;
 
 
 
@@ -504,6 +505,8 @@ struct IonScript
     void copyCallTargetEntries(JSScript **callTargets);
     void copyPatchableBackedges(JSContext *cx, IonCode *code,
                                 PatchableBackedgeInfo *backedges);
+    void patchVMCalls(JSContext *cx, IonCode *code, LinkVMWrapper *begin, size_t length,
+                      MacroAssembler &masm);
 
     bool invalidated() const {
         return refcount_ != 0;

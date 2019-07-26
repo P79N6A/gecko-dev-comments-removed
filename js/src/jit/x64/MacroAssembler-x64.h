@@ -1238,6 +1238,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
         call(target);
     }
 
+    typedef CodeOffsetJump CodeOffsetCall;
+    CodeOffsetCall lastPatchableCall(uint32_t callOffset) {
+        JS_ASSERT(jumps_.length());
+        return CodeOffsetCall(callOffset, jumps_.length() - 1);
+    }
+
     
     
     void linkParallelExitFrame(const Register &pt) {

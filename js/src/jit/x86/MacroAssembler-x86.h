@@ -1082,6 +1082,11 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         call(target);
     }
 
+    typedef CodeOffsetJump CodeOffsetCall;
+    CodeOffsetCall lastPatchableCall(uint32_t callOffset) {
+        return CodeOffsetCall(callOffset);
+    }
+
     
     
     void linkParallelExitFrame(const Register &pt) {

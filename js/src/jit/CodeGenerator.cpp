@@ -5809,6 +5809,26 @@ CodeGenerator::generate()
     return !masm.oom();
 }
 
+
+bool
+CodeGenerator::initUsedVMWrappers(JSContext *cx)
+{
+    
+    AutoLockForExclusiveAccess atomsLock(cx);
+    JSRuntime::AutoLockForOperationCallback lock(cx->runtime());
+    AutoCompartment ac(cx, cx->runtime()->atomsCompartment());
+
+    JitRuntime *rt = cx->runtime()->jitRuntime();
+    LinkVMWrapper *end = patchableVMCalls_.end();
+    for (LinkVMWrapper *it = patchableVMCalls_.begin(); it != end; it++) {
+        IonCode *wrapper = rt->getVMWrapper(cx, it->fun, atomsLock);
+        if (!wrapper)
+            return false;
+    }
+
+    return true;
+}
+
 bool
 CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
 {
@@ -5845,6 +5865,13 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
                      patchableBackedges_.length());
     if (!ionScript)
         return false;
+
+    if (!initUsedVMWrappers(cx)) {
+        
+        
+        js_free(ionScript);
+        return false;
+    }
 
     
     
@@ -5931,6 +5958,11 @@ CodeGenerator::link(JSContext *cx, types::CompilerConstraintList *constraints)
         ionScript->copyCallTargetEntries(callTargets.begin());
     if (patchableBackedges_.length() > 0)
         ionScript->copyPatchableBackedges(cx, code, patchableBackedges_.begin());
+
+    
+    if (patchableVMCalls_.length() > 0)
+        ionScript->patchVMCalls(cx, code, patchableVMCalls_.begin(),
+                                patchableVMCalls_.length(), masm);
 
     switch (executionMode) {
       case SequentialExecution:
