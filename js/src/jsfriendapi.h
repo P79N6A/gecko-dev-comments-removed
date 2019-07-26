@@ -1444,11 +1444,33 @@ struct JSJitInfo {
         OpType_None
     };
 
+    enum ArgType {
+        
+        String = (1 << 0),
+        Integer = (1 << 1), 
+        Double = (1 << 2), 
+        Boolean = (1 << 3),
+        Object = (1 << 4),
+        Null = (1 << 5),
+
+        
+        Numeric = Integer | Double,
+        
+        
+        Primitive = Numeric | Boolean | Null | String,
+        ObjectOrNull = Object | Null,
+        Any = ObjectOrNull | Primitive,
+
+        
+        ArgTypeListEnd = (1 << 31)
+    };
+
     union {
         JSJitGetterOp getter;
         JSJitSetterOp setter;
         JSJitMethodOp method;
     };
+
     uint32_t protoID;
     uint32_t depth;
     OpType type;
@@ -1465,12 +1487,30 @@ struct JSJitInfo {
 
     JSValueType returnType; 
 
+    const ArgType* const argTypes; 
+
+
+
+
+
+
     
     JSParallelNative parallelNative;
+
+private:
+    static void staticAsserts()
+    {
+        JS_STATIC_ASSERT(Any & String);
+        JS_STATIC_ASSERT(Any & Integer);
+        JS_STATIC_ASSERT(Any & Double);
+        JS_STATIC_ASSERT(Any & Boolean);
+        JS_STATIC_ASSERT(Any & Object);
+        JS_STATIC_ASSERT(Any & Null);
+    }
 };
 
 #define JS_JITINFO_NATIVE_PARALLEL(op)                                         \
-    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,false,0,JSVAL_TYPE_MISSING,op}
+    {{nullptr},0,0,JSJitInfo::OpType_None,false,false,false,false,0,JSVAL_TYPE_MISSING,nullptr,op}
 
 static JS_ALWAYS_INLINE const JSJitInfo *
 FUNCTION_VALUE_TO_JITINFO(const JS::Value& v)

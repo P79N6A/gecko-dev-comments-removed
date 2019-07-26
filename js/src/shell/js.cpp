@@ -4797,6 +4797,7 @@ static const JSJitInfo dom_x_getterinfo = {
     false,    
     0,        
     JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
     nullptr   
 };
 
@@ -4811,6 +4812,7 @@ static const JSJitInfo dom_x_setterinfo = {
     false,    
     0,        
     JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
     nullptr   
 };
 
@@ -4825,6 +4827,7 @@ static const JSJitInfo doFoo_methodinfo = {
     false,    
     0,        
     JSVAL_TYPE_UNKNOWN, 
+    nullptr,  
     nullptr   
 };
 
