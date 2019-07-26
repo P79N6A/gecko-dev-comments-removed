@@ -2,7 +2,7 @@
 
 
 
-import automationutils
+import mozcrash
 import threading
 import os
 import Queue
@@ -81,6 +81,10 @@ class B2GRemoteAutomation(Automation):
         if env is None:
             env = {}
 
+        if crashreporter:
+            env['MOZ_CRASHREPORTER'] = '1'
+            env['MOZ_CRASHREPORTER_NO_REPORT'] = '1'
+
         
         env['MOZ_HIDE_RESULTS_TABLE'] = '1'
         return env
@@ -100,17 +104,16 @@ class B2GRemoteAutomation(Automation):
         return active
 
     def checkForCrashes(self, directory, symbolsPath):
-        
-        
-        try:
-            dumpDir = tempfile.mkdtemp()
-            self._devicemanager.getDirectory(self._remoteProfile + '/minidumps/', dumpDir)
-            crashed = automationutils.checkForCrashes(dumpDir, symbolsPath, self.lastTestSeen)
-        finally:
+        crashed = False
+        remote_dump_dir = self._remoteProfile + '/minidumps'
+        if self._devicemanager.dirExists(remote_dump_dir):
+            local_dump_dir = tempfile.mkdtemp()
+            self._devicemanager.getDirectory(remote_dump_dir, local_dump_dir)
             try:
-                shutil.rmtree(dumpDir)
-            except:
-                print "WARNING: unable to remove directory: %s" % (dumpDir)
+                crashed = mozcrash.check_for_crashes(local_dump_dir, symbolsPath, test_name=self.lastTestSeen)
+            finally:
+                shutil.rmtree(local_dump_dir)
+                self._devicemanager.removeDir(remote_dump_dir)
         return crashed
 
     def initializeProfile(self,  profileDir, extraPrefs=[],
