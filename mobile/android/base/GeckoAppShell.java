@@ -9,6 +9,7 @@ import org.mozilla.gecko.gfx.BitmapUtils;
 import org.mozilla.gecko.gfx.GeckoLayerClient;
 import org.mozilla.gecko.gfx.GfxInfoThread;
 import org.mozilla.gecko.gfx.ImmutableViewportMetrics;
+import org.mozilla.gecko.gfx.InputConnectionHandler;
 import org.mozilla.gecko.gfx.LayerView;
 import org.mozilla.gecko.gfx.TouchEventHandler;
 import org.mozilla.gecko.util.EventDispatcher;
@@ -109,7 +110,7 @@ public class GeckoAppShell
 
     static private boolean gRestartScheduled = false;
 
-    static private GeckoInputConnection mInputConnection = null;
+    static private GeckoEditableListener mEditableListener = null;
 
     static private final HashMap<Integer, AlertNotification>
         mAlertNotifications = new HashMap<Integer, AlertNotification>();
@@ -534,8 +535,11 @@ public class GeckoAppShell
     
     private static void geckoLoaded() {
         LayerView v = GeckoApp.mAppContext.getLayerView();
-        mInputConnection = GeckoInputConnection.create(v);
-        v.setInputConnectionHandler(mInputConnection);
+        GeckoEditable editable = new GeckoEditable();
+        InputConnectionHandler ich = GeckoInputConnection.create(v, editable);
+        v.setInputConnectionHandler(ich);
+        
+        mEditableListener = editable;
     }
 
     static void sendPendingEventsToGecko() {
@@ -568,21 +572,30 @@ public class GeckoAppShell
 
 
     public static void notifyIME(int type, int state) {
-        if (mInputConnection != null)
-            mInputConnection.notifyIME(type, state);
+        if (mEditableListener != null) {
+            mEditableListener.notifyIME(type, state);
+        }
     }
 
-    public static void notifyIMEEnabled(int state, String typeHint, String modeHint,
-                                        String actionHint, boolean landscapeFS) {
+    public static void notifyIMEEnabled(int state, String typeHint,
+                                        String modeHint, String actionHint,
+                                        boolean landscapeFS) {
         
         
-        if (mInputConnection != null)
-            mInputConnection.notifyIMEEnabled(state, typeHint, modeHint, actionHint);
+        
+        
+        if (mEditableListener != null) {
+            mEditableListener.notifyIMEEnabled(state, typeHint,
+                                               modeHint, actionHint);
+        }
     }
 
     public static void notifyIMEChange(String text, int start, int end, int newEnd) {
-        if (mInputConnection != null)
-            mInputConnection.notifyIMEChange(text, start, end, newEnd);
+        if (newEnd < 0) { 
+            mEditableListener.onSelectionChange(start, end);
+        } else { 
+            mEditableListener.onTextChange(text, start, end, newEnd);
+        }
     }
 
     private static CountDownLatch sGeckoPendingAcks = null;
@@ -1997,8 +2010,10 @@ public class GeckoAppShell
     }
 
     public static void viewSizeChanged() {
-        if (mInputConnection != null && mInputConnection.isIMEEnabled()) {
-            sendEventToGecko(GeckoEvent.createBroadcastEvent("ScrollTo:FocusedInput", ""));
+        LayerView v = GeckoApp.mAppContext.getLayerView();
+        if (v != null && v.isIMEEnabled()) {
+            sendEventToGecko(GeckoEvent.createBroadcastEvent(
+                    "ScrollTo:FocusedInput", ""));
         }
     }
 
