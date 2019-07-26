@@ -147,17 +147,8 @@ CreateScopeKey(nsIPrincipal* aPrincipal,
 
   if (domainScope.IsEmpty()) {
     
-    
-    
     bool isScheme = false;
-    if ((NS_SUCCEEDED(uri->SchemeIs("about", &isScheme)) && isScheme) ||
-        (NS_SUCCEEDED(uri->SchemeIs("moz-safe-about", &isScheme)) && isScheme)) {
-      rv = uri->GetPath(domainScope);
-      NS_ENSURE_SUCCESS(rv, rv);
-      
-      
-      ToLowerCase(domainScope);
-    } else if (NS_SUCCEEDED(uri->SchemeIs("file", &isScheme)) && isScheme) {
+    if (NS_SUCCEEDED(uri->SchemeIs("file", &isScheme)) && isScheme) {
       nsCOMPtr<nsIURL> url = do_QueryInterface(uri, &rv);
       NS_ENSURE_SUCCESS(rv, rv);
       rv = url->GetDirectory(domainScope);
