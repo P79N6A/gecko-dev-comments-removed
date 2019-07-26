@@ -233,7 +233,11 @@ exports.shutdown = function() {
 
 
 
+
+
+
 function StringType(typeSpec) {
+  this._allowBlank = !!typeSpec.allowBlank;
 }
 
 StringType.prototype = Object.create(Type.prototype);
@@ -260,7 +264,7 @@ StringType.prototype.stringify = function(value, context) {
 };
 
 StringType.prototype.parse = function(arg, context) {
-  if (arg.text == null || arg.text === '') {
+  if (!this._allowBlank && (arg.text == null || arg.text === '')) {
     return Promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
   }
 
@@ -11516,7 +11520,7 @@ Completer.prototype._getCompleterTemplateData = function() {
         
         
         
-        if (cArg.type === 'NamedArgument' && cArg.text === '') {
+        if (cArg.type === 'NamedArgument' && cArg.valueArg == null) {
           emptyParameters.push('<' + current.param.type.name + '>\u00a0');
         }
       }
