@@ -22,7 +22,6 @@ public:
   NS_DECL_MOZISTORAGERESULTSET
 
   ResultSet();
-  ~ResultSet();
 
   
 
@@ -35,6 +34,8 @@ public:
   int32_t rows() const { return mData.Count(); }
 
 private:
+  ~ResultSet();
+
   
 
 
