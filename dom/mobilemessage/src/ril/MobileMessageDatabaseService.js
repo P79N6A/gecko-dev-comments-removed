@@ -10,8 +10,12 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/PhoneNumberUtils.jsm");
 
-const RIL_MOBILEMESSAGEDATABASESERVICE_CONTRACTID = "@mozilla.org/mobilemessage/rilmobilemessagedatabaseservice;1";
-const RIL_MOBILEMESSAGEDATABASESERVICE_CID = Components.ID("{29785f90-6b5b-11e2-9201-3b280170b2ec}");
+const RIL_MOBILEMESSAGEDATABASESERVICE_CONTRACTID =
+  "@mozilla.org/mobilemessage/rilmobilemessagedatabaseservice;1";
+const RIL_MOBILEMESSAGEDATABASESERVICE_CID =
+  Components.ID("{29785f90-6b5b-11e2-9201-3b280170b2ec}");
+const RIL_GETMESSAGESCURSOR_CID =
+  Components.ID("{484d1ad8-840e-4782-9dc4-9ebc4d914937}");
 
 const DEBUG = false;
 const DB_NAME = "sms";
@@ -46,6 +50,10 @@ const READ_ONLY = "readonly";
 const READ_WRITE = "readwrite";
 const PREV = "prev";
 const NEXT = "next";
+
+const COLLECT_ID_END = 0;
+const COLLECT_ID_ERROR = -1;
+const COLLECT_TIMESTAMP_UNUSED = 0;
 
 XPCOMUtils.defineLazyServiceGetter(this, "gMobileMessageService",
                                    "@mozilla.org/mobilemessage/mobilemessageservice;1",
@@ -94,8 +102,6 @@ function MobileMessageDatabaseService() {
       }
     };
   });
-
-  this.messageLists = {};
 }
 MobileMessageDatabaseService.prototype = {
 
@@ -108,14 +114,6 @@ MobileMessageDatabaseService.prototype = {
 
 
   db: null,
-
-  
-
-
-
-  messageLists: null,
-
-  lastMessageListId: 0,
 
   
 
@@ -621,228 +619,6 @@ MobileMessageDatabaseService.prototype = {
                                                     smil,
                                                     attachments);
     }
-  },
-
-  
-
-
-
-  onNextMessageInListGot: function onNextMessageInListGot(
-      aMessageStore, aMessageList, aMessageId) {
-
-    if (DEBUG) {
-      debug("onNextMessageInListGot - listId: "
-            + aMessageList.listId + ", messageId: " + aMessageId);
-    }
-    if (aMessageId) {
-      
-      aMessageList.results.push(aMessageId);
-    }
-    if (aMessageId <= 0) {
-      
-      aMessageList.processing = false;
-    }
-
-    if (!aMessageList.requestWaiting) {
-      if (DEBUG) debug("Cursor.continue() not called yet");
-      return;
-    }
-
-    
-    
-    
-    
-    let request = aMessageList.requestWaiting;
-    aMessageList.requestWaiting = null;
-
-    if (!aMessageList.results.length) {
-      
-      if (!aMessageList.processing) {
-        if (DEBUG) debug("No messages matching the filter criteria");
-        request.notifyNoMessageInList();
-      }
-      
-      return;
-    }
-
-    if (aMessageList.results[0] < 0) {
-      
-      
-      if (DEBUG) debug("An previous error found");
-      request.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-      return;
-    }
-
-    let firstMessageId = aMessageList.results.shift();
-    if (DEBUG) debug ("Fetching message " + firstMessageId);
-
-    let getRequest = aMessageStore.get(firstMessageId);
-    let self = this;
-    getRequest.onsuccess = function onsuccess(event) {
-      let messageRecord = event.target.result;
-      let domMessage = self.createDomMessageFromRecord(messageRecord);
-      if (aMessageList.listId >= 0) {
-        if (DEBUG) {
-          debug("notifyNextMessageInListGot - listId: "
-                + aMessageList.listId + ", messageId: " + firstMessageId);
-        }
-        request.notifyNextMessageInListGot(domMessage);
-      } else {
-        self.lastMessageListId += 1;
-        aMessageList.listId = self.lastMessageListId;
-        self.messageLists[self.lastMessageListId] = aMessageList;
-        if (DEBUG) {
-          debug("notifyMessageListCreated - listId: "
-                + aMessageList.listId + ", messageId: " + firstMessageId);
-        }
-        request.notifyMessageListCreated(aMessageList.listId, domMessage);
-      }
-    };
-    getRequest.onerror = function onerror(event) {
-      if (DEBUG) {
-        debug("notifyReadMessageListFailed - listId: "
-              + aMessageList.listId + ", messageId: " + firstMessageId);
-      }
-      request.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-    };
-  },
-
-  
-
-
-
-
-  onNextMessageInMultiFiltersGot: function onNextMessageInMultiFiltersGot(
-      aMessageStore, aMessageList, aContextIndex, aMessageId, aTimestamp) {
-
-    if (DEBUG) {
-      debug("onNextMessageInMultiFiltersGot: "
-            + aContextIndex + ", " + aMessageId + ", " + aTimestamp);
-    }
-    let contexts = aMessageList.contexts;
-
-    if (!aMessageId) {
-      contexts[aContextIndex].processing = false;
-      for (let i = 0; i < contexts.length; i++) {
-        if (contexts[i].processing) {
-          return false;
-        }
-      }
-
-      this.onNextMessageInListGot(aMessageStore, aMessageList, 0);
-      return false;
-    }
-
-    
-    
-    
-    
-    
-    for (let i = 0; i < contexts.length; i++) {
-      if (i == aContextIndex) {
-        continue;
-      }
-
-      let ctx = contexts[i];
-      let results = ctx.results;
-      let found = false;
-      for (let j = 0; j < results.length; j++) {
-        let result = results[j];
-        if (result.id == aMessageId) {
-          found = true;
-          break;
-        }
-        if ((!aMessageList.reverse && (result.timestamp > aTimestamp)) ||
-            (aMessageList.reverse && (result.timestamp < aTimestamp))) {
-          
-          return true;
-        }
-      }
-
-      if (!found) {
-        if (!ctx.processing) {
-          
-          if (results.length) {
-            let lastResult = results[results.length - 1];
-            if ((!aMessageList.reverse && (lastResult.timestamp >= aTimestamp)) ||
-                (aMessageList.reverse && (lastResult.timestamp <= aTimestamp))) {
-              
-              return true;
-            }
-          }
-
-          
-          
-          return this.onNextMessageInMultiFiltersGot(aMessageStore, aMessageList,
-                                                     aContextIndex, 0, 0);
-        }
-
-        
-        contexts[aContextIndex].results.push({
-          id: aMessageId,
-          timestamp: aTimestamp
-        });
-        return true;
-      }
-    }
-
-    
-    this.onNextMessageInListGot(aMessageStore, aMessageList, aMessageId);
-    return true;
-  },
-
-  onNextMessageInMultiNumbersGot: function onNextMessageInMultiNumbersGot(
-      aMessageStore, aMessageList, aContextIndex,
-      aQueueIndex, aMessageId, aTimestamp) {
-
-    if (DEBUG) {
-      debug("onNextMessageInMultiNumbersGot: "
-            + aQueueIndex + ", " + aMessageId + ", " + aTimestamp);
-    }
-    let queues = aMessageList.numberQueues;
-    let q = queues[aQueueIndex];
-    if (aMessageId) {
-      if (!aQueueIndex) {
-        
-        q.results.push({
-          id: aMessageId,
-          timestamp: aTimestamp
-        });
-      } else {
-        
-        q.results.push(aMessageId);
-      }
-      return true;
-    }
-
-    q.processing -= 1;
-    if (queues[0].processing || queues[1].processing) {
-      
-      
-      
-      return false;
-    }
-
-    let tres = queues[0].results;
-    let qres = queues[1].results;
-    tres = tres.filter(function (element) {
-      return qres.indexOf(element.id) != -1;
-    });
-    if (aContextIndex == null) {
-      for (let i = 0; i < tres.length; i++) {
-        this.onNextMessageInListGot(aMessageStore, aMessageList, tres[i].id);
-      }
-      this.onNextMessageInListGot(aMessageStore, aMessageList, 0);
-    } else {
-      for (let i = 0; i < tres.length; i++) {
-        this.onNextMessageInMultiFiltersGot(aMessageStore, aMessageList,
-                                            aContextIndex,
-                                            tres[i].id, tres[i].timestamp);
-      }
-      this.onNextMessageInMultiFiltersGot(aMessageStore, aMessageList,
-                                          aContextIndex, 0, 0);
-    }
-    return false;
   },
 
   findParticipantRecordByAddress: function findParticipantRecordByAddress(
@@ -1494,9 +1270,9 @@ MobileMessageDatabaseService.prototype = {
     }, [MESSAGE_STORE_NAME, THREAD_STORE_NAME]);
   },
 
-  createMessageList: function createMessageList(filter, reverse, aRequest) {
+  createMessageCursor: function createMessageCursor(filter, reverse, callback) {
     if (DEBUG) {
-      debug("Creating a message list. Filters:" +
+      debug("Creating a message cursor. Filters:" +
             " startDate: " + filter.startDate +
             " endDate: " + filter.endDate +
             " delivery: " + filter.delivery +
@@ -1505,359 +1281,16 @@ MobileMessageDatabaseService.prototype = {
             " reverse: " + reverse);
     }
 
+    let cursor = new GetMessagesCursor(this, callback);
+
     let self = this;
-    this.newTxn(READ_ONLY, function (error, txn, stores) {
-      if (error) {
-        
-        if (DEBUG) debug("IDBRequest error " + error.target.errorCode);
-        aRequest.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-        return;
-      }
-
-      let messageStore = stores[0];
-      let participantStore = stores[1];
-
-      let messageList = {
-        listId: -1,
-        reverse: reverse,
-        processing: true,
-        stop: false,
-        
-        contexts: null,
-        
-        numberQueues: null,
-        
-        requestWaiting: aRequest,
-        results: []
-      };
-
-      let onNextMessageInListGotCb =
-        self.onNextMessageInListGot.bind(self, messageStore, messageList);
-
-      let singleFilterSuccessCb = function onsfsuccess(event) {
-        if (messageList.stop) {
-          
-          return;
-        }
-
-        let cursor = event.target.result;
-        
-        
-        if (cursor) {
-          onNextMessageInListGotCb(cursor.primaryKey);
-          cursor.continue();
-        } else {
-          onNextMessageInListGotCb(0);
-        }
-      };
-
-      let singleFilterErrorCb = function onsferror(event) {
-        if (messageList.stop) {
-          
-          return;
-        }
-
-        if (DEBUG && event) debug("IDBRequest error " + event.target.errorCode);
-        onNextMessageInListGotCb(-1);
-      };
-
-      let direction = reverse ? PREV : NEXT;
-
-      
-      
-      if (filter.delivery || filter.numbers || filter.read != undefined) {
-        let multiFiltersGotCb = self.onNextMessageInMultiFiltersGot
-                                    .bind(self, messageStore, messageList);
-
-        let multiFiltersSuccessCb = function onmfsuccess(contextIndex, event) {
-          if (messageList.stop) {
-            
-            return;
-          }
-
-          let cursor = event.target.result;
-          if (cursor) {
-            if (multiFiltersGotCb(contextIndex,
-                                  cursor.primaryKey, cursor.key[1])) {
-              cursor.continue();
-            }
-          } else {
-            multiFiltersGotCb(contextIndex, 0, 0);
-          }
-        };
-
-        let multiFiltersErrorCb = function onmferror(contextIndex, event) {
-          if (messageList.stop) {
-            
-            return;
-          }
-
-          
-          multiFiltersGotCb(contextIndex, 0, 0);
-        };
-
-        
-        
-        let startDate = 0, endDate = "";
-        if (filter.startDate != null) {
-          startDate = filter.startDate.getTime();
-        }
-        if (filter.endDate != null) {
-          endDate = filter.endDate.getTime();
-        }
-
-        let singleFilter;
-        {
-          let numberOfContexts = 0;
-          if (filter.delivery) numberOfContexts++;
-          if (filter.numbers) numberOfContexts++;
-          if (filter.read != undefined) numberOfContexts++;
-          singleFilter = numberOfContexts == 1;
-        }
-
-        if (!singleFilter) {
-          messageList.contexts = [];
-        }
-
-        let numberOfContexts = 0;
-
-        let createRangedRequest = function crr(indexName, key) {
-          let range = IDBKeyRange.bound([key, startDate], [key, endDate]);
-          return messageStore.index(indexName).openKeyCursor(range, direction);
-        };
-
-        let createSimpleRangedRequest = function csrr(indexName, key, contextIndex) {
-          let request = createRangedRequest(indexName, key);
-          if (singleFilter) {
-            request.onsuccess = singleFilterSuccessCb;
-            request.onerror = singleFilterErrorCb;
-          } else {
-            if (contextIndex == null) {
-              contextIndex = numberOfContexts++;
-              messageList.contexts.push({
-                processing: true,
-                results: []
-              });
-            }
-            request.onsuccess = multiFiltersSuccessCb.bind(null, contextIndex);
-            request.onerror = multiFiltersErrorCb.bind(null, contextIndex);
-          }
-        };
-
-        
-        
-        if (filter.delivery) {
-          if (DEBUG) debug("filter.delivery " + filter.delivery);
-          createSimpleRangedRequest("delivery", filter.delivery);
-        }
-
-        
-        
-        if (filter.numbers) {
-          if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
-          let contextIndex;
-          if (!singleFilter) {
-            contextIndex = numberOfContexts++;
-            messageList.contexts.push({
-              processing: true,
-              results: []
-            });
-          }
-          self.findParticipantIdsByAddresses(participantStore, filter.numbers,
-                                             false, true,
-                                             function (participantIds) {
-            if (!participantIds || !participantIds.length) {
-              
-
-              if (messageList.stop) {
-                
-                return;
-              }
-
-              if (singleFilter) {
-                onNextMessageInListGotCb(0);
-              } else {
-                multiFiltersGotCb(contextIndex, 0, 0);
-              }
-              return;
-            }
-
-            if (participantIds.length == 1) {
-              createSimpleRangedRequest("participantIds", participantIds[0],
-                                        contextIndex);
-              return;
-            }
-
-            let multiNumbersGotCb =
-              self.onNextMessageInMultiNumbersGot
-                  .bind(self, messageStore, messageList, contextIndex);
-
-            let multiNumbersSuccessCb = function onmnsuccess(queueIndex, event) {
-              if (messageList.stop) {
-                
-                return;
-              }
-
-              let cursor = event.target.result;
-              if (cursor) {
-                
-                
-                let key = queueIndex ? cursor.key[1] : cursor.key;
-                if (multiNumbersGotCb(queueIndex, cursor.primaryKey, key)) {
-                  cursor.continue();
-                }
-              } else {
-                multiNumbersGotCb(queueIndex, 0, 0);
-              }
-            };
-
-            let multiNumbersErrorCb = function onmnerror(queueIndex, event) {
-              if (messageList.stop) {
-                
-                return;
-              }
-
-              
-              multiNumbersGotCb(queueIndex, 0, 0);
-            };
-
-            messageList.numberQueues = [{
-              
-              processing: 1,
-              results: []
-            }, {
-              
-              processing: participantIds.length,
-              results: []
-            }];
-
-            let timeRange = null;
-            if (filter.startDate != null && filter.endDate != null) {
-              timeRange = IDBKeyRange.bound(filter.startDate.getTime(),
-                                            filter.endDate.getTime());
-            } else if (filter.startDate != null) {
-              timeRange = IDBKeyRange.lowerBound(filter.startDate.getTime());
-            } else if (filter.endDate != null) {
-              timeRange = IDBKeyRange.upperBound(filter.endDate.getTime());
-            }
-
-            let timeRequest = messageStore.index("timestamp")
-                                          .openKeyCursor(timeRange, direction);
-            timeRequest.onsuccess = multiNumbersSuccessCb.bind(null, 0);
-            timeRequest.onerror = multiNumbersErrorCb.bind(null, 0);
-
-            for (let i = 0; i < participantIds.length; i++) {
-              let request = createRangedRequest("participantIds",
-                                                participantIds[i]);
-              request.onsuccess = multiNumbersSuccessCb.bind(null, 1);
-              request.onerror = multiNumbersErrorCb.bind(null, 1);
-            }
-          });
-        }
-
-        
-        
-        if (filter.read != undefined) {
-          let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
-          if (DEBUG) debug("filter.read " + read);
-          createSimpleRangedRequest("read", read);
-        }
-      } else {
-        
-        if (DEBUG) {
-          debug("filter.timestamp " + filter.startDate + ", " + filter.endDate);
-        }
-
-        let range = null;
-        if (filter.startDate != null && filter.endDate != null) {
-          range = IDBKeyRange.bound(filter.startDate.getTime(),
-                                    filter.endDate.getTime());
-        } else if (filter.startDate != null) {
-          range = IDBKeyRange.lowerBound(filter.startDate.getTime());
-        } else if (filter.endDate != null) {
-          range = IDBKeyRange.upperBound(filter.endDate.getTime());
-        }
-
-        let request = messageStore.index("timestamp").openKeyCursor(range, direction);
-        request.onsuccess = singleFilterSuccessCb;
-        request.onerror = singleFilterErrorCb;
-      }
-
-      if (DEBUG) {
-        txn.oncomplete = function oncomplete(event) {
-          debug("Transaction " + txn + " completed.");
-        };
-      }
-
-      txn.onerror = singleFilterErrorCb;
+    self.newTxn(READ_ONLY, function (error, txn, stores) {
+      let collector = cursor.collector;
+      let collect = collector.collect.bind(collector);
+      FilterSearcherHelper.transact(self, txn, error, filter, reverse, collect);
     }, [MESSAGE_STORE_NAME, PARTICIPANT_STORE_NAME]);
-  },
 
-  getNextMessageInList: function getNextMessageInList(listId, aRequest) {
-    if (DEBUG) debug("Getting next message in list " + listId);
-    let messageId;
-    let list = this.messageLists[listId];
-    if (!list) {
-      if (DEBUG) debug("Wrong list id");
-      aRequest.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR);
-      return;
-    }
-    if (list.processing) {
-      
-      
-      if (list.requestWaiting) {
-        if (DEBUG) debug("Already waiting for another request!");
-        return;
-      }
-      list.requestWaiting = aRequest;
-      return;
-    }
-    if (!list.results.length) {
-      if (DEBUG) debug("Reached the end of the list!");
-      aRequest.notifyNoMessageInList();
-      return;
-    }
-    if (list.results[0] < 0) {
-      aRequest.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-      return;
-    }
-    messageId = list.results.shift();
-    let self = this;
-    this.newTxn(READ_ONLY, function (error, txn, messageStore) {
-      if (DEBUG) debug("Fetching message " + messageId);
-      let request = messageStore.get(messageId);
-      let messageRecord;
-      request.onsuccess = function onsuccess(event) {
-        messageRecord = request.result;
-      };
-
-      txn.oncomplete = function oncomplete(event) {
-        if (DEBUG) debug("Transaction " + txn + " completed.");
-        if (!messageRecord) {
-          if (DEBUG) debug("Could not get message id " + messageId);
-          aRequest.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.NOT_FOUND_ERROR);
-        }
-        let domMessage = self.createDomMessageFromRecord(messageRecord);
-        aRequest.notifyNextMessageInListGot(domMessage);
-      };
-
-      txn.onerror = function onerror(event) {
-        
-        if (DEBUG) {
-          debug("Error retrieving message id: " + messageId +
-                ". Error code: " + event.target.errorCode);
-        }
-        aRequest.notifyReadMessageListFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
-      };
-    });
-  },
-
-  clearMessageList: function clearMessageList(listId) {
-    if (DEBUG) debug("Clearing message list: " + listId);
-    if (this.messageLists[listId]) {
-      this.messageLists[listId].stop = true;
-      delete this.messageLists[listId];
-    }
+    return cursor;
   },
 
   markMessageRead: function markMessageRead(messageId, value, aRequest) {
@@ -1955,6 +1388,566 @@ MobileMessageDatabaseService.prototype = {
         aRequest.notifyThreadList(results);
       };
     }, [THREAD_STORE_NAME]);
+  }
+};
+
+let FilterSearcherHelper = {
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  filterIndex: function filterIndex(index, range, direction, txn, collect) {
+    let messageStore = txn.objectStore(MESSAGE_STORE_NAME);
+    let request = messageStore.index(index).openKeyCursor(range, direction);
+    request.onsuccess = function onsuccess(event) {
+      let cursor = event.target.result;
+      
+      
+      if (cursor) {
+        let timestamp = Array.isArray(cursor.key) ? cursor.key[1] : cursor.key;
+        if (collect(txn, cursor.primaryKey, timestamp)) {
+          cursor.continue();
+        }
+      } else {
+        collect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+      }
+    };
+    request.onerror = function onerror(event) {
+      if (DEBUG && event) debug("IDBRequest error " + event.target.errorCode);
+      collect(txn, COLLECT_ID_ERROR, COLLECT_TIMESTAMP_UNUSED);
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  filterTimestamp: function filterTimestamp(startDate, endDate, direction, txn,
+                                            collect) {
+    let range = null;
+    if (startDate != null && endDate != null) {
+      range = IDBKeyRange.bound(startDate.getTime(), endDate.getTime());
+    } else if (startDate != null) {
+      range = IDBKeyRange.lowerBound(startDate.getTime());
+    } else if (endDate != null) {
+      range = IDBKeyRange.upperBound(endDate.getTime());
+    }
+    this.filterIndex("timestamp", range, direction, txn, collect);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  transact: function transact(service, txn, error, filter, reverse, collect) {
+    if (error) {
+      
+      if (DEBUG) debug("IDBRequest error " + error.target.errorCode);
+      collect(txn, COLLECT_ID_ERROR, COLLECT_TIMESTAMP_UNUSED);
+      return;
+    }
+
+    let direction = reverse ? PREV : NEXT;
+
+    
+    
+    if (filter.delivery == null &&
+        filter.numbers == null &&
+        filter.read == null) {
+      
+      if (DEBUG) {
+        debug("filter.timestamp " + filter.startDate + ", " + filter.endDate);
+      }
+
+      this.filterTimestamp(filter.startDate, filter.endDate, direction, txn,
+                           collect);
+      return;
+    }
+
+    
+    
+    let startDate = 0, endDate = "";
+    if (filter.startDate != null) {
+      startDate = filter.startDate.getTime();
+    }
+    if (filter.endDate != null) {
+      endDate = filter.endDate.getTime();
+    }
+
+    let single, intersectionCollector;
+    {
+      let num = 0;
+      if (filter.delivery) num++;
+      if (filter.numbers) num++;
+      if (filter.read != undefined) num++;
+      single = (num == 1);
+    }
+
+    if (!single) {
+      intersectionCollector = new IntersectionResultsCollector(collect, reverse);
+    }
+
+    
+    
+    if (filter.delivery) {
+      if (DEBUG) debug("filter.delivery " + filter.delivery);
+      let delivery = filter.delivery;
+      let range = IDBKeyRange.bound([delivery, startDate], [delivery, endDate]);
+      this.filterIndex("delivery", range, direction, txn,
+                       single ? collect : intersectionCollector.newContext());
+    }
+
+    
+    
+    if (filter.read != undefined) {
+      if (DEBUG) debug("filter.read " + filter.read);
+      let read = filter.read ? FILTER_READ_READ : FILTER_READ_UNREAD;
+      let range = IDBKeyRange.bound([read, startDate], [read, endDate]);
+      this.filterIndex("read", range, direction, txn,
+                       single ? collect : intersectionCollector.newContext());
+    }
+
+    
+    
+    if (filter.numbers) {
+      if (DEBUG) debug("filter.numbers " + filter.numbers.join(", "));
+
+      if (!single) {
+        collect = intersectionCollector.newContext();
+      }
+
+      let participantStore = txn.objectStore(PARTICIPANT_STORE_NAME);
+      service.findParticipantIdsByAddresses(participantStore, filter.numbers,
+                                            false, true,
+                                            (function (participantIds) {
+        if (!participantIds || !participantIds.length) {
+          
+
+          collect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+          return;
+        }
+
+        if (participantIds.length == 1) {
+          let id = participantIds[0];
+          let range = IDBKeyRange.bound([id, startDate], [id, endDate]);
+          this.filterIndex("participantIds", range, direction, txn, collect);
+          return;
+        }
+
+        let unionCollector = new UnionResultsCollector(collect);
+
+        this.filterTimestamp(filter.startDate, filter.endDate, direction, txn,
+                             unionCollector.newTimestampContext());
+
+        for (let i = 0; i < participantIds.length; i++) {
+          let id = participantIds[i];
+          let range = IDBKeyRange.bound([id, startDate], [id, endDate]);
+          this.filterIndex("participantIds", range, direction, txn,
+                           unionCollector.newContext());
+        }
+      }).bind(this));
+    }
+  }
+};
+
+function ResultsCollector() {
+  this.results = [];
+  this.done = false;
+}
+ResultsCollector.prototype = {
+  results: null,
+  requestWaiting: null,
+  done: null,
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  collect: function collect(txn, id, timestamp) {
+    if (this.done) {
+      return false;
+    }
+
+    if (DEBUG) {
+      debug("collect: message ID = " + id);
+    }
+    if (id) {
+      
+      this.results.push(id);
+    }
+    if (id <= 0) {
+      
+      this.done = true;
+    }
+
+    if (!this.requestWaiting) {
+      if (DEBUG) debug("Cursor.continue() not called yet");
+      return !this.done;
+    }
+
+    
+    
+    
+    
+    let callback = this.requestWaiting;
+    this.requestWaiting = null;
+
+    this.drip(txn, callback);
+
+    return !this.done;
+  },
+
+  
+
+
+
+
+
+
+  squeeze: function squeeze(callback) {
+    if (this.requestWaiting) {
+      throw new Error("Already waiting for another request!");
+    }
+
+    if (!this.done) {
+      
+      
+      this.requestWaiting = callback;
+      return;
+    }
+
+    this.drip(null, callback);
+  },
+
+  
+
+
+
+
+
+  drip: function drip(txn, callback) {
+    if (!this.results.length) {
+      if (DEBUG) debug("No messages matching the filter criteria");
+      callback(txn, COLLECT_ID_END);
+      return;
+    }
+
+    if (this.results[0] < 0) {
+      
+      
+      if (DEBUG) debug("An previous error found");
+      callback(txn, COLLECT_ID_ERROR);
+      return;
+    }
+
+    let firstMessageId = this.results.shift();
+    callback(txn, firstMessageId);
+  }
+};
+
+function IntersectionResultsCollector(collect, reverse) {
+  this.cascadedCollect = collect;
+  this.reverse = reverse;
+  this.contexts = [];
+}
+IntersectionResultsCollector.prototype = {
+  cascadedCollect: null,
+  reverse: false,
+  contexts: null,
+
+  
+
+
+
+  collect: function collect(contextIndex, txn, id, timestamp) {
+    if (DEBUG) {
+      debug("IntersectionResultsCollector: "
+            + contextIndex + ", " + id + ", " + timestamp);
+    }
+
+    let contexts = this.contexts;
+    let context = contexts[contextIndex];
+
+    if (id < 0) {
+      
+      id = 0;
+    }
+    if (!id) {
+      context.done = true;
+
+      if (!context.results.length) {
+        
+        return this.cascadedCollect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+      }
+
+      for (let i = 0; i < contexts.length; i++) {
+        if (!contexts[i].done) {
+          
+          
+          return false;
+        }
+      }
+
+      
+      return this.cascadedCollect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+    }
+
+    
+    
+    
+    
+    
+    for (let i = 0; i < contexts.length; i++) {
+      if (i == contextIndex) {
+        continue;
+      }
+
+      let ctx = contexts[i];
+      let results = ctx.results;
+      let found = false;
+      for (let j = 0; j < results.length; j++) {
+        let result = results[j];
+        if (result.id == id) {
+          found = true;
+          break;
+        }
+        if ((!this.reverse && (result.timestamp > timestamp)) ||
+            (this.reverse && (result.timestamp < timestamp))) {
+          
+          return true;
+        }
+      }
+
+      if (!found) {
+        if (ctx.done) {
+          
+          if (results.length) {
+            let lastResult = results[results.length - 1];
+            if ((!this.reverse && (lastResult.timestamp >= timestamp)) ||
+                (this.reverse && (lastResult.timestamp <= timestamp))) {
+              
+              return true;
+            }
+          }
+
+          
+          
+          context.done = true;
+          return this.cascadedCollect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+        }
+
+        
+        context.results.push({
+          id: id,
+          timestamp: timestamp
+        });
+        return true;
+      }
+    }
+
+    
+    return this.cascadedCollect(txn, id, timestamp);
+  },
+
+  newContext: function newContext() {
+    let contextIndex = this.contexts.length;
+    this.contexts.push({
+      results: [],
+      done: false
+    });
+    return this.collect.bind(this, contextIndex);
+  }
+};
+
+function UnionResultsCollector(collect) {
+  this.cascadedCollect = collect;
+  this.contexts = [{
+    
+    processing: 1,
+    results: []
+  }, {
+    processing: 0,
+    results: []
+  }];
+}
+UnionResultsCollector.prototype = {
+  cascadedCollect: null,
+  contexts: null,
+
+  collect: function collect(contextIndex, txn, id, timestamp) {
+    if (DEBUG) {
+      debug("UnionResultsCollector: "
+            + contextIndex + ", " + id + ", " + timestamp);
+    }
+
+    let contexts = this.contexts;
+    let context = contexts[contextIndex];
+
+    if (id < 0) {
+      
+      id = 0;
+    }
+    if (id) {
+      if (!contextIndex) {
+        
+        context.results.push({
+          id: id,
+          timestamp: timestamp
+        });
+      } else {
+        context.results.push(id);
+      }
+      return true;
+    }
+
+    context.processing -= 1;
+    if (contexts[0].processing || contexts[1].processing) {
+      
+      
+      
+      return false;
+    }
+
+    let tres = contexts[0].results;
+    let qres = contexts[1].results;
+    tres = tres.filter(function (element) {
+      return qres.indexOf(element.id) != -1;
+    });
+
+    for (let i = 0; i < tres.length; i++) {
+      this.cascadedCollect(txn, tres[i].id, tres[i.timestamp]);
+    }
+    this.cascadedCollect(txn, COLLECT_ID_END, COLLECT_TIMESTAMP_UNUSED);
+
+    return false;
+  },
+
+  newTimestampContext: function newTimestampContext() {
+    return this.collect.bind(this, 0);
+  },
+
+  newContext: function newContext() {
+    this.contexts[1].processing++;
+    return this.collect.bind(this, 1);
+  }
+};
+
+function GetMessagesCursor(service, callback) {
+  this.service = service;
+  this.callback = callback;
+  this.collector = new ResultsCollector();
+
+  this.handleContinue(); 
+}
+GetMessagesCursor.prototype = {
+  classID: RIL_GETMESSAGESCURSOR_CID,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsICursorContinueCallback]),
+
+  service: null,
+  callback: null,
+  collector: null,
+
+  getMessageTxn: function getMessageTxn(messageStore, messageId) {
+    if (DEBUG) debug ("Fetching message " + messageId);
+
+    let getRequest = messageStore.get(messageId);
+    let self = this;
+    getRequest.onsuccess = function onsuccess(event) {
+      if (DEBUG) {
+        debug("notifyNextMessageInListGot - messageId: " + messageId);
+      }
+      let domMessage =
+        self.service.createDomMessageFromRecord(event.target.result);
+      self.callback.notifyCursorResult(domMessage);
+    };
+    getRequest.onerror = function onerror(event) {
+      if (DEBUG) {
+        debug("notifyCursorError - messageId: " + messageId);
+      }
+      self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+    };
+  },
+
+  notify: function notify(txn, messageId) {
+    if (!messageId) {
+      this.callback.notifyCursorDone();
+      return;
+    }
+
+    if (messageId < 0) {
+      this.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+      return;
+    }
+
+    
+    
+    if (txn) {
+      let messageStore = txn.objectStore(MESSAGE_STORE_NAME);
+      this.getMessageTxn(messageStore, messageId);
+      return;
+    }
+
+    
+    let self = this;
+    this.service.newTxn(READ_ONLY, function (error, txn, messageStore) {
+      if (error) {
+        self.callback.notifyCursorError(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
+      self.getMessageTxn(messageStore, messageId);
+    }, [MESSAGE_STORE_NAME]);
+  },
+
+  
+
+  handleContinue: function handleContinue() {
+    if (DEBUG) debug("Getting next message in list");
+    this.collector.squeeze(this.notify.bind(this));
   }
 };
 
