@@ -463,6 +463,10 @@ XPCCallContext::UnwrapThisIfAllowed(JSObject *object, JSObject *fun, unsigned ar
     MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
 
     
+    if (!fun)
+        return nullptr;
+
+    
     
     
     
