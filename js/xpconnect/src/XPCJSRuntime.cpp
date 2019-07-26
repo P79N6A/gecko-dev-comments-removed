@@ -2925,6 +2925,31 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    const size_t kSystemCodeBuffer = 10 * 1024;
+
+    
+    
+    
     const size_t kDefaultStackQuota = 128 * sizeof(size_t) * 1024;
 
     
@@ -2933,29 +2958,45 @@ XPCJSRuntime::XPCJSRuntime(nsXPConnect* aXPConnect)
 
 #if defined(XP_MACOSX) || defined(DARWIN)
     
+    
     const size_t kStackQuota = 7 * 1024 * 1024;
+    const size_t kTrustedScriptBuffer = 120 * 1024;
 #elif defined(MOZ_ASAN)
     
     
+    
+    
+    
+    
     const size_t kStackQuota =  2 * kDefaultStackQuota;
+    const size_t kTrustedScriptBuffer = 164 * 1024;
 #elif defined(XP_WIN)
     
     
+    
     const size_t kStackQuota = 900 * 1024;
+    const size_t kTrustedScriptBuffer = 40 * 1024;
+    
+    
 #elif defined(DEBUG)
     
     
     
     const size_t kStackQuota = 2 * kDefaultStackQuota;
+    const size_t kTrustedScriptBuffer = sizeof(size_t) * 12800;
 #else
     const size_t kStackQuota = kDefaultStackQuota;
+    const size_t kTrustedScriptBuffer = sizeof(size_t) * 12800;
 #endif
 
     
     
     (void) kDefaultStackQuota;
 
-    JS_SetNativeStackQuota(runtime, kStackQuota);
+    JS_SetNativeStackQuota(runtime,
+                           kStackQuota,
+                           kStackQuota - kSystemCodeBuffer,
+                           kStackQuota - kSystemCodeBuffer - kTrustedScriptBuffer);
 
     JS_SetDestroyCompartmentCallback(runtime, CompartmentDestroyedCallback);
     JS_SetCompartmentNameCallback(runtime, CompartmentNameCallback);
