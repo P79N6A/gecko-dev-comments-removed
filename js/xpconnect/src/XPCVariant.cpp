@@ -110,23 +110,20 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(XPCVariant)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 
-XPCVariant* XPCVariant::newVariant(JSContext* cx, jsval aJSVal)
+already_AddRefed<XPCVariant>
+XPCVariant::newVariant(JSContext* cx, jsval aJSVal)
 {
-    XPCVariant* variant;
+    nsRefPtr<XPCVariant> variant;
 
     if (!JSVAL_IS_TRACEABLE(aJSVal))
         variant = new XPCVariant(cx, aJSVal);
     else
         variant = new XPCTraceableVariant(cx, aJSVal);
 
-    if (!variant)
-        return nullptr;
-    NS_ADDREF(variant);
-
     if (!variant->InitializeData(cx))
-        NS_RELEASE(variant);     
+        return nullptr;
 
-    return variant;
+    return variant.forget();
 }
 
 
