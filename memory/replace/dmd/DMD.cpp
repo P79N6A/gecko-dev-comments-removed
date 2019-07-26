@@ -2348,8 +2348,9 @@ RunTestMode(FILE* fp)
   
   
   
-  char* e3 = (char*) realloc(nullptr, 1024);
-  e3 = (char*) realloc(e3, 0);
+  
+  char* e3 = (char*) realloc(nullptr, 1023);
+
   MOZ_ASSERT(e3);
   Report(e3);
 
