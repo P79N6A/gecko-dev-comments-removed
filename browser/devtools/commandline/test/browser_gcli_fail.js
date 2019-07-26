@@ -11,6 +11,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 var exports = {};
 
 const TEST_URI = "data:text/html;charset=utf-8,<p id='gcli-input'>gcli-testFail.js</p>";
@@ -27,22 +37,13 @@ function test() {
 
 
 
-var cli = require('gcli/cli');
-
-var origLogErrors = undefined;
 
 exports.setup = function(options) {
   mockCommands.setup();
-
-  origLogErrors = cli.logErrors;
-  cli.logErrors = false;
 };
 
 exports.shutdown = function(options) {
   mockCommands.shutdown();
-
-  cli.logErrors = origLogErrors;
-  origLogErrors = undefined;
 };
 
 exports.testBasic = function(options) {

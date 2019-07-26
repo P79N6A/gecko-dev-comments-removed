@@ -51,126 +51,120 @@ var Event = Components.interfaces.nsIDOMEvent;
 
 
 
-var mozl10n = {};
+define('gcli/index', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/api', 'gcli/types/selection', 'gcli/types/delegate', 'gcli/types/array', 'gcli/types/boolean', 'gcli/types/command', 'gcli/types/date', 'gcli/types/file', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/number', 'gcli/types/resource', 'gcli/types/setting', 'gcli/types/string', 'gcli/converters', 'gcli/converters/basic', 'gcli/converters/terminal', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/ui/ffdisplay'], function(require, exports, module) {
 
-(function(aMozl10n) {
+'use strict';
 
-  'use strict';
+require('gcli/settings').startup();
 
-  var temp = {};
-  Components.utils.import("resource://gre/modules/Services.jsm", temp);
+var api = require('gcli/api');
+api.populateApi(exports);
 
-  var stringBundle;
-  try {
-    stringBundle = temp.Services.strings.createBundle(
-            "chrome://browser/locale/devtools/gclicommands.properties");
-  }
-  catch (ex) {
-    console.error("Using string fallbacks");
-    stringBundle = {
-      GetStringFromName: function(name) { return name; },
-      formatStringFromName: function(name) { return name; }
-    };
-  }
+exports.addItems(require('gcli/types/selection').items);
+exports.addItems(require('gcli/types/delegate').items);
+
+exports.addItems(require('gcli/types/array').items);
+exports.addItems(require('gcli/types/boolean').items);
+exports.addItems(require('gcli/types/command').items);
+exports.addItems(require('gcli/types/date').items);
+exports.addItems(require('gcli/types/file').items);
+exports.addItems(require('gcli/types/javascript').items);
+exports.addItems(require('gcli/types/node').items);
+exports.addItems(require('gcli/types/number').items);
+exports.addItems(require('gcli/types/resource').items);
+exports.addItems(require('gcli/types/setting').items);
+exports.addItems(require('gcli/types/string').items);
+
+exports.addItems(require('gcli/converters').items);
+exports.addItems(require('gcli/converters/basic').items);
+
+
+exports.addItems(require('gcli/converters/terminal').items);
+
+exports.addItems(require('gcli/ui/intro').items);
+exports.addItems(require('gcli/ui/focus').items);
+
+exports.addItems(require('gcli/ui/fields/basic').items);
+exports.addItems(require('gcli/ui/fields/javascript').items);
+exports.addItems(require('gcli/ui/fields/selection').items);
+
+
+
+
+exports.addItems(require('gcli/commands/connect').items);
+exports.addItems(require('gcli/commands/context').items);
+exports.addItems(require('gcli/commands/help').items);
+exports.addItems(require('gcli/commands/pref').items);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.createDisplay = function(opts) {
+  var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
+  return new FFDisplay(opts);
+};
+
+var prefSvc = Components.classes['@mozilla.org/preferences-service;1']
+                        .getService(Components.interfaces.nsIPrefService);
+var prefBranch = prefSvc.getBranch(null)
+                        .QueryInterface(Components.interfaces.nsIPrefBranch2);
+
+exports.hiddenByChromePref = function() {
+  return !prefBranch.prefHasUserValue('devtools.chrome.enabled');
+};
+
+
+try {
+  var Services = Components.utils.import("resource://gre/modules/Services.jsm", {}).Services;
+  var stringBundle = Services.strings.createBundle(
+          'chrome://browser/locale/devtools/gclicommands.properties');
 
   
 
 
-
-
-  aMozl10n.lookup = function(name) {
+  exports.lookup = function(name) {
     try {
       return stringBundle.GetStringFromName(name);
     }
     catch (ex) {
-      throw new Error("Failure in lookup('" + name + "')");
+      throw new Error('Failure in lookup(\'' + name + '\')');
     }
   };
 
   
 
 
-
-
-
-  aMozl10n.lookupFormat = function(name, swaps) {
+  exports.lookupFormat = function(name, swaps) {
     try {
       return stringBundle.formatStringFromName(name, swaps, swaps.length);
     }
     catch (ex) {
-      throw new Error("Failure in lookupFormat('" + name + "')");
+      throw new Error('Failure in lookupFormat(\'' + name + '\')');
     }
   };
+}
+catch (ex) {
+  console.error('Using string fallbacks', ex);
 
-})(mozl10n);
-
-define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli/types/selection', 'gcli/types/command', 'gcli/types/date', 'gcli/types/javascript', 'gcli/types/node', 'gcli/types/resource', 'gcli/types/setting', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/focus', 'gcli/ui/fields/basic', 'gcli/ui/fields/javascript', 'gcli/ui/fields/selection', 'gcli/commands/connect', 'gcli/commands/context', 'gcli/commands/help', 'gcli/commands/pref', 'gcli/canon', 'gcli/converters', 'gcli/types', 'gcli/ui/ffdisplay'], function(require, exports, module) {
-
-  'use strict';
-
-  
-  
-  require('gcli/types/basic').startup();
-  require('gcli/types/selection').startup();
-
-  require('gcli/types/command').startup();
-  require('gcli/types/date').startup();
-  require('gcli/types/javascript').startup();
-  require('gcli/types/node').startup();
-  require('gcli/types/resource').startup();
-  require('gcli/types/setting').startup();
-
-  require('gcli/settings').startup();
-  require('gcli/ui/intro').startup();
-  require('gcli/ui/focus').startup();
-  require('gcli/ui/fields/basic').startup();
-  require('gcli/ui/fields/javascript').startup();
-  require('gcli/ui/fields/selection').startup();
-
-  require('gcli/commands/connect').startup();
-  require('gcli/commands/context').startup();
-  require('gcli/commands/help').startup();
-  require('gcli/commands/pref').startup();
-
-  var Cc = Components.classes;
-  var Ci = Components.interfaces;
-  var prefSvc = "@mozilla.org/preferences-service;1";
-  var prefService = Cc[prefSvc].getService(Ci.nsIPrefService);
-  var prefBranch = prefService.getBranch(null).QueryInterface(Ci.nsIPrefBranch2);
-
-  
-  exports.addCommand = require('gcli/canon').addCommand;
-  exports.removeCommand = require('gcli/canon').removeCommand;
-  exports.addConverter = require('gcli/converters').addConverter;
-  exports.removeConverter = require('gcli/converters').removeConverter;
-  exports.addType = require('gcli/types').addType;
-  exports.removeType = require('gcli/types').removeType;
-
-  exports.lookup = mozl10n.lookup;
-  exports.lookupFormat = mozl10n.lookupFormat;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  exports.createDisplay = function(opts) {
-    var FFDisplay = require('gcli/ui/ffdisplay').FFDisplay;
-    return new FFDisplay(opts);
+  exports.lookup = function(name) {
+    return name;
   };
-
-  exports.hiddenByChromePref = function() {
-    return !prefBranch.prefHasUserValue("devtools.chrome.enabled");
+  exports.lookupFormat = function(name, swaps) {
+    return name;
   };
+}
+
 
 });
 
@@ -189,360 +183,80 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
 
 
 
-define('gcli/types/basic', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/types', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
+define('gcli/settings', ['require', 'exports', 'module' , 'util/util', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
 
-var promise = require('util/promise');
+var imports = {};
+
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm', imports);
+
+imports.XPCOMUtils.defineLazyGetter(imports, 'prefBranch', function() {
+  var prefService = Components.classes['@mozilla.org/preferences-service;1']
+          .getService(Components.interfaces.nsIPrefService);
+  return prefService.getBranch(null)
+          .QueryInterface(Components.interfaces.nsIPrefBranch2);
+});
+
+imports.XPCOMUtils.defineLazyGetter(imports, 'supportsString', function() {
+  return Components.classes["@mozilla.org/supports-string;1"]
+          .createInstance(Components.interfaces.nsISupportsString);
+});
+
+
 var util = require('util/util');
-var l10n = require('util/l10n');
 var types = require('gcli/types');
-var Type = require('gcli/types').Type;
-var Status = require('gcli/types').Status;
-var Conversion = require('gcli/types').Conversion;
-var ArrayConversion = require('gcli/types').ArrayConversion;
-var SelectionType = require('gcli/types/selection').SelectionType;
 
-var BlankArgument = require('gcli/argument').BlankArgument;
-var ArrayArgument = require('gcli/argument').ArrayArgument;
+
+
+
+var DEVTOOLS_PREFIX = 'devtools.gcli.';
 
 
 
 
 
-exports.startup = function() {
-  types.addType(StringType);
-  types.addType(NumberType);
-  types.addType(BooleanType);
-  types.addType(BlankType);
-  types.addType(DelegateType);
-  types.addType(ArrayType);
-};
-
-exports.shutdown = function() {
-  types.removeType(StringType);
-  types.removeType(NumberType);
-  types.removeType(BooleanType);
-  types.removeType(BlankType);
-  types.removeType(DelegateType);
-  types.removeType(ArrayType);
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function StringType(typeSpec) {
-  this._allowBlank = !!typeSpec.allowBlank;
-}
-
-StringType.prototype = Object.create(Type.prototype);
-
-StringType.prototype.stringify = function(value, context) {
-  if (value == null) {
-    return '';
-  }
-
-  return value
-       .replace(/\\/g, '\\\\')
-       .replace(/\f/g, '\\f')
-       .replace(/\n/g, '\\n')
-       .replace(/\r/g, '\\r')
-       .replace(/\t/g, '\\t')
-       .replace(/\v/g, '\\v')
-       .replace(/\n/g, '\\n')
-       .replace(/\r/g, '\\r')
-       .replace(/ /g, '\\ ')
-       .replace(/'/g, '\\\'')
-       .replace(/"/g, '\\"')
-       .replace(/{/g, '\\{')
-       .replace(/}/g, '\\}');
-};
-
-StringType.prototype.parse = function(arg, context) {
-  if (!this._allowBlank && (arg.text == null || arg.text === '')) {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
-  }
-
-  
-  
-  
-  
-
-  var value = arg.text
-       .replace(/\\\\/g, '\uF000')
-       .replace(/\\f/g, '\f')
-       .replace(/\\n/g, '\n')
-       .replace(/\\r/g, '\r')
-       .replace(/\\t/g, '\t')
-       .replace(/\\v/g, '\v')
-       .replace(/\\n/g, '\n')
-       .replace(/\\r/g, '\r')
-       .replace(/\\ /g, ' ')
-       .replace(/\\'/g, '\'')
-       .replace(/\\"/g, '"')
-       .replace(/\\{/g, '{')
-       .replace(/\\}/g, '}')
-       .replace(/\uF000/g, '\\');
-
-  return promise.resolve(new Conversion(value, arg));
-};
-
-StringType.prototype.name = 'string';
-
-exports.StringType = StringType;
-
-
-
-
-
-function NumberType(typeSpec) {
-  
-  this._allowFloat = !!typeSpec.allowFloat;
-
-  if (typeSpec) {
-    this._min = typeSpec.min;
-    this._max = typeSpec.max;
-    this._step = typeSpec.step || 1;
-
-    if (!this._allowFloat &&
-        (this._isFloat(this._min) ||
-         this._isFloat(this._max) ||
-         this._isFloat(this._step))) {
-      throw new Error('allowFloat is false, but non-integer values given in type spec');
-    }
+function Setting(prefSpec) {
+  if (typeof prefSpec === 'string') {
+    
+    this.name = prefSpec;
+    this.description = '';
   }
   else {
-    this._step = 1;
-  }
-}
+    
+    this.name = DEVTOOLS_PREFIX + prefSpec.name;
 
-NumberType.prototype = Object.create(Type.prototype);
-
-NumberType.prototype.stringify = function(value, context) {
-  if (value == null) {
-    return '';
-  }
-  return '' + value;
-};
-
-NumberType.prototype.getMin = function(context) {
-  if (this._min) {
-    if (typeof this._min === 'function') {
-      return this._min(context);
+    if (prefSpec.ignoreTypeDifference !== true && prefSpec.type) {
+      if (this.type.name !== prefSpec.type) {
+        throw new Error('Locally declared type (' + prefSpec.type + ') != ' +
+            'Mozilla declared type (' + this.type.name + ') for ' + this.name);
+      }
     }
-    if (typeof this._min === 'number') {
-      return this._min;
-    }
-  }
-  return undefined;
-};
 
-NumberType.prototype.getMax = function(context) {
-  if (this._max) {
-    if (typeof this._max === 'function') {
-      return this._max(context);
-    }
-    if (typeof this._max === 'number') {
-      return this._max;
-    }
-  }
-  return undefined;
-};
-
-NumberType.prototype.parse = function(arg, context) {
-  if (arg.text.replace(/^\s*-?/, '').length === 0) {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
+    this.description = prefSpec.description;
   }
 
-  if (!this._allowFloat && (arg.text.indexOf('.') !== -1)) {
-    var message = l10n.lookupFormat('typesNumberNotInt2', [ arg.text ]);
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-  }
-
-  var value;
-  if (this._allowFloat) {
-    value = parseFloat(arg.text);
-  }
-  else {
-    value = parseInt(arg.text, 10);
-  }
-
-  if (isNaN(value)) {
-    var message = l10n.lookupFormat('typesNumberNan', [ arg.text ]);
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-  }
-
-  var max = this.getMax(context);
-  if (max != null && value > max) {
-    var message = l10n.lookupFormat('typesNumberMax', [ value, max ]);
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-  }
-
-  var min = this.getMin(context);
-  if (min != null && value < min) {
-    var message = l10n.lookupFormat('typesNumberMin', [ value, min ]);
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-  }
-
-  return promise.resolve(new Conversion(value, arg));
-};
-
-NumberType.prototype.decrement = function(value, context) {
-  if (typeof value !== 'number' || isNaN(value)) {
-    return this.getMax(context) || 1;
-  }
-  var newValue = value - this._step;
-  
-  newValue = Math.ceil(newValue / this._step) * this._step;
-  return this._boundsCheck(newValue, context);
-};
-
-NumberType.prototype.increment = function(value, context) {
-  if (typeof value !== 'number' || isNaN(value)) {
-    var min = this.getMin(context);
-    return min != null ? min : 0;
-  }
-  var newValue = value + this._step;
-  
-  newValue = Math.floor(newValue / this._step) * this._step;
-  if (this.getMax(context) == null) {
-    return newValue;
-  }
-  return this._boundsCheck(newValue, context);
-};
-
-
-
-
-
-
-NumberType.prototype._boundsCheck = function(value, context) {
-  var min = this.getMin(context);
-  if (min != null && value < min) {
-    return min;
-  }
-  var max = this.getMax(context);
-  if (max != null && value > max) {
-    return max;
-  }
-  return value;
-};
-
-
-
-
-
-NumberType.prototype._isFloat = function(value) {
-  return ((typeof value === 'number') && isFinite(value) && (value % 1 !== 0));
-};
-
-NumberType.prototype.name = 'number';
-
-exports.NumberType = NumberType;
-
-
-
-
-
-function BooleanType(typeSpec) {
-}
-
-BooleanType.prototype = Object.create(SelectionType.prototype);
-
-BooleanType.prototype.lookup = [
-  { name: 'false', value: false },
-  { name: 'true', value: true }
-];
-
-BooleanType.prototype.parse = function(arg, context) {
-  if (arg.type === 'TrueNamedArgument') {
-    return promise.resolve(new Conversion(true, arg));
-  }
-  if (arg.type === 'FalseNamedArgument') {
-    return promise.resolve(new Conversion(false, arg));
-  }
-  return SelectionType.prototype.parse.call(this, arg, context);
-};
-
-BooleanType.prototype.stringify = function(value, context) {
-  if (value == null) {
-    return '';
-  }
-  return '' + value;
-};
-
-BooleanType.prototype.getBlank = function(context) {
-  return new Conversion(false, new BlankArgument(), Status.VALID, '',
-                        promise.resolve(this.lookup));
-};
-
-BooleanType.prototype.name = 'boolean';
-
-exports.BooleanType = BooleanType;
-
-
-
-
-
-function DelegateType(typeSpec) {
-  if (typeof typeSpec.delegateType !== 'function') {
-    throw new Error('Instances of DelegateType need typeSpec.delegateType to be a function that returns a type');
-  }
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
-  }, this);
+  this.onChange = util.createEvent('Setting.onChange');
 }
 
 
 
 
-
-
-
-
-
-
-DelegateType.prototype.delegateType = function(context) {
-  throw new Error('Not implemented');
-};
-
-DelegateType.prototype = Object.create(Type.prototype);
-
-DelegateType.prototype.stringify = function(value, context) {
-  return this.delegateType(context).stringify(value, context);
-};
-
-DelegateType.prototype.parse = function(arg, context) {
-  return this.delegateType(context).parse(arg, context);
-};
-
-DelegateType.prototype.decrement = function(value, context) {
-  var delegated = this.delegateType(context);
-  return (delegated.decrement ? delegated.decrement(value, context) : undefined);
-};
-
-DelegateType.prototype.increment = function(value, context) {
-  var delegated = this.delegateType(context);
-  return (delegated.increment ? delegated.increment(value, context) : undefined);
-};
-
-DelegateType.prototype.getType = function(context) {
-  return this.delegateType(context);
-};
-
-Object.defineProperty(DelegateType.prototype, 'isImportant', {
+Object.defineProperty(Setting.prototype, 'type', {
   get: function() {
-    return this.delegateType().isImportant;
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return types.createType('boolean');
+
+      case imports.prefBranch.PREF_INT:
+        return types.createType('number');
+
+      case imports.prefBranch.PREF_STRING:
+        return types.createType('string');
+
+      default:
+        throw new Error('Unknown type for ' + this.name);
+    }
   },
   enumerable: true
 });
@@ -550,99 +264,163 @@ Object.defineProperty(DelegateType.prototype, 'isImportant', {
 
 
 
+Object.defineProperty(Setting.prototype, 'value', {
+  get: function() {
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        return imports.prefBranch.getBoolPref(this.name);
 
-DelegateType.prototype.isDelegate = true;
+      case imports.prefBranch.PREF_INT:
+        return imports.prefBranch.getIntPref(this.name);
 
-DelegateType.prototype.name = 'delegate';
+      case imports.prefBranch.PREF_STRING:
+        var value = imports.prefBranch.getComplexValue(this.name,
+                Components.interfaces.nsISupportsString).data;
+        
+        if (/^chrome:\/\/.+\/locale\/.+\.properties/.test(value)) {
+          value = imports.prefBranch.getComplexValue(this.name,
+                  Components.interfaces.nsIPrefLocalizedString).data;
+        }
+        return value;
 
-exports.DelegateType = DelegateType;
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
+  },
 
+  set: function(value) {
+    if (imports.prefBranch.prefIsLocked(this.name)) {
+      throw new Error('Locked preference ' + this.name);
+    }
 
+    switch (imports.prefBranch.getPrefType(this.name)) {
+      case imports.prefBranch.PREF_BOOL:
+        imports.prefBranch.setBoolPref(this.name, value);
+        break;
 
+      case imports.prefBranch.PREF_INT:
+        imports.prefBranch.setIntPref(this.name, value);
+        break;
 
+      case imports.prefBranch.PREF_STRING:
+        imports.supportsString.data = value;
+        imports.prefBranch.setComplexValue(this.name,
+                Components.interfaces.nsISupportsString,
+                imports.supportsString);
+        break;
 
+      default:
+        throw new Error('Invalid value for ' + this.name);
+    }
 
-function BlankType(typeSpec) {
-}
+    Services.prefs.savePrefFile(null);
+  },
 
-BlankType.prototype = Object.create(Type.prototype);
-
-BlankType.prototype.stringify = function(value, context) {
-  return '';
-};
-
-BlankType.prototype.parse = function(arg, context) {
-  return promise.resolve(new Conversion(undefined, arg));
-};
-
-BlankType.prototype.name = 'blank';
-
-exports.BlankType = BlankType;
-
-
-
-
-
-function ArrayType(typeSpec) {
-  if (!typeSpec.subtype) {
-    console.error('Array.typeSpec is missing subtype. Assuming string.' +
-        JSON.stringify(typeSpec));
-    typeSpec.subtype = 'string';
-  }
-
-  Object.keys(typeSpec).forEach(function(key) {
-    this[key] = typeSpec[key];
-  }, this);
-  this.subtype = types.createType(this.subtype);
-}
-
-ArrayType.prototype = Object.create(Type.prototype);
-
-ArrayType.prototype.stringify = function(values, context) {
-  if (values == null) {
-    return '';
-  }
-  
-  return values.join(' ');
-};
-
-ArrayType.prototype.parse = function(arg, context) {
-  if (arg.type !== 'ArrayArgument') {
-    console.error('non ArrayArgument to ArrayType.parse', arg);
-    throw new Error('non ArrayArgument to ArrayType.parse');
-  }
-
-  
-  
-  
-  
-  var subArgParse = function(subArg) {
-    return this.subtype.parse(subArg, context).then(function(conversion) {
-      subArg.conversion = conversion;
-      return conversion;
-    }.bind(this));
-  }.bind(this);
-
-  var conversionPromises = arg.getArguments().map(subArgParse);
-  return promise.all(conversionPromises).then(function(conversions) {
-    return new ArrayConversion(conversions, arg);
-  });
-};
-
-ArrayType.prototype.getBlank = function(context) {
-  return new ArrayConversion([], new ArrayArgument());
-};
-
-ArrayType.prototype.name = 'array';
-
-exports.ArrayType = ArrayType;
-
-
+  enumerable: true
 });
 
 
 
 
+Setting.prototype.setDefault = function() {
+  imports.prefBranch.clearUserPref(this.name);
+  Services.prefs.savePrefFile(null);
+};
+
+
+
+
+
+var settingsAll = [];
+
+
+
+
+var settingsMap = new Map();
+
+
+
+
+var hasReadSystem = false;
+
+
+
+
+function reset() {
+  settingsMap = new Map();
+  settingsAll = [];
+  hasReadSystem = false;
+}
+
+
+
+
+exports.startup = function() {
+  reset();
+};
+
+exports.shutdown = function() {
+  reset();
+};
+
+
+
+
+
+function readSystem() {
+  if (hasReadSystem) {
+    return;
+  }
+
+  imports.prefBranch.getChildList('').forEach(function(name) {
+    var setting = new Setting(name);
+    settingsAll.push(setting);
+    settingsMap.set(name, setting);
+  });
+
+  settingsAll.sort(function(s1, s2) {
+    return s1.name.localeCompare(s2.name);
+  });
+
+  hasReadSystem = true;
+}
+
+
+
+
+
+exports.getAll = function(filter) {
+  readSystem();
+
+  if (filter == null) {
+    return settingsAll;
+  }
+
+  return settingsAll.filter(function(setting) {
+    return setting.name.indexOf(filter) !== -1;
+  });
+};
+
+
+
+
+exports.addSetting = function(prefSpec) {
+  var setting = new Setting(prefSpec);
+
+  if (settingsMap.has(setting.name)) {
+    
+    for (var i = 0; i < settingsAll.length; i++) {
+      if (settingsAll[i].name === setting.name) {
+        settingsAll[i] = setting;
+      }
+    }
+  }
+
+  settingsMap.set(setting.name, setting);
+  exports.onChange({ added: setting.name });
+
+  return setting;
+};
 
 
 
@@ -653,21 +431,41 @@ exports.ArrayType = ArrayType;
 
 
 
+exports.getSetting = function(name) {
+  
+  
+  var found = settingsMap.get(name);
+  if (!found) {
+    found = settingsMap.get(DEVTOOLS_PREFIX + name);
+  }
+
+  if (found) {
+    return found;
+  }
+
+  if (hasReadSystem) {
+    return undefined;
+  }
+  else {
+    readSystem();
+    var found = settingsMap.get(name);
+    if (!found) {
+      found = settingsMap.get(DEVTOOLS_PREFIX + name);
+    }
+    return found;
+  }
+};
 
 
-define('util/promise', ['require', 'exports', 'module' ], function(require, exports, module) {
 
-'use strict';
 
-var imported = {};
-Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js",
-                        imported);
+exports.onChange = util.createEvent('Settings.onChange');
 
-exports.defer = imported.Promise.defer;
-exports.resolve = imported.Promise.resolve;
-exports.reject = imported.Promise.reject;
-exports.promised = imported.Promise.promised;
-exports.all = imported.Promise.all;
+
+
+
+exports.removeSetting = function() { };
+
 
 });
 
@@ -913,9 +711,9 @@ var promise = require('util/promise');
 
 
 
-exports.synchronize = function(promise) {
-  if (promise == null || typeof promise.then !== 'function') {
-    return promise;
+exports.synchronize = function(p) {
+  if (p == null || typeof p.then !== 'function') {
+    return p;
   }
   var failure = undefined;
   var reply = undefined;
@@ -927,7 +725,7 @@ exports.synchronize = function(promise) {
     failure = true;
     reply = value;
   };
-  promise.then(onDone, onError);
+  p.then(onDone, onError);
   if (failure === undefined) {
     throw new Error('non synchronizable promise');
   }
@@ -1483,80 +1281,19 @@ else {
 
 
 
-define('util/l10n', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('util/promise', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 'use strict';
 
-Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
-Components.utils.import('resource://gre/modules/Services.jsm');
+var imported = {};
+Components.utils.import("resource://gre/modules/commonjs/sdk/core/promise.js",
+                        imported);
 
-var imports = {};
-XPCOMUtils.defineLazyGetter(imports, 'stringBundle', function () {
-  return Services.strings.createBundle('chrome://browser/locale/devtools/gcli.properties');
-});
-
-
-
-
-
-exports.registerStringsSource = function(modulePath) {
-  throw new Error('registerStringsSource is not available in mozilla');
-};
-
-exports.unregisterStringsSource = function(modulePath) {
-  throw new Error('unregisterStringsSource is not available in mozilla');
-};
-
-exports.lookupSwap = function(key, swaps) {
-  throw new Error('lookupSwap is not available in mozilla');
-};
-
-exports.lookupPlural = function(key, ord, swaps) {
-  throw new Error('lookupPlural is not available in mozilla');
-};
-
-exports.getPreferredLocales = function() {
-  return [ 'root' ];
-};
-
-
-exports.lookup = function(key) {
-  try {
-    
-    
-    
-    
-
-
-
-
-
-    return imports.stringBundle.GetStringFromName(key);
-  }
-  catch (ex) {
-    console.error('Failed to lookup ', key, ex);
-    return key;
-  }
-};
-
-
-exports.propertyLookup = Proxy.create({
-  get: function(rcvr, name) {
-    return exports.lookup(name);
-  }
-});
-
-
-exports.lookupFormat = function(key, swaps) {
-  try {
-    return imports.stringBundle.formatStringFromName(key, swaps, swaps.length);
-  }
-  catch (ex) {
-    console.error('Failed to format ', key, ex);
-    return key;
-  }
-};
-
+exports.defer = imported.Promise.defer;
+exports.resolve = imported.Promise.resolve;
+exports.reject = imported.Promise.reject;
+exports.promised = imported.Promise.promised;
+exports.all = imported.Promise.all;
 
 });
 
@@ -1639,6 +1376,19 @@ var Status = {
       }
     }
     return combined;
+  },
+
+  fromString: function(str) {
+    switch (str) {
+      case Status.VALID.toString():
+        return Status.VALID;
+      case Status.INCOMPLETE.toString():
+        return Status.INCOMPLETE;
+      case Status.ERROR.toString():
+        return Status.ERROR;
+      default:
+        throw new Error('\'' + str + '\' is not a status');
+    }
   }
 };
 
@@ -1710,9 +1460,11 @@ function Conversion(value, arg, status, message, predictions) {
 
 
 
-Conversion.prototype.assign = function(assignment) {
-  this.arg.assign(assignment);
-};
+Object.defineProperty(Conversion.prototype, 'assignment', {
+  get: function() { return this.arg.assignment; },
+  set: function(assignment) { this.arg.assignment = assignment; },
+  enumerable: true
+});
 
 
 
@@ -1848,12 +1600,17 @@ function ArrayConversion(conversions, arg) {
 
 ArrayConversion.prototype = Object.create(Conversion.prototype);
 
-ArrayConversion.prototype.assign = function(assignment) {
-  this.conversions.forEach(function(conversion) {
-    conversion.assign(assignment);
-  }, this);
-  this.assignment = assignment;
-};
+Object.defineProperty(ArrayConversion.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) {
+    this._assignment = assignment;
+
+    this.conversions.forEach(function(conversion) {
+      conversion.assignment = assignment;
+    }, this);
+  },
+  enumerable: true
+});
 
 ArrayConversion.prototype.getStatus = function(arg) {
   if (arg && arg.conversion) {
@@ -1982,6 +1739,12 @@ Type.prototype.getType = function(context) {
   return this;
 };
 
+
+
+
+
+Type.prototype.item = 'type';
+
 exports.Type = Type;
 
 
@@ -2013,9 +1776,6 @@ exports.addType = function(type) {
       registeredTypes[type.name] = type;
     }
     else {
-      if (!type.parent) {
-        throw new Error('\'parent\' property required for object declarations');
-      }
       var name = type.name;
       var parent = type.parent;
       type.name = parent;
@@ -2057,12 +1817,13 @@ exports.createType = function(typeSpec) {
     throw new Error('Can\'t extract type from ' + typeSpec);
   }
 
-  if (!typeSpec.name) {
-    throw new Error('Missing \'name\' member to typeSpec');
+  var type, newType;
+  if (typeSpec.name == null || typeSpec.name == 'type') {
+    type = Type;
   }
-
-  var newType;
-  var type = registeredTypes[typeSpec.name];
+  else {
+    type = registeredTypes[typeSpec.name];
+  }
 
   if (!type) {
     console.error('Known types: ' + Object.keys(registeredTypes).join(', '));
@@ -2075,15 +1836,13 @@ exports.createType = function(typeSpec) {
   else {
     
     newType = {};
-    for (var key in type) {
-      newType[key] = type[key];
-    }
+    copyProperties(type, newType);
+  }
 
-    
-    for (var key in typeSpec) {
-      newType[key] = typeSpec[key];
-    }
+  
+  copyProperties(typeSpec, newType);
 
+  if (typeof type !== 'function') {
     if (typeof newType.constructor === 'function') {
       newType.constructor();
     }
@@ -2091,6 +1850,37 @@ exports.createType = function(typeSpec) {
 
   return newType;
 };
+
+function copyProperties(src, dest) {
+  for (var key in src) {
+    var descriptor;
+    var obj = src;
+    while (true) {
+      descriptor = Object.getOwnPropertyDescriptor(obj, key);
+      if (descriptor != null) {
+        break;
+      }
+      obj = Object.getPrototypeOf(obj);
+      if (obj == null) {
+        throw new Error('Can\'t find descriptor of ' + key);
+      }
+    }
+
+    if ('value' in descriptor) {
+      dest[key] = src[key];
+    }
+    else if ('get' in descriptor) {
+      Object.defineProperty(dest, key, {
+        get: descriptor.get,
+        set: descriptor.set,
+        enumerable: descriptor.enumerable
+      });
+    }
+    else {
+      throw new Error('Don\'t know how to copy ' + key + ' property.');
+    }
+  }
+}
 
 
 });
@@ -2221,9 +2011,11 @@ Argument.prototype.beget = function(options) {
 
 
 
-Argument.prototype.assign = function(assignment) {
-  this.assignment = assignment;
-};
+Object.defineProperty(Argument.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) { this._assignment = assignment; },
+  enumerable: true
+});
 
 
 
@@ -2401,13 +2193,17 @@ MergedArgument.prototype.type = 'MergedArgument';
 
 
 
-MergedArgument.prototype.assign = function(assignment) {
-  this.args.forEach(function(arg) {
-    arg.assign(assignment);
-  }, this);
+Object.defineProperty(MergedArgument.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) {
+    this._assignment = assignment;
 
-  this.assignment = assignment;
-};
+    this.args.forEach(function(arg) {
+      arg.assignment = assignment;
+    }, this);
+  },
+  enumerable: true
+});
 
 MergedArgument.prototype.getArgs = function() {
   return this.args;
@@ -2445,12 +2241,17 @@ TrueNamedArgument.prototype = Object.create(Argument.prototype);
 
 TrueNamedArgument.prototype.type = 'TrueNamedArgument';
 
-TrueNamedArgument.prototype.assign = function(assignment) {
-  if (this.arg) {
-    this.arg.assign(assignment);
-  }
-  this.assignment = assignment;
-};
+Object.defineProperty(TrueNamedArgument.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) {
+    this._assignment = assignment;
+
+    if (this.arg) {
+      this.arg.assignment = assignment;
+    }
+  },
+  enumerable: true
+});
 
 TrueNamedArgument.prototype.getArgs = function() {
   return [ this.arg ];
@@ -2562,13 +2363,18 @@ NamedArgument.prototype = Object.create(Argument.prototype);
 
 NamedArgument.prototype.type = 'NamedArgument';
 
-NamedArgument.prototype.assign = function(assignment) {
-  this.nameArg.assign(assignment);
-  if (this.valueArg != null) {
-    this.valueArg.assign(assignment);
-  }
-  this.assignment = assignment;
-};
+Object.defineProperty(NamedArgument.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) {
+    this._assignment = assignment;
+
+    this.nameArg.assignment = assignment;
+    if (this.valueArg != null) {
+      this.valueArg.assignment = assignment;
+    }
+  },
+  enumerable: true
+});
 
 NamedArgument.prototype.getArgs = function() {
   return this.valueArg ? [ this.nameArg, this.valueArg ] : [ this.nameArg ];
@@ -2642,13 +2448,17 @@ ArrayArgument.prototype.getArguments = function() {
   return this.args;
 };
 
-ArrayArgument.prototype.assign = function(assignment) {
-  this.args.forEach(function(arg) {
-    arg.assign(assignment);
-  }, this);
+Object.defineProperty(ArrayArgument.prototype, 'assignment', {
+  get: function() { return this._assignment; },
+  set: function(assignment) {
+    this._assignment = assignment;
 
-  this.assignment = assignment;
-};
+    this.args.forEach(function(arg) {
+      arg.assignment = assignment;
+    }, this);
+  },
+  enumerable: true
+});
 
 ArrayArgument.prototype.getArgs = function() {
   return this.args;
@@ -2708,31 +2518,1234 @@ exports.ArrayArgument = ArrayArgument;
 
 
 
-define('gcli/types/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/argument'], function(require, exports, module) {
+define('gcli/api', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/converters', 'gcli/types', 'gcli/settings', 'gcli/ui/fields'], function(require, exports, module) {
+
+'use strict';
+
+var canon = require('gcli/canon');
+var converters = require('gcli/converters');
+var types = require('gcli/types');
+var settings = require('gcli/settings');
+var fields = require('gcli/ui/fields');
+
+
+
+
+exports.getApi = function() {
+  return {
+    addCommand: canon.addCommand,
+    removeCommand: canon.removeCommand,
+    addConverter: converters.addConverter,
+    removeConverter: converters.removeConverter,
+    addType: types.addType,
+    removeType: types.removeType,
+
+    addItems: function(items) {
+      items.forEach(function(item) {
+        
+        
+        var type = item.item;
+        if (type == null && item.prototype) {
+            type = item.prototype.item;
+        }
+        if (type === 'command') {
+          canon.addCommand(item);
+        }
+        else if (type === 'type') {
+          types.addType(item);
+        }
+        else if (type === 'converter') {
+          converters.addConverter(item);
+        }
+        else if (type === 'setting') {
+          settings.addSetting(item);
+        }
+        else if (type === 'field') {
+          fields.addField(item);
+        }
+        else {
+          console.error('Error for: ', item);
+          throw new Error('item property not found');
+        }
+      });
+    },
+
+    removeItems: function(items) {
+      items.forEach(function(item) {
+        if (item.item === 'command') {
+          canon.removeCommand(item);
+        }
+        else if (item.item === 'type') {
+          types.removeType(item);
+        }
+        else if (item.item === 'converter') {
+          converters.removeConverter(item);
+        }
+        else if (item.item === 'settings') {
+          settings.removeSetting(item);
+        }
+        else if (item.item === 'field') {
+          fields.removeField(item);
+        }
+        else {
+          throw new Error('item property not found');
+        }
+      });
+    }
+  };
+};
+
+
+
+
+
+exports.populateApi = function(obj) {
+  var exportable = exports.getApi();
+  Object.keys(exportable).forEach(function(key) {
+    obj[key] = exportable[key];
+  });
+};
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/canon', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/types'], function(require, exports, module) {
+
+'use strict';
+
+var util = require('util/util');
+var l10n = require('util/l10n');
+
+var types = require('gcli/types');
+var Status = require('gcli/types').Status;
+
+
+
+
+
+
+
+
+function lookup(data, onUndefined) {
+  if (data == null) {
+    if (onUndefined) {
+      return l10n.lookup(onUndefined);
+    }
+
+    return data;
+  }
+
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  if (typeof data === 'object') {
+    if (data.key) {
+      return l10n.lookup(data.key);
+    }
+
+    var locales = l10n.getPreferredLocales();
+    var translated;
+    locales.some(function(locale) {
+      translated = data[locale];
+      return translated != null;
+    });
+    if (translated != null) {
+      return translated;
+    }
+
+    console.error('Can\'t find locale in descriptions: ' +
+            'locales=' + JSON.stringify(locales) + ', ' +
+            'description=' + JSON.stringify(data));
+    return '(No description)';
+  }
+
+  return l10n.lookup(onUndefined);
+}
+
+
+
+
+
+
+function Command(commandSpec) {
+  Object.keys(commandSpec).forEach(function(key) {
+    this[key] = commandSpec[key];
+  }, this);
+
+  if (!this.name) {
+    throw new Error('All registered commands must have a name');
+  }
+
+  if (this.params == null) {
+    this.params = [];
+  }
+  if (!Array.isArray(this.params)) {
+    throw new Error('command.params must be an array in ' + this.name);
+  }
+
+  this.hasNamedParameters = false;
+  this.description = 'description' in this ? this.description : undefined;
+  this.description = lookup(this.description, 'canonDescNone');
+  this.manual = 'manual' in this ? this.manual : undefined;
+  this.manual = lookup(this.manual);
+
+  
+  
+  var paramSpecs = this.params;
+  this.params = [];
+
+  
+  
+  
+  
+  
+  var usingGroups = false;
+
+  
+  
+  
+  
+  paramSpecs.forEach(function(spec) {
+    if (!spec.group) {
+      var param = new Parameter(spec, this, null);
+      this.params.push(param);
+
+      if (!param.isPositionalAllowed) {
+        this.hasNamedParameters = true;
+      }
+
+      if (usingGroups && param.groupName == null) {
+        throw new Error('Parameters can\'t come after param groups.' +
+                        ' Ignoring ' + this.name + '/' + spec.name);
+      }
+
+      if (param.groupName != null) {
+        usingGroups = true;
+      }
+    }
+    else {
+      spec.params.forEach(function(ispec) {
+        var param = new Parameter(ispec, this, spec.group);
+        this.params.push(param);
+
+        if (!param.isPositionalAllowed) {
+          this.hasNamedParameters = true;
+        }
+      }, this);
+
+      usingGroups = true;
+    }
+  }, this);
+}
+
+
+
+
+Object.defineProperty(Command.prototype, 'json', {
+  get: function() {
+    return {
+      name: this.name,
+      description: this.description,
+      manual: this.manual,
+      params: this.params.map(function(param) { return param.json; }),
+      returnType: this.returnType,
+      isParent: (this.exec == null)
+    };
+  },
+  enumerable: true
+});
+
+exports.Command = Command;
+
+
+
+
+
+
+function Parameter(paramSpec, command, groupName) {
+  this.command = command || { name: 'unnamed' };
+  this.paramSpec = paramSpec;
+  this.name = this.paramSpec.name;
+  this.type = this.paramSpec.type;
+
+  this.groupName = groupName;
+  if (this.groupName != null) {
+    if (this.paramSpec.option != null) {
+      throw new Error('Can\'t have a "option" property in a nested parameter');
+    }
+  }
+  else {
+    if (this.paramSpec.option != null) {
+      this.groupName = this.paramSpec.option === true ?
+              l10n.lookup('canonDefaultGroupName') :
+              '' + this.paramSpec.option;
+    }
+  }
+
+  if (!this.name) {
+    throw new Error('In ' + this.command.name +
+                    ': all params must have a name');
+  }
+
+  var typeSpec = this.type;
+  this.type = types.createType(typeSpec);
+  if (this.type == null) {
+    console.error('Known types: ' + types.getTypeNames().join(', '));
+    throw new Error('In ' + this.command.name + '/' + this.name +
+                    ': can\'t find type for: ' + JSON.stringify(typeSpec));
+  }
+
+  
+  
+  if (this.type.name === 'boolean' &&
+      this.paramSpec.defaultValue !== undefined) {
+    throw new Error('In ' + this.command.name + '/' + this.name +
+                    ': boolean parameters can not have a defaultValue.' +
+                    ' Ignoring');
+  }
+
+  
+  
+  
+  
+  if (this._defaultValue != null) {
+    try {
+      
+      
+      var context = null;
+      var defaultText = this.type.stringify(this.paramSpec.defaultValue, context);
+      var parsed = this.type.parseString(defaultText, context);
+      parsed.then(function(defaultConversion) {
+        if (defaultConversion.getStatus() !== Status.VALID) {
+          console.error('In ' + this.command.name + '/' + this.name +
+                        ': Error round tripping defaultValue. status = ' +
+                        defaultConversion.getStatus());
+        }
+      }.bind(this), util.errorHandler);
+    }
+    catch (ex) {
+      throw new Error('In ' + this.command.name + '/' + this.name + ': ' + ex);
+    }
+  }
+
+  
+  
+  if (!this.isPositionalAllowed && this.paramSpec.defaultValue === undefined &&
+      this.type.getBlank == null && !(this.type.name === 'boolean')) {
+    throw new Error('In ' + this.command.name + '/' + this.name +
+                    ': Missing defaultValue for optional parameter.');
+  }
+}
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'defaultValue', {
+  get: function() {
+    if (!('_defaultValue' in this)) {
+      this._defaultValue = (this.paramSpec.defaultValue !== undefined) ?
+          this.paramSpec.defaultValue :
+          this.type.getBlank().value;
+    }
+
+    return this._defaultValue;
+  },
+  enumerable : true
+});
+
+
+
+
+
+
+Parameter.prototype.isKnownAs = function(name) {
+  if (name === '--' + this.name) {
+    return true;
+  }
+  return false;
+};
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'manual', {
+  get: function() {
+    return lookup(this.paramSpec.manual || undefined);
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'description', {
+  get: function() {
+    return lookup(this.paramSpec.description || undefined, 'canonDescNone');
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isDataRequired', {
+  get: function() {
+    return this.defaultValue === undefined;
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'hidden', {
+  get: function() {
+    return this.paramSpec.hidden;
+  },
+  enumerable: true
+});
+
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
+  get: function() {
+    return this.groupName == null;
+  },
+  enumerable: true
+});
+
+
+
+
+Object.defineProperty(Parameter.prototype, 'json', {
+  get: function() {
+    var json = {
+      name: this.name,
+      type: this.paramSpec.type,
+      description: this.description
+    };
+    if (this.defaultValue !== undefined && json.type !== 'boolean') {
+      json.defaultValue = this.defaultValue;
+    }
+    if (this.option !== undefined) {
+      json.option = this.option;
+    }
+    return json;
+  },
+  enumerable: true
+});
+
+exports.Parameter = Parameter;
+
+
+
+
+
+function Canon() {
+  
+  this._commands = {};
+  
+  this._commandNames = [];
+  
+  this._commandSpecs = {};
+
+  
+  this.onCanonChange = util.createEvent('canon.onCanonChange');
+}
+
+
+
+
+
+
+
+
+Canon.prototype.addCommand = function(commandSpec) {
+  if (this._commands[commandSpec.name] != null) {
+    
+    delete this._commands[commandSpec.name];
+    this._commandNames = this._commandNames.filter(function(test) {
+      return test !== commandSpec.name;
+    });
+  }
+
+  var command = new Command(commandSpec);
+  this._commands[commandSpec.name] = command;
+  this._commandNames.push(commandSpec.name);
+  this._commandNames.sort();
+
+  this._commandSpecs[commandSpec.name] = commandSpec;
+
+  this.onCanonChange();
+  return command;
+};
+
+
+
+
+
+
+
+Canon.prototype.removeCommand = function(commandOrName) {
+  var name = typeof commandOrName === 'string' ?
+          commandOrName :
+          commandOrName.name;
+
+  if (!this._commands[name]) {
+    return false;
+  }
+
+  
+  delete this._commands[name];
+  delete this._commandSpecs[name];
+  this._commandNames = this._commandNames.filter(function(test) {
+    return test !== name;
+  });
+
+  this.onCanonChange();
+  return true;
+};
+
+
+
+
+
+Canon.prototype.getCommand = function(name) {
+  
+  return this._commands[name] || undefined;
+};
+
+
+
+
+Canon.prototype.getCommands = function() {
+  return Object.keys(this._commands).map(function(name) {
+    return this._commands[name];
+  }, this);
+};
+
+
+
+
+Canon.prototype.getCommandNames = function() {
+  return this._commandNames.slice(0);
+};
+
+
+
+
+
+Canon.prototype.getCommandSpecs = function() {
+  var specs = {};
+
+  Object.keys(this._commands).forEach(function(name) {
+    var command = this._commands[name];
+    if (!command.noRemote) {
+      specs[name] = command.json;
+    }
+  }.bind(this));
+
+  return specs;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+Canon.prototype.addProxyCommands = function(prefix, commandSpecs, remoter, to) {
+  var names = Object.keys(commandSpecs);
+
+  if (this._commands[prefix] != null) {
+    throw new Error(l10n.lookupFormat('canonProxyExists', [ prefix ]));
+  }
+
+  
+  
+  this.addCommand({
+    name: prefix,
+    isProxy: true,
+    description: l10n.lookupFormat('canonProxyDesc', [ to ]),
+    manual: l10n.lookupFormat('canonProxyManual', [ to ])
+  });
+
+  names.forEach(function(name) {
+    var commandSpec = commandSpecs[name];
+
+    if (commandSpec.noRemote) {
+      return;
+    }
+
+    if (!commandSpec.isParent) {
+      commandSpec.exec = function(args, context) {
+        context.commandName = name;
+        return remoter(args, context);
+      }.bind(this);
+    }
+
+    commandSpec.name = prefix + ' ' + commandSpec.name;
+    commandSpec.isProxy = true;
+    this.addCommand(commandSpec);
+  }.bind(this));
+};
+
+
+
+
+
+
+
+
+
+
+
+
+Canon.prototype.removeProxyCommands = function(prefix) {
+  var toRemove = [];
+  Object.keys(this._commandSpecs).forEach(function(name) {
+    if (name.indexOf(prefix) === 0) {
+      toRemove.push(name);
+    }
+  }.bind(this));
+
+  var removed = [];
+  toRemove.forEach(function(name) {
+    var command = this.getCommand(name);
+    if (command.isProxy) {
+      this.removeCommand(name);
+      removed.push(name);
+    }
+    else {
+      console.error('Skipping removal of \'' + name +
+                    '\' because it is not a proxy command.');
+    }
+  }.bind(this));
+
+  return removed;
+};
+
+var canon = new Canon();
+
+exports.Canon = Canon;
+exports.addCommand = canon.addCommand.bind(canon);
+exports.removeCommand = canon.removeCommand.bind(canon);
+exports.onCanonChange = canon.onCanonChange;
+exports.getCommands = canon.getCommands.bind(canon);
+exports.getCommand = canon.getCommand.bind(canon);
+exports.getCommandNames = canon.getCommandNames.bind(canon);
+exports.getCommandSpecs = canon.getCommandSpecs.bind(canon);
+exports.addProxyCommands = canon.addProxyCommands.bind(canon);
+exports.removeProxyCommands = canon.removeProxyCommands.bind(canon);
+
+
+
+
+
+
+
+
+
+
+function CommandOutputManager() {
+  this.onOutput = util.createEvent('CommandOutputManager.onOutput');
+}
+
+exports.CommandOutputManager = CommandOutputManager;
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('util/l10n', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+'use strict';
+
+Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
+Components.utils.import('resource://gre/modules/Services.jsm');
+
+var imports = {};
+XPCOMUtils.defineLazyGetter(imports, 'stringBundle', function () {
+  return Services.strings.createBundle('chrome://browser/locale/devtools/gcli.properties');
+});
+
+
+
+
+
+exports.registerStringsSource = function(modulePath) {
+  throw new Error('registerStringsSource is not available in mozilla');
+};
+
+exports.unregisterStringsSource = function(modulePath) {
+  throw new Error('unregisterStringsSource is not available in mozilla');
+};
+
+exports.lookupSwap = function(key, swaps) {
+  throw new Error('lookupSwap is not available in mozilla');
+};
+
+exports.lookupPlural = function(key, ord, swaps) {
+  throw new Error('lookupPlural is not available in mozilla');
+};
+
+exports.getPreferredLocales = function() {
+  return [ 'root' ];
+};
+
+
+exports.lookup = function(key) {
+  try {
+    
+    
+    
+    
+
+
+
+
+
+    return imports.stringBundle.GetStringFromName(key);
+  }
+  catch (ex) {
+    console.error('Failed to lookup ', key, ex);
+    return key;
+  }
+};
+
+
+exports.propertyLookup = Proxy.create({
+  get: function(rcvr, name) {
+    return exports.lookup(name);
+  }
+});
+
+
+exports.lookupFormat = function(key, swaps) {
+  try {
+    return imports.stringBundle.formatStringFromName(key, swaps, swaps.length);
+  }
+  catch (ex) {
+    console.error('Failed to format ', key, ex);
+    return key;
+  }
+};
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/converters', ['require', 'exports', 'module' , 'util/promise'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
+
+
+
+
+
+
+var fallbackDomConverter = {
+  from: '*',
+  to: 'dom',
+  exec: function(data, conversionContext) {
+    return conversionContext.document.createTextNode(data || '');
+  }
+};
+
+
+
+
+var fallbackStringConverter = {
+  from: '*',
+  to: 'string',
+  exec: function(data, conversionContext) {
+    return data == null ? '' : data.toString();
+  }
+};
+
+
+
+
+var viewDomConverter = {
+  item: 'converter',
+  from: 'view',
+  to: 'dom',
+  exec: function(view, conversionContext) {
+    return view.toDom(conversionContext.document);
+  }
+};
+
+
+
+
+var viewStringConverter = {
+  item: 'converter',
+  from: 'view',
+  to: 'string',
+  exec: function(view, conversionContext) {
+    return view.toDom(conversionContext.document).textContent;
+  }
+};
+
+
+
+
+function getChainConverter(first, second) {
+  if (first.to !== second.from) {
+    throw new Error('Chain convert impossible: ' + first.to + '!=' + second.from);
+  }
+  return {
+    from: first.from,
+    to: second.to,
+    exec: function(data, conversionContext) {
+      var intermediate = first.exec(data, conversionContext);
+      return second.exec(intermediate, conversionContext);
+    }
+  };
+}
+
+
+
+
+var converters = {
+  from: {}
+};
+
+
+
+
+exports.addConverter = function(converter) {
+  var fromMatch = converters.from[converter.from];
+  if (fromMatch == null) {
+    fromMatch = {};
+    converters.from[converter.from] = fromMatch;
+  }
+
+  fromMatch[converter.to] = converter;
+};
+
+
+
+
+exports.removeConverter = function(converter) {
+  var fromMatch = converters.from[converter.from];
+  if (fromMatch == null) {
+    return;
+  }
+
+  if (fromMatch[converter.to] === converter) {
+    fromMatch[converter.to] = null;
+  }
+};
+
+
+
+
+function getConverter(from, to) {
+  var fromMatch = converters.from[from];
+  if (fromMatch == null) {
+    return getFallbackConverter(from, to);
+  }
+
+  var converter = fromMatch[to];
+  if (converter == null) {
+    
+    
+    
+    
+    if (to === 'dom') {
+      converter = fromMatch['view'];
+      if (converter != null) {
+        return getChainConverter(converter, viewDomConverter);
+      }
+    }
+    if (to === 'string') {
+      converter = fromMatch['view'];
+      if (converter != null) {
+        return getChainConverter(converter, viewStringConverter);
+      }
+    }
+    return getFallbackConverter(from, to);
+  }
+  return converter;
+}
+
+
+
+
+function getFallbackConverter(from, to) {
+  console.error('No converter from ' + from + ' to ' + to + '. Using fallback');
+
+  if (to === 'dom') {
+    return fallbackDomConverter;
+  }
+
+  if (to === 'string') {
+    return fallbackStringConverter;
+  }
+
+  throw new Error('No conversion possible from ' + from + ' to ' + to + '.');
+}
+
+
+
+
+
+
+
+
+
+exports.convert = function(data, from, to, conversionContext) {
+  if (from === to) {
+    return promise.resolve(data);
+  }
+  return promise.resolve(getConverter(from, to).exec(data, conversionContext));
+};
+
+
+
+
+exports.items = [ viewDomConverter, viewStringConverter ];
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/ui/fields', ['require', 'exports', 'module' , 'util/promise', 'util/util'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
+var util = require('util/util');
+var KeyEvent = require('util/util').KeyEvent;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Field(type, options) {
+  this.type = type;
+  this.document = options.document;
+  this.requisition = options.requisition;
+}
+
+
+
+
+Field.prototype.item = 'field';
+
+
+
+
+
+
+Field.prototype.element = undefined;
+
+
+
+
+Field.prototype.destroy = function() {
+  delete this.messageElement;
+};
+
+
+
+
+
+
+
+
+Field.prototype.setConversion = function(conversion) {
+  throw new Error('Field should not be used directly');
+};
+
+
+
+
+
+Field.prototype.getConversion = function() {
+  throw new Error('Field should not be used directly');
+};
+
+
+
+
+
+Field.prototype.setMessageElement = function(element) {
+  this.messageElement = element;
+};
+
+
+
+
+Field.prototype.setMessage = function(message) {
+  if (this.messageElement) {
+    util.setTextContent(this.messageElement, message || '');
+  }
+};
+
+
+
+
+
+Field.prototype.onInputChange = function(ev) {
+  promise.resolve(this.getConversion()).then(function(conversion) {
+    this.onFieldChange({ conversion: conversion });
+    this.setMessage(conversion.message);
+
+    if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
+      this.requisition.exec();
+    }
+  }.bind(this), util.errorHandler);
+};
+
+
+
+
+
+Field.prototype.isImportant = false;
+
+
+
+
+
+
+Field.claim = function(type, context) {
+  throw new Error('Field should not be used directly');
+};
+
+
+
+
+
+
+
+
+
+Field.TOOLTIP_MATCH = 5;   
+Field.TOOLTIP_DEFAULT = 4; 
+Field.MATCH = 3;           
+Field.DEFAULT = 2;         
+Field.BASIC = 1;           
+Field.NO_MATCH = 0;        
+
+exports.Field = Field;
+
+
+
+
+
+var fieldCtors = [];
+
+
+
+
+
+exports.addField = function(fieldCtor) {
+  if (typeof fieldCtor !== 'function') {
+    console.error('addField erroring on ', fieldCtor);
+    throw new Error('addField requires a Field constructor');
+  }
+  fieldCtors.push(fieldCtor);
+};
+
+
+
+
+
+
+exports.removeField = function(field) {
+  if (typeof field !== 'string') {
+    fields = fields.filter(function(test) {
+      return test !== field;
+    });
+    delete fields[field];
+  }
+  else if (field instanceof Field) {
+    removeField(field.name);
+  }
+  else {
+    console.error('removeField erroring on ', field);
+    throw new Error('removeField requires an instance of Field');
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.getField = function(type, options) {
+  var ctor;
+  var highestClaim = -1;
+  fieldCtors.forEach(function(fieldCtor) {
+    var claim = fieldCtor.claim(type, options.requisition.executionContext);
+    if (claim > highestClaim) {
+      highestClaim = claim;
+      ctor = fieldCtor;
+    }
+  });
+
+  if (!ctor) {
+    console.error('Unknown field type ', type, ' in ', fieldCtors);
+    throw new Error('Can\'t find field for ' + type);
+  }
+
+  if (options.tooltip && highestClaim < Field.TOOLTIP_DEFAULT) {
+    return new BlankField(type, options);
+  }
+
+  return new ctor(type, options);
+};
+
+
+
+
+
+
+function BlankField(type, options) {
+  Field.call(this, type, options);
+
+  this.element = util.createElement(this.document, 'div');
+
+  this.onFieldChange = util.createEvent('BlankField.onFieldChange');
+}
+
+BlankField.prototype = Object.create(Field.prototype);
+
+BlankField.claim = function(type, context) {
+  return type.name === 'blank' ? Field.MATCH : Field.NO_MATCH;
+};
+
+BlankField.prototype.setConversion = function(conversion) {
+  this.setMessage(conversion.message);
+};
+
+BlankField.prototype.getConversion = function() {
+  return this.type.parse(new Argument(), this.requisition.executionContext);
+};
+
+exports.addField(BlankField);
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'util/spell', 'gcli/types', 'gcli/argument'], function(require, exports, module) {
 
 'use strict';
 
 var promise = require('util/promise');
 var util = require('util/util');
 var l10n = require('util/l10n');
-var types = require('gcli/types');
+var spell = require('util/spell');
 var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
-var spell = require('gcli/types/spell');
 var BlankArgument = require('gcli/argument').BlankArgument;
-
-
-
-
-
-exports.startup = function() {
-  types.addType(SelectionType);
-};
-
-exports.shutdown = function() {
-  types.removeType(SelectionType);
-};
 
 
 
@@ -3075,6 +4088,7 @@ SelectionType.prototype.isSelection = true;
 SelectionType.prototype.name = 'selection';
 
 exports.SelectionType = SelectionType;
+exports.items = [ SelectionType ];
 
 
 });
@@ -3094,7 +4108,7 @@ exports.SelectionType = SelectionType;
 
 
 
-define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('util/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 'use strict';
 
@@ -3102,17 +4116,19 @@ define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, 
 
 
 
-var INSERTION_COST = 1;
-var DELETION_COST = 1;
-var SWAP_COST = 1;
-var SUBSTITUTION_COST = 2;
-var MAX_EDIT_DISTANCE = 4;
+var CASE_CHANGE_COST = 1;
+var INSERTION_COST = 10;
+var DELETION_COST = 10;
+var SWAP_COST = 10;
+var SUBSTITUTION_COST = 20;
+var MAX_EDIT_DISTANCE = 40;
 
 
 
 
 
-function damerauLevenshteinDistance(wordi, wordj) {
+
+var distance = exports.distance = function(wordi, wordj) {
   var wordiLen = wordi.length;
   var wordjLen = wordj.length;
 
@@ -3133,8 +4149,7 @@ function damerauLevenshteinDistance(wordi, wordj) {
 
   
   
-  for (j = 1; j <= wordjLen; j++)
-  {
+  for (j = 1; j <= wordjLen; j++) {
     
     
     row0[0] = j * INSERTION_COST;
@@ -3143,10 +4158,24 @@ function damerauLevenshteinDistance(wordi, wordj) {
       
       
       
-      row0[i] = Math.min(
-          row0[i-1] + DELETION_COST,
-          row1[i] + INSERTION_COST,
-          row1[i-1] + (wordi[i-1] === wordj[j-1] ? 0 : SUBSTITUTION_COST));
+      var dc = row0[i - 1] + DELETION_COST;
+      var ic = row1[i] + INSERTION_COST;
+      var sc0;
+      if (wordi[i-1] === wordj[j-1]) {
+        sc0 = 0;
+      }
+      else {
+        if (wordi[i-1].toLowerCase() === wordj[j-1].toLowerCase()) {
+          sc0 = CASE_CHANGE_COST;
+        }
+        else {
+          sc0 = SUBSTITUTION_COST;
+        }
+      }
+      var sc = row1[i-1] + sc0;
+
+      row0[i] = Math.min(dc, ic, sc);
+
       
       
       if (i > 1 && j > 1 && wordi[i-1] === wordj[j-2] && wordj[j-1] === wordi[i-2]) {
@@ -3161,7 +4190,31 @@ function damerauLevenshteinDistance(wordi, wordj) {
   }
 
   return row1[wordiLen];
-}
+};
+
+
+
+
+
+
+var distancePrefix = exports.distancePrefix = function(word, name) {
+  var dist = 0;
+
+  for (var i = 0; i < word.length; i++) {
+    if (name[i] !== word[i]) {
+      if (name[i].toLowerCase() === word[i].toLowerCase()) {
+        dist++;
+      }
+      else {
+        
+        
+        return exports.distance(word, name);
+      }
+    }
+  }
+
+  return dist;
+};
 
 
 
@@ -3171,16 +4224,16 @@ exports.correct = function(word, names) {
     return undefined;
   }
 
-  var distance = {};
+  var distances = {};
   var sortedCandidates;
 
   names.forEach(function(candidate) {
-    distance[candidate] = damerauLevenshteinDistance(word, candidate);
+    distances[candidate] = exports.distance(word, candidate);
   });
 
   sortedCandidates = names.sort(function(worda, wordb) {
-    if (distance[worda] !== distance[wordb]) {
-      return distance[worda] - distance[wordb];
+    if (distances[worda] !== distances[wordb]) {
+      return distances[worda] - distances[wordb];
     }
     else {
       
@@ -3189,7 +4242,7 @@ exports.correct = function(word, names) {
     }
   });
 
-  if (distance[sortedCandidates[0]] <= MAX_EDIT_DISTANCE) {
+  if (distances[sortedCandidates[0]] <= MAX_EDIT_DISTANCE) {
     return sortedCandidates[0];
   }
   else {
@@ -3198,6 +4251,48 @@ exports.correct = function(word, names) {
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.rank = function(word, names, options) {
+  options = options || {};
+
+  var reply = names.map(function(name) {
+    
+    
+    var algo = options.prefixZero ? distancePrefix : distance;
+    return {
+      name: name,
+      dist: algo(word, name)
+    };
+  });
+
+  if (!options.noSort) {
+    reply = reply.sort(function(d1, d2) {
+      return d1.dist - d2.dist;
+    });
+  }
+
+  return reply;
+};
+
+
 });
 
 
@@ -3215,688 +4310,379 @@ exports.correct = function(word, names) {
 
 
 
-define('gcli/types/command', ['require', 'exports', 'module' , 'util/promise', 'util/l10n', 'gcli/canon', 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
+define('gcli/types/delegate', ['require', 'exports', 'module' , 'util/promise', 'gcli/types'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
+var Conversion = require('gcli/types').Conversion;
+
+
+
+
+var delegate = {
+  item: 'type',
+  name: 'delegate',
+
+  constructor: function() {
+    if (typeof this.delegateType !== 'function') {
+      throw new Error('Instances of DelegateType need typeSpec.delegateType' +
+                      ' to be a function that returns a type');
+    }
+  },
+
+  
+  
+  
+  delegateType: function(context) {
+    throw new Error('Not implemented');
+  },
+
+  stringify: function(value, context) {
+    return this.delegateType(context).stringify(value, context);
+  },
+
+  parse: function(arg, context) {
+    return this.delegateType(context).parse(arg, context);
+  },
+
+  decrement: function(value, context) {
+    var delegated = this.delegateType(context);
+    return (delegated.decrement ? delegated.decrement(value, context) : undefined);
+  },
+
+  increment: function(value, context) {
+    var delegated = this.delegateType(context);
+    return (delegated.increment ? delegated.increment(value, context) : undefined);
+  },
+
+  getType: function(context) {
+    return this.delegateType(context);
+  },
+
+  
+  
+  isDelegate: true,
+};
+
+Object.defineProperty(delegate, 'isImportant', {
+  get: function() {
+    return this.delegateType().isImportant;
+  },
+  enumerable: true
+});
+
+
+
+
+
+var blank = {
+  item: 'type',
+  name: 'blank',
+
+  stringify: function(value, context) {
+    return '';
+  },
+
+  parse: function(arg, context) {
+    return promise.resolve(new Conversion(undefined, arg));
+  }
+};
+
+
+
+
+exports.items = [ delegate, blank ];
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/array', ['require', 'exports', 'module' , 'util/promise', 'gcli/types', 'gcli/argument'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
+var types = require('gcli/types');
+var ArrayConversion = require('gcli/types').ArrayConversion;
+var ArrayArgument = require('gcli/argument').ArrayArgument;
+
+exports.items = [
+  {
+    
+    item: 'type',
+    name: 'array',
+    subtype: undefined,
+
+    constructor: function() {
+      if (!this.subtype) {
+        console.error('Array.typeSpec is missing subtype. Assuming string.' +
+            this.name);
+        this.subtype = 'string';
+      }
+      this.subtype = types.createType(this.subtype);
+    },
+
+    stringify: function(values, context) {
+      if (values == null) {
+        return '';
+      }
+      
+      return values.join(' ');
+    },
+
+    parse: function(arg, context) {
+      if (arg.type !== 'ArrayArgument') {
+        console.error('non ArrayArgument to ArrayType.parse', arg);
+        throw new Error('non ArrayArgument to ArrayType.parse');
+      }
+
+      
+      
+      
+      
+      var subArgParse = function(subArg) {
+        return this.subtype.parse(subArg, context).then(function(conversion) {
+          subArg.conversion = conversion;
+          return conversion;
+        }.bind(this));
+      }.bind(this);
+
+      var conversionPromises = arg.getArguments().map(subArgParse);
+      return promise.all(conversionPromises).then(function(conversions) {
+        return new ArrayConversion(conversions, arg);
+      });
+    },
+
+    getBlank: function() {
+      return new ArrayConversion([], new ArrayArgument());
+    }
+  },
+];
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/boolean', ['require', 'exports', 'module' , 'util/promise', 'gcli/types', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+var SelectionType = require('gcli/types/selection').SelectionType;
+
+var BlankArgument = require('gcli/argument').BlankArgument;
+
+exports.items = [
+  {
+    
+    item: 'type',
+    name: 'boolean',
+    parent: 'selection',
+
+    lookup: [
+      { name: 'false', value: false },
+      { name: 'true', value: true }
+    ],
+
+    parse: function(arg, context) {
+      if (arg.type === 'TrueNamedArgument') {
+        return promise.resolve(new Conversion(true, arg));
+      }
+      if (arg.type === 'FalseNamedArgument') {
+        return promise.resolve(new Conversion(false, arg));
+      }
+      return SelectionType.prototype.parse.call(this, arg, context);
+    },
+
+    stringify: function(value, context) {
+      if (value == null) {
+        return '';
+      }
+      return '' + value;
+    },
+
+    getBlank: function(context) {
+      return new Conversion(false, new BlankArgument(), Status.VALID, '',
+                            promise.resolve(this.lookup));
+    }
+  }
+];
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/command', ['require', 'exports', 'module' , 'util/promise', 'util/l10n', 'gcli/canon', 'gcli/types/selection', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
 
 var promise = require('util/promise');
 var l10n = require('util/l10n');
 var canon = require('gcli/canon');
-var types = require('gcli/types');
 var SelectionType = require('gcli/types/selection').SelectionType;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 
-
-
-
-
-exports.startup = function() {
-  types.addType(CommandType);
-  types.addType(ParamType);
-};
-
-exports.shutdown = function() {
-  types.removeType(CommandType);
-  types.removeType(ParamType);
-};
-
-
-
-
-
-
-
-
-
-function ParamType(typeSpec) {
-  this.requisition = typeSpec.requisition;
-  this.isIncompleteName = typeSpec.isIncompleteName;
-  this.stringifyProperty = 'name';
-  this.neverForceAsync = true;
-}
-
-ParamType.prototype = Object.create(SelectionType.prototype);
-
-ParamType.prototype.name = 'param';
-
-ParamType.prototype.lookup = function() {
-  var displayedParams = [];
-  var command = this.requisition.commandAssignment.value;
-  if (command != null) {
-    command.params.forEach(function(param) {
-      var arg = this.requisition.getAssignment(param.name).arg;
-      if (!param.isPositionalAllowed && arg.type === "BlankArgument") {
-        displayedParams.push({ name: '--' + param.name, value: param });
-      }
-    }, this);
-  }
-  return displayedParams;
-};
-
-ParamType.prototype.parse = function(arg, context) {
-  if (this.isIncompleteName) {
-    return SelectionType.prototype.parse.call(this, arg, context);
-  }
-  else {
-    var message = l10n.lookup('cliUnusedArg');
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-  }
-};
-
-
-
-
-
-
-
-
-
-function CommandType() {
-  this.stringifyProperty = 'name';
-  this.neverForceAsync = true;
-}
-
-CommandType.prototype = Object.create(SelectionType.prototype);
-
-CommandType.prototype.name = 'command';
-
-CommandType.prototype.lookup = function() {
-  var commands = canon.getCommands();
-  commands.sort(function(c1, c2) {
-    return c1.name.localeCompare(c2.name);
-  });
-  return commands.map(function(command) {
-    return { name: command.name, value: command };
-  }, this);
-};
-
-
-
-
-CommandType.prototype._addToPredictions = function(predictions, option, arg) {
-  
-  
-  
-  
-  if (arg.text.length !== 0 || option.name.indexOf(' ') === -1) {
-    predictions.push(option);
-  }
-};
-
-CommandType.prototype.parse = function(arg, context) {
-  
-  
-  var predictFunc = function() {
-    return this._findPredictions(arg);
-  }.bind(this);
-
-  return this._findPredictions(arg).then(function(predictions) {
-    if (predictions.length === 0) {
-      var msg = l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
-      return new Conversion(undefined, arg, Status.ERROR, msg, predictFunc);
-    }
-
-    var command = predictions[0].value;
-
-    if (predictions.length === 1) {
-      
-      
-      if (command.name === arg.text && typeof command.exec === 'function') {
-        return new Conversion(command, arg, Status.VALID, '');
-      }
-
-      return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
-    }
-
+exports.items = [
+  {
     
-    if (predictions[0].name === arg.text) {
-      return new Conversion(command, arg, Status.VALID, '', predictFunc);
-    }
+    item: 'type',
+    name: 'param',
+    parent: 'selection',
+    stringifyProperty: 'name',
+    neverForceAsync: true,
+    requisition: undefined,
+    isIncompleteName: undefined,
 
-    return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
-  }.bind(this));
-};
-
-
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-define('gcli/canon', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/types'], function(require, exports, module) {
-
-'use strict';
-
-var promise = require('util/promise');
-var util = require('util/util');
-var l10n = require('util/l10n');
-
-var types = require('gcli/types');
-var Status = require('gcli/types').Status;
-
-
-
-
-
-
-
-
-function lookup(data, onUndefined) {
-  if (data == null) {
-    if (onUndefined) {
-      return l10n.lookup(onUndefined);
-    }
-
-    return data;
-  }
-
-  if (typeof data === 'string') {
-    return data;
-  }
-
-  if (typeof data === 'object') {
-    if (data.key) {
-      return l10n.lookup(data.key);
-    }
-
-    var locales = l10n.getPreferredLocales();
-    var translated;
-    locales.some(function(locale) {
-      translated = data[locale];
-      return translated != null;
-    });
-    if (translated != null) {
-      return translated;
-    }
-
-    console.error('Can\'t find locale in descriptions: ' +
-            'locales=' + JSON.stringify(locales) + ', ' +
-            'description=' + JSON.stringify(data));
-    return '(No description)';
-  }
-
-  return l10n.lookup(onUndefined);
-}
-
-
-
-
-
-
-function Command(commandSpec) {
-  Object.keys(commandSpec).forEach(function(key) {
-    this[key] = commandSpec[key];
-  }, this);
-
-  if (!this.name) {
-    throw new Error('All registered commands must have a name');
-  }
-
-  if (this.params == null) {
-    this.params = [];
-  }
-  if (!Array.isArray(this.params)) {
-    throw new Error('command.params must be an array in ' + this.name);
-  }
-
-  this.hasNamedParameters = false;
-  this.description = 'description' in this ? this.description : undefined;
-  this.description = lookup(this.description, 'canonDescNone');
-  this.manual = 'manual' in this ? this.manual : undefined;
-  this.manual = lookup(this.manual);
-
-  
-  
-  var paramSpecs = this.params;
-  this.params = [];
-
-  
-  
-  
-  
-  
-  var usingGroups = false;
-
-  
-  
-  
-  
-  paramSpecs.forEach(function(spec) {
-    if (!spec.group) {
-      var param = new Parameter(spec, this, null);
-      this.params.push(param);
-
-      if (!param.isPositionalAllowed) {
-        this.hasNamedParameters = true;
+    lookup: function() {
+      var displayedParams = [];
+      var command = this.requisition.commandAssignment.value;
+      if (command != null) {
+        command.params.forEach(function(param) {
+          var arg = this.requisition.getAssignment(param.name).arg;
+          if (!param.isPositionalAllowed && arg.type === "BlankArgument") {
+            displayedParams.push({ name: '--' + param.name, value: param });
+          }
+        }, this);
       }
+      return displayedParams;
+    },
 
-      if (usingGroups && param.groupName == null) {
-        throw new Error('Parameters can\'t come after param groups.' +
-                        ' Ignoring ' + this.name + '/' + spec.name);
+    parse: function(arg, context) {
+      if (this.isIncompleteName) {
+        return SelectionType.prototype.parse.call(this, arg, context);
       }
-
-      if (param.groupName != null) {
-        usingGroups = true;
+      else {
+        var message = l10n.lookup('cliUnusedArg');
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
       }
     }
-    else {
-      spec.params.forEach(function(ispec) {
-        var param = new Parameter(ispec, this, spec.group);
-        this.params.push(param);
+  },
+  {
+    
+    
+    
+    
+    
+    item: 'type',
+    name: 'command',
+    parent: 'selection',
+    stringifyProperty: 'name',
+    neverForceAsync: true,
 
-        if (!param.isPositionalAllowed) {
-          this.hasNamedParameters = true;
-        }
+    lookup: function() {
+      var commands = canon.getCommands();
+      commands.sort(function(c1, c2) {
+        return c1.name.localeCompare(c2.name);
+      });
+      return commands.map(function(command) {
+        return { name: command.name, value: command };
       }, this);
+    },
 
-      usingGroups = true;
-    }
-  }, this);
-}
-
-exports.Command = Command;
-
-
-
-
-
-
-function Parameter(paramSpec, command, groupName) {
-  this.command = command || { name: 'unnamed' };
-  this.paramSpec = paramSpec;
-  this.name = this.paramSpec.name;
-  this.type = this.paramSpec.type;
-
-  this.groupName = groupName;
-  if (this.groupName != null) {
-    if (this.paramSpec.option != null) {
-      throw new Error('Can\'t have a "option" property in a nested parameter');
-    }
-  }
-  else {
-    if (this.paramSpec.option != null) {
-      this.groupName = this.paramSpec.option === true ?
-              l10n.lookup('canonDefaultGroupName') :
-              '' + this.paramSpec.option;
-    }
-  }
-
-  if (!this.name) {
-    throw new Error('In ' + this.command.name +
-                    ': all params must have a name');
-  }
-
-  var typeSpec = this.type;
-  this.type = types.createType(typeSpec);
-  if (this.type == null) {
-    console.error('Known types: ' + types.getTypeNames().join(', '));
-    throw new Error('In ' + this.command.name + '/' + this.name +
-                    ': can\'t find type for: ' + JSON.stringify(typeSpec));
-  }
-
-  
-  
-  if (this.type.name === 'boolean' &&
-      this.paramSpec.defaultValue !== undefined) {
-    throw new Error('In ' + this.command.name + '/' + this.name +
-                    ': boolean parameters can not have a defaultValue.' +
-                    ' Ignoring');
-  }
-
-  
-  
-  
-  
-  if (this._defaultValue != null) {
-    try {
-      
-      
-      var context = null;
-      var defaultText = this.type.stringify(this.paramSpec.defaultValue, context);
-      var parsed = this.type.parseString(defaultText, context);
-      parsed.then(function(defaultConversion) {
-        if (defaultConversion.getStatus() !== Status.VALID) {
-          console.error('In ' + this.command.name + '/' + this.name +
-                        ': Error round tripping defaultValue. status = ' +
-                        defaultConversion.getStatus());
-        }
-      }.bind(this), util.errorHandler);
-    }
-    catch (ex) {
-      throw new Error('In ' + this.command.name + '/' + this.name + ': ' + ex);
-    }
-  }
-
-  
-  
-  if (!this.isPositionalAllowed && this.paramSpec.defaultValue === undefined &&
-      this.type.getBlank == null && !(this.type.name === 'boolean')) {
-    throw new Error('In ' + this.command.name + '/' + this.name +
-                    ': Missing defaultValue for optional parameter.');
-  }
-}
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'defaultValue', {
-  get: function() {
-    if (!('_defaultValue' in this)) {
-      this._defaultValue = (this.paramSpec.defaultValue !== undefined) ?
-          this.paramSpec.defaultValue :
-          this.type.getBlank().value;
-    }
-
-    return this._defaultValue;
-  },
-  enumerable : true
-});
-
-
-
-
-
-
-Parameter.prototype.isKnownAs = function(name) {
-  if (name === '--' + this.name) {
-    return true;
-  }
-  return false;
-};
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'manual', {
-  get: function() {
-    return lookup(this.paramSpec.manual || undefined);
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'description', {
-  get: function() {
-    return lookup(this.paramSpec.description || undefined, 'canonDescNone');
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'isDataRequired', {
-  get: function() {
-    return this.defaultValue === undefined;
-  },
-  enumerable: true
-});
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'hidden', {
-  get: function() {
-    return this.paramSpec.hidden;
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Parameter.prototype, 'isPositionalAllowed', {
-  get: function() {
-    return this.groupName == null;
-  },
-  enumerable: true
-});
-
-exports.Parameter = Parameter;
-
-
-
-
-
-function Canon() {
-  
-  this._commands = {};
-  
-  this._commandNames = [];
-  
-  this._commandSpecs = {};
-
-  
-  this.onCanonChange = util.createEvent('canon.onCanonChange');
-}
-
-
-
-
-
-
-
-
-Canon.prototype.addCommand = function(commandSpec) {
-  if (this._commands[commandSpec.name] != null) {
     
-    delete this._commands[commandSpec.name];
-    this._commandNames = this._commandNames.filter(function(test) {
-      return test !== commandSpec.name;
-    });
-  }
+    _addToPredictions: function(predictions, option, arg) {
+      
+      
+      
+      
+      if (arg.text.length !== 0 || option.name.indexOf(' ') === -1) {
+        predictions.push(option);
+      }
+    },
 
-  var command = new Command(commandSpec);
-  this._commands[commandSpec.name] = command;
-  this._commandNames.push(commandSpec.name);
-  this._commandNames.sort();
-
-  this._commandSpecs[commandSpec.name] = commandSpec;
-
-  this.onCanonChange();
-  return command;
-};
-
-
-
-
-
-
-
-Canon.prototype.removeCommand = function(commandOrName) {
-  var name = typeof commandOrName === 'string' ?
-          commandOrName :
-          commandOrName.name;
-
-  if (!this._commands[name]) {
-    return false;
-  }
-
-  
-  delete this._commands[name];
-  delete this._commandSpecs[name];
-  this._commandNames = this._commandNames.filter(function(test) {
-    return test !== name;
-  });
-
-  this.onCanonChange();
-  return true;
-};
-
-
-
-
-
-Canon.prototype.getCommand = function(name) {
-  
-  return this._commands[name] || undefined;
-};
-
-
-
-
-Canon.prototype.getCommands = function() {
-  return Object.keys(this._commands).map(function(name) {
-    return this._commands[name];
-  }, this);
-};
-
-
-
-
-Canon.prototype.getCommandNames = function() {
-  return this._commandNames.slice(0);
-};
-
-
-
-
-
-Canon.prototype.getCommandSpecs = function() {
-  var specs = {};
-
-  Object.keys(this._commandSpecs).forEach(function(name) {
-    var spec = this._commandSpecs[name];
-    if (spec.exec == null) {
-      spec.isParent = true;
-    }
-    specs[name] = spec;
-  }.bind(this));
-
-  return specs;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-Canon.prototype.addProxyCommands = function(prefix, commandSpecs, remoter, to) {
-  var names = Object.keys(commandSpecs);
-
-  if (this._commands[prefix] != null) {
-    throw new Error(l10n.lookupFormat('canonProxyExists', [ prefix ]));
-  }
-
-  
-  
-  this.addCommand({
-    name: prefix,
-    isProxy: true,
-    description: l10n.lookupFormat('canonProxyDesc', [ to ]),
-    manual: l10n.lookupFormat('canonProxyManual', [ to ])
-  });
-
-  names.forEach(function(name) {
-    var commandSpec = commandSpecs[name];
-
-    if (commandSpec.noRemote) {
-      return;
-    }
-
-    if (!commandSpec.isParent) {
-      commandSpec.exec = function(args, context) {
-        context.commandName = name;
-        return remoter(args, context);
+    parse: function(arg, context) {
+      
+      
+      var predictFunc = function() {
+        return this._findPredictions(arg);
       }.bind(this);
+
+      return this._findPredictions(arg).then(function(predictions) {
+        if (predictions.length === 0) {
+          var msg = l10n.lookupFormat('typesSelectionNomatch', [ arg.text ]);
+          return new Conversion(undefined, arg, Status.ERROR, msg, predictFunc);
+        }
+
+        var command = predictions[0].value;
+
+        if (predictions.length === 1) {
+          
+          
+          if (command.name === arg.text && typeof command.exec === 'function') {
+            return new Conversion(command, arg, Status.VALID, '');
+          }
+
+          return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
+        }
+
+        
+        if (predictions[0].name === arg.text) {
+          return new Conversion(command, arg, Status.VALID, '', predictFunc);
+        }
+
+        return new Conversion(undefined, arg, Status.INCOMPLETE, '', predictFunc);
+      }.bind(this));
     }
-
-    commandSpec.name = prefix + ' ' + commandSpec.name;
-    commandSpec.isProxy = true;
-    this.addCommand(commandSpec);
-  }.bind(this));
-};
-
-
-
-
-
-
-
-
-
-
-
-
-Canon.prototype.removeProxyCommands = function(prefix) {
-  var toRemove = [];
-  Object.keys(this._commandSpecs).forEach(function(name) {
-    if (name.indexOf(prefix) === 0) {
-      toRemove.push(name);
-    }
-  }.bind(this));
-
-  var removed = [];
-  toRemove.forEach(function(name) {
-    var command = this.getCommand(name);
-    if (command.isProxy) {
-      this.removeCommand(name);
-      removed.push(name);
-    }
-    else {
-      console.error('Skipping removal of \'' + name +
-                    '\' because it is not a proxy command.');
-    }
-  }.bind(this));
-
-  return removed;
-};
-
-var canon = new Canon();
-
-exports.Canon = Canon;
-exports.addCommand = canon.addCommand.bind(canon);
-exports.removeCommand = canon.removeCommand.bind(canon);
-exports.onCanonChange = canon.onCanonChange;
-exports.getCommands = canon.getCommands.bind(canon);
-exports.getCommand = canon.getCommand.bind(canon);
-exports.getCommandNames = canon.getCommandNames.bind(canon);
-exports.getCommandSpecs = canon.getCommandSpecs.bind(canon);
-exports.addProxyCommands = canon.addProxyCommands.bind(canon);
-exports.removeProxyCommands = canon.removeProxyCommands.bind(canon);
-
-
-
-
-
-
-
-
-
-
-function CommandOutputManager() {
-  this.onOutput = util.createEvent('CommandOutputManager.onOutput');
-}
-
-exports.CommandOutputManager = CommandOutputManager;
-
+  }
+];
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3909,8 +4695,6 @@ define('gcli/types/date', ['require', 'exports', 'module' , 'util/promise', 'uti
 
 var promise = require('util/promise');
 var l10n = require('util/l10n');
-
-var types = require('gcli/types');
 var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
@@ -4091,6 +4875,8 @@ DateType.prototype.increment = function(value, context) {
 
 DateType.prototype.name = 'date';
 
+exports.items = [ DateType ];
+
 
 
 
@@ -4114,17 +4900,541 @@ function isDate(thing) {
 };
 
 
+});
 
 
 
-exports.startup = function() {
-  types.addType(DateType);
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/file', ['require', 'exports', 'module' , 'gcli/types/fileparser', 'gcli/types'], function(require, exports, module) {
+
+'use strict';
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+var fileparser = require('gcli/types/fileparser');
+var Conversion = require('gcli/types').Conversion;
+
+exports.items = [
+  {
+    item: 'type',
+    name: 'file',
+
+    filetype: 'any',    
+    existing: 'maybe',  
+    matches: undefined, 
+
+    isSelection: true,  
+
+    constructor: function() {
+      if (this.filetype !== 'any' && this.filetype !== 'file' &&
+          this.filetype !== 'directory') {
+        throw new Error('filetype must be one of [any|file|directory]');
+      }
+
+      if (this.existing !== 'yes' && this.existing !== 'no' &&
+          this.existing !== 'maybe') {
+        throw new Error('existing must be one of [yes|no|maybe]');
+      }
+    },
+
+    stringify: function(file) {
+      if (file == null) {
+        return '';
+      }
+
+      return file.toString();
+    },
+
+    parse: function(arg, context) {
+      var options = {
+        filetype: this.filetype,
+        existing: this.existing,
+        matches: this.matches
+      };
+      var promise = fileparser.parse(arg.text, options);
+
+      return promise.then(function(reply) {
+        return new Conversion(reply.value, arg, reply.status,
+                              reply.message, reply.predictor);
+      });
+    }
+  }
+];
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/fileparser', ['require', 'exports', 'module' , 'util/fileparser'], function(require, exports, module) {
+
+'use strict';
+
+var fileparser = require('util/fileparser');
+
+fileparser.supportsPredictions = false;
+exports.parse = fileparser.parse;
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('util/fileparser', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'util/spell', 'util/filesystem', 'gcli/types'], function(require, exports, module) {
+
+'use strict';
+
+var util = require('util/util');
+var l10n = require('util/l10n');
+var spell = require('util/spell');
+var filesystem = require('util/filesystem');
+var Status = require('gcli/types').Status;
+
+
+
+
+
+
+
+
+
+
+
+exports.parse = function(typed, options) {
+  return filesystem.stat(typed).then(function(stats) {
+    
+    if (options.existing === 'no' && stats.exists) {
+      return {
+        value: undefined,
+        status: Status.INCOMPLETE,
+        message: l10n.lookupFormat('fileErrExists', [ typed ]),
+        predictor: undefined 
+      };
+    }
+
+    if (stats.exists) {
+      
+      if (options.filetype === 'file' && !stats.isFile) {
+        return {
+          value: undefined,
+          status: Status.INCOMPLETE,
+          message: l10n.lookupFormat('fileErrIsNotFile', [ typed ]),
+          predictor: getPredictor(typed, options)
+        };
+      }
+
+      if (options.filetype === 'directory' && !stats.isDir) {
+        return {
+          value: undefined,
+          status: Status.INCOMPLETE,
+          message: l10n.lookupFormat('fileErrIsNotDirectory', [ typed ]),
+          predictor: getPredictor(typed, options)
+        };
+      }
+
+      
+      if (options.matches != null && !options.matches.test(typed)) {
+        return {
+          value: undefined,
+          status: Status.INCOMPLETE,
+          message: l10n.lookupFormat('fileErrDoesntMatch',
+                                     [ typed, options.source ]),
+          predictor: getPredictor(typed, options)
+        };
+      }
+    }
+    else {
+      if (options.existing === 'yes') {
+        
+        
+        var parentName = filesystem.dirname(typed);
+        return filesystem.stat(parentName).then(function(stats) {
+          return {
+            value: undefined,
+            status: stats.isDir ? Status.INCOMPLETE : Status.ERROR,
+            message: l10n.lookupFormat('fileErrNotExists', [ typed ]),
+            predictor: getPredictor(typed, options)
+          };
+        });
+      }
+    }
+
+    
+    return {
+      value: typed,
+      status: Status.VALID,
+      message: undefined,
+      predictor: getPredictor(typed, options)
+    };
+  });
 };
 
-exports.shutdown = function() {
-  types.removeType(DateType);
+var RANK_OPTIONS = { noSort: true, prefixZero: true };
+
+
+
+
+exports.supportsPredictions = true;
+
+
+
+
+
+function getPredictor(typed, options) {
+  if (!exports.supportsPredictions) {
+    return undefined;
+  }
+
+  return function() {
+    var allowFile = (options.filetype !== 'directory');
+    var parts = filesystem.split(typed);
+
+    var absolute = (typed.indexOf('/') === 0);
+    var roots;
+    if (absolute) {
+      roots = [ { name: '/', dist: 0, original: '/' } ];
+    }
+    else {
+      roots = history.getCommonDirectories().map(function(root) {
+        return { name: root, dist: 0, original: root };
+      });
+    }
+
+    
+    
+    
+    var partsAdded = util.promiseEach(parts, function(part, index) {
+
+      var partsSoFar = filesystem.join.apply(filesystem, parts.slice(0, index + 1));
+
+      
+      
+      var allowFileForPart = (allowFile && index >= parts.length - 1);
+
+      var rootsPromise = util.promiseEach(roots, function(root) {
+
+        
+        var matchFile = allowFileForPart ? options.matches : null;
+        var promise = filesystem.ls(root.name, matchFile);
+
+        var onSuccess = function(entries) {
+          
+          if (!allowFileForPart) {
+            entries = entries.filter(function(entry) {
+              return entry.isDir;
+            });
+          }
+          var entryMap = {};
+          entries.forEach(function(entry) {
+            entryMap[entry.pathname] = entry;
+          });
+          return entryMap;
+        };
+
+        var onError = function(err) {
+          
+          
+          
+          var noComplainCodes = [ 'ENOTDIR', 'EACCES', 'EBADF', 'ENOENT' ];
+          if (noComplainCodes.indexOf(err.code) === -1) {
+            console.error('Error looing up', root.name, err);
+          }
+          return {};
+        };
+
+        promise = promise.then(onSuccess, onError);
+
+        
+        
+        var compare = filesystem.join(root.original, partsSoFar);
+
+        return promise.then(function(entryMap) {
+
+          var ranks = spell.rank(compare, Object.keys(entryMap), RANK_OPTIONS);
+          
+          ranks.forEach(function(rank) {
+            rank.original = root.original;
+            rank.stats = entryMap[rank.name];
+          });
+          return ranks;
+        });
+      });
+
+      return rootsPromise.then(function(data) {
+        
+        data = data.reduce(function(prev, curr) {
+          return prev.concat(curr);
+        }, []);
+
+        data.sort(function(r1, r2) {
+          return r1.dist - r2.dist;
+        });
+
+        
+        
+        
+        
+        
+        
+        
+        var isLast = index >= parts.length - 1;
+        var start = isLast ? 1 : 5;
+        var end = isLast ? 7 : 10;
+
+        var maxDeltaAt = start;
+        var maxDelta = data[start].dist - data[start - 1].dist;
+
+        for (var i = start + 1; i < end; i++) {
+          var delta = data[i].dist - data[i - 1].dist;
+          if (delta >= maxDelta) {
+            maxDelta = delta;
+            maxDeltaAt = i;
+          }
+        }
+
+        
+        roots = data.slice(0, maxDeltaAt);
+      });
+    });
+
+    return partsAdded.then(function() {
+      var predictions = roots.map(function(root) {
+        var isFile = root.stats && root.stats.isFile;
+        var isDir = root.stats && root.stats.isDir;
+
+        var name = root.name;
+        if (isDir && name.charAt(name.length) !== filesystem.sep) {
+          name += filesystem.sep;
+        }
+
+        return {
+          name: name,
+          incomplete: !(allowFile && isFile),
+          isFile: isFile,  
+          dist: root.dist, 
+        };
+      });
+
+      return util.promiseEach(predictions, function(prediction) {
+        if (!prediction.isFile) {
+          prediction.description = '(' + prediction.dist + ')';
+          prediction.dist = undefined;
+          prediction.isFile = undefined;
+          return prediction;
+        }
+
+        return filesystem.describe(prediction.name).then(function(description) {
+          prediction.description = description;
+          prediction.dist = undefined;
+          prediction.isFile = undefined;
+          return prediction;
+        });
+      });
+    });
+  };
+}
+
+
+
+
+
+
+
+
+
+var history = {
+  getCommonDirectories: function() {
+    return [
+      filesystem.sep,  
+      filesystem.home  
+    ];
+  },
+  addCommonDirectory: function(ignore) {
+    
+  }
 };
 
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('util/filesystem', ['require', 'exports', 'module' , 'util/promise'], function(require, exports, module) {
+
+'use strict';
+
+var OS = Components.utils.import("resource://gre/modules/osfile.jsm", {}).OS;
+var promise = require('util/promise');
+
+
+
+
+
+
+
+exports.join = OS.Path.join;
+exports.sep = OS.Path.sep;
+exports.dirname = OS.Path.dirname;
+
+var dirService = Components.classes["@mozilla.org/file/directory_service;1"]
+                           .getService(Components.interfaces.nsIProperties);
+exports.home = dirService.get("Home", Components.interfaces.nsIFile).path;
+
+if ("winGetDrive" in OS.Path) {
+  exports.sep = '\\';
+}
+else {
+  exports.sep = '/';
+}
+
+
+
+
+
+
+exports.split = function(pathname) {
+  return OS.Path.split(pathname).components;
+};
+
+
+
+
+
+
+
+
+
+
+
+exports.ls = function(pathname, matches) {
+  var iterator = new OS.File.DirectoryIterator(pathname);
+  var entries = [];
+
+  var iteratePromise = iterator.forEach(function(entry) {
+    entries.push({
+      exists: true,
+      isDir: entry.isDir,
+      isFile: !entry.isFile,
+      filename: entry.name,
+      pathname: entry.path
+    });
+  });
+
+  return iteratePromise.then(function onSuccess() {
+      iterator.close();
+      return entries;
+    },
+    function onFailure(reason) {
+      iterator.close();
+      throw reason;
+    }
+  );
+};
+
+
+
+
+
+
+
+exports.stat = function(pathname) {
+  var onResolve = function(stats) {
+    return {
+      exists: true,
+      isDir: stats.isDir,
+      isFile: !stats.isFile
+    };
+  };
+
+  var onReject = function(err) {
+    if (err instanceof OS.File.Error && err.becauseNoSuchFile) {
+      return {
+        exists: false,
+        isDir: false,
+        isFile: false
+      };
+    }
+    throw err;
+  };
+
+  return OS.File.stat(pathname).then(onResolve, onReject);
+};
+
+
+
+
+
+exports.describe = function(pathname) {
+  return promise.resolve('');
+};
 
 
 });
@@ -4155,18 +5465,6 @@ var types = require('gcli/types');
 var Conversion = types.Conversion;
 var Type = types.Type;
 var Status = types.Status;
-
-
-
-
-
-exports.startup = function() {
-  types.addType(JavascriptType);
-};
-
-exports.shutdown = function() {
-  types.removeType(JavascriptType);
-};
 
 
 
@@ -4688,7 +5986,7 @@ JavascriptType.prototype._isSafeProperty = function(scope, prop) {
 
 JavascriptType.prototype.name = 'javascript';
 
-exports.JavascriptType = JavascriptType;
+exports.items = [ JavascriptType ];
 
 
 });
@@ -4715,25 +6013,10 @@ define('gcli/types/node', ['require', 'exports', 'module' , 'util/promise', 'uti
 var promise = require('util/promise');
 var host = require('util/host');
 var l10n = require('util/l10n');
-var types = require('gcli/types');
-var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 var BlankArgument = require('gcli/argument').BlankArgument;
 
-
-
-
-
-exports.startup = function() {
-  types.addType(NodeType);
-  types.addType(NodeListType);
-};
-
-exports.shutdown = function() {
-  types.removeType(NodeType);
-  types.removeType(NodeListType);
-};
 
 
 
@@ -4781,115 +6064,110 @@ exports.getDocument = function() {
 
 
 
+exports.items = [
+  {
+    
+    item: 'type',
+    name: 'node',
 
-function NodeType(typeSpec) {
-}
+    stringify: function(value, context) {
+      if (value == null) {
+        return '';
+      }
+      return value.__gcliQuery || 'Error';
+    },
 
-NodeType.prototype = Object.create(Type.prototype);
+    parse: function(arg, context) {
+      if (arg.text === '') {
+        return promise.resolve(new Conversion(undefined, arg,
+                                              Status.INCOMPLETE));
+      }
 
-NodeType.prototype.stringify = function(value, context) {
-  if (value == null) {
-    return '';
+      var nodes;
+      try {
+        nodes = doc.querySelectorAll(arg.text);
+      }
+      catch (ex) {
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR,
+                                              l10n.lookup('nodeParseSyntax')));
+      }
+
+      if (nodes.length === 0) {
+        return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE,
+                                              l10n.lookup('nodeParseNone')));
+      }
+
+      if (nodes.length === 1) {
+        var node = nodes.item(0);
+        node.__gcliQuery = arg.text;
+
+        host.flashNodes(node, true);
+
+        return promise.resolve(new Conversion(node, arg, Status.VALID, ''));
+      }
+
+      host.flashNodes(nodes, false);
+
+      var msg = l10n.lookupFormat('nodeParseMultiple', [ nodes.length ]);
+      return promise.resolve(new Conversion(undefined, arg, Status.ERROR, msg));
+    }
+  },
+  {
+    
+    item: 'type',
+    name: 'nodelist',
+
+    
+    
+    
+    
+    
+    
+    
+    
+    allowEmpty: false,
+
+    constructor: function() {
+      if (typeof this.allowEmpty !== 'boolean') {
+        throw new Error('Legal values for allowEmpty are [true|false]');
+      }
+    },
+
+    getBlank: function(context) {
+      return new Conversion(exports._empty, new BlankArgument(), Status.VALID);
+    },
+
+    stringify: function(value, context) {
+      if (value == null) {
+        return '';
+      }
+      return value.__gcliQuery || 'Error';
+    },
+
+    parse: function(arg, context) {
+      if (arg.text === '') {
+        return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE));
+      }
+
+      var nodes;
+      try {
+        nodes = doc.querySelectorAll(arg.text);
+      }
+      catch (ex) {
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR,
+                                        l10n.lookup('nodeParseSyntax')));
+      }
+
+      if (nodes.length === 0 && !this.allowEmpty) {
+        return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE,
+                                        l10n.lookup('nodeParseNone')));
+      }
+
+      host.flashNodes(nodes, false);
+      return promise.resolve(new Conversion(nodes, arg, Status.VALID, ''));
+    }
   }
-  return value.__gcliQuery || 'Error';
-};
-
-NodeType.prototype.parse = function(arg, context) {
-  if (arg.text === '') {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE));
-  }
-
-  var nodes;
-  try {
-    nodes = doc.querySelectorAll(arg.text);
-  }
-  catch (ex) {
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR,
-                                          l10n.lookup('nodeParseSyntax')));
-  }
-
-  if (nodes.length === 0) {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE,
-                                          l10n.lookup('nodeParseNone')));
-  }
-
-  if (nodes.length === 1) {
-    var node = nodes.item(0);
-    node.__gcliQuery = arg.text;
-
-    host.flashNodes(node, true);
-
-    return promise.resolve(new Conversion(node, arg, Status.VALID, ''));
-  }
-
-  host.flashNodes(nodes, false);
-
-  var message = l10n.lookupFormat('nodeParseMultiple', [ nodes.length ]);
-  return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
-};
-
-NodeType.prototype.name = 'node';
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function NodeListType(typeSpec) {
-  if ('allowEmpty' in typeSpec && typeof typeSpec.allowEmpty !== 'boolean') {
-    throw new Error('Legal values for allowEmpty are [true|false]');
-  }
-
-  this.allowEmpty = typeSpec.allowEmpty;
-}
-
-NodeListType.prototype = Object.create(Type.prototype);
-
-NodeListType.prototype.getBlank = function(context) {
-  return new Conversion(exports._empty, new BlankArgument(), Status.VALID);
-};
-
-NodeListType.prototype.stringify = function(value, context) {
-  if (value == null) {
-    return '';
-  }
-  return value.__gcliQuery || 'Error';
-};
-
-NodeListType.prototype.parse = function(arg, context) {
-  if (arg.text === '') {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE));
-  }
-
-  var nodes;
-  try {
-    nodes = doc.querySelectorAll(arg.text);
-  }
-  catch (ex) {
-    return promise.resolve(new Conversion(undefined, arg, Status.ERROR,
-                                    l10n.lookup('nodeParseSyntax')));
-  }
-
-  if (nodes.length === 0 && !this.allowEmpty) {
-    return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE,
-                                    l10n.lookup('nodeParseNone')));
-  }
-
-  host.flashNodes(nodes, false);
-  return promise.resolve(new Conversion(nodes, arg, Status.VALID, ''));
-};
-
-NodeListType.prototype.name = 'nodelist';
-
+];
 
 });
 
@@ -4961,26 +6239,177 @@ exports.exec = function(execSpec) {
 
 
 
-define('gcli/types/resource', ['require', 'exports', 'module' , 'util/promise', 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
+define('gcli/types/number', ['require', 'exports', 'module' , 'util/promise', 'util/l10n', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
 
 var promise = require('util/promise');
-var types = require('gcli/types');
+var l10n = require('util/l10n');
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
+
+exports.items = [
+  {
+    
+    
+    
+    item: 'type',
+    name: 'number',
+    allowFloat: false,
+    max: undefined,
+    min: undefined,
+    step: 1,
+
+    constructor: function() {
+      if (!this.allowFloat &&
+          (this._isFloat(this.min) ||
+           this._isFloat(this.max) ||
+           this._isFloat(this.step))) {
+        throw new Error('allowFloat is false, but non-integer values given in type spec');
+      }
+    },
+
+    stringify: function(value, context) {
+      if (value == null) {
+        return '';
+      }
+      return '' + value;
+    },
+
+    getMin: function(context) {
+      if (this.min) {
+        if (typeof this.min === 'function') {
+          return this.min(context);
+        }
+        if (typeof this.min === 'number') {
+          return this.min;
+        }
+      }
+      return undefined;
+    },
+
+    getMax: function(context) {
+      if (this.max) {
+        if (typeof this.max === 'function') {
+          return this.max(context);
+        }
+        if (typeof this.max === 'number') {
+          return this.max;
+        }
+      }
+      return undefined;
+    },
+
+    parse: function(arg, context) {
+      if (arg.text.replace(/^\s*-?/, '').length === 0) {
+        return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
+      }
+
+      if (!this.allowFloat && (arg.text.indexOf('.') !== -1)) {
+        var message = l10n.lookupFormat('typesNumberNotInt2', [ arg.text ]);
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
+      }
+
+      var value;
+      if (this.allowFloat) {
+        value = parseFloat(arg.text);
+      }
+      else {
+        value = parseInt(arg.text, 10);
+      }
+
+      if (isNaN(value)) {
+        var message = l10n.lookupFormat('typesNumberNan', [ arg.text ]);
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
+      }
+
+      var max = this.getMax(context);
+      if (max != null && value > max) {
+        var message = l10n.lookupFormat('typesNumberMax', [ value, max ]);
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
+      }
+
+      var min = this.getMin(context);
+      if (min != null && value < min) {
+        var message = l10n.lookupFormat('typesNumberMin', [ value, min ]);
+        return promise.resolve(new Conversion(undefined, arg, Status.ERROR, message));
+      }
+
+      return promise.resolve(new Conversion(value, arg));
+    },
+
+    decrement: function(value, context) {
+      if (typeof value !== 'number' || isNaN(value)) {
+        return this.getMax(context) || 1;
+      }
+      var newValue = value - this.step;
+      
+      newValue = Math.ceil(newValue / this.step) * this.step;
+      return this._boundsCheck(newValue, context);
+    },
+
+    increment: function(value, context) {
+      if (typeof value !== 'number' || isNaN(value)) {
+        var min = this.getMin(context);
+        return min != null ? min : 0;
+      }
+      var newValue = value + this.step;
+      
+      newValue = Math.floor(newValue / this.step) * this.step;
+      if (this.getMax(context) == null) {
+        return newValue;
+      }
+      return this._boundsCheck(newValue, context);
+    },
+
+    
+    
+    
+    _boundsCheck: function(value, context) {
+      var min = this.getMin(context);
+      if (min != null && value < min) {
+        return min;
+      }
+      var max = this.getMax(context);
+      if (max != null && value > max) {
+        return max;
+      }
+      return value;
+    },
+
+    
+    
+    _isFloat: function(value) {
+      return ((typeof value === 'number') && isFinite(value) && (value % 1 !== 0));
+    }
+  }
+];
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/types/resource', ['require', 'exports', 'module' , 'util/promise', 'gcli/types/selection'], function(require, exports, module) {
+
+'use strict';
+
+var promise = require('util/promise');
 var SelectionType = require('gcli/types/selection').SelectionType;
 
-
-
-
-
-exports.startup = function() {
-  types.addType(ResourceType);
-};
-
-exports.shutdown = function() {
-  types.removeType(ResourceType);
-  exports.clearResourceCache();
-};
 
 exports.clearResourceCache = function() {
   ResourceCache.clear();
@@ -5191,42 +6620,6 @@ function dedupe(resources, onDupe) {
 
 
 
-function ResourceType(typeSpec) {
-  this.include = typeSpec.include;
-  if (this.include !== Resource.TYPE_SCRIPT &&
-      this.include !== Resource.TYPE_CSS &&
-      this.include != null) {
-    throw new Error('invalid include property: ' + this.include);
-  }
-}
-
-ResourceType.prototype = Object.create(SelectionType.prototype);
-
-
-
-
-
-
-ResourceType.prototype.getLookup = function() {
-  var resources = [];
-  if (this.include !== Resource.TYPE_SCRIPT) {
-    Array.prototype.push.apply(resources, CssResource._getAllStyles());
-  }
-  if (this.include !== Resource.TYPE_CSS) {
-    Array.prototype.push.apply(resources, ScriptResource._getAllScripts());
-  }
-
-  return promise.resolve(resources.map(function(resource) {
-    return { name: resource.name, value: resource };
-  }));
-};
-
-ResourceType.prototype.name = 'resource';
-
-
-
-
-
 
 
 
@@ -5261,6 +6654,38 @@ var ResourceCache = {
 };
 
 
+
+
+exports.items = [
+  {
+    item: 'type',
+    constructor: function() {
+      if (this.include !== Resource.TYPE_SCRIPT &&
+          this.include !== Resource.TYPE_CSS &&
+          this.include != null) {
+        throw new Error('invalid include property: ' + this.include);
+      }
+    },
+    name: 'resource',
+    parent: 'selection',
+    include: null,
+    cacheable: false,
+    lookup: function() {
+      var resources = [];
+      if (this.include !== Resource.TYPE_SCRIPT) {
+        Array.prototype.push.apply(resources, CssResource._getAllStyles());
+      }
+      if (this.include !== Resource.TYPE_CSS) {
+        Array.prototype.push.apply(resources, ScriptResource._getAllScripts());
+      }
+
+      return promise.resolve(resources.map(function(resource) {
+        return { name: resource.name, value: resource };
+      }));
+    }
+  }
+];
+
 });
 
 
@@ -5285,60 +6710,45 @@ define('gcli/types/setting', ['require', 'exports', 'module' , 'gcli/settings', 
 var settings = require('gcli/settings');
 var types = require('gcli/types');
 
-
-
-
-var settingType = {
-  constructor: function() {
-    settings.onChange.add(function(ev) {
-      this.clearCache();
-    }, this);
-  },
-  name: 'setting',
-  parent: 'selection',
-  cacheable: true,
-  lookup: function() {
-    return settings.getAll().map(function(setting) {
-      return { name: setting.name, value: setting };
-    });
-  }
-};
-
-
-
-
-
-
-
-var settingValueType = {
-  name: 'settingValue',
-  parent: 'delegate',
-  settingParamName: 'setting',
-  delegateType: function(context) {
-    if (context != null) {
-      var setting = context.getArgsObject()[this.settingParamName];
-      if (setting != null) {
-        return setting.type;
-      }
+exports.items = [
+  {
+    
+    item: 'type',
+    name: 'setting',
+    parent: 'selection',
+    cacheable: true,
+    constructor: function() {
+      settings.onChange.add(function(ev) {
+        this.clearCache();
+      }, this);
+    },
+    lookup: function() {
+      return settings.getAll().map(function(setting) {
+        return { name: setting.name, value: setting };
+      });
     }
+  },
+  {
+    
+    
+    
+    
+    item: 'type',
+    name: 'settingValue',
+    parent: 'delegate',
+    settingParamName: 'setting',
+    delegateType: function(context) {
+      if (context != null) {
+        var setting = context.getArgsObject()[this.settingParamName];
+        if (setting != null) {
+          return setting.type;
+        }
+      }
 
-    return types.createType('blank');
+      return types.createType('blank');
+    }
   }
-};
-
-
-
-
-exports.startup = function() {
-  types.addType(settingType);
-  types.addType(settingValueType);
-};
-
-exports.shutdown = function() {
-  types.removeType(settingType);
-  types.removeType(settingValueType);
-};
-
+];
 
 });
 
@@ -5357,280 +6767,212 @@ exports.shutdown = function() {
 
 
 
-define('gcli/settings', ['require', 'exports', 'module' , 'util/util', 'gcli/types'], function(require, exports, module) {
+define('gcli/types/string', ['require', 'exports', 'module' , 'util/promise', 'gcli/types'], function(require, exports, module) {
 
 'use strict';
 
-var imports = {};
+var promise = require('util/promise');
+var Status = require('gcli/types').Status;
+var Conversion = require('gcli/types').Conversion;
 
-Components.utils.import('resource://gre/modules/XPCOMUtils.jsm', imports);
+exports.items = [
+  {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    item: 'type',
+    name: 'string',
+    allowBlank: false,
 
-imports.XPCOMUtils.defineLazyGetter(imports, 'prefBranch', function() {
-  var prefService = Components.classes['@mozilla.org/preferences-service;1']
-          .getService(Components.interfaces.nsIPrefService);
-  return prefService.getBranch(null)
-          .QueryInterface(Components.interfaces.nsIPrefBranch2);
+    stringify: function(value, context) {
+      if (value == null) {
+        return '';
+      }
+
+      return value
+           .replace(/\\/g, '\\\\')
+           .replace(/\f/g, '\\f')
+           .replace(/\n/g, '\\n')
+           .replace(/\r/g, '\\r')
+           .replace(/\t/g, '\\t')
+           .replace(/\v/g, '\\v')
+           .replace(/\n/g, '\\n')
+           .replace(/\r/g, '\\r')
+           .replace(/ /g, '\\ ')
+           .replace(/'/g, '\\\'')
+           .replace(/"/g, '\\"')
+           .replace(/{/g, '\\{')
+           .replace(/}/g, '\\}');
+    },
+
+    parse:function(arg, context) {
+      if (!this.allowBlank && (arg.text == null || arg.text === '')) {
+        return promise.resolve(new Conversion(undefined, arg, Status.INCOMPLETE, ''));
+      }
+
+      
+      
+      
+      
+      var value = arg.text
+           .replace(/\\\\/g, '\uF000')
+           .replace(/\\f/g, '\f')
+           .replace(/\\n/g, '\n')
+           .replace(/\\r/g, '\r')
+           .replace(/\\t/g, '\t')
+           .replace(/\\v/g, '\v')
+           .replace(/\\n/g, '\n')
+           .replace(/\\r/g, '\r')
+           .replace(/\\ /g, ' ')
+           .replace(/\\'/g, '\'')
+           .replace(/\\"/g, '"')
+           .replace(/\\{/g, '{')
+           .replace(/\\}/g, '}')
+           .replace(/\uF000/g, '\\');
+
+      return promise.resolve(new Conversion(value, arg));
+    }
+  }
+];
+
+
 });
 
-imports.XPCOMUtils.defineLazyGetter(imports, 'supportsString', function() {
-  return Components.classes["@mozilla.org/supports-string;1"]
-          .createInstance(Components.interfaces.nsISupportsString);
-});
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/converters/basic', ['require', 'exports', 'module' , 'util/util'], function(require, exports, module) {
+
+'use strict';
 
 var util = require('util/util');
-var types = require('gcli/types');
 
 
 
 
-var DEVTOOLS_PREFIX = 'devtools.gcli.';
-
-
-
-
-
-function Setting(prefSpec) {
-  if (typeof prefSpec === 'string') {
-    
-    this.name = prefSpec;
-    this.description = '';
-  }
-  else {
-    
-    this.name = DEVTOOLS_PREFIX + prefSpec.name;
-
-    if (prefSpec.ignoreTypeDifference !== true && prefSpec.type) {
-      if (this.type.name !== prefSpec.type) {
-        throw new Error('Locally declared type (' + prefSpec.type + ') != ' +
-            'Mozilla declared type (' + this.type.name + ') for ' + this.name);
-      }
-    }
-
-    this.description = prefSpec.description;
-  }
-
-  this.onChange = util.createEvent('Setting.onChange');
+function nodeFromDataToString(data, conversionContext) {
+  var node = util.createElement(conversionContext.document, 'p');
+  node.textContent = data.toString();
+  return node;
 }
 
-
-
-
-Object.defineProperty(Setting.prototype, 'type', {
-  get: function() {
-    switch (imports.prefBranch.getPrefType(this.name)) {
-      case imports.prefBranch.PREF_BOOL:
-        return types.createType('boolean');
-
-      case imports.prefBranch.PREF_INT:
-        return types.createType('number');
-
-      case imports.prefBranch.PREF_STRING:
-        return types.createType('string');
-
-      default:
-        throw new Error('Unknown type for ' + this.name);
+exports.items = [
+  {
+    item: 'converter',
+    from: 'string',
+    to: 'dom',
+    exec: nodeFromDataToString
+  },
+  {
+    item: 'converter',
+    from: 'number',
+    to: 'dom',
+    exec: nodeFromDataToString
+  },
+  {
+    item: 'converter',
+    from: 'boolean',
+    to: 'dom',
+    exec: nodeFromDataToString
+  },
+  {
+    item: 'converter',
+    from: 'undefined',
+    to: 'dom',
+    exec: function(data, conversionContext) {
+      return util.createElement(conversionContext.document, 'span');
     }
   },
-  enumerable: true
+  {
+    item: 'converter',
+    from: 'error',
+    to: 'dom',
+    exec: function(ex, conversionContext) {
+      var node = util.createElement(conversionContext.document, 'p');
+      node.className = "gcli-error";
+      node.textContent = ex;
+      return node;
+    }
+  }
+];
+
 });
 
 
 
 
-Object.defineProperty(Setting.prototype, 'value', {
-  get: function() {
-    switch (imports.prefBranch.getPrefType(this.name)) {
-      case imports.prefBranch.PREF_BOOL:
-        return imports.prefBranch.getBoolPref(this.name);
-
-      case imports.prefBranch.PREF_INT:
-        return imports.prefBranch.getIntPref(this.name);
-
-      case imports.prefBranch.PREF_STRING:
-        var value = imports.prefBranch.getComplexValue(this.name,
-                Components.interfaces.nsISupportsString).data;
-        
-        if (/^chrome:\/\/.+\/locale\/.+\.properties/.test(value)) {
-          value = imports.prefBranch.getComplexValue(this.name,
-                  Components.interfaces.nsIPrefLocalizedString).data;
-        }
-        return value;
-
-      default:
-        throw new Error('Invalid value for ' + this.name);
-    }
-  },
-
-  set: function(value) {
-    if (imports.prefBranch.prefIsLocked(this.name)) {
-      throw new Error('Locked preference ' + this.name);
-    }
-
-    switch (imports.prefBranch.getPrefType(this.name)) {
-      case imports.prefBranch.PREF_BOOL:
-        imports.prefBranch.setBoolPref(this.name, value);
-        break;
-
-      case imports.prefBranch.PREF_INT:
-        imports.prefBranch.setIntPref(this.name, value);
-        break;
-
-      case imports.prefBranch.PREF_STRING:
-        imports.supportsString.data = value;
-        imports.prefBranch.setComplexValue(this.name,
-                Components.interfaces.nsISupportsString,
-                imports.supportsString);
-        break;
-
-      default:
-        throw new Error('Invalid value for ' + this.name);
-    }
-
-    Services.prefs.savePrefFile(null);
-  },
-
-  enumerable: true
-});
-
-
-
-
-Setting.prototype.setDefault = function() {
-  imports.prefBranch.clearUserPref(this.name);
-  Services.prefs.savePrefFile(null);
-};
 
 
 
 
 
-var settingsAll = [];
-
-
-
-
-var settingsMap = new Map();
-
-
-
-
-var hasReadSystem = false;
-
-
-
-
-function reset() {
-  settingsMap = new Map();
-  settingsAll = [];
-  hasReadSystem = false;
-}
-
-
-
-
-exports.startup = function() {
-  reset();
-};
-
-exports.shutdown = function() {
-  reset();
-};
 
 
 
 
 
-function readSystem() {
-  if (hasReadSystem) {
-    return;
-  }
 
-  imports.prefBranch.getChildList('').forEach(function(name) {
-    var setting = new Setting(name);
-    settingsAll.push(setting);
-    settingsMap.set(name, setting);
-  });
 
-  settingsAll.sort(function(s1, s2) {
-    return s1.name.localeCompare(s2.name);
-  });
+define('gcli/converters/terminal', ['require', 'exports', 'module' , 'util/util'], function(require, exports, module) {
 
-  hasReadSystem = true;
-}
+'use strict';
+
+var util = require('util/util');
 
 
 
 
 
-exports.getAll = function(filter) {
-  readSystem();
-
-  if (filter == null) {
-    return settingsAll;
-  }
-
-  return settingsAll.filter(function(setting) {
-    return setting.name.indexOf(filter) !== -1;
-  });
-};
-
-
-
-
-exports.addSetting = function(prefSpec) {
-  var setting = new Setting(prefSpec);
-
-  if (settingsMap.has(setting.name)) {
-    
-    for (var i = 0; i < settingsAll.length; i++) {
-      if (settingsAll[i].name === setting.name) {
-        settingsAll[i] = setting;
+exports.items = [
+  {
+    item: 'converter',
+    from: 'terminal',
+    to: 'dom',
+    createTextArea: function(text, conversionContext) {
+      var node = util.createElement(conversionContext.document, 'textarea');
+      node.classList.add('gcli-row-subterminal');
+      node.readOnly = true;
+      node.textContent = text;
+      return node;
+    },
+    exec: function(data, conversionContext) {
+      if (Array.isArray(data)) {
+        var node = util.createElement(conversionContext.document, 'div');
+        data.forEach(function(member) {
+          node.appendChild(this.createTextArea(member, conversionContext));
+        });
+        return node;
       }
+      return this.createTextArea(data);
+    }
+  },
+  {
+    item: 'converter',
+    from: 'terminal',
+    to: 'string',
+    exec: function(data, conversionContext) {
+      return Array.isArray(data) ? data.join('') : '' + data;
     }
   }
-
-  settingsMap.set(setting.name, setting);
-  exports.onChange({ added: setting.name });
-
-  return setting;
-};
-
-
-
-
-
-
-
-
-
-
-exports.getSetting = function(name) {
-  
-  
-  var found = settingsMap.get(name);
-  if (found) {
-    return found;
-  }
-
-  if (hasReadSystem) {
-    return undefined;
-  }
-  else {
-    readSystem();
-    return settingsMap.get(name);
-  }
-};
-
-
-
-
-exports.onChange = util.createEvent('Settings.onChange');
-
-
-
-
-exports.removeSetting = function() { };
+];
 
 
 });
@@ -5662,30 +7004,21 @@ var Output = require('gcli/cli').Output;
 
 
 
-var hideIntroSettingSpec = {
-  name: 'hideIntro',
-  type: 'boolean',
-  description: l10n.lookup('hideIntroDesc'),
-  defaultValue: false
-};
-var hideIntro;
-
-
-
-
-exports.startup = function() {
-  hideIntro = settings.addSetting(hideIntroSettingSpec);
-};
-
-exports.shutdown = function() {
-  settings.removeSetting(hideIntroSettingSpec);
-  hideIntro = undefined;
-};
+exports.items = [
+  {
+    item: 'setting',
+    name: 'hideIntro',
+    type: 'boolean',
+    description: l10n.lookup('hideIntroDesc'),
+    defaultValue: false
+  }
+];
 
 
 
 
 exports.maybeShowIntro = function(commandOutputManager, conversionContext) {
+  var hideIntro = settings.getSetting('hideIntro');
   if (hideIntro.value) {
     return;
   }
@@ -5694,7 +7027,7 @@ exports.maybeShowIntro = function(commandOutputManager, conversionContext) {
   output.type = 'view';
   commandOutputManager.onOutput({ output: output });
 
-  var viewData = this.createView(conversionContext, output);
+  var viewData = this.createView(null, conversionContext, output);
 
   output.complete({ isTypedData: true, type: 'view', data: viewData });
 };
@@ -5702,20 +7035,17 @@ exports.maybeShowIntro = function(commandOutputManager, conversionContext) {
 
 
 
-exports.createView = function(conversionContext, output) {
+exports.createView = function(ignore, conversionContext, output) {
   return view.createView({
     html: require('text!gcli/ui/intro.html'),
     options: { stack: 'intro.html' },
     data: {
       l10n: l10n.propertyLookup,
-      onclick: function(ev) {
-        conversionContext.update(ev.currentTarget);
-      },
-      ondblclick: function(ev) {
-        conversionContext.updateExec(ev.currentTarget);
-      },
+      onclick: conversionContext.update,
+      ondblclick: conversionContext.updateExec,
       showHideButton: (output != null),
       onGotIt: function(ev) {
+        var hideIntro = settings.getSetting('hideIntro');
         hideIntro.value = true;
         output.onClose();
       }
@@ -5878,20 +7208,15 @@ var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
 var MergedArgument = require('gcli/argument').MergedArgument;
 var ScriptArgument = require('gcli/argument').ScriptArgument;
 
-var evalCommand;
 
 
 
-
-exports.startup = function() {
-  evalCommand = canon.addCommand(evalCommandSpec);
-};
-
-exports.shutdown = function() {
-  canon.removeCommand(evalCommandSpec.name);
-  evalCommand = undefined;
-};
-
+function getEvalCommand() {
+  if (getEvalCommand._cmd == null) {
+    getEvalCommand._cmd = canon.getCommand(evalCmd.name);
+  }
+  return getEvalCommand._cmd;
+}
 
 
 
@@ -6095,7 +7420,8 @@ exports.unsetEvalFunction = function() {
 
 
 
-var evalCommandSpec = {
+var evalCmd = {
+  item: 'command',
   name: '{',
   params: [
     {
@@ -6110,9 +7436,10 @@ var evalCommandSpec = {
   exec: function(args, context) {
     return customEval(args.javascript);
   },
-  evalRegexp: /^\s*{\s*/
+  isCommandRegexp: /^\s*{\s*/
 };
 
+exports.items = [ evalCmd ];
 
 
 
@@ -6169,7 +7496,7 @@ function UnassignedAssignment(requisition, arg) {
   
   var parsed = this.param.type.parse(arg, requisition.executionContext);
   this.conversion = util.synchronize(parsed);
-  this.conversion.assign(this);
+  this.conversion.assignment = this;
 }
 
 UnassignedAssignment.prototype = Object.create(Assignment.prototype);
@@ -6230,9 +7557,9 @@ function Requisition(environment, doc, commandOutputManager) {
   
   
   this.commandAssignment = new CommandAssignment();
-  var promise = this.setAssignment(this.commandAssignment, null,
-                                   { skipArgUpdate: true });
-  util.synchronize(promise);
+  var assignPromise = this.setAssignment(this.commandAssignment, null,
+                                   { internal: true });
+  util.synchronize(assignPromise);
 
   
   
@@ -6257,6 +7584,10 @@ function Requisition(environment, doc, commandOutputManager) {
 
   
   
+  this._nextUpdateId = 0;
+
+  
+  
   this.prefix = '';
 
   this.commandAssignment.onAssignmentChange.add(this._commandAssignmentChanged, this);
@@ -6275,6 +7606,45 @@ Requisition.prototype.destroy = function() {
 
   delete this.document;
   delete this.environment;
+};
+
+
+
+
+
+
+
+
+Requisition.prototype._beginChange = function() {
+  this._structuralChangeInProgress = true;
+  var updateId = this._nextUpdateId;
+  this._nextUpdateId++;
+  return updateId;
+};
+
+
+
+
+
+
+
+
+Requisition.prototype._isChangeCurrent = function(updateId) {
+  return updateId + 1 === this._nextUpdateId;
+};
+
+
+
+
+Requisition.prototype._endChangeCheckOrder = function(updateId) {
+  if (updateId + 1 !== this._nextUpdateId) {
+    
+    
+    return false;
+  }
+
+  this._structuralChangeInProgress = false;
+  return true;
 };
 
 var legacy = false;
@@ -6429,9 +7799,8 @@ Requisition.prototype._commandAssignmentChanged = function(ev) {
     for (var i = 0; i < command.params.length; i++) {
       var param = command.params[i];
       var assignment = new Assignment(param, i);
-      var promise = this.setAssignment(assignment, null,
-                                       { skipArgUpdate: true });
-      util.synchronize(promise);
+      var assignPromise = this.setAssignment(assignment, null, { internal: true });
+      util.synchronize(assignPromise);
       assignment.onAssignmentChange.add(this._assignmentChanged, this);
       this._assignments[param.name] = assignment;
     }
@@ -6526,6 +7895,28 @@ Requisition.prototype.getStatus = function() {
 
 
 
+
+
+
+Requisition.prototype.getStatusMessage = function() {
+  var message = null;
+  this.getAssignments(true).forEach(function(assignment) {
+    if (assignment.getStatus() !== Status.VALID) {
+      message = assignment.getMessage();
+    }
+  }, this);
+
+  if (message == null && this._unassigned.length !== 0) {
+    message = l10n.lookup('cliUnusedArg');
+  }
+
+  return message;
+};
+
+
+
+
+
 Requisition.prototype.getArgsObject = function() {
   var args = {};
   this.getAssignments().forEach(function(assignment) {
@@ -6568,9 +7959,11 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 
+
+
 Requisition.prototype.setAssignment = function(assignment, arg, options) {
   options = options || {};
-  if (options.skipArgUpdate !== true) {
+  if (!options.internal) {
     var originalArgs = assignment.arg.getArgs();
 
     
@@ -6611,38 +8004,39 @@ Requisition.prototype.setAssignment = function(assignment, arg, options) {
     }
   }
 
-  function setAssignmentInternal(conversion) {
-    var oldConversion = assignment.conversion;
+  var updateId = options.internal ? null : this._beginChange();
 
-    assignment.conversion = conversion;
-    assignment.conversion.assign(assignment);
+  var setAssignmentInternal = function(conversion) {
+    if (options.internal || this._endChangeCheckOrder(updateId)) {
+      var oldConversion = assignment.conversion;
 
-    if (assignment.conversion.equals(oldConversion)) {
-      return;
+      assignment.conversion = conversion;
+      assignment.conversion.assignment = assignment;
+
+      if (!assignment.conversion.equals(oldConversion)) {
+        assignment.onAssignmentChange({
+          assignment: assignment,
+          conversion: assignment.conversion,
+          oldConversion: oldConversion
+        });
+      }
     }
 
-    assignment.onAssignmentChange({
-      assignment: assignment,
-      conversion: assignment.conversion,
-      oldConversion: oldConversion
-    });
-  }
+    return promise.resolve(undefined);
+  }.bind(this);
 
   if (arg == null) {
     var blank = assignment.param.type.getBlank(this.executionContext);
-    setAssignmentInternal(blank);
-  }
-  else if (typeof arg.getStatus === 'function') {
-    setAssignmentInternal(arg);
-  }
-  else {
-    var parsed = assignment.param.type.parse(arg, this.executionContext);
-    return parsed.then(function(conversion) {
-      setAssignmentInternal(conversion);
-    }.bind(this));
+    return setAssignmentInternal(blank);
   }
 
-  return promise.resolve(undefined);
+  if (typeof arg.getStatus === 'function') {
+    
+    return setAssignmentInternal(arg);
+  }
+
+  var parsed = assignment.param.type.parse(arg, this.executionContext);
+  return parsed.then(setAssignmentInternal);
 };
 
 
@@ -6650,8 +8044,8 @@ Requisition.prototype.setAssignment = function(assignment, arg, options) {
 
 Requisition.prototype.setBlankArguments = function() {
   this.getAssignments().forEach(function(assignment) {
-    var promise = this.setAssignment(assignment, null, { skipArgUpdate: true });
-    util.synchronize(promise);
+    var assignPromise = this.setAssignment(assignment, null, { internal: true });
+    util.synchronize(assignPromise);
   }, this);
 };
 
@@ -6712,10 +8106,10 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
         text: prediction.name,
         dontQuote: (assignment === this.commandAssignment)
       });
-      var assignmentPromise = this.setAssignment(assignment, arg);
+      var assignPromise = this.setAssignment(assignment, arg);
 
       if (!prediction.incomplete) {
-        assignmentPromise = assignmentPromise.then(function() {
+        assignPromise = assignPromise.then(function() {
           
           return this._addSpace(assignment).then(function() {
             
@@ -6726,12 +8120,13 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
         }.bind(this));
       }
 
-      outstanding.push(assignmentPromise);
+      outstanding.push(assignPromise);
     }
 
     return promise.all(outstanding).then(function() {
       this.onTextChange();
       this.onTextChange.resumeFire();
+      return true;
     }.bind(this));
   }.bind(this));
 };
@@ -6772,8 +8167,8 @@ Requisition.prototype.decrement = function(assignment) {
     var str = assignment.param.type.stringify(replacement,
                                               this.executionContext);
     var arg = assignment.conversion.arg.beget({ text: str });
-    var promise = this.setAssignment(assignment, arg);
-    util.synchronize(promise);
+    var assignPromise = this.setAssignment(assignment, arg);
+    util.synchronize(assignPromise);
   }
 };
 
@@ -6787,8 +8182,8 @@ Requisition.prototype.increment = function(assignment) {
     var str = assignment.param.type.stringify(replacement,
                                               this.executionContext);
     var arg = assignment.conversion.arg.beget({ text: str });
-    var promise = this.setAssignment(assignment, arg);
-    util.synchronize(promise);
+    var assignPromise = this.setAssignment(assignment, arg);
+    util.synchronize(assignPromise);
   }
 };
 
@@ -7085,8 +8480,8 @@ Requisition.prototype.exec = function(options) {
 
   
   var typed = this.toString();
-  if (evalCommandSpec.evalRegexp.test(typed)) {
-    typed = typed.replace(evalCommandSpec.evalRegexp, '');
+  if (evalCmd.isCommandRegexp.test(typed)) {
+    typed = typed.replace(evalCmd.isCommandRegexp, '');
     
     typed = typed.replace(/\s*}\s*$/, '');
   }
@@ -7152,10 +8547,10 @@ Requisition.prototype.clear = function() {
   this._args = [ arg ];
 
   var commandType = this.commandAssignment.param.type;
-  var promise = commandType.parse(arg, this.executionContext);
+  var parsePromise = commandType.parse(arg, this.executionContext);
   this.setAssignment(this.commandAssignment,
-                     util.synchronize(promise),
-                     { skipArgUpdate: true });
+                     util.synchronize(parsePromise),
+                     { internal: true });
 
   this._structuralChangeInProgress = false;
   this.onTextChange();
@@ -7185,15 +8580,23 @@ Requisition.prototype.update = function(typed) {
     typed = getDataCommandAttribute(typed.currentTarget);
   }
 
-  this._structuralChangeInProgress = true;
+  var updateId = this._beginChange();
 
   this._args = exports.tokenize(typed);
   var args = this._args.slice(0); 
 
   return this._split(args).then(function() {
+    if (!this._isChangeCurrent(updateId)) {
+      return false;
+    }
+
     return this._assign(args).then(function() {
-      this._structuralChangeInProgress = false;
-      this.onTextChange();
+      if (this._endChangeCheckOrder(updateId)) {
+        this.onTextChange();
+        return true;
+      }
+
+      return false;
     }.bind(this));
   }.bind(this));
 };
@@ -7456,7 +8859,7 @@ function isSimple(typed) {
 Requisition.prototype._split = function(args) {
   
   
-  var noArgUp = { skipArgUpdate: true };
+  var noArgUp = { internal: true };
 
   
   
@@ -7465,7 +8868,7 @@ Requisition.prototype._split = function(args) {
   if (args[0].type === 'ScriptArgument') {
     
     
-    conversion = new Conversion(evalCommand, new ScriptArgument());
+    conversion = new Conversion(getEvalCommand(), new ScriptArgument());
     return this.setAssignment(this.commandAssignment, conversion, noArgUp);
   }
 
@@ -7481,7 +8884,7 @@ Requisition.prototype._split = function(args) {
     
     
 
-    if (this.prefix != null && this.prefix != '') {
+    if (this.prefix != null && this.prefix !== '') {
       var prefixArg = new Argument(this.prefix, '', ' ');
       var prefixedArg = new MergedArgument([ prefixArg, arg ]);
 
@@ -7539,7 +8942,7 @@ Requisition.prototype._addUnassignedArgs = function(args) {
 
 Requisition.prototype._assign = function(args) {
   
-  var noArgUp = { skipArgUpdate: true };
+  var noArgUp = { internal: true };
 
   this._unassigned = [];
   var outstanding = [];
@@ -7643,26 +9046,28 @@ Requisition.prototype._assign = function(args) {
       }
       arrayArg.addArguments(args);
       args = [];
+      
+      return;
+    }
+
+    
+    if (args.length === 0) {
+      outstanding.push(this.setAssignment(assignment, null, noArgUp));
+      return;
+    }
+
+    var arg = args.splice(0, 1)[0];
+    
+    
+    var isIncompleteName = assignment.param.type.name === 'number' ?
+        /-[-a-zA-Z_]/.test(arg.text) :
+        arg.text.charAt(0) === '-';
+
+    if (isIncompleteName) {
+      this._unassigned.push(new UnassignedAssignment(this, arg));
     }
     else {
-      if (args.length === 0) {
-        outstanding.push(this.setAssignment(assignment, null, noArgUp));
-      }
-      else {
-        var arg = args.splice(0, 1)[0];
-        
-        
-        var isIncompleteName = assignment.param.type.name === 'number' ?
-            /-[-a-zA-Z_]/.test(arg.text) :
-            arg.text.charAt(0) === '-';
-
-        if (isIncompleteName) {
-          this._unassigned.push(new UnassignedAssignment(this, arg));
-        }
-        else {
-          outstanding.push(this.setAssignment(assignment, arg, noArgUp));
-        }
-      }
+      outstanding.push(this.setAssignment(assignment, arg, noArgUp));
     }
   }, this);
 
@@ -7772,14 +9177,13 @@ define("text!gcli/ui/intro.html", [], "\n" +
 
 
 
-define('gcli/ui/focus', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/settings', 'gcli/canon'], function(require, exports, module) {
+define('gcli/ui/focus', ['require', 'exports', 'module' , 'util/util', 'util/l10n', 'gcli/settings'], function(require, exports, module) {
 
 'use strict';
 
 var util = require('util/util');
 var l10n = require('util/l10n');
 var settings = require('gcli/settings');
-var canon = require('gcli/canon');
 
 
 
@@ -7789,33 +9193,27 @@ var Eagerness = {
   SOMETIMES: 2,
   ALWAYS: 3
 };
-var eagerHelperSettingSpec = {
-  name: 'eagerHelper',
-  type: {
-    name: 'selection',
-    lookup: [
-      { name: 'never', value: Eagerness.NEVER },
-      { name: 'sometimes', value: Eagerness.SOMETIMES },
-      { name: 'always', value: Eagerness.ALWAYS }
-    ]
-  },
-  defaultValue: Eagerness.SOMETIMES,
-  description: l10n.lookup('eagerHelperDesc'),
-  ignoreTypeDifference: true
-};
-var eagerHelper;
 
 
 
 
-exports.startup = function() {
-  eagerHelper = settings.addSetting(eagerHelperSettingSpec);
-};
-
-exports.shutdown = function() {
-  settings.removeSetting(eagerHelperSettingSpec);
-  eagerHelper = undefined;
-};
+exports.items = [
+  {
+    item: 'setting',
+    name: 'eagerHelper',
+    type: {
+      name: 'selection',
+      lookup: [
+        { name: 'never', value: Eagerness.NEVER },
+        { name: 'sometimes', value: Eagerness.SOMETIMES },
+        { name: 'always', value: Eagerness.ALWAYS }
+      ]
+    },
+    defaultValue: Eagerness.SOMETIMES,
+    description: l10n.lookup('eagerHelperDesc'),
+    ignoreTypeDifference: true
+  }
+];
 
 
 
@@ -7857,6 +9255,7 @@ function FocusManager(options, components) {
   this._focused = this._focused.bind(this);
   this._document.addEventListener('focus', this._focused, true);
 
+  var eagerHelper = settings.getSetting('eagerHelper');
   eagerHelper.onChange.add(this._eagerHelperChanged, this);
 
   this.isTooltipVisible = undefined;
@@ -7868,6 +9267,7 @@ function FocusManager(options, components) {
 
 
 FocusManager.prototype.destroy = function() {
+  var eagerHelper = settings.getSetting('eagerHelper');
   eagerHelper.onChange.remove(this._eagerHelperChanged, this);
 
   this._document.removeEventListener('focus', this._focused, true);
@@ -8134,6 +9534,7 @@ FocusManager.prototype._shouldShowTooltip = function() {
     return { visible: false, reason: 'notHasFocus' };
   }
 
+  var eagerHelper = settings.getSetting('eagerHelper');
   if (eagerHelper.value === Eagerness.NEVER) {
     return { visible: false, reason: 'eagerHelperNever' };
   }
@@ -8208,26 +9609,6 @@ var ArrayConversion = require('gcli/types').ArrayConversion;
 
 var Field = require('gcli/ui/fields').Field;
 var fields = require('gcli/ui/fields');
-
-
-
-
-
-exports.startup = function() {
-  fields.addField(StringField);
-  fields.addField(NumberField);
-  fields.addField(BooleanField);
-  fields.addField(DelegateField);
-  fields.addField(ArrayField);
-};
-
-exports.shutdown = function() {
-  fields.removeField(StringField);
-  fields.removeField(NumberField);
-  fields.removeField(BooleanField);
-  fields.removeField(DelegateField);
-  fields.removeField(ArrayField);
-};
 
 
 
@@ -8498,7 +9879,7 @@ ArrayField.prototype.getConversion = function() {
   var conversions = [];
   var arrayArg = new ArrayArgument();
   for (var i = 0; i < this.members.length; i++) {
-    promise.resolve(this.members[i].field.getConversion()).then(function(conversion) {
+    Promise.resolve(this.members[i].field.getConversion()).then(function(conversion) {
       conversions.push(conversion);
       arrayArg.addArgument(conversion.arg);
     }.bind(this), util.errorHandler);
@@ -8515,7 +9896,7 @@ ArrayField.prototype._onAdd = function(ev, subConversion) {
   
   var field = fields.getField(this.type.subtype, this.options);
   field.onFieldChange.add(function() {
-    promise.resolve(this.getConversion()).then(function(conversion) {
+    Promise.resolve(this.getConversion()).then(function(conversion) {
       this.onFieldChange({ conversion: conversion });
       this.setMessage(conversion.message);
     }.bind(this), util.errorHandler);
@@ -8551,253 +9932,11 @@ ArrayField.prototype._onAdd = function(ev, subConversion) {
 };
 
 
-});
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-define('gcli/ui/fields', ['require', 'exports', 'module' , 'util/promise', 'util/util'], function(require, exports, module) {
-
-'use strict';
-
-var promise = require('util/promise');
-var util = require('util/util');
-var KeyEvent = require('util/util').KeyEvent;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function Field(type, options) {
-  this.type = type;
-  this.document = options.document;
-  this.requisition = options.requisition;
-}
-
-
-
-
-
-
-Field.prototype.element = undefined;
-
-
-
-
-Field.prototype.destroy = function() {
-  delete this.messageElement;
-};
-
-
-
-
-
-
-
-
-Field.prototype.setConversion = function(conversion) {
-  throw new Error('Field should not be used directly');
-};
-
-
-
-
-
-Field.prototype.getConversion = function() {
-  throw new Error('Field should not be used directly');
-};
-
-
-
-
-
-Field.prototype.setMessageElement = function(element) {
-  this.messageElement = element;
-};
-
-
-
-
-Field.prototype.setMessage = function(message) {
-  if (this.messageElement) {
-    util.setTextContent(this.messageElement, message || '');
-  }
-};
-
-
-
-
-
-Field.prototype.onInputChange = function(ev) {
-  promise.resolve(this.getConversion()).then(function(conversion) {
-    this.onFieldChange({ conversion: conversion });
-    this.setMessage(conversion.message);
-
-    if (ev.keyCode === KeyEvent.DOM_VK_RETURN) {
-      this.requisition.exec();
-    }
-  }.bind(this), util.errorHandler);
-};
-
-
-
-
-
-Field.prototype.isImportant = false;
-
-
-
-
-
-
-Field.claim = function(type, context) {
-  throw new Error('Field should not be used directly');
-};
-
-
-
-
-
-
-
-
-
-Field.TOOLTIP_MATCH = 5;   
-Field.TOOLTIP_DEFAULT = 4; 
-Field.MATCH = 3;           
-Field.DEFAULT = 2;         
-Field.BASIC = 1;           
-Field.NO_MATCH = 0;        
-
-exports.Field = Field;
-
-
-
-
-
-var fieldCtors = [];
-
-
-
-
-
-exports.addField = function(fieldCtor) {
-  if (typeof fieldCtor !== 'function') {
-    console.error('addField erroring on ', fieldCtor);
-    throw new Error('addField requires a Field constructor');
-  }
-  fieldCtors.push(fieldCtor);
-};
-
-
-
-
-
-
-exports.removeField = function(field) {
-  if (typeof field !== 'string') {
-    fields = fields.filter(function(test) {
-      return test !== field;
-    });
-    delete fields[field];
-  }
-  else if (field instanceof Field) {
-    removeField(field.name);
-  }
-  else {
-    console.error('removeField erroring on ', field);
-    throw new Error('removeField requires an instance of Field');
-  }
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-exports.getField = function(type, options) {
-  var ctor;
-  var highestClaim = -1;
-  fieldCtors.forEach(function(fieldCtor) {
-    var claim = fieldCtor.claim(type, options.requisition.executionContext);
-    if (claim > highestClaim) {
-      highestClaim = claim;
-      ctor = fieldCtor;
-    }
-  });
-
-  if (!ctor) {
-    console.error('Unknown field type ', type, ' in ', fieldCtors);
-    throw new Error('Can\'t find field for ' + type);
-  }
-
-  if (options.tooltip && highestClaim < Field.TOOLTIP_DEFAULT) {
-    return new BlankField(type, options);
-  }
-
-  return new ctor(type, options);
-};
-
-
-
-
-
-
-function BlankField(type, options) {
-  Field.call(this, type, options);
-
-  this.element = util.createElement(this.document, 'div');
-
-  this.onFieldChange = util.createEvent('BlankField.onFieldChange');
-}
-
-BlankField.prototype = Object.create(Field.prototype);
-
-BlankField.claim = function(type, context) {
-  return type.name === 'blank' ? Field.MATCH : Field.NO_MATCH;
-};
-
-BlankField.prototype.setConversion = function(conversion) {
-  this.setMessage(conversion.message);
-};
-
-BlankField.prototype.getConversion = function() {
-  return this.type.parse(new Argument(), this.requisition.executionContext);
-};
-
-exports.addField(BlankField);
+exports.items = [
+  StringField, NumberField, BooleanField, DelegateField, ArrayField
+];
 
 
 });
@@ -8830,20 +9969,6 @@ var ScriptArgument = require('gcli/argument').ScriptArgument;
 
 var Menu = require('gcli/ui/fields/menu').Menu;
 var Field = require('gcli/ui/fields').Field;
-var fields = require('gcli/ui/fields');
-
-
-
-
-
-exports.startup = function() {
-  fields.addField(JavascriptField);
-};
-
-exports.shutdown = function() {
-  fields.removeField(JavascriptField);
-};
-
 
 
 
@@ -8952,6 +10077,11 @@ JavascriptField.prototype.getConversion = function() {
 };
 
 JavascriptField.DEFAULT_VALUE = '__JavascriptField.DEFAULT_VALUE';
+
+
+
+
+exports.items = [ JavascriptField ];
 
 
 });
@@ -9214,7 +10344,7 @@ define("text!gcli/ui/fields/menu.html", [], "\n" +
 
 
 
-define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/argument', 'gcli/types', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
+define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'util/promise', 'util/util', 'util/l10n', 'gcli/argument', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
 
 'use strict';
 
@@ -9223,26 +10353,9 @@ var util = require('util/util');
 var l10n = require('util/l10n');
 
 var Argument = require('gcli/argument').Argument;
-var Status = require('gcli/types').Status;
-var Conversion = require('gcli/types').Conversion;
 
 var Menu = require('gcli/ui/fields/menu').Menu;
 var Field = require('gcli/ui/fields').Field;
-var fields = require('gcli/ui/fields');
-
-
-
-
-
-exports.startup = function() {
-  fields.addField(SelectionField);
-  fields.addField(SelectionTooltipField);
-};
-
-exports.shutdown = function() {
-  fields.removeField(SelectionField);
-  fields.removeField(SelectionTooltipField);
-};
 
 
 
@@ -9267,7 +10380,7 @@ function SelectionField(type, options) {
     name: l10n.lookupFormat('fieldSelectionSelect', [ options.name ])
   });
 
-  promise.resolve(this.type.getLookup()).then(function(lookup) {
+  Promise.resolve(this.type.getLookup()).then(function(lookup) {
     lookup.forEach(this._addOption, this);
   }.bind(this), util.errorHandler);
 
@@ -9365,7 +10478,9 @@ SelectionTooltipField.prototype.setConversion = function(conversion) {
       
       
       
-      return prediction.value.description ? prediction.value : prediction;
+      return prediction.value && prediction.value.description ?
+          prediction.value :
+          prediction;
     }, this);
     this.menu.show(items, conversion.arg.text);
   }.bind(this), util.errorHandler);
@@ -9419,6 +10534,10 @@ Object.defineProperty(SelectionTooltipField.prototype, 'isImportant', {
 SelectionTooltipField.DEFAULT_VALUE = '__SelectionTooltipField.DEFAULT_VALUE';
 
 
+
+
+exports.items = [ SelectionField, SelectionTooltipField ];
+
 });
 
 
@@ -9436,12 +10555,11 @@ SelectionTooltipField.DEFAULT_VALUE = '__SelectionTooltipField.DEFAULT_VALUE';
 
 
 
-define('gcli/commands/connect', ['require', 'exports', 'module' , 'util/l10n', 'gcli/types', 'gcli/canon', 'util/connect/connector'], function(require, exports, module) {
+define('gcli/commands/connect', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon', 'util/connect/connector'], function(require, exports, module) {
 
 'use strict';
 
 var l10n = require('util/l10n');
-var types = require('gcli/types');
 var canon = require('gcli/canon');
 var connector = require('util/connect/connector');
 
@@ -9453,7 +10571,22 @@ var connections = {};
 
 
 
+var connection = {
+  item: 'type',
+  name: 'connection',
+  parent: 'selection',
+  lookup: function() {
+    return Object.keys(connections).map(function(prefix) {
+      return { name: prefix, value: connections[prefix] };
+    });
+  }
+};
+
+
+
+
 var connect = {
+  item: 'command',
   name: 'connect',
   description: l10n.lookup('connectDesc'),
   manual: l10n.lookup('connectManual'),
@@ -9530,20 +10663,8 @@ var connect = {
 
 
 
-var connection = {
-  name: 'connection',
-  parent: 'selection',
-  lookup: function() {
-    return Object.keys(connections).map(function(prefix) {
-      return { name: prefix, value: connections[prefix] };
-    });
-  }
-};
-
-
-
-
 var disconnect = {
+  item: 'command',
   name: 'disconnect',
   description: l10n.lookup('disconnectDesc'),
   manual: l10n.lookup('disconnectManual'),
@@ -9572,24 +10693,7 @@ var disconnect = {
   }
 };
 
-
-
-
-
-exports.startup = function() {
-  types.addType(connection);
-
-  canon.addCommand(connect);
-  canon.addCommand(disconnect);
-};
-
-exports.shutdown = function() {
-  canon.removeCommand(connect);
-  canon.removeCommand(disconnect);
-
-  types.removeType(connection);
-};
-
+exports.items = [ connection, connect, disconnect ];
 
 });
 
@@ -9783,17 +10887,17 @@ Request.prototype.complete = function(error, type, data) {
 
 
 
-define('gcli/commands/context', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon'], function(require, exports, module) {
+define('gcli/commands/context', ['require', 'exports', 'module' , 'util/l10n'], function(require, exports, module) {
 
 'use strict';
 
 var l10n = require('util/l10n');
-var canon = require('gcli/canon');
 
 
 
 
-var contextCmdSpec = {
+var context = {
+  item: 'command',
   name: 'context',
   description: l10n.lookup('contextDesc'),
   manual: l10n.lookup('contextManual'),
@@ -9826,16 +10930,7 @@ var contextCmdSpec = {
   }
 };
 
-
-
-
-exports.startup = function() {
-  canon.addCommand(contextCmdSpec);
-};
-
-exports.shutdown = function() {
-  canon.removeCommand(contextCmdSpec);
-};
+exports.items = [ context ];
 
 });
 
@@ -9854,13 +10949,12 @@ exports.shutdown = function() {
 
 
 
-define('gcli/commands/help', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon', 'gcli/converters', 'text!gcli/commands/help_man.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help.css'], function(require, exports, module) {
+define('gcli/commands/help', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon', 'text!gcli/commands/help_man.html', 'text!gcli/commands/help_list.html', 'text!gcli/commands/help.css'], function(require, exports, module) {
 
 'use strict';
 
 var l10n = require('util/l10n');
 var canon = require('gcli/canon');
-var converters = require('gcli/converters');
 
 var helpManHtml = require('text!gcli/commands/help_man.html');
 var helpListHtml = require('text!gcli/commands/help_list.html');
@@ -9869,7 +10963,8 @@ var helpCss = require('text!gcli/commands/help.css');
 
 
 
-var commandConverterSpec = {
+var helpCommand = {
+  item: 'converter',
   from: 'commandData',
   to: 'view',
   exec: function(commandData, context) {
@@ -9921,7 +11016,8 @@ var commandConverterSpec = {
 
 
 
-var commandsConverterSpec = {
+var helpCommands = {
+  item: 'converter',
   from: 'commandsData',
   to: 'view',
   exec: function(commandsData, context) {
@@ -9956,7 +11052,8 @@ var commandsConverterSpec = {
 
 
 
-var helpCommandSpec = {
+var help = {
+  item: 'command',
   name: 'help',
   description: l10n.lookup('helpDesc'),
   manual: l10n.lookup('helpManual'),
@@ -9984,21 +11081,6 @@ var helpCommandSpec = {
       commands: getMatchingCommands(args.search)
     });
   }
-};
-
-
-
-
-exports.startup = function() {
-  canon.addCommand(helpCommandSpec);
-  converters.addConverter(commandConverterSpec);
-  converters.addConverter(commandsConverterSpec);
-};
-
-exports.shutdown = function() {
-  canon.removeCommand(helpCommandSpec);
-  converters.removeConverter(commandConverterSpec);
-  converters.removeConverter(commandsConverterSpec);
 };
 
 
@@ -10047,316 +11129,7 @@ function getSubCommands(command) {
   return subcommands;
 }
 
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-define('gcli/converters', ['require', 'exports', 'module' , 'util/util', 'util/promise'], function(require, exports, module) {
-
-'use strict';
-
-var util = require('util/util');
-var promise = require('util/promise');
-
-
-
-
-
-
-var fallbackDomConverter = {
-  from: '*',
-  to: 'dom',
-  exec: function(data, conversionContext) {
-    if (data == null) {
-      return conversionContext.document.createTextNode('');
-    }
-
-    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
-      return data;
-    }
-
-    var node = util.createElement(conversionContext.document, 'p');
-    util.setContents(node, data.toString());
-    return node;
-  }
-};
-
-
-
-
-var fallbackStringConverter = {
-  from: '*',
-  to: 'string',
-  exec: function(data, conversionContext) {
-    if (data.isView) {
-      return data.toDom(conversionContext.document).textContent;
-    }
-
-    if (typeof HTMLElement !== 'undefined' && data instanceof HTMLElement) {
-      return data.textContent;
-    }
-
-    return data == null ? '' : data.toString();
-  }
-};
-
-
-
-
-var viewDomConverter = {
-  from: 'view',
-  to: 'dom',
-  exec: function(view, conversionContext) {
-    return view.toDom(conversionContext.document);
-  }
-};
-
-
-
-
-var viewStringConverter = {
-  from: 'view',
-  to: 'string',
-  exec: function(view, conversionContext) {
-    return view.toDom(conversionContext.document).textContent;
-  }
-};
-
-
-
-
-var terminalDomConverter = {
-  from: 'terminal',
-  to: 'dom',
-  createTextArea: function(text, conversionContext) {
-    var node = util.createElement(conversionContext.document, 'textarea');
-    node.classList.add('gcli-row-subterminal');
-    node.readOnly = true;
-    node.textContent = text;
-    return node;
-  },
-  exec: function(data, context) {
-    if (Array.isArray(data)) {
-      var node = util.createElement(conversionContext.document, 'div');
-      data.forEach(function(member) {
-        node.appendChild(this.createTextArea(member, conversionContext));
-      });
-      return node;
-    }
-    return this.createTextArea(data);
-  }
-};
-
-
-
-
-var terminalStringConverter = {
-  from: 'terminal',
-  to: 'string',
-  exec: function(data, context) {
-    return Array.isArray(data) ? data.join('') : '' + data;
-  }
-};
-
-
-
-
-function nodeFromDataToString(data, conversionContext) {
-  var node = util.createElement(conversionContext.document, 'p');
-  node.textContent = data.toString();
-  return node;
-}
-
-
-
-
-var stringDomConverter = {
-  from: 'string',
-  to: 'dom',
-  exec: nodeFromDataToString
-};
-
-
-
-
-var numberDomConverter = {
-  from: 'number',
-  to: 'dom',
-  exec: nodeFromDataToString
-};
-
-
-
-
-var booleanDomConverter = {
-  from: 'boolean',
-  to: 'dom',
-  exec: nodeFromDataToString
-};
-
-
-
-
-var undefinedDomConverter = {
-  from: 'undefined',
-  to: 'dom',
-  exec: function(data, conversionContext) {
-    return util.createElement(conversionContext.document, 'span');
-  }
-};
-
-
-
-
-var errorDomConverter = {
-  from: 'error',
-  to: 'dom',
-  exec: function(ex, conversionContext) {
-    var node = util.createElement(conversionContext.document, 'p');
-    node.className = "gcli-error";
-    node.textContent = ex;
-    return node;
-  }
-};
-
-
-
-
-function getChainConverter(first, second) {
-  if (first.to !== second.from) {
-    throw new Error('Chain convert impossible: ' + first.to + '!=' + second.from);
-  }
-  return {
-    from: first.from,
-    to: second.to,
-    exec: function(data, conversionContext) {
-      var intermediate = first.exec(data, conversionContext);
-      return second.exec(intermediate, conversionContext);
-    }
-  };
-}
-
-
-
-
-var converters = {
-  from: {}
-};
-
-
-
-
-exports.addConverter = function(converter) {
-  var fromMatch = converters.from[converter.from];
-  if (fromMatch == null) {
-    fromMatch = {};
-    converters.from[converter.from] = fromMatch;
-  }
-
-  fromMatch[converter.to] = converter;
-};
-
-
-
-
-exports.removeConverter = function(converter) {
-  var fromMatch = converters.from[converter.from];
-  if (fromMatch == null) {
-    return;
-  }
-
-  if (fromMatch[converter.to] === converter) {
-    fromMatch[converter.to] = null;
-  }
-};
-
-
-
-
-function getConverter(from, to) {
-  var fromMatch = converters.from[from];
-  if (fromMatch == null) {
-    return getFallbackConverter(from, to);
-  }
-
-  var converter = fromMatch[to];
-  if (converter == null) {
-    
-    
-    
-    
-    if (to === 'dom') {
-      converter = fromMatch['view'];
-      if (converter != null) {
-        return getChainConverter(converter, viewDomConverter);
-      }
-    }
-    if (to === 'string') {
-      converter = fromMatch['view'];
-      if (converter != null) {
-        return getChainConverter(converter, viewStringConverter);
-      }
-    }
-    return getFallbackConverter(from, to);
-  }
-  return converter;
-}
-
-
-
-
-function getFallbackConverter(from, to) {
-  console.error('No converter from ' + from + ' to ' + to + '. Using fallback');
-
-  if (to === 'dom') {
-    return fallbackDomConverter;
-  }
-
-  if (to === 'string') {
-    return fallbackStringConverter;
-  }
-
-  throw new Error('No conversion possible from ' + from + ' to ' + to + '.');
-}
-
-
-
-
-
-
-
-
-
-exports.convert = function(data, from, to, conversionContext) {
-  if (from === to) {
-    return promise.resolve(data);
-  }
-  return promise.resolve(getConverter(from, to).exec(data, conversionContext));
-};
-
-exports.addConverter(viewDomConverter);
-exports.addConverter(viewStringConverter);
-exports.addConverter(terminalDomConverter);
-exports.addConverter(terminalStringConverter);
-exports.addConverter(stringDomConverter);
-exports.addConverter(numberDomConverter);
-exports.addConverter(booleanDomConverter);
-exports.addConverter(undefinedDomConverter);
-exports.addConverter(errorDomConverter);
-
+exports.items = [ help, helpCommand, helpCommands ];
 
 });
 define("text!gcli/commands/help_man.html", [], "\n" +
@@ -10443,30 +11216,29 @@ define("text!gcli/commands/help.css", [], "");
 
 
 
-define('gcli/commands/pref', ['require', 'exports', 'module' , 'util/l10n', 'gcli/canon', 'gcli/converters', 'gcli/settings', 'text!gcli/commands/pref_set_check.html'], function(require, exports, module) {
+define('gcli/commands/pref', ['require', 'exports', 'module' , 'util/l10n', 'gcli/settings', 'text!gcli/commands/pref_set_check.html'], function(require, exports, module) {
 
 'use strict';
 
 var l10n = require('util/l10n');
-var canon = require('gcli/canon');
-var converters = require('gcli/converters');
 var settings = require('gcli/settings');
 
 
 
 
-var allowSetSettingSpec = {
+var allowSet = {
+  item: 'setting',
   name: 'allowSet',
   type: 'boolean',
   description: l10n.lookup('allowSetDesc'),
   defaultValue: false
 };
-exports.allowSet = undefined;
 
 
 
 
-var prefCmdSpec = {
+var pref = {
+  item: 'command',
   name: 'pref',
   description: l10n.lookup('prefDesc'),
   manual: l10n.lookup('prefManual')
@@ -10475,7 +11247,8 @@ var prefCmdSpec = {
 
 
 
-var prefShowCmdSpec = {
+var prefShow = {
+  item: 'command',
   name: 'pref show',
   description: l10n.lookup('prefShowDesc'),
   manual: l10n.lookup('prefShowManual'),
@@ -10487,7 +11260,7 @@ var prefShowCmdSpec = {
       manual: l10n.lookup('prefShowSettingManual')
     }
   ],
-  exec: function Command_prefShow(args, context) {
+  exec: function(args, context) {
     return l10n.lookupFormat('prefShowSettingValue',
                              [ args.setting.name, args.setting.value ]);
   }
@@ -10496,7 +11269,8 @@ var prefShowCmdSpec = {
 
 
 
-var prefSetCmdSpec = {
+var prefSet = {
+  item: 'command',
   name: 'pref set',
   description: l10n.lookup('prefSetDesc'),
   manual: l10n.lookup('prefSetManual'),
@@ -10515,8 +11289,9 @@ var prefSetCmdSpec = {
     }
   ],
   exec: function(args, context) {
-    if (!exports.allowSet.value &&
-        args.setting.name !== exports.allowSet.name) {
+    var allowSet = settings.getSetting('allowSet');
+    if (!allowSet.value &&
+        args.setting.name !== allowSet.name) {
       return context.typedData('prefSetWarning', null);
     }
 
@@ -10524,17 +11299,19 @@ var prefSetCmdSpec = {
   }
 };
 
-var prefSetWarningConverterSpec = {
+var prefSetWarning = {
+  item: 'converter',
   from: 'prefSetWarning',
   to: 'view',
   exec: function(data, context) {
+    var allowSet = settings.getSetting('settings');
     return context.createView({
       html: require('text!gcli/commands/pref_set_check.html'),
       options: { allowEval: true, stack: 'pref_set_check.html' },
       data: {
         l10n: l10n.propertyLookup,
         activate: function() {
-          context.updateExec('pref set ' + exports.allowSet.name + ' true');
+          context.updateExec('pref set ' + allowSet.name + ' true');
         }
       }
     });
@@ -10544,7 +11321,8 @@ var prefSetWarningConverterSpec = {
 
 
 
-var prefResetCmdSpec = {
+var prefReset = {
+  item: 'command',
   name: 'pref reset',
   description: l10n.lookup('prefResetDesc'),
   manual: l10n.lookup('prefResetManual'),
@@ -10561,29 +11339,10 @@ var prefResetCmdSpec = {
   }
 };
 
-
-
-
-exports.startup = function() {
-  exports.allowSet = settings.addSetting(allowSetSettingSpec);
-
-  canon.addCommand(prefCmdSpec);
-  canon.addCommand(prefShowCmdSpec);
-  canon.addCommand(prefSetCmdSpec);
-  canon.addCommand(prefResetCmdSpec);
-  converters.addConverter(prefSetWarningConverterSpec);
-};
-
-exports.shutdown = function() {
-  canon.removeCommand(prefCmdSpec);
-  canon.removeCommand(prefShowCmdSpec);
-  canon.removeCommand(prefSetCmdSpec);
-  canon.removeCommand(prefResetCmdSpec);
-  converters.removeConverter(prefSetWarningConverterSpec);
-
-  settings.removeSetting(allowSetSettingSpec);
-  exports.allowSet = undefined;
-};
+exports.items = [
+  pref, prefShow, prefSet, prefReset,
+  allowSet, prefSetWarning
+];
 
 
 });
@@ -10727,7 +11486,8 @@ function FFDisplay(options) {
 
 
 FFDisplay.prototype.maybeShowIntro = function() {
-  intro.maybeShowIntro(this.commandOutputManager);
+  intro.maybeShowIntro(this.commandOutputManager,
+                       this.requisition.conversionContext);
 };
 
 
@@ -10883,7 +11643,7 @@ var History = require('gcli/history').History;
 var inputterCss = require('text!gcli/ui/inputter.css');
 
 
-var RESOLVED = promise.resolve(undefined);
+var RESOLVED = promise.resolve(true);
 
 
 
@@ -11387,9 +12147,12 @@ Inputter.prototype.handleKeyUp = function(ev) {
     this.lastTabDownAt = 0;
     this._scrollingThroughHistory = false;
 
-    return this._completed.then(function() {
-      this._choice = null;
-      this.onChoiceChange({ choice: this._choice });
+    return this._completed.then(function(updated) {
+      
+      if (updated) {
+        this._choice = null;
+        this.onChoiceChange({ choice: this._choice });
+      }
     }.bind(this));
   }
 
@@ -11406,9 +12169,12 @@ Inputter.prototype.handleKeyUp = function(ev) {
 
   this._completed = this.requisition.update(this.element.value);
 
-  return this._completed.then(function() {
-    this._choice = null;
-    this.onChoiceChange({ choice: this._choice });
+  return this._completed.then(function(updated) {
+    
+    if (updated) {
+      this._choice = null;
+      this.onChoiceChange({ choice: this._choice });
+    }
   }.bind(this));
 };
 

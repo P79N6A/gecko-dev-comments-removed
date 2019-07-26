@@ -37,26 +37,17 @@ function test() {
 
 
 
-var cli = require('gcli/cli');
-
-var origLogErrors = undefined;
 
 exports.setup = function(options) {
   mockCommands.setup();
-
-  origLogErrors = cli.logErrors;
-  cli.logErrors = false;
 };
 
 exports.shutdown = function(options) {
   mockCommands.shutdown();
-
-  cli.logErrors = origLogErrors;
-  origLogErrors = undefined;
 };
 
 exports.testBaseline = function(options) {
-  helpers.audit(options, [
+  return helpers.audit(options, [
     
     
     {
@@ -100,7 +91,7 @@ exports.testBaseline = function(options) {
 };
 
 exports.testContext = function(options) {
-  helpers.audit(options, [
+  return helpers.audit(options, [
     
     {
       setup:    'context tsn',

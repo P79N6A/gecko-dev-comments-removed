@@ -1,15 +1,25 @@
-/*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -21,13 +31,13 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var assert = require('test/assert');
-// var helpers = require('gclitest/helpers');
-// var mockCommands = require('gclitest/mockCommands');
+
+
+
 
 exports.setup = function(options) {
   mockCommands.setup();
@@ -137,7 +147,7 @@ exports.testNode = function(options) {
             value: undefined,
             arg: ' *',
             status: 'ERROR'
-            // message: 'Too many matches (128)'
+            
           },
           nodes: { status: 'VALID' },
           nodes2: { status: 'VALID' }
@@ -297,11 +307,11 @@ exports.testNodes = function(options) {
         }
       },
       post: function() {
-        /*
-        assert.is(requisition.getAssignment('nodes2').value.constructor.name,
-                  'NodeList',
-                  '#gcli-input id');
-        */
+        
+
+
+
+
       }
     },
     {
@@ -329,18 +339,18 @@ exports.testNodes = function(options) {
         }
       },
       post: function() {
-        /*
-        assert.is(requisition.getAssignment('nodes').value.constructor.name,
-                  'NodeList',
-                  '#gcli-input id');
-        assert.is(requisition.getAssignment('nodes2').value.constructor.name,
-                  'NodeList',
-                  '#gcli-input id');
-        */
+        
+
+
+
+
+
+
+
       }
     },
   ]);
 };
 
 
-// });
+

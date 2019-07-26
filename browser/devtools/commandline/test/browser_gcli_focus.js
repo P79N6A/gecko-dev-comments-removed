@@ -1,15 +1,25 @@
-/*
- * Copyright 2009-2011 Mozilla Foundation and contributors
- * Licensed under the New BSD license. See LICENSE.txt or:
- * http://opensource.org/licenses/BSD-3-Clause
- */
 
-// define(function(require, exports, module) {
 
-// <INJECTED SOURCE:START>
 
-// THIS FILE IS GENERATED FROM SOURCE IN THE GCLI PROJECT
-// DO NOT EDIT IT DIRECTLY
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 var exports = {};
 
@@ -21,12 +31,12 @@ function test() {
   }).then(finish);
 }
 
-// <INJECTED SOURCE:END>
+
 
 'use strict';
 
-// var helpers = require('gclitest/helpers');
-// var mockCommands = require('gclitest/mockCommands');
+
+
 
 exports.setup = function(options) {
   mockCommands.setup();
@@ -42,7 +52,7 @@ exports.testBasic = function(options) {
       skipRemainingIf: options.isJsdom,
       name: 'exec setup',
       setup: function() {
-        // Just check that we've got focus, and everything is clear
+        
         helpers.focusInput(options);
         return helpers.setInput(options, 'help');
       },
@@ -77,4 +87,4 @@ exports.testBasic = function(options) {
 };
 
 
-// });
+
