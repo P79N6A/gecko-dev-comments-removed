@@ -32,6 +32,8 @@
 
 
 
+
+
 #include <gdk/gdk.h>
 #include <gdk/gdkx.h>
 #ifdef HAVE_LIBXSS
@@ -139,8 +141,12 @@ int main(int argc, char** argv)
   }
 
   GError* error = NULL;
-  gdk_pixbuf_save_to_callback(screenshot, save_to_stdout, NULL,
-                              "png", NULL, NULL);
+  if (argc > 1) {
+    gdk_pixbuf_save(screenshot, argv[1], "png", &error, NULL);
+  } else {
+    gdk_pixbuf_save_to_callback(screenshot, save_to_stdout, NULL,
+                                "png", &error, NULL);
+  }
   if (error) {
     fprintf(stderr, "%s: failed to write screenshot as png: %s\n",
             argv[0], error->message);
