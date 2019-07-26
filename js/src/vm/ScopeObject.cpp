@@ -2017,11 +2017,7 @@ DebugScopes::updateLiveScopes(JSContext *cx)
 
 
     for (AllFramesIter i(cx); !i.done(); ++i) {
-        
-
-
-
-        if (i.isIon())
+        if (!i.hasUsableAbstractFramePtr())
             continue;
 
         AbstractFramePtr frame = i.abstractFramePtr();

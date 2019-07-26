@@ -25,6 +25,9 @@ namespace jit {
 class RematerializedFrame
 {
     
+    bool prevUpToDate_;
+
+    
     uint8_t *top_;
 
     size_t frameNo_;
@@ -42,6 +45,13 @@ class RematerializedFrame
 
   public:
     static RematerializedFrame *New(JSContext *cx, uint8_t *top, InlineFrameIterator &iter);
+
+    bool prevUpToDate() const {
+        return prevUpToDate_;
+    }
+    void setPrevUpToDate() {
+        prevUpToDate_ = true;
+    }
 
     uint8_t *top() const {
         return top_;
