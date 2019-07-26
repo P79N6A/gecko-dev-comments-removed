@@ -431,7 +431,7 @@ StackFramesView.prototype = Heritage.extend(WidgetMethods, {
     let menuEntry = this._createMenuEntry.apply(this, arguments);
 
     
-    this.push(frameView, {
+    this.push([frameView], {
       index: 0, 
       attachment: {
         popup: menuEntry,

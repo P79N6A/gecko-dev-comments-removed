@@ -260,9 +260,7 @@ ToolbarView.prototype = {
 function RequestsMenuView() {
   dumpn("RequestsMenuView was instantiated");
 
-  this._cache = new Map(); 
   this._flushRequests = this._flushRequests.bind(this);
-  this._onRequestItemRemoved = this._onRequestItemRemoved.bind(this);
   this._onSelect = this._onSelect.bind(this);
   this._onResize = this._onResize.bind(this);
   this._byFile = this._byFile.bind(this);
@@ -338,23 +336,20 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     this._registerLastRequestEnd(unixTime);
 
     
-    let requestItem = this.push(menuView, {
+    let requestItem = this.push([menuView, aId], {
       attachment: {
-        id: aId,
         startedDeltaMillis: unixTime - this._firstRequestStartedMillis,
         startedMillis: unixTime,
         method: aMethod,
         url: aUrl,
         isXHR: aIsXHR
-      },
-      finalize: this._onRequestItemRemoved
+      }
     });
 
     $("#details-pane-toggle").disabled = false;
     $("#requests-menu-empty-notice").hidden = true;
 
     this.refreshSummary();
-    this._cache.set(aId, requestItem);
   },
 
   
@@ -634,7 +629,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     
     for (let [id, data] of this._updateQueue) {
-      let requestItem = this._cache.get(id);
+      let requestItem = this.getItemByValue(id);
       if (!requestItem) {
         
         continue;
@@ -707,7 +702,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       
       
       let selectedItem = this.selectedItem;
-      if (selectedItem && selectedItem.attachment.id == id) {
+      if (selectedItem && selectedItem.value == id) {
         NetMonitorView.NetworkDetails.populate(selectedItem.attachment);
       }
     }
@@ -892,7 +887,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
     
     
-    for (let [, { target, attachment }] of this._cache) {
+    for (let { target, attachment } in this) {
       let timingsNode = $(".requests-menu-timings", target);
       let startCapNode = $(".requests-menu-timings-cap.start", target);
       let endCapNode = $(".requests-menu-timings-cap.end", target);
@@ -1028,7 +1023,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
 
 
   _flushWaterfallBackgrounds: function() {
-    for (let [, { target }] of this._cache) {
+    for (let { target } in this) {
       let waterfallNode = $(".requests-menu-waterfall", target);
       waterfallNode.style.backgroundImage = this._cachedWaterfallBackground;
     }
@@ -1061,17 +1056,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         table.setAttribute(attribute, "");
       }
     });
-  },
-
-  
-
-
-
-
-
-  _onRequestItemRemoved: function(aItem) {
-    dumpn("Finalizing network request item: " + aItem);
-    this._cache.delete(aItem.attachment.id);
   },
 
   
@@ -1217,7 +1201,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     return this._cachedWaterfallWidth;
   },
 
-  _cache: null,
   _summary: null,
   _canvas: null,
   _ctx: null,

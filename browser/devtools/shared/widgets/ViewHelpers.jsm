@@ -113,6 +113,18 @@ this.ViewHelpers = {
 
 
 
+  isNode: function(aObject) {
+    return aObject instanceof Ci.nsIDOMNode ||
+           aObject instanceof Ci.nsIDOMElement ||
+           aObject instanceof Ci.nsIDOMDocumentFragment;
+  },
+
+  
+
+
+
+
+
   preventScrolling: function(e) {
     switch (e.keyCode) {
       case e.DOM_VK_UP:
@@ -361,17 +373,15 @@ ViewHelpers.Prefs.prototype = {
 function Item(aAttachment, aContents = []) {
   this.attachment = aAttachment;
 
+  let [aLabel, aValue, aDescription] = aContents;
+  this._label = aLabel + "";
+  this._value = aValue + "";
+  this._description = (aDescription || "") + "";
+
   
-  if (aContents instanceof Ci.nsIDOMNode ||
-      aContents instanceof Ci.nsIDOMDocumentFragment) {
-    this._prebuiltTarget = aContents;
-  }
   
-  else {
-    let [aLabel, aValue, aDescription] = aContents;
-    this._label = aLabel + "";
-    this._value = aValue + "";
-    this._description = (aDescription || "") + "";
+  if (ViewHelpers.isNode(aLabel)) {
+    this._prebuiltTarget = aLabel;
   }
 
   XPCOMUtils.defineLazyGetter(this, "_itemsByElement", () => new Map());
