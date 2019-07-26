@@ -394,28 +394,14 @@ var BrowserUI = {
 
   closeTab: function closeTab(aTab) {
     
-    if (Browser.tabs.length === 1 && !StartUI.isStartURI())
-      Browser.addTab(Browser.getHomePage());
-
-    
-    if (Browser.tabs.length === 1)
-      return;
-
-    
     let tab = aTab || Browser.selectedTab;
-    let tabToClose = tab instanceof XULElement ? Browser.getTabFromChrome(tab) : tab;
+    Browser.closeTab(tab);
+  },
 
+  animateClosingTab: function animateClosingTab(tabToClose) {
     if (this.isTabsOnly) {
-      Browser.closeTab(tabToClose);
+      Browser.closeTab(tabToClose, { forceClose: true } );
     } else {
-      let nextTab = Browser.getNextTab(tabToClose);
-
-      if (!nextTab)
-        return;
-
-      if (nextTab)
-        Browser.selectedTab = nextTab;
-
       
       tabToClose.chromeTab.setAttribute("closing", "true");
 
@@ -425,7 +411,7 @@ var BrowserUI = {
       }
 
       this.setOnTabAnimationEnd(function() {
-        Browser.closeTab(tabToClose);
+	Browser.closeTab(tabToClose, { forceClose: true } );
         if (wasCollapsed)
           ContextUI.dismissWithDelay(kNewTabAnimationDelayMsec);
       });
