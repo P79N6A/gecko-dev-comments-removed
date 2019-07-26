@@ -804,6 +804,7 @@ this.PlacesUIUtils = {
       let items = as.getItemsWithAnnotation(this.ORGANIZER_QUERY_ANNO);
       
       let queriesCount = 0;
+      let corrupt = false;
       for (let i = 0; i < items.length; i++) {
         let queryName = as.getItemAnnotation(items[i], this.ORGANIZER_QUERY_ANNO);
 
@@ -817,6 +818,7 @@ this.PlacesUIUtils = {
 
         if (!itemExists(query.itemId)) {
           
+          corrupt = true;
           break;
         }
 
@@ -825,6 +827,7 @@ this.PlacesUIUtils = {
         if (items.indexOf(parentId) == -1 && parentId != leftPaneRoot) {
           
           
+          corrupt = true;
           break;
         }
 
@@ -842,7 +845,11 @@ this.PlacesUIUtils = {
         queriesCount++;
       }
 
-      if (queriesCount != EXPECTED_QUERY_COUNT) {
+      
+      
+      
+      
+      if (corrupt || queriesCount != EXPECTED_QUERY_COUNT) {
         
         
         
