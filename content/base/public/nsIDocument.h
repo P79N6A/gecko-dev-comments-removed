@@ -2060,10 +2060,10 @@ private:
 
 
 nsresult
-NS_NewHTMLDocument(nsIDocument** aInstancePtrResult);
+NS_NewHTMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData = false);
 
 nsresult
-NS_NewXMLDocument(nsIDocument** aInstancePtrResult);
+NS_NewXMLDocument(nsIDocument** aInstancePtrResult, bool aLoadedAsData = false);
 
 nsresult
 NS_NewSVGDocument(nsIDocument** aInstancePtrResult);
