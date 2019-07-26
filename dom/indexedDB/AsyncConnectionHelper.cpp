@@ -288,8 +288,6 @@ AsyncConnectionHelper::Run()
     mResultCode = DoDatabaseWork(connection);
 
     if (mDatabase) {
-      IndexedDatabaseManager::SetCurrentWindow(nullptr);
-
       
       if (hasSavepoint) {
         NS_ASSERTION(mTransaction, "Huh?!");
@@ -300,6 +298,10 @@ AsyncConnectionHelper::Run()
           mTransaction->RollbackSavepoint();
         }
       }
+
+      
+      
+      IndexedDatabaseManager::SetCurrentWindow(nullptr);
     }
   }
   else {
