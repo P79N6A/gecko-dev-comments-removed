@@ -113,6 +113,10 @@ var shell = {
 
   
   submitCrash: function shell_submitCrash(aCrashID) {
+    if (!Services.io.offline) {
+      this.CrashSubmit.submit(aCrashID);
+      return;
+    }
     Services.obs.addObserver(function observer(subject, topic, state) {
       if (state == 'online') {
         shell.CrashSubmit.submit(aCrashID);
