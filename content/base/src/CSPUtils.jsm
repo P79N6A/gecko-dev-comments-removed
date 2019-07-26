@@ -986,7 +986,6 @@ CSPSourceList.fromString = function(aStr, aCSPRep, self, enforceSelfChecks) {
     
     if (src.permitAll) {
       slObj._permitAllSources = true;
-      return slObj;
     } else {
       slObj._sources.push(src);
     }
