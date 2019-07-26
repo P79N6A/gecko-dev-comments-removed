@@ -571,7 +571,7 @@ class CompilerConstraint
 
     CompilerConstraint(const HeapTypeSetKey &property)
       : property(property),
-        expected(property.maybeTypes() ? property.maybeTypes()->clone(IonAlloc()) : NULL)
+        expected(property.maybeTypes() ? property.maybeTypes()->clone(IonAlloc()) : nullptr)
     {}
 
     
@@ -706,7 +706,7 @@ TypeScript::FreezeTypeSets(CompilerConstraintList *constraints, JSScript *script
     *pThisTypes = types + (ThisTypes(script) - existing);
     *pArgTypes = (script->function() && script->function()->nargs)
                  ? (types + (ArgTypes(script, 0) - existing))
-                 : NULL;
+                 : nullptr;
     *pBytecodeTypes = types;
 
     constraints->freezeScript(script, *pThisTypes, *pArgTypes, *pBytecodeTypes);
@@ -818,7 +818,7 @@ TypeObjectKey::maybeType()
     if (isTypeObject())
         return asTypeObject();
     if (asSingleObject()->hasLazyType())
-        return NULL;
+        return nullptr;
     return asSingleObject()->type();
 }
 
@@ -867,7 +867,7 @@ HeapTypeSetKey::instantiate(JSContext *cx)
     if (object()->isSingleObject() && !object()->asSingleObject()->getType(cx))
         return false;
     maybeTypes_ = object()->maybeType()->getProperty(cx, id());
-    return maybeTypes_ != NULL;
+    return maybeTypes_ != nullptr;
 }
 
 static bool

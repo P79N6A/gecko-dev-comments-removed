@@ -694,7 +694,7 @@ class IonBuilder : public MIRGenerator
         
         if (info().executionMode() == DefinitePropertiesAnalysis)
             return cx;
-        return NULL;
+        return nullptr;
     }
 
     JSAtomState &names() { return compartment->runtimeFromAnyThread()->atomState; }
