@@ -53,6 +53,7 @@ class nsIDOMElement;
 class nsIDOMNodeList;
 class nsIDOMXPathExpression;
 class nsIDOMXPathNSResolver;
+class nsIHTMLCollection;
 class nsILayoutHistoryState;
 class nsIObjectLoadingContent;
 class nsIObserver;
@@ -2120,6 +2121,10 @@ public:
 
   void ObsoleteSheet(const nsAString& aSheetURI, mozilla::ErrorResult& rv);
 
+  
+  nsIHTMLCollection* Children();
+  uint32_t ChildElementCount();
+
   virtual nsHTMLDocument* AsHTMLDocument() { return nullptr; }
 
   virtual JSObject* WrapObject(JSContext *aCx,
@@ -2210,6 +2215,9 @@ protected:
   
   nsPropertyTable mPropertyTable;
   nsTArray<nsAutoPtr<nsPropertyTable> > mExtraPropertyTables;
+
+  
+  nsCOMPtr<nsIHTMLCollection> mChildrenCollection;
 
   
   nsCompatibility mCompatMode;
