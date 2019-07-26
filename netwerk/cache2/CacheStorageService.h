@@ -112,7 +112,6 @@ private:
 private:
   
   friend class CacheStorage;
-  friend class CacheFileIOManager;
 
   
 
@@ -147,13 +146,17 @@ private:
                               bool aVisitEntries,
                               nsICacheStorageVisitor* aVisitor);
 
+private:
+  friend class CacheFileIOManager;
+
   
 
 
 
 
-  nsresult CacheFileDoomed(nsILoadContextInfo* aLoadContextInfo,
-                           const nsACString & aURL);
+  void CacheFileDoomed(nsILoadContextInfo* aLoadContextInfo,
+                       const nsACString & aIdExtension,
+                       const nsACString & aURISpec);
 
 private:
   friend class CacheMemoryConsumer;
