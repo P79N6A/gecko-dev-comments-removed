@@ -10,7 +10,7 @@ var archiveReaderEnabled = false;
 
 
 
-if (typeof Components === 'undefined')
+if (typeof Components === 'undefined' && typeof SpecialPowers === 'object')
   Components = SpecialPowers.Components;
 
 function executeSoon(aFun)

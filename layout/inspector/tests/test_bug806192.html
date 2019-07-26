@@ -13,7 +13,7 @@
 <script type="application/javascript">
 
 const utils = SpecialPowers.Cc["@mozilla.org/inspector/dom-utils;1"]
-.getService(Components.interfaces.inIDOMUtils);
+.getService(SpecialPowers.Ci.inIDOMUtils);
 
 try {
     var res = utils.getBindingURLs({});
