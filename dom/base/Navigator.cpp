@@ -25,7 +25,7 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
 #include "BatteryManager.h"
-#include "PowerManager.h"
+#include "mozilla/dom/PowerManager.h"
 #include "nsIDOMWakeLock.h"
 #include "nsIPowerManagerService.h"
 #include "mozilla/dom/MobileMessageManager.h"
@@ -54,7 +54,7 @@
 #include "MediaManager.h"
 #endif
 #ifdef MOZ_B2G_RIL
-#include "mozilla/dom/Telephony.h"
+#include "mozilla/dom/telephony/Telephony.h"
 #endif
 #ifdef MOZ_B2G_BT
 #include "BluetoothManager.h"
@@ -75,8 +75,6 @@
 #include "nsScriptNameSpaceManager.h"
 
 #include "mozilla/dom/NavigatorBinding.h"
-
-using namespace mozilla::dom::power;
 
 
 DOMCI_DATA(Navigator, mozilla::dom::Navigator)
@@ -1100,7 +1098,7 @@ Navigator::GetBattery(ErrorResult& aRv)
   return mBatteryManager;
 }
 
-power::PowerManager*
+PowerManager*
 Navigator::GetMozPower(ErrorResult& aRv)
 {
   if (!mPowerManager) {
@@ -1168,7 +1166,7 @@ Navigator::GetMozCellBroadcast(ErrorResult& aRv)
   return mCellBroadcast;
 }
 
-Telephony*
+telephony::Telephony*
 Navigator::GetMozTelephony(ErrorResult& aRv)
 {
   if (!mTelephony) {
@@ -1176,7 +1174,7 @@ Navigator::GetMozTelephony(ErrorResult& aRv)
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
-    mTelephony = Telephony::Create(mWindow, aRv);
+    mTelephony = telephony::Telephony::Create(mWindow, aRv);
   }
 
   return mTelephony;
@@ -1698,7 +1696,7 @@ bool
 Navigator::HasTelephonySupport(JSContext* , JSObject* aGlobal)
 {
   nsCOMPtr<nsPIDOMWindow> win = GetWindowFromGlobal(aGlobal);
-  return win && Telephony::CheckPermission(win);
+  return win && telephony::Telephony::CheckPermission(win);
 }
 
 

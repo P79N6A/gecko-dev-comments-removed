@@ -3,8 +3,9 @@
 
 
 
+#include "mozilla/dom/PowerManager.h"
+
 #include "mozilla/Hal.h"
-#include "PowerManager.h"
 #include "WakeLock.h"
 #include "nsDOMClassInfoID.h"
 #include "nsIDOMWakeLockListener.h"
@@ -19,7 +20,6 @@
 
 namespace mozilla {
 namespace dom {
-namespace power {
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PowerManager)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -205,6 +205,5 @@ PowerManager::CreateInstance(nsPIDOMWindow* aWindow)
   return powerManager.forget();
 }
 
-} 
 } 
 } 
