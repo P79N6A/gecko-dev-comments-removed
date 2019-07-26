@@ -1181,10 +1181,12 @@ struct JSRuntime : js::RuntimeFriendFields,
 
     uint32_t            propertyRemovals;
 
+#if !ENABLE_INTL_API
     
     const char          *thousandsSeparator;
     const char          *decimalSeparator;
     const char          *numGrouping;
+#endif
 
   private:
     js::MathCache *mathCache_;
