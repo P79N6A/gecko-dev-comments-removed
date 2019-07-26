@@ -47,9 +47,6 @@ class BaselineFrame
         HAS_CALL_OBJ     = 1 << 2,
 
         
-        HAS_EVAL_PREV    = 1 << 3,
-
-        
         HAS_ARGS_OBJ     = 1 << 4,
 
         
@@ -76,14 +73,6 @@ class BaselineFrame
     ArgumentsObject *argsObj_;      
     void *hookData_;                
     uint32_t flags_;
-
-    
-    
-    AbstractFramePtr evalPrev_;
-
-#if JS_BITS_PER_WORD == 32
-    uint32_t padding_;
-#endif
 
   public:
     
@@ -290,14 +279,6 @@ class BaselineFrame
         JS_ASSERT(isEvalFrame());
         return evalScript_;
     }
-
-    AbstractFramePtr evalPrev() const {
-        JS_ASSERT(isEvalFrame());
-        JS_ASSERT(flags_ & HAS_EVAL_PREV);
-        return evalPrev_;
-    }
-
-    void initEvalPrev(JSContext *cx);
 
     bool hasHookData() const {
         return flags_ & HAS_HOOK_DATA;

@@ -520,12 +520,6 @@ DebugPrologue(JSContext *cx, BaselineFrame *frame, JSBool *mustReturn)
 {
     *mustReturn = false;
 
-    
-    
-    
-    if (frame->isEvalFrame())
-        frame->initEvalPrev(cx);
-
     JSTrapStatus status = ScriptDebugPrologue(cx, frame);
     switch (status) {
       case JSTRAP_CONTINUE:
