@@ -1324,6 +1324,10 @@ extern bool
 js_GetClassObject(js::ExclusiveContext *cx, JSObject *obj, JSProtoKey key,
                   js::MutableHandleObject objp);
 
+extern bool
+js_GetClassPrototype(js::ExclusiveContext *cx, JSProtoKey key,
+                     js::MutableHandleObject objp);
+
 
 
 
@@ -1338,6 +1342,18 @@ js_IdentifyClassPrototype(JSObject *obj);
 bool
 js_FindClassObject(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleValue vp,
                    const js::Class *clasp = nullptr);
+
+
+
+
+
+
+
+
+extern bool
+js_FindClassPrototype(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleObject protop,
+                      const js::Class *clasp = nullptr);
+
 
 namespace js {
 
@@ -1596,17 +1612,6 @@ js_ReportGetterOnlyAssignment(JSContext *cx, bool strict);
 extern unsigned
 js_InferFlags(JSContext *cx, unsigned defaultFlags);
 
-
-
-
-
-
-
-
-
-extern bool
-js_GetClassPrototype(js::ExclusiveContext *cx, JSProtoKey protoKey, js::MutableHandleObject protop,
-                     const js::Class *clasp = nullptr);
 
 namespace js {
 
