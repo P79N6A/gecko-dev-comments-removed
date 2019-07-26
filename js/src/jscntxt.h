@@ -390,7 +390,7 @@ class ExclusiveContext : public ThreadSafeContext
         return runtime_->scriptDataTable();
     }
 
-#ifdef JS_WORKER_THREADS
+#ifdef JS_THREADSAFE
     
     
     
@@ -1027,7 +1027,7 @@ bool intrinsic_NewParallelArray(JSContext *cx, unsigned argc, Value *vp);
 
 class AutoLockForExclusiveAccess
 {
-#ifdef JS_WORKER_THREADS
+#ifdef JS_THREADSAFE
     JSRuntime *runtime;
 
     void init(JSRuntime *rt) {
@@ -1082,7 +1082,7 @@ class AutoLockForExclusiveAccess
 
 class AutoLockForCompilation
 {
-#ifdef JS_WORKER_THREADS
+#ifdef JS_THREADSAFE
     JSRuntime *runtime;
 
     void init(JSRuntime *rt) {

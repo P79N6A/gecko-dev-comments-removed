@@ -2678,7 +2678,7 @@ TypeObject::assertCanAccessProto() const
 
     
     
-#if defined(JSGC_GENERATIONAL) && defined(JS_WORKER_THREADS)
+#if defined(JSGC_GENERATIONAL) && defined(JS_THREADSAFE)
     PerThreadData *pt = TlsPerThreadData.get();
     TaggedProto proto(proto_);
     JS_ASSERT_IF(proto.isObject() && !proto.toObject()->isTenured(),
