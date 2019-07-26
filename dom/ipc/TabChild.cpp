@@ -715,12 +715,13 @@ TabChild::SetProcessNameToAppName()
 bool
 TabChild::IsRootContentDocument()
 {
-    if (!mIsBrowserElement && mAppId == nsIScriptSecurityManager::NO_APP_ID) {
+    if (mIsBrowserElement || mAppId == nsIScriptSecurityManager::NO_APP_ID) {
         
         
         return true;
     }
 
+    
     
     
     
