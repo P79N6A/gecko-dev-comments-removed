@@ -247,7 +247,6 @@ platform_print_sip_msg (const char *msg)
         return;
     }
 
-    CSFLogDebug("sipstack", "");
     
     if (strstr(msg, "kpml-response")) {
         
