@@ -117,10 +117,12 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
 
         
         
-        if (aMetrics->emAscent > aMetrics->maxAscent)
-            aMetrics->maxAscent = aMetrics->emAscent;
-        if (aMetrics->emDescent > aMetrics->maxDescent)
-            aMetrics->maxDescent = aMetrics->emDescent;
+        
+        
+        aMetrics->maxAscent =
+            std::max(aMetrics->maxAscent, NS_round(aMetrics->emAscent));
+        aMetrics->maxDescent =
+            std::max(aMetrics->maxDescent, NS_round(aMetrics->emDescent));
     } else {
         aMetrics->emAscent = aMetrics->maxAscent;
         aMetrics->emDescent = aMetrics->maxDescent;
