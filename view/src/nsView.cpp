@@ -237,21 +237,40 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
 
   NS_PRECONDITION(mWindow, "Why was this called??");
 
-  bool curVisibility = mWindow->IsVisible();
-  bool newVisibility = IsEffectivelyVisible();
-  if (curVisibility && !newVisibility) {
-    mWindow->Show(false);
-  }
+  
+  nsCOMPtr<nsIWidget> widget = mWindow;
 
-  nsIntRect curBounds;
-  mWindow->GetClientBounds(curBounds);
+  
+  
+  nsRect dimBounds = mDimBounds;
+  nsViewVisibility vis = mVis;
+  nsIntRect newBounds;
+  nsRefPtr<nsDeviceContext> dx;
+  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
 
   nsWindowType type;
-  mWindow->GetWindowType(type);
+  widget->GetWindowType(type);
+
+  nsIntRect curBounds;
+  widget->GetClientBounds(curBounds);
 
   if (type == eWindowType_popup &&
-      ((curBounds.IsEmpty() && mDimBounds.IsEmpty()) ||
-       mVis == nsViewVisibility_kHide)) {
+      ((curBounds.IsEmpty() && dimBounds.IsEmpty()) ||
+       vis == nsViewVisibility_kHide)) {
+    
+  } else {
+    newBounds = CalcWidgetBounds(type);
+  }
+
+  bool curVisibility = widget->IsVisible();
+  bool newVisibility = IsEffectivelyVisible();
+  if (curVisibility && !newVisibility) {
+    widget->Show(false);
+  }
+
+  if (type == eWindowType_popup &&
+      ((curBounds.IsEmpty() && dimBounds.IsEmpty()) ||
+       vis == nsViewVisibility_kHide)) {
     
     
     
@@ -259,8 +278,6 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
     
     return;
   }
-
-  nsIntRect newBounds = CalcWidgetBounds(type);
 
   bool changedPos = curBounds.TopLeft() != newBounds.TopLeft();
   bool changedSize = curBounds.Size() != newBounds.Size();
@@ -271,8 +288,6 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   
   
-  nsRefPtr<nsDeviceContext> dx;
-  mViewManager->GetDeviceContext(*getter_AddRefs(dx));
   double invScale;
 
   
@@ -285,7 +300,7 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
   
   
   
-  double scale = mWindow->GetDefaultScale();
+  double scale = widget->GetDefaultScale();
   if (NSToIntRound(60.0 / scale) == dx->UnscaledAppUnitsPerDevPixel()) {
     invScale = 1.0 / scale;
   } else {
@@ -294,25 +309,25 @@ void nsView::DoResetWidgetBounds(bool aMoveOnly,
 
   if (changedPos) {
     if (changedSize && !aMoveOnly) {
-      mWindow->ResizeClient(newBounds.x * invScale,
-                            newBounds.y * invScale,
-                            newBounds.width * invScale,
-                            newBounds.height * invScale,
-                            aInvalidateChangedSize);
+      widget->ResizeClient(newBounds.x * invScale,
+                           newBounds.y * invScale,
+                           newBounds.width * invScale,
+                           newBounds.height * invScale,
+                           aInvalidateChangedSize);
     } else {
-      mWindow->MoveClient(newBounds.x * invScale,
-                          newBounds.y * invScale);
+      widget->MoveClient(newBounds.x * invScale,
+                         newBounds.y * invScale);
     }
   } else {
     if (changedSize && !aMoveOnly) {
-      mWindow->ResizeClient(newBounds.width * invScale,
-                            newBounds.height * invScale,
-                            aInvalidateChangedSize);
+      widget->ResizeClient(newBounds.width * invScale,
+                           newBounds.height * invScale,
+                           aInvalidateChangedSize);
     } 
   }
 
   if (!curVisibility && newVisibility) {
-    mWindow->Show(true);
+    widget->Show(true);
   }
 }
 
