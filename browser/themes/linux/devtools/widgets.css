@@ -581,6 +581,12 @@
 
 
 
+.variables-view-container[actions-first] .variables-view-delete {
+  -moz-box-ordinal-group: 0;
+}
+
+
+
 .variable-or-property > tooltip > label {
   margin: 0 2px 0 2px;
 }

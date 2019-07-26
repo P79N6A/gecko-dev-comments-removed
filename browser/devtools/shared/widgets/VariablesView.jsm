@@ -917,6 +917,19 @@ VariablesView.prototype = {
 
 
 
+
+  set actionsFirst(aFlag) {
+    if (aFlag) {
+      this._parent.setAttribute("actions-first", "");
+    } else {
+      this._parent.removeAttribute("actions-first");
+    }
+  },
+
+  
+
+
+
   get parentNode() this._parent,
 
   
@@ -2407,7 +2420,6 @@ Variable.prototype = Heritage.extend(Scope.prototype, {
     if (ownerView.delete) {
       let deleteNode = this._deleteNode = this.document.createElement("toolbarbutton");
       deleteNode.className = "plain variables-view-delete";
-      deleteNode.setAttribute("ordinal", 2);
       deleteNode.addEventListener("click", this._onDelete.bind(this), false);
       this._title.appendChild(deleteNode);
     }
