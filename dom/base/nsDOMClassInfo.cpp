@@ -3725,69 +3725,8 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     }
   }
 
-  rv = nsDOMGenericSH::NewResolve(wrapper, cx, obj, id, flags, objp,
-                                  _retval);
-
-  if (NS_FAILED(rv) || *objp) {
-    
-    return rv;
-  }
-
-  
-  
-  
-  
-  if (flags & JSRESOLVE_ASSIGNING) {
-    JS::Rooted<JSObject*> realObj(cx, wrapper->GetJSObject());
-
-    if (obj == realObj) {
-      JS::Rooted<JSObject*> proto(cx);
-      if (!js::GetObjectProto(cx, obj, &proto)) {
-          *_retval = false;
-          return NS_OK;
-      }
-      if (proto) {
-        JS::Rooted<JSObject*> pobj(cx);
-        JS::Rooted<JS::Value> val(cx);
-
-        if (!::JS_LookupPropertyWithFlagsById(cx, proto, id, flags,
-                                              pobj.address(), &val)) {
-          *_retval = false;
-
-          return NS_OK;
-        }
-
-        if (pobj) {
-          
-          *objp = pobj;
-          return NS_OK;
-        }
-      }
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      JS::Rooted<JSString*> str(cx, JSID_TO_STRING(id));
-      if (!js::ReportIfUndeclaredVarAssignment(cx, str) ||
-          !::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, JS_PropertyStub,
-                                   JS_StrictPropertyStub, JSPROP_ENUMERATE)) {
-        *_retval = false;
-
-        return NS_OK;
-      }
-
-      *objp = obj;
-    }
-  }
-
-  return NS_OK;
+  return nsDOMGenericSH::NewResolve(wrapper, cx, obj, id, flags, objp,
+                                    _retval);
 }
 
 NS_IMETHODIMP
