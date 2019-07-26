@@ -141,6 +141,9 @@ PowerManagerService::Restart()
   StartForceQuitWatchdog(eHalShutdownMode_Restart, mWatchdogTimeoutSecs);
   
   SyncProfile();
+#ifdef XP_UNIX
+  sync();
+#endif
   _exit(0);
   MOZ_NOT_REACHED();
   return NS_OK;
