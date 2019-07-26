@@ -1368,6 +1368,10 @@ CustomizeMode.prototype = {
         
         this.visiblePalette.insertBefore(draggedItem, aTargetNode.parentNode);
       }
+      if (aOriginArea.id !== kPaletteId) {
+        
+        this._onDragEnd(aEvent);
+      }
       return;
     }
 
@@ -1405,6 +1409,7 @@ CustomizeMode.prototype = {
       
       let custEventType = aOriginArea.id == kPaletteId ? "add" : "move";
       BrowserUITelemetry.countCustomizationEvent(custEventType);
+      this._onDragEnd(aEvent);
       return;
     }
 
@@ -1441,6 +1446,8 @@ CustomizeMode.prototype = {
       CustomizableUI.addWidgetToArea(aDraggedItemId, aTargetArea.id, position);
     }
 
+    this._onDragEnd(aEvent);
+
     
     
     let custEventType = aOriginArea.id == kPaletteId ? "add" : "move";
@@ -1472,14 +1479,17 @@ CustomizeMode.prototype = {
     }
   },
 
+  
+
+
   _onDragEnd: function(aEvent) {
     if (this._isUnwantedDragDrop(aEvent)) {
       return;
     }
     this._initializeDragAfterMove = null;
     this.window.clearTimeout(this._dragInitializeTimeout);
+    __dumpDragData(aEvent, "_onDragEnd");
 
-    __dumpDragData(aEvent);
     let document = aEvent.target.ownerDocument;
     document.documentElement.removeAttribute("customizing-movingItem");
 
@@ -1851,7 +1861,7 @@ function __dumpDragData(aEvent, caller) {
   if (!gDebug) {
     return;
   }
-  let str = "Dumping drag data (CustomizeMode.jsm) {\n";
+  let str = "Dumping drag data (" + (caller ? caller + " in " : "") + "CustomizeMode.jsm) {\n";
   str += "  type: " + aEvent["type"] + "\n";
   for (let el of ["target", "currentTarget", "relatedTarget"]) {
     if (aEvent[el]) {
