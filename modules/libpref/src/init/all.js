@@ -883,6 +883,9 @@ pref("network.http.default-socket-type", "");
 pref("network.http.keep-alive.timeout", 115);
 
 
+pref("network.http.response.timeout", 300);
+
+
 
 
 
