@@ -73,15 +73,13 @@ ElementAnimations::GetPositionInIteration(TimeDuration aElapsedDuration,
         aEventsToDispatch->AppendElement(ei);
       }
     }
-    if (aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
-        aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_FORWARDS) {
+    if (!aTiming.FillsForwards()) {
       
       return -1;
     }
     currentIterationCount = aTiming.mIterationCount;
   } else if (currentIterationCount < 0.0) {
-    if (aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BOTH &&
-        aTiming.mFillMode != NS_STYLE_ANIMATION_FILL_MODE_BACKWARDS) {
+    if (!aTiming.FillsBackwards()) {
       
       return -1;
     }
