@@ -46,7 +46,7 @@ class GeckoInputConnection
     private String mIMEModeHint = "";
     private String mIMEActionHint = "";
 
-    private String mCurrentInputMethod;
+    private String mCurrentInputMethod = "";
 
     private final GeckoEditableClient mEditableClient;
     protected int mBatchEditCount;
@@ -385,7 +385,7 @@ class GeckoInputConnection
         }
 
         
-        if (mCurrentInputMethod != prevInputMethod) {
+        if (!mCurrentInputMethod.equals(prevInputMethod)) {
             FormAssistPopup popup = app.mFormAssistPopup;
             if (popup != null) {
                 popup.onInputMethodChanged(mCurrentInputMethod);
@@ -656,4 +656,3 @@ final class DebugGeckoInputConnection
         return ret;
     }
 }
-
