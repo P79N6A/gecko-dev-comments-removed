@@ -499,3 +499,23 @@ const ExpectComparisonTo = {
            matrix[3][2] === 0 && matrix[3][3] === 1;
   }
 })();
+
+
+
+
+
+
+
+
+function waitForPaints() {
+  return new Promise(function(resolve, reject) {
+    waitForAllPaints(resolve);
+  });
+}
+
+
+function waitForPaintsFlushed() {
+  return new Promise(function(resolve, reject) {
+    waitForAllPaintsFlushed(resolve);
+  });
+}
