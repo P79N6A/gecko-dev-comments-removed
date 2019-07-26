@@ -390,13 +390,6 @@ WebappsActor.prototype = {
           let appType = self._getAppType(manifest.type);
 
           
-          if (!DOMApplicationRegistry.allowSideloadingCertified &&
-              appType == Ci.nsIPrincipal.APP_STATUS_CERTIFIED) {
-            self._sendError(deferred, "Installing certified apps is not allowed.", aId);
-            return;
-          }
-
-          
           
           let id = aId;
           if (appType >= Ci.nsIPrincipal.APP_STATUS_PRIVILEGED &&
