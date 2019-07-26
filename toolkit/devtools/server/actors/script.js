@@ -2470,6 +2470,8 @@ ThreadSources.prototype = {
 
 
 
+
+
   source: function TS_source(aURL, aSourceMap=null) {
     if (!this._allow(aURL)) {
       return null;
@@ -2491,6 +2493,11 @@ ThreadSources.prototype = {
   },
 
   
+
+
+
+
+
 
 
   sourcesForScript: function TS_sourcesForScript(aScript) {
@@ -2517,13 +2524,14 @@ ThreadSources.prototype = {
   
 
 
+
+
   sourceMap: function TS_sourceMap(aScript) {
     if (aScript.url in this._sourceMapsByGeneratedSource) {
       return this._sourceMapsByGeneratedSource[aScript.url];
     }
     dbg_assert(aScript.sourceMapURL);
-    let sourceMapURL = this._normalize(aScript.sourceMapURL,
-                                       aScript.url);
+    let sourceMapURL = this._normalize(aScript.sourceMapURL, aScript.url);
     let map = this._fetchSourceMap(sourceMapURL)
       .then((aSourceMap) => {
         for (let s of aSourceMap.sources) {
@@ -2537,6 +2545,8 @@ ThreadSources.prototype = {
   },
 
   
+
+
 
 
   _fetchSourceMap: function TS__fetchSourceMap(aAbsSourceMapURL) {
@@ -2588,6 +2598,11 @@ ThreadSources.prototype = {
   },
 
   
+
+
+
+
+
 
 
 
@@ -2663,6 +2678,7 @@ function update(aTarget, aNewAttrs) {
 function isNotNull(aThing) {
   return aThing !== null;
 }
+
 
 
 
