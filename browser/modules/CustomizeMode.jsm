@@ -68,6 +68,7 @@ CustomizeMode.prototype = {
     
     
     window.PanelUI.menuButton.addEventListener("click", this, false);
+    window.PanelUI.menuButton.disabled = true;
 
     
     let evt = document.createEvent("CustomEvent");
@@ -120,6 +121,7 @@ CustomizeMode.prototype = {
     let tabViewDeck = this.document.getElementById("tab-view-deck");
     tabViewDeck.removeEventListener("keypress", this, false);
     this.window.PanelUI.menuButton.removeEventListener("click", this, false);
+    this.window.PanelUI.menuButton.disabled = false;
 
     this.depopulatePalette();
 
