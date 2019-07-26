@@ -35,6 +35,10 @@ registerCleanupFunction(function() {
 
   
   DebuggerServer.destroy();
+
+  
+  info("Forcing GC after debugger test.");
+  Cu.forceGC();
 });
 
 

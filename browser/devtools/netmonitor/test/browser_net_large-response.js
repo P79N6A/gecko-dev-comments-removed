@@ -44,4 +44,8 @@ function test() {
 
     aDebuggee.performRequests(1, CONTENT_TYPE_SJS + "?fmt=html-long");
   });
+
+  
+  info("Forcing GC after netmonitor test.");
+  Cu.forceGC();
 }
