@@ -162,7 +162,7 @@ IonBuilder::getSingleCallTarget(types::TemporaryTypeSet *calleeTypes)
 
 bool
 IonBuilder::getPolyCallTargets(types::TemporaryTypeSet *calleeTypes, bool constructing,
-                               AutoObjectVector &targets, uint32_t maxTargets, bool *gotLambda)
+                               ObjectVector &targets, uint32_t maxTargets, bool *gotLambda)
 {
     JS_ASSERT(targets.length() == 0);
     JS_ASSERT(gotLambda);
@@ -1142,8 +1142,8 @@ IonBuilder::traverseBytecode()
         
         
         
-        Vector<MDefinition *> popped(cx);
-        Vector<size_t> poppedUses(cx);
+        Vector<MDefinition *, 4, IonAllocPolicy> popped;
+        Vector<size_t, 4, IonAllocPolicy> poppedUses;
         unsigned nuses = GetUseCount(script_, pc - script_->code);
 
         for (unsigned i = 0; i < nuses; i++) {
@@ -3992,7 +3992,7 @@ IonBuilder::makeInliningDecision(JSFunction *target, CallInfo &callInfo)
 }
 
 uint32_t
-IonBuilder::selectInliningTargets(AutoObjectVector &targets, CallInfo &callInfo, Vector<bool> &choiceSet)
+IonBuilder::selectInliningTargets(ObjectVector &targets, CallInfo &callInfo, BoolVector &choiceSet)
 {
     uint32_t totalSize = 0;
     uint32_t numInlineable = 0;
@@ -4098,7 +4098,7 @@ IonBuilder::inlineSingleCall(CallInfo &callInfo, JSFunction *target)
 }
 
 IonBuilder::InliningStatus
-IonBuilder::inlineCallsite(AutoObjectVector &targets, AutoObjectVector &originals,
+IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
                            bool lambda, CallInfo &callInfo)
 {
     if (!inliningEnabled())
@@ -4138,7 +4138,7 @@ IonBuilder::inlineCallsite(AutoObjectVector &targets, AutoObjectVector &original
     }
 
     
-    Vector<bool> choiceSet(cx);
+    BoolVector choiceSet;
     uint32_t numInlined = selectInliningTargets(targets, callInfo, choiceSet);
     if (numInlined == 0)
         return InliningStatus_NotInlined;
@@ -4160,7 +4160,7 @@ IonBuilder::inlineGenericFallback(JSFunction *target, CallInfo &callInfo, MBasic
         return false;
 
     
-    CallInfo fallbackInfo(cx, callInfo.constructing());
+    CallInfo fallbackInfo(callInfo.constructing());
     if (!fallbackInfo.init(callInfo))
         return false;
     fallbackInfo.popFormals(fallbackBlock);
@@ -4198,7 +4198,7 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
     
 
     
-    CallInfo fallbackInfo(cx, callInfo.constructing());
+    CallInfo fallbackInfo(callInfo.constructing());
     if (!fallbackInfo.init(callInfo))
         return false;
 
@@ -4272,8 +4272,8 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
 }
 
 bool
-IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
-                        AutoObjectVector &originals, Vector<bool> &choiceSet,
+IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
+                        ObjectVector &originals, BoolVector &choiceSet,
                         MGetPropertyCache *maybeCache)
 {
     
@@ -4380,7 +4380,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, AutoObjectVector &targets,
         inlineBlock->rewriteSlot(funIndex, funcDef);
 
         
-        CallInfo inlineInfo(cx, callInfo.constructing());
+        CallInfo inlineInfo(callInfo.constructing());
         if (!inlineInfo.init(callInfo))
             return false;
         inlineInfo.popFormals(inlineBlock);
@@ -4723,7 +4723,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction *native = getSingleCallTarget(calleeTypes);
     if (!native || !native->isNative() || native->native() != &js_fun_call) {
-        CallInfo callInfo(cx, false);
+        CallInfo callInfo(false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4758,7 +4758,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
         argc -= 1;
     }
 
-    CallInfo callInfo(cx, false);
+    CallInfo callInfo(false);
     if (!callInfo.init(current, argc))
         return false;
 
@@ -4778,7 +4778,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     JSFunction *native = getSingleCallTarget(calleeTypes);
     if (argc != 2) {
-        CallInfo callInfo(cx, false);
+        CallInfo callInfo(false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4796,7 +4796,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
 
     
     if (argument->type() != MIRType_Magic) {
-        CallInfo callInfo(cx, false);
+        CallInfo callInfo(false);
         if (!callInfo.init(current, argc))
             return false;
         return makeCall(native, callInfo, false);
@@ -4874,7 +4874,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     
     
 
-    CallInfo callInfo(cx, false);
+    CallInfo callInfo(false);
 
     
     MPassArg *passVp = current->pop()->toPassArg();
@@ -4883,7 +4883,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
     passVp->block()->discard(passVp);
 
     
-    Vector<MDefinition *> args(cx);
+    MDefinitionVector args;
     if (inliningDepth_) {
         if (!args.append(inlineCallInfo_->argv().begin(), inlineCallInfo_->argv().end()))
             return false;
@@ -4936,7 +4936,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     int calleeDepth = -((int)argc + 2);
 
     
-    AutoObjectVector originals(cx);
+    ObjectVector originals;
     bool gotLambda = false;
     types::TemporaryTypeSet *calleeTypes = current->peek(calleeDepth)->resultTypeSet();
     if (calleeTypes) {
@@ -4948,7 +4948,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
     
     
     bool hasClones = false;
-    AutoObjectVector targets(cx);
+    ObjectVector targets;
     RootedFunction fun(cx);
     RootedScript scriptRoot(cx, script());
     for (uint32_t i = 0; i < originals.length(); i++) {
@@ -4963,7 +4963,7 @@ IonBuilder::jsop_call(uint32_t argc, bool constructing)
             return false;
     }
 
-    CallInfo callInfo(cx, constructing);
+    CallInfo callInfo(constructing);
     if (!callInfo.init(current, argc))
         return false;
 
@@ -5306,7 +5306,7 @@ IonBuilder::jsop_eval(uint32_t argc)
         if (type != JSVAL_TYPE_OBJECT && type != JSVAL_TYPE_NULL && type != JSVAL_TYPE_UNDEFINED)
             return abort("Direct eval from script with maybe-primitive 'this'");
 
-        CallInfo callInfo(cx,  false);
+        CallInfo callInfo( false);
         if (!callInfo.init(current, argc))
             return false;
         callInfo.unwrapArgs();
@@ -5342,7 +5342,7 @@ IonBuilder::jsop_eval(uint32_t argc)
                 current->push(dynamicName);
                 current->push(thisv);
 
-                CallInfo evalCallInfo(cx,  false);
+                CallInfo evalCallInfo( false);
                 if (!evalCallInfo.init(current,  0))
                     return false;
 
@@ -8321,7 +8321,7 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, jsid id,
     current->add(wrapper);
     current->push(wrapper);
 
-    CallInfo callInfo(cx, false);
+    CallInfo callInfo(false);
     if (!callInfo.init(current, 0))
         return false;
 
@@ -8339,7 +8339,7 @@ IonBuilder::getPropTryCommonGetter(bool *emitted, jsid id,
 }
 
 static bool
-CanInlinePropertyOpShapes(const Vector<Shape *> &shapes)
+CanInlinePropertyOpShapes(const BaselineInspector::ShapeVector &shapes)
 {
     for (size_t i = 0; i < shapes.length(); i++) {
         
@@ -8361,7 +8361,7 @@ IonBuilder::getPropTryInlineAccess(bool *emitted, PropertyName *name, jsid id,
     if (current->peek(-1)->type() != MIRType_Object)
         return true;
 
-    Vector<Shape *> shapes(cx);
+    BaselineInspector::ShapeVector shapes;
     if (!inspector->maybeShapesForPropertyOp(pc, shapes))
         return false;
 
@@ -8607,7 +8607,7 @@ IonBuilder::setPropTryCommonSetter(bool *emitted, MDefinition *obj,
 
     
     
-    CallInfo callInfo(cx, false);
+    CallInfo callInfo(false);
     if (!callInfo.init(current, 1))
         return false;
 
@@ -8702,7 +8702,7 @@ IonBuilder::setPropTryInlineAccess(bool *emitted, MDefinition *obj,
     if (barrier)
         return true;
 
-    Vector<Shape *> shapes(cx);
+    BaselineInspector::ShapeVector shapes;
     if (!inspector->maybeShapesForPropertyOp(pc, shapes))
         return false;
 

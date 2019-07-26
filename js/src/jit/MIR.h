@@ -5845,6 +5845,9 @@ class MStoreFixedSlot
     }
 };
 
+typedef Vector<JSObject *, 4, IonAllocPolicy> ObjectVector;
+typedef Vector<bool, 4, IonAllocPolicy> BoolVector;
+
 class InlinePropertyTable : public TempObject
 {
     struct Entry : public TempObject {
@@ -5900,10 +5903,10 @@ class InlinePropertyTable : public TempObject
     types::TemporaryTypeSet *buildTypeSetForFunction(JSFunction *func) const;
 
     
-    void trimTo(AutoObjectVector &targets, Vector<bool> &choiceSet);
+    void trimTo(ObjectVector &targets, BoolVector &choiceSet);
 
     
-    void trimToTargets(AutoObjectVector &targets);
+    void trimToTargets(ObjectVector &targets);
 };
 
 class CacheLocationList : public InlineConcatList<CacheLocationList>

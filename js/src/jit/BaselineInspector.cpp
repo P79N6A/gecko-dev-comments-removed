@@ -80,7 +80,7 @@ SetElemICInspector::sawTypedArrayWrite() const
 }
 
 bool
-BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, Vector<Shape *> &shapes)
+BaselineInspector::maybeShapesForPropertyOp(jsbytecode *pc, ShapeVector &shapes)
 {
     
     
