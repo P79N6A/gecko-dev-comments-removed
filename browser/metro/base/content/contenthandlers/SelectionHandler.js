@@ -188,6 +188,14 @@ var SelectionHandler = {
     
     this._selectionMoveActive = true;
 
+    if (this._targetIsEditable) {
+      
+      
+      
+      
+      this._updateInputFocus(aMsg.change);
+    }
+
     
     this._updateSelectionUI(true, true);
   },
@@ -855,21 +863,36 @@ var SelectionHandler = {
 
 
 
-
   _addEditSelection: function _addEditSelection(aLocation) {
     let selCtrl = this._getSelectController();
     try {
       if (aLocation == kSelectionNodeAnchor) {
-        this._targetElement.selectionStart = this._targetElement.selectionStart - 1;
-        selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
-                                        Ci.nsISelectionController.SELECTION_ANCHOR_REGION,
-                                        Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+        let start = Math.max(this._targetElement.selectionStart - 1, 0);
+        this._targetElement.setSelectionRange(start, this._targetElement.selectionEnd,
+                                              "backward");
       } else {
-        this._targetElement.selectionEnd = this._targetElement.selectionEnd + 1;
-        selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
-                                        Ci.nsISelectionController.SELECTION_FOCUS_REGION,
-                                        Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+        let end = Math.min(this._targetElement.selectionEnd + 1,
+                           this._targetElement.textLength);
+        this._targetElement.setSelectionRange(this._targetElement.selectionStart,
+                                              end,
+                                              "forward");
       }
+      selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
+                                      Ci.nsISelectionController.SELECTION_FOCUS_REGION,
+                                      Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
+    } catch (ex) { Util.dumpLn(ex);}
+  },
+
+  _updateInputFocus: function _updateInputFocus(aMarker) {
+    try {
+      let selCtrl = this._getSelectController();
+      this._targetElement.setSelectionRange(this._targetElement.selectionStart,
+                                            this._targetElement.selectionEnd,
+                                            aMarker == "start" ?
+                                              "backward" : "forward");
+      selCtrl.scrollSelectionIntoView(Ci.nsISelectionController.SELECTION_NORMAL,
+                                      Ci.nsISelectionController.SELECTION_FOCUS_REGION,
+                                      Ci.nsISelectionController.SCROLL_SYNCHRONOUS);
     } catch (ex) {}
   },
 
