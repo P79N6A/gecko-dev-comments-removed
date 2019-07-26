@@ -512,11 +512,7 @@ TypeInferenceOracle::canEnterInlinedFunction(JSFunction *target)
         return false;
 
     
-    
-    
-    if (types::TypeSet::HasObjectFlags(cx, target->getType(cx), types::OBJECT_FLAG_UNINLINEABLE))
-        return false;
-
+    TypeSet::WatchObjectStateChange(cx, target->getType(cx));
     return true;
 }
 
