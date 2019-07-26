@@ -53,10 +53,10 @@ public:
     return PlanarYCbCrImage::GetAsSurface();
   }
 
-  virtual void SetData(const PlanarYCbCrImage::Data& aData) MOZ_OVERRIDE;
+  virtual void SetData(const PlanarYCbCrData& aData) MOZ_OVERRIDE;
   virtual void SetDataNoCopy(const Data &aData) MOZ_OVERRIDE;
 
-  virtual bool Allocate(PlanarYCbCrImage::Data& aData);
+  virtual bool Allocate(PlanarYCbCrData& aData);
   virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE;
   
   
@@ -106,10 +106,10 @@ public:
   virtual uint8_t* GetBuffer() MOZ_OVERRIDE;
 
   virtual already_AddRefed<gfxASurface> GetAsSurface() MOZ_OVERRIDE;
-  virtual void SetData(const PlanarYCbCrImage::Data& aData) MOZ_OVERRIDE;
+  virtual void SetData(const PlanarYCbCrData& aData) MOZ_OVERRIDE;
   virtual void SetDataNoCopy(const Data &aData) MOZ_OVERRIDE;
 
-  virtual bool Allocate(PlanarYCbCrImage::Data& aData);
+  virtual bool Allocate(PlanarYCbCrData& aData);
   virtual uint8_t* AllocateBuffer(uint32_t aSize) MOZ_OVERRIDE;
   
   

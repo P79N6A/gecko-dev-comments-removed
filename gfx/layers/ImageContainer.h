@@ -690,6 +690,39 @@ private:
   gfxIntSize mSize;
 };
 
+struct PlanarYCbCrData {
+  
+  uint8_t* mYChannel;
+  int32_t mYStride;
+  gfxIntSize mYSize;
+  int32_t mYSkip;
+  
+  uint8_t* mCbChannel;
+  uint8_t* mCrChannel;
+  int32_t mCbCrStride;
+  gfxIntSize mCbCrSize;
+  int32_t mCbSkip;
+  int32_t mCrSkip;
+  
+  uint32_t mPicX;
+  uint32_t mPicY;
+  gfxIntSize mPicSize;
+  StereoMode mStereoMode;
+
+  nsIntRect GetPictureRect() const {
+    return nsIntRect(mPicX, mPicY,
+                     mPicSize.width,
+                     mPicSize.height);
+  }
+
+  PlanarYCbCrData()
+    : mYChannel(nullptr), mYStride(0), mYSize(0, 0), mYSkip(0)
+    , mCbChannel(nullptr), mCrChannel(nullptr)
+    , mCbCrStride(0), mCbCrSize(0, 0) , mCbSkip(0), mCrSkip(0)
+    , mPicX(0), mPicY(0), mPicSize(0, 0), mStereoMode(STEREO_MODE_MONO)
+  {}
+};
+
 
 
 
@@ -728,38 +761,7 @@ private:
 
 class PlanarYCbCrImage : public Image {
 public:
-  struct Data {
-    
-    uint8_t* mYChannel;
-    int32_t mYStride;
-    gfxIntSize mYSize;
-    int32_t mYSkip;
-    
-    uint8_t* mCbChannel;
-    uint8_t* mCrChannel;
-    int32_t mCbCrStride;
-    gfxIntSize mCbCrSize;
-    int32_t mCbSkip;
-    int32_t mCrSkip;
-    
-    uint32_t mPicX;
-    uint32_t mPicY;
-    gfxIntSize mPicSize;
-    StereoMode mStereoMode;
-
-    nsIntRect GetPictureRect() const {
-      return nsIntRect(mPicX, mPicY,
-                       mPicSize.width,
-                       mPicSize.height);
-    }
-
-    Data()
-      : mYChannel(nullptr), mYStride(0), mYSize(0, 0), mYSkip(0)
-      , mCbChannel(nullptr), mCrChannel(nullptr)
-      , mCbCrStride(0), mCbCrSize(0, 0) , mCbSkip(0), mCrSkip(0)
-      , mPicX(0), mPicY(0), mPicSize(0, 0), mStereoMode(STEREO_MODE_MONO)
-    {}
-  };
+  typedef PlanarYCbCrData Data;
 
   enum {
     MAX_DIMENSION = 16384

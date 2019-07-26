@@ -10,7 +10,6 @@
 #include <stdint.h>                     
 #include "GLContextTypes.h"             
 #include "GLTextureImage.h"             
-#include "ImageContainer.h"             
 #include "ImageTypes.h"                 
 #include "mozilla/Assertions.h"         
 #include "mozilla/Attributes.h"         
@@ -37,6 +36,9 @@ class ContentClient;
 class CompositableForwarder;
 class ISurfaceAllocator;
 class CompositableClient;
+class PlanarYCbCrImage;
+class PlanarYCbCrData;
+class Image;
 
 
 
@@ -63,7 +65,7 @@ public:
 class TextureClientYCbCr
 {
 public:
-  virtual bool UpdateYCbCr(const PlanarYCbCrImage::Data& aData) = 0;
+  virtual bool UpdateYCbCr(const PlanarYCbCrData& aData) = 0;
   virtual bool AllocateForYCbCr(gfx::IntSize aYSize,
                                 gfx::IntSize aCbCrSize,
                                 StereoMode aStereoMode) = 0;
@@ -271,7 +273,7 @@ public:
 
   virtual TextureClientYCbCr* AsTextureClientYCbCr() MOZ_OVERRIDE { return this; }
 
-  virtual bool UpdateYCbCr(const PlanarYCbCrImage::Data& aData) MOZ_OVERRIDE;
+  virtual bool UpdateYCbCr(const PlanarYCbCrData& aData) MOZ_OVERRIDE;
 
   virtual bool AllocateForYCbCr(gfx::IntSize aYSize,
                                 gfx::IntSize aCbCrSize,

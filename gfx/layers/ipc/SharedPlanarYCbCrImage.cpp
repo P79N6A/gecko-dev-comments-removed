@@ -71,7 +71,7 @@ SharedPlanarYCbCrImage::GetAsSurface()
 }
 
 void
-SharedPlanarYCbCrImage::SetData(const PlanarYCbCrImage::Data& aData)
+SharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
 {
   
   
@@ -151,7 +151,7 @@ SharedPlanarYCbCrImage::IsValid() {
 }
 
 bool
-SharedPlanarYCbCrImage::Allocate(PlanarYCbCrImage::Data& aData)
+SharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
 {
   NS_ABORT_IF_FALSE(!mTextureClient->IsAllocated(),
                     "This image already has allocated data");
@@ -195,7 +195,7 @@ SharedPlanarYCbCrImage::Allocate(PlanarYCbCrImage::Data& aData)
 }
 
 void
-DeprecatedSharedPlanarYCbCrImage::SetData(const PlanarYCbCrImage::Data& aData)
+DeprecatedSharedPlanarYCbCrImage::SetData(const PlanarYCbCrData& aData)
 {
   
   
@@ -270,7 +270,7 @@ DeprecatedSharedPlanarYCbCrImage::AllocateBuffer(uint32_t aSize)
 
 
 bool
-DeprecatedSharedPlanarYCbCrImage::Allocate(PlanarYCbCrImage::Data& aData)
+DeprecatedSharedPlanarYCbCrImage::Allocate(PlanarYCbCrData& aData)
 {
   NS_ABORT_IF_FALSE(!mAllocated, "This image already has allocated data");
 
