@@ -6936,18 +6936,18 @@ let gPrivateBrowsingUI = {
       return;
     }
 
-#ifdef XP_MACOSX
-    if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
-      document.documentElement.setAttribute("drawintitlebar", true);
-    }
-#endif
-
     
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
     
     if (window.location.href == getBrowserURL()) {
+#ifdef XP_MACOSX
+      if (!PrivateBrowsingUtils.permanentPrivateBrowsing) {
+        document.documentElement.setAttribute("drawintitlebar", true);
+      }
+#endif
+
       let docElement = document.documentElement;
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
