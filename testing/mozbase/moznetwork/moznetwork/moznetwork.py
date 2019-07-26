@@ -4,7 +4,9 @@
 
 import socket
 import array
+import re
 import struct
+import subprocess
 import mozinfo
 
 if mozinfo.isLinux:
@@ -38,6 +40,42 @@ def _get_interface_list():
     except IOError:
         raise NetworkError('Unable to call ioctl with SIOCGIFCONF')
 
+def _proc_matches(args, regex):
+    """Helper returns the matches of regex in the output of a process created with
+    the given arguments"""
+    output = subprocess.Popen(args=args,
+                              stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT).stdout.read()
+    return re.findall(regex, output)
+
+def _parse_ifconfig():
+    """Parse the output of running ifconfig on mac in cases other methods
+    have failed"""
+
+    
+    default_iface = _proc_matches(['route', '-n', 'get', 'default'],
+                                  'interface: (\w+)')
+    if default_iface:
+        addr_list = _proc_matches(['ifconfig', default_iface[0]],
+                                  'inet (\d+.\d+.\d+.\d+)')
+        if addr_list and not addr_list[0].startswith('127.'):
+            return addr_list[0]
+
+    
+    for iface in ['en%s' % i for i in range(10)]:
+        addr_list = _proc_matches(['ifconfig', iface],
+                                  'inet (\d+.\d+.\d+.\d+)')
+        if addr_list and not addr_list[0].startswith('127.'):
+            return addr_list[0]
+
+    
+    
+    addrs = _proc_matches(['ifconfig'],
+                          'inet (\d+.\d+.\d+.\d+)')
+    try:
+        return [addr for addr in addrs if not addr.startswith('127.')][0]
+    except IndexError:
+        return None
 
 def get_ip():
     """Provides an available network interface address, for example
@@ -54,13 +92,16 @@ def get_ip():
         
         ip = None
 
-    if (ip is None or ip.startswith("127.")) and mozinfo.isLinux:
-        interfaces = _get_interface_list()
-        for ifconfig in interfaces:
-            if ifconfig[0] == 'lo':
-                continue
-            else:
-                return ifconfig[1]
+    if ip is None or ip.startswith("127."):
+        if mozinfo.isLinux:
+            interfaces = _get_interface_list()
+            for ifconfig in interfaces:
+                if ifconfig[0] == 'lo':
+                    continue
+                else:
+                    return ifconfig[1]
+        elif mozinfo.isMac:
+            ip = _parse_ifconfig()
 
     if ip is None:
         raise NetworkError('Unable to obtain network address')

@@ -2,10 +2,7 @@
 
 
 
-try:
-    import json
-except ImportError:
-    import simplejson as json
+import json
 
 def json_response(func):
     """ Translates results of 'func' into a JSON response. """
