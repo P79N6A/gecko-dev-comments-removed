@@ -654,11 +654,16 @@ nsRefreshDriver::DefaultInterval()
 
 
 
+
+
+
+
+
 double
 nsRefreshDriver::GetRegularTimerInterval(bool *outIsDefault) const
 {
   int32_t rate = Preferences::GetInt("layout.frame_rate", -1);
-  if (rate <= 0) {
+  if (rate < 0) {
     rate = DEFAULT_FRAME_RATE;
     if (outIsDefault) {
       *outIsDefault = true;
@@ -668,6 +673,11 @@ nsRefreshDriver::GetRegularTimerInterval(bool *outIsDefault) const
       *outIsDefault = false;
     }
   }
+
+  if (rate == 0) {
+    rate = 10000;
+  }
+
   return 1000.0 / rate;
 }
 
