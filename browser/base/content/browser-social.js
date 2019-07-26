@@ -4,6 +4,7 @@
 
 
 let SocialUI,
+    SocialChatBar,
     SocialFlyout,
     SocialMarks,
     SocialShare,
@@ -172,6 +173,7 @@ SocialUI = {
   _providersChanged: function() {
     SocialSidebar.clearProviderMenus();
     SocialSidebar.update();
+    SocialChatBar.update();
     SocialShare.populateProviderMenu();
     SocialStatus.populateToolbarPalette();
     SocialMarks.populateToolbarPalette();
@@ -292,6 +294,45 @@ SocialUI = {
       return;
     SocialMarks.update();
     SocialShare.update();
+  }
+}
+
+SocialChatBar = {
+  get chatbar() {
+    return document.getElementById("pinnedchats");
+  },
+  
+  
+  get isAvailable() {
+    return SocialUI.enabled;
+  },
+  
+  get hasChats() {
+    return !!this.chatbar.firstElementChild;
+  },
+  openChat: function(aProvider, aURL, aCallback, aMode) {
+    this.update();
+    if (!this.isAvailable)
+      return false;
+    this.chatbar.openChat(aProvider, aURL, aCallback, aMode);
+    
+    let dwu = window.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIDOMWindowUtils);
+    if (dwu.isHandlingUserInput)
+      this.chatbar.focus();
+    return true;
+  },
+  update: function() {
+    let command = document.getElementById("Social:FocusChat");
+    if (!this.isAvailable) {
+      this.chatbar.hidden = command.hidden = true;
+    } else {
+      this.chatbar.hidden = command.hidden = false;
+    }
+    command.setAttribute("disabled", command.hidden ? "true" : "false");
+  },
+  focus: function SocialChatBar_focus() {
+    this.chatbar.focus();
   }
 }
 

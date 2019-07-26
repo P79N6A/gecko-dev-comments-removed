@@ -9,8 +9,6 @@ function gc() {
   wu.garbageCollect();
 }
 
-let openChatWindow = Cu.import("resource://gre/modules/MozSocialAPI.jsm", {}).openChatWindow;
-
 
 
 let origProxyType = Services.prefs.getIntPref('network.proxy.type');
@@ -44,10 +42,9 @@ function openPanel(url, panelCallback, loadCallback) {
 
 function openChat(url, panelCallback, loadCallback) {
   
-  let chatbar = getChatBar();
-  openChatWindow(null, SocialSidebar.provider, url, panelCallback);
-  chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
-    chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
+  SocialChatBar.openChat(SocialSidebar.provider, url, panelCallback);
+  SocialChatBar.chatbar.firstChild.addEventListener("DOMContentLoaded", function panelLoad() {
+    SocialChatBar.chatbar.firstChild.removeEventListener("DOMContentLoaded", panelLoad, true);
     loadCallback();
   }, true);
 }
@@ -167,44 +164,13 @@ var tests = {
       function() { 
         executeSoon(function() {
           todo_is(panelCallbackCount, 0, "Bug 833207 - should be no callback when error page loads.");
-          let chat = getChatBar().selectedChat;
+          let chat = SocialChatBar.chatbar.selectedChat;
           waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
                            function() {
                             chat.close();
                             next();
                             },
                            "error page didn't appear");
-        });
-      }
-    );
-  },
-
-  testChatWindowAfterTearOff: function(next) {
-    
-    let url = "https://example.com/browser/browser/base/content/test/social/social_chat.html";
-    let panelCallbackCount = 0;
-    
-    openChat(
-      url,
-      null,
-      function() { 
-        executeSoon(function() {
-          let chat = getChatBar().selectedChat;
-          is(chat.contentDocument.location.href, url, "correct url loaded");
-          
-          chat.swapWindows().then(
-            chat => {
-              
-              goOffline();
-              chat.contentDocument.location.reload();
-              waitForCondition(function() chat.contentDocument.location.href.indexOf("about:socialerror?")==0,
-                               function() {
-                                chat.close();
-                                next();
-                                },
-                               "error page didn't appear");
-            }
-          );
         });
       }
     );
