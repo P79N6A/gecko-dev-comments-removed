@@ -23,6 +23,7 @@
 #include "nsASocketHandler.h"
 
 #include "prerror.h"
+#include "nsAutoPtr.h"
 
 class nsSocketTransport;
 class nsICancelable;
@@ -328,6 +329,11 @@ private:
     LockedPRFileDesc mFD;
     nsrefcnt         mFDref;       
     bool             mFDconnected; 
+
+    
+    
+    
+    nsRefPtr<nsSocketTransportService> mSocketTransportService;
 
     nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
     nsCOMPtr<nsITransportEventSink> mEventSink;
