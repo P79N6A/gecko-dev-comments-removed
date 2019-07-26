@@ -199,7 +199,7 @@ class GeckoInputConnection
     private boolean mBatchSelectionChanged;
     private boolean mBatchTextChanged;
     private long mLastRestartInputTime;
-    private final InputConnection mPluginInputConnection;
+    private final InputConnection mKeyInputConnection;
 
     public static GeckoEditableListener create(View targetView,
                                                GeckoEditableClient editable) {
@@ -215,7 +215,7 @@ class GeckoInputConnection
         mEditableClient = editable;
         mIMEState = IME_STATE_DISABLED;
         
-        mPluginInputConnection = new BaseInputConnection(targetView, false);
+        mKeyInputConnection = new BaseInputConnection(targetView, false);
     }
 
     @Override
@@ -641,12 +641,22 @@ class GeckoInputConnection
             
             outAttrs.initialSelStart = 0;
             outAttrs.initialSelEnd = 0;
-            return mPluginInputConnection;
+            return mKeyInputConnection;
         }
         Editable editable = getEditable();
         outAttrs.initialSelStart = Selection.getSelectionStart(editable);
         outAttrs.initialSelEnd = Selection.getSelectionEnd(editable);
         return this;
+    }
+
+    @Override
+    public boolean commitText(CharSequence text, int newCursorPosition) {
+        if (InputMethods.shouldCommitCharAsKey(mCurrentInputMethod) &&
+            text.length() == 1 && newCursorPosition > 0) {
+            
+            return mKeyInputConnection.commitText(text, newCursorPosition);
+        }
+        return super.commitText(text, newCursorPosition);
     }
 
     @Override
