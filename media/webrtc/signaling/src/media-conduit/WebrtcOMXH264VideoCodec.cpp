@@ -128,6 +128,7 @@ public:
   }
 
   void Stop() {
+    CODEC_LOGD("OMXOutputDrain stopping");
     MonitorAutoLock lock(mMonitor);
     mEnding = true;
     lock.NotifyAll(); 
@@ -164,21 +165,16 @@ public:
       }
 
       if (mEnding) {
+        CODEC_LOGD("OMXOutputDrain Run() ending");
         
         break;
       }
 
       MOZ_ASSERT(!mInputFrames.empty());
-      EncodedFrame frame = mInputFrames.front();
-      bool shouldPop = false;
       {
         
         MonitorAutoUnlock unlock(mMonitor);
-        
-        shouldPop = DrainOutput(frame);
-      }
-      if (shouldPop) {
-        mInputFrames.pop();
+        DrainOutput();
       }
     }
 
@@ -197,16 +193,20 @@ protected:
   
   
   
-  
-  
-  virtual bool DrainOutput(const EncodedFrame& aFrame) = 0;
 
-private:
+  
+  
+  virtual bool DrainOutput() = 0;
+
+protected:
   
   
   Monitor mMonitor;
-  nsCOMPtr<nsIThread> mThread;
   std::queue<EncodedFrame> mInputFrames;
+
+private:
+  
+  nsCOMPtr<nsIThread> mThread;
   bool mEnding;
 };
 
@@ -323,7 +323,7 @@ public:
     uint8_t* dst = omxIn->data();
     memcpy(dst, kNALStartCode, sizeof(kNALStartCode));
     memcpy(dst + sizeof(kNALStartCode), aEncoded._buffer, aEncoded._length);
-    int64_t inputTimeUs = aEncoded._timeStamp * 1000 / 90; 
+    int64_t inputTimeUs = (aEncoded._timeStamp * 1000ll) / 90; 
     
     uint32_t flags = 0;
     if (aEncoded._frameType == webrtc::kKeyFrame) {
@@ -351,7 +351,7 @@ public:
   }
 
   status_t
-  DrainOutput(const EncodedFrame& aFrame)
+  DrainOutput(std::queue<EncodedFrame>& aInputFrames, Monitor& aMonitor)
   {
     MOZ_ASSERT(mCodec != nullptr);
     if (mCodec == nullptr) {
@@ -388,16 +388,24 @@ public:
       default:
         CODEC_LOGE("decode dequeue OMX output buffer error:%d", err);
         
+        MonitorAutoLock lock(aMonitor);
+        aInputFrames.pop();
         return OK;
     }
 
     CODEC_LOGD("Decoder output: %d bytes, offset %u, time %lld, flags 0x%x",
                outSize, outOffset, outTime, outFlags);
     if (mCallback) {
+      EncodedFrame frame;
+      {
+        MonitorAutoLock lock(aMonitor);
+        frame = aInputFrames.front();
+        aInputFrames.pop();
+      }
       {
         
         MutexAutoLock lock(mDecodedFrameLock);
-        mDecodedFrames.push(aFrame);
+        mDecodedFrames.push(frame);
       }
       
       
@@ -464,9 +472,9 @@ private:
     {}
 
   protected:
-    virtual bool DrainOutput(const EncodedFrame& aFrame) MOZ_OVERRIDE
+    virtual bool DrainOutput() MOZ_OVERRIDE
     {
-      return (mOMX->DrainOutput(aFrame) == OK);
+      return (mOMX->DrainOutput(mInputFrames, mMonitor) == OK);
     }
 
   private:
@@ -497,6 +505,7 @@ private:
       return OK;
     }
 
+    CODEC_LOGD("OMXOutputDrain decoder stopping");
     
     {
       MutexAutoLock lock(mDecodedFrameLock);
@@ -518,6 +527,7 @@ private:
     } else {
       MOZ_ASSERT(false);
     }
+    CODEC_LOGD("OMXOutputDrain decoder stopped");
 
     return err;
   }
@@ -550,7 +560,7 @@ public:
   {}
 
 protected:
-  virtual bool DrainOutput(const EncodedFrame& aInputFrame) MOZ_OVERRIDE
+  virtual bool DrainOutput() MOZ_OVERRIDE
   {
     nsTArray<uint8_t> output;
     int64_t timeUs = -1ll;
@@ -558,6 +568,7 @@ protected:
     nsresult rv = mOMX->GetNextEncodedFrame(&output, &timeUs, &flags,
                                             DRAIN_THREAD_TIMEOUT_US);
     if (NS_WARN_IF(NS_FAILED(rv))) {
+      
       
       
       return true;
@@ -569,8 +580,11 @@ protected:
       return false;
     }
 
+    uint32_t target_timestamp = (timeUs * 90ll) / 1000; 
     bool isParamSets = (flags & MediaCodec::BUFFER_FLAG_CODECCONFIG);
     bool isIFrame = (flags & MediaCodec::BUFFER_FLAG_SYNCFRAME);
+    CODEC_LOGD("OMX: encoded frame (%d): time %lld (%u), flags x%x",
+               output.Length(), timeUs, target_timestamp, flags);
     
     MOZ_ASSERT(!(isParamSets && isIFrame));
 
@@ -583,10 +597,42 @@ protected:
                                    output.Capacity());
       encoded._frameType = (isParamSets || isIFrame) ?
                            webrtc::kKeyFrame : webrtc::kDeltaFrame;
-      encoded._encodedWidth = aInputFrame.mWidth;
-      encoded._encodedHeight = aInputFrame.mHeight;
-      encoded._timeStamp = aInputFrame.mTimestamp;
-      encoded.capture_time_ms_ = aInputFrame.mRenderTimeMs;
+      EncodedFrame input_frame;
+      {
+        MonitorAutoLock lock(mMonitor);
+#ifdef OMX_OUTPUT_TIMESTAMPS_WORK
+        do {
+          if (mInputFrames.empty()) {
+            
+            mInputFrames.push(input_frame);
+            CODEC_LOGE("OMX: encoded timestamp %u which doesn't match input queue!!",
+                       target_timestamp);
+            break;
+          }
+
+          input_frame = mInputFrames.front();
+          mInputFrames.pop();
+          if (input_frame.mTimestamp != target_timestamp) {
+            CODEC_LOGD("OMX: encoder skipped frame timestamp %u", input_frame.mTimestamp);
+          }
+        } while (input_frame.mTimestamp != target_timestamp);
+#else
+        
+        MOZ_ASSERT(!mInputFrames.empty());
+        do {
+          input_frame = mInputFrames.front();
+          mInputFrames.pop();
+          if (!mInputFrames.empty()) {
+            CODEC_LOGD("OMX: Encoded frame: skipped frame timestamp %u", input_frame.mTimestamp);
+          }
+        } while (!mInputFrames.empty());
+#endif
+      }
+
+      encoded._encodedWidth = input_frame.mWidth;
+      encoded._encodedHeight = input_frame.mHeight;
+      encoded._timeStamp = input_frame.mTimestamp;
+      encoded.capture_time_ms_ = input_frame.mRenderTimeMs;
       encoded._completeFrame = true;
 
       CODEC_LOGD("Encoded frame: %d bytes, %dx%d, is_param %d, is_iframe %d, timestamp %u, captureTimeMs %u",
@@ -707,7 +753,7 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
     
     OMX_VIDEO_AVCLEVELTYPE level = OMX_VIDEO_AVCLevel3;
     
-    OMX_VIDEO_CONTROLRATETYPE bitrateMode = OMX_Video_ControlRateConstant;
+    OMX_VIDEO_CONTROLRATETYPE bitrateMode = OMX_Video_ControlRateConstantSkipFrames;
 
     
     sp<AMessage> format = new AMessage;
@@ -764,14 +810,15 @@ WebrtcOMXH264VideoEncoder::Encode(const webrtc::I420VideoFrame& aInputImage,
   layers::PlanarYCbCrImage img(nullptr);
   img.SetDataNoCopy(yuvData);
 
-  CODEC_LOGD("Encode frame: %dx%d, timestamp %u, renderTimeMs %u",
+  CODEC_LOGD("Encode frame: %dx%d, timestamp %u (%lld), renderTimeMs %u",
              aInputImage.width(), aInputImage.height(),
-             aInputImage.timestamp(), aInputImage.render_time_ms());
+             aInputImage.timestamp(), aInputImage.timestamp() * 100011 / 90,
+             aInputImage.render_time_ms());
 
   nsresult rv = mOMX->Encode(&img,
                              yuvData.mYSize.width,
                              yuvData.mYSize.height,
-                             aInputImage.timestamp() * 1000 / 90, 
+                             aInputImage.timestamp() * 100011 / 90, 
                              0);
   if (rv == NS_OK) {
     if (mOutputDrain == nullptr) {
