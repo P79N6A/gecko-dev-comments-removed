@@ -230,17 +230,20 @@ using namespace mozilla;
 
 
 
+
 struct nsCycleCollectorParams
 {
     bool mLogAll;
     bool mLogShutdown;
-    bool mAllTracesAtShutdown;
+    bool mAllTracesAll;
+    bool mAllTracesShutdown;
     bool mLogThisThread;
 
     nsCycleCollectorParams() :
         mLogAll      (PR_GetEnv("MOZ_CC_LOG_ALL") != nullptr),
         mLogShutdown (PR_GetEnv("MOZ_CC_LOG_SHUTDOWN") != nullptr),
-        mAllTracesAtShutdown (PR_GetEnv("MOZ_CC_ALL_TRACES_AT_SHUTDOWN") != nullptr)
+        mAllTracesAll(false),
+        mAllTracesShutdown(false)
     {
         const char* logThreadEnv = PR_GetEnv("MOZ_CC_LOG_THREAD");
         bool threadLogging = true;
@@ -271,11 +274,25 @@ struct nsCycleCollectorParams
             }
         }
         mLogThisThread = threadLogging && processLogging;
+
+        const char* allTracesEnv = PR_GetEnv("MOZ_CC_ALL_TRACES");
+        if (allTracesEnv) {
+            if (!strcmp(allTracesEnv, "all")) {
+                mAllTracesAll = true;
+            } else if (!strcmp(allTracesEnv, "shutdown")) {
+                mAllTracesShutdown = true;
+            }
+        }
     }
 
     bool LogThisCC(bool aIsShutdown)
     {
         return (mLogAll || (aIsShutdown && mLogShutdown)) && mLogThisThread;
+    }
+
+    bool AllTracesThisCC(bool aIsShutdown)
+    {
+        return mAllTracesAll || (aIsShutdown && mAllTracesShutdown);
     }
 };
 
@@ -3411,7 +3428,7 @@ nsCycleCollector::BeginCollection(ccType aCCType,
     aManualListener = nullptr;
     if (!mListener && mParams.LogThisCC(isShutdown)) {
         nsRefPtr<nsCycleCollectorLogger> logger = new nsCycleCollectorLogger();
-        if (isShutdown && mParams.mAllTracesAtShutdown) {
+        if (mParams.AllTracesThisCC(isShutdown)) {
             logger->SetAllTraces();
         }
         mListener = logger.forget();
