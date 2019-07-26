@@ -2030,10 +2030,6 @@ this.DOMApplicationRegistry = {
 
       
       
-      app.downloadAvailable = false;
-
-      
-      
       
       
       app.installState = download ? download.previousState
@@ -2155,6 +2151,8 @@ this.DOMApplicationRegistry = {
           
           let responseStatus = requestChannel.responseStatus;
           if (responseStatus >= 400 && responseStatus <= 599) {
+            
+            app.downloadAvailable = false;
             cleanup("NETWORK_ERROR");
             return;
           }
@@ -2190,6 +2188,8 @@ this.DOMApplicationRegistry = {
               certdb = Cc["@mozilla.org/security/x509certdb;1"]
                          .getService(Ci.nsIX509CertDB);
             } catch (e) {
+              
+              app.downloadAvailable = false;
               cleanup("CERTDB_ERROR");
               return;
             }
@@ -2307,6 +2307,8 @@ this.DOMApplicationRegistry = {
                 }
               } catch (e) {
                 
+                
+                app.downloadAvailable = false;
                 if (typeof e == 'object') {
                   Cu.reportError("Error while reading package:" + e);
                   cleanup("INVALID_PACKAGE");
@@ -2845,7 +2847,6 @@ AppcacheObserver.prototype = {
       }
 
       app.downloading = false;
-      app.downloadAvailable = false;
       mustSave = true;
     }
 
