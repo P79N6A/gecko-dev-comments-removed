@@ -423,7 +423,8 @@ AudioNodeStream::ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags)
 #ifdef DEBUG
     for (uint16_t i = 0; i < outputCount; ++i) {
       
-      mLastChunks[i].SetNull(0);
+      
+      mLastChunks[i].mDuration--;
     }
 #endif
     if (maxInputs <= 1 && mEngine->OutputCount() <= 1) {
