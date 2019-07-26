@@ -48,6 +48,14 @@ let gFxAccounts = {
   },
 
   get loginFailed() {
+    
+    
+    let service = Cc["@mozilla.org/weave/service;1"]
+                  .getService(Components.interfaces.nsISupports)
+                  .wrappedJSObject;
+    if (!service.ready) {
+      return false;
+    }
     return Weave.Service.identity.readyToAuthenticate &&
            Weave.Status.login != Weave.LOGIN_SUCCEEDED;
   },
