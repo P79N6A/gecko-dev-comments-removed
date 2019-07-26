@@ -41,6 +41,8 @@
 #define BASE_METRICS_HISTOGRAM_H_
 #pragma once
 
+#include "mozilla/MemoryReporting.h"
+
 #include <map>
 #include <string>
 #include <vector>
@@ -316,10 +318,7 @@ class Histogram {
     const char* description;  
   };
 
-  
-  typedef size_t (*MallocSizeOf)(const void*);
-
-  size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf);
+  size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
   
   
@@ -357,7 +356,7 @@ class Histogram {
     bool Serialize(Pickle* pickle) const;
     bool Deserialize(void** iter, const Pickle& pickle);
 
-    size_t SizeOfExcludingThis(MallocSizeOf aMallocSizeOf);
+    size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 
    protected:
     
