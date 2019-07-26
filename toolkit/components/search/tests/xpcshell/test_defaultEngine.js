@@ -44,22 +44,29 @@ function search_observer(aSubject, aTopic, aData) {
 
   search.defaultEngine = engine1;
   do_check_eq(search.defaultEngine, engine1);
-  
-  
   search.defaultEngine = engine2
   do_check_eq(search.defaultEngine, engine2);
-
-  
   search.defaultEngine = engine1;
   do_check_eq(search.defaultEngine, engine1);
 
   
+  
+  
   search.moveEngine(engine2, 0);
   engine1.hidden = true;
   do_check_eq(search.defaultEngine, engine2);
+
+  
+  engine1.hidden = false;
+  do_check_eq(search.defaultEngine, engine1);
+
   
   
-  search.defaultEngine = engine1;
+  engine2.hidden = true;
+  search.moveEngine(engine1, 0)
+  search.defaultEngine = engine2;
+  do_check_eq(search.defaultEngine, engine1);
+  engine2.hidden = false;
   do_check_eq(search.defaultEngine, engine2);
 
   do_test_finished();
