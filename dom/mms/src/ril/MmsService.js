@@ -59,9 +59,11 @@ const DELIVERY_SENDING        = "sending";
 const DELIVERY_SENT           = "sent";
 const DELIVERY_ERROR          = "error";
 
-const DELIVERY_STATUS_SUCCESS = "success";
-const DELIVERY_STATUS_PENDING = "pending";
-const DELIVERY_STATUS_ERROR   = "error";
+const DELIVERY_STATUS_SUCCESS  = "success";
+const DELIVERY_STATUS_PENDING  = "pending";
+const DELIVERY_STATUS_ERROR    = "error";
+const DELIVERY_STATUS_REJECTED = "rejected";
+const DELIVERY_STATUS_MANUAL   = "manual";
 
 const PREF_SEND_RETRY_COUNT =
   Services.prefs.getIntPref("dom.mms.sendRetryCount");
@@ -968,10 +970,32 @@ MmsService.prototype = {
 
 
 
-  convertIntermediateToSavable: function convertIntermediateToSavable(intermediate) {
+
+
+  convertIntermediateToSavable: function convertIntermediateToSavable(intermediate,
+                                                                      retrievalMode) {
     intermediate.type = "mms";
     intermediate.delivery = DELIVERY_NOT_DOWNLOADED;
-    intermediate.deliveryStatus = [DELIVERY_STATUS_PENDING];
+
+    switch(retrievalMode) {
+      case RETRIEVAL_MODE_MANUAL:
+        intermediate.deliveryStatus = [DELIVERY_STATUS_MANUAL];
+        break;
+      case RETRIEVAL_MODE_NEVER:
+        intermediate.deliveryStatus = [DELIVERY_STATUS_REJECTED];
+        break;
+      case RETRIEVAL_MODE_AUTOMATIC:
+        intermediate.deliveryStatus = [DELIVERY_STATUS_PENDING];
+        break;
+      case RETRIEVAL_MODE_AUTOMATIC_HOME:
+        if (gMmsConnection.isVoiceRoaming()) {
+          intermediate.deliveryStatus = [DELIVERY_STATUS_MANUAL];
+        } else {
+          intermediate.deliveryStatus = [DELIVERY_STATUS_PENDING];
+        }
+        break;
+    }
+
     intermediate.timestamp = Date.now();
     intermediate.sender = null;
     intermediate.transactionId = intermediate.headers["x-mms-transaction-id"];
@@ -1133,6 +1157,15 @@ MmsService.prototype = {
                                                       mmsStatus,
                                                       reportAllowed);
       transaction.run();
+      
+      
+      gMobileMessageDatabaseService.setMessageDelivery(id,
+                                                       null,
+                                                       null,
+                                                       DELIVERY_STATUS_ERROR,
+                                                       (function (rv, domMessage) {
+        this.broadcastReceivedMessageEvent(domMessage);
+      }).bind(this));
       return;
     }
 
@@ -1160,7 +1193,7 @@ MmsService.prototype = {
         
         
         if (DEBUG) debug("Could not store MMS " + domMessage.id +
-              ", error code " + rv);
+                         ", error code " + rv);
         return;
       }
 
@@ -1171,7 +1204,8 @@ MmsService.prototype = {
   
 
 
-  saveReceivedMessageCallback: function saveReceivedMessageCallback(savableMessage,
+  saveReceivedMessageCallback: function saveReceivedMessageCallback(retrievalMode,
+                                                                    savableMessage,
                                                                     rv,
                                                                     domMessage) {
     let success = Components.isSuccessCode(rv);
@@ -1192,11 +1226,6 @@ MmsService.prototype = {
     let transactionId = savableMessage.headers["x-mms-transaction-id"];
 
     this.broadcastReceivedMessageEvent(domMessage);
-
-    let retrievalMode = RETRIEVAL_MODE_MANUAL;
-    try {
-      retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
-    } catch (e) {}
 
     
     
@@ -1248,11 +1277,18 @@ MmsService.prototype = {
         return;
       }
 
-      let savableMessage = this.convertIntermediateToSavable(notification);
+      let retrievalMode = RETRIEVAL_MODE_MANUAL;
+      try {
+        retrievalMode = Services.prefs.getCharPref(PREF_RETRIEVAL_MODE);
+      } catch (e) {}
+
+      let savableMessage = this.convertIntermediateToSavable(notification, retrievalMode);
 
       gMobileMessageDatabaseService
         .saveReceivedMessage(savableMessage,
-                             this.saveReceivedMessageCallback.bind(this, savableMessage));
+                             this.saveReceivedMessageCallback.bind(this,
+                                                                   retrievalMode,
+                                                                   savableMessage));
     }).bind(this));
   },
 
@@ -1454,6 +1490,16 @@ MmsService.prototype = {
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
         return;
       }
+      if (DELIVERY_NOT_DOWNLOADED != aMessageRecord.delivery) {
+        if (DEBUG) debug("Delivery of message record is not 'not-downloaded'.");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
+      if (DELIVERY_STATUS_PENDING == aMessageRecord.deliveryStatus) {
+        if (DEBUG) debug("Delivery status of message record is 'pending'.");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
+        return;
+      }
 
       
       
@@ -1471,7 +1517,7 @@ MmsService.prototype = {
       let url =  aMessageRecord.headers["x-mms-content-location"].uri;
       
       let wish = aMessageRecord.headers["x-mms-delivery-report"];
-      this.retrieveMessage(url, (function responseNotify(mmsStatus, retrievedMsg) {
+      let responseNotify = function responseNotify(mmsStatus, retrievedMsg) {
         
         
         if (MMS.MMS_PDU_STATUS_RETRIEVED !== mmsStatus) {
@@ -1525,7 +1571,14 @@ MmsService.prototype = {
           let transaction = new AcknowledgeTransaction(transactionId, reportAllowed);
           transaction.run();
         }).bind(this));
-      }).bind(this));
+      };
+      
+      gMobileMessageDatabaseService
+        .setMessageDelivery(aMessageId,
+                            null,
+                            null,
+                            DELIVERY_STATUS_PENDING,
+                            this.retrieveMessage(url, responseNotify.bind(this)));
     }).bind(this));
   },
 
