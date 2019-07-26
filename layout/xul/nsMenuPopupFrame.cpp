@@ -87,7 +87,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mPopupAnchor(POPUPALIGNMENT_NONE),
   mPosition(POPUPPOSITION_UNKNOWN),
   mConsumeRollupEvent(nsIPopupBoxObject::ROLLUP_DEFAULT),
-  mFlipBoth(false),
+  mFlip(FlipType_Default),
   mIsOpenChanged(false),
   mIsContextMenu(false),
   mAdjustOffsetForContextMenu(false),
@@ -581,8 +581,13 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
       position.Assign(aPosition);
     }
 
-    mFlipBoth = flip.EqualsLiteral("both");
-    mSlide = flip.EqualsLiteral("slide");
+    if (flip.EqualsLiteral("none")) {
+      mFlip = FlipType_None;
+    } else if (flip.EqualsLiteral("both")) {
+      mFlip = FlipType_Both;
+    } else if (flip.EqualsLiteral("slide")) {
+      mFlip = FlipType_Slide;
+    }
 
     position.CompressWhitespace();
     int32_t spaceIdx = position.FindChar(' ');
@@ -685,8 +690,7 @@ nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
   mTriggerContent = aTriggerContent;
   mScreenXPos = aXPos;
   mScreenYPos = aYPos;
-  mFlipBoth = false;
-  mSlide = false;
+  mFlip = FlipType_Default;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mIsContextMenu = aIsContextMenu;
@@ -703,8 +707,7 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
 
   mPopupState = ePopupShowing;
   mAdjustOffsetForContextMenu = false;
-  mFlipBoth = false;
-  mSlide = false;
+  mFlip = FlipType_Default;
 
   
   
@@ -981,7 +984,7 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(nsRect& anchorRect,
       break;
     default:
     {
-      FlipStyle anchorEdge = mFlipBoth ? FlipStyle_Inside : FlipStyle_None;
+      FlipStyle anchorEdge = mFlip == FlipType_Both ? FlipStyle_Inside : FlipStyle_None;
       aHFlip = (popupAnchor == -popupAlign) ? FlipStyle_Outside : anchorEdge;
       if (((popupAnchor > 0) == (popupAlign > 0)) ||
           (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_TOPLEFT))
@@ -1273,7 +1276,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
 
   
   
-  if (mInContentShell || !aIsMove || mPopupType != ePopupTypePanel) {
+  if (mInContentShell || (mFlip != FlipType_None && (!aIsMove || mPopupType != ePopupTypePanel))) {
     nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
 
     
@@ -1303,7 +1306,7 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, bool aIsMove)
     
     
     bool slideHorizontal = false, slideVertical = false;
-    if (mSlide) {
+    if (mFlip == FlipType_Slide) {
       int8_t position = GetAlignmentPosition();
       slideHorizontal = position >= POPUPPOSITION_BEFORESTART &&
                         position <= POPUPPOSITION_AFTEREND;
