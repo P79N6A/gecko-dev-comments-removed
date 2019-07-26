@@ -138,16 +138,20 @@ public:
                  LayerManager* aManager,
                  FrameLayerBuilder* aLayerBuilder,
                  nsIFrame* aContainerFrame,
+                 nsDisplayItem* aContainerItem,
                  ContainerLayer* aContainerLayer,
                  const FrameLayerBuilder::ContainerParameters& aParameters) :
     mBuilder(aBuilder), mManager(aManager),
     mLayerBuilder(aLayerBuilder),
-    mContainerFrame(aContainerFrame), mContainerLayer(aContainerLayer),
+    mContainerFrame(aContainerFrame),
+    mContainerLayer(aContainerLayer),
     mParameters(aParameters),
     mNextFreeRecycledThebesLayer(0)
   {
     nsPresContext* presContext = aContainerFrame->PresContext();
     mAppUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
+    mContainerReferenceFrame = aContainerItem ? aContainerItem->ReferenceFrame() :
+      mBuilder->FindReferenceFrameFor(mContainerFrame);
     
     
     
@@ -306,7 +310,7 @@ protected:
 
 
 
-    const nsIFrame*    mActiveScrolledRoot;
+    const nsIFrame* mActiveScrolledRoot;
     ThebesLayer* mLayer;
     
 
@@ -367,7 +371,9 @@ protected:
 
 
 
-  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, const nsIFrame *aReferenceFrame);
+  already_AddRefed<ThebesLayer> CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, 
+                                                           const nsIFrame *aReferenceFrame, 
+                                                           const nsPoint& aTopLeft);
   
 
 
@@ -432,7 +438,8 @@ protected:
                                                    const nsIntRect& aVisibleRect,
                                                    const nsIntRect& aDrawRect,
                                                    const FrameLayerBuilder::Clip& aClip,
-                                                   const nsIFrame* aActiveScrolledRoot);
+                                                   const nsIFrame* aActiveScrolledRoot,
+                                                   const nsPoint& aTopLeft);
   ThebesLayerData* GetTopThebesLayerData()
   {
     return mThebesLayerDataStack.IsEmpty() ? nullptr
@@ -455,6 +462,7 @@ protected:
   LayerManager*                    mManager;
   FrameLayerBuilder*               mLayerBuilder;
   nsIFrame*                        mContainerFrame;
+  const nsIFrame*                  mContainerReferenceFrame;
   ContainerLayer*                  mContainerLayer;
   FrameLayerBuilder::ContainerParameters mParameters;
   
@@ -535,6 +543,7 @@ public:
 
   nsIntRegion mRegionToInvalidate;
 
+  
   
   
   nsPoint mLastActiveScrolledRootOrigin;
@@ -855,6 +864,7 @@ FrameLayerBuilder::RemoveFrameFromLayerManager(nsIFrame* aFrame,
       }
     }
   }
+
   sDestroyedFrame = aFrame;
   data->mFramesWithLayers.RemoveEntry(aFrame);
   sDestroyedFrame = NULL;
@@ -1361,7 +1371,9 @@ InvalidateEntireThebesLayer(ThebesLayer* aLayer, const nsIFrame* aActiveScrolled
 }
 
 already_AddRefed<ThebesLayer>
-ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, const nsIFrame* aReferenceFrame)
+ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot,
+                                           const nsIFrame* aReferenceFrame,
+                                           const nsPoint& aTopLeft)
 {
   
   nsRefPtr<ThebesLayer> layer;
@@ -1423,7 +1435,7 @@ ContainerState::CreateOrRecycleThebesLayer(const nsIFrame* aActiveScrolledRoot, 
   data->mXScale = mParameters.mXScale;
   data->mYScale = mParameters.mYScale;
   data->mLastActiveScrolledRootOrigin = data->mActiveScrolledRootOrigin;
-  data->mActiveScrolledRootOrigin = aActiveScrolledRoot->GetPosition();
+  data->mActiveScrolledRootOrigin = aTopLeft;
   data->mAppUnitsPerDevPixel = mAppUnitsPerDevPixel;
   layer->SetAllowResidualTranslation(mParameters.AllowResidualTranslation());
 
@@ -1510,30 +1522,6 @@ RestrictVisibleRegionForLayer(Layer* aLayer, const nsIntRect& aItemVisible)
   if (!visibleRect.Contains(rgn.GetBounds())) {
     rgn.And(rgn, visibleRect);
     aLayer->SetVisibleRegion(rgn);
-  }
-}
-
-static void
-SetVisibleRegionForLayer(Layer* aLayer, const nsIntRect& aItemVisible, const nsIntRect& aChildBounds)
-{
-  gfx3DMatrix transform = aLayer->GetTransform();
-
-  
-  
-  gfxRect itemVisible(aItemVisible.x, aItemVisible.y, aItemVisible.width, aItemVisible.height);
-  gfxRect layerVisible = transform.Inverse().ProjectRectBounds(itemVisible);
-  layerVisible.RoundOut();
-
-  nsIntRect visibleRect;
-  if (!gfxUtils::GfxRectToIntRect(layerVisible, &visibleRect))
-    return;
-
-  nsIntRegion rgn = aChildBounds;
-  if (!visibleRect.Contains(aChildBounds)) {
-    rgn.And(rgn, visibleRect);
-    aLayer->SetVisibleRegion(rgn);
-  } else {
-    aLayer->SetVisibleRegion(aChildBounds);
   }
 }
 
@@ -1917,7 +1905,8 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
                                    const nsIntRect& aVisibleRect,
                                    const nsIntRect& aDrawRect,
                                    const FrameLayerBuilder::Clip& aClip,
-                                   const nsIFrame* aActiveScrolledRoot)
+                                   const nsIFrame* aActiveScrolledRoot,
+                                   const nsPoint& aTopLeft)
 {
   int32_t i;
   int32_t lowestUsableLayerWithScrolledRoot = -1;
@@ -1957,7 +1946,7 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
   nsRefPtr<ThebesLayer> layer;
   ThebesLayerData* thebesLayerData = nullptr;
   if (lowestUsableLayerWithScrolledRoot < 0) {
-    layer = CreateOrRecycleThebesLayer(aActiveScrolledRoot, aItem->ReferenceFrame());
+    layer = CreateOrRecycleThebesLayer(aActiveScrolledRoot, aItem->ReferenceFrame(), aTopLeft);
 
     NS_ASSERTION(!mNewChildLayers.Contains(layer), "Layer already in list???");
     mNewChildLayers.AppendElement(layer);
@@ -2096,18 +2085,20 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     bool isFixed;
     bool forceInactive;
     const nsIFrame* activeScrolledRoot;
+    nsPoint topLeft;
     if (aFlags & NO_COMPONENT_ALPHA) {
       
       
       
       forceInactive = true;
-      activeScrolledRoot = mBuilder->FindReferenceFrameFor(mContainerFrame);
+      activeScrolledRoot = mContainerReferenceFrame;
+      topLeft = nsPoint(0, 0);
       isFixed = mBuilder->IsFixedItem(item, nullptr, activeScrolledRoot);
     } else {
       forceInactive = false;
       isFixed = mBuilder->IsFixedItem(item, &activeScrolledRoot);
+      topLeft = activeScrolledRoot->GetOffsetToCrossDoc(mContainerReferenceFrame);
     }
-    nsPoint topLeft = activeScrolledRoot->GetPosition();
 
     
     if (layerState == LAYER_ACTIVE_FORCE ||
@@ -2200,7 +2191,7 @@ ContainerState::ProcessDisplayItems(const nsDisplayList& aList,
     } else {
       ThebesLayerData* data =
         FindThebesLayerFor(item, itemVisibleRect, itemDrawRect, aClip,
-                           activeScrolledRoot);
+                           activeScrolledRoot, topLeft);
 
       data->mLayer->SetIsFixedPosition(isFixed);
 
@@ -2232,9 +2223,6 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem,
   nsAutoPtr<nsDisplayItemGeometry> geometry(aItem->AllocateGeometry(mBuilder));
   Layer* oldLayer = mLayerBuilder->GetOldLayerFor(aItem, &oldGeometry, &oldClip);
   if (aNewLayer != oldLayer && oldLayer) {
-    
-    
-    
     
     
     ThebesLayer* t = oldLayer->AsThebesLayer();
@@ -2754,36 +2742,6 @@ FrameLayerBuilder::RestoreThebesLayerItemEntries(ThebesLayerItemsEntry* aEntry, 
   return PL_DHASH_NEXT;
 }
 
-static nsDisplayTransform* FindTransformForContainerFrame(nsIFrame* aContainerFrame,
-                                                          nsDisplayItem* aContainerItem)
-{
-  if (!aContainerFrame->IsTransformed() ||
-      aContainerItem->GetType() == nsDisplayItem::TYPE_TRANSFORM)
-    return nullptr;
-
-  nsTArray<nsDisplayItem*> queue;
-  queue.AppendElement(aContainerItem);
-  while (queue.Length()) {
-    nsDisplayItem* item = queue[queue.Length() - 1];
-    queue.RemoveElementAt(queue.Length() - 1);
-
-    if (item->GetType() == nsDisplayItem::TYPE_TRANSFORM) {
-      return static_cast<nsDisplayTransform*>(item);
-    }
-
-    if (item->GetList()) {
-      for (nsDisplayItem* child = item->GetList()->GetBottom(); child;
-           child = child->GetAbove()) {
-        if (child->GetUnderlyingFrame() == aContainerFrame) {
-          queue.AppendElement(child);
-        }
-      }
-    }
-  }
-
-  return nullptr;
-}
-
 already_AddRefed<ContainerLayer>
 FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           LayerManager* aManager,
@@ -2793,7 +2751,6 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
                                           const ContainerParameters& aParameters,
                                           const gfx3DMatrix* aTransform)
 {
-  FrameProperties props = aContainerFrame->Properties();
   uint32_t containerDisplayItemKey =
     aContainerItem ? aContainerItem->GetPerFrameKey() : 0;
   NS_ASSERTION(aContainerFrame, "Container display items here should have a frame");
@@ -2904,7 +2861,8 @@ FrameLayerBuilder::BuildContainerLayerFor(nsDisplayListBuilder* aBuilder,
     (aManager->GetUserData(&gLayerManagerUserData));
   while (true) {
     ContainerState state(aBuilder, aManager, aManager->GetLayerBuilder(),
-                         aContainerFrame, containerLayer, scaleParameters);
+                         aContainerFrame, aContainerItem,
+                         containerLayer, scaleParameters);
     
     Clip clip;
     state.ProcessDisplayItems(aChildren, clip, stateFlags);

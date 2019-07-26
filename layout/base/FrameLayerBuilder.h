@@ -94,8 +94,6 @@ public:
 
 
 
-
-
 class FrameLayerBuilder : public layers::LayerUserData {
 public:
   typedef layers::ContainerLayer ContainerLayer;
@@ -269,6 +267,7 @@ public:
 
 
 
+
   struct Clip;
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
@@ -278,6 +277,7 @@ public:
                            LayerManager* aManager = nullptr);
 
   
+
 
 
 
@@ -577,6 +577,7 @@ protected:
 
 
 
+
   class DisplayItemDataEntry : public nsPtrHashKey<nsIFrame> {
   public:
     DisplayItemDataEntry(const nsIFrame *key)
@@ -639,7 +640,6 @@ protected:
                                                        LayerManagerData* aData);
 
   
-
 
 
 
