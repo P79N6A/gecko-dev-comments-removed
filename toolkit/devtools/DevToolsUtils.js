@@ -10,7 +10,7 @@
 
 var { Ci, Cu } = require("chrome");
 var Services = require("Services");
-var setTimeout = Cu.import("resource://gre/modules/Timer.jsm", {}).setTimeout;
+var { setTimeout } = require("Timer");
 
 
 
