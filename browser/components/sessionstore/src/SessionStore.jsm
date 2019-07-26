@@ -292,14 +292,10 @@ let SessionStoreInternal = {
   _restoreLastWindow: false,
 
   
-  _tabsToRestore: { priority: [], visible: [], hidden: [] },
   _tabsRestoringCount: 0,
 
   
   _restoreOnDemand: false,
-
-  
-  _restoreHiddenTabs: null,
 
   
   _restorePinnedTabsOnDemand: null,
@@ -382,10 +378,6 @@ let SessionStoreInternal = {
     this._restoreOnDemand =
       this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
     this._prefBranch.addObserver("sessionstore.restore_on_demand", this, true);
-
-    this._restoreHiddenTabs =
-      this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
-    this._prefBranch.addObserver("sessionstore.restore_hidden_tabs", this, true);
 
     this._restorePinnedTabsOnDemand =
       this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
@@ -571,9 +563,7 @@ let SessionStoreInternal = {
       this.saveState(true);
 
     
-    this._tabsToRestore.priority = null;
-    this._tabsToRestore.visible = null;
-    this._tabsToRestore.hidden = null;
+    TabRestoreQueue.reset();
 
     
     if (this._saveTimer) {
@@ -1209,10 +1199,6 @@ let SessionStoreInternal = {
         this._restoreOnDemand =
           this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
         break;
-      case "sessionstore.restore_hidden_tabs":
-        this._restoreHiddenTabs =
-          this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
-        break;
       case "sessionstore.restore_pinned_tabs_on_demand":
         this._restorePinnedTabsOnDemand =
           this._prefBranch.getBoolPref("sessionstore.restore_pinned_tabs_on_demand");
@@ -1394,9 +1380,7 @@ let SessionStoreInternal = {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-      this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab), this._tabsToRestore.hidden.length);
-      
-      this._tabsToRestore.visible.push(aTab);
+      TabRestoreQueue.hiddenToVisible(aTab);
 
       
       
@@ -1412,9 +1396,7 @@ let SessionStoreInternal = {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-      this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab), this._tabsToRestore.visible.length);
-      
-      this._tabsToRestore.hidden.push(aTab);
+      TabRestoreQueue.visibleToHidden(aTab);
     }
 
     
@@ -3153,13 +3135,7 @@ let SessionStoreInternal = {
       this.restoreTab(tab);
     }
     else {
-      
-      if (tabData.pinned)
-        this._tabsToRestore.priority.push(tab);
-      else if (tabData.hidden)
-        this._tabsToRestore.hidden.push(tab);
-      else
-        this._tabsToRestore.visible.push(tab);
+      TabRestoreQueue.add(tab);
       this.restoreNextTab();
     }
   },
@@ -3195,7 +3171,7 @@ let SessionStoreInternal = {
     this._ensureTabsProgressListener(window);
 
     
-    this._removeTabFromTabsToRestore(aTab);
+    TabRestoreQueue.remove(aTab);
 
     
     this._tabsRestoringCount++;
@@ -3281,24 +3257,12 @@ let SessionStoreInternal = {
 
     
     if ((this._restoreOnDemand &&
-        (this._restorePinnedTabsOnDemand || !this._tabsToRestore.priority.length)) ||
+        (this._restorePinnedTabsOnDemand || !TabRestoreQueue.hasPriorityTabs)) ||
         this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
       return;
 
-    
-    let nextTabArray;
-    if (this._tabsToRestore.priority.length) {
-      nextTabArray = this._tabsToRestore.priority
-    }
-    else if (this._tabsToRestore.visible.length) {
-      nextTabArray = this._tabsToRestore.visible;
-    }
-    else if (this._restoreHiddenTabs && this._tabsToRestore.hidden.length) {
-      nextTabArray = this._tabsToRestore.hidden;
-    }
-
-    if (nextTabArray) {
-      let tab = nextTabArray.shift();
+    let tab = TabRestoreQueue.shift();
+    if (tab) {
       let didStartLoad = this.restoreTab(tab);
       
       
@@ -4401,7 +4365,7 @@ let SessionStoreInternal = {
 
 
   _resetRestoringState: function ssi_initRestoringState() {
-    this._tabsToRestore = { priority: [], visible: [], hidden: [] };
+    TabRestoreQueue.reset();
     this._tabsRestoringCount = 0;
   },
 
@@ -4444,26 +4408,8 @@ let SessionStoreInternal = {
       
       
       
-      this._removeTabFromTabsToRestore(aTab);
+      TabRestoreQueue.remove(aTab);
     }
-  },
-
-  
-
-
-
-
-  _removeTabFromTabsToRestore: function ssi_removeTabFromTabsToRestore(aTab) {
-    
-    
-    let arr = this._tabsToRestore.priority;
-    let index = arr.indexOf(aTab);
-    if (index == -1) {
-      arr = this._tabsToRestore[aTab.hidden ? "hidden" : "visible"];
-      index = arr.indexOf(aTab);
-    }
-    if (index > -1)
-      arr.splice(index, 1);
   },
 
   
@@ -4503,6 +4449,112 @@ let SessionStoreInternal = {
       browser.webNavigation.sessionHistory.
                             removeSHistoryListener(browser.__SS_shistoryListener);
       delete browser.__SS_shistoryListener;
+    }
+  }
+};
+
+
+
+
+
+
+
+let TabRestoreQueue = {
+  
+  tabs: {priority: [], visible: [], hidden: []},
+
+  
+  get hasPriorityTabs() !!this.tabs.priority.length,
+
+  
+  get restoreHiddenTabs() {
+    let updateValue = () => {
+      let value = Services.prefs.getBoolPref(PREF);
+      let definition = {value: value, configurable: true};
+      Object.defineProperty(this, "restoreHiddenTabs", definition);
+    }
+
+    const PREF = "browser.sessionstore.restore_hidden_tabs";
+    Services.prefs.addObserver(PREF, updateValue, false);
+    updateValue();
+  },
+
+  
+  reset: function () {
+    this.tabs = {priority: [], visible: [], hidden: []};
+  },
+
+  
+  add: function (tab) {
+    let {priority, hidden, visible} = this.tabs;
+
+    if (tab.pinned) {
+      priority.push(tab);
+    } else if (tab.hidden) {
+      hidden.push(tab);
+    } else {
+      visible.push(tab);
+    }
+  },
+
+  
+  remove: function (tab) {
+    let {priority, hidden, visible} = this.tabs;
+
+    
+    
+    let set = priority;
+    let index = set.indexOf(tab);
+
+    if (index == -1) {
+      set = tab.hidden ? hidden : visible;
+      index = set.indexOf(tab);
+    }
+
+    if (index > -1) {
+      set.splice(index, 1);
+    }
+  },
+
+  
+  shift: function () {
+    let set;
+    let {priority, hidden, visible} = this.tabs;
+
+    if (priority.length) {
+      set = priority;
+    } else if (visible.length) {
+      set = visible;
+    } else if (this.restoreHiddenTabs && hidden.length) {
+      set = hidden;
+    }
+
+    return set && set.shift();
+  },
+
+  
+  hiddenToVisible: function (tab) {
+    let {hidden, visible} = this.tabs;
+    let index = hidden.indexOf(tab);
+
+    if (index > -1) {
+      hidden.splice(index, 1);
+      visible.push(tab);
+    } else {
+      throw new Error("restore queue: hidden tab not found");
+    }
+  },
+
+  
+  visibleToHidden: function (tab) {
+    let {visible, hidden} = this.tabs;
+    let index = visible.indexOf(tab);
+
+    if (index > -1) {
+      visible.splice(index, 1);
+      hidden.push(tab);
+    } else {
+      throw new Error("restore queue: visible tab not found");
     }
   }
 };
