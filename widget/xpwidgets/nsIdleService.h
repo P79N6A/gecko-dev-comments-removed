@@ -16,6 +16,7 @@
 #include "nsIIdleService.h"
 #include "nsCategoryCache.h"
 #include "nsWeakReference.h"
+#include "mozilla/TimeStamp.h"
 
 
 
@@ -158,12 +159,12 @@ private:
 
 
 
-  void SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR);
+  void SetTimerExpiryIfBefore(mozilla::TimeStamp aNextTimeout);
 
   
 
 
-  PRTime mCurrentlySetToTimeoutAtInPR;
+  mozilla::TimeStamp mCurrentlySetToTimeoutAt;
 
   
 
@@ -199,7 +200,7 @@ private:
   
 
 
-  PRTime mLastUserInteractionInPR;
+  mozilla::TimeStamp mLastUserInteraction;
 
 
   
