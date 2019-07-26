@@ -147,6 +147,7 @@ var gUpdateCount;
 var gUpdates;
 var gStatusCode;
 var gStatusText;
+var gStatusResult;
 
 
 var gCallbackBinFile = "callback_app" + BIN_SUFFIX;
@@ -1945,6 +1946,32 @@ const updateCheckListener = {
 
   QueryInterface: function(aIID) {
     if (!aIID.equals(AUS_Ci.nsIUpdateCheckListener) &&
+        !aIID.equals(AUS_Ci.nsISupports))
+      throw AUS_Cr.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
+};
+
+
+const downloadListener = {
+  onStartRequest: function DL_onStartRequest(request, context) {
+  },
+
+  onProgress: function DL_onProgress(request, context, progress, maxProgress) {
+  },
+
+  onStatus: function DL_onStatus(request, context, status, statusText) {
+  },
+
+  onStopRequest: function DL_onStopRequest(request, context, status) {
+    gStatusResult = status;
+    
+    do_execute_soon(gCheckFunc);
+  },
+
+  QueryInterface: function DL_QueryInterface(aIID) {
+    if (!aIID.equals(AUS_Ci.nsIRequestObserver) &&
+        !aIID.equals(AUS_Ci.nsIProgressEventSink) &&
         !aIID.equals(AUS_Ci.nsISupports))
       throw AUS_Cr.NS_ERROR_NO_INTERFACE;
     return this;
