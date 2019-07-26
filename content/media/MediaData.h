@@ -7,6 +7,7 @@
 #define MediaData_h
 
 #include "nsSize.h"
+#include "mozilla/gfx/Rect.h"
 #include "nsRect.h"
 #include "AudioSampleFormat.h"
 #include "nsIMemoryReporter.h"
@@ -108,6 +109,8 @@ class VideoInfo;
 
 class VideoData : public MediaData {
 public:
+  typedef gfx::IntRect IntRect;
+  typedef gfx::IntSize IntSize;
   typedef layers::ImageContainer ImageContainer;
   typedef layers::Image Image;
 
@@ -145,7 +148,7 @@ public:
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
-                           nsIntRect aPicture);
+                           const IntRect& aPicture);
 
   
   static VideoData* Create(VideoInfo& aInfo,
@@ -156,7 +159,7 @@ public:
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
-                           nsIntRect aPicture);
+                           const IntRect& aPicture);
 
   
   static VideoData* Create(VideoInfo& aInfo,
@@ -167,7 +170,7 @@ public:
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
-                           nsIntRect aPicture);
+                           const IntRect& aPicture);
 
   static VideoData* Create(VideoInfo& aInfo,
                            ImageContainer* aContainer,
@@ -177,7 +180,7 @@ public:
                            layers::GraphicBufferLocked* aBuffer,
                            bool aKeyframe,
                            int64_t aTimecode,
-                           nsIntRect aPicture);
+                           const IntRect& aPicture);
 
   static VideoData* CreateFromImage(VideoInfo& aInfo,
                                     ImageContainer* aContainer,
@@ -187,7 +190,7 @@ public:
                                     const nsRefPtr<Image>& aImage,
                                     bool aKeyframe,
                                     int64_t aTimecode,
-                                    nsIntRect aPicture);
+                                    const IntRect& aPicture);
 
   
   
@@ -215,7 +218,7 @@ public:
   
   
   
-  const nsIntSize mDisplay;
+  const IntSize mDisplay;
 
   
   
@@ -240,7 +243,7 @@ public:
             int64_t aDuration,
             bool aKeyframe,
             int64_t aTimecode,
-            nsIntSize aDisplay);
+            IntSize aDisplay);
 
 };
 
