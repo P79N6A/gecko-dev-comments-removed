@@ -45,8 +45,7 @@ public:
 
 
 
-
-    virtual nsresult DrawWithXlib(gfxXlibSurface* surface,
+    virtual nsresult DrawWithXlib(cairo_surface_t* surface,
                                   nsIntPoint offset,
                                   nsIntRect* clipRects, uint32_t numClipRects) = 0;
   
