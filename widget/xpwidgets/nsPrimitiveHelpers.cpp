@@ -47,7 +47,7 @@
 
 
 void
-nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, void* aDataBuff, 
+nsPrimitiveHelpers :: CreatePrimitiveForData ( const char* aFlavor, const void* aDataBuff,
                                                  uint32_t aDataLen, nsISupports** aPrimitive )
 {
   if ( !aPrimitive )

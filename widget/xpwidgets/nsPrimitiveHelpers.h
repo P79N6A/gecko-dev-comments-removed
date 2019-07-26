@@ -20,7 +20,7 @@ public:
     
     
     
-  static void CreatePrimitiveForData ( const char* aFlavor, void* aDataBuff, 
+  static void CreatePrimitiveForData ( const char* aFlavor, const void* aDataBuff,
                                          uint32_t aDataLen, nsISupports** aPrimitive ) ;
 
     
