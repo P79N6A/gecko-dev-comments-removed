@@ -1171,9 +1171,9 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
         
         
 
+        fval = ObjectValue(*obj);
         if (isFunction &&
-            JS_TypeOfValue(ccx, OBJECT_TO_JSVAL(obj)) == JSTYPE_FUNCTION) {
-            fval = OBJECT_TO_JSVAL(obj);
+            JS_TypeOfValue(ccx, fval) == JSTYPE_FUNCTION) {
 
             
 
