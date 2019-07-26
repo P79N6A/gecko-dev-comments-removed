@@ -254,55 +254,8 @@ CodeGeneratorShared::encode(LRecoverInfo *recover)
          it != end;
          ++it)
     {
-        MResumePoint *mir = *it;
-        MBasicBlock *block = mir->block();
-        JSFunction *fun = block->info().funMaybeLazy();
-        JSScript *script = block->info().script();
-        jsbytecode *pc = mir->pc();
-        uint32_t exprStack = mir->stackDepth() - block->info().ninvoke();
-        recovers_.writeFrame(fun, script, pc, exprStack);
-
-#ifdef DEBUG
-        
-        
-        if (GetIonContext()->cx) {
-            uint32_t stackDepth;
-            bool reachablePC;
-            jsbytecode *bailPC = pc;
-
-            if (mir->mode() == MResumePoint::ResumeAfter)
-                bailPC = GetNextPc(pc);
-
-            if (!ReconstructStackDepth(GetIonContext()->cx, script,
-                                       bailPC, &stackDepth, &reachablePC))
-            {
-                return false;
-            }
-
-            if (reachablePC) {
-                if (JSOp(*bailPC) == JSOP_FUNCALL) {
-                    
-                    
-                    
-                    JS_ASSERT(stackDepth - exprStack <= 1);
-                } else if (JSOp(*bailPC) != JSOP_FUNAPPLY &&
-                           !IsGetPropPC(bailPC) && !IsSetPropPC(bailPC))
-                {
-                    
-                    
-                    
-                    
-
-                    
-                    
-                    
-                    
-                    
-                    JS_ASSERT(exprStack == stackDepth);
-                }
-            }
-        }
-#endif
+        if (!recovers_.writeFrame(*it))
+            return false;
     }
 
     recovers_.endRecover();
