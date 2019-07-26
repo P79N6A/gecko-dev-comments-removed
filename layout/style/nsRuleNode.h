@@ -647,6 +647,18 @@ public:
   }
 
   
+
+
+
+
+  void SetUsedDirectly() {
+    mDependentBits |= NS_RULE_NODE_USED_DIRECTLY;
+  }
+  bool IsUsedDirectly() const {
+    return (mDependentBits & NS_RULE_NODE_USED_DIRECTLY) != 0;
+  }
+
+  
   nsIStyleRule* GetRule() const { return mRule; }
   
   nsPresContext* GetPresContext() const { return mPresContext; }
