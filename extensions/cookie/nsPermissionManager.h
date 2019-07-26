@@ -200,7 +200,7 @@ public:
 
 
 
-  static void AppUninstallObserverInit();
+  static void AppClearDataObserverInit();
 
 private:
   int32_t GetTypeIndex(const char *aTypeString,
