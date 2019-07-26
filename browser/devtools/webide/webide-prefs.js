@@ -3,4 +3,5 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
+pref("devtools.webide.showProjectEditor", true);
 pref("devtools.webide.templatesURL", "http://fixme/");
