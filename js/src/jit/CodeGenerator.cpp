@@ -2694,8 +2694,23 @@ class CheckOverRecursedFailure : public OutOfLineCodeBase<CodeGenerator>
 };
 
 bool
+CodeGenerator::omitOverRecursedCheck() const
+{
+    
+    
+    
+    
+    
+    return frameSize() < 64 && !gen->performsCall();
+}
+
+bool
 CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed *lir)
 {
+    
+    if (omitOverRecursedCheck())
+        return true;
+
     
     
     
@@ -8198,6 +8213,10 @@ CodeGenerator::visitAsmJSVoidReturn(LAsmJSVoidReturn *lir)
 bool
 CodeGenerator::visitAsmJSCheckOverRecursed(LAsmJSCheckOverRecursed *lir)
 {
+    
+    if (omitOverRecursedCheck())
+        return true;
+
     masm.branchPtr(Assembler::AboveOrEqual,
                    AsmJSAbsoluteAddress(AsmJSImm_StackLimit),
                    StackPointer,
