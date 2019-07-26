@@ -124,10 +124,6 @@ public class BookmarksPanel extends HomeFragment {
         mList.setAdapter(mListAdapter);
 
         
-        
-        BrowserDB.invalidateCachedState();
-
-        
         mLoaderCallbacks = new CursorLoaderCallbacks();
         loadIfVisible();
     }
@@ -205,6 +201,14 @@ public class BookmarksPanel extends HomeFragment {
         @Override
         public Cursor loadCursor() {
             return BrowserDB.getBookmarksInFolder(getContext().getContentResolver(), mFolderInfo.id);
+        }
+
+        @Override
+        public void onContentChanged() {
+            
+            
+            BrowserDB.invalidateCachedState();
+            super.onContentChanged();
         }
 
         public FolderInfo getFolderInfo() {
