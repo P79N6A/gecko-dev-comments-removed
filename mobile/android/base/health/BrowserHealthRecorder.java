@@ -9,9 +9,11 @@ import java.util.ArrayList;
 
 import android.content.Context;
 import android.content.ContentProviderClient;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 import org.mozilla.gecko.AppConstants;
+import org.mozilla.gecko.GeckoApp;
 import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.PrefsHelper;
@@ -28,6 +30,7 @@ import org.mozilla.gecko.util.EventDispatcher;
 import org.mozilla.gecko.util.GeckoEventListener;
 import org.mozilla.gecko.util.ThreadUtils;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -78,11 +81,138 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
     protected volatile State state = State.NOT_INITIALIZED;
 
+    private final AtomicBoolean orphanChecked = new AtomicBoolean(false);
     private volatile int env = -1;
     private volatile HealthReportDatabaseStorage storage;
     private final ProfileInformationCache profileCache;
     private ContentProviderClient client;
     private final EventDispatcher dispatcher;
+
+    public static class SessionInformation {
+        private static final String LOG_TAG = "GeckoSessInfo";
+
+        public static final String PREFS_SESSION_START = "sessionStart";
+
+        public final long wallStartTime;    
+        public final long realStartTime;    
+
+        private final boolean wasOOM;
+        private final boolean wasStopped;
+
+        private volatile long timedGeckoStartup = -1;
+        private volatile long timedJavaStartup = -1;
+
+        
+        
+        public SessionInformation(long wallTime, long realTime) {
+            this(wallTime, realTime, false, false);
+        }
+
+        
+        public SessionInformation(long wallTime, long realTime, boolean wasOOM, boolean wasStopped) {
+            this.wallStartTime = wallTime;
+            this.realStartTime = realTime;
+            this.wasOOM = wasOOM;
+            this.wasStopped = wasStopped;
+        }
+
+        
+
+
+
+
+
+
+
+
+        public static SessionInformation fromSharedPrefs(SharedPreferences prefs) {
+            boolean wasOOM = prefs.getBoolean(GeckoApp.PREFS_OOM_EXCEPTION, false);
+            boolean wasStopped = prefs.getBoolean(GeckoApp.PREFS_WAS_STOPPED, true);
+            long wallStartTime = prefs.getLong(PREFS_SESSION_START, 0L);
+            long realStartTime = 0L;
+            Log.d(LOG_TAG, "Building SessionInformation from prefs: " +
+                           wallStartTime + ", " + realStartTime + ", " +
+                           wasStopped + ", " + wasOOM);
+            return new SessionInformation(wallStartTime, realStartTime, wasOOM, wasStopped);
+        }
+
+        public boolean wasKilled() {
+            return wasOOM || !wasStopped;
+        }
+
+        
+
+
+
+
+
+        public void recordBegin(SharedPreferences.Editor editor) {
+            Log.d(LOG_TAG, "Recording start of session: " + this.wallStartTime);
+            editor.putLong(PREFS_SESSION_START, this.wallStartTime);
+        }
+
+        
+
+
+
+        public void recordCompletion(SharedPreferences.Editor editor) {
+            Log.d(LOG_TAG, "Recording session done: " + this.wallStartTime);
+            editor.remove(PREFS_SESSION_START);
+        }
+
+        
+
+
+        public JSONObject getCompletionJSON(String reason, long realEndTime) throws JSONException {
+            long durationSecs = (realEndTime - this.realStartTime) / 1000;
+            JSONObject out = new JSONObject();
+            out.put("r", reason);
+            out.put("d", durationSecs);
+            if (this.timedGeckoStartup > 0) {
+                out.put("sg", this.timedGeckoStartup);
+            }
+            if (this.timedJavaStartup > 0) {
+                out.put("sj", this.timedJavaStartup);
+            }
+            return out;
+        }
+
+        public JSONObject getCrashedJSON() throws JSONException {
+            JSONObject out = new JSONObject();
+            
+            
+            
+            out.put("oom", this.wasOOM ? 1 : 0);
+            out.put("stopped", this.wasStopped ? 1 : 0);
+            out.put("r", "A");
+            return out;
+        }
+    }
+
+    
+    
+    private final SessionInformation previousSession;
+    private volatile SessionInformation session = null;
+    public SessionInformation getCurrentSession() {
+        return this.session;
+    }
+
+    public void setCurrentSession(SessionInformation session) {
+        this.session = session;
+    }
+
+    public void recordGeckoStartupTime(long duration) {
+        if (this.session == null) {
+            return;
+        }
+        this.session.timedGeckoStartup = duration;
+    }
+    public void recordJavaStartupTime(long duration) {
+        if (this.session == null) {
+            return;
+        }
+        this.session.timedJavaStartup = duration;
+    }
 
     
 
@@ -95,9 +225,11 @@ public class BrowserHealthRecorder implements GeckoEventListener {
     
 
 
-    public BrowserHealthRecorder(final Context context, final String profilePath, final EventDispatcher dispatcher) {
+    public BrowserHealthRecorder(final Context context, final String profilePath, final EventDispatcher dispatcher, SessionInformation previousSession) {
         Log.d(LOG_TAG, "Initializing. Dispatcher is " + dispatcher);
         this.dispatcher = dispatcher;
+        this.previousSession = previousSession;
+
         this.client = EnvironmentBuilder.getContentProviderClient(context);
         if (this.client == null) {
             throw new IllegalStateException("Could not fetch Health Report content provider.");
@@ -114,8 +246,6 @@ public class BrowserHealthRecorder implements GeckoEventListener {
         } catch (Exception e) {
             Log.e(LOG_TAG, "Exception initializing.", e);
         }
-
-        
     }
 
     
@@ -353,6 +483,7 @@ public class BrowserHealthRecorder implements GeckoEventListener {
                         dispatcher.registerEventListener(EVENT_PREF_CHANGE, self);
 
                         
+                        initializeSessionsProvider();
                         initializeSearchProvider();
 
                         Log.d(LOG_TAG, "Ensuring environment.");
@@ -365,7 +496,11 @@ public class BrowserHealthRecorder implements GeckoEventListener {
                         state = State.INITIALIZATION_FAILED;
                         storage.abortInitialization();
                         Log.e(LOG_TAG, "Initialization failed.", e);
+                        return;
                     }
+
+                    
+                    checkForOrphanSessions();
                 }
             }
         });
@@ -383,7 +518,7 @@ public class BrowserHealthRecorder implements GeckoEventListener {
 
         
         if (this.profileCache.restoreUnlessInitialized()) {
-            Log.i(LOG_TAG, "Successfully restored state. Initializing storage.");
+            Log.d(LOG_TAG, "Successfully restored state. Initializing storage.");
             initializeStorage();
             return;
         }
@@ -640,6 +775,156 @@ public class BrowserHealthRecorder implements GeckoEventListener {
                 storage.recordDailyDiscrete(env, day, searchField, key);
             }
         });
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    public static final String MEASUREMENT_NAME_SESSIONS = "org.mozilla.appSessions";
+    public static final int MEASUREMENT_VERSION_SESSIONS = 4;
+
+    private void initializeSessionsProvider() {
+        this.storage.ensureMeasurementInitialized(
+            MEASUREMENT_NAME_SESSIONS,
+            MEASUREMENT_VERSION_SESSIONS,
+            new MeasurementFields() {
+                @Override
+                public Iterable<FieldSpec> getFields() {
+                    ArrayList<FieldSpec> out = new ArrayList<FieldSpec>(2);
+                    out.add(new FieldSpec("normal", Field.TYPE_JSON_DISCRETE));
+                    out.add(new FieldSpec("abnormal", Field.TYPE_JSON_DISCRETE));
+                    return out;
+                }
+        });
+    }
+
+    
+
+
+    private void recordSessionEntry(String field, SessionInformation session, JSONObject value) {
+        try {
+            final int sessionField = storage.getField(MEASUREMENT_NAME_SESSIONS,
+                                                      MEASUREMENT_VERSION_SESSIONS,
+                                                      field)
+                                            .getID();
+            final int day = storage.getDay(session.wallStartTime);
+            storage.recordDailyDiscrete(env, day, sessionField, value);
+        } catch (Exception e) {
+            Log.w(LOG_TAG, "Unable to record session completion.", e);
+        }
+    }
+
+    public void checkForOrphanSessions() {
+        if (!this.orphanChecked.compareAndSet(false, true)) {
+            Log.w(LOG_TAG, "Attempting to check for orphan sessions more than once.");
+            return;
+        }
+
+        Log.d(LOG_TAG, "Checking for orphan session.");
+        if (this.previousSession == null) {
+            return;
+        }
+        if (this.previousSession.wallStartTime == 0) {
+            return;
+        }
+
+        if (state != State.INITIALIZED) {
+            
+            Log.e(LOG_TAG, "Attempted to record bad session end without initialized recorder.");
+            return;
+        }
+
+        try {
+            recordSessionEntry("abnormal", this.previousSession, this.previousSession.getCrashedJSON());
+        } catch (Exception e) {
+            Log.w(LOG_TAG, "Unable to generate session JSON.", e);
+
+            
+        }
+    }
+
+    
+
+
+    public void recordSessionEnd(String reason, SharedPreferences.Editor editor) {
+        Log.d(LOG_TAG, "Recording session end: " + reason);
+        if (state != State.INITIALIZED) {
+            
+            Log.e(LOG_TAG, "Attempted to record session end without initialized recorder.");
+            return;
+        }
+
+        final SessionInformation session = this.session;
+        this.session = null;        
+
+        if (session == null) {
+            Log.w(LOG_TAG, "Unable to record session end: no session. Already ended?");
+            return;
+        }
+
+        if (session.wallStartTime <= 0) {
+            Log.e(LOG_TAG, "Session start " + session.wallStartTime + " isn't valid! Can't record end.");
+            return;
+        }
+
+        long realEndTime = android.os.SystemClock.elapsedRealtime();
+        try {
+            JSONObject json = session.getCompletionJSON(reason, realEndTime);
+            recordSessionEntry("normal", session, json);
+        } catch (JSONException e) {
+            Log.w(LOG_TAG, "Unable to generate session JSON.", e);
+
+            
+            
+        }
+
+        
+        
+        session.recordCompletion(editor);
     }
 }
 

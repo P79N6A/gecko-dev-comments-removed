@@ -16,6 +16,7 @@ import org.mozilla.gecko.menu.GeckoMenu;
 import org.mozilla.gecko.menu.GeckoMenuInflater;
 import org.mozilla.gecko.menu.MenuPanel;
 import org.mozilla.gecko.health.BrowserHealthRecorder;
+import org.mozilla.gecko.health.BrowserHealthRecorder.SessionInformation;
 import org.mozilla.gecko.updater.UpdateService;
 import org.mozilla.gecko.updater.UpdateServiceHelper;
 import org.mozilla.gecko.util.EventDispatcher;
@@ -116,7 +117,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -161,8 +161,7 @@ abstract public class GeckoApp
     protected RelativeLayout mMainLayout;
     protected RelativeLayout mGeckoLayout;
     public View getView() { return mGeckoLayout; }
-    public SurfaceView mCameraView;
-    public List<GeckoAppShell.AppStateListener> mAppStateListeners;
+    public SurfaceView cameraView;
     private static GeckoApp sAppContext;
     protected MenuPanel mMenuPanel;
     protected Menu mMenu;
@@ -248,16 +247,12 @@ abstract public class GeckoApp
         return this;
     }
 
+    public static SharedPreferences getAppSharedPreferences() {
+        return GeckoApp.sAppContext.getSharedPreferences(PREFS_NAME, 0);
+    }
+
     public SurfaceView getCameraView() {
-        return mCameraView;
-    }
-
-    public void addAppStateListener(GeckoAppShell.AppStateListener listener) {
-        mAppStateListeners.add(listener);
-    }
-
-    public void removeAppStateListener(GeckoAppShell.AppStateListener listener) {
-        mAppStateListeners.remove(listener);
+        return cameraView;
     }
 
     public FormAssistPopup getFormAssistPopup() {
@@ -544,6 +539,11 @@ abstract public class GeckoApp
             } else if (event.equals("Gecko:Ready")) {
                 mGeckoReadyStartupTimer.stop();
                 geckoConnected();
+
+                
+                
+                
+                mHealthRecorder.recordGeckoStartupTime(mGeckoReadyStartupTimer.getElapsed());
             } else if (event.equals("ToggleChrome:Hide")) {
                 toggleChrome(false);
             } else if (event.equals("ToggleChrome:Show")) {
@@ -1240,20 +1240,20 @@ abstract public class GeckoApp
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                SharedPreferences prefs =
-                    GeckoApp.sAppContext.getSharedPreferences(PREFS_NAME, 0);
+                final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
 
-                boolean wasOOM = prefs.getBoolean(PREFS_OOM_EXCEPTION, false);
-                boolean wasStopped = prefs.getBoolean(PREFS_WAS_STOPPED, true);
-                if (wasOOM || !wasStopped) {
+                SessionInformation previousSession = SessionInformation.fromSharedPrefs(prefs);
+                if (previousSession.wasKilled()) {
                     Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
                 }
+
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_OOM_EXCEPTION, false);
 
                 
                 
                 editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
+
                 editor.commit();
 
                 
@@ -1262,7 +1262,8 @@ abstract public class GeckoApp
                 final String profilePath = getProfile().getDir().getAbsolutePath();
                 final EventDispatcher dispatcher = GeckoAppShell.getEventDispatcher();
                 Log.i(LOGTAG, "Creating BrowserHealthRecorder.");
-                mHealthRecorder = new BrowserHealthRecorder(sAppContext, profilePath, dispatcher);
+                mHealthRecorder = new BrowserHealthRecorder(sAppContext, profilePath, dispatcher,
+                                                            previousSession);
             }
         });
 
@@ -1274,9 +1275,9 @@ abstract public class GeckoApp
         mPluginContainer = (AbsoluteLayout) findViewById(R.id.plugin_container);
         mFormAssistPopup = (FormAssistPopup) findViewById(R.id.form_assist_popup);
 
-        if (mCameraView == null) {
-            mCameraView = new SurfaceView(this);
-            mCameraView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        if (cameraView == null) {
+            cameraView = new SurfaceView(this);
+            cameraView.getHolder().setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
         }
 
         if (mLayerView == null) {
@@ -1405,9 +1406,6 @@ abstract public class GeckoApp
         }
 
         
-        mAppStateListeners = new LinkedList<GeckoAppShell.AppStateListener>();
-
-        
         registerEventListener("log");
         registerEventListener("Reader:Added");
         registerEventListener("Reader:Removed");
@@ -1474,11 +1472,15 @@ abstract public class GeckoApp
         });
 
         
+        
         mJavaUiStartupTimer.stop();
+        final long javaDuration = mJavaUiStartupTimer.getElapsed();
 
         ThreadUtils.getBackgroundHandler().postDelayed(new Runnable() {
             @Override
             public void run() {
+                mHealthRecorder.recordJavaStartupTime(javaDuration);
+
                 
                 
                 checkMigrateSync();
@@ -1593,7 +1595,7 @@ abstract public class GeckoApp
             return RESTORE_OOM;
         }
 
-        final SharedPreferences prefs = GeckoApp.sAppContext.getSharedPreferences(PREFS_NAME, 0);
+        final SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
 
         
         
@@ -1640,11 +1642,11 @@ abstract public class GeckoApp
 
     public void enableCameraView() {
         
-        mMainLayout.addView(mCameraView, new AbsoluteLayout.LayoutParams(8, 16, 0, 0));
+        mMainLayout.addView(cameraView, new AbsoluteLayout.LayoutParams(8, 16, 0, 0));
     }
 
     public void disableCameraView() {
-        mMainLayout.removeView(mCameraView);
+        mMainLayout.removeView(cameraView);
     }
 
     public String getDefaultUAString() {
@@ -1791,20 +1793,29 @@ abstract public class GeckoApp
         
         GeckoAccessibility.updateAccessibilitySettings(this);
 
-        if (mAppStateListeners != null) {
-            for(GeckoAppShell.AppStateListener listener: mAppStateListeners) {
-                listener.onResume();
-            }
-        }
+        
+        
+        
+        final long now = System.currentTimeMillis();
+        final long realTime = android.os.SystemClock.elapsedRealtime();
+        final BrowserHealthRecorder rec = mHealthRecorder;
 
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                SharedPreferences prefs =
-                    GeckoApp.sAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                
+                
+                SessionInformation currentSession = new SessionInformation(now, realTime);
+
+                SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
+                currentSession.recordBegin(editor);
                 editor.commit();
+
+                if (rec != null) {
+                    rec.setCurrentSession(currentSession);
+                }
             }
          });
     }
@@ -1822,27 +1833,25 @@ abstract public class GeckoApp
     @Override
     public void onPause()
     {
+        final BrowserHealthRecorder rec = mHealthRecorder;
+
         
         
         
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                SharedPreferences prefs =
-                    GeckoApp.sAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, true);
+                if (rec != null) {
+                    rec.recordSessionEnd("P", editor);
+                }
                 editor.commit();
             }
         });
 
         GeckoScreenOrientationListener.getInstance().stop();
-
-        if (mAppStateListeners != null) {
-            for(GeckoAppShell.AppStateListener listener: mAppStateListeners) {
-                listener.onPause();
-            }
-        }
 
         super.onPause();
     }
@@ -1853,8 +1862,7 @@ abstract public class GeckoApp
         ThreadUtils.postToBackgroundThread(new Runnable() {
             @Override
             public void run() {
-                SharedPreferences prefs =
-                    GeckoApp.sAppContext.getSharedPreferences(GeckoApp.PREFS_NAME, 0);
+                SharedPreferences prefs = GeckoApp.getAppSharedPreferences();
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_WAS_STOPPED, false);
                 editor.commit();
@@ -1927,9 +1935,16 @@ abstract public class GeckoApp
                 SmsManager.getInstance().shutdown();
         }
 
-        if (mHealthRecorder != null) {
-            mHealthRecorder.close();
-            mHealthRecorder = null;
+        final BrowserHealthRecorder rec = mHealthRecorder;
+        mHealthRecorder = null;
+        if (rec != null) {
+            
+            ThreadUtils.postToBackgroundThread(new Runnable() {
+                @Override
+                public void run() {
+                    rec.close();
+                }
+            });
         }
 
         super.onDestroy();
