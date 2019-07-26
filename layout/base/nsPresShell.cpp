@@ -6886,7 +6886,7 @@ PresShell::DispatchTouchEvent(nsEvent *aEvent,
 
   
   for (uint32_t i = 0; i < touchEvent->touches.Length(); ++i) {
-    nsIDOMTouch *touch = touchEvent->touches[i];
+    Touch *touch = touchEvent->touches[i];
     if (!touch || !touch->mChanged) {
       continue;
     }
