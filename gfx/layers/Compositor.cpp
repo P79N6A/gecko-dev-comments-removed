@@ -100,20 +100,20 @@ Compositor::DrawDiagnosticsInternal(DiagnosticFlags aFlags,
 #else
   int lWidth = 2;
 #endif
-  float opacity = 0.7;
+  float opacity = 0.7f;
 
   gfx::Color color;
   if (aFlags & DIAGNOSTIC_CONTENT) {
-    color = gfx::Color(0.0, 1.0, 0.0, 1.0); 
+    color = gfx::Color(0.0f, 1.0f, 0.0f, 1.0f); 
     if (aFlags & DIAGNOSTIC_COMPONENT_ALPHA) {
-      color = gfx::Color(0.0, 1.0, 1.0, 1.0); 
+      color = gfx::Color(0.0f, 1.0f, 1.0f, 1.0f); 
     }
   } else if (aFlags & DIAGNOSTIC_IMAGE) {
-    color = gfx::Color(1.0, 0.0, 0.0, 1.0); 
+    color = gfx::Color(1.0f, 0.0f, 0.0f, 1.0f); 
   } else if (aFlags & DIAGNOSTIC_COLOR) {
-    color = gfx::Color(0.0, 0.0, 1.0, 1.0); 
+    color = gfx::Color(0.0f, 0.0f, 1.0f, 1.0f); 
   } else if (aFlags & DIAGNOSTIC_CONTAINER) {
-    color = gfx::Color(0.8, 0.0, 0.8, 1.0); 
+    color = gfx::Color(0.8f, 0.0f, 0.8f, 1.0f); 
   }
 
   
@@ -121,10 +121,10 @@ Compositor::DrawDiagnosticsInternal(DiagnosticFlags aFlags,
       aFlags & DIAGNOSTIC_BIGIMAGE ||
       aFlags & DIAGNOSTIC_REGION_RECT) {
     lWidth = 1;
-    opacity = 0.5;
-    color.r *= 0.7;
-    color.g *= 0.7;
-    color.b *= 0.7;
+    opacity = 0.5f;
+    color.r *= 0.7f;
+    color.g *= 0.7f;
+    color.b *= 0.7f;
   }
 
   EffectChain effects;
