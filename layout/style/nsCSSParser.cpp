@@ -2757,7 +2757,7 @@ CSSParserImpl::ParseMediaQueryExpression(nsMediaQuery* aQuery)
     return false;
   }
 
-  bool rv;
+  bool rv = false;
   switch (feature->mValueType) {
     case nsMediaFeature::eLength:
       rv = ParseNonNegativeVariant(expr->mValue, VARIANT_LENGTH, nullptr);
@@ -5963,17 +5963,17 @@ CSSParserImpl::TranslateDimension(nsCSSValue& aValue,
       }
     }
 
+    if (i == ArrayLength(UnitData)) {
+      
+      return false;
+    }
+
     if (!mViewportUnitsEnabled &&
         (eCSSUnit_ViewportWidth == units  ||
          eCSSUnit_ViewportHeight == units ||
          eCSSUnit_ViewportMin == units    ||
          eCSSUnit_ViewportMax == units)) {
       
-      
-      return false;
-    }
-
-    if (i == ArrayLength(UnitData)) {
       
       return false;
     }
