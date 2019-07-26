@@ -804,17 +804,20 @@ abstract public class BrowserApp extends GeckoApp
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        String url = null;
+
         
-        
-        if (resultCode != Activity.RESULT_OK ||
-            data.getStringExtra(AwesomeBar.TARGET_KEY).equals(AwesomeBar.Target.PICK_SITE.toString())) {
+        if (resultCode == Activity.RESULT_OK && data != null) {
             
-            mBrowserToolbar.fromAwesomeBarSearch(null);
-            return;
+            String targetKey = data.getStringExtra(AwesomeBar.TARGET_KEY);
+            if (!AwesomeBar.Target.PICK_SITE.toString().equals(targetKey)) {
+                
+                url = data.getStringExtra(AwesomeBar.URL_KEY);
+            }
         }
 
         
-        mBrowserToolbar.fromAwesomeBarSearch(data.getStringExtra(AwesomeBar.URL_KEY));
+        mBrowserToolbar.fromAwesomeBarSearch(url);
     }
 
     public View getActionBarLayout() {
