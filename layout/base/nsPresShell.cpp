@@ -8060,17 +8060,17 @@ PresShell::DoReflow(nsIFrame* target, bool aInterruptible)
   mIsReflowing = true;
 
   nsReflowStatus status;
-  nsHTMLReflowMetrics desiredSize;
+  nsHTMLReflowMetrics desiredSize(reflowState.GetWritingMode());
   target->Reflow(mPresContext, desiredSize, reflowState, status);
 
   
   
   
   
-  nsRect boundsRelativeToTarget = nsRect(0, 0, desiredSize.width, desiredSize.height);
+  nsRect boundsRelativeToTarget = nsRect(0, 0, desiredSize.Width(), desiredSize.Height());
   NS_ASSERTION((target == rootFrame && size.height == NS_UNCONSTRAINEDSIZE) ||
-               (desiredSize.width == size.width &&
-                desiredSize.height == size.height),
+               (desiredSize.Width() == size.width &&
+                desiredSize.Height() == size.height),
                "non-root frame's desired size changed during an "
                "incremental reflow");
   NS_ASSERTION(target == rootFrame ||

@@ -371,7 +371,7 @@ NS_METHOD nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
   for (nsIFrame *kidFrame = mFrames.FirstChild(); kidFrame;
        kidFrame = kidFrame->GetNextSibling()) {
     
-    nsHTMLReflowMetrics kidSize;
+    nsHTMLReflowMetrics kidSize(aReflowState.GetWritingMode());
     nsHTMLReflowState kidReflowState(aPresContext, aReflowState, kidFrame,
                                      nsSize(0,0));
 
@@ -380,8 +380,8 @@ NS_METHOD nsTableColGroupFrame::Reflow(nsPresContext*          aPresContext,
     FinishReflowChild(kidFrame, aPresContext, nullptr, kidSize, 0, 0, 0);
   }
 
-  aDesiredSize.width=0;
-  aDesiredSize.height=0;
+  aDesiredSize.Width() = 0;
+  aDesiredSize.Height() = 0;
   aStatus = NS_FRAME_COMPLETE;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return rv;

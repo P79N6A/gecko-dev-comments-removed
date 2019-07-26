@@ -10,6 +10,7 @@
 
 #include "nsRect.h"
 #include "nsBoundingMetrics.h"
+#include "WritingModes.h"
 
 
 
@@ -193,11 +194,30 @@ struct nsCollapsingMargin {
 
 
 
-struct nsHTMLReflowMetrics {
-  nscoord width, height;    
-  nscoord ascent;           
+class nsHTMLReflowMetrics {
+public:
+  
+  
+  
+  
+  
+  
+  nsHTMLReflowMetrics(mozilla::WritingMode aWritingMode, uint32_t aFlags = 0)
+    : mWidth(0)
+    , mHeight(0)
+    , mAscent(ASK_FOR_BASELINE)
+    , mFlags(aFlags)
+    , mWritingMode(aWritingMode)
+  {}
 
-  uint32_t mFlags;
+  const nscoord& Width() const { return mWidth; }
+  const nscoord& Height() const { return mHeight; }
+  const nscoord& TopAscent() const { return mAscent; }
+
+  nscoord& Width() { return mWidth; }
+  nscoord& Height() { return mHeight; }
+
+  void SetTopAscent(nscoord aAscent) { mAscent = aAscent; }
 
   enum { ASK_FOR_BASELINE = nscoord_MAX };
 
@@ -238,15 +258,17 @@ struct nsHTMLReflowMetrics {
   
   void UnionOverflowAreasWithDesiredBounds();
 
-  
-  
-  
-  
-  
-  
-  nsHTMLReflowMetrics(uint32_t aFlags = 0)
-    : width(0), height(0), ascent(ASK_FOR_BASELINE), mFlags(aFlags)
-  {}
+  mozilla::WritingMode GetWritingMode() const { return mWritingMode; }
+
+private:
+  nscoord mWidth, mHeight; 
+  nscoord mAscent;         
+
+public:
+  uint32_t mFlags;
+
+private:
+  mozilla::WritingMode mWritingMode;
 };
 
 #endif 

@@ -654,7 +654,7 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
   nsPoint offset = nsPoint(aReflowState.ComputedPhysicalBorderPadding().left,
                            aReflowState.ComputedPhysicalBorderPadding().top);
 
-  nsSize innerSize(aDesiredSize.width, aDesiredSize.height);
+  nsSize innerSize(aDesiredSize.Width(), aDesiredSize.Height());
   innerSize.width  -= aReflowState.ComputedPhysicalBorderPadding().LeftRight();
   innerSize.height -= aReflowState.ComputedPhysicalBorderPadding().TopBottom();
 
@@ -684,7 +684,7 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
      ("exit nsSubDocumentFrame::Reflow: size=%d,%d status=%x",
-      aDesiredSize.width, aDesiredSize.height, aStatus));
+      aDesiredSize.Width(), aDesiredSize.Height(), aStatus));
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
   return NS_OK;

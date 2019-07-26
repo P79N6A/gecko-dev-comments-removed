@@ -442,26 +442,26 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
                               nsHTMLReflowMetrics& aMetrics)
 {
   
-  aMetrics.width = 0;
-  aMetrics.height = 0;
+  aMetrics.Width() = 0;
+  aMetrics.Height() = 0;
 
   if (IsHidden(false)) {
     return;
   }
   
-  aMetrics.width = aReflowState.ComputedWidth();
-  aMetrics.height = aReflowState.ComputedHeight();
+  aMetrics.Width() = aReflowState.ComputedWidth();
+  aMetrics.Height() = aReflowState.ComputedHeight();
 
   
   nsIAtom *atom = mContent->Tag();
   if (atom == nsGkAtoms::applet || atom == nsGkAtoms::embed) {
-    if (aMetrics.width == NS_UNCONSTRAINEDSIZE) {
-      aMetrics.width = clamped(nsPresContext::CSSPixelsToAppUnits(EMBED_DEF_WIDTH),
+    if (aMetrics.Width() == NS_UNCONSTRAINEDSIZE) {
+      aMetrics.Width() = clamped(nsPresContext::CSSPixelsToAppUnits(EMBED_DEF_WIDTH),
                                aReflowState.ComputedMinWidth(),
                                aReflowState.ComputedMaxWidth());
     }
-    if (aMetrics.height == NS_UNCONSTRAINEDSIZE) {
-      aMetrics.height = clamped(nsPresContext::CSSPixelsToAppUnits(EMBED_DEF_HEIGHT),
+    if (aMetrics.Height() == NS_UNCONSTRAINEDSIZE) {
+      aMetrics.Height() = clamped(nsPresContext::CSSPixelsToAppUnits(EMBED_DEF_HEIGHT),
                                 aReflowState.ComputedMinHeight(),
                                 aReflowState.ComputedMaxHeight());
     }
@@ -471,16 +471,16 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
     
     
     
-    aMetrics.height = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.height);
-    aMetrics.width = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.width);
+    aMetrics.Height() = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.Height());
+    aMetrics.Width() = std::min(aPresContext->DevPixelsToAppUnits(INT16_MAX), aMetrics.Width());
 #endif
   }
 
   
   
   
-  if (aMetrics.width == NS_UNCONSTRAINEDSIZE) {
-    aMetrics.width =
+  if (aMetrics.Width() == NS_UNCONSTRAINEDSIZE) {
+    aMetrics.Width() =
       (aReflowState.ComputedMinWidth() != NS_UNCONSTRAINEDSIZE) ?
         aReflowState.ComputedMinWidth() : 0;
   }
@@ -489,8 +489,8 @@ nsObjectFrame::GetDesiredSize(nsPresContext* aPresContext,
   
   
   
-  if (aMetrics.height == NS_UNCONSTRAINEDSIZE) {
-    aMetrics.height =
+  if (aMetrics.Height() == NS_UNCONSTRAINEDSIZE) {
+    aMetrics.Height() =
       (aReflowState.ComputedMinHeight() != NS_UNCONSTRAINEDSIZE) ?
         aReflowState.ComputedMinHeight() : 0;
   }
@@ -530,7 +530,7 @@ nsObjectFrame::Reflow(nsPresContext*           aPresContext,
     return NS_OK;
   }
 
-  nsRect r(0, 0, aMetrics.width, aMetrics.height);
+  nsRect r(0, 0, aMetrics.Width(), aMetrics.Height());
   r.Deflate(aReflowState.ComputedPhysicalBorderPadding());
 
   if (mInnerView) {

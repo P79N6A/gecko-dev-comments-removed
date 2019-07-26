@@ -189,7 +189,7 @@ nsSelectsAreaFrame::Reflow(nsPresContext*           aPresContext,
     
     
     if (newHeightOfARow != mHeightOfARow ||
-        (isInDropdownMode && (oldHeight != aDesiredSize.height ||
+        (isInDropdownMode && (oldHeight != aDesiredSize.Height() ||
                               oldHeight != GetSize().height))) {
       mHeightOfARow = newHeightOfARow;
       list->SetSuppressScrollbarUpdate(true);

@@ -1126,7 +1126,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
         mLines.front() != mLines.back() &&
         mLines.begin().next()->IsBlock()))) {
     
-    nsHTMLReflowMetrics metrics;
+    nsHTMLReflowMetrics metrics(aReflowState.GetWritingMode());
     
     nsLayoutUtils::LinePosition position;
     bool havePosition = nsLayoutUtils::GetFirstLinePosition(this, &position);
@@ -1134,7 +1134,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
                                    : reflowState->ComputedPhysicalBorderPadding().top;
     nsIFrame* bullet = GetOutsideBullet();
     ReflowBullet(bullet, state, metrics, lineTop);
-    NS_ASSERTION(!BulletIsEmpty() || metrics.height == 0,
+    NS_ASSERTION(!BulletIsEmpty() || metrics.Height() == 0,
                  "empty bullet took up space");
 
     if (havePosition && !BulletIsEmpty()) {
@@ -1145,7 +1145,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     
       
       nsRect bbox = bullet->GetRect();
-      bbox.y = position.mBaseline - metrics.ascent;
+      bbox.y = position.mBaseline - metrics.TopAscent();
       bullet->SetRect(bbox);
     }
     
@@ -1156,7 +1156,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   nscoord bottomEdgeOfChildren;
   ComputeFinalSize(*reflowState, state, aMetrics, &bottomEdgeOfChildren);
-  nsRect areaBounds = nsRect(0, 0, aMetrics.width, aMetrics.height);
+  nsRect areaBounds = nsRect(0, 0, aMetrics.Width(), aMetrics.Height());
   ComputeOverflowAreas(areaBounds, reflowState->mStyleDisplay,
                        bottomEdgeOfChildren, aMetrics.mOverflowAreas);
   
@@ -1200,8 +1200,8 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     } else {
       nsSize containingBlockSize =
         CalculateContainingBlockSizeForAbsolutes(*reflowState,
-                                                 nsSize(aMetrics.width,
-                                                        aMetrics.height));
+                                                 nsSize(aMetrics.Width(),
+                                                        aMetrics.Height()));
 
       
       
@@ -1209,7 +1209,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       
       
       
-      bool cbWidthChanged = aMetrics.width != oldSize.width;
+      bool cbWidthChanged = aMetrics.Width() != oldSize.width;
       bool isRoot = !GetContent()->GetParent();
       
       
@@ -1217,7 +1217,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       
       bool cbHeightChanged =
         !(isRoot && NS_UNCONSTRAINEDSIZE == reflowState->ComputedHeight()) &&
-        aMetrics.height != oldSize.height;
+        aMetrics.Height() != oldSize.height;
 
       nsRect containingBlock(nsPoint(0, 0), containingBlockSize);
       absoluteContainer->Reflow(this, aPresContext, *reflowState,
@@ -1253,7 +1253,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
     ListTag(stdout);
     printf(": status=%x (%scomplete) metrics=%d,%d carriedMargin=%d",
            aStatus, NS_FRAME_IS_COMPLETE(aStatus) ? "" : "not ",
-           aMetrics.width, aMetrics.height,
+           aMetrics.Width(), aMetrics.Height(),
            aMetrics.mCarriedOutBottomMargin.get());
     if (HasOverflowAreas()) {
       printf(" overflow-vis={%d,%d,%d,%d}",
@@ -1331,7 +1331,7 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
 #endif
 
   
-  aMetrics.width =
+  aMetrics.Width() =
     NSCoordSaturatingAdd(NSCoordSaturatingAdd(borderPadding.left,
                                               aReflowState.ComputedWidth()), 
                          borderPadding.right);
@@ -1397,12 +1397,12 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       
       
       
-      aMetrics.height = std::max(aReflowState.AvailableHeight(),
+      aMetrics.Height() = std::max(aReflowState.AvailableHeight(),
                                aState.mY + nonCarriedOutVerticalMargin);
       
       nscoord effectiveComputedHeight =
         GetEffectiveComputedHeight(aReflowState, aState.GetConsumedHeight());
-      aMetrics.height = std::min(aMetrics.height,
+      aMetrics.Height() = std::min(aMetrics.Height(),
                                borderPadding.top + effectiveComputedHeight);
       
       
@@ -1422,33 +1422,33 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
       aMetrics.mCarriedOutBottomMargin.Zero();
     }
     autoHeight += borderPadding.top + borderPadding.bottom;
-    aMetrics.height = autoHeight;
+    aMetrics.Height() = autoHeight;
   }
   else {
     NS_ASSERTION(aReflowState.AvailableHeight() != NS_UNCONSTRAINEDSIZE,
       "Shouldn't be incomplete if availableHeight is UNCONSTRAINED.");
-    aMetrics.height = std::max(aState.mY, aReflowState.AvailableHeight());
+    aMetrics.Height() = std::max(aState.mY, aReflowState.AvailableHeight());
     if (aReflowState.AvailableHeight() == NS_UNCONSTRAINEDSIZE)
       
-      aMetrics.height = aState.mY;
+      aMetrics.Height() = aState.mY;
   }
 
   if (IS_TRUE_OVERFLOW_CONTAINER(this) &&
       NS_FRAME_IS_NOT_COMPLETE(aState.mReflowStatus)) {
     
     
-    NS_ASSERTION(aMetrics.height == 0, "overflow containers must be zero-height");
+    NS_ASSERTION(aMetrics.Height() == 0, "overflow containers must be zero-height");
     NS_FRAME_SET_OVERFLOW_INCOMPLETE(aState.mReflowStatus);
   }
 
   
-  aMetrics.height = std::max(0, aMetrics.height);
+  aMetrics.Height() = std::max(0, aMetrics.Height());
   *aBottomEdgeOfChildren = bottomEdgeOfChildren;
 
 #ifdef DEBUG_blocks
-  if (CRAZY_WIDTH(aMetrics.width) || CRAZY_HEIGHT(aMetrics.height)) {
+  if (CRAZY_WIDTH(aMetrics.Width()) || CRAZY_HEIGHT(aMetrics.Height())) {
     ListTag(stdout);
-    printf(": WARNING: desired:%d,%d\n", aMetrics.width, aMetrics.height);
+    printf(": WARNING: desired:%d,%d\n", aMetrics.Width(), aMetrics.Height());
   }
 #endif
 }
@@ -2359,20 +2359,24 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
   
   if (HasOutsideBullet() && mLines.empty()) {
-    nsHTMLReflowMetrics metrics;
+    nsHTMLReflowMetrics metrics(aState.mReflowState.GetWritingMode());
     nsIFrame* bullet = GetOutsideBullet();
     ReflowBullet(bullet, aState, metrics,
                  aState.mReflowState.ComputedPhysicalBorderPadding().top);
-    NS_ASSERTION(!BulletIsEmpty() || metrics.height == 0,
+    NS_ASSERTION(!BulletIsEmpty() || metrics.Height() == 0,
                  "empty bullet took up space");
 
     if (!BulletIsEmpty()) {
       
       
 
-      if (metrics.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE &&
-          !nsLayoutUtils::GetFirstLineBaseline(bullet, &metrics.ascent)) {
-        metrics.ascent = metrics.height;
+      if (metrics.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+        nscoord ascent;
+        if (nsLayoutUtils::GetFirstLineBaseline(bullet, &ascent)) {
+          metrics.SetTopAscent(ascent);
+        } else {
+          metrics.SetTopAscent(metrics.Height());
+        }
       }
 
       nsRefPtr<nsFontMetrics> fm;
@@ -2384,10 +2388,10 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
         nsLayoutUtils::GetCenteredFontBaseline(fm, aState.mMinLineHeight);
       nscoord minDescent = aState.mMinLineHeight - minAscent;
 
-      aState.mY += std::max(minAscent, metrics.ascent) +
-                   std::max(minDescent, metrics.height - metrics.ascent);
+      aState.mY += std::max(minAscent, metrics.TopAscent()) +
+                   std::max(minDescent, metrics.Height() - metrics.TopAscent());
 
-      nscoord offset = minAscent - metrics.ascent;
+      nscoord offset = minAscent - metrics.TopAscent();
       if (offset > 0) {
         bullet->SetRect(bullet->GetRect() + nsPoint(0, offset));
       }
@@ -4048,10 +4052,10 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
        (mLines.front() != mLines.back() &&
         0 == mLines.front()->mBounds.height &&
         aLine == mLines.begin().next()))) {
-    nsHTMLReflowMetrics metrics;
+    nsHTMLReflowMetrics metrics(aState.mReflowState.GetWritingMode());
     nsIFrame* bullet = GetOutsideBullet();
     ReflowBullet(bullet, aState, metrics, aState.mY);
-    NS_ASSERTION(!BulletIsEmpty() || metrics.height == 0,
+    NS_ASSERTION(!BulletIsEmpty() || metrics.Height() == 0,
                  "empty bullet took up space");
     aLineLayout.AddBulletFrame(bullet, metrics);
     addedBullet = true;
@@ -5883,7 +5887,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
   
   
   
-  aFloat->SetSize(nsSize(metrics.width, metrics.height));
+  aFloat->SetSize(nsSize(metrics.Width(), metrics.Height()));
   if (aFloat->HasView()) {
     nsContainerFrame::SyncFrameViewAfterReflow(aState.mPresContext, aFloat,
                                                aFloat->GetView(),
@@ -5896,7 +5900,7 @@ nsBlockFrame::ReflowFloat(nsBlockReflowState& aState,
 
 #ifdef NOISY_FLOAT
   printf("end ReflowFloat %p, sized to %d,%d\n",
-         aFloat, metrics.width, metrics.height);
+         aFloat, metrics.Width(), metrics.Height());
 #endif
 
   return NS_OK;
@@ -6861,7 +6865,7 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
     
     
     x = floatAvailSpace.x - rs.ComputedPhysicalBorderPadding().left
-        - reflowState.ComputedPhysicalMargin().right - aMetrics.width;
+        - reflowState.ComputedPhysicalMargin().right - aMetrics.Width();
   } else {
     
     
@@ -6873,7 +6877,7 @@ nsBlockFrame::ReflowBullet(nsIFrame* aBulletFrame,
   
   
   nscoord y = aState.mContentArea.y;
-  aBulletFrame->SetRect(nsRect(x, y, aMetrics.width, aMetrics.height));
+  aBulletFrame->SetRect(nsRect(x, y, aMetrics.Width(), aMetrics.Height()));
   aBulletFrame->DidReflow(aState.mPresContext, &aState.mReflowState,
                           nsDidReflowStatus::FINISHED);
 }
@@ -7093,13 +7097,13 @@ nsBlockFrame::ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
                   && computedHeightLeftOver ),
                "overflow container must not have computedHeightLeftOver");
 
-  aMetrics.height =
+  aMetrics.Height() =
     NSCoordSaturatingAdd(NSCoordSaturatingAdd(aBorderPadding.top,
                                               computedHeightLeftOver),
                          aBorderPadding.bottom);
 
   if (NS_FRAME_IS_NOT_COMPLETE(*aStatus)
-      && aMetrics.height < aReflowState.AvailableHeight()) {
+      && aMetrics.Height() < aReflowState.AvailableHeight()) {
     
     
     NS_FRAME_SET_OVERFLOW_INCOMPLETE(*aStatus);
@@ -7108,7 +7112,7 @@ nsBlockFrame::ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
   if (NS_FRAME_IS_COMPLETE(*aStatus)) {
     if (computedHeightLeftOver > 0 &&
         NS_UNCONSTRAINEDSIZE != aReflowState.AvailableHeight() &&
-        aMetrics.height > aReflowState.AvailableHeight()) {
+        aMetrics.Height() > aReflowState.AvailableHeight()) {
       if (ShouldAvoidBreakInside(aReflowState)) {
         *aStatus = NS_INLINE_LINE_BREAK_BEFORE();
         return;
@@ -7118,7 +7122,7 @@ nsBlockFrame::ComputeFinalHeight(const nsHTMLReflowState& aReflowState,
       
       
       
-      aMetrics.height = std::max(aReflowState.AvailableHeight(),
+      aMetrics.Height() = std::max(aReflowState.AvailableHeight(),
                                  aContentHeight);
       NS_FRAME_SET_INCOMPLETE(*aStatus);
       if (!GetNextInFlow())

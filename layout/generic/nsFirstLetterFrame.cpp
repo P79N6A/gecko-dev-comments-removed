@@ -215,7 +215,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
 
     
     
-    mBaseline = aMetrics.ascent;
+    mBaseline = aMetrics.TopAscent();
   }
   else {
     
@@ -231,13 +231,13 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
   }
 
   
-  kid->SetRect(nsRect(bp.left, bp.top, aMetrics.width, aMetrics.height));
+  kid->SetRect(nsRect(bp.left, bp.top, aMetrics.Width(), aMetrics.Height()));
   kid->FinishAndStoreOverflow(&aMetrics);
   kid->DidReflow(aPresContext, nullptr, nsDidReflowStatus::FINISHED);
 
-  aMetrics.width += lr;
-  aMetrics.height += tb;
-  aMetrics.ascent += bp.top;
+  aMetrics.Width() += lr;
+  aMetrics.Height() += tb;
+  aMetrics.SetTopAscent(aMetrics.TopAscent() + bp.top);
 
   
   

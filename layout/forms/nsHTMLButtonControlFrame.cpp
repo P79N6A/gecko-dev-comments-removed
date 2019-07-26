@@ -283,7 +283,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                                         aFirstKid, availSize);
 
   nsReflowStatus contentsReflowStatus;
-  nsHTMLReflowMetrics contentsDesiredSize;
+  nsHTMLReflowMetrics contentsDesiredSize(aButtonReflowState.GetWritingMode());
   ReflowChild(aFirstKid, aPresContext,
               contentsDesiredSize, contentsReflowState,
               xoffset,
@@ -302,7 +302,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
     
     
     buttonContentBoxHeight =
-      contentsDesiredSize.height + focusPadding.TopBottom();
+      contentsDesiredSize.Height() + focusPadding.TopBottom();
 
     
     
@@ -319,7 +319,7 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
   
   nscoord extraSpace =
     buttonContentBoxHeight - focusPadding.TopBottom() -
-    contentsDesiredSize.height;
+    contentsDesiredSize.Height();
 
   nscoord yoffset = std::max(0, extraSpace / 2);
 
@@ -333,22 +333,22 @@ nsHTMLButtonControlFrame::ReflowButtonContents(nsPresContext* aPresContext,
                     xoffset, yoffset, 0);
 
   
-  if (contentsDesiredSize.ascent == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
-    contentsDesiredSize.ascent = aFirstKid->GetBaseline();
+  if (contentsDesiredSize.TopAscent() == nsHTMLReflowMetrics::ASK_FOR_BASELINE) {
+    contentsDesiredSize.SetTopAscent(aFirstKid->GetBaseline());
   }
 
   
   
   
-  aButtonDesiredSize.width = aButtonReflowState.ComputedWidth() +
+  aButtonDesiredSize.Width() = aButtonReflowState.ComputedWidth() +
     aButtonReflowState.ComputedPhysicalBorderPadding().LeftRight();
 
-  aButtonDesiredSize.height = buttonContentBoxHeight +
+  aButtonDesiredSize.Height() = buttonContentBoxHeight +
     aButtonReflowState.ComputedPhysicalBorderPadding().TopBottom();
 
   
   
-  aButtonDesiredSize.ascent = contentsDesiredSize.ascent + yoffset;
+  aButtonDesiredSize.SetTopAscent(contentsDesiredSize.TopAscent() + yoffset);
 
   aButtonDesiredSize.SetOverflowAreasToDesiredBounds();
 }

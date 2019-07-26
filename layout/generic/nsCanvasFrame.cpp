@@ -492,10 +492,10 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsHTMLReflowMetrics kidDesiredSize;
+  nsHTMLReflowMetrics kidDesiredSize(aReflowState.GetWritingMode());
   if (mFrames.IsEmpty()) {
     
-    aDesiredSize.width = aDesiredSize.height = 0;
+    aDesiredSize.Width() = aDesiredSize.Height() = 0;
   } else {
     nsIFrame* kidFrame = mFrames.FirstChild();
     bool kidDirty = (kidFrame->GetStateBits() & NS_FRAME_IS_DIRTY) != 0;
@@ -560,12 +560,12 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
     
     
     
-    aDesiredSize.width = aReflowState.ComputedWidth();
+    aDesiredSize.Width() = aReflowState.ComputedWidth();
     if (aReflowState.ComputedHeight() == NS_UNCONSTRAINEDSIZE) {
-      aDesiredSize.height = kidFrame->GetRect().height +
+      aDesiredSize.Height() = kidFrame->GetRect().height +
         kidReflowState.ComputedPhysicalMargin().TopBottom();
     } else {
-      aDesiredSize.height = aReflowState.ComputedHeight();
+      aDesiredSize.Height() = aReflowState.ComputedHeight();
     }
 
     aDesiredSize.SetOverflowAreasToDesiredBounds();

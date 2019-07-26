@@ -383,7 +383,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
       aReflowState.ComputedWidth() + aReflowState.ComputedPhysicalPadding().LeftRight();
   }
 
-  nsHTMLReflowMetrics kidDesiredSize;
+  nsHTMLReflowMetrics kidDesiredSize(aReflowState.GetWritingMode());
   nsHTMLReflowState kidReflowState(aPresContext, aReflowState, aKidFrame,
                                    nsSize(availWidth, NS_UNCONSTRAINEDSIZE),
                                    aContainingBlock.width,
@@ -435,14 +435,14 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
       kidReflowState.ComputedPhysicalOffsets().left = aContainingBlockWidth -
                                              kidReflowState.ComputedPhysicalOffsets().right -
                                              kidReflowState.ComputedPhysicalMargin().right -
-                                             kidDesiredSize.width -
+                                             kidDesiredSize.Width() -
                                              kidReflowState.ComputedPhysicalMargin().left;
     }
     if (NS_AUTOOFFSET == kidReflowState.ComputedPhysicalOffsets().top) {
       kidReflowState.ComputedPhysicalOffsets().top = aContainingBlockHeight -
                                             kidReflowState.ComputedPhysicalOffsets().bottom -
                                             kidReflowState.ComputedPhysicalMargin().bottom -
-                                            kidDesiredSize.height -
+                                            kidDesiredSize.Height() -
                                             kidReflowState.ComputedPhysicalMargin().top;
     }
   }
@@ -450,7 +450,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
   
   nsRect  rect(border.left + kidReflowState.ComputedPhysicalOffsets().left + kidReflowState.ComputedPhysicalMargin().left,
                border.top + kidReflowState.ComputedPhysicalOffsets().top + kidReflowState.ComputedPhysicalMargin().top,
-               kidDesiredSize.width, kidDesiredSize.height);
+               kidDesiredSize.Width(), kidDesiredSize.Height());
 
   
   

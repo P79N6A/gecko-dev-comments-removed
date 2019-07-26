@@ -592,8 +592,8 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
 
   rv = nsTableOuterFrame::Reflow(aPresContext, aDesiredSize, aReflowState,
                                  aStatus);
-  NS_ASSERTION(aDesiredSize.height >= 0, "illegal height for mtable");
-  NS_ASSERTION(aDesiredSize.width >= 0, "illegal width for mtable");
+  NS_ASSERTION(aDesiredSize.Height() >= 0, "illegal height for mtable");
+  NS_ASSERTION(aDesiredSize.Width() >= 0, "illegal width for mtable");
 
   
   
@@ -609,7 +609,7 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
   
   
   nscoord dy = 0;
-  nscoord height = aDesiredSize.height;
+  nscoord height = aDesiredSize.Height();
   nsIFrame* rowFrame = nullptr;
   if (rowIndex) {
     rowFrame = GetRowFrameAt(aPresContext, rowIndex);
@@ -625,25 +625,25 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
   }
   switch (tableAlign) {
     case eAlign_top:
-      aDesiredSize.ascent = dy;
+      aDesiredSize.SetTopAscent(dy);
       break;
     case eAlign_bottom:
-      aDesiredSize.ascent = dy + height;
+      aDesiredSize.SetTopAscent(dy + height);
       break;
     case eAlign_center:
-      aDesiredSize.ascent = dy + height/2;
+      aDesiredSize.SetTopAscent(dy + height / 2);
       break;
     case eAlign_baseline:
       if (rowFrame) {
         
         nscoord rowAscent = ((nsTableRowFrame*)rowFrame)->GetMaxCellAscent();
         if (rowAscent) { 
-          aDesiredSize.ascent = dy + rowAscent;
+          aDesiredSize.SetTopAscent(dy + rowAscent);
           break;
         }
       }
       
-      aDesiredSize.ascent = dy + height/2;
+      aDesiredSize.SetTopAscent(dy + height / 2);
       break;
     case eAlign_axis:
     default: {
@@ -661,25 +661,25 @@ nsMathMLmtableOuterFrame::Reflow(nsPresContext*          aPresContext,
         
         nscoord rowAscent = ((nsTableRowFrame*)rowFrame)->GetMaxCellAscent();
         if (rowAscent) { 
-          aDesiredSize.ascent = dy + rowAscent;
+          aDesiredSize.SetTopAscent(dy + rowAscent);
           break;
         }
       }
       
-      aDesiredSize.ascent = dy + height/2 + axisHeight;
+      aDesiredSize.SetTopAscent(dy + height / 2 + axisHeight);
     }
   }
 
   mReference.x = 0;
-  mReference.y = aDesiredSize.ascent;
+  mReference.y = aDesiredSize.TopAscent();
 
   
   mBoundingMetrics = nsBoundingMetrics();
-  mBoundingMetrics.ascent = aDesiredSize.ascent;
-  mBoundingMetrics.descent = aDesiredSize.height - aDesiredSize.ascent;
-  mBoundingMetrics.width = aDesiredSize.width;
+  mBoundingMetrics.ascent = aDesiredSize.TopAscent();
+  mBoundingMetrics.descent = aDesiredSize.Height() - aDesiredSize.TopAscent();
+  mBoundingMetrics.width = aDesiredSize.Width();
   mBoundingMetrics.leftBearing = 0;
-  mBoundingMetrics.rightBearing = aDesiredSize.width;
+  mBoundingMetrics.rightBearing = aDesiredSize.Width();
 
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);

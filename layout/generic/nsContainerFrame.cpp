@@ -1043,9 +1043,9 @@ nsContainerFrame::FinishReflowChild(nsIFrame*                  aKidFrame,
   nsPoint curOrigin = aKidFrame->GetPosition();
 
   if (NS_FRAME_NO_MOVE_FRAME != (aFlags & NS_FRAME_NO_MOVE_FRAME)) {
-    aKidFrame->SetRect(nsRect(aX, aY, aDesiredSize.width, aDesiredSize.height));
+    aKidFrame->SetRect(nsRect(aX, aY, aDesiredSize.Width(), aDesiredSize.Height()));
   } else {
-    aKidFrame->SetSize(nsSize(aDesiredSize.width, aDesiredSize.height));
+    aKidFrame->SetSize(nsSize(aDesiredSize.Width(), aDesiredSize.Height()));
   }
 
   if (aKidFrame->HasView()) {
@@ -1147,7 +1147,7 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
 
       
       nsSize availSpace(prevRect.width, aReflowState.AvailableHeight());
-      nsHTMLReflowMetrics desiredSize;
+      nsHTMLReflowMetrics desiredSize(aReflowState.GetWritingMode());
       nsHTMLReflowState frameState(aPresContext, aReflowState,
                                    frame, availSpace);
       nsReflowStatus frameStatus;

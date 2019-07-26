@@ -84,11 +84,11 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 {
   DO_GLOBAL_REFLOW_COUNT("BRFrame");
   DISPLAY_REFLOW(aPresContext, this, aReflowState, aMetrics, aStatus);
-  aMetrics.height = 0; 
+  aMetrics.Height() = 0; 
                        
                        
-  aMetrics.width = 0;
-  aMetrics.ascent = 0;
+  aMetrics.Width() = 0;
+  aMetrics.SetTopAscent(0);
 
   
   
@@ -118,12 +118,11 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       aReflowState.rendContext->SetFont(fm); 
       if (fm) {
         nscoord logicalHeight = aReflowState.CalcLineHeight();
-        aMetrics.height = logicalHeight;
-        aMetrics.ascent =
-          nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight);
+        aMetrics.Height() = logicalHeight;
+        aMetrics.SetTopAscent(nsLayoutUtils::GetCenteredFontBaseline(fm, logicalHeight));
       }
       else {
-        aMetrics.ascent = aMetrics.height = 0;
+        aMetrics.SetTopAscent(aMetrics.Height() = 0);
       }
 
       
@@ -132,7 +131,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
       
       
       
-      aMetrics.width = 1;
+      aMetrics.Width() = 1;
     }
 
     
@@ -151,7 +150,7 @@ BRFrame::Reflow(nsPresContext* aPresContext,
 
   aMetrics.SetOverflowAreasToDesiredBounds();
 
-  mAscent = aMetrics.ascent;
+  mAscent = aMetrics.TopAscent();
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aMetrics);
   return NS_OK;
