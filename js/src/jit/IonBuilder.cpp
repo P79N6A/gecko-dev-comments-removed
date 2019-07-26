@@ -6770,11 +6770,14 @@ IonBuilder::getElemTryScalarElemOfTypedObject(bool *emitted,
     
     types::TemporaryTypeSet *resultTypes = bytecodeTypes(pc);
     bool allowDouble = resultTypes->hasType(types::Type::DoubleType());
+    
+    
     MIRType knownType = MIRTypeForTypedArrayRead(elemTypeRepr->type(), allowDouble);
     
     
+    
+    
     load->setResultType(knownType);
-    load->setResultTypeSet(resultTypes);
 
     *emitted = true;
     return true;
@@ -8406,8 +8409,10 @@ IonBuilder::getPropTryScalarPropOfTypedObject(bool *emitted,
     MLoadTypedArrayElement *load =
         MLoadTypedArrayElement::New(alloc(), elements, scaledOffset,
                                     fieldTypeRepr->type());
+
+    
+    
     load->setResultType(knownType);
-    load->setResultTypeSet(resultTypes);
     current->add(load);
     current->push(load);
     *emitted = true;
