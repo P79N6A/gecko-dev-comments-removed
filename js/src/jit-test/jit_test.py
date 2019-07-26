@@ -147,7 +147,7 @@ def main(argv):
                       ['--no-baseline'],
                       ['--no-baseline', '--ion-eager'],
                       ['--baseline-eager'],
-                      ['--baseline-eager', '--no-ti'],
+                      ['--baseline-eager', '--no-ti', '--no-fpu'],
                       
                       ['--no-baseline', '--no-ion', '--no-jm', '--no-ti'],
                       ['--no-baseline', '--no-ion', '--no-ti'],

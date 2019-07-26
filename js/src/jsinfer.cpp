@@ -2382,31 +2382,6 @@ class TypeConstraintFreezeStack : public TypeConstraint
 
 
 
-static inline bool
-TypeInferenceSupported()
-{
-#ifdef JS_METHODJIT
-    
-    
-    
-    JSC::MacroAssembler masm;
-    if (!masm.supportsFloatingPoint())
-        return false;
-#endif
-
-#if WTF_ARM_ARCH_VERSION == 6
-#ifdef  JS_ION
-    return js::ion::hasVFP();
-#else
-    
-    
-    return false;
-#endif
-#endif
-
-    return true;
-}
-
 TypeCompartment::TypeCompartment()
 {
     PodZero(this);
@@ -2418,7 +2393,7 @@ TypeZone::init(JSContext *cx)
 {
     if (!cx ||
         !cx->hasOption(JSOPTION_TYPE_INFERENCE) ||
-        !TypeInferenceSupported())
+        !cx->runtime->jitSupportsFloatingPoint)
     {
         return;
     }

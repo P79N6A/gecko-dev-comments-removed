@@ -1304,6 +1304,8 @@ struct JSRuntime : private JS::shadow::Runtime,
 
     bool                jitHardening;
 
+    bool                jitSupportsFloatingPoint;
+
     
     
     void resetIonStackLimit() {

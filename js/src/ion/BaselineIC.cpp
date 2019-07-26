@@ -1662,6 +1662,9 @@ DoCompareFallback(JSContext *cx, BaselineFrame *frame, ICCompare_Fallback *stub,
         return true;
     }
 
+    if (!cx->runtime->jitSupportsFloatingPoint && (lhs.isNumber() || rhs.isNumber()))
+        return true;
+
     if (lhs.isNumber() && rhs.isNumber()) {
         IonSpew(IonSpew_BaselineIC, "  Generating %s(Number, Number) stub", js_CodeName[op]);
 
@@ -2070,7 +2073,7 @@ DoToBoolFallback(JSContext *cx, BaselineFrame *frame, ICToBool_Fallback *stub, H
         return true;
     }
 
-    if (arg.isDouble()) {
+    if (arg.isDouble() && cx->runtime->jitSupportsFloatingPoint) {
         IonSpew(IonSpew_BaselineIC, "  Generating ToBool(Double) stub.");
         ICToBool_Double::Compiler compiler(cx);
         ICStub *doubleStub = compiler.getStub(compiler.getStubSpace(script));
@@ -2456,6 +2459,9 @@ DoBinaryArithFallback(JSContext *cx, BaselineFrame *frame, ICBinaryArith_Fallbac
     JS_ASSERT(ret.isNumber());
 
     if (lhs.isDouble() || rhs.isDouble() || ret.isDouble()) {
+        if (!cx->runtime->jitSupportsFloatingPoint)
+            return true;
+
         switch (op) {
           case JSOP_ADD:
           case JSOP_SUB:
@@ -2912,7 +2918,10 @@ DoUnaryArithFallback(JSContext *cx, BaselineFrame *frame, ICUnaryArith_Fallback 
         return true;
     }
 
-    if (val.isNumber() && res.isNumber() && op == JSOP_NEG) {
+    if (val.isNumber() && res.isNumber() &&
+        op == JSOP_NEG &&
+        cx->runtime->jitSupportsFloatingPoint)
+    {
         IonSpew(IonSpew_BaselineIC, "  Generating %s(Number => Number) stub", js_CodeName[op]);
         
         stub->unlinkStubsWithKind(cx, ICStub::UnaryArith_Int32);
@@ -3256,6 +3265,15 @@ static bool TryAttachNativeGetElemStub(JSContext *cx, HandleScript script,
 }
 
 static bool
+TypedArrayRequiresFloatingPoint(JSObject *obj)
+{
+    uint32_t type = TypedArray::type(obj);
+    return (type == TypedArray::TYPE_UINT32 ||
+            type == TypedArray::TYPE_FLOAT32 ||
+            type == TypedArray::TYPE_FLOAT64);
+}
+
+static bool
 TryAttachGetElemStub(JSContext *cx, HandleScript script, ICGetElem_Fallback *stub,
                      HandleValue lhs, HandleValue rhs, HandleValue res)
 {
@@ -3303,6 +3321,9 @@ TryAttachGetElemStub(JSContext *cx, HandleScript script, ICGetElem_Fallback *stu
     if (obj->isTypedArray() && rhs.isInt32() && res.isNumber() &&
         !TypedArrayGetElemStubExists(stub, obj))
     {
+        if (!cx->runtime->jitSupportsFloatingPoint && TypedArrayRequiresFloatingPoint(obj))
+            return true;
+
         IonSpew(IonSpew_BaselineIC, "  Generating GetElem(TypedArray[Int32]) stub");
         ICGetElem_TypedArray::Compiler compiler(cx, obj->lastProperty(), TypedArray::type(obj));
         ICStub *typedArrayStub = compiler.getStub(compiler.getStubSpace(script));
@@ -3828,6 +3849,9 @@ DoSetElemFallback(JSContext *cx, BaselineFrame *frame, ICSetElem_Fallback *stub,
     }
 
     if (obj->isTypedArray() && index.isInt32() && rhs.isNumber()) {
+        if (!cx->runtime->jitSupportsFloatingPoint && TypedArrayRequiresFloatingPoint(obj))
+            return true;
+
         uint32_t len = TypedArray::length(obj);
         int32_t idx = index.toInt32();
         bool expectOutOfBounds = (idx < 0) || (static_cast<uint32_t>(idx) >= len);
@@ -3981,8 +4005,13 @@ ICSetElem_Dense::Compiler::generateStubCode(MacroAssembler &masm)
     EmitReturnFromIC(masm);
 
     
+    
+    
     masm.bind(&convertDoubles);
-    masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    if (cx->runtime->jitSupportsFloatingPoint)
+        masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    else
+        masm.breakpoint();
     masm.jump(&convertDoublesDone);
 
     
@@ -4144,8 +4173,13 @@ ICSetElemDenseAddCompiler::generateStubCode(MacroAssembler &masm)
     EmitReturnFromIC(masm);
 
     
+    
+    
     masm.bind(&convertDoubles);
-    masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    if (cx->runtime->jitSupportsFloatingPoint)
+        masm.convertInt32ValueToDouble(valueAddr, R0.scratchReg(), &convertDoublesDone);
+    else
+        masm.breakpoint();
     masm.jump(&convertDoublesDone);
 
     
@@ -4218,10 +4252,14 @@ ICSetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
         
         
         masm.bind(&notInt32);
-        masm.branchTestDouble(Assembler::NotEqual, value, &failure);
-        masm.unboxDouble(value, FloatReg0);
-        masm.clampDoubleToUint8(FloatReg0, secondScratch);
-        masm.jump(&clamped);
+        if (cx->runtime->jitSupportsFloatingPoint) {
+            masm.branchTestDouble(Assembler::NotEqual, value, &failure);
+            masm.unboxDouble(value, FloatReg0);
+            masm.clampDoubleToUint8(FloatReg0, secondScratch);
+            masm.jump(&clamped);
+        } else {
+            masm.jump(&failure);
+        }
     } else {
         Label notInt32;
         masm.branchTestInt32(Assembler::NotEqual, value, &notInt32);
@@ -4236,10 +4274,14 @@ ICSetElem_TypedArray::Compiler::generateStubCode(MacroAssembler &masm)
         
         Label failureRestoreRegs;
         masm.bind(&notInt32);
-        masm.branchTestDouble(Assembler::NotEqual, value, &failure);
-        masm.unboxDouble(value, FloatReg0);
-        masm.branchTruncateDouble(FloatReg0, secondScratch, &failureRestoreRegs);
-        masm.jump(&isInt32);
+        if (cx->runtime->jitSupportsFloatingPoint) {
+            masm.branchTestDouble(Assembler::NotEqual, value, &failure);
+            masm.unboxDouble(value, FloatReg0);
+            masm.branchTruncateDouble(FloatReg0, secondScratch, &failureRestoreRegs);
+            masm.jump(&isInt32);
+        } else {
+            masm.jump(&failure);
+        }
 
         
         
@@ -6511,6 +6553,18 @@ ICCall_Native::Compiler::generateStubCode(MacroAssembler &masm)
     return true;
 }
 
+static JSBool
+DoubleValueToInt32ForSwitch(Value *v)
+{
+    double d = v->toDouble();
+    int32_t truncated = int32_t(d);
+    if (d != double(truncated))
+        return false;
+
+    v->setInt32(truncated);
+    return true;
+}
+
 bool
 ICTableSwitch::Compiler::generateStubCode(MacroAssembler &masm)
 {
@@ -6537,10 +6591,27 @@ ICTableSwitch::Compiler::generateStubCode(MacroAssembler &masm)
     masm.bind(&notInt32);
 
     masm.branchTestDouble(Assembler::NotEqual, R0, &outOfRange);
-    masm.unboxDouble(R0, FloatReg0);
+    if (cx->runtime->jitSupportsFloatingPoint) {
+        masm.unboxDouble(R0, FloatReg0);
 
-    
-    masm.convertDoubleToInt32(FloatReg0, key, &outOfRange,  false);
+        
+        masm.convertDoubleToInt32(FloatReg0, key, &outOfRange,  false);
+    } else {
+        
+        masm.pushValue(R0);
+        masm.movePtr(StackPointer, R0.scratchReg());
+
+        masm.setupUnalignedABICall(1, scratch);
+        masm.passABIArg(R0.scratchReg());
+        masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, DoubleValueToInt32ForSwitch));
+
+        
+        
+        masm.mov(ReturnReg, scratch);
+        masm.popValue(R0);
+        masm.branchTest32(Assembler::Zero, scratch, scratch, &outOfRange);
+        masm.unboxInt32(R0, key);
+    }
     masm.jump(&isInt32);
 
     masm.bind(&outOfRange);
