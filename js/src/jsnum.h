@@ -44,6 +44,8 @@ extern const char js_parseInt_str[];
 
 class JSAtom;
 
+namespace js {
+
 
 
 
@@ -51,9 +53,7 @@ class JSAtom;
 
 template <js::AllowGC allowGC>
 extern JSString *
-js_NumberToString(js::ThreadSafeContext *cx, double d);
-
-namespace js {
+NumberToString(js::ThreadSafeContext *cx, double d);
 
 template <js::AllowGC allowGC>
 extern JSAtom *
