@@ -808,6 +808,9 @@ class IDLInterface(IDLObjectWithScope):
         assert self.isCallback() or self.isJSImplemented()
         return (
             
+            
+            not self.isJSImplemented() and
+            
             not self.parent and
             
             len(self.getConsequentialInterfaces()) == 0 and
