@@ -25,11 +25,11 @@ namespace layers {
 
 
 class ActiveElementManager {
+  ~ActiveElementManager();
 public:
   NS_INLINE_DECL_REFCOUNTING(ActiveElementManager)
 
   ActiveElementManager();
-  ~ActiveElementManager();
 
   
 

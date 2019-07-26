@@ -254,6 +254,8 @@ private:
 
   
   RefPtr<FilterNode> mFilterForColorModel[4];
+
+  ~FilterCachedColorModels() {}
 };
 
 FilterCachedColorModels::FilterCachedColorModels(DrawTarget* aDT,

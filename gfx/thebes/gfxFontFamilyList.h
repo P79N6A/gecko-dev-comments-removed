@@ -165,6 +165,14 @@ operator==(const FontFamilyName& a, const FontFamilyName& b) {
     return a.mType == b.mType && a.mName == b.mName;
 }
 
+class FontFamilyList;
+
+template<>
+struct HasDangerousPublicDestructor<FontFamilyList>
+{
+  static const bool value = true;
+};
+
 
 
 
