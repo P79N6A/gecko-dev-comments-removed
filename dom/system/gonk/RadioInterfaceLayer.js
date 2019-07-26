@@ -787,6 +787,8 @@ RadioInterfaceLayer.prototype = {
   },
 
   handleRadioStateChange: function handleRadioStateChange(message) {
+    this._changingRadioPower = false;
+
     let newState = message.radioState;
     if (this.rilContext.radioState == newState) {
       return;
@@ -812,6 +814,10 @@ RadioInterfaceLayer.prototype = {
     }
     if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_UNKNOWN) {
       
+      
+      return;
+    }
+    if (this._changingRadioPower) {
       
       return;
     }
@@ -1340,6 +1346,10 @@ RadioInterfaceLayer.prototype = {
 
   
   
+  _changingRadioPower: false,
+  
+  
+  
   
   _callWaitingEnabled: null,
 
@@ -1433,6 +1443,7 @@ RadioInterfaceLayer.prototype = {
 
   setRadioEnabled: function setRadioEnabled(value) {
     debug("Setting radio power to " + value);
+    this._changingRadioPower = true;
     this.worker.postMessage({rilMessageType: "setRadioPower", on: value});
   },
 
