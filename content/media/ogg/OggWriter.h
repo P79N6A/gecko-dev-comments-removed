@@ -31,7 +31,6 @@ public:
 
   
   nsresult SetMetadata(TrackMetadataBase* aMetadata) MOZ_OVERRIDE;
-
 private:
   nsresult Init();
 

@@ -64,6 +64,7 @@ public :
     : mWriter(aWriter)
     , mAudioEncoder(aAudioEncoder)
     , mVideoEncoder(aVideoEncoder)
+    , mStartTime(TimeStamp::Now())
     , mMIMEType(aMIMEType)
     , mState(MediaEncoder::ENCODE_METADDATA)
     , mShutdown(false)
@@ -91,8 +92,12 @@ public :
 
 
 
-  static already_AddRefed<MediaEncoder> CreateEncoder(const nsAString& aMIMEType);
+  static already_AddRefed<MediaEncoder> CreateEncoder(const nsAString& aMIMEType,
+                                                      uint8_t aTrackTypes = ContainerWriter::HAS_AUDIO);
+  
 
+
+  static bool OnEncoderThread();
   
 
 
@@ -128,12 +133,24 @@ public :
   }
 
 private:
+  
+  nsresult WriteEncodedDataToMuxer(TrackEncoder *aTrackEncoder);
+  
+  nsresult CopyMetadataToMuxer(TrackEncoder* aTrackEncoder);
   nsAutoPtr<ContainerWriter> mWriter;
   nsAutoPtr<AudioTrackEncoder> mAudioEncoder;
   nsAutoPtr<VideoTrackEncoder> mVideoEncoder;
+  TimeStamp mStartTime;
   nsString mMIMEType;
   int mState;
   bool mShutdown;
+  
+  double GetEncodeTimeStamp()
+  {
+    TimeDuration decodeTime;
+    decodeTime = TimeStamp::Now() - mStartTime;
+    return decodeTime.ToMilliseconds();
+  }
 };
 
 }

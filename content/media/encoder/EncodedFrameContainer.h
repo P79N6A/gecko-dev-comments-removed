@@ -52,6 +52,8 @@ public:
     P_FRAME,      
     B_FRAME,      
     AUDIO_FRAME,  
+    AAC_CSD,      
+    AVC_CSD,      
     UNKNOW        
   };
   const nsTArray<uint8_t>& GetFrameData() const
