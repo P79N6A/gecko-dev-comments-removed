@@ -167,11 +167,13 @@ public:
 
 
 
+
   void Draw(nsPresContext*       aPresContext,
             nsRenderingContext&  aRenderingContext,
             const nsRect&        aDirtyRect,
             const nsRect&        aFill,
-            const nsRect&        aDest);
+            const nsRect&        aDest,
+            const mozilla::CSSIntRect& aSrc);
   
 
 
@@ -195,12 +197,14 @@ public:
 
 
 
+
+
   void
   DrawBorderImageComponent(nsPresContext*       aPresContext,
                            nsRenderingContext&  aRenderingContext,
                            const nsRect&        aDirtyRect,
                            const nsRect&        aFill,
-                           const nsIntRect&     aSrc,
+                           const mozilla::CSSIntRect& aSrc,
                            uint8_t              aHFill,
                            uint8_t              aVFill,
                            const nsSize&        aUnitSize,
@@ -346,12 +350,21 @@ struct nsCSSRendering {
   
 
 
+
+
+
+
+
+
+
   static void PaintGradient(nsPresContext* aPresContext,
                             nsRenderingContext& aRenderingContext,
                             nsStyleGradient* aGradient,
                             const nsRect& aDirtyRect,
-                            const nsRect& aOneCellArea,
-                            const nsRect& aFillArea);
+                            const nsRect& aDest,
+                            const nsRect& aFill,
+                            const mozilla::CSSIntRect& aSrc,
+                            const nsSize& aIntrinsiceSize);
 
   
 
