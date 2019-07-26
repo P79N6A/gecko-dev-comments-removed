@@ -435,6 +435,17 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             if (Renderer() == RendererAdrenoTM320) {
                 MarkUnsupported(GLFeature::standard_derivatives);
             }
+            
+#ifdef XP_MACOSX
+            
+            
+            
+            if (Vendor() == gl::GLContext::VendorNVIDIA &&
+                !nsCocoaFeatures::OnMavericksOrLater())
+            {
+                MarkUnsupported(GLFeature::depth_texture);
+            }
+#endif
         }
 
         NS_ASSERTION(!IsExtensionSupported(GLContext::ARB_pixel_buffer_object) ||
@@ -916,18 +927,6 @@ GLContext::InitExtensions()
         
         MarkExtensionSupported(OES_EGL_sync);
     }
-
-#ifdef XP_MACOSX
-    
-    
-    
-    if (WorkAroundDriverBugs() &&
-        Vendor() == gl::GLContext::VendorNVIDIA &&
-        !nsCocoaFeatures::OnMavericksOrLater())
-    {
-        MarkExtensionUnsupported(gl::GLContext::EXT_packed_depth_stencil);
-    }
-#endif
 
 #ifdef DEBUG
     firstRun = false;
