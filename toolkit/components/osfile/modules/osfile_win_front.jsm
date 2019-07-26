@@ -574,6 +574,26 @@
      
 
 
+
+
+
+
+
+
+     File.getAvailableFreeSpace = function Win_getAvailableFreeSpace(sourcePath) {
+       let freeBytesAvailableToUser = new Type.uint64_t.implementation(0);
+       let freeBytesAvailableToUserPtr = freeBytesAvailableToUser.address();
+
+       throw_on_zero("getAvailableFreeSpace",
+         WinFile.GetDiskFreeSpaceEx(sourcePath, freeBytesAvailableToUserPtr, null, null)
+       );
+
+       return freeBytesAvailableToUser.value;
+     };
+
+     
+
+
      let gSystemTime = new Type.SystemTime.implementation();
      let gSystemTimePtr = gSystemTime.address();
 

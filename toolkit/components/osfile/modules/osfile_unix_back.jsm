@@ -219,6 +219,24 @@
        }
 
        
+       Type.fsblkcnt_t =
+         Type.uintn_t(Const.OSFILE_SIZEOF_FSBLKCNT_T).withName("fsblkcnt_t");
+
+       
+       
+       {
+         let statvfs = new SharedAll.HollowStructure("statvfs",
+           Const.OSFILE_SIZEOF_STATVFS);
+
+         statvfs.add_field_at(Const.OSFILE_OFFSETOF_STATVFS_F_BSIZE,
+                        "f_bsize", Type.unsigned_long.implementation);
+         statvfs.add_field_at(Const.OSFILE_OFFSETOF_STATVFS_F_BAVAIL,
+                        "f_bavail", Type.fsblkcnt_t.implementation);
+
+         Type.statvfs = statvfs.getType();
+       }
+
+       
 
        
        libc.declareLazy(SysFile, "_close",
@@ -505,6 +523,12 @@
                     Type.off_t.in_ptr,
                         Type.size_t,
                       Type.unsigned_int); 
+
+       libc.declareLazyFFI(SysFile,  "statvfs",
+                               "statvfs", ctypes.default_abi,
+                     Type.negativeone_or_nothing,
+                       Type.path,
+                        Type.statvfs.out_ptr);
 
        libc.declareLazyFFI(SysFile,  "symlink",
                                "symlink", ctypes.default_abi,

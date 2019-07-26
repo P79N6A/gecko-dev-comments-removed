@@ -354,6 +354,27 @@
      
 
 
+
+
+
+
+
+
+     File.getAvailableFreeSpace = function Unix_getAvailableFreeSpace(sourcePath) {
+       let fileSystemInfo = new Type.statvfs.implementation();
+       let fileSystemInfoPtr = fileSystemInfo.address();
+
+       throw_on_negative("statvfs",  UnixFile.statvfs(sourcePath, fileSystemInfoPtr));
+
+       let bytes = new Type.uint64_t.implementation(
+                        fileSystemInfo.f_bsize * fileSystemInfo.f_bavail);
+
+       return bytes.value;
+     };
+
+     
+
+
      const DEFAULT_UNIX_MODE_DIR = Const.S_IRWXU;
 
      
