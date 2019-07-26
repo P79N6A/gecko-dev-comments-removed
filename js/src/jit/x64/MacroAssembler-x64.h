@@ -1148,8 +1148,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void linkExitFrame() {
-        mov(ImmPtr(GetIonContext()->runtime), ScratchReg);
-        mov(StackPointer, Operand(ScratchReg, offsetof(JSRuntime, mainThread.ionTop)));
+        storePtr(StackPointer,
+                 AbsoluteAddress(&GetIonContext()->runtime->mainThread.ionTop));
     }
 
     void callWithExitFrame(IonCode *target, Register dynStack) {
