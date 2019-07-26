@@ -271,9 +271,6 @@ function RadioInterfaceLayer() {
   lock.get("ril.supl.httpProxyPort", this);
 
   
-  lock.get("ril.callwaiting.enabled", this);
-
-  
   
   lock.get(kTimeNitzAutomaticUpdateEnabled, this);
 
@@ -829,12 +826,6 @@ RadioInterfaceLayer.prototype = {
     
     
     voiceInfo.type = "gsm";
-
-    
-    if (voiceInfo.connected && this.callWaitingStatus == null) {
-      
-      this.setCallWaitingEnabled(this._callWaitingEnabled);
-    }
 
     
     
