@@ -1192,6 +1192,80 @@ CodeGeneratorMIPS::visitFloorF(LFloorF *lir)
 }
 
 bool
+CodeGeneratorMIPS::visitCeil(LCeil *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    Label performCeil, done;
+
+    
+    masm.loadConstantDouble(0, scratch);
+    masm.branchDouble(Assembler::DoubleGreaterThan, input, scratch, &performCeil);
+    masm.loadConstantDouble(-1, scratch);
+    masm.branchDouble(Assembler::DoubleLessThanOrEqual, input, scratch, &performCeil);
+
+    
+    masm.moveFromDoubleHi(input, SecondScratchReg);
+    if (!bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0), lir->snapshot()))
+        return false;
+
+    
+    masm.move32(Imm32(0), output);
+    masm.ma_b(&done, ShortJump);
+
+    masm.bind(&performCeil);
+    masm.as_ceilwd(scratch, input);
+    masm.moveFromDoubleLo(scratch, output);
+
+    if (!bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot()))
+        return false;
+    if (!bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot()))
+        return false;
+
+    masm.bind(&done);
+    return true;
+}
+
+bool
+CodeGeneratorMIPS::visitCeilF(LCeilF *lir)
+{
+    FloatRegister input = ToFloatRegister(lir->input());
+    FloatRegister scratch = ScratchFloatReg;
+    Register output = ToRegister(lir->output());
+
+    Label performCeil, done;
+
+    
+    masm.loadConstantFloat32(0, scratch);
+    masm.branchFloat(Assembler::DoubleGreaterThan, input, scratch, &performCeil);
+    masm.loadConstantFloat32(-1, scratch);
+    masm.branchFloat(Assembler::DoubleLessThanOrEqual, input, scratch, &performCeil);
+
+    
+    masm.moveFromFloat32(input, SecondScratchReg);
+    if (!bailoutCmp32(Assembler::NotEqual, SecondScratchReg, Imm32(0), lir->snapshot()))
+        return false;
+
+    
+    masm.move32(Imm32(0), output);
+    masm.ma_b(&done, ShortJump);
+
+    masm.bind(&performCeil);
+    masm.as_ceilws(scratch, input);
+    masm.moveFromFloat32(scratch, output);
+
+    if (!bailoutCmp32(Assembler::Equal, output, Imm32(INT_MIN), lir->snapshot()))
+        return false;
+    if (!bailoutCmp32(Assembler::Equal, output, Imm32(INT_MAX), lir->snapshot()))
+        return false;
+
+    masm.bind(&done);
+    return true;
+}
+
+bool
 CodeGeneratorMIPS::visitRound(LRound *lir)
 {
     FloatRegister input = ToFloatRegister(lir->input());
