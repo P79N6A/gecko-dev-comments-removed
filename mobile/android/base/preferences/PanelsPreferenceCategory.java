@@ -6,6 +6,7 @@ package org.mozilla.gecko.preferences;
 
 import org.mozilla.gecko.home.HomeConfig;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
+import org.mozilla.gecko.home.HomeConfig.State;
 import org.mozilla.gecko.util.ThreadUtils;
 import org.mozilla.gecko.util.UiAsyncTask;
 
@@ -17,6 +18,9 @@ public class PanelsPreferenceCategory extends CustomListCategory {
 
     protected HomeConfig mHomeConfig;
     protected HomeConfig.Editor mConfigEditor;
+
+    
+    private static final int PANEL_PREFS_OFFSET = 1;
 
     protected UiAsyncTask<Void, Void, HomeConfig.State> mLoadTask;
 
@@ -65,10 +69,16 @@ public class PanelsPreferenceCategory extends CustomListCategory {
         mLoadTask.execute();
     }
 
+    public void refresh() {
+        refresh(null);
+    }
+
     
 
 
-    public void refresh() {
+
+
+    public void refresh(State state) {
         
         
         int prefCount = getPreferenceCount();
@@ -77,15 +87,20 @@ public class PanelsPreferenceCategory extends CustomListCategory {
             prefCount--;
         }
 
-        loadHomeConfig();
+        if (state == null) {
+            loadHomeConfig();
+        } else {
+            displayHomeConfig(state);
+        }
     }
 
     private void displayHomeConfig(HomeConfig.State configState) {
+        int index = 0;
         for (PanelConfig panelConfig : configState) {
             final boolean isRemovable = panelConfig.isDynamic();
 
             
-            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this, isRemovable);
+            final PanelsPreference pref = new PanelsPreference(getContext(), PanelsPreferenceCategory.this, isRemovable, index);
             pref.setTitle(panelConfig.getTitle());
             pref.setKey(panelConfig.getId());
             
@@ -94,9 +109,23 @@ public class PanelsPreferenceCategory extends CustomListCategory {
             if (panelConfig.isDisabled()) {
                 pref.setHidden(true);
             }
+
+            index++;
         }
 
+        setPositionState();
         setDefaultFromConfig();
+    }
+
+    private void setPositionState() {
+        final int prefCount = getPreferenceCount();
+
+        
+        final PanelsPreference firstPref = (PanelsPreference) getPreference(PANEL_PREFS_OFFSET);
+        firstPref.setIsFirst();
+
+        final PanelsPreference lastPref = (PanelsPreference) getPreference(prefCount - 1);
+        lastPref.setIsLast();
     }
 
     private void setDefaultFromConfig() {
@@ -147,6 +176,24 @@ public class PanelsPreferenceCategory extends CustomListCategory {
         mConfigEditor.apply();
 
         super.uninstall(pref);
+    }
+
+    public void moveUp(PanelsPreference pref) {
+        final int panelIndex = pref.getIndex();
+        if (panelIndex > 0) {
+            mConfigEditor.moveTo(pref.getKey(), panelIndex - 1);
+            final State state = mConfigEditor.apply();
+            refresh(state);
+        }
+    }
+
+    public void moveDown(PanelsPreference pref) {
+        final int panelIndex = pref.getIndex();
+        if (panelIndex < getPreferenceCount() - 1) {
+            mConfigEditor.moveTo(pref.getKey(), panelIndex + 1);
+            final State state = mConfigEditor.apply();
+            refresh(state);
+        }
     }
 
     
