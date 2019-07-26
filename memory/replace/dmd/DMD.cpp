@@ -694,14 +694,16 @@ public:
   
   
 
-  static uint32_t Hash(const LiveBlockKey& aKey)
+  typedef LiveBlockKey Lookup;
+
+  static uint32_t hash(const LiveBlockKey& aKey)
   {
     return mozilla::HashGeneric(aKey.mAllocStackTrace,
                                 aKey.mReportStackTrace,
                                 aKey.mReporterName);
   }
 
-  static bool Match(const LiveBlockKey& aA, const LiveBlockKey& aB)
+  static bool match(const LiveBlockKey& aA, const LiveBlockKey& aB)
   {
     return aA.mAllocStackTrace  == aB.mAllocStackTrace &&
            aA.mReportStackTrace == aB.mReportStackTrace &&
@@ -752,7 +754,9 @@ public:
   
   
 
-  static uint32_t Hash(const DoubleReportBlockKey& aKey)
+  typedef DoubleReportBlockKey Lookup;
+
+  static uint32_t hash(const DoubleReportBlockKey& aKey)
   {
     return mozilla::HashGeneric(aKey.mAllocStackTrace,
                                 aKey.mReportStackTrace1,
@@ -761,7 +765,7 @@ public:
                                 aKey.mReporterName2);
   }
 
-  static bool Match(const DoubleReportBlockKey& aA,
+  static bool match(const DoubleReportBlockKey& aA,
                     const DoubleReportBlockKey& aB)
   {
     return aA.mAllocStackTrace   == aB.mAllocStackTrace &&
@@ -1096,20 +1100,6 @@ public:
 
     return BlockSize::Cmp(a->mCombinedSize, b->mCombinedSize);
   }
-
-  
-
-  typedef LiveBlockKey Lookup;
-
-  static uint32_t hash(const LiveBlockKey& aKey)
-  {
-    return LiveBlockKey::Hash(aKey);
-  }
-
-  static bool match(const LiveBlockGroup& aBg, const LiveBlockKey& aKey)
-  {
-    return LiveBlockKey::Match(aBg, aKey);
-  }
 };
 
 typedef js::HashSet<LiveBlockGroup, LiveBlockGroup, InfallibleAllocPolicy>
@@ -1176,21 +1166,6 @@ public:
       *static_cast<const DoubleReportBlockGroup* const*>(aB);
 
     return BlockSize::Cmp(a->mCombinedSize, b->mCombinedSize);
-  }
-
-  
-
-  typedef DoubleReportBlockKey Lookup;
-
-  static uint32_t hash(const DoubleReportBlockKey& aKey)
-  {
-    return DoubleReportBlockKey::Hash(aKey);
-  }
-
-  static bool match(const DoubleReportBlockGroup& aBg,
-                    const DoubleReportBlockKey& aKey)
-  {
-    return DoubleReportBlockKey::Match(aBg, aKey);
   }
 };
 
