@@ -2,7 +2,7 @@
 
 
 Cu.import("resource://services-common/utils.js");
-Cu.import("resource://gre/modules/osfile.jsm")
+Cu.import("resource://gre/modules/osfile.jsm");
 
 function run_test() {
   initTestLogging();

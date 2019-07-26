@@ -221,8 +221,8 @@
        
 
        
-       SharedAll.declareLazy(SysFile, "_close", libc,
-           "close", ctypes.default_abi,
+       libc.declareLazy(SysFile, "_close",
+                        "close", ctypes.default_abi,
                         ctypes.int,
                              ctypes.int);
 
@@ -231,8 +231,8 @@
          return fd.dispose();
        };
 
-       SharedAll.declareLazy(SysFile, "_close_dir", libc,
-                             "closedir", ctypes.default_abi,
+       libc.declareLazy(SysFile, "_close_dir",
+                        "closedir", ctypes.default_abi,
                         ctypes.int,
                            Type.DIR.in_ptr.implementation);
 
@@ -244,14 +244,14 @@
        {
          
          
-         let default_lib = libc;
+         let default_lib = new SharedAll.Library("default_lib",
+                                                 "a.out");
          try {
            
            
            
-           default_lib = ctypes.open("a.out");
 
-           SharedAll.declareLazy(SysFile, "free", default_lib,
+           default_lib.declareLazy(SysFile, "free",
              "free", ctypes.default_abi,
               ctypes.void_t,
                  ctypes.voidptr_t);
@@ -260,7 +260,7 @@
            
            
 
-           SharedAll.declareLazy(SysFile, "free", libc,
+           libc.declareLazy(SysFile, "free",
              "free", ctypes.default_abi,
               ctypes.void_t,
                  ctypes.voidptr_t);
@@ -269,36 +269,42 @@
 
 
        
-       declareLazyFFI(SysFile,  "access", libc, "access", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                       Type.int);
+       libc.declareLazyFFI(SysFile,  "access",
+                           "access", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path,
+                              Type.int);
 
-       declareLazyFFI(SysFile,  "chdir", libc, "chdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path);
+       libc.declareLazyFFI(SysFile,  "chdir",
+                           "chdir", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path);
 
-       declareLazyFFI(SysFile,  "chmod", libc, "chmod", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                       Type.mode_t);
+       libc.declareLazyFFI(SysFile,  "chmod",
+                           "chmod", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path,
+                              Type.mode_t);
 
-       declareLazyFFI(SysFile,  "chown", libc, "chown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                        Type.uid_t,
-                        Type.gid_t);
+       libc.declareLazyFFI(SysFile,  "chown",
+                           "chown", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path,
+                               Type.uid_t,
+                               Type.gid_t);
 
-       declareLazyFFI(SysFile,  "copyfile", libc, "copyfile", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path,
-                       Type.path,
-                      Type.void_t.in_ptr, 
-                      Type.uint32_t);
+       libc.declareLazyFFI(SysFile,  "copyfile",
+                           "copyfile", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                            Type.path,
+                              Type.path,
+                             Type.void_t.in_ptr, 
+                             Type.uint32_t);
 
-       declareLazyFFI(SysFile,  "dup", libc, "dup", ctypes.default_abi,
-                     Type.negativeone_or_fd,
-                         Type.fd);
+       libc.declareLazyFFI(SysFile,  "dup",
+                           "dup", ctypes.default_abi,
+                            Type.negativeone_or_fd,
+                                Type.fd);
 
        if ("OSFILE_SIZEOF_DIR" in Const) {
          
@@ -308,127 +314,150 @@
            };
        } else {
          
-         declareLazyFFI(SysFile,  "dirfd", libc, "dirfd", ctypes.default_abi,
-                       Type.negativeone_or_fd,
-                          Type.DIR.in_ptr);
+         libc.declareLazyFFI(SysFile,  "dirfd",
+                             "dirfd", ctypes.default_abi,
+                              Type.negativeone_or_fd,
+                                 Type.DIR.in_ptr);
        }
 
-       declareLazyFFI(SysFile,  "chdir", libc, "chdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path);
+       libc.declareLazyFFI(SysFile,  "chdir",
+                           "chdir", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path);
 
-       declareLazyFFI(SysFile,  "fchdir", libc, "fchdir", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd);
+       libc.declareLazyFFI(SysFile,  "fchdir",
+                           "fchdir", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                                Type.fd);
 
-       declareLazyFFI(SysFile,  "fchown", libc, "fchown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd,
-                      Type.uid_t,
-                      Type.gid_t);
+       libc.declareLazyFFI(SysFile,  "fchown",
+                           "fchown", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                                Type.fd,
+                             Type.uid_t,
+                             Type.gid_t);
 
-       declareLazyFFI(SysFile,  "fsync", libc, "fsync", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd);
+       libc.declareLazyFFI(SysFile,  "fsync",
+                           "fsync", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                                Type.fd);
 
-       declareLazyFFI(SysFile,  "getcwd", libc, "getcwd", ctypes.default_abi,
-                     Type.out_path,
-                        Type.out_path,
-                       Type.size_t);
+       libc.declareLazyFFI(SysFile,  "getcwd",
+                           "getcwd", ctypes.default_abi,
+                            Type.out_path,
+                               Type.out_path,
+                              Type.size_t);
 
-       declareLazyFFI(SysFile,  "getwd", libc, "getwd", ctypes.default_abi,
-                     Type.out_path,
-                        Type.out_path);
-
-       
-       
-
-       
-       declareLazyFFI(SysFile,  "get_current_dir_name", libc,
-                      "get_current_dir_name", ctypes.default_abi,
-                       Type.out_path.releaseWith(SysFile.free));
+       libc.declareLazyFFI(SysFile,  "getwd",
+                           "getwd", ctypes.default_abi,
+                            Type.out_path,
+                               Type.out_path);
 
        
-       declareLazyFFI(SysFile,  "getwd_auto", libc,
-                      "getwd", ctypes.default_abi,
-                       Type.out_path.releaseWith(SysFile.free),
-                          Type.void_t.out_ptr);
+       
 
-       declareLazyFFI(SysFile,  "fdatasync", libc,
-                      "fdatasync", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd); 
+       
+       libc.declareLazyFFI(SysFile,  "get_current_dir_name",
+                           "get_current_dir_name", ctypes.default_abi,
+                            Type.out_path.releaseWithLazy(() =>
+                             SysFile.free
+                           ));
 
-       declareLazyFFI(SysFile,  "ftruncate", libc,
-                      "ftruncate", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                         Type.fd,
-                     Type.off_t);
+       
+       libc.declareLazyFFI(SysFile,  "getwd_auto",
+                           "getwd", ctypes.default_abi,
+                            Type.out_path.releaseWithLazy(() =>
+                             SysFile.free
+                           ),
+                               Type.void_t.out_ptr);
+
+       libc.declareLazyFFI(SysFile,  "fdatasync",
+                           "fdatasync", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                                Type.fd); 
+
+       libc.declareLazyFFI(SysFile,  "ftruncate",
+                           "ftruncate", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                                Type.fd,
+                            Type.off_t);
 
 
-       declareLazyFFI(SysFile,  "lchown", libc, "lchown", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                       Type.path,
-                      Type.uid_t,
-                      Type.gid_t);
+       libc.declareLazyFFI(SysFile,  "lchown",
+                           "lchown", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                              Type.path,
+                             Type.uid_t,
+                             Type.gid_t);
 
-       declareLazyFFI(SysFile,  "link", libc, "link", ctypes.default_abi,
-                     Type.negativeone_or_nothing,
-                     Type.path,
-                       Type.path);
+       libc.declareLazyFFI(SysFile,  "link",
+                           "link", ctypes.default_abi,
+                            Type.negativeone_or_nothing,
+                            Type.path,
+                              Type.path);
 
-       declareLazyFFI(SysFile,  "lseek", libc, "lseek", ctypes.default_abi,
-                     Type.off_t,
-                         Type.fd,
-                     Type.off_t,
-                     Type.int);
+       libc.declareLazyFFI(SysFile,  "lseek",
+                           "lseek", ctypes.default_abi,
+                            Type.off_t,
+                                Type.fd,
+                            Type.off_t,
+                            Type.int);
 
-       declareLazyFFI(SysFile,  "mkdir", libc, "mkdir", ctypes.default_abi,
-                     Type.int,
-                     Type.path,
-                     Type.int);
+       libc.declareLazyFFI(SysFile,  "mkdir",
+                           "mkdir", ctypes.default_abi,
+                            Type.int,
+                            Type.path,
+                            Type.int);
 
-       declareLazyFFI(SysFile,  "mkstemp", libc, "mkstemp", ctypes.default_abi,
-                     Type.fd,
-                    Type.out_path);
+       libc.declareLazyFFI(SysFile,  "mkstemp",
+                           "mkstemp", ctypes.default_abi,
+                              Type.fd,
+                            Type.out_path);
 
-       declareLazyFFI(SysFile,  "open", libc, "open", ctypes.default_abi,
-                    Type.negativeone_or_fd,
-                      Type.path,
-                    Type.int,
-                      Type.int);
+       libc.declareLazyFFI(SysFile,  "open",
+                           "open", ctypes.default_abi,
+                            Type.negativeone_or_fd,
+                              Type.path,
+                            Type.int,
+                              Type.int);
 
        if (OS.Constants.Sys.Name == "NetBSD") {
-          declareLazyFFI(SysFile,  "opendir", libc, "__opendir30", ctypes.default_abi,
+          libc.declareLazyFFI(SysFile,  "opendir",
+                              "__opendir30", ctypes.default_abi,
                     Type.null_or_DIR_ptr,
                       Type.path);
        } else {
-          declareLazyFFI(SysFile,  "opendir", libc, "opendir", ctypes.default_abi,
+          libc.declareLazyFFI(SysFile,  "opendir",
+                              "opendir", ctypes.default_abi,
                      Type.null_or_DIR_ptr,
                        Type.path);
        }
 
-       declareLazyFFI(SysFile,  "pread", libc, "pread", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "pread",
+                               "pread", ctypes.default_abi,
                      Type.negativeone_or_ssize_t,
                          Type.fd,
                         Type.void_t.out_ptr,
                      Type.size_t,
                      Type.off_t);
 
-       declareLazyFFI(SysFile,  "pwrite", libc, "pwrite", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "pwrite",
+                               "pwrite", ctypes.default_abi,
                      Type.negativeone_or_ssize_t,
                          Type.fd,
                         Type.void_t.in_ptr,
                      Type.size_t,
                      Type.off_t);
 
-       declareLazyFFI(SysFile,  "read", libc, "read", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "read",
+                              "read", ctypes.default_abi,
                     Type.negativeone_or_ssize_t,
                         Type.fd,
                        Type.void_t.out_ptr,
                     Type.size_t);
 
-       declareLazyFFI(SysFile,  "posix_fadvise", libc, "posix_fadvise", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "posix_fadvise",
+                               "posix_fadvise", ctypes.default_abi,
                      Type.int,
                          Type.fd,
                      Type.off_t,
@@ -440,29 +469,35 @@
          
          
          
-         declareLazyFFI(SysFile,  "readdir", libc, "readdir$INODE64", ctypes.default_abi,
-                     Type.null_or_dirent_ptr,
+         libc.declareLazyFFI(SysFile,  "readdir",
+                                "readdir$INODE64", ctypes.default_abi,
+                      Type.null_or_dirent_ptr,
                          Type.DIR.in_ptr); 
        } else if (OS.Constants.Sys.Name == "NetBSD") {
-         declareLazyFFI(SysFile,  "readdir", libc, "__readdir30", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "readdir",
+                                "__readdir30", ctypes.default_abi,
                       Type.null_or_dirent_ptr,
                          Type.DIR.in_ptr); 
        } else {
-         declareLazyFFI(SysFile,  "readdir", libc, "readdir", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "readdir",
+                                "readdir", ctypes.default_abi,
                       Type.null_or_dirent_ptr,
                          Type.DIR.in_ptr); 
        }
 
-       declareLazyFFI(SysFile,  "rename", libc, "rename", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "rename",
+                               "rename", ctypes.default_abi,
                      Type.negativeone_or_nothing,
                         Type.path,
                         Type.path);
 
-       declareLazyFFI(SysFile,  "rmdir", libc, "rmdir", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "rmdir",
+                               "rmdir", ctypes.default_abi,
                      Type.int,
                        Type.path);
 
-       declareLazyFFI(SysFile,  "splice", libc, "splice", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "splice",
+                               "splice", ctypes.default_abi,
                      Type.long,
                       Type.fd,
                      Type.off_t.in_ptr,
@@ -471,21 +506,25 @@
                         Type.size_t,
                       Type.unsigned_int); 
 
-       declareLazyFFI(SysFile,  "symlink", libc, "symlink", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "symlink",
+                               "symlink", ctypes.default_abi,
                      Type.negativeone_or_nothing,
                      Type.path,
                        Type.path);
 
-       declareLazyFFI(SysFile,  "truncate", libc, "truncate", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "truncate",
+                              "truncate", ctypes.default_abi,
                     Type.negativeone_or_nothing,
                       Type.path,
                      Type.off_t);
 
-       declareLazyFFI(SysFile,  "unlink", libc, "unlink", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "unlink",
+                           "unlink", ctypes.default_abi,
                      Type.negativeone_or_nothing,
                      Type.path);
 
-       declareLazyFFI(SysFile,  "write", libc, "write", ctypes.default_abi,
+       libc.declareLazyFFI(SysFile,  "write",
+                           "write", ctypes.default_abi,
                      Type.negativeone_or_ssize_t,
                          Type.fd,
                         Type.void_t.in_ptr,
@@ -497,17 +536,20 @@
        
        if (Const._DARWIN_FEATURE_64_BIT_INODE) {
          
-         declareLazyFFI(SysFile,  "stat", libc, "stat$INODE64", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "stat",
+                             "stat$INODE64", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "lstat", libc, "lstat$INODE64", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "lstat",
+                             "lstat$INODE64", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "fstat", libc, "fstat$INODE64", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "fstat",
+                             "fstat$INODE64", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.fd,
                           Type.stat.out_ptr
@@ -528,18 +570,20 @@
          }
 
          let Stat = {};
-         declareLazyFFI(Stat,  "xstat", libc, xstat_name, ctypes.default_abi,
+         libc.declareLazyFFI(Stat,  "xstat",
+                             xstat_name, ctypes.default_abi,
                           Type.negativeone_or_nothing,
                        Type.int,
                             Type.path,
                              Type.stat.out_ptr);
-         declareLazyFFI(Stat,  "lxstat", libc, lxstat_name, ctypes.default_abi,
+         libc.declareLazyFFI(Stat,  "lxstat",
+                             lxstat_name, ctypes.default_abi,
                           Type.negativeone_or_nothing,
                        Type.int,
                             Type.path,
                              Type.stat.out_ptr);
-         declareLazyFFI(Stat, "fxstat", libc,
-           fxstat_name, ctypes.default_abi,
+         libc.declareLazyFFI(Stat, "fxstat",
+                             fxstat_name, ctypes.default_abi,
                           Type.negativeone_or_nothing,
                        Type.int,
                               Type.fd,
@@ -559,34 +603,40 @@
          };
        } else if (OS.Constants.Sys.Name == "NetBSD") {
          
-         declareLazyFFI(SysFile,  "stat", libc, "__stat50", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "stat",
+                             "__stat50", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "lstat", libc, "__lstat50", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "lstat",
+                             "__lstat50", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "fstat", libc, "__fstat50", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "fstat",
+                             "__fstat50", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                            Type.fd,
                           Type.stat.out_ptr
                      );
        } else {
          
-         declareLazyFFI(SysFile,  "stat", libc, "stat", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "stat",
+                             "stat", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "lstat", libc, "lstat", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "lstat",
+                             "lstat", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                          Type.path,
                           Type.stat.out_ptr
                      );
-         declareLazyFFI(SysFile,  "fstat", libc, "fstat", ctypes.default_abi,
+         libc.declareLazyFFI(SysFile,  "fstat",
+                             "fstat", ctypes.default_abi,
                        Type.negativeone_or_nothing,
                            Type.fd,
                           Type.stat.out_ptr
@@ -597,7 +647,7 @@
        
 
        let Pipe = {};
-       declareLazyFFI(Pipe, "_pipe", libc,
+       libc.declareLazyFFI(Pipe, "_pipe",
          "pipe", ctypes.default_abi,
           Type.negativeone_or_nothing,
              new SharedAll.Type("two file descriptors",
@@ -617,26 +667,30 @@
        };
 
        if (OS.Constants.Sys.Name == "NetBSD") {
-           declareLazyFFI(SysFile, "utimes", libc, "__utimes50", ctypes.default_abi,
+           libc.declareLazyFFI(SysFile, "utimes",
+                               "__utimes50", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                              Type.path,
                        Type.timevals.out_ptr
                       );
        } else {
-           declareLazyFFI(SysFile, "utimes", libc, "utimes", ctypes.default_abi,
+           libc.declareLazyFFI(SysFile, "utimes",
+                               "utimes", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                              Type.path,
                        Type.timevals.out_ptr
                       );
        }
        if (OS.Constants.Sys.Name == "NetBSD") {
-           declareLazyFFI(SysFile, "futimes", libc, "__futimes50", ctypes.default_abi,
+           libc.declareLazyFFI(SysFile, "futimes",
+                               "__futimes50", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                                Type.fd,
                        Type.timevals.out_ptr
                       );
        } else {
-           declareLazyFFI(SysFile, "futimes", libc, "futimes", ctypes.default_abi,
+           libc.declareLazyFFI(SysFile, "futimes",
+                               "futimes", ctypes.default_abi,
                            Type.negativeone_or_nothing,
                                Type.fd,
                        Type.timevals.out_ptr

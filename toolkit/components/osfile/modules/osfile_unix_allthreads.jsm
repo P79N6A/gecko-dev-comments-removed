@@ -39,23 +39,8 @@ let LOG = SharedAll.LOG.bind(SharedAll, "Unix", "allthreads");
 let Const = SharedAll.Constants.libc;
 
 
-let libc;
-let libc_candidates =  [ "libc.so",
-                         "libSystem.B.dylib",
-                         "a.out" ];
-for (let i = 0; i < libc_candidates.length; ++i) {
-  try {
-    libc = ctypes.open(libc_candidates[i]);
-    break;
-  } catch (x) {
-    LOG("Could not open libc ", libc_candidates[i]);
-  }
-}
-
-if (!libc) {
-  
-  throw new Error("Could not open system library: no libc");
-}
+let libc = new SharedAll.Library("libc",
+                                 "libc.so", "libSystem.B.dylib", "a.out");
 exports.libc = libc;
 
 
@@ -63,10 +48,11 @@ let declareFFI = SharedAll.declareFFI.bind(null, libc);
 exports.declareFFI = declareFFI;
 
 
-let strerror = libc.declare("strerror",
-  ctypes.default_abi,
-   ctypes.char.ptr,
-   ctypes.int);
+let LazyBindings = {};
+libc.declareLazy(LazyBindings, "strerror",
+                 "strerror", ctypes.default_abi,
+                  ctypes.char.ptr,
+                  ctypes.int);
 
 
 
@@ -100,7 +86,7 @@ OSError.prototype = Object.create(SharedAll.OSError.prototype);
 OSError.prototype.toString = function toString() {
   return "Unix error " + this.unixErrno +
     " during operation " + this.operation +
-    " (" + strerror(this.unixErrno).readString() + ")";
+    " (" + LazyBindings.strerror(this.unixErrno).readString() + ")";
 };
 
 

@@ -339,6 +339,24 @@ Type.prototype = {
   
 
 
+
+
+
+
+  releaseWithLazy: function releaseWithLazy(getFinalizer) {
+    let parent = this;
+    let type = this.withName("[auto " + this.name + ", (lazy)] ");
+    type.importFromC = function importFromC(value, operation) {
+      return ctypes.CDataFinalizer(
+        parent.importFromC(value, operation),
+        getFinalizer());
+    };
+    return type;
+  },
+
+  
+
+
   withName: function withName(name) {
     return Object.create(this, {name: {value: name}});
   },
@@ -912,6 +930,7 @@ Library.prototype = Object.freeze({
     for (let candidate of this._candidates) {
       try {
         library = ctypes.open(candidate);
+        break;
       } catch (ex) {
         LOG("Could not open library", candidate, ex);
       }
@@ -951,6 +970,33 @@ Library.prototype = Object.freeze({
       get: function() {
         delete this[field];
         let ffi = declareFFI(lib.library, ...args);
+        if (ffi) {
+          return this[field] = ffi;
+        }
+        return undefined;
+      },
+      configurable: true,
+      enumerable: true
+    });
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  declareLazy: function(object, field, ...args) {
+    let lib = this;
+    Object.defineProperty(object, field, {
+      get: function() {
+        delete this[field];
+        let ffi = lib.library.declare(...args);
         if (ffi) {
           return this[field] = ffi;
         }

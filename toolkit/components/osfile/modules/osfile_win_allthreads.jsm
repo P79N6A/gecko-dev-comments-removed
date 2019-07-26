@@ -39,14 +39,7 @@ let LOG = SharedAll.LOG.bind(SharedAll, "Win", "allthreads");
 let Const = SharedAll.Constants.Win;
 
 
-let libc;
-try {
-  libc = ctypes.open("kernel32.dll");
-} catch (ex) {
-  
-  
-  throw new Error("Could not open system library: " + ex.message);
-}
+let libc = new SharedAll.Library("libc", "kernel32.dll");
 exports.libc = libc;
 
 
@@ -56,17 +49,16 @@ exports.declareFFI = declareFFI;
 let Scope = {};
 
 
-SharedAll.declareLazy(Scope, "FormatMessage", libc,
-  "FormatMessageW", ctypes.winapi_abi,
-   ctypes.uint32_t,
-    ctypes.uint32_t,
-   ctypes.voidptr_t,
-    ctypes.uint32_t,
-   ctypes.uint32_t,
-      ctypes.jschar.ptr,
-     ctypes.uint32_t,
-  ctypes.voidptr_t
-);
+libc.declareLazy(Scope, "FormatMessage",
+                 "FormatMessageW", ctypes.winapi_abi,
+                  ctypes.uint32_t,
+                   ctypes.uint32_t,
+                  ctypes.voidptr_t,
+                   ctypes.uint32_t,
+                  ctypes.uint32_t,
+                     ctypes.jschar.ptr,
+                    ctypes.uint32_t,
+                 ctypes.voidptr_t);
 
 
 
