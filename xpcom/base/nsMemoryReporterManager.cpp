@@ -17,6 +17,7 @@
 #include "nsPIDOMWindow.h"
 #include "nsIObserverService.h"
 #include "nsIGlobalObject.h"
+#include "nsIXPConnect.h"
 #if defined(XP_LINUX) || defined(__FreeBSD__)
 #include "nsMemoryInfoDumper.h"
 #endif
@@ -1281,6 +1282,16 @@ nsMemoryReporterManager::RegisterReporterHelper(
         CrashIfRefcountIsZero(aReporter);
     } else {
         CrashIfRefcountIsZero(aReporter);
+        nsCOMPtr<nsIXPConnectWrappedJS> jsComponent =
+            do_QueryInterface(aReporter);
+        if (jsComponent) {
+            
+            
+            
+            
+            
+            return NS_ERROR_XPC_BAD_CONVERT_JS;
+        }
         mWeakReporters->PutEntry(aReporter);
     }
 
@@ -1307,6 +1318,22 @@ nsMemoryReporterManager::RegisterStrongReporterEvenIfBlocked(
 {
     return RegisterReporterHelper(aReporter,  true,
                                    true);
+}
+
+NS_IMETHODIMP
+nsMemoryReporterManager::UnregisterStrongReporter(nsIMemoryReporter* aReporter)
+{
+    
+    mozilla::MutexAutoLock autoLock(mMutex);
+
+    MOZ_ASSERT(!mWeakReporters->Contains(aReporter));
+
+    if (mStrongReporters->Contains(aReporter)) {
+        mStrongReporters->RemoveEntry(aReporter);
+        return NS_OK;
+    }
+
+    return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
