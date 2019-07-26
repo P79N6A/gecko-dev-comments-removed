@@ -153,12 +153,6 @@ RTCSessionDescription.prototype = {
   __init: function(dict) {
     this.type = dict.type;
     this.sdp  = dict.sdp;
-  },
-
-  
-  toJSON: function() {
-    return { type: this.type, sdp: this.sdp,
-             __exposedProps__: { type: "rw", sdp: "rw" } };
   }
 };
 
