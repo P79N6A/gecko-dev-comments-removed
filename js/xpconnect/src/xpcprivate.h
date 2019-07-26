@@ -327,7 +327,6 @@ private:
     static bool                     gOnceAliveNowDead;
 
     XPCJSRuntime*                   mRuntime;
-    nsRefPtr<nsIXPCSecurityManager> mDefaultSecurityManager;
     bool                            mShuttingDown;
 
     
