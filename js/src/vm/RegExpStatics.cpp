@@ -92,12 +92,6 @@ RegExpStatics::executeLazy(JSContext *cx)
         return false;
 
     
-
-
-
-    JS_ASSERT(status == RegExpRunStatus_Success);
-
-    
     pendingLazyEvaluation = false;
     regexp.release();
     lastIndex = size_t(-1);
