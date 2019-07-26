@@ -248,7 +248,7 @@ public:
 #ifdef ANDROID
   ~_MappableBuffer() {
     
-    ::munmap(this + ((GetLength() + PAGE_SIZE) & ~(PAGE_SIZE - 1)), PAGE_SIZE);
+    ::munmap(*this + ((GetLength() + PAGE_SIZE) & ~(PAGE_SIZE - 1)), PAGE_SIZE);
   }
 #endif
 
