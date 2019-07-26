@@ -71,9 +71,43 @@ function run_test() {
 
   resetPrefs();
 
+  run_test_early();
+}
+
+function run_test_early() {
   startupManager();
 
-  run_test_nomapping();
+  installAllFiles([do_get_addon("test_chromemanifest_1")], function() {
+    restartManager();
+    AddonManager.getAddonByID("addon1@tests.mozilla.org", function(addon) {
+      let uri = addon.getResourceURI(".");
+      let id = addon.id;
+      check_mapping(uri, id);
+
+      shutdownManager();
+
+      
+      
+      
+
+      
+      let s = Components.utils.import(
+        "resource://gre/modules/addons/XPIProvider.jsm", {});
+
+      
+      do_check_null(s.XPIProvider.mapURIToAddonID(uri));
+      do_check_null(AddonManager.mapURIToAddonID(uri));
+
+      
+      startupManager(false);
+
+      
+      check_mapping(uri, id);
+      do_check_eq(s.XPIProvider.mapURIToAddonID(uri), id);
+
+      run_test_nomapping();
+    });
+  });
 }
 
 function run_test_nomapping() {

@@ -1664,7 +1664,8 @@ this.XPIProvider = {
 
     
     let enabled = Object.create(null);
-    for (let a of this.enabledAddons.split(",")) {
+    let enabledAddons = this.enabledAddons || "";
+    for (let a of enabledAddons.split(",")) {
       a = decodeURIComponent(a.split(":")[0]);
       enabled[a] = null;
     }
@@ -1900,6 +1901,11 @@ this.XPIProvider = {
       }
 
       this.enabledAddons = Prefs.getCharPref(PREF_EM_ENABLED_ADDONS, "");
+
+      
+      
+      delete this._uriMappings;
+
       if ("nsICrashReporter" in Ci &&
           Services.appinfo instanceof Ci.nsICrashReporter) {
         
