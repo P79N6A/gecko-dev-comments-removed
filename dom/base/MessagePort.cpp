@@ -55,24 +55,16 @@ class PostMessageRunnable : public nsRunnable
     NS_DECL_NSIRUNNABLE
 
     PostMessageRunnable()
-      : mMessage(nullptr)
-      , mMessageLen(0)
     {
     }
 
     ~PostMessageRunnable()
     {
-      
-      if (mMessage) {
-        JSAutoStructuredCloneBuffer buffer;
-        buffer.adopt(mMessage, mMessageLen);
-      }
     }
 
-    void SetJSData(JSAutoStructuredCloneBuffer& aBuffer)
+    JSAutoStructuredCloneBuffer& Buffer()
     {
-      NS_ASSERTION(!mMessage && mMessageLen == 0, "Don't call twice!");
-      aBuffer.steal(&mMessage, &mMessageLen);
+      return mBuffer;
     }
 
     bool StoreISupports(nsISupports* aSupports)
@@ -89,8 +81,7 @@ class PostMessageRunnable : public nsRunnable
 
   private:
     nsRefPtr<MessagePort> mPort;
-    uint64_t* mMessage;
-    size_t mMessageLen;
+    JSAutoStructuredCloneBuffer mBuffer;
 
     nsTArray<nsCOMPtr<nsISupports> > mSupportsArray;
 };
@@ -226,12 +217,6 @@ PostMessageRunnable::Run()
   MOZ_ASSERT(mPort);
 
   
-  JSAutoStructuredCloneBuffer buffer;
-  buffer.adopt(mMessage, mMessageLen);
-  mMessage = nullptr;
-  mMessageLen = 0;
-
-  
   nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(mPort->GetOwner());
   NS_ENSURE_STATE(sgo);
   nsCOMPtr<nsIScriptContext> scriptContext = sgo->GetContext();
@@ -247,7 +232,7 @@ PostMessageRunnable::Run()
     scInfo.mEvent = this;
     scInfo.mPort = mPort;
 
-    if (!buffer.read(cx, &messageData, &kPostMessageCallbacks, &scInfo)) {
+    if (!mBuffer.read(cx, &messageData, &kPostMessageCallbacks, &scInfo)) {
       return NS_ERROR_DOM_DATA_CLONE_ERR;
     }
   }
@@ -364,7 +349,6 @@ MessagePort::PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
 
   
   
-  JSAutoStructuredCloneBuffer buffer;
   StructuredCloneInfo scInfo;
   scInfo.mEvent = event;
   scInfo.mPort = this;
@@ -388,13 +372,11 @@ MessagePort::PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     transferable.setObject(*array);
   }
 
-  if (!buffer.write(aCx, aMessage, transferable, &kPostMessageCallbacks,
-                    &scInfo)) {
+  if (!event->Buffer().write(aCx, aMessage, transferable,
+                             &kPostMessageCallbacks, &scInfo)) {
     aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     return;
   }
-
-  event->SetJSData(buffer);
 
   if (!mEntangledPort) {
     return;
