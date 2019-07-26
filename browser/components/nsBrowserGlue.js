@@ -1294,7 +1294,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 19;
+    const UI_VERSION = 20;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1554,6 +1554,15 @@ BrowserGlue.prototype = {
         
         
         Services.prefs.clearUserPref("intl.charset.detector");
+      }
+    }
+
+    if (currentUIVersion < 20) {
+      
+      let resource = this._rdf.GetResource("collapsed");
+      let toolbar = this._rdf.GetResource(BROWSER_DOCURL + "TabsToolbar");
+      if (this._getPersist(toolbar, resource)) {
+        this._setPersist(toolbar, resource);
       }
     }
 

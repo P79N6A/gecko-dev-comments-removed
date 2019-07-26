@@ -225,7 +225,7 @@ let CustomizableUIInternal = {
         "alltabs-button",
         "tabs-closebutton",
       ],
-      defaultCollapsed: false,
+      defaultCollapsed: null,
     }, true);
     this.registerArea(CustomizableUI.AREA_BOOKMARKS, {
       legacy: true,
@@ -2127,7 +2127,9 @@ let CustomizableUIInternal = {
         if (area.get("type") == CustomizableUI.TYPE_TOOLBAR) {
           let defaultCollapsed = area.get("defaultCollapsed");
           let win = areaNode.ownerDocument.defaultView;
-          win.setToolbarVisibility(areaNode, !defaultCollapsed);
+          if (defaultCollapsed !== null) {
+            win.setToolbarVisibility(areaNode, !defaultCollapsed);
+          }
         }
       }
     }
@@ -2290,7 +2292,7 @@ let CustomizableUIInternal = {
           let attribute = container.getAttribute("type") == "menubar" ? "autohide" : "collapsed";
           let collapsed = container.getAttribute(attribute) == "true";
           let defaultCollapsed = props.get("defaultCollapsed");
-          if (collapsed != defaultCollapsed) {
+          if (defaultCollapsed !== null && collapsed != defaultCollapsed) {
             LOG("Found " + areaId + " had non-default toolbar visibility (expected " + defaultCollapsed + ", was " + collapsed + ")");
             return false;
           }
@@ -2481,6 +2483,8 @@ this.CustomizableUI = {
   },
 
   
+
+
 
 
 
@@ -2878,6 +2882,7 @@ this.CustomizableUI = {
     return area ? area.get("type") : null;
   },
   
+
 
 
 
