@@ -18,7 +18,7 @@
 #include "VideoUtils.h"
 
 
-class nsMediaDecoder;
+class nsBuiltinDecoder;
 class nsTimeRanges;
 
 class nsOggReader : public nsBuiltinDecoderReader

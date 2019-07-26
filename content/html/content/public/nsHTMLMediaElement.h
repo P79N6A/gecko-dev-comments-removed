@@ -33,6 +33,8 @@ typedef uint16_t nsMediaReadyState;
 namespace mozilla {
 class MediaResource;
 }
+class nsBuiltinDecoder;
+
 #ifdef MOZ_DASH
 class nsDASHDecoder;
 #endif
@@ -215,7 +217,7 @@ public:
   
   
   
-  virtual void UpdateReadyStateForData(nsMediaDecoder::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
+  virtual void UpdateReadyStateForData(nsBuiltinDecoder::NextFrameStatus aNextFrame) MOZ_FINAL MOZ_OVERRIDE;
 
   
   
@@ -441,14 +443,14 @@ protected:
 
 
 
-  already_AddRefed<nsMediaDecoder> CreateDecoder(const nsACString& aMIMEType);
+  already_AddRefed<nsBuiltinDecoder> CreateDecoder(const nsACString& aMIMEType);
 
   
 
 
 
 
-  nsresult InitializeDecoderAsClone(nsMediaDecoder* aOriginal);
+  nsresult InitializeDecoderAsClone(nsBuiltinDecoder* aOriginal);
 
   
 
@@ -462,10 +464,10 @@ protected:
 
 
 
-  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder,
+  nsresult FinishDecoderSetup(nsBuiltinDecoder* aDecoder,
                               MediaResource* aStream,
                               nsIStreamListener **aListener,
-                              nsMediaDecoder* aCloneDonor);
+                              nsBuiltinDecoder* aCloneDonor);
 
   
 
@@ -658,7 +660,7 @@ protected:
 
   
   
-  nsRefPtr<nsMediaDecoder> mDecoder;
+  nsRefPtr<nsBuiltinDecoder> mDecoder;
 
   
   

@@ -49,7 +49,7 @@ public:
   }
 
   
-  virtual nsMediaDecoder* Clone() { return nullptr; }
+  virtual nsBuiltinDecoder* Clone() { return nullptr; }
 
   
   
@@ -72,7 +72,7 @@ public:
   
   nsresult Load(MediaResource* aResource = nullptr,
                 nsIStreamListener** aListener = nullptr,
-                nsMediaDecoder* aCloneDonor = nullptr);
+                nsBuiltinDecoder* aCloneDonor = nullptr);
 
   
   

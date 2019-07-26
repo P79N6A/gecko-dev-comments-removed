@@ -178,8 +178,6 @@
 #if !defined(nsBuiltinDecoder_h_)
 #define nsBuiltinDecoder_h_
 
-#include "nsMediaDecoder.h"
-
 #include "nsISupports.h"
 #include "nsCOMPtr.h"
 #include "nsIThread.h"
@@ -191,28 +189,58 @@
 #include "gfxContext.h"
 #include "gfxRect.h"
 #include "MediaResource.h"
-#include "nsMediaDecoder.h"
 #include "mozilla/ReentrantMonitor.h"
+#include "MediaStreamGraph.h"
 
 namespace mozilla {
 namespace layers {
 class Image;
 } 
+class nsMediaByteRange;
+class VideoFrameContainer;
+class MediaDecoderOwner;
 } 
-
-typedef mozilla::layers::Image Image;
 
 class nsAudioStream;
 class nsBuiltinDecoderStateMachine;
+class nsIStreamListener;
+class nsTimeRanges;
+class nsIMemoryReporter;
+class nsIPrincipal;
+class nsITimer;
+
+
+
+
+static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
+
+
+
+static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
+static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 
 static inline bool IsCurrentThread(nsIThread* aThread) {
   return NS_GetCurrentThread() == aThread;
 }
 
-class nsBuiltinDecoder : public nsMediaDecoder
+typedef nsDataHashtable<nsCStringHashKey, nsCString> MetadataTags;
+
+class nsBuiltinDecoder : public nsIObserver
 {
 public:
   typedef mozilla::MediaChannelStatistics MediaChannelStatistics;
+  typedef mozilla::MediaResource MediaResource;
+  typedef mozilla::MediaByteRange MediaByteRange;
+  typedef mozilla::ReentrantMonitor ReentrantMonitor;
+  typedef mozilla::SourceMediaStream SourceMediaStream;
+  typedef mozilla::ProcessedMediaStream ProcessedMediaStream;
+  typedef mozilla::MediaInputPort MediaInputPort;
+  typedef mozilla::MainThreadMediaStreamListener MainThreadMediaStreamListener;
+  typedef mozilla::TimeStamp TimeStamp;
+  typedef mozilla::TimeDuration TimeDuration;
+  typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::layers::Image Image;
+
   class DecodedStreamMainThreadListener;
 
   NS_DECL_ISUPPORTS
@@ -230,40 +258,84 @@ public:
   };
 
   nsBuiltinDecoder();
-  ~nsBuiltinDecoder();
+  virtual ~nsBuiltinDecoder();
 
+  
+  
+  virtual nsBuiltinDecoder* Clone() = 0;
+  
+  
+  virtual nsBuiltinDecoderStateMachine* CreateStateMachine() = 0;
+
+  
+  
+  
+  
   virtual bool Init(mozilla::MediaDecoderOwner* aOwner);
 
   
   
   virtual void Shutdown();
 
-  virtual double GetCurrentTime();
-
+  
+  
+  
+  
+  
   virtual nsresult Load(MediaResource* aResource,
                         nsIStreamListener** aListener,
-                        nsMediaDecoder* aCloneDonor);
+                        nsBuiltinDecoder* aCloneDonor);
 
   
   nsresult OpenResource(MediaResource* aResource,
                         nsIStreamListener** aStreamListener);
 
-  virtual nsBuiltinDecoderStateMachine* CreateStateMachine() = 0;
+  
+  virtual void ResourceLoaded();
 
   
-  nsresult InitializeStateMachine(nsMediaDecoder* aCloneDonor);
+  virtual void NetworkError();
+
+  
+  
+  virtual MediaResource* GetResource() { return mResource; }
+
+  
+  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
+
+  
+  
+  virtual double GetCurrentTime();
+
+  
+  virtual nsresult Seek(double aTime);
+
+  
+  
+  
+  virtual nsresult GetByteRangeForSeek(int64_t const aOffset,
+                                       MediaByteRange &aByteRange) {
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  nsresult InitializeStateMachine(nsBuiltinDecoder* aCloneDonor);
 
   
   
   virtual nsresult Play();
 
   
-  virtual nsresult Seek(double aTime);
-
+  
+  
   virtual nsresult PlaybackRateChanged();
 
+  
   virtual void Pause();
+  
   virtual void SetVolume(double aVolume);
+  
+  
   virtual void SetAudioCaptured(bool aCaptured);
 
   
@@ -365,31 +437,53 @@ public:
     nsBuiltinDecoder* mDecoder;
   };
 
+  
+  
+  
   virtual void AddOutputStream(ProcessedMediaStream* aStream, bool aFinishWhenEnded);
 
+  
   virtual double GetDuration();
 
+  
+  
+  
+  
+  
+  
+  
+  
   virtual void SetInfinite(bool aInfinite);
+
+  
   virtual bool IsInfinite();
 
-  virtual MediaResource* GetResource() { return mResource; }
-  virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
-
+  
+  
+  
+  
   virtual void NotifySuspendedStatusChanged();
+
+  
+  
   virtual void NotifyBytesDownloaded();
+
+  
+  
+  
   virtual void NotifyDownloadEnded(nsresult aStatus);
+
+  
+  
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+
+  
+  
   virtual void NotifyPrincipalChanged();
+
   
   
   void NotifyBytesConsumed(int64_t aBytes);
-
-  
-  
-  void ResourceLoaded();
-
-  
-  
-  virtual void NetworkError();
 
   
   
@@ -410,14 +504,17 @@ public:
   
   virtual bool IsSeekable();
 
+  
   virtual nsresult GetSeekable(nsTimeRanges* aSeekable);
 
   
   
   virtual void SetEndTime(double aTime);
 
-  virtual Statistics GetStatistics();
+  
+  void Invalidate();
 
+  
   
   
   
@@ -426,10 +523,25 @@ public:
   
   
   
+  
+  
+  
+  
   virtual void Resume(bool aForceBuffering);
 
   
+  
+  
+  
+  
   virtual void MoveLoadsToBackground();
+
+  
+  mozilla::MediaDecoderOwner* GetMediaOwner() const;
+
+  
+  
+  uint32_t GetFrameBufferLength() { return mFrameBufferLength; }
 
   void AudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength, float aTime);
 
@@ -449,11 +561,13 @@ public:
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered);
 
+  
+  
   virtual int64_t VideoQueueMemoryInUse();
-
   virtual int64_t AudioQueueMemoryInUse();
 
-  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  VideoFrameContainer* GetVideoFrameContainer() { return mVideoFrameContainer; }
+  virtual mozilla::layers::ImageContainer* GetImageContainer();
 
   
   
@@ -464,6 +578,16 @@ public:
   PlayState GetState() {
     return mPlayState;
   }
+
+  
+  
+  
+  
+  void Progress(bool aTimer);
+
+  
+  
+  void FireTimeUpdate();
 
   
   
@@ -480,6 +604,10 @@ public:
 
   
   double ComputePlaybackRate(bool* aReliable);
+
+  
+  
+  bool CanPlayThrough();
 
   
   
@@ -556,16 +684,180 @@ public:
   
   virtual void ReleaseStateMachine();
 
-   
-   
-   virtual void NotifyAudioAvailableListener();
+  
+  
+  
+  virtual void NotifyAudioAvailableListener();
 
   
   virtual void DecodeError();
 
   
+  enum NextFrameStatus {
+    
+    NEXT_FRAME_AVAILABLE,
+    
+    
+    NEXT_FRAME_UNAVAILABLE_BUFFERING,
+    
+    NEXT_FRAME_UNAVAILABLE
+  };
+
+#ifdef MOZ_RAW
+  static bool IsRawEnabled();
+#endif
+
+#ifdef MOZ_OGG
+  static bool IsOggEnabled();
+  static bool IsOpusEnabled();
+#endif
+
+#ifdef MOZ_WAVE
+  static bool IsWaveEnabled();
+#endif
+
+#ifdef MOZ_WEBM
+  static bool IsWebMEnabled();
+#endif
+
+#ifdef MOZ_GSTREAMER
+  static bool IsGStreamerEnabled();
+#endif
+
+#ifdef MOZ_WIDGET_GONK
+  static bool IsOmxEnabled();
+#endif
+
+#ifdef MOZ_MEDIA_PLUGINS
+  static bool IsMediaPluginsEnabled();
+#endif
+
+#ifdef MOZ_DASH
+  static bool IsDASHEnabled();
+#endif
+
+  
   
   nsresult ScheduleStateMachineThread();
+
+  struct Statistics {
+    
+    double mPlaybackRate;
+    
+    
+    double mDownloadRate;
+    
+    int64_t mTotalBytes;
+    
+    
+    int64_t mDownloadPosition;
+    
+    
+    int64_t mDecoderPosition;
+    
+    int64_t mPlaybackPosition;
+    
+    
+    
+    bool mDownloadRateReliable;
+    
+    
+    
+    bool mPlaybackRateReliable;
+  };
+
+  
+  
+  
+  
+  Statistics GetStatistics();
+
+  
+  
+  class FrameStatistics {
+  public:
+
+    FrameStatistics() :
+        mReentrantMonitor("nsBuiltinDecoder::FrameStats"),
+        mParsedFrames(0),
+        mDecodedFrames(0),
+        mPresentedFrames(0) {}
+
+    
+    
+    uint32_t GetParsedFrames() {
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+      return mParsedFrames;
+    }
+
+    
+    
+    uint32_t GetDecodedFrames() {
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+      return mDecodedFrames;
+    }
+
+    
+    
+    
+    uint32_t GetPresentedFrames() {
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+      return mPresentedFrames;
+    }
+
+    
+    
+    void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
+      if (aParsed == 0 && aDecoded == 0)
+        return;
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+      mParsedFrames += aParsed;
+      mDecodedFrames += aDecoded;
+    }
+
+    
+    
+    void NotifyPresentedFrame() {
+      mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+      ++mPresentedFrames;
+    }
+
+  private:
+
+    
+    ReentrantMonitor mReentrantMonitor;
+
+    
+    
+    uint32_t mParsedFrames;
+
+    
+    
+    uint32_t mDecodedFrames;
+
+    
+    
+    uint32_t mPresentedFrames;
+  };
+
+  
+  
+  
+  class AutoNotifyDecoded {
+  public:
+    AutoNotifyDecoded(nsBuiltinDecoder* aDecoder, uint32_t& aParsed, uint32_t& aDecoded)
+      : mDecoder(aDecoder), mParsed(aParsed), mDecoded(aDecoded) {}
+    ~AutoNotifyDecoded() {
+      mDecoder->GetFrameStatistics().NotifyDecodedFrames(mParsed, mDecoded);
+    }
+  private:
+    nsBuiltinDecoder* mDecoder;
+    uint32_t& mParsed;
+    uint32_t& mDecoded;
+  };
+
+  
+  FrameStatistics& GetFrameStatistics() { return mFrameStats; }
 
   
 
@@ -708,6 +1000,57 @@ public:
   
   
   bool mTriggerPlaybackEndedWhenSourceStreamFinishes;
+
+protected:
+
+  
+  nsresult StartProgress();
+
+  
+  nsresult StopProgress();
+
+  
+  void PinForSeek();
+
+  
+  void UnpinForSeek();
+
+  
+  nsCOMPtr<nsITimer> mProgressTimer;
+
+  
+  
+  
+  mozilla::MediaDecoderOwner* mOwner;
+
+  
+  FrameStatistics mFrameStats;
+
+  nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
+
+  
+  
+  TimeStamp mProgressTime;
+
+  
+  
+  
+  
+  
+  TimeStamp mDataTime;
+
+  
+  uint32_t mFrameBufferLength;
+
+  
+  
+  bool mPinnedForSeek;
+
+  
+  
+  
+  
+  bool mShuttingDown;
 };
 
 #endif

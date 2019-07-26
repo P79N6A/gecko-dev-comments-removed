@@ -26,7 +26,7 @@ static const int64_t SEEK_VS_READ_THRESHOLD = 32*1024;
 
 static const uint32_t HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
-class nsMediaDecoder;
+class nsBuiltinDecoder;
 
 namespace mozilla {
 
@@ -177,7 +177,7 @@ public:
   
   
   
-  virtual MediaResource* CloneData(nsMediaDecoder* aDecoder) = 0;
+  virtual MediaResource* CloneData(nsBuiltinDecoder* aDecoder) = 0;
 
   
   
@@ -282,7 +282,7 @@ public:
 
 
 
-  static MediaResource* Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel);
+  static MediaResource* Create(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel);
 
   
 
@@ -309,7 +309,7 @@ public:
   virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
 protected:
-  MediaResource(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  MediaResource(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
@@ -326,7 +326,7 @@ protected:
   
   
   
-  nsMediaDecoder* mDecoder;
+  nsBuiltinDecoder* mDecoder;
 
   
   
@@ -352,7 +352,7 @@ protected:
 class ChannelMediaResource : public MediaResource
 {
 public:
-  ChannelMediaResource(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
+  ChannelMediaResource(nsBuiltinDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
   ~ChannelMediaResource();
 
   
@@ -392,7 +392,7 @@ public:
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
   virtual bool     CanClone();
-  virtual MediaResource* CloneData(nsMediaDecoder* aDecoder);
+  virtual MediaResource* CloneData(nsBuiltinDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, int64_t aOffset, uint32_t aCount);
   virtual void     EnsureCacheUpToDate();
 

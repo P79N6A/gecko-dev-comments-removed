@@ -164,7 +164,7 @@ public:
     return IsCurrentThread(mAudioThread);
   }
 
-  nsMediaDecoder::NextFrameStatus GetNextFrameStatus();
+  nsBuiltinDecoder::NextFrameStatus GetNextFrameStatus();
 
   
   

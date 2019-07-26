@@ -46,7 +46,7 @@ public:
   ~nsDASHDecoder();
 
   
-  nsMediaDecoder* Clone() { return nullptr; }
+  nsBuiltinDecoder* Clone() { return nullptr; }
 
   
   
@@ -56,7 +56,7 @@ public:
   
   nsresult Load(MediaResource* aResource,
                 nsIStreamListener** aListener,
-                nsMediaDecoder* aCloneDonor);
+                nsBuiltinDecoder* aCloneDonor);
 
   
   
@@ -111,9 +111,9 @@ private:
   
   
   MediaResource* CreateAudioSubResource(nsIURI* aUrl,
-                                        nsMediaDecoder* aAudioDecoder);
+                                        nsBuiltinDecoder* aAudioDecoder);
   MediaResource* CreateVideoSubResource(nsIURI* aUrl,
-                                        nsMediaDecoder* aVideoDecoder);
+                                        nsBuiltinDecoder* aVideoDecoder);
 
   
   

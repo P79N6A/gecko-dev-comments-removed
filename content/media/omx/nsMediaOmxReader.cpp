@@ -123,7 +123,7 @@ bool nsMediaOmxReader::DecodeVideoFrame(bool &aKeyframeSkip,
   
   
   uint32_t parsed = 0, decoded = 0;
-  nsMediaDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
+  nsBuiltinDecoder::AutoNotifyDecoded autoNotify(mDecoder, parsed, decoded);
 
   
   if (mLastVideoFrame && mVideoSeekTimeUs != -1) {

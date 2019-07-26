@@ -618,12 +618,12 @@ int64_t nsGStreamerReader::QueryDuration()
     }
   }
 
-  if (mDecoder->mDuration != -1 &&
-      mDecoder->mDuration > duration) {
-    
-    LOG(PR_LOG_DEBUG, ("mDuration > duration"));
-    duration = mDecoder->mDuration;
-  }
+  
+
+
+
+
+
 
   return duration;
 }

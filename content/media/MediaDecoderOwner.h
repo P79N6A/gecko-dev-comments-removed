@@ -6,7 +6,7 @@
 #ifndef MediaDecoderOwner_h_
 #define MediaDecoderOwner_h_
 
-#include "nsMediaDecoder.h"
+#include "nsBuiltinDecoder.h"
 
 namespace mozilla {
 
@@ -120,7 +120,7 @@ public:
   
   
   
-  virtual void UpdateReadyStateForData(nsMediaDecoder::NextFrameStatus aNextFrame) = 0;
+  virtual void UpdateReadyStateForData(nsBuiltinDecoder::NextFrameStatus aNextFrame) = 0;
 
   
   
