@@ -556,6 +556,15 @@ this.ICC_USIM_EFUID_TAG   = 0xc9;
 this.ICC_USIM_EFEMAIL_TAG = 0xca;
 this.ICC_USIM_EFCCP1_TAG  = 0xcb;
 
+this.USIM_PBR_ANR = "anr";
+this.USIM_PBR_ANR0 = "anr0";
+this.USIM_PBR_EMAIL = "email";
+
+
+
+
+this.USIM_PBR_FIELDS = [USIM_PBR_EMAIL, USIM_PBR_ANR0];
+
 this.USIM_TAG_NAME = {};
 this.USIM_TAG_NAME[ICC_USIM_EFADN_TAG] = "adn";
 this.USIM_TAG_NAME[ICC_USIM_EFIAP_TAG] ="iap";
