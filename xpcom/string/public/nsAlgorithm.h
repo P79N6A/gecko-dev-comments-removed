@@ -25,6 +25,9 @@ NS_ROUNDUP( const T& a, const T& b )
     return ((a + (b - 1)) / b) * b;
   }
 
+
+
+
 template <class T>
 inline
 const T&
