@@ -60,12 +60,75 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 namespace js {
 
 template <typename T> class Rooted;
+template <typename T> class Unrooted;
 
 template <typename T>
 struct RootMethods {};
+
+template <typename T>
+class RootedBase {};
 
 template <typename T>
 class HandleBase {};
@@ -79,6 +142,7 @@ namespace JS {
 
 class AutoAssertNoGC;
 
+template <typename T> class Handle;
 template <typename T> class MutableHandle;
 
 JS_FRIEND_API(void) EnterAssertNoGCScope();
@@ -100,9 +164,6 @@ struct NullPtr
     static void * const constNullValue;
 };
 
-template <typename T>
-class MutableHandle;
-
 
 
 
@@ -114,6 +175,8 @@ class MutableHandle;
 template <typename T>
 class Handle : public js::HandleBase<T>
 {
+    friend class MutableHandle<T>;
+
   public:
     
     template <typename S>
@@ -129,7 +192,6 @@ class Handle : public js::HandleBase<T>
         ptr = reinterpret_cast<const T *>(&NullPtr::constNullValue);
     }
 
-    friend class MutableHandle<T>;
     Handle(MutableHandle<T> handle) {
         ptr = handle.address();
     }
@@ -165,8 +227,8 @@ class Handle : public js::HandleBase<T>
     const T *address() const { return ptr; }
     T get() const { return *ptr; }
 
-    operator T () const { return get(); }
-    T operator ->() const { return get(); }
+    operator T() const { return get(); }
+    T operator->() const { return get(); }
 
   private:
     Handle() {}
@@ -174,7 +236,7 @@ class Handle : public js::HandleBase<T>
     const T *ptr;
 
     template <typename S>
-    void operator =(S v) MOZ_DELETE;
+    void operator=(S v) MOZ_DELETE;
 };
 
 typedef Handle<JSObject*>    HandleObject;
@@ -208,8 +270,7 @@ class MutableHandle : public js::MutableHandleBase<T>
     MutableHandle(js::Rooted<S> *root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
 
-    void set(T v)
-    {
+    void set(T v) {
         JS_ASSERT(!js::RootMethods<T>::poisoned(v));
         *ptr = v;
     }
@@ -230,8 +291,8 @@ class MutableHandle : public js::MutableHandleBase<T>
     T *address() const { return ptr; }
     T get() const { return *ptr; }
 
-    operator T () const { return get(); }
-    T operator ->() const { return get(); }
+    operator T() const { return get(); }
+    T operator->() const { return get(); }
 
   private:
     MutableHandle() {}
@@ -239,7 +300,7 @@ class MutableHandle : public js::MutableHandleBase<T>
     T *ptr;
 
     template <typename S>
-    void operator =(S v) MOZ_DELETE;
+    void operator=(S v) MOZ_DELETE;
 };
 
 typedef MutableHandle<JSObject*>   MutableHandleObject;
@@ -271,7 +332,7 @@ namespace js {
 
 
 template <typename T>
-class InternalHandle { };
+class InternalHandle {};
 
 template <typename T>
 class InternalHandle<T*>
@@ -287,8 +348,7 @@ class InternalHandle<T*>
     template<typename H>
     InternalHandle(const JS::Handle<H> &handle, T *field)
       : holder((void**)handle.address()), offset(uintptr_t(field) - uintptr_t(handle.get()))
-    {
-    }
+    {}
 
     
 
@@ -296,13 +356,12 @@ class InternalHandle<T*>
     template<typename R>
     InternalHandle(const Rooted<R> &root, T *field)
       : holder((void**)root.address()), offset(uintptr_t(field) - uintptr_t(root.get()))
-    {
-    }
+    {}
 
     T *get() const { return reinterpret_cast<T*>(uintptr_t(*holder) + offset); }
 
-    const T& operator *() const { return *get(); }
-    T* operator ->() const { return get(); }
+    const T &operator*() const { return *get(); }
+    T *operator->() const { return get(); }
 
     static InternalHandle<T*> fromMarkedLocation(T *fieldPtr) {
         return InternalHandle(fieldPtr);
@@ -321,31 +380,8 @@ class InternalHandle<T*>
     InternalHandle(T *field)
       : holder(reinterpret_cast<void * const *>(&NullPtr::constNullValue)),
         offset(uintptr_t(field))
-    {
-    }
+    {}
 };
-
-#ifdef DEBUG
-template <typename T>
-class IntermediateNoGC
-{
-    T t_;
-
-  public:
-    IntermediateNoGC(const T &t) : t_(t) {
-        EnterAssertNoGCScope();
-    }
-    IntermediateNoGC(const IntermediateNoGC &) {
-        EnterAssertNoGCScope();
-    }
-    ~IntermediateNoGC() {
-        LeaveAssertNoGCScope();
-    }
-
-    const T &operator->() { return t_; }
-    operator const T &() { return t_; }
-};
-#endif
 
 
 
@@ -396,18 +432,45 @@ class IntermediateNoGC
 template <typename T>
 class Return
 {
-    friend class Rooted<T>;
-
-    const T ptr_;
+    typedef void (Return<T>::* ConvertibleToBool)();
+    void nonNull() {}
 
   public:
+    template <typename S>
+    inline Return(const Unrooted<S> &unrooted,
+                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
+
     template <typename S>
     Return(const S &ptr,
            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
       : ptr_(ptr)
-    {}
+    {
+        EnterAssertNoGCScope();
+    }
 
-    Return(NullPtr) : ptr_(NULL) {}
+    Return(NullPtr) : ptr_(NULL) {
+        EnterAssertNoGCScope();
+    }
+
+    Return(const Return &ret) : ptr_(ret.ptr_) {
+        EnterAssertNoGCScope();
+    }
+
+    ~Return() {
+        LeaveAssertNoGCScope();
+    }
+
+#ifndef DEBUG
+    
+
+
+
+
+
+
+
+    operator const T &() { return ptr_; }
+#endif 
 
     
 
@@ -445,31 +508,20 @@ class Return
 
 
 
-#ifdef DEBUG
-    IntermediateNoGC<T> operator->() const {
-        return IntermediateNoGC<T>(ptr_);
-    }
-#else
+
+
     const T &operator->() const {
         return ptr_;
     }
-#endif
 
     
 
 
 
 
-
-#ifdef DEBUG
-    IntermediateNoGC<T> unsafeGet() const {
-        return IntermediateNoGC<T>(ptr_);
-    }
-#else
     const T &unsafeGet() const {
         return ptr_;
     }
-#endif
 
     
 
@@ -481,12 +533,186 @@ class Return
 
 
 
+    operator ConvertibleToBool() const { return ptr_ ? &Return<T>::nonNull : 0; }
     bool operator==(const T &other) { return ptr_ == other; }
     bool operator!=(const T &other) { return ptr_ != other; }
     bool operator==(const Return<T> &other) { return ptr_ == other.ptr_; }
     bool operator==(const JS::Handle<T> &other) { return ptr_ == other.get(); }
     inline bool operator==(const Rooted<T> &other);
+
+  private:
+    const T ptr_;
 };
+
+
+
+
+
+#ifdef DEBUG
+template <typename T>
+class Unrooted
+{
+  public:
+    Unrooted() : ptr_(UninitializedTag()) {}
+
+    
+
+
+
+
+
+
+
+
+    template <typename S>
+    inline Unrooted(Rooted<S> &root,
+               typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0);
+
+    template <typename S>
+    Unrooted(JS::Handle<S> &root,
+               typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
+      : ptr_(root.get())
+    {
+        JS_ASSERT(ptr_ != UninitializedTag());
+        EnterAssertNoGCScope();
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    template <typename S>
+    Unrooted(const Return<S> &ret,
+        typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy = 0)
+      : ptr_(ret.unsafeGet())
+    {
+        JS_ASSERT(ptr_ != UninitializedTag());
+        EnterAssertNoGCScope();
+    }
+
+    
+
+
+
+
+
+
+    template <typename S>
+    Unrooted(const Unrooted<S> &other)
+        
+      : ptr_(static_cast<T>(static_cast<S>(other)))
+    {
+        if (ptr_ != UninitializedTag())
+            EnterAssertNoGCScope();
+    }
+
+    Unrooted(const Unrooted &other) : ptr_(other.ptr_) {
+        if (ptr_ != UninitializedTag())
+            EnterAssertNoGCScope();
+    }
+
+    Unrooted(const T &p) : ptr_(p) {
+        JS_ASSERT(ptr_ != UninitializedTag());
+        EnterAssertNoGCScope();
+    }
+
+    ~Unrooted() {
+        if (ptr_ != UninitializedTag())
+            LeaveAssertNoGCScope();
+    }
+
+    void drop() {
+        if (ptr_ != UninitializedTag())
+            LeaveAssertNoGCScope();
+        ptr_ = UninitializedTag();
+    }
+
+    
+    template <typename S>
+    Unrooted &operator=(const Return<S> &other) {
+        JS_ASSERT(other.unsafeGet() != UninitializedTag());
+        if (ptr_ == UninitializedTag())
+            EnterAssertNoGCScope();
+        ptr_ = other.unsafeGet();
+        return *this;
+    }
+
+    
+    Unrooted &operator=(T other) {
+        JS_ASSERT(other != UninitializedTag());
+        if (ptr_ == UninitializedTag())
+            EnterAssertNoGCScope();
+        ptr_ = other;
+        return *this;
+    }
+
+    operator T() const { return (ptr_ == UninitializedTag()) ? NULL : ptr_; }
+    T *operator&() { return &ptr_; }
+    const T operator->() const { JS_ASSERT(ptr_ != UninitializedTag()); return ptr_; }
+    bool operator==(const T &other) { return ptr_ == other; }
+    bool operator!=(const T &other) { return ptr_ != other; }
+
+  private:
+    
+
+
+
+
+
+
+
+
+
+
+    static inline T UninitializedTag() { return reinterpret_cast<T>(1); };
+
+    T ptr_;
+};
+
+
+
+
+
+# define ForwardDeclare(type) \
+    class type; \
+    typedef Unrooted<type*> Unrooted##type; \
+    typedef type * Raw##type
+
+template <typename T>
+T DropUnrooted(Unrooted<T> &unrooted)
+{
+    T rv = unrooted;
+    unrooted.drop();
+    return rv;
+}
+
+template <typename T>
+T DropUnrooted(T &unrooted)
+{
+    T rv = unrooted;
+    JS::PoisonPtr(&unrooted);
+    return rv;
+}
+
+template <>
+inline RawId DropUnrooted(RawId &id) { return id; }
+
+#else 
+
+
+# define ForwardDeclare(type) \
+    class type; \
+    typedef type * Unrooted##type; \
+    typedef type * Raw##type
 
 
 
@@ -494,7 +720,39 @@ class Return
 
 
 template <typename T>
-struct RootKind<T *> { static ThingRootKind rootKind() { return T::rootKind(); } };
+class Unrooted
+{
+  private:
+    Unrooted() MOZ_DELETE;
+    Unrooted(const Unrooted &) MOZ_DELETE;
+    ~Unrooted() MOZ_DELETE;
+};
+
+template <typename T>
+T DropUnrooted(T &unrooted) { return unrooted; }
+
+#endif 
+
+template <typename T> template <typename S>
+inline
+Return<T>::Return(const Unrooted<S> &unrooted,
+                  typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+    
+  : ptr_(static_cast<S>(unrooted))
+{
+    EnterAssertNoGCScope();
+}
+
+
+
+
+
+
+template <typename T>
+struct RootKind<T *>
+{
+    static ThingRootKind rootKind() { return T::rootKind(); }
+};
 
 template <typename T>
 struct RootMethods<T *>
@@ -503,9 +761,6 @@ struct RootMethods<T *>
     static ThingRootKind kind() { return RootKind<T *>::rootKind(); }
     static bool poisoned(T *v) { return IsPoisonedPtr(v); }
 };
-
-template <typename T>
-class RootedBase {};
 
 
 
@@ -518,24 +773,21 @@ class RootedBase {};
 template <typename T>
 class Rooted : public RootedBase<T>
 {
-    void init(JSContext *cxArg)
-    {
+    void init(JSContext *cxArg) {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
         ContextFriendFields *cx = ContextFriendFields::get(cxArg);
         commonInit(cx->thingGCRooters);
 #endif
     }
 
-    void init(JSRuntime *rtArg)
-    {
+    void init(JSRuntime *rtArg) {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
         PerThreadDataFriendFields *pt = PerThreadDataFriendFields::getMainThread(rtArg);
         commonInit(pt->thingGCRooters);
 #endif
     }
 
-    void init(js::PerThreadData *ptArg)
-    {
+    void init(js::PerThreadData *ptArg) {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
         PerThreadDataFriendFields *pt = PerThreadDataFriendFields::get(ptArg);
         commonInit(pt->thingGCRooters);
@@ -606,6 +858,15 @@ class Rooted : public RootedBase<T>
     template <typename S>
     Rooted(JSContext *cx, const Return<S> &initial
            MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : ptr(initial.unsafeGet())
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        init(cx);
+    }
+
+    template <typename S>
+    Rooted(JSContext *cx, const Unrooted<S> &initial
+           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
       : ptr(initial.ptr_)
 #if defined(JSGC_ROOT_ANALYSIS)
       , scanned(false)
@@ -624,8 +885,7 @@ class Rooted : public RootedBase<T>
         init(pt);
     }
 
-    ~Rooted()
-    {
+    ~Rooted() {
 #if defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING)
         JS_ASSERT(*stack == this);
         *stack = prev;
@@ -636,30 +896,27 @@ class Rooted : public RootedBase<T>
     Rooted<T> *previous() { return prev; }
 #endif
 
-    operator T () const { return ptr; }
-    T operator ->() const { return ptr; }
-    T * address() { return &ptr; }
-    const T * address() const { return &ptr; }
-    T & get() { return ptr; }
-    const T & get() const { return ptr; }
+    operator T() const { return ptr; }
+    T operator->() const { return ptr; }
+    T *address() { return &ptr; }
+    const T *address() const { return &ptr; }
+    T &get() { return ptr; }
+    const T &get() const { return ptr; }
 
-    T & operator =(T value)
-    {
+    T &operator=(T value) {
         JS_ASSERT(!RootMethods<T>::poisoned(value));
         ptr = value;
         return ptr;
     }
 
-    T & operator =(const Rooted &value)
-    {
+    T &operator=(const Rooted &value) {
         ptr = value;
         return ptr;
     }
 
     template <typename S>
-    T & operator =(const Return<S> &value)
-    {
-        ptr = value.ptr_;
+    T &operator=(const Return<S> &value) {
+        ptr = value.unsafeGet();
         return ptr;
     }
 
@@ -703,6 +960,18 @@ Return<T>::operator==(const Rooted<T> &other)
     return ptr_ == other.get();
 }
 
+#ifdef DEBUG
+template <typename T> template <typename S>
+inline
+Unrooted<T>::Unrooted(Rooted<S> &root,
+            typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
+  : ptr_(root.get())
+{
+    JS_ASSERT(ptr_ != UninitializedTag());
+    EnterAssertNoGCScope();
+}
+#endif 
+
 typedef Rooted<JSObject*>    RootedObject;
 typedef Rooted<JSFunction*>  RootedFunction;
 typedef Rooted<JSScript*>    RootedScript;
@@ -725,8 +994,7 @@ class SkipRoot
     const uint8_t *end;
 
     template <typename T>
-    void init(ContextFriendFields *cx, const T *ptr, size_t count)
-    {
+    void init(ContextFriendFields *cx, const T *ptr, size_t count) {
         this->stack = &cx->skipGCRooters;
         this->prev = *stack;
         *stack = this;
@@ -743,8 +1011,7 @@ class SkipRoot
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
 
-    ~SkipRoot()
-    {
+    ~SkipRoot() {
         JS_ASSERT(*stack == this);
         *stack = prev;
     }
@@ -774,7 +1041,7 @@ class SkipRoot
 
 namespace JS {
 
-template<typename T> template <typename S>
+template <typename T> template <typename S>
 inline
 Handle<T>::Handle(js::Rooted<S> &root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
@@ -782,7 +1049,7 @@ Handle<T>::Handle(js::Rooted<S> &root,
     ptr = reinterpret_cast<const T *>(root.address());
 }
 
-template<typename T> template <typename S>
+template <typename T> template <typename S>
 inline
 Handle<T>::Handle(MutableHandle<S> &root,
                   typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
@@ -790,7 +1057,7 @@ Handle<T>::Handle(MutableHandle<S> &root,
     ptr = reinterpret_cast<const T *>(root.address());
 }
 
-template<typename T> template <typename S>
+template <typename T> template <typename S>
 inline
 MutableHandle<T>::MutableHandle(js::Rooted<S> *root,
                                 typename mozilla::EnableIf<mozilla::IsConvertible<S, T>::value, int>::Type dummy)
@@ -864,9 +1131,7 @@ struct Cell;
 class CompilerRootNode
 {
   protected:
-    CompilerRootNode(js::gc::Cell *ptr)
-      : next(NULL), ptr(ptr)
-    { }
+    CompilerRootNode(js::gc::Cell *ptr) : next(NULL), ptr(ptr) {}
 
   public:
     void **address() { return (void **)&ptr; }
