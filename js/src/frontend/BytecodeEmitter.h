@@ -107,7 +107,7 @@ struct BytecodeEmitter
 
     StmtInfoBCE     *topStmt;       
     StmtInfoBCE     *topScopeStmt;  
-    Rooted<StaticBlockObject *> blockChain;
+    Rooted<NestedScopeObject *> staticScope;
                                     
 
     OwnedAtomIndexMapPtr atomIndices; 

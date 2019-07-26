@@ -309,6 +309,37 @@ class NestedScopeObject : public ScopeObject
     uint32_t stackDepth() const {
         return getReservedSlot(DEPTH_SLOT).toPrivateUint32();
     }
+
+    
+
+
+
+    inline NestedScopeObject *enclosingNestedScope() const;
+
+    
+    JSObject *enclosingScopeForStaticScopeIter() {
+        return getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    }
+
+    void initEnclosingNestedScope(JSObject *obj) {
+        JS_ASSERT(getReservedSlot(SCOPE_CHAIN_SLOT).isUndefined());
+        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(obj));
+    }
+
+    
+
+
+
+
+
+
+    void initEnclosingNestedScopeFromParser(NestedScopeObject *prev) {
+        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(prev));
+    }
+
+    void resetEnclosingNestedScopeFromParser() {
+        setReservedSlot(SCOPE_CHAIN_SLOT, UndefinedValue());
+    }
 };
 
 class WithObject : public NestedScopeObject
@@ -382,12 +413,6 @@ class StaticBlockObject : public BlockObject
     static StaticBlockObject *create(ExclusiveContext *cx);
 
     
-    JSObject *enclosingStaticScope() const {
-        AutoThreadSafeAccess ts(this);
-        return getFixedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
-    }
-
-    
 
 
 
@@ -437,11 +462,6 @@ class StaticBlockObject : public BlockObject
         initReservedSlot(DEPTH_SLOT, PrivateUint32Value(depth));
     }
 
-    void initEnclosingStaticScope(JSObject *obj) {
-        JS_ASSERT(getReservedSlot(SCOPE_CHAIN_SLOT).isUndefined());
-        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(obj));
-    }
-
     
 
 
@@ -455,20 +475,6 @@ class StaticBlockObject : public BlockObject
         Value v = slotValue(i);
         return v.isUndefined() ? nullptr
                                : reinterpret_cast<frontend::Definition *>(v.toPrivate());
-    }
-
-    
-
-
-
-
-
-    void initPrevBlockChainFromParser(StaticBlockObject *prev) {
-        setReservedSlot(SCOPE_CHAIN_SLOT, ObjectOrNullValue(prev));
-    }
-
-    void resetPrevBlockChainFromParser() {
-        setReservedSlot(SCOPE_CHAIN_SLOT, UndefinedValue());
     }
 
     
@@ -515,7 +521,7 @@ XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope,
                      StaticBlockObject **objp);
 
 extern JSObject *
-CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<StaticBlockObject*> src);
+CloneNestedScopeObject(JSContext *cx, HandleObject enclosingScope, Handle<NestedScopeObject*> src);
 
 
 
@@ -547,7 +553,7 @@ class ScopeIter
     JSContext *cx;
     AbstractFramePtr frame_;
     RootedObject cur_;
-    Rooted<StaticBlockObject *> block_;
+    Rooted<NestedScopeObject *> staticScope_;
     Type type_;
     bool hasScopeObject_;
 
@@ -593,7 +599,10 @@ class ScopeIter
     bool hasScopeObject() const { JS_ASSERT(!done()); return hasScopeObject_; }
     ScopeObject &scope() const;
 
-    StaticBlockObject &staticBlock() const { JS_ASSERT(type() == Block); return *block_; }
+    StaticBlockObject &staticBlock() const {
+        JS_ASSERT(type() == Block);
+        return staticScope_->as<StaticBlockObject>();
+    }
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
@@ -604,18 +613,18 @@ class ScopeIterKey
 
     AbstractFramePtr frame_;
     JSObject *cur_;
-    StaticBlockObject *block_;
+    NestedScopeObject *staticScope_;
     ScopeIter::Type type_;
     bool hasScopeObject_;
 
   public:
     ScopeIterKey(const ScopeIter &si)
-      : frame_(si.frame()), cur_(si.cur_), block_(si.block_), type_(si.type_),
+      : frame_(si.frame()), cur_(si.cur_), staticScope_(si.staticScope_), type_(si.type_),
         hasScopeObject_(si.hasScopeObject_) {}
 
     AbstractFramePtr frame() const { return frame_; }
     JSObject *cur() const { return cur_; }
-    StaticBlockObject *block() const { return block_; }
+    NestedScopeObject *staticScope() const { return staticScope_; }
     ScopeIter::Type type() const { return type_; }
     bool hasScopeObject() const { return hasScopeObject_; }
     JSObject *enclosingScope() const { return cur_; }
@@ -628,7 +637,7 @@ class ScopeIterKey
     bool operator!=(const ScopeIterKey &other) const {
         return frame_ != other.frame_ ||
                cur_ != other.cur_ ||
-               block_ != other.block_ ||
+               staticScope_ != other.staticScope_ ||
                type_ != other.type_;
     }
     static void rekey(ScopeIterKey &k, const ScopeIterKey& newKey) {
@@ -643,7 +652,7 @@ class ScopeIterVal
 
     AbstractFramePtr frame_;
     RelocatablePtr<JSObject> cur_;
-    RelocatablePtr<StaticBlockObject> block_;
+    RelocatablePtr<NestedScopeObject> staticScope_;
     ScopeIter::Type type_;
     bool hasScopeObject_;
 
@@ -651,7 +660,7 @@ class ScopeIterVal
 
   public:
     ScopeIterVal(const ScopeIter &si)
-      : frame_(si.frame()), cur_(si.cur_), block_(si.block_), type_(si.type_),
+      : frame_(si.frame()), cur_(si.cur_), staticScope_(si.staticScope_), type_(si.type_),
         hasScopeObject_(si.hasScopeObject_) {}
 
     AbstractFramePtr frame() const { return frame_; }
@@ -849,6 +858,13 @@ ScopeObject::aliasedVar(ScopeCoordinate sc)
 {
     JS_ASSERT(is<CallObject>() || is<ClonedBlockObject>());
     return getSlot(sc.slot());
+}
+
+inline NestedScopeObject *
+NestedScopeObject::enclosingNestedScope() const
+{
+    JSObject *obj = getReservedSlot(SCOPE_CHAIN_SLOT).toObjectOrNull();
+    return obj && obj->is<NestedScopeObject>() ? &obj->as<NestedScopeObject>() : nullptr;
 }
 
 inline StaticBlockObject *

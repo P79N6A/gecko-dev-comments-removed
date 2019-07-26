@@ -44,7 +44,7 @@ class RegExpObject;
 struct SourceCompressionTask;
 class Shape;
 class WatchpointMap;
-class StaticBlockObject;
+class NestedScopeObject;
 
 namespace analyze {
     class ScriptAnalysis;
@@ -1422,7 +1422,7 @@ class JSScript : public js::gc::BarrieredCell<JSScript>
         return arr->vector[index];
     }
 
-    js::StaticBlockObject *getBlockScope(jsbytecode *pc);
+    js::NestedScopeObject *getStaticScope(jsbytecode *pc);
 
     
 

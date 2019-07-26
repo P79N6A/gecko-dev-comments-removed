@@ -98,8 +98,7 @@ struct ParseContext : public GenericParseContext
 
     StmtInfoPC      *topStmt;       
     StmtInfoPC      *topScopeStmt;  
-    Rooted<StaticBlockObject *> blockChain;
-                                    
+    Rooted<NestedScopeObject *> staticScope;  
     Node            maybeFunction;  
 
     const unsigned  staticLevel;    
@@ -250,7 +249,7 @@ struct ParseContext : public GenericParseContext
         blockidGen(bodyid),  
         topStmt(nullptr),
         topScopeStmt(nullptr),
-        blockChain(prs->context),
+        staticScope(prs->context),
         maybeFunction(maybeFunction),
         staticLevel(staticLevel),
         lastYieldOffset(NoYieldOffset),
