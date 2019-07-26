@@ -38,18 +38,6 @@
 
 
 
-enum BFScolors {white, gray, black};
-
-struct BFSState {
-    BFScolors   color;
-    int32_t     distance;
-    nsCStringKey  *predecessor;
-    ~BFSState() {
-        delete predecessor;
-    }
-};
-
-
 typedef nsCOMArray<nsIAtom> SCTableData;
 
 
@@ -60,12 +48,22 @@ static bool DeleteAdjacencyEntry(nsHashKey *aKey, void *aData, void* closure) {
 }
 
 
+enum BFScolors {white, gray, black};
+
+
 struct BFSTableData {
     nsCStringKey *key;
-    BFSState *state;
+    BFScolors color;
+    int32_t distance;
+    nsCStringKey *predecessor;
 
-    BFSTableData(nsCStringKey* aKey) : key(aKey), state(nullptr)
+    explicit BFSTableData(nsCStringKey* aKey)
+      : key(aKey), color(white), distance(-1), predecessor(nullptr)
     {
+    }
+
+    ~BFSTableData() {
+        delete predecessor;
     }
 };
 
@@ -218,24 +216,13 @@ static bool InitBFSTable(nsHashKey *aKey, void *aData, void* closure) {
     nsHashtable *BFSTable = (nsHashtable*)closure;
     if (!BFSTable) return false;
 
-    BFSState *state = new BFSState;
-
-    state->color = white;
-    state->distance = -1;
-    state->predecessor = nullptr;
-
-    BFSTableData *data = new BFSTableData(static_cast<nsCStringKey*>(aKey));
-    data->state = state;
-
-    BFSTable->Put(aKey, data);
+    BFSTable->Put(aKey, new BFSTableData(static_cast<nsCStringKey*>(aKey)));
     return true;
 }
 
 
 static bool DeleteBFSEntry(nsHashKey *aKey, void *aData, void *closure) {
     BFSTableData *data = (BFSTableData*)aData;
-    BFSState *state = data->state;
-    delete state;
     data->key = nullptr;
     delete data;
     return true;
@@ -285,10 +272,8 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
         return NS_ERROR_FAILURE;
     }
 
-    BFSState *state = data->state;
-
-    state->color = gray;
-    state->distance = 0;
+    data->color = gray;
+    data->distance = 0;
     CStreamConvDeallocator *dtorFunc = new CStreamConvDeallocator();
 
     nsDeque grayQ(dtorFunc);
@@ -302,11 +287,7 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
 
         
         
-        BFSTableData *data2b = (BFSTableData*)lBFSTable.Get(currentHead);
-        if (!data2b) return NS_ERROR_FAILURE;
-
-        BFSState *headVertexState = data2b->state;
-        NS_ASSERTION(headVertexState, "problem with the BFS strmconv algorithm");
+        BFSTableData *headVertexState = (BFSTableData*)lBFSTable.Get(currentHead);
         if (!headVertexState) return NS_ERROR_FAILURE;
 
         int32_t edgeCount = data2->Count();
@@ -318,14 +299,11 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
             nsCStringKey *curVertex = new nsCStringKey(ToNewCString(curVertexStr), 
                                         curVertexStr.Length(), nsCStringKey::OWN);
 
-            BFSTableData *data3 = (BFSTableData*)lBFSTable.Get(curVertex);
-            if (!data3) {
+            BFSTableData *curVertexState = (BFSTableData*)lBFSTable.Get(curVertex);
+            if (!curVertexState) {
                 delete curVertex;
                 return NS_ERROR_FAILURE;
             }
-            BFSState *curVertexState = data3->state;
-            NS_ASSERTION(curVertexState, "something went wrong with the BFS strmconv algorithm");
-            if (!curVertexState) return NS_ERROR_FAILURE;
 
             if (white == curVertexState->color) {
                 curVertexState->color = gray;
@@ -370,8 +348,6 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
     }
 
     while (data) {
-        BFSState *curState = data->state;
-
         nsCStringKey *key = data->key;
 
         if (fromStr.Equals(key->GetString())) {
@@ -382,8 +358,8 @@ nsStreamConverterService::FindConverter(const char *aContractID, nsTArray<nsCStr
 
         
         
-        if (!curState->predecessor) break; 
-        BFSTableData *predecessorData = (BFSTableData*)lBFSTable.Get(curState->predecessor);
+        if (!data->predecessor) break; 
+        BFSTableData *predecessorData = (BFSTableData*)lBFSTable.Get(data->predecessor);
 
         if (!predecessorData) break; 
 
