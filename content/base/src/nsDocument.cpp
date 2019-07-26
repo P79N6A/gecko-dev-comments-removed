@@ -217,6 +217,8 @@
 #include "mozilla/dom/XPathEvaluator.h"
 #include "nsIDocumentEncoder.h"
 #include "nsIStructuredCloneContainer.h"
+#include "nsIMutableArray.h"
+#include "nsContentPermissionHelper.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -2643,6 +2645,33 @@ nsDocument::InitCSP(nsIChannel* aChannel)
 #endif
 
   nsresult rv;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (applyAppDefaultCSP || applyAppManifestCSP) {
+    nsCOMPtr<nsIContentSecurityPolicy> csp;
+    rv = principal->GetCsp(getter_AddRefs(csp));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (csp) {
+#ifdef PR_LOGGING
+      PR_LOG(gCspPRLog, PR_LOG_DEBUG, ("%s %s %s",
+           "This document is sharing principal with another document.",
+           "Since the document is an app, CSP was already set.",
+           "Skipping attempt to set CSP."));
+#endif
+      return NS_OK;
+    }
+  }
+
+  
   csp = do_CreateInstance("@mozilla.org/contentsecuritypolicy;1", &rv);
 
   if (NS_FAILED(rv)) {
@@ -2722,16 +2751,12 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     }
   }
 
-  if (csp) {
-    
-    nsIPrincipal* principal = GetPrincipal();
-    rv = principal->SetCsp(csp);
-    NS_ENSURE_SUCCESS(rv, rv);
+  rv = principal->SetCsp(csp);
+  NS_ENSURE_SUCCESS(rv, rv);
 #ifdef PR_LOGGING
-    PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-           ("Inserted CSP into principal %p", principal));
+  PR_LOG(gCspPRLog, PR_LOG_DEBUG,
+         ("Inserted CSP into principal %p", principal));
 #endif
-  }
 
   return NS_OK;
 }
@@ -10729,17 +10754,11 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsPointerLockPermissionRequest,
                              nsIContentPermissionRequest)
 
 NS_IMETHODIMP
-nsPointerLockPermissionRequest::GetType(nsACString& aType)
+nsPointerLockPermissionRequest::GetTypes(nsIArray** aTypes)
 {
-  aType = "pointerLock";
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsPointerLockPermissionRequest::GetAccess(nsACString& aAccess)
-{
-  aAccess = "unused";
-  return NS_OK;
+  return CreatePermissionArray(NS_LITERAL_CSTRING("pointerLock"),
+                               NS_LITERAL_CSTRING("unused"),
+                               aTypes);
 }
 
 NS_IMETHODIMP
