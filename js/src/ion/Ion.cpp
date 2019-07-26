@@ -1116,6 +1116,14 @@ InvalidateActivation(FreeOp *fop, uint8 *ionTop, bool invalidateAll)
         const SafepointIndex *si = ionScript->getSafepointIndex(it.returnAddressToFp());
         IonCode *ionCode = ionScript->method();
 
+        JSCompartment *compartment = script->compartment();
+        if (compartment->needsBarrier()) {
+            
+            
+            
+            
+            ionCode->trace(compartment->barrierTracer());
+        }
         ionCode->setInvalidated();
 
         
