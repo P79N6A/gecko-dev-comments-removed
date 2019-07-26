@@ -1514,6 +1514,7 @@ SocialStatus = {
           "class": "social-panel-frame",
           "id": notificationFrameId,
           "tooltip": "aHTMLTooltip",
+          "context": "contentAreaContextMenu",
 
           
           
