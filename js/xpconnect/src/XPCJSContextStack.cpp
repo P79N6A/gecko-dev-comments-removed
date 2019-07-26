@@ -173,6 +173,13 @@ XPCJSContextStack::InitSafeJSContext()
 
     JS_SetErrorReporter(mSafeJSContext, xpc::SystemErrorReporter);
 
+    
+    
+    
+    
+    
+    
+    
     JS::CompartmentOptions options;
     options.setZone(JS::SystemZone)
            .setTrace(TraceXPCGlobal);
@@ -193,9 +200,6 @@ XPCJSContextStack::InitSafeJSContext()
     
     if (NS_FAILED(xpc->InitClasses(mSafeJSContext, mSafeJSContextGlobal)))
         MOZ_CRASH();
-
-    JS::RootedObject glob(mSafeJSContext, mSafeJSContextGlobal);
-    JS_FireOnNewGlobalObject(mSafeJSContext, glob);
 
     return mSafeJSContext;
 }
