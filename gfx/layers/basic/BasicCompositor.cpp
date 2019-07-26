@@ -474,7 +474,7 @@ BasicCompositor::EndFrame()
   RefPtr<DrawTarget> dest(mTarget ? mTarget : mDrawTarget);
 
   nsIntPoint offset = mTarget ? mTargetBounds.TopLeft() : nsIntPoint();
-  
+
   
   
   
