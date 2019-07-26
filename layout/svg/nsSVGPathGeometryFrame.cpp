@@ -585,16 +585,39 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
     break;
   }
 
-  
-  gfx->Save();
-
-  GeneratePath(gfx, GetCanvasTM(FOR_PAINTING, aTransformRoot));
-
   if (renderMode != SVGAutoRenderState::NORMAL) {
     NS_ABORT_IF_FALSE(renderMode == SVGAutoRenderState::CLIP ||
                       renderMode == SVGAutoRenderState::CLIP_MASK,
                       "Unknown render mode");
-    gfx->Restore();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    gfxContextMatrixAutoSaveRestore autoSaveRestore;
+    if (renderMode != SVGAutoRenderState::CLIP) {
+      autoSaveRestore.SetContext(gfx);
+    }
+
+    GeneratePath(gfx, GetCanvasTM(FOR_PAINTING, aTransformRoot));
+
+    
+    
+    
+    
+    
+    
+    
+
+    gfxContext::FillRule oldFillRull = gfx->CurrentFillRule();
 
     if (GetClipRule() == NS_STYLE_FILL_RULE_EVENODD)
       gfx->SetFillRule(gfxContext::FILL_RULE_EVEN_ODD);
@@ -604,11 +627,16 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
     if (renderMode == SVGAutoRenderState::CLIP_MASK) {
       gfx->SetColor(gfxRGBA(1.0f, 1.0f, 1.0f, 1.0f));
       gfx->Fill();
+      gfx->SetFillRule(oldFillRull); 
       gfx->NewPath();
     }
 
     return;
   }
+
+  gfxContextAutoSaveRestore autoSaveRestore(gfx);
+
+  GeneratePath(gfx, GetCanvasTM(FOR_PAINTING, aTransformRoot));
 
   gfxTextContextPaint *contextPaint =
     (gfxTextContextPaint*)aContext->GetUserData(&gfxTextContextPaint::sUserDataKey);
@@ -624,8 +652,6 @@ nsSVGPathGeometryFrame::Render(nsRenderingContext *aContext,
   }
 
   gfx->NewPath();
-
-  gfx->Restore();
 }
 
 void
