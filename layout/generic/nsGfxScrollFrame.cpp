@@ -2188,17 +2188,8 @@ public:
   virtual nsDisplayItem* WrapItem(nsDisplayListBuilder* aBuilder,
                                   nsDisplayItem* aItem) {
 
-    
-    
-    
-    bool shouldWrap = !aItem->Frame()->IsAbsolutelyPositioned() ||
-                      nsLayoutUtils::IsProperAncestorFrame(mScrolledFrame, aItem->Frame(), nullptr);
-    if (shouldWrap) {
-      SetCount(++mCount);
-      return new (aBuilder) nsDisplayScrollLayer(aBuilder, aItem, aItem->Frame(), mScrolledFrame, mScrollFrame);
-    } else {
-      return aItem;
-    }
+    SetCount(++mCount);
+    return new (aBuilder) nsDisplayScrollLayer(aBuilder, aItem, aItem->Frame(), mScrolledFrame, mScrollFrame);
   }
 
 protected:
