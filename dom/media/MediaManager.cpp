@@ -567,6 +567,7 @@ public:
     
     mListener->Activate(stream.forget(), mAudioSource, mVideoSource);
 
+    
     TracksAvailableCallback* tracksAvailableCallback =
       new TracksAvailableCallback(mManager, mSuccess, mWindowID, trackunion);
 

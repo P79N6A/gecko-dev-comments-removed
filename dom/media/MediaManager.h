@@ -362,13 +362,15 @@ public:
           
           
           
-          nsRefPtr<GetUserMediaNotificationEvent> event =
+          nsIRunnable *event =
             new GetUserMediaNotificationEvent(GetUserMediaNotificationEvent::STARTING,
                                               mStream.forget(),
                                               mOnTracksAvailableCallback.forget(),
                                               mAudioSource != nullptr,
                                               mVideoSource != nullptr,
                                               mWindowID, mError.forget());
+          
+          
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
         }
         break;
@@ -388,13 +390,14 @@ public:
           if (mFinish) {
             source->Finish();
           }
-          nsRefPtr<GetUserMediaNotificationEvent> event =
+          nsIRunnable *event =
             new GetUserMediaNotificationEvent(mListener,
                                               GetUserMediaNotificationEvent::STOPPING,
                                               mAudioSource != nullptr,
                                               mVideoSource != nullptr,
                                               mWindowID);
-
+          
+          
           NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
         }
         break;
