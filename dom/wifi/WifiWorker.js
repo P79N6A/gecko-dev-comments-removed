@@ -2046,9 +2046,9 @@ function WifiWorker() {
           
           
           let network = new ScanResult(ssid, bssid, flags, signalLevel);
-          self.networksArray.push(network);
 
           let networkKey = getNetworkKey(network);
+          let eapIndex = -1;
           if (networkKey in self.configuredNetworks) {
             let known = self.configuredNetworks[networkKey];
             network.known = true;
@@ -2063,8 +2063,20 @@ function WifiWorker() {
                 ("wep_key0" in known && known.wep_key0)) {
               network.password = "*";
             }
+          } else if ((eapIndex = network.capabilities.indexOf("WPA-EAP")) >= 0) {
+            
+            
+            
+            
+            
+            
+            if (network.capabilities.length === 1)
+              continue;
+
+            network.capabilities.splice(eapIndex, 1);
           }
 
+          self.networksArray.push(network);
           if (network.bssid === WifiManager.connectionInfo.bssid)
             network.connected = true;
 
