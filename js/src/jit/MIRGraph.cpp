@@ -691,7 +691,9 @@ MBasicBlock::moveBefore(MInstruction *at, MInstruction *ins)
 
     
     
-    at->block()->insertBefore(at, ins);
+    ins->setBlock(at->block());
+    at->block()->instructions_.insertBefore(at, ins);
+    ins->setTrackedSite(at->trackedSite());
 }
 
 static inline void
