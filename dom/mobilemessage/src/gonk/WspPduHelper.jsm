@@ -386,13 +386,16 @@ this.Text = {
 
 
 
-  encode: function(data, text) {
+
+
+  encode: function(data, text, asciiOnly) {
     if (!text) {
       throw new CodeError("Text: empty string");
     }
 
     let code = text.charCodeAt(0);
-    if ((code < CTLS) || (code == DEL) || (code > 255)) {
+    if ((code < CTLS) || (code == DEL) || (code > 255) ||
+        (code >= 128 && asciiOnly)) {
       throw new CodeError("Text: invalid char code " + code);
     }
     Octet.encode(data, code);
@@ -426,10 +429,12 @@ this.NullTerminatedTexts = {
 
 
 
-  encode: function(data, str) {
+
+
+  encode: function(data, str, asciiOnly) {
     if (str) {
       for (let i = 0; i < str.length; i++) {
-        Text.encode(data, str.charAt(i));
+        Text.encode(data, str.charAt(i), asciiOnly);
       }
     }
     Octet.encode(data, 0);
@@ -591,7 +596,9 @@ this.TextString = {
 
 
 
-  encode: function(data, str) {
+
+
+  encode: function(data, str, asciiOnly) {
     if (!str) {
       Octet.encode(data, 0);
       return;
@@ -599,10 +606,14 @@ this.TextString = {
 
     let firstCharCode = str.charCodeAt(0);
     if (firstCharCode >= 128) {
+      if (asciiOnly) {
+        throw new CodeError("Text: invalid char code " + code);
+      }
+
       Octet.encode(data, 127);
     }
 
-    NullTerminatedTexts.encode(data, str);
+    NullTerminatedTexts.encode(data, str, asciiOnly);
   },
 };
 

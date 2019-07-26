@@ -717,7 +717,17 @@ this.EncodedStringValue = {
   encode: function(data, str) {
     let begin = data.offset;
     try {
-      WSP.TextString.encode(data, str);
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      WSP.TextString.encode(data, str, true);
     } catch (e) {
       data.offset = begin;
       this.encodeCharsetEncodedString(data, str);
