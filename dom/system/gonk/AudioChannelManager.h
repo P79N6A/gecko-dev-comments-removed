@@ -49,8 +49,12 @@ public:
 
   bool Headphones() const
   {
-    MOZ_ASSERT(mState != hal::SWITCH_STATE_UNKNOWN);
-    return mState != hal::SWITCH_STATE_OFF;
+    
+    
+    
+    
+    return mState != hal::SWITCH_STATE_OFF &&
+           mState != hal::SWITCH_STATE_UNKNOWN;
   }
 
   bool SetVolumeControlChannel(const nsAString& aChannel);
