@@ -2,11 +2,22 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 this.EXPORTED_SYMBOLS = [
   "DataSubmissionRequest", 
-  "HealthReportPolicy",
+  "DataReportingPolicy",
 ];
 
 const {classes: Cc, interfaces: Ci, utils: Cu} = Components;
@@ -242,8 +253,10 @@ Object.freeze(DataSubmissionRequest.prototype);
 
 
 
-this.HealthReportPolicy = function HealthReportPolicy(prefs, listener) {
-  this._log = Log4Moz.repository.getLogger("Services.HealthReport.Policy");
+
+
+this.DataReportingPolicy = function (prefs, healthReportPrefs, listener) {
+  this._log = Log4Moz.repository.getLogger("Services.DataReporting.Policy");
   this._log.level = Log4Moz.Level["Debug"];
 
   for (let handler of this.REQUIRED_LISTENERS) {
@@ -254,6 +267,7 @@ this.HealthReportPolicy = function HealthReportPolicy(prefs, listener) {
   }
 
   this._prefs = prefs;
+  this._healthReportPrefs = healthReportPrefs;
   this._listener = listener;
 
   
@@ -276,7 +290,7 @@ this.HealthReportPolicy = function HealthReportPolicy(prefs, listener) {
   this._inProgressSubmissionRequest = null;
 }
 
-HealthReportPolicy.prototype = {
+DataReportingPolicy.prototype = Object.freeze({
   
 
 
@@ -449,22 +463,6 @@ HealthReportPolicy.prototype = {
 
 
 
-
-
-  get dataUploadEnabled() {
-    
-    return this._prefs.get("dataUploadEnabled", true);
-  },
-
-  set dataUploadEnabled(value) {
-    this._prefs.set("dataUploadEnabled", !!value);
-  },
-
-  
-
-
-
-
   get dataSubmissionPolicyAccepted() {
     
     return this._prefs.get("dataSubmissionPolicyAccepted", false);
@@ -472,6 +470,10 @@ HealthReportPolicy.prototype = {
 
   set dataSubmissionPolicyAccepted(value) {
     this._prefs.set("dataSubmissionPolicyAccepted", !!value);
+  },
+
+  set dataSubmissionPolicyAcceptedVersion(value) {
+    this._prefs.set("dataSubmissionPolicyAcceptedVersion", value);
   },
 
   
@@ -505,13 +507,14 @@ HealthReportPolicy.prototype = {
 
 
   get lastDataSubmissionRequestedDate() {
-    return CommonUtils.getDatePref(this._prefs,
+    return CommonUtils.getDatePref(this._healthReportPrefs,
                                    "lastDataSubmissionRequestedTime", 0,
                                    this._log, OLDEST_ALLOWED_YEAR);
   },
 
   set lastDataSubmissionRequestedDate(value) {
-    CommonUtils.setDatePref(this._prefs, "lastDataSubmissionRequestedTime",
+    CommonUtils.setDatePref(this._healthReportPrefs,
+                            "lastDataSubmissionRequestedTime",
                             value, OLDEST_ALLOWED_YEAR);
   },
 
@@ -522,13 +525,14 @@ HealthReportPolicy.prototype = {
 
 
   get lastDataSubmissionSuccessfulDate() {
-    return CommonUtils.getDatePref(this._prefs,
+    return CommonUtils.getDatePref(this._healthReportPrefs,
                                    "lastDataSubmissionSuccessfulTime", 0,
                                    this._log, OLDEST_ALLOWED_YEAR);
   },
 
   set lastDataSubmissionSuccessfulDate(value) {
-    CommonUtils.setDatePref(this._prefs, "lastDataSubmissionSuccessfulTime",
+    CommonUtils.setDatePref(this._healthReportPrefs,
+                            "lastDataSubmissionSuccessfulTime",
                             value, OLDEST_ALLOWED_YEAR);
   },
 
@@ -539,13 +543,15 @@ HealthReportPolicy.prototype = {
 
 
   get lastDataSubmissionFailureDate() {
-    return CommonUtils.getDatePref(this._prefs, "lastDataSubmissionFailureTime",
+    return CommonUtils.getDatePref(this._healthReportPrefs,
+                                   "lastDataSubmissionFailureTime",
                                    0, this._log, OLDEST_ALLOWED_YEAR);
   },
 
   set lastDataSubmissionFailureDate(value) {
-    CommonUtils.setDatePref(this._prefs, "lastDataSubmissionFailureTime", value,
-                            OLDEST_ALLOWED_YEAR);
+    CommonUtils.setDatePref(this._healthReportPrefs,
+                            "lastDataSubmissionFailureTime",
+                            value, OLDEST_ALLOWED_YEAR);
   },
 
   
@@ -555,12 +561,14 @@ HealthReportPolicy.prototype = {
 
 
   get nextDataSubmissionDate() {
-    return CommonUtils.getDatePref(this._prefs, "nextDataSubmissionTime", 0,
+    return CommonUtils.getDatePref(this._healthReportPrefs,
+                                   "nextDataSubmissionTime", 0,
                                    this._log, OLDEST_ALLOWED_YEAR);
   },
 
   set nextDataSubmissionDate(value) {
-    CommonUtils.setDatePref(this._prefs, "nextDataSubmissionTime", value,
+    CommonUtils.setDatePref(this._healthReportPrefs,
+                            "nextDataSubmissionTime", value,
                             OLDEST_ALLOWED_YEAR);
   },
 
@@ -570,7 +578,7 @@ HealthReportPolicy.prototype = {
 
 
   get currentDaySubmissionFailureCount() {
-    let v = this._prefs.get("currentDaySubmissionFailureCount", 0);
+    let v = this._healthReportPrefs.get("currentDaySubmissionFailureCount", 0);
 
     if (!Number.isInteger(v)) {
       v = 0;
@@ -584,7 +592,7 @@ HealthReportPolicy.prototype = {
       throw new Error("Value must be integer: " + value);
     }
 
-    this._prefs.set("currentDaySubmissionFailureCount", value);
+    this._healthReportPrefs.set("currentDaySubmissionFailureCount", value);
   },
 
   
@@ -595,11 +603,22 @@ HealthReportPolicy.prototype = {
 
 
   get pendingDeleteRemoteData() {
-    return !!this._prefs.get("pendingDeleteRemoteData", false);
+    return !!this._healthReportPrefs.get("pendingDeleteRemoteData", false);
   },
 
   set pendingDeleteRemoteData(value) {
-    this._prefs.set("pendingDeleteRemoteData", !!value);
+    this._healthReportPrefs.set("pendingDeleteRemoteData", !!value);
+  },
+
+  
+
+
+  get healthReportUploadEnabled() {
+    return !!this._healthReportPrefs.get("uploadEnabled", true);
+  },
+
+  set healthReportUploadEnabled(value) {
+    this._healthReportPrefs.set("uploadEnabled", !!value);
   },
 
   
@@ -620,6 +639,7 @@ HealthReportPolicy.prototype = {
     this.dataSubmissionPolicyResponseDate = this.now();
     this.dataSubmissionPolicyResponseType = "accepted-" + reason;
     this.dataSubmissionPolicyAccepted = true;
+    this.dataSubmissionPolicyAcceptedVersion = 1;
   },
 
   
@@ -753,7 +773,7 @@ HealthReportPolicy.prototype = {
       return this._dispatchSubmissionRequest("onRequestRemoteDelete", true);
     }
 
-    if (!this.dataUploadEnabled) {
+    if (!this.healthReportUploadEnabled) {
       this._log.debug("Data upload is disabled. Doing nothing.");
       return;
     }
@@ -1003,7 +1023,5 @@ HealthReportPolicy.prototype = {
   _futureDate: function _futureDate(offset) {
     return new Date(this.now().getTime() + offset);
   },
-};
-
-Object.freeze(HealthReportPolicy.prototype);
+});
 
