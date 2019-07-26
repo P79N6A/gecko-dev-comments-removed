@@ -1573,12 +1573,16 @@ ScriptAnalysis::needsArgsObj(JSContext *cx, SeenVector &seen, SSAUseChain *use)
         return false;
 
     
-    if (op == JSOP_FUNAPPLY && GET_ARGC(pc) == 2 && use->u.which == 0)
+    if (op == JSOP_FUNAPPLY && GET_ARGC(pc) == 2 && use->u.which == 0) {
+        argumentsContentsObserved_ = true;
         return false;
+    }
 
     
-    if (op == JSOP_GETELEM && use->u.which == 1)
+    if (op == JSOP_GETELEM && use->u.which == 1) {
+        argumentsContentsObserved_ = true;
         return false;
+    }
 
     
     if (op == JSOP_LENGTH)
@@ -1634,19 +1638,22 @@ ScriptAnalysis::needsArgsObj(JSContext *cx)
     if (localsAliasStack())
         return true;
 
+    unsigned pcOff = script_->argumentsBytecode() - script_->code;
+
+    SeenVector seen(cx);
+    if (needsArgsObj(cx, seen, SSAValue::PushedValue(pcOff, 0)))
+        return true;
+
     
 
 
 
 
 
-    if (script_->funHasAnyAliasedFormal)
+    if (script_->funHasAnyAliasedFormal && argumentsContentsObserved_)
         return true;
 
-    unsigned pcOff = script_->argumentsBytecode() - script_->code;
-
-    SeenVector seen(cx);
-    return needsArgsObj(cx, seen, SSAValue::PushedValue(pcOff, 0));
+    return false;
 }
 
 #ifdef DEBUG
