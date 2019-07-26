@@ -37,10 +37,11 @@ extern "C" {
 
 #include <sys/types.h>
 #ifdef _WIN32
+#ifdef _MSC_VER
+#pragma warning(disable: 4200)
+#endif
 #include <winsock2.h>
 #include <ws2tcpip.h>
-#include <ws2ipdef.h>
-#include <ws2def.h>
 #else
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -991,7 +992,9 @@ USRSCTP_SYSCTL_DECL(sctp_auto_asconf)
 USRSCTP_SYSCTL_DECL(sctp_multiple_asconfs)
 USRSCTP_SYSCTL_DECL(sctp_ecn_enable)
 USRSCTP_SYSCTL_DECL(sctp_strict_sacks)
+#if !defined(SCTP_WITH_NO_CSUM)
 USRSCTP_SYSCTL_DECL(sctp_no_csum_on_loopback)
+#endif
 USRSCTP_SYSCTL_DECL(sctp_peer_chunk_oh)
 USRSCTP_SYSCTL_DECL(sctp_max_burst_default)
 USRSCTP_SYSCTL_DECL(sctp_max_chunks_on_queue)
@@ -1016,6 +1019,7 @@ USRSCTP_SYSCTL_DECL(sctp_init_rtx_max_default)
 USRSCTP_SYSCTL_DECL(sctp_assoc_rtx_max_default)
 USRSCTP_SYSCTL_DECL(sctp_path_rtx_max_default)
 USRSCTP_SYSCTL_DECL(sctp_add_more_threshold)
+USRSCTP_SYSCTL_DECL(sctp_nr_incoming_streams_default)
 USRSCTP_SYSCTL_DECL(sctp_nr_outgoing_streams_default)
 USRSCTP_SYSCTL_DECL(sctp_cmt_on_off)
 USRSCTP_SYSCTL_DECL(sctp_cmt_use_dac)
@@ -1061,6 +1065,166 @@ USRSCTP_SYSCTL_DECL(sctp_debug_on)
 #define SCTP_DEBUG_ALL  0xffffffff
 #endif
 #undef USRSCTP_SYSCTL_DECL
+struct sctp_timeval {
+	uint32_t tv_sec;
+	uint32_t tv_usec;
+};
+
+struct sctpstat {
+	struct sctp_timeval sctps_discontinuitytime; 
+	
+	uint32_t  sctps_currestab;           
+	uint32_t  sctps_activeestab;         
+	uint32_t  sctps_restartestab;
+	uint32_t  sctps_collisionestab;
+	uint32_t  sctps_passiveestab;        
+	uint32_t  sctps_aborted;             
+	uint32_t  sctps_shutdown;            
+	uint32_t  sctps_outoftheblue;        
+	uint32_t  sctps_checksumerrors;      
+	uint32_t  sctps_outcontrolchunks;    
+	uint32_t  sctps_outorderchunks;      
+	uint32_t  sctps_outunorderchunks;    
+	uint32_t  sctps_incontrolchunks;     
+	uint32_t  sctps_inorderchunks;       
+	uint32_t  sctps_inunorderchunks;     
+	uint32_t  sctps_fragusrmsgs;         
+	uint32_t  sctps_reasmusrmsgs;        
+	uint32_t  sctps_outpackets;          
+	uint32_t  sctps_inpackets;           
+
+	
+	uint32_t  sctps_recvpackets;         
+	uint32_t  sctps_recvdatagrams;       
+	uint32_t  sctps_recvpktwithdata;     
+	uint32_t  sctps_recvsacks;           
+	uint32_t  sctps_recvdata;            
+	uint32_t  sctps_recvdupdata;         
+	uint32_t  sctps_recvheartbeat;       
+	uint32_t  sctps_recvheartbeatack;    
+	uint32_t  sctps_recvecne;            
+	uint32_t  sctps_recvauth;            
+	uint32_t  sctps_recvauthmissing;     
+	uint32_t  sctps_recvivalhmacid;      
+	uint32_t  sctps_recvivalkeyid;       
+	uint32_t  sctps_recvauthfailed;      
+	uint32_t  sctps_recvexpress;         
+	uint32_t  sctps_recvexpressm;        
+	uint32_t  sctps_recvnocrc;
+	uint32_t  sctps_recvswcrc;
+	uint32_t  sctps_recvhwcrc;
+
+	
+	uint32_t  sctps_sendpackets;         
+	uint32_t  sctps_sendsacks;           
+	uint32_t  sctps_senddata;            
+	uint32_t  sctps_sendretransdata;     
+	uint32_t  sctps_sendfastretrans;     
+	uint32_t  sctps_sendmultfastretrans; 
+
+
+	uint32_t  sctps_sendheartbeat;       
+	uint32_t  sctps_sendecne;            
+	uint32_t  sctps_sendauth;            
+	uint32_t  sctps_senderrors;          
+	uint32_t  sctps_sendnocrc;
+	uint32_t  sctps_sendswcrc;
+	uint32_t  sctps_sendhwcrc;
+	
+	uint32_t  sctps_pdrpfmbox;           
+	uint32_t  sctps_pdrpfehos;           
+	uint32_t  sctps_pdrpmbda;            
+	uint32_t  sctps_pdrpmbct;            
+	uint32_t  sctps_pdrpbwrpt;           
+	uint32_t  sctps_pdrpcrupt;           
+	uint32_t  sctps_pdrpnedat;           
+	uint32_t  sctps_pdrppdbrk;           
+	uint32_t  sctps_pdrptsnnf;           
+	uint32_t  sctps_pdrpdnfnd;           
+	uint32_t  sctps_pdrpdiwnp;           
+	uint32_t  sctps_pdrpdizrw;           
+	uint32_t  sctps_pdrpbadd;            
+	uint32_t  sctps_pdrpmark;            
+	
+	uint32_t  sctps_timoiterator;        
+	uint32_t  sctps_timodata;            
+	uint32_t  sctps_timowindowprobe;     
+	uint32_t  sctps_timoinit;            
+	uint32_t  sctps_timosack;            
+	uint32_t  sctps_timoshutdown;        
+	uint32_t  sctps_timoheartbeat;       
+	uint32_t  sctps_timocookie;          
+	uint32_t  sctps_timosecret;          
+	uint32_t  sctps_timopathmtu;         
+	uint32_t  sctps_timoshutdownack;     
+	uint32_t  sctps_timoshutdownguard;   
+	uint32_t  sctps_timostrmrst;         
+	uint32_t  sctps_timoearlyfr;         
+	uint32_t  sctps_timoasconf;          
+	uint32_t  sctps_timodelprim;	     
+	uint32_t  sctps_timoautoclose;       
+	uint32_t  sctps_timoassockill;       
+	uint32_t  sctps_timoinpkill;         
+	
+	uint32_t  sctps_spare[11];
+	
+	uint32_t  sctps_hdrops;              
+	uint32_t  sctps_badsum;              
+	uint32_t  sctps_noport;              
+	uint32_t  sctps_badvtag;             
+	uint32_t  sctps_badsid;              
+	uint32_t  sctps_nomem;               
+	uint32_t  sctps_fastretransinrtt;    
+	uint32_t  sctps_markedretrans;
+	uint32_t  sctps_naglesent;           
+	uint32_t  sctps_naglequeued;         
+	uint32_t  sctps_maxburstqueued;      
+	uint32_t  sctps_ifnomemqueued;       
+
+
+
+	uint32_t  sctps_windowprobed;        
+	uint32_t  sctps_lowlevelerr;         
+
+
+	uint32_t  sctps_lowlevelerrusr;      
+
+
+
+	uint32_t  sctps_datadropchklmt;      
+	uint32_t  sctps_datadroprwnd;        
+	uint32_t  sctps_ecnereducedcwnd;     
+	uint32_t  sctps_vtagexpress;         
+	uint32_t  sctps_vtagbogus;           
+	uint32_t  sctps_primary_randry;      
+	uint32_t  sctps_cmt_randry;          
+	uint32_t  sctps_slowpath_sack;       
+	uint32_t  sctps_wu_sacks_sent;       
+	uint32_t  sctps_sends_with_flags;    
+	uint32_t  sctps_sends_with_unord;    
+	uint32_t  sctps_sends_with_eof;      
+	uint32_t  sctps_sends_with_abort;    
+	uint32_t  sctps_protocol_drain_calls;
+	uint32_t  sctps_protocol_drains_done;
+	uint32_t  sctps_read_peeks;          
+	uint32_t  sctps_cached_chk;          
+	uint32_t  sctps_cached_strmoq;       
+	uint32_t  sctps_left_abandon;        
+	uint32_t  sctps_send_burst_avoid;    
+	uint32_t  sctps_send_cwnd_avoid;     
+	uint32_t  sctps_fwdtsn_map_over;     
+	uint32_t  sctps_queue_upd_ecne;      
+	uint32_t  sctps_reserved[31];        
+};
+
+void
+usrsctp_get_stat(struct sctpstat *);
+
+#ifdef _WIN32
+#ifdef _MSC_VER
+#pragma warning(default: 4200)
+#endif
+#endif
 #ifdef  __cplusplus
 }
 #endif
