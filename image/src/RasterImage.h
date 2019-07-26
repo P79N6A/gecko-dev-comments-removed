@@ -616,6 +616,14 @@ private:
 
 
 
+  uint32_t GetSingleLoopTime() const;
+
+  
+
+
+
+
+
 
 
   void DeleteImgFrame(uint32_t framenum);

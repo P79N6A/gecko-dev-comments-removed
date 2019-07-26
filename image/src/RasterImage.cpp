@@ -529,6 +529,39 @@ RasterImage::Init(const char* aMimeType,
   return NS_OK;
 }
 
+uint32_t
+RasterImage::GetSingleLoopTime() const
+{
+  if (!mAnim) {
+    return 0;
+  }
+
+  
+  if (!mHasBeenDecoded) {
+    return 0;
+  }
+
+  
+  if (mLoopCount == 0) {
+    return 0;
+  }
+
+  uint32_t looptime = 0;
+  for (uint32_t i = 0; i < mFrames.Length(); ++i) {
+    int32_t timeout = mFrames[i]->GetTimeout();
+    if (timeout > 0) {
+      looptime += static_cast<uint32_t>(timeout);
+    } else {
+      
+      
+      NS_WARNING("Negative frame timeout - how did this happen?");
+      return 0;
+    }
+  }
+
+  return looptime;
+}
+
 bool
 RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
 {
@@ -625,6 +658,19 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
   }
 
   mAnim->currentAnimationFrameTime = GetCurrentImgFrameEndTime();
+
+  
+  
+  uint32_t loopTime = GetSingleLoopTime();
+  if (loopTime > 0) {
+    TimeDuration delay = aTime - mAnim->currentAnimationFrameTime;
+    if (delay.ToMilliseconds() > loopTime) {
+      
+      
+      uint32_t loops = static_cast<uint32_t>(delay.ToMilliseconds()) / loopTime;
+      mAnim->currentAnimationFrameTime += TimeDuration::FromMilliseconds(loops * loopTime);
+    }
+  }
 
   
   mAnim->currentAnimationFrameIndex = nextFrameIndex;
