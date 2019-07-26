@@ -543,7 +543,6 @@ const Class WithObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     JS_NULL_CLASS_EXT,
     {
         with_LookupGeneric,

@@ -232,7 +232,6 @@ const Class RegExpObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     regexp_trace
 };
 

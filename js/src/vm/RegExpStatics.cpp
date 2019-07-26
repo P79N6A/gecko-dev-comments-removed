@@ -49,7 +49,6 @@ const Class RegExpStaticsObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     resc_trace
 };
 

@@ -42,7 +42,6 @@ const js::Class HasCustomIterClass = {
     nullptr, 
     nullptr, 
     nullptr, 
-    nullptr, 
     {
         nullptr,     
         nullptr,     

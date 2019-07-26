@@ -58,7 +58,6 @@ const Class ErrorObject::class_ = {
     exn_finalize,
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     nullptr                  
 };
 

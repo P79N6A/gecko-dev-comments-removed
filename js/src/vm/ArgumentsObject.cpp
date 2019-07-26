@@ -594,7 +594,6 @@ const Class NormalArgumentsObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     ArgumentsObject::trace,
     {
         nullptr,    
@@ -622,7 +621,6 @@ const Class StrictArgumentsObject::class_ = {
     reinterpret_cast<JSResolveOp>(strictargs_resolve),
     JS_ConvertStub,
     ArgumentsObject::finalize,
-    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 

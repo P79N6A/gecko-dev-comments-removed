@@ -267,14 +267,6 @@ struct JSStringFinalizer {
 
 
 
-
-typedef bool
-(* JSCheckAccessOp)(JSContext *cx, JS::HandleObject obj, JS::HandleId id,
-                    JSAccessMode mode, JS::MutableHandleValue vp);
-
-
-
-
 typedef bool
 (* JSSubsumesOp)(JSPrincipals *first, JSPrincipals *second);
 
@@ -410,7 +402,6 @@ typedef void
                                                                               \
     /* Optional members (may be null). */                                     \
     FinalizeOp          finalize;                                             \
-    JSCheckAccessOp     checkAccess;                                          \
     JSNative            call;                                                 \
     JSHasInstanceOp     hasInstance;                                          \
     JSNative            construct;                                            \
@@ -510,7 +501,6 @@ struct JSClass {
 
     
     JSFinalizeOp        finalize;
-    JSCheckAccessOp     checkAccess;
     JSNative            call;
     JSHasInstanceOp     hasInstance;
     JSNative            construct;
@@ -639,7 +629,6 @@ JS_STATIC_ASSERT(offsetof(JSClass, enumerate) == offsetof(Class, enumerate));
 JS_STATIC_ASSERT(offsetof(JSClass, resolve) == offsetof(Class, resolve));
 JS_STATIC_ASSERT(offsetof(JSClass, convert) == offsetof(Class, convert));
 JS_STATIC_ASSERT(offsetof(JSClass, finalize) == offsetof(Class, finalize));
-JS_STATIC_ASSERT(offsetof(JSClass, checkAccess) == offsetof(Class, checkAccess));
 JS_STATIC_ASSERT(offsetof(JSClass, call) == offsetof(Class, call));
 JS_STATIC_ASSERT(offsetof(JSClass, construct) == offsetof(Class, construct));
 JS_STATIC_ASSERT(offsetof(JSClass, hasInstance) == offsetof(Class, hasInstance));

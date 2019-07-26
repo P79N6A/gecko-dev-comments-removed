@@ -80,28 +80,6 @@ typedef enum JSProtoKey {
 } JSProtoKey;
 
 
-typedef enum JSAccessMode {
-    JSACC_PROTO  = 0,           
-
-                                
-
-
-
-
-                                
-
-
-
-
-    JSACC_WATCH  = 3,           
-    JSACC_READ   = 4,           
-    JSACC_WRITE  = 8,           
-    JSACC_LIMIT
-} JSAccessMode;
-
-#define JSACC_TYPEMASK          (JSACC_WRITE - 1)
-
-
 
 
 

@@ -1703,7 +1703,6 @@ const Class Debugger::jsclass = {
     nullptr,              
     nullptr,              
     nullptr,              
-    nullptr,              
     Debugger::traceObject
 };
 
@@ -2821,7 +2820,6 @@ const Class DebuggerScript_class = {
     nullptr,              
     nullptr,              
     nullptr,              
-    nullptr,              
     DebuggerScript_trace
 };
 
@@ -3729,7 +3727,6 @@ const Class DebuggerSource_class = {
     nullptr,              
     nullptr,              
     nullptr,              
-    nullptr,              
     DebuggerSource_trace
 };
 
@@ -4623,7 +4620,6 @@ const Class DebuggerObject_class = {
     nullptr,              
     nullptr,              
     nullptr,              
-    nullptr,              
     DebuggerObject_trace
 };
 
@@ -5461,7 +5457,6 @@ const Class DebuggerEnv_class = {
     JSCLASS_HAS_RESERVED_SLOTS(JSSLOT_DEBUGENV_COUNT),
     JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
     JS_EnumerateStub, JS_ResolveStub, JS_ConvertStub, nullptr,
-    nullptr,              
     nullptr,              
     nullptr,              
     nullptr,              

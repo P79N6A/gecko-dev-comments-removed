@@ -1017,7 +1017,6 @@ const Class MapObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     mark
 };
 
@@ -1605,7 +1604,6 @@ const Class SetObject::class_ = {
     JS_ResolveStub,
     JS_ConvertStub,
     finalize,
-    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 

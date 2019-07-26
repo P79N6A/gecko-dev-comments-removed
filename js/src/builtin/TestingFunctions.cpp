@@ -1313,7 +1313,6 @@ const Class CloneBufferObject::class_ = {
     nullptr,                  
     nullptr,                  
     nullptr,                  
-    nullptr,                  
     JS_NULL_CLASS_EXT,
     JS_NULL_OBJECT_OPS
 };

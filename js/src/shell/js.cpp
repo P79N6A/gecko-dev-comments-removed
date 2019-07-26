@@ -4940,7 +4940,6 @@ static const JSClass dom_class = {
     nullptr,               
     nullptr,               
     nullptr,               
-    nullptr,               
     JSCLASS_NO_INTERNAL_MEMBERS
 };
 

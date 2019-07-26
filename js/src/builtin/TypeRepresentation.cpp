@@ -42,7 +42,6 @@ const Class TypeRepresentation::class_ = {
     nullptr,        
     nullptr,        
     nullptr,        
-    nullptr,        
     obj_trace,
 };
 

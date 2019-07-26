@@ -837,7 +837,6 @@ const Class PropertyIteratorObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     trace,
     {
         nullptr,             
@@ -1265,7 +1264,6 @@ const Class StopIterationObject::class_ = {
     JS_ConvertStub,
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     stopiter_hasInstance,
     nullptr                  
 };
@@ -1491,7 +1489,6 @@ const Class LegacyGeneratorObject::class_ = {
     nullptr,                 
     nullptr,                 
     nullptr,                 
-    nullptr,                 
     TraceGenerator<LegacyGeneratorObject>,
     {
         nullptr,             
@@ -1511,7 +1508,6 @@ const Class StarGeneratorObject::class_ = {
     JS_ResolveStub,
     JS_ConvertStub,
     FinalizeGenerator<StarGeneratorObject>,
-    nullptr,                 
     nullptr,                 
     nullptr,                 
     nullptr,                 

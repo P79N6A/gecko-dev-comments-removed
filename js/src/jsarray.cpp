@@ -844,7 +844,6 @@ const Class ArrayObject::class_ = {
     nullptr,        
     nullptr,        
     nullptr,        
-    nullptr,        
     {
         nullptr,    
         nullptr,    

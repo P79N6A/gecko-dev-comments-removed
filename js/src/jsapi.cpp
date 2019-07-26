@@ -3680,7 +3680,6 @@ static const Class prop_iter_class = {
     nullptr,        
     nullptr,        
     nullptr,        
-    nullptr,        
     prop_iter_trace
 };
 

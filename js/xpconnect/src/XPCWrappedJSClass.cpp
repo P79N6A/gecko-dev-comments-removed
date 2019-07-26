@@ -1523,7 +1523,6 @@ static const JSClass XPCOutParamClass = {
     nullptr,   
     nullptr,   
     nullptr,   
-    nullptr,   
     nullptr    
 };
 
