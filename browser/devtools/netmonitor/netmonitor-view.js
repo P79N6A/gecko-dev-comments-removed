@@ -7,6 +7,7 @@
 
 const EPSILON = 0.001;
 const REQUESTS_REFRESH_RATE = 50; 
+const REQUESTS_HEADERS_SAFE_BOUNDS = 30; 
 const REQUESTS_WATERFALL_SAFE_BOUNDS = 100; 
 const REQUESTS_WATERFALL_BACKGROUND_PATTERN = [5, 250, 1000, 2000]; 
 const DEFAULT_HTTP_VERSION = "HTTP/1.1";
@@ -592,6 +593,27 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
     
     if (aReset) {
       this._cachedWaterfallWidth = 0;
+
+      let table = $("#network-table");
+      let toolbar = $("#requests-menu-toolbar");
+      let columns = [
+        [".requests-menu-waterfall", "waterfall-overflows"],
+        [".requests-menu-size", "size-overflows"],
+        [".requests-menu-type", "type-overflows"],
+        [".requests-menu-domain", "domain-overflows"]
+      ];
+
+      
+      columns.forEach(([, attribute]) => table.removeAttribute(attribute));
+      let availableWidth = toolbar.getBoundingClientRect().width;
+
+      
+      columns.forEach(([className, attribute]) => {
+        let bounds = $(".requests-menu-header" + className).getBoundingClientRect();
+        if (bounds.right > availableWidth - REQUESTS_HEADERS_SAFE_BOUNDS) {
+          table.setAttribute(attribute, "");
+        }
+      });
     }
 
     
