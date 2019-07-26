@@ -3,7 +3,7 @@
 
 
 
-
+#include "MediaSourceResource.h"
 #include "MediaSourceDecoder.h"
 
 #include "AbstractMediaDecoder.h"
@@ -176,6 +176,13 @@ MediaSourceDecoder::GetSeekable(dom::TimeRanges* aSeekable)
     aSeekable->Add(0, duration);
   }
   return NS_OK;
+}
+
+
+already_AddRefed<MediaResource>
+MediaSourceDecoder::CreateResource()
+{
+  return nsRefPtr<MediaResource>(new MediaSourceResource()).forget();
 }
 
 void
