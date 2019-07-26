@@ -82,5 +82,25 @@ MessagePort::Entangle(MessagePort* aMessagePort)
   mEntangledPort = aMessagePort;
 }
 
+already_AddRefed<MessagePort>
+MessagePort::Clone(nsPIDOMWindow* aWindow)
+{
+  nsRefPtr<MessagePort> newPort = new MessagePort(aWindow);
+
+  
+  
+  
+
+  if (mEntangledPort) {
+    nsRefPtr<MessagePort> port = mEntangledPort;
+    mEntangledPort = nullptr;
+
+    newPort->Entangle(port);
+    port->Entangle(newPort);
+  }
+
+  return newPort.forget();
+}
+
 } 
 } 

@@ -49,6 +49,12 @@ public:
   void
   Entangle(MessagePort* aMessagePort);
 
+  
+  
+  
+  already_AddRefed<MessagePort>
+  Clone(nsPIDOMWindow* aWindow);
+
 private:
   nsRefPtr<MessagePort> mEntangledPort;
 };
