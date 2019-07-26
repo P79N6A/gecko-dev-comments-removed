@@ -599,7 +599,7 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
     
     if (HaveBuffer() &&
         (contentType != BufferContentType() ||
-         mode == Layer::SURFACE_COMPONENT_ALPHA) != (HaveBufferOnWhite())) {
+        (mode == Layer::SURFACE_COMPONENT_ALPHA) != HaveBufferOnWhite())) {
 
       
       
