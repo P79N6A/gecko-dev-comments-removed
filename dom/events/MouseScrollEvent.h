@@ -3,33 +3,36 @@
 
 
 
-#ifndef nsDOMMouseScrollEvent_h__
-#define nsDOMMouseScrollEvent_h__
+#ifndef mozilla_dom_MouseScrollEvent_h_
+#define mozilla_dom_MouseScrollEvent_h_
 
 #include "nsIDOMMouseScrollEvent.h"
 #include "nsDOMMouseEvent.h"
 #include "mozilla/dom/MouseScrollEventBinding.h"
 
-class nsDOMMouseScrollEvent : public nsDOMMouseEvent,
-                              public nsIDOMMouseScrollEvent
+namespace mozilla {
+namespace dom {
+
+class MouseScrollEvent : public nsDOMMouseEvent,
+                         public nsIDOMMouseScrollEvent
 {
 public:
-  nsDOMMouseScrollEvent(mozilla::dom::EventTarget* aOwner,
-                        nsPresContext* aPresContext,
-                        mozilla::WidgetMouseScrollEvent* aEvent);
+  MouseScrollEvent(EventTarget* aOwner,
+                   nsPresContext* aPresContext,
+                   WidgetMouseScrollEvent* aEvent);
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
   NS_DECL_NSIDOMMOUSESCROLLEVENT
-  
+
   
   NS_FORWARD_TO_NSDOMMOUSEEVENT
 
   virtual JSObject* WrapObject(JSContext* aCx,
                                JS::Handle<JSObject*> aScope) MOZ_OVERRIDE
   {
-    return mozilla::dom::MouseScrollEventBinding::Wrap(aCx, aScope, this);
+    return MouseScrollEventBinding::Wrap(aCx, aScope, this);
   }
 
   int32_t Axis();
@@ -41,7 +44,7 @@ public:
                             bool aCtrlKey, bool aAltKey, bool aShiftKey,
                             bool aMetaKey, uint16_t aButton,
                             nsIDOMEventTarget* aRelatedTarget, int32_t aAxis,
-                            mozilla::ErrorResult& aRv)
+                            ErrorResult& aRv)
   {
     aRv = InitMouseScrollEvent(aType, aCanBubble, aCancelable, aView,
                                aDetail, aScreenX, aScreenY, aClientX, aClientY,
@@ -49,5 +52,8 @@ public:
                                aRelatedTarget, aAxis);
   }
 };
+
+} 
+} 
 
 #endif 
