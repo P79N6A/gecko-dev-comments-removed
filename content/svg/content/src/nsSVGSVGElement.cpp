@@ -654,7 +654,7 @@ nsSVGSVGElement::GetViewBox(nsIDOMSVGAnimatedRect * *aViewBox)
 
 
 NS_IMETHODIMP
-nsSVGSVGElement::GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio
+nsSVGSVGElement::GetPreserveAspectRatio(nsISupports
                                         **aPreserveAspectRatio)
 {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(aPreserveAspectRatio, this);
@@ -1180,9 +1180,7 @@ nsSVGSVGElement::GetPreserveAspectRatioWithOverride() const
         mViewBox.IsExplicitlySet()) &&
       ShouldSynthesizeViewBox()) {
     
-    return SVGPreserveAspectRatio(
-         nsIDOMSVGPreserveAspectRatio::SVG_PRESERVEASPECTRATIO_NONE,
-         nsIDOMSVGPreserveAspectRatio::SVG_MEETORSLICE_SLICE);
+    return SVGPreserveAspectRatio(SVG_PRESERVEASPECTRATIO_NONE, SVG_MEETORSLICE_SLICE);
   }
 
   if (viewElement && viewElement->mPreserveAspectRatio.IsExplicitlySet()) {

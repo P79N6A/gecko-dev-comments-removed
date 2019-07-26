@@ -124,7 +124,7 @@ NS_IMPL_ELEMENT_CLONE_WITH_INIT(nsSVGMarkerElement)
 
 
 NS_IMETHODIMP
-nsSVGMarkerElement::GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio
+nsSVGMarkerElement::GetPreserveAspectRatio(nsISupports
                                            **aPreserveAspectRatio)
 {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(aPreserveAspectRatio, this);

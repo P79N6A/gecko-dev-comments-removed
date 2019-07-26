@@ -93,7 +93,7 @@ nsSVGViewElement::GetViewBox(nsIDOMSVGAnimatedRect * *aViewBox)
 
 
 NS_IMETHODIMP
-nsSVGViewElement::GetPreserveAspectRatio(nsIDOMSVGAnimatedPreserveAspectRatio
+nsSVGViewElement::GetPreserveAspectRatio(nsISupports
                                          **aPreserveAspectRatio)
 {
   return mPreserveAspectRatio.ToDOMAnimatedPreserveAspectRatio(aPreserveAspectRatio, this);
