@@ -261,21 +261,6 @@ public class AwesomeBar extends GeckoActivity
         }
     }
 
-    
-
-
-
-
-
-    @Override
-    public View onCreateView(String name, Context context, AttributeSet attrs) {
-        View view = GeckoViewsFactory.getInstance().onCreateView(name, context, attrs);
-        if (view == null) {
-            view = super.onCreateView(name, context, attrs);
-        }
-        return view;
-    }
-
     private boolean handleBackKey() {
         
         

@@ -76,7 +76,6 @@ import android.util.SparseBooleanArray;
 import android.view.Display;
 import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -1232,8 +1231,6 @@ abstract public class GeckoApp
             }
         }
 
-        LayoutInflater.from(this).setFactory(this);
-
         super.onCreate(savedInstanceState);
 
         mOrientation = getResources().getConfiguration().orientation;
@@ -2073,21 +2070,6 @@ abstract public class GeckoApp
 
     public String getContentProcessName() {
         return AppConstants.MOZ_CHILD_PROCESS_NAME;
-    }
-
-    
-
-
-
-
-
-    @Override
-    public View onCreateView(String name, Context context, AttributeSet attrs) {
-        View view = GeckoViewsFactory.getInstance().onCreateView(name, context, attrs);
-        if (view == null) {
-            view = super.onCreateView(name, context, attrs);
-        }
-        return view;
     }
 
     public void addEnvToIntent(Intent intent) {
