@@ -1775,7 +1775,6 @@ Element::SetEventHandler(nsIAtom* aEventName,
 
   defer = defer && aDefer; 
   manager->SetEventHandler(aEventName, aValue,
-                           nsIProgrammingLanguage::JAVASCRIPT,
                            defer, !nsContentUtils::IsChromeDoc(ownerDoc),
                            this);
   return NS_OK;

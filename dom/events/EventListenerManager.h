@@ -292,7 +292,6 @@ public:
   
   nsresult SetEventHandler(nsIAtom *aName,
                            const nsAString& aFunc,
-                           uint32_t aLanguage,
                            bool aDeferCompilation,
                            bool aPermitUntrustedEvents,
                            dom::Element* aElement);
