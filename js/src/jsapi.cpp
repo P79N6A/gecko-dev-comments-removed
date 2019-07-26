@@ -4559,42 +4559,38 @@ JS_CompileUCScript(JSContext *cx, JS::HandleObject obj, const jschar *chars,
 JS_PUBLIC_API(bool)
 JS_BufferIsCompilableUnit(JSContext *cx, HandleObject obj, const char *utf8, size_t length)
 {
-    bool result;
-    JSExceptionState *exnState;
-    JSErrorReporter older;
-
     AssertHeapIsIdle(cx);
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj);
+
+    cx->clearPendingException();
+
     jschar *chars = JS::UTF8CharsToNewTwoByteCharsZ(cx, JS::UTF8Chars(utf8, length), &length).get();
     if (!chars)
         return true;
 
     
+    
+    bool result = true;
 
-
-
-    result = true;
-    exnState = JS_SaveExceptionState(cx);
-    {
-        CompileOptions options(cx);
-        options.setCompileAndGo(false);
-        Parser<frontend::FullParseHandler> parser(cx, &cx->tempLifoAlloc(),
-                                                  options, chars, length,
-                                                   true, nullptr, nullptr);
-        older = JS_SetErrorReporter(cx, nullptr);
-        if (!parser.parse(obj) && parser.isUnexpectedEOF()) {
-            
-
-
-
-
+    CompileOptions options(cx);
+    options.setCompileAndGo(false);
+    Parser<frontend::FullParseHandler> parser(cx, &cx->tempLifoAlloc(),
+                                              options, chars, length,
+                                               true, nullptr, nullptr);
+    JSErrorReporter older = JS_SetErrorReporter(cx, nullptr);
+    if (!parser.parse(obj)) {
+        
+        
+        
+        if (parser.isUnexpectedEOF())
             result = false;
-        }
-        JS_SetErrorReporter(cx, older);
+
+        cx->clearPendingException();
     }
+    JS_SetErrorReporter(cx, older);
+
     js_free(chars);
-    JS_RestoreExceptionState(cx, exnState);
     return result;
 }
 
@@ -5856,6 +5852,33 @@ JS_ReportPendingException(JSContext *cx)
     bool ok = js_ReportUncaughtException(cx);
     JS_ASSERT(!cx->isExceptionPending());
     return ok;
+}
+
+JS::AutoSaveExceptionState::AutoSaveExceptionState(JSContext *cx)
+    : context(cx), wasThrowing(cx->throwing), exceptionValue(cx)
+{
+    AssertHeapIsIdle(cx);
+    CHECK_REQUEST(cx);
+    if (wasThrowing) {
+        exceptionValue = cx->unwrappedException_;
+        cx->clearPendingException();
+    }
+}
+
+void
+JS::AutoSaveExceptionState::restore()
+{
+    context->throwing = wasThrowing;
+    context->unwrappedException_ = exceptionValue;
+    drop();
+}
+
+JS::AutoSaveExceptionState::~AutoSaveExceptionState()
+{
+    if (wasThrowing && !context->isExceptionPending()) {
+        context->throwing = true;
+        context->unwrappedException_ = exceptionValue;
+    }
 }
 
 struct JSExceptionState {

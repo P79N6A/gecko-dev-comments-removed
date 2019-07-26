@@ -4579,6 +4579,7 @@ JS_ClearPendingException(JSContext *cx);
 extern JS_PUBLIC_API(bool)
 JS_ReportPendingException(JSContext *cx);
 
+namespace JS {
 
 
 
@@ -4588,6 +4589,48 @@ JS_ReportPendingException(JSContext *cx);
 
 
 
+
+
+
+
+class JS_PUBLIC_API(AutoSaveExceptionState)
+{
+  private:
+    JSContext *context;
+    bool wasThrowing;
+    RootedValue exceptionValue;
+
+  public:
+    
+
+
+
+    explicit AutoSaveExceptionState(JSContext *cx);
+
+    
+
+
+
+    ~AutoSaveExceptionState();
+
+    
+
+
+
+    void drop() {
+        wasThrowing = false;
+        exceptionValue.setUndefined();
+    }
+
+    
+
+
+
+
+    void restore();
+};
+
+} 
 
 
 extern JS_PUBLIC_API(JSExceptionState *)
