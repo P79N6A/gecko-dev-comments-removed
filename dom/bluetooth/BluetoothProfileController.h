@@ -46,11 +46,6 @@ BEGIN_BLUETOOTH_NAMESPACE
 
 #define IS_PERIPHERAL(cod)           (GET_MAJOR_DEVICE_CLASS(cod) == 0xa)
 
-
-
-#define IS_HEADSET(cod)              ((GET_MAJOR_DEVICE_CLASS(cod) == 0x4) && \
-                                     (GET_MINOR_DEVICE_CLASS(cod) == 0x1))
-
 class BluetoothProfileManagerBase;
 class BluetoothReplyRunnable;
 typedef void (*BluetoothProfileControllerCallback)();
