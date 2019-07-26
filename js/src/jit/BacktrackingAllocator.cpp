@@ -329,6 +329,9 @@ BacktrackingAllocator::tryGroupReusedRegister(uint32_t def, uint32_t use)
             return false;
     }
 
+    
+    
+    
     LiveInterval *postInterval = LiveInterval::New(alloc(), interval->vreg(), 0);
     if (!postInterval->addRange(inputOf(reg.ins()), interval->end()))
         return false;
@@ -1181,6 +1184,7 @@ BacktrackingAllocator::populateSafepoints()
         if (firstSafepoint >= graph.numSafepoints())
             break;
 
+        
         
         CodePosition end = reg->getInterval(0)->end();
         for (size_t j = 1; j < reg->numIntervals(); j++)

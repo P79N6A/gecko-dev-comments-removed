@@ -229,6 +229,8 @@ class LiveInterval
         {
             JS_ASSERT(from < to);
         }
+
+        
         CodePosition from;
 
         
