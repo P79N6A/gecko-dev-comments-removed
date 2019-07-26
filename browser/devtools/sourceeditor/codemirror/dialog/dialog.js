@@ -12,13 +12,20 @@
     }
     if (typeof template == "string") {
       dialog.innerHTML = template;
-    } else {
+    } else { 
       dialog.appendChild(template);
     }
     return dialog;
   }
 
+  function closeNotification(cm, newVal) {
+    if (cm.state.currentNotificationClose)
+      cm.state.currentNotificationClose();
+    cm.state.currentNotificationClose = newVal;
+  }
+
   CodeMirror.defineExtension("openDialog", function(template, callback, options) {
+    closeNotification(this, null);
     var dialog = dialogDiv(this, template, options && options.bottom);
     var closed = false, me = this;
     function close() {
@@ -55,6 +62,7 @@
   });
 
   CodeMirror.defineExtension("openConfirm", function(template, callbacks, options) {
+    closeNotification(this, null);
     var dialog = dialogDiv(this, template, options && options.bottom);
     var buttons = dialog.getElementsByTagName("button");
     var closed = false, me = this, blurring = 1;
@@ -80,5 +88,34 @@
       });
       CodeMirror.on(b, "focus", function() { ++blurring; });
     }
+  });
+
+  
+
+
+
+
+
+
+
+  CodeMirror.defineExtension("openNotification", function(template, options) {
+    closeNotification(this, close);
+    var dialog = dialogDiv(this, template, options && options.bottom);
+    var duration = options && (options.duration === undefined ? 5000 : options.duration);
+    var closed = false, doneTimer;
+
+    function close() {
+      if (closed) return;
+      closed = true;
+      clearTimeout(doneTimer);
+      dialog.parentNode.removeChild(dialog);
+    }
+
+    CodeMirror.on(dialog, 'click', function(e) {
+      CodeMirror.e_preventDefault(e);
+      close();
+    });
+    if (duration)
+      doneTimer = setTimeout(close, options.duration);
   });
 })();

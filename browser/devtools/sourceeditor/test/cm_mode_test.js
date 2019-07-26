@@ -1,23 +1,23 @@
-/**
- * Helper to test CodeMirror highlighting modes. It pretty prints output of the
- * highlighter and can check against expected styles.
- *
- * Mode tests are registered by calling test.mode(testName, mode,
- * tokens), where mode is a mode object as returned by
- * CodeMirror.getMode, and tokens is an array of lines that make up
- * the test.
- *
- * These lines are strings, in which styled stretches of code are
- * enclosed in brackets `[]`, and prefixed by their style. For
- * example, `[keyword if]`. Brackets in the code itself must be
- * duplicated to prevent them from being interpreted as token
- * boundaries. For example `a[[i]]` for `a[i]`. If a token has
- * multiple styles, the styles must be separated by ampersands, for
- * example `[tag&error </hmtl>]`.
- *
- * See the test.js files in the css, markdown, gfm, and stex mode
- * directories for examples.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 (function() {
   function findSingle(str, pos, ch) {
     for (;;) {
@@ -59,6 +59,13 @@
     return {tokens: tokens, plain: plain};
   }
 
+  test.indentation = function(name, mode, tokens, modeName) {
+    var data = parseTokens(tokens);
+    return test((modeName || mode.name) + "_indent_" + name, function() {
+      return compare(data.plain, data.tokens, mode, true);
+    });
+  };
+
   test.mode = function(name, mode, tokens, modeName) {
     var data = parseTokens(tokens);
     return test((modeName || mode.name) + "_" + name, function() {
@@ -66,7 +73,7 @@
     });
   };
 
-  function compare(text, expected, mode) {
+  function compare(text, expected, mode, compareIndentation) {
 
     var expectedOutput = [];
     for (var i = 0; i < expected.length; i += 2) {
@@ -75,7 +82,7 @@
       expectedOutput.push(sty, expected[i + 1]);
     }
 
-    var observedOutput = highlight(text, mode);
+    var observedOutput = highlight(text, mode, compareIndentation);
 
     var pass, passStyle = "";
     pass = highlightOutputsEqual(expectedOutput, observedOutput);
@@ -104,17 +111,17 @@
     }
   }
 
-  /**
-   * Emulation of CodeMirror's internal highlight routine for testing. Multi-line
-   * input is supported.
-   *
-   * @param string to highlight
-   *
-   * @param mode the mode that will do the actual highlighting
-   *
-   * @return array of [style, token] pairs
-   */
-  function highlight(string, mode) {
+  
+
+
+
+
+
+
+
+
+
+  function highlight(string, mode, compareIndentation) {
     var state = mode.startState()
 
     var lines = string.replace(/\r\n/g,'\n').split('\n');
@@ -123,18 +130,19 @@
       var line = lines[i], newLine = true;
       var stream = new CodeMirror.StringStream(line);
       if (line == "" && mode.blankLine) mode.blankLine(state);
-      /* Start copied code from CodeMirror.highlight */
+      
       while (!stream.eol()) {
-        var style = mode.token(stream, state), substr = stream.current();
-        if (style && style.indexOf(" ") > -1) style = style.split(' ').sort().join(' ');
+				var compare = mode.token(stream, state), substr = stream.current();
+				if(compareIndentation) compare = mode.indent(state) || null;
+        else if (compare && compare.indexOf(" ") > -1) compare = compare.split(' ').sort().join(' ');
 
-        stream.start = stream.pos;
-        if (pos && st[pos-2] == style && !newLine) {
+				stream.start = stream.pos;
+        if (pos && st[pos-2] == compare && !newLine) {
           st[pos-1] += substr;
         } else if (substr) {
-          st[pos++] = style; st[pos++] = substr;
+          st[pos++] = compare; st[pos++] = substr;
         }
-        // Give up when line is ridiculously long
+        
         if (stream.pos > 5000) {
           st[pos++] = null; st[pos++] = this.text.slice(stream.pos);
           break;
@@ -146,15 +154,15 @@
     return st;
   }
 
-  /**
-   * Compare two arrays of output from highlight.
-   *
-   * @param o1 array of [style, token] pairs
-   *
-   * @param o2 array of [style, token] pairs
-   *
-   * @return boolean; true iff outputs equal
-   */
+  
+
+
+
+
+
+
+
+
   function highlightOutputsEqual(o1, o2) {
     if (o1.length != o2.length) return false;
     for (var i = 0; i < o1.length; ++i)
@@ -162,14 +170,14 @@
     return true;
   }
 
-  /**
-   * Print tokens and corresponding styles in a table. Spaces in the token are
-   * replaced with 'interpunct' dots (&middot;).
-   *
-   * @param output array of [style, token] pairs
-   *
-   * @return html string
-   */
+  
+
+
+
+
+
+
+
   function prettyPrintOutputTable(output) {
     var s = '<table class="mt-output">';
     s += '<tr>';
