@@ -140,7 +140,7 @@ add_task(function* test_getExperiments() {
     },
     {
       id: EXPERIMENT1_ID,
-      name: "Test experiment 1",
+      name: EXPERIMENT1_NAME,
       description: "Yet another experiment that experiments experimentally.",
     },
   ];
@@ -261,6 +261,7 @@ add_task(function* test_getExperiments() {
 
   Services.obs.removeObserver(observer, OBSERVER_TOPIC);
   yield experiments.uninit();
+  yield removeCacheFile();
 });
 
 
@@ -293,7 +294,7 @@ add_task(function* test_disableExperiment() {
 
   let experimentInfo = {
     id: EXPERIMENT1_ID,
-    name: "Test experiment 1",
+    name: EXPERIMENT1_NAME,
     description: "Yet another experiment that experiments experimentally.",
   };
 
@@ -348,6 +349,7 @@ add_task(function* test_disableExperiment() {
   
 
   yield experiments.uninit();
+  yield removeCacheFile();
 });
 
 add_task(function* test_disableExperimentsFeature() {
@@ -378,7 +380,7 @@ add_task(function* test_disableExperimentsFeature() {
 
   let experimentInfo = {
     id: EXPERIMENT1_ID,
-    name: "Test experiment 1",
+    name: EXPERIMENT1_NAME,
     description: "Yet another experiment that experiments experimentally.",
   };
 
@@ -437,6 +439,7 @@ add_task(function* test_disableExperimentsFeature() {
   
 
   yield experiments.uninit();
+  yield removeCacheFile();
 });
 
 
@@ -489,7 +492,7 @@ add_task(function* test_installFailure() {
   let experimentListData = [
     {
       id: EXPERIMENT1_ID,
-      name: "Test experiment 1",
+      name: EXPERIMENT1_NAME,
       description: "Yet another experiment that experiments experimentally.",
     },
     {
@@ -572,6 +575,7 @@ add_task(function* test_installFailure() {
 
   Services.obs.removeObserver(observer, OBSERVER_TOPIC);
   yield experiments.uninit();
+  yield removeCacheFile();
 });
 
 
@@ -665,8 +669,94 @@ add_task(function* test_userDisabledAndUpdated() {
 
   Services.obs.removeObserver(observer, OBSERVER_TOPIC);
   yield experiments.uninit();
+  yield removeCacheFile();
+});
+
+
+
+
+add_task(function* test_updateActiveExperiment() {
+  const OBSERVER_TOPIC = "experiments-changed";
+  let observerFireCount = 0;
+  let expectedObserverFireCount = 0;
+  let observer = () => ++observerFireCount;
+  Services.obs.addObserver(observer, OBSERVER_TOPIC, false);
+
+  
+
+  let baseDate   = new Date(2014, 5, 1, 12);
+  let startDate = futureDate(baseDate,   100 * MS_IN_ONE_DAY);
+  let endDate   = futureDate(baseDate, 10000 * MS_IN_ONE_DAY);
+
+  
+
+  gManifestObject = {
+    "version": 1,
+    experiments: [
+      {
+        id:               EXPERIMENT1_ID,
+        xpiURL:           gDataRoot + EXPERIMENT1_XPI_NAME,
+        xpiHash:          EXPERIMENT1_XPI_SHA1,
+        startTime:        dateToSeconds(startDate),
+        endTime:          dateToSeconds(endDate),
+        maxActiveSeconds: 10 * SEC_IN_ONE_DAY,
+        appName:          ["XPCShell"],
+        channel:          ["nightly"],
+      },
+    ],
+  };
+
+  let experiments = new Experiments.Experiments(gPolicy);
+
+  
+
+  let now = baseDate;
+  defineNow(gPolicy, now);
+  yield experiments.updateManifest();
+  Assert.equal(observerFireCount, 0,
+               "Experiments observer should not have been called yet.");
+  let list = yield experiments.getExperiments();
+  Assert.equal(list.length, 0, "Experiment list should be empty.");
+
+  
+
+  now = futureDate(startDate, 10 * MS_IN_ONE_DAY);
+  defineNow(gPolicy, now);
+  yield experiments.updateManifest();
+  Assert.equal(observerFireCount, ++expectedObserverFireCount,
+               "Experiments observer should have been called.");
+
+  list = yield experiments.getExperiments();
+  Assert.equal(list.length, 1, "Experiment list should have 1 entry now.");
+  Assert.equal(list[0].id, EXPERIMENT1_ID, "Experiment 1 should be the sole entry.");
+  Assert.equal(list[0].active, true, "Experiment 1 should be active.");
+  Assert.equal(list[0].name, EXPERIMENT1_NAME, "Experiments name should match.");
+
+  
+  
+
+  now = futureDate(now, 1 * MS_IN_ONE_DAY);
+  defineNow(gPolicy, now);
+  gManifestObject.experiments[0].xpiHash = EXPERIMENT1A_XPI_SHA1;
+  gManifestObject.experiments[0].xpiURL = gDataRoot + EXPERIMENT1A_XPI_NAME;
+  yield experiments.updateManifest();
+  Assert.equal(observerFireCount, ++expectedObserverFireCount,
+               "Experiments observer should have been called.");
+
+  list = yield experiments.getExperiments();
+  Assert.equal(list.length, 1, "Experiment list should have 1 entry now.");
+  Assert.equal(list[0].id, EXPERIMENT1_ID, "Experiment 1 should be the sole entry.");
+  Assert.equal(list[0].active, true, "Experiment 1 should still be active.");
+  Assert.equal(list[0].name, EXPERIMENT1A_NAME, "Experiments name should have been updated.");
+
+  
+
+  Services.obs.removeObserver(observer, OBSERVER_TOPIC);
+  yield experiments.uninit();
+  yield removeCacheFile();
 });
 
 add_task(function* shutdown() {
   yield gReporter._shutdown();
+  yield removeCacheFile();
 });
