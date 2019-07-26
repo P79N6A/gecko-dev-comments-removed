@@ -269,6 +269,19 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     return false;
 }
 
+bool
+OnlyIfSubjectIsSystem::isSafeToUnwrap()
+{
+    if (XPCJSRuntime::Get()->XBLScopesEnabled())
+        return false;
+    
+    
+    JSContext *cx = nsContentUtils::GetCurrentJSContext();
+    if (!cx)
+        return true;
+    return AccessCheck::isSystemOnlyAccessPermitted(cx);
+}
+
 enum Access { READ = (1<<0), WRITE = (1<<1), NO_ACCESS = 0 };
 
 static bool
