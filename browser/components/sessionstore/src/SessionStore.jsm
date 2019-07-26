@@ -3141,11 +3141,7 @@ let SessionStoreInternal = {
   _prepDataForDeferredRestore: function ssi_prepDataForDeferredRestore(state) {
     
     
-    
-    
-    
-    
-    state = JSON.parse(JSON.stringify(state));
+    state = Cu.cloneInto(state, {});
 
     let defaultState = { windows: [], selectedWindow: 1 };
 
