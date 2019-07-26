@@ -152,8 +152,11 @@ public class TwoLinePageRow extends LinearLayout
     
 
 
+
+
     private void updateDisplayedUrl() {
-        int tabId = Tabs.getInstance().getTabIdForUrl(mPageUrl);
+        boolean isPrivate = Tabs.getInstance().getSelectedTab().isPrivate();
+        int tabId = Tabs.getInstance().getTabIdForUrl(mPageUrl, isPrivate);
         if (!mShowIcons || tabId < 0) {
             setUrl(mPageUrl);
             setUrlIcon(NO_ICON);
