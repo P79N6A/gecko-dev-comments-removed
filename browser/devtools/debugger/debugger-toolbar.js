@@ -945,7 +945,11 @@ FilterView.prototype = {
 
 
   _onClick: function() {
-    this._searchboxHelpPanel.openPopup(this._searchbox);
+    
+    
+    if (!this._searchbox.value) {
+      this._searchboxHelpPanel.openPopup(this._searchbox);
+    }
   },
 
   
