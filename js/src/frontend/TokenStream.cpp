@@ -298,30 +298,8 @@ TokenStream::TokenStream(ExclusiveContext *cx, const CompileOptions &options,
     userbuf.setAddressOfNextRawChar(base);
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-    memset(oneCharTokens, 0, sizeof(oneCharTokens));
-    oneCharTokens[unsigned(';')] = TOK_SEMI;
-    oneCharTokens[unsigned(',')] = TOK_COMMA;
-    oneCharTokens[unsigned('?')] = TOK_HOOK;
-    oneCharTokens[unsigned(':')] = TOK_COLON;
-    oneCharTokens[unsigned('[')] = TOK_LB;
-    oneCharTokens[unsigned(']')] = TOK_RB;
-    oneCharTokens[unsigned('{')] = TOK_LC;
-    oneCharTokens[unsigned('}')] = TOK_RC;
-    oneCharTokens[unsigned('(')] = TOK_LP;
-    oneCharTokens[unsigned(')')] = TOK_RP;
-    oneCharTokens[unsigned('~')] = TOK_BITNOT;
+    
+    
 
     
     memset(maybeEOL, 0, sizeof(maybeEOL));
@@ -994,8 +972,22 @@ TokenStream::checkForKeyword(const jschar *s, size_t length, TokenKind *ttp)
 }
 
 enum FirstCharKind {
-    Other,
-    OneChar,
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    OneChar_Min = 0,
+    OneChar_Max = TOK_LIMIT - 1,
+
+    Other = TOK_LIMIT,
     Ident,
     Dot,
     Equals,
@@ -1006,42 +998,52 @@ enum FirstCharKind {
 
     
     Space,
-    EOL
+    EOL,
+
+    LastCharKind = EOL
 };
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#define T_COMMA     TOK_COMMA
+#define T_COLON     TOK_COLON
+#define T_BITNOT    TOK_BITNOT
 #define _______ Other
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 static const uint8_t firstCharKinds[] = {
 
  _______, _______, _______, _______, _______, _______, _______, _______, _______,   Space,
      EOL,   Space,   Space,     EOL, _______, _______, _______, _______, _______, _______,
  _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
  _______, _______,   Space, _______,  String, _______,   Ident, _______, _______,  String,
- OneChar, OneChar, _______,    Plus, OneChar, _______,     Dot, _______, BasePrefix,  Dec,
-     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec, OneChar, OneChar,
- _______,  Equals, _______, OneChar, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
+  TOK_LP,  TOK_RP, _______,    Plus, T_COMMA,_______,     Dot, _______, BasePrefix,  Dec,
+     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,    Dec,  T_COLON,TOK_SEMI,
+ _______,  Equals, _______,TOK_HOOK, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
-   Ident, OneChar, _______, OneChar, _______,   Ident, _______,   Ident,   Ident,   Ident,
+   Ident,  TOK_LB, _______,  TOK_RB, _______,   Ident, _______,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
    Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
-   Ident,   Ident,   Ident, OneChar, _______, OneChar, OneChar, _______
+   Ident,   Ident,   Ident,  TOK_LC, _______,  TOK_RC,T_BITNOT, _______
 };
-
+#undef T_COMMA
+#undef T_COLON
+#undef T_BITNOT
 #undef _______
+
+static_assert(LastCharKind < (1 << (sizeof(firstCharKinds[0]) * 8)),
+              "Elements of firstCharKinds[] are too small");
 
 TokenKind
 TokenStream::getTokenInternal()
@@ -1125,8 +1127,8 @@ TokenStream::getTokenInternal()
     
 
 
-    if (c1kind == OneChar) {
-        tt = (TokenKind)oneCharTokens[c];
+    if (c1kind < OneChar_Max) {
+        tt = (TokenKind)c1kind;
         goto out;
     }
 

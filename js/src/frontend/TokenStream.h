@@ -917,7 +917,6 @@ class MOZ_STACK_CLASS TokenStream
     const char          *filename;      
     jschar              *sourceMap;     
     CharBuffer          tokenbuf;       
-    int8_t              oneCharTokens[128];  
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
     uint8_t             isExprEnding[TOK_LIMIT]; 
