@@ -2052,7 +2052,7 @@ NetworkMonitor.prototype = {
       cookies = NetworkHelper.parseCookieHeader(cookieHeader);
     }
 
-    httpActivity.owner = this.owner.onNetworkEvent(event, aChannel);
+    httpActivity.owner = this.owner.onNetworkEvent(event);
 
     this._setupResponseListener(httpActivity);
 
