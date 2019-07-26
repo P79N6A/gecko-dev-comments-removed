@@ -15,21 +15,40 @@ var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 
 
-function add_visit(aURI, aTime) {
-  var visitId = hs.addVisit(uri(aURI),
-                            aTime * 1000,
-                            null, 
-                            hs.TRANSITION_TYPED,
-                            false, 
-                            0);
-  do_check_true(visitId > 0);
-  return visitId;
+var pages = [
+  "http://a.mozilla.org/1/",
+  "http://a.mozilla.org/2/",
+  "http://a.mozilla.org/3/",
+  "http://a.mozilla.org/4/",
+  "http://b.mozilla.org/5/",
+  "http://b.mozilla.org/6/",
+  "http://b.mozilla.org/7/",
+  "http://b.mozilla.org/8/",
+];
+
+function run_test()
+{
+  run_next_test();
 }
 
+add_task(function test_initialize()
+{
+  var noon = new Date();
+  noon.setHours(12);
+
+  
+  for ([pageIndex, page] in Iterator(pages)) {
+    yield promiseAddVisits({
+      uri: uri(page),
+      visitDate: noon - (pages.length - pageIndex) * 1000
+    });
+  }
+});
 
 
 
-add_test(function() {
+
+add_task(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_QUERY;
   
@@ -55,7 +74,7 @@ add_test(function() {
 
 
 
-add_test(function() {
+add_task(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_QUERY;
   
@@ -81,7 +100,7 @@ add_test(function() {
 
 
 
-add_test(function() {
+add_task(function() {
   var options = hs.getNewQueryOptions();
   options.resultType = options.RESULTS_AS_DATE_SITE_QUERY;
   
@@ -107,30 +126,3 @@ add_test(function() {
   dayContainer.containerOpen = false;
   root.containerOpen = false;
 });
-
-
-var pages = [
-  "http://a.mozilla.org/1/",
-  "http://a.mozilla.org/2/",
-  "http://a.mozilla.org/3/",
-  "http://a.mozilla.org/4/",
-  "http://b.mozilla.org/5/",
-  "http://b.mozilla.org/6/",
-  "http://b.mozilla.org/7/",
-  "http://b.mozilla.org/8/",
-];
-
-
-function run_test() {
-  var noon = new Date();
-  noon.setHours(12);
-
-  
-  pages.forEach(function(aPage) {
-      add_visit(aPage, noon - (pages.length - pages.indexOf(aPage)) * 1000);
-    });
-
-  
-  while (gTests.length)
-    (gTests.shift())();
-}

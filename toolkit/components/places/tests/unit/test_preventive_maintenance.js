@@ -72,7 +72,6 @@ function addBookmark(aPlaceId, aType, aParent, aKeywordId, aFolderType, aTitle) 
 
 
 let tests = [];
-let current_test = null;
 
 
 
@@ -1156,18 +1155,18 @@ tests.push({
     let now = Date.now() * 1000;
     
     let url = "http://1.moz.org/";
-    hs.addVisit(NetUtil.newURI(url), now++, null, hs.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
     
     url = "http://2.moz.org/";
-    hs.addVisit(NetUtil.newURI(url), now++, null, hs.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
     setVisitCount(url, 10);
     
     url = "http://3.moz.org/";
-    hs.addVisit(NetUtil.newURI(url), now++, null, hs.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
     setLastVisitDate(url, now++);
     
     url = "http://4.moz.org/";
-    hs.addVisit(NetUtil.newURI(url), now++, null, hs.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits({ uri: uri(url), visitDate: now++ });
     setVisitCount(url, 10);
     setLastVisitDate(url, now++);
 
@@ -1266,10 +1265,10 @@ tests.push({
 
   setup: function() {
     
-    hs.addVisit(this._uri1, Date.now() * 1000, null,
-                hs.TRANSITION_TYPED, false, 0);
-    hs.addVisit(this._uri2, Date.now() * 1000, null,
-                hs.TRANSITION_TYPED, false, 0);
+    yield promiseAddVisits([
+      { uri: this._uri1 },
+      { uri: this._uri2 },
+    ]);
 
     this._folderId = bs.createFolder(bs.toolbarFolder, "testfolder",
                                      bs.DEFAULT_INDEX);
@@ -1313,56 +1312,17 @@ tests.push({
 
 
 
-let observer = {
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic == FINISHED_MAINTENANCE_NOTIFICATION_TOPIC) {
-      
-      do_check_neq(Services.prefs.getIntPref("places.database.lastMaintenance"), null);
 
-      function afterCheck() {
-        cleanDatabase();
-
-        if (tests.length) {
-          current_test = tests.shift();
-          do_log_info("Executing test: " + current_test.name + " *** " + current_test.desc);
-          current_test.setup();
-          PlacesDBUtils.maintenanceOnIdle();
-        }
-        else {
-          Services.obs.removeObserver(observer,
-                                      FINISHED_MAINTENANCE_NOTIFICATION_TOPIC);
-          
-          do_check_eq(bs.getFolderIdForItem(bs.placesRoot), 0);
-          do_check_eq(bs.getFolderIdForItem(bs.bookmarksMenuFolder), bs.placesRoot);
-          do_check_eq(bs.getFolderIdForItem(bs.tagsFolder), bs.placesRoot);
-          do_check_eq(bs.getFolderIdForItem(bs.unfiledBookmarksFolder), bs.placesRoot);
-          do_check_eq(bs.getFolderIdForItem(bs.toolbarFolder), bs.placesRoot);
-          do_test_finished();
-        }
-      }
-
-      try {
-        if (current_test.asyncCheck) {
-          current_test.asyncCheck(afterCheck);
-        } else {
-          current_test.check();
-          afterCheck();
-        }
-      } catch (ex) {
-        do_throw(ex);
-      }
-    }
-  }
+function run_test()
+{
+  run_next_test();
 }
-Services.obs.addObserver(observer, FINISHED_MAINTENANCE_NOTIFICATION_TOPIC, false);
 
-
-
-function run_test() {
+add_task(function test_preventive_maintenance()
+{
   
   
-  hs.addVisit(uri("http://force.bookmarks.hash"), Date.now() * 1000, null,
-              hs.TRANSITION_TYPED, false, 0);
+  yield promiseAddVisits(uri("http://force.bookmarks.hash"));
   do_check_false(bs.isBookmarked(uri("http://force.bookmarks.hash")));
 
   
@@ -1372,12 +1332,33 @@ function run_test() {
   stmt.finalize();
   do_check_true(defaultBookmarksMaxId > 0);
 
-  
-  
-  do_test_pending();
+  for ([, test] in Iterator(tests)) {
+    dump("\nExecuting test: " + test.name + "\n" + "*** " + test.desc + "\n");
+    yield test.setup();
 
-  current_test = tests.shift();
-  dump("\nExecuting test: " + current_test.name + "\n" + "*** " + current_test.desc + "\n");
-  current_test.setup();
-  PlacesDBUtils.maintenanceOnIdle();
-}
+    let promiseMaintenanceFinished =
+        promiseTopicObserved(FINISHED_MAINTENANCE_NOTIFICATION_TOPIC);
+    PlacesDBUtils.maintenanceOnIdle();
+    yield promiseMaintenanceFinished;
+
+    
+    do_check_neq(Services.prefs.getIntPref("places.database.lastMaintenance"), null);
+
+    if (test.asyncCheck) {
+      let deferred = Promise.defer();
+      test.asyncCheck(deferred.resolve);
+      yield deferred.promise;
+    } else {
+      test.check();
+    }
+
+    cleanDatabase();
+  }
+
+  
+  do_check_eq(bs.getFolderIdForItem(bs.placesRoot), 0);
+  do_check_eq(bs.getFolderIdForItem(bs.bookmarksMenuFolder), bs.placesRoot);
+  do_check_eq(bs.getFolderIdForItem(bs.tagsFolder), bs.placesRoot);
+  do_check_eq(bs.getFolderIdForItem(bs.unfiledBookmarksFolder), bs.placesRoot);
+  do_check_eq(bs.getFolderIdForItem(bs.toolbarFolder), bs.placesRoot);
+});

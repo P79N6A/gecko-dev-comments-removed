@@ -7,11 +7,26 @@
 
 let visit_count = 0;
 
-function add_visit(aURI, aVisitDate, aVisitType) {
-  let isRedirect = aVisitType == TRANSITION_REDIRECT_PERMANENT ||
-                   aVisitType == TRANSITION_REDIRECT_TEMPORARY;
-  let visitId = PlacesUtils.history.addVisit(aURI, aVisitDate, null,
-                                             aVisitType, isRedirect, 0);
+
+function task_add_visit(aURI, aVisitType)
+{
+  
+  let deferUpdatePlaces = Promise.defer();
+  PlacesUtils.asyncHistory.updatePlaces({
+    uri: aURI,
+    visits: [{ transitionType: aVisitType, visitDate: Date.now() * 1000 }]
+  }, {
+    handleError: function TAV_handleError() {
+      deferUpdatePlaces.reject(new Error("Unexpected error in adding visit."));
+    },
+    handleResult: function (aPlaceInfo) {
+      this.visitId = aPlaceInfo.visits[0].visitId;
+    },
+    handleCompletion: function TAV_handleCompletion() {
+      deferUpdatePlaces.resolve(this.visitId);
+    }
+  });
+  let visitId = yield deferUpdatePlaces.promise;
 
   
   if (aVisitType != 0 &&
@@ -30,9 +45,9 @@ function add_visit(aURI, aVisitDate, aVisitType) {
     let placeId = stmt.getInt64(0);
     stmt.finalize();
     do_check_true(placeId > 0);
-    return placeId;
+    throw new Task.Result(placeId);
   }
-  return 0;
+  throw new Task.Result(0);
 }
 
 
@@ -42,7 +57,8 @@ function add_visit(aURI, aVisitDate, aVisitType) {
 
 
 
-function check_results(aExpectedCount, aExpectedCountWithHidden) {
+function check_results(aExpectedCount, aExpectedCountWithHidden)
+{
   let query = PlacesUtils.history.getNewQuery();
   
   query.minVisits = visit_count;
@@ -66,25 +82,31 @@ function check_results(aExpectedCount, aExpectedCountWithHidden) {
 }
 
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_execute()
+{
   const TEST_URI = uri("http://test.mozilla.org/");
 
   
-  add_visit(TEST_URI, Date.now()*1000, TRANSITION_EMBED);
+  yield task_add_visit(TEST_URI, TRANSITION_EMBED);
   check_results(0, 0);
 
-  let placeId = add_visit(TEST_URI, Date.now()*1000, TRANSITION_FRAMED_LINK);
+  let placeId = yield task_add_visit(TEST_URI, TRANSITION_FRAMED_LINK);
   check_results(0, 1);
 
   
   
   
-  do_check_eq(add_visit(TEST_URI, Date.now()*1000, TRANSITION_TYPED), placeId);
+  do_check_eq((yield task_add_visit(TEST_URI, TRANSITION_TYPED)), placeId);
   check_results(1, 1);
 
   
   
   
-  add_visit(TEST_URI, Date.now()*1000, TRANSITION_EMBED);
+  yield task_add_visit(TEST_URI, TRANSITION_EMBED);
   check_results(1, 1);
-}
+});

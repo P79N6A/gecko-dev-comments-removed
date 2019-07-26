@@ -25,19 +25,6 @@ function get_PBSvc() {
   return null;
 }
 
-
-
-
-
-
-
-
-
-function add_visit(aURI, aType) {
-  PlacesUtils.history.addVisit(uri(aURI), Date.now() * 1000, null, aType,
-                               false, 0);
-}
-
 let visited_URIs = ["http://www.test-link.com/",
                     "http://www.test-typed.com/",
                     "http://www.test-bookmark.com/",
@@ -59,19 +46,17 @@ let nonvisited_URIs = ["http://www.google.ca/typed/",
 
 
 
-function fill_history_visitedURI() {
-  PlacesUtils.history.runInBatchMode({
-    runBatched: function (aUserData) {
-      add_visit(visited_URIs[0], PlacesUtils.history.TRANSITION_LINK);
-      add_visit(visited_URIs[1], PlacesUtils.history.TRANSITION_TYPED);
-      add_visit(visited_URIs[2], PlacesUtils.history.TRANSITION_BOOKMARK);
-      add_visit(visited_URIs[3], PlacesUtils.history.TRANSITION_REDIRECT_PERMANENT);
-      add_visit(visited_URIs[4], PlacesUtils.history.TRANSITION_REDIRECT_TEMPORARY);
-      add_visit(visited_URIs[5], PlacesUtils.history.TRANSITION_EMBED);
-      add_visit(visited_URIs[6], PlacesUtils.history.TRANSITION_FRAMED_LINK);
-      add_visit(visited_URIs[7], PlacesUtils.history.TRANSITION_DOWNLOAD);
-    }
-  }, null);
+function task_fill_history_visitedURI() {
+  yield promiseAddVisits([
+    { uri: uri(visited_URIs[0]), transition: TRANSITION_LINK },
+    { uri: uri(visited_URIs[1]), transition: TRANSITION_TYPED },
+    { uri: uri(visited_URIs[2]), transition: TRANSITION_BOOKMARK },
+    { uri: uri(visited_URIs[3]), transition: TRANSITION_REDIRECT_PERMANENT },
+    { uri: uri(visited_URIs[4]), transition: TRANSITION_REDIRECT_TEMPORARY },
+    { uri: uri(visited_URIs[5]), transition: TRANSITION_EMBED },
+    { uri: uri(visited_URIs[6]), transition: TRANSITION_FRAMED_LINK },
+    { uri: uri(visited_URIs[7]), transition: TRANSITION_DOWNLOAD },
+  ]);
 }
 
 
@@ -155,82 +140,29 @@ function is_bookmark_A_altered(){
   return (node.accessCount!=0);
 }
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_execute()
+{
   
   let pb = get_PBSvc();
   if (!pb) {
     return;
   }
 
-  do_test_pending();
-
   Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
   let bookmark_A_URI = NetUtil.newURI("http://google.com/");
   let bookmark_B_URI = NetUtil.newURI("http://bugzilla.mozilla.org/");
 
-  let onBookmarkAAdded = function() {
-    check_placesItem_Count();
-
-    
-    do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
-    do_check_eq("google", PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
-
-    
-    pb.privateBrowsingEnabled = true;
-
-    
-    do_check_false(is_bookmark_A_altered());
-
-    
-    check_placesItem_Count();
-
-    
-    do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
-    do_check_eq("google",PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
-
-    
-    myBookmarks[1] = create_bookmark(bookmark_B_URI,"title 2", "bugzilla");
-    onBookmarkBAdded();
-  };
-
-  let onBookmarkBAdded = function() {
-    
-    
-    num_places_entries++; 
-    check_placesItem_Count();
-
-    
-    pb.privateBrowsingEnabled = false;
-
-    
-    do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_B_URI));
-    do_check_eq("bugzilla",PlacesUtils.bookmarks.getKeywordForURI(bookmark_B_URI));
-
-    
-    do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
-    do_check_eq("google",PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
-
-    
-    visited_URIs.forEach(function (visited_uri) {
-      do_check_true(PlacesUtils.bhistory.isVisited(uri(visited_uri)));
-      if (/embed/.test(visited_uri)) {
-        do_check_false(!!page_in_database(visited_uri));
-      }
-      else {
-        do_check_true(!!page_in_database(visited_uri));
-      }
-    });
-
-    Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
-    do_test_finished();
-  };
-
   
   do_check_false(PlacesUtils.history.hasHistoryEntries);
 
   
-  fill_history_visitedURI();
+  yield task_fill_history_visitedURI();
 
   
   do_check_true(PlacesUtils.history.hasHistoryEntries);
@@ -249,5 +181,54 @@ function run_test() {
     }
   });
 
-  onBookmarkAAdded();
-}
+  check_placesItem_Count();
+
+  
+  do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
+  do_check_eq("google", PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
+
+  
+  pb.privateBrowsingEnabled = true;
+
+  
+  do_check_false(is_bookmark_A_altered());
+
+  
+  check_placesItem_Count();
+
+  
+  do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
+  do_check_eq("google",PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
+
+  
+  myBookmarks[1] = create_bookmark(bookmark_B_URI,"title 2", "bugzilla");
+
+  
+  
+  num_places_entries++; 
+  check_placesItem_Count();
+
+  
+  pb.privateBrowsingEnabled = false;
+
+  
+  do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_B_URI));
+  do_check_eq("bugzilla",PlacesUtils.bookmarks.getKeywordForURI(bookmark_B_URI));
+
+  
+  do_check_true(PlacesUtils.bookmarks.isBookmarked(bookmark_A_URI));
+  do_check_eq("google",PlacesUtils.bookmarks.getKeywordForURI(bookmark_A_URI));
+
+  
+  visited_URIs.forEach(function (visited_uri) {
+    do_check_true(PlacesUtils.bhistory.isVisited(uri(visited_uri)));
+    if (/embed/.test(visited_uri)) {
+      do_check_false(!!page_in_database(visited_uri));
+    }
+    else {
+      do_check_true(!!page_in_database(visited_uri));
+    }
+  });
+
+  Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
+});

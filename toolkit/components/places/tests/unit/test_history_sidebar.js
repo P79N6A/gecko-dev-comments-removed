@@ -23,8 +23,7 @@ var ps = Cc["@mozilla.org/preferences-service;1"].
 
 
 
-
-function add_normalized_visit(aURI, aTime, aDayOffset) {
+function task_add_normalized_visit(aURI, aTime, aDayOffset) {
   var dateObj = new Date(aTime);
   
   dateObj.setHours(0);
@@ -39,14 +38,10 @@ function add_normalized_visit(aURI, aTime, aDayOffset) {
   var PRTimeWithOffset = (previousDateObj.getTime() - DSTCorrection) * 1000;
   var timeInMs = new Date(PRTimeWithOffset/1000);
   print("Adding visit to " + aURI.spec + " at " + timeInMs);
-  var visitId = hs.addVisit(aURI,
-                            PRTimeWithOffset,
-                            null,
-                            hs.TRANSITION_TYPED, 
-                            false, 
-                            0);
-  do_check_true(visitId > 0);
-  return visitId;
+  yield promiseAddVisits({
+    uri: aURI,
+    visitDate: PRTimeWithOffset
+  });
 }
 
 function days_for_x_months_ago(aNowObj, aMonths) {
@@ -84,20 +79,20 @@ var visibleContainers = containers.filter(
 
 
 
-function fill_history() {
+function task_fill_history() {
   print("\n\n*** TEST Fill History\n");
   
   
   for (var i = 0; i < containers.length; i++) {
     var container = containers[i];
     var testURI = uri("http://mirror"+i+".mozilla.com/b");
-    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
+    yield task_add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".mozilla.com/a");
-    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
+    yield task_add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".google.com/b");
-    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
+    yield task_add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     var testURI = uri("http://mirror"+i+".google.com/a");
-    add_normalized_visit(testURI, nowObj.getTime(), container.offset);
+    yield task_add_normalized_visit(testURI, nowObj.getTime(), container.offset);
     
     
     
@@ -357,7 +352,7 @@ function test_RESULTS_AS_SITE_QUERY() {
 
 
 
-function test_date_liveupdate(aResultType) {
+function task_test_date_liveupdate(aResultType) {
   var midnight = nowObj;
   midnight.setHours(0);
   midnight.setMinutes(0);
@@ -385,7 +380,7 @@ function test_date_liveupdate(aResultType) {
 
   
   
-  add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
+  yield task_add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
   do_check_eq(root.childCount, visibleContainers.length);
 
   last7Days.containerOpen = false;
@@ -412,7 +407,7 @@ function test_date_liveupdate(aResultType) {
   hs.removePagesByTimeframe(midnight.getTime() * 1000, Date.now() * 1000);
   do_check_eq(dateContainer.childCount, visibleContainers.length - 1);
   
-  add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
+  yield task_add_normalized_visit(uri("http://www.mozilla.org/"), nowObj.getTime(), 0);
   do_check_eq(dateContainer.childCount, visibleContainers.length);
 
   dateContainer.containerOpen = false;
@@ -422,23 +417,29 @@ function test_date_liveupdate(aResultType) {
   bs.removeItem(itemId);
 }
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_history_sidebar()
+{
   
   if (nowObj.getHours() == 23 && nowObj.getMinutes() >= 50) {
     return;
   }
 
-  fill_history();
+  yield task_fill_history();
   test_RESULTS_AS_DATE_SITE_QUERY();
   test_RESULTS_AS_DATE_QUERY();
   test_RESULTS_AS_SITE_QUERY();
 
-  test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY);
-  test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY);
+  yield task_test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY);
+  yield task_test_date_liveupdate(Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY);
 
   
   
   
   
   
-}
+});

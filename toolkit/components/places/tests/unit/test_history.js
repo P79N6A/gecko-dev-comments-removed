@@ -17,28 +17,6 @@ var bh = histsvc.QueryInterface(Ci.nsIBrowserHistory);
 
 
 
-
-
-function add_visit(aURI, aReferrer) {
-  var visitId = histsvc.addVisit(aURI,
-                                 Date.now() * 1000,
-                                 aReferrer,
-                                 histsvc.TRANSITION_TYPED, 
-                                 false, 
-                                 0);
-  dump("### Added visit with id of " + visitId + "\n");
-  do_check_true(gh.isVisited(aURI));
-  do_check_guid_for_uri(aURI);
-  return visitId;
-}
-
-
-
-
-
-
-
-
 function uri_in_db(aURI) {
   var options = histsvc.getNewQueryOptions();
   options.maxResults = 1;
@@ -54,13 +32,19 @@ function uri_in_db(aURI) {
 }
 
 
-function run_test() {
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_execute()
+{
   
   do_check_eq(histsvc.databaseStatus, histsvc.DATABASE_STATUS_CREATE);
 
   
   var testURI = uri("http://mozilla.com");
-  add_visit(testURI);
+  yield promiseAddVisits(testURI);
 
   
   
@@ -87,8 +71,8 @@ function run_test() {
 
   
   var testURI2 = uri("http://google.com/");
-  add_visit(testURI);
-  add_visit(testURI2);
+  yield promiseAddVisits(testURI);
+  yield promiseAddVisits(testURI2);
 
   options.maxResults = 5;
   options.resultType = options.RESULTS_AS_URI;
@@ -167,8 +151,9 @@ function run_test() {
   do_check_true(!histsvc.historyDisabled);
 
   
-  var title = histsvc.getPageTitle(uri("http://mozilla.com"));
-  do_check_eq(title, null);
+  yield promiseAddVisits({ uri: uri("http://example.com"), title: "title" });
+  var title = histsvc.getPageTitle(uri("http://example.com"));
+  do_check_eq(title, "title");
 
   
   do_check_true(uri_in_db(testURI));
@@ -188,7 +173,7 @@ function run_test() {
   }
 
   
-  add_visit(uri("http://mozilla.com"));
+  yield promiseAddVisits(uri("http://mozilla.com"));
   var options = histsvc.getNewQueryOptions();
   
   var query = histsvc.getNewQuery();
@@ -198,10 +183,4 @@ function run_test() {
   root.containerOpen = true;
   do_check_true(root.childCount > 0);
   root.containerOpen = false;
-
-  
-  var referrerURI = uri("http://yahoo.com");
-  do_check_false(uri_in_db(referrerURI));
-  add_visit(uri("http://mozilla.com"), referrerURI);
-  do_check_true(uri_in_db(referrerURI));
-}
+});

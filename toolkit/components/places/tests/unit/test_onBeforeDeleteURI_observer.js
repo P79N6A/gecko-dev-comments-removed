@@ -51,12 +51,16 @@ Observer.prototype =
 
 
 
-function test_removePage()
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_execute()
 {
   
   let testURI = uri("http://mozilla.org");
-  hs.addVisit(testURI, Date.now() * 1000, null,
-              Ci.nsINavHistoryService.TRANSITION_LINK, false, 0);
+  yield promiseAddVisits(testURI);
 
   
   let observer = new Observer();
@@ -66,15 +70,4 @@ function test_removePage()
   
   do_check_true(observer.checked);
   hs.removeObserver(observer);
-}
-
-
-
-
-let tests = [
-  test_removePage,
-];
-function run_test()
-{
-  tests.forEach(function(test) test());
-}
+});

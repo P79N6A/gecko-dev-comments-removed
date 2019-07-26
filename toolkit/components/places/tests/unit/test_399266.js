@@ -4,27 +4,29 @@
 
 
 
-function add_visit(aURI, aType) {
-  PlacesUtils.history.addVisit(uri(aURI), Date.now() * 1000, null, aType,
-                                 false, 0);
-}
-
 const TOTAL_SITES = 20;
 
-function run_test() {
-  PlacesUtils.history.runInBatchMode({
-    runBatched: function (aUserData) {
-      for (let i = 0; i < TOTAL_SITES; i++) {
-        for (let j = 0; j <= i; j++) {
-          add_visit("http://www.test-" + i + ".com/", TRANSITION_TYPED);
-          
-          
-          add_visit("http://www.hidden.com/hidden.gif", TRANSITION_EMBED);
-          add_visit("http://www.alsohidden.com/hidden.gif", TRANSITION_FRAMED_LINK);
-        }
-      }
+function run_test()
+{
+  run_next_test();
+}
+
+add_task(function test_execute()
+{
+  let places = [];
+  for (let i = 0; i < TOTAL_SITES; i++) {
+    for (let j = 0; j <= i; j++) {
+      places.push({ uri: uri("http://www.test-" + i + ".com/"),
+                    transition: TRANSITION_TYPED });
+        
+        
+      places.push({ uri: uri("http://www.hidden.com/hidden.gif"),
+                    transition: TRANSITION_EMBED });
+      places.push({ uri: uri("http://www.alsohidden.com/hidden.gif"),
+                    transition: TRANSITION_FRAMED_LINK });
     }
-  }, null);
+  }
+  yield promiseAddVisits(places);
 
   
   
@@ -73,4 +75,4 @@ function run_test() {
     do_check_eq(node.type, options.RESULTS_AS_URI);
   }
   root.containerOpen = false;
-}
+});

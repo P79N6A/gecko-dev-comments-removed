@@ -71,7 +71,7 @@ function ensure_results(expected, searchTerm)
       do_check_eq(controller.getStyleAt(i), expected[i].style);
     }
 
-    next_test();
+    deferEnsureResults.resolve();
   };
 
   controller.startSearch(searchTerm);
@@ -80,18 +80,14 @@ function ensure_results(expected, searchTerm)
 
 
 
-function setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
+function task_setCountRank(aURI, aCount, aRank, aSearch, aBookmark)
 {
-  PlacesUtils.history.runInBatchMode({
-    runBatched: function() {
-      
-      for (let i = 0; i < aCount; i++) {
-        PlacesUtils.history.addVisit(aURI, d1, null,
-                                     PlacesUtils.history.TRANSITION_TYPED,
-                                     false, 0);
-      }
-    }
-  }, this);
+  
+  let visits = [];
+  for (let i = 0; i < aCount; i++) {
+    visits.push({ uri: aURI, visitDate: d1, transition: TRANSITION_TYPED });
+  }
+  yield promiseAddVisits(visits);
 
   
   let thing = {
@@ -186,8 +182,8 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c1, s2);
-    setCountRank(uri2, c1, c2, s2);
+    yield task_setCountRank(uri1, c1, c1, s2);
+    yield task_setCountRank(uri2, c1, c2, s2);
   },
   function() {
     print("Test 1 same count, diff rank, same term; no search");
@@ -197,8 +193,8 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c2, s2);
-    setCountRank(uri2, c1, c1, s2);
+    yield task_setCountRank(uri1, c1, c2, s2);
+    yield task_setCountRank(uri2, c1, c1, s2);
   },
   function() {
     print("Test 2 diff count, same rank, same term; no search");
@@ -208,8 +204,8 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c1;
-    setCountRank(uri1, c1, c1, s2);
-    setCountRank(uri2, c2, c1, s2);
+    yield task_setCountRank(uri1, c1, c1, s2);
+    yield task_setCountRank(uri2, c2, c1, s2);
   },
   function() {
     print("Test 3 diff count, same rank, same term; no search");
@@ -219,8 +215,8 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c1;
-    setCountRank(uri1, c2, c1, s2);
-    setCountRank(uri2, c1, c1, s2);
+    yield task_setCountRank(uri1, c2, c1, s2);
+    yield task_setCountRank(uri2, c1, c1, s2);
   },
 
   
@@ -232,8 +228,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c1;
-    setCountRank(uri1, c1, c1, s1);
-    setCountRank(uri2, c1, c1, s2);
+    yield task_setCountRank(uri1, c1, c1, s1);
+    yield task_setCountRank(uri2, c1, c1, s2);
   },
   function() {
     print("Test 5 same count, same rank, diff term; one exact/one partial search");
@@ -243,8 +239,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c1;
-    setCountRank(uri1, c1, c1, s2);
-    setCountRank(uri2, c1, c1, s1);
+    yield task_setCountRank(uri1, c1, c1, s2);
+    yield task_setCountRank(uri2, c1, c1, s1);
   },
 
   
@@ -256,8 +252,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c1, s1);
-    setCountRank(uri2, c1, c2, s1);
+    yield task_setCountRank(uri1, c1, c1, s1);
+    yield task_setCountRank(uri2, c1, c2, s1);
   },
   function() {
     print("Test 7 same count, diff rank, same term; both exact search");
@@ -267,8 +263,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c2, s1);
-    setCountRank(uri2, c1, c1, s1);
+    yield task_setCountRank(uri1, c1, c2, s1);
+    yield task_setCountRank(uri2, c1, c1, s1);
   },
 
   
@@ -280,8 +276,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c1, s2);
-    setCountRank(uri2, c1, c2, s2);
+    yield task_setCountRank(uri1, c1, c1, s2);
+    yield task_setCountRank(uri2, c1, c2, s2);
   },
   function() {
     print("Test 9 same count, diff rank, same term; both partial search");
@@ -291,8 +287,8 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c2, s2);
-    setCountRank(uri2, c1, c1, s2);
+    yield task_setCountRank(uri1, c1, c2, s2);
+    yield task_setCountRank(uri2, c1, c1, s2);
   },
   function() {
     print("Test 10 same count, same rank, same term, decay first; exact match");
@@ -302,9 +298,9 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c1;
-    setCountRank(uri1, c1, c1, s1);
+    yield task_setCountRank(uri1, c1, c1, s1);
     doAdaptiveDecay();
-    setCountRank(uri2, c1, c1, s1);
+    yield task_setCountRank(uri2, c1, c1, s1);
   },
   function() {
     print("Test 11 same count, same rank, same term, decay second; exact match");
@@ -314,9 +310,9 @@ let tests = [
     ];
     observer.search = s1;
     observer.runCount = c1 + c1;
-    setCountRank(uri2, c1, c1, s1);
+    yield task_setCountRank(uri2, c1, c1, s1);
     doAdaptiveDecay();
-    setCountRank(uri1, c1, c1, s1);
+    yield task_setCountRank(uri1, c1, c1, s1);
   },
   
   function() {
@@ -329,8 +325,8 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c1, s2, "bookmark");
-    setCountRank(uri2, c1, c2, s2);
+    yield task_setCountRank(uri1, c1, c1, s2, "bookmark");
+    yield task_setCountRank(uri2, c1, c2, s2);
   },
   function() {
     print("Test 13 same count, diff rank, same term; no search; history only with tag");
@@ -342,31 +338,39 @@ let tests = [
     ];
     observer.search = s0;
     observer.runCount = c1 + c2;
-    setCountRank(uri1, c1, c1, s2, "tag");
-    setCountRank(uri2, c1, c2, s2);
+    yield task_setCountRank(uri1, c1, c1, s2, "tag");
+    yield task_setCountRank(uri2, c1, c2, s2);
   },
 ];
 
 
 
 
-function run_test() {
-  do_test_pending();
-  next_test();
+
+let deferEnsureResults;
+
+
+
+
+function run_test()
+{
+  run_next_test();
 }
 
-function next_test() {
-  if (tests.length) {
+add_task(function test_adaptive()
+{
+  for (let [, test] in Iterator(tests)) {
     
     PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
     PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.tagsFolderId);
     observer.runCount = -1;
 
-    let test = tests.shift();
-    promiseClearHistory().then(test);
+    yield promiseClearHistory();
+
+    deferEnsureResults = Promise.defer();
+    yield test();
+    yield deferEnsureResults.promise;
   }
-  else {
-    Services.obs.removeObserver(observer, PlacesUtils.TOPIC_FEEDBACK_UPDATED);
-    do_test_finished();
-  }
-}
+
+  Services.obs.removeObserver(observer, PlacesUtils.TOPIC_FEEDBACK_UPDATED);
+});

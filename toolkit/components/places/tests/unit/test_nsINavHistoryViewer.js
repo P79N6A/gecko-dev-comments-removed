@@ -9,19 +9,6 @@ var histsvc = PlacesUtils.history;
 var bhist = PlacesUtils.bhistory;
 var bmsvc = PlacesUtils.bookmarks;
 
-
-function add_visit(aURI, aDate) {
-  var date = aDate || Date.now() * 1000;
-  var placeID = histsvc.addVisit(aURI,
-                                 date,
-                                 null, 
-                                 histsvc.TRANSITION_TYPED, 
-                                 false, 
-                                 0);
-  do_check_true(placeID > 0);
-  return placeID;
-}
-
 var resultObserver = {
   insertedNode: null,
   nodeInserted: function(parent, node, newIndex) {
@@ -71,7 +58,7 @@ var resultObserver = {
     }
   },
   invalidatedContainer: null,
-  invalidateContainer: function(node) {    
+  invalidateContainer: function(node) {
     this.invalidatedContainer = node;
   },
   sortingMode: null,
@@ -119,61 +106,63 @@ add_test(function check_history_query() {
 
   
   
-  add_visit(testURI);
-  do_check_eq(testURI.spec, resultObserver.insertedNode.uri);
-
-  
-  
-  do_check_eq(root.uri, resultObserver.nodeChangedByHistoryDetails.uri);
-
-  
-  addVisits({ uri: testURI, title: "baz" }, function () {
-    do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
-
-    
-    var removedURI = uri("http://google.com");
-    add_visit(removedURI);
-    bhist.removePage(removedURI);
-    do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
+  addVisits(testURI, function() {
+    do_check_eq(testURI.spec, resultObserver.insertedNode.uri);
 
     
     
+    do_check_eq(root.uri, resultObserver.nodeChangedByHistoryDetails.uri);
 
     
-    bhist.removePagesFromHost("mozilla.com", false);
-    do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+    addVisits({ uri: testURI, title: "baz" }, function () {
+      do_check_eq(resultObserver.nodeChangedByTitle.title, "baz");
 
-    
-    resultObserver.invalidatedContainer = null;
-    result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
-    do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
-    do_check_eq(resultObserver.invalidatedContainer, result.root);
+      
+      var removedURI = uri("http://google.com");
+      addVisits(removedURI, function() {
+        bhist.removePage(removedURI);
+        do_check_eq(removedURI.spec, resultObserver.removedNode.uri);
 
-    
-    bhist.removeAllPages();
-    do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+        
+        
 
-    
-    do_check_false(resultObserver.inBatchMode);
-    histsvc.runInBatchMode({
-      runBatched: function (aUserData) {
-        do_check_true(resultObserver.inBatchMode);
-      }
-    }, null);
-    do_check_false(resultObserver.inBatchMode);
-    bmsvc.runInBatchMode({
-      runBatched: function (aUserData) {
-        do_check_true(resultObserver.inBatchMode);
-      }
-    }, null);
-    do_check_false(resultObserver.inBatchMode);
+        
+        bhist.removePagesFromHost("mozilla.com", false);
+        do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
 
-    
-    root.containerOpen = false;
-    do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
-    result.removeObserver(resultObserver);
-    resultObserver.reset();
-    promiseAsyncUpdates().then(run_next_test);
+        
+        resultObserver.invalidatedContainer = null;
+        result.sortingMode = options.SORT_BY_TITLE_ASCENDING;
+        do_check_eq(resultObserver.sortingMode, options.SORT_BY_TITLE_ASCENDING);
+        do_check_eq(resultObserver.invalidatedContainer, result.root);
+
+        
+        bhist.removeAllPages();
+        do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+
+        
+        do_check_false(resultObserver.inBatchMode);
+        histsvc.runInBatchMode({
+          runBatched: function (aUserData) {
+            do_check_true(resultObserver.inBatchMode);
+          }
+        }, null);
+        do_check_false(resultObserver.inBatchMode);
+        bmsvc.runInBatchMode({
+          runBatched: function (aUserData) {
+            do_check_true(resultObserver.inBatchMode);
+          }
+        }, null);
+        do_check_false(resultObserver.inBatchMode);
+
+        
+        root.containerOpen = false;
+        do_check_eq(resultObserver.closedContainer, resultObserver.openedContainer);
+        result.removeObserver(resultObserver);
+        resultObserver.reset();
+        promiseAsyncUpdates().then(run_next_test);
+      });
+    });
   });
 });
 
