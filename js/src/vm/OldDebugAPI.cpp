@@ -900,8 +900,17 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 JS_FRIEND_API(bool)
 js_CallContextDebugHandler(JSContext *cx)
 {
-    NonBuiltinScriptFrameIter iter(cx);
-    JS_ASSERT(!iter.done());
+    NonBuiltinFrameIter iter(cx);
+
+    
+    
+    if (!iter.hasScript())
+        return false;
+
+    
+    
+    if (iter.done())
+        return false;
 
     RootedValue rval(cx);
     RootedScript script(cx, iter.script());

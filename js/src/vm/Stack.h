@@ -1432,12 +1432,17 @@ class AsmJSActivation : public Activation
     SPSProfiler *profiler_;
     void *resumePC_;
 
+    
+    
+    unsigned exportIndex_;
+
   public:
-    AsmJSActivation(JSContext *cx, AsmJSModule &module);
+    AsmJSActivation(JSContext *cx, AsmJSModule &module, unsigned exportIndex);
     ~AsmJSActivation();
 
     JSContext *cx() { return cx_; }
     AsmJSModule &module() const { return module_; }
+    unsigned exportIndex() const { return exportIndex_; }
     AsmJSActivation *prevAsmJS() const { return prevAsmJS_; }
 
     
@@ -1536,6 +1541,12 @@ class FrameIter
     bool isGeneratorFrame() const;
     bool hasArgs() const { return isNonEvalFunctionFrame(); }
 
+    ScriptSource *scriptSource() const;
+    const char *scriptFilename() const;
+    unsigned computeLine(uint32_t *column = nullptr) const;
+    JSAtom *functionDisplayAtom() const;
+    JSPrincipals *originPrincipals() const;
+
     bool hasScript() const { return !isAsmJS(); }
 
     
@@ -1613,18 +1624,22 @@ class ScriptFrameIter : public FrameIter
   public:
     ScriptFrameIter(JSContext *cx, SavedOption savedOption = STOP_AT_SAVED)
       : FrameIter(cx, savedOption)
-    {}
+    {
+        settle();
+    }
 
     ScriptFrameIter(JSContext *cx,
                     ContextOption cxOption,
                     SavedOption savedOption,
                     JSPrincipals *prin = nullptr)
       : FrameIter(cx, cxOption, savedOption, prin)
-    {}
+    {
+        settle();
+    }
 
-    ScriptFrameIter(const ScriptFrameIter &iter) : FrameIter(iter) {}
-    ScriptFrameIter(const FrameIter::Data &data) : FrameIter(data) {}
-    ScriptFrameIter(AbstractFramePtr frame) : FrameIter(frame) {}
+    ScriptFrameIter(const ScriptFrameIter &iter) : FrameIter(iter) { settle(); }
+    ScriptFrameIter(const FrameIter::Data &data) : FrameIter(data) { settle(); }
+    ScriptFrameIter(AbstractFramePtr frame) : FrameIter(frame) { settle(); }
 
     ScriptFrameIter &operator++() {
         FrameIter::operator++();
@@ -1642,6 +1657,39 @@ SelfHostedFramesVisible()
     return false;
 }
 #endif
+
+
+class NonBuiltinFrameIter : public FrameIter
+{
+    void settle();
+
+  public:
+    NonBuiltinFrameIter(JSContext *cx,
+                        FrameIter::SavedOption opt = FrameIter::STOP_AT_SAVED)
+      : FrameIter(cx, opt)
+    {
+        settle();
+    }
+
+    NonBuiltinFrameIter(JSContext *cx,
+                        FrameIter::ContextOption contextOption,
+                        FrameIter::SavedOption savedOption,
+                        JSPrincipals *principals = nullptr)
+      : FrameIter(cx, contextOption, savedOption, principals)
+    {
+        settle();
+    }
+
+    NonBuiltinFrameIter(const FrameIter::Data &data)
+      : FrameIter(data)
+    {}
+
+    NonBuiltinFrameIter &operator++() {
+        FrameIter::operator++();
+        settle();
+        return *this;
+    }
+};
 
 
 class NonBuiltinScriptFrameIter : public ScriptFrameIter

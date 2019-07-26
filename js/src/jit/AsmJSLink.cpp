@@ -387,7 +387,7 @@ CallAsmJS(JSContext *cx, unsigned argc, Value *vp)
         
         
         
-        AsmJSActivation activation(cx, module);
+        AsmJSActivation activation(cx, module, exportIndex);
         JitActivation jitActivation(cx,  false,  false);
 
         

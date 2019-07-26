@@ -483,8 +483,8 @@ js::Invoke(JSContext *cx, CallArgs args, MaybeConstruct construct)
 
     
     if (construct && cx->typeInferenceEnabled()) {
-        ScriptFrameIter iter(cx);
-        if (!iter.done()) {
+        FrameIter iter(cx);
+        if (!iter.done() && iter.hasScript()) {
             JSScript *script = iter.script();
             jsbytecode *pc = iter.pc();
             if (UseNewType(cx, script, pc))
