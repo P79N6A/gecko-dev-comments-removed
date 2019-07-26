@@ -433,12 +433,6 @@ public:
   virtual nsIWidget* GetWidget() const { return nullptr; }
 
   
-  
-  
-  virtual void SaveState() {}
-  virtual void RestoreState() {}
-
-  
 
 
 
