@@ -81,11 +81,6 @@ public:
     return !Equals(aOtherNullable);
   }
 
-  operator bool() const
-  {
-    return !mIsNull;
-  }
-
   
   
   template<typename U>
