@@ -112,12 +112,14 @@ add_task(function test() {
   checkOrder(id1, id3, id2);
 
   
+
+  
+  
+  
+  let waitForVisited = promiseOnItemVisited();
   yield promiseAddVisits({ uri: uri2,
                            transition: TRANSITION_TYPED});
-  
-  
-  
-  yield promiseOnItemVisited();
+  yield waitForVisited;
 
   do_print("Sort by frecency desc");
   result.sortingMode = NHQO.SORT_BY_FRECENCY_DESCENDING;
