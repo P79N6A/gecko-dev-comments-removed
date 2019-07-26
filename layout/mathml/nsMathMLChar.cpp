@@ -1041,7 +1041,7 @@ insert:
 }
 
 
-static void
+static bool
 SetFontFamily(nsStyleContext*      aStyleContext,
               nsRenderingContext&  aRenderingContext,
               nsFont&              aFont,
@@ -1052,14 +1052,24 @@ SetFontFamily(nsStyleContext*      aStyleContext,
   const nsAString& family =
     aGlyphCode.font ? aGlyphTable->FontNameFor(aGlyphCode) : aDefaultFamily;
   if (! family.Equals(aFont.name)) {
-    aFont.name = family;
+    nsFont font = aFont;
+    font.name = family;
     nsRefPtr<nsFontMetrics> fm;
-    aRenderingContext.DeviceContext()->GetMetricsFor(aFont,
+    aRenderingContext.DeviceContext()->GetMetricsFor(font,
       aStyleContext->GetStyleFont()->mLanguage,
       aStyleContext->PresContext()->GetUserFontSet(),
       *getter_AddRefs(fm));
-    aRenderingContext.SetFont(fm);
+    
+    
+    if (aGlyphTable == &gGlyphTableList->mUnicodeTable ||
+        fm->GetThebesFontGroup()->GetFontAt(0)->GetFontEntry()->
+        FamilyName() == family) {
+      aFont.name = family;
+      aRenderingContext.SetFont(fm);
+    } else
+        return false; 
   }
+  return true;
 }
 
 class nsMathMLChar::StretchEnumContext {
@@ -1089,9 +1099,6 @@ public:
   EnumCallback(const nsString& aFamily, bool aGeneric, void *aData);
 
 private:
-  static bool
-  ResolverCallback (const nsAString& aFamily, void *aData);
-
   bool TryVariants(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
   bool TryParts(nsGlyphTable* aGlyphTable, const nsAString& aFamily);
 
@@ -1150,7 +1157,12 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   nsGlyphCode ch;
   while ((ch = aGlyphTable->BigOf(mPresContext, mChar, size)).Exists()) {
 
-    SetFontFamily(sc, mRenderingContext, font, aGlyphTable, ch, aFamily);
+    if(!SetFontFamily(sc, mRenderingContext, font, aGlyphTable, ch, aFamily)) {
+      
+      if (largeopOnly) break;
+      ++size;
+      continue;
+    }
 
     NS_ASSERTION(maxWidth || ch.code[0] != mChar->mGlyph.code[0] ||
                  ch.code[1] != mChar->mGlyph.code[1] ||
@@ -1274,8 +1286,10 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
       sizedata[i] = mTargetSize;
     }
     else {
-      SetFontFamily(mChar->mStyleContext, mRenderingContext,
-                    font, aGlyphTable, ch, aFamily);
+      if (!SetFontFamily(mChar->mStyleContext, mRenderingContext,
+                         font, aGlyphTable, ch, aFamily))
+        return false;
+
       nsBoundingMetrics bm = mRenderingContext.GetBoundingMetrics(ch.code,
                                                                   ch.Length());
 
@@ -1371,38 +1385,6 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
 }
 
 
-
-bool
-nsMathMLChar::StretchEnumContext::ResolverCallback (const nsAString& aFamily,
-                                                    void *aData)
-{
-  StretchEnumContext* context = static_cast<StretchEnumContext*>(aData);
-  nsGlyphTable* glyphTable = context->mGlyphTable;
-
-  
-  context->mTablesTried.AppendElement(glyphTable);
-
-  
-  
-  
-  const nsAString& family = glyphTable == &gGlyphTableList->mUnicodeTable ?
-    context->mFamilies : aFamily;
-
-  if(context->mTryVariants) {
-    bool isOK = context->TryVariants(glyphTable, family);
-    if (isOK)
-      return false; 
-  }
-
-  if(context->mTryParts) {
-    bool isOK = context->TryParts(glyphTable, family);
-    if (isOK)
-      return false; 
-  }
-  return true;
-}
-
-
 bool
 nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
                                                bool aGeneric, void *aData)
@@ -1417,16 +1399,32 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
   if (context->mTablesTried.Contains(glyphTable))
     return true; 
 
+  
+  
+  nsStyleContext *sc = context->mChar->mStyleContext;
+  nsFont font = sc->GetStyleFont()->mFont;
+  if (!aGeneric && !SetFontFamily(sc, context->mRenderingContext,
+                                  font, NULL, kNullGlyph, aFamily))
+     return true; 
+
   context->mGlyphTable = glyphTable;
 
-  if (aGeneric)
-    return ResolverCallback(aFamily, aData);
+  
 
-  bool aborted;
-  gfxPlatform *pf = gfxPlatform::GetPlatform();
-  nsresult rv =
-    pf->ResolveFontName(aFamily, ResolverCallback, aData, aborted);
-  return NS_SUCCEEDED(rv) && !aborted; 
+  
+  context->mTablesTried.AppendElement(glyphTable);
+
+  
+  
+  
+  const nsAString& family = glyphTable == &gGlyphTableList->mUnicodeTable ?
+    context->mFamilies : aFamily;
+
+  if((context->mTryVariants && context->TryVariants(glyphTable, family)) ||
+     (context->mTryParts && context->TryParts(glyphTable, family)))
+    return false; 
+
+  return true; 
 }
 
 nsresult

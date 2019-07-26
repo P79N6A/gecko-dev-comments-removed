@@ -1,38 +1,38 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Matt Woodrow <mwoodrow@mozilla.com>
+ *   Bas Schouten <bschouten@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifdef MOZ_WIDGET_GTK2
 #include <gdk/gdk.h>
@@ -63,6 +63,10 @@
 
 #include "gfxCrashReporterUtils.h"
 
+#ifdef MOZ_WIDGET_GTK2
+#include "gfxPlatformGtk.h"
+#endif
+
 namespace mozilla {
 namespace gl {
 
@@ -70,7 +74,7 @@ static bool gIsATI = false;
 static bool gIsChromium = false;
 static int gGLXMajorVersion = 0, gGLXMinorVersion = 0;
 
-
+// Check that we have at least version aMajor.aMinor .
 static inline bool
 GLXVersionCheck(int aMajor, int aMinor)
 {
@@ -92,16 +96,16 @@ GLXLibrary::EnsureInitialized()
         return true;
     }
 
-    
+    // Don't repeatedly try to initialize.
     if (mTriedInitializing) {
         return false;
     }
     mTriedInitializing = true;
 
     if (!mOGLLibrary) {
-        
-        
-        
+        // see e.g. bug 608526: it is intrinsically interesting to know whether we have dynamically linked to libGL.so.1
+        // because at least the NVIDIA implementation requires an executable stack, which causes mprotect calls,
+        // which trigger glibc bug http://sourceware.org/bugzilla/show_bug.cgi?id=12225
 #ifdef __OpenBSD__
         const char *libGLfilename = "libGL.so";
 #else
@@ -121,7 +125,7 @@ GLXLibrary::EnsureInitialized()
     }
 
     GLLibraryLoader::SymLoadStruct symbols[] = {
-        
+        /* functions that were in GLX 1.0 */
         { (PRFuncPtr*) &xDestroyContextInternal, { "glXDestroyContext", NULL } },
         { (PRFuncPtr*) &xMakeCurrentInternal, { "glXMakeCurrent", NULL } },
         { (PRFuncPtr*) &xSwapBuffersInternal, { "glXSwapBuffers", NULL } },
@@ -129,7 +133,7 @@ GLXLibrary::EnsureInitialized()
         { (PRFuncPtr*) &xGetCurrentContextInternal, { "glXGetCurrentContext", NULL } },
         { (PRFuncPtr*) &xWaitGLInternal, { "glXWaitGL", NULL } },
         { (PRFuncPtr*) &xWaitXInternal, { "glXWaitX", NULL } },
-        
+        /* functions introduced in GLX 1.1 */
         { (PRFuncPtr*) &xQueryExtensionsStringInternal, { "glXQueryExtensionsString", NULL } },
         { (PRFuncPtr*) &xGetClientStringInternal, { "glXGetClientString", NULL } },
         { (PRFuncPtr*) &xQueryServerStringInternal, { "glXQueryServerString", NULL } },
@@ -137,13 +141,13 @@ GLXLibrary::EnsureInitialized()
     };
 
     GLLibraryLoader::SymLoadStruct symbols13[] = {
-        
+        /* functions introduced in GLX 1.3 */
         { (PRFuncPtr*) &xChooseFBConfigInternal, { "glXChooseFBConfig", NULL } },
         { (PRFuncPtr*) &xGetFBConfigAttribInternal, { "glXGetFBConfigAttrib", NULL } },
-        
+        // WARNING: xGetFBConfigs not set in symbols13_ext
         { (PRFuncPtr*) &xGetFBConfigsInternal, { "glXGetFBConfigs", NULL } },
         { (PRFuncPtr*) &xGetVisualFromFBConfigInternal, { "glXGetVisualFromFBConfig", NULL } },
-        
+        // WARNING: symbols13_ext sets xCreateGLXPixmapWithConfig instead
         { (PRFuncPtr*) &xCreatePixmapInternal, { "glXCreatePixmap", NULL } },
         { (PRFuncPtr*) &xDestroyPixmapInternal, { "glXDestroyPixmap", NULL } },
         { (PRFuncPtr*) &xCreateNewContextInternal, { "glXCreateNewContext", NULL } },
@@ -151,28 +155,28 @@ GLXLibrary::EnsureInitialized()
     };
 
     GLLibraryLoader::SymLoadStruct symbols13_ext[] = {
-        
-        
+        /* extension equivalents for functions introduced in GLX 1.3 */
+        // GLX_SGIX_fbconfig extension
         { (PRFuncPtr*) &xChooseFBConfigInternal, { "glXChooseFBConfigSGIX", NULL } },
         { (PRFuncPtr*) &xGetFBConfigAttribInternal, { "glXGetFBConfigAttribSGIX", NULL } },
-        
+        // WARNING: no xGetFBConfigs equivalent in extensions
         { (PRFuncPtr*) &xGetVisualFromFBConfigInternal, { "glXGetVisualFromFBConfig", NULL } },
-        
+        // WARNING: different from symbols13:
         { (PRFuncPtr*) &xCreateGLXPixmapWithConfigInternal, { "glXCreateGLXPixmapWithConfigSGIX", NULL } },
-        { (PRFuncPtr*) &xDestroyPixmapInternal, { "glXDestroyGLXPixmap", NULL } }, 
+        { (PRFuncPtr*) &xDestroyPixmapInternal, { "glXDestroyGLXPixmap", NULL } }, // not from ext
         { (PRFuncPtr*) &xCreateNewContextInternal, { "glXCreateContextWithConfigSGIX", NULL } },
         { NULL, { NULL } }
     };
 
     GLLibraryLoader::SymLoadStruct symbols14[] = {
-        
+        /* functions introduced in GLX 1.4 */
         { (PRFuncPtr*) &xGetProcAddressInternal, { "glXGetProcAddress", NULL } },
         { NULL, { NULL } }
     };
 
     GLLibraryLoader::SymLoadStruct symbols14_ext[] = {
-        
-        
+        /* extension equivalents for functions introduced in GLX 1.4 */
+        // GLX_ARB_get_proc_address extension
         { (PRFuncPtr*) &xGetProcAddressInternal, { "glXGetProcAddressARB", NULL } },
         { NULL, { NULL } }
     };
@@ -210,15 +214,15 @@ GLXLibrary::EnsureInitialized()
     serverVersionStr = xQueryServerString(display, screen, GLX_VERSION);
 
     if (!GLXVersionCheck(1, 1))
-        
+        // Not possible to query for extensions.
         return false;
 
     extensionsStr = xQueryExtensionsString(display, screen);
 
     GLLibraryLoader::SymLoadStruct *sym13;
     if (!GLXVersionCheck(1, 3)) {
-        
-        
+        // Even if we don't have 1.3, we might have equivalent extensions
+        // (as on the Intel X server).
         if (!HasExtension(extensionsStr, "GLX_SGIX_fbconfig")) {
             return false;
         }
@@ -233,8 +237,8 @@ GLXLibrary::EnsureInitialized()
 
     GLLibraryLoader::SymLoadStruct *sym14;
     if (!GLXVersionCheck(1, 4)) {
-        
-        
+        // Even if we don't have 1.4, we might have equivalent extensions
+        // (as on the Intel X server).
         if (!HasExtension(extensionsStr, "GLX_ARB_get_proc_address")) {
             return false;
         }
@@ -251,8 +255,13 @@ GLXLibrary::EnsureInitialized()
         GLLibraryLoader::LoadSymbols(mOGLLibrary, symbols_texturefrompixmap, 
                                          (GLLibraryLoader::PlatformLookupFunction)&xGetProcAddress))
     {
-        mHasTextureFromPixmap = true;
+#ifdef MOZ_WIDGET_GTK2
+        mUseTextureFromPixmap = gfxPlatformGtk::UseXRender();
+#else
+        mUseTextureFromPixmap = true;
+#endif
     } else {
+        mUseTextureFromPixmap = false;
         NS_WARNING("Texture from pixmap disabled");
     }
 
@@ -278,7 +287,7 @@ GLXLibrary::SupportsTextureFromPixmap(gfxASurface* aSurface)
         return false;
     }
     
-    if (aSurface->GetType() != gfxASurface::SurfaceTypeXlib || !mHasTextureFromPixmap) {
+    if (aSurface->GetType() != gfxASurface::SurfaceTypeXlib || !mUseTextureFromPixmap) {
         return false;
     }
 
@@ -328,7 +337,7 @@ GLXLibrary::CreatePixmap(gfxASurface* aSurface)
 void
 GLXLibrary::DestroyPixmap(GLXPixmap aPixmap)
 {
-    if (!mHasTextureFromPixmap) {
+    if (!mUseTextureFromPixmap) {
         return;
     }
 
@@ -339,12 +348,12 @@ GLXLibrary::DestroyPixmap(GLXPixmap aPixmap)
 void
 GLXLibrary::BindTexImage(GLXPixmap aPixmap)
 {    
-    if (!mHasTextureFromPixmap) {
+    if (!mUseTextureFromPixmap) {
         return;
     }
 
     Display *display = DefaultXDisplay();
-    
+    // Make sure all X drawing to the surface has finished before binding to a texture.
     xWaitX();
     xBindTexImage(display, aPixmap, GLX_FRONT_LEFT_EXT, NULL);
 }
@@ -352,7 +361,7 @@ GLXLibrary::BindTexImage(GLXPixmap aPixmap)
 void
 GLXLibrary::ReleaseTexImage(GLXPixmap aPixmap)
 {
-    if (!mHasTextureFromPixmap) {
+    if (!mUseTextureFromPixmap) {
         return;
     }
 
@@ -443,7 +452,7 @@ GLXLibrary::xGetCurrentContext()
     return result;
 }
 
- void* 
+/* static */ void* 
 GLXLibrary::xGetProcAddress(const char *procName)
 {
     BEFORE_GLX_CALL;
@@ -738,8 +747,8 @@ TRY_AGAIN_NO_SHARING:
             }
 
             NS_WARNING("Failed to create GLXContext!");
-            glContext = nsnull; 
-                                
+            glContext = nsnull; // note: this must be done while the graceful X error handler is set,
+                                // because glxMakeCurrent can give a GLXBadDrawable error
         }
 
         return glContext.forget();
@@ -749,7 +758,7 @@ TRY_AGAIN_NO_SHARING:
     {
         MarkDestroyed();
 
-        
+        // see bug 659842 comment 76
 #ifdef DEBUG
         bool success =
 #endif
@@ -788,12 +797,12 @@ TRY_AGAIN_NO_SHARING:
     {
         bool succeeded = true;
 
-        
-        
-        
-        
-        
-        
+        // With the ATI FGLRX driver, glxMakeCurrent is very slow even when the context doesn't change.
+        // (This is not the case with other drivers such as NVIDIA).
+        // So avoid calling it more than necessary. Since GLX documentation says that:
+        //     "glXGetCurrentContext returns client-side information.
+        //      It does not make a round trip to the server."
+        // I assume that it's not worth using our own TLS slot here.
         if (aForce || sGLXLibrary.xGetCurrentContext() != mContext) {
             succeeded = sGLXLibrary.xMakeCurrent(mDisplay, mDrawable, mContext);
             NS_ASSERTION(succeeded, "Failed to make GL context current!");
@@ -843,7 +852,7 @@ TRY_AGAIN_NO_SHARING:
 
     bool TextureImageSupportsGetBackingSurface()
     {
-        return sGLXLibrary.HasTextureFromPixmap();
+        return sGLXLibrary.UseTextureFromPixmap();
     }
 
     virtual already_AddRefed<TextureImage>
@@ -1071,12 +1080,12 @@ GLContextProviderGLX::CreateForWindow(nsIWidget *aWidget)
         return nsnull;
     }
 
-    
-    
-    
-    
-    
-    
+    // Currently, we take whatever Visual the window already has, and
+    // try to create an fbconfig for that visual.  This isn't
+    // necessarily what we want in the long run; an fbconfig may not
+    // be available for the existing visual, or if it is, the GL
+    // performance might be suboptimal.  But using the existing visual
+    // is a relatively safe intermediate step.
 
     Display *display = (Display*)aWidget->GetNativeData(NS_NATIVE_DISPLAY); 
     int xscreen = DefaultScreen(display);
@@ -1105,9 +1114,9 @@ GLContextProviderGLX::CreateForWindow(nsIWidget *aWidget)
     }
     NS_ASSERTION(numConfigs > 0, "No FBConfigs found!");
 
-    
-    
-    
+    // XXX the visual ID is almost certainly the GLX_FBCONFIG_ID, so
+    // we could probably do this first and replace the glXGetFBConfigs
+    // with glXChooseConfigs.  Docs are sparklingly clear as always.
     XWindowAttributes widgetAttrs;
     if (!XGetWindowAttributes(display, window, &widgetAttrs)) {
         NS_WARNING("[GLX] XGetWindowAttributes() failed");
@@ -1249,9 +1258,9 @@ CreateOffscreenPixmapContext(const gfxIntSize& aSize,
         goto DONE_CREATING_PIXMAP;
     }
 
-    
-    
-    
+    // Handle slightly different signature between glXCreatePixmap and
+    // its pre-GLX-1.3 extension equivalent (though given the ABI, we
+    // might not need to).
     if (GLXVersionCheck(1, 3)) {
         glxpixmap = sGLXLibrary.xCreatePixmap(display,
                                               cfgs[chosenIndex],
@@ -1272,7 +1281,7 @@ DONE_CREATING_PIXMAP:
     nsRefPtr<GLContextGLX> glContext;
     bool serverError = xErrorHandler.SyncAndGetError(display);
 
-    if (!error && 
+    if (!error && // earlier recorded error
         !serverError)
     {
         glContext = GLContextGLX::CreateGLContext(
@@ -1302,14 +1311,14 @@ GLContextProviderGLX::CreateOffscreen(const gfxIntSize& aSize,
     }
 
     if (!glContext->GetSharedContext()) {
-        
-        
+        // no point in returning anything if sharing failed, we can't
+        // render from this
         return nsnull;
     }
 
     if (!glContext->ResizeOffscreenFBOs(aSize, true)) {
-        
-        
+        // we weren't able to create the initial
+        // offscreen FBO, so this is dead
         return nsnull;
     }
 
@@ -1397,6 +1406,6 @@ GLContextProviderGLX::Shutdown()
     gGlobalContext = nsnull;
 }
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */
 

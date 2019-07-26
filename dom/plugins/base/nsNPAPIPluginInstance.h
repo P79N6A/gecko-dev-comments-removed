@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Tim Copperfield <timecop@network.email.ne.jp>
+ *   Roland Mainz <roland.mainz@informatik.med.uni-giessen.de>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef nsNPAPIPluginInstance_h_
 #define nsNPAPIPluginInstance_h_
@@ -58,8 +58,8 @@
 
 struct JSObject;
 
-class nsPluginStreamListenerPeer; 
-class nsNPAPIPluginStreamListener; 
+class nsPluginStreamListenerPeer; // browser-initiated stream class
+class nsNPAPIPluginStreamListener; // plugin-initiated stream class
 class nsIPluginInstanceOwner;
 class nsIPluginStreamListener;
 class nsIOutputStream;
@@ -108,7 +108,6 @@ public:
   nsresult GetDrawingModel(PRInt32* aModel);
   nsresult IsRemoteDrawingCoreAnimation(bool* aDrawing);
   nsresult GetJSObject(JSContext *cx, JSObject** outObject);
-  nsresult DefineJavaProperties();
   bool ShouldCache();
   nsresult IsWindowless(bool* isWindowless);
   nsresult AsyncSetWindow(NPWindow* window);
@@ -167,7 +166,7 @@ public:
   PRUint32 GetANPDrawingModel() { return mANPDrawingModel; }
   void SetANPDrawingModel(PRUint32 aModel);
 
-  
+  // This stuff is for kSurface_ANPDrawingModel
   void* GetJavaSurface();
   void SetJavaSurface(void* aSurface);
   void RequestJavaSurface();
@@ -179,11 +178,11 @@ public:
   nsNPAPIPluginInstance();
   virtual ~nsNPAPIPluginInstance();
 
-  
-  
+  // To be called when an instance becomes orphaned, when
+  // it's plugin is no longer guaranteed to be around.
   void Destroy();
 
-  
+  // Indicates whether the plugin is running normally.
   bool IsRunning() {
     return RUNNING == mRunning;
   }
@@ -191,15 +190,15 @@ public:
     return mRunning >= DESTROYING;
   }
 
-  
+  // Indicates whether the plugin is running normally or being shut down
   bool CanFireNotifications() {
     return mRunning == RUNNING || mRunning == DESTROYING;
   }
 
-  
+  // return is only valid when the plugin is not running
   mozilla::TimeStamp StopTime();
 
-  
+  // cache this NPAPI plugin
   nsresult SetCached(bool aCache);
 
   already_AddRefed<nsPIDOMWindow> GetDOMWindow();
@@ -228,8 +227,8 @@ public:
   NPError FinalizeAsyncSurface(NPAsyncSurface *surface);
   void SetCurrentAsyncSurface(NPAsyncSurface *surface, NPRect *changed);
 
-  
-  
+  // Called when the instance fails to instantiate beceause the Carbon
+  // event model is not supported.
   void CarbonNPAPIFailure();
 
 protected:
@@ -241,8 +240,8 @@ protected:
                          const char*const*& values);
   nsresult GetMode(PRInt32 *result);
 
-  
-  
+  // The structure used to communicate between the plugin instance and
+  // the browser.
   NPP_t mNPP;
 
   NPDrawingModel mDrawingModel;
@@ -259,15 +258,15 @@ protected:
     DESTROYED
   } mRunning;
 
-  
-  
+  // these are used to store the windowless properties
+  // which the browser will later query
   bool mWindowless;
   bool mTransparent;
   bool mCached;
   bool mUsesDOMForCursor;
 
 public:
-  
+  // True while creating the plugin, or calling NPP_SetWindow() on it.
   bool mInPluginInitCall;
 
   nsXPIDLCString mFakeURL;
@@ -283,17 +282,17 @@ private:
 
   char* mMIMEType;
 
-  
-  
+  // Weak pointer to the owner. The owner nulls this out (by calling
+  // InvalidateOwner()) when it's no longer our owner.
   nsIPluginInstanceOwner *mOwner;
 
   nsTArray<nsNPAPITimer*> mTimers;
 
-  
+  // non-null during a HandleEvent call
   void* mCurrentPluginEvent;
 
-  
-  
+  // Timestamp for the last time this plugin was stopped.
+  // This is only valid when the plugin is actually stopped!
   mozilla::TimeStamp mStopTime;
 
   bool mUsePluginLayersPref;
@@ -303,4 +302,4 @@ private:
 #endif
 };
 
-#endif 
+#endif // nsNPAPIPluginInstance_h_

@@ -63,8 +63,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0xda62efbf, 0x0711, 0x4b79, \
-    { 0x87, 0x85, 0x9e, 0xec, 0xed, 0xf5, 0xb0, 0x32 } }
+  { 0x697948d2, 0x3f10, 0x407d, \
+    { 0xb8, 0x94, 0x9f, 0x36, 0xd2, 0x11, 0xdb, 0xf1 } }
 
 
 
@@ -166,17 +166,6 @@ public:
   nsRect GetDimensions() const {
     nsRect r = mDimBounds; r.MoveBy(-mPosX, -mPosY); return r;
   }
-
-  
-
-
-
-
-
-
-
-
-  void SetInvalidationDimensions(const nsRect* aRect);
 
   
 

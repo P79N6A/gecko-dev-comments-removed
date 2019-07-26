@@ -55,8 +55,20 @@ const TELEMETRY_INTERVAL = 60000;
 
 const TELEMETRY_DELAY = 60000;
 
+
+
+
+
+
+
+
+
+
+
+
+
 const MEM_HISTOGRAMS = {
-  "js-main-runtime-gc-heap-committed": "MEMORY_JS_GC_HEAP_COMMITTED",
+  "js-gc-heap": "MEMORY_JS_GC_HEAP",
   "js-compartments-system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
   "js-compartments-user": "MEMORY_JS_COMPARTMENTS_USER",
   "explicit": "MEMORY_EXPLICIT",
@@ -65,12 +77,15 @@ const MEM_HISTOGRAMS = {
   "images-content-used-uncompressed":
     "MEMORY_IMAGES_CONTENT_USED_UNCOMPRESSED",
   "heap-allocated": "MEMORY_HEAP_ALLOCATED",
+  "heap-committed-unused": "MEMORY_HEAP_COMMITTED_UNUSED",
+  "heap-committed-unused-ratio": "MEMORY_HEAP_COMMITTED_UNUSED_RATIO",
   "page-faults-hard": "PAGE_FAULTS_HARD",
   "low-memory-events-virtual": "LOW_MEMORY_EVENTS_VIRTUAL",
   "low-memory-events-commit-space": "LOW_MEMORY_EVENTS_COMMIT_SPACE",
   "low-memory-events-physical": "LOW_MEMORY_EVENTS_PHYSICAL",
   "ghost-windows": "GHOST_WINDOWS"
 };
+
 
 
 
@@ -370,47 +385,58 @@ TelemetryPing.prototype = {
     let e = mgr.enumerateReporters();
     while (e.hasMoreElements()) {
       let mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-      let id, mrPath, mrAmount, mrUnits;
+      let id = MEM_HISTOGRAMS[mr.path];
+      if (!id) {
+        continue;
+      }
+
+      
+      
       try {
-        mrPath = mr.path;
-        id = MEM_HISTOGRAMS[mrPath];
-        if (!id) {
-          continue;
-        }
-        mrAmount = mr.amount;
-        mrUnits = mr.units;
-      } catch (ex) {
-        continue;
+        this.handleMemoryReport(id, mr.path, mr.units, mr.amount);
       }
-
-      let val;
-      if (mrUnits == Ci.nsIMemoryReporter.UNITS_BYTES) {
-        val = Math.floor(mrAmount / 1024);
+      catch (e) {
       }
-      else if (mrUnits == Ci.nsIMemoryReporter.UNITS_COUNT) {
-        val = mrAmount;
-      }
-      else if (mrUnits == Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE) {
-        
-        
-
-        if (!(mrPath in this._prevValues)) {
-          
-          
-          
-          this._prevValues[mrPath] = mrAmount;
-          continue;
-        }
-
-        val = mrAmount - this._prevValues[mrPath];
-        this._prevValues[mrPath] = mrAmount;
-      }
-      else {
-        NS_ASSERT(false, "Can't handle memory reporter with units " + mrUnits);
-        continue;
-      }
-      this.addValue(mrPath, id, val);
     }
+  },
+
+  handleMemoryReport: function handleMemoryReport(id, path, units, amount) {
+    if (amount == -1) {
+      return;
+    }
+
+    let val;
+    if (units == Ci.nsIMemoryReporter.UNITS_BYTES) {
+      val = Math.floor(amount / 1024);
+    }
+    else if (units == Ci.nsIMemoryReporter.UNITS_PERCENTAGE) {
+      
+      val = Math.floor(amount / 100);
+    }
+    else if (units == Ci.nsIMemoryReporter.UNITS_COUNT) {
+      val = amount;
+    }
+    else if (units == Ci.nsIMemoryReporter.UNITS_COUNT_CUMULATIVE) {
+      
+      
+
+      if (!(path in this._prevValues)) {
+        
+        
+        
+        this._prevValues[path] = amount;
+        return;
+      }
+
+      val = amount - this._prevValues[path];
+      this._prevValues[path] = amount;
+    }
+    else {
+      NS_ASSERT(false, "Can't handle memory reporter with units " + units);
+      return;
+    }
+
+    this.addValue(path, id, val);
   },
 
   

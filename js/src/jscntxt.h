@@ -132,7 +132,8 @@ GetGSNCache(JSContext *cx);
 
 struct PendingProxyOperation {
     PendingProxyOperation   *next;
-    JSObject                *object;
+    RootedVarObject         object;
+    PendingProxyOperation(JSContext *cx, JSObject *object) : next(NULL), object(cx, object) {}
 };
 
 typedef Vector<ScriptAndCounts, 0, SystemAllocPolicy> ScriptAndCountsVector;
@@ -145,14 +146,26 @@ struct ConservativeGCData
 
     uintptr_t           *nativeStackTop;
 
+#if defined(JSGC_ROOT_ANALYSIS) && (JS_STACK_GROWTH_DIRECTION < 0)
+    
+
+
+
+
+
+    uintptr_t           *oldStackMin, *oldStackEnd;
+    uintptr_t           *oldStackData;
+    size_t              oldStackCapacity; 
+#endif
+
     union {
         jmp_buf         jmpbuf;
         uintptr_t       words[JS_HOWMANY(sizeof(jmp_buf), sizeof(uintptr_t))];
     } registerSnapshot;
 
-    ConservativeGCData()
-      : nativeStackTop(NULL)
-    {}
+    ConservativeGCData() {
+        PodZero(this);
+    }
 
     ~ConservativeGCData() {
 #ifdef JS_THREADSAFE
@@ -402,6 +415,13 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     bool                gcIncrementalEnabled;
+
+    
+
+
+
+
+    bool                gcExactScanningEnabled;
 
     
 
@@ -1695,11 +1715,12 @@ class AutoValueArray : public AutoGCRooter
 {
     js::Value *start_;
     unsigned length_;
+    SkipRoot skip;
 
   public:
     AutoValueArray(JSContext *cx, js::Value *start, unsigned length
                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : AutoGCRooter(cx, VALARRAY), start_(start), length_(length)
+      : AutoGCRooter(cx, VALARRAY), start_(start), length_(length), skip(cx, start, length)
     {
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }

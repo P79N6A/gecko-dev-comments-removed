@@ -144,6 +144,12 @@ public:
     static bool      IsStorageEnabledForPolicy_Locked(nsCacheStoragePolicy policy);
 
     
+
+
+
+    nsresult GetOfflineDevice(nsOfflineCacheDevice ** aDevice);
+
+    
     
     
     

@@ -237,22 +237,6 @@ public:
                                                GdkEventVisibility *aEvent);
     void               OnWindowStateEvent(GtkWidget *aWidget,
                                           GdkEventWindowState *aEvent);
-    gboolean           OnDragMotionEvent(GtkWidget       *aWidget,
-                                         GdkDragContext  *aDragContext,
-                                         gint             aX,
-                                         gint             aY,
-                                         guint            aTime,
-                                         gpointer         aData);
-    void               OnDragLeaveEvent(GtkWidget *      aWidget,
-                                        GdkDragContext   *aDragContext,
-                                        guint            aTime,
-                                        gpointer         aData);
-    gboolean           OnDragDropEvent(GtkWidget        *aWidget,
-                                       GdkDragContext   *aDragContext,
-                                       gint             aX,
-                                       gint             aY,
-                                       guint            aTime,
-                                       gpointer         aData);
     void               OnDragDataReceivedEvent(GtkWidget       *aWidget,
                                                GdkDragContext  *aDragContext,
                                                gint             aX,
@@ -261,7 +245,6 @@ public:
                                                guint            aInfo,
                                                guint            aTime,
                                                gpointer         aData);
-    void               OnDragLeave(void);
 
 private:
     void               NativeResize(PRInt32 aWidth,
@@ -297,11 +280,6 @@ public:
 
     void               ThemeChanged(void);
 
-    void CheckNeedDragLeave(nsWindow* aInnerMostWidget,
-                            nsIDragService* aDragService,
-                            GdkDragContext *aDragContext,
-                            nscoord aX, nscoord aY);
-
 #ifdef MOZ_X11
     Window             mOldFocusWindow;
 #endif 
@@ -312,18 +290,17 @@ public:
     NS_IMETHOD         BeginMoveDrag(nsMouseEvent* aEvent);
 
     MozContainer*      GetMozContainer() { return mContainer; }
+    
+    
+    GtkWidget*         GetMozContainerWidget();
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
     void               DispatchDragEvent(PRUint32 aMsg,
                                          const nsIntPoint& aRefPoint,
                                          guint aTime);
-    void               DispatchDragMotionEvents(nsDragService *aDragService,
-                                                const nsIntPoint& aPoint,
-                                                guint aTime);
-    gboolean           DispatchDragDropEvent(nsDragService *aDragService,
-                                             const nsIntPoint& aWindowPoint,
-                                             guint aTime);
+    static void        UpdateDragStatus (GdkDragContext *aDragContext,
+                                         nsIDragService *aDragService);
     
     
     bool               DispatchKeyDownEvent(GdkEventKey *aEvent,
@@ -393,7 +370,6 @@ protected:
 private:
     void               DestroyChildWindows();
     void               GetToplevelWidget(GtkWidget **aWidget);
-    GtkWidget         *GetMozContainerWidget();
     nsWindow          *GetContainerWindow();
     void               SetUrgencyHint(GtkWidget *top_window, bool state);
     void              *SetupPluginPort(void);
@@ -493,13 +469,8 @@ private:
     gchar*       mTransparencyBitmap;
  
     
-    
-    static nsWindow    *sLastDragMotionWindow;
     void   InitDragEvent         (nsDragEvent &aEvent);
-    void   UpdateDragStatus      (GdkDragContext *aDragContext,
-                                  nsIDragService *aDragService);
 
-    nsCOMPtr<nsITimer> mDragLeaveTimer;
     float              mLastMotionPressure;
 
     
@@ -507,9 +478,6 @@ private:
     nsSizeMode         mLastSizeMode;
 
     static bool DragInProgress(void);
-
-    void         FireDragLeaveTimer       (void);
-    static void  DragLeaveTimerCallback  (nsITimer *aTimer, void *aClosure);
 
     void DispatchMissedButtonReleases(GdkEventCrossing *aGdkEvent);
 

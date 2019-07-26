@@ -63,15 +63,13 @@ public:
   virtual ~nsRootAccessible();
 
   
-  NS_IMETHOD GetName(nsAString& aName);
-
-  
   NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
 
   
   virtual void Shutdown();
 
   
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual Relation RelationByType(PRUint32 aType);
   virtual mozilla::a11y::role NativeRole();
   virtual PRUint64 NativeState();

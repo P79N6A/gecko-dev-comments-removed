@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ *   Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com> (original author)
+ *   Mark Steele <mwsteele@gmail.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "WebGLContext.h"
 
@@ -55,9 +55,9 @@
 
 using namespace mozilla;
 
-
-
-
+/*
+ * Pull data out of the program, post-linking
+ */
 bool
 WebGLProgram::UpdateInfo()
 {
@@ -98,10 +98,10 @@ WebGLProgram::UpdateInfo()
     return true;
 }
 
-
-
-
-
+/*
+ * Verify that state is consistent for drawing, and compute max number of elements (maxAllowedCount)
+ * that will be legal to be read from bound VBOs.
+ */
 
 bool
 WebGLContext::ValidateBuffers(PRInt32 *maxAllowedCount, const char *info)
@@ -122,8 +122,8 @@ WebGLContext::ValidateBuffers(PRInt32 *maxAllowedCount, const char *info)
     for (PRUint32 i = 0; i < attribs; ++i) {
         const WebGLVertexAttribData& vd = mAttribBuffers[i];
 
-        
-        
+        // If the attrib array isn't enabled, there's nothing to check;
+        // it's a static value.
         if (!vd.enabled)
             continue;
 
@@ -132,12 +132,12 @@ WebGLContext::ValidateBuffers(PRInt32 *maxAllowedCount, const char *info)
             return false;
         }
 
-        
-        
+        // If the attrib is not in use, then we don't have to validate
+        // it, just need to make sure that the binding is non-null.
         if (!mCurrentProgram->IsAttribInUse(i))
             continue;
 
-        
+        // the base offset
         CheckedInt32 checked_byteLength
           = CheckedInt32(vd.buf->ByteLength()) - vd.byteOffset;
         CheckedInt32 checked_sizeOfLastElement
@@ -518,6 +518,20 @@ WebGLContext::InitAndValidateGL()
         return false;
     }
 
+#ifdef ANDROID
+    // bug 736123, blacklist WebGL on Adreno because they do not implement
+    // glTexSubImage2D in a way that is safe to expose to WebGL </euphemism>
+    // We don't rely on GfxInfo for this blacklisting, because GfxInfo on Android doesn't know
+    // about GL strings and GL strings are the only way I know to detect Adreno (EGL Vendor only
+    // says 'Android'), and it is not convenient to have to create a GL context before GfxInfo::Init()
+    // is first called.
+    if (gl->Renderer() == gl::GLContext::RendererAdreno200 ||
+        gl->Renderer() == gl::GLContext::RendererAdreno205)
+    {
+        return false;
+    }
+#endif
+
     mMinCapability = Preferences::GetBool("webgl.min_capability_mode", false);
     mDisableExtensions = Preferences::GetBool("webgl.disable-extensions", false);
 
@@ -538,7 +552,7 @@ WebGLContext::InitAndValidateGL()
 
     MakeContextCurrent();
 
-    
+    // on desktop OpenGL, we always keep vertex attrib 0 array enabled
     if (!gl->IsGLES2()) {
         gl->fEnableVertexAttribArray(0);
     }
@@ -555,9 +569,9 @@ WebGLContext::InitAndValidateGL()
 
     mAttribBuffers.SetLength(mGLMaxVertexAttribs);
 
-    
-    
-    
+    // Note: GL_MAX_TEXTURE_UNITS is fixed at 4 for most desktop hardware,
+    // even though the hardware supports much more.  The
+    // GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS value is the accurate value.
     if (MinCapabilityMode()) {
         mGLMaxTextureUnits = MINVALUE_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
     } else {
@@ -598,19 +612,19 @@ WebGLContext::InitAndValidateGL()
             gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_COMPONENTS, &mGLMaxVertexUniformVectors);
             mGLMaxVertexUniformVectors /= 4;
 
-            
-            
-            
+            // we are now going to try to read GL_MAX_VERTEX_OUTPUT_COMPONENTS and GL_MAX_FRAGMENT_INPUT_COMPONENTS,
+            // however these constants only entered the OpenGL standard at OpenGL 3.2. So we will try reading,
+            // and check OpenGL error for INVALID_ENUM.
 
-            
+            // before we start, we check that no error already occurred, to prevent hiding it in our subsequent error handling
             error = gl->GetAndClearError();
             if (error != LOCAL_GL_NO_ERROR) {
                 LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
                 return false;
             }
 
-            
-            
+            // On the public_webgl list, "problematic GetParameter pnames" thread, the following formula was given:
+            //   mGLMaxVaryingVectors = min (GL_MAX_VERTEX_OUTPUT_COMPONENTS, GL_MAX_FRAGMENT_INPUT_COMPONENTS) / 4
             GLint maxVertexOutputComponents,
                   minFragmentInputComponents;
             gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
@@ -622,7 +636,7 @@ WebGLContext::InitAndValidateGL()
                     mGLMaxVaryingVectors = NS_MIN(maxVertexOutputComponents, minFragmentInputComponents) / 4;
                     break;
                 case LOCAL_GL_INVALID_ENUM:
-                    mGLMaxVaryingVectors = 16; 
+                    mGLMaxVaryingVectors = 16; // = 64/4, 64 is the min value for maxVertexOutputComponents in OpenGL 3.2 spec
                     break;
                 default:
                     LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
@@ -631,18 +645,18 @@ WebGLContext::InitAndValidateGL()
         }
     }
 
-    
+    // Always 1 for GLES2
     mMaxFramebufferColorAttachments = 1;
 
     if (!gl->IsGLES2()) {
-        
-        
+        // gl_PointSize is always available in ES2 GLSL, but has to be
+        // specifically enabled on desktop GLSL.
         gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
 
-        
-        
-        
-        
+        // we don't do the following glEnable(GL_POINT_SPRITE) on ATI cards on Windows, because bug 602183 shows that it causes
+        // crashes in the ATI/Windows driver; and point sprites on ATI seem like a lost cause anyway, see
+        //    http://www.gamedev.net/community/forums/topic.asp?topic_id=525643
+        // Also, if the ATI/Windows driver implements a recent GL spec version, this shouldn't be needed anyway.
 #ifdef XP_WIN
         if (!(gl->WorkAroundDriverBugs() &&
               gl->Vendor() == gl::GLContext::VendorATI))
@@ -650,21 +664,21 @@ WebGLContext::InitAndValidateGL()
         if (true)
 #endif
         {
-            
-            
-            
+            // gl_PointCoord is always available in ES2 GLSL and in newer desktop GLSL versions, but apparently
+            // not in OpenGL 2 and apparently not (due to a driver bug) on certain NVIDIA setups. See:
+            //   http://www.opengl.org/discussion_boards/ubbthreads.php?ubb=showflat&Number=261472
             gl->fEnable(LOCAL_GL_POINT_SPRITE);
         }
     }
 
-    
+    // Check the shader validator pref
     NS_ENSURE_TRUE(Preferences::GetRootBranch(), false);
 
     mShaderValidation =
         Preferences::GetBool("webgl.shader_validator", mShaderValidation);
 
 #if defined(USE_ANGLE)
-    
+    // initialize shader translator
     if (mShaderValidation) {
         if (!ShInitialize()) {
             LogMessage("GLSL translator initialization failed!");
@@ -673,8 +687,8 @@ WebGLContext::InitAndValidateGL()
     }
 #endif
 
-    
-    
+    // notice that the point of calling GetAndClearError here is not only to check for error,
+    // it is also to reset the error flags so that a subsequent WebGL getError call will give the correct result.
     error = gl->GetAndClearError();
     if (error != LOCAL_GL_NO_ERROR) {
         LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);

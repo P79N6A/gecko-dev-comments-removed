@@ -121,9 +121,6 @@ struct JSFunction : public JSObject
     
     enum { MAX_ARGS_AND_VARS = 2 * ((1U << 16) - 1) };
 
-#define JS_LOCAL_NAME_TO_ATOM(nameWord)  ((JSAtom *) ((nameWord) & ~uintptr_t(1)))
-#define JS_LOCAL_NAME_IS_CONST(nameWord) ((((nameWord) & uintptr_t(1))) != 0)
-
     
 
 
@@ -188,7 +185,7 @@ struct JSFunction : public JSObject
 
     
 
-    inline bool initBoundFunction(JSContext *cx, const js::Value &thisArg,
+    inline bool initBoundFunction(JSContext *cx, js::HandleValue thisArg,
                                   const js::Value *args, unsigned argslen);
 
     inline JSObject *getBoundFunctionTarget() const;
@@ -314,6 +311,9 @@ template<XDRMode mode>
 bool
 XDRInterpretedFunction(XDRState<mode> *xdr, JSObject **objp, JSScript *parentScript);
 
+extern JSObject *
+CloneInterpretedFunction(JSContext *cx, JSFunction *fun);
+
 } 
 
 extern JSBool
@@ -323,7 +323,7 @@ extern JSBool
 js_fun_call(JSContext *cx, unsigned argc, js::Value *vp);
 
 extern JSObject*
-js_fun_bind(JSContext *cx, js::HandleObject target, js::Value thisArg,
+js_fun_bind(JSContext *cx, js::HandleObject target, js::HandleValue thisArg,
             js::Value *boundArgs, unsigned argslen);
 
 #endif 

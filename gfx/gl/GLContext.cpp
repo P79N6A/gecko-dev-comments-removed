@@ -1,43 +1,43 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *   Mark Steele <mwsteele@gmail.com>
+ *   Bas Schouten <bschouten@mozilla.com>
+ *   Jeff Gilbert <jgilbert@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 
 #include <string.h>
@@ -57,7 +57,7 @@
 #include "gfxUtils.h"
 
 #include "mozilla/Preferences.h"
-#include "mozilla/Util.h" 
+#include "mozilla/Util.h" // for DebugOnly
 
 using namespace mozilla::gfx;
 
@@ -70,14 +70,14 @@ PRUintn GLContext::sCurrentGLContextTLS = -1;
 
 PRUint32 GLContext::sDebugMode = 0;
 
-
-
+// define this here since it's global to GLContextProvider, not any
+// specific implementation
 const ContextFormat ContextFormat::BasicRGBA32Format(ContextFormat::BasicRGBA32);
 
 #define MAX_SYMBOL_LENGTH 128
 #define MAX_SYMBOL_NAMES 5
 
-
+// should match the order of GLExtensions
 static const char *sExtensionNames[] = {
     "GL_EXT_framebuffer_object",
     "GL_ARB_framebuffer_object",
@@ -112,10 +112,10 @@ static const char *sExtensionNames[] = {
     NULL
 };
 
-
-
-
-
+/*
+ * XXX - we should really know the ARB/EXT variants of these
+ * instead of only handling the symbol if it's exposed directly.
+ */
 
 bool
 GLContext::InitWithPrefix(const char *prefix, bool trygl)
@@ -272,7 +272,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 
     mInitialized = LoadSymbols(&symbols[0], trygl, prefix);
 
-    
+    // Load OpenGL ES 2.0 symbols, or desktop if we aren't using ES 2.
     if (mInitialized) {
         if (mIsGLES2) {
             SymLoadStruct symbols_ES2[] = {
@@ -307,8 +307,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     const char *glRendererString;
 
     if (mInitialized) {
-        
-        
+        // The order of these strings must match up with the order of the enum
+        // defined in GLContext.h for vendor IDs
         glVendorString = (const char *)fGetString(LOCAL_GL_VENDOR);
         const char *vendorMatchStrings[VendorOther] = {
                 "Intel",
@@ -325,8 +325,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             }
         }
 
-        
-        
+        // The order of these strings must match up with the order of the enum
+        // defined in GLContext.h for renderer IDs
         glRendererString = (const char *)fGetString(LOCAL_GL_RENDERER);
         const char *rendererMatchStrings[RendererOther] = {
                 "Adreno 200",
@@ -405,7 +405,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             }
         }
 
-        
+        // Check for aux symbols based on extensions
         if (IsExtensionSupported(GLContext::ANGLE_framebuffer_blit) ||
             IsExtensionSupported(GLContext::EXT_framebuffer_blit))
         {
@@ -481,7 +481,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
             }
         }
        
-        
+        // Load developer symbols, don't fail if we can't find them.
         SymLoadStruct auxSymbols[] = {
                 { (PRFuncPtr*) &mSymbols.fGetTexImage, { "GetTexImage", nsnull } },
                 { (PRFuncPtr*) &mSymbols.fGetTexLevelParameteriv, { "GetTexLevelParameteriv", nsnull } },
@@ -506,10 +506,10 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
 #ifdef XP_MACOSX
         if (mWorkAroundDriverBugs &&
             mVendor == VendorIntel) {
-            
+            // see bug 737182 for 2D textures, bug 684822 for cube map textures.
             mMaxTextureSize        = NS_MIN(mMaxTextureSize,        4096);
             mMaxCubeMapTextureSize = NS_MIN(mMaxCubeMapTextureSize, 512);
-            
+            // for good measure, we align renderbuffers on what we do for 2D textures
             mMaxRenderbufferSize   = NS_MIN(mMaxRenderbufferSize,   4096);
         }
 #endif
@@ -523,12 +523,12 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     if (PR_GetEnv("MOZ_GL_DEBUG"))
         sDebugMode |= DebugEnabled;
 
-    
-    
+    // enables extra verbose output, informing of the start and finish of every GL call.
+    // useful e.g. to record information to investigate graphics system crashes/lockups
     if (PR_GetEnv("MOZ_GL_DEBUG_VERBOSE"))
         sDebugMode |= DebugTrace;
 
-    
+    // aborts on GL error. Can be useful to debug quicker code that is known not to generate any GL error in principle.
     if (PR_GetEnv("MOZ_GL_DEBUG_ABORT_ON_ERROR"))
         sDebugMode |= DebugAbortOnError;
 #endif
@@ -536,7 +536,7 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
     if (mInitialized)
         reporter.SetSuccessful();
     else {
-        
+        // if initialization fails, ensure all symbols are zero, to avoid hard-to-understand bugs
         mSymbols.Zero();
         NS_WARNING("InitWithPrefix failed!");
     }
@@ -593,8 +593,8 @@ GLContext::InitExtensions()
 #endif
 }
 
-
-
+// Take texture data in a given buffer and copy it into a larger buffer,
+// padding out the edge pixels for filtering if necessary
 static void
 CopyAndPadTextureData(const GLvoid* srcBuffer,
                       GLvoid* dstBuffer,
@@ -613,13 +613,13 @@ CopyAndPadTextureData(const GLvoid* srcBuffer,
 
     GLsizei padHeight = srcHeight;
 
-    
+    // Pad out an extra row of pixels so that edge filtering doesn't use garbage data
     if (dstHeight > srcHeight) {
         memcpy(rowDest, source - stride, srcWidth * pixelsize);
         padHeight++;
     }
 
-    
+    // Pad out an extra column of pixels
     if (dstWidth > srcWidth) {
         rowDest = static_cast<unsigned char*>(dstBuffer) + srcWidth * pixelsize;
         for (GLsizei h = 0; h < padHeight; ++h) {
@@ -629,30 +629,30 @@ CopyAndPadTextureData(const GLvoid* srcBuffer,
     }
 }
 
-
-
-
-
-
-
+// In both of these cases (for the Adreno at least) it is impossible
+// to determine good or bad driver versions for POT texture uploads,
+// so blacklist them all. Newer drivers use a different rendering
+// string in the form "Adreno (TM) 200" and the drivers we've seen so
+// far work fine with NPOT textures, so don't blacklist those until we
+// have evidence of any problems with them.
 bool
 GLContext::CanUploadSubTextures()
 {
     if (!mWorkAroundDriverBugs)
         return true;
 
-    
-    
+    // Lock surface feature allows to mmap texture memory and modify it directly
+    // this feature allow us modify texture partially without full upload
     if (HasLockSurface())
         return true;
 
-    
-    
+    // There are certain GPUs that we don't want to use glTexSubImage2D on
+    // because that function can be very slow and/or buggy
     if (Renderer() == RendererAdreno200 || Renderer() == RendererAdreno205)
         return false;
 
-    
-    
+    // On PowerVR glTexSubImage does a readback, so it will be slower
+    // than just doing a glTexImage2D() directly. i.e. 26ms vs 10ms
     if (Renderer() == RendererSGX540 || Renderer() == RendererSGX530)
         return false;
 
@@ -674,7 +674,7 @@ GLContext::CanUploadNonPowerOfTwo()
                                               "gfx.textures.poweroftwo.force-enabled");
     }
 
-    
+    // Some GPUs driver crash when uploading non power of two 565 textures.
     return sPowerOfTwoForced ? false : (Renderer() != RendererAdreno200 &&
                                         Renderer() != RendererAdreno205);
 }
@@ -682,42 +682,42 @@ GLContext::CanUploadNonPowerOfTwo()
 bool
 GLContext::WantsSmallTiles()
 {
-    
-    
+    // We must use small tiles for good performance if we can't use
+    // glTexSubImage2D() for some reason.
     if (!CanUploadSubTextures())
         return true;
 
-    
+    // We can't use small tiles on the SGX 540, because of races in texture upload.
     if (mWorkAroundDriverBugs &&
         Renderer() == RendererSGX540)
         return false;
 
-    
-    
+    // Don't use small tiles otherwise. (If we implement incremental texture upload,
+    // then we will want to revisit this.)
     return false;
 }
 
-
+// Common code for checking for both GL extensions and GLX extensions.
 bool
 GLContext::ListHasExtension(const GLubyte *extensions, const char *extension)
 {
-    
+    // fix bug 612572 - we were crashing as we were calling this function with extensions==null
     if (extensions == nsnull || extension == nsnull)
         return false;
 
     const GLubyte *start;
     GLubyte *where, *terminator;
 
-    
+    /* Extension names should not have spaces. */
     where = (GLubyte *) strchr(extension, ' ');
     if (where || *extension == '\0')
         return false;
 
-    
-
-
-
-
+    /* 
+     * It takes a bit of care to be fool-proof about parsing the
+     * OpenGL extensions string. Don't be fooled by sub-strings,
+     * etc. 
+     */
     start = extensions;
     for (;;) {
         where = (GLubyte *) strstr((const char *) start, extension);
@@ -776,10 +776,10 @@ BasicTextureImage::~BasicTextureImage()
         ctx = ctx->GetSharedContext();
     }
 
-    
-    
-    
-    
+    // If we have a context, then we need to delete the texture;
+    // if we don't have a context (either real or shared),
+    // then they went away when the contex was deleted, because it
+    // was the only one that had access to it.
     if (ctx && !ctx->IsDestroyed()) {
         mGLContext->MakeCurrent();
         mGLContext->fDeleteTextures(1, &mTexture);
@@ -791,7 +791,7 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
 {
     NS_ASSERTION(!mUpdateSurface, "BeginUpdate() without EndUpdate()?");
 
-    
+    // determine the region the client will need to repaint
     if (mGLContext->CanUploadSubTextures()) {
         GetUpdateRegion(aRegion);
     } else {
@@ -825,9 +825,9 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
 void
 BasicTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
 {
-  
-  
-  
+  // if the texture hasn't been initialized yet, or something important
+  // changed, we need to recreate our backing surface and force the
+  // client to paint everything
   if (mTextureState != Valid)
       aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
 }
@@ -837,10 +837,10 @@ BasicTextureImage::EndUpdate()
 {
     NS_ASSERTION(!!mUpdateSurface, "EndUpdate() without BeginUpdate()?");
 
-    
+    // FIXME: this is the slow boat.  Make me fast (with GLXPixmap?).
 
-    
-    
+    // Undo the device offset that BeginUpdate set; doesn't much matter for us here,
+    // but important if we ever do anything directly with the surface.
     mUpdateSurface->SetDeviceOffset(gfxPoint(0, 0));
 
     bool relative = FinishedSurfaceUpdate();
@@ -892,7 +892,7 @@ BasicTextureImage::FinishedSurfaceUpload()
 }
 
 bool 
-BasicTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+BasicTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom /* = nsIntPoint(0, 0) */)
 {
     nsIntRect bounds = aRegion.GetBounds();
     nsIntRegion region;
@@ -960,7 +960,7 @@ TiledTextureImage::~TiledTextureImage()
 }
 
 bool 
-TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom )
+TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, const nsIntPoint& aFrom /* = nsIntPoint(0, 0) */)
 {
     nsIntRegion region;
 
@@ -980,15 +980,15 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
         int yPos = tileRect.y;
 
         nsIntRegion tileRegion;
-        tileRegion.And(region, tileRect); 
+        tileRegion.And(region, tileRect); // intersect with tile
 
         if (tileRegion.IsEmpty())
             continue;
 
         if (mGL->CanUploadSubTextures()) {
-          tileRegion.MoveBy(-xPos, -yPos); 
+          tileRegion.MoveBy(-xPos, -yPos); // translate into tile local space
         } else {
-          
+          // If sub-textures are unsupported, expand to tile boundaries
           tileRect.x = tileRect.y = 0;
           tileRegion = nsIntRegion(tileRect);
         }
@@ -997,14 +997,14 @@ TiledTextureImage::DirectUpdate(gfxASurface* aSurf, const nsIntRegion& aRegion, 
           DirectUpdate(aSurf, tileRegion, aFrom + nsIntPoint(xPos, yPos));
 
         if (mCurrentImage == mImages.Length() - 1) {
-            
-            
+            // We know we're done, but we still need to ensure that the callback
+            // gets called (e.g. to update the uploaded region).
             NextTile();
             break;
         }
-        
-        
-        
+        // Override a callback cancelling iteration if the texture wasn't valid.
+        // We need to force the update in that situation, or we may end up
+        // showing invalid/out-of-date texture data.
     } while (NextTile() || (mTextureState != Valid));
     mCurrentImage = oldCurrentImage;
 
@@ -1017,33 +1017,33 @@ void
 TiledTextureImage::GetUpdateRegion(nsIntRegion& aForRegion)
 {
     if (mTextureState != Valid) {
-        
-        
-        
+        // if the texture hasn't been initialized yet, or something important
+        // changed, we need to recreate our backing surface and force the
+        // client to paint everything
         aForRegion = nsIntRect(nsIntPoint(0, 0), mSize);
         return;
     }
 
     nsIntRegion newRegion;
 
-    
-    
+    // We need to query each texture with the region it will be drawing and
+    // set aForRegion to be the combination of all of these regions
     for (unsigned i = 0; i < mImages.Length(); i++) {
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
         nsIntRect imageRect = nsIntRect(nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize()));
 
         if (aForRegion.Intersects(imageRect)) {
-            
+            // Make a copy of the region
             nsIntRegion subRegion;
             subRegion.And(aForRegion, imageRect);
-            
+            // Translate it into tile-space
             subRegion.MoveBy(-xPos, -yPos);
-            
+            // Query region
             mImages[i]->GetUpdateRegion(subRegion);
-            
+            // Translate back
             subRegion.MoveBy(xPos, yPos);
-            
+            // Add to the accumulated region
             newRegion.Or(newRegion, subRegion);
         }
     }
@@ -1057,14 +1057,14 @@ TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
     NS_ASSERTION(!mInUpdate, "nested update");
     mInUpdate = true;
 
-    
-    
-    
+    // Note, we don't call GetUpdateRegion here as if the updated region is
+    // fully contained in a single tile, we get to avoid iterating through
+    // the tiles again (and a little copying).
     if (mTextureState != Valid)
     {
-        
-        
-        
+        // if the texture hasn't been initialized yet, or something important
+        // changed, we need to recreate our backing surface and force the
+        // client to paint everything
         aRegion = nsIntRect(nsIntPoint(0, 0), mSize);
     }
 
@@ -1075,33 +1075,33 @@ TiledTextureImage::BeginUpdate(nsIntRegion& aRegion)
         int yPos = (i / mColumns) * mTileSize;
         nsIntRegion imageRegion = nsIntRegion(nsIntRect(nsIntPoint(xPos,yPos), mImages[i]->GetSize()));
 
-        
+        // a single Image can handle this update request
         if (imageRegion.Contains(aRegion)) {
-            
+            // adjust for tile offset
             aRegion.MoveBy(-xPos, -yPos);
-            
+            // forward the actual call
             nsRefPtr<gfxASurface> surface = mImages[i]->BeginUpdate(aRegion);
-            
+            // caller expects container space
             aRegion.MoveBy(xPos, yPos);
-            
+            // Correct the device offset
             gfxPoint offset = surface->GetDeviceOffset();
             surface->SetDeviceOffset(gfxPoint(offset.x - xPos,
                                               offset.y - yPos));
-            
+            // we don't have a temp surface
             mUpdateSurface = nsnull;
-            
+            // remember which image to EndUpdate
             mCurrentImage = i;
             return surface.get();
         }
     }
 
-    
-    
+    // Get the real updated region, taking into account the capabilities of
+    // each TextureImage tile
     GetUpdateRegion(aRegion);
     mUpdateRegion = aRegion;
     bounds = aRegion.GetBounds();
 
-    
+    // update covers multiple Images - create a temp surface to paint in
     gfxASurface::gfxImageFormat format =
         (GetContentType() == gfxASurface::CONTENT_COLOR) ?
         gfxASurface::ImageFormatRGB24 : gfxASurface::ImageFormatARGB32;
@@ -1116,7 +1116,7 @@ void
 TiledTextureImage::EndUpdate()
 {
     NS_ASSERTION(mInUpdate, "EndUpdate not in update");
-    if (!mUpdateSurface) { 
+    if (!mUpdateSurface) { // update was to a single TextureImage
         mImages[mCurrentImage]->EndUpdate();
         mInUpdate = false;
         mTextureState = Valid;
@@ -1124,7 +1124,7 @@ TiledTextureImage::EndUpdate()
         return;
     }
 
-    
+    // upload tiles from temp surface
     for (unsigned i = 0; i < mImages.Length(); i++) {
         int xPos = (i % mColumns) * mTileSize;
         int yPos = (i / mColumns) * mTileSize;
@@ -1134,8 +1134,8 @@ TiledTextureImage::EndUpdate()
         subregion.And(mUpdateRegion, imageRect);
         if (subregion.IsEmpty())
             continue;
-        subregion.MoveBy(-xPos, -yPos); 
-        
+        subregion.MoveBy(-xPos, -yPos); // Tile-local space
+        // copy tile from temp surface
         gfxASurface* surf = mImages[i]->BeginUpdate(subregion);
         nsRefPtr<gfxContext> ctx = new gfxContext(surf);
         gfxUtils::ClipToRegion(ctx, subregion);
@@ -1199,73 +1199,73 @@ TiledTextureImage::ApplyFilter()
    mGL->ApplyFilterToBoundTexture(mFilter);
 }
 
-
-
-
-
-
-
-
+/*
+ * Resize, trying to reuse tiles. The reuse strategy is to decide on reuse per
+ * column. A tile on a column is reused if it hasn't changed size, otherwise it
+ * is discarded/replaced. Extra tiles on a column are pruned after iterating
+ * each column, and extra rows are pruned after iteration over the entire image
+ * finishes.
+ */
 void TiledTextureImage::Resize(const nsIntSize& aSize)
 {
     if (mSize == aSize && mTextureState != Created) {
         return;
     }
 
-    
+    // calculate rows and columns, rounding up
     unsigned int columns = (aSize.width  + mTileSize - 1) / mTileSize;
     unsigned int rows = (aSize.height + mTileSize - 1) / mTileSize;
 
-    
+    // Iterate over old tile-store and insert/remove tiles as necessary
     int row;
     unsigned int i = 0;
     for (row = 0; row < (int)rows; row++) {
-        
-        
+        // If we've gone beyond how many rows there were before, set mColumns to
+        // zero so that we only create new tiles.
         if (row >= (int)mRows)
             mColumns = 0;
 
-        
-        
-        
-        
-        
+        // Similarly, if we're on the last row of old tiles and the height has
+        // changed, discard all tiles in that row.
+        // This will cause the pruning of columns not to work, but we don't need
+        // to worry about that, as no more tiles will be reused past this point
+        // anyway.
         if ((row == (int)mRows - 1) && (aSize.height != mSize.height))
             mColumns = 0;
 
         int col;
         for (col = 0; col < (int)columns; col++) {
-            nsIntSize size( 
+            nsIntSize size( // use tilesize first, then the remainder
                     (col+1) * mTileSize > (unsigned int)aSize.width  ? aSize.width  % mTileSize : mTileSize,
                     (row+1) * mTileSize > (unsigned int)aSize.height ? aSize.height % mTileSize : mTileSize);
 
             bool replace = false;
 
-            
+            // Check if we can re-use old tiles.
             if (col < (int)mColumns) {
-                
-                
+                // Reuse an existing tile. If the tile is an end-tile and the
+                // width differs, replace it instead.
                 if (mSize.width != aSize.width) {
                     if (col == (int)mColumns - 1) {
-                        
-                        
+                        // Tile at the end of the old column, replace it with
+                        // a new one.
                         replace = true;
                     } else if (col == (int)columns - 1) {
-                        
+                        // Tile at the end of the new column, create a new one.
                     } else {
-                        
-                        
+                        // Before the last column on both the old and new sizes,
+                        // reuse existing tile.
                         i++;
                         continue;
                     }
                 } else {
-                    
+                    // Width hasn't changed, reuse existing tile.
                     i++;
                     continue;
                 }
             }
 
-            
+            // Create a new tile.
             nsRefPtr<TextureImage> teximg =
                     mGL->TileGenFunc(size, mContentType, mUseNearestFilter);
             if (replace)
@@ -1275,7 +1275,7 @@ void TiledTextureImage::Resize(const nsIntSize& aSize)
             i++;
         }
 
-        
+        // Prune any unused tiles on the end of the column.
         if (row < (int)mRows) {
             for (col = (int)mColumns - col; col > 0; col--) {
                 mImages.RemoveElementAt(i);
@@ -1283,12 +1283,12 @@ void TiledTextureImage::Resize(const nsIntSize& aSize)
         }
     }
 
-    
+    // Prune any unused tiles at the end of the store.
     unsigned int length = mImages.Length();
     for (; i < length; i++)
       mImages.RemoveElementAt(mImages.Length()-1);
 
-    
+    // Reset tile-store properties.
     mRows = rows;
     mColumns = columns;
     mSize = aSize;
@@ -1438,7 +1438,7 @@ GLContext::CreateRenderbuffersForOffscreen(const GLContext::GLFormats& aFormats,
         RenderbufferStorageBySamples(this, aFormats.samples, aFormats.rbColor, aSize);
     }
 
-    
+    // If depthStencil, disallow depth, stencil
     MOZ_ASSERT(!aFormats.depthStencil || (!aFormats.depth && !aFormats.stencil));
 
     if (aFormats.depthStencil) {
@@ -1502,7 +1502,7 @@ GLContext::AssembleOffscreenFBOs(const GLuint colorMSRB,
                                  colorMSRB);
     } else {
         drawFBO = readFBO;
-        
+        // drawFBO==readFBO is already bound from the 'if (texture)' block.
     }
 
     if (depthRB) {
@@ -1519,7 +1519,7 @@ GLContext::AssembleOffscreenFBOs(const GLuint colorMSRB,
                                  stencilRB);
     }
 
-    
+    // We should be all resized.  Check for framebuffer completeness.
     GLenum status;
     bool isComplete = true;
 
@@ -1552,7 +1552,7 @@ GLContext::AssembleOffscreenFBOs(const GLuint colorMSRB,
 bool
 GLContext::ResizeOffscreenFBOs(const ContextFormat& aCF, const gfxIntSize& aSize, const bool aNeedsReadBuffer)
 {
-    
+    // Early out for when we're rendering directly to the context's 'screen'.
     if (!aNeedsReadBuffer && !aCF.samples)
         return true;
 
@@ -1584,12 +1584,12 @@ GLContext::ResizeOffscreenFBOs(const ContextFormat& aCF, const gfxIntSize& aSize
         return false;
     }
 
-    
-    
+    // Success, so switch everything out.
+    // Store current user FBO bindings.
     GLuint boundDrawFBO = GetUserBoundDrawFBO();
     GLuint boundReadFBO = GetUserBoundReadFBO();
 
-    
+    // Replace with the new hotness
     std::swap(mOffscreenDrawFBO, drawFBO);
     std::swap(mOffscreenReadFBO, readFBO);
     std::swap(mOffscreenColorRB, colorMSRB);
@@ -1597,7 +1597,7 @@ GLContext::ResizeOffscreenFBOs(const ContextFormat& aCF, const gfxIntSize& aSize
     std::swap(mOffscreenStencilRB, stencilRB);
     std::swap(mOffscreenTexture, texture);
 
-    
+    // Delete the old and busted
     fDeleteFramebuffers(1, &drawFBO);
     fDeleteFramebuffers(1, &readFBO);
     fDeleteRenderbuffers(1, &colorMSRB);
@@ -1605,14 +1605,14 @@ GLContext::ResizeOffscreenFBOs(const ContextFormat& aCF, const gfxIntSize& aSize
     fDeleteRenderbuffers(1, &stencilRB);
     fDeleteTextures(1, &texture);
 
-    
+    // Rebind user FBOs, in case anything changed internally.
     BindUserDrawFBO(boundDrawFBO);
     BindUserReadFBO(boundReadFBO);
 
-    
+    // Newly-created buffers are...unlikely to match.
     ForceDirtyFBOs();
 
-    
+    // Finish up.
     mOffscreenSize = aSize;
     mOffscreenActualSize = aSize;
     mActualFormat = cf;
@@ -1648,14 +1648,14 @@ GLContext::DeleteOffscreenFBOs()
 void
 GLContext::ClearSafely()
 {
-    
-    
-    
-    
-    
-    
-    
-    
+    // bug 659349 --- we must be very careful here: clearing a GL framebuffer is nontrivial, relies on a lot of state,
+    // and in the case of the backbuffer of a WebGL context, state is exposed to scripts.
+    //
+    // The code here is taken from WebGLContext::ForceClearFramebufferWithDefaultValues, but I didn't find a good way of
+    // sharing code with it. WebGL's code is somewhat performance-critical as it is typically called on every frame, so
+    // WebGL keeps track of GL state to avoid having to query it everytime, and also tries to only do work for actually
+    // present buffers (e.g. stencil buffer). Doing that here seems like premature optimization,
+    // as ClearSafely() is called only when e.g. a canvas is resized, not on every animation frame.
 
     realGLboolean scissorTestEnabled;
     realGLboolean ditherEnabled;
@@ -1666,7 +1666,7 @@ GLContext::ClearSafely()
     GLfloat depthClearValue;
     GLint stencilClearValue;
 
-    
+    // save current GL state
     fGetBooleanv(LOCAL_GL_SCISSOR_TEST, &scissorTestEnabled);
     fGetBooleanv(LOCAL_GL_DITHER, &ditherEnabled);
     fGetBooleanv(LOCAL_GL_COLOR_WRITEMASK, colorWriteMask);
@@ -1677,7 +1677,7 @@ GLContext::ClearSafely()
     fGetFloatv(LOCAL_GL_DEPTH_CLEAR_VALUE, &depthClearValue);
     fGetIntegerv(LOCAL_GL_STENCIL_CLEAR_VALUE, &stencilClearValue);
 
-    
+    // prepare GL state for clearing
     fDisable(LOCAL_GL_SCISSOR_TEST);
     fDisable(LOCAL_GL_DITHER);
     PushViewportRect(nsIntRect(0, 0, mOffscreenSize.width, mOffscreenSize.height));
@@ -1691,12 +1691,12 @@ GLContext::ClearSafely()
     fStencilMask(0xffffffff);
     fClearStencil(0);
 
-    
+    // do clear
     fClear(LOCAL_GL_COLOR_BUFFER_BIT |
            LOCAL_GL_DEPTH_BUFFER_BIT |
            LOCAL_GL_STENCIL_BUFFER_BIT);
 
-    
+    // restore GL state after clearing
     fColorMask(colorWriteMask[0],
                colorWriteMask[1],
                colorWriteMask[2],
@@ -1748,13 +1748,16 @@ GLContext::MarkDestroyed()
     if (IsDestroyed())
         return;
 
-    MakeCurrent();
-    DeleteOffscreenFBOs();
+    if (MakeCurrent()) {
+        DeleteOffscreenFBOs();
 
-    fDeleteProgram(mBlitProgram);
-    mBlitProgram = 0;
-    fDeleteFramebuffers(1, &mBlitFramebuffer);
-    mBlitFramebuffer = 0;
+        fDeleteProgram(mBlitProgram);
+        mBlitProgram = 0;
+        fDeleteFramebuffers(1, &mBlitFramebuffer);
+        mBlitFramebuffer = 0;
+    } else {
+        NS_WARNING("MakeCurrent() failed during MarkDestroyed! Skipping GL object teardown.");
+    }
 
     mSymbols.Zero();
 }
@@ -1943,7 +1946,7 @@ GLContext::ReadTextureImage(GLuint aTexture,
     }
 
  cleanup:
-    
+    // note that deleting 0 has no effect in any of these calls
     fDeleteRenderbuffers(1, &rb);
     fDeleteFramebuffers(1, &fb);
     fDeleteShader(vs);
@@ -1967,8 +1970,8 @@ GetOptimalReadFormats(GLContext* gl, GLenum& format, GLenum& type) {
           has_BGRA_UByte = true;
         } else if (gl->IsExtensionSupported(gl::GLContext::EXT_read_format_bgra) ||
                    gl->IsExtensionSupported(gl::GLContext::IMG_read_format)) {
-            
-            
+            // Note that these extensions are not required to query this value.
+            // However, we should never get back BGRA unless one of these is supported.
             GLint auxFormat = 0;
             GLint auxType = 0;
 
@@ -1982,7 +1985,7 @@ GetOptimalReadFormats(GLContext* gl, GLenum& format, GLenum& type) {
         format = has_BGRA_UByte ? LOCAL_GL_BGRA : LOCAL_GL_RGBA;
         type = LOCAL_GL_UNSIGNED_BYTE;
     } else {
-        
+        // defaults for desktop
         format = LOCAL_GL_BGRA;
         type = LOCAL_GL_UNSIGNED_INT_8_8_8_8_REV;
     }
@@ -2025,9 +2028,9 @@ GLContext::ReadPixelsIntoImageSurface(GLint aX, GLint aY,
                 format, datatype,
                 aDest->Data());
 
-    
+    // Output should be in BGRA, so swap if RGBA
     if (format == LOCAL_GL_RGBA) {
-        
+        // swap B and R bytes
         for (int j = 0; j < aHeight; ++j) {
             PRUint32 *row = (PRUint32*) (aDest->Data() + aDest->Stride() * j);
             for (int i = 0; i < aWidth; ++i) {
@@ -2051,8 +2054,8 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     if (aSrcRect.IsEmpty() || aDstRect.IsEmpty())
         return;
 
-    
-    
+    // only save/restore this stuff on Qualcomm Adreno, to work
+    // around an apparent bug
     int savedFb = 0;
     if (mWorkAroundDriverBugs &&
         mVendor == VendorQualcomm)
@@ -2063,26 +2066,26 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     fDisable(LOCAL_GL_SCISSOR_TEST);
     fDisable(LOCAL_GL_BLEND);
 
-    
+    // 2.0 means scale up by two
     float blitScaleX = float(aDstRect.width) / float(aSrcRect.width);
     float blitScaleY = float(aDstRect.height) / float(aSrcRect.height);
 
-    
+    // We start iterating over all destination tiles
     aDst->BeginTileIteration();
     do {
-        
+        // calculate portion of the tile that is going to be painted to
         nsIntRect dstSubRect;
         nsIntRect dstTextureRect = aDst->GetTileRect();
         dstSubRect.IntersectRect(aDstRect, dstTextureRect);
 
-        
+        // this tile is not part of the destination rectangle aDstRect
         if (dstSubRect.IsEmpty())
             continue;
 
-        
+        // (*) transform the rect of this tile into the rectangle defined by aSrcRect...
         nsIntRect dstInSrcRect(dstSubRect);
         dstInSrcRect.MoveBy(-aDstRect.TopLeft());
-        
+        // ...which might be of different size, hence scale accordingly
         dstInSrcRect.ScaleRoundOut(1.0f / blitScaleX, 1.0f / blitScaleY);
         dstInSrcRect.MoveBy(aSrcRect.TopLeft());
 
@@ -2090,36 +2093,36 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
         UseBlitProgram();
 
         aSrc->BeginTileIteration();
-        
+        // now iterate over all tiles in the source Image...
         do {
-            
+            // calculate portion of the source tile that is in the source rect
             nsIntRect srcSubRect;
             nsIntRect srcTextureRect = aSrc->GetTileRect();
             srcSubRect.IntersectRect(aSrcRect, srcTextureRect);
 
-            
+            // this tile is not part of the source rect
             if (srcSubRect.IsEmpty()) {
                 continue;
             }
-            
+            // calculate intersection of source rect with destination rect
             srcSubRect.IntersectRect(srcSubRect, dstInSrcRect);
-            
+            // this tile does not overlap the current destination tile
             if (srcSubRect.IsEmpty()) {
                 continue;
             }
-            
-            
-            
-            
-            
-            
-            
+            // We now have the intersection of 
+            //     the current source tile 
+            // and the desired source rectangle
+            // and the destination tile
+            // and the desired destination rectange
+            // in destination space.
+            // We need to transform this back into destination space, inverting the transform from (*)
             nsIntRect srcSubInDstRect(srcSubRect);
             srcSubInDstRect.MoveBy(-aSrcRect.TopLeft());
             srcSubInDstRect.ScaleRoundOut(blitScaleX, blitScaleY);
             srcSubInDstRect.MoveBy(aDstRect.TopLeft());
 
-            
+            // we transform these rectangles to be relative to the current src and dst tiles, respectively
             nsIntSize srcSize = srcTextureRect.Size();
             nsIntSize dstSize = dstTextureRect.Size();
             srcSubRect.MoveBy(-srcTextureRect.x, -srcTextureRect.y);
@@ -2140,9 +2143,9 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
             }
 
             if (aSrc->GetWrapMode() == LOCAL_GL_REPEAT) {
-                rects.addRect(
+                rects.addRect(/* dest rectangle */
                         dx0, dy0, dx1, dy1,
-                        
+                        /* tex coords */
                         srcSubRect.x / float(realTexSize.width),
                         srcSubRect.y / float(realTexSize.height),
                         srcSubRect.XMost() / float(realTexSize.width),
@@ -2150,8 +2153,8 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
             } else {
                 DecomposeIntoNoRepeatTriangles(srcSubRect, realTexSize, rects);
 
-                
-                
+                // now put the coords into the d[xy]0 .. d[xy]1 coordinate space
+                // from the 0..1 that it comes out of decompose
                 RectTriangles::vert_coord* v = (RectTriangles::vert_coord*)rects.vertexPointer();
 
                 for (unsigned int i = 0; i < rects.elements(); ++i) {
@@ -2182,15 +2185,15 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     fVertexAttribPointer(0, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, NULL);
     fVertexAttribPointer(1, 2, LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0, NULL);
 
-    
+    // unbind the previous texture from the framebuffer
     SetBlitFramebufferForDestTexture(0);
 
-    
-    
-    
-    
-    
-    
+    // then put back the previous framebuffer, and don't
+    // enable stencil if it wasn't enabled on entry to work
+    // around Adreno 200 bug that causes us to crash if
+    // we enable scissor test while the current FBO is invalid
+    // (which it will be, once we assign texture 0 to the color
+    // attachment)
     if (mWorkAroundDriverBugs &&
         mVendor == VendorQualcomm) {
         fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, savedFb);
@@ -2255,7 +2258,7 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
          imageSurface->Format() != gfxASurface::ImageFormatRGB24 &&
          imageSurface->Format() != gfxASurface::ImageFormatRGB16_565 &&
          imageSurface->Format() != gfxASurface::ImageFormatA8)) {
-        
+        // We can't get suitable pixel data for the surface, make a copy
         nsIntRect bounds = aDstRegion.GetBounds();
         imageSurface = 
           new gfxImageSurface(gfxIntSize(bounds.width, bounds.height), 
@@ -2270,8 +2273,8 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
         NS_ASSERTION(!aPixelBuffer,
                      "Must be using an image compatible surface with pixel buffers!");
     } else {
-        
-        
+        // If a pixel buffer is bound the data pointer parameter is relative
+        // to the start of the data block.
         if (!aPixelBuffer) {
               data = imageSurface->Data();
         }
@@ -2291,8 +2294,8 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
             shader = BGRALayerProgramType;
             break;
         case gfxASurface::ImageFormatRGB24:
-            
-            
+            // Treat RGB24 surfaces as RGBA32 except for the shader
+            // program used.
             format = LOCAL_GL_RGBA;
             type = LOCAL_GL_UNSIGNED_BYTE;
             shader = BGRXLayerProgramType;
@@ -2305,7 +2308,7 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
         case gfxASurface::ImageFormatA8:
             format = LOCAL_GL_LUMINANCE;
             type = LOCAL_GL_UNSIGNED_BYTE;
-            
+            // We don't have a specific luminance shader
             shader = ShaderProgramType(0);
             break;
         default:
@@ -2322,13 +2325,13 @@ GLContext::UploadSurfaceToTexture(gfxASurface *aSurface,
     nsIntRegionRectIterator iter(paintRegion);
     const nsIntRect *iterRect;
 
-    
+    // Top left point of the region's bounding rectangle.
     nsIntPoint topLeft = paintRegion.GetBounds().TopLeft();
 
     while ((iterRect = iter.Next())) {
-        
-        
-        
+        // The inital data pointer is at the top left point of the region's
+        // bounding rectangle. We need to find the offset of this rect
+        // within the region and adjust the data pointer accordingly.
         unsigned char *rectData = 
             data + DataOffset(imageSurface, iterRect->TopLeft() - topLeft);
 
@@ -2395,15 +2398,15 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
             || !IsPowerOfTwo(width)
             || !IsPowerOfTwo(height))) {
 
-            
-            
+            // Pad out texture width and height to the next power of two
+            // as we don't support/want non power of two texture uploads
             GLsizei paddedWidth = NextPowerOfTwo(width);
             GLsizei paddedHeight = NextPowerOfTwo(height);
 
             GLvoid* paddedPixels = new unsigned char[paddedWidth * paddedHeight * pixelsize];
 
-            
-            
+            // Pad out texture data to be in a POT sized buffer for uploading to
+            // a POT sized texture
             CopyAndPadTextureData(pixels, paddedPixels, width, height,
                                   paddedWidth, paddedHeight, stride, pixelsize);
 
@@ -2440,8 +2443,8 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
                         pixels);
             fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
         } else {
-            
-            
+            // Use GLES-specific workarounds for GL_UNPACK_ROW_LENGTH; these are
+            // implemented in TexSubImage2D.
             fTexImage2D(target,
                         border,
                         internalformat,
@@ -2464,7 +2467,7 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
                           pixels);
         }
     } else {
-        
+        // desktop GL (non-ES) path
 
         fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
                     NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
@@ -2518,7 +2521,7 @@ GLContext::TexSubImage2D(GLenum target, GLint level,
                                               pixelsize, format, type, pixels);
         }
     } else {
-        
+        // desktop GL (non-ES) path
         fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
                     NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
                             GetAddressAlignment((ptrdiff_t)stride)));
@@ -2549,11 +2552,11 @@ GLContext::TexSubImage2DWithUnpackSubimageGLES(GLenum target, GLint level,
     fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT,
                  NS_MIN(GetAddressAlignment((ptrdiff_t)pixels),
                         GetAddressAlignment((ptrdiff_t)stride)));
-    
-    
-    
-    
-    
+    // When using GL_UNPACK_ROW_LENGTH, we need to work around a Tegra
+    // driver crash where the driver apparently tries to read
+    // (stride - width * pixelsize) bytes past the end of the last input
+    // row. We only upload the first height-1 rows using GL_UNPACK_ROW_LENGTH,
+    // and then we upload the final row separately. See bug 697990.
     int rowLength = stride/pixelsize;
     fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, rowLength);
     fTexSubImage2D(target,
@@ -2586,10 +2589,10 @@ GLContext::TexSubImage2DWithoutUnpackSubimage(GLenum target, GLint level,
                                               GLenum format, GLenum type,
                                               const GLvoid* pixels)
 {
-    
-    
-    
-    
+    // Not using the whole row of texture data and GL_UNPACK_ROW_LENGTH
+    // isn't supported. We make a copy of the texture data we're using,
+    // such that we're using the whole row of data in the copy. This turns
+    // out to be more efficient than uploading row-by-row; see bug 698197.
     unsigned char *newPixels = new unsigned char[width*height*pixelsize];
     unsigned char *rowDest = newPixels;
     const unsigned char *rowSource = (const unsigned char *)pixels;
@@ -2619,7 +2622,7 @@ GLContext::TexSubImage2DWithoutUnpackSubimage(GLenum target, GLint level,
 void
 GLContext::RectTriangles::addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
                                   GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1,
-                                  bool flip_y )
+                                  bool flip_y /* = false */)
 {
     vert_coord v;
     v.x = x0; v.y = y0;
@@ -2672,10 +2675,10 @@ GLContext::RectTriangles::addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1
 static GLfloat
 WrapTexCoord(GLfloat v)
 {
-    
-    
-    
-    
+    // fmodf gives negative results for negative numbers;
+    // that is, fmodf(0.75, 1.0) == 0.75, but
+    // fmodf(-0.75, 1.0) == -0.75.  For the negative case,
+    // the result we need is 0.25, so we add 1.0f.
     if (v < 0.0f) {
         return 1.0f + fmodf(v, 1.0f);
     }
@@ -2687,16 +2690,16 @@ void
 GLContext::DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                                           const nsIntSize& aTexSize,
                                           RectTriangles& aRects,
-                                          bool aFlipY )
+                                          bool aFlipY /* = false */)
 {
-    
+    // normalize this
     nsIntRect tcr(aTexCoordRect);
     while (tcr.x >= aTexSize.width)
         tcr.x -= aTexSize.width;
     while (tcr.y >= aTexSize.height)
         tcr.y -= aTexSize.height;
 
-    
+    // Compute top left and bottom right tex coordinates
     GLfloat tl[2] =
         { GLfloat(tcr.x) / GLfloat(aTexSize.width),
           GLfloat(tcr.y) / GLfloat(aTexSize.height) };
@@ -2704,9 +2707,9 @@ GLContext::DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
         { GLfloat(tcr.XMost()) / GLfloat(aTexSize.width),
           GLfloat(tcr.YMost()) / GLfloat(aTexSize.height) };
 
-    
-    
-    
+    // then check if we wrap in either the x or y axis; if we do,
+    // then also use fmod to figure out the "true" non-wrapping
+    // texture coordinates.
 
     bool xwrap = false, ywrap = false;
     if (tcr.x < 0 || tcr.x > aTexSize.width ||
@@ -2731,19 +2734,19 @@ GLContext::DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
                  br[1] >= 0.0f && br[1] <= 1.0f,
                  "Somehow generated invalid texture coordinates");
 
-    
-    
-    
-    
-    
+    // If xwrap is false, the texture will be sampled from tl[0]
+    // .. br[0].  If xwrap is true, then it will be split into tl[0]
+    // .. 1.0, and 0.0 .. br[0].  Same for the Y axis.  The
+    // destination rectangle is also split appropriately, according
+    // to the calculated xmid/ymid values.
 
-    
-    
-    
-    
-    
-    
-    
+    // There isn't a 1:1 mapping between tex coords and destination coords;
+    // when computing midpoints, we have to take that into account.  We
+    // need to map the texture coords, which are (in the wrap case):
+    // |tl->1| and |0->br| to the |0->1| range of the vertex coords.  So
+    // we have the length (1-tl)+(br) that needs to map into 0->1.
+    // These are only valid if there is wrap involved, they won't be used
+    // otherwise.
     GLfloat xlen = (1.0f - tl[0]) + br[0];
     GLfloat ylen = (1.0f - tl[1]) + br[1];
 
@@ -2905,10 +2908,10 @@ GLContext::SetBlitFramebufferForDestTexture(GLuint aTexture)
         nsCAutoString msg;
         msg.Append("Framebuffer not complete -- error 0x");
         msg.AppendInt(result, 16);
-        
-        
-        
-        
+        // Note: if you are hitting this, it is likely that
+        // your texture is not texture complete -- that is, you
+        // allocated a texture name, but didn't actually define its
+        // size via a call to TexImage2D.
         NS_RUNTIMEABORT(msg.get());
     }
 }
@@ -2964,7 +2967,7 @@ RemoveNamesFromArray(GLContext *aOrigin, GLsizei aCount, GLuint *aNames, nsTArra
 {
     for (GLsizei j = 0; j < aCount; ++j) {
         GLuint name = aNames[j];
-        
+        // name 0 can be ignored
         if (name == 0)
             continue;
 
@@ -3072,7 +3075,7 @@ GLContext::ReportOutstandingNames()
     ReportArrayContents(mTrackedRenderbuffers);
 }
 
-#endif 
+#endif /* DEBUG */
 
-} 
-} 
+} /* namespace gl */
+} /* namespace mozilla */

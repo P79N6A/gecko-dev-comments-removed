@@ -130,6 +130,7 @@ protected:
   PRInt32 mSubRequestsLowSecurity;
   PRInt32 mSubRequestsBrokenSecurity;
   PRInt32 mSubRequestsNoSecurity;
+  bool mRestoreSubrequests;
 #ifdef DEBUG
   
   PRInt32 mOnStateLocationChangeReentranceDetection;

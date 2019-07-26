@@ -65,9 +65,25 @@ class nsHTMLImageMapAccessible;
 class nsHTMLLIAccessible;
 struct nsRoleMapEntry;
 class Relation;
+
 namespace mozilla {
 namespace a11y {
 class TableAccessible;
+
+
+
+
+enum ENameValueFlag {
+  
+
+
+
+
+
+ eNameOK,
+ eNameFromTooltip 
+};
+
 }
 }
 class nsTextAccessible;
@@ -139,6 +155,11 @@ public:
 
 
   virtual void Value(nsString& aValue);
+
+  
+
+
+  virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
 
   
 

@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Corporation code.
+ *
+ * The Initial Developer of the Original Code is Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Bas Schouten <bschouten@mozilla.org>
+ *   Vladimir Vukicevic <vladimir@pobox.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "gfxSharedImageSurface.h"
 
@@ -54,10 +54,10 @@ using namespace mozilla::gl;
 namespace mozilla {
 namespace layers {
 
-
-
-
-
+/**
+ * This is an event used to unref a GLContext on the main thread and
+ * optionally delete a texture associated with that context.
+ */
 class TextureDeleter : public nsRunnable {
 public:
   TextureDeleter(already_AddRefed<GLContext> aContext,
@@ -71,7 +71,7 @@ public:
     mContext->MakeCurrent();
     mContext->fDeleteTextures(1, &mTexture);
 
-    
+    // Ensure context is released on the main thread
     mContext = nsnull;
     return NS_OK;
   }
@@ -248,8 +248,8 @@ ImageLayerOGL::RenderLayer(int,
       static_cast<PlanarYCbCrOGLBackendData*>(yuvImage->GetBackendData(LayerManager::LAYERS_OPENGL));
 
     if (data && data->mTextures->GetGLContext() != gl()) {
-      
-      
+      // If these textures were allocated by another layer manager,
+      // clear them out and re-allocate below.
       data = nsnull;
       yuvImage->SetBackendData(LayerManager::LAYERS_OPENGL, nsnull);
     }
@@ -260,21 +260,21 @@ ImageLayerOGL::RenderLayer(int,
     }
 
     if (!data || data->mTextures->GetGLContext() != gl()) {
-      
+      // XXX - Can this ever happen? If so I need to fix this!
       return;
     }
 
     gl()->MakeCurrent();
-    gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
-    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, data->mTextures[0].GetTextureID());
+    gl()->fActiveTexture(LOCAL_GL_TEXTURE2);
+    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, data->mTextures[2].GetTextureID());
     gl()->ApplyFilterToBoundTexture(mFilter);
     gl()->fActiveTexture(LOCAL_GL_TEXTURE1);
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, data->mTextures[1].GetTextureID());
     gl()->ApplyFilterToBoundTexture(mFilter);
-    gl()->fActiveTexture(LOCAL_GL_TEXTURE2);
-    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, data->mTextures[2].GetTextureID());
+    gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, data->mTextures[0].GetTextureID());
     gl()->ApplyFilterToBoundTexture(mFilter);
-    
+
     YCbCrTextureLayerProgram *program = mOGLManager->GetYCbCrLayerProgram();
 
     program->Activate();
@@ -291,8 +291,8 @@ ImageLayerOGL::RenderLayer(int,
                                                 nsIntSize(yuvImage->mData.mYSize.width,
                                                           yuvImage->mData.mYSize.height));
 
-    
-    
+    // We shouldn't need to do this, but do it anyway just in case
+    // someone else forgets.
     gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
   } else if (image->GetFormat() == Image::CAIRO_SURFACE) {
     CairoImage *cairoImage =
@@ -306,8 +306,8 @@ ImageLayerOGL::RenderLayer(int,
       static_cast<CairoOGLBackendData*>(cairoImage->GetBackendData(LayerManager::LAYERS_OPENGL));
 
     if (data && data->mTexture.GetGLContext() != gl()) {
-      
-      
+      // If this texture was allocated by another layer manager, clear
+      // it out and re-allocate below.
       data = nsnull;
       cairoImage->SetBackendData(LayerManager::LAYERS_OPENGL, nsnull);
     }
@@ -318,7 +318,7 @@ ImageLayerOGL::RenderLayer(int,
     }
 
     if (!data || data->mTexture.GetGLContext() != gl()) {
-      
+      // XXX - Can this ever happen? If so I need to fix this!
       return;
     }
 
@@ -347,9 +347,9 @@ ImageLayerOGL::RenderLayer(int,
     gl()->ApplyFilterToBoundTexture(mFilter);
 
     program->Activate();
-    
-    
-    
+    // The following uniform controls the scaling of the vertex coords.
+    // Instead of setting the scale here and using coords in the range [0,1], we
+    // set an identity transform and use pixel coordinates below
     program->SetLayerQuadRect(nsIntRect(0, 0, 1, 1));
     program->SetLayerTransform(GetEffectiveTransform());
     program->SetLayerOpacity(GetEffectiveOpacity());
@@ -403,9 +403,9 @@ ImageLayerOGL::RenderLayer(int,
        static_cast<MacIOSurfaceImage*>(image);
 
      if (!mOGLManager->GetThebesLayerCallback()) {
-       
-       
-       
+       // If its an empty transaction we still need to update
+       // the plugin IO Surface and make sure we grab the
+       // new image
        ioImage->Update(GetContainer());
        image = nsnull;
        autoLock.Refresh();
@@ -435,7 +435,7 @@ ImageLayerOGL::RenderLayer(int,
      
      program->Activate();
      if (program->GetTexCoordMultiplierUniformLocation() != -1) {
-       
+       // 2DRect case, get the multiplier right for a sampler2DRect
        float f[] = { float(ioImage->GetSize().width), float(ioImage->GetSize().height) };
        program->SetUniform(program->GetTexCoordMultiplierUniformLocation(),
                            2, f);
@@ -648,7 +648,7 @@ ShadowImageLayerOGL::Swap(const SharedImage& aNewFront,
           mTexImage->GetContentType() != surf->GetContentType()) {
         Init(aNewFront);
       }
-      
+      // XXX this is always just ridiculously slow
       nsIntRegion updateRegion(nsIntRect(0, 0, size.width, size.height));
       mTexImage->DirectUpdate(surf, updateRegion);
     } else {
@@ -734,8 +734,8 @@ ShadowImageLayerOGL::RenderLayer(int aPreviousFrameBuffer,
       do {
         TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
         colorProgram->SetLayerQuadRect(mTexImage->GetTileRect());
-        
-        
+        // We can't use BindAndDrawQuad because that always uploads the whole texture from 0.0f -> 1.0f
+        // in x and y. We use BindAndDrawQuadWithTextureRect to actually draw a subrect of the texture
         mOGLManager->BindAndDrawQuadWithTextureRect(colorProgram,
                                                     nsIntRect(0, 0, mTexImage->GetTileRect().width,
                                                                     mTexImage->GetTileRect().height),
@@ -777,5 +777,5 @@ ShadowImageLayerOGL::CleanupResources()
   mTexImage = nsnull;
 }
 
-} 
-} 
+} /* layers */
+} /* mozilla */

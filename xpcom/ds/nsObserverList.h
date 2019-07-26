@@ -91,6 +91,10 @@ public:
   
   void FillObserverArray(nsCOMArray<nsIObserver> &aArray);
 
+  
+  
+  void UnmarkGrayStrongObservers();
+
 private:
   nsTArray<ObserverRef> mObservers;
 };

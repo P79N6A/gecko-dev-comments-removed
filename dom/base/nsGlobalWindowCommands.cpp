@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications, Inc.
+ * Portions created by the Initial Developer are Copyright (C) 2003
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Kathleen Brade <brade@netscape.com>
+ *   Simon Fraser   <sfraser@netscape.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 
 #include "nsGlobalWindowCommands.h"
@@ -90,8 +90,8 @@ const char * const sLineNextString = "cmd_lineNext";
 const char * const sCharPreviousString = "cmd_charPrevious";
 const char * const sCharNextString = "cmd_charNext";
 
-
-
+// These are so the browser can use editor navigation key bindings
+// helps with accessibility (boolean pref accessibility.browsewithcaret)
 
 const char * const sSelectCharPreviousString = "cmd_selectCharPrevious";
 const char * const sSelectCharNextString = "cmd_selectCharNext";
@@ -120,7 +120,7 @@ const char * const sSelectBottomString = "cmd_selectBottom";
 #pragma mark -
 #endif
 
-
+// a base class for selection-related commands, for code sharing
 class nsSelectionCommandsBase : public nsIControllerCommand
 {
 public:
@@ -135,27 +135,27 @@ protected:
   static nsresult  GetPresShellFromWindow(nsPIDOMWindow *aWindow, nsIPresShell **aPresShell);
   static nsresult  GetSelectionControllerFromWindow(nsPIDOMWindow *aWindow, nsISelectionController **aSelCon);
 
-  
+  // no member variables, please, we're stateless!
 };
 
-
+// this class implements commands whose behavior depends on the 'browse with caret' setting
 class nsSelectMoveScrollCommand : public nsSelectionCommandsBase
 {
 public:
 
   NS_IMETHOD DoCommand(const char * aCommandName, nsISupports *aCommandContext);
 
-  
+  // no member variables, please, we're stateless!
 };
 
-
+// this class implements other selection commands
 class nsSelectCommand : public nsSelectionCommandsBase
 {
 public:
 
   NS_IMETHOD DoCommand(const char * aCommandName, nsISupports *aCommandContext);
 
-  
+  // no member variables, please, we're stateless!
 };
 
 #if 0
@@ -165,28 +165,28 @@ public:
 
 NS_IMPL_ISUPPORTS1(nsSelectionCommandsBase, nsIControllerCommand)
 
-
+/* boolean isCommandEnabled (in string aCommandName, in nsISupports aCommandContext); */
 NS_IMETHODIMP
 nsSelectionCommandsBase::IsCommandEnabled(const char * aCommandName,
                                       nsISupports *aCommandContext,
                                       bool *outCmdEnabled)
 {
-  
-  
+  // XXX this needs fixing. e.g. you can't scroll up if you're already at the top of
+  // the document.
   *outCmdEnabled = true;
   return NS_OK;
 }
 
-
+/* void getCommandStateParams (in string aCommandName, in nsICommandParams aParams, in nsISupports aCommandContext); */
 NS_IMETHODIMP
 nsSelectionCommandsBase::GetCommandStateParams(const char *aCommandName,
                                             nsICommandParams *aParams, nsISupports *aCommandContext)
 {
-  
+  // XXX we should probably return the enabled state
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* void doCommandParams (in string aCommandName, in nsICommandParams aParams, in nsISupports aCommandContext); */
 NS_IMETHODIMP
 nsSelectionCommandsBase::DoCommandParams(const char *aCommandName,
                                        nsICommandParams *aParams, nsISupports *aCommandContext)
@@ -194,7 +194,7 @@ nsSelectionCommandsBase::DoCommandParams(const char *aCommandName,
   return DoCommand(aCommandName, aCommandContext);
 }
 
-
+// protected methods
 
 nsresult
 nsSelectionCommandsBase::GetPresShellFromWindow(nsPIDOMWindow *aWindow, nsIPresShell **aPresShell)
@@ -266,9 +266,9 @@ nsSelectMoveScrollCommand::DoCommand(const char *aCommandName, nsISupports *aCom
   GetSelectionControllerFromWindow(piWindow, getter_AddRefs(selCont));
   NS_ENSURE_TRUE(selCont, NS_ERROR_NOT_INITIALIZED);       
 
-  
-  
-  
+  // We allow the caret to be moved with arrow keys on any window for which
+  // the caret is enabled. In particular, this includes caret-browsing mode
+  // in non-chrome documents.
   bool caretOn = false;
   selCont->GetCaretEnabled(&caretOn);
   if (!caretOn) {
@@ -290,7 +290,7 @@ nsSelectMoveScrollCommand::DoCommand(const char *aCommandName, nsISupports *aCom
     if (forward || !strcmp(aCommandName, browseCommands[i].reverse)) {
       if (caretOn && browseCommands[i].move &&
           NS_SUCCEEDED((selCont->*(browseCommands[i].move))(forward, false))) {
-        
+        // adjust the focus to the new caret position
         nsIFocusManager* fm = nsFocusManager::GetFocusManager();
         if (fm) {
           nsCOMPtr<nsIDOMElement> result;
@@ -321,8 +321,8 @@ nsSelectCommand::DoCommand(const char *aCommandName, nsISupports *aCommandContex
 
   nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
 
-  
-  
+  // These commands are so the browser can use caret navigation key bindings -
+  // Helps with accessibility - aaronl@netscape.com
   if (!nsCRT::strcmp(aCommandName, sSelectCharPreviousString))
     rv = selCont->CharacterMove(false, true);
   else if (!nsCRT::strcmp(aCommandName, sSelectCharNextString))
@@ -433,18 +433,18 @@ protected:
   
   static nsresult     GetContentViewerEditFromContext(nsISupports *aContext, nsIContentViewerEdit **aEditInterface);
   
-  
+  // no member variables, please, we're stateless!
 };
 
 
 NS_IMPL_ISUPPORTS1(nsSelectionCommand, nsIControllerCommand)
 
 
+/*---------------------------------------------------------------------------
 
+  nsSelectionCommand
 
-
-
-
+----------------------------------------------------------------------------*/
 
 NS_IMETHODIMP
 nsSelectionCommand::IsCommandEnabled(const char * aCommandName,
@@ -565,8 +565,8 @@ nsClipboardImageCommands::DoClipboardCommand(const char *aCommandName, nsIConten
     return aEdit->CopyImage(nsIContentViewerEdit::COPY_IMAGE_TEXT);
   if (!nsCRT::strcmp(sCopyImageContentsString, aCommandName))
     return aEdit->CopyImage(nsIContentViewerEdit::COPY_IMAGE_DATA);
-
-  PRInt32 copyFlags = nsIContentViewerEdit::COPY_IMAGE_ALL;
+  PRInt32 copyFlags = nsIContentViewerEdit::COPY_IMAGE_DATA | 
+                      nsIContentViewerEdit::COPY_IMAGE_HTML;
   if (aParams)
     aParams->GetLongValue("imageCopy", &copyFlags);
   return aEdit->CopyImage(copyFlags);
@@ -610,7 +610,7 @@ nsClipboardGetContentsCommand::DoClipboardCommand(const char *aCommandName, nsIC
 
   nsCAutoString mimeType("text/plain");
 
-  nsXPIDLCString format;    
+  nsXPIDLCString format;    // nsICommandParams needs to use nsACString
   if (NS_SUCCEEDED(aParams->GetCStringValue("format", getter_Copies(format))))
     mimeType.Assign(format);
   
@@ -644,17 +644,17 @@ protected:
   
   static nsresult     GetWebNavigationFromContext(nsISupports *aContext, nsIWebNavigation **aWebNavigation);
   
-  
+  // no member variables, please, we're stateless!
 };
 
-#if 0   
+#if 0   // Remove unless needed again, bug 204777
 class nsGoForwardCommand : public nsWebNavigationBaseCommand
 {
 protected:
 
   virtual nsresult    IsWebNavCommandEnabled(const char * aCommandName, nsIWebNavigation* aWebNavigation, bool *outCmdEnabled);
   virtual nsresult    DoWebNavCommand(const char *aCommandName, nsIWebNavigation* aWebNavigation);
-  
+  // no member variables, please, we're stateless!
 };
 
 class nsGoBackCommand : public nsWebNavigationBaseCommand
@@ -663,15 +663,15 @@ protected:
 
   virtual nsresult    IsWebNavCommandEnabled(const char * aCommandName, nsIWebNavigation* aWebNavigation, bool *outCmdEnabled);
   virtual nsresult    DoWebNavCommand(const char *aCommandName, nsIWebNavigation* aWebNavigation);
-  
+  // no member variables, please, we're stateless!
 };
 #endif
 
+/*---------------------------------------------------------------------------
 
-
-
-
-
+  nsWebNavigationCommands
+     no params
+----------------------------------------------------------------------------*/
 
 NS_IMPL_ISUPPORTS1(nsWebNavigationBaseCommand, nsIControllerCommand)
 
@@ -694,7 +694,7 @@ NS_IMETHODIMP
 nsWebNavigationBaseCommand::GetCommandStateParams(const char *aCommandName,
                                             nsICommandParams *aParams, nsISupports *aCommandContext)
 {
-  
+  // XXX we should probably return the enabled state
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -709,7 +709,7 @@ nsWebNavigationBaseCommand::DoCommand(const char *aCommandName,
   return DoWebNavCommand(aCommandName, webNav);
 }
 
-
+/* void doCommandParams (in string aCommandName, in nsICommandParams aParams, in nsISupports aCommandContext); */
 NS_IMETHODIMP
 nsWebNavigationBaseCommand::DoCommandParams(const char *aCommandName,
                                        nsICommandParams *aParams, nsISupports *aCommandContext)
@@ -729,7 +729,7 @@ nsWebNavigationBaseCommand::GetWebNavigationFromContext(nsISupports *aContext, n
 #pragma mark -
 #endif
 
-#if 0   
+#if 0   // Remove unless needed again, bug 204777
 nsresult
 nsGoForwardCommand::IsWebNavCommandEnabled(const char * aCommandName, nsIWebNavigation* aWebNavigation, bool *outCmdEnabled)
 {
@@ -755,14 +755,14 @@ nsGoBackCommand::DoWebNavCommand(const char *aCommandName, nsIWebNavigation* aWe
 }
 #endif
 
+/*---------------------------------------------------------------------------
 
+  nsClipboardDragDropHookCommand
+      params        value type   possible values
+      "addhook"     isupports    nsIClipboardDragDropHooks as nsISupports
+      "removehook"  isupports    nsIClipboardDragDropHooks as nsISupports
 
-
-
-
-
-
-
+----------------------------------------------------------------------------*/
 
 class nsClipboardDragDropHookCommand : public nsIControllerCommand
 {
@@ -772,7 +772,7 @@ public:
   NS_DECL_NSICONTROLLERCOMMAND
 
 protected:                                                                                   
-  
+  // no member variables, please, we're stateless!
 };
 
 
@@ -848,11 +848,11 @@ nsClipboardDragDropHookCommand::GetCommandStateParams(const char *aCommandName,
   return aParams->SetBooleanValue("state_enabled", true);
 }
 
+/*---------------------------------------------------------------------------
 
+  RegisterWindowCommands
 
-
-
-
+----------------------------------------------------------------------------*/
 
 #define NS_REGISTER_ONE_COMMAND(_cmdClass, _cmdName)                \
   {                                                                 \
@@ -879,16 +879,16 @@ nsClipboardDragDropHookCommand::GetCommandStateParams(const char *aCommandName,
   }
 
 
-
+// static
 nsresult
 nsWindowCommandRegistration::RegisterWindowCommands(
                                nsIControllerCommandTable *inCommandTable)
 {
   nsresult rv;
 
+  // XXX rework the macros to use a loop is possible, reducing code size
   
-  
-  
+  // this set of commands is affected by the 'browse with caret' setting
   NS_REGISTER_FIRST_COMMAND(nsSelectMoveScrollCommand, sScrollTopString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sScrollBottomString);
   NS_REGISTER_NEXT_COMMAND(nsSelectMoveScrollCommand, sScrollPageUpString);
@@ -935,7 +935,7 @@ nsWindowCommandRegistration::RegisterWindowCommands(
 
   NS_REGISTER_ONE_COMMAND(nsClipboardGetContentsCommand, "cmd_getContents");
 
-#if 0   
+#if 0   // Remove unless needed again, bug 204777
   NS_REGISTER_ONE_COMMAND(nsGoBackCommand, "cmd_browserBack");
   NS_REGISTER_ONE_COMMAND(nsGoForwardCommand, "cmd_browserForward");
 #endif

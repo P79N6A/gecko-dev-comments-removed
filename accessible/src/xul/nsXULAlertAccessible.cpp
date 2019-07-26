@@ -66,13 +66,13 @@ nsXULAlertAccessible::NativeState()
   return nsAccessible::NativeState() | states::ALERT;
 }
 
-NS_IMETHODIMP
-nsXULAlertAccessible::GetName(nsAString& aName)
+ENameValueFlag
+nsXULAlertAccessible::Name(nsString& aName)
 {
   
   
   aName.Truncate();
-  return NS_OK;
+  return eNameOK;
 }
 
 

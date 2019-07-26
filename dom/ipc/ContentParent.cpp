@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Content App.
+ *
+ * The Initial Developer of the Original Code is
+ *   The Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Frederic Plourde <frederic.plourde@collabora.co.uk>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "ContentParent.h"
 
@@ -69,6 +69,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsAppRunner.h"
 #include "IDBFactory.h"
+#include "IndexedDatabaseManager.h"
 #if defined(MOZ_SYDNEYAUDIO)
 #include "AudioParent.h"
 #endif
@@ -121,7 +122,7 @@ using namespace mozilla::ipc;
 using namespace mozilla::hal_sandbox;
 using namespace mozilla::net;
 using namespace mozilla::places;
-using mozilla::unused; 
+using mozilla::unused; // heh
 using base::KillProcess;
 using namespace mozilla::dom::sms;
 
@@ -165,7 +166,7 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 nsTArray<ContentParent*>* ContentParent::gContentParents;
 nsTArray<ContentParent*>* ContentParent::gPrivateContent;
 
-
+// The first content child has ID 1, so the chrome process can have ID 0.
 static PRUint64 gContentChildID = 1;
 
 ContentParent*
@@ -228,8 +229,8 @@ ContentParent::Init()
     }
 
 #ifdef ACCESSIBILITY
-    
-    
+    // If accessibility is running in chrome process then start it in content
+    // process.
     if (nsIPresShell::IsAccessibilityActive()) {
         unused << SendActivateA11y();
     }
@@ -247,16 +248,16 @@ ContentParent::OnChannelConnected(int32 pid)
         SetOtherProcess(handle);
 
 #if defined(ANDROID) || defined(LINUX)
-        
+        // Check nice preference
         PRInt32 nice = Preferences::GetInt("dom.ipc.content.nice", 0);
 
-        
+        // Environment variable overrides preference
         char* relativeNicenessStr = getenv("MOZ_CHILD_PROCESS_RELATIVE_NICENESS");
         if (relativeNicenessStr) {
             nice = atoi(relativeNicenessStr);
         }
 
-        
+        /* make the GUI thread have higher priority on single-cpu devices */
         nsCOMPtr<nsIPropertyBag2> infoService = do_GetService(NS_SYSTEMINFO_CONTRACTID);
         if (infoService) {
             PRInt32 cpus;
@@ -282,14 +283,14 @@ DelayedDeleteSubprocess(GeckoChildProcessHost* aSubprocess)
                    new DeleteTask<GeckoChildProcessHost>(aSubprocess));
 }
 
-
-
-
+// This runnable only exists to delegate ownership of the
+// ContentParent to this runnable, until it's deleted by the event
+// system.
 struct DelayedDeleteContentParentTask : public nsRunnable
 {
     DelayedDeleteContentParentTask(ContentParent* aObj) : mObj(aObj) { }
 
-    
+    // No-op
     NS_IMETHODIMP Run() { return NS_OK; }
 
     nsRefPtr<ContentParent> mObj;
@@ -318,11 +319,11 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 
     mMessageManager->Disconnect();
 
-    
+    // clear the child memory reporters
     InfallibleTArray<MemoryReport> empty;
     SetChildMemoryReporters(empty);
 
-    
+    // remove the global remote preferences observers
     Preferences::RemoveObserver(this, "");
 
     RecvRemoveGeolocationListener();
@@ -379,13 +380,13 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
                  NewRunnableFunction(DelayedDeleteSubprocess, mSubprocess));
     mSubprocess = NULL;
 
-    
-    
-    
-    
-    
-    
-    
+    // IPDL rules require actors to live on past ActorDestroy, but it
+    // may be that the kungFuDeathGrip above is the last reference to
+    // |this|.  If so, when we go out of scope here, we're deleted and
+    // all hell breaks loose.
+    //
+    // This runnable ensures that a reference to |this| lives on at
+    // least until after the current task finishes running.
     NS_DispatchToCurrentThread(new DelayedDeleteContentParentTask(this));
 }
 
@@ -422,8 +423,8 @@ ContentParent::ContentParent()
     , mIsAlive(true)
     , mSendPermissionUpdates(false)
 {
-    
-    
+    // From this point on, NS_WARNING, NS_ASSERTION, etc. should print out the
+    // PID along with the warning.
     nsDebugImpl::SetMultiprocessMode("Parent");
 
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
@@ -442,7 +443,7 @@ ContentParent::ContentParent()
         nsCString version(gAppData->version);
         nsCString buildID(gAppData->buildID);
 
-        
+        //Sending all information to content process
         SendAppInfo(version, buildID);
     }
 }
@@ -518,7 +519,7 @@ ContentParent::RecvReadPermissions(InfallibleTArray<IPC::Permission>* aPermissio
                                                     expireType, expireTime));
     }
 
-    
+    // Ask for future changes
     mSendPermissionUpdates = true;
 #endif
 
@@ -528,18 +529,18 @@ ContentParent::RecvReadPermissions(InfallibleTArray<IPC::Permission>* aPermissio
 bool
 ContentParent::RecvGetIndexedDBDirectory(nsString* aDirectory)
 {
-    indexedDB::IDBFactory::NoteUsedByProcessType(GeckoProcessType_Content);
+    using namespace indexedDB;
 
-    nsCOMPtr<nsIFile> dbDirectory;
-    nsresult rv = indexedDB::IDBFactory::GetDirectory(getter_AddRefs(dbDirectory));
+    IDBFactory::NoteUsedByProcessType(GeckoProcessType_Content);
 
-    if (NS_FAILED(rv)) {
-        NS_ERROR("Failed to get IndexedDB directory");
+    nsRefPtr<IndexedDatabaseManager> mgr =
+        IndexedDatabaseManager::GetOrCreate();
+    if (!mgr) {
+        NS_ERROR("This should not fail!");
         return true;
     }
 
-    dbDirectory->GetPath(*aDirectory);
-
+    *aDirectory = mgr->GetBaseDirectory();
     return true;
 }
 
@@ -560,7 +561,7 @@ ContentParent::RecvSetClipboardText(const nsString& text, const PRInt32& whichCl
     nsCOMPtr<nsITransferable> trans = do_CreateInstance("@mozilla.org/widget/transferable;1", &rv);
     NS_ENSURE_SUCCESS(rv, true);
     
-    
+    // If our data flavor has already been added, this will fail. But we don't care
     trans->AddDataFlavor(kUnicodeMime);
     
     nsCOMPtr<nsISupports> nsisupportsDataWrapper =
@@ -592,7 +593,7 @@ ContentParent::RecvGetClipboardText(const PRInt32& whichClipboard, nsString* tex
         return false;
 
     nsCOMPtr<nsISupportsString> supportsString = do_QueryInterface(tmp);
-    
+    // No support for non-text data
     if (!supportsString)
         return false;
     supportsString->GetData(*text);
@@ -629,14 +630,14 @@ ContentParent::RecvGetSystemColors(const PRUint32& colorsCount, InfallibleTArray
 #ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
     if (AndroidBridge::Bridge() == nsnull) {
-        
+        // Do not fail - the colors won't be right, but it's not critical
         return true;
     }
 
     colors->AppendElements(colorsCount);
 
-    
-    
+    // The array elements correspond to the members of AndroidSystemColors structure,
+    // so just pass the pointer to the elements buffer
     AndroidBridge::Bridge()->GetSystemColors((AndroidSystemColors*)colors->Elements());
 #endif
     return true;
@@ -648,7 +649,7 @@ ContentParent::RecvGetIconForExtension(const nsCString& aFileExt, const PRUint32
 #ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
     if (AndroidBridge::Bridge() == nsnull) {
-        
+        // Do not fail - just no icon will be shown
         return true;
     }
 
@@ -662,7 +663,7 @@ ContentParent::RecvGetIconForExtension(const nsCString& aFileExt, const PRUint32
 bool
 ContentParent::RecvGetShowPasswordSetting(bool* showPassword)
 {
-    
+    // default behavior is to show the last password character
     *showPassword = true;
 #ifdef MOZ_WIDGET_ANDROID
     NS_ASSERTION(AndroidBridge::Bridge() != nsnull, "AndroidBridge is not available");
@@ -690,13 +691,13 @@ ContentParent::Observe(nsISupports* aSubject,
     if (!mIsAlive || !mSubprocess)
         return NS_OK;
 
-    
+    // listening for memory pressure event
     if (!strcmp(aTopic, "memory-pressure")) {
         unused << SendFlushMemory(nsDependentString(aData));
     }
-    
+    // listening for remotePrefs...
     else if (!strcmp(aTopic, "nsPref:changed")) {
-        
+        // We know prefs are ASCII here.
         NS_LossyConvertUTF16toASCII strData(aData);
 
         PrefTuple pref;
@@ -706,7 +707,7 @@ ContentParent::Observe(nsISupports* aSubject,
               return NS_ERROR_NOT_AVAILABLE;
           }
         } else {
-          
+          // Pref wasn't found.  It was probably removed.
           if (!SendClearUserPreference(strData)) {
               return NS_ERROR_NOT_AVAILABLE;
           }
@@ -718,7 +719,7 @@ ContentParent::Observe(nsISupports* aSubject,
       if (!SendSetOffline(!strcmp(offline, "true") ? true : false))
           return NS_ERROR_NOT_AVAILABLE;
     }
-    
+    // listening for alert notifications
     else if (!strcmp(aTopic, "alertfinished") ||
              !strcmp(aTopic, "alertclickcallback") ) {
         if (!SendNotifyAlertsObserver(nsDependentCString(aTopic),
@@ -738,8 +739,8 @@ ContentParent::Observe(nsISupports* aSubject,
         unused << SendLastPrivateDocShellDestroyed();
     }
 #ifdef ACCESSIBILITY
-    
-    
+    // Make sure accessibility is running in content process when accessibility
+    // gets initiated in chrome process.
     else if (aData && (*aData == '1') &&
              !strcmp(aTopic, "a11y-init-or-shutdown")) {
         unused << SendActivateA11y();
@@ -1035,13 +1036,13 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
         return true;
     }
 
-    
-    
+    // as the parent given to the content process would be meaningless in this
+    // process, always use active window as the parent
     nsCOMPtr<nsIWindowWatcher> ww = do_GetService(NS_WINDOWWATCHER_CONTRACTID);
     nsCOMPtr<nsIDOMWindow> window;
     ww->GetActiveWindow(getter_AddRefs(window));
 
-    
+    // initialize the "real" picker with all data given
     *result = filePicker->Init(window, title, mode);
     if (NS_FAILED(*result))
         return true;
@@ -1057,7 +1058,7 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
     filePicker->SetDefaultExtension(defaultExtension);
     filePicker->SetFilterIndex(selectedType);
 
-    
+    // and finally open the dialog
     *result = filePicker->Show(retValue);
     if (NS_FAILED(*result))
         return true;
@@ -1081,7 +1082,7 @@ ContentParent::RecvShowFilePicker(const PRInt16& mode,
     nsCOMPtr<nsILocalFile> file;
     filePicker->GetFile(getter_AddRefs(file));
 
-    
+    // even with NS_OK file can be null if nothing was selected 
     if (file) {                                 
         nsAutoString filePath;
         file->GetPath(filePath);
@@ -1102,7 +1103,7 @@ ContentParent::RecvLoadURIExternal(const IPC::URI& uri)
     return true;
 }
 
-
+/* void onDispatchedEvent (in nsIThreadInternal thread); */
 NS_IMETHODIMP
 ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
 {
@@ -1110,7 +1111,7 @@ ContentParent::OnDispatchedEvent(nsIThreadInternal *thread)
    return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-
+/* void onProcessNextEvent (in nsIThreadInternal thread, in boolean mayWait, in unsigned long recursionDepth); */
 NS_IMETHODIMP
 ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
                                   bool mayWait,
@@ -1122,7 +1123,7 @@ ContentParent::OnProcessNextEvent(nsIThreadInternal *thread,
     return NS_OK;
 }
 
-
+/* void afterProcessNextEvent (in nsIThreadInternal thread, in unsigned long recursionDepth); */
 NS_IMETHODIMP
 ContentParent::AfterProcessNextEvent(nsIThreadInternal *thread,
                                      PRUint32 recursionDepth)
@@ -1267,5 +1268,5 @@ ContentParent::RecvPrivateDocShellsExist(const bool& aExist)
   return true;
 }
 
-} 
-} 
+} // namespace dom
+} // namespace mozilla

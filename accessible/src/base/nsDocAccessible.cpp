@@ -213,26 +213,26 @@ NS_IMPL_RELEASE_INHERITED(nsDocAccessible, nsHyperTextAccessible)
 
 
 
-NS_IMETHODIMP
-nsDocAccessible::GetName(nsAString& aName)
+ENameValueFlag
+nsDocAccessible::Name(nsString& aName)
 {
-  nsresult rv = NS_OK;
   aName.Truncate();
+
   if (mParent) {
-    rv = mParent->GetName(aName); 
+    mParent->Name(aName); 
   }
   if (aName.IsEmpty()) {
     
-    rv = nsAccessible::GetName(aName);
+    nsAccessible::Name(aName);
   }
   if (aName.IsEmpty()) {
-    rv = GetTitle(aName);   
+    GetTitle(aName);   
   }
   if (aName.IsEmpty()) {   
-    rv = GetURL(aName);
+    GetURL(aName);
   }
-
-  return rv;
+ 
+  return eNameOK;
 }
 
 
