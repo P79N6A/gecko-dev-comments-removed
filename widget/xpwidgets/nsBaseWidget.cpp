@@ -910,15 +910,11 @@ void nsBaseWidget::CreateCompositor()
 mozilla::layers::LayersBackend
 nsBaseWidget::GetPreferredCompositorBackend()
 {
-  
-  
-  
-  
-  if (Preferences::GetBool("layers.offmainthreadcomposition.prefer-basic", false)) {
-    return mozilla::layers::LAYERS_BASIC;
+  if (mUseLayersAcceleration) {
+    return mozilla::layers::LAYERS_OPENGL;
   }
 
-  return mozilla::layers::LAYERS_OPENGL;
+  return mozilla::layers::LAYERS_BASIC;
 }
 
 void nsBaseWidget::CreateCompositor(int aWidth, int aHeight)
