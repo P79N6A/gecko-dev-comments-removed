@@ -3549,10 +3549,7 @@ XULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
             mOffThreadCompileStringBuf = nullptr;
             mOffThreadCompileStringLength = 0;
 
-            rv = mCurrentScriptProto->Compile(srcBuf,
-                                              uri, 1, this,
-                                              mMasterPrototype,
-                                              this);
+            rv = mCurrentScriptProto->Compile(srcBuf, uri, 1, this, this);
             if (NS_SUCCEEDED(rv) && !mCurrentScriptProto->GetScriptObject()) {
                 
                 
