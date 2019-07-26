@@ -5973,6 +5973,24 @@ nsWindow::GetSurfaceForGdkDrawable(GdkDrawable* aDrawable,
 }
 #endif
 
+#if defined(MOZ_WIDGET_GTK2)
+TemporaryRef<gfx::DrawTarget>
+nsWindow::StartRemoteDrawing()
+{
+  gfxASurface *surf = GetThebesSurface();
+  if (!surf) {
+    return nullptr;
+  }
+
+  gfx::IntSize size(surf->GetSize().width, surf->GetSize().height);
+  if (size.width <= 0 || size.height <= 0) {
+    return nullptr;
+  }
+
+  return gfxPlatform::GetPlatform()->CreateDrawTargetForSurface(surf, size);
+}
+#endif
+
 
 gfxASurface*
 #if defined(MOZ_WIDGET_GTK2)
