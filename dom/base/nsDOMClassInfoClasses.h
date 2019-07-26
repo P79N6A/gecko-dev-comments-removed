@@ -193,7 +193,6 @@ DOMCI_CLASS(BeforeUnloadEvent)
 DOMCI_CLASS(SVGDocument)
 
 
-DOMCI_CLASS(SVGAElement)
 DOMCI_CLASS(TimeEvent)
 DOMCI_CLASS(SVGFEBlendElement)
 DOMCI_CLASS(SVGFEColorMatrixElement)
