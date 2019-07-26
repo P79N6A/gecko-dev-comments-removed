@@ -4,3 +4,6 @@ function f() {
     }
 }
 f();
+
+
+Object.getOwnPropertyDescriptor(this, "customNative");
