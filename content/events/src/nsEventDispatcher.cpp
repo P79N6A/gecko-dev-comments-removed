@@ -142,7 +142,6 @@ public:
 
 
   nsresult HandleEventTargetChain(nsEventChainPostVisitor& aVisitor,
-                                  uint32_t aFlags,
                                   nsDispatchingCallback* aCallback,
                                   bool aMayHaveNewListenerManagers,
                                   nsCxPusher* aPusher);
@@ -157,7 +156,7 @@ public:
 
 
 
-  nsresult HandleEvent(nsEventChainPostVisitor& aVisitor, uint32_t aFlags,
+  nsresult HandleEvent(nsEventChainPostVisitor& aVisitor,
                        bool aMayHaveNewListenerManagers,
                        nsCxPusher* aPusher)
   {
@@ -179,7 +178,7 @@ public:
                    "CurrentTarget should be null!");
       mManager->HandleEvent(aVisitor.mPresContext, aVisitor.mEvent,
                             &aVisitor.mDOMEvent,
-                            CurrentTarget(), aFlags,
+                            CurrentTarget(),
                             &aVisitor.mEventStatus,
                             aPusher);
       NS_ASSERTION(aVisitor.mEvent->currentTarget == nullptr,
@@ -263,10 +262,11 @@ nsEventTargetChainItem::PostHandleEvent(nsEventChainPostVisitor& aVisitor,
 }
 
 nsresult
-nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor, uint32_t aFlags,
-                                               nsDispatchingCallback* aCallback,
-                                               bool aMayHaveNewListenerManagers,
-                                               nsCxPusher* aPusher)
+nsEventTargetChainItem::HandleEventTargetChain(
+                          nsEventChainPostVisitor& aVisitor,
+                          nsDispatchingCallback* aCallback,
+                          bool aMayHaveNewListenerManagers,
+                          nsCxPusher* aPusher)
 {
   uint32_t createdELMs = nsEventListenerManager::sCreatedCount;
   
@@ -280,7 +280,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     if ((!aVisitor.mEvent->mFlags.mNoContentDispatch ||
          item->ForceContentDispatch()) &&
         !aVisitor.mEvent->mFlags.mPropagationStopped) {
-      item->HandleEvent(aVisitor, aFlags & NS_EVENT_CAPTURE_MASK,
+      item->HandleEvent(aVisitor,
                         aMayHaveNewListenerManagers ||
                         createdELMs != nsEventListenerManager::sCreatedCount,
                         aPusher);
@@ -307,15 +307,12 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   if (!aVisitor.mEvent->mFlags.mPropagationStopped &&
       (!aVisitor.mEvent->mFlags.mNoContentDispatch ||
        item->ForceContentDispatch())) {
-    
-    
-    
-    item->HandleEvent(aVisitor, aFlags,
+    item->HandleEvent(aVisitor,
                       aMayHaveNewListenerManagers ||
                       createdELMs != nsEventListenerManager::sCreatedCount,
                       aPusher);
   }
-  if (aFlags & NS_EVENT_FLAG_SYSTEM_EVENT) {
+  if (aVisitor.mEvent->mFlags.mInSystemGroup) {
     item->PostHandleEvent(aVisitor, aPusher);
   }
 
@@ -334,11 +331,11 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
       if ((!aVisitor.mEvent->mFlags.mNoContentDispatch ||
            item->ForceContentDispatch()) &&
           !aVisitor.mEvent->mFlags.mPropagationStopped) {
-        item->HandleEvent(aVisitor, aFlags & NS_EVENT_BUBBLE_MASK,
+        item->HandleEvent(aVisitor,
                           createdELMs != nsEventListenerManager::sCreatedCount,
                           aPusher);
       }
-      if (aFlags & NS_EVENT_FLAG_SYSTEM_EVENT) {
+      if (aVisitor.mEvent->mFlags.mInSystemGroup) {
         item->PostHandleEvent(aVisitor, aPusher);
       }
     }
@@ -346,7 +343,7 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
   }
   aVisitor.mEvent->mFlags.mInBubblingPhase = false;
 
-  if (!(aFlags & NS_EVENT_FLAG_SYSTEM_EVENT)) {
+  if (!aVisitor.mEvent->mFlags.mInSystemGroup) {
     
     
     aVisitor.mEvent->mFlags.mPropagationStopped = false;
@@ -365,10 +362,12 @@ nsEventTargetChainItem::HandleEventTargetChain(nsEventChainPostVisitor& aVisitor
     
     
     aVisitor.mEvent->target = firstTarget;
-    HandleEventTargetChain(aVisitor, aFlags | NS_EVENT_FLAG_SYSTEM_EVENT,
+    aVisitor.mEvent->mFlags.mInSystemGroup = true;
+    HandleEventTargetChain(aVisitor,
                            aCallback,
                            createdELMs != nsEventListenerManager::sCreatedCount,
                            aPusher);
+    aVisitor.mEvent->mFlags.mInSystemGroup = false;
 
     
     
@@ -627,8 +626,6 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
         nsEventChainPostVisitor postVisitor(preVisitor);
         nsCxPusher pusher;
         rv = topEtci->HandleEventTargetChain(postVisitor,
-                                             NS_EVENT_FLAG_BUBBLE |
-                                             NS_EVENT_FLAG_CAPTURE,
                                              aCallback,
                                              false,
                                              &pusher);
