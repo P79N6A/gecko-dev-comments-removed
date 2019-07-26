@@ -205,16 +205,7 @@ BrowserGlue.prototype = {
         this._onQuitRequest(subject, data);
         break;
       case "quit-application-granted":
-        
-        
-        this._setPrefToSaveSession();
-        try {
-          let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"].
-                           getService(Ci.nsIAppStartup);
-          appStartup.trackStartupCrashEnd();
-        } catch (e) {
-          Cu.reportError("Could not end startup crash tracking in quit-application-granted: " + e);
-        }
+        this._onQuitApplicationGranted();
         break;
 #ifdef OBSERVE_LASTWINDOW_CLOSE_TOPICS
       case "browser-lastwindow-close-requested":
@@ -306,7 +297,10 @@ BrowserGlue.prototype = {
         }
         break;
       case "profile-before-change":
-        this._onProfileShutdown();
+         
+         
+         
+        this._dispose();
         break;
 #ifdef MOZ_SERVICES_HEALTHREPORT
       case "keyword-search":
@@ -640,14 +634,22 @@ BrowserGlue.prototype = {
   
 
 
+  _onQuitApplicationGranted: function () {
+    
+    
+    this._setPrefToSaveSession();
+    try {
+      let appStartup = Cc["@mozilla.org/toolkit/app-startup;1"]
+                         .getService(Ci.nsIAppStartup);
+      appStartup.trackStartupCrashEnd();
+    } catch (e) {
+      Cu.reportError("Could not end startup crash tracking in quit-application-granted: " + e);
+    }
 
-
-  _onProfileShutdown: function BG__onProfileShutdown() {
     BrowserNewTabPreloader.uninit();
     webappsUI.uninit();
     SignInToWebsiteUX.uninit();
     webrtcUI.uninit();
-    this._dispose();
   },
 
   
