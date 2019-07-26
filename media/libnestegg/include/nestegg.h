@@ -140,6 +140,8 @@ typedef struct {
   double rate;           
   unsigned int channels; 
   unsigned int depth;    
+  uint64_t  codec_delay; 
+  uint64_t  seek_preroll;
 } nestegg_audio_params;
 
 
@@ -320,6 +322,14 @@ int nestegg_packet_count(nestegg_packet * packet, unsigned int * count);
 
 int nestegg_packet_data(nestegg_packet * packet, unsigned int item,
                         unsigned char ** data, size_t * length);
+
+
+
+
+
+
+int nestegg_packet_discard_padding(nestegg_packet * packet,
+                                   int64_t * discard_padding);
 
 
 
