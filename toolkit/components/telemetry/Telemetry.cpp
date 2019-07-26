@@ -2110,6 +2110,7 @@ TelemetryImpl::GetThreadHangStats(JSContext* cx, JS::MutableHandle<JS::Value> re
   }
   size_t threadIndex = 0;
 
+#ifdef MOZ_ENABLE_BACKGROUND_HANG_MONITOR
   
 
 
@@ -2123,6 +2124,7 @@ TelemetryImpl::GetThreadHangStats(JSContext* cx, JS::MutableHandle<JS::Value> re
       return NS_ERROR_FAILURE;
     }
   }
+#endif
 
   
   MutexAutoLock autoLock(mThreadHangStatsMutex);
