@@ -143,7 +143,6 @@ public:
 
 
 
-
   nsEventStatus ReceiveInputEvent(const InputData& aEvent);
 
   
@@ -286,6 +285,12 @@ private:
 
   mozilla::Monitor mTreeLock;
   nsRefPtr<AsyncPanZoomController> mRootApzc;
+  
+
+
+
+
+  nsRefPtr<AsyncPanZoomController> mApzcForInputBlock;
 };
 
 }
