@@ -5,9 +5,6 @@
 
 const { 'classes': Cc, 'interfaces': Ci } = Components;
 
-
-Components.classesByID["{9eb760f0-4380-11d2-b328-00805f8a3859}"].getService(Ci.nsISupports);
-
 function assert_equals(a, b, msg) {
   dump("assert_equals(" + a + ", " + b + ", \"" + msg + "\")");
   do_check_eq(a, b, Components.stack.caller);
