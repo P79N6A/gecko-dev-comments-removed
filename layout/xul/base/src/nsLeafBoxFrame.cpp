@@ -269,18 +269,24 @@ nsLeafBoxFrame::Reflow(nsPresContext*   aPresContext,
   }
 
   
-
+  
+  
+  
   if (computedSize.width > aReflowState.mComputedMaxWidth)
     computedSize.width = aReflowState.mComputedMaxWidth;
-
-  if (computedSize.height > aReflowState.mComputedMaxHeight)
-    computedSize.height = aReflowState.mComputedMaxHeight;
 
   if (computedSize.width < aReflowState.mComputedMinWidth)
     computedSize.width = aReflowState.mComputedMinWidth;
 
-  if (computedSize.height < aReflowState.mComputedMinHeight)
-    computedSize.height = aReflowState.mComputedMinHeight;
+  
+  
+  
+  
+  computedSize.height = NS_MAX(0, computedSize.height - m.TopBottom());
+  computedSize.height = NS_CSS_MINMAX(computedSize.height,
+                                      aReflowState.mComputedMinHeight,
+                                      aReflowState.mComputedMaxHeight);
+  computedSize.height += m.TopBottom();
 
   nsRect r(mRect.x, mRect.y, computedSize.width, computedSize.height);
 

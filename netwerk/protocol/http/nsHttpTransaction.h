@@ -94,7 +94,7 @@ public:
     
     bool ResponseIsComplete() { return mResponseIsComplete; }
 
-    bool      SSLConnectFailed() { return mSSLConnectFailed; }
+    bool      ProxyConnectFailed() { return mProxyConnectFailed; }
 
     
     void    SetPriority(int32_t priority) { mPriority = priority; }
@@ -193,7 +193,7 @@ private:
     bool                            mReceivedData;
     bool                            mStatusEventPending;
     bool                            mHasRequestBody;
-    bool                            mSSLConnectFailed;
+    bool                            mProxyConnectFailed;
     bool                            mHttpResponseMatched;
     bool                            mPreserveStream;
 

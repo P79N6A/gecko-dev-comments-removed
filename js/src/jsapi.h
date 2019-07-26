@@ -1999,20 +1999,6 @@ typedef JSBool
 typedef void
 (* JSDestroyPrincipalsOp)(JSPrincipals *principals);
 
-typedef JSBool
-(* JSSubsumePrincipalsOp)(JSPrincipals *principals1, JSPrincipals *principals2);
-
-
-
-
-
-
-
-
-
-typedef JSPrincipals *
-(* JSObjectPrincipalsFinder)(JSObject *obj);
-
 
 
 
@@ -3298,12 +3284,6 @@ JS_SetWrapObjectCallbacks(JSRuntime *rt,
                           JSSameCompartmentWrapObjectCallback sccallback,
                           JSPreWrapCallback precallback);
 
-extern JS_PUBLIC_API(JSCrossCompartmentCall *)
-JS_EnterCrossCompartmentCall(JSContext *cx, JSRawObject target);
-
-extern JS_PUBLIC_API(void)
-JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call);
-
 extern JS_PUBLIC_API(void)
 JS_SetCompartmentPrivate(JSCompartment *compartment, void *data);
 
@@ -3329,66 +3309,64 @@ js_TransplantObjectWithWrapper(JSContext *cx,
 extern JS_PUBLIC_API(JSBool)
 JS_RefreshCrossCompartmentWrappers(JSContext *cx, JSObject *ob);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
-namespace js {
-class AutoCompartment;
-}
-
-class JS_PUBLIC_API(JSAutoEnterCompartment)
+class JS_PUBLIC_API(JSAutoCompartment)
 {
-    
-
-
-
-
-
-
-
-    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 12];
-
-  protected:
-    js::AutoCompartment *getAutoCompartment() {
-        JS_ASSERT(state == STATE_OTHER_COMPARTMENT);
-        return reinterpret_cast<js::AutoCompartment*>(bytes);
-    }
-
-    
-
-
-
-
-
-
-
-    enum State {
-        STATE_UNENTERED,
-        STATE_SAME_COMPARTMENT,
-        STATE_OTHER_COMPARTMENT
-    } state;
-
+    JSContext *cx_;
+    JSCompartment *oldCompartment_;
   public:
-    JSAutoEnterCompartment() : state(STATE_UNENTERED) {}
-
-    bool enter(JSContext *cx, JSRawObject target);
-
-    void enterAndIgnoreErrors(JSContext *cx, JSRawObject target);
-
-    bool entered() const { return state != STATE_UNENTERED; }
-
-    
-
-
-
-
-    void leave();
-
-    ~JSAutoEnterCompartment();
+    JSAutoCompartment(JSContext *cx, JSRawObject target);
+    JSAutoCompartment(JSContext *cx, JSScript *target);
+    JSAutoCompartment(JSContext *cx, JSStackFrame *target);
+    ~JSAutoCompartment();
 };
 
 JS_BEGIN_EXTERN_C
 #endif
+
+
+extern JS_PUBLIC_API(JSCompartment *)
+JS_EnterCompartment(JSContext *cx, JSRawObject target);
+
+extern JS_PUBLIC_API(void)
+JS_LeaveCompartment(JSContext *cx, JSCompartment *oldCompartment);
 
 typedef void (*JSIterateCompartmentCallback)(JSRuntime *rt, void *data, JSCompartment *compartment);
 
@@ -4100,7 +4078,10 @@ typedef enum JSGCParamKey {
     JSGC_DYNAMIC_HEAP_GROWTH = 17,
 
     
-    JSGC_DYNAMIC_MARK_SLICE = 18
+    JSGC_DYNAMIC_MARK_SLICE = 18,
+
+    
+    JSGC_ANALYSIS_PURGE_TRIGGER = 19
 } JSGCParamKey;
 
 typedef enum JSGCMode {
@@ -4250,7 +4231,7 @@ struct JSClass {
 
 
 
-#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 24)
+#define JSCLASS_GLOBAL_SLOT_COUNT      (JSProto_LIMIT * 3 + 23)
 #define JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(n)                                    \
     (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSCLASS_GLOBAL_SLOT_COUNT + (n)))
 #define JSCLASS_GLOBAL_FLAGS                                                  \
@@ -4834,8 +4815,19 @@ JS_DeleteElement(JSContext *cx, JSObject *obj, uint32_t index);
 extern JS_PUBLIC_API(JSBool)
 JS_DeleteElement2(JSContext *cx, JSObject *obj, uint32_t index, jsval *rval);
 
-extern JS_PUBLIC_API(void)
-JS_ClearScope(JSContext *cx, JSObject *obj);
+
+
+
+
+JS_PUBLIC_API(void)
+JS_ClearNonGlobalObject(JSContext *cx, JSObject *objArg);
+
+
+
+
+
+JS_PUBLIC_API(void)
+JS_SetAllNonReservedSlotsToUndefined(JSContext *cx, JSObject *objArg);
 
 extern JS_PUBLIC_API(JSIdArray *)
 JS_Enumerate(JSContext *cx, JSObject *obj);
@@ -4912,8 +4904,6 @@ JS_DropPrincipals(JSRuntime *rt, JSPrincipals *principals);
 
 struct JSSecurityCallbacks {
     JSCheckAccessOp            checkObjectAccess;
-    JSSubsumePrincipalsOp      subsumePrincipals;
-    JSObjectPrincipalsFinder   findObjectPrincipals;
     JSCSPEvalChecker           contentSecurityPolicyAllows;
 };
 
@@ -4974,6 +4964,16 @@ JS_GetFunctionObject(JSFunction *fun);
 
 extern JS_PUBLIC_API(JSString *)
 JS_GetFunctionId(JSFunction *fun);
+
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSString *)
+JS_GetFunctionDisplayId(JSFunction *fun);
 
 
 
@@ -5611,27 +5611,6 @@ JS_NewGrowableString(JSContext *cx, jschar *chars, size_t length);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSString *)
 JS_NewDependentString(JSContext *cx, JSString *str, size_t start,
                       size_t length);
@@ -5649,13 +5628,6 @@ JS_ConcatStrings(JSContext *cx, JSString *left, JSString *right);
 
 extern JS_PUBLIC_API(const jschar *)
 JS_UndependString(JSContext *cx, JSString *str);
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_MakeStringImmutable(JSContext *cx, JSString *str);
 
 
 
@@ -6040,6 +6012,7 @@ struct JSErrorReport {
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
     int16_t         exnType;        
+    unsigned           column;         
 };
 
 

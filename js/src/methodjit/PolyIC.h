@@ -413,9 +413,6 @@ struct PICInfo : public BasePolyIC {
     
     uint32_t shapeGuard;
 
-    
-    types::TypeSet *rhsTypes;
-
     inline bool isSet() const {
         return kind == SET;
     }

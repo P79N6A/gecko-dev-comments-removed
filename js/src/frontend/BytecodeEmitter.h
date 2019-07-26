@@ -73,6 +73,8 @@ struct BytecodeEmitter
         unsigned    noteLimit;      
         ptrdiff_t   lastNoteOffset; 
         unsigned    currentLine;    
+        unsigned    lastColumn;     
+
     } prolog, main, *current;
 
     Parser          *const parser;  
@@ -110,7 +112,7 @@ struct BytecodeEmitter
 
     bool            hasSingletons:1;    
 
-    bool            inForInit:1;        
+    bool            emittingForInit:1;  
 
     const bool      hasGlobalScope:1;   
 
@@ -174,6 +176,7 @@ struct BytecodeEmitter
     unsigned noteLimit() const { return current->noteLimit; }
     ptrdiff_t lastNoteOffset() const { return current->lastNoteOffset; }
     unsigned currentLine() const { return current->currentLine; }
+    unsigned lastColumn() const { return current->lastColumn; }
 
     inline ptrdiff_t countFinalSourceNotes();
 
@@ -310,7 +313,7 @@ enum SrcNoteType {
     SRC_SWITCHBREAK = 18,       
     SRC_FUNCDEF     = 19,       
     SRC_CATCH       = 20,       
-                                
+    SRC_COLSPAN     = 21,       
     SRC_NEWLINE     = 22,       
     SRC_SETLINE     = 23,       
     SRC_XDELTA      = 24        
@@ -346,7 +349,7 @@ enum SrcNoteType {
                                                    ? SRC_XDELTA               \
                                                    : *(sn) >> SN_DELTA_BITS))
 #define SN_SET_TYPE(sn,type)    SN_MAKE_NOTE(sn, type, SN_DELTA(sn))
-#define SN_IS_GETTABLE(sn)      (SN_TYPE(sn) < SRC_NEWLINE)
+#define SN_IS_GETTABLE(sn)      (SN_TYPE(sn) < SRC_COLSPAN)
 
 #define SN_DELTA(sn)            ((ptrdiff_t)(SN_IS_XDELTA(sn)                 \
                                              ? *(sn) & SN_XDELTA_MASK         \
@@ -365,6 +368,19 @@ enum SrcNoteType {
 
 #define SN_3BYTE_OFFSET_FLAG    0x80
 #define SN_3BYTE_OFFSET_MASK    0x7f
+
+
+
+
+
+
+
+
+
+
+
+
+#define SN_COLSPAN_DOMAIN       ptrdiff_t(SN_3BYTE_OFFSET_FLAG << 16)
 
 #define SN_MAX_OFFSET ((size_t)((ptrdiff_t)SN_3BYTE_OFFSET_FLAG << 16) - 1)
 

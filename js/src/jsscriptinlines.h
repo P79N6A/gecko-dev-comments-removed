@@ -120,17 +120,6 @@ JSScript::isEmpty() const
     return JSOp(*pc) == JSOP_STOP;
 }
 
-inline bool
-JSScript::hasGlobal() const
-{
-    
-
-
-
-
-    return compileAndGo && !global().isCleared();
-}
-
 inline js::GlobalObject &
 JSScript::global() const
 {
@@ -139,13 +128,6 @@ JSScript::global() const
 
 
     return *compartment()->maybeGlobal();
-}
-
-inline bool
-JSScript::hasClearedGlobal() const
-{
-    JS_ASSERT(types);
-    return global().isCleared();
 }
 
 #ifdef JS_METHODJIT

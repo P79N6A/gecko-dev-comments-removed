@@ -174,20 +174,22 @@ struct ParseContext
 
     ParseContext     *parent;       
 
-    ParseNode       *innermostWith; 
-
     FuncStmtSet     *funcStmts;     
 
 
 
     
+    
+    bool            funHasReturnExpr:1; 
+    bool            funHasReturnVoid:1; 
+
+    
+    
+    bool            parsingForInit:1;   
+
+    bool            parsingWith:1;  
 
 
-
-    bool            hasReturnExpr:1; 
-    bool            hasReturnVoid:1; 
-
-    bool            inForInit:1;    
 
     
     
@@ -300,8 +302,7 @@ struct Parser : private AutoGCRooter
 
     ObjectBox *newObjectBox(JSObject *obj);
 
-    FunctionBox *newFunctionBox(JSObject *obj, ParseNode *fn, ParseContext *pc,
-                                StrictMode::StrictModeState sms);
+    FunctionBox *newFunctionBox(JSObject *obj, ParseContext *pc, StrictMode::StrictModeState sms);
 
     
 
@@ -424,7 +425,7 @@ struct Parser : private AutoGCRooter
 
 
     enum FunctionType { Getter, Setter, Normal };
-    bool functionArguments(ParseNode **list, bool &hasRest);
+    bool functionArguments(ParseNode **list, ParseNode *funcpn, bool &hasRest);
 
     ParseNode *functionDef(HandlePropertyName name, FunctionType type, FunctionSyntaxKind kind);
 

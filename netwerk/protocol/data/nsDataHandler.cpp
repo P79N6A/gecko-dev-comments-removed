@@ -163,9 +163,16 @@ nsDataHandler::ParseURI(nsCString& spec,
 
     
     char *base64 = PL_strcasestr(buffer, BASE64_EXTENSION);
-    if (base64 && *(base64 + strlen(BASE64_EXTENSION))==0) {
-        isBase64 = true;
-        *base64 = '\0';
+    if (base64) {
+        char *beyond = base64 + strlen(BASE64_EXTENSION);
+        
+        
+        
+        
+        if (*beyond == '\0' || *beyond == ';') {
+            isBase64 = true;
+            *base64 = '\0';
+        }
     }
 
     if (comma == buffer) {

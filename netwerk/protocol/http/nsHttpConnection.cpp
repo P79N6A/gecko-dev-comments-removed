@@ -860,7 +860,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         else {
             LOG(("proxy CONNECT failed! ssl=%s\n",
                  mConnInfo->UsingSSL() ? "true" :"false"));
-            mTransaction->SetSSLConnectFailed();
+            mTransaction->SetProxyConnectFailed();
         }
     }
     

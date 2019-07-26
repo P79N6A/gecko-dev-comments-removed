@@ -282,24 +282,6 @@ class JS_FRIEND_API(SecurityWrapper) : public Base
 typedef SecurityWrapper<DirectWrapper> SameCompartmentSecurityWrapper;
 typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
 
-
-
-
-
-class JS_FRIEND_API(ForceFrame)
-{
-  public:
-    JSContext * const context;
-    JSObject * const target;
-  private:
-    DummyFrameGuard *frame;
-
-  public:
-    ForceFrame(JSContext *cx, JSObject *target);
-    ~ForceFrame();
-    bool enter();
-};
-
 class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler
 {
   public:

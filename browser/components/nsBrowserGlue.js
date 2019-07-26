@@ -32,6 +32,9 @@ XPCOMUtils.defineLazyModuleGetter(this, "webappsUI",
 XPCOMUtils.defineLazyModuleGetter(this, "PageThumbs",
                                   "resource:///modules/PageThumbs.jsm");
 
+XPCOMUtils.defineLazyModuleGetter(this, "NewTabUtils",
+                                  "resource:///modules/NewTabUtils.jsm");
+
 XPCOMUtils.defineLazyModuleGetter(this, "PdfJs",
                                   "resource://pdf.js/PdfJs.jsm");
 
@@ -338,6 +341,7 @@ BrowserGlue.prototype = {
     webappsUI.init();
 
     PageThumbs.init();
+    NewTabUtils.init();
 
     SignInToWebsiteUX.init();
 
@@ -1181,7 +1185,7 @@ BrowserGlue.prototype = {
   },
 
   _migrateUI: function BG__migrateUI() {
-    const UI_VERSION = 6;
+    const UI_VERSION = 7;
     const BROWSER_DOCURL = "chrome://browser/content/browser.xul#";
     let currentUIVersion = 0;
     try {
@@ -1277,6 +1281,43 @@ BrowserGlue.prototype = {
       let tabsOnTopAttribute = this._getPersist(toolboxResource, tabsOnTopResource);
       if (tabsOnTopAttribute)
         Services.prefs.setBoolPref("browser.tabs.onTop", tabsOnTopAttribute == "true");
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    if (currentUIVersion < 7 &&
+        !Services.prefs.getBoolPref("browser.download.useToolkitUI")) {
+      
+      let currentsetResource = this._rdf.GetResource("currentset");
+      let toolbarResource = this._rdf.GetResource(BROWSER_DOCURL + "nav-bar");
+      let currentset = this._getPersist(toolbarResource, currentsetResource);
+
+      
+      
+      
+      
+      if (currentset &&
+          currentset.indexOf("downloads-button") == -1) {
+        
+        
+        
+        if (currentset.indexOf("search-container") != -1) {
+          currentset = currentset.replace(/(^|,)search-container($|,)/,
+                                          "$1search-container,downloads-button$2")
+        } else if (currentset.indexOf("home-button") != -1) {
+          currentset = currentset.replace(/(^|,)home-button($|,)/,
+                                          "$1downloads-button,home-button$2")
+        } else {
+          currentset = currentset.replace(/(^|,)window-controls($|,)/,
+                                          "$1downloads-button,window-controls$2")
+        }
+        this._setPersist(toolbarResource, currentsetResource, currentset);
+      }
     }
 
     if (this._dirty)

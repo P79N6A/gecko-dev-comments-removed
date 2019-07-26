@@ -7,6 +7,7 @@
 
 #include "jsapi.h"
 #include "jswrapper.h"
+#include "mozilla/GuardObjects.h"
 
 
 
@@ -100,4 +101,30 @@ public:
 };
 
 extern SandboxProxyHandler sandboxProxyHandler;
+
+class AutoSetWrapperNotShadowing;
+class XPCWrappedNativeXrayTraits;
+
+class ResolvingId {
+public:
+    ResolvingId(JSObject *wrapper, jsid id);
+    ~ResolvingId();
+
+    bool isXrayShadowing(jsid id);
+    bool isResolving(jsid id);
+    static ResolvingId* getResolvingId(JSObject *holder);
+    static JSObject* getHolderObject(JSObject *wrapper);
+    static ResolvingId *getResolvingIdFromWrapper(JSObject *wrapper);
+
+private:
+    friend class AutoSetWrapperNotShadowing;
+    friend class XPCWrappedNativeXrayTraits;
+
+    jsid mId;
+    JSObject *mHolder;
+    ResolvingId *mPrev;
+    bool mXrayShadowing;
+};
+
 }
+

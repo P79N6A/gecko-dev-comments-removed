@@ -535,6 +535,12 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
   }
 #endif  
 
+#ifdef MOZ_WIDGET_GONK
+  if (const char *ldPreloadPath = getenv("LD_PRELOAD")) {
+    newEnvVars["LD_PRELOAD"] = ldPreloadPath;
+  }
+#endif 
+
   
   
   int srcChannelFd, dstChannelFd;

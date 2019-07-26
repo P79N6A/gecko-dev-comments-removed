@@ -283,10 +283,8 @@ JSBool XPCVariant::InitializeData(XPCCallContext& ccx)
     if (val.isNull())
         return NS_SUCCEEDED(nsVariant::SetToEmpty(&mData));
     if (val.isString()) {
-        
-        
         JSString* str = val.toString();
-        if (!JS_MakeStringImmutable(ccx, str))
+        if (!str)
             return false;
 
         

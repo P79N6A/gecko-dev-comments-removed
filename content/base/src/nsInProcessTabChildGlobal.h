@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; c-basic-offset: 4; indent-tabs-mode: nil; tab-width: 8; -*- */
+/* vim: set sw=4 ts=8 et tw=80 : */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef nsInProcessTabChildGlobal_h
 #define nsInProcessTabChildGlobal_h
@@ -33,7 +33,8 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsInProcessTabChildGlobal,
                                            nsDOMEventTargetHelper)
-  NS_FORWARD_SAFE_NSIFRAMEMESSAGEMANAGER(mMessageManager)
+  NS_FORWARD_SAFE_NSIMESSAGELISTENERMANAGER(mMessageManager)
+  NS_FORWARD_SAFE_NSIMESSAGESENDER(mMessageManager)
   NS_IMETHOD SendSyncMessage(const nsAString& aMessageName,
                              const jsval& aObject,
                              JSContext* aCx,
@@ -63,7 +64,7 @@ public:
                               nsIDOMEventListener* aListener,
                               bool aUseCapture)
   {
-    
+    // By default add listeners only for trusted events!
     return nsDOMEventTargetHelper::AddEventListener(aType, aListener,
                                                     aUseCapture, false, 2);
   }
@@ -111,8 +112,8 @@ protected:
   bool mLoadingScript;
   bool mDelayedDisconnect;
 
-  
-  
+  // Is this the message manager for an in-process <iframe mozbrowser>?  This
+  // affects where events get sent, so it affects PreHandleEvent.
   bool mIsBrowserFrame;
 public:
   nsIContent* mOwner;

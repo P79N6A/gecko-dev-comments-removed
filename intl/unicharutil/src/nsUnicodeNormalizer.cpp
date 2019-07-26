@@ -591,7 +591,7 @@ workbuf_extend(workbuf_t *wb) {
 		wb->cclass = (int32_t*)nsMemory::Alloc(sizeof(wb->cclass[0]) * newsize);
 		if (!wb->cclass) {
 			nsMemory::Free(wb->ucs);
-			wb->ucs = NULL;
+			wb->ucs = nullptr;
 			return NS_ERROR_OUT_OF_MEMORY;
 		}
 	} else {

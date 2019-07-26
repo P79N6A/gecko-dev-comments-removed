@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=79:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "jscntxt.h"
 #include "jsonparser.h"
@@ -17,7 +17,7 @@
 
 using namespace js;
 
-// We should be able to assert this for *any* fp->scopeChain().
+
 static void
 AssertInnerizedScopeChain(JSContext *cx, JSObject &scopeobj)
 {
@@ -34,16 +34,16 @@ AssertInnerizedScopeChain(JSContext *cx, JSObject &scopeobj)
 static bool
 IsEvalCacheCandidate(JSScript *script)
 {
-    // Make sure there are no inner objects which might use the wrong parent
-    // and/or call scope by reusing the previous eval's script. Skip the
-    // script's first object, which entrains the eval's scope.
+    
+    
+    
     return script->savedCallerFun &&
            !script->hasSingletons &&
            script->objects()->length == 1 &&
            !script->hasRegexps();
 }
 
-/* static */ HashNumber
+ HashNumber
 EvalCacheHashPolicy::hash(const EvalCacheLookup &l)
 {
     return AddToHash(HashString(l.str->chars(), l.str->length()),
@@ -53,13 +53,13 @@ EvalCacheHashPolicy::hash(const EvalCacheLookup &l)
                      l.compartment);
 }
 
-/* static */ bool
+ bool
 EvalCacheHashPolicy::match(JSScript *script, const EvalCacheLookup &l)
 {
     JS_ASSERT(IsEvalCacheCandidate(script));
 
-    // Get the source string passed for safekeeping in the atom map
-    // by the prior eval to frontend::CompileScript.
+    
+    
     JSAtom *keyStr = script->atoms[0];
 
     return EqualStrings(keyStr, l.str) &&
@@ -69,20 +69,20 @@ EvalCacheHashPolicy::match(JSScript *script, const EvalCacheLookup &l)
            script->compartment() == l.compartment;
 }
 
-// There are two things we want to do with each script executed in EvalKernel:
-//  1. notify jsdbgapi about script creation/destruction
-//  2. add the script to the eval cache when EvalKernel is finished
-//
-// NB: Although the eval cache keeps a script alive wrt to the JS engine, from
-// a jsdbgapi user's perspective, we want each eval() to create and destroy a
-// script. This hides implementation details and means we don't have to deal
-// with calls to JS_GetScriptObject for scripts in the eval cache.
+
+
+
+
+
+
+
+
 class EvalScriptGuard
 {
     JSContext *cx_;
     Rooted<JSScript*> script_;
 
-    /* These fields are only valid if lookup_.str is non-NULL. */
+    
     EvalCacheLookup lookup_;
     EvalCache::AddPtr p_;
 
@@ -125,7 +125,7 @@ class EvalScriptGuard
     }
 
     void setNewScript(JSScript *script) {
-        // JSScript::initFromEmitter has already called js_CallNewScriptHook.
+        
         JS_ASSERT(!script_ && script);
         script_ = script;
         script_->isActiveEval = true;
@@ -141,17 +141,17 @@ class EvalScriptGuard
     }
 };
 
-// Define subset of ExecuteType so that casting performs the injection.
+
 enum EvalType { DIRECT_EVAL = EXECUTE_DIRECT_EVAL, INDIRECT_EVAL = EXECUTE_INDIRECT_EVAL };
 
-// Common code implementing direct and indirect eval.
-//
-// Evaluate call.argv[2], if it is a string, in the context of the given calling
-// frame, with the provided scope chain, with the semantics of either a direct
-// or indirect eval (see ES5 10.4.2).  If this is an indirect eval, scopeobj
-// must be a global object.
-//
-// On success, store the completion value in call.rval and return true.
+
+
+
+
+
+
+
+
 static bool
 EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *caller,
            HandleObject scopeobj)
@@ -165,7 +165,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
         return false;
     }
 
-    // ES5 15.1.2.1 step 1.
+    
     if (args.length() < 1) {
         args.rval().setUndefined();
         return true;
@@ -176,19 +176,19 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     }
     RootedString str(cx, args[0].toString());
 
-    // ES5 15.1.2.1 steps 2-8.
+    
 
-    // Per ES5, indirect eval runs in the global scope. (eval is specified this
-    // way so that the compiler can make assumptions about what bindings may or
-    // may not exist in the current frame if it doesn't see 'eval'.)
+    
+    
+    
     unsigned staticLevel;
     RootedValue thisv(cx);
     if (evalType == DIRECT_EVAL) {
         staticLevel = caller->script()->staticLevel + 1;
 
-        // Direct calls to eval are supposed to see the caller's |this|. If we
-        // haven't wrapped that yet, do so now, before we make a copy of it for
-        // the eval code to use.
+        
+        
+        
         if (!ComputeThis(cx, caller))
             return false;
         thisv = caller->thisValue();
@@ -196,7 +196,7 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
         JS_ASSERT(args.callee().global() == *scopeobj);
         staticLevel = 0;
 
-        // Use the global as 'this', modulo outerization.
+        
         JSObject *thisobj = JSObject::thisObject(cx, scopeobj);
         if (!thisobj)
             return false;
@@ -211,26 +211,26 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
 
     SkipRoot skip(cx, &chars);
 
-    // If the eval string starts with '(' or '[' and ends with ')' or ']', it may be JSON.
-    // Try the JSON parser first because it's much faster.  If the eval string
-    // isn't JSON, JSON parsing will probably fail quickly, so little time
-    // will be lost.
-    //
-    // Don't use the JSON parser if the caller is strict mode code, because in
-    // strict mode object literals must not have repeated properties, and the
-    // JSON parser cheerfully (and correctly) accepts them.  If you're parsing
-    // JSON with eval and using strict mode, you deserve to be slow.
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (length > 2 &&
         ((chars[0] == '[' && chars[length - 1] == ']') ||
         (chars[0] == '(' && chars[length - 1] == ')')) &&
          (!caller || !caller->script()->strictModeCode))
     {
-        // Remarkably, JavaScript syntax is not a superset of JSON syntax:
-        // strings in JavaScript cannot contain the Unicode line and paragraph
-        // terminator characters U+2028 and U+2029, but strings in JSON can.
-        // Rather than force the JSON parser to handle this quirk when used by
-        // eval, we simply don't use the JSON parser when either character
-        // appears in the provided string.  See bug 657367.
+        
+        
+        
+        
+        
+        
         for (const jschar *cp = &chars[1], *end = &chars[length - 2]; ; cp++) {
             if (*cp == 0x2028 || *cp == 0x2029)
                 break;
@@ -281,12 +281,12 @@ EvalKernel(JSContext *cx, const CallArgs &args, EvalType evalType, StackFrame *c
     }
 
     return ExecuteKernel(cx, esg.script(), *scopeobj, thisv, ExecuteType(evalType),
-                         NULL /* evalInFrame */, args.rval().address());
+                         NULL , args.rval().address());
 }
 
-// We once supported a second argument to eval to use as the scope chain
-// when evaluating the code string.  Warn when such uses are seen so that
-// authors will know that support for eval(s, o) has been removed.
+
+
+
 static inline bool
 WarnOnTooManyArgs(JSContext *cx, const CallArgs &args)
 {
@@ -300,8 +300,8 @@ WarnOnTooManyArgs(JSContext *cx, const CallArgs &args)
                 return false;
             script->warnedAboutTwoArgumentEval = true;
         } else {
-            // In the case of an indirect call without a caller frame, avoid a
-            // potential warning-flood by doing nothing.
+            
+            
         }
     }
 
@@ -322,9 +322,8 @@ js::IndirectEval(JSContext *cx, unsigned argc, Value *vp)
 bool
 js::DirectEval(JSContext *cx, const CallArgs &args)
 {
-    // Direct eval can assume it was called from an interpreted frame.
+    
     StackFrame *caller = cx->fp();
-    JS_ASSERT(caller->isScriptFrame());
     JS_ASSERT(IsBuiltinEvalForScope(caller->scopeChain(), args.calleev()));
     JS_ASSERT(JSOp(*cx->regs().pc) == JSOP_EVAL);
 
@@ -352,19 +351,19 @@ js::PrincipalsForCompiledCode(const CallReceiver &call, JSContext *cx)
     JS_ASSERT(IsAnyBuiltinEval(call.callee().toFunction()) ||
               IsBuiltinFunctionConstructor(call.callee().toFunction()));
 
-    // To compute the principals of the compiled eval/Function code, we simply
-    // use the callee's principals. To see why the caller's principals are
-    // ignored, consider first that, in the capability-model we assume, the
-    // high-privileged eval/Function should never have escaped to the
-    // low-privileged caller. (For the Mozilla embedding, this is brute-enforced
-    // by explicit filtering by wrappers.) Thus, the caller's privileges should
-    // subsume the callee's.
-    //
-    // In the converse situation, where the callee has lower privileges than the
-    // caller, we might initially guess that the caller would want to retain
-    // their higher privileges in the generated code. However, since the
-    // compiled code will be run with the callee's scope chain, this would make
-    // fp->script()->compartment() != fp->compartment().
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
-    return call.callee().principals(cx);
+    return call.callee().compartment()->principals;
 }

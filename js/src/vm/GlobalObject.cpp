@@ -246,16 +246,7 @@ GlobalObject::initFunctionAndObjectClasses(JSContext *cx)
     JS_THREADSAFE_ASSERT(cx->compartment != cx->runtime->atomsCompartment);
     JS_ASSERT(isNative());
 
-    
-
-
-
-
-    
-
-    
-    if (!cx->globalObject)
-        JS_SetGlobalObject(cx, self);
+    cx->setDefaultCompartmentObjectIfUnset(self);
 
     RootedObject objectProto(cx);
 
@@ -492,9 +483,8 @@ GlobalObject::create(JSContext *cx, Class *clasp)
     JSObject *res = RegExpStatics::create(cx, global);
     if (!res)
         return NULL;
-    global->initSlot(REGEXP_STATICS, ObjectValue(*res));
-    global->initFlags(0);
 
+    global->initSlot(REGEXP_STATICS, ObjectValue(*res));
     return global;
 }
 
@@ -535,60 +525,6 @@ GlobalObject::initStandardClasses(JSContext *cx, Handle<GlobalObject*> global)
            GlobalObject::initMapIteratorProto(cx, global) &&
            js_InitSetClass(cx, global) &&
            GlobalObject::initSetIteratorProto(cx, global);
-}
-
-void
-GlobalObject::clear(JSContext *cx)
-{
-    for (int key = JSProto_Null; key < JSProto_LIMIT * 3; key++)
-        setSlot(key, UndefinedValue());
-
-    
-    getRegExpStatics()->clear();
-
-    
-    setSlot(RUNTIME_CODEGEN_ENABLED, UndefinedValue());
-
-    
-
-
-
-
-    setSlot(BOOLEAN_VALUEOF, UndefinedValue());
-    setSlot(EVAL, UndefinedValue());
-    setSlot(CREATE_DATAVIEW_FOR_THIS, UndefinedValue());
-    setSlot(THROWTYPEERROR, UndefinedValue());
-    setSlot(INTRINSICS, UndefinedValue());
-    setSlot(PROTO_GETTER, UndefinedValue());
-
-    
-
-
-
-    int32_t flags = getSlot(FLAGS).toInt32();
-    flags |= FLAGS_CLEARED;
-    setSlot(FLAGS, Int32Value(flags));
-
-    
-
-
-
-    cx->runtime->newObjectCache.purge();
-
-#ifdef JS_METHODJIT
-    
-
-
-
-
-    for (gc::CellIter i(cx->compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
-        JSScript *script = i.get<JSScript>();
-        if (script->compileAndGo && script->hasMJITInfo() && script->hasClearedGlobal()) {
-            mjit::Recompiler::clearStackReferences(cx->runtime->defaultFreeOp(), script);
-            mjit::ReleaseScriptCode(cx->runtime->defaultFreeOp(), script);
-        }
-    }
-#endif
 }
 
 bool

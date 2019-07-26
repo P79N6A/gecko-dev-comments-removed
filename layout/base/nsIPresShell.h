@@ -844,14 +844,6 @@ public:
 
 
 
-  virtual nsIFrame* GetFrameForPoint(nsIFrame* aFrame, nsPoint aPt) = 0;
-
-  
-
-
-
-
-
   static bool GetVerifyReflowEnable();
 
   

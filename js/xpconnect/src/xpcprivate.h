@@ -730,6 +730,7 @@ public:
         IDX_BASEURIOBJECT           ,
         IDX_NODEPRINCIPAL           ,
         IDX_DOCUMENTURIOBJECT       ,
+        IDX_MOZMATCHESSELECTOR      ,
         IDX_TOTAL_COUNT 
     };
 
@@ -1458,83 +1459,78 @@ XPC_WN_JSOp_TypeOf_Object(JSContext *cx, JSHandleObject obj);
 extern JSType
 XPC_WN_JSOp_TypeOf_Function(JSContext *cx, JSHandleObject obj);
 
-extern void
-XPC_WN_JSOp_Clear(JSContext *cx, JSHandleObject obj);
-
 extern JSObject*
 XPC_WN_JSOp_ThisObject(JSContext *cx, JSHandleObject obj);
 
 
 #define XPC_WN_WithCall_ObjectOps                                             \
     {                                                                         \
-        nullptr, /* lookupGeneric */                                           \
-        nullptr, /* lookupProperty */                                          \
-        nullptr, /* lookupElement */                                           \
-        nullptr, /* lookupSpecial */                                           \
-        nullptr, /* defineGeneric */                                           \
-        nullptr, /* defineProperty */                                          \
-        nullptr, /* defineElement */                                           \
-        nullptr, /* defineSpecial */                                           \
-        nullptr, /* getGeneric    */                                           \
-        nullptr, /* getProperty    */                                          \
-        nullptr, /* getElement    */                                           \
-        nullptr, /* getElementIfPresent */                                     \
-        nullptr, /* getSpecial    */                                           \
-        nullptr, /* setGeneric    */                                           \
-        nullptr, /* setProperty    */                                          \
-        nullptr, /* setElement    */                                           \
-        nullptr, /* setSpecial    */                                           \
-        nullptr, /* getGenericAttributes  */                                   \
-        nullptr, /* getAttributes  */                                          \
-        nullptr, /* getElementAttributes  */                                   \
-        nullptr, /* getSpecialAttributes  */                                   \
-        nullptr, /* setGenericAttributes  */                                   \
-        nullptr, /* setAttributes  */                                          \
-        nullptr, /* setElementAttributes  */                                   \
-        nullptr, /* setSpecialAttributes  */                                   \
-        nullptr, /* deleteProperty */                                          \
-        nullptr, /* deleteElement */                                           \
-        nullptr, /* deleteSpecial */                                           \
+        nullptr, /* lookupGeneric */                                          \
+        nullptr, /* lookupProperty */                                         \
+        nullptr, /* lookupElement */                                          \
+        nullptr, /* lookupSpecial */                                          \
+        nullptr, /* defineGeneric */                                          \
+        nullptr, /* defineProperty */                                         \
+        nullptr, /* defineElement */                                          \
+        nullptr, /* defineSpecial */                                          \
+        nullptr, /* getGeneric    */                                          \
+        nullptr, /* getProperty    */                                         \
+        nullptr, /* getElement    */                                          \
+        nullptr, /* getElementIfPresent */                                    \
+        nullptr, /* getSpecial    */                                          \
+        nullptr, /* setGeneric    */                                          \
+        nullptr, /* setProperty    */                                         \
+        nullptr, /* setElement    */                                          \
+        nullptr, /* setSpecial    */                                          \
+        nullptr, /* getGenericAttributes  */                                  \
+        nullptr, /* getAttributes  */                                         \
+        nullptr, /* getElementAttributes  */                                  \
+        nullptr, /* getSpecialAttributes  */                                  \
+        nullptr, /* setGenericAttributes  */                                  \
+        nullptr, /* setAttributes  */                                         \
+        nullptr, /* setElementAttributes  */                                  \
+        nullptr, /* setSpecialAttributes  */                                  \
+        nullptr, /* deleteProperty */                                         \
+        nullptr, /* deleteElement */                                          \
+        nullptr, /* deleteSpecial */                                          \
         XPC_WN_JSOp_Enumerate,                                                \
         XPC_WN_JSOp_TypeOf_Function,                                          \
         XPC_WN_JSOp_ThisObject,                                               \
-        XPC_WN_JSOp_Clear                                                     \
     }
 
 #define XPC_WN_NoCall_ObjectOps                                               \
     {                                                                         \
-        nullptr, /* lookupGeneric */                                           \
-        nullptr, /* lookupProperty */                                          \
-        nullptr, /* lookupElement */                                           \
-        nullptr, /* lookupSpecial */                                           \
-        nullptr, /* defineGeneric */                                           \
-        nullptr, /* defineProperty */                                          \
-        nullptr, /* defineElement */                                           \
-        nullptr, /* defineSpecial */                                           \
-        nullptr, /* getGeneric    */                                           \
-        nullptr, /* getProperty    */                                          \
-        nullptr, /* getElement    */                                           \
-        nullptr, /* getElementIfPresent */                                     \
-        nullptr, /* getSpecial    */                                           \
-        nullptr, /* setGeneric    */                                           \
-        nullptr, /* setProperty    */                                          \
-        nullptr, /* setElement    */                                           \
-        nullptr, /* setSpecial    */                                           \
-        nullptr, /* getGenericAttributes  */                                   \
-        nullptr, /* getAttributes  */                                          \
-        nullptr, /* getElementAttributes  */                                   \
-        nullptr, /* getSpecialAttributes  */                                   \
-        nullptr, /* setGenericAttributes  */                                   \
-        nullptr, /* setAttributes  */                                          \
-        nullptr, /* setElementAttributes  */                                   \
-        nullptr, /* setSpecialAttributes  */                                   \
-        nullptr, /* deleteProperty */                                          \
-        nullptr, /* deleteElement */                                           \
-        nullptr, /* deleteSpecial */                                           \
+        nullptr, /* lookupGeneric */                                          \
+        nullptr, /* lookupProperty */                                         \
+        nullptr, /* lookupElement */                                          \
+        nullptr, /* lookupSpecial */                                          \
+        nullptr, /* defineGeneric */                                          \
+        nullptr, /* defineProperty */                                         \
+        nullptr, /* defineElement */                                          \
+        nullptr, /* defineSpecial */                                          \
+        nullptr, /* getGeneric    */                                          \
+        nullptr, /* getProperty    */                                         \
+        nullptr, /* getElement    */                                          \
+        nullptr, /* getElementIfPresent */                                    \
+        nullptr, /* getSpecial    */                                          \
+        nullptr, /* setGeneric    */                                          \
+        nullptr, /* setProperty    */                                         \
+        nullptr, /* setElement    */                                          \
+        nullptr, /* setSpecial    */                                          \
+        nullptr, /* getGenericAttributes  */                                  \
+        nullptr, /* getAttributes  */                                         \
+        nullptr, /* getElementAttributes  */                                  \
+        nullptr, /* getSpecialAttributes  */                                  \
+        nullptr, /* setGenericAttributes  */                                  \
+        nullptr, /* setAttributes  */                                         \
+        nullptr, /* setElementAttributes  */                                  \
+        nullptr, /* setSpecialAttributes  */                                  \
+        nullptr, /* deleteProperty */                                         \
+        nullptr, /* deleteElement */                                          \
+        nullptr, /* deleteSpecial */                                          \
         XPC_WN_JSOp_Enumerate,                                                \
         XPC_WN_JSOp_TypeOf_Object,                                            \
         XPC_WN_JSOp_ThisObject,                                               \
-        XPC_WN_JSOp_Clear                                                     \
     }
 
 
@@ -3872,6 +3868,7 @@ public:
 
 
     bool StartEvaluating(JSObject *scope, JSErrorReporter errorReporter = nullptr);
+
     
 
 
@@ -3882,7 +3879,7 @@ private:
     bool mErrorReporterSet;
     bool mEvaluated;
     intptr_t mContextHasThread;
-    JSAutoEnterCompartment mEnterCompartment;
+    mozilla::Maybe<JSAutoCompartment> mAutoCompartment;
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 
     
@@ -4308,6 +4305,7 @@ public:
 
     CompartmentPrivate(bool wantXrays)
         : wantXrays(wantXrays)
+        , universalXPConnectEnabled(false)
     {
         MOZ_COUNT_CTOR(xpc::CompartmentPrivate);
     }
@@ -4315,6 +4313,13 @@ public:
     ~CompartmentPrivate();
 
     bool wantXrays;
+
+    
+    
+    
+    
+    bool universalXPConnectEnabled;
+
     nsAutoPtr<JSObject2JSObjectMap> waiverWrapperMap;
     nsAutoPtr<DOMExpandoMap> domExpandoMap;
 
@@ -4374,6 +4379,30 @@ GetCompartmentPrivate(JSObject *object)
 
     MOZ_ASSERT(compartment);
     return GetCompartmentPrivate(compartment);
+}
+
+inline bool IsUniversalXPConnectEnabled(JSContext *cx)
+{
+    JSCompartment *compartment = js::GetContextCompartment(cx);
+    if (!compartment)
+        return false;
+    CompartmentPrivate *priv =
+      static_cast<CompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
+    if (!priv)
+        return false;
+    return priv->universalXPConnectEnabled;
+}
+
+inline void EnableUniversalXPConnect(JSContext *cx)
+{
+    JSCompartment *compartment = js::GetContextCompartment(cx);
+    if (!compartment)
+        return;
+    CompartmentPrivate *priv =
+      static_cast<CompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
+    if (!priv)
+        return;
+    priv->universalXPConnectEnabled = true;
 }
 
 }

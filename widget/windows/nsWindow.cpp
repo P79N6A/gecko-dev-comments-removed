@@ -7082,13 +7082,15 @@ bool nsWindow::OnResize(nsIntRect &aWindowRect)
   }
 #endif
 
+  bool result = mWidgetListener ?
+                mWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height) : false;
+
   
   if (mAttachedWidgetListener) {
-    mAttachedWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height);
+    return mAttachedWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height);
   }
 
-  return mWidgetListener ?
-         mWidgetListener->WindowResized(this, aWindowRect.width, aWindowRect.height) : false;
+  return result;
 }
 
 bool nsWindow::OnHotKey(WPARAM wParam, LPARAM lParam)

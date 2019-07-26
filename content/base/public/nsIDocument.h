@@ -1771,8 +1771,8 @@ protected:
   
   nsNodeInfoManager* mNodeInfoManager; 
   nsRefPtr<mozilla::css::Loader> mCSSLoader;
-  mozilla::css::ImageLoader* mStyleImageLoader; 
-  nsHTMLStyleSheet* mAttrStyleSheet;
+  nsRefPtr<mozilla::css::ImageLoader> mStyleImageLoader;
+  nsRefPtr<nsHTMLStyleSheet> mAttrStyleSheet;
 
   
   

@@ -1158,6 +1158,11 @@ nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
   if (!aDocument)
     return;
 
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
   if (mCurrentRequestFlags & REQUEST_SHOULD_BE_TRACKED)
     aDocument->AddImage(mCurrentRequest);
   if (mPendingRequestFlags & REQUEST_SHOULD_BE_TRACKED)
@@ -1171,6 +1176,11 @@ nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
   nsCOMPtr<nsIDocument> doc = GetOurCurrentDoc();
   if (!doc)
     return;
+
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
 
   if (mCurrentRequestFlags & REQUEST_SHOULD_BE_TRACKED)
     doc->RemoveImage(mCurrentRequest);

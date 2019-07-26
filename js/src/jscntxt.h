@@ -693,6 +693,7 @@ struct JSRuntime : js::RuntimeFriendFields
     bool needZealousGC() {
         if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
             if (gcZeal() == js::gc::ZealAllocValue ||
+                gcZeal() == js::gc::ZealPurgeAnalysisValue ||
                 (gcZeal() >= js::gc::ZealIncrementalRootsThenFinish &&
                  gcZeal() <= js::gc::ZealIncrementalMultipleSlices))
             {
@@ -712,6 +713,9 @@ struct JSRuntime : js::RuntimeFriendFields
     JSGCCallback        gcCallback;
     js::GCSliceCallback gcSliceCallback;
     JSFinalizeCallback  gcFinalizeCallback;
+
+    js::AnalysisPurgeCallback analysisPurgeCallback;
+    uint64_t            analysisPurgeTriggerBytes;
 
   private:
     
@@ -1210,7 +1214,55 @@ struct JSContext : js::ContextFriendFields
     
     JSCompartment       *compartment;
 
-    inline void setCompartment(JSCompartment *compartment);
+    inline void setCompartment(JSCompartment *c) { compartment = c; }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  private:
+    unsigned            enterCompartmentDepth_;
+  public:
+    inline bool hasEnteredCompartment() const;
+    inline void enterCompartment(JSCompartment *c);
+    inline void leaveCompartment(JSCompartment *c);
+
+    
+  private:
+    struct SavedFrameChain {
+        SavedFrameChain(JSCompartment *comp, unsigned count)
+          : compartment(comp), enterCompartmentCount(count) {}
+        JSCompartment *compartment;
+        unsigned enterCompartmentCount;
+    };
+    typedef js::Vector<SavedFrameChain, 1, js::SystemAllocPolicy> SaveStack;
+    SaveStack           savedFrameChains_;
+  public:
+    bool saveFrameChain();
+    void restoreFrameChain();
+
+    
+
+
+
+
+  private:
+    JSObject *defaultCompartmentObject_;
+  public:
+    inline void setDefaultCompartmentObject(JSObject *obj);
+    inline void setDefaultCompartmentObjectIfUnset(JSObject *obj);
+    JSObject *maybeDefaultCompartmentObject() const { return defaultCompartmentObject_; }
 
     
     js::ContextStack    stack;
@@ -1226,9 +1278,6 @@ struct JSContext : js::ContextFriendFields
     inline js::FrameRegs* maybeRegs() const { return stack.maybeRegs(); }
 
     
-    void resetCompartment();
-
-    
     void wrapPendingException();
 
   private:
@@ -1236,9 +1285,6 @@ struct JSContext : js::ContextFriendFields
     js::frontend::ParseMapPool *parseMapPool_;
 
   public:
-    
-    JSObject            *globalObject;
-
     
     JSSharpObjectMap    sharpObjectMap;
     js::BusyArraysSet   busyArrays;
@@ -1342,6 +1388,7 @@ struct JSContext : js::ContextFriendFields
     bool hasAtLineOption() const { return hasRunOption(JSOPTION_ATLINE); }
 
     js::LifoAlloc &tempLifoAlloc() { return runtime->tempLifoAlloc; }
+    inline js::LifoAlloc &analysisLifoAlloc();
     inline js::LifoAlloc &typeLifoAlloc();
 
     inline js::PropertyTree &propertyTree();
@@ -1367,9 +1414,7 @@ struct JSContext : js::ContextFriendFields
     js::mjit::JaegerRuntime &jaegerRuntime() { return runtime->jaegerRuntime(); }
 #endif
 
-    bool                 inferenceEnabled;
-
-    bool typeInferenceEnabled() { return inferenceEnabled; }
+    inline bool typeInferenceEnabled() const;
 
     
     void updateJITEnabled();
@@ -1442,8 +1487,8 @@ struct JSContext : js::ContextFriendFields
     void setPendingException(js::Value v);
 
     void clearPendingException() {
-        this->throwing = false;
-        this->exception.setUndefined();
+        throwing = false;
+        exception.setUndefined();
     }
 
 #ifdef DEBUG
@@ -1834,9 +1879,6 @@ js_HandleExecutionInterrupt(JSContext *cx);
 
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
-
-extern JSScript *
-js_GetCurrentScript(JSContext* cx);
 
 
 

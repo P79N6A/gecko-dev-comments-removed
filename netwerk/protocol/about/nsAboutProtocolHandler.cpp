@@ -3,8 +3,7 @@
 
 
 
-#include "IPCMessageUtils.h"
-#include "mozilla/net/NeckoMessageUtils.h"
+#include "base/basictypes.h"
 
 #include "nsAboutProtocolHandler.h"
 #include "nsIURI.h"
@@ -290,31 +289,6 @@ nsNestedAboutURI::Write(nsIObjectOutputStream* aStream)
     }
 
     return NS_OK;
-}
-
-
-bool
-nsNestedAboutURI::Read(const IPC::Message *aMsg, void **aIter)
-{
-    if (!nsSimpleNestedURI::Read(aMsg, aIter))
-        return false;
-
-    IPC::URI uri;
-    if (!ReadParam(aMsg, aIter, &uri))
-        return false;
-
-    mBaseURI = uri;
-
-    return true;
-}
-
-void
-nsNestedAboutURI::Write(IPC::Message *aMsg)
-{
-    nsSimpleNestedURI::Write(aMsg);
-
-    IPC::URI uri(mBaseURI);
-    WriteParam(aMsg, uri);
 }
 
 

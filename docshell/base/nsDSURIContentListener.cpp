@@ -11,6 +11,7 @@
 #include "nsDocShellCID.h"
 #include "nsIWebNavigationInfo.h"
 #include "nsIDOMWindow.h"
+#include "nsNetUtil.h"
 #include "nsAutoPtr.h"
 #include "nsIHttpChannel.h"
 #include "nsIScriptSecurityManager.h"
@@ -258,9 +259,15 @@ nsDSURIContentListener::SetParentContentListener(nsIURIContentListener*
 
 bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
                                                         const nsAString& policy) {
+    static const char allowFrom[] = "allow-from ";
+    const PRUint32 allowFromLen = ArrayLength(allowFrom) - 1;
+    bool isAllowFrom =
+        StringHead(policy, allowFromLen).LowerCaseEqualsLiteral(allowFrom);
+
     
     if (!policy.LowerCaseEqualsLiteral("deny") &&
-        !policy.LowerCaseEqualsLiteral("sameorigin"))
+        !policy.LowerCaseEqualsLiteral("sameorigin") &&
+        !isAllowFrom)
         return true;
 
     nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(request);
@@ -311,9 +318,7 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
                parentDocShellItem) {
 
             nsCOMPtr<nsIDocShell> curDocShell = do_QueryInterface(curDocShellItem);
-            bool isContentBoundary;
-            curDocShell->GetIsContentBoundary(&isContentBoundary);
-            if (isContentBoundary) {
+            if (curDocShell && curDocShell->GetIsContentBoundary()) {
               break;
             }
 
@@ -344,17 +349,31 @@ bool nsDSURIContentListener::CheckOneFrameOptionsPolicy(nsIRequest *request,
             return false;
         }
 
+        topDoc = do_GetInterface(curDocShellItem);
+        nsCOMPtr<nsIURI> topUri;
+        topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
+        nsCOMPtr<nsIURI> uri;
+
         
         
         if (policy.LowerCaseEqualsLiteral("sameorigin")) {
-            nsCOMPtr<nsIURI> uri;
             httpChannel->GetURI(getter_AddRefs(uri));
-            topDoc = do_GetInterface(curDocShellItem);
-            nsCOMPtr<nsIURI> topUri;
-            topDoc->NodePrincipal()->GetURI(getter_AddRefs(topUri));
             rv = ssm->CheckSameOriginURI(uri, topUri, true);
             if (NS_FAILED(rv))
                 return false; 
+        }
+
+        
+        
+        if (isAllowFrom) {
+            rv = NS_NewURI(getter_AddRefs(uri),
+                           Substring(policy, allowFromLen));
+            if (NS_FAILED(rv))
+              return false;
+
+            rv = ssm->CheckSameOriginURI(uri, topUri, true);
+            if (NS_FAILED(rv))
+                return false;
         }
     }
 

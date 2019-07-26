@@ -50,7 +50,7 @@ class WeakCache : public HashMap<Key, Value, HashPolicy, AllocPolicy> {
                 
                 
                 
-                e.rekeyFront(k);
+                
             }
         }
 

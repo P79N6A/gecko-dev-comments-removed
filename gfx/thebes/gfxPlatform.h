@@ -378,7 +378,9 @@ public:
 
     
     static bool UseAzureContentDrawing();
-    
+
+    static bool OffMainThreadCompositingEnabled();
+
     
 
 

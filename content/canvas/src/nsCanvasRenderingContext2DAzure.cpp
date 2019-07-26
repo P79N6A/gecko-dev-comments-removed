@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "base/basictypes.h"
 #include "nsCanvasRenderingContext2DAzure.h"
@@ -101,7 +101,7 @@
 #include "gfxWindowsPlatform.h"
 #endif
 
-
+// windows.h (included by chromium code) defines this, in its infinite wisdom
 #undef DrawText
 
 using namespace mozilla;
@@ -118,7 +118,7 @@ static float kDefaultFontSize = 10.0;
 static NS_NAMED_LITERAL_STRING(kDefaultFontName, "sans-serif");
 static NS_NAMED_LITERAL_STRING(kDefaultFontStyle, "10px sans-serif");
 
-
+/* Memory reporter stuff */
 static nsIMemoryReporter *gCanvasAzureMemoryReporter = nullptr;
 static int64_t gCanvasAzureMemoryUsed = 0;
 
@@ -126,9 +126,9 @@ static int64_t GetCanvasAzureMemoryUsed() {
   return gCanvasAzureMemoryUsed;
 }
 
-
-
-
+// This is KIND_OTHER because it's not always clear where in memory the pixels
+// of a canvas are stored.  Furthermore, this memory will be tracked by the
+// underlying surface implementations.  See bug 655638 for details.
 NS_MEMORY_REPORTER_IMPLEMENT(CanvasAzureMemory,
   "canvas-2d-pixel-bytes",
   KIND_OTHER,
@@ -169,15 +169,15 @@ public:
 protected:
   friend class CanvasGeneralPattern;
 
-  
+  // Beginning of linear gradient.
   Point mBegin;
-  
+  // End of linear gradient.
   Point mEnd;
 };
 
-
-
-
+// This class is named 'GeneralCanvasPattern' instead of just
+// 'GeneralPattern' to keep Windows PGO builds from confusing the
+// GeneralPattern class in gfxContext.cpp with this one.
 
 class CanvasGeneralPattern
 {
@@ -197,8 +197,8 @@ public:
                     Style aStyle,
                     DrawTarget *aRT)
   {
-    
-    
+    // This should only be called once or the mPattern destructor will
+    // not be executed.
     NS_ASSERTION(!mPattern, "ForStyle() should only be called once on CanvasGeneralPattern!");
 
     const ContextState &state = aCtx->CurrentState();
@@ -251,15 +251,15 @@ public:
   Pattern *mPattern;
 };
 
-
-
-
-
-
-
-
-
-
+/* This is an RAII based class that can be used as a drawtarget for
+ * operations that need a shadow drawn. It will automatically provide a
+ * temporary target when needed, and if so blend it back with a shadow.
+ *
+ * aBounds specifies the bounds of the drawing operation that will be
+ * drawn to the target, it is given in device space! This function will
+ * change aBounds to incorporate shadow bounds. If this is NULL the drawing
+ * operation will be assumed to cover an infinite rect.
+ */
 class AdjustedTarget
 {
 public:
@@ -289,17 +289,17 @@ public:
 
     Float blurRadius = mSigma * 3;
 
-    
-    
+    // We need to enlarge and possibly offset our temporary surface
+    // so that things outside of the canvas may cast shadows.
     mTempRect.Inflate(Margin(blurRadius + NS_MAX<Float>(state.shadowOffset.x, 0),
                              blurRadius + NS_MAX<Float>(state.shadowOffset.y, 0),
                              blurRadius + NS_MAX<Float>(-state.shadowOffset.x, 0),
                              blurRadius + NS_MAX<Float>(-state.shadowOffset.y, 0)));
 
     if (aBounds) {
-      
-      
-      
+      // We actually include the bounds of the shadow blur, this makes it
+      // easier to execute the actual blur on hardware, and shouldn't affect
+      // the amount of pixels that need to be touched.
       aBounds->Inflate(Margin(blurRadius, blurRadius,
                               blurRadius, blurRadius));
       mTempRect = mTempRect.Intersect(*aBounds);
@@ -315,8 +315,8 @@ public:
                                              FORMAT_B8G8R8A8);
 
     if (!mTarget) {
-      
-      
+      // XXX - Deal with the situation where our temp size is too big to
+      // fit in a texture.
       mTarget = ctx->mTarget;
       mCtx = nullptr;
     } else {
@@ -385,8 +385,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsCanvasGradientAzure, NS_CANVASGRADIENTAZURE_PRIV
 NS_IMPL_ADDREF(nsCanvasGradientAzure)
 NS_IMPL_RELEASE(nsCanvasGradientAzure)
 
-
-
+// XXX
+// DOMCI_DATA(CanvasGradient, nsCanvasGradientAzure)
 
 NS_INTERFACE_MAP_BEGIN(nsCanvasGradientAzure)
   NS_INTERFACE_MAP_ENTRY(nsCanvasGradientAzure)
@@ -400,8 +400,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsCanvasPatternAzure, NS_CANVASPATTERNAZURE_PRIVAT
 NS_IMPL_ADDREF(nsCanvasPatternAzure)
 NS_IMPL_RELEASE(nsCanvasPatternAzure)
 
-
-
+// XXX
+// DOMCI_DATA(CanvasPattern, nsCanvasPatternAzure)
 
 NS_INTERFACE_MAP_BEGIN(nsCanvasPatternAzure)
   NS_INTERFACE_MAP_ENTRY(nsCanvasPatternAzure)
@@ -410,9 +410,9 @@ NS_INTERFACE_MAP_BEGIN(nsCanvasPatternAzure)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-
-
-
+/**
+ ** nsTextMetricsAzure
+ **/
 #define NS_TEXTMETRICSAZURE_PRIVATE_IID \
   {0x9793f9e7, 0x9dc1, 0x4e9c, {0x81, 0xc8, 0xfc, 0xa7, 0x14, 0xf4, 0x30, 0x79}}
 class nsTextMetricsAzure : public nsIDOMTextMetrics
@@ -440,8 +440,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsTextMetricsAzure, NS_TEXTMETRICSAZURE_PRIVATE_II
 NS_IMPL_ADDREF(nsTextMetricsAzure)
 NS_IMPL_RELEASE(nsTextMetricsAzure)
 
-
-
+// XXX
+// DOMCI_DATA(TextMetrics, nsTextMetricsAzure)
 
 NS_INTERFACE_MAP_BEGIN(nsTextMetricsAzure)
   NS_INTERFACE_MAP_ENTRY(nsTextMetricsAzure)
@@ -450,7 +450,7 @@ NS_INTERFACE_MAP_BEGIN(nsTextMetricsAzure)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-
+// Cap sigma to avoid overly large temp surfaces.
 const Float SIGMA_MAX = 100;
 
 class CanvasRenderingContext2DUserDataAzure : public LayerUserData {
@@ -524,8 +524,8 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsCanvasRenderingContext2DAzure)
   return nsCCUncollectableMarker::sGeneration && tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
-
-
+// XXX
+// DOMCI_DATA(CanvasRenderingContext2D, nsCanvasRenderingContext2DAzure)
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsCanvasRenderingContext2DAzure)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
@@ -536,12 +536,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsCanvasRenderingContext2DAzure)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(CanvasRenderingContext2D)
 NS_INTERFACE_MAP_END
 
+/**
+ ** CanvasRenderingContext2D impl
+ **/
 
 
-
-
-
-
+// Initialize our static variables.
 uint32_t nsCanvasRenderingContext2DAzure::sNumLivingContexts = 0;
 uint8_t (*nsCanvasRenderingContext2DAzure::sUnpremultiplyTable)[256] = nullptr;
 uint8_t (*nsCanvasRenderingContext2DAzure::sPremultiplyTable)[256] = nullptr;
@@ -561,8 +561,8 @@ AzureCanvasEnabled()
 nsresult
 NS_NewCanvasRenderingContext2DAzure(nsIDOMCanvasRenderingContext2D** aResult)
 {
-  
-  
+  // XXX[nrc] remove this check when Thebes canvas is removed
+  // (because we will always support Azure)
   if (!AzureCanvasEnabled()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
@@ -589,7 +589,7 @@ nsCanvasRenderingContext2DAzure::nsCanvasRenderingContext2DAzure()
 nsCanvasRenderingContext2DAzure::~nsCanvasRenderingContext2DAzure()
 {
   Reset();
-  
+  // Drop references from all CanvasRenderingContext2DUserDataAzure to this context
   for (uint32_t i = 0; i < mUserDatas.Length(); ++i) {
     mUserDatas[i]->Forget();
   }
@@ -617,8 +617,8 @@ nsCanvasRenderingContext2DAzure::ParseColor(const nsAString& aString,
                           ? mCanvasElement->OwnerDoc()
                           : nullptr;
 
-  
-  
+  // Pass the CSS Loader object to the parser, to allow parser error
+  // reports to include the outer window ID.
   nsCSSParser parser(document ? document->CSSLoader() : nullptr);
   nsCSSValue value;
   if (!parser.ParseColorString(aString, nullptr, 0, value)) {
@@ -628,7 +628,7 @@ nsCanvasRenderingContext2DAzure::ParseColor(const nsAString& aString,
   nsIPresShell* presShell = GetPresShell();
   nsRefPtr<nsStyleContext> parentContext;
   if (mCanvasElement && mCanvasElement->IsInDoc()) {
-    
+    // Inherit from the canvas element.
     parentContext = nsComputedDOMStyle::GetStyleContextForElement(
       mCanvasElement, nullptr, presShell);
   }
@@ -646,16 +646,16 @@ nsCanvasRenderingContext2DAzure::Reset()
     mCanvasElement->InvalidateCanvas();
   }
 
-  
-  
+  // only do this for non-docshell created contexts,
+  // since those are the ones that we created a surface for
   if (mValid && !mDocShell) {
     gCanvasAzureMemoryUsed -= mWidth * mHeight * 4;
   }
 
   mTarget = nullptr;
 
-  
-  
+  // Since the target changes the backing texture will change, and this will
+  // no longer be valid.
   mThebesSurface = nullptr;
   mValid = false;
   mIsEntireFrameInvalid = false;
@@ -739,12 +739,12 @@ nsCanvasRenderingContext2DAzure::GetStyleAsStringOrInterface(nsAString& aStr,
   return supports;
 }
 
-
+// static
 void
 nsCanvasRenderingContext2DAzure::StyleColorToString(const nscolor& aColor, nsAString& aStr)
 {
-  
-  
+  // We can't reuse the normal CSS color stringification code,
+  // because the spec calls for a different algorithm for canvas.
   if (NS_GET_A(aColor) == 255) {
     CopyUTF8toUTF16(nsPrintfCString("#%02x%02x%02x",
                                     NS_GET_R(aColor),
@@ -839,7 +839,7 @@ nsCanvasRenderingContext2DAzure::SetDimensions(int32_t width, int32_t height)
 {
   RefPtr<DrawTarget> target;
 
-  
+  // Zero sized surfaces cause issues, so just go with 1x1.
   if (height == 0 || width == 0) {
     mZero = true;
     height = 1;
@@ -848,7 +848,7 @@ nsCanvasRenderingContext2DAzure::SetDimensions(int32_t width, int32_t height)
     mZero = false;
   }
 
-  
+  // Check that the dimensions are sane
   IntSize size(width, height);
   if (size.width <= 0xFFFF && size.height <= 0xFFFF &&
       size.width >= 0 && size.height >= 0) {
@@ -895,15 +895,15 @@ nsCanvasRenderingContext2DAzure::Initialize(int32_t width, int32_t height)
   mHeight = height;
 
   if (!mValid) {
-    
-    
-    
+    // Create a dummy target in the hopes that it will help us deal with users
+    // calling into us after having changed the size where the size resulted
+    // in an inability to create a correct DrawTarget.
     mTarget = gfxPlatform::GetPlatform()->CreateOffscreenDrawTarget(IntSize(1, 1), FORMAT_B8G8R8A8);
   }
 
   mResetLayer = true;
 
-  
+  // set up the initial canvas defaults
   mStyleStack.Clear();
   mPathBuilder = nullptr;
   mPath = nullptr;
@@ -918,8 +918,8 @@ nsCanvasRenderingContext2DAzure::Initialize(int32_t width, int32_t height)
 
   if (mTarget) {
     mTarget->ClearRect(mgfx::Rect(Point(0, 0), Size(mWidth, mHeight)));
-    
-    
+    // always force a redraw, because if the surface dimensions were reset
+    // then the surface became cleared, and we need to redraw everything.
     Redraw();
   }
 
@@ -934,14 +934,14 @@ nsCanvasRenderingContext2DAzure::InitializeWithTarget(DrawTarget *target, int32_
   NS_ASSERTION(mCanvasElement, "Must have a canvas element!");
   mDocShell = nullptr;
 
-  
-  
-  
-  
-  
-  
-  
-  
+  // This first time this is called on this object is via
+  // nsHTMLCanvasElement::GetContext. If target was non-null then mTarget is
+  // non-null, otherwise we'll return an error here and GetContext won't
+  // return this context object and we'll never enter this code again.
+  // All other times this method is called, if target is null then
+  // mTarget won't be changed, i.e. it will remain non-null, or else it
+  // will be set to non-null.
+  // In all cases, any usable canvas context will have non-null mTarget.
 
   if (target) {
     mValid = true;
@@ -974,9 +974,9 @@ nsCanvasRenderingContext2DAzure::SetIsOpaque(bool isOpaque)
   mOpaque = isOpaque;
 
   if (mValid) {
-    
-
-
+    /* If we've already been created, let SetDimensions take care of
+      * recreating our surface
+      */
     return SetDimensions(mWidth, mHeight);
   }
 
@@ -992,9 +992,9 @@ nsCanvasRenderingContext2DAzure::SetIsIPC(bool isIPC)
   mIPC = isIPC;
 
   if (mValid) {
-    
-
-
+    /* If we've already been created, let SetDimensions take care of
+      * recreating our surface
+      */
     return SetDimensions(mWidth, mHeight);
   }
 
@@ -1025,8 +1025,8 @@ nsCanvasRenderingContext2DAzure::Render(gfxContext *ctx, gfxPattern::GraphicsFil
   if (mOpaque)
       ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
 
-  
-  
+  // XXX I don't want to use PixelSnapped here, but layout doesn't guarantee
+  // pixel alignment for this stuff!
   ctx->NewPath();
   ctx->PixelSnappedRectangleAndSetPattern(gfxRect(0, 0, mWidth, mHeight), pat);
   ctx->Fill();
@@ -1116,9 +1116,9 @@ nsCanvasRenderingContext2DAzure::GetSurfaceFormat() const
   return mOpaque ? FORMAT_B8G8R8X8 : FORMAT_B8G8R8A8;
 }
 
-
-
-
+//
+// nsCanvasRenderingContext2DAzure impl
+//
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
@@ -1128,9 +1128,9 @@ nsCanvasRenderingContext2DAzure::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
   return NS_OK;
 }
 
-
-
-
+//
+// state
+//
 
 void
 nsCanvasRenderingContext2DAzure::Save()
@@ -1171,9 +1171,9 @@ nsCanvasRenderingContext2DAzure::MozRestore()
   return NS_OK;
 }
 
-
-
-
+//
+// transformations
+//
 
 void
 nsCanvasRenderingContext2DAzure::Scale(double x, double y, ErrorResult& error)
@@ -1321,7 +1321,7 @@ MatrixToJSObject(JSContext* cx, const Matrix& matrix, ErrorResult& error)
       DOUBLE_TO_JSVAL(matrix._31), DOUBLE_TO_JSVAL(matrix._32)
   };
 
-  
+  // XXX Should we enter GetWrapper()'s compartment?
   JSObject* obj = JS_NewArrayObject(cx, 6, elts);
   if  (!obj) {
       error.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -1334,7 +1334,7 @@ ObjectToMatrix(JSContext* cx, JSObject& obj, Matrix& matrix, ErrorResult& error)
 {
   uint32_t length;
   if (!JS_GetArrayLength(cx, &obj, &length) || length != 6) {
-    
+    // Not an array-like thing or wrong size
     error.Throw(NS_ERROR_INVALID_ARG);
     return false;
   }
@@ -1353,7 +1353,7 @@ ObjectToMatrix(JSContext* cx, JSObject& obj, Matrix& matrix, ErrorResult& error)
       return false;
     }
     if (!FloatValidate(d)) {
-      
+      // This is weird, but it's the behavior of SetTransform()
       return false;
     }
     *elts[i] = Float(d);
@@ -1426,7 +1426,7 @@ nsCanvasRenderingContext2DAzure::SetMozCurrentTransformInverse(JSContext* cx,
 
   Matrix newCTMInverse;
   if (ObjectToMatrix(cx, currentTransform, newCTMInverse, error)) {
-    
+    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     if (newCTMInverse.Invert()) {
       mTarget->SetTransform(newCTMInverse);
     }
@@ -1477,9 +1477,9 @@ nsCanvasRenderingContext2DAzure::GetMozCurrentTransformInverse(JSContext* cx,
   return rv.ErrorCode();
 }
 
-
-
-
+//
+// colors
+//
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::SetGlobalAlpha(float aGlobalAlpha)
@@ -1776,9 +1776,9 @@ nsCanvasRenderingContext2DAzure::GetFillStyle_multi(nsAString& aStr, nsISupports
   return NS_OK;
 }
 
-
-
-
+//
+// gradients and patterns
+//
 already_AddRefed<nsIDOMCanvasGradient>
 nsCanvasRenderingContext2DAzure::CreateLinearGradient(double x0, double y0, double x1, double y1,
                                                       ErrorResult& aError)
@@ -1866,10 +1866,10 @@ nsCanvasRenderingContext2DAzure::CreatePattern(const HTMLImageOrCanvasOrVideoEle
       return NULL;
     }
 
-    
+    // Special case for Canvas, which could be an Azure canvas!
     nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
     if (srcCanvas) {
-      
+      // This might not be an Azure canvas!
       RefPtr<SourceSurface> srcSurf = srcCanvas->GetSurfaceSnapshot();
 
       nsRefPtr<nsCanvasPatternAzure> pat =
@@ -1883,8 +1883,8 @@ nsCanvasRenderingContext2DAzure::CreatePattern(const HTMLImageOrCanvasOrVideoEle
     htmlElement = element.GetAsHTMLVideoElement();
   }
 
-  
-  
+  // The canvas spec says that createPattern should use the first frame
+  // of animated images
   nsLayoutUtils::SurfaceFromElementResult res =
     nsLayoutUtils::SurfaceFromElement(htmlElement,
       nsLayoutUtils::SFE_WANT_FIRST_FRAME | nsLayoutUtils::SFE_WANT_NEW_SURFACE);
@@ -1894,7 +1894,7 @@ nsCanvasRenderingContext2DAzure::CreatePattern(const HTMLImageOrCanvasOrVideoEle
     return NULL;
   }
 
-  
+  // Ignore nullptr cairo surfaces! See bug 666312.
   if (!res.mSurface->CairoSurface() || res.mSurface->CairoStatus()) {
     return NULL;
   }
@@ -1924,9 +1924,9 @@ nsCanvasRenderingContext2DAzure::CreatePattern(nsIDOMHTMLElement *image,
   return rv.ErrorCode();
 }
 
-
-
-
+//
+// shadows
+//
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::SetShadowOffsetX(float x)
 {
@@ -1994,9 +1994,9 @@ nsCanvasRenderingContext2DAzure::GetMozShadowColor(nsAString& color)
   return NS_OK;
 }
 
-
-
-
+//
+// rects
+//
 
 void
 nsCanvasRenderingContext2DAzure::ClearRect(double x, double y, double w,
@@ -2031,15 +2031,15 @@ nsCanvasRenderingContext2DAzure::FillRect(double x, double y, double w,
   if (state.patternStyles[STYLE_FILL]) {
     nsCanvasPatternAzure::RepeatMode repeat = 
       state.patternStyles[STYLE_FILL]->mRepeat;
-    
+    // In the FillRect case repeat modes are easy to deal with.
     bool limitx = repeat == nsCanvasPatternAzure::NOREPEAT || repeat == nsCanvasPatternAzure::REPEATY;
     bool limity = repeat == nsCanvasPatternAzure::NOREPEAT || repeat == nsCanvasPatternAzure::REPEATX;
 
     IntSize patternSize =
       state.patternStyles[STYLE_FILL]->mSurface->GetSize();
 
-    
-    
+    // We always need to execute painting for non-over operators, even if
+    // we end up with w/h = 0.
     if (limitx) {
       if (x < 0) {
         w += x;
@@ -2172,9 +2172,9 @@ nsCanvasRenderingContext2DAzure::StrokeRect(float x, float y, float w, float h)
   return NS_OK;
 }
 
-
-
-
+//
+// path bits
+//
 
 void
 nsCanvasRenderingContext2DAzure::BeginPath()
@@ -2332,7 +2332,7 @@ nsCanvasRenderingContext2DAzure::ArcTo(double x1, double y1, double x2,
 
   EnsureWritablePath();
 
-  
+  // Current point in user space!
   Point p0;
   if (mPathBuilder) {
     p0 = mPathBuilder->CurrentPoint();
@@ -2348,8 +2348,8 @@ nsCanvasRenderingContext2DAzure::ArcTo(double x1, double y1, double x2,
   Point p1(x1, y1);
   Point p2(x2, y2);
 
-  
-  
+  // Execute these calculations in double precision to avoid cumulative
+  // rounding errors.
   double dir, a2, b2, c2, cosx, sinx, d, anx, any,
           bnx, bny, x3, y3, x4, y4, cx, cy, angle0, angle1;
   bool anticlockwise;
@@ -2359,7 +2359,7 @@ nsCanvasRenderingContext2DAzure::ArcTo(double x1, double y1, double x2,
     return;
   }
 
-  
+  // Check for colinearity
   dir = (p2.x - p1.x) * (p0.y - p1.y) + (p2.y - p1.y) * (p1.x - p0.x);
   if (dir == 0) {
     LineTo(p1.x, p1.y);
@@ -2367,9 +2367,9 @@ nsCanvasRenderingContext2DAzure::ArcTo(double x1, double y1, double x2,
   }
 
 
-  
-  
-  
+  // XXX - Math for this code was already available from the non-azure code
+  // and would be well tested. Perhaps converting to bezier directly might
+  // be more efficient longer run.
   a2 = (p0.x-x1)*(p0.x-x1) + (p0.y-y1)*(p0.y-y1);
   b2 = (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2);
   c2 = (p0.x-x2)*(p0.x-x2) + (p0.y-y2)*(p0.y-y2);
@@ -2501,7 +2501,7 @@ nsCanvasRenderingContext2DAzure::EnsureWritablePath()
 }
 
 void
-nsCanvasRenderingContext2DAzure::EnsureUserSpacePath(bool aCommitTransform )
+nsCanvasRenderingContext2DAzure::EnsureUserSpacePath(bool aCommitTransform /* = true */)
 {
   FillRule fillRule = CurrentState().fillRule;
 
@@ -2551,31 +2551,31 @@ nsCanvasRenderingContext2DAzure::EnsureUserSpacePath(bool aCommitTransform )
 void
 nsCanvasRenderingContext2DAzure::TransformWillUpdate()
 {
-  
-  
+  // Store the matrix that would transform the current path to device
+  // space.
   if (mPath || mPathBuilder) {
     if (!mPathTransformWillUpdate) {
-      
-      
-      
-      
+      // If the transform has already been updated, but a device space builder
+      // has not been created yet mPathToDS contains the right transform to
+      // transform the current mPath into device space.
+      // We should leave it alone.
       mPathToDS = mTarget->GetTransform();
     }
     mPathTransformWillUpdate = true;
   }
 }
 
+//
+// text
+//
 
-
-
-
-
-
-
-
-
-
-
+/**
+ * Helper function for SetFont that creates a style rule for the given font.
+ * @param aFont The CSS font string
+ * @param aNode The canvas element
+ * @param aResult Pointer in which to place the new style rule.
+ * @remark Assumes all pointer arguments are non-null.
+ */
 static nsresult
 CreateFontStyleRule(const nsAString& aFont,
                     nsINode* aNode,
@@ -2590,8 +2590,8 @@ CreateFontStyleRule(const nsAString& aFont,
   nsIURI* docURL = document->GetDocumentURI();
   nsIURI* baseURL = document->GetDocBaseURI();
 
-  
-  
+  // Pass the CSS Loader object to the parser, to allow parser error reports
+  // to include the outer window ID.
   nsCSSParser parser(document->CSSLoader());
 
   nsresult rv = parser.ParseStyleAttribute(EmptyString(), docURL, baseURL,
@@ -2624,13 +2624,13 @@ void
 nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font,
                                          ErrorResult& error)
 {
-  
-
-
-
-
-
-
+  /*
+    * If font is defined with relative units (e.g. ems) and the parent
+    * style context changes in between calls, setting the font to the
+    * same value as previous could result in a different computed value,
+    * so we cannot have the optimization where we check if the new font
+    * string is equal to the old one.
+    */
 
   if (!mCanvasElement && !mDocShell) {
     NS_WARNING("Canvas element must be non-null or a docshell must be provided");
@@ -2655,18 +2655,18 @@ nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font,
   }
 
   css::Declaration *declaration = rule->GetDeclaration();
-  
-  
-  
-  
-  
-  
+  // The easiest way to see whether we got a syntax error or whether
+  // we got 'inherit' or 'initial' is to look at font-size-adjust,
+  // which the shorthand resets to either 'none' or
+  // '-moz-system-font'.
+  // We know the declaration is not !important, so we can use
+  // GetNormalBlock().
   const nsCSSValue *fsaVal =
     declaration->GetNormalBlock()->ValueFor(eCSSProperty_font_size_adjust);
   if (!fsaVal || (fsaVal->GetUnit() != eCSSUnit_None &&
                   fsaVal->GetUnit() != eCSSUnit_System_Font)) {
-      
-      
+      // We got an all-property value or a syntax error.  The spec says
+      // this value must be ignored.
     return;
   }
 
@@ -2674,18 +2674,18 @@ nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font,
 
   nsStyleSet* styleSet = presShell->StyleSet();
 
-  
-  
+  // have to get a parent style context for inherit-like relative
+  // values (2em, bolder, etc.)
   nsRefPtr<nsStyleContext> parentContext;
 
   if (mCanvasElement && mCanvasElement->IsInDoc()) {
-      
+      // inherit from the canvas element
       parentContext = nsComputedDOMStyle::GetStyleContextForElement(
               mCanvasElement,
               nullptr,
               presShell);
   } else {
-    
+    // otherwise inherit from default (10px sans-serif)
     nsRefPtr<css::StyleRule> parentRule;
     error = CreateFontStyleRule(NS_LITERAL_STRING("10px sans-serif"),
                                 document,
@@ -2721,14 +2721,14 @@ nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font,
     language = presShell->GetPresContext()->GetLanguageFromCharset();
   }
 
-  
+  // use CSS pixels instead of dev pixels to avoid being affected by page zoom
   const uint32_t aupcp = nsPresContext::AppUnitsPerCSSPixel();
-  
-  
-  
-  
-  
-  
+  // un-zoom the font size to avoid being affected by text-only zoom
+  //
+  // Purposely ignore the font size that respects the user's minimum
+  // font preference (fontStyle->mFont.size) in favor of the computed
+  // size (fontStyle->mSize).  See
+  // https://bugzilla.mozilla.org/show_bug.cgi?id=698652.
   const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mSize);
 
   bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
@@ -2752,10 +2752,10 @@ nsCanvasRenderingContext2DAzure::SetFont(const nsAString& font,
                                                   presShell->GetPresContext()->GetUserFontSet());
   NS_ASSERTION(CurrentState().fontGroup, "Could not get font group");
 
-  
-  
-  
-  
+  // The font getter is required to be reserialized based on what we
+  // parsed (including having line-height removed).  (Older drafts of
+  // the spec required font sizes be converted to pixels, but that no
+  // longer seems to be required.)
   declaration->GetValue(eCSSProperty_font, CurrentState().font);
 }
 
@@ -2883,13 +2883,13 @@ nsCanvasRenderingContext2DAzure::GetMozTextBaseline(nsAString& tb)
   return NS_OK;
 }
 
-
-
-
-
-
-
-
+/*
+ * Helper function that replaces the whitespace characters in a string
+ * with U+0020 SPACE. The whitespace characters are defined as U+0020 SPACE,
+ * U+0009 CHARACTER TABULATION (tab), U+000A LINE FEED (LF), U+000B LINE
+ * TABULATION, U+000C FORM FEED (FF), and U+000D CARRIAGE RETURN (CR).
+ * @param str The string whose whitespace characters to replace.
+ */
 static inline void
 TextReplaceWhitespaceCharacters(nsAutoString& str)
 {
@@ -2961,16 +2961,16 @@ nsCanvasRenderingContext2DAzure::MeasureText(const nsAString& rawText,
   return rv.ErrorCode();
 }
 
-
-
-
+/**
+ * Used for nsBidiPresUtils::ProcessText
+ */
 struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiProcessor
 {
   typedef nsCanvasRenderingContext2DAzure::ContextState ContextState;
 
   virtual void SetText(const PRUnichar* text, int32_t length, nsBidiDirection direction)
   {
-    mFontgrp->UpdateFontList(); 
+    mFontgrp->UpdateFontList(); // ensure user font generation is current
     mTextRun = mFontgrp->MakeTextRun(text,
                                      length,
                                      mThebes,
@@ -2988,8 +2988,8 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
                                                                mThebes,
                                                                nullptr);
 
-    
-    
+    // this only measures the height; the total width is gotten from the
+    // the return value of ProcessText.
     if (mDoMeasureBoundingBox) {
       textRunMetrics.mBoundingBox.Scale(1.0 / mAppUnitsPerDevPixel);
       mBoundingBox = mBoundingBox.Union(textRunMetrics.mBoundingBox);
@@ -3003,13 +3003,13 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
     gfxPoint point = mPt;
     point.x += xOffset;
 
-    
+    // offset is given in terms of left side of string
     if (mTextRun->IsRightToLeft()) {
-      
-      
-      
-      
-      
+      // Bug 581092 - don't use rounded pixel width to advance to
+      // right-hand end of run, because this will cause different
+      // glyph positioning for LTR vs RTL drawing of the same
+      // glyph string on OS X and DWrite where textrun widths may
+      // involve fractional pixels.
       gfxTextRun::Metrics textRunMetrics =
         mTextRun->MeasureText(0,
                               mTextRun->GetLength(),
@@ -3019,10 +3019,10 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
                               mThebes,
                               nullptr);
       point.x += textRunMetrics.mAdvanceWidth;
-      
-      
-      
-      
+      // old code was:
+      //   point.x += width * mAppUnitsPerDevPixel;
+      // TODO: restore this if/when we move to fractional coords
+      // throughout the text layout process
     }
 
     uint32_t numRuns;
@@ -3049,7 +3049,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
         gfxPlatform::GetPlatform()->GetScaledFontForFont(mCtx->mTarget, font);
 
       if (!scaledFont) {
-        
+        // This can occur when something switched DirectWrite off.
         return;
       }
 
@@ -3095,7 +3095,7 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
       }
 
       if (!glyphBuf.size()) {
-        
+        // This may happen for glyph runs for a 0 size font.
         continue;
       }
 
@@ -3126,34 +3126,34 @@ struct NS_STACK_CLASS nsCanvasBidiProcessorAzure : public nsBidiPresUtils::BidiP
     }
   }
 
-  
+  // current text run
   nsAutoPtr<gfxTextRun> mTextRun;
 
-  
+  // pointer to a screen reference context used to measure text and such
   nsRefPtr<gfxContext> mThebes;
 
-  
+  // Pointer to the draw target we should fill our text to
   nsCanvasRenderingContext2DAzure *mCtx;
 
-  
+  // position of the left side of the string, alphabetic baseline
   gfxPoint mPt;
 
-  
+  // current font
   gfxFontGroup* mFontgrp;
 
-  
+  // dev pixel conversion factor
   uint32_t mAppUnitsPerDevPixel;
 
-  
+  // operation (fill or stroke)
   nsCanvasRenderingContext2DAzure::TextDrawOperation mOp;
 
-  
+  // context state
   ContextState *mState;
 
-  
+  // union of bounding boxes of all runs, needed for shadows
   gfxRect mBoundingBox;
 
-  
+  // true iff the bounding box should be measured
   bool mDoMeasureBoundingBox;
 };
 
@@ -3171,10 +3171,10 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
       (aMaxWidth.WasPassed() && !FloatValidate(aMaxWidth.Value())))
       return NS_ERROR_DOM_SYNTAX_ERR;
 
-  
-  
-  
-  
+  // spec isn't clear on what should happen if aMaxWidth <= 0, so
+  // treat it as an invalid argument
+  // technically, 0 should be an invalid value as well, but 0 is the default
+  // arg, and there is no way to tell if the default was used
   if (aMaxWidth.WasPassed() && aMaxWidth.Value() < 0)
     return NS_ERROR_INVALID_ARG;
 
@@ -3189,15 +3189,15 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   nsIDocument* document = presShell->GetDocument();
 
-  
+  // replace all the whitespace characters with U+0020 SPACE
   nsAutoString textToDraw(aRawText);
   TextReplaceWhitespaceCharacters(textToDraw);
 
-  
+  // for now, default to ltr if not in doc
   bool isRTL = false;
 
   if (mCanvasElement && mCanvasElement->IsInDoc()) {
-    
+    // try to find the closest context
     nsRefPtr<nsStyleContext> canvasStyle =
       nsComputedDOMStyle::GetStyleContextForElement(mCanvasElement,
                                                     nullptr,
@@ -3214,7 +3214,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   const ContextState &state = CurrentState();
 
-  
+  // This is only needed to know if we can know the drawing bounding box easily.
   bool doDrawShadow = aOp == TEXT_DRAW_OPERATION_FILL && NeedToDrawShadow();
 
   nsCanvasBidiProcessorAzure processor;
@@ -3237,8 +3237,8 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   nscoord totalWidthCoord;
 
-  
-  
+  // calls bidi algo twice since it needs the full text width and the
+  // bounding boxes before rendering anything
   nsBidi bidiEngine;
   rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
                                     textToDraw.Length(),
@@ -3259,12 +3259,12 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
     *aWidth = totalWidth;
   }
 
-  
+  // if only measuring, don't need to do any more work
   if (aOp==TEXT_DRAW_OPERATION_MEASURE) {
     return NS_OK;
   }
 
-  
+  // offset pt.x based on text align
   gfxFloat anchorX;
 
   if (state.textAlign == TEXT_ALIGN_CENTER) {
@@ -3279,8 +3279,8 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   processor.mPt.x -= anchorX * totalWidth;
 
-  
-  processor.mFontgrp->UpdateFontList(); 
+  // offset pt.y based on text baseline
+  processor.mFontgrp->UpdateFontList(); // ensure user font generation is current
   NS_ASSERTION(processor.mFontgrp->FontListLength()>0, "font group contains no fonts");
   const gfxFont::Metrics& fontMetrics = processor.mFontgrp->GetFontAt(0)->GetMetrics();
 
@@ -3289,7 +3289,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   switch (state.textBaseline)
   {
   case TEXT_BASELINE_HANGING:
-      
+      // fall through; best we can do with the information available
   case TEXT_BASELINE_TOP:
     anchorY = fontMetrics.emAscent;
     break;
@@ -3297,7 +3297,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
     anchorY = (fontMetrics.emAscent - fontMetrics.emDescent) * .5f;
     break;
   case TEXT_BASELINE_IDEOGRAPHIC:
-    
+    // fall through; best we can do with the information available
   case TEXT_BASELINE_ALPHABETIC:
     anchorY = 0;
     break;
@@ -3310,7 +3310,7 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
 
   processor.mPt.y += anchorY;
 
-  
+  // correct bounding box to get it to be the correct size/position
   processor.mBoundingBox.width = totalWidth;
   processor.mBoundingBox.MoveBy(processor.mPt);
 
@@ -3318,26 +3318,26 @@ nsCanvasRenderingContext2DAzure::DrawOrMeasureText(const nsAString& aRawText,
   processor.mPt.y *= processor.mAppUnitsPerDevPixel;
 
   Matrix oldTransform = mTarget->GetTransform();
-  
-  
+  // if text is over aMaxWidth, then scale the text horizontally such that its
+  // width is precisely aMaxWidth
   if (aMaxWidth.WasPassed() && aMaxWidth.Value() > 0 &&
       totalWidth > aMaxWidth.Value()) {
     Matrix newTransform = oldTransform;
 
-    
-    
+    // Translate so that the anchor point is at 0,0, then scale and then
+    // translate back.
     newTransform.Translate(aX, 0);
     newTransform.Scale(aMaxWidth.Value() / totalWidth, 1);
     newTransform.Translate(-aX, 0);
-    
+    /* we do this to avoid an ICE in the android compiler */
     Matrix androidCompilerBug = newTransform;
     mTarget->SetTransform(androidCompilerBug);
   }
 
-  
+  // save the previous bounding box
   gfxRect boundingBox = processor.mBoundingBox;
 
-  
+  // don't ever need to measure the bounding box twice
   processor.mDoMeasureBoundingBox = false;
 
   rv = nsBidiPresUtils::ProcessText(textToDraw.get(),
@@ -3381,7 +3381,7 @@ nsCanvasRenderingContext2DAzure::GetTextStyle(nsAString& textStyle)
 
 gfxFontGroup *nsCanvasRenderingContext2DAzure::GetCurrentFontStyle()
 {
-  
+  // use lazy initilization for the font group since it's rather expensive
   if (!CurrentState().fontGroup) {
     nsresult rv = SetMozFont(kDefaultFontStyle);
     if (NS_FAILED(rv)) {
@@ -3405,9 +3405,9 @@ gfxFontGroup *nsCanvasRenderingContext2DAzure::GetCurrentFontStyle()
   return CurrentState().fontGroup;
 }
 
-
-
-
+//
+// line caps/joins
+//
 
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::SetLineWidth(float width)
@@ -3435,7 +3435,7 @@ nsCanvasRenderingContext2DAzure::SetLineCap(const nsAString& capstyle)
   } else if (capstyle.EqualsLiteral("square")) {
     cap = CAP_SQUARE;
   } else {
-    
+    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     return;
   }
 
@@ -3484,7 +3484,7 @@ nsCanvasRenderingContext2DAzure::SetLineJoin(const nsAString& joinstyle)
   } else if (joinstyle.EqualsLiteral("miter")) {
     j = JOIN_MITER_OR_BEVEL;
   } else {
-    
+    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     return;
   }
 
@@ -3626,21 +3626,21 @@ nsCanvasRenderingContext2DAzure::IsPointInPath(float x, float y, bool *retVal)
   return NS_OK;
 }
 
+//
+// image
+//
 
+// drawImage(in HTMLImageElement image, in float dx, in float dy);
+//   -- render image from 0,0 at dx,dy top-left coords
+// drawImage(in HTMLImageElement image, in float dx, in float dy, in float sw, in float sh);
+//   -- render image from 0,0 at dx,dy top-left coords clipping it to sw,sh
+// drawImage(in HTMLImageElement image, in float sx, in float sy, in float sw, in float sh, in float dx, in float dy, in float dw, in float dh);
+//   -- render the region defined by (sx,sy,sw,wh) in image-local space into the region (dx,dy,dw,dh) on the canvas
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+// If only dx and dy are passed in then optional_argc should be 0. If only
+// dx, dy, dw and dh are passed in then optional_argc should be 2. The only
+// other valid value for optional_argc is 6 if sx, sy, sw, sh, dx, dy, dw and dh
+// are all passed in.
 
 void
 nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement& image,
@@ -3665,19 +3665,19 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
       return;
     }
 
-    
+    // Special case for Canvas, which could be an Azure canvas!
     nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
     if (srcCanvas == this) {
-      
+      // Self-copy.
       srcSurf = mTarget->Snapshot();
       imgSize = gfxIntSize(mWidth, mHeight);
     } else if (srcCanvas) {
-      
+      // This might not be an Azure canvas!
       srcSurf = srcCanvas->GetSurfaceSnapshot();
 
       if (srcSurf) {
         if (mCanvasElement) {
-          
+          // Do security check here.
           CanvasUtils::DoDrawImageSecurityCheck(mCanvasElement,
                                                 element->NodePrincipal(),
                                                canvas->IsWriteOnly(),
@@ -3703,21 +3703,21 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
   }
 
   if (!srcSurf) {
-    
-    
+    // The canvas spec says that drawImage should draw the first frame
+    // of animated images
     uint32_t sfeFlags = nsLayoutUtils::SFE_WANT_FIRST_FRAME;
     nsLayoutUtils::SurfaceFromElementResult res =
       nsLayoutUtils::SurfaceFromElement(element, sfeFlags);
 
     if (!res.mSurface) {
-      
+      // Spec says to silently do nothing if the element is still loading.
       if (!res.mIsStillLoading) {
         error.Throw(NS_ERROR_NOT_AVAILABLE);
       }
       return;
     }
 
-    
+    // Ignore cairo surfaces that are bad! See bug 666312.
     if (res.mSurface->CairoStatus()) {
       return;
     }
@@ -3749,8 +3749,8 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
   }
 
   if (dw == 0.0 || dh == 0.0) {
-    
-    
+    // not really failure, but nothing to do --
+    // and noone likes a divide-by-zero
     return;
   }
 
@@ -3758,7 +3758,7 @@ nsCanvasRenderingContext2DAzure::DrawImage(const HTMLImageOrCanvasOrVideoElement
       sw < 0.0 || sw > (double) imgSize.width ||
       sh < 0.0 || sh > (double) imgSize.height ||
       dw < 0.0 || dh < 0.0) {
-    
+    // XXX - Unresolved spec issues here, for now return error.
     error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
     return;
   }
@@ -3843,7 +3843,7 @@ nsCanvasRenderingContext2DAzure::SetGlobalCompositeOperation(const nsAString& op
   else CANVAS_OP_TO_GFX_OP("destination-atop", DEST_ATOP)
   else CANVAS_OP_TO_GFX_OP("lighter", ADD)
   else CANVAS_OP_TO_GFX_OP("xor", XOR)
-  
+  // XXX ERRMSG we need to report an error to developers here! (bug 329026)
   else return;
 
 #undef CANVAS_OP_TO_GFX_OP
@@ -3904,8 +3904,8 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
                                             const nsAString& bgColor,
                                             uint32_t flags, ErrorResult& error)
 {
-  
-  
+  // protect against too-large surfaces that will cause allocation
+  // or overflow issues
   if (!gfxASurface::CheckSurfaceSize(gfxIntSize(int32_t(w), int32_t(h)),
                                      0xffff)) {
     error.Throw(NS_ERROR_FAILURE);
@@ -3921,20 +3921,20 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
   thebes->SetMatrix(gfxMatrix(matrix._11, matrix._12, matrix._21,
                               matrix._22, matrix._31, matrix._32));
 
-  
-  
-  
-  
-  
-  
+  // We can't allow web apps to call this until we fix at least the
+  // following potential security issues:
+  // -- rendering cross-domain IFRAMEs and then extracting the results
+  // -- rendering the user's theme and then extracting the results
+  // -- rendering native anonymous content (e.g., file input paths;
+  // scrollbars should be allowed)
   if (!nsContentUtils::IsCallerTrustedForRead()) {
-    
-    
+    // not permitted to use DrawWindow
+    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
 
-  
+  // Flush layout updates
   if (!(flags & nsIDOMCanvasRenderingContext2D::DRAWWINDOW_DO_NOT_FLUSH))
     nsContentUtils::FlushLayoutForTree(window);
 
@@ -3980,9 +3980,9 @@ nsCanvasRenderingContext2DAzure::DrawWindow(nsIDOMWindow* window, double x,
   unused << presContext->PresShell()->
     RenderDocument(r, renderDocFlags, backgroundColor, thebes);
 
-  
-  
-  
+  // note that x and y are coordinates in the document that
+  // we're drawing; x and y are drawn to 0,0 in current user
+  // space.
   RedrawUser(gfxRect(0, 0, w, h));
 }
 
@@ -4007,15 +4007,15 @@ nsCanvasRenderingContext2DAzure::AsyncDrawXULElement(nsIDOMXULElement* elem,
                                                      uint32_t flags,
                                                      ErrorResult& error)
 {
-  
-  
-  
-  
-  
-  
+  // We can't allow web apps to call this until we fix at least the
+  // following potential security issues:
+  // -- rendering cross-domain IFRAMEs and then extracting the results
+  // -- rendering the user's theme and then extracting the results
+  // -- rendering native anonymous content (e.g., file input paths;
+  // scrollbars should be allowed)
   if (!nsContentUtils::IsCallerTrustedForRead()) {
-      
-      
+      // not permitted to use DrawWindow
+      // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return;
   }
@@ -4045,8 +4045,8 @@ nsCanvasRenderingContext2DAzure::AsyncDrawXULElement(nsIDOMXULElement* elem,
     return DrawWindow(window, x, y, w, h, bgColor, flags);
   }
 
-  
-  
+  // protect against too-large surfaces that will cause allocation
+  // or overflow issues
   if (!gfxASurface::CheckSurfaceSize(gfxIntSize(w, h), 0xffff)) {
     error.Throw(NS_ERROR_FAILURE);
     return;
@@ -4099,25 +4099,25 @@ nsCanvasRenderingContext2DAzure::AsyncDrawXULElement(nsIDOMXULElement* aElem,
   return rv.ErrorCode();
 }
 
-
-
-
+//
+// device pixel getting/setting
+//
 
 void
 nsCanvasRenderingContext2DAzure::EnsureUnpremultiplyTable() {
   if (sUnpremultiplyTable)
     return;
 
-  
+  // Infallably alloc the unpremultiply table.
   sUnpremultiplyTable = new uint8_t[256][256];
 
-  
-  
-  
-  
-  
+  // It's important that the array be indexed first by alpha and then by rgb
+  // value.  When we unpremultiply a pixel, we're guaranteed to do three
+  // lookups with the same alpha; indexing by alpha first makes it likely that
+  // those three lookups will be close to one another in memory, thus
+  // increasing the chance of a cache hit.
 
-  
+  // a == 0 case
   for (uint32_t c = 0; c <= 255; c++) {
     sUnpremultiplyTable[0][c] = c;
   }
@@ -4146,12 +4146,12 @@ nsCanvasRenderingContext2DAzure::GetImageData(JSContext* aCx, double aSx,
     return NULL;
   }
 
-  
-  
+  // Check only if we have a canvas element; if we were created with a docshell,
+  // then it's special internal use.
   if (mCanvasElement && mCanvasElement->IsWriteOnly() &&
       !nsContentUtils::IsCallerTrustedForRead())
   {
-    
+    // XXX ERRMSG we need to report an error to developers here! (bug 329026)
     error.Throw(NS_ERROR_DOM_SECURITY_ERR);
     return NULL;
   }
@@ -4172,8 +4172,8 @@ nsCanvasRenderingContext2DAzure::GetImageData(JSContext* aCx, double aSx,
   int32_t wi = JS_DoubleToInt32(aSw);
   int32_t hi = JS_DoubleToInt32(aSh);
 
-  
-  
+  // Handle negative width and height by flipping the rectangle over in the
+  // relevant direction.
   uint32_t w, h;
   if (aSw < 0) {
     w = -wi;
@@ -4272,18 +4272,18 @@ nsCanvasRenderingContext2DAzure::GetImageDataArray(JSContext* aCx,
     }
   }
 
-  
+  // make sure sUnpremultiplyTable has been created
   EnsureUnpremultiplyTable();
 
-  
-  
-  
-  
+  // NOTE! dst is the same as src, and this relies on reading
+  // from src and advancing that ptr before writing to dst.
+  // NOTE! I'm not sure that it is, I think this comment might have been
+  // inherited from Thebes canvas and is no longer true
   uint8_t* dst = data + dstWriteRect.y * (aWidth * 4) + dstWriteRect.x * 4;
 
   for (int32_t j = 0; j < dstWriteRect.height; ++j) {
     for (int32_t i = 0; i < dstWriteRect.width; ++i) {
-      
+      // XXX Is there some useful swizzle MMX we can use here?
 #ifdef IS_LITTLE_ENDIAN
       uint8_t b = *src++;
       uint8_t g = *src++;
@@ -4295,7 +4295,7 @@ nsCanvasRenderingContext2DAzure::GetImageDataArray(JSContext* aCx,
       uint8_t g = *src++;
       uint8_t b = *src++;
 #endif
-      
+      // Convert to non-premultiplied color
       *dst++ = sUnpremultiplyTable[a][r];
       *dst++ = sUnpremultiplyTable[a][g];
       *dst++ = sUnpremultiplyTable[a][b];
@@ -4314,12 +4314,12 @@ nsCanvasRenderingContext2DAzure::EnsurePremultiplyTable() {
   if (sPremultiplyTable)
     return;
 
-  
+  // Infallably alloc the premultiply table.
   sPremultiplyTable = new uint8_t[256][256];
 
-  
-  
-  
+  // Like the unpremultiply table, it's important that we index the premultiply
+  // table with the alpha value as the first index to ensure good cache
+  // performance.
 
   for (int a = 0; a <= 255; a++) {
     for (int c = 0; c <= 255; c++) {
@@ -4378,15 +4378,15 @@ nsCanvasRenderingContext2DAzure::PutImageData(JSContext* cx,
                                 JS_DoubleToInt32(dirtyHeight));
 }
 
-
-
+// void putImageData (in ImageData d, in float x, in float y);
+// void putImageData (in ImageData d, in double x, in double y, in double dirtyX, in double dirtyY, in double dirtyWidth, in double dirtyHeight);
 NS_IMETHODIMP
 nsCanvasRenderingContext2DAzure::PutImageData(const JS::Value&, double, double,
                                               double, double, double, double,
                                               JSContext*, uint8_t)
 {
-  
-
+  /* Should never be called -- the new binding code handles it, and
+     C++ callers should call PutImageData_explicit */
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -4408,7 +4408,7 @@ nsCanvasRenderingContext2DAzure::PutImageData_explicit(int32_t x, int32_t y, uin
   IntRect imageDataRect(0, 0, w, h);
 
   if (hasDirtyRect) {
-    
+    // fix up negative dimensions
     if (dirtyWidth < 0) {
       NS_ENSURE_TRUE(dirtyWidth != INT_MIN, NS_ERROR_DOM_INDEX_SIZE_ERR);
 
@@ -4433,7 +4433,7 @@ nsCanvasRenderingContext2DAzure::PutImageData_explicit(int32_t x, int32_t y, uin
       dirtyHeight = -dirtyHeight;
     }
 
-    
+    // bound the dirty rect within the imageData rectangle
     dirtyRect = imageDataRect.Intersect(IntRect(dirtyX, dirtyY, dirtyWidth, dirtyHeight));
 
     if (dirtyRect.Width() <= 0 || dirtyRect.Height() <= 0)
@@ -4460,7 +4460,7 @@ nsCanvasRenderingContext2DAzure::PutImageData_explicit(int32_t x, int32_t y, uin
     return NS_ERROR_FAILURE;
   }
 
-  
+  // ensure premultiply table has been created
   EnsurePremultiplyTable();
 
   uint8_t *src = aData;
@@ -4473,7 +4473,7 @@ nsCanvasRenderingContext2DAzure::PutImageData_explicit(int32_t x, int32_t y, uin
       uint8_t b = *src++;
       uint8_t a = *src++;
 
-      
+      // Convert to premultiplied color (losslessly if the input came from getImageData)
 #ifdef IS_LITTLE_ENDIAN
       *dst++ = sPremultiplyTable[a][b];
       *dst++ = sPremultiplyTable[a][g];
@@ -4520,8 +4520,8 @@ nsCanvasRenderingContext2DAzure::GetThebesSurface(gfxASurface **surface)
       return NS_ERROR_FAILURE;
     }
   } else {
-    
-    
+    // Normally GetThebesSurfaceForDrawTarget will handle the flush, when
+    // we're returning a cached ThebesSurface we need to flush here.
     mTarget->Flush();
   }
 
@@ -4546,7 +4546,7 @@ CreateImageData(JSContext* cx, nsCanvasRenderingContext2DAzure* context,
     return NULL;
   }
 
-  
+  // Create the fast typed array; it's initialized to 0 by default.
   JSObject* darray = Uint8ClampedArray::Create(cx, context, len.value());
   if (!darray) {
     error.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -4596,7 +4596,7 @@ nsCanvasRenderingContext2DAzure::CreateImageData(const JS::Value &arg1,
                                                  uint8_t optional_argc,
                                                  nsIDOMImageData** retval)
 {
-  
+  /* Should never be called; handled entirely in new bindings */
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -4645,17 +4645,17 @@ nsCanvasRenderingContext2DAzure::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
   }
   CanvasRenderingContext2DUserDataAzure *userData = nullptr;
-  
-  
-  
-  
-  
+  // Make the layer tell us whenever a transaction finishes (including
+  // the current transaction), so we can clear our invalidation state and
+  // start invalidating again. We need to do this for all layers since
+  // callers of DrawWindow may be expecting to receive normal invalidation
+  // notifications after this paint.
 
-  
-  
-  
-  
-  
+  // The layer will be destroyed when we tear down the presentation
+  // (at the latest), at which time this userData will be destroyed,
+  // releasing the reference to the element.
+  // The userData will receive DidTransactionCallbacks, which flush the
+  // the invalidation state to indicate that the canvas is up to date.
   userData = new CanvasRenderingContext2DUserDataAzure(this);
   canvasLayer->SetDidTransactionCallback(
           CanvasRenderingContext2DUserDataAzure::DidTransactionCallback, userData);

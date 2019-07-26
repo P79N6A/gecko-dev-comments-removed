@@ -28,7 +28,6 @@ class InvokeFrameGuard;
 class FrameGuard;
 class ExecuteFrameGuard;
 class BailoutFrameGuard;
-class DummyFrameGuard;
 class GeneratorFrameGuard;
 
 class CallIter;
@@ -212,15 +211,15 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
-    INITIAL_CONSTRUCT      =       0x40, 
-    INITIAL_LOWERED        =   0x100000  
+    INITIAL_CONSTRUCT      =       0x20, 
+    INITIAL_LOWERED        =    0x80000  
 };
 
 enum ExecuteType {
     EXECUTE_GLOBAL         =        0x1, 
-    EXECUTE_DIRECT_EVAL    =        0x8, 
-    EXECUTE_INDIRECT_EVAL  =        0x9, 
-    EXECUTE_DEBUG          =       0x18  
+    EXECUTE_DIRECT_EVAL    =        0x4, 
+    EXECUTE_INDIRECT_EVAL  =        0x5, 
+    EXECUTE_DEBUG          =        0xc  
 };
 
 
@@ -232,47 +231,46 @@ class StackFrame
         
         GLOBAL             =        0x1,  
         FUNCTION           =        0x2,  
-        DUMMY              =        0x4,  
 
         
-        EVAL               =        0x8,  
-        DEBUGGER           =       0x10,  
-        GENERATOR          =       0x20,  
-        CONSTRUCTING       =       0x40,  
+        EVAL               =        0x4,  
+        DEBUGGER           =        0x8,  
+        GENERATOR          =       0x10,  
+        CONSTRUCTING       =       0x20,  
 
         
-        YIELDING           =       0x80,  
-        FINISHED_IN_INTERP =      0x100,  
+        YIELDING           =       0x40,  
+        FINISHED_IN_INTERP =       0x80,  
 
         
-        OVERFLOW_ARGS      =      0x200,  
-        UNDERFLOW_ARGS     =      0x400,  
+        OVERFLOW_ARGS      =      0x100,  
+        UNDERFLOW_ARGS     =      0x200,  
 
         
-        HAS_CALL_OBJ       =      0x800,  
-        HAS_ARGS_OBJ       =     0x1000,  
+        HAS_CALL_OBJ       =      0x400,  
+        HAS_ARGS_OBJ       =      0x800,  
 
         
-        HAS_HOOK_DATA      =     0x2000,  
-        HAS_ANNOTATION     =     0x4000,  
-        HAS_RVAL           =     0x8000,  
-        HAS_SCOPECHAIN     =    0x10000,  
-        HAS_PREVPC         =    0x20000,  
-        HAS_BLOCKCHAIN     =    0x40000,  
+        HAS_HOOK_DATA      =     0x1000,  
+        HAS_ANNOTATION     =     0x2000,  
+        HAS_RVAL           =     0x4000,  
+        HAS_SCOPECHAIN     =     0x8000,  
+        HAS_PREVPC         =    0x10000,  
+        HAS_BLOCKCHAIN     =    0x20000,  
 
         
-        DOWN_FRAMES_EXPANDED =  0x80000,  
-        LOWERED_CALL_APPLY   = 0x100000,  
+        DOWN_FRAMES_EXPANDED =  0x40000,  
+        LOWERED_CALL_APPLY   =  0x80000,  
 
         
-        PREV_UP_TO_DATE    =   0x200000,  
+        PREV_UP_TO_DATE    =   0x100000,  
 
         
-        HAS_PUSHED_SPS_FRAME = 0x400000,  
+        HAS_PUSHED_SPS_FRAME = 0x200000,  
 
         
-        RUNNING_IN_ION       = 0x800000,  
-        CALLING_INTO_ION    = 0x1000000   
+        RUNNING_IN_ION       = 0x400000,  
+        CALLING_INTO_ION     = 0x800000   
     };
 
   private:
@@ -350,9 +348,6 @@ class StackFrame
     void initExecuteFrame(JSScript *script, StackFrame *prev, FrameRegs *regs,
                           const Value &thisv, JSObject &scopeChain, ExecuteType type);
 
-    
-    void initDummyFrame(JSContext *cx, JSObject &chain);
-
   public:
     
 
@@ -400,23 +395,12 @@ class StackFrame
 
 
 
-
     bool isFunctionFrame() const {
         return !!(flags_ & FUNCTION);
     }
 
     bool isGlobalFrame() const {
         return !!(flags_ & GLOBAL);
-    }
-
-    bool isDummyFrame() const {
-        return !!(flags_ & DUMMY);
-    }
-
-    bool isScriptFrame() const {
-        bool retval = !!(flags_ & (FUNCTION | GLOBAL));
-        JS_ASSERT(retval == !isDummyFrame());
-        return retval;
     }
 
     
@@ -432,7 +416,6 @@ class StackFrame
 
 
     bool isEvalFrame() const {
-        JS_ASSERT_IF(flags_ & EVAL, isScriptFrame());
         return flags_ & EVAL;
     }
 
@@ -623,14 +606,9 @@ class StackFrame
 
 
     JSScript *script() const {
-        JS_ASSERT(isScriptFrame());
         return isFunctionFrame()
                ? isEvalFrame() ? u.evalScript : fun()->script()
                : exec.script;
-    }
-
-    JSScript *maybeScript() const {
-        return isScriptFrame() ? script() : NULL;
     }
 
     
@@ -743,7 +721,6 @@ class StackFrame
     }
 
     const Value &maybeCalleev() const {
-        JS_ASSERT(isScriptFrame());
         Value &calleev = flags_ & (EVAL | GLOBAL)
                          ? ((Value *)this)[-2]
                          : formals()[-2];
@@ -1217,14 +1194,6 @@ class FrameRegs
     }
 
     
-    void initDummyFrame(StackFrame &fp) {
-        pc = NULL;
-        sp = fp.slots();
-        fp_ = &fp;
-        inlined_ = NULL;
-    }
-
-    
     void expandInline(StackFrame *innerfp, jsbytecode *innerpc) {
         pc = innerpc;
         fp_ = innerfp;
@@ -1393,22 +1362,10 @@ class StackSpace
     friend class ContextStack;
     friend class StackFrame;
 
-    
-
-
-
-
-
-
-
-    static const size_t CX_COMPARTMENT = 0xc;
-
     inline bool ensureSpace(JSContext *cx, MaybeReportError report,
-                            Value *from, ptrdiff_t nvals,
-                            JSCompartment *dest = (JSCompartment *)CX_COMPARTMENT) const;
+                            Value *from, ptrdiff_t nvals) const;
     JS_FRIEND_API(bool) ensureSpaceSlow(JSContext *cx, MaybeReportError report,
-                                        Value *from, ptrdiff_t nvals,
-                                        JSCompartment *dest) const;
+                                        Value *from, ptrdiff_t nvals) const;
 
     StackSegment &findContainingSegment(const StackFrame *target) const;
 
@@ -1510,8 +1467,7 @@ class ContextStack
     StackSegment *pushSegment(JSContext *cx);
     enum MaybeExtend { CAN_EXTEND = true, CANT_EXTEND = false };
     Value *ensureOnTop(JSContext *cx, MaybeReportError report, unsigned nvars,
-                       MaybeExtend extend, bool *pushedSeg,
-                       JSCompartment *dest = (JSCompartment *)StackSpace::CX_COMPARTMENT);
+                       MaybeExtend extend, bool *pushedSeg);
 
     inline StackFrame *
     getCallFrame(JSContext *cx, MaybeReportError report, const CallArgs &args,
@@ -1541,7 +1497,6 @@ class ContextStack
     bool empty() const                { return !seg_; }
 
     
-
 
 
 
@@ -1613,17 +1568,6 @@ class ContextStack
 
 
     bool pushGeneratorFrame(JSContext *cx, JSGenerator *gen, GeneratorFrameGuard *gfg);
-
-    
-
-
-
-
-
-
-
-
-    bool pushDummyFrame(JSContext *cx, JSCompartment *dest, JSObject &scopeChain, DummyFrameGuard *dfg);
 
     
 

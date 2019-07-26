@@ -3,8 +3,7 @@
 
 
 
-#include "IPCMessageUtils.h"
-#include "mozilla/net/NeckoMessageUtils.h"
+#include "base/basictypes.h"
 
 #include "nsSimpleNestedURI.h"
 #include "nsIObjectInputStream.h"
@@ -53,32 +52,6 @@ nsSimpleNestedURI::Write(nsIObjectOutputStream* aStream)
     rv = aStream->WriteCompoundObject(mInnerURI, NS_GET_IID(nsIURI),
                                       true);
     return rv;
-}
-
-
-
-bool
-nsSimpleNestedURI::Read(const IPC::Message *aMsg, void **aIter)
-{
-    if (!nsSimpleURI::Read(aMsg, aIter))
-        return false;
-
-    IPC::URI uri;
-    if (!ReadParam(aMsg, aIter, &uri))
-        return false;
-
-    mInnerURI = uri;
-
-    return true;
-}
-
-void
-nsSimpleNestedURI::Write(IPC::Message *aMsg)
-{
-    nsSimpleURI::Write(aMsg);
-
-    IPC::URI uri(mInnerURI);
-    WriteParam(aMsg, uri);
 }
 
 

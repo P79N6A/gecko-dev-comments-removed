@@ -252,7 +252,6 @@ nsFTPDirListingConv::DigestBufferLines(char *aBuffer, nsCString &aString) {
     bool cr = false;
 
     list_state state;
-    state.magic = 0;
 
     
     while ( line && (eol = PL_strchr(line, nsCRT::LF)) ) {

@@ -51,6 +51,9 @@
 
 
 
+
+
+
 class nsSTSHostEntry : public PLDHashEntryHdr
 {
   public:
@@ -58,9 +61,10 @@ class nsSTSHostEntry : public PLDHashEntryHdr
     explicit nsSTSHostEntry(const nsSTSHostEntry& toCopy);
 
     nsCString    mHost;
-    int64_t      mExpireTime;
-    bool mDeleted;
-    bool mIncludeSubdomains;
+    PRTime       mExpireTime;
+    uint32_t     mStsPermission;
+    bool         mExpired;
+    bool         mIncludeSubdomains;
 
     
     typedef const char* KeyType;
@@ -86,10 +90,35 @@ class nsSTSHostEntry : public PLDHashEntryHdr
       return PL_DHashStringKey(nullptr, aKey);
     }
 
+    void SetExpireTime(PRTime aExpireTime)
+    {
+      mExpireTime = aExpireTime;
+      mExpired = false;
+    }
+
+    bool IsExpired()
+    {
+      
+      
+      
+      if (mExpired || mExpireTime == 0) {
+        return mExpired;
+      }
+
+      PRTime now = PR_Now() / PR_USEC_PER_MSEC;
+      if (now > mExpireTime) {
+        mExpired = true;
+      }
+
+      return mExpired;
+    }
+
     
     enum { ALLOW_MEMMOVE = false };
 };
 
+
+class nsSTSPreload;
 
 class nsStrictTransportSecurityService : public nsIStrictTransportSecurityService
                                        , public nsIObserver
@@ -105,8 +134,10 @@ public:
 
 private:
   nsresult GetHost(nsIURI *aURI, nsACString &aResult);
+  nsresult GetPrincipalForURI(nsIURI *aURI, nsIPrincipal **aPrincipal);
   nsresult SetStsState(nsIURI* aSourceURI, int64_t maxage, bool includeSubdomains);
   nsresult ProcessStsHeaderMutating(nsIURI* aSourceURI, char* aHeader);
+  const nsSTSPreload *GetPreloadListEntry(const char *aHost);
 
   
   nsresult AddPermission(nsIURI     *aURI,
@@ -116,10 +147,6 @@ private:
                          int64_t    aExpireTime);
   nsresult RemovePermission(const nsCString  &aHost,
                             const char       *aType);
-  nsresult TestPermission(nsIURI     *aURI,
-                          const char *aType,
-                          uint32_t   *aPermission,
-                          bool       testExact);
 
   
   nsCOMPtr<nsIPermissionManager> mPermMgr;

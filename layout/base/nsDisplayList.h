@@ -910,13 +910,20 @@ public:
 
   virtual void DisableComponentAlpha() {}
 
+  
+
+
+  virtual bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder) {
+    return false;
+  }
+
 protected:
   friend class nsDisplayList;
-  
+
   nsDisplayItem() {
     mAbove = nullptr;
   }
-  
+
   nsIFrame* mFrame;
   
   nsPoint   mToReferenceFrame;
@@ -1873,7 +1880,7 @@ public:
 protected:
   nsDisplayWrapper() {}
 };
-                              
+
 
 
 
@@ -1885,7 +1892,7 @@ public:
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayOpacity();
 #endif
-  
+
   virtual nsRegion GetOpaqueRegion(nsDisplayListBuilder* aBuilder,
                                    bool* aSnap);
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
@@ -1899,6 +1906,8 @@ public:
                                    const nsRect& aAllowVisibleRegionExpansion);  
   virtual bool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("Opacity", TYPE_OPACITY)
+
+  bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder);
 };
 
 
@@ -2409,7 +2418,9 @@ public:
 
 
   static bool ShouldPrerenderTransformedContent(nsDisplayListBuilder* aBuilder,
-                                                nsIFrame* aFrame);
+                                                nsIFrame* aFrame,
+                                                bool aLogAnimations = false);
+  bool CanUseAsyncAnimations(nsDisplayListBuilder* aBuilder);
 
 private:
   nsDisplayWrapList mStoredList;

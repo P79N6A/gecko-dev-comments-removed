@@ -59,14 +59,126 @@ void nsBuiltinDecoder::SetAudioCaptured(bool aCaptured)
   }
 }
 
-void nsBuiltinDecoder::AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded)
+void nsBuiltinDecoder::ConnectDecodedStreamToOutputStream(OutputStreamData* aStream)
+{
+  NS_ASSERTION(!aStream->mPort, "Already connected?");
+
+  
+  
+  aStream->mPort = aStream->mStream->AllocateInputPort(mDecodedStream->mStream,
+      MediaInputPort::FLAG_BLOCK_INPUT | MediaInputPort::FLAG_BLOCK_OUTPUT);
+  
+  
+  aStream->mStream->ChangeExplicitBlockerCount(-1);
+}
+
+nsBuiltinDecoder::DecodedStreamData::DecodedStreamData(nsBuiltinDecoder* aDecoder,
+                                                       int64_t aInitialTime,
+                                                       SourceMediaStream* aStream)
+  : mLastAudioPacketTime(-1),
+    mLastAudioPacketEndTime(-1),
+    mAudioFramesWritten(0),
+    mInitialTime(aInitialTime),
+    mNextVideoTime(aInitialTime),
+    mStreamInitialized(false),
+    mHaveSentFinish(false),
+    mHaveSentFinishAudio(false),
+    mHaveSentFinishVideo(false),
+    mStream(aStream),
+    mMainThreadListener(new DecodedStreamMainThreadListener(aDecoder)),
+    mHaveBlockedForPlayState(false)
+{
+  mStream->AddMainThreadListener(mMainThreadListener);
+}
+
+nsBuiltinDecoder::DecodedStreamData::~DecodedStreamData()
+{
+  mStream->RemoveMainThreadListener(mMainThreadListener);
+  mStream->Destroy();
+}
+
+void nsBuiltinDecoder::DestroyDecodedStream()
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  mReentrantMonitor.AssertCurrentThreadIn();
+
+  
+  
+  for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
+    OutputStreamData& os = mOutputStreams[i];
+    
+    
+    
+    if (!os.mStream->IsDestroyed()) {
+      os.mStream->ChangeExplicitBlockerCount(1);
+    }
+    
+    
+    os.mPort->Destroy();
+    os.mPort = nullptr;
+  }
+
+  mDecodedStream = nullptr;
+}
+
+void nsBuiltinDecoder::RecreateDecodedStream(int64_t aStartTimeUSecs)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  mReentrantMonitor.AssertCurrentThreadIn();
+  LOG(PR_LOG_DEBUG, ("nsBuiltinDecoder::RecreateDecodedStream this=%p aStartTimeUSecs=%lld!",
+                     this, (long long)aStartTimeUSecs));
+
+  DestroyDecodedStream();
+
+  mDecodedStream = new DecodedStreamData(this, aStartTimeUSecs,
+    MediaStreamGraph::GetInstance()->CreateInputStream(nullptr));
+
+  
+  
+  
+  for (uint32_t i = 0; i < mOutputStreams.Length(); ++i) {
+    ConnectDecodedStreamToOutputStream(&mOutputStreams[i]);
+  }
+
+  mDecodedStream->mHaveBlockedForPlayState = mPlayState != PLAY_STATE_PLAYING;
+  if (mDecodedStream->mHaveBlockedForPlayState) {
+    mDecodedStream->mStream->ChangeExplicitBlockerCount(1);
+  }
+}
+
+void nsBuiltinDecoder::NotifyDecodedStreamMainThreadStateChanged()
+{
+  if (mTriggerPlaybackEndedWhenSourceStreamFinishes && mDecodedStream &&
+      mDecodedStream->mStream->IsFinished()) {
+    mTriggerPlaybackEndedWhenSourceStreamFinishes = false;
+    if (GetState() == PLAY_STATE_PLAYING) {
+      nsCOMPtr<nsIRunnable> event =
+        NS_NewRunnableMethod(this, &nsBuiltinDecoder::PlaybackEnded);
+      NS_DispatchToCurrentThread(event);
+    }
+  }
+}
+
+void nsBuiltinDecoder::AddOutputStream(ProcessedMediaStream* aStream,
+                                       bool aFinishWhenEnded)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  LOG(PR_LOG_DEBUG, ("nsBuiltinDecoder::AddOutputStream this=%p aStream=%p!",
+                     this, aStream));
 
   {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-    OutputMediaStream* ms = mOutputStreams.AppendElement();
-    ms->Init(int64_t(mCurrentTime*USECS_PER_S), aStream, aFinishWhenEnded);
+    if (!mDecodedStream) {
+      RecreateDecodedStream(mDecoderStateMachine ?
+          int64_t(mDecoderStateMachine->GetCurrentTime()*USECS_PER_S) : 0);
+    }
+    OutputStreamData* os = mOutputStreams.AppendElement();
+    os->Init(aStream, aFinishWhenEnded);
+    ConnectDecodedStreamToOutputStream(os);
+    if (aFinishWhenEnded) {
+      
+      aStream->SetAutofinish(true);
+    }
   }
 
   
@@ -116,7 +228,8 @@ nsBuiltinDecoder::nsBuiltinDecoder() :
   mNextState(PLAY_STATE_PAUSED),
   mResourceLoaded(false),
   mIgnoreProgressData(false),
-  mInfiniteStream(false)
+  mInfiniteStream(false),
+  mTriggerPlaybackEndedWhenSourceStreamFinishes(false)
 {
   MOZ_COUNT_CTOR(nsBuiltinDecoder);
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
@@ -145,6 +258,11 @@ void nsBuiltinDecoder::Shutdown()
     return;
 
   mShuttingDown = true;
+
+  {
+    ReentrantMonitorAutoEnter mon(GetReentrantMonitor());
+    DestroyDecodedStream();
+  }
 
   
   
@@ -543,10 +661,36 @@ bool nsBuiltinDecoder::IsEnded() const
 
 void nsBuiltinDecoder::PlaybackEnded()
 {
+  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
   if (mShuttingDown || mPlayState == nsBuiltinDecoder::PLAY_STATE_SEEKING)
     return;
 
-  printf("nsBuiltinDecoder::PlaybackEnded mPlayState=%d\n", mPlayState);
+  {
+    ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+
+    if (mDecodedStream && !mDecodedStream->mStream->IsFinished()) {
+      
+      mTriggerPlaybackEndedWhenSourceStreamFinishes = true;
+      return;
+    }
+
+    for (int32_t i = mOutputStreams.Length() - 1; i >= 0; --i) {
+      OutputStreamData& os = mOutputStreams[i];
+      if (os.mFinishWhenEnded) {
+        
+        
+        os.mStream->Finish();
+        os.mPort->Destroy();
+        os.mPort = nullptr;
+        
+        
+        os.mStream->ChangeExplicitBlockerCount(1);
+        mOutputStreams.RemoveElementAt(i);
+      }
+    }
+  }
+
   PlaybackPositionChanged();
   ChangeState(PLAY_STATE_ENDED);
 
@@ -765,7 +909,6 @@ void nsBuiltinDecoder::SeekingStopped()
       seekWasAborted = true;
     } else {
       UnpinForSeek();
-      printf("nsBuiltinDecoder::SeekingStopped, next state=%d\n", mNextState);
       ChangeState(mNextState);
     }
   }
@@ -842,6 +985,13 @@ void nsBuiltinDecoder::ChangeState(PlayState aState)
     return;
   }
 
+  if (mDecodedStream) {
+    bool blockForPlayState = aState != PLAY_STATE_PLAYING;
+    if (mDecodedStream->mHaveBlockedForPlayState != blockForPlayState) {
+      mDecodedStream->mStream->ChangeExplicitBlockerCount(blockForPlayState ? 1 : -1);
+      mDecodedStream->mHaveBlockedForPlayState = blockForPlayState;
+    }
+  }
   mPlayState = aState;
   if (mDecoderStateMachine) {
     switch (aState) {
@@ -1047,47 +1197,4 @@ void nsBuiltinDecoder::NotifyAudioAvailableListener()
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     mDecoderStateMachine->NotifyAudioAvailableListener();
   }
-}
-
-nsBuiltinDecoder::OutputMediaStream::OutputMediaStream()
-{
-
-}
-
-nsBuiltinDecoder::OutputMediaStream::~OutputMediaStream()
-{
-
-}
-    
-
-void nsBuiltinDecoder::OutputMediaStream::Init(int64_t aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded)
-{
-  mLastAudioPacketTime = -1;
-  mLastAudioPacketEndTime = -1;
-  mAudioFramesWrittenBaseTime = aInitialTime;
-  mAudioFramesWritten = 0;
-  mNextVideoTime = aInitialTime;
-  mStream = aStream;
-  mStreamInitialized = false;
-  mFinishWhenEnded = aFinishWhenEnded;
-  mHaveSentFinish = false;
-  mHaveSentFinishAudio = false;
-  mHaveSentFinishVideo = false;
-}
-
-nsBuiltinDecoder::OutputMediaStream::OutputMediaStream(const OutputMediaStream& rhs)
-{
-  mLastAudioPacketTime = rhs.mLastAudioPacketTime;
-  mLastAudioPacketEndTime = rhs.mLastAudioPacketEndTime;
-  mAudioFramesWritten = rhs.mAudioFramesWritten;
-  mAudioFramesWrittenBaseTime = rhs.mAudioFramesWrittenBaseTime;
-  mNextVideoTime = rhs.mNextVideoTime;
-  mLastVideoImage = rhs.mLastVideoImage;
-  mStream = rhs.mStream;
-  mLastVideoImageDisplaySize = rhs.mLastVideoImageDisplaySize;
-  mStreamInitialized = rhs.mStreamInitialized;
-  mFinishWhenEnded = rhs.mFinishWhenEnded;
-  mHaveSentFinish = rhs.mHaveSentFinish;
-  mHaveSentFinishAudio = rhs.mHaveSentFinishAudio;
-  mHaveSentFinishVideo = rhs.mHaveSentFinishVideo;
 }

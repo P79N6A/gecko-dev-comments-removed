@@ -54,11 +54,7 @@ ParseNode::become(ParseNode *pn2)
 
 
 
-    if (this->isKind(PNK_FUNCTION) && isArity(PN_FUNC)) {
-        
-        JS_ASSERT(pn_funbox->node == pn2);
-        pn_funbox->node = this;
-    } else if (pn_arity == PN_LIST && !pn_head) {
+    if (pn_arity == PN_LIST && !pn_head) {
         
         JS_ASSERT(pn_count == 0);
         JS_ASSERT(pn_tail == &pn2->pn_head);
@@ -97,16 +93,6 @@ ParseNode::checkListConsistency()
     JS_ASSERT(pn_count == count);
 }
 #endif
-
-bool
-FunctionBox::inAnyDynamicScope() const
-{
-    for (const FunctionBox *funbox = this; funbox; funbox = funbox->parent) {
-        if (funbox->inWith || funbox->funHasExtensibleScope())
-            return true;
-    }
-    return false;
-}
 
 
 void
@@ -259,24 +245,6 @@ void
 ParseNodeAllocator::prepareNodeForMutation(ParseNode *pn)
 {
     if (!pn->isArity(PN_NULLARY)) {
-        if (pn->isArity(PN_FUNC)) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-            if (pn->pn_funbox)
-                pn->pn_funbox->node = NULL;
-        }
-
         
         NodeStack stack;
         PushNodeChildren(pn, &stack);
@@ -477,7 +445,7 @@ CloneParseTree(ParseNode *opn, Parser *parser)
 
       case PN_FUNC:
         NULLCHECK(pn->pn_funbox =
-                  parser->newFunctionBox(opn->pn_funbox->object, pn, pc, opn->pn_funbox->strictModeState));
+                  parser->newFunctionBox(opn->pn_funbox->object, pc, opn->pn_funbox->strictModeState));
         NULLCHECK(pn->pn_body = CloneParseTree(opn->pn_body, parser));
         pn->pn_cookie = opn->pn_cookie;
         pn->pn_dflags = opn->pn_dflags;

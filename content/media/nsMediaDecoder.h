@@ -41,6 +41,9 @@ public:
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::SourceMediaStream SourceMediaStream;
+  typedef mozilla::ProcessedMediaStream ProcessedMediaStream;
+  typedef mozilla::MediaInputPort MediaInputPort;
+  typedef mozilla::MainThreadMediaStreamListener MainThreadMediaStreamListener;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
@@ -102,7 +105,10 @@ public:
   virtual void SetAudioCaptured(bool aCaptured) = 0;
 
   
-  virtual void AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded) = 0;
+  
+  
+  virtual void AddOutputStream(ProcessedMediaStream* aStream,
+                               bool aFinishWhenEnded) = 0;
 
   
   

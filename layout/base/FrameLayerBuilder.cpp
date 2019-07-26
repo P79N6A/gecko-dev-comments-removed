@@ -796,6 +796,7 @@ FrameLayerBuilder::SetAndClearInvalidRegion(DisplayItemDataEntry* aEntry)
     aEntry->mInvalidRegion.forget(&invalidRegion);
 
     invalidRegion->mRegion.SetEmpty();
+    invalidRegion->mIsInfinite = false;
     props.Set(ThebesLayerInvalidRegionProperty(), invalidRegion);
   }
 }
@@ -809,7 +810,8 @@ FrameLayerBuilder::UpdateDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
   FrameProperties props = f->Properties();
   DisplayItemDataEntry* newDisplayItems =
     builder ? builder->mNewDisplayItemData.GetEntry(f) : nullptr;
-  if (!newDisplayItems || newDisplayItems->mData.IsEmpty()) {
+  if (!newDisplayItems || (newDisplayItems->mData.IsEmpty() &&
+                           !newDisplayItems->mIsSharingContainerLayer)) {
     
     if (newDisplayItems) {
       builder->mNewDisplayItemData.RawRemoveEntry(newDisplayItems);
@@ -2159,32 +2161,42 @@ ApplyThebesLayerInvalidation(nsDisplayListBuilder* aBuilder,
   FrameProperties props = aContainerFrame->Properties();
   RefCountedRegion* invalidThebesContent = static_cast<RefCountedRegion*>
     (props.Get(ThebesLayerInvalidRegionProperty()));
+  const FrameLayerBuilder::ContainerParameters& scaleParameters = aState.ScaleParameters();
+
+  nsRegion invalidRegion;
   if (invalidThebesContent) {
-    const FrameLayerBuilder::ContainerParameters& scaleParameters = aState.ScaleParameters();
-    if (aTransform) {
+    if (invalidThebesContent->mIsInfinite) {
       
       
-      nsRect transformedBounds = aTransform->
-        TransformRectOut(invalidThebesContent->mRegion.GetBounds(),
-                         aTransform->GetUnderlyingFrame(), -(*aCurrentOffset));
-      aState.AddInvalidThebesContent(transformedBounds.
-        ScaleToOutsidePixels(scaleParameters.mXScale, scaleParameters.mYScale,
-                             aState.GetAppUnitsPerDevPixel()));
-    } else {
-      aState.AddInvalidThebesContent(invalidThebesContent->mRegion.
-        ScaleToOutsidePixels(scaleParameters.mXScale, scaleParameters.mYScale,
-                             aState.GetAppUnitsPerDevPixel()));
+      aState.SetInvalidateAllThebesContent();
+      return;
     }
-    
-    
-    
-    
-    
+
+    invalidRegion = invalidThebesContent->mRegion;
   } else {
     
     
-    aState.SetInvalidateAllThebesContent();
+    invalidRegion =
+      aContainerFrame->GetVisualOverflowRectRelativeToSelf() + *aCurrentOffset;
   }
+
+  if (aTransform) {
+    
+    
+    invalidRegion = aTransform->
+      TransformRectOut(invalidRegion.GetBounds(),
+                       aTransform->GetUnderlyingFrame(), -(*aCurrentOffset));
+  }
+
+  aState.AddInvalidThebesContent(invalidRegion.
+    ScaleToOutsidePixels(scaleParameters.mXScale, scaleParameters.mYScale,
+                         aState.GetAppUnitsPerDevPixel()));
+
+  
+  
+  
+  
+  
 }
 
  PLDHashOperator
@@ -2493,7 +2505,15 @@ InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame, bool aTrustFrameGeomet
     } else {
       
       
-      aFrame->Properties().Delete(ThebesLayerInvalidRegionProperty());
+      FrameProperties props = aFrame->Properties();
+      RefCountedRegion* invalidRegion = static_cast<RefCountedRegion*>
+        (props.Get(ThebesLayerInvalidRegionProperty()));
+      if (!invalidRegion) {
+        invalidRegion = new RefCountedRegion();
+        invalidRegion->AddRef();
+        props.Set(ThebesLayerInvalidRegionProperty(), invalidRegion);
+      }
+      invalidRegion->mIsInfinite = true;
     }
     foundContainerLayer = true;
   }

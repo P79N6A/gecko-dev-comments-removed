@@ -149,6 +149,8 @@ public:
   }
 
   bool IsOpaque();
+  bool HasCalc();
+  uint32_t Hash(PLDHashNumber aHash);
 
   NS_INLINE_DECL_REFCOUNTING(nsStyleGradient)
 
@@ -1556,7 +1558,7 @@ struct nsStyleDisplay {
 
   
   
-  nsRefPtr<nsCSSValue::URL> mBinding;    
+  nsRefPtr<mozilla::css::URLValue> mBinding;    
   nsRect  mClip;                
   float   mOpacity;             
   uint8_t mDisplay;             

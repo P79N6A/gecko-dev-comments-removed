@@ -393,9 +393,6 @@ private:
     CheckObjectAccess(JSContext *cx, JSHandleObject obj,
                       JSHandleId id, JSAccessMode mode,
                       jsval *vp);
-
-    static JSPrincipals *
-    ObjectPrincipalFinder(JSObject *obj);
     
     
     static JSBool
