@@ -166,6 +166,11 @@ private:
   
 
 
+  already_AddRefed<mozIApplication> GetAppForIdNoCache(uint32_t aAppId) const;
+
+  
+
+
   bool mInitialized;
 
   
@@ -178,9 +183,22 @@ private:
 
 
 
+  mutable nsCOMPtr<mozIApplication> mOwnApp;
+
+  
+
+
+
 
 
   uint32_t mContainingAppId;
+
+  
+
+
+
+
+  mutable nsCOMPtr<mozIApplication> mContainingApp;
 
   
 

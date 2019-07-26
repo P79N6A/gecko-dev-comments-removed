@@ -294,6 +294,32 @@ TabContext::GetAppForId(uint32_t aAppId) const
     return nullptr;
   }
 
+  
+  
+
+  if (aAppId == mOwnAppId) {
+    if (!mOwnApp) {
+      mOwnApp = GetAppForIdNoCache(aAppId);
+    }
+    nsCOMPtr<mozIApplication> ownApp = mOwnApp;
+    return ownApp.forget();
+  }
+
+  if (aAppId == mContainingAppId) {
+    if (!mContainingApp) {
+      mContainingApp = GetAppForIdNoCache(mContainingAppId);
+    }
+    nsCOMPtr<mozIApplication> containingApp = mContainingApp;
+    return containingApp.forget();
+  }
+  
+  
+  return GetAppForIdNoCache(aAppId);
+}
+
+already_AddRefed<mozIApplication>
+TabContext::GetAppForIdNoCache(uint32_t aAppId) const
+{
   nsCOMPtr<nsIAppsService> appsService = do_GetService(APPS_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(appsService, nullptr);
 
