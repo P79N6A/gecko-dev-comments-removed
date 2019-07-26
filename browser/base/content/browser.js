@@ -6648,7 +6648,7 @@ var gIdentityHandler = {
     } else if (state & nsIWebProgressListener.STATE_IS_SECURE) {
       this.setMode(this.IDENTITY_MODE_DOMAIN_VERIFIED);
     } else if (state & nsIWebProgressListener.STATE_IS_BROKEN) {
-      if (gBrowser.docShell.hasMixedActiveContentLoaded) {
+      if (state & nsIWebProgressListener.STATE_LOADED_MIXED_ACTIVE_CONTENT) {
         this.setMode(this.IDENTITY_MODE_MIXED_ACTIVE_CONTENT);
       } else {
         this.setMode(this.IDENTITY_MODE_MIXED_CONTENT);
@@ -6656,6 +6656,48 @@ var gIdentityHandler = {
     } else {
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
     }
+
+    
+    if (state & nsIWebProgressListener.STATE_BLOCKED_MIXED_ACTIVE_CONTENT)
+      this.showMixedContentDoorhanger();
+  },
+
+  
+
+
+
+  showMixedContentDoorhanger : function() {
+    
+    if (PopupNotifications.getNotification("mixed-content-blocked", gBrowser.selectedBrowser))
+      return;
+
+    let helplink = document.getElementById("mixed-content-blocked-helplink");
+    helplink.href = Services.urlFormatter.formatURLPref("browser.mixedcontent.warning.infoURL");
+
+    let brandBundle = document.getElementById("bundle_brand");
+    let brandShortName = brandBundle.getString("brandShortName");
+    let messageString = gNavigatorBundle.getFormattedString("mixedContentBlocked.message", [brandShortName]);
+    let action = {
+      label: gNavigatorBundle.getString("mixedContentBlocked.keepBlockingButton.label"),
+      accessKey: gNavigatorBundle.getString("mixedContentBlocked.keepBlockingButton.accesskey"),
+      callback: function() {  }
+    };
+    let secondaryActions = [
+      {
+        label: gNavigatorBundle.getString("mixedContentBlocked.unblock.label"),
+        accessKey: gNavigatorBundle.getString("mixedContentBlocked.unblock.accesskey"),
+        callback: function() {
+          
+          BrowserReloadWithFlags(nsIWebNavigation.LOAD_FLAGS_ALLOW_MIXED_CONTENT);
+        }
+      }
+    ];
+    let options = {
+      dismissed: true,
+    };
+    PopupNotifications.show(gBrowser.selectedBrowser, "mixed-content-blocked",
+                            messageString, "mixed-content-blocked-notification-icon",
+                            action, secondaryActions, options);
   },
 
   
