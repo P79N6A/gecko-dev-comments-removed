@@ -24,6 +24,10 @@ let gSocketListener = {
   onStopListening: function(serverSocket, socketTransport) {}
 };
 
+const ua = Cc["@mozilla.org/network/protocol;1?name=http"]
+             .getService(Ci.nsIHttpProtocolHandler).userAgent;
+const gIsWinXP = ua.indexOf("Windows NT 5.1") != -1;
+
 function run_test() {
   do_get_profile();
 
@@ -62,8 +66,10 @@ function add_tests_in_mode(useMozillaPKIX, useHardFail) {
     let endTime = new Date();
     
     
+    
+    
     if (useHardFail) {
-      do_check_true((endTime - startTime) > 10000);
+      do_check_true((endTime - startTime) > 10000 || gIsWinXP);
     } else {
       do_check_true((endTime - startTime) > 2000);
     }
