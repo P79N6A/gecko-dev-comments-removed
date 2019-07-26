@@ -220,6 +220,7 @@ WinTaskbar::Initialize() {
 
   hr = mTaskbar->HrInit();
   if (FAILED(hr)) {
+    
     NS_WARNING("Unable to initialize taskbar");
     NS_RELEASE(mTaskbar);
     return false;
@@ -366,7 +367,9 @@ WinTaskbar::RegisterAppUserModelID() {
 
 NS_IMETHODIMP
 WinTaskbar::GetAvailable(bool *aAvailable) {
-  *aAvailable = IsWin7OrLater();
+  
+  
+  *aAvailable = IsWin7OrLater() && Initialize();
 
   return NS_OK;
 }
