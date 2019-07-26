@@ -271,6 +271,10 @@ public:
                                             mallocSizeOf);
   }
 
+#ifdef DEBUG
+  using nsTHashtable<EntryType>::MarkImmutable;
+#endif
+
 protected:
   
 
