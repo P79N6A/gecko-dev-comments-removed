@@ -67,6 +67,9 @@
 #define CC_KFACTOR_STAT_LEN   (256)
 
 
+#define MAX_SSRCS_PER_MEDIA_LINE 16
+#define MAX_PTS_PER_MEDIA_LINE 16
+
 
 
 
@@ -337,6 +340,17 @@ typedef struct vcm_attrs_t_ {
   cc_boolean         rtcp_mux;
   vcm_audioAttrs_t audio; 
   vcm_videoAttrs_t video; 
+  uint32_t bundle_level; 
+  
+  
+
+  cc_uint32_t        bundle_stream_correlator;
+  cc_uint32_t        ssrcs[MAX_SSRCS_PER_MEDIA_LINE];
+  cc_uint8_t         num_ssrcs;
+  
+
+  cc_uint8_t         unique_payload_types[MAX_PTS_PER_MEDIA_LINE];
+  cc_uint8_t         num_unique_payload_types;
 } vcm_mediaAttrs_t;
 
 
