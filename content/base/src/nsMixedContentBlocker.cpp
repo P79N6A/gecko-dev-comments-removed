@@ -20,6 +20,7 @@
 #include "nsIChannel.h"
 #include "nsIHttpChannel.h"
 #include "mozilla/Preferences.h"
+#include "nsIScriptObjectPrincipal.h"
 
 #include "prlog.h"
 
@@ -58,7 +59,7 @@ public:
     
     nsCOMPtr<nsIDocShell> docShell = NS_CP_GetDocShellFromContext(mContext);
     nsCOMPtr<nsIDocShellTreeItem> currentDocShellTreeItem(do_QueryInterface(docShell));
-    if(!currentDocShellTreeItem) {
+    if (!currentDocShellTreeItem) {
         return NS_OK;
     }
     nsCOMPtr<nsIDocShellTreeItem> sameTypeRoot;
@@ -70,7 +71,7 @@ public:
     NS_ASSERTION(rootDoc, "No root document from document shell root tree item.");
 
 
-    if(mType == eMixedScript) {
+    if (mType == eMixedScript) {
       rootDoc->SetHasMixedActiveContentLoaded(true);
 
       
@@ -80,7 +81,7 @@ public:
       }
 
     } else {
-        if(mType == eMixedDisplay) {
+        if (mType == eMixedDisplay) {
           
         }
     }
@@ -269,17 +270,42 @@ nsMixedContentBlocker::ShouldLoad(uint32_t aContentType,
   
   
   if (!aRequestingLocation) {
-    nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
-    if (node) {
-      nsCOMPtr<nsIURI> principalUri;
-      node->NodePrincipal()->GetURI(getter_AddRefs(principalUri));
-      aRequestingLocation = principalUri;
+    if (!aRequestPrincipal) {
+      
+      
+      nsCOMPtr<nsINode> node = do_QueryInterface(aRequestingContext);
+      if (node) {
+        aRequestPrincipal = node->NodePrincipal();
+      } else {
+        
+        nsCOMPtr<nsIScriptObjectPrincipal> scriptObjPrin = do_QueryInterface(aRequestingContext);
+        if (scriptObjPrin) {
+          aRequestPrincipal = scriptObjPrin->GetPrincipal();
+        }
+      }
     }
-    
-    
+    if (aRequestPrincipal) {
+      nsCOMPtr<nsIURI> principalUri;
+      nsresult rvalue = aRequestPrincipal->GetURI(getter_AddRefs(principalUri));
+      if (NS_SUCCEEDED(rvalue)) {
+        aRequestingLocation = principalUri;
+      }
+    }
+
     if (!aRequestingLocation) {
-      *aDecision = REJECT_REQUEST;
-      return NS_OK;
+      
+      
+      
+      nsCOMPtr<nsIExpandedPrincipal> expanded = do_QueryInterface(aRequestPrincipal);
+      if (expanded || (aRequestPrincipal && nsContentUtils::IsSystemPrincipal(aRequestPrincipal))) {
+        *aDecision = ACCEPT;
+        return NS_OK;
+      } else {
+        
+        
+        *aDecision = REJECT_REQUEST;
+        return NS_OK;
+      }
     }
   }
 
