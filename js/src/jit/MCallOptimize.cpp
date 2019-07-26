@@ -894,9 +894,17 @@ IonBuilder::inlineMathFRound(CallInfo &callInfo)
 
     
     
-    MIRType returnType = getInlineReturnType();
-    if (!IsNumberType(returnType))
-        return InliningStatus_NotInlined;
+    types::TemporaryTypeSet *returned = getInlineReturnTypeSet();
+    if (returned->empty()) {
+        
+        
+        if (!returned->addType(types::Type::DoubleType(), alloc_->lifoAlloc()))
+            return InliningStatus_Error;
+    } else {
+        MIRType returnType = getInlineReturnType();
+        if (!IsNumberType(returnType))
+            return InliningStatus_NotInlined;
+    }
 
     MIRType arg = callInfo.getArg(0)->type();
     if (!IsNumberType(arg))
