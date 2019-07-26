@@ -454,6 +454,7 @@ class JSScript : public js::gc::Cell
     uint32_t        dataSize;   
 
     uint32_t        lineno;     
+    uint32_t        column;     
 
     uint32_t        mainOffset; 
 
@@ -468,7 +469,6 @@ class JSScript : public js::gc::Cell
     uint32_t        useCount;   
 
 
-    uint32_t        PADDING32;
 
 #ifdef DEBUG
     
@@ -760,6 +760,7 @@ class JSScript : public js::gc::Cell
 
     static bool loadSource(JSContext *cx, js::HandleScript scr, bool *worked);
 
+    void setSourceObject(js::ScriptSourceObject *object);
     js::ScriptSourceObject *sourceObject() const;
     js::ScriptSource *scriptSource() const { return sourceObject()->source(); }
     const char *filename() const { return scriptSource()->filename(); }

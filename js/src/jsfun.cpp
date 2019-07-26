@@ -1049,33 +1049,73 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
 {
     JS_ASSERT(fun->isInterpretedLazy());
 
-    if (LazyScript *lazy = fun->lazyScriptOrNull()) {
+    LazyScript *lazy = fun->lazyScriptOrNull();
+    if (lazy) {
         
         if (cx->zone()->needsBarrier())
             LazyScript::writeBarrierPre(lazy);
 
+        
+        
+        AutoSuppressGC suppressGC(cx);
+
         fun->flags &= ~INTERPRETED_LAZY;
         fun->flags |= INTERPRETED;
 
-        if (JSScript *script = lazy->maybeScript()) {
+        JSScript *script = lazy->maybeScript();
+
+        if (script) {
             fun->initScript(script);
             return true;
         }
 
         fun->initScript(NULL);
 
+        
+        
+        
+        
+        
+        
+        
+        
+        if (!lazy->numInnerFunctions() && !JS::IsIncrementalGCInProgress(cx->runtime())) {
+            LazyScriptCache::Lookup lookup(cx, lazy);
+            cx->runtime()->lazyScriptCache.lookup(lookup, &script);
+        }
+
+        if (script) {
+            RootedObject enclosingScope(cx, lazy->enclosingScope());
+            RootedScript scriptRoot(cx, script);
+            RootedScript clonedScript(cx, CloneScript(cx, enclosingScope, fun, scriptRoot));
+            if (!clonedScript) {
+                fun->initLazyScript(lazy);
+                return false;
+            }
+
+            
+            
+            clonedScript->originPrincipals = lazy->originPrincipals();
+            clonedScript->setSourceObject(lazy->sourceObject());
+
+            fun->initAtom(script->function()->displayAtom());
+            fun->initScript(clonedScript);
+            clonedScript->setFunction(fun);
+
+            CallNewScriptHook(cx, clonedScript, fun);
+
+            lazy->initScript(clonedScript);
+            return true;
+        }
+
         JS_ASSERT(lazy->source()->hasSourceData());
 
         
-
-
-
-        AutoSuppressGC suppressGC(cx);
-
-        
         const jschar *chars = lazy->source()->chars(cx);
-        if (!chars)
+        if (!chars) {
+            fun->initLazyScript(lazy);
             return false;
+        }
 
         const jschar *lazyStart = chars + lazy->begin();
         size_t lazyLength = lazy->end() - lazy->begin();
@@ -1085,7 +1125,22 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
             return false;
         }
 
-        lazy->initScript(fun->nonLazyScript());
+        script = fun->nonLazyScript();
+
+        
+        if (!lazy->numInnerFunctions()) {
+            
+            
+            
+            script->column = lazy->column();
+
+            LazyScriptCache::Lookup lookup(cx, lazy);
+            cx->runtime()->lazyScriptCache.insert(lookup, script);
+        }
+
+        
+        
+        lazy->initScript(script);
         return true;
     }
 

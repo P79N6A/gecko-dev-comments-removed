@@ -789,6 +789,12 @@ template bool
 js::XDRScript(XDRState<XDR_DECODE> *, HandleObject, HandleScript, HandleFunction,
               MutableHandleScript);
 
+void
+JSScript::setSourceObject(js::ScriptSourceObject *object)
+{
+    sourceObject_ = object;
+}
+
 js::ScriptSourceObject *
 JSScript::sourceObject() const
 {
@@ -2052,6 +2058,8 @@ JSScript::finalize(FreeOp *fop)
         JS_POISON(data, 0xdb, computedSizeOfData());
         fop->free_(data);
     }
+
+    fop->runtime()->lazyScriptCache.remove(this);
 }
 
 static const uint32_t GSN_CACHE_THRESHOLD = 100;
@@ -3046,4 +3054,74 @@ JSScript::updateBaselineOrIonRaw()
         baselineOrIonSkipArgCheck = NULL;
     }
 #endif
+}
+
+static inline void
+LazyScriptHash(uint32_t lineno, uint32_t column, uint32_t begin, uint32_t end,
+               HashNumber hashes[3])
+{
+    HashNumber hash = lineno;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ column;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ begin;
+    hash = JS_ROTATE_LEFT32(hash, 4) ^ end;
+
+    hashes[0] = hash;
+    hashes[1] = JS_ROTATE_LEFT32(hashes[0], 4) ^ begin;
+    hashes[2] = JS_ROTATE_LEFT32(hashes[1], 4) ^ end;
+}
+
+void
+LazyScriptHashPolicy::hash(const Lookup &lookup, HashNumber hashes[3])
+{
+    LazyScript *lazy = lookup.lazy;
+    LazyScriptHash(lazy->lineno(), lazy->column(), lazy->begin(), lazy->end(), hashes);
+}
+
+void
+LazyScriptHashPolicy::hash(JSScript *script, HashNumber hashes[3])
+{
+    LazyScriptHash(script->lineno, script->column, script->sourceStart, script->sourceEnd, hashes);
+}
+
+bool
+LazyScriptHashPolicy::match(JSScript *script, const Lookup &lookup)
+{
+    JSContext *cx = lookup.cx;
+    LazyScript *lazy = lookup.lazy;
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (script->lineno != lazy->lineno() ||
+        script->column != lazy->column() ||
+        script->getVersion() != lazy->version() ||
+        script->sourceStart != lazy->begin() ||
+        script->sourceEnd != lazy->end())
+    {
+        return false;
+    }
+
+    
+    AutoSuppressGC suppress(cx);
+
+    const jschar *scriptChars = script->scriptSource()->chars(cx);
+    if (!scriptChars)
+        return false;
+
+    const jschar *lazyChars = lazy->source()->chars(cx);
+    if (!lazyChars)
+        return false;
+
+    size_t begin = script->sourceStart;
+    size_t length = script->sourceEnd - begin;
+    return !memcmp(scriptChars + begin, lazyChars + begin, length);
 }
