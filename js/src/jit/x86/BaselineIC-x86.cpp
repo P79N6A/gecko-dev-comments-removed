@@ -30,7 +30,7 @@ ICCompare_Int32::Compiler::generateStubCode(MacroAssembler &masm)
     Assembler::Condition cond = JSOpToCondition(op, true);
     masm.cmpl(R0.payloadReg(), R1.payloadReg());
     masm.setCC(cond, R0.payloadReg());
-    masm.movzxbl(R0.payloadReg(), R0.payloadReg());
+    masm.movzbl(R0.payloadReg(), R0.payloadReg());
 
     
     masm.tagValue(JSVAL_TYPE_BOOLEAN, R0.payloadReg(), R0);

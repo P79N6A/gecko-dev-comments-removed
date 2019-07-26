@@ -569,7 +569,7 @@ class MacroAssemblerX86Shared : public Assembler
     void convertBoolToInt32(Register source, Register dest) {
         
         
-        movzxbl(source, dest);
+        movzbl(source, dest);
     }
 
     void emitSet(Assembler::Condition cond, const Register &dest,
@@ -578,7 +578,7 @@ class MacroAssemblerX86Shared : public Assembler
             
             
             setCC(cond, dest);
-            movzxbl(dest, dest);
+            movzbl(dest, dest);
 
             if (ifNaN != Assembler::NaN_HandledByCond) {
                 Label noNaN;

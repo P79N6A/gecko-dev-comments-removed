@@ -1162,7 +1162,7 @@ class AssemblerX86Shared
 #endif
 
     
-    void movzxbl(const Register &src, const Register &dest) {
+    void movzbl(const Register &src, const Register &dest) {
         masm.movzbl_rr(src.code(), dest.code());
     }
 
