@@ -14,6 +14,11 @@
     "layout/xul" : "",
     "dom/plugins": "tests that use plugins",
     "dom/tests/mochitest/general/test_focusrings.xul":"",
+    "dom/tests/mochitest/beacon/test_beacon.html":"",
+    "dom/tests/mochitest/beacon/test_beaconContentPolicy.html":"",
+    "dom/tests/mochitest/beacon/test_beaconCookies.html":"",
+    "dom/tests/mochitest/beacon/test_beaconFrame.html":"",
+    "dom/tests/mochitest/beacon/test_beaconPreflight.html":"",
     "layout/base/tests/test_bug465448.xul":"",
     "layout/forms/test/test_bug287446.html": "bug 947789",
 
@@ -221,7 +226,6 @@
 
     "content/base/test/test_CrossSiteXHR_origin.html":"https not working, bug 907770",
     "content/base/test/test_plugin_freezing.html":"",
-    "content/base/test/test_XHR_timeout.html":"flaky on B2G, bug 960743",
     "content/base/test/test_bug466409.html":"",
     "content/base/test/test_bug482935.html":"",
     "content/base/test/test_bug498433.html":"",
