@@ -557,14 +557,9 @@ class CallCompiler : public BaseCompiler
     {
         RecompilationMonitor monitor(cx);
 
-        if (f.script()->function()) {
-            f.script()->uninlineable = true;
-            MarkTypeObjectFlags(cx, f.script()->function(), types::OBJECT_FLAG_UNINLINEABLE);
-        }
-
         
-        if (monitor.recompiled())
-            return true;
+
+
 
         JS_ASSERT(!f.regs.inlined());
 
