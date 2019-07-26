@@ -278,6 +278,10 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
 
 
   setup: method(function({ reload }) {
+    
+    
+    this._firstNodeCreated = false;
+
     if (this._initialized) {
       return;
     }
@@ -293,10 +297,6 @@ let WebAudioActor = exports.WebAudioActor = protocol.ActorClass({
       startRecording: true,
       performReload: reload
     });
-
-    
-    
-    this._firstNodeCreated = false;
   }, {
     request: { reload: Option(0, "boolean") },
     oneway: true

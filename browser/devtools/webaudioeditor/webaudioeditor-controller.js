@@ -186,6 +186,18 @@ let WebAudioEditorController = {
 
 
 
+  reset: function () {
+    $("#reload-notice").hidden = true;
+    $("#waiting-notice").hidden = false;
+    $("#content").hidden = true;
+    WebAudioGraphView.resetUI();
+    WebAudioInspectorView.resetUI();
+  },
+
+  
+
+
+
   _onUpdatedContext: function () {
     WebAudioGraphView.draw();
   },
@@ -202,22 +214,20 @@ let WebAudioEditorController = {
   
 
 
-  _onTabNavigated: function(event) {
+  _onTabNavigated: Task.async(function* (event) {
     switch (event) {
       case "will-navigate": {
-        Task.spawn(function() {
-          
-          yield gFront.setup({ reload: false });
+        
+        yield gFront.setup({ reload: false });
 
-          
-          
-          WebAudioGraphView.resetUI();
-          WebAudioInspectorView.resetUI();
+        
+        
+        this.reset();
 
-          
-          AudioNodes.length = 0;
-          AudioNodeConnections.clear();
-        }).then(() => window.emit(EVENTS.UI_RESET));
+        
+        AudioNodes.length = 0;
+        AudioNodeConnections.clear();
+        window.emit(EVENTS.UI_RESET);
         break;
       }
       case "navigate": {
@@ -226,14 +236,16 @@ let WebAudioEditorController = {
         break;
       }
     }
-  },
+  }),
 
   
 
 
 
   _onStartContext: function() {
-    WebAudioGraphView.showContent();
+    $("#reload-notice").hidden = true;
+    $("#waiting-notice").hidden = true;
+    $("#content").hidden = false;
     window.emit(EVENTS.START_CONTEXT);
   },
 

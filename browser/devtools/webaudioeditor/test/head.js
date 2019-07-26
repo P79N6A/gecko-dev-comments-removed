@@ -354,6 +354,16 @@ function getGripValue (value) {
 
 
 
+function countGraphObjects (win) {
+  return {
+    nodes: win.document.querySelectorAll(".nodes > .audionode").length,
+    edges: win.document.querySelectorAll(".edgePaths > .edgePath").length
+  }
+}
+
+
+
+
 
 const NODE_DEFAULT_VALUES = {
   "AudioDestinationNode": {},
