@@ -147,4 +147,4 @@ user_pref("geo.provider.testing", true);
 
 
 
-user_pref("browser.pageThumbs.enabled", false);
+user_pref("browser.pagethumbnails.capturing_disabled", false);
