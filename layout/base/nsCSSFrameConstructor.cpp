@@ -7999,7 +7999,7 @@ NS_DECLARE_FRAME_PROPERTY(ChangeListProperty, nullptr)
 
 
 static bool
-FrameHasPositionedPlaceholderDescendants(nsIFrame* aFrame, uint32_t aPositionMask)
+FrameHasAbsPosPlaceholderDescendants(nsIFrame* aFrame)
 {
   const nsIFrame::ChildListIDs skip(nsIFrame::kAbsoluteList |
                                     nsIFrame::kFixedList);
@@ -8008,51 +8008,15 @@ FrameHasPositionedPlaceholderDescendants(nsIFrame* aFrame, uint32_t aPositionMas
       for (nsFrameList::Enumerator childFrames(lists.CurrentList());
            !childFrames.AtEnd(); childFrames.Next()) {
         nsIFrame* f = childFrames.get();
-        if (f->GetType() == nsGkAtoms::placeholderFrame) {
-          nsIFrame* outOfFlow = nsPlaceholderFrame::GetRealFrameForPlaceholder(f);
-          
-          
-          NS_ASSERTION(!outOfFlow->IsSVGText(),
-                       "SVG text frames can't be out of flow");
-          if (aPositionMask & (1 << outOfFlow->GetStyleDisplay()->mPosition)) {
-            return true;
-          }
-        }
-        if (FrameHasPositionedPlaceholderDescendants(f, aPositionMask)) {
+        if ((f->GetType() == nsGkAtoms::placeholderFrame &&
+             nsPlaceholderFrame::GetRealFrameForPlaceholder(f)->IsAbsolutelyPositioned()) ||
+            FrameHasAbsPosPlaceholderDescendants(f)) {
           return true;
         }
       }
     }
   }
   return false;
-}
-
-static bool
-NeedToReframeForAddingOrRemovingTransform(nsIFrame* aFrame)
-{
-  MOZ_STATIC_ASSERT(0 <= NS_STYLE_POSITION_ABSOLUTE &&
-                    NS_STYLE_POSITION_ABSOLUTE < 32, "Style constant out of range");
-  MOZ_STATIC_ASSERT(0 <= NS_STYLE_POSITION_FIXED &&
-                    NS_STYLE_POSITION_FIXED < 32, "Style constant out of range");
-
-  const nsStyleDisplay* style = aFrame->GetStyleDisplay();
-  uint32_t positionMask;
-  
-  
-  if (aFrame->IsAbsolutelyPositioned() ||
-      aFrame->IsRelativelyPositioned()) {
-    
-    
-    
-    
-    positionMask = 1 << NS_STYLE_POSITION_FIXED;
-  } else {
-    
-    
-    positionMask = (1 << NS_STYLE_POSITION_FIXED) |
-        (1 << NS_STYLE_POSITION_ABSOLUTE);
-  }
-  return FrameHasPositionedPlaceholderDescendants(aFrame, positionMask);
 }
 
 nsresult
@@ -8119,7 +8083,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
 
     if ((hint & nsChangeHint_AddOrRemoveTransform) && frame &&
         !(hint & nsChangeHint_ReconstructFrame)) {
-      if (NeedToReframeForAddingOrRemovingTransform(frame)) {
+      if (FrameHasAbsPosPlaceholderDescendants(frame)) {
         NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
       } else {
         
