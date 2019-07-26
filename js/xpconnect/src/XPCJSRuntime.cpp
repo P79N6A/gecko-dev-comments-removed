@@ -492,40 +492,6 @@ void XPCJSRuntime::TraceXPConnectRoots(JSTracer *trc)
     mJSHolders.Enumerate(TraceJSHolder, trc);
 }
 
-struct Closure
-{
-    bool cycleCollectionEnabled;
-    nsCycleCollectionNoteRootCallback *cb;
-};
-
-static void
-CheckParticipatesInCycleCollection(void *aThing, const char *name, void *aClosure)
-{
-    Closure *closure = static_cast<Closure*>(aClosure);
-
-    if (closure->cycleCollectionEnabled)
-        return;
-
-    if (AddToCCKind(js::GCThingTraceKind(aThing)) &&
-        xpc_IsGrayGCThing(aThing))
-    {
-        closure->cycleCollectionEnabled = true;
-    }
-}
-
-static PLDHashOperator
-NoteJSHolder(void *holder, nsScriptObjectTracer *&tracer, void *arg)
-{
-    Closure *closure = static_cast<Closure*>(arg);
-
-    closure->cycleCollectionEnabled = false;
-    tracer->Trace(holder, TraceCallbackFunc(CheckParticipatesInCycleCollection), closure);
-    if (closure->cycleCollectionEnabled)
-        closure->cb->NoteNativeRoot(holder, tracer);
-
-    return PL_DHASH_NEXT;
-}
-
 
 void
 XPCJSRuntime::SuspectWrappedNative(XPCWrappedNative *wrapper,
@@ -574,26 +540,8 @@ CanSkipWrappedJS(nsXPCWrappedJS *wrappedJS)
 }
 
 void
-XPCJSRuntime::AddXPConnectRoots(nsCycleCollectionNoteRootCallback &cb)
+XPCJSRuntime::TraverseAdditionalNativeRoots(nsCycleCollectionNoteRootCallback &cb)
 {
-    
-    
-    
-    
-    
-    
-    
-
-    JSContext *iter = nullptr, *acx;
-    while ((acx = JS_ContextIterator(Runtime(), &iter))) {
-        
-        
-        JSObject* global = js::GetDefaultGlobalForContext(acx);
-        if (global && xpc_IsGrayGCThing(global)) {
-            cb.NoteNativeRoot(acx, nsXPConnect::JSContextParticipant());
-        }
-    }
-
     XPCAutoLock lock(mMapLock);
 
     XPCWrappedNativeScope::SuspectAllWrappers(this, cb);
@@ -618,9 +566,6 @@ XPCJSRuntime::AddXPConnectRoots(nsCycleCollectionNoteRootCallback &cb)
 
         cb.NoteXPCOMRoot(static_cast<nsIXPConnectWrappedJS *>(wrappedJS));
     }
-
-    Closure closure = { true, &cb };
-    mJSHolders.Enumerate(NoteJSHolder, &closure);
 }
 
 static PLDHashOperator
