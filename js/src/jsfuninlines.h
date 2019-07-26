@@ -191,11 +191,11 @@ CloneFunctionObjectIfNotSingleton(JSContext *cx, HandleFunction fun, HandleObjec
 
     
     
-    gc::AllocKind finalizeKind = JSFunction::ExtendedFinalizeKind;
+    gc::AllocKind finalizeKind = JSFunction::FinalizeKind;
     gc::AllocKind extendedFinalizeKind = JSFunction::ExtendedFinalizeKind;
     gc::AllocKind kind = fun->isExtended()
-                         ? finalizeKind
-                         : extendedFinalizeKind;
+                         ? extendedFinalizeKind
+                         : finalizeKind;
     return CloneFunctionObject(cx, fun, parent, kind);
 }
 
