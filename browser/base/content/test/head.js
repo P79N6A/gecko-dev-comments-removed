@@ -132,7 +132,6 @@ function runSocialTestWithProvider(manifest, callback) {
 
     
     Services.prefs.setBoolPref("social.enabled", true);
-    Services.prefs.setBoolPref("social.active", true);
 
     
     
@@ -150,7 +149,6 @@ function runSocialTestWithProvider(manifest, callback) {
       }
       Social.provider = oldProvider;
       Services.prefs.clearUserPref("social.enabled");
-      Services.prefs.clearUserPref("social.active");
     });
 
     function finishSocialTest() {

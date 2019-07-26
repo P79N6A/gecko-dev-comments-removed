@@ -62,7 +62,6 @@ let SocialUI = {
         break;
       case "social:ambient-notification-changed":
         SocialToolbar.updateButton();
-        SocialMenu.updateMenu();
         break;
       case "social:profile-changed":
         SocialToolbar.updateProfile();
@@ -108,7 +107,7 @@ let SocialUI = {
     
     
     
-    for (let id of ["appmenu_socialToggle", "menu_socialToggle", "menu_socialAmbientMenu"]) {
+    for (let id of ["appmenu_socialToggle", "menu_socialToggle"]) {
       let el = document.getElementById(id);
       if (!el)
         continue;
@@ -585,31 +584,6 @@ let SocialShareButton = {
   }
 };
 
-var SocialMenu = {
-  populate: function SocialMenu_populate() {
-    
-    let submenu = document.getElementById("menu_socialAmbientMenuPopup");
-    while(submenu.hasChildNodes())
-          submenu.removeChild(submenu.firstChild);
-    let provider = Social.provider;
-    if (Social.active && provider) {
-      let iconNames = Object.keys(provider.ambientNotificationIcons);
-      for each(let name in iconNames) {
-        let icon = provider.ambientNotificationIcons[name];
-        if (!icon.label || !icon.menuURL)
-          continue;
-        let menuitem = document.createElement("menuitem");
-        menuitem.setAttribute("label", icon.label);
-        menuitem.addEventListener("command", function() {
-          openUILinkIn(icon.menuURL, "tab");
-        }, false);
-        submenu.appendChild(menuitem);
-      }
-    }
-    document.getElementById("menu_socialAmbientMenu").hidden = !submenu.querySelector("menuitem");
-  }
-};
-
 var SocialToolbar = {
   
   init: function SocialToolbar_init() {
@@ -743,9 +717,6 @@ var SocialToolbar = {
         let box = document.createElement("box");
         box.classList.add("toolbarbutton-1");
         box.setAttribute("id", iconId);
-        
-        if (icon.label)
-          box.setAttribute("tooltiptext", icon.label);
         box.addEventListener("mousedown", function (e) {
           if (e.button == 0)
             SocialToolbar.showAmbientPopup(box);
