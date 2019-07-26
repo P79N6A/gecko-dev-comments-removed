@@ -264,27 +264,33 @@ pref("media.peerconnection.identity.timeout", 5000);
 
 
 pref("media.peerconnection.turn.disable", false);
-pref("media.peerconnection.aec_enabled", true);
-pref("media.peerconnection.aec", 1);
-pref("media.peerconnection.agc_enabled", false);
-pref("media.peerconnection.agc", 1);
-pref("media.peerconnection.noise_enabled", false);
-pref("media.peerconnection.noise", 1);
+pref("media.getusermedia.aec_enabled", true);
+pref("media.getusermedia.aec", 1);
+pref("media.getusermedia.agc_enabled", false);
+pref("media.getusermedia.agc", 1);
+pref("media.getusermedia.noise_enabled", true);
+pref("media.getusermedia.noise", 1);
+
 
 #if defined(XP_MACOSX)
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 10);
 #elif defined(XP_WIN)
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 40);
 #elif defined(ANDROID)
 pref("media.peerconnection.capture_delay", 100);
+pref("media.getusermedia.playout_delay", 100);
 
 pref("media.navigator.hardware.vp8_encode.acceleration_enabled", false);
 pref("media.navigator.hardware.vp8_decode.acceleration_enabled", false);
 #elif defined(XP_LINUX)
 pref("media.peerconnection.capture_delay", 70);
+pref("media.getusermedia.playout_delay", 50);
 #else
 
 pref("media.peerconnection.capture_delay", 50);
+pref("media.getusermedia.playout_delay", 50);
 #endif
 #else
 #ifdef ANDROID
