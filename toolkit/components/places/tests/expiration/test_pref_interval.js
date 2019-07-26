@@ -46,12 +46,12 @@ let gMockTimerFactory = {
 let mockTimerImpl = {
   initWithCallback: function MTI_initWithCallback(aCallback, aDelay, aType) {
     print("Checking timer delay equals expected interval value");
-    if (!gCurrentTest)
+    if (!currentTest)
       return;
     
-    do_check_eq(aDelay, gCurrentTest.expectedTimerDelay * 1000 * EXPIRE_AGGRESSIVITY_MULTIPLIER)
+    do_check_eq(aDelay, currentTest.expectedTimerDelay * 1000 * EXPIRE_AGGRESSIVITY_MULTIPLIER)
 
-    do_execute_soon(run_next_test);
+    do_execute_soon(runNextTest);
   },
 
   cancel: function() {},
@@ -85,7 +85,7 @@ do_register_cleanup(function() {
 });
 
 
-let gTests = [
+let tests = [
 
   
   
@@ -111,7 +111,7 @@ let gTests = [
 
 ];
 
-let gCurrentTest;
+let currentTest;
 
 function run_test() {
   
@@ -127,15 +127,15 @@ function run_test() {
   
   force_expiration_start();
 
-  run_next_test();
+  runNextTest();
   do_test_pending();
 }
 
-function run_next_test() {
-  if (gTests.length) {
-    gCurrentTest = gTests.shift();
-    print(gCurrentTest.desc);
-    setInterval(gCurrentTest.interval);
+function runNextTest() {
+  if (tests.length) {
+    currentTest = tests.shift();
+    print(currentTest.desc);
+    setInterval(currentTest.interval);
   }
   else {
     clearInterval();

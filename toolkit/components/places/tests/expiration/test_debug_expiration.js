@@ -10,15 +10,13 @@
 
 let gNow = getExpirablePRTime();
 
-add_test(function test_expire_orphans()
+add_task(function test_expire_orphans()
 {
   
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page1.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page2.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
+  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
+                           visitDate: gNow++ });
+  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
+                           visitDate: gNow++ });
   
   let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                                 NetUtil.newURI("http://page3.mozilla.org/"),
@@ -26,32 +24,24 @@ add_test(function test_expire_orphans()
   PlacesUtils.bookmarks.removeItem(id);
 
   
-  Services.obs.addObserver(function (aSubject, aTopic, aData)
-  {
-    Services.obs.removeObserver(arguments.callee, aTopic);
-
-    
-    do_check_eq(visits_in_database("http://page1.mozilla.org/"), 1);
-    do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
-    do_check_false(page_in_database("http://page3.mozilla.org/"));
-
-    
-    promiseClearHistory().then(run_next_test);
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+  yield promiseForceExpirationStep(0);
 
   
-  force_expiration_step(0);
+  do_check_eq(visits_in_database("http://page1.mozilla.org/"), 1);
+  do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
+  do_check_false(page_in_database("http://page3.mozilla.org/"));
+
+  
+  yield promiseClearHistory();
 });
 
-add_test(function test_expire_orphans_optionalarg()
+add_task(function test_expire_orphans_optionalarg()
 {
   
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page1.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page2.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
+  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
+                           visitDate: gNow++ });
+  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
+                           visitDate: gNow++ });
   
   let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
                                                 NetUtil.newURI("http://page3.mozilla.org/"),
@@ -59,75 +49,55 @@ add_test(function test_expire_orphans_optionalarg()
   PlacesUtils.bookmarks.removeItem(id);
 
   
-  Services.obs.addObserver(function (aSubject, aTopic, aData)
-  {
-    Services.obs.removeObserver(arguments.callee, aTopic);
-
-    
-    do_check_eq(visits_in_database("http://page1.mozilla.org/"), 1);
-    do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
-    do_check_false(page_in_database("http://page3.mozilla.org/"));
-
-    
-    promiseClearHistory().then(run_next_test);
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+  yield promiseForceExpirationStep();
 
   
-  force_expiration_step();
+  do_check_eq(visits_in_database("http://page1.mozilla.org/"), 1);
+  do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
+  do_check_false(page_in_database("http://page3.mozilla.org/"));
+
+  
+  yield promiseClearHistory();
 });
 
-add_test(function test_expire_limited()
+add_task(function test_expire_limited()
 {
   
   
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page1.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page2.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  
-  Services.obs.addObserver(function (aSubject, aTopic, aData)
-  {
-    Services.obs.removeObserver(arguments.callee, aTopic);
-
-    
-    do_check_false(page_in_database("http://page1.mozilla.org/"));
-    do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
-
-    
-    promiseClearHistory().then(run_next_test);
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
+                           visitDate: gNow++ });
+  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
+                           visitDate: gNow++ });
 
   
-  force_expiration_step(1);
+  yield promiseForceExpirationStep(1);
+
+  
+  do_check_false(page_in_database("http://page1.mozilla.org/"));
+  do_check_eq(visits_in_database("http://page2.mozilla.org/"), 1);
+
+  
+  yield promiseClearHistory();
 });
 
-add_test(function test_expire_unlimited()
+add_task(function test_expire_unlimited()
 {
   
   
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page1.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  PlacesUtils.history.addVisit(NetUtil.newURI("http://page2.mozilla.org/"),
-                               gNow++, null,
-                               PlacesUtils.history.TRANSITION_TYPED, false, 0);
-  
-  Services.obs.addObserver(function (aSubject, aTopic, aData)
-  {
-    Services.obs.removeObserver(arguments.callee, aTopic);
-
-    
-    do_check_false(page_in_database("http://page1.mozilla.org/"));
-    do_check_false(page_in_database("http://page2.mozilla.org/"));
-
-    
-    promiseClearHistory().then(run_next_test);
-  }, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+  yield promiseAddVisits({ uri: uri("http://page1.mozilla.org/"),
+                           visitDate: gNow++ });
+  yield promiseAddVisits({ uri: uri("http://page2.mozilla.org/"),
+                           visitDate: gNow++ });
 
   
-  force_expiration_step(-1);
+  yield promiseForceExpirationStep(-1);
+
+  
+  do_check_false(page_in_database("http://page1.mozilla.org/"));
+  do_check_false(page_in_database("http://page2.mozilla.org/"));
+
+  
+  yield promiseClearHistory();
 });
 
 function run_test()

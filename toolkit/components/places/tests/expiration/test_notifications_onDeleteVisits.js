@@ -11,14 +11,12 @@
 
 
 
-let os = Cc["@mozilla.org/observer-service;1"].
-         getService(Ci.nsIObserverService);
 let hs = Cc["@mozilla.org/browser/nav-history-service;1"].
          getService(Ci.nsINavHistoryService);
 let bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
          getService(Ci.nsINavBookmarksService);
 
-let gTests = [
+let tests = [
 
   { desc: "Add 1 bookmarked page.",
     addPages: 1,
@@ -62,43 +60,38 @@ let gTests = [
 
 ];
 
-let gCurrentTest;
-let gTestIndex = 0;
-
 function run_test() {
+  run_next_test();
+}
+
+add_task(function test_notifications_onDeleteVisits() {
   
   setInterval(3600); 
 
   
   setMaxPages(0);
 
-  do_test_pending();
-  run_next_test();
-}
-
-function run_next_test() {
-  if (gTests.length) {
-    gCurrentTest = gTests.shift();
-    gTestIndex++;
-    print("\nTEST " + gTestIndex + ": " + gCurrentTest.desc);
-    gCurrentTest.receivedNotifications = 0;
+  for (let testIndex = 1; testIndex <= tests.length; testIndex++) {
+    let currentTest = tests[testIndex -1];
+    print("\nTEST " + testIndex + ": " + currentTest.desc);
+    currentTest.receivedNotifications = 0;
 
     
     let now = getExpirablePRTime();
-    for (let j = 0; j < gCurrentTest.visitsPerPage; j++) {
-      for (let i = 0; i < gCurrentTest.addPages; i++) {
-        let page = "http://" + gTestIndex + "." + i + ".mozilla.org/";
-        hs.addVisit(uri(page), now++, null, hs.TRANSITION_TYPED, false, 0);
+    for (let j = 0; j < currentTest.visitsPerPage; j++) {
+      for (let i = 0; i < currentTest.addPages; i++) {
+        let page = "http://" + testIndex + "." + i + ".mozilla.org/";
+        yield promiseAddVisits({ uri: uri(page), visitDate: now++ });
       }
     }
 
     
-    gCurrentTest.bookmarks = [];
-    for (let i = 0; i < gCurrentTest.addBookmarks; i++) {
-      let page = "http://" + gTestIndex + "." + i + ".mozilla.org/";
+    currentTest.bookmarks = [];
+    for (let i = 0; i < currentTest.addBookmarks; i++) {
+      let page = "http://" + testIndex + "." + i + ".mozilla.org/";
       bs.insertBookmark(bs.unfiledBookmarksFolder, uri(page),
                         bs.DEFAULT_INDEX, null);
-      gCurrentTest.bookmarks.push(page);
+      currentTest.bookmarks.push(page);
     }
 
     
@@ -111,13 +104,13 @@ function run_next_test() {
       onBeforeDeleteURI: function() {},
       onDeleteURI: function(aURI, aGUID, aReason) {
         
-        do_check_eq(gCurrentTest.bookmarks.indexOf(aURI.spec), -1);
+        do_check_eq(currentTest.bookmarks.indexOf(aURI.spec), -1);
         do_check_valid_places_guid(aGUID);
         do_check_eq(aReason, Ci.nsINavHistoryObserver.REASON_EXPIRED);
       },
       onPageChanged: function() {},
       onDeleteVisits: function(aURI, aTime, aGUID, aReason) {
-        gCurrentTest.receivedNotifications++;
+        currentTest.receivedNotifications++;
         do_check_guid_for_uri(aURI, aGUID);
         do_check_eq(aReason, Ci.nsINavHistoryObserver.REASON_EXPIRED);
       },
@@ -125,33 +118,19 @@ function run_next_test() {
     hs.addObserver(historyObserver, false);
 
     
-    observer = {
-      observe: function(aSubject, aTopic, aData) {
-        os.removeObserver(observer, PlacesUtils.TOPIC_EXPIRATION_FINISHED);
-        hs.removeObserver(historyObserver, false);
+    yield promiseForceExpirationStep(currentTest.limitExpiration);
 
-        
-        check_result();
-      }
-    };
-    os.addObserver(observer, PlacesUtils.TOPIC_EXPIRATION_FINISHED, false);
+    hs.removeObserver(historyObserver, false);
+
+    do_check_eq(currentTest.receivedNotifications,
+                currentTest.expectedNotifications);
 
     
-    force_expiration_step(gCurrentTest.limitExpiration);
-  }
-  else {
-    clearMaxPages();
     bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-    promiseClearHistory().then(do_test_finished);
+    yield promiseClearHistory();
   }
-}
 
-function check_result() {
-
-  do_check_eq(gCurrentTest.receivedNotifications,
-              gCurrentTest.expectedNotifications);
-
-  
+  clearMaxPages();
   bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-  promiseClearHistory().then(run_next_test);
-}
+  yield promiseClearHistory();
+});
