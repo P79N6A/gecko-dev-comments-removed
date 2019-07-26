@@ -867,8 +867,19 @@ js::ParallelDo::compileForParallelExecution(ExecutionStatus *status)
                 }
             }
         }
-        if (allScriptsPresent)
+
+        if (allScriptsPresent) {
+            
+            
+            
+            
+            if (mode_ != ForkJoinModeNormal) {
+                StopAllOffThreadCompilations(cx_->compartment());
+                if (!js_HandleExecutionInterrupt(cx_))
+                    return fatalError(status);
+            }
             break;
+        }
     }
 
     Spew(SpewCompile, "Compilation complete (final worklist length %d)",

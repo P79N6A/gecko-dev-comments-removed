@@ -768,13 +768,13 @@ WorkerThread::handleIonWorkload(WorkerThreadState &state)
     ionBuilder = nullptr;
 
     
-    state.notifyAll(WorkerThreadState::CONSUMER);
-
-    
     
     
     
     runtime->triggerOperationCallback(JSRuntime::TriggerCallbackAnyThreadDontStopIon);
+
+    
+    state.notifyAll(WorkerThreadState::CONSUMER);
 }
 
 void
