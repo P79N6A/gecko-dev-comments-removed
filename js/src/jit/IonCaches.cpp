@@ -1363,8 +1363,10 @@ GetPropertyIC::tryAttachDOMProxyShadowed(JSContext *cx, IonScript *ion,
     JS_ASSERT(canAttachStub());
     JS_ASSERT(!*emitted);
     JS_ASSERT(IsCacheableDOMProxy(obj));
+    JS_ASSERT(monitoredResult());
+    JS_ASSERT(output().hasValue());
 
-    if (idempotent() || !output().hasValue())
+    if (idempotent())
         return true;
 
     *emitted = true;
@@ -1407,6 +1409,8 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, Handle
     JS_ASSERT(canAttachStub());
     JS_ASSERT(!*emitted);
     JS_ASSERT(IsCacheableDOMProxy(obj));
+    JS_ASSERT(monitoredResult());
+    JS_ASSERT(output().hasValue());
 
     RootedObject checkObj(cx, obj->getTaggedProto().toObjectOrNull());
     RootedObject holder(cx);
@@ -1421,7 +1425,7 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, Handle
         return true;
 
     
-    if (!holder && (idempotent() || !output().hasValue()))
+    if (!holder && idempotent())
         return true;
 
     *emitted = true;
@@ -1509,6 +1513,11 @@ GetPropertyIC::tryAttachProxy(JSContext *cx, IonScript *ion, HandleObject obj,
         return true;
 
     
+    
+    if (!monitoredResult())
+        return true;
+
+    
     if (IsCacheableDOMProxy(obj)) {
         RootedId id(cx, NameToId(name));
         DOMProxyShadowsResult shadows = GetDOMProxyShadowsCheck()(cx, obj, id);
@@ -1542,11 +1551,13 @@ GetPropertyIC::tryAttachGenericProxy(JSContext *cx, IonScript *ion, HandleObject
     JS_ASSERT(canAttachStub());
     JS_ASSERT(!*emitted);
     JS_ASSERT(obj->is<ProxyObject>());
+    JS_ASSERT(monitoredResult());
+    JS_ASSERT(output().hasValue());
 
     if (hasGenericProxyStub())
         return true;
 
-    if (idempotent() || !output().hasValue())
+    if (idempotent())
         return true;
 
     *emitted = true;
