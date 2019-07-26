@@ -254,12 +254,13 @@ types.addActorType = function(name) {
       
       
       
-      let front = ctx.conn.getActor(v.actor);
+      let actorID = typeof(v) === "string" ? v : v.actor;
+      let front = ctx.conn.getActor(actorID);
       if (front) {
         front.form(v, detail, ctx);
       } else {
         front = new type.frontClass(ctx.conn, v, detail, ctx)
-        front.actorID = v.actor;
+        front.actorID = actorID;
         ctx.marshallPool().manage(front);
       }
       return front;
