@@ -1078,38 +1078,37 @@ GenerateTypedArrayLength(JSContext *cx, MacroAssembler &masm, IonCache::StubAtta
     attacher.jumpNextStub(masm);
 }
 
-GetPropertyIC::NativeGetPropCacheability
-GetPropertyIC::canAttachNative(JSContext *cx, HandleObject obj, HandlePropertyName name,
-                               MutableHandleObject holder, MutableHandleShape shape)
+template <class GetPropCache>
+static GetPropertyIC::NativeGetPropCacheability
+CanAttachNativeGetProp(typename GetPropCache::Context cx, const GetPropCache &cache,
+                       HandleObject obj, HandlePropertyName name,
+                       MutableHandleObject holder, MutableHandleShape shape)
 {
     if (!obj || !obj->isNative())
-        return CanAttachNone;
+        return GetPropertyIC::CanAttachNone;
 
     
     
     
-    if (idempotent() && !obj->hasIdempotentProtoChain())
-        return CanAttachNone;
+    
+    if (cache.lookupNeedsIdempotentChain() && !obj->hasIdempotentProtoChain())
+        return GetPropertyIC::CanAttachNone;
 
-    if (!JSObject::lookupProperty(cx, obj, name, holder, shape))
-        return CanAttachError;
+    if (!GetPropCache::doPropertyLookup(cx, obj, name, holder, shape))
+        return GetPropertyIC::CanAttachError;
 
+    RootedScript script(cx);
+    jsbytecode *pc;
+    cache.getScriptedLocation(&script, &pc);
     if (IsCacheableGetPropReadSlot(obj, holder, shape) ||
-        IsCacheableNoProperty(obj, holder, shape, pc, output()))
+        IsCacheableNoProperty(obj, holder, shape, pc, cache.output()))
     {
         
         
         
-        
-        
-        if (idempotent() &&
-            holder &&
-            holder->hasSingletonType() &&
-            holder->getSlot(shape->slot()).isUndefined())
-        {
-            return CanAttachNone;
-        }
-        return CanAttachReadSlot;
+        if (!cache.canMonitorSingletonUndefinedSlot(holder, shape))
+            return GetPropertyIC::CanAttachNone;
+        return GetPropertyIC::CanAttachReadSlot;
     }
 
     if (obj->is<ArrayObject>() && cx->names().length == name) {
@@ -1117,19 +1116,30 @@ GetPropertyIC::canAttachNative(JSContext *cx, HandleObject obj, HandlePropertyNa
         
         
         
-        return CanAttachArrayLength;
+        return GetPropertyIC::CanAttachArrayLength;
     }
 
-    if (allowGetters() && (IsCacheableGetPropCallNative(obj, holder, shape) ||
-               IsCacheableGetPropCallPropertyOp(obj, holder, shape)))
+    if (cache.allowGetters() &&
+        (IsCacheableGetPropCallNative(obj, holder, shape) ||
+         IsCacheableGetPropCallPropertyOp(obj, holder, shape)))
     {
         
         
-        return CanAttachCallGetter;
+        return GetPropertyIC::CanAttachCallGetter;
     }
 
+    return GetPropertyIC::CanAttachNone;
+}
+
+bool
+GetPropertyIC::canMonitorSingletonUndefinedSlot(HandleObject holder, HandleShape shape) const
+{
     
-    return CanAttachNone;
+    
+    return !(idempotent() &&
+             holder &&
+             holder->hasSingletonType() &&
+             holder->getSlot(shape->slot()).isUndefined());
 }
 
 bool
@@ -1142,7 +1152,8 @@ GetPropertyIC::tryAttachNative(JSContext *cx, IonScript *ion, HandleObject obj,
     RootedShape shape(cx);
     RootedObject holder(cx);
 
-    NativeGetPropCacheability type = canAttachNative(cx, obj, name, &holder, &shape);
+    NativeGetPropCacheability type =
+        CanAttachNativeGetProp(cx, *this, obj, name, &holder, &shape);
     if (type == CanAttachError)
         return false;
     if (type == CanAttachNone)
@@ -1352,8 +1363,8 @@ GetPropertyIC::tryAttachDOMProxyUnshadowed(JSContext *cx, IonScript *ion, Handle
     RootedObject holder(cx);
     RootedShape shape(cx);
 
-    NativeGetPropCacheability canCache = canAttachNative(cx, checkObj, name,
-                                                         &holder, &shape);
+    NativeGetPropCacheability canCache =
+        CanAttachNativeGetProp(cx, *this, checkObj, name, &holder, &shape);
 
     if (canCache == CanAttachError)
         return false;
