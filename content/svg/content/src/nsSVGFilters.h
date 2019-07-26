@@ -267,7 +267,16 @@ public:
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
   virtual nsEventStates IntrinsicState() const;
 
-  NS_IMETHODIMP Notify(imgIRequest *aRequest, int32_t aType, const nsIntRect* aData);
+  
+  NS_IMETHOD OnStopDecode(imgIRequest *aRequest, nsresult status,
+                          const PRUnichar *statusArg);
+  
+  NS_IMETHOD FrameChanged(imgIRequest* aRequest,
+                          imgIContainer *aContainer,
+                          const nsIntRect *aDirtyRect);
+  
+  NS_IMETHOD OnStartContainer(imgIRequest *aRequest,
+                              imgIContainer *aContainer);
 
   void MaybeLoadSVGImage();
 

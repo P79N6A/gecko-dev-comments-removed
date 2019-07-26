@@ -680,7 +680,7 @@ imgCacheQueue::const_iterator imgCacheQueue::end() const
 }
 
 nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup *aLoadGroup,
-                                             imgINotificationObserver *aObserver,
+                                             imgIDecoderObserver *aObserver,
                                              nsLoadFlags aLoadFlags, imgIRequest *aProxyRequest,
                                              imgIRequest **_retval)
 {
@@ -708,7 +708,7 @@ nsresult imgLoader::CreateNewProxyForRequest(imgRequest *aRequest, nsILoadGroup 
   aRequest->GetURI(getter_AddRefs(uri));
 
   
-  nsresult rv = proxyRequest->Init(&aRequest->GetStatusTracker(), aLoadGroup, uri, aObserver);
+  nsresult rv = proxyRequest->Init(aRequest, aLoadGroup, aRequest->mImage, uri, aObserver);
   if (NS_FAILED(rv)) {
     NS_RELEASE(proxyRequest);
     return rv;
@@ -1162,7 +1162,7 @@ bool imgLoader::ValidateRequestWithNewChannel(imgRequest *request,
                                                 nsIURI *aInitialDocumentURI,
                                                 nsIURI *aReferrerURI,
                                                 nsILoadGroup *aLoadGroup,
-                                                imgINotificationObserver *aObserver,
+                                                imgIDecoderObserver *aObserver,
                                                 nsISupports *aCX,
                                                 nsLoadFlags aLoadFlags,
                                                 imgIRequest *aExistingRequest,
@@ -1284,7 +1284,7 @@ bool imgLoader::ValidateEntry(imgCacheEntry *aEntry,
                                 nsIURI *aInitialDocumentURI,
                                 nsIURI *aReferrerURI,
                                 nsILoadGroup *aLoadGroup,
-                                imgINotificationObserver *aObserver,
+                                imgIDecoderObserver *aObserver,
                                 nsISupports *aCX,
                                 nsLoadFlags aLoadFlags,
                                 bool aCanMakeNewChannel,
@@ -1528,7 +1528,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
                                    nsIURI *aReferrerURI,
                                    nsIPrincipal* aLoadingPrincipal,
                                    nsILoadGroup *aLoadGroup,
-                                   imgINotificationObserver *aObserver,
+                                   imgIDecoderObserver *aObserver,
                                    nsISupports *aCX,
                                    nsLoadFlags aLoadFlags,
                                    nsISupports *aCacheKey,
@@ -1785,7 +1785,7 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 }
 
 
-NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgINotificationObserver *aObserver, nsISupports *aCX, nsIStreamListener **listener, imgIRequest **_retval)
+NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderObserver *aObserver, nsISupports *aCX, nsIStreamListener **listener, imgIRequest **_retval)
 {
   NS_ASSERTION(channel, "imgLoader::LoadImageWithChannel -- NULL channel pointer");
 

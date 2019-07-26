@@ -7,6 +7,8 @@
 #ifndef imgRequest_h__
 #define imgRequest_h__
 
+#include "imgIDecoderObserver.h"
+
 #include "nsIChannelEventSink.h"
 #include "nsIContentSniffer.h"
 #include "nsIInterfaceRequestor.h"
@@ -20,6 +22,8 @@
 #include "nsCategoryCache.h"
 #include "nsCOMPtr.h"
 #include "nsStringGlue.h"
+#include "nsTObserverArray.h"
+#include "nsWeakReference.h"
 #include "nsError.h"
 #include "imgIRequest.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
@@ -38,7 +42,9 @@ class Image;
 } 
 } 
 
-class imgRequest : public nsIStreamListener,
+class imgRequest : public imgIDecoderObserver,
+                   public nsIStreamListener,
+                   public nsSupportsWeakReference,
                    public nsIChannelEventSink,
                    public nsIInterfaceRequestor,
                    public nsIAsyncVerifyRedirectCallback
@@ -104,22 +110,6 @@ public:
     return principal.forget();
   }
 
-  
-  
-  
-  imgStatusTracker& GetStatusTracker();
-
-  
-  inline nsIPrincipal* GetPrincipal() const { return mPrincipal.get(); };
-
-  
-  void ResetCacheEntry();
-
-  
-  void UpdateCacheEntrySize();
-
-  nsresult GetURI(nsIURI **aURI);
-
 private:
   friend class imgCacheEntry;
   friend class imgRequestProxy;
@@ -135,6 +125,7 @@ private:
   void Cancel(nsresult aStatus);
   void RemoveFromCache();
 
+  nsresult GetURI(nsIURI **aURI);
   nsresult GetSecurityInfo(nsISupports **aSecurityInfo);
 
   inline const char *GetMimeType() const {
@@ -143,6 +134,11 @@ private:
   inline nsIProperties *Properties() {
     return mProperties;
   }
+
+  
+  
+  
+  imgStatusTracker& GetStatusTracker();
     
   
   
@@ -151,6 +147,10 @@ private:
 
   
   bool HasCacheEntry() const;
+
+  
+  
+  bool HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const;
 
   
   
@@ -168,10 +168,12 @@ private:
   
   void SetIsInCache(bool cacheable);
 
-  bool IsBlockingOnload() const;
-  void SetBlockingOnload(bool block) const;
+  
+  void UpdateCacheEntrySize();
 
 public:
+  NS_DECL_IMGIDECODEROBSERVER
+  NS_DECL_IMGICONTAINEROBSERVER
   NS_DECL_NSISTREAMLISTENER
   NS_DECL_NSIREQUESTOBSERVER
   NS_DECL_NSICHANNELEVENTSINK
@@ -200,6 +202,8 @@ private:
   nsCOMPtr<nsISupports> mSecurityInfo;
   nsCOMPtr<nsIChannel> mChannel;
   nsCOMPtr<nsIInterfaceRequestor> mPrevChannelSink;
+
+  nsTObserverArray<imgRequestProxy*> mObservers;
 
   nsCOMPtr<nsITimedChannel> mTimedChannel;
 

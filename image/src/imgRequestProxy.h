@@ -8,7 +8,7 @@
 #define imgRequestProxy_h__
 
 #include "imgIRequest.h"
-#include "imgINotificationObserver.h"
+#include "imgIDecoderObserver.h"
 #include "nsISecurityInfoProvider.h"
 
 #include "nsIRequestObserver.h"
@@ -57,9 +57,9 @@ public:
 
   
   
-  nsresult Init(imgStatusTracker* aStatusTracker,
-                nsILoadGroup *aLoadGroup,
-                nsIURI* aURI, imgINotificationObserver *aObserver);
+  nsresult Init(imgRequest *request, nsILoadGroup *aLoadGroup,
+                mozilla::image::Image* aImage,
+                nsIURI* aURI, imgIDecoderObserver *aObserver);
 
   nsresult ChangeOwner(imgRequest *aNewOwner); 
                                                
@@ -70,6 +70,8 @@ public:
   inline bool HasObserver() const {
     return mListener != nullptr;
   }
+
+  void SetPrincipal(nsIPrincipal *aPrincipal);
 
   
   
@@ -94,7 +96,8 @@ public:
   }
 
   
-  void SetHasImage();
+  
+  void SetImage(mozilla::image::Image* aImage);
 
   
   
@@ -132,12 +135,19 @@ protected:
   
 
   
-  void OnStartContainer  ();
-  void OnFrameUpdate     (const nsIntRect * aRect);
-  void OnStopFrame       ();
-  void OnStopDecode      ();
+  void OnStartDecode     ();
+  void OnStartContainer  (imgIContainer *aContainer);
+  void OnStartFrame      (uint32_t aFrame);
+  void OnDataAvailable   (bool aCurrentFrame, const nsIntRect * aRect);
+  void OnStopFrame       (uint32_t aFrame);
+  void OnStopContainer   (imgIContainer *aContainer);
+  void OnStopDecode      (nsresult status, const PRUnichar *statusArg);
   void OnDiscard         ();
   void OnImageIsAnimated ();
+
+  
+  void FrameChanged(imgIContainer *aContainer,
+                    const nsIntRect *aDirtyRect);
 
   
   void OnStartRequest();
@@ -161,7 +171,7 @@ protected:
   
   
   
-  virtual imgStatusTracker& GetStatusTracker() const;
+  imgStatusTracker& GetStatusTracker();
 
   nsITimedChannel* TimedChannel()
   {
@@ -169,12 +179,6 @@ protected:
       return nullptr;
     return mOwner->mTimedChannel;
   }
-
-  virtual mozilla::image::Image* GetImage() const;
-
-  nsresult PerformClone(imgINotificationObserver* aObserver,
-                        imgRequestProxy* (aAllocFn)(imgRequestProxy*),
-                        imgIRequest** aClone);
 
 public:
   NS_FORWARD_SAFE_NSITIMEDCHANNEL(TimedChannel())
@@ -195,8 +199,16 @@ private:
 
   
   
+  nsRefPtr<mozilla::image::Image> mImage;
+
   
-  imgINotificationObserver* mListener;
+  
+  nsCOMPtr<nsIPrincipal> mPrincipal;
+
+  
+  
+  
+  imgIDecoderObserver* mListener;
   nsCOMPtr<nsILoadGroup> mLoadGroup;
 
   nsLoadFlags mLoadFlags;
@@ -214,44 +226,6 @@ private:
   
   
   bool mSentStartContainer;
-
-  protected:
-    bool mOwnerHasImage;
-};
-
-
-
-class imgRequestProxyStatic : public imgRequestProxy
-{
-
-public:
-  imgRequestProxyStatic(mozilla::image::Image* aImage,
-                        nsIPrincipal* aPrincipal)
-                       : mImage(aImage)
-                       , mPrincipal(aPrincipal)
-  {
-    mOwnerHasImage = true;
-  };
-
-  NS_IMETHOD GetImagePrincipal(nsIPrincipal** aPrincipal) MOZ_OVERRIDE;
-  virtual imgStatusTracker& GetStatusTracker() const MOZ_OVERRIDE;
-
-  NS_IMETHOD Clone(imgINotificationObserver* aObserver,
-                   imgIRequest** aClone) MOZ_OVERRIDE;
-
-protected:
-  friend imgRequestProxy* NewStaticProxy(imgRequestProxy*);
-
-  
-  
-  nsRefPtr<mozilla::image::Image> mImage;
-
-  
-  
-  nsCOMPtr<nsIPrincipal> mPrincipal;
-
-  mozilla::image::Image* GetImage() const MOZ_OVERRIDE;
-  using imgRequestProxy::GetImage;
 };
 
 #endif 

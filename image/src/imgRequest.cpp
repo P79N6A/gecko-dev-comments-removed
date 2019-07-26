@@ -71,15 +71,16 @@ InitPrefCaches()
 PRLogModuleInfo *gImgLog = PR_NewLogModule("imgRequest");
 #endif
 
-NS_IMPL_ISUPPORTS5(imgRequest,
+NS_IMPL_ISUPPORTS8(imgRequest,
+                   imgIDecoderObserver, imgIContainerObserver,
                    nsIStreamListener, nsIRequestObserver,
+                   nsISupportsWeakReference,
                    nsIChannelEventSink,
                    nsIInterfaceRequestor,
                    nsIAsyncVerifyRedirectCallback)
 
 imgRequest::imgRequest(imgLoader* aLoader)
  : mLoader(aLoader)
- , mStatusTracker(new imgStatusTracker(nullptr, this))
  , mValidator(nullptr)
  , mImageSniffers("image-sniffing-services")
  , mInnerWindowId(0)
@@ -88,6 +89,7 @@ imgRequest::imgRequest(imgLoader* aLoader)
  , mIsMultiPartChannel(false)
  , mGotData(false)
  , mIsInCache(false)
+ , mBlockingOnload(false)
  , mResniffMimeType(false)
 {
   
@@ -124,6 +126,8 @@ nsresult imgRequest::Init(nsIURI *aURI,
   NS_ABORT_IF_FALSE(aChannel, "No channel");
 
   mProperties = do_CreateInstance("@mozilla.org/properties;1");
+
+  mStatusTracker = new imgStatusTracker(nullptr);
 
   mURI = aURI;
   mCurrentURI = aCurrentURI;
@@ -172,13 +176,6 @@ bool imgRequest::HasCacheEntry() const
   return mCacheEntry != nullptr;
 }
 
-void imgRequest::ResetCacheEntry()
-{
-  if (HasCacheEntry()) {
-    mCacheEntry->SetDataSize(0);
-  }
-}
-
 void imgRequest::AddProxy(imgRequestProxy *proxy)
 {
   NS_PRECONDITION(proxy, "null imgRequestProxy passed in");
@@ -186,12 +183,21 @@ void imgRequest::AddProxy(imgRequestProxy *proxy)
 
   
   
-  if (GetStatusTracker().ConsumerCount() == 0) {
+  if (mObservers.IsEmpty()) {
     NS_ABORT_IF_FALSE(mURI, "Trying to SetHasProxies without key uri.");
     mLoader->SetHasProxies(mURI);
   }
 
-  GetStatusTracker().AddConsumer(proxy);
+  
+  if (mImage && !HaveProxyWithObserver(proxy) && proxy->HasObserver()) {
+    LOG_MSG(gImgLog, "imgRequest::AddProxy", "resetting animation");
+
+    mImage->ResetAnimation();
+  }
+
+  proxy->SetPrincipal(mPrincipal);
+
+  mObservers.AppendElementUnlessExists(proxy);
 }
 
 nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus)
@@ -203,15 +209,20 @@ nsresult imgRequest::RemoveProxy(imgRequestProxy *proxy, nsresult aStatus)
   
   proxy->ClearAnimationConsumers();
 
-  
-  
-  
-  
-  imgStatusTracker& statusTracker = GetStatusTracker();
-  if (!statusTracker.RemoveConsumer(proxy, aStatus, !aNotify))
+  if (!mObservers.RemoveElement(proxy)) {
+    
     return NS_OK;
+  }
 
-  if (statusTracker.ConsumerCount() == 0) {
+  
+  
+  
+  
+
+  imgStatusTracker& statusTracker = GetStatusTracker();
+  statusTracker.EmulateRequestFinished(proxy, aStatus);
+
+  if (mObservers.IsEmpty()) {
     
     
     
@@ -274,7 +285,16 @@ void imgRequest::Cancel(nsresult aStatus)
 
   imgStatusTracker& statusTracker = GetStatusTracker();
 
-  statusTracker.MaybeUnblockOnload();
+  if (mBlockingOnload) {
+    mBlockingOnload = false;
+
+    statusTracker.RecordUnblockOnload();
+
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+    while (iter.HasMore()) {
+      statusTracker.SendUnblockOnload(iter.GetNext());
+    }
+  }
 
   statusTracker.RecordCancel();
 
@@ -322,6 +342,24 @@ void imgRequest::RemoveFromCache()
   mCacheEntry = nullptr;
 }
 
+bool imgRequest::HaveProxyWithObserver(imgRequestProxy* aProxyToIgnore) const
+{
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  imgRequestProxy* proxy;
+  while (iter.HasMore()) {
+    proxy = iter.GetNext();
+    if (proxy == aProxyToIgnore) {
+      continue;
+    }
+    
+    if (proxy->HasObserver()) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
 int32_t imgRequest::Priority() const
 {
   int32_t priority = nsISupportsPriority::PRIORITY_NORMAL;
@@ -340,7 +378,7 @@ void imgRequest::AdjustPriority(imgRequestProxy *proxy, int32_t delta)
   
   
   
-  if (!GetStatusTracker().FirstConsumerIs(proxy))
+  if (mObservers.SafeElementAt(0, nullptr) != proxy)
     return;
 
   nsCOMPtr<nsISupportsPriority> p = do_QueryInterface(mRequest);
@@ -475,6 +513,289 @@ imgRequest::StartDecoding()
 
 
 
+
+
+
+
+NS_IMETHODIMP imgRequest::FrameChanged(imgIRequest *request,
+                                       imgIContainer *container,
+                                       const nsIntRect *dirtyRect)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::FrameChanged");
+  NS_ABORT_IF_FALSE(mImage,
+                    "FrameChanged callback before we've created our image");
+
+  mImage->GetStatusTracker().RecordFrameChanged(container, dirtyRect);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendFrameChanged(iter.GetNext(), container, dirtyRect);
+  }
+
+  return NS_OK;
+}
+
+
+
+
+NS_IMETHODIMP imgRequest::OnStartDecode(imgIRequest *request)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStartDecode");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnStartDecode callback before we've created our image");
+
+
+  imgStatusTracker& tracker = mImage->GetStatusTracker();
+  tracker.RecordStartDecode();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    tracker.SendStartDecode(iter.GetNext());
+  }
+
+  if (!mIsMultiPartChannel) {
+    MOZ_ASSERT(!mBlockingOnload);
+    mBlockingOnload = true;
+
+    tracker.RecordBlockOnload();
+
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+    while (iter.HasMore()) {
+      tracker.SendBlockOnload(iter.GetNext());
+    }
+  }
+
+  
+
+
+
+
+  if (mCacheEntry)
+    mCacheEntry->SetDataSize(0);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgRequest::OnStartRequest(imgIRequest *aRequest)
+{
+  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStartRequest");
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *image)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStartContainer");
+
+  NS_ASSERTION(image, "imgRequest::OnStartContainer called with a null image!");
+  if (!image) return NS_ERROR_UNEXPECTED;
+
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnStartContainer callback before we've created our image");
+  NS_ABORT_IF_FALSE(image == mImage,
+                    "OnStartContainer callback from an image we don't own");
+  mImage->GetStatusTracker().RecordStartContainer(image);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendStartContainer(iter.GetNext(), image);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnStartFrame(imgIRequest *request,
+                                       uint32_t frame)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStartFrame");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnStartFrame callback before we've created our image");
+
+  mImage->GetStatusTracker().RecordStartFrame(frame);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendStartFrame(iter.GetNext(), frame);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnDataAvailable(imgIRequest *request,
+                                          bool aCurrentFrame,
+                                          const nsIntRect * rect)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnDataAvailable");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnDataAvailable callback before we've created our image");
+
+  mImage->GetStatusTracker().RecordDataAvailable(aCurrentFrame, rect);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendDataAvailable(iter.GetNext(), aCurrentFrame, rect);
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnStopFrame(imgIRequest *request,
+                                      uint32_t frame)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStopFrame");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnStopFrame callback before we've created our image");
+
+  imgStatusTracker& tracker = mImage->GetStatusTracker();
+  tracker.RecordStopFrame(frame);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    tracker.SendStopFrame(iter.GetNext(), frame);
+  }
+
+  if (mBlockingOnload) {
+    mBlockingOnload = false;
+
+    tracker.RecordUnblockOnload();
+
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+    while (iter.HasMore()) {
+      tracker.SendUnblockOnload(iter.GetNext());
+    }
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnStopContainer(imgIRequest *request,
+                                          imgIContainer *image)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStopContainer");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnDataContainer callback before we've created our image");
+
+  imgStatusTracker& tracker = mImage->GetStatusTracker();
+  tracker.RecordStopContainer(image);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    tracker.SendStopContainer(iter.GetNext(), image);
+  }
+
+  
+  
+  
+  
+  
+  
+  if (mBlockingOnload) {
+    mBlockingOnload = false;
+
+    tracker.RecordUnblockOnload();
+
+    nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+    while (iter.HasMore()) {
+      tracker.SendUnblockOnload(iter.GetNext());
+    }
+  }
+
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnStopDecode(imgIRequest *aRequest,
+                                       nsresult aStatus,
+                                       const PRUnichar *aStatusArg)
+{
+  LOG_SCOPE(gImgLog, "imgRequest::OnStopDecode");
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnDataDecode callback before we've created our image");
+
+  
+  
+  UpdateCacheEntrySize();
+
+  mImage->GetStatusTracker().RecordStopDecode(aStatus, aStatusArg);
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendStopDecode(iter.GetNext(), aStatus,
+                                              aStatusArg);
+  }
+
+  if (NS_FAILED(aStatus)) {
+    
+    
+
+    nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+    if (os)
+      os->NotifyObservers(mURI, "net:failed-to-process-uri-content", nullptr);
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgRequest::OnStopRequest(imgIRequest *aRequest,
+                                        bool aLastPart)
+{
+  NS_NOTREACHED("imgRequest(imgIDecoderObserver)::OnStopRequest");
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP imgRequest::OnDiscard(imgIRequest *aRequest)
+{
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnDiscard callback before we've created our image");
+
+  mImage->GetStatusTracker().RecordDiscard();
+
+  
+  UpdateCacheEntrySize();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendDiscard(iter.GetNext());
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP imgRequest::OnImageIsAnimated(imgIRequest *aRequest)
+{
+  NS_ABORT_IF_FALSE(mImage,
+                    "OnImageIsAnimated callback before we've created our image");
+  mImage->GetStatusTracker().RecordImageIsAnimated();
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    mImage->GetStatusTracker().SendImageIsAnimated(iter.GetNext());
+  }
+
+  return NS_OK;
+}
+
+
+
+
 NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt)
 {
   LOG_SCOPE(gImgLog, "imgRequest::OnStartRequest");
@@ -517,11 +838,17 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
     mRequest = chan;
   }
 
-  GetStatusTracker().OnStartRequest();
+  imgStatusTracker& statusTracker = GetStatusTracker();
+  statusTracker.RecordStartRequest();
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
     channel->GetSecurityInfo(getter_AddRefs(mSecurityInfo));
+
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+  while (iter.HasMore()) {
+    statusTracker.SendStartRequest(iter.GetNext());
+  }
 
   
   nsCOMPtr<nsIChannel> chan(do_QueryInterface(aRequest));
@@ -534,13 +861,19 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
       if (NS_FAILED(rv)) {
         return rv;
       }
+
+      
+      nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+      while (iter.HasMore()) {
+        iter.GetNext()->SetPrincipal(mPrincipal);
+      }
     }
   }
 
   SetCacheValidation(mCacheEntry, aRequest);
 
   
-  if (GetStatusTracker().ConsumerCount() == 0) {
+  if (mObservers.IsEmpty()) {
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
   }
 
@@ -610,7 +943,11 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
     this->Cancel(status);
   }
 
-  GetStatusTracker().OnStopRequest(lastPart, status);
+  
+  nsTObserverArray<imgRequestProxy*>::ForwardIterator srIter(mObservers);
+  while (srIter.HasMore()) {
+    statusTracker.SendStopRequest(srIter.GetNext(), lastPart, status);
+  }
 
   mTimedChannel = nullptr;
   return NS_OK;
@@ -696,9 +1033,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       if (mResniffMimeType) {
         NS_ABORT_IF_FALSE(mIsMultiPartChannel, "Resniffing a non-multipart image");
-        imgStatusTracker* freshTracker = new imgStatusTracker(nullptr, this);
-        freshTracker->AdoptConsumers(&GetStatusTracker());
-        mStatusTracker = freshTracker;
+        mStatusTracker = new imgStatusTracker(nullptr);
       }
 
       mResniffMimeType = false;
@@ -711,7 +1046,11 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       }
       mImage->SetInnerWindowID(mInnerWindowId);
 
-      GetStatusTracker().OnDataAvailable();
+      
+      nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
+      while (iter.HasMore()) {
+        iter.GetNext()->SetImage(mImage);
+      }
 
       
       nsCOMPtr<nsISupportsCString> contentType(do_CreateInstance("@mozilla.org/supports-cstring;1"));
@@ -780,8 +1119,7 @@ imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
       
       
       
-      rv = mImage->Init(GetStatusTracker().GetDecoderObserver(),
-                        mContentType.get(), uriString.get(), imageFlags);
+      rv = mImage->Init(this, mContentType.get(), uriString.get(), imageFlags);
 
       
       

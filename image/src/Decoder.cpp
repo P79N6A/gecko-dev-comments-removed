@@ -45,7 +45,7 @@ Decoder::Init()
 
   
   if (!IsSizeDecode() && mObserver)
-      mObserver->OnStartDecode();
+      mObserver->OnStartDecode(nullptr);
 
   
   InitInternal();
@@ -124,7 +124,8 @@ Decoder::Finish()
 
     
     if (mObserver) {
-      mObserver->OnStopDecode(salvage ? NS_OK : NS_ERROR_FAILURE);
+      mObserver->OnStopContainer(nullptr, &mImage);
+      mObserver->OnStopDecode(nullptr, salvage ? NS_OK : NS_ERROR_FAILURE, nullptr);
     }
   }
 }
@@ -166,7 +167,8 @@ Decoder::FlushInvalidations()
     mInvalidRect.Inflate(1);
     mInvalidRect = mInvalidRect.Intersect(mImageBound);
 #endif
-    mObserver->OnDataAvailable(&mInvalidRect);
+    bool isCurrentFrame = mImage.GetCurrentFrameIndex() == (mFrameCount - 1);
+    mObserver->OnDataAvailable(nullptr, isCurrentFrame, &mInvalidRect);
   }
 
   
@@ -197,7 +199,7 @@ Decoder::PostSize(int32_t aWidth, int32_t aHeight)
 
   
   if (mObserver)
-    mObserver->OnStartContainer();
+    mObserver->OnStartContainer(nullptr, &mImage);
 }
 
 void
@@ -220,6 +222,10 @@ Decoder::PostFrameStart()
   
   NS_ABORT_IF_FALSE(mFrameCount == mImage.GetNumFrames(),
                     "Decoder frame count doesn't match image's!");
+
+  
+  if (mObserver)
+    mObserver->OnStartFrame(nullptr, mFrameCount - 1); 
 }
 
 void
@@ -236,10 +242,10 @@ Decoder::PostFrameStop()
 
   
   if (mObserver) {
-    mObserver->OnStopFrame();
+    mObserver->OnStopFrame(nullptr, mFrameCount - 1); 
     if (mFrameCount > 1 && !mIsAnimated) {
       mIsAnimated = true;
-      mObserver->OnImageIsAnimated();
+      mObserver->OnImageIsAnimated(nullptr);
     }
   }
 }
@@ -272,7 +278,8 @@ Decoder::PostDecodeDone()
   
   mImage.DecodingComplete();
   if (mObserver) {
-    mObserver->OnStopDecode(NS_OK);
+    mObserver->OnStopContainer(nullptr, &mImage);
+    mObserver->OnStopDecode(nullptr, NS_OK, nullptr);
   }
 }
 
