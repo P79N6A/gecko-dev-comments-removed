@@ -7,6 +7,7 @@
 
 #include "nsGenericHTMLElement.h"
 #include "nsIDOMHTMLTableSectionElement.h"
+#include "nsContentList.h" 
 
 namespace mozilla {
 namespace dom {
