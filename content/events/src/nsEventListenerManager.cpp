@@ -614,7 +614,7 @@ nsEventListenerManager::SetEventHandlerInternal(JS::Handle<JSObject*> aScopeObje
     bool same = scriptListener->GetHandler() == aHandler;
     
     scriptListener->SetHandler(aHandler, aScopeObject);
-    if (mTarget && !same && aName) {
+    if (mTarget && !same) {
       mTarget->EventListenerRemoved(aName);
       mTarget->EventListenerAdded(aName);
     }
