@@ -97,6 +97,9 @@ const INTEGER_KEY_MAP = {
 };
 
 
+let XHRequest = Components.Constructor("@mozilla.org/xmlextras/xmlhttprequest;1",
+                                       "nsIXMLHttpRequest");
+
 function convertHTMLToPlainText(html) {
   if (!html)
     return html;
@@ -603,11 +606,14 @@ this.AddonRepository = {
 
 
 
-  repopulateCache: function AddonRepo_repopulateCache(aIds, aCallback) {
-    this._repopulateCacheInternal(aIds, aCallback, false);
+
+
+
+  repopulateCache: function(aIds, aCallback, aTimeout) {
+    this._repopulateCacheInternal(aIds, aCallback, false, aTimeout);
   },
 
-  _repopulateCacheInternal: function AddonRepo_repopulateCacheInternal(aIds, aCallback, aSendPerformance) {
+  _repopulateCacheInternal: function(aIds, aCallback, aSendPerformance, aTimeout) {
     
     if (!this.cacheEnabled) {
       this._addons = null;
@@ -637,7 +643,7 @@ this.AddonRepository = {
           if (aCallback)
             aCallback();
         }
-      }, aSendPerformance);
+      }, aSendPerformance, aTimeout);
     });
   },
 
@@ -759,7 +765,10 @@ this.AddonRepository = {
 
 
 
-  _beginGetAddons: function AddonRepo_beginGetAddons(aIDs, aCallback, aSendPerformance) {
+
+
+
+  _beginGetAddons: function(aIDs, aCallback, aSendPerformance, aTimeout) {
     let ids = aIDs.slice(0);
 
     let params = {
@@ -841,7 +850,7 @@ this.AddonRepository = {
       self._reportSuccess(results, -1);
     }
 
-    this._beginSearch(url, ids.length, aCallback, handleResults);
+    this._beginSearch(url, ids.length, aCallback, handleResults, aTimeout);
   },
 
   
@@ -1388,7 +1397,7 @@ this.AddonRepository = {
   },
 
   
-  _beginSearch: function AddonRepo_beginSearch(aURI, aMaxResults, aCallback, aHandleResults) {
+  _beginSearch: function(aURI, aMaxResults, aCallback, aHandleResults, aTimeout) {
     if (this._searching || aURI == null || aMaxResults <= 0) {
       aCallback.searchFailed();
       return;
@@ -1400,23 +1409,23 @@ this.AddonRepository = {
 
     LOG("Requesting " + aURI);
 
-    this._request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
-                    createInstance(Ci.nsIXMLHttpRequest);
+    this._request = new XHRequest();
     this._request.mozBackgroundRequest = true;
     this._request.open("GET", aURI, true);
     this._request.overrideMimeType("text/xml");
+    if (aTimeout) {
+      this._request.timeout = aTimeout;
+    }
 
-    let self = this;
-    this._request.addEventListener("error", function beginSearch_errorListener(aEvent) {
-      self._reportFailure();
-    }, false);
-    this._request.addEventListener("load", function beginSearch_loadListener(aEvent) {
+    this._request.addEventListener("error", aEvent => this._reportFailure(), false);
+    this._request.addEventListener("timeout", aEvent => this._reportFailure(), false);
+    this._request.addEventListener("load", aEvent => {
       let request = aEvent.target;
       let responseXML = request.responseXML;
 
       if (!responseXML || responseXML.documentElement.namespaceURI == XMLURI_PARSE_ERROR ||
           (request.status != 200 && request.status != 0)) {
-        self._reportFailure();
+        this._reportFailure();
         return;
       }
 
@@ -1429,7 +1438,7 @@ this.AddonRepository = {
         totalResults = parsedTotalResults;
 
       let compatElements = documentElement.getElementsByTagName("addon_compatibility");
-      let compatData = self._parseAddonCompatData(compatElements);
+      let compatData = this._parseAddonCompatData(compatElements);
 
       aHandleResults(elements, totalResults, compatData);
     }, false);

@@ -394,10 +394,6 @@ function UpdateParser(aId, aUpdateKey, aUrl, aObserver) {
   this.observer = aObserver;
   this.url = aUrl;
 
-  this.timer = Cc["@mozilla.org/timer;1"].
-               createInstance(Ci.nsITimer);
-  this.timer.initWithCallback(this, TIMEOUT, Ci.nsITimer.TYPE_ONE_SHOT);
-
   let requireBuiltIn = true;
   try {
     requireBuiltIn = Services.prefs.getBoolPref(PREF_UPDATE_REQUIREBUILTINCERTS);
@@ -415,9 +411,11 @@ function UpdateParser(aId, aUpdateKey, aUrl, aObserver) {
     
     this.request.channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
     this.request.overrideMimeType("text/xml");
+    this.request.timeout = TIMEOUT;
     var self = this;
     this.request.addEventListener("load", function loadEventListener(event) { self.onLoad() }, false);
     this.request.addEventListener("error", function errorEventListener(event) { self.onError() }, false);
+    this.request.addEventListener("timeout", function timeoutEventListener(event) { self.onTimeout() }, false);
     this.request.send(null);
   }
   catch (e) {
@@ -430,15 +428,12 @@ UpdateParser.prototype = {
   updateKey: null,
   observer: null,
   request: null,
-  timer: null,
   url: null,
 
   
 
 
   onLoad: function UP_onLoad() {
-    this.timer.cancel();
-    this.timer = null;
     let request = this.request;
     this.request = null;
 
@@ -508,10 +503,16 @@ UpdateParser.prototype = {
   
 
 
-  onError: function UP_onError() {
-    this.timer.cancel();
-    this.timer = null;
+  onTimeout: function() {
+    this.request = null;
+    WARN("Request for " + this.url + " timed out");
+    this.notifyError(AddonUpdateChecker.ERROR_TIMEOUT);
+  },
 
+  
+
+
+  onError: function UP_onError() {
     if (!Components.isSuccessCode(this.request.status)) {
       WARN("Request failed: " + this.url + " - " + this.request.status);
     }
@@ -553,22 +554,7 @@ UpdateParser.prototype = {
   
 
 
-  notify: function UP_notify(aTimer) {
-    this.timer = null;
-    this.request.abort();
-    this.request = null;
-
-    WARN("Request timed out");
-
-    this.notifyError(AddonUpdateChecker.ERROR_TIMEOUT);
-  },
-
-  
-
-
   cancel: function UP_cancel() {
-    this.timer.cancel();
-    this.timer = null;
     this.request.abort();
     this.request = null;
     this.notifyError(AddonUpdateChecker.ERROR_CANCELLED);
