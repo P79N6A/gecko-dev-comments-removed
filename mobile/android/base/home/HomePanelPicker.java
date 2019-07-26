@@ -28,8 +28,8 @@ import java.util.List;
 import org.mozilla.gecko.R;
 import org.mozilla.gecko.home.HomeConfig;
 import org.mozilla.gecko.home.HomeConfig.PanelConfig;
-import org.mozilla.gecko.home.PanelManager.RequestCallback;
-import org.mozilla.gecko.home.PanelManager.PanelInfo;
+import org.mozilla.gecko.home.PanelInfoManager.RequestCallback;
+import org.mozilla.gecko.home.PanelInfoManager.PanelInfo;
 
 
 
@@ -81,8 +81,8 @@ public class HomePanelPicker extends FragmentActivity {
 
 
     private void requestAvailablePanels() {
-        final PanelManager panelManager = new PanelManager();
-        panelManager.requestAvailablePanels(new RequestCallback() {
+        final PanelInfoManager pm = new PanelInfoManager();
+        pm.requestAvailablePanels(new RequestCallback() {
             @Override
             public void onComplete(final List<PanelInfo> panelInfos) {
                 mPanelInfos = panelInfos;
