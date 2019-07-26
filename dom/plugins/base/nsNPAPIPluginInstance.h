@@ -266,6 +266,9 @@ public:
   
   void CarbonNPAPIFailure();
 
+  
+  double GetContentsScaleFactor();
+
 protected:
 
   nsresult GetTagType(nsPluginTagType *result);

@@ -29,11 +29,21 @@ public:
                    mCGImage(nullptr), mCGData(nullptr), mIOSurface(nullptr), mFBO(0),
                    mIOTexture(0),
                    mUnsupportedWidth(UINT32_MAX), mUnsupportedHeight(UINT32_MAX),
-                   mAllowOfflineRenderer(DISALLOW_OFFLINE_RENDERER) {}
+                   mAllowOfflineRenderer(DISALLOW_OFFLINE_RENDERER),
+                   mContentsScaleFactor(1.0) {}
   ~nsCARenderer();
+  
+  
+  
+  
   nsresult SetupRenderer(void* aCALayer, int aWidth, int aHeight,
+                         double aContentsScaleFactor,
                          AllowOfflineRendererEnum aAllowOfflineRenderer);
-  nsresult Render(int aWidth, int aHeight, CGImageRef *aOutCAImage);
+  
+  
+  nsresult Render(int aWidth, int aHeight,
+                  double aContentsScaleFactor,
+                  CGImageRef *aOutCAImage);
   bool isInit() { return mCARenderer != nullptr; }
   
 
@@ -42,6 +52,8 @@ public:
 
   void AttachIOSurface(mozilla::RefPtr<MacIOSurface> aSurface);
   IOSurfaceID GetIOSurfaceID();
+  
+  
   static nsresult DrawSurfaceToCGContext(CGContextRef aContext,
                                          MacIOSurface *surf,
                                          CGColorSpaceRef aColorSpace,
@@ -56,7 +68,11 @@ public:
   static void SaveToDisk(MacIOSurface *surf);
 #endif
 private:
+  
+  
   void SetBounds(int aWidth, int aHeight);
+  
+  
   void SetViewport(int aWidth, int aHeight);
   void Destroy();
 
@@ -71,6 +87,7 @@ private:
   uint32_t                  mUnsupportedWidth;
   uint32_t                  mUnsupportedHeight;
   AllowOfflineRendererEnum  mAllowOfflineRenderer;
+  double                    mContentsScaleFactor;
 };
 
 enum CGContextType {

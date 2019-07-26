@@ -24,16 +24,25 @@ class MacIOSurface : public mozilla::RefCounted<MacIOSurface> {
 public:
   typedef mozilla::gfx::SourceSurface SourceSurface;
 
-  static mozilla::TemporaryRef<MacIOSurface> CreateIOSurface(int aWidth, int aHeight);
+  static mozilla::TemporaryRef<MacIOSurface> CreateIOSurface(int aWidth, int aHeight,
+                                                             double aContentsScaleFactor = 1.0);
   static void ReleaseIOSurface(MacIOSurface *aIOSurface);
-  static mozilla::TemporaryRef<MacIOSurface> LookupSurface(IOSurfaceID aSurfaceID);
+  static mozilla::TemporaryRef<MacIOSurface> LookupSurface(IOSurfaceID aSurfaceID,
+                                                           double aContentsScaleFactor = 1.0);
 
-  MacIOSurface(const void *aIOSurfacePtr) : mIOSurfacePtr(aIOSurfacePtr) {}
+  MacIOSurface(const void *aIOSurfacePtr, double aContentsScaleFactor = 1.0)
+    : mIOSurfacePtr(aIOSurfacePtr), mContentsScaleFactor(aContentsScaleFactor) {}
   ~MacIOSurface();
   IOSurfaceID GetIOSurfaceID();
   void *GetBaseAddress();
+  
+  
+  
+  
+  
   size_t GetWidth();
   size_t GetHeight();
+  double GetContentsScaleFactor() { return mContentsScaleFactor; }
   size_t GetBytesPerRow();
   void Lock();
   void Unlock();
@@ -47,11 +56,13 @@ public:
 
   
   static CGImageRef CreateImageFromIOSurfaceContext(CGContextRef aContext);
-  static mozilla::TemporaryRef<MacIOSurface> IOSurfaceContextGetSurface(CGContextRef aContext);
+  static mozilla::TemporaryRef<MacIOSurface> IOSurfaceContextGetSurface(CGContextRef aContext,
+                                                                        double aContentsScaleFactor = 1.0);
 
 private:
   friend class nsCARenderer;
   const void* mIOSurfacePtr;
+  double mContentsScaleFactor;
 };
 
 #endif

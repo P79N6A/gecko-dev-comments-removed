@@ -41,10 +41,20 @@ bool SetProcessName(const char* aProcessName);
 
 class THEBES_API nsDoubleBufferCARenderer {
 public:
-  nsDoubleBufferCARenderer() : mCALayer(nullptr) {}
+  nsDoubleBufferCARenderer() : mCALayer(nullptr), mContentsScaleFactor(1.0) {}
+  
+  
+  
+  
   size_t GetFrontSurfaceWidth();
+  
+  
   size_t GetFrontSurfaceHeight();
+  
+  
   size_t GetBackSurfaceWidth();
+  
+  
   size_t GetBackSurfaceHeight();
   IOSurfaceID GetFrontSurfaceID();
 
@@ -53,17 +63,24 @@ public:
   bool HasCALayer();
 
   void SetCALayer(void *aCALayer);
-  bool InitFrontSurface(size_t aWidth, size_t aHeight, AllowOfflineRendererEnum aAllowOfflineRenderer);
+  
+  
+  bool InitFrontSurface(size_t aWidth, size_t aHeight,
+                        double aContentsScaleFactor,
+                        AllowOfflineRendererEnum aAllowOfflineRenderer);
   void Render();
   void SwapSurfaces();
   void ClearFrontSurface();
   void ClearBackSurface();
+
+  double GetContentsScaleFactor() { return mContentsScaleFactor; }
 
 private:
   void *mCALayer;
   RefPtr<nsCARenderer> mCARenderer;
   RefPtr<MacIOSurface> mFrontSurface;
   RefPtr<MacIOSurface> mBackSurface;
+  double mContentsScaleFactor;
 };
 
 } 

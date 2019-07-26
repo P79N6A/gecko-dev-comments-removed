@@ -649,11 +649,16 @@ nsObjectFrame::FixupWindow(const nsSize& aSize)
 
   nsIntPoint origin = GetWindowOriginInPixels(windowless);
 
-  window->x = origin.x;
-  window->y = origin.y;
-
-  window->width = presContext->AppUnitsToDevPixels(aSize.width);
-  window->height = presContext->AppUnitsToDevPixels(aSize.height);
+  
+  double scaleFactor = 1.0;
+  if (NS_FAILED(mInstanceOwner->GetContentsScaleFactor(&scaleFactor))) {
+    scaleFactor = 1.0;
+  }
+  int intScaleFactor = ceil(scaleFactor);
+  window->x = origin.x / intScaleFactor;
+  window->y = origin.y / intScaleFactor;
+  window->width = presContext->AppUnitsToDevPixels(aSize.width) / intScaleFactor;
+  window->height = presContext->AppUnitsToDevPixels(aSize.height) / intScaleFactor;
 
   
   
@@ -709,10 +714,17 @@ nsObjectFrame::CallSetWindow(bool aCheckIsHidden)
   nsIFrame* rootFrame = rootPC->PresShell()->FrameManager()->GetRootFrame();
   nsRect bounds = GetContentRectRelativeToSelf() + GetOffsetToCrossDoc(rootFrame);
   nsIntRect intBounds = bounds.ToNearestPixels(appUnitsPerDevPixel);
-  window->x = intBounds.x;
-  window->y = intBounds.y;
-  window->width = intBounds.width;
-  window->height = intBounds.height;
+
+  
+  double scaleFactor = 1.0;
+  if (NS_FAILED(mInstanceOwner->GetContentsScaleFactor(&scaleFactor))) {
+    scaleFactor = 1.0;
+  }
+  size_t intScaleFactor = ceil(scaleFactor);
+  window->x = intBounds.x / intScaleFactor;
+  window->y = intBounds.y / intScaleFactor;
+  window->width = intBounds.width / intScaleFactor;
+  window->height = intBounds.height / intScaleFactor;
 
   
   
@@ -1631,7 +1643,13 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     return nullptr;
   }
 
-  gfxIntSize size(window->width, window->height);
+  
+  double scaleFactor = 1.0;
+  if (NS_FAILED(mInstanceOwner->GetContentsScaleFactor(&scaleFactor))) {
+    scaleFactor = 1.0;
+  }
+  int intScaleFactor = ceil(scaleFactor);
+  gfxIntSize size(window->width * intScaleFactor, window->height * intScaleFactor);
 
   nsRect area = GetContentRectRelativeToSelf() + aItem->ToReferenceFrame();
   gfxRect r = nsLayoutUtils::RectToGfxRect(area, PresContext()->AppUnitsPerDevPixel());
