@@ -49,7 +49,6 @@
 
 
 
-#include "nsIParserNode.h"
 #include "nsIContentSink.h"
 #include "nsHTMLTags.h"
 
@@ -73,7 +72,6 @@ public:
   NS_IMETHOD IsEnabled(int32_t aTag, bool* aReturn) = 0;
 
     
-
 
 
 
