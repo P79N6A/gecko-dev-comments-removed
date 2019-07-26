@@ -7768,12 +7768,18 @@ class CGBindingImplClass(CGClass):
         
         
         if descriptor.supportsIndexedProperties():
-            self.methodDecls.append(
-                CGNativeMember(descriptor, FakeMember(),
-                               "Length",
-                               (BuiltinTypes[IDLBuiltinType.Types.unsigned_long],
-                                []),
-                               { "infallible": True }))
+            
+            
+            haveLengthAttr = any(
+                m for m in iface.members if m.isAttr() and
+                CGSpecializedGetter.makeNativeName(descriptor, m) == "Length")
+            if not haveLengthAttr:
+                self.methodDecls.append(
+                    CGNativeMember(descriptor, FakeMember(),
+                                   "Length",
+                                   (BuiltinTypes[IDLBuiltinType.Types.unsigned_long],
+                                    []),
+                                   { "infallible": True }))
         
         
         if descriptor.supportsNamedProperties():
