@@ -635,27 +635,35 @@ nsHostResolver::ResolveHost(const char            *host,
                         unspecHe->rec->HasUsableResult(flags) &&
                         TimeStamp::NowLoRes() <= (he->rec->expiration +
                             TimeDuration::FromSeconds(mGracePeriod * 60))) {
+
+                        MOZ_ASSERT(unspecHe->rec->addr_info || unspecHe->rec->negative,
+                                   "Entry should be resolved or negative.");
+
                         LOG(("  Trying AF_UNSPEC entry for [%s] af: %s.\n",
                             host, (af == PR_AF_INET) ? "AF_INET" : "AF_INET6"));
 
-                        
-                        
-                        
-                        NetAddrElement *addrIter =
-                            unspecHe->rec->addr_info->mAddresses.getFirst();
                         he->rec->addr_info = nullptr;
-                        while (addrIter) {
-                            if ((af == addrIter->mAddress.inet.family) &&
-                                 !unspecHe->rec->Blacklisted(&addrIter->mAddress)) {
-                                if (!he->rec->addr_info) {
-                                    he->rec->addr_info = new AddrInfo(
-                                        unspecHe->rec->addr_info->mHostName,
-                                        unspecHe->rec->addr_info->mCanonicalName);
+                        if (unspecHe->rec->negative) {
+                            he->rec->negative = unspecHe->rec->negative;
+                        } else if (he->rec->addr_info) {
+                            
+                            
+                            
+                            NetAddrElement *addrIter =
+                                unspecHe->rec->addr_info->mAddresses.getFirst();
+                            while (addrIter) {
+                                if ((af == addrIter->mAddress.inet.family) &&
+                                     !unspecHe->rec->Blacklisted(&addrIter->mAddress)) {
+                                    if (!he->rec->addr_info) {
+                                        he->rec->addr_info = new AddrInfo(
+                                            unspecHe->rec->addr_info->mHostName,
+                                            unspecHe->rec->addr_info->mCanonicalName);
+                                    }
+                                    he->rec->addr_info->AddAddress(
+                                        new NetAddrElement(*addrIter));
                                 }
-                                he->rec->addr_info->AddAddress(
-                                    new NetAddrElement(*addrIter));
+                                addrIter = addrIter->getNext();
                             }
-                            addrIter = addrIter->getNext();
                         }
                         if (he->rec->HasUsableResult(flags)) {
                             result = he->rec;
@@ -1170,7 +1178,8 @@ CacheEntryEnumerator(PLDHashTable *table, PLDHashEntryHdr *entry,
     
     
     nsHostRecord *rec = static_cast<nsHostDBEnt*>(entry)->rec;
-    if (!rec->addr_info || !rec->host) {
+    MOZ_ASSERT(rec, "rec should never be null here!");
+    if (!rec || !rec->addr_info || !rec->host) {
         return PL_DHASH_NEXT;
     }
 
