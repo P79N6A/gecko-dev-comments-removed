@@ -1210,37 +1210,56 @@ DataChannelConnection::HandleDataMessage(uint32_t ppid,
 
   {
     nsAutoCString recvData(buffer, length);
+    bool is_binary = true;
+
+    if (ppid == DATA_CHANNEL_PPID_DOMSTRING ||
+        ppid == DATA_CHANNEL_PPID_DOMSTRING_LAST) {
+      is_binary = false;
+    }
+    if (is_binary != channel->mIsRecvBinary && !channel->mRecvBuffer.IsEmpty()) {
+      NS_WARNING("DataChannel message aborted by fragment type change!");
+      channel->mRecvBuffer.Truncate(0);
+    }
+    channel->mIsRecvBinary = is_binary;
 
     switch (ppid) {
       case DATA_CHANNEL_PPID_DOMSTRING:
-        LOG(("DataChannel: String message received of length %lu on channel %u: %.*s",
-             length, channel->mStream, (int)PR_MIN(length, 80), buffer));
+      case DATA_CHANNEL_PPID_BINARY:
+        channel->mRecvBuffer += recvData;
+        LOG(("DataChannel: Partial %s message of length %lu (total %u) on channel id %u",
+             is_binary ? "binary" : "string", length, channel->mRecvBuffer.Length(),
+             channel->mStream));
+        return; 
+
+      case DATA_CHANNEL_PPID_DOMSTRING_LAST:
+        LOG(("DataChannel: String message received of length %lu on channel %u",
+             length, channel->mStream));
+        if (!channel->mRecvBuffer.IsEmpty()) {
+          channel->mRecvBuffer += recvData;
+          LOG(("%s: sending ON_DATA (string fragmented) for %p", __FUNCTION__, channel));
+          channel->SendOrQueue(new DataChannelOnMessageAvailable(
+                                 DataChannelOnMessageAvailable::ON_DATA, this,
+                                 channel, channel->mRecvBuffer, -1));
+          channel->mRecvBuffer.Truncate(0);
+          return;
+        }
+        
         length = -1; 
 
         
-
-        NS_WARN_IF_FALSE(channel->mBinaryBuffer.IsEmpty(), "Binary message aborted by text message!");
-        if (!channel->mBinaryBuffer.IsEmpty())
-          channel->mBinaryBuffer.Truncate(0);
         break;
-
-      case DATA_CHANNEL_PPID_BINARY:
-        channel->mBinaryBuffer += recvData;
-        LOG(("DataChannel: Received binary message of length %lu (total %u) on channel id %u",
-             length, channel->mBinaryBuffer.Length(), channel->mStream));
-        return; 
 
       case DATA_CHANNEL_PPID_BINARY_LAST:
         LOG(("DataChannel: Received binary message of length %lu on channel id %u",
              length, channel->mStream));
-        if (!channel->mBinaryBuffer.IsEmpty()) {
-          channel->mBinaryBuffer += recvData;
+        if (!channel->mRecvBuffer.IsEmpty()) {
+          channel->mRecvBuffer += recvData;
           LOG(("%s: sending ON_DATA (binary fragmented) for %p", __FUNCTION__, channel));
           channel->SendOrQueue(new DataChannelOnMessageAvailable(
                                  DataChannelOnMessageAvailable::ON_DATA, this,
-                                 channel, channel->mBinaryBuffer,
-                                 channel->mBinaryBuffer.Length()));
-          channel->mBinaryBuffer.Truncate(0);
+                                 channel, channel->mRecvBuffer,
+                                 channel->mRecvBuffer.Length()));
+          channel->mRecvBuffer.Truncate(0);
           return;
         }
         
@@ -1284,6 +1303,7 @@ DataChannelConnection::HandleMessage(const void *buffer, size_t length, uint32_t
       }
       break;
     case DATA_CHANNEL_PPID_DOMSTRING:
+    case DATA_CHANNEL_PPID_DOMSTRING_LAST:
     case DATA_CHANNEL_PPID_BINARY:
     case DATA_CHANNEL_PPID_BINARY_LAST:
       HandleDataMessage(ppid, buffer, length, stream);
@@ -1894,7 +1914,7 @@ DataChannelConnection::OpenFinish(already_AddRefed<DataChannel> aChannel)
   
   channel->mState = OPEN;
   channel->mReady = true;
-  SendMsgInternal(channel, "Help me!", 8, DATA_CHANNEL_PPID_DOMSTRING);
+  SendMsgInternal(channel, "Help me!", 8, DATA_CHANNEL_PPID_DOMSTRING_LAST);
 #endif
 
   if (!(channel->mFlags & DATA_CHANNEL_FLAGS_EXTERNAL_NEGOTIATED)) {
@@ -2007,7 +2027,8 @@ DataChannelConnection::SendMsgInternal(DataChannel *channel, const char *data,
 
 int32_t
 DataChannelConnection::SendBinary(DataChannel *channel, const char *data,
-                                  uint32_t len)
+                                  uint32_t len,
+                                  uint32_t ppid_partial, uint32_t ppid_final)
 {
   
   
@@ -2034,7 +2055,7 @@ DataChannelConnection::SendBinary(DataChannel *channel, const char *data,
       uint32_t sendlen = PR_MIN(len, DATA_CHANNEL_MAX_BINARY_FRAGMENT);
       uint32_t ppid;
       len -= sendlen;
-      ppid = len > 0 ? DATA_CHANNEL_PPID_BINARY : DATA_CHANNEL_PPID_BINARY_LAST;
+      ppid = len > 0 ? ppid_partial : ppid_final;
       LOG(("Send chunk of %u bytes, ppid %u", sendlen, ppid));
       
       sent += SendMsgInternal(channel, data, sendlen, ppid);
@@ -2050,7 +2071,7 @@ DataChannelConnection::SendBinary(DataChannel *channel, const char *data,
                    "Sending too-large data on unreliable channel!");
 
   
-  return SendMsgInternal(channel, data, len, DATA_CHANNEL_PPID_BINARY_LAST);
+  return SendMsgInternal(channel, data, len, ppid_final);
 }
 
 int32_t
@@ -2091,7 +2112,8 @@ DataChannelConnection::SendBlob(uint16_t stream, nsIInputStream *aBlob)
   const char *data = temp.get()->BeginReading();
   len              = temp.get()->Length();
 
-  return SendBinary(channel, data, len);
+  return SendBinary(channel, data, len,
+                    DATA_CHANNEL_PPID_BINARY, DATA_CHANNEL_PPID_BINARY_LAST);
 }
 
 int32_t
@@ -2113,8 +2135,10 @@ DataChannelConnection::SendMsgCommon(uint16_t stream, const nsACString &aMsg,
   NS_ENSURE_TRUE(channel, 0);
 
   if (isBinary)
-    return SendBinary(channel, data, len);
-  return SendMsgInternal(channel, data, len, DATA_CHANNEL_PPID_DOMSTRING);
+    return SendBinary(channel, data, len,
+                      DATA_CHANNEL_PPID_BINARY, DATA_CHANNEL_PPID_BINARY_LAST);
+  return SendBinary(channel, data, len,
+                    DATA_CHANNEL_PPID_DOMSTRING, DATA_CHANNEL_PPID_DOMSTRING_LAST);
 }
 
 void
