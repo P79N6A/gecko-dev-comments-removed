@@ -164,6 +164,12 @@ let HomePanels = Object.freeze({
   }),
 
   
+  Action: Object.freeze({
+    INSTALL: "install",
+    REFRESH: "refresh"
+  }),
+
+  
   _panels: {},
 
   _panelToJSON : function(panel) {
@@ -202,8 +208,11 @@ let HomePanels = Object.freeze({
       throw "Home.panels: Can't create a home panel without an id and title!";
     }
 
+    let action = options.action;
+
     
-    if (panel.id in this._panels) {
+    
+    if (panel.id in this._panels && action != this.Action.REFRESH) {
       throw "Home.panels: Panel already exists: id = " + panel.id;
     }
 
@@ -223,9 +232,24 @@ let HomePanels = Object.freeze({
 
     this._panels[panel.id] = panel;
 
-    if (options.autoInstall) {
+    if (action) {
+      let messageType;
+
+      switch(action) {
+        case this.Action.INSTALL:
+          messageType = "HomePanels:Install";
+          break;
+
+        case this.Action.REFRESH:
+          messageType = "HomePanels:Refresh";
+          break;
+
+        default:
+          throw "Home.panels: Invalid action for panel: panel.id = " + panel.id + ", action = " + action;
+      }
+
       sendMessageToJava({
-        type: "HomePanels:Install",
+        type: messageType,
         panel: this._panelToJSON(panel)
       });
     }
