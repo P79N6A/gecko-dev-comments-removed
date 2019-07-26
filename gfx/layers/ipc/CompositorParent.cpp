@@ -81,9 +81,6 @@ static Thread* sCompositorThread = nullptr;
 static int sCompositorThreadRefCount = 0;
 static MessageLoop* sMainLoop = nullptr;
 
-
-
-
 static PlatformThreadId sCompositorThreadID = 0;
 static MessageLoop* sCompositorLoop = nullptr;
 
@@ -120,24 +117,9 @@ static void SetThreadPriority()
   hal::SetCurrentThreadPriority(hal::THREAD_PRIORITY_COMPOSITOR);
 }
 
-void
-CompositorParent::StartUpWithExistingThread(MessageLoop* aMsgLoop,
-                                            PlatformThreadId aThreadID)
-{
-  MOZ_ASSERT(!sCompositorThread);
-  CreateCompositorMap();
-  sCompositorLoop = aMsgLoop;
-  sCompositorThreadID = aThreadID;
-  sMainLoop = MessageLoop::current();
-  sCompositorThreadRefCount = 1;
-}
-
 void CompositorParent::StartUp()
 {
-  
-  if (sCompositorThreadID) {
-    return;
-  }
+  MOZ_ASSERT(!sCompositorThreadID);
   MOZ_ASSERT(!sCompositorLoop);
   CreateCompositorMap();
   CreateThread();

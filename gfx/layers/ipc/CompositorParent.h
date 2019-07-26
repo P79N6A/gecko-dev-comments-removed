@@ -206,15 +206,6 @@ public:
   static PCompositorParent*
   Create(Transport* aTransport, ProcessId aOtherProcess);
 
-  
-
-
-
-
-
-  static void StartUpWithExistingThread(MessageLoop* aMsgLoop,
-                                        PlatformThreadId aThreadID);
-
   struct LayerTreeState {
     LayerTreeState();
     nsRefPtr<Layer> mRoot;
