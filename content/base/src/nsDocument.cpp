@@ -9714,13 +9714,7 @@ nsDocument::MozCancelFullScreen()
 void
 nsIDocument::MozCancelFullScreen()
 {
-  
-  
-  
-  if (NodePrincipal()->GetAppStatus() >= nsIPrincipal::APP_STATUS_INSTALLED ||
-      nsContentUtils::IsRequestFullScreenAllowed()) {
-    RestorePreviousFullScreenState();
-  }
+  RestorePreviousFullScreenState();
 }
 
 
