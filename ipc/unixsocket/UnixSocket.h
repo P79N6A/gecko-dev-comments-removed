@@ -101,6 +101,17 @@ public:
 
 
   virtual bool SetUp(int aFd) = 0;
+
+  
+
+
+
+
+
+
+  virtual void GetSocketAddr(const sockaddr& aAddr,
+                             nsAString& aAddrStr) = 0;
+
 };
 
 enum SocketConnectionStatus {
@@ -216,8 +227,8 @@ public:
   
 
 
-  void GetSocketAddr(struct sockaddr& aAddr, socklen_t& aAddrSize);
-  
+  void GetSocketAddr(nsAString& aAddrStr);
+
 private:
   UnixSocketImpl* mImpl;
   SocketConnectionStatus mConnectionStatus;
