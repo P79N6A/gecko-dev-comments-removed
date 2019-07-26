@@ -694,15 +694,11 @@ Range *
 Range::min(const Range *lhs, const Range *rhs)
 {
     
-    
-    
-    int64_t leftLower = (int64_t)lhs->lower() - lhs->isLowerInfinite();
-    int64_t leftUpper = (int64_t)lhs->upper() + lhs->isUpperInfinite();
-    int64_t rightLower = (int64_t)rhs->lower() - rhs->isLowerInfinite();
-    int64_t rightUpper = (int64_t)rhs->upper() + rhs->isUpperInfinite();
+    if (lhs->isInfinite() || rhs->isInfinite())
+        return new Range();
 
-    return new Range(Min(leftLower, rightLower),
-                     Min(leftUpper, rightUpper),
+    return new Range(Min(lhs->lower(), rhs->lower()),
+                     Min(lhs->upper(), rhs->upper()),
                      lhs->isDecimal() || rhs->isDecimal(),
                      Max(lhs->exponent(), rhs->exponent()));
 }
@@ -711,15 +707,11 @@ Range *
 Range::max(const Range *lhs, const Range *rhs)
 {
     
-    
-    
-    int64_t leftLower = (int64_t)lhs->lower() - lhs->isLowerInfinite();
-    int64_t leftUpper = (int64_t)lhs->upper() + lhs->isUpperInfinite();
-    int64_t rightLower = (int64_t)rhs->lower() - rhs->isLowerInfinite();
-    int64_t rightUpper = (int64_t)rhs->upper() + rhs->isUpperInfinite();
+    if (lhs->isInfinite() || rhs->isInfinite())
+        return new Range();
 
-    return new Range(Max(leftLower, rightLower),
-                     Max(leftUpper, rightUpper),
+    return new Range(Max(lhs->lower(), rhs->lower()),
+                     Max(lhs->upper(), rhs->upper()),
                      lhs->isDecimal() || rhs->isDecimal(),
                      Max(lhs->exponent(), rhs->exponent()));
 }
