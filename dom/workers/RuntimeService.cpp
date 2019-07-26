@@ -825,7 +825,8 @@ public:
   
   WorkerJSRuntime(WorkerPrivate* aWorkerPrivate)
   : CycleCollectedJSRuntime(WORKER_DEFAULT_RUNTIME_HEAPSIZE,
-                            JS_NO_HELPER_THREADS)
+                            JS_NO_HELPER_THREADS,
+                            false)
   {
     
     
