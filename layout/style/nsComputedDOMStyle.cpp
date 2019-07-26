@@ -418,7 +418,7 @@ nsComputedDOMStyle::GetStyleContextForElement(Element* aElement,
   
   
   
-  nsIPresShell *presShell = GetPresShellForContent(aElement);
+  nsCOMPtr<nsIPresShell> presShell = GetPresShellForContent(aElement);
   if (!presShell) {
     presShell = aPresShell;
     if (!presShell)
