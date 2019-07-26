@@ -14,9 +14,15 @@ public:
 
     nsresult Init();
 
+    
+    
+    static uint32_t gUserUmask;
+
 protected:
     void SetInt32Property(const nsAString &aPropertyName,
                           const int32_t aValue);
+    void SetUint32Property(const nsAString &aPropertyName,
+                           const uint32_t aValue);
     void SetUint64Property(const nsAString &aPropertyName,
                            const uint64_t aValue);
 
