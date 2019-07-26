@@ -49,7 +49,9 @@ pref("apz.touch_start_tolerance", "0.1");
 pref("apz.pan_repaint_interval", 50);   
 pref("apz.fling_repaint_interval", 50); 
 pref("apz.fling_stopped_threshold", "0.2");
-
+pref("apz.x_skate_size_multiplier", "2.5");
+pref("apz.y_skate_size_multiplier", "2.5");
+pref("apz.min_skate_speed", "10.0");
 
 pref("apz.axis_lock_mode", 2);
 pref("apz.cross_slide.enabled", true);
