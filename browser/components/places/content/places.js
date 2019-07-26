@@ -203,20 +203,8 @@ var PlacesOrganizer = {
     
     if (this._content.place != placeURI || !resetSearchBox) {
       this._content.place = placeURI;
-      PlacesSearchBox.hideSearchUI();
       this.location = node.uri;
     }
-
-    
-    
-    
-    
-    
-    var folderButton = document.getElementById("scopeBarFolder");
-    var folderTitle = node.title || folderButton.getAttribute("emptytitle");
-    folderButton.setAttribute("label", folderTitle);
-    if (PlacesSearchBox.filterCollection == "collection")
-      PlacesSearchBox.updateCollectionTitle(folderTitle);
 
     
     
@@ -245,30 +233,17 @@ var PlacesOrganizer = {
   _setSearchScopeForNode: function PO__setScopeForNode(aNode) {
     let itemId = aNode.itemId;
 
-    
-    let bookmarksButton = document.getElementById("scopeBarAll");
-    bookmarksButton.hidden = false;
-    let downloadsButton = document.getElementById("scopeBarDownloads");
-    downloadsButton.hidden = true;
-
     if (PlacesUtils.nodeIsHistoryContainer(aNode) ||
         itemId == PlacesUIUtils.leftPaneQueries["History"]) {
       PlacesQueryBuilder.setScope("history");
     }
     else if (itemId == PlacesUIUtils.leftPaneQueries["Downloads"]) {
-      downloadsButton.hidden = false;
-      bookmarksButton.hidden = true;
       PlacesQueryBuilder.setScope("downloads");
     }
     else {
       
       PlacesQueryBuilder.setScope("bookmarks");
     }
-
-    
-    let folderButton = document.getElementById("scopeBarFolder");
-    folderButton.hidden = !PlacesUtils.nodeIsFolder(aNode) ||
-                          itemId == PlacesUIUtils.allBookmarksFolderId;
   },
 
   
@@ -755,50 +730,6 @@ var PlacesOrganizer = {
       additionalInfoBroadcaster.setAttribute("hidden", "true");
     }
   },
-
-  
-
-
-  saveSearch: function PO_saveSearch() {
-    
-    
-    var options = this.getCurrentOptions();
-    var queries = this.getCurrentQueries();
-
-    var placeSpec = PlacesUtils.history.queriesToQueryString(queries,
-                                                             queries.length,
-                                                             options);
-    var placeURI = Cc["@mozilla.org/network/io-service;1"].
-                   getService(Ci.nsIIOService).
-                   newURI(placeSpec, null, null);
-
-    
-    
-    
-    var title = PlacesUIUtils.getString("saveSearch.title");
-    var inputLabel = PlacesUIUtils.getString("saveSearch.inputLabel");
-    var defaultText = PlacesUIUtils.getString("saveSearch.inputDefaultText");
-
-    var prompts = Cc["@mozilla.org/embedcomp/prompt-service;1"].
-                  getService(Ci.nsIPromptService);
-    var check = {value: false};
-    var input = {value: defaultText};
-    var save = prompts.prompt(null, title, inputLabel, input, null, check);
-
-    
-    if (!save || input.value == "")
-     return;
-
-    
-    var txn = new PlacesCreateBookmarkTransaction(placeURI,
-                                                  PlacesUtils.bookmarksMenuFolderId,
-                                                  PlacesUtils.bookmarks.DEFAULT_INDEX,
-                                                  input.value);
-    PlacesUtils.transactionManager.doTransaction(txn);
-
-    
-    this._places.selectPlaceURI(placeSpec);
-  }
 };
 
 
@@ -812,16 +743,17 @@ var PlacesSearchBox = {
   get searchFilter() {
     return document.getElementById("searchFilter");
   },
-
+   
   
 
 
   _folders: [],
   get folders() {
-    if (this._folders.length == 0)
+    if (this._folders.length == 0) {
       this._folders.push(PlacesUtils.bookmarksMenuFolderId,
                          PlacesUtils.unfiledBookmarksFolderId,
                          PlacesUtils.toolbarFolderId);
+    }
     return this._folders;
   },
   set folders(aFolders) {
@@ -853,46 +785,38 @@ var PlacesSearchBox = {
     
     
     switch (PlacesSearchBox.filterCollection) {
-    case "collection":
-      content.applyFilter(filterString, this.folders);
-      
-      
-      
-      break;
-    case "bookmarks":
-      content.applyFilter(filterString, this.folders);
-      break;
-    case "history":
-      if (currentOptions.queryType != Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
-        var query = PlacesUtils.history.getNewQuery();
-        query.searchTerms = filterString;
-        var options = currentOptions.clone();
-        
-        options.resultType = currentOptions.RESULT_TYPE_URI;
-        options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
-        content.load([query], options);
-      }
-      else {
-        content.applyFilter(filterString);
-      }
-      break;
-    case "downloads": {
-        let query = PlacesUtils.history.getNewQuery();
-        query.searchTerms = filterString;
-        query.setTransitions([Ci.nsINavHistoryService.TRANSITION_DOWNLOAD], 1);
-        let options = currentOptions.clone();
-        
-        options.resultType = currentOptions.RESULT_TYPE_URI;
-        options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
-        content.load([query], options);
-      break;
+      case "bookmarks":
+        content.applyFilter(filterString, this.folders);
+        break;
+      case "history":
+        if (currentOptions.queryType != Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY) {
+          var query = PlacesUtils.history.getNewQuery();
+          query.searchTerms = filterString;
+          var options = currentOptions.clone();
+          
+          options.resultType = currentOptions.RESULT_TYPE_URI;
+          options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
+          content.load([query], options);
+        }
+        else {
+          content.applyFilter(filterString);
+        }
+        break;
+      case "downloads": {
+          let query = PlacesUtils.history.getNewQuery();
+          query.searchTerms = filterString;
+          query.setTransitions([Ci.nsINavHistoryService.TRANSITION_DOWNLOAD], 1);
+          let options = currentOptions.clone();
+          
+          options.resultType = currentOptions.RESULT_TYPE_URI;
+          options.queryType = Ci.nsINavHistoryQueryOptions.QUERY_TYPE_HISTORY;
+          content.load([query], options);
+        break;
     }
     default:
       throw "Invalid filterCollection on search";
       break;
     }
-
-    PlacesSearchBox.showSearchUI();
 
     
     PlacesOrganizer.onContentTreeSelect();
@@ -923,24 +847,15 @@ var PlacesSearchBox = {
 
   updateCollectionTitle: function PSB_updateCollectionTitle(aTitle) {
     let title = "";
-    
-    
-    
-    if (aTitle) {
-      title = PlacesUIUtils.getFormattedString("searchCurrentDefault",
-                                               [aTitle]);
-    }
-    else {
-      switch (this.filterCollection) {
-        case "history":
-          title = PlacesUIUtils.getString("searchHistory");
-          break;
-        case "downloads":
-          title = PlacesUIUtils.getString("searchDownloads");
-          break;
-        default:
-          title = PlacesUIUtils.getString("searchBookmarks");                                    
-      }
+    switch (this.filterCollection) {
+      case "history":
+        title = PlacesUIUtils.getString("searchHistory");
+        break;
+      case "downloads":
+        title = PlacesUIUtils.getString("searchDownloads");
+        break;
+      default:
+        title = PlacesUIUtils.getString("searchBookmarks");                                    
     }
     this.searchFilter.placeholder = title;
   },
@@ -956,14 +871,8 @@ var PlacesSearchBox = {
       return collectionName;
 
     this.searchFilter.setAttribute("collection", collectionName);
+    this.updateCollectionTitle();
 
-    var newGrayText = null;
-    if (collectionName == "collection") {
-      newGrayText = PlacesOrganizer._places.selectedNode.title ||
-                    document.getElementById("scopeBarFolder").
-                      getAttribute("emptytitle");
-    }
-    this.updateCollectionTitle(newGrayText);
     return collectionName;
   },
 
@@ -990,17 +899,6 @@ var PlacesSearchBox = {
   set value(value) {
     return this.searchFilter.value = value;
   },
-
-  showSearchUI: function PSB_showSearchUI() {
-    
-    var searchModifiers = document.getElementById("searchModifiers");
-    searchModifiers.hidden = false;
-  },
-
-  hideSearchUI: function PSB_hideSearchUI() {
-    var searchModifiers = document.getElementById("searchModifiers");
-    searchModifiers.hidden = true;
-  }
 };
 
 
@@ -1016,31 +914,6 @@ var PlacesQueryBuilder = {
 
 
 
-  onScopeSelected: function PQB_onScopeSelected(aButton) {
-    switch (aButton.id) {
-    case "scopeBarHistory":
-      this.setScope("history");
-      break;
-    case "scopeBarFolder":
-      this.setScope("collection");
-      break;
-    case "scopeBarDownloads":
-      this.setScope("downloads");
-      break;
-    case "scopeBarAll":
-      this.setScope("bookmarks");
-      break;
-    default:
-      throw "Invalid search scope button ID";
-      break;
-    }
-  },
-
-  
-
-
-
-
 
 
 
@@ -1049,43 +922,23 @@ var PlacesQueryBuilder = {
     
     var filterCollection;
     var folders = [];
-    var scopeButtonId;
     switch (aScope) {
-    case "history":
-      filterCollection = "history";
-      scopeButtonId = "scopeBarHistory";
-      break;
-    case "collection":
-      
-      
-      
-      if (!document.getElementById("scopeBarFolder").hidden) {
-        filterCollection = "collection";
-        scopeButtonId = "scopeBarFolder";
-        folders.push(PlacesUtils.getConcreteItemId(
-                       PlacesOrganizer._places.selectedNode));
+      case "history":
+        filterCollection = "history";
         break;
-      }
-      
-      
-    case "bookmarks":
-      filterCollection = "bookmarks";
-      scopeButtonId = "scopeBarAll";
-      folders.push(PlacesUtils.bookmarksMenuFolderId,
-                   PlacesUtils.toolbarFolderId,
-                   PlacesUtils.unfiledBookmarksFolderId);
-      break;
-    case "downloads":
-      filterCollection = "downloads";
-      scopeButtonId = "scopeBarDownloads";
-      break;
-    default:
-      throw "Invalid search scope";
-      break;
+      case "bookmarks":
+        filterCollection = "bookmarks";
+        folders.push(PlacesUtils.bookmarksMenuFolderId,
+                     PlacesUtils.toolbarFolderId,
+                     PlacesUtils.unfiledBookmarksFolderId);
+        break;
+      case "downloads":
+        filterCollection = "downloads";
+        break;
+      default:
+        throw "Invalid search scope";
+        break;
     }
-
-    
-    document.getElementById(scopeButtonId).checked = true;
 
     
     PlacesSearchBox.filterCollection = filterCollection;
