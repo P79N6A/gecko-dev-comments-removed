@@ -10273,6 +10273,11 @@ let ICCRecordHelper = {
   
 
 
+  _iapRecordSize: null,
+
+  
+
+
 
 
 
@@ -10284,6 +10289,7 @@ let ICCRecordHelper = {
     function callback(options) {
       let strLen = Buf.readUint32();
       let octetLen = strLen / 2;
+      this._iapRecordSize = options.recordSize;
 
       let iap = GsmPDUHelper.readHexOctetArray(octetLen);
       Buf.readStringDelimiter(strLen);
@@ -10295,9 +10301,15 @@ let ICCRecordHelper = {
 
     ICCIOHelper.loadLinearFixedEF({fileId: fileId,
                                    recordNumber: recordNumber,
+                                   recordSize: this._iapRecordSize,
                                    callback: callback.bind(this),
                                    onerror: onerror});
   },
+
+  
+
+
+  _emailRecordSize: null,
 
   
 
@@ -10315,6 +10327,7 @@ let ICCRecordHelper = {
       let strLen = Buf.readUint32();
       let octetLen = strLen / 2;
       let email = null;
+      this._emailRecordSize = options.recordSize;
 
       
       
@@ -10342,9 +10355,15 @@ let ICCRecordHelper = {
 
     ICCIOHelper.loadLinearFixedEF({fileId: fileId,
                                    recordNumber: recordNumber,
+                                   recordSize: this._emailRecordSize,
                                    callback: callback.bind(this),
                                    onerror: onerror});
   },
+
+  
+
+
+  _anrRecordSize: null,
 
   
 
@@ -10362,6 +10381,7 @@ let ICCRecordHelper = {
       let strLen = Buf.readUint32();
       let octetLen = strLen / 2;
       let number = null;
+      this._anrRecordSize = options.recordSize;
 
       
       Buf.seekIncoming(1 * PDU_HEX_OCTET_SIZE);
@@ -10394,6 +10414,7 @@ let ICCRecordHelper = {
 
     ICCIOHelper.loadLinearFixedEF({fileId: fileId,
                                    recordNumber: recordNumber,
+                                   recordSize: this._anrRecordSize,
                                    callback: callback.bind(this),
                                    onerror: onerror});
   },
