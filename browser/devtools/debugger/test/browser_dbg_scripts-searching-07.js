@@ -4,6 +4,12 @@
 
 const TAB_URL = EXAMPLE_URL + "browser_dbg_script-switching.html";
 
+
+
+
+
+
+
 var gPane = null;
 var gTab = null;
 var gDebuggee = null;

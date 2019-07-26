@@ -245,6 +245,7 @@ function GlobalSearchView() {
   this._onLineClick = this._onLineClick.bind(this);
   this._onMatchClick = this._onMatchClick.bind(this);
   this._onResultsScroll = this._onResultsScroll.bind(this);
+  this._onFocusLost = this._onFocusLost.bind(this);
   this._startSearch = this._startSearch.bind(this);
 }
 
@@ -258,6 +259,12 @@ GlobalSearchView.prototype = {
     this._pane.hidden = value;
     this._splitter.hidden = value;
   },
+
+  
+
+
+
+  get hidden() this._pane.hidden,
 
   
 
@@ -711,6 +718,13 @@ GlobalSearchView.prototype = {
   
 
 
+  _onFocusLost: function DVGS__onFocusLost(e) {
+    this.hideAndEmpty();
+  },
+
+  
+
+
   _onResultsScroll: function DVGS__onResultsScroll(e) {
     this._expandAllVisibleResults();
   },
@@ -790,6 +804,7 @@ GlobalSearchView.prototype = {
 
   _pane: null,
   _splitter: null,
+  _searchbox: null,
 
   
 
@@ -797,8 +812,10 @@ GlobalSearchView.prototype = {
   initialize: function DVS_initialize() {
     this._pane = document.getElementById("globalsearch");
     this._splitter = document.getElementById("globalsearch-splitter");
+    this._searchbox = document.getElementById("scripts-search");
 
     this._pane.addEventListener("scroll", this._onResultsScroll, false);
+    this._searchbox.addEventListener("blur", this._onFocusLost, false);
   },
 
   
@@ -806,10 +823,12 @@ GlobalSearchView.prototype = {
 
   destroy: function DVS_destroy() {
     this._pane.removeEventListener("scroll", this._onResultsScroll, false);
+    this._searchbox.removeEventListener("blur", this._onFocusLost, false);
 
     this.hideAndEmpty();
     this._pane = null;
     this._splitter = null;
+    this._searchbox = null;
     this._scriptSources = null;
   }
 };
@@ -1293,7 +1312,11 @@ ScriptsView.prototype = {
         return;
       }
       if (isGlobal) {
-        DebuggerView.GlobalSearch.focusNextMatch();
+        if (DebuggerView.GlobalSearch.hidden) {
+          DebuggerView.GlobalSearch.scheduleSearch();
+        } else {
+          DebuggerView.GlobalSearch.focusNextMatch();
+        }
         return;
       }
 
