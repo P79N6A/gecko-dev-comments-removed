@@ -5476,11 +5476,21 @@ CodeGenerator::link()
     if (callTargets.length() > 0)
         ionScript->copyCallTargetEntries(callTargets.begin());
 
-    
-    
-    
-    if (cx->zone()->needsBarrier())
-        ionScript->toggleBarriers(true);
+    switch (executionMode) {
+      case SequentialExecution:
+        
+        
+        
+        if (cx->zone()->needsBarrier())
+            ionScript->toggleBarriers(true);
+        break;
+      case ParallelExecution:
+        
+        
+        break;
+      default:
+        MOZ_ASSUME_UNREACHABLE("No such execution mode");
+    }
 
     return true;
 }
