@@ -188,7 +188,12 @@ function end_test() {
   }
 
   
-  getAppConsoleLogPath();
+  try {
+    getAppConsoleLogPath();
+  }
+  catch (e) {
+    logTestInfo("unable to remove file during end_test. Exception: " + e);
+  }
 
   if (IS_UNIX) {
     
