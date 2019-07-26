@@ -181,7 +181,7 @@ CollectWindowReports(nsGlobalWindow *aWindow,
                      nsIMemoryReporterCallback *aCb,
                      nsISupports *aClosure)
 {
-  nsAutoCString windowPath;
+  nsAutoCString windowPath("explicit/");
 
   
   
@@ -233,20 +233,17 @@ CollectWindowReports(nsGlobalWindow *aWindow,
   AppendWindowURI(aWindow, windowPath);
   windowPath += NS_LITERAL_CSTRING(")");
 
-  nsCString explicitWindowPath("explicit/");
-  explicitWindowPath += windowPath;
+  
+  nsCString censusWindowPath(windowPath);
+  censusWindowPath.Replace(0, strlen("explicit"), "event-counts");
 
   
-  nsCString censusWindowPath("event-counts/");
-  censusWindowPath += windowPath;
-
-  
-  aWindowPaths->Put(aWindow->WindowID(), explicitWindowPath);
+  aWindowPaths->Put(aWindow->WindowID(), windowPath);
 
 #define REPORT_SIZE(_pathTail, _amount, _desc)                                \
   do {                                                                        \
     if (_amount > 0) {                                                        \
-      nsAutoCString path(explicitWindowPath);                                 \
+      nsAutoCString path(windowPath);                                         \
       path += _pathTail;                                                      \
       nsresult rv;                                                            \
       rv = aCb->Callback(EmptyCString(), path, nsIMemoryReporter::KIND_HEAP,  \
