@@ -270,45 +270,8 @@ public class LightweightTheme implements GeckoEventListener {
 
 
 
-
-
-
-    public LightweightThemeDrawable getTextureDrawable(View view, int textureId) {
-        return getTextureDrawable(view, textureId, false);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-    public LightweightThemeDrawable getTextureDrawable(View view, int textureId, boolean needsColor) {
-        Bitmap bitmap = getCroppedBitmap(view);
-        if (bitmap == null)
-            return null;
-
-        LightweightThemeDrawable drawable = new LightweightThemeDrawable(view.getContext().getResources(), bitmap);
-        drawable.setTexture(textureId);
-
-        if (needsColor)
-            drawable.setColor(mColor & 0x22FFFFFF);
-
-        return drawable;
-    }
-
-    
-
-
-
-
-
      public LightweightThemeDrawable getColorDrawable(View view) {
-         return getColorDrawable(view, mColor);
+         return getColorDrawable(view, mColor, false);
      }
 
     
@@ -317,13 +280,30 @@ public class LightweightTheme implements GeckoEventListener {
 
 
 
+
     public LightweightThemeDrawable getColorDrawable(View view, int color) {
+        return getColorDrawable(view, color, false);
+    }
+
+    
+
+
+
+
+
+
+
+    public LightweightThemeDrawable getColorDrawable(View view, int color, boolean needsDominantColor) {
         Bitmap bitmap = getCroppedBitmap(view);
         if (bitmap == null)
             return null;
 
         LightweightThemeDrawable drawable = new LightweightThemeDrawable(view.getContext().getResources(), bitmap);
-        drawable.setColor(color);
+        if (needsDominantColor)
+            drawable.setColorWithFilter(color, (mColor & 0x22FFFFFF));
+        else
+            drawable.setColor(color);
+
         return drawable;
     }
 }

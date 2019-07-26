@@ -16,6 +16,7 @@ import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.PixelFormat;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.Rect;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
@@ -26,11 +27,9 @@ import android.graphics.drawable.Drawable;
 
 
 
-
 public class LightweightThemeDrawable extends Drawable {
     private Paint mPaint;
     private Paint mColorPaint;
-    private Paint mTexturePaint;
 
     private Bitmap mBitmap;
     private Resources mResources;
@@ -55,10 +54,6 @@ public class LightweightThemeDrawable extends Drawable {
 
     @Override
     public void draw(Canvas canvas) {
-	
-        if (mTexturePaint != null)
-            canvas.drawPaint(mTexturePaint);
-
         
         if (mColorPaint != null)
             canvas.drawPaint(mColorPaint);
@@ -89,12 +84,9 @@ public class LightweightThemeDrawable extends Drawable {
 
 
 
-
-
-
-    public void setTexture(int textureId) {
-        mTexturePaint = new Paint(mPaint);
-        mTexturePaint.setColor(mResources.getColor(textureId));
+    public void setColor(int color) {
+        mColorPaint = new Paint(mPaint);
+        mColorPaint.setColor(color);
     }
 
     
@@ -102,9 +94,11 @@ public class LightweightThemeDrawable extends Drawable {
 
 
 
-    public void setColor(int color) {
+
+    public void setColorWithFilter(int color, int filter) {
         mColorPaint = new Paint(mPaint);
         mColorPaint.setColor(color);
+        mColorPaint.setColorFilter(new PorterDuffColorFilter(filter, PorterDuff.Mode.SRC_OVER));
     }
 
     
