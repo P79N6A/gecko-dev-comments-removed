@@ -4,7 +4,7 @@
 "use strict";
 
 module.metadata = {
-  "stability": "stable"
+  "stability": "unstable"
 };
 
 const { deprecateFunction } = require("../util/deprecate");
@@ -31,6 +31,5 @@ function forceAllowThirdPartyCookie(xhr) {
     xhr.channel.forceAllowThirdPartyCookie = true;
 }
 exports.forceAllowThirdPartyCookie = forceAllowThirdPartyCookie;
-
 
 

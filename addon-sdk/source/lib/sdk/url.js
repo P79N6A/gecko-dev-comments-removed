@@ -1,6 +1,7 @@
 
 
 
+
 "use strict";
 
 module.metadata = {
@@ -276,16 +277,3 @@ let isValidURI = exports.isValidURI = function (uri) {
   }
   return true;
 }
-
-function isLocalURL(url) {
-  if (String.indexOf(url, './') === 0)
-    return true;
-
-  try {
-    return ['resource', 'data', 'chrome'].indexOf(URL(url).scheme) > -1;
-  }
-  catch(e) {}
-
-  return false;
-}
-exports.isLocalURL = isLocalURL;

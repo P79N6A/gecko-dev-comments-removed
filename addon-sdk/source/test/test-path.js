@@ -429,3 +429,8 @@ if (isWindows) {
 };
 
 require('test').run(exports);
+
+
+if (require("sdk/system/runtime").OS == "Darwin")
+  module.exports = {};
+
