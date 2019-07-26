@@ -902,7 +902,7 @@ class nsRefPtr
         {
         }
 
-      nsRefPtr( const nsRefPtr<T>& aSmartPtr )
+      nsRefPtr(const nsRefPtr<T>& aSmartPtr)
             : mRawPtr(aSmartPtr.mRawPtr)
           
         {
@@ -910,9 +910,16 @@ class nsRefPtr
             mRawPtr->AddRef();
         }
 
-      nsRefPtr( T* aRawPtr )
-            : mRawPtr(aRawPtr)
-          
+      nsRefPtr(nsRefPtr<T>&& aRefPtr)
+            : mRawPtr(aRefPtr.mRawPtr)
+        {
+          aRefPtr.mRawPtr = nullptr;
+        }
+
+      
+
+      nsRefPtr(T* aRawPtr)
+        : mRawPtr(aRawPtr)
         {
           if ( mRawPtr )
             mRawPtr->AddRef();
@@ -943,7 +950,7 @@ class nsRefPtr
         
 
       nsRefPtr<T>&
-      operator=( const nsRefPtr<T>& rhs )
+      operator=(const nsRefPtr<T>& rhs)
           
         {
           assign_with_AddRef(rhs.mRawPtr);
@@ -985,6 +992,14 @@ class nsRefPtr
           assign_assuming_AddRef(static_cast<T*>(newRawPtr));
           return *this;
         }
+
+      nsRefPtr<T>&
+      operator=(nsRefPtr<T>&& aRefPtr)
+      {
+        assign_assuming_AddRef(aRefPtr.mRawPtr);
+        aRefPtr.mRawPtr = nullptr;
+        return *this;
+      }
 
         
 
