@@ -58,7 +58,7 @@ function installTestApp(zipName, appId, onDone) {
 
   
   
-  gClient.addListener("webappsEvent", function (aState, aType, aPacket) {
+  gClient.addOneTimeListener("webappsEvent", function (aState, aType, aPacket) {
     do_check_eq(aType.appId, appId);
     if ("error" in aType) {
       do_throw("Error: " + aType.error);
