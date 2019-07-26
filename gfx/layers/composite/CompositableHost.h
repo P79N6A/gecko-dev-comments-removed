@@ -60,6 +60,23 @@ struct EffectChain;
 
 
 
+class CompositableQuirks : public RefCounted<CompositableQuirks>
+{
+public:
+  CompositableQuirks()
+  {
+    MOZ_COUNT_CTOR(CompositableQuirks);
+  }
+  virtual ~CompositableQuirks()
+  {
+    MOZ_COUNT_DTOR(CompositableQuirks);
+  }
+  virtual void SetCompositor(Compositor* aCompositor) {}
+};
+
+
+
+
 
 
 
@@ -81,6 +98,13 @@ public:
   static TemporaryRef<CompositableHost> Create(const TextureInfo& aTextureInfo);
 
   virtual CompositableType GetType() = 0;
+
+  virtual CompositableQuirks* GetCompositableQuirks() { return mQuirks; }
+
+  virtual void SetCompositableQuirks(CompositableQuirks* aQuirks)
+  {
+    mQuirks = aQuirks;
+  }
 
   
   virtual void SetCompositor(Compositor* aCompositor);
@@ -268,6 +292,7 @@ protected:
   TextureInfo mTextureInfo;
   Compositor* mCompositor;
   Layer* mLayer;
+  RefPtr<CompositableQuirks> mQuirks;
   RefPtr<TextureHost> mFirstTexture;
   bool mAttached;
   bool mKeepAttached;

@@ -8,6 +8,7 @@
 
 #include <stddef.h>                     
 #include <stdint.h>                     
+#include "CompositableHost.h"
 #include "GLContextTypes.h"             
 #include "GLDefs.h"                     
 #include "GLTextureImage.h"             
@@ -52,6 +53,29 @@ namespace layers {
 class Compositor;
 class CompositorOGL;
 class TextureImageDeprecatedTextureHostOGL;
+
+
+
+
+
+
+
+
+
+
+class CompositableQuirksGonkOGL : public CompositableQuirks
+{
+public:
+  CompositableQuirksGonkOGL();
+  virtual ~CompositableQuirksGonkOGL();
+
+  virtual void SetCompositor(Compositor* aCompositor) MOZ_OVERRIDE;
+  GLuint GetTexture();
+  gl::GLContext* gl() const;
+protected:
+  RefPtr<CompositorOGL> mCompositor;
+  GLuint mTexture;
+};
 
 
 
