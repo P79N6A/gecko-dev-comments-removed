@@ -15,6 +15,17 @@ const NEW_SCRIPT_DISPLAY_DELAY = 200;
 const FETCH_SOURCE_RESPONSE_DELAY = 50; 
 const FRAME_STEP_CLEAR_DELAY = 100; 
 const CALL_STACK_PAGE_SIZE = 25; 
+const VARIABLES_VIEW_NON_SORTABLE = [
+  "Array",
+  "Int8Array",
+  "Uint8Array",
+  "Int16Array",
+  "Uint16Array",
+  "Int32Array",
+  "Uint32Array",
+  "Float32Array",
+  "Float64Array"
+];
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -50,7 +61,6 @@ let DebuggerController = {
       return;
     }
     this._isInitialized = true;
-
     window.removeEventListener("load", this._startupDebugger, true);
 
     DebuggerView.initialize(function() {
@@ -703,7 +713,7 @@ StackFrames.prototype = {
     let callback = this._fetchScopeVariables.bind(this, aScope, aEnv);
 
     
-    aScope.onmouseover = callback;
+    aScope.addEventListener("mouseover", callback, false);
     
     aScope.onexpand = callback;
   },
@@ -727,7 +737,7 @@ StackFrames.prototype = {
     
     
     if (aVar.name == "window" || aVar.name == "this") {
-      aVar.onmouseover = callback;
+      aVar.addEventListener("mouseover", callback, false);
     }
     
     aVar.onexpand = callback;
@@ -743,10 +753,10 @@ StackFrames.prototype = {
 
   _fetchWatchExpressions: function SF__fetchWatchExpressions(aScope, aExp) {
     
-    if (aScope.fetched) {
+    if (aScope._fetched) {
       return;
     }
-    aScope.fetched = true;
+    aScope._fetched = true;
 
     
     this.activeThread.pauseGrip(aExp).getPrototypeAndProperties(function(aResponse) {
@@ -777,10 +787,10 @@ StackFrames.prototype = {
 
   _fetchScopeVariables: function SF__fetchScopeVariables(aScope, aEnv) {
     
-    if (aScope.fetched) {
+    if (aScope._fetched) {
       return;
     }
-    aScope.fetched = true;
+    aScope._fetched = true;
 
     switch (aEnv.type) {
       case "with":
@@ -799,6 +809,10 @@ StackFrames.prototype = {
         
         this._insertScopeArguments(aEnv.bindings.arguments, aScope);
         this._insertScopeVariables(aEnv.bindings.variables, aScope);
+
+        
+        
+        
         break;
       default:
         Cu.reportError("Unknown Debugger.Environment type: " + aEnv.type);
@@ -884,17 +898,18 @@ StackFrames.prototype = {
 
   _fetchVarProperties: function SF__fetchVarProperties(aVar, aGrip) {
     
-    if (aVar.fetched) {
+    if (aVar._fetched) {
       return;
     }
-    aVar.fetched = true;
+    aVar._fetched = true;
 
     this.activeThread.pauseGrip(aGrip).getPrototypeAndProperties(function(aResponse) {
       let { ownProperties, prototype } = aResponse;
+      let sortable = VARIABLES_VIEW_NON_SORTABLE.indexOf(aGrip.class) == -1;
 
       
       if (ownProperties) {
-        aVar.addProperties(ownProperties);
+        aVar.addProperties(ownProperties, { sorted: sortable });
         
         for (let name in ownProperties) {
           this._addVarExpander(aVar.get(name), ownProperties[name].value);
@@ -908,6 +923,7 @@ StackFrames.prototype = {
         this._addVarExpander(aVar.get("__proto__"), prototype);
       }
 
+      
       aVar._retrieved = true;
 
       
