@@ -69,8 +69,27 @@ const TextureFlags TEXTURE_DEALLOCATE_HOST    = 1 << 26;
 const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
 
 
+
+const TextureFlags TEXTURE_IMMEDIATE_UPLOAD   = 1 << 28;
+
+
+
+const TextureFlags TEXTURE_DOUBLE_BUFFERED    = 1 << 29;
+
+
 const TextureFlags TEXTURE_FLAGS_DEFAULT = TEXTURE_DEALLOCATE_HOST
                                          | TEXTURE_FRONT;
+
+static inline bool
+TextureRequiresLocking(TextureFlags aFlags)
+{
+  
+  
+  
+  return !(aFlags & (TEXTURE_IMMEDIATE_UPLOAD |
+                     TEXTURE_DOUBLE_BUFFERED |
+                     TEXTURE_IMMUTABLE));
+}
 
 
 
