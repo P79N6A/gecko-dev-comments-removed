@@ -118,20 +118,25 @@ nsDOMFileReader::~nsDOMFileReader()
   nsLayoutStatics::Release();
 }
 
+
+
+
+
 nsresult
 nsDOMFileReader::Init()
 {
-  nsDOMEventTargetHelper::Init();
-
-  nsIScriptSecurityManager *secMan = nsContentUtils::GetSecurityManager();
-  nsCOMPtr<nsIPrincipal> subjectPrincipal;
+  nsIScriptSecurityManager* secMan = nsContentUtils::GetSecurityManager();
+  nsCOMPtr<nsIPrincipal> principal;
   if (secMan) {
-    nsresult rv = secMan->GetSubjectPrincipal(getter_AddRefs(subjectPrincipal));
-    NS_ENSURE_SUCCESS(rv, rv);
+    secMan->GetSystemPrincipal(getter_AddRefs(principal));
   }
-  NS_ENSURE_STATE(subjectPrincipal);
-  mPrincipal.swap(subjectPrincipal);
+  NS_ENSURE_STATE(principal);
+  mPrincipal.swap(principal);
 
+  
+  
+  
+  BindToOwner(xpc::GetNativeForGlobal(xpc::GetJunkScope()));
   return NS_OK;
 }
 
