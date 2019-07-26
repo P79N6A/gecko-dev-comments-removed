@@ -413,6 +413,14 @@ ThreadActor.prototype = {
             stepFrame.onPop = onPop;
         }
       }
+    } else {
+      
+      let frame = this.youngestFrame;
+      while (frame) {
+        frame.onStep = undefined;
+        frame.onPop = undefined;
+        frame = frame.older;
+      }
     }
 
     if (aRequest) {

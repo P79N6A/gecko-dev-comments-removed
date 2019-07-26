@@ -151,11 +151,7 @@ function runTest(aOnSteppedLocation, aOnDebuggerStatementFrames, aFinishedCallba
             do_check_eq(aPacket.why.type, "debuggerStatement");
             gThreadClient.getFrames(0, 100, function ({frames}) {
               aOnDebuggerStatementFrames(frames);
-              
-              gClient.addOneTimeListener("paused", function () {
-                gThreadClient.resume(aFinishedCallback);
-              });
-              gThreadClient.resume();
+              gThreadClient.resume(aFinishedCallback);
             });
           });
           gThreadClient.resume();
