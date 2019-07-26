@@ -221,6 +221,8 @@ def implemented_types(t):
 template_regexp = re.compile("([\w_:]+)<")
 
 
+
+
 def lookup_for_objfile(objfile):
     
     try:
@@ -229,6 +231,7 @@ def lookup_for_objfile(objfile):
         if gdb.parameter("verbose"):
             gdb.write("objfile '%s' has no SpiderMonkey code; not registering pretty-printers\n"
                       % (objfile.filename,))
+        return None
 
     
     
