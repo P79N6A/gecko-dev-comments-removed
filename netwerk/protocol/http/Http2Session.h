@@ -25,6 +25,7 @@ namespace net {
 
 class Http2PushedStream;
 class Http2Stream;
+class nsHttpTransaction;
 
 class Http2Session MOZ_FINAL : public ASpdySession
   , public nsAHttpConnection
@@ -445,6 +446,15 @@ private:
   
   
   uint64_t        mSerial;
+
+private:
+
+  void DispatchOnTunnel(nsAHttpTransaction *, nsIInterfaceRequestor *);
+  void RegisterTunnel(Http2Stream *);
+  void UnRegisterTunnel(Http2Stream *);
+  uint32_t FindTunnelCount(nsHttpConnectionInfo *);
+
+  nsDataHashtable<nsCStringHashKey, uint32_t> mTunnelHash;
 };
 
 } 

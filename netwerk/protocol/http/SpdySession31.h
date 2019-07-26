@@ -23,6 +23,7 @@ namespace mozilla { namespace net {
 
 class SpdyPushedStream31;
 class SpdyStream31;
+class nsHttpTransaction;
 
 class SpdySession31 MOZ_FINAL : public ASpdySession
                               , public nsAHttpConnection
@@ -402,6 +403,15 @@ private:
   
   
   uint64_t        mSerial;
+
+private:
+
+  void DispatchOnTunnel(nsAHttpTransaction *, nsIInterfaceRequestor *);
+  void RegisterTunnel(SpdyStream31 *);
+  void UnRegisterTunnel(SpdyStream31 *);
+  uint32_t FindTunnelCount(nsHttpConnectionInfo *);
+
+  nsDataHashtable<nsCStringHashKey, uint32_t> mTunnelHash;
 };
 
 }} 

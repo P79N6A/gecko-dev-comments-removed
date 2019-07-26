@@ -81,12 +81,15 @@ public:
   void SetCountAsActive(bool aStatus) { mCountAsActive = aStatus ? 1 : 0; }
   bool CountAsActive() { return mCountAsActive; }
 
-  void SetAllHeadersReceived(bool aStatus) { mAllHeadersReceived = aStatus ? 1 : 0; }
+ 
+ 
+  nsresult SetAllHeadersReceived(bool aStatus);
   bool AllHeadersReceived() { return mAllHeadersReceived; }
 
   void UpdateTransportSendEvents(uint32_t count);
   void UpdateTransportReadEvents(uint32_t count);
 
+  
   nsresult ConvertResponseHeaders(Http2Decompressor *, nsACString &, nsACString &);
   nsresult ConvertPushHeaders(Http2Decompressor *, nsACString &, nsACString &);
 
@@ -235,6 +238,7 @@ private:
   
   
   
+  
   int64_t                      mRequestBodyLenRemaining;
 
   uint32_t                     mPriority;
@@ -267,6 +271,15 @@ private:
 
   
   Http2PushedStream *mPushSource;
+
+
+public:
+  bool IsTunnel() { return mIsTunnel; }
+private:
+  void ClearTransactionsBlockedOnTunnel();
+  void MapStreamToHttpConnection();
+
+  bool mIsTunnel;
 };
 
 } 
