@@ -1014,32 +1014,24 @@ HyperTextAccessible::GetTextBeforeOffset(int32_t aOffset,
       return NS_OK;
 
     case BOUNDARY_WORD_START: {
-      if (offset == 0) { 
-        *aStartOffset = *aEndOffset = 0;
-        return NS_OK;
+      
+      
+      
+      if (offset == CharacterCount()) {
+        *aEndOffset = FindWordBoundary(offset, eDirPrevious, eStartWord);
+        *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eStartWord);
+      } else {
+        *aStartOffset = FindWordBoundary(offset, eDirPrevious, eStartWord);
+        *aEndOffset = FindWordBoundary(*aStartOffset, eDirNext, eStartWord);
+        if (*aEndOffset != offset) {
+          *aEndOffset = *aStartOffset;
+          *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eStartWord);
+        }
       }
-
-      
-      
-      
-      int32_t midOffset = FindWordBoundary(offset, eDirPrevious, eStartWord);
-      *aEndOffset = FindWordBoundary(midOffset, eDirNext, eStartWord);
-      if (*aEndOffset == offset) {
-        *aStartOffset = midOffset;
-        return GetText(*aStartOffset, *aEndOffset, aText);
-      }
-
-      *aStartOffset = FindWordBoundary(midOffset, eDirPrevious, eStartWord);
-      *aEndOffset = midOffset;
       return GetText(*aStartOffset, *aEndOffset, aText);
     }
 
     case BOUNDARY_WORD_END: {
-      if (offset == 0) { 
-        *aStartOffset = *aEndOffset = 0;
-        return NS_OK;
-      }
-
       
       *aEndOffset = FindWordBoundary(offset, eDirPrevious, eEndWord);
       *aStartOffset = FindWordBoundary(*aEndOffset, eDirPrevious, eEndWord);
