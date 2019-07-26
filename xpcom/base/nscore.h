@@ -328,6 +328,18 @@ typedef uint32_t nsrefcnt;
 
 
 
+#ifndef __PRUNICHAR__
+#define __PRUNICHAR__
+  #if defined(WIN32)
+    typedef wchar_t PRUnichar;
+  #else
+    typedef uint16_t PRUnichar;
+  #endif
+#endif
+
+
+
+
 
 #define NS_PTR_TO_INT32(x)  ((int32_t)  (intptr_t) (x))
 #define NS_PTR_TO_UINT32(x) ((uint32_t) (intptr_t) (x))
@@ -363,4 +375,4 @@ typedef uint32_t nsrefcnt;
 #define MOZ_SEH_EXCEPT(expr)  else
 #endif
 
-#endif 
+#endif
