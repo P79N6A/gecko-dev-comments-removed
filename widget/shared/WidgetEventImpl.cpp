@@ -216,7 +216,6 @@ WidgetEvent::IsAllowedToDispatchDOMEvent() const
 {
   switch (eventStructType) {
     case NS_MOUSE_EVENT:
-    case NS_POINTER_EVENT:
       
       
       
