@@ -1371,21 +1371,20 @@ BrowserGlue.prototype = {
 
     if (currentUIVersion < 14) {
       
-      let toolbarResources = [this._rdf.GetResource(BROWSER_DOCURL + "navigator-toolbox"),
-                              this._rdf.GetResource(BROWSER_DOCURL + "nav-bar"),
-                              this._rdf.GetResource(BROWSER_DOCURL + "PersonalToolbar"),
-                              this._rdf.GetResource(BROWSER_DOCURL + "addon-bar")];
-      let modeResource = this._rdf.GetResource("mode");
-      let iconsizeResource = this._rdf.GetResource("iconsize");
-      for (let toolbarResource of toolbarResources) {
-        let toolbarMode = this._getPersist(toolbarResource, modeResource);
-        if (toolbarMode != "icons") {
-          this._setPersist(toolbarResource, modeResource, "icons");
-          
-          
-          this._setPersist(toolbarResource, iconsizeResource, "large");
+      let updateToolbars = function (aToolbarIds, aResourceName, aResourceValue) {
+        let resource = this._rdf.GetResource(aResourceName);
+        for (toolbarId of aToolbarIds) {
+          let toolbar = this._rdf.GetResource(BROWSER_DOCURL + toolbarId);
+          let oldValue = this._getPersist(toolbar, resource);
+          if (oldValue && oldValue != aResourceValue) {
+            this._setPersist(toolbar, resource, aResourceValue);
+          }
         }
-      }
+      }.bind(this);
+
+      updateToolbars(["navigator-toolbox", "nav-bar", "PersonalToolbar", "addon-bar"], "mode", "icons");
+      
+      updateToolbars(["navigator-toolbox", "nav-bar"], "iconsize", "large");
     }
 
     if (currentUIVersion < 15) {
