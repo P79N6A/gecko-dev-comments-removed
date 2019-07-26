@@ -4,10 +4,12 @@
 
 
 #include "APZCCallbackHelper.h"
+#include "mozilla/Preferences.h"
 #include "nsIScrollableFrame.h"
 #include "nsLayoutUtils.h"
 #include "nsIDOMElement.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "TiledLayerBuffer.h" 
 
 namespace mozilla {
 namespace widget {
@@ -24,9 +26,69 @@ APZCCallbackHelper::HasValidPresShellId(nsIDOMWindowUtils* aUtils,
     return NS_SUCCEEDED(rv) && aMetrics.mPresShellId == presShellId;
 }
 
+
+
+
+
+static CSSRect ExpandDisplayPortToTileBoundaries(
+  const CSSRect& aDisplayPort,
+  const CSSToLayerScale& aLayerPixelsPerCSSPixel)
+{
+  
+  
+  LayerRect displayPortInLayerSpace = aDisplayPort * aLayerPixelsPerCSSPixel;
+
+  
+  
+  
+  
+  displayPortInLayerSpace.Inflate(1);
+
+  
+  gfxFloat left = TILEDLAYERBUFFER_TILE_SIZE
+    * floor(displayPortInLayerSpace.x / TILEDLAYERBUFFER_TILE_SIZE);
+  gfxFloat top = TILEDLAYERBUFFER_TILE_SIZE
+    * floor(displayPortInLayerSpace.y / TILEDLAYERBUFFER_TILE_SIZE);
+  gfxFloat right = TILEDLAYERBUFFER_TILE_SIZE
+    * ceil(displayPortInLayerSpace.XMost() / TILEDLAYERBUFFER_TILE_SIZE);
+  gfxFloat bottom = TILEDLAYERBUFFER_TILE_SIZE
+    * ceil(displayPortInLayerSpace.YMost() / TILEDLAYERBUFFER_TILE_SIZE);
+
+  displayPortInLayerSpace = LayerRect(left, top, right - left, bottom - top);
+  CSSRect displayPort = displayPortInLayerSpace / aLayerPixelsPerCSSPixel;
+
+  return displayPort;
+}
+
+static void
+MaybeAlignAndClampDisplayPort(mozilla::layers::FrameMetrics& aFrameMetrics,
+                              const CSSPoint& aActualScrollOffset)
+{
+  
+  
+  CSSRect& displayPort = aFrameMetrics.mDisplayPort;
+  displayPort += aActualScrollOffset - aFrameMetrics.mScrollOffset;
+
+  
+  
+  if (Preferences::GetBool("layers.force-tiles")) {
+    
+    
+    displayPort =
+      ExpandDisplayPortToTileBoundaries(displayPort + aActualScrollOffset,
+                                        aFrameMetrics.mZoom * ScreenToLayerScale(1))
+      - aActualScrollOffset;
+  }
+
+  
+  CSSRect scrollableRect = aFrameMetrics.mScrollableRect;
+  displayPort = scrollableRect.ClampRect(displayPort + aActualScrollOffset)
+    - aActualScrollOffset;
+}
+
 void
 APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
-                                    const FrameMetrics& aMetrics)
+                                    FrameMetrics& aMetrics)
 {
     
     MOZ_ASSERT(aUtils);
@@ -46,6 +108,17 @@ APZCCallbackHelper::UpdateRootFrame(nsIDOMWindowUtils* aUtils,
 
     
     aUtils->ScrollToCSSPixelsApproximate(aMetrics.mScrollOffset.x, aMetrics.mScrollOffset.y, nullptr);
+
+    
+    
+    CSSPoint actualScrollOffset;
+    aUtils->GetScrollXYFloat(false, &actualScrollOffset.x, &actualScrollOffset.y);
+
+    
+    
+    
+    MaybeAlignAndClampDisplayPort(aMetrics, actualScrollOffset);
+    aMetrics.mScrollOffset = actualScrollOffset;
 
     
     

@@ -34,8 +34,12 @@ public:
 
     
 
+
+
+
+
     static void UpdateRootFrame(nsIDOMWindowUtils* aUtils,
-                                const FrameMetrics& aMetrics);
+                                FrameMetrics& aMetrics);
 
     
 
