@@ -1937,15 +1937,30 @@ DoBinaryArithFallback(JSContext *cx, ICBinaryArith_Fallback *stub, HandleValue l
     }
 
     
-    if ((op == JSOP_ADD) && lhs.isString() && rhs.isString()) {
-        IonSpew(IonSpew_BaselineIC, "  Generating %s(String, String) stub", js_CodeName[op]);
-        JS_ASSERT(ret.isString());
-        ICBinaryArith_StringConcat::Compiler compiler(cx);
-        ICStub *strcatStub = compiler.getStub(compiler.getStubSpace(script));
-        if (!strcatStub)
-            return false;
-        stub->addNewStub(strcatStub);
-        return true;
+    if (op == JSOP_ADD) {
+        if (lhs.isString() && rhs.isString()) {
+            IonSpew(IonSpew_BaselineIC, "  Generating %s(String, String) stub", js_CodeName[op]);
+            JS_ASSERT(ret.isString());
+            ICBinaryArith_StringConcat::Compiler compiler(cx);
+            ICStub *strcatStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!strcatStub)
+                return false;
+            stub->addNewStub(strcatStub);
+            return true;
+        }
+
+        if ((lhs.isString() && rhs.isObject()) || (lhs.isObject() && rhs.isString())) {
+            IonSpew(IonSpew_BaselineIC, "  Generating %s(%s, %s) stub", js_CodeName[op],
+                    lhs.isString() ? "String" : "Object",
+                    lhs.isString() ? "Object" : "String");
+            JS_ASSERT(ret.isString());
+            ICBinaryArith_StringObjectConcat::Compiler compiler(cx, lhs.isString());
+            ICStub *strcatStub = compiler.getStub(compiler.getStubSpace(script));
+            if (!strcatStub)
+                return false;
+            stub->addNewStub(strcatStub);
+            return true;
+        }
     }
 
     
@@ -2055,11 +2070,92 @@ ICBinaryArith_StringConcat::Compiler::generateStubCode(MacroAssembler &masm)
     
     EmitRestoreTailCallReg(masm);
 
-    
-    
     masm.pushValue(R1);
     masm.pushValue(R0);
     if (!tailCallVM(DoConcatStringsInfo, masm))
+        return false;
+
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
+    return true;
+}
+
+static RawString
+ConvertObjectToStringForConcat(JSContext *cx, HandleValue obj)
+{
+    JS_ASSERT(obj.isObject());
+    RootedValue rootedObj(cx, obj);
+    if (!ToPrimitive(cx, &rootedObj))
+        return false;
+    return ToString<CanGC>(cx, rootedObj);
+}
+
+static bool
+DoConcatStringObject(JSContext *cx, bool lhsIsString, HandleValue lhs, HandleValue rhs,
+                     MutableHandleValue res)
+{
+    RawString lstr = NULL;
+    RawString rstr = NULL;
+    if (lhsIsString) {
+        
+        JS_ASSERT(lhs.isString() && rhs.isObject());
+        rstr = ConvertObjectToStringForConcat(cx, rhs);
+        if (!rstr)
+            return false;
+
+        
+        lstr = lhs.toString();
+    } else {
+        JS_ASSERT(rhs.isString() && lhs.isObject());
+        
+        lstr = ConvertObjectToStringForConcat(cx, lhs);
+        if (!lstr)
+            return false;
+
+        
+        rstr = rhs.toString();
+    }
+
+    JSString *str = ConcatStrings<NoGC>(cx, lstr, rstr);
+    if (!str) {
+        RootedString nlstr(cx, lstr), nrstr(cx, rstr);
+        str = ConcatStrings<CanGC>(cx, nlstr, nrstr);
+        if (!str)
+            return false;
+    }
+
+    
+    
+
+    res.setString(str);
+    return true;
+}
+
+typedef bool (*DoConcatStringObjectFn)(JSContext *, bool lhsIsString, HandleValue, HandleValue,
+                                       MutableHandleValue);
+static const VMFunction DoConcatStringObjectInfo =
+        FunctionInfo<DoConcatStringObjectFn>(DoConcatStringObject);
+
+bool
+ICBinaryArith_StringObjectConcat::Compiler::generateStubCode(MacroAssembler &masm)
+{
+    Label failure;
+    if (lhsIsString_) {
+        masm.branchTestString(Assembler::NotEqual, R0, &failure);
+        masm.branchTestObject(Assembler::NotEqual, R1, &failure);
+    } else {
+        masm.branchTestObject(Assembler::NotEqual, R0, &failure);
+        masm.branchTestString(Assembler::NotEqual, R1, &failure);
+    }
+
+    
+    EmitRestoreTailCallReg(masm);
+
+    masm.pushValue(R1);
+    masm.pushValue(R0);
+    masm.push(Imm32(lhsIsString_));
+    if (!tailCallVM(DoConcatStringObjectInfo, masm))
         return false;
 
     
