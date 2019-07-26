@@ -439,7 +439,7 @@ nsGNOMEShellService::SetDesktopBackground(nsIDOMElement* aElement,
   
   filePath.Append('/');
   filePath.Append(NS_ConvertUTF16toUTF8(brandName));
-  filePath.Append("_wallpaper.png");
+  filePath.AppendLiteral("_wallpaper.png");
 
   
   rv = WriteImage(filePath, container);

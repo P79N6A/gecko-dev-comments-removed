@@ -85,7 +85,7 @@ nsEntityConverter::LoadEntityBundle(uint32_t version)
 
   
   LossyAppendUTF16toASCII(versionName, url);
-  url.Append(".properties");
+  url.AppendLiteral(".properties");
 
   nsCOMPtr<nsIStringBundle> bundle;
   rv = bundleService->CreateBundle(url.get(), getter_AddRefs(bundle));

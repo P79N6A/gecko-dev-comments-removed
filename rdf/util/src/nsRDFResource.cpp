@@ -155,7 +155,7 @@ nsRDFResource::GetDelegate(const char* aKey, REFNSIID aIID, void** aResult)
     
     nsAutoCString contractID(NS_RDF_DELEGATEFACTORY_CONTRACTID_PREFIX);
     contractID.Append(aKey);
-    contractID.Append("&scheme=");
+    contractID.AppendLiteral("&scheme=");
 
     int32_t i = mURI.FindChar(':');
     contractID += StringHead(mURI, i);

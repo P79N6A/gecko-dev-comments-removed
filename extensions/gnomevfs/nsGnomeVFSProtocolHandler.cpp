@@ -450,18 +450,18 @@ nsGnomeVFSInputStream::DoOpen()
       mDirListPtr = mDirList;
 
       
-      mDirBuf.Append("300: ");
+      mDirBuf.AppendLiteral("300: ");
       mDirBuf.Append(mSpec);
       if (mSpec.get()[mSpec.Length() - 1] != '/')
         mDirBuf.Append('/');
       mDirBuf.Append('\n');
 
       
-      mDirBuf.Append("200: filename content-length last-modified file-type\n");
+      mDirBuf.AppendLiteral("200: filename content-length last-modified file-type\n");
 
       
       
-      mDirBuf.Append("301: UTF-8\n");
+      mDirBuf.AppendLiteral("301: UTF-8\n");
 
       SetContentTypeOfChannel(APPLICATION_HTTP_INDEX_FORMAT);
     }
@@ -558,13 +558,13 @@ nsGnomeVFSInputStream::DoRead(char *aBuf, uint32_t aCount, uint32_t *aCountRead)
         switch (info->type)
         {
           case GNOME_VFS_FILE_TYPE_REGULAR:
-            mDirBuf.Append("FILE ");
+            mDirBuf.AppendLiteral("FILE ");
             break;
           case GNOME_VFS_FILE_TYPE_DIRECTORY:
-            mDirBuf.Append("DIRECTORY ");
+            mDirBuf.AppendLiteral("DIRECTORY ");
             break;
           case GNOME_VFS_FILE_TYPE_SYMBOLIC_LINK:
-            mDirBuf.Append("SYMBOLIC-LINK ");
+            mDirBuf.AppendLiteral("SYMBOLIC-LINK ");
             break;
           default:
             break;

@@ -83,13 +83,13 @@ X11Error(Display *display, XErrorEvent *event) {
   if (buffer[0]) {
     notes.Append(buffer);
   } else {
-    notes.Append("Request ");
+    notes.AppendLiteral("Request ");
     notes.AppendInt(event->request_code);
     notes.Append('.');
     notes.AppendInt(event->minor_code);
   }
 
-  notes.Append(": ");
+  notes.AppendLiteral(": ");
 
   
   XGetErrorText(display, event->error_code, buffer, sizeof(buffer));
@@ -109,11 +109,11 @@ X11Error(Display *display, XErrorEvent *event) {
     
     
     if (XSynchronize(display, True) == XSynchronize(display, False)) {
-      notes.Append("; sync");
+      notes.AppendLiteral("; sync");
     } else {
-      notes.Append("; ");
+      notes.AppendLiteral("; ");
       notes.AppendInt(uint32_t(age));
-      notes.Append(" requests ago");
+      notes.AppendLiteral(" requests ago");
     }
   }
 
@@ -132,14 +132,14 @@ X11Error(Display *display, XErrorEvent *event) {
 #ifdef DEBUG
   
   
-  notes.Append("; id=0x");
+  notes.AppendLiteral("; id=0x");
   notes.AppendInt(uint32_t(event->resourceid), 16);
 #ifdef MOZ_X11
   
   
   
   if (!PR_GetEnv("MOZ_X_SYNC")) {
-    notes.Append("\nRe-running with MOZ_X_SYNC=1 in the environment may give a more helpful backtrace.");
+    notes.AppendLiteral("\nRe-running with MOZ_X_SYNC=1 in the environment may give a more helpful backtrace.");
   }
 #endif
 #endif
