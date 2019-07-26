@@ -267,15 +267,6 @@ WebGLContext::Invalidate()
 }
 
 
-NS_IMETHODIMP
-WebGLContext::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
-{
-    NS_IF_ADDREF(*canvas = mCanvasElement);
-
-    return NS_OK;
-}
-
-
 
 
 
@@ -872,18 +863,6 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
     return canvasLayer.forget().get();
 }
 
-NS_IMETHODIMP
-WebGLContext::GetContextAttributes(jsval *aResult)
-{
-    ErrorResult rv;
-    JSObject* obj = GetContextAttributes(rv);
-    if (rv.Failed())
-        return rv.ErrorCode();
-
-    *aResult = JS::ObjectOrNullValue(obj);
-    return NS_OK;
-}
-
 JSObject*
 WebGLContext::GetContextAttributes(ErrorResult &rv)
 {
@@ -1001,14 +980,6 @@ bool WebGLContext::IsExtensionSupported(WebGLExtensionID ext)
     }
 
     return isSupported;
-}
-
-NS_IMETHODIMP
-WebGLContext::GetExtension(const nsAString& aName, nsIWebGLExtension **retval)
-{
-    *retval = GetExtension(aName);
-    NS_IF_ADDREF(*retval);
-    return NS_OK;
 }
 
 nsIWebGLExtension*
@@ -1195,8 +1166,7 @@ WebGLContext::EnsureBackbufferClearedAsNeeded()
 void
 WebGLContext::DummyFramebufferOperation(const char *info)
 {
-    WebGLenum status;
-    CheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER, &status);
+    WebGLenum status = CheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status == LOCAL_GL_FRAMEBUFFER_COMPLETE)
         return;
     else
@@ -1376,8 +1346,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WebGLContext)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-DOMCI_DATA(WebGLRenderingContext, WebGLContext)
-
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebGLContext)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
   NS_INTERFACE_MAP_ENTRY(nsIDOMWebGLRenderingContext)
@@ -1388,7 +1356,6 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(WebGLContext)
   
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports,
                                    nsICanvasRenderingContextInternal)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(WebGLRenderingContext)
 NS_INTERFACE_MAP_END
 
 NS_IMPL_ADDREF(WebGLBuffer)
@@ -1527,22 +1494,6 @@ DOMCI_DATA(WebGLExtension, WebGLExtension)
 
 
 NS_IMETHODIMP
-WebGLContext::GetDrawingBufferWidth(WebGLsizei *aWidth)
-{
-    *aWidth = DrawingBufferWidth();
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
-WebGLContext::GetDrawingBufferHeight(WebGLsizei *aHeight)
-{
-    *aHeight = DrawingBufferHeight();
-    return NS_OK;
-}
-
-
-NS_IMETHODIMP
 WebGLUniformLocation::GetLocation(WebGLint *aLocation)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
@@ -1602,44 +1553,6 @@ WebGLShaderPrecisionFormat::GetPrecision(WebGLint *aPrecision)
     return NS_OK;
 }
 
-NS_IMETHODIMP
-WebGLContext::GetSupportedExtensions(nsIVariant **retval)
-{
-    Nullable< nsTArray<nsString> > extensions;
-    GetSupportedExtensions(extensions);
-
-    if (extensions.IsNull()) {
-        *retval = nullptr;
-        return NS_OK;
-    }
-
-    nsCOMPtr<nsIWritableVariant> wrval = do_CreateInstance("@mozilla.org/variant;1");
-    NS_ENSURE_TRUE(wrval, NS_ERROR_FAILURE);
-
-    const nsTArray<nsString>& extList = extensions.Value();
-
-    nsresult rv;
-    if (extList.Length() > 0) {
-        
-        
-        
-        nsTArray<const PRUnichar*> exts(extList.Length());
-        for (uint32_t i = 0; i < extList.Length(); ++i) {
-            exts.AppendElement(extList[i].get());
-        }
-        rv = wrval->SetAsArray(nsIDataType::VTYPE_WCHAR_STR, nullptr,
-                               exts.Length(), exts.Elements());
-    } else {
-        rv = wrval->SetAsEmptyArray();
-    }
-    if (NS_FAILED(rv))
-        return rv;
-
-    *retval = wrval.forget().get();
-    return NS_OK;
-
-}
-
 void
 WebGLContext::GetSupportedExtensions(Nullable< nsTArray<nsString> > &retval)
 {
@@ -1667,11 +1580,4 @@ WebGLContext::GetSupportedExtensions(Nullable< nsTArray<nsString> > &retval)
         arr.AppendElement(NS_LITERAL_STRING("MOZ_WEBGL_compressed_texture_s3tc"));
     if (IsExtensionSupported(WEBGL_depth_texture))
         arr.AppendElement(NS_LITERAL_STRING("MOZ_WEBGL_depth_texture"));
-}
-
-NS_IMETHODIMP
-WebGLContext::IsContextLost(WebGLboolean *retval)
-{
-    *retval = mContextStatus != ContextStable;
-    return NS_OK;
 }
