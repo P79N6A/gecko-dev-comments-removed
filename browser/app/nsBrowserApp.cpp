@@ -115,19 +115,17 @@ static bool IsArg(const char* arg, const char* s)
 
 
 
-static void AttachToTestsConsole(DWORD aProcessId)
-{
-  if (!AttachConsole(aProcessId)) {
-    OutputDebugStringW(L"Could not attach to console.\n");
-    return;
-  }
 
-  HANDLE winOut = CreateFileA("CONOUT$",
-                              GENERIC_READ | GENERIC_WRITE,
+static void AttachToTestHarness()
+{
+  
+  HANDLE winOut = CreateFileA("\\\\.\\pipe\\metrotestharness",
+                              GENERIC_WRITE,
                               FILE_SHARE_WRITE, 0,
                               OPEN_EXISTING, 0, 0);
+  
   if (winOut == INVALID_HANDLE_VALUE) {
-    OutputDebugStringW(L"Could not attach to console.\n");
+    OutputDebugStringW(L"Could not create named logging pipe.\n");
     return;
   }
 
@@ -355,15 +353,6 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
         if (isspace(*ptr)) {
           *ptr = '\0';
           ptr++;
-          
-          
-          if (ptr && !strncmp(ptr, kMetroConsoleIdParam, strlen(kMetroConsoleIdParam))) {
-            DWORD processId = strtol(ptr + strlen(kMetroConsoleIdParam), nullptr, 10);
-            if (processId > 0) {
-              AttachToTestsConsole(processId);
-            }
-            continue;
-          }
           newArgv[newArgc] = ptr;
           newArgc++;
           continue;
@@ -372,6 +361,10 @@ static int do_main(int argc, char* argv[], nsIFile *xreDirectory)
       }
       if (ptr == newArgv[newArgc-1])
         newArgc--;
+
+      
+      AttachToTestHarness();
+
       int result = XRE_main(newArgc, newArgv, appData, mainFlags);
       XRE_FreeAppData(appData);
       return result;
