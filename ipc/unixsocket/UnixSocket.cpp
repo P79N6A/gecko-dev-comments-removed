@@ -49,7 +49,6 @@ public:
     , mIOLoop(nullptr)
     , mConnector(aConnector)
     , mShuttingDownOnIOThread(false)
-    , mTask(nullptr)
     , mAddress(aAddress)
   {
   }
@@ -98,37 +97,6 @@ public:
     mWriteWatcher.StopWatchingFileDescriptor();
 
     mShuttingDownOnIOThread = true;
-    if (mTask) {
-      mTask->Cancel();
-      mTask = nullptr;
-    }
-  }
-
-  
-  
-  void EnqueueTask(int aDelayMs, CancelableTask* aTask)
-  {
-    MOZ_ASSERT(!NS_IsMainThread());
-
-    nsAutoPtr<CancelableTask> task(aTask);
-    MessageLoopForIO* ioLoop = MessageLoopForIO::current();
-    if (!ioLoop) {
-      NS_WARNING("No IOLoop to attach to, cancelling self!");
-      return;
-    }
-    if (mTask) {
-      return;
-    }
-    if (mShuttingDownOnIOThread) {
-      return;
-    }
-
-    mTask = task.forget();
-    if (aDelayMs) {
-      ioLoop->PostDelayedTask(FROM_HERE, mTask, aDelayMs);
-    } else {
-      ioLoop->PostTask(FROM_HERE, mTask);
-    }
   }
 
   void SetUpIO()
@@ -236,12 +204,6 @@ private:
 
 
   bool mShuttingDownOnIOThread;
-
-  
-
-
-
-  CancelableTask* mTask;
 
   
 
@@ -471,7 +433,6 @@ void
 UnixSocketImpl::Accept()
 {
   MOZ_ASSERT(!NS_IsMainThread());
-  mTask = nullptr;
 
   if (!mConnector) {
     NS_WARNING("No connector object available!");
