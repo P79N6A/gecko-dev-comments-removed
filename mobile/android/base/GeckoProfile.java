@@ -66,13 +66,15 @@ public final class GeckoProfile {
             if (((GeckoApp)context).mProfile != null) {
                 return ((GeckoApp)context).mProfile;
             }
+        }
 
-            GeckoProfile guest = GeckoProfile.getGuestProfile(context);
-            
-            if (guest != null && guest.locked()) {
-                return guest;
-            }
+        
+        GeckoProfile guest = GeckoProfile.getGuestProfile(context);
+        if (guest != null && guest.locked()) {
+            return guest;
+        }
 
+        if (context instanceof GeckoApp) {
             
             return get(context, ((GeckoApp)context).getDefaultProfileName());
         }
