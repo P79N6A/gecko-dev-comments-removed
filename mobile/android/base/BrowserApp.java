@@ -491,6 +491,8 @@ abstract public class BrowserApp extends GeckoApp
         mBrowserToolbar.setOnStopEditingListener(new BrowserToolbar.OnStopEditingListener() {
             public void onStopEditing() {
                 selectTargetTabForEditingMode();
+                hideHomePager();
+                hideBrowserSearch();
 
                 
                 mDoorHangerPopup.enable();
@@ -1313,16 +1315,10 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         
-        if (tabs.isSelectedTabId(tabId)) {
-            hideHomePager();
-        } else {
-            
-            
-            mTargetTabForEditingMode = null;
-            Tabs.getInstance().selectTab(tabId);
-        }
+        
+        mTargetTabForEditingMode = null;
+        Tabs.getInstance().selectTab(tabId);
 
-        hideBrowserSearch();
         mBrowserToolbar.cancelEdit();
 
         return true;
@@ -1350,7 +1346,6 @@ abstract public class BrowserApp extends GeckoApp
 
         Tabs.getInstance().loadUrl(url, searchEngine, -1, flags);
 
-        hideBrowserSearch();
         mBrowserToolbar.cancelEdit();
     }
 
@@ -1451,8 +1446,6 @@ abstract public class BrowserApp extends GeckoApp
         }
 
         final String url = mBrowserToolbar.commitEdit();
-        hideHomePager();
-        hideBrowserSearch();
 
         
         if (TextUtils.isEmpty(url)) {
@@ -1526,13 +1519,13 @@ abstract public class BrowserApp extends GeckoApp
             return false;
         }
 
-        mBrowserToolbar.cancelEdit();
-
+        
+        
         
         
         mHomePager.setVisibility(View.VISIBLE);
-        hideHomePager();
-        hideBrowserSearch();
+
+        mBrowserToolbar.cancelEdit();
 
         return true;
     }
