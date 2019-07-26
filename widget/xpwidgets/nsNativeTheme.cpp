@@ -664,11 +664,15 @@ nsNativeTheme::IsRangeHorizontal(nsIFrame* aFrame)
 {
   nsIFrame* rangeFrame = aFrame;
   if (rangeFrame->GetType() != nsGkAtoms::rangeFrame) {
+    
     rangeFrame = aFrame->GetParent();
   }
-  MOZ_ASSERT(rangeFrame->GetType() == nsGkAtoms::rangeFrame);
-
-  return static_cast<nsRangeFrame*>(rangeFrame)->IsHorizontal();
+  if (rangeFrame->GetType() == nsGkAtoms::rangeFrame) {
+    return static_cast<nsRangeFrame*>(rangeFrame)->IsHorizontal();
+  }
+  
+  
+  return aFrame->GetSize().width >= aFrame->GetSize().height;
 }
 
 static nsIFrame*
