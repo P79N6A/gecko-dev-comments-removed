@@ -2373,7 +2373,7 @@ CSPErrorQueue::Flush(nsIDocument* aDocument)
   for (uint32_t i = 0; i < mErrors.Length(); i++) {
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
         "CSP", aDocument,
-        nsContentUtils::eDOM_PROPERTIES,
+        nsContentUtils::eSECURITY_PROPERTIES,
         mErrors[i]);
   }
   mErrors.Clear();
@@ -2530,22 +2530,11 @@ nsDocument::InitCSP(nsIChannel* aChannel)
 
   
   if (!cspOldHeaderValue.IsEmpty() || !cspOldROHeaderValue.IsEmpty()) {
-    nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                    "CSP", this,
-                                    nsContentUtils::eDOM_PROPERTIES,
-                                    "OldCSPHeaderDeprecated");
-
-    
     mCSPWebConsoleErrorQueue.Add("OldCSPHeaderDeprecated");
 
     
     
     if (cspSpecCompliant) {
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "CSP", this,
-                                      nsContentUtils::eDOM_PROPERTIES,
-                                      "BothCSPHeadersPresent");
-      
       mCSPWebConsoleErrorQueue.Add("BothCSPHeadersPresent");
     }
   }
@@ -2582,11 +2571,6 @@ nsDocument::InitCSP(nsIChannel* aChannel)
     
     
     if (applyAppDefaultCSP || applyCSPFromHeader) {
-      nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
-                                      "CSP", this,
-                                      nsContentUtils::eDOM_PROPERTIES,
-                                      "ReportOnlyCSPIgnored");
-      
       mCSPWebConsoleErrorQueue.Add("ReportOnlyCSPIgnored");
 #ifdef PR_LOGGING
       PR_LOG(gCspPRLog, PR_LOG_DEBUG,
