@@ -33,7 +33,7 @@ class nsSMILTimeValueSpec;
 
 
 
-class nsSMILInstanceTime
+class nsSMILInstanceTime MOZ_FINAL
 {
 public:
   
@@ -54,7 +54,7 @@ public:
                      nsSMILInstanceTimeSource aSource = SOURCE_NONE,
                      nsSMILTimeValueSpec* aCreator = nullptr,
                      nsSMILInterval* aBaseInterval = nullptr);
-  ~nsSMILInstanceTime();
+
   void Unlink();
   void HandleChangedInterval(const nsSMILTimeContainer* aSrcContainer,
                              bool aBeginObjectChanged,
@@ -99,7 +99,10 @@ public:
 
   NS_INLINE_DECL_REFCOUNTING(nsSMILInstanceTime)
 
-protected:
+private:
+  
+  ~nsSMILInstanceTime();
+
   void SetBaseInterval(nsSMILInterval* aBaseInterval);
 
   nsSMILTimeValue mTime;

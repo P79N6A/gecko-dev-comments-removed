@@ -42,11 +42,6 @@ public:
                   nsINode* aNode,
                   WidgetGUIEvent* aEvent);
 
-  ~TextComposition()
-  {
-    
-  }
-
   bool Destroyed() const { return !mPresContext; }
   nsPresContext* GetPresContext() const { return mPresContext; }
   nsINode* GetEventTargetNode() const { return mNode; }
@@ -144,6 +139,12 @@ public:
   };
 
 private:
+  
+  ~TextComposition()
+  {
+    
+  }
+
   
   
   

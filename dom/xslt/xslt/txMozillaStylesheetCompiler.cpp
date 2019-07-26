@@ -381,9 +381,13 @@ private:
     nsCOMPtr<nsILoadGroup> mLoadGroup;
     nsCOMPtr<nsIPrincipal> mCallerPrincipal;
 
-protected:
     
     txCompileObserver();
+
+    
+    ~txCompileObserver()
+    {
+    }
 };
 
 txCompileObserver::txCompileObserver(txMozillaXSLTProcessor* aProcessor,
@@ -605,7 +609,12 @@ public:
     TX_DECL_ACOMPILEOBSERVER
     NS_INLINE_DECL_REFCOUNTING(txSyncCompileObserver)
 
-protected:
+private:
+    
+    ~txSyncCompileObserver()
+    {
+    }
+
     nsRefPtr<txMozillaXSLTProcessor> mProcessor;
 };
 

@@ -234,10 +234,12 @@ class DOMStorageUsageBridge
 public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(DOMStorageUsageBridge)
 
-  virtual ~DOMStorageUsageBridge() {}
-
   virtual const nsCString& Scope() = 0;
   virtual void LoadUsage(const int64_t aUsage) = 0;
+
+protected:
+  
+  virtual ~DOMStorageUsageBridge() {}
 };
 
 class DOMStorageUsage : public DOMStorageUsageBridge

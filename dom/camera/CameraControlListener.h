@@ -22,11 +22,14 @@ public:
     MOZ_COUNT_CTOR(CameraControlListener);
   }
 
+protected:
+  
   virtual ~CameraControlListener()
   {
     MOZ_COUNT_DTOR(CameraControlListener);
   }
 
+public:
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CameraControlListener);
 
   enum HardwareState

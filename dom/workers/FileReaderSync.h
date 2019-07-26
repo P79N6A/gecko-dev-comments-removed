@@ -27,6 +27,12 @@ class FileReaderSync MOZ_FINAL
 {
   NS_INLINE_DECL_REFCOUNTING(FileReaderSync)
 
+private:
+  
+  ~FileReaderSync()
+  {
+  }
+
   nsresult ConvertStream(nsIInputStream *aStream, const char *aCharset,
                          nsAString &aResult);
 

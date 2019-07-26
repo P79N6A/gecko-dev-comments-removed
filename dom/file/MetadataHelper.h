@@ -21,7 +21,7 @@ BEGIN_FILE_NAMESPACE
 
 class MetadataHelper;
 
-class MetadataParameters
+class MetadataParameters MOZ_FINAL
 {
   friend class MetadataHelper;
 
@@ -65,6 +65,11 @@ public:
   }
 
 private:
+  
+  ~MetadataParameters()
+  {
+  }
+
   uint64_t mSize;
   int64_t mLastModified;
   bool mSizeRequested;
