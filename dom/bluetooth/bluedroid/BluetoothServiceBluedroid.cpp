@@ -47,8 +47,6 @@ using namespace mozilla::ipc;
 USING_BLUETOOTH_NAMESPACE
 
 
-
-
 static bluetooth_device_t* sBtDevice;
 static const bt_interface_t* sBtInterface;
 static bool sAdapterDiscoverable = false;
@@ -60,9 +58,13 @@ static InfallibleTArray<BluetoothNamedValue> sRemoteDevicesPack;
 static nsTArray<nsRefPtr<BluetoothProfileController> > sControllerArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sBondingRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sGetDeviceRunnableArray;
-static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
 static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sUnbondingRunnableArray;
 static nsTArray<int> sRequestedDeviceCountArray;
+
+
+static nsTArray<nsRefPtr<BluetoothReplyRunnable> > sSetPropertyRunnableArray;
+
+
 
 
 
@@ -305,6 +307,24 @@ AdapterStateChangeCallback(bt_state_t aStatus)
   }
 }
 
+class AdapterPropertiesCallbackTask MOZ_FINAL : public nsRunnable
+{
+public:
+  NS_IMETHOD
+  Run()
+  {
+    MOZ_ASSERT(NS_IsMainThread());
+
+    if (!sSetPropertyRunnableArray.IsEmpty()) {
+      DispatchBluetoothReply(sSetPropertyRunnableArray[0],
+                             BluetoothValue(true), EmptyString());
+      sSetPropertyRunnableArray.RemoveElementAt(0);
+    }
+
+    return NS_OK;
+  }
+};
+
 
 
 
@@ -385,11 +405,7 @@ AdapterPropertiesCallback(bt_status_t aStatus, int aNumProperties,
   }
 
   
-  if (!sSetPropertyRunnableArray.IsEmpty()) {
-    DispatchBluetoothReply(sSetPropertyRunnableArray[0], BluetoothValue(true),
-                           EmptyString());
-    sSetPropertyRunnableArray.RemoveElementAt(0);
-  }
+  NS_DispatchToMainThread(new AdapterPropertiesCallbackTask());
 }
 
 
