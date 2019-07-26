@@ -1758,6 +1758,24 @@ let CustomizableUIInternal = {
     }
   },
 
+  _dispatchToolboxEventToWindow: function(aEventType, aDetails, aWindow) {
+    let evt = new aWindow.CustomEvent(aEventType, {
+      bubbles: true,
+      cancelable: true,
+      detail: aDetails
+    });
+    aWindow.gNavToolbox.dispatchEvent(evt);
+  },
+
+  dispatchToolboxEvent: function(aEventType, aDetails={}, aWindow=null) {
+    if (aWindow) {
+      return this._dispatchToolboxEventToWindow(aEventType, aDetails, aWindow);
+    }
+    for (let [win, ] of gBuildWindows) {
+      this._dispatchToolboxEventToWindow(aEventType, aDetails, win);
+    }
+  },
+
   createWidget: function(aProperties) {
     let widget = this.normalizeWidget(aProperties, CustomizableUI.SOURCE_EXTERNAL);
     
@@ -3080,6 +3098,19 @@ this.CustomizableUI = {
   notifyEndCustomizing: function(aWindow) {
     CustomizableUIInternal.notifyListeners("onCustomizeEnd", aWindow);
   },
+
+  
+
+
+
+
+
+
+
+  dispatchToolboxEvent: function(aEvent, aDetails={}, aWindow=null) {
+    CustomizableUIInternal.dispatchToolboxEvent(aEvent, aDetails, aWindow);
+  },
+
   
 
 
