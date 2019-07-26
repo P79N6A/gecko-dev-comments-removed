@@ -5,6 +5,7 @@
 
 package org.mozilla.gecko;
 
+import org.mozilla.gecko.background.announcements.AnnouncementsBroadcastService;
 import org.mozilla.gecko.db.BrowserDB;
 import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.gfx.Layer;
@@ -1787,8 +1788,13 @@ abstract public class GeckoApp
 
                 
                 
+                final Context context = GeckoApp.mAppContext;
+                AnnouncementsBroadcastService.recordLastLaunch(context);
+
                 
-                GeckoPreferences.broadcastAnnouncementsPref(GeckoApp.mAppContext);
+                
+                
+                GeckoPreferences.broadcastAnnouncementsPref(context);
 
                 
 
