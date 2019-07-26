@@ -191,9 +191,6 @@ private:
     
     nsresult AddTransaction(nsAHttpTransaction *, int32_t);
 
-    
-    void ReportDataUsage(bool);
-
 private:
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
     nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
@@ -226,10 +223,6 @@ private:
     int64_t                         mMaxBytesRead;       
     int64_t                         mTotalBytesRead;     
     int64_t                         mTotalBytesWritten;  
-
-    
-    uint64_t                        mUnreportedBytesRead;     
-    uint64_t                        mUnreportedBytesWritten;  
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
