@@ -120,8 +120,7 @@ protected:
   virtual int GetSkipSides() const;
 
   
-  
-  
+  void HideViewer();
   void ShowViewer();
 
   

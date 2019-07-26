@@ -77,7 +77,7 @@
 #include "nsIBidiKeyboard.h"
 #endif 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla;

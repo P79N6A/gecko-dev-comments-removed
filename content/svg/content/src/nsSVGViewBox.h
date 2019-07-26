@@ -1,14 +1,13 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #ifndef __NS_SVGVIEWBOX_H__
 #define __NS_SVGVIEWBOX_H__
 
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "nsDOMError.h"
 #include "nsError.h"
 #include "nsIDOMSVGAnimatedRect.h"
 #include "nsIDOMSVGRect.h"
@@ -39,16 +38,16 @@ public:
 
   void Init();
 
-  /**
-   * Returns true if the corresponding "viewBox" attribute defined a rectangle
-   * with finite values. Returns false if the viewBox was set to an invalid
-   * string, or if any of the four rect values were too big to store in a
-   * float.
-   *
-   * This method does not check whether the width or height values are
-   * positive, so callers must check whether the viewBox rect is valid where
-   * necessary!
-   */
+  
+
+
+
+
+
+
+
+
+
   bool IsExplicitlySet() const
     { return (mHasBaseVal || mAnimVal); }
 
@@ -70,7 +69,7 @@ public:
 
   nsresult ToDOMAnimatedRect(nsIDOMSVGAnimatedRect **aResult,
                              nsSVGElement *aSVGElement);
-  // Returns a new nsISMILAttr object that the caller must delete
+  
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
   
 private:
@@ -87,7 +86,7 @@ private:
     DOMBaseVal(nsSVGViewBox *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGViewBox* mVal; // kept alive because it belongs to content
+    nsSVGViewBox* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetX(float *aX)
@@ -113,11 +112,11 @@ private:
     DOMAnimVal(nsSVGViewBox *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGViewBox* mVal; // kept alive because it belongs to content
+    nsSVGViewBox* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
-    // Script may have modified animation parameters or timeline -- DOM getters
-    // need to flush any resample requests to reflect these modifications.
+    
+    
     NS_IMETHOD GetX(float *aX)
     {
       mSVGElement->FlushAnimations();
@@ -162,7 +161,7 @@ public:
     DOMAnimatedRect(nsSVGViewBox *aVal, nsSVGElement *aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    nsSVGViewBox* mVal; // kept alive because it belongs to content
+    nsSVGViewBox* mVal; 
     nsRefPtr<nsSVGElement> mSVGElement;
 
     NS_IMETHOD GetBaseVal(nsIDOMSVGRect **aResult);
@@ -175,13 +174,13 @@ public:
     SMILViewBox(nsSVGViewBox* aVal, nsSVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-    // These will stay alive because a nsISMILAttr only lives as long
-    // as the Compositing step, and DOM elements don't get a chance to
-    // die during that.
+    
+    
+    
     nsSVGViewBox* mVal;
     nsSVGElement* mSVGElement;
 
-    // nsISMILAttr methods
+    
     virtual nsresult ValueFromString(const nsAString& aStr,
                                      const nsISMILAnimationElement* aSrcElement,
                                      nsSMILValue& aValue,
@@ -192,4 +191,4 @@ public:
   };
 };
 
-#endif // __NS_SVGVIEWBOX_H__
+#endif 

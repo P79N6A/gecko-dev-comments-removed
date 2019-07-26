@@ -4,7 +4,7 @@
 
 
 #include "txInstructions.h"
-#include "txError.h"
+#include "nsError.h"
 #include "txExpr.h"
 #include "txStylesheet.h"
 #include "txNodeSetContext.h"

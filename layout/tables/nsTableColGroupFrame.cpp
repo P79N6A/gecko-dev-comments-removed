@@ -155,6 +155,8 @@ nsTableColGroupFrame::SetInitialChildList(ChildListID     aListID,
  void
 nsTableColGroupFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  nsContainerFrame::DidSetStyleContext(aOldStyleContext);
+
   if (!aOldStyleContext) 
     return;
      

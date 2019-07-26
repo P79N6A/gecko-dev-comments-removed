@@ -3,7 +3,7 @@
 
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsSVGBoolean.h"
 #include "nsSMILValue.h"
 #include "SMILBoolType.h"

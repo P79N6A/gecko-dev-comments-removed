@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -17,7 +17,7 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsDOMLists.h"
 #include "nsGUIEvent.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIDragService.h"
 #include "nsIScriptableRegion.h"
 #include "nsContentUtils.h"
@@ -56,7 +56,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMDataTransfer)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(DataTransfer)
 NS_INTERFACE_MAP_END
 
-// the size of the array
+
 const char nsDOMDataTransfer::sEffects[8][9] = {
   "none", "copy", "move", "copyMove", "link", "copyLink", "linkMove", "all"
 };
@@ -113,11 +113,11 @@ nsDOMDataTransfer::nsDOMDataTransfer(PRUint32 aEventType,
     mDragImageX(aDragImageX),
     mDragImageY(aDragImageY)
 {
-  // The items are copied from aItems into mItems. There is no need to copy
-  // the actual data in the items as the data transfer will be read only. The
-  // draggesture and dragstart events are the only times when items are
-  // modifiable, but those events should have been using the first constructor
-  // above.
+  
+  
+  
+  
+  
   NS_ASSERTION(aEventType != NS_DRAGDROP_GESTURE &&
                aEventType != NS_DRAGDROP_START,
                "invalid event type for nsDOMDataTransfer constructor");
@@ -133,10 +133,10 @@ nsDOMDataTransfer::GetDropEffect(nsAString& aDropEffect)
 NS_IMETHODIMP
 nsDOMDataTransfer::SetDropEffect(const nsAString& aDropEffect)
 {
-  // the drop effect can only be 'none', 'copy', 'move' or 'link'.
+  
   for (PRUint32 e = 0; e <= nsIDragService::DRAGDROP_ACTION_LINK; e++) {
     if (aDropEffect.EqualsASCII(sEffects[e])) {
-      // don't allow copyMove
+      
       if (e != (nsIDragService::DRAGDROP_ACTION_COPY |
                 nsIDragService::DRAGDROP_ACTION_MOVE))
         mDropEffect = e;
@@ -289,7 +289,7 @@ nsDOMDataTransfer::GetTypes(nsIDOMDOMStringList** aTypes)
 NS_IMETHODIMP
 nsDOMDataTransfer::GetData(const nsAString& aFormat, nsAString& aData)
 {
-  // return an empty string if data for the format was not found
+  
   aData.Truncate();
 
   nsCOMPtr<nsIVariant> data;
@@ -303,8 +303,8 @@ nsDOMDataTransfer::GetData(const nsAString& aFormat, nsAString& aData)
     nsAutoString stringdata;
     data->GetAsAString(stringdata);
 
-    // for the URL type, parse out the first URI from the list. The URIs are
-    // separated by newlines
+    
+    
     nsAutoString lowercaseFormat;
     rv = nsContentUtils::ASCIIToLower(aFormat, lowercaseFormat);
     if (NS_FAILED(rv)) {
@@ -316,7 +316,7 @@ nsDOMDataTransfer::GetData(const nsAString& aFormat, nsAString& aData)
       PRInt32 length = stringdata.Length();
       while (lastidx < length) {
         idx = stringdata.FindChar('\n', lastidx);
-        // lines beginning with # are comments
+        
         if (stringdata[lastidx] == '#') {
           if (idx == -1)
             break;
@@ -379,7 +379,7 @@ nsDOMDataTransfer::GetMozCursor(nsAString& aCursorState)
 NS_IMETHODIMP
 nsDOMDataTransfer::SetMozCursor(const nsAString& aCursorState)
 {
-  // Lock the cursor to an arrow during the drag.
+  
   mCursorState = aCursorState.EqualsLiteral("default");
 
   return NS_OK;
@@ -412,7 +412,7 @@ nsDOMDataTransfer::MozTypesAt(PRUint32 aIndex, nsIDOMDOMStringList** aTypes)
   NS_ENSURE_TRUE(types, NS_ERROR_OUT_OF_MEMORY);
 
   if (aIndex < mItems.Length()) {
-    // note that you can retrieve the types regardless of their principal
+    
     nsTArray<TransferItem>& item = mItems[aIndex];
     for (PRUint32 i = 0; i < item.Length(); i++)
       types->Add(item[i].mFormat);
@@ -442,12 +442,12 @@ nsDOMDataTransfer::MozGetDataAt(const nsAString& aFormat,
 
   nsTArray<TransferItem>& item = mItems[aIndex];
 
-  // Check if the caller is allowed to access the drag data. Callers with
-  // UniversalXPConnect privileges can always read the data. During the
-  // drop event, allow retrieving the data except in the case where the
-  // source of the drag is in a child frame of the caller. In that case,
-  // we only allow access to data of the same principal. During other events,
-  // only allow access to the data with the same principal.
+  
+  
+  
+  
+  
+  
   nsIPrincipal* principal = nullptr;
   if (mIsCrossDomainSubFrameDrop ||
       (mEventType != NS_DRAGDROP_DROP && mEventType != NS_DRAGDROP_DRAGDROP &&
@@ -471,7 +471,7 @@ nsDOMDataTransfer::MozGetDataAt(const nsAString& aFormat,
       } else {
         nsCOMPtr<nsISupports> data;
         formatitem.mData->GetAsISupports(getter_AddRefs(data));
-        // Make sure the code that is calling us is same-origin with the data.
+        
         nsCOMPtr<nsIDOMEventTarget> pt = do_QueryInterface(data);
         if (pt) {
           nsresult rv = NS_OK;
@@ -511,13 +511,13 @@ nsDOMDataTransfer::MozSetDataAt(const nsAString& aFormat,
   if (mReadOnly)
     return NS_ERROR_DOM_NO_MODIFICATION_ALLOWED_ERR;
 
-  // Specifying an index less than the current length will replace an existing
-  // item. Specifying an index equal to the current length will add a new item.
+  
+  
   if (aIndex > mItems.Length())
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
 
-  // don't allow non-chrome to add file data
-  // XXX perhaps this should also limit any non-string type as well
+  
+  
   if ((aFormat.EqualsLiteral("application/x-moz-file-promise") ||
        aFormat.EqualsLiteral("application/x-moz-file")) &&
        !nsContentUtils::CallerHasUniversalXPConnect()) {
@@ -546,16 +546,16 @@ nsDOMDataTransfer::MozClearDataAt(const nsAString& aFormat, PRUint32 aIndex)
   nsIPrincipal* principal = GetCurrentPrincipal(&rv);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  // if the format is empty, clear all formats
+  
   bool clearall = format.IsEmpty();
 
   nsTArray<TransferItem>& item = mItems[aIndex];
-  // count backwards so that the count and index don't have to be adjusted
-  // after removing an element
+  
+  
   for (PRInt32 i = item.Length() - 1; i >= 0; i--) {
     TransferItem& formatitem = item[i];
     if (clearall || formatitem.mFormat.Equals(format)) {
-      // don't allow removing data that has a stronger principal
+      
       bool subsumes;
       if (formatitem.mPrincipal && principal &&
           (NS_FAILED(principal->Subsumes(formatitem.mPrincipal, &subsumes)) || !subsumes))
@@ -563,14 +563,14 @@ nsDOMDataTransfer::MozClearDataAt(const nsAString& aFormat, PRUint32 aIndex)
 
       item.RemoveElementAt(i);
 
-      // if a format was specified, break out. Otherwise, loop around until
-      // all formats have been removed
+      
+      
       if (!clearall)
         break;
     }
   }
 
-  // if the last format for an item is removed, remove the entire item
+  
   if (!item.Length())
      mItems.RemoveElementAt(aIndex);
 
@@ -665,7 +665,7 @@ nsDOMDataTransfer::GetTransferables(nsISupportsArray** aArray,
 
     for (PRUint32 f = 0; f < count; f++) {
       TransferItem& formatitem = item[f];
-      if (!formatitem.mData) // skip empty items
+      if (!formatitem.mData) 
         continue;
 
       PRUint32 length;
@@ -673,7 +673,7 @@ nsDOMDataTransfer::GetTransferables(nsISupportsArray** aArray,
       if (!ConvertFromVariant(formatitem.mData, getter_AddRefs(convertedData), &length))
         continue;
 
-      // the underlying drag code uses text/unicode, so use that instead of text/plain
+      
       const char* format;
       NS_ConvertUTF16toUTF8 utf8format(formatitem.mFormat);
       if (utf8format.EqualsLiteral("text/plain"))
@@ -681,8 +681,8 @@ nsDOMDataTransfer::GetTransferables(nsISupportsArray** aArray,
       else
         format = utf8format.get();
 
-      // if a converter is set for a format, set the converter for the
-      // transferable and don't add the item
+      
+      
       nsCOMPtr<nsIFormatConverter> converter = do_QueryInterface(convertedData);
       if (converter) {
         transferable->AddDataFlavor(format);
@@ -697,7 +697,7 @@ nsDOMDataTransfer::GetTransferables(nsISupportsArray** aArray,
       added = true;
     }
 
-    // only append the transferable if data was successfully added to it
+    
     if (added)
       transArray->AppendElement(transferable);
   }
@@ -723,13 +723,13 @@ nsDOMDataTransfer::ConvertFromVariant(nsIVariant* aVariant,
  
     nsCOMPtr<nsIFlavorDataProvider> fdp = do_QueryInterface(data);
     if (fdp) {
-      // for flavour data providers, use kFlavorHasDataProvider (which has the
-      // value 0) as the length.
+      
+      
       NS_ADDREF(*aSupports = fdp);
       *aLength = nsITransferable::kFlavorHasDataProvider;
     }
     else {
-      // wrap the item in an nsISupportsInterfacePointer
+      
       nsCOMPtr<nsISupportsInterfacePointer> ptrSupports =
         do_CreateInstance(NS_SUPPORTS_INTERFACE_POINTER_CONTRACTID);
       if (!ptrSupports)
@@ -763,7 +763,7 @@ nsDOMDataTransfer::ConvertFromVariant(nsIVariant* aVariant,
   *aSupports = strSupports;
   NS_ADDREF(*aSupports);
 
-  // each character is two bytes
+  
   *aLength = str.Length() << 1;
 
   return true;
@@ -784,8 +784,8 @@ nsDOMDataTransfer::SetDataWithPrincipal(const nsAString& aFormat,
   nsAutoString format;
   GetRealFormat(aFormat, format);
 
-  // check if the item for the format already exists. In that case,
-  // just replace it.
+  
+  
   TransferItem* formatitem;
   if (aIndex < mItems.Length()) {
     nsTArray<TransferItem>& item = mItems[aIndex];
@@ -793,7 +793,7 @@ nsDOMDataTransfer::SetDataWithPrincipal(const nsAString& aFormat,
     for (PRUint32 i = 0; i < count; i++) {
       TransferItem& itemformat = item[i];
       if (itemformat.mFormat.Equals(format)) {
-        // don't allow replacing data that has a stronger principal
+        
         bool subsumes;
         if (itemformat.mPrincipal && aPrincipal &&
             (NS_FAILED(aPrincipal->Subsumes(itemformat.mPrincipal, &subsumes)) || !subsumes))
@@ -805,13 +805,13 @@ nsDOMDataTransfer::SetDataWithPrincipal(const nsAString& aFormat,
       }
     }
 
-    // add a new format
+    
     formatitem = item.AppendElement();
   }
   else {
     NS_ASSERTION(aIndex == mItems.Length(), "Index out of range");
 
-    // add a new index
+    
     nsTArray<TransferItem>* item = mItems.AppendElement();
     NS_ENSURE_TRUE(item, NS_ERROR_OUT_OF_MEMORY);
 
@@ -845,7 +845,7 @@ nsDOMDataTransfer::GetCurrentPrincipal(nsresult* rv)
 void
 nsDOMDataTransfer::GetRealFormat(const nsAString& aInFormat, nsAString& aOutFormat)
 {
-  // treat text/unicode as equivalent to text/plain
+  
   nsAutoString lowercaseFormat;
   nsContentUtils::ASCIIToLower(aInFormat, lowercaseFormat);
   if (lowercaseFormat.EqualsLiteral("text") || lowercaseFormat.EqualsLiteral("text/unicode"))
@@ -859,38 +859,38 @@ nsDOMDataTransfer::GetRealFormat(const nsAString& aInFormat, nsAString& aOutForm
 void
 nsDOMDataTransfer::CacheExternalFormats()
 {
-  // Called during the constructor to cache the formats available from an
-  // external drag. The data associated with each format will be set to null.
-  // This data will instead only be retrieved in FillInExternalDragData when
-  // asked for, as it may be time consuming for the source application to
-  // generate it.
+  
+  
+  
+  
+  
 
   nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
   if (!dragSession)
     return;
 
-  // make sure that the system principal is used for external drags
+  
   nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
   nsCOMPtr<nsIPrincipal> sysPrincipal;
   ssm->GetSystemPrincipal(getter_AddRefs(sysPrincipal));
 
-  // there isn't a way to get a list of the formats that might be available on
-  // all platforms, so just check for the types that can actually be imported
-  // XXXndeakin there are some other formats but those are platform specific.
+  
+  
+  
   const char* formats[] = { kFileMime, kHTMLMime, kURLMime, kURLDataMime, kUnicodeMime };
 
   PRUint32 count;
   dragSession->GetNumDropItems(&count);
   for (PRUint32 c = 0; c < count; c++) {
     for (PRUint32 f = 0; f < ArrayLength(formats); f++) {
-      // IsDataFlavorSupported doesn't take an index as an argument and just
-      // checks if any of the items support a particular flavor, even though
-      // the GetData method does take an index. Here, we just assume that
-      // every item being dragged has the same set of flavors.
+      
+      
+      
+      
       bool supported;
       dragSession->IsDataFlavorSupported(formats[f], &supported);
-      // if the format is supported, add an item to the array with null as
-      // the data. When retrieved, GetRealData will read the data.
+      
+      
       if (supported) {
         if (strcmp(formats[f], kUnicodeMime) == 0) {
           SetDataWithPrincipal(NS_LITERAL_STRING("text/plain"), nullptr, c, sysPrincipal);

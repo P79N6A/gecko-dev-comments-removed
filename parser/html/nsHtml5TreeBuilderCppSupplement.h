@@ -4,7 +4,7 @@
 
 
 
-#include "nsContentErrors.h"
+#include "nsError.h"
 #include "nsIPresShell.h"
 #include "nsEvent.h"
 #include "nsGUIEvent.h"

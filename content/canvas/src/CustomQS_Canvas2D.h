@@ -3,7 +3,7 @@
 
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIDOMCanvasRenderingContext2D.h"
 #include "mozilla/CheckedInt.h"
 #include "nsMathUtils.h"

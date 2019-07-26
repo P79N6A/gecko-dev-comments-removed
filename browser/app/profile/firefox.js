@@ -1,4 +1,4 @@
-# -*- Mode: Java; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+# -*- Mode: JavaScript; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 2 -*-
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
@@ -729,18 +729,15 @@ pref("urlclassifier.alternate_error_page", "blocked");
 pref("urlclassifier.gethashnoise", 4);
 
 
+pref("urlclassifier.randomizeclient", true);
+
+
 pref("urlclassifier.gethashtables", "goog-phish-shavar,goog-malware-shavar");
 
 
 
 
 pref("urlclassifier.confirm-age", 2700);
-
-
-pref("urlclassifier.updatecachemax", 41943040);
-
-
-pref("urlclassifier.lookupcachemax", 1048576);
 #endif
 
 pref("browser.geolocation.warning.infoURL", "http://www.mozilla.com/%LOCALE%/firefox/geolocation/");

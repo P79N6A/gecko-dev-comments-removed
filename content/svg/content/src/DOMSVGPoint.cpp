@@ -9,7 +9,7 @@
 #include "SVGAnimatedPointList.h"
 #include "nsSVGElement.h"
 #include "nsIDOMSVGPoint.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsIDOMSVGMatrix.h"
 #include "nsContentUtils.h" 
 #include "DOMSVGMatrix.h"

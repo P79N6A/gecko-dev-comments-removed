@@ -268,25 +268,6 @@ public:
 
   void SetRemoteBrowser(nsITabParent* aTabParent);
 
-  
-
-
-
-
-
-
-
-
-
-  void SetDetachedSubdocView(nsIView* aDetachedView,
-                             nsIDocument* aContainerDoc);
-
-  
-
-
-
-  nsIView* GetDetachedSubdocView(nsIDocument** aContainerDoc) const;
-
 private:
 
   void SetOwnerContent(mozilla::dom::Element* aContent);
@@ -345,16 +326,6 @@ public:
   nsRefPtr<nsFrameMessageManager> mMessageManager;
   nsCOMPtr<nsIInProcessContentFrameMessageManager> mChildMessageManager;
 private:
-  
-  
-  nsIView* mDetachedSubdocViews;
-  
-  
-  
-  
-  
-  nsCOMPtr<nsIDocument> mContainerDocWhileDetached;
-
   bool mDepthTooGreat : 1;
   bool mIsTopLevelContent : 1;
   bool mDestroyCalled : 1;

@@ -608,6 +608,7 @@ function BuildConditionSandbox(aURL) {
     
     
     sandbox.browserIsRemote = gBrowserIsRemote;
+    sandbox.bug685516 = sandbox.browserIsRemote && sandbox.Android;
 
     if (!gDumpedConditionSandbox) {
         dump("REFTEST INFO | Dumping JSON representation of sandbox \n");

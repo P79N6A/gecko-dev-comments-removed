@@ -1,13 +1,13 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "nsSVGNumberPair.h"
 #include "nsSVGUtils.h"
 #include "nsCharSeparatedTokenizer.h"
 #include "prdtoa.h"
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsMathUtils.h"
 #include "nsSMILValue.h"
 #include "SVGNumberPairSMILType.h"
@@ -27,7 +27,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsSVGNumberPair::DOMAnimatedNumber)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(SVGAnimatedNumber)
 NS_INTERFACE_MAP_END
 
-/* Implementation */
+
 
 static nsresult
 ParseNumberOptionalNumber(const nsAString& aValue,
@@ -45,23 +45,23 @@ ParseNumberOptionalNumber(const nsAString& aValue,
     NS_ConvertUTF16toUTF8 utf8Token(tokenizer.nextToken());
     const char *token = utf8Token.get();
     if (*token == '\0') {
-      return NS_ERROR_DOM_SYNTAX_ERR; // empty string (e.g. two commas in a row)
+      return NS_ERROR_DOM_SYNTAX_ERR; 
     }
 
     char *end;
     aValues[i] = float(PR_strtod(token, &end));
     if (*end != '\0' || !NS_finite(aValues[i])) {
-      return NS_ERROR_DOM_SYNTAX_ERR; // parse error
+      return NS_ERROR_DOM_SYNTAX_ERR; 
     }
   }
   if (i == 1) {
     aValues[1] = aValues[0];
   }
 
-  if (i == 0 ||                                   // Too few values.
-      tokenizer.hasMoreTokens() ||                // Too many values.
-      tokenizer.lastTokenEndedWithWhitespace() || // Trailing whitespace.
-      tokenizer.lastTokenEndedWithSeparator()) {  // Trailing comma.
+  if (i == 0 ||                                   
+      tokenizer.hasMoreTokens() ||                
+      tokenizer.lastTokenEndedWithWhitespace() || 
+      tokenizer.lastTokenEndedWithSeparator()) {  
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
@@ -90,9 +90,9 @@ nsSVGNumberPair::SetBaseValueString(const nsAString &aValueAsString,
     aSVGElement->AnimationNeedsResample();
   }
 
-  // We don't need to call Will/DidChange* here - we're only called by
-  // nsSVGElement::ParseAttribute under nsGenericElement::SetAttr,
-  // which takes care of notifying.
+  
+  
+  
   return NS_OK;
 }
 
@@ -178,7 +178,7 @@ nsSVGNumberPair::ToSMILAttr(nsSVGElement *aSVGElement)
 
 nsresult
 nsSVGNumberPair::SMILNumberPair::ValueFromString(const nsAString& aStr,
-                                                 const nsISMILAnimationElement* /*aSrcElement*/,
+                                                 const nsISMILAnimationElement* ,
                                                  nsSMILValue& aValue,
                                                  bool& aPreventCachingOfSandwich) const
 {

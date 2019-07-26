@@ -398,6 +398,12 @@ private:
 
 
 
+    void DecodeABitOf(RasterImage* aImg);
+
+    
+
+
+
 
 
 
@@ -565,6 +571,8 @@ private:
                             gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth,
                             PRUint8 **imageData, PRUint32 *imageLength,
                             PRUint32 **paletteData, PRUint32 *paletteLength);
+
+  bool ApplyDecodeFlags(PRUint32 aNewFlags);
 
 private: 
 

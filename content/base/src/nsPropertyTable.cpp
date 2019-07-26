@@ -1,28 +1,28 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*-
- * vim:cindent:ts=2:et:sw=2:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- *
- * This Original Code has been modified by IBM Corporation. Modifications made by IBM 
- * described herein are Copyright (c) International Business Machines Corporation, 2000.
- * Modifications to Mozilla code or documentation identified per MPL Section 3.3
- *
- * Date             Modified by     Description of modification
- * 04/20/2000       IBM Corp.      OS/2 VisualAge build.
- */
 
-/**
- * nsPropertyTable allows a set of arbitrary key/value pairs to be stored
- * for any number of nodes, in a global hashtable rather than on the nodes
- * themselves.  Nodes can be any type of object; the hashtable keys are
- * nsIAtom pointers, and the values are void pointers.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsPropertyTable.h"
 #include "pldhash.h"
-#include "nsContentErrors.h"
+#include "nsError.h"
 #include "nsIAtom.h"
 
 struct PropertyListMapEntry : public PLDHashEntryHdr {
@@ -30,7 +30,7 @@ struct PropertyListMapEntry : public PLDHashEntryHdr {
   void        *value;
 };
 
-//----------------------------------------------------------------------
+
 
 class nsPropertyTable::PropertyList {
 public:
@@ -40,11 +40,11 @@ public:
                bool               aTransfer) NS_HIDDEN;
   ~PropertyList() NS_HIDDEN;
 
-  // Removes the property associated with the given object, and destroys
-  // the property value
+  
+  
   NS_HIDDEN_(bool) DeletePropertyFor(nsPropertyOwner aObject);
 
-  // Destroy all remaining properties (without removing them)
+  
   NS_HIDDEN_(void) Destroy();
 
   NS_HIDDEN_(bool) Equals(nsIAtom *aPropertyName)
@@ -54,12 +54,12 @@ public:
 
   size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
-  nsCOMPtr<nsIAtom>  mName;           // property name
-  PLDHashTable       mObjectValueMap; // map of object/value pairs
-  NSPropertyDtorFunc mDtorFunc;       // property specific value dtor function
-  void*              mDtorData;       // pointer to pass to dtor
-  bool               mTransfer;       // whether to transfer in
-                                      // TransferOrDeleteAllPropertiesFor
+  nsCOMPtr<nsIAtom>  mName;           
+  PLDHashTable       mObjectValueMap; 
+  NSPropertyDtorFunc mDtorFunc;       
+  void*              mDtorData;       
+  bool               mTransfer;       
+                                      
   
   PropertyList*      mNext;
 };
@@ -176,7 +176,7 @@ nsPropertyTable::GetPropertyInternal(nsPropertyOwner aObject,
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
       propValue = entry->value;
       if (aRemove) {
-        // don't call propertyList->mDtorFunc.  That's the caller's job now.
+        
         PL_DHashTableRawRemove(&propertyList->mObjectValueMap, entry);
       }
       rv = NS_OK;
@@ -203,7 +203,7 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
   PropertyList* propertyList = GetPropertyListFor(aPropertyName);
 
   if (propertyList) {
-    // Make sure the dtor function and data and the transfer flag match
+    
     if (aPropDtorFunc != propertyList->mDtorFunc ||
         aPropDtorData != propertyList->mDtorData ||
         aTransfer != propertyList->mTransfer) {
@@ -223,15 +223,15 @@ nsPropertyTable::SetPropertyInternal(nsPropertyOwner     aObject,
     mPropertyList = propertyList;
   }
 
-  // The current property value (if there is one) is replaced and the current
-  // value is destroyed
+  
+  
   nsresult result = NS_OK;
   PropertyListMapEntry *entry = static_cast<PropertyListMapEntry*>
                                            (PL_DHashTableOperate(&propertyList->mObjectValueMap, aObject, PL_DHASH_ADD));
   if (!entry)
     return NS_ERROR_OUT_OF_MEMORY;
-  // A NULL entry->key is the sign that the entry has just been allocated
-  // for us.  If it's non-NULL then we have an existing entry.
+  
+  
   if (entry->key) {
     if (aOldValue)
       *aOldValue = entry->value;
@@ -278,7 +278,7 @@ nsPropertyTable::GetPropertyListFor(nsIAtom* aPropertyName) const
   return result;
 }
 
-//----------------------------------------------------------------------
+
     
 nsPropertyTable::PropertyList::PropertyList(nsIAtom            *aName,
                                             NSPropertyDtorFunc  aDtorFunc,
@@ -316,7 +316,7 @@ DestroyPropertyEnumerator(PLDHashTable *table, PLDHashEntryHdr *hdr,
 void
 nsPropertyTable::PropertyList::Destroy()
 {
-  // Enumerate any remaining object/value pairs and destroy the value object
+  
   if (mDtorFunc)
     PL_DHashTableEnumerate(&mObjectValueMap, DestroyPropertyEnumerator,
                            nullptr);
@@ -359,7 +359,7 @@ nsPropertyTable::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const
   return n;
 }
 
-/* static */
+
 void
 nsPropertyTable::SupportsDtorFunc(void *aObject, nsIAtom *aPropertyName,
                                   void *aPropertyValue, void *aData)

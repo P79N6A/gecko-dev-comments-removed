@@ -96,7 +96,7 @@
 #include "nsDocShellEditorData.h"
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsEscape.h"
 
 
@@ -170,6 +170,7 @@
 #include "nsEventStateManager.h"
 
 #include "nsIFrame.h"
+#include "nsSubDocumentFrame.h"
 
 
 #include "nsIWebBrowserChromeFocus.h"
@@ -179,9 +180,7 @@
 #include "nsIWebBrowserPrint.h"
 #endif
 
-#include "nsPluginError.h"
 #include "nsContentUtils.h"
-#include "nsContentErrors.h"
 #include "nsIChannelPolicy.h"
 #include "nsIContentSecurityPolicy.h"
 
@@ -228,12 +227,6 @@ static PRUint32 gValidateOrigin = 0xffffffff;
 
 
 #define NS_EVENT_STARVATION_DELAY_HINT 2000
-
-
-
-
-
-#define NS_ERROR_DOCUMENT_IS_PRINTMODE  NS_ERROR_GENERATE_FAILURE(NS_ERROR_MODULE_GENERAL,2001)
 
 #ifdef PR_LOGGING
 #ifdef DEBUG
@@ -7170,7 +7163,7 @@ nsDocShell::RestoreFromHistory()
     
     
     mLoadingURI = nullptr;
-    
+
     
     FirePageHideNotification(!mSavingOldViewer);
 
@@ -7249,6 +7242,17 @@ nsDocShell::RestoreFromHistory()
                 mContentViewer->GetBounds(newBounds);
             }
         }
+    }
+
+    nsCOMPtr<nsIContent> container;
+    nsCOMPtr<nsIDocument> sibling;
+    if (rootViewParent && rootViewParent->GetParent()) {
+        nsIFrame* frame = rootViewParent->GetParent()->GetFrame();
+        container = frame ? frame->GetContent() : nullptr;
+    }
+    if (rootViewSibling) {
+        nsIFrame *frame = rootViewSibling->GetFrame();
+        sibling = frame ? frame->PresContext()->PresShell()->GetDocument() : nullptr;
     }
 
     
@@ -7339,7 +7343,7 @@ nsDocShell::RestoreFromHistory()
 
     
     SetHistoryEntry(&mOSHE, mLSHE);
-    
+
     
 
     
@@ -7453,10 +7457,20 @@ nsDocShell::RestoreFromHistory()
     nsIView *newRootView = newVM ? newVM->GetRootView() : nullptr;
 
     
-    if (rootViewParent) {
+    if (container) {
+        nsSubDocumentFrame* subDocFrame = do_QueryFrame(container->GetPrimaryFrame());
+        rootViewParent = subDocFrame ? subDocFrame->EnsureInnerView() : nullptr;
+    }
+    if (sibling &&
+        sibling->GetShell() &&
+        sibling->GetShell()->GetViewManager()) {
+        rootViewSibling = sibling->GetShell()->GetViewManager()->GetRootView();
+    } else {
+        rootViewSibling = nullptr;
+    }
+    if (rootViewParent && newRootView && newRootView->GetParent() != rootViewParent) {
         nsIViewManager *parentVM = rootViewParent->GetViewManager();
-
-        if (parentVM && newRootView) {
+        if (parentVM) {
             
             
             
@@ -8368,16 +8382,19 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         bool isNewWindow = false;
         if (!targetDocShell) {
-            nsCOMPtr<nsIDOMWindow> win =
+            nsCOMPtr<nsPIDOMWindow> win =
                 do_GetInterface(GetAsSupports(this));
             NS_ENSURE_TRUE(win, NS_ERROR_NOT_AVAILABLE);
 
             nsDependentString name(aWindowTarget);
             nsCOMPtr<nsIDOMWindow> newWin;
-            rv = win->Open(EmptyString(), 
-                           name,          
-                           EmptyString(), 
-                           getter_AddRefs(newWin));
+            nsCAutoString spec;
+            if (aURI)
+                aURI->GetSpec(spec);
+            rv = win->OpenNoNavigate(NS_ConvertUTF8toUTF16(spec),
+                                     name,          
+                                     EmptyString(), 
+                                     getter_AddRefs(newWin));
 
             
             

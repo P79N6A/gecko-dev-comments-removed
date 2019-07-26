@@ -3,7 +3,7 @@
 
 
 
-#include "nsDOMError.h"
+#include "nsError.h"
 #include "nsSVGEnum.h"
 #include "nsIAtom.h"
 #include "nsSVGElement.h"
