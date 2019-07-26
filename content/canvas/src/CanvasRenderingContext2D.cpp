@@ -792,7 +792,10 @@ CanvasRenderingContext2D::Redraw(const mgfx::Rect &r)
 
   nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
 
-  mCanvasElement->InvalidateCanvasContent(&r);
+  gfxRect tmpR = ThebesRect(r);
+  mCanvasElement->InvalidateCanvasContent(&tmpR);
+
+  return;
 }
 
 void
@@ -3035,6 +3038,11 @@ struct NS_STACK_CLASS CanvasBidiProcessor : public nsBidiPresUtils::BidiProcesso
         gfxTextRun::DetailedGlyph *detailedGlyphs =
           mTextRun->GetDetailedGlyphs(i);
 
+        if (glyphs[i].IsMissing()) {
+          advanceSum += detailedGlyphs[0].mAdvance * devUnitsPerAppUnit;
+          continue;
+        }
+
         for (uint32_t c = 0; c < glyphs[i].GetGlyphCount(); c++) {
           newGlyph.mIndex = detailedGlyphs[c].mGlyphID;
           if (mTextRun->IsRightToLeft()) {
@@ -3720,11 +3728,6 @@ CanvasRenderingContext2D::DrawImage(const HTMLImageOrCanvasOrVideoElement& image
     sx = sy = 0.0;
     sw = (double) imgSize.width;
     sh = (double) imgSize.height;
-  }
-
-  if (sw == 0.0 || sh == 0.0) {
-    error.Throw(NS_ERROR_DOM_INDEX_SIZE_ERR);
-    return;
   }
 
   if (dw == 0.0 || dh == 0.0) {
