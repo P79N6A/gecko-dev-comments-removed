@@ -217,7 +217,7 @@ IonRuntime::initialize(JSContext *cx)
     AutoCompartment ac(cx, cx->atomsCompartment());
 
     IonContext ictx(cx, NULL);
-    AutoFlushCache afc("IonRuntime::initialize");
+    AutoFlushCache afc("IonRuntime::initialize", this);
 
     execAlloc_ = cx->runtime()->getExecAlloc(cx);
     if (!execAlloc_)
@@ -1149,10 +1149,10 @@ void
 jit::ToggleBarriers(JS::Zone *zone, bool needs)
 {
     JSRuntime *rt = zone->runtimeFromMainThread();
-    IonContext ictx(rt);
     if (!rt->hasIonRuntime())
         return;
 
+    IonContext ictx(rt);
     AutoFlushCache afc("ToggleBarriers", rt->ionRuntime());
     for (gc::CellIterUnderGC i(zone, gc::FINALIZE_SCRIPT); !i.done(); i.next()) {
         JSScript *script = i.get<JSScript>();
@@ -1544,7 +1544,7 @@ AttachFinishedCompilations(JSContext *cx)
                 
                 AutoTempAllocatorRooter root(cx, &builder->temp());
                 AutoUnlockWorkerThreadState unlock(cx->runtime());
-                AutoFlushCache afc("AttachFinishedCompilations");
+                AutoFlushCache afc("AttachFinishedCompilations", cx->runtime()->ionRuntime());
                 success = codegen->link();
             }
 
@@ -1633,7 +1633,7 @@ IonCompile(JSContext *cx, JSScript *script,
 
     BaselineInspector inspector(cx, script);
 
-    AutoFlushCache afc("IonCompile");
+    AutoFlushCache afc("IonCompile", cx->runtime()->ionRuntime());
 
     types::AutoEnterCompilation enterCompiler(cx, CompilerOutputKind(executionMode));
     if (!enterCompiler.init(script))
@@ -2081,7 +2081,7 @@ EnterIon(JSContext *cx, EnterJitData &data)
         IonContext ictx(cx, NULL);
         JitActivation activation(cx, data.constructing);
         JSAutoResolveFlags rf(cx, RESOLVE_INFER);
-        AutoFlushInhibitor afi(cx->compartment()->ionCompartment());
+        AutoFlushInhibitor afi(cx->runtime()->ionRuntime());
 
         
         enter(data.jitcode, data.maxArgc, data.maxArgv, NULL, data.calleeToken,
@@ -2362,7 +2362,7 @@ jit::Invalidate(types::TypeCompartment &types, FreeOp *fop,
                 const Vector<types::RecompileInfo> &invalid, bool resetUses)
 {
     IonSpew(IonSpew_Invalidate, "Start invalidation.");
-    AutoFlushCache afc ("Invalidate");
+    AutoFlushCache afc ("Invalidate", fop->runtime()->ionRuntime());
 
     
     
@@ -2600,33 +2600,26 @@ AutoFlushCache::AutoFlushCache(const char *nonce, IonRuntime *rt)
   : start_(0),
     stop_(0),
     name_(nonce),
+    runtime_(rt),
     used_(false)
 {
-    if (CurrentIonContext() != NULL)
-        rt = GetIonContext()->runtime->ionRuntime();
+    if (rt->flusher())
+        IonSpew(IonSpew_CacheFlush, "<%s ", nonce);
+    else
+        IonSpewCont(IonSpew_CacheFlush, "<%s ", nonce);
 
-    
-    if (rt) {
-        if (rt->flusher())
-            IonSpew(IonSpew_CacheFlush, "<%s ", nonce);
-        else
-            IonSpewCont(IonSpew_CacheFlush, "<%s ", nonce);
-        rt->setFlusher(this);
-    } else {
-        IonSpew(IonSpew_CacheFlush, "<%s DEAD>\n", nonce);
-    }
-    runtime_ = rt;
+    rt->setFlusher(this);
 }
 
-AutoFlushInhibitor::AutoFlushInhibitor(IonCompartment *ic)
-  : ic_(ic),
+AutoFlushInhibitor::AutoFlushInhibitor(IonRuntime *rt)
+  : runtime_(rt),
     afc(NULL)
 {
-    if (!ic)
-        return;
-    afc = ic->flusher();
+    afc = rt->flusher();
+
     
-    ic->setFlusher(NULL);
+    rt->setFlusher(NULL);
+
     
     if (afc) {
         afc->flushAnyway();
@@ -2635,11 +2628,11 @@ AutoFlushInhibitor::AutoFlushInhibitor(IonCompartment *ic)
 }
 AutoFlushInhibitor::~AutoFlushInhibitor()
 {
-    if (!ic_)
-        return;
-    JS_ASSERT(ic_->flusher() == NULL);
+    JS_ASSERT(runtime_->flusher() == NULL);
+
     
-    ic_->setFlusher(afc);
+    runtime_->setFlusher(afc);
+
     if (afc)
         IonSpewCont(IonSpew_CacheFlush, "{");
 }
