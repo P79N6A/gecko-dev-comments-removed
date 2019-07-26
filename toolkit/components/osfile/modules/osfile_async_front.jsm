@@ -880,7 +880,7 @@ let DirectoryIterator = function DirectoryIterator(path, options) {
 
 
 
-  this._itmsg = Scheduler.post(
+  this.__itmsg = Scheduler.post(
     "new_DirectoryIterator", [Type.path.toMsg(path), options],
     path
   );
@@ -889,6 +889,17 @@ let DirectoryIterator = function DirectoryIterator(path, options) {
 DirectoryIterator.prototype = {
   iterator: function () this,
   __iterator__: function () this,
+
+  
+  
+  
+  
+  get _itmsg() {
+    if (!this.__itmsg) {
+      this.__itmsg = Promise.reject(StopIteration);
+    }
+    return this.__itmsg;
+  },
 
   
 
@@ -1029,7 +1040,9 @@ DirectoryIterator.prototype = {
     let self = this;
     return this._itmsg.then(
       function withIterator(iterator) {
-        self._itmsg = Promise.reject(StopIteration);
+        
+        
+        self.__itmsg = null;
         return Scheduler.post("DirectoryIterator_prototype_close", [iterator]);
       }
     );
