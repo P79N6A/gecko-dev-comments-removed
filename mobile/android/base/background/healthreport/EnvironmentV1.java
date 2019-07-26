@@ -5,7 +5,6 @@
 package org.mozilla.gecko.background.healthreport;
 
 import java.io.UnsupportedEncodingException;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Iterator;
 import java.util.SortedSet;
@@ -14,6 +13,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.mozilla.apache.commons.codec.binary.Base64;
 import org.mozilla.gecko.background.common.log.Logger;
+import org.mozilla.gecko.background.nativecode.NativeCrypto;
 
 public abstract class EnvironmentV1 {
   private static final String LOG_TAG = "GeckoEnvironment";
@@ -70,24 +70,15 @@ public abstract class EnvironmentV1 {
   }
 
   public static class HashAppender extends EnvironmentAppender {
-    final MessageDigest hasher;
+    private final StringBuilder builder;
 
     public HashAppender() throws NoSuchAlgorithmException {
-      
-      
-      
-      
-      
-      hasher = MessageDigest.getInstance("SHA-1");
+      builder = new StringBuilder();
     }
 
     @Override
     public void append(String s) {
-      try {
-        hasher.update(((s == null) ? "null" : s).getBytes("UTF-8"));
-      } catch (UnsupportedEncodingException e) {
-        
-      }
+      builder.append((s == null) ? "null" : s);
     }
 
     @Override
@@ -99,7 +90,21 @@ public abstract class EnvironmentV1 {
     public String toString() {
       
       
-      return new Base64(-1, null, false).encodeAsString(hasher.digest());
+      final byte[] inputBytes;
+      try {
+        inputBytes = builder.toString().getBytes("UTF-8");
+      } catch (UnsupportedEncodingException e) {
+        Logger.warn(LOG_TAG, "Invalid charset String passed to getBytes", e);
+        return null;
+      }
+
+      
+      
+      
+      
+      
+      final byte[] hash = NativeCrypto.sha1(inputBytes);
+      return new Base64(-1, null, false).encodeAsString(hash);
     }
   }
 
