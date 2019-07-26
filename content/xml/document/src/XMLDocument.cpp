@@ -33,7 +33,7 @@
 #include "mozilla/dom/Attr.h"
 #include "nsCExternalHandlerService.h"
 #include "nsMimeTypes.h"
-#include "nsEventListenerManager.h"
+#include "mozilla/EventListenerManager.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
 #include "nsJSUtils.h"
@@ -399,7 +399,7 @@ XMLDocument::Load(const nsAString& aUrl, ErrorResult& aRv)
   
   
   
-  nsRefPtr<nsEventListenerManager> elm(mListenerManager);
+  nsRefPtr<EventListenerManager> elm(mListenerManager);
   mListenerManager = nullptr;
 
   

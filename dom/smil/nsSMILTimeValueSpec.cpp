@@ -3,6 +3,7 @@
 
 
 
+#include "mozilla/EventListenerManager.h"
 #include "mozilla/dom/SVGAnimationElement.h"
 #include "nsSMILTimeValueSpec.h"
 #include "nsSMILInterval.h"
@@ -11,12 +12,12 @@
 #include "nsSMILTimedElement.h"
 #include "nsSMILInstanceTime.h"
 #include "nsSMILParserUtils.h"
-#include "nsEventListenerManager.h"
 #include "nsIDOMKeyEvent.h"
 #include "nsIDOMTimeEvent.h"
 #include "nsString.h"
 #include <limits>
 
+using namespace mozilla;
 using namespace mozilla::dom;
 
 
@@ -315,7 +316,7 @@ nsSMILTimeValueSpec::RegisterEventListener(Element* aTarget)
     mEventListener = new EventListener(this);
   }
 
-  nsEventListenerManager* elm = GetEventListenerManager(aTarget);
+  EventListenerManager* elm = GetEventListenerManager(aTarget);
   if (!elm)
     return;
 
@@ -330,7 +331,7 @@ nsSMILTimeValueSpec::UnregisterEventListener(Element* aTarget)
   if (!aTarget || !mEventListener)
     return;
 
-  nsEventListenerManager* elm = GetEventListenerManager(aTarget);
+  EventListenerManager* elm = GetEventListenerManager(aTarget);
   if (!elm)
     return;
 
@@ -339,7 +340,7 @@ nsSMILTimeValueSpec::UnregisterEventListener(Element* aTarget)
                                  AllEventsAtSystemGroupBubble());
 }
 
-nsEventListenerManager*
+EventListenerManager*
 nsSMILTimeValueSpec::GetEventListenerManager(Element* aTarget)
 {
   NS_ABORT_IF_FALSE(aTarget, "null target; can't get EventListenerManager");

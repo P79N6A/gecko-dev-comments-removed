@@ -16,6 +16,7 @@ class nsIDOMEventListener;
 namespace mozilla {
 
 class ErrorResult;
+class EventListenerManager;
 
 namespace dom {
 
@@ -73,13 +74,13 @@ public:
   
 
 
-  virtual nsEventListenerManager* GetOrCreateListenerManager() = 0;
+  virtual EventListenerManager* GetOrCreateListenerManager() = 0;
 
   
 
 
 
-  virtual nsEventListenerManager* GetExistingListenerManager() const = 0;
+  virtual EventListenerManager* GetExistingListenerManager() const = 0;
 
 protected:
   EventHandlerNonNull* GetEventHandler(nsIAtom* aType,

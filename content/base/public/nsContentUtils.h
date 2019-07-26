@@ -40,7 +40,6 @@ class imgIRequest;
 class imgLoader;
 class imgRequestProxy;
 class nsAutoScriptBlockerSuppressNodeRemoved;
-class nsEventListenerManager;
 class nsHtml5StringParser;
 class nsIChannel;
 class nsIConsoleService;
@@ -109,6 +108,7 @@ template<class T> class nsReadingIterator;
 
 namespace mozilla {
 class ErrorResult;
+class EventListenerManager;
 class Selection;
 
 namespace dom {
@@ -1074,14 +1074,16 @@ public:
 
 
 
-  static nsEventListenerManager* GetListenerManagerForNode(nsINode* aNode);
+  static mozilla::EventListenerManager*
+    GetListenerManagerForNode(nsINode* aNode);
   
 
 
 
 
 
-  static nsEventListenerManager* GetExistingListenerManagerForNode(const nsINode* aNode);
+  static mozilla::EventListenerManager*
+    GetExistingListenerManagerForNode(const nsINode* aNode);
 
   static void UnmarkGrayJSListenersInCCGenerationDocuments(uint32_t aGeneration);
 

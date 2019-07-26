@@ -4,6 +4,7 @@
 
 
 #include "mozilla/Assertions.h"         
+#include "mozilla/EventListenerManager.h" 
 #include "mozilla/IMEStateManager.h"    
 #include "mozilla/Preferences.h"        
 #include "mozilla/TextEvents.h"         
@@ -14,7 +15,6 @@
 #include "nsDebug.h"                    
 #include "nsEditor.h"                   
 #include "nsEditorEventListener.h"
-#include "nsEventListenerManager.h"     
 #include "nsFocusManager.h"             
 #include "nsGkAtoms.h"                  
 #include "nsIClipboard.h"               
@@ -141,7 +141,7 @@ nsEditorEventListener::InstallToEditor()
   NS_ENSURE_TRUE(piTarget, NS_ERROR_FAILURE);
 
   
-  nsEventListenerManager* elmP = piTarget->GetOrCreateListenerManager();
+  EventListenerManager* elmP = piTarget->GetOrCreateListenerManager();
   NS_ENSURE_STATE(elmP);
 
 #ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
@@ -235,7 +235,7 @@ nsEditorEventListener::UninstallFromEditor()
     return;
   }
 
-  nsEventListenerManager* elmP = piTarget->GetOrCreateListenerManager();
+  EventListenerManager* elmP = piTarget->GetOrCreateListenerManager();
   if (!elmP) {
     return;
   }
