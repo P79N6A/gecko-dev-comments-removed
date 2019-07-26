@@ -1567,7 +1567,7 @@ public:
 
 
 
-  virtual void RemoveChild(Layer* aChild);
+  virtual bool RemoveChild(Layer* aChild);
   
 
 
@@ -1965,8 +1965,8 @@ private:
   virtual bool InsertAfter(Layer* aChild, Layer* aAfter) MOZ_OVERRIDE
   { MOZ_CRASH(); return false; }
 
-  virtual void RemoveChild(Layer* aChild)
-  { MOZ_CRASH(); }
+  virtual bool RemoveChild(Layer* aChild)
+  { MOZ_CRASH(); return false; }
 
   virtual void RepositionChild(Layer* aChild, Layer* aAfter)
   { MOZ_CRASH(); }
