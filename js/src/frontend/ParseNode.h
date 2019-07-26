@@ -131,6 +131,7 @@ class UpvarCookie
     F(FORHEAD) \
     F(ARGSBODY) \
     F(SPREAD) \
+    F(MODULE) \
     \
     /* Equality operators. */ \
     F(STRICTEQ) \
@@ -394,7 +395,7 @@ enum ParseNodeArity {
     PN_UNARY,                           
     PN_BINARY,                          
     PN_TERNARY,                         
-    PN_FUNC,                            
+    PN_CODE,                            
     PN_LIST,                            
     PN_NAME                             
 };
@@ -406,6 +407,7 @@ class BreakStatement;
 class ContinueStatement;
 class ConditionalExpression;
 class PropertyAccess;
+class ModuleBox;
 
 struct ParseNode {
   private:
@@ -502,14 +504,16 @@ struct ParseNode {
         } unary;
         struct {                        
             union {
-                JSAtom        *atom;    
-                ObjectBox     *objbox;  
-                FunctionBox   *funbox;  
+                JSAtom      *atom;      
+                ObjectBox   *objbox;    
+                ModuleBox   *modulebox; 
+                FunctionBox *funbox;    
             };
             union {
-                ParseNode    *expr;     
+                ParseNode   *expr;      
 
-                Definition   *lexdef;   
+
+                Definition  *lexdef;    
             };
             UpvarCookie cookie;         
 
@@ -528,6 +532,7 @@ struct ParseNode {
         } loopControl;
     } pn_u;
 
+#define pn_modulebox    pn_u.name.modulebox
 #define pn_funbox       pn_u.name.funbox
 #define pn_body         pn_u.name.expr
 #define pn_cookie       pn_u.name.cookie
@@ -585,6 +590,7 @@ struct ParseNode {
                       Parser *parser);
 
     inline PropertyName *name() const;
+    inline JSAtom *atom() const;
 
     
 
@@ -594,7 +600,7 @@ struct ParseNode {
 
     ParseNode *expr() const {
         JS_ASSERT(!pn_used);
-        JS_ASSERT(pn_arity == PN_NAME || pn_arity == PN_FUNC);
+        JS_ASSERT(pn_arity == PN_NAME || pn_arity == PN_CODE);
         return pn_expr;
     }
 
@@ -650,17 +656,17 @@ struct ParseNode {
 #define PNX_NONCONST   0x400            /* initialiser has non-constants */
 
     unsigned frameLevel() const {
-        JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
+        JS_ASSERT(pn_arity == PN_CODE || pn_arity == PN_NAME);
         return pn_cookie.level();
     }
 
     unsigned frameSlot() const {
-        JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
+        JS_ASSERT(pn_arity == PN_CODE || pn_arity == PN_NAME);
         return pn_cookie.slot();
     }
 
     bool functionIsHoisted() const {
-        JS_ASSERT(pn_arity == PN_FUNC);
+        JS_ASSERT(pn_arity == PN_CODE && getKind() == PNK_FUNCTION);
         JS_ASSERT(isOp(JSOP_LAMBDA) ||    
                   isOp(JSOP_DEFFUN) ||    
                   isOp(JSOP_NOP) ||       
@@ -933,13 +939,13 @@ struct ListNode : public ParseNode
 #endif
 };
 
-struct FunctionNode : public ParseNode {
-    static inline FunctionNode *create(ParseNodeKind kind, Parser *parser) {
-        return (FunctionNode *) ParseNode::create(kind, PN_FUNC, parser);
+struct CodeNode : public ParseNode {
+    static inline CodeNode *create(ParseNodeKind kind, Parser *parser) {
+        return (CodeNode *) ParseNode::create(kind, PN_CODE, parser);
     }
 
     static bool test(const ParseNode &node) {
-        return node.isArity(PN_FUNC);
+        return node.isArity(PN_CODE);
     }
 
 #ifdef DEBUG
@@ -1273,7 +1279,7 @@ class ParseNodeAllocator {
 inline bool
 ParseNode::test(unsigned flag) const
 {
-    JS_ASSERT(pn_defn || pn_arity == PN_FUNC || pn_arity == PN_NAME);
+    JS_ASSERT(pn_defn || pn_arity == PN_CODE || pn_arity == PN_NAME);
 #ifdef DEBUG
     if ((flag & PND_ASSIGNED) && pn_defn && !(pn_dflags & flag)) {
         for (ParseNode *pn = ((Definition *) this)->dn_uses; pn; pn = pn->pn_link) {
@@ -1306,8 +1312,6 @@ LinkUseToDef(ParseNode *pn, Definition *dn)
     pn->setUsed(true);
     pn->pn_lexdef = dn;
 }
-
-class ModuleBox;
 
 class ObjectBox {
   public:
