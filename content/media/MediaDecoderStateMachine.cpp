@@ -26,7 +26,7 @@
 
 namespace mozilla {
 
-using namespace layers;
+using namespace mozilla::layers;
 using namespace mozilla::dom;
 
 #ifdef PR_LOGGING
@@ -493,8 +493,8 @@ void MediaDecoderStateMachine::DecodeThreadRun()
 }
 
 void MediaDecoderStateMachine::SendStreamAudio(AudioData* aAudio,
-                                                   DecodedStreamData* aStream,
-                                                   AudioSegment* aOutput)
+                                               DecodedStreamData* aStream,
+                                               AudioSegment* aOutput)
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
@@ -564,7 +564,8 @@ static const TrackRate RATE_VIDEO = USECS_PER_S;
 
 void MediaDecoderStateMachine::SendStreamData()
 {
-  NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
+  NS_ASSERTION(OnDecodeThread() ||
+               OnStateMachineThread(), "Should be on decode thread or state machine thread");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
   DecodedStreamData* stream = mDecoder->GetDecodedStream();
@@ -572,6 +573,13 @@ void MediaDecoderStateMachine::SendStreamData()
     return;
 
   if (mState == DECODER_STATE_DECODING_METADATA)
+    return;
+
+  
+  
+  
+  
+  if (mAudioThread)
     return;
 
   int64_t minLastAudioPacketTime = INT64_MAX;
@@ -1324,8 +1332,12 @@ void MediaDecoderStateMachine::SetAudioCaptured(bool aCaptured)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-  if (!mAudioCaptured && aCaptured) {
-    StopAudioThread();
+  if (!mAudioCaptured && aCaptured && !mStopAudioThread) {
+    
+    
+    
+    
+    ScheduleStateMachine();
   }
   mAudioCaptured = aCaptured;
 }
@@ -1549,7 +1561,15 @@ void MediaDecoderStateMachine::StopDecodeThread()
 
 void MediaDecoderStateMachine::StopAudioThread()
 {
+  NS_ASSERTION(OnDecodeThread() ||
+               OnStateMachineThread(), "Should be on decode thread or state machine thread");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+
+  if (mStopAudioThread) {
+    
+    return;
+  }
+
   mStopAudioThread = true;
   mDecoder->GetReentrantMonitor().NotifyAll();
   if (mAudioThread) {
@@ -1559,6 +1579,9 @@ void MediaDecoderStateMachine::StopAudioThread()
       mAudioThread->Shutdown();
     }
     mAudioThread = nullptr;
+    
+    
+    SendStreamData();
   }
 }
 
@@ -1635,8 +1658,13 @@ MediaDecoderStateMachine::StartAudioThread()
   NS_ASSERTION(OnStateMachineThread() || OnDecodeThread(),
                "Should be on state machine or decode thread.");
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
+  if (mAudioCaptured) {
+    NS_ASSERTION(mStopAudioThread, "mStopAudioThread must always be true if audio is captured");
+    return NS_OK;
+  }
+
   mStopAudioThread = false;
-  if (HasAudio() && !mAudioThread && !mAudioCaptured) {
+  if (HasAudio() && !mAudioThread) {
     nsresult rv = NS_NewNamedThread("Media Audio",
                                     getter_AddRefs(mAudioThread),
                                     nullptr,
@@ -2538,6 +2566,11 @@ nsresult MediaDecoderStateMachine::CallRunStateMachine()
   
   
   mDispatchedRunEvent = false;
+
+  
+  if (mAudioCaptured) {
+    StopAudioThread();
+  }
 
   mTimeout = TimeStamp();
 

@@ -703,6 +703,7 @@ private:
   uint32_t mAmpleVideoFrames;
   
   
+  
   bool mAudioCaptured;
 
   
