@@ -75,10 +75,14 @@ class DBusWatcher
 {
 public:
   DBusWatcher()
+  : mConnection(nullptr)
   { }
 
   ~DBusWatcher()
-  { }
+  {
+    
+    MOZ_ASSERT(!mConnection);
+  }
 
   bool Initialize();
   void CleanUp();
@@ -93,6 +97,8 @@ public:
 
   void HandleWatchAdd();
   void HandleWatchRemove();
+
+  RawDBusConnection* GetConnection();
 
 private:
   struct PollFdComparator {
@@ -132,8 +138,14 @@ private:
   ScopedClose mControlFdR;
   ScopedClose mControlFdW;
 
-  nsRefPtr<RawDBusConnection> mConnection;
+  RawDBusConnection* mConnection;
 };
+
+RawDBusConnection*
+DBusWatcher::GetConnection()
+{
+  return mConnection;
+}
 
 bool
 DBusWatcher::Initialize()
@@ -175,6 +187,9 @@ DBusWatcher::CleanUp()
   
   
   mWatchData.Clear();
+
+  delete mConnection;
+  mConnection = nullptr;
 }
 
 void
@@ -516,7 +531,7 @@ DBusWatcher::SetUp()
 
   mWatchData.AppendElement(static_cast<DBusWatch*>(nullptr));
 
-  nsRefPtr<RawDBusConnection> connection = new RawDBusConnection();
+  RawDBusConnection* connection = new RawDBusConnection();
 
   
   nsresult rv = connection->EstablishDBusConnection();
@@ -650,6 +665,14 @@ DispatchToDBusThread(nsIRunnable* event)
   dbusWatcher->WakeUp();
 
   return NS_OK;
+}
+
+RawDBusConnection*
+GetDBusConnection()
+{
+  NS_ENSURE_TRUE(gDBusWatcher, nullptr);
+
+  return gDBusWatcher->GetConnection();
 }
 
 }
