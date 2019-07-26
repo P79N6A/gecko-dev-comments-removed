@@ -108,13 +108,6 @@ CallbackObject::CallSetup::CallSetup(JS::Handle<JSObject*> aCallback,
   
   
   
-  
-  mCtx = ctx;
-
-  
-  
-  
-  
   nsresult rv = nsContentUtils::GetSecurityManager()->
     CheckFunctionAccess(cx, js::UncheckedUnwrap(aCallback), nullptr);
 
@@ -166,8 +159,6 @@ CallbackObject::CallSetup::~CallSetup()
 
   
   
-  
-  
   mAc.destroyIfConstructed();
 
   
@@ -178,10 +169,6 @@ CallbackObject::CallSetup::~CallSetup()
 
   
   mCxPusher.Pop();
-
-  if (mCtx) {
-    mCtx->ScriptEvaluated(true);
-  }
 }
 
 already_AddRefed<nsISupports>

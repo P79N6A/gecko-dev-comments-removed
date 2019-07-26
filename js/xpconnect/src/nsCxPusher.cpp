@@ -102,7 +102,7 @@ nsCxPusher::Pop()
 
 namespace mozilla {
 
-AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull) : mScriptIsRunning(false)
+AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull)
 {
   MOZ_ASSERT_IF(!allowNull, cx);
 
@@ -112,15 +112,7 @@ AutoCxPusher::AutoCxPusher(JSContext* cx, bool allowNull) : mScriptIsRunning(fal
   if (cx)
     mScx = GetScriptContextFromJSContext(cx);
 
-  
   XPCJSContextStack *stack = XPCJSRuntime::Get()->GetJSContextStack();
-  if (cx && nsJSUtils::GetDynamicScriptContext(cx) && stack->HasJSContext(cx))
-  {
-    
-    
-    mScriptIsRunning = true;
-  }
-
   if (!stack->Push(cx)) {
     MOZ_CRASH();
   }
@@ -169,16 +161,7 @@ AutoCxPusher::~AutoCxPusher()
   DebugOnly<JSContext*> stackTop;
   MOZ_ASSERT(mPushedContext == nsXPConnect::XPConnect()->GetCurrentJSContext());
   XPCJSRuntime::Get()->GetJSContextStack()->Pop();
-
-  if (!mScriptIsRunning && mScx) {
-    
-    
-
-    mScx->ScriptEvaluated(true);
-  }
-
   mScx = nullptr;
-  mScriptIsRunning = false;
 }
 
 AutoJSContext::AutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM_IN_IMPL)

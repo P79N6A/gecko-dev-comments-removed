@@ -135,7 +135,6 @@ protected:
 
     
     JSContext* mCx;
-    nsCOMPtr<nsIScriptContext> mCtx;
 
     
 

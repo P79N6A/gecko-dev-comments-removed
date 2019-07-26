@@ -28,8 +28,8 @@ class nsIDOMWindow;
 class nsIURI;
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xfd05ba99, 0x2906, 0x4c51, \
-  { 0x89, 0xb3, 0xbc, 0xdf, 0xf6, 0x3b, 0xf2, 0xde } }
+{ 0x6219173f, 0x4a61, 0x4c99, \
+  { 0xb1, 0xfd, 0x8e, 0x7a, 0xf0, 0xdc, 0xe0, 0x56 } }
 
 
 
@@ -129,19 +129,6 @@ public:
 
 
   virtual void GC(JS::gcreason::Reason aReason) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-  virtual void ScriptEvaluated(bool aTerminated) = 0;
 
   virtual nsresult Serialize(nsIObjectOutputStream* aStream,
                              JS::Handle<JSScript*> aScriptObject) = 0;
