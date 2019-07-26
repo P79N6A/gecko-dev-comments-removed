@@ -232,10 +232,10 @@ protected:
 
 
 
-class SVGPathDataAndOwner : public SVGPathData
+class SVGPathDataAndInfo : public SVGPathData
 {
 public:
-  SVGPathDataAndOwner(nsSVGElement *aElement = nullptr)
+  SVGPathDataAndInfo(nsSVGElement *aElement = nullptr)
     : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
   {}
 
@@ -248,7 +248,7 @@ public:
     return static_cast<nsSVGElement*>(e.get());
   }
 
-  nsresult CopyFrom(const SVGPathDataAndOwner& rhs) {
+  nsresult CopyFrom(const SVGPathDataAndInfo& rhs) {
     mElement = rhs.mElement;
     return SVGPathData::CopyFrom(rhs);
   }
