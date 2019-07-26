@@ -139,14 +139,18 @@ AudioChannelService::RegisterType(AudioChannelType aType, uint64_t aChildID, boo
 
     
     
-    if (type == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
-        mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
-      mPlayableHiddenContentChildID = aChildID;
+    
+    if (type == AUDIO_CHANNEL_INT_CONTENT ||
+        (type == AUDIO_CHANNEL_INT_NORMAL &&
+         mWithVideoChildIDs.Contains(aChildID))) {
+      mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
     }
     
     
-    else if (type == AUDIO_CHANNEL_INT_CONTENT) {
-      mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
+    
+    else if (type == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
+        mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+      mPlayableHiddenContentChildID = aChildID;
     }
 
     
@@ -256,15 +260,19 @@ AudioChannelService::UpdateChannelType(AudioChannelType aType,
 
   
   
-  if (oldType == AUDIO_CHANNEL_INT_CONTENT &&
-      newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
-      mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
-    mPlayableHiddenContentChildID = aChildID;
+  
+  if (newType == AUDIO_CHANNEL_INT_CONTENT ||
+      (newType == AUDIO_CHANNEL_INT_NORMAL &&
+       mWithVideoChildIDs.Contains(aChildID))) {
+    mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
   }
   
   
-  else if (newType == AUDIO_CHANNEL_INT_CONTENT) {
-    mPlayableHiddenContentChildID = CONTENT_PROCESS_ID_UNKNOWN;
+  
+  else if (oldType == AUDIO_CHANNEL_INT_CONTENT &&
+      newType == AUDIO_CHANNEL_INT_CONTENT_HIDDEN &&
+      mChannelCounters[AUDIO_CHANNEL_INT_CONTENT].IsEmpty()) {
+    mPlayableHiddenContentChildID = aChildID;
   }
 }
 
