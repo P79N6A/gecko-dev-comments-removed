@@ -5,6 +5,13 @@
 #include <ostream>
 #include <istream>
 #include <string>
+#include <stdarg.h>
+#include <stdio.h>
+#include <mozilla/Assertions.h>
+
+
+
+
 
 
 
@@ -140,4 +147,32 @@ namespace std __attribute__((visibility("default"))) {
     void ctype<char>::_M_widen_init() const {}
 #endif
 
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 20)
+    
+
+    void __throw_out_of_range_fmt(char const* fmt, ...)
+    {
+        va_list ap;
+        char buf[1024]; 
+
+        va_start(ap, fmt);
+        vsnprintf(buf, sizeof(buf), fmt, ap);
+        buf[sizeof(buf) - 1] = 0;
+        va_end(ap);
+
+        __throw_range_error(buf);
+    }
+#endif
+
 }
+
+#if MOZ_LIBSTDCXX_VERSION >= GLIBCXX_VERSION(3, 4, 20)
+
+
+
+extern "C" void
+__cxa_throw_bad_array_new_length()
+{
+    MOZ_CRASH();
+}
+#endif
