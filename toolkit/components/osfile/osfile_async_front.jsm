@@ -639,6 +639,8 @@ File.read = function read(path, bytes) {
 
 
 
+
+
 File.writeAtomic = function writeAtomic(path, buffer, options) {
   
   options = clone(options || noOptions);

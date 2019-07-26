@@ -522,6 +522,36 @@ let test_read_write_all = maketest(
 
 
 
+    promise = promise.then(
+      function check_with_noOverwrite() {
+        let view = new Uint8Array(contents.buffer, 10, 200);
+        options = {tmpPath: tmpPath, noOverwrite: true};
+        return OS.File.writeAtomic(pathDest, view, options);
+      }
+    );
+
+    promise = promise.then(
+      function onSuccess() {
+        test.fail("With noOverwrite, writeAtomic should have refused to overwrite file");
+      },
+      function onFailure(err) {
+        test.info("With noOverwrite, writeAtomic correctly failed");
+        test.ok(err instanceof OS.File.Error, "writeAtomic correctly failed with a file error");
+        test.ok(err.becauseExists, "writeAtomic file error confirmed that the file already exists");
+        return reference_compare_files(pathSource, pathDest, test);
+      }
+    );
+
+    promise = promise.then(
+      function compare_complete() {
+        test.info("With noOverwrite, writeAtomic correctly did not overwrite destination file");
+        test.ok(!(new FileUtils.File(tmpPath).exists()), "Temporary file was removed");
+      }
+    );
+    promise = ensureSuccess(promise, test);
+
+
+
     let START = 10;
     let LENGTH = 100;
     promise = promise.then(
@@ -570,7 +600,9 @@ let test_read_write_all = maketest(
       },
       function onFailure() {
         test.ok("Without a tmpPath, writeAtomic has failed as expected");
-      });
+      }
+    );
+
     return promise;
   }
 );

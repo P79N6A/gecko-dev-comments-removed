@@ -314,6 +314,25 @@ AbstractFile.read = function read(path, bytes) {
 
 
 
+AbstractFile.exists = function exists(path) {
+  try {
+    let file = exports.OS.File.open(path);
+    file.close();
+    return true;
+  } catch (x) {
+    return false;
+  }
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -335,6 +354,12 @@ AbstractFile.writeAtomic =
   if (!tmpPath) {
     throw new TypeError("Expected option tmpPath");
   }
+
+  let noOverwrite = options.noOverwrite;
+  if (noOverwrite && OS.File.exists(path)) {
+    throw OS.File.Error.exists("writeAtomic");
+  }
+
   let tmpFile = OS.File.open(tmpPath, {write: true, truncate: true});
   let bytesWritten;
   try {

@@ -356,6 +356,20 @@ function test_readall_writeall_file()
                 src_file_name, tmp_file_name);
 
   
+  exn = null;
+  try {
+    let view = new Uint8Array(readResult.buffer, 10, 200);
+    OS.File.writeAtomic(tmp_file_name, view,
+      { tmpPath: tmp_file_name + ".tmp", noOverwrite: true});
+  } catch (x) {
+    exn = x;
+  }
+  ok(exn && exn instanceof OS.File.Error && exn.becauseExists, "writeAtomic fails if file already exists with noOverwrite option");
+  
+  compare_files("test_readall_writeall_file (OS.File.readAll + writeAtomic check file was not overwritten)",
+                src_file_name, tmp_file_name);
+
+  
   
 
   exn = null;
@@ -365,7 +379,7 @@ function test_readall_writeall_file()
   } catch (x) {
     exn = x;
   }
-  ok(!!exn && exn instanceof TypeError, "wrietAtomic fails if tmpPath is not provided");
+  ok(!!exn && exn instanceof TypeError, "writeAtomic fails if tmpPath is not provided");
 }
 
 
