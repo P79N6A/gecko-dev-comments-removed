@@ -2417,6 +2417,37 @@ let RIL = {
 
 
 
+
+
+  queryCallBarringStatus: function queryCallBarringStatus(options) {
+    options.facility = CALL_BARRING_PROGRAM_TO_FACILITY[options.program];
+    options.password = ""; 
+    this.queryICCFacilityLock(options);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  setCallBarring: function setCallBarring(options) {
+    options.facility = CALL_BARRING_PROGRAM_TO_FACILITY[options.program];
+    this.setICCFacilityLock(options);
+  },
+
+  
+
+
+
+
+
   stkHandleCallSetup: function stkHandleCallSetup(options) {
      Buf.newParcel(REQUEST_STK_HANDLE_CALL_SETUP_REQUESTED_FROM_SIM, options);
      Buf.writeUint32(1);
