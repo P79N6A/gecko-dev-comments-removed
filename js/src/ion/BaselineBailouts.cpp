@@ -464,9 +464,16 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
                 HandleFunction fun, HandleScript script, IonScript *ionScript,
                 SnapshotIterator &iter, bool invalidate, BaselineStackBuilder &builder,
                 AutoValueVector &startFrameFormals, MutableHandleFunction nextCallee,
-                jsbytecode **callPC)
+                jsbytecode **callPC, const ExceptionBailoutInfo *excInfo)
 {
-    uint32_t exprStackSlots = iter.slots() - (script->nfixed + CountArgSlots(script, fun));
+    
+    
+    
+    uint32_t exprStackSlots;
+    if (excInfo)
+        exprStackSlots = excInfo->numExprSlots;
+    else
+        exprStackSlots = iter.slots() - (script->nfixed + CountArgSlots(script, fun));
 
     builder.resetFramePushed();
 
@@ -642,9 +649,12 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
     }
 
     
-    jsbytecode *pc = script->code + iter.pcOffset();
+    
+    jsbytecode *pc = excInfo ? excInfo->resumePC : script->code + iter.pcOffset();
+    bool resumeAfter = excInfo ? false : iter.resumeAfter();
+
     JSOp op = JSOp(*pc);
-    bool resumeAfter = iter.resumeAfter();
+    JS_ASSERT_IF(excInfo, op == JSOP_ENTERBLOCK);
 
     
     
@@ -809,7 +819,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 #endif
 
     
-    if (!iter.moreFrames()) {
+    
+    if (!iter.moreFrames() || excInfo) {
         
         *callPC = NULL;
 
@@ -1167,7 +1178,8 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
 uint32_t
 ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIterator &iter,
-                          bool invalidate, BaselineBailoutInfo **bailoutInfo)
+                          bool invalidate, BaselineBailoutInfo **bailoutInfo,
+                          const ExceptionBailoutInfo *excInfo)
 {
     JS_ASSERT(bailoutInfo != NULL);
     JS_ASSERT(*bailoutInfo == NULL);
@@ -1214,10 +1226,17 @@ ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     IonSpew(IonSpew_BaselineBailouts, "Bailing to baseline %s:%u (IonScript=%p) (FrameType=%d)",
             iter.script()->filename(), iter.script()->lineno, (void *) iter.ionScript(),
             (int) prevFrameType);
+
+    if (excInfo)
+        IonSpew(IonSpew_BaselineBailouts, "Resuming in catch or finally block");
+
     IonSpew(IonSpew_BaselineBailouts, "  Reading from snapshot offset %u size %u",
             iter.snapshotOffset(), iter.ionScript()->snapshotsSize());
 
-    iter.ionScript()->incNumBailouts();
+    if (excInfo)
+        iter.ionScript()->incNumExceptionBailouts();
+    else
+        iter.ionScript()->incNumBailouts();
     iter.script()->updateBaselineOrIonRaw();
 
     
@@ -1242,7 +1261,7 @@ ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
         IonSpew(IonSpew_BaselineBailouts, "  Not constructing!");
 
     IonSpew(IonSpew_BaselineBailouts, "  Restoring frames:");
-    int frameNo = 0;
+    size_t frameNo = 0;
 
     
     RootedScript caller(cx);
@@ -1250,6 +1269,7 @@ ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
     RootedFunction fun(cx, callee);
     RootedScript scr(cx, iter.script());
     AutoValueVector startFrameFormals(cx);
+
     while (true) {
 #if JS_TRACE_LOGGING
         if (frameNo > 0) {
@@ -1258,11 +1278,16 @@ ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
         }
 #endif
         IonSpew(IonSpew_BaselineBailouts, "    FrameNo %d", frameNo);
+
+        
+        
+        bool handleException = (excInfo && excInfo->frameNo == frameNo);
+
         jsbytecode *callPC = NULL;
         RootedFunction nextCallee(cx, NULL);
         if (!InitFromBailout(cx, caller, callerPC, fun, scr, iter.ionScript(),
                              snapIter, invalidate, builder, startFrameFormals,
-                             &nextCallee, &callPC))
+                             &nextCallee, &callPC, handleException ? excInfo : NULL))
         {
             return BAILOUT_RETURN_FATAL_ERROR;
         }
@@ -1271,6 +1296,9 @@ ion::BailoutIonToBaseline(JSContext *cx, JitActivation *activation, IonBailoutIt
             JS_ASSERT(!callPC);
             break;
         }
+
+        if (handleException)
+            break;
 
         JS_ASSERT(nextCallee);
         JS_ASSERT(callPC);

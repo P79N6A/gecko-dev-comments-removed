@@ -56,6 +56,12 @@ ion::SplitCriticalEdges(MIRGraph &graph)
 bool
 ion::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
 {
+    
+    
+    
+    if (graph.hasTryBlock())
+        return true;
+
     for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
         if (mir->shouldCancel("Eliminate Dead Resume Point Operands (main loop)"))
             return false;

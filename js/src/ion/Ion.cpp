@@ -568,6 +568,7 @@ IonScript::IonScript()
     invalidateEpilogueOffset_(0),
     invalidateEpilogueDataOffset_(0),
     numBailouts_(0),
+    numExceptionBailouts_(0),
     hasUncompiledCallTarget_(false),
     hasSPSInstrumentation_(false),
     runtimeData_(0),
@@ -996,7 +997,13 @@ OptimizeMIR(MIRGenerator *mir)
         return false;
 
     
-    if (!EliminatePhis(mir, graph, AggressiveObservability))
+    
+    
+    
+    Observability observability = graph.hasTryBlock()
+                                  ? ConservativeObservability
+                                  : AggressiveObservability;
+    if (!EliminatePhis(mir, graph, observability))
         return false;
     IonSpewPass("Eliminate phis");
     AssertGraphCoherency(graph);
@@ -1379,6 +1386,10 @@ IonCompile(JSContext *cx, JSScript *script,
 
     if (!script->ensureRanAnalysis(cx))
         return AbortReason_Alloc;
+
+    
+    if (script->analysis()->hasTryFinally())
+        return AbortReason_Disable;
 
     LifoAlloc *alloc = cx->new_<LifoAlloc>(BUILDER_LIFO_ALLOC_PRIMARY_CHUNK_SIZE);
     if (!alloc)

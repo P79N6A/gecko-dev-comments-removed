@@ -127,6 +127,15 @@ struct IonOptions
     
     
     
+    
+    uint32_t exceptionBailoutThreshold;
+
+    
+    bool compileTryCatch;
+
+    
+    
+    
     uint32_t maxStackArgs;
 
     
@@ -205,6 +214,8 @@ struct IonOptions
         usesBeforeInliningFactor(.125),
         osrPcMismatchesBeforeRecompile(6000),
         frequentBailoutThreshold(10),
+        exceptionBailoutThreshold(10),
+        compileTryCatch(false),
         maxStackArgs(4096),
         maxInlineDepth(3),
         smallFunctionMaxInlineDepth(10),

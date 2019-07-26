@@ -1162,6 +1162,9 @@ IonBuilder::inspectOpcode(JSOp op)
       case JSOP_IFEQ:
         return jsop_ifeq(JSOP_IFEQ);
 
+      case JSOP_TRY:
+        return jsop_try();
+
       case JSOP_CONDSWITCH:
         return jsop_condswitch();
 
@@ -1632,6 +1635,9 @@ IonBuilder::processCfgEntry(CFGState &state)
 
       case CFGState::LABEL:
         return processLabelEnd(state);
+
+      case CFGState::TRY:
+        return processTryEnd(state);
 
       default:
         MOZ_ASSUME_UNREACHABLE("unknown cfgstate");
@@ -2172,6 +2178,30 @@ IonBuilder::processLabelEnd(CFGState &state)
 
     pc = state.stopAt;
     setCurrentAndSpecializePhis(successor);
+    return ControlStatus_Joined;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processTryEnd(CFGState &state)
+{
+    JS_ASSERT(state.state == CFGState::TRY);
+
+    if (!state.try_.successor) {
+        JS_ASSERT(!current);
+        return ControlStatus_Ended;
+    }
+
+    if (current) {
+        current->end(MGoto::New(state.try_.successor));
+
+        if (!state.try_.successor->addPredecessor(current))
+            return ControlStatus_Error;
+    }
+
+    
+    setCurrentAndSpecializePhis(state.try_.successor);
+    graph().moveBlockToEnd(current);
+    pc = current->pc();
     return ControlStatus_Joined;
 }
 
@@ -2861,6 +2891,16 @@ IonBuilder::CFGState::Label(jsbytecode *exitpc)
     return state;
 }
 
+IonBuilder::CFGState
+IonBuilder::CFGState::Try(jsbytecode *exitpc, MBasicBlock *successor)
+{
+    CFGState state;
+    state.state = TRY;
+    state.stopAt = exitpc;
+    state.try_.successor = successor;
+    return state;
+}
+
 IonBuilder::ControlStatus
 IonBuilder::processCondSwitchCase(CFGState &state)
 {
@@ -3180,6 +3220,82 @@ IonBuilder::jsop_ifeq(JSOp op)
     return true;
 }
 
+bool
+IonBuilder::jsop_try()
+{
+    JS_ASSERT(JSOp(*pc) == JSOP_TRY);
+
+    if (!js_IonOptions.compileTryCatch)
+        return abort("Try-catch support disabled");
+
+    
+    JS_ASSERT(script()->analysis()->hasTryFinally());
+
+    graph().setHasTryBlock();
+
+    jssrcnote *sn = info().getNote(cx, pc);
+    JS_ASSERT(SN_TYPE(sn) == SRC_TRY);
+
+    
+    
+    jsbytecode *endpc = pc + js_GetSrcNoteOffset(sn, 0);
+    JS_ASSERT(JSOp(*endpc) == JSOP_GOTO);
+    JS_ASSERT(GetJumpOffset(endpc) > 0);
+
+    jsbytecode *afterTry = endpc + GetJumpOffset(endpc);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    MBasicBlock *tryBlock = newBlock(current, GetNextPc(pc));
+    if (!tryBlock)
+        return false;
+
+    MBasicBlock *successor;
+    if (script()->analysis()->maybeCode(afterTry)) {
+        successor = newBlock(current, afterTry);
+        if (!successor)
+            return false;
+
+        
+        MConstant *true_ = MConstant::New(BooleanValue(true));
+        current->add(true_);
+        current->end(MTest::New(true_, tryBlock, successor));
+    } else {
+        successor = NULL;
+        current->end(MGoto::New(tryBlock));
+    }
+
+    if (!cfgStack_.append(CFGState::Try(endpc, successor)))
+        return false;
+
+    
+    
+    JS_ASSERT(info().osrPc() < endpc || info().osrPc() >= afterTry);
+
+    
+    setCurrentAndSpecializePhis(tryBlock);
+    return true;
+}
+
 IonBuilder::ControlStatus
 IonBuilder::processReturn(JSOp op)
 {
@@ -3219,6 +3335,35 @@ IonBuilder::ControlStatus
 IonBuilder::processThrow()
 {
     MDefinition *def = current->pop();
+
+    if (graph().hasTryBlock()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        MNop *ins = MNop::New();
+        current->add(ins);
+
+        if (!resumeAfter(ins))
+            return ControlStatus_Error;
+    }
 
     MThrow *ins = MThrow::New(def);
     current->end(ins);
