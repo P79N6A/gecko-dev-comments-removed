@@ -56,7 +56,6 @@ class BasicLayerManager;
 
 
 class ContentClient : public CompositableClient
-                    , protected ThebesLayerBuffer
 {
 public:
   
@@ -68,26 +67,15 @@ public:
 
   ContentClient(CompositableForwarder* aForwarder)
   : CompositableClient(aForwarder)
-  , ThebesLayerBuffer(ContainsVisibleBounds)
   {}
   virtual ~ContentClient()
   {}
 
-  typedef ThebesLayerBuffer::PaintState PaintState;
-  typedef ThebesLayerBuffer::ContentType ContentType;
 
-  virtual void Clear() { ThebesLayerBuffer::Clear(); }
-  PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
-                              uint32_t aFlags)
-  {
-    return ThebesLayerBuffer::BeginPaint(aLayer, aContentType, aFlags);
-  }
-
-  virtual void DrawTo(ThebesLayer* aLayer, gfxContext* aTarget, float aOpacity,
-                      gfxASurface* aMask, const gfxMatrix* aMaskTransform)
-  {
-    ThebesLayerBuffer::DrawTo(aLayer, aTarget, aOpacity, aMask, aMaskTransform);
-  }
+  virtual void Clear() = 0;
+  virtual ThebesLayerBuffer::PaintState BeginPaintBuffer(ThebesLayer* aLayer,
+                                                         ThebesLayerBuffer::ContentType aContentType,
+                                                         uint32_t aFlags) = 0;
 
   
   
@@ -106,11 +94,43 @@ public:
 };
 
 
+
+
+class ContentClientRemote : public ContentClient
+{
+public:
+  ContentClientRemote(CompositableForwarder* aForwarder)
+    : ContentClient(aForwarder)
+  {}
+
+  virtual void Updated(const nsIntRegion& aRegionToDraw,
+                       const nsIntRegion& aVisibleRegion,
+                       bool aDidSelfCopy) = 0;
+};
+
+
 class ContentClientBasic : public ContentClient
+                         , protected ThebesLayerBuffer
 {
 public:
   ContentClientBasic(CompositableForwarder* aForwarder,
                      BasicLayerManager* aManager);
+
+  typedef ThebesLayerBuffer::PaintState PaintState;
+  typedef ThebesLayerBuffer::ContentType ContentType;
+
+  virtual void Clear() { ThebesLayerBuffer::Clear(); }
+  PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+                              uint32_t aFlags)
+  {
+    return ThebesLayerBuffer::BeginPaint(aLayer, aContentType, aFlags);
+  }
+
+  void DrawTo(ThebesLayer* aLayer, gfxContext* aTarget, float aOpacity,
+              gfxASurface* aMask, const gfxMatrix* aMaskTransform)
+  {
+    ThebesLayerBuffer::DrawTo(aLayer, aTarget, aOpacity, aMask, aMaskTransform);
+  }
 
   virtual already_AddRefed<gfxASurface> CreateBuffer(ContentType aType,
                                                      const nsIntRect& aRect,
@@ -124,7 +144,6 @@ public:
     MOZ_NOT_REACHED("Should not be called on non-remote ContentClient");
     return TextureInfo();
   }
-
 
 private:
   BasicLayerManager* mManager;
@@ -144,18 +163,31 @@ private:
 
 
 
-class ContentClientRemote : public ContentClient
+
+class ContentClientRemoteBuffer : public ContentClientRemote
+                                , protected ThebesLayerBuffer
 {
   using ThebesLayerBuffer::BufferRect;
   using ThebesLayerBuffer::BufferRotation;
 public:
-  ContentClientRemote(CompositableForwarder* aForwarder)
-    : ContentClient(aForwarder)
+  ContentClientRemoteBuffer(CompositableForwarder* aForwarder)
+    : ContentClientRemote(aForwarder)
+    , ThebesLayerBuffer(ContainsVisibleBounds)
     , mTextureClient(nullptr)
     , mIsNewBuffer(false)
     , mFrontAndBackBufferDiffer(false)
     , mContentType(gfxASurface::CONTENT_COLOR_ALPHA)
   {}
+
+  typedef ThebesLayerBuffer::PaintState PaintState;
+  typedef ThebesLayerBuffer::ContentType ContentType;
+
+  virtual void Clear() { ThebesLayerBuffer::Clear(); }
+  PaintState BeginPaintBuffer(ThebesLayer* aLayer, ContentType aContentType,
+                              uint32_t aFlags)
+  {
+    return ThebesLayerBuffer::BeginPaint(aLayer, aContentType, aFlags);
+  }
 
   
 
@@ -246,11 +278,11 @@ protected:
 
 
 
-class ContentClientDoubleBuffered : public ContentClientRemote
+class ContentClientDoubleBuffered : public ContentClientRemoteBuffer
 {
 public:
   ContentClientDoubleBuffered(CompositableForwarder* aFwd)
-    : ContentClientRemote(aFwd)
+    : ContentClientRemoteBuffer(aFwd)
   {
     mTextureInfo.mCompositableType = BUFFER_CONTENT_DIRECT;
   }
@@ -284,11 +316,11 @@ private:
 
 
 
-class ContentClientSingleBuffered : public ContentClientRemote
+class ContentClientSingleBuffered : public ContentClientRemoteBuffer
 {
 public:
   ContentClientSingleBuffered(CompositableForwarder* aFwd)
-    : ContentClientRemote(aFwd)
+    : ContentClientRemoteBuffer(aFwd)
   {
     mTextureInfo.mCompositableType = BUFFER_CONTENT;    
   }
