@@ -1,5 +1,9 @@
 
 
 
+from local import *
+from local import LocalRunner as Runner
+from remote import *
 
-from runner import *
+runners = local_runners
+runners.update(remote_runners)

@@ -368,15 +368,13 @@ class DeviceManagerSUT(DeviceManager):
 
         existentDirectories = []
         for root, dirs, files in os.walk(localDir, followlinks=True):
-            parts = root.split(localDir)
+            _, subpath = root.split(localDir)
+            subpath = subpath.lstrip('/')
+            remoteRoot = posixpath.join(remoteDir, subpath)
             for f in files:
-                remoteRoot = remoteDir + '/' + parts[1]
-                if (remoteRoot.endswith('/')):
-                    remoteName = remoteRoot + f
-                else:
-                    remoteName = remoteRoot + '/' + f
+                remoteName = posixpath.join(remoteRoot, f)
 
-                if (parts[1] == ""):
+                if subpath == "":
                     remoteRoot = remoteDir
 
                 parent = os.path.dirname(remoteName)
@@ -397,18 +395,23 @@ class DeviceManagerSUT(DeviceManager):
     def fileExists(self, filepath):
         
         
-        s = filepath.split('/')
-        containingpath = '/'.join(s[:-1])
-        return s[-1] in self.listFiles(containingpath)
+        filepath = posixpath.normpath(filepath)
+        
+        
+        if filepath == '/':
+            return self.dirExists(filepath)
+        (containingpath, filename) = posixpath.split(filepath)
+        return filename in self.listFiles(containingpath)
 
     def listFiles(self, rootdir):
-        rootdir = rootdir.rstrip('/')
-        if (self.dirExists(rootdir) == False):
+        rootdir = posixpath.normpath(rootdir)
+        if not self.dirExists(rootdir):
             return []
         data = self._runCmds([{ 'cmd': 'cd ' + rootdir }, { 'cmd': 'ls' }])
 
         files = filter(lambda x: x, data.splitlines())
         if len(files) == 1 and files[0] == '<empty>':
+            
             
             return []
         return files
@@ -874,7 +877,7 @@ class DeviceManagerSUT(DeviceManager):
         self._logger.debug("updateApp: got status back: %s" % status)
 
     def getCurrentTime(self):
-        return self._runCmds([{ 'cmd': 'clok' }]).strip()
+        return int(self._runCmds([{ 'cmd': 'clok' }]).strip())
 
     def _getCallbackIpAndPort(self, aIp, aPort):
         """
