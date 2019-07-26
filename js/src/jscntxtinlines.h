@@ -433,6 +433,10 @@ class AutoLockForExclusiveAccess
     AutoLockForExclusiveAccess(JSRuntime *rt MOZ_GUARD_OBJECT_NOTIFIER_PARAM) {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
     }
+    ~AutoLockForExclusiveAccess() {
+        
+        
+    }
 #endif 
 
     MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER

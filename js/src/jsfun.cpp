@@ -507,7 +507,7 @@ Class JSFunction::class_ = {
     fun_trace
 };
 
-JS_FRIEND_DATA(Class* const) js::FunctionClassPtr = &JSFunction::class_;
+Class* const js::FunctionClassPtr = &JSFunction::class_;
 
 
 static bool

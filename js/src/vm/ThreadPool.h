@@ -70,7 +70,9 @@ class ThreadPool
     friend class ThreadPoolWorker;
 
     
+#if defined(JS_THREADSAFE) || defined(DEBUG)
     JSRuntime *const runtime_;
+#endif
     js::Vector<ThreadPoolWorker*, 8, SystemAllocPolicy> workers_;
 
     
