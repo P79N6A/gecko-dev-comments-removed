@@ -13,6 +13,7 @@
 #include "DOMCameraPreview.h"
 #include "nsIDOMCameraManager.h"
 #include "CameraCommon.h"
+#include "AudioChannelAgent.h"
 
 namespace mozilla {
 
@@ -41,6 +42,8 @@ protected:
   
   nsRefPtr<ICameraControl>        mCameraControl; 
   nsCOMPtr<nsICameraCapabilities> mDOMCapabilities;
+  
+  nsCOMPtr<nsIAudioChannelAgent>  mAudioChannelAgent;
 };
 
 } 

@@ -260,6 +260,19 @@ nsDOMCameraControl::StartRecording(const JS::Value& aOptions, nsIDOMDeviceStorag
                        "recording-device-events",
                        NS_LITERAL_STRING("starting").get());
 
+  #ifdef MOZ_B2G
+  if (!mAudioChannelAgent) {
+    mAudioChannelAgent = do_CreateInstance("@mozilla.org/audiochannelagent;1");
+    if (mAudioChannelAgent) {
+      
+      mAudioChannelAgent->Init(AUDIO_CHANNEL_CONTENT, nullptr);
+      
+      bool canPlay;
+      mAudioChannelAgent->StartPlaying(&canPlay);
+    }
+  }
+  #endif
+
   nsCOMPtr<nsIFile> folder;
   storageArea->GetRootDirectory(getter_AddRefs(folder));
   return mCameraControl->StartRecording(&options, folder, filename, onSuccess, onError);
@@ -278,6 +291,13 @@ nsDOMCameraControl::StopRecording()
   obs->NotifyObservers(nullptr,
                        "recording-device-events",
                        NS_LITERAL_STRING("shutdown").get());
+
+  #ifdef MOZ_B2G
+  if (mAudioChannelAgent) {
+    mAudioChannelAgent->StopPlaying();
+    mAudioChannelAgent = nullptr;
+  }
+  #endif
 
   return mCameraControl->StopRecording();
 }
