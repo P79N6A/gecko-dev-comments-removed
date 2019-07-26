@@ -178,9 +178,10 @@ void nsGIFDecoder2::BeginImageFrame(uint16_t aDepth)
 
   
   
-  else if (mGIFStruct.x_offset != 0 || mGIFStruct.y_offset != 0 ||
-           int32_t(mGIFStruct.width) != mImageMetadata.GetWidth() ||
-           int32_t(mGIFStruct.height) != mImageMetadata.GetHeight()) {
+  else if (!GetCurrentFrame()->GetRect().IsEqualEdges(nsIntRect(mGIFStruct.x_offset,
+                                                                mGIFStruct.y_offset,
+                                                                mGIFStruct.width,
+                                                                mGIFStruct.height))) {
     
     NeedNewFrame(mGIFStruct.images_decoded, mGIFStruct.x_offset,
                  mGIFStruct.y_offset, mGIFStruct.width, mGIFStruct.height,

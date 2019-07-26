@@ -144,8 +144,7 @@ void nsPNGDecoder::CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
   
   MOZ_ASSERT(HasSize());
   if (mNumFrames != 0 ||
-      x_offset != 0 || y_offset != 0 ||
-      width != mImageMetadata.GetWidth() || height != mImageMetadata.GetHeight()) {
+      !GetCurrentFrame()->GetRect().IsEqualEdges(nsIntRect(x_offset, y_offset, width, height))) {
     NeedNewFrame(mNumFrames, x_offset, y_offset, width, height, format);
   } else if (mNumFrames == 0) {
     
