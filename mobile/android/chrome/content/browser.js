@@ -1317,17 +1317,24 @@ var BrowserApp = {
         break;
 
       case "Session:Reload": {
-        let allowMixedContent = false;
+        let flags = Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY | Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE;
+
+        
         if (aData) {
-            let data = JSON.parse(aData);
-            allowMixedContent = data.allowMixedContent;
+          let allowMixedContent = JSON.parse(aData).allowMixedContent;
+          if (allowMixedContent) {
+            
+            flags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_MIXED_CONTENT;
+          } else {
+            
+            let docShell = browser.webNavigation.QueryInterface(Ci.nsIDocShell);
+            docShell.mixedContentChannel = null;
+          }
         }
 
         
         
         
-        let flags = allowMixedContent ? Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_MIXED_CONTENT :
-                    Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_PROXY | Ci.nsIWebNavigation.LOAD_FLAGS_BYPASS_CACHE;
         let webNav = browser.webNavigation;
         try {
           let sh = webNav.sessionHistory;
