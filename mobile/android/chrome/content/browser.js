@@ -4024,8 +4024,13 @@ var BrowserEventHandler = {
     
     let topPos = scrollTop + drRect.top - (viewport.cssHeight / 2.0);
 
+    
+    let boundingStyle = window.getComputedStyle(boundingElement);
+    let leftAdjustment = parseInt(boundingStyle.paddingLeft) +
+                         parseInt(boundingStyle.borderLeftWidth);
+
     rect.type = "Browser:ZoomToRect";
-    rect.x = Math.max(viewport.cssPageLeft, rect.x  - fudge);
+    rect.x = Math.max(viewport.cssPageLeft, rect.x  - fudge + leftAdjustment);
     rect.y = Math.max(topPos, viewport.cssPageTop);
     rect.w = viewport.cssWidth;
     rect.h = viewport.cssHeight;
