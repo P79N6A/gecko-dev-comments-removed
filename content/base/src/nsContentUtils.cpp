@@ -4902,6 +4902,7 @@ nsContentUtils::GetViewportInfo(nsIDocument *aDocument,
   return aDocument->GetViewportInfo(aDisplayWidth, aDisplayHeight);
 }
 
+#ifdef MOZ_WIDGET_ANDROID
 
 double
 nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
@@ -4923,6 +4924,7 @@ nsContentUtils::GetDevicePixelsPerMetaViewportPixel(nsIWidget* aWidget)
   
   return floor(dpi / 150.0);
 }
+#endif
 
 
 nsresult
