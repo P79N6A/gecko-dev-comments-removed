@@ -630,21 +630,24 @@ add_test(function test_delete_remote_data_in_progress_upload() {
 
 add_test(function test_polling() {
   let [policy, policyPrefs, hrPrefs, listener] = getPolicy("polling");
+  let intended = 500;
 
   
-  let now = new Date();
+  let then = Date.now();
+  print("Starting run: " + then);
   Object.defineProperty(policy, "POLL_INTERVAL_MSEC", {
-    value: 500,
+    value: intended,
   });
   let count = 0;
 
   Object.defineProperty(policy, "checkStateAndTrigger", {
     value: function fakeCheckStateAndTrigger() {
-      let now2 = new Date();
+      let now = Date.now();
+      let after = now - then;
       count++;
 
-      do_check_true(now2.getTime() - now.getTime() >= 500);
-      now = now2;
+      print("Polled at " + now + " after " + after + "ms, intended " + intended);
+      do_check_true(after >= intended);
       DataReportingPolicy.prototype.checkStateAndTrigger.call(policy);
 
       if (count >= 2) {
@@ -655,6 +658,14 @@ add_test(function test_polling() {
 
         run_next_test();
       }
+
+      
+      
+      
+      
+      
+      
+      then = Date.now();
     }
   });
   policy.startPolling();
