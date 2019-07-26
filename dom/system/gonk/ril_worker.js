@@ -1048,25 +1048,6 @@ let RIL = {
 
 
 
-  _getCLIRMode: function _getCLIRMode(mmi) {
-    if (!mmi ||
-        (mmi.serviceCode != MMI_SC_CLIR) ||
-        (mmi.procedure != MMI_PROCEDURE_ACTIVATION &&
-         mmi.procedure != MMI_PROCEDURE_DEACTIVATION)) {
-      return CLIR_DEFAULT;
-    }
-
-    return mmi.procedure == MMI_PROCEDURE_ACTIVATION ? CLIR_INVOCATION :
-                                                       CLIR_SUPPRESSION;
-  },
-
-  
-
-
-
-
-
-
 
   setCLIR: function setCLIR(options) {
     if (options) {
@@ -1375,7 +1356,10 @@ let RIL = {
         let mmi = this._parseMMI(options.number);
         if (mmi && this._isTemporaryModeCLIR(mmi)) {
           options.number = mmi.dialNumber;
-          options.clirMode = this._getCLIRMode(mmi);
+          
+          
+          options.clirMode = mmi.procedure == MMI_PROCEDURE_ACTIVATION ?
+                             CLIR_SUPPRESSION : CLIR_INVOCATION;
         }
       }
       this.dialNonEmergencyNumber(options, onerror);
