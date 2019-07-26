@@ -864,7 +864,7 @@ DownloadsDataItem.prototype = {
     
     
     
-    if (/^file:/.test(this.file)) {
+    if (this.file.startsWith("file:")) {
       
       
       let fileUrl = NetUtil.newURI(this.file).QueryInterface(Ci.nsIFileURL);
