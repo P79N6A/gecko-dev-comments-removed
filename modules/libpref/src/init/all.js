@@ -766,7 +766,7 @@ pref("dom.webapps.useCurrentProfile", false);
 
 pref("dom.cycle_collector.incremental", true);
 
-pref("dom.window_experimental_bindings", true);
+pref("dom.window_experimental_bindings", false);
 
 
 #ifndef XP_WIN
