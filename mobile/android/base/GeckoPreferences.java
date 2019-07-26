@@ -70,7 +70,6 @@ public class GeckoPreferences
     private static String PREFS_MENU_CHAR_ENCODING = "browser.menu.showCharacterEncoding";
     private static String PREFS_MP_ENABLED = "privacy.masterpassword.enabled";
     private static String PREFS_UPDATER_AUTODOWNLOAD = "app.update.autodownload";
-    private static String PREFS_GEO_REPORTING = "app.geo.reportdata";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,8 +81,8 @@ public class GeckoPreferences
 
         super.onCreate(savedInstanceState);
 
+        
         Bundle intentExtras = getIntent().getExtras();
-
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
             if (intentExtras != null && intentExtras.containsKey(INTENT_EXTRA_RESOURCES)) {
                 String resourceName = intentExtras.getString(INTENT_EXTRA_RESOURCES);
@@ -398,10 +397,6 @@ public class GeckoPreferences
             
             broadcastHealthReportUploadPref(GeckoAppShell.getContext(), ((Boolean) newValue).booleanValue());
             return true;
-        } else if (PREFS_GEO_REPORTING.equals(prefName)) {
-            
-            PrefsHelper.setPref(prefName, (Boolean) newValue ? 1 : 0);
-            return true;
         }
 
         if (!TextUtils.isEmpty(prefName)) {
@@ -657,27 +652,6 @@ public class GeckoPreferences
             }
 
             @Override
-            public void prefValue(String prefName, final int value) {
-                final Preference pref = getField(prefName);
-                final CheckBoxPrefSetter prefSetter;
-                if (PREFS_GEO_REPORTING.equals(prefName)) {
-                    if (Build.VERSION.SDK_INT < 14) {
-                        prefSetter = new CheckBoxPrefSetter();
-                    } else {
-                        prefSetter = new TwoStatePrefSetter();
-                    }
-                    ThreadUtils.postToUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            prefSetter.setBooleanPref(pref, value == 1);
-                        }
-                    });
-                } else {
-                    Log.w(LOGTAG, "Unhandled int value for pref [" + pref + "]");
-                }
-            }
-
-            @Override
             public boolean isObserver() {
                 return true;
             }
@@ -706,5 +680,32 @@ public class GeckoPreferences
     @Override
     public boolean isGeckoActivityOpened() {
         return false;
+    }
+
+    
+
+
+
+
+
+
+
+    public static void setResourceToOpen(final Intent intent, final String resource) {
+        if (intent == null) {
+            throw new IllegalArgumentException("intent must not be null");
+        }
+        if (resource == null) {
+            return;
+        }
+
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
+            intent.putExtra("resource", resource);
+        } else {
+            intent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT, GeckoPreferenceFragment.class.getName());
+
+            Bundle fragmentArgs = new Bundle();
+            fragmentArgs.putString("resource", resource);
+            intent.putExtra(PreferenceActivity.EXTRA_SHOW_FRAGMENT_ARGUMENTS, fragmentArgs);
+        }
     }
 }

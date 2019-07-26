@@ -152,15 +152,6 @@ abstract public class BrowserApp extends GeckoApp
 
     private BrowserHealthReporter mBrowserHealthReporter;
 
-    private SiteIdentityPopup mSiteIdentityPopup;
-
-    public SiteIdentityPopup getSiteIdentityPopup() {
-        if (mSiteIdentityPopup == null)
-            mSiteIdentityPopup = new SiteIdentityPopup(this);
-
-        return mSiteIdentityPopup;
-    }
-
     @Override
     public void onTabChanged(Tab tab, Tabs.TabEvents msg, Object data) {
         switch(msg) {
@@ -182,8 +173,8 @@ abstract public class BrowserApp extends GeckoApp
                         hideAboutHome();
                     }
 
-                    if (mSiteIdentityPopup != null)
-                        mSiteIdentityPopup.dismiss();
+                    
+                    SiteIdentityPopup.getInstance().dismiss();
 
                     final TabsPanel.Panel panel = tab.isPrivate()
                                                 ? TabsPanel.Panel.PRIVATE_TABS
@@ -452,6 +443,7 @@ abstract public class BrowserApp extends GeckoApp
         registerEventListener("Feedback:OpenPlayStore");
         registerEventListener("Feedback:MaybeLater");
         registerEventListener("Telemetry:Gather");
+        registerEventListener("Settings:Show");
 
         Distribution.init(this, getPackageResourcePath());
         JavaAddonManager.getInstance().init(getApplicationContext());
@@ -724,6 +716,7 @@ abstract public class BrowserApp extends GeckoApp
         unregisterEventListener("Feedback:OpenPlayStore");
         unregisterEventListener("Feedback:MaybeLater");
         unregisterEventListener("Telemetry:Gather");
+        unregisterEventListener("Settings:Show");
 
         if (AppConstants.MOZ_ANDROID_BEAM && Build.VERSION.SDK_INT >= 14) {
             NfcAdapter nfc = NfcAdapter.getDefaultAdapter(this);
@@ -827,9 +820,6 @@ abstract public class BrowserApp extends GeckoApp
                 toolbarLayout.scrollTo(0, toolbarLayout.getHeight() - marginTop);
             }
         });
-
-        if (mFormAssistPopup != null)
-            mFormAssistPopup.onMetricsChanged(aMetrics);
     }
 
     @Override
@@ -908,19 +898,6 @@ abstract public class BrowserApp extends GeckoApp
         invalidateOptionsMenu();
         updateSideBarState();
         mTabsPanel.refresh();
-        if (mSiteIdentityPopup != null) {
-            mSiteIdentityPopup.dismiss();
-        }
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mSiteIdentityPopup != null && mSiteIdentityPopup.isShowing()) {
-            mSiteIdentityPopup.dismiss();
-            return;
-        }
-
-        super.onBackPressed();
     }
 
     @Override
@@ -1108,6 +1085,15 @@ abstract public class BrowserApp extends GeckoApp
                 final String url = message.getString("url");
                 GeckoAppShell.openUriExternal(url, "text/plain", "", "",
                                               Intent.ACTION_SEND, title);
+            } else if (event.equals("Settings:Show")) {
+                
+                String resource = null;
+                if (!message.isNull(GeckoPreferences.INTENT_EXTRA_RESOURCES)) {
+                    resource = message.getString(GeckoPreferences.INTENT_EXTRA_RESOURCES);
+                }
+                Intent settingsIntent = new Intent(this, GeckoPreferences.class);
+                GeckoPreferences.setResourceToOpen(settingsIntent, resource);
+                startActivity(settingsIntent);
             } else {
                 super.handleMessage(event, message);
             }
