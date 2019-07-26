@@ -285,11 +285,9 @@ public:
 
 
 
-
   virtual void DrawQuad(const gfx::Rect& aRect, const gfx::Rect& aClipRect,
                         const EffectChain& aEffectChain,
-                        gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform,
-                        const gfx::Point& aOffset) = 0;
+                        gfx::Float aOpacity, const gfx::Matrix4x4 &aTransform) = 0;
 
   
 
@@ -351,14 +349,12 @@ public:
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const gfx::Rect& visibleRect,
                        const gfx::Rect& aClipRect,
-                       const gfx::Matrix4x4& transform,
-                       const gfx::Point& aOffset);
+                       const gfx::Matrix4x4& transform);
 
   void DrawDiagnostics(DiagnosticFlags aFlags,
                        const nsIntRegion& visibleRegion,
                        const gfx::Rect& aClipRect,
-                       const gfx::Matrix4x4& transform,
-                       const gfx::Point& aOffset);
+                       const gfx::Matrix4x4& transform);
 
 
 #ifdef MOZ_DUMP_PAINTING
@@ -434,8 +430,7 @@ protected:
   void DrawDiagnosticsInternal(DiagnosticFlags aFlags,
                                const gfx::Rect& aVisibleRect,
                                const gfx::Rect& aClipRect,
-                               const gfx::Matrix4x4& transform,
-                               const gfx::Point& aOffset);
+                               const gfx::Matrix4x4& transform);
 
   bool ShouldDrawDiagnostics(DiagnosticFlags);
 
