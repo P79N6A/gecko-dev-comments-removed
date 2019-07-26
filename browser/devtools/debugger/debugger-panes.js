@@ -1636,16 +1636,17 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
   _startSearch: function(aQuery) {
     this._searchedToken = aQuery;
 
-    DebuggerController.SourceScripts.fetchSources(DebuggerView.Sources.values, {
-      onFinished: this._performGlobalSearch
-    });
+    
+    DebuggerController.SourceScripts
+      .getTextForSources(DebuggerView.Sources.values)
+      .then(this._performGlobalSearch);
   },
 
   
 
 
 
-  _performGlobalSearch: function() {
+  _performGlobalSearch: function(aSources) {
     
     let token = this._searchedToken;
 
@@ -1662,9 +1663,8 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
 
     
     let globalResults = new GlobalResults();
-    let sourcesCache = DebuggerController.SourceScripts.getCache();
 
-    for (let [location, contents] of sourcesCache) {
+    for (let [location, contents] of aSources) {
       
       if (!contents.toLowerCase().contains(lowerCaseToken)) {
         continue;
@@ -1684,7 +1684,7 @@ GlobalSearchView.prototype = Heritage.extend(WidgetMethods, {
         let lineNumber = i;
         let lineResults = new LineResults();
 
-        lowerCaseLine.split(lowerCaseToken).reduce(function(prev, curr, index, {length}) {
+        lowerCaseLine.split(lowerCaseToken).reduce((prev, curr, index, { length }) => {
           let prevLength = prev.length;
           let currLength = curr.length;
           let unmatched = line.substr(prevLength, currLength);

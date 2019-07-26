@@ -213,7 +213,6 @@ let DebuggerController = {
       DebuggerView._handleTabNavigation();
 
       
-      DebuggerController.SourceScripts.clearCache();
       DebuggerController.Parser.clearCache();
       SourceUtils.clearCache();
       return;
@@ -821,11 +820,11 @@ StackFrames.prototype = {
     
     
     
-    let sanitizedExpressions = list.map(function(str) {
+    let sanitizedExpressions = list.map((aString) => {
       
       try {
-        Parser.reflectionAPI.parse(str);
-        return str; 
+        Parser.reflectionAPI.parse(aString);
+        return aString; 
       } catch (e) {
         return "\"" + e.name + ": " + e.message + "\""; 
       }
@@ -835,13 +834,13 @@ StackFrames.prototype = {
       this.syncedWatchExpressions =
         this.currentWatchExpressions =
           "[" +
-            sanitizedExpressions.map(function(str)
+            sanitizedExpressions.map((aString) =>
               "eval(\"" +
                 "try {" +
                   
                   
                   
-                  str.replace(/"/g, "\\$&") + "\" + " + "'\\n'" + " + \"" +
+                  aString.replace(/"/g, "\\$&") + "\" + " + "'\\n'" + " + \"" +
                 "} catch (e) {" +
                   "e.name + ': ' + e.message;" + 
                 "}" +
@@ -862,13 +861,9 @@ StackFrames.prototype = {
 
 
 function SourceScripts() {
-  this._cache = new Map(); 
   this._onNewGlobal = this._onNewGlobal.bind(this);
   this._onNewSource = this._onNewSource.bind(this);
   this._onSourcesAdded = this._onSourcesAdded.bind(this);
-  this._onFetch = this._onFetch.bind(this);
-  this._onTimeout = this._onTimeout.bind(this);
-  this._onFinished = this._onFinished.bind(this);
 }
 
 SourceScripts.prototype = {
@@ -944,7 +939,7 @@ SourceScripts.prototype = {
     
     else {
       window.clearTimeout(this._newSourceTimeout);
-      this._newSourceTimeout = window.setTimeout(function() {
+      this._newSourceTimeout = window.setTimeout(() => {
         
         
         if (!container.selectedValue) {
@@ -1014,56 +1009,38 @@ SourceScripts.prototype = {
 
 
 
-  getText: function(aSource, aCallback, aTimeout) {
+
+
+
+
+
+  getTextForSource: function(aSource, aOnTimeout, aDelay = FETCH_SOURCE_RESPONSE_DELAY) {
     
-    if (aSource.loaded) {
-      aCallback(aSource);
-      return;
+    if (aSource._fetched) {
+      return aSource._fetched;
     }
 
+    let deferred = Promise.defer();
+    aSource._fetched = deferred.promise;
+
     
-    
-    if (aTimeout) {
-      var fetchTimeout = window.setTimeout(() => {
-        aSource._fetchingTimedOut = true;
-        aTimeout(aSource);
-      }, FETCH_SOURCE_RESPONSE_DELAY);
+    if (aOnTimeout) {
+      var fetchTimeout = window.setTimeout(() => aOnTimeout(aSource), aDelay);
     }
 
     
     this.activeThread.source(aSource).source((aResponse) => {
-      if (aTimeout) {
+      if (aOnTimeout) {
         window.clearTimeout(fetchTimeout);
       }
       if (aResponse.error) {
-        Cu.reportError("Error loading: " + aSource.url + "\n" + aResponse.message);
-        return void aCallback(aSource);
+        deferred.reject([aSource, aResponse.message]);
+      } else {
+        deferred.resolve([aSource, aResponse.source]);
       }
-      aSource.loaded = true;
-      aSource.text = aResponse.source;
-      aCallback(aSource);
     });
-  },
 
-  
-
-
-
-
-
-  getCache: function() {
-    let sources = [];
-    for (let source of this._cache) {
-      sources.push(source);
-    }
-    return sources.sort(([first], [second]) => first > second);
-  },
-
-  
-
-
-  clearCache: function() {
-    this._cache.clear();
+    return deferred.promise;
   },
 
   
@@ -1075,97 +1052,54 @@ SourceScripts.prototype = {
 
 
 
+  getTextForSources: function(aUrls) {
+    let deferred = Promise.defer();
+    let pending = new Set(aUrls);
+    let fetched = [];
 
-
-  fetchSources: function(aUrls, aCallbacks = {}) {
-    this._fetchQueue = new Set();
-    this._fetchCallbacks = aCallbacks;
+    
+    
+    
+    
 
     
     for (let url of aUrls) {
-      if (!this._cache.has(url)) {
-        this._fetchQueue.add(url);
+      let sourceItem = DebuggerView.Sources.getItemByValue(url);
+      let sourceClient = sourceItem.attachment.source;
+      this.getTextForSource(sourceClient, onTimeout).then(onFetch, onError);
+    }
+
+    
+    function onTimeout(aSource) {
+      onError([aSource]);
+    }
+
+    
+    function onFetch([aSource, aText]) {
+      
+      if (!pending.has(aSource.url)) {
+        return;
+      }
+      pending.delete(aSource.url);
+      fetched.push([aSource.url, aText]);
+      maybeFinish();
+    }
+
+    
+    function onError([aSource, aError]) {
+      pending.delete(aSource.url);
+      maybeFinish();
+    }
+
+    
+    function maybeFinish() {
+      if (pending.size == 0) {
+        deferred.resolve(fetched.sort(([aFirst], [aSecond]) => aFirst > aSecond));
       }
     }
 
-    
-    if (this._fetchQueue.size == 0) {
-      this._onFinished();
-      return;
-    }
-
-    
-    for (let url of this._fetchQueue) {
-      let sourceItem = DebuggerView.Sources.getItemByValue(url);
-      let sourceObject = sourceItem.attachment.source;
-      this.getText(sourceObject, this._onFetch, this._onTimeout);
-    }
-  },
-
-  
-
-
-
-
-
-  _onFetch: function(aSource) {
-    
-    this._cache.set(aSource.url, aSource.text);
-
-    
-    this._fetchQueue.delete(aSource.url);
-
-    
-    
-    if (aSource._fetchingTimedOut) {
-      return;
-    }
-
-    
-    if (this._fetchCallbacks.onFetch) {
-      this._fetchCallbacks.onFetch(aSource);
-    }
-
-    
-    if (this._fetchQueue.size == 0) {
-      this._onFinished();
-    }
-  },
-
-  
-
-
-
-
-
-  _onTimeout: function(aSource) {
-    
-    this._fetchQueue.delete(aSource.url);
-
-    
-    if (this._fetchCallbacks.onTimeout) {
-      this._fetchCallbacks.onTimeout(aSource);
-    }
-
-    
-    if (this._fetchQueue.size == 0) {
-      this._onFinished();
-    }
-  },
-
-  
-
-
-  _onFinished: function() {
-    
-    if (this._fetchCallbacks.onFinished) {
-      this._fetchCallbacks.onFinished();
-    }
-  },
-
-  _cache: null,
-  _fetchQueue: null,
-  _fetchCallbacks: null
+    return deferred.promise;
+  }
 };
 
 

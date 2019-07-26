@@ -208,6 +208,12 @@ let DebuggerView = {
 
 
   setEditorMode: function(aUrl, aContentType = "", aTextContent = "") {
+    
+    if (aTextContent.length >= SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+      this.editor.setMode(SourceEditor.MODES.TEXT);
+      return;
+    }
+
     if (aContentType) {
       if (/javascript/.test(aContentType)) {
         this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
@@ -243,39 +249,23 @@ let DebuggerView = {
     }
 
     dumpn("Setting the DebuggerView editor source: " + aSource.url +
-          ", loaded: " + aSource.loaded);
+          ", fetched: " + !!aSource._fetched);
 
     this.editor.setMode(SourceEditor.MODES.TEXT);
     this.editor.setText(L10N.getStr("loadingText"));
     this.editor.resetUndo();
     this._editorSource = aSource;
 
-    
-    if (!aSource.loaded) {
-      DebuggerController.SourceScripts.getText(aSource, set.bind(this));
-    }
-    
-    else {
-      set.call(this, aSource);
-    }
-
-    
-    
-    function set(aSource) {
+    DebuggerController.SourceScripts.getTextForSource(aSource).then(([, aText]) => {
       
       
       if (this._editorSource != aSource) {
         return;
       }
 
-      
-      if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-        this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
-      } else {
-        this.editor.setMode(SourceEditor.MODES.TEXT);
-      }
-      this.editor.setText(aSource.text);
+      this.editor.setText(aText);
       this.editor.resetUndo();
+      this.setEditorMode(aSource.url, aSource.contentType, aText);
 
       
       
@@ -287,7 +277,13 @@ let DebuggerView = {
 
       
       window.dispatchEvent(document, "Debugger:SourceShown", aSource);
-    }
+    },
+    ([, aError]) => {
+      
+      let msg = "Error loading: " + aSource.url + "\n" + aError;
+      dumpn(msg);
+      Cu.reportError(msg);
+    });
   },
 
   

@@ -292,7 +292,7 @@ OptionsView.prototype = {
       window.removeEventListener("Debugger:OptionsPopupHidden", reconfigure, false);
 
       
-      window.setTimeout(function() {
+      window.setTimeout(() => {
         DebuggerController.reconfigureThread(pref);
       }, POPUP_HIDDEN_DELAY);
     }
@@ -1446,16 +1446,17 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
   _startSearch: function(aQuery) {
     this._searchedToken = aQuery;
 
-    DebuggerController.SourceScripts.fetchSources(DebuggerView.Sources.values, {
-      onFinished: this._performFunctionSearch
-    });
+    
+    DebuggerController.SourceScripts
+      .getTextForSources(DebuggerView.Sources.values)
+      .then(this._performFunctionSearch);
   },
 
   
 
 
 
-  _performFunctionSearch: function() {
+  _performFunctionSearch: function(aSources) {
     
     
     
@@ -1463,19 +1464,18 @@ FilteredFunctionsView.prototype = Heritage.extend(ResultsPanelContainer.prototyp
 
     
     
-    let sourcesCache = DebuggerController.SourceScripts.getCache();
     let currentUrl = DebuggerView.Sources.selectedValue;
-    sourcesCache.sort(function([sourceUrl]) sourceUrl == currentUrl ? -1 : 1);
+    aSources.sort(([sourceUrl]) => sourceUrl == currentUrl ? -1 : 1);
 
     
     if (!token) {
-      sourcesCache.splice(1);
+      aSources.splice(1);
     }
 
     
     let searchResults = [];
 
-    for (let [location, contents] of sourcesCache) {
+    for (let [location, contents] of aSources) {
       let parserMethods = DebuggerController.Parser.get(location, contents);
       let sourceResults = parserMethods.getNamedFunctionDefinitions(token);
 
