@@ -18,6 +18,8 @@
 #include "nsIDocument.h"
 #include "nsIDOMDataContainerEvent.h"
 #include "nsIDOMDocument.h"
+#include "nsIDOMHTMLObjectElement.h"
+#include "nsIDOMHTMLAppletElement.h"
 #include "nsIExternalProtocolHandler.h"
 #include "nsEventStates.h"
 #include "nsIObjectFrame.h"
@@ -1271,7 +1273,7 @@ nsObjectLoadingContent::CheckProcessPolicy(int16_t *aContentPolicy)
 }
 
 nsObjectLoadingContent::ParameterUpdateFlags
-nsObjectLoadingContent::UpdateObjectParameters()
+nsObjectLoadingContent::UpdateObjectParameters(bool aJavaURI)
 {
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
@@ -1304,7 +1306,7 @@ nsObjectLoadingContent::UpdateObjectParameters()
   
   
   
-  if (thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
+  if (aJavaURI || thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
     newMime.AssignLiteral("application/x-java-vm");
     isJava = true;
   } else {
@@ -1345,14 +1347,73 @@ nsObjectLoadingContent::UpdateObjectParameters()
 
   nsAutoString codebaseStr;
   nsCOMPtr<nsIURI> docBaseURI = thisContent->GetBaseURI();
-  thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::codebase, codebaseStr);
-  if (codebaseStr.IsEmpty() && thisContent->NodeInfo()->Equals(nsGkAtoms::applet)) {
+  bool hasCodebase = thisContent->HasAttr(kNameSpaceID_None, nsGkAtoms::codebase);
+  if (hasCodebase)
+    thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::codebase, codebaseStr);
+
+
+  
+  
+  
+  if (isJava) {
     
     
+    nsCOMArray<nsIDOMElement> ourParams;
+    nsCOMPtr<nsIDOMElement> mydomElement = do_QueryInterface(thisContent);
+
+    nsCOMPtr<nsIDOMHTMLCollection> allParams;
+    NS_NAMED_LITERAL_STRING(xhtml_ns, "http://www.w3.org/1999/xhtml");
+    mydomElement->GetElementsByTagNameNS(xhtml_ns, NS_LITERAL_STRING("param"),
+                                         getter_AddRefs(allParams));
+    if (allParams) {
+      uint32_t numAllParams;
+      allParams->GetLength(&numAllParams);
+      for (uint32_t i = 0; i < numAllParams; i++) {
+        nsCOMPtr<nsIDOMNode> pnode;
+        allParams->Item(i, getter_AddRefs(pnode));
+        nsCOMPtr<nsIDOMElement> domelement = do_QueryInterface(pnode);
+        if (domelement) {
+          nsAutoString name;
+          domelement->GetAttribute(NS_LITERAL_STRING("name"), name);
+          name.Trim(" \n\r\t\b", true, true, false);
+          if (name.EqualsIgnoreCase("codebase")) {
+            
+            nsCOMPtr<nsIDOMNode> parent;
+            nsCOMPtr<nsIDOMHTMLObjectElement> domobject;
+            nsCOMPtr<nsIDOMHTMLAppletElement> domapplet;
+            pnode->GetParentNode(getter_AddRefs(parent));
+            while (!(domobject || domapplet) && parent) {
+              domobject = do_QueryInterface(parent);
+              domapplet = do_QueryInterface(parent);
+              nsCOMPtr<nsIDOMNode> temp;
+              parent->GetParentNode(getter_AddRefs(temp));
+              parent = temp;
+            }
+            if (domapplet || domobject) {
+              if (domapplet) {
+                parent = domapplet;
+              }
+              else {
+                parent = domobject;
+              }
+              nsCOMPtr<nsIDOMNode> mydomNode = do_QueryInterface(mydomElement);
+              if (parent == mydomNode) {
+                hasCodebase = true;
+                domelement->GetAttribute(NS_LITERAL_STRING("value"),
+                                         codebaseStr);
+                codebaseStr.Trim(" \n\r\t\b", true, true, false);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (isJava && hasCodebase && codebaseStr.IsEmpty()) {
     
     
-    
-    codebaseStr.AssignLiteral("/"); 
+    codebaseStr.AssignLiteral("/");
     
     
     
@@ -1387,6 +1448,8 @@ nsObjectLoadingContent::UpdateObjectParameters()
     
     
     
+    
+    
   } else if (thisContent->NodeInfo()->Equals(nsGkAtoms::object)) {
     thisContent->GetAttr(kNameSpaceID_None, nsGkAtoms::data, uriStr);
   } else if (thisContent->NodeInfo()->Equals(nsGkAtoms::embed)) {
@@ -1416,6 +1479,9 @@ nsObjectLoadingContent::UpdateObjectParameters()
       (caps & eAllowPluginSkipChannel) &&
       IsPluginEnabledByExtension(newURI, newMime)) {
     LOG(("OBJLC [%p]: Using extension as type hint (%s)", this, newMime.get()));
+    if (!isJava && nsPluginHost::IsJavaMIMEType(newMime.get())) {
+      return UpdateObjectParameters(true);
+    }
   }
 
   
@@ -1795,10 +1861,20 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
 
   if (mType != eType_Null) {
-    int16_t contentPolicy = nsIContentPolicy::ACCEPT;
     bool allowLoad = true;
+    if (nsPluginHost::IsJavaMIMEType(mContentType.get())) {
+      nsCOMPtr<nsIScriptSecurityManager> secMan =
+        nsContentUtils::GetSecurityManager();
+      rv = secMan->CheckLoadURIWithPrincipal(thisContent->NodePrincipal(),
+                                             mBaseURI, 0);
+      if (NS_FAILED(rv)) {
+        LOG(("OBJLC [%p]: Java codebase check failed", this));
+        allowLoad = false;
+      }
+    }
+    int16_t contentPolicy = nsIContentPolicy::ACCEPT;
     
-    if (mURI && !mChannelLoaded) {
+    if (allowLoad && mURI && !mChannelLoaded) {
       allowLoad = CheckLoadPolicy(&contentPolicy);
     }
     

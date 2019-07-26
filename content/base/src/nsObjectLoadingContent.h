@@ -347,7 +347,11 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    ParameterUpdateFlags UpdateObjectParameters();
+
+
+
+
+    ParameterUpdateFlags UpdateObjectParameters(bool aJavaURI = false);
 
     
 
