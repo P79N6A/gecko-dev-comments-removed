@@ -939,6 +939,10 @@ ContentParent::OnChannelConnected(int32_t pid)
         }
 #endif
     }
+
+    
+    
+    SetReplyTimeoutMs(Preferences::GetInt("dom.ipc.cpow.timeout", 3000));
 }
 
 void
@@ -2795,6 +2799,15 @@ ContentParent::RecvKeywordToURI(const nsCString& aKeyword, OptionalInputStreamPa
   SerializeInputStream(postData, *aPostData);
   SerializeURI(uri, *aURI);
   return true;
+}
+
+bool
+ContentParent::ShouldContinueFromReplyTimeout()
+{
+  
+  
+  MOZ_ASSERT(Preferences::GetBool("browser.tabs.remote", false));
+  return false;
 }
 
 } 

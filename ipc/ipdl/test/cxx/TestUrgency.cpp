@@ -3,6 +3,13 @@
 #include "IPDLUnitTests.h"      
 #include <unistd.h>
 
+template<>
+struct RunnableMethodTraits<mozilla::_ipdltest::TestUrgencyParent>
+{
+    static void RetainCallee(mozilla::_ipdltest::TestUrgencyParent* obj) { }
+    static void ReleaseCallee(mozilla::_ipdltest::TestUrgencyParent* obj) { }
+};
+
 namespace mozilla {
 namespace _ipdltest {
 
@@ -74,6 +81,21 @@ TestUrgencyParent::RecvTest4_NestedSync()
   return false;
 }
 
+bool
+TestUrgencyParent::RecvFinalTest_Begin()
+{
+  SetReplyTimeoutMs(2000);
+  if (CallFinalTest_Hang())
+    fail("should have failed due to timeout");
+  if (!GetIPCChannel()->Unsound_IsClosed())
+    fail("channel should have closed");
+
+  MessageLoop::current()->PostTask(
+      FROM_HERE,
+      NewRunnableMethod(this, &TestUrgencyParent::Close));
+  return false;
+}
+
 
 
 
@@ -115,6 +137,10 @@ TestUrgencyChild::RecvStart()
   if (!SendTest4_Begin())
     fail("calling SendTest4_Begin");
 
+  
+  if (SendFinalTest_Begin())
+    fail("Final test should not have succeeded");
+
   Close();
 
   return true;
@@ -150,6 +176,13 @@ TestUrgencyChild::AnswerTest4_Reenter()
 {
   if (SendTest4_NestedSync())
     fail("sending nested sync messages not supported");
+  return true;
+}
+
+bool
+TestUrgencyChild::AnswerFinalTest_Hang()
+{
+  sleep(10);
   return true;
 }
 
