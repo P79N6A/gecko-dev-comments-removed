@@ -4,7 +4,12 @@
 
 "use strict";
 
-let Cu = Components.utils;
+
+
+
+if (!("Cu" in window)) {
+  window.Cu = Components.utils;
+}
 
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/ResetProfile.jsm");
