@@ -21,6 +21,7 @@ namespace mozilla {
 
 class MediaResource;
 class ReadRequest;
+class WMFSourceReaderCallback;
 
 
 
@@ -37,7 +38,7 @@ class WMFByteStream MOZ_FINAL : public IMFByteStream
                               , public IMFAttributes
 {
 public:
-  WMFByteStream(MediaResource* aResource);
+  WMFByteStream(MediaResource* aResource, WMFSourceReaderCallback* aCallback);
   ~WMFByteStream();
 
   nsresult Init();
@@ -122,6 +123,12 @@ private:
   
   
   nsCOMPtr<nsIThreadPool> mThreadPool;
+
+  
+  
+  
+  
+  RefPtr<WMFSourceReaderCallback> mSourceReaderCallback;
 
   
   

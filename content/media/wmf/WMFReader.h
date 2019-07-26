@@ -12,6 +12,7 @@
 namespace mozilla {
 
 class WMFByteStream;
+class WMFSourceReaderCallback;
 
 
 
@@ -53,6 +54,7 @@ private:
 
   RefPtr<IMFSourceReader> mSourceReader;
   RefPtr<WMFByteStream> mByteStream;
+  RefPtr<WMFSourceReaderCallback> mSourceReaderCallback;
 
   
   
