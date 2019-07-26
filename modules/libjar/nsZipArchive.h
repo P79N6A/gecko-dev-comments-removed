@@ -392,6 +392,9 @@ private:
   nsZipHandle();
   ~nsZipHandle();
 
+#if defined(XP_WIN)
+  PRFileDesc *                      mFd;     
+#endif
   PRFileMap *                       mMap;    
   nsAutoPtr<nsZipItemPtr<uint8_t> > mBuf;
   nsrefcnt                          mRefCnt; 
