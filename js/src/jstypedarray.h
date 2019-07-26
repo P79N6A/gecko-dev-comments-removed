@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #ifndef jstypedarray_h
 #define jstypedarray_h
@@ -19,14 +19,30 @@ namespace js {
 
 typedef Vector<ArrayBufferObject *, 0, SystemAllocPolicy> ArrayBufferVector;
 
-/*
- * ArrayBufferObject
- *
- * This class holds the underlying raw buffer that the various ArrayBufferView
- * subclasses (DataView and the TypedArrays) access. It can be created
- * explicitly and passed to an ArrayBufferView subclass, or can be created
- * implicitly by constructing a TypedArray with a size.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class ArrayBufferObject : public JSObject
 {
     static bool byteLengthGetterImpl(JSContext *cx, CallArgs args);
@@ -148,20 +164,20 @@ class ArrayBufferObject : public JSObject
     bool allocateSlots(JSContext *cx, uint32_t size, uint8_t *contents = NULL);
     void changeContents(JSContext *cx, ObjectElements *newHeader);
 
-    /*
-     * Ensure that the data is not stored inline. Used when handing back a
-     * GC-safe pointer.
-     */
+    
+
+
+
     bool uninlineData(JSContext *cx);
 
     inline uint32_t byteLength() const;
 
     inline uint8_t * dataPointer() const;
 
-   /*
-     * Check if the arrayBuffer contains any data. This will return false for
-     * ArrayBuffer.prototype and neutered ArrayBuffers.
-     */
+   
+
+
+
     inline bool hasData() const;
 
     inline bool isAsmJSArrayBuffer() const;
@@ -170,43 +186,44 @@ class ArrayBufferObject : public JSObject
     static void releaseAsmJSArrayBuffer(FreeOp *fop, JSObject *obj);
 };
 
-/*
- * BufferView
- *
- * Common definitions shared by all ArrayBufferViews. (The name ArrayBufferView
- * is currently being used for a namespace in jsfriendapi.h.)
- */
 
-struct BufferView {
-    /* Offset of view in underlying ArrayBuffer */
+
+
+
+
+
+
+class BufferView : public JSObject {
+  public:
+    
     static const size_t BYTEOFFSET_SLOT  = 0;
 
-    /* Byte length of view */
+    
     static const size_t BYTELENGTH_SLOT  = 1;
 
-    /* Underlying ArrayBuffer */
+    
     static const size_t BUFFER_SLOT      = 2;
 
-    /* ArrayBuffers point to a linked list of views, chained through this slot */
+    
     static const size_t NEXT_VIEW_SLOT   = 3;
 
-    /*
-     * When ArrayBuffers are traced during GC, they construct a linked list of
-     * ArrayBuffers with more than one view, chained through this slot of the
-     * first view of each ArrayBuffer
-     */
+    
+
+
+
+
     static const size_t NEXT_BUFFER_SLOT = 4;
 
     static const size_t NUM_SLOTS        = 5;
 };
 
-/*
- * TypedArray
- *
- * The non-templated base class for the specific typed implementations.
- * This class holds all the member variables that are used by
- * the subclasses.
- */
+
+
+
+
+
+
+
 
 struct TypedArray : public BufferView {
     enum {
@@ -219,23 +236,23 @@ struct TypedArray : public BufferView {
         TYPE_FLOAT32,
         TYPE_FLOAT64,
 
-        /*
-         * Special type that's a uint8_t, but assignments are clamped to 0 .. 255.
-         * Treat the raw data type as a uint8_t.
-         */
+        
+
+
+
         TYPE_UINT8_CLAMPED,
 
         TYPE_MAX
     };
 
-    /*
-     * Typed array properties stored in slots, beyond those shared by all
-     * ArrayBufferViews.
-     */
+    
+
+
+
     static const size_t LENGTH_SLOT     = BufferView::NUM_SLOTS;
     static const size_t TYPE_SLOT       = BufferView::NUM_SLOTS + 1;
     static const size_t RESERVED_SLOTS  = BufferView::NUM_SLOTS + 2;
-    static const size_t DATA_SLOT       = 7; // private slot, based on alloc kind
+    static const size_t DATA_SLOT       = 7; 
 
     static Class classes[TYPE_MAX];
     static Class protoClasses[TYPE_MAX];
@@ -288,10 +305,10 @@ struct TypedArray : public BufferView {
     static inline uint32_t slotWidth(int atype);
     static inline int slotWidth(JSObject *obj);
 
-    /*
-     * Byte length above which created typed arrays and data views will have
-     * singleton types regardless of the context in which they are created.
-     */
+    
+
+
+
     static const uint32_t SINGLETON_TYPE_BYTE_LENGTH = 1024 * 1024 * 10;
 
     static int lengthOffset();
@@ -340,7 +357,7 @@ TypedArrayShift(ArrayBufferView::ViewType viewType)
     MOZ_ASSUME_UNREACHABLE("Unexpected array type");
 }
 
-class DataViewObject : public JSObject, public BufferView
+class DataViewObject : public BufferView
 {
 public:
     static Class class_;
@@ -364,7 +381,7 @@ private:
 
   public:
     static const size_t RESERVED_SLOTS = BufferView::NUM_SLOTS;
-    static const size_t DATA_SLOT       = 7; // private slot, based on alloc kind
+    static const size_t DATA_SLOT       = 7; 
 
     static inline Value bufferValue(DataViewObject &view);
     static inline Value byteOffsetValue(DataViewObject &view);
@@ -448,6 +465,6 @@ private:
 bool
 IsDataView(JSObject *obj);
 
-} // namespace js
+} 
 
-#endif /* jstypedarray_h */
+#endif 
