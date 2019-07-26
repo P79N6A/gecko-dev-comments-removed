@@ -16,7 +16,6 @@
 #include "gfxPlatform.h"                
 #include "gfxRect.h"                    
 #include "gfxUtils.h"                   
-#include "gfx2DGlue.h"                  
 #include "mozilla/gfx/BaseSize.h"       
 #include "nsDebug.h"                    
 #include "nsISupportsImpl.h"            
@@ -98,7 +97,6 @@ CopyableCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
 
   if (mGLContext) {
     nsRefPtr<gfxImageSurface> readSurf;
-    RefPtr<DataSourceSurface> readDSurf;
     nsRefPtr<gfxASurface> resultSurf;
 
     SharedSurface* sharedSurf = mGLContext->RequestFrame();
@@ -107,7 +105,7 @@ CopyableCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
       return;
     }
 
-    gfxIntSize readSize(ThebesIntSize(sharedSurf->Size()));
+    gfxIntSize readSize(sharedSurf->Size());
     gfxImageFormat format = (GetContentFlags() & CONTENT_OPAQUE)
                             ? gfxImageFormatRGB24
                             : gfxImageFormatARGB32;
@@ -127,14 +125,8 @@ CopyableCanvasLayer::UpdateSurface(gfxASurface* aDestSurface, Layer* aMaskLayer)
     SharedSurface_GL* surfGL = SharedSurface_GL::Cast(sharedSurf);
 
     if (surfGL->Type() == SharedSurfaceType::Basic) {
-      
-      
       SharedSurface_Basic* sharedSurf_Basic = SharedSurface_Basic::Cast(surfGL);
-      readDSurf = sharedSurf_Basic->GetData();
-      readSurf = new gfxImageSurface(readDSurf->GetData(),
-                                     ThebesIntSize(readDSurf->GetSize()),
-                                     readDSurf->Stride(),
-                                     SurfaceFormatToImageFormat(readDSurf->GetFormat()));
+      readSurf = sharedSurf_Basic->GetData();
     } else {
       if (resultSurf->GetSize() != readSize ||
           !(readSurf = resultSurf->GetAsImageSurface()) ||
