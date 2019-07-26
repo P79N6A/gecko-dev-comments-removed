@@ -87,14 +87,7 @@ DrawTargetSkia::DrawTargetSkia()
 
 DrawTargetSkia::~DrawTargetSkia()
 {
-  if (mSnapshots.size()) {
-    for (std::vector<SourceSurfaceSkia*>::iterator iter = mSnapshots.begin();
-         iter != mSnapshots.end(); iter++) {
-      (*iter)->DrawTargetDestroyed();
-    }
-    
-    mSnapshots.clear();
-  }
+  MOZ_ASSERT(mSnapshots.size() == 0);
 }
 
 TemporaryRef<SourceSurface>
