@@ -17,12 +17,33 @@
 #ifndef _OS_TYPES_H
 #define _OS_TYPES_H
 
+#include <stddef.h>
 
 
-#define _ogg_malloc  malloc
-#define _ogg_calloc  calloc
-#define _ogg_realloc realloc
-#define _ogg_free    free
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef void* (ogg_malloc_function_type)(size_t);
+typedef void* (ogg_calloc_function_type)(size_t, size_t);
+typedef void* (ogg_realloc_function_type)(void*, size_t);
+typedef void (ogg_free_function_type)(void*);
+
+extern ogg_malloc_function_type *ogg_malloc_func;
+extern ogg_calloc_function_type *ogg_calloc_func;
+extern ogg_realloc_function_type *ogg_realloc_func;
+extern ogg_free_function_type *ogg_free_func;
+
+#ifdef __cplusplus
+}
+#endif
+
+#define _ogg_malloc ogg_malloc_func
+#define _ogg_calloc ogg_calloc_func
+#define _ogg_realloc ogg_realloc_func
+#define _ogg_free ogg_free_func
 
 #if defined(_WIN32) 
 
@@ -154,4 +175,4 @@
 
 #endif
 
-#endif  
+#endif
