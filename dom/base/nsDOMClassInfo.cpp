@@ -616,10 +616,10 @@ IdToString(JSContext *cx, jsid id)
 {
   if (JSID_IS_STRING(id))
     return JSID_TO_STRING(id);
-  jsval idval;
-  if (!::JS_IdToValue(cx, id, &idval))
+  JS::Rooted<JS::Value> idval(cx);
+  if (!::JS_IdToValue(cx, id, idval.address()))
     return nullptr;
-  return JS_ValueToString(cx, idval);
+  return JS::ToString(cx, idval);
 }
 
 static inline nsresult
@@ -3292,7 +3292,7 @@ LocationSetterGuts(JSContext *cx, JSObject *obj, JS::MutableHandle<JS::Value> vp
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  JS::Rooted<JSString*> val(cx, ::JS_ValueToString(cx, vp));
+  JS::Rooted<JSString*> val(cx, JS::ToString(cx, vp));
   NS_ENSURE_TRUE(val, NS_ERROR_UNEXPECTED);
 
   
@@ -4198,9 +4198,10 @@ nsHTMLDocumentSH::ReleaseDocument(JSFreeOp *fop, JSObject *obj)
 bool
 nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
 {
+  JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   
 
-  if (argc != 1) {
+  if (args.length() != 1) {
     
     
     
@@ -4210,7 +4211,7 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
   }
 
   
-  JS::Rooted<JSString*> str(cx, ::JS_ValueToString(cx, JS_ARGV(cx, vp)[0]));
+  JS::Rooted<JSString*> str(cx, JS::ToString(cx, args[0]));
   if (!str) {
     return false;
   }
@@ -4218,10 +4219,9 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
   
   
   JSObject *self;
-  JS::Value callee = JS_CALLEE(cx, vp);
-  if (callee.isObject() &&
-      JS_GetClass(&callee.toObject()) == &sHTMLDocumentAllClass) {
-    self = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
+  if (args.calleev().isObject() &&
+      JS_GetClass(&args.calleev().toObject()) == &sHTMLDocumentAllClass) {
+    self = &args.calleev().toObject();
   } else {
     self = JS_THIS_OBJECT(cx, vp);
     if (!self)
@@ -4235,13 +4235,7 @@ nsHTMLDocumentSH::CallToGetPropMapper(JSContext *cx, unsigned argc, jsval *vp)
     return false;
   }
 
-  JS::Rooted<JS::Value> value(cx);
-  if (!::JS_GetUCProperty(cx, self, chars, length, &value)) {
-    return false;
-  }
-
-  *vp = value;
-  return true;
+  return ::JS_GetUCProperty(cx, self, chars, length, args.rval());
 }
 
 
@@ -4436,7 +4430,8 @@ nsStorage2SH::SetProperty(nsIXPConnectWrappedNative *wrapper,
   nsDependentJSString keyStr;
   NS_ENSURE_TRUE(keyStr.init(cx, key), NS_ERROR_UNEXPECTED);
 
-  JSString *value = ::JS_ValueToString(cx, *vp);
+  JS::Rooted<JS::Value> val(cx, *vp);
+  JSString *value = JS::ToString(cx, val);
   NS_ENSURE_TRUE(value, NS_ERROR_UNEXPECTED);
 
   nsDependentJSString valueStr;
