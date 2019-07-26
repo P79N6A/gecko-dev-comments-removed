@@ -275,6 +275,10 @@ struct ComputedTiming
 
   
   
+  TimeDuration mActiveDuration;
+
+  
+  
   double mTimeFraction;
 
   
@@ -346,20 +350,6 @@ public:
   }
 
   
-  static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming) {
-    if (aTiming.mIterationCount == mozilla::PositiveInfinity<float>()) {
-      
-      
-      
-      const TimeDuration zeroDuration;
-      return aTiming.mIterationDuration == zeroDuration
-             ? zeroDuration
-             : mozilla::TimeDuration::Forever();
-    }
-    return aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount);
-  }
-
-  
   
   
   
@@ -375,6 +365,9 @@ public:
   
   static ComputedTiming GetComputedTimingAt(TimeDuration aLocalTime,
                                             const AnimationTiming& aTiming);
+
+  
+  static mozilla::TimeDuration ActiveDuration(const AnimationTiming& aTiming);
 
   nsString mName; 
   AnimationTiming mTiming;

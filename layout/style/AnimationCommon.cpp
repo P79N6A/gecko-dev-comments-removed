@@ -447,18 +447,20 @@ ComputedTiming
 ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
                                       const AnimationTiming& aTiming)
 {
+  const TimeDuration zeroDuration;
+
   
   
   
   
   
-  MOZ_ASSERT(aTiming.mIterationDuration >= TimeDuration(0),
+  MOZ_ASSERT(aTiming.mIterationDuration >= zeroDuration,
              "Expecting iteration duration >= 0");
 
   
   ComputedTiming result;
 
-  TimeDuration activeDuration = ActiveDuration(aTiming);
+  result.mActiveDuration = ActiveDuration(aTiming);
 
   
   
@@ -467,14 +469,14 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
 
   
   TimeDuration activeTime;
-  if (aLocalTime >= aTiming.mDelay + activeDuration) {
+  if (aLocalTime >= aTiming.mDelay + result.mActiveDuration) {
     result.mPhase = ComputedTiming::AnimationPhase_After;
     if (!aTiming.FillsForwards()) {
       
       result.mTimeFraction = ComputedTiming::kNullTimeFraction;
       return result;
     }
-    activeTime = activeDuration;
+    activeTime = result.mActiveDuration;
     
     
     isEndOfFinalIteration =
@@ -489,7 +491,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
     }
     
   } else {
-    MOZ_ASSERT(activeDuration != TimeDuration(),
+    MOZ_ASSERT(result.mActiveDuration != zeroDuration,
                "How can we be in the middle of a zero-duration interval?");
     result.mPhase = ComputedTiming::AnimationPhase_Active;
     activeTime = aLocalTime - aTiming.mDelay;
@@ -497,7 +499,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
 
   
   TimeDuration iterationTime;
-  if (aTiming.mIterationDuration != TimeDuration()) {
+  if (aTiming.mIterationDuration != zeroDuration) {
     iterationTime = isEndOfFinalIteration
                     ? aTiming.mIterationDuration
                     : activeTime % aTiming.mIterationDuration;
@@ -510,7 +512,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
       ? UINT64_MAX 
                    
       : static_cast<uint64_t>(aTiming.mIterationCount) - 1;
-  } else if (activeTime == TimeDuration(0)) {
+  } else if (activeTime == zeroDuration) {
     
     
     
@@ -533,7 +535,7 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
                          : fmod(aTiming.mIterationCount, 1.0f);
   } else {
     
-    MOZ_ASSERT(aTiming.mIterationDuration != TimeDuration(0),
+    MOZ_ASSERT(aTiming.mIterationDuration != zeroDuration,
                "In the active phase of a zero-duration animation?");
     result.mTimeFraction =
       aTiming.mIterationDuration == TimeDuration::Forever()
@@ -561,6 +563,21 @@ ElementAnimation::GetComputedTimingAt(TimeDuration aLocalTime,
   }
 
   return result;
+}
+
+TimeDuration
+ElementAnimation::ActiveDuration(const AnimationTiming& aTiming)
+{
+  if (aTiming.mIterationCount == mozilla::PositiveInfinity<float>()) {
+    
+    
+    
+    const TimeDuration zeroDuration;
+    return aTiming.mIterationDuration == zeroDuration
+           ? zeroDuration
+           : TimeDuration::Forever();
+  }
+  return aTiming.mIterationDuration.MultDouble(aTiming.mIterationCount);
 }
 
 namespace css {
