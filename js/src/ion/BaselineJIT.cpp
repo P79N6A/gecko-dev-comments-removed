@@ -235,6 +235,15 @@ void
 BaselineScript::trace(JSTracer *trc)
 {
     MarkIonCode(trc, &method_, "baseline-method");
+
+    
+    for (size_t i = 0; i < numICEntries(); i++) {
+        ICEntry &ent = icEntry(i);
+        for (ICStub *stub = ent.firstStub(); stub; stub = stub->next()) {
+            IonCode *stubIonCode = stub->ionCode();
+            MarkIonCodeUnbarriered(trc, &stubIonCode, "baseline-stub-ioncode");
+        }
+    }
 }
 
 void

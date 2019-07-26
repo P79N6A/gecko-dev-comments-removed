@@ -195,7 +195,7 @@ class ICStub
     uint16_t kind_;
 
     
-    void *stubCode_;
+    uint8_t *stubCode_;
 
     
     
@@ -270,6 +270,10 @@ class ICStub
 
     inline ICStub **addressOfNext() {
         return &next_;
+    }
+
+    inline IonCode *ionCode() {
+        return IonCode::FromExecutable(stubCode_);
     }
 
     static inline size_t offsetOfNext() {
