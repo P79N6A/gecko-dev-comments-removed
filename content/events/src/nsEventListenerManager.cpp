@@ -838,8 +838,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     JSAutoCompartment ac(cx, context->GetNativeGlobal());
     JS::CompileOptions options(cx);
     options.setFileAndLine(url.get(), lineNo)
-           .setVersion(SCRIPTVERSION_DEFAULT)
-           .setUserBit(true); 
+           .setVersion(SCRIPTVERSION_DEFAULT);
 
     js::RootedObject rootedNull(cx, nullptr); 
     JSObject *handlerFun = nullptr;
