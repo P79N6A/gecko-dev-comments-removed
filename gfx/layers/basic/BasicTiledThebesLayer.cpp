@@ -240,7 +240,16 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   if (regionToPaint.IsEmpty())
     return;
 
-  if (gfxPlatform::UseProgressiveTilePainting()) {
+  gfxSize resolution(1, 1);
+  for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
+    const FrameMetrics& metrics = parent->GetFrameMetrics();
+    resolution.width *= metrics.mResolution.width;
+    resolution.height *= metrics.mResolution.height;
+  }
+
+  
+  if (gfxPlatform::UseProgressiveTilePainting() &&
+      mTiledBuffer.GetResolution() == resolution) {
     nsIntRegionRectIterator it(regionToPaint);
     const nsIntRect* rect = it.Next();
     if (!rect)
@@ -265,37 +274,19 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       
       regionToPaint.And(regionToPaint, maxPaint);
       BasicManager()->SetRepeatTransaction();
-    }
 
-    
-    
-    
-    gfxSize resolution(1, 1);
-    for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
-      const FrameMetrics& metrics = parent->GetFrameMetrics();
-      resolution.width *= metrics.mResolution.width;
-      resolution.height *= metrics.mResolution.height;
-    }
-
-    nsIntRegion regionToRetain(mTiledBuffer.GetValidRegion());
-    if (false && mTiledBuffer.GetResolution() == resolution) {
       
-      
-      regionToRetain.And(regionToRetain, mVisibleRegion);
-      regionToRetain.Or(regionToRetain, regionToPaint);
-    } else {
-      regionToRetain = mValidRegion;
-      regionToRetain.Or(regionToRetain, regionToPaint);
-      mTiledBuffer.SetResolution(resolution);
+      mValidRegion.And(mValidRegion, mVisibleRegion);
     }
 
     
-    mTiledBuffer.PaintThebes(this, regionToRetain, regionToPaint, aCallback, aCallbackData);
     mValidRegion.Or(mValidRegion, regionToPaint);
   } else {
-    mTiledBuffer.PaintThebes(this, mVisibleRegion, regionToPaint, aCallback, aCallbackData);
+    mTiledBuffer.SetResolution(resolution);
     mValidRegion = mVisibleRegion;
   }
+
+  mTiledBuffer.PaintThebes(this, mVisibleRegion, regionToPaint, aCallback, aCallbackData);
 
   mTiledBuffer.ReadLock();
   if (aMaskLayer) {
