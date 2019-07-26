@@ -4206,32 +4206,6 @@ JS_AbortIfWrongThread(JSRuntime *rt);
 
 
 
-
-
-static JS_ALWAYS_INLINE bool
-JS_IsConstructing(JSContext *cx, const jsval *vp)
-{
-#ifdef DEBUG
-    JSObject *callee = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
-    if (JS_ObjectIsFunction(cx, callee)) {
-        JS::RootedValue calleeValue(cx, JS_CALLEE(cx, vp));
-        JSFunction *fun = JS_ValueToFunction(cx, calleeValue);
-        JS_ASSERT(JS_IsConstructor(fun));
-    } else {
-        JS_ASSERT(JS_GetClass(callee)->construct != NULL);
-    }
-#else
-    (void)cx;
-#endif
-
-    return JSVAL_IS_MAGIC_IMPL(JSVAL_TO_IMPL(vp[1]));
-}
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSObject *)
 JS_NewObjectForConstructor(JSContext *cx, const JSClass *clasp, const jsval *vp);
 
