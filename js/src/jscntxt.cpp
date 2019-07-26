@@ -256,39 +256,8 @@ js::DestroyContext(JSContext *cx, DestroyContextMode mode)
 
         for (CompartmentsIter c(rt); !c.done(); c.next())
             c->types.print(cx, false);
-
-        
-        for (CompartmentsIter c(rt); !c.done(); c.next())
-            CancelOffThreadIonCompile(c, NULL);
-        WaitForOffThreadParsingToFinish(rt);
-
-#ifdef JS_WORKER_THREADS
-        if (rt->workerThreadState)
-            rt->workerThreadState->cleanup(rt);
-#endif
-
-        
-        FinishCommonNames(rt);
-
-        
-        for (CompartmentsIter c(rt); !c.done(); c.next()) {
-            c->clearTraps(rt->defaultFreeOp());
-            if (WatchpointMap *wpmap = c->watchpointMap)
-                wpmap->clear();
-        }
-
-        
-        rt->staticStrings.finish();
-
-        JS::PrepareForFullGC(rt);
-        GC(rt, GC_NORMAL, JS::gcreason::LAST_CONTEXT);
-
-        
-
-
-
-        rt->finishSelfHosting();
-    } else if (mode == DCM_FORCE_GC) {
+    }
+    if (mode == DCM_FORCE_GC) {
         JS_ASSERT(!rt->isHeapBusy());
         JS::PrepareForFullGC(rt);
         GC(rt, GC_NORMAL, JS::gcreason::DESTROY_CONTEXT);
