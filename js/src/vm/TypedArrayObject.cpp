@@ -1333,9 +1333,11 @@ ArrayBufferViewObject::trace(JSTracer *trc, JSObject *obj)
     MarkSlot(trc, &bufSlot, "typedarray.buffer");
 
     
-    ArrayBufferObject &buf = bufSlot.toObject().as<ArrayBufferObject>();
-    int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
-    obj->initPrivate(buf.dataPointer() + offset);
+    if (bufSlot.isObject()) {
+        ArrayBufferObject &buf = bufSlot.toObject().as<ArrayBufferObject>();
+        int32_t offset = obj->getReservedSlot(BYTEOFFSET_SLOT).toInt32();
+        obj->initPrivate(buf.dataPointer() + offset);
+    }
 
     
     IsSlotMarked(&obj->getReservedSlotRef(NEXT_VIEW_SLOT));
