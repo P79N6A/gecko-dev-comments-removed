@@ -34,7 +34,6 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/osfile.jsm");
 Cu.import("resource://gre/modules/osfile/_PromiseWorker.jsm", this);
 Cu.import("resource://gre/modules/Promise.jsm");
-Cu.import("resource://gre/modules/AsyncShutdown.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "TelemetryStopwatch",
   "resource://gre/modules/TelemetryStopwatch.jsm");
@@ -154,18 +153,6 @@ let SessionFileInternal = {
 
 
 
-  _latestWrite: null,
-
-  
-
-
-  _isClosed: false,
-
-  
-
-
-
-
 
   readAuxSync: function (aPath) {
     let text;
@@ -223,11 +210,8 @@ let SessionFileInternal = {
   },
 
   write: function (aData) {
-    if (this._isClosed) {
-      return Promise.reject(new Error("_SessionFile is closed"));
-    }
     let refObj = {};
-    return this._latestWrite = TaskUtils.spawn(function task() {
+    return TaskUtils.spawn(function task() {
       TelemetryStopwatch.start("FX_SESSION_RESTORE_WRITE_FILE_LONGEST_OP_MS", refObj);
 
       try {
@@ -243,15 +227,6 @@ let SessionFileInternal = {
         Cu.reportError("Could not write session state file " + this.path
                        + ": " + ex);
       }
-      
-      
-      if (Services.startup.shuttingDown) {
-        this._isClosed = true;
-      }
-      
-      
-      
-      
     }.bind(this));
   },
 
@@ -302,11 +277,3 @@ let SessionWorker = (function () {
     }
   };
 })();
-
-
-
-AsyncShutdown.profileBeforeChange.addBlocker(
-  "SessionFile: Finish writing the latest sessionstore.js",
-  function() {
-    return _SessionFile._latestWrite;
-  });
