@@ -27,7 +27,6 @@
 #define UNICODE_TILD	0x007E
 nsUnicodeToHZ::nsUnicodeToHZ() : nsEncoderSupport(6)
 {
-  mUtil.InitToGBKTable();
   mHZState = HZ_STATE_ASCII;	
 }
 NS_IMETHODIMP nsUnicodeToHZ::ConvertNoBuff(
