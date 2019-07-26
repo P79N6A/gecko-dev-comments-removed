@@ -84,31 +84,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     
     
-    static inline Operand ToUpper32(Operand base) {
-        switch (base.kind()) {
-          case Operand::REG_DISP:
-            return Operand(Register::FromCode(base.base()), base.disp() + 4);
-
-          case Operand::SCALE:
-            return Operand(Register::FromCode(base.base()), Register::FromCode(base.index()),
-                           base.scale(), base.disp() + 4);
-
-          default:
-            JS_NOT_REACHED("unexpected operand kind");
-            return base; 
-        }
-    }
-
-    static inline uint32_t Upper32Of(JSValueShiftedTag tag) {
-        return (uint32_t)(tag >> 32);
-    }
-
-    static inline JSValueShiftedTag GetShiftedTag(JSValueType type) {
-        return (JSValueShiftedTag)JSVAL_TYPE_TO_SHIFTED_TAG(type);
-    }
-
-    
-    
     
     void storeValue(ValueOperand val, Operand dest) {
         movq(val.valueReg(), dest);
@@ -118,14 +93,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     }
     template <typename T>
     void storeValue(JSValueType type, Register reg, const T &dest) {
-        
-        if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
-            movl(reg, Operand(dest));
-            movl(Imm32(Upper32Of(GetShiftedTag(type))), ToUpper32(Operand(dest)));
-        } else {
-            boxValue(type, reg, ScratchReg);
-            movq(ScratchReg, Operand(dest));
-        }
+        boxValue(type, reg, ScratchReg);
+        movq(ScratchReg, Operand(dest));
     }
     template <typename T>
     void storeValue(const Value &val, const T &dest) {
@@ -543,30 +512,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     
     
-    
-    void branchTestUndefined(Condition cond, const Operand &operand, Label *label) {
-        JS_ASSERT(cond == Equal || cond == NotEqual);
-        cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_UNDEFINED))));
-        j(cond, label);
-    }
-    void branchTestInt32(Condition cond, const Operand &operand, Label *label) {
-        JS_ASSERT(cond == Equal || cond == NotEqual);
-        cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_INT32))));
-        j(cond, label);
-    }
-    void branchTestBoolean(Condition cond, const Operand &operand, Label *label) {
-        JS_ASSERT(cond == Equal || cond == NotEqual);
-        cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_BOOLEAN))));
-        j(cond, label);
-    }
-    void branchTestNull(Condition cond, const Operand &operand, Label *label) {
-        JS_ASSERT(cond == Equal || cond == NotEqual);
-        cmpl(ToUpper32(operand), Imm32(Upper32Of(GetShiftedTag(JSVAL_TYPE_NULL))));
-        j(cond, label);
-    }
-
-    
-    
     void branchTestUndefined(Condition cond, const ValueOperand &src, Label *label) {
         cond = testUndefined(cond, src);
         j(cond, label);
@@ -782,7 +727,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
 
     void loadInt32OrDouble(const Operand &operand, const FloatRegister &dest) {
         Label notInt32, end;
-        branchTestInt32(Assembler::NotEqual, operand, &notInt32);
+        movq(operand, ScratchReg);
+        branchTestInt32(Assembler::NotEqual, ValueOperand(ScratchReg), &notInt32);
         cvtsi2sd(operand, dest);
         jump(&end);
         bind(&notInt32);
