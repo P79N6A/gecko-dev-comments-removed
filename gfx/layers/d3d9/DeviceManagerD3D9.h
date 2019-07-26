@@ -206,7 +206,7 @@ public:
 #ifdef DEBUG
   
   
-  bool DeviceManagerD3D9::IsInTextureHostList(TextureSourceD3D9* aFind);
+  bool IsInTextureHostList(TextureSourceD3D9* aFind);
 #endif
 
   
