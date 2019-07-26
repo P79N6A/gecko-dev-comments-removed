@@ -2007,13 +2007,24 @@ _cairo_gstate_show_text_glyphs (cairo_gstate_t		   *gstate,
 						transformed_glyphs, num_glyphs,
 						&path);
 
-	if (status == CAIRO_STATUS_SUCCESS) {
+	if (status == CAIRO_STATUS_SUCCESS && !_cairo_path_fixed_fill_is_empty (&path)) {
 	    status = _cairo_surface_fill (gstate->target, op, pattern,
 					  &path,
 					  CAIRO_FILL_RULE_WINDING,
 					  gstate->tolerance,
 					  gstate->scaled_font->options.antialias,
 					  _gstate_get_clip (gstate, &clip));
+	} else {
+	    
+
+
+	    status = _cairo_surface_show_text_glyphs (gstate->target, op, pattern,
+						      utf8, utf8_len,
+						      transformed_glyphs, num_glyphs,
+						      transformed_clusters, num_clusters,
+						      cluster_flags,
+						      gstate->scaled_font,
+						      _gstate_get_clip (gstate, &clip));
 	}
 
 	_cairo_path_fixed_fini (&path);
