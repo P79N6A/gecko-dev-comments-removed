@@ -860,24 +860,23 @@ KEY_MAP_QT      (LaunchApplication18, Qt::Key_LaunchH)
 
 
 
-KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
 
 
-
-
-KEY_MAP_ANDROID (Info, AKEYCODE_INFO)
-
-
-KEY_MAP_ANDROID (Exit, AKEYCODE_HOME)
-
-
-KEY_MAP_WIN     (Zoom, VK_ZOOM)
-KEY_MAP_QT      (Zoom, Qt::Key_Zoom)
+KEY_MAP_WIN     (BrowserBack, VK_BROWSER_BACK)
+KEY_MAP_GTK     (BrowserBack, GDK_Back)
+KEY_MAP_QT      (BrowserBack, Qt::Key_Back)
+KEY_MAP_ANDROID (BrowserBack, AKEYCODE_BACK)
 
 
 KEY_MAP_WIN     (BrowserFavorites, VK_BROWSER_FAVORITES)
 KEY_MAP_QT      (BrowserFavorites, Qt::Key_Favorites)
 KEY_MAP_ANDROID (BrowserFavorites, AKEYCODE_BOOKMARK)
+
+
+KEY_MAP_WIN     (BrowserForward, VK_BROWSER_FORWARD)
+KEY_MAP_GTK     (BrowserForward, GDK_Forward)
+KEY_MAP_QT      (BrowserForward, Qt::Key_Forward)
+KEY_MAP_ANDROID (BrowserForward, AKEYCODE_FORWARD)
 
 
 KEY_MAP_WIN     (BrowserHome, VK_BROWSER_HOME)
@@ -903,16 +902,20 @@ KEY_MAP_GTK     (BrowserStop, GDK_Stop)
 KEY_MAP_QT      (BrowserStop, Qt::Key_Stop)
 
 
-KEY_MAP_WIN     (BrowserBack, VK_BROWSER_BACK)
-KEY_MAP_GTK     (BrowserBack, GDK_Back)
-KEY_MAP_QT      (BrowserBack, Qt::Key_Back)
-KEY_MAP_ANDROID (BrowserBack, AKEYCODE_BACK)
+
+KEY_MAP_ANDROID (Apps, AKEYCODE_APP_SWITCH)
 
 
-KEY_MAP_WIN     (BrowserForward, VK_BROWSER_FORWARD)
-KEY_MAP_GTK     (BrowserForward, GDK_Forward)
-KEY_MAP_QT      (BrowserForward, Qt::Key_Forward)
-KEY_MAP_ANDROID (BrowserForward, AKEYCODE_FORWARD)
+
+
+KEY_MAP_ANDROID (Info, AKEYCODE_INFO)
+
+
+KEY_MAP_ANDROID (Exit, AKEYCODE_HOME)
+
+
+KEY_MAP_WIN     (Zoom, VK_ZOOM)
+KEY_MAP_QT      (Zoom, Qt::Key_Zoom)
 
 
 
