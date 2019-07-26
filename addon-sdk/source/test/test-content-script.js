@@ -590,7 +590,7 @@ exports["test XMLHttpRequest"] = createProxyTest("", function (helper) {
     'new ' + function ContentScriptScope() {
       
       
-      assert(window.XMLHttpRequest(), "we are able to instantiate XMLHttpRequest object");
+      assert(new window.XMLHttpRequest(), "we are able to instantiate XMLHttpRequest object");
       done();
     }
   );

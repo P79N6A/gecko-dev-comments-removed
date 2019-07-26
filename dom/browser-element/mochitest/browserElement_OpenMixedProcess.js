@@ -55,7 +55,7 @@ function runTest() {
       
       
       iframe.getScreenshot(1000, 1000).onsuccess = function(e) {
-        var fr = FileReader();
+        var fr = new FileReader();
         fr.onloadend = function() { test2(popup, fr.result); };
         fr.readAsArrayBuffer(e.target.result);
       };
