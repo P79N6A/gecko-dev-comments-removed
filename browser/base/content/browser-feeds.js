@@ -152,9 +152,7 @@ var FeedHandler = {
     }
   },
 
-  addFeed: function(link, targetDoc) {
-    
-    var browserForLink = gBrowser.getBrowserForDocument(targetDoc);
+  addFeed: function(link, browserForLink) {
     if (!browserForLink) {
       
       return;
