@@ -7,24 +7,19 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
-const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
-Cu.import("resource://gre/modules/Services.jsm");
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Components.utils.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "AddonRepository",
                                   "resource://gre/modules/AddonRepository.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "FileUtils",
                                   "resource://gre/modules/FileUtils.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "DeferredSave",
-                                  "resource://gre/modules/DeferredSave.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "Promise",
-                                  "resource://gre/modules/Promise.jsm");
 
 ["LOG", "WARN", "ERROR"].forEach(function(aName) {
   Object.defineProperty(this, aName, {
     get: function logFuncGetter () {
-      Cu.import("resource://gre/modules/AddonLogging.jsm");
+      Components.utils.import("resource://gre/modules/AddonLogging.jsm");
 
       LogManager.getLogger("addons.xpi-utils", this);
       return this[aName];
@@ -92,8 +87,6 @@ const PROP_JSON_FIELDS = ["id", "syncGUID", "location", "version", "type",
                           "strictCompatibility", "locales", "targetApplications",
                           "targetPlatforms"];
 
-
-const ASYNC_SAVE_DELAY_MS = 20;
 
 const PREFIX_ITEM_URI                 = "urn:mozilla:item:";
 const RDFURI_ITEM_ROOT                = "urn:mozilla:item:root"
@@ -349,17 +342,18 @@ function DBAddonInternal(aLoaded) {
 
 DBAddonInternal.prototype = {
   applyCompatibilityUpdate: function DBA_applyCompatibilityUpdate(aUpdate, aSyncCompatibility) {
+    XPIDatabase.beginTransaction();
     this.targetApplications.forEach(function(aTargetApp) {
       aUpdate.targetApplications.forEach(function(aUpdateTarget) {
         if (aTargetApp.id == aUpdateTarget.id && (aSyncCompatibility ||
             Services.vc.compare(aTargetApp.maxVersion, aUpdateTarget.maxVersion) < 0)) {
           aTargetApp.minVersion = aUpdateTarget.minVersion;
           aTargetApp.maxVersion = aUpdateTarget.maxVersion;
-          XPIDatabase.saveChanges();
         }
       });
     });
     XPIProvider.updateAddonDisabledState(this);
+    XPIDatabase.commitTransaction();
   },
 
   get inDatabase() {
@@ -376,6 +370,8 @@ DBAddonInternal.prototype.__proto__ = AddonInternal.prototype;
 this.XPIDatabase = {
   
   initialized: false,
+  
+  transactionCount: 0,
   
   jsonFile: FileUtils.getFile(KEY_PROFILEDIR, [FILE_JSON_DB], true),
   
@@ -398,56 +394,17 @@ this.XPIDatabase = {
   
 
 
-  saveChanges: function() {
-    if (!this.initialized) {
-      throw new Error("Attempt to use XPI database when it is not initialized");
-    }
+
+
+
+
+  writeJSON: function XPIDB_writeJSON() {
+    
 
     
-    if (this.lockedDatabase) {
+    if (this.lockedDatabase)
       return;
-    }
 
-    let promise = this._deferredSave.saveChanges();
-    if (!this._schemaVersionSet) {
-      this._schemaVersionSet = true;
-      promise.then(
-        count => {
-          
-          
-          LOG("XPI Database saved, setting schema version preference to " + DB_SCHEMA);
-          Services.prefs.setIntPref(PREF_DB_SCHEMA, DB_SCHEMA);
-        },
-        error => {
-          
-          this._schemaVersionSet = false;
-          WARN("Failed to save XPI database", error);
-        });
-    }
-  },
-
-  flush: function() {
-    
-    if (this.lockedDatabase) {
-      let done = Promise.defer();
-      done.resolve(0);
-      return done.promise;
-    }
-
-    return this._deferredSave.flush();
-  },
-
-  get _deferredSave() {
-    delete this._deferredSave;
-    return this._deferredSave =
-      new DeferredSave(this.jsonFile.path, () => JSON.stringify(this),
-                       ASYNC_SAVE_DELAY_MS);
-  },
-
-  
-
-
-  toJSON: function() {
     let addons = [];
     for (let [key, addon] of this.addonDB) {
       addons.push(addon);
@@ -456,7 +413,74 @@ this.XPIDatabase = {
       schemaVersion: DB_SCHEMA,
       addons: addons
     };
-    return toSave;
+
+    let stream = FileUtils.openSafeFileOutputStream(this.jsonFile);
+    let converter = Cc["@mozilla.org/intl/converter-output-stream;1"].
+      createInstance(Ci.nsIConverterOutputStream);
+    try {
+      converter.init(stream, "UTF-8", 0, 0x0000);
+      
+      let out = JSON.stringify(toSave, null, 2);
+      
+      converter.writeString(out);
+      converter.flush();
+      
+      FileUtils.closeSafeFileOutputStream(stream);
+      converter.close();
+      this.dbfileExists = true;
+      
+      Services.prefs.setIntPref(PREF_DB_SCHEMA, DB_SCHEMA);
+      Services.prefs.savePrefFile(null);   
+    }
+    catch(e) {
+      ERROR("Failed to save database to JSON", e);
+      stream.close();
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  beginTransaction: function XPIDB_beginTransaction() {
+    this.transactionCount++;
+  },
+
+  
+
+
+
+  commitTransaction: function XPIDB_commitTransaction() {
+    if (this.transactionCount == 0) {
+      ERROR("Attempt to commit one transaction too many.");
+      return;
+    }
+
+    this.transactionCount--;
+
+    if (this.transactionCount == 0) {
+      
+      this.writeJSON();
+    }
+  },
+
+  
+
+
+
+  rollbackTransaction: function XPIDB_rollbackTransaction() {
+    if (this.transactionCount == 0) {
+      ERROR("Attempt to rollback one transaction too many.");
+      return;
+    }
+
+    this.transactionCount--;
+    
   },
 
   
@@ -545,7 +569,6 @@ this.XPIDatabase = {
           
           
           
-          
           LOG("JSON schema mismatch: expected " + DB_SCHEMA +
               ", actual " + inputAddons.schemaVersion);
         }
@@ -558,7 +581,6 @@ this.XPIDatabase = {
         });
         this.addonDB = addonDB;
         LOG("Successfully read XPI database");
-        this.initialized = true;
       }
       catch(e) {
         
@@ -605,6 +627,7 @@ this.XPIDatabase = {
         fstream.close();
     }
 
+    this.initialized = true;
     return;
 
     
@@ -624,25 +647,26 @@ this.XPIDatabase = {
 
 
   rebuildDatabase: function XIPDB_rebuildDatabase(aRebuildOnError) {
+    
+    
     this.addonDB = new Map();
-    this.initialized = true;
-
-    
-    
     if (!this.migrateData)
       this.activeBundles = this.getActiveBundles();
 
     if (aRebuildOnError) {
       WARN("Rebuilding add-ons database from installed extensions.");
+      this.beginTransaction();
       try {
         let state = XPIProvider.getInstallLocationStates();
         XPIProvider.processFileChanges(state, {}, false);
+        
+        Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
+        this.commitTransaction();
       }
       catch (e) {
-        ERROR("Failed to rebuild XPI database from installed extensions", e);
+        ERROR("Error processing file changes", e);
+        this.rollbackTransaction();
       }
-      
-      Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
     }
   },
 
@@ -861,55 +885,38 @@ this.XPIDatabase = {
   shutdown: function XPIDB_shutdown(aCallback) {
     LOG("shutdown");
     if (this.initialized) {
+      if (this.transactionCount > 0) {
+        ERROR(this.transactionCount + " outstanding transactions, rolling back.");
+        while (this.transactionCount > 0)
+          this.rollbackTransaction();
+      }
+
       
       
       if (this.lockedDatabase)
         Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
 
       this.initialized = false;
-      let result = null;
 
       
       
-      this.flush()
-        .then(null, error => {
-          ERROR("Flush of XPI database failed", error);
-          Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
-          result = error;
-          return 0;
-        })
-        .then(count => {
-          
-          
-          delete this.addonDB;
-          Object.defineProperty(this, "addonDB", {
-            get: function addonsGetter() {
-              this.openConnection(true);
-              return this.addonDB;
-            },
-            configurable: true
-          });
-          
-          delete this._deferredSave;
-          Object.defineProperty(this, "_deferredSave", {
-            set: function deferredSaveGetter() {
-              delete this._deferredSave;
-              return this._deferredSave =
-                new DeferredSave(this.jsonFile.path, this.formJSON.bind(this),
-                                 ASYNC_SAVE_DELAY_MS);
-            },
-            configurable: true
-          });
-          
-          delete this._schemaVersionSet;
-
-          if (aCallback)
-            aCallback(result);
-        });
+      delete this.addonDB;
+      Object.defineProperty(this, "addonDB", {
+        get: function addonsGetter() {
+          this.openConnection(true);
+          return this.addonDB;
+        },
+        configurable: true
+      });
+      
+      
+      
+      if (aCallback)
+        aCallback();
     }
     else {
       if (aCallback)
-        aCallback(null);
+        aCallback();
     }
   },
 
@@ -1120,6 +1127,8 @@ this.XPIDatabase = {
     if (!this.addonDB)
       this.openConnection(false, true);
 
+    this.beginTransaction();
+
     let newAddon = new DBAddonInternal(aAddon);
     newAddon.descriptor = aDescriptor;
     this.addonDB.set(newAddon._key, newAddon);
@@ -1127,7 +1136,7 @@ this.XPIDatabase = {
       this.makeAddonVisible(newAddon);
     }
 
-    this.saveChanges();
+    this.commitTransaction();
     return newAddon;
   },
 
@@ -1145,16 +1154,26 @@ this.XPIDatabase = {
 
   updateAddonMetadata: function XPIDB_updateAddonMetadata(aOldAddon, aNewAddon,
                                                           aDescriptor) {
-    this.removeAddonMetadata(aOldAddon);
-    aNewAddon.syncGUID = aOldAddon.syncGUID;
-    aNewAddon.installDate = aOldAddon.installDate;
-    aNewAddon.applyBackgroundUpdates = aOldAddon.applyBackgroundUpdates;
-    aNewAddon.foreignInstall = aOldAddon.foreignInstall;
-    aNewAddon.active = (aNewAddon.visible && !aNewAddon.userDisabled &&
-                        !aNewAddon.appDisabled && !aNewAddon.pendingUninstall);
+    this.beginTransaction();
 
     
-    return this.addAddonMetadata(aNewAddon, aDescriptor);
+    try {
+      this.removeAddonMetadata(aOldAddon);
+      aNewAddon.syncGUID = aOldAddon.syncGUID;
+      aNewAddon.installDate = aOldAddon.installDate;
+      aNewAddon.applyBackgroundUpdates = aOldAddon.applyBackgroundUpdates;
+      aNewAddon.foreignInstall = aOldAddon.foreignInstall;
+      aNewAddon.active = (aNewAddon.visible && !aNewAddon.userDisabled &&
+                          !aNewAddon.appDisabled && !aNewAddon.pendingUninstall)
+
+      let newDBAddon = this.addAddonMetadata(aNewAddon, aDescriptor);
+      this.commitTransaction();
+      return newDBAddon;
+    }
+    catch (e) {
+      this.rollbackTransaction();
+      throw e;
+    }
   },
 
   
@@ -1164,8 +1183,9 @@ this.XPIDatabase = {
 
 
   removeAddonMetadata: function XPIDB_removeAddonMetadata(aAddon) {
+    this.beginTransaction();
     this.addonDB.delete(aAddon._key);
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1178,6 +1198,7 @@ this.XPIDatabase = {
 
 
   makeAddonVisible: function XPIDB_makeAddonVisible(aAddon) {
+    this.beginTransaction();
     LOG("Make addon " + aAddon._key + " visible");
     for (let [key, otherAddon] of this.addonDB) {
       if ((otherAddon.id == aAddon.id) && (otherAddon._key != aAddon._key)) {
@@ -1186,7 +1207,7 @@ this.XPIDatabase = {
       }
     }
     aAddon.visible = true;
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1198,10 +1219,11 @@ this.XPIDatabase = {
 
 
   setAddonProperties: function XPIDB_setAddonProperties(aAddon, aProperties) {
+    this.beginTransaction();
     for (let key in aProperties) {
       aAddon[key] = aProperties[key];
     }
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1223,8 +1245,9 @@ this.XPIDatabase = {
       throw new Error("Addon sync GUID conflict for addon " + aAddon._key +
           ": " + otherAddon._key + " already has GUID " + aGUID);
     }
+    this.beginTransaction();
     aAddon.syncGUID = aGUID;
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1237,8 +1260,9 @@ this.XPIDatabase = {
 
 
   setAddonDescriptor: function XPIDB_setAddonDescriptor(aAddon, aDescriptor) {
+    this.beginTransaction();
     aAddon.descriptor = aDescriptor;
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1250,8 +1274,9 @@ this.XPIDatabase = {
   updateAddonActive: function XPIDB_updateAddonActive(aAddon, aActive) {
     LOG("Updating active state for add-on " + aAddon.id + " to " + aActive);
 
+    this.beginTransaction();
     aAddon.active = aActive;
-    this.saveChanges();
+    this.commitTransaction();
   },
 
   
@@ -1261,14 +1286,19 @@ this.XPIDatabase = {
     
     
     LOG("Updating add-on states");
+    let changed = false;
     for (let [key, addon] of this.addonDB) {
       let newActive = (addon.visible && !addon.userDisabled &&
                       !addon.softDisabled && !addon.appDisabled &&
                       !addon.pendingUninstall);
       if (newActive != addon.active) {
         addon.active = newActive;
-        this.saveChanges();
+        changed = true;
       }
+    }
+    if (changed) {
+      this.beginTransaction();
+      this.commitTransaction();
     }
   },
 
