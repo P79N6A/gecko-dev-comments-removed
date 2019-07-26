@@ -11,7 +11,7 @@ function run_test() {
 
   
   
-  var sb = new Cu.Sandbox('http://www.example.com', { wantDOMConstructors: ["XMLHttpRequest"] });
+  var sb = new Cu.Sandbox('http://www.example.com', { wantGlobalProperties: ["XMLHttpRequest"] });
   Cu.evalInSandbox('this.xhr = new XMLHttpRequest();', sb);
   Cu.evalInSandbox('this.jsobj = {mynative: xhr};', sb);
   do_check_true(!Cu.isXrayWrapper(XPCNativeWrapper.unwrap(sb.xhr)));

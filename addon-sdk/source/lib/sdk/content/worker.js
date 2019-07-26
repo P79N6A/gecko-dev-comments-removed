@@ -130,13 +130,13 @@ const WorkerSandbox = EventEmitter.compose({
     
     
     let principals  = window;
-    let wantDOMConstructors = []
+    let wantGlobalProperties = []
     if (EXPANDED_PRINCIPALS.length > 0 && !worker._injectInDocument) {
       principals = EXPANDED_PRINCIPALS.concat(window);
       
       
       delete proto.XMLHttpRequest;
-      wantDOMConstructors.push("XMLHttpRequest");
+      wantGlobalProperties.push("XMLHttpRequest");
     }
 
     
@@ -149,7 +149,7 @@ const WorkerSandbox = EventEmitter.compose({
     let content = this._sandbox = sandbox(principals, {
       sandboxPrototype: proto,
       wantXrays: true,
-      wantDOMConstructors: wantDOMConstructors,
+      wantGlobalProperties: wantGlobalProperties,
       sameZoneAs: window
     });
     
