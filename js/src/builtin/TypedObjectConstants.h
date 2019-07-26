@@ -18,24 +18,21 @@
 
 
 
-#define JS_TYPEOBJ_SLOT_TYPE_REPR          0  // Associated Type Representation
+#define JS_DESCR_SLOT_TYPE_REPR          0  // Associated Type Representation
+#define JS_DESCR_SLOT_SIZE               1  // Size in bytes, if sized
+#define JS_DESCR_SLOT_ALIGNMENT          2  // Alignment in bytes, if sized
 
 
-#define JS_TYPEOBJ_SCALAR_SLOTS            1  // Maximum number
+#define JS_DESCR_SLOT_TYPE               3  // Type code
 
 
-#define JS_TYPEOBJ_REFERENCE_SLOTS         1  // Maximum number
+#define JS_DESCR_SLOT_ARRAY_ELEM_TYPE    3
 
 
-#define JS_TYPEOBJ_X4_SLOTS                1  // Maximum number
+#define JS_DESCR_SLOT_STRUCT_FIELD_TYPES 3
 
 
-#define JS_TYPEOBJ_SLOT_ARRAY_ELEM_TYPE    1
-#define JS_TYPEOBJ_ARRAY_SLOTS             3  // Maximum number
-
-
-#define JS_TYPEOBJ_SLOT_STRUCT_FIELD_TYPES 1
-#define JS_TYPEOBJ_STRUCT_SLOTS            2  // Maximum number
+#define JS_DESCR_SLOTS                   4
 
 
 
