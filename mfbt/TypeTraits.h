@@ -223,6 +223,7 @@ struct IsSignedHelper<T, false>
 
 
 
+
 template<typename T>
 struct IsSigned : detail::IsSignedHelper<T> {};
 
@@ -456,31 +457,117 @@ struct RemoveCV
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 template<bool B, typename T = void>
+struct EnableIf;
+
+template<bool Condition, typename A, typename B>
+struct Conditional;
+
+namespace detail {
+
+template<bool MakeConst, typename T>
+struct WithC : Conditional<MakeConst, const T, T>
+{};
+
+template<bool MakeVolatile, typename T>
+struct WithV : Conditional<MakeVolatile, volatile T, T>
+{};
+
+
+template<bool MakeConst, bool MakeVolatile, typename T>
+struct WithCV : WithC<MakeConst, typename WithV<MakeVolatile, T>::Type>
+{};
+
+template<typename T>
+struct CorrespondingSigned;
+
+template<>
+struct CorrespondingSigned<char> { typedef signed char Type; };
+template<>
+struct CorrespondingSigned<unsigned char> { typedef signed char Type; };
+template<>
+struct CorrespondingSigned<unsigned short> { typedef short Type; };
+template<>
+struct CorrespondingSigned<unsigned int> { typedef int Type; };
+template<>
+struct CorrespondingSigned<unsigned long> { typedef long Type; };
+template<>
+struct CorrespondingSigned<unsigned long long> { typedef long long Type; };
+
+template<typename T,
+         typename CVRemoved = typename RemoveCV<T>::Type,
+         bool IsSignedIntegerType = IsSigned<CVRemoved>::value &&
+                                    !IsSame<char, CVRemoved>::value>
+struct MakeSigned;
+
+template<typename T, typename CVRemoved>
+struct MakeSigned<T, CVRemoved, true>
+{
+    typedef T Type;
+};
+
+template<typename T, typename CVRemoved>
+struct MakeSigned<T, CVRemoved, false>
+  : WithCV<IsConst<T>::value, IsVolatile<T>::value,
+           typename CorrespondingSigned<CVRemoved>::Type>
+{};
+
+} 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T>
+struct MakeSigned
+  : EnableIf<IsIntegral<T>::value && !IsSame<bool, typename RemoveCV<T>::Type>::value,
+             typename detail::MakeSigned<T>
+            >::Type
+{};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<bool B, typename T>
 struct EnableIf
 {};
 
