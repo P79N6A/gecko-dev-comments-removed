@@ -492,7 +492,8 @@ nsPrincipal::SetDomain(nsIURI* aDomain)
 
   
   
-  SafeAutoJSContext cx;
+  JSContext *cx = nsContentUtils::GetSafeJSContext();
+  NS_ENSURE_TRUE(cx, NS_ERROR_FAILURE);
   JSPrincipals *principals = nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
   bool success = js::RecomputeWrappers(cx, js::ContentCompartmentsOnly(),
                                        js::CompartmentsWithPrincipals(principals));

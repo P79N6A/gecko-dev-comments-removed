@@ -341,9 +341,6 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *existing, JSObject *obj,
                "wrapped object passed to rewrap");
     MOZ_ASSERT(JS_GetClass(obj) != &XrayUtils::HolderClass, "trying to wrap a holder");
     MOZ_ASSERT(!js::IsInnerObject(obj));
-    
-    
-    MOZ_ASSERT(XPCJSRuntime::Get()->GetJSContextStack()->Peek() == cx);
 
     
     JSCompartment *origin = js::GetObjectCompartment(obj);

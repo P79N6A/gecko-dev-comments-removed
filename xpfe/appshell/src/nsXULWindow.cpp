@@ -1800,7 +1800,8 @@ NS_IMETHODIMP nsXULWindow::CreateNewContentWindow(int32_t aChromeFlags,
   
   
   nsCxPusher pusher;
-  pusher.PushNull();
+  if (!pusher.PushNull())
+    return NS_ERROR_FAILURE;
   nsCOMPtr<nsIXULWindow> newWindow;
   appShell->CreateTopLevelWindow(this, uri,
                                  aChromeFlags, 615, 480,
