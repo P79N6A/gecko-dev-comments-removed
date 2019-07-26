@@ -22,82 +22,21 @@
 #include "nsContentUtils.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsJSPrincipals.h"
+#include "jswrapper.h"
 
 extern PRLogModuleInfo *MCD;
+using mozilla::SafeAutoJSContext;
 
 
 
-
-class AutoConfigSecMan MOZ_FINAL : public nsIXPCSecurityManager
-{
-public:
-    NS_DECL_ISUPPORTS
-    NS_DECL_NSIXPCSECURITYMANAGER
-    AutoConfigSecMan();
-};
-
-NS_IMPL_ISUPPORTS1(AutoConfigSecMan, nsIXPCSecurityManager)
-
-AutoConfigSecMan::AutoConfigSecMan()
-{
-}
-
-NS_IMETHODIMP
-AutoConfigSecMan::CanCreateWrapper(JSContext *aJSContext, const nsIID & aIID, 
-                                  nsISupports *aObj, nsIClassInfo *aClassInfo, 
-                                  void **aPolicy)
-{
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-AutoConfigSecMan::CanCreateInstance(JSContext *aJSContext, const nsCID & aCID)
-{
-    return NS_OK;
-}
-
-NS_IMETHODIMP
-AutoConfigSecMan::CanGetService(JSContext *aJSContext, const nsCID & aCID)
-{
-    return NS_OK;
-}
-
-NS_IMETHODIMP 
-AutoConfigSecMan::CanAccess(uint32_t aAction, 
-                            nsAXPCNativeCallContext *aCallContext, 
-                            JSContext *aJSContext, JSObject *aJSObject, 
-                            nsISupports *aObj, nsIClassInfo *aClassInfo, 
-                            jsid aName, void **aPolicy)
-{
-    return NS_OK;
-}
-
-
-
-static  JSContext *autoconfig_cx = nullptr;
-static  JSObject *autoconfig_glob;
-
-static JSClass global_class = {
-    "autoconfig_global", JSCLASS_GLOBAL_FLAGS,
-    JS_PropertyStub,  JS_PropertyStub,  JS_PropertyStub,  JS_StrictPropertyStub,
-    JS_EnumerateStub, JS_ResolveStub,   JS_ConvertStub,   nullptr
-};
-
-static void
-autoConfigErrorReporter(JSContext *cx, const char *message, 
-                        JSErrorReport *report)
-{
-    NS_ERROR(message);
-    PR_LOG(MCD, PR_LOG_DEBUG, ("JS error in js from MCD server: %s\n", message));
-} 
+static JSObject *autoconfigSb = nullptr;
 
 nsresult CentralizedAdminPrefManagerInit()
 {
     nsresult rv;
-    JSRuntime *rt;
 
     
-    if (autoconfig_cx) 
+    if (autoconfigSb)
         return NS_OK;
 
     
@@ -107,54 +46,37 @@ nsresult CentralizedAdminPrefManagerInit()
     }
 
     
-    nsCOMPtr<nsIJSRuntimeService> rtsvc = 
-        do_GetService("@mozilla.org/js/xpc/RuntimeService;1", &rv);
-    if (NS_SUCCEEDED(rv))
-        rv = rtsvc->GetRuntime(&rt);
-
-    if (NS_FAILED(rv)) {
-        NS_ERROR("Couldn't get JS RunTime");
-        return rv;
-    }
-
-    
-    autoconfig_cx = JS_NewContext(rt, 1024);
-    if (!autoconfig_cx)
-        return NS_ERROR_OUT_OF_MEMORY;
-
-    JSAutoRequest ar(autoconfig_cx);
-
-    JS_SetErrorReporter(autoconfig_cx, autoConfigErrorReporter);
-
-    
-    nsCOMPtr<nsIXPCSecurityManager> secman =
-        static_cast<nsIXPCSecurityManager*>(new AutoConfigSecMan());
-    xpc->SetSecurityManagerForJSContext(autoconfig_cx, secman, 0);
-
-
     nsCOMPtr<nsIPrincipal> principal;
     nsContentUtils::GetSecurityManager()->GetSystemPrincipal(getter_AddRefs(principal));
-    autoconfig_glob = JS_NewGlobalObject(autoconfig_cx, &global_class, nsJSPrincipals::get(principal));
-    if (autoconfig_glob) {
-        JSAutoCompartment ac(autoconfig_cx, autoconfig_glob);
-        if (JS_InitStandardClasses(autoconfig_cx, autoconfig_glob)) {
-            
-            rv = xpc->InitClasses(autoconfig_cx, autoconfig_glob);
-            if (NS_SUCCEEDED(rv)) 
-                return NS_OK;
-        }
-    }
+
 
     
-    JS_DestroyContext(autoconfig_cx);
-    autoconfig_cx = nullptr;
-    return NS_ERROR_FAILURE;
+    SafeAutoJSContext cx;
+    JSAutoRequest ar(cx);
+    nsCOMPtr<nsIXPConnectJSObjectHolder> sandbox;
+    rv = xpc->CreateSandbox(cx, principal, getter_AddRefs(sandbox));
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    rv = sandbox->GetJSObject(&autoconfigSb);
+    NS_ENSURE_SUCCESS(rv, rv);
+    autoconfigSb = js::UnwrapObject(autoconfigSb);
+    JSAutoCompartment ac(cx, autoconfigSb);
+    if (!JS_AddNamedObjectRoot(cx, &autoconfigSb, "AutoConfig Sandbox"))
+        return NS_ERROR_FAILURE;
+
+    return NS_OK;
 }
 
 nsresult CentralizedAdminPrefManagerFinish()
 {
-    if (autoconfig_cx)
-        JS_DestroyContext(autoconfig_cx);
+    if (autoconfigSb) {
+        SafeAutoJSContext cx;
+        JSAutoRequest ar(cx);
+        JSAutoCompartment(cx, autoconfigSb);
+        JS_RemoveObjectRoot(cx, &autoconfigSb);
+        JS_MaybeGC(cx);
+    }
     return NS_OK;
 }
 
@@ -162,7 +84,7 @@ nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
                                    const char *filename, bool bGlobalContext, 
                                    bool bCallbacks, bool skipFirstLine)
 {
-    JSBool ok;
+    nsresult rv = NS_OK;
 
     if (skipFirstLine) {
         
@@ -186,33 +108,22 @@ nsresult EvaluateAdminConfigScript(const char *js_buffer, size_t length,
         js_buffer += i;
     }
 
-    nsresult rv;
-    nsCOMPtr<nsIJSContextStack> cxstack = 
-        do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-    rv = cxstack->Push(autoconfig_cx);
+    
+    nsCOMPtr<nsIXPConnect> xpc = do_GetService(nsIXPConnect::GetCID(), &rv);
     if (NS_FAILED(rv)) {
-        NS_ERROR("coudn't push the context on the stack");
         return rv;
     }
 
-    JS_BeginRequest(autoconfig_cx);
-    nsCOMPtr<nsIPrincipal> principal;
-    nsContentUtils::GetSecurityManager()->GetSystemPrincipal(getter_AddRefs(principal));
-    JS::CompileOptions options(autoconfig_cx);
-    options.setPrincipals(nsJSPrincipals::get(principal))
-           .setFileAndLine(filename, 1);
-    JS::RootedObject glob(autoconfig_cx, autoconfig_glob);
-    ok = JS::Evaluate(autoconfig_cx, glob, options, js_buffer, length, nullptr);
-    JS_EndRequest(autoconfig_cx);
+    SafeAutoJSContext cx;
+    JSAutoRequest ar(cx);
+    JSAutoCompartment ac(cx, autoconfigSb);
 
-    JS_MaybeGC(autoconfig_cx);
+    nsAutoCString script(js_buffer, length);
+    JS::RootedValue v(cx);
+    rv = xpc->EvalInSandboxObject(NS_ConvertASCIItoUTF16(script), filename, cx, autoconfigSb,
+                                   false, v.address());
+    NS_ENSURE_SUCCESS(rv, rv);
 
-    JSContext *cx;
-    cxstack->Pop(&cx);
-    NS_ASSERTION(cx == autoconfig_cx, "AutoConfig JS contexts didn't match");
-
-    if (ok)
-        return NS_OK;
-    return NS_ERROR_FAILURE;
+    return NS_OK;
 }
 
