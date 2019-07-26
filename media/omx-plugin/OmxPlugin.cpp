@@ -65,9 +65,6 @@ const int OMX_TI_COLOR_FormatYUV420PackedSemiPlanar = 0x7F000100;
 class OmxDecoder {
   PluginHost *mPluginHost;
   Decoder *mDecoder;
-#ifndef MOZ_WIDGET_GONK
-  OMXClient mClient;
-#endif
   sp<MediaSource> mVideoTrack;
   sp<MediaSource> mVideoSource;
   sp<MediaSource> mAudioTrack;
@@ -143,6 +140,39 @@ public:
   bool ReadAudio(AudioFrame *aFrame, int64_t aSeekTimeUs);
 };
 
+#if !defined(MOZ_WIDGET_GONK)
+static class OmxClientInstance {
+public:
+  OmxClientInstance()
+    : mClient(new OMXClient())
+    , mStatus(mClient->connect())
+  {
+  }
+
+  status_t IsValid()
+  {
+    return mStatus == OK;
+  }
+
+  OMXClient *get()
+  {
+    return mClient;
+  }
+
+  ~OmxClientInstance()
+  {
+    if (mStatus == OK) {
+      mClient->disconnect();
+    }
+    delete mClient;
+  }
+
+private:
+  OMXClient *mClient;
+  status_t mStatus;
+} sClientInstance;
+#endif
+
 OmxDecoder::OmxDecoder(PluginHost *aPluginHost, Decoder *aDecoder) :
   mPluginHost(aPluginHost),
   mDecoder(aDecoder),
@@ -183,9 +213,6 @@ OmxDecoder::~OmxDecoder()
   if (mColorConverter) {
     delete mColorConverter;
   }
-#endif
-#ifndef MOZ_WIDGET_GONK
-  mClient.disconnect();
 #endif
 }
 
@@ -429,7 +456,18 @@ static sp<MediaSource> CreateVideoSource(PluginHost* aPluginHost,
                           nullptr, flags);
 }
 
-bool OmxDecoder::Init() {
+bool OmxDecoder::Init()
+{
+#if defined(MOZ_WIDGET_ANDROID)
+  
+  
+  
+  if (!sClientInstance.IsValid()) {
+    LOG("OMXClient failed to connect");
+    return false;
+  }
+#endif
+
   
   DataSource::RegisterDefaultSniffers();
 
@@ -475,13 +513,7 @@ bool OmxDecoder::Init() {
 #ifdef MOZ_WIDGET_GONK
   sp<IOMX> omx = GetOMX();
 #else
-  
-  
-  
-  if (mClient.connect() != OK) {
-    LOG("OMXClient failed to connect");
-  }
-  sp<IOMX> omx = mClient.interface();
+  sp<IOMX> omx = sClientInstance.get()->interface();
 #endif
 
   sp<MediaSource> videoTrack;
