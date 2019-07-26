@@ -8430,7 +8430,7 @@ nsGlobalWindow::ReallyCloseWindow()
 void
 nsGlobalWindow::EnterModalState()
 {
-  FORWARD_TO_OUTER_VOID(EnterModalState, ());
+  MOZ_ASSERT(IsOuterWindow(), "Modal state is maintained on outer windows");
 
   
   
@@ -8563,7 +8563,7 @@ private:
 void
 nsGlobalWindow::LeaveModalState()
 {
-  FORWARD_TO_OUTER_VOID(LeaveModalState, ());
+  MOZ_ASSERT(IsOuterWindow(), "Modal state is maintained on outer windows");
 
   nsGlobalWindow* topWin = GetScriptableTop();
 

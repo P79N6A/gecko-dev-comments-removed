@@ -7,18 +7,19 @@
 #define __nsAutoWindowStateHelper_h
 
 #include "nsCOMPtr.h"
+#include "nsPIDOMWindow.h"
 
 
 
 
 
 
-class nsIDOMWindow;
+class nsPIDOMWindow;
 
 class nsAutoWindowStateHelper
 {
 public:
-  nsAutoWindowStateHelper(nsIDOMWindow *aWindow);
+  nsAutoWindowStateHelper(nsPIDOMWindow *aWindow);
   ~nsAutoWindowStateHelper();
 
   bool DefaultEnabled()
@@ -29,7 +30,7 @@ public:
 protected:
   bool DispatchEventToChrome(const char *aEventName);
 
-  nsIDOMWindow *mWindow;
+  nsCOMPtr<nsPIDOMWindow> mWindow;
   bool mDefaultEnabled;
 };
 
