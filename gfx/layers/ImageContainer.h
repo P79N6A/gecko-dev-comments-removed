@@ -6,14 +6,30 @@
 #ifndef GFX_IMAGECONTAINER_H
 #define GFX_IMAGECONTAINER_H
 
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "GeckoProfilerFunc.h"          
+#include "ImageTypes.h"                 
+#include "gfxASurface.h"                
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/Mutex.h"              
+#include "mozilla/ReentrantMonitor.h"   
+#include "mozilla/TimeStamp.h"          
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsAutoRef.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsSize.h"                     
+#include "nsTArray.h"                   
+#include "nsThreadUtils.h"              
 #include "mozilla/Atomics.h"
-#include "mozilla/Mutex.h"
-#include "mozilla/ReentrantMonitor.h"
-#include "gfxASurface.h" 
-#include "mozilla/layers/LayersTypes.h" 
-#include "mozilla/TimeStamp.h"
-#include "ImageTypes.h"
-#include "nsTArray.h"
+
+class nsMainThreadSurfaceRef;
 
 #ifdef XP_WIN
 struct ID3D10Texture2D;
@@ -26,9 +42,6 @@ typedef void* HANDLE;
 namespace mozilla {
 
 class CrossProcessMutex;
-namespace ipc {
-class Shmem;
-}
 
 namespace layers {
 

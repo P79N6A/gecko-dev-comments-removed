@@ -6,22 +6,53 @@
 #ifndef MOZILLA_GFX_TEXTUREOGL_H
 #define MOZILLA_GFX_TEXTUREOGL_H
 
-#include "ImageLayerOGL.h"
-#include "GLContextTypes.h"
-#include "gfx2DGlue.h"
-#include "mozilla/layers/Effects.h"
-#include "gfxReusableSurfaceWrapper.h"
-#include "TiledLayerBuffer.h" 
-
+#include <stddef.h>                     
+#include <stdint.h>                     
+#include "GLContext.h"                  
+#include "GLContextTypes.h"             
+#include "GLDefs.h"                     
+#include "GLTextureImage.h"             
+#include "gfx3DMatrix.h"                
+#include "gfxASurface.h"                
+#include "mozilla/GfxMessageUtils.h"    
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/TextureHost.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsSize.h"                     
+#include "nsTraceRefcnt.h"              
+#include "LayerManagerOGLProgram.h"     
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
 #endif
 
+class gfxImageSurface;
+class gfxReusableSurfaceWrapper;
+class nsIntRegion;
+struct nsIntPoint;
+
 namespace mozilla {
+namespace gfx {
+class DataSourceSurface;
+class SurfaceStream;
+}
+
 namespace layers {
 
-class TextureImageDeprecatedTextureHostOGL;
+class Compositor;
 class CompositorOGL;
+class TextureImageDeprecatedTextureHostOGL;
 
 
 

@@ -4,10 +4,28 @@
 
 
 #include "LayerTreeInvalidation.h"
-#include "Layers.h"
-#include "ImageLayers.h"
-#include "gfxUtils.h"
-#include "nsDataHashtable.h"
+#include <stdint.h>                     
+#include "ImageContainer.h"             
+#include "ImageLayers.h"                
+#include "Layers.h"                     
+#include "gfx3DMatrix.h"                
+#include "gfxColor.h"                   
+#include "gfxPattern.h"                 
+#include "gfxPoint.h"                   
+#include "gfxPoint3D.h"                 
+#include "gfxRect.h"                    
+#include "gfxUtils.h"                   
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsDataHashtable.h"            
+#include "nsDebug.h"                    
+#include "nsHashKeys.h"                 
+#include "nsISupportsImpl.h"            
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsTArray.h"                   
+#include "nsTraceRefcnt.h"              
 
 namespace mozilla {
 namespace layers {

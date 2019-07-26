@@ -3,21 +3,38 @@
 
 
 
-#include "ipc/AutoOpenSurface.h"
-#include "mozilla/layers/PLayerTransaction.h"
-#include "TiledLayerBuffer.h"
-
-
-#include "mozilla/Util.h"
-
-#include "ThebesLayerBuffer.h"
 #include "ThebesLayerOGL.h"
-#include "gfxUtils.h"
-#include "gfxTeeSurface.h"
-#include "gfx2DGlue.h"
+#include <stdint.h>                     
+#include <sys/types.h>                  
+#include "mozilla-config.h"             
+#include "GLContext.h"                  
+#include "GLContextTypes.h"             
+#include "GLDefs.h"                     
+#include "GLTextureImage.h"             
+#include "ThebesLayerBuffer.h"          
+#include "gfx3DMatrix.h"                
+#include "gfxASurface.h"                
+#include "gfxColor.h"                   
+#include "gfxContext.h"                 
+#include "gfxImageSurface.h"            
 #include "gfxPlatform.h"
-
-#include "base/message_loop.h"
+#include "gfxPoint.h"                   
+#include "gfxTeeSurface.h"              
+#include "gfxUtils.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/Util.h"               
+#include "mozilla/gfx/BasePoint.h"      
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsSize.h"                     
+#include "LayerManagerOGL.h"            
+#include "LayerManagerOGLProgram.h"     
+#include "gfx2DGlue.h"
 
 namespace mozilla {
 namespace layers {

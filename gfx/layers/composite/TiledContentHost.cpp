@@ -4,13 +4,25 @@
 
 
 #include "TiledContentHost.h"
-#include "mozilla/layers/Effects.h"
-#include "nsPrintfCString.h"
-#include "ThebesLayerComposite.h"
+#include "ThebesLayerComposite.h"       
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/Effects.h"     
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsPoint.h"                    
+#include "nsPrintfCString.h"            
+#include "nsRect.h"                     
+#include "nsSize.h"                     
+
+class gfxReusableSurfaceWrapper;
 
 namespace mozilla {
 using namespace gfx;
 namespace layers {
+
+class Layer;
 
 void
 TiledLayerBufferComposite::Upload(const BasicTiledLayerBuffer* aMainMemoryTiledBuffer,

@@ -4,10 +4,21 @@
 
 
 #include "ClientCanvasLayer.h"
-#include "gfxPlatform.h"
-#include "SurfaceStream.h"
-#include "SharedSurfaceGL.h"
-#include "SharedSurfaceEGL.h"
+#include "GLContext.h"                  
+#include "GLScreenBuffer.h"             
+#include "GeckoProfilerImpl.h"          
+#include "SharedSurfaceEGL.h"           
+#include "SharedSurfaceGL.h"            
+#include "SurfaceStream.h"              
+#include "SurfaceTypes.h"               
+#include "ClientLayerManager.h"         
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/LayersTypes.h"
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsXULAppAPI.h"                
 #ifdef MOZ_WIDGET_GONK
 #include "SharedSurfaceGralloc.h"
 #endif

@@ -4,12 +4,29 @@
 
 
 #include "BasicThebesLayer.h"
-#include "gfxUtils.h"
-#include "nsIWidget.h"
-#include "RenderTrace.h"
-#include "GeckoProfiler.h"
-
-#include "prprf.h"
+#include <stdint.h>                     
+#include "GeckoProfiler.h"              
+#include "ReadbackLayer.h"              
+#include "ReadbackProcessor.h"          
+#include "RenderTrace.h"                
+#include "BasicLayersImpl.h"            
+#include "gfxASurface.h"                
+#include "gfxContext.h"                 
+#include "gfxRect.h"                    
+#include "gfxUtils.h"                   
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/BaseRect.h"       
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/LayersTypes.h"
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
+#include "nsTArray.h"                   
+struct gfxMatrix;
 
 using namespace mozilla::gfx;
 

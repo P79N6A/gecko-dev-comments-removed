@@ -6,12 +6,26 @@
 #ifndef GFX_CLIENTTHEBESLAYER_H
 #define GFX_CLIENTTHEBESLAYER_H
 
-#include "ClientLayerManager.h"
-#include "ThebesLayerBuffer.h"
-#include "mozilla/layers/ContentClient.h"
+#include "ClientLayerManager.h"         
+#include "Layers.h"                     
+#include "ThebesLayerBuffer.h"          
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/layers/ContentClient.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsDebug.h"                    
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
+#include "mozilla/layers/PLayerTransaction.h" 
+
+class gfxContext;
 
 namespace mozilla {
 namespace layers {
+
+class CompositableClient;
+class ShadowableLayer;
+class SpecificLayerAttributes;
 
 class ClientThebesLayer : public ThebesLayer, 
                           public ClientLayer {

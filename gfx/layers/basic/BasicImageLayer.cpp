@@ -3,16 +3,29 @@
 
 
 
-#include "mozilla/layers/PLayerTransactionParent.h"
-#include "BasicLayersImpl.h"
-#include "SharedTextureImage.h"
-#include "gfxUtils.h"
-#include "gfxSharedImageSurface.h"
-#include "mozilla/layers/ImageClient.h"
-#include "mozilla/layers/TextureClient.h"
+#include "./../mozilla-config.h"        
+#include "BasicLayersImpl.h"            
+#include "ImageContainer.h"             
+#include "ImageLayers.h"                
+#include "Layers.h"                     
+#include "basic/BasicImplData.h"        
+#include "basic/BasicLayers.h"          
+#include "gfxASurface.h"                
+#include "gfxContext.h"                 
+#include "gfxPattern.h"                 
+#include "gfxPoint.h"                   
+#include "gfxUtils.h"                   
 #ifdef MOZ_X11
-#include "gfxXlibSurface.h"
+#include "gfxXlibSurface.h"             
 #endif
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 

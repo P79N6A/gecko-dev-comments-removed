@@ -5,10 +5,18 @@
 
 
 #include "Axis.h"
-#include "AsyncPanZoomController.h"
-#include "mozilla/Preferences.h"
-#include "nsThreadUtils.h"
-#include <algorithm>
+#include <math.h>                       
+#include <algorithm>                    
+#include "AsyncPanZoomController.h"     
+#include "FrameMetrics.h"               
+#include "GeckoProfilerFunc.h"          
+#include "mozilla/Attributes.h"         
+#include "mozilla/Preferences.h"        
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/mozalloc.h"           
+#include "nsMathUtils.h"                
+#include "nsThreadUtils.h"              
+#include "nscore.h"                     
 
 namespace mozilla {
 namespace layers {

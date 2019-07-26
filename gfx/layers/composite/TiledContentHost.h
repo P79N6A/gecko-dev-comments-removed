@@ -6,17 +6,47 @@
 #ifndef GFX_TILEDCONTENTHOST_H
 #define GFX_TILEDCONTENTHOST_H
 
-#include "ContentHost.h"
-#include "ClientTiledThebesLayer.h" 
-#include "mozilla/layers/ISurfaceAllocator.h"
-#include "mozilla/layers/TextureHost.h"
+#include <stdint.h>                     
+#include <stdio.h>                      
+#include <algorithm>                    
+#include "ContentHost.h"                
+#include "TiledLayerBuffer.h"           
+#include "CompositableHost.h"
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersSurfaces.h"  
+#include "mozilla/layers/LayersTypes.h"  
+#include "mozilla/layers/TextureHost.h"  
+#include "mozilla/layers/TiledContentClient.h"
+#include "mozilla/mozalloc.h"           
+#include "nsRegion.h"                   
+#include "nscore.h"                     
+
+class gfxReusableSurfaceWrapper;
+struct nsIntPoint;
+struct nsIntRect;
+struct nsIntSize;
 
 namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+}
+
 namespace layers {
 
-class ThebesBuffer;
-class OptionalThebesBuffer;
-struct TexturedEffect;
+class Compositor;
+class ISurfaceAllocator;
+class Layer;
+class ThebesBufferData;
+class TiledThebesLayerComposite;
+struct EffectChain;
+ 
 
 class TiledTexture {
 public:
@@ -106,8 +136,6 @@ private:
   const BasicTiledLayerBuffer* mMainMemoryTiledBuffer;
   gfxSize mFrameResolution;
 };
-
-class TiledThebesLayerComposite;
 
 
 

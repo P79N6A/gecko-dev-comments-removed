@@ -1,7 +1,27 @@
-#include "ClientLayerManager.h"
-#include "gfxPlatform.h"
 
-using namespace mozilla::layers;
+
+
+
+
+#ifndef GFX_CLIENTCONTAINERLAYER_H
+#define GFX_CLIENTCONTAINERLAYER_H
+
+#include <stdint.h>                     
+#include "ClientLayerManager.h"         
+#include "Layers.h"                     
+#include "gfx3DMatrix.h"                
+#include "gfxMatrix.h"                  
+#include "gfxPlatform.h"                
+#include "nsDebug.h"                    
+#include "nsISupportsUtils.h"           
+#include "nsRegion.h"                   
+#include "nsTArray.h"                   
+#include "nsTraceRefcnt.h"              
+
+namespace mozilla {
+namespace layers {
+
+class ShadowableLayer;
 
 template<class Container> void
 ContainerInsertAfter(Layer* aChild, Layer* aAfter, Container* aContainer)
@@ -282,3 +302,8 @@ private:
     return static_cast<ClientLayerManager*>(mManager);
   }
 };
+
+}
+}
+
+#endif

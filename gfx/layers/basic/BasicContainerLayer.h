@@ -6,8 +6,16 @@
 #ifndef GFX_BASICCONTAINERLAYER_H
 #define GFX_BASICCONTAINERLAYER_H
 
-#include "BasicLayers.h"
-#include "BasicImplData.h"
+#include "BasicImplData.h"              
+#include "BasicLayers.h"                
+#include "Layers.h"                     
+#include "gfx3DMatrix.h"                
+#include "gfxMatrix.h"                  
+#include "nsDebug.h"                    
+#include "nsISupportsUtils.h"           
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
+struct nsIntRect;
 
 namespace mozilla {
 namespace layers {

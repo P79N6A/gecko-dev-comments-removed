@@ -4,8 +4,19 @@
 
 
 #include "ColorLayerComposite.h"
-#include "mozilla/layers/Effects.h"
-#include "gfx2DGlue.h"
+#include "gfx2DGlue.h"                  
+#include "gfxColor.h"                   
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/Effects.h"     
+#include "mozilla/mozalloc.h"           
+#include "nsPoint.h"                    
+#include "nsRect.h"                     
 
 namespace mozilla {
 namespace layers {

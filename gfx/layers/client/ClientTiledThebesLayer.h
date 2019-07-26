@@ -5,14 +5,20 @@
 #ifndef GFX_CLIENTTILEDTHEBESLAYER_H
 #define GFX_CLIENTTILEDTHEBESLAYER_H
 
-#include "mozilla/layers/ShadowLayers.h"
-#include "ClientLayerManager.h"
-#include "mozilla/layers/TiledContentClient.h" 
+#include "ClientLayerManager.h"         
+#include "Layers.h"                     
+#include "mozilla/RefPtr.h"             
+#include "mozilla/layers/TiledContentClient.h"
+#include "nsDebug.h"                    
+#include "nsRegion.h"                   
+
+class gfxContext;
 
 namespace mozilla {
 namespace layers {
 
-class BasicTiledLayerBuffer;
+class ShadowableLayer;
+class SpecificLayerAttributes;
 
 
 

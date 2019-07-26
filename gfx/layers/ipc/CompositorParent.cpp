@@ -4,26 +4,50 @@
 
 
 
-#include <map>
-
-#include "mozilla/DebugOnly.h"
-
-#include "AutoOpenSurface.h"
 #include "CompositorParent.h"
-#include "mozilla/layers/CompositorOGL.h"
-#include "mozilla/layers/BasicCompositor.h"
+#include <stdio.h>                      
+#include <stdint.h>                     
+#include <map>                          
+#include <utility>                      
+#include "mozilla-config.h"             
+#include "AutoOpenSurface.h"            
+#include "LayerTransactionParent.h"     
+#include "RenderTrace.h"                
+#include "base/message_loop.h"          
+#include "base/process.h"               
+#include "base/process_util.h"          
+#include "base/task.h"                  
+#include "base/thread.h"                
+#include "base/tracked.h"               
+#include "gfxContext.h"                 
+#include "gfxPlatform.h"                
+#include "ipc/ShadowLayersManager.h"    
+#include "mozilla/AutoRestore.h"        
+#include "mozilla/DebugOnly.h"          
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/ipc/Transport.h"      
+#include "mozilla/layers/APZCTreeManager.h"  
+#include "mozilla/layers/AsyncCompositionManager.h"
+#include "mozilla/layers/BasicCompositor.h"  
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/CompositorOGL.h"  
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/LayerManagerComposite.h"
+#include "mozilla/layers/LayersTypes.h"
+#include "mozilla/layers/PLayerTransactionParent.h"
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsDebug.h"                    
+#include "nsIWidget.h"                  
+#include "nsRect.h"                     
+#include "nsTArray.h"                   
+#include "nsThreadUtils.h"              
+#include "nsTraceRefcnt.h"              
+#include "nsXULAppAPI.h"                
 #ifdef XP_WIN
 #include "mozilla/layers/CompositorD3D11.h"
 #include "mozilla/layers/CompositorD3D9.h"
 #endif
-#include "LayerTransactionParent.h"
-#include "nsIWidget.h"
-#include "nsGkAtoms.h"
-#include "RenderTrace.h"
-#include "gfxPlatform.h"
-#include "mozilla/AutoRestore.h"
-#include "mozilla/layers/AsyncCompositionManager.h"
-#include "mozilla/layers/LayerManagerComposite.h"
 
 using namespace base;
 using namespace mozilla;

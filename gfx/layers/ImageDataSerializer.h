@@ -8,10 +8,11 @@
 #ifndef GFX_LAYERS_BLOBSURFACE_H
 #define GFX_LAYERS_BLOBSURFACE_H
 
-#include "mozilla/gfx/Point.h"
-#include "mozilla/RefPtr.h"
-
-#include <stdint.h>
+#include <stdint.h>                     
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Types.h"          
 
 class gfxImageSurface;
 

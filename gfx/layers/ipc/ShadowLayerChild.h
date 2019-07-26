@@ -8,7 +8,9 @@
 #ifndef mozilla_layers_ShadowLayerChild_h
 #define mozilla_layers_ShadowLayerChild_h
 
-#include "mozilla/layers/PLayerChild.h"
+#include "mozilla/Attributes.h"         
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/layers/PLayerChild.h"  
 
 namespace mozilla {
 namespace layers {

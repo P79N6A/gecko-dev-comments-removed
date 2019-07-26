@@ -3,11 +3,15 @@
 
 
 
-#include "mozilla/layers/ImageDataSerializer.h"
-#include "gfxImageSurface.h"
-#include "mozilla/gfx/2D.h"
-#include "gfx2DGlue.h"
-#include "mozilla/gfx/Tools.h"
+#include "ImageDataSerializer.h"
+#include "gfx2DGlue.h"                  
+#include "gfxASurface.h"                
+#include "gfxImageSurface.h"            
+#include "gfxPoint.h"                   
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/Tools.h"          
+#include "mozilla/mozalloc.h"           
 
 namespace mozilla {
 namespace layers {

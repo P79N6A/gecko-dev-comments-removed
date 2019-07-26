@@ -6,21 +6,26 @@
 #ifndef GFX_CLIENTCANVASLAYER_H
 #define GFX_CLIENTCANVASLAYER_H
 
-#include "ClientLayerManager.h"
-#include "nsXULAppAPI.h"
-#include "gfxASurface.h"
-#include "mozilla/Preferences.h"
-#include "mozilla/layers/LayerTransaction.h"
-#include "mozilla/layers/CanvasClient.h"
-#include "CopyableCanvasLayer.h"
+#include "mozilla/layers/CanvasClient.h"  
+#include "ClientLayerManager.h"         
+#include "CopyableCanvasLayer.h"        
+#include "Layers.h"                     
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsRegion.h"                   
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla::gfx;
 
 namespace mozilla {
 namespace layers {
 
-class CanvasClient2D;
-class CanvasClientWebGL;
+class CompositableClient;
+class ShadowableLayer;
 
 class ClientCanvasLayer : public CopyableCanvasLayer,
                           public ClientLayer

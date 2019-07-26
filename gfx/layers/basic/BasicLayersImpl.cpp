@@ -3,10 +3,15 @@
 
 
 
-#include "mozilla/DebugOnly.h"
-
 #include "BasicLayersImpl.h"
-#include "mozilla/layers/PLayerTransaction.h"
+#include <new>                          
+#include "Layers.h"                     
+#include "basic/BasicImplData.h"        
+#include "gfx3DMatrix.h"                
+#include "mozilla/Assertions.h"         
+#include "mozilla/DebugOnly.h"          
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/ISurfaceAllocator.h"
 
 using namespace mozilla::gfx;
 

@@ -6,14 +6,35 @@
 #ifndef MOZILLA_GFX_BUFFERHOST_H
 #define MOZILLA_GFX_BUFFERHOST_H
 
-#include "mozilla/layers/Compositor.h"
+#include <stdint.h>                     
+#include <stdio.h>                      
+#include "mozilla-config.h"             
+#include "gfxPoint.h"                   
+#include "gfxRect.h"                    
+#include "mozilla/Assertions.h"         
+#include "mozilla/Attributes.h"         
+#include "mozilla/RefPtr.h"             
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/ipc/ProtocolUtils.h"
+#include "mozilla/layers/CompositorTypes.h"  
+#include "mozilla/layers/LayersTypes.h"  
 #include "mozilla/layers/PCompositableParent.h"
-#include "mozilla/layers/ISurfaceAllocator.h"
-#include "ThebesLayerBuffer.h"
-#include "ClientTiledThebesLayer.h" 
-#include "mozilla/RefPtr.h"
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsRegion.h"                   
+#include "nscore.h"                     
+
+class gfxImageSurface;
+struct nsIntPoint;
+struct nsIntRect;
 
 namespace mozilla {
+namespace gfx {
+class Matrix4x4;
+}
+
 namespace layers {
 
 
@@ -31,6 +52,11 @@ class Layer;
 class DeprecatedTextureHost;
 class TextureHost;
 class SurfaceDescriptor;
+class Compositor;
+class ISurfaceAllocator;
+class ThebesBufferData;
+class TiledLayerComposer;
+struct EffectChain;
 
 
 

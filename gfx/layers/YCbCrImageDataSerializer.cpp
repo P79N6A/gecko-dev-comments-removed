@@ -4,13 +4,15 @@
 
 
 #include "mozilla/layers/YCbCrImageDataSerializer.h"
-#include "ImageTypes.h"
-#include "yuv_convert.h"
-#include "mozilla/gfx/2D.h"
-#include "gfx2DGlue.h"
+#include <string.h>                     
+#include "gfx2DGlue.h"                  
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/BaseSize.h"       
+#include "mozilla/gfx/Types.h"
+#include "mozilla/mozalloc.h"           
+#include "yuv_convert.h"                
 
 #define MOZ_ALIGN_WORD(x) (((x) + 3) & ~3)
-using namespace mozilla::ipc;
 
 namespace mozilla {
 namespace layers {

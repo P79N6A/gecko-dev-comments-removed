@@ -4,19 +4,21 @@
 
 
 
-#include "mozilla/layers/ImageBridgeChild.h"
-
 #include "ImageContainer.h"
+#include <string.h>                     
+#include "SharedTextureImage.h"         
+#include "gfxImageSurface.h"            
+#include "gfxPlatform.h"                
+#include "gfxUtils.h"                   
+#include "mozilla/RefPtr.h"             
+#include "mozilla/ipc/CrossProcessMutex.h"  
+#include "mozilla/layers/CompositorTypes.h"
+#include "mozilla/layers/ImageBridgeChild.h"  
+#include "mozilla/layers/ImageClient.h"  
+#include "nsISupportsUtils.h"           
+#ifdef MOZ_WIDGET_GONK
 #include "GrallocImages.h"
-#include "mozilla/ipc/Shmem.h"
-#include "mozilla/ipc/CrossProcessMutex.h"
-#include "SharedTextureImage.h"
-#include "gfxImageSurface.h"
-#include "gfxSharedImageSurface.h"
-#include "yuv_convert.h"
-#include "gfxUtils.h"
-#include "gfxPlatform.h"
-#include "mozilla/layers/ImageClient.h"
+#endif
 
 #ifdef XP_MACOSX
 #include "mozilla/gfx/QuartzSupport.h"
@@ -38,6 +40,9 @@ using mozilla::gfx::SourceSurface;
 
 namespace mozilla {
 namespace layers {
+
+class DataSourceSurface;
+class SourceSurface;
 
 Atomic<int32_t> Image::sSerialCounter(0);
 

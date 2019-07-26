@@ -3,16 +3,23 @@
 
 
 
-#include "ipc/AutoOpenSurface.h"
-#include "mozilla/layers/PLayerTransaction.h"
-#include "mozilla/layers/ShadowLayers.h"
-#include "mozilla/layers/CompositorTypes.h" 
-#include "mozilla/layers/Effects.h"
-
 #include "CanvasLayerComposite.h"
-#include "ImageHost.h"
-#include "gfxUtils.h"
-#include "gfx2DGlue.h"
+#include "composite/CompositableHost.h"  
+#include "gfx2DGlue.h"                  
+#include "gfxImageSurface.h"            
+#include "gfxPattern.h"                 
+#include "gfxUtils.h"                   
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Point.h"          
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/layers/Compositor.h"  
+#include "mozilla/layers/Effects.h"     
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"
+#include "nsAutoPtr.h"                  
+#include "nsPoint.h"                    
+#include "nsString.h"                   
+#include "nsTraceRefcnt.h"              
 
 using namespace mozilla;
 using namespace mozilla::layers;

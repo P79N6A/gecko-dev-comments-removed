@@ -4,7 +4,23 @@
 
 
 #include "ClientThebesLayer.h"
-#include "ClientTiledThebesLayer.h"
+#include "ClientTiledThebesLayer.h"     
+#include <stdint.h>                     
+#include "GeckoProfilerImpl.h"          
+#include "client/ClientLayerManager.h"  
+#include "gfxASurface.h"                
+#include "gfxContext.h"                 
+#include "gfxRect.h"                    
+#include "mozilla/Assertions.h"         
+#include "mozilla/gfx/2D.h"             
+#include "mozilla/gfx/Matrix.h"         
+#include "mozilla/gfx/Rect.h"           
+#include "mozilla/gfx/Types.h"          
+#include "mozilla/layers/LayersTypes.h"
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsISupportsImpl.h"            
+#include "nsRect.h"                     
 
 using namespace mozilla::gfx;
 

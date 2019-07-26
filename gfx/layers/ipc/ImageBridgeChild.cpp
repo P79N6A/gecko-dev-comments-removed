@@ -3,28 +3,52 @@
 
 
 
-#include "base/thread.h"
-
-#include "CompositorParent.h" 
 #include "ImageBridgeChild.h"
-#include "ImageBridgeParent.h"
-#include "gfxSharedImageSurface.h"
-#include "mozilla/Monitor.h"
-#include "mozilla/ReentrantMonitor.h"
-#include "mozilla/layers/CompositableClient.h"
-#include "nsXULAppAPI.h"
-#include "mozilla/layers/TextureClient.h"
-#include "mozilla/layers/ImageClient.h"
-#include "ImageContainer.h"
-#include "mozilla/layers/LayersTypes.h"
-#include "ShadowLayers.h"
+#include <vector>                       
+#include "CompositorParent.h"           
+#include "ImageBridgeParent.h"          
+#include "ImageContainer.h"             
+#include "Layers.h"                     
+#include "ShadowLayers.h"               
+#include "base/message_loop.h"          
+#include "base/platform_thread.h"       
+#include "base/process.h"               
+#include "base/process_util.h"          
+#include "base/task.h"                  
+#include "base/thread.h"                
+#include "base/tracked.h"               
+#include "mozilla/Assertions.h"         
+#include "mozilla/Monitor.h"            
+#include "mozilla/ReentrantMonitor.h"   
+#include "mozilla/ipc/AsyncChannel.h"   
+#include "mozilla/ipc/Transport.h"      
+#include "mozilla/layers/CompositableClient.h"  
+#include "mozilla/layers/ISurfaceAllocator.h"  
+#include "mozilla/layers/ImageClient.h"  
+#include "mozilla/layers/LayerTransaction.h"  
+#include "mozilla/layers/PCompositableChild.h"  
+#include "mozilla/layers/TextureClient.h"  
+#include "mozilla/mozalloc.h"           
+#include "nsAutoPtr.h"                  
+#include "nsISupportsImpl.h"            
+#include "nsTArray.h"                   
+#include "nsTArrayForwardDeclare.h"     
+#include "nsThreadUtils.h"              
+#include "nsXULAppAPI.h"                
+
+struct nsIntRect;
  
 using namespace base;
 using namespace mozilla::ipc;
 
 namespace mozilla {
+namespace ipc {
+class Shmem;
+}
+
 namespace layers {
 
+class PGrallocBufferChild;
 typedef std::vector<CompositableOperation> OpVector;
 
 struct CompositableTransaction
@@ -742,7 +766,7 @@ static void ProxyAllocShmemNow(AllocShmemParams* aParams,
 bool
 ImageBridgeChild::DispatchAllocShmemInternal(size_t aSize,
                                              SharedMemory::SharedMemoryType aType,
-                                             Shmem* aShmem,
+                                             ipc::Shmem* aShmem,
                                              bool aUnsafe)
 {
   ReentrantMonitor barrier("AllocatorProxy alloc");
@@ -765,7 +789,7 @@ ImageBridgeChild::DispatchAllocShmemInternal(size_t aSize,
 }
 
 static void ProxyDeallocShmemNow(ISurfaceAllocator* aAllocator,
-                                 Shmem* aShmem,
+                                 ipc::Shmem* aShmem,
                                  ReentrantMonitor* aBarrier,
                                  bool* aDone)
 {
