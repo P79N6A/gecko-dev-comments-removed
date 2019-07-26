@@ -861,18 +861,18 @@ ClientTiledLayerBuffer::ValidateTile(TileClient aTile,
 static LayoutDeviceRect
 TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
                            const CSSToParentLayerScale& aZoom,
-                           const ScreenPoint& aScrollOffset,
-                           const CSSToScreenScale& aResolution,
-                           const gfx3DMatrix& aTransformScreenToLayout)
+                           const ParentLayerPoint& aScrollOffset,
+                           const CSSToParentLayerScale& aResolution,
+                           const gfx3DMatrix& aTransformParentLayerToLayoutDevice)
 {
   
   
   
-  ScreenRect offsetViewportRect = (aCompositionBounds / aZoom) * aResolution;
+  ParentLayerRect offsetViewportRect = (aCompositionBounds / aZoom) * aResolution;
   offsetViewportRect.MoveBy(-aScrollOffset);
 
   gfxRect transformedViewport =
-    aTransformScreenToLayout.TransformBounds(
+    aTransformParentLayerToLayoutDevice.TransformBounds(
       gfxRect(offsetViewportRect.x, offsetViewportRect.y,
               offsetViewportRect.width, offsetViewportRect.height));
 
@@ -884,10 +884,10 @@ TransformCompositionBounds(const ParentLayerRect& aCompositionBounds,
 
 bool
 ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInvalidRegion,
-                                                      const nsIntRegion& aOldValidRegion,
-                                                      nsIntRegion& aRegionToPaint,
-                                                      BasicTiledLayerPaintData* aPaintData,
-                                                      bool aIsRepeated)
+                                                       const nsIntRegion& aOldValidRegion,
+                                                       nsIntRegion& aRegionToPaint,
+                                                       BasicTiledLayerPaintData* aPaintData,
+                                                       bool aIsRepeated)
 {
   aRegionToPaint = aInvalidRegion;
 
@@ -943,19 +943,26 @@ ClientTiledLayerBuffer::ComputeProgressiveUpdateRegion(const nsIntRegion& aInval
   }
 
   
+  
+  
   LayoutDeviceRect transformedCompositionBounds =
     TransformCompositionBounds(compositionBounds, zoom, aPaintData->mScrollOffset,
-                               aPaintData->mResolution, aPaintData->mTransformParentLayerToLayout);
+                               aPaintData->mResolution, aPaintData->mTransformParentLayerToLayoutDevice);
 
   
   
   
   
-  LayoutDeviceRect coherentUpdateRect =
+  LayoutDeviceRect typedCoherentUpdateRect =
     transformedCompositionBounds.Intersect(aPaintData->mCompositionBounds);
 
+  
+  
+  typedCoherentUpdateRect.MoveBy(aPaintData->mViewport.TopLeft());
+
+  
   nsIntRect roundedCoherentUpdateRect =
-    LayoutDeviceIntRect::ToUntyped(RoundedOut(coherentUpdateRect));
+    LayoutDeviceIntRect::ToUntyped(RoundedOut(typedCoherentUpdateRect));
 
   aRegionToPaint.And(aInvalidRegion, roundedCoherentUpdateRect);
   aRegionToPaint.Or(aRegionToPaint, staleRegion);

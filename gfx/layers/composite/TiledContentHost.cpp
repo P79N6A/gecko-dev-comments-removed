@@ -42,7 +42,7 @@ TiledLayerBufferComposite::TiledLayerBufferComposite(ISurfaceAllocator* aAllocat
   mRetainedWidth = aDescriptor.retainedWidth();
   mRetainedHeight = aDescriptor.retainedHeight();
   mResolution = aDescriptor.resolution();
-  mFrameResolution = CSSToScreenScale(aDescriptor.frameResolution());
+  mFrameResolution = CSSToParentLayerScale(aDescriptor.frameResolution());
 
   
   nsIntRegion oldPaintedRegion(aOldPaintedRegion);
@@ -379,8 +379,8 @@ TiledContentHost::RenderLayerBuffer(TiledLayerBufferComposite& aLayerBuffer,
   
   
   if (aLayerBuffer.GetFrameResolution() != mTiledBuffer.GetFrameResolution()) {
-    const CSSToScreenScale& layerResolution = aLayerBuffer.GetFrameResolution();
-    const CSSToScreenScale& localResolution = mTiledBuffer.GetFrameResolution();
+    const CSSToParentLayerScale& layerResolution = aLayerBuffer.GetFrameResolution();
+    const CSSToParentLayerScale& localResolution = mTiledBuffer.GetFrameResolution();
     layerScale.width = layerScale.height = layerResolution.scale / localResolution.scale;
     aVisibleRect.ScaleRoundOut(layerScale.width, layerScale.height);
   }

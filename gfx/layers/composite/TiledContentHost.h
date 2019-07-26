@@ -114,7 +114,7 @@ public:
 
   
   
-  const CSSToScreenScale& GetFrameResolution() { return mFrameResolution; }
+  const CSSToParentLayerScale& GetFrameResolution() { return mFrameResolution; }
 
   void ReadUnlock();
 
@@ -144,7 +144,7 @@ protected:
   void SwapTiles(TileHost& aTileA, TileHost& aTileB) { std::swap(aTileA, aTileB); }
 
 private:
-  CSSToScreenScale mFrameResolution;
+  CSSToParentLayerScale mFrameResolution;
   bool mHasDoubleBufferedTiles;
   bool mUninitialized;
 };

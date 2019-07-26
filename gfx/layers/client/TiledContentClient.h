@@ -244,36 +244,41 @@ struct BasicTiledLayerPaintData {
 
 
 
-  ScreenPoint mScrollOffset;
+  ParentLayerPoint mScrollOffset;
 
   
 
 
 
 
-  ScreenPoint mLastScrollOffset;
+  ParentLayerPoint mLastScrollOffset;
+
+  
+
+
+  gfx3DMatrix mTransformParentLayerToLayoutDevice;
 
   
 
 
 
-  gfx3DMatrix mTransformParentLayerToLayout;
+
+
+
+
+  nsIntRect mCriticalDisplayPort;
 
   
 
 
 
-
-
-
-
-  nsIntRect mLayoutCriticalDisplayPort;
+  LayoutDeviceRect mViewport;
 
   
 
 
 
-  CSSToScreenScale mResolution;
+  CSSToParentLayerScale mResolution;
 
   
 
@@ -381,9 +386,9 @@ public:
 
   void DiscardBackBuffers();
 
-  const CSSToScreenScale& GetFrameResolution() { return mFrameResolution; }
+  const CSSToParentLayerScale& GetFrameResolution() { return mFrameResolution; }
 
-  void SetFrameResolution(const CSSToScreenScale& aResolution) { mFrameResolution = aResolution; }
+  void SetFrameResolution(const CSSToParentLayerScale& aResolution) { mFrameResolution = aResolution; }
 
   bool HasFormatChanged() const;
 
@@ -424,7 +429,7 @@ private:
   ClientLayerManager* mManager;
   LayerManager::DrawThebesLayerCallback mCallback;
   void* mCallbackData;
-  CSSToScreenScale mFrameResolution;
+  CSSToParentLayerScale mFrameResolution;
   bool mLastPaintOpaque;
 
   
