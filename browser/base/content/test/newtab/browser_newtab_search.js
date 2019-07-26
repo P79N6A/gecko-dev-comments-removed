@@ -30,7 +30,6 @@ function runTests() {
   let oldCurrentEngine = Services.search.currentEngine;
 
   yield addNewTabPageTab();
-  yield whenSearchInitDone();
 
   
   
@@ -149,7 +148,7 @@ function runTests() {
   let events = [];
   for (let engine of gNewEngines) {
     Services.search.removeEngine(engine);
-    events.push("State");
+    events.push("CurrentState");
   }
   yield promiseSearchEvents(events).then(TestRunner.next);
 }
@@ -194,10 +193,10 @@ function promiseNewSearchEngine(basename, numLogos) {
 
   
   
-  let expectedSearchEvents = ["State", "State"];
+  let expectedSearchEvents = ["CurrentState", "CurrentState"];
   
   for (let i = 0; i < numLogos; i++) {
-    expectedSearchEvents.push("State");
+    expectedSearchEvents.push("CurrentState");
   }
   let eventPromise = promiseSearchEvents(expectedSearchEvents);
 
@@ -260,7 +259,9 @@ function checkCurrentEngine(basename, has1xLogo, has2xLogo) {
   is(logo.hidden, !logoURI,
      "Logo should be visible iff engine has a logo: " + engine.name);
   if (logoURI) {
-    is(logo.style.backgroundImage, 'url("' + logoURI + '")', "Logo URI");
+    
+    
+    ok(/^url\("blob:/.test(logo.style.backgroundImage), "Logo URI"); 
   }
 
   

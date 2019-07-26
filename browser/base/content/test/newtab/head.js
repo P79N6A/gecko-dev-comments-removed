@@ -308,7 +308,7 @@ function addNewTabPageTab() {
     if (NewTabUtils.allPages.enabled) {
       
       NewTabUtils.links.populateCache(function () {
-        executeSoon(TestRunner.next);
+        whenSearchInitDone();
       });
     } else {
       
@@ -608,31 +608,16 @@ function whenPagesUpdated(aCallback, aOnlyIfHidden=false) {
 
 
 
-
-
-
-
-
-
-
-
-
 function whenSearchInitDone() {
-  info("Waiting for initial search events...");
-  let numTicks = 0;
-  function reset(event) {
-    info("Got initial search event " + event.detail.type +
-         ", waiting for more...");
-    numTicks = 0;
+  if (getContentWindow().gSearch._initialStateReceived) {
+    executeSoon(TestRunner.next);
+    return;
   }
   let eventName = "ContentSearchService";
-  getContentWindow().addEventListener(eventName, reset);
-  let interval = window.setInterval(() => {
-    if (++numTicks >= 100) {
-      info("Done waiting for initial search events");
-      window.clearInterval(interval);
-      getContentWindow().removeEventListener(eventName, reset);
+  getContentWindow().addEventListener(eventName, function onEvent(event) {
+    if (event.detail.type == "State") {
+      getContentWindow().removeEventListener(eventName, onEvent);
       TestRunner.next();
     }
-  }, 0);
+  });
 }
