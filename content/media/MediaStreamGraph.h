@@ -660,6 +660,17 @@ public:
 
   
 
+
+
+
+
+
+
+
+  TrackTicks GetBufferedTicks(TrackID aID);
+
+  
+
   friend class MediaStreamGraphImpl;
 
   struct ThreadAndRunnable {

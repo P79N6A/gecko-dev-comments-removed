@@ -1984,6 +1984,12 @@ SourceMediaStream::AppendToTrack(TrackID aID, MediaSegment* aSegment)
   if (!mFinished) {
     TrackData *track = FindDataForTrack(aID);
     if (track) {
+      
+      
+      
+      
+      
+
       track->mData->AppendFrom(aSegment);
       appended = true;
     } else {
@@ -2071,6 +2077,21 @@ SourceMediaStream::EndAllTrackAndFinish()
   }
   FinishWithLockHeld();
   
+}
+
+TrackTicks
+SourceMediaStream::GetBufferedTicks(TrackID aID)
+{
+  StreamBuffer::Track* track  = mBuffer.FindTrack(aID);
+  if (track) {
+    MediaSegment* segment = track->GetSegment();
+    if (segment) {
+      return segment->GetDuration() -
+        track->TimeToTicksRoundDown(
+          GraphTimeToStreamTime(GraphImpl()->mStateComputedTime));
+    }
+  }
+  return 0;
 }
 
 void
