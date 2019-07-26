@@ -304,7 +304,7 @@ struct JSCompartment
     
     inline js::types::TypeObject *getEmptyType(JSContext *cx);
 
-    js::types::TypeObject *getLazyType(JSContext *cx, JSObject *proto);
+    js::types::TypeObject *getLazyType(JSContext *cx, js::HandleObject proto);
 
     
 

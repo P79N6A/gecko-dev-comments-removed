@@ -96,7 +96,7 @@ class Type
         return isObject() && !!(data & 1);
     }
 
-    inline JSObject *singleObject() const;
+    inline RawObject singleObject() const;
 
     
 
@@ -124,7 +124,7 @@ class Type
         return Type(type);
     }
 
-    static inline Type ObjectType(JSObject *obj);
+    static inline Type ObjectType(RawObject obj);
     static inline Type ObjectType(TypeObject *obj);
     static inline Type ObjectType(TypeObjectKey *obj);
 };
@@ -408,7 +408,7 @@ class TypeSet
 
     inline unsigned getObjectCount();
     inline TypeObjectKey *getObject(unsigned i);
-    inline JSObject *getSingleObject(unsigned i);
+    inline RawObject getSingleObject(unsigned i);
     inline TypeObject *getTypeObject(unsigned i);
 
     void setOwnProperty(bool configurable) {
@@ -503,7 +503,7 @@ class StackTypeSet : public TypeSet
     int getTypedArrayType();
 
     
-    JSObject *getSingleton();
+    RawObject getSingleton();
 
     
     bool propertyNeedsBarrier(JSContext *cx, jsid id);
@@ -566,7 +566,7 @@ class HeapTypeSet : public TypeSet
     bool knownSubset(JSContext *cx, TypeSet *other);
 
     
-    JSObject *getSingleton(JSContext *cx);
+    RawObject getSingleton(JSContext *cx);
 
     
 
@@ -806,7 +806,7 @@ struct TypeObject : gc::Cell
 
 
     static const size_t LAZY_SINGLETON = 1;
-    bool lazy() const { return singleton == (JSObject *) LAZY_SINGLETON; }
+    bool lazy() const { return singleton == (RawObject) LAZY_SINGLETON; }
 
     
     TypeObjectFlags flags;
@@ -871,7 +871,7 @@ struct TypeObject : gc::Cell
     void *padding;
 #endif
 
-    inline TypeObject(JSObject *proto, bool isFunction, bool unknown);
+    inline TypeObject(RawObject proto, bool isFunction, bool unknown);
 
     bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
 
@@ -916,8 +916,8 @@ struct TypeObject : gc::Cell
     
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
-    bool addDefiniteProperties(JSContext *cx, JSObject *obj);
-    bool matchDefiniteProperties(JSObject *obj);
+    bool addDefiniteProperties(JSContext *cx, HandleObject obj);
+    bool matchDefiniteProperties(HandleObject obj);
     void addPrototype(JSContext *cx, TypeObject *proto);
     void addPropertyType(JSContext *cx, jsid id, Type type);
     void addPropertyType(JSContext *cx, jsid id, const Value &value);
@@ -969,8 +969,8 @@ struct TypeObjectEntry
 {
     typedef JSObject *Lookup;
 
-    static inline HashNumber hash(JSObject *base);
-    static inline bool match(TypeObject *key, JSObject *lookup);
+    static inline HashNumber hash(RawObject base);
+    static inline bool match(TypeObject *key, RawObject lookup);
 };
 typedef HashSet<ReadBarriered<TypeObject>, TypeObjectEntry, SystemAllocPolicy> TypeObjectSet;
 
@@ -1084,7 +1084,7 @@ class TypeScript
     static inline void Monitor(JSContext *cx, const js::Value &rval);
 
     
-    static inline void MonitorAssign(JSContext *cx, JSObject *obj, jsid id);
+    static inline void MonitorAssign(JSContext *cx, HandleObject obj, jsid id);
 
     
     static inline void SetThis(JSContext *cx, JSScript *script, Type type);
@@ -1224,8 +1224,8 @@ struct TypeCompartment
     ArrayTypeTable *arrayTypeTable;
     ObjectTypeTable *objectTypeTable;
 
-    void fixArrayType(JSContext *cx, JSObject *obj);
-    void fixObjectType(JSContext *cx, JSObject *obj);
+    void fixArrayType(JSContext *cx, HandleObject obj);
+    void fixObjectType(JSContext *cx, HandleObject obj);
 
     
 
@@ -1256,7 +1256,7 @@ struct TypeCompartment
 
 
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
-                              JSProtoKey kind, JSObject *proto,
+                              JSProtoKey kind, HandleObject proto,
                               bool unknown = false, bool isDOM = false);
 
     
