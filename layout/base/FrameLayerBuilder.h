@@ -224,6 +224,7 @@ public:
 
 
   static void InvalidateAllLayers(LayerManager* aManager);
+  static void InvalidateAllLayersForFrame(nsIFrame *aFrame);
 
   
 
@@ -380,6 +381,12 @@ public:
 
 
   static bool HasRetainedLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey, LayerManager* aManager);
+
+  
+
+
+
+  static bool HasRetainedDataFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   
 
@@ -613,7 +620,12 @@ protected:
   static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
                                                        uint32_t aDisplayItemKey, 
                                                        LayerManager* aManager);
+  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
+                                                       uint32_t aDisplayItemKey);
   static DisplayItemData* GetDisplayItemDataForManager(nsDisplayItem* aItem, LayerManager* aManager);
+  static DisplayItemData* GetDisplayItemDataForManager(nsIFrame* aFrame, 
+                                                       uint32_t aDisplayItemKey, 
+                                                       LayerManagerData* aData);
 
   
 
