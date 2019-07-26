@@ -30,6 +30,21 @@ namespace BluetoothServiceUuidStr {
   static const char* ObjectPush    = "00001105-0000-1000-8000-00805F9B34FB";
 }
 
+
+
+
+
+
+enum BluetoothReservedChannels {
+  DIALUP_NETWORK = 1,
+  HANDSFREE_AG = 10,
+  HEADSET_AG = 11,
+  OPUSH = 12,
+  SIM_ACCESS = 15,
+  PBAP_PSE = 19,
+  FTP = 20,
+};
+
 }
 }
 }
