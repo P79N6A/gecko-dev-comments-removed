@@ -23,15 +23,12 @@ const PAYLOAD_VERSION = 1;
 
 #expand const HISTOGRAMS_FILE_VERSION = "__HISTOGRAMS_FILE_VERSION__";
 
-const PREF_BRANCH = "toolkit.telemetry.";
-const PREF_SERVER = PREF_BRANCH + "server";
+const PREF_SERVER = "toolkit.telemetry.server";
 #ifdef MOZ_TELEMETRY_ON_BY_DEFAULT
-const PREF_ENABLED = PREF_BRANCH + "enabledPreRelease";
+const PREF_ENABLED = "toolkit.telemetry.enabledPreRelease";
 #else
-const PREF_ENABLED = PREF_BRANCH + "enabled";
+const PREF_ENABLED = "toolkit.telemetry.enabled";
 #endif
-const PREF_PREVIOUS_BUILDID = PREF_BRANCH + "previousBuildID";
-
 
 const TELEMETRY_INTERVAL = 60000;
 
@@ -241,9 +238,6 @@ TelemetryPing.prototype = {
   _pingsLoaded: 0,
   
   _pingLoadsCompleted: 0,
-  
-  
-  _previousBuildID: undefined,
 
   
 
@@ -372,9 +366,6 @@ TelemetryPing.prototype = {
       revision: HISTOGRAMS_FILE_VERSION,
       locale: getLocale()
     };
-    if (this._previousBuildID) {
-      ret.previousBuildID = this._previousBuildID;
-    }
 
     
     let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
@@ -753,11 +744,9 @@ TelemetryPing.prototype = {
     }
 #endif
     let enabled = false; 
-    let previousBuildID = undefined;
     try {
       enabled = Services.prefs.getBoolPref(PREF_ENABLED);
       this._server = Services.prefs.getCharPref(PREF_SERVER);
-      previousBuildID = Services.prefs.getCharPref(PREF_PREVIOUS_BUILDID);
     } catch (e) {
       
     }
@@ -767,15 +756,6 @@ TelemetryPing.prototype = {
       Telemetry.canRecord = false;
       return;
     }
-    
-    
-    
-    let thisBuildID = Services.appinfo.appBuildID;
-    if (previousBuildID != thisBuildID) {
-      this._previousBuildID = previousBuildID;
-      Services.prefs.setCharPref(PREF_PREVIOUS_BUILDID, thisBuildID);
-    }
-
     Services.obs.addObserver(this, "profile-before-change", false);
     Services.obs.addObserver(this, "sessionstore-windows-restored", false);
     Services.obs.addObserver(this, "quit-application-granted", false);
