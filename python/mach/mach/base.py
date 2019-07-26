@@ -79,11 +79,16 @@ class MethodHandler(object):
 
         
         
+        'conditions',
+
+        
+        
         'arguments',
     )
 
     def __init__(self, cls, method, name, category=None, description=None,
-        allow_all_arguments=False, arguments=None, pass_context=False):
+        allow_all_arguments=False, conditions=None, arguments=None,
+        pass_context=False):
 
         self.cls = cls
         self.method = method
@@ -91,6 +96,7 @@ class MethodHandler(object):
         self.category = category
         self.description = description
         self.allow_all_arguments = allow_all_arguments
+        self.conditions = conditions or []
         self.arguments = arguments or []
         self.pass_context = pass_context
 
