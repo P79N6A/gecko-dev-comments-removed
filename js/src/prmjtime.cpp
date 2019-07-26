@@ -68,9 +68,21 @@ extern int gettimeofday(struct timeval *tv);
 
 #if defined(XP_WIN)
 
-static const int64_t win2un = 0x19DB1DED53E8000;
 
-#define FILETIME2INT64(ft) (((int64_t)ft.dwHighDateTime) << 32LL | (int64_t)ft.dwLowDateTime)
+static double
+FileTimeToUnixMicroseconds(const FILETIME &ft)
+{
+    
+    int64_t t = (int64_t(ft.dwHighDateTime) << 32) | int64_t(ft.dwLowDateTime);
+
+    
+    
+    static const int64_t TimeToEpochIn100ns = 0x19DB1DED53E8000;
+    t -= TimeToEpochIn100ns;
+
+    
+    return double(t) * 0.1;
+}
 
 struct CalibrationData {
     double freq;         
@@ -93,44 +105,31 @@ static CalibrationData calibration = { 0 };
 static void
 NowCalibrate()
 {
-    FILETIME ft, ftStart;
-    LARGE_INTEGER liFreq, now;
-
     if (calibration.freq == 0.0) {
-        if(!QueryPerformanceFrequency(&liFreq)) {
+        LARGE_INTEGER liFreq;
+        if (!QueryPerformanceFrequency(&liFreq)) {
             
             calibration.freq = -1.0;
-        } else {
-            calibration.freq = double(liFreq.QuadPart);
+            return;
         }
+        calibration.freq = double(liFreq.QuadPart);
     }
     if (calibration.freq > 0.0) {
-        int64_t calibrationDelta = 0;
-
         
-
+        
         timeBeginPeriod(1);
+        FILETIME ft, ftStart;
         GetSystemTimeAsFileTime(&ftStart);
         do {
             GetSystemTimeAsFileTime(&ft);
         } while (memcmp(&ftStart,&ft, sizeof(ft)) == 0);
         timeEndPeriod(1);
 
-        
-
-
-
-
+        LARGE_INTEGER now;
         QueryPerformanceCounter(&now);
 
-        calibration.offset = double(FILETIME2INT64(ft));
+        calibration.offset = FileTimeToUnixMicroseconds(ft);
         calibration.timer_offset = double(now.QuadPart);
-
-        
-
-
-        calibration.offset -= win2un;
-        calibration.offset *= 0.1;
         calibration.last = 0;
 
         calibration.calibrated = true;
@@ -297,7 +296,7 @@ PRMJ_Now()
 
         
         GetSystemTimeAsFileTime(&ft);
-        lowresTime = 0.1 * double(FILETIME2INT64(ft) - win2un);
+        lowresTime = FileTimeToUnixMicroseconds(ft);
 
         if (calibration.freq > 0.0) {
             double highresTime, diff;
