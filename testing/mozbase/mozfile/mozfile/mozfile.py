@@ -112,23 +112,15 @@ def rmtree(dir):
 
     This is a replacement for shutil.rmtree that works better under
     windows."""
-    try:
-        
-        if not os.path.exists(dir):
-            return
-        if os.path.islink(dir):
-            try:
-                os.remove(dir)
-            except WindowsError, e:
-                print "exception occured when removing %s" % dir
-                raise e
-            return
+    
+    if not os.path.exists(dir):
+        return
+    if os.path.islink(dir):
+        os.remove(dir)
+        return
 
-        
-        os.chmod(dir, 0700)
-    except WindowsError, e:
-        print "exception occured when removing dir %s" % dir
-        raise e
+    
+    os.chmod(dir, 0700)
 
     
     
@@ -147,37 +139,21 @@ def rmtree(dir):
         
         
         if os.name == 'nt':
-            try:
-                if not os.access(full_name, os.W_OK):
-                    
-                    
-                    
-                    try:
-                        os.chmod(full_name, 0600)
-                    except WindowsError, e:
-                        print "exception occured when chmod file %s" % full_name
-                        raise e
-            except WindowsError, e:
-                print "exception occured when access file %s" % full_name
-                raise e
+            if not os.access(full_name, os.W_OK):
+                
+                
+                
+                os.chmod(full_name, 0600)
 
-        try:
-            if os.path.islink(full_name):
-                os.remove(full_name)
-            elif os.path.isdir(full_name):
-                rmtree(full_name)
-            else:
-                if os.path.isfile(full_name):
-                    os.chmod(full_name, 0700)
-                os.remove(full_name)
-        except WindowsError, e:
-            print "exception occured when removing file %s" % full_name
-            raise e
-    try:
-        os.rmdir(dir)
-    except WindowsError, e:
-        print "exception occured when removing dir %s" % dir
-        raise e
+        if os.path.islink(full_name):
+            os.remove(full_name)
+        elif os.path.isdir(full_name):
+            rmtree(full_name)
+        else:
+            if os.path.isfile(full_name):
+                os.chmod(full_name, 0700)
+            os.remove(full_name)
+    os.rmdir(dir)
 
 
 class NamedTemporaryFile(object):
