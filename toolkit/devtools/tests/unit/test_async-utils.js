@@ -5,7 +5,11 @@
 
 
 const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
-const {Promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+
+
+
+let {Promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
+Object.freeze(Promise);
 const {require} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
 const {async, asyncOnce, promiseInvoke, promiseCall} = require("devtools/async-utils");
 

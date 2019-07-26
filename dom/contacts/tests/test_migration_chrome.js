@@ -14,7 +14,10 @@ Cu.import("resource://gre/modules/ContactService.jsm", imports);
 Cu.import("resource://gre/modules/Promise.jsm", imports);
 Cu.importGlobalProperties(["indexedDB"]);
 
-const {
+
+
+
+let {
   STORE_NAME,
   SAVED_GETALL_STORE_NAME,
   REVISION_STORE,
@@ -22,6 +25,7 @@ const {
   ContactService,
   Promise
 } = imports;
+Object.freeze(imports);
 
 let DEBUG = false;
 function debug(str) {
