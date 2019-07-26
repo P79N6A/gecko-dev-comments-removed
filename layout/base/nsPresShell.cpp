@@ -1917,31 +1917,24 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
   
   
   nsIFrame* rootFrame = mFrameConstructor->GetRootFrame();
-
   if (!rootFrame && aHeight == NS_UNCONSTRAINEDSIZE) {
     
     
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  mPresContext->SetVisibleArea(nsRect(0, 0, aWidth, aHeight));
+
+  
+  if (!rootFrame) {
+    return NS_OK;
+  }
+
   nsRefPtr<nsViewManager> viewManagerDeathGrip = mViewManager;
   
   nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
 
-  if (!mIsDestroying && !mResizeEvent.IsPending() &&
-      !mAsyncResizeTimerIsActive) {
-    FireBeforeResizeEvent();
-  }
-
-  mPresContext->SetVisibleArea(nsRect(0, 0, aWidth, aHeight));
-
-  
-  rootFrame = mFrameConstructor->GetRootFrame();
-  if (!rootFrame)
-    return NS_OK;
-
-  if (!GetPresContext()->SupressingResizeReflow())
-  {
+  if (!GetPresContext()->SupressingResizeReflow()) {
     
     
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -2003,22 +1996,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
   }
 
   return NS_OK; 
-}
-
-void
-PresShell::FireBeforeResizeEvent()
-{
-  if (mIsDocumentGone)
-    return;
-
-  
-  WidgetEvent event(true, NS_BEFORERESIZE_EVENT);
-
-  nsPIDOMWindow *window = mDocument->GetWindow();
-  if (window) {
-    nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
-    nsEventDispatcher::Dispatch(window, mPresContext, &event);
-  }
 }
 
 void

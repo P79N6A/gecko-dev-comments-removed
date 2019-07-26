@@ -110,7 +110,6 @@ enum nsEventStructType
 #define NS_ONLINE                        (NS_WINDOW_START + 65)
 
 
-#define NS_BEFORERESIZE_EVENT            (NS_WINDOW_START + 66)
 
 
 #define NS_MOZ_USER_IDLE                 (NS_WINDOW_START + 67)
