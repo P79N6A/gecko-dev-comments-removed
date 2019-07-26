@@ -900,8 +900,7 @@ MenuContainer.prototype = {
 
 
 
-  getItemForElement:
-  function DVMC_getItemForElement(aElement) {
+  getItemForElement: function DVMC_getItemForElement(aElement) {
     while (aElement) {
       let item = this._itemsByElement.get(aElement);
       if (item) {
@@ -1035,8 +1034,7 @@ MenuContainer.prototype = {
 
 
 
-  _appendItem:
-  function DVMC__appendItem(aItem, aOptions = {}) {
+  _appendItem: function DVMC__appendItem(aItem, aOptions = {}) {
     if (!aOptions.relaxed && !this.isEligible(aItem)) {
       return null;
     }
@@ -1058,8 +1056,7 @@ MenuContainer.prototype = {
 
 
 
-  _insertItemAt:
-  function DVMC__insertItemAt(aIndex, aItem, aOptions) {
+  _insertItemAt: function DVMC__insertItemAt(aIndex, aItem, aOptions) {
     if (!aOptions.relaxed && !this.isEligible(aItem)) {
       return null;
     }

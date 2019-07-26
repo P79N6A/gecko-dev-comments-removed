@@ -51,8 +51,7 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-  addFrame:
-  function DVSF_addFrame(aFrameName, aFrameDetails, aDepth) {
+  addFrame: function DVSF_addFrame(aFrameName, aFrameDetails, aDepth) {
     
     DebuggerView.showPanesSoon();
 
