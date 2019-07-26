@@ -265,7 +265,7 @@ private:
   mozilla::ScopedDeleteArray<unsigned char> chunkAvail;
 
   
-  size_t chunkAvailNum;
+  mozilla::Atomic<size_t> chunkAvailNum;
 
   
   pthread_mutex_t mutex;

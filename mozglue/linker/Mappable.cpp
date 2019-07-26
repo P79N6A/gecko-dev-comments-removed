@@ -344,7 +344,11 @@ MappableSeekableZStream::Create(const char *name, Zip *zip,
   mozilla::ScopedDeletePtr<MappableSeekableZStream> mappable;
   mappable = new MappableSeekableZStream(zip);
 
-  if (pthread_mutex_init(&mappable->mutex, NULL))
+  pthread_mutexattr_t recursiveAttr;
+  pthread_mutexattr_init(&recursiveAttr);
+  pthread_mutexattr_settype(&recursiveAttr, PTHREAD_MUTEX_RECURSIVE);
+
+  if (pthread_mutex_init(&mappable->mutex, &recursiveAttr))
     return NULL;
 
   if (!mappable->zStream.Init(stream->GetBuffer(), stream->GetSize()))
@@ -466,6 +470,19 @@ MappableSeekableZStream::ensure(const void *addr)
 
   length = PageAlignedSize(length);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
   AutoLock lock(&mutex);
 
   
@@ -522,7 +539,7 @@ MappableSeekableZStream::stats(const char *when, const char *name) const
 {
   size_t nEntries = zStream.GetChunksNum();
   DEBUG_LOG("%s: %s; %" PRIdSize "/%" PRIdSize " chunks decompressed",
-            name, when, chunkAvailNum, nEntries);
+            name, when, static_cast<size_t>(chunkAvailNum), nEntries);
 
   size_t len = 64;
   mozilla::ScopedDeleteArray<char> map;
