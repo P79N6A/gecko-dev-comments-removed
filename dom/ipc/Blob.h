@@ -162,6 +162,7 @@ class Blob : public BlobTraits<ActorFlavor>::BaseType
   friend class RemoteBlob<ActorFlavor>;
 
 public:
+  typedef typename BlobTraits<ActorFlavor>::ConcreteContentManagerType ContentManager;
   typedef typename BlobTraits<ActorFlavor>::ProtocolType ProtocolType;
   typedef typename BlobTraits<ActorFlavor>::StreamType StreamType;
   typedef typename BlobTraits<ActorFlavor>::ConstructorParamsType
@@ -183,14 +184,14 @@ protected:
 public:
   
   static Blob*
-  Create(nsIDOMBlob* aBlob)
+  Create(ContentManager* aManager, nsIDOMBlob* aBlob)
   {
-    return new Blob(aBlob);
+    return new Blob(aManager, aBlob);
   }
 
   
   static Blob*
-  Create(const ConstructorParamsType& aParams);
+  Create(ContentManager* aManager, const ConstructorParamsType& aParams);
 
   
   
@@ -207,12 +208,17 @@ public:
   bool
   SetMysteryBlobInfo(const nsString& aContentType, uint64_t aLength);
 
+  ContentManager* Manager()
+  {
+    return mManager;
+  }
+
 private:
   
-  Blob(nsIDOMBlob* aBlob);
+  Blob(ContentManager* aManager, nsIDOMBlob* aBlob);
 
   
-  Blob(const ConstructorParamsType& aParams);
+  Blob(ContentManager* aManager, const ConstructorParamsType& aParams);
 
   static already_AddRefed<RemoteBlobType>
   CreateRemoteBlob(const ConstructorParamsType& aParams);
@@ -229,6 +235,8 @@ private:
 
   virtual bool
   RecvPBlobStreamConstructor(StreamType* aActor) MOZ_OVERRIDE;
+
+  nsRefPtr<ContentManager> mManager;
 };
 
 } 
