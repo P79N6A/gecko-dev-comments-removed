@@ -8391,9 +8391,19 @@ HTMLContextMenuItem.prototype = Object.create(ContextMenuItem.prototype, {
       
       if (elt instanceof Ci.nsIDOMHTMLMenuElement) {
         try {
-          NativeWindow.contextmenus.menuitems = [];
-          NativeWindow.contextmenus._addHTMLContextMenuItemsForMenu(elt, target);
-          NativeWindow.contextmenus._innerShow(target);
+          NativeWindow.contextmenus.menus = {};
+
+          let elt = this.menuElementRef.get();
+          let target = this.targetElementRef.get();
+          if (!elt) {
+            return;
+          }
+
+          var items = NativeWindow.contextmenus._getHTMLContextMenuItemsForMenu(elt, target);
+          if (items.length > 0) {
+            NativeWindow.contextmenus._addMenuItems(items, "link");
+          }
+
         } catch(ex) {
           Cu.reportError(ex);
         }
