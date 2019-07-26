@@ -1873,6 +1873,9 @@ pref("layout.css.overflow-clip-box.enabled", false);
 pref("layout.scrollbar.side", 0);
 
 
+pref("layout.testing.overlay-scrollbars.always-visible", false);
+
+
 
 
 pref("layout.frame_rate", -1);
