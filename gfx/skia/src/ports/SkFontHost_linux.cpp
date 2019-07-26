@@ -117,20 +117,6 @@ static FamilyRec* find_family(const SkTypeface* member) {
     return NULL;
 }
 
-static SkTypeface* find_from_uniqueID(uint32_t uniqueID) {
-    FamilyRec* curr = gFamilyHead;
-    while (curr != NULL) {
-        for (int i = 0; i < 4; i++) {
-            SkTypeface* face = curr->fFaces[i];
-            if (face != NULL && face->uniqueID() == uniqueID) {
-                return face;
-            }
-        }
-        curr = curr->fNext;
-    }
-    return NULL;
-}
-
 
 
 
