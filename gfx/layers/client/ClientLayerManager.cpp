@@ -388,7 +388,7 @@ ClientLayerManager::ForwardTransaction(bool aScheduleComposite)
     NS_WARNING("failed to forward Layers transaction");
   }
 
-  mForwarder->ForceRemoveTexturesIfNecessary();
+  mForwarder->RemoveTexturesIfNecessary();
   mPhase = PHASE_NONE;
 
   

@@ -165,10 +165,10 @@ public:
 
 
 
-  virtual void AddForceRemovingTexture(TextureClient* aClient)
+  virtual void HoldUntilTransaction(TextureClient* aClient)
   {
     if (aClient) {
-      mForceRemovingTextures.AppendElement(aClient);
+      mTexturesToRemove.AppendElement(aClient);
     }
   }
 
@@ -176,12 +176,9 @@ public:
 
 
 
-  virtual void ForceRemoveTexturesIfNecessary()
+  virtual void RemoveTexturesIfNecessary()
   {
-    for (uint32_t i = 0; i < mForceRemovingTextures.Length(); i++) {
-       mForceRemovingTextures[i]->ForceRemove();
-    }
-    mForceRemovingTextures.Clear();
+    mTexturesToRemove.Clear();
   }
 
   
@@ -244,7 +241,7 @@ public:
 protected:
   TextureFactoryIdentifier mTextureFactoryIdentifier;
   bool mMultiProcess;
-  nsTArray<RefPtr<TextureClient> > mForceRemovingTextures;
+  nsTArray<RefPtr<TextureClient> > mTexturesToRemove;
 };
 
 } 
