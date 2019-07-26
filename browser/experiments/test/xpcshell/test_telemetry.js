@@ -6,7 +6,7 @@
 Cu.import("resource://testing-common/httpd.js");
 Cu.import("resource://gre/modules/TelemetryLog.jsm");
 Cu.import("resource://gre/modules/TelemetryPing.jsm");
-Cu.import("resource:///modules/experiments/Experiments.jsm");
+let bsp = Cu.import("resource:///modules/experiments/Experiments.jsm");
 
 
 const FILE_MANIFEST            = "experiments.manifest";
@@ -25,25 +25,7 @@ let gPolicy              = null;
 let gManifestObject      = null;
 let gManifestHandlerURI  = null;
 
-const TLOG = {
-  
-  ACTIVATION_KEY: "EXPERIMENT_ACTIVATION",
-  ACTIVATION: {
-    ACTIVATED: "ACTIVATED",
-    INSTALL_FAILURE: "INSTALL_FAILURE",
-    REJECTED: "REJECTED",
-  },
-
-  
-  TERMINATION_KEY: "EXPERIMENT_TERMINATION",
-  TERMINATION: {
-    USERDISABLED: "USERDISABLED",
-    FROM_API: "FROM_API",
-    EXPIRED: "EXPIRED",
-    RECHECK: "RECHECK",
-  },
-};
-
+const TLOG = bsp.TELEMETRY_LOG;
 
 let gGlobalScope = this;
 function loadAddonManager() {
@@ -268,7 +250,7 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(now, MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.disableExperiment();
+  yield experiments.disableExperiment(TLOG.TERMINATION.ADDON_UNINSTALLED);
   list = yield experiments.getExperiments();
   Assert.equal(list.length, 2, "Experiment list should have 2 entries.");
 
@@ -276,7 +258,7 @@ add_task(function* test_telemetryBasics() {
   log = TelemetryPing.getPayload().log;
   Assert.equal(log.length, expectedLogLength, "Telemetry log should have " + expectedLogLength + " entries.");
   checkEvent(log[log.length-1], TLOG.TERMINATION_KEY,
-             [TLOG.TERMINATION.USERDISABLED, EXPERIMENT2_ID]);
+             [TLOG.TERMINATION.ADDON_UNINSTALLED, EXPERIMENT2_ID]);
 
   
 
@@ -300,7 +282,7 @@ add_task(function* test_telemetryBasics() {
   now = futureDate(now, MS_IN_ONE_DAY);
   defineNow(gPolicy, now);
 
-  yield experiments.disableExperiment(false);
+  yield experiments.disableExperiment(TLOG.TERMINATION.FROM_API);
   list = yield experiments.getExperiments();
   Assert.equal(list.length, 3, "Experiment list should have 3 entries.");
 
