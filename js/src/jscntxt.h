@@ -677,6 +677,18 @@ struct JSRuntime : js::RuntimeFriendFields,
     void assertValidThread() const {}
 #endif
 
+#ifdef XP_MACOSX
+    
+    
+    
+  private:
+    static PRLock *runtimeListLock_;
+    static JSRuntime *runtimeListHead_;
+    JSRuntime *runtimeListNext_;
+  public:
+    static js::AsmJSActivation* findAsmJSActivationForPC(void *pc);
+#endif
+
     
     js::StackSpace stackSpace;
 
