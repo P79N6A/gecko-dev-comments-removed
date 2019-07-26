@@ -28,7 +28,7 @@ namespace xpc {
 
 using namespace js;
 
-static const uint32_t JSSLOT_WN = 0;
+static const uint32_t JSSLOT_WRAPPER = 0;
 static const uint32_t JSSLOT_RESOLVING = 1;
 
 static XPCWrappedNative *GetWrappedNative(JSObject *obj);
@@ -260,19 +260,7 @@ createHolder(JSContext *cx, JSObject *wrapper)
     if (!holder)
         return nullptr;
 
-    JSObject *inner = js::UnwrapObject(wrapper,  false);
-    XPCWrappedNative *wn = GetWrappedNative(inner);
-
-    
-    
-    
-    
-    
-    
-    
-    
-    MOZ_ASSERT(IS_WN_WRAPPER(inner));
-    js::SetReservedSlot(holder, JSSLOT_WN, PrivateValue(wn));
+    js::SetReservedSlot(holder, JSSLOT_WRAPPER, ObjectValue(*wrapper));
     js::SetReservedSlot(holder, JSSLOT_RESOLVING, PrivateValue(NULL));
     return holder;
 }
@@ -481,7 +469,8 @@ static XPCWrappedNative *
 GetWrappedNativeFromHolder(JSObject *holder)
 {
     MOZ_ASSERT(js::GetObjectJSClass(holder) == &HolderClass);
-    return static_cast<XPCWrappedNative *>(js::GetReservedSlot(holder, JSSLOT_WN).toPrivate());
+    JSObject *wrapper = &js::GetReservedSlot(holder, JSSLOT_WRAPPER).toObject();
+    return GetWrappedNative(js::UnwrapObject(wrapper,  false));
 }
 
 static JSObject *
