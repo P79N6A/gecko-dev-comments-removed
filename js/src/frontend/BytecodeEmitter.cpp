@@ -6769,8 +6769,8 @@ SetSrcNoteOffset(ExclusiveContext *cx, BytecodeEmitter *bce, unsigned index, uns
 
 
 
-int32_t
-frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce)
+bool
+frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce, uint32_t *out)
 {
     JS_ASSERT(bce->current == &bce->main);
 
@@ -6778,7 +6778,7 @@ frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce)
     if (prologCount && bce->prolog.currentLine != bce->firstLine) {
         bce->switchToProlog();
         if (NewSrcNote2(cx, bce, SRC_SETLINE, (ptrdiff_t)bce->firstLine) < 0)
-            return -1;
+            return false;
         bce->switchToMain();
     } else {
         
@@ -6800,7 +6800,7 @@ frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce)
                 delta = offset;
             for (;;) {
                 if (!AddToSrcNoteDelta(cx, bce, sn, delta))
-                    return -1;
+                    return false;
                 offset -= delta;
                 if (offset == 0)
                     break;
@@ -6813,11 +6813,12 @@ frontend::FinishTakingSrcNotes(ExclusiveContext *cx, BytecodeEmitter *bce)
     
     
     
-    return bce->prolog.notes.length() + bce->main.notes.length() + 1;
+    *out = bce->prolog.notes.length() + bce->main.notes.length() + 1;
+    return true;
 }
 
 void
-frontend::CopySrcNotes(BytecodeEmitter *bce, jssrcnote *destination, int32_t nsrcnotes)
+frontend::CopySrcNotes(BytecodeEmitter *bce, jssrcnote *destination, uint32_t nsrcnotes)
 {
     unsigned prologCount = bce->prolog.notes.length();
     unsigned mainCount = bce->main.notes.length();
