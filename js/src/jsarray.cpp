@@ -989,8 +989,11 @@ ArrayJoinKernel(JSContext *cx, SeparatorOp sepOp, HandleObject obj, uint32_t len
             } else if (elem.isBoolean()) {
                 if (!BooleanToStringBuffer(elem.toBoolean(), sb))
                     return false;
-            } else if (elem.isObject()) {
+            } else if (elem.isObject() || elem.isSymbol()) {
                 
+
+
+
 
 
 

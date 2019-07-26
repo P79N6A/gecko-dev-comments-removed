@@ -22,6 +22,12 @@ if (typeof newGlobal === "function") {
     assertEq(g.smith, smith);  
 
     
+    
+    assertEq(Symbol.prototype.toString.call(gj), "Symbol(jones)");
+    assertEq(Symbol.prototype.toString.call(g.eval("Object(Symbol('brown'))")),
+             "Symbol(brown)");
+
+    
     assertEq(g.Symbol.for("ponies"), Symbol.for("ponies"));
     assertEq(g.eval("Symbol.for('rainbows')"), Symbol.for("rainbows"));
 }

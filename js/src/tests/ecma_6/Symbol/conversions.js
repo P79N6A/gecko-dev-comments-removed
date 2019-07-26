@@ -17,6 +17,13 @@ for (var sym of symbols) {
     
     assertEq(+sym, NaN);
     assertEq(sym | 0, 0);
+
+    
+    assertThrowsInstanceOf(() => String(sym), TypeError);
+    assertThrowsInstanceOf(() => "" + sym, TypeError);
+    assertThrowsInstanceOf(() => sym + "", TypeError);
+    assertThrowsInstanceOf(() => "" + [1, 2, Symbol()], TypeError);
+    assertThrowsInstanceOf(() => ["simple", "thimble", Symbol()].join(), TypeError);
 }
 
 if (typeof reportCompare === "function")

@@ -45,6 +45,10 @@ class SymbolObject : public JSObject
     
     static bool for_(JSContext *cx, unsigned argc, Value *vp);
 
+    
+    static bool toString_impl(JSContext *cx, CallArgs args);
+    static bool toString(JSContext *cx, unsigned argc, Value *vp);
+
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
     static const JSFunctionSpec staticMethods[];
