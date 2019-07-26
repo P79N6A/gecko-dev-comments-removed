@@ -249,7 +249,6 @@ AudioContext::CreateScriptProcessor(uint32_t aBufferSize,
   nsRefPtr<ScriptProcessorNode> scriptProcessor =
     new ScriptProcessorNode(this, aBufferSize, aNumberOfInputChannels,
                             aNumberOfOutputChannels);
-  mScriptProcessorNodes.PutEntry(scriptProcessor);
   return scriptProcessor.forget();
 }
 
@@ -473,12 +472,6 @@ AudioContext::UnregisterPannerNode(PannerNode* aNode)
   }
 }
 
-void
-AudioContext::UnregisterScriptProcessorNode(ScriptProcessorNode* aNode)
-{
-  mScriptProcessorNodes.RemoveEntry(aNode);
-}
-
 static PLDHashOperator
 FindConnectedSourcesOn(nsPtrHashKey<PannerNode>* aEntry, void* aData)
 {
@@ -558,13 +551,6 @@ AudioContext::Shutdown()
   for (uint32_t i = 0; i < sourceNodes.Length(); ++i) {
     ErrorResult rv;
     sourceNodes[i]->Stop(0.0, rv, true);
-  }
-  
-  
-  nsTArray<ScriptProcessorNode*> spNodes;
-  GetHashtableElements(mScriptProcessorNodes, spNodes);
-  for (uint32_t i = 0; i < spNodes.Length(); ++i) {
-    spNodes[i]->Stop();
   }
 
   

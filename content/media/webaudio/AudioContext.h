@@ -229,7 +229,6 @@ public:
 
   void UnregisterAudioBufferSourceNode(AudioBufferSourceNode* aNode);
   void UnregisterPannerNode(PannerNode* aNode);
-  void UnregisterScriptProcessorNode(ScriptProcessorNode* aNode);
   void UpdatePannerSource();
 
   uint32_t MaxChannelCount() const;
@@ -261,9 +260,6 @@ private:
   
   nsTHashtable<nsPtrHashKey<PannerNode> > mPannerNodes;
   nsTHashtable<nsPtrHashKey<AudioBufferSourceNode> > mAudioBufferSourceNodes;
-  
-  
-  nsTHashtable<nsPtrHashKey<ScriptProcessorNode> > mScriptProcessorNodes;
   
   uint32_t mNumberOfChannels;
   bool mIsOffline;
