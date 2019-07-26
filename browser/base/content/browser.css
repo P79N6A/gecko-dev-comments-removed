@@ -663,6 +663,12 @@ chatbar {
 }
 
 
+
+#downloads-indicator {
+  -moz-binding: url("chrome://browser/content/downloads/download.xml#download-toolbarbutton");
+}
+
+
 chatbar:-moz-full-screen-ancestor,
 chatbox:-moz-full-screen-ancestor  {
   border: none;
