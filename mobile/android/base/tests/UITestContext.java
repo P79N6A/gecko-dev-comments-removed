@@ -31,8 +31,8 @@ public interface UITestContext {
     public Actions getActions();
     public Instrumentation getInstrumentation();
 
-    public void dumpLog(final String message);
-    public void dumpLog(final String message, final Throwable t);
+    public void dumpLog(final String logtag, final String message);
+    public void dumpLog(final String logtag, final String message, final Throwable t);
 
     
 
