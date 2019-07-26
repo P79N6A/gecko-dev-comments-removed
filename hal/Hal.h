@@ -616,6 +616,14 @@ void StopDiskSpaceWatcher();
 
 uint32_t GetTotalSystemMemory();
 
+
+
+
+
+
+
+uint32_t GetTotalSystemMemoryLevel();
+
 } 
 } 
 
