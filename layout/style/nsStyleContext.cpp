@@ -35,7 +35,7 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
                                nsIAtom* aPseudoTag,
                                nsCSSPseudoElements::Type aPseudoType,
                                nsRuleNode* aRuleNode,
-                               bool aSkipFlexItemStyleFixup)
+                               bool aSkipFlexOrGridItemStyleFixup)
   : mParent(aParent),
     mChild(nullptr),
     mEmptyChild(nullptr),
@@ -71,7 +71,7 @@ nsStyleContext::nsStyleContext(nsStyleContext* aParent,
   mRuleNode->AddRef();
   mRuleNode->SetUsedDirectly(); 
 
-  ApplyStyleFixups(aSkipFlexItemStyleFixup);
+  ApplyStyleFixups(aSkipFlexOrGridItemStyleFixup);
 
   #define eStyleStruct_LastItem (nsStyleStructID_Length - 1)
   NS_ASSERTION(NS_STYLE_INHERIT_MASK & NS_STYLE_INHERIT_BIT(LastItem),
@@ -294,7 +294,7 @@ nsStyleContext::SetStyle(nsStyleStructID aSID, void* aStruct)
 }
 
 void
-nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
+nsStyleContext::ApplyStyleFixups(bool aSkipFlexOrGridItemStyleFixup)
 {
   
   
@@ -359,7 +359,7 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
   
   
   
-  if (!aSkipFlexItemStyleFixup && mParent) {
+  if (!aSkipFlexOrGridItemStyleFixup && mParent) {
     const nsStyleDisplay* parentDisp = mParent->StyleDisplay();
     if ((parentDisp->mDisplay == NS_STYLE_DISPLAY_FLEX ||
          parentDisp->mDisplay == NS_STYLE_DISPLAY_INLINE_FLEX ||
@@ -381,6 +381,7 @@ nsStyleContext::ApplyStyleFixups(bool aSkipFlexItemStyleFixup)
           NS_STYLE_DISPLAY_TABLE_ROW          != displayVal &&
           NS_STYLE_DISPLAY_TABLE_CELL         != displayVal) {
 
+        
         
         
         
@@ -735,12 +736,12 @@ NS_NewStyleContext(nsStyleContext* aParentContext,
                    nsIAtom* aPseudoTag,
                    nsCSSPseudoElements::Type aPseudoType,
                    nsRuleNode* aRuleNode,
-                   bool aSkipFlexItemStyleFixup)
+                   bool aSkipFlexOrGridItemStyleFixup)
 {
   nsRefPtr<nsStyleContext> context =
     new (aRuleNode->PresContext())
     nsStyleContext(aParentContext, aPseudoTag, aPseudoType, aRuleNode,
-                   aSkipFlexItemStyleFixup);
+                   aSkipFlexOrGridItemStyleFixup);
   return context.forget();
 }
 

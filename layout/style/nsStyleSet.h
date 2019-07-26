@@ -402,7 +402,7 @@ class nsStyleSet
     
     
     
-    eSkipFlexItemStyleFixup = 1 << 3
+    eSkipFlexOrGridItemStyleFixup = 1 << 3
   };
 
   already_AddRefed<nsStyleContext>
