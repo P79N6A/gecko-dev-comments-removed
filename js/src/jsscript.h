@@ -10,14 +10,15 @@
 
 
 
-#include "jsprvtd.h"
 #include "jsdbgapi.h"
-#include "jsclist.h"
 #include "jsinfer.h"
 #include "jsopcode.h"
 #include "jsscope.h"
 
 #include "gc/Barrier.h"
+#include "gc/Root.h"
+
+ForwardDeclareJS(Script);
 
 namespace js {
 
