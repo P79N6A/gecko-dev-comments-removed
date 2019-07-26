@@ -24,7 +24,6 @@ namespace net {
 
 
 
-
 static const char *sPacUtils =
   "function dnsDomainIs(host, domain) {\n"
   "    return (host.length >= domain.length &&\n"
@@ -447,7 +446,7 @@ JSBool PACProxyAlert(JSContext *cx, unsigned int argc, jsval *vp)
 static JSFunctionSpec PACGlobalFunctions[] = {
   JS_FS("dnsResolve", PACDnsResolve, 1, 0),
   JS_FS("myIpAddress", PACMyIpAddress, 0, 0),
-  JS_FS("proxyAlert", PACProxyAlert, 1, 0),
+  JS_FS("alert", PACProxyAlert, 1, 0),
   JS_FS_END
 };
 
