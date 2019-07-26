@@ -8,8 +8,8 @@
 
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/NumericLimits.h"
 
-#include <limits>
 #include <math.h>
 #include <stdint.h>
 
@@ -38,6 +38,7 @@
 #include "ctypes/Library.h"
 
 using namespace std;
+using mozilla::NumericLimits;
 
 namespace js {
 namespace ctypes {
@@ -1423,7 +1424,7 @@ JS_STATIC_ASSERT(sizeof(long long) == 8);
 JS_STATIC_ASSERT(sizeof(size_t) == sizeof(uintptr_t));
 JS_STATIC_ASSERT(sizeof(float) == 4);
 JS_STATIC_ASSERT(sizeof(PRFuncPtr) == sizeof(void*));
-JS_STATIC_ASSERT(numeric_limits<double>::is_signed);
+JS_STATIC_ASSERT(NumericLimits<double>::is_signed);
 
 
 
@@ -1488,15 +1489,15 @@ static JS_ALWAYS_INLINE bool IsAlwaysExact()
   
   
   
-  if (numeric_limits<TargetType>::digits < numeric_limits<FromType>::digits)
+  if (NumericLimits<TargetType>::digits < NumericLimits<FromType>::digits)
     return false;
 
-  if (numeric_limits<FromType>::is_signed &&
-      !numeric_limits<TargetType>::is_signed)
+  if (NumericLimits<FromType>::is_signed &&
+      !NumericLimits<TargetType>::is_signed)
     return false;
 
-  if (!numeric_limits<FromType>::is_exact &&
-      numeric_limits<TargetType>::is_exact)
+  if (!NumericLimits<FromType>::is_exact &&
+      NumericLimits<TargetType>::is_exact)
     return false;
 
   return true;
@@ -1507,7 +1508,7 @@ static JS_ALWAYS_INLINE bool IsAlwaysExact()
 template<class TargetType, class FromType, bool TargetSigned, bool FromSigned>
 struct IsExactImpl {
   static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
-    JS_STATIC_ASSERT(numeric_limits<TargetType>::is_exact);
+    JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return FromType(j) == i;
   }
 };
@@ -1516,7 +1517,7 @@ struct IsExactImpl {
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, false, true> {
   static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
-    JS_STATIC_ASSERT(numeric_limits<TargetType>::is_exact);
+    JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return i >= 0 && FromType(j) == i;
   }
 };
@@ -1525,7 +1526,7 @@ struct IsExactImpl<TargetType, FromType, false, true> {
 template<class TargetType, class FromType>
 struct IsExactImpl<TargetType, FromType, true, false> {
   static JS_ALWAYS_INLINE bool Test(FromType i, TargetType j) {
-    JS_STATIC_ASSERT(numeric_limits<TargetType>::is_exact);
+    JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
     return TargetType(i) >= 0 && FromType(j) == i;
   }
 };
@@ -1536,7 +1537,7 @@ template<class TargetType, class FromType>
 static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
 {
   
-  JS_STATIC_ASSERT(numeric_limits<TargetType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<TargetType>::is_exact);
 
   *result = Convert<TargetType>(i);
 
@@ -1547,8 +1548,8 @@ static JS_ALWAYS_INLINE bool ConvertExact(FromType i, TargetType* result)
   
   return IsExactImpl<TargetType,
                      FromType,
-                     numeric_limits<TargetType>::is_signed,
-                     numeric_limits<FromType>::is_signed>::Test(i, *result);
+                     NumericLimits<TargetType>::is_signed,
+                     NumericLimits<FromType>::is_signed>::Test(i, *result);
 }
 
 
@@ -1572,7 +1573,7 @@ struct IsNegativeImpl<Type, true> {
 template<class Type>
 static JS_ALWAYS_INLINE bool IsNegative(Type i)
 {
-  return IsNegativeImpl<Type, numeric_limits<Type>::is_signed>::Test(i);
+  return IsNegativeImpl<Type, NumericLimits<Type>::is_signed>::Test(i);
 }
 
 
@@ -1606,7 +1607,7 @@ template<class IntegerType>
 static bool
 jsvalToInteger(JSContext* cx, jsval val, IntegerType* result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   if (JSVAL_IS_INT(val)) {
     
@@ -1695,7 +1696,7 @@ template<class FloatType>
 static bool
 jsvalToFloat(JSContext *cx, jsval val, FloatType* result)
 {
-  JS_STATIC_ASSERT(!numeric_limits<FloatType>::is_exact);
+  JS_STATIC_ASSERT(!NumericLimits<FloatType>::is_exact);
 
   
   
@@ -1751,7 +1752,7 @@ template<class IntegerType>
 static bool
 StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   const jschar* cp = string->getChars(nullptr);
   if (!cp)
@@ -1763,7 +1764,7 @@ StringToInteger(JSContext* cx, JSString* string, IntegerType* result)
 
   IntegerType sign = 1;
   if (cp[0] == '-') {
-    if (!numeric_limits<IntegerType>::is_signed)
+    if (!NumericLimits<IntegerType>::is_signed)
       return false;
 
     sign = -1;
@@ -1811,7 +1812,7 @@ jsvalToBigInteger(JSContext* cx,
                   bool allowString,
                   IntegerType* result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   if (JSVAL_IS_INT(val)) {
     
@@ -1882,7 +1883,7 @@ jsidToBigInteger(JSContext* cx,
                   bool allowString,
                   IntegerType* result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   if (JSID_IS_INT(val)) {
     
@@ -1947,7 +1948,7 @@ template<class IntegerType>
 static bool
 jsvalToIntegerExplicit(jsval val, IntegerType* result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   if (JSVAL_IS_DOUBLE(val)) {
     
@@ -2028,7 +2029,7 @@ template<class IntegerType, class CharType, size_t N, class AP>
 void
 IntegerToString(IntegerType i, int radix, Vector<CharType, N, AP>& result)
 {
-  JS_STATIC_ASSERT(numeric_limits<IntegerType>::is_exact);
+  JS_STATIC_ASSERT(NumericLimits<IntegerType>::is_exact);
 
   
   
@@ -2112,7 +2113,7 @@ ConvertToJS(JSContext* cx,
     /* Return an Int64 or UInt64 object - do not convert to a JS number. */    \
     uint64_t value;                                                            \
     RootedObject proto(cx);                                                    \
-    if (!numeric_limits<type>::is_signed) {                                    \
+    if (!NumericLimits<type>::is_signed) {                                     \
       value = *static_cast<type*>(data);                                       \
       /* Get ctypes.UInt64.prototype from ctypes.CType.prototype. */           \
       proto = CType::GetProtoFromType(cx, typeObj, SLOT_UINT64PROTO);          \
@@ -2121,13 +2122,13 @@ ConvertToJS(JSContext* cx,
     } else {                                                                   \
       value = int64_t(*static_cast<type*>(data));                              \
       /* Get ctypes.Int64.prototype from ctypes.CType.prototype. */            \
-      proto = CType::GetProtoFromType(cx, typeObj, SLOT_INT64PROTO);     \
+      proto = CType::GetProtoFromType(cx, typeObj, SLOT_INT64PROTO);           \
       if (!proto)                                                              \
         return false;                                                          \
     }                                                                          \
                                                                                \
     JSObject* obj = Int64Base::Construct(cx, proto, value,                     \
-      !numeric_limits<type>::is_signed);                                       \
+      !NumericLimits<type>::is_signed);                                        \
     if (!obj)                                                                  \
       return false;                                                            \
     *result = OBJECT_TO_JSVAL(obj);                                            \
@@ -2977,7 +2978,7 @@ BuildDataSource(JSContext* cx,
 #define DEFINE_WRAPPED_INT_TYPE(name, type, ffiType)                           \
   case TYPE_##name:                                                            \
     /* Serialize as a wrapped decimal integer. */                              \
-    if (!numeric_limits<type>::is_signed)                                      \
+    if (!NumericLimits<type>::is_signed)                                       \
       AppendString(result, "ctypes.UInt64(\"");                                \
     else                                                                       \
       AppendString(result, "ctypes.Int64(\"");                                 \
