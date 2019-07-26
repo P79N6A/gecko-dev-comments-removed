@@ -123,6 +123,12 @@ public:
   
 
 
+  int32_t TransformOffset(Accessible* aDescendant, int32_t aOffset,
+                          bool aIsEndOffset) const;
+
+  
+
+
 
 
 
@@ -435,9 +441,9 @@ protected:
 
 
 
-  virtual int32_t FindOffset(int32_t aOffset, nsDirection aDirection,
-                             nsSelectionAmount aAmount,
-                             EWordMovementType aWordMovementType = eDefaultBehavior);
+  int32_t FindOffset(int32_t aOffset, nsDirection aDirection,
+                     nsSelectionAmount aAmount,
+                     EWordMovementType aWordMovementType = eDefaultBehavior);
 
   
 

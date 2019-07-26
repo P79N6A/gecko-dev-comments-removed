@@ -10,6 +10,7 @@
 #include "nsAccessibilityService.h"
 #include "nsIAccessibleTypes.h"
 #include "DocAccessible.h"
+#include "HTMLListAccessible.h"
 #include "Role.h"
 #include "States.h"
 #include "TextAttrs.h"
@@ -238,7 +239,7 @@ HyperTextAccessible::DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
   if (!aNode)
     return 0;
 
-  uint32_t addTextOffset = 0;
+  uint32_t offset = 0;
   nsINode* findNode = nullptr;
 
   if (aNodeOffset == -1) {
@@ -251,7 +252,7 @@ HyperTextAccessible::DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
     nsIFrame* frame = aNode->AsContent()->GetPrimaryFrame();
     NS_ENSURE_TRUE(frame, 0);
 
-    nsresult rv = ContentToRenderedOffset(frame, aNodeOffset, &addTextOffset);
+    nsresult rv = ContentToRenderedOffset(frame, aNodeOffset, &offset);
     NS_ENSURE_SUCCESS(rv, 0);
     
     findNode = aNode;
@@ -304,14 +305,20 @@ HyperTextAccessible::DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
     descendant = GetFirstAvailableAccessible(findNode);
   }
 
+  return TransformOffset(descendant, offset, aIsEndOffset);
+}
+
+int32_t
+HyperTextAccessible::TransformOffset(Accessible* aDescendant,
+                                     int32_t aOffset, bool aIsEndOffset) const
+{
   
-  Accessible* childAtOffset = nullptr;
+  int32_t offset = aOffset;
+  Accessible* descendant = aDescendant;
   while (descendant) {
     Accessible* parent = descendant->Parent();
-    if (parent == this) {
-      childAtOffset = descendant;
-      break;
-    }
+    if (parent == this)
+      return GetChildOffset(descendant) + offset;
 
     
     
@@ -321,17 +328,16 @@ HyperTextAccessible::DOMPointToOffset(nsINode* aNode, int32_t aNodeOffset,
     
     
     if (aIsEndOffset)
-      addTextOffset = (addTextOffset > 0 || descendant->IndexInParent() > 0) ? 1 : 0;
+      offset = (offset > 0 || descendant->IndexInParent() > 0) ? 1 : 0;
     else
-      addTextOffset = 0;
+      offset = 0;
 
     descendant = parent;
   }
 
   
   
-  return childAtOffset ?
-    GetChildOffset(childAtOffset) + addTextOffset : CharacterCount();
+  return CharacterCount();
 }
 
 bool
@@ -420,6 +426,31 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
       return -1;
 
     child = text->GetChildAt(childIdx);
+
+    
+    
+    if (text->IsHTMLListItem()) {
+      HTMLLIAccessible* li = text->AsHTMLListItem();
+      if (child == li->Bullet()) {
+        
+        if (aDirection == eDirPrevious)
+          return text != this ? TransformOffset(text, 0, false) : 0;
+
+        if (aAmount == eSelectEndLine || aAmount == eSelectLine) {
+          if (text != this)
+            return TransformOffset(text, 1, true);
+
+          
+          
+          return aOffset + 1 < CharacterCount() ?
+            FindOffset(aOffset + 1, aDirection, aAmount, aWordMovementType) : 1;
+        }
+
+        
+        return text != this ? TransformOffset(text, 1, true) : 1;
+      }
+    }
+
     innerOffset -= text->GetChildOffset(childIdx);
 
     text = child->AsHyperText();
@@ -463,10 +494,16 @@ HyperTextAccessible::FindOffset(int32_t aOffset, nsDirection aDirection,
                                              pos.mContentOffset,
                                              aDirection == eDirNext);
 
-  
-  
-  if (hyperTextOffset == CharacterCount() && aDirection == eDirPrevious)
-    return 0;
+  if (aDirection == eDirPrevious) {
+    
+    
+    if (hyperTextOffset == CharacterCount())
+      return 0;
+
+    
+    if (IsHTMLListItem() && aAmount == eSelectBeginLine && hyperTextOffset == 1)
+      return 0;
+  }
 
   return hyperTextOffset;
 }
