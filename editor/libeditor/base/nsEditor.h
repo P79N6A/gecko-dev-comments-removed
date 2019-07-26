@@ -539,8 +539,8 @@ public:
 
 
 
-  already_AddRefed<nsIDOMNode> GetRightmostChild(nsIDOMNode *aCurrentNode, 
-                                                 bool        bNoBlockCrossing = false);
+  nsIDOMNode* GetRightmostChild(nsIDOMNode* aCurrentNode,
+                                bool bNoBlockCrossing = false);
   nsIContent* GetRightmostChild(nsINode *aCurrentNode,
                                 bool     bNoBlockCrossing = false);
 
@@ -548,8 +548,8 @@ public:
 
 
 
-  already_AddRefed<nsIDOMNode> GetLeftmostChild(nsIDOMNode  *aCurrentNode, 
-                                                bool        bNoBlockCrossing = false);
+  nsIDOMNode* GetLeftmostChild(nsIDOMNode* aCurrentNode,
+                               bool bNoBlockCrossing = false);
   nsIContent* GetLeftmostChild(nsINode *aCurrentNode,
                                bool     bNoBlockCrossing = false);
 
