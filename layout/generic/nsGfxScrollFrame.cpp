@@ -2353,8 +2353,13 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
+  
+  
+  
+  
+  mShouldBuildScrollableLayer = usingDisplayport || nsContentUtils::HasScrollgrab(mOuter->GetContent());
   bool shouldBuildLayer = false;
-  if (usingDisplayport) {
+  if (mShouldBuildScrollableLayer) {
     shouldBuildLayer = true;
   } else {
     nsRect scrollRange = GetScrollRange();
@@ -2376,14 +2381,12 @@ ScrollFrameHelper::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
   }
 
-  mShouldBuildScrollableLayer = false;
   if (shouldBuildLayer) {
     
     
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
 
-    if (usingDisplayport) {
-      mShouldBuildScrollableLayer = true;
+    if (mShouldBuildScrollableLayer) {
       DisplayListClipState::AutoSaveRestore clipState(aBuilder);
 
       
