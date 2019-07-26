@@ -5350,6 +5350,14 @@ IonBuilder::jsop_eval(uint32_t argc)
         MDefinition *scopeChain = current->scopeChain();
         MDefinition *string = callInfo.getArg(0);
 
+        
+        
+        if (!string->mightBeType(MIRType_String)) {
+            current->push(string);
+            types::TemporaryTypeSet *types = bytecodeTypes(pc);
+            return pushTypeBarrier(string, types, true);
+        }
+
         current->pushSlot(info().thisSlot());
         MDefinition *thisValue = current->pop();
 
