@@ -103,6 +103,7 @@ var gExpectingProcessCrash = false;
 var gExpectedCrashDumpFiles = [];
 var gUnexpectedCrashDumpFiles = { };
 var gCrashDumpDir;
+var gFailedNoPaint = false;
 
 const TYPE_REFTEST_EQUAL = '==';
 const TYPE_REFTEST_NOTEQUAL = '!=';
@@ -1551,39 +1552,49 @@ function RecordResult(testRunTime, errorMsg, scriptResults)
             }
 
             
-            var test_passed = (equal == (gURLs[0].type == TYPE_REFTEST_EQUAL));
+            var test_passed = (equal == (gURLs[0].type == TYPE_REFTEST_EQUAL)) && !gFailedNoPaint;
 
             output = outputs[expected][test_passed];
 
             ++gTestResults[output.n];
 
-            var result = "REFTEST " + output.s + " | " +
-                         gURLs[0].prettyPath + " | "; 
-            switch (gURLs[0].type) {
-                case TYPE_REFTEST_NOTEQUAL:
-                    result += "image comparison (!=)";
-                    break;
-                case TYPE_REFTEST_EQUAL:
-                    result += "image comparison (==)";
-                    break;
-            }
-
-            if (!test_passed && expected == EXPECTED_PASS ||
-                !test_passed && expected == EXPECTED_FUZZY ||
-                test_passed && expected == EXPECTED_FAIL) {
-                if (!equal) {
-                    result += ", max difference: " + maxDifference.value + ", number of differing pixels: " + differences + "\n";
-                    result += "REFTEST   IMAGE 1 (TEST): " + gCanvas1.toDataURL() + "\n";
-                    result += "REFTEST   IMAGE 2 (REFERENCE): " + gCanvas2.toDataURL() + "\n";
+            
+            
+            if (gFailedNoPaint) {
+                if (expected == EXPECTED_FAIL) {
+                    gDumpLog("REFTEST TEST-KNOWN-FAIL | " + gURLs[0].prettyPath + " | failed reftest-no-paint\n");
                 } else {
-                    result += "\n";
-                    gDumpLog("REFTEST   IMAGE: " + gCanvas1.toDataURL() + "\n");
+                    gDumpLog("REFTEST TEST-UNEXPECTED-FAIL | " + gURLs[0].prettyPath + " | failed reftest-no-paint\n");
                 }
             } else {
-                result += "\n";
-            }
+                var result = "REFTEST " + output.s + " | " +
+                             gURLs[0].prettyPath + " | "; 
+                switch (gURLs[0].type) {
+                    case TYPE_REFTEST_NOTEQUAL:
+                        result += "image comparison (!=)";
+                        break;
+                    case TYPE_REFTEST_EQUAL:
+                        result += "image comparison (==)";
+                        break;
+                }
 
-            gDumpLog(result);
+                if (!test_passed && expected == EXPECTED_PASS ||
+                    !test_passed && expected == EXPECTED_FUZZY ||
+                    test_passed && expected == EXPECTED_FAIL) {
+                    if (!equal) {
+                        result += ", max difference: " + maxDifference.value + ", number of differing pixels: " + differences + "\n";
+                        result += "REFTEST   IMAGE 1 (TEST): " + gCanvas1.toDataURL() + "\n";
+                        result += "REFTEST   IMAGE 2 (REFERENCE): " + gCanvas2.toDataURL() + "\n";
+                    } else {
+                        result += "\n";
+                        gDumpLog("REFTEST   IMAGE: " + gCanvas1.toDataURL() + "\n");
+                    }
+                } else {
+                    result += "\n";
+                }
+
+                gDumpLog(result);
+            }
 
             if (!test_passed && expected == EXPECTED_PASS) {
                 FlushTestLog();
@@ -1672,6 +1683,7 @@ function FinishTestItem()
     
     SetAsyncScroll(false);
     SendClear();
+    gFailedNoPaint = false;
 }
 
 function DoAssertionCheck(numAsserts)
@@ -1768,6 +1780,10 @@ function RegisterMessageListenersAndLoadContentScript()
         function (m) { RecvFailedLoad(m.json.why); }
     );
     gBrowserMessageManager.addMessageListener(
+        "reftest:FailedNoPaint",
+        function (m) { RecvFailedNoPaint(); }
+    );
+    gBrowserMessageManager.addMessageListener(
         "reftest:InitCanvasWithSnapshot",
         function (m) { return RecvInitCanvasWithSnapshot(); }
     );
@@ -1826,6 +1842,11 @@ function RecvException(what)
 function RecvFailedLoad(why)
 {
     LoadFailed(why);
+}
+
+function RecvFailedNoPaint()
+{
+    gFailedNoPaint = true;
 }
 
 function RecvInitCanvasWithSnapshot()
