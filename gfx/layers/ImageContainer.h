@@ -387,6 +387,17 @@ public:
   
 
 
+  void ClearAllImages();
+
+  
+
+
+
+  void ClearAllImagesExceptFront();
+
+  
+
+
 
 
 

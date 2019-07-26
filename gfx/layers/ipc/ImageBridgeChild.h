@@ -243,12 +243,12 @@ public:
   
 
 
-  static void FlushImage(ImageClient* aClient, ImageContainer* aContainer);
+  static void FlushAllImages(ImageClient* aClient, ImageContainer* aContainer, bool aExceptFront);
 
   
 
 
-  static void FlushImageNow(ImageClient* aClient, ImageContainer* aContainer);
+  static void FlushAllImagesNow(ImageClient* aClient, ImageContainer* aContainer, bool aExceptFront);
 
   
 

@@ -186,9 +186,8 @@ ImageContainer::ClearCurrentImage()
 void
 ImageContainer::SetCurrentImage(Image *aImage)
 {
-  if (IsAsync() && !aImage) {
-    
-    ImageBridgeChild::FlushImage(mImageClient, this);
+  if (!aImage) {
+    ClearAllImages();
     return;
   }
 
@@ -197,6 +196,27 @@ ImageContainer::SetCurrentImage(Image *aImage)
     ImageBridgeChild::DispatchImageClientUpdate(mImageClient, this);
   }
   SetCurrentImageInternal(aImage);
+}
+
+ void
+ImageContainer::ClearAllImages()
+{
+  if (IsAsync()) {
+    
+    ImageBridgeChild::FlushAllImages(mImageClient, this, false);
+    return;
+  }
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  SetCurrentImageInternal(nullptr);
+}
+
+void
+ImageContainer::ClearAllImagesExceptFront()
+{
+  if (IsAsync()) {
+    
+    ImageBridgeChild::FlushAllImages(mImageClient, this, true);
+  }
 }
 
 void
