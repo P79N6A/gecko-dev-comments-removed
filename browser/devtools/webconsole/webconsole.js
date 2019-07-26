@@ -121,7 +121,7 @@ const MESSAGE_PREFERENCE_KEYS = [
 
   [ "network",    null,         null,   "networkinfo", ],  
   [ "csserror",   "cssparser",  null,   null,          ],  
-  [ "exception",  "jswarn",     null,   null,          ],  
+  [ "exception",  "jswarn",     null,   "jslog",       ],  
   [ "error",      "warn",       "info", "log",         ],  
   [ null,         null,         null,   null,          ],  
   [ null,         null,         null,   null,          ],  
@@ -526,6 +526,7 @@ WebConsoleFrame.prototype = {
       cssparser: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "cssparser"),
       exception: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "exception"),
       jswarn: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "jswarn"),
+      jslog: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "jslog"),
       error: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "error"),
       info: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "info"),
       warn: Services.prefs.getBoolPref(FILTER_PREFS_PREFIX + "warn"),
@@ -596,6 +597,14 @@ WebConsoleFrame.prototype = {
 
       aButton.setAttribute("checked", someChecked);
     }, this);
+
+    if (!this.owner._browserConsole) {
+      
+      
+      
+      let jslog = this.document.querySelector("menuitem[prefKey=jslog]");
+      jslog.hidden = true;
+    }
   },
 
   
