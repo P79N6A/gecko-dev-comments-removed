@@ -233,9 +233,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
         return nullptr;
 
     
-    AUTO_MARK_JSVAL(cx, fun);
-
-    
     
     
     
@@ -271,7 +268,6 @@ nsXPCWrappedJSClass::CallQueryInterfaceOnJSObject(JSContext* cx,
                          "JS failed without setting an exception!");
 
             RootedValue jsexception(cx, NullValue());
-            AUTO_MARK_JSVAL(cx, jsexception.address());
 
             if (JS_GetPendingException(cx, jsexception.address())) {
                 nsresult rv;
@@ -718,12 +714,9 @@ nsXPCWrappedJSClass::DelegatedQueryInterface(nsXPCWrappedJS* self,
     }
 
     
-    JSObject* jsobj = CallQueryInterfaceOnJSObject(ccx, self->GetJSObject(),
-                                                   aIID);
+    RootedObject jsobj(ccx, CallQueryInterfaceOnJSObject(ccx, self->GetJSObject(),
+                                                         aIID));
     if (jsobj) {
-        
-        AUTO_MARK_JSVAL(ccx, OBJECT_TO_JSVAL(jsobj));
-
         
         
         
@@ -1295,8 +1288,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16_t methodIndex,
         nsXPTType datum_type;
         uint32_t array_count;
         bool isArray = type.IsArray();
-        RootedValue val(cx, JSVAL_NULL);
-        AUTO_MARK_JSVAL(ccx, val.address());
+        RootedValue val(cx, NullValue());
         bool isSizedString = isArray ?
                 false :
                 type.TagPart() == nsXPTType::T_PSTRING_SIZE_IS ||

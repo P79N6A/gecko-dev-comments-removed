@@ -1413,29 +1413,23 @@ XPCConvert::NativeArray2JS(XPCLazyCallContext& lccx,
 
     
 
-    JSObject *array = JS_NewArrayObject(cx, count, nullptr);
-
+    RootedObject array(cx, JS_NewArrayObject(cx, count, nullptr));
     if (!array)
         return false;
-
-    
-    *d = OBJECT_TO_JSVAL(array);
-    AUTO_MARK_JSVAL(ccx, d);
 
     if (pErr)
         *pErr = NS_ERROR_XPC_BAD_CONVERT_NATIVE;
 
     uint32_t i;
-    jsval current = JSVAL_NULL;
-    AUTO_MARK_JSVAL(ccx, &current);
+    RootedValue current(cx, JSVAL_NULL);
 
-#define POPULATE(_t)                                                          \
-    PR_BEGIN_MACRO                                                            \
-        for (i = 0; i < count; i++) {                                         \
-            if (!NativeData2JS(ccx, &current, ((_t*)*s)+i, type, iid, pErr) ||\
-                !JS_SetElement(cx, array, i, &current))                       \
-                goto failure;                                                 \
-        }                                                                     \
+#define POPULATE(_t)                                                                    \
+    PR_BEGIN_MACRO                                                                      \
+        for (i = 0; i < count; i++) {                                                   \
+            if (!NativeData2JS(ccx, current.address(), ((_t*)*s)+i, type, iid, pErr) || \
+                !JS_SetElement(cx, array, i, current.address()))                        \
+                goto failure;                                                           \
+        }                                                                               \
     PR_END_MACRO
 
     
@@ -1469,6 +1463,7 @@ XPCConvert::NativeArray2JS(XPCLazyCallContext& lccx,
 
     if (pErr)
         *pErr = NS_OK;
+    *d = OBJECT_TO_JSVAL(array);
     return true;
 
 failure:
