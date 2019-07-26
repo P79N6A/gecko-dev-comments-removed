@@ -252,8 +252,8 @@ public class LightweightTheme implements GeckoEventListener {
 
 
 
-    public Drawable getDrawableWithAlpha(View view, int alpha) {
-        return getDrawableWithAlpha(view, alpha, alpha);
+    public LightweightThemeDrawable getTextureDrawable(View view, int textureId) {
+        return getTextureDrawable(view, textureId, false);
     }
 
     
@@ -266,21 +266,43 @@ public class LightweightTheme implements GeckoEventListener {
 
 
 
-    public Drawable getDrawableWithAlpha(View view, int startAlpha, int endAlpha) {
+    public LightweightThemeDrawable getTextureDrawable(View view, int textureId, boolean needsColor) {
         Bitmap bitmap = getCroppedBitmap(view);
         if (bitmap == null)
             return null;
 
         LightweightThemeDrawable drawable = new LightweightThemeDrawable(view.getContext().getResources(), bitmap);
-        drawable.setAlpha(startAlpha, endAlpha);
-        drawable.setGravity(Gravity.TOP|Gravity.RIGHT|Gravity.FILL_HORIZONTAL);
+        drawable.setTexture(textureId);
 
-        if (bitmap.getHeight() != view.getHeight()) {
-            ColorDrawable colorDrawable = new ColorDrawable(mColor);
-            LayerDrawable layerDrawable = new LayerDrawable(new Drawable[]{ colorDrawable, drawable });
-            return layerDrawable;
-        } else {
-            return drawable;
-        }
+        if (needsColor)
+            drawable.setColor(mColor & 0x22FFFFFF);
+
+        return drawable;
+    }
+
+    
+
+
+
+
+
+     public LightweightThemeDrawable getColorDrawable(View view) {
+         return getColorDrawable(view, mColor);
+     }
+
+    
+
+
+
+
+
+    public LightweightThemeDrawable getColorDrawable(View view, int color) {
+        Bitmap bitmap = getCroppedBitmap(view);
+        if (bitmap == null)
+            return null;
+
+        LightweightThemeDrawable drawable = new LightweightThemeDrawable(view.getContext().getResources(), bitmap);
+        drawable.setColor(color);
+        return drawable;
     }
 }
