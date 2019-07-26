@@ -2243,6 +2243,12 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 #TabsToolbar::after {
   content: '';
+  
+
+
+
+
+  -moz-box-ordinal-group: 1001;
   position: absolute;
   bottom: 1px;
   left: 0;
