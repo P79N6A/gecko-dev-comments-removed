@@ -41,6 +41,15 @@ public:
 
   virtual gfx::IntSize GetSize() const { return mSize; }
 
+  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE
+  {
+    
+    
+    
+    MarkInvalid();
+    return nullptr;
+  }
+
 protected:
   gl::SharedTextureHandle mHandle;
   gfx::IntSize mSize;

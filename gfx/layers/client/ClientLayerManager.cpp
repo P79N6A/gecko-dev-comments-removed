@@ -337,6 +337,10 @@ ClientLayerManager::ForwardTransaction()
         
         
         
+        const ReplyTextureRemoved& rep = reply.get_ReplyTextureRemoved();
+        CompositableClient* compositable
+          = static_cast<CompositableChild*>(rep.compositableChild())->GetCompositableClient();
+        compositable->OnReplyTextureRemoved(rep.textureId());
         break;
       }
 

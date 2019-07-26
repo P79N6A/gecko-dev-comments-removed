@@ -86,6 +86,28 @@ public:
 
 
 
+class TextureClientData {
+public:
+  virtual void DeallocateSharedData(ISurfaceAllocator* allocator) = 0;
+  virtual ~TextureClientData() {}
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -143,6 +165,8 @@ public:
   virtual bool ToSurfaceDescriptor(SurfaceDescriptor& aDescriptor) = 0;
 
   virtual gfx::IntSize GetSize() const = 0;
+
+  virtual TextureClientData* DropTextureData() = 0;
 
   TextureFlags GetFlags() const { return mFlags; }
 
@@ -268,6 +292,8 @@ public:
 
   virtual bool IsAllocated() const MOZ_OVERRIDE { return mAllocated; }
 
+  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
+
   ISurfaceAllocator* GetAllocator() const;
 
   ipc::Shmem& GetShmem() { return mShmem; }
@@ -300,6 +326,8 @@ public:
   virtual size_t GetBufferSize() const MOZ_OVERRIDE { return mBufSize; }
 
   virtual bool IsAllocated() const MOZ_OVERRIDE { return mBuffer != nullptr; }
+
+  virtual TextureClientData* DropTextureData() MOZ_OVERRIDE;
 
 protected:
   uint8_t* mBuffer;

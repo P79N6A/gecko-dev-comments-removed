@@ -177,21 +177,25 @@ ImageContainer::SetCurrentImageInternal(Image *aImage)
 }
 
 void
-ImageContainer::SetCurrentImage(Image *aImage)
+ImageContainer::ClearCurrentImage()
 {
   ReentrantMonitorAutoEnter mon(mReentrantMonitor);
-  if (IsAsync()) {
-    if (aImage) {
-      ImageBridgeChild::DispatchImageClientUpdate(mImageClient, this);
-    } else {
-      
-      
-      
-      
-      
-    }
+  SetCurrentImageInternal(nullptr);
+}
+
+void
+ImageContainer::SetCurrentImage(Image *aImage)
+{
+  if (IsAsync() && !aImage) {
+    
+    ImageBridgeChild::FlushImage(mImageClient, this);
+    return;
   }
 
+  ReentrantMonitorAutoEnter mon(mReentrantMonitor);
+  if (IsAsync()) {
+    ImageBridgeChild::DispatchImageClientUpdate(mImageClient, this);
+  }
   SetCurrentImageInternal(aImage);
 }
 

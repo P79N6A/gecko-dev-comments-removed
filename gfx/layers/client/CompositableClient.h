@@ -8,6 +8,7 @@
 
 #include <stdint.h>                     
 #include <vector>                       
+#include <map>                          
 #include "mozilla/Assertions.h"         
 #include "mozilla/RefPtr.h"             
 #include "mozilla/gfx/Types.h"          
@@ -27,6 +28,7 @@ class ImageBridgeChild;
 class CompositableForwarder;
 class CompositableChild;
 class SurfaceDescriptor;
+class TextureClientData;
 
 
 
@@ -137,9 +139,18 @@ public:
 
   virtual void OnDetach() {}
 
+  void OnReplyTextureRemoved(uint64_t aTextureID);
+
 protected:
+  struct TextureIDAndFlags {
+    TextureIDAndFlags(uint64_t aID, TextureFlags aFlags)
+    : mID(aID), mFlags(aFlags) {}
+    uint64_t mID;
+    TextureFlags mFlags;
+  };
   
-  nsTArray<uint64_t> mTexturesToRemove;
+  nsTArray<TextureIDAndFlags> mTexturesToRemove;
+  std::map<uint64_t, TextureClientData*> mTexturesToRemoveCallbacks;
   uint64_t mNextTextureID;
   CompositableChild* mCompositableChild;
   CompositableForwarder* mForwarder;

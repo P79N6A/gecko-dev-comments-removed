@@ -53,7 +53,9 @@ GrallocImage::GrallocImage()
 
 GrallocImage::~GrallocImage()
 {
-  if (mGraphicBuffer.get()) {
+  
+  
+  if (mGraphicBuffer.get() && !mTextureClient) {
     mGraphicBuffer->Unlock();
     if (mBufferAllocated) {
       ImageBridgeChild *ibc = ImageBridgeChild::GetSingleton();
@@ -294,6 +296,7 @@ GrallocImage::GetTextureClient()
     mTextureClient = new GrallocTextureClientOGL(actor,
                                                  gfx::ToIntSize(mSize),
                                                  flags);
+    mTextureClient->SetGraphicBufferLocked(mGraphicBuffer);
   }
   return mTextureClient;
 }

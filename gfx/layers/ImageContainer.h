@@ -339,6 +339,14 @@ public:
 
 
 
+  void ClearCurrentImage();
+
+  
+
+
+
+
+
 
 
 

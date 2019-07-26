@@ -62,6 +62,11 @@ public:
   virtual already_AddRefed<Image> CreateImage(const uint32_t *aFormats,
                                               uint32_t aNumFormats) = 0;
 
+  
+
+
+  virtual void FlushImage() {}
+
 protected:
   ImageClient(CompositableForwarder* aFwd, CompositableType aType);
 
@@ -96,6 +101,9 @@ public:
 
   virtual already_AddRefed<Image> CreateImage(const uint32_t *aFormats,
                                               uint32_t aNumFormats) MOZ_OVERRIDE;
+
+  virtual void FlushImage() MOZ_OVERRIDE;
+
 protected:
   RefPtr<TextureClient> mFrontBuffer;
   
@@ -116,6 +124,8 @@ public:
   virtual bool UpdateImage(ImageContainer* aContainer, uint32_t aContentFlags);
 
   virtual void OnDetach() MOZ_OVERRIDE;
+
+  virtual void FlushImage() MOZ_OVERRIDE;
 
 protected:
   RefPtr<TextureClient> mBackBuffer;

@@ -239,6 +239,15 @@ public:
   static void DispatchReleaseImageClient(ImageClient* aClient);
   static void DispatchImageClientUpdate(ImageClient* aClient, ImageContainer* aContainer);
 
+  
+
+
+  static void FlushImage(ImageClient* aClient, ImageContainer* aContainer);
+
+  
+
+
+  static void FlushImageNow(ImageClient* aClient, ImageContainer* aContainer);
 
   
 
