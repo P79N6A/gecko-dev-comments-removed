@@ -118,6 +118,9 @@ public:
 
 
 
+
+
+
   uint64_t GetAsyncID() const;
 
   
@@ -141,7 +144,23 @@ public:
 
   virtual void OnDetach() {}
 
+  
+
+
+
+
+
+
+
+
+
+
+
   void OnReplyTextureRemoved(uint64_t aTextureID);
+
+  
+
+
 
   void FlushTexturesToRemoveCallbacks();
 protected:

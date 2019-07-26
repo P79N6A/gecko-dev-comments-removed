@@ -48,7 +48,6 @@ const TextureFlags TEXTURE_COMPONENT_ALPHA    = 1 << 5;
 
 const TextureFlags TEXTURE_RB_SWAPPED         = 1 << 6;
 
-
 const TextureFlags TEXTURE_FRONT              = 1 << 12;
 
 const TextureFlags TEXTURE_ON_WHITE           = 1 << 13;

@@ -124,12 +124,13 @@ public:
   virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
-  virtual void MarkUnused() {}
+  
 
-  virtual bool Lock(OpenMode aMode)
-  {
-    return IsValid();
-  }
+
+
+
+
+  virtual bool Lock(OpenMode aMode) { return IsValid(); }
 
   virtual void Unlock() {}
 
@@ -138,10 +139,17 @@ public:
 
 
 
-  virtual bool ImplementsLocking() const
-  {
-    return false;
-  }
+  virtual bool ImplementsLocking() const { return false; }
+
+  
+
+
+
+
+
+
+
+
 
   void SetID(uint64_t aID)
   {
@@ -155,10 +163,7 @@ public:
     mID = 0;
   }
 
-  uint64_t GetID() const
-  {
-    return mID;
-  }
+  uint64_t GetID() const { return mID; }
 
   virtual bool IsAllocated() const = 0;
 
@@ -166,7 +171,21 @@ public:
 
   virtual gfx::IntSize GetSize() const = 0;
 
+  
+
+
+
+
+
+
+
   virtual TextureClientData* DropTextureData() = 0;
+
+  
+
+
+
+
 
   TextureFlags GetFlags() const { return mFlags; }
 
@@ -188,6 +207,10 @@ public:
 
 
   bool IsValid() const { return mValid; }
+
+  
+
+
 
   void MarkInvalid() { mValid = false; }
 
