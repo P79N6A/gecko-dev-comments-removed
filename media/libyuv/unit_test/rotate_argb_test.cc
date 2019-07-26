@@ -1,12 +1,12 @@
-
-
-
-
-
-
-
-
-
+/*
+ *  Copyright 2012 The LibYuv Project Authors. All rights reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS. All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include <stdlib.h>
 #include <time.h>
@@ -50,24 +50,24 @@ void TestRotateBpp(int src_width, int src_height,
   memset(dst_argb_opt, 3, dst_argb_plane_size);
 
   if (kBpp == 1) {
-    MaskCpuFlags(0);  
+    MaskCpuFlags(0);  // Disable all CPU optimization.
     RotatePlane(src_argb, src_stride_argb,
                 dst_argb_c, dst_stride_argb,
                 src_width, src_height, mode);
 
-    MaskCpuFlags(-1);  
+    MaskCpuFlags(-1);  // Enable all CPU optimization.
     for (int i = 0; i < benchmark_iterations; ++i) {
       RotatePlane(src_argb, src_stride_argb,
                   dst_argb_opt, dst_stride_argb,
                   src_width, src_height, mode);
     }
   } else if (kBpp == 4) {
-    MaskCpuFlags(0);  
+    MaskCpuFlags(0);  // Disable all CPU optimization.
     ARGBRotate(src_argb, src_stride_argb,
                dst_argb_c, dst_stride_argb,
                src_width, src_height, mode);
 
-    MaskCpuFlags(-1);  
+    MaskCpuFlags(-1);  // Enable all CPU optimization.
     for (int i = 0; i < benchmark_iterations; ++i) {
       ARGBRotate(src_argb, src_stride_argb,
                  dst_argb_opt, dst_stride_argb,
@@ -75,7 +75,7 @@ void TestRotateBpp(int src_width, int src_height,
     }
   }
 
-  
+  // Rotation should be exact.
   for (int i = 0; i < dst_argb_plane_size; ++i) {
     EXPECT_EQ(dst_argb_c[i], dst_argb_opt[i]);
   }
@@ -199,4 +199,4 @@ TEST_F(libyuvTest, RotatePlane270_Odd) {
                   kRotate270, benchmark_iterations_);
 }
 
-}  
+}  // namespace libyuv

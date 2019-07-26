@@ -1,14 +1,14 @@
+/*
+ *  Copyright 2011 The LibYuv Project Authors. All rights reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS. All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
-
-
-
-
-
-
-
-
-
-#ifndef UNIT_TEST_UNIT_TEST_H_  
+#ifndef UNIT_TEST_UNIT_TEST_H_  // NOLINT
 #define UNIT_TEST_UNIT_TEST_H_
 
 #ifdef WIN32
@@ -73,11 +73,11 @@ class libyuvTest : public ::testing::Test {
   const int rotate_max_w_;
   const int rotate_max_h_;
 
-  int benchmark_iterations_;  
-  int benchmark_width_;  
-  int benchmark_height_;  
-  int benchmark_pixels_div256_;  
-  int benchmark_pixels_div1280_;  
+  int benchmark_iterations_;  // Default 1. Use 1000 for benchmarking.
+  int benchmark_width_;  // Default 1280.  Use 640 for benchmarking VGA.
+  int benchmark_height_;  // Default 720.  Use 360 for benchmarking VGA.
+  int benchmark_pixels_div256_;  // Total pixels to benchmark / 256.
+  int benchmark_pixels_div1280_;  // Total pixels to benchmark / 1280.
 };
 
-#endif  
+#endif  // UNIT_TEST_UNIT_TEST_H_  NOLINT

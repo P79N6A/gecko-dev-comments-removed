@@ -1,12 +1,12 @@
-
-
-
-
-
-
-
-
-
+/*
+ *  Copyright 2011 The LibYuv Project Authors. All rights reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS. All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include <stdlib.h>
 #include <time.h>
@@ -20,12 +20,12 @@
 #include "libyuv/format_conversion.h"
 #include "libyuv/planar_functions.h"
 #include "libyuv/rotate.h"
-#include "libyuv/row.h"  
+#include "libyuv/row.h"  // For Sobel
 #include "../unit_test/unit_test.h"
 
 #if defined(_MSC_VER)
 #define SIMD_ALIGNED(var) __declspec(align(16)) var
-#else  
+#else  // __GNUC__
 #define SIMD_ALIGNED(var) var __attribute__((aligned(16)))
 #endif
 
@@ -38,12 +38,12 @@ TEST_F(libyuvTest, TestAttenuate) {
   align_buffer_64(unatten_pixels, kSize);
   align_buffer_64(atten2_pixels, kSize);
 
-  
+  // Test unattenuation clamps
   orig_pixels[0 * 4 + 0] = 200u;
   orig_pixels[0 * 4 + 1] = 129u;
   orig_pixels[0 * 4 + 2] = 127u;
   orig_pixels[0 * 4 + 3] = 128u;
-  
+  // Test unattenuation transparent and opaque are unaffected
   orig_pixels[1 * 4 + 0] = 16u;
   orig_pixels[1 * 4 + 1] = 64u;
   orig_pixels[1 * 4 + 2] = 192u;
@@ -91,7 +91,7 @@ TEST_F(libyuvTest, TestAttenuate) {
     EXPECT_NEAR(atten_pixels[i * 4 + 2], atten2_pixels[i * 4 + 2], 2);
     EXPECT_NEAR(atten_pixels[i * 4 + 3], atten2_pixels[i * 4 + 3], 2);
   }
-  
+  // Make sure transparent, 50% and opaque are fully accurate.
   EXPECT_EQ(0, atten_pixels[0 * 4 + 0]);
   EXPECT_EQ(0, atten_pixels[0 * 4 + 1]);
   EXPECT_EQ(0, atten_pixels[0 * 4 + 2]);
@@ -277,37 +277,37 @@ TEST_F(libyuvTest, TestARGBGray) {
   SIMD_ALIGNED(uint8 orig_pixels[1280][4]);
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test black
   orig_pixels[3][0] = 0u;
   orig_pixels[3][1] = 0u;
   orig_pixels[3][2] = 0u;
   orig_pixels[3][3] = 255u;
-  
+  // Test white
   orig_pixels[4][0] = 255u;
   orig_pixels[4][1] = 255u;
   orig_pixels[4][2] = 255u;
   orig_pixels[4][3] = 255u;
-  
+  // Test color
   orig_pixels[5][0] = 16u;
   orig_pixels[5][1] = 64u;
   orig_pixels[5][2] = 192u;
   orig_pixels[5][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBGray(&orig_pixels[0][0], 0, 0, 0, 16, 1);
   EXPECT_EQ(30u, orig_pixels[0][0]);
   EXPECT_EQ(30u, orig_pixels[0][1]);
@@ -349,37 +349,37 @@ TEST_F(libyuvTest, TestARGBGrayTo) {
   SIMD_ALIGNED(uint8 gray_pixels[1280][4]);
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test black
   orig_pixels[3][0] = 0u;
   orig_pixels[3][1] = 0u;
   orig_pixels[3][2] = 0u;
   orig_pixels[3][3] = 255u;
-  
+  // Test white
   orig_pixels[4][0] = 255u;
   orig_pixels[4][1] = 255u;
   orig_pixels[4][2] = 255u;
   orig_pixels[4][3] = 255u;
-  
+  // Test color
   orig_pixels[5][0] = 16u;
   orig_pixels[5][1] = 64u;
   orig_pixels[5][2] = 192u;
   orig_pixels[5][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBGrayTo(&orig_pixels[0][0], 0, &gray_pixels[0][0], 0, 16, 1);
   EXPECT_EQ(30u, gray_pixels[0][0]);
   EXPECT_EQ(30u, gray_pixels[0][1]);
@@ -420,37 +420,37 @@ TEST_F(libyuvTest, TestARGBSepia) {
   SIMD_ALIGNED(uint8 orig_pixels[1280][4]);
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test black
   orig_pixels[3][0] = 0u;
   orig_pixels[3][1] = 0u;
   orig_pixels[3][2] = 0u;
   orig_pixels[3][3] = 255u;
-  
+  // Test white
   orig_pixels[4][0] = 255u;
   orig_pixels[4][1] = 255u;
   orig_pixels[4][2] = 255u;
   orig_pixels[4][3] = 255u;
-  
+  // Test color
   orig_pixels[5][0] = 16u;
   orig_pixels[5][1] = 64u;
   orig_pixels[5][2] = 192u;
   orig_pixels[5][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBSepia(&orig_pixels[0][0], 0, 0, 0, 16, 1);
   EXPECT_EQ(33u, orig_pixels[0][0]);
   EXPECT_EQ(43u, orig_pixels[0][1]);
@@ -493,36 +493,36 @@ TEST_F(libyuvTest, TestARGBColorMatrix) {
   SIMD_ALIGNED(uint8 dst_pixels_opt[1280][4]);
   SIMD_ALIGNED(uint8 dst_pixels_c[1280][4]);
 
-  
+  // Matrix for Sepia.
   SIMD_ALIGNED(static const int8 kRGBToSepia[]) = {
     17 / 2, 68 / 2, 35 / 2, 0,
     22 / 2, 88 / 2, 45 / 2, 0,
     24 / 2, 98 / 2, 50 / 2, 0,
-    0, 0, 0, 64,  
+    0, 0, 0, 64,  // Copy alpha.
   };
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test color
   orig_pixels[3][0] = 16u;
   orig_pixels[3][1] = 64u;
   orig_pixels[3][2] = 192u;
   orig_pixels[3][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBColorMatrix(&orig_pixels[0][0], 0, &dst_pixels_opt[0][0], 0,
                   &kRGBToSepia[0], 16, 1);
   EXPECT_EQ(31u, dst_pixels_opt[0][0]);
@@ -569,36 +569,36 @@ TEST_F(libyuvTest, TestARGBColorMatrix) {
 TEST_F(libyuvTest, TestRGBColorMatrix) {
   SIMD_ALIGNED(uint8 orig_pixels[1280][4]);
 
-  
+  // Matrix for Sepia.
   SIMD_ALIGNED(static const int8 kRGBToSepia[]) = {
     17, 68, 35, 0,
     22, 88, 45, 0,
     24, 98, 50, 0,
-    0, 0, 0, 0,  
+    0, 0, 0, 0,  // Unused but makes matrix 16 bytes.
   };
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test color
   orig_pixels[3][0] = 16u;
   orig_pixels[3][1] = 64u;
   orig_pixels[3][2] = 192u;
   orig_pixels[3][3] = 224u;
-  
+  // Do 16 to test asm version.
   RGBColorMatrix(&orig_pixels[0][0], 0, &kRGBToSepia[0], 0, 0, 16, 1);
   EXPECT_EQ(31u, orig_pixels[0][0]);
   EXPECT_EQ(43u, orig_pixels[0][1]);
@@ -632,7 +632,7 @@ TEST_F(libyuvTest, TestARGBColorTable) {
   SIMD_ALIGNED(uint8 orig_pixels[1280][4]);
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Matrix for Sepia.
   static const uint8 kARGBTable[256 * 4] = {
     1u, 2u, 3u, 4u,
     5u, 6u, 7u, 8u,
@@ -656,7 +656,7 @@ TEST_F(libyuvTest, TestARGBColorTable) {
   orig_pixels[3][1] = 1u;
   orig_pixels[3][2] = 2u;
   orig_pixels[3][3] = 3u;
-  
+  // Do 16 to test asm version.
   ARGBColorTable(&orig_pixels[0][0], 0, &kARGBTable[0], 0, 0, 16, 1);
   EXPECT_EQ(1u, orig_pixels[0][0]);
   EXPECT_EQ(2u, orig_pixels[0][1]);
@@ -686,12 +686,12 @@ TEST_F(libyuvTest, TestARGBColorTable) {
   }
 }
 
-
+// Same as TestARGBColorTable except alpha does not change.
 TEST_F(libyuvTest, TestRGBColorTable) {
   SIMD_ALIGNED(uint8 orig_pixels[1280][4]);
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
-  
+  // Matrix for Sepia.
   static const uint8 kARGBTable[256 * 4] = {
     1u, 2u, 3u, 4u,
     5u, 6u, 7u, 8u,
@@ -715,24 +715,24 @@ TEST_F(libyuvTest, TestRGBColorTable) {
   orig_pixels[3][1] = 1u;
   orig_pixels[3][2] = 2u;
   orig_pixels[3][3] = 3u;
-  
+  // Do 16 to test asm version.
   RGBColorTable(&orig_pixels[0][0], 0, &kARGBTable[0], 0, 0, 16, 1);
   EXPECT_EQ(1u, orig_pixels[0][0]);
   EXPECT_EQ(2u, orig_pixels[0][1]);
   EXPECT_EQ(3u, orig_pixels[0][2]);
-  EXPECT_EQ(0u, orig_pixels[0][3]);  
+  EXPECT_EQ(0u, orig_pixels[0][3]);  // Alpha unchanged.
   EXPECT_EQ(5u, orig_pixels[1][0]);
   EXPECT_EQ(6u, orig_pixels[1][1]);
   EXPECT_EQ(7u, orig_pixels[1][2]);
-  EXPECT_EQ(1u, orig_pixels[1][3]);  
+  EXPECT_EQ(1u, orig_pixels[1][3]);  // Alpha unchanged.
   EXPECT_EQ(9u, orig_pixels[2][0]);
   EXPECT_EQ(10u, orig_pixels[2][1]);
   EXPECT_EQ(11u, orig_pixels[2][2]);
-  EXPECT_EQ(2u, orig_pixels[2][3]);  
+  EXPECT_EQ(2u, orig_pixels[2][3]);  // Alpha unchanged.
   EXPECT_EQ(1u, orig_pixels[3][0]);
   EXPECT_EQ(6u, orig_pixels[3][1]);
   EXPECT_EQ(11u, orig_pixels[3][2]);
-  EXPECT_EQ(3u, orig_pixels[3][3]);  
+  EXPECT_EQ(3u, orig_pixels[3][3]);  // Alpha unchanged.
 
   for (int i = 0; i < 1280; ++i) {
     orig_pixels[i][0] = i;
@@ -813,7 +813,7 @@ TEST_F(libyuvTest, TestShade) {
   orig_pixels[3][1] = 0u;
   orig_pixels[3][2] = 0u;
   orig_pixels[3][3] = 0u;
-  
+  // Do 8 pixels to allow opt version to be used.
   ARGBShade(&orig_pixels[0][0], 0, &shade_pixels[0][0], 0, 8, 1, 0x80ffffff);
   EXPECT_EQ(10u, shade_pixels[0][0]);
   EXPECT_EQ(20u, shade_pixels[0][1]);
@@ -900,7 +900,7 @@ TEST_F(libyuvTest, TestInterpolate) {
   EXPECT_EQ(0u, interpolate_pixels[1][0]);
   EXPECT_EQ(0u, interpolate_pixels[1][1]);
   EXPECT_EQ(0u, interpolate_pixels[1][2]);
-  EXPECT_NEAR(128u, interpolate_pixels[1][3], 1);  
+  EXPECT_NEAR(128u, interpolate_pixels[1][3], 1);  // C = 127, SSE = 128.
   EXPECT_EQ(0u, interpolate_pixels[2][0]);
   EXPECT_EQ(0u, interpolate_pixels[2][1]);
   EXPECT_EQ(0u, interpolate_pixels[2][2]);
@@ -1320,14 +1320,14 @@ TEST_F(libyuvTest, TestCopyPlane) {
   memset(dst_c, 0, y_plane_size);
   memset(dst_opt, 0, y_plane_size);
 
-  
+  // Fill image buffers with random data.
   for (i = b; i < (yh + b); ++i) {
     for (j = b; j < (yw + b); ++j) {
       orig_y[i * (yw + b * 2) + j] = random() & 0xff;
     }
   }
 
-  
+  // Fill destination buffers with random data.
   for (i = 0; i < y_plane_size; ++i) {
     uint8 random_number = random() & 0x7f;
     dst_c[i] = random_number;
@@ -1339,7 +1339,7 @@ TEST_F(libyuvTest, TestCopyPlane) {
   int y_st = yw + b * 2;
   int stride = 8;
 
-  
+  // Disable all optimizations.
   MaskCpuFlags(0);
   double c_time = get_time();
   for (j = 0; j < benchmark_iterations_; j++) {
@@ -1347,7 +1347,7 @@ TEST_F(libyuvTest, TestCopyPlane) {
   }
   c_time = (get_time() - c_time) / benchmark_iterations_;
 
-  
+  // Enable optimizations.
   MaskCpuFlags(-1);
   double opt_time = get_time();
   for (j = 0; j < benchmark_iterations_; j++) {
@@ -1887,38 +1887,38 @@ TEST_F(libyuvTest, TestARGBPolynomial) {
   memset(orig_pixels, 0, sizeof(orig_pixels));
 
   SIMD_ALIGNED(static const float kWarmifyPolynomial[16]) = {
-    0.94230f,  -3.03300f,    -2.92500f,  0.f,  
-    0.584500f,  1.112000f,    1.535000f, 1.f,  
-    0.001313f, -0.002503f,   -0.004496f, 0.f,  
-    0.0f,       0.000006965f, 0.000008781f, 0.f,  
+    0.94230f,  -3.03300f,    -2.92500f,  0.f,  // C0
+    0.584500f,  1.112000f,    1.535000f, 1.f,  // C1 x
+    0.001313f, -0.002503f,   -0.004496f, 0.f,  // C2 x * x
+    0.0f,       0.000006965f, 0.000008781f, 0.f,  // C3 x * x * x
   };
 
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test white
   orig_pixels[3][0] = 255u;
   orig_pixels[3][1] = 255u;
   orig_pixels[3][2] = 255u;
   orig_pixels[3][3] = 255u;
-  
+  // Test color
   orig_pixels[4][0] = 16u;
   orig_pixels[4][1] = 64u;
   orig_pixels[4][2] = 192u;
   orig_pixels[4][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBPolynomial(&orig_pixels[0][0], 0, &dst_pixels_opt[0][0], 0,
                  &kWarmifyPolynomial[0], 16, 1);
   EXPECT_EQ(235u, dst_pixels_opt[0][0]);
@@ -1979,27 +1979,27 @@ TEST_F(libyuvTest, TestARGBLumaColorTable) {
     lumacolortable[i] = v;
     v += 3;
   }
-  
+  // Test blue
   orig_pixels[0][0] = 255u;
   orig_pixels[0][1] = 0u;
   orig_pixels[0][2] = 0u;
   orig_pixels[0][3] = 128u;
-  
+  // Test green
   orig_pixels[1][0] = 0u;
   orig_pixels[1][1] = 255u;
   orig_pixels[1][2] = 0u;
   orig_pixels[1][3] = 0u;
-  
+  // Test red
   orig_pixels[2][0] = 0u;
   orig_pixels[2][1] = 0u;
   orig_pixels[2][2] = 255u;
   orig_pixels[2][3] = 255u;
-  
+  // Test color
   orig_pixels[3][0] = 16u;
   orig_pixels[3][1] = 64u;
   orig_pixels[3][2] = 192u;
   orig_pixels[3][3] = 224u;
-  
+  // Do 16 to test asm version.
   ARGBLumaColorTable(&orig_pixels[0][0], 0, &dst_pixels_opt[0][0], 0,
                      &lumacolortable[0], 16, 1);
   EXPECT_EQ(253u, dst_pixels_opt[0][0]);
@@ -2105,4 +2105,4 @@ TEST_F(libyuvTest, TestARGBCopyYToAlpha) {
   free_aligned_buffer_64(orig_pixels);
 }
 
-}  
+}  // namespace libyuv

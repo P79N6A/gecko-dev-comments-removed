@@ -1,12 +1,12 @@
-
-
-
-
-
-
-
-
-
+/*
+ *  Copyright 2012 The LibYuv Project Authors. All rights reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree. An additional intellectual property rights grant can be found
+ *  in the file PATENTS. All contributing project authors may
+ *  be found in the AUTHORS file in the root of the source tree.
+ */
 
 #include <stdlib.h>
 #include <time.h>
@@ -50,7 +50,7 @@ static void I420TestRotate(int src_width, int src_height,
   memset(dst_i420_c, 2, dst_i420_size);
   memset(dst_i420_opt, 3, dst_i420_size);
 
-  MaskCpuFlags(0);  
+  MaskCpuFlags(0);  // Disable all CPU optimization.
   I420Rotate(src_i420, src_width,
              src_i420 + src_i420_y_size, (src_width + 1) / 2,
              src_i420 + src_i420_y_size + src_i420_uv_size, (src_width + 1) / 2,
@@ -60,7 +60,7 @@ static void I420TestRotate(int src_width, int src_height,
                (dst_width + 1) / 2,
              src_width, src_height, mode);
 
-  MaskCpuFlags(-1);  
+  MaskCpuFlags(-1);  // Enable all CPU optimization.
   for (int i = 0; i < benchmark_iterations; ++i) {
     I420Rotate(src_i420, src_width,
                src_i420 + src_i420_y_size, (src_width + 1) / 2,
@@ -73,7 +73,7 @@ static void I420TestRotate(int src_width, int src_height,
                src_width, src_height, mode);
   }
 
-  
+  // Rotation should be exact.
   for (int i = 0; i < dst_i420_size; ++i) {
     EXPECT_EQ(dst_i420_c[i], dst_i420_opt[i]);
   }
@@ -163,7 +163,7 @@ static void NV12TestRotate(int src_width, int src_height,
   memset(dst_i420_c, 2, dst_i420_size);
   memset(dst_i420_opt, 3, dst_i420_size);
 
-  MaskCpuFlags(0);  
+  MaskCpuFlags(0);  // Disable all CPU optimization.
   NV12ToI420Rotate(src_nv12, src_width,
                    src_nv12 + src_nv12_y_size, (src_width + 1) & ~1,
                    dst_i420_c, dst_width,
@@ -172,7 +172,7 @@ static void NV12TestRotate(int src_width, int src_height,
                      (dst_width + 1) / 2,
                    src_width, src_height, mode);
 
-  MaskCpuFlags(-1);  
+  MaskCpuFlags(-1);  // Enable all CPU optimization.
   for (int i = 0; i < benchmark_iterations; ++i) {
     NV12ToI420Rotate(src_nv12, src_width,
                      src_nv12 + src_nv12_y_size, (src_width + 1) & ~1,
@@ -183,7 +183,7 @@ static void NV12TestRotate(int src_width, int src_height,
                      src_width, src_height, mode);
   }
 
-  
+  // Rotation should be exact.
   for (int i = 0; i < dst_i420_size; ++i) {
     EXPECT_EQ(dst_i420_c[i], dst_i420_opt[i]);
   }
@@ -241,4 +241,4 @@ TEST_F(libyuvTest, NV12Rotate270_Odd) {
                  kRotate270, benchmark_iterations_);
 }
 
-}  
+}  // namespace libyuv
