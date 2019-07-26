@@ -2,9 +2,6 @@
 
 
 
-#ifndef mozilla_dom_TCPSocketParent_h
-#define mozilla_dom_TCPSocketParent_h
-
 #include "mozilla/net/PTCPSocketParent.h"
 #include "nsITCPSocketParent.h"
 #include "nsCycleCollectionParticipant.h"
@@ -66,5 +63,3 @@ private:
 
 } 
 } 
-
-#endif
