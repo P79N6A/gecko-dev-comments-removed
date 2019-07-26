@@ -456,9 +456,16 @@ Shmem::OpenExisting(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
   if (!segment)
     return 0;
 
-  
-  
   Header* header = GetHeader(segment);
+
+  if (size != header->mSize) {
+    NS_ERROR("Wrong size for this Shmem!");
+    delete segment;
+    return nullptr;
+  }
+
+  
+  
   if (!header->mUnsafe && aProtect)
     Protect(segment);
 
@@ -573,6 +580,7 @@ Shmem::OpenExisting(IHadBetterBeIPDLCodeCallingThis_OtherwiseIAmADoodyhead,
 
   
   if (size != static_cast<size_t>(*PtrToSize(segment))) {
+    delete segment;
     return nullptr;
   }
 
