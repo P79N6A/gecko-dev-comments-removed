@@ -3446,6 +3446,13 @@ EmitTemplateString(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
         if (!EmitTree(cx, bce, pn2))
             return false;
+
+        if (pn2->getKind() != PNK_STRING && pn2->getKind() != PNK_TEMPLATE_STRING) {
+            
+            if (Emit1(cx, bce, JSOP_TOSTRING) < 0)
+                return false;
+        }
+
         if (pn2 != pn->pn_head) {
             
             if (Emit1(cx, bce, JSOP_ADD) < 0)

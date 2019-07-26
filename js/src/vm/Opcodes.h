@@ -1650,14 +1650,20 @@
 
 
  \
-    macro(JSOP_LOOPENTRY,     227, "loopentry",    NULL,  2,  0,  0,  JOF_UINT8)
+    macro(JSOP_LOOPENTRY,     227, "loopentry",    NULL,  2,  0,  0,  JOF_UINT8) \
+    
+
+
+
+
+ \
+    macro(JSOP_TOSTRING,    228, "tostring",       NULL,  1,  1,  1,  JOF_BYTE)
 
 
 
 
 
 #define FOR_EACH_TRAILING_UNUSED_OPCODE(macro) \
-    macro(228) \
     macro(229) \
     macro(230) \
     macro(231) \
