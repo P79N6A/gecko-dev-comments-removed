@@ -219,13 +219,13 @@ public class TwoLinePageRow extends LinearLayout
         }
 
         
+        
+        setTitle(TextUtils.isEmpty(title) ? url : title);
+
+        
         if (url.equals(mPageUrl)) {
             return;
         }
-
-        
-        
-        setTitle(TextUtils.isEmpty(title) ? url : title);
 
         
         mFavicon.clearImage();
