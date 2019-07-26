@@ -1161,6 +1161,12 @@ AcknowledgeTransaction.prototype = {
 
 
 function MmsService() {
+  if (DEBUG) {
+    let macro = (MMS.MMS_VERSION >> 4) & 0x0f;
+    let minor = MMS.MMS_VERSION & 0x0f;
+    debug("Running protocol version: " + macro + "." + minor);
+  }
+
   
 }
 MmsService.prototype = {

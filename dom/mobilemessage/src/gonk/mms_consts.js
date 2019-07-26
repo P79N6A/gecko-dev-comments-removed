@@ -31,7 +31,8 @@ this.MMS_PDU_TYPE_CANCEL_CONF = 151;
 
 
 
-this.MMS_VERSION = (0x01 << 4) | 0x03;
+this.MMS_VERSION_1_1 = (0x01 << 4) | 0x01;
+this.MMS_VERSION_1_3 = (0x01 << 4) | 0x03;
 
 
 this.MMS_PDU_ERROR_OK                = 128;
