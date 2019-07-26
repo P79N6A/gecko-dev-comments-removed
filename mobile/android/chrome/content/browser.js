@@ -3375,7 +3375,6 @@ Tab.prototype = {
         viewportW = screenW;
         viewportH = screenH;
       }
-      console.log("Use autosize: " + viewportW + "x" + viewportH);
     } else {
       viewportW = metadata.width;
       viewportH = metadata.height;
@@ -7103,7 +7102,7 @@ var Telemetry = {
       return;
     }
 
-    message = Strings.browser.formatStringFromName("telemetry.optout.message2",
+    message = Strings.browser.formatStringFromName("telemetry.optout.message",
                                                     [brandShortName, serverOwner, brandShortName], 3);
     buttons = [
       {
