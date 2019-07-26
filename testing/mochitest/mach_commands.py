@@ -4,6 +4,7 @@
 
 from __future__ import unicode_literals
 
+import logging
 import mozpack.path
 import os
 import platform
@@ -19,6 +20,14 @@ from mach.decorators import (
     CommandProvider,
     Command,
 )
+
+from mach.logging import StructuredHumanFormatter
+
+
+class UnexpectedFilter(logging.Filter):
+    def filter(self, record):
+        msg = getattr(record, 'params', {}).get('msg', '')
+        return 'TEST-UNEXPECTED-' in msg
 
 
 class MochitestRunner(MozbuildObject):
@@ -70,6 +79,7 @@ class MochitestRunner(MozbuildObject):
             print('No failure file present. Did you run mochitests before?')
             return 1
 
+        from StringIO import StringIO
         from automation import Automation
 
         
@@ -86,6 +96,14 @@ class MochitestRunner(MozbuildObject):
         os.chdir(self.topobjdir)
 
         automation = Automation()
+
+        
+        
+        remove_handlers = [l for l in logging.getLogger().handlers
+            if isinstance(l, logging.StreamHandler)]
+        for handler in remove_handlers:
+            logging.getLogger().removeHandler(handler)
+
         runner = mochitest.Mochitest(automation)
 
         opts = mochitest.MochitestOptions(automation, tests_dir)
@@ -144,7 +162,34 @@ class MochitestRunner(MozbuildObject):
         if debugger:
             options.debugger = debugger
 
-        return runner.runTests(options)
+        
+        self.log_manager.enable_unstructured()
+
+        
+        
+        
+        
+        
+        
+        
+        test_output = StringIO()
+        handler = logging.StreamHandler(test_output)
+        handler.addFilter(UnexpectedFilter())
+        handler.setFormatter(StructuredHumanFormatter(0, write_times=False))
+        logging.getLogger().addHandler(handler)
+
+        result = runner.runTests(options)
+
+        
+        
+        logging.getLogger().removeHandler(handler)
+        self.log_manager.disable_unstructured()
+
+        if test_output.getvalue():
+            for line in test_output.getvalue().splitlines():
+                self.log(logging.INFO, 'unexpected', {'msg': line}, '{msg}')
+
+        return result
 
 
 def MochitestCommand(func):
