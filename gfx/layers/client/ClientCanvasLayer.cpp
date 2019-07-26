@@ -99,11 +99,11 @@ ClientCanvasLayer::RenderLayer()
 
     if (!mGLContext) {
       
+      
+      flags |= TEXTURE_DEALLOCATE_HOST;
+
+      
       flags |= TEXTURE_IMMEDIATE_UPLOAD;
-    } else {
-      
-      
-      flags |= TEXTURE_DEALLOCATE_CLIENT;
     }
     mCanvasClient = CanvasClient::CreateCanvasClient(GetCanvasClientType(),
                                                      ClientManager(), flags);

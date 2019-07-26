@@ -260,7 +260,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
 
       TextureFlags flags = texture->GetFlags();
 
-      if (!(flags & TEXTURE_DEALLOCATE_CLIENT)) {
+      if (flags & TEXTURE_DEALLOCATE_HOST) {
         texture->DeallocateSharedData();
       }
 
@@ -269,7 +269,7 @@ CompositableParentManager::ReceiveCompositableUpdate(const CompositableOperation
       
       
       
-      if (flags & TEXTURE_DEALLOCATE_CLIENT) {
+      if (!(flags & TEXTURE_DEALLOCATE_HOST)) {
         replyv.push_back(ReplyTextureRemoved(op.compositableParent(), nullptr,
                                              op.textureID()));
       }
