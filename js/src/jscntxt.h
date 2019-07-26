@@ -812,6 +812,9 @@ struct JSRuntime : js::RuntimeFriendFields
     
     js::ion::IonActivation  *ionActivation;
 
+    
+    JS::CompilerRootNode *ionCompilerRootList;
+
   private:
     
     
