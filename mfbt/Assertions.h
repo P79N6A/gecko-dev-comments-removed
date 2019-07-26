@@ -76,6 +76,16 @@
 #  endif
 #endif
 #ifndef MOZ_STATIC_ASSERT
+   
+
+
+
+
+#  if defined(__GNUC__)
+#    define MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE __attribute__((unused))
+#  else
+#    define MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
+#  endif
 #  define MOZ_STATIC_ASSERT_GLUE1(x, y)          x##y
 #  define MOZ_STATIC_ASSERT_GLUE(x, y)           MOZ_STATIC_ASSERT_GLUE1(x, y)
 #  if defined(__SUNPRO_CC)
@@ -108,10 +118,10 @@
 
 
 #    define MOZ_STATIC_ASSERT(cond, reason) \
-       typedef int MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __COUNTER__)[(cond) ? 1 : -1]
+       typedef int MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __COUNTER__)[(cond) ? 1 : -1] MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
 #  else
 #    define MOZ_STATIC_ASSERT(cond, reason) \
-       extern void MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __LINE__)(int arg[(cond) ? 1 : -1])
+       extern void MOZ_STATIC_ASSERT_GLUE(moz_static_assert, __LINE__)(int arg[(cond) ? 1 : -1]) MOZ_STATIC_ASSERT_UNUSED_ATTRIBUTE
 #  endif
 #endif
 
