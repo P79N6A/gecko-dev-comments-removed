@@ -20,6 +20,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
   "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
+  "resource:///modules/sessionstore/TextAndScrollData.jsm");
 
 
 
@@ -89,6 +91,14 @@ let MessageListener = {
     switch (name) {
       case "SessionStore:collectSessionHistory":
         let history = SessionHistory.read(docShell);
+        if ("index" in history) {
+          let tabIndex = history.index - 1;
+          
+          
+          TextAndScrollData.updateFrame(history.entries[tabIndex],
+                                        content,
+                                        docShell.isAppTab);
+        }
         sendAsyncMessage(name, {id: id, data: history});
         break;
       case "SessionStore:collectSessionStorage":

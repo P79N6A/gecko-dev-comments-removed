@@ -4217,6 +4217,7 @@ let TabState = {
 
     let promise = Task.spawn(function task() {
       
+      
       let history = yield Messenger.send(tab, "SessionStore:collectSessionHistory");
 
       
@@ -4250,9 +4251,6 @@ let TabState = {
       if (pageStyle) {
         tabData.pageStyle = pageStyle;
       }
-
-      
-      this._updateTextAndScrollDataForTab(tab, tabData);
 
       
       
