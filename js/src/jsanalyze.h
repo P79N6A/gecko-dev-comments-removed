@@ -19,7 +19,7 @@
 #include "js/TemplateLib.h"
 #include "vm/ScopeObject.h"
 
-struct JSScript;
+class JSScript;
 
 
 namespace js { namespace mjit { struct RegisterAllocation; } }

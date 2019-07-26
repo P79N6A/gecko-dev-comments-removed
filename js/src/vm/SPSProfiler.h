@@ -103,7 +103,7 @@
 
 
 
-struct JSFunction;
+class JSFunction;
 
 namespace js {
 

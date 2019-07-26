@@ -1114,7 +1114,7 @@ struct TypeCallsite
 
 class TypeScript
 {
-    friend struct ::JSScript;
+    friend class ::JSScript;
 
     
     analyze::ScriptAnalysis *analysis;

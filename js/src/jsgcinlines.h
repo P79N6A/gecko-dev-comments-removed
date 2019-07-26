@@ -22,7 +22,7 @@ using JS::AssertCanGC;
 
 namespace js {
 
-struct Shape;
+class Shape;
 
 
 

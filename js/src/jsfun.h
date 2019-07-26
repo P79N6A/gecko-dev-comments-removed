@@ -21,8 +21,9 @@ ForwardDeclareJS(Script);
 
 namespace js { class FunctionExtended; }
 
-struct JSFunction : public JSObject
+class JSFunction : public JSObject
 {
+  public:
     enum Flags {
         INTERPRETED      = 0x0001,  
         NATIVE_CTOR      = 0x0002,  
@@ -58,7 +59,7 @@ struct JSFunction : public JSObject
     uint16_t        flags;        
     union U {
         class Native {
-            friend struct JSFunction;
+            friend class JSFunction;
             js::Native          native;       
             const JSJitInfo     *jitinfo;     
 
@@ -335,7 +336,7 @@ namespace js {
 
 class FunctionExtended : public JSFunction
 {
-    friend struct JSFunction;
+    friend class JSFunction;
 
     
     HeapValue extendedSlots[2];
