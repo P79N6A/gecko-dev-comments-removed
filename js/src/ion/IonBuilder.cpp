@@ -5236,6 +5236,10 @@ IonBuilder::TestCommonPropFunc(JSContext *cx, types::TypeSet *types, HandleId id
 
             
             curObj = typeObj->proto;
+        } else {
+            
+            if (!isGetter && curObj->watched())
+                return true;
         }
 
         
