@@ -104,6 +104,24 @@ this.FileUtils = {
 
 
 
+
+
+  openAtomicFileOutputStream: function FileUtils_openAtomicFileOutputStream(file, modeFlags) {
+    var fos = Cc["@mozilla.org/network/atomic-file-output-stream;1"].
+              createInstance(Ci.nsIFileOutputStream);
+    return this._initFileOutputStream(fos, file, modeFlags);
+  },
+
+  
+
+
+
+
+
+
+
+
+
   openSafeFileOutputStream: function FileUtils_openSafeFileOutputStream(file, modeFlags) {
     var fos = Cc["@mozilla.org/network/safe-file-output-stream;1"].
               createInstance(Ci.nsIFileOutputStream);
@@ -115,6 +133,23 @@ this.FileUtils = {
       modeFlags = this.MODE_WRONLY | this.MODE_CREATE | this.MODE_TRUNCATE;
     fos.init(file, modeFlags, this.PERMS_FILE, fos.DEFER_OPEN);
     return fos;
+  },
+
+  
+
+
+
+
+  closeAtomicFileOutputStream: function FileUtils_closeAtomicFileOutputStream(stream) {
+    if (stream instanceof Ci.nsISafeOutputStream) {
+      try {
+        stream.finish();
+        return;
+      }
+      catch (e) {
+      }
+    }
+    stream.close();
   },
 
   

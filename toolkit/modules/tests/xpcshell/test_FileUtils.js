@@ -91,16 +91,28 @@ add_test(function test_getDir_shouldCreate() {
   run_next_test();
 });
 
-add_test(function test_openFileOutputStream_defaultFlags() {
-  let file = FileUtils.getFile("ProfD", ["george"]);
-  let fos = FileUtils.openFileOutputStream(file);
+let openFileOutputStream_defaultFlags = function (aKind, aFileName) {
+  let file = FileUtils.getFile("ProfD", [aFileName]);
+  let fos;
+  do_check_true(aKind == "atomic" || aKind == "safe" || aKind == "");
+  if (aKind == "atomic") {
+    fos = FileUtils.openAtomicFileOutputStream(file);
+  } else if (aKind == "safe") {
+    fos = FileUtils.openSafeFileOutputStream(file);
+  } else {
+    fos = FileUtils.openFileOutputStream(file);
+  }
   do_check_true(fos instanceof Components.interfaces.nsIFileOutputStream);
+  if (aKind == "atomic" || aKind == "safe") {
+    do_check_true(fos instanceof Components.interfaces.nsISafeOutputStream);
+  }
 
+  
   
   
   do_check_false(file.exists());
 
-  let data = "imagine";
+  let data = "test_default_flags";
   fos.write(data, data.length);
   do_check_true(file.exists());
 
@@ -113,75 +125,90 @@ add_test(function test_openFileOutputStream_defaultFlags() {
   }
 
   run_next_test();
+};
+
+let openFileOutputStream_modeFlags = function(aKind, aFileName) {
+  let file = FileUtils.getFile("ProfD", [aFileName]);
+  let fos;
+  do_check_true(aKind == "atomic" || aKind == "safe" || aKind == "");
+  if (aKind == "atomic") {
+    fos = FileUtils.openAtomicFileOutputStream(file, FileUtils.MODE_WRONLY);
+  } else if (aKind == "safe") {
+    fos = FileUtils.openSafeFileOutputStream(file, FileUtils.MODE_WRONLY);
+  } else {
+    fos = FileUtils.openFileOutputStream(file, FileUtils.MODE_WRONLY);
+  }
+  let data = "test_modeFlags";
+  do_check_throws(function () {
+    fos.write(data, data.length);
+  }, Components.results.NS_ERROR_FILE_NOT_FOUND);
+  do_check_false(file.exists());
+
+  run_next_test();
+};
+
+let closeFileOutputStream = function(aKind, aFileName) {
+  let file = FileUtils.getFile("ProfD", [aFileName]);
+  let fos;
+  do_check_true(aKind == "atomic" || aKind == "safe");
+  if (aKind == "atomic") {
+    fos = FileUtils.openAtomicFileOutputStream(file);
+  } else if (aKind == "safe") {
+    fos = FileUtils.openSafeFileOutputStream(file);
+  }
+
+  
+  let data = "testClose";
+  fos.write(data, data.length);
+
+  
+  if (aKind == "atomic") {
+    FileUtils.closeAtomicFileOutputStream(fos);
+  } else if (aKind == "safe"){
+    FileUtils.closeSafeFileOutputStream(fos);
+  }
+  do_check_throws(function () {
+    fos.write(data, data.length);
+  }, Components.results.NS_BASE_STREAM_CLOSED);
+  run_next_test();
+};
+
+add_test(function test_openFileOutputStream_defaultFlags() {
+  openFileOutputStream_defaultFlags("", "george");
 });
 
 
 
 add_test(function test_openFileOutputStream_modeFlags() {
-  let file = FileUtils.getFile("ProfD", ["ringo"]);
-  let fos = FileUtils.openFileOutputStream(file, FileUtils.MODE_WRONLY);
-  let data = "yesterday";
-  do_check_throws(function () {
-    fos.write(data, data.length);
-  }, Components.results.NS_ERROR_FILE_NOT_FOUND);
-  do_check_false(file.exists());
+  openFileOutputStream_modeFlags("", "ringo");
+});
 
-  run_next_test();
+add_test(function test_openAtomicFileOutputStream_defaultFlags() {
+  openFileOutputStream_defaultFlags("atomic", "peiyong");
+});
+
+
+
+add_test(function test_openAtomicFileOutputStream_modeFlags() {
+  openFileOutputStream_modeFlags("atomic", "lin");
+});
+
+add_test(function test_closeAtomicFileOutputStream() {
+  closeFileOutputStream("atomic", "peiyonglin");
 });
 
 add_test(function test_openSafeFileOutputStream_defaultFlags() {
-  let file = FileUtils.getFile("ProfD", ["john"]);
-  let fos = FileUtils.openSafeFileOutputStream(file);
-  do_check_true(fos instanceof Components.interfaces.nsIFileOutputStream);
-  do_check_true(fos instanceof Components.interfaces.nsISafeOutputStream);
-
-  
-  
-  do_check_false(file.exists());
-
-  let data = "imagine";
-  fos.write(data, data.length);
-  do_check_true(file.exists());
-
-  
-  
-  if ("@mozilla.org/windows-registry-key;1" in Components.classes) {
-    do_check_eq(file.permissions, 0666);
-  } else {
-    do_check_eq(file.permissions, FileUtils.PERMS_FILE);
-  }
-
-  run_next_test();
+  openFileOutputStream_defaultFlags("safe", "john");
 });
 
 
 
 add_test(function test_openSafeFileOutputStream_modeFlags() {
-  let file = FileUtils.getFile("ProfD", ["paul"]);
-  let fos = FileUtils.openSafeFileOutputStream(file, FileUtils.MODE_WRONLY);
-  let data = "yesterday";
-  do_check_throws(function () {
-    fos.write(data, data.length);
-  }, Components.results.NS_ERROR_FILE_NOT_FOUND);
-  do_check_false(file.exists());
-
-  run_next_test();
+  openFileOutputStream_modeFlags("safe", "paul");
 });
 
 add_test(function test_closeSafeFileOutputStream() {
-  let file = FileUtils.getFile("ProfD", ["george"]);
-  let fos = FileUtils.openSafeFileOutputStream(file);
-
-  
-  let data = "here comes the sun";
-  fos.write(data, data.length);
-
-  
-  FileUtils.closeSafeFileOutputStream(fos);
-  do_check_throws(function () {
-    fos.write(data, data.length);
-  }, Components.results.NS_BASE_STREAM_CLOSED);
-  run_next_test();
+  closeFileOutputStream("safe", "georgee");
 });
 
 add_test(function test_newFile() {
