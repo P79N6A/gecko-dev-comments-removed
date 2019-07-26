@@ -1480,6 +1480,7 @@ abstract public class GeckoApp
             
             
             mIsRestoringActivity = true;
+            Telemetry.HistogramAdd("FENNEC_RESTORING_ACTIVITY", 1);
         }
 
         mMainHandler = new Handler();
@@ -1514,7 +1515,7 @@ abstract public class GeckoApp
             
             
             if (!wasInBackground && !mIsRestoringActivity) {
-                Telemetry.HistogramAdd("OUT_OF_MEMORY_KILLED", 1);
+                Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
             }
         }
 
@@ -1527,7 +1528,7 @@ abstract public class GeckoApp
                 boolean wasStopped = prefs.getBoolean(PREFS_WAS_STOPPED, true);
                 if (wasOOM || !wasStopped) {
                     Log.i(LOGTAG, "Crashed due to OOM last run");
-                    Telemetry.HistogramAdd("OUT_OF_MEMORY_KILLED", 1);
+                    Telemetry.HistogramAdd("FENNEC_WAS_KILLED", 1);
                 }
                 SharedPreferences.Editor editor = prefs.edit();
                 editor.putBoolean(GeckoApp.PREFS_OOM_EXCEPTION, false);
