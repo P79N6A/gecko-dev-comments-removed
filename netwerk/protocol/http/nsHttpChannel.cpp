@@ -1727,14 +1727,6 @@ nsHttpChannel::ResolveProxy()
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    uint32_t proxyConfigType;
-    if (NS_SUCCEEDED(pps->GetProxyConfigType(&proxyConfigType)) &&
-        proxyConfigType == nsIProtocolProxyService::PROXYCONFIG_DIRECT) {
-        return NS_ERROR_FAILURE;
-    }
-
     return pps->AsyncResolve(mProxyURI ? mProxyURI : mURI, mProxyResolveFlags,
                              this, getter_AddRefs(mProxyRequest));
 }
