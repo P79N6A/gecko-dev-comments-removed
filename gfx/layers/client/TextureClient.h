@@ -111,6 +111,16 @@ public:
 
   virtual void Unlock() {}
 
+  
+
+
+
+
+  virtual bool ImplementsLocking() const
+  {
+    return false;
+  }
+
   void SetID(uint64_t aID)
   {
     MOZ_ASSERT(mID == 0 || aID == 0);
