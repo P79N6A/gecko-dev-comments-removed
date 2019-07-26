@@ -528,6 +528,9 @@ RegExpShared::execute(JSContext *cx, const jschar *chars, size_t length,
                       size_t *lastIndex, MatchPairs &matches)
 {
     
+    SkipRoot skip(cx, &chars);
+
+    
     if (!compileIfNecessary(cx))
         return RegExpRunStatus_Error;
 
