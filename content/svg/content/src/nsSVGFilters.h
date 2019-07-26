@@ -96,12 +96,20 @@ public:
   virtual FilterPrimitiveDescription
     GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                             const IntRect& aFilterSubregion,
+                            const nsTArray<bool>& aInputsAreTainted,
                             nsTArray<mozilla::RefPtr<SourceSurface>>& aInputImages) = 0;
 
   
   
   virtual bool AttributeAffectsRendering(
           int32_t aNameSpaceID, nsIAtom* aAttribute) const;
+
+  
+  
+  
+  
+  virtual bool OutputIsTainted(const nsTArray<bool>& aInputsAreTainted,
+                               nsIPrincipal* aReferencePrincipal);
 
   static nsIntRect GetMaxRect() {
     

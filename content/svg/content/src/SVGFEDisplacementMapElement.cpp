@@ -93,8 +93,17 @@ SVGFEDisplacementMapElement::YChannelSelector()
 FilterPrimitiveDescription
 SVGFEDisplacementMapElement::GetPrimitiveDescription(nsSVGFilterInstance* aInstance,
                                                      const IntRect& aFilterSubregion,
+                                                     const nsTArray<bool>& aInputsAreTainted,
                                                      nsTArray<RefPtr<SourceSurface>>& aInputImages)
 {
+  if (aInputsAreTainted[1]) {
+    
+    
+    FilterPrimitiveDescription descr(FilterPrimitiveDescription::eOffset);
+    descr.Attributes().Set(eOffsetOffset, IntPoint(0, 0));
+    return descr;
+  }
+
   float scale = aInstance->GetPrimitiveNumber(SVGContentUtils::XY,
                                               &mNumberAttributes[SCALE]);
   uint32_t xChannel = mEnumAttributes[CHANNEL_X].GetAnimValue();

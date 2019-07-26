@@ -275,6 +275,13 @@ private:
 
 
 
+  void GetInputsAreTainted(const nsTArray<int32_t>& aInputIndices,
+                           nsTArray<bool>& aOutInputsAreTainted);
+
+  
+
+
+
   float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
