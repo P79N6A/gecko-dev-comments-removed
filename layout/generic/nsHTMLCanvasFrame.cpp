@@ -90,19 +90,17 @@ NS_NewHTMLCanvasFrame(nsIPresShell* aPresShell, nsStyleContext* aContext)
 
 NS_IMPL_FRAMEARENA_HELPERS(nsHTMLCanvasFrame)
 
-NS_IMETHODIMP
+void
 nsHTMLCanvasFrame::Init(nsIContent* aContent,
                         nsIFrame*   aParent,
                         nsIFrame*   aPrevInFlow)
 {
-  nsresult rv = nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
+  nsSplittableFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   
   
   MarkLayersActive(nsChangeHint(0));
-
-  return rv;
 }
 
 nsHTMLCanvasFrame::~nsHTMLCanvasFrame()

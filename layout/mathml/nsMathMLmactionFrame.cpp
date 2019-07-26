@@ -91,7 +91,7 @@ nsMathMLmactionFrame::~nsMathMLmactionFrame()
   }
 }
 
-NS_IMETHODIMP
+void
 nsMathMLmactionFrame::Init(nsIContent*      aContent,
                            nsIFrame*        aParent,
                            nsIFrame*        aPrevInFlow)
@@ -104,7 +104,7 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
   mActionType = GetActionType(aContent);
 
   
-  return nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
+  nsMathMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
 }
 
 NS_IMETHODIMP

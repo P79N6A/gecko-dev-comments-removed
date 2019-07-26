@@ -33,20 +33,18 @@ NS_QUERYFRAME_HEAD(nsScrollbarFrame)
   NS_QUERYFRAME_ENTRY(nsScrollbarFrame)
 NS_QUERYFRAME_TAIL_INHERITING(nsBoxFrame)
 
-NS_IMETHODIMP
+void
 nsScrollbarFrame::Init(nsIContent* aContent,
                        nsIFrame*   aParent,
                        nsIFrame*   aPrevInFlow)
 {
-  nsresult  rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
+  nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   
   
   
   mState |= NS_FRAME_REFLOW_ROOT;
-
-  return rv;
 }
 
 NS_IMETHODIMP

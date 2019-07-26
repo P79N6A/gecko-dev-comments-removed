@@ -114,7 +114,7 @@ InsertViewsInReverseOrder(nsView* aSibling, nsView* aParent);
 static void
 EndSwapDocShellsForViews(nsView* aView);
 
-NS_IMETHODIMP
+void
 nsSubDocumentFrame::Init(nsIContent*     aContent,
                          nsIFrame*       aParent,
                          nsIFrame*       aPrevInFlow)
@@ -125,9 +125,7 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     mIsInline = frameElem ? false : true;
   }
 
-  nsresult rv =  nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
-  if (NS_FAILED(rv))
-    return rv;
+  nsLeafFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   
@@ -169,7 +167,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
   }
 
   nsContentUtils::AddScriptRunner(new AsyncFrameInit(this));
-  return NS_OK;
 }
 
 inline int32_t ConvertOverflow(uint8_t aOverflow)

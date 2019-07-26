@@ -583,11 +583,9 @@ public:
 
 
 
-
-
-  NS_IMETHOD  Init(nsIContent*      aContent,
-                   nsIFrame*        aParent,
-                   nsIFrame*        aPrevInFlow) = 0;
+  virtual void Init(nsIContent*      aContent,
+                    nsIFrame*        aParent,
+                    nsIFrame*        aPrevInFlow) = 0;
 
   
 

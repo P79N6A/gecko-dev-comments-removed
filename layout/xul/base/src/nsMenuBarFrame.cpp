@@ -59,18 +59,16 @@ nsMenuBarFrame::nsMenuBarFrame(nsIPresShell* aShell, nsStyleContext* aContext):
 {
 } 
 
-NS_IMETHODIMP
+void
 nsMenuBarFrame::Init(nsIContent*      aContent,
                      nsIFrame*        aParent,
                      nsIFrame*        aPrevInFlow)
 {
-  nsresult  rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
+  nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   mMenuBarListener = new nsMenuBarListener(this);
-  NS_IF_ADDREF(mMenuBarListener);
-  if (! mMenuBarListener)
-    return NS_ERROR_OUT_OF_MEMORY;
+  NS_ADDREF(mMenuBarListener);
 
   
   
@@ -89,8 +87,6 @@ nsMenuBarFrame::Init(nsIContent*      aContent,
   target->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, true);
   target->AddEventListener(NS_LITERAL_STRING("mousedown"), mMenuBarListener, false);
   target->AddEventListener(NS_LITERAL_STRING("blur"), mMenuBarListener, true);   
-
-  return rv;
 }
 
 NS_IMETHODIMP

@@ -1371,12 +1371,7 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
     return nullptr;
   }
 
-  nsresult rv = mDisplayFrame->Init(mContent, this, nullptr);
-  if (NS_FAILED(rv)) {
-    mDisplayFrame->Destroy();
-    mDisplayFrame = nullptr;
-    return nullptr;
-  }
+  mDisplayFrame->Init(mContent, this, nullptr);
 
   
   nsIFrame* textFrame = NS_NewTextFrame(shell, textStyleContext);
@@ -1385,14 +1380,7 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
   }
 
   
-  rv = textFrame->Init(aContent, mDisplayFrame, nullptr);
-  if (NS_FAILED(rv)) {
-    mDisplayFrame->Destroy();
-    mDisplayFrame = nullptr;
-    textFrame->Destroy();
-    textFrame = nullptr;
-    return nullptr;
-  }
+  textFrame->Init(aContent, mDisplayFrame, nullptr);
   mDisplayContent->SetPrimaryFrame(textFrame);
 
   nsFrameList textList(textFrame, textFrame);

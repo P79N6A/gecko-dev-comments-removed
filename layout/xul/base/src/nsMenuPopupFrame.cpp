@@ -106,21 +106,19 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
 } 
 
 
-NS_IMETHODIMP
+void
 nsMenuPopupFrame::Init(nsIContent*      aContent,
                        nsIFrame*        aParent,
                        nsIFrame*        aPrevInFlow)
 {
-  nsresult rv = nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsBoxFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   
   mMenuCanOverlapOSBar =
     LookAndFeel::GetInt(LookAndFeel::eIntID_MenusCanOverlapOSBar) != 0;
 
-  rv = CreatePopupView();
-  NS_ENSURE_SUCCESS(rv, rv);
+  CreatePopupView();
 
   
   
@@ -171,8 +169,6 @@ nsMenuPopupFrame::Init(nsIContent*      aContent,
   }
 
   AddStateBits(NS_FRAME_IN_POPUP);
-
-  return rv;
 }
 
 bool
@@ -1915,11 +1911,11 @@ nsMenuPopupFrame::SetConsumeRollupEvent(uint32_t aConsumeMode)
 
 
 
-nsresult
+void
 nsMenuPopupFrame::CreatePopupView()
 {
   if (HasView()) {
-    return NS_OK;
+    return;
   }
 
   nsViewManager* viewManager = PresContext()->GetPresShell()->GetViewManager();
@@ -1935,20 +1931,13 @@ nsMenuPopupFrame::CreatePopupView()
 
   
   nsView *view = viewManager->CreateView(GetRect(), parentView, visibility);
-  if (view) {
-    viewManager->SetViewZIndex(view, autoZIndex, zIndex);
-    
-    viewManager->InsertChild(parentView, view, nullptr, true);
-  }
+  viewManager->SetViewZIndex(view, autoZIndex, zIndex);
+  
+  viewManager->InsertChild(parentView, view, nullptr, true);
 
   
   SetView(view);
 
   NS_FRAME_LOG(NS_FRAME_TRACE_CALLS,
     ("nsMenuPopupFrame::CreatePopupView: frame=%p view=%p", this, view));
-
-  if (!view)
-    return NS_ERROR_OUT_OF_MEMORY;
-
-  return NS_OK;
 }
