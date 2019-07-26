@@ -28,20 +28,21 @@ XPCVariant::XPCVariant(JSContext* cx, jsval aJSVal)
 {
     nsVariant::Initialize(&mData);
     if (!JSVAL_IS_PRIMITIVE(mJSVal)) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
         JSObject *obj = JS_ObjectToInnerObject(cx, JSVAL_TO_OBJECT(mJSVal));
+
         mJSVal = OBJECT_TO_JSVAL(obj);
 
-        JSObject *unwrapped = js::UnwrapObjectChecked(obj,  false);
-        mReturnRawObject = !(unwrapped && IS_WN_WRAPPER(unwrapped));
+        
+        
+        
+
+        JSObject* proto;
+        XPCWrappedNative* wn =
+            XPCWrappedNative::GetWrappedNativeOfJSObject(cx,
+                                                         JSVAL_TO_OBJECT(mJSVal),
+                                                         nullptr,
+                                                         &proto);
+        mReturnRawObject = !wn && !proto;
     } else
         mReturnRawObject = false;
 }

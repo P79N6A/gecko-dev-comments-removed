@@ -7,12 +7,10 @@
 
 
 #include "mozilla/Util.h"
-#include "AccessCheck.h"
 
 #include "xpcprivate.h"
 
 using namespace mozilla;
-using namespace xpc;
 
 XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
                                JSContext* cx    ,
@@ -28,10 +26,7 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
         mJSContext(cx),
         mContextPopRequired(false),
         mDestroyJSContextInDestructor(false),
-        mCallerLanguage(callerLanguage),
-        mFlattenedJSObject(nullptr),
-        mWrapper(nullptr),
-        mTearOff(nullptr)
+        mCallerLanguage(callerLanguage)
 {
     Init(callerLanguage, callerLanguage == NATIVE_CALLER, obj, funobj,
          INIT_SHOULD_LOOKUP_WRAPPER, name, argc, argv, rval);
@@ -59,8 +54,6 @@ XPCCallContext::XPCCallContext(XPCContext::LangType callerLanguage,
          WRAPPER_PASSED_TO_CONSTRUCTOR, JSID_VOID, NO_ARGS,
          nullptr, nullptr);
 }
-
-#define IS_TEAROFF_CLASS(clazz) ((clazz) == &XPC_WN_Tearoff_JSClass)
 
 void
 XPCCallContext::Init(XPCContext::LangType callerLanguage,
@@ -146,28 +139,10 @@ XPCCallContext::Init(XPCContext::LangType callerLanguage,
 
     mTearOff = nullptr;
     if (wrapperInitOptions == INIT_SHOULD_LOOKUP_WRAPPER) {
-        
-        
-        JSObject *unwrapped = js::UnwrapObjectChecked(obj,  false);
-        if (!unwrapped) {
-            mWrapper = UnwrapThisIfAllowed(obj, funobj, argc);
-            if (!mWrapper) {
-                JS_ReportError(mJSContext, "Permission denied to call method on |this|");
-                mState = INIT_FAILED;
-                return;
-            }
-        } else {
-            js::Class *clasp = js::GetObjectClass(unwrapped);
-            if (IS_WRAPPER_CLASS(clasp)) {
-                if (IS_SLIM_WRAPPER_OBJECT(unwrapped))
-                    mFlattenedJSObject = unwrapped;
-                else
-                    mWrapper = XPCWrappedNative::Get(unwrapped);
-            } else if (IS_TEAROFF_CLASS(clasp)) {
-                mTearOff = (XPCWrappedNativeTearOff*)js::GetObjectPrivate(unwrapped);
-                mWrapper = XPCWrappedNative::Get(js::GetObjectParent(unwrapped));
-            }
-        }
+        mWrapper = XPCWrappedNative::GetWrappedNativeOfJSObject(mJSContext, obj,
+                                                                funobj,
+                                                                &mFlattenedJSObject,
+                                                                &mTearOff);
         if (mWrapper) {
             mFlattenedJSObject = mWrapper->GetFlatJSObject();
 
@@ -453,58 +428,3 @@ XPCLazyCallContext::AssertContextIsTopOfStack(JSContext* cx)
     NS_ASSERTION(cx == topJSContext, "wrong context on XPCJSContextStack!");
 }
 #endif
-
-XPCWrappedNative*
-XPCCallContext::UnwrapThisIfAllowed(JSObject *obj, JSObject *fun, unsigned argc)
-{
-    
-    MOZ_ASSERT(!js::UnwrapObjectChecked(obj));
-    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, mJSContext));
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    MOZ_ASSERT(js::IsWrapper(obj));
-    JSObject *unwrapped = js::UnwrapObject(obj,  false);
-    MOZ_ASSERT(unwrapped == JS_ObjectToInnerObject(mJSContext, js::Wrapper::wrappedObject(obj)));
-
-    
-    MOZ_ASSERT(!IS_SLIM_WRAPPER(unwrapped), "security wrapping morphs slim wrappers");
-    if (!IS_WRAPPER_CLASS(js::GetObjectClass(unwrapped)))
-        return nullptr;
-    XPCWrappedNative *wn = (XPCWrappedNative*)js::GetObjectPrivate(unwrapped);
-
-    
-    XPCNativeInterface *interface;
-    XPCNativeMember *member;
-    XPCNativeMember::GetCallInfo(fun, &interface, &member);
-
-    
-    
-    
-    if (!wn->HasInterfaceNoQI(*interface->GetIID()))
-        return nullptr;
-
-    
-    
-    
-    
-    bool set = argc && argc != NO_ARGS && member->IsWritableAttribute();
-    js::Wrapper::Action act = set ? js::Wrapper::SET : js::Wrapper::GET;
-    js::Wrapper *handler = js::Wrapper::wrapperHandler(obj);
-    bool ignored;
-    if (!handler->enter(mJSContext, obj, member->GetName(), act, &ignored))
-        return nullptr;
-
-    
-    return wn;
-}
-

@@ -3069,32 +3069,7 @@ xpc::SandboxCallableProxyHandler::call(JSContext *cx, JSObject *proxy,
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    JS::Value thisVal =
-      WrapperFactory::IsXrayWrapper(sandboxProxy) ? JS_THIS(cx, vp)
-                                                  : JS_THIS_VALUE(cx, vp);
+    JS::Value thisVal = JS_THIS_VALUE(cx, vp);
     if (thisVal == ObjectValue(*sandboxGlobal)) {
         thisVal = ObjectValue(*js::GetProxyTargetObject(sandboxProxy));
     }
