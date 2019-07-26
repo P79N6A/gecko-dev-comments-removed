@@ -23,7 +23,7 @@ class Path;
 
 
 
-class gfxPath {
+class gfxPath MOZ_FINAL {
     NS_INLINE_DECL_REFCOUNTING(gfxPath)
 
     friend class gfxContext;
@@ -32,9 +32,11 @@ class gfxPath {
 
 public:
     gfxPath(mozilla::gfx::Path* aPath);
-    virtual ~gfxPath();
 
 private:
+    
+    ~gfxPath();
+
     cairo_path_t* mPath;
     mozilla::RefPtr<mozilla::gfx::Path> mMoz2DPath;
 };
