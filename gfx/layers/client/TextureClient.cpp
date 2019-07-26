@@ -420,7 +420,8 @@ TextureClient::ShouldDeallocateInDestructor() const
   
   
   
-  return !IsSharedWithCompositor();
+  
+  return !IsSharedWithCompositor() || (GetFlags() & TextureFlags::DEALLOCATE_CLIENT);
 }
 
 bool
