@@ -492,7 +492,7 @@ protected:
   
   
   
-  class NS_STACK_CLASS AutoPendingActionAndContentFlusher MOZ_FINAL
+  class MOZ_STACK_CLASS AutoPendingActionAndContentFlusher MOZ_FINAL
   {
   public:
     AutoPendingActionAndContentFlusher(nsTextStore* aTextStore)

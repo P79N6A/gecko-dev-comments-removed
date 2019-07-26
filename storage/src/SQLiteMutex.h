@@ -128,7 +128,7 @@ private:
 
 
 
-class NS_STACK_CLASS SQLiteMutexAutoLock
+class MOZ_STACK_CLASS SQLiteMutexAutoLock
 {
 public:
   SQLiteMutexAutoLock(SQLiteMutex &aMutex)
@@ -150,7 +150,7 @@ private:
 
 
 
-class NS_STACK_CLASS SQLiteMutexAutoUnlock
+class MOZ_STACK_CLASS SQLiteMutexAutoUnlock
 {
 public:
   SQLiteMutexAutoUnlock(SQLiteMutex &aMutex)

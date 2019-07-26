@@ -248,7 +248,7 @@ public:
 
 
 
-  class NS_STACK_CLASS AutoDisableRefresh {
+  class MOZ_STACK_CLASS AutoDisableRefresh {
   public:
     AutoDisableRefresh(nsViewManager* aVM) {
       if (aVM) {

@@ -133,7 +133,7 @@ protected:
 
 
 
-class NS_STACK_CLASS mozStorageStatementScoper
+class MOZ_STACK_CLASS mozStorageStatementScoper
 {
 public:
   mozStorageStatementScoper(mozIStorageStatement* aStatement)
