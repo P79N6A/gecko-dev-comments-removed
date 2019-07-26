@@ -5326,8 +5326,6 @@ Parser<ParseHandler>::unaryExpr()
 
         
         
-        if (foldConstants && !FoldConstants(context, &expr, this))
-            return null();
         if (handler.isName(expr)) {
             if (!report(ParseStrictError, pc->sc->strict, expr, JSMSG_DEPRECATED_DELETE_OPERAND))
                 return null();
