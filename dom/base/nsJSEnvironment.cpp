@@ -2545,7 +2545,7 @@ nsJSContext::ShrinkGCBuffersNow()
 
 
 static bool
-AnyGrayGlobalParent()
+AnyGrayCurrentContentInnerWindows()
 {
   if (!nsJSRuntime::sRuntime) {
     return false;
@@ -2553,13 +2553,20 @@ AnyGrayGlobalParent()
   JSContext *iter = nullptr;
   JSContext *cx;
   while ((cx = JS_ContextIterator(nsJSRuntime::sRuntime, &iter))) {
-    if (JSObject *global = JS_GetGlobalObject(cx)) {
-      if (JSObject *parent = js::GetObjectParent(global)) {
-        if (JS::GCThingIsMarkedGray(parent) &&
-            !js::IsSystemCompartment(js::GetObjectCompartment(parent))) {
-          return true;
-        }
-      }
+    
+    
+    
+    nsIScriptContext *scx = GetScriptContextFromJSContext(cx);
+    JS::RootedObject global(cx, scx ? scx->GetNativeGlobal() : nullptr);
+    if (!global || !js::GetObjectParent(global)) {
+      continue;
+    }
+    
+    global = JS_ObjectToInnerObject(cx, global);
+    MOZ_ASSERT(!js::GetObjectParent(global));
+    if (JS::GCThingIsMarkedGray(global) &&
+        !js::IsSystemCompartment(js::GetObjectCompartment(global))) {
+      return true;
     }
   }
   return false;
@@ -2590,7 +2597,7 @@ DoMergingCC(bool aForced)
     return false;
   }
 
-  if (!aForced && AnyGrayGlobalParent()) {
+  if (!aForced && AnyGrayCurrentContentInnerWindows()) {
     sMergedInARow++;
     return true;
   } else {
