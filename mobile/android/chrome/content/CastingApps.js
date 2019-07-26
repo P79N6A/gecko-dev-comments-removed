@@ -250,8 +250,7 @@ var CastingApps = {
       
       let videos = browser.contentDocument.querySelectorAll("video");
       for (let video of videos) {
-        let unwrappedVideo = XPCNativeWrapper.unwrap(video);
-        if (!video.paused && unwrappedVideo.mozAllowCasting) {
+        if (!video.paused && video.mozAllowCasting) {
           UITelemetry.addEvent("cast.1", "pageaction", null);
           CastingApps.openExternal(video, 0, 0);
           return;
@@ -270,13 +269,12 @@ var CastingApps = {
       let castableVideo = null;
       let videos = aBrowser.contentDocument.querySelectorAll("video");
       for (let video of videos) {
-        let unwrappedVideo = XPCNativeWrapper.unwrap(video);
-        if (unwrappedVideo.mozIsCasting) {
+        if (video.mozIsCasting) {
           
           return video;
         }
 
-        if (!video.paused && unwrappedVideo.mozAllowCasting) {
+        if (!video.paused && video.mozAllowCasting) {
           
           castableVideo = video;
         }
@@ -324,15 +322,14 @@ var CastingApps = {
     
     
     
-    let unwrappedVideo = XPCNativeWrapper.unwrap(aVideo);
-    if (unwrappedVideo.mozIsCasting) {
+    if (aVideo.mozIsCasting) {
       this.pageAction.id = NativeWindow.pageactions.add({
         title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
         icon: "drawable://casting_active",
         clickCallback: this.pageAction.click,
         important: true
       });
-    } else if (unwrappedVideo.mozAllowCasting) {
+    } else if (aVideo.mozAllowCasting) {
       this.pageAction.id = NativeWindow.pageactions.add({
         title: Strings.browser.GetStringFromName("contextmenu.castToScreen"),
         icon: "drawable://casting",

@@ -488,6 +488,26 @@ public:
     mStatsShowing = aShow;
   }
 
+  bool MozAllowCasting() const
+  {
+    return mAllowCasting;
+  }
+
+  void SetMozAllowCasting(bool aShow)
+  {
+    mAllowCasting = aShow;
+  }
+
+  bool MozIsCasting() const
+  {
+    return mIsCasting;
+  }
+
+  void SetMozIsCasting(bool aShow)
+  {
+    mIsCasting = aShow;
+  }
+
   already_AddRefed<DOMMediaStream> GetMozSrcObject() const;
 
   void SetMozSrcObject(DOMMediaStream& aValue);
@@ -1092,6 +1112,14 @@ protected:
   
   
   bool mStatsShowing;
+
+  
+  
+  
+  
+  bool mAllowCasting;
+  
+  bool mIsCasting;
 
   
   bool mAudioCaptured;
