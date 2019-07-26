@@ -237,7 +237,14 @@ void
 CompositableParent::ActorDestroy(ActorDestroyReason why)
 {
   if (mHost) {
-    mHost->Detach();
+    
+    
+    
+    
+    if (why == AbnormalShutdown) {
+      mHost->OnActorDestroy();
+    }
+    mHost->Detach(nullptr, CompositableHost::FORCE_DETACH);
   }
 }
 

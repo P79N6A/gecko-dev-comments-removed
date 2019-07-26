@@ -119,6 +119,10 @@ ISurfaceAllocator() {}
   {
     return nullptr;
   }
+
+  
+  static bool IsShmem(SurfaceDescriptor* aSurface);
+
 protected:
   
   
