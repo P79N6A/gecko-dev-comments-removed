@@ -220,6 +220,7 @@ class MinorCollectionTracer : public JSTracer
     RelocationOverlay **tail;
 
     
+    bool savedRuntimeNeedBarrier;
     AutoDisableProxyCheck disableStrictProxyChecking;
 
     
@@ -236,11 +237,26 @@ class MinorCollectionTracer : public JSTracer
         tenuredSize(0),
         head(NULL),
         tail(&head),
+        savedRuntimeNeedBarrier(rt->needsBarrier()),
         disableStrictProxyChecking(rt)
     {
         JS_TracerInit(this, rt, Nursery::MinorGCCallback);
         eagerlyTraceWeakMaps = TraceWeakMapKeysValues;
         rt->gcNumber++;
+
+        
+
+
+
+
+
+
+
+        rt->setNeedsBarrier(false);
+    }
+
+    ~MinorCollectionTracer() {
+        runtime->setNeedsBarrier(savedRuntimeNeedBarrier);
     }
 };
 
