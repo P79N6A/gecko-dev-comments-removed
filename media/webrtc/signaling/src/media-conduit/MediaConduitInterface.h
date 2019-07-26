@@ -156,6 +156,17 @@ public:
 
   static RefPtr<VideoSessionConduit> Create();
 
+  enum FrameRequestType
+  {
+    FrameRequestNone,
+    FrameRequestFir,
+    FrameRequestPli,
+    FrameRequestUnknown
+  };
+
+  VideoSessionConduit() : mFrameRequestMethod(FrameRequestNone),
+                          mUsingNackBasic(false) {}
+
   virtual ~VideoSessionConduit() {}
 
   virtual Type type() const { return VIDEO; }
@@ -208,6 +219,23 @@ public:
   virtual MediaConduitErrorCode ConfigureRecvMediaCodecs(
                                 const std::vector<VideoCodecConfig* >& recvCodecConfigList) = 0;
 
+
+  
+
+
+
+    FrameRequestType FrameRequestMethod() const {
+      return mFrameRequestMethod;
+    }
+
+    bool UsingNackBasic() const {
+      return mUsingNackBasic;
+    }
+
+   protected:
+     
+     FrameRequestType mFrameRequestMethod;
+     bool mUsingNackBasic;
 };
 
 
