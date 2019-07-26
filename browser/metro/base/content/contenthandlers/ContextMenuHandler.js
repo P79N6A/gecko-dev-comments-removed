@@ -2,7 +2,10 @@
 
 
 
-const kXLinkNamespace = "http://www.w3.org/1999/xlink";
+let Ci = Components.interfaces;
+let Cc = Components.classes;
+
+this.kXLinkNamespace = "http://www.w3.org/1999/xlink";
 
 dump("### ContextMenuHandler.js loaded\n");
 
@@ -429,5 +432,6 @@ var ContextMenuHandler = {
     this._types = this._types.filter(function(type) type.name != aName);
   }
 };
+this.ContextMenuHandler = ContextMenuHandler;
 
 ContextMenuHandler.init();

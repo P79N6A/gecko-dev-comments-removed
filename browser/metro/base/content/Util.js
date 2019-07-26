@@ -2,6 +2,9 @@
 
 
 
+let Cc = Components.classes;
+let Ci = Components.interfaces;
+
 Components.utils.import("resource:///modules/ContentUtil.jsm");
 
 let Util = {
@@ -409,3 +412,5 @@ Util.Timeout.prototype = {
       Util[name] = copy;
   }
 }
+
+this.Util = Util;
