@@ -2529,6 +2529,8 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
   
   
   
+  
+  
   if (styleWidth.GetUnit() == eStyleUnit_Enumerated &&
       (styleWidth.GetIntValue() == NS_STYLE_WIDTH_MAX_CONTENT ||
        styleWidth.GetIntValue() == NS_STYLE_WIDTH_MIN_CONTENT)) {
@@ -2537,7 +2539,7 @@ nsLayoutUtils::IntrinsicForContainer(nsRenderingContext *aRenderingContext,
     
     
     boxSizing = NS_STYLE_BOX_SIZING_CONTENT;
-  } else if (styleWidth.GetUnit() != eStyleUnit_Coord &&
+  } else if (!styleWidth.ConvertsToLength() &&
              !(haveFixedMinWidth && haveFixedMaxWidth && maxw <= minw)) {
 #ifdef DEBUG_INTRINSIC_WIDTH
     ++gNoiseIndent;

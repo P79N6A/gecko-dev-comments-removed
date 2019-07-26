@@ -1969,7 +1969,8 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       }
 
       
-      if (eStyleUnit_Auto == widthUnit || width.IsCalcUnit()) {
+      if (eStyleUnit_Auto == widthUnit ||
+          (width.IsCalcUnit() && width.CalcHasPercent())) {
         mComputedWidth = availableWidth;
 
         if ((mComputedWidth != NS_UNCONSTRAINEDSIZE) && !rowOrRowGroup){
