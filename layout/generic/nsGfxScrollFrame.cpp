@@ -4007,6 +4007,7 @@ ScrollFrameHelper::UpdateOverflow()
     mSkippedScrollbarLayout = true;
     return false;  
   }
+  PostOverflowEvent();
   return mOuter->nsContainerFrame::UpdateOverflow();
 }
 
