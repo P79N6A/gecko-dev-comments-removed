@@ -57,9 +57,13 @@ class SVGAnimatedPreserveAspectRatio;
 class nsSVGAnimatedTransformList;
 class SVGStringList;
 class DOMSVGStringList;
+
+namespace gfx {
+class Matrix;
 }
 
-struct gfxMatrix;
+}
+
 struct nsSVGEnumMapping;
 
 typedef nsStyledElementNotElementCSSInlineStyle nsSVGElementBase;
@@ -162,14 +166,14 @@ public:
 
 
 
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+  virtual mozilla::gfx::Matrix PrependLocalTransformsTo(const mozilla::gfx::Matrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const;
 
   
   
   
-  virtual void SetAnimateMotionTransform(const gfxMatrix* aMatrix) {}
-  virtual const gfxMatrix* GetAnimateMotionTransform() const { return nullptr; }
+  virtual void SetAnimateMotionTransform(const mozilla::gfx::Matrix* aMatrix) {}
+  virtual const mozilla::gfx::Matrix* GetAnimateMotionTransform() const { return nullptr; }
 
   bool IsStringAnimatable(uint8_t aAttrEnum) {
     return GetStringInfo().mStringInfo[aAttrEnum].mIsAnimatable;

@@ -61,7 +61,7 @@ public:
   void DestroyAnonymousContent();
 
   
-  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+  virtual gfx::Matrix PrependLocalTransformsTo(const gfx::Matrix &aMatrix,
                       TransformTypes aWhich = eAllTransforms) const MOZ_OVERRIDE;
   virtual bool HasValidDimensions() const MOZ_OVERRIDE;
 

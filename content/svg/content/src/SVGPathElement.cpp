@@ -348,10 +348,9 @@ SVGPathElement::GetPathLengthScale(PathLengthScaleForType aFor)
         
         
         
-        gfxMatrix matrix = PrependLocalTransformsTo(gfxMatrix());
+        gfx::Matrix matrix = PrependLocalTransformsTo(gfx::Matrix());
         if (!matrix.IsIdentity()) {
-          RefPtr<PathBuilder> builder =
-            path->TransformedCopyToBuilder(ToMatrix(matrix));
+          RefPtr<PathBuilder> builder = path->TransformedCopyToBuilder(matrix);
           path = builder->Finish();
         }
       }
