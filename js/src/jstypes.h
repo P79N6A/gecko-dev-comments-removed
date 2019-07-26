@@ -24,7 +24,14 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
 
+
+
+
+
+
+
 #include "js-config.h"
+#include "jsversion.h"
 
 
 
