@@ -645,8 +645,8 @@ def main():
 
             options.app = "am"
             options.browserArgs = ["instrument", "-w", "-e", "deviceroot", deviceRoot, "-e", "class"]
-            options.browserArgs.append("org.mozilla.gecko.tests.%s" % test['name'])
-            options.browserArgs.append("org.mozilla.roboexample.test/org.mozilla.gecko.FennecInstrumentationTestRunner")
+            options.browserArgs.append("%s.tests.%s" % (options.remoteappname, test['name']))
+            options.browserArgs.append("org.mozilla.roboexample.test/%s.FennecInstrumentationTestRunner" % options.remoteappname)
 
             
             if test['name'] == "testImportFromAndroid":
