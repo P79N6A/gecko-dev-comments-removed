@@ -278,7 +278,7 @@ nsICOEncoder::ParseOptions(const nsAString& aOptions, uint32_t* bpp,
   }
 
   
-  for (int i = 0; i < nameValuePairs.Length(); ++i) {
+  for (unsigned i = 0; i < nameValuePairs.Length(); ++i) {
 
     
     nsTArray<nsCString> nameValuePair;
