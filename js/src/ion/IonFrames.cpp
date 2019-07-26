@@ -1267,7 +1267,12 @@ InlineFrameIteratorMaybeGC<allowGC>::findNextFrame()
         si_.nextFrame();
 
         callee_ = funval.toObject().toFunction();
-        script_ = callee_->nonLazyScript();
+
+        
+        
+        
+        script_ = callee_->getExistingScript();
+
         pc_ = script_->code + si_.pcOffset();
     }
 

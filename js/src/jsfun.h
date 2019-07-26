@@ -208,6 +208,27 @@ class JSFunction : public JSObject
 
     static bool createScriptForLazilyInterpretedFunction(JSContext *cx, js::HandleFunction fun);
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     JSScript *getOrCreateScript(JSContext *cx) {
         JS_ASSERT(isInterpreted());
         JS_ASSERT(cx);
@@ -222,34 +243,17 @@ class JSFunction : public JSObject
         return u.i.s.script_;
     }
 
-    static bool maybeGetOrCreateScript(JSContext *cx, js::HandleFunction fun,
-                                       js::MutableHandle<JSScript*> script)
-    {
-        if (fun->isNative()) {
-            script.set(NULL);
-            return true;
-        }
-        script.set(fun->getOrCreateScript(cx));
-        return fun->hasScript();
-    }
+    inline JSScript *getExistingScript();
 
     JSScript *nonLazyScript() const {
         JS_ASSERT(hasScript());
         return JS::HandleScript::fromMarkedLocation(&u.i.s.script_);
     }
 
-    JSScript *maybeNonLazyScript() const {
-        return hasScript() ? nonLazyScript() : NULL;
-    }
-
     js::HeapPtrScript &mutableScript() {
         JS_ASSERT(isInterpreted());
         return *(js::HeapPtrScript *)&u.i.s.script_;
     }
-
-    
-    
-    
 
     js::LazyScript *lazyScript() const {
         JS_ASSERT(isInterpretedLazy() && u.i.s.lazy_);
