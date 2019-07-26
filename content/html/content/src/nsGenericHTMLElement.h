@@ -856,29 +856,6 @@ protected:
 
 
 
-  NS_HIDDEN_(bool) GetBoolAttr(nsIAtom* aAttr) const
-  {
-    return HasAttr(kNameSpaceID_None, aAttr);
-  }
-
-  
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, bool aValue);
-
-  
-
-
-
-
-
-
-
 
   NS_HIDDEN_(int32_t) GetIntAttr(nsIAtom* aAttr, int32_t aDefault) const;
 
@@ -1231,24 +1208,6 @@ protected:
   _class::Set##_method(const nsAString& aValue)                              \
   {                                                                          \
     return SetAttrHelper(nsGkAtoms::_atom, aValue);                          \
-  }
-
-
-
-
-
-
-#define NS_IMPL_BOOL_ATTR(_class, _method, _atom)                     \
-  NS_IMETHODIMP                                                       \
-  _class::Get##_method(bool* aValue)                                \
-  {                                                                   \
-    *aValue = GetBoolAttr(nsGkAtoms::_atom);                          \
-    return NS_OK;                                                     \
-  }                                                                   \
-  NS_IMETHODIMP                                                       \
-  _class::Set##_method(bool aValue)                                 \
-  {                                                                   \
-    return SetBoolAttr(nsGkAtoms::_atom, aValue);                   \
   }
 
 

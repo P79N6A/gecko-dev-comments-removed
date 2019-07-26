@@ -873,6 +873,29 @@ public:
 
   nsIEditor* GetEditorInternal();
 
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(bool) GetBoolAttr(nsIAtom* aAttr) const
+  {
+    return HasAttr(kNameSpaceID_None, aAttr);
+  }
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) SetBoolAttr(nsIAtom* aAttr, bool aValue);
+
 protected:
   
 
@@ -1213,6 +1236,24 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
   _class::Set##_method(const nsAString& aValue)                         \
   {                                                                     \
     return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
+  }
+
+
+
+
+
+
+#define NS_IMPL_BOOL_ATTR(_class, _method, _atom)                     \
+  NS_IMETHODIMP                                                       \
+  _class::Get##_method(bool* aValue)                                  \
+  {                                                                   \
+    *aValue = GetBoolAttr(nsGkAtoms::_atom);                          \
+    return NS_OK;                                                     \
+  }                                                                   \
+  NS_IMETHODIMP                                                       \
+  _class::Set##_method(bool aValue)                                   \
+  {                                                                   \
+    return SetBoolAttr(nsGkAtoms::_atom, aValue);                     \
   }
 
 #define NS_FORWARD_NSIDOMELEMENT_TO_GENERIC                                   \

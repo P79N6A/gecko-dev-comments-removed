@@ -81,6 +81,8 @@ public:
   void SetType(const nsAString & aType, ErrorResult& rv);
   void SetMedia(const nsAString & aMedia, ErrorResult& rv);
   void SetTitle(const nsAString & aTitle, ErrorResult& rv);
+  bool Scoped() const;
+  void SetScoped(bool aScoped, ErrorResult& rv);
 
 protected:
   
