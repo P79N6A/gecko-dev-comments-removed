@@ -191,7 +191,6 @@
 
 extern uint32_t gRestartMode;
 extern void InstallSignalHandlers(const char *ProgramName);
-#include "nsX11ErrorHandler.h"
 
 #define FILE_COMPATIBILITY_INFO NS_LITERAL_CSTRING("compatibility.ini")
 #define FILE_INVALIDATE_CACHES NS_LITERAL_CSTRING(".purgecaches")
@@ -3533,7 +3532,7 @@ XREMain::XRE_mainStartup(bool* aExitFlag)
 #endif 
 #ifdef MOZ_X11
   
-  InstallX11ErrorHandler();
+  XRE_InstallX11ErrorHandler();
 #endif
 
   
