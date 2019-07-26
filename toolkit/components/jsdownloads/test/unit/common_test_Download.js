@@ -645,8 +645,29 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData()
   do_check_eq(gMostRecentFirstBytePos, 0);
 
   
+  
+  let deferMidway = Promise.defer();
+  download.onchange = function () {
+    if (!download.stopped && !download.canceled &&
+        download.currentBytes == Math.floor(TEST_DATA_SHORT.length * 3 / 2)) {
+      download.onchange = null;
+      deferMidway.resolve();
+    }
+  };
+
+  mustInterruptResponses();
+  let promiseAttempt = download.start();
+
+  
+  
+  
+  
+  yield deferMidway.promise;
+  do_check_true(download.progress > 72 && download.progress < 78);
+
+  
   continueResponses();
-  yield download.start();
+  yield promiseAttempt;
 
   
   do_check_eq(gMostRecentFirstBytePos, TEST_DATA_SHORT.length);
