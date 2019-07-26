@@ -866,29 +866,29 @@ nsInlineFrame::PushFrames(nsPresContext* aPresContext,
 
 
 int
-nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
+nsInlineFrame::GetSkipSides(const nsHTMLReflowState* aReflowState) const
 {
   int skip = 0;
-  if (!IsFirst()) {
+  if (!IsLeftMost()) {
     nsInlineFrame* prev = (nsInlineFrame*) GetPrevContinuation();
     if ((GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET) ||
         (prev && (prev->mRect.height || prev->mRect.width))) {
       
       
-      skip |= LOGICAL_SIDE_I_START;
+      skip |= 1 << NS_SIDE_LEFT;
     }
     else {
       
       
     }
   }
-  if (!IsLast()) {
+  if (!IsRightMost()) {
     nsInlineFrame* next = (nsInlineFrame*) GetNextContinuation();
     if ((GetStateBits() & NS_INLINE_FRAME_BIDI_VISUAL_STATE_IS_SET) ||
         (next && (next->mRect.height || next->mRect.width))) {
       
       
-      skip |= LOGICAL_SIDE_I_END;
+      skip |= 1 << NS_SIDE_RIGHT;
     }
     else {
       
@@ -902,15 +902,18 @@ nsInlineFrame::GetLogicalSkipSides(const nsHTMLReflowState* aReflowState) const
     
     
     
-    if (skip != LOGICAL_SIDES_I_BOTH) {
+    bool ltr = (NS_STYLE_DIRECTION_LTR == StyleVisibility()->mDirection);
+    int startBit = (1 << (ltr ? NS_SIDE_LEFT : NS_SIDE_RIGHT));
+    int endBit = (1 << (ltr ? NS_SIDE_RIGHT : NS_SIDE_LEFT));
+    if (((startBit | endBit) & skip) != (startBit | endBit)) {
       
       
       nsIFrame* firstContinuation = FirstContinuation();
       if (firstContinuation->FrameIsNonLastInIBSplit()) {
-        skip |= LOGICAL_SIDE_I_END;
+        skip |= endBit;
       }
       if (firstContinuation->FrameIsNonFirstInIBSplit()) {
-        skip |= LOGICAL_SIDE_I_START;
+        skip |= startBit;
       }
     }
   }
