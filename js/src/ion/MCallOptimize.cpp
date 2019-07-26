@@ -966,11 +966,12 @@ IonBuilder::inlineUnsafeSetElement(CallInfo &callInfo)
         MDefinition *id = callInfo.getArg(idxi);
         MDefinition *elem = callInfo.getArg(elemi);
 
-        if (PropertyWriteNeedsTypeBarrier(cx, current, &obj, NULL, &elem,  false))
-            return InliningStatus_NotInlined;
-
+        
+        
         int arrayType;
-        if (!ElementAccessIsDenseNative(obj, id) &&
+        if ((!ElementAccessIsDenseNative(obj, id) ||
+             PropertyWriteNeedsTypeBarrier(cx, current, &obj, NULL,
+                                           &elem,  false)) &&
             !ElementAccessIsTypedArray(obj, id, &arrayType))
         {
             return InliningStatus_NotInlined;
@@ -1012,8 +1013,7 @@ IonBuilder::inlineUnsafeSetElement(CallInfo &callInfo)
 }
 
 bool
-IonBuilder::inlineUnsafeSetDenseArrayElement(
-    CallInfo &callInfo, uint32_t base)
+IonBuilder::inlineUnsafeSetDenseArrayElement(CallInfo &callInfo, uint32_t base)
 {
     
     
