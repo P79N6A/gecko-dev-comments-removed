@@ -153,8 +153,12 @@ CSPPolicyURIListener.prototype = {
     }
     else {
       
-      this._csp.refinePolicy("default-src 'none'", this._docURI,
-                             this._csp._specCompliant);
+      
+      
+      this._csp.log(WARN_FLAG, CSPLocalizer.getFormatStr("errorFetchingPolicy",
+                                                         [status]));
+      this._csp.appendPolicy("default-src 'none'", this._docURI,
+                             this._reportOnly, this._csp._specCompliant);
     }
     
     this._docRequest.resume();
