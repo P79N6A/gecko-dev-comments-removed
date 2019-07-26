@@ -20,7 +20,12 @@ const Editor = require("devtools/sourceeditor/editor");
 
 const EVENTS = {
   
+  NEW_PROGRAM: "ShaderEditor:NewProgram",
+  PROGRAMS_ADDED: "ShaderEditor:ProgramsAdded",
+
+  
   SOURCES_SHOWN: "ShaderEditor:SourcesShown",
+
   
   SHADER_COMPILED: "ShaderEditor:ShaderCompiled"
 };
@@ -72,10 +77,12 @@ let EventsHandler = {
 
   initialize: function() {
     this._onHostChanged = this._onHostChanged.bind(this);
-    this._onWillNavigate = this._onWillNavigate.bind(this);
+    this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onProgramLinked = this._onProgramLinked.bind(this);
+    this._onProgramsAdded = this._onProgramsAdded.bind(this);
     gToolbox.on("host-changed", this._onHostChanged);
-    gTarget.on("will-navigate", this._onWillNavigate);
+    gTarget.on("will-navigate", this._onTabNavigated);
+    gTarget.on("navigate", this._onTabNavigated);
     gFront.on("program-linked", this._onProgramLinked);
 
   },
@@ -85,7 +92,8 @@ let EventsHandler = {
 
   destroy: function() {
     gToolbox.off("host-changed", this._onHostChanged);
-    gTarget.off("will-navigate", this._onWillNavigate);
+    gTarget.off("will-navigate", this._onTabNavigated);
+    gTarget.off("navigate", this._onTabNavigated);
     gFront.off("program-linked", this._onProgramLinked);
   },
 
@@ -101,20 +109,51 @@ let EventsHandler = {
   
 
 
-  _onWillNavigate: function() {
-    gFront.setup();
+  _onTabNavigated: function(event) {
+    switch (event) {
+      case "will-navigate": {
+        
+        gFront.setup({ reload: false });
 
-    ShadersListView.empty();
-    ShadersEditorsView.setText({ vs: "", fs: "" });
-    $("#reload-notice").hidden = true;
-    $("#waiting-notice").hidden = false;
-    $("#content").hidden = true;
+        
+        ShadersListView.empty();
+        ShadersEditorsView.setText({ vs: "", fs: "" });
+        $("#reload-notice").hidden = true;
+        $("#waiting-notice").hidden = false;
+        $("#content").hidden = true;
+        break;
+      }
+      case "navigate": {
+        
+        
+        
+        
+        gFront.getPrograms().then(this._onProgramsAdded);
+        break;
+      }
+    }
   },
 
   
 
 
   _onProgramLinked: function(programActor) {
+    this._addProgram(programActor);
+    window.emit(EVENTS.NEW_PROGRAM);
+  },
+
+  
+
+
+  _onProgramsAdded: function(programActors) {
+    programActors.forEach(this._addProgram);
+    window.emit(EVENTS.PROGRAMS_ADDED);
+  },
+
+  
+
+
+  _addProgram: function(programActor) {
     $("#waiting-notice").hidden = true;
     $("#reload-notice").hidden = true;
     $("#content").hidden = false;
@@ -163,6 +202,10 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
 
 
   addProgram: function(programActor) {
+    if (this.hasProgram(programActor)) {
+      return;
+    }
+
     
     
     
@@ -190,6 +233,18 @@ let ShadersListView = Heritage.extend(WidgetMethods, {
     if (gToolbox.hostType == "side" && this.itemCount == SHADERS_AUTOGROW_ITEMS) {
       this._pane.setAttribute("height", this._pane.getBoundingClientRect().height);
     }
+  },
+
+  
+
+
+
+
+
+
+
+  hasProgram: function(programActor) {
+    return !!this.attachments.filter(e => e.programActor == programActor).length;
   },
 
   
