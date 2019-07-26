@@ -57,7 +57,11 @@ const TabTrait = Trait.compose(EventEmitter, {
   },
   destroy: function destroy() {
     this._removeAllListeners();
-    this._browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
+    if (this._tab) {
+      this._browser.removeEventListener(EVENTS.ready.dom, this._onReady, true);
+      this._tab = null;
+      TABS.splice(TABS.indexOf(this), 1);
+    }
   },
 
   
@@ -98,35 +102,35 @@ const TabTrait = Trait.compose(EventEmitter, {
   
 
 
-  get id() getTabId(this._tab),
+  get id() this._tab ? getTabId(this._tab) : undefined,
 
   
 
 
 
 
-  get title() getTabTitle(this._tab),
-  set title(title) setTabTitle(this._tab, title),
+  get title() this._tab ? getTabTitle(this._tab) : undefined,
+  set title(title) this._tab && setTabTitle(this._tab, title),
 
   
 
 
 
 
-  get contentType() getTabContentType(this._tab),
+  get contentType() this._tab ? getTabContentType(this._tab) : undefined,
 
   
 
 
 
 
-  get url() getTabURL(this._tab),
-  set url(url) setTabURL(this._tab, url),
+  get url() this._tab ? getTabURL(this._tab) : undefined,
+  set url(url) this._tab && setTabURL(this._tab, url),
   
 
 
 
-  get favicon() getFaviconURIForLocation(this.url),
+  get favicon() this._tab ? getFaviconURIForLocation(this.url) : undefined,
   
 
 
@@ -137,23 +141,30 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
   get index()
-    this._window.gBrowser.getBrowserIndexForDocument(this._contentDocument),
-  set index(value) this._window.gBrowser.moveTabTo(this._tab, value),
+    this._tab ?
+    this._window.gBrowser.getBrowserIndexForDocument(this._contentDocument) :
+    undefined,
+  set index(value)
+    this._tab && this._window.gBrowser.moveTabTo(this._tab, value),
   
 
 
 
   getThumbnail: function getThumbnail()
-    getThumbnailURIForWindow(this._contentWindow),
+    this._tab ? getThumbnailURIForWindow(this._contentWindow) : undefined,
   
 
 
 
-  get isPinned() this._tab.pinned,
+  get isPinned() this._tab ? this._tab.pinned : undefined,
   pin: function pin() {
+    if (!this._tab)
+      return;
     this._window.gBrowser.pinTab(this._tab);
   },
   unpin: function unpin() {
+    if (!this._tab)
+      return;
     this._window.gBrowser.unpinTab(this._tab);
   },
 
@@ -162,6 +173,8 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
   attach: function attach(options) {
+    if (!this._tab)
+      return;
     
     
     let { Worker } = require('./worker');
@@ -175,12 +188,16 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
   activate: defer(function activate() {
+    if (!this._tab)
+      return;
     activateTab(this._tab);
   }),
   
 
 
   close: function close(callback) {
+    if (!this._tab)
+      return;
     if (callback)
       this.once(EVENTS.close.name, callback);
     this._window.gBrowser.removeTab(this._tab);
@@ -189,6 +206,8 @@ const TabTrait = Trait.compose(EventEmitter, {
 
 
   reload: function reload() {
+    if (!this._tab)
+      return;
     this._window.gBrowser.reloadTab(this._tab);
   }
 });

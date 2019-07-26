@@ -3,8 +3,10 @@
 
 
 
+ 'use strict';
 
-let {Cc,Ci} = require("chrome");
+let { Cc, Ci } = require("chrome");
+
 const { Loader } = require('sdk/test/loader');
 const timer = require("sdk/timers");
 
@@ -482,6 +484,52 @@ exports.testURLContextRemove = function (test) {
 
 
 
+exports.testPageReload = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = loader.cm.Item({
+    label: "Item",
+    contentScript: "var doc = document; self.on('context', function(node) doc.body.getAttribute('showItem') == 'true');"
+  });
+
+  test.withTestDoc(function (window, doc) {
+    
+    doc.body.setAttribute("showItem", "true");
+
+    test.showMenu(null, function (popup) {
+      
+      test.checkMenu([item], [], []);
+      test.hideMenu(function() {
+        let browser = this.tabBrowser.getBrowserForTab(this.tab)
+        test.delayedEventListener(browser, "load", function() {
+          test.delayedEventListener(browser, "load", function() {
+            window = browser.contentWindow;
+            doc = window.document;
+
+            
+            doc.body.setAttribute("showItem", "false");
+
+            test.showMenu(null, function (popup) {
+              
+              
+              
+              test.checkMenu([item], [item], []);
+
+              test.done();
+            });
+          }, true);
+          browser.loadURI(TEST_DOC_URL, null, null);
+        }, true);
+        
+        
+        browser.loadURI("about:blank", null, null);
+      });
+    });
+  });
+};
+
+
 
 
 
@@ -557,6 +605,143 @@ exports.testContentContextNoMatch = function (test) {
 
 
 
+exports.testContentContextUndefined = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () {});'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [item], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testContentContextEmptyString = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () "");'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [item], []);
+    test.assertEqual(item.label, "item", "Label should still be correct");
+    test.done();
+  });
+};
+
+
+
+
+exports.testMultipleContentContextMatch1 = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () true); ' +
+                   'self.on("context", function () false);',
+    onMessage: function() {
+      test.fail("Should not have called the second context listener");
+    }
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testMultipleContentContextMatch2 = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () false); ' +
+                   'self.on("context", function () true);'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testMultipleContentContextString1 = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () "new label"); ' +
+                   'self.on("context", function () false);'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    test.assertEqual(item.label, "new label", "Label should have changed");
+    test.done();
+  });
+};
+
+
+
+
+exports.testMultipleContentContextString2 = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () false); ' +
+                   'self.on("context", function () "new label");'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    test.assertEqual(item.label, "new label", "Label should have changed");
+    test.done();
+  });
+};
+
+
+
+exports.testMultipleContentContextString3 = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    contentScript: 'self.on("context", function () "new label 1"); ' +
+                   'self.on("context", function () "new label 2");'
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    test.assertEqual(item.label, "new label 1", "Label should have changed");
+    test.done();
+  });
+};
+
+
+
+
 exports.testContentContextMatchActiveElement = function (test) {
   test = new TestHelper(test);
   let loader = test.newLoader();
@@ -619,6 +804,44 @@ exports.testContentContextNoMatchActiveElement = function (test) {
       label: "item 4",
       context: [loader.cm.PageContext()],
       contentScript: 'self.on("context", function () false);'
+    })
+  ];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("image"), function (popup) {
+      test.checkMenu(items, items, []);
+      test.done();
+    });
+  });
+};
+
+
+
+
+exports.testContentContextNoMatchActiveElement = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let items = [
+    new loader.cm.Item({
+      label: "item 1",
+      contentScript: 'self.on("context", function () {});'
+    }),
+    new loader.cm.Item({
+      label: "item 2",
+      context: undefined,
+      contentScript: 'self.on("context", function () {});'
+    }),
+    
+    new loader.cm.Item({
+      label: "item 3",
+      context: loader.cm.PageContext(),
+      contentScript: 'self.on("context", function () {});'
+    }),
+    new loader.cm.Item({
+      label: "item 4",
+      context: [loader.cm.PageContext()],
+      contentScript: 'self.on("context", function () {});'
     })
   ];
 
@@ -1164,12 +1387,406 @@ exports.testMultipleModulesOrderOverflow = function (test) {
 
         
         test.checkMenu([item0, item2, item1, item3], [], []);
-        prefs.set(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT);
         test.done();
       });
     });
   });
 };
+
+
+
+
+exports.testMultipleModulesOverflowHidden = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let prefs = loader0.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 0);
+
+  
+  let item0 = new loader0.cm.Item({ label: "item 0" });
+  let item1 = new loader1.cm.Item({
+    label: "item 1",
+    context: loader1.cm.SelectorContext("a")
+  });
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu([item0, item1], [item1], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testMultipleModulesOverflowHidden2 = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let prefs = loader0.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 0);
+
+  
+  let item0 = new loader0.cm.Item({
+    label: "item 0",
+    context: loader0.cm.SelectorContext("a")
+  });
+  let item1 = new loader1.cm.Item({ label: "item 1" });
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu([item0, item1], [item0], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testOverflowIgnoresHidden = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let prefs = loader.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 2);
+
+  let allItems = [
+    new loader.cm.Item({
+      label: "item 0"
+    }),
+    new loader.cm.Item({
+      label: "item 1"
+    }),
+    new loader.cm.Item({
+      label: "item 2",
+      context: loader.cm.SelectorContext("a")
+    })
+  ];
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu(allItems, [allItems[2]], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testOverflowIgnoresHiddenMultipleModules1 = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let prefs = loader0.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 2);
+
+  let allItems = [
+    new loader0.cm.Item({
+      label: "item 0"
+    }),
+    new loader0.cm.Item({
+      label: "item 1"
+    }),
+    new loader1.cm.Item({
+      label: "item 2",
+      context: loader1.cm.SelectorContext("a")
+    }),
+    new loader1.cm.Item({
+      label: "item 3",
+      context: loader1.cm.SelectorContext("a")
+    })
+  ];
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu(allItems, [allItems[2], allItems[3]], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testOverflowIgnoresHiddenMultipleModules2 = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let prefs = loader0.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 2);
+
+  let allItems = [
+    new loader0.cm.Item({
+      label: "item 0"
+    }),
+    new loader0.cm.Item({
+      label: "item 1",
+      context: loader0.cm.SelectorContext("a")
+    }),
+    new loader1.cm.Item({
+      label: "item 2"
+    }),
+    new loader1.cm.Item({
+      label: "item 3",
+      context: loader1.cm.SelectorContext("a")
+    })
+  ];
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu(allItems, [allItems[1], allItems[3]], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testOverflowIgnoresHiddenMultipleModules3 = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let prefs = loader0.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 2);
+
+  let allItems = [
+    new loader0.cm.Item({
+      label: "item 0",
+      context: loader0.cm.SelectorContext("a")
+    }),
+    new loader0.cm.Item({
+      label: "item 1",
+      context: loader0.cm.SelectorContext("a")
+    }),
+    new loader1.cm.Item({
+      label: "item 2"
+    }),
+    new loader1.cm.Item({
+      label: "item 3"
+    })
+  ];
+
+  test.showMenu(null, function (popup) {
+    
+    test.checkMenu(allItems, [allItems[0], allItems[1]], []);
+    test.done();
+  });
+};
+
+
+
+
+exports.testOverflowTransition = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let prefs = loader.loader.require("preferences-service");
+  prefs.set(OVERFLOW_THRESH_PREF, 2);
+
+  let pItems = [
+    new loader.cm.Item({
+      label: "item 0",
+      context: loader.cm.SelectorContext("p")
+    }),
+    new loader.cm.Item({
+      label: "item 1",
+      context: loader.cm.SelectorContext("p")
+    })
+  ];
+
+  let aItems = [
+    new loader.cm.Item({
+      label: "item 2",
+      context: loader.cm.SelectorContext("a")
+    }),
+    new loader.cm.Item({
+      label: "item 3",
+      context: loader.cm.SelectorContext("a")
+    })
+  ];
+
+  let allItems = pItems.concat(aItems);
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("link"), function (popup) {
+      
+      test.checkMenu(allItems, [], []);
+      popup.hidePopup();
+
+      test.showMenu(doc.getElementById("text"), function (popup) {
+        
+        test.checkMenu(allItems, aItems, []);
+        popup.hidePopup();
+
+        test.showMenu(null, function (popup) {
+          
+          test.checkMenu(allItems, allItems, []);
+          popup.hidePopup();
+
+          test.showMenu(doc.getElementById("text"), function (popup) {
+            
+            test.checkMenu(allItems, aItems, []);
+            popup.hidePopup();
+
+            test.showMenu(doc.getElementById("link"), function (popup) {
+              
+              test.checkMenu(allItems, [], []);
+              popup.hidePopup();
+
+              test.showMenu(null, function (popup) {
+                
+                test.checkMenu(allItems, allItems, []);
+                popup.hidePopup();
+
+                test.showMenu(doc.getElementById("link"), function (popup) {
+                  
+                  test.checkMenu(allItems, [], []);
+                  test.done();
+                });
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+
+
+exports.testItemCommand = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "item",
+    data: "item data",
+    contentScript: 'self.on("click", function (node, data) {' +
+                   '  self.postMessage({' +
+                   '    tagName: node.tagName,' +
+                   '    data: data' +
+                   '  });' +
+                   '});',
+    onMessage: function (data) {
+      test.assertEqual(this, item, "`this` inside onMessage should be item");
+      test.assertEqual(data.tagName, "HTML", "node should be an HTML element");
+      test.assertEqual(data.data, item.data, "data should be item data");
+      test.done();
+    }
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item], [], []);
+    let elt = test.getItemElt(popup, item);
+
+    
+    let evt = elt.ownerDocument.createEvent('Event');
+    evt.initEvent('command', true, true);
+    elt.dispatchEvent(evt);
+  });
+};
+
+
+
+
+
+
+exports.testMenuCommand = function (test) {
+  
+  
+  
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let item = new loader.cm.Item({
+    label: "submenu item",
+    data: "submenu item data",
+    context: loader.cm.SelectorContext("a"),
+  });
+
+  let submenu = new loader.cm.Menu({
+    label: "submenu",
+    context: loader.cm.SelectorContext("a"),
+    items: [item]
+  });
+
+  let topMenu = new loader.cm.Menu({
+    label: "top menu",
+    contentScript: 'self.on("click", function (node, data) {' +
+                   '  let Ci = Components["interfaces"];' +
+                   '  self.postMessage({' +
+                   '    tagName: node.tagName,' +
+                   '    data: data' +
+                   '  });' +
+                   '});',
+    onMessage: function (data) {
+      test.assertEqual(this, topMenu, "`this` inside top menu should be menu");
+      test.assertEqual(data.tagName, "A", "Clicked node should be anchor");
+      test.assertEqual(data.data, item.data,
+                       "Clicked item data should be correct");
+      test.done();
+    },
+    items: [submenu],
+    context: loader.cm.SelectorContext("a")
+  });
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(doc.getElementById("span-link"), function (popup) {
+      test.checkMenu([topMenu], [], []);
+      let topMenuElt = test.getItemElt(popup, topMenu);
+      let topMenuPopup = topMenuElt.firstChild;
+      let submenuElt = test.getItemElt(topMenuPopup, submenu);
+      let submenuPopup = submenuElt.firstChild;
+      let itemElt = test.getItemElt(submenuPopup, item);
+
+      
+      let evt = itemElt.ownerDocument.createEvent('Event');
+      evt.initEvent('command', true, true);
+      itemElt.dispatchEvent(evt);
+    });
+  });
+};
+
+
+
+exports.testItemCommandMultipleModules = function (test) {
+  test = new TestHelper(test);
+  let loader0 = test.newLoader();
+  let loader1 = test.newLoader();
+
+  let item0 = loader0.cm.Item({
+    label: "loader 0 item",
+    contentScript: 'self.on("click", self.postMessage);',
+    onMessage: function () {
+      test.fail("loader 0 item should not emit click event");
+    }
+  });
+  let item1 = loader1.cm.Item({
+    label: "loader 1 item",
+    contentScript: 'self.on("click", self.postMessage);',
+    onMessage: function () {
+      test.pass("loader 1 item clicked as expected");
+      test.done();
+    }
+  });
+
+  test.showMenu(null, function (popup) {
+    test.checkMenu([item0, item1], [], []);
+    let item1Elt = test.getItemElt(popup, item1);
+
+    
+    let evt = item1Elt.ownerDocument.createEvent('Event');
+    evt.initEvent('command', true, true);
+    item1Elt.dispatchEvent(evt);
+  });
+};
+
+
 
 
 
@@ -1528,6 +2145,7 @@ exports.testDrawImageOnClickNode = function (test) {
 
 
 
+
 exports.testSetLabelBeforeShow = function (test) {
   test = new TestHelper(test);
   let loader = test.newLoader();
@@ -1589,7 +2207,6 @@ exports.testSetLabelBeforeShowOverflow = function (test) {
 
   test.showMenu(null, function (popup) {
     test.checkMenu(items, [], []);
-    prefs.set(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT);
     test.done();
   });
 };
@@ -1617,7 +2234,6 @@ exports.testSetLabelAfterShowOverflow = function (test) {
     test.assertEqual(items[0].label, "z");
     test.showMenu(null, function (popup) {
       test.checkMenu(items, [], []);
-      prefs.set(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT);
       test.done();
     });
   });
@@ -2090,6 +2706,8 @@ exports.testSubItemDefaultVisible = function (test) {
   });
 };
 
+
+
 exports.testSubItemClick = function (test) {
   test = new TestHelper(test);
   let loader = test.newLoader();
@@ -2141,6 +2759,68 @@ exports.testSubItemClick = function (test) {
       let topMenuPopup = topMenuElt.firstChild;
       let itemElt = test.getItemElt(topMenuPopup, items[0].items[0]);
       itemElt.click();
+    });
+  });
+};
+
+
+
+exports.testSubItemCommand = function (test) {
+  test = new TestHelper(test);
+  let loader = test.newLoader();
+
+  let state = 0;
+
+  let items = [
+    loader.cm.Menu({
+      label: "menu 1",
+      items: [
+        loader.cm.Item({
+          label: "subitem 1",
+          data: "foobar",
+          contentScript: 'self.on("click", function (node, data) {' +
+                         '  self.postMessage({' +
+                         '    tagName: node.tagName,' +
+                         '    data: data' +
+                         '  });' +
+                         '});',
+          onMessage: function(msg) {
+            test.assertEqual(msg.tagName, "HTML", "should have seen the right node");
+            test.assertEqual(msg.data, "foobar", "should have seen the right data");
+            test.assertEqual(state, 0, "should have seen the event at the right time");
+            state++;
+          }
+        })
+      ],
+      contentScript: 'self.on("click", function (node, data) {' +
+                     '  self.postMessage({' +
+                     '    tagName: node.tagName,' +
+                     '    data: data' +
+                     '  });' +
+                     '});',
+      onMessage: function(msg) {
+        test.assertEqual(msg.tagName, "HTML", "should have seen the right node");
+        test.assertEqual(msg.data, "foobar", "should have seen the right data");
+        test.assertEqual(state, 1, "should have seen the event at the right time");
+        state++
+
+        test.done();
+      }
+    })
+  ];
+
+  test.withTestDoc(function (window, doc) {
+    test.showMenu(null, function (popup) {
+      test.checkMenu(items, [], []);
+
+      let topMenuElt = test.getItemElt(popup, items[0]);
+      let topMenuPopup = topMenuElt.firstChild;
+      let itemElt = test.getItemElt(topMenuPopup, items[0].items[0]);
+
+      
+      let evt = itemElt.ownerDocument.createEvent('Event');
+      evt.initEvent('command', true, true);
+      itemElt.dispatchEvent(evt);
     });
   });
 };
@@ -2249,6 +2929,8 @@ function TestHelper(test) {
   this.browserWindow = Cc["@mozilla.org/appshell/window-mediator;1"].
                        getService(Ci.nsIWindowMediator).
                        getMostRecentWindow("navigator:browser");
+  this.overflowThreshValue = require("sdk/preferences/service").
+                             get(OVERFLOW_THRESH_PREF, OVERFLOW_THRESH_DEFAULT);
 }
 
 TestHelper.prototype = {
@@ -2351,6 +3033,9 @@ TestHelper.prototype = {
     let mainNodes = this.browserWindow.document.querySelectorAll("#contentAreaContextMenu > ." + ITEM_CLASS);
     let overflowNodes = this.browserWindow.document.querySelectorAll("." + OVERFLOW_POPUP_CLASS + " > ." + ITEM_CLASS);
 
+    this.test.assert(mainNodes.length == 0 || overflowNodes.length == 0,
+                     "Should only see nodes at the top level or in overflow");
+
     let overflow = this.overflowSubmenu;
     if (this.shouldOverflow(total)) {
       this.test.assert(overflow && !overflow.hidden,
@@ -2361,12 +3046,15 @@ TestHelper.prototype = {
     else {
       this.test.assert(!overflow || overflow.hidden,
                        "overflow menu should not be present");
-      this.test.assertEqual(overflowNodes.length, 0,
-                            "should be no items in the overflow context menu");
+      
+      if (total > 0) {
+        this.test.assertEqual(overflowNodes.length, 0,
+                              "should be no items in the overflow context menu");
+      }
     }
 
-    let nodes = this.shouldOverflow(total) ? overflowNodes : mainNodes;
-
+    
+    let nodes = mainNodes.length ? mainNodes : overflowNodes;
     this.checkNodes(nodes, presentItems, absentItems, removedItems)
     let pos = 0;
   },
@@ -2381,6 +3069,11 @@ TestHelper.prototype = {
       
       if (removedItems.indexOf(item) >= 0)
         continue;
+
+      if (nodes.length <= pos) {
+        this.test.assert(false, "Not enough nodes");
+        return;
+      }
 
       let hidden = absentItems.indexOf(item) >= 0;
 
@@ -2432,12 +3125,16 @@ TestHelper.prototype = {
 
   
   done: function () {
+    const self = this;
     function commonDone() {
       this.closeTab();
 
       while (this.loaders.length) {
         this.loaders[0].unload();
       }
+
+      require("sdk/preferences/service").set(OVERFLOW_THRESH_PREF, self.overflowThreshValue);
+
       this.test.done();
     }
 
