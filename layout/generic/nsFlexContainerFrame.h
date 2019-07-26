@@ -35,6 +35,9 @@ class nsFlexContainerFrame : public nsFlexContainerFrameSuper {
 
 public:
   
+  class StrutInfo;
+
+  
   virtual void BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                                 const nsRect&           aDirtyRect,
                                 const nsDisplayListSet& aLists) MOZ_OVERRIDE;
@@ -84,6 +87,7 @@ protected:
                         nsReflowStatus&          aStatus,
                         nscoord aContentBoxMainSize,
                         nscoord aAvailableHeightForContent,
+                        nsTArray<StrutInfo>& aStruts,
                         const FlexboxAxisTracker& aAxisTracker);
 
   

@@ -22,6 +22,10 @@
 using namespace mozilla::css;
 using namespace mozilla::layout;
 
+
+
+typedef nsFlexContainerFrame::StrutInfo StrutInfo;
+
 #ifdef PR_LOGGING
 static PRLogModuleInfo*
 GetFlexContainerLog()
@@ -610,6 +614,43 @@ private:
   nscoord mLineCrossSize;
   nscoord mBaselineOffsetFromCrossStart;
 };
+
+
+
+struct nsFlexContainerFrame::StrutInfo {
+  StrutInfo(uint32_t aItemIdx, nscoord aStrutCrossSize)
+    : mItemIdx(aItemIdx),
+      mStrutCrossSize(aStrutCrossSize)
+  {
+  }
+
+  uint32_t mItemIdx;      
+  nscoord mStrutCrossSize; 
+};
+
+static void
+BuildStrutInfoFromCollapsedItems(nsTArray<FlexLine>& aLines,
+                                 nsTArray<StrutInfo>& aStruts)
+{
+  MOZ_ASSERT(aStruts.IsEmpty(),
+             "We should only build up StrutInfo once per reflow, so "
+             "aStruts should be empty when this is called");
+
+  uint32_t itemIdxInContainer = 0;
+  for (uint32_t lineIdx = 0; lineIdx < aLines.Length(); lineIdx++) {
+    FlexLine& line = aLines[lineIdx];
+    for (uint32_t i = 0; i < line.mItems.Length(); ++i) {
+      FlexItem& item = line.mItems[i];
+      if (NS_STYLE_VISIBILITY_COLLAPSE ==
+          item.Frame()->StyleVisibility()->mVisible) {
+        
+        aStruts.AppendElement(StrutInfo(itemIdxInContainer,
+                                        line.GetLineCrossSize()));
+      }
+      itemIdxInContainer++;
+    }
+  }
+}
 
 
 static nsIFrame*
@@ -2659,12 +2700,17 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
   nscoord contentBoxMainSize = GetMainSizeFromReflowState(aReflowState,
                                                           axisTracker);
 
+  nsAutoTArray<StrutInfo, 1> struts;
   nsresult rv = DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
                              contentBoxMainSize, availableHeightForContent,
-                             axisTracker);
+                             struts, axisTracker);
 
-  
-  
+  if (NS_SUCCEEDED(rv) && !struts.IsEmpty()) {
+    
+    rv = DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
+                      contentBoxMainSize, availableHeightForContent,
+                      struts, axisTracker);
+  }
 
   return rv;
 }
@@ -2676,6 +2722,7 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
                                    nsReflowStatus&          aStatus,
                                    nscoord aContentBoxMainSize,
                                    nscoord aAvailableHeightForContent,
+                                   nsTArray<StrutInfo>& aStruts,
                                    const FlexboxAxisTracker& aAxisTracker)
 {
   aStatus = NS_FRAME_COMPLETE;
@@ -2743,6 +2790,18 @@ nsFlexContainerFrame::DoFlexLayout(nsPresContext*           aPresContext,
     crossAxisPosnTracker(lines, aReflowState.mStylePosition->mAlignContent,
                          contentBoxCrossSize, isCrossSizeDefinite,
                          aAxisTracker);
+
+  
+  
+  
+  
+  if (aStruts.IsEmpty()) { 
+    BuildStrutInfoFromCollapsedItems(lines, aStruts);
+    if (!aStruts.IsEmpty()) {
+      
+      return NS_OK;
+    }
+  }
 
   
   
