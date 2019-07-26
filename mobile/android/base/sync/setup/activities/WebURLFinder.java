@@ -118,6 +118,7 @@ public class WebURLFinder {
         }
       } catch (URISyntaxException e) {
         
+        continue;
       }
     }
 
