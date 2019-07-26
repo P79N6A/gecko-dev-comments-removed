@@ -163,10 +163,10 @@ nsImageFrame::AccessibleType()
 {
   
   if (HasImageMap()) {
-    return a11y::eHTMLImageMap;
+    return a11y::eHTMLImageMapType;
   }
 
-  return a11y::eImage;
+  return a11y::eImageType;
 }
 #endif
 

@@ -6252,7 +6252,7 @@ nsBlockFrame::AccessibleType()
 {
   
   if (mContent->Tag() == nsGkAtoms::hr) {
-    return a11y::eHTMLHR;
+    return a11y::eHTMLHRType;
   }
 
   if (!HasBullet() || !PresContext()) {
@@ -6275,11 +6275,11 @@ nsBlockFrame::AccessibleType()
     }
 
     
-    return a11y::eHyperText;
+    return a11y::eHyperTextType;
   }
 
   
-  return a11y::eHTMLLi;
+  return a11y::eHTMLLiType;
 }
 #endif
 
