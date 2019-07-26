@@ -944,6 +944,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     void unboxNonDouble(const ValueOperand &src, const Register &dest) {
+        
+        
+        
         if (src.valueReg() == dest) {
             movq(ImmWord(JSVAL_PAYLOAD_MASK), ScratchReg);
             andq(ScratchReg, dest);
@@ -972,6 +975,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     Register extractObject(const Address &address, Register scratch) {
         JS_ASSERT(scratch != ScratchReg);
         loadPtr(address, ScratchReg);
+        
+        
         unboxObject(ValueOperand(ScratchReg), scratch);
         return scratch;
     }
