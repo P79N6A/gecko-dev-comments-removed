@@ -1007,7 +1007,7 @@ InitFromBailout(JSContext *cx, HandleScript caller, jsbytecode *callerPC,
 
     
     
-    JS_ASSERT(isCall || IsGetterPC(pc) || IsSetterPC(pc));
+    JS_ASSERT(IsIonInlinablePC(pc));
     unsigned actualArgc;
     if (needToSaveArgs) {
         
