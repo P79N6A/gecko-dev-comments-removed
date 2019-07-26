@@ -25,7 +25,7 @@ function testSteps()
     { name: undefined }
   ];
 
-  let request = indexedDB.open(name, 1);
+  let request = mozIndexedDB.open(name, 1);
   request.onerror = errorHandler;
   request.onupgradeneeded = grabEventAndContinueHandler;
   request.onsuccess = unexpectedSuccessHandler;
@@ -98,32 +98,6 @@ function testSteps()
     }
     is(found, true, "transaction has correct objectStoreNames list");
   }
-
-  
-  let ex;
-  try {
-    db.createObjectStore("storefail", { keyPath: "", autoIncrement: true });
-  }
-  catch(e) {
-    ex = e;
-  }
-  ok(ex, "createObjectStore with empty keyPath and autoIncrement should throw");
-  is(ex.name, "InvalidAccessError", "should throw right exception");
-  ok(ex instanceof DOMException, "should throw right exception");
-  is(ex.code, DOMException.INVALID_ACCESS_ERR, "should throw right exception");
-
-  
-  let ex;
-  try {
-    db.createObjectStore("storefail", { keyPath: ["a"], autoIncrement: true });
-  }
-  catch(e) {
-    ex = e;
-  }
-  ok(ex, "createObjectStore with array keyPath and autoIncrement should throw");
-  is(ex.name, "InvalidAccessError", "should throw right exception");
-  ok(ex instanceof DOMException, "should throw right exception");
-  is(ex.code, DOMException.INVALID_ACCESS_ERR, "should throw right exception");
 
   request.onsuccess = grabEventAndContinueHandler;
   request.onupgradeneeded = unexpectedSuccessHandler;
