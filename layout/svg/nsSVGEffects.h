@@ -78,6 +78,8 @@ public:
 
   Element* GetReferencedElement();
 
+  virtual bool ObservesReflow() { return true; }
+
 protected:
   
   void StartListening();
@@ -185,6 +187,8 @@ public:
   nsSVGTextPathProperty(nsIURI *aURI, nsIFrame *aFrame, bool aReferenceImage)
     : nsSVGIDRenderingObserver(aURI, aFrame, aReferenceImage) {}
 
+  virtual bool ObservesReflow() MOZ_OVERRIDE { return false; }
+
 protected:
   virtual void DoUpdate() MOZ_OVERRIDE;
 };
@@ -242,6 +246,12 @@ public:
 
 
   void InvalidateAll();
+
+  
+
+
+
+  void InvalidateAllForReflow();
 
   
 
@@ -372,12 +382,17 @@ public:
 
 
   static void InvalidateRenderingObservers(nsIFrame *aFrame);
+
+  enum {
+    INVALIDATE_REFLOW = 1
+  };
+
   
 
 
 
-  static void InvalidateDirectRenderingObservers(Element *aElement);
-  static void InvalidateDirectRenderingObservers(nsIFrame *aFrame);
+  static void InvalidateDirectRenderingObservers(Element *aElement, uint32_t aFlags = 0);
+  static void InvalidateDirectRenderingObservers(nsIFrame *aFrame, uint32_t aFlags = 0);
 
   
 
