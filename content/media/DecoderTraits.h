@@ -83,6 +83,11 @@ public:
   
   static already_AddRefed<MediaDecoder> CreateDecoder(const nsACString& aType,
                                                       MediaDecoderOwner* aOwner);
+
+  
+  
+  
+  static bool IsSupportedInVideoDocument(const nsACString& aType);
 };
 
 }
