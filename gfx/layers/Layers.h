@@ -26,6 +26,7 @@
 #include "mozilla/gfx/2D.h"
 #include "mozilla/TimeStamp.h"
 
+
 class gfxContext;
 class nsPaintEvent;
 
