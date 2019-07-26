@@ -199,12 +199,75 @@ var tests = {
             EventUtils.synthesizeMouseAtCenter(btn, {});
             
             waitForCondition(function() btn.isMarked, function() {
+              is(btn.panel.state, "closed", "panel should not be visible yet");
               EventUtils.synthesizeMouseAtCenter(btn, {});
             }, "button is marked");
             break;
           case "got-social-panel-visibility":
             ok(true, "got the panel message " + e.data.result);
             if (e.data.result == "shown") {
+              
+              let doc = btn.contentDocument;
+              let unmarkBtn = doc.getElementById("unmark");
+              ok(unmarkBtn, "got the panel unmark button");
+              EventUtils.sendMouseEvent({type: "click"}, unmarkBtn, btn.contentWindow);
+            } else {
+              
+              port.close();
+              waitForCondition(function() !btn.isMarked, function() {
+                
+                gBrowser.tabContainer.addEventListener("TabClose", function onTabClose() {
+                  gBrowser.tabContainer.removeEventListener("TabClose", onTabClose);
+                    executeSoon(function () {
+                      ok(btn.disabled, "button is disabled");
+                      next();
+                    });
+                });
+                gBrowser.removeTab(tab);
+              }, "button unmarked");
+            }
+            break;
+        }
+      };
+      port.postMessage({topic: "test-init"});
+    });
+  },
+
+  testMarkPanelLoggedOut: function(next) {
+    
+    let provider = Social._getProviderFromOrigin(manifest2.origin);
+    ok(provider.enabled, "provider is enabled");
+    let id = "social-mark-button-" + provider.origin;
+    let btn = document.getElementById(id)
+    ok(btn, "got a mark button");
+    let port = provider.getWorkerPort();
+    ok(port, "got a port");
+
+    
+    ok(btn.disabled, "button is disabled");
+    let activationURL = manifest2.origin + "/browser/browser/base/content/test/social/social_activate.html"
+    addTab(activationURL, function(tab) {
+      ok(!btn.disabled, "button is enabled");
+      port.onmessage = function (e) {
+        let topic = e.data.topic;
+        switch (topic) {
+          case "test-init-done":
+            ok(true, "test-init-done received");
+            ok(provider.profile.userName, "profile was set by test worker");
+            port.postMessage({topic: "test-logout"});
+            waitForCondition(function() !provider.profile.userName,
+                function() {
+                  
+                  
+                  EventUtils.synthesizeMouseAtCenter(btn, {});
+                },
+                "profile was unset by test worker");
+            break;
+          case "got-social-panel-visibility":
+            ok(true, "got the panel message " + e.data.result);
+            if (e.data.result == "shown") {
+              
+              
               
               let doc = btn.contentDocument;
               let unmarkBtn = doc.getElementById("unmark");
