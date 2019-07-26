@@ -8,6 +8,8 @@
 
 
 
+const FRAME_SCRIPT = "chrome://marionette/content/marionette-listener.js";
+
 let {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
@@ -94,14 +96,27 @@ MarionetteRootActor.prototype = {
   getMarionetteID: function MRA_getMarionette() {
     return { "from": "root",
              "id": this._marionetteActor.actorID } ;
-  },
-}
+  }
+};
 
 
 MarionetteRootActor.prototype.requestTypes = {
   "getMarionetteID": MarionetteRootActor.prototype.getMarionetteID,
   "sayHello": MarionetteRootActor.prototype.sayHello
 };
+
+
+
+
+
+function MarionetteRemoteFrame(windowId, frameId) {
+  this.windowId = windowId;
+  this.frameId = frameId;
+  this.targetFrameId = null;
+  this.messageManager = null;
+}
+
+let remoteFrames = [];
 
 
 
@@ -114,8 +129,9 @@ function MarionetteDriverActor(aConnection)
                    .getService(Ci.nsIUUIDGenerator);
 
   this.conn = aConnection;
-  this.messageManager = Cc["@mozilla.org/globalmessagemanager;1"]
-                          .getService(Ci.nsIMessageBroadcaster);
+  this.globalMessageManager = Cc["@mozilla.org/globalmessagemanager;1"]
+                             .getService(Ci.nsIMessageBroadcaster);
+  this.messageManager = this.globalMessageManager;
   this.browsers = {}; 
   this.curBrowser = null; 
   this.context = "content";
@@ -127,16 +143,10 @@ function MarionetteDriverActor(aConnection)
   this.mainFrame = null; 
   this.curFrame = null; 
   this.importedScripts = FileUtils.getFile('TmpD', ['marionettescriptchrome']);
+  this.currentRemoteFrame = null; 
+
   
-  
-  this.messageManager.addMessageListener("Marionette:ok", this);
-  this.messageManager.addMessageListener("Marionette:done", this);
-  this.messageManager.addMessageListener("Marionette:error", this);
-  this.messageManager.addMessageListener("Marionette:log", this);
-  this.messageManager.addMessageListener("Marionette:shareData", this);
-  this.messageManager.addMessageListener("Marionette:register", this);
-  this.messageManager.addMessageListener("Marionette:goUrl", this);
-  this.messageManager.addMessageListener("Marionette:runEmulatorCmd", this);
+  this.addMessageManagerListeners(this.messageManager);
 }
 
 MarionetteDriverActor.prototype = {
@@ -148,17 +158,76 @@ MarionetteDriverActor.prototype = {
 
 
 
+  
 
 
 
 
-  sendAsync: function MDA_sendAsync(name, values) {
-    this.messageManager.broadcastAsyncMessage("Marionette:" + name + this.curBrowser.curFrameId, values);
+
+
+  switchToGlobalMessageManager: function MDA_switchToGlobalMM() {
+    if (this.currentRemoteFrame !== null) {
+      this.removeMessageManagerListeners(this.messageManager);
+      this.sendAsync("sleepSession");
+    }
+    this.messageManager = this.globalMessageManager;
+    this.currentRemoteFrame = null;
   },
 
   
 
 
+
+
+
+
+
+  sendAsync: function MDA_sendAsync(name, values) {
+    if (this.currentRemoteFrame !== null) {
+      this.messageManager.sendAsyncMessage(
+        "Marionette:" + name + this.currentRemoteFrame.targetFrameId, values);
+    }
+    else {
+      this.messageManager.broadcastAsyncMessage(
+        "Marionette:" + name + this.curBrowser.curFrameId, values);
+    }
+  },
+
+  
+
+
+
+
+
+
+  addMessageManagerListeners: function MDA_addMessageManagerListeners(messageManager) {
+    messageManager.addMessageListener("Marionette:ok", this);
+    messageManager.addMessageListener("Marionette:done", this);
+    messageManager.addMessageListener("Marionette:error", this);
+    messageManager.addMessageListener("Marionette:log", this);
+    messageManager.addMessageListener("Marionette:shareData", this);
+    messageManager.addMessageListener("Marionette:register", this);
+    messageManager.addMessageListener("Marionette:runEmulatorCmd", this);
+    messageManager.addMessageListener("Marionette:switchToFrame", this);
+  },
+
+  
+
+
+
+
+
+
+  removeMessageManagerListeners: function MDA_removeMessageManagerListeners(messageManager) {
+    messageManager.removeMessageListener("Marionette:ok", this);
+    messageManager.removeMessageListener("Marionette:done", this);
+    messageManager.removeMessageListener("Marionette:error", this);
+    messageManager.removeMessageListener("Marionette:log", this);
+    messageManager.removeMessageListener("Marionette:shareData", this);
+    messageManager.removeMessageListener("Marionette:register", this);
+    messageManager.removeMessageListener("Marionette:runEmulatorCmd", this);
+    messageManager.removeMessageListener("Marionette:switchToFrame", this);
+  },
 
   
 
@@ -316,7 +385,7 @@ MarionetteDriverActor.prototype = {
   whenBrowserStarted: function MDA_whenBrowserStarted(win, newSession) {
     try {
       if (!Services.prefs.getBoolPref("marionette.contentListener") || !newSession) {
-        this.curBrowser.loadFrameScript("chrome://marionette/content/marionette-listener.js", win);
+        this.curBrowser.loadFrameScript(FRAME_SCRIPT, win);
       }
     }
     catch (e) {
@@ -376,6 +445,8 @@ MarionetteDriverActor.prototype = {
         this.startBrowser(win, true);
       }
     }
+
+    this.switchToGlobalMessageManager();
 
     if (!Services.prefs.getBoolPref("marionette.contentListener")) {
       waitForWindow.call(this);
@@ -968,6 +1039,14 @@ MarionetteDriverActor.prototype = {
       }
     }
     else {
+      if ((aRequest.value == null) && (aRequest.element == null) &&
+          (this.currentRemoteFrame !== null)) {
+        
+        
+        
+        
+        this.switchToGlobalMessageManager();
+      }
       this.sendAsync("switchToFrame", aRequest);
     }
   },
@@ -1302,7 +1381,7 @@ MarionetteDriverActor.prototype = {
       }
 
       try{
-        this.messageManager.removeDelayedFrameScript("chrome://marionette/content/marionette-listener.js"); 
+        this.messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
         this.getCurrentWindow().close();
         this.sendOk();
       }
@@ -1324,7 +1403,7 @@ MarionetteDriverActor.prototype = {
   deleteSession: function MDA_deleteSession() {
     if (this.curBrowser != null) {
       if (appName == "B2G") {
-        this.messageManager.broadcastAsyncMessage("Marionette:sleepSession" + this.curBrowser.mainContentId, {});
+        this.globalMessageManager.broadcastAsyncMessage("Marionette:sleepSession" + this.curBrowser.mainContentId, {});
         this.curBrowser.knownFrames.splice(this.curBrowser.knownFrames.indexOf(this.curBrowser.mainContentId), 1);
       }
       else {
@@ -1335,23 +1414,17 @@ MarionetteDriverActor.prototype = {
       
       for (let win in this.browsers) {
         for (let i in this.browsers[win].knownFrames) {
-          this.messageManager.broadcastAsyncMessage("Marionette:deleteSession" + this.browsers[win].knownFrames[i], {});
+          this.globalMessageManager.broadcastAsyncMessage("Marionette:deleteSession" + this.browsers[win].knownFrames[i], {});
         }
       }
       let winEnum = this.getWinEnumerator();
       while (winEnum.hasMoreElements()) {
-        winEnum.getNext().messageManager.removeDelayedFrameScript("chrome://marionette/content/marionette-listener.js"); 
+        winEnum.getNext().messageManager.removeDelayedFrameScript(FRAME_SCRIPT); 
       }
     }
     this.sendOk();
-    this.messageManager.removeMessageListener("Marionette:ok", this);
-    this.messageManager.removeMessageListener("Marionette:done", this);
-    this.messageManager.removeMessageListener("Marionette:error", this);
-    this.messageManager.removeMessageListener("Marionette:log", this);
-    this.messageManager.removeMessageListener("Marionette:shareData", this);
-    this.messageManager.removeMessageListener("Marionette:register", this);
-    this.messageManager.removeMessageListener("Marionette:goUrl", this);
-    this.messageManager.removeMessageListener("Marionette:runEmulatorCmd", this);
+    this.removeMessageManagerListeners(this.globalMessageManager);
+    this.switchToGlobalMessageManager();
     this.curBrowser = null;
     try {
       this.importedScripts.remove(false);
@@ -1418,6 +1491,15 @@ MarionetteDriverActor.prototype = {
   
 
 
+
+  generateFrameId: function MDA_generateFrameId(id) {
+    let uid = id + (appName == "B2G" ? "-b2g" : "");
+    return uid;
+  },
+
+  
+
+
   receiveMessage: function MDA_receiveMessage(message) {
     switch (message.name) {
       case "DOMContentLoaded":
@@ -1449,12 +1531,58 @@ MarionetteDriverActor.prototype = {
       case "Marionette:runEmulatorCmd":
         this.sendToClient(message.json);
         break;
+      case "Marionette:switchToFrame":
+        
+
+        for (let i = 0; i < remoteFrames.length; i++) {
+          let frame = remoteFrames[i];
+          if ((frame.windowId == message.json.win) && (frame.frameId == message.json.frame)) {
+            
+            this.currentRemoteFrame = frame;
+            this.messageManager = frame.messageManager;
+            this.addMessageManagerListeners(this.messageManager);
+            this.messageManager.sendAsyncMessage("Marionette:restart", {});
+            return;
+          }
+        }
+
+        
+        
+        let thisWin = this.getCurrentWindow();
+        let frameWindow = thisWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                                 .getInterface(Ci.nsIDOMWindowUtils)
+                                 .getOuterWindowWithId(message.json.win);
+        let thisFrame = frameWindow.document.getElementsByTagName("iframe")[message.json.frame];
+        let mm = thisFrame.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader.messageManager
+        this.addMessageManagerListeners(mm);
+        mm.loadFrameScript(FRAME_SCRIPT, true);
+        this.messageManager = mm;
+        let aFrame = new MarionetteRemoteFrame(message.json.win, message.json.frame);
+        aFrame.messageManager = this.messageManager;
+        remoteFrames.push(aFrame);
+        this.currentRemoteFrame = aFrame;
+        break;
       case "Marionette:register":
         
         
         let nullPrevious = (this.curBrowser.curFrameId == null);
         let curWin = this.getCurrentWindow();
-        let frameObject = curWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).getOuterWindowWithId(message.json.value);
+        let listenerWindow = curWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                                   .getInterface(Ci.nsIDOMWindowUtils)
+                                   .getOuterWindowWithId(message.json.value);
+
+        if (listenerWindow.location.href != message.json.href) {
+          
+          
+          
+          
+          
+          
+          
+          this.sendOk();
+          this.currentRemoteFrame.targetFrameId = this.generateFrameId(message.json.value);
+        }
+
         let browserType;
         try {
           browserType = message.target.getAttribute("type");
@@ -1463,9 +1591,10 @@ MarionetteDriverActor.prototype = {
         }
         let reg;
         if (!browserType || browserType != "content") {
-          reg = this.curBrowser.register(message.json.value, message.json.href); 
+          reg = this.curBrowser.register(this.generateFrameId(message.json.value),
+                                         message.json.href); 
         }
-        this.curBrowser.elementManager.seenItems[reg] = frameObject; 
+        this.curBrowser.elementManager.seenItems[reg] = listenerWindow; 
         if (nullPrevious && (this.curBrowser.curFrameId != null)) {
           this.sendAsync("newSession", {B2G: (appName == "B2G")});
           if (this.curBrowser.newSession) {
@@ -1545,8 +1674,6 @@ function BrowserObj(win) {
   this.curFrameId = null;
   this.startPage = "about:blank";
   this.mainContentId = null; 
-  this.messageManager = Cc["@mozilla.org/globalmessagemanager;1"]
-                          .getService(Ci.nsIMessageBroadcaster);
   this.newSession = true; 
   this.elementManager = new ElementManager([SELECTOR, NAME, LINK_TEXT, PARTIAL_LINK_TEXT]);
   this.setBrowser(win);
@@ -1647,10 +1774,10 @@ BrowserObj.prototype = {
 
 
 
-  register: function BO_register(id, href) {
-    let uid = id + ((appName == "B2G") ? '-b2g' : '');
+  register: function BO_register(uid, href) {
     if (this.curFrameId == null) {
-      if ((!this.newSession) || (this.newSession && ((appName != "Firefox") || href.indexOf(this.startPage) > -1))) {
+      if ((!this.newSession) || (this.newSession && 
+          ((appName != "Firefox") || href.indexOf(this.startPage) > -1))) {
         this.curFrameId = uid;
         this.mainContentId = uid;
       }
