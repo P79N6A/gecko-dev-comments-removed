@@ -679,7 +679,7 @@ CompositorParent::CompositeToTarget(DrawTarget* aTarget)
 
   
   if (gfxPrefs::LayersCompositionFrameRate() == 0
-    || mLayerManager->GetCompositor()->GetDiagnosticTypes() & DIAGNOSTIC_FLASH_BORDERS) {
+    || mLayerManager->GetCompositor()->GetDiagnosticTypes() & DiagnosticTypes::FLASH_BORDERS) {
     
     ScheduleComposition();
   }

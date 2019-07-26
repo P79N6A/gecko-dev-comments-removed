@@ -43,7 +43,7 @@ ColorLayerComposite::RenderLayer(const nsIntRect& aClipRect)
 
   const gfx::Matrix4x4& transform = GetEffectiveTransform();
   mCompositor->DrawQuad(rect, clipRect, effects, opacity, transform);
-  mCompositor->DrawDiagnostics(DIAGNOSTIC_COLOR,
+  mCompositor->DrawDiagnostics(DiagnosticFlags::COLOR,
                                rect, clipRect,
                                transform);
 }

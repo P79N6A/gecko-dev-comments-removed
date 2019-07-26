@@ -716,7 +716,7 @@ BufferTextureClient::GetAsDrawTarget()
   }
 
   mUsingFallbackDrawTarget = true;
-  if (mOpenMode & OPEN_READ) {
+  if (mOpenMode & OpenMode::OPEN_READ) {
     RefPtr<DataSourceSurface> surface = serializer.GetAsSurface();
     IntRect rect(0, 0, surface->GetSize().width, surface->GetSize().height);
     mDrawTarget->CopySurface(surface, rect, IntPoint(0,0));
@@ -750,7 +750,7 @@ BufferTextureClient::Unlock()
   MOZ_ASSERT(mDrawTarget->refCount() == 1);
 
   mDrawTarget->Flush();
-  if (mUsingFallbackDrawTarget && (mOpenMode & OPEN_WRITE)) {
+  if (mUsingFallbackDrawTarget && (mOpenMode & OpenMode::OPEN_WRITE)) {
     
     
     
