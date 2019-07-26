@@ -3969,7 +3969,8 @@ EmitTry(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     if (!PopStatementBCE(cx, bce))
         return false;
 
-    if (NewSrcNote(cx, bce, SRC_ENDBRACE) < 0 || Emit1(cx, bce, JSOP_NOP) < 0)
+    
+    if (Emit1(cx, bce, JSOP_NOP) < 0)
         return false;
 
     
