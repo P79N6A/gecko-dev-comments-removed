@@ -38,17 +38,6 @@ const BackgroundPageThumbs = {
 
 
   capture: function (url, options={}) {
-    if (isPrivateBrowsingActive()) {
-      
-      
-      
-      
-      
-      
-      if (options.onDone)
-        Services.tm.mainThread.dispatch(options.onDone.bind(options, url), 0);
-      return;
-    }
     this._captureQueue = this._captureQueue || [];
     this._capturesByURL = this._capturesByURL || new Map();
     
@@ -239,11 +228,27 @@ Capture.prototype = {
 
 
   start: function (messageManager) {
-    let timeout = typeof(this.options.timeout) == "number" ? this.options.timeout :
+    
+    
+    
+    
+    
+    
+    Services.ww.registerNotification(this);
+    if (isPrivateBrowsingActive()) {
+      this._done(null);
+      return;
+    }
+
+    
+    let timeout = typeof(this.options.timeout) == "number" ?
+                  this.options.timeout :
                   DEFAULT_CAPTURE_TIMEOUT;
     this._timeoutTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    this._timeoutTimer.initWithCallback(this, timeout, Ci.nsITimer.TYPE_ONE_SHOT);
+    this._timeoutTimer.initWithCallback(this, timeout,
+                                        Ci.nsITimer.TYPE_ONE_SHOT);
 
+    
     this._msgMan = messageManager;
     this._msgMan.sendAsyncMessage("BackgroundPageThumbs:capture",
                                   { id: this.id, url: this.url });
@@ -268,6 +273,7 @@ Capture.prototype = {
       delete this._msgMan;
     }
     delete this.captureCallback;
+    Services.ww.unregisterNotification(this);
   },
 
   
@@ -281,6 +287,13 @@ Capture.prototype = {
   
   notify: function () {
     this._done(null);
+  },
+
+  
+  observe: function (subj, topic, data) {
+    if (topic == "domwindowopened" &&
+        PrivateBrowsingUtils.isWindowPrivate(subj))
+      this._privateWinOpenedDuringCapture = true;
   },
 
   _done: function (data) {
@@ -302,7 +315,7 @@ Capture.prototype = {
       }
     }.bind(this);
 
-    if (!data) {
+    if (!data || this._privateWinOpenedDuringCapture) {
       callOnDones();
       return;
     }
