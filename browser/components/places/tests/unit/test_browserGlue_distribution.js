@@ -18,7 +18,9 @@ function run_test()
   do_test_pending();
 
   
-  let distroDir = Services.dirsvc.get("XREExeF", Ci.nsIFile);
+  Services.prefs.setBoolPref("distribution.testing.loadFromProfile", true);
+  
+  let distroDir = gProfD.clone();
   distroDir.leafName = "distribution";
   let iniFile = distroDir.clone();
   iniFile.append("distribution.ini");
@@ -94,7 +96,7 @@ function onCustomizationComplete()
 do_register_cleanup(function() {
   
   
-  let iniFile = Services.dirsvc.get("XREExeF", Ci.nsIFile);
+  let iniFile = gProfD.clone();
   iniFile.leafName = "distribution";
   iniFile.append("distribution.ini");
   if (iniFile.exists())
