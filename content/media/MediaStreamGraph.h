@@ -130,6 +130,12 @@ public:
   
 
 
+
+  virtual void NotifyHasCurrentData(MediaStreamGraph* aGraph, bool aHasCurrentData) {}
+
+  
+
+
   virtual void NotifyOutput(MediaStreamGraph* aGraph) {}
 
   
