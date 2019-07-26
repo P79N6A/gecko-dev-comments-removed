@@ -458,7 +458,7 @@ protected:
   
 
 
-  virtual already_AddRefed<nsFrameSelection> FrameSelection() const;
+  already_AddRefed<nsFrameSelection> FrameSelection() const;
   Selection* DOMSelection() const;
 
   
