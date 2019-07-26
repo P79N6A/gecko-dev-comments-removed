@@ -51,6 +51,7 @@ struct nsOverflowAreas;
 #include "nsStyleConsts.h"
 #include "nsGkAtoms.h"
 #include "nsRuleNode.h"
+#include "mozilla/gfx/2D.h"
 
 #include <limits>
 #include <algorithm>
@@ -82,6 +83,8 @@ class nsLayoutUtils
   typedef mozilla::dom::DOMRectList DOMRectList;
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::ContainerLayerParameters ContainerLayerParameters;
+  typedef mozilla::gfx::SourceSurface SourceSurface;
+  typedef mozilla::gfx::DrawTarget DrawTarget;
 
 public:
   typedef mozilla::layers::FrameMetrics FrameMetrics;
@@ -1564,6 +1567,8 @@ public:
 
     
     nsRefPtr<gfxASurface> mSurface;
+    mozilla::RefPtr<SourceSurface> mSourceSurface;
+
     
     gfxIntSize mSize;
     
@@ -1581,18 +1586,23 @@ public:
   };
 
   static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::Element *aElement,
-                                                     uint32_t aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0,
+                                                     DrawTarget *aTarget = nullptr);
   static SurfaceFromElementResult SurfaceFromElement(nsIImageLoadingContent *aElement,
-                                                     uint32_t aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0,
+                                                     DrawTarget *aTarget = nullptr);
   
   
   
   static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::HTMLImageElement *aElement,
-                                                     uint32_t aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0,
+                                                     DrawTarget *aTarget = nullptr);
   static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::HTMLCanvasElement *aElement,
-                                                     uint32_t aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0,
+                                                     DrawTarget *aTarget = nullptr);
   static SurfaceFromElementResult SurfaceFromElement(mozilla::dom::HTMLVideoElement *aElement,
-                                                     uint32_t aSurfaceFlags = 0);
+                                                     uint32_t aSurfaceFlags = 0,
+                                                     DrawTarget *aTarget = nullptr);
 
   
 
