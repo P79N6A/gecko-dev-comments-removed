@@ -204,7 +204,8 @@ BluetoothA2dpManager::HandleSinkPropertyChanged(const BluetoothSignal& aSignal)
     
     MOZ_ASSERT(value.type() == BluetoothValue::Tbool);
     mA2dpConnected = value.get_bool();
-    NotifyStatusChanged();
+    NotifyConnectionStatusChanged();
+    DispatchConnectionStatusChanged();
   } else if (name.EqualsLiteral("Playing")) {
     
     MOZ_ASSERT(value.type() == BluetoothValue::Tbool);
@@ -254,7 +255,16 @@ BluetoothA2dpManager::HandleSinkStateChanged(SinkState aState)
 }
 
 void
-BluetoothA2dpManager::NotifyStatusChanged()
+BluetoothA2dpManager::DispatchConnectionStatusChanged()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  DispatchStatusChangedEvent(
+    NS_LITERAL_STRING(A2DP_STATUS_CHANGED_ID), mDeviceAddress, mA2dpConnected);
+}
+
+void
+BluetoothA2dpManager::NotifyConnectionStatusChanged()
 {
   MOZ_ASSERT(NS_IsMainThread());
 
