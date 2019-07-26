@@ -185,43 +185,30 @@ var SelectionHandler = {
   },
 
   
+
+
+
+
+
+
   startSelection: function sh_startSelection(aElement, aX, aY) {
     
     this._closeSelection();
 
-    this._contentWindow = aElement.ownerDocument.defaultView;
-    this._targetElement = aElement;
-
-    this._addObservers();
-    this._contentWindow.addEventListener("pagehide", this, false);
-    this._isRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
+    this._initTargetInfo(aElement);
 
     
-    
-    let selection = this._getSelection();
-    selection.removeAllRanges();
+    this._contentWindow.getSelection().removeAllRanges();
 
-    
-    this._sendMouseEvents(aX, aY, false);
-
-    try {
-      let selectionController = this._getSelectionController();
-
-      
-      selectionController.wordMove(false, false);
-
-      
-      selectionController.wordMove(!this._isRTL, true);
-    } catch(e) {
-      
-      this._closeSelection();
+    if (!this._domWinUtils.selectAtPoint(aX, aY, Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
+      this._onFail("failed to set selection at point");
       return;
     }
 
+    let selection = this._getSelection();
     
-    if (!selection.rangeCount || !selection.getRangeAt(0) || !selection.toString().trim().length) {
-      selection.collapseToStart();
-      this._closeSelection();
+    if (!selection) {
+      this._onFail("no selection was present");
       return;
     }
 
@@ -239,9 +226,40 @@ var SelectionHandler = {
       type: "TextSelection:ShowHandles",
       handles: [this.HANDLE_TYPE_START, this.HANDLE_TYPE_END]
     });
+  },
 
-    if (aElement instanceof Ci.nsIDOMNSEditableElement)
+  
+
+
+
+
+
+  attachCaret: function sh_attachCaret(aElement) {
+    this._initTargetInfo(aElement);
+
+    this._contentWindow.addEventListener("keydown", this, false);
+    this._contentWindow.addEventListener("blur", this, false);
+
+    this._activeType = this.TYPE_CURSOR;
+    this._positionHandles();
+
+    sendMessageToJava({
+      type: "TextSelection:ShowHandles",
+      handles: [this.HANDLE_TYPE_MIDDLE]
+    });
+  },
+
+  _initTargetInfo: function sh_initTargetInfo(aElement) {
+    this._targetElement = aElement;
+    if (aElement instanceof Ci.nsIDOMNSEditableElement) {
       aElement.focus();
+    }
+
+    this._contentWindow = aElement.ownerDocument.defaultView;
+    this._isRTL = (this._contentWindow.getComputedStyle(aElement, "").direction == "rtl");
+
+    this._addObservers();
+    this._contentWindow.addEventListener("pagehide", this, false);
   },
 
   _getSelection: function sh_getSelection() {
@@ -385,6 +403,16 @@ var SelectionHandler = {
   
 
 
+
+  _onFail: function sh_onFail(aDbgMessage) {
+    if (aDbgMessage && aDbgMessage.length > 0)
+      Cu.reportError("SelectionHandler - " + aDbgMessage);
+    this._closeSelection();
+  },
+
+  
+
+
   _closeSelection: function sh_closeSelection() {
     
     if (this._activeType == this.TYPE_NONE)
@@ -459,28 +487,6 @@ var SelectionHandler = {
     this._cache.end = end;
 
     return selectionReversed;
-  },
-
-  showThumb: function sh_showThumb(aElement) {
-    if (!aElement)
-      return;
-
-    
-    this._contentWindow = aElement.ownerDocument.defaultView;
-    this._targetElement = aElement;
-
-    this._addObservers();
-    this._contentWindow.addEventListener("pagehide", this, false);
-    this._contentWindow.addEventListener("keydown", this, false);
-    this._contentWindow.addEventListener("blur", this, true);
-
-    this._activeType = this.TYPE_CURSOR;
-    this._positionHandles();
-
-    sendMessageToJava({
-      type: "TextSelection:ShowHandles",
-      handles: [this.HANDLE_TYPE_MIDDLE]
-    });
   },
 
   _positionHandles: function sh_positionHandles() {

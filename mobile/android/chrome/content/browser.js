@@ -3802,7 +3802,7 @@ var BrowserEventHandler = {
             
             if ((element instanceof HTMLInputElement && element.mozIsTextField(false)) ||
                 (element instanceof HTMLTextAreaElement))
-               SelectionHandler.showThumb(element);
+               SelectionHandler.attachCaret(element);
 
             
             BrowserApp.scrollToFocusedInput(BrowserApp.selectedBrowser);
