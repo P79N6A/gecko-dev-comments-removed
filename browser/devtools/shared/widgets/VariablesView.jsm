@@ -581,6 +581,18 @@ VariablesView.prototype = {
 
 
 
+  getScopeAtIndex: function(aIndex) {
+    return this._store[aIndex];
+  },
+
+  
+
+
+
+
+
+
+
   getScopeForNode: function(aNode) {
     let item = this._itemsByElement.get(aNode);
     
@@ -1076,11 +1088,12 @@ function Scope(aView, aName, aFlags = {}) {
   this.eval = aView.eval;
   this.switch = aView.switch;
   this.delete = aView.delete;
-  this.editableValueTooltip = aView.editableValueTooltip;
+  this.preventDisableOnChage = aView.preventDisableOnChage;
+  this.preventDescriptorModifiers = aView.preventDescriptorModifiers;
   this.editableNameTooltip = aView.editableNameTooltip;
+  this.editableValueTooltip = aView.editableValueTooltip;
   this.editButtonTooltip = aView.editButtonTooltip;
   this.deleteButtonTooltip = aView.deleteButtonTooltip;
-  this.preventDescriptorModifiers = aView.preventDescriptorModifiers;
   this.contextMenuId = aView.contextMenuId;
   this.separatorStr = aView.separatorStr;
 
