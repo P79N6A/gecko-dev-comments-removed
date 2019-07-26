@@ -244,6 +244,19 @@ DoesNotParticipateInAutoDirection(const Element* aElement)
 
 
 
+
+
+static bool
+DoesNotAffectDirectionOfAncestors(const Element* aElement)
+{
+  return (DoesNotParticipateInAutoDirection(aElement) ||
+          aElement->NodeInfo()->Equals(nsGkAtoms::bdi) ||
+          aElement->HasFixedDir());
+}
+
+
+
+
 static Directionality
 GetDirectionFromChar(uint32_t ch)
 {
@@ -381,9 +394,7 @@ WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
       
       
       if (child->IsElement() &&
-          (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-           child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
-           child->HasFixedDir())) {
+          DoesNotAffectDirectionOfAncestors(child->AsElement())) {
         child = child->GetNextNonChildNode(aElement);
         continue;
       }
@@ -403,9 +414,7 @@ WalkDescendantsSetDirectionFromText(Element* aElement, bool aNotify = true,
 
   while (child) {
     if (child->IsElement() &&
-        (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-         child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
-         child->HasFixedDir())) {
+        DoesNotAffectDirectionOfAncestors(child->AsElement())) {
       child = child->GetNextNonChildNode(aElement);
       continue;
     }
@@ -743,9 +752,7 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
           nsIContent* child = aTextNode->GetNextNode(parent);
           while (child) {
             if (child->IsElement() &&
-                (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-                 child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
-                 child->HasFixedDir())) {
+                DoesNotAffectDirectionOfAncestors(child->AsElement())) {
               child = child->GetNextNonChildNode(parent);
               continue;
             }
@@ -911,9 +918,7 @@ SetDirOnBind(mozilla::dom::Element* aElement, nsIContent* aParent)
       
       do {
         if (child->IsElement() &&
-            (DoesNotParticipateInAutoDirection(child->AsElement()) ||
-             child->NodeInfo()->Equals(nsGkAtoms::bdi) ||
-             child->HasFixedDir())) {
+            DoesNotAffectDirectionOfAncestors(child->AsElement())) {
           child = child->GetNextNonChildNode(aElement);
           continue;
         }
