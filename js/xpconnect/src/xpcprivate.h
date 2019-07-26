@@ -632,6 +632,33 @@ private:
 
 
 
+class XPCReadableJSStringWrapper : public nsDependentString
+{
+public:
+    typedef nsDependentString::char_traits char_traits;
+
+    XPCReadableJSStringWrapper(const PRUnichar *chars, size_t length) :
+        nsDependentString(chars, length)
+    { }
+
+    XPCReadableJSStringWrapper() :
+        nsDependentString(char_traits::sEmptyBuffer, char_traits::sEmptyBuffer)
+    { SetIsVoid(true); }
+
+    JSBool init(JSContext* aContext, JSString* str)
+    {
+        size_t length;
+        const jschar* chars = JS_GetStringCharsZAndLength(aContext, str, &length);
+        if (!chars)
+            return false;
+
+        NS_ASSERTION(IsEmpty(), "init() on initialized string");
+        new(static_cast<nsDependentString *>(this)) nsDependentString(chars, length);
+        return true;
+    }
+};
+
+
 
 
 
@@ -823,6 +850,8 @@ public:
         return false;
     }
 
+    XPCReadableJSStringWrapper *NewStringWrapper(const PRUnichar *str, uint32_t len);
+    void DeleteString(nsAString *string);
 
 #ifdef XPC_CHECK_WRAPPERS_AT_SHUTDOWN
    void DEBUG_AddWrappedNative(nsIXPConnectWrappedNative* wrapper)
@@ -917,6 +946,23 @@ private:
     nsCOMPtr<nsIException>   mPendingException;
     nsCOMPtr<nsIExceptionManager> mExceptionManager;
     bool mExceptionManagerNotAvailable;
+
+#define XPCCCX_STRING_CACHE_SIZE 2
+
+    
+    
+    
+    
+    
+    struct StringWrapperEntry
+    {
+        StringWrapperEntry() : mInUse(false) { }
+
+        js::AlignedStorage2<XPCReadableJSStringWrapper> mString;
+        bool mInUse;
+    };
+
+    StringWrapperEntry mScratchStrings[XPCCCX_STRING_CACHE_SIZE];
 
     friend class AutoLockWatchdog;
     friend class XPCIncrementalReleaseRunnable;
@@ -1045,33 +1091,6 @@ private:
 #define JS_CALLER      XPCContext::LANG_JS
 
 
-class XPCReadableJSStringWrapper : public nsDependentString
-{
-public:
-    typedef nsDependentString::char_traits char_traits;
-
-    XPCReadableJSStringWrapper(const PRUnichar *chars, size_t length) :
-        nsDependentString(chars, length)
-    { }
-
-    XPCReadableJSStringWrapper() :
-        nsDependentString(char_traits::sEmptyBuffer, char_traits::sEmptyBuffer)
-    { SetIsVoid(true); }
-
-    JSBool init(JSContext* aContext, JSString* str)
-    {
-        size_t length;
-        const jschar* chars = JS_GetStringCharsZAndLength(aContext, str, &length);
-        if (!chars)
-            return false;
-
-        NS_ASSERTION(IsEmpty(), "init() on initialized string");
-        new(static_cast<nsDependentString *>(this)) nsDependentString(chars, length);
-        return true;
-    }
-};
-
-
 
 
 
@@ -1181,9 +1200,6 @@ public:
 
     operator JSContext*() const {return GetJSContext();}
 
-    XPCReadableJSStringWrapper *NewStringWrapper(const PRUnichar *str, uint32_t len);
-    void DeleteString(nsAString *string);
-
 private:
 
     
@@ -1271,23 +1287,6 @@ private:
     jsval*                          mRetVal;
 
     uint16_t                        mMethodIndex;
-
-#define XPCCCX_STRING_CACHE_SIZE 2
-
-    
-    
-    
-    
-    
-    struct StringWrapperEntry
-    {
-        StringWrapperEntry() : mInUse(false) { }
-
-        js::AlignedStorage2<XPCReadableJSStringWrapper> mString;
-        bool mInUse;
-    };
-
-    StringWrapperEntry mScratchStrings[XPCCCX_STRING_CACHE_SIZE];
 };
 
 class XPCLazyCallContext
