@@ -64,6 +64,8 @@ public:
   bool GetImportance() const { return mImportance; }
   bool GetCheckForImportantRules() const { return mCheckForImportantRules; }
 
+  bool AuthorStyleDisabled() const { return mAuthorStyleDisabled; }
+
   
   
   enum VisitedHandlingType {
@@ -84,13 +86,15 @@ private:
   uint8_t mLevel; 
   bool mImportance;
   bool mCheckForImportantRules; 
-                                        
-                                        
+                                
+                                
+  bool mAuthorStyleDisabled;
 
 public:
-  nsRuleWalker(nsRuleNode* aRoot)
+  nsRuleWalker(nsRuleNode* aRoot, bool aAuthorStyleDisabled)
     : mCurrent(aRoot)
     , mRoot(aRoot)
+    , mAuthorStyleDisabled(aAuthorStyleDisabled)
   {
     NS_ASSERTION(mCurrent, "Caller screwed up and gave us null node");
     MOZ_COUNT_CTOR(nsRuleWalker);

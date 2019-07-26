@@ -166,7 +166,7 @@ NS_IMPL_ISUPPORTS2(nsHTMLStyleSheet, nsIStyleSheet, nsIStyleRuleProcessor)
 nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
   nsRuleWalker *ruleWalker = aData->mRuleWalker;
-  if (aData->mElement->IsHTML()) {
+  if (aData->mElement->IsHTML() && !ruleWalker->AuthorStyleDisabled()) {
     nsIAtom* tag = aData->mElement->Tag();
 
     
@@ -206,8 +206,12 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
     }
   } 
 
-    
-  aData->mElement->WalkContentStyleRules(ruleWalker);
+  
+  
+  
+  if (!ruleWalker->AuthorStyleDisabled() || aData->mElement->IsSVG()) {
+    aData->mElement->WalkContentStyleRules(ruleWalker);
+  }
 }
 
 
