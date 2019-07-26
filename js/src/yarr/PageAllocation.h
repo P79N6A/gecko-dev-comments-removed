@@ -27,8 +27,8 @@
 
 
 
-#ifndef PageAllocation_h
-#define PageAllocation_h
+#ifndef yarr_PageAllocation_h
+#define yarr_PageAllocation_h
 
 #include "wtfbridge.h"
 #include "OSAllocator.h"

@@ -26,8 +26,8 @@
 
 
 
-#ifndef YarrPattern_h
-#define YarrPattern_h
+#ifndef yarr_YarrPattern_h
+#define yarr_YarrPattern_h
 
 #include "wtfbridge.h"
 #include "ASCIICType.h"

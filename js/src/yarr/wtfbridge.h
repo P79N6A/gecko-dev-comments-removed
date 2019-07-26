@@ -4,8 +4,8 @@
 
 
 
-#ifndef jswtfbridge_h__
-#define jswtfbridge_h__
+#ifndef yarr_wtfbridge_h
+#define yarr_wtfbridge_h
 
 
 
@@ -334,4 +334,4 @@ const size_t notFound = size_t(-1);
 
 #define JS_EXPORT_PRIVATE
 
-#endif
+#endif 

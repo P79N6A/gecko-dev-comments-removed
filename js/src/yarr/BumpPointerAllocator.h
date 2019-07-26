@@ -27,8 +27,8 @@
 
 
 
-#ifndef BumpPointerAllocator_h
-#define BumpPointerAllocator_h
+#ifndef yarr_BumpPointerAllocator_h
+#define yarr_BumpPointerAllocator_h
 
 #include "PageAllocation.h"
 

@@ -25,8 +25,8 @@
 
 
 
-#ifndef MatchResult_h
-#define MatchResult_h
+#ifndef yarr_MatchResult_h
+#define yarr_MatchResult_h
 
 #include "wtfbridge.h"
 

@@ -25,8 +25,8 @@
 
 
 
-#ifndef YarrParser_h
-#define YarrParser_h
+#ifndef yarr_YarrParser_h
+#define yarr_YarrParser_h
 
 #include "Yarr.h"
 

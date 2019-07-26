@@ -27,8 +27,8 @@
 
 
 
-#ifndef Yarr_h
-#define Yarr_h
+#ifndef yarr_Yarr_h
+#define yarr_Yarr_h
 
 #include <limits.h>
 #include "YarrInterpreter.h"
@@ -69,4 +69,3 @@ enum YarrCharSize {
 } } 
 
 #endif 
-

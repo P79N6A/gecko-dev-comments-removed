@@ -25,8 +25,8 @@
 
 
 
-#ifndef YarrCanonicalizeUCS2_H
-#define YarrCanonicalizeUCS2_H
+#ifndef yarr_YarrCanonicalizeUCS2_h
+#define yarr_YarrCanonicalizeUCS2_h
 
 #include "mozilla/StandardInteger.h"
 
@@ -138,4 +138,4 @@ inline bool areCanonicallyEquivalent(UChar a, UChar b)
 
 } } 
 
-#endif
+#endif 

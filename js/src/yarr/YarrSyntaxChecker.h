@@ -25,8 +25,8 @@
 
 
 
-#ifndef YarrSyntaxChecker_h
-#define YarrSyntaxChecker_h
+#ifndef yarr_YarrSyntaxChecker_h
+#define yarr_YarrSyntaxChecker_h
 
 #include "wtfbridge.h"
 #include "YarrParser.h"
@@ -38,4 +38,3 @@ ErrorCode checkSyntax(const String& pattern);
 }} 
 
 #endif 
-

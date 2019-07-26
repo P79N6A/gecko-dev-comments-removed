@@ -25,8 +25,8 @@
 
 
 
-#ifndef VMTags_h
-#define VMTags_h
+#ifndef yarr_VMTags_h
+#define yarr_VMTags_h
 
 
 

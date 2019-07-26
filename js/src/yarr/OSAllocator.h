@@ -27,8 +27,8 @@
 
 
 
-#ifndef OSAllocator_h
-#define OSAllocator_h
+#ifndef yarr_OSAllocator_h
+#define yarr_OSAllocator_h
 
 #include <stdlib.h>
 #include "wtfbridge.h"

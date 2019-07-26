@@ -25,8 +25,8 @@
 
 
 
-#ifndef YarrInterpreter_h
-#define YarrInterpreter_h
+#ifndef yarr_YarrInterpreter_h
+#define yarr_YarrInterpreter_h
 
 #include "jscntxt.h"
 

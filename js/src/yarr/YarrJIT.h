@@ -25,8 +25,8 @@
 
 
 
-#ifndef YarrJIT_h
-#define YarrJIT_h
+#ifndef yarr_YarrJIT_h
+#define yarr_YarrJIT_h
 
 #include "assembler/wtf/Platform.h"
 
