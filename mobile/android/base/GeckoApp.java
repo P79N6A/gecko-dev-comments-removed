@@ -112,8 +112,6 @@ import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -218,7 +216,7 @@ public abstract class GeckoApp
 
     private int mSignalStrenth;
     private PhoneStateListener mPhoneStateListener = null;
-    private boolean mShouldReportGeoData = false;
+    private boolean mShouldReportGeoData;
 
     abstract public int getLayout();
     abstract public boolean hasTabsSideBar();
@@ -2436,30 +2434,8 @@ public abstract class GeckoApp
         return tm.getPhoneType();
     }
 
-
-    
-    
-    private static final Set<Character> AD_HOC_HEX_VALUES =
-      new HashSet<Character>(Arrays.asList('2','6', 'a', 'e', 'A', 'E'));
-    private static final String OPTOUT_SSID_SUFFIX = "_nomap";
-
     private static boolean shouldLog(final ScanResult sr) {
-        
-        
-        
-        
-        
-        
-        final char secondNybble = sr.BSSID.length() == 17 ? sr.BSSID.charAt(1) : ' ';
-
-        if(AD_HOC_HEX_VALUES.contains(secondNybble)) {
-            return false;
-
-        } else if (sr.SSID != null && sr.SSID.endsWith(OPTOUT_SSID_SUFFIX)) {
-            return false;
-        } else {
-            return true;
-        }
+        return sr.SSID == null || !sr.SSID.endsWith("_nomap");
     }
 
     private void collectAndReportLocInfo(Location location) {
@@ -2476,13 +2452,21 @@ public abstract class GeckoApp
 
             locInfo.put("lon", location.getLongitude());
             locInfo.put("lat", location.getLatitude());
-            locInfo.put("accuracy", (int)location.getAccuracy());
-            locInfo.put("altitude", (int)location.getAltitude());
-            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+
+            
+            if (location.hasAccuracy()) {
+                locInfo.put("accuracy", (int) Math.ceil(location.getAccuracy()));
+            }
+
+            
+            if (location.hasAltitude()) {
+                locInfo.put("altitude", Math.round(location.getAltitude()));
+            }
+
+            
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
             locInfo.put("time", df.format(new Date(location.getTime())));
             locInfo.put("cell", cellInfo);
-
-            MessageDigest digest = MessageDigest.getInstance("SHA-1");
 
             JSONArray wifiInfo = new JSONArray();
             List<ScanResult> aps = wm.getScanResults();
@@ -2490,28 +2474,18 @@ public abstract class GeckoApp
                 for (ScanResult ap : aps) {
                     if (!shouldLog(ap))
                         continue;
-                    StringBuilder sb = new StringBuilder();
-                    try {
-                        byte[] result = digest.digest((ap.BSSID + ap.SSID).getBytes("UTF-8"));
-                        for (byte b : result) sb.append(String.format("%02X", b));
 
-                        JSONObject obj = new JSONObject();
-
-                        obj.put("key", sb.toString());
-                        obj.put("frequency", ap.frequency);
-                        obj.put("signal", ap.level);
-                        wifiInfo.put(obj);
-                    } catch (UnsupportedEncodingException uee) {
-                        Log.w(LOGTAG, "can't encode the key", uee);
-                    }
+                    JSONObject obj = new JSONObject();
+                    obj.put("key", ap.BSSID);
+                    obj.put("frequency", ap.frequency);
+                    obj.put("signal", ap.level);
+                    wifiInfo.put(obj);
                 }
             }
             locInfo.put("wifi", wifiInfo);
         } catch (JSONException jsonex) {
             Log.w(LOGTAG, "json exception", jsonex);
             return;
-        } catch (NoSuchAlgorithmException nsae) {
-            Log.w(LOGTAG, "can't create a SHA1", nsae);
         }
 
         ThreadUtils.postToBackgroundThread(new Runnable() {
@@ -2521,6 +2495,13 @@ public abstract class GeckoApp
                     HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                     try {
                         urlConnection.setDoOutput(true);
+
+                        
+                        
+                        if (Build.VERSION.SDK_INT >= 14 && Build.VERSION.SDK_INT <= 18) {
+                            urlConnection.setRequestProperty("Connection", "Close");
+                        }
+
                         JSONArray batch = new JSONArray();
                         batch.put(locInfo);
                         JSONObject wrapper = new JSONObject();
