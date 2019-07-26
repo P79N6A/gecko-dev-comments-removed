@@ -390,11 +390,7 @@ GonkGPSGeolocationProvider::ReleaseDataConnection()
     return;
   }
 
-  if (mCid.IsEmpty()) {
-    
-    return;
-  }
-  mRIL->DeactivateDataCall(mCid, NS_LITERAL_STRING("Close SUPL session"));
+  mRIL->DeactivateDataCallByType(NS_LITERAL_STRING("supl"));
 }
 
 void
