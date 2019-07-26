@@ -269,7 +269,10 @@ HttpChannelChild::OnStartRequest(const nsHttpResponseHead& responseHead,
   mRequestHead.Headers() = requestHeaders;
 
   
-  gHttpHandler->OnExamineResponse(this);
+  
+  
+  
+
   mTracingEnabled = false;
 
   nsresult rv = mListener->OnStartRequest(this, mListenerContext);
@@ -876,8 +879,11 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 
   
   
-  if (NS_SUCCEEDED(result))
-    gHttpHandler->OnModifyRequest(newHttpChannel);
+  
+  
+  
+  
+  
 
   if (mIPCOpen)
     SendRedirect2Verify(result, *headerTuples);
@@ -987,7 +993,10 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
   
 
   
-  gHttpHandler->OnModifyRequest(this);
+  
+  
+  
+  
 
   mIsPending = true;
   mWasOpened = true;
