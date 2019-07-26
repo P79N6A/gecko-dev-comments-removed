@@ -9,6 +9,17 @@ if (this.Components) {
 
 
 
+
+const EXCEPTION_NAMES = {
+  EvalError: "EvalError",
+  InternalError: "InternalError",
+  RangeError: "RangeError",
+  ReferenceError: "ReferenceError",
+  SyntaxError: "SyntaxError",
+  TypeError: "TypeError",
+  URIError: "URIError"
+};
+
 (function(exports) {
   "use strict";
 
@@ -110,6 +121,11 @@ if (this.Components) {
      
      
      post({fail: exports.OS.File.Error.toMsg(exn), id:id, durationMs: durationMs});
+   } else if (exn.constructor.name in EXCEPTION_NAMES) {
+     LOG("Sending back exception", exn.constructor.name);
+     post({fail: {exn: exn.constructor.name, message: exn.message,
+                  fileName: exn.fileName, lineNumber: exn.lineNumber},
+           id: id, durationMs: durationMs});
    } else {
      
      

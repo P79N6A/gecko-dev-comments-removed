@@ -62,6 +62,34 @@ Cu.import("resource://gre/modules/AsyncShutdown.jsm", this);
 
 
 
+const EXCEPTION_CONSTRUCTORS = {
+  EvalError: function(error) {
+    return new EvalError(error.message, error.fileName, error.lineNumber);
+  },
+  InternalError: function(error) {
+    return new InternalError(error.message, error.fileName, error.lineNumber);
+  },
+  RangeError: function(error) {
+    return new RangeError(error.message, error.fileName, error.lineNumber);
+  },
+  ReferenceError: function(error) {
+    return new ReferenceError(error.message, error.fileName, error.lineNumber);
+  },
+  SyntaxError: function(error) {
+    return new SyntaxError(error.message, error.fileName, error.lineNumber);
+  },
+  TypeError: function(error) {
+    return new TypeError(error.message, error.fileName, error.lineNumber);
+  },
+  URIError: function(error) {
+    return new URIError(error.message, error.fileName, error.lineNumber);
+  }
+};
+
+
+
+
+
 function lazyPathGetter(constProp, dirKey) {
   return function () {
     let path;
@@ -216,7 +244,11 @@ let Scheduler = {
         if (method != "Meta_reset") {
           Scheduler.restartTimer();
         }
-
+        
+        
+        if (error.data && error.data.exn in EXCEPTION_CONSTRUCTORS) {
+          throw EXCEPTION_CONSTRUCTORS[error.data.exn](error.data);
+        }
         
         if (error instanceof PromiseWorker.WorkerError) {
           throw OS.File.Error.fromMsg(error.data);
@@ -229,6 +261,7 @@ let Scheduler = {
           }
           throw new Error(message, error.filename, error.lineno);
         }
+
         throw error;
       }
     );
