@@ -497,8 +497,11 @@ public:
 
       mWorkerPrivate->SetPrincipal(channelPrincipal);
 
-      
       if (parent) {
+        
+        mWorkerPrivate->SetXHRParamsAllowed(parent->XHRParamsAllowed());
+
+        
         mWorkerPrivate->SetCSP(parent->GetCSP());
         mWorkerPrivate->SetEvalAllowed(parent->IsEvalAllowed());
       }
