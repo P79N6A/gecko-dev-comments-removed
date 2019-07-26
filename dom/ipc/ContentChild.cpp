@@ -379,7 +379,6 @@ ContentChild::ContentChild()
 #ifdef ANDROID
    ,mScreenSize(0, 0)
 #endif
-   , mCanOverrideProcessName(true)
 {
     
     
@@ -439,32 +438,35 @@ ContentChild::Init(MessageLoop* aIOLoop,
                                   XRE_GetProcessType());
 #endif
 
-    SendGetProcessAttributes(&mID, &mIsForApp, &mIsForBrowser);
-
     GetCPOWManager();
 
-#ifdef MOZ_NUWA_PROCESS
-    if (IsNuwaProcess()) {
-        SetProcessName(NS_LITERAL_STRING("(Nuwa)"), false);
-        return true;
-    }
-#endif
-    if (mIsForApp && !mIsForBrowser) {
-        SetProcessName(NS_LITERAL_STRING("(Preallocated app)"), false);
-    } else {
-        SetProcessName(NS_LITERAL_STRING("Browser"), false);
-    }
+    InitProcessAttributes();
 
     return true;
 }
 
 void
-ContentChild::SetProcessName(const nsAString& aName, bool aDontOverride)
+ContentChild::InitProcessAttributes()
 {
-    if (!mCanOverrideProcessName) {
+    SendGetProcessAttributes(&mID, &mIsForApp, &mIsForBrowser);
+
+#ifdef MOZ_NUWA_PROCESS
+    if (IsNuwaProcess()) {
+        SetProcessName(NS_LITERAL_STRING("(Nuwa)"));
         return;
     }
+#endif
+    if (mIsForApp && !mIsForBrowser) {
+        SetProcessName(NS_LITERAL_STRING("(Preallocated app)"));
+    } else {
+        SetProcessName(NS_LITERAL_STRING("Browser"));
+    }
 
+}
+
+void
+ContentChild::SetProcessName(const nsAString& aName)
+{
     char* name;
     if ((name = PR_GetEnv("MOZ_DEBUG_APP_PROCESS")) &&
         aName.EqualsASCII(name)) {
@@ -482,10 +484,6 @@ ContentChild::SetProcessName(const nsAString& aName, bool aDontOverride)
 
     mProcessName = aName;
     mozilla::ipc::SetThisProcessName(NS_LossyConvertUTF16toASCII(aName).get());
-
-    if (aDontOverride) {
-        mCanOverrideProcessName = false;
-    }
 }
 
 void
@@ -803,6 +801,10 @@ ContentChild::RecvPBrowserConstructor(PBrowserChild* actor,
         MOZ_ASSERT(!sFirstIdleTask);
         sFirstIdleTask = NewRunnableFunction(FirstIdle);
         MessageLoop::current()->PostIdleTask(FROM_HERE, sFirstIdleTask);
+
+        
+        
+        InitProcessAttributes();
     }
 
     return true;
@@ -1714,7 +1716,7 @@ public:
 
         
         ContentChild* child = ContentChild::GetSingleton();
-        child->SetProcessName(NS_LITERAL_STRING("(Preallocated app)"), false);
+        child->SetProcessName(NS_LITERAL_STRING("(Preallocated app)"));
         mozilla::ipc::Transport* transport = child->GetTransport();
         int fd = transport->GetFileDescriptor();
         transport->ResetFileDescriptor(fd);

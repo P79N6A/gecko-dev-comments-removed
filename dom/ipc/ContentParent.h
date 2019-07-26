@@ -298,6 +298,10 @@ private:
     void TransformPreallocatedIntoApp(const nsAString& aAppManifestURL);
 
     
+    
+    void TransformPreallocatedIntoBrowser();
+
+    
 
 
 
