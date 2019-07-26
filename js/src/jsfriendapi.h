@@ -1340,6 +1340,14 @@ JS_GetArrayBufferViewData(JSObject *obj, JSContext *maybecx);
 
 
 
+extern JS_FRIEND_API(JSObject *)
+JS_GetArrayBufferViewBuffer(JSObject *obj, JSContext *maybecx);
+
+
+
+
+
+
 JS_FRIEND_API(JSBool)
 JS_IsDataViewObject(JSContext *cx, JSObject *obj, JSBool *isDataView);
 
