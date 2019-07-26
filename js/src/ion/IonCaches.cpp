@@ -1283,7 +1283,6 @@ SetPropertyIC::attachNativeAdding(JSContext *cx, IonScript *ion, JSObject *obj,
         masm.loadPtr(Address(protoReg, offsetof(types::TypeObject, proto)), protoReg);
 
         
-        masm.branchTestPtr(Assembler::Zero, protoReg, protoReg, &protoFailures);
         masm.branchTestObjShape(Assembler::NotEqual, protoReg, protoShape, &protoFailures);
 
         proto = proto->getProto();
