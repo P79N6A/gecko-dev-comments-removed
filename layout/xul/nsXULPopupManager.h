@@ -204,12 +204,14 @@ public:
                         nsIContent* aNextPopup,
                         nsIContent* aLastPopup,
                         nsPopupType aPopupType,
-                        bool aDeselectMenu)
+                        bool aDeselectMenu,
+                        bool aIsRollup)
     : mPopup(aPopup),
       mNextPopup(aNextPopup),
       mLastPopup(aLastPopup),
       mPopupType(aPopupType),
-      mDeselectMenu(aDeselectMenu)
+      mDeselectMenu(aDeselectMenu),
+      mIsRollup(aIsRollup)
   {
     NS_ASSERTION(aPopup, "null popup supplied to nsXULPopupHidingEvent constructor");
     
@@ -223,6 +225,7 @@ private:
   nsCOMPtr<nsIContent> mLastPopup;
   nsPopupType mPopupType;
   bool mDeselectMenu;
+  bool mIsRollup;
 };
 
 
@@ -276,6 +279,7 @@ public:
   friend class nsXULPopupShowingEvent;
   friend class nsXULPopupHidingEvent;
   friend class nsXULMenuCommandEvent;
+  friend class TransitionEnder;
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -436,10 +440,12 @@ public:
 
 
 
+
   void HidePopup(nsIContent* aPopup,
                  bool aHideChain,
                  bool aDeselectMenu,
                  bool aAsynchronous,
+                 bool aIsRollup,
                  nsIContent* aLastPopup = nullptr);
 
   
@@ -634,7 +640,9 @@ protected:
                          nsIContent* aNextPopup,
                          nsIContent* aLastPopup,
                          nsPopupType aPopupType,
-                         bool aDeselectMenu);
+                         bool aDeselectMenu,
+                         bool aIsRollup);
+  void HidePopupFrame(nsIContent* aPopup, bool aDeselectMenu);
 
   
 
@@ -665,12 +673,14 @@ protected:
 
 
 
+
   void FirePopupHidingEvent(nsIContent* aPopup,
                             nsIContent* aNextPopup,
                             nsIContent* aLastPopup,
                             nsPresContext *aPresContext,
                             nsPopupType aPopupType,
-                            bool aDeselectMenu);
+                            bool aDeselectMenu,
+                            bool aIsRollup);
 
   
 

@@ -230,7 +230,7 @@ nsXULPopupManager::Rollup(uint32_t aCount, const nsIntPoint* pos, nsIContent** a
       }
     }
 
-    HidePopup(item->Content(), true, true, false, lastPopup);
+    HidePopup(item->Content(), true, true, false, true, lastPopup);
   }
 
   return consume;
@@ -826,6 +826,7 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
                              bool aHideChain,
                              bool aDeselectMenu,
                              bool aAsynchronous,
+                             bool aIsRollup,
                              nsIContent* aLastPopup)
 {
   
@@ -918,15 +919,50 @@ nsXULPopupManager::HidePopup(nsIContent* aPopup,
     if (aAsynchronous) {
       nsCOMPtr<nsIRunnable> event =
         new nsXULPopupHidingEvent(popupToHide, nextPopup, lastPopup,
-                                  type, deselectMenu);
+                                  type, deselectMenu, aIsRollup);
         NS_DispatchToCurrentThread(event);
     }
     else {
       FirePopupHidingEvent(popupToHide, nextPopup, lastPopup,
-                           popupFrame->PresContext(), type, deselectMenu);
+                           popupFrame->PresContext(), type, deselectMenu, aIsRollup);
     }
   }
 }
+
+
+class TransitionEnder : public nsIDOMEventListener
+{
+public:
+
+  nsCOMPtr<nsIContent> mContent;
+  bool mDeselectMenu;
+
+  NS_DECL_ISUPPORTS
+
+  TransitionEnder(nsIContent* aContent, bool aDeselectMenu)
+    : mContent(aContent), mDeselectMenu(aDeselectMenu)
+  {
+  }
+
+  virtual ~TransitionEnder() { }
+
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent) MOZ_OVERRIDE
+  {
+    mContent->RemoveSystemEventListener(NS_LITERAL_STRING("transitionend"), this, false);
+
+    
+    
+    
+    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+    if (pm) {
+      pm->HidePopupFrame(mContent, mDeselectMenu);
+    }
+
+    return NS_OK;
+  }
+};
+
+NS_IMPL_ISUPPORTS1(TransitionEnder, nsIDOMEventListener)
 
 void
 nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
@@ -934,7 +970,8 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
                                      nsIContent* aNextPopup,
                                      nsIContent* aLastPopup,
                                      nsPopupType aPopupType,
-                                     bool aDeselectMenu)
+                                     bool aDeselectMenu,
+                                     bool aIsRollup)
 {
   if (mCloseTimer && mTimerMenu == aPopupFrame) {
     mCloseTimer->Cancel();
@@ -970,18 +1007,31 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
 
   delete item;
 
-  nsWeakFrame weakFrame(aPopupFrame);
-  aPopupFrame->HidePopup(aDeselectMenu, ePopupClosed);
-  ENSURE_TRUE(weakFrame.IsAlive());
+  
+  
+  
+  
+  
+  
+  
+  if (!aNextPopup && aPopup->HasAttr(kNameSpaceID_None, nsGkAtoms::animate) &&
+       aPopupFrame->StyleDisplay()->mTransitionPropertyCount > 0) {
+    nsAutoString animate;
+    aPopup->GetAttr(kNameSpaceID_None, nsGkAtoms::animate, animate);
 
-  
-  
-  nsEventStatus status = nsEventStatus_eIgnore;
-  WidgetMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr,
-                         WidgetMouseEvent::eReal);
-  EventDispatcher::Dispatch(aPopup, aPopupFrame->PresContext(),
-                            &event, nullptr, &status);
-  ENSURE_TRUE(weakFrame.IsAlive());
+    
+    
+    
+    if (!animate.EqualsLiteral("false") &&
+        (!animate.EqualsLiteral("cancel") || aIsRollup)) {
+      nsCOMPtr<TransitionEnder> ender = new TransitionEnder(aPopup, aDeselectMenu);
+      aPopup->AddSystemEventListener(NS_LITERAL_STRING("transitionend"),
+                                     ender, false, false);
+      return;
+    }
+  }
+
+  HidePopupFrame(aPopup, aDeselectMenu);
 
   
   if (aNextPopup && aPopup != aLastPopup) {
@@ -1018,9 +1068,29 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
 
       FirePopupHidingEvent(popupToHide, nextPopup, aLastPopup,
                            popupFrame->PresContext(),
-                           foundMenu->PopupType(), aDeselectMenu);
+                           foundMenu->PopupType(), aDeselectMenu, false);
     }
   }
+}
+
+void
+nsXULPopupManager::HidePopupFrame(nsIContent* aPopup, bool aDeselectMenu)
+{
+  nsMenuPopupFrame* popupFrame = do_QueryFrame(aPopup->GetPrimaryFrame());
+  if (!popupFrame)
+    return;
+
+  nsWeakFrame weakFrame(popupFrame);
+  popupFrame->HidePopup(aDeselectMenu, ePopupClosed);
+  ENSURE_TRUE(weakFrame.IsAlive());
+
+  
+  
+  nsEventStatus status = nsEventStatus_eIgnore;
+  WidgetMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr,
+                         WidgetMouseEvent::eReal);
+  EventDispatcher::Dispatch(aPopup, popupFrame->PresContext(),
+                            &event, nullptr, &status);
 }
 
 void
@@ -1028,7 +1098,7 @@ nsXULPopupManager::HidePopup(nsIFrame* aFrame)
 {
   nsMenuPopupFrame* popup = do_QueryFrame(aFrame);
   if (popup)
-    HidePopup(aFrame->GetContent(), false, true, false);
+    HidePopup(aFrame->GetContent(), false, true, false, false);
 }
 
 void
@@ -1287,7 +1357,8 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
                                         nsIContent* aLastPopup,
                                         nsPresContext *aPresContext,
                                         nsPopupType aPopupType,
-                                        bool aDeselectMenu)
+                                        bool aDeselectMenu,
+                                        bool aIsRollup)
 {
   nsCOMPtr<nsIPresShell> presShell = aPresContext->PresShell();
 
@@ -1327,7 +1398,7 @@ nsXULPopupManager::FirePopupHidingEvent(nsIContent* aPopup,
     }
     else {
       HidePopupCallback(aPopup, popupFrame, aNextPopup, aLastPopup,
-                        aPopupType, aDeselectMenu);
+                        aPopupType, aDeselectMenu, aIsRollup);
     }
   }
 }
@@ -1580,7 +1651,7 @@ nsXULPopupManager::PopupDestroyed(nsMenuPopupFrame* aPopup)
           else {
             
             
-            HidePopup(child->Content(), false, false, true);
+            HidePopup(child->Content(), false, false, true, false);
             break;
           }
 
@@ -1780,7 +1851,7 @@ nsXULPopupManager::KillMenuTimer()
     mCloseTimer = nullptr;
 
     if (mTimerMenu->IsOpen())
-      HidePopup(mTimerMenu->GetContent(), false, false, true);
+      HidePopup(mTimerMenu->GetContent(), false, false, true, false);
   }
 
   mTimerMenu = nullptr;
@@ -1976,7 +2047,7 @@ nsXULPopupManager::HandleKeyboardNavigationInPopup(nsMenuChainItem* item,
       
       nsMenuPopupFrame* popupFrame = currentMenu->GetPopup();
       if (popupFrame)
-        HidePopup(popupFrame->GetContent(), false, false, false);
+        HidePopup(popupFrame->GetContent(), false, false, false, false);
       return true;
     }
   }
@@ -1996,7 +2067,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
   if (aTopVisibleMenuItem &&
       aTopVisibleMenuItem->PopupType() != ePopupTypeMenu) {
     if (keyCode == nsIDOMKeyEvent::DOM_VK_ESCAPE) {
-      HidePopup(aTopVisibleMenuItem->Content(), false, false, false);
+      HidePopup(aTopVisibleMenuItem->Content(), false, false, false, true);
       aKeyEvent->StopPropagation();
       aKeyEvent->PreventDefault();
     }
@@ -2020,7 +2091,7 @@ nsXULPopupManager::HandleKeyboardEventWithKeyCode(
       
       
       if (aTopVisibleMenuItem) {
-        HidePopup(aTopVisibleMenuItem->Content(), false, false, false);
+        HidePopup(aTopVisibleMenuItem->Content(), false, false, false, true);
       } else if (mActiveMenuBar) {
         mActiveMenuBar->MenuClosed();
       }
@@ -2327,7 +2398,7 @@ nsXULPopupHidingEvent::Run()
       nsPresContext* context = presShell->GetPresContext();
       if (context) {
         pm->FirePopupHidingEvent(mPopup, mNextPopup, mLastPopup,
-                                 context, mPopupType, mDeselectMenu);
+                                 context, mPopupType, mDeselectMenu, mIsRollup);
       }
     }
   }
@@ -2388,7 +2459,7 @@ nsXULMenuCommandEvent::Run()
   }
 
   if (popup && mCloseMenuMode != CloseMenuMode_None)
-    pm->HidePopup(popup, mCloseMenuMode == CloseMenuMode_Auto, true, false);
+    pm->HidePopup(popup, mCloseMenuMode == CloseMenuMode_Auto, true, false, false);
 
   return NS_OK;
 }
