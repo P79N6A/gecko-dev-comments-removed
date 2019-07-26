@@ -758,8 +758,7 @@ typedef bool
 
 typedef JSObject *
 (* JSWrapObjectCallback)(JSContext *cx, JS::HandleObject existing, JS::HandleObject obj,
-                         JS::HandleObject proto, JS::HandleObject parent,
-                         unsigned flags);
+                         JS::HandleObject parent, unsigned flags);
 
 
 
