@@ -1881,13 +1881,15 @@ let RIL = {
     if (this._isEmergencyNumber(options.number)) {
       this.dialEmergencyNumber(options, onerror);
     } else {
-      
-      
-      
-      let mmi = this._parseMMI(options.number);
-      if (mmi && this._isTemporaryModeCLIR(mmi)) {
-        options.number = mmi.dialNumber;
-        options.clirMode = this._getCLIRMode(mmi);
+      if (!this._isCdma) {
+        
+        
+        
+        let mmi = this._parseMMI(options.number);
+        if (mmi && this._isTemporaryModeCLIR(mmi)) {
+          options.number = mmi.dialNumber;
+          options.clirMode = this._getCLIRMode(mmi);
+        }
       }
       this.dialNonEmergencyNumber(options, onerror);
     }
