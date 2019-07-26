@@ -1056,9 +1056,12 @@ js_fun_apply(JSContext *cx, unsigned argc, Value *vp)
         args.setThis(vp[2]);
 
         
-        JSFunction *fun = &args.callee().as<JSFunction>();
-        if (fun->isInterpreted() && !fun->getOrCreateScript(cx))
-            return false;
+        if (args.callee().is<JSFunction>()) {
+            JSFunction *fun = &args.callee().as<JSFunction>();
+            if (fun->isInterpreted() && !fun->getOrCreateScript(cx))
+                return false;
+        }
+        
         if (!GetElements(cx, aobj, length, args.array()))
             return false;
     }
