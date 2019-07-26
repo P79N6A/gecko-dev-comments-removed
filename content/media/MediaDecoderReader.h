@@ -81,13 +81,13 @@ public:
   
   
   
-  virtual void OnDecodeThreadStart() {}
-
   
   
   
   
-  virtual void OnDecodeThreadFinish() {}
+  
+  virtual void SetIdle() { }
+  virtual void SetActive() { }
 
   
   

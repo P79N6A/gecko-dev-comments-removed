@@ -175,6 +175,7 @@ MediaDecoderStateMachine::MediaDecoderStateMachine(MediaDecoder* aDecoder,
   mAmpleAudioThresholdUsecs(AMPLE_AUDIO_USECS),
   mDispatchedAudioDecodeTask(false),
   mDispatchedVideoDecodeTask(false),
+  mIsReaderIdle(false),
   mAudioCaptured(false),
   mTransportSeekable(true),
   mMediaSeekable(true),
@@ -559,6 +560,7 @@ MediaDecoderStateMachine::DecodeVideo()
     mDispatchedVideoDecodeTask = false;
     return;
   }
+  EnsureActive();
 
   
   
@@ -628,6 +630,8 @@ MediaDecoderStateMachine::DecodeVideo()
   mDispatchedVideoDecodeTask = false;
   if (NeedToDecodeVideo()) {
     EnsureVideoDecodeTaskQueued();
+  } else {
+    UpdateIdleState();
   }
 }
 
@@ -651,6 +655,7 @@ MediaDecoderStateMachine::DecodeAudio()
     mDispatchedAudioDecodeTask = false;
     return;
   }
+  EnsureActive();
 
   
   
@@ -683,6 +688,8 @@ MediaDecoderStateMachine::DecodeAudio()
   mDispatchedAudioDecodeTask = false;
   if (NeedToDecodeAudio()) {
     EnsureAudioDecodeTaskQueued();
+  } else {
+    UpdateIdleState();
   }
 }
 
@@ -702,6 +709,7 @@ MediaDecoderStateMachine::CheckIfDecodeComplete()
     
     
     mState = DECODER_STATE_COMPLETED;
+    UpdateIdleState();
     ScheduleStateMachine();
   }
   DECODER_LOG(PR_LOG_DEBUG,
@@ -1053,6 +1061,8 @@ void MediaDecoderStateMachine::StopPlayback()
   mDecoder->GetReentrantMonitor().NotifyAll();
   NS_ASSERTION(!IsPlaying(), "Should report not playing at end of StopPlayback()");
   mDecoder->UpdateStreamBlockingForStateMachinePlaying();
+
+  UpdateIdleState();
 }
 
 void MediaDecoderStateMachine::SetSyncPointForMediaStream()
@@ -1317,6 +1327,11 @@ void MediaDecoderStateMachine::StartDecoding()
   mIsVideoDecoding = HasVideo() && !mReader->VideoQueue().IsFinished();
   mIsAudioDecoding = HasAudio() && !mReader->AudioQueue().IsFinished();
 
+  CheckIfDecodeComplete();
+  if (mState == DECODER_STATE_COMPLETED) {
+    return;
+  }
+
   
   mSkipToNextKeyFrame = false;
   mIsAudioPrerolling = true;
@@ -1480,6 +1495,64 @@ MediaDecoderStateMachine::EnqueueDecodeMetadataTask()
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+void
+MediaDecoderStateMachine::EnsureActive()
+{
+  AssertCurrentThreadInMonitor();
+  MOZ_ASSERT(OnDecodeThread());
+  if (!mIsReaderIdle) {
+    return;
+  }
+  mIsReaderIdle = false;
+  SetReaderActive();
+}
+
+void
+MediaDecoderStateMachine::SetReaderIdle()
+{
+  DECODER_LOG(PR_LOG_DEBUG, ("%p SetReaderIdle()", mDecoder.get()));
+  MOZ_ASSERT(OnDecodeThread());
+  mReader->SetIdle();
+}
+
+void
+MediaDecoderStateMachine::SetReaderActive()
+{
+  DECODER_LOG(PR_LOG_DEBUG, ("%p SetReaderActive()", mDecoder.get()));
+  MOZ_ASSERT(OnDecodeThread());
+  mReader->SetActive();
+}
+
+void
+MediaDecoderStateMachine::UpdateIdleState()
+{
+  AssertCurrentThreadInMonitor();
+
+  
+  MOZ_ASSERT(mState != DECODER_STATE_COMPLETED ||
+             (!NeedToDecodeAudio() && !NeedToDecodeVideo()));
+
+  bool needIdle = mDecoder->GetState() == MediaDecoder::PLAY_STATE_PAUSED &&
+                  !NeedToDecodeAudio() &&
+                  !NeedToDecodeVideo() &&
+                  !IsPlaying();
+
+  if (mIsReaderIdle == needIdle) {
+    return;
+  }
+  mIsReaderIdle = needIdle;
+  nsRefPtr<nsIRunnable> event;
+  if (mIsReaderIdle) {
+    event = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SetReaderIdle);
+  } else {
+    event = NS_NewRunnableMethod(this, &MediaDecoderStateMachine::SetReaderActive);
+  }
+  if (NS_FAILED(mDecodeTaskQueue->Dispatch(event)) &&
+      mState != DECODER_STATE_SHUTDOWN) {
+    NS_WARNING("Failed to dispatch event to set decoder idle state");
+  }
 }
 
 nsresult
@@ -1698,6 +1771,7 @@ nsresult MediaDecoderStateMachine::DecodeMetadata()
   if (mState != DECODER_STATE_DECODING_METADATA) {
     return NS_ERROR_FAILURE;
   }
+  EnsureActive();
 
   nsresult res;
   MediaInfo info;
@@ -1803,6 +1877,7 @@ void MediaDecoderStateMachine::DecodeSeek()
   if (mState != DECODER_STATE_SEEKING) {
     return;
   }
+  EnsureActive();
 
   
   
@@ -1905,7 +1980,12 @@ void MediaDecoderStateMachine::DecodeSeek()
     DECODER_LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %lld) to COMPLETED",
                                mDecoder.get(), seekTime));
     stopEvent = NS_NewRunnableMethod(mDecoder, &MediaDecoder::SeekingStoppedAtEnd);
+    
+    
     mState = DECODER_STATE_COMPLETED;
+    mIsAudioDecoding = false;
+    mIsVideoDecoding = false;
+    UpdateIdleState();
   } else {
     DECODER_LOG(PR_LOG_DEBUG, ("%p Changed state from SEEKING (to %lld) to DECODING",
                                mDecoder.get(), seekTime));
@@ -2508,11 +2588,11 @@ void MediaDecoderStateMachine::StartBuffering()
                              mDecoder.get(), decodeDuration.ToSeconds()));
 #ifdef PR_LOGGING
   MediaDecoder::Statistics stats = mDecoder->GetStatistics();
-#endif
   DECODER_LOG(PR_LOG_DEBUG, ("%p Playback rate: %.1lfKB/s%s download rate: %.1lfKB/s%s",
               mDecoder.get(),
               stats.mPlaybackRate/1024, stats.mPlaybackRateReliable ? "" : " (unreliable)",
               stats.mDownloadRate/1024, stats.mDownloadRateReliable ? "" : " (unreliable)"));
+#endif
 }
 
 nsresult MediaDecoderStateMachine::GetBuffered(dom::TimeRanges* aBuffered) {

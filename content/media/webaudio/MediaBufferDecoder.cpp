@@ -269,8 +269,6 @@ MediaDecodeTask::Decode()
   
   mDecoderReader->SetIgnoreAudioOutputFormat();
 
-  mDecoderReader->OnDecodeThreadStart();
-
   MediaInfo mediaInfo;
   nsAutoPtr<MetadataTags> tags;
   nsresult rv = mDecoderReader->ReadMetadata(&mediaInfo, getter_Transfers(tags));
@@ -288,8 +286,6 @@ MediaDecodeTask::Decode()
     
     continue;
   }
-
-  mDecoderReader->OnDecodeThreadFinish();
 
   MediaQueue<AudioData>& audioQueue = mDecoderReader->AudioQueue();
   uint32_t frameCount = audioQueue.FrameCount();

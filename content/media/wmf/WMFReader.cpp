@@ -80,28 +80,6 @@ WMFReader::~WMFReader()
   MOZ_COUNT_DTOR(WMFReader);
 }
 
-void
-WMFReader::OnDecodeThreadStart()
-{
-  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-
-  
-  
-  
-  
-  mCOMInitialized = SUCCEEDED(CoInitializeEx(0, COINIT_MULTITHREADED));
-  NS_ENSURE_TRUE_VOID(mCOMInitialized);
-}
-
-void
-WMFReader::OnDecodeThreadFinish()
-{
-  NS_ASSERTION(mDecoder->OnDecodeThread(), "Should be on decode thread.");
-  if (mCOMInitialized) {
-    CoUninitialize();
-  }
-}
-
 bool
 WMFReader::InitializeDXVA()
 {

@@ -71,9 +71,8 @@ public:
     return nullptr;
   }
 
-  virtual void OnDecodeThreadStart() MOZ_OVERRIDE;
-
-  virtual void OnDecodeThreadFinish() MOZ_OVERRIDE;
+  virtual void SetIdle() MOZ_OVERRIDE;
+  virtual void SetActive() MOZ_OVERRIDE;
 
 private:
   

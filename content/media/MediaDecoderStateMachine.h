@@ -567,6 +567,22 @@ private:
   
   
   
+  void SetReaderIdle();
+  void SetReaderActive();
+
+  
+  
+  
+  void UpdateIdleState();
+
+  
+  
+  
+  void EnsureActive();
+
+  
+  
+  
   
   void CheckIfDecodeComplete();
 
@@ -830,6 +846,12 @@ private:
   
   
   bool mDispatchedVideoDecodeTask;
+
+  
+  
+  
+  
+  bool mIsReaderIdle;
 
   
   
