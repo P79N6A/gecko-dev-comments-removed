@@ -620,14 +620,9 @@ nsFlexContainerFrame::AppendFlexItemForChild(
                  "We gave flex item unconstrained available height, so it "
                  "should be complete");
 
-      
-      
-      
-      
-      
-      
-      rv = aChildFrame->DidReflow(aPresContext, &childRSForMeasuringHeight,
-                                  nsDidReflowStatus::FINISHED);
+      rv = FinishReflowChild(aChildFrame, aPresContext,
+                             &childRSForMeasuringHeight, childDesiredSize,
+                             0, 0, 0);
       NS_ENSURE_SUCCESS(rv, rv);
 
       
