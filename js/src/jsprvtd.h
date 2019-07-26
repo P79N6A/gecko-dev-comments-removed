@@ -26,14 +26,6 @@ namespace js {
 class PropertyName;
 class Shape;
 
-
-
-
-
-
-
-typedef JSObject Env;
-
 typedef JSNative             Native;
 typedef JSParallelNative     ParallelNative;
 typedef JSThreadSafeNative   ThreadSafeNative;
