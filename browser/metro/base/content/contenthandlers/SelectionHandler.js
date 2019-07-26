@@ -56,11 +56,17 @@ var SelectionHandler = {
   
 
 
-  _onSelectionStart: function _onSelectionStart(aX, aY) {
+  _onSelectionStart: function _onSelectionStart(aJson) {
     
-    if (!this._initTargetInfo(aX, aY)) {
+    if (!this._initTargetInfo(aJson.xPos, aJson.yPos)) {
       this._onFail("failed to get target information");
       return;
+    }
+
+    
+    
+    if (aJson.setFocus && this._targetIsEditable) {
+      this._targetElement.focus();
     }
 
     
@@ -68,7 +74,7 @@ var SelectionHandler = {
     selection.removeAllRanges();
 
     
-    let framePoint = this._clientPointToFramePoint({ xPos: aX, yPos: aY });
+    let framePoint = this._clientPointToFramePoint({ xPos: aJson.xPos, yPos: aJson.yPos });
     if (!this._domWinUtils.selectAtPoint(framePoint.xPos, framePoint.yPos,
                                          Ci.nsIDOMWindowUtils.SELECT_WORDNOSPACE)) {
       this._onFail("failed to set selection at point");
@@ -498,7 +504,7 @@ var SelectionHandler = {
     let json = aMessage.json;
     switch (aMessage.name) {
       case "Browser:SelectionStart":
-        this._onSelectionStart(json.xPos, json.yPos);
+        this._onSelectionStart(json);
         break;
 
       case "Browser:SelectionAttach":

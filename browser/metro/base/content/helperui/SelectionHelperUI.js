@@ -387,16 +387,19 @@ var SelectionHelperUI = {
 
 
 
-  openEditSession: function openEditSession(aMsgTarget, aX, aY) {
+
+
+  openEditSession: function openEditSession(aMsgTarget, aX, aY, aSetFocus) {
     if (!aMsgTarget || this.isActive)
       return;
     this._init(aMsgTarget);
     this._setupDebugOptions();
-
+    let setFocus = aSetFocus || false;
     
     
     
     this._sendAsyncMessage("Browser:SelectionStart", {
+      setFocus: setFocus,
       xPos: aX,
       yPos: aY
     });
