@@ -18,11 +18,11 @@
 
 BEGIN_FMRADIO_NAMESPACE
 
-class ReplyRunnable : public nsRunnable
+class FMRadioReplyRunnable : public nsRunnable
 {
 public:
-  ReplyRunnable() : mResponseType(SuccessResponse()) {}
-  virtual ~ReplyRunnable() {}
+  FMRadioReplyRunnable() : mResponseType(SuccessResponse()) {}
+  virtual ~FMRadioReplyRunnable() {}
 
   void
   SetReply(const FMRadioResponseType& aResponseType)
@@ -100,12 +100,12 @@ public:
   virtual double GetFrequencyLowerBound() const = 0;
   virtual double GetChannelWidth() const = 0;
 
-  virtual void Enable(double aFrequency, ReplyRunnable* aReplyRunnable) = 0;
-  virtual void Disable(ReplyRunnable* aReplyRunnable) = 0;
-  virtual void SetFrequency(double aFrequency, ReplyRunnable* aReplyRunnable) = 0;
+  virtual void Enable(double aFrequency, FMRadioReplyRunnable* aReplyRunnable) = 0;
+  virtual void Disable(FMRadioReplyRunnable* aReplyRunnable) = 0;
+  virtual void SetFrequency(double aFrequency, FMRadioReplyRunnable* aReplyRunnable) = 0;
   virtual void Seek(mozilla::hal::FMRadioSeekDirection aDirection,
-                    ReplyRunnable* aReplyRunnable) = 0;
-  virtual void CancelSeek(ReplyRunnable* aReplyRunnable) = 0;
+                    FMRadioReplyRunnable* aReplyRunnable) = 0;
+  virtual void CancelSeek(FMRadioReplyRunnable* aReplyRunnable) = 0;
 
   
 
@@ -152,12 +152,14 @@ public:
   virtual double GetFrequencyLowerBound() const MOZ_OVERRIDE;
   virtual double GetChannelWidth() const MOZ_OVERRIDE;
 
-  virtual void Enable(double aFrequency, ReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
-  virtual void Disable(ReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
-  virtual void SetFrequency(double aFrequency, ReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
+  virtual void Enable(double aFrequency,
+                      FMRadioReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
+  virtual void Disable(FMRadioReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
+  virtual void SetFrequency(double aFrequency,
+                            FMRadioReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
   virtual void Seek(mozilla::hal::FMRadioSeekDirection aDirection,
-                    ReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
-  virtual void CancelSeek(ReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
+                    FMRadioReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
+  virtual void CancelSeek(FMRadioReplyRunnable* aReplyRunnable) MOZ_OVERRIDE;
 
   virtual void AddObserver(FMRadioEventObserver* aObserver) MOZ_OVERRIDE;
   virtual void RemoveObserver(FMRadioEventObserver* aObserver) MOZ_OVERRIDE;
@@ -194,7 +196,7 @@ private:
   double mLowerBoundInKHz;
   double mChannelWidthInKHz;
 
-  nsRefPtr<ReplyRunnable> mPendingRequest;
+  nsRefPtr<FMRadioReplyRunnable> mPendingRequest;
 
   FMRadioEventObserverList mObserverList;
 
