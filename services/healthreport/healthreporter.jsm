@@ -1068,6 +1068,16 @@ HealthReporter.prototype = Object.freeze({
 
     request.onSubmissionSuccess(now);
 
+#ifdef PRERELEASE_BUILD
+    
+    
+    try {
+      Services.prefs.savePrefFile(null);
+    } catch (ex) {
+      this._log.warn("Error forcing prefs save: " + CommonUtils.exceptionStr(ex));
+    }
+#endif
+
     return promise;
   },
 
