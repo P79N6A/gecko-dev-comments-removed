@@ -3,6 +3,7 @@
 
 
 
+
 #ifndef nsLayoutStylesheetCache_h__
 #define nsLayoutStylesheetCache_h__
 
@@ -11,8 +12,9 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 
-class nsIFile;
 class nsCSSStyleSheet;
+class nsIFile;
+class nsIMemoryReporter;
 class nsIURI;
 
 namespace mozilla {
@@ -20,8 +22,6 @@ namespace css {
 class Loader;
 }
 }
-
-class nsIMemoryReporter;
 
 class nsLayoutStylesheetCache MOZ_FINAL
  : public nsIObserver
@@ -63,7 +63,7 @@ private:
   nsRefPtr<nsCSSStyleSheet> mQuirkSheet;
   nsRefPtr<nsCSSStyleSheet> mFullScreenOverrideSheet;
 
-  nsIMemoryReporter* mReporter;
+  nsCOMPtr<nsIMemoryReporter> mReporter;
 };
 
 #endif
