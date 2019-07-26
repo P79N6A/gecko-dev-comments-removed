@@ -18,6 +18,7 @@
 #include "nsDirectoryServiceUtils.h"
 #include "nsDirectoryServiceDefs.h"
 #include "mozilla/Services.h"
+#include "nsThreadUtils.h"
 
 mozilla::ThreadLocal<PseudoStack *> tlsPseudoStack;
 mozilla::ThreadLocal<TableTicker *> tlsTicker;
@@ -42,6 +43,18 @@ unsigned int sCurrentEventGeneration = 0;
 
 
 
+
+std::vector<ThreadInfo*> Sampler::sRegisteredThreads;
+mozilla::Mutex Sampler::sRegisteredThreadsMutex("sRegisteredThreads mutex");
+
+Sampler* Sampler::sActiveSampler;
+
+ThreadInfo::~ThreadInfo() {
+  free(mName);
+
+  if (mProfile)
+    delete mProfile;
+}
 
 bool sps_version2()
 {
@@ -185,6 +198,8 @@ void mozilla_sampler_init()
   PseudoStack *stack = new PseudoStack();
   tlsPseudoStack.set(stack);
 
+  Sampler::RegisterCurrentThread("Gecko", stack, true);
+
   if (sps_version2()) {
     
     
@@ -251,6 +266,8 @@ void mozilla_sampler_shutdown()
   if (sps_version2()) {
     uwt__deinit();
   }
+
+  Sampler::ClearRegisteredThreads();
 
   profiler_stop();
   
@@ -445,6 +462,20 @@ void mozilla_sampler_unlock()
   if (os)
     os->NotifyObservers(nullptr, "profiler-unlocked", nullptr);
 }
+
+bool mozilla_sampler_register_thread(const char* aName)
+{
+  PseudoStack* stack = new PseudoStack();
+  tlsPseudoStack.set(stack);
+
+  return Sampler::RegisterCurrentThread(aName, stack, false);
+}
+
+void mozilla_sampler_unregister_thread()
+{
+  Sampler::UnregisterCurrentThread();
+}
+
 
 
 
