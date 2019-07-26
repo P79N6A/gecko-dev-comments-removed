@@ -188,7 +188,7 @@ var gDisableNoUpdateAddon = false;
 
 
 
-var DEBUG_AUS_TEST = true;
+var DEBUG_AUS_TEST = false;
 
 #include ../shared.js
 
