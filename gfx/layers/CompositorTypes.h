@@ -67,12 +67,6 @@ const TextureFlags TEXTURE_DEALLOCATE_CLIENT  = 1 << 25;
 
 
 
-
-
-const TextureFlags TEXTURE_DEALLOCATE_DEFERRED  = 1 << 26;
-
-
-
 const TextureFlags TEXTURE_IMMUTABLE          = 1 << 27;
 
 
