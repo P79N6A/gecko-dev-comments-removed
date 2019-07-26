@@ -27,6 +27,7 @@ public class GeckoMenuItem implements MenuItem {
     
     public static interface Layout {
         public void initialize(GeckoMenuItem item);
+        public void setShowIcon(boolean show);
     }
 
     public static interface OnShowAsActionChangedListener {

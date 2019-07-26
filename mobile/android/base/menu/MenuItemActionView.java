@@ -113,6 +113,11 @@ public class MenuItemActionView extends LinearLayout
         }
     }
 
+    @Override
+    public void setShowIcon(boolean show) {
+        mMenuItem.setShowIcon(show);
+    }
+
     public void addActionButton(Drawable drawable) {
         
         
