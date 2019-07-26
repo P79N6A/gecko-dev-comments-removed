@@ -208,7 +208,17 @@ SharedFrameMetricsHelper::UpdateFromCompositorFrameMetrics(
   
   
   if (!aLowPrecision && !mProgressiveUpdateWasInDanger) {
-    if (AboutToCheckerboard(contentMetrics, compositorMetrics)) {
+    bool scrollUpdatePending = contentMetrics.GetScrollOffsetUpdated() &&
+        contentMetrics.GetScrollGeneration() != compositorMetrics.GetScrollGeneration();
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!scrollUpdatePending && AboutToCheckerboard(contentMetrics, compositorMetrics)) {
       mProgressiveUpdateWasInDanger = true;
       return true;
     }
