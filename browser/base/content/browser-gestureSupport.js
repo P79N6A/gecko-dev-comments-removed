@@ -659,6 +659,7 @@ let gHistorySwipeAnimation = {
 
   stopAnimation: function HSA_stopAnimation() {
     gHistorySwipeAnimation._removeBoxes();
+    this._historyIndex = gBrowser.webNavigation.sessionHistory.index;
   },
 
   
@@ -724,23 +725,27 @@ let gHistorySwipeAnimation = {
 
 
   handleEvent: function HSA_handleEvent(aEvent) {
+    let browser = gBrowser.selectedBrowser;
     switch (aEvent.type) {
       case "TabClose":
-        let browser = gBrowser.getBrowserForTab(aEvent.target);
-        this._removeTrackedSnapshot(-1, browser);
+        let browserForTab = gBrowser.getBrowserForTab(aEvent.target);
+        this._removeTrackedSnapshot(-1, browserForTab);
         break;
       case "DOMModalDialogClosed":
         this.stopAnimation();
         break;
       case "pageshow":
+        if (aEvent.target == browser.contentDocument) {
+          this.stopAnimation();
+        }
+        break;
       case "popstate":
-        if (aEvent.target != gBrowser.selectedBrowser.contentDocument)
-          break;
-        this.stopAnimation();
-        this._historyIndex = gBrowser.webNavigation.sessionHistory.index;
+        if (aEvent.target == browser.contentDocument.defaultView) {
+          this.stopAnimation();
+        }
         break;
       case "pagehide":
-        if (aEvent.target == gBrowser.selectedBrowser.contentDocument) {
+        if (aEvent.target == browser.contentDocument) {
           
           
           
