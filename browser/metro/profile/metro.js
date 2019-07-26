@@ -22,7 +22,7 @@ pref("metro.debug.selection.dumpRanges", false);
 pref("metro.debug.selection.dumpEvents", false);
 
 
-pref("formhelper.mode", 1);
+pref("formhelper.mode", 0);
 
 pref("formhelper.autozoom", true);
 
