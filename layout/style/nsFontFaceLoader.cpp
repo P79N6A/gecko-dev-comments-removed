@@ -102,6 +102,11 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer *aTimer, void *aClosure)
 {
   nsFontFaceLoader *loader = static_cast<nsFontFaceLoader*>(aClosure);
 
+  if (!loader->mFontSet) {
+    
+    return;
+  }
+
   gfxProxyFontEntry *pe = loader->mFontEntry.get();
   bool updateUserFontSet = true;
 
@@ -136,10 +141,10 @@ nsFontFaceLoader::LoadTimerCallback(nsITimer *aTimer, void *aClosure)
   
   if (updateUserFontSet) {
     pe->mLoadingState = gfxProxyFontEntry::LOADING_SLOWLY;
+    gfxUserFontSet *fontSet = loader->mFontSet;
     nsPresContext *ctx = loader->mFontSet->GetPresContext();
-    NS_ASSERTION(ctx, "fontSet doesn't have a presContext?");
-    gfxUserFontSet *fontSet;
-    if (ctx && (fontSet = ctx->GetUserFontSet()) != nullptr) {
+    NS_ASSERTION(ctx, "userfontset doesn't have a presContext?");
+    if (ctx) {
       fontSet->IncrementGeneration();
       ctx->UserFontSetUpdated();
       LOG(("fontdownloader (%p) timeout reflow\n", loader));
@@ -181,12 +186,6 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   NS_ASSERTION(ctx && !ctx->PresShell()->IsDestroying(),
                "We should have been canceled already");
 
-  
-  gfxUserFontSet *userFontSet = ctx->GetUserFontSet();
-  if (!userFontSet) {
-    return aStatus;
-  }
-
   if (NS_SUCCEEDED(aStatus)) {
     
     
@@ -212,10 +211,8 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
   
   
   
-  bool fontUpdate = userFontSet->OnLoadComplete(mFontFamily,
-                                                mFontEntry,
-                                                aString, aStringLen,
-                                                aStatus);
+  bool fontUpdate = mFontSet->OnLoadComplete(mFontFamily, mFontEntry, aString,
+                                             aStringLen, aStatus);
 
   
   if (fontUpdate) {
@@ -223,6 +220,13 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     
     ctx->UserFontSetUpdated();
     LOG(("fontdownloader (%p) reflow\n", this));
+  }
+
+  
+  mFontSet = nullptr;
+  if (mLoadTimer) {
+    mLoadTimer->Cancel();
+    mLoadTimer = nullptr;
   }
 
   return NS_SUCCESS_ADOPTED_DATA;
