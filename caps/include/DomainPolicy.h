@@ -13,11 +13,6 @@
 
 namespace mozilla {
 
-
-
-
-namespace hotness {
-
 class DomainPolicy : public nsIDomainPolicy
 {
 public:
@@ -46,7 +41,6 @@ protected:
     nsTHashtable<nsURIHashKey> mHashTable;
 };
 
-} 
 } 
 
 #endif 
