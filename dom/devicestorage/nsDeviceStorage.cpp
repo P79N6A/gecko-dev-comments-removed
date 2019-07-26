@@ -364,9 +364,10 @@ DeviceStorageFile::IsSafePath()
 
   
   NS_NAMED_LITERAL_STRING(tilde, "~");
-  NS_NAMED_LITERAL_STRING(bslash, "\\");
-  if (FindInReadable(tilde, start, end) ||
-      FindInReadable(bslash, start, end)) {
+  NS_NAMED_LITERAL_STRING(tildeSlash, "~/");
+  if (mPath.Equals(tilde) ||
+      StringBeginsWith(mPath, tildeSlash)) {
+    NS_WARNING("Path name starts with tilde!");
     return false;
    }
   
