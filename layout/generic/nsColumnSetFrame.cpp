@@ -326,16 +326,20 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
   nscoord colGap = GetColumnGap(this, colStyle);
   int32_t numColumns = colStyle->mColumnCount;
 
-  const uint32_t MAX_NESTED_COLUMN_BALANCING = 2;
-  uint32_t cnt = 1;
-  for (const nsHTMLReflowState* rs = aReflowState.parentReflowState; rs && cnt
-    < MAX_NESTED_COLUMN_BALANCING; rs = rs->parentReflowState) {
-    if (rs->mFlags.mIsColumnBalancing) {
-      ++cnt;
+  
+  const bool isBalancing = colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE;
+  if (isBalancing) {
+    const uint32_t MAX_NESTED_COLUMN_BALANCING = 2;
+    uint32_t cnt = 0;
+    for (const nsHTMLReflowState* rs = aReflowState.parentReflowState;
+         rs && cnt < MAX_NESTED_COLUMN_BALANCING; rs = rs->parentReflowState) {
+      if (rs->mFlags.mIsColumnBalancing) {
+        ++cnt;
+      }
     }
-  }
-  if (cnt == MAX_NESTED_COLUMN_BALANCING) {
-    numColumns = 1;
+    if (cnt == MAX_NESTED_COLUMN_BALANCING) {
+      numColumns = 1;
+    }
   }
 
   nscoord colWidth;
@@ -390,17 +394,13 @@ nsColumnSetFrame::ChooseColumnStrategy(const nsHTMLReflowState& aReflowState)
     expectedWidthLeftOver = extraSpace - (extraToColumns*numColumns);
   }
 
-  
-  if (colStyle->mColumnFill == NS_STYLE_COLUMN_FILL_BALANCE) {
-    
+  if (isBalancing) {
     if (numColumns <= 0) {
       
       
       numColumns = 1;
     }
-
-    colHeight = NS_MIN(mLastBalanceHeight,
-                       colHeight);
+    colHeight = NS_MIN(mLastBalanceHeight, colHeight);
   } else {
     
     
