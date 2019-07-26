@@ -7725,6 +7725,11 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
 
     
     if (aChange & nsChangeHint_RepaintFrame) {
+      
+      
+      
+      
+      
       needInvalidatingPaint = true;
       aFrame->InvalidateFrameSubtree();
       if (aChange & nsChangeHint_UpdateEffects &&
