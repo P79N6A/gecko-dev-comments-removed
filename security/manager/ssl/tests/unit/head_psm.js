@@ -163,6 +163,7 @@ function clearSessionCache() {
 
 
 
+
 function add_tls_server_setup(serverBinName) {
   add_test(function() {
     _setupTLSServerTest(serverBinName);
@@ -251,14 +252,10 @@ function add_connection_test(aHost, aExpectedResult,
       aBeforeConnect();
     }
     connectTo(aHost).then(function(conn) {
-      dump("hello #0\n");
       do_check_eq(conn.result, aExpectedResult);
-      dump("hello #0.5\n");
       if (aWithSecurityInfo) {
-        dump("hello #1\n");
         aWithSecurityInfo(conn.transport.securityInfo
                               .QueryInterface(Ci.nsITransportSecurityInfo));
-        dump("hello #2\n");
       }
       run_next_test();
     });
