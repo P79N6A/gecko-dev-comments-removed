@@ -165,6 +165,8 @@ public:
                             EffectChain& aEffect,
                             bool aIs3D = false);
 
+  static void RemoveMaskEffect(Layer* aMaskLayer);
+
   
 
 
