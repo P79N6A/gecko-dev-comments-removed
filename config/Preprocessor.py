@@ -382,6 +382,8 @@ class Preprocessor:
   
   
   def filter_slashslash(self, aLine):
+    if (aLine.find('//') == -1):
+      return aLine
     [aLine, rest] = aLine.split('//', 1)
     if rest:
       aLine += '\n'
