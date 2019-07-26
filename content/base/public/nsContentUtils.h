@@ -742,6 +742,14 @@ public:
 
 
 
+  static void LogSimpleConsoleError(const nsAString& aErrorText,
+                                    const char * classification);
+
+  
+
+
+
+
 
 
 
