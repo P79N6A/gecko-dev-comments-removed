@@ -5,6 +5,7 @@
 
 
 
+
 var gDebuggee;
 var gClient;
 var gThreadClient;
@@ -19,41 +20,47 @@ function run_test()
                                     "test-stack",
                                     function (aResponse, aThreadClient) {
       gThreadClient = aThreadClient;
-      test_remove_breakpoint();
+      test_child_breakpoint();
     });
   });
   do_test_pending();
 }
 
-function test_remove_breakpoint()
+function test_child_breakpoint()
 {
-  let done = false;
   gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
-    let path = getFilePath('test_breakpoint-09.js');
+    let path = getFilePath('test_breakpoint-11.js');
     let location = { url: path, line: gDebuggee.line0 + 2};
     gThreadClient.setBreakpoint(location, function (aResponse, bpClient) {
+      
+      do_check_eq(aResponse.actualLocation, undefined);
       gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
         
         do_check_eq(aPacket.type, "paused");
-        do_check_eq(aPacket.frame.where.url, path);
-        do_check_eq(aPacket.frame.where.line, location.line);
         do_check_eq(aPacket.why.type, "breakpoint");
         do_check_eq(aPacket.why.actors[0], bpClient.actor);
         
         do_check_eq(gDebuggee.a, undefined);
 
-        
-        bpClient.remove(function (aResponse) {
-          done = true;
-          gThreadClient.addOneTimeListener("paused",
-                                           function (aEvent, aPacket) {
-            
+        gThreadClient.addOneTimeListener("paused", function (aEvent, aPacket) {
+          
+          do_check_eq(aPacket.type, "paused");
+          do_check_eq(aPacket.why.type, "breakpoint");
+          do_check_eq(aPacket.why.actors[0], bpClient.actor);
+          
+          do_check_eq(gDebuggee.a.b, 1);
+          do_check_eq(gDebuggee.res, undefined);
+
+          
+          bpClient.remove(function (aResponse) {
             gThreadClient.resume(function () {
-              do_check_true(false);
+              finishClient(gClient);
             });
           });
-          gThreadClient.resume();
         });
+
+        
+        gThreadClient.resume();
 
       });
       
@@ -63,17 +70,9 @@ function test_remove_breakpoint()
 
   });
 
+
   gDebuggee.eval("var line0 = Error().lineNumber;\n" +
-                 "function foo(stop) {\n" + 
-                 "  this.a = 1;\n" +        
-                 "  if (stop) return;\n" +  
-                 "  delete this.a;\n" +     
-                 "  foo(true);\n" +         
-                 "}\n" +                    
-                 "debugger;\n" +            
-                 "foo();\n");               
-  if (!done) {
-    do_check_true(false);
-  }
-  finishClient(gClient);
+                 "debugger;\n" +                      
+                 "var a = { b: 1, f: function() { return 2; } };\n" + 
+                 "var res = a.f();\n");               
 }

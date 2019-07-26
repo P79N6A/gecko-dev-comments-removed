@@ -32,7 +32,27 @@ function ThreadActor(aHooks, aGlobal)
   this._hooks = {};
   this._hooks = aHooks;
   this.global = aGlobal;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   this._scripts = {};
+
   this.findGlobals = this.globalManager.findGlobals.bind(this);
   this.onNewGlobal = this.globalManager.onNewGlobal.bind(this);
 }
@@ -491,9 +511,11 @@ ThreadActor.prototype = {
     let scripts = this._scripts[aLocation.url];
     
     let script = null;
-    for (let i = aLocation.line; i >= 0; i--) {
+    for (let i = 0; i <= aLocation.line; i++) {
       
       if (scripts[i]) {
+        
+        
         
         
         if (i + scripts[i].lineCount < aLocation.line) {
@@ -525,25 +547,35 @@ ThreadActor.prototype = {
       return { error: "noScript", actor: bpActor.actorID };
     }
 
-    script = this._getInnermostContainer(script, aLocation.line);
-    bpActor.addScript(script, this);
+    let inner, codeFound = false;
+    
+    
+    for (let s of this._getContainers(script, aLocation.line)) {
+      
+      if (!inner) {
+        inner = s;
+      }
 
-    let offsets = script.getLineOffsets(aLocation.line);
-    let codeFound = false;
-    for (let i = 0; i < offsets.length; i++) {
-      script.setBreakpoint(offsets[i], bpActor);
-      codeFound = true;
+      let offsets = s.getLineOffsets(aLocation.line);
+      if (offsets.length) {
+        bpActor.addScript(s, this);
+        for (let i = 0; i < offsets.length; i++) {
+          s.setBreakpoint(offsets[i], bpActor);
+          codeFound = true;
+        }
+      }
     }
 
     let actualLocation;
-    if (offsets.length == 0) {
+    if (!codeFound) {
       
-      let lines = script.getAllOffsets();
+      
+      let lines = inner.getAllOffsets();
       let oldLine = aLocation.line;
       for (let line = oldLine; line < lines.length; ++line) {
         if (lines[line]) {
           for (let i = 0; i < lines[line].length; i++) {
-            script.setBreakpoint(lines[line][i], bpActor);
+            inner.setBreakpoint(lines[line][i], bpActor);
             codeFound = true;
           }
           actualLocation = {
@@ -560,6 +592,7 @@ ThreadActor.prototype = {
         }
       }
     }
+
     if (!codeFound) {
       return  { error: "noCodeAtLineColumn", actor: bpActor.actorID };
     }
@@ -576,7 +609,9 @@ ThreadActor.prototype = {
 
 
 
-  _getInnermostContainer: function TA__getInnermostContainer(aScript, aLine) {
+
+
+  _getContainers: function TA__getContainers(aScript, aLine) {
     let children = aScript.getChildScripts();
     if (children.length > 0) {
       for (let i = 0; i < children.length; i++) {
@@ -584,12 +619,14 @@ ThreadActor.prototype = {
         
         if (child.startLine <= aLine &&
             child.startLine + child.lineCount > aLine) {
-          return this._getInnermostContainer(child, aLine);
+          for (let j of this._getContainers(child, aLine)) {
+            yield j;
+          }
         }
       }
     }
     
-    return aScript;
+    yield aScript;
   },
 
   
@@ -2155,6 +2192,42 @@ function getFunctionName(aFunction) {
   }
   return name;
 }
+
+
+
+
+
+Debugger.Script.prototype.toString = function() {
+  let output = "";
+  if (this.url) {
+    output += this.url;
+  }
+  if (typeof this.startLine != "undefined") {
+    output += ":" + this.startLine;
+    if (this.lineCount && this.lineCount > 1) {
+      output += "-" + (this.startLine + this.lineCount - 1);
+    }
+  }
+  if (this.strictMode) {
+    output += ":strict";
+  }
+  return output;
+};
+
+
+
+
+
+Object.defineProperty(Debugger.Frame.prototype, "line", {
+  configurable: true,
+  get: function() {
+    if (this.script) {
+      return this.script.getOffsetLine(this.offset);
+    } else {
+      return null;
+    }
+  }
+});
 
 
 

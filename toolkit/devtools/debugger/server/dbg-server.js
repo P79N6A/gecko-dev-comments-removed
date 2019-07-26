@@ -679,6 +679,29 @@ DebuggerServerConnection.prototype = {
     this._extraPools = null;
 
     DebuggerServer._connectionClosed(this);
+  },
+
+  
+
+
+  _dumpPools: function DSC_dumpPools() {
+    dumpn("/-------------------- dumping pools:");
+    if (this._actorPool) {
+      dumpn("--------------------- actorPool actors: " +
+            uneval(Object.keys(this._actorPool._actors)));
+    }
+    for each (let pool in this._extraPools)
+      dumpn("--------------------- extraPool actors: " +
+            uneval(Object.keys(pool._actors)));
+  },
+
+  
+
+
+  _dumpPool: function DSC_dumpPools(aPool) {
+    dumpn("/-------------------- dumping pool:");
+    dumpn("--------------------- actorPool actors: " +
+          uneval(Object.keys(aPool._actors)));
   }
 };
 
