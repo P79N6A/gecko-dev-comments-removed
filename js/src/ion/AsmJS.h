@@ -8,12 +8,17 @@
 #if !defined(jsion_asmjs_h__)
 #define jsion_asmjs_h__
 
+#ifdef XP_MACOSX
+# include <pthread.h>
+# include <mach/mach.h>
+#endif
+
 
 
 #if defined(JS_ION) && \
     !defined(ANDROID) && \
     (defined(JS_CPU_X86) || defined(JS_CPU_X64)) &&  \
-    (defined(__linux__) || defined(XP_WIN))
+    (defined(__linux__) || defined(XP_WIN) || defined(XP_MACOSX))
 # define JS_ASMJS
 #endif
 
@@ -93,12 +98,32 @@ class AsmJSActivation
 
 static const size_t AsmJSAllocationGranularity = 4096;
 
+#ifdef JS_CPU_X64
 
 
 
-# ifdef JS_CPU_X64
 static const size_t AsmJSBufferProtectedSize = 4 * 1024ULL * 1024ULL * 1024ULL;
-# endif
+#endif
+
+#ifdef XP_MACOSX
+class AsmJSMachExceptionHandler
+{
+    bool installed_;
+    pthread_t thread_;
+    mach_port_t port_;
+
+    void release();
+
+  public:
+    AsmJSMachExceptionHandler();
+    ~AsmJSMachExceptionHandler() { release(); }
+    mach_port_t port() const { return port_; }
+    bool installed() const { return installed_; }
+    bool install(JSRuntime *rt);
+    void clearCurrentThread();
+    void setCurrentThread();
+};
+#endif
 
 } 
 
