@@ -128,8 +128,6 @@ class JavaPanZoomController
     private boolean mMediumPress;
     
     private boolean mNegateWheelScrollY;
-    
-    private boolean mDefaultPrevented;
 
     
     private Overscroll mOverscroll;
@@ -345,9 +343,7 @@ class JavaPanZoomController
         return mTouchEventHandler.handleEvent(event);
     }
 
-    boolean handleEvent(MotionEvent event, boolean defaultPrevented) {
-        mDefaultPrevented = defaultPrevented;
-
+    boolean handleEvent(MotionEvent event) {
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
         case MotionEvent.ACTION_DOWN:   return handleTouchStart(event);
         case MotionEvent.ACTION_MOVE:   return handleTouchMove(event);
@@ -402,6 +398,17 @@ class JavaPanZoomController
             
             
             setState(PanZoomState.WAITING_LISTENERS);
+        }
+    }
+
+    
+    public void preventedTouchFinished() {
+        checkMainThread();
+        if (mState == PanZoomState.WAITING_LISTENERS) {
+            
+            
+            
+            bounce();
         }
     }
 
@@ -517,18 +524,16 @@ class JavaPanZoomController
         case FLING:
         case AUTONAV:
         case BOUNCE:
+        case WAITING_LISTENERS:
+            
+            Log.e(LOGTAG, "Received impossible touch end while in " + mState);
+            
         case ANIMATED_ZOOM:
         case NOTHING:
             
             
             return false;
 
-        case WAITING_LISTENERS:
-            if (!mDefaultPrevented) {
-              
-              Log.e(LOGTAG, "Received impossible touch end while in " + mState);
-            }
-            
         case TOUCHING:
             
             
@@ -556,6 +561,16 @@ class JavaPanZoomController
 
     private boolean handleTouchCancel(MotionEvent event) {
         cancelTouch();
+
+        if (mState == PanZoomState.WAITING_LISTENERS) {
+            
+            
+            
+            
+            
+            
+            return false;
+        }
 
         
         bounce();
@@ -812,9 +827,9 @@ class JavaPanZoomController
         if (FloatUtils.fuzzyEquals(displacement.x, 0.0f) && FloatUtils.fuzzyEquals(displacement.y, 0.0f)) {
             return;
         }
-        if (mDefaultPrevented || mSubscroller.scrollBy(displacement)) {
+        if (mSubscroller.scrollBy(displacement)) {
             synchronized (mTarget.getLock()) {
-                mTarget.scrollMarginsBy(displacement.x, displacement.y);
+                mTarget.onSubdocumentScrollBy(displacement.x, displacement.y);
             }
         } else {
             synchronized (mTarget.getLock()) {
