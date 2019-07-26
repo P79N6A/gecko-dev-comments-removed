@@ -718,7 +718,13 @@ PlacesTreeView.prototype = {
     if (PlacesUtils.nodeIsSeparator(aNode) && this.isSorted())
       return;
 
-    let oldRow = this._getRowForNode(aNode, true);
+    
+    
+    let oldParentRow = aOldParent == this._rootNode ?
+                         undefined : this._getRowForNode(aOldParent, true);
+    let oldRow = this._getRowForNode(aNode, true, oldParentRow, aOldIndex);
+    if (oldRow < 0)
+      throw Cr.NS_ERROR_UNEXPECTED;
 
     
     let count = this._countVisibleRowsForNodeAtRow(oldRow);
