@@ -22,9 +22,15 @@
 #undef CreateDirectory
 #endif
 
+
+#ifdef CreateFile
+#undef CreateFile
+#endif
+
 namespace mozilla {
 namespace dom {
 
+class CreateFileOptions;
 class FileSystemBase;
 class Promise;
 class StringOrFileOrDirectory;
@@ -54,6 +60,9 @@ public:
 
   void
   GetName(nsString& aRetval) const;
+
+  already_AddRefed<Promise>
+  CreateFile(const nsAString& aPath, const CreateFileOptions& aOptions);
 
   already_AddRefed<Promise>
   CreateDirectory(const nsAString& aPath);
