@@ -271,8 +271,6 @@ enum SrcNoteType {
 
 
 
-    SRC_DESTRUCT    = 6,        
-
     SRC_PCDELTA     = 7,        
 
 
