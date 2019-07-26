@@ -351,7 +351,10 @@ XBLEnumerate(JSContext *cx, JS::Handle<JSObject*> obj)
   return protoBinding->ResolveAllFields(cx, obj);
 }
 
-nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
+uint64_t nsXBLJSClass::sIdCount = 0;
+
+nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName,
+                           const nsCString& aKey)
 {
   memset(this, 0, sizeof(nsXBLJSClass));
   next = prev = static_cast<JSCList*>(this);
@@ -367,6 +370,7 @@ nsXBLJSClass::nsXBLJSClass(const nsAFlatCString& aClassName)
   resolve = (JSResolveOp)XBLResolve;
   convert = ::JS_ConvertStub;
   finalize = XBLFinalize;
+  mKey = aKey;
 }
 
 nsrefcnt
@@ -376,8 +380,9 @@ nsXBLJSClass::Destroy()
                "referenced nsXBLJSClass is on LRU list already!?");
 
   if (nsXBLService::gClassTable) {
-    nsCStringKey key(name);
+    nsCStringKey key(mKey);
     (nsXBLService::gClassTable)->Remove(&key);
+    mKey.Truncate();
   }
 
   if (nsXBLService::gClassLRUListLength >= nsXBLService::gClassLRUListQuota) {
@@ -1357,11 +1362,12 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
 {
   
   nsAutoCString className(aClassName);
+  nsAutoCString xblKey(aClassName);
   JSObject* parent_proto = nullptr;  
   JSAutoRequest ar(cx);
 
   JSAutoCompartment ac(cx, global);
-
+  nsXBLJSClass* c = nullptr;
   if (obj) {
     
     if (!JS_GetPrototype(cx, obj, &parent_proto)) {
@@ -1383,8 +1389,23 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
       
       
       char buf[20];
-      PR_snprintf(buf, sizeof(buf), " %lx", parent_proto_id);
-      className.Append(buf);
+      if (sizeof(jsid) == 4) {
+        PR_snprintf(buf, sizeof(buf), " %lx", parent_proto_id);
+      } else {
+        MOZ_ASSERT(sizeof(jsid) == 8);
+        PR_snprintf(buf, sizeof(buf), " %llx", parent_proto_id);
+      }
+      xblKey.Append(buf);
+      nsCStringKey key(xblKey);
+
+      c = static_cast<nsXBLJSClass*>(nsXBLService::gClassTable->Get(&key));
+      if (c) {
+        className.Assign(c->name);
+      } else {
+        char buf[20];
+        PR_snprintf(buf, sizeof(buf), " %llx", nsXBLJSClass::NewId());
+        className.Append(buf);
+      }
     }
   }
 
@@ -1394,14 +1415,11 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
       JSVAL_IS_PRIMITIVE(val)) {
     
 
-    nsXBLJSClass* c;
-    void* classObject;
-    nsCStringKey key(className);
-    classObject = (nsXBLService::gClassTable)->Get(&key);
-
-    if (classObject) {
-      c = static_cast<nsXBLJSClass*>(classObject);
-
+    nsCStringKey key(xblKey);
+    if (!c) {
+      c = static_cast<nsXBLJSClass*>(nsXBLService::gClassTable->Get(&key));
+    }
+    if (c) {
       
       JSCList* link = static_cast<JSCList*>(c);
       if (c->next != link) {
@@ -1411,7 +1429,7 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
     } else {
       if (JS_CLIST_IS_EMPTY(&nsXBLService::gClassLRUList)) {
         
-        c = new nsXBLJSClass(className);
+        c = new nsXBLJSClass(className, xblKey);
 
         if (!c)
           return NS_ERROR_OUT_OF_MEMORY;
@@ -1423,12 +1441,13 @@ nsXBLBinding::DoInitJSClass(JSContext *cx, JSObject *global, JSObject *obj,
 
         
         c = static_cast<nsXBLJSClass*>(lru);
-        nsCStringKey oldKey(c->name);
+        nsCStringKey oldKey(c->Key());
         (nsXBLService::gClassTable)->Remove(&oldKey);
 
         
         nsMemory::Free((void*) c->name);
         c->name = ToNewCString(className);
+        c->SetKey(xblKey);
       }
 
       
