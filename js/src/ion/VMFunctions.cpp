@@ -563,6 +563,14 @@ DebugEpilogue(JSContext *cx, BaselineFrame *frame, JSBool ok)
         DebugScopes::onPopCall(frame, cx);
     }
 
+    if (!ok) {
+        
+        
+        IonJSFrameLayout *prefix = frame->framePrefix();
+        EnsureExitFrame(prefix);
+        cx->mainThread().ionTop = (uint8_t *)prefix;
+    }
+
     return ok;
 }
 
