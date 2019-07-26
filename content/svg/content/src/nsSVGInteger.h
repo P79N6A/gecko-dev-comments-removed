@@ -52,7 +52,9 @@ public:
   
   bool IsExplicitlySet() const
     { return mIsAnimated || mIsBaseSet; }
-  
+
+  already_AddRefed<nsIDOMSVGAnimatedInteger>
+    ToDOMAnimatedInteger(nsSVGElement* aSVGElement);
   nsresult ToDOMAnimatedInteger(nsIDOMSVGAnimatedInteger **aResult,
                                 nsSVGElement* aSVGElement);
   
