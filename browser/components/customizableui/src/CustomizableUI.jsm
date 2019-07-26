@@ -703,6 +703,8 @@ let CustomizableUIInternal = {
       
       
       this.removeLocationAttributes(widgetNode);
+      
+      this.ensureButtonContextMenu(widgetNode);
       widgetNode.removeAttribute("wrap");
       if (gPalette.has(aWidgetId) || this.isSpecialWidget(aWidgetId)) {
         container.removeChild(widgetNode);
