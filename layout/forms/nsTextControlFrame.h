@@ -17,7 +17,6 @@
 #include "nsStubMutationObserver.h"
 #include "nsITextControlElement.h"
 #include "nsIStatefulFrame.h"
-#include "nsContentUtils.h" 
 #include "nsIEditor.h"
 
 class nsISelectionController;
@@ -246,28 +245,7 @@ protected:
     EditorInitializer(nsTextControlFrame* aFrame) :
       mFrame(aFrame) {}
 
-    NS_IMETHOD Run() {
-      if (mFrame) {
-        
-        nsAutoScriptBlocker scriptBlocker;
-
-        nsCOMPtr<nsIPresShell> shell =
-          mFrame->PresContext()->GetPresShell();
-        bool observes = shell->ObservesNativeAnonMutationsForPrint();
-        shell->ObserveNativeAnonMutationsForPrint(true);
-        
-        mFrame->EnsureEditorInitialized();
-        shell->ObserveNativeAnonMutationsForPrint(observes);
-
-        
-        
-        if (!mFrame)
-          return NS_ERROR_FAILURE;
-
-        mFrame->FinishedInitializer();
-      }
-      return NS_OK;
-    }
+    NS_IMETHOD Run();
 
     
     void Revoke() {

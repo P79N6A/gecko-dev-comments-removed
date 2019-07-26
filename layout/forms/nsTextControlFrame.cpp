@@ -72,8 +72,8 @@
 #include "nsPresState.h"
 #include "nsContentList.h"
 #include "nsAttrValueInlines.h"
-
 #include "mozilla/Selection.h"
+#include "nsContentUtils.h"
 
 #define DEFAULT_COLUMN_WIDTH 20
 
@@ -1492,5 +1492,33 @@ nsTextControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     kid = kid->GetNextSibling();
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsTextControlFrame::EditorInitializer::Run()
+{
+  if (!mFrame) {
+    return NS_OK;
+  }
+
+  
+  nsAutoScriptBlocker scriptBlocker;
+
+  nsCOMPtr<nsIPresShell> shell =
+    mFrame->PresContext()->GetPresShell();
+  bool observes = shell->ObservesNativeAnonMutationsForPrint();
+  shell->ObserveNativeAnonMutationsForPrint(true);
+  
+  mFrame->EnsureEditorInitialized();
+  shell->ObserveNativeAnonMutationsForPrint(observes);
+
+  
+  
+  if (!mFrame) {
+    return NS_ERROR_FAILURE;
+  }
+
+  mFrame->FinishedInitializer();
   return NS_OK;
 }
