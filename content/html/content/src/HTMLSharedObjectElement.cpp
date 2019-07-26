@@ -5,6 +5,8 @@
 
 
 #include "mozilla/dom/HTMLSharedObjectElement.h"
+#include "mozilla/dom/HTMLEmbedElementBinding.h"
+#include "mozilla/dom/HTMLAppletElementBinding.h"
 #include "mozilla/Util.h"
 
 #include "nsIDocument.h"
@@ -34,6 +36,8 @@ HTMLSharedObjectElement::HTMLSharedObjectElement(already_AddRefed<nsINodeInfo> a
 
   
   AddStatesSilently(NS_EVENT_STATE_LOADING);
+
+  SetIsDOMBinding();
 }
 
 void
@@ -359,6 +363,33 @@ HTMLSharedObjectElement::CopyInnerTo(Element* aDest)
   }
 
   return rv;
+}
+
+JSObject*
+HTMLSharedObjectElement::WrapNode(JSContext* aCx, JSObject* aScope)
+{
+  JSObject* obj;
+  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
+    obj = HTMLAppletElementBinding::Wrap(aCx, aScope, this);
+  } else {
+    MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::embed));
+    obj = HTMLEmbedElementBinding::Wrap(aCx, aScope, this);
+  }
+  if (!obj) {
+    return nullptr;
+  }
+  SetupProtoChain(aCx, obj);
+  return obj;
+}
+
+JSObject*
+HTMLSharedObjectElement::GetCanonicalPrototype(JSContext* aCx, JSObject* aGlobal)
+{
+  if (mNodeInfo->Equals(nsGkAtoms::applet)) {
+    return HTMLAppletElementBinding::GetProtoObject(aCx, aGlobal);
+  }
+  MOZ_ASSERT(mNodeInfo->Equals(nsGkAtoms::embed));
+  return HTMLEmbedElementBinding::GetProtoObject(aCx, aGlobal);
 }
 
 } 
