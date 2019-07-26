@@ -129,10 +129,11 @@ var WifiManager = (function() {
 
   function unloadDriver(callback) {
     
-    if (device === "otoro") {
-      callback(0);
-      return;
-    }
+    
+    
+    
+    callback(0);
+    return;
 
     voidControlMessage("unload_driver", function(status) {
       driverLoaded = (status < 0);
