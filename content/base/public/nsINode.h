@@ -767,7 +767,7 @@ public:
 
 
 
-  mozilla::dom::Element* GetElementParent() const
+  mozilla::dom::Element* GetParentElement() const
   {
     return mParent && mParent->IsElement() ? mParent->AsElement() : nullptr;
   }
@@ -1511,7 +1511,6 @@ public:
     aNodeName = NodeName();
   }
   void GetBaseURI(nsAString& aBaseURI) const;
-  mozilla::dom::Element* GetParentElement() const;
   bool HasChildNodes() const
   {
     return HasChildren();

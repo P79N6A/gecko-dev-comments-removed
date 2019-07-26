@@ -1898,7 +1898,7 @@ nsHTMLEditor::GetHTMLBackgroundColorState(bool *aMixed, nsAString &aOutColor)
 
     
     
-    element = element->GetElementParent();
+    element = element->GetParentElement();
   }
 
   

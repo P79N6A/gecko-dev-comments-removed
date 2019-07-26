@@ -262,7 +262,7 @@ GetDirectionFromChar(uint32_t ch)
 
 inline static bool NodeAffectsDirAutoAncestor(nsINode* aTextNode)
 {
-  Element* parent = aTextNode->GetElementParent();
+  Element* parent = aTextNode->GetParentElement();
   return (parent &&
           !DoesNotParticipateInAutoDirection(parent) &&
           parent->NodeOrAncestorHasDirAuto());
@@ -575,7 +575,7 @@ RecomputeDirectionality(Element* aElement, bool aNotify)
   if (aElement->HasValidDir()) {
     dir = aElement->GetDirectionality();
   } else {
-    Element* parent = aElement->GetElementParent();
+    Element* parent = aElement->GetParentElement();
     if (parent) {
       
       
@@ -628,7 +628,7 @@ void
 WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify)
 {
   nsINode* setByNode;
-  Element* parent = aElement->GetElementParent();
+  Element* parent = aElement->GetParentElement();
 
   while (parent && parent->NodeOrAncestorHasDirAuto()) {
     if (parent->HasDirAutoSet()) {
@@ -649,7 +649,7 @@ WalkAncestorsResetAutoDirection(Element* aElement, bool aNotify)
       }
       break;
     }
-    parent = parent->GetElementParent();
+    parent = parent->GetParentElement();
   }
 }
 
@@ -718,7 +718,7 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
   MOZ_ASSERT(aTextNode->NodeType() == nsIDOMNode::TEXT_NODE,
              "Must be a text node");
 
-  Element* parent = aTextNode->GetElementParent();
+  Element* parent = aTextNode->GetParentElement();
   while (parent && parent->NodeOrAncestorHasDirAuto()) {
     if (DoesNotParticipateInAutoDirection(parent) || parent->HasFixedDir()) {
       break;
@@ -777,7 +777,7 @@ void SetAncestorDirectionIfAuto(nsINode* aTextNode, Directionality aDir,
       
       return;
     }
-    parent = parent->GetElementParent();
+    parent = parent->GetParentElement();
   }
 }
 

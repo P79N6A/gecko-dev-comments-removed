@@ -1277,7 +1277,7 @@ nsHTMLCSSUtils::IsCSSEquivalentToHTMLInlineStyleSet(nsIDOMNode *aNode,
     if (nsEditProperty::u == aHTMLProperty || nsEditProperty::strike == aHTMLProperty) {
       
       
-      node = node->GetElementParent();  
+      node = node->GetParentElement();  
     }
   } while ((nsEditProperty::u == aHTMLProperty || nsEditProperty::strike == aHTMLProperty) &&
            !aIsSet && node);
