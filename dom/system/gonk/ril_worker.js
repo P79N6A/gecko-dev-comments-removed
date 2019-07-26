@@ -5504,7 +5504,20 @@ RIL[UNSOLICITED_RESPONSE_SIM_STATUS_CHANGED] = function UNSOLICITED_RESPONSE_SIM
   this.getICCStatus();
 };
 RIL[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = null;
-RIL[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = null;
+RIL[UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS] = function UNSOLICITED_RESPONSE_NEW_BROADCAST_SMS(length) {
+  let message;
+  try {
+    message = GsmPDUHelper.readCbMessage(Buf.readUint32());
+  } catch (e) {
+    if (DEBUG) {
+      debug("Failed to parse Cell Broadcast message: " + JSON.stringify(e));
+    }
+    return;
+  }
+
+  message.rilMessageType = "cellbroadcast-received";
+  this.sendDOMMessage(message);
+};
 RIL[UNSOLICITED_CDMA_RUIM_SMS_STORAGE_FULL] = null;
 RIL[UNSOLICITED_RESTRICTED_STATE_CHANGED] = null;
 RIL[UNSOLICITED_ENTER_EMERGENCY_CALLBACK_MODE] = null;
@@ -6925,6 +6938,104 @@ let GsmPDUHelper = {
     
     Buf.writeUint16(0);
     Buf.writeUint16(0);
+  },
+
+  
+
+
+
+
+
+
+
+  readCbSerialNumber: function readCbSerialNumber(msg) {
+    let serial = Buf.readUint8() << 8 | Buf.readUint8();
+    msg.geographicalScope = (serial >>> 14) & 0x03;
+    msg.messageCode = (serial >>> 4) & 0x03FF;
+    msg.updateNumber = serial & 0x0F;
+  },
+
+  
+
+
+
+
+
+
+
+  readCbMessageIdentifier: function readCbMessageIdentifier(msg) {
+    msg.messageId = Buf.readUint8() << 8 | Buf.readUint8();
+  },
+
+  
+
+
+
+
+
+
+
+  readCbWarningType: function readCbWarningType(msg) {
+    let word = Buf.readUint8() << 8 | Buf.readUint8();
+    msg.etws = {
+      warningType:        (word >>> 9) & 0x7F,
+      popup:              word & 0x80 ? true : false,
+      emergencyUserAlert: word & 0x100 ? true : false
+    };
+  },
+
+  
+
+
+
+
+
+  readCbMessage: function readCbMessage(pduLength) {
+    
+    let msg = {
+      
+      updateNumber:         null,                              
+      format:               null,                              
+
+      
+      geographicalScope:    null,                              
+      messageCode:          null,                              
+      messageId:            null,                              
+      messageClass:         GECKO_SMS_MESSAGE_CLASSES[PDU_DCS_MSG_CLASS_NORMAL], 
+      etws:                 null                               
+      
+
+
+
+
+    };
+
+    if (pduLength <= CB_MESSAGE_SIZE_ETWS) {
+      msg.format = CB_FORMAT_ETWS;
+      return this.readEtwsCbMessage(msg);
+    }
+
+    return null;
+  },
+
+  
+
+
+
+
+
+
+
+  readEtwsCbMessage: function readEtwsCbMessage(msg) {
+    this.readCbSerialNumber(msg);
+    this.readCbMessageIdentifier(msg);
+    this.readCbWarningType(msg);
+
+    
+    
+    
+
+    return msg;
   },
 };
 
