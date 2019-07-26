@@ -10,8 +10,6 @@
 #include "Ion.h"
 #include "IonSpewer.h"
 
-#include "jsscriptinlines.h"
-
 #ifndef ION_SPEW_DIR
 # if defined(_WIN32)
 #  define ION_SPEW_DIR ""
@@ -28,7 +26,6 @@ static IonSpewer ionspewer;
 
 static bool LoggingChecked = false;
 static uint32_t LoggingBits = 0;
-static uint32_t filteredOutCompilations = 0;
 
 static const char *ChannelNames[] =
 {
@@ -37,32 +34,6 @@ static const char *ChannelNames[] =
 #undef IONSPEW_CHANNEL
 };
 
-static bool
-FilterContainsLocation(const char *filename, const size_t line = size_t(-1))
-{
-    static const char *filter = getenv("IONFILTER");
-
-    
-    if (!filter || !filter[0])
-        return true;
-
-    static size_t filelen = strlen(filename);
-    const char *index = strstr(filter, filename);
-    while (index) {
-        if (index == filter || index[-1] == ',') {
-            if (index[filelen] == 0 || index[filelen] == ',')
-                return true;
-            if (index[filelen] == ':' && line != size_t(-1)) {
-                size_t read_line = strtoul(&index[filelen + 1], NULL, 10);
-                if (read_line == line)
-                    return true;
-            }
-        }
-        index = strstr(index + filelen, filename);
-    }
-    return false;
-}
-
 void
 ion::EnableIonDebugLogging()
 {
@@ -70,7 +41,7 @@ ion::EnableIonDebugLogging()
 }
 
 void
-ion::IonSpewNewFunction(MIRGraph *graph, HandleScript function)
+ion::IonSpewNewFunction(MIRGraph *graph, JSScript *function)
 {
     if (!js_IonOptions.parallelCompilation)
         ionspewer.beginFunction(graph, function);
@@ -122,24 +93,11 @@ IonSpewer::init()
     return true;
 }
 
-bool
-IonSpewer::isSpewingFunction() const
-{
-    return inited_ && graph;
-}
-
 void
-IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
+IonSpewer::beginFunction(MIRGraph *graph, JSScript *function)
 {
     if (!inited_)
         return;
-
-    if (!FilterContainsLocation(function->filename(), function->lineno)) {
-        JS_ASSERT(!this->graph);
-        
-        filteredOutCompilations++;
-        return;
-    }
 
     this->graph = graph;
     this->function = function;
@@ -151,7 +109,7 @@ IonSpewer::beginFunction(MIRGraph *graph, HandleScript function)
 void
 IonSpewer::spewPass(const char *pass)
 {
-    if (!isSpewingFunction())
+    if (!inited_)
         return;
 
     c1Spewer.spewPass(pass);
@@ -164,7 +122,7 @@ IonSpewer::spewPass(const char *pass)
 void
 IonSpewer::spewPass(const char *pass, LinearScanAllocator *ra)
 {
-    if (!isSpewingFunction())
+    if (!inited_)
         return;
 
     c1Spewer.spewPass(pass);
@@ -179,15 +137,11 @@ IonSpewer::spewPass(const char *pass, LinearScanAllocator *ra)
 void
 IonSpewer::endFunction()
 {
-    if (!isSpewingFunction()) {
-        filteredOutCompilations--;
+    if (!inited_)
         return;
-    }
 
     c1Spewer.endFunction();
     jsonSpewer.endFunction();
-
-    this->graph = NULL;
 }
 
 
@@ -238,8 +192,14 @@ ion::CheckLogging()
             "  pools      Literal Pools (ARM only for now)\n"
             "  cacheflush Instruction Cache flushes (ARM only for now)\n"
             "  logs       C1 and JSON visualization logging\n"
-            "  trace      Generate calls to js::ion::Trace() for effectful instructions\n"
             "  all        Everything\n"
+            "\n"
+            "  bl-aborts  Baseline compiler abort messages\n"
+            "  bl-scripts Baseline script-compilation\n"
+            "  bl-op      Baseline compiler detailed op-specific messages\n"
+            "  bl-ic      Baseline inline-cache messages\n"
+            "  bl-ic-fb   Baseline IC fallback stub messages\n"
+            "  bl-all     All baseline spew\n"
             "\n"
         );
         exit(0);
@@ -281,10 +241,26 @@ ion::CheckLogging()
         EnableChannel(IonSpew_CacheFlush);
     if (ContainsFlag(env, "logs"))
         EnableIonDebugLogging();
-    if (ContainsFlag(env, "trace"))
-        EnableChannel(IonSpew_Trace);
     if (ContainsFlag(env, "all"))
         LoggingBits = uint32_t(-1);
+
+    if (ContainsFlag(env, "bl-aborts"))
+        EnableChannel(IonSpew_BaselineAbort);
+    if (ContainsFlag(env, "bl-scripts"))
+        EnableChannel(IonSpew_BaselineScripts);
+    if (ContainsFlag(env, "bl-op"))
+        EnableChannel(IonSpew_BaselineOp);
+    if (ContainsFlag(env, "bl-ic"))
+        EnableChannel(IonSpew_BaselineIC);
+    if (ContainsFlag(env, "bl-ic-fb"))
+        EnableChannel(IonSpew_BaselineICFallback);
+    if (ContainsFlag(env, "bl-all")) {
+        EnableChannel(IonSpew_BaselineAbort);
+        EnableChannel(IonSpew_BaselineScripts);
+        EnableChannel(IonSpew_BaselineOp);
+        EnableChannel(IonSpew_BaselineIC);
+        EnableChannel(IonSpew_BaselineICFallback);
+    }
 
     if (LoggingBits != 0)
         EnableIonDebugLogging();
@@ -360,13 +336,14 @@ ion::IonSpewHeader(IonSpewChannel channel)
         return;
 
     fprintf(stderr, "[%s] ", ChannelNames[channel]);
+
 }
 
 bool
 ion::IonSpewEnabled(IonSpewChannel channel)
 {
     JS_ASSERT(LoggingChecked);
-    return (LoggingBits & (1 << uint32_t(channel))) && !filteredOutCompilations;
+    return LoggingBits & (1 << uint32_t(channel));
 }
 
 void
