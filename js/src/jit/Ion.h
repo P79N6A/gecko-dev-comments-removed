@@ -338,7 +338,7 @@ struct EnterJitData;
 
 bool SetEnterJitData(JSContext *cx, EnterJitData &data, RunState &state, AutoValueVector &vals);
 
-IonExecStatus Cannon(JSContext *cx, RunState &state);
+IonExecStatus IonCannon(JSContext *cx, RunState &state);
 
 
 IonExecStatus FastInvoke(JSContext *cx, HandleFunction fun, CallArgs &args);
