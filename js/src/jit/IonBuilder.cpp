@@ -6423,9 +6423,7 @@ IonBuilder::setStaticName(JSObject *staticObject, PropertyName *name)
     if (!propertyTypes)
         obj = addShapeGuard(obj, staticObject->lastProperty(), Bailout_ShapeGuard);
 
-    
-    
-    if (!staticObject->is<GlobalObject>() && NeedsPostBarrier(info(), value))
+    if (NeedsPostBarrier(info(), value))
         current->add(MPostWriteBarrier::New(obj, value));
 
     

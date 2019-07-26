@@ -206,6 +206,15 @@ struct JSCompartment
     
     js::TypeRepresentationHash   typeReprs;
 
+    
+
+
+
+
+
+
+    bool                         globalWriteBarriered;
+
   private:
     void sizeOfTypeInferenceData(JS::TypeInferenceSizes *stats, mozilla::MallocSizeOf mallocSizeOf);
 

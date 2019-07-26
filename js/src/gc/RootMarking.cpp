@@ -619,30 +619,6 @@ JSPropertyDescriptor::trace(JSTracer *trc)
     }
 }
 
-static inline void
-MarkGlobalForMinorGC(JSTracer *trc, JSCompartment *compartment)
-{
-#ifdef JS_ION
-    
-
-
-
-
-    JS_ASSERT(trc->runtime->isHeapMinorCollecting());
-
-    if (!compartment->ionCompartment())
-        return;
-
-    GlobalObject *global = compartment->maybeGlobal();
-    if (!global)
-        return;
-
-    
-    for (size_t i = JSCLASS_RESERVED_SLOTS(global->getClass()); i < global->slotSpan(); ++i)
-        MarkValueRoot(trc, global->nativeGetSlotRef(i).unsafeGet(), "MinorGlobalRoot");
-#endif 
-}
-
 void
 js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 {
@@ -726,11 +702,11 @@ js::gc::MarkRuntime(JSTracer *trc, bool useSavedRoots)
 
     
     for (CompartmentsIter c(rt); !c.done(); c.next()) {
+        if (trc->runtime->isHeapMinorCollecting())
+            c->globalWriteBarriered = false;
+
         if (IS_GC_MARKING_TRACER(trc) && !c->zone()->isCollecting())
             continue;
-
-        if (trc->runtime->isHeapMinorCollecting())
-            MarkGlobalForMinorGC(trc, c);
 
         
         if (!IS_GC_MARKING_TRACER(trc)) {
