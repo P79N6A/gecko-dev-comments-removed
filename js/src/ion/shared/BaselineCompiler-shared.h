@@ -25,13 +25,36 @@ class BaselineCompilerShared
     MacroAssembler masm;
 
     FrameInfo frame;
-    js::Vector<CacheData, 16, SystemAllocPolicy> caches_;
+
+    js::Vector<ICEntry, 16, SystemAllocPolicy> icEntries_;
+
+    
+    
+    
+    
+    js::Vector<CodeOffsetLabel, 16, SystemAllocPolicy> icLoadLabels_;
 
     BaselineCompilerShared(JSContext *cx, JSScript *script);
 
-    bool allocateCache(const BaseCache &cache) {
-        JS_ASSERT(cache.data.pc == pc);
-        return caches_.append(cache.data);
+    ICEntry *allocateICEntry(ICStub *stub) {
+        if (!stub)
+            return NULL;
+
+        
+        ICEntry entry((uint32_t) (pc - script->code));
+        if (!icEntries_.append(entry))
+            return NULL;
+        ICEntry &vecEntry = icEntries_[icEntries_.length() - 1];
+
+        
+        vecEntry.setFirstStub(stub);
+
+        
+        return &vecEntry;
+    }
+
+    bool addICLoadLabel(CodeOffsetLabel offset) {
+        return icLoadLabels_.append(offset);
     }
 };
 

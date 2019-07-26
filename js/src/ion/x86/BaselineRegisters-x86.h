@@ -13,12 +13,19 @@
 namespace js {
 namespace ion {
 
-static const Register BaselineFrameReg    = ebp;
-static const Register BaselineStackReg    = esp;
+static const Register BaselineFrameReg = ebp;
+static const Register BaselineStackReg = esp;
+
 
 static const ValueOperand R0(ecx, edx);
 static const ValueOperand R1(eax, ebx);
 static const ValueOperand R2(esi, edi);
+
+
+
+static const Register BaselineTailCallReg = esi;
+static const Register BaselineStubReg     = edi;
+
 
 } 
 } 

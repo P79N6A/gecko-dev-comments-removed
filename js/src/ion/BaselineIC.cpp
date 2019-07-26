@@ -7,191 +7,262 @@
 
 #include "BaselineJIT.h"
 #include "BaselineCompiler.h"
+#include "BaselineHelpers.h"
 #include "BaselineIC.h"
 #include "IonLinker.h"
 #include "IonSpewer.h"
 #include "VMFunctions.h"
 #include "IonFrames-inl.h"
 
-using namespace js;
-using namespace js::ion;
+namespace js {
+namespace ion {
 
-bool
-UpdateBinaryOpCache(JSContext *cx, HandleValue lhs, HandleValue rhs, MutableHandleValue res)
+
+
+
+
+
+static bool
+DoCompareFallback(JSContext *cx, ICCompare_Fallback *stub, HandleValue lhs, HandleValue rhs,
+                  MutableHandleValue ret)
 {
     uint8_t *returnAddr;
     RootedScript script(cx, GetTopIonJSScript(cx, NULL, (void **)&returnAddr));
 
-    BinaryOpCache cache(script->baseline->cacheDataFromReturnAddr(returnAddr));
-
-    JS_ASSERT(JSOp(*cache.data.pc) == JSOP_ADD);
-
-    if (!AddValues(cx, script, cache.data.pc, lhs, rhs, res.address()))
+    
+    JSOp op = JSOp(*stub->icEntry()->pc(script));
+    switch(op) {
+      case JSOP_LT: {
+        
+        JSBool out;
+        if (!LessThan(cx, lhs, rhs, &out))
+            return false;
+        ret.setBoolean(out);
+        break;
+      }
+      case JSOP_GT: {
+        
+        JSBool out;
+        if (!GreaterThan(cx, lhs, rhs, &out))
+            return false;
+        ret.setBoolean(out);
+        break;
+      }
+      default:
+        JS_ASSERT(!"Unhandled baseline compare op");
         return false;
-
-    return cache.update(cx, lhs, rhs, res);
-}
-
-BinaryOpCache::State
-BinaryOpCache::getTargetState(HandleValue lhs, HandleValue rhs, HandleValue res)
-{
-    DebugOnly<State> state = getState();
-    if (lhs.isInt32() && rhs.isInt32() && res.isInt32()) {
-        JS_ASSERT(state != Int32);
-        return Int32;
     }
 
-    JS_NOT_REACHED("Unexpected target state");
-    return Uninitialized;
-}
 
-bool
-BinaryOpCache::update(JSContext *cx, HandleValue lhs, HandleValue rhs, HandleValue res)
-{
-    JS_ASSERT(getState() == Uninitialized); 
+    
+    if (stub->numOptimizedStubs() >= ICCompare_Fallback::MAX_OPTIMIZED_STUBS) {
+        
+        
+        return true;
+    }
 
-    State target = getTargetState(lhs, rhs, res);
-    JS_ASSERT(getState() != target);
+    
+    if (lhs.isInt32()) {
+        if (rhs.isInt32()) {
+            ICCompare_Int32::Compiler compilerInt32(cx, op);
+            ICStub *int32Stub = compilerInt32.getStub();
+            if (!int32Stub)
+                return false;
 
-    setState(target);
-    IonCode *stub = generate(cx);
-    if (!stub)
-        return false;
+            stub->addNewStub(int32Stub);
+        }
+    }
 
-    PatchCall(data.call, CodeLocationLabel(stub));
     return true;
 }
 
 IonCode *
-BinaryOpCache::generate(JSContext *cx)
+ICCompare_Fallback::Compiler::generateStubCode()
 {
     MacroAssembler masm;
+    JS_ASSERT(R0 == JSReturnOperand);
 
-    switch (getState()) {
-      case Uninitialized:
-        if (!generateUpdate(cx, masm))
-            return NULL;
-        break;
-      case Int32:
-        if (!generateInt32(cx, masm))
-            return NULL;
-        break;
-      default:
-        JS_NOT_REACHED("foo");
-    }
+    
+    masm.pop(BaselineTailCallReg);
+
+    
+    typedef bool (*pf)(JSContext *, ICCompare_Fallback *, HandleValue, HandleValue,
+                       MutableHandleValue);
+    static const VMFunction fun = FunctionInfo<pf>(DoCompareFallback);
+
+    IonCode *wrapper = generateVMWrapper(fun);
+    if (!wrapper)
+        return false;
+
+    
+    masm.pushValue(R1);
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    
+    EmitTailCall(wrapper, masm);
 
     Linker linker(masm);
     return linker.newCode(cx);
 }
 
-bool
-BinaryOpCache::generateUpdate(JSContext *cx, MacroAssembler &masm)
+
+
+
+
+static bool
+DoToBoolFallback(JSContext *cx, ICToBool_Fallback *stub, HandleValue arg, MutableHandleValue ret)
 {
+    bool cond = ToBoolean(arg);
+    ret.setBoolean(cond);
+
     
-    masm.pop(esi);
-    masm.pushValue(R1);
-    masm.pushValue(R0);
-
-    typedef bool (*pf)(JSContext *, HandleValue, HandleValue, MutableHandleValue);
-    static const VMFunction fun = FunctionInfo<pf>(UpdateBinaryOpCache);
-
-    IonCompartment *ion = cx->compartment->ionCompartment();
-    IonCode *wrapper = ion->generateVMWrapper(cx, fun);
-    if (!wrapper)
-        return false;
-
-    masm.tailCallWithExitFrameFromBaseline(wrapper);
-    masm.breakpoint();
-    return true;
-}
-
-bool
-UpdateCompareCache(JSContext *cx, HandleValue lhs, HandleValue rhs, MutableHandleValue res)
-{
-    uint8_t *returnAddr;
-    RootedScript script(cx, GetTopIonJSScript(cx, NULL, (void **)&returnAddr));
-
-    CompareCache cache(script->baseline->cacheDataFromReturnAddr(returnAddr));
-
-    JS_ASSERT(JSOp(*cache.data.pc) == JSOP_LT);
-
-    JSBool b;
-    if (!LessThan(cx, lhs, rhs, &b))
-        return false;
-
-    res.setBoolean(b);
-    return cache.update(cx, lhs, rhs);
-}
-
-CompareCache::State
-CompareCache::getTargetState(HandleValue lhs, HandleValue rhs)
-{
-    DebugOnly<State> state = getState();
-    if (lhs.isInt32() && rhs.isInt32()) {
-        JS_ASSERT(state != Int32);
-        return Int32;
+    if (stub->numOptimizedStubs() >= ICToBool_Fallback::MAX_OPTIMIZED_STUBS) {
+        
+        
+        return true;
     }
 
-    JS_NOT_REACHED("Unexpected target state");
-    return Uninitialized;
-}
+    
+    if (arg.isBoolean()) {
+        
+        ICToBool_Bool::Compiler compilerBool(cx);
+        ICStub *boolStub = compilerBool.getStub();
+        if (!boolStub)
+            return false;
 
-bool
-CompareCache::update(JSContext *cx, HandleValue lhs, HandleValue rhs)
-{
-    JS_ASSERT(getState() == Uninitialized); 
+        stub->addNewStub(boolStub);
+    }
 
-    State target = getTargetState(lhs, rhs);
-    JS_ASSERT(getState() != target);
-
-    setState(target);
-    IonCode *stub = generate(cx);
-    if (!stub)
-        return false;
-
-    PatchCall(data.call, CodeLocationLabel(stub));
     return true;
 }
 
 IonCode *
-CompareCache::generate(JSContext *cx)
+ICToBool_Fallback::Compiler::generateStubCode()
 {
     MacroAssembler masm;
+    JS_ASSERT(R0 == JSReturnOperand);
 
-    switch (getState()) {
-      case Uninitialized:
-        if (!generateUpdate(cx, masm))
-            return NULL;
-        break;
-      case Int32:
-        if (!generateInt32(cx, masm))
-            return NULL;
-        break;
-      default:
-        JS_NOT_REACHED("foo");
-    }
+    
+    masm.pop(BaselineTailCallReg);
+
+    
+    typedef bool (*pf)(JSContext *, ICToBool_Fallback *, HandleValue, MutableHandleValue);
+    static const VMFunction fun = FunctionInfo<pf>(DoToBoolFallback);
+
+    IonCode *wrapper = generateVMWrapper(fun);
+    if (!wrapper)
+        return false;
+
+    
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    
+    EmitTailCall(wrapper, masm);
 
     Linker linker(masm);
     return linker.newCode(cx);
 }
 
-bool
-CompareCache::generateUpdate(JSContext *cx, MacroAssembler &masm)
+
+
+
+
+IonCode *
+ICToBool_Bool::Compiler::generateStubCode()
 {
+    MacroAssembler masm;
+
     
-    masm.pop(esi);
-    masm.pushValue(R1);
-    masm.pushValue(R0);
+    Label failure;
+    masm.branchTestBoolean(Assembler::NotEqual, R0, &failure);
+    masm.ret();
 
-    typedef bool (*pf)(JSContext *, HandleValue, HandleValue, MutableHandleValue);
-    static const VMFunction fun = FunctionInfo<pf>(UpdateCompareCache);
+    
+    masm.bind(&failure);
+    EmitStubGuardFailure(masm);
 
-    IonCompartment *ion = cx->compartment->ionCompartment();
-    IonCode *wrapper = ion->generateVMWrapper(cx, fun);
+    Linker linker(masm);
+    return linker.newCode(cx);
+}
+
+
+
+
+
+static bool
+DoBinaryArithFallback(JSContext *cx, ICBinaryArith_Fallback *stub, HandleValue lhs,
+                      HandleValue rhs, MutableHandleValue ret)
+{
+    uint8_t *returnAddr;
+    RootedScript script(cx, GetTopIonJSScript(cx, NULL, (void **)&returnAddr));
+
+    
+    JSOp op = JSOp(*stub->icEntry()->pc(script));
+    switch(op) {
+      case JSOP_ADD: {
+        
+        if (!AddValues(cx, script, stub->icEntry()->pc(script), lhs, rhs, ret.address()))
+            return false;
+        break;
+      }
+      default:
+        JS_ASSERT(!"Unhandled baseline compare op");
+        return false;
+    }
+
+    
+    if (stub->numOptimizedStubs() >= ICBinaryArith_Fallback::MAX_OPTIMIZED_STUBS) {
+        
+        
+        return true;
+    }
+
+    
+    if (lhs.isInt32()) {
+        if (rhs.isInt32()) {
+            ICBinaryArith_Int32::Compiler compilerInt32(cx, op);
+            ICStub *int32Stub = compilerInt32.getStub();
+            if (!int32Stub)
+                return false;
+
+            stub->addNewStub(int32Stub);
+        }
+    }
+
+    return true;
+}
+
+IonCode *
+ICBinaryArith_Fallback::Compiler::generateStubCode()
+{
+    MacroAssembler masm;
+    JS_ASSERT(R0 == JSReturnOperand);
+
+    
+    masm.pop(BaselineTailCallReg);
+
+    
+    typedef bool (*pf)(JSContext *, ICBinaryArith_Fallback *, HandleValue, HandleValue,
+                       MutableHandleValue);
+    static const VMFunction fun = FunctionInfo<pf>(DoBinaryArithFallback);
+
+    IonCode *wrapper = generateVMWrapper(fun);
     if (!wrapper)
         return false;
 
-    masm.tailCallWithExitFrameFromBaseline(wrapper);
-    masm.breakpoint();
-    return true;
+    
+    masm.pushValue(R1);
+    masm.pushValue(R0);
+    masm.push(BaselineStubReg);
+
+    
+    EmitTailCall(wrapper, masm);
+
+    Linker linker(masm);
+    return linker.newCode(cx);
 }
+
+} 
+} 
