@@ -26,7 +26,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "Task",
 
 
 
-let connectionCounters = new Map();
+let connectionCounters = {};
 
 
 
@@ -89,37 +89,34 @@ function openConnection(options) {
   }
 
   let file = FileUtils.File(path);
+  let openDatabaseFn = sharedMemoryCache ?
+                         Services.storage.openDatabase :
+                         Services.storage.openUnsharedDatabase;
 
   let basename = OS.Path.basename(path);
-  let number = connectionCounters.get(basename) || 0;
-  connectionCounters.set(basename, number + 1);
 
+  if (!connectionCounters[basename]) {
+    connectionCounters[basename] = 1;
+  }
+
+  let number = connectionCounters[basename]++;
   let identifier = basename + "#" + number;
 
   log.info("Opening database: " + path + " (" + identifier + ")");
-  let deferred = Promise.defer();
-  let options = null;
-  if (!sharedMemoryCache) {
-    options = Cc["@mozilla.org/hash-property-bag;1"].
-      createInstance(Ci.nsIWritablePropertyBag);
-    options.setProperty("shared", false);
+  try {
+    let connection = openDatabaseFn(file);
+
+    if (!connection.connectionReady) {
+      log.warn("Connection is not ready.");
+      return Promise.reject(new Error("Connection is not ready."));
+    }
+
+    return Promise.resolve(new OpenedConnection(connection, basename, number,
+                                                openedOptions));
+  } catch (ex) {
+    log.warn("Could not open database: " + CommonUtils.exceptionStr(ex));
+    return Promise.reject(ex);
   }
-  Services.storage.openAsyncDatabase(file, options, function(status, connection) {
-    if (!connection) {
-      log.warn("Could not open connection: " + status);
-      deferred.reject(new Error("Could not open connection: " + status));
-    }
-    log.warn("Connection opened");
-    try {
-      deferred.resolve(
-        new OpenedConnection(connection.QueryInterface(Ci.mozIStorageAsyncConnection), basename, number,
-        openedOptions));
-    } catch (ex) {
-      log.warn("Could not open database: " + CommonUtils.exceptionStr(ex));
-      deferred.reject(ex);
-    }
-  });
-  return deferred.promise;
 }
 
 
@@ -228,6 +225,10 @@ OpenedConnection.prototype = Object.freeze({
 
   TRANSACTION_TYPES: ["DEFERRED", "IMMEDIATE", "EXCLUSIVE"],
 
+  get connectionReady() {
+    return this._open && this._connection.connectionReady;
+  },
+
   
 
 
@@ -235,25 +236,40 @@ OpenedConnection.prototype = Object.freeze({
 
 
 
-  getSchemaVersion: function() {
-    let self = this;
-    return this.execute("PRAGMA user_version").then(
-      function onSuccess(result) {
-        if (result == null) {
-          return 0;
-        }
-        return JSON.stringify(result[0].getInt32(0));
-      }
-    );
+
+
+
+
+  get lastInsertRowID() {
+    this._ensureOpen();
+    return this._connection.lastInsertRowID;
   },
 
-  setSchemaVersion: function(value) {
-    if (!Number.isInteger(value)) {
-      
-      throw new TypeError("Schema version must be an integer. Got " + value);
-    }
+  
+
+
+
+
+
+
+  get affectedRows() {
     this._ensureOpen();
-    return this.execute("PRAGMA user_version = " + value);
+    return this._connection.affectedRows;
+  },
+
+  
+
+
+
+
+  get schemaVersion() {
+    this._ensureOpen();
+    return this._connection.schemaVersion;
+  },
+
+  set schemaVersion(value) {
+    this._ensureOpen();
+    this._connection.schemaVersion = value;
   },
 
   
