@@ -343,6 +343,12 @@ void
 IonCode::finalize(FreeOp *fop)
 {
     JS_ASSERT(!fop->onBackgroundThread());
+
+    
+    JS_POISON(code_, JS_FREE_PATTERN, bufferSize_);
+
+    
+    
     if (pool_)
         pool_->release();
 }
