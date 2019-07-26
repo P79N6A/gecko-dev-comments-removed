@@ -2651,7 +2651,7 @@ nsObjectLoadingContent::NotifyContentObjectWrapper()
   nsCxPusher pusher;
   pusher.Push(cx);
 
-  JS::Rooted<JSObject*> obj(cx, thisContent->GetWrapper());
+  JSObject *obj = thisContent->GetWrapper();
   if (!obj) {
     
     
@@ -2849,14 +2849,14 @@ nsObjectLoadingContent::LegacyCall(JSContext* aCx,
 {
   nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
-  JS::Rooted<JSObject*> obj(aCx, thisContent->GetWrapper());
+  JSObject* obj = thisContent->GetWrapper();
   MOZ_ASSERT(obj, "How did we get called?");
 
   
   
   
   
-  if (!JS_WrapObject(aCx, obj.address())) {
+  if (!JS_WrapObject(aCx, &obj)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return JS::UndefinedValue();
   }
@@ -2924,7 +2924,7 @@ nsObjectLoadingContent::LegacyCall(JSContext* aCx,
 }
 
 void
-nsObjectLoadingContent::SetupProtoChain(JSContext* aCx, JS::HandleObject aObject)
+nsObjectLoadingContent::SetupProtoChain(JSContext* aCx, JSObject* aObject)
 {
   MOZ_ASSERT(nsCOMPtr<nsIContent>(do_QueryInterface(
     static_cast<nsIObjectLoadingContent*>(this)))->IsDOMBinding());
@@ -3086,13 +3086,12 @@ nsObjectLoadingContent::TeardownProtoChain()
   
   
   JSContext *cx = nsContentUtils::GetSafeJSContext();
-  JS::Rooted<JSObject*> obj(cx, thisContent->GetWrapper());
+  JSObject *obj = thisContent->GetWrapper();
   NS_ENSURE_TRUE(obj, );
 
+  JSObject *proto;
   JSAutoRequest ar(cx);
   JSAutoCompartment ac(cx, obj);
-
-  JSObject *proto;
 
   
   
@@ -3159,7 +3158,7 @@ nsObjectLoadingContent::SetupProtoChainRunner::Run()
 
   nsCOMPtr<nsIContent> content;
   CallQueryInterface(mContent.get(), getter_AddRefs(content));
-  JS::Rooted<JSObject*> obj(cx, content->GetWrapper());
+  JSObject* obj = content->GetWrapper();
   if (!obj) {
     
     return NS_OK;

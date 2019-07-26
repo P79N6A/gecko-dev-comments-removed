@@ -100,16 +100,16 @@ nsXBLProtoImpl::InstallImplementation(nsXBLPrototypeBinding* aPrototypeBinding,
   
   
   
-  JS::Rooted<JSObject*> globalObject(cx, JS_GetGlobalForObject(cx, targetClassObject));
-  JS::Rooted<JSObject*> scopeObject(cx, xpc::GetXBLScope(cx, globalObject));
+  JSObject* globalObject = JS_GetGlobalForObject(cx, targetClassObject);
+  JSObject* scopeObject = xpc::GetXBLScope(cx, globalObject);
   NS_ENSURE_TRUE(scopeObject, NS_ERROR_OUT_OF_MEMORY);
   if (scopeObject != globalObject) {
     JSAutoCompartment ac2(cx, scopeObject);
 
     
     
-    JS::Rooted<JSObject*> shadowProto(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr,
-                                                                scopeObject));
+    JSObject *shadowProto = JS_NewObjectWithGivenProto(cx, nullptr, nullptr,
+                                                       scopeObject);
     NS_ENSURE_TRUE(shadowProto, NS_ERROR_OUT_OF_MEMORY);
 
     
