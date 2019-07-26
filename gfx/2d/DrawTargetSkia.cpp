@@ -696,9 +696,7 @@ DrawTargetSkia::Init(unsigned char* aData, const IntSize &aSize, int32_t aStride
 {
   SkAlphaType alphaType = kPremul_SkAlphaType;
   if (aFormat == SurfaceFormat::B8G8R8X8) {
-    
-    ConvertBGRXToBGRA(aData, aSize, aStride);
-    alphaType = kOpaque_SkAlphaType;
+    alphaType = kIgnore_SkAlphaType;
   }
 
   SkBitmap bitmap;
