@@ -677,15 +677,17 @@ struct GetPropHelper {
     LookupStatus lookup() {
         RootedObject aobj(cx, obj);
         if (IsCacheableListBase(obj)) {
-            RootedId aid(cx, NameToId(name));
-            ListBaseShadowsResult shadows =
-                GetListBaseShadowsCheck()(cx, obj, aid);
-            if (shadows == ShadowCheckFailed)
-                return ic.error(cx);
+            Value expandoValue = obj->getFixedSlot(GetListBaseExpandoSlot());
+
             
             
-            if (shadows == Shadows || shadows == DoesntShadowUnique)
+            
+            JS_ASSERT_IF(expandoValue.isObject(),
+                         expandoValue.toObject().isNative() && !expandoValue.toObject().getProto());
+
+            if (expandoValue.isObject() && expandoValue.toObject().nativeContains(cx, name))
                 return Lookup_Uncacheable;
+
             aobj = obj->getTaggedProto().toObjectOrNull();
         }
 
