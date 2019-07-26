@@ -55,7 +55,7 @@ this.ViewHelpers = {
 
 
   dispatchEvent: function(aTarget, aType, aDetail) {
-    if (!aTarget) {
+    if (!(aTarget instanceof Ci.nsIDOMNode)) {
       return true; 
     }
     let document = aTarget.ownerDocument || aTarget;
@@ -880,14 +880,14 @@ MenuContainer.prototype = {
   set selectedItem(aItem) {
     
     let targetElement = aItem ? aItem._target : null;
+    let prevElement = this._container.selectedItem;
 
     
-    if (this._container.selectedItem == targetElement) {
+    if (targetElement == prevElement) {
       return;
     }
-
     this._container.selectedItem = targetElement;
-    ViewHelpers.dispatchEvent(targetElement, "select", aItem);
+    ViewHelpers.dispatchEvent(targetElement || prevElement, "select", aItem);
   },
 
   

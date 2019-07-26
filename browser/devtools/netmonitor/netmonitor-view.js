@@ -231,16 +231,14 @@ ToolbarView.prototype = {
 
   _onTogglePanesPressed: function() {
     let requestsMenu = NetMonitorView.RequestsMenu;
-    let networkDetails = NetMonitorView.NetworkDetails;
+    let selectedIndex = requestsMenu.selectedIndex;
 
     
     
-    if (!requestsMenu.selectedItem && requestsMenu.itemCount) {
+    if (selectedIndex == -1 && requestsMenu.itemCount) {
       requestsMenu.selectedIndex = 0;
-    }
-    
-    else {
-      networkDetails.toggle(NetMonitorView.detailsPaneHidden);
+    } else {
+      requestsMenu.selectedIndex = -1;
     }
   },
 
@@ -929,8 +927,8 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onMouseDown: function(e) {
-    let item = this.getItemForElement(e.target);
+  _onMouseDown: function({ target }) {
+    let item = this.getItemForElement(target);
     if (item) {
       
       this.selectedItem = item;
@@ -940,9 +938,13 @@ create({ constructor: RequestsMenuView, proto: MenuContainer.prototype }, {
   
 
 
-  _onSelect: function(e) {
-    NetMonitorView.NetworkDetails.populate(this.selectedItem.attachment);
-    NetMonitorView.NetworkDetails.toggle(true);
+  _onSelect: function({ detail: item }) {
+    if (item) {
+      NetMonitorView.NetworkDetails.populate(item.attachment);
+      NetMonitorView.NetworkDetails.toggle(true);
+    } else {
+      NetMonitorView.NetworkDetails.toggle(false);
+    }
   },
 
   
