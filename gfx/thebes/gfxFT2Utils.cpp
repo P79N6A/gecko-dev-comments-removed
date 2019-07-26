@@ -81,7 +81,8 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
 
     gfxFloat emHeight;
     
-    gfxFloat yScale;
+    
+    gfxFloat yScale = 0.0;
     if (FT_IS_SCALABLE(mFace)) {
         
         
@@ -95,9 +96,15 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
     } else { 
         
         
-        gfxFloat emUnit = mFace->units_per_EM;
-        emHeight = ftMetrics.y_ppem;
-        yScale = emHeight / emUnit;
+        
+        
+        const TT_Header* head =
+            static_cast<TT_Header*>(FT_Get_Sfnt_Table(mFace, ft_sfnt_head));
+        if (head) {
+            gfxFloat emUnit = head->Units_Per_EM;
+            emHeight = ftMetrics.y_ppem;
+            yScale = emHeight / emUnit;
+        }
     }
 
     TT_OS2 *os2 =
@@ -108,7 +115,7 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
     aMetrics->maxAdvance = FLOAT_FROM_26_6(ftMetrics.max_advance);
 
     gfxFloat lineHeight;
-    if (os2 && os2->sTypoAscender) {
+    if (os2 && os2->sTypoAscender && yScale > 0.0) {
         aMetrics->emAscent = os2->sTypoAscender * yScale;
         aMetrics->emDescent = -os2->sTypoDescender * yScale;
         FT_Short typoHeight =
@@ -150,7 +157,7 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         aMetrics->xHeight = -extents.y_bearing;
         aMetrics->aveCharWidth = extents.x_advance;
     } else {
-        if (os2 && os2->sxHeight) {
+        if (os2 && os2->sxHeight && yScale > 0.0) {
             aMetrics->xHeight = os2->sxHeight * yScale;
         } else {
             
@@ -195,7 +202,7 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
     
     
     
-    if (mFace->underline_position && mFace->underline_thickness) {
+    if (mFace->underline_position && mFace->underline_thickness && yScale > 0.0) {
         aMetrics->underlineSize = mFace->underline_thickness * yScale;
         TT_Postscript *post = static_cast<TT_Postscript*>
             (FT_Get_Sfnt_Table(mFace, ft_sfnt_post));
@@ -211,7 +218,7 @@ gfxFT2LockedFace::GetMetrics(gfxFont::Metrics* aMetrics,
         aMetrics->underlineOffset = -aMetrics->underlineSize;
     }
 
-    if (os2 && os2->yStrikeoutSize && os2->yStrikeoutPosition) {
+    if (os2 && os2->yStrikeoutSize && os2->yStrikeoutPosition && yScale > 0.0) {
         aMetrics->strikeoutSize = os2->yStrikeoutSize * yScale;
         aMetrics->strikeoutOffset = os2->yStrikeoutPosition * yScale;
     } else { 
