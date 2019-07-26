@@ -2157,6 +2157,8 @@ bool nsWindow::OnMouseChord(MPARAM mp1, MPARAM mp2)
     isCopy = true;
   }
 
+  
+  
   nsKeyEvent event(true, NS_KEY_PRESS, this);
   nsIntPoint point(0,0);
   InitEvent(event, &point);
@@ -2794,6 +2796,11 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
   }
 
   
+  if (rc) {
+    return rc;
+  }
+
+  
   
   
   if (fsFlags & KC_INVALIDCOMP) {
@@ -2805,9 +2812,6 @@ bool nsWindow::DispatchKeyEvent(MPARAM mp1, MPARAM mp2)
   
   
   pressEvent.message = NS_KEY_PRESS;
-  if (rc) {
-    pressEvent.mFlags.mDefaultPrevented = true;
-  }
 
   if (usChar) {
     USHORT inbuf[2];
