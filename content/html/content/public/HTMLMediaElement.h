@@ -344,7 +344,7 @@ public:
   
 
   
-  void SetCrossorigin(const nsAString& aValue, ErrorResult& aRv)
+  void SetCrossOrigin(const nsAString& aValue, ErrorResult& aRv)
   {
     SetHTMLAttr(nsGkAtoms::crossorigin, aValue, aRv);
   }
