@@ -1742,7 +1742,7 @@ ContentChild::RecvNuwaFork()
     
     
     while (!BackgroundChild::GetForCurrentThread()) {
-        if (NS_WARN_IF(NS_FAILED(NS_ProcessNextEvent()))) {
+        if (NS_WARN_IF(!NS_ProcessNextEvent())) {
             return false;
         }
     }
