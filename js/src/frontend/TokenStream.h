@@ -524,7 +524,6 @@ class TokenStream
     void setXMLOnlyMode(bool enabled = true) { setFlag(enabled, TSF_XMLONLYMODE); }
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
 
-    bool strictMode() const { return strictModeGetter && strictModeGetter->get(); }
     bool isXMLTagMode() const { return !!(flags & TSF_XMLTAGMODE); }
     bool isXMLOnlyMode() const { return !!(flags & TSF_XMLONLYMODE); }
     bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
@@ -534,8 +533,6 @@ class TokenStream
     
     bool reportError(unsigned errorNumber, ...);
     bool reportWarning(unsigned errorNumber, ...);
-    bool reportStrictWarning(unsigned errorNumber, ...);
-    bool reportStrictModeError(unsigned errorNumber, ...);
 
     
     
@@ -548,6 +545,11 @@ class TokenStream
                                           va_list args);
 
   private:
+    
+    
+    bool reportStrictModeError(unsigned errorNumber, ...);
+    bool strictMode() const { return strictModeGetter && strictModeGetter->get(); }
+
     void onError();
     static JSAtom *atomize(JSContext *cx, CharBuffer &cb);
     bool putIdentInTokenbuf(const jschar *identStart);
