@@ -44,8 +44,8 @@
 #include "IonSpewer.h"
 #include "MIRGenerator.h"
 #include "shared/CodeGenerator-shared-inl.h"
-#include "jsmath.h"
 #include "jsnum.h"
+#include "jsmath.h"
 #include "jsinterpinlines.h"
 
 using namespace js;
@@ -766,6 +766,228 @@ CodeGenerator::visitCallConstructor(LCallConstructor *call)
 
     
     masm.reserveStack(unusedStack);
+
+    return true;
+}
+
+bool
+CodeGenerator::emitCallInvokeFunction(LApplyArgsGeneric *apply, Register extraStackSize)
+{
+    Register objreg = ToRegister(apply->getTempObject());
+    JS_ASSERT(objreg != extraStackSize);
+
+    typedef bool (*pf)(JSContext *, JSFunction *, uint32, Value *, Value *);
+    static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
+
+    
+    masm.movePtr(StackPointer, objreg);
+    masm.Push(extraStackSize);
+
+    pushArg(objreg);                           
+    pushArg(ToRegister(apply->getArgc()));     
+    pushArg(ToRegister(apply->getFunction())); 
+
+    
+    if (!callVM(InvokeFunctionInfo, apply, &extraStackSize))
+        return false;
+
+    masm.Pop(extraStackSize);
+    return true;
+}
+
+
+
+void
+CodeGenerator::emitPushArguments(LApplyArgsGeneric *apply, Register extraStackSpace)
+{
+    
+    Register argcreg = ToRegister(apply->getArgc());
+
+    Register copyreg = ToRegister(apply->getTempObject());
+    size_t argvOffset = frameSize() + IonJSFrameLayout::offsetOfActualArgs();
+    Label end;
+
+    
+    masm.movePtr(argcreg, extraStackSpace);
+    masm.branchTestPtr(Assembler::Zero, argcreg, argcreg, &end);
+
+    
+    {
+        Register count = extraStackSpace; 
+        Label loop;
+        masm.bind(&loop);
+
+        
+        
+        BaseIndex disp(StackPointer, argcreg, ScaleFromShift(sizeof(Value)), argvOffset - sizeof(void*));
+
+        
+        
+        masm.loadPtr(disp, copyreg);
+        masm.push(copyreg);
+
+        
+        if (sizeof(Value) == 2 * sizeof(void*)) {
+            masm.loadPtr(disp, copyreg);
+            masm.push(copyreg);
+        }
+
+        masm.decBranchPtr(Assembler::NonZero, count, Imm32(1), &loop);
+    }
+
+    
+    masm.movePtr(argcreg, extraStackSpace);
+    masm.lshiftPtr(Imm32::ShiftOf(ScaleFromShift(sizeof(Value))), extraStackSpace);
+
+    
+    masm.bind(&end);
+
+    
+    masm.addPtr(Imm32(sizeof(Value)), extraStackSpace);
+    masm.pushValue(ToValue(apply, LApplyArgsGeneric::ThisIndex));
+}
+
+void
+CodeGenerator::emitPopArguments(LApplyArgsGeneric *apply, Register extraStackSpace)
+{
+    
+    masm.freeStack(extraStackSpace);
+}
+
+bool
+CodeGenerator::visitApplyArgsGeneric(LApplyArgsGeneric *apply)
+{
+    
+    Register calleereg = ToRegister(apply->getFunction());
+
+    
+    Register objreg = ToRegister(apply->getTempObject());
+    Register copyreg = ToRegister(apply->getTempCopy());
+
+    
+    Register argcreg = ToRegister(apply->getArgc());
+
+    
+    if (!apply->hasSingleTarget()) {
+        masm.loadObjClass(calleereg, objreg);
+        masm.cmpPtr(objreg, ImmWord(&js::FunctionClass));
+        if (!bailoutIf(Assembler::NotEqual, apply->snapshot()))
+            return false;
+    }
+
+    
+    emitPushArguments(apply, copyreg);
+
+    masm.checkStackAlignment();
+
+    
+    if (apply->hasSingleTarget() &&
+        (!apply->getSingleTarget()->isInterpreted() ||
+         apply->getSingleTarget()->script()->ion == ION_DISABLED_SCRIPT))
+    {
+        emitCallInvokeFunction(apply, copyreg);
+        emitPopArguments(apply, copyreg);
+        return true;
+    }
+
+    Label end, invoke;
+
+    
+    
+    
+    if (!apply->hasSingleTarget()) {
+        Register kind = objreg;
+        Address flags(calleereg, offsetof(JSFunction, flags));
+        masm.load16ZeroExtend_mask(flags, Imm32(JSFUN_KINDMASK), kind);
+        masm.branch32(Assembler::LessThan, kind, Imm32(JSFUN_INTERPRETED), &invoke);
+    } else {
+        
+        JS_ASSERT(!apply->getSingleTarget()->isNative());
+    }
+
+    
+    masm.movePtr(Address(calleereg, offsetof(JSFunction, u.i.script_)), objreg);
+    masm.movePtr(Address(objreg, offsetof(JSScript, ion)), objreg);
+
+    
+    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_DISABLED_SCRIPT), &invoke);
+
+    
+    {
+        
+        unsigned pushed = masm.framePushed();
+        masm.addPtr(Imm32(pushed), copyreg);
+        masm.makeFrameDescriptor(copyreg, IonFrame_JS);
+
+        masm.Push(argcreg);
+        masm.Push(calleereg);
+        masm.Push(copyreg); 
+
+        Label underflow, rejoin;
+
+        
+        if (!apply->hasSingleTarget()) {
+            masm.load16ZeroExtend(Address(calleereg, offsetof(JSFunction, nargs)), copyreg);
+            masm.cmp32(argcreg, copyreg);
+            masm.j(Assembler::Below, &underflow);
+        } else {
+            masm.cmp32(argcreg, Imm32(apply->getSingleTarget()->nargs));
+            masm.j(Assembler::Below, &underflow);
+        }
+
+        
+        {
+            masm.movePtr(Address(objreg, offsetof(IonScript, method_)), objreg);
+            masm.movePtr(Address(objreg, IonCode::OffsetOfCode()), objreg);
+
+            
+            
+            masm.jump(&rejoin);
+        }
+
+        
+        {
+            masm.bind(&underflow);
+
+            
+            IonCompartment *ion = gen->ionCompartment();
+            IonCode *argumentsRectifier = ion->getArgumentsRectifier(gen->cx);
+            if (!argumentsRectifier)
+                return false;
+
+            JS_ASSERT(ArgumentsRectifierReg != objreg);
+            masm.movePtr(argcreg, ArgumentsRectifierReg);
+            masm.movePtr(ImmWord(argumentsRectifier->raw()), objreg);
+        }
+
+        masm.bind(&rejoin);
+
+        
+        masm.callIon(objreg);
+        if (!markSafepoint(apply))
+            return false;
+
+        
+        masm.movePtr(Address(StackPointer, 0), copyreg);
+        masm.rshiftPtr(Imm32(FRAMESIZE_SHIFT), copyreg);
+        masm.subPtr(Imm32(pushed), copyreg);
+
+        
+        
+        int prefixGarbage = sizeof(IonJSFrameLayout) - sizeof(void *);
+        masm.adjustStack(prefixGarbage);
+        masm.jump(&end);
+    }
+
+    
+    {
+        masm.bind(&invoke);
+        emitCallInvokeFunction(apply, copyreg);
+    }
+
+    
+    masm.bind(&end);
+    emitPopArguments(apply, copyreg);
 
     return true;
 }

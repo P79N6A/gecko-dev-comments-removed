@@ -375,7 +375,7 @@ CodeGeneratorShared::markOsiPoint(LOsiPoint *ins, uint32 *callPointOffset)
 
 
 bool
-CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
+CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Register *dynStack)
 {
 #ifdef DEBUG
     if (ins->mirRaw()) {
@@ -403,7 +403,11 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
     
     
     
-    masm.callWithExitFrame(wrapper);
+    if (dynStack)
+        masm.callWithExitFrame(wrapper, *dynStack);
+    else
+        masm.callWithExitFrame(wrapper);
+
     if (!markSafepoint(ins))
         return false;
 

@@ -1257,6 +1257,50 @@ class MCall
     }
 };
 
+
+class MApplyArgs
+  : public MAryInstruction<3>,
+    public MixPolicy<ObjectPolicy<0>, MixPolicy<IntPolicy<1>, BoxPolicy<2> > >
+{
+  protected:
+    
+    CompilerRootFunction target_;
+
+    MApplyArgs(JSFunction *target, MDefinition *fun, MDefinition *argc, MDefinition *self)
+      : target_(target)
+    {
+        initOperand(0, fun);
+        initOperand(1, argc);
+        initOperand(2, self);
+        setResultType(MIRType_Value);
+    }
+
+  public:
+    INSTRUCTION_HEADER(ApplyArgs);
+    static MApplyArgs *New(JSFunction *target, MDefinition *fun, MDefinition *argc,
+                           MDefinition *self);
+
+    MDefinition *getFunction() const {
+        return getOperand(0);
+    }
+
+    
+    JSFunction *getSingleTarget() const {
+        return target_;
+    }
+
+    MDefinition *getArgc() const {
+        return getOperand(1);
+    }
+    MDefinition *getThis() const {
+        return getOperand(2);
+    }
+
+    TypePolicy *typePolicy() {
+        return this;
+    }
+};
+
 class MUnaryInstruction : public MAryInstruction<1>
 {
   protected:
