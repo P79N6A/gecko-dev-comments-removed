@@ -576,7 +576,12 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
         }
         break;
       case DT_TEXTREL:
-        has_text_relocs = true;
+        if (strcmp("libflashplayer.so", GetName()) == 0) {
+          has_text_relocs = true;
+        } else {
+          LOG("%s: Text relocations are not supported", GetPath());
+          return false;
+        }
         break;
       case DT_STRSZ: 
         debug_dyn("DT_STRSZ", dyn);
@@ -647,7 +652,12 @@ CustomElf::InitDyn(const Phdr *pt_dyn)
            Addr flags = dyn->d_un.d_val;
            
            if (flags & DF_TEXTREL) {
-             has_text_relocs = true;
+             if (strcmp("libflashplayer.so", GetName()) == 0) {
+               has_text_relocs = true;
+             } else {
+               LOG("%s: Text relocations are not supported", GetPath());
+               return false;
+             }
            }
            
            flags &= ~DF_SYMBOLIC;
