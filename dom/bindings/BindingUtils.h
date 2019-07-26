@@ -1623,13 +1623,6 @@ public:
     void Destroy() {
       storage.addr()->~T();
     }
-
-private:
-    
-    
-    
-    
-    void operator=(const UnionMember<T>& aOther) MOZ_DELETE;
 };
 
 template<typename T>
