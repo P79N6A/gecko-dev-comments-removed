@@ -128,6 +128,10 @@ abstract public class BrowserApp extends GeckoApp
     
     private int mToolbarHeight = 0;
 
+    
+    
+    private boolean mDynamicToolbarCanScroll = false;
+
     private Integer mPrefObserverId;
 
     
@@ -712,6 +716,23 @@ abstract public class BrowserApp extends GeckoApp
             return;
         }
 
+        
+        
+        if (aMetrics.getPageHeight() < aMetrics.getHeight()) {
+            if (mDynamicToolbarCanScroll) {
+                mDynamicToolbarCanScroll = false;
+                if (!mBrowserToolbar.isVisible()) {
+                    ThreadUtils.postToUiThread(new Runnable() {
+                        public void run() {
+                            mLayerView.getLayerMarginsAnimator().showMargins(false);
+                        }
+                    });
+                }
+            }
+        } else {
+            mDynamicToolbarCanScroll = true;
+        }
+
         final View toolbarLayout = mBrowserToolbar.getLayout();
         final int marginTop = Math.round(aMetrics.marginTop);
         ThreadUtils.postToUiThread(new Runnable() {
@@ -727,8 +748,12 @@ abstract public class BrowserApp extends GeckoApp
             return;
         }
 
+        
+        
+        
         ImmutableViewportMetrics metrics = mLayerView.getViewportMetrics();
-        if (metrics.marginTop >= mToolbarHeight / 2) {
+        if (metrics.getPageHeight() < metrics.getHeight()
+              || metrics.marginTop >= mToolbarHeight / 2) {
             mLayerView.getLayerMarginsAnimator().showMargins(false);
         } else {
             mLayerView.getLayerMarginsAnimator().hideMargins(false);
