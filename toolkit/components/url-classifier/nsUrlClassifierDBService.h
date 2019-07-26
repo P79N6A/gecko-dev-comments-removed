@@ -95,10 +95,6 @@ private:
 
   
   
-  bool mPerClientRandomize;
-
-  
-  
   
   
   bool mInUpdate;
