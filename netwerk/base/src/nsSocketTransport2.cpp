@@ -1257,6 +1257,12 @@ nsSocketTransport::RecoverFromError()
     NS_ASSERTION(!mFDconnected, "socket should not be connected");
 
     
+    
+    if (mState == STATE_CONNECTING && mDNSRecord) {
+        mDNSRecord->ReportUnusable(SocketPort());
+    }
+
+    
     if (mCondition != NS_ERROR_CONNECTION_REFUSED &&
         mCondition != NS_ERROR_PROXY_CONNECTION_REFUSED &&
         mCondition != NS_ERROR_NET_TIMEOUT &&
@@ -1277,8 +1283,6 @@ nsSocketTransport::RecoverFromError()
 
     
     if (mState == STATE_CONNECTING && mDNSRecord) {
-        mDNSRecord->ReportUnusable(SocketPort());
-        
         nsresult rv = mDNSRecord->GetNextAddr(SocketPort(), &mNetAddr);
         if (NS_SUCCEEDED(rv)) {
             SOCKET_LOG(("  trying again with next ip address\n"));
