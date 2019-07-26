@@ -27,8 +27,8 @@ ASpdySession::NewSpdySession(uint32_t version,
 {
   
   
-  MOZ_ASSERT(version == SpdyInformation::SPDY_VERSION_2 ||
-             version == SpdyInformation::SPDY_VERSION_3,
+  MOZ_ASSERT(version == SPDY_VERSION_2 ||
+             version == SPDY_VERSION_3,
              "Unsupported spdy version");
 
   
@@ -38,7 +38,7 @@ ASpdySession::NewSpdySession(uint32_t version,
 
   Telemetry::Accumulate(Telemetry::SPDY_VERSION2, version);
 
-  if (version == SpdyInformation::SPDY_VERSION_2)
+  if (version == SPDY_VERSION_2)
     return new SpdySession2(aTransaction, aTransport, aPriority);
 
   return new SpdySession3(aTransaction, aTransport, aPriority);
