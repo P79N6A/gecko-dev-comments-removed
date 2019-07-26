@@ -63,6 +63,8 @@ private:
   uint64_t mLayersId;
 };
 
+class CompositorThreadHolder;
+
 class CompositorParent : public PCompositorParent,
                          public ShadowLayersManager
 {
@@ -163,12 +165,15 @@ public:
   
 
 
-  static void StartUp();
+  static void StartUpCompositorThread();
 
   
 
 
-  static void ShutDown();
+
+
+
+  static void ShutDownCompositorThreadWhenCompositorParentsGone();
 
   
 
@@ -262,36 +267,6 @@ protected:
   
 
 
-
-
-
-
-  static void CreateCompositorMap();
-  static void DestroyCompositorMap();
-
-  
-
-
-
-
-
-
-
-
-  static bool CreateThread();
-
-  
-
-
-
-
-
-
-  static void DestroyThread();
-
-  
-
-
   static void AddCompositor(CompositorParent* compositor, uint64_t* id);
   
 
@@ -335,6 +310,8 @@ protected:
   CancelableTask* mForceCompositionTask;
 
   nsRefPtr<APZCTreeManager> mApzcTreeManager;
+
+  const nsRefPtr<CompositorThreadHolder> mCompositorThreadHolder;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };
