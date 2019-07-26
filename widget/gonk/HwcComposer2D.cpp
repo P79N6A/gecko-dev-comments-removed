@@ -319,6 +319,15 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
         return true;
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
     gfxMatrix transform;
     const gfx3DMatrix& transform3D = aLayer->GetEffectiveTransform();
     if (!transform3D.Is2D(&transform) || !transform.PreservesAxisAlignedRectangles()) {
@@ -356,6 +365,8 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
             return false;
         }
     }
+    
+    
     if (state.BufferRotated()) {
         LOGD("%s Layer has a rotated buffer", aLayer->Name());
         return false;
@@ -413,24 +424,122 @@ HwcComposer2D::PrepareLayerList(Layer* aLayer,
             hwcLayer.flags |= HWC_FORMAT_RB_SWAP;
         }
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         gfxMatrix rotation = transform * aGLWorldTransform;
         
         if (fabs(rotation.xx) < 1e-6) {
             if (rotation.xy < 0) {
-                hwcLayer.transform = HWC_TRANSFORM_ROT_90;
-                LOGD("Layer buffer rotated 90 degrees");
+                if (rotation.yx > 0) {
+                    
+                    
+                    
+                    
+                    
+                    hwcLayer.transform = HWC_TRANSFORM_ROT_90;
+                    LOGD("Layer rotated 90 degrees");
+                }
+                else {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    hwcLayer.transform = HWC_TRANSFORM_ROT_90 | HWC_TRANSFORM_FLIP_H;
+                    LOGD("Layer vertically reflected then rotated 270 degrees");
+                }
             } else {
-                hwcLayer.transform = HWC_TRANSFORM_ROT_270;
-                LOGD("Layer buffer rotated 270 degrees");
+                if (rotation.yx < 0) {
+                    
+                    
+                    
+                    
+                    
+                    hwcLayer.transform = HWC_TRANSFORM_ROT_270;
+                    LOGD("Layer rotated 270 degrees");
+                }
+                else {
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    hwcLayer.transform = HWC_TRANSFORM_ROT_90 | HWC_TRANSFORM_FLIP_V;
+                    LOGD("Layer horizontally reflected then rotated 270 degrees");
+                }
             }
         } else if (rotation.xx < 0) {
-            hwcLayer.transform = HWC_TRANSFORM_ROT_180;
-            LOGD("Layer buffer rotated 180 degrees");
+            if (rotation.yy > 0) {
+                
+                
+                
+                
+                
+                hwcLayer.transform = HWC_TRANSFORM_FLIP_H;
+                LOGD("Layer rotated 180 degrees");
+            }
+            else {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                hwcLayer.transform = HWC_TRANSFORM_ROT_180;
+                LOGD("Layer rotated 180 degrees");
+            }
         } else {
-            hwcLayer.transform = 0;
+            if (rotation.yy < 0) {
+                
+                
+                
+                
+                
+                hwcLayer.transform = HWC_TRANSFORM_FLIP_V;
+                LOGD("Layer rotated 180 degrees");
+            }
+            else {
+                
+                
+                
+                
+                
+                hwcLayer.transform = 0;
+            }
         }
 
-        hwcLayer.transform |= state.YFlipped() ? HWC_TRANSFORM_FLIP_V : 0;
+        if (state.YFlipped()) {
+           
+           hwcLayer.transform ^= HWC_TRANSFORM_FLIP_V;
+        }
         hwc_region_t region;
         if (visibleRegion.GetNumRects() > 1) {
             mVisibleRegions.push_back(RectVector());
