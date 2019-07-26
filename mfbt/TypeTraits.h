@@ -218,24 +218,6 @@ struct IsConvertible
 
 
 
-template<bool Condition, typename A, typename B>
-struct Conditional
-{
-    typedef A Type;
-};
-
-template<class A, class B>
-struct Conditional<false, A, B>
-{
-    typedef B Type;
-};
-
-
-
-
-
-
-
 
 
 
@@ -256,6 +238,24 @@ template<typename T>
 struct EnableIf<true, T>
 {
     typedef T Type;
+};
+
+
+
+
+
+
+
+template<bool Condition, typename A, typename B>
+struct Conditional
+{
+    typedef A Type;
+};
+
+template<class A, class B>
+struct Conditional<false, A, B>
+{
+    typedef B Type;
 };
 
 
