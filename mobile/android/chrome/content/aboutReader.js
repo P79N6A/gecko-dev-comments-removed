@@ -289,10 +289,8 @@ AboutReader.prototype = {
     this._isReadingListItem = (this._isReadingListItem == 1) ? 0 : 1;
     this._updateToggleButton();
 
-    
-    let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
-
     if (this._isReadingListItem == 1) {
+      let uptime = UITelemetry.uptimeMillis();
       gChromeWin.Reader.storeArticleInCache(this._article, function(success) {
         dump("Reader:Add (in reader) success=" + success);
 
@@ -320,7 +318,7 @@ AboutReader.prototype = {
       
       Services.obs.notifyObservers(null, "Reader:Remove", this._article.url);
 
-      UITelemetry.addEvent("unsave.1", "button", uptime, "reader");
+      UITelemetry.addEvent("unsave.1", "button", null, "reader");
     }
   },
 
@@ -334,9 +332,7 @@ AboutReader.prototype = {
       title: this._article.title
     });
 
-    
-    let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
-    UITelemetry.addEvent("share.1", "list", uptime);
+    UITelemetry.addEvent("share.1", "list", null);
   },
 
   _setFontSize: function Reader_setFontSize(newFontSize) {
@@ -705,10 +701,8 @@ AboutReader.prototype = {
         aEvent.stopPropagation();
 
         
-        let uptime = Date.now() - Services.startup.getStartupInfo().linkerInitialized;
         
-        
-        UITelemetry.addEvent("action.1", "button", uptime, id);
+        UITelemetry.addEvent("action.1", "button", null, id);
 
         let items = segmentedButton.children;
         for (let j = items.length - 1; j >= 0; j--) {
