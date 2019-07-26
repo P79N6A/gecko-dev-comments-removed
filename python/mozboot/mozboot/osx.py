@@ -196,13 +196,17 @@ class OSXBootstrapper(BaseBootstrapper):
             
             
             
+            
             ('python', 'python'),
             ('mercurial', 'mercurial'),
             ('git', 'git'),
             ('yasm', 'yasm'),
             ('autoconf213', HOMEBREW_AUTOCONF213),
-            ('terminal-notifier', 'terminal-notifier'),
         ]
+
+        
+        if self.os_version >= StrictVersion('10.8'):
+            packages.append(('terminal-notifier', 'terminal-notifier'))
 
         printed = False
 
