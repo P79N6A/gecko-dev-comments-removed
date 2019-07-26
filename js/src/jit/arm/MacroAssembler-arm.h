@@ -461,8 +461,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    MoveResolver::MoveOperand floatArgsInGPR[2];
-    bool floatArgsInGPRValid[2];
+    mozilla::Array<MoveResolver::MoveOperand, 2> floatArgsInGPR;
+    mozilla::Array<bool, 2> floatArgsInGPRValid;
 
     
     
