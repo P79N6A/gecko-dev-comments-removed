@@ -1741,10 +1741,7 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
                                  nsStyleContext* aNewParentContext,
                                  Element* aElement)
 {
-  if (!aStyleContext) {
-    NS_NOTREACHED("must have style context");
-    return nullptr;
-  }
+  MOZ_ASSERT(aStyleContext, "aStyleContext must not be null");
 
   
   
