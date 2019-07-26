@@ -491,12 +491,12 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
+  void Dump(FILE* aFile=nullptr, const char* aPrefix="", bool aDumpHtml=false);
   
 
 
 
-  void DumpSelf(FILE* aFile=NULL, const char* aPrefix="");
+  void DumpSelf(FILE* aFile=nullptr, const char* aPrefix="");
 
   
 
@@ -1118,12 +1118,12 @@ public:
 
 
 
-  void Dump(FILE* aFile=NULL, const char* aPrefix="", bool aDumpHtml=false);
+  void Dump(FILE* aFile=nullptr, const char* aPrefix="", bool aDumpHtml=false);
   
 
 
 
-  void DumpSelf(FILE* aFile=NULL, const char* aPrefix="");
+  void DumpSelf(FILE* aFile=nullptr, const char* aPrefix="");
 
   
 
