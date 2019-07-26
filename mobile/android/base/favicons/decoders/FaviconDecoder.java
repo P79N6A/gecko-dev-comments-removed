@@ -93,9 +93,15 @@ public class FaviconDecoder {
             result.length = length;
             result.isICO = false;
 
+            Bitmap decodedImage = BitmapUtils.decodeByteArray(buffer, offset, length);
+            if (decodedImage == null) {
+                
+                return null;
+            }
+
             
             
-            result.bitmapsDecoded = new SingleBitmapIterator(BitmapUtils.decodeByteArray(buffer, offset, length));
+            result.bitmapsDecoded = new SingleBitmapIterator(decodedImage);
             result.faviconBytes = buffer;
 
             return result;
