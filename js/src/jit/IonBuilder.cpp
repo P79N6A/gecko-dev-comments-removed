@@ -5220,6 +5220,8 @@ IonBuilder::jsop_eval(uint32_t argc)
             return false;
         callInfo.unwrapArgs();
 
+        callInfo.fun()->setFoldedUnchecked();
+
         MDefinition *scopeChain = current->scopeChain();
         MDefinition *string = callInfo.getArg(0);
 
@@ -6526,6 +6528,7 @@ IonBuilder::getElemTryTypedStatic(bool *emitted, MDefinition *obj, MDefinition *
     
 
     obj->setFoldedUnchecked();
+    index->setFoldedUnchecked();
 
     MLoadTypedArrayElementStatic *load = MLoadTypedArrayElementStatic::New(tarr, ptr);
     current->add(load);
@@ -6651,6 +6654,7 @@ IonBuilder::getElemTryArgumentsInlined(bool *emitted, MDefinition *obj, MDefinit
         return true;
 
     
+    obj->setFoldedUnchecked();
 
     JS_ASSERT(!info().argsObjAliasesFormals());
 
@@ -7066,6 +7070,7 @@ IonBuilder::setElemTryTypedStatic(bool *emitted, MDefinition *object,
 
     
     object->setFoldedUnchecked();
+    index->setFoldedUnchecked();
 
     
     MDefinition *toWrite = value;
