@@ -21,7 +21,10 @@
 class JSAtom;
 class JSFreeOp;
 
-namespace js { class StackFrame; }
+namespace js {
+class StackFrame;
+class ScriptFrameIter;
+}
 
 
 extern JS_PUBLIC_API(unsigned)
@@ -39,6 +42,8 @@ class FrameDescription
         , linenoComputed(false)
     {
     }
+
+    explicit FrameDescription(const js::ScriptFrameIter& iter);
 
     unsigned lineno() {
         if (!linenoComputed) {

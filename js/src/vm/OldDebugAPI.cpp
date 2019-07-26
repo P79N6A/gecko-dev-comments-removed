@@ -919,14 +919,21 @@ js_CallContextDebugHandler(JSContext *cx)
     }
 }
 
+
+
+
+
+
+JS::FrameDescription::FrameDescription(const ScriptFrameIter& iter)
+  : script_(iter.script()), fun_(iter.maybeCallee()), pc_(iter.pc()), linenoComputed(false) {}
+
 JS_PUBLIC_API(JS::StackDescription *)
 JS::DescribeStack(JSContext *cx, unsigned maxFrames)
 {
     Vector<FrameDescription> frames(cx);
 
     for (NonBuiltinScriptFrameIter i(cx); !i.done(); ++i) {
-        FrameDescription desc(i.script(), i.maybeCallee(), i.pc());
-        if (!frames.append(desc))
+        if (!frames.append(i))
             return nullptr;
         if (frames.length() == maxFrames)
             break;
