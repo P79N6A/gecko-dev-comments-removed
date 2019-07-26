@@ -203,6 +203,19 @@ nsSplittableFrame::RemoveFromFlow(nsIFrame* aFrame)
   aFrame->SetNextInFlow(nullptr);
 }
 
+nscoord
+nsSplittableFrame::GetConsumedHeight() const
+{
+  nscoord height = 0;
+
+  
+  for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
+    height += prev->GetRect().height;
+  }
+
+  return height;
+}
+
 #ifdef DEBUG
 void
 nsSplittableFrame::DumpBaseRegressionData(nsPresContext* aPresContext, FILE* out, int32_t aIndent)
