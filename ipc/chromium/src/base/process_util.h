@@ -217,12 +217,6 @@ class ProcessFilter {
 
 
 
-int GetProcessCount(const std::wstring& executable_name,
-                    const ProcessFilter* filter);
-
-
-
-
 
 bool KillProcess(ProcessHandle process, int exit_code, bool wait);
 
