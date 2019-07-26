@@ -8046,6 +8046,23 @@ private:
     bool mFirstParty;
 };
 
+
+
+
+
+
+
+
+
+
+
+bool
+nsDocShell::JustStartedNetworkLoad()
+{
+    return mDocumentRequest &&
+           mDocumentRequest != GetCurrentDocChannel();
+}
+
 NS_IMETHODIMP
 nsDocShell::InternalLoad(nsIURI * aURI,
                          nsIURI * aReferrer,
@@ -8462,7 +8479,16 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             AutoRestore<PRUint32> loadTypeResetter(mLoadType);
 
-            mLoadType = aLoadType;
+            
+            
+            
+            if (JustStartedNetworkLoad() && (aLoadType & LOAD_CMD_NORMAL)) {
+                mLoadType = LOAD_NORMAL_REPLACE;
+            }
+            else {
+                mLoadType = aLoadType;
+            }
+
             mURIResultedInDocument = true;
 
             
@@ -9661,6 +9687,16 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
 
     nsresult rv;
+
+    
+    AutoRestore<PRUint32> loadTypeResetter(mLoadType);
+
+    
+    
+    
+    if (JustStartedNetworkLoad()) {
+        aReplace = true;
+    }
 
     nsCOMPtr<nsIDocument> document = do_GetInterface(GetAsSupports(this));
     NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);

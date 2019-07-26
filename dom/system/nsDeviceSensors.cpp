@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/Hal.h"
 #include "mozilla/HalSensor.h"
@@ -24,7 +24,7 @@ using namespace hal;
 
 #undef near
 
-
+// also see sDefaultSensorHint in mobile/android/base/GeckoAppShell.java
 #define DEFAULT_SENSOR_POLL 100
 
 static const nsTArray<nsIDOMWindow*>::index_type NoIndex =
@@ -160,9 +160,11 @@ nsDeviceSensors::Notify(const mozilla::hal::SensorData& aSensorData)
 {
   PRUint32 type = aSensorData.sensor();
 
-  double x = aSensorData.values()[0];
-  double y = aSensorData.values()[1];
-  double z = aSensorData.values()[2];
+  const InfallibleTArray<float>& values = aSensorData.values();
+  size_t len = values.Length();
+  double x = len > 0 ? values[0] : 0.0;
+  double y = len > 1 ? values[1] : 0.0;
+  double z = len > 2 ? values[2] : 0.0;
 
   nsCOMArray<nsIDOMWindow> windowListeners;
   for (PRUint32 i = 0; i < mWindowListeners[type]->Length(); i++) {
@@ -172,8 +174,8 @@ nsDeviceSensors::Notify(const mozilla::hal::SensorData& aSensorData)
   for (PRUint32 i = windowListeners.Count(); i > 0 ; ) {
     --i;
 
-    
-    
+    // check to see if this window is in the background.  if
+    // it is, don't send any device motion to it.
     nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(windowListeners[i]);
     if (!pwindow ||
         !pwindow->GetOuterWindow() ||
@@ -246,10 +248,10 @@ nsDeviceSensors::FireDOMProximityEvent(nsIDOMEventTarget *aTarget,
   bool defaultActionEnabled;
   aTarget->DispatchEvent(event, &defaultActionEnabled);
 
-  
-  
-  
-  
+  // Some proximity sensors only support a binary near or
+  // far measurement. In this case, the sensor should report
+  // its maximum range value in the far state and a lesser
+  // value in the near state.
 
   bool near = (aValue < aMax);
   if (mIsUserProximityNear != near) {
@@ -318,7 +320,7 @@ nsDeviceSensors::FireDOMMotionEvent(nsIDOMDocument *domdoc,
                                    double x,
                                    double y,
                                    double z) {
-  
+  // Attempt to coalesce events
   bool fireEvent = TimeStamp::Now() > mLastDOMMotionEventTime + TimeDuration::FromMilliseconds(DEFAULT_SENSOR_POLL);
 
   switch (type) {

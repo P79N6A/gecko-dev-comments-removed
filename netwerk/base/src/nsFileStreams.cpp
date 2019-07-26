@@ -19,7 +19,6 @@
 #include "private/pprio.h"
 
 #include "nsFileStreams.h"
-#include "nsILocalFile.h"
 #include "nsXPIDLString.h"
 #include "prerror.h"
 #include "nsCRT.h"
@@ -251,9 +250,11 @@ nsFileStreamBase::WriteSegments(nsReadSegmentFun reader, void * closure, PRUint3
 }
 
 nsresult
-nsFileStreamBase::MaybeOpen(nsILocalFile* aFile, PRInt32 aIoFlags,
+nsFileStreamBase::MaybeOpen(nsIFile* aFile, PRInt32 aIoFlags,
                             PRInt32 aPerm, bool aDeferred)
 {
+    NS_ENSURE_STATE(aFile);
+
     mOpenParams.ioFlags = aIoFlags;
     mOpenParams.perm = aPerm;
 
@@ -356,14 +357,12 @@ nsFileInputStream::Open(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm)
     }
 
     
-    nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(aFile, &rv);
-    if (NS_FAILED(rv)) return rv;
     if (aIOFlags == -1)
         aIOFlags = PR_RDONLY;
     if (aPerm == -1)
         aPerm = 0;
 
-    rv = MaybeOpen(localFile, aIOFlags, aPerm,
+    rv = MaybeOpen(aFile, aIOFlags, aPerm,
                    mBehaviorFlags & nsIFileInputStream::DEFER_OPEN);
     if (NS_FAILED(rv)) return rv;
 
@@ -478,7 +477,7 @@ nsFileInputStream::Read(const IPC::Message *aMsg, void **aIter)
         !ReadParam(aMsg, aIter, &flags))
         return false;
 
-    nsCOMPtr<nsILocalFile> file;
+    nsCOMPtr<nsIFile> file;
     nsresult rv = NS_NewNativeLocalFile(path, followLinks, getter_AddRefs(file));
     if (NS_FAILED(rv))
         return false;
@@ -500,9 +499,8 @@ nsFileInputStream::Write(IPC::Message *aMsg)
     nsCString path;
     mFile->GetNativePath(path);
     WriteParam(aMsg, path);
-    nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(mFile);
     bool followLinks;
-    localFile->GetFollowLinks(&followLinks);
+    mFile->GetFollowLinks(&followLinks);
     WriteParam(aMsg, followLinks);
     WriteParam(aMsg, mBehaviorFlags);
 }
@@ -647,15 +645,12 @@ nsFileOutputStream::Init(nsIFile* file, PRInt32 ioFlags, PRInt32 perm,
 
     mBehaviorFlags = behaviorFlags;
 
-    nsresult rv;
-    nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(file, &rv);
-    if (NS_FAILED(rv)) return rv;
     if (ioFlags == -1)
         ioFlags = PR_WRONLY | PR_CREATE_FILE | PR_TRUNCATE;
     if (perm <= 0)
         perm = 0664;
 
-    return MaybeOpen(localFile, ioFlags, perm,
+    return MaybeOpen(file, ioFlags, perm,
                      mBehaviorFlags & nsIFileOutputStream::DEFER_OPEN);
 }
 
@@ -680,7 +675,7 @@ nsSafeFileOutputStream::DoOpen()
 {
     
     
-    nsCOMPtr<nsILocalFile> file;
+    nsCOMPtr<nsIFile> file;
     file.swap(mOpenParams.localFile);
 
     nsresult rv = file->Exists(&mTargetFileExists);
@@ -696,9 +691,7 @@ nsSafeFileOutputStream::DoOpen()
     nsCOMPtr<nsIFile> tempResult;
     rv = file->Clone(getter_AddRefs(tempResult));
     if (NS_SUCCEEDED(rv)) {
-        nsCOMPtr<nsILocalFile> tempLocal = do_QueryInterface(tempResult);
-        if (tempLocal)
-            tempLocal->SetFollowLinks(true);
+        tempResult->SetFollowLinks(true);
 
         
         tempResult->Normalize();
@@ -717,9 +710,7 @@ nsSafeFileOutputStream::DoOpen()
     if (NS_SUCCEEDED(rv)) {
         
         
-        nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(tempResult, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-        mOpenParams.localFile = localFile;
+        mOpenParams.localFile = tempResult;
         mTempFile = tempResult;
         mTargetFile = file;
         rv = nsFileOutputStream::DoOpen();
@@ -825,15 +816,12 @@ nsFileStream::Init(nsIFile* file, PRInt32 ioFlags, PRInt32 perm,
 
     mBehaviorFlags = behaviorFlags;
 
-    nsresult rv;
-    nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(file, &rv);
-    if (NS_FAILED(rv)) return rv;
     if (ioFlags == -1)
         ioFlags = PR_RDWR;
     if (perm <= 0)
         perm = 0;
 
-    return MaybeOpen(localFile, ioFlags, perm,
+    return MaybeOpen(file, ioFlags, perm,
                      mBehaviorFlags & nsIFileStream::DEFER_OPEN);
 }
 

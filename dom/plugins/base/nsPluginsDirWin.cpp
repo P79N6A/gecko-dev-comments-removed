@@ -1,15 +1,15 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
-
-
-
+/*
+  nsPluginsDirWin.cpp
+  
+  Windows implementation of the nsPluginsDir/nsPluginsFile classes.
+  
+  by Alex Musil
+ */
 
 #include "mozilla/Util.h"
 
@@ -23,18 +23,18 @@
 #include "winbase.h"
 
 #include "nsString.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsUnicharUtils.h"
 
 using namespace mozilla;
 
-
+/* Local helper functions */
 
 static char* GetKeyValue(void* verbuf, const WCHAR* key,
                          UINT language, UINT codepage)
 {
-  WCHAR keybuf[64]; 
-                    
+  WCHAR keybuf[64]; // plenty for the template below, with the longest key
+                    // we use (currently "FileDescription")
   const WCHAR keyFormat[] = L"\\StringFileInfo\\%04X%04X\\%s";
   WCHAR *buf = NULL;
   UINT blen;
@@ -92,11 +92,11 @@ static PRUint32 CalculateVariantCount(char* mimeTypes)
 
 static char** MakeStringArray(PRUint32 variants, char* data)
 {
-  
-  
-  
-  
-  
+  // The number of variants has been calculated based on the mime
+  // type array. Plugins are not explicitely required to match
+  // this number in two other arrays: file extention array and mime
+  // description array, and some of them actually don't. 
+  // We should handle such situations gracefully
 
   if ((variants <= 0) || !data)
     return NULL;
@@ -115,8 +115,8 @@ static char** MakeStringArray(PRUint32 variants, char* data)
     array[i] = PL_strdup(start);
 
     if (!p) {
-      
-      
+      // nothing more to look for, fill everything left 
+      // with empty strings and break
       while(++i < variants)
         array[i] = PL_strdup("");
 
@@ -178,14 +178,14 @@ static bool CanLoadPlugin(const PRUnichar* aBinaryPath)
 
   return canLoad;
 #else
-  
+  // Assume correct binaries for unhandled cases.
   return true;
 #endif
 }
 
+/* nsPluginsDir implementation */
 
-
-
+// The file name must be in the form "np*.dll"
 bool nsPluginsDir::IsPluginFile(nsIFile* file)
 {
   nsCAutoString path;
@@ -194,7 +194,7 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
 
   const char *cPath = path.get();
 
-  
+  // this is most likely a path, so skip to the filename
   const char* filename = PL_strrchr(cPath, '\\');
   if (filename)
     ++filename;
@@ -209,7 +209,7 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
   PRUint32 extLength = PL_strlen(extension);
   if (fullLength >= 7 && extLength == 3) {
     if (!PL_strncasecmp(filename, "np", 2) && !PL_strncasecmp(extension, "dll", 3)) {
-      
+      // don't load OJI-based Java plugins
       if (!PL_strncasecmp(filename, "npoji", 5) ||
           !PL_strncasecmp(filename, "npjava", 6))
         return false;
@@ -220,34 +220,32 @@ bool nsPluginsDir::IsPluginFile(nsIFile* file)
   return false;
 }
 
-
+/* nsPluginFile implementation */
 
 nsPluginFile::nsPluginFile(nsIFile* file)
 : mPlugin(file)
 {
-  
+  // nada
 }
 
 nsPluginFile::~nsPluginFile()
 {
-  
+  // nada
 }
 
-
-
-
-
+/**
+ * Loads the plugin into memory using NSPR's shared-library loading
+ * mechanism. Handles platform differences in loading shared libraries.
+ */
 nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
 {
-  nsCOMPtr<nsILocalFile> plugin = do_QueryInterface(mPlugin);
-
-  if (!plugin)
+  if (!mPlugin)
     return NS_ERROR_NULL_POINTER;
 
   bool protectCurrentDirectory = true;
 
   nsAutoString pluginFolderPath;
-  plugin->GetPath(pluginFolderPath);
+  mPlugin->GetPath(pluginFolderPath);
 
   PRInt32 idx = pluginFolderPath.RFindChar('\\');
   if (kNotFound == idx)
@@ -273,7 +271,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
     SetDllDirectory(NULL);
   }
 
-  nsresult rv = plugin->Load(outLibrary);
+  nsresult rv = mPlugin->Load(outLibrary);
   if (NS_FAILED(rv))
       *outLibrary = NULL;
 
@@ -289,9 +287,9 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
   return rv;
 }
 
-
-
-
+/**
+ * Obtains all of the information currently available for this plugin.
+ */
 nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 {
   *outLibrary = nsnull;
@@ -325,9 +323,9 @@ nsresult nsPluginFile::GetPluginInfo(nsPluginInfo& info, PRLibrary **outLibrary)
 
   if (::GetFileVersionInfoW(lpFilepath, NULL, versionsize, verbuf))
   {
-    
-    UINT lang = 1033; 
-    UINT cp = 1252;   
+    // TODO: get appropriately-localized info from plugin file
+    UINT lang = 1033; // language = English
+    UINT cp = 1252;   // codepage = Western
     info.fName = GetKeyValue(verbuf, L"ProductName", lang, cp);
     info.fDescription = GetKeyValue(verbuf, L"FileDescription", lang, cp);
  

@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
 #include "nsIEditor.h"
@@ -21,11 +21,10 @@
 #include "nsUnicharUtils.h"
 #include "nsICommandParams.h"
 #include "nsComponentManagerUtils.h"
-#include "nsCRT.h"
 
 #include "mozilla/Assertions.h"
 
-
+//prototype
 nsresult GetListState(nsIHTMLEditor* aEditor, bool* aMixed,
                       nsAString& aLocalName);
 nsresult RemoveOneProperty(nsIHTMLEditor* aEditor, const nsAString& aProp);
@@ -33,7 +32,7 @@ nsresult RemoveTextProperty(nsIHTMLEditor* aEditor, const nsAString& aProp);
 nsresult SetTextProperty(nsIHTMLEditor *aEditor, const nsAString& aProp);
 
 
-
+//defines
 #define STATE_ENABLED  "state_enabled"
 #define STATE_ALL "state_all"
 #define STATE_ANY "state_any"
@@ -116,9 +115,9 @@ nsPasteNoFormattingCommand::IsCommandEnabled(const char * aCommandName,
   NS_ENSURE_ARG_POINTER(outCmdEnabled);
   *outCmdEnabled = false;
 
-  
-  
-  
+  // This command is only implemented by nsIHTMLEditor, since
+  //  pasting in a plaintext editor automatically only supplies 
+  //  "unformatted" text
   nsCOMPtr<nsIHTMLEditor> htmlEditor = do_QueryInterface(refCon);
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_NOT_IMPLEMENTED);
 
@@ -190,7 +189,7 @@ nsStyleUpdatingCommand::GetCurrentState(nsIEditor *aEditor,
   aParams->SetBooleanValue(STATE_MIXED, anyOfSelectionHasProp
            && !allOfSelectionHasProp);
   aParams->SetBooleanValue(STATE_BEGIN, firstOfSelectionHasProp);
-  aParams->SetBooleanValue(STATE_END, allOfSelectionHasProp);
+  aParams->SetBooleanValue(STATE_END, allOfSelectionHasProp);//not completely accurate
   return NS_OK;
 }
 
@@ -200,20 +199,20 @@ nsStyleUpdatingCommand::ToggleState(nsIEditor *aEditor)
   nsCOMPtr<nsIHTMLEditor> htmlEditor = do_QueryInterface(aEditor);
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_NO_INTERFACE);
 
-  
+  //create some params now...
   nsresult rv;
   nsCOMPtr<nsICommandParams> params =
       do_CreateInstance(NS_COMMAND_PARAMS_CONTRACTID,&rv);
   if (NS_FAILED(rv) || !params)
     return rv;
 
-  
-  
+  // tags "href" and "name" are special cases in the core editor 
+  // they are used to remove named anchor/link and shouldn't be used for insertion
   bool doTagRemoval;
   if (mTagName == nsGkAtoms::href || mTagName == nsGkAtoms::name) {
     doTagRemoval = true;
   } else {
-    
+    // check current selection; set doTagRemoval if formatting should be removed
     rv = GetCurrentState(aEditor, params);
     NS_ENSURE_SUCCESS(rv, rv);
     rv = params->GetBooleanValue(STATE_ALL, &doTagRemoval);
@@ -221,7 +220,7 @@ nsStyleUpdatingCommand::ToggleState(nsIEditor *aEditor)
   }
 
   if (doTagRemoval) {
-    
+    // Also remove equivalent properties (bug 317093)
     if (mTagName == nsGkAtoms::b) {
       rv = RemoveTextProperty(htmlEditor, NS_LITERAL_STRING("strong"));
       NS_ENSURE_SUCCESS(rv, rv);
@@ -235,7 +234,7 @@ nsStyleUpdatingCommand::ToggleState(nsIEditor *aEditor)
 
     rv = RemoveTextProperty(htmlEditor, nsDependentAtomString(mTagName));
   } else {
-    
+    // Superscript and Subscript styles are mutually exclusive
     aEditor->BeginTransaction();
 
     nsDependentAtomString tagName(mTagName);
@@ -314,7 +313,7 @@ nsListItemCommand::GetCurrentState(nsIEditor* aEditor,
                                    nsICommandParams *aParams)
 {
   NS_ASSERTION(aEditor, "Need editor here");
-  
+  // 39584
   nsCOMPtr<nsIHTMLEditor>  htmlEditor = do_QueryInterface(aEditor);
   NS_ENSURE_TRUE(htmlEditor, NS_NOINTERFACE);
 
@@ -348,7 +347,7 @@ nsListItemCommand::ToggleState(nsIEditor *aEditor)
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_NOT_INITIALIZED);
 
   bool inList;
-  
+  // Need to use mTagName????
   nsresult rv;
   nsCOMPtr<nsICommandParams> params =
       do_CreateInstance(NS_COMMAND_PARAMS_CONTRACTID,&rv);
@@ -360,7 +359,7 @@ nsListItemCommand::ToggleState(nsIEditor *aEditor)
   NS_ENSURE_SUCCESS(rv, rv);
   
   if (inList) {
-    
+    // To remove a list, first get what kind of list we're in
     bool bMixed;
     nsAutoString localName;
     rv = GetListState(htmlEditor, &bMixed, localName);
@@ -371,10 +370,10 @@ nsListItemCommand::ToggleState(nsIEditor *aEditor)
     return htmlEditor->RemoveList(localName);
   }
 
-  
-  
-  
-  
+  // Set to the requested paragraph type
+  //XXX Note: This actually doesn't work for "LI",
+  //    but we currently don't use this for non DL lists anyway.
+  // Problem: won't this replace any current block paragraph style?
   return htmlEditor->SetParagraphFormat(nsDependentAtomString(mTagName));
 }
 
@@ -394,7 +393,7 @@ nsRemoveListCommand::IsCommandEnabled(const char * aCommandName,
     return NS_OK;
   }
 
-  
+  // It is enabled if we are in any list type
   nsCOMPtr<nsIHTMLEditor> htmlEditor = do_QueryInterface(refCon);
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_NO_INTERFACE);
 
@@ -416,7 +415,7 @@ nsRemoveListCommand::DoCommand(const char *aCommandName, nsISupports *refCon)
   nsresult rv = NS_OK;
   if (editor)
   {
-    
+    // This removes any list type
     rv = editor->RemoveList(EmptyString());
   }
 
@@ -487,7 +486,7 @@ nsIndentCommand::GetCommandStateParams(const char *aCommandName,
 }
 
 
-
+//OUTDENT
 
 NS_IMETHODIMP
 nsOutdentCommand::IsCommandEnabled(const char * aCommandName,
@@ -555,7 +554,7 @@ nsMultiStateCommand::IsCommandEnabled(const char * aCommandName,
                                       bool *outCmdEnabled)
 {
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  
+  // should be disabled sometimes, like if the current selection is an image
   if (editor)
     return editor->GetIsSelectionEditable(outCmdEnabled);
 
@@ -687,16 +686,16 @@ nsFontFaceStateCommand::SetState(nsIEditor *aEditor, nsString& newState)
   NS_ENSURE_TRUE(htmlEditor, NS_ERROR_FAILURE);
   
   if (newState.EqualsLiteral("tt")) {
-    
+    // The old "teletype" attribute
     nsresult rv = htmlEditor->SetInlineProperty(nsGkAtoms::tt, EmptyString(),
                                                 EmptyString());
     NS_ENSURE_SUCCESS(rv, rv);
-    
+    // Clear existing font face
     return htmlEditor->RemoveInlineProperty(nsGkAtoms::font,
                                             NS_LITERAL_STRING("face"));
   }
 
-  
+  // Remove any existing TT nodes
   nsresult rv = htmlEditor->RemoveInlineProperty(nsGkAtoms::tt, EmptyString());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -714,8 +713,8 @@ nsFontSizeStateCommand::nsFontSizeStateCommand()
 {
 }
 
-
-
+//  nsCAutoString tOutStateString;
+//  tOutStateString.AssignWithConversion(outStateString);
 nsresult
 nsFontSizeStateCommand::GetCurrentState(nsIEditor *aEditor,
                                         nsICommandParams *aParams)
@@ -744,15 +743,15 @@ nsFontSizeStateCommand::GetCurrentState(nsIEditor *aEditor,
 }
 
 
-
-
-
-
-
-
-
-
-
+// acceptable values for "newState" are:
+//   -2
+//   -1
+//    0
+//   +1
+//   +2
+//   +3
+//   medium
+//   normal
 nsresult
 nsFontSizeStateCommand::SetState(nsIEditor *aEditor, nsString& newState)
 {
@@ -767,7 +766,7 @@ nsFontSizeStateCommand::SetState(nsIEditor *aEditor, nsString& newState)
                                          NS_LITERAL_STRING("size"), newState);
   }
 
-  
+  // remove any existing font size, big or small
   nsresult rv = htmlEditor->RemoveInlineProperty(nsGkAtoms::font,
                                                  NS_LITERAL_STRING("size"));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1154,7 +1153,7 @@ nsRemoveStylesCommand::IsCommandEnabled(const char * aCommandName,
                                         bool *outCmdEnabled)
 {
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  
+  // test if we have any styles?
   if (editor)
     return editor->GetIsSelectionEditable(outCmdEnabled);
 
@@ -1203,7 +1202,7 @@ nsIncreaseFontSizeCommand::IsCommandEnabled(const char * aCommandName,
                                             bool *outCmdEnabled)
 {
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  
+  // test if we are at max size?
   if (editor)
     return editor->GetIsSelectionEditable(outCmdEnabled);
 
@@ -1251,7 +1250,7 @@ nsDecreaseFontSizeCommand::IsCommandEnabled(const char * aCommandName,
                                             bool *outCmdEnabled)
 {
   nsCOMPtr<nsIEditor> editor = do_QueryInterface(refCon);
-  
+  // test if we are at min size?
   if (editor)
     return editor->GetIsSelectionEditable(outCmdEnabled);
 
@@ -1325,7 +1324,7 @@ nsInsertHTMLCommand::DoCommandParams(const char *aCommandName,
   nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(refCon);
   NS_ENSURE_TRUE(editor, NS_ERROR_NOT_IMPLEMENTED);
 
-  
+  // Get HTML source string to insert from command params
   nsAutoString html;
   nsresult rv = aParams->GetStringValue(STATE_DATA, html);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1351,10 +1350,11 @@ nsInsertHTMLCommand::GetCommandStateParams(const char *aCommandName,
 
 NS_IMPL_ISUPPORTS_INHERITED0(nsInsertTagCommand, nsBaseComposerCommand)
 
-nsInsertTagCommand::nsInsertTagCommand(const char* aTagName)
+nsInsertTagCommand::nsInsertTagCommand(nsIAtom* aTagName)
 : nsBaseComposerCommand()
 , mTagName(aTagName)
 {
+  MOZ_ASSERT(mTagName);
 }
 
 nsInsertTagCommand::~nsInsertTagCommand()
@@ -1376,25 +1376,21 @@ nsInsertTagCommand::IsCommandEnabled(const char * aCommandName,
 }
 
 
-
+// corresponding STATE_ATTRIBUTE is: src (img) and href (a) 
 NS_IMETHODIMP
 nsInsertTagCommand::DoCommand(const char *aCmdName, nsISupports *refCon)
 {
-  if (0 == nsCRT::strcmp(mTagName, "hr"))
-  {
-    nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(refCon);
-    NS_ENSURE_TRUE(editor, NS_ERROR_NOT_IMPLEMENTED);
+  NS_ENSURE_TRUE(mTagName == nsGkAtoms::hr, NS_ERROR_NOT_IMPLEMENTED);
 
-    nsCOMPtr<nsIDOMElement> domElem;
-    nsresult rv;
-    rv = editor->CreateElementWithDefaults(NS_ConvertASCIItoUTF16(mTagName),
-                                           getter_AddRefs(domElem));
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(refCon);
+  NS_ENSURE_TRUE(editor, NS_ERROR_NOT_IMPLEMENTED);
 
-    return editor->InsertElementAtSelection(domElem, true);
-  }
+  nsCOMPtr<nsIDOMElement> domElem;
+  nsresult rv = editor->CreateElementWithDefaults(
+    nsDependentAtomString(mTagName), getter_AddRefs(domElem));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  return NS_ERROR_NOT_IMPLEMENTED;
+  return editor->InsertElementAtSelection(domElem, true);
 }
 
 NS_IMETHODIMP
@@ -1404,16 +1400,17 @@ nsInsertTagCommand::DoCommandParams(const char *aCommandName,
 {
   NS_ENSURE_ARG_POINTER(refCon);
 
-  
-  if (0 == nsCRT::strcmp(mTagName, "hr"))
+  // inserting an hr shouldn't have an parameters, just call DoCommand for that
+  if (mTagName == nsGkAtoms::hr) {
     return DoCommand(aCommandName, refCon);
+  }
 
   NS_ENSURE_ARG_POINTER(aParams);
 
   nsCOMPtr<nsIHTMLEditor> editor = do_QueryInterface(refCon);
   NS_ENSURE_TRUE(editor, NS_ERROR_NOT_IMPLEMENTED);
 
-  
+  // do we have an href to use for creating link?
   nsXPIDLCString s;
   nsresult rv = aParams->GetCStringValue(STATE_ATTRIBUTE, getter_Copies(s));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1422,26 +1419,26 @@ nsInsertTagCommand::DoCommandParams(const char *aCommandName,
   if (attrib.IsEmpty())
     return NS_ERROR_INVALID_ARG;
 
-  
+  // filter out tags we don't know how to insert
   nsAutoString attributeType;
-  if (0 == nsCRT::strcmp(mTagName, "a")) {
+  if (mTagName == nsGkAtoms::a) {
     attributeType.AssignLiteral("href");
-  } else if (0 == nsCRT::strcmp(mTagName, "img")) {
+  } else if (mTagName == nsGkAtoms::img) {
     attributeType.AssignLiteral("src");
   } else {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
   nsCOMPtr<nsIDOMElement> domElem;
-  rv = editor->CreateElementWithDefaults(NS_ConvertASCIItoUTF16(mTagName),
+  rv = editor->CreateElementWithDefaults(nsDependentAtomString(mTagName),
                                          getter_AddRefs(domElem));
   NS_ENSURE_SUCCESS(rv, rv);
 
   rv = domElem->SetAttribute(attributeType, attrib);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  if (0 == nsCRT::strcmp(mTagName, "a"))
+  // do actual insertion
+  if (mTagName == nsGkAtoms::a)
     return editor->InsertLinkAroundSelection(domElem);
 
   return editor->InsertElementAtSelection(domElem, true);
@@ -1461,9 +1458,9 @@ nsInsertTagCommand::GetCommandStateParams(const char *aCommandName,
 }
 
 
-
-
-
+/****************************/
+//HELPER METHODS
+/****************************/
 
 nsresult
 GetListState(nsIHTMLEditor* aEditor, bool* aMixed, nsAString& aLocalName)
@@ -1497,7 +1494,7 @@ RemoveOneProperty(nsIHTMLEditor* aEditor, const nsAString& aProp)
 {
   MOZ_ASSERT(aEditor);
 
-  
+  /// XXX Hack alert! Look in nsIEditProperty.h for this
   nsCOMPtr<nsIAtom> styleAtom = do_GetAtom(aProp);
   NS_ENSURE_TRUE(styleAtom, NS_ERROR_OUT_OF_MEMORY);
 
@@ -1505,8 +1502,8 @@ RemoveOneProperty(nsIHTMLEditor* aEditor, const nsAString& aProp)
 }
 
 
-
-
+// the name of the attribute here should be the contents of the appropriate
+// tag, e.g. 'b' for bold, 'i' for italics.
 nsresult
 RemoveTextProperty(nsIHTMLEditor* aEditor, const nsAString& aProp)
 {
@@ -1519,14 +1516,14 @@ RemoveTextProperty(nsIHTMLEditor* aEditor, const nsAString& aProp)
   return RemoveOneProperty(aEditor, aProp);
 }
 
-
-
+// the name of the attribute here should be the contents of the appropriate
+// tag, e.g. 'b' for bold, 'i' for italics.
 nsresult
 SetTextProperty(nsIHTMLEditor* aEditor, const nsAString& aProp)
 {
   MOZ_ASSERT(aEditor);
 
-  
+  /// XXX Hack alert! Look in nsIEditProperty.h for this
   nsCOMPtr<nsIAtom> styleAtom = do_GetAtom(aProp);
   NS_ENSURE_TRUE(styleAtom, NS_ERROR_OUT_OF_MEMORY);
 

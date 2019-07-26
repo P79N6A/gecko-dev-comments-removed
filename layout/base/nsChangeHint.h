@@ -87,7 +87,35 @@ enum nsChangeHint {
 
 
 
-  nsChangeHint_ChildrenOnlyTransform = 0x1000
+  nsChangeHint_ChildrenOnlyTransform = 0x1000,
+
+  
+
+
+
+
+
+
+
+
+
+  nsChangeHint_RecomputePosition = 0x2000,
+
+  
+
+
+
+
+
+
+
+
+  nsChangeHint_NonInherited_Hints =
+    nsChangeHint_UpdateTransformLayer |
+    nsChangeHint_UpdateOpacityLayer |
+    nsChangeHint_UpdateOverflow |
+    nsChangeHint_ChildrenOnlyTransform |
+    nsChangeHint_RecomputePosition
 };
 
 

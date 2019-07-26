@@ -9,7 +9,6 @@
 #include "nsISupportsArray.h"
 #include "nsIFile.h"
 #include "nsNetUtil.h"
-#include "nsILocalFile.h"
 #include "nsIDirectoryService.h"
 #include "nsThreadUtils.h"
 
@@ -96,7 +95,7 @@ nsPKCS12Blob::SetToken(nsIPK11Token *token)
 
 
 nsresult
-nsPKCS12Blob::ImportFromFile(nsILocalFile *file)
+nsPKCS12Blob::ImportFromFile(nsIFile *file)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv = NS_OK;
@@ -136,7 +135,7 @@ nsPKCS12Blob::ImportFromFile(nsILocalFile *file)
 }
 
 nsresult
-nsPKCS12Blob::ImportFromFileHelper(nsILocalFile *file, 
+nsPKCS12Blob::ImportFromFileHelper(nsIFile *file, 
                                    nsPKCS12Blob::ImportMode aImportMode,
                                    nsPKCS12Blob::RetryReason &aWantRetry)
 {
@@ -309,7 +308,7 @@ isExtractable(SECKEYPrivateKey *privKey)
 
 
 nsresult
-nsPKCS12Blob::ExportToFile(nsILocalFile *file, 
+nsPKCS12Blob::ExportToFile(nsIFile *file, 
                            nsIX509Cert **certs, int numCerts)
 {
   nsNSSShutDownPreventionLock locker;
@@ -320,7 +319,7 @@ nsPKCS12Blob::ExportToFile(nsILocalFile *file,
   SECItem unicodePw;
   nsAutoString filePath;
   int i;
-  nsCOMPtr<nsILocalFile> localFileRef;
+  nsCOMPtr<nsIFile> localFileRef;
   NS_ASSERTION(mToken, "Need to set the token before exporting");
   
 
@@ -546,7 +545,7 @@ nsPKCS12Blob::getPKCS12FilePassword(SECItem *unicodePw)
 
 
 nsresult
-nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsILocalFile *file)
+nsPKCS12Blob::inputToDecoder(SEC_PKCS12DecoderContext *dcx, nsIFile *file)
 {
   nsNSSShutDownPreventionLock locker;
   nsresult rv;

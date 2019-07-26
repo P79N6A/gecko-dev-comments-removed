@@ -301,7 +301,43 @@ typedef XPCCompartmentSet::Range XPCCompartmentRange;
 #define WRAPPER_SLOTS (JSCLASS_HAS_PRIVATE | JSCLASS_IMPLEMENTS_BARRIERS | \
                        JSCLASS_HAS_RESERVED_SLOTS(1))
 
+
+
 #define INVALID_OBJECT ((JSObject *)1)
+
+inline void SetSlimWrapperProto(JSObject *obj, XPCWrappedNativeProto *proto)
+{
+    JS_SetReservedSlot(obj, WRAPPER_MULTISLOT, PRIVATE_TO_JSVAL(proto));
+}
+
+inline XPCWrappedNativeProto* GetSlimWrapperProto(JSObject *obj)
+{
+    MOZ_ASSERT(IS_SLIM_WRAPPER(obj));
+    const JS::Value &v = js::GetReservedSlot(obj, WRAPPER_MULTISLOT);
+    return static_cast<XPCWrappedNativeProto*>(v.toPrivate());
+}
+
+
+
+
+inline void MorphMultiSlot(JSObject *obj)
+{
+    MOZ_ASSERT(IS_SLIM_WRAPPER(obj));
+    JS_SetReservedSlot(obj, WRAPPER_MULTISLOT, JSVAL_NULL);
+    MOZ_ASSERT(!IS_SLIM_WRAPPER(obj));
+}
+
+inline void SetExpandoChain(JSObject *obj, JSObject *chain)
+{
+    MOZ_ASSERT(IS_WN_WRAPPER(obj));
+    JS_SetReservedSlot(obj, WRAPPER_MULTISLOT, JS::ObjectOrNullValue(chain));
+}
+
+inline JSObject* GetExpandoChain(JSObject *obj)
+{
+    MOZ_ASSERT(IS_WN_WRAPPER(obj));
+    return JS_GetReservedSlot(obj, WRAPPER_MULTISLOT).toObjectOrNull();
+}
 
 
 
@@ -2426,14 +2462,6 @@ extern JSBool ConstructSlimWrapper(XPCCallContext &ccx,
                                    jsval *rval);
 extern JSBool MorphSlimWrapper(JSContext *cx, JSObject *obj);
 
-static inline XPCWrappedNativeProto*
-GetSlimWrapperProto(JSObject *obj)
-{
-  const js::Value &v = js::GetReservedSlot(obj, 0);
-  return static_cast<XPCWrappedNativeProto*>(v.toPrivate());
-}
-
-
 
 
 
@@ -2807,8 +2835,6 @@ public:
     void SetNeedsSOW() { mWrapperWord |= NEEDS_SOW; }
     JSBool NeedsCOW() { return !!(mWrapperWord & NEEDS_COW); }
     void SetNeedsCOW() { mWrapperWord |= NEEDS_COW; }
-    JSBool MightHaveExpandoObject() { return !!(mWrapperWord & MIGHT_HAVE_EXPANDO); }
-    void SetHasExpandoObject() { mWrapperWord |= MIGHT_HAVE_EXPANDO; }
 
     JSObject* GetWrapperPreserveColor() const
         {return (JSObject*)(mWrapperWord & (size_t)~(size_t)FLAG_MASK);}
@@ -2875,7 +2901,6 @@ private:
     enum {
         NEEDS_SOW = JS_BIT(0),
         NEEDS_COW = JS_BIT(1),
-        MIGHT_HAVE_EXPANDO = JS_BIT(2),
         FLAG_MASK = JS_BITMASK(3)
     };
 
@@ -4354,7 +4379,6 @@ namespace xpc {
 class CompartmentPrivate
 {
 public:
-    typedef nsDataHashtable<nsPtrHashKey<XPCWrappedNative>, JSObject *> ExpandoMap;
     typedef nsTHashtable<nsPtrHashKey<JSObject> > DOMExpandoMap;
 
     CompartmentPrivate(bool wantXrays)
@@ -4367,39 +4391,7 @@ public:
 
     bool wantXrays;
     nsAutoPtr<JSObject2JSObjectMap> waiverWrapperMap;
-    
-    nsAutoPtr<ExpandoMap> expandoMap;
     nsAutoPtr<DOMExpandoMap> domExpandoMap;
-
-    bool RegisterExpandoObject(XPCWrappedNative *wn, JSObject *expando) {
-        if (!expandoMap) {
-            expandoMap = new ExpandoMap();
-            expandoMap->Init(8);
-        }
-        wn->SetHasExpandoObject();
-        return expandoMap->Put(wn, expando, mozilla::fallible_t());
-    }
-
-    
-
-
-
-
-
-
-
-    JSObject *LookupExpandoObjectPreserveColor(XPCWrappedNative *wn) {
-        return expandoMap ? expandoMap->Get(wn) : nsnull;
-    }
-
-    
-
-
-
-    JSObject *LookupExpandoObject(XPCWrappedNative *wn) {
-        JSObject *obj = LookupExpandoObjectPreserveColor(wn);
-        return xpc_UnmarkGrayObject(obj);
-    }
 
     bool RegisterDOMExpandoObject(JSObject *expando) {
         if (!domExpandoMap) {

@@ -1689,7 +1689,7 @@ Rebase(JSScript *dst, JSScript *src, T *srcp)
 }
 
 JSScript *
-js::CloneScript(JSContext *cx, JSScript *src)
+js::CloneScript(JSContext *cx, HandleScript src)
 {
     
 
@@ -1712,6 +1712,7 @@ js::CloneScript(JSContext *cx, JSScript *src)
     
 
     Bindings bindings(cx);
+    Bindings::AutoRooter bindingsRoot(cx, &bindings);
     BindingNames names(cx);
     if (!src->bindings.getLocalNameArray(cx, &names))
         return NULL;

@@ -1595,6 +1595,11 @@ private:
   nsresult StyleChangeReflow(nsIFrame* aFrame, nsChangeHint aHint);
 
   
+  
+  
+  bool RecomputePosition(nsIFrame* aFrame);
+
+  
 
   
 

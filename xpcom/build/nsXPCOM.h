@@ -196,12 +196,12 @@ NS_GetMemoryManager(nsIMemory* *result);
 XPCOM_API(nsresult)
 NS_NewLocalFile(const nsAString &path, 
                 bool followLinks, 
-                nsILocalFile* *result);
+                nsIFile* *result);
 
 XPCOM_API(nsresult)
 NS_NewNativeLocalFile(const nsACString &path, 
                       bool followLinks, 
-                      nsILocalFile* *result);
+                      nsIFile* *result);
 
 #endif
 

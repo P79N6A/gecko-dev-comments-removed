@@ -178,6 +178,12 @@ public:
                                            nsIDOMNode ** aNewNode);
 
   
+  nsresult ReplaceContainer(nsINode* inNode,
+                            mozilla::dom::Element** outNode,
+                            const nsAString& aNodeType,
+                            const nsAString* aAttribute = nsnull,
+                            const nsAString* aValue = nsnull,
+                            bool aCloneAttributes = false);
   nsresult ReplaceContainer(nsIDOMNode *inNode, 
                             nsCOMPtr<nsIDOMNode> *outNode, 
                             const nsAString &aNodeType,
@@ -187,6 +193,11 @@ public:
 
   nsresult RemoveContainer(nsINode* aNode);
   nsresult RemoveContainer(nsIDOMNode *inNode);
+  nsresult InsertContainerAbove(nsIContent* aNode,
+                                mozilla::dom::Element** aOutNode,
+                                const nsAString& aNodeType,
+                                const nsAString* aAttribute = nsnull,
+                                const nsAString* aValue = nsnull);
   nsresult InsertContainerAbove(nsIDOMNode *inNode, 
                                 nsCOMPtr<nsIDOMNode> *outNode, 
                                 const nsAString &aNodeType,
@@ -201,7 +212,8 @@ public:
 
 
 
-  nsresult CreateHTMLContent(const nsAString& aTag, nsIContent** aContent);
+  nsresult CreateHTMLContent(const nsAString& aTag,
+                             mozilla::dom::Element** aContent);
 
   
   virtual nsresult BeginIMEComposition();
@@ -524,14 +536,6 @@ public:
   }
 
   
-  static inline bool NodeIsTypeString(nsIDOMNode *aNode, const nsAString &aTag)
-  {
-    nsIAtom *nodeAtom = GetTag(aNode);
-    return nodeAtom && nodeAtom->Equals(aTag);
-  }
-
-
-  
   bool CanContain(nsIDOMNode* aParent, nsIDOMNode* aChild);
   bool CanContainTag(nsIDOMNode* aParent, nsIAtom* aTag);
   bool TagCanContain(nsIAtom* aParentTag, nsIDOMNode* aChild);
@@ -564,7 +568,7 @@ public:
   bool IsMozEditorBogusNode(nsIContent *aNode);
 
   
-  nsresult CountEditableChildren(nsIDOMNode *aNode, PRUint32 &outCount);
+  PRUint32 CountEditableChildren(nsINode* aNode);
   
   
   nsINode* GetFirstEditableNode(nsINode* aRoot);

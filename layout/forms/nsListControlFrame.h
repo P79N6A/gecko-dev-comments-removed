@@ -306,7 +306,7 @@ protected:
   virtual ~nsListControlFrame();
 
   
-  nsresult GetSizeAttribute(PRInt32 *aSize);
+  nsresult GetSizeAttribute(PRUint32 *aSize);
   nsIContent* GetOptionFromContent(nsIContent *aContent);
 
   
@@ -388,7 +388,7 @@ protected:
   PRInt32      mEndSelectionIndex;
 
   nsIComboboxControlFrame *mComboboxFrame;
-  PRInt32      mNumDisplayRows;
+  PRUint32     mNumDisplayRows;
   bool mChangesSinceDragStart:1;
   bool mButtonDown:1;
   

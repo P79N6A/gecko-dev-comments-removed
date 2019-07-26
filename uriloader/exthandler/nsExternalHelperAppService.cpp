@@ -299,7 +299,7 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
     case NS_FOLDER_VALUE_CUSTOM:
       {
         Preferences::GetComplex(NS_PREF_DOWNLOAD_DIR,
-                                NS_GET_IID(nsILocalFile),
+                                NS_GET_IID(nsIFile),
                                 getter_AddRefs(dir));
         if (!dir) break;
 
@@ -334,7 +334,7 @@ static nsresult GetDownloadDirectory(nsIFile **_directory)
   char* downloadDir = getenv("DOWNLOADS_DIRECTORY");
   nsresult rv;
   if (downloadDir) {
-    nsCOMPtr<nsILocalFile> ldir; 
+    nsCOMPtr<nsIFile> ldir; 
     rv = NS_NewNativeLocalFile(nsDependentCString(downloadDir),
                                true, getter_AddRefs(ldir));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -756,7 +756,7 @@ nsresult nsExternalHelperAppService::GetFileTokenForPath(const PRUnichar * aPlat
 {
   nsDependentString platformAppPath(aPlatformAppPath);
   
-  nsILocalFile* localFile = nsnull;
+  nsIFile* localFile = nsnull;
   nsresult rv = NS_NewLocalFile(platformAppPath, true, &localFile);
   if (NS_SUCCEEDED(rv)) {
     *aFile = localFile;
@@ -927,30 +927,28 @@ NS_IMETHODIMP nsExternalHelperAppService::DeleteTemporaryFileOnExit(nsIFile * aT
 {
   nsresult rv = NS_OK;
   bool isFile = false;
-  nsCOMPtr<nsILocalFile> localFile (do_QueryInterface(aTemporaryFile, &rv));
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
-  localFile->IsFile(&isFile);
+  aTemporaryFile->IsFile(&isFile);
   if (!isFile) return NS_OK;
 
   if (mInPrivateBrowsing)
-    mTemporaryPrivateFilesList.AppendObject(localFile);
+    mTemporaryPrivateFilesList.AppendObject(aTemporaryFile);
   else
-    mTemporaryFilesList.AppendObject(localFile);
+    mTemporaryFilesList.AppendObject(aTemporaryFile);
 
   return NS_OK;
 }
 
-void nsExternalHelperAppService::FixFilePermissions(nsILocalFile* aFile)
+void nsExternalHelperAppService::FixFilePermissions(nsIFile* aFile)
 {
   
 }
 
-void nsExternalHelperAppService::ExpungeTemporaryFilesHelper(nsCOMArray<nsILocalFile> &fileList)
+void nsExternalHelperAppService::ExpungeTemporaryFilesHelper(nsCOMArray<nsIFile> &fileList)
 {
   PRInt32 numEntries = fileList.Count();
-  nsILocalFile* localFile;
+  nsIFile* localFile;
   for (PRInt32 index = 0; index < numEntries; index++)
   {
     localFile = fileList[index];
@@ -1874,8 +1872,7 @@ nsresult nsExternalAppHandler::ExecuteDesiredAction()
       }
       else if(action == nsIMIMEInfo::saveToDisk)
       {
-        nsCOMPtr<nsILocalFile> destfile(do_QueryInterface(mFinalFileDestination));
-        mExtProtSvc->FixFilePermissions(destfile);
+        mExtProtSvc->FixFilePermissions(mFinalFileDestination);
       }
     }
 
@@ -1927,9 +1924,8 @@ nsresult nsExternalAppHandler::InitializeDownload(nsITransfer* aTransfer)
   rv = NS_NewFileURI(getter_AddRefs(target), mFinalFileDestination);
   if (NS_FAILED(rv)) return rv;
   
-  nsCOMPtr<nsILocalFile> lf(do_QueryInterface(mTempFile));
   rv = aTransfer->Init(mSourceUrl, target, EmptyString(),
-                       mMimeInfo, mTimeDownloadStarted, lf, this);
+                       mMimeInfo, mTimeDownloadStarted, mTempFile, this);
   if (NS_FAILED(rv)) return rv;
 
   
@@ -1978,7 +1974,7 @@ nsresult nsExternalAppHandler::CreateProgressListener()
   return rv;
 }
 
-nsresult nsExternalAppHandler::PromptForSaveToFile(nsILocalFile ** aNewFile, const nsAFlatString &aDefaultFile, const nsAFlatString &aFileExtension)
+nsresult nsExternalAppHandler::PromptForSaveToFile(nsIFile ** aNewFile, const nsAFlatString &aDefaultFile, const nsAFlatString &aFileExtension)
 {
   
   
@@ -2014,10 +2010,8 @@ nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
   nsresult rv = NS_OK;
   NS_ASSERTION(mStopRequestIssued, "uhoh, how did we get here if we aren't done getting data?");
  
-  nsCOMPtr<nsILocalFile> fileToUse = do_QueryInterface(aNewFileLocation);
-
   
-  if (mStopRequestIssued && fileToUse)
+  if (mStopRequestIssued && aNewFileLocation)
   {
     
     
@@ -2025,16 +2019,16 @@ nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
     
     bool equalToTempFile = false;
     bool filetoUseAlreadyExists = false;
-    fileToUse->Equals(mTempFile, &equalToTempFile);
-    fileToUse->Exists(&filetoUseAlreadyExists);
+    aNewFileLocation->Equals(mTempFile, &equalToTempFile);
+    aNewFileLocation->Exists(&filetoUseAlreadyExists);
     if (filetoUseAlreadyExists && !equalToTempFile)
-      fileToUse->Remove(false);
+      aNewFileLocation->Remove(false);
 
      
      nsAutoString fileName;
-     fileToUse->GetLeafName(fileName);
+     aNewFileLocation->GetLeafName(fileName);
      nsCOMPtr<nsIFile> directoryLocation;
-     rv = fileToUse->GetParent(getter_AddRefs(directoryLocation));
+     rv = aNewFileLocation->GetParent(getter_AddRefs(directoryLocation));
      if (directoryLocation)
      {
        rv = mTempFile->MoveTo(directoryLocation, fileName);
@@ -2043,7 +2037,7 @@ nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
      {
        
        nsAutoString path;
-       fileToUse->GetPath(path);
+       aNewFileLocation->GetPath(path);
        SendStatusChange(kWriteError, rv, nsnull, path);
        Cancel(rv); 
      }
@@ -2051,7 +2045,7 @@ nsresult nsExternalAppHandler::MoveFile(nsIFile * aNewFileLocation)
      else
      {
        
-       nsCOMPtr<nsILocalFileOS2> localFileOS2 = do_QueryInterface(fileToUse);
+       nsCOMPtr<nsILocalFileOS2> localFileOS2 = do_QueryInterface(aNewFileLocation);
        if (localFileOS2)
        {
          nsCAutoString url;
@@ -2084,7 +2078,7 @@ NS_IMETHODIMP nsExternalAppHandler::SaveToDisk(nsIFile * aNewFileLocation, bool 
   
   mReceivedDispositionInfo = true;
 
-  nsCOMPtr<nsILocalFile> fileToUse = do_QueryInterface(aNewFileLocation);
+  nsCOMPtr<nsIFile> fileToUse = do_QueryInterface(aNewFileLocation);
   if (!fileToUse)
   {
     nsAutoString leafName;

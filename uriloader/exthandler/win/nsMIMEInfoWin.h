@@ -57,7 +57,7 @@ class nsMIMEInfoWin : public nsMIMEInfoBase, public nsIPropertyBag {
     
     
     bool GetDllLaunchInfo(nsIFile * aDll,
-                            nsILocalFile * aFile,
+                            nsIFile * aFile,
                             nsAString& args, bool bEdit);
 
     

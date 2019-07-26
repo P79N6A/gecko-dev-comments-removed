@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "InsertElementTxn.h"
 #include "nsISelection.h"
@@ -75,30 +75,27 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
 
   NS_ENSURE_TRUE(mNode && mParent, NS_ERROR_NOT_INITIALIZED);
 
-  nsCOMPtr<nsIDOMNodeList> childNodes;
-  nsresult result = mParent->GetChildNodes(getter_AddRefs(childNodes));
-  NS_ENSURE_SUCCESS(result, result);
-  nsCOMPtr<nsIDOMNode>refNode;
-  if (childNodes)
-  {
-    PRUint32 count;
-    childNodes->GetLength(&count);
-    if (mOffset>(PRInt32)count) mOffset = count;
-    
-    if (mOffset == -1) mOffset = count;
-    result = childNodes->Item(mOffset, getter_AddRefs(refNode));
-    NS_ENSURE_SUCCESS(result, result); 
-    
+  nsCOMPtr<nsINode> parent = do_QueryInterface(mParent);
+  NS_ENSURE_STATE(parent);
+
+  PRUint32 count = parent->GetChildCount();
+  if (mOffset > PRInt32(count) || mOffset == -1) {
+    // -1 is sentinel value meaning "append at end"
+    mOffset = count;
   }
+
+  nsIContent* refContent = parent->GetChildAt(mOffset);
+  // note, it's ok for refNode to be null.  that means append
+  nsCOMPtr<nsIDOMNode> refNode = refContent ? refContent->AsDOMNode() : nsnull;
 
   mEditor->MarkNodeDirty(mNode);
 
   nsCOMPtr<nsIDOMNode> resultNode;
-  result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
+  nsresult result = mParent->InsertBefore(mNode, refNode, getter_AddRefs(resultNode));
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(resultNode, NS_ERROR_NULL_POINTER);
 
-  
+  // only set selection to insertion point if editor gives permission
   bool bAdjustSelection;
   mEditor->ShouldTxnSetSelection(&bAdjustSelection);
   if (bAdjustSelection)
@@ -107,12 +104,12 @@ NS_IMETHODIMP InsertElementTxn::DoTransaction(void)
     result = mEditor->GetSelection(getter_AddRefs(selection));
     NS_ENSURE_SUCCESS(result, result);
     NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-    
+    // place the selection just after the inserted element
     selection->Collapse(mParent, mOffset+1);
   }
   else
   {
-    
+    // do nothing - dom range gravity will adjust selection
   }
   return result;
 }

@@ -13,7 +13,7 @@
 #include "nsCharsetAlias.h"
 #include "nsReadableUtils.h"
 #include "nsIInputStream.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsNetUtil.h"
 #include "nsUTF8Utils.h" 
 #include "nsCRT.h"

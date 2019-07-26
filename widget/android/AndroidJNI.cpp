@@ -4,7 +4,7 @@
 
 
 #include "mozilla/Hal.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsString.h"
 
 #include "AndroidBridge.h"

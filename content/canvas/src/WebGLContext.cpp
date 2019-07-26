@@ -35,6 +35,7 @@
 #include "prenv.h"
 
 #include "mozilla/Preferences.h"
+#include "mozilla/Services.h"
 #include "mozilla/Telemetry.h"
 
 #include "nsIObserverService.h"
@@ -72,8 +73,7 @@ NS_NewCanvasRenderingContextWebGL(nsIDOMWebGLRenderingContext** aResult)
 }
 
 WebGLContext::WebGLContext()
-    : mCanvasElement(nsnull),
-      gl(nsnull)
+    : gl(nsnull)
 {
     SetIsDOMBinding();
     mEnabledExtensions.SetLength(WebGLExtensionID_Max);
@@ -242,10 +242,10 @@ WebGLContext::Invalidate()
     if (!mCanvasElement)
         return;
 
-    nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
+    nsSVGEffects::InvalidateDirectRenderingObservers(mCanvasElement);
 
     mInvalidated = true;
-    HTMLCanvasElement()->InvalidateCanvasContent(nsnull);
+    mCanvasElement->InvalidateCanvasContent(nsnull);
 }
 
 
@@ -260,14 +260,6 @@ WebGLContext::GetCanvas(nsIDOMHTMLCanvasElement **canvas)
 
 
 
-
-NS_IMETHODIMP
-WebGLContext::SetCanvasElement(nsHTMLCanvasElement* aParentCanvas)
-{
-    mCanvasElement = aParentCanvas;
-
-    return NS_OK;
-}
 
 static bool
 GetBoolFromPropertyBag(nsIPropertyBag *bag, const char *propName, bool *boolResult)
@@ -331,7 +323,7 @@ WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
     
   
     if (mCanvasElement) {
-        HTMLCanvasElement()->InvalidateCanvas();
+        mCanvasElement->InvalidateCanvas();
     }
 
     if (gl && mWidth == width && mHeight == height)
@@ -726,7 +718,7 @@ WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
       
       
       
-      userData = new WebGLContextUserData(HTMLCanvasElement());
+      userData = new WebGLContextUserData(mCanvasElement);
       canvasLayer->SetDidTransactionCallback(
               WebGLContextUserData::DidTransactionCallback, userData);
     }
@@ -1065,7 +1057,7 @@ WebGLContext::Notify(nsITimer* timer)
 {
     TerminateContextLossTimer();
 
-    if (!HTMLCanvasElement()) {
+    if (!mCanvasElement) {
         
         
         return NS_OK;
@@ -1075,8 +1067,8 @@ WebGLContext::Notify(nsITimer* timer)
     
     if (mContextStatus == ContextLostAwaitingEvent) {
         bool defaultAction;
-        nsContentUtils::DispatchTrustedEvent(HTMLCanvasElement()->OwnerDoc(),
-                                             (nsIDOMHTMLCanvasElement*) HTMLCanvasElement(),
+        nsContentUtils::DispatchTrustedEvent(mCanvasElement->OwnerDoc(),
+                                             static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
                                              NS_LITERAL_STRING("webglcontextlost"),
                                              true,
                                              true,
@@ -1104,8 +1096,8 @@ WebGLContext::Notify(nsITimer* timer)
             return NS_OK;
         }
         mContextStatus = ContextStable;
-        nsContentUtils::DispatchTrustedEvent(HTMLCanvasElement()->OwnerDoc(),
-                                             (nsIDOMHTMLCanvasElement*) HTMLCanvasElement(),
+        nsContentUtils::DispatchTrustedEvent(mCanvasElement->OwnerDoc(),
+                                             static_cast<nsIDOMHTMLCanvasElement*>(mCanvasElement),
                                              NS_LITERAL_STRING("webglcontextrestored"),
                                              true,
                                              true);
@@ -1214,7 +1206,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(WebGLContext)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(WebGLContext)
-  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mCanvasElement)
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mCanvasElement, nsINode)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_OF_NSCOMPTR(mEnabledExtensions)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_SCRIPT_OBJECTS
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END

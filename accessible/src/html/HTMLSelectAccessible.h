@@ -7,6 +7,9 @@
 #define mozilla_a11y_HTMLSelectAccessible_h__
 
 #include "HTMLFormControlAccessible.h"
+#include "nsIDOMHTMLOptionsCollection.h"
+#include "nsIDOMHTMLOptionElement.h"
+#include "nsIDOMNode.h"
 
 class nsIMutableArray;
 
@@ -40,7 +43,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 
   
   virtual bool IsSelect();
@@ -79,21 +82,21 @@ public:
   virtual ~HTMLSelectOptionAccessible() {}
 
   
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD SetSelected(bool aSelect);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint64 NativeState();
+  virtual PRUint64 NativeInteractiveState() const;
 
-  virtual int32_t GetLevelInternal();
+  virtual PRInt32 GetLevelInternal();
   virtual void GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame);
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual Accessible* ContainerWidget() const;
@@ -110,7 +113,7 @@ private:
       return combobox && combobox->IsCombobox() ? combobox : mParent.get();
     }
 
-    return nullptr;
+    return nsnull;
   }
 
   
@@ -120,10 +123,10 @@ private:
   {
     if (mParent && mParent->IsListControl()) {
       Accessible* combobox = mParent->Parent();
-      return combobox && combobox->IsCombobox() ? combobox : nullptr;
+      return combobox && combobox->IsCombobox() ? combobox : nsnull;
     }
 
-    return nullptr;
+    return nsnull;
   }
 };
 
@@ -138,15 +141,15 @@ public:
   virtual ~HTMLSelectOptGroupAccessible() {}
 
   
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint64 NativeInteractiveState() const;
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
 protected:
   
@@ -171,8 +174,8 @@ public:
   virtual ~HTMLComboboxAccessible() {}
 
   
-  NS_IMETHOD DoAction(uint8_t index);
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 index);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
   virtual void Shutdown();
@@ -181,11 +184,11 @@ public:
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
   virtual void InvalidateChildren();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
   
   virtual bool IsWidget() const;
@@ -222,10 +225,11 @@ public:
 
   
   virtual nsIFrame* GetFrame() const;
+  virtual bool IsPrimaryForNode() const;
 
   
   virtual a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 
   

@@ -1645,6 +1645,56 @@ nsGlobalWindow::SetOuterObject(JSContext* aCx, JSObject* aOuterObject)
   return NS_OK;
 }
 
+
+
+
+
+
+static nsresult
+CreateNativeGlobalForInner(JSContext* aCx,
+                           nsGlobalWindow* aNewInner,
+                           nsIURI* aURI,
+                           bool aIsChrome,
+                           nsIPrincipal* aPrincipal,
+                           JSObject** aNativeGlobal,
+                           nsIXPConnectJSObjectHolder** aHolder)
+{
+  MOZ_ASSERT(aCx);
+  MOZ_ASSERT(aNewInner);
+  MOZ_ASSERT(aNewInner->IsInnerWindow());
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(aNativeGlobal);
+  MOZ_ASSERT(aHolder);
+
+  nsIXPConnect* xpc = nsContentUtils::XPConnect();
+  PRUint32 flags = aIsChrome ? nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT : 0;
+
+  nsCOMPtr<nsIPrincipal> systemPrincipal;
+  if (aIsChrome) {
+    nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+    ssm->GetSystemPrincipal(getter_AddRefs(systemPrincipal));
+    MOZ_ASSERT(systemPrincipal);
+  }
+
+  nsRefPtr<nsIXPConnectJSObjectHolder> jsholder;
+  nsresult rv = xpc->InitClassesWithNewWrappedGlobal(
+    aCx, static_cast<nsIScriptGlobalObject*>(aNewInner),
+    aIsChrome ? systemPrincipal.get() : aPrincipal, flags,
+    getter_AddRefs(jsholder));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  MOZ_ASSERT(jsholder);
+  jsholder->GetJSObject(aNativeGlobal);
+  jsholder.forget(aHolder);
+
+  
+  
+  MOZ_ASSERT(*aNativeGlobal);
+  xpc::SetLocationForGlobal(*aNativeGlobal, aURI);
+
+  return NS_OK;
+}
+
 nsresult
 nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
                                nsISupports* aState,
@@ -1654,12 +1704,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   NS_PRECONDITION(mDocumentPrincipal == nsnull,
                   "mDocumentPrincipal prematurely set!");
-
-  if (!aDocument) {
-    NS_ERROR("SetNewDocument(null) called!");
-
-    return NS_ERROR_INVALID_ARG;
-  }
+  MOZ_ASSERT(aDocument);
 
   if (IsInnerWindow()) {
     if (!mOuterWindow) {
@@ -1805,10 +1850,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
     if (!aState) {
       
-      nsIScriptGlobalObject *sgo =
-        (nsIScriptGlobalObject *)newInnerWindow.get();
-
-      
       
       
       
@@ -1824,14 +1865,12 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mCreatingInnerWindow = true;
       
       
-      nsCOMPtr<nsIXPConnectJSObjectHolder> &holder = mInnerWindowHolder;
-      rv = mContext->CreateNativeGlobalForInner(sgo,
-                                                aDocument->GetDocumentURI(),
-                                                isChrome,
-                                                aDocument->NodePrincipal(),
-                                                &newInnerWindow->mJSObject,
-                                                getter_AddRefs(holder));
-      NS_ASSERTION(NS_SUCCEEDED(rv) && newInnerWindow->mJSObject && holder,
+      rv = CreateNativeGlobalForInner(cx, newInnerWindow,
+                                      aDocument->GetDocumentURI(), isChrome,
+                                      aDocument->NodePrincipal(),
+                                      &newInnerWindow->mJSObject,
+                                      getter_AddRefs(mInnerWindowHolder));
+      NS_ASSERTION(NS_SUCCEEDED(rv) && newInnerWindow->mJSObject && mInnerWindowHolder,
                    "Failed to get script global and holder");
 
       mCreatingInnerWindow = false;
@@ -5936,8 +5975,8 @@ struct StructuredCloneInfo {
 static JSObject*
 PostMessageReadStructuredClone(JSContext* cx,
                                JSStructuredCloneReader* reader,
-                               uint32 tag,
-                               uint32 data,
+                               uint32_t tag,
+                               uint32_t data,
                                void* closure)
 {
   NS_ASSERTION(closure, "Must have closure!");
@@ -8953,6 +8992,174 @@ nsGlobalWindow::SetTimeoutOrInterval(bool aIsInterval, PRInt32 *aReturn)
   return SetTimeoutOrInterval(handler, interval, isInterval, aReturn);
 }
 
+bool
+nsGlobalWindow::RunTimeoutHandler(nsTimeout* aTimeout,
+                                  nsIScriptContext* aScx)
+{
+  
+  
+  nsRefPtr<nsTimeout> timeout = aTimeout;
+  nsTimeout* last_running_timeout = mRunningTimeout;
+  mRunningTimeout = timeout;
+  timeout->mRunning = true;
+
+  
+  
+  
+  
+  nsAutoPopupStatePusher popupStatePusher(timeout->mPopupState);
+
+  
+  
+  timeout->mPopupState = openAbused;
+
+  ++gRunningTimeoutDepth;
+  ++mTimeoutFiringDepth;
+
+  bool trackNestingLevel = !timeout->mIsInterval;
+  PRUint32 nestingLevel;
+  if (trackNestingLevel) {
+    nestingLevel = sNestingLevel;
+    sNestingLevel = timeout->mNestingLevel;
+  }
+
+  nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
+  JSObject* scriptObject = handler->GetScriptObject();
+  if (!scriptObject) {
+    
+    const PRUnichar* script = handler->GetHandlerText();
+    NS_ASSERTION(script, "timeout has no script nor handler text!");
+
+    const char* filename = nsnull;
+    PRUint32 lineNo = 0;
+    handler->GetLocation(&filename, &lineNo);
+
+    NS_TIME_FUNCTION_MARK("(file: %s, line: %d)", filename, lineNo);
+
+    bool is_undefined;
+    aScx->EvaluateString(nsDependentString(script), FastGetGlobalJSObject(),
+                         timeout->mPrincipal, timeout->mPrincipal,
+                         filename, lineNo, JSVERSION_DEFAULT, nsnull,
+                         &is_undefined);
+  } else {
+    nsCOMPtr<nsIVariant> dummy;
+    nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
+    aScx->CallEventHandler(me, FastGetGlobalJSObject(),
+                           scriptObject, handler->GetArgv(),
+                           
+                           
+                           getter_AddRefs(dummy));
+
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  if (trackNestingLevel) {
+    sNestingLevel = nestingLevel;
+  }
+
+  --mTimeoutFiringDepth;
+  --gRunningTimeoutDepth;
+
+  mRunningTimeout = last_running_timeout;
+  timeout->mRunning = false;
+  return timeout->mCleared;
+}
+
+bool
+nsGlobalWindow::RescheduleTimeout(nsTimeout* aTimeout, const TimeStamp& now,
+                                  bool aRunningPendingTimeouts)
+{
+  if (!aTimeout->mIsInterval) {
+    if (aTimeout->mTimer) {
+      
+      
+      
+      aTimeout->mTimer->Cancel();
+      aTimeout->mTimer = nsnull;
+      aTimeout->Release();
+    }
+    return false;
+  }
+
+  
+  
+  TimeDuration nextInterval =
+    TimeDuration::FromMilliseconds(NS_MAX(aTimeout->mInterval,
+                                          PRUint32(DOMMinTimeoutValue())));
+
+  
+  
+  
+  TimeStamp firingTime;
+  if (aRunningPendingTimeouts) {
+    firingTime = now + nextInterval;
+  } else {
+    firingTime = aTimeout->mWhen + nextInterval;
+  }
+
+  TimeStamp currentNow = TimeStamp::Now();
+  TimeDuration delay = firingTime - currentNow;
+
+  
+  
+  
+  if (delay < TimeDuration(0)) {
+    delay = TimeDuration(0);
+  }
+
+  if (!aTimeout->mTimer) {
+    NS_ASSERTION(IsFrozen() || mTimeoutsSuspendDepth,
+                 "How'd our timer end up null if we're not frozen or "
+                 "suspended?");
+
+    aTimeout->mTimeRemaining = delay;
+    return true;
+  }
+
+  aTimeout->mWhen = currentNow + delay;
+
+  
+  
+
+  
+  
+  
+  
+  
+  nsresult rv = aTimeout->mTimer->
+    InitWithFuncCallback(TimerCallback, aTimeout,
+                         delay.ToMilliseconds(),
+                         nsITimer::TYPE_ONE_SHOT);
+
+  if (NS_FAILED(rv)) {
+    NS_ERROR("Error initializing timer for DOM timeout!");
+
+    
+    
+    
+    
+    
+    
+    aTimeout->mTimer->Cancel();
+    aTimeout->mTimer = nsnull;
+
+    
+    
+    aTimeout->Release();
+
+    return false;
+  }
+
+  return true;
+}
 
 void
 nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
@@ -9094,90 +9301,8 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
     }
 
     
-    nsTimeout *last_running_timeout = mRunningTimeout;
-    mRunningTimeout = timeout;
-    timeout->mRunning = true;
     ++timeoutsRan;
-
-    
-    
-    
-    
-    nsAutoPopupStatePusher popupStatePusher(timeout->mPopupState);
-
-    
-    
-    timeout->mPopupState = openAbused;
-
-    
-    
-    timeout->AddRef();
-
-    ++gRunningTimeoutDepth;
-    ++mTimeoutFiringDepth;
-
-    bool trackNestingLevel = !timeout->mIsInterval;
-    PRUint32 nestingLevel;
-    if (trackNestingLevel) {
-      nestingLevel = sNestingLevel;
-      sNestingLevel = timeout->mNestingLevel;
-    }
-
-    nsCOMPtr<nsIScriptTimeoutHandler> handler(timeout->mScriptHandler);
-    JSObject* scriptObject = handler->GetScriptObject();
-    if (!scriptObject) {
-      
-      const PRUnichar *script = handler->GetHandlerText();
-      NS_ASSERTION(script, "timeout has no script nor handler text!");
-
-      const char *filename = nsnull;
-      PRUint32 lineNo = 0;
-      handler->GetLocation(&filename, &lineNo);
-
-      NS_TIME_FUNCTION_MARK("(file: %s, line: %d)", filename, lineNo);
-
-      bool is_undefined;
-      scx->EvaluateString(nsDependentString(script), FastGetGlobalJSObject(),
-                          timeout->mPrincipal, timeout->mPrincipal,
-                          filename, lineNo, JSVERSION_DEFAULT, nsnull,
-                          &is_undefined);
-    } else {
-      nsCOMPtr<nsIVariant> dummy;
-      nsCOMPtr<nsISupports> me(static_cast<nsIDOMWindow *>(this));
-      scx->CallEventHandler(me, FastGetGlobalJSObject(),
-                            scriptObject, handler->GetArgv(),
-                            
-                            
-                            getter_AddRefs(dummy));
-
-    }
-    handler = nsnull; 
-
-    if (trackNestingLevel) {
-      sNestingLevel = nestingLevel;
-    }
-
-    --mTimeoutFiringDepth;
-    --gRunningTimeoutDepth;
-
-    mRunningTimeout = last_running_timeout;
-    timeout->mRunning = false;
-
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
-    
-    
-    bool timeout_was_cleared = timeout->mCleared;
-
-    timeout->Release();
+    bool timeout_was_cleared = RunTimeoutHandler(timeout, scx);
 
     if (timeout_was_cleared) {
       
@@ -9190,96 +9315,9 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
       return;
     }
 
-    bool isInterval = false;
-
     
     
-    if (timeout->mIsInterval) {
-      
-      
-      TimeDuration nextInterval =
-        TimeDuration::FromMilliseconds(NS_MAX(timeout->mInterval,
-                                              PRUint32(DOMMinTimeoutValue())));
-
-      
-      
-      
-      TimeStamp firingTime;
-      if (!aTimeout)
-        firingTime = now + nextInterval;
-      else
-        firingTime = timeout->mWhen + nextInterval;
-
-      TimeStamp currentNow = TimeStamp::Now();
-      TimeDuration delay = firingTime - currentNow;
-
-      
-      
-      
-      if (delay < TimeDuration(0)) {
-        delay = TimeDuration(0);
-      }
-
-      if (timeout->mTimer) {
-        timeout->mWhen = currentNow + delay; 
-                                             
-                                             
-
-        
-        
-        
-        
-
-        
-        
-        
-        
-        
-        nsresult rv = timeout->mTimer->
-          InitWithFuncCallback(TimerCallback, timeout,
-                               delay.ToMilliseconds(),
-                               nsITimer::TYPE_ONE_SHOT);
-
-        if (NS_FAILED(rv)) {
-          NS_ERROR("Error initializing timer for DOM timeout!");
-
-          
-          
-          
-          
-          
-          
-          timeout->mTimer->Cancel();
-          timeout->mTimer = nsnull;
-
-          
-          
-          timeout->Release();
-        }
-      } else {
-        NS_ASSERTION(IsFrozen() || mTimeoutsSuspendDepth,
-                     "How'd our timer end up null if we're not frozen or "
-                     "suspended?");
-
-        timeout->mTimeRemaining = delay;
-        isInterval = true;
-      }
-    }
-
-    if (timeout->mTimer) {
-      if (timeout->mIsInterval) {
-        isInterval = true;
-      } else {
-        
-        
-        
-        
-        timeout->mTimer->Cancel();
-        timeout->mTimer = nsnull;
-
-        timeout->Release();
-      }
-    }
+    bool needsReinsertion = RescheduleTimeout(timeout, now, !aTimeout);
 
     
     
@@ -9287,8 +9325,9 @@ nsGlobalWindow::RunTimeout(nsTimeout *aTimeout)
 
     PR_REMOVE_LINK(timeout);
 
-    if (isInterval) {
-      
+    if (needsReinsertion) {
+      NS_ASSERTION(timeout->mTimer,
+                   "rescheduling interval timeout without a timer!");
       
       
       InsertTimeoutIntoList(timeout);
@@ -10092,13 +10131,13 @@ nsGlobalWindow::HasPerformanceSupport()
 void
 nsGlobalWindow::SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
 {
-  aWindowSizes->mDOM += aWindowSizes->mMallocSizeOf(this);
+  aWindowSizes->mDOMOther += aWindowSizes->mMallocSizeOf(this);
 
   if (IsInnerWindow()) {
     nsEventListenerManager* elm =
       const_cast<nsGlobalWindow*>(this)->GetListenerManager(false);
     if (elm) {
-      aWindowSizes->mDOM +=
+      aWindowSizes->mDOMOther +=
         elm->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf);
     }
     if (mDoc) {
@@ -10106,7 +10145,7 @@ nsGlobalWindow::SizeOfIncludingThis(nsWindowSizes* aWindowSizes) const
     }
   }
 
-  aWindowSizes->mDOM +=
+  aWindowSizes->mDOMOther +=
     mNavigator ?
       mNavigator->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf) : 0;
 }
@@ -10551,11 +10590,11 @@ nsGlobalModalWindow::SetNewDocument(nsIDocument *aDocument,
                                     nsISupports *aState,
                                     bool aForceReuseInnerWindow)
 {
+  MOZ_ASSERT(aDocument);
+
   
   
-  if (aDocument) {
-    mReturnValue = nsnull;
-  }
+  mReturnValue = nsnull;
 
   return nsGlobalWindow::SetNewDocument(aDocument, aState,
                                         aForceReuseInnerWindow);

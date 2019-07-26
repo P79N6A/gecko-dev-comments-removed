@@ -378,6 +378,15 @@ protected:
   
   void DoScrollContentIntoView();
 
+  
+
+
+
+
+
+
+  void SetupFontInflation();
+
   friend struct AutoRenderingStateSaveRestore;
   friend struct RenderingState;
 

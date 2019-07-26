@@ -16,10 +16,15 @@
 #include "States.h"
 
 #include "nsCOMPtr.h"
-#include "nsHTMLOptionElement.h"
-#include "nsIComboboxControlFrame.h"
 #include "nsIFrame.h"
+#include "nsIComboboxControlFrame.h"
+#include "nsIDocument.h"
+#include "nsIDOMHTMLInputElement.h"
+#include "nsIDOMHTMLOptGroupElement.h"
+#include "nsIDOMHTMLSelectElement.h"
 #include "nsIListControlFrame.h"
+#include "nsIServiceManager.h"
+#include "nsIMutableArray.h"
 
 using namespace mozilla::a11y;
 
@@ -37,10 +42,10 @@ HTMLSelectListAccessible::
 
 
 
-uint64_t
+PRUint64
 HTMLSelectListAccessible::NativeState()
 {
-  uint64_t state = AccessibleWrap::NativeState();
+  PRUint64 state = AccessibleWrap::NativeState();
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::multiple))
     state |= states::MULTISELECTABLE | states::EXTSELECTABLE;
 
@@ -109,7 +114,7 @@ HTMLSelectListAccessible::CurrentItem()
         return document->GetAccessible(activeOptionNode);
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 void
@@ -215,50 +220,56 @@ HTMLSelectOptionAccessible::GetNameInternal(nsAString& aName)
   return NS_OK;
 }
 
-uint64_t
+PRUint64
 HTMLSelectOptionAccessible::NativeState()
 {
   
   
   
   
-  uint64_t state = Accessible::NativeState();
+  PRUint64 state = Accessible::NativeState();
 
   Accessible* select = GetSelect();
   if (!select)
     return state;
 
-  uint64_t selectState = select->State();
+  PRUint64 selectState = select->State();
   if (selectState & states::INVISIBLE)
     return state;
 
   
-  nsHTMLOptionElement* option = nsHTMLOptionElement::FromContent(mContent);
-  bool selected = option && option->Selected();
-  if (selected)
-    state |= states::SELECTED;
+  bool isSelected = false;
+  nsCOMPtr<nsIDOMHTMLOptionElement> option(do_QueryInterface(mContent));
+  if (option) {
+    option->GetSelected(&isSelected);
+    if (isSelected)
+      state |= states::SELECTED;
+  }
 
   if (selectState & states::OFFSCREEN) {
     state |= states::OFFSCREEN;
-  } else if (selectState & states::COLLAPSED) {
+  }
+  else if (selectState & states::COLLAPSED) {
     
     
-    if (!selected) {
+    if (!isSelected) {
       state |= states::OFFSCREEN;
-    } else {
+    }
+    else {
       
       state &= ~(states::OFFSCREEN | states::INVISIBLE);
       state |= selectState & states::OPAQUE1;
     }
-  } else {
+  }
+  else {
     
     
     state &= ~states::OFFSCREEN;
     
     Accessible* listAcc = Parent();
     if (listAcc) {
-      int32_t optionX, optionY, optionWidth, optionHeight;
-      int32_t listX, listY, listWidth, listHeight;
+      PRInt32 optionX, optionY, optionWidth, optionHeight;
+      PRInt32 listX, listY, listWidth, listHeight;
       GetBounds(&optionX, &optionY, &optionWidth, &optionHeight);
       listAcc->GetBounds(&listX, &listY, &listWidth, &listHeight);
       if (optionY < listY || optionY + optionHeight > listY + listHeight) {
@@ -270,19 +281,19 @@ HTMLSelectOptionAccessible::NativeState()
   return state;
 }
 
-uint64_t
+PRUint64
 HTMLSelectOptionAccessible::NativeInteractiveState() const
 {
   return NativelyUnavailable() ?
     states::UNAVAILABLE : states::FOCUSABLE | states::SELECTABLE;
 }
 
-int32_t
+PRInt32
 HTMLSelectOptionAccessible::GetLevelInternal()
 {
   nsIContent *parentContent = mContent->GetParent();
 
-  int32_t level =
+  PRInt32 level =
     parentContent->NodeInfo()->Equals(nsGkAtoms::optgroup) ? 2 : 1;
 
   if (level == 1 && Role() != roles::HEADING)
@@ -303,7 +314,7 @@ HTMLSelectOptionAccessible::GetBoundsRect(nsRect& aTotalBounds,
 }
 
 NS_IMETHODIMP
-HTMLSelectOptionAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+HTMLSelectOptionAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Select) {
     aName.AssignLiteral("select"); 
@@ -312,14 +323,14 @@ HTMLSelectOptionAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
   return NS_ERROR_INVALID_ARG;
 }
 
-uint8_t
+PRUint8
 HTMLSelectOptionAccessible::ActionCount()
 {
   return 1;
 }
 
 NS_IMETHODIMP
-HTMLSelectOptionAccessible::DoAction(uint8_t aIndex)
+HTMLSelectOptionAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Select)
     return NS_ERROR_INVALID_ARG;
@@ -337,8 +348,8 @@ HTMLSelectOptionAccessible::SetSelected(bool aSelect)
   if (IsDefunct())
     return NS_ERROR_FAILURE;
 
-  nsHTMLOptionElement* option = nsHTMLOptionElement::FromContent(mContent);
-  return option ? option->SetSelected(aSelect) : NS_ERROR_FAILURE;
+  nsCOMPtr<nsIDOMHTMLOptionElement> optionElm(do_QueryInterface(mContent));
+  return optionElm->SetSelected(aSelect);
 }
 
 
@@ -347,7 +358,7 @@ HTMLSelectOptionAccessible::SetSelected(bool aSelect)
 Accessible*
 HTMLSelectOptionAccessible::ContainerWidget() const
 {
-  return mParent && mParent->IsListControl() ? mParent : nullptr;
+  return mParent && mParent->IsListControl() ? mParent : nsnull;
 }
 
 
@@ -366,25 +377,25 @@ HTMLSelectOptGroupAccessible::NativeRole()
   return roles::HEADING;
 }
 
-uint64_t
+PRUint64
 HTMLSelectOptGroupAccessible::NativeInteractiveState() const
 {
   return NativelyUnavailable() ? states::UNAVAILABLE : 0;
 }
 
 NS_IMETHODIMP
-HTMLSelectOptGroupAccessible::DoAction(uint8_t index)
+HTMLSelectOptGroupAccessible::DoAction(PRUint8 index)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-HTMLSelectOptGroupAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+HTMLSelectOptGroupAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-uint8_t
+PRUint8
 HTMLSelectOptGroupAccessible::ActionCount()
 {
   return 0;
@@ -453,7 +464,7 @@ HTMLComboboxAccessible::CacheChildren()
       new HTMLComboboxListAccessible(mParent, mContent, mDoc);
 
     
-    if (!Document()->BindToDocument(mListAccessible, nullptr))
+    if (!Document()->BindToDocument(mListAccessible, nsnull))
       return;
   }
 
@@ -471,17 +482,17 @@ HTMLComboboxAccessible::Shutdown()
 
   if (mListAccessible) {
     mListAccessible->Shutdown();
-    mListAccessible = nullptr;
+    mListAccessible = nsnull;
   }
 }
 
-uint64_t
+PRUint64
 HTMLComboboxAccessible::NativeState()
 {
   
   
   
-  uint64_t state = Accessible::NativeState();
+  PRUint64 state = Accessible::NativeState();
 
   nsIComboboxControlFrame* comboFrame = do_QueryFrame(GetFrame());
   if (comboFrame && comboFrame->IsDroppedDown())
@@ -518,14 +529,14 @@ HTMLComboboxAccessible::Value(nsString& aValue)
     option->Name(aValue);
 }
 
-uint8_t
+PRUint8
 HTMLComboboxAccessible::ActionCount()
 {
   return 1;
 }
 
 NS_IMETHODIMP
-HTMLComboboxAccessible::DoAction(uint8_t aIndex)
+HTMLComboboxAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Click)
     return NS_ERROR_INVALID_ARG;
@@ -544,7 +555,7 @@ HTMLComboboxAccessible::DoAction(uint8_t aIndex)
 
 
 NS_IMETHODIMP
-HTMLComboboxAccessible::GetActionName(uint8_t aIndex, nsAString& aName)
+HTMLComboboxAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex != HTMLComboboxAccessible::eAction_Click) {
     return NS_ERROR_INVALID_ARG;
@@ -590,7 +601,7 @@ HTMLComboboxAccessible::AreItemsOperable() const
 Accessible*
 HTMLComboboxAccessible::CurrentItem()
 {
-  return AreItemsOperable() ? mListAccessible->CurrentItem() : nullptr;
+  return AreItemsOperable() ? mListAccessible->CurrentItem() : nsnull;
 }
 
 void
@@ -609,7 +620,7 @@ HTMLComboboxAccessible::SelectedOption() const
   nsIFrame* frame = GetFrame();
   nsIComboboxControlFrame* comboboxFrame = do_QueryFrame(frame);
   if (!comboboxFrame)
-    return nullptr;
+    return nsnull;
 
   nsIListControlFrame* listControlFrame =
     do_QueryFrame(comboboxFrame->GetDropDown());
@@ -622,7 +633,7 @@ HTMLComboboxAccessible::SelectedOption() const
     }
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 
@@ -635,7 +646,6 @@ HTMLComboboxListAccessible::
                              DocAccessible* aDoc) :
   HTMLSelectListAccessible(aContent, aDoc)
 {
-  mFlags |= eSharedNode;
 }
 
 
@@ -653,7 +663,13 @@ HTMLComboboxListAccessible::GetFrame() const
     }
   }
 
-  return nullptr;
+  return nsnull;
+}
+
+bool
+HTMLComboboxListAccessible::IsPrimaryForNode() const
+{
+  return false;
 }
 
 
@@ -665,13 +681,13 @@ HTMLComboboxListAccessible::NativeRole()
   return roles::COMBOBOX_LIST;
 }
 
-uint64_t
+PRUint64
 HTMLComboboxListAccessible::NativeState()
 {
   
   
   
-  uint64_t state = Accessible::NativeState();
+  PRUint64 state = Accessible::NativeState();
 
   nsIComboboxControlFrame* comboFrame = do_QueryFrame(mParent->GetFrame());
   if (comboFrame && comboFrame->IsDroppedDown())
@@ -689,7 +705,7 @@ HTMLComboboxListAccessible::NativeState()
 void
 HTMLComboboxListAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame)
 {
-  *aBoundingFrame = nullptr;
+  *aBoundingFrame = nsnull;
 
   Accessible* comboAcc = Parent();
   if (!comboAcc)
@@ -707,7 +723,7 @@ HTMLComboboxListAccessible::GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingF
   }
   nsIFrame* frame = content->GetPrimaryFrame();
   if (!frame) {
-    *aBoundingFrame = nullptr;
+    *aBoundingFrame = nsnull;
     return;
   }
 

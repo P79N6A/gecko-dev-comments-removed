@@ -3477,10 +3477,7 @@ function OpenBrowserWindow()
 }
 
 var gCustomizeSheet = false;
-
-
-function BrowserCustomizeToolbar()
-{
+function BrowserCustomizeToolbar() {
   
   var menubar = document.getElementById("main-menubar");
   for (var i = 0; i < menubar.childNodes.length; ++i)
@@ -3505,19 +3502,13 @@ function BrowserCustomizeToolbar()
   gCustomizeSheet = getBoolPref("toolbar.customization.usesheet", false);
 
   if (gCustomizeSheet) {
-    var sheetFrame = document.getElementById("customizeToolbarSheetIFrame");
-    var panel = document.getElementById("customizeToolbarSheetPopup");
-    sheetFrame.hidden = false;
+    let sheetFrame = document.createElement("iframe");
+    let panel = document.getElementById("customizeToolbarSheetPopup");
+    sheetFrame.id = "customizeToolbarSheetIFrame";
     sheetFrame.toolbox = gNavToolbox;
     sheetFrame.panel = panel;
-
-    
-    
-    
-    if (sheetFrame.getAttribute("src") == customizeURL)
-      sheetFrame.contentWindow.location.reload()
-    else
-      sheetFrame.setAttribute("src", customizeURL);
+    sheetFrame.setAttribute("style", panel.getAttribute("sheetstyle"));
+    panel.appendChild(sheetFrame);
 
     
     
@@ -3526,20 +3517,23 @@ function BrowserCustomizeToolbar()
       gNavToolbox.removeEventListener("beforecustomization", onBeforeCustomization, false);
       panel.style.removeProperty("visibility");
     }, false);
+
+    sheetFrame.setAttribute("src", customizeURL);
+
     panel.openPopup(gNavToolbox, "after_start", 0, 0);
-    return sheetFrame.contentWindow;
   } else {
-    return window.openDialog(customizeURL,
-                             "CustomizeToolbar",
-                             "chrome,titlebar,toolbar,location,resizable,dependent",
-                             gNavToolbox);
+    window.openDialog(customizeURL,
+                      "CustomizeToolbar",
+                      "chrome,titlebar,toolbar,location,resizable,dependent",
+                      gNavToolbox);
   }
 }
 
 function BrowserToolboxCustomizeDone(aToolboxChanged) {
   if (gCustomizeSheet) {
-    document.getElementById("customizeToolbarSheetIFrame").hidden = true;
     document.getElementById("customizeToolbarSheetPopup").hidePopup();
+    let iframe = document.getElementById("customizeToolbarSheetIFrame");
+    iframe.parentNode.removeChild(iframe);
   }
 
   

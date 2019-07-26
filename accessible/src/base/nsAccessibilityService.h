@@ -33,7 +33,9 @@ FocusManager* FocusMgr();
 
 
 void PreInit();
+#endif
 
+#if defined(MOZ_ACCESSIBILITY_ATK) || defined(XP_MACOSX)
 
 
 
@@ -174,12 +176,6 @@ public:
 
   Accessible* GetOrCreateAccessible(nsINode* aNode, DocAccessible* aDoc,
                                     bool* aIsSubtreeHidden = nsnull);
-
-  
-
-
-
-  Accessible* GetAccessible(nsINode* aNode, nsIPresShell* aPresShell);
 
 private:
   

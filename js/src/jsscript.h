@@ -1076,7 +1076,7 @@ inline void
 CurrentScriptFileLineOrigin(JSContext *cx, unsigned *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
 
 extern JSScript *
-CloneScript(JSContext *cx, JSScript *script);
+CloneScript(JSContext *cx, HandleScript script);
 
 
 

@@ -1163,33 +1163,38 @@ nsChangeHint nsStylePosition::CalcDifference(const nsStylePosition& aOther) cons
     return NS_CombineHint(hint, nsChangeHint_ReflowFrame);
   }
 
-  if ((mWidth == aOther.mWidth) &&
-      (mMinWidth == aOther.mMinWidth) &&
-      (mMaxWidth == aOther.mMaxWidth)) {
-    if (mOffset == aOther.mOffset) {
-      return hint;
-    } else {
-      
-      
-      
-      return NS_CombineHint(hint, nsChangeHint_NeedReflow);
-    }
+  if (mWidth != aOther.mWidth ||
+      mMinWidth != aOther.mMinWidth ||
+      mMaxWidth != aOther.mMaxWidth) {
+    
+    
+    return
+      NS_CombineHint(hint,
+                     NS_SubtractHint(nsChangeHint_ReflowFrame,
+                                     NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
+                                                    nsChangeHint_NeedDirtyReflow)));
   }
 
   
   
-  return
-    NS_CombineHint(hint,
-                   NS_SubtractHint(nsChangeHint_ReflowFrame,
-                                   NS_CombineHint(nsChangeHint_ClearDescendantIntrinsics,
-                                                  nsChangeHint_NeedDirtyReflow)));
+  
+  
+  
+  
+  if (mOffset != aOther.mOffset) {
+    NS_UpdateHint(hint, nsChangeHint(nsChangeHint_RecomputePosition |
+                                     nsChangeHint_UpdateOverflow));
+  }
+  return hint;
 }
 
 #ifdef DEBUG
 
 nsChangeHint nsStylePosition::MaxDifference()
 {
-  return NS_STYLE_HINT_REFLOW;
+  return NS_CombineHint(NS_STYLE_HINT_REFLOW,
+                        nsChangeHint(nsChangeHint_RecomputePosition |
+                                     nsChangeHint_UpdateOverflow));
 }
 #endif
 

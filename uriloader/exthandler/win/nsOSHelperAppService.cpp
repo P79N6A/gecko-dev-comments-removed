@@ -440,7 +440,7 @@ nsOSHelperAppService::GetDefaultAppInfo(const nsAString& aAppInfo,
   
   
   
-  nsCOMPtr<nsILocalFile> lf;
+  nsCOMPtr<nsIFile> lf;
   NS_NewLocalFile(handlerCommand, true, getter_AddRefs(lf));
   if (!lf)
     return NS_ERROR_FILE_NOT_FOUND;

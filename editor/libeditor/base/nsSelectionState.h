@@ -1,7 +1,7 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef __selectionstate_h__
 #define __selectionstate_h__
@@ -11,18 +11,19 @@
 #include "nsIDOMNode.h"
 #include "nsIDOMRange.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsINode.h"
 
 class nsIDOMCharacterData;
 class nsISelection;
 class nsRange;
 
+/***************************************************************************
+ * class for recording selection info.  stores selection as collection of
+ * { {startnode, startoffset} , {endnode, endoffset} } tuples.  Can't store
+ * ranges since dom gravity will possibly change the ranges.
+ */
 
-
-
-
-
-
-
+// first a helper struct for saving/setting ranges
 struct nsRangeStore 
 {
   nsRangeStore();
@@ -34,7 +35,7 @@ struct nsRangeStore
   PRInt32              startOffset;
   nsCOMPtr<nsIDOMNode> endNode;
   PRInt32              endOffset;
-  
+  // DEBUG:   static PRInt32 n;
 };
 
 class nsSelectionState
@@ -71,11 +72,11 @@ class nsRangeUpdater
     nsresult RegisterSelectionState(nsSelectionState &aSelState);
     nsresult DropSelectionState(nsSelectionState &aSelState);
     
-    
-    
-    
-    
-    
+    // editor selection gravity routines.  Note that we can't always depend on
+    // DOM Range gravity to do what we want to the "real" selection.  For instance,
+    // if you move a node, that corresponds to deleting it and reinserting it.
+    // DOM Range gravity will promote the selection out of the node on deletion,
+    // which is not what you want if you know you are reinserting it.
     nsresult SelAdjCreateNode(nsIDOMNode *aParent, PRInt32 aPosition);
     nsresult SelAdjInsertNode(nsIDOMNode *aParent, PRInt32 aPosition);
     nsresult SelAdjDeleteNode(nsIDOMNode *aNode);
@@ -87,8 +88,8 @@ class nsRangeUpdater
                              PRInt32 aOldLeftNodeLength);
     nsresult SelAdjInsertText(nsIDOMCharacterData *aTextNode, PRInt32 aOffset, const nsAString &aString);
     nsresult SelAdjDeleteText(nsIDOMCharacterData *aTextNode, PRInt32 aOffset, PRInt32 aLength);
-    
-    
+    // the following gravity routines need will/did sandwiches, because the other gravity
+    // routines will be called inside of these sandwiches, but should be ignored.
     nsresult WillReplaceContainer();
     nsresult DidReplaceContainer(nsIDOMNode *aOriginalNode, nsIDOMNode *aNewNode);
     nsresult WillRemoveContainer();
@@ -103,10 +104,10 @@ class nsRangeUpdater
 };
 
 
-
-
-
-
+/***************************************************************************
+ * helper class for using nsSelectionState.  stack based class for doing
+ * preservation of dom points across editor actions
+ */
 
 class NS_STACK_CLASS nsAutoTrackDOMPoint
 {
@@ -138,10 +139,10 @@ class NS_STACK_CLASS nsAutoTrackDOMPoint
 
 
 
-
-
-
-
+/***************************************************************************
+ * another helper class for nsSelectionState.  stack based class for doing
+ * Will/DidReplaceContainer()
+ */
 
 class NS_STACK_CLASS nsAutoReplaceContainerSelNotify
 {
@@ -166,10 +167,10 @@ class NS_STACK_CLASS nsAutoReplaceContainerSelNotify
 };
 
 
-
-
-
-
+/***************************************************************************
+ * another helper class for nsSelectionState.  stack based class for doing
+ * Will/DidRemoveContainer()
+ */
 
 class NS_STACK_CLASS nsAutoRemoveContainerSelNotify
 {
@@ -181,16 +182,16 @@ class NS_STACK_CLASS nsAutoRemoveContainerSelNotify
     PRUint32   mNodeOrigLen;
 
   public:
-    nsAutoRemoveContainerSelNotify(nsRangeUpdater &aRangeUpdater, 
-                                   nsIDOMNode *aNode, 
-                                   nsIDOMNode *aParent, 
-                                   PRInt32 aOffset, 
-                                   PRUint32 aNodeOrigLen) :
-    mRU(aRangeUpdater)
-    ,mNode(aNode)
-    ,mParent(aParent)
-    ,mOffset(aOffset)
-    ,mNodeOrigLen(aNodeOrigLen)
+    nsAutoRemoveContainerSelNotify(nsRangeUpdater& aRangeUpdater,
+                                   nsINode* aNode,
+                                   nsINode* aParent,
+                                   PRInt32 aOffset,
+                                   PRUint32 aNodeOrigLen)
+      : mRU(aRangeUpdater)
+      , mNode(aNode->AsDOMNode())
+      , mParent(aParent->AsDOMNode())
+      , mOffset(aOffset)
+      , mNodeOrigLen(aNodeOrigLen)
     {
       mRU.WillRemoveContainer();
     }
@@ -201,10 +202,10 @@ class NS_STACK_CLASS nsAutoRemoveContainerSelNotify
     }
 };
 
-
-
-
-
+/***************************************************************************
+ * another helper class for nsSelectionState.  stack based class for doing
+ * Will/DidInsertContainer()
+ */
 
 class NS_STACK_CLASS nsAutoInsertContainerSelNotify
 {
@@ -225,10 +226,10 @@ class NS_STACK_CLASS nsAutoInsertContainerSelNotify
 };
 
 
-
-
-
-
+/***************************************************************************
+ * another helper class for nsSelectionState.  stack based class for doing
+ * Will/DidMoveNode()
+ */
 
 class NS_STACK_CLASS nsAutoMoveNodeSelNotify
 {

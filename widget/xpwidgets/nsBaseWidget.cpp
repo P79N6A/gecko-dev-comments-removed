@@ -876,12 +876,8 @@ void nsBaseWidget::CreateCompositor()
     AsyncChannel::Side childSide = mozilla::ipc::AsyncChannel::Child;
     mCompositorChild->Open(parentChannel, childMessageLoop, childSide);
     PRInt32 maxTextureSize;
-    PLayersChild* shadowManager;
-    if (mUseAcceleratedRendering) {
-      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL, &maxTextureSize);
-    } else {
-      shadowManager = mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_BASIC, &maxTextureSize);
-    }
+    PLayersChild* shadowManager =
+      mCompositorChild->SendPLayersConstructor(LayerManager::LAYERS_OPENGL, &maxTextureSize);
 
     if (shadowManager) {
       ShadowLayerForwarder* lf = lm->AsShadowForwarder();
@@ -891,10 +887,7 @@ void nsBaseWidget::CreateCompositor()
         return;
       }
       lf->SetShadowManager(shadowManager);
-      if (mUseAcceleratedRendering)
-        lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
-      else
-        lf->SetParentBackendType(LayerManager::LAYERS_BASIC);
+      lf->SetParentBackendType(LayerManager::LAYERS_OPENGL);
       lf->SetMaxTextureSize(maxTextureSize);
 
       mLayerManager = lm;
@@ -1238,7 +1231,7 @@ nsBaseWidget::OverrideSystemMouseScrollSpeed(PRInt32 aOriginalDelta,
 
 
 static bool
-ResolveIconNameHelper(nsILocalFile *aFile,
+ResolveIconNameHelper(nsIFile *aFile,
                       const nsAString &aIconName,
                       const nsAString &aIconSuffix)
 {
@@ -1260,7 +1253,7 @@ ResolveIconNameHelper(nsILocalFile *aFile,
 void
 nsBaseWidget::ResolveIconName(const nsAString &aIconName,
                               const nsAString &aIconSuffix,
-                              nsILocalFile **aResult)
+                              nsIFile **aResult)
 { 
   *aResult = nsnull;
 
@@ -1280,7 +1273,7 @@ nsBaseWidget::ResolveIconName(const nsAString &aIconName,
       dirs->GetNext(getter_AddRefs(element));
       if (!element)
         continue;
-      nsCOMPtr<nsILocalFile> file = do_QueryInterface(element);
+      nsCOMPtr<nsIFile> file = do_QueryInterface(element);
       if (!file)
         continue;
       if (ResolveIconNameHelper(file, aIconName, aIconSuffix)) {
@@ -1292,8 +1285,8 @@ nsBaseWidget::ResolveIconName(const nsAString &aIconName,
 
   
 
-  nsCOMPtr<nsILocalFile> file;
-  dirSvc->Get(NS_APP_CHROME_DIR, NS_GET_IID(nsILocalFile),
+  nsCOMPtr<nsIFile> file;
+  dirSvc->Get(NS_APP_CHROME_DIR, NS_GET_IID(nsIFile),
               getter_AddRefs(file));
   if (file && ResolveIconNameHelper(file, aIconName, aIconSuffix))
     NS_ADDREF(*aResult = file);
@@ -1336,9 +1329,18 @@ static void InitOnlyOnce()
   
   sUseOffMainThreadCompositing = (PR_GetEnv("MOZ_USE_OMTC") != NULL);
 #else
-  sUseOffMainThreadCompositing = mozilla::Preferences::GetBool(
+  sUseOffMainThreadCompositing = Preferences::GetBool(
         "layers.offmainthreadcomposition.enabled", 
         false);
+  
+  
+  
+  
+  
+  if (!Preferences::GetBool("dom.ipc.tabs.disabled", true)) {
+    
+    sUseOffMainThreadCompositing = false;
+  }
 #endif
 }
 

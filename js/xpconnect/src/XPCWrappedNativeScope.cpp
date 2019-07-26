@@ -223,9 +223,9 @@ XPCWrappedNativeScope::SetGlobal(XPCCallContext& ccx, JSObject* aGlobal,
             
             
             priv = static_cast<nsISupports*>(xpc_GetJSPrivate(aGlobal));
-        } else if ((jsClass->flags & JSCLASS_IS_DOMJSCLASS) &&
+        } else if (dom::IsDOMClass(jsClass) &&
                    dom::DOMJSClass::FromJSClass(jsClass)->mDOMObjectIsISupports) {
-            priv = dom::UnwrapDOMObject<nsISupports>(aGlobal, jsClass);
+            priv = dom::UnwrapDOMObject<nsISupports>(aGlobal);
         } else {
             priv = nsnull;
         }

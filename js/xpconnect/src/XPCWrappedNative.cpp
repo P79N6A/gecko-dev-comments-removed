@@ -17,6 +17,7 @@
 #include "jsproxy.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
+#include "XrayWrapper.h"
 #include "dombindings.h"
 
 #include "nsContentUtils.h"
@@ -88,16 +89,6 @@ NS_CYCLE_COLLECTION_CLASSNAME(XPCWrappedNative)::Traverse(void *p,
         JSObject *obj = tmp->GetFlatJSObjectPreserveColor();
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mFlatJSObject");
         cb.NoteJSChild(obj);
-    }
-
-    if (tmp->MightHaveExpandoObject()) {
-        XPCJSRuntime *rt = tmp->GetRuntime();
-        XPCCompartmentSet &set = rt->GetCompartmentSet();
-        for (XPCCompartmentRange r = set.all(); !r.empty(); r.popFront()) {
-            CompartmentPrivate *priv = GetCompartmentPrivate(r.front());
-            NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "XPCWrappedNative expando object");
-            cb.NoteJSChild(priv->LookupExpandoObjectPreserveColor(tmp));
-        }
     }
 
     
@@ -1192,10 +1183,11 @@ XPCWrappedNative::Init(XPCCallContext& ccx, JSObject* parent,
 JSBool
 XPCWrappedNative::Init(XPCCallContext &ccx, JSObject *existingJSObject)
 {
+    
     JS_SetPrivate(existingJSObject, this);
 
     
-    JS_SetReservedSlot(existingJSObject, 0, JSVAL_VOID);
+    MorphMultiSlot(existingJSObject);
 
     mScriptableInfo = GetProto()->GetScriptableInfo();
     mFlatJSObject = existingJSObject;
@@ -1210,6 +1202,11 @@ XPCWrappedNative::Init(XPCCallContext &ccx, JSObject *existingJSObject)
 JSBool
 XPCWrappedNative::FinishInit(XPCCallContext &ccx)
 {
+    
+    
+    
+    JS_SetReservedSlot(mFlatJSObject, WRAPPER_MULTISLOT, JSVAL_NULL);
+
     
     
     
@@ -1616,6 +1613,12 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
 
             
             
+            SetExpandoChain(newobj, nsnull);
+            if (!XrayUtils::CloneExpandoChain(ccx, newobj, flat))
+                return NS_ERROR_FAILURE;
+
+            
+            
             
             {
                 JSAutoEnterCompartment innerAC;
@@ -1652,40 +1655,13 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 }
 
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                JSObject *wwsaved = ww;
-                wrapper->SetWrapper(newwrapper);
                 ww = js_TransplantObjectWithWrapper(ccx, flat, ww, newobj,
                                                     newwrapper);
-                if (!ww) {
-                    wrapper->SetWrapper(wwsaved);
+                if (!ww)
                     return NS_ERROR_FAILURE;
-                }
 
                 flat = newobj;
+                wrapper->SetWrapper(ww);
             } else {
                 flat = JS_TransplantObject(ccx, flat, newobj);
                 if (!flat)
@@ -1698,11 +1674,10 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
             if (!JS_CopyPropertiesFrom(ccx, flat, propertyHolder))
                 return NS_ERROR_FAILURE;
         } else {
-            JS_SetReservedSlot(flat, 0,
-                               PRIVATE_TO_JSVAL(newProto.get()));
+            SetSlimWrapperProto(flat, newProto.get());
             if (!JS_SetPrototype(ccx, flat, newProto->GetJSProtoObject())) {
                 
-                JS_SetReservedSlot(flat, 0, JSVAL_NULL);
+                SetSlimWrapperProto(flat, nsnull);
                 NS_ERROR("JS_SetPrototype failed");
                 return NS_ERROR_FAILURE;
             }
@@ -2231,10 +2206,6 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
     JSObject *flat = GetFlatJSObject();
     JSObject *wrapper = GetWrapper();
 
-    
-    
-    
-    
     
     if (wrapper)
         return wrapper;
@@ -3936,7 +3907,7 @@ ConstructSlimWrapper(XPCCallContext &ccx,
         return false;
 
     JS_SetPrivate(wrapper, identityObj);
-    JS_SetReservedSlot(wrapper, 0, PRIVATE_TO_JSVAL(xpcproto.get()));
+    SetSlimWrapperProto(wrapper, xpcproto.get());
 
     
     aHelper.forgetCanonical();

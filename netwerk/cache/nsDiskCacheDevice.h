@@ -12,7 +12,7 @@
 #include "nsDiskCacheBlockFile.h"
 #include "nsDiskCacheEntry.h"
 
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsIObserver.h"
 #include "nsCOMArray.h"
 
@@ -57,13 +57,13 @@ public:
     
 
 
-    void                    SetCacheParentDirectory(nsILocalFile * parentDir);
+    void                    SetCacheParentDirectory(nsIFile * parentDir);
     void                    SetCapacity(PRUint32  capacity);
     void                    SetMaxEntrySize(PRInt32  maxSizeInKilobytes);
 
 
 
-    void                    getCacheDirectory(nsILocalFile ** result);
+    void                    getCacheDirectory(nsIFile ** result);
     PRUint32                getCacheCapacity();
     PRUint32                getCacheSize();
     PRUint32                getEntryCount();
@@ -99,7 +99,7 @@ private:
     
 
 
-    nsCOMPtr<nsILocalFile>  mCacheDirectory;
+    nsCOMPtr<nsIFile>       mCacheDirectory;
     nsDiskCacheBindery      mBindery;
     PRUint32                mCacheCapacity;     
     PRInt32                 mMaxEntrySize;      

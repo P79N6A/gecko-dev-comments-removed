@@ -1,12 +1,12 @@
-
-
-
-
+/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsPluginDirServiceProvider.h"
 
 #include "nsCRT.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsDependentString.h"
 #include "prmem.h"
 #include "nsArrayEnumerator.h"
@@ -40,7 +40,7 @@ FileExists(LPCWSTR szFile)
   return GetFileAttributesW(szFile) != 0xFFFFFFFF;
 }
 
-
+// Get file version information from a file
 static BOOL
 GetFileVersion(LPCWSTR szFile, verBlock *vbVersion)
 {
@@ -73,14 +73,14 @@ GetFileVersion(LPCWSTR szFile, verBlock *vbVersion)
 
     free(lpData);
   } else {
-    
+    /* File does not exist */
     bRv = FALSE;
   }
 
   return bRv;
 }
 
-
+// Will deep copy ver2 into ver1
 static void
 CopyVersion(verBlock *ver1, verBlock *ver2)
 {
@@ -90,7 +90,7 @@ CopyVersion(verBlock *ver1, verBlock *ver2)
   ver1->wBuild   = ver2->wBuild;
 }
 
-
+// Convert a string version to a version struct
 static void
 TranslateVersionStr(const WCHAR* szVersion, verBlock *vbVersion)
 {
@@ -106,12 +106,12 @@ TranslateVersionStr(const WCHAR* szVersion, verBlock *vbVersion)
   }
 
   if (!strVer) {
-    
+    // Out of memory
     ClearVersion(vbVersion);
     return;
   }
 
-  
+  // Java may be using an underscore instead of a dot for the build ID
   szJavaBuild = wcschr(strVer, '_');
   if (szJavaBuild) {
     szJavaBuild[0] = '.';
@@ -130,7 +130,7 @@ TranslateVersionStr(const WCHAR* szVersion, verBlock *vbVersion)
   free(strVer);
 }
 
-
+// Compare two version struct, return zero if the same
 static int
 CompareVersion(verBlock vbVersionOld, verBlock vbVersionNew)
 {
@@ -158,13 +158,13 @@ CompareVersion(verBlock vbVersionOld, verBlock vbVersionNew)
     return -1;
   }
 
-  
+  /* the versions are all the same */
   return 0;
 }
 
-
-
-
+//*****************************************************************************
+// nsPluginDirServiceProvider::Constructor/Destructor
+//*****************************************************************************
 
 nsPluginDirServiceProvider::nsPluginDirServiceProvider()
 {
@@ -174,22 +174,22 @@ nsPluginDirServiceProvider::~nsPluginDirServiceProvider()
 {
 }
 
-
-
-
+//*****************************************************************************
+// nsPluginDirServiceProvider::nsISupports
+//*****************************************************************************
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsPluginDirServiceProvider,
                               nsIDirectoryServiceProvider)
 
-
-
-
+//*****************************************************************************
+// nsPluginDirServiceProvider::nsIDirectoryServiceProvider
+//*****************************************************************************
 
 NS_IMETHODIMP
 nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
                                     nsIFile **_retval)
 {
-  nsCOMPtr<nsILocalFile>  localFile;
+  nsCOMPtr<nsIFile>  localFile;
   nsresult rv = NS_ERROR_FAILURE;
 
   NS_ENSURE_ARG(charProp);
@@ -225,13 +225,13 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
     PRUint32 childCount = 0;
     regKey->GetChildCount(&childCount);
 
-    
-    
+    // We must enumerate through the keys because what if there is
+    // more than one version?
     for (PRUint32 index = 0; index < childCount; ++index) {
       nsAutoString childName;
       rv = regKey->GetChildName(index, childName);
       if (NS_SUCCEEDED(rv)) {
-        
+        // Skip major.minor as it always points to latest in its family
         PRUint32 numChars = 0;
         PRInt32 offset = 0;
         while ((offset = childName.FindChar(L'.', offset + 1)) >= 0) {
@@ -269,7 +269,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
       return NS_ERROR_FAILURE;
     }
 
-    
+    // We require the newer NPAPI Java plugin.
     newestPath += NS_LITERAL_STRING("\\bin\\new_plugin");
 
     rv = NS_NewLocalFile(newestPath,
@@ -302,12 +302,12 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
-    
+    // Look for the Quicktime system installation plugins directory
     verBlock qtVer;
     ClearVersion(&qtVer);
 
-    
-    
+    // First we need to check the version of Quicktime via checking
+    // the EXE's version table
     rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
                       NS_LITERAL_STRING("software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\QuickTimePlayer.exe"),
                       nsIWindowsRegKey::ACCESS_READ);
@@ -342,11 +342,11 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
-    
+    // Look for Windows Media Player system installation plugins directory
     verBlock wmpVer;
     ClearVersion(&wmpVer);
 
-    
+    // First we need to check the version of WMP
     rv = regKey->Open(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE,
                       NS_LITERAL_STRING("software\\Microsoft\\Windows\\CurrentVersion\\App Paths\\wmplayer.exe"),
                       nsIWindowsRegKey::ACCESS_READ);
@@ -382,7 +382,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
     verBlock minVer;
     TranslateVersionStr(NS_ConvertASCIItoUTF16(strVer).get(), &minVer);
 
-    
+    // Look for Adobe Acrobat system installation plugins directory
     verBlock maxVer;
     ClearVersion(&maxVer);
 
@@ -400,8 +400,8 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
       }
     }
 
-    
-    
+    // We must enumerate through the keys because what if there is
+    // more than one version?
     PRUint32 childCount = 0;
     regKey->GetChildCount(&childCount);
 
@@ -418,7 +418,7 @@ nsPluginDirServiceProvider::GetFile(const char *charProp, bool *persistant,
         rv = regKey->OpenChild(childName, nsIWindowsRegKey::ACCESS_QUERY_VALUE,
                                getter_AddRefs(childKey));
         if (NS_SUCCEEDED(rv)) {
-          
+          // We have a sub key
           nsAutoString path;
           rv = childKey->ReadStringValue(NS_LITERAL_STRING(""), path);
           if (NS_SUCCEEDED(rv)) {
@@ -451,7 +451,7 @@ nsPluginDirServiceProvider::GetPLIDDirectories(nsISimpleEnumerator **aEnumerator
   NS_ENSURE_ARG_POINTER(aEnumerator);
   *aEnumerator = nsnull;
 
-  nsCOMArray<nsILocalFile> dirs;
+  nsCOMArray<nsIFile> dirs;
 
   GetPLIDDirectoriesWithRootKey(nsIWindowsRegKey::ROOT_KEY_CURRENT_USER, dirs);
   GetPLIDDirectoriesWithRootKey(nsIWindowsRegKey::ROOT_KEY_LOCAL_MACHINE, dirs);
@@ -460,7 +460,7 @@ nsPluginDirServiceProvider::GetPLIDDirectories(nsISimpleEnumerator **aEnumerator
 }
 
 nsresult
-nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(PRUint32 aKey, nsCOMArray<nsILocalFile> &aDirs)
+nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(PRUint32 aKey, nsCOMArray<nsIFile> &aDirs)
 {
   nsCOMPtr<nsIWindowsRegKey> regKey =
     do_CreateInstance("@mozilla.org/windows-registry-key;1");
@@ -485,22 +485,22 @@ nsPluginDirServiceProvider::GetPLIDDirectoriesWithRootKey(PRUint32 aKey, nsCOMAr
         nsAutoString path;
         rv = childKey->ReadStringValue(NS_LITERAL_STRING("Path"), path);
         if (NS_SUCCEEDED(rv)) {
-          nsCOMPtr<nsILocalFile> localFile;
+          nsCOMPtr<nsIFile> localFile;
           if (NS_SUCCEEDED(NS_NewLocalFile(path, true,
                                            getter_AddRefs(localFile))) &&
               localFile) {
-            
-            
+            // Some vendors use a path directly to the DLL so chop off
+            // the filename
             bool isDir = false;
             if (NS_SUCCEEDED(localFile->IsDirectory(&isDir)) && !isDir) {
               nsCOMPtr<nsIFile> temp;
               localFile->GetParent(getter_AddRefs(temp));
               if (temp)
-                localFile = do_QueryInterface(temp);
+                localFile = temp;
             }
 
-            
-            
+            // Now we check to make sure it's actually on disk and
+            // To see if we already have this directory in the array
             bool isFileThere = false;
             bool isDupEntry = false;
             if (NS_SUCCEEDED(localFile->Exists(&isFileThere)) && isFileThere) {

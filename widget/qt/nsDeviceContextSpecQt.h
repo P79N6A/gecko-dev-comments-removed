@@ -44,8 +44,8 @@ protected:
     bool mIsPPreview : 1;     
     char   mPath[PATH_MAX];     
     char   mPrinter[256];       
-    nsCString              mSpoolName;
-    nsCOMPtr<nsILocalFile> mSpoolFile;
+    nsCString         mSpoolName;
+    nsCOMPtr<nsIFile> mSpoolFile;
 };
 
 class nsPrinterEnumeratorQt : public nsIPrinterEnumerator

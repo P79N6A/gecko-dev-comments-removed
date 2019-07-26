@@ -3960,25 +3960,24 @@ nsGenericElement::SaveSubtreeState()
 
 static
 bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
-                        bool aIsReplace, nsINode* aRefChild)
+                      bool aIsReplace, nsINode* aRefChild)
 {
-  NS_PRECONDITION(aNewChild, "Must have new child");
-  NS_PRECONDITION(!aIsReplace || aRefChild,
-                  "Must have ref content for replace");
-  NS_PRECONDITION(aParent->IsNodeOfType(nsINode::eDOCUMENT) ||
-                  aParent->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
-                  aParent->IsElement(),
-                  "Nodes that are not documents, document fragments or "
-                  "elements can't be parents!");
+  MOZ_ASSERT(aNewChild, "Must have new child");
+  MOZ_ASSERT_IF(aIsReplace, aRefChild);
+  MOZ_ASSERT(aParent);
+  MOZ_ASSERT(aParent->IsNodeOfType(nsINode::eDOCUMENT) ||
+             aParent->IsNodeOfType(nsINode::eDOCUMENT_FRAGMENT) ||
+             aParent->IsElement(),
+             "Nodes that are not documents, document fragments or elements "
+             "can't be parents!");
 
   
   
   
   
-  if (aParent &&
-      (aNewChild == aParent ||
-       (aNewChild->GetFirstChild() &&
-        nsContentUtils::ContentIsDescendantOf(aParent, aNewChild)))) {
+  if (aNewChild == aParent ||
+      (aNewChild->GetFirstChild() &&
+       nsContentUtils::ContentIsDescendantOf(aParent, aNewChild))) {
     return false;
   }
 
@@ -3992,7 +3991,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
   case nsIDOMNode::CDATA_SECTION_NODE :
   case nsIDOMNode::ENTITY_REFERENCE_NODE :
     
-    return aParent != nsnull;
+    return aParent->NodeType() != nsIDOMNode::DOCUMENT_NODE;
   case nsIDOMNode::ELEMENT_NODE :
     {
       if (!aParent->IsNodeOfType(nsINode::eDOCUMENT)) {
@@ -4000,8 +3999,8 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return true;
       }
 
-      Element* rootElement =
-        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      nsIDocument* parentDocument = static_cast<nsIDocument*>(aParent);
+      Element* rootElement = parentDocument->GetRootElement();
       if (rootElement) {
         
         
@@ -4015,13 +4014,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return true;
       }
 
-      
-      nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aParent);
-      NS_ASSERTION(doc, "Shouldn't happen");
-      nsCOMPtr<nsIDOMDocumentType> docType;
-      doc->GetDoctype(getter_AddRefs(docType));
-      nsCOMPtr<nsIContent> docTypeContent = do_QueryInterface(docType);
-      
+      nsIContent* docTypeContent = parentDocument->GetDocumentType();
       if (!docTypeContent) {
         
         return true;
@@ -4043,11 +4036,8 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
         return false;
       }
 
-      nsCOMPtr<nsIDOMDocument> doc = do_QueryInterface(aParent);
-      NS_ASSERTION(doc, "Shouldn't happen");
-      nsCOMPtr<nsIDOMDocumentType> docType;
-      doc->GetDoctype(getter_AddRefs(docType));
-      nsCOMPtr<nsIContent> docTypeContent = do_QueryInterface(docType);
+      nsIDocument* parentDocument = static_cast<nsIDocument*>(aParent);
+      nsIContent* docTypeContent = parentDocument->GetDocumentType();
       if (docTypeContent) {
         
         return aIsReplace && docTypeContent == aRefChild;
@@ -4055,8 +4045,7 @@ bool IsAllowedAsChild(nsIContent* aNewChild, nsINode* aParent,
 
       
       
-      Element* rootElement =
-        static_cast<nsIDocument*>(aParent)->GetRootElement();
+      Element* rootElement = parentDocument->GetRootElement();
       if (!rootElement) {
         
         return true;

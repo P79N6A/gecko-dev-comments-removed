@@ -91,6 +91,16 @@ class nsIntervalSet;
 
 #define NS_BLOCK_HAS_CLEAR_CHILDREN         NS_FRAME_STATE_BIT(27)
 
+
+
+
+
+
+
+
+
+#define NS_BLOCK_FRAME_INTRINSICS_INFLATED  NS_FRAME_STATE_BIT(62)
+
 #define nsBlockFrameSuper nsContainerFrame
 
 
@@ -241,6 +251,9 @@ public:
   }
 
   virtual void MarkIntrinsicWidthsDirty();
+private:
+  void CheckIntrinsicCacheAgainstShrinkWrapState();
+public:
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
 
