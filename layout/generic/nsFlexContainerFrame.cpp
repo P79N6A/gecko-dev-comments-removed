@@ -342,8 +342,9 @@ public:
   
   
   
-  nscoord GetBaselineOffsetFromOuterCrossStart(
-            AxisOrientationType aCrossAxis) const;
+  
+  nscoord GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
+                                              AxisEdgeType aEdge) const;
 
   float GetShareOfFlexWeightSoFar() const { return mShareOfFlexWeightSoFar; }
 
@@ -1218,8 +1219,8 @@ FlexItem::FlexItem(nsIFrame* aChildFrame, nscoord aCrossSize)
 }
 
 nscoord
-FlexItem::GetBaselineOffsetFromOuterCrossStart(
-  AxisOrientationType aCrossAxis) const
+FlexItem::GetBaselineOffsetFromOuterCrossEdge(AxisOrientationType aCrossAxis,
+                                              AxisEdgeType aEdge) const
 {
   
   
@@ -1230,15 +1231,20 @@ FlexItem::GetBaselineOffsetFromOuterCrossStart(
              "Only expecting to be doing baseline computations when the "
              "cross axis is vertical");
 
+  Side sideToMeasureFrom = kAxisOrientationToSidesMap[aCrossAxis][aEdge];
+
   nscoord marginTopToBaseline = mAscent + mMargin.top;
 
-  if (aCrossAxis == eAxis_TB) {
+  if (sideToMeasureFrom == eSideTop) {
     
     
     return marginTopToBaseline;
   }
 
-  
+  MOZ_ASSERT(sideToMeasureFrom == eSideBottom,
+             "We already checked that we're dealing with a vertical axis, and "
+             "we're not using the top side, so that only leaves the bottom...");
+
   
   
   
@@ -2150,7 +2156,8 @@ FlexLine::ComputeCrossSizeAndBaseline(const FlexboxAxisTracker& aAxisTracker)
       
 
       nscoord crossStartToBaseline =
-        item->GetBaselineOffsetFromOuterCrossStart(aAxisTracker.GetCrossAxis());
+        item->GetBaselineOffsetFromOuterCrossEdge(aAxisTracker.GetCrossAxis(),
+                                                  eAxisEdge_Start);
       nscoord crossEndToBaseline = curOuterCrossSize - crossStartToBaseline;
 
       
@@ -2297,7 +2304,9 @@ SingleLineCrossAxisPositionTracker::
       nscoord lineBaselineOffset =
         aLine.GetBaselineOffsetFromCrossStart();
       nscoord itemBaselineOffset =
-        aItem.GetBaselineOffsetFromOuterCrossStart(mAxis);
+        aItem.GetBaselineOffsetFromOuterCrossEdge(mAxis,
+                                                  eAxisEdge_Start);
+
       MOZ_ASSERT(lineBaselineOffset >= itemBaselineOffset,
                  "failed at finding largest baseline offset");
 
