@@ -9,6 +9,7 @@
 #include "gfxPlatform.h"                
 #include "mozilla/layers/ISurfaceAllocator.h"  
 #include "mozilla/layers/ImageClient.h"  
+#include "mozilla/layers/ImageDataSerializer.h"  
 #include "mozilla/layers/LayersSurfaces.h"  
 #include "mozilla/layers/TextureClient.h"  
 #include "mozilla/layers/ImageBridgeChild.h"  
@@ -203,8 +204,12 @@ SharedRGBImage::Allocate(gfx::IntSize aSize, gfx::SurfaceFormat aFormat)
 uint8_t*
 SharedRGBImage::GetBuffer()
 {
-  return mTextureClient ? mTextureClient->GetBuffer()
-                        : nullptr;
+  if (!mTextureClient) {
+    return nullptr;
+  }
+
+  ImageDataSerializer serializer(mTextureClient->GetBuffer());
+  return serializer.GetData();
 }
 
 gfxIntSize
