@@ -322,9 +322,7 @@ public:
 
 
 
-namespace binding_detail {
 struct FakeDependentString;
-} 
 
 template<>
 class Optional<nsAString>
@@ -346,7 +344,7 @@ public:
 
   
   
-  void operator=(const binding_detail::FakeDependentString* str)
+  void operator=(const FakeDependentString* str)
   {
     MOZ_ASSERT(str);
     mStr = reinterpret_cast<const nsDependentString*>(str);

@@ -1456,8 +1456,6 @@ AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
                        nsTArray<nsString>& names,
                        bool shadowPrototypeProperties, JS::AutoIdVector& props);
 
-namespace binding_detail {
-
 
 
 struct FakeDependentString {
@@ -1535,8 +1533,6 @@ private:
   };
 };
 
-} 
-
 enum StringificationBehavior {
   eStringify,
   eEmpty,
@@ -1549,7 +1545,7 @@ ConvertJSValueToString(JSContext* cx, JS::Handle<JS::Value> v,
                        JS::MutableHandle<JS::Value> pval,
                        StringificationBehavior nullBehavior,
                        StringificationBehavior undefinedBehavior,
-                       binding_detail::FakeDependentString& result)
+                       FakeDependentString& result)
 {
   JSString *s;
   if (v.isString()) {
@@ -1601,8 +1597,6 @@ template<typename T>
 void DoTraceSequence(JSTracer* trc, InfallibleTArray<T>& seq);
 
 
-namespace binding_detail {
-
 template<typename T>
 class AutoSequence : public AutoFallibleTArray<T, 16>
 {
@@ -1615,8 +1609,6 @@ public:
     return *reinterpret_cast<const Sequence<T>*>(this);
   }
 };
-
-} 
 
 
 
