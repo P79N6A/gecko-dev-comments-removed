@@ -20,8 +20,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "DeferredSave",
                                   "resource://gre/modules/DeferredSave.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Promise",
                                   "resource://gre/modules/Promise.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "OS",
-                                  "resource://gre/modules/osfile.jsm");
 
 ["LOG", "WARN", "ERROR"].forEach(function(aName) {
   Object.defineProperty(this, aName, {
@@ -158,20 +156,6 @@ function getRepositoryAddon(aAddon, aCallback) {
     aCallback(aAddon);
   }
   AddonRepository.getCachedAddonByID(aAddon.id, completeAddon);
-}
-
-
-
-
-function safeCallback(aCallback) {
-  return function(...aArgs) {
-    try {
-      aCallback.apply(null, aArgs);
-    }
-    catch(ex) {
-      WARN("XPI Database callback failed", ex);
-    }
-  }
 }
 
 
@@ -391,32 +375,6 @@ DBAddonInternal.prototype = {
 
 DBAddonInternal.prototype.__proto__ = AddonInternal.prototype;
 
-
-
-
-function _findAddon(addonDB, aFilter) {
-  for (let [, addon] of addonDB) {
-    if (aFilter(addon)) {
-      return addon;
-    }
-  }
-  return null;
-}
-
-
-
-
-function _filterDB(addonDB, aFilter) {
-  let addonList = [];
-  for (let [, addon] of addonDB) {
-    if (aFilter(addon)) {
-      addonList.push(addon);
-    }
-  }
-
-  return addonList;
-}
-
 this.XPIDatabase = {
   
   initialized: false,
@@ -452,12 +410,6 @@ this.XPIDatabase = {
       return;
     }
 
-    if (!this._deferredSave) {
-      this._deferredSave = new DeferredSave(this.jsonFile.path,
-                                            () => JSON.stringify(this),
-                                            ASYNC_SAVE_DELAY_MS);
-    }
-
     let promise = this._deferredSave.saveChanges();
     if (!this._schemaVersionSet) {
       this._schemaVersionSet = true;
@@ -478,7 +430,7 @@ this.XPIDatabase = {
 
   flush: function() {
     
-    if (!this._deferredSave) {
+    if (this.lockedDatabase) {
       let done = Promise.defer();
       done.resolve(0);
       return done.promise;
@@ -487,17 +439,19 @@ this.XPIDatabase = {
     return this._deferredSave.flush();
   },
 
+  get _deferredSave() {
+    delete this._deferredSave;
+    return this._deferredSave =
+      new DeferredSave(this.jsonFile.path, () => JSON.stringify(this),
+                       ASYNC_SAVE_DELAY_MS);
+  },
+
   
 
 
   toJSON: function() {
-    if (!this.addonDB) {
-      
-      throw new Error("Attempt to save database without loading it first");
-    }
-
     let addons = [];
-    for (let [, addon] of this.addonDB) {
+    for (let [key, addon] of this.addonDB) {
       addons.push(addon);
     }
     let toSave = {
@@ -552,8 +506,10 @@ this.XPIDatabase = {
 
 
 
-  syncLoadDB: function XPIDB_syncLoadDB(aRebuildOnError) {
+  openConnection: function XPIDB_openConnection(aRebuildOnError, aForceOpen) {
     
+    
+    delete this.addonDB;
     this.migrateData = null;
     let fstream = null;
     let data = "";
@@ -574,10 +530,42 @@ this.XPIDatabase = {
             data += str.value;
           } while (read != 0);
         }
-        this.parseDB(data, aRebuildOnError);
+        
+        let inputAddons = JSON.parse(data);
+        
+        if (!("schemaVersion" in inputAddons) || !("addons" in inputAddons)) {
+          
+          ERROR("bad JSON file contents");
+          this.rebuildDatabase(aRebuildOnError);
+        }
+        if (inputAddons.schemaVersion != DB_SCHEMA) {
+          
+          
+          
+          
+          LOG("JSON schema mismatch: expected " + DB_SCHEMA +
+              ", actual " + inputAddons.schemaVersion);
+        }
+        
+        
+        let addonDB = new Map();
+        inputAddons.addons.forEach(function(loadedAddon) {
+          let newAddon = new DBAddonInternal(loadedAddon);
+          addonDB.set(newAddon._key, newAddon);
+        });
+        this.addonDB = addonDB;
+        LOG("Successfully read XPI database");
+        this.initialized = true;
       }
       catch(e) {
-        ERROR("Failed to load XPI JSON data from profile", e);
+        
+        
+        if (e.name == "SyntaxError") {
+          ERROR("Syntax error parsing saved XPI JSON data");
+        }
+        else {
+          ERROR("Failed to load XPI JSON data from profile", e);
+        }
         this.rebuildDatabase(aRebuildOnError);
       }
       finally {
@@ -587,151 +575,46 @@ this.XPIDatabase = {
     }
     catch (e) {
       if (e.result == Cr.NS_ERROR_FILE_NOT_FOUND) {
-        this.upgradeDB(aRebuildOnError);
+        try {
+          let schemaVersion = Services.prefs.getIntPref(PREF_DB_SCHEMA);
+          if (schemaVersion <= LAST_SQLITE_DB_SCHEMA) {
+            
+            this.migrateData = this.getMigrateDataFromSQLITE();
+          }
+          
+          
+        }
+        catch(e) {
+          
+          
+          this.migrateData = this.getMigrateDataFromRDF();
+        }
+
+        this.rebuildDatabase(aRebuildOnError);
       }
       else {
-        this.rebuildUnreadableDB(e, aRebuildOnError);
+        WARN("Extensions database " + this.jsonFile.path +
+            " exists but is not readable; rebuilding in memory", e);
+        
+        
+        
+        this.lockedDatabase = true;
+        
+        this.rebuildDatabase(aRebuildOnError);
       }
     }
     finally {
       if (fstream)
         fstream.close();
     }
+
+    return;
+
     
-    
-    if (this._dbPromise)
-      this._dbPromise.resolve(this.addonDB);
-    else
-      this._dbPromise = Promise.resolve(this.addonDB);
-  },
-
-  
-
-
-
-
-  parseDB: function(aData, aRebuildOnError) {
-    try {
-      
-      let inputAddons = JSON.parse(aData);
-      
-      if (!("schemaVersion" in inputAddons) || !("addons" in inputAddons)) {
-        
-        ERROR("bad JSON file contents");
-        this.rebuildDatabase(aRebuildOnError);
-        return;
-      }
-      if (inputAddons.schemaVersion != DB_SCHEMA) {
-        
-        
-        
-        
-        LOG("JSON schema mismatch: expected " + DB_SCHEMA +
-            ", actual " + inputAddons.schemaVersion);
-      }
-      
-      
-      let addonDB = new Map();
-      inputAddons.addons.forEach(function(loadedAddon) {
-        let newAddon = new DBAddonInternal(loadedAddon);
-        addonDB.set(newAddon._key, newAddon);
-      });
-      this.addonDB = addonDB;
-      LOG("Successfully read XPI database");
-      this.initialized = true;
+    if (!aForceOpen && !this.dbfileExists) {
+      this.connection = null;
+      return;
     }
-    catch(e) {
-      
-      
-      if (e.name == "SyntaxError") {
-        ERROR("Syntax error parsing saved XPI JSON data");
-      }
-      else {
-        ERROR("Failed to load XPI JSON data from profile", e);
-      }
-      this.rebuildDatabase(aRebuildOnError);
-    }
-  },
-
-  
-
-
-  upgradeDB: function(aRebuildOnError) {
-    try {
-      let schemaVersion = Services.prefs.getIntPref(PREF_DB_SCHEMA);
-      if (schemaVersion <= LAST_SQLITE_DB_SCHEMA) {
-        
-        this.migrateData = this.getMigrateDataFromSQLITE();
-      }
-      
-      
-    }
-    catch(e) {
-      
-      
-      this.migrateData = this.getMigrateDataFromRDF();
-    }
-
-    this.rebuildDatabase(aRebuildOnError);
-  },
-
-  
-
-
-
-  rebuildUnreadableDB: function(aError, aRebuildOnError) {
-    WARN("Extensions database " + this.jsonFile.path +
-        " exists but is not readable; rebuilding in memory", aError);
-    
-    
-    
-    this.lockedDatabase = true;
-    
-    this.rebuildDatabase(aRebuildOnError);
-  },
-
-  
-
-
-
-
-
-
-
-  asyncLoadDB: function XPIDB_asyncLoadDB(aDBCallback) {
-    
-    if (this._dbPromise) {
-      return this._dbPromise;
-    }
-
-    LOG("Starting async load of XPI database " + this.jsonFile.path);
-    return this._dbPromise = OS.File.read(this.jsonFile.path).then(
-      byteArray => {
-        if (this._addonDB) {
-          LOG("Synchronous load completed while waiting for async load");
-          return this.addonDB;
-        }
-        LOG("Finished async read of XPI database, parsing...");
-        let decoder = new TextDecoder();
-        let data = decoder.decode(byteArray);
-        this.parseDB(data, true);
-        return this.addonDB;
-      })
-    .then(null,
-      error => {
-        if (this._addonDB) {
-          LOG("Synchronous load completed while waiting for async load");
-          return this.addonDB;
-        }
-        if (error.becauseNoSuchFile) {
-          this.upgradeDB(true);
-        }
-        else {
-          
-          this.rebuildUnreadableDB(error, true);
-        }
-        return this.addonDB;
-      });
   },
 
   
@@ -764,6 +647,14 @@ this.XPIDatabase = {
       
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, true);
     }
+  },
+
+  
+
+
+  get addonDB() {
+    this.openConnection(true);
+    return this.addonDB;
   },
 
   
@@ -992,10 +883,26 @@ this.XPIDatabase = {
         })
         .then(count => {
           
+          
           delete this.addonDB;
-          delete this._dbPromise;
+          Object.defineProperty(this, "addonDB", {
+            get: function addonsGetter() {
+              this.openConnection(true);
+              return this.addonDB;
+            },
+            configurable: true
+          });
           
           delete this._deferredSave;
+          Object.defineProperty(this, "_deferredSave", {
+            set: function deferredSaveGetter() {
+              delete this._deferredSave;
+              return this._deferredSave =
+                new DeferredSave(this.jsonFile.path, this.formJSON.bind(this),
+                                 ASYNC_SAVE_DELAY_MS);
+            },
+            configurable: true
+          });
           
           delete this._schemaVersionSet;
 
@@ -1010,7 +917,6 @@ this.XPIDatabase = {
   },
 
   
-
 
 
 
@@ -1036,19 +942,18 @@ this.XPIDatabase = {
 
 
 
+  _listAddons: function XPIDB_listAddons(aFilter) {
+    if (!this.addonDB)
+      return [];
 
+    let addonList = [];
+    for (let [key, addon] of this.addonDB) {
+      if (aFilter(addon)) {
+        addonList.push(addon);
+      }
+    }
 
-  getAddonList: function(aFilter, aCallback) {
-    this.asyncLoadDB().then(
-      addonDB => {
-        let addonList = _filterDB(addonDB, aFilter);
-        asyncMap(addonList, getRepositoryAddon, safeCallback(aCallback));
-      })
-    .then(null,
-        error => {
-          ERROR("getAddonList failed", e);
-          safeCallback(aCallback)([]);
-        });
+    return addonList;
   },
 
   
@@ -1058,21 +963,20 @@ this.XPIDatabase = {
 
 
 
+  _findAddon: function XPIDB_findAddon(aFilter) {
+    if (!this.addonDB)
+      return null;
 
-  getAddon: function(aFilter, aCallback) {
-    return this.asyncLoadDB().then(
-      addonDB => {
-        getRepositoryAddon(_findAddon(addonDB, aFilter), safeCallback(aCallback));
-      })
-    .then(null,
-        error => {
-          ERROR("getAddon failed", e);
-          safeCallback(aCallback)(null);
-        });
+    for (let [key, addon] of this.addonDB) {
+      if (aFilter(addon)) {
+        return addon;
+      }
+    }
+
+    return null;
   },
 
   
-
 
 
 
@@ -1080,10 +984,11 @@ this.XPIDatabase = {
 
 
   getAddonsInLocation: function XPIDB_getAddonsInLocation(aLocation) {
-    return _filterDB(this.addonDB, aAddon => (aAddon.location == aLocation));
+    return this._listAddons(function inLocation(aAddon) {return (aAddon.location == aLocation);});
   },
 
   
+
 
 
 
@@ -1095,12 +1000,11 @@ this.XPIDatabase = {
 
 
   getAddonInLocation: function XPIDB_getAddonInLocation(aId, aLocation, aCallback) {
-    this.asyncLoadDB().then(
-        addonDB => getRepositoryAddon(addonDB.get(aLocation + ":" + aId),
-                                      safeCallback(aCallback)));
+    getRepositoryAddon(this.addonDB.get(aLocation + ":" + aId), aCallback);
   },
 
   
+
 
 
 
@@ -1109,8 +1013,8 @@ this.XPIDatabase = {
 
 
   getVisibleAddonForID: function XPIDB_getVisibleAddonForID(aId, aCallback) {
-    this.getAddon(aAddon => ((aAddon.id == aId) && aAddon.visible),
-                  aCallback);
+    let addon = this._findAddon(function visibleID(aAddon) {return ((aAddon.id == aId) && aAddon.visible)});
+    getRepositoryAddon(addon, aCallback);
   },
 
   
@@ -1121,11 +1025,12 @@ this.XPIDatabase = {
 
 
 
+
   getVisibleAddons: function XPIDB_getVisibleAddons(aTypes, aCallback) {
-    this.getAddonList(aAddon => (aAddon.visible &&
-                                 (!aTypes || (aTypes.length == 0) ||
-                                  (aTypes.indexOf(aAddon.type) > -1))),
-                      aCallback);
+    let addons = this._listAddons(function visibleType(aAddon) {
+      return (aAddon.visible && (!aTypes || (aTypes.length == 0) || (aTypes.indexOf(aAddon.type) > -1)))
+    });
+    asyncMap(addons, getRepositoryAddon, aCallback);
   },
 
   
@@ -1136,14 +1041,7 @@ this.XPIDatabase = {
 
 
   getAddonsByType: function XPIDB_getAddonsByType(aType) {
-    if (!this.addonDB) {
-      
-      
-      
-      WARN("Synchronous load of XPI database due to getAddonsByType(" + aType + ")");
-      this.syncLoadDB(true);
-    }
-    return _filterDB(this.addonDB, aAddon => (aAddon.type == aType));
+    return this._listAddons(function byType(aAddon) { return aAddon.type == aType; });
   },
 
   
@@ -1154,19 +1052,13 @@ this.XPIDatabase = {
 
 
   getVisibleAddonForInternalName: function XPIDB_getVisibleAddonForInternalName(aInternalName) {
-    if (!this.addonDB) {
-      
-      
-      WARN("Synchronous load of XPI database due to getVisibleAddonForInternalName");
-      this.syncLoadDB(true);
-    }
-    
-    return _findAddon(this.addonDB,
-                      aAddon => aAddon.visible &&
-                                (aAddon.internalName == aInternalName));
+    return this._findAddon(function visibleInternalName(aAddon) {
+      return (aAddon.visible && (aAddon.internalName == aInternalName));
+    });
   },
 
   
+
 
 
 
@@ -1177,18 +1069,20 @@ this.XPIDatabase = {
   getVisibleAddonsWithPendingOperations:
     function XPIDB_getVisibleAddonsWithPendingOperations(aTypes, aCallback) {
 
-    this.getAddonList(
-        aAddon => (aAddon.visible &&
-                   (aAddon.pendingUninstall ||
-                    
-                    
-                    
-                    (aAddon.active == (aAddon.userDisabled || aAddon.appDisabled))) &&
-                   (!aTypes || (aTypes.length == 0) || (aTypes.indexOf(aAddon.type) > -1))),
-        aCallback);
+    let addons = this._listAddons(function visibleType(aAddon) {
+      return (aAddon.visible &&
+        (aAddon.pendingUninstall ||
+         
+         
+         
+         (aAddon.active == (aAddon.userDisabled || aAddon.appDisabled))) &&
+        (!aTypes || (aTypes.length == 0) || (aTypes.indexOf(aAddon.type) > -1)))
+    });
+    asyncMap(addons, getRepositoryAddon, aCallback);
   },
 
   
+
 
 
 
@@ -1199,8 +1093,8 @@ this.XPIDatabase = {
 
 
   getAddonBySyncGUID: function XPIDB_getAddonBySyncGUID(aGUID, aCallback) {
-    this.getAddon(aAddon => aAddon.syncGUID == aGUID,
-                  aCallback);
+    let addon = this._findAddon(function bySyncGUID(aAddon) { return aAddon.syncGUID == aGUID; });
+    getRepositoryAddon(addon, aCallback);
   },
 
   
@@ -1208,14 +1102,8 @@ this.XPIDatabase = {
 
 
 
-
-
-
   getAddons: function XPIDB_getAddons() {
-    if (!this.addonDB) {
-      return [];
-    }
-    return _filterDB(this.addonDB, aAddon => true);
+    return this._listAddons(function(aAddon) {return true;});
   },
 
   
@@ -1228,10 +1116,12 @@ this.XPIDatabase = {
 
 
   addAddonMetadata: function XPIDB_addAddonMetadata(aAddon, aDescriptor) {
-    if (!this.addonDB) {
-      
-      this.syncLoadDB(false);
-    }
+    
+    
+    
+    
+    if (!this.addonDB)
+      this.openConnection(false, true);
 
     let newAddon = new DBAddonInternal(aAddon);
     newAddon.descriptor = aDescriptor;
@@ -1292,7 +1182,7 @@ this.XPIDatabase = {
 
   makeAddonVisible: function XPIDB_makeAddonVisible(aAddon) {
     LOG("Make addon " + aAddon._key + " visible");
-    for (let [, otherAddon] of this.addonDB) {
+    for (let [key, otherAddon] of this.addonDB) {
       if ((otherAddon.id == aAddon.id) && (otherAddon._key != aAddon._key)) {
         LOG("Hide addon " + otherAddon._key);
         otherAddon.visible = false;
@@ -1326,13 +1216,12 @@ this.XPIDatabase = {
 
 
 
-
   setAddonSyncGUID: function XPIDB_setAddonSyncGUID(aAddon, aGUID) {
     
     function excludeSyncGUID(otherAddon) {
       return (otherAddon._key != aAddon._key) && (otherAddon.syncGUID == aGUID);
     }
-    let otherAddon = _findAddon(this.addonDB, excludeSyncGUID);
+    let otherAddon = this._findAddon(excludeSyncGUID);
     if (otherAddon) {
       throw new Error("Addon sync GUID conflict for addon " + aAddon._key +
           ": " + otherAddon._key + " already has GUID " + aGUID);
@@ -1375,7 +1264,7 @@ this.XPIDatabase = {
     
     
     LOG("Updating add-on states");
-    for (let [, addon] of this.addonDB) {
+    for (let [key, addon] of this.addonDB) {
       let newActive = (addon.visible && !addon.userDisabled &&
                       !addon.softDisabled && !addon.appDisabled &&
                       !addon.pendingUninstall);
@@ -1390,10 +1279,6 @@ this.XPIDatabase = {
 
 
   writeAddonsList: function XPIDB_writeAddonsList() {
-    if (!this.addonDB) {
-      
-      this.syncLoadDB(true);
-    }
     Services.appinfo.invalidateCachesOnRestart();
 
     let addonsList = FileUtils.getFile(KEY_PROFILEDIR, [FILE_XPI_ADDONS_LIST],
@@ -1403,9 +1288,9 @@ this.XPIDatabase = {
     let count = 0;
     let fullCount = 0;
 
-    let activeAddons = _filterDB(
-      this.addonDB,
-      aAddon => aAddon.active && !aAddon.bootstrap && (aAddon.type != "theme"));
+    let activeAddons = this._listAddons(function active(aAddon) {
+      return aAddon.active && !aAddon.bootstrap && (aAddon.type != "theme");
+    });
 
     for (let row of activeAddons) {
       text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
@@ -1425,13 +1310,12 @@ this.XPIDatabase = {
 
     let themes = [];
     if (dssEnabled) {
-      themes = _filterDB(this.addonDB, aAddon => aAddon.type == "theme");
+      themes = this._listAddons(function isTheme(aAddon){ return aAddon.type == "theme"; });
     }
     else {
-      let activeTheme = _findAddon(
-        this.addonDB,
-        aAddon => (aAddon.type == "theme") &&
-                  (aAddon.internalName == XPIProvider.selectedSkin));
+      let activeTheme = this._findAddon(function isSelected(aAddon) {
+        return ((aAddon.type == "theme") && (aAddon.internalName == XPIProvider.selectedSkin));
+      });
       if (activeTheme) {
         themes.push(activeTheme);
       }
