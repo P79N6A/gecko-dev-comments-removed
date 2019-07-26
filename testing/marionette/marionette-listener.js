@@ -60,6 +60,8 @@ let originalOnError;
 
 let checkTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
 
+let readyStateTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+
 let EVENT_INTERVAL = 30; 
 
 let nextTouchId = 1000;
@@ -166,11 +168,27 @@ function startListeners() {
 
 
 
+function waitForReady() {
+  if (content.document.readyState == 'complete') {
+    readyStateTimer.cancel();
+    content.addEventListener("mozbrowsershowmodalprompt", modalHandler, false);
+    content.addEventListener("unload", waitForReady, false);
+  }
+  else {
+    readyStateTimer.initWithCallback(waitForReady, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
+}
+
+
+
+
 
 function newSession(msg) {
   isB2G = msg.json.B2G;
   resetValues();
-  content.addEventListener("mozbrowsershowmodalprompt", modalHandler, false);
+  if (isB2G) {
+    readyStateTimer.initWithCallback(waitForReady, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
 }
  
 
@@ -188,7 +206,9 @@ function sleepSession(msg) {
 
 function restart(msg) {
   removeMessageListener("Marionette:restart", restart);
-  content.addEventListener("mozbrowsershowmodalprompt", modalHandler, false);
+  if (isB2G) {
+    readyStateTimer.initWithCallback(waitForReady, 100, Ci.nsITimer.TYPE_ONE_SHOT);
+  }
   registerSelf();
 }
 
@@ -237,7 +257,9 @@ function deleteSession(msg) {
   removeMessageListenerId("Marionette:getAllCookies", getAllCookies);
   removeMessageListenerId("Marionette:deleteAllCookies", deleteAllCookies);
   removeMessageListenerId("Marionette:deleteCookie", deleteCookie);
-  content.removeEventListener("mozbrowsershowmodalprompt", modalHandler, false);
+  if (isB2G) {
+    content.removeEventListener("mozbrowsershowmodalprompt", modalHandler, false);
+  }
   this.elementManager.reset();
   
   curFrame = content;
