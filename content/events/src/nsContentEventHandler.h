@@ -91,7 +91,8 @@ protected:
   nsresult SetRangeFromFlatTextOffset(nsRange* aRange,
                                       uint32_t aNativeOffset,
                                       uint32_t aNativeLength,
-                                      bool aExpandToClusterBoundaries);
+                                      bool aExpandToClusterBoundaries,
+                                      uint32_t* aNewNativeOffset = nullptr);
   
   
   nsresult GetStartFrameAndOffset(nsRange* aRange,

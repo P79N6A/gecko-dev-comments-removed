@@ -879,7 +879,10 @@ public:
 
 
 
-  NSRect FirstRectForCharacterRange(NSRange& aRange);
+
+
+  NSRect FirstRectForCharacterRange(NSRange& aRange,
+                                    NSRange* aActualRange = nullptr);
 
   
 
