@@ -150,6 +150,9 @@ pref("media.cache_size", 512000);
 
 pref("media.volume_scale", "1.0");
 
+#ifdef MOZ_WMF
+pref("media.windows-media-foundation.enabled", false);
+#endif
 #ifdef MOZ_RAW
 pref("media.raw.enabled", true);
 #endif
