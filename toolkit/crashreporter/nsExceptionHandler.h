@@ -44,6 +44,11 @@ nsresult AppendAppNotesToCrashReport(const nsACString& data);
 
 nsresult SetGarbageCollecting(bool collecting);
 
+#ifdef XP_WIN
+
+void WriteBlockedDlls(HANDLE file);
+#endif
+
 nsresult SetRestartArgs(int argc, char** argv);
 nsresult SetupExtraData(nsIFile* aAppDataDirectory,
                         const nsACString& aBuildID);
