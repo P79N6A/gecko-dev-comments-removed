@@ -1326,15 +1326,9 @@ nsComboboxControlFrame::CreateFrameFor(nsIContent*      aContent)
   styleContext = styleSet->
     ResolveAnonymousBoxStyle(nsCSSAnonBoxes::mozDisplayComboboxControlFrame,
                              mStyleContext);
-  if (MOZ_UNLIKELY(!styleContext)) {
-    return nullptr;
-  }
 
   nsRefPtr<nsStyleContext> textStyleContext;
   textStyleContext = styleSet->ResolveStyleForNonElement(mStyleContext);
-  if (MOZ_UNLIKELY(!textStyleContext)) {
-    return nullptr;
-  }
 
   
   mDisplayFrame = new (shell) nsComboboxDisplayFrame(styleContext, this);
