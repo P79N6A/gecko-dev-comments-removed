@@ -750,7 +750,7 @@ MacroAssembler::initGCSlots(Register obj, Register slots, JSObject *templateObj)
     if (nslots == 0)
         return;
 
-    uint32_t nfixed = templateObj->numFixedSlots();
+    uint32_t nfixed = Min(templateObj->numFixedSlots(), nslots);
     uint32_t ndynamic = templateObj->numDynamicSlots();
 
     
