@@ -74,6 +74,38 @@ public:
   virtual nsXPCClassInfo* GetClassInfo();
 
   virtual nsIDOMNode* AsDOMNode() { return this; }
+  virtual JSObject*
+  WrapNode(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap) MOZ_OVERRIDE;
+
+  
+  nsDOMSettableTokenList* HtmlFor();
+  
+  using nsGenericHTMLFormElement::GetForm;
+  
+  void SetName(const nsAString& aName, ErrorResult& aRv)
+  {
+    SetHTMLAttr(nsGkAtoms::name, aName, aRv);
+  }
+
+  
+  
+  void SetDefaultValue(const nsAString& aDefaultValue, ErrorResult& aRv)
+  {
+    aRv = SetDefaultValue(aDefaultValue);
+  }
+  
+  void SetValue(const nsAString& aValue, ErrorResult& aRv)
+  {
+    aRv = SetValue(aValue);
+  }
+
+  
+  
+  
+  
+  using nsIConstraintValidation::CheckValidity;
+  
+
 protected:
   enum ValueModeFlag {
     eModeDefault,
