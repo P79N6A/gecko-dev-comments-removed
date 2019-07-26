@@ -80,6 +80,8 @@
 #include "nsThreadUtils.h"
 #include "nsToolkitCompsCID.h"
 #include "nsWidgetsCID.h"
+#include "PreallocatedProcessManager.h"
+#include "ProcessPriorityManager.h"
 #include "SandboxHal.h"
 #include "StructuredCloneUtils.h"
 #include "TabParent.h"
@@ -197,6 +199,7 @@ MemoryReportRequestParent::~MemoryReportRequestParent()
 nsDataHashtable<nsStringHashKey, ContentParent*>* ContentParent::sAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sNonAppContentParents;
 nsTArray<ContentParent*>* ContentParent::sPrivateContent;
+LinkedList<ContentParent> ContentParent::sContentParents;
 
 
 
@@ -207,58 +210,25 @@ static uint64_t gContentChildID = 1;
 
 
 
-static bool sKeepAppProcessPreallocated;
-static StaticRefPtr<ContentParent> sPreallocatedAppProcess;
-static CancelableTask* sPreallocateAppProcessTask;
-
-
-
-static int sPreallocateDelayMs;
-
-
 
 #define MAGIC_PREALLOCATED_APP_MANIFEST_URL NS_LITERAL_STRING("{{template}}")
 
- void
+
+
+
+
+ already_AddRefed<ContentParent>
 ContentParent::PreallocateAppProcess()
 {
-    MOZ_ASSERT(!sPreallocatedAppProcess);
-
-    if (sPreallocateAppProcessTask) {
-        
-        sPreallocateAppProcessTask->Cancel();
-        sPreallocateAppProcessTask = nullptr;
-    }
-
-    sPreallocatedAppProcess =
+    nsRefPtr<ContentParent> process =
         new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
                           false,
                           
                           
                           base::PRIVILEGES_INHERIT,
                           PROCESS_PRIORITY_BACKGROUND);
-    sPreallocatedAppProcess->Init();
-}
-
- void
-ContentParent::DelayedPreallocateAppProcess()
-{
-    sPreallocateAppProcessTask = nullptr;
-    if (!sPreallocatedAppProcess) {
-        PreallocateAppProcess();
-    }
-}
-
- void
-ContentParent::ScheduleDelayedPreallocateAppProcess()
-{
-    if (!sKeepAppProcessPreallocated || sPreallocateAppProcessTask) {
-        return;
-    }
-    sPreallocateAppProcessTask =
-        NewRunnableFunction(DelayedPreallocateAppProcess);
-    MessageLoop::current()->PostDelayedTask(
-        FROM_HERE, sPreallocateAppProcessTask, sPreallocateDelayMs);
+    process->Init();
+    return process.forget();
 }
 
  already_AddRefed<ContentParent>
@@ -266,9 +236,7 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
                                                ChildPrivileges aPrivs,
                                                ProcessPriority aInitialPriority)
 {
-    nsRefPtr<ContentParent> process = sPreallocatedAppProcess.get();
-    sPreallocatedAppProcess = nullptr;
-
+    nsRefPtr<ContentParent> process = PreallocatedProcessManager::Take();
     if (!process) {
         return nullptr;
     }
@@ -285,36 +253,16 @@ ContentParent::MaybeTakePreallocatedAppProcess(const nsAString& aAppManifestURL,
 }
 
  void
-ContentParent::FirstIdle(void)
-{
-    
-    
-    ScheduleDelayedPreallocateAppProcess();
-}
-
- void
 ContentParent::StartUp()
 {
     if (XRE_GetProcessType() != GeckoProcessType_Default) {
         return;
     }
 
-    sKeepAppProcessPreallocated =
-        Preferences::GetBool("dom.ipc.processPrelaunch.enabled", false);
-    if (sKeepAppProcessPreallocated) {
-        ClearOnShutdown(&sPreallocatedAppProcess);
-
-        sPreallocateDelayMs = Preferences::GetUint(
-            "dom.ipc.processPrelaunch.delayMs", 1000);
-
-        MOZ_ASSERT(!sPreallocateAppProcessTask);
-
-        
-        
-        MessageLoop::current()->PostIdleTask(FROM_HERE, NewRunnableFunction(FirstIdle));
-    }
-
     sCanLaunchSubprocesses = true;
+
+    
+    PreallocatedProcessManager::AllocateAfterDelay();
 }
 
  void
@@ -544,30 +492,14 @@ ContentParent::CreateBrowserOrApp(const TabContext& aContext,
     return static_cast<TabParent*>(browser);
 }
 
-static PLDHashOperator
-AppendToTArray(const nsAString& aKey, ContentParent* aValue, void* aArray)
-{
-    nsTArray<ContentParent*> *array =
-        static_cast<nsTArray<ContentParent*>*>(aArray);
-    array->AppendElement(aValue);
-    return PL_DHASH_NEXT;
-}
-
 void
 ContentParent::GetAll(nsTArray<ContentParent*>& aArray)
 {
     aArray.Clear();
 
-    if (gNonAppContentParents) {
-        aArray.AppendElements(*gNonAppContentParents);
-    }
-
-    if (gAppContentParents) {
-        gAppContentParents->EnumerateRead(&AppendToTArray, &aArray);
-    }
-
-    if (sPreallocatedAppProcess) {
-        aArray.AppendElement(sPreallocatedAppProcess);
+    for (ContentParent* cp = sContentParents.getFirst(); cp;
+         cp = cp->getNext()) {
+        aArray.AppendElement(cp);
     }
 }
 
@@ -814,6 +746,11 @@ ContentParent::MarkAsDead()
     }
 
     mIsAlive = false;
+
+    
+    if (isInList()) {
+         remove();
+    }
 }
 
 void
@@ -920,10 +857,6 @@ ContentParent::ActorDestroy(ActorDestroyReason why)
 #ifdef ACCESSIBILITY
         obs->RemoveObserver(static_cast<nsIObserver*>(this), "a11y-init-or-shutdown");
 #endif
-    }
-
-    if (sPreallocatedAppProcess == this) {
-        sPreallocatedAppProcess = nullptr;
     }
 
     mMessageManager->Disconnect();
@@ -1086,6 +1019,9 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL,
     , mSendPermissionUpdates(false)
     , mIsForBrowser(aIsForBrowser)
 {
+    
+    sContentParents.insertBack(this);
+
     
     
     nsDebugImpl::SetMultiprocessMode("Parent");
@@ -1384,7 +1320,7 @@ ContentParent::RecvFirstIdle()
     
     
     
-    ScheduleDelayedPreallocateAppProcess();
+    PreallocatedProcessManager::AllocateOnIdle();
     return true;
 }
 

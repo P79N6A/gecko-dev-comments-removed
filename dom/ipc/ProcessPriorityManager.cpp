@@ -5,7 +5,7 @@
 
 
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/dom/ipc/ProcessPriorityManager.h"
+#include "mozilla/ProcessPriorityManager.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/dom/TabChild.h"
 #include "mozilla/Hal.h"
