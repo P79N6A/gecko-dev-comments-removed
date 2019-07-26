@@ -23,6 +23,9 @@ struct extent_node_s {
 
 	
 	size_t			size;
+
+	
+	bool			zeroed;
 };
 typedef rb_tree(extent_node_t) extent_tree_t;
 

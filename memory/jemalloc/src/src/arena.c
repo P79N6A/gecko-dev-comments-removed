@@ -551,23 +551,11 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
 {
 	ql_head(arena_chunk_map_t) mapelms;
 	arena_chunk_map_t *mapelm;
-	size_t pageind, flag_unzeroed;
+	size_t pageind;
 	size_t ndirty;
 	size_t nmadvise;
 
 	ql_new(&mapelms);
-
-	flag_unzeroed =
-#ifdef JEMALLOC_PURGE_MADVISE_DONTNEED
-   
-
-
-
-	    0
-#else
-	    CHUNK_MAP_UNZEROED
-#endif
-	    ;
 
 	
 
@@ -603,26 +591,12 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
 			assert(arena_mapbits_dirty_get(chunk, pageind) ==
 			    arena_mapbits_dirty_get(chunk, pageind+npages-1));
 			if (arena_mapbits_dirty_get(chunk, pageind) != 0) {
-				size_t i;
-
 				arena_avail_tree_remove(
 				    &arena->runs_avail_dirty, mapelm);
 
-				arena_mapbits_unzeroed_set(chunk, pageind,
-				    flag_unzeroed);
 				arena_mapbits_large_set(chunk, pageind,
 				    (npages << LG_PAGE), 0);
-				
-
-
-
-				for (i = 1; i < npages - 1; i++) {
-					arena_mapbits_unzeroed_set(chunk,
-					    pageind+i, flag_unzeroed);
-				}
 				if (npages > 1) {
-					arena_mapbits_unzeroed_set(chunk,
-					    pageind+npages-1, flag_unzeroed);
 					arena_mapbits_large_set(chunk,
 					    pageind+npages-1, 0, 0);
 				}
@@ -685,14 +659,30 @@ arena_chunk_purge(arena_t *arena, arena_chunk_t *chunk)
 		    sizeof(arena_chunk_map_t)) + map_bias;
 		size_t npages = arena_mapbits_large_size_get(chunk, pageind) >>
 		    LG_PAGE;
+		bool unzeroed;
+		size_t flag_unzeroed, i;
 
 		assert(pageind + npages <= chunk_npages);
 		assert(ndirty >= npages);
 		if (config_debug)
 			ndirty -= npages;
+		unzeroed = pages_purge((void *)((uintptr_t)chunk + (pageind <<
+		    LG_PAGE)), (npages << LG_PAGE));
+		flag_unzeroed = unzeroed ? CHUNK_MAP_UNZEROED : 0;
+		
 
-		pages_purge((void *)((uintptr_t)chunk + (pageind << LG_PAGE)),
-		    (npages << LG_PAGE));
+
+
+
+
+
+
+
+
+		for (i = 0; i < npages; i++) {
+			arena_mapbits_unzeroed_set(chunk, pageind+i,
+			    flag_unzeroed);
+		}
 		if (config_stats)
 			nmadvise++;
 	}

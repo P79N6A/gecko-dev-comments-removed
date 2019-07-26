@@ -254,12 +254,13 @@ malloc_ncpus(void)
 	result = si.dwNumberOfProcessors;
 #else
 	result = sysconf(_SC_NPROCESSORS_ONLN);
+#endif
 	if (result == -1) {
 		
 		ret = 1;
-	}
-#endif
-	ret = (unsigned)result;
+	}  else {
+    ret = (unsigned)result;
+  }
 
 	return (ret);
 }
@@ -376,6 +377,22 @@ malloc_conf_init(void)
 	char buf[PATH_MAX + 1];
 	const char *opts, *k, *v;
 	size_t klen, vlen;
+
+	
+
+
+
+	if (config_valgrind) {
+		opt_valgrind = (RUNNING_ON_VALGRIND != 0) ? true : false;
+		if (config_fill && opt_valgrind) {
+			opt_junk = false;
+			assert(opt_zero == false);
+			opt_quarantine = JEMALLOC_VALGRIND_QUARANTINE_DEFAULT;
+			opt_redzone = true;
+		}
+		if (config_tcache && opt_valgrind)
+			opt_tcache = false;
+	}
 
 	for (i = 0; i < 3; i++) {
 		
@@ -553,20 +570,7 @@ malloc_conf_init(void)
 				CONF_HANDLE_BOOL(opt_utrace, "utrace")
 			}
 			if (config_valgrind) {
-				bool hit;
-				CONF_HANDLE_BOOL_HIT(opt_valgrind,
-				    "valgrind", hit)
-				if (config_fill && opt_valgrind && hit) {
-					opt_junk = false;
-					opt_zero = false;
-					if (opt_quarantine == 0) {
-						opt_quarantine =
-						    JEMALLOC_VALGRIND_QUARANTINE_DEFAULT;
-					}
-					opt_redzone = true;
-				}
-				if (hit)
-					continue;
+				CONF_HANDLE_BOOL(opt_valgrind, "valgrind")
 			}
 			if (config_xmalloc) {
 				CONF_HANDLE_BOOL(opt_xmalloc, "xmalloc")
@@ -1262,11 +1266,10 @@ je_valloc(size_t size)
 
 
 
-JEMALLOC_EXPORT void (* const __free_hook)(void *ptr) = je_free;
-JEMALLOC_EXPORT void *(* const __malloc_hook)(size_t size) = je_malloc;
-JEMALLOC_EXPORT void *(* const __realloc_hook)(void *ptr, size_t size) =
-    je_realloc;
-JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
+JEMALLOC_EXPORT void (* __free_hook)(void *ptr) = je_free;
+JEMALLOC_EXPORT void *(* __malloc_hook)(size_t size) = je_malloc;
+JEMALLOC_EXPORT void *(* __realloc_hook)(void *ptr, size_t size) = je_realloc;
+JEMALLOC_EXPORT void *(* __memalign_hook)(size_t alignment, size_t size) =
     je_memalign;
 #endif
 
@@ -1279,7 +1282,7 @@ JEMALLOC_EXPORT void *(* const __memalign_hook)(size_t alignment, size_t size) =
 
 
 size_t
-je_malloc_usable_size(const void *ptr)
+je_malloc_usable_size(JEMALLOC_USABLE_SIZE_CONST void *ptr)
 {
 	size_t ret;
 
@@ -1611,6 +1614,27 @@ je_nallocm(size_t *rsize, size_t size, int flags)
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+JEMALLOC_ATTR(constructor)
+static void
+jemalloc_constructor(void)
+{
+
+	malloc_init();
+}
+
 #ifndef JEMALLOC_MUTEX_INIT_CB
 void
 jemalloc_prefork(void)
@@ -1628,14 +1652,16 @@ _malloc_prefork(void)
 	assert(malloc_initialized);
 
 	
+	ctl_prefork();
 	malloc_mutex_prefork(&arenas_lock);
 	for (i = 0; i < narenas; i++) {
 		if (arenas[i] != NULL)
 			arena_prefork(arenas[i]);
 	}
+	prof_prefork();
+	chunk_prefork();
 	base_prefork();
 	huge_prefork();
-	chunk_dss_prefork();
 }
 
 #ifndef JEMALLOC_MUTEX_INIT_CB
@@ -1655,14 +1681,16 @@ _malloc_postfork(void)
 	assert(malloc_initialized);
 
 	
-	chunk_dss_postfork_parent();
 	huge_postfork_parent();
 	base_postfork_parent();
+	chunk_postfork_parent();
+	prof_postfork_parent();
 	for (i = 0; i < narenas; i++) {
 		if (arenas[i] != NULL)
 			arena_postfork_parent(arenas[i]);
 	}
 	malloc_mutex_postfork_parent(&arenas_lock);
+	ctl_postfork_parent();
 }
 
 void
@@ -1673,14 +1701,16 @@ jemalloc_postfork_child(void)
 	assert(malloc_initialized);
 
 	
-	chunk_dss_postfork_child();
 	huge_postfork_child();
 	base_postfork_child();
+	chunk_postfork_child();
+	prof_postfork_child();
 	for (i = 0; i < narenas; i++) {
 		if (arenas[i] != NULL)
 			arena_postfork_child(arenas[i]);
 	}
 	malloc_mutex_postfork_child(&arenas_lock);
+	ctl_postfork_child();
 }
 
 

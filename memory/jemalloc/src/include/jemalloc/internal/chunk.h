@@ -45,6 +45,9 @@ extern size_t		arena_maxclass;
 void	*chunk_alloc(size_t size, size_t alignment, bool base, bool *zero);
 void	chunk_dealloc(void *chunk, size_t size, bool unmap);
 bool	chunk_boot(void);
+void	chunk_prefork(void);
+void	chunk_postfork_parent(void);
+void	chunk_postfork_child(void);
 
 #endif 
 
