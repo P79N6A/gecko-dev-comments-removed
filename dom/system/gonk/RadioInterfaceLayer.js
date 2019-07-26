@@ -216,6 +216,7 @@ function RadioInterfaceLayer() {
     radioState:     RIL.GECKO_RADIOSTATE_UNAVAILABLE,
     cardState:      RIL.GECKO_CARDSTATE_UNKNOWN,
     iccInfo:        null,
+    imsi:           null,
 
     
     
@@ -606,6 +607,9 @@ RadioInterfaceLayer.prototype = {
         break;
       case "iccinfochange":
         this.handleICCInfoChange(message);
+        break;
+      case "iccimsi":
+        this.rilContext.imsi = message.imsi;
         break;
       case "iccGetCardLock":
       case "iccSetCardLock":
