@@ -2085,6 +2085,50 @@ ReadMARChannelIDs(const NS_tchar *path, MARChannelStringTable *results)
 }
 #endif
 
+static int
+GetUpdateFileName(NS_tchar *fileName, int maxChars)
+{
+#if defined(MOZ_WIDGET_GONK)
+  
+  
+
+  NS_tchar linkFileName[MAXPATHLEN];
+  NS_tsnprintf(linkFileName, sizeof(linkFileName)/sizeof(linkFileName[0]),
+               NS_T("%s/update.link"), gSourcePath);
+  AutoFile linkFile = NS_tfopen(linkFileName, NS_T("rb"));
+  if (linkFile == NULL) {
+    NS_tsnprintf(fileName, maxChars,
+                 NS_T("%s/update.mar"), gSourcePath);
+    return OK;
+  }
+
+  char dataFileName[MAXPATHLEN];
+  size_t bytesRead;
+
+  if ((bytesRead = fread(dataFileName, 1, sizeof(dataFileName)-1, linkFile)) <= 0) {
+    *fileName = NS_T('\0');
+    return READ_ERROR;
+  }
+  if (dataFileName[bytesRead-1] == '\n') {
+    
+    bytesRead--;
+  }
+  if (dataFileName[bytesRead-1] == '\r') {
+    
+    bytesRead--;
+  }
+  dataFileName[bytesRead] = '\0';
+
+  strncpy(fileName, dataFileName, maxChars-1);
+  fileName[maxChars-1] = '\0';
+#else
+  
+  NS_tsnprintf(fileName, maxChars,
+               NS_T("%s/update.mar"), gSourcePath);
+#endif
+  return OK;
+}
+
 static void
 UpdateThreadFunc(void *param)
 {
@@ -2094,10 +2138,10 @@ UpdateThreadFunc(void *param)
     rv = ProcessReplaceRequest();
   } else {
     NS_tchar dataFile[MAXPATHLEN];
-    NS_tsnprintf(dataFile, sizeof(dataFile)/sizeof(dataFile[0]),
-                 NS_T("%s/update.mar"), gSourcePath);
-
-    rv = gArchiveReader.Open(dataFile);
+    rv = GetUpdateFileName(dataFile, sizeof(dataFile)/sizeof(dataFile[0]));
+    if (rv == OK) {
+      rv = gArchiveReader.Open(dataFile);
+    }
 
 #ifdef MOZ_VERIFY_MAR_SIGNATURE
     if (rv == OK) {
