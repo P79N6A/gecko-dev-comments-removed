@@ -61,19 +61,6 @@ const uint32_t SILENCE_BYTES_CHUNK = 32 * 1024;
 static const uint32_t LOW_VIDEO_FRAMES = 1;
 
 
-
-
-#ifdef MOZ_WIDGET_GONK
-
-
-
-
-static const uint32_t AMPLE_VIDEO_FRAMES = 3;
-#else
-static const uint32_t AMPLE_VIDEO_FRAMES = 10;
-#endif
-
-
 static const int AUDIO_DURATION_USECS = 40000;
 
 
@@ -430,6 +417,22 @@ nsBuiltinDecoderStateMachine::nsBuiltinDecoderStateMachine(nsBuiltinDecoder* aDe
 
   mBufferingWait = mRealTime ? 0 : BUFFERING_WAIT_S;
   mLowDataThresholdUsecs = mRealTime ? 0 : LOW_DATA_THRESHOLD_USECS;
+
+  
+  
+  
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  
+  
+  mAmpleVideoFrames = Preferences::GetUint("media.video-queue.default-size", 3);
+#else
+  mAmpleVideoFrames = Preferences::GetUint("media.video-queue.default-size", 10);
+#endif
+  if (mAmpleVideoFrames < 2) {
+    mAmpleVideoFrames = 2;
+  }
 }
 
 nsBuiltinDecoderStateMachine::~nsBuiltinDecoderStateMachine()
@@ -750,7 +753,7 @@ bool nsBuiltinDecoderStateMachine::HaveEnoughDecodedVideo()
 {
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
 
-  if (static_cast<uint32_t>(mReader->VideoQueue().GetSize()) < AMPLE_VIDEO_FRAMES) {
+  if (static_cast<uint32_t>(mReader->VideoQueue().GetSize()) < mAmpleVideoFrames) {
     return false;
   }
 
@@ -786,7 +789,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
 
   
   
-  const unsigned videoPumpThreshold = mRealTime ? 0 : AMPLE_VIDEO_FRAMES / 2;
+  const unsigned videoPumpThreshold = mRealTime ? 0 : mAmpleVideoFrames / 2;
 
   
   

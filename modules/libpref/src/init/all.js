@@ -184,6 +184,10 @@ pref("media.autoplay.enabled", true);
 
 
 
+pref("media.video-queue.default-size", 10);
+
+
+
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
 pref("gfx.color_management.rendering_intent", 0);
