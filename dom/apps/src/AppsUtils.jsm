@@ -235,6 +235,14 @@ this.AppsUtils = {
       }
     }
 
+    
+    if (aManifest.size) {
+      aManifest.size = parseInt(aManifest.size);
+      if (Number.isNaN(aManifest.size) || aManifest.size < 0) {
+        return false;
+      }
+    }
+
     return true;
   },
 
