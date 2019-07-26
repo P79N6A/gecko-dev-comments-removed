@@ -4425,14 +4425,22 @@ var TabsInTitlebar = {
       
       document.documentElement.setAttribute("tabsintitlebar", "true");
 
-      let captionButtonsBox = $("titlebar-buttonbox");
-      this._sizePlaceholder("caption-buttons", rect(captionButtonsBox).width);
-#ifdef XP_MACOSX
-      let fullscreenButton  = $("titlebar-fullscreen-button");
-      this._sizePlaceholder("fullscreen-button", rect(fullscreenButton).width);
-#endif
+      
+      
+      let captionButtonsBoxWidth = rect($("titlebar-buttonbox")).width;
       let titlebarContentHeight = rect(titlebarContent).height;
       let menuHeight = this._outerHeight(menubar);
+      let tabsToolbar = $("TabsToolbar");
+      let tabsToolbarOuterHeight = this._outerHeight(tabsToolbar);
+#ifdef XP_MACOSX
+      let fullscreenButtonWidth = rect($("titlebar-fullscreen-button")).width;
+#endif
+
+      
+#ifdef XP_MACOSX
+      this._sizePlaceholder("fullscreen-button", fullscreenButtonWidth);
+#endif
+      this._sizePlaceholder("caption-buttons", captionButtonsBoxWidth);
 
       
       
@@ -4444,8 +4452,7 @@ var TabsInTitlebar = {
 
       
       
-      let tabsToolbar = $("TabsToolbar");
-      let tabAndMenuHeight = this._outerHeight(tabsToolbar) + menuHeight;
+      let tabAndMenuHeight = tabsToolbarOuterHeight + menuHeight;
       titlebarContent.style.marginBottom = tabAndMenuHeight + "px";
 
       
