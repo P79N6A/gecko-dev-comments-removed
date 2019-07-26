@@ -11,6 +11,7 @@
 #include "nsIDocument.h"
 #include "jsfriendapi.h"
 #include "nsContentUtils.h"
+#include "nsJSUtils.h"
 
 using namespace mozilla::dom;
 
@@ -94,8 +95,17 @@ nsHTMLAudioElement::Initialize(nsISupports* aOwner, JSContext* aContext,
   }
 
   
+  JSString* jsstr = JS_ValueToString(aContext, argv[0]);
+  if (!jsstr)
+    return NS_ERROR_FAILURE;
+
+  nsDependentJSString str;
+  if (!str.init(aContext, jsstr))
+    return NS_ERROR_FAILURE;
+
   
-  return SetSrc(aContext, argv[0]);
+  
+  return SetSrc(str);
 }
 
 NS_IMETHODIMP
