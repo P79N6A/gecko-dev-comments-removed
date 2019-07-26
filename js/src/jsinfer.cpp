@@ -2073,6 +2073,27 @@ class TypeConstraintFreezeStack : public TypeConstraint
 
 
 
+static inline bool
+TypeInferenceSupported()
+{
+#ifdef JS_METHODJIT
+    
+    
+    
+    JSC::MacroAssembler masm;
+    if (!masm.supportsFloatingPoint())
+        return false;
+#endif
+
+#if WTF_ARM_ARCH_VERSION == 6
+    
+    
+    return false;
+#endif
+
+    return true;
+}
+
 void
 TypeCompartment::init(JSContext *cx)
 {
@@ -2080,13 +2101,14 @@ TypeCompartment::init(JSContext *cx)
 
     compiledInfo.outputIndex = RecompileInfo::NoCompilerRunning;
 
-    if (cx && cx->getRunOptions() & JSOPTION_TYPE_INFERENCE) {
-#ifdef JS_METHODJIT
-        JSC::MacroAssembler masm;
-        if (masm.supportsFloatingPoint())
-#endif
-            inferenceEnabled = true;
+    if (!cx ||
+        !cx->hasRunOption(JSOPTION_TYPE_INFERENCE) ||
+        !TypeInferenceSupported())
+    {
+        return;
     }
+
+    inferenceEnabled = true;
 }
 
 TypeObject *
