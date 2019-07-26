@@ -1189,7 +1189,7 @@ FilterView.prototype = {
   _doSearch: function(aOperator = "") {
     this._searchbox.focus();
     this._searchbox.value = ""; 
-    this._searchbox.value = aOperator;
+    this._searchbox.value = aOperator + DebuggerView.getEditorSelectionText();
   },
 
   
