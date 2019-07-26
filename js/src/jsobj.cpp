@@ -2611,15 +2611,6 @@ JSObject::shrinkSlots(JSContext *cx, HandleObject obj, uint32_t oldCount, uint32
 {
     JS_ASSERT(newCount < oldCount);
 
-    
-
-
-
-
-
-    if (obj->is<CallObject>())
-        return;
-
     if (newCount == 0) {
         FreeSlots(cx, obj->slots);
         obj->slots = NULL;
