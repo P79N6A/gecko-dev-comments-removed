@@ -69,7 +69,7 @@
 
 "use strict";
 
-const EXPORTED_SYMBOLS = ["SignInToWebsiteController"];
+this.EXPORTED_SYMBOLS = ["SignInToWebsiteController"];
 
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -253,7 +253,7 @@ let Pipe = {
 
 
 
-let SignInToWebsiteController = {
+this.SignInToWebsiteController = {
 
   
 
