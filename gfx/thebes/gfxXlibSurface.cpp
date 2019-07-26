@@ -17,6 +17,7 @@
 #include "nsAlgorithm.h"
 #include "mozilla/Preferences.h"
 #include <algorithm>
+#include "mozilla/CheckedInt.h"
 
 using namespace mozilla;
 
@@ -123,8 +124,20 @@ gfxXlibSurface::TakePixmap()
 
     
     
-    RecordMemoryUsed(mSize.width * mSize.height *
-        cairo_xlib_surface_get_depth(CairoSurface()) / 8);
+    unsigned int bitDepth = cairo_xlib_surface_get_depth(CairoSurface());
+    MOZ_ASSERT((bitDepth % 8) == 0, "Memory used not recorded correctly");
+
+    
+    
+    CheckedInt32 totalBytes = CheckedInt32(mSize.width) * CheckedInt32(mSize.height) * (bitDepth/8);
+
+    
+    
+    
+    MOZ_ASSERT(totalBytes.isValid(),"Did not expect to exceed 2Gb image");
+    if (totalBytes.isValid()) {
+        RecordMemoryUsed(totalBytes.value());
+    }
 }
 
 Drawable
