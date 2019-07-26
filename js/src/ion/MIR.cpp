@@ -694,11 +694,6 @@ MDiv::foldsTo(bool useValueNumbers)
     if (MDefinition *folded = EvaluateConstantOperands(this))
         return folded;
 
-    
-    
-    if (IsConstant(lhs(), 0) || IsConstant(rhs(), 1))
-        return lhs();
-
     return this;
 }
 
