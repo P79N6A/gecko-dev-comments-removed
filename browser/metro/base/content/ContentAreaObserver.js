@@ -32,6 +32,7 @@
 var ContentAreaObserver = {
   styles: {},
   _keyboardState: false,
+  _shiftAmount: 0,
 
   
 
@@ -69,8 +70,14 @@ var ContentAreaObserver = {
     window.addEventListener("resize", this, false);
 
     
+    messageManager.addMessageListener("Content:RepositionInfoResponse", this);
+
+    
     Services.obs.addObserver(this, "metro_softkeyboard_shown", false);
     Services.obs.addObserver(this, "metro_softkeyboard_hidden", false);
+
+    
+    this._shiftBrowserDeck(0);
 
     
     this._initStyles();
@@ -80,6 +87,7 @@ var ContentAreaObserver = {
   },
 
   shutdown: function shutdown() {
+    messageManager.removeMessageListener("Content:RepositionInfoResponse", this);
     Services.obs.removeObserver(this, "metro_softkeyboard_shown");
     Services.obs.removeObserver(this, "metro_softkeyboard_hidden");
   },
@@ -155,6 +163,25 @@ var ContentAreaObserver = {
     this._dispatchWindowEvent("KeyboardChanged", aNewState);
 
     this.updateViewableArea();
+
+    if (!aNewState) {
+      this._shiftBrowserDeck(0);
+      return;
+    }
+
+    
+    
+    Browser.selectedBrowser.messageManager.sendAsyncMessage("Browser:RepositionInfoRequest", {
+      viewHeight: this.viewableHeight,
+    });
+  },
+
+  _onRepositionResponse: function _onRepositionResponse(aJsonMsg) {
+    if (!aJsonMsg.reposition || !this._keyboardState) {
+      this._shiftBrowserDeck(0);
+      return;
+    }
+    this._shiftBrowserDeck(aJsonMsg.raiseContent);
   },
 
   observe: function cao_observe(aSubject, aTopic, aData) {
@@ -186,9 +213,36 @@ var ContentAreaObserver = {
     }
   },
 
+  receiveMessage: function sh_receiveMessage(aMessage) {
+    switch (aMessage.name) {
+      case "Content:RepositionInfoResponse":
+        this._onRepositionResponse(aMessage.json);
+        break;
+    }
+  },
+
   
 
 
+
+  _shiftBrowserDeck: function _shiftBrowserDeck(aAmount) {
+    if (this._shiftAmount == aAmount)
+      return;
+
+    this._shiftAmount = aAmount;
+    this._dispatchWindowEvent("MozDeckOffsetChanging", aAmount);
+
+    
+    let self = this;
+    Elements.browsers.addEventListener("transitionend", function () {
+      Elements.browsers.removeEventListener("transitionend", arguments.callee, true);
+      self._dispatchWindowEvent("MozDeckOffsetChanged", aAmount);
+    }, true);
+
+    
+    
+    Elements.browsers.style.marginTop = "" + (-1 * aAmount) + "px";
+  },
 
   _dispatchWindowEvent: function _dispatchWindowEvent(aEventName, aDetail) {
     let event = document.createEvent("UIEvents");

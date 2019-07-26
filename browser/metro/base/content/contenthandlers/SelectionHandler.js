@@ -64,6 +64,7 @@ var SelectionHandler = {
     addMessageListener("Browser:CaretMove", this);
     addMessageListener("Browser:CaretUpdate", this);
     addMessageListener("Browser:SelectionSwitchMode", this);
+    addMessageListener("Browser:RepositionInfoRequest", this);
   },
 
   shutdown: function shutdown() {
@@ -82,11 +83,20 @@ var SelectionHandler = {
     removeMessageListener("Browser:CaretMove", this);
     removeMessageListener("Browser:CaretUpdate", this);
     removeMessageListener("Browser:SelectionSwitchMode", this);
+    removeMessageListener("Browser:RepositionInfoRequest", this);
   },
 
   
 
 
+
+  get isActive() {
+    return !!this._targetElement;
+  },
+
+  get targetIsEditable() {
+    return this._targetIsEditable || false;
+  },
 
   
 
@@ -402,6 +412,37 @@ var SelectionHandler = {
   _onSelectionDebug: function _onSelectionDebug(aMsg) {
     this._debugOptions = aMsg;
     this._debugEvents = aMsg.dumpEvents;
+  },
+
+  
+
+
+
+
+  _repositionInfoRequest: function _repositionInfoRequest(aJsonMsg) {
+    if (!this.isActive) {
+      Util.dumpLn("unexpected: repositionInfoRequest but selection isn't active.");
+      sendAsyncMessage("Content:RepositionInfoResponse", { reposition: false });
+      return;
+    }
+    
+    if (!this.targetIsEditable) {
+      Util.dumpLn("unexpected: repositionInfoRequest but targetIsEditable is false.");
+      sendAsyncMessage("Content:RepositionInfoResponse", { reposition: false });
+    }
+    
+    let result = this._calcNewContentPosition(aJsonMsg.viewHeight);
+
+    
+    if (result == 0) {
+      sendAsyncMessage("Content:RepositionInfoResponse", { reposition: false });
+      return;
+    }
+
+    sendAsyncMessage("Content:RepositionInfoResponse", {
+      reposition: true,
+      raiseContent: result,
+    });
   },
 
   
@@ -1051,6 +1092,75 @@ var SelectionHandler = {
 
 
 
+
+
+
+
+
+  _calcNewContentPosition: function _calcNewContentPosition(aNewViewHeight) {
+    
+    if (!this._targetIsEditable) {
+      return 0;
+    }
+
+    
+    
+    if (this._cache.element.bottom <= aNewViewHeight) {
+      return 0;
+    }
+    
+    
+    let targetHeight = this._cache.element.bottom - this._cache.element.top;
+    
+    let viewBottom = this._targetElement.ownerDocument.defaultView.innerHeight;
+
+    
+    
+    if (targetHeight <= aNewViewHeight) {
+      
+      
+      
+      
+      
+      
+      let splitMargin = Math.round((aNewViewHeight - targetHeight) * .5);
+      let distanceToPageBounds = viewBottom - this._cache.element.bottom;
+      let distanceFromChromeTop = this._cache.element.bottom - aNewViewHeight;
+      let distanceToCenter =
+        distanceFromChromeTop + Math.min(distanceToPageBounds, splitMargin);
+      return distanceToCenter;
+    }
+
+    
+    
+    let rect =
+      this._domWinUtils.sendQueryContentEvent(this._domWinUtils.QUERY_CARET_RECT,
+                                              this._targetElement.selectionEnd,
+                                              0, 0, 0);
+    if (!rect || !rect.succeeded) {
+      Util.dumpLn("no caret was present, unexpected.");
+      return 0;
+    }
+
+    
+    
+    
+    let caretLocation = Math.max(Math.min(Math.round(rect.top + (rect.height * .5)),
+                                          viewBottom), 0);
+
+    
+    if (caretLocation <= aNewViewHeight) {
+      return 0;
+    }
+
+    
+    return caretLocation - aNewViewHeight;
+  },
+
+  
+
+
+
   
 
 
@@ -1126,6 +1236,10 @@ var SelectionHandler = {
 
       case "Browser:SelectionUpdate":
         this._onSelectionUpdate();
+        break;
+
+      case "Browser:RepositionInfoRequest":
+        this._repositionInfoRequest(json);
         break;
     }
   },
