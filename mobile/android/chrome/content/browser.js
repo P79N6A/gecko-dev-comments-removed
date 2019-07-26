@@ -2836,15 +2836,11 @@ Tab.prototype = {
 
     
     
-    if (BrowserEventHandler.mReflozPref && BrowserEventHandler._mLastPinchData) {
-      let webNav = window.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation);
-      let docShell = webNav.QueryInterface(Ci.nsIDocShell);
-      let docViewer = docShell.contentViewer.QueryInterface(Ci.nsIMarkupDocumentViewer);
-      let viewportWidth = gScreenWidth / aViewport.zoom;
-      
-      
-      docViewer.changeMaxLineBoxWidth(viewportWidth - 15);
-      BrowserEventHandler._mLastPinchData = null;
+    let isZooming = aViewport.zoom != this._zoom;
+    if (isZooming &&
+        BrowserEventHandler.mReflozPref &&
+        BrowserApp.selectedTab._mReflozPoint) {
+      BrowserApp.selectedTab.performReflowOnZoom(aViewport);
     }
 
     let win = this.browser.contentWindow;
@@ -3890,7 +3886,9 @@ var BrowserEventHandler = {
         break;
 
       case "MozMagnifyGesture":
-        this.onPinchFinish(aData, this._mLastPinchPoint.x, this._mLastPinchPoint.y);
+        if (BrowserEventHandler.mReflozPref) {
+          this.onPinchFinish(aData, BrowserApp.selectedTab._mReflozPoint.x, BrowserApp.selectedTab._mReflozPoint.y);
+        }
         break;
 
       default:
@@ -4001,21 +3999,32 @@ var BrowserEventHandler = {
     sendMessageToJava(rect);
   },
 
-  _zoomInAndSnapToElement: function(aX, aY, aElement) {
-    let viewport = BrowserApp.selectedTab.getViewport();
-    if (viewport.zoom < 1.0) {
-      
+  _zoomInAndSnapToRange: function(aRange) {
+    if (!aRange) {
+      Cu.reportError("aRange is null in zoomInAndSnapToRange. Unable to maintain position.");
       return;
     }
 
+    let viewport = BrowserApp.selectedTab.getViewport();
     let fudge = 15; 
-    let win = BrowserApp.selectedBrowser.contentWindow;
+    let boundingElement = aRange.offsetNode;
+    while (!boundingElement.getBoundingClientRect && boundingElement.parentNode) {
+      boundingElement = boundingElement.parentNode;
+    }
 
-    let rect = ElementTouchHelper.getBoundingContentRect(aElement);
+    let rect = ElementTouchHelper.getBoundingContentRect(boundingElement);
+    let drRect = aRange.getClientRect();
+    let scrollTop =
+      BrowserApp.selectedBrowser.contentDocument.documentElement.scrollTop ||
+      BrowserApp.selectedBrowser.contentDocument.body.scrollTop;
+
+    
+    
+    let topPos = scrollTop + drRect.top - (viewport.cssHeight / 2.0);
 
     rect.type = "Browser:ZoomToRect";
     rect.x = Math.max(viewport.cssPageLeft, rect.x  - fudge);
-    rect.y = viewport.cssY;
+    rect.y = Math.max(topPos, viewport.cssPageTop);
     rect.w = viewport.cssWidth;
     rect.h = viewport.cssHeight;
 
@@ -4023,18 +4032,24 @@ var BrowserEventHandler = {
    },
 
    onPinch: function(aData) {
-     let data = JSON.parse(aData);
-     this._mLastPinchPoint = {x: data.x, y: data.y};
+     
+     if (BrowserEventHandler.mReflozPref &&
+         !BrowserApp.selectedTab._mReflozPoint) {
+       let data = JSON.parse(aData);
+       let zoomPointX = data.x;
+       let zoomPointY = data.y;
+
+       BrowserApp.selectedTab._mReflozPoint = { x: zoomPointX, y: zoomPointY,
+         range: BrowserApp.selectedBrowser.contentDocument.caretPositionFromPoint(zoomPointX, zoomPointY) };
+     }
    },
 
    onPinchFinish: function(aData, aX, aY) {
-     if (this.mReflozPref) {
-       let data = JSON.parse(aData);
-       let pinchElement = ElementTouchHelper.anyElementFromPoint(aX, aY);
-       data.element = pinchElement;
-       BrowserApp.selectedTab._mLastPinchElement = pinchElement;
-       this._mLastPinchData = data;
-       this._zoomInAndSnapToElement(data.x, data.y, data.element);
+     
+     if (BrowserEventHandler.mReflozPref) {
+       let range = BrowserApp.selectedTab._mReflozPoint.range;
+       this._zoomInAndSnapToRange(range);
+       BrowserApp.selectedTab._mReflozPoint = null;
      }
    },
 
@@ -4054,8 +4069,6 @@ var BrowserEventHandler = {
   _scrollableElement: null,
 
   _highlightElement: null,
-
-  _mLastPinchData: null,
 
   _doTapHighlight: function _doTapHighlight(aElement) {
     DOMUtils.setContentState(aElement, kStateActive);
