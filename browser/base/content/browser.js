@@ -4158,7 +4158,7 @@ var XULBrowserWindow = {
         
         
         if (!(aFlags & nsIWebProgressListener.LOCATION_CHANGE_SAME_DOCUMENT)) {
-          if (content.document.readyState == 'interactive' || content.document.readyState == "complete")
+          if (content.document.readyState == "interactive" || content.document.readyState == "complete")
             disableFindCommands(shouldDisableFind(content.document));
           else {
             content.document.addEventListener("readystatechange", onContentRSChange);
