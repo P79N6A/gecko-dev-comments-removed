@@ -157,9 +157,6 @@ AreaPositionManager.prototype = {
         if (this.__moveDown) {
           shiftDown = true;
         }
-        if (!this._lastPlaceholderInsertion) {
-          child.setAttribute("notransition", "true");
-        }
         
         child.style.transform = this._getNextPos(child, shiftDown, aSize);
       } else {
@@ -167,17 +164,8 @@ AreaPositionManager.prototype = {
         child.style.transform = "";
       }
     }
-    if (aContainer.lastChild && !this._lastPlaceholderInsertion) {
-      
-      aContainer.lastChild.getBoundingClientRect();
-      
-      for (let child of aContainer.children) {
-        child.removeAttribute("notransition");
-      }
-    }
     delete this.__moveDown;
     delete this.__undoShift;
-    this._lastPlaceholderInsertion = aBefore;
   },
 
   isWide: function(aNode) {
@@ -207,11 +195,6 @@ AreaPositionManager.prototype = {
         child.getBoundingClientRect();
         child.removeAttribute("notransition");
       }
-    }
-    
-    
-    if (aNoTransition) {
-      this._lastPlaceholderInsertion = null;
     }
   },
 
