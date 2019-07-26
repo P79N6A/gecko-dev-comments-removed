@@ -9,6 +9,7 @@
 #define nsMediaFeatures_h_
 
 #include "nsError.h"
+#include "nsCSSProps.h"
 
 class nsIAtom;
 class nsPresContext;
@@ -53,7 +54,7 @@ struct nsMediaFeature {
       const void* mInitializer_;
       
       
-      const int32_t* mKeywordTable;
+      const nsCSSProps::KTableValue* mKeywordTable;
       
       
       nsIAtom * const * mMetric;
