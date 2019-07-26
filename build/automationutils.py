@@ -353,26 +353,28 @@ def processSingleLeakFile(leakLogFileName, PID, processType, leakThreshold):
       
       
       log.info("WARNING | leakcheck | missing output line for total leaks!")
+    return
+
+  if totalBytesLeaked == 0:
+    log.info("TEST-PASS %s| leakcheck | no leaks detected!" % processString)
+    return
+
+  
+  if totalBytesLeaked > leakThreshold:
+    prefix = "TEST-UNEXPECTED-FAIL"
   else:
-    if totalBytesLeaked == 0:
-      log.info("TEST-PASS %s| leakcheck | no leaks detected!" % processString)
-    else:
-      
-      if totalBytesLeaked > leakThreshold:
-        prefix = "TEST-UNEXPECTED-FAIL"
-      else:
-        prefix = "WARNING"
-      
-      
-      maxSummaryObjects = 5
-      leakedObjectSummary = ', '.join(leakedObjectNames[:maxSummaryObjects])
-      
-      
-      
-      if len(leakedObjectNames) > maxSummaryObjects:
-        leakedObjectSummary += ', ...'
-      log.info("%s %s| leakcheck | %d bytes leaked (%s)"
-               % (prefix, processString, totalBytesLeaked, leakedObjectSummary))
+    prefix = "WARNING"
+  
+  
+  maxSummaryObjects = 5
+  leakedObjectSummary = ', '.join(leakedObjectNames[:maxSummaryObjects])
+  
+  
+  
+  if len(leakedObjectNames) > maxSummaryObjects:
+    leakedObjectSummary += ', ...'
+  log.info("%s %s| leakcheck | %d bytes leaked (%s)"
+           % (prefix, processString, totalBytesLeaked, leakedObjectSummary))
 
 def processLeakLog(leakLogFile, leakThreshold = 0):
   """Process the leak log, including separate leak logs created
