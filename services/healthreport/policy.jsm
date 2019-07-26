@@ -365,6 +365,16 @@ HealthReportPolicy.prototype = {
 
 
 
+  get dataSubmissionPolicyBypassAcceptance() {
+    return this._prefs.get("dataSubmissionPolicyBypassAcceptance", false);
+  },
+
+  
+
+
+
+
+
   get dataSubmissionPolicyNotifiedDate() {
     return CommonUtils.getDatePref(this._prefs,
                                    "dataSubmissionPolicyNotifiedTime", 0,
@@ -754,7 +764,7 @@ HealthReportPolicy.prototype = {
     }
 
     
-    if (!this.dataSubmissionPolicyAccepted) {
+    if (!this.dataSubmissionPolicyAccepted && !this.dataSubmissionPolicyBypassAcceptance) {
       this._log.debug("Data submission has been disabled per user request.");
       return;
     }
@@ -780,6 +790,10 @@ HealthReportPolicy.prototype = {
 
 
   ensureNotifyResponse: function ensureNotifyResponse(now) {
+    if (this.dataSubmissionPolicyBypassAcceptance) {
+      return true;
+    }
+
     let notifyState = this.notifyState;
 
     if (notifyState == this.STATE_NOTIFY_UNNOTIFIED) {
