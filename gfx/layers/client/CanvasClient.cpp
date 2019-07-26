@@ -206,17 +206,13 @@ DeprecatedCanvasClientSurfaceStream::Update(gfx::IntSize aSize, ClientCanvasLaye
 #endif
   } else {
     SurfaceStreamHandle handle = stream->GetShareHandle();
-    SurfaceDescriptor *desc = mDeprecatedTextureClient->GetDescriptor();
-    if (desc->type() != SurfaceDescriptor::TSurfaceStreamDescriptor ||
-        desc->get_SurfaceStreamDescriptor().handle() != handle) {
-      *desc = SurfaceStreamDescriptor(handle, false);
+    mDeprecatedTextureClient->SetDescriptor(SurfaceStreamDescriptor(handle, false));
 
-      
-      
-      
-      
-      aLayer->mGLContext->AddRef();
-    }
+    
+    
+    
+    
+    aLayer->mGLContext->AddRef();
   }
 
   aLayer->Painted();
