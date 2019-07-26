@@ -120,6 +120,17 @@ protected:
 
   
   struct TrackMapEntry {
+    
+    
+    TrackTicks mEndOfConsumedInputTicks;
+    
+    
+    
+    StreamTime mEndOfLastInputIntervalInInputStream;
+    
+    
+    
+    StreamTime mEndOfLastInputIntervalInOutputStream;
     MediaInputPort* mInputPort;
     
     
@@ -161,6 +172,9 @@ protected:
                        (long long)outputStart));
 
     TrackMapEntry* map = mTrackMap.AppendElement();
+    map->mEndOfConsumedInputTicks = 0;
+    map->mEndOfLastInputIntervalInInputStream = -1;
+    map->mEndOfLastInputIntervalInOutputStream = -1;
     map->mInputPort = aPort;
     map->mInputTrackID = aTrack->GetID();
     map->mOutputTrackID = track->GetID();
@@ -208,14 +222,12 @@ protected:
       
       StreamTime outputEnd = GraphTimeToStreamTime(interval.mEnd);
       TrackTicks startTicks = outputTrack->GetEnd();
-#ifdef DEBUG
       StreamTime outputStart = GraphTimeToStreamTime(interval.mStart);
-#endif
       NS_ASSERTION(startTicks == TimeToTicksRoundUp(rate, outputStart),
                    "Samples missing");
       TrackTicks endTicks = TimeToTicksRoundUp(rate, outputEnd);
       TrackTicks ticks = endTicks - startTicks;
-      
+      StreamTime inputStart = source->GraphTimeToStreamTime(interval.mStart);
       StreamTime inputEnd = source->GraphTimeToStreamTime(interval.mEnd);
       TrackTicks inputTrackEndPoint = TRACK_TICKS_MAX;
 
@@ -240,11 +252,60 @@ protected:
         
         
         
-        TrackTicks inputEndTicks = TimeToTicksRoundUp(rate, inputEnd);
-        TrackTicks inputStartTicks = inputEndTicks - ticks;
-        segment->AppendSlice(*aInputTrack->GetSegment(),
-                             std::min(inputTrackEndPoint, inputStartTicks),
-                             std::min(inputTrackEndPoint, inputEndTicks));
+        
+        
+        
+        
+        
+        
+        if (map->mEndOfLastInputIntervalInInputStream != inputStart ||
+            map->mEndOfLastInputIntervalInOutputStream != outputStart) {
+          
+          map->mEndOfConsumedInputTicks = TimeToTicksRoundDown(rate, inputStart) - 1;
+        }
+        TrackTicks inputStartTicks = map->mEndOfConsumedInputTicks;
+        TrackTicks inputEndTicks = inputStartTicks + ticks;
+        map->mEndOfConsumedInputTicks = inputEndTicks;
+        map->mEndOfLastInputIntervalInInputStream = inputEnd;
+        map->mEndOfLastInputIntervalInOutputStream = outputEnd;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        if (inputStartTicks < 0) {
+          
+          segment->AppendNullData(-inputStartTicks);
+          inputStartTicks = 0;
+        }
+        if (inputEndTicks > inputStartTicks) {
+          segment->AppendSlice(*aInputTrack->GetSegment(),
+                               std::min(inputTrackEndPoint, inputStartTicks),
+                               std::min(inputTrackEndPoint, inputEndTicks));
+        }
         LOG(PR_LOG_DEBUG+1, ("TrackUnionStream %p appending %lld ticks of input data to track %d",
             this, (long long)(std::min(inputTrackEndPoint, inputEndTicks) - std::min(inputTrackEndPoint, inputStartTicks)),
             outputTrack->GetID()));
