@@ -22,6 +22,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/TypeTraits.h"
 #include "mozilla/Assertions.h"
+#include "mozilla/NullPtr.h"
 
   
 #ifndef nsDebug_h___
@@ -145,6 +146,17 @@ struct already_AddRefed
 
 
   {
+#ifdef MOZ_HAVE_CXX11_NULLPTR
+    
+
+
+    already_AddRefed(decltype(nullptr) aNullPtr)
+      : mRawPtr(nullptr)
+    {
+    }
+
+    explicit
+#endif
     already_AddRefed( T* aRawPtr )
         : mRawPtr(aRawPtr)
       {
