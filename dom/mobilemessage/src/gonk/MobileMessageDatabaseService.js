@@ -1976,7 +1976,7 @@ MobileMessageDatabaseService.prototype = {
         (aMessage.type == "sms" && (aMessage.messageClass == undefined ||
                                     aMessage.sender == undefined)) ||
         (aMessage.type == "mms" && (aMessage.delivery == undefined ||
-                                    aMessage.deliveryStatus == undefined ||
+                                    !Array.isArray(aMessage.deliveryInfo) ||
                                     !Array.isArray(aMessage.receivers))) ||
         aMessage.timestamp == undefined) {
       if (aCallback) {
@@ -2011,24 +2011,25 @@ MobileMessageDatabaseService.prototype = {
       aMessage.isReadReportSent = false;
 
       
-      
-      
-      aMessage.deliveryInfo = [{
-        receiver: aMessage.phoneNumber,
-        deliveryStatus: aMessage.deliveryStatus,
-        deliveryTimestamp: 0,
-      }];
-
-      delete aMessage.deliveryStatus;
+      let deliveryInfo = aMessage.deliveryInfo;
+      for (let i = 0; i < deliveryInfo.length; i++) {
+        if (deliveryInfo[i].deliveryTimestamp == undefined) {
+          deliveryInfo[i].deliveryTimestamp = 0;
+        }
+      }
     }
 
     if (aMessage.type == "sms") {
       aMessage.delivery = DELIVERY_RECEIVED;
       aMessage.deliveryStatus = DELIVERY_STATUS_SUCCESS;
-      aMessage.deliveryTimestamp = 0;
 
       if (aMessage.pid == undefined) {
         aMessage.pid = RIL.PDU_PID_DEFAULT;
+      }
+
+      
+      if (aMessage.deliveryTimestamp == undefined) {
+        aMessage.deliveryTimestamp = 0;
       }
     }
     aMessage.deliveryIndex = [aMessage.delivery, timestamp];

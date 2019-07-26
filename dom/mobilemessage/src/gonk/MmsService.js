@@ -1431,31 +1431,29 @@ MmsService.prototype = {
                                                                       retrievalMode) {
     intermediate.type = "mms";
     intermediate.delivery = DELIVERY_NOT_DOWNLOADED;
+    
+    let deliveryInfo = intermediate.deliveryInfo = [{
+      receiver: mmsConnection.getPhoneNumber(),
+      deliveryStatus: DELIVERY_STATUS_NOT_APPLICABLE }];
 
-    let deliveryStatus;
     switch (retrievalMode) {
       case RETRIEVAL_MODE_MANUAL:
-        deliveryStatus = DELIVERY_STATUS_MANUAL;
+        deliveryInfo[0].deliveryStatus = DELIVERY_STATUS_MANUAL;
         break;
       case RETRIEVAL_MODE_NEVER:
-        deliveryStatus = DELIVERY_STATUS_REJECTED;
+        deliveryInfo[0].deliveryStatus = DELIVERY_STATUS_REJECTED;
         break;
       case RETRIEVAL_MODE_AUTOMATIC:
-        deliveryStatus = DELIVERY_STATUS_PENDING;
+        deliveryInfo[0].deliveryStatus = DELIVERY_STATUS_PENDING;
         break;
       case RETRIEVAL_MODE_AUTOMATIC_HOME:
         if (mmsConnection.isVoiceRoaming()) {
-          deliveryStatus = DELIVERY_STATUS_MANUAL;
+          deliveryInfo[0].deliveryStatus = DELIVERY_STATUS_MANUAL;
         } else {
-          deliveryStatus = DELIVERY_STATUS_PENDING;
+          deliveryInfo[0].deliveryStatus = DELIVERY_STATUS_PENDING;
         }
         break;
-      default:
-        deliveryStatus = DELIVERY_STATUS_NOT_APPLICABLE;
-        break;
     }
-    
-    intermediate.deliveryStatus = deliveryStatus;
 
     intermediate.timestamp = Date.now();
     intermediate.receivers = [];
@@ -1496,7 +1494,9 @@ MmsService.prototype = {
 
     savable.delivery = DELIVERY_RECEIVED;
     
-    savable.deliveryStatus = DELIVERY_STATUS_SUCCESS;
+    savable.deliveryInfo = [{
+      receiver: mmsConnection.getPhoneNumber(),
+      deliveryStatus: DELIVERY_STATUS_SUCCESS }];
     for (let field in intermediate.headers) {
       savable.headers[field] = intermediate.headers[field];
     }
@@ -2169,8 +2169,7 @@ MmsService.prototype = {
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
         return;
       }
-      let deliveryStatus = aMessageRecord.deliveryInfo[0].deliveryStatus;
-      if (DELIVERY_STATUS_PENDING == deliveryStatus) {
+      if (DELIVERY_STATUS_PENDING == aMessageRecord.deliveryStatus) {
         if (DEBUG) debug("Delivery status of message record is 'pending'.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.INTERNAL_ERROR);
         return;
