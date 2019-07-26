@@ -165,12 +165,6 @@ err:
 	return (NULL);
 }
 
-static void
-kq_sighandler(int sig)
-{
-	
-}
-
 #define ADD_UDATA 0x30303
 
 static void
@@ -440,8 +434,15 @@ kq_sig_add(struct event_base *base, int nsignal, short old, short events, void *
 
 	
 
-	if (_evsig_set_handler(base, nsignal, kq_sighandler) == -1)
+	
+
+
+
+
+	if (_evsig_set_handler(base, nsignal,
+	                       nsignal == SIGCHLD ? SIG_DFL : SIG_IGN) == -1) {
 		return (-1);
+	}
 
 	return (0);
 }
