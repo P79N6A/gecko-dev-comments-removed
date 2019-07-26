@@ -342,3 +342,54 @@ const uint8_t * nsZipHeader::GetExtraField(uint16_t aTag, bool aLocal, uint16_t 
 
     return nullptr;
 }
+
+
+
+
+nsresult nsZipHeader::PadExtraField(uint32_t aOffset, uint16_t aAlignSize)
+{
+    uint32_t pad_size;
+    uint32_t pa_offset;
+    uint32_t pa_end;
+
+    
+    if (aAlignSize < 2 || aAlignSize > 32768 ||
+        (aAlignSize & (aAlignSize - 1)) != 0) {
+      return NS_ERROR_INVALID_ARG;
+    }
+
+    
+    aOffset += ZIP_FILE_HEADER_SIZE + mName.Length() + mLocalFieldLength;
+
+    
+    pa_offset = aOffset & ~(aAlignSize - 1);
+    pa_end = pa_offset + aAlignSize;
+    pad_size = pa_end - aOffset;
+    if (pad_size == 0) {
+      return NS_OK;
+    }
+
+    
+    while (pad_size < 4) {
+      pad_size += aAlignSize;
+    }
+    
+    if (mLocalFieldLength + pad_size > 65535) {
+      return NS_ERROR_FAILURE;
+    }
+
+    nsAutoArrayPtr<uint8_t> field = mLocalExtraField;
+    uint32_t pos = mLocalFieldLength;
+
+    mLocalExtraField = new uint8_t[mLocalFieldLength + pad_size];
+    memcpy(mLocalExtraField.get(), field, mLocalFieldLength);
+    
+    
+    
+    WRITE16(mLocalExtraField.get(), &pos, 0xFFFF);
+    WRITE16(mLocalExtraField.get(), &pos, pad_size - 4);
+    memset(mLocalExtraField.get() + pos, 0, pad_size - 4);
+    mLocalFieldLength += pad_size;
+
+    return NS_OK;
+}
