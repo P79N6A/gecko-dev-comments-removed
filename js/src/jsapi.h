@@ -2219,6 +2219,15 @@ JS_GetGlobalForCompartmentOrNull(JSContext *cx, JSCompartment *c);
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalForScopeChain(JSContext *cx);
 
+
+
+
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetScriptedGlobal(JSContext *cx);
 
@@ -2402,12 +2411,6 @@ js_RemoveRoot(JSRuntime *rt, void *rp);
 
 extern JS_NEVER_INLINE JS_PUBLIC_API(void)
 JS_AnchorPtr(void *p);
-
-extern JS_PUBLIC_API(JSBool)
-JS_LockGCThingRT(JSRuntime *rt, void *gcthing);
-
-extern JS_PUBLIC_API(JSBool)
-JS_UnlockGCThingRT(JSRuntime *rt, void *gcthing);
 
 
 
@@ -4543,7 +4546,7 @@ JS_ResetDefaultLocale(JSRuntime *rt);
 struct JSLocaleCallbacks {
     JSLocaleToUpperCase     localeToUpperCase;
     JSLocaleToLowerCase     localeToLowerCase;
-    JSLocaleCompare         localeCompare;
+    JSLocaleCompare         localeCompare; 
     JSLocaleToUnicode       localeToUnicode;
     JSErrorCallback         localeGetErrorMessage;
 };
