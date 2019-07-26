@@ -444,40 +444,67 @@ JSXrayTraits::resolveOwnProperty(JSContext *cx, Wrapper &jsWrapper,
     }
 
     
-    const JSFunctionSpec *fs = clasp->spec.prototypeFunctions;
-    if (!fs)
-        return true;
-
-    
     
     if (!JSID_IS_STRING(id))
         return true;
     Rooted<JSFlatString*> str(cx, JSID_TO_FLAT_STRING(id));
 
     
-    for (; fs->name; ++fs) {
+    const JSFunctionSpec *fsMatch = nullptr;
+    for (const JSFunctionSpec *fs = clasp->spec.prototypeFunctions; fs && fs->name; ++fs) {
         
         if (fs->selfHostedName)
             continue;
-        if (JS_FlatStringEqualsAscii(str, fs->name))
+        if (JS_FlatStringEqualsAscii(str, fs->name)) {
+            fsMatch = fs;
             break;
+        }
     }
-    if (!fs->name)
-        return true;
+    if (fsMatch) {
+        
+        Rooted<JSFunction*> fun(cx, JS_NewFunctionById(cx, fsMatch->call.op, fsMatch->nargs,
+                                                       0, wrapper, id));
+        if (!fun)
+            return false;
+
+        
+        
+        
+        
+        RootedObject funObj(cx, JS_GetFunctionObject(fun));
+        return JS_DefinePropertyById(cx, holder, id, funObj, 0) &&
+               JS_GetPropertyDescriptorById(cx, holder, id, desc);
+    }
 
     
-    Rooted<JSFunction*> fun(cx, JS_NewFunctionById(cx, fs->call.op, fs->nargs,
-                                                   0, wrapper, id));
-    if (!fun)
-        return false;
+    const JSPropertySpec *psMatch = nullptr;
+    for (const JSPropertySpec *ps = clasp->spec.prototypeProperties; ps && ps->name; ++ps) {
+        
+        
+        
+        if (!(ps->flags & JSPROP_NATIVE_ACCESSORS))
+            continue;
+        if (JS_FlatStringEqualsAscii(str, ps->name)) {
+            psMatch = ps;
+            break;
+        }
+    }
+    if (psMatch) {
+        
+        
+        
+        
+        
+        
+        
+        
+        return JS_DefinePropertyById(cx, holder, id,
+                                     UndefinedHandleValue, psMatch->flags,
+                                     psMatch->getter.propertyOp.op, psMatch->setter.propertyOp.op) &&
+               JS_GetPropertyDescriptorById(cx, holder, id, desc);
+    }
 
-    
-    
-    
-    
-    RootedValue value(cx, ObjectValue(*JS_GetFunctionObject(fun)));
-    return JS_DefinePropertyById(cx, holder, id, value, 0) &&
-           JS_GetPropertyDescriptorById(cx, holder, id, desc);
+    return true;
 }
 
 bool
@@ -499,16 +526,23 @@ JSXrayTraits::enumerateNames(JSContext *cx, HandleObject wrapper, unsigned flags
     MOZ_ASSERT(clasp->spec.defined());
 
     
-    const JSFunctionSpec *fs = clasp->spec.prototypeFunctions;
-    if (!fs)
-        return true;
-
-    
-    for (; fs->name; ++fs) {
+    for (const JSFunctionSpec *fs = clasp->spec.prototypeFunctions; fs && fs->name; ++fs) {
         
         if (fs->selfHostedName)
             continue;
         RootedString str(cx, JS_InternString(cx, fs->name));
+        if (!str)
+            return false;
+        if (!props.append(INTERNED_STRING_TO_JSID(cx, str)))
+            return false;
+    }
+    for (const JSPropertySpec *ps = clasp->spec.prototypeProperties; ps && ps->name; ++ps) {
+        
+        
+        
+        if (!(ps->flags & JSPROP_NATIVE_ACCESSORS))
+            continue;
+        RootedString str(cx, JS_InternString(cx, ps->name));
         if (!str)
             return false;
         if (!props.append(INTERNED_STRING_TO_JSID(cx, str)))
