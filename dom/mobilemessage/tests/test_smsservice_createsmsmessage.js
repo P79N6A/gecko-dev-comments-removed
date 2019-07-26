@@ -1,8 +1,6 @@
 
 
 
-const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
-
 function do_check_throws(f, result, stack) {
   if (!stack) {
     stack = Components.stack.caller;
