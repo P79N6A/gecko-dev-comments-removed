@@ -81,6 +81,7 @@ typedef struct {
 
         size_t  bookkeeping;    
 
+	size_t bin_unused; 
 } jemalloc_stats_t;
 
 #ifdef __cplusplus
