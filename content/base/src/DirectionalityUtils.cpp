@@ -862,7 +862,7 @@ SetDirectionalityFromValue(Element* aElement, const nsAString& value,
 
 void
 OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
-             bool hadValidDir, bool aNotify)
+             bool hadValidDir, bool hadDirAuto, bool aNotify)
 {
   if (aElement->IsHTML(nsGkAtoms::input)) {
     return;
@@ -883,6 +883,20 @@ OnSetDirAttr(Element* aElement, const nsAttrValue* aNewValue,
       
       WalkAncestorsResetAutoDirection(aElement, aNotify);
     }
+  } else if (hadDirAuto && !aElement->HasDirAuto()) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    WalkDescendantsClearAncestorDirAuto(aElement);
   }
 
   if (aElement->HasDirAuto()) {
