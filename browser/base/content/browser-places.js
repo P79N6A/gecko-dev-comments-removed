@@ -464,7 +464,7 @@ var PlacesCommandHook = {
                  "", "chrome,toolbar=yes,dialog=no,resizable", aLeftPaneRoot);
     }
     else {
-      organizer.PlacesOrganizer.selectLeftPaneContainerByHierarchy(aLeftPaneRoot);
+      organizer.PlacesOrganizer.selectLeftPaneQuery(aLeftPaneRoot);
       organizer.focus();
     }
   }
@@ -473,9 +473,6 @@ var PlacesCommandHook = {
 
 
 
-XPCOMUtils.defineLazyModuleGetter(this, "RecentlyClosedTabsAndWindowsMenuUtils",
-  "resource:///modules/sessionstore/RecentlyClosedTabsAndWindowsMenuUtils.jsm");
-
 
 function HistoryMenu(aPopupShowingEvent) {
   
@@ -483,6 +480,9 @@ function HistoryMenu(aPopupShowingEvent) {
   
   
   this.__proto__.__proto__ = PlacesMenu.prototype;
+  XPCOMUtils.defineLazyServiceGetter(this, "_ss",
+                                     "@mozilla.org/browser/sessionstore;1",
+                                     "nsISessionStore");
   PlacesMenu.call(this, aPopupShowingEvent,
                   "place:sort=4&maxResults=15");
 }
@@ -493,10 +493,24 @@ HistoryMenu.prototype = {
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedTabsMenu")[0];
 
     
-    if (SessionStore.getClosedTabCount(window) == 0)
+    if (this._ss.getClosedTabCount(window) == 0)
       undoMenu.setAttribute("disabled", true);
     else
       undoMenu.removeAttribute("disabled");
+  },
+
+  
+
+
+
+
+
+  _undoCloseMiddleClick: function PHM__undoCloseMiddleClick(aEvent) {
+    if (aEvent.button != 1)
+      return;
+
+    undoCloseTab(aEvent.originalTarget.value);
+    gBrowser.moveTabToEnd();
   },
 
   
@@ -511,7 +525,7 @@ HistoryMenu.prototype = {
       undoPopup.removeChild(undoPopup.firstChild);
 
     
-    if (SessionStore.getClosedTabCount(window) == 0) {
+    if (this._ss.getClosedTabCount(window) == 0) {
       undoMenu.setAttribute("disabled", true);
       return;
     }
@@ -520,8 +534,45 @@ HistoryMenu.prototype = {
     undoMenu.removeAttribute("disabled");
 
     
-    let tabsFragment = RecentlyClosedTabsAndWindowsMenuUtils.getTabsFragment(window, "menuitem");
-    undoPopup.appendChild(tabsFragment);
+    var undoItems = JSON.parse(this._ss.getClosedTabData(window));
+    for (var i = 0; i < undoItems.length; i++) {
+      var m = document.createElement("menuitem");
+      m.setAttribute("label", undoItems[i].title);
+      if (undoItems[i].image) {
+        let iconURL = undoItems[i].image;
+        
+        if (/^https?:/.test(iconURL))
+          iconURL = "moz-anno:favicon:" + iconURL;
+        m.setAttribute("image", iconURL);
+      }
+      m.setAttribute("class", "menuitem-iconic bookmark-item menuitem-with-favicon");
+      m.setAttribute("value", i);
+      m.setAttribute("oncommand", "undoCloseTab(" + i + ");");
+
+      
+      
+      
+      let tabData = undoItems[i].state;
+      let activeIndex = (tabData.index || tabData.entries.length) - 1;
+      if (activeIndex >= 0 && tabData.entries[activeIndex])
+        m.setAttribute("targetURI", tabData.entries[activeIndex].url);
+
+      m.addEventListener("click", this._undoCloseMiddleClick, false);
+      if (i == 0)
+        m.setAttribute("key", "key_undoCloseTab");
+      undoPopup.appendChild(m);
+    }
+
+    
+    var strings = gNavigatorBundle;
+    undoPopup.appendChild(document.createElement("menuseparator"));
+    m = undoPopup.appendChild(document.createElement("menuitem"));
+    m.id = "menu_restoreAllTabs";
+    m.setAttribute("label", strings.getString("menuRestoreAllTabs.label"));
+    m.addEventListener("command", function() {
+      for (var i = 0; i < undoItems.length; i++)
+        undoCloseTab();
+    }, false);
   },
 
   toggleRecentlyClosedWindows: function PHM_toggleRecentlyClosedWindows() {
@@ -529,7 +580,7 @@ HistoryMenu.prototype = {
     var undoMenu = this._rootElt.getElementsByClassName("recentlyClosedWindowsMenu")[0];
 
     
-    if (SessionStore.getClosedWindowCount() == 0)
+    if (this._ss.getClosedWindowCount() == 0)
       undoMenu.setAttribute("disabled", true);
     else
       undoMenu.removeAttribute("disabled");
@@ -550,7 +601,7 @@ HistoryMenu.prototype = {
       undoPopup.removeChild(undoPopup.firstChild);
 
     
-    if (SessionStore.getClosedWindowCount() == 0) {
+    if (this._ss.getClosedWindowCount() == 0) {
       undoMenu.setAttribute("disabled", true);
       return;
     }
@@ -559,8 +610,45 @@ HistoryMenu.prototype = {
     undoMenu.removeAttribute("disabled");
 
     
-    let windowsFragment = RecentlyClosedTabsAndWindowsMenuUtils.getWindowsFragment(window, "menuitem");
-    undoPopup.appendChild(windowsFragment);
+    let undoItems = JSON.parse(this._ss.getClosedWindowData());
+    for (let i = 0; i < undoItems.length; i++) {
+      let undoItem = undoItems[i];
+      let otherTabsCount = undoItem.tabs.length - 1;
+      let label = (otherTabsCount == 0) ? menuLabelStringSingleTab
+                                        : PluralForm.get(otherTabsCount, menuLabelString);
+      let menuLabel = label.replace("#1", undoItem.title)
+                           .replace("#2", otherTabsCount);
+      let m = document.createElement("menuitem");
+      m.setAttribute("label", menuLabel);
+      let selectedTab = undoItem.tabs[undoItem.selected - 1];
+      if (selectedTab.image) {
+        let iconURL = selectedTab.image;
+        
+        if (/^https?:/.test(iconURL))
+          iconURL = "moz-anno:favicon:" + iconURL;
+        m.setAttribute("image", iconURL);
+      }
+      m.setAttribute("class", "menuitem-iconic bookmark-item menuitem-with-favicon");
+      m.setAttribute("oncommand", "undoCloseWindow(" + i + ");");
+
+      
+      
+      let activeIndex = (selectedTab.index || selectedTab.entries.length) - 1;
+      if (activeIndex >= 0 && selectedTab.entries[activeIndex])
+        m.setAttribute("targetURI", selectedTab.entries[activeIndex].url);
+
+      if (i == 0)
+        m.setAttribute("key", "key_undoCloseWindow");
+      undoPopup.appendChild(m);
+    }
+
+    
+    undoPopup.appendChild(document.createElement("menuseparator"));
+    let m = undoPopup.appendChild(document.createElement("menuitem"));
+    m.id = "menu_restoreAllWindows";
+    m.setAttribute("label", gNavigatorBundle.getString("menuRestoreAllWindows.label"));
+    m.setAttribute("oncommand",
+      "for (var i = 0; i < " + undoItems.length + "; i++) undoCloseWindow();");
   },
 
   toggleTabsFromOtherComputers: function PHM_toggleTabsFromOtherComputers() {
@@ -909,7 +997,6 @@ let PlacesToolbarHelper = {
 
 
 
-
 let BookmarkingUI = {
   get button() {
     if (!this._button) {
@@ -919,18 +1006,22 @@ let BookmarkingUI = {
   },
 
   get star() {
-    if (!this._star) {
-      this._star = document.getElementById("star-button");
+    if (!this._star && this.button) {
+      this._star = document.getAnonymousElementByAttribute(this.button,
+                                                           "anonid",
+                                                           "button");
     }
     return this._star;
   },
 
   get anchor() {
-    if (this.star && isElementVisible(this.star)) {
+    if (!this._anchor && this.star && isElementVisible(this.star)) {
       
-      return this.star;
+      this._anchor = document.getAnonymousElementByAttribute(this.star,
+                                                             "class",
+                                                             "toolbarbutton-icon");
     }
-    return null;
+    return this._anchor;
   },
 
   STATUS_UPDATING: -1,
@@ -939,9 +1030,9 @@ let BookmarkingUI = {
   get status() {
     if (this._pendingStmt)
       return this.STATUS_UPDATING;
-    return this.star &&
-           this.star.hasAttribute("starred") ? this.STATUS_STARRED
-                                             : this.STATUS_UNSTARRED;
+    return this.button &&
+           this.button.hasAttribute("starred") ? this.STATUS_STARRED
+                                               : this.STATUS_UNSTARRED;
   },
 
   get _starredTooltip()
@@ -1010,11 +1101,12 @@ let BookmarkingUI = {
 
     if (aState == "invalid") {
       this.star.setAttribute("disabled", "true");
-      this.star.removeAttribute("starred");
+      this.button.removeAttribute("starred");
     }
     else {
       this.star.removeAttribute("disabled");
     }
+    this._updateToolbarStyle();
   },
 
   _updateToolbarStyle: function BUI__updateToolbarStyle() {
@@ -1055,6 +1147,8 @@ let BookmarkingUI = {
 
   customizeDone: function BUI_customizeDone() {
     delete this._button;
+    delete this._star;
+    delete this._anchor;
     this.onToolbarVisibilityChange();
     this._updateToolbarStyle();
   },
@@ -1074,7 +1168,7 @@ let BookmarkingUI = {
   },
 
   updateStarState: function BUI_updateStarState() {
-    if (!this.star || (this._uri && gBrowser.currentURI.equals(this._uri))) {
+    if (!this.button || (this._uri && gBrowser.currentURI.equals(this._uri))) {
       return;
     }
 
@@ -1123,17 +1217,17 @@ let BookmarkingUI = {
   },
 
   _updateStar: function BUI__updateStar() {
-    if (!this.star) {
+    if (!this.button) {
       return;
     }
 
     if (this._itemIds.length > 0) {
-      this.star.setAttribute("starred", "true");
-      this.star.setAttribute("tooltiptext", this._starredTooltip);
+      this.button.setAttribute("starred", "true");
+      this.button.setAttribute("tooltiptext", this._starredTooltip);
     }
     else {
-      this.star.removeAttribute("starred");
-      this.star.setAttribute("tooltiptext", this._unstarredTooltip);
+      this.button.removeAttribute("starred");
+      this.button.setAttribute("tooltiptext", this._unstarredTooltip);
     }
   },
 
@@ -1150,6 +1244,10 @@ let BookmarkingUI = {
   
   onItemAdded: function BUI_onItemAdded(aItemId, aParentId, aIndex, aItemType,
                                         aURI) {
+    if (!this.button) {
+      return;
+    }
+
     if (aURI && aURI.equals(this._uri)) {
       
       if (this._itemIds.indexOf(aItemId) == -1) {
@@ -1160,6 +1258,10 @@ let BookmarkingUI = {
   },
 
   onItemRemoved: function BUI_onItemRemoved(aItemId) {
+    if (!this.button) {
+      return;
+    }
+
     let index = this._itemIds.indexOf(aItemId);
     
     if (index != -1) {
@@ -1170,6 +1272,10 @@ let BookmarkingUI = {
 
   onItemChanged: function BUI_onItemChanged(aItemId, aProperty,
                                             aIsAnnotationProperty, aNewValue) {
+    if (!this.button) {
+      return;
+    }
+
     if (aProperty == "uri") {
       let index = this._itemIds.indexOf(aItemId);
       
