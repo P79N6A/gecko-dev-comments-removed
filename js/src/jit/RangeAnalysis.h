@@ -307,6 +307,9 @@ class Range : public TempObject {
         assertInvariants();
     }
 
+    
+    
+    
     Range(const MDefinition *def);
 
     static Range *NewInt32Range(int32_t l, int32_t h) {

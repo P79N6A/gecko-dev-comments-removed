@@ -364,6 +364,10 @@ class MDefinition : public MNode
     
     
     
+    
+    
+    
+    
     Range *range() const {
         JS_ASSERT(type() != MIRType_None);
         return range_;
@@ -438,6 +442,12 @@ class MDefinition : public MNode
     MIR_FLAG_LIST(FLAG_ACCESSOR)
 #undef FLAG_ACCESSOR
 
+    
+    
+    
+    
+    
+    
     MIRType type() const {
         return resultType_;
     }
