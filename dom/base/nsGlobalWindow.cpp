@@ -48,6 +48,7 @@
 #include "ScriptSettings.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Likely.h"
+#include "mozilla/unused.h"
 
 
 #include "nsEventListenerManager.h"
@@ -11667,7 +11668,7 @@ nsGlobalWindow::SetTimeoutOrInterval(nsIScriptTimeoutHandler *aHandler,
     }
 
     
-    copy.forget();
+    unused << copy.forget();
   } else {
     
     

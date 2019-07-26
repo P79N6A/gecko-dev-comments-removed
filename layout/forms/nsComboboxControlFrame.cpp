@@ -38,6 +38,7 @@
 #include "nsTextNode.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/MouseEvents.h"
+#include "mozilla/unused.h"
 
 using namespace mozilla;
 
@@ -803,7 +804,7 @@ nsComboboxControlFrame::Reflow(nsPresContext*          aPresContext,
   if (NS_SUCCEEDED(aPresContext->PresShell()->PostReflowCallback(resize))) {
     
     
-    resize.forget();
+    unused << resize.forget();
   }
 
   

@@ -118,6 +118,12 @@
   #define NSCAP_LOG_RELEASE(this, ptr)
 #endif
 
+namespace mozilla {
+
+struct unused_t;
+
+} 
+
 template <class T>
 struct already_AddRefed
     
@@ -156,7 +162,33 @@ struct already_AddRefed
       
     }
 
-    T* take() const { return mRawPtr; }
+    already_AddRefed(const already_AddRefed<T>& aOther)
+      : mRawPtr(aOther.take())
+    {
+      
+    }
+
+    ~already_AddRefed()
+    {
+      MOZ_ASSERT(!mRawPtr);
+    }
+
+    
+    
+    
+    friend void operator<<(const mozilla::unused_t& unused,
+                                         const already_AddRefed<T>& rhs)
+    {
+      auto mutableAlreadyAddRefed = const_cast<already_AddRefed<T>*>(&rhs);
+      unused << mutableAlreadyAddRefed->take();
+    }
+
+    T* take()
+    {
+      T* rawPtr = mRawPtr;
+      mRawPtr = nullptr;
+      return rawPtr;
+    }
 
     
 
