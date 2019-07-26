@@ -134,8 +134,6 @@ struct ScopeCoordinateNameCache {
     void purge();
 };
 
-typedef Vector<ScriptAndCounts, 0, SystemAllocPolicy> ScriptAndCountsVector;
-
 struct EvalCacheEntry
 {
     JSScript *script;
@@ -955,7 +953,31 @@ struct JSRuntime : public JS::shadow::Runtime,
     bool isHeapMinorCollecting() { return gc.isHeapMinorCollecting(); }
     bool isHeapCollecting() { return gc.isHeapCollecting(); }
 
-    int gcZeal() { return gc.zeal(); }
+#ifdef JS_GC_ZEAL
+    int gcZeal() { return gc.zealMode; }
+
+    bool upcomingZealousGC() {
+        return gc.nextScheduled == 1;
+    }
+
+    bool needZealousGC() {
+        if (gc.nextScheduled > 0 && --gc.nextScheduled == 0) {
+            if (gcZeal() == js::gc::ZealAllocValue ||
+                gcZeal() == js::gc::ZealGenerationalGCValue ||
+                (gcZeal() >= js::gc::ZealIncrementalRootsThenFinish &&
+                 gcZeal() <= js::gc::ZealIncrementalMultipleSlices))
+            {
+                gc.nextScheduled = gc.zealFrequency;
+            }
+            return true;
+        }
+        return false;
+    }
+#else
+    int gcZeal() { return 0; }
+    bool upcomingZealousGC() { return false; }
+    bool needZealousGC() { return false; }
+#endif
 
     void lockGC() {
         assertCanLock(js::GCLock);
@@ -979,9 +1001,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::jit::SimulatorRuntime *simulatorRuntime() const;
     void setSimulatorRuntime(js::jit::SimulatorRuntime *srt);
 #endif
-
-    
-    js::ScriptAndCountsVector *scriptAndCountsVector;
 
     
     const js::Value     NaNValue;
@@ -1257,6 +1276,13 @@ struct JSRuntime : public JS::shadow::Runtime,
 
     JSRuntime *thisFromCtor() { return this; }
 
+    void setGCMaxMallocBytes(size_t value);
+
+    void resetGCMallocBytes() {
+        gc.mallocBytes = ptrdiff_t(gc.maxMallocBytes);
+        gc.mallocGCTriggered = false;
+    }
+
     
 
 
@@ -1269,6 +1295,10 @@ struct JSRuntime : public JS::shadow::Runtime,
     void updateMallocCounter(JS::Zone *zone, size_t nbytes);
 
     void reportAllocationOverflow() { js_ReportAllocationOverflow(nullptr); }
+
+    bool isTooMuchMalloc() const {
+        return gc.mallocBytes <= 0;
+    }
 
     
 

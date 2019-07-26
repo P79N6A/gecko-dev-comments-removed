@@ -900,6 +900,11 @@ MinorGC(JSRuntime *rt, JS::gcreason::Reason reason);
 extern void
 MinorGC(JSContext *cx, JS::gcreason::Reason reason);
 
+#ifdef JS_GC_ZEAL
+extern void
+SetGCZeal(JSRuntime *rt, uint8_t zeal, uint32_t frequency);
+#endif
+
 
 
 extern void
@@ -1155,6 +1160,15 @@ GCIfNeeded(JSContext *cx);
 
 void
 RunDebugGC(JSContext *cx);
+
+void
+SetDeterministicGC(JSContext *cx, bool enabled);
+
+void
+SetValidateGC(JSContext *cx, bool enabled);
+
+void
+SetFullCompartmentChecks(JSContext *cx, bool enabled);
 
 
 void

@@ -446,8 +446,7 @@ Statistics::Statistics(JSRuntime *rt)
     compartmentCount(0),
     nonincrementalReason(nullptr),
     preBytes(0),
-    phaseNestingDepth(0),
-    sliceCallback(nullptr)
+    phaseNestingDepth(0)
 {
     PodArrayZero(phaseTotals);
     PodArrayZero(counts);
@@ -488,13 +487,6 @@ Statistics::~Statistics()
         if (fp != stdout && fp != stderr)
             fclose(fp);
     }
-}
-
-JS::GCSliceCallback
-Statistics::setSliceCallback(JS::GCSliceCallback newCallback) {
-    JS::GCSliceCallback oldCallback = sliceCallback;
-    sliceCallback = newCallback;
-    return oldCallback;
 }
 
 void
@@ -589,9 +581,9 @@ Statistics::beginSlice(int collectedCount, int zoneCount, int compartmentCount,
     
     if (++gcDepth == 1) {
         bool wasFullGC = collectedCount == zoneCount;
-        if (sliceCallback)
-            (*sliceCallback)(runtime, first ? JS::GC_CYCLE_BEGIN : JS::GC_SLICE_BEGIN,
-                             JS::GCDescription(!wasFullGC));
+        if (JS::GCSliceCallback cb = runtime->gc.sliceCallback)
+            (*cb)(runtime, first ? JS::GC_CYCLE_BEGIN : JS::GC_SLICE_BEGIN,
+                  JS::GCDescription(!wasFullGC));
     }
 }
 
@@ -613,9 +605,9 @@ Statistics::endSlice()
     
     if (--gcDepth == 0) {
         bool wasFullGC = collectedCount == zoneCount;
-        if (sliceCallback)
-            (*sliceCallback)(runtime, last ? JS::GC_CYCLE_END : JS::GC_SLICE_END,
-                             JS::GCDescription(!wasFullGC));
+        if (JS::GCSliceCallback cb = runtime->gc.sliceCallback)
+            (*cb)(runtime, last ? JS::GC_CYCLE_END : JS::GC_SLICE_END,
+                  JS::GCDescription(!wasFullGC));
     }
 
     

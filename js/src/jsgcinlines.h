@@ -76,15 +76,15 @@ GetGCThingTraceKind(const void *thing)
     return MapAllocToTraceKind(cell->tenuredGetAllocKind());
 }
 
-inline void
-GCRuntime::poke()
+static inline void
+GCPoke(JSRuntime *rt)
 {
-    poked = true;
+    rt->gc.poke = true;
 
 #ifdef JS_GC_ZEAL
     
-    if (zealMode == ZealPokeValue)
-        nextScheduled = 1;
+    if (rt->gcZeal() == js::gc::ZealPokeValue)
+        rt->gc.nextScheduled = 1;
 #endif
 }
 
@@ -489,7 +489,7 @@ CheckAllocatorState(ThreadSafeContext *cx, AllocKind kind)
 
     if (allowGC) {
 #ifdef JS_GC_ZEAL
-        if (rt->gc.needZealousGC())
+        if (rt->needZealousGC())
             js::gc::RunDebugGC(ncx);
 #endif
 

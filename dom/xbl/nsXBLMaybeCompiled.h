@@ -17,9 +17,6 @@
 
 
 
-
-
-
 template <class UncompiledT>
 class nsXBLMaybeCompiled
 {
@@ -90,6 +87,11 @@ struct GCMethods<nsXBLMaybeCompiled<UncompiledT> >
   typedef struct GCMethods<JSObject *> Base;
 
   static nsXBLMaybeCompiled<UncompiledT> initial() { return nsXBLMaybeCompiled<UncompiledT>(); }
+
+  
+
+
+
 
   static bool poisoned(nsXBLMaybeCompiled<UncompiledT> function)
   {
