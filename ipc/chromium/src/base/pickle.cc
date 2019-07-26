@@ -53,7 +53,7 @@ struct Copier
 
 
 
-#ifndef HAVE_64BIT_OS
+#ifndef HAVE_64BIT_BUILD
 template<typename T>
 struct Copier<T, sizeof(uint64_t), false>
 {

@@ -218,7 +218,7 @@ pref("app.update.incompatible.mode", 0);
 
 
 #ifdef MOZ_MAINTENANCE_SERVICE
-#ifndef HAVE_64BIT_OS
+#ifndef HAVE_64BIT_BUILD
 pref("app.update.service.enabled", true);
 #endif
 #endif

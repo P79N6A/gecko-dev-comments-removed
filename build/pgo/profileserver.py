@@ -57,7 +57,7 @@ if __name__ == '__main__':
     env["XPCOM_DEBUG_BREAK"] = "warn"
 
     
-    if "VS120COMNTOOLS" in env and not substs["HAVE_64BIT_OS"]:
+    if "VS120COMNTOOLS" in env and not substs["HAVE_64BIT_BUILD"]:
       vc12dir = os.path.abspath(os.path.join(env["VS120COMNTOOLS"],
                                              "../../VC/bin"))
       if os.path.exists(vc12dir):
