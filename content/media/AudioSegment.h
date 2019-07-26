@@ -188,7 +188,7 @@ public:
       AudioChunk& c = *ci;
       
       if (c.IsNull()) {
-        c.mDuration *= aOutRate / aInRate;
+        c.mDuration = (c.mDuration * aOutRate) / aInRate;
         mDuration += c.mDuration;
         continue;
       }
