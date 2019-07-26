@@ -19,8 +19,11 @@ namespace mozilla {
 namespace dom {
 namespace alarm {
 
+using namespace hal;
+
 class AlarmHalService : public nsIAlarmHalService, 
-                        mozilla::hal::AlarmObserver
+                        public AlarmObserver,
+                        public SystemTimeObserver
 {
 public:
   NS_DECL_ISUPPORTS
@@ -34,17 +37,14 @@ public:
   
   void Notify(const mozilla::void_t& aVoid);
 
+  
+  void Notify(const SystemTimeChange& aReason);
+
 private:
   bool mAlarmEnabled;
-  nsCOMPtr<nsIAlarmFiredCb> mAlarmFiredCb;
   static StaticRefPtr<AlarmHalService> sSingleton;
 
-  
-  
-  
-  
-  
-  
+  nsCOMPtr<nsIAlarmFiredCb> mAlarmFiredCb;
   nsCOMPtr<nsITimezoneChangedCb> mTimezoneChangedCb;
 
   int32_t GetTimezoneOffset(bool aIgnoreDST);
