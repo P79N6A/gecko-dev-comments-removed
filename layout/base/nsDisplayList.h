@@ -1604,8 +1604,18 @@ private:
 
 class nsDisplayBackground : public nsDisplayItem {
 public:
-  nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame);
+  
+  nsDisplayBackground(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                      uint32_t aLayer);
   virtual ~nsDisplayBackground();
+
+  
+  
+  
+  static nsresult AppendBackgroundItemsToTop(nsDisplayListBuilder* aBuilder,
+                                             nsIFrame* aFrame,
+                                             nsDisplayList* aList,
+                                             nsDisplayBackground** aBackground = nullptr);
 
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager,
@@ -1628,6 +1638,7 @@ public:
   virtual bool ShouldFixToViewport(nsDisplayListBuilder* aBuilder);
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder, bool* aSnap);
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsRenderingContext* aCtx);
+  virtual uint32_t GetPerFrameKey();
   NS_DISPLAY_DECL_NAME("Background", TYPE_BACKGROUND)
   
   bool IsThemed() { return mIsThemed; }
@@ -1645,11 +1656,14 @@ protected:
 
   
   bool mIsThemed;
+  
+  bool mIsBottommostLayer;
   nsITheme::Transparency mThemeTransparency;
 
   
   nsRefPtr<ImageContainer> mImageContainer;
   gfxRect mDestRect;
+  uint32_t mLayer;
 };
 
 

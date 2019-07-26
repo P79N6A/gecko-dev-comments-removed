@@ -335,9 +335,14 @@ struct nsCSSRendering {
                               const nsRect& aDirtyRect,
                               const nsRect& aBorderArea,
                               uint32_t aFlags,
-                              nsRect* aBGClipRect = nullptr);
+                              nsRect* aBGClipRect = nullptr,
+                              int32_t aLayer = -1);
 
   
+
+
+
+
 
 
 
@@ -350,7 +355,8 @@ struct nsCSSRendering {
                                     nsStyleContext *aStyleContext,
                                     const nsStyleBorder& aBorder,
                                     uint32_t aFlags,
-                                    nsRect* aBGClipRect = nullptr);
+                                    nsRect* aBGClipRect = nullptr,
+                                    int32_t aLayer = -1);
 
   
 
