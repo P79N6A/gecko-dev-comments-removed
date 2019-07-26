@@ -341,10 +341,6 @@ DOMCI_CLASS(Storage)
 DOMCI_CLASS(StorageItem)
 
 
-DOMCI_CLASS(DOMParser)
-DOMCI_CLASS(XMLSerializer)
-
-
 DOMCI_CLASS(XMLHttpProgressEvent)
 DOMCI_CLASS(XMLHttpRequest)
 
