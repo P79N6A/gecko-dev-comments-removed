@@ -6,8 +6,7 @@
 #ifndef nsAccUtils_h_
 #define nsAccUtils_h_
 
-#include "nsIAccessible.h"
-#include "nsIAccessibleRole.h"
+#include "mozilla/a11y/Accessible.h"
 #include "nsIAccessibleText.h"
 
 #include "nsAccessibilityService.h"
@@ -195,18 +194,6 @@ public:
   
 
 
-  static uint32_t Role(nsIAccessible *aAcc)
-  {
-    uint32_t role = nsIAccessibleRole::ROLE_NOTHING;
-    if (aAcc)
-      aAcc->GetRole(&role);
-
-    return role;
-  }
-
-  
-
-
 
 
 
@@ -240,12 +227,12 @@ public:
   
 
 
-  static bool IsEmbeddedObject(nsIAccessible *aAcc)
+  static bool IsEmbeddedObject(Accessible* aAcc)
   {
-    uint32_t role = Role(aAcc);
-    return role != nsIAccessibleRole::ROLE_TEXT_LEAF &&
-           role != nsIAccessibleRole::ROLE_WHITESPACE &&
-           role != nsIAccessibleRole::ROLE_STATICTEXT;
+    uint32_t role = aAcc->Role();
+    return role != roles::TEXT_LEAF &&
+           role != roles::WHITESPACE &&
+           role != roles::STATICTEXT;
   }
 
   
