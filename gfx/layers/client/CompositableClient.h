@@ -144,12 +144,6 @@ public:
   void OnReplyTextureRemoved(uint64_t aTextureID);
 
   void FlushTexturesToRemoveCallbacks();
-
-  
-
-
-  virtual void OnActorDestroy() = 0;
-
 protected:
   struct TextureIDAndFlags {
     TextureIDAndFlags(uint64_t aID, TextureFlags aFlags)
@@ -195,8 +189,6 @@ public:
   {
     return mCompositableClient;
   }
-
-  virtual void ActorDestroy(ActorDestroyReason why) MOZ_OVERRIDE;
 
   void SetAsyncID(uint64_t aID) { mID = aID; }
   uint64_t GetAsyncID() const

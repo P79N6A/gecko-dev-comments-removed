@@ -384,10 +384,6 @@ public:
 
   virtual void SetCompositableQuirks(CompositableQuirks* aQuirks);
 
-  
-  
-  virtual void OnActorDestroy() {}
-
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char *Name() { return "TextureHost"; }
   virtual void PrintInfo(nsACString& aTo, const char* aPrefix);
@@ -487,8 +483,6 @@ public:
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char *Name() MOZ_OVERRIDE { return "ShmemTextureHost"; }
 #endif
-
-  virtual void OnActorDestroy() MOZ_OVERRIDE;
 
 protected:
   ipc::Shmem* mShmem;
@@ -723,8 +717,6 @@ public:
   
   
   virtual void ForgetBuffer() {}
-
-  void OnActorDestroy();
 
 protected:
   
