@@ -324,7 +324,7 @@ const DownloadsPanel = {
 
     
     if (DownloadsView.richListBox.itemCount > 0 &&
-        !DownloadsView.richListBox.selectedItem) {
+        DownloadsView.richListBox.selectedIndex == -1) {
       DownloadsView.richListBox.selectedIndex = 0;
     }
 
@@ -417,6 +417,10 @@ const DownloadsPanel = {
         aEvent.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_DOWN) &&
         !this.keyFocusing) {
       this.keyFocusing = true;
+      
+      
+      if (DownloadsView.richListBox.selectedIndex == -1)
+        DownloadsView.richListBox.selectedIndex = 0;
       aEvent.preventDefault();
       return;
     }
@@ -904,8 +908,10 @@ const DownloadsView = {
     let element = this.getViewItem(aDataItem)._element;
     let previousSelectedIndex = this.richListBox.selectedIndex;
     this.richListBox.removeChild(element);
-    this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
-                                              this.richListBox.itemCount - 1);
+    if (previousSelectedIndex != -1) {
+      this.richListBox.selectedIndex = Math.min(previousSelectedIndex,
+                                                this.richListBox.itemCount - 1);
+    }
     delete this._viewItems[aDataItem.downloadGuid];
   },
 
@@ -960,6 +966,29 @@ const DownloadsView = {
     if (aEvent.keyCode == KeyEvent.DOM_VK_ENTER ||
         aEvent.keyCode == KeyEvent.DOM_VK_RETURN) {
       goDoCommand("downloadsCmd_doDefault");
+    }
+  },
+
+
+  
+
+
+  onDownloadMouseOver: function DV_onDownloadMouseOver(aEvent)
+  {
+    if (aEvent.originalTarget.parentNode == this.richListBox)
+      this.richListBox.selectedItem = aEvent.originalTarget;
+  },
+  onDownloadMouseOut: function DV_onDownloadMouseOut(aEvent)
+  {
+    if (aEvent.originalTarget.parentNode == this.richListBox) {
+      
+      
+      let element = aEvent.relatedTarget;
+      while (element && element != aEvent.originalTarget) {
+        element = element.parentNode;
+      }
+      if (!element)
+        this.richListBox.selectedIndex = -1;
     }
   },
 
