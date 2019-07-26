@@ -474,8 +474,10 @@ this.AddonRepository = {
   get cacheEnabled() {
     
     
-    if (!AddonDatabase.databaseOk)
+    if (!AddonDatabase.databaseOk) {
+      logger.warn("Cache is disabled because database is not OK");
       return false;
+    }
 
     let preference = PREF_GETADDONS_CACHE_ENABLED;
     let enabled = false;
@@ -611,12 +613,19 @@ this.AddonRepository = {
     this._repopulateCacheInternal(aIds, aCallback, false, aTimeout);
   },
 
-  _repopulateCacheInternal: function(aIds, aCallback, aSendPerformance, aTimeout) {
+  _repopulateCacheInternal: function (aIds, aCallback, aSendPerformance, aTimeout) {
+    
+    function repopulateAddonManager() {
+      AddonManagerPrivate.updateAddonRepositoryData(aCallback);
+    }
+
+    logger.debug("Repopulate add-on cache with " + aIds.toSource());
     
     if (!this.cacheEnabled) {
+      logger.debug("Clearing cache because it is disabled");
       this._addons = null;
       this._pendingCallbacks = null;
-      AddonDatabase.delete(aCallback);
+      AddonDatabase.delete(repopulateAddonManager);
       return;
     }
 
@@ -624,9 +633,10 @@ this.AddonRepository = {
     getAddonsToCache(aIds, function repopulateCache_getAddonsToCache(aAddons) {
       
       if (aAddons.length == 0) {
+        logger.debug("Clearing cache because 0 add-ons were requested");
         self._addons = null;
         self._pendingCallbacks = null;
-        AddonDatabase.delete(aCallback);
+        AddonDatabase.delete(repopulateAddonManager);
         return;
       }
 
@@ -634,12 +644,11 @@ this.AddonRepository = {
         searchSucceeded: function repopulateCacheInternal_searchSucceeded(aAddons) {
           self._addons = {};
           aAddons.forEach(function(aAddon) { self._addons[aAddon.id] = aAddon; });
-          AddonDatabase.repopulate(aAddons, aCallback);
+          AddonDatabase.repopulate(aAddons, repopulateAddonManager);
         },
         searchFailed: function repopulateCacheInternal_searchFailed() {
           logger.warn("Search failed when repopulating cache");
-          if (aCallback)
-            aCallback();
+          repopulateAddonManager();
         }
       }, aSendPerformance, aTimeout);
     });
@@ -656,6 +665,7 @@ this.AddonRepository = {
 
 
   cacheAddons: function AddonRepo_cacheAddons(aIds, aCallback) {
+    logger.debug("cacheAddons: enabled " + this.cacheEnabled + " IDs " + aIds.toSource());
     if (!this.cacheEnabled) {
       if (aCallback)
         aCallback();
@@ -1397,6 +1407,8 @@ this.AddonRepository = {
   
   _beginSearch: function(aURI, aMaxResults, aCallback, aHandleResults, aTimeout) {
     if (this._searching || aURI == null || aMaxResults <= 0) {
+      logger.warn("AddonRepository search failed: searching " + this._searching + " aURI " + aURI +
+                  " aMaxResults " + aMaxResults);
       aCallback.searchFailed();
       return;
     }

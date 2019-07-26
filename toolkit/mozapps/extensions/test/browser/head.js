@@ -89,6 +89,21 @@ for (let pref of gRestorePrefs) {
 
 Services.prefs.setBoolPref(PREF_LOGGING_ENABLED, true);
 
+
+function checkOpenWindows(aWindowID) {
+  let windows = Services.wm.getEnumerator(aWindowID);
+  let found = false;
+  while (windows.hasMoreElements()) {
+    let win = windows.getNext().QueryInterface(Ci.nsIDOMWindow);
+    if (!win.closed) {
+      found = true;
+      win.close();
+    }
+  }
+  if (found)
+    ok(false, "Found unexpected " + aWindowID + " window still open");
+}
+
 registerCleanupFunction(function() {
   
   for (let pref of gRestorePrefs) {
@@ -103,24 +118,9 @@ registerCleanupFunction(function() {
   }
 
   
-  var windows = Services.wm.getEnumerator("Addons:Manager");
-  if (windows.hasMoreElements())
-    ok(false, "Found unexpected add-ons manager window still open");
-  while (windows.hasMoreElements())
-    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
-
-  windows = Services.wm.getEnumerator("Addons:Compatibility");
-  if (windows.hasMoreElements())
-    ok(false, "Found unexpected add-ons compatibility window still open");
-  while (windows.hasMoreElements())
-    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
-
-  windows = Services.wm.getEnumerator("Addons:Install");
-  if (windows.hasMoreElements())
-    ok(false, "Found unexpected add-ons installation window still open");
-  while (windows.hasMoreElements())
-    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
-
+  checkOpenWindows("Addons:Manager");
+  checkOpenWindows("Addons:Compatibility");
+  checkOpenWindows("Addons:Install");
 
   
   

@@ -1,0 +1,536 @@
+
+
+
+
+
+
+
+
+const URI_EXTENSION_UPDATE_DIALOG = "chrome://mozapps/content/extensions/update.xul";
+
+const PREF_GETADDONS_BYIDS            = "extensions.getAddons.get.url";
+const PREF_MIN_PLATFORM_COMPAT        = "extensions.minCompatiblePlatformVersion";
+
+let repo = {};
+Components.utils.import("resource://gre/modules/addons/AddonRepository.jsm", repo);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+let ao1 = { file: "browser_bug557956_1", id: "addon1@tests.mozilla.org"};
+let ao2 = { file: "browser_bug557956_2", id: "addon2@tests.mozilla.org"};
+let ao3 = { file: "browser_bug557956_3", id: "addon3@tests.mozilla.org"};
+let ao4 = { file: "browser_bug557956_4", id: "addon4@tests.mozilla.org"};
+let ao5 = { file: "browser_bug557956_5", id: "addon5@tests.mozilla.org"};
+let ao6 = { file: "browser_bug557956_6", id: "addon6@tests.mozilla.org"};
+let ao7 = { file: "browser_bug557956_7", id: "addon7@tests.mozilla.org"};
+let ao8 = { file: "browser_bug557956_8_1", id: "addon8@tests.mozilla.org"};
+let ao9 = { file: "browser_bug557956_9_1", id: "addon9@tests.mozilla.org"};
+let ao10 = { file: "browser_bug557956_10", id: "addon10@tests.mozilla.org"};
+
+
+function delayMS(aDelay) {
+  let deferred = Promise.defer();
+  setTimeout(deferred.resolve, aDelay);
+  return deferred.promise;
+}
+
+
+function promise_observer(aTopic) {
+  let deferred = Promise.defer();
+  Services.obs.addObserver(function observe(aSubject, aObsTopic, aData) {
+    Services.obs.removeObserver(arguments.callee, aObsTopic);
+    deferred.resolve([aSubject, aData]);
+  }, aTopic, false);
+  return deferred.promise;
+}
+
+
+
+
+function promise_install_test_addons(aAddonList, aUpdateURL) {
+  info("Starting add-on installs");
+  var installs = [];
+  let deferred = Promise.defer();
+
+  
+  Services.prefs.setCharPref(PREF_UPDATEURL, TESTROOT + "missing.rdf");
+
+  for (let addon of aAddonList) {
+    AddonManager.getInstallForURL(TESTROOT + "addons/" + addon.file + ".xpi", function(aInstall) {
+      installs.push(aInstall);
+    }, "application/x-xpinstall");
+  }
+
+  var listener = {
+    installCount: 0,
+
+    onInstallEnded: function() {
+      this.installCount++;
+      if (this.installCount == installs.length) {
+        info("Done add-on installs");
+        
+        Services.prefs.setCharPref(PREF_UPDATEURL, aUpdateURL);
+        deferred.resolve();
+      }
+    }
+  };
+
+  for (let install of installs) {
+    install.addListener(listener);
+    install.install();
+  }
+
+  return deferred.promise;
+}
+
+function promise_addons_by_ids(aAddonIDs) {
+  info("promise_addons_by_ids " + aAddonIDs.toSource());
+  let deferred = Promise.defer();
+  AddonManager.getAddonsByIDs(aAddonIDs, deferred.resolve);
+  return deferred.promise;
+}
+
+function* promise_uninstall_test_addons() {
+  info("Starting add-on uninstalls");
+  let addons = yield promise_addons_by_ids([ao1.id, ao2.id, ao3.id, ao4.id, ao5.id,
+                                            ao6.id, ao7.id, ao8.id, ao9.id, ao10.id]);
+  let deferred = Promise.defer();
+  let uninstallCount = addons.length;
+  let listener = {
+    onUninstalled: function(aAddon) {
+      if (aAddon) {
+        info("Finished uninstalling " + aAddon.id);
+      }
+      if (--uninstallCount == 0) {
+        info("Done add-on uninstalls");
+        AddonManager.removeAddonListener(listener);
+        deferred.resolve();
+      }
+    }};
+  AddonManager.addAddonListener(listener);
+  for (let addon of addons) {
+    if (addon)
+      addon.uninstall();
+    else
+      listener.onUninstalled(null);
+  }
+  yield deferred.promise;
+}
+
+
+
+function promise_open_compatibility_window(aInactiveAddonIds) {
+  let deferred = Promise.defer();
+  
+  
+  
+  requestLongerTimeout(100 );
+
+  var variant = Cc["@mozilla.org/variant;1"].
+                createInstance(Ci.nsIWritableVariant);
+  variant.setFromVariant(aInactiveAddonIds);
+
+  
+  
+  var features = "chrome,centerscreen,dialog,titlebar";
+  var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"].
+           getService(Ci.nsIWindowWatcher);
+  var win = ww.openWindow(null, URI_EXTENSION_UPDATE_DIALOG, "", features, variant);
+
+  win.addEventListener("load", function() {
+    function page_shown(aEvent) {
+      if (aEvent.target.pageid)
+        info("Page " + aEvent.target.pageid + " shown");
+    }
+
+    win.removeEventListener("load", arguments.callee, false);
+
+    info("Compatibility dialog opened");
+
+    win.addEventListener("pageshow", page_shown, false);
+    win.addEventListener("unload", function() {
+      win.removeEventListener("unload", arguments.callee, false);
+      win.removeEventListener("pageshow", page_shown, false);
+      dump("Compatibility dialog closed\n");
+    }, false);
+
+    deferred.resolve(win);
+  }, false);
+  return deferred.promise;
+}
+
+function promise_window_close(aWindow) {
+  let deferred = Promise.defer();
+  aWindow.addEventListener("unload", function() {
+    aWindow.removeEventListener("unload", arguments.callee, false);
+    deferred.resolve(aWindow);
+  }, false);
+  return deferred.promise;
+}
+
+function promise_page(aWindow, aPageId) {
+  let deferred = Promise.defer();
+  var page = aWindow.document.getElementById(aPageId);
+  page.addEventListener("pageshow", function() {
+    page.removeEventListener("pageshow", arguments.callee, false);
+    executeSoon(function() {
+      deferred.resolve(aWindow);
+    });
+  }, false);
+  return deferred.promise;
+}
+
+function get_list_names(aList) {
+  var items = [];
+  for (let listItem of aList.childNodes)
+    items.push(listItem.label);
+  items.sort();
+  return items;
+}
+
+
+let inactiveAddonIds = [
+  ao2.id,
+  ao4.id,
+  ao5.id,
+  ao10.id
+];
+
+
+function* check_addons_uninstalled(aAddonList) {
+  let foundList = yield promise_addons_by_ids([addon.id for (addon of aAddonList)]);
+  for (let i = 0; i < aAddonList.length; i++) {
+    ok(!foundList[i], "Addon " + aAddonList[i].id + " is not installed");
+  }
+  info("Add-on uninstall check complete");
+  yield true;
+}
+
+
+
+
+
+
+
+
+
+    function start_update() {
+  
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
+  let addonList = [ao3, ao5, ao6, ao7, ao8, ao9];
+  yield promise_install_test_addons(addonList, TESTROOT + "cancelCompatCheck.sjs");
+
+
+  
+  let [a5, a6, a8, a9] = yield promise_addons_by_ids([ao5.id, ao6.id, ao8.id, ao9.id]);
+  ok(!a5.isCompatible, "addon5 should not be compatible");
+  ok(!a6.isCompatible, "addon6 should not be compatible");
+  ok(!a8.isCompatible, "addon8 should not be compatible");
+  ok(!a9.isCompatible, "addon9 should not be compatible");
+
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  
+  
+  let compatWindow = yield promise_open_compatibility_window(inactiveAddonIds);
+  var doc = compatWindow.document;
+  compatWindow = yield promise_page(compatWindow, "mismatch");
+  var items = get_list_names(doc.getElementById("mismatch.incompatible"));
+  is(items.length, 4, "Should have seen 4 still incompatible items");
+  is(items[0], "Addon3 1.0", "Should have seen addon3 still incompatible");
+  is(items[1], "Addon7 1.0", "Should have seen addon7 still incompatible");
+  is(items[2], "Addon8 1.0", "Should have seen addon8 still incompatible");
+  is(items[3], "Addon9 1.0", "Should have seen addon9 still incompatible");
+
+  ok(a5.isCompatible, "addon5 should be compatible");
+  ok(a6.isCompatible, "addon6 should be compatible");
+
+  
+  var button = doc.documentElement.getButton("next");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  compatWindow = yield promise_page(compatWindow, "found");
+  ok(doc.getElementById("xpinstallDisabledAlert").hidden,
+     "Install should be allowed");
+
+  var list = doc.getElementById("found.updates");
+  var items = get_list_names(list);
+  is(items.length, 3, "Should have seen 3 updates available");
+  is(items[0], "Addon7 2.0", "Should have seen update for addon7");
+  is(items[1], "Addon8 2.0", "Should have seen update for addon8");
+  is(items[2], "Addon9 2.0", "Should have seen update for addon9");
+
+  ok(!doc.documentElement.getButton("next").disabled,
+     "Next button should be enabled");
+
+  
+  for (let listItem of list.childNodes)
+    EventUtils.synthesizeMouse(listItem, 2, 2, { }, compatWindow);
+
+  ok(doc.documentElement.getButton("next").disabled,
+     "Next button should not be enabled");
+
+  
+  for (let listItem of list.childNodes) {
+    if (listItem.label != "Addon7 2.0")
+      EventUtils.synthesizeMouse(listItem, 2, 2, { }, compatWindow);
+  }
+
+  var button = doc.documentElement.getButton("next");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  compatWindow = yield promise_page(compatWindow, "finished");
+  var button = doc.documentElement.getButton("finish");
+  ok(!button.hidden, "Finish button should not be hidden");
+  ok(!button.disabled, "Finish button should not be disabled");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  compatWindow = yield promise_window_close(compatWindow);
+
+  
+  let [a8, a9] = yield promise_addons_by_ids(["addon8@tests.mozilla.org",
+                                              "addon9@tests.mozilla.org"]);
+  is(a8.version, "2.0", "addon8 should have updated");
+  is(a9.version, "2.0", "addon9 should have updated");
+
+  yield promise_uninstall_test_addons();
+}
+
+
+
+
+
+
+add_task(function cancel_during_repopulate() {
+  Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
+  Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
+  Services.prefs.setCharPref(PREF_UPDATEURL, TESTROOT + "missing.rdf");
+
+  let installsDone = promise_observer("TEST:all-updates-done");
+
+  
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
+  
+  
+  
+  let addonList = [ao5, ao8, ao9, ao10];
+  yield promise_install_test_addons(addonList,
+                                    TESTROOT + "cancelCompatCheck.sjs?500");
+
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  Services.prefs.setCharPref(PREF_GETADDONS_BYIDS, TESTROOT + "browser_bug557956.xml");
+
+  let [a5, a8, a9] = yield promise_addons_by_ids([ao5.id, ao8.id, ao9.id]);
+  ok(!a5.isCompatible, "addon5 should not be compatible");
+  ok(!a8.isCompatible, "addon8 should not be compatible");
+  ok(!a9.isCompatible, "addon9 should not be compatible");
+
+  let compatWindow = yield promise_open_compatibility_window([ao9.id, ...inactiveAddonIds]);
+  var doc = compatWindow.document;
+  yield promise_page(compatWindow, "versioninfo");
+
+  
+  
+  yield delayMS(50);
+
+  info("Cancel the compatibility check dialog");
+  var button = doc.documentElement.getButton("cancel");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  info("Waiting for installs to complete");
+  yield installsDone;
+  ok(!repo.AddonRepository.isSearching, "Background installs are done");
+
+  
+  let getInstalls = Promise.defer();
+  AddonManager.getAllInstalls(getInstalls.resolve);
+  let installs = yield getInstalls.promise;
+  is (installs.length, 0, "There should be no active installs after background installs are done");
+
+  
+  
+  let [a5, a8, a9, a10] = yield promise_addons_by_ids([ao5.id, ao8.id, ao9.id, ao10.id]);
+  ok(a5.isCompatible, "addon5 should be compatible");
+  ok(a8.isCompatible, "addon8 should have been upgraded");
+  ok(!a9.isCompatible, "addon9 should not have been upgraded");
+  ok(!a10.isCompatible, "addon10 should not be compatible");
+
+  info("Updates done");
+  yield promise_uninstall_test_addons();
+  info("done uninstalling add-ons");
+});
+
+
+
+
+
+add_task(function cancel_during_findUpdates() {
+  Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
+  Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
+
+  let observeUpdateDone = promise_observer("TEST:addon-repository-data-updated");
+  let installsDone = promise_observer("TEST:all-updates-done");
+
+  
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
+  
+  let addonList = [ao3, ao5, ao6, ao7, ao8, ao9];
+  yield promise_install_test_addons(addonList,
+                                    TESTROOT + "cancelCompatCheck.sjs");
+
+  let [a8] = yield promise_addons_by_ids([ao8.id]);
+  a8.applyBackgroundUpdates = AddonManager.AUTOUPDATE_DISABLE;
+
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  let compatWindow = yield promise_open_compatibility_window(inactiveAddonIds);
+  var doc = compatWindow.document;
+  yield promise_page(compatWindow, "versioninfo");
+
+  info("Waiting for repository-data-updated");
+  yield observeUpdateDone;
+
+  
+  yield delayMS(5);
+
+  info("Cancel the compatibility check dialog");
+  var button = doc.documentElement.getButton("cancel");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  info("Waiting for installs to complete 2");
+  yield installsDone;
+  ok(!repo.AddonRepository.isSearching, "Background installs are done 2");
+
+  
+  
+  let [a5, a8, a9] = yield promise_addons_by_ids([ao5.id, ao8.id, ao9.id]);
+  ok(a5.isCompatible, "addon5 should be compatible");
+  ok(!a8.isCompatible, "addon8 should not have been upgraded");
+  ok(a9.isCompatible, "addon9 should have been upgraded");
+
+  let getInstalls = Promise.defer();
+  AddonManager.getAllInstalls(getInstalls.resolve);
+  let installs = yield getInstalls.promise;
+  is (installs.length, 0, "There should be no active installs after the dialog is cancelled 2");
+
+  info("findUpdates done");
+  yield promise_uninstall_test_addons();
+});
+
+
+
+
+
+add_task(function cancel_mismatch() {
+  Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
+  Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
+
+  let observeUpdateDone = promise_observer("TEST:addon-repository-data-updated");
+  let installsDone = promise_observer("TEST:all-updates-done");
+
+  
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
+  
+  let addonList = [ao3, ao5, ao6, ao7, ao8, ao9];
+  yield promise_install_test_addons(addonList,
+                                    TESTROOT + "cancelCompatCheck.sjs");
+
+  let [a8] = yield promise_addons_by_ids([ao8.id]);
+  a8.applyBackgroundUpdates = AddonManager.AUTOUPDATE_DISABLE;
+
+  
+  let [a3, a7, a8, a9] = yield promise_addons_by_ids([ao3.id, ao7.id, ao8.id, ao9.id]);
+  ok(!a3.isCompatible, "addon3 should not be compatible");
+  ok(!a7.isCompatible, "addon7 should not be compatible");
+  ok(!a8.isCompatible, "addon8 should not be compatible");
+  ok(!a9.isCompatible, "addon9 should not be compatible");
+
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  let compatWindow = yield promise_open_compatibility_window(inactiveAddonIds);
+  var doc = compatWindow.document;
+  info("Wait for mismatch page");
+  yield promise_page(compatWindow, "mismatch");
+  info("Click the Don't Check button");
+  var button = doc.documentElement.getButton("cancel");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  yield promise_window_close(compatWindow);
+  info("Waiting for installs to complete in cancel_mismatch");
+  yield installsDone;
+
+  
+  
+  let [a5, a8, a9] = yield promise_addons_by_ids([ao5.id, ao8.id, ao9.id]);
+  ok(a5.isCompatible, "addon5 should be compatible");
+  ok(!a8.isCompatible, "addon8 should not have been upgraded");
+  ok(a9.isCompatible, "addon9 should have been upgraded");
+
+  
+  let pInstalls = Promise.defer();
+  AddonManager.getAllInstalls(pInstalls.resolve);
+  let installs = yield pInstalls.promise;
+  ok(installs.length == 0, "No remaining add-on installs (" + installs.toSource() + ")");
+
+  yield promise_uninstall_test_addons();
+  yield check_addons_uninstalled(addonList);
+});
+
+
+
+add_task(function cancel_mismatch_no_updates() {
+  Services.prefs.setBoolPref(PREF_STRICT_COMPAT, true);
+  Services.prefs.setCharPref(PREF_MIN_PLATFORM_COMPAT, "0");
+
+  let observeUpdateDone = promise_observer("TEST:addon-repository-data-updated");
+
+  
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
+  
+  let addonList = [ao3, ao5, ao6];
+  yield promise_install_test_addons(addonList,
+                                    TESTROOT + "cancelCompatCheck.sjs");
+
+  
+  let [a3, a5, a6] = yield promise_addons_by_ids([ao3.id, ao5.id, ao6.id]);
+  ok(!a3.isCompatible, "addon3 should not be compatible");
+  ok(!a5.isCompatible, "addon7 should not be compatible");
+  ok(!a6.isCompatible, "addon8 should not be compatible");
+
+  Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
+  let compatWindow = yield promise_open_compatibility_window(inactiveAddonIds);
+  var doc = compatWindow.document;
+  info("Wait for mismatch page");
+  yield promise_page(compatWindow, "mismatch");
+  info("Click the Don't Check button");
+  var button = doc.documentElement.getButton("cancel");
+  EventUtils.synthesizeMouse(button, 2, 2, { }, compatWindow);
+
+  yield promise_window_close(compatWindow);
+
+  let [a3, a5, a6] = yield promise_addons_by_ids([ao3.id, ao5.id, ao6.id]);
+  ok(!a3.isCompatible, "addon3 should not be compatible");
+  ok(a5.isCompatible, "addon5 should have become compatible");
+  ok(a6.isCompatible, "addon6 should have become compatible");
+
+  
+  let pInstalls = Promise.defer();
+  AddonManager.getAllInstalls(pInstalls.resolve);
+  let installs = yield pInstalls.promise;
+  ok(installs.length == 0, "No remaining add-on installs (" + installs.toSource() + ")");
+
+  yield promise_uninstall_test_addons();
+  yield check_addons_uninstalled(addonList);
+});

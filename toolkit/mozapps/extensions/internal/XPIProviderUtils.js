@@ -1312,8 +1312,6 @@ this.XPIDatabase = {
 
 
 
-
-
   makeAddonVisible: function XPIDB_makeAddonVisible(aAddon) {
     logger.debug("Make addon " + aAddon._key + " visible");
     for (let [, otherAddon] of this.addonDB) {

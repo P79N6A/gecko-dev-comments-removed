@@ -1074,34 +1074,30 @@ var AddonManagerInternal = {
         
         AddonRepository.backgroundUpdateCheck(
                      ids, function BUC_backgroundUpdateCheckCallback() {
-          AddonManagerInternal.updateAddonRepositoryData(
-                                    function BUC_updateAddonCallback() {
+          pendingUpdates += aAddons.length;
+          aAddons.forEach(function BUC_forEachCallback(aAddon) {
+            if (aAddon.id == hotfixID) {
+              notifyComplete();
+              return;
+            }
 
-            pendingUpdates += aAddons.length;
-            aAddons.forEach(function BUC_forEachCallback(aAddon) {
-              if (aAddon.id == hotfixID) {
-                notifyComplete();
-                return;
-              }
+            
+            
+            aAddon.findUpdates({
+              onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
+                
+                
+                if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
+                    AddonManager.shouldAutoUpdate(aAddon)) {
+                  aInstall.install();
+                }
+              },
 
-              
-              
-              aAddon.findUpdates({
-                onUpdateAvailable: function BUC_onUpdateAvailable(aAddon, aInstall) {
-                  
-                  
-                  if (aAddon.permissions & AddonManager.PERM_CAN_UPGRADE &&
-                      AddonManager.shouldAutoUpdate(aAddon)) {
-                    aInstall.install();
-                  }
-                },
-
-                onUpdateFinished: notifyComplete
-              }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
-            });
-
-            notifyComplete();
+              onUpdateFinished: notifyComplete
+            }, AddonManager.UPDATE_WHEN_PERIODIC_UPDATE);
           });
+
+          notifyComplete();
         });
       });
     }
@@ -1425,6 +1421,8 @@ var AddonManagerInternal = {
       },
       noMoreObjects: function updateAddonRepositoryData_noMoreObjects(aCaller) {
         safeCall(aCallback);
+        
+        Services.obs.notifyObservers(null, "TEST:addon-repository-data-updated", null);
       }
     });
   },
