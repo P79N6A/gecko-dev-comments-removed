@@ -4081,10 +4081,13 @@ class AutoGCSession
     JSRuntime *runtime;
     AutoPauseWorkersForTracing pause;
     AutoTraceSession session;
+    bool canceled;
 
   public:
     explicit AutoGCSession(JSRuntime *rt);
     ~AutoGCSession();
+
+    void cancel() { canceled = true; }
 };
 
 } 
@@ -4109,7 +4112,8 @@ AutoTraceSession::~AutoTraceSession()
 AutoGCSession::AutoGCSession(JSRuntime *rt)
   : runtime(rt),
     pause(rt),
-    session(rt, MajorCollecting)
+    session(rt, MajorCollecting),
+    canceled(false)
 {
     runtime->gcIsNeeded = false;
     runtime->gcInterFrameGC = true;
@@ -4126,6 +4130,9 @@ AutoGCSession::AutoGCSession(JSRuntime *rt)
 
 AutoGCSession::~AutoGCSession()
 {
+    if (canceled)
+        return;
+
 #ifndef JS_MORE_DETERMINISTIC
     runtime->gcNextFullGCTime = PRMJ_Now() + GC_IDLE_FULL_SPAN;
 #endif
@@ -4505,8 +4512,12 @@ BudgetIncrementalGC(JSRuntime *rt, int64_t *budget)
 
 
 
-static JS_NEVER_INLINE void
-GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gckind, JS::gcreason::Reason reason)
+
+
+
+static JS_NEVER_INLINE bool
+GCCycle(JSRuntime *rt, bool incremental, int64_t budget,
+        JSGCInvocationKind gckind, JS::gcreason::Reason reason)
 {
     
     JS_ASSERT(!rt->isHeapBusy());
@@ -4524,18 +4535,26 @@ GCCycle(JSRuntime *rt, bool incremental, int64_t budget, JSGCInvocationKind gcki
         rt->gcHelperThread.waitBackgroundSweepOrAllocEnd();
     }
 
-    {
-        if (!incremental) {
-            
-            ResetIncrementalGC(rt, "requested");
-            rt->gcStats.nonincremental("requested");
-            budget = SliceBudget::Unlimited;
-        } else {
-            BudgetIncrementalGC(rt, &budget);
-        }
+    State prevState = rt->gcIncrementalState;
 
-        IncrementalCollectSlice(rt, budget, reason, gckind);
+    if (!incremental) {
+        
+        ResetIncrementalGC(rt, "requested");
+        rt->gcStats.nonincremental("requested");
+        budget = SliceBudget::Unlimited;
+    } else {
+        BudgetIncrementalGC(rt, &budget);
     }
+
+    
+    if (prevState != NO_INCREMENTAL && rt->gcIncrementalState == NO_INCREMENTAL) {
+        gcsession.cancel();
+        return true;
+    }
+
+    IncrementalCollectSlice(rt, budget, reason, gckind);
+
+    return false;
 }
 
 #ifdef JS_GC_ZEAL
@@ -4663,6 +4682,8 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
 
     gcstats::AutoGCSlice agc(rt->gcStats, collectedCount, zoneCount, compartmentCount, reason);
 
+    bool repeat = false;
+
     do {
         
 
@@ -4675,7 +4696,7 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
         }
 
         rt->gcPoke = false;
-        GCCycle(rt, incremental, budget, gckind, reason);
+        bool wasReset = GCCycle(rt, incremental, budget, gckind, reason);
 
         if (rt->gcIncrementalState == NO_INCREMENTAL) {
             gcstats::AutoPhase ap(rt->gcStats, gcstats::PHASE_GC_END);
@@ -4691,7 +4712,10 @@ Collect(JSRuntime *rt, bool incremental, int64_t budget,
 
 
 
-    } while (rt->gcPoke && rt->gcShouldCleanUpEverything);
+
+
+        repeat = (rt->gcPoke && rt->gcShouldCleanUpEverything) || wasReset;
+    } while (repeat);
 }
 
 void
