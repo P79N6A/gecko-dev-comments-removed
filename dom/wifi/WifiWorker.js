@@ -195,12 +195,14 @@ var WifiManager = (function() {
       
       
       callback(0);
+      notify("supplicantlost", { success: true });
       return;
     }
 
     wifiCommand.unloadDriver(function(status) {
       driverLoaded = (status < 0);
       callback(status);
+      notify("supplicantlost", { success: true });
     });
   }
 
@@ -413,6 +415,12 @@ var WifiManager = (function() {
   }
 
   function notifyStateChange(fields) {
+    
+    if (manager.state === "DISABLING" ||
+        manager.state === "UNINITIALIZED") {
+      return false;
+    }
+
     
     
     
@@ -678,20 +686,20 @@ var WifiManager = (function() {
     if (eventData.indexOf("CTRL-EVENT-TERMINATING") === 0) {
       
       
-      
-      
-      if (eventData.indexOf("connection closed") !== -1) {
-        notify("supplicantlost", { success: true });
-        return false;
-      }
-
-      
-      
-      if (eventData.indexOf("recv error") !== -1 && ++recvErrors < 10)
+      if (eventData.indexOf("connection closed") === -1 &&
+          eventData.indexOf("recv error") !== -1 && ++recvErrors < 10)
         return true;
 
       notifyStateChange({ state: "DISCONNECTED", BSSID: null, id: -1 });
-      notify("supplicantlost", { success: true });
+
+      
+      
+      
+      
+      
+      if (manager.state !== "DISABLING" && manager.state !== "UNINITIALIZED") {
+        notify("supplicantlost", { success: true });
+      }
       return false;
     }
     if (eventData.indexOf("CTRL-EVENT-DISCONNECTED") === 0) {
@@ -897,6 +905,7 @@ var WifiManager = (function() {
       
       
       
+      manager.state = "DISABLING";
       wifiCommand.terminateSupplicant(function (ok) {
         manager.connectionDropped(function () {
           wifiCommand.stopSupplicant(function (status) {
