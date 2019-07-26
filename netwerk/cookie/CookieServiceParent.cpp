@@ -11,27 +11,6 @@
 
 using namespace mozilla::ipc;
 
-static void
-GetAppInfoFromLoadContext(const IPC::SerializedLoadContext &aLoadContext,
-                          uint32_t& aAppId,
-                          bool& aIsInBrowserElement,
-                          bool& aIsPrivate)
-{
-  
-  
-  aAppId = NECKO_NO_APP_ID;
-  aIsInBrowserElement = false;
-  aIsPrivate = false;
-
-  if (aLoadContext.IsNotNull()) {
-    aAppId = aLoadContext.mAppId;
-    aIsInBrowserElement = aLoadContext.mIsInBrowserElement;
-  }
-
-  if (aLoadContext.IsPrivateBitValid())
-    aIsPrivate = aLoadContext.mUsePrivateBrowsing;
-}
-
 namespace mozilla {
 namespace net {
 
@@ -69,11 +48,11 @@ CookieServiceParent::RecvGetCookieString(const URIParams& aHost,
     return false;
 
   uint32_t appId;
-  bool isInBrowserElement, isPrivate;
-  GetAppInfoFromLoadContext(aLoadContext, appId, isInBrowserElement, isPrivate);
+  bool isInBrowserElement;
+  GetAppInfoFromLoadContext(aLoadContext, appId, isInBrowserElement);
 
   mCookieService->GetCookieStringInternal(hostURI, aIsForeign, aFromHttp, appId,
-                                          isInBrowserElement, isPrivate, *aResult);
+                                          isInBrowserElement, *aResult);
   return true;
 }
 
@@ -96,15 +75,31 @@ CookieServiceParent::RecvSetCookieString(const URIParams& aHost,
     return false;
 
   uint32_t appId;
-  bool isInBrowserElement, isPrivate;
-  GetAppInfoFromLoadContext(aLoadContext, appId, isInBrowserElement, isPrivate);
+  bool isInBrowserElement;
+  GetAppInfoFromLoadContext(aLoadContext, appId, isInBrowserElement);
 
   nsDependentCString cookieString(aCookieString, 0);
-  
   mCookieService->SetCookieStringInternal(hostURI, aIsForeign, cookieString,
                                           aServerTime, aFromHttp, appId,
-                                          isInBrowserElement, isPrivate, nullptr);
+                                          isInBrowserElement);
   return true;
+}
+
+void
+CookieServiceParent::GetAppInfoFromLoadContext(
+                       const IPC::SerializedLoadContext &aLoadContext,
+                        uint32_t& aAppId,
+                        bool& aIsInBrowserElement)
+{
+  
+  
+  aAppId = NECKO_NO_APP_ID;
+  aIsInBrowserElement = false;
+
+  if (aLoadContext.IsNotNull()) {
+    aAppId = aLoadContext.mAppId;
+    aIsInBrowserElement = aLoadContext.mIsInBrowserElement;
+  }
 }
 
 }
