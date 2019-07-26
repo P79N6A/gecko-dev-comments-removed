@@ -75,8 +75,8 @@ RefPtr<SrtpFlow> SrtpFlow::Create(int cipher_suite,
   policy.ssrc.type = inbound ? ssrc_any_inbound : ssrc_any_outbound;
   policy.ssrc.value = 0;
   policy.ekt = NULL;
-  policy.window_size = 0;      
-  policy.allow_repeat_tx = 0;  
+  policy.window_size = 1024;   
+  policy.allow_repeat_tx = 1;  
   policy.next = NULL;
 
   
