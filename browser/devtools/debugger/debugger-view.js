@@ -9,6 +9,8 @@ const SOURCE_URL_MAX_LENGTH = 64;
 const SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE = 1048576; 
 const PANES_APPEARANCE_DELAY = 50; 
 const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000; 
+const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "after_start";
+const BREAKPOINT_CONDITIONAL_POPUP_OFFSET = 50; 
 const GLOBAL_SEARCH_LINE_MAX_LENGTH = 300; 
 const GLOBAL_SEARCH_EXPAND_MAX_RESULTS = 50;
 const GLOBAL_SEARCH_ACTION_DELAY = 150; 
@@ -177,6 +179,7 @@ let DebuggerView = {
     dumpn("Finished loading the DebuggerView editor");
 
     DebuggerController.Breakpoints.initialize();
+    window.dispatchEvent("Debugger:EditorLoaded", this.editor);
     this.editor.focus();
   },
 
@@ -188,6 +191,7 @@ let DebuggerView = {
     dumpn("Destroying the DebuggerView editor");
 
     DebuggerController.Breakpoints.destroy();
+    window.dispatchEvent("Debugger:EditorUnloaded", this.editor);
     this.editor = null;
   },
 
@@ -264,21 +268,25 @@ let DebuggerView = {
     }
     
     else {
-      if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-        this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
-      } else {
-        this.editor.setMode(SourceEditor.MODES.TEXT);
+      if (this._editorSource != aSource) {
+        
+        if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+          this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
+        } else {
+          this.editor.setMode(SourceEditor.MODES.TEXT);
+        }
+        this.editor.setText(aSource.text);
+        this.editor.resetUndo();
       }
-      this.editor.setText(aSource.text);
-      this.editor.resetUndo();
+      this._editorSource = aSource;
       this.updateEditor();
 
       DebuggerView.Sources.selectedValue = aSource.url;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
 
       
-      if (aOptions.targetLine) {
-        editor.setCaretPosition(aOptions.targetLine - 1);
+      if (aOptions.caretLine) {
+        editor.setCaretPosition(aOptions.caretLine - 1);
       }
       if (aOptions.debugLine) {
         editor.setDebugLocation(aOptions.debugLine - 1);
@@ -383,9 +391,11 @@ let DebuggerView = {
 
 
 
+
   togglePanes: function DV__togglePanes(aFlags = {}) {
     
     if (aFlags.visible == !this.panesHidden) {
+      aFlags.callback && aFlags.callback();
       return;
     }
 
@@ -414,23 +424,29 @@ let DebuggerView = {
 
       window.addEventListener("transitionend", function onEvent() {
         window.removeEventListener("transitionend", onEvent, false);
+        aFlags.callback && aFlags.callback();
         self.updateEditor();
       }, false);
     } else {
       this._stackframesAndBreakpoints.removeAttribute("animated");
       this._variables.removeAttribute("animated");
+      aFlags.callback && aFlags.callback();
     }
   },
 
   
 
 
-  showPanesSoon: function DV__showPanesSoon() {
+
+
+
+  showPanesSoon: function DV__showPanesSoon(aCallback) {
     
     window.setTimeout(function() {
       DebuggerView.togglePanes({
         visible: true,
-        animated: true
+        animated: true,
+        callback: aCallback
       });
     }, PANES_APPEARANCE_DELAY);
   },
@@ -448,11 +464,13 @@ let DebuggerView = {
     this.GlobalSearch.clearCache();
     this.StackFrames.empty();
     this.Breakpoints.empty();
+    this.Breakpoints.unhighlightBreakpoint();
     this.Variables.empty();
     SourceUtils.clearLabelsCache();
 
     if (this.editor) {
       this.editor.setText("");
+      this._editorSource = null;
     }
   },
 
@@ -466,6 +484,7 @@ let DebuggerView = {
   GlobalSearch: null,
   Variables: null,
   _editor: null,
+  _editorSource: null,
   _togglePanesButton: null,
   _stackframesAndBreakpoints: null,
   _variables: null,

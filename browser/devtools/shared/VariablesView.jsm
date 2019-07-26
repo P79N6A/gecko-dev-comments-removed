@@ -1486,7 +1486,34 @@ VariablesView.isPrimitive = function VV_isPrimitive(aDescriptor) {
 
   
   let type = grip.type;
-  if (["undefined", "null"].indexOf(type + "") != -1) {
+  if (type == "undefined" || type == "null") {
+    return true;
+  }
+
+  return false;
+};
+
+
+
+
+
+
+
+VariablesView.isFalsy = function VV_isFalsy(aDescriptor) {
+  if (!aDescriptor || typeof aDescriptor != "object") {
+    return true;
+  }
+
+  
+  
+  let grip = aDescriptor.value;
+  if (typeof grip != "object") {
+    return !grip;
+  }
+
+  
+  let type = grip.type;
+  if (type == "undefined" || type == "null") {
     return true;
   }
 

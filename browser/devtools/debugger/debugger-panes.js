@@ -51,11 +51,8 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
 
 
 
-
-
-
   addFrame:
-  function DVSF_addFrame(aFrameName, aFrameDetails, aDepth, aOptions = {}) {
+  function DVSF_addFrame(aFrameName, aFrameDetails, aDepth) {
     
     DebuggerView.showPanesSoon();
 
@@ -64,7 +61,9 @@ create({ constructor: StackFramesView, proto: MenuContainer.prototype }, {
       forced: true,
       unsorted: true,
       relaxed: true,
-      attachment: aOptions.attachment
+      attachment: {
+        depth: aDepth
+      }
     });
 
     
@@ -154,8 +153,16 @@ function BreakpointsView() {
   MenuContainer.call(this);
   this._createItemView = this._createItemView.bind(this);
   this._onBreakpointRemoved = this._onBreakpointRemoved.bind(this);
-  this._onClick = this._onClick.bind(this);
+  this._onEditorLoad = this._onEditorLoad.bind(this);
+  this._onEditorUnload = this._onEditorUnload.bind(this);
+  this._onEditorSelection = this._onEditorSelection.bind(this);
+  this._onEditorContextMenu = this._onEditorContextMenu.bind(this);
+  this._onBreakpointClick = this._onBreakpointClick.bind(this);
   this._onCheckboxClick = this._onCheckboxClick.bind(this);
+  this._onConditionalPopupShowing = this._onConditionalPopupShowing.bind(this);
+  this._onConditionalPopupShown = this._onConditionalPopupShown.bind(this);
+  this._onConditionalPopupHiding = this._onConditionalPopupHiding.bind(this);
+  this._onConditionalTextboxKeyPress = this._onConditionalTextboxKeyPress.bind(this);
 }
 
 create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
@@ -165,12 +172,22 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   initialize: function DVB_initialize() {
     dumpn("Initializing the BreakpointsView");
     this._container = new StackList(document.getElementById("breakpoints"));
+    this._commandset = document.getElementById("debuggerCommands");
     this._popupset = document.getElementById("debuggerPopupset");
+    this._cbPanel = document.getElementById("conditional-breakpoint-panel");
+    this._cbTextbox = document.getElementById("conditional-breakpoint-textbox");
 
     this._container.emptyText = L10N.getStr("emptyBreakpointsText");
     this._container.itemFactory = this._createItemView;
     this._container.uniquenessQualifier = 2;
-    this._container.addEventListener("click", this._onClick, false);
+
+    window.addEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
+    window.addEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
+    this._container.addEventListener("click", this._onBreakpointClick, false);
+    this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false)
+    this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false)
+    this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding, false)
+    this._cbTextbox.addEventListener("keypress", this._onConditionalTextboxKeyPress, false);
 
     this._cache = new Map();
   },
@@ -180,7 +197,13 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
   destroy: function DVB_destroy() {
     dumpn("Destroying the BreakpointsView");
-    this._container.removeEventListener("click", this._onClick, false);
+    window.removeEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
+    window.removeEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
+    this._container.removeEventListener("click", this._onBreakpointClick, false);
+    this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
+    this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown, false);
+    this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding, false)
+    this._cbTextbox.removeEventListener("keypress", this._onConditionalTextboxKeyPress, false);
   },
 
   
@@ -197,26 +220,32 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  addBreakpoint:
-  function DVB_addBreakpoint(aLineInfo, aLineText, aSourceLocation, aLineNumber, aId) {
+
+
+
+
+  addBreakpoint: function DVB_addBreakpoint(aSourceLocation, aLineNumber,
+                                            aActor, aLineInfo, aLineText,
+                                            aConditionalFlag, aOpenPopupFlag) {
     
     let breakpointItem = this.push(aLineInfo.trim(), aLineText.trim(), {
       forced: true,
       attachment: {
         enabled: true,
         sourceLocation: aSourceLocation,
-        lineNumber: aLineNumber
+        lineNumber: aLineNumber,
+        isConditional: aConditionalFlag
       }
     });
 
     
     if (!breakpointItem) {
-      this.enableBreakpoint(aSourceLocation, aLineNumber, { id: aId });
+      this.enableBreakpoint(aSourceLocation, aLineNumber, { id: aActor });
       return;
     }
 
     let element = breakpointItem.target;
-    element.id = "breakpoint-" + aId;
+    element.id = "breakpoint-" + aActor;
     element.className = "dbg-breakpoint list-item";
     element.infoNode.className = "dbg-breakpoint-info plain";
     element.textNode.className = "dbg-breakpoint-text plain";
@@ -224,6 +253,12 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
     breakpointItem.finalize = this._onBreakpointRemoved;
     this._cache.set(this._key(aSourceLocation, aLineNumber), breakpointItem);
+
+    
+    
+    if (aConditionalFlag && aOpenPopupFlag) {
+      this.highlightBreakpoint(aSourceLocation, aLineNumber, { openPopup: true });
+    }
   },
 
   
@@ -267,6 +302,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
       if (aOptions.id) {
         breakpointItem.target.id = "breakpoint-" + aOptions.id;
       }
+
       
       if (!aOptions.silent) {
         breakpointItem.target.checkbox.setAttribute("checked", "true");
@@ -331,12 +367,46 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  highlightBreakpoint: function DVB_highlightBreakpoint(aSourceLocation, aLineNumber) {
+
+
+
+
+  highlightBreakpoint:
+  function DVB_highlightBreakpoint(aSourceLocation, aLineNumber, aFlags = {}) {
     let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
     if (breakpointItem) {
+      
+      if (aFlags.updateEditor) {
+        DebuggerView.updateEditor(aSourceLocation, aLineNumber, { noDebug: true });
+      }
+
+      
+      
+      if (aFlags.openPopup && breakpointItem.attachment.isConditional) {
+        let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+        let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
+
+        
+        DebuggerView.showPanesSoon(function() {
+          
+          if (this.getBreakpoint(aSourceLocation, aLineNumber)) {
+            this._cbTextbox.value = breakpointClient.conditionalExpression || "";
+            this._cbPanel.openPopup(breakpointItem.target,
+              BREAKPOINT_CONDITIONAL_POPUP_POSITION,
+              BREAKPOINT_CONDITIONAL_POPUP_OFFSET);
+          }
+        }.bind(this));
+      } else {
+        this._cbPanel.hidePopup();
+      }
+
+      
       this._container.selectedItem = breakpointItem.target;
-    } else {
+    }
+    
+    else {
       this._container.selectedIndex = -1;
+      this._cbPanel.hidePopup();
     }
   },
 
@@ -361,6 +431,19 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
   getBreakpoint: function DVB_getBreakpoint(aSourceLocation, aLineNumber) {
     return this._cache.get(this._key(aSourceLocation, aLineNumber));
+  },
+
+  
+
+
+
+  get selectedClient() {
+    let selectedItem = this.selectedItem;
+    if (selectedItem) {
+      let { sourceLocation: url, lineNumber: line } = selectedItem.attachment;
+      return DebuggerController.Breakpoints.getBreakpoint(url, line);
+    }
+    return null;
   },
 
   
@@ -392,6 +475,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
     let state = document.createElement("vbox");
     state.className = "state";
+    state.setAttribute("pack", "center");
     state.appendChild(checkbox);
 
     let content = document.createElement("vbox");
@@ -435,12 +519,14 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
     createMenuItem.call(this, "disableOthers");
     createMenuItem.call(this, "deleteOthers");
     createMenuSeparator();
+    createMenuItem.call(this, "setConditional");
+    createMenuSeparator();
     createMenuItem.call(this, "enableSelf", true);
     createMenuItem.call(this, "disableSelf");
     createMenuItem.call(this, "deleteSelf");
 
     this._popupset.appendChild(menupopup);
-    document.documentElement.appendChild(commandset);
+    this._commandset.appendChild(commandset);
 
     aElementNode.commandset = commandset;
     aElementNode.menupopup = menupopup;
@@ -513,16 +599,148 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onClick: function DVB__onClick(e) {
+  _onEditorLoad: function DVB__onEditorLoad({ detail: editor }) {
+    editor.addEventListener("Selection", this._onEditorSelection, false);
+    editor.addEventListener("ContextMenu", this._onEditorContextMenu, false);
+  },
+
+  
+
+
+  _onEditorUnload: function DVB__onEditorUnload({ detail: editor }) {
+    editor.removeEventListener("Selection", this._onEditorSelection, false);
+    editor.removeEventListener("ContextMenu", this._onEditorContextMenu, false);
+  },
+
+  
+
+
+  _onEditorSelection: function DVB__onEditorSelection(e) {
+    let { start, end } = e.newValue;
+
+    let sourceLocation = DebuggerView.Sources.selectedValue;
+    let lineStart = DebuggerView.editor.getLineAtOffset(start) + 1;
+    let lineEnd = DebuggerView.editor.getLineAtOffset(end) + 1;
+
+    if (this.getBreakpoint(sourceLocation, lineStart) && lineStart == lineEnd) {
+      this.highlightBreakpoint(sourceLocation, lineStart);
+    } else {
+      this.unhighlightBreakpoint();
+    }
+  },
+
+  
+
+
+  _onEditorContextMenu: function DVB__onEditorContextMenu({ x, y }) {
+    let offset = DebuggerView.editor.getOffsetAtLocation(x, y);
+    let line = DebuggerView.editor.getLineAtOffset(offset);
+    this._editorContextMenuLineNumber = line;
+  },
+
+  
+
+
+  _onCmdAddBreakpoint: function BP__onCmdAddBreakpoint() {
+    
+    
+    if (this._editorContextMenuLineNumber >= 0) {
+      DebuggerView.editor.setCaretPosition(this._editorContextMenuLineNumber);
+    }
+    
+    this._editorContextMenuLineNumber = -1;
+
+    let url = DebuggerView.Sources.selectedValue;
+    let line = DebuggerView.editor.getCaretPosition().line + 1;
+    let breakpointItem = this.getBreakpoint(url, line);
+
+    
+    if (breakpointItem) {
+      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line)
+      DebuggerController.Breakpoints.removeBreakpoint(breakpointClient);
+      DebuggerView.Breakpoints.unhighlightBreakpoint();
+    }
+    
+    else {
+      let breakpointLocation = { url: url, line: line };
+      DebuggerController.Breakpoints.addBreakpoint(breakpointLocation);
+    }
+  },
+
+  
+
+
+  _onCmdAddConditionalBreakpoint: function BP__onCmdAddConditionalBreakpoint() {
+    
+    
+    if (this._editorContextMenuLineNumber >= 0) {
+      DebuggerView.editor.setCaretPosition(this._editorContextMenuLineNumber);
+    }
+    
+    this._editorContextMenuLineNumber = -1;
+
+    let url =  DebuggerView.Sources.selectedValue;
+    let line = DebuggerView.editor.getCaretPosition().line + 1;
+    let breakpointItem = this.getBreakpoint(url, line);
+
+    
+    if (breakpointItem) {
+      breakpointItem.attachment.isConditional = true;
+      this.selectedClient.conditionalExpression = "";
+      this.highlightBreakpoint(url, line, { openPopup: true });
+    }
+    
+    else {
+      DebuggerController.Breakpoints.addBreakpoint({ url: url, line: line }, null, {
+        conditionalExpression: "",
+        openPopup: true
+      });
+    }
+  },
+
+  
+
+
+  _onConditionalPopupShowing: function DVB__onConditionalPopupShowing() {
+    this._popupShown = true;
+  },
+
+  
+
+
+  _onConditionalPopupShown: function DVB__onConditionalPopupShown() {
+    this._cbTextbox.focus();
+    this._cbTextbox.select();
+  },
+
+  
+
+
+  _onConditionalPopupHiding: function DVB__onConditionalPopupHiding() {
+    this._popupShown = false;
+    this.selectedClient.conditionalExpression = this._cbTextbox.value;
+  },
+
+  
+
+
+  _onConditionalTextboxKeyPress: function DVB__onConditionalTextboxKeyPress(e) {
+    if (e.keyCode == e.DOM_VK_RETURN || e.keyCode == e.DOM_VK_ENTER) {
+      this._cbPanel.hidePopup();
+    }
+  },
+
+  
+
+
+  _onBreakpointClick: function DVB__onBreakpointClick(e) {
     let breakpointItem = this.getItemForElement(e.target);
     if (!breakpointItem) {
       
       return;
     }
     let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-
-    DebuggerView.updateEditor(url, line, { noDebug: true });
-    this.highlightBreakpoint(url, line);
+    this.highlightBreakpoint(url, line, { updateEditor: true, openPopup: e.button == 0 });
   },
 
   
@@ -535,14 +753,28 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
       return;
     }
     let { sourceLocation: url, lineNumber: line, enabled } = breakpointItem.attachment;
+    this[enabled ? "disableBreakpoint" : "enableBreakpoint"](url, line, { silent: true });
 
     
     e.preventDefault();
     e.stopPropagation();
+  },
 
-    this[enabled
-      ? "disableBreakpoint"
-      : "enableBreakpoint"](url, line, { silent: true });
+  
+
+
+
+
+
+  _onSetConditional: function DVB__onSetConditional(aTarget) {
+    if (!aTarget) {
+      return;
+    }
+    let breakpointItem = this.getItemForElement(aTarget);
+    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+
+    breakpointItem.attachment.isConditional = true;
+    this.highlightBreakpoint(url, line, { openPopup: true });
   },
 
   
@@ -684,7 +916,12 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   },
 
   _popupset: null,
-  _cache: null
+  _commandset: null,
+  _cbPanel: null,
+  _cbTextbox: null,
+  _popupShown: false,
+  _cache: null,
+  _editorContextMenuLineNumber: -1
 });
 
 

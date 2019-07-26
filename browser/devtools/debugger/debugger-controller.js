@@ -374,6 +374,8 @@ StackFrames.prototype = {
   get activeThread() DebuggerController.activeThread,
   autoScopeExpand: false,
   currentFrame: null,
+  currentBreakpointLocation: null,
+  currentEvaluation: null,
   currentException: null,
 
   
@@ -419,9 +421,19 @@ StackFrames.prototype = {
 
 
   _onPaused: function SF__onPaused(aEvent, aPacket) {
-    
-    if (aPacket.why.type == "exception") {
-      this.currentException = aPacket.why.exception;
+    switch (aPacket.why.type) {
+      
+      case "breakpoint":
+        this.currentBreakpointLocation = aPacket.frame.where;
+        break;
+      
+      case "clientEvaluated":
+        this.currentEvaluation = aPacket.why.frameFinished.return;
+        break;
+      
+      case "exception":
+        this.currentException = aPacket.why.exception;
+        break;
     }
 
     this.activeThread.fillFrames(CALL_STACK_PAGE_SIZE);
@@ -445,6 +457,35 @@ StackFrames.prototype = {
     }
     DebuggerView.StackFrames.empty();
 
+    
+    
+    
+    if (this.currentBreakpointLocation) {
+      let { url, line } = this.currentBreakpointLocation;
+      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
+      let conditionalExpression = breakpointClient.conditionalExpression;
+      if (conditionalExpression) {
+        
+        
+        
+        this.evaluate("(" + conditionalExpression + ")", 0);
+        this._isConditionalBreakpointEvaluation = true;
+        return;
+      }
+    }
+
+    
+    if (this._isConditionalBreakpointEvaluation) {
+      this._isConditionalBreakpointEvaluation = false;
+
+      
+      
+      if (VariablesView.isFalsy({ value: this.currentEvaluation })) {
+        this.activeThread.resume();
+        return;
+      }
+    }
+
     for (let frame of this.activeThread.cachedFrames) {
       this._addFrame(frame);
     }
@@ -461,6 +502,8 @@ StackFrames.prototype = {
 
   _onFramesCleared: function SF__onFramesCleared() {
     this.currentFrame = null;
+    this.currentBreakpointLocation = null;
+    this.currentEvaluation = null;
     this.currentException = null;
     
     
@@ -654,7 +697,6 @@ StackFrames.prototype = {
     if (!aArguments) {
       return;
     }
-
     for (let argument of aArguments) {
       let name = Object.getOwnPropertyNames(argument)[0];
       let argRef = aScope.addVar(name, argument[name]);
@@ -675,7 +717,6 @@ StackFrames.prototype = {
     if (!aVariables) {
       return;
     }
-
     let variableNames = Object.keys(aVariables);
 
     
@@ -778,10 +819,7 @@ StackFrames.prototype = {
 
     let startText = StackFrameUtils.getFrameTitle(aFrame);
     let endText = SourceUtils.getSourceLabel(url) + ":" + line;
-
-    DebuggerView.StackFrames.addFrame(startText, endText, depth, {
-      attachment: aFrame
-    });
+    DebuggerView.StackFrames.addFrame(startText, endText, depth);
   },
 
   
@@ -799,8 +837,10 @@ StackFrames.prototype = {
 
 
 
-  evaluate: function SF_evaluate(aExpression) {
-    let frame = this.activeThread.cachedFrames[this.currentFrame];
+
+
+  evaluate: function SF_evaluate(aExpression, aFrame = this.currentFrame) {
+    let frame = this.activeThread.cachedFrames[aFrame];
     this.activeThread.eval(frame.actor, aExpression);
   }
 };
@@ -1107,7 +1147,10 @@ Breakpoints.prototype = {
   updateEditorBreakpoints: function BP_updateEditorBreakpoints() {
     for each (let breakpointClient in this.store) {
       if (DebuggerView.Sources.selectedValue == breakpointClient.location.url) {
-        this._showBreakpoint(breakpointClient, { noPaneUpdate: true });
+        this._showBreakpoint(breakpointClient, {
+          noPaneUpdate: true,
+          noPaneHighlight: true
+        });
       }
     }
   },
@@ -1120,12 +1163,18 @@ Breakpoints.prototype = {
   updatePaneBreakpoints: function BP_updatePaneBreakpoints() {
     for each (let breakpointClient in this.store) {
       if (DebuggerView.Sources.containsValue(breakpointClient.location.url)) {
-        this._showBreakpoint(breakpointClient, { noEditorUpdate: true });
+        this._showBreakpoint(breakpointClient, {
+          noEditorUpdate: true,
+          noPaneHighlight: true
+        });
       }
     }
   },
 
   
+
+
+
 
 
 
@@ -1183,6 +1232,9 @@ Breakpoints.prototype = {
       this.store[aBreakpointClient.actor] = aBreakpointClient;
 
       
+      aBreakpointClient.conditionalExpression = aFlags.conditionalExpression;
+
+      
       
       aBreakpointClient.lineText = DebuggerView.getEditorLine(line - 1);
       aBreakpointClient.lineInfo = SourceUtils.getSourceLabel(url) + ":" + line;
@@ -1196,8 +1248,6 @@ Breakpoints.prototype = {
   },
 
   
-
-
 
 
 
@@ -1239,12 +1289,11 @@ Breakpoints.prototype = {
 
 
 
-
-
   _showBreakpoint: function BP__showBreakpoint(aBreakpointClient, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let { url, line } = aBreakpointClient.location;
 
+    
     if (!aFlags.noEditorUpdate) {
       if (url == currentSourceUrl) {
         this._skipEditorBreakpointCallbacks = true;
@@ -1252,10 +1301,18 @@ Breakpoints.prototype = {
         this._skipEditorBreakpointCallbacks = false;
       }
     }
+    
     if (!aFlags.noPaneUpdate) {
-      let { lineText, lineInfo } = aBreakpointClient;
-      let actor = aBreakpointClient.actor;
-      DebuggerView.Breakpoints.addBreakpoint(lineInfo, lineText, url, line, actor);
+      let { lineText, lineInfo, actor } = aBreakpointClient;
+      let conditionalFlag = aBreakpointClient.conditionalExpression !== undefined;
+      let openPopupFlag = aFlags.openPopup;
+
+      DebuggerView.Breakpoints.addBreakpoint(
+        url, line, actor, lineInfo, lineText, conditionalFlag, openPopupFlag);
+    }
+    
+    if (!aFlags.noPaneHighlight) {
+      DebuggerView.Breakpoints.highlightBreakpoint(url, line);
     }
   },
 
@@ -1267,12 +1324,11 @@ Breakpoints.prototype = {
 
 
 
-
-
   _hideBreakpoint: function BP__hideBreakpoint(aBreakpointClient, aFlags = {}) {
     let currentSourceUrl = DebuggerView.Sources.selectedValue;
     let { url, line } = aBreakpointClient.location;
 
+    
     if (!aFlags.noEditorUpdate) {
       if (url == currentSourceUrl) {
         this._skipEditorBreakpointCallbacks = true;
@@ -1280,6 +1336,7 @@ Breakpoints.prototype = {
         this._skipEditorBreakpointCallbacks = false;
       }
     }
+    
     if (!aFlags.noPaneUpdate) {
       DebuggerView.Breakpoints.removeBreakpoint(url, line);
     }
