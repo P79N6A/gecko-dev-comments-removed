@@ -159,13 +159,13 @@ nsJSUtils::CompileFunction(JSContext* aCx,
                            JSObject** aFunctionObject)
 {
   MOZ_ASSERT(js::GetEnterCompartmentDepth(aCx) > 0);
-  MOZ_ASSERT(!aTarget || js::IsObjectInContextCompartment(aTarget, aCx));
+  MOZ_ASSERT_IF(aTarget, js::IsObjectInContextCompartment(aTarget, aCx));
   MOZ_ASSERT_IF(aOptions.versionSet, aOptions.version != JSVERSION_UNKNOWN);
 
   
   
   
-  JSPrincipals *p = JS_GetCompartmentPrincipals(js::GetContextCompartment(aCx));
+  JSPrincipals* p = JS_GetCompartmentPrincipals(js::GetContextCompartment(aCx));
   aOptions.setPrincipals(p);
 
   
@@ -177,8 +177,7 @@ nsJSUtils::CompileFunction(JSContext* aCx,
                                         aArgCount, aArgArray,
                                         PromiseFlatString(aBody).get(),
                                         aBody.Length());
-  if (!fun)
-    return NS_ERROR_FAILURE;
+  NS_ENSURE_TRUE(fun, NS_ERROR_FAILURE);
 
   *aFunctionObject = JS_GetFunctionObject(fun);
   return NS_OK;

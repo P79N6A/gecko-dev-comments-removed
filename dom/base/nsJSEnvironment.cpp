@@ -1273,10 +1273,10 @@ nsJSContext::EvaluateString(const nsAString& aScript,
     ok = JS::Evaluate(mContext, rootedScope, aOptions,
                       PromiseFlatString(aScript).get(),
                       aScript.Length(), aRetValue);
-    if (ok && !JSVAL_IS_VOID(*aRetValue) && aCoerceToString) {
+    if (ok && !aRetValue->isUndefined() && aCoerceToString) {
       JSString* str = JS_ValueToString(mContext, *aRetValue);
       ok = !!str;
-      *aRetValue = ok ? JS::StringValue(str) : JSVAL_VOID;
+      *aRetValue = ok ? JS::StringValue(str) : JS::UndefinedValue();
     }
     --mExecuteDepth;
   }
@@ -1395,13 +1395,15 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
   
   
   jsval val;
-  if (!JS_ExecuteScript(mContext, aScopeObject, aScriptObject, &val))
+  if (!JS_ExecuteScript(mContext, aScopeObject, aScriptObject, &val)) {
     ReportPendingException();
+  }
   --mExecuteDepth;
 
   
-  if (NS_FAILED(stack->Pop(nullptr)))
+  if (NS_FAILED(stack->Pop(nullptr))) {
     rv = NS_ERROR_FAILURE;
+  }
 
   
   ScriptEvaluated(true);
