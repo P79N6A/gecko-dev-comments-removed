@@ -413,17 +413,6 @@ public:
   GetClipRectForFrame(nsIFrame *aFrame,
                       float aX, float aY, float aWidth, float aHeight);
 
-  
-
-
-
-
-  static void CompositeSurfaceMatrix(gfxContext *aContext,
-                                     gfxASurface *aSurface,
-                                     mozilla::gfx::SourceSurface *aSourceSurface,
-                                     const gfxPoint &aSurfaceOffset,
-                                     const gfxMatrix &aCTM);
-
   static void SetClipRect(gfxContext *aContext,
                           const gfxMatrix &aCTM,
                           const gfxRect &aRect);
