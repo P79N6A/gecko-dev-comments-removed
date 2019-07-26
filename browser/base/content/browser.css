@@ -25,9 +25,8 @@ tabbrowser {
   visibility: collapse;
 }
 
-#tabbrowser-tabs[overflow=true] > .tabbrowser-arrowscrollbox > .scrollbutton-up[collapsed=true],
-#tabbrowser-tabs[overflow=true] > .tabbrowser-arrowscrollbox > .scrollbutton-down[collapsed=true] {
-  visibility: visible; 
+#tabbrowser-tabs:not([overflow="true"])[using-closing-tabs-spacer] ~ #alltabs-button {
+  visibility: hidden; 
 }
 
 .tabbrowser-tab {
@@ -51,14 +50,6 @@ tabbrowser {
   transition: min-width 200ms ease-out,
               max-width 250ms ease-out,
               opacity 50ms ease-out 180ms ;
-}
-
-.tabbrowser-tabs[dontresize] > .tabbrowser-tab[fadein]:not([pinned]) {
-  
-}
-
-.tabbrowser-tabs[dontanimate] > .tabbrowser-tab {
-  transition: none !important;
 }
 
 .tab-throbber:not([fadein]):not([pinned]),
