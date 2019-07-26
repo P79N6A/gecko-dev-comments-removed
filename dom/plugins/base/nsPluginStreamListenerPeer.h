@@ -17,10 +17,8 @@
 #include "nsNPAPIPluginInstance.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIChannelEventSink.h"
-#include "nsIObjectLoadingContent.h"
 
 class nsIChannel;
-class nsObjectLoadingContent;
 
 
 
@@ -75,8 +73,7 @@ public:
                       nsNPAPIPluginStreamListener *aListener);
   
   nsresult InitializeEmbedded(nsIURI *aURL,
-                              nsNPAPIPluginInstance* aInstance,
-                              nsObjectLoadingContent *aContent);
+                              nsNPAPIPluginInstance* aInstance);
   
   nsresult InitializeFullPage(nsIURI* aURL, nsNPAPIPluginInstance *aInstance);
 
@@ -140,7 +137,6 @@ private:
 
   nsCOMPtr<nsIURI> mURL;
   nsCString mURLSpec; 
-  nsCOMPtr<nsIObjectLoadingContent> mContent;
   nsRefPtr<nsNPAPIPluginStreamListener> mPStreamListener;
 
   

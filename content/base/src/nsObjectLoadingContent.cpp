@@ -532,6 +532,35 @@ IsPluginEnabledForType(const nsCString& aMIMEType)
 
 
 
+
+
+bool
+nsObjectLoadingContent::MakePluginListener()
+{
+  if (!mInstanceOwner) {
+    NS_NOTREACHED("expecting a spawned plugin");
+    return false;
+  }
+  nsRefPtr<nsPluginHost> pluginHost =
+    already_AddRefed<nsPluginHost>(nsPluginHost::GetInst());
+  if (!pluginHost) {
+    NS_NOTREACHED("No pluginHost");
+    return false;
+  }
+  NS_ASSERTION(!mFinalListener, "overwriting a final listener");
+  nsresult rv;
+  nsRefPtr<nsNPAPIPluginInstance> inst;
+  nsCOMPtr<nsIStreamListener> finalListener;
+  rv = mInstanceOwner->GetInstance(getter_AddRefs(inst));
+  NS_ENSURE_SUCCESS(rv, false);
+  rv = pluginHost->NewEmbeddedPluginStreamListener(mURI, inst,
+                                                   getter_AddRefs(finalListener));
+  NS_ENSURE_SUCCESS(rv, false);
+  mFinalListener = finalListener;
+  return true;
+}
+
+
 bool
 nsObjectLoadingContent::IsSupportedDocument(const nsCString& aMimeType)
 {
@@ -656,12 +685,18 @@ nsObjectLoadingContent::~nsObjectLoadingContent()
 }
 
 nsresult
-nsObjectLoadingContent::InstantiatePluginInstance()
+nsObjectLoadingContent::InstantiatePluginInstance(bool aIsLoading)
 {
-  if (mInstanceOwner || mType != eType_Plugin || mIsLoading || mInstantiating) {
+  if (mInstanceOwner || mType != eType_Plugin || (mIsLoading != aIsLoading) ||
+      mInstantiating) {
+    
+    
+    
+    NS_ASSERTION(mIsLoading || !aIsLoading,
+                 "aIsLoading should only be true inside LoadObject");
     return NS_OK;
   }
-  
+
   mInstantiating = true;
   AutoSetInstantiatingToFalse autoInstantiating(this);
 
@@ -763,6 +798,19 @@ nsObjectLoadingContent::InstantiatePluginInstance()
         }
       }
     }
+
+    
+    
+    
+    
+    if ((mURI && !mChannelLoaded) || (mChannelLoaded && !aIsLoading)) {
+      NS_ASSERTION(!mChannel, "should not have an existing channel here");
+      if (MakePluginListener()) {
+        
+        
+        OpenChannel();
+      }
+    }
   }
 
   return NS_OK;
@@ -788,9 +836,6 @@ NS_IMETHODIMP
 nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
                                        nsISupports *aContext)
 {
-  
-  
-
   SAMPLE_LABEL("nsObjectLoadingContent", "OnStartRequest");
 
   LOG(("OBJLC [%p]: Channel OnStartRequest", this));
@@ -801,6 +846,22 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
   }
 
   NS_ASSERTION(!mChannelLoaded, "mChannelLoaded set already?");
+  
+  
+  if (mType == eType_Plugin) {
+    if (!mInstanceOwner || !mFinalListener) {
+      
+      NS_NOTREACHED("Opened a channel in plugin mode, but don't have a plugin");
+      return NS_BINDING_ABORTED;
+    }
+    return mFinalListener->OnStartRequest(aRequest, nullptr);
+  }
+
+  
+  if (mType != eType_Loading) {
+    NS_NOTREACHED("Should be type loading at this point");
+    return NS_BINDING_ABORTED;
+  }
   NS_ASSERTION(!mFinalListener, "mFinalListener exists already?");
 
   mChannelLoaded = true;
@@ -1626,20 +1687,15 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   if (mType != eType_Null) {
     int16_t contentPolicy = nsIContentPolicy::ACCEPT;
-    bool allowLoad = false;
+    bool allowLoad = true;
+    
+    if (mURI && !mChannelLoaded) {
+      allowLoad = CheckLoadPolicy(&contentPolicy);
+    }
     
     
-    if (mType == eType_Loading) {
-      nsCOMPtr<nsIScriptSecurityManager> secMan =
-        nsContentUtils::GetSecurityManager();
-      if (!secMan) {
-        NS_NOTREACHED("No security manager?");
-      } else {
-        rv = secMan->CheckLoadURIWithPrincipal(thisContent->NodePrincipal(),
-                                               mURI, 0);
-        allowLoad = NS_SUCCEEDED(rv) && CheckLoadPolicy(&contentPolicy);
-      }
-    } else {
+    
+    if (allowLoad && mType != eType_Loading) {
       allowLoad = CheckProcessPolicy(&contentPolicy);
     }
 
@@ -1715,6 +1771,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   nsCOMPtr<nsIStreamListener> finalListener;
+  
+  
+  bool doSpawnPlugin = false;
   switch (mType) {
     case eType_Image:
       if (!mChannel) {
@@ -1730,14 +1789,6 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     case eType_Plugin:
     {
       if (mChannel) {
-        nsRefPtr<nsPluginHost> pluginHost =
-          already_AddRefed<nsPluginHost>(nsPluginHost::GetInst());
-        if (!pluginHost) {
-          NS_NOTREACHED("No pluginHost");
-          rv = NS_ERROR_UNEXPECTED;
-          break;
-        }
-
         
         NotifyStateChanged(oldType, oldState, true, aNotify);
         oldType = mType;
@@ -1751,9 +1802,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
           break;
         }
 
-        rv = pluginHost->NewEmbeddedPluginStreamListener(mURI, this, nullptr,
-                                                         getter_AddRefs(finalListener));
         
+        doSpawnPlugin = true;
       } else {
         rv = AsyncStartPluginInstance();
       }
@@ -1849,6 +1899,7 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
     }
 
     
+    doSpawnPlugin = false;
     finalListener = nullptr;
 
     
@@ -1858,6 +1909,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   
   NotifyStateChanged(oldType, oldState, false, aNotify);
+  NS_ENSURE_TRUE(mIsLoading, NS_OK);
+
 
   
   
@@ -1865,34 +1918,39 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   
   
+  
+  
 
-  if (!mIsLoading) {
-    LOG(("OBJLC [%p]: Re-entered before dispatching to final listener", this));
+  rv = NS_OK;
+  if (doSpawnPlugin) {
+    rv = InstantiatePluginInstance(true);
+    NS_ENSURE_TRUE(mIsLoading, NS_OK);
+    
+    
+    if (aLoadingChannel && NS_SUCCEEDED(rv)) {
+      
+      
+      
+      
+      if (NS_SUCCEEDED(rv) && MakePluginListener()) {
+        mFinalListener->OnStartRequest(mChannel, nullptr);
+      }
+    }
   } else if (finalListener) {
     NS_ASSERTION(mType != eType_Null && mType != eType_Loading,
                  "We should not have a final listener with a non-loaded type");
-    
-    
-    mSrcStreamLoading = true;
-    
-    
-    mIsLoading = false;
     mFinalListener = finalListener;
     rv = finalListener->OnStartRequest(mChannel, nullptr);
-    mSrcStreamLoading = false;
-    if (NS_FAILED(rv)) {
-      
-      
-      
-      mType = eType_Null;
-      
-      
-      mIsLoading = true;
-      UnloadObject(false);
-      NS_ENSURE_TRUE(mIsLoading, NS_OK);
-      CloseChannel();
-      LoadFallback(fallbackType, true);
-    }
+  }
+
+  if (NS_FAILED(rv) && mIsLoading) {
+    
+    
+    mType = eType_Null;
+    UnloadObject(false);
+    NS_ENSURE_TRUE(mIsLoading, NS_OK);
+    CloseChannel();
+    LoadFallback(fallbackType, true);
   }
 
   return NS_OK;
@@ -1922,13 +1980,13 @@ nsObjectLoadingContent::CloseChannel()
 nsresult
 nsObjectLoadingContent::OpenChannel()
 {
-  nsCOMPtr<nsIContent> thisContent = 
+  nsCOMPtr<nsIContent> thisContent =
     do_QueryInterface(static_cast<nsIImageLoadingContent*>(this));
+  nsCOMPtr<nsIScriptSecurityManager> secMan =
+    nsContentUtils::GetSecurityManager();
   NS_ASSERTION(thisContent, "must be a content");
   nsIDocument* doc = thisContent->OwnerDoc();
   NS_ASSERTION(doc, "No owner document?");
-  NS_ASSERTION(!mInstanceOwner && !mInstantiating,
-               "opening a new channel with already loaded content");
 
   nsresult rv;
   mChannel = nullptr;
@@ -1937,6 +1995,9 @@ nsObjectLoadingContent::OpenChannel()
   if (!mURI || !CanHandleURI(mURI)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
+
+  rv = secMan->CheckLoadURIWithPrincipal(thisContent->NodePrincipal(), mURI, 0);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsILoadGroup> group = doc->GetDocumentLoadGroup();
   nsCOMPtr<nsIChannel> chan;

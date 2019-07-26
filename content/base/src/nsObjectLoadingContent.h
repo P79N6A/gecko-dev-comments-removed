@@ -119,7 +119,10 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    nsresult InstantiatePluginInstance();
+
+
+
+    nsresult InstantiatePluginInstance(bool aIsLoading = false);
 
     
 
@@ -180,7 +183,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eSupportSVG          = 1u << 3, 
       eSupportClassID      = 1u << 4, 
 
-      
       
       
       
@@ -333,6 +335,12 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
+    bool MakePluginListener();
+
+    
+
+
+
 
 
 
@@ -412,6 +420,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     
     FallbackType                mFallbackType : 8;
 
+    
     
     
     bool                        mChannelLoaded    : 1;
