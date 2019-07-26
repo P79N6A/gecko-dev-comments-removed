@@ -958,6 +958,7 @@ nsDocumentViewer::LoadComplete(nsresult aStatus)
     nsEventStatus status = nsEventStatus_eIgnore;
     WidgetEvent event(true, NS_LOAD);
     event.mFlags.mBubbles = false;
+    event.mFlags.mCancelable = false;
      
     event.target = mDocument;
 
