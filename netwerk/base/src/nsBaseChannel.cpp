@@ -148,8 +148,7 @@ nsBaseChannel::ContinueRedirect()
 
   
   Cancel(NS_BINDING_REDIRECTED);
-  mListener = nullptr;
-  mListenerContext = nullptr;
+  ChannelDone();
 
   return NS_OK;
 }
@@ -254,8 +253,7 @@ nsBaseChannel::ContinueHandleAsyncRedirect(nsresult result)
     
     mListener->OnStartRequest(this, mListenerContext);
     mListener->OnStopRequest(this, mListenerContext, mStatus);
-    mListener = nullptr;
-    mListenerContext = nullptr;
+    ChannelDone();
   }
 
   if (mLoadGroup)
@@ -598,8 +596,7 @@ nsBaseChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *ctxt)
   rv = BeginPumpingData();
   if (NS_FAILED(rv)) {
     mPump = nullptr;
-    mListener = nullptr;
-    mListenerContext = nullptr;
+    ChannelDone();
     mCallbacks = nullptr;
     return rv;
   }
@@ -733,8 +730,7 @@ nsBaseChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt,
 
   if (mListener) 
       mListener->OnStopRequest(this, mListenerContext, mStatus);
-  mListener = nullptr;
-  mListenerContext = nullptr;
+  ChannelDone();
 
   
   

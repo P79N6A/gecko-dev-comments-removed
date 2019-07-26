@@ -102,6 +102,10 @@ private:
   virtual void OnCallbacksChanged() {
   }
 
+  
+  virtual void OnChannelDone() {
+  }
+
 public:
   
   
@@ -211,6 +215,13 @@ private:
     mProgressSink = nullptr;
     mQueriedProgressSink = false;
     OnCallbacksChanged();
+  }
+
+  
+  void ChannelDone() {
+      mListener = nullptr;
+      mListenerContext = nullptr;
+      OnChannelDone();
   }
 
   
