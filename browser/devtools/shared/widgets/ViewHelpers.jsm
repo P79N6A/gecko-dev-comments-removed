@@ -601,6 +601,7 @@ this.WidgetMethods = {
   set widget(aWidget) {
     this._widget = aWidget;
 
+
     
     
     XPCOMUtils.defineLazyGetter(this, "_itemsByValue", () => new Map());
@@ -657,7 +658,7 @@ this.WidgetMethods = {
     if (aOptions.staged) {
       
       
-      delete aOptions.index;
+      aOptions.index = undefined;
       return void this._stagedItems.push({ item: item, options: aOptions });
     }
     
