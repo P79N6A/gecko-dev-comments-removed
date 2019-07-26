@@ -635,6 +635,12 @@ js::intrinsic_ObjectIsOpaqueTypedObject(JSContext *cx, unsigned argc, Value *vp)
     return js::ObjectIsOpaqueTypedObject(cx, argc, vp);
 }
 
+bool
+js::intrinsic_ObjectIsTypeDescr(JSContext *cx, unsigned argc, Value *vp)
+{
+    return js::ObjectIsTypeDescr(cx, argc, vp);
+}
+
 
 
 
@@ -712,7 +718,7 @@ static const JSFunctionSpec intrinsic_functions[] = {
               JSNativeThreadSafeWrapper<js::SetTypedObjectOffset>,
               &js::SetTypedObjectOffsetJitInfo, 2, 0),
     JS_FNINFO("ObjectIsTypeDescr",
-              JSNativeThreadSafeWrapper<js::ObjectIsTypeDescr>,
+              intrinsic_ObjectIsTypeDescr,
               &js::ObjectIsTypeDescrJitInfo, 5, 0),
     JS_FNINFO("ObjectIsTransparentTypedObject",
               intrinsic_ObjectIsTransparentTypedObject,

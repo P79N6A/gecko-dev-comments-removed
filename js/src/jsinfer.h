@@ -674,6 +674,21 @@ class TemporaryTypeSet : public TypeSet
     const Class *getKnownClass();
 
     
+    enum ForAllResult {
+        EMPTY=1,                
+        ALL_TRUE,               
+        ALL_FALSE,              
+        MIXED,                  
+                                
+                                
+    };
+
+    
+
+
+    ForAllResult forAllClasses(bool (*func)(const Class *clasp));
+
+    
     JSObject *getCommonPrototype();
 
     

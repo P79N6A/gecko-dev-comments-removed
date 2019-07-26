@@ -678,6 +678,9 @@ class IonBuilder : public MIRGenerator
     InliningStatus inlineForkJoinGetSlice(CallInfo &callInfo);
 
     
+    InliningStatus inlineObjectIsTypeDescr(CallInfo &callInfo);
+
+    
     InliningStatus inlineIsCallable(CallInfo &callInfo);
     InliningStatus inlineHaveSameClass(CallInfo &callInfo);
     InliningStatus inlineToObject(CallInfo &callInfo);
