@@ -72,9 +72,14 @@ typedef struct {
 
 
 	size_t	mapped;		
-	size_t	committed;	
 	size_t	allocated;	
-	size_t	dirty;		
+        size_t  waste;          
+
+
+        size_t	page_cache;	
+
+        size_t  bookkeeping;    
+
 } jemalloc_stats_t;
 
 #ifdef __cplusplus
