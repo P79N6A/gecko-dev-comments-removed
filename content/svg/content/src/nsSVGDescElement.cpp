@@ -3,10 +3,10 @@
 
 
 
-#include "nsSVGStylableElement.h"
+#include "nsSVGElement.h"
 #include "nsIDOMSVGDescElement.h"
 
-typedef nsSVGStylableElement nsSVGDescElementBase;
+typedef nsSVGElement nsSVGDescElementBase;
 
 class nsSVGDescElement : public nsSVGDescElementBase,
                          public nsIDOMSVGDescElement

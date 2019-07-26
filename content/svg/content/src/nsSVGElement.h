@@ -20,6 +20,7 @@
 #include "mozilla/dom/Element.h"
 #include "nsISupportsImpl.h"
 #include "nsStyledElement.h"
+#include "nsSVGClass.h"
 
 class nsIDOMSVGElement;
 class nsIDOMSVGSVGElement;
@@ -74,6 +75,9 @@ public:
   
   NS_DECL_ISUPPORTS_INHERITED
 
+  virtual const nsAttrValue* DoGetClasses() const;
+  void DidAnimateClass();
+
   
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -114,6 +118,9 @@ public:
   NS_IMETHOD SetId(const nsAString & aId);
   NS_IMETHOD GetOwnerSVGElement(nsIDOMSVGSVGElement** aOwnerSVGElement);
   NS_IMETHOD GetViewportElement(nsIDOMSVGElement** aViewportElement);
+  NS_IMETHOD GetClassName(nsIDOMSVGAnimatedString** aClassName);
+  NS_IMETHOD GetStyle(nsIDOMCSSStyleDeclaration** aStyle);
+  NS_IMETHOD GetPresentationAttribute(const nsAString& aName, nsIDOMCSSValue** aReturn);
 
   
   
@@ -597,6 +604,8 @@ private:
   void UnsetAttrInternal(int32_t aNameSpaceID, nsIAtom* aAttribute,
                          bool aNotify);
 
+  nsSVGClass mClassAttribute;
+  nsAutoPtr<nsAttrValue> mClassAnimAttr;
   nsRefPtr<mozilla::css::StyleRule> mContentStyleRule;
 };
 

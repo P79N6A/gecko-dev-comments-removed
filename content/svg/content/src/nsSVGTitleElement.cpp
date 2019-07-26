@@ -3,11 +3,11 @@
 
 
 
-#include "nsSVGStylableElement.h"
+#include "nsSVGElement.h"
 #include "nsIDOMSVGTitleElement.h"
 #include "nsStubMutationObserver.h"
 
-typedef nsSVGStylableElement nsSVGTitleElementBase;
+typedef nsSVGElement nsSVGTitleElementBase;
 
 class nsSVGTitleElement : public nsSVGTitleElementBase,
                           public nsIDOMSVGTitleElement,

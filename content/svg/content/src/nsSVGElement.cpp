@@ -58,6 +58,7 @@
 #include "SVGMotionSMILAttr.h"
 #include "nsAttrValueOrString.h"
 #include "nsSMILAnimationController.h"
+#include "nsDOMCSSDeclaration.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -78,6 +79,59 @@ nsSVGEnumMapping nsSVGElement::sSVGUnitTypesMap[] = {
 nsSVGElement::nsSVGElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsSVGElementBase(aNodeInfo)
 {
+}
+
+
+
+
+NS_IMETHODIMP
+nsSVGElement::GetClassName(nsIDOMSVGAnimatedString** aClassName)
+{
+  return mClassAttribute.ToDOMAnimatedString(aClassName, this);
+}
+
+
+NS_IMETHODIMP
+nsSVGElement::GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
+{
+  nsresult rv;
+  *aStyle = nsSVGElementBase::GetStyle(&rv);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+  NS_ADDREF(*aStyle);
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP
+nsSVGElement::GetPresentationAttribute(const nsAString& aName,
+                                       nsIDOMCSSValue** aReturn)
+{
+  
+  
+  
+
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+
+
+
+void
+nsSVGElement::DidAnimateClass()
+{
+  nsAutoString src;
+  mClassAttribute.GetAnimValue(src, this);
+  if (!mClassAnimAttr) {
+    mClassAnimAttr = new nsAttrValue();
+  }
+  mClassAnimAttr->ParseAtomArray(src);
+
+  nsIPresShell* shell = OwnerDoc()->GetShell();
+  if (shell) {
+    shell->RestyleForAnimation(this, eRestyle_Self);
+  }
 }
 
 nsresult
@@ -192,6 +246,15 @@ NS_INTERFACE_MAP_END_INHERITING(nsSVGElementBase)
 
 
 
+const nsAttrValue*
+nsSVGElement::DoGetClasses() const
+{
+  if (mClassAttribute.IsAnimated()) {
+    return mClassAnimAttr;
+  }
+  return nsSVGElementBase::DoGetClasses();
+}
+
 nsresult
 nsSVGElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                          nsIContent* aBindingParent,
@@ -272,7 +335,6 @@ nsSVGElement::ParseAttribute(int32_t aNamespaceID,
   bool didSetResult = false;
 
   if (aNamespaceID == kNameSpaceID_None) {
-
     
     LengthAttributesInfo lengthInfo = GetLengthInfo();
 
@@ -562,6 +624,12 @@ nsSVGElement::ParseAttribute(int32_t aNamespaceID,
         foundMatch = true;
       }
     }
+
+    if (aAttribute == nsGkAtoms::_class) {
+      mClassAttribute.SetBaseValue(aValue, this, false);
+      aResult.ParseAtomArray(aValue);
+      return true;
+    }
   }
 
   if (!foundMatch) {
@@ -787,6 +855,11 @@ nsSVGElement::UnsetAttrInternal(int32_t aNamespaceID, nsIAtom* aName,
         stringListInfo.Reset(i);
         return;
       }
+    }
+
+    if (aName == nsGkAtoms::_class) {
+      mClassAttribute.Init();
+      return;
     }
   }
 
@@ -2617,6 +2690,10 @@ nsSVGElement::GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName)
           return segList->ToSMILAttr(this);
         }
       }
+    }
+
+    if (aName == nsGkAtoms::_class) {
+      return mClassAttribute.ToSMILAttr(this);
     }
   }
 

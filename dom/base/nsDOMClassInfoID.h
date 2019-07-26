@@ -60,8 +60,8 @@ DOMCI_CASTABLE_INTERFACE(nsGenericHTMLElement, nsGenericHTMLElement, 6,       \
                          _extra)                                              \
 DOMCI_CASTABLE_INTERFACE(nsHTMLDocument, nsIDocument, 7, _extra)              \
 DOMCI_CASTABLE_INTERFACE(nsStyledElement, nsStyledElement, 8, _extra)         \
-DOMCI_CASTABLE_INTERFACE(nsSVGStylableElement, nsIContent, 9, _extra)
- 
+DOMCI_CASTABLE_INTERFACE(nsSVGElement, nsIContent, 9, _extra)
+
 
 
 #define DOMCI_CASTABLE_NODECL_INTERFACE(_interface, _u1, _u2, _u3)
