@@ -309,6 +309,10 @@ pref("gfx.hidpi.enabled", 2);
 #endif
 
 
+pref("gfx.layerscope.enabled", false);
+pref("gfx.layerscope.port", 23456);
+
+
 
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
