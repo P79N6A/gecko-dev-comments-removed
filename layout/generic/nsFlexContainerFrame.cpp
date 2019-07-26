@@ -679,15 +679,15 @@ nsFlexContainerFrame::AppendFlexItemForChild(
 
   
   
-  nscoord flexBaseSize =
-    aAxisTracker.GetMainComponent(nsSize(childRS.ComputedWidth(),
-                                         childRS.ComputedHeight()));
-  nscoord mainMinSize =
-    aAxisTracker.GetMainComponent(nsSize(childRS.mComputedMinWidth,
-                                         childRS.mComputedMinHeight));
-  nscoord mainMaxSize =
-    aAxisTracker.GetMainComponent(nsSize(childRS.mComputedMaxWidth,
-                                         childRS.mComputedMaxHeight));
+  nscoord flexBaseSize = GET_MAIN_COMPONENT(aAxisTracker,
+                                            childRS.ComputedWidth(),
+                                            childRS.ComputedHeight());
+  nscoord mainMinSize = GET_MAIN_COMPONENT(aAxisTracker,
+                                           childRS.mComputedMinWidth,
+                                           childRS.mComputedMinHeight);
+  nscoord mainMaxSize = GET_MAIN_COMPONENT(aAxisTracker,
+                                           childRS.mComputedMaxWidth,
+                                           childRS.mComputedMaxHeight);
   
   MOZ_ASSERT(mainMinSize <= mainMaxSize, "min size is larger than max size");
 
@@ -760,12 +760,12 @@ nsFlexContainerFrame::AppendFlexItemForChild(
   
   
 
-  nscoord crossMinSize =
-    aAxisTracker.GetCrossComponent(nsSize(childRS.mComputedMinWidth,
-                                          childRS.mComputedMinHeight));
-  nscoord crossMaxSize =
-    aAxisTracker.GetCrossComponent(nsSize(childRS.mComputedMaxWidth,
-                                          childRS.mComputedMaxHeight));
+  nscoord crossMinSize = GET_CROSS_COMPONENT(aAxisTracker,
+                                             childRS.mComputedMinWidth,
+                                             childRS.mComputedMinHeight);
+  nscoord crossMaxSize = GET_CROSS_COMPONENT(aAxisTracker,
+                                             childRS.mComputedMaxWidth,
+                                             childRS.mComputedMaxHeight);
 
   
   
@@ -1501,9 +1501,9 @@ MainAxisPositionTracker::
   
   
   
-  mPackingSpaceRemaining =
-    aAxisTracker.GetMainComponent(nsSize(aReflowState.ComputedWidth(),
-                                         aReflowState.ComputedHeight()));
+  mPackingSpaceRemaining = GET_MAIN_COMPONENT(aAxisTracker,
+                                              aReflowState.ComputedWidth(),
+                                              aReflowState.ComputedHeight());
   if (mPackingSpaceRemaining == NS_UNCONSTRAINEDSIZE) {
     mPackingSpaceRemaining = 0;
   } else {
@@ -2250,18 +2250,19 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   
   nscoord contentBoxCrossSize =
-    axisTracker.GetCrossComponent(nsSize(aReflowState.ComputedWidth(),
-                                         aReflowState.ComputedHeight()));
+    GET_CROSS_COMPONENT(axisTracker,
+                        aReflowState.ComputedWidth(),
+                        aReflowState.ComputedHeight());
 
   if (contentBoxCrossSize == NS_AUTOHEIGHT) {
     
     
-    nscoord minCrossSize =
-      axisTracker.GetCrossComponent(nsSize(aReflowState.mComputedMinWidth,
-                                           aReflowState.mComputedMinHeight));
-    nscoord maxCrossSize =
-      axisTracker.GetCrossComponent(nsSize(aReflowState.mComputedMaxWidth,
-                                           aReflowState.mComputedMaxHeight));
+    nscoord minCrossSize = GET_CROSS_COMPONENT(axisTracker,
+                                               aReflowState.mComputedMinWidth,
+                                               aReflowState.mComputedMinHeight);
+    nscoord maxCrossSize = GET_CROSS_COMPONENT(axisTracker,
+                                               aReflowState.mComputedMaxWidth,
+                                               aReflowState.mComputedMaxHeight);
     contentBoxCrossSize =
       NS_CSS_MINMAX(lineCrossAxisPosnTracker.GetLineCrossSize(),
                     minCrossSize, maxCrossSize);
