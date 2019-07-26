@@ -44,21 +44,9 @@ struct rtcweb_datachannel_open_request {
   char     label[1]; 
 } SCTP_PACKED;
 
-struct rtcweb_datachannel_open_response {
-  uint8_t  msg_type; 
-  uint8_t  error;    
-  uint16_t flags;
-  uint16_t reverse_stream;
-} SCTP_PACKED;
-
-struct rtcweb_datachannel_ack {
-  uint8_t  msg_type; 
-} SCTP_PACKED;
 
 
-#define DATA_CHANNEL_OPEN_REQUEST             0
-#define DATA_CHANNEL_OPEN_RESPONSE            1
-#define DATA_CHANNEL_ACK                      2
+#define DATA_CHANNEL_OPEN_REQUEST             3
 
 
 #define DATA_CHANNEL_RELIABLE                 0

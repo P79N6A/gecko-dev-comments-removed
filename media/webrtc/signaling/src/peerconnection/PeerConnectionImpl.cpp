@@ -654,7 +654,8 @@ PeerConnectionImpl::InitializeDataChannel(uint16_t aLocalport,
     
     return NS_OK;
   }
-  mDataConnection = new mozilla::DataChannelConnection(this);
+  
+  mDataConnection = new mozilla::DataChannelConnection(this, aLocalport > aRemoteport);
   if (!mDataConnection->Init(aLocalport, aNumstreams, true)) {
     CSFLogError(logTag,"%s DataConnection Init Failed",__FUNCTION__);
     return NS_ERROR_FAILURE;
