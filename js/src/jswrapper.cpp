@@ -795,11 +795,8 @@ SecurityWrapper<Base>::enter(JSContext *cx, JSObject *wrapper, jsid id,
 SecurityWrapper<Base>::nativeCall(JSContext *cx, IsAcceptableThis test, NativeImpl impl,
                                   CallArgs args)
 {
-    
-
-
-
-    return Base::nativeCall(cx, test, impl, args);
+    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_UNWRAP_DENIED);
+    return false;
 }
 
 template <class Base>
