@@ -1552,6 +1552,10 @@ void
 CompositorOGL::Pause()
 {
 #ifdef MOZ_WIDGET_ANDROID
+  if (!gl() || gl()->IsDestroyed())
+    return;
+
+  
   gl()->ReleaseSurface();
 #endif
 }
@@ -1560,6 +1564,10 @@ bool
 CompositorOGL::Resume()
 {
 #ifdef MOZ_WIDGET_ANDROID
+  if (!gl() || gl()->IsDestroyed())
+    return false;
+
+  
   return gl()->RenewSurface();
 #endif
   return true;
