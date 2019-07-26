@@ -141,15 +141,22 @@ extern void
 xpc_UnmarkGrayGCThingRecursive(void *thing, JSGCTraceKind kind);
 
 
+MOZ_ALWAYS_INLINE void
+xpc_UnmarkNonNullGrayObject(JSObject *obj)
+{
+    if (xpc_IsGrayGCThing(obj))
+        xpc_UnmarkGrayGCThingRecursive(obj, JSTRACE_OBJECT);
+    else if (JS::IsIncrementalBarrierNeededOnGCThing(obj))
+        js::IncrementalReferenceBarrier(obj);
+}
 
-inline JSObject *
+
+
+MOZ_ALWAYS_INLINE JSObject *
 xpc_UnmarkGrayObject(JSObject *obj)
 {
     if (obj) {
-        if (xpc_IsGrayGCThing(obj))
-            xpc_UnmarkGrayGCThingRecursive(obj, JSTRACE_OBJECT);
-        else if (JS::IsIncrementalBarrierNeededOnGCThing(obj))
-            js::IncrementalReferenceBarrier(obj);
+        xpc_UnmarkNonNullGrayObject(obj);
     }
     return obj;
 }
