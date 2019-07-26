@@ -197,6 +197,14 @@ private:
 
     void DoCallback()
     {
+        if (mStatus == NS_ERROR_NOT_AVAILABLE && !mProxyInfo) {
+            
+            
+            
+            mPACString = NS_LITERAL_CSTRING("DIRECT;");
+            mStatus = NS_OK;
+        }
+
         
         if (NS_SUCCEEDED(mStatus) && !mProxyInfo && !mPACString.IsEmpty()) {
             mPPS->ProcessPACString(mPACString, mResolveFlags,
