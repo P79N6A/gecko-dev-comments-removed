@@ -924,6 +924,7 @@ MobileMessageDatabaseService.prototype = {
       
       if (!invalidParticipantIds.length) {
         next();
+        return;
       }
 
       
