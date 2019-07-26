@@ -7015,6 +7015,7 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
   js::RootedId id(cx, id_);
 
   nsGlobalWindow *win = nsGlobalWindow::FromWrapper(wrapper);
+  MOZ_ASSERT(win->IsInnerWindow());
 
   if (!JSID_IS_STRING(id)) {
     if (JSID_IS_INT(id) && JSID_TO_INT(id) >= 0 && !(flags & JSRESOLVE_ASSIGNING)) {
@@ -7126,32 +7127,13 @@ nsWindowSH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     
     
 
-    
-    
-    
-
-    if (win->IsOuterWindow()) {
-      win->EnsureInnerWindow();
-    }
-
     nsCOMPtr<nsIDOMLocation> location;
     rv = win->GetLocation(getter_AddRefs(location));
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    
     JSObject *scope = nullptr;
-    if (win->IsOuterWindow()) {
-      nsGlobalWindow *innerWin = win->GetCurrentInnerWindowInternal();
-
-      if (innerWin) {
-        scope = innerWin->GetGlobalJSObject();
-      }
-    }
-
-    if (!scope) {
-      wrapper->GetJSObject(&scope);
-    }
+    wrapper->GetJSObject(&scope);
 
     nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     jsval v;
