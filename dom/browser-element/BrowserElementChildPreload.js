@@ -265,7 +265,8 @@ BrowserElementChild.prototype = {
 
   observe: function(subject, topic, data) {
     
-    if (subject != content.document)
+    
+    if (!content || subject != content.document)
       return;
     switch (topic) {
       case 'fullscreen-origin-change':
