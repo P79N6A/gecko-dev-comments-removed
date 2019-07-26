@@ -394,6 +394,10 @@ pref("browser.link.open_newwindow.override.external", -1);
 pref("browser.link.open_newwindow.restriction", 2);
 
 
+
+
+
+
 #ifdef XP_MACOSX
 pref("browser.link.open_newwindow.disabled_in_fullscreen", true);
 #else

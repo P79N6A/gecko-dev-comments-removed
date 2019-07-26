@@ -435,14 +435,22 @@ var FullZoom = {
 
 
   _getState: function FullZoom__getState(browser) {
-    let browser = browser || gBrowser.selectedBrowser;
-    return { uri: browser.currentURI, token: this._zoomChangeToken };
+    browser = browser || gBrowser.selectedBrowser;
+    return {
+      
+      
+      uri: browser ? browser.currentURI : null,
+      token: this._zoomChangeToken,
+     };
   },
 
   
 
 
   _isStateCurrent: function FullZoom__isStateCurrent(state) {
+    
+    
+    
     let currState = this._getState();
     return currState.token === state.token &&
            currState.uri && state.uri &&
