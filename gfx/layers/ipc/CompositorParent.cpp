@@ -875,7 +875,8 @@ CompositorParent::TransformShadowTree(TimeStamp aCurrentFrame)
     
     
     
-    gfx::Rect displayPortLayersPixels(metrics.mDisplayPort);
+    gfx::Rect displayPortLayersPixels(metrics.mCriticalDisplayPort.IsEmpty() ?
+                                      metrics.mDisplayPort : metrics.mCriticalDisplayPort);
     nsIntRect displayPortDevPixels(
       NS_lround(displayPortLayersPixels.x * devPixelRatioX),
       NS_lround(displayPortLayersPixels.y * devPixelRatioY),
