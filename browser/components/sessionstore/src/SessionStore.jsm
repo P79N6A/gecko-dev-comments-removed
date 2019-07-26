@@ -678,12 +678,12 @@ let SessionStoreInternal = {
         break;
       case "TabPinned":
         
-        TabStateCache.update(aEvent.originalTarget, "pinned", true);
+        TabStateCache.updateField(aEvent.originalTarget, "pinned", true);
         this.saveStateDelayed(win);
         break;
       case "TabUnpinned":
         
-        TabStateCache.update(aEvent.originalTarget, "pinned", false);
+        TabStateCache.updateField(aEvent.originalTarget, "pinned", false);
         this.saveStateDelayed(win);
         break;
     }
@@ -1330,7 +1330,7 @@ let SessionStoreInternal = {
     }
 
     
-    TabStateCache.update(aTab, "hidden", false);
+    TabStateCache.updateField(aTab, "hidden", false);
 
     
     
@@ -1345,7 +1345,7 @@ let SessionStoreInternal = {
     }
 
     
-    TabStateCache.update(aTab, "hidden", true);
+    TabStateCache.updateField(aTab, "hidden", true);
 
     
     
@@ -1665,7 +1665,6 @@ let SessionStoreInternal = {
   },
 
   setTabValue: function ssi_setTabValue(aTab, aKey, aStringValue) {
-    TabStateCache.delete(aTab);
     
     
     let saveTo;
@@ -1679,12 +1678,13 @@ let SessionStoreInternal = {
       aTab.__SS_extdata = {};
       saveTo = aTab.__SS_extdata;
     }
+
     saveTo[aKey] = aStringValue;
+    TabStateCache.updateField(aTab, "extData", saveTo);
     this.saveStateDelayed(aTab.ownerDocument.defaultView);
   },
 
   deleteTabValue: function ssi_deleteTabValue(aTab, aKey) {
-    TabStateCache.delete(aTab);
     
     
     
@@ -1696,9 +1696,19 @@ let SessionStoreInternal = {
       deleteFrom = aTab.linkedBrowser.__SS_data.extData;
     }
 
-    if (deleteFrom && deleteFrom[aKey])
+    if (deleteFrom && aKey in deleteFrom) {
       delete deleteFrom[aKey];
-    this.saveStateDelayed(aTab.ownerDocument.defaultView);
+
+      
+      
+      if (Object.keys(deleteFrom).length) {
+        TabStateCache.updateField(aTab, "extData", deleteFrom);
+      } else {
+        TabStateCache.removeField(aTab, "extData");
+      }
+
+      this.saveStateDelayed(aTab.ownerDocument.defaultView);
+    }
   },
 
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
@@ -4639,11 +4649,27 @@ let TabStateCache = {
 
 
 
-  update: function(aKey, aField, aValue) {
+  updateField: function(aKey, aField, aValue) {
     let key = this._normalizeToBrowser(aKey);
     let data = this._data.get(key);
     if (data) {
       data[aField] = aValue;
+    }
+    TabStateCacheTelemetry.recordAccess(!!data);
+  },
+
+  
+
+
+
+
+
+
+  removeField: function(aKey, aField) {
+    let key = this._normalizeToBrowser(aKey);
+    let data = this._data.get(key);
+    if (data && aField in data) {
+      delete data[aField];
     }
     TabStateCacheTelemetry.recordAccess(!!data);
   },
