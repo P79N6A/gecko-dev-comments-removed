@@ -20,6 +20,7 @@ namespace js {
 
 
 
+
 template <class T, class C>
 class SplayTree
 {
@@ -167,7 +168,6 @@ class SplayTree
 
     void freeNode(Node *node)
     {
-        node->item.~T();
         node->left = freeList;
         freeList = node;
     }
