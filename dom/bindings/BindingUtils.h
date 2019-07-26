@@ -1597,6 +1597,8 @@ template<typename T>
 void DoTraceSequence(JSTracer* trc, InfallibleTArray<T>& seq);
 
 
+namespace binding_detail {
+
 template<typename T>
 class AutoSequence : public AutoFallibleTArray<T, 16>
 {
@@ -1609,6 +1611,8 @@ public:
     return *reinterpret_cast<const Sequence<T>*>(this);
   }
 };
+
+} 
 
 
 
