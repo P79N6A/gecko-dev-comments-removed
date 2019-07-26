@@ -234,6 +234,10 @@ var FullZoom = {
 
   onLocationChange: function FullZoom_onLocationChange(aURI, aIsTabSwitch, aBrowser) {
     
+    if (gMultiProcessBrowser)
+      return;
+
+    
     
     
     let browser = aBrowser || gBrowser.selectedBrowser;
@@ -452,7 +456,12 @@ var FullZoom = {
     return {
       token: map.get(outerID),
       get isCurrent() {
-        return map.get(outerID) === this.token;
+        
+        
+        
+        
+        
+        return map.get(outerID) === this.token && browser.docShell;
       },
     };
   },
