@@ -550,55 +550,82 @@ Fold(ExclusiveContext *cx, ParseNode **pnp,
         
       case PNK_ADD:
         if (pn->isArity(PN_LIST)) {
-            
+            bool folded = false;
 
-
-
-
-            JS_ASSERT(pn->pn_count > 2);
-            if (pn->pn_xflags & PNX_CANTFOLD)
-                return true;
-            if (pn->pn_xflags != PNX_STRCAT)
-                goto do_binary_op;
-
-            
-            size_t length = 0;
-            for (pn2 = pn1; pn2; pn2 = pn2->pn_next) {
-                if (!FoldType(cx, pn2, PNK_STRING))
-                    return false;
+            pn2 = pn1->pn_next;
+            if (pn1->isKind(PNK_NUMBER)) {
                 
-                if (!pn2->isKind(PNK_STRING))
-                    return true;
-                length += pn2->pn_atom->length();
+                
+                
+                while (pn2 && pn2->isKind(PNK_NUMBER)) {
+                    pn1->pn_dval += pn2->pn_dval;
+                    pn1->pn_next = pn2->pn_next;
+                    handler.freeTree(pn2);
+                    pn2 = pn1->pn_next;
+                    pn->pn_count--;
+                    folded = true;
+                }
             }
 
             
-            jschar *chars = cx->pod_malloc<jschar>(length + 1);
-            if (!chars)
-                return false;
-            chars[length] = 0;
-            JSString *str = js_NewString<CanGC>(cx, chars, length);
-            if (!str) {
-                js_free(chars);
-                return false;
-            }
+            
+            
+            
+            
+            
+            
+            
+            
+            bool isStringConcat = false;
 
             
-            for (pn2 = pn1; pn2; pn2 = handler.freeTree(pn2)) {
-                JSAtom *atom = pn2->pn_atom;
-                size_t length2 = atom->length();
-                js_strncpy(chars, atom->chars(), length2);
-                chars += length2;
-            }
-            JS_ASSERT(*chars == 0);
-
             
-            pn->pn_atom = AtomizeString(cx, str);
-            if (!pn->pn_atom)
-                return false;
-            pn->setKind(PNK_STRING);
-            pn->setOp(JSOP_STRING);
-            pn->setArity(PN_NULLARY);
+            
+            if (pn1->isKind(PNK_NUMBER) && pn2 && pn2->isKind(PNK_STRING))
+                isStringConcat = true;
+
+            while (pn2) {
+                isStringConcat = isStringConcat || pn1->isKind(PNK_STRING);
+
+                if (isStringConcat &&
+                    (pn1->isKind(PNK_STRING) || pn1->isKind(PNK_NUMBER)) &&
+                    (pn2->isKind(PNK_STRING) || pn2->isKind(PNK_NUMBER)))
+                {
+                    
+                    if (pn1->isKind(PNK_NUMBER) && !FoldType(cx, pn1, PNK_STRING))
+                        return false;
+                    if (pn2->isKind(PNK_NUMBER) && !FoldType(cx, pn2, PNK_STRING))
+                        return false;
+                    RootedString left(cx, pn1->pn_atom);
+                    RootedString right(cx, pn2->pn_atom);
+                    RootedString str(cx, ConcatStrings<CanGC>(cx, left, right));
+                    if (!str)
+                        return false;
+                    pn1->pn_atom = AtomizeString(cx, str);
+                    if (!pn1->pn_atom)
+                        return false;
+                    pn1->pn_next = pn2->pn_next;
+                    handler.freeTree(pn2);
+                    pn2 = pn1->pn_next;
+                    pn->pn_count--;
+                    folded = true;
+                } else {
+                    pn1 = pn2;
+                    pn2 = pn2->pn_next;
+                }
+            }
+
+            if (folded) {
+                if (pn->pn_count == 1) {
+                    
+                    
+                    
+                    ReplaceNode(pnp, pn1);
+                    pn = pn1;
+                } else if (!pn2) {
+                    pn->pn_tail = &pn1->pn_next;
+                }
+            }
             break;
         }
 
