@@ -435,6 +435,9 @@ SampleAnimations(Layer* aLayer, TimeStamp aPoint)
 
     AnimationTiming timing;
     timing.mIterationDuration = animation.duration();
+    
+    
+    timing.mDelay = TimeDuration(0);
     timing.mIterationCount = animation.iterationCount();
     timing.mDirection = animation.direction();
     

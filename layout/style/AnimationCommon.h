@@ -231,6 +231,7 @@ struct AnimationProperty
 struct AnimationTiming
 {
   mozilla::TimeDuration mIterationDuration;
+  mozilla::TimeDuration mDelay;
   float mIterationCount; 
   uint8_t mDirection;
   uint8_t mFillMode;
@@ -313,7 +314,7 @@ public:
   mozilla::TimeDuration ElapsedDurationAt(mozilla::TimeStamp aTime) const {
     NS_ABORT_IF_FALSE(!IsPaused() || aTime >= mPauseStart,
                       "if paused, aTime must be at least mPauseStart");
-    return (IsPaused() ? mPauseStart : aTime) - mStartTime - mDelay;
+    return (IsPaused() ? mPauseStart : aTime) - mStartTime - mTiming.mDelay;
   }
 
   
@@ -335,7 +336,7 @@ public:
   
   
   mozilla::TimeDuration InitialAdvance() const {
-    return std::max(TimeDuration(), mDelay * -1);
+    return std::max(TimeDuration(), mTiming.mDelay * -1);
   }
 
   
@@ -354,7 +355,6 @@ public:
   
   mozilla::TimeStamp mStartTime;
   mozilla::TimeStamp mPauseStart;
-  mozilla::TimeDuration mDelay;
   uint8_t mPlayState;
   bool mIsRunningOnCompositor;
 
