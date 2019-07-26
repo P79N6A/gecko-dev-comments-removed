@@ -1574,6 +1574,13 @@ nsPresContext::GetDocShell() const
   return mContainer;
 }
 
+ void
+nsPresContext::Detach()
+{
+  SetContainer(nullptr);
+  SetLinkHandler(nullptr);
+}
+
 bool
 nsPresContext::ThrottledTransitionStyleIsUpToDate() const
 {
@@ -2355,6 +2362,8 @@ nsPresContext::NotifyInvalidation(const nsIntRect& aRect, uint32_t aFlags)
 void
 nsPresContext::NotifyInvalidation(const nsRect& aRect, uint32_t aFlags)
 {
+  MOZ_ASSERT(GetContainerWeak(), "Invalidation in detached pres context");
+
   
   
   
@@ -2454,11 +2463,17 @@ public:
                            nsInvalidateRequestList* aList)
     : mPresContext(aPresContext)
   {
+    MOZ_ASSERT(mPresContext->GetContainerWeak(),
+               "DOMPaintEvent requested for a detached pres context");
     mList.TakeFrom(aList);
   }
   NS_IMETHOD Run()
   {
-    mPresContext->FireDOMPaintEvent(&mList);
+    
+    
+    if (mPresContext->GetContainerWeak()) {
+      mPresContext->FireDOMPaintEvent(&mList);
+    }
     return NS_OK;
   }
 
@@ -2793,6 +2808,14 @@ nsRootPresContext::~nsRootPresContext()
                "All plugins should have been unregistered");
   CancelDidPaintTimer();
   CancelApplyPluginGeometryTimer();
+}
+
+ void
+nsRootPresContext::Detach()
+{
+  CancelDidPaintTimer();
+  
+  nsPresContext::Detach();
 }
 
 void

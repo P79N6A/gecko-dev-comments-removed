@@ -438,6 +438,13 @@ public:
 
 
 
+  virtual void Detach();
+
+  
+
+
+
+
 
   nsRect GetVisibleArea() { return mVisibleArea; }
 
@@ -1355,10 +1362,11 @@ public:
 
 };
 
-class nsRootPresContext : public nsPresContext {
+class nsRootPresContext MOZ_FINAL : public nsPresContext {
 public:
   nsRootPresContext(nsIDocument* aDocument, nsPresContextType aType) NS_HIDDEN;
   virtual ~nsRootPresContext();
+  virtual void Detach() MOZ_OVERRIDE;
 
   
 
