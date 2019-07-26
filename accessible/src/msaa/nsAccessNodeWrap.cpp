@@ -77,15 +77,14 @@ nsAccessNodeWrap::QueryService(REFGUID guidService, REFIID iid, void** ppv)
     if (iid != IID_IAccessible)
       return E_NOINTERFACE;
 
-    nsCOMPtr<nsIDocShellTreeItem> docShellTreeItem = 
-      nsCoreUtils::GetDocShellTreeItemFor(mContent);
-    if (!docShellTreeItem)
+    nsCOMPtr<nsIDocShell> docShell = nsCoreUtils::GetDocShellFor(mContent);
+    if (!docShell)
       return E_UNEXPECTED;
 
     
     
     nsCOMPtr<nsIDocShellTreeItem> root;
-    docShellTreeItem->GetSameTypeRootTreeItem(getter_AddRefs(root));
+    docShell->GetSameTypeRootTreeItem(getter_AddRefs(root));
     if (!root)
       return E_UNEXPECTED;
 

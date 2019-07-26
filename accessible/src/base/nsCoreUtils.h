@@ -17,7 +17,7 @@
 
 class nsRange;
 class nsIFrame;
-class nsIDocShellTreeItem;
+class nsIDocShell;
 class nsITreeColumn;
 class nsITreeBoxObject;
 class nsIWidget;
@@ -178,8 +178,7 @@ public:
   
 
 
-  static already_AddRefed<nsIDocShellTreeItem>
-    GetDocShellTreeItemFor(nsINode *aNode);
+  static already_AddRefed<nsIDocShell> GetDocShellFor(nsINode *aNode);
 
   
 
