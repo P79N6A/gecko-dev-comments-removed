@@ -4318,6 +4318,61 @@ let RIL = {
 
 
 
+
+
+  _processCdmaSmsWapPush: function _processCdmaSmsWapPush(message) {
+    if (!message.data) {
+      if (DEBUG) debug("no data inside WAP Push message.");
+      return PDU_FCS_OK;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    let index = 0;
+    if (message.data[index++] !== 0) {
+     if (DEBUG) debug("Ignore a WAP Message which is not WDP.");
+      return PDU_FCS_OK;
+    }
+
+    
+    
+    
+    message.header = {
+      segmentRef:     message.msgId,
+      segmentMaxSeq:  message.data[index++],
+      segmentSeq:     message.data[index++] + 1 
+    };
+
+    if (message.header.segmentSeq > message.header.segmentMaxSeq) {
+     if (DEBUG) debug("Wrong WDP segment info.");
+      return PDU_FCS_OK;
+    }
+
+    
+    if (message.header.segmentSeq == 1) {
+      message.header.originatorPort = message.data[index++] << 8;
+      message.header.originatorPort |= message.data[index++];
+      message.header.destinationPort = message.data[index++] << 8;
+      message.header.destinationPort |= message.data[index++];
+    }
+
+    message.data = message.data.subarray(index);
+
+    return this._processSmsMultipart(message);
+  },
+
+  
+
+
+
+
+
   _processReceivedSmsSegment: function _processReceivedSmsSegment(original) {
     let hash = original.sender + ":" + original.header.segmentRef;
     let seq = original.header.segmentSeq;
@@ -4347,6 +4402,22 @@ let RIL = {
       delete original.body;
     }
     options.receivedSegments++;
+
+    
+    
+    
+    
+    
+    if (original.teleservice === PDU_CDMA_MSG_TELESERIVCIE_ID_WAP && seq === 1) {
+      if (!options.header.originatorPort && original.header.originatorPort) {
+        options.header.originatorPort = original.header.originatorPort;
+      }
+
+      if (!options.header.destinationPort && original.header.destinationPort) {
+        options.header.destinationPort = original.header.destinationPort;
+      }
+    }
+
     if (options.receivedSegments < options.segmentMaxSeq) {
       if (DEBUG) {
         debug("Got segment no." + seq + " of a multipart SMS: "
@@ -6215,7 +6286,9 @@ RIL[UNSOLICITED_RESPONSE_CDMA_NEW_SMS] = function UNSOLICITED_RESPONSE_CDMA_NEW_
   let [message, result] = CdmaPDUHelper.processReceivedSms(length);
 
   if (message) {
-    if (message.subMsgType === PDU_CDMA_MSG_TYPE_DELIVER_ACK) {
+    if (message.teleservice === PDU_CDMA_MSG_TELESERIVCIE_ID_WAP) {
+      result = this._processCdmaSmsWapPush(message);
+    } else if (message.subMsgType === PDU_CDMA_MSG_TYPE_DELIVER_ACK) {
       result = this._processCdmaSmsStatusReport(message);
     } else {
       result = this._processSmsMultipart(message);
@@ -7997,6 +8070,25 @@ let BitBufferHelper = {
     return result;
   },
 
+  backwardReadPilot: function backwardReadPilot(length) {
+    if (length <= 0) {
+      return;
+    }
+
+    
+    let bitIndexToRead = this.readIndex * 8 - this.readCacheSize - length;
+
+    if (bitIndexToRead < 0) {
+      return;
+    }
+
+    
+    let readBits = bitIndexToRead % 8;
+    this.readIndex = Math.floor(bitIndexToRead / 8) + ((readBits) ? 1 : 0);
+    this.readCache = (readBits) ? this.readBuffer[this.readIndex - 1] : 0;
+    this.readCacheSize = (readBits) ? (8 - readBits) : 0;
+  },
+
   writeBits: function writeBits(value, length) {
     if (length <= 0 || length > 32) {
       return;
@@ -8463,17 +8555,17 @@ let CdmaPDUHelper = {
 
     
     let userData = message[PDU_CDMA_MSG_USERDATA_BODY];
-    [message.header, message.body, message.encoding] =
-      (userData)? [userData.header, userData.body, userData.encoding]
-                : [null, null, null];
+    [message.header, message.body, message.encoding, message.data] =
+      (userData) ? [userData.header, userData.body, userData.encoding, userData.data]
+                 : [null, null, null, null];
 
     
     
     
     let msgStatus = message[PDU_CDMA_MSG_USER_DATA_MSG_STATUS];
     [message.errorClass, message.msgStatus] =
-      (msgStatus)? [msgStatus.errorClass, msgStatus.msgStatus]
-                 : ((message.body)? [-1, -1]: [0, 0]);
+      (msgStatus) ? [msgStatus.errorClass, msgStatus.msgStatus]
+                  : ((message.body) ? [-1, -1] : [0, 0]);
 
     
     let msg = {
@@ -8489,7 +8581,7 @@ let CdmaPDUHelper = {
       replace:          false,
       header:           message.header,
       body:             message.body,
-      data:             null,
+      data:             message.data,
       timestamp:        message[PDU_CDMA_MSG_USERDATA_TIMESTAMP],
       language:         message[PDU_CDMA_LANGUAGE_INDICATOR],
       status:           null,
@@ -8502,7 +8594,8 @@ let CdmaPDUHelper = {
       subMsgType:       message[PDU_CDMA_MSG_USERDATA_MSG_ID].msgType,
       msgId:            message[PDU_CDMA_MSG_USERDATA_MSG_ID].msgId,
       errorClass:       message.errorClass,
-      msgStatus:        message.msgStatus
+      msgStatus:        message.msgStatus,
+      teleservice:      message.teleservice
     };
 
     return msg;
@@ -8937,6 +9030,15 @@ let CdmaPDUHelper = {
       result.header = this.decodeUserDataHeader(result.encoding);
       
       msgBodySize -= result.header.length;
+    }
+
+    
+    if (encoding === PDU_CDMA_MSG_CODING_OCTET && msgBodySize > 0) {
+      result.data = new Uint8Array(msgBodySize);
+      for (let i = 0; i < msgBodySize; i++) {
+        result.data[i] = BitBufferHelper.readBits(8);
+      }
+      BitBufferHelper.backwardReadPilot(8 * msgBodySize);
     }
 
     

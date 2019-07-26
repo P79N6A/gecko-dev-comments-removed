@@ -2761,9 +2761,10 @@ this.PDU_CDMA_MSG_TYPE_BROADCAST = 0x01;
 this.PDU_CDMA_MSG_TYPE_ACK = 0x02;        
 
 
-this.PDU_CDMA_MSG_TELESERIVCIE_ID_SMS = 0x1002;   
-this.PDU_CDMA_MSG_TELESERIVCIE_ID_WEMT = 0x1005;  
-                                                  
+this.PDU_CDMA_MSG_TELESERIVCIE_ID_SMS  = 0x1002;   
+this.PDU_CDMA_MSG_TELESERIVCIE_ID_WAP  = 0x1004;   
+this.PDU_CDMA_MSG_TELESERIVCIE_ID_WEMT = 0x1005;   
+                                                   
 
 
 this.PDU_CDMA_MSG_CATEGORY_UNSPEC = 0x00; 
