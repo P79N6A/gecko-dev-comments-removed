@@ -1267,7 +1267,6 @@ AttachFinishedCompilations(JSContext *cx)
 
     
     
-    
     while (!compilations.empty()) {
         IonBuilder *builder = compilations.popCopy();
 
