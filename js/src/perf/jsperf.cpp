@@ -267,7 +267,7 @@ ExtractPerfMeasurement(jsval wrapper)
 
     
     
-    JSObject *obj = JSVAL_TO_OBJECT(wrapper);
+    JSObject *obj = wrapper.toObjectOrNull();
     if (obj->getClass() != js::Valueify(&pm_class))
         return 0;
 

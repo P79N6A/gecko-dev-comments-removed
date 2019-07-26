@@ -388,7 +388,7 @@ CallArgsFromSp(unsigned argc, Value *sp)
 
 
 
-#define JS_THIS_OBJECT(cx,vp)   (JSVAL_TO_OBJECT(JS_THIS(cx,vp)))
+#define JS_THIS_OBJECT(cx,vp)   (JS_THIS(cx,vp).toObjectOrNull())
 
 
 

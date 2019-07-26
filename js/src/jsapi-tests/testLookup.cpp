@@ -23,7 +23,7 @@ BEGIN_TEST(testLookup_bug522590)
 
     
     EVAL("mkobj()", &x);
-    JS::RootedObject xobj(cx, JSVAL_TO_OBJECT(x));
+    JS::RootedObject xobj(cx, x.toObjectOrNull());
 
     
     JS::RootedValue r(cx);

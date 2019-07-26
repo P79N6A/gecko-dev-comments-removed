@@ -928,7 +928,6 @@ CanonicalizeNaN(double d)
 
 
 
-
 class Value
 {
   public:
@@ -1862,13 +1861,6 @@ static inline jsval
 STRING_TO_JSVAL(JSString *str)
 {
     return IMPL_TO_JSVAL(STRING_TO_JSVAL_IMPL(str));
-}
-
-static inline JSObject *
-JSVAL_TO_OBJECT(jsval v)
-{
-    MOZ_ASSERT(JSVAL_IS_OBJECT_OR_NULL_IMPL(JSVAL_TO_IMPL(v)));
-    return JSVAL_TO_OBJECT_IMPL(JSVAL_TO_IMPL(v));
 }
 
 static inline jsval
