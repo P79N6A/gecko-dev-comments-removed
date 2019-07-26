@@ -185,9 +185,12 @@ let FormAssistant = {
     addEventListener("resize", this, true, false);
     addEventListener("submit", this, true, false);
     addEventListener("pagehide", this, true, false);
+    addEventListener("input", this, true, false);
+    addEventListener("keydown", this, true, false);
     addMessageListener("Forms:Select:Choice", this);
     addMessageListener("Forms:Input:Value", this);
     addMessageListener("Forms:Select:Blur", this);
+    addMessageListener("Forms:SetSelectionRange", this);
   },
 
   ignoredInputTypes: new Set([
@@ -195,8 +198,8 @@ let FormAssistant = {
   ]),
 
   isKeyboardOpened: false,
-  selectionStart: 0,
-  selectionEnd: 0,
+  selectionStart: -1,
+  selectionEnd: -1,
   scrollIntoViewTimeout: null,
   _focusedElement: null,
   _documentEncoder: null,
@@ -257,11 +260,14 @@ let FormAssistant = {
 
         if (isContentEditable(target)) {
           this.showKeyboard(this.getTopLevelEditable(target));
+          this.updateSelection();
           break;
         }
 
-        if (this.isFocusableElement(target))
+        if (this.isFocusableElement(target)) {
           this.showKeyboard(target);
+          this.updateSelection();
+        }
         break;
 
       case "pagehide":
@@ -272,16 +278,17 @@ let FormAssistant = {
         
       case "blur":
       case "submit":
-        if (this.focusedElement)
+        if (this.focusedElement) {
           this.hideKeyboard();
+          this.selectionStart = -1;
+          this.selectionEnd = -1;
+        }
         break;
 
       case 'mousedown':
         
         
-        range = getSelectionRange(this.focusedElement);
-        this.selectionStart = range[0];
-        this.selectionEnd = range[1];
+        this.updateSelection();
         break;
 
       case 'mouseup':
@@ -293,6 +300,7 @@ let FormAssistant = {
         if (range[0] !== this.selectionStart ||
             range[1] !== this.selectionEnd) {
           this.sendKeyboardState(this.focusedElement);
+          this.updateSelection();
         }
         break;
 
@@ -315,6 +323,19 @@ let FormAssistant = {
             }
           }.bind(this), RESIZE_SCROLL_DELAY);
         }
+        break;
+
+      case "input":
+        
+        this.updateSelection();
+        break;
+
+      case "keydown":
+        
+        
+        content.setTimeout(function() {
+          this.updateSelection();
+        }.bind(this), 0);
         break;
     }
   },
@@ -364,6 +385,14 @@ let FormAssistant = {
 
       case "Forms:Select:Blur": {
         this.setFocusedElement(null);
+        break;
+      }
+
+      case "Forms:SetSelectionRange":  {
+        let start = json.selectionStart;
+        let end =  json.selectionEnd;
+        setSelectionRange(target, start, end);
+        this.updateSelection();
         break;
       }
     }
@@ -442,6 +471,19 @@ let FormAssistant = {
 
     sendAsyncMessage("Forms:Input", getJSON(element));
     return true;
+  },
+
+  
+  updateSelection: function fa_updateSelection() {
+    let range =  getSelectionRange(this.focusedElement);
+    if (range[0] != this.selectionStart || range[1] != this.selectionEnd) {
+      this.selectionStart = range[0];
+      this.selectionEnd = range[1];
+      sendAsyncMessage("Forms:SelectionChange", {
+        selectionStart: range[0],
+        selectionEnd: range[1]
+      });
+    }
   }
 };
 
@@ -598,17 +640,79 @@ function getSelectionRange(element) {
     
     let win = element.ownerDocument.defaultView;
     let sel = win.getSelection();
+    start = getContentEditableSelectionStart(element, sel);
+    end = start + getContentEditableSelectionLength(element, sel);
+   }
+   return [start, end];
+ }
 
-    let range = win.document.createRange();
-    range.setStart(element, 0);
-    range.setEnd(sel.anchorNode, sel.anchorOffset);
-    let encoder = FormAssistant.documentEncoder;
-
-    encoder.setRange(range);
-    start = encoder.encodeToString().length;
-
-    encoder.setRange(sel.getRangeAt(0));
-    end = start + encoder.encodeToString().length;
-  }
-  return [start, end];
+function getContentEditableSelectionStart(element, selection) {
+  let doc = element.ownerDocument;
+  let range = doc.createRange();
+  range.setStart(element, 0);
+  range.setEnd(selection.anchorNode, selection.anchorOffset);
+  let encoder = FormAssistant.documentEncoder;
+  encoder.setRange(range);
+  return encoder.encodeToString().length;
 }
+
+function getContentEditableSelectionLength(element, selection) {
+  let encoder = FormAssistant.documentEncoder;
+  encoder.setRange(selection.getRangeAt(0));
+  return encoder.encodeToString().length;
+}
+
+function setSelectionRange(element, start, end) {
+  let isPlainTextField = element instanceof HTMLInputElement ||
+                        element instanceof HTMLTextAreaElement;
+
+  
+
+  if (!isPlainTextField && !isContentEditable(element)) {
+    
+    
+    return;
+  }
+
+  let text = isPlainTextField ? element.value : getContentEditableText(element);
+  let length = text.length;
+  if (start < 0) {
+    start = 0;
+  }
+  if (end > length) {
+    end = length;
+  }
+  if (start > end) {
+    start = end;
+  }
+
+  if (isPlainTextField) {
+    
+    element.setSelectionRange(start, end, "forward");
+  } else {
+    
+    let win = element.ownerDocument.defaultView;
+    let sel = win.getSelection();
+
+    
+    sel.collapse(element, 0);
+    for (let i = 0; i < start; i++) {
+      sel.modify("move", "forward", "character");
+    }
+
+    while (getContentEditableSelectionStart(element, sel) < start) {
+      sel.modify("move", "forward", "character");
+    }
+
+    
+    for (let i = start; i < end; i++) {
+      sel.modify("extend", "forward", "character");
+    }
+
+    let selectionLength = end - start;
+    while (getContentEditableSelectionLength(element, sel) < selectionLength) {
+      sel.modify("extend", "forward", "character");
+    }
+  }
+}
+
