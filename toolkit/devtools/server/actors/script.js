@@ -1616,7 +1616,18 @@ ObjectActor.prototype = {
 
   onPrototypeAndProperties: function OA_onPrototypeAndProperties(aRequest) {
     let ownProperties = Object.create(null);
-    for (let name of this.obj.getOwnPropertyNames()) {
+    let names;
+    try {
+      names = this.obj.getOwnPropertyNames();
+    } catch (ex) {
+      
+      
+      return { from: this.actorID,
+               prototype: this.threadActor.createValueGrip(null),
+               ownProperties: ownProperties,
+               safeGetterValues: Object.create(null) };
+    }
+    for (let name of names) {
       ownProperties[name] = this._propertyDescriptor(name);
     }
     return { from: this.actorID,

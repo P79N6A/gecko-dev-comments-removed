@@ -795,8 +795,15 @@ function JSPropertyProvider(aScope, aInputValue)
       return null;
     }
 
-    
-    if (WCU.isIteratorOrGenerator(obj)) {
+    try {
+      
+      if (WCU.isIteratorOrGenerator(obj)) {
+        return null;
+      }
+    }
+    catch (ex) {
+      
+      
       return null;
     }
   }
