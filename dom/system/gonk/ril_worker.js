@@ -53,6 +53,8 @@ const PDU_HEX_OCTET_SIZE = 4;
 
 const DEFAULT_EMERGENCY_NUMBERS = ["112", "911"];
 
+const ICC_MAX_LINEAR_FIXED_RECORDS = 0xfe;
+
 
 const MMI_MATCH_GROUP_FULL_MMI = 1;
 const MMI_MATCH_GROUP_MMI_PROCEDURE = 2;
@@ -10359,11 +10361,24 @@ let ICCRecordHelper = {
       }
 
       let pbr = ICCUtilsHelper.parsePbrTlvs(pbrTlvs);
-      if (onsuccess) {
-        onsuccess(pbr);
+      
+      if (!pbr.adn) {
+        let error = onerror || debug;
+        error("Cannot access ADN.");
+        return;
+      }
+      pbrs.push(pbr);
+
+      if (options.p1 < options.totalRecords) {
+        ICCIOHelper.loadNextRecord(options);
+      } else {
+        if (onsuccess) {
+          onsuccess(pbrs);
+        }
       }
     }
 
+    let pbrs = [];
     ICCIOHelper.loadLinearFixedEF({fileId : ICC_EF_PBR,
                                    callback: callback.bind(this),
                                    onerror: onerror});
@@ -11421,21 +11436,59 @@ let ICCContactHelper = {
 
 
   readUSimContacts: function readUSimContacts(onsuccess, onerror) {
-    let gotPbrCb = function gotPbrCb(pbr) {
-      if (pbr.adn) {
-        let gotAdnCb = function gotAdnCb(contacts) {
-          this.readSupportedPBRFields(pbr, contacts, onsuccess, onerror);
-        }.bind(this);
-
-        let fileId = pbr.adn.fileId;
-        ICCRecordHelper.readADNLike(fileId, gotAdnCb, onerror);
-      } else {
-        let error = onerror || debug;
-        error("Cannot access ADN.");
-      }
+    let gotPbrCb = function gotPbrCb(pbrs) {
+      this.readAllPhonebookSets(pbrs, onsuccess, onerror);
     }.bind(this);
 
     ICCRecordHelper.readPBR(gotPbrCb, onerror);
+  },
+
+  
+
+
+
+
+
+
+  readAllPhonebookSets: function readAllPhonebookSets(pbrs, onsuccess, onerror) {
+    let allContacts = [], pbrIndex = 0;
+    let readPhonebook = function readPhonebook(contacts) {
+      if (contacts) {
+        allContacts = allContacts.concat(contacts);
+      }
+
+      let cLen = contacts ? contacts.length : 0;
+      for (let i = 0; i < cLen; i++) {
+        contacts[i].recordId += pbrIndex * ICC_MAX_LINEAR_FIXED_RECORDS;
+      }
+
+      pbrIndex++;
+      if (pbrIndex >= pbrs.length) {
+        if (onsuccess) {
+          onsuccess(allContacts);
+        }
+        return;
+      }
+
+      this.readPhonebookSet(pbrs[pbrIndex], readPhonebook, onerror);
+    }.bind(this);
+
+    this.readPhonebookSet(pbrs[pbrIndex], readPhonebook, onerror);
+  },
+
+  
+
+
+
+
+
+
+  readPhonebookSet: function readPhonebookSet(pbr, onsuccess, onerror) {
+    let gotAdnCb = function gotAdnCb(contacts) {
+      this.readSupportedPBRFields(pbr, contacts, onsuccess, onerror);
+    }.bind(this);
+
+    ICCRecordHelper.readADNLike(pbr.adn.fileId, gotAdnCb, onerror);
   },
 
   
