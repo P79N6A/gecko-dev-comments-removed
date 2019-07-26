@@ -252,6 +252,13 @@ protected:
     
     int numElapsedIntervals = static_cast<int>((aNowTime - mTargetTime) / mRateDuration);
 
+    if (numElapsedIntervals < 0) {
+      
+      
+      
+      numElapsedIntervals = 0;
+    }
+
     
     
     
