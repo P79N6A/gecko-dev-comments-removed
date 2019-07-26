@@ -1473,6 +1473,15 @@ TypeConstraintTransformThis::newType(JSContext *cx, TypeSet *source, Type type)
 
 
 
+    if (script->function() && script->function()->isSelfHostedBuiltin()) {
+        target->addType(cx, type);
+        return;
+    }
+
+    
+
+
+
     if (!script->compileAndGo ||
         type.isPrimitive(JSVAL_TYPE_NULL) ||
         type.isPrimitive(JSVAL_TYPE_UNDEFINED)) {
