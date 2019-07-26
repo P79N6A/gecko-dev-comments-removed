@@ -11,10 +11,8 @@
 #include "BufferUnrotate.h"             
 #include "GeckoProfiler.h"              
 #include "Layers.h"                     
-#include "gfxContext.h"                 
 #include "gfxMatrix.h"                  
 #include "gfxPlatform.h"                
-#include "gfxPoint.h"                   
 #include "gfxUtils.h"                   
 #include "mozilla/ArrayUtils.h"         
 #include "mozilla/gfx/BasePoint.h"      
@@ -178,18 +176,19 @@ RotatedBuffer::DrawBufferWithRotation(gfx::DrawTarget *aTarget, ContextSource aS
 }
 
  bool
-RotatedContentBuffer::IsClippingCheap(gfxContext* aTarget, const nsIntRegion& aRegion)
+RotatedContentBuffer::IsClippingCheap(DrawTarget* aTarget, const nsIntRegion& aRegion)
 {
   
   
-  return !aTarget->CurrentMatrix().HasNonIntegerTranslation() &&
+  return !aTarget->GetTransform().HasNonIntegerTranslation() &&
          aRegion.GetNumRects() <= 1;
 }
 
 void
 RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
-                             gfxContext* aTarget,
+                             DrawTarget* aTarget,
                              float aOpacity,
+                             CompositionOp aOp,
                              gfxASurface* aMask,
                              const gfxMatrix* aMaskTransform)
 {
@@ -197,8 +196,6 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
     return;
   }
 
-  RefPtr<DrawTarget> dt = aTarget->GetDrawTarget();
-  MOZ_ASSERT(dt, "Did you pass a non-Azure gfxContext?");
   bool clipped = false;
 
   
@@ -214,13 +211,13 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
     
     
     
-    gfxUtils::ClipToRegionSnapped(dt, aLayer->GetEffectiveVisibleRegion());
+    gfxUtils::ClipToRegionSnapped(aTarget, aLayer->GetEffectiveVisibleRegion());
     clipped = true;
   }
 
   RefPtr<gfx::SourceSurface> mask;
   if (aMask) {
-    mask = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(dt, aMask);
+    mask = gfxPlatform::GetPlatform()->GetSourceSurfaceForSurface(aTarget, aMask);
   }
 
   Matrix maskTransform;
@@ -228,38 +225,35 @@ RotatedContentBuffer::DrawTo(ThebesLayer* aLayer,
     maskTransform = ToMatrix(*aMaskTransform);
   }
 
-  CompositionOp op = CompositionOpForOp(aTarget->CurrentOperator());
-  DrawBufferWithRotation(dt, BUFFER_BLACK, aOpacity, op, mask, &maskTransform);
+  DrawBufferWithRotation(aTarget, BUFFER_BLACK, aOpacity, aOp, mask, &maskTransform);
   if (clipped) {
-    dt->PopClip();
+    aTarget->PopClip();
   }
 }
 
-already_AddRefed<gfxContext>
-RotatedContentBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds,
-                                                  ContextSource aSource,
-                                                  nsIntPoint *aTopLeft)
+DrawTarget*
+RotatedContentBuffer::BorrowDrawTargetForQuadrantUpdate(const nsIntRect& aBounds,
+                                                        ContextSource aSource)
 {
   if (!EnsureBuffer()) {
     return nullptr;
   }
 
-  nsRefPtr<gfxContext> ctx;
+  MOZ_ASSERT(!mLoanedDrawTarget, "draw target has been borrowed and not returned");
   if (aSource == BUFFER_BOTH && HaveBufferOnWhite()) {
     if (!EnsureBufferOnWhite()) {
       return nullptr;
     }
     MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
-    RefPtr<DrawTarget> dualDT = Factory::CreateDualDrawTarget(mDTBuffer, mDTBufferOnWhite);
-    ctx = new gfxContext(dualDT);
+    mLoanedDrawTarget = Factory::CreateDualDrawTarget(mDTBuffer, mDTBufferOnWhite);
   } else if (aSource == BUFFER_WHITE) {
     if (!EnsureBufferOnWhite()) {
       return nullptr;
     }
-    ctx = new gfxContext(mDTBufferOnWhite);
+    mLoanedDrawTarget = mDTBufferOnWhite;
   } else {
     
-    ctx = new gfxContext(mDTBuffer);
+    mLoanedDrawTarget = mDTBuffer;
   }
 
   
@@ -269,13 +263,22 @@ RotatedContentBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds,
   YSide sideY = aBounds.YMost() <= yBoundary ? BOTTOM : TOP;
   nsIntRect quadrantRect = GetQuadrantRectangle(sideX, sideY);
   NS_ASSERTION(quadrantRect.Contains(aBounds), "Messed up quadrants");
-  ctx->Translate(-gfxPoint(quadrantRect.x, quadrantRect.y));
 
-  if (aTopLeft) {
-    *aTopLeft = nsIntPoint(quadrantRect.x, quadrantRect.y);
-  }
+  mLoanedTransform = mLoanedDrawTarget->GetTransform();
+  mLoanedTransform.Translate(-quadrantRect.x, -quadrantRect.y);
+  mLoanedDrawTarget->SetTransform(mLoanedTransform);
+  mLoanedTransform.Translate(quadrantRect.x, quadrantRect.y);
 
-  return ctx.forget();
+  return mLoanedDrawTarget;
+}
+
+void
+BorrowDrawTarget::ReturnDrawTarget(gfx::DrawTarget*& aReturned)
+{
+  MOZ_ASSERT(aReturned == mLoanedDrawTarget);
+  mLoanedDrawTarget->SetTransform(mLoanedTransform);
+  mLoanedDrawTarget = nullptr;
+  aReturned = nullptr;
 }
 
 gfxContentType
@@ -309,6 +312,7 @@ RotatedContentBuffer::BufferSizeOkFor(const nsIntSize& aSize)
 bool
 RotatedContentBuffer::EnsureBuffer()
 {
+  NS_ASSERTION(!mLoanedDrawTarget, "Loaned draw target must be returned");
   if (!mDTBuffer) {
     if (mDeprecatedBufferProvider) {
       mDTBuffer = mDeprecatedBufferProvider->LockDrawTarget();
@@ -324,6 +328,7 @@ RotatedContentBuffer::EnsureBuffer()
 bool
 RotatedContentBuffer::EnsureBufferOnWhite()
 {
+  NS_ASSERTION(!mLoanedDrawTarget, "Loaned draw target must be returned");
   if (!mDTBufferOnWhite) {
     if (mDeprecatedBufferProviderOnWhite) {
       mDTBufferOnWhite = mDeprecatedBufferProviderOnWhite->LockDrawTarget();
@@ -644,8 +649,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
   invalidate.Sub(aLayer->GetValidRegion(), destBufferRect);
   result.mRegionToInvalidate.Or(result.mRegionToInvalidate, invalidate);
 
-  nsIntPoint topLeft;
-  result.mContext = GetContextForQuadrantUpdate(drawBounds, BUFFER_BOTH, &topLeft);
+  result.mTarget = BorrowDrawTargetForQuadrantUpdate(drawBounds, BUFFER_BOTH);
   result.mClip = CLIP_DRAW_SNAPPED;
 
   if (mode == Layer::SURFACE_COMPONENT_ALPHA) {
@@ -662,7 +666,7 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
     nsIntRegionRectIterator iter(result.mRegionToDraw);
     const nsIntRect *iterRect;
     while ((iterRect = iter.Next())) {
-      result.mContext->GetDrawTarget()->ClearRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));
+      result.mTarget->ClearRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));
     }
   }
 
