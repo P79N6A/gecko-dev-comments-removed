@@ -834,10 +834,12 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
 
   nsNSSSocketInfo* infoObject = (nsNSSSocketInfo*) fd->higher->secret;
 
-  if (infoObject) {
-    
-    infoObject->SetFirstServerHelloReceived();
-  }
+  
+  
+  bool isResumedSession = !(infoObject->GetFirstServerHelloReceived());
+
+  
+  infoObject->SetFirstServerHelloReceived();
 
   
   
@@ -985,7 +987,7 @@ void HandshakeCallback(PRFileDesc* fd, void* client_data) {
       }
       
     }
-    infoObject->SetHandshakeCompleted();
+    infoObject->SetHandshakeCompleted(isResumedSession);
   }
 
   PORT_Free(cipherName);

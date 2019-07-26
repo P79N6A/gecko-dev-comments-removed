@@ -189,12 +189,16 @@ getSecureBrowserUI(nsIInterfaceRequestor * callbacks,
 }
 
 void
-nsNSSSocketInfo::SetHandshakeCompleted()
+nsNSSSocketInfo::SetHandshakeCompleted(bool aResumedSession)
 {
   if (!mHandshakeCompleted) {
     
     Telemetry::AccumulateTimeDelta(Telemetry::SSL_TIME_UNTIL_READY,
                                    mSocketCreationTimestamp, TimeStamp::Now());
+
+    
+    
+    Telemetry::Accumulate(Telemetry::SSL_RESUMED_SESSION, aResumedSession);
     mHandshakeCompleted = true;
   }
 }
