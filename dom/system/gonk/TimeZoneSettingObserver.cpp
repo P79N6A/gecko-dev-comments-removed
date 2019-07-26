@@ -168,7 +168,7 @@ TimeZoneSettingObserver::Observe(nsISupports *aSubject,
   
   
 
-  SafeAutoJSContext cx;
+  AutoSafeJSContext cx;
 
   
   nsDependentString dataStr(aData);

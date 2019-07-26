@@ -707,7 +707,7 @@ nsGeolocationService::HandleMozsettingChanged(const PRUnichar* aData)
     
     
 
-    SafeAutoJSContext cx;
+    AutoSafeJSContext cx;
 
     nsDependentString dataStr(aData);
     JS::Rooted<JS::Value> val(cx);

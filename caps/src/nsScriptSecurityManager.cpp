@@ -2585,7 +2585,7 @@ nsScriptSecurityManager::InitPolicies()
     }
 
     
-    SafeAutoJSContext cx;
+    AutoSafeJSContext cx;
     rv = InitDomainPolicy(cx, "default", mDefaultPolicy);
     NS_ENSURE_SUCCESS(rv, rv);
 

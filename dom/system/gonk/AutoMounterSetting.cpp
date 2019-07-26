@@ -109,7 +109,7 @@ AutoMounterSetting::Observe(nsISupports* aSubject,
   
   
 
-  mozilla::SafeAutoJSContext cx;
+  mozilla::AutoSafeJSContext cx;
   nsDependentString dataStr(aData);
   JS::Value val;
   if (!JS_ParseJSON(cx, dataStr.get(), dataStr.Length(), &val) ||

@@ -2364,9 +2364,9 @@ private:
 
 
 
-class MOZ_STACK_CLASS SafeAutoJSContext : public AutoJSContext {
+class MOZ_STACK_CLASS AutoSafeJSContext : public AutoJSContext {
 public:
-  SafeAutoJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
+  AutoSafeJSContext(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM);
 };
 
 

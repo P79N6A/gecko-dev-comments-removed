@@ -1926,7 +1926,7 @@ nsJSNPRuntime::OnPluginDestroy(NPP npp)
 
   
   
-  SafeAutoJSContext cx;
+  AutoSafeJSContext cx;
   JSAutoRequest ar(cx);
 
   if (sNPObjWrappers.ops) {
