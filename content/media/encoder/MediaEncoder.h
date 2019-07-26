@@ -93,7 +93,7 @@ public :
 
 
   static already_AddRefed<MediaEncoder> CreateEncoder(const nsAString& aMIMEType,
-                                                      uint8_t aTrackTypes = ContainerWriter::HAS_AUDIO);
+                                                      uint8_t aTrackTypes = ContainerWriter::CREATE_AUDIO_TRACK);
   
 
 
