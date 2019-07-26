@@ -522,3 +522,15 @@ ParallelGetPropertyIC::initializeAddCacheState(LInstruction *ins, AddCacheState 
     JS_ASSERT(ins->isGetPropertyCacheV() || ins->isGetPropertyCacheT());
     addState->dispatchScratch = ScratchReg;
 }
+
+bool
+CodeGeneratorX64::visitTruncateDToInt32(LTruncateDToInt32 *ins)
+{
+    FloatRegister input = ToFloatRegister(ins->input());
+    Register output = ToRegister(ins->output());
+
+    
+    
+    
+    return emitTruncateDouble(input, output);
+}
