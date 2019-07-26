@@ -5,7 +5,6 @@
 #ifndef nsIDocument_h___
 #define nsIDocument_h___
 
-#include "mozilla/Attributes.h"
 #include "mozFlushType.h"                
 #include "nsAutoPtr.h"                   
 #include "nsCOMArray.h"                  
@@ -13,15 +12,10 @@
 #include "nsCompatibility.h"             
 #include "nsCOMPtr.h"                    
 #include "nsGkAtoms.h"                   
-#include "nsIChannel.h"                  
-#include "nsIDocumentEncoder.h"          
 #include "nsIDocumentObserver.h"         
-#include "nsIFrameRequestCallback.h"     
-#include "nsILoadContext.h"              
 #include "nsILoadGroup.h"                
 #include "nsINode.h"                     
 #include "nsIScriptGlobalObject.h"       
-#include "nsIStructuredCloneContainer.h" 
 #include "nsPIDOMWindow.h"               
 #include "nsPropertyTable.h"             
 #include "nsTHashtable.h"                
@@ -48,6 +42,7 @@ class nsIChannel;
 class nsIContent;
 class nsIContentSink;
 class nsIDocShell;
+class nsIDocumentEncoder;
 class nsIDocumentObserver;
 class nsIDOMDocument;
 class nsIDOMDocumentFragment;
@@ -59,12 +54,14 @@ class nsIDOMXPathExpression;
 class nsIDOMXPathNSResolver;
 class nsIHTMLCollection;
 class nsILayoutHistoryState;
+class nsILoadContext;
 class nsIObjectLoadingContent;
 class nsIObserver;
 class nsIPresShell;
 class nsIPrincipal;
 class nsIRequest;
 class nsIStreamListener;
+class nsIStructuredCloneContainer;
 class nsIStyleRule;
 class nsIStyleSheet;
 class nsIURI;
@@ -1165,15 +1162,7 @@ public:
   
 
 
-  nsILoadContext* GetLoadContext() const
-  {
-    nsCOMPtr<nsISupports> container = GetContainer();
-    if (container) {
-      nsCOMPtr<nsILoadContext> loadContext = do_QueryInterface(container);
-      return loadContext;
-    }
-    return nullptr;
-  }
+  nsILoadContext* GetLoadContext() const;
 
   
 
@@ -1481,15 +1470,9 @@ public:
     mMayStartLayout = aMayStartLayout;
   }
 
-  already_AddRefed<nsIDocumentEncoder> GetCachedEncoder()
-  {
-    return mCachedEncoder.forget();
-  }
+  already_AddRefed<nsIDocumentEncoder> GetCachedEncoder();
 
-  void SetCachedEncoder(already_AddRefed<nsIDocumentEncoder> aEncoder)
-  {
-    mCachedEncoder = aEncoder;
-  }
+  void SetCachedEncoder(already_AddRefed<nsIDocumentEncoder> aEncoder);
 
   
   virtual nsresult InitializeFrameLoader(nsFrameLoader* aLoader) = 0;
@@ -1772,11 +1755,7 @@ public:
 
 
 
-  void SetStateObject(nsIStructuredCloneContainer *scContainer)
-  {
-    mStateObjectContainer = scContainer;
-    mStateObjectCached = nullptr;
-  }
+  void SetStateObject(nsIStructuredCloneContainer *scContainer);
 
   
 
@@ -2219,11 +2198,7 @@ protected:
     return GetRootElement();
   }
 
-  void SetContentTypeInternal(const nsACString& aType)
-  {
-    mCachedEncoder = nullptr;
-    mContentType = aType;
-  }
+  void SetContentTypeInternal(const nsACString& aType);
 
   nsCString GetContentTypeInternal() const
   {
