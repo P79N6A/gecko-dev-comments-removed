@@ -5,11 +5,12 @@
 
 
 #include "frontend/NameFunctions.h"
-#include "frontend/ParseNode.h"
-#include "frontend/SharedContext.h"
 
 #include "jsfun.h"
 #include "jsprf.h"
+#include "frontend/BytecodeCompiler.h"
+#include "frontend/ParseNode.h"
+#include "frontend/SharedContext.h"
 
 #include "vm/String-inl.h"
 #include "vm/StringBuffer.h"

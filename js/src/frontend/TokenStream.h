@@ -939,27 +939,6 @@ class MOZ_STACK_CLASS TokenStream
     SkipRoot            prevLinebaseSkip;
 };
 
-struct KeywordInfo {
-    const char  *chars;         
-    TokenKind   tokentype;
-    JSOp        op;             
-    JSVersion   version;        
-};
-
-
-
-
-
-const KeywordInfo *
-FindKeyword(const jschar *s, size_t length);
-
-
-
-
-
-bool
-IsIdentifier(JSLinearString *str);
-
 
 
 

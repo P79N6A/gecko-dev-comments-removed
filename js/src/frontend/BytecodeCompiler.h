@@ -28,6 +28,26 @@ CompileFunctionBody(JSContext *cx, MutableHandleFunction fun, CompileOptions opt
                     const AutoNameVector &formals, const jschar *chars, size_t length,
                     bool isAsmJSRecompile = false);
 
+
+
+
+
+
+
+
+
+
+bool
+IsIdentifier(JSLinearString *str);
+
+
+bool
+IsKeyword(JSLinearString *str);
+
+
+void
+MarkParser(JSTracer *trc, AutoGCRooter *parser);
+
 } 
 } 
 
