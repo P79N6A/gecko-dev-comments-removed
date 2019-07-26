@@ -1713,15 +1713,15 @@ IonCompile(JSContext *cx, JSScript *script,
     RootedScript builderScript(cx, builder->script());
     IonSpewNewFunction(graph, builderScript);
 
+    if (recompile) {
+        JS_ASSERT(executionMode == SequentialExecution);
+        builderScript->ionScript()->setRecompiling();
+    } else {
+        SetIonScript(builder->script(), executionMode, ION_COMPILING_SCRIPT);
+    }
+
     
     if (OffThreadCompilationAvailable(cx)) {
-        if (recompile) {
-            JS_ASSERT(executionMode == SequentialExecution);
-            builderScript->ionScript()->setRecompiling();
-        } else {
-            SetIonScript(builder->script(), executionMode, ION_COMPILING_SCRIPT);
-        }
-
         if (!StartOffThreadIonCompile(cx, builder)) {
             IonSpew(IonSpew_Abort, "Unable to start off-thread ion compilation.");
             return AbortReason_Alloc;
@@ -1934,8 +1934,14 @@ Compile(JSContext *cx, HandleScript script, BaselineFrame *osrFrame, jsbytecode 
 
         
         
-        if (optimizationLevel <= scriptIon->optimizationLevel())
+        if (optimizationLevel < scriptIon->optimizationLevel())
             return failedState;
+
+        if (optimizationLevel == scriptIon->optimizationLevel() &&
+            (!osrPc || script->ionScript()->osrPc() == osrPc))
+        {
+            return failedState;
+        }
 
         
         if (scriptIon->isRecompiling())
