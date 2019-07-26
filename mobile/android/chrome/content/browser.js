@@ -117,6 +117,10 @@ function resolveGeckoURI(aURI) {
   return aURI;
 }
 
+function shouldShowProgress(url) {
+  return (url != "about:home" && !/^about:reader/.test(url));
+}
+
 
 
 
@@ -311,7 +315,7 @@ var BrowserApp = {
       
       ss.restoreLastSession(restoreToFront, restoreMode == 1);
     } else {
-      loadParams.showProgress = (url != "about:home");
+      loadParams.showProgress = shouldShowProgress(url);
       loadParams.pinned = pinned;
       this.addTab(url, loadParams);
 
@@ -1057,7 +1061,7 @@ var BrowserApp = {
       }
 
       
-      if (url == "about:home")
+      if (!shouldShowProgress(url))
         params.showProgress = false;
 
       if (aTopic == "Tab:Add")
