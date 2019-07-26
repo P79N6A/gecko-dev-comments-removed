@@ -346,7 +346,11 @@ IonRuntime::generateInvalidator(JSContext *cx)
     
     
     masm.ma_add(sp, r1, sp);
-    masm.generateBailoutTail(r1, r2);
+
+    
+    IonCode *bailoutTail = cx->compartment()->ionCompartment()->getBailoutTail();
+    masm.branch(bailoutTail);
+
     Linker linker(masm);
     IonCode *code = linker.newCode(cx, JSC::OTHER_CODE);
     IonSpew(IonSpew_Invalidate, "   invalidation thunk created at %p", (void *) code->raw());
@@ -456,7 +460,7 @@ IonRuntime::generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void *
 }
 
 static void
-GenerateBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
+GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32_t frameClass)
 {
     
     
@@ -515,10 +519,6 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
     
 
     
-    
-    
-
-    
     masm.passABIArg(r0);
     masm.passABIArg(r1);
 
@@ -550,7 +550,10 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32_t frameClass)
                           + bailoutFrameSize) 
                     , sp);
     }
-    masm.generateBailoutTail(r1, r2);
+
+    
+    IonCode *bailoutTail = cx->compartment()->ionCompartment()->getBailoutTail();
+    masm.branch(bailoutTail);
 }
 
 IonCode *
@@ -563,7 +566,7 @@ IonRuntime::generateBailoutTable(JSContext *cx, uint32_t frameClass)
         masm.ma_bl(&bailout);
     masm.bind(&bailout);
 
-    GenerateBailoutThunk(masm, frameClass);
+    GenerateBailoutThunk(cx, masm, frameClass);
 
     Linker linker(masm);
     return linker.newCode(cx, JSC::OTHER_CODE);
@@ -573,7 +576,7 @@ IonCode *
 IonRuntime::generateBailoutHandler(JSContext *cx)
 {
     MacroAssembler masm(cx);
-    GenerateBailoutThunk(masm, NO_FRAME_SIZE_CLASS_ID);
+    GenerateBailoutThunk(cx, masm, NO_FRAME_SIZE_CLASS_ID);
 
     Linker linker(masm);
     return linker.newCode(cx, JSC::OTHER_CODE);
@@ -831,6 +834,17 @@ IonRuntime::generateExceptionTailStub(JSContext *cx)
     MacroAssembler masm;
 
     masm.handleFailureWithHandlerTail();
+
+    Linker linker(masm);
+    return linker.newCode(cx, JSC::OTHER_CODE);
+}
+
+IonCode *
+IonRuntime::generateBailoutTailStub(JSContext *cx)
+{
+    MacroAssembler masm;
+
+    masm.generateBailoutTail(r1, r2);
 
     Linker linker(masm);
     return linker.newCode(cx, JSC::OTHER_CODE);
