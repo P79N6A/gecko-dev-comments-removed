@@ -3479,7 +3479,7 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
     Label failures;
     Label outOfBounds; 
 
-    Label markElem, postBarrier; 
+    Label markElem, storeElement; 
 
     
     Shape *shape = obj->lastProperty();
@@ -3534,7 +3534,7 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
 
                 
                 masm.bumpKey(&newLength, -1);
-                masm.jump(&postBarrier);
+                masm.jump(&storeElement);
             }
             
             masm.bind(&markElem);
@@ -3544,15 +3544,10 @@ GenerateSetDenseElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAttac
             masm.callPreBarrier(target, MIRType_Value);
 
         
-        if (!guardHoles)
-            masm.bind(&postBarrier);
-        Register postBarrierScratch = elements;
-        if (masm.maybeCallPostBarrier(object, value, postBarrierScratch))
-            masm.loadPtr(Address(object, JSObject::offsetOfElements()), elements);
-
-        
         if (guardHoles)
             masm.branchTestMagic(Assembler::Equal, target, &failures);
+        else
+            masm.bind(&storeElement);
         masm.storeConstantOrRegister(value, target);
     }
     attacher.jumpRejoin(masm);
