@@ -983,6 +983,8 @@ size_t RNG_FileUpdate(const char *fileName, size_t limit)
 
 
 	fd = fileno(file);
+	
+	PORT_Assert(fd != -1);
 	while (limit > fileBytes) {
 	    bytes = PR_MIN(sizeof buffer, limit - fileBytes);
 	    bytes = read(fd, buffer, bytes);
@@ -1150,6 +1152,8 @@ size_t RNG_SystemRNG(void *dest, size_t maxLen)
 
 
     fd = fileno(file);
+    
+    PORT_Assert(fd != -1);
     while (maxLen > fileBytes) {
 	bytes = maxLen - fileBytes;
 	bytes = read(fd, buffer, bytes);
