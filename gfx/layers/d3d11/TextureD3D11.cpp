@@ -150,7 +150,21 @@ TextureClientD3D11::TextureClientD3D11(gfx::SurfaceFormat aFormat, TextureFlags 
 {}
 
 TextureClientD3D11::~TextureClientD3D11()
-{}
+{
+#ifdef DEBUG
+  
+  
+  
+  if (mDrawTarget) {
+    MOZ_ASSERT(!mIsLocked);
+    MOZ_ASSERT(mTexture);
+    MOZ_ASSERT(mDrawTarget->refcount() == 1);
+    LockD3DTexture(mTexture.get());
+    mDrawTarget = nullptr;
+    UnlockD3DTexture(mTexture.get());
+  }
+#endif
+}
 
 bool
 TextureClientD3D11::Lock(OpenMode aMode)
