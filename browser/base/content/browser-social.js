@@ -671,43 +671,6 @@ SocialShare = {
 
     if (!aURI || !(aURI.schemeIs('http') || aURI.schemeIs('https')))
       return false;
-
-    
-    
-    
-    
-    if (aURI != gBrowser.currentURI)
-      return true;
-
-    
-    
-    
-    let channel = gBrowser.docShell.currentDocumentChannel;
-    let httpChannel;
-    try {
-      httpChannel = channel.QueryInterface(Ci.nsIHttpChannel);
-    } catch (e) {
-      
-      Cu.reportError("cannot share without httpChannel");
-      return false;
-    }
-
-    
-    try {
-      if (!httpChannel.requestSucceeded)
-        return false;
-    } catch (e) {
-      
-      
-      return false;
-    }
-
-    
-    if (httpChannel.isNoStoreResponse()) {
-      Cu.reportError("cannot share cache-control: no-share");
-      return false;
-    }
-
     return true;
   },
 
