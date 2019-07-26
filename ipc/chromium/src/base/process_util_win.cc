@@ -2,6 +2,10 @@
 
 
 
+
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600
+
 #include "base/process_util.h"
 
 #include <windows.h>
@@ -13,6 +17,7 @@
 #include "base/logging.h"
 #include "base/scoped_handle_win.h"
 #include "base/scoped_ptr.h"
+#include "base/win_util.h"
 
 namespace {
 
@@ -21,6 +26,31 @@ const int PAGESIZE_KB = 4;
 
 
 typedef BOOL (WINAPI* HeapSetFn)(HANDLE, HEAP_INFORMATION_CLASS, PVOID, SIZE_T);
+
+typedef BOOL (WINAPI * InitializeProcThreadAttributeListFn)(
+  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+  DWORD dwAttributeCount,
+  DWORD dwFlags,
+  PSIZE_T lpSize
+);
+
+typedef BOOL (WINAPI * DeleteProcThreadAttributeListFn)(
+  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList
+);
+
+typedef BOOL (WINAPI * UpdateProcThreadAttributeFn)(
+  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList,
+  DWORD dwFlags,
+  DWORD_PTR Attribute,
+  PVOID lpValue,
+  SIZE_T cbSize,
+  PVOID lpPreviousValue,
+  PSIZE_T lpReturnSize
+);
+
+static InitializeProcThreadAttributeListFn InitializeProcThreadAttributeListPtr;
+static DeleteProcThreadAttributeListFn DeleteProcThreadAttributeListPtr;
+static UpdateProcThreadAttributeFn UpdateProcThreadAttributePtr;
 
 static mozilla::EnvironmentLog gProcessLog("MOZ_PROCESS_LOG");
 
@@ -152,17 +182,149 @@ ProcessId GetProcId(ProcessHandle process) {
   return 0;
 }
 
+
+bool IsInheritableHandle(HANDLE handle) {
+  if (!handle)
+    return false;
+  if (handle == INVALID_HANDLE_VALUE)
+    return false;
+  
+  
+  
+  DWORD handle_type = GetFileType(handle);
+  return handle_type == FILE_TYPE_DISK || handle_type == FILE_TYPE_PIPE;
+}
+
+void LoadThreadAttributeFunctions() {
+  HMODULE kernel32 = GetModuleHandle(L"kernel32.dll");
+  InitializeProcThreadAttributeListPtr =
+    reinterpret_cast<InitializeProcThreadAttributeListFn>
+    (GetProcAddress(kernel32, "InitializeProcThreadAttributeList"));
+  DeleteProcThreadAttributeListPtr =
+    reinterpret_cast<DeleteProcThreadAttributeListFn>
+    (GetProcAddress(kernel32, "DeleteProcThreadAttributeList"));
+  UpdateProcThreadAttributePtr =
+    reinterpret_cast<UpdateProcThreadAttributeFn>
+    (GetProcAddress(kernel32, "UpdateProcThreadAttribute"));
+}
+
+
+
+
+
+
+
+
+
+LPPROC_THREAD_ATTRIBUTE_LIST CreateThreadAttributeList(HANDLE *handlesToInherit,
+                                                       int handleCount) {
+  if (!InitializeProcThreadAttributeListPtr ||
+      !DeleteProcThreadAttributeListPtr ||
+      !UpdateProcThreadAttributePtr)
+    LoadThreadAttributeFunctions();
+  
+  if (!InitializeProcThreadAttributeListPtr ||
+      !DeleteProcThreadAttributeListPtr ||
+      !UpdateProcThreadAttributePtr)
+    return NULL;
+
+  SIZE_T threadAttrSize;
+  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList;
+
+  if (!(*InitializeProcThreadAttributeListPtr)(NULL, 1, 0, &threadAttrSize) &&
+      GetLastError() != ERROR_INSUFFICIENT_BUFFER)
+    goto fail;
+  lpAttributeList = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>
+                              (malloc(threadAttrSize));
+  if (!lpAttributeList ||
+      !(*InitializeProcThreadAttributeListPtr)(lpAttributeList, 1, 0, &threadAttrSize))
+    goto fail;
+
+  if (!(*UpdateProcThreadAttributePtr)(lpAttributeList,
+                  0, PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                  handlesToInherit,
+                  sizeof(handlesToInherit[0]) * handleCount,
+                  NULL, NULL)) {
+    (*DeleteProcThreadAttributeListPtr)(lpAttributeList);
+    goto fail;
+  }
+  return lpAttributeList;
+
+fail:
+  if (lpAttributeList)
+    free(lpAttributeList);
+  return NULL;
+}
+
+
+void FreeThreadAttributeList(LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList) {
+  
+  
+  (*DeleteProcThreadAttributeListPtr)(lpAttributeList);
+  free(lpAttributeList);
+}
+
 bool LaunchApp(const std::wstring& cmdline,
                bool wait, bool start_hidden, ProcessHandle* process_handle) {
-  STARTUPINFO startup_info = {0};
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  DWORD dwCreationFlags = 0;
+  BOOL bInheritHandles = FALSE;
+  
+  
+  STARTUPINFOEX startup_info_ex;
+  ZeroMemory(&startup_info_ex, sizeof(startup_info_ex));
+  STARTUPINFO &startup_info = startup_info_ex.StartupInfo;
   startup_info.cb = sizeof(startup_info);
   startup_info.dwFlags = STARTF_USESHOWWINDOW;
   startup_info.wShowWindow = start_hidden ? SW_HIDE : SW_SHOW;
+
+  LPPROC_THREAD_ATTRIBUTE_LIST lpAttributeList = NULL;
+  
+  if (win_util::GetWinVersion() >= win_util::WINVERSION_VISTA) {
+    
+    
+    HANDLE handlesToInherit[2];
+    int handleCount = 0;
+    HANDLE stdOut = ::GetStdHandle(STD_OUTPUT_HANDLE);
+    HANDLE stdErr = ::GetStdHandle(STD_ERROR_HANDLE);
+
+    if (IsInheritableHandle(stdOut))
+      handlesToInherit[handleCount++] = stdOut;
+    if (stdErr != stdOut && IsInheritableHandle(stdErr))
+      handlesToInherit[handleCount++] = stdErr;
+
+    if (handleCount)
+      lpAttributeList = CreateThreadAttributeList(handlesToInherit, handleCount);
+  }
+
+  if (lpAttributeList) {
+    
+    startup_info.cb = sizeof(startup_info_ex);
+    startup_info.dwFlags |= STARTF_USESTDHANDLES;
+    startup_info.hStdOutput = ::GetStdHandle(STD_OUTPUT_HANDLE);
+    startup_info.hStdError = ::GetStdHandle(STD_ERROR_HANDLE);
+    startup_info.hStdInput = INVALID_HANDLE_VALUE;
+    startup_info_ex.lpAttributeList = lpAttributeList;
+    dwCreationFlags |= EXTENDED_STARTUPINFO_PRESENT;
+    bInheritHandles = TRUE;
+  }
   PROCESS_INFORMATION process_info;
-  if (!CreateProcess(NULL,
+  BOOL createdOK = CreateProcess(NULL,
                      const_cast<wchar_t*>(cmdline.c_str()), NULL, NULL,
-                     FALSE, 0, NULL, NULL,
-                     &startup_info, &process_info))
+                     bInheritHandles, dwCreationFlags, NULL, NULL,
+                     &startup_info, &process_info);
+  if (lpAttributeList)
+    FreeThreadAttributeList(lpAttributeList);
+  if (!createdOK)
     return false;
 
   gProcessLog.print("==> process %d launched child process %d\n",
