@@ -1495,6 +1495,13 @@ SECMOD_CloseUserDB(PK11SlotInfo *slot)
     }
     rv = secmod_UserDBOp(slot, CKO_NETSCAPE_DELSLOT, sendSpec);
     PR_smprintf_free(sendSpec);
+    
+
+    if (slot->nssToken && slot->nssToken->slot) {
+	nssSlot_ResetDelay(slot->nssToken->slot);
+	
+	(void)PK11_IsPresent(slot);
+    }
     return rv;
 }
 
