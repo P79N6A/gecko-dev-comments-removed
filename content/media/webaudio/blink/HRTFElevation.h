@@ -29,15 +29,8 @@
 #ifndef HRTFElevation_h
 #define HRTFElevation_h
 
-#include "core/platform/audio/HRTFKernel.h"
-#include <wtf/Noncopyable.h>
-#include <wtf/OwnPtr.h>
-#include <wtf/PassOwnPtr.h>
-#include <wtf/PassRefPtr.h>
-#include <wtf/RefCounted.h>
-#include <wtf/RefPtr.h>
-#include <wtf/text/CString.h>
-#include <wtf/text/WTFString.h>
+#include "HRTFKernel.h"
+#include "nsAutoRef.h"
 
 struct SpeexResamplerState_;
 typedef struct SpeexResamplerState_ SpeexResamplerState;
@@ -47,16 +40,15 @@ namespace WebCore {
 
 
 class HRTFElevation {
-    WTF_MAKE_NONCOPYABLE(HRTFElevation);
 public:
     
     
     
     
-    static PassOwnPtr<HRTFElevation> createForSubject(const String& subjectName, int elevation, float sampleRate);
+    static nsReturnRef<HRTFElevation> createBuiltin(int elevation, float sampleRate);
 
     
-    static PassOwnPtr<HRTFElevation> createByInterpolatingSlices(HRTFElevation* hrtfElevation1, HRTFElevation* hrtfElevation2, float x, float sampleRate);
+    static nsReturnRef<HRTFElevation> createByInterpolatingSlices(HRTFElevation* hrtfElevation1, HRTFElevation* hrtfElevation2, float x, float sampleRate);
 
     double elevationAngle() const { return m_elevationAngle; }
     unsigned numberOfAzimuths() const { return NumberOfTotalAzimuths; }
@@ -69,32 +61,40 @@ public:
     
     static const unsigned NumberOfTotalAzimuths;
 
-    void reportMemoryUsage(MemoryObjectInfo*) const;
+    static size_t fftSizeForSampleRate(float sampleRate);
 
 private:
-    HRTFElevation(PassOwnPtr<HRTFKernelList> kernelListL, int elevation, float sampleRate)
-        : m_kernelListL(kernelListL)
-        , m_elevationAngle(elevation)
+    HRTFElevation(const HRTFElevation& other) MOZ_DELETE;
+    void operator=(const HRTFElevation& other) MOZ_DELETE;
+
+    HRTFElevation(HRTFKernelList *kernelListL, int elevation, float sampleRate)
+        : m_elevationAngle(elevation)
         , m_sampleRate(sampleRate)
     {
+        m_kernelListL.SwapElements(*kernelListL);
     }
 
     
-    HRTFKernelList* kernelListL() { return m_kernelListL.get(); }
+    const HRTFKernelList& kernelListL() { return m_kernelListL; }
 
     
     
     
     
-    
-    static bool calculateKernelForAzimuthElevation(int azimuth, int elevation, SpeexResamplerState* resampler, float sampleRate,
-                                                   RefPtr<HRTFKernel>& kernelL);
+    static nsReturnRef<HRTFKernel> calculateKernelForAzimuthElevation(int azimuth, int elevation, SpeexResamplerState* resampler, float sampleRate);
 
-    OwnPtr<HRTFKernelList> m_kernelListL;
+    HRTFKernelList m_kernelListL;
     double m_elevationAngle;
     float m_sampleRate;
 };
 
 } 
+
+template <>
+class nsAutoRefTraits<WebCore::HRTFElevation> :
+    public nsPointerRefTraits<WebCore::HRTFElevation> {
+public:
+    static void Release(WebCore::HRTFElevation* ptr) { delete(ptr); }
+};
 
 #endif 
