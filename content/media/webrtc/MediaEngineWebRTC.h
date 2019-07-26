@@ -267,13 +267,13 @@ class MediaEngineWebRTCAudioSource : public MediaEngineAudioSource,
 public:
   MediaEngineWebRTCAudioSource(webrtc::VoiceEngine* aVoiceEnginePtr, int aIndex,
     const char* name, const char* uuid)
-    : mVoiceEngine(aVoiceEnginePtr)
+    : mSamples(0)
+    , mVoiceEngine(aVoiceEnginePtr)
     , mMonitor("WebRTCMic.Monitor")
     , mCapIndex(aIndex)
     , mChannel(-1)
     , mInitDone(false)
     , mStarted(false)
-    , mSamples(0)
     , mEchoOn(false), mAgcOn(false), mNoiseOn(false)
     , mEchoCancel(webrtc::kEcDefault)
     , mAGC(webrtc::kAgcDefault)
@@ -319,6 +319,13 @@ public:
 
   NS_DECL_THREADSAFE_ISUPPORTS
 
+protected:
+  
+  
+  
+  
+  int mSamples;
+
 private:
   static const unsigned int KMaxDeviceNameLength = 128;
   static const unsigned int KMaxUniqueIdLength = 256;
@@ -344,7 +351,6 @@ private:
   TrackID mTrackID;
   bool mInitDone;
   bool mStarted;
-  int mSamples; 
 
   nsString mDeviceName;
   nsString mDeviceUUID;
