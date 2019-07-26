@@ -2931,9 +2931,9 @@ void HTMLMediaElement::UpdateReadyStateForData(MediaDecoderOwner::NextFrameStatu
   
   
   MediaDecoder::Statistics stats = mDecoder->GetStatistics();
-  if (stats.mTotalBytes < 0 ? stats.mDownloadRateReliable :
-                              stats.mTotalBytes == stats.mDownloadPosition ||
-      mDecoder->CanPlayThrough())
+  if (stats.mTotalBytes < 0 ? stats.mDownloadRateReliable
+                            : stats.mTotalBytes == stats.mDownloadPosition ||
+                              mDecoder->CanPlayThrough())
   {
     ChangeReadyState(nsIDOMHTMLMediaElement::HAVE_ENOUGH_DATA);
     return;
