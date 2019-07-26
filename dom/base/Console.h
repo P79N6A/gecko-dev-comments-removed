@@ -128,10 +128,10 @@ private:
          const Sequence<JS::Value>& aData);
 
   void
-  AppendCallData(const ConsoleCallData& aData);
+  AppendCallData(ConsoleCallData* aData);
 
   void
-  ProcessCallData(ConsoleCallData& aData);
+  ProcessCallData(ConsoleCallData* aData);
 
   
   
@@ -181,11 +181,14 @@ private:
   IncreaseCounter(JSContext* aCx, const ConsoleStackEntry& aFrame,
                    const nsTArray<JS::Heap<JS::Value>>& aArguments);
 
+  void
+  ClearConsoleData();
+
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsCOMPtr<nsITimer> mTimer;
   nsCOMPtr<nsIConsoleAPIStorage> mStorage;
 
-  nsTArray<ConsoleCallData> mQueuedCalls;
+  LinkedList<ConsoleCallData> mQueuedCalls;
   nsDataHashtable<nsStringHashKey, DOMHighResTimeStamp> mTimerRegistry;
   nsDataHashtable<nsStringHashKey, uint32_t> mCounterRegistry;
 
