@@ -135,7 +135,10 @@ var Scratchpad = {
 
 
 
-  get notificationBox() document.getElementById("scratchpad-notificationbox"),
+  get notificationBox()
+  {
+    return document.getElementById("scratchpad-notificationbox");
+  },
 
   
 
@@ -143,7 +146,10 @@ var Scratchpad = {
 
 
 
-  get selectedText() this.editor.getSelectedText(),
+  get selectedText()
+  {
+    return this.editor.getSelectedText();
+  },
 
   
 
@@ -252,7 +258,10 @@ var Scratchpad = {
   
 
 
-  get browserWindow() Services.wm.getMostRecentWindow("navigator:browser"),
+  get browserWindow()
+  {
+    return Services.wm.getMostRecentWindow("navigator:browser");
+  },
 
   
 
