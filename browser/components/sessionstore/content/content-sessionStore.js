@@ -301,18 +301,13 @@ let DocShellCapabilitiesListener = {
   _latestCapabilities: "",
 
   init: function () {
-    let webProgress = docShell.QueryInterface(Ci.nsIInterfaceRequestor)
-                              .getInterface(Ci.nsIWebProgress);
-
-    webProgress.addProgressListener(this, Ci.nsIWebProgress.NOTIFY_LOCATION);
+    gFrameTree.addObserver(this);
   },
 
   
 
 
-
-
-  onLocationChange: function() {
+  onFrameTreeReset: function() {
     
     
     let caps = DocShellCapabilities.collect(docShell).join(",");
@@ -322,15 +317,7 @@ let DocShellCapabilitiesListener = {
       this._latestCapabilities = caps;
       MessageQueue.push("disallow", () => caps || null);
     }
-  },
-
-  onStateChange: function () {},
-  onProgressChange: function () {},
-  onStatusChange: function () {},
-  onSecurityChange: function () {},
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                         Ci.nsISupportsWeakReference])
+  }
 };
 
 
