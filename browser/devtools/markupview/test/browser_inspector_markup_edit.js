@@ -76,28 +76,6 @@ function test() {
     
     {
       before: function() {
-        assertAttributes(doc.querySelector("#node22"), {
-          id: "node22",
-          class: "unchanged"
-        });
-      },
-      execute: function() {
-        let editor = markup.getContainer(doc.querySelector("#node22")).editor;
-        let attr = editor.attrs["class"].querySelector(".editable");
-        editField(attr, 'class="""');
-      },
-      after: function() {
-        assertAttributes(doc.querySelector("#node22"), {
-          id: "node22",
-          class: "unchanged"
-        });
-      }
-    },
-
-
-    
-    {
-      before: function() {
         assertAttributes(doc.querySelector("#node4"), {
           id: "node4",
           class: "node4"
@@ -138,25 +116,6 @@ function test() {
 
     
     {
-      before: function() {
-        assertAttributes(doc.querySelector("#node23"), {
-          id: "node23",
-        });
-      },
-      execute: function() {
-        let editor = markup.getContainer(doc.querySelector("#node23")).editor;
-        let attr = editor.newAttr;
-        editField(attr, 'class="newclass" style="""');
-      },
-      after: function() {
-        assertAttributes(doc.querySelector("#node23"), {
-          id: "node23",
-        });
-      }
-    },
-
-    
-    {
       setup: function() {
         InspectorUI.select(doc.querySelector("#node18"), true, true, true);
       },
@@ -178,25 +137,6 @@ function test() {
           style: "color:green"
         });
         is(InspectorUI.highlighter.nodeInfo.classesBox.textContent, ".newclass", "Correct classes in the infobar after edit.");
-      }
-    },
-
-    
-    {
-      before: function() {
-        assertAttributes(doc.querySelector("#node24"), {
-          id: "node24",
-        });
-      },
-      execute: function() {
-        let editor = markup.getContainer(doc.querySelector("#node24")).editor;
-        let attr = editor.attrs["id"].querySelector(".editable");
-        editField(attr, attr.textContent + ' class="""');
-      },
-      after: function() {
-        assertAttributes(doc.querySelector("#node24"), {
-          id: "node24",
-        });
       }
     },
 
