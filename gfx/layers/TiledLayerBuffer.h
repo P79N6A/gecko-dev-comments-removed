@@ -19,6 +19,7 @@
 #include "nsRect.h"
 #include "nsRegion.h"
 #include "nsTArray.h"
+#include "gfxPlatform.h"
 
 namespace mozilla {
 namespace layers {
@@ -138,6 +139,15 @@ public:
   void SetResolution(float aResolution) {
     if (mResolution == aResolution) {
       return;
+    }
+
+    
+    
+    if (aResolution > TILEDLAYERBUFFER_TILE_SIZE) {
+      MOZ_CRASH();
+    } else if (!(gfx::FuzzyEqual(aResolution, 1.0, 1e-5) ||
+                 gfx::FuzzyEqual(aResolution, gfxPlatform::GetLowPrecisionResolution(), 1e-5))) {
+      MOZ_CRASH();
     }
 
     Update(nsIntRegion(), nsIntRegion());
