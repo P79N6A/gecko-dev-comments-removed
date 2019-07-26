@@ -100,6 +100,14 @@ pref("app.update.backgroundMaxErrors", 10);
 
 
 
+#ifdef XP_WIN
+pref("app.update.cert.requireBuiltIn", false);
+pref("app.update.cert.checkAttributes", false);
+#else
+
+
+
+
 pref("app.update.cert.requireBuiltIn", true);
 
 
@@ -143,6 +151,7 @@ pref("app.update.certs.1.commonName", "aus3.mozilla.org");
 
 pref("app.update.certs.2.issuerName", "CN=Thawte SSL CA,O=\"Thawte, Inc.\",C=US");
 pref("app.update.certs.2.commonName", "aus3.mozilla.org");
+#endif
 #endif
 
 
