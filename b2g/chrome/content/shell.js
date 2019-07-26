@@ -121,10 +121,9 @@ var shell = {
    },
 
   start: function shell_start() {
-
-    let cr = Cc["@mozilla.org/xre/app-info;1"]
-               .getService(Ci.nsICrashReporter);
     try {
+      let cr = Cc["@mozilla.org/xre/app-info;1"]
+                 .getService(Ci.nsICrashReporter);
       
       
       try {
