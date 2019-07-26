@@ -32,15 +32,6 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
   var base64VLQ = require('source-map/base64-vlq');
 
   
-  
-  
-  
-  
-  
-  
-  
-
-  
 
 
 
@@ -72,7 +63,7 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
   function SourceMapConsumer(aSourceMap) {
     var sourceMap = aSourceMap;
     if (typeof aSourceMap === 'string') {
-      sourceMap = JSON.parse(aSourceMap);
+      sourceMap = JSON.parse(aSourceMap.replace(/^\)\]\}'/, ''));
     }
 
     var version = util.getArg(sourceMap, 'version');
@@ -108,7 +99,12 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
     
     
     
+    
+    
+    
+    
     this._generatedMappings = [];
+    this._originalMappings = [];
     this._parseMappings(mappings, sourceRoot);
   }
 
@@ -195,8 +191,65 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
           }
 
           this._generatedMappings.push(mapping);
+          this._originalMappings.push(mapping);
         }
       }
+
+      this._originalMappings.sort(this._compareOriginalPositions);
+    };
+
+  
+
+
+  SourceMapConsumer.prototype._compareOriginalPositions =
+    function SourceMapConsumer_compareOriginalPositions(mappingA, mappingB) {
+      if (mappingA.source > mappingB.source) {
+        return 1;
+      }
+      else if (mappingA.source < mappingB.source) {
+        return -1;
+      }
+      else {
+        var cmp = mappingA.originalLine - mappingB.originalLine;
+        return cmp === 0
+          ? mappingA.originalColumn - mappingB.originalColumn
+          : cmp;
+      }
+    };
+
+  
+
+
+  SourceMapConsumer.prototype._compareGeneratedPositions =
+    function SourceMapConsumer_compareGeneratedPositions(mappingA, mappingB) {
+      var cmp = mappingA.generatedLine - mappingB.generatedLine;
+      return cmp === 0
+        ? mappingA.generatedColumn - mappingB.generatedColumn
+        : cmp;
+    };
+
+  
+
+
+
+  SourceMapConsumer.prototype._findMapping =
+    function SourceMapConsumer_findMapping(aNeedle, aMappings, aLineName,
+                                           aColumnName, aComparator) {
+      
+      
+      
+      
+
+      if (aNeedle[aLineName] <= 0) {
+        throw new TypeError('Line must be greater than or equal to 1, got '
+                            + aNeedle[aLineName]);
+      }
+      if (aNeedle[aColumnName] < 0) {
+        throw new TypeError('Column must be greater than or equal to 0, got '
+                            + aNeedle[aColumnName]);
+      }
+
+      return binarySearch.search(aNeedle, aMappings, aComparator);
     };
 
   
@@ -216,35 +269,16 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
 
   SourceMapConsumer.prototype.originalPositionFor =
     function SourceMapConsumer_originalPositionFor(aArgs) {
-      
-      
-      
-      
-
-      
-      
-      function compare(mappingA, mappingB) {
-        var cmp = mappingA.generatedLine - mappingB.generatedLine;
-        return cmp === 0
-          ? mappingA.generatedColumn - mappingB.generatedColumn
-          : cmp;
-      }
-
-      
-      
       var needle = {
         generatedLine: util.getArg(aArgs, 'line'),
         generatedColumn: util.getArg(aArgs, 'column')
       };
 
-      if (needle.generatedLine <= 0) {
-        throw new TypeError('Line must be greater than or equal to 1.');
-      }
-      if (needle.generatedColumn < 0) {
-        throw new TypeError('Column must be greater than or equal to 0.');
-      }
-
-      var mapping = binarySearch.search(needle, this._generatedMappings, compare);
+      var mapping = this._findMapping(needle,
+                                      this._generatedMappings,
+                                      "generatedLine",
+                                      "generatedColumn",
+                                      this._compareGeneratedPositions)
 
       if (mapping) {
         return {
@@ -261,7 +295,47 @@ define('source-map/source-map-consumer', ['require', 'exports', 'module' , 'sour
         column: null,
         name: null
       };
+    };
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  SourceMapConsumer.prototype.generatedPositionFor =
+    function SourceMapConsumer_generatedPositionFor(aArgs) {
+      var needle = {
+        source: util.getArg(aArgs, 'source'),
+        originalLine: util.getArg(aArgs, 'line'),
+        originalColumn: util.getArg(aArgs, 'column')
+      };
+
+      var mapping = this._findMapping(needle,
+                                      this._originalMappings,
+                                      "originalLine",
+                                      "originalColumn",
+                                      this._compareOriginalPositions)
+
+      if (mapping) {
+        return {
+          line: util.getArg(mapping, 'generatedLine', null),
+          column: util.getArg(mapping, 'generatedColumn', null)
+        };
+      }
+
+      return {
+        line: null,
+        column: null
+      };
     };
 
   exports.SourceMapConsumer = SourceMapConsumer;
@@ -885,7 +959,9 @@ define('source-map/source-node', ['require', 'exports', 'module' , 'source-map/s
       }, this);
     }
     else if (aChunk instanceof SourceNode || typeof aChunk === "string") {
-      this.children.push(aChunk);
+      if (aChunk) {
+        this.children.push(aChunk);
+      }
     }
     else {
       throw new TypeError(
@@ -973,7 +1049,7 @@ define('source-map/source-node', ['require', 'exports', 'module' , 'source-map/s
       lastChild.replaceRight(aPattern, aReplacement);
     }
     else if (typeof lastChild === 'string') {
-      this.children[this.children.lenth - 1] = lastChild.replace(aPattern, aReplacement);
+      this.children[this.children.length - 1] = lastChild.replace(aPattern, aReplacement);
     }
     else {
       this.children.push(''.replace(aPattern, aReplacement));
