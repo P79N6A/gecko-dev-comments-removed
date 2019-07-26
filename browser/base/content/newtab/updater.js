@@ -13,7 +13,7 @@ let gUpdater = {
 
 
 
-  updateGrid: function Updater_updateGrid() {
+  updateGrid: function Updater_updateGrid(draggedSite = null) {
     let links = gLinks.getLinks().slice(0, gGrid.cells.length);
 
     
@@ -32,7 +32,8 @@ let gUpdater = {
 
       
       
-      this._rearrangeSites(sites).then(() => {
+      let opts = {unfreeze: true};
+      gTransformation.rearrangeSites(sites, draggedSite, opts).then(() => {
         
         this._fillEmptyCells(links);
 
@@ -104,14 +105,6 @@ let gUpdater = {
           cellNode.appendChild(aSite.node);
       }
     }, this);
-  },
-
-  
-
-
-
-  _rearrangeSites: function (aSites) {
-    return gTransformation.rearrangeSites(aSites, {unfreeze: true});
   },
 
   
