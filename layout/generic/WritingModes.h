@@ -193,6 +193,21 @@ public:
   }
 
   
+  
+
+  
+  void SetDirectionFromBidiLevel(uint8_t level)
+  {
+    if (level & 1) {
+      
+      mWritingMode |= eBidiMask;
+    } else {
+      
+      mWritingMode &= ~eBidiMask;
+    }
+  }
+
+  
 
 
   bool operator==(const WritingMode& aOther) const
