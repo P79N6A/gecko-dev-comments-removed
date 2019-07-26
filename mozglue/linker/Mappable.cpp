@@ -199,10 +199,11 @@ public:
 
 
 
+
+
     void *buf = ::mmap(NULL, length + PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
     if (buf != MAP_FAILED) {
-      
-      ::mmap(reinterpret_cast<char *>(buf) + ((length + PAGE_SIZE) & PAGE_MASK),
+      ::mmap(reinterpret_cast<char *>(buf) + ((length + PAGE_SIZE - 1) & PAGE_MASK),
              PAGE_SIZE, PROT_NONE, MAP_FIXED | MAP_PRIVATE | MAP_ANONYMOUS,
              -1, 0);
       debug("Decompression buffer of size %d in ashmem \"%s\", mapped @%p",
@@ -248,7 +249,7 @@ public:
 #ifdef ANDROID
   ~_MappableBuffer() {
     
-    ::munmap(*this + ((GetLength() + PAGE_SIZE) & ~(PAGE_SIZE - 1)), PAGE_SIZE);
+    ::munmap(*this + ((GetLength() + PAGE_SIZE - 1) & PAGE_MASK), PAGE_SIZE);
   }
 #endif
 
