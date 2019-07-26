@@ -63,7 +63,13 @@ GonkDisplayJB::GonkDisplayJB()
                  HWC_HARDWARE_COMPOSER, strerror(-err));
     }
 
-    if (!err) {
+    
+    if (!err && mHwc->common.version == HWC_DEVICE_API_VERSION_1_0) {
+        hwc_close_1(mHwc);
+        mHwc = nullptr;
+    }
+
+    if (!err && mHwc) {
         if (mFBDevice) {
             framebuffer_close(mFBDevice);
             mFBDevice = nullptr;
