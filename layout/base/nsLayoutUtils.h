@@ -1728,6 +1728,15 @@ public:
     return sFontSizeInflationMappingIntercept;
   }
 
+  
+
+
+
+
+  static bool InvalidationDebuggingIsEnabled() {
+    return sInvalidationDebuggingIsEnabled;
+  }
+
   static void Initialize();
   static void Shutdown();
 
@@ -1855,6 +1864,7 @@ private:
   static uint32_t sFontSizeInflationMaxRatio;
   static bool sFontSizeInflationForceEnabled;
   static bool sFontSizeInflationDisabledInMasterProcess;
+  static bool sInvalidationDebuggingIsEnabled;
 };
 
 
