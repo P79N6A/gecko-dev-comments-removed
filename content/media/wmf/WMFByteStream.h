@@ -19,7 +19,7 @@ class nsIThreadPool;
 namespace mozilla {
 
 class MediaResource;
-class AsyncReadRequest;
+class ReadRequest;
 
 
 
@@ -75,12 +75,12 @@ public:
   
   
   void ProcessReadRequest(IMFAsyncResult* aResult,
-                          AsyncReadRequest* aRequestState);
+                          ReadRequest* aRequestState);
 private:
 
   
   
-  nsresult Read(AsyncReadRequest* aRequestState);
+  nsresult Read(ReadRequest* aRequestState);
 
   
   bool IsEOS();
