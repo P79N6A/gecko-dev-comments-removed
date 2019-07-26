@@ -180,18 +180,6 @@ public:
       CreateOffscreenSurface(const IntSize& size,
                              gfxContentType contentType) = 0;
 
-    
-
-
-
-
-
-
-
-    virtual already_AddRefed<gfxASurface>
-      CreateOffscreenImageSurface(const gfxIntSize& aSize,
-                                  gfxContentType aContentType);
-
     virtual already_AddRefed<gfxASurface> OptimizeImage(gfxImageSurface *aSurface,
                                                         gfxImageFormat format);
 
