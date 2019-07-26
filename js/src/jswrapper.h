@@ -169,7 +169,8 @@ typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper
 class JS_FRIEND_API(DeadObjectProxy) : public BaseProxyHandler
 {
   public:
-    static int sDeadObjectFamily;
+    
+    static const char sDeadObjectFamily;
 
     explicit DeadObjectProxy();
 
@@ -219,7 +220,8 @@ TransparentObjectWrapper(JSContext *cx, HandleObject existing, HandleObject obj,
 
 
 
-extern JS_FRIEND_DATA(int) sWrapperFamily;
+
+extern JS_FRIEND_DATA(const char) sWrapperFamily;
 
 inline bool
 IsWrapper(JSObject *obj)

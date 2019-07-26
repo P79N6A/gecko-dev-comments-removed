@@ -1,8 +1,8 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sts=4 et sw=4 tw=99:
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
 
 #include "builtin/ParallelArray.h"
 
@@ -16,9 +16,9 @@
 
 using namespace js;
 
-//
-// ParallelArrayObject
-//
+
+
+
 
 FixedHeapPtr<PropertyName> ParallelArrayObject::ctorNames[NumCtors];
 
@@ -31,14 +31,14 @@ const JSFunctionSpec ParallelArrayObject::methods[] = {
     { "partition", JSOP_NULLWRAPPER, 1, 0, "ParallelArrayPartition" },
     { "flatten",   JSOP_NULLWRAPPER, 0, 0, "ParallelArrayFlatten" },
 
-    // FIXME #838906. Note that `get()` is not currently defined on this table but
-    // rather is assigned to each instance of ParallelArray as an own
-    // property.  This is a bit of a hack designed to supply a
-    // specialized version of get() based on the dimensionality of the
-    // receiver.  In the future we can improve this by (1) extending
-    // TI to track the dimensionality of the receiver and (2) using a
-    // hint to aggressively inline calls to get().
-    // { "get",      JSOP_NULLWRAPPER, 1, 0, "ParallelArrayGet" },
+    
+    
+    
+    
+    
+    
+    
+    
 
     { "toString", JSOP_NULLWRAPPER, 0, 0, "ParallelArrayToString" },
     JS_FS_END
@@ -47,10 +47,10 @@ const JSFunctionSpec ParallelArrayObject::methods[] = {
 const Class ParallelArrayObject::protoClass = {
     "ParallelArray",
     JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray),
-    JS_PropertyStub,         // addProperty
-    JS_DeletePropertyStub,   // delProperty
-    JS_PropertyStub,         // getProperty
-    JS_StrictPropertyStub,   // setProperty
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub
@@ -59,16 +59,16 @@ const Class ParallelArrayObject::protoClass = {
 const Class ParallelArrayObject::class_ = {
     "ParallelArray",
     JSCLASS_HAS_CACHED_PROTO(JSProto_ParallelArray),
-    JS_PropertyStub,         // addProperty
-    JS_DeletePropertyStub,   // delProperty
-    JS_PropertyStub,         // getProperty
-    JS_StrictPropertyStub,   // setProperty
+    JS_PropertyStub,         
+    JS_DeletePropertyStub,   
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub
 };
 
-/*static*/ bool
+ bool
 ParallelArrayObject::initProps(JSContext *cx, HandleObject obj)
 {
     RootedValue undef(cx, UndefinedValue());
@@ -86,7 +86,7 @@ ParallelArrayObject::initProps(JSContext *cx, HandleObject obj)
     return true;
 }
 
-/*static*/ bool
+ bool
 ParallelArrayObject::construct(JSContext *cx, unsigned argc, Value *vp)
 {
     RootedFunction ctor(cx, getConstructor(cx, argc));
@@ -97,7 +97,7 @@ ParallelArrayObject::construct(JSContext *cx, unsigned argc, Value *vp)
 }
 
 
-/* static */ JSFunction *
+ JSFunction *
 ParallelArrayObject::getConstructor(JSContext *cx, unsigned argc)
 {
     RootedPropertyName ctorName(cx, ctorNames[js::Min(argc, NumCtors - 1)]);
@@ -108,22 +108,22 @@ ParallelArrayObject::getConstructor(JSContext *cx, unsigned argc)
     return &ctorValue.toObject().as<JSFunction>();
 }
 
-/*static*/ JSObject *
-ParallelArrayObject::newInstance(JSContext *cx, NewObjectKind newKind /* = GenericObject */)
+ JSObject *
+ParallelArrayObject::newInstance(JSContext *cx, NewObjectKind newKind )
 {
     gc::AllocKind kind = gc::GetGCObjectKind(NumFixedSlots);
     RootedObject result(cx, NewBuiltinClassInstance(cx, &class_, kind, newKind));
     if (!result)
         return NULL;
 
-    // Add in the basic PA properties now with default values:
+    
     if (!initProps(cx, result))
         return NULL;
 
     return result;
 }
 
-/*static*/ bool
+ bool
 ParallelArrayObject::constructHelper(JSContext *cx, MutableHandleFunction ctor, CallArgs &args0)
 {
     RootedObject result(cx, newInstance(cx, TenuredObject));
@@ -140,12 +140,12 @@ ParallelArrayObject::constructHelper(JSContext *cx, MutableHandleFunction ctor, 
                     return false;
             }
 
-            // Create the type object for the PA.  Add in the current
-            // properties as definite properties if this type object is newly
-            // created.  To tell if it is newly created, we check whether it
-            // has any properties yet or not, since any returned type object
-            // must have been created by this same C++ code and hence would
-            // already have properties if it had been returned before.
+            
+            
+            
+            
+            
+            
             types::TypeObject *paTypeObject =
                 types::TypeScript::InitObject(cx, script, pc, JSProto_ParallelArray);
             if (!paTypeObject)
@@ -154,8 +154,8 @@ ParallelArrayObject::constructHelper(JSContext *cx, MutableHandleFunction ctor, 
                 if (!paTypeObject->addDefiniteProperties(cx, result))
                     return false;
 
-                // addDefiniteProperties() above should have added one
-                // property for each of the fixed slots:
+                
+                
                 JS_ASSERT(paTypeObject->getPropertyCount() == NumFixedSlots);
             }
             result->setType(paTypeObject);
@@ -184,12 +184,14 @@ ParallelArrayObject::initClass(JSContext *cx, HandleObject obj)
 {
     JS_ASSERT(obj->isNative());
 
-    // Cache constructor names.
+    
     {
-        const char *ctorStrs[NumCtors] = { "ParallelArrayConstructEmpty",
-                                           "ParallelArrayConstructFromArray",
-                                           "ParallelArrayConstructFromFunction",
-                                           "ParallelArrayConstructFromFunctionMode" };
+        static const char *const ctorStrs[NumCtors] = {
+            "ParallelArrayConstructEmpty",
+            "ParallelArrayConstructFromArray",
+            "ParallelArrayConstructFromFunction",
+            "ParallelArrayConstructFromFunctionMode"
+        };
         for (uint32_t i = 0; i < NumCtors; i++) {
             JSAtom *atom = Atomize(cx, ctorStrs[i], strlen(ctorStrs[i]), InternAtom);
             if (!atom)
@@ -215,7 +217,7 @@ ParallelArrayObject::initClass(JSContext *cx, HandleObject obj)
         return NULL;
     }
 
-    // Define the length getter.
+    
     {
         const char lengthStr[] = "ParallelArrayLength";
         JSAtom *atom = Atomize(cx, lengthStr, strlen(lengthStr));

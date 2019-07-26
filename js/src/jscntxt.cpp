@@ -1190,7 +1190,7 @@ ComputeIsJITBroken()
     std::ifstream cpuinfo("/proc/cpuinfo");
     do {
         if (0 == line.find("Hardware")) {
-            const char* blacklist[] = {
+            static const char* const blacklist[] = {
                 "SCH-I400",     
                 "SGH-T959",     
                 "SGH-I897",     
@@ -1199,7 +1199,7 @@ ComputeIsJITBroken()
                 "GT-I9000",     
                 NULL
             };
-            for (const char** hw = &blacklist[0]; *hw; ++hw) {
+            for (const char* const* hw = &blacklist[0]; *hw; ++hw) {
                 if (line.npos != line.find(*hw)) {
                     __android_log_print(ANDROID_LOG_INFO, "Gecko",
                                         "Blacklisted device `%s'", *hw);
