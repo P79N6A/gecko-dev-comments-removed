@@ -507,7 +507,7 @@ add_test(function test_resend_email() {
     log.debug("Alice signing in");
 
     
-    do_check_neq(fxa.internal.currentAccountState, initialState);
+    do_check_true(fxa.internal.currentAccountState !== initialState);
     let aliceState = fxa.internal.currentAccountState;
 
     
@@ -524,7 +524,7 @@ add_test(function test_resend_email() {
         do_check_eq(result, "alice's session token");
 
         
-        do_check_eq(fxa.internal.currentAccountState, aliceState);
+        do_check_true(fxa.internal.currentAccountState === aliceState);
 
         
         do_check_true(fxa.internal.currentTimer > 0);
