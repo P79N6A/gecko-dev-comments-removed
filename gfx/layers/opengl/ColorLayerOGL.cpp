@@ -20,6 +20,8 @@ RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
 
   
 
+  nsIntRect visibleRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
+
   
 
 
@@ -35,7 +37,7 @@ RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
   ShaderProgramOGL *program = aManager->GetProgram(ColorLayerProgramType,
                                                    aLayer->GetMaskLayer());
   program->Activate();
-  program->SetLayerQuadRect(aLayer->GetBounds());
+  program->SetLayerQuadRect(visibleRect);
   program->SetLayerTransform(aLayer->GetEffectiveTransform());
   program->SetRenderOffset(aOffset);
   program->SetRenderColor(color);
