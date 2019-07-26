@@ -332,6 +332,10 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mUseAsyncRendering = false;
 #endif
 
+#if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
+  mRegisteredScrollPositionListener = false;
+#endif
+
   mWaitingForPaint = false;
 
 #ifdef MOZ_WIDGET_ANDROID
@@ -775,7 +779,17 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetNetscapeWindow(void *value)
 NS_IMETHODIMP nsPluginInstanceOwner::SetEventModel(int32_t eventModel)
 {
 #ifdef XP_MACOSX
-  mEventModel = static_cast<NPEventModel>(eventModel);
+  NPEventModel newEventModel = static_cast<NPEventModel>(eventModel);
+#ifndef NP_NO_CARBON
+  bool eventModelChange = (mEventModel != newEventModel);
+  if (eventModelChange)
+    RemoveScrollPositionListener();
+#endif
+  mEventModel = static_cast<NPEventModel>(newEventModel);
+#ifndef NP_NO_CARBON
+  if (eventModelChange)
+    AddScrollPositionListener();
+#endif
   return NS_OK;
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
@@ -3672,6 +3686,38 @@ nsPluginInstanceOwner::CallSetWindow()
   return NS_OK;
 }
 
+#if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
+void nsPluginInstanceOwner::AddScrollPositionListener()
+{
+  
+  if (!mRegisteredScrollPositionListener && GetEventModel() == NPEventModelCarbon) {
+    for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+      nsIScrollableFrame* sf = do_QueryFrame(f);
+      if (sf) {
+        sf->AddScrollPositionListener(this);
+      }
+    }
+    mRegisteredScrollPositionListener = true;
+  }
+}
+
+void nsPluginInstanceOwner::RemoveScrollPositionListener()
+{
+  
+  
+  
+  if (mRegisteredScrollPositionListener) {
+    for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+      nsIScrollableFrame* sf = do_QueryFrame(f);
+      if (sf) {
+        sf->RemoveScrollPositionListener(this);
+      }
+    }
+    mRegisteredScrollPositionListener = false;
+  }
+}
+#endif
+
 void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
 {
   
@@ -3707,17 +3753,7 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
 
     
 #if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
-    
-    
-    
-    if (GetEventModel() == NPEventModelCarbon) {
-      for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-        nsIScrollableFrame* sf = do_QueryFrame(f);
-        if (sf) {
-          sf->RemoveScrollPositionListener(this);
-        }
-      }
-    }
+    RemoveScrollPositionListener();
 #endif
 
     
@@ -3740,15 +3776,7 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
 
     
 #if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
-    
-    if (GetEventModel() == NPEventModelCarbon) {
-      for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-        nsIScrollableFrame* sf = do_QueryFrame(f);
-        if (sf) {
-          sf->AddScrollPositionListener(this);
-        }
-      }
-    }
+    AddScrollPositionListener();
 #endif
     
     nsFocusManager* fm = nsFocusManager::GetFocusManager();
