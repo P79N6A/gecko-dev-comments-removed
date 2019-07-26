@@ -4,7 +4,9 @@
 
 
 #include "GfxDriverInfo.h"
+
 #include "nsIGfxInfo.h"
+#include "nsTArray.h"
 
 using namespace mozilla::widget;
 

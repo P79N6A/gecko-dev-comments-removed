@@ -4,8 +4,10 @@
 
 
 #include "nsReadableUtils.h"
+
 #include "nsMemory.h"
 #include "nsString.h"
+#include "nsTArray.h"
 #include "nsUTF8Utils.h"
 
 void

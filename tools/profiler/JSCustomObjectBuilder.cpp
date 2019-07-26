@@ -4,8 +4,10 @@
 
 
 #include "JSCustomObjectBuilder.h"
-#include "nsStringGlue.h"
+
 #include "nsDataHashtable.h"
+#include "nsStringGlue.h"
+#include "nsTArray.h"
 #include "nsUTF8Utils.h"
 
 #if _MSC_VER
