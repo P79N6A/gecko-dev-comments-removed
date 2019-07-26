@@ -86,8 +86,9 @@ public:
   
   
   
+  
+  
   virtual void SetIdle() { }
-  virtual void SetActive() { }
 
   
   

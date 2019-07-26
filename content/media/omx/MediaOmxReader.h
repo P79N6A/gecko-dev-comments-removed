@@ -49,6 +49,10 @@ protected:
   
   virtual nsresult InitOmxDecoder();
 
+  
+  
+  virtual void EnsureActive();
+
 public:
   MediaOmxReader(AbstractMediaDecoder* aDecoder);
   ~MediaOmxReader();
@@ -83,7 +87,6 @@ public:
   virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
 
   virtual void SetIdle() MOZ_OVERRIDE;
-  virtual void SetActive() MOZ_OVERRIDE;
 
   void SetAudioChannel(dom::AudioChannel aAudioChannel) {
     mAudioChannel = aAudioChannel;
@@ -99,12 +102,6 @@ public:
   
   void CheckAudioOffload();
 #endif
-
-private:
-  
-  
-  
-  DebugOnly<bool> mIsActive;
 };
 
 } 

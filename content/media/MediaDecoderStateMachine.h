@@ -567,20 +567,13 @@ protected:
 
   
   
-  
   void SetReaderIdle();
-  void SetReaderActive();
 
   
   
   
   
   void DispatchDecodeTasksIfNeeded();
-
-  
-  
-  
-  void EnsureActive();
 
   
   
@@ -850,12 +843,6 @@ protected:
   
   
   bool mDispatchedVideoDecodeTask;
-
-  
-  
-  
-  
-  bool mIsReaderIdle;
 
   
   

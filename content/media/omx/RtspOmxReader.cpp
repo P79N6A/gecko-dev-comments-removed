@@ -299,18 +299,6 @@ nsresult RtspOmxReader::Seek(int64_t aTime, int64_t aStartTime,
   return MediaOmxReader::Seek(aTime, aStartTime, aEndTime, aCurrentTime);
 }
 
-nsresult
-RtspOmxReader::ReadMetadata(MediaInfo* aInfo,
-                            MetadataTags** aTags)
-{
-  SetActive();
-
-  nsresult rv = MediaOmxReader::ReadMetadata(aInfo, aTags);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
 void RtspOmxReader::SetIdle() {
   
   MediaOmxReader::SetIdle();
@@ -326,7 +314,7 @@ void RtspOmxReader::SetIdle() {
   }
 }
 
-void RtspOmxReader::SetActive() {
+void RtspOmxReader::EnsureActive() {
   
   if (mRtspResource) {
     nsIStreamingProtocolController* controller =
@@ -338,7 +326,7 @@ void RtspOmxReader::SetActive() {
   }
 
   
-  MediaOmxReader::SetActive();
+  MediaOmxReader::EnsureActive();
 }
 
 } 
