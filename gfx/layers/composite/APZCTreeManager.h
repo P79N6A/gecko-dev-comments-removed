@@ -166,8 +166,7 @@ public:
 
 
 
-
-  void UpdateZoomConstraints(const uint64_t& aLayersId,
+  void UpdateZoomConstraints(const ScrollableLayerGuid& aGuid,
                              bool aAllowZoom,
                              const CSSToScreenScale& aMinScale,
                              const CSSToScreenScale& aMaxScale);
