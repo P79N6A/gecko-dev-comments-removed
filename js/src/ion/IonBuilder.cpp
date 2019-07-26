@@ -1596,10 +1596,10 @@ IonBuilder::processNextTableSwitchCase(CFGState &state)
     if (current) {
         current->end(MGoto::New(successor));
         successor->addPredecessor(current);
-
-        
-        graph().moveBlockToEnd(successor);
     }
+
+    
+    graph().moveBlockToEnd(successor);
 
     
     
