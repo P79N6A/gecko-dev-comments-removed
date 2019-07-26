@@ -3476,32 +3476,6 @@ class MParCheckInterrupt : public MUnaryInstruction
 };
 
 
-
-class MRecompileCheck : public MNullaryInstruction
-{
-    uint32_t minUses_;
-
-    MRecompileCheck(uint32_t minUses)
-      : minUses_(minUses)
-    {
-        setGuard();
-    }
-
-  public:
-    INSTRUCTION_HEADER(RecompileCheck)
-
-    uint32_t minUses() const {
-        return minUses_;
-    }
-    static MRecompileCheck *New(uint32_t minUses) {
-        return new MRecompileCheck(minUses);
-    }
-    AliasSet getAliasSet() const {
-        return AliasSet::None();
-    }
-};
-
-
 class MInterruptCheck : public MNullaryInstruction
 {
     MInterruptCheck() {

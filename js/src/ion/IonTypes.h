@@ -38,9 +38,6 @@ enum BailoutKind
     Bailout_Monitor,
 
     
-    Bailout_RecompileCheck,
-
-    
     Bailout_BoundsCheck,
 
     

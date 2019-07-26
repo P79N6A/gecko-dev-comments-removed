@@ -262,21 +262,6 @@ CodeGeneratorX86::visitImplicitThis(LImplicitThis *lir)
     return true;
 }
 
-bool
-CodeGeneratorX86::visitRecompileCheck(LRecompileCheck *lir)
-{
-    
-    
-    
-    
-    Operand addr(gen->info().script()->addressOfUseCount());
-    masm.addl(Imm32(1), addr);
-    masm.cmpl(addr, Imm32(lir->mir()->minUses()));
-    if (!bailoutIf(Assembler::AboveOrEqual, lir->snapshot()))
-        return false;
-    return true;
-}
-
 typedef bool (*InterruptCheckFn)(JSContext *);
 static const VMFunction InterruptCheckInfo = FunctionInfo<InterruptCheckFn>(InterruptCheck);
 

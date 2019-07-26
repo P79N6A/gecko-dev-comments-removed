@@ -338,9 +338,6 @@ IonBuilder::build()
             ins->setResumePoint(current->entryResumePoint());
     }
 
-    
-    insertRecompileCheck();
-
     if (script()->argumentsHasVarBinding()) {
         lazyArguments_ = MConstant::New(MagicValue(JS_OPTIMIZED_ARGUMENTS));
         current->add(lazyArguments_);
@@ -763,12 +760,9 @@ IonBuilder::inspectOpcode(JSOp op)
         return true;
 
     switch (op) {
-      case JSOP_LOOPENTRY:
-        insertRecompileCheck();
-        return true;
-
       case JSOP_NOP:
       case JSOP_LINENO:
+      case JSOP_LOOPENTRY:
         return true;
 
       case JSOP_LABEL:
@@ -4973,29 +4967,6 @@ IonBuilder::maybeInsertResume()
     current->add(ins);
 
     return resumeAfter(ins);
-}
-
-void
-IonBuilder::insertRecompileCheck()
-{
-    if (!inliningEnabled())
-        return;
-
-    if (inliningDepth_ > 0)
-        return;
-
-    
-    if (script()->getUseCount() >= js_IonOptions.usesBeforeInlining())
-        return;
-
-    
-    
-    if (!oracle->canInlineCalls())
-        return;
-
-    uint32_t minUses = UsesBeforeIonRecompile(script(), pc);
-    MRecompileCheck *check = MRecompileCheck::New(minUses);
-    current->add(check);
 }
 
 static inline bool
