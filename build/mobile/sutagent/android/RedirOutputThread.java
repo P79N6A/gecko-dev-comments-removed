@@ -17,6 +17,8 @@ public class RedirOutputThread extends Thread
     Process pProc;
     String    strOutput;
     int    nExitCode = -1;
+    private volatile boolean stopRedirRequested = false;
+    private volatile boolean redirStopped = false;
 
     public RedirOutputThread(Process pProc, OutputStream out)
         {
@@ -106,7 +108,8 @@ public class RedirOutputThread extends Thread
                         }
                     }
 
-                bStillRunning = (IsProcRunning(pProc) || (sutOut.available() > 0) || (sutErr.available() > 0));
+                bStillRunning = (stopRedirRequested == false) &&
+                    (IsProcRunning(pProc) || (sutOut.available() > 0) || (sutErr.available() > 0));
                 }
             catch (IOException e)
                 {
@@ -123,6 +126,25 @@ public class RedirOutputThread extends Thread
                 }
             }
 
+        
+        redirStopped = true;
+        if (stopRedirRequested)
+            {
+            synchronized(this) 
+                {
+                notifyAll();
+                }
+            }
+
+        
+        try
+            {
+            pProc.waitFor();
+            }
+        catch (InterruptedException e) 
+            {
+            e.printStackTrace();
+            }
         pProc.destroy();
         buffer = null;
         System.gc();
@@ -144,4 +166,32 @@ public class RedirOutputThread extends Thread
 
         return(bRet);
         }
+
+    public synchronized void stopRedirect()
+        {
+        stopRedirRequested = true;
+        
+        if (!redirStopped)
+            {
+            try 
+                {
+                
+                
+                
+                wait(500);
+                }
+            catch (InterruptedException e) 
+                {
+                e.printStackTrace();
+                }
+            }
+        }
+
+    public void joinAndStopRedirect(long millis) throws InterruptedException
+        {
+        super.join(millis);
+        if (out != null)
+            stopRedirect();
+        }
+
     }
