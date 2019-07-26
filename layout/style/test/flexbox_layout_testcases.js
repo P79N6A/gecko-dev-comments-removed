@@ -33,6 +33,11 @@
 
 
 
+
+
+
+
+
 var gDefaultFlexContainerSize = "200px";
 
 
@@ -385,7 +390,7 @@ var gFlexboxTestcases =
        },
        {
          "flex": "1",
-         "_main-size": [ null,  "1px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
      ]
  },
@@ -416,15 +421,15 @@ var gFlexboxTestcases =
        },
        {
          "flex": "1",
-         "_main-size": [ null,  "1px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
        {
          "flex": "1",
-         "_main-size": [ null,  "1px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
        {
          "flex": "1",
-         "_main-size": [ null,  "1px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
      ]
  },
@@ -441,19 +446,19 @@ var gFlexboxTestcases =
          "flex": "1",
          
          
-         "_main-size": [ null,  "0.966667px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
        {
          "flex": "1",
          
          
-         "_main-size": [ null,  "0.983333px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
        {
          "flex": "1",
          
          
-         "_main-size": [ null,  "0.983333px" ]
+         "_main-size": [ null,  "1px", 0.2 ]
        },
        {
          "flex": "3000000",
