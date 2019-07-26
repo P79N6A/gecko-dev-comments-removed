@@ -25,35 +25,40 @@
 #ifndef HRTFPanner_h
 #define HRTFPanner_h
 
-#include "core/platform/audio/FFTConvolver.h"
-#include "core/platform/audio/HRTFDatabaseLoader.h"
-#include "core/platform/audio/Panner.h"
-#include "modules/webaudio/DelayDSPKernel.h"
+#include "FFTConvolver.h"
+#include "HRTFDatabaseLoader.h"
+#include "DelayProcessor.h"
+
+namespace mozilla {
+struct AudioChunk;
+}
 
 namespace WebCore {
 
-class HRTFPanner : public Panner {
+using mozilla::AudioChunk;
+
+class HRTFPanner {
 public:
     HRTFPanner(float sampleRate, HRTFDatabaseLoader*);
-    virtual ~HRTFPanner();
+    ~HRTFPanner();
 
     
-    virtual void pan(double azimuth, double elevation, const AudioBus* inputBus, AudioBus* outputBus, size_t framesToProcess);
-    virtual void reset();
+    void pan(double azimuth, double elevation, const AudioChunk* inputBus, AudioChunk* outputBus, mozilla::TrackTicks framesToProcess);
+    void reset();
 
     size_t fftSize() const { return m_convolverL1.fftSize(); }
 
     float sampleRate() const { return m_sampleRate; }
 
-    virtual double tailTime() const OVERRIDE;
-    virtual double latencyTime() const OVERRIDE;
+    double tailTime() const;
+    double latencyTime() const;
 
 private:
     
     
     int calculateDesiredAzimuthIndexAndBlend(double azimuth, double& azimuthBlend);
 
-    RefPtr<HRTFDatabaseLoader> m_databaseLoader;
+    mozilla::RefPtr<HRTFDatabaseLoader> m_databaseLoader;
 
     float m_sampleRate;
 
@@ -94,8 +99,8 @@ private:
     FFTConvolver m_convolverL2;
     FFTConvolver m_convolverR2;
 
-    DelayDSPKernel m_delayLineL;
-    DelayDSPKernel m_delayLineR;
+    mozilla::DelayProcessor m_delayLineL;
+    mozilla::DelayProcessor m_delayLineR;
 
     AudioFloatArray m_tempL1;
     AudioFloatArray m_tempR1;
