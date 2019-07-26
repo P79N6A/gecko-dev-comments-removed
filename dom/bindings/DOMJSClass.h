@@ -168,27 +168,20 @@ struct DOMJSClass
   
   
   
-  JSClass mBase;
+  const JSClass mBase;
 
-  DOMClass mClass;
+  const DOMClass mClass;
 
-  static DOMJSClass* FromJSClass(JSClass* base) {
-    MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
-    return reinterpret_cast<DOMJSClass*>(base);
-  }
   static const DOMJSClass* FromJSClass(const JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
     return reinterpret_cast<const DOMJSClass*>(base);
   }
 
-  static DOMJSClass* FromJSClass(js::Class* base) {
-    return FromJSClass(Jsvalify(base));
-  }
   static const DOMJSClass* FromJSClass(const js::Class* base) {
     return FromJSClass(Jsvalify(base));
   }
 
-  JSClass* ToJSClass() { return &mBase; }
+  const JSClass* ToJSClass() const { return &mBase; }
 };
 
 
@@ -198,7 +191,7 @@ struct DOMIfaceAndProtoJSClass
   
   
   
-  JSClass mBase;
+  const JSClass mBase;
 
   
   DOMObjectType mType;
@@ -220,7 +213,7 @@ struct DOMIfaceAndProtoJSClass
     return FromJSClass(Jsvalify(base));
   }
 
-  JSClass* ToJSClass() { return &mBase; }
+  const JSClass* ToJSClass() const { return &mBase; }
 };
 
 inline bool

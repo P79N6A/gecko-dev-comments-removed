@@ -19,7 +19,7 @@ class NumberObject : public JSObject
   public:
     static const unsigned RESERVED_SLOTS = 1;
 
-    static Class class_;
+    static const Class class_;
 
     
 

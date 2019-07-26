@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef builtin_MapObject_h
 #define builtin_MapObject_h
@@ -13,14 +13,14 @@
 
 namespace js {
 
-
-
-
-
-
-
-
-
+/*
+ * Comparing two ropes for equality can fail. The js::HashTable template
+ * requires infallible hash() and match() operations. Therefore we require
+ * all values to be converted to hashable form before being used as a key
+ * in a Map or Set object.
+ *
+ * All values except ropes are hashable as-is.
+ */
 class HashableValue {
     EncapsulatedValue value;
 
@@ -88,7 +88,7 @@ class MapObject : public JSObject {
     enum IteratorKind { Keys, Values, Entries };
 
     static JSObject *initClass(JSContext *cx, JSObject *obj);
-    static Class class_;
+    static const Class class_;
   private:
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
@@ -126,7 +126,7 @@ class SetObject : public JSObject {
   public:
     enum IteratorKind { Values, Entries };
     static JSObject *initClass(JSContext *cx, JSObject *obj);
-    static Class class_;
+    static const Class class_;
   private:
     static const JSPropertySpec properties[];
     static const JSFunctionSpec methods[];
@@ -156,7 +156,7 @@ class SetObject : public JSObject {
     static bool clear(JSContext *cx, unsigned argc, Value *vp);
 };
 
-} 
+} /* namespace js */
 
 extern JSObject *
 js_InitMapClass(JSContext *cx, js::HandleObject obj);
@@ -164,4 +164,4 @@ js_InitMapClass(JSContext *cx, js::HandleObject obj);
 extern JSObject *
 js_InitSetClass(JSContext *cx, js::HandleObject obj);
 
-#endif
+#endif /* builtin_MapObject_h */

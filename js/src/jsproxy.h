@@ -280,9 +280,9 @@ class Proxy
 
 
 
-extern JS_FRIEND_DATA(js::Class* const) FunctionProxyClassPtr;
-extern JS_FRIEND_DATA(js::Class* const) ObjectProxyClassPtr;
-extern JS_FRIEND_DATA(js::Class* const) OuterWindowProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) FunctionProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) ObjectProxyClassPtr;
+extern JS_FRIEND_DATA(const js::Class* const) OuterWindowProxyClassPtr;
 
 inline bool IsObjectProxyClass(const Class *clasp)
 {

@@ -282,7 +282,7 @@ class ArgumentsObject : public JSObject
 class NormalArgumentsObject : public ArgumentsObject
 {
   public:
-    static Class class_;
+    static const Class class_;
 
     
 
@@ -301,7 +301,7 @@ class NormalArgumentsObject : public ArgumentsObject
 class StrictArgumentsObject : public ArgumentsObject
 {
   public:
-    static Class class_;
+    static const Class class_;
 };
 
 } 

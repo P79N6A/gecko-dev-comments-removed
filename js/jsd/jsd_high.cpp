@@ -1,24 +1,24 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-
-
-
-
-
-
-
-
+/*
+ * JavaScript Debugging support - 'High Level' functions
+ */
 
 #include "jsd.h"
 #include "nsCxPusher.h"
 
 using mozilla::AutoSafeJSContext;
 
+/***************************************************************************/
 
-
- 
+/* XXX not 'static' because of old Mac CodeWarrior bug */ 
 JSCList _jsd_context_list = JS_INIT_STATIC_CLIST(&_jsd_context_list);
 
-
+/* these are used to connect JSD_SetUserCallbacks() with JSD_DebuggerOn() */
 static JSD_UserCallbacks _callbacks;
 static void*             _user = NULL; 
 static JSRuntime*        _jsrt = NULL;
@@ -40,19 +40,19 @@ void JSD_ASSERT_VALID_CONTEXT(JSDContext* jsdc)
 }
 #endif
 
-
-
+/***************************************************************************/
+/* xpconnect related utility functions implemented in jsd_xpc.cpp */
 
 extern void
 global_finalize(JSFreeOp* fop, JSObject* obj);
 
 extern JSObject*
-CreateJSDGlobal(JSContext *cx, JSClass *clasp);
+CreateJSDGlobal(JSContext *cx, const JSClass *clasp);
+
+/***************************************************************************/
 
 
-
-
-static JSClass global_class = {
+static const JSClass global_class = {
     "JSDGlobal", JSCLASS_GLOBAL_FLAGS |
     JSCLASS_HAS_PRIVATE | JSCLASS_PRIVATE_IS_NSISUPPORTS,
     JS_PropertyStub,  JS_DeletePropertyStub,  JS_PropertyStub,  JS_StrictPropertyStub,
@@ -168,15 +168,15 @@ _destroyJSDContext(JSDContext* jsdc)
 
     jsdc->inited = false;
 
-    
-
-
-
-
-
+    /*
+    * We should free jsdc here, but we let it leak in case there are any 
+    * asynchronous hooks calling into the system using it as a handle
+    *
+    * XXX we also leak the locks
+    */
 }
 
-
+/***************************************************************************/
 
 JSDContext*
 jsd_DebuggerOnForUser(JSRuntime*         jsrt, 
@@ -190,13 +190,13 @@ jsd_DebuggerOnForUser(JSRuntime*         jsrt,
     if( ! jsdc )
         return NULL;
 
-    
-
-
-
-
-
-
+    /*
+     * Set hooks here.  The new/destroy script hooks are on even when
+     * the debugger is paused.  The destroy hook so we'll clean up
+     * internal data structures when scripts are destroyed, and the
+     * newscript hook for backwards compatibility for now.  We'd like
+     * to stop doing that.
+     */
     JS_SetNewScriptHookProc(jsdc->jsrt, jsd_NewScriptHookProc, jsdc);
     JS_SetDestroyScriptHookProc(jsdc->jsrt, jsd_DestroyScriptHookProc, jsdc);
     jsd_DebuggerUnpause(jsdc);
@@ -218,11 +218,11 @@ void
 jsd_DebuggerOff(JSDContext* jsdc)
 {
     jsd_DebuggerPause(jsdc, true);
-    
+    /* clear hooks here */
     JS_SetNewScriptHookProc(jsdc->jsrt, NULL, NULL);
     JS_SetDestroyScriptHookProc(jsdc->jsrt, NULL, NULL);
 
-    
+    /* clean up */
     JSD_LockScriptSubsystem(jsdc);
     jsd_DestroyScriptManager(jsdc);
     JSD_UnlockScriptSubsystem(jsdc);
@@ -343,7 +343,7 @@ jsd_DebugErrorHook(JSContext *cx, const char *message,
     if( JSD_IS_DANGEROUS_THREAD(jsdc) )
         return true;
 
-    
+    /* local in case hook gets cleared on another thread */
     JSD_LOCK();
     errorReporter     = jsdc->errorReporter;
     errorReporterData = jsdc->errorReporterData;
@@ -364,7 +364,7 @@ jsd_DebugErrorHook(JSContext *cx, const char *message,
             JSD_ExecutionHookProc   hook;
             void*                   hookData;
 
-            
+            /* local in case hook gets cleared on another thread */
             JSD_LOCK();
             hook = jsdc->debugBreakHook;
             hookData = jsdc->debugBreakHookData;
@@ -372,7 +372,7 @@ jsd_DebugErrorHook(JSContext *cx, const char *message,
 
             jsd_CallExecutionHook(jsdc, cx, JSD_HOOK_DEBUG_REQUESTED,
                                   hook, hookData, &rval);
-            
+            /* XXX Should make this dependent on ExecutionHook retval */
             return true;
         }
         case JSD_ERROR_REPORTER_CLEAR_RETURN:

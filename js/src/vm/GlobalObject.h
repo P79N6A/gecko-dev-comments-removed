@@ -236,7 +236,7 @@ class GlobalObject : public JSObject
     inline void setCreateArrayFromBuffer(Handle<JSFunction*> fun);
 
   public:
-    static GlobalObject *create(JSContext *cx, Class *clasp);
+    static GlobalObject *create(JSContext *cx, const Class *clasp);
 
     
 
@@ -254,13 +254,13 @@ class GlobalObject : public JSObject
 
 
 
-    JSObject *createBlankPrototype(JSContext *cx, js::Class *clasp);
+    JSObject *createBlankPrototype(JSContext *cx, const js::Class *clasp);
 
     
 
 
 
-    JSObject *createBlankPrototypeInheriting(JSContext *cx, js::Class *clasp, JSObject &proto);
+    JSObject *createBlankPrototypeInheriting(JSContext *cx, const js::Class *clasp, JSObject &proto);
 
     JSObject *getOrCreateObjectPrototype(JSContext *cx) {
         if (functionObjectClassesInitialized())

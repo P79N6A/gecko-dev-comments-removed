@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "builtin/Module.h"
 
@@ -14,13 +14,13 @@ namespace js {
 typedef Rooted<Module*> RootedModule;
 }
 
-Class Module::class_ = {
+const Class Module::class_ = {
     "Module",
     JSCLASS_HAS_RESERVED_SLOTS(2) | JSCLASS_IS_ANONYMOUS,
-    JS_PropertyStub,        
-    JS_DeletePropertyStub,  
-    JS_PropertyStub,        
-    JS_StrictPropertyStub,  
+    JS_PropertyStub,        /* addProperty */
+    JS_DeletePropertyStub,  /* delProperty */
+    JS_PropertyStub,        /* getProperty */
+    JS_StrictPropertyStub,  /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub

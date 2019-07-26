@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #ifndef jit_AsmJSModule_h
 #define jit_AsmJSModule_h
@@ -21,14 +21,14 @@
 
 namespace js {
 
-
+// These EcmaScript-defined coercions form the basis of the asm.js type system.
 enum AsmJSCoercion
 {
     AsmJS_ToInt32,
     AsmJS_ToNumber
 };
 
-
+// The asm.js spec recognizes this set of builtin Math functions.
 enum AsmJSMathBuiltin
 {
     AsmJSMathBuiltin_sin, AsmJSMathBuiltin_cos, AsmJSMathBuiltin_tan,
@@ -38,16 +38,16 @@ enum AsmJSMathBuiltin
     AsmJSMathBuiltin_abs, AsmJSMathBuiltin_atan2, AsmJSMathBuiltin_imul
 };
 
-
-
-
-
-
-
-
-
-
-
+// An asm.js module represents the collection of functions nested inside a
+// single outer "use asm" function. For example, this asm.js module:
+//   function() { "use asm"; function f() {} function g() {} return f }
+// contains the functions 'f' and 'g'.
+//
+// An asm.js module contains both the jit-code produced by compiling all the
+// functions in the module as well all the data required to perform the
+// link-time validation step in the asm.js spec.
+//
+// NB: this means that AsmJSModule must be GC-safe.
 class AsmJSModule
 {
   public:
@@ -65,7 +65,7 @@ class AsmJSModule
                     uint32_t index_;
                     VarInitKind initKind_;
                     union {
-                        Value constant_; 
+                        Value constant_; // will only contain int32/double
                         AsmJSCoercion coercion_;
                     } init;
                 } var;
@@ -249,7 +249,7 @@ class AsmJSModule
     };
 
 #if defined(MOZ_VTUNE) or defined(JS_ION_PERF)
-    
+    // Function information to add to the VTune JIT profiler following linking.
     struct ProfiledFunction
     {
         JSAtom *name;
@@ -331,9 +331,9 @@ class AsmJSModule
         uint32_t                          numFFIs_;
         size_t                            funcPtrTableAndExitBytes_;
         bool                              hasArrayView_;
-        size_t                            functionBytes_; 
-        size_t                            codeBytes_;     
-        size_t                            totalBytes_;    
+        size_t                            functionBytes_; // just the function bodies, no stubs
+        size_t                            codeBytes_;     // function bodies and stubs
+        size_t                            totalBytes_;    // function bodies, stubs, and global data
     } pod;
 
     uint8_t *                             code_;
@@ -549,25 +549,25 @@ class AsmJSModule
         return functionCounts_[i];
     }
 
-    
-    
-    
+    // An Exit holds bookkeeping information about an exit; the ExitDatum
+    // struct overlays the actual runtime data stored in the global data
+    // section.
     struct ExitDatum
     {
         uint8_t *exit;
         HeapPtrFunction fun;
     };
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    // Global data section
+    //
+    // The global data section is placed after the executable code (i.e., at
+    // offset codeBytes_) in the module's linear allocation. The global data
+    // are laid out in this order:
+    //   0. a pointer/descriptor for the heap that was linked to the module
+    //   1. global variable state (elements are sizeof(uint64_t))
+    //   2. interleaved function-pointer tables and exits. These are allocated
+    //      while type checking function bodies (as exits and uses of
+    //      function-pointer tables are encountered).
     uint8_t *globalData() const {
         JS_ASSERT(code_);
         return code_ + pod.codeBytes_;
@@ -705,15 +705,15 @@ class AsmJSModule
         exitIndexToGlobalDatum(exitIndex).exit = interpExitTrampoline(exit(exitIndex));
     }
 
-    
+    // Part of about:memory reporting:
     void sizeOfMisc(mozilla::MallocSizeOf mallocSizeOf, size_t *asmJSModuleCode,
                     size_t *asmJSModuleData);
 };
 
-
-
-
-
+// An AsmJSModuleObject is an internal implementation object (i.e., not exposed
+// directly to user script) which manages the lifetime of an AsmJSModule. A
+// JSObject is necessary since we want LinkAsmJS/CallAsmJS JSFunctions to be
+// able to point to their module via their extended slots.
 class AsmJSModuleObject : public JSObject
 {
     static const unsigned MODULE_SLOT = 0;
@@ -721,8 +721,8 @@ class AsmJSModuleObject : public JSObject
   public:
     static const unsigned RESERVED_SLOTS = 1;
 
-    
-    
+    // On success, return an AsmJSModuleClass JSObject that has taken ownership
+    // (and release()ed) the given module.
     static AsmJSModuleObject *create(ExclusiveContext *cx, ScopedJSDeletePtr<AsmJSModule> *module);
 
     AsmJSModule &module() const;
@@ -732,11 +732,11 @@ class AsmJSModuleObject : public JSObject
         module().sizeOfMisc(mallocSizeOf, asmJSModuleCode, asmJSModuleData);
     }
 
-    static Class class_;
+    static const Class class_;
 };
 
-}  
+}  // namespace js
 
-#endif  
+#endif  // JS_ION
 
-#endif 
+#endif /* jit_AsmJSModule_h */

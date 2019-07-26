@@ -1124,7 +1124,7 @@ nsJSContext::GetGlobalObject()
   }
 #endif
 
-  JSClass *c = JS_GetClass(global);
+  const JSClass *c = JS_GetClass(global);
 
   
   

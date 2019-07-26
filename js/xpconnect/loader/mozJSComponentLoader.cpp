@@ -59,7 +59,7 @@ using namespace JS;
 
 
 
-static JSClass kFakeBackstagePassJSClass =
+static const JSClass kFakeBackstagePassJSClass =
 {
     "FakeBackstagePass",
     0,

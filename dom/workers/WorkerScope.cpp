@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
+/* vim: set ts=2 et sw=2 tw=80: */
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "WorkerScope.h"
 
@@ -61,7 +61,7 @@ namespace {
 class WorkerGlobalScope : public workers::EventTarget,
                           public nsIGlobalObject
 {
-  static JSClass sClass;
+  static const JSClass sClass;
   static const JSPropertySpec sProperties[];
   static const JSFunctionSpec sFunctions[];
 
@@ -79,7 +79,7 @@ class WorkerGlobalScope : public workers::EventTarget,
     SLOT_COUNT
   };
 
-  
+  // Must be traced!
   JS::Heap<JS::Value> mSlots[SLOT_COUNT];
 
   enum
@@ -96,7 +96,7 @@ protected:
   WorkerPrivate* mWorker;
 
 public:
-  static JSClass*
+  static const JSClass*
   Class()
   {
     return &sClass;
@@ -129,7 +129,7 @@ protected:
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  
+  // nsIGlobalObject
   virtual JSObject* GetGlobalJSObject() MOZ_OVERRIDE
   {
     mWorker->AssertIsOnWorkerThread();
@@ -653,7 +653,7 @@ NS_INTERFACE_MAP_BEGIN(WorkerGlobalScope)
   NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, DOMBindingBase)
 NS_INTERFACE_MAP_END
 
-JSClass WorkerGlobalScope::sClass = {
+const JSClass WorkerGlobalScope::sClass = {
   "WorkerGlobalScope",
   0,
   JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,
@@ -691,8 +691,8 @@ const char* const WorkerGlobalScope::sEventStrings[STRING_COUNT] = {
 
 class DedicatedWorkerGlobalScope : public WorkerGlobalScope
 {
-  static DOMJSClass sClass;
-  static DOMIfaceAndProtoJSClass sProtoClass;
+  static const DOMJSClass sClass;
+  static const DOMIfaceAndProtoJSClass sProtoClass;
   static const JSPropertySpec sProperties[];
   static const JSFunctionSpec sFunctions[];
 
@@ -706,19 +706,19 @@ class DedicatedWorkerGlobalScope : public WorkerGlobalScope
   static const char* const sEventStrings[STRING_COUNT];
 
 public:
-  static JSClass*
+  static const JSClass*
   Class()
   {
     return sClass.ToJSClass();
   }
 
-  static JSClass*
+  static const JSClass*
   ProtoClass()
   {
     return sProtoClass.ToJSClass();
   }
 
-  static DOMClass*
+  static const DOMClass*
   DOMClassStruct()
   {
     return &sClass.mClass;
@@ -732,7 +732,7 @@ public:
                    sProperties, sFunctions, NULL, NULL);
     if (proto) {
       js::SetReservedSlot(proto, DOM_PROTO_INSTANCE_CLASS_SLOT,
-                          JS::PrivateValue(DOMClassStruct()));
+                          JS::PrivateValue(const_cast<DOMClass *>(DOMClassStruct())));
     }
     return proto;
   }
@@ -845,7 +845,7 @@ private:
   static DedicatedWorkerGlobalScope*
   GetInstancePrivate(JSContext* aCx, JSObject* aObj, const char* aFunctionName)
   {
-    JSClass* classPtr = JS_GetClass(aObj);
+    const JSClass* classPtr = JS_GetClass(aObj);
     if (classPtr == Class()) {
       return UnwrapDOMObject<DedicatedWorkerGlobalScope>(aObj);
     }
@@ -931,10 +931,10 @@ private:
   }
 };
 
-DOMJSClass DedicatedWorkerGlobalScope::sClass = {
+const DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   {
-    
-    
+    // We don't have to worry about Xray expando slots here because we'll never
+    // have an Xray wrapper to a worker global scope.
     "DedicatedWorkerGlobalScope",
     JSCLASS_DOM_GLOBAL | JSCLASS_IS_DOMJSCLASS | JSCLASS_IMPLEMENTS_BARRIERS |
     JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(DOM_GLOBAL_SLOTS) | JSCLASS_NEW_RESOLVE,
@@ -949,27 +949,27 @@ DOMJSClass DedicatedWorkerGlobalScope::sClass = {
   }
 };
 
-DOMIfaceAndProtoJSClass DedicatedWorkerGlobalScope::sProtoClass = {
+const DOMIfaceAndProtoJSClass DedicatedWorkerGlobalScope::sProtoClass = {
   {
-    
-    
-    
-    
+    // XXXbz we use "DedicatedWorkerGlobalScope" here to match sClass
+    // so that we can JS_InitClass this JSClass and then
+    // call JS_NewObject with our sClass and have it find the right
+    // prototype.
     "DedicatedWorkerGlobalScope",
     JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(2),
-    JS_PropertyStub,       
-    JS_DeletePropertyStub, 
-    JS_PropertyStub,       
-    JS_StrictPropertyStub, 
+    JS_PropertyStub,       /* addProperty */
+    JS_DeletePropertyStub, /* delProperty */
+    JS_PropertyStub,       /* getProperty */
+    JS_StrictPropertyStub, /* setProperty */
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub,
-    nullptr,               
-    nullptr,               
-    nullptr,               
-    nullptr,               
-    nullptr,               
-    nullptr,               
+    nullptr,               /* finalize */
+    nullptr,               /* checkAccess */
+    nullptr,               /* call */
+    nullptr,               /* hasInstance */
+    nullptr,               /* construct */
+    nullptr,               /* trace */
     JSCLASS_NO_INTERNAL_MEMBERS
   },
   eInterfacePrototype,
@@ -998,10 +998,10 @@ WorkerGlobalScope*
 WorkerGlobalScope::GetInstancePrivate(JSContext* aCx, JSObject* aObj,
                                       const char* aFunctionName)
 {
-  JSClass* classPtr = JS_GetClass(aObj);
+  const JSClass* classPtr = JS_GetClass(aObj);
 
-  
-  
+  // We can only make DedicatedWorkerGlobalScope, not WorkerGlobalScope, so this
+  // should never happen.
   JS_ASSERT(classPtr != Class());
 
   if (classPtr == DedicatedWorkerGlobalScope::Class()) {
@@ -1019,7 +1019,7 @@ WorkerGlobalScope::IsWorkerGlobalScope(JS::Handle<JS::Value> v)
   return v.isObject() && JS_GetClass(&v.toObject()) == DedicatedWorkerGlobalScope::Class();
 }
 
-} 
+} /* anonymous namespace */
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -1043,16 +1043,16 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
 
   JSAutoCompartment ac(aCx, global);
 
-  
+  // Make the private slots now so that all our instance checks succeed.
   if (!DedicatedWorkerGlobalScope::InitPrivate(aCx, global, worker)) {
     return NULL;
   }
 
-  
-  
-  
-  
-  
+  // Proto chain should be:
+  //   global -> DedicatedWorkerGlobalScope
+  //          -> WorkerGlobalScope
+  //          -> EventTarget
+  //          -> Object
 
   JS::Rooted<JSObject*> eventTargetProto(aCx,
     EventTargetBinding_workers::GetProtoObject(aCx, global));
@@ -1090,13 +1090,13 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
     }
   }
 
-  
+  // Init other classes we care about.
   if (!events::InitClasses(aCx, global, false) ||
       !file::InitClasses(aCx, global)) {
     return NULL;
   }
 
-  
+  // Init other paris-bindings.
   if (!DOMExceptionBinding::GetConstructorObject(aCx, global) ||
       !EventBinding::GetConstructorObject(aCx, global) ||
       !FileReaderSyncBinding_workers::GetConstructorObject(aCx, global) ||
@@ -1121,7 +1121,7 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
 }
 
 bool
-ClassIsWorkerGlobalScope(JSClass* aClass)
+ClassIsWorkerGlobalScope(const JSClass* aClass)
 {
   return WorkerGlobalScope::Class() == aClass ||
          DedicatedWorkerGlobalScope::Class() == aClass;

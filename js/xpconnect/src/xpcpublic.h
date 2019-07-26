@@ -94,7 +94,7 @@ xpc_DelocalizeRuntime(JSRuntime *rt);
 
 
 
-static inline bool IS_WN_CLASS(js::Class* clazz)
+static inline bool IS_WN_CLASS(const js::Class* clazz)
 {
     return clazz->ext.isWrappedNative;
 }

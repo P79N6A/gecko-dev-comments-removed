@@ -2004,7 +2004,7 @@ nsScriptSecurityManager::old_doGetObjectPrincipal(JS::Handle<JSObject*> aObj,
         }
     }
 
-    js::Class *jsClass = js::GetObjectClass(obj);
+    const js::Class *jsClass = js::GetObjectClass(obj);
 
     do {
         

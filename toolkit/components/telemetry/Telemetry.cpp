@@ -677,7 +677,7 @@ JSHistogram_Clear(JSContext *cx, unsigned argc, JS::Value *vp)
 nsresult
 WrapAndReturnHistogram(Histogram *h, JSContext *cx, JS::Value *ret)
 {
-  static JSClass JSHistogram_class = {
+  static const JSClass JSHistogram_class = {
     "JSHistogram",  
     JSCLASS_HAS_PRIVATE, 
     JS_PropertyStub, JS_DeletePropertyStub, JS_PropertyStub, JS_StrictPropertyStub,

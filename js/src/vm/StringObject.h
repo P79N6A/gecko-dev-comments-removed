@@ -20,7 +20,7 @@ class StringObject : public JSObject
   public:
     static const unsigned RESERVED_SLOTS = 2;
 
-    static Class class_;
+    static const Class class_;
 
     
 

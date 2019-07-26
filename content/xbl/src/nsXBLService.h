@@ -163,10 +163,18 @@ public:
   nsrefcnt Release() { return Drop(); }
 
   
+  
+  
+  
+  
+  
+  
+  
+  
   static nsXBLJSClass*
-  fromJSClass(JSClass* c)
+  fromJSClass(const JSClass* c)
   {
-    nsXBLJSClass* x = static_cast<nsXBLJSClass*>(c);
+    nsXBLJSClass* x = const_cast<nsXBLJSClass*>(static_cast<const nsXBLJSClass*>(c));
     MOZ_ASSERT(nsXBLService::getClass(x->mKey) == x);
     return x;
   }

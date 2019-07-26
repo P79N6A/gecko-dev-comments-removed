@@ -27,7 +27,7 @@ InitClass(JSContext* aCx, JSObject* aGlobal, JSObject* aProto,
 } 
 
 bool
-ClassIsWorker(JSClass* aClass);
+ClassIsWorker(const JSClass* aClass);
 
 END_WORKERS_NAMESPACE
 

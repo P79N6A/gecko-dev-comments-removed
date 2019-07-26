@@ -25,7 +25,7 @@ typedef JSThreadSafeNative ThreadSafeNative;
 class JSFunction : public JSObject
 {
   public:
-    static js::Class class_;
+    static const js::Class class_;
 
     enum Flags {
         INTERPRETED      = 0x0001,  
@@ -559,7 +559,7 @@ CloneFunctionAndScript(JSContext *cx, HandleObject enclosingScope, HandleFunctio
 
 
 extern void
-ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
+ReportIncompatibleMethod(JSContext *cx, CallReceiver call, const Class *clasp);
 
 
 

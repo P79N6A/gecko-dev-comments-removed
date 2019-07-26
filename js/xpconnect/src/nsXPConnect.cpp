@@ -404,7 +404,7 @@ TraceXPCGlobal(JSTracer *trc, JSObject *obj)
 #include "mozilla/Preferences.h"
 #include "nsIXULRuntime.h"
 static void
-CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
+CheckTypeInference(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal)
 {
     
     if (strcmp(clasp->name, "Sandbox") ||
@@ -443,7 +443,7 @@ CheckTypeInference(JSContext *cx, JSClass *clasp, nsIPrincipal *principal)
 namespace xpc {
 
 JSObject*
-CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
+CreateGlobalObject(JSContext *cx, const JSClass *clasp, nsIPrincipal *principal,
                    JS::CompartmentOptions& aOptions)
 {
     
@@ -467,7 +467,7 @@ CreateGlobalObject(JSContext *cx, JSClass *clasp, nsIPrincipal *principal,
     
     
     
-    if (!((js::Class*)clasp)->ext.isWrappedNative)
+    if (!((const js::Class*)clasp)->ext.isWrappedNative)
     {
         VerifyTraceXPCGlobalCalledTracer trc;
         JS_TracerInit(&trc.base, JS_GetRuntime(cx), VerifyTraceXPCGlobalCalled);

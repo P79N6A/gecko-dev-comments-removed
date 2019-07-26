@@ -355,8 +355,8 @@ class ExclusiveContext : public ThreadSafeContext
 
     
     inline bool typeInferenceEnabled() const;
-    types::TypeObject *getNewType(Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
-    types::TypeObject *getLazyType(Class *clasp, TaggedProto proto);
+    types::TypeObject *getNewType(const Class *clasp, TaggedProto proto, JSFunction *fun = NULL);
+    types::TypeObject *getLazyType(const Class *clasp, TaggedProto proto);
     inline js::LifoAlloc &typeLifoAlloc();
 
     

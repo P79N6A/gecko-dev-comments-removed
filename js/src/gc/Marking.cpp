@@ -1,8 +1,8 @@
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sts=4 et sw=4 tw=99:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gc/Marking.h"
 
@@ -29,35 +29,35 @@ void * const js::NullPtr::constNullValue = NULL;
 
 JS_PUBLIC_DATA(void * const) JS::NullPtr::constNullValue = NULL;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * There are two mostly separate mark paths. The first is a fast path used
+ * internally in the GC. The second is a slow path used for root marking and
+ * for API consumers like the cycle collector or Class::trace implementations.
+ *
+ * The fast path uses explicit stacks. The basic marking process during a GC is
+ * that all roots are pushed on to a mark stack, and then each item on the
+ * stack is scanned (possibly pushing more stuff) until the stack is empty.
+ *
+ * PushMarkStack pushes a GC thing onto the mark stack. In some cases (shapes
+ * or strings) it eagerly marks the object rather than pushing it. Popping and
+ * scanning is done by the processMarkStackTop method. For efficiency reasons
+ * like tail recursion elimination that method also implements the scanning of
+ * objects. For other GC things it uses helper methods.
+ *
+ * Most of the marking code outside Marking.cpp uses functions like MarkObject,
+ * MarkString, etc. These functions check if an object is in the compartment
+ * currently being GCed. If it is, they call PushMarkStack. Roots are pushed
+ * this way as well as pointers traversed inside trace hooks (for things like
+ * PropertyIteratorObjects). It is always valid to call a MarkX function
+ * instead of PushMarkStack, although it may be slower.
+ *
+ * The MarkX functions also handle non-GC object traversal. In this case, they
+ * call a callback for each object visited. This is a recursive process; the
+ * mark stacks are not involved. These callbacks may ask for the outgoing
+ * pointers to be visited. Eventually, this leads to the MarkChildren functions
+ * being called. These functions duplicate much of the functionality of
+ * scanning functions, but they don't push onto an explicit stack.
+ */
 
 static inline void
 PushMarkStack(GCMarker *gcmarker, JSObject *thing);
@@ -88,10 +88,10 @@ static void MarkChildren(JSTracer *trc, BaseShape *base);
 static void MarkChildren(JSTracer *trc, types::TypeObject *type);
 static void MarkChildren(JSTracer *trc, jit::IonCode *code);
 
-} 
-} 
+} /* namespace gc */
+} /* namespace js */
 
-
+/*** Object Marking ***/
 
 #ifdef DEBUG
 template<typename T>
@@ -122,7 +122,7 @@ CheckMarkedThing(JSTracer *trc, T *thing)
     JS_ASSERT(trc);
     JS_ASSERT(thing);
 
-    
+    /* This function uses data that's not available in the nursery. */
     if (IsInsideNursery(trc->runtime, thing))
         return;
 
@@ -150,12 +150,12 @@ CheckMarkedThing(JSTracer *trc, T *thing)
     JS_ASSERT_IF(IS_GC_MARKING_TRACER(trc) && AsGCMarker(trc)->getMarkColor() == GRAY,
                  thing->zone()->isGCMarkingGray() || rt->isAtomsZone(thing->zone()));
 
-    
-
-
-
-
-
+    /*
+     * Try to assert that the thing is allocated.  This is complicated by the
+     * fact that allocated things may still contain the poison pattern if that
+     * part has not been overwritten, and that the free span list head in the
+     * ArenaHeader may not be synced with the real one in ArenaLists.
+     */
     JS_ASSERT_IF(IsThingPoisoned(thing) && rt->isHeapBusy(),
                  !InFreeList(thing->arenaHeader(), thing));
 #endif
@@ -171,19 +171,19 @@ MarkInternal(JSTracer *trc, T **thingp)
     CheckMarkedThing(trc, thing);
 
     if (!trc->callback) {
-        
-
-
-
-
-
+        /*
+         * We may mark a Nursery thing outside the context of the
+         * MinorCollectionTracer because of a pre-barrier. The pre-barrier is
+         * not needed in this case because we perform a minor collection before
+         * each incremental slice.
+         */
         if (IsInsideNursery(trc->runtime, thing))
             return;
 
-        
-
-
-
+        /*
+         * Don't mark things outside a compartment if we are in a
+         * per-compartment GC.
+         */
         if (!thing->zone()->isGCMarking())
             return;
 
@@ -222,8 +222,8 @@ Mark(JSTracer *trc, EncapsulatedPtr<T> *thing, const char *name)
     MarkInternal(trc, thing->unsafeGet());
 }
 
-} 
-} 
+} /* namespace gc */
+} /* namespace js */
 
 template <typename T>
 static void
@@ -294,13 +294,13 @@ IsAboutToBeFinalized(T **thingp)
     if (!(*thingp)->tenuredZone()->isGCSweeping())
         return false;
 
-    
-
-
-
-
-
-
+    /*
+     * We should return false for things that have been allocated during
+     * incremental sweeping, but this possibility doesn't occur at the moment
+     * because this function is only called at the very start of the sweeping a
+     * compartment group.  Rather than do the extra check, we just assert that
+     * it's not necessary.
+     */
     JS_ASSERT(!(*thingp)->arenaHeader()->allocatedDuringIncremental);
 
     return !(*thingp)->isMarked();
@@ -382,10 +382,10 @@ DeclMarkerImpl(String, JSLinearString)
 DeclMarkerImpl(String, PropertyName)
 DeclMarkerImpl(TypeObject, js::types::TypeObject)
 
-} 
-} 
+} /* namespace gc */
+} /* namespace js */
 
-
+/*** Externally Typed Marking ***/
 
 void
 gc::MarkKind(JSTracer *trc, void **thingp, JSGCTraceKind kind)
@@ -445,7 +445,7 @@ gc::MarkGCThingUnbarriered(JSTracer *trc, void **thingp, const char *name)
     MarkGCThingInternal(trc, thingp, name);
 }
 
-
+/*** ID Marking ***/
 
 static inline void
 MarkIdInternal(JSTracer *trc, jsid *id)
@@ -461,7 +461,7 @@ MarkIdInternal(JSTracer *trc, jsid *id)
         MarkInternal(trc, &obj);
         *id = OBJECT_TO_JSID(obj);
     } else {
-        
+        /* Unset realLocation manually if we do not call MarkInternal. */
         JS_UNSET_TRACING_LOCATION(trc);
     }
 }
@@ -507,7 +507,7 @@ gc::MarkIdRootRange(JSTracer *trc, size_t len, jsid *vec, const char *name)
     }
 }
 
-
+/*** Value Marking ***/
 
 static inline void
 MarkValueInternal(JSTracer *trc, Value *v)
@@ -522,7 +522,7 @@ MarkValueInternal(JSTracer *trc, Value *v)
         else
             v->setObjectOrNull((JSObject *)thing);
     } else {
-        
+        /* Unset realLocation manually if we do not call MarkInternal. */
         JS_UNSET_TRACING_LOCATION(trc);
     }
 }
@@ -611,7 +611,7 @@ gc::IsValueAboutToBeFinalized(Value *v)
     return rv;
 }
 
-
+/*** Slot Marking ***/
 
 bool
 gc::IsSlotMarked(HeapSlot *s)
@@ -661,13 +661,13 @@ ShouldMarkCrossCompartment(JSTracer *trc, JSObject *src, Cell *cell)
 
     JS::Zone *zone = cell->tenuredZone();
     if (color == BLACK) {
-        
-
-
-
-
-
-
+        /*
+         * Having black->gray edges violates our promise to the cycle
+         * collector. This can happen if we're collecting a compartment and it
+         * has an edge to an uncollected compartment: it's possible that the
+         * source and destination of the cross-compartment edge should be gray,
+         * but the source was marked black by the conservative scanner.
+         */
         if (cell->isMarked(GRAY)) {
             JS_ASSERT(!zone->isCollecting());
             trc->runtime->gcFoundBlackGrayEdges = true;
@@ -675,11 +675,11 @@ ShouldMarkCrossCompartment(JSTracer *trc, JSObject *src, Cell *cell)
         return zone->isGCMarking();
     } else {
         if (zone->isGCMarkingBlack()) {
-            
-
-
-
-
+            /*
+             * The destination compartment is being not being marked gray now,
+             * but it will be later, so record the cell so it can be marked gray
+             * at the appropriate time.
+             */
             if (!cell->isMarked())
                 DelayCrossCompartmentGrayMarking(src);
             return false;
@@ -710,7 +710,7 @@ gc::MarkCrossCompartmentSlot(JSTracer *trc, JSObject *src, HeapSlot *dst, const 
         MarkSlot(trc, dst, name);
 }
 
-
+/*** Special Marking ***/
 
 void
 gc::MarkObject(JSTracer *trc, HeapPtr<GlobalObject, JSScript *> *thingp, const char *name)
@@ -738,7 +738,7 @@ gc::IsCellAboutToBeFinalized(Cell **thingp)
     return IsAboutToBeFinalized<Cell>(thingp);
 }
 
-
+/*** Push Mark Stack ***/
 
 #define JS_COMPARTMENT_ASSERT(rt, thing)                                \
     JS_ASSERT((thing)->zone()->isGCMarking())
@@ -757,13 +757,13 @@ PushMarkStack(GCMarker *gcmarker, JSObject *thing)
         gcmarker->pushObject(thing);
 }
 
-
-
-
-
-
-
-
+/*
+ * PushMarkStack for BaseShape unpacks its children directly onto the mark
+ * stack. For a pre-barrier between incremental slices, this may result in
+ * objects in the nursery getting pushed onto the mark stack. It is safe to
+ * ignore these objects because they will be marked by the matching
+ * post-barrier during the minor GC at the start of each incremental slice.
+ */
 static void
 MaybePushMarkStackBetweenSlices(GCMarker *gcmarker, JSObject *thing)
 {
@@ -801,11 +801,11 @@ PushMarkStack(GCMarker *gcmarker, JSScript *thing)
     JS_COMPARTMENT_ASSERT(gcmarker->runtime, thing);
     JS_ASSERT(!IsInsideNursery(gcmarker->runtime, thing));
 
-    
-
-
-
-
+    /*
+     * We mark scripts directly rather than pushing on the stack as they can
+     * refer to other scripts only indirectly (like via nested functions) and
+     * we cannot get to deep recursion.
+     */
     if (thing->markIfUnmarked(gcmarker->getMarkColor()))
         MarkChildren(gcmarker, thing);
 }
@@ -816,10 +816,10 @@ PushMarkStack(GCMarker *gcmarker, LazyScript *thing)
     JS_COMPARTMENT_ASSERT(gcmarker->runtime, thing);
     JS_ASSERT(!IsInsideNursery(gcmarker->runtime, thing));
 
-    
-
-
-
+    /*
+     * We mark lazy scripts directly rather than pushing on the stack as they
+     * only refer to normal scripts and to strings, and cannot recurse.
+     */
     if (thing->markIfUnmarked(gcmarker->getMarkColor()))
         MarkChildren(gcmarker, thing);
 }
@@ -833,7 +833,7 @@ PushMarkStack(GCMarker *gcmarker, Shape *thing)
     JS_COMPARTMENT_ASSERT(gcmarker->runtime, thing);
     JS_ASSERT(!IsInsideNursery(gcmarker->runtime, thing));
 
-    
+    /* We mark shapes directly rather than pushing on the stack. */
     if (thing->markIfUnmarked(gcmarker->getMarkColor()))
         ScanShape(gcmarker, thing);
 }
@@ -857,7 +857,7 @@ PushMarkStack(GCMarker *gcmarker, BaseShape *thing)
     JS_COMPARTMENT_ASSERT(gcmarker->runtime, thing);
     JS_ASSERT(!IsInsideNursery(gcmarker->runtime, thing));
 
-    
+    /* We mark base shapes directly rather than pushing on the stack. */
     if (thing->markIfUnmarked(gcmarker->getMarkColor()))
         ScanBaseShape(gcmarker, thing);
 }
@@ -901,11 +901,11 @@ ScanBaseShape(GCMarker *gcmarker, BaseShape *base)
     if (JSObject *metadata = base->getObjectMetadata())
         MaybePushMarkStackBetweenSlices(gcmarker, metadata);
 
-    
-
-
-
-
+    /*
+     * All children of the owned base shape are consistent with its
+     * unowned one, thus we do not need to trace through children of the
+     * unowned base shape.
+     */
     if (base->isOwned()) {
         UnownedBaseShape *unowned = base->baseUnowned();
         JS_ASSERT(base->compartment() == unowned->compartment());
@@ -919,10 +919,10 @@ ScanLinearString(GCMarker *gcmarker, JSLinearString *str)
     JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, str);
     JS_ASSERT(str->isMarked());
 
-    
-
-
-
+    /*
+     * Add extra asserts to confirm the static type to detect incorrect string
+     * mutations.
+     */
     JS_ASSERT(str->JSString::isLinear());
     while (str->hasBase()) {
         str = str->base();
@@ -933,15 +933,15 @@ ScanLinearString(GCMarker *gcmarker, JSLinearString *str)
     }
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * The function tries to scan the whole rope tree using the marking stack as
+ * temporary storage. If that becomes full, the unscanned ropes are added to
+ * the delayed marking list. When the function returns, the marking stack is
+ * at the same depth as it was on entry. This way we avoid using tags when
+ * pushing ropes to the stack as ropes never leaks to other users of the
+ * stack. This also assumes that a rope can only point to other ropes or
+ * linear strings, it cannot refer to GC things of other types.
+ */
 static void
 ScanRope(GCMarker *gcmarker, JSRope *rope)
 {
@@ -967,10 +967,10 @@ ScanRope(GCMarker *gcmarker, JSRope *rope)
             if (left->isLinear()) {
                 ScanLinearString(gcmarker, &left->asLinear());
             } else {
-                
-
-
-
+                /*
+                 * When both children are ropes, set aside the right one to
+                 * scan it later.
+                 */
                 if (next && !gcmarker->stack.push(reinterpret_cast<uintptr_t>(next)))
                     gcmarker->delayMarkingChildren(next);
                 next = &left->asRope();
@@ -1002,11 +1002,11 @@ PushMarkStack(GCMarker *gcmarker, JSString *str)
 {
     JS_COMPARTMENT_ASSERT_STR(gcmarker->runtime, str);
 
-    
-
-
-
-
+    /*
+     * As string can only refer to other strings we fully scan its GC graph
+     * using the explicit stack when navigating the rope tree to avoid
+     * dealing with strings on the stack in drainMarkStack.
+     */
     if (str->markIfUnmarked())
         ScanString(gcmarker, str);
 }
@@ -1050,24 +1050,24 @@ gc::MarkChildren(JSTracer *trc, BaseShape *base)
     base->markChildren(trc);
 }
 
-
-
-
-
-
-
-
-
+/*
+ * This function is used by the cycle collector to trace through the
+ * children of a BaseShape (and its baseUnowned(), if any). The cycle
+ * collector does not directly care about BaseShapes, so only the
+ * getter, setter, and parent are marked. Furthermore, the parent is
+ * marked only if it isn't the same as prevParent, which will be
+ * updated to the current shape's parent.
+ */
 static inline void
 MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent)
 {
     JS_ASSERT(base);
 
-    
-
-
-
-
+    /*
+     * The cycle collector does not need to trace unowned base shapes,
+     * as they have the same getter, setter and parent as the original
+     * base shape.
+     */
     base->assertConsistency();
 
     if (base->hasGetterObject()) {
@@ -1090,14 +1090,14 @@ MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent
     }
 }
 
-
-
-
-
-
-
-
-
+/*
+ * This function is used by the cycle collector to trace through a
+ * shape. The cycle collector does not care about shapes or base
+ * shapes, so those are not marked. Instead, any shapes or base shapes
+ * that are encountered have their children marked. Stack space is
+ * bounded. If two shapes in a row have the same parent pointer, the
+ * parent pointer will only be marked once.
+ */
 void
 gc::MarkCycleCollectorChildren(JSTracer *trc, Shape *shape)
 {
@@ -1112,7 +1112,7 @@ gc::MarkCycleCollectorChildren(JSTracer *trc, Shape *shape)
 static void
 ScanTypeObject(GCMarker *gcmarker, types::TypeObject *type)
 {
-    
+    /* Don't mark properties for singletons. They'll be purged by the GC. */
     if (!type->singleton) {
         unsigned count = type->getPropertyCount();
         for (unsigned i = 0; i < count; i++) {
@@ -1245,19 +1245,19 @@ struct SlotArrayLayout
     JSObject *obj;
 
     static void staticAsserts() {
-        
+        /* This should have the same layout as three mark stack items. */
         JS_STATIC_ASSERT(sizeof(SlotArrayLayout) == 3 * sizeof(uintptr_t));
     }
 };
 
-
-
-
-
-
-
-
-
+/*
+ * During incremental GC, we return from drainMarkStack without having processed
+ * the entire stack. At that point, JS code can run and reallocate slot arrays
+ * that are stored on the stack. To prevent this from happening, we replace all
+ * ValueArrayTag stack items with SavedValueArrayTag. In the latter, slots
+ * pointers are replaced with slot indexes, and slot array end pointers are
+ * replaced with the kind of index (properties vs. elements).
+ */
 void
 GCMarker::saveValueRanges()
 {
@@ -1313,7 +1313,7 @@ GCMarker::restoreValueArray(JSObject *obj, void **vpp, void **endp)
             *vpp = vp + start;
             *endp = vp + initlen;
         } else {
-            
+            /* The object shrunk, in which case no scanning is needed. */
             *vpp = *endp = vp;
         }
     } else {
@@ -1330,7 +1330,7 @@ GCMarker::restoreValueArray(JSObject *obj, void **vpp, void **endp)
                 *endp = obj->slots + nslots - nfixed;
             }
         } else {
-            
+            /* The object shrunk, in which case no scanning is needed. */
             *vpp = *endp = vp;
         }
     }
@@ -1389,11 +1389,11 @@ GCMarker::processMarkStackOther(SliceBudget &budget, uintptr_t tag, uintptr_t ad
 inline void
 GCMarker::processMarkStackTop(SliceBudget &budget)
 {
-    
-
-
-
-
+    /*
+     * The function uses explicit goto and implements the scanning of the
+     * object directly. It allows to eliminate the tail recursion and
+     * significantly improve the marking performance, see bug 641025.
+     */
     HeapSlot *vp, *end;
     JSObject *obj;
 
@@ -1462,8 +1462,8 @@ GCMarker::processMarkStackTop(SliceBudget &budget)
         Shape *shape = obj->lastProperty();
         PushMarkStack(this, shape);
 
-        
-        Class *clasp = type->clasp;
+        /* Call the trace hook if necessary. */
+        const Class *clasp = type->clasp;
         if (clasp->trace) {
             JS_ASSERT_IF(runtime->gcMode == JSGC_MODE_INCREMENTAL &&
                          runtime->gcIncrementalEnabled,
@@ -1531,11 +1531,11 @@ GCMarker::drainMarkStack(SliceBudget &budget)
         if (!hasDelayedChildren())
             break;
 
-        
-
-
-
-
+        /*
+         * Mark children of things that caused too deep recursion during the
+         * above tracing. Don't do this until we're done with everything
+         * else.
+         */
         if (!markDelayedChildren(budget)) {
             saveValueRanges();
             return false;
@@ -1594,10 +1594,10 @@ UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind);
 
 struct UnmarkGrayTracer : public JSTracer
 {
-    
-
-
-
+    /*
+     * We set eagerlyTraceWeakMaps to false because the cycle collector will fix
+     * up any color mismatches involving weakmaps when it runs.
+     */
     UnmarkGrayTracer(JSRuntime *rt)
       : tracingShape(false), previousShape(NULL), unmarkedAny(false)
     {
@@ -1612,56 +1612,56 @@ struct UnmarkGrayTracer : public JSTracer
         eagerlyTraceWeakMaps = DoNotTraceWeakMaps;
     }
 
-    
+    /* True iff we are tracing the immediate children of a shape. */
     bool tracingShape;
 
-    
+    /* If tracingShape, shape child or NULL. Otherwise, NULL. */
     void *previousShape;
 
-    
+    /* Whether we unmarked anything. */
     bool unmarkedAny;
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * The GC and CC are run independently. Consequently, the following sequence of
+ * events can occur:
+ * 1. GC runs and marks an object gray.
+ * 2. Some JS code runs that creates a pointer from a JS root to the gray
+ *    object. If we re-ran a GC at this point, the object would now be black.
+ * 3. Now we run the CC. It may think it can collect the gray object, even
+ *    though it's reachable from the JS heap.
+ *
+ * To prevent this badness, we unmark the gray bit of an object when it is
+ * accessed by callers outside XPConnect. This would cause the object to go
+ * black in step 2 above. This must be done on everything reachable from the
+ * object being returned. The following code takes care of the recursive
+ * re-coloring.
+ *
+ * There is an additional complication for certain kinds of edges that are not
+ * contained explicitly in the source object itself, such as from a weakmap key
+ * to its value, and from an object being watched by a watchpoint to the
+ * watchpoint's closure. These "implicit edges" are represented in some other
+ * container object, such as the weakmap or the watchpoint itself. In these
+ * cases, calling unmark gray on an object won't find all of its children.
+ *
+ * Handling these implicit edges has two parts:
+ * - A special pass enumerating all of the containers that know about the
+ *   implicit edges to fix any black-gray edges that have been created. This
+ *   is implemented in nsXPConnect::FixWeakMappingGrayBits.
+ * - To prevent any incorrectly gray objects from escaping to live JS outside
+ *   of the containers, we must add unmark-graying read barriers to these
+ *   containers.
+ */
 static void
 UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
 {
     void *thing = *thingp;
     int stackDummy;
     if (!JS_CHECK_STACK_SIZE(trc->runtime->mainThread.nativeStackLimit[StackForSystemCode], &stackDummy)) {
-        
-
-
-
+        /*
+         * If we run out of stack, we take a more drastic measure: require that
+         * we GC again before the next CC.
+         */
         trc->runtime->gcGrayBitsValid = false;
         return;
     }
@@ -1675,13 +1675,13 @@ UnmarkGrayChildren(JSTracer *trc, void **thingp, JSGCTraceKind kind)
         tracer->unmarkedAny = true;
     }
 
-    
-
-
-
-
-
-
+    /*
+     * Trace children of |thing|. If |thing| and its parent are both shapes,
+     * |thing| will get saved to mPreviousShape without being traced. The parent
+     * will later trace |thing|. This is done to avoid increasing the stack
+     * depth during shape tracing. It is safe to do because a shape can only
+     * have one child that is a shape.
+     */
     UnmarkGrayTracer childTracer(tracer, kind == JSTRACE_SHAPE);
 
     if (kind != JSTRACE_SHAPE) {

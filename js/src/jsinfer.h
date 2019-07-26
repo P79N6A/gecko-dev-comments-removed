@@ -614,7 +614,7 @@ class StackTypeSet : public TypeSet
     bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
 
     
-    Class *getKnownClass();
+    const Class *getKnownClass();
 
     
     JSObject *getCommonPrototype();
@@ -981,7 +981,7 @@ struct TypeTypedObject : public TypeObjectAddendum
 struct TypeObject : gc::Cell
 {
     
-    Class *clasp;
+    const Class *clasp;
 
     
     HeapPtrObject proto;
@@ -1081,7 +1081,7 @@ struct TypeObject : gc::Cell
     uint32_t padding;
 #endif
 
-    inline TypeObject(Class *clasp, TaggedProto proto, bool isFunction, bool unknown);
+    inline TypeObject(const Class *clasp, TaggedProto proto, bool isFunction, bool unknown);
 
     bool isFunction() { return !!(flags & OBJECT_FLAG_FUNCTION); }
 
@@ -1204,10 +1204,10 @@ struct TypeObject : gc::Cell
 struct TypeObjectEntry : DefaultHasher<ReadBarriered<TypeObject> >
 {
     struct Lookup {
-        Class *clasp;
+        const Class *clasp;
         TaggedProto proto;
 
-        Lookup(Class *clasp, TaggedProto proto) : clasp(clasp), proto(proto) {}
+        Lookup(const Class *clasp, TaggedProto proto) : clasp(clasp), proto(proto) {}
     };
 
     static inline HashNumber hash(const Lookup &lookup);
@@ -1497,7 +1497,7 @@ struct TypeCompartment
 
 
 
-    TypeObject *newTypeObject(ExclusiveContext *cx, Class *clasp, Handle<TaggedProto> proto,
+    TypeObject *newTypeObject(ExclusiveContext *cx, const Class *clasp, Handle<TaggedProto> proto,
                               bool unknown = false);
 
     

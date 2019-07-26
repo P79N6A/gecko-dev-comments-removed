@@ -343,7 +343,7 @@ class RegExpObject : public JSObject
   public:
     static const unsigned RESERVED_SLOTS = 6;
 
-    static Class class_;
+    static const Class class_;
 
     
 
