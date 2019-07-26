@@ -145,11 +145,10 @@ FrameInfo::popRegsAndSync(uint32_t uses)
 
 #ifdef DEBUG
 void
-FrameInfo::assertValidState(jsbytecode *pc)
+FrameInfo::assertValidState(const BytecodeInfo &info)
 {
     
-    BytecodeInfo *info = compiler.analysis().maybeInfo(pc);
-    JS_ASSERT_IF(info, stackDepth() == info->stackDepth);
+    JS_ASSERT(stackDepth() == info.stackDepth);
 
     
     uint32_t i = 0;
