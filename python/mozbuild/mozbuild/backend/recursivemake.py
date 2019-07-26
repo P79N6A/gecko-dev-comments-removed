@@ -419,8 +419,19 @@ class RecursiveMakeBackend(CommonBackend):
 
         for module in xpt_modules:
             deps = sorted(modules[module])
+            idl_deps = ['$(dist_idl_dir)/%s.idl' % dep for dep in deps]
             rules.extend([
-                '$(idl_xpt_dir)/%s.xpt:' % module,
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                '$(idl_xpt_dir)/%s.xpt: %s' % (module, ' '.join(idl_deps)),
                 '\t@echo "$(notdir $@)"',
                 '\t$(idlprocess) $(basename $(notdir $@)) %s' % ' '.join(deps),
                 '',
