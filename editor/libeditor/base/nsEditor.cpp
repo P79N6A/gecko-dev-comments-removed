@@ -2843,150 +2843,147 @@ nsEditor::JoinNodesImpl(nsIDOMNode * aNodeToKeep,
                         nsIDOMNode * aNodeToJoin,
                         nsIDOMNode * aParent)
 {
-  NS_ASSERTION(aNodeToKeep && aNodeToJoin && aParent, "null arg");
-  nsresult result = NS_OK;
-  if (aNodeToKeep && aNodeToJoin && aParent)
+  MOZ_ASSERT(aNodeToKeep);
+  MOZ_ASSERT(aNodeToJoin);
+  MOZ_ASSERT(aParent);
+
+  
+  nsCOMPtr<nsISelection> selection;
+  GetSelection(getter_AddRefs(selection));
+  NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
+
+  
+  nsCOMPtr<nsIDOMNode> selStartNode, selEndNode;
+  int32_t selStartOffset, selEndOffset, joinOffset, keepOffset;
+  nsresult result = GetStartNodeAndOffset(selection, getter_AddRefs(selStartNode), &selStartOffset);
+  if (NS_FAILED(result)) selStartNode = nullptr;
+  result = GetEndNodeAndOffset(selection, getter_AddRefs(selEndNode), &selEndOffset);
+  
+  if (NS_FAILED(result)) selStartNode = nullptr;
+
+  nsCOMPtr<nsIDOMNode> leftNode = aNodeToJoin;
+
+  uint32_t firstNodeLength;
+  result = GetLengthOfDOMNode(leftNode, firstNodeLength);
+  NS_ENSURE_SUCCESS(result, result);
+  nsCOMPtr<nsIDOMNode> parent = GetNodeLocation(aNodeToJoin, &joinOffset);
+  parent = GetNodeLocation(aNodeToKeep, &keepOffset);
+
+  
+  
+  
+  if (selStartNode)
   {
-    
-    nsCOMPtr<nsISelection> selection;
-    GetSelection(getter_AddRefs(selection));
-    NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-
-    
-    nsCOMPtr<nsIDOMNode> selStartNode, selEndNode;
-    int32_t selStartOffset, selEndOffset, joinOffset, keepOffset;
-    result = GetStartNodeAndOffset(selection, getter_AddRefs(selStartNode), &selStartOffset);
-    if (NS_FAILED(result)) selStartNode = nullptr;
-    result = GetEndNodeAndOffset(selection, getter_AddRefs(selEndNode), &selEndOffset);
-    
-    if (NS_FAILED(result)) selStartNode = nullptr;
-
-    nsCOMPtr<nsIDOMNode> leftNode = aNodeToJoin;
-
-    uint32_t firstNodeLength;
-    result = GetLengthOfDOMNode(leftNode, firstNodeLength);
-    NS_ENSURE_SUCCESS(result, result);
-    nsCOMPtr<nsIDOMNode> parent = GetNodeLocation(aNodeToJoin, &joinOffset);
-    parent = GetNodeLocation(aNodeToKeep, &keepOffset);
-    
-    
-    
-    
-    if (selStartNode)
+    if (selStartNode == parent)
     {
-      if (selStartNode == parent)
+      if ((selStartOffset > joinOffset) && (selStartOffset <= keepOffset))
       {
-        if ((selStartOffset > joinOffset) && (selStartOffset <= keepOffset))
-        {
-          selStartNode = aNodeToJoin;
-          selStartOffset = firstNodeLength;
-        }
-      }
-      if (selEndNode == parent)
-      {
-        if ((selEndOffset > joinOffset) && (selEndOffset <= keepOffset))
-        {
-          selEndNode = aNodeToJoin;
-          selEndOffset = firstNodeLength;
-        }
+        selStartNode = aNodeToJoin;
+        selStartOffset = firstNodeLength;
       }
     }
-    
-    
-    nsCOMPtr<nsIDOMCharacterData> keepNodeAsText( do_QueryInterface(aNodeToKeep) );
-    nsCOMPtr<nsIDOMCharacterData> joinNodeAsText( do_QueryInterface(aNodeToJoin) );
-    if (keepNodeAsText && joinNodeAsText)
+    if (selEndNode == parent)
     {
-      nsAutoString rightText;
-      nsAutoString leftText;
-      keepNodeAsText->GetData(rightText);
-      joinNodeAsText->GetData(leftText);
-      leftText += rightText;
-      keepNodeAsText->SetData(leftText);          
-    }
-    else
-    {  
-      nsCOMPtr<nsIDOMNodeList> childNodes;
-      result = aNodeToJoin->GetChildNodes(getter_AddRefs(childNodes));
-      if ((NS_SUCCEEDED(result)) && (childNodes))
+      if ((selEndOffset > joinOffset) && (selEndOffset <= keepOffset))
       {
-        int32_t i;  
-        uint32_t childCount=0;
-        nsCOMPtr<nsIDOMNode> firstNode;
-        childNodes->GetLength(&childCount);
-        
-        result = aNodeToKeep->GetFirstChild(getter_AddRefs(firstNode));
-        
-        nsCOMPtr<nsIDOMNode> resultNode;
-        
-        nsCOMPtr<nsIDOMNode> previousChild;
-        for (i=childCount-1; ((NS_SUCCEEDED(result)) && (0<=i)); i--)
-        {
-          nsCOMPtr<nsIDOMNode> childNode;
-          result = childNodes->Item(i, getter_AddRefs(childNode));
-          if ((NS_SUCCEEDED(result)) && (childNode))
-          {
-            
-            result = aNodeToKeep->InsertBefore(childNode, firstNode, getter_AddRefs(resultNode));
-            firstNode = do_QueryInterface(childNode);
-          }
-        }
-      }
-      else if (!childNodes) {
-        result = NS_ERROR_NULL_POINTER;
-      }
-    }
-    if (NS_SUCCEEDED(result))
-    { 
-      nsCOMPtr<nsIDOMNode> resultNode;
-      result = aParent->RemoveChild(aNodeToJoin, getter_AddRefs(resultNode));
-      
-      if (GetShouldTxnSetSelection())
-      {
-        
-        selection->Collapse(aNodeToKeep, firstNodeLength);
-      }
-      else if (selStartNode)
-      {
-        
-        
-        bool bNeedToAdjust = false;
-        
-        
-        if (selStartNode.get() == aNodeToJoin)
-        {
-          bNeedToAdjust = true;
-          selStartNode = aNodeToKeep;
-        }
-        else if (selStartNode.get() == aNodeToKeep)
-        {
-          bNeedToAdjust = true;
-          selStartOffset += firstNodeLength;
-        }
-                
-        
-        if (selEndNode.get() == aNodeToJoin)
-        {
-          bNeedToAdjust = true;
-          selEndNode = aNodeToKeep;
-        }
-        else if (selEndNode.get() == aNodeToKeep)
-        {
-          bNeedToAdjust = true;
-          selEndOffset += firstNodeLength;
-        }
-        
-        
-        if (bNeedToAdjust)
-        {
-          selection->Collapse(selStartNode,selStartOffset);
-          selection->Extend(selEndNode,selEndOffset);          
-        }
+        selEndNode = aNodeToJoin;
+        selEndOffset = firstNodeLength;
       }
     }
   }
+  
+  
+  nsCOMPtr<nsIDOMCharacterData> keepNodeAsText( do_QueryInterface(aNodeToKeep) );
+  nsCOMPtr<nsIDOMCharacterData> joinNodeAsText( do_QueryInterface(aNodeToJoin) );
+  if (keepNodeAsText && joinNodeAsText)
+  {
+    nsAutoString rightText;
+    nsAutoString leftText;
+    keepNodeAsText->GetData(rightText);
+    joinNodeAsText->GetData(leftText);
+    leftText += rightText;
+    keepNodeAsText->SetData(leftText);
+  }
   else
-    result = NS_ERROR_INVALID_ARG;
+  {  
+    nsCOMPtr<nsIDOMNodeList> childNodes;
+    result = aNodeToJoin->GetChildNodes(getter_AddRefs(childNodes));
+    NS_ENSURE_TRUE(childNodes, NS_ERROR_NULL_POINTER);
+    NS_ENSURE_SUCCESS(result, result);
+
+    int32_t i;  
+    uint32_t childCount=0;
+    nsCOMPtr<nsIDOMNode> firstNode;
+    childNodes->GetLength(&childCount);
+    
+    result = aNodeToKeep->GetFirstChild(getter_AddRefs(firstNode));
+    NS_ENSURE_SUCCESS(result, result);
+
+    
+    nsCOMPtr<nsIDOMNode> resultNode;
+    
+    nsCOMPtr<nsIDOMNode> previousChild;
+    for (i = childCount - 1; i >= 0; i--)
+    {
+      nsCOMPtr<nsIDOMNode> childNode;
+      result = childNodes->Item(i, getter_AddRefs(childNode));
+      NS_ENSURE_SUCCESS(result, result);
+
+      if (childNode) {
+        
+        result = aNodeToKeep->InsertBefore(childNode, firstNode, getter_AddRefs(resultNode));
+        NS_ENSURE_SUCCESS(result, result);
+        firstNode = do_QueryInterface(childNode);
+      }
+    }
+  }
+
+  
+  nsCOMPtr<nsIDOMNode> resultNode;
+  result = aParent->RemoveChild(aNodeToJoin, getter_AddRefs(resultNode));
+
+  if (GetShouldTxnSetSelection())
+  {
+    
+    selection->Collapse(aNodeToKeep, firstNodeLength);
+  }
+  else if (selStartNode)
+  {
+    
+    
+    bool bNeedToAdjust = false;
+
+    
+    if (selStartNode.get() == aNodeToJoin)
+    {
+      bNeedToAdjust = true;
+      selStartNode = aNodeToKeep;
+    }
+    else if (selStartNode.get() == aNodeToKeep)
+    {
+      bNeedToAdjust = true;
+      selStartOffset += firstNodeLength;
+    }
+
+    
+    if (selEndNode.get() == aNodeToJoin)
+    {
+      bNeedToAdjust = true;
+      selEndNode = aNodeToKeep;
+    }
+    else if (selEndNode.get() == aNodeToKeep)
+    {
+      bNeedToAdjust = true;
+      selEndOffset += firstNodeLength;
+    }
+
+    
+    if (bNeedToAdjust)
+    {
+      selection->Collapse(selStartNode,selStartOffset);
+      selection->Extend(selEndNode,selEndOffset);
+    }
+  }
 
   return result;
 }
