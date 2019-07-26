@@ -373,9 +373,7 @@ TypeRepresentation::addToTableOrFree(JSContext *cx,
     
     RootedObject proto(cx);
     const Class *clasp;
-    if (!global->getTypedObjectModule().getSuitableClaspAndProto(cx, kind(),
-                                                                 &clasp, &proto))
-    {
+    if (!TypedObjectModuleObject::getSuitableClaspAndProto(cx, kind(), &clasp, &proto)) {
         return nullptr;
     }
     RootedTypeObject typeObject(cx, comp->types.newTypeObject(cx, clasp, proto));

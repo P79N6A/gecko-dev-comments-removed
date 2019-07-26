@@ -111,11 +111,51 @@ class TypedObjectModuleObject : public JSObject {
 
     static const Class class_;
 
-    bool getSuitableClaspAndProto(JSContext *cx,
-                                  TypeRepresentation::Kind kind,
-                                  const Class **clasp,
-                                  MutableHandleObject proto);
+    static bool getSuitableClaspAndProto(JSContext *cx,
+                                         TypeRepresentation::Kind kind,
+                                         const Class **clasp,
+                                         MutableHandleObject proto);
 };
+
+
+
+
+
+
+
+template <typename T>
+static T ConvertScalar(double d)
+{
+    if (TypeIsFloatingPoint<T>()) {
+        return T(d);
+    } else if (TypeIsUnsigned<T>()) {
+        uint32_t n = ToUint32(d);
+        return T(n);
+    } else {
+        int32_t n = ToInt32(d);
+        return T(n);
+    }
+}
+
+
+
+
+
+JSObject *typeRepresentationOwnerObj(const JSObject &typeObj);
+
+
+
+
+
+
+
+TypeRepresentation *typeRepresentation(const JSObject &typeObj);
+
+bool TypeObjectToSource(JSContext *cx, unsigned int argc, Value *vp);
+
+bool InitializeCommonTypeDescriptorProperties(JSContext *cx,
+                                              HandleObject obj,
+                                              HandleObject typeReprOwnerObj);
 
 
 
@@ -154,6 +194,7 @@ class X4Type : public JSObject
     static const Class class_;
 
     static bool call(JSContext *cx, unsigned argc, Value *vp);
+    static bool is(const Value &v);
 };
 
 
@@ -356,6 +397,9 @@ class TypedDatum : public JSObject
 
     
     void attach(JSObject &datum, uint32_t offset);
+
+    TypeRepresentation *datumTypeRepresentation() const;
+    uint8_t *typedMem() const;
 };
 
 class TypedObject : public TypedDatum
@@ -380,6 +424,21 @@ class TypedHandle : public TypedDatum
     static const Class class_;
     static const JSFunctionSpec handleStaticMethods[];
 };
+
+
+
+
+
+
+
+inline bool IsTypedDatum(const JSObject &obj) {
+    return obj.is<TypedObject>() || obj.is<TypedHandle>();
+}
+
+inline TypedDatum &AsTypedDatum(JSObject &obj) {
+    JS_ASSERT(IsTypedDatum(obj));
+    return *static_cast<TypedDatum *>(&obj);
+}
 
 
 
@@ -491,6 +550,22 @@ bool GetTypedObjectModule(JSContext *cx, unsigned argc, Value *vp);
 
 
 
+bool GetFloat32x4TypeObject(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
+bool GetInt32x4TypeObject(JSContext *cx, unsigned argc, Value *vp);
+
+
+
+
+
+
+
 
 
 
@@ -572,6 +647,9 @@ JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_STORE_REFERENCE_CLASS_DEFN)
 JS_FOR_EACH_REFERENCE_TYPE_REPR(JS_LOAD_REFERENCE_CLASS_DEFN)
 
 } 
+
+JSObject *
+js_InitTypedObjectModuleObject(JSContext *cx, JS::HandleObject obj);
 
 #endif
 
