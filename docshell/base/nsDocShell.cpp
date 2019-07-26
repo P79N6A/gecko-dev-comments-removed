@@ -11703,25 +11703,25 @@ nsDocShell::ConfirmRepost(bool * aRepost)
                "Unable to set up repost prompter.");
 
   nsXPIDLString brandName;
-  rv = brandBundle->GetStringFromName(NS_LITERAL_STRING("brandShortName").get(),
+  rv = brandBundle->GetStringFromName(MOZ_UTF16("brandShortName"),
                                       getter_Copies(brandName));
 
   nsXPIDLString msgString, button0Title;
   if (NS_FAILED(rv)) { 
-    rv = appBundle->GetStringFromName(NS_LITERAL_STRING("confirmRepostPrompt").get(),
+    rv = appBundle->GetStringFromName(MOZ_UTF16("confirmRepostPrompt"),
                                       getter_Copies(msgString));
   }
   else {
     
     
     const PRUnichar *formatStrings[] = { brandName.get() };
-    rv = appBundle->FormatStringFromName(NS_LITERAL_STRING("confirmRepostPrompt").get(),
+    rv = appBundle->FormatStringFromName(MOZ_UTF16("confirmRepostPrompt"),
                                          formatStrings, ArrayLength(formatStrings),
                                          getter_Copies(msgString));
   }
   if (NS_FAILED(rv)) return rv;
 
-  rv = appBundle->GetStringFromName(NS_LITERAL_STRING("resendButton.label").get(),
+  rv = appBundle->GetStringFromName(MOZ_UTF16("resendButton.label"),
                                     getter_Copies(button0Title));
   if (NS_FAILED(rv)) return rv;
 

@@ -34,7 +34,7 @@ SVGNumberList::GetValueAsString(nsAString& aValue) const
     
     
     nsTextFormatter::snprintf(buf, ArrayLength(buf),
-                              NS_LITERAL_STRING("%g").get(),
+                              MOZ_UTF16("%g"),
                               double(mNumbers[i]));
     
     aValue.Append(buf);

@@ -1212,12 +1212,12 @@ nsHTMLEditor::ReplaceHeadContentsWithHTML(const nsAString& aSourceToInsert)
   nsAutoString inputString (aSourceToInsert);  
  
   
-  inputString.ReplaceSubstring(NS_LITERAL_STRING("\r\n").get(),
-                               NS_LITERAL_STRING("\n").get());
+  inputString.ReplaceSubstring(MOZ_UTF16("\r\n"),
+                               MOZ_UTF16("\n"));
  
   
-  inputString.ReplaceSubstring(NS_LITERAL_STRING("\r").get(),
-                               NS_LITERAL_STRING("\n").get());
+  inputString.ReplaceSubstring(MOZ_UTF16("\r"),
+                               MOZ_UTF16("\n"));
 
   nsAutoEditBatch beginBatching(this);
 

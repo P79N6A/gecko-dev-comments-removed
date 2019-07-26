@@ -2124,10 +2124,10 @@ nsP12Runnable::Run()
   
   
   nssComponent->GetPIPNSSBundleString("ForcedBackup1", final);
-  final.Append(NS_LITERAL_STRING("\n\n").get());
+  final.Append(MOZ_UTF16("\n\n"));
   nssComponent->GetPIPNSSBundleString("ForcedBackup2", temp);
   final.Append(temp.get());
-  final.Append(NS_LITERAL_STRING("\n\n").get());
+  final.Append(MOZ_UTF16("\n\n"));
 
   nssComponent->GetPIPNSSBundleString("ForcedBackup3", temp);
 

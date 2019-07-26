@@ -1842,7 +1842,7 @@ void nsExternalAppHandler::SendStatusChange(ErrorType type, nsresult rv, nsIRequ
                 
                 nsCOMPtr<nsIPrompt> prompter(do_GetInterface(mWindowContext));
                 nsXPIDLString title;
-                bundle->FormatStringFromName(NS_LITERAL_STRING("title").get(),
+                bundle->FormatStringFromName(MOZ_UTF16("title"),
                                              strings,
                                              1,
                                              getter_Copies(title));
