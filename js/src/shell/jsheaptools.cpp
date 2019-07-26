@@ -4,13 +4,14 @@
 
 
 
-#include <string.h>
+#include "shell/jsheaptools.h"
 
 #include "mozilla/Move.h"
 
-#include "jsapi.h"
+#include <string.h>
 
 #include "jsalloc.h"
+#include "jsapi.h"
 #include "jscntxt.h"
 #include "jscompartment.h"
 #include "jsfun.h"
