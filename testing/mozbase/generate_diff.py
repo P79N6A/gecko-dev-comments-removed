@@ -110,6 +110,27 @@ def revert(hg_dir, excludes=()):
 
 
 
+def generate_packages_txt():
+    """
+    generate a packages.txt file appropriate for
+    http://mxr.mozilla.org/mozilla-central/source/build/virtualenv/populate_virtualenv.py
+
+    See also:
+    http://mxr.mozilla.org/mozilla-central/source/build/virtualenv/packages.txt
+    """
+
+    prefix = 'testing/mozbase/' 
+
+    
+    packages = setup_development.mozbase_packages
+
+    
+    path = os.path.join(here, 'packages.txt')
+    with file(path, 'w') as f:
+        for package in sorted(packages):
+            f.write("%s.pth:%s%s\n" % (package, prefix, package))
+
+
 
 def parse_versions(*args):
     """return a list of 2-tuples of (directory, version)"""
@@ -192,7 +213,13 @@ def main(args=sys.argv[1:]):
                                    formatter=PlainDescriptionFormatter())
     parser.add_option('-o', '--output', dest='output',
                       help="specify the output file; otherwise will be in the current directory with a name based on the hash")
+    parser.add_option('--packages', dest='output_packages',
+                      default=False, action='store_true',
+                      help="generate packages.txt and exit")
     options, args = parser.parse_args(args)
+    if options.output_packages:
+        generate_packages_txt()
+        parser.exit()
     if args:
         versions = parse_versions(*args)
     else:
@@ -303,6 +330,9 @@ def main(args=sys.argv[1:]):
             
             remove(os.path.join(here, directory))
             call(['cp', '-r', directory, here], cwd=src)
+
+        
+        generate_packages_txt()
 
         
         call(['hg', 'addremove'], cwd=hg_root)
