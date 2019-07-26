@@ -513,6 +513,32 @@ this.DownloadIntegration = {
     return deferred.promise;
   },
 
+#ifdef XP_WIN
+  
+
+
+
+
+
+  _shouldSaveZoneInformation: function() {
+    let key = Cc["@mozilla.org/windows-registry-key;1"]
+                .createInstance(Ci.nsIWindowsRegKey);
+    try {
+      key.open(Ci.nsIWindowsRegKey.ROOT_KEY_CURRENT_USER,
+               "Software\\Microsoft\\Windows\\CurrentVersion\\Policies\\Attachments",
+               Ci.nsIWindowsRegKey.ACCESS_QUERY_VALUE);
+      try {
+        return key.readIntValue("SaveZoneInformation") != 1;
+      } finally {
+        key.close();
+      }
+    } catch (ex) {
+      
+      return true;
+    }
+  },
+#endif
+
   
 
 
@@ -533,26 +559,24 @@ this.DownloadIntegration = {
       
       
       
-      if (Services.prefs.getBoolPref("browser.download.saveZoneInformation")) {
-        let file = new FileUtils.File(aDownload.target.path);
-        if (file.isExecutable()) {
+      
+      if (this._shouldSaveZoneInformation()) {
+        try {
+          let streamPath = aDownload.target.path + ":Zone.Identifier";
+          let stream = yield OS.File.open(streamPath, { create: true });
           try {
-            let streamPath = aDownload.target.path + ":Zone.Identifier";
-            let stream = yield OS.File.open(streamPath, { create: true });
-            try {
-              yield stream.write(gInternetZoneIdentifier);
-            } finally {
-              yield stream.close();
-            }
-          } catch (ex) {
-            
-            
-            
-            
-            
-            if (!(ex instanceof OS.File.Error) || ex.winLastError != 123) {
-              Cu.reportError(ex);
-            }
+            yield stream.write(gInternetZoneIdentifier);
+          } finally {
+            yield stream.close();
+          }
+        } catch (ex) {
+          
+          
+          
+          
+          
+          if (!(ex instanceof OS.File.Error) || ex.winLastError != 123) {
+            Cu.reportError(ex);
           }
         }
       }

@@ -161,13 +161,6 @@ pref("browser.helperApps.neverAsk.saveToDisk", "");
 pref("browser.helperApps.neverAsk.openFile", "");
 pref("browser.helperApps.deleteTempFileOnExit", false);
 
-#ifdef XP_WIN
-
-
-
-pref("browser.download.saveZoneInformation", true);
-#endif
-
 
 pref("browser.chrome.toolbar_tips",         true);
 
