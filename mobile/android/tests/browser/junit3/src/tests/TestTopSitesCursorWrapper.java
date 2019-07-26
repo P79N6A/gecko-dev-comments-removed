@@ -115,21 +115,18 @@ public class TestTopSitesCursorWrapper extends BrowserTestCase {
         c.close();
     }
 
-    public void testClosedPinnedSites() {
+    public void testCloseWrappedCursors() {
         Cursor pinnedSites = createPinnedSitesCursor(new Integer[] { 0, 1 });
         Cursor topSites = createTopSitesCursor(2);
         Cursor wrapper = new TopSitesCursorWrapper(pinnedSites, topSites, MIN_COUNT);
 
-        
-        
-        assertTrue(pinnedSites.isClosed());
-
-        
+        assertFalse(pinnedSites.isClosed());
         assertFalse(topSites.isClosed());
 
         wrapper.close();
 
         
+        assertTrue(pinnedSites.isClosed());
         assertTrue(topSites.isClosed());
     }
 
