@@ -88,6 +88,24 @@ class JS_FRIEND_API(Wrapper);
 class JS_FRIEND_API(BaseProxyHandler)
 {
     const void *mFamily;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     bool mHasPrototype;
 
     
@@ -348,17 +366,6 @@ inline bool IsProxy(JSObject *obj)
     return GetObjectClass(obj)->isProxy();
 }
 
-BaseProxyHandler *
-GetProxyHandler(JSObject *obj);
-
-inline bool IsScriptedProxy(JSObject *obj)
-{
-    if (!IsProxy(obj))
-        return false;
-
-    return GetProxyHandler(obj)->isScripted();
-}
-
 
 
 
@@ -413,6 +420,12 @@ SetProxyExtra(JSObject *obj, size_t n, const Value &extra)
     JS_ASSERT(IsProxy(obj));
     JS_ASSERT(n <= 1);
     SetReservedSlot(obj, PROXY_EXTRA_SLOT + n, extra);
+}
+
+inline bool
+IsScriptedProxy(JSObject *obj)
+{
+    return IsProxy(obj) && GetProxyHandler(obj)->isScripted();
 }
 
 class MOZ_STACK_CLASS ProxyOptions {
