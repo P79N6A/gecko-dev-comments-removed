@@ -169,24 +169,28 @@ this.Social = {
     }
 
     
-    SocialService.registerProviderListener(function providerListener(topic, data) {
+    SocialService.registerProviderListener(function providerListener(topic, origin, providers) {
       
       
-      if (topic == "provider-added" || topic == "provider-removed") {
-        Social._updateProviderCache(data);
+      if (topic == "provider-installed" || topic == "provider-uninstalled") {
+        
+        Services.obs.notifyObservers(null, "social:" + topic, origin);
+        return;
+      }
+      if (topic == "provider-enabled" || topic == "provider-disabled") {
+        Social._updateProviderCache(providers);
         Social._updateWorkerState(true);
         Services.obs.notifyObservers(null, "social:providers-changed", null);
+        Services.obs.notifyObservers(null, "social:" + topic, origin);
         return;
       }
       if (topic == "provider-update") {
         
         
-        let provider = data;
-        SocialService.getOrderedProviderList(function(providers) {
-          Social._updateProviderCache(providers);
-          provider.reload();
-          Services.obs.notifyObservers(null, "social:providers-changed", null);
-        });
+        Social._updateProviderCache(providers);
+        let provider = Social._getProviderFromOrigin(origin);
+        provider.reload();
+        Services.obs.notifyObservers(null, "social:providers-changed", null);
       }
     });
   },
@@ -257,6 +261,10 @@ this.Social = {
       }
     }
     return null;
+  },
+
+  getManifestByOrigin: function(origin) {
+    return SocialService.getManifestByOrigin(origin);
   },
 
   installProvider: function(doc, data, installCallback) {

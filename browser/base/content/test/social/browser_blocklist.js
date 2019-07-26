@@ -157,12 +157,13 @@ var tests = {
       SocialService.addProvider(manifest_bad, function(provider) {
         
         
-        SocialService.registerProviderListener(function providerListener(topic) {
-          if (topic != "provider-removed")
+        SocialService.registerProviderListener(function providerListener(topic, origin, providers) {
+          if (topic != "provider-disabled")
             return;
           SocialService.unregisterProviderListener(providerListener);
+          is(origin, provider.origin, "provider disabled");
           SocialService.getProvider(provider.origin, function(p) {
-            ok(p==null, "blocklisted provider removed");
+            ok(p == null, "blocklisted provider disabled");
             Services.prefs.clearUserPref("social.manifest.blocked");
             resetBlocklist(finish);
           });
