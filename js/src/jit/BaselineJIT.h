@@ -100,11 +100,6 @@ struct BaselineScript
   public:
     static const uint32_t MAX_JSSCRIPT_LENGTH = 0x0fffffffu;
 
-    
-    
-    
-    static const uint32_t MAX_JSSCRIPT_SLOTS = 0xfffffu;
-
   private:
     
     HeapPtr<IonCode> method_;
