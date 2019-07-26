@@ -476,6 +476,11 @@ pref("security.alternate_certificate_error_page", "certerror");
 
 pref("security.warn_viewing_mixed", false); 
 
+#ifdef NIGHTLY_BUILD
+
+pref("security.mixed_content.block_active_content", true);
+#endif
+
 
 pref("ui.-moz-dialog", "#efebe7");
 pref("ui.-moz-dialogtext", "#101010");
