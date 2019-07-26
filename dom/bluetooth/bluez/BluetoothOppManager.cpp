@@ -175,7 +175,7 @@ BluetoothOppManager::BluetoothOppManager() : mConnected(false)
                                            , mRemoteMaxPacketLength(0)
                                            , mLastCommand(0)
                                            , mPacketLength(0)
-                                           , mPacketReceivedLength(0)
+                                           , mPutPacketReceivedLength(0)
                                            , mBodySegmentLength(0)
                                            , mAbortFlag(false)
                                            , mNewFileFlag(false)
@@ -463,8 +463,6 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
   NS_ENSURE_TRUE(mConnected, false);
   NS_ENSURE_TRUE(mWaitingForConfirmationFlag, false);
 
-  MOZ_ASSERT(mPacketReceivedLength == 0);
-
   mWaitingForConfirmationFlag = false;
 
   
@@ -483,6 +481,7 @@ BluetoothOppManager::ConfirmReceivingFile(bool aConfirm)
   }
 
   ReplyToPut(mPutFinalFlag, success);
+
   return true;
 }
 
@@ -491,7 +490,7 @@ BluetoothOppManager::AfterFirstPut()
 {
   mUpdateProgressCounter = 1;
   mPutFinalFlag = false;
-  mPacketReceivedLength = 0;
+  mPutPacketReceivedLength = 0;
   mSentFileLength = 0;
   mWaitingToSendPutFinal = false;
   mSuccessFlag = false;
@@ -525,7 +524,7 @@ BluetoothOppManager::AfterOppDisconnected()
 
   mConnected = false;
   mLastCommand = 0;
-  mPacketReceivedLength = 0;
+  mPutPacketReceivedLength = 0;
   mDsFile = nullptr;
 
   
@@ -570,13 +569,14 @@ BluetoothOppManager::DeleteReceivedFile()
 bool
 BluetoothOppManager::CreateFile()
 {
-  MOZ_ASSERT(mPacketReceivedLength == mPacketLength);
+  MOZ_ASSERT(mPutPacketReceivedLength == mPacketLength);
 
   nsString path;
   path.AssignLiteral(TARGET_SUBDIR);
   path.Append(mFileName);
 
-  mDsFile = DeviceStorageFile::CreateUnique(path, nsIFile::NORMAL_FILE_TYPE, 0644);
+  mDsFile = DeviceStorageFile::CreateUnique(
+              path, nsIFile::NORMAL_FILE_TYPE, 0644);
   NS_ENSURE_TRUE(mDsFile, false);
 
   nsCOMPtr<nsIFile> f;
@@ -752,7 +752,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
   int frameHeaderLength = 0;
 
   
-  if (mPacketReceivedLength == 0) {
+  if (mPutPacketReceivedLength == 0) {
     
     
     frameHeaderLength = 3;
@@ -773,7 +773,7 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
 
   
   if (dataLength < 0 ||
-      mPacketReceivedLength + dataLength > mPacketLength) {
+      mPutPacketReceivedLength + dataLength > mPacketLength) {
     BT_LOGR("Received packet size is unreasonable");
 
     ReplyToPut(mPutFinalFlag, false);
@@ -783,12 +783,12 @@ BluetoothOppManager::ComposePacket(uint8_t aOpCode, UnixSocketRawData* aMessage)
     return false;
   }
 
-  memcpy(mReceivedDataBuffer.get() + mPacketReceivedLength,
+  memcpy(mReceivedDataBuffer.get() + mPutPacketReceivedLength,
          &aMessage->mData[frameHeaderLength], dataLength);
 
-  mPacketReceivedLength += dataLength;
+  mPutPacketReceivedLength += dataLength;
 
-  return (mPacketReceivedLength == mPacketLength);
+  return (mPutPacketReceivedLength == mPacketLength);
 }
 
 void
@@ -799,7 +799,7 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
   uint8_t opCode;
   int receivedLength = aMessage->mSize;
 
-  if (mPacketReceivedLength > 0) {
+  if (mPutPacketReceivedLength > 0) {
     opCode = mPutFinalFlag ? ObexRequestCode::PutFinal : ObexRequestCode::Put;
   } else {
     opCode = aMessage->mData[0];
@@ -854,11 +854,10 @@ BluetoothOppManager::ServerDataHandler(UnixSocketRawData* aMessage)
     }
 
     
-    ParseHeaders(mReceivedDataBuffer.get(), mPacketReceivedLength, &pktHeaders);
+    ParseHeaders(mReceivedDataBuffer.get(),
+                 mPutPacketReceivedLength, &pktHeaders);
     ExtractPacketHeaders(pktHeaders);
     ValidateFileName();
-
-    mPacketReceivedLength = 0;
 
     
     if (mAbortFlag) {
@@ -1198,6 +1197,10 @@ void
 BluetoothOppManager::ReplyToPut(bool aFinal, bool aContinue)
 {
   if (!mConnected) return;
+
+  
+  
+  mPutPacketReceivedLength = 0;
 
   
   
