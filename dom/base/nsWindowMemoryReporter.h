@@ -9,6 +9,7 @@
 
 #include "nsIMemoryReporter.h"
 #include "nsIObserver.h"
+#include "nsITimer.h"
 #include "nsDataHashtable.h"
 #include "nsWeakReference.h"
 #include "nsAutoPtr.h"
@@ -139,6 +140,8 @@ public:
 
   static void Init();
 
+  ~nsWindowMemoryReporter();
+
 #ifdef DEBUG
   
 
@@ -192,13 +195,6 @@ private:
 
 
 
-  void CheckForGhostWindowsCallback();
-
-  
-
-
-
-
 
 
 
@@ -208,6 +204,19 @@ private:
 
 
   void CheckForGhostWindows(nsTHashtable<nsUint64HashKey> *aOutGhostIDs = nullptr);
+
+  
+
+
+
+  void AsyncCheckForGhostWindows();
+
+  
+
+
+  void KillCheckTimer();
+
+  static void CheckTimerFired(nsITimer* aTimer, void* aClosure);
 
   
 
@@ -224,7 +233,10 @@ private:
   
 
 
-  bool mCheckForGhostWindowsCallbackPending;
+
+  mozilla::TimeStamp mLastCheckForGhostWindows;
+
+  nsCOMPtr<nsITimer> mCheckTimer;
 };
 
 #endif 
