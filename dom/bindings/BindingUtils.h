@@ -425,7 +425,7 @@ struct HasWrapObject
 private:
   typedef char yes[1];
   typedef char no[2];
-  typedef JSObject* (nsWrapperCache::*WrapObject)(JSContext*, JSObject*, bool*);
+  typedef JSObject* (nsWrapperCache::*WrapObject)(JSContext*, JSObject*);
   template<typename U, U> struct SFINAE;
   template <typename V> static no& Check(SFINAE<WrapObject, &V::WrapObject>*);
   template <typename V> static yes& Check(...);
@@ -586,10 +586,8 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
       return false;
     }
 
-    bool triedToWrap;
-    obj = value->WrapObject(cx, scope, &triedToWrap);
+    obj = value->WrapObject(cx, scope);
     if (!obj) {
-      
       
       
       
@@ -1036,8 +1034,6 @@ struct WrapNativeParentFallback
   static inline JSObject* Wrap(JSContext* cx, JSObject* scope, T* parent,
                                nsWrapperCache* cache)
   {
-    MOZ_NOT_REACHED("Don't know how to deal with triedToWrap == false for "
-                    "non-nsISupports classes");
     return nullptr;
   }
 };
@@ -1069,17 +1065,13 @@ struct WrapNativeParentHelper
       return obj;
     }
 
-    bool triedToWrap;
     
     if (!CouldBeDOMBinding(parent)) {
-      triedToWrap = false;
+      obj = WrapNativeParentFallback<T>::Wrap(cx, scope, parent, cache);
     } else {
-      obj = parent->WrapObject(cx, scope, &triedToWrap);
+      obj = parent->WrapObject(cx, scope);
     }
 
-    if (!triedToWrap) {
-      obj = WrapNativeParentFallback<T>::Wrap(cx, scope, parent, cache);
-    }
     return obj;
   }
 };

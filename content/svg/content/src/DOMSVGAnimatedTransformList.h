@@ -89,7 +89,7 @@ public:
 
   
   nsSVGElement* GetParentObject() const { return mElement; }
-  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
   
   already_AddRefed<DOMSVGTransformList> BaseVal();
   already_AddRefed<DOMSVGTransformList> AnimVal();

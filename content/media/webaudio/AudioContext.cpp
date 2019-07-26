@@ -45,10 +45,9 @@ AudioContext::~AudioContext()
 }
 
 JSObject*
-AudioContext::WrapObject(JSContext* aCx, JSObject* aScope,
-                         bool* aTriedToWrap)
+AudioContext::WrapObject(JSContext* aCx, JSObject* aScope)
 {
-  return AudioContextBinding::Wrap(aCx, aScope, this, aTriedToWrap);
+  return AudioContextBinding::Wrap(aCx, aScope, this);
 }
 
  already_AddRefed<AudioContext>

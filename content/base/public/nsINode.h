@@ -379,8 +379,7 @@ public:
 
   virtual bool IsNodeOfType(uint32_t aFlags) const = 0;
 
-  virtual JSObject* WrapObject(JSContext *aCx, JSObject *aScope,
-                               bool *aTriedToWrap);
+  virtual JSObject* WrapObject(JSContext *aCx, JSObject *aScope) MOZ_OVERRIDE;
 
 protected:
   
@@ -388,11 +387,9 @@ protected:
 
 
 
-  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope,
-                             bool *aTriedToWrap)
+  virtual JSObject* WrapNode(JSContext *aCx, JSObject *aScope)
   {
     MOZ_ASSERT(!IsDOMBinding(), "Someone forgot to override WrapNode");
-    *aTriedToWrap = false;
     return nullptr;
   }
 

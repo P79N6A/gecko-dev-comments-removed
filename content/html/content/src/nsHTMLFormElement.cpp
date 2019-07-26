@@ -124,10 +124,9 @@ public:
   nsresult GetSortedControls(nsTArray<nsGenericHTMLFormElement*>& aControls) const;
 
   
-  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
-                               bool *triedToWrap)
+  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope)
   {
-    return HTMLCollectionBinding::Wrap(cx, scope, this, triedToWrap);
+    return HTMLCollectionBinding::Wrap(cx, scope, this);
   }
 
   nsHTMLFormElement* mForm;  

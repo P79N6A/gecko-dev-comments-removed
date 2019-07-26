@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "WebGLContext.h"
 #include "WebGLFramebuffer.h"
@@ -11,8 +11,8 @@
 using namespace mozilla;
 
 JSObject*
-WebGLFramebuffer::WrapObject(JSContext *cx, JSObject *scope, bool *triedToWrap) {
-    return dom::WebGLFramebufferBinding::Wrap(cx, scope, this, triedToWrap);
+WebGLFramebuffer::WrapObject(JSContext *cx, JSObject *scope) {
+    return dom::WebGLFramebufferBinding::Wrap(cx, scope, this);
 }
 
 WebGLFramebuffer::WebGLFramebuffer(WebGLContext *context)
@@ -128,11 +128,11 @@ WebGLFramebuffer::Attachment::IsComplete() const {
             case LOCAL_GL_DEPTH_STENCIL_ATTACHMENT:
                 return format == LOCAL_GL_DEPTH_STENCIL;
             default:
-                NS_ABORT(); // should have been validated earlier
+                NS_ABORT(); 
         }
     }
 
-    NS_ABORT(); // should never get there
+    NS_ABORT(); 
     return false;
 }
 
@@ -175,7 +175,7 @@ WebGLFramebuffer::FramebufferRenderbuffer(WebGLenum target,
         mDepthStencilAttachment.SetRenderbuffer(wrb);
         break;
     default:
-        // finish checking that the 'attachment' parameter is among the allowed values
+        
         if (attachment != LOCAL_GL_COLOR_ATTACHMENT0)
             return mContext->ErrorInvalidEnumInfo("framebufferRenderbuffer: attachment", attachment);
 
@@ -308,8 +308,8 @@ WebGLFramebuffer::DetachRenderbuffer(const WebGLRenderbuffer *rb) {
 bool
 WebGLFramebuffer::CheckAndInitializeRenderbuffers()
 {
-    // enforce WebGL section 6.5 which is WebGL-specific, hence OpenGL itself would not
-    // generate the INVALID_FRAMEBUFFER_OPERATION that we need here
+    
+    
     if (HasDepthStencilConflict())
         return false;
 
@@ -322,7 +322,7 @@ WebGLFramebuffer::CheckAndInitializeRenderbuffers()
         !mDepthStencilAttachment.HasUninitializedRenderbuffer())
         return true;
 
-    // ensure INVALID_FRAMEBUFFER_OPERATION in zero-size case
+    
     const WebGLRectangleObject *rect = mColorAttachment.RectangleObject();
     if (!rect ||
         !rect->Width() ||

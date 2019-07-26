@@ -128,7 +128,7 @@ class DOMSVGAnimatedPreserveAspectRatio MOZ_FINAL : public nsISupports,
 
   
   nsSVGElement* GetParentObject() const { return mSVGElement; }
-  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope) MOZ_OVERRIDE;
 
   
   already_AddRefed<DOMSVGPreserveAspectRatio> BaseVal();
