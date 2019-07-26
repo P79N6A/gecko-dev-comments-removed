@@ -17,6 +17,8 @@ ifr.onload = function() {
 
   iccInfo = icc.iccInfo;
 
+  is(iccInfo.iccType, "sim");
+
   
   
   is(iccInfo.iccid, 89014103211118510720);
@@ -30,15 +32,7 @@ ifr.onload = function() {
   
   is(iccInfo.msisdn, "15555215554");
 
-  testDisplayConditionChange(testSPN, [
-    
-    [123, 456, false, true], 
-    [234, 136,  true, true], 
-    [123, 456, false, true], 
-    [466,  92,  true, true], 
-    [123, 456, false, true], 
-    [310, 260,  true, true], 
-  ], finalize);
+  runNextTest();
 };
 document.body.appendChild(ifr);
 
@@ -60,6 +54,25 @@ function setEmulatorMccMnc(mcc, mnc) {
   });
 }
 
+function setAirplaneModeEnabled(enabled) {
+  let settings = ifr.contentWindow.navigator.mozSettings;
+  let setLock = settings.createLock();
+  let obj = {
+    "ril.radio.disabled": enabled
+  };
+  let setReq = setLock.set(obj);
+
+  log("set airplane mode to " + enabled);
+
+  setReq.addEventListener("success", function onSetSuccess() {
+    log("set 'ril.radio.disabled' to " + enabled);
+  });
+
+  setReq.addEventListener("error", function onSetError() {
+    ok(false, "cannot set 'ril.radio.disabled' to " + enabled);
+  });
+}
+
 function waitForIccInfoChange(callback) {
   icc.addEventListener("iccinfochange", function handler() {
     icc.removeEventListener("iccinfochange", handler);
@@ -67,9 +80,15 @@ function waitForIccInfoChange(callback) {
   });
 }
 
-function finalize() {
-  SpecialPowers.removePermission("mobileconnection", document);
-  finish();
+function waitForCardStateChange(expectedCardState, callback) {
+  icc.addEventListener("cardstatechange", function oncardstatechange() {
+    log("card state changes to " + icc.cardState);
+    if (icc.cardState === expectedCardState) {
+      log("got expected card state: " + icc.cardState);
+      icc.removeEventListener("cardstatechange", oncardstatechange);
+      callback();
+    }
+  });
 }
 
 
@@ -92,4 +111,46 @@ function testSPN(mcc, mnc, expectedIsDisplayNetworkNameRequired,
     window.setTimeout(callback, 100);
   });
   setEmulatorMccMnc(mcc, mnc);
+}
+
+
+function testCardIsNotReady() {
+  
+  setAirplaneModeEnabled(true);
+
+  waitForCardStateChange(null, function callback() {
+    is(icc.iccInfo, null);
+
+    
+    setAirplaneModeEnabled(false);
+    waitForCardStateChange("ready", runNextTest);
+  });
+}
+
+let tests = [
+  testDisplayConditionChange.bind(this, testSPN, [
+    
+    [123, 456, false, true], 
+    [234, 136,  true, true], 
+    [123, 456, false, true], 
+    [466,  92,  true, true], 
+    [123, 456, false, true], 
+    [310, 260,  true, true], 
+  ], runNextTest),
+  testCardIsNotReady
+];
+
+function runNextTest() {
+  let test = tests.shift();
+  if (!test) {
+    finalize();
+    return;
+  }
+
+  test();
+}
+
+function finalize() {
+  SpecialPowers.removePermission("mobileconnection", document);
+  finish();
 }
