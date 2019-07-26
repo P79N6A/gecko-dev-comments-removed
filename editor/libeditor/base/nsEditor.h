@@ -8,7 +8,6 @@
 
 #include "mozilla/Assertions.h"         
 #include "mozilla/TypedEnum.h"          
-#include "mozilla/dom/Text.h"
 #include "nsAutoPtr.h"                  
 #include "nsCOMArray.h"                 
 #include "nsCOMPtr.h"                   
@@ -330,13 +329,6 @@ protected:
   NS_IMETHOD DeleteText(nsIDOMCharacterData *aElement,
                         uint32_t             aOffset,
                         uint32_t             aLength);
-
-  inline nsresult DeleteText(mozilla::dom::Text* aText, uint32_t aOffset,
-                             uint32_t aLength)
-  {
-    return DeleteText(static_cast<nsIDOMCharacterData*>(GetAsDOMNode(aText)),
-                      aOffset, aLength);
-  }
 
 
 
