@@ -3,8 +3,14 @@
 
 
 function test() {
+  TestRunner.run();
+}
+
+function runTests() {
   
-  waitForExplicitFinish();
+
+  
+  yield executeSoon(next);
 
   let windowsToClose = [];
   let file = Services.dirsvc.get("TmpD", Ci.nsIFile);
@@ -157,7 +163,7 @@ function test() {
               aWin.gBrowser.removeTab(tab_C);
               aWin.gBrowser.removeTab(tab_B);
 
-              finish();
+              next();
             });
           });
         });
