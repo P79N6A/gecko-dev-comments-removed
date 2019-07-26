@@ -942,7 +942,7 @@ nsCacheProfilePrefObserver::MemoryCacheCapacity()
     
     
     
-    if (LL_CMP(bytes, >, INT64_MAX))
+    if (bytes > INT64_MAX)
         bytes = INT64_MAX;
 
     uint64_t kbytes;

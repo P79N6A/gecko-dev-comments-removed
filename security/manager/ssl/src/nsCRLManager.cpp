@@ -231,7 +231,7 @@ done:
         
         
         
-        if(LL_CMP(updateTime, > , PR_Now())){
+        if(int64_t(updateTime) > int64_t(PR_Now())){
           toBeRescheduled = true;
         }
         nsMemory::Free(updateTime);
@@ -433,8 +433,8 @@ nsCRLManager::ComputeNextAutoUpdateTime(nsICRLInfo *info,
 
   
   
-  if(LL_CMP(nextUpdate , > , 0 )) {
-    if(LL_CMP(tempTime , > , nextUpdate)) {
+  if(nextUpdate > 0) {
+    if(tempTime > nextUpdate) {
       tempTime = nextUpdate;
     }
   }
