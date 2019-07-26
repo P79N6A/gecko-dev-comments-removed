@@ -4377,6 +4377,7 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     
     
     mAsyncOpenTime = TimeStamp::Now();
+    mCacheEffectExperimentAsyncOpenTime = mAsyncOpenTime;
 
     
     
@@ -5080,7 +5081,15 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
     CleanRedirectCacheChainIfNecessary();
 
     ReleaseListeners();
+
     
+    if (NS_SUCCEEDED(status) && contentComplete && !mCanceled) {
+        Telemetry::ID telemID = gHttpHandler->mCacheEffectExperimentTelemetryID;
+        if (telemID != nsHttpHandler::kNullTelemetryID) {
+            Telemetry::AccumulateTimeDelta(telemID,
+                                           mCacheEffectExperimentAsyncOpenTime);
+        }
+    }
     return NS_OK;
 }
 

@@ -365,6 +365,10 @@ private:
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
     void PopRedirectAsyncFunc(nsContinueRedirectionFunc func);
 
+
+    
+    
+    mozilla::TimeStamp                mCacheEffectExperimentAsyncOpenTime;
 protected:
     virtual void DoNotifyListenerCleanup();
 
