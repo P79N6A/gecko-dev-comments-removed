@@ -909,51 +909,53 @@ AuthCertificate(CertVerifier& certVerifier, TransportSecurityInfo* infoObject,
 
   
   
-  if (stapledOCSPResponse) {
-    CERTCertDBHandle* handle = CERT_GetDefaultCertDB();
-    rv = CERT_CacheOCSPResponseFromSideChannel(handle, cert, PR_Now(),
-                                               stapledOCSPResponse,
-                                               infoObject);
-    if (rv != SECSuccess) {
-      
-      
-      
-      
-      PRErrorCode ocspErrorCode = PR_GetError();
-      if (ocspErrorCode != SEC_ERROR_OCSP_OLD_RESPONSE) {
+  if (certVerifier.mImplementation == CertVerifier::classic) {
+    if (stapledOCSPResponse) {
+      CERTCertDBHandle* handle = CERT_GetDefaultCertDB();
+      rv = CERT_CacheOCSPResponseFromSideChannel(handle, cert, PR_Now(),
+                                                 stapledOCSPResponse,
+                                                 infoObject);
+      if (rv != SECSuccess) {
         
-        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 4);
-        return rv;
+        
+        
+        
+        PRErrorCode ocspErrorCode = PR_GetError();
+        if (ocspErrorCode != SEC_ERROR_OCSP_OLD_RESPONSE) {
+          
+          Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 4);
+          return rv;
+        } else {
+          
+          Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
+        }
       } else {
         
-        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 3);
+        Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 1);
       }
     } else {
       
-      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 1);
-    }
-  } else {
-    
-    Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 2);
+      Telemetry::Accumulate(Telemetry::SSL_OCSP_STAPLING, 2);
 
-    uint32_t reasonsForNotFetching = 0;
+      uint32_t reasonsForNotFetching = 0;
 
-    char* ocspURI = CERT_GetOCSPAuthorityInfoAccessLocation(cert);
-    if (!ocspURI) {
-      reasonsForNotFetching |= 1; 
-    } else {
-      if (std::strncmp(ocspURI, "http://", 7)) { 
+      char* ocspURI = CERT_GetOCSPAuthorityInfoAccessLocation(cert);
+      if (!ocspURI) {
         reasonsForNotFetching |= 1; 
+      } else {
+        if (std::strncmp(ocspURI, "http://", 7)) { 
+          reasonsForNotFetching |= 1; 
+        }
+        PORT_Free(ocspURI);
       }
-      PORT_Free(ocspURI);
-    }
 
-    if (!certVerifier.mOCSPDownloadEnabled) {
-      reasonsForNotFetching |= 2;
-    }
+      if (!certVerifier.mOCSPDownloadEnabled) {
+        reasonsForNotFetching |= 2;
+      }
 
-    Telemetry::Accumulate(Telemetry::SSL_OCSP_MAY_FETCH,
-                          reasonsForNotFetching);
+      Telemetry::Accumulate(Telemetry::SSL_OCSP_MAY_FETCH,
+                            reasonsForNotFetching);
+    }
   }
 
   

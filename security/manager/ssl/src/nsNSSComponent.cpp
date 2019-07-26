@@ -997,6 +997,18 @@ void nsNSSComponent::setValidationOptions(bool isInitialSetting,
 #endif
       odc, osc, ogc);
 
+  
+  
+  if (certVerifierImplementation == CertVerifier::insanity) {
+    
+    
+    CERT_OCSPCacheSettings(-1, 1*60*60L, 24*60*60L);
+  } else {
+    
+    
+    CERT_OCSPCacheSettings(1000, 1*60*60L, 24*60*60L);
+  }
+
   CERT_ClearOCSPCache();
 }
 

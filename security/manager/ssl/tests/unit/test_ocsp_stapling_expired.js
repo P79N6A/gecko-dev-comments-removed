@@ -107,10 +107,10 @@ function check_ocsp_stapling_telemetry() {
                     .getService(Ci.nsITelemetry)
                     .getHistogramById("SSL_OCSP_STAPLING")
                     .snapshot();
-  do_check_eq(histogram.counts[0], 2 * 0); 
-  do_check_eq(histogram.counts[1], 2 * 0); 
-  do_check_eq(histogram.counts[2], 2 * 0); 
-  do_check_eq(histogram.counts[3], 2 * 9); 
-  do_check_eq(histogram.counts[4], 2 * 0); 
+  do_check_eq(histogram.counts[0], 0); 
+  do_check_eq(histogram.counts[1], 0); 
+  do_check_eq(histogram.counts[2], 0); 
+  do_check_eq(histogram.counts[3], 9); 
+  do_check_eq(histogram.counts[4], 0); 
   run_next_test();
 }

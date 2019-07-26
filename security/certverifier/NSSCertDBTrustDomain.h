@@ -19,6 +19,8 @@ void DisableMD5();
 
 extern const char BUILTIN_ROOTS_MODULE_DEFAULT_NAME[];
 
+void PORT_Free_string(char* str);
+
 
 
 
@@ -55,7 +57,7 @@ public:
     LocalOnlyOCSPForEV = 4,
   };
   NSSCertDBTrustDomain(SECTrustType certDBTrustType, OCSPFetching ocspFetching,
-                       void* pinArg);
+                       OCSPCache& ocspCache, void* pinArg);
 
   virtual SECStatus FindPotentialIssuers(
                         const SECItem* encodedIssuerName,
@@ -77,8 +79,13 @@ public:
                         const SECItem* stapledOCSPResponse);
 
 private:
+  SECStatus VerifyAndMaybeCacheEncodedOCSPResponse(
+    const CERTCertificate* cert, CERTCertificate* issuerCert, PRTime time,
+    const SECItem* encodedResponse);
+
   const SECTrustType mCertDBTrustType;
   const OCSPFetching mOCSPFetching;
+  OCSPCache& mOCSPCache; 
   void* mPinArg; 
 };
 

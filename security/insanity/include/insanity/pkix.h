@@ -103,11 +103,20 @@ SECItem* CreateEncodedOCSPRequest(PLArenaPool* arena,
                                   const CERTCertificate* cert,
                                   const CERTCertificate* issuerCert);
 
+
+
+
+
+
+
+
 SECStatus VerifyEncodedOCSPResponse(TrustDomain& trustDomain,
                                     const CERTCertificate* cert,
                                     CERTCertificate* issuerCert,
                                     PRTime time,
-                                    const SECItem* encodedResponse);
+                                    const SECItem* encodedResponse,
+                  PRTime* thisUpdate,
+                  PRTime* validThrough);
 
 } } 
 

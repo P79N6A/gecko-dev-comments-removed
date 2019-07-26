@@ -223,12 +223,10 @@ function add_tests_in_mode(useInsanity)
 
       let error = certdb.verifyCertNow(cert, certificateUsageSSLServer,
                                        flags, verifiedChain, hasEVPolicy);
-      
-      
-      do_check_eq(hasEVPolicy.value, isDebugBuild && !useInsanity);
+      do_check_eq(hasEVPolicy.value, isDebugBuild);
       do_check_eq(error,
-                  useInsanity ? SEC_ERROR_POLICY_VALIDATION_FAILED
-                              : (isDebugBuild ? 0
+                  isDebugBuild ? 0
+                               : (useInsanity ? SEC_ERROR_POLICY_VALIDATION_FAILED
                                               : SEC_ERROR_EXTENSION_NOT_FOUND));
       failingOcspResponder.stop(run_next_test);
     });
