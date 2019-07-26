@@ -5386,7 +5386,7 @@ nsDocument::Register(JSContext* aCx, const nsAString& aName,
   
   
   JSFunction* constructor = JS_NewFunction(aCx, CustomElementConstructor, 0,
-                                           JSFUN_CONSTRUCTOR, nullptr,
+                                           JSFUN_CONSTRUCTOR, JS::NullPtr(),
                                            NS_ConvertUTF16toUTF8(lcName).get());
   JSObject* constructorObject = JS_GetFunctionObject(constructor);
   return constructorObject;

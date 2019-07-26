@@ -312,7 +312,8 @@ nsXBLPrototypeHandler::ExecuteHandler(EventTarget* aTarget,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  JS::Rooted<JSObject*> bound(cx, JS_CloneFunctionObject(cx, genericHandler, &targetV.toObject()));
+  JS::Rooted<JSObject*> target(cx, &targetV.toObject());
+  JS::Rooted<JSObject*> bound(cx, JS_CloneFunctionObject(cx, genericHandler, target));
   NS_ENSURE_TRUE(bound, NS_ERROR_FAILURE);
 
   

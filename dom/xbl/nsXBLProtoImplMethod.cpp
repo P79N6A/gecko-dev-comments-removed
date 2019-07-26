@@ -320,7 +320,8 @@ nsXBLProtoImplAnonymousMethod::Execute(nsIContent* aBoundElement)
   
   
   
-  JS::Rooted<JSObject*> method(cx, ::JS_CloneFunctionObject(cx, GetCompiledMethod(), thisObject));
+  JS::Rooted<JSObject*> jsMethodObject(cx, GetCompiledMethod());
+  JS::Rooted<JSObject*> method(cx, ::JS_CloneFunctionObject(cx, jsMethodObject, thisObject));
   if (!method)
     return NS_ERROR_OUT_OF_MEMORY;
 
