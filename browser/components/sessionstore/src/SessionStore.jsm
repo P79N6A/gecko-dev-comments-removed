@@ -249,10 +249,6 @@ let SessionStoreInternal = {
   ]),
 
   
-  
-  xulAttributes: {"image": true},
-
-  
   _loadState: STATE_STOPPED,
 
   
@@ -1300,7 +1296,7 @@ let SessionStoreInternal = {
       this._windows[aWindow.__SSi]._closedTabs.unshift({
         state: tabState,
         title: tabTitle,
-        image: aTab.getAttribute("image"),
+        image: tabbrowser.getIcon(aTab),
         pos: aTab._tPos
       });
       var length = this._windows[aWindow.__SSi]._closedTabs.length;
@@ -1696,11 +1692,9 @@ let SessionStoreInternal = {
   },
 
   persistTabAttribute: function ssi_persistTabAttribute(aName) {
-    if (aName in this.xulAttributes)
-      return; 
-
-    this.xulAttributes[aName] = true;
-    this.saveStateDelayed();
+    if (TabAttributes.persist(aName)) {
+      this.saveStateDelayed();
+    }
   },
 
   
@@ -1990,11 +1984,12 @@ let SessionStoreInternal = {
     else if (tabData.disallow)
       delete tabData.disallow;
 
-    tabData.attributes = {};
-    for (let name in this.xulAttributes) {
-      if (aTab.hasAttribute(name))
-        tabData.attributes[name] = aTab.getAttribute(name);
-    }
+    
+    tabData.attributes = TabAttributes.get(aTab);
+
+    
+    let tabbrowser = aTab.ownerDocument.defaultView.gBrowser;
+    tabData.image = tabbrowser.getIcon(aTab);
 
     if (aTab.__SS_extdata)
       tabData.extData = aTab.__SS_extdata;
@@ -2983,8 +2978,10 @@ let SessionStoreInternal = {
       else
         tabbrowser.showTab(tab);
 
-      for (let name in tabData.attributes)
-        this.xulAttributes[name] = true;
+      if ("attributes" in tabData) {
+        
+        Object.keys(tabData.attributes).forEach(a => TabAttributes.persist(a));
+      }
 
       
       
@@ -3107,10 +3104,15 @@ let SessionStoreInternal = {
     for (let cap of gDocShellCapabilities(browser.docShell))
       browser.docShell["allow" + cap] = !disallow.has(cap);
 
-    for (let name in this.xulAttributes)
-      tab.removeAttribute(name);
-    for (let name in tabData.attributes)
-      tab.setAttribute(name, tabData.attributes[name]);
+    
+    if ("attributes" in tabData) {
+      TabAttributes.set(tab, tabData.attributes);
+    }
+
+    
+    if ("image" in tabData) {
+      aWindow.gBrowser.setIcon(tab, tabData.image);
+    }
 
     if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
       SessionStorage.deserialize(browser.docShell, tabData.storage);
@@ -4619,6 +4621,52 @@ let DyingWindowCache = {
 
   remove: function (window) {
     this._data.delete(window);
+  }
+};
+
+
+
+
+let TabAttributes = {
+  _attrs: new Set(),
+
+  
+  
+  
+  
+  _skipAttrs: new Set(["image", "pending"]),
+
+  persist: function (name) {
+    if (this._attrs.has(name) || this._skipAttrs.has(name)) {
+      return false;
+    }
+
+    this._attrs.add(name);
+    return true;
+  },
+
+  get: function (tab) {
+    let data = {};
+
+    for (let name of this._attrs) {
+      if (tab.hasAttribute(name)) {
+        data[name] = tab.getAttribute(name);
+      }
+    }
+
+    return data;
+  },
+
+  set: function (tab, data = {}) {
+    
+    for (let name of this._attrs) {
+      tab.removeAttribute(name);
+    }
+
+    
+    for (let name in data) {
+      tab.setAttribute(name, data[name]);
+    }
   }
 };
 

@@ -312,8 +312,8 @@ var PlacesCommandHook = {
     
     
     
-    if (BookmarkingUI.anchor) {
-      StarUI.showEditBookmarkPopup(itemId, BookmarkingUI.anchor,
+    if (BookmarksMenuButton.anchor) {
+      StarUI.showEditBookmarkPopup(itemId, BookmarksMenuButton.anchor,
                                    "bottomcenter topright");
       return;
     }
@@ -621,8 +621,8 @@ HistoryMenu.prototype = {
       let m = document.createElement("menuitem");
       m.setAttribute("label", menuLabel);
       let selectedTab = undoItem.tabs[undoItem.selected - 1];
-      if (selectedTab.attributes.image) {
-        let iconURL = selectedTab.attributes.image;
+      if (selectedTab.image) {
+        let iconURL = selectedTab.image;
         
         if (/^https?:/.test(iconURL))
           iconURL = "moz-anno:favicon:" + iconURL;
@@ -996,9 +996,7 @@ let PlacesToolbarHelper = {
 
 
 
-
-
-let BookmarkingUI = {
+let BookmarksMenuButton = {
   get button() {
     if (!this._button) {
       this._button = document.getElementById("bookmarks-menu-button");
@@ -1007,18 +1005,22 @@ let BookmarkingUI = {
   },
 
   get star() {
-    if (!this._star) {
-      this._star = document.getElementById("star-button");
+    if (!this._star && this.button) {
+      this._star = document.getAnonymousElementByAttribute(this.button,
+                                                           "anonid",
+                                                           "button");
     }
     return this._star;
   },
 
   get anchor() {
-    if (this.star && isElementVisible(this.star)) {
+    if (!this._anchor && this.star && isElementVisible(this.star)) {
       
-      return this.star;
+      this._anchor = document.getAnonymousElementByAttribute(this.star,
+                                                             "class",
+                                                             "toolbarbutton-icon");
     }
-    return null;
+    return this._anchor;
   },
 
   STATUS_UPDATING: -1,
@@ -1027,9 +1029,9 @@ let BookmarkingUI = {
   get status() {
     if (this._pendingStmt)
       return this.STATUS_UPDATING;
-    return this.star &&
-           this.star.hasAttribute("starred") ? this.STATUS_STARRED
-                                             : this.STATUS_UNSTARRED;
+    return this.button &&
+           this.button.hasAttribute("starred") ? this.STATUS_STARRED
+                                               : this.STATUS_UNSTARRED;
   },
 
   get _starredTooltip()
@@ -1053,11 +1055,11 @@ let BookmarkingUI = {
 
 
   _popupNeedsUpdate: true,
-  onToolbarVisibilityChange: function BUI_onToolbarVisibilityChange() {
+  onToolbarVisibilityChange: function BMB_onToolbarVisibilityChange() {
     this._popupNeedsUpdate = true;
   },
 
-  onPopupShowing: function BUI_onPopupShowing(event) {
+  onPopupShowing: function BMB_onPopupShowing(event) {
     
     if (event.target != event.currentTarget)
       return;
@@ -1091,22 +1093,23 @@ let BookmarkingUI = {
   
 
 
-  onPageProxyStateChanged: function BUI_onPageProxyStateChanged(aState) {
+  onPageProxyStateChanged: function BMB_onPageProxyStateChanged(aState) {
     if (!this.star) {
       return;
     }
 
     if (aState == "invalid") {
       this.star.setAttribute("disabled", "true");
-      this.star.removeAttribute("starred");
+      this.button.removeAttribute("starred");
     }
     else {
       this.star.removeAttribute("disabled");
     }
+    this._updateStyle();
   },
 
-  _updateToolbarStyle: function BUI__updateToolbarStyle() {
-    if (!this.button) {
+  _updateStyle: function BMB__updateStyle() {
+    if (!this.star) {
       return;
     }
 
@@ -1124,7 +1127,7 @@ let BookmarkingUI = {
     }
   },
 
-  _uninitView: function BUI__uninitView() {
+  _uninitView: function BMB__uninitView() {
     
     
     
@@ -1133,22 +1136,24 @@ let BookmarkingUI = {
     }
   },
 
-  customizeStart: function BUI_customizeStart() {
+  customizeStart: function BMB_customizeStart() {
     this._uninitView();
   },
 
-  customizeChange: function BUI_customizeChange() {
-    this._updateToolbarStyle();
+  customizeChange: function BMB_customizeChange() {
+    this._updateStyle();
   },
 
-  customizeDone: function BUI_customizeDone() {
+  customizeDone: function BMB_customizeDone() {
     delete this._button;
+    delete this._star;
+    delete this._anchor;
     this.onToolbarVisibilityChange();
-    this._updateToolbarStyle();
+    this._updateStyle();
   },
 
   _hasBookmarksObserver: false,
-  uninit: function BUI_uninit() {
+  uninit: function BMB_uninit() {
     this._uninitView();
 
     if (this._hasBookmarksObserver) {
@@ -1161,8 +1166,8 @@ let BookmarkingUI = {
     }
   },
 
-  updateStarState: function BUI_updateStarState() {
-    if (!this.star || (this._uri && gBrowser.currentURI.equals(this._uri))) {
+  updateStarState: function BMB_updateStarState() {
+    if (!this.button || (this._uri && gBrowser.currentURI.equals(this._uri))) {
       return;
     }
 
@@ -1183,7 +1188,7 @@ let BookmarkingUI = {
     this._pendingStmt = PlacesUtils.asyncGetBookmarkIds(this._uri, function (aItemIds, aURI) {
       
       if (!aURI.equals(this._uri)) {
-        Components.utils.reportError("BookmarkingUI did not receive current URI");
+        Components.utils.reportError("BookmarksMenuButton did not receive current URI");
         return;
       }
 
@@ -1202,7 +1207,7 @@ let BookmarkingUI = {
           PlacesUtils.addLazyBookmarkObserver(this);
           this._hasBookmarksObserver = true;
         } catch(ex) {
-          Components.utils.reportError("BookmarkingUI failed adding a bookmarks observer: " + ex);
+          Components.utils.reportError("BookmarksMenuButton failed adding a bookmarks observer: " + ex);
         }
       }
 
@@ -1210,22 +1215,22 @@ let BookmarkingUI = {
     }, this);
   },
 
-  _updateStar: function BUI__updateStar() {
-    if (!this.star) {
+  _updateStar: function BMB__updateStar() {
+    if (!this.button) {
       return;
     }
 
     if (this._itemIds.length > 0) {
-      this.star.setAttribute("starred", "true");
-      this.star.setAttribute("tooltiptext", this._starredTooltip);
+      this.button.setAttribute("starred", "true");
+      this.button.setAttribute("tooltiptext", this._starredTooltip);
     }
     else {
-      this.star.removeAttribute("starred");
-      this.star.setAttribute("tooltiptext", this._unstarredTooltip);
+      this.button.removeAttribute("starred");
+      this.button.setAttribute("tooltiptext", this._unstarredTooltip);
     }
   },
 
-  onCommand: function BUI_onCommand(aEvent) {
+  onCommand: function BMB_onCommand(aEvent) {
     if (aEvent.target != aEvent.currentTarget) {
       return;
     }
@@ -1236,8 +1241,12 @@ let BookmarkingUI = {
   },
 
   
-  onItemAdded: function BUI_onItemAdded(aItemId, aParentId, aIndex, aItemType,
+  onItemAdded: function BMB_onItemAdded(aItemId, aParentId, aIndex, aItemType,
                                         aURI) {
+    if (!this.button) {
+      return;
+    }
+
     if (aURI && aURI.equals(this._uri)) {
       
       if (this._itemIds.indexOf(aItemId) == -1) {
@@ -1247,7 +1256,11 @@ let BookmarkingUI = {
     }
   },
 
-  onItemRemoved: function BUI_onItemRemoved(aItemId) {
+  onItemRemoved: function BMB_onItemRemoved(aItemId) {
+    if (!this.button) {
+      return;
+    }
+
     let index = this._itemIds.indexOf(aItemId);
     
     if (index != -1) {
@@ -1256,8 +1269,12 @@ let BookmarkingUI = {
     }
   },
 
-  onItemChanged: function BUI_onItemChanged(aItemId, aProperty,
+  onItemChanged: function BMB_onItemChanged(aItemId, aProperty,
                                             aIsAnnotationProperty, aNewValue) {
+    if (!this.button) {
+      return;
+    }
+
     if (aProperty == "uri") {
       let index = this._itemIds.indexOf(aItemId);
       
@@ -1282,5 +1299,5 @@ let BookmarkingUI = {
 
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsINavBookmarkObserver
-  ])
+  ]),
 };
