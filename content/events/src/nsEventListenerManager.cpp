@@ -1347,7 +1347,9 @@ nsEventListenerManager::GetScriptGlobalAndDocument(nsIDocument** aDoc)
     
     
     doc = node->OwnerDoc();
-    MOZ_ASSERT(!doc->IsLoadedAsData(), "Should not get in here at all");
+    if (doc->IsLoadedAsData()) {
+      return nullptr;
+    }
 
     
     
