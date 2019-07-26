@@ -56,11 +56,6 @@ private:
   
 
 
-  nsresult DispatchTrustedEventToSelf(const nsAString& aEventName);
-
-  
-
-
 
   void UpdateFromBatteryInfo(const hal::BatteryInformation& aBatteryInfo);
 

@@ -46,11 +46,6 @@ private:
   
 
 
-  nsresult DispatchTrustedEventToSelf(const nsAString& aEventName);
-
-  
-
-
 
   void UpdateFromNetworkInfo(const hal::NetworkInformation& aNetworkInfo);
 

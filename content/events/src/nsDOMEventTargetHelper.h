@@ -19,6 +19,8 @@
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Attributes.h"
 
+class nsDOMEvent;
+
 class nsDOMEventTargetHelper : public nsIDOMEventTarget,
                                public nsWrapperCache
 {
@@ -114,6 +116,10 @@ public:
   bool HasOrHasHadOwner() { return mHasOrHasHadOwner; }
 protected:
   nsRefPtr<nsEventListenerManager> mListenerManager;
+  
+  nsresult DispatchTrustedEvent(const nsAString& aEventName);
+  
+  nsresult DispatchTrustedEvent(nsIDOMEvent* aEvent);
 private:
   
   nsPIDOMWindow*             mOwner; 

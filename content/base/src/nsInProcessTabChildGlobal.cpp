@@ -228,15 +228,7 @@ nsInProcessTabChildGlobal::DelayedDisconnect()
   mOwner = nullptr;
 
   
-  nsCOMPtr<nsIDOMEvent> event;
-  NS_NewDOMEvent(getter_AddRefs(event), nullptr, nullptr);
-  if (event) {
-    event->InitEvent(NS_LITERAL_STRING("unload"), false, false);
-    event->SetTrusted(true);
-
-    bool dummy;
-    nsDOMEventTargetHelper::DispatchEvent(event, &dummy);
-  }
+  nsDOMEventTargetHelper::DispatchTrustedEvent(NS_LITERAL_STRING("unload"));
 
   
   nsCOMPtr<nsIDOMWindow> win = do_GetInterface(mDocShell);
