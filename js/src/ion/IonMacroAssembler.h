@@ -504,7 +504,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     void link(IonCode *code) {
-        JS_ASSERT(!m_buffer.oom());
+
         
         
         
