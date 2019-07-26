@@ -2311,14 +2311,13 @@ GenerateTypedArrayElement(JSContext *cx, MacroAssembler &masm, IonCache::StubAtt
     
     int arrayType = tarr->type();
 
+    
+    Shape *shape = tarr->lastProperty();
+    masm.branchTestObjShape(Assembler::NotEqual, object, shape, &failures);
+
+    
     Register tmpReg = output.scratchReg().gpr();
     JS_ASSERT(tmpReg != InvalidReg);
-
-    
-    
-    masm.branchTestObjClass(Assembler::NotEqual, object, tmpReg, tarr->getClass(), &failures);
-
-    
     Register indexReg = tmpReg;
     JS_ASSERT(!index.constant());
     if (idval.isString()) {
