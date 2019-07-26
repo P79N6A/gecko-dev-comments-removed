@@ -1807,11 +1807,11 @@ function switchToFrame(msg) {
     checkTimer.initWithCallback(checkLoad, 100, Ci.nsITimer.TYPE_ONE_SHOT);
   }
   let foundFrame = null;
-  let frames = [];
-  let parWindow = null;
+  let frames = []; 
+  let parWindow = null; 
   
   try {
-    frames = curFrame.frames;
+    frames = curFrame.document.getElementsByTagName("iframe");
     
     
     parWindow = curFrame.QueryInterface(Ci.nsIInterfaceRequestor)
@@ -1823,8 +1823,7 @@ function switchToFrame(msg) {
     msg.json.id = null;
     msg.json.element = null;
   }
-
-  if ((msg.json.id === null || msg.json.id === undefined) && (msg.json.element == null)) {
+  if ((msg.json.id == null) && (msg.json.element == null)) {
     
     sendSyncMessage("Marionette:switchedToFrame", { frameValue: null });
 
@@ -1845,42 +1844,47 @@ function switchToFrame(msg) {
       catch(e) {
         sendError(e.message, e.code, e.stack, command_id);
       }
-
-      if (frames.length > 0) {
+      for (let i = 0; i < frames.length; i++) {
+        
+        if (XPCNativeWrapper(frames[i]) == XPCNativeWrapper(wantedFrame)) {
+          curFrame = frames[i];
+          foundFrame = i;
+        }
+      }
+    }
+  }
+  if (foundFrame == null) {
+    switch(typeof(msg.json.id)) {
+      case "string" :
+        let foundById = null;
         for (let i = 0; i < frames.length; i++) {
-          logger.info("frame[i] is " + frames[i].frameElement);
           
-          if (XPCNativeWrapper(frames[i].frameElement) == XPCNativeWrapper(wantedFrame)) {
-            logger.info("we have found it")
-            curFrame = frames[i].frameElement;
+          let frame = frames[i];
+          let name = utils.getElementAttribute(frame, 'name');
+          let id = utils.getElementAttribute(frame, 'id');
+          if (name == msg.json.id) {
             foundFrame = i;
+            break;
+          } else if ((foundById == null) && (id == msg.json.id)) {
+            foundById = i;
           }
         }
-      }
-      if(foundFrame == null) {
-        
-        
-        
-        let iframes = curFrame.document.getElementsByTagName("iframe");
-        for (var i = 0; i < iframes.length; i++) {
-          if (XPCNativeWrapper(iframes[i]) == XPCNativeWrapper(wantedFrame)) {
-            curFrame = iframes[i];
-            foundFrame = i;
-          }
+        if ((foundFrame == null) && (foundById != null)) {
+          foundFrame = foundById;
+          curFrame = frames[foundFrame];
         }
-      }
+        break;
+      case "number":
+        if (frames[msg.json.id] != undefined) {
+          foundFrame = msg.json.id;
+          curFrame = frames[foundFrame];
+        }
+        break;
     }
   }
   if (foundFrame == null) {
-    if (typeof(msg.json.id) === 'number') {
-      foundFrame = frames[msg.json.id].frameElement;
-      curFrame = foundFrame;
-      foundFrame = elementManager.addToKnownElements(curFrame);
-    }
-  }
-  if (foundFrame == null) {
-    sendError("Unable to locate frame: " + (msg.json.id || msg.json.element), 8, null, command_id);
-    return true;
+    sendError("Unable to locate frame: " + msg.json.id, 8, null, command_id);
+    return;
   }
 
   sandbox = null;
@@ -1894,8 +1898,8 @@ function switchToFrame(msg) {
     
     
     curFrame = content;
-    sendToServer('Marionette:switchToFrame', {win: parWindow,
-                                              frame: foundFrame,
+    sendToServer('Marionette:switchToFrame', {frame: foundFrame,
+                                              win: parWindow,
                                               command_id: command_id});
   }
   else {
