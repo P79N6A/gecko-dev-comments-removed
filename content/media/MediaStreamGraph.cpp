@@ -1150,22 +1150,11 @@ MediaStreamGraphImpl::EnsureNextIterationLocked(MonitorAutoLock& aLock)
 static GraphTime
 RoundUpToNextAudioBlock(TrackRate aSampleRate, GraphTime aTime)
 {
-  TrackTicks ticks = RateConvertTicksRoundUp(aSampleRate,
-                                             1 << MEDIA_TIME_FRAC_BITS, aTime);
+  TrackTicks ticks = aTime;
   uint64_t block = ticks >> WEBAUDIO_BLOCK_SIZE_BITS;
   uint64_t nextBlock = block + 1;
   TrackTicks nextTicks = nextBlock << WEBAUDIO_BLOCK_SIZE_BITS;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  return ((nextTicks - 1) << MEDIA_TIME_FRAC_BITS)/aSampleRate + 1;
+  return nextTicks;
 }
 
 void

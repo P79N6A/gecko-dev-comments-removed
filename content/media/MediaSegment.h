@@ -29,17 +29,16 @@ const TrackRate TRACK_RATE_MAX = 1 << TRACK_RATE_MAX_BITS;
 
 
 
-typedef int64_t MediaTime;
-const int64_t MEDIA_TIME_FRAC_BITS = 20;
-const int64_t MEDIA_TIME_MAX = INT64_MAX >> TRACK_RATE_MAX_BITS;
-
-
-
-
-
-
 typedef int64_t TrackTicks;
-const int64_t TRACK_TICKS_MAX = INT64_MAX >> MEDIA_TIME_FRAC_BITS;
+const int64_t TRACK_TICKS_MAX = INT64_MAX >> TRACK_RATE_MAX_BITS;
+
+
+
+
+
+
+typedef int64_t MediaTime;
+const int64_t MEDIA_TIME_MAX = TRACK_TICKS_MAX;
 
 
 
