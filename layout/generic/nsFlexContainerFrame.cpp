@@ -2988,7 +2988,7 @@ FlexLine::PositionItemsInCrossAxis(nscoord aLineStartPosition,
   }
 }
 
-nsresult
+void
 nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
                              nsHTMLReflowMetrics&     aDesiredSize,
                              const nsHTMLReflowState& aReflowState,
@@ -3000,7 +3000,7 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
          ("Reflow() for nsFlexContainerFrame %p\n", this));
 
   if (IsFrameTreeTooDeep(aReflowState, aDesiredSize, aStatus)) {
-    return NS_OK;
+    return;
   }
 
   
@@ -3063,12 +3063,10 @@ nsFlexContainerFrame::Reflow(nsPresContext*           aPresContext,
 
   if (NS_SUCCEEDED(rv) && !struts.IsEmpty()) {
     
-    rv = DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
-                      contentBoxMainSize, availableHeightForContent,
-                      struts, axisTracker);
+    DoFlexLayout(aPresContext, aDesiredSize, aReflowState, aStatus,
+                 contentBoxMainSize, availableHeightForContent,
+                 struts, axisTracker);
   }
-
-  return rv;
 }
 
 

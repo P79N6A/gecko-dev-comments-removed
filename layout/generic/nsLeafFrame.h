@@ -51,10 +51,10 @@ public:
 
 
 
-  virtual nsresult Reflow(nsPresContext*      aPresContext,
-                          nsHTMLReflowMetrics& aDesiredSize,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&      aStatus) MOZ_OVERRIDE;
+  virtual void Reflow(nsPresContext*      aPresContext,
+                      nsHTMLReflowMetrics& aDesiredSize,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&      aStatus) MOZ_OVERRIDE;
   
   
 

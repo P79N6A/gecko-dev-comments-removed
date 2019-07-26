@@ -1865,10 +1865,10 @@ public:
 
 
 
-  virtual nsresult Reflow(nsPresContext*          aPresContext,
-                          nsHTMLReflowMetrics&     aReflowMetrics,
-                          const nsHTMLReflowState& aReflowState,
-                          nsReflowStatus&          aStatus) = 0;
+  virtual void Reflow(nsPresContext*           aPresContext,
+                      nsHTMLReflowMetrics&     aReflowMetrics,
+                      const nsHTMLReflowState& aReflowState,
+                      nsReflowStatus&          aStatus) = 0;
 
   
 

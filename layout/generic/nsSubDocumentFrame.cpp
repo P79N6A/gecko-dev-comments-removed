@@ -688,7 +688,7 @@ nsSubDocumentFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                   aMargin, aBorder, aPadding, aFlags);
 }
 
-nsresult
+void
 nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
                            nsHTMLReflowMetrics&     aDesiredSize,
                            const nsHTMLReflowState& aReflowState,
@@ -709,7 +709,9 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
   
   nsresult rv = nsLeafFrame::DoReflow(aPresContext, aDesiredSize, aReflowState,
                                       aStatus);
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_FAILED(rv)) {
+    return;
+  }
 
   
   
@@ -749,7 +751,6 @@ nsSubDocumentFrame::Reflow(nsPresContext*           aPresContext,
       aDesiredSize.Width(), aDesiredSize.Height(), aStatus));
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return NS_OK;
 }
 
 bool

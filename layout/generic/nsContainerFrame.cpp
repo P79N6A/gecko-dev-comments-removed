@@ -945,8 +945,6 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
 {
   NS_PRECONDITION(aReflowState.frame == aKidFrame, "bad reflow state");
 
-  nsresult  result;
-
   
   
   aKidFrame->WillReflow(aPresContext);
@@ -960,12 +958,11 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
   }
 
   
-  result = aKidFrame->Reflow(aPresContext, aDesiredSize, aReflowState,
-                             aStatus);
+  aKidFrame->Reflow(aPresContext, aDesiredSize, aReflowState, aStatus);
 
   
   
-  if (NS_SUCCEEDED(result) && NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
+  if (NS_FRAME_IS_FULLY_COMPLETE(aStatus) &&
       !(aFlags & NS_FRAME_NO_DELETE_NEXT_IN_FLOW_CHILD)) {
     nsIFrame* kidNextInFlow = aKidFrame->GetNextInFlow();
     if (kidNextInFlow) {
@@ -977,7 +974,7 @@ nsContainerFrame::ReflowChild(nsIFrame*                aKidFrame,
         ->DeleteNextInFlowChild(kidNextInFlow, true);
     }
   }
-  return result;
+  return NS_OK;
 }
 
 

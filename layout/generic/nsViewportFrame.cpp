@@ -173,7 +173,7 @@ ViewportFrame::AdjustReflowStateAsContainingBlock(nsHTMLReflowState* aReflowStat
   return rect;
 }
 
-nsresult
+void
 ViewportFrame::Reflow(nsPresContext*           aPresContext,
                       nsHTMLReflowMetrics&     aDesiredSize,
                       const nsHTMLReflowState& aReflowState,
@@ -200,8 +200,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   
   nscoord kidHeight = 0;
 
-  nsresult rv = NS_OK;
-  
   if (mFrames.NotEmpty()) {
     
     
@@ -218,8 +216,8 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
       
       kidReflowState.SetComputedHeight(aReflowState.ComputedHeight());
-      rv = ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
-                       0, 0, 0, aStatus);
+      ReflowChild(kidFrame, aPresContext, kidDesiredSize, kidReflowState,
+                  0, 0, 0, aStatus);
       kidHeight = kidDesiredSize.Height();
 
       FinishReflowChild(kidFrame, aPresContext, kidDesiredSize, nullptr, 0, 0, 0);
@@ -262,10 +260,10 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
     nsRect rect = AdjustReflowStateAsContainingBlock(&reflowState);
 
     
-    rv = GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
-                                              rect,
-                                              false, true, true, 
-                                              &aDesiredSize.mOverflowAreas);
+    GetAbsoluteContainingBlock()->Reflow(this, aPresContext, reflowState, aStatus,
+                                         rect,
+                                         false, true, true, 
+                                         &aDesiredSize.mOverflowAreas);
   }
 
   
@@ -289,7 +287,6 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
 
   NS_FRAME_TRACE_REFLOW_OUT("ViewportFrame::Reflow", aStatus);
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
-  return rv; 
 }
 
 nsIAtom*
