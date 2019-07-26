@@ -358,7 +358,7 @@ public:
 
   bool GetPlayedOrSeeked() const { return mHasPlayedOrSeeked; }
 
-  nsresult CopyInnerTo(nsGenericElement* aDest);
+  nsresult CopyInnerTo(mozilla::dom::Element* aDest);
 
   
 

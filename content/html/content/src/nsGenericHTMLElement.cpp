@@ -278,7 +278,7 @@ nsGenericHTMLElement::DOMQueryInterface(nsIDOMHTMLElement *aElement,
 
 
 nsresult
-nsGenericHTMLElement::CopyInnerTo(nsGenericElement* aDst)
+nsGenericHTMLElement::CopyInnerTo(Element* aDst)
 {
   nsresult rv;
   int32_t i, count = GetAttrCount();
@@ -380,7 +380,7 @@ IsOffsetParent(nsIFrame* aFrame)
           frameType == nsGkAtoms::tableFrame);
 }
 
-nsGenericElement*
+Element*
 nsGenericHTMLElement::GetOffsetRect(nsRect& aRect)
 {
   aRect = nsRect();
@@ -481,9 +481,7 @@ nsGenericHTMLElement::GetOffsetRect(nsRect& aRect)
   aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
   aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
 
-  return offsetParent ?
-         static_cast<nsGenericElement*>(offsetParent->AsElement()) :
-         nullptr;
+  return offsetParent ? offsetParent->AsElement() : nullptr;
 }
 
 
@@ -1182,7 +1180,7 @@ nsGenericHTMLElement::FireMutationEventsForDirectParsing(nsIDocument* aDoc,
          child = child->GetNextSibling()) {
       childNodes.AppendElement(child);
     }
-    nsGenericElement::FireNodeInserted(aDoc, aDest, childNodes);
+    Element::FireNodeInserted(aDoc, aDest, childNodes);
   }
 }
 
@@ -2336,7 +2334,7 @@ nsGenericHTMLElement::sCommonAttributeMap[] = {
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageMarginSizeAttributeMap[] = {
   { &nsGkAtoms::width },
   { &nsGkAtoms::height },
@@ -2345,38 +2343,38 @@ nsGenericHTMLElement::sImageMarginSizeAttributeMap[] = {
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageAlignAttributeMap[] = {
   { &nsGkAtoms::align },
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sDivAlignAttributeMap[] = {
   { &nsGkAtoms::align },
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sImageBorderAttributeMap[] = {
   { &nsGkAtoms::border },
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sBackgroundAttributeMap[] = {
   { &nsGkAtoms::background },
   { &nsGkAtoms::bgcolor },
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sBackgroundColorAttributeMap[] = {
   { &nsGkAtoms::bgcolor },
   { nullptr }
 };
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsGenericHTMLElement::sScrollingAttributeMap[] = {
   { &nsGkAtoms::scrolling },
   { nullptr }

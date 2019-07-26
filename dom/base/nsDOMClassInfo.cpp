@@ -130,7 +130,6 @@
 #include "nsIPluginHost.h"
 
 #include "nsIDOMHTMLOptionElement.h"
-#include "nsGenericElement.h"
 
 
 #include "nsEventListenerManager.h"

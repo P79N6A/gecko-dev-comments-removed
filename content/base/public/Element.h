@@ -115,15 +115,6 @@ namespace mozilla {
 namespace dom {
 
 class Link;
-class Element;
-
-} 
-} 
-
-typedef mozilla::dom::Element nsGenericElement;
-
-namespace mozilla {
-namespace dom {
 
 
 #define NS_ELEMENT_IID \

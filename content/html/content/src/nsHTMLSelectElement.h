@@ -56,7 +56,7 @@ public:
   
   
 
-  virtual nsGenericElement* GetElementAt(uint32_t aIndex);
+  virtual mozilla::dom::Element* GetElementAt(uint32_t aIndex);
   virtual nsINode* GetParentObject();
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsHTMLOptionCollection,

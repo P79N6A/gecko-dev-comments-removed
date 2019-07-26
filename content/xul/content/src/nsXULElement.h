@@ -348,7 +348,7 @@ public:
     
     NS_DECL_ISUPPORTS_INHERITED
     NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsXULElement,
-                                                       nsGenericElement)
+                                                       mozilla::dom::Element)
 
     
     virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
@@ -437,7 +437,7 @@ protected:
 
     nsresult AddPopupListener(nsIAtom* aName);
 
-    class nsXULSlots : public nsGenericElement::nsDOMSlots
+    class nsXULSlots : public mozilla::dom::Element::nsDOMSlots
     {
     public:
         nsXULSlots();

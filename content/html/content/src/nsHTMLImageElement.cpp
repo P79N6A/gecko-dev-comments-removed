@@ -81,8 +81,8 @@ nsHTMLImageElement::~nsHTMLImageElement()
 }
 
 
-NS_IMPL_ADDREF_INHERITED(nsHTMLImageElement, nsGenericElement)
-NS_IMPL_RELEASE_INHERITED(nsHTMLImageElement, nsGenericElement)
+NS_IMPL_ADDREF_INHERITED(nsHTMLImageElement, Element)
+NS_IMPL_RELEASE_INHERITED(nsHTMLImageElement, Element)
 
 
 DOMCI_NODE_DATA(HTMLImageElement, nsHTMLImageElement)
@@ -531,7 +531,7 @@ nsHTMLImageElement::GetNaturalWidth(uint32_t* aNaturalWidth)
 }
 
 nsresult
-nsHTMLImageElement::CopyInnerTo(nsGenericElement* aDest)
+nsHTMLImageElement::CopyInnerTo(Element* aDest)
 {
   if (aDest->OwnerDoc()->IsStaticDocument()) {
     CreateStaticImageClone(static_cast<nsHTMLImageElement*>(aDest));

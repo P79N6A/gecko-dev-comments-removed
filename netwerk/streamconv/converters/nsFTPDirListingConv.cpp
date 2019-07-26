@@ -3,7 +3,6 @@
 
 
 
-#include "NSPRFormatTime.h" 
 #include "nsFTPDirListingConv.h"
 #include "nsMemory.h"
 #include "plstr.h"

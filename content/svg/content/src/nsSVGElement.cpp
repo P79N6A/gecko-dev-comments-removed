@@ -59,6 +59,7 @@
 #include "nsSMILAnimationController.h"
 
 using namespace mozilla;
+using namespace mozilla::dom;
 
 
 
@@ -887,7 +888,7 @@ nsSVGElement::IsAttributeMapped(const nsIAtom* name) const
 }
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sFillStrokeMap[] = {
   { &nsGkAtoms::fill },
   { &nsGkAtoms::fill_opacity },
@@ -905,7 +906,7 @@ nsSVGElement::sFillStrokeMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sGraphicsMap[] = {
   { &nsGkAtoms::clip_path },
   { &nsGkAtoms::clip_rule },
@@ -924,7 +925,7 @@ nsSVGElement::sGraphicsMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sTextContentElementsMap[] = {
   
   
@@ -943,7 +944,7 @@ nsSVGElement::sTextContentElementsMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sFontSpecificationMap[] = {
   { &nsGkAtoms::font_family },
   { &nsGkAtoms::font_size },
@@ -956,7 +957,7 @@ nsSVGElement::sFontSpecificationMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sGradientStopMap[] = {
   { &nsGkAtoms::stop_color },
   { &nsGkAtoms::stop_opacity },
@@ -964,7 +965,7 @@ nsSVGElement::sGradientStopMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sViewportsMap[] = {
   { &nsGkAtoms::overflow },
   { &nsGkAtoms::clip },
@@ -972,7 +973,7 @@ nsSVGElement::sViewportsMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sMarkersMap[] = {
   { &nsGkAtoms::marker_end },
   { &nsGkAtoms::marker_mid },
@@ -981,21 +982,21 @@ nsSVGElement::sMarkersMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sColorMap[] = {
   { &nsGkAtoms::color },
   { nullptr }
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sFiltersMap[] = {
   { &nsGkAtoms::colorInterpolationFilters },
   { nullptr }
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sFEFloodMap[] = {
   { &nsGkAtoms::flood_color },
   { &nsGkAtoms::flood_opacity },
@@ -1003,7 +1004,7 @@ nsSVGElement::sFEFloodMap[] = {
 };
 
 
- const nsGenericElement::MappedAttributeEntry
+ const Element::MappedAttributeEntry
 nsSVGElement::sLightingEffectsMap[] = {
   { &nsGkAtoms::lighting_color },
   { nullptr }
@@ -1015,7 +1016,7 @@ nsSVGElement::sLightingEffectsMap[] = {
 NS_IMETHODIMP
 nsSVGElement::IsSupported(const nsAString& aFeature, const nsAString& aVersion, bool* aReturn)
 {
-  *aReturn = nsGenericElement::IsSupported(aFeature, aVersion);
+  *aReturn = Element::IsSupported(aFeature, aVersion);
   return NS_OK;
 }
 

@@ -32,8 +32,8 @@ class nsHTMLScriptElement : public nsGenericHTMLElement,
                             public nsScriptElement
 {
 public:
-  using nsGenericElement::GetText;
-  using nsGenericElement::SetText;
+  using Element::GetText;
+  using Element::SetText;
 
   nsHTMLScriptElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                       FromParser aFromParser);
@@ -106,8 +106,8 @@ nsHTMLScriptElement::~nsHTMLScriptElement()
 }
 
 
-NS_IMPL_ADDREF_INHERITED(nsHTMLScriptElement, nsGenericElement)
-NS_IMPL_RELEASE_INHERITED(nsHTMLScriptElement, nsGenericElement)
+NS_IMPL_ADDREF_INHERITED(nsHTMLScriptElement, Element)
+NS_IMPL_RELEASE_INHERITED(nsHTMLScriptElement, Element)
 
 DOMCI_NODE_DATA(HTMLScriptElement, nsHTMLScriptElement)
 

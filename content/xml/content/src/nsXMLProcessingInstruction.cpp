@@ -3,7 +3,6 @@
 
 
 
-#include "nsGenericElement.h"
 #include "nsGkAtoms.h"
 #include "nsUnicharUtils.h"
 #include "nsXMLProcessingInstruction.h"

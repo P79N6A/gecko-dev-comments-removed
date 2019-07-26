@@ -25,13 +25,6 @@ struct JSObject;
 
 
 
-
-
-
-
-
-
-
 #define NS_STID_FIRST nsIProgrammingLanguage::JAVASCRIPT
 
 #define NS_STID_LAST (nsIProgrammingLanguage::MAX > 0x000FU ? \

@@ -8,7 +8,7 @@
 
 
 #include "nsCOMPtr.h"
-#include "nsGenericElement.h" 
+#include "mozilla/dom/Element.h" 
 #include "Comment.h"
 
 using namespace mozilla;
