@@ -1001,6 +1001,15 @@ function cleanUpUpdatesDir(aBackgroundUpdate) {
       
       continue;
     }
+#ifdef MOZ_WIDGET_GONK
+    if (f.leafName == FILE_UPDATE_LINK) {
+      let linkedFile = getFileFromUpdateLink(updateDir);
+      if (linkedFile && linkedFile.exists()) {
+        linkedFile.remove(false);
+      }
+    }
+#endif
+
     
     
     
@@ -3517,7 +3526,6 @@ Downloader.prototype = {
 
 #ifdef MOZ_WIDGET_GONK
     let status = readStatusFile(updateDir);
-LOG("status read " + status);
     if (isInterruptedUpdate(status)) {
       LOG("Downloader:downloadUpdate - interruptted update");
       
@@ -3572,11 +3580,18 @@ LOG("status read " + status);
       return STATE_NONE;
     }
 
+#ifdef MOZ_WIDGET_GONK
     if (patchFile.path.indexOf(updateDir.path) != 0) {
       
       
       writeLinkFile(updateDir, patchFile);
+
+      if (!isInterruptedUpdate(status) && patchFile.exists()) {
+        
+        patchFile.remove(false);
+      }
     }
+#endif
 
     var uri = Services.io.newURI(this._patch.URL, null, null);
 
