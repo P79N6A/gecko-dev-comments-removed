@@ -295,17 +295,31 @@ abstract class PanelLayout extends FrameLayout {
         public void pushFilter(String filter) {
             if (mFilterStack == null) {
                 mFilterStack = new LinkedList<String>();
+
+                
+                
+                mFilterStack.push(null);
             }
 
             mFilterStack.push(filter);
         }
 
-        public String popFilter() {
-            if (getCurrentFilter() != null) {
-                mFilterStack.pop();
+        
+
+
+
+
+        public boolean popFilter() {
+            if (!canPopFilter()) {
+                return false;
             }
 
-            return getCurrentFilter();
+            mFilterStack.pop();
+            return true;
+        }
+
+        public boolean canPopFilter() {
+            return (mFilterStack != null && mFilterStack.size() > 1);
         }
     }
 
@@ -323,10 +337,8 @@ abstract class PanelLayout extends FrameLayout {
 
 
     private boolean popFilterOnView(ViewState viewState) {
-        String currentFilter = viewState.getCurrentFilter();
-        String filter = viewState.popFilter();
-
-        if (!TextUtils.equals(currentFilter, filter)) {
+        if (viewState.popFilter()) {
+            final String filter = viewState.getCurrentFilter();
             mDatasetHandler.requestDataset(new DatasetRequest(viewState.getDatasetId(), filter));
             return true;
         } else {
