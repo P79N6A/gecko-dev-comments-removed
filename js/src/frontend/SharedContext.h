@@ -210,6 +210,10 @@ class FunctionBox : public ObjectBox, public SharedContext
     bool            useAsm:1;               
     bool            insideUseAsm:1;         
 
+    
+    bool            usesArguments:1;  
+    bool            usesApply:1;      
+
     FunctionContextFlags funCxFlags;
 
     template <typename ParseHandler>

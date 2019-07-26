@@ -1695,6 +1695,10 @@ CodeGenerator::visitCallKnown(LCallKnown *call)
     }
 
     
+    
+    masm.branchIfFunctionHasNoScript(calleereg, &uncompiled);
+
+    
     masm.loadPtr(Address(calleereg, JSFunction::offsetOfNativeOrScript()), objreg);
 
     

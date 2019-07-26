@@ -542,6 +542,9 @@ class JSScript : public js::gc::Cell
     bool directlyInsideEval:1;
 
     
+    bool usesArgumentsAndApply:1;
+
+    
 
 
 
@@ -1101,17 +1104,18 @@ struct SourceCompressionToken;
 
 
 
-
 class LazyScript : public js::gc::Cell
 {
     
     
+    HeapPtrScript script_;
+
     
-    JSScript *parent_;
+    HeapPtrFunction parentFunction_;
 
     
     
-    JSScript *script_;
+    HeapPtrObject sourceObject_;
 
     
     void *table_;
@@ -1120,14 +1124,20 @@ class LazyScript : public js::gc::Cell
     uint32_t padding;
 #endif
 
-    uint32_t numFreeVariables_;
+    
+    JSPrincipals *originPrincipals_;
+    uint32_t version_ : 8;
+
+    uint32_t numFreeVariables_ : 24;
     uint32_t numInnerFunctions_ : 26;
 
-    bool strict_ : 1;
-    bool bindingsAccessedDynamically_ : 1;
-    bool hasDebuggerStatement_ : 1;
-    bool directlyInsideEval_:1;
-    bool hasBeenCloned_:1;
+    
+    uint32_t strict_ : 1;
+    uint32_t bindingsAccessedDynamically_ : 1;
+    uint32_t hasDebuggerStatement_ : 1;
+    uint32_t directlyInsideEval_:1;
+    uint32_t usesArgumentsAndApply_:1;
+    uint32_t hasBeenCloned_:1;
 
     
     uint32_t begin_;
@@ -1135,45 +1145,32 @@ class LazyScript : public js::gc::Cell
     uint32_t lineno_;
     uint32_t column_;
 
-    LazyScript(void *table, uint32_t numFreeVariables, uint32_t numInnerFunctions,
-               uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column)
-      : parent_(NULL),
-        script_(NULL),
-        table_(table),
-        numFreeVariables_(numFreeVariables),
-        numInnerFunctions_(numInnerFunctions),
-        strict_(false),
-        bindingsAccessedDynamically_(false),
-        hasDebuggerStatement_(false),
-        directlyInsideEval_(false),
-        hasBeenCloned_(false),
-        begin_(begin),
-        end_(end),
-        lineno_(lineno),
-        column_(column)
-    {
-        JS_ASSERT(begin <= end);
-    }
+    LazyScript(void *table, uint32_t numFreeVariables, uint32_t numInnerFunctions, JSVersion version,
+               uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column);
 
   public:
     static LazyScript *Create(JSContext *cx, uint32_t numFreeVariables, uint32_t numInnerFunctions,
-                              uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column);
+                              JSVersion version, uint32_t begin, uint32_t end, uint32_t lineno, uint32_t column);
 
-    void initParent(JSScript *parent) {
-        JS_ASSERT(parent && !parent_);
-        parent_ = parent;
-    }
-    JSScript *parent() const {
-        return parent_;
-    }
-
-    void initScript(JSScript *script) {
-        JS_ASSERT(script && !script_);
-        script_ = script;
-    }
+    void initScript(JSScript *script);
     JSScript *maybeScript() {
         return script_;
     }
+
+    JSFunction *parentFunction() const {
+        return parentFunction_;
+    }
+    ScriptSourceObject *sourceObject() const;
+    JSPrincipals *originPrincipals() const {
+        return originPrincipals_;
+    }
+    JSVersion version() const {
+        JS_STATIC_ASSERT(JSVERSION_UNKNOWN == -1);
+        return (version_ == JS_BIT(8) - 1) ? JSVERSION_UNKNOWN : JSVersion(version_);
+    }
+
+    void setParent(JSFunction *parentFunction, ScriptSourceObject *sourceObject,
+                   JSPrincipals *originPrincipals);
 
     uint32_t numFreeVariables() const {
         return numFreeVariables_;
@@ -1217,6 +1214,13 @@ class LazyScript : public js::gc::Cell
         directlyInsideEval_ = true;
     }
 
+    bool usesArgumentsAndApply() const {
+        return usesArgumentsAndApply_;
+    }
+    void setUsesArgumentsAndApply() {
+        usesArgumentsAndApply_ = true;
+    }
+
     bool hasBeenCloned() const {
         return hasBeenCloned_;
     }
@@ -1225,7 +1229,7 @@ class LazyScript : public js::gc::Cell
     }
 
     ScriptSource *source() const {
-        return parent()->scriptSource();
+        return sourceObject()->source();
     }
     uint32_t begin() const {
         return begin_;
@@ -1239,6 +1243,8 @@ class LazyScript : public js::gc::Cell
     uint32_t column() const {
         return column_;
     }
+
+    uint32_t staticLevel() const;
 
     Zone *zone() const {
         return Cell::tenuredZone();
