@@ -916,14 +916,22 @@ class ArrayBufferObject;
 
 class ObjectElements
 {
+  public:
+    enum Flags {
+        CONVERT_DOUBLE_ELEMENTS = 0x1
+    };
+
+  private:
     friend class ::JSObject;
     friend class ObjectImpl;
     friend class ArrayBufferObject;
 
     
-    uint32_t capacity;
+    uint32_t flags;
 
     
+
+
 
 
 
@@ -932,20 +940,31 @@ class ObjectElements
     uint32_t initializedLength;
 
     
-    uint32_t length;
+
+
+
 
     
-    uint32_t convertDoubleElements;
+    uint32_t capacity;
+
+    
+    uint32_t length;
 
     void staticAsserts() {
         MOZ_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value),
                           "Elements size and values-per-Elements mismatch");
     }
 
-  public:
+    bool shouldConvertDoubleElements() const {
+        return flags & CONVERT_DOUBLE_ELEMENTS;
+    }
+    void setShouldConvertDoubleElements() {
+        flags |= CONVERT_DOUBLE_ELEMENTS;
+    }
 
+  public:
     ObjectElements(uint32_t capacity, uint32_t length)
-      : capacity(capacity), initializedLength(0), length(length), convertDoubleElements(0)
+      : flags(0), initializedLength(0), capacity(capacity), length(length)
     {}
 
     HeapSlot *elements() { return (HeapSlot *)(uintptr_t(this) + sizeof(ObjectElements)); }
@@ -953,17 +972,17 @@ class ObjectElements
         return (ObjectElements *)(uintptr_t(elems) - sizeof(ObjectElements));
     }
 
-    static int offsetOfCapacity() {
-        return (int)offsetof(ObjectElements, capacity) - (int)sizeof(ObjectElements);
+    static int offsetOfFlags() {
+        return (int)offsetof(ObjectElements, flags) - (int)sizeof(ObjectElements);
     }
     static int offsetOfInitializedLength() {
         return (int)offsetof(ObjectElements, initializedLength) - (int)sizeof(ObjectElements);
     }
+    static int offsetOfCapacity() {
+        return (int)offsetof(ObjectElements, capacity) - (int)sizeof(ObjectElements);
+    }
     static int offsetOfLength() {
         return (int)offsetof(ObjectElements, length) - (int)sizeof(ObjectElements);
-    }
-    static int offsetOfConvertDoubleElements() {
-        return (int)offsetof(ObjectElements, convertDoubleElements) - (int)sizeof(ObjectElements);
     }
 
     static bool ConvertElementsToDoubles(JSContext *cx, uintptr_t elements);

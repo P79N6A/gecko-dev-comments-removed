@@ -20,15 +20,13 @@ JSObject * const UNSET_BUFFER_LINK = (JSObject*)0x2;
 inline void
 js::ArrayBufferObject::setElementsHeader(js::ObjectElements *header, uint32_t bytes)
 {
-    
-
-
-
-
-    header->capacity = bytes / sizeof(js::Value);
+    header->flags = 0;
     header->initializedLength = bytes;
+
+    
+    
     header->length = 0;
-    header->convertDoubleElements = 0;
+    header->capacity = 0;
 }
 
 inline uint32_t
