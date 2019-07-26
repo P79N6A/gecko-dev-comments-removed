@@ -4453,11 +4453,6 @@ var TabsInTitlebar = {
 #endif
 
       
-      
-      let navbarMarginTop = parseFloat(window.getComputedStyle($("nav-bar")).marginTop);
-      navbarMarginTop = Math.min(navbarMarginTop, 0);
-
-      
       let titlebarContentHeight = rect(titlebarContent).height;
 
       
@@ -4497,9 +4492,6 @@ var TabsInTitlebar = {
         
         
         let extraMargin = tabAndMenuHeight - titlebarContentHeight;
-        
-        
-        extraMargin += navbarMarginTop;
         
 #ifndef XP_MACOSX
         titlebarContent.style.marginBottom = extraMargin + "px";

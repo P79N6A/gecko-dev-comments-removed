@@ -3846,7 +3846,6 @@ RENDER_AGAIN:
     {
       RECT rect = widgetRect;
       int32_t offset = GetSystemMetrics(SM_CXFRAME);
-      rect.bottom -= 1;
 
       
       FillRect(hdc, &rect, (HBRUSH)(COLOR_3DFACE+1));
