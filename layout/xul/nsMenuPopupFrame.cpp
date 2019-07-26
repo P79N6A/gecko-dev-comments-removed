@@ -1003,13 +1003,10 @@ nsMenuPopupFrame::SlideOrResize(nscoord& aScreenPoint, nscoord aSize,
 {
   
   
-  if (aScreenPoint < aScreenBegin) {
-    *aOffset = aScreenBegin - aScreenPoint;
-    aScreenPoint = aScreenBegin;
-  } else if (aScreenPoint + aSize > aScreenEnd) {
-    *aOffset = aScreenPoint + aSize - aScreenEnd;
-    aScreenPoint = std::max(aScreenEnd - aSize, 0);
-  }
+  nscoord newPos =
+    std::max(aScreenBegin, std::min(aScreenEnd - aSize, aScreenPoint));
+  *aOffset = newPos - aScreenPoint;
+  aScreenPoint = newPos;
   return std::min(aSize, aScreenEnd - aScreenPoint);
 }
 
