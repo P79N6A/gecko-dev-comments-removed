@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsEventDispatcher.h"
 #include "nsDOMEvent.h"
 #include "nsIDOMEventTarget.h"
@@ -12,7 +13,6 @@
 #include "nsError.h"
 #include "nsMutationEvent.h"
 #include NEW_H
-#include "nsFixedSizeAllocator.h"
 #include "nsINode.h"
 #include "nsPIDOMWindow.h"
 #include "nsFrameLoader.h"
@@ -27,8 +27,6 @@ using namespace mozilla;
 #define NS_TARGET_CHAIN_WANTS_WILL_HANDLE_EVENT (1 << 1)
 #define NS_TARGET_CHAIN_MAY_HAVE_MANAGER        (1 << 2)
 
-static nsEventTargetChainItem* gCachedETCI = nullptr;
-
 
 class nsEventTargetChainItem
 {
@@ -36,25 +34,32 @@ private:
   nsEventTargetChainItem(nsIDOMEventTarget* aTarget,
                          nsEventTargetChainItem* aChild = nullptr);
 
+  
+  
+  static nsEventTargetChainItem* sEtciRecyclePool;
+  static uint32_t sNumRecycledEtcis;
+  static const uint32_t kMaxNumRecycledEtcis = 128;
+
 public:
-  static nsEventTargetChainItem* Create(nsFixedSizeAllocator* aAllocator, 
-                                        nsIDOMEventTarget* aTarget,
+  static nsEventTargetChainItem* Create(nsIDOMEventTarget* aTarget,
                                         nsEventTargetChainItem* aChild = nullptr)
   {
+    
     void* place = nullptr;
-    if (gCachedETCI) {
-      place = gCachedETCI;
-      gCachedETCI = gCachedETCI->mNext;
+    if (sNumRecycledEtcis > 0) {
+      MOZ_ASSERT(sEtciRecyclePool);
+      place = sEtciRecyclePool;
+      sEtciRecyclePool = sEtciRecyclePool->mNext;
+      --sNumRecycledEtcis;
     } else {
-      place = aAllocator->Alloc(sizeof(nsEventTargetChainItem));
+      place = malloc(sizeof(nsEventTargetChainItem));
     }
     return place
       ? ::new (place) nsEventTargetChainItem(aTarget, aChild)
       : nullptr;
   }
 
-  static void Destroy(nsFixedSizeAllocator* aAllocator,
-                      nsEventTargetChainItem* aItem)
+  static void Destroy(nsEventTargetChainItem* aItem)
   {
     
     nsEventTargetChainItem* item = aItem;
@@ -62,13 +67,27 @@ public:
       item->mChild->mParent = nullptr;
       item->mChild = nullptr;
     }
+    
     while (item) {
       nsEventTargetChainItem* parent = item->mParent;
       item->~nsEventTargetChainItem();
-      item->mNext = gCachedETCI;
-      gCachedETCI = item;
-      --sCurrentEtciCount;
+      if (sNumRecycledEtcis < kMaxNumRecycledEtcis) {
+        item->mNext = sEtciRecyclePool;
+        sEtciRecyclePool = item;
+        ++sNumRecycledEtcis;
+      } else {
+        free(item);
+      }
       item = parent;
+    }
+  }
+
+  static void ShutdownRecyclePool()
+  {
+    while (sEtciRecyclePool) {
+      nsEventTargetChainItem* tmp = sEtciRecyclePool;
+      sEtciRecyclePool = sEtciRecyclePool->mNext;
+      free(tmp);
     }
   }
 
@@ -220,8 +239,8 @@ public:
   static uint32_t                   sCurrentEtciCount;
 };
 
-uint32_t nsEventTargetChainItem::sMaxEtciCount = 0;
-uint32_t nsEventTargetChainItem::sCurrentEtciCount = 0;
+nsEventTargetChainItem* nsEventTargetChainItem::sEtciRecyclePool = nullptr;
+uint32_t nsEventTargetChainItem::sNumRecycledEtcis = 0;
 
 nsEventTargetChainItem::nsEventTargetChainItem(nsIDOMEventTarget* aTarget,
                                                nsEventTargetChainItem* aChild)
@@ -230,10 +249,6 @@ nsEventTargetChainItem::nsEventTargetChainItem(nsIDOMEventTarget* aTarget,
   MOZ_ASSERT(!aTarget || mTarget == aTarget->GetTargetForEventTargetChain());
   if (mChild) {
     mChild->mParent = this;
-  }
-
-  if (++sCurrentEtciCount > sMaxEtciCount) {
-    sMaxEtciCount = sCurrentEtciCount;
   }
 }
 
@@ -378,69 +393,13 @@ nsEventTargetChainItem::HandleEventTargetChain(
   return NS_OK;
 }
 
-#define NS_CHAIN_POOL_SIZE 128
-
-class ChainItemPool {
-public:
-  ChainItemPool() {
-    if (!sEtciPool) {
-      sEtciPool = new nsFixedSizeAllocator();
-      if (sEtciPool) {
-        static const size_t kBucketSizes[] = { sizeof(nsEventTargetChainItem) };
-        static const int32_t kNumBuckets = sizeof(kBucketSizes) / sizeof(size_t);
-        static const int32_t kInitialPoolSize =
-          sizeof(nsEventTargetChainItem) * NS_CHAIN_POOL_SIZE;
-        nsresult rv = sEtciPool->Init("EventTargetChainItem Pool", kBucketSizes,
-                                      kNumBuckets, kInitialPoolSize);
-        if (NS_FAILED(rv)) {
-          delete sEtciPool;
-          sEtciPool = nullptr;
-        }
-      }
-    }
-    if (sEtciPool) {
-      ++sEtciPoolUsers;
-    }
-  }
-
-  ~ChainItemPool() {
-    if (sEtciPool) {
-      --sEtciPoolUsers;
-    }
-    if (!sEtciPoolUsers) {
-      if (nsEventTargetChainItem::MaxEtciCount() > NS_CHAIN_POOL_SIZE) {
-        gCachedETCI = nullptr;
-        delete sEtciPool;
-        sEtciPool = nullptr;
-        nsEventTargetChainItem::ResetMaxEtciCount();
-      }
-    }
-  }
-
-  static void Shutdown()
-  {
-    if (!sEtciPoolUsers) {
-      gCachedETCI = nullptr;
-      delete sEtciPool;
-      sEtciPool = nullptr;
-      nsEventTargetChainItem::ResetMaxEtciCount();
-    }
-  }
-
-  nsFixedSizeAllocator* GetPool() { return sEtciPool; }
-
-  static nsFixedSizeAllocator* sEtciPool;
-  static int32_t               sEtciPoolUsers;
-};
-
-nsFixedSizeAllocator* ChainItemPool::sEtciPool = nullptr;
-int32_t ChainItemPool::sEtciPoolUsers = 0;
-
-void NS_ShutdownChainItemPool() { ChainItemPool::Shutdown(); }
+void NS_ShutdownEventTargetChainItemRecyclePool()
+{
+  nsEventTargetChainItem::ShutdownRecyclePool();
+}
 
 nsEventTargetChainItem*
-EventTargetChainItemForChromeTarget(ChainItemPool& aPool,
-                                    nsINode* aNode,
+EventTargetChainItemForChromeTarget(nsINode* aNode,
                                     nsEventTargetChainItem* aChild = nullptr)
 {
   if (!aNode->IsInDoc()) {
@@ -451,12 +410,11 @@ EventTargetChainItemForChromeTarget(ChainItemPool& aPool,
   NS_ENSURE_TRUE(piTarget, nullptr);
 
   nsEventTargetChainItem* etci =
-    nsEventTargetChainItem::Create(aPool.GetPool(),
-                                   piTarget->GetTargetForEventTargetChain(),
+    nsEventTargetChainItem::Create(piTarget->GetTargetForEventTargetChain(),
                                    aChild);
   NS_ENSURE_TRUE(etci, nullptr);
   if (!etci->IsValid()) {
-    nsEventTargetChainItem::Destroy(aPool.GetPool(), etci);
+    nsEventTargetChainItem::Destroy(etci);
     return nullptr;
   }
   return etci;
@@ -551,16 +509,13 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
   
   
   nsRefPtr<nsPresContext> kungFuDeathGrip(aPresContext);
-  ChainItemPool pool;
-  NS_ENSURE_TRUE(pool.GetPool(), NS_ERROR_OUT_OF_MEMORY);
 
   
   nsEventTargetChainItem* targetEtci =
-    nsEventTargetChainItem::Create(pool.GetPool(),
-                                   target->GetTargetForEventTargetChain());
+    nsEventTargetChainItem::Create(target->GetTargetForEventTargetChain());
   NS_ENSURE_TRUE(targetEtci, NS_ERROR_OUT_OF_MEMORY);
   if (!targetEtci->IsValid()) {
-    nsEventTargetChainItem::Destroy(pool.GetPool(), targetEtci);
+    nsEventTargetChainItem::Destroy(targetEtci);
     return NS_ERROR_FAILURE;
   }
 
@@ -603,8 +558,8 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
 
   if (!preVisitor.mCanHandle && preVisitor.mAutomaticChromeDispatch && content) {
     
-    nsEventTargetChainItem::Destroy(pool.GetPool(), targetEtci);
-    targetEtci = EventTargetChainItemForChromeTarget(pool, content);
+    nsEventTargetChainItem::Destroy(targetEtci);
+    targetEtci = EventTargetChainItemForChromeTarget(content);
     NS_ENSURE_STATE(targetEtci);
     targetEtci->PreHandleEvent(preVisitor);
   }
@@ -617,8 +572,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     while (preVisitor.mParentTarget) {
       nsIDOMEventTarget* parentTarget = preVisitor.mParentTarget;
       nsEventTargetChainItem* parentEtci =
-        nsEventTargetChainItem::Create(pool.GetPool(), preVisitor.mParentTarget,
-                                       topEtci);
+        nsEventTargetChainItem::Create(preVisitor.mParentTarget, topEtci);
       if (!parentEtci) {
         rv = NS_ERROR_OUT_OF_MEMORY;
         break;
@@ -640,15 +594,14 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
       if (preVisitor.mCanHandle) {
         topEtci = parentEtci;
       } else {
-        nsEventTargetChainItem::Destroy(pool.GetPool(), parentEtci);
+        nsEventTargetChainItem::Destroy(parentEtci);
         parentEtci = nullptr;
         if (preVisitor.mAutomaticChromeDispatch && content) {
           
           
           nsCOMPtr<nsINode> disabledTarget = do_QueryInterface(parentTarget);
           if (disabledTarget) {
-            parentEtci = EventTargetChainItemForChromeTarget(pool,
-                                                             disabledTarget,
+            parentEtci = EventTargetChainItemForChromeTarget(disabledTarget,
                                                              topEtci);
             if (parentEtci) {
               parentEtci->PreHandleEvent(preVisitor);
@@ -679,7 +632,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
                                              aCallback,
                                              false,
                                              &pusher);
-  
+
         preVisitor.mEventStatus = postVisitor.mEventStatus;
         
         if (!preVisitor.mDOMEvent && postVisitor.mDOMEvent) {
@@ -689,7 +642,7 @@ nsEventDispatcher::Dispatch(nsISupports* aTarget,
     }
   }
 
-  nsEventTargetChainItem::Destroy(pool.GetPool(), targetEtci);
+  nsEventTargetChainItem::Destroy(targetEtci);
   targetEtci = nullptr;
 
   aEvent->mFlags.mIsBeingDispatched = false;
