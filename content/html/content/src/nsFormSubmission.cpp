@@ -521,16 +521,14 @@ nsFSMultipartFormData::AddNameFilePair(const nsAString& aName,
        + contentType + NS_LITERAL_CSTRING(CRLF CRLF);
 
   
-  if (fileStream) {
+  
+  uint64_t size;
+  if (fileStream && NS_SUCCEEDED(aBlob->GetSize(&size))) {
     
     
     AddPostDataStream();
 
     mPostDataStream->AppendStream(fileStream);
-
-    uint64_t size;
-    nsresult rv = aBlob->GetSize(&size);
-    NS_ENSURE_SUCCESS(rv, rv);
     mTotalLength += size;
   }
 
