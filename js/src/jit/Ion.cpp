@@ -15,6 +15,7 @@
 #include "TraceLogging.h"
 #endif
 
+#include "jsprf.h"
 #include "gc/Marking.h"
 #include "jit/AliasAnalysis.h"
 #include "jit/AsmJSModule.h"
@@ -2620,6 +2621,27 @@ jit::Invalidate(JSContext *cx, JSScript *script, ExecutionMode mode, bool resetU
                 bool cancelOffThread)
 {
     JS_ASSERT(script->hasIonScript());
+
+    if (cx->runtime()->spsProfiler.enabled()) {
+        
+        
+        
+
+        
+        const char *filename = script->filename();
+        if (filename == nullptr)
+            filename = "<unknown>";
+
+        size_t len = strlen(filename) + 20;
+        char *buf = js_pod_malloc<char>(len);
+        if (!buf)
+            return false;
+
+        
+        JS_snprintf(buf, len, "Invalidate %s:%llu", filename, script->lineno());
+        cx->runtime()->spsProfiler.markEvent(buf);
+        js_free(buf);
+    }
 
     Vector<types::RecompileInfo> scripts(cx);
 
