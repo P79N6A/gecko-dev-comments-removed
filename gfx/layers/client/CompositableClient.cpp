@@ -179,6 +179,5 @@ CompositableClient::OnTransaction()
 {
 }
 
-
 } 
 } 
