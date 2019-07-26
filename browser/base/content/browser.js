@@ -1456,11 +1456,9 @@ var gBrowserInit = {
     }
 
     
-    
-    let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
+    let consoleEnabled = gPrefService.getBoolPref("devtools.errorconsole.enabled");
     if (consoleEnabled) {
       let cmd = document.getElementById("Tools:ErrorConsole");
-      cmd.removeAttribute("disabled");
       cmd.removeAttribute("hidden");
     }
 
