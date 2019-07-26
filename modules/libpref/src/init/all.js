@@ -4149,6 +4149,9 @@ pref("urlclassifier.disallow_completions", "test-malware-simple,test-phish-simpl
 pref("snav.enabled", false);
 
 
+pref("touchcaret.enabled", false);
+
+
 pref("dom.wakelock.enabled", false);
 
 

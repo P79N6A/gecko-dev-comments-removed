@@ -53,6 +53,7 @@ class nsViewManager;
 class nsView;
 class nsRenderingContext;
 class nsIPageSequenceFrame;
+class nsCanvasFrame;
 class nsAString;
 class nsCaret;
 class nsFrameSelection;
@@ -471,6 +472,12 @@ public:
 
 
 
+  virtual nsCanvasFrame* GetCanvasFrame() const = 0;
+
+  
+
+
+
 
 
 
@@ -734,6 +741,11 @@ public:
 
 
   virtual void NotifyDestroyingFrame(nsIFrame* aFrame) = 0;
+
+  
+
+
+  virtual mozilla::dom::Element* GetTouchCaretElement() const = 0;
 
   
 

@@ -13,6 +13,7 @@
 #include "nsContainerFrame.h"
 #include "nsIScrollPositionListener.h"
 #include "nsDisplayList.h"
+#include "nsIAnonymousContentCreator.h"
 
 class nsPresContext;
 class nsRenderingContext;
@@ -25,7 +26,8 @@ class nsRenderingContext;
 
 
 class nsCanvasFrame : public nsContainerFrame,
-                      public nsIScrollPositionListener
+                      public nsIScrollPositionListener,
+                      public nsIAnonymousContentCreator
 {
 public:
   nsCanvasFrame(nsStyleContext* aContext)
@@ -62,6 +64,16 @@ public:
   {
     return nsContainerFrame::IsFrameOfType(aFlags &
              ~(nsIFrame::eCanContainOverflowContainers));
+  }
+
+  
+  virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements) MOZ_OVERRIDE;
+  virtual void AppendAnonymousContentTo(nsBaseContentList& aElements, uint32_t aFilter) MOZ_OVERRIDE;
+
+  
+  mozilla::dom::Element* GetTouchCaretElement() const
+  {
+     return mTouchCaretElement;
   }
 
   
@@ -111,6 +123,8 @@ protected:
   
   bool                      mDoPaintFocus;
   bool                      mAddedScrollPositionListener;
+
+  nsCOMPtr<mozilla::dom::Element> mTouchCaretElement;
 };
 
 

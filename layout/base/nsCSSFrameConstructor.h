@@ -1769,6 +1769,10 @@ private:
                                       nsIContent* aContent,
                                       nsStyleContext* aStyleContext,
                                       bool aIsGeneratedContent);
+  
+  void ConstructAnonymousContentForCanvas(nsFrameConstructorState& aState,
+                                          nsIFrame* aFrame,
+                                          nsIContent* aDocElement);
 
 public:
 
