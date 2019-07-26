@@ -201,6 +201,7 @@ typedef struct JSTracer                     JSTracer;
 
 #ifdef __cplusplus
 class                                       JSFlatString;
+class                                       JSStableString;  
 class                                       JSString;
 #else
 typedef struct JSFlatString                 JSFlatString;

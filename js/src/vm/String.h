@@ -557,6 +557,64 @@ class JSStableString : public JSFlatString
 
 JS_STATIC_ASSERT(sizeof(JSStableString) == sizeof(JSString));
 
+#if !(defined(JSGC_ROOT_ANALYSIS) || defined(JSGC_USE_EXACT_ROOTING))
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <>
+class Rooted<JSStableString *>
+{
+  public:
+    Rooted(JSContext *cx, JSStableString *initial = NULL
+           MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : rooter(cx, initial)
+    {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    operator JSStableString *() const { return get(); }
+    JSStableString * operator ->() const { return get(); }
+    JSStableString ** address() { return reinterpret_cast<JSStableString **>(rooter.addr()); }
+    JSStableString * const * address() const {
+        return reinterpret_cast<JSStableString * const *>(rooter.addr());
+    }
+    JSStableString * get() const { return static_cast<JSStableString *>(rooter.string()); }
+
+    Rooted & operator =(JSStableString *value)
+    {
+        JS_ASSERT(!RootMethods<JSStableString *>::poisoned(value));
+        rooter.setString(value);
+        return *this;
+    }
+
+    Rooted & operator =(const Rooted &value)
+    {
+        rooter.setString(value.get());
+        return *this;
+    }
+
+  private:
+    JS::AutoStringRooter rooter;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+    Rooted(const Rooted &) MOZ_DELETE;
+};
+}
+#endif
+
 class JSExtensibleString : public JSFlatString
 {
     
