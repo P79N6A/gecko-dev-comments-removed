@@ -120,6 +120,21 @@ WrapperFactory::DoubleWrap(JSContext *cx, HandleObject obj, unsigned flags)
     return obj;
 }
 
+
+
+
+static bool
+ForceCOWBehavior(JSObject *obj)
+{
+    if (IdentifyStandardInstanceOrPrototype(obj) == JSProto_Object) {
+        MOZ_ASSERT(GetXrayType(obj) == XrayForJSObject,
+                   "We should use XrayWrappers for standard ES Object instances "
+                   "modulo this hack");
+        return true;
+    }
+    return false;
+}
+
 JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
                                    HandleObject objArg, unsigned flags)
@@ -169,7 +184,7 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, HandleObject scope,
     bool subsumes = AccessCheck::subsumes(js::GetContextCompartment(cx),
                                           js::GetObjectCompartment(obj));
     XrayType xrayType = GetXrayType(obj);
-    if (!subsumes && xrayType == NotXray) {
+    if (!subsumes && (xrayType == NotXray || ForceCOWBehavior(obj))) {
         JSProtoKey key = JSProto_Null;
         {
             JSAutoCompartment ac(cx, obj);
@@ -418,7 +433,12 @@ WrapperFactory::Rewrap(JSContext *cx, HandleObject existing, HandleObject obj,
 
     
     
-    else if (originIsChrome && !targetIsChrome && xrayType == NotXray) {
+    
+    
+    
+    else if (originIsChrome && !targetIsChrome &&
+             (xrayType == NotXray || ForceCOWBehavior(obj)))
+    {
         wrapper = &ChromeObjectWrapper::singleton;
     }
 
