@@ -28,6 +28,7 @@
 #if ENABLE_ASSEMBLER && WTF_OS_WINDOWS
 
 #include "jswin.h"
+#include "mozilla/WindowsVersion.h"
 
 extern uint64_t random_next(uint64_t *, int);
 
@@ -72,16 +73,8 @@ void *ExecutableAllocator::computeRandomAllocationAddress()
 static bool
 RandomizeIsBrokenImpl()
 {
-    OSVERSIONINFO osvi;
-    ZeroMemory(&osvi, sizeof(OSVERSIONINFO));
-    osvi.dwOSVersionInfoSize = sizeof(OSVERSIONINFO);
-
-    GetVersionEx(&osvi);
-
     
-    
-    
-    return osvi.dwMajorVersion <= 5;
+    return !mozilla::IsVistaOrLater();
 }
 
 static bool
