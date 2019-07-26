@@ -942,6 +942,14 @@ nsRefreshDriver::Tick(int64_t aNowEpoch, TimeStamp aNowTime)
 #ifdef DEBUG_INVALIDATIONS
     printf("Starting ProcessPendingUpdates\n");
 #endif
+#ifndef ANDROID
+    
+    nsRefPtr<layers::LayerManager> mgr = mPresContext->GetPresShell()->GetLayerManager();
+    if (mgr) {
+      mgr->SetPaintStartTime(mMostRecentRefresh);
+    }
+#endif
+
     mViewManagerFlushIsPending = false;
     nsCOMPtr<nsIViewManager> vm = mPresContext->GetPresShell()->GetViewManager();
     vm->ProcessPendingUpdates();
