@@ -571,6 +571,7 @@ class PerThreadData : public PerThreadDataFriendFields,
     void removeFromThreadList();
 
     bool associatedWith(const JSRuntime *rt) { return runtime_ == rt; }
+    inline JSRuntime *runtimeFromMainThread();
 };
 
 template<class Client>
@@ -1681,6 +1682,13 @@ PerThreadData::setIonStackLimit(uintptr_t limit)
 {
     JS_ASSERT(runtime_->currentThreadOwnsOperationCallbackLock());
     ionStackLimit = limit;
+}
+
+inline JSRuntime *
+PerThreadData::runtimeFromMainThread()
+{
+    runtime_->assertValidThread();
+    return runtime_;
 }
 
 

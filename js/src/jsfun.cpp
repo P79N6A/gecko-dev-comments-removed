@@ -1108,9 +1108,6 @@ JSFunction::createScriptForLazilyInterpretedFunction(JSContext *cx, HandleFuncti
                 return false;
             }
 
-            
-            
-            clonedScript->originPrincipals = lazy->originPrincipals();
             clonedScript->setSourceObject(lazy->sourceObject());
 
             fun->initAtom(script->function()->displayAtom());

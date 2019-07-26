@@ -289,8 +289,7 @@ class ExclusiveContext : public ThreadSafeContext
     friend class AutoCompartment;
     friend class AutoLockForExclusiveAccess;
     friend struct StackBaseShape;
-    friend void JSScript::initCompartmentAndPrincipals(ExclusiveContext *cx,
-                                                       const JS::CompileOptions &options);
+    friend void JSScript::initCompartment(ExclusiveContext *cx);
 
     
     WorkerThread *workerThread;

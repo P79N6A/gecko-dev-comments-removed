@@ -1539,11 +1539,11 @@ class MOZ_STACK_CLASS ModuleCompiler
     }
 
     bool staticallyLink(ScopedJSDeletePtr<AsmJSModule> *module, ScopedJSFreePtr<char> *report) {
-        module_->initPostLinkFailureInfo(cx_->runtime(),
-                                         parser_.tokenStream.getOriginPrincipals(),
-                                         parser_.ss,
-                                         bodyStart_,
-                                         parser_.tokenStream.currentToken().pos.end);
+        
+        
+        
+        uint32_t bodyEnd = parser_.tokenStream.currentToken().pos.end;
+        module_->initPostLinkFailureInfo(parser_.ss, bodyStart_, bodyEnd);
 
         
         masm_.finish();
