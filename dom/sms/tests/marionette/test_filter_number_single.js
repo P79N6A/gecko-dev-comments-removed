@@ -9,8 +9,7 @@ SpecialPowers.setBoolPref("dom.sms.enabled", true);
 let sms = window.navigator.mozSms;
 let numberMsgs = 10;
 let smsList = new Array();
-let defaultRemoteNumber = "5552227777";
-let defaultRemoteNumberFormats = ["5552227777", "+15552227777"];
+let defaultRemoteNumber = "+15552227777";
 
 function verifyInitialState() {
   log("Verifying initial state.");
@@ -128,7 +127,7 @@ function nextRep() {
   if (smsList.length < numberMsgs) {
     
     if (smsList.length % 2) {
-      simulateIncomingSms("5559990000");
+      simulateIncomingSms("+15559990000");
     } else {
       simulateIncomingSms();
     }
@@ -144,7 +143,7 @@ function getMsgs() {
 
   
   smsList = smsList.filter(function(i) {
-    return defaultRemoteNumberFormats.indexOf(i.sender) >= 0 ? true : false;
+    return i.sender != defaultRemoteNumber ? false: true;
   });
 
   
