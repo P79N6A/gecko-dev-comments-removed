@@ -151,7 +151,7 @@ class SPSProfiler
 
     
     bool enabled() { JS_ASSERT_IF(enabled_, installed()); return enabled_; }
-    bool installed() { return stack_ != NULL && size_ != NULL; }
+    bool installed() { return stack_ != nullptr && size_ != nullptr; }
     void enable(bool enabled);
     void enableSlowAssertions(bool enabled) { slowAssertions = enabled; }
     bool slowAssertionsEnabled() { return slowAssertions; }
@@ -179,7 +179,7 @@ class SPSProfiler
     void enterNative(const char *string, void *sp);
     void exitNative() { pop(); }
 
-    jsbytecode *ipToPC(JSScript *script, size_t ip) { return NULL; }
+    jsbytecode *ipToPC(JSScript *script, size_t ip) { return nullptr; }
 
     void setProfilingStack(ProfileEntry *stack, uint32_t *size, uint32_t max);
     const char *profileString(JSContext *cx, JSScript *script, JSFunction *maybeFun);
@@ -246,7 +246,7 @@ class SPSInstrumentation
 
 
     SPSInstrumentation(SPSProfiler *profiler)
-      : profiler_(profiler), frame(NULL)
+      : profiler_(profiler), frame(nullptr)
     {
         enterInlineFrame();
     }
@@ -261,7 +261,7 @@ class SPSInstrumentation
         if (!enabled())
             return;
         JS_ASSERT(frame->left == 0);
-        JS_ASSERT(frame->script != NULL);
+        JS_ASSERT(frame->script != nullptr);
         frames.shrinkBy(1);
         JS_ASSERT(frames.length() > 0);
         frame = &frames[frames.length() - 1];
@@ -271,12 +271,12 @@ class SPSInstrumentation
     bool enterInlineFrame() {
         if (!enabled())
             return true;
-        JS_ASSERT_IF(frame != NULL, frame->script != NULL);
-        JS_ASSERT_IF(frame != NULL, frame->left == 1);
+        JS_ASSERT_IF(frame != nullptr, frame->script != nullptr);
+        JS_ASSERT_IF(frame != nullptr, frame->left == 1);
         if (!frames.growBy(1))
             return false;
         frame = &frames[frames.length() - 1];
-        frame->script = NULL;
+        frame->script = nullptr;
         frame->skipNext = false;
         frame->left = 0;
         return true;
@@ -325,7 +325,7 @@ class SPSInstrumentation
             return true;
         const char *string = profiler_->profileString(cx, script,
                                                       script->function());
-        if (string == NULL)
+        if (string == nullptr)
             return false;
         masm.spsPushFrame(profiler_, string, script, scratch);
         setPushed(script);
