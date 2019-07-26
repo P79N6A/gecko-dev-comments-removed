@@ -109,6 +109,23 @@ class SearchEngineRow extends AnimatedHeightLayout {
         mUserEnteredView.setOnClickListener(mClickListener);
 
         mUserEnteredTextView = (TextView) findViewById(R.id.suggestion_text);
+
+        
+        setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                
+                if (mSearchEngine.suggestions.size() > 0) {
+                    return;
+                }
+
+                
+                String searchTerm = getSuggestionTextFromView(mUserEnteredView);
+                if (mSearchListener != null) {
+                    mSearchListener.onSearch(mSearchEngine.name, searchTerm);
+                }
+            }
+        });
     }
 
     private String getSuggestionTextFromView(View v) {
