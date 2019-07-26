@@ -407,6 +407,7 @@ CSPRep.fromString = function(aStr, self, docRequest, csp) {
         
         
         chan.loadFlags |= Ci.nsIChannel.LOAD_ANONYMOUS;
+        chan.loadGroup = docRequest.loadGroup;
         chan.asyncOpen(new CSPPolicyURIListener(uri, docRequest, csp), null);
       }
       catch (e) {
