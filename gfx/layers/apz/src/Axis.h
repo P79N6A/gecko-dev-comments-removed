@@ -111,21 +111,6 @@ public:
   
 
 
-  Overscroll GetOverscroll();
-
-  
-
-
-
-
-
-
-
-  float GetExcess();
-
-  
-
-
   float GetVelocity();
 
   

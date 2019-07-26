@@ -807,10 +807,6 @@ public:
     return !mParent || (mParent->mLayersId != mLayersId);
   }
 
-  bool IsRootForLayersId(const uint64_t& aLayersId) const {
-    return (mLayersId == aLayersId) && IsRootForLayersId();
-  }
-
 private:
   
   
