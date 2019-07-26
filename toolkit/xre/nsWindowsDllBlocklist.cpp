@@ -125,6 +125,12 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   
   { "mfflac.dll", ALL_VERSIONS },
 
+  
+  { "rlnx.dll", MAKE_VERSION(1, 3, 334, 9) },
+  { "pmnx.dll", MAKE_VERSION(1, 3, 334, 9) },
+  { "opnx.dll", MAKE_VERSION(1, 3, 334, 9) },
+  { "prnx.dll", MAKE_VERSION(1, 3, 334, 9) },
+
   { NULL, 0 }
 };
 
