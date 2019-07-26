@@ -91,6 +91,7 @@
 #include "nsStyleStructInlines.h"
 #include "nsAnimationManager.h"
 #include "nsTransitionManager.h"
+#include "nsSVGIntegrationUtils.h"
 #include <algorithm>
 
 #ifdef MOZ_XUL
@@ -7752,6 +7753,11 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
       
       needInvalidatingPaint = true;
       aFrame->MarkLayersActive(nsChangeHint_UpdateOpacityLayer);
+      if (nsSVGIntegrationUtils::UsingEffectsForFrame(aFrame)) {
+        
+        
+        aFrame->InvalidateFrameSubtree();
+      }
     }
     if ((aChange & nsChangeHint_UpdateTransformLayer) &&
         aFrame->IsTransformed()) {
