@@ -181,6 +181,12 @@ TypedObjectPointer.prototype.reset = function(inPtr) {
   return this;
 };
 
+TypedObjectPointer.prototype.bump = function(size) {
+  assert(TO_INT32(this.offset) === this.offset, "current offset not int");
+  assert(TO_INT32(size) === size, "size not int");
+  this.offset += size;
+}
+
 TypedObjectPointer.prototype.kind = function() {
   return DESCR_KIND(this.descr);
 }
@@ -313,7 +319,6 @@ TypedObjectPointer.prototype.moveToFieldIndex = function(index) {
 
 
 
-
 TypedObjectPointer.prototype.get = function() {
   assert(ObjectIsAttached(this.datum), "get() called with unattached datum");
 
@@ -328,10 +333,8 @@ TypedObjectPointer.prototype.get = function() {
     return this.getX4();
 
   case JS_TYPEREPR_SIZED_ARRAY_KIND:
-    return NewDerivedTypedDatum(this.descr, this.datum, this.offset);
-
   case JS_TYPEREPR_STRUCT_KIND:
-    return NewDerivedTypedDatum(this.descr, this.datum, this.offset);
+    return this.getDerived();
 
   case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
     assert(false, "Unhandled repr kind: " + this.kind());
@@ -339,6 +342,12 @@ TypedObjectPointer.prototype.get = function() {
 
   assert(false, "Unhandled kind: " + this.kind());
   return undefined;
+}
+
+TypedObjectPointer.prototype.getDerived = function() {
+  assert(!TypeDescrIsSimpleType(this.descr),
+         "getDerived() used with simple type");
+  return NewDerivedTypedDatum(this.descr, this.datum, this.offset);
 }
 
 TypedObjectPointer.prototype.getScalar = function() {
@@ -729,99 +738,6 @@ function TypedArrayRedimension(newArrayType) {
 
 
 
-
-
-
-
-
-
-
-function HandleCreate(obj, ...path) {
-  if (!IsObject(this) || !ObjectIsTypeDescr(this))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Type", "handle", "value");
-
-  switch (DESCR_KIND(this)) {
-  case JS_TYPEREPR_SCALAR_KIND:
-  case JS_TYPEREPR_REFERENCE_KIND:
-  case JS_TYPEREPR_X4_KIND:
-  case JS_TYPEREPR_SIZED_ARRAY_KIND:
-  case JS_TYPEREPR_STRUCT_KIND:
-    break;
-
-  case JS_TYPEREPR_UNSIZED_ARRAY_KIND:
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_TO_UNSIZED);
-  }
-
-  var handle = NewTypedHandle(this);
-
-  if (obj !== undefined)
-    HandleMoveInternal(handle, obj, path);
-
-  return handle;
-}
-
-
-
-function HandleMove(handle, obj, ...path) {
-  if (!IsObject(handle) || !ObjectIsTypedHandle(handle))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Handle", "set", typeof value);
-
-  HandleMoveInternal(handle, obj, path);
-}
-
-function HandleMoveInternal(handle, obj, path) {
-  assert(IsObject(handle) && ObjectIsTypedHandle(handle),
-         "HandleMoveInternal: not typed handle");
-
-  if (!IsObject(obj) || !ObjectIsTypedDatum(obj))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Handle", "set", "value");
-
-  var ptr = TypedObjectPointer.fromTypedDatum(obj);
-  for (var i = 0; i < path.length; i++)
-    ptr.moveTo(path[i]);
-
-  
-  if (DESCR_TYPE_REPR(ptr.descr) !== DATUM_TYPE_REPR(handle))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_BAD_TYPE);
-
-  AttachHandle(handle, ptr.datum, ptr.offset)
-}
-
-
-
-function HandleGet(handle) {
-  if (!IsObject(handle) || !ObjectIsTypedHandle(handle))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Handle", "set", typeof value);
-
-  if (!ObjectIsAttached(handle))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
-
-  var ptr = TypedObjectPointer.fromTypedDatum(handle);
-  return ptr.get();
-}
-
-
-
-function HandleSet(handle, value) {
-  if (!IsObject(handle) || !ObjectIsTypedHandle(handle))
-    ThrowError(JSMSG_INCOMPATIBLE_PROTO, "Handle", "set", typeof value);
-
-  if (!ObjectIsAttached(handle))
-    ThrowError(JSMSG_TYPEDOBJECT_HANDLE_UNATTACHED);
-
-  var ptr = TypedObjectPointer.fromTypedDatum(handle);
-  ptr.set(value);
-}
-
-
-
-function HandleTest(obj) {
-  return IsObject(obj) && ObjectIsTypedHandle(obj);
-}
-
-
-
-
 function X4ProtoString(type) {
   switch (type) {
   case JS_X4TYPEREPR_INT32:
@@ -952,7 +868,6 @@ function TypedObjectArrayTypeFrom(a, b, c) {
   
   
   
-
 
   if (untypedInput) {
     var explicitDepth = (b === 1);
@@ -1168,25 +1083,25 @@ function BuildTypedSeqImpl(arrayType, len, depth, func) {
     indices[i] = 0;
   }
 
-  var handle = callFunction(HandleCreate, grainType);
-  var offset = 0;
+  var grainTypeIsSimple = TypeDescrIsSimpleType(grainType);
+  var size = DESCR_SIZE(grainType);
+  var outPointer = new TypedObjectPointer(grainType, result, 0);
   for (i = 0; i < totalLength; i++) {
     
-    AttachHandle(handle, result, offset);
+    var userOutPointer = (grainTypeIsSimple
+                          ? undefined
+                          : outPointer.getDerived());
 
     
-    callFunction(std_Array_push, indices, handle);
-    var r = callFunction(std_Function_apply, func, void 0, indices);
+    callFunction(std_Array_push, indices, userOutPointer);
+    var r = callFunction(std_Function_apply, func, undefined, indices);
     callFunction(std_Array_pop, indices);
+    if (r !== undefined)
+      outPointer.set(r); 
 
-    if (r !== undefined) {
-      
-      AttachHandle(handle, result, offset); 
-      HandleSet(handle, r);                 
-    }
     
-    offset += DESCR_SIZE(grainType);
     IncrementIterationSpace(indices, iterationSpace);
+    outPointer.bump(size);
   }
 
   return result;
@@ -1261,35 +1176,32 @@ function MapUntypedSeqImpl(inArray, outputType, maybeFunc) {
   
   var result = outputType.variable ? new outputType(inArray.length) : new outputType();
 
-  var outHandle = callFunction(HandleCreate, outGrainType);
   var outUnitSize = DESCR_SIZE(outGrainType);
+  var outGrainTypeIsSimple = TypeDescrIsSimpleType(outGrainType);
+  var outPointer = new TypedObjectPointer(outGrainType, result, 0);
 
   
   
 
-  var offset = 0;
   for (var i = 0; i < outLength; i++) {
     
 
-    
-    AttachHandle(outHandle, result, offset);
-
     if (i in inArray) { 
-
       
       var element = inArray[i];
 
       
-      var r = func(element, i, inArray, outHandle);
+      var out = (outGrainTypeIsSimple ? undefined : outPointer.getDerived());
 
-      if (r !== undefined) {
-        AttachHandle(outHandle, result, offset); 
-        HandleSet(outHandle, r); 
-      }
+      
+      var r = func(element, i, inArray, out);
+
+      if (r !== undefined)
+        outPointer.set(r); 
     }
 
     
-    offset += outUnitSize;
+    outPointer.bump(outUnitSize);
   }
 
   return result;
@@ -1320,40 +1232,33 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   
   var result = outputType.variable ? new outputType(inArray.length) : new outputType();
 
-  var inHandle = callFunction(HandleCreate, inGrainType);
-  var outHandle = callFunction(HandleCreate, outGrainType);
+  var inGrainTypeIsSimple = TypeDescrIsSimpleType(inGrainType);
+  var outGrainTypeIsSimple = TypeDescrIsSimpleType(outGrainType);
+
+  var inPointer = new TypedObjectPointer(inGrainType, inArray, 0);
+  var outPointer = new TypedObjectPointer(outGrainType, result, 0);
+
   var inUnitSize = DESCR_SIZE(inGrainType);
   var outUnitSize = DESCR_SIZE(outGrainType);
-
-  var inGrainTypeIsSimple = TypeDescrIsSimpleType(inGrainType);
 
   
 
   function DoMapTypedSeqDepth1() {
-    var inOffset = 0;
-    var outOffset = 0;
-
     for (var i = 0; i < totalLength; i++) {
       
 
       
-      AttachHandle(inHandle, inArray, inOffset);
-      AttachHandle(outHandle, result, outOffset);
+      var element = inPointer.get();
+      var out = (outGrainTypeIsSimple ? undefined : outPointer.getDerived());
 
       
-      var element = (inGrainTypeIsSimple ? HandleGet(inHandle) : inHandle);
+      var r = func(element, i, inArray, out);
+      if (r !== undefined)
+        outPointer.set(r); 
 
       
-      var r = func(element, i, inArray, outHandle);
-
-      if (r !== undefined) {
-        AttachHandle(outHandle, result, outOffset); 
-        HandleSet(outHandle, r); 
-      }
-
-      
-      inOffset += inUnitSize;
-      outOffset += outUnitSize;
+      inPointer.bump(inUnitSize);
+      outPointer.bump(outUnitSize);
     }
 
     return result;
@@ -1362,30 +1267,22 @@ function MapTypedSeqImpl(inArray, depth, outputType, func) {
   function DoMapTypedSeqDepthN() {
     var indices = new Uint32Array(depth);
 
-    var inOffset = 0;
-    var outOffset = 0;
     for (var i = 0; i < totalLength; i++) {
       
-      AttachHandle(inHandle, inArray, inOffset);
-      AttachHandle(outHandle, result, outOffset);
-
-      
-      var element = (inGrainTypeIsSimple ? HandleGet(inHandle) : inHandle);
+      var element = inPointer.get();
+      var out = (outGrainTypeIsSimple ? undefined : outPointer.getDerived());
 
       
       var args = [element];
       callFunction(std_Function_apply, std_Array_push, args, indices);
-      callFunction(std_Array_push, args, inArray, outHandle);
+      callFunction(std_Array_push, args, inArray, out);
       var r = callFunction(std_Function_apply, func, void 0, args);
-
-      if (r !== undefined) {
-        AttachHandle(outHandle, result, outOffset); 
-        HandleSet(outHandle, r);                    
-      }
+      if (r !== undefined)
+        outPointer.set(r); 
 
       
-      inOffset += inUnitSize;
-      outOffset += outUnitSize;
+      inPointer.bump(inUnitSize);
+      outPointer.bump(outUnitSize);
       IncrementIterationSpace(indices, iterationSpace);
     }
 
@@ -1481,14 +1378,15 @@ function FilterTypedSeqImpl(array, func) {
 
   var elementType = arrayType.elementType;
   var flags = new Uint8Array(NUM_BYTES(array.length));
-  var handle = callFunction(HandleCreate, elementType);
   var count = 0;
+  var size = DESCR_SIZE(elementType);
+  var inPointer = new TypedObjectPointer(elementType, array, 0);
   for (var i = 0; i < array.length; i++) {
-    HandleMove(handle, array, i);
-    if (func(HandleGet(handle), i, array)) {
+    if (func(inPointer.get(), i, array)) {
       SET_BIT(flags, i);
       count++;
     }
+    inPointer.bump(size);
   }
 
   var resultType = (arrayType.variable ? arrayType : arrayType.unsized);
