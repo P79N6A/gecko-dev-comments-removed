@@ -439,30 +439,23 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     nsRefPtr<XPCWrappedNative> wrapper;
 
     Native2WrappedNativeMap* map = Scope->GetWrappedNativeMap();
-    if (!cache) {
-        {   
-            XPCAutoLock lock(mapLock);
-            wrapper = map->Find(identity);
-        }
-
-        if (wrapper) {
-            if (Interface &&
-                !wrapper->FindTearOff(ccx, Interface, false, &rv)) {
-                NS_ASSERTION(NS_FAILED(rv), "returning NS_OK on failure");
-                return rv;
-            }
-            *resultWrapper = wrapper.forget().get();
-            return NS_OK;
-        }
-    }
-#ifdef DEBUG
-    else if (!cache->GetWrapperPreserveColor())
+    
+    
+    
     {   
         XPCAutoLock lock(mapLock);
-        NS_ASSERTION(!map->Find(identity),
-                     "There's a wrapper in the hashtable but it wasn't cached?");
+        wrapper = map->Find(identity);
     }
-#endif
+
+    if (wrapper) {
+        if (Interface &&
+            !wrapper->FindTearOff(ccx, Interface, false, &rv)) {
+            NS_ASSERTION(NS_FAILED(rv), "returning NS_OK on failure");
+            return rv;
+        }
+        *resultWrapper = wrapper.forget().get();
+        return NS_OK;
+    }
 
     
     
