@@ -2366,6 +2366,13 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     ScrollLayerWrapper wrapper(mOuter, mScrolledFrame);
 
     if (usingDisplayport) {
+      DisplayListClipState::AutoSaveRestore clipState(aBuilder);
+      nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+      if (mClipAllDescendants) {
+        clipState.ClipContentDescendants(clip);
+      } else {
+        clipState.ClipContainingBlockDescendants(clip);
+      }
       
       
       
