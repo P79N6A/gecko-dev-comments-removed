@@ -171,7 +171,7 @@ NS_IMPL_ISUPPORTS3(VectorImage,
 
 VectorImage::VectorImage(imgStatusTracker* aStatusTracker,
                          nsIURI* aURI ) :
-  Image(aStatusTracker, aURI), 
+  ImageResource(aStatusTracker, aURI), 
   mRestrictedRegion(0, 0, 0, 0),
   mIsInitialized(false),
   mIsFullyLoaded(false),
@@ -297,7 +297,7 @@ VectorImage::StopAnimation()
 bool
 VectorImage::ShouldAnimate()
 {
-  return Image::ShouldAnimate() && mIsFullyLoaded && mHaveAnimations;
+  return ImageResource::ShouldAnimate() && mIsFullyLoaded && mHaveAnimations;
 }
 
 

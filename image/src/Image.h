@@ -18,7 +18,17 @@ namespace image {
 class Image : public imgIContainer
 {
 public:
-  imgStatusTracker& GetStatusTracker() { return *mStatusTracker; }
+  
+  enum eDecoderType {
+    eDecoderType_png     = 0,
+    eDecoderType_gif     = 1,
+    eDecoderType_jpeg    = 2,
+    eDecoderType_bmp     = 3,
+    eDecoderType_ico     = 4,
+    eDecoderType_icon    = 5,
+    eDecoderType_unknown = 6
+  };
+  static eDecoderType GetDecoderType(const char *aMimeType);
 
   
 
@@ -52,6 +62,8 @@ public:
                         const char* aMimeType,
                         uint32_t aFlags) = 0;
 
+  virtual imgStatusTracker& GetStatusTracker() = 0;
+
   
 
 
@@ -62,7 +74,7 @@ public:
 
 
 
-  uint32_t SizeOfData();
+  virtual uint32_t SizeOfData() = 0;
 
   
 
@@ -72,22 +84,10 @@ public:
   virtual size_t NonHeapSizeOfDecoded() const = 0;
   virtual size_t OutOfProcessSizeOfDecoded() const = 0;
 
-  
-  enum eDecoderType {
-    eDecoderType_png     = 0,
-    eDecoderType_gif     = 1,
-    eDecoderType_jpeg    = 2,
-    eDecoderType_bmp     = 3,
-    eDecoderType_ico     = 4,
-    eDecoderType_icon    = 5,
-    eDecoderType_unknown = 6
-  };
-  static eDecoderType GetDecoderType(const char *aMimeType);
-
-  void IncrementAnimationConsumers();
-  void DecrementAnimationConsumers();
+  virtual void IncrementAnimationConsumers() = 0;
+  virtual void DecrementAnimationConsumers() = 0;
 #ifdef DEBUG
-  uint32_t GetAnimationConsumers() { return mAnimationConsumers; }
+  virtual uint32_t GetAnimationConsumers() = 0;
 #endif
 
   
@@ -123,21 +123,42 @@ public:
 
   virtual nsresult OnNewSourceData() = 0;
 
-  void SetInnerWindowID(uint64_t aInnerWindowId) {
+  virtual void SetInnerWindowID(uint64_t aInnerWindowId) = 0;
+  virtual uint64_t InnerWindowID() const = 0;
+
+  virtual bool HasError() = 0;
+  virtual void SetHasError() = 0;
+
+  virtual nsIURI* GetURI() = 0;
+};
+
+class ImageResource : public Image
+{
+public:
+  virtual imgStatusTracker& GetStatusTracker() MOZ_OVERRIDE { return *mStatusTracker; }
+  virtual uint32_t SizeOfData() MOZ_OVERRIDE;
+
+  virtual void IncrementAnimationConsumers() MOZ_OVERRIDE;
+  virtual void DecrementAnimationConsumers() MOZ_OVERRIDE;
+#ifdef DEBUG
+  virtual uint32_t GetAnimationConsumers() MOZ_OVERRIDE { return mAnimationConsumers; }
+#endif
+
+  virtual void SetInnerWindowID(uint64_t aInnerWindowId) MOZ_OVERRIDE {
     mInnerWindowId = aInnerWindowId;
   }
-  uint64_t InnerWindowID() const { return mInnerWindowId; }
+  virtual uint64_t InnerWindowID() const MOZ_OVERRIDE { return mInnerWindowId; }
 
-  bool HasError()    { return mError; }
-  void SetHasError() { mError = true; }
+  virtual bool HasError() MOZ_OVERRIDE    { return mError; }
+  virtual void SetHasError() MOZ_OVERRIDE { mError = true; }
 
   
 
 
-  nsIURI* GetURI() { return mURI; }
+  virtual nsIURI* GetURI() MOZ_OVERRIDE { return mURI; }
 
 protected:
-  Image(imgStatusTracker* aStatusTracker, nsIURI* aURI);
+  ImageResource(imgStatusTracker* aStatusTracker, nsIURI* aURI);
 
   
   
@@ -150,20 +171,6 @@ protected:
 
   virtual void EvaluateAnimation();
 
-  virtual nsresult StartAnimation() = 0;
-  virtual nsresult StopAnimation() = 0;
-
-  uint64_t mInnerWindowId;
-
-  
-  nsRefPtr<imgStatusTracker>  mStatusTracker;
-  nsCOMPtr<nsIURI>            mURI;
-  uint32_t                    mAnimationConsumers;
-  uint16_t                    mAnimationMode;   
-  bool                        mInitialized:1;   
-  bool                        mAnimating:1;     
-  bool                        mError:1;         
-
   
 
 
@@ -171,6 +178,19 @@ protected:
   virtual bool ShouldAnimate() {
     return mAnimationConsumers > 0 && mAnimationMode != kDontAnimMode;
   }
+
+  virtual nsresult StartAnimation() = 0;
+  virtual nsresult StopAnimation() = 0;
+
+  
+  nsRefPtr<imgStatusTracker>  mStatusTracker;
+  nsCOMPtr<nsIURI>            mURI;
+  uint64_t                    mInnerWindowId;
+  uint32_t                    mAnimationConsumers;
+  uint16_t                    mAnimationMode;   
+  bool                        mInitialized:1;   
+  bool                        mAnimating:1;     
+  bool                        mError:1;         
 };
 
 } 
