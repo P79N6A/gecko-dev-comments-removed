@@ -47,7 +47,7 @@ ChromeObjectWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper,
     JSObject *wrapperProto;
     if (!JS_GetPrototype(cx, wrapper, &wrapperProto))
       return false;
-    if (desc->obj || (flags & JSRESOLVE_ASSIGNING) || !wrapperProto)
+    if (desc->obj || !wrapperProto)
         return true;
 
     
