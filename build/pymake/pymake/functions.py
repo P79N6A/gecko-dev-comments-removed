@@ -649,7 +649,11 @@ class ForEachFunction(Function):
             else:
                 fd.write(' ')
 
-            v.set(vname, data.Variables.FLAVOR_SIMPLE, data.Variables.SOURCE_AUTOMATIC, w)
+            
+            
+            
+            v.set(vname, data.Variables.FLAVOR_SIMPLE,
+                    data.Variables.SOURCE_AUTOMATIC, w, force=True)
             e.resolve(makefile, v, fd, setting)
 
 class CallFunction(Function):
