@@ -492,6 +492,30 @@ BaselineCompiler::emitCompare()
 }
 
 bool
+BaselineCompiler::emit_JSOP_GETELEM()
+{
+    
+    ICGetElem_Fallback::Compiler stubCompiler(cx);
+    ICEntry *entry = allocateICEntry(stubCompiler.getStub());
+    if (!entry)
+        return false;
+
+    
+    frame.popRegsAndSync(2);
+
+    
+    CodeOffsetLabel patchOffset;
+    EmitCallIC(&patchOffset, masm);
+    entry->setReturnOffset(masm.currentOffset());
+    if (!addICLoadLabel(patchOffset))
+        return false;
+
+    
+    frame.push(R0);
+    return true;
+}
+
+bool
 BaselineCompiler::emit_JSOP_GETLOCAL()
 {
     uint32_t local = GET_SLOTNO(pc);
