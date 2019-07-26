@@ -1451,6 +1451,12 @@ Object.freeze(this.OS.Shared);
 this.OS.Path = Path;
 
 
+Object.defineProperty(OS.File, "queue", {
+  get: function() {
+    return Scheduler.queue;
+  }
+});
+
 
 
 
