@@ -227,6 +227,12 @@ public:
 
   static gfx::Rect CalculateCompositedRectInCssPixels(const FrameMetrics& aMetrics);
 
+  
+
+
+
+  void SendAsyncScrollEvent();
+
 protected:
   
 
@@ -439,6 +445,14 @@ protected:
 
   void SetZoomAndResolution(float aScale);
 
+  
+
+
+
+
+
+  void FireAsyncScrollOnTimeout();
+
 private:
   enum PanZoomState {
     NOTHING,        
@@ -531,6 +545,27 @@ private:
   
   
   TimeStamp mPreviousPaintStartTime;
+
+  
+  
+  TimeStamp mLastAsyncScrollTime;
+  gfx::Point mLastAsyncScrollOffset;
+
+  
+  
+  gfx::Point mCurrentAsyncScrollOffset;
+
+  
+  
+  CancelableTask* mAsyncScrollTimeoutTask;
+
+  
+  
+  uint32_t mAsyncScrollThrottleTime;
+
+  
+  
+  uint32_t mAsyncScrollTimeout;
 
   int mDPI;
 

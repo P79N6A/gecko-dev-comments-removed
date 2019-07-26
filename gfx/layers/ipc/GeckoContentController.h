@@ -44,6 +44,14 @@ public:
 
   virtual void HandleLongTap(const nsIntPoint& aPoint) = 0;
 
+  
+
+
+
+
+  virtual void SendAsyncScrollDOMEvent(const gfx::Rect &aContentRect,
+                                       const gfx::Size &aScrollableSize) = 0;
+
   GeckoContentController() {}
   virtual ~GeckoContentController() {}
 };

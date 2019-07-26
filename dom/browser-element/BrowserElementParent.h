@@ -16,6 +16,11 @@ namespace dom {
 class TabParent;
 }
 
+namespace gfx{
+struct Rect;
+struct Size;
+}
+
 
 
 
@@ -63,8 +68,8 @@ public:
 
 
   static bool
-  OpenWindowOOP(mozilla::dom::TabParent* aOpenerTabParent,
-                mozilla::dom::TabParent* aPopupTabParent,
+  OpenWindowOOP(dom::TabParent* aOpenerTabParent,
+                dom::TabParent* aPopupTabParent,
                 const nsAString& aURL,
                 const nsAString& aName,
                 const nsAString& aFeatures);
@@ -86,6 +91,26 @@ public:
                       const nsAString& aName,
                       const nsACString& aFeatures,
                       nsIDOMWindow** aReturnWindow);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool
+  DispatchAsyncScrollEvent(dom::TabParent* aTabParent,
+                           const gfx::Rect& aContentRect,
+                           const gfx::Size& aContentSize);
 };
 
 } 
