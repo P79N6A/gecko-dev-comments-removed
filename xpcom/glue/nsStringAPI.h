@@ -1078,7 +1078,6 @@ private:
 static_assert(sizeof(char16_t) == 2, "size of char16_t must be 2");
 static_assert(char16_t(-1) > char16_t(0), "char16_t must be unsigned");
 
-#define NS_LL(s) MOZ_UTF16(s)
 #define NS_MULTILINE_LITERAL_STRING(s)          nsDependentString(reinterpret_cast<const nsAString::char_type*>(s), uint32_t((sizeof(s)/2)-1))
 #define NS_MULTILINE_LITERAL_STRING_INIT(n,s)   n(reinterpret_cast<const nsAString::char_type*>(s), uint32_t((sizeof(s)/2)-1))
 #define NS_NAMED_MULTILINE_LITERAL_STRING(n,s)  const nsDependentString n(reinterpret_cast<const nsAString::char_type*>(s), uint32_t((sizeof(s)/2)-1))
@@ -1087,20 +1086,9 @@ typedef nsDependentString nsLiteralString;
 
 static_assert(PRUnichar(-1) > PRUnichar(0), "PRUnichar is by definition an unsigned type");
 
-
-
-
-
-
-
-
-
-
-#define NS_L(s)                                   NS_LL(s)
-
-#define NS_LITERAL_STRING(s)                      static_cast<const nsString&>(NS_MULTILINE_LITERAL_STRING(NS_LL(s)))
-#define NS_LITERAL_STRING_INIT(n,s)               NS_MULTILINE_LITERAL_STRING_INIT(n, NS_LL(s))
-#define NS_NAMED_LITERAL_STRING(n,s)              NS_NAMED_MULTILINE_LITERAL_STRING(n, NS_LL(s))
+#define NS_LITERAL_STRING(s)                      static_cast<const nsString&>(NS_MULTILINE_LITERAL_STRING(MOZ_UTF16(s)))
+#define NS_LITERAL_STRING_INIT(n,s)               NS_MULTILINE_LITERAL_STRING_INIT(n, MOZ_UTF16(s))
+#define NS_NAMED_LITERAL_STRING(n,s)              NS_NAMED_MULTILINE_LITERAL_STRING(n, MOZ_UTF16(s))
 
 #define NS_LITERAL_CSTRING(s)                     static_cast<const nsDependentCString&>(nsDependentCString(s, uint32_t(sizeof(s)-1)))
 #define NS_LITERAL_CSTRING_INIT(n,s)              n(s, uint32_t(sizeof(s)-1))
