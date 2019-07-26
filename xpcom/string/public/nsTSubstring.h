@@ -658,7 +658,7 @@ public:
 
 
 
-  nsTSubstring_CharT(const substring_tuple_type& tuple)
+  MOZ_IMPLICIT nsTSubstring_CharT(const substring_tuple_type& tuple)
     : mData(nullptr),
       mLength(0),
       mFlags(F_NONE)
