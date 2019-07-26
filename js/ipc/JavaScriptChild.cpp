@@ -112,7 +112,7 @@ JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
 {
     
     
-    *rs = ReturnStatus(false, JSVariant(void_t()));
+    *rs = ReturnStatus(ReturnException(JSVariant(void_t())));
 
     
     
@@ -127,7 +127,12 @@ JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
     
     JS_ClearPendingException(cx);
 
-    if (!toVariant(cx, exn, &rs->exn()))
+    if (JS_IsStopIteration(exn)) {
+        *rs = ReturnStatus(ReturnStopIteration());
+        return true;
+    }
+
+    if (!toVariant(cx, exn, &rs->get_ReturnException().exn()))
         return true;
 
     return true;
@@ -136,7 +141,7 @@ JavaScriptChild::fail(JSContext *cx, ReturnStatus *rs)
 bool
 JavaScriptChild::ok(ReturnStatus *rs)
 {
-    *rs = ReturnStatus(true, JSVariant(void_t()));
+    *rs = ReturnStatus(ReturnSuccess());
     return true;
 }
 
