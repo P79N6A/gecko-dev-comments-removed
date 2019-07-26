@@ -56,7 +56,7 @@ gfxReusableSharedImageSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
 
   
   nsRefPtr<gfxSharedImageSurface> copySurface =
-    gfxSharedImageSurface::CreateUnsafe(mAllocator, mSurface->GetSize(), mSurface->Format());
+    gfxSharedImageSurface::CreateUnsafe(mAllocator.get(), mSurface->GetSize(), mSurface->Format());
   copySurface->CopyFrom(mSurface);
   *aSurface = copySurface;
 
