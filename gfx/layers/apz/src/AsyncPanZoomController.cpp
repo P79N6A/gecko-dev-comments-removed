@@ -268,6 +268,12 @@ typedef GeckoContentController::APZStateChange APZStateChange;
 
 
 
+
+
+
+
+
+
 static const uint32_t DefaultTouchBehavior = AllowedTouchBehavior::VERTICAL_PAN |
                                              AllowedTouchBehavior::HORIZONTAL_PAN |
                                              AllowedTouchBehavior::PINCH_ZOOM |
@@ -882,8 +888,8 @@ nsEventStatus AsyncPanZoomController::OnTouchEnd(const MultiTouchInput& aEvent) 
         }
       }
     }
-    mX.EndTouch();
-    mY.EndTouch();
+    mX.EndTouch(aEvent.mTime);
+    mY.EndTouch(aEvent.mTime);
     SetState(FLING);
     StartAnimation(new FlingAnimation(*this,
                                       true  ,

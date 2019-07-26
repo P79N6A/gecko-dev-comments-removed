@@ -67,7 +67,7 @@ public:
 
 
 
-  void EndTouch();
+  void EndTouch(uint32_t aTimestampMs);
 
   
 
@@ -222,7 +222,10 @@ protected:
   
   
   float mOverscroll;
-  nsTArray<float> mVelocityQueue;
+  
+  
+  
+  nsTArray<std::pair<uint32_t, float> > mVelocityQueue;
 
   const FrameMetrics& GetFrameMetrics() const;
 
