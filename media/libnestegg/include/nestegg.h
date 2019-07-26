@@ -283,6 +283,16 @@ int nestegg_track_audio_params(nestegg * context, unsigned int track,
 
 
 
+int nestegg_track_default_duration(nestegg * context, unsigned int track,
+                                   uint64_t * duration);
+
+
+
+
+
+
+
+
 
 
 int nestegg_read_packet(nestegg * context, nestegg_packet ** packet);
@@ -304,6 +314,13 @@ int nestegg_packet_track(nestegg_packet * packet, unsigned int * track);
 
 
 int nestegg_packet_tstamp(nestegg_packet * packet, uint64_t * tstamp);
+
+
+
+
+
+
+int nestegg_packet_duration(nestegg_packet * packet, uint64_t * duration);
 
 
 
@@ -345,6 +362,13 @@ int nestegg_has_cues(nestegg * context);
 
 
 int nestegg_sniff(unsigned char const * buffer, size_t length);
+
+
+
+
+
+
+void nestegg_set_halloc_func(void * (* realloc_func)(void *, size_t));
 
 #if defined(__cplusplus)
 }
