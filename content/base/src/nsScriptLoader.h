@@ -21,6 +21,10 @@
 class nsScriptLoadRequest;
 class nsIURI;
 
+namespace JS {
+  class SourceBufferHolder;
+}
+
 
 
 
@@ -130,6 +134,27 @@ public:
       ProcessPendingRequestsAsync();
     }
   }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult ConvertToUTF16(nsIChannel* aChannel, const uint8_t* aData,
+                                 uint32_t aLength,
+                                 const nsAString& aHintCharset,
+                                 nsIDocument* aDocument,
+                                 jschar*& aBufOut, size_t& aLengthOut);
 
   
 
@@ -277,7 +302,7 @@ private:
   void FireScriptEvaluated(nsresult aResult,
                            nsScriptLoadRequest* aRequest);
   nsresult EvaluateScript(nsScriptLoadRequest* aRequest,
-                          const nsAFlatString& aScript,
+                          JS::SourceBufferHolder& aSrcBuf,
                           void **aOffThreadToken);
 
   already_AddRefed<nsIScriptGlobalObject> GetScriptGlobalObject();
