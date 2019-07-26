@@ -608,8 +608,10 @@ public class BrowserToolbar extends ThemedRelativeLayout
         }
 
         
+        
+        
         final LayoutParams lp = (LayoutParams) urlEditLayout.getLayoutParams();
-        return urlEditLayout.getRight() - lp.rightMargin - urlBarEntry.getRight();
+        return editCancel.getLeft() - lp.leftMargin - urlBarEntry.getRight();
     }
 
     private int getUrlBarCurveTranslation() {
