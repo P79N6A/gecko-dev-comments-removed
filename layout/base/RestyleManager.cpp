@@ -1413,6 +1413,10 @@ RestyleManager::ProcessPendingRestyles()
                   "Missing a script blocker!");
 
   
+  
+  mPresContext->FrameConstructor()->CreateNeededFrames();
+
+  
   NS_ABORT_IF_FALSE(!mPresContext->IsProcessingRestyles(),
                     "Nesting calls to ProcessPendingRestyles?");
   mPresContext->SetProcessingRestyles(true);

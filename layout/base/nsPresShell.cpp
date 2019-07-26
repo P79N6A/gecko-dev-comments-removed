@@ -1852,7 +1852,6 @@ PresShell::Initialize(nscoord aWidth, nscoord aHeight)
     
     {
       nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->CreateNeededFrames();
       mPresContext->RestyleManager()->ProcessPendingRestyles();
     }
 
@@ -1987,7 +1986,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
     
     {
       nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->CreateNeededFrames();
       mPresContext->RestyleManager()->ProcessPendingRestyles();
     }
 
@@ -4051,7 +4049,6 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
       
       if (!mIsDestroying) {
         nsAutoScriptBlocker scriptBlocker;
-        mFrameConstructor->CreateNeededFrames();
         mPresContext->RestyleManager()->ProcessPendingRestyles();
       }
     }
@@ -4078,7 +4075,6 @@ PresShell::FlushPendingNotifications(mozilla::ChangesToFlush aFlush)
     
     if (!mIsDestroying) {
       nsAutoScriptBlocker scriptBlocker;
-      mFrameConstructor->CreateNeededFrames();
       mPresContext->RestyleManager()->ProcessPendingRestyles();
     }
 
