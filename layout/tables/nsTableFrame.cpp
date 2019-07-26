@@ -1544,7 +1544,8 @@ nsTableFrame::AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowSta
         (nsGkAtoms::tableRowGroupFrame == frameType)) {
       const nsStyleCoord &height = rs->mStylePosition->mHeight;
       
-      if (height.GetUnit() != eStyleUnit_Auto && !height.IsCalcUnit()) {
+      if (height.GetUnit() != eStyleUnit_Auto &&
+          (!height.IsCalcUnit() || !height.HasPercent())) {
         return true;
       }
     }
