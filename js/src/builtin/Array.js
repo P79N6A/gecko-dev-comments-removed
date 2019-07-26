@@ -864,7 +864,12 @@ function ArrayScanPar(func, mode) {
   if (length === 0)
     ThrowError(JSMSG_EMPTY_ARRAY_REDUCE);
 
+  
+  
+  
+  
   var buffer = NewDenseArray(length);
+  var buffer2 = NewDenseArray(length);
 
   parallel: for (;;) { 
     if (ShouldForceSequential())
@@ -891,9 +896,10 @@ function ArrayScanPar(func, mode) {
     
     
     
-    if (numSlices > 1)
-      ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode), buffer);
-    return buffer;
+    for ( var k=0, limit=finalElement(0) ; k <= limit ; k++ )
+      buffer2[k] = buffer[k];
+    ForkJoin(phase2, 1, numSlices, ForkJoinMode(mode), buffer2);
+    return buffer2;
   }
 
   
@@ -986,7 +992,7 @@ function ArrayScanPar(func, mode) {
       var indexEnd = SLICE_END_INDEX(sliceShift, indexPos, length);
       var intermediate = intermediates[sliceId - 1];
       for (; indexPos < indexEnd; indexPos++)
-        UnsafePutElements(buffer, indexPos, func(intermediate, buffer[indexPos]));
+        UnsafePutElements(buffer2, indexPos, func(intermediate, buffer[indexPos]));
     }
     return sliceId;
   }
