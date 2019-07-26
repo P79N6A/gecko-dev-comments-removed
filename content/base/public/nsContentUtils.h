@@ -25,6 +25,7 @@
 #include "mozilla/TimeStamp.h"
 #include "nsContentListDeclarations.h"
 #include "nsMathUtils.h"
+#include "Units.h"
 
 class imgICache;
 class imgIContainer;
@@ -1508,8 +1509,7 @@ public:
 
 
   static nsViewportInfo GetViewportInfo(nsIDocument* aDocument,
-                                        uint32_t aDisplayWidth,
-                                        uint32_t aDisplayHeight);
+                                        const mozilla::ScreenIntSize& aDisplaySize);
 
   
   
