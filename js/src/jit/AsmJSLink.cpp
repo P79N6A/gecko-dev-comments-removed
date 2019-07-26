@@ -800,8 +800,31 @@ js::AsmJSModuleToString(JSContext *cx, HandleFunction fun, bool addParenToLambda
     if (!src)
         return nullptr;
 
-    if (!out.append(src->chars(), src->length()))
-        return nullptr;
+    if (module.strict()) {
+        
+        
+        size_t bodyStart = 0, bodyEnd;
+
+        
+        
+        
+        
+        
+
+        ConstTwoByteChars chars(src->chars(), src->length());
+        if (!FindBody(cx, fun, chars, src->length(), &bodyStart, &bodyEnd))
+            return nullptr;
+
+        if (!out.append(chars, bodyStart) ||
+            !out.append("\n\"use strict\";\n") ||
+            !out.append(chars + bodyStart, src->length() - bodyStart))
+        {
+            return nullptr;
+        }
+    } else {
+        if (!out.append(src->chars(), src->length()))
+            return nullptr;
+    }
 
     if (funCtor && !out.append("\n}"))
         return nullptr;

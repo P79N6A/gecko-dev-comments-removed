@@ -626,14 +626,18 @@ const Class JSFunction::class_ = {
 const Class* const js::FunctionClassPtr = &JSFunction::class_;
 
 
-static bool
-FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t length,
+bool
+js::FindBody(JSContext *cx, HandleFunction fun, ConstTwoByteChars chars, size_t length,
          size_t *bodyStart, size_t *bodyEnd)
 {
     
     CompileOptions options(cx);
-    options.setFileAndLine("internal-findBody", 0)
-           .setVersion(fun->nonLazyScript()->getVersion());
+    options.setFileAndLine("internal-findBody", 0);
+
+    
+    if (fun->hasScript())
+        options.setVersion(fun->nonLazyScript()->getVersion());
+
     AutoKeepAtoms keepAtoms(cx->perThreadData);
     TokenStream ts(cx, options, chars.get(), length, nullptr);
     int nest = 0;
