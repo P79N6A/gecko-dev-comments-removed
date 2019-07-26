@@ -287,6 +287,11 @@ public:
         
         
         QUIRK_ALLOW_OFFLINE_RENDERER                    = 1 << 9,
+        
+        
+        
+        
+        QUIRK_FLASH_AVOID_CGMODE_CRASHES                = 1 << 10,
     };
 
     int GetQuirks() { return mQuirks; }
