@@ -1055,8 +1055,7 @@ ContextStack::pushExecuteFrame(JSContext *cx, JSScript *script, const Value &thi
         
         StackSegment &seg = cx->stack.space().containingSegment(evalInFrame);
         StackIter iter(cx->runtime, seg);
-        JS_ASSERT(!evalInFrame->beginsIonActivation());
-        while (!iter.isScript() || iter.isIon() || iter.fp() != evalInFrame)
+        while (!iter.isScript() || iter.fp() != evalInFrame)
             ++iter;
         evalInFrameCalls = iter.calls_;
         extend = CANT_EXTEND;
