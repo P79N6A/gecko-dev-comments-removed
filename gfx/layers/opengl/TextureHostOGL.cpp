@@ -24,6 +24,7 @@
 #include "mozilla/layers/GrallocTextureHost.h"
 #include "nsPoint.h"                    
 #include "nsRegion.h"                   
+#include "GfxTexturesReporter.h"        
 #ifdef XP_MACOSX
 #include "SharedSurfaceIO.h"
 #endif
