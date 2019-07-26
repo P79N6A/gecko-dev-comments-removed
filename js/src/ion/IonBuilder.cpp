@@ -3722,7 +3722,7 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
     
     if (funcDef->isGetPropertyCache()) {
         MGetPropertyCache *cache = funcDef->toGetPropertyCache();
-        if (cache->useCount() > 0)
+        if (cache->hasUses())
             return NULL;
         if (!CanInlineGetPropertyCache(cache, thisDef))
             return NULL;
@@ -3735,7 +3735,7 @@ IonBuilder::getInlineableGetPropertyCache(CallInfo &callInfo)
         MUnbox *unbox = funcDef->toUnbox();
         if (unbox->mode() != MUnbox::Infallible)
             return NULL;
-        if (unbox->useCount() > 0)
+        if (unbox->hasUses())
             return NULL;
         if (!unbox->input()->isTypeBarrier())
             return NULL;
@@ -3978,7 +3978,7 @@ IonBuilder::inlineTypeObjectFallback(CallInfo &callInfo, MBasicBlock *dispatchBl
 
     
     
-    JS_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), cache->useCount() == 0);
+    JS_ASSERT_IF(callInfo.fun()->isGetPropertyCache(), !cache->hasUses());
     JS_ASSERT_IF(callInfo.fun()->isUnbox(), cache->useCount() == 1);
 
     

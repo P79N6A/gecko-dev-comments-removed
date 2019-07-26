@@ -599,7 +599,7 @@ AssertSafelyDiscardable(MDefinition *def)
 #ifdef DEBUG
     
     
-    JS_ASSERT(def->useCount() == 0);
+    JS_ASSERT(!def->hasUses());
 #endif
 }
 
