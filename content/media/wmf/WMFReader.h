@@ -49,15 +49,19 @@ private:
 
   void ConfigureAudioDecoder();
   void ConfigureVideoDecoder();
+  HRESULT ConfigureVideoFrameGeometry(IMFMediaType* aMediaType);
 
   RefPtr<IMFSourceReader> mSourceReader;
   RefPtr<WMFByteStream> mByteStream;
+
+  
+  
+  nsIntRect mPictureRegion;
 
   uint32_t mAudioChannels;
   uint32_t mAudioBytesPerSample;
   uint32_t mAudioRate;
 
-  uint32_t mVideoWidth;
   uint32_t mVideoHeight;
   uint32_t mVideoStride;
 
