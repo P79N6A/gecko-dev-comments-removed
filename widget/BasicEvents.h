@@ -30,6 +30,13 @@ enum nsEventStructType
   NS_UI_EVENT,                       
 
   
+  NS_KEY_EVENT,                      
+  NS_COMPOSITION_EVENT,              
+  NS_TEXT_EVENT,                     
+  NS_QUERY_CONTENT_EVENT,            
+  NS_SELECTION_EVENT,                
+
+  
   NS_MOUSE_EVENT,                    
   NS_MOUSE_SCROLL_EVENT,             
   NS_DRAG_EVENT,                     
@@ -39,15 +46,6 @@ enum nsEventStructType
   NS_GESTURENOTIFY_EVENT,            
   NS_SIMPLE_GESTURE_EVENT,           
   NS_TOUCH_EVENT,                    
-
-  
-  NS_KEY_EVENT,                      
-  NS_COMPOSITION_EVENT,              
-  NS_TEXT_EVENT,                     
-
-  
-  NS_QUERY_CONTENT_EVENT,            
-  NS_SELECTION_EVENT,                
 
   
   NS_SCROLLPORT_EVENT,               
