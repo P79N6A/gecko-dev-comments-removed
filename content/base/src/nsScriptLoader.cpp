@@ -1040,8 +1040,6 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
                                const nsAFlatString& aScript,
                                void** aOffThreadToken)
 {
-  nsresult rv = NS_OK;
-
   
   if (!mDocument) {
     return NS_ERROR_FAILURE;
@@ -1070,6 +1068,11 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
     return NS_ERROR_FAILURE;
   }
 
+  JSVersion version = JSVersion(aRequest->mJSVersion);
+  if (version == JSVERSION_UNKNOWN) {
+    return NS_OK;
+  }
+
   
   
   AutoEntryScript entryScript(globalObject, true, context->GetNativeContext());
@@ -1083,14 +1086,12 @@ nsScriptLoader::EvaluateScript(nsScriptLoadRequest* aRequest,
   nsCOMPtr<nsIScriptElement> oldCurrent = mCurrentScript;
   mCurrentScript = aRequest->mElement;
 
-  JSVersion version = JSVersion(aRequest->mJSVersion);
-  if (version != JSVERSION_UNKNOWN) {
-    JS::CompileOptions options(entryScript.cx());
-    FillCompileOptionsForRequest(aRequest, global, &options);
-    nsJSUtils::EvaluateOptions evalOptions;
-    rv = nsJSUtils::EvaluateString(entryScript.cx(), aScript, global, options,
-                                   evalOptions, nullptr, aOffThreadToken);
-  }
+  JS::CompileOptions options(entryScript.cx());
+  FillCompileOptionsForRequest(aRequest, global, &options);
+  nsJSUtils::EvaluateOptions evalOptions;
+  nsresult rv = nsJSUtils::EvaluateString(entryScript.cx(), aScript, global,
+                                          options, evalOptions, nullptr,
+                                          aOffThreadToken);
 
   
   mCurrentScript = oldCurrent;
