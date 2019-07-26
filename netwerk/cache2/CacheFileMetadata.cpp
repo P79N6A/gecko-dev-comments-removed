@@ -186,10 +186,16 @@ CacheFileMetadata::ReadMetadata(CacheFileMetadataListener *aListener)
   }
 
   
-  int64_t offset = (size / kAlignSize) * kAlignSize;
+  
+  int64_t offset;
+  if (size < kMinMetadataRead) {
+    offset = 0;
+  } else {
+    offset = size - kMinMetadataRead;
+  }
 
-  if (size - offset < kMinMetadataRead && offset > kAlignSize)
-    offset -= kAlignSize;
+  
+  offset = (offset / kAlignSize) * kAlignSize;
 
   mBufSize = size - offset;
   mBuf = static_cast<char *>(moz_xmalloc(mBufSize));
