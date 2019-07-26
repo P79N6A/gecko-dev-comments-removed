@@ -174,7 +174,12 @@ public:
   NS_HIDDEN_(void)  Clear(void);
 
 protected:
-  NS_HIDDEN_(PLHashEntry**) GetEntryFor(nsIContent* aParentContent);
+  
+
+
+
+
+  NS_HIDDEN_(PLHashEntry**) GetEntryFor(nsIContent** aParentContent);
   NS_HIDDEN_(void)          AppendNodeFor(UndisplayedNode* aNode,
                                           nsIContent* aParentContent);
 
@@ -1891,13 +1896,29 @@ nsFrameManagerBase::UndisplayedMap::~UndisplayedMap(void)
 }
 
 PLHashEntry**  
-nsFrameManagerBase::UndisplayedMap::GetEntryFor(nsIContent* aParentContent)
+nsFrameManagerBase::UndisplayedMap::GetEntryFor(nsIContent** aParentContent)
 {
-  if (mLastLookup && (aParentContent == (*mLastLookup)->key)) {
+  nsIContent* parentContent = *aParentContent;
+
+  if (mLastLookup && (parentContent == (*mLastLookup)->key)) {
     return mLastLookup;
   }
-  PLHashNumber hashCode = NS_PTR_TO_INT32(aParentContent);
-  PLHashEntry** entry = PL_HashTableRawLookup(mTable, hashCode, aParentContent);
+
+  
+  
+  
+  
+  
+  
+  if (parentContent &&
+      parentContent->NodeInfo()->Equals(nsGkAtoms::children, kNameSpaceID_XBL)) {
+    parentContent = parentContent->GetParent();
+    
+    *aParentContent = parentContent;
+  }
+
+  PLHashNumber hashCode = NS_PTR_TO_INT32(parentContent);
+  PLHashEntry** entry = PL_HashTableRawLookup(mTable, hashCode, parentContent);
   if (*entry) {
     mLastLookup = entry;
   }
@@ -1907,7 +1928,7 @@ nsFrameManagerBase::UndisplayedMap::GetEntryFor(nsIContent* aParentContent)
 UndisplayedNode* 
 nsFrameManagerBase::UndisplayedMap::GetFirstNode(nsIContent* aParentContent)
 {
-  PLHashEntry** entry = GetEntryFor(aParentContent);
+  PLHashEntry** entry = GetEntryFor(&aParentContent);
   if (*entry) {
     return (UndisplayedNode*)((*entry)->value);
   }
@@ -1918,7 +1939,7 @@ void
 nsFrameManagerBase::UndisplayedMap::AppendNodeFor(UndisplayedNode* aNode,
                                                   nsIContent* aParentContent)
 {
-  PLHashEntry** entry = GetEntryFor(aParentContent);
+  PLHashEntry** entry = GetEntryFor(&aParentContent);
   if (*entry) {
     UndisplayedNode*  node = (UndisplayedNode*)((*entry)->value);
     while (node->mNext) {
@@ -1956,7 +1977,7 @@ void
 nsFrameManagerBase::UndisplayedMap::RemoveNodeFor(nsIContent* aParentContent,
                                                   UndisplayedNode* aNode)
 {
-  PLHashEntry** entry = GetEntryFor(aParentContent);
+  PLHashEntry** entry = GetEntryFor(&aParentContent);
   NS_ASSERTION(*entry, "content not in map");
   if (*entry) {
     if ((UndisplayedNode*)((*entry)->value) == aNode) {  
@@ -1987,7 +2008,7 @@ nsFrameManagerBase::UndisplayedMap::RemoveNodeFor(nsIContent* aParentContent,
 void
 nsFrameManagerBase::UndisplayedMap::RemoveNodesFor(nsIContent* aParentContent)
 {
-  PLHashEntry** entry = GetEntryFor(aParentContent);
+  PLHashEntry** entry = GetEntryFor(&aParentContent);
   NS_ASSERTION(entry, "content not in map");
   if (*entry) {
     UndisplayedNode*  node = (UndisplayedNode*)((*entry)->value);
