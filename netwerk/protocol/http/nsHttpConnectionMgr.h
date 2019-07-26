@@ -437,7 +437,6 @@ private:
     
     
 
-    int32_t                      mRef;
     mozilla::ReentrantMonitor    mReentrantMonitor;
     nsCOMPtr<nsIEventTarget>     mSocketThreadTarget;
 
