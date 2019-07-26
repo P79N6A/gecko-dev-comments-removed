@@ -119,9 +119,7 @@ public:
 
 
   virtual nsresult ExecuteScript(JSScript* aScriptObject,
-                                 JSObject* aScopeObject,
-                                 nsAString* aRetValue,
-                                 bool* aIsUndefined) = 0;
+                                 JSObject* aScopeObject) = 0;
 
   
 

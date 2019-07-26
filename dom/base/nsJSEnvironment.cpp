@@ -1316,56 +1316,6 @@ nsJSContext::EvaluateStringWithValue(const nsAString& aScript,
 
 }
 
-
-
-static nsresult
-JSValueToAString(JSContext *cx, jsval val, nsAString *result,
-                 bool *isUndefined)
-{
-  if (isUndefined) {
-    *isUndefined = JSVAL_IS_VOID(val);
-  }
-
-  if (!result) {
-    return NS_OK;
-  }
-
-  JSString* jsstring = ::JS_ValueToString(cx, val);
-  if (!jsstring) {
-    goto error;
-  }
-
-  size_t length;
-  const jschar *chars;
-  chars = ::JS_GetStringCharsAndLength(cx, jsstring, &length);
-  if (!chars) {
-    goto error;
-  }
-
-  result->Assign(chars, length);
-  return NS_OK;
-
-error:
-  
-  
-  
-
-  result->Truncate();
-
-  if (isUndefined) {
-    *isUndefined = true;
-  }
-
-  if (!::JS_IsExceptionPending(cx)) {
-    
-    
-
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  return NS_OK;
-}
-
 nsIScriptObjectPrincipal*
 nsJSContext::GetObjectPrincipal()
 {
@@ -1431,21 +1381,11 @@ nsJSContext::CompileScript(const PRUnichar* aText,
 
 nsresult
 nsJSContext::ExecuteScript(JSScript* aScriptObject,
-                           JSObject* aScopeObject,
-                           nsAString* aRetValue,
-                           bool* aIsUndefined)
+                           JSObject* aScopeObject)
 {
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
 
   if (!mScriptsEnabled) {
-    if (aIsUndefined) {
-      *aIsUndefined = true;
-    }
-
-    if (aRetValue) {
-      aRetValue->Truncate();
-    }
-
     return NS_OK;
   }
 
@@ -1475,22 +1415,8 @@ nsJSContext::ExecuteScript(JSScript* aScriptObject,
   
   
   jsval val;
-  bool ok = JS_ExecuteScript(mContext, aScopeObject, aScriptObject, &val);
-  if (ok) {
-    
-    rv = JSValueToAString(mContext, val, aRetValue, aIsUndefined);
-  } else {
+  if (!JS_ExecuteScript(mContext, aScopeObject, aScriptObject, &val))
     ReportPendingException();
-
-    if (aIsUndefined) {
-      *aIsUndefined = true;
-    }
-
-    if (aRetValue) {
-      aRetValue->Truncate();
-    }
-  }
-
   --mExecuteDepth;
 
   
