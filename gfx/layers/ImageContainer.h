@@ -525,17 +525,6 @@ public:
   
 
 
-
-
-
-
-
-  already_AddRefed<gfxASurface> DeprecatedLockCurrentAsSurface(gfx::IntSize* aSizeResult,
-                                                               Image** aCurrentImage = nullptr);
-
-  
-
-
   TemporaryRef<gfx::SourceSurface> GetCurrentAsSourceSurface(gfx::IntSize* aSizeResult);
 
   
