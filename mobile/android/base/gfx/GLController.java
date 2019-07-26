@@ -102,7 +102,17 @@ public class GLController {
         mWidth = newWidth;
         mHeight = newHeight;
 
-        updateCompositor();
+        
+        
+        
+        
+        
+        mView.post(new Runnable() {
+            @Override
+            public void run() {
+                updateCompositor();
+            }
+        });
     }
 
     void updateCompositor() {
