@@ -281,7 +281,7 @@ let Activities = {
 
         
         if (!(prop in aResult.description.filters)) {
-          return false;
+          continue;
         }
 
         
