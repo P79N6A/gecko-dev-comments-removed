@@ -12,7 +12,6 @@
 #include "base/basictypes.h"
 #include "base/scoped_ptr.h"
 #include "base/waitable_event_watcher.h"
-class ResourceDispatcherHost;
 #include "chrome/common/child_process_info.h"
 #include "chrome/common/ipc_channel.h"
 
@@ -52,8 +51,7 @@ class ChildProcessHost :
   };
 
  protected:
-  ChildProcessHost(ProcessType type,
-                   ResourceDispatcherHost* resource_dispatcher_host = 0);
+  explicit ChildProcessHost(ProcessType type);
 
   
   virtual bool CanShutdown() = 0;
@@ -105,8 +103,6 @@ class ChildProcessHost :
   };
 
   ListenerHook listener_;
-
-  ResourceDispatcherHost* resource_dispatcher_host_;
 
   
   bool opening_channel_;
