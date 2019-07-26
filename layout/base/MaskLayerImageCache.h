@@ -7,6 +7,7 @@
 #define MASKLAYERIMAGECACHE_H_
 
 #include "FrameLayerBuilder.h"
+#include "DisplayItemClip.h"
 #include "nsPresContext.h"
 
 namespace mozilla {
@@ -43,7 +44,7 @@ public:
 
   struct PixelRoundedRect
   {
-    PixelRoundedRect(const FrameLayerBuilder::Clip::RoundedRect& aRRect,
+    PixelRoundedRect(const DisplayItemClip::RoundedRect& aRRect,
                      nsPresContext* aPresContext)
       : mRect(aPresContext->AppUnitsToGfxUnits(aRRect.mRect.x),
               aPresContext->AppUnitsToGfxUnits(aRRect.mRect.y),

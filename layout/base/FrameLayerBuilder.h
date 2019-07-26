@@ -14,6 +14,7 @@
 #include "nsDisplayListInvalidation.h"
 #include "LayerTreeInvalidation.h"
 #include "ImageLayers.h"
+#include "DisplayItemClip.h"
 
 class nsDisplayListBuilder;
 class nsDisplayList;
@@ -270,10 +271,9 @@ public:
 
 
 
-  struct Clip;
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
-                           const Clip& aClip,
+                           const DisplayItemClip& aClip,
                            LayerState aLayerState,
                            const nsPoint& aTopLeft,
                            LayerManager* aManager,
@@ -288,7 +288,7 @@ public:
 
   void AddThebesDisplayItem(ThebesLayer* aLayer,
                             nsDisplayItem* aItem,
-                            const Clip& aClip,
+                            const DisplayItemClip& aClip,
                             nsIFrame* aContainerLayerFrame,
                             LayerState aLayerState,
                             const nsPoint& aTopLeft,
@@ -307,7 +307,7 @@ public:
 
   Layer* GetOldLayerFor(nsDisplayItem* aItem, 
                         nsDisplayItemGeometry** aOldGeometry = nullptr, 
-                        Clip** aOldClip = nullptr,
+                        DisplayItemClip** aOldClip = nullptr,
                         nsTArray<nsIFrame*>* aChangedFrames = nullptr,
                         bool *aIsInvalid = nullptr);
 
@@ -361,103 +361,6 @@ public:
 
 
   void StoreOptimizedLayerForFrame(nsDisplayItem* aItem, Layer* aLayer);
-
-  
-
-
-
-  struct Clip {
-    struct RoundedRect {
-      nsRect mRect;
-      
-      nscoord mRadii[8];
-
-      RoundedRect operator+(const nsPoint& aOffset) const {
-        RoundedRect r = *this;
-        r.mRect += aOffset;
-        return r;
-      }
-      bool operator==(const RoundedRect& aOther) const {
-        if (!mRect.IsEqualInterior(aOther.mRect)) {
-          return false;
-        }
-
-        NS_FOR_CSS_HALF_CORNERS(corner) {
-          if (mRadii[corner] != aOther.mRadii[corner]) {
-            return false;
-          }
-        }
-        return true;
-      }
-      bool operator!=(const RoundedRect& aOther) const {
-        return !(*this == aOther);
-      }
-    };
-    nsRect mClipRect;
-    nsTArray<RoundedRect> mRoundedClipRects;
-    bool mHaveClipRect;
-
-    Clip() : mHaveClipRect(false) {}
-
-    
-    Clip(const Clip& aOther, nsDisplayItem* aClipItem);
-
-    
-    
-    
-    void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext,
-                 uint32_t aBegin = 0, uint32_t aEnd = UINT32_MAX);
-
-    void ApplyRectTo(gfxContext* aContext, int32_t A2D) const;
-    
-    
-    
-    void ApplyRoundedRectsTo(gfxContext* aContext, int32_t A2DPRInt32,
-                             uint32_t aBegin, uint32_t aEnd) const;
-
-    
-    void DrawRoundedRectsTo(gfxContext* aContext, int32_t A2D,
-                            uint32_t aBegin, uint32_t aEnd) const;
-    
-    void AddRoundedRectPathTo(gfxContext* aContext, int32_t A2D,
-                              const RoundedRect &aRoundRect) const;
-
-    
-    
-    
-    nsRect ApproximateIntersect(const nsRect& aRect) const;
-
-    
-    
-    
-    
-    bool IsRectClippedByRoundedCorner(const nsRect& aRect) const;
-
-    
-    nsRect NonRoundedIntersection() const;
-
-    
-    
-    nsRect ApplyNonRoundedIntersection(const nsRect& aRect) const;
-
-    
-    void RemoveRoundedCorners();
-
-    
-    
-    void AddOffsetAndComputeDifference(const nsPoint& aPoint, const nsRect& aBounds,
-                                       const Clip& aOther, const nsRect& aOtherBounds,
-                                       nsRegion* aDifference);
-
-    bool operator==(const Clip& aOther) const {
-      return mHaveClipRect == aOther.mHaveClipRect &&
-             (!mHaveClipRect || mClipRect.IsEqualInterior(aOther.mClipRect)) &&
-             mRoundedClipRects == aOther.mRoundedClipRects;
-    }
-    bool operator!=(const Clip& aOther) const {
-      return !(*this == aOther);
-    }
-  };
   
   NS_DECLARE_FRAME_PROPERTY_WITH_FRAME_IN_DTOR(LayerManagerDataProperty,
                                                RemoveFrameFromLayerManager)
@@ -523,7 +426,7 @@ public:
     nsRefPtr<LayerManager> mInactiveManager;
     nsAutoTArray<nsIFrame*, 1> mFrameList;
     nsAutoPtr<nsDisplayItemGeometry> mGeometry;
-    Clip            mClip;
+    DisplayItemClip mClip;
     uint32_t        mDisplayItemKey;
     uint32_t        mContainerLayerGeneration;
     LayerState      mLayerState;
@@ -600,7 +503,7 @@ protected:
 
 
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip, uint32_t aGeneration)
+    ClippedDisplayItem(nsDisplayItem* aItem, const DisplayItemClip& aClip, uint32_t aGeneration)
       : mItem(aItem), mClip(aClip), mContainerLayerGeneration(aGeneration)
     {
     }
@@ -616,7 +519,7 @@ protected:
 
     nsRefPtr<LayerManager> mInactiveLayerManager;
 
-    Clip mClip;
+    DisplayItemClip mClip;
     uint32_t mContainerLayerGeneration;
   };
 
