@@ -95,6 +95,22 @@ DownloadLegacyTransfer.prototype = {
         download.saver.onTransferStarted(
                          aRequest,
                          this._cancelable instanceof Ci.nsIHelperAppLauncher);
+
+        
+        
+        
+        
+        return download.saver.deferCanceled.promise.then(() => {
+          
+          if (this._cancelable && !this._componentFailed) {
+            this._cancelable.cancel(Cr.NS_ERROR_ABORT);
+            if (this._cancelable instanceof Ci.nsIWebBrowserPersist) {
+              
+              download.saver.onTransferFinished(aRequest, Cr.NS_ERROR_ABORT);
+              this._cancelable = null;
+            }
+          }
+        });
       }).then(null, Cu.reportError);
     } else if ((aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
         (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK)) {
@@ -196,14 +212,6 @@ DownloadLegacyTransfer.prototype = {
       contentType: contentType,
       launcherPath: launcherPath
     }).then(function DLT_I_onDownload(aDownload) {
-      
-      aDownload.saver.deferCanceled.promise.then(() => {
-        
-        if (!this._componentFailed) {
-          aCancelable.cancel(Cr.NS_ERROR_ABORT);
-        }
-      }).then(null, Cu.reportError);
-
       
       if (aTempFile) {
         aDownload.tryToKeepPartialData = true;

@@ -626,12 +626,6 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
-
   do_check_true(download.stopped);
   do_check_true(download.hasPartialData);
 
@@ -685,12 +679,6 @@ add_task(function test_cancel_midway_restart_removePartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
-
   do_check_true(download.hasPartialData);
   yield promiseVerifyContents(download.target.partFilePath, TEST_DATA_SHORT);
 
@@ -722,12 +710,6 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.cancel();
 
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
-
   download.tryToKeepPartialData = false;
 
   
@@ -749,12 +731,6 @@ add_task(function test_cancel_midway_restart_tryToKeepPartialData_false()
   do_check_true(yield OS.File.exists(download.target.partFilePath));
 
   yield download.cancel();
-
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
 
   
   do_check_false(download.hasPartialData);
@@ -962,12 +938,6 @@ add_task(function test_finalize_tryToKeepPartialData()
   let download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.finalize();
 
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
-
   do_check_true(download.hasPartialData);
   do_check_true(yield OS.File.exists(download.target.partFilePath));
 
@@ -977,12 +947,6 @@ add_task(function test_finalize_tryToKeepPartialData()
   
   download = yield promiseStartDownload_tryToKeepPartialData();
   yield download.finalize(true);
-
-  
-  
-  if (gUseLegacySaver) {
-    yield promiseTimeout(250);
-  }
 
   do_check_false(download.hasPartialData);
   do_check_false(yield OS.File.exists(download.target.partFilePath));
