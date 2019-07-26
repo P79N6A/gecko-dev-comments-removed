@@ -408,7 +408,7 @@ public:
   
   void                    BackingScaleFactorChanged();
 
-  virtual double          GetDefaultScale();
+  virtual double          GetDefaultScaleInternal();
 
   NS_IMETHOD              Invalidate(const nsIntRect &aRect);
 

@@ -90,8 +90,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0x8181a08f, 0xaa37, 0x4fd0, \
-    { 0x94, 0x32, 0x27, 0x74, 0xe2, 0xce, 0x02, 0xc8 } }
+  { 0xb7c60bda, 0xe16c, 0x4e89, \
+    { 0x86, 0x8c, 0xc3, 0x2e, 0x62, 0x40, 0x05, 0xb2 } }
 
 
 
@@ -576,7 +576,8 @@ class nsIWidget : public nsISupports {
 
 
 
-    virtual double GetDefaultScale() = 0;
+
+    double GetDefaultScale();
 
     
 
@@ -1652,6 +1653,11 @@ class nsIWidget : public nsISupports {
     { return nullptr; }
 
 protected:
+    
+
+
+
+    virtual double GetDefaultScaleInternal() { return 1.0; }
 
     
     

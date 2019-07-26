@@ -337,23 +337,7 @@ nsDeviceContext::SetDPI()
             dpi = 96.0f;
         }
 
-        
-        
-        
-        float devPixelsPerCSSPixel = -1.0;
-
-        nsAdoptingCString prefString = Preferences::GetCString("layout.css.devPixelsPerPx");
-        if (!prefString.IsEmpty()) {
-            devPixelsPerCSSPixel = static_cast<float>(atof(prefString));
-        }
-
-        if (devPixelsPerCSSPixel <= 0) {
-            if (mWidget) {
-                devPixelsPerCSSPixel = mWidget->GetDefaultScale();
-            } else {
-                devPixelsPerCSSPixel = 1.0;
-            }
-        }
+        double devPixelsPerCSSPixel = mWidget ? mWidget->GetDefaultScale() : 1.0;
 
         mAppUnitsPerDevNotScaledPixel =
             NS_MAX(1, NS_lround(AppUnitsPerCSSPixel() / devPixelsPerCSSPixel));
