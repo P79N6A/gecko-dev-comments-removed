@@ -616,11 +616,77 @@ var WifiManager = (function() {
     });
   }
 
+  var staticIpConfig = Object.create(null);
+  function setStaticIpMode(network, info, callback) {
+    let setNetworkKey = getNetworkKey(network);
+    let curNetworkKey = null;
+    let currentNetwork = Object.create(null);
+    currentNetwork.netId = manager.connectionInfo.id;
+
+    manager.getNetworkConfiguration(currentNetwork, function (){
+      curNetworkKey = getNetworkKey(currentNetwork);
+
+      
+      
+      info.ipaddr = stringToIp(info.ipaddr_str);
+      info.gateway = stringToIp(info.gateway_str);
+      info.mask_str = makeMask(info.maskLength);
+
+      
+      info.dns1 = stringToIp("dns1_str" in info ? info.dns1_str : "");
+      info.dns2 = stringToIp("dns2_str" in info ? info.dns2_str : "");
+      info.proxy = stringToIp("proxy_str" in info ? info.proxy_str : "");
+
+      staticIpConfig[setNetworkKey] = info;
+
+      
+      
+      if (setNetworkKey == curNetworkKey) {
+        
+        
+        
+        
+        disableInterface(manager.ifname, function (ok) {
+          enableInterface(manager.ifname, function (ok) {
+          });
+        });
+      }
+    });
+  }
+
   var dhcpInfo = null;
-  function runDhcp(ifname, callback) {
+  function runDhcp(ifname) {
+    debug("Run Dhcp");
     controlMessage({ cmd: "dhcp_do_request", ifname: ifname }, function(data) {
       dhcpInfo = data.status ? null : data;
-      callback(dhcpInfo);
+      runIpConfig(ifname, dhcpInfo);
+    });
+  }
+
+  function runStaticIp(ifname, key) {
+    debug("Run static ip");
+
+    
+    let staticIpInfo;
+
+    if (!(key in staticIpConfig))
+      return;
+
+    staticIpInfo = staticIpConfig[key];
+
+    
+    if (dhcpInfo != null) {
+      stopDhcp(manager.ifname, function() {});
+    }
+
+    
+    configureInterface(ifname,
+                       staticIpInfo.ipaddr,
+                       staticIpInfo.maskLength,
+                       staticIpInfo.gateway,
+                       staticIpInfo.dns1,
+                       staticIpInfo.dns2, function (data) {
+      runIpConfig(ifname, staticIpInfo);
     });
   }
 
@@ -803,32 +869,48 @@ var WifiManager = (function() {
   function onconnected() {
     
     
-    runDhcp(manager.ifname, function (data) {
-      if (!data) {
-        debug("DHCP failed to run");
-        notify("dhcpconnected", { info: data });
+    let currentNetwork = Object.create(null);
+    currentNetwork.netId = manager.connectionInfo.id;
+
+    manager.getNetworkConfiguration(currentNetwork, function (){
+      let key = getNetworkKey(currentNetwork);
+      if (staticIpConfig  &&
+          (key in staticIpConfig) &&
+          staticIpConfig[key].enabled) {
+          debug("Run static ip");
+          runStaticIp(manager.ifname, key);
+          return;
+      }
+      runDhcp(manager.ifname);
+    });
+  }
+
+  function runIpConfig(name, data) {
+    if (!data) {
+      debug("IP config failed to run");
+      notify("networkconnected", { info: data });
+      return;
+    }
+
+    setProperty("net." + name + ".dns1", ipToString(data.dns1),
+                function(ok) {
+      if (!ok) {
+        debug("Unable to set net.<ifname>.dns1");
         return;
       }
-      setProperty("net." + manager.ifname + ".dns1", ipToString(data.dns1),
+      setProperty("net." + name + ".dns2", ipToString(data.dns2),
                   function(ok) {
         if (!ok) {
-          debug("Unable to set net.<ifname>.dns1");
+          debug("Unable to set net.<ifname>.dns2");
           return;
         }
-        setProperty("net." + manager.ifname + ".dns2", ipToString(data.dns2),
+        setProperty("net." + name + ".gw", ipToString(data.gateway),
                     function(ok) {
           if (!ok) {
-            debug("Unable to set net.<ifname>.dns2");
+            debug("Unable to set net.<ifname>.gw");
             return;
           }
-          setProperty("net." + manager.ifname + ".gw", ipToString(data.gateway),
-                      function(ok) {
-            if (!ok) {
-              debug("Unable to set net.<ifname>.gw");
-              return;
-            }
-            notify("dhcpconnected", { info: data });
-          });
+          notify("networkconnected", { info: data });
         });
       });
     });
@@ -976,8 +1058,11 @@ var WifiManager = (function() {
     if (eventData.indexOf("CTRL-EVENT-CONNECTED") === 0) {
       
       var bssid = event.split(" ")[4];
-      var id = event.substr(event.indexOf("id=")).split(" ")[0];
+
+      var keyword = "id=";
+      var id = event.substr(event.indexOf(keyword) + keyword.length).split(" ")[0];
       
+      manager.connectionInfo.id = id;
       manager.connectionInfo.bssid = bssid;
       return true;
     }
@@ -1357,6 +1442,43 @@ var WifiManager = (function() {
                  ((n >> 24) & 0xFF);
   }
 
+  function stringToIp(string) {
+    let ip = 0;
+    let start, end = -1;
+    for (let i = 0; i < 4; i++) {
+      start = end + 1;
+      end = string.indexOf(".", start);
+      if (end == -1) {
+        end = string.length;
+      }
+      let num = parseInt(string.slice(start, end), 10);
+      if (isNaN(num)) {
+        return 0;
+      }
+      ip |= num << (i * 8);
+    }
+    return ip;
+  }
+
+  function swap32(n) {
+    return (((n >> 24) & 0xFF) <<  0) |
+           (((n >> 16) & 0xFF) <<  8) |
+           (((n >>  8) & 0xFF) << 16) |
+           (((n >>  0) & 0xFF) << 24);
+  }
+
+  function ntohl(n) {
+    return swap32(n);
+  }
+
+  function makeMask(len) {
+    let mask = 0;
+    for (let i = 0; i < len; ++i) {
+      mask |= (0x80000000 >> i);
+    }
+    return ntohl(mask);
+  }
+
   manager.saveConfig = function(callback) {
     saveConfigCommand(callback);
   }
@@ -1378,6 +1500,7 @@ var WifiManager = (function() {
   manager.wpsCancel = wpsCancelCommand;
   manager.setPowerMode = setPowerModeCommand;
   manager.setSuspendOptimizations = setSuspendOptimizationsCommand;
+  manager.setStaticIpMode = setStaticIpMode;
   manager.getRssiApprox = getRssiApproxCommand;
   manager.getLinkSpeed = getLinkSpeedCommand;
   manager.getDhcpInfo = function() { return dhcpInfo; }
@@ -1665,6 +1788,7 @@ function WifiWorker() {
                     "WifiManager:associate", "WifiManager:forget",
                     "WifiManager:wps", "WifiManager:getState",
                     "WifiManager:setPowerSavingMode",
+                    "WifiManager:setStaticIpMode",
                     "child-process-shutdown"];
 
   messages.forEach((function(msgName) {
@@ -2024,7 +2148,7 @@ function WifiWorker() {
     }
   };
 
-  WifiManager.ondhcpconnected = function() {
+  WifiManager.onnetworkconnected = function() {
     if (this.info) {
       WifiNetworkInterface.state =
         Ci.nsINetworkInterface.NETWORK_STATE_CONNECTED;
@@ -2501,6 +2625,9 @@ WifiWorker.prototype = {
       case "WifiManager:setPowerSavingMode":
         this.setPowerSavingMode(msg);
         break;
+      case "WifiManager:setStaticIpMode":
+        this.setStaticIpMode(msg);
+        break;
       case "WifiManager:getState": {
         let i;
         if ((i = this._domManagers.indexOf(msg.manager)) === -1) {
@@ -2967,6 +3094,30 @@ WifiWorker.prototype = {
           self._sendMessage(message, false, "Set power saving mode failed", msg);
         }
       });
+    });
+  },
+
+  setStaticIpMode: function(msg) {
+    const message = "WifiManager:setStaticMode:Return";
+    let self = this;
+    let network = msg.data.network;
+    let info = msg.data.info;
+
+    netFromDOM(network, null);
+
+    
+    info.ipaddr_str = info.ipaddr;
+    info.proxy_str = info.proxy;
+    info.gateway_str = info.gateway;
+    info.dns1_str = info.dns1;
+    info.dns2_str = info.dns2;
+
+    WifiManager.setStaticIpMode(network, info, function(ok) {
+      if (ok) {
+        self._sendMessage(message, true, true, msg);
+      } else {
+        self._sendMessage(message, false, "Set static ip mode failed", msg);
+      }
     });
   },
 
