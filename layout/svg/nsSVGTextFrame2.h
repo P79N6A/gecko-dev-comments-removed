@@ -28,6 +28,10 @@ class TextNodeCorrespondenceRecorder;
 struct TextRenderedRun;
 class TextRenderedRunIterator;
 
+namespace dom {
+class SVGIRect;
+}
+
 
 
 
@@ -262,7 +266,7 @@ public:
   nsresult GetEndPositionOfChar(nsIContent* aContent, uint32_t aCharNum,
                                 mozilla::nsISVGPoint** aResult);
   nsresult GetExtentOfChar(nsIContent* aContent, uint32_t aCharNum,
-                           nsIDOMSVGRect** aResult);
+                           mozilla::dom::SVGIRect** aResult);
   nsresult GetRotationOfChar(nsIContent* aContent, uint32_t aCharNum,
                              float* aResult);
 
