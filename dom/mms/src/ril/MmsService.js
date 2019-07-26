@@ -995,9 +995,7 @@ MmsService.prototype = {
 
 
   mergeRetrievalConfirmation: function mergeRetrievalConfirmation(intermediate, savable) {
-    if (intermediate.headers["Date"]) {
-      savable.timestamp = Date.parse(intermediate.headers["Date"]);
-    }
+    savable.timestamp = Date.now();
     if (intermediate.headers.from) {
       savable.sender = intermediate.headers.from.address;
     } else {
