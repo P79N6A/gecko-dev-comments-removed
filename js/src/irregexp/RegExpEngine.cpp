@@ -192,10 +192,13 @@ GetCaseIndependentLetters(jschar character,
                           bool ascii_subject,
                           jschar *letters)
 {
-    JS_ASSERT(!ascii_subject);
-
     jschar lower = unicode::ToLowerCase(character);
     jschar upper = unicode::ToUpperCase(character);
+
+    
+    
+    if (ascii_subject && character > kMaxOneByteCharCode)
+        return 0;
 
     letters[0] = character;
 
@@ -212,6 +215,23 @@ GetCaseIndependentLetters(jschar character,
         return 2;
     }
     return 1;
+}
+
+static jschar
+ConvertNonLatin1ToLatin1(jschar c)
+{
+    JS_ASSERT(c > kMaxOneByteCharCode);
+    switch (c) {
+      
+      case 0x39c:
+      case 0x3bc:
+        return 0xb5;
+      
+      
+      case 0x178:
+        return 0xff;
+    }
+    return 0;
 }
 
 void
@@ -670,17 +690,14 @@ TextNode::FilterASCII(int depth, bool ignore_case)
 
                 
                 
-                jschar chars[kEcma262UnCanonicalizeMaxWidth];
-                size_t length = GetCaseIndependentLetters(c, true, chars);
-                JS_ASSERT(length <= 1);
-
-                if (length == 0) {
+                jschar converted = ConvertNonLatin1ToLatin1(c);
+                if (converted == 0) {
                     
                     return set_replacement(nullptr);
                 }
 
                 
-                quarks[j] = chars[0];
+                quarks[j] = converted;
             }
         } else {
             JS_ASSERT(elm.text_type() == TextElement::CHAR_CLASS);

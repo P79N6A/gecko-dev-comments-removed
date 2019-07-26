@@ -31,3 +31,8 @@ assertEq(toLatin1("1abcdefghijklm4").search(re), 1);
 assertEq("\u12001abcdefghijklm0".search(re), 2);
 assertEq(toLatin1("1abcdefghijklm8").search(re), -1);
 assertEq("\u12001abcdefghijklm8".search(re), -1);
+
+
+
+var s = toLatin1("foobar\xff5baz");
+assertEq(s.search(/bar\u0178\d/i), 3);
