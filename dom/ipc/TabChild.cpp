@@ -554,11 +554,6 @@ TabChild::HandlePossibleViewportChange()
     return;
   }
 
-  
-  
-  
-  
-  
   float oldBrowserWidth = mOldViewportWidth;
   mLastMetrics.mViewport.SizeTo(viewport);
   if (!oldBrowserWidth) {
@@ -605,13 +600,6 @@ TabChild::HandlePossibleViewportChange()
     
     return;
   }
-
-  CSSToScreenScale minScale(mInnerSize.width / pageSize.width);
-  minScale = clamped(minScale, viewportInfo.GetMinZoom(), viewportInfo.GetMaxZoom());
-  NS_ENSURE_TRUE_VOID(minScale.scale); 
-
-  viewport.height = std::max(viewport.height, screenH / minScale.scale);
-  SetCSSViewport(viewport);
 
   float oldScreenWidth = mLastMetrics.mCompositionBounds.width;
   if (!oldScreenWidth) {
