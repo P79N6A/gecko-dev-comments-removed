@@ -295,6 +295,94 @@ function waitForManagerEvent(aEventName) {
 
 
 
+function getNetworks() {
+  let request = mobileConnection.getNetworks();
+  return wrapDomRequestAsPromise(request)
+    .then(() => request.result);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function selectNetwork(aNetwork) {
+  let request = mobileConnection.selectNetwork(aNetwork);
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+function selectNetworkAndWait(aNetwork) {
+  let promises = [];
+
+  promises.push(waitForManagerEvent("voicechange"));
+  promises.push(selectNetwork(aNetwork));
+
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+function selectNetworkAutomatically() {
+  let request = mobileConnection.selectNetworkAutomatically();
+  return wrapDomRequestAsPromise(request)
+    .then(null, () => { throw request.error });
+}
+
+
+
+
+
+
+
+
+
+
+function selectNetworkAutomaticallyAndWait() {
+  let promises = [];
+
+  promises.push(waitForManagerEvent("voicechange"));
+  promises.push(selectNetworkAutomatically());
+
+  return Promise.all(promises);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 function setDataEnabledAndWait(aEnabled) {
