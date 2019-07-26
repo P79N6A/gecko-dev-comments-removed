@@ -755,7 +755,7 @@ IonBuilder::processIterators()
     while (!worklist.empty()) {
         MPhi *phi = worklist.popCopy();
         phi->setIterator();
-        phi->setFoldedUnchecked();
+        phi->setImplicitlyUsedUnchecked();
 
         for (MUseDefIterator iter(phi); iter; iter++) {
             if (iter.def()->isPhi()) {
@@ -1327,7 +1327,7 @@ IonBuilder::traverseBytecode()
                 
 
               default:
-                JS_ASSERT(popped[i]->isFolded() ||
+                JS_ASSERT(popped[i]->isImplicitlyUsed() ||
 
                           
                           
@@ -3833,7 +3833,7 @@ IonBuilder::inlineScriptedCall(CallInfo &callInfo, JSFunction *target)
     JS_ASSERT(target->isInterpreted());
     JS_ASSERT(IsIonInlinablePC(pc));
 
-    callInfo.setFoldedUnchecked();
+    callInfo.setImplicitlyUsedUnchecked();
 
     
     uint32_t depth = current->stackDepth() + callInfo.numFormals();
@@ -4219,7 +4219,7 @@ IonBuilder::inlineCallsite(ObjectVector &targets, ObjectVector &originals,
         
         
         
-        callInfo.fun()->setFoldedUnchecked();
+        callInfo.fun()->setImplicitlyUsedUnchecked();
 
         
         
@@ -4380,7 +4380,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
     JS_ASSERT_IF(maybeCache, targets.length() >= 1);
 
     MBasicBlock *dispatchBlock = current;
-    callInfo.setFoldedUnchecked();
+    callInfo.setImplicitlyUsedUnchecked();
     callInfo.pushFormals(dispatchBlock);
 
     
@@ -4402,7 +4402,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
     MDispatchInstruction *dispatch;
     if (maybeCache) {
         dispatch = MTypeObjectDispatch::New(alloc(), maybeCache->object(), maybeCache->propTable());
-        callInfo.fun()->setFoldedUnchecked();
+        callInfo.fun()->setImplicitlyUsedUnchecked();
     } else {
         dispatch = MFunctionDispatch::New(alloc(), callInfo.fun());
     }
@@ -4465,7 +4465,7 @@ IonBuilder::inlineCalls(CallInfo &callInfo, ObjectVector &targets,
 
         
         MConstant *funcDef = MConstant::New(alloc(), ObjectValue(*target), constraints());
-        funcDef->setFoldedUnchecked();
+        funcDef->setImplicitlyUsedUnchecked();
         dispatchBlock->add(funcDef);
 
         
@@ -4811,7 +4811,7 @@ IonBuilder::jsop_funcall(uint32_t argc)
             return false;
         return makeCall(native, callInfo, false);
     }
-    current->peek(calleeDepth)->setFoldedUnchecked();
+    current->peek(calleeDepth)->setImplicitlyUsedUnchecked();
 
     
     types::TemporaryTypeSet *funTypes = current->peek(funcDepth)->resultTypeSet();
@@ -4893,7 +4893,7 @@ IonBuilder::jsop_funapply(uint32_t argc)
         return abort("fun.apply speculation failed");
     }
 
-    current->peek(calleeDepth)->setFoldedUnchecked();
+    current->peek(calleeDepth)->setImplicitlyUsedUnchecked();
 
     
     return jsop_funapplyarguments(argc);
@@ -4922,7 +4922,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
         
         
         MDefinition *vp = current->pop();
-        vp->setFoldedUnchecked();
+        vp->setImplicitlyUsedUnchecked();
 
         MDefinition *argThis = current->pop();
 
@@ -4955,7 +4955,7 @@ IonBuilder::jsop_funapplyarguments(uint32_t argc)
 
     
     MDefinition *vp = current->pop();
-    vp->setFoldedUnchecked();
+    vp->setImplicitlyUsedUnchecked();
 
     
     MDefinitionVector args(alloc());
@@ -5065,7 +5065,7 @@ IonBuilder::makeCallsiteClone(JSFunction *target, MDefinition *fun)
     
     
     if (target) {
-        fun->setFoldedUnchecked();
+        fun->setImplicitlyUsedUnchecked();
         return constant(ObjectValue(*target));
     }
 
@@ -5213,7 +5213,7 @@ IonBuilder::makeCallHelper(JSFunction *target, CallInfo &callInfo, bool cloneAtC
             return nullptr;
         }
 
-        callInfo.thisArg()->setFoldedUnchecked();
+        callInfo.thisArg()->setImplicitlyUsedUnchecked();
         callInfo.setThis(create);
     }
 
@@ -5311,9 +5311,9 @@ IonBuilder::jsop_eval(uint32_t argc)
         CallInfo callInfo(alloc(),  false);
         if (!callInfo.init(current, argc))
             return false;
-        callInfo.setFoldedUnchecked();
+        callInfo.setImplicitlyUsedUnchecked();
 
-        callInfo.fun()->setFoldedUnchecked();
+        callInfo.fun()->setImplicitlyUsedUnchecked();
 
         MDefinition *scopeChain = current->scopeChain();
         MDefinition *string = callInfo.getArg(0);
@@ -6245,12 +6245,12 @@ IonBuilder::ensureDefiniteType(MDefinition *def, JSValueType definiteType)
     MInstruction *replace;
     switch (definiteType) {
       case JSVAL_TYPE_UNDEFINED:
-        def->setFoldedUnchecked();
+        def->setImplicitlyUsedUnchecked();
         replace = MConstant::New(alloc(), UndefinedValue());
         break;
 
       case JSVAL_TYPE_NULL:
-        def->setFoldedUnchecked();
+        def->setImplicitlyUsedUnchecked();
         replace = MConstant::New(alloc(), NullValue());
         break;
 
@@ -6821,8 +6821,8 @@ IonBuilder::getElemTryTypedStatic(bool *emitted, MDefinition *obj, MDefinition *
 
     
 
-    obj->setFoldedUnchecked();
-    index->setFoldedUnchecked();
+    obj->setImplicitlyUsedUnchecked();
+    index->setImplicitlyUsedUnchecked();
 
     MLoadTypedArrayElementStatic *load = MLoadTypedArrayElementStatic::New(alloc(), tarr, ptr);
     current->add(load);
@@ -6914,7 +6914,7 @@ IonBuilder::getElemTryArguments(bool *emitted, MDefinition *obj, MDefinition *in
     JS_ASSERT(!info().argsObjAliasesFormals());
 
     
-    obj->setFoldedUnchecked();
+    obj->setImplicitlyUsedUnchecked();
 
     
     MArgumentsLength *length = MArgumentsLength::New(alloc());
@@ -6953,7 +6953,7 @@ IonBuilder::getElemTryArgumentsInlined(bool *emitted, MDefinition *obj, MDefinit
         return true;
 
     
-    obj->setFoldedUnchecked();
+    obj->setImplicitlyUsedUnchecked();
 
     JS_ASSERT(!info().argsObjAliasesFormals());
 
@@ -6962,7 +6962,7 @@ IonBuilder::getElemTryArgumentsInlined(bool *emitted, MDefinition *obj, MDefinit
         JS_ASSERT(inliningDepth_ > 0);
 
         int32_t id = index->toConstant()->value().toInt32();
-        index->setFoldedUnchecked();
+        index->setImplicitlyUsedUnchecked();
 
         if (id < (int32_t)inlineCallInfo_->argc() && id >= 0)
             current->push(inlineCallInfo_->getArg(id));
@@ -7137,7 +7137,7 @@ IonBuilder::getTypedArrayLength(MDefinition *obj)
     if (obj->isConstant() && obj->toConstant()->value().isObject()) {
         TypedArrayObject *tarr = &obj->toConstant()->value().toObject().as<TypedArrayObject>();
         int32_t length = (int32_t) tarr->length();
-        obj->setFoldedUnchecked();
+        obj->setImplicitlyUsedUnchecked();
         return MConstant::New(alloc(), Int32Value(length));
     }
     return MTypedArrayLength::New(alloc(), obj);
@@ -7155,7 +7155,7 @@ IonBuilder::getTypedArrayElements(MDefinition *obj)
         types::TypeObjectKey *tarrType = types::TypeObjectKey::get(tarr);
         tarrType->watchStateChangeForTypedArrayBuffer(constraints());
 
-        obj->setFoldedUnchecked();
+        obj->setImplicitlyUsedUnchecked();
         return MConstantElements::New(alloc(), data);
     }
     return MTypedArrayElements::New(alloc(), obj);
@@ -7373,8 +7373,8 @@ IonBuilder::setElemTryTypedStatic(bool *emitted, MDefinition *object,
         return true;
 
     
-    object->setFoldedUnchecked();
-    index->setFoldedUnchecked();
+    object->setImplicitlyUsedUnchecked();
+    index->setImplicitlyUsedUnchecked();
 
     
     MDefinition *toWrite = value;
@@ -7757,7 +7757,7 @@ IonBuilder::jsop_arguments_length()
 {
     
     MDefinition *args = current->pop();
-    args->setFoldedUnchecked();
+    args->setImplicitlyUsedUnchecked();
 
     
     if (inliningDepth_ == 0) {
@@ -8270,7 +8270,7 @@ IonBuilder::getPropTryConstant(bool *emitted, PropertyName *name,
     else if (testString)
         current->add(MGuardString::New(alloc(), obj));
     else
-        obj->setFoldedUnchecked();
+        obj->setImplicitlyUsedUnchecked();
 
     pushConstant(ObjectValue(*singleton));
 
@@ -9410,7 +9410,7 @@ IonBuilder::hasStaticScopeObject(ScopeCoordinate sc, JSObject **pcall)
     
 
     MDefinition *scope = current->getSlot(info().scopeChainSlot());
-    scope->setFoldedUnchecked();
+    scope->setImplicitlyUsedUnchecked();
 
     JSObject *environment = script()->function()->environment();
     while (environment && !environment->is<GlobalObject>()) {
@@ -9605,7 +9605,7 @@ IonBuilder::jsop_instanceof()
         if (!protoObject)
             break;
 
-        rhs->setFoldedUnchecked();
+        rhs->setImplicitlyUsedUnchecked();
 
         MInstanceOf *ins = MInstanceOf::New(alloc(), obj, protoObject);
 

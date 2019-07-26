@@ -97,7 +97,7 @@ jit::EliminateDeadResumePointOperands(MIRGenerator *mir, MIRGraph &graph)
             
             
             
-            if (ins->isFolded())
+            if (ins->isImplicitlyUsed())
                 continue;
 
             
@@ -186,7 +186,7 @@ IsPhiObservable(MPhi *phi, Observability observe)
 {
     
     
-    if (phi->isFolded())
+    if (phi->isImplicitlyUsed())
         return true;
 
     
@@ -254,8 +254,8 @@ IsPhiRedundant(MPhi *phi)
         return nullptr;
 
     
-    if (phi->isFolded())
-        first->setFoldedUnchecked();
+    if (phi->isImplicitlyUsed())
+        first->setImplicitlyUsedUnchecked();
 
     return first;
 }
