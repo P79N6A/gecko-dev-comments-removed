@@ -189,6 +189,9 @@ class MediaStreamGraphImpl;
 class SourceMediaStream;
 class ProcessedMediaStream;
 class MediaInputPort;
+class AudioNodeStream;
+class AudioNodeEngine;
+struct AudioChunk;
 
 
 
@@ -345,6 +348,7 @@ public:
 
   virtual SourceMediaStream* AsSourceStream() { return nullptr; }
   virtual ProcessedMediaStream* AsProcessedStream() { return nullptr; }
+  virtual AudioNodeStream* AsAudioNodeStream() { return nullptr; }
 
   
   void Init();
@@ -820,11 +824,19 @@ protected:
 };
 
 
+inline TrackRate IdealAudioRate() { return 48000; }
+
+
 
 
 
 class MediaStreamGraph {
 public:
+  
+  
+  
+  
+
   
   static MediaStreamGraph* GetInstance();
   
@@ -848,6 +860,11 @@ public:
 
 
   ProcessedMediaStream* CreateTrackUnionStream(nsDOMMediaStream* aWrapper);
+  
+
+
+
+  AudioNodeStream* CreateAudioNodeStream(AudioNodeEngine* aEngine);
   
 
 
