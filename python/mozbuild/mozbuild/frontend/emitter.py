@@ -567,8 +567,11 @@ class TreeMetadataEmitter(LoggingMixin):
                 process_support_files(defaults)
 
             
-            out_path = mozpath.join(out_dir, mozpath.basename(manifest_path))
-            obj.installs[path] = (out_path, False)
+            
+            for mpath in m.manifests():
+                mpath = mozpath.normpath(mpath)
+                out_path = mozpath.join(out_dir, mozpath.basename(mpath))
+                obj.installs[mpath] = (out_path, False)
 
             
             
