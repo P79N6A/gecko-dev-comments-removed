@@ -492,6 +492,7 @@ let CustomizableUIInternal = {
     let window = document.defaultView;
     let inPrivateWindow = PrivateBrowsingUtils.isWindowPrivate(window);
     let container = aAreaNode.customizationTarget;
+    let areaIsPanel = gAreas.get(aArea).get("type") == CustomizableUI.TYPE_MENU_PANEL;
 
     if (!container) {
       throw new Error("Expected area " + aArea
@@ -516,6 +517,11 @@ let CustomizableUIInternal = {
 
         if (currentNode && currentNode.id == id) {
           currentNode = currentNode.nextSibling;
+          continue;
+        }
+
+        if (this.isSpecialWidget(id) && areaIsPanel) {
+          placementsToRemove.add(id);
           continue;
         }
 
@@ -548,7 +554,7 @@ let CustomizableUIInternal = {
 
         this.ensureButtonContextMenu(node, aAreaNode);
         if (node.localName == "toolbarbutton") {
-          if (aArea == CustomizableUI.AREA_PANEL) {
+          if (areaIsPanel) {
             node.setAttribute("wrap", "true");
           } else {
             node.removeAttribute("wrap");
@@ -1557,6 +1563,13 @@ let CustomizableUIInternal = {
 
     
     
+    if (gAreas.get(aArea).get("type") == CustomizableUI.TYPE_MENU_PANEL &&
+        this.isSpecialWidget(aWidgetId)) {
+      return;
+    }
+
+    
+    
     
     
     
@@ -2373,10 +2386,16 @@ let CustomizableUIInternal = {
 
   canWidgetMoveToArea: function(aWidgetId, aArea) {
     let placement = this.getPlacementOfWidget(aWidgetId);
-    if (placement && placement.area != aArea &&
-        !this.isWidgetRemovable(aWidgetId)) {
-      return false;
+    if (placement && placement.area != aArea) {
+      
+      if (this.isSpecialWidget(aWidgetId) && gAreas.has(aArea) &&
+          gAreas.get(aArea).get("type") == CustomizableUI.TYPE_MENU_PANEL) {
+        return false;
+      }
+      
+      return this.isWidgetRemovable(aWidgetId);
     }
+
     return true;
   },
 
