@@ -31,7 +31,6 @@
 #include "nsThreadUtils.h"              
 #include "nsXULAppAPI.h"                
 #include "nscore.h"                     
-#include "VBOArena.h"                   
 #ifdef MOZ_WIDGET_GONK
 #include <ui/GraphicBuffer.h>
 #endif
@@ -311,11 +310,6 @@ private:
 
 
   GLuint mQuadVBO;
-
-  
-
-
-  gl::VBOArena mVBOs;
 
   bool mHasBGRA;
 

@@ -13,7 +13,6 @@
 #include "mozilla/RefPtr.h"             
 #include "mozilla/TimeStamp.h"          
 #include "nsTArray.h"                   
-#include "VBOArena.h"                   
 #include "prio.h"                       
 
 namespace mozilla {
