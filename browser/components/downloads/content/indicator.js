@@ -286,7 +286,7 @@ const DownloadsIndicatorView = {
     this._initialized = true;
 
     window.addEventListener("unload", this.onWindowUnload, false);
-    DownloadsCommon.indicatorData.addView(this);
+    DownloadsCommon.getIndicatorData(window).addView(this);
   },
 
   
@@ -300,7 +300,7 @@ const DownloadsIndicatorView = {
     this._initialized = false;
 
     window.removeEventListener("unload", this.onWindowUnload, false);
-    DownloadsCommon.indicatorData.removeView(this);
+    DownloadsCommon.getIndicatorData(window).removeView(this);
 
     
     
@@ -327,7 +327,7 @@ const DownloadsIndicatorView = {
       
       
       if (this._initialized) {
-        DownloadsCommon.indicatorData.refreshView(this);
+        DownloadsCommon.getIndicatorData(window).refreshView(this);
       }
 
       aCallback();
@@ -508,7 +508,7 @@ const DownloadsIndicatorView = {
   {
     if (DownloadsCommon.useToolkitUI) {
       
-      DownloadsCommon.indicatorData.attention = false;
+      DownloadsCommon.getIndicatorData(window).attention = false;
       BrowserDownloadsUI();
     } else {
       DownloadsPanel.showPanel();
