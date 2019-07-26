@@ -33,6 +33,12 @@ class nsIComboboxControlFrame;
 class nsPresContext;
 class nsListEventListener;
 
+namespace mozilla {
+namespace dom {
+class HTMLOptionElement;
+} 
+} 
+
 
 
 
@@ -168,6 +174,10 @@ public:
 
   static already_AddRefed<nsIDOMHTMLOptionsCollection>
     GetOptions(nsIContent * aContent);
+  
+
+
+  mozilla::dom::HTMLOptionElement* GetOption(uint32_t aIndex) const;
 
   
 
