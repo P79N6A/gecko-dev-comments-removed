@@ -82,50 +82,6 @@ public:
 
 
 
-class TextureClientDrawTarget
-{
-public:
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() = 0;
-  virtual gfx::SurfaceFormat GetFormat() const = 0;
-  
-
-
-
-
-
-
-  virtual bool AllocateForSurface(gfx::IntSize aSize,
-                                  TextureAllocationFlags flags = ALLOC_DEFAULT) = 0;
-};
-
-
-
-
 class TextureClientYCbCr
 {
 public:
@@ -214,7 +170,6 @@ public:
                                 const gfx::IntSize& aSizeHint);
 
   virtual TextureClientSurface* AsTextureClientSurface() { return nullptr; }
-  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() { return nullptr; }
   virtual TextureClientYCbCr* AsTextureClientYCbCr() { return nullptr; }
 
   
@@ -228,6 +183,56 @@ public:
   virtual void Unlock() {}
 
   virtual bool IsLocked() const = 0;
+
+  virtual bool CanExposeDrawTarget() const { return false; }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() { return nullptr; }
+
+  
+  virtual gfx::SurfaceFormat GetFormat() const
+  {
+    return gfx::SurfaceFormat::UNKNOWN;
+  }
+
+  
+
+
+
+
+
+
+
+
+  virtual bool AllocateForSurface(gfx::IntSize aSize,
+                                  TextureAllocationFlags flags = ALLOC_DEFAULT)
+  {
+    return false;
+  }
 
   
 
@@ -409,7 +414,6 @@ protected:
 class BufferTextureClient : public TextureClient
                           , public TextureClientSurface
                           , public TextureClientYCbCr
-                          , public TextureClientDrawTarget
 {
 public:
   BufferTextureClient(ISurfaceAllocator* aAllocator, gfx::SurfaceFormat aFormat,
@@ -429,6 +433,10 @@ public:
 
   virtual bool IsLocked() const MOZ_OVERRIDE { return mLocked; }
 
+  virtual bool CanExposeDrawTarget() const MOZ_OVERRIDE { return true; }
+
+  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
+
   
 
   virtual TextureClientSurface* AsTextureClientSurface() MOZ_OVERRIDE { return this; }
@@ -439,12 +447,6 @@ public:
 
   virtual bool AllocateForSurface(gfx::IntSize aSize,
                                   TextureAllocationFlags aFlags = ALLOC_DEFAULT) MOZ_OVERRIDE;
-
-  
-
-  virtual TextureClientDrawTarget* AsTextureClientDrawTarget() MOZ_OVERRIDE { return this; }
-
-  virtual TemporaryRef<gfx::DrawTarget> GetAsDrawTarget() MOZ_OVERRIDE;
 
   
 
