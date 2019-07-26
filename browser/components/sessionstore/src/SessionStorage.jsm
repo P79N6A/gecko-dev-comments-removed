@@ -18,8 +18,7 @@ XPCOMUtils.defineLazyModuleGetter(this, "console",
 
 function getPrincipalForFrame(docShell, frame) {
   let ssm = Services.scriptSecurityManager;
-  let doc = frame && frame.document;
-  let uri = Services.io.newURI(doc.documentURI, null, null);
+  let uri = frame.document.documentURIObject;
   return ssm.getDocShellCodebasePrincipal(uri, docShell);
 }
 
