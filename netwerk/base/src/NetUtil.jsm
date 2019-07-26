@@ -43,7 +43,8 @@ this.NetUtil = {
 
 
 
-    asyncCopy: function NetUtil_asyncCopy(aSource, aSink, aCallback)
+    asyncCopy: function NetUtil_asyncCopy(aSource, aSink,
+                                          aCallback = null)
     {
         if (!aSource || !aSink) {
             let exception = new Components.Exception(
@@ -54,28 +55,13 @@ this.NetUtil = {
             throw exception;
         }
 
-        var sourceBuffered = ioUtil.inputStreamIsBuffered(aSource);
-        var sinkBuffered = ioUtil.outputStreamIsBuffered(aSink);
-
-        var ostream = aSink;
-        if (!sourceBuffered && !sinkBuffered) {
-            
-            ostream = Cc["@mozilla.org/network/buffered-output-stream;1"].
-                      createInstance(Ci.nsIBufferedOutputStream);
-            ostream.init(aSink, 0x8000);
-            sinkBuffered = true;
-        }
-
         
         var copier = Cc["@mozilla.org/network/async-stream-copier;1"].
-            createInstance(Ci.nsIAsyncStreamCopier);
-
-        
-        
-        
-        
-        copier.init(aSource, ostream, null, sourceBuffered, sinkBuffered,
-                    0x8000, true, true);
+            createInstance(Ci.nsIAsyncStreamCopier2);
+        copier.init(aSource, aSink,
+                    null ,
+                    0 ,
+                    true, true );
 
         var observer;
         if (aCallback) {
@@ -90,7 +76,7 @@ this.NetUtil = {
         }
 
         
-        copier.asyncCopy(observer, null);
+        copier.QueryInterface(Ci.nsIAsyncStreamCopier).asyncCopy(observer, null);
         return copier;
     },
 
