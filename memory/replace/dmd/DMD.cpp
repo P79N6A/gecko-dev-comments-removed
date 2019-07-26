@@ -650,144 +650,7 @@ StackTrace::Get(Thread* aT)
 static const char* gUnreportedName = "unreported";
 
 
-class LiveBlockKey
-{
-public:
-  const StackTrace* const mAllocStackTrace;     
-
-protected:
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  mutable const StackTrace* mReportStackTrace;  
-  mutable const char*       mReporterName;      
-  mutable bool              mReportedOnAlloc;   
-
-public:
-  LiveBlockKey(const StackTrace* aAllocStackTrace)
-    : mAllocStackTrace(aAllocStackTrace),
-      mReportStackTrace(nullptr),
-      mReporterName(gUnreportedName),
-      mReportedOnAlloc(false)
-  {
-    MOZ_ASSERT(IsSane());
-  }
-
-  bool IsSane() const
-  {
-    bool hasReporterName = mReporterName != gUnreportedName;
-    return mAllocStackTrace &&
-           (( mReportStackTrace &&  hasReporterName) ||
-            (!mReportStackTrace && !hasReporterName && !mReportedOnAlloc));
-  }
-
-  bool IsReported() const
-  {
-    MOZ_ASSERT(IsSane());
-    bool isRep = mReporterName != gUnreportedName;
-    return isRep;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  
-
-  typedef LiveBlockKey Lookup;
-
-  static uint32_t hash(const LiveBlockKey& aKey)
-  {
-    return mozilla::HashGeneric(aKey.mAllocStackTrace,
-                                aKey.mReportStackTrace,
-                                aKey.mReporterName);
-  }
-
-  static bool match(const LiveBlockKey& aA, const LiveBlockKey& aB)
-  {
-    return aA.mAllocStackTrace  == aB.mAllocStackTrace &&
-           aA.mReportStackTrace == aB.mReportStackTrace &&
-           aA.mReporterName     == aB.mReporterName;
-  }
-};
-
-
-class DoubleReportBlockKey
-{
-public:
-  const StackTrace* const mAllocStackTrace;     
-
-protected:
-  
-  
-  const StackTrace* const mReportStackTrace1;   
-  const StackTrace* const mReportStackTrace2;   
-  const char*       const mReporterName1;       
-  const char*       const mReporterName2;       
-
-public:
-  DoubleReportBlockKey(const StackTrace* aAllocStackTrace,
-                       const StackTrace* aReportStackTrace1,
-                       const StackTrace* aReportStackTrace2,
-                       const char* aReporterName1,
-                       const char* aReporterName2)
-    : mAllocStackTrace(aAllocStackTrace),
-      mReportStackTrace1(aReportStackTrace1),
-      mReportStackTrace2(aReportStackTrace2),
-      mReporterName1(aReporterName1),
-      mReporterName2(aReporterName2)
-  {
-    MOZ_ASSERT(IsSane());
-  }
-
-  bool IsSane() const
-  {
-    return mAllocStackTrace &&
-           mReportStackTrace1 &&
-           mReportStackTrace2 &&
-           mReporterName1 != gUnreportedName &&
-           mReporterName2 != gUnreportedName;
-  }
-
-  
-  
-  
-  
-
-  typedef DoubleReportBlockKey Lookup;
-
-  static uint32_t hash(const DoubleReportBlockKey& aKey)
-  {
-    return mozilla::HashGeneric(aKey.mAllocStackTrace,
-                                aKey.mReportStackTrace1,
-                                aKey.mReportStackTrace2,
-                                aKey.mReporterName1,
-                                aKey.mReporterName2);
-  }
-
-  static bool match(const DoubleReportBlockKey& aA,
-                    const DoubleReportBlockKey& aB)
-  {
-    return aA.mAllocStackTrace   == aB.mAllocStackTrace &&
-           aA.mReportStackTrace1 == aB.mReportStackTrace1 &&
-           aA.mReportStackTrace2 == aB.mReportStackTrace2 &&
-           aA.mReporterName1     == aB.mReporterName1 &&
-           aA.mReporterName2     == aB.mReporterName2;
-  }
-};
-
-
-class LiveBlock : public LiveBlockKey
+class LiveBlock
 {
   const void*  mPtr;
 
@@ -798,16 +661,48 @@ class LiveBlock : public LiveBlockKey
   const size_t mSampled:1;        
 
 public:
+  const StackTrace* const mAllocStackTrace;     
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+private:
+  mutable const StackTrace* mReportStackTrace;  
+  mutable const char*       mReporterName;      
+  mutable bool              mReportedOnAlloc;   
+                                                
+
+public:
   LiveBlock(const void* aPtr, size_t aReqSize,
             const StackTrace* aAllocStackTrace, bool aSampled)
-    : LiveBlockKey(aAllocStackTrace),
-      mPtr(aPtr),
+    : mPtr(aPtr),
       mReqSize(aReqSize),
-      mSampled(aSampled)
-  {
-    if (mReqSize != aReqSize) {
+      mSampled(aSampled),
+      mAllocStackTrace(aAllocStackTrace),
+      mReportStackTrace(nullptr),
+      mReporterName(gUnreportedName),
+      mReportedOnAlloc(false)
+ {
+    if (mReqSize != aReqSize)
+    {
       MOZ_CRASH();              
     }
+    MOZ_ASSERT(IsSane());
+  }
+
+  bool IsSane() const
+  {
+    bool hasReporterName = mReporterName != gUnreportedName;
+    return mAllocStackTrace &&
+           (( mReportStackTrace &&  hasReporterName) ||
+            (!mReportStackTrace && !hasReporterName && !mReportedOnAlloc));
   }
 
   size_t ReqSize() const { return mReqSize; }
@@ -824,6 +719,16 @@ public:
   }
 
   bool IsSampled() const { return mSampled; }
+
+  bool IsReported() const
+  {
+    MOZ_ASSERT(IsSane());
+    bool isRep = mReporterName != gUnreportedName;
+    return isRep;
+  }
+
+  const StackTrace* ReportStackTrace() const { return mReportStackTrace; }
+  const char* ReporterName() const { return mReporterName; }
 
   
   void Report(Thread* aT, const char* aReporterName, bool aReportedOnAlloc)
@@ -1050,6 +955,128 @@ namespace dmd {
 
 
 
+
+class LiveBlockKey
+{
+public:
+  const StackTrace* const mAllocStackTrace;   
+protected:
+  const StackTrace* const mReportStackTrace;  
+  const char*       const mReporterName;      
+
+public:
+  LiveBlockKey(const LiveBlock& aB)
+    : mAllocStackTrace(aB.mAllocStackTrace),
+      mReportStackTrace(aB.ReportStackTrace()),
+      mReporterName(aB.ReporterName())
+  {
+    MOZ_ASSERT(IsSane());
+  }
+
+  bool IsSane() const
+  {
+    bool hasReporterName = mReporterName != gUnreportedName;
+    return mAllocStackTrace &&
+           (( mReportStackTrace &&  hasReporterName) ||
+            (!mReportStackTrace && !hasReporterName));
+  }
+
+  bool IsReported() const
+  {
+    MOZ_ASSERT(IsSane());
+    bool isRep = mReporterName != gUnreportedName;
+    return isRep;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+
+  typedef LiveBlockKey Lookup;
+
+  static uint32_t hash(const LiveBlockKey& aKey)
+  {
+    return mozilla::HashGeneric(aKey.mAllocStackTrace,
+                                aKey.mReportStackTrace,
+                                aKey.mReporterName);
+  }
+
+  static bool match(const LiveBlockKey& aA, const LiveBlockKey& aB)
+  {
+    return aA.mAllocStackTrace  == aB.mAllocStackTrace &&
+           aA.mReportStackTrace == aB.mReportStackTrace &&
+           aA.mReporterName     == aB.mReporterName;
+  }
+};
+
+class DoubleReportBlockKey
+{
+public:
+  const StackTrace* const mAllocStackTrace;     
+
+protected:
+  
+  
+  const StackTrace* const mReportStackTrace1;   
+  const StackTrace* const mReportStackTrace2;   
+  const char*       const mReporterName1;       
+  const char*       const mReporterName2;       
+
+public:
+  DoubleReportBlockKey(const StackTrace* aAllocStackTrace,
+                       const StackTrace* aReportStackTrace1,
+                       const StackTrace* aReportStackTrace2,
+                       const char* aReporterName1,
+                       const char* aReporterName2)
+    : mAllocStackTrace(aAllocStackTrace),
+      mReportStackTrace1(aReportStackTrace1),
+      mReportStackTrace2(aReportStackTrace2),
+      mReporterName1(aReporterName1),
+      mReporterName2(aReporterName2)
+  {
+    MOZ_ASSERT(IsSane());
+  }
+
+  bool IsSane() const
+  {
+    return mAllocStackTrace &&
+           mReportStackTrace1 &&
+           mReportStackTrace2 &&
+           mReporterName1 != gUnreportedName &&
+           mReporterName2 != gUnreportedName;
+  }
+
+  
+  
+  
+  
+
+  typedef DoubleReportBlockKey Lookup;
+
+  static uint32_t hash(const DoubleReportBlockKey& aKey)
+  {
+    return mozilla::HashGeneric(aKey.mAllocStackTrace,
+                                aKey.mReportStackTrace1,
+                                aKey.mReportStackTrace2,
+                                aKey.mReporterName1,
+                                aKey.mReporterName2);
+  }
+
+  static bool match(const DoubleReportBlockKey& aA,
+                    const DoubleReportBlockKey& aB)
+  {
+    return aA.mAllocStackTrace   == aB.mAllocStackTrace &&
+           aA.mReportStackTrace1 == aB.mReportStackTrace1 &&
+           aA.mReportStackTrace2 == aB.mReportStackTrace2 &&
+           aA.mReporterName1     == aB.mReporterName1 &&
+           aA.mReporterName2     == aB.mReporterName2;
+  }
+};
 
 class GroupSize
 {
@@ -1831,7 +1858,8 @@ Dump(Writer aWriter)
     LiveBlockGroupTable& table = !b.IsReported()
                                ? unreportedLiveBlockGroupTable
                                : reportedLiveBlockGroupTable;
-    LiveBlockGroupTable::AddPtr p = table.lookupForAdd(b);
+    LiveBlockKey liveKey(b);
+    LiveBlockGroupTable::AddPtr p = table.lookupForAdd(liveKey);
     if (!p) {
       LiveBlockGroup bg(b);
       (void)table.add(p, bg);
