@@ -4,8 +4,8 @@
 
 
 
-#include "ImageLogging.h"
 #include "nsPNGDecoder.h"
+#include "ImageLogging.h"
 
 #include "nsMemory.h"
 #include "nsRect.h"

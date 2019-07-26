@@ -4,7 +4,6 @@
 
 
 #include "base/histogram.h"
-#include "ImageLogging.h"
 #include "nsComponentManagerUtils.h"
 #include "imgIContainerObserver.h"
 #include "nsError.h"
@@ -17,6 +16,7 @@
 #include "nsStringStream.h"
 #include "prmem.h"
 #include "prenv.h"
+#include "ImageLogging.h"
 #include "ImageContainer.h"
 #include "Layers.h"
 
@@ -28,66 +28,12 @@
 #include "nsIconDecoder.h"
 
 #include "gfxContext.h"
-#include "gfx2DGlue.h"
 
 #include "mozilla/Preferences.h"
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/ClearOnShutdown.h"
-#include "mozilla/gfx/Scale.h"
-
-
-#ifdef MOZ_ENABLE_SKIA
-
-static bool
-ScaleFrameImage(imgFrame *aSrcFrame, imgFrame *aDstFrame,
-                const gfxSize &aScaleFactors)
-{
-  if (aScaleFactors.width <= 0 || aScaleFactors.height <= 0)
-    return false;
-
-  imgFrame *srcFrame = aSrcFrame;
-  nsIntRect srcRect = srcFrame->GetRect();
-  uint32_t dstWidth = NSToIntRoundUp(srcRect.width * aScaleFactors.width);
-  uint32_t dstHeight = NSToIntRoundUp(srcRect.height * aScaleFactors.height);
-
-  
-  
-  nsresult rv = aDstFrame->Init(0, 0, dstWidth, dstHeight,
-                                gfxASurface::ImageFormatARGB32);
-  if (!NS_FAILED(rv)) {
-    uint8_t* srcData;
-    uint32_t srcDataLength;
-    
-    srcFrame->GetImageData(&srcData, &srcDataLength);
-    NS_ASSERTION(srcData != nullptr, "Source data is unavailable! Is it locked?");
-
-    uint8_t* dstData;
-    uint32_t dstDataLength;
-    aDstFrame->LockImageData();
-    aDstFrame->GetImageData(&dstData, &dstDataLength);
-
-    
-    
-    mozilla::gfx::Scale(srcData, srcRect.width, srcRect.height, aSrcFrame->GetImageBytesPerRow(),
-                        dstData, dstWidth, dstHeight, aDstFrame->GetImageBytesPerRow(),
-                        mozilla::gfx::ImageFormatToSurfaceFormat(aSrcFrame->GetFormat()));
-
-    aDstFrame->UnlockImageData();
-    return true;
-  }
-
-  return false;
-}
-#else 
-static bool
-ScaleFrameImage(imgFrame *aSrcFrame, imgFrame *aDstFrame,
-                const gfxSize &aScaleFactors)
-{
-  return false;
-}
-#endif 
 
 using namespace mozilla;
 using namespace mozilla::image;
@@ -109,9 +55,6 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 
 static uint32_t gDecodeBytesAtATime = 0;
 static uint32_t gMaxMSBeforeYield = 0;
-static bool gHQDownscaling = false;
-
-static uint32_t gHQDownscalingMinFactor = 1000;
 
 static void
 InitPrefCaches()
@@ -120,10 +63,6 @@ InitPrefCaches()
                                "image.mem.decode_bytes_at_a_time", 200000);
   Preferences::AddUintVarCache(&gMaxMSBeforeYield,
                                "image.mem.max_ms_before_yield", 400);
-  Preferences::AddBoolVarCache(&gHQDownscaling,
-                               "image.high_quality_downscaling.enabled", false);
-  Preferences::AddUintVarCache(&gHQDownscalingMinFactor,
-                               "image.high_quality_downscaling.min_factor", 1000);
 }
 
 
@@ -196,9 +135,6 @@ namespace mozilla {
 namespace image {
 
  StaticRefPtr<RasterImage::DecodeWorker> RasterImage::DecodeWorker::sSingleton;
- nsRefPtr<RasterImage::ScaleWorker> RasterImage::ScaleWorker::sSingleton;
- nsRefPtr<RasterImage::DrawWorker> RasterImage::DrawWorker::sSingleton;
-static nsCOMPtr<nsIThread> sScaleWorkerThread = nullptr;
 
 #ifndef DEBUG
 NS_IMPL_ISUPPORTS3(RasterImage, imgIContainer, nsIProperties,
@@ -234,8 +170,7 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   mInDecoder(false),
   mAnimationFinished(false),
   mFinishing(false),
-  mInUpdateImageContainer(false),
-  mScaleRequest(this)
+  mInUpdateImageContainer(false)
 {
   
   mDiscardTrackerNode.img = this;
@@ -249,8 +184,6 @@ RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
 
 RasterImage::~RasterImage()
 {
-  ScaleRequest::Stop(mScaleRequest.image);
-
   delete mAnim;
 
   for (unsigned int i = 0; i < mFrames.Length(); ++i)
@@ -293,8 +226,6 @@ RasterImage::Initialize()
   
   
   DecodeWorker::Singleton();
-  DrawWorker::Singleton();
-  ScaleWorker::Singleton();
 }
 
 nsresult
@@ -2653,220 +2584,6 @@ RasterImage::SyncDecode()
   return mError ? NS_ERROR_FAILURE : NS_OK;
 }
 
- RasterImage::ScaleWorker*
-RasterImage::ScaleWorker::Singleton()
-{
-  if (!sSingleton) {
-    sSingleton = new ScaleWorker();
-    ClearOnShutdown(&sSingleton);
-  }
-
-  return sSingleton;
-}
-
-nsresult
-RasterImage::ScaleWorker::Run()
-{
-  if (!mInitialized) {
-    PR_SetCurrentThreadName("Image Scaler");
-    mInitialized = true;
-  }
-
-  ScaleRequest* request;
-  gfxSize scale;
-  imgFrame* frame;
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    request = mScaleRequests.popFirst();
-    if (!request)
-      return NS_OK;
-
-    scale = request->scale;
-    frame = request->srcFrame;
-  }
-
-  nsAutoPtr<imgFrame> scaledFrame(new imgFrame());
-  bool scaled = ScaleFrameImage(frame, scaledFrame, scale);
-
-  
-  
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    if (scaled && scale == request->scale && !request->isInList()) {
-      request->dstFrame = scaledFrame;
-      request->done = true;
-    }
-
-    DrawWorker::Singleton()->RequestDraw(request->image);
-  }
-  return NS_OK;
-}
-
-
-void
-RasterImage::ScaleWorker::RequestScale(RasterImage* aImg)
-{
-  mRequestsMutex.AssertCurrentThreadOwns();
-
-  ScaleRequest* request = &aImg->mScaleRequest;
-  if (request->isInList())
-    return;
-
-  mScaleRequests.insertBack(request);
-
-  if (!sScaleWorkerThread) {
-    NS_NewThread(getter_AddRefs(sScaleWorkerThread), this, NS_DISPATCH_NORMAL);
-    ClearOnShutdown(&sScaleWorkerThread);
-  }
-  else {
-    sScaleWorkerThread->Dispatch(this, NS_DISPATCH_NORMAL);
-  }
-}
-
- RasterImage::DrawWorker*
-RasterImage::DrawWorker::Singleton()
-{
-  if (!sSingleton) {
-    sSingleton = new DrawWorker();
-    ClearOnShutdown(&sSingleton);
-  }
-
-  return sSingleton;
-}
-
-nsresult
-RasterImage::DrawWorker::Run()
-{
-  ScaleRequest* request;
-  {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    request = mDrawRequests.popFirst();
-  }
-  if (request) {
-    
-    request->UnlockSourceData();
-    
-    if (request->stopped) {
-      ScaleRequest::Stop(request->image);
-    }
-    nsCOMPtr<imgIContainerObserver> observer(do_QueryReferent(request->image->mObserver));
-    if (request->done && observer) {
-      imgFrame *scaledFrame = request->dstFrame.get();
-      scaledFrame->ImageUpdated(scaledFrame->GetRect());
-      nsIntRect frameRect = request->srcFrame->GetRect();
-      observer->FrameChanged(nullptr, request->image, &frameRect);
-    }
-  }
-
-  return NS_OK;
-}
-
-void
-RasterImage::DrawWorker::RequestDraw(RasterImage* aImg)
-{
-  ScaleRequest* request = &aImg->mScaleRequest;
-  mDrawRequests.insertBack(request);
-  NS_DispatchToMainThread(this, NS_DISPATCH_NORMAL);
-}
-
-void
-RasterImage::ScaleRequest::Stop(RasterImage* aImg)
-{
-  ScaleRequest* request = &aImg->mScaleRequest;
-  
-  
-  
-  if (request->isInList()) {
-    request->remove();
-    request->UnlockSourceData();
-  }
-  
-  
-  if (request->done) {
-    request->done = false;
-    request->dstFrame = nullptr;
-    request->scale.width = 0;
-    request->scale.height = 0;
-  }
-  request->stopped = true;
-}
-
-bool
-RasterImage::CanScale(gfxPattern::GraphicsFilter aFilter,
-                      gfxSize aScale)
-{
-
-#ifdef MOZ_ENABLE_SKIA
-  if (gHQDownscaling && aFilter == gfxPattern::FILTER_GOOD &&
-      !mAnim && mDecoded &&
-      (aScale.width <= 1.0 && aScale.height <= 1.0)) {
-    gfxFloat factor = gHQDownscalingMinFactor / 1000.0;
-    return (aScale.width < factor || aScale.height < factor);
-  }
-#endif
-
-  return false;
-}
-
-void
-RasterImage::DrawWithPreDownscaleIfNeeded(imgFrame *aFrame,
-                                          gfxContext *aContext,
-                                          gfxPattern::GraphicsFilter aFilter,
-                                          const gfxMatrix &aUserSpaceToImageSpace,
-                                          const gfxRect &aFill,
-                                          const nsIntRect &aSubimage)
-{
-  imgFrame *frame = aFrame;
-  nsIntRect framerect = frame->GetRect();
-  gfxMatrix userSpaceToImageSpace = aUserSpaceToImageSpace;
-  gfxMatrix imageSpaceToUserSpace = aUserSpaceToImageSpace;
-  imageSpaceToUserSpace.Invert();
-  gfxSize scale = imageSpaceToUserSpace.ScaleFactors(true);
-  nsIntRect subimage = aSubimage;
-
-  if (CanScale(aFilter, scale)) {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    
-    
-    
-    if (mScaleRequest.scale == scale) {
-      if (mScaleRequest.done) {
-        frame = mScaleRequest.dstFrame.get();
-        userSpaceToImageSpace.Multiply(gfxMatrix().Scale(scale.width, scale.height));
-
-        
-        
-        
-        subimage.ScaleRoundOut(scale.width, scale.height);
-      }
-    } else {
-      
-      
-      
-      
-      
-      int scaling = mScaleRequest.srcDataLocked ? 1 : 0;
-      if (mLockCount - scaling == 1) {
-        ScaleRequest::Stop(this);
-        mScaleRequest.srcFrame = frame;
-        mScaleRequest.scale = scale;
-        mScaleRequest.stopped = false;
-
-        
-        if (mScaleRequest.LockSourceData()) {
-          ScaleWorker::Singleton()->RequestScale(this);
-        }
-      }
-    }
-  }
-
-  nsIntMargin padding(framerect.x, framerect.y,
-                      mSize.width - framerect.XMost(),
-                      mSize.height - framerect.YMost());
-
-  frame->Draw(aContext, aFilter, userSpaceToImageSpace, aFill, padding, subimage);
-}
-
 
 
 
@@ -2938,7 +2655,12 @@ RasterImage::Draw(gfxContext *aContext,
     return NS_OK; 
   }
 
-  DrawWithPreDownscaleIfNeeded(frame, aContext, aFilter, aUserSpaceToImageSpace, aFill, aSubimage);
+  nsIntRect framerect = frame->GetRect();
+  nsIntMargin padding(framerect.x, framerect.y, 
+                      mSize.width - framerect.XMost(),
+                      mSize.height - framerect.YMost());
+
+  frame->Draw(aContext, aFilter, aUserSpaceToImageSpace, aFill, padding, aSubimage, aFlags);
 
   if (mDecoded && !mDrawStartTime.IsNull()) {
       TimeDuration drawLatency = TimeStamp::Now() - mDrawStartTime;
@@ -2946,7 +2668,6 @@ RasterImage::Draw(gfxContext *aContext,
       
       mDrawStartTime = TimeStamp();
   }
-
   return NS_OK;
 }
 
@@ -2994,11 +2715,6 @@ RasterImage::UnlockImage()
 
   
   mLockCount--;
-
-  if (ScaleWorker::sSingleton && mLockCount == 0) {
-    MutexAutoLock lock(ScaleWorker::Singleton()->mRequestsMutex);
-    ScaleRequest::Stop(this);
-  }
 
   
   

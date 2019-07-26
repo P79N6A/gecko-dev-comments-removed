@@ -4,8 +4,8 @@
 
 
 
-#include "ImageLogging.h"
 #include "nsJPEGDecoder.h"
+#include "ImageLogging.h"
 
 #include "imgIContainerObserver.h"
 
