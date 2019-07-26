@@ -1099,4 +1099,17 @@ MediaManager::GetActiveMediaCaptureWindows(nsISupportsArray **aArray)
   return NS_OK;
 }
 
+void
+GetUserMediaCallbackMediaStreamListener::Invalidate()
+{
+  nsRefPtr<MediaOperationRunnable> runnable;
+  
+  
+  
+  
+  runnable = new MediaOperationRunnable(MEDIA_STOP,
+                                        this, mAudioSource, mVideoSource);
+  mMediaThread->Dispatch(runnable, NS_DISPATCH_NORMAL);
+}
+
 } 
