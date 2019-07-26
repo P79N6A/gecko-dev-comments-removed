@@ -328,6 +328,9 @@ typedef uint64_t nsFrameState;
 #define NS_FRAME_IS_NONDISPLAY                      NS_FRAME_STATE_BIT(53)
 
 
+#define NS_FRAME_HAS_LAYER_ACTIVITY_PROPERTY        NS_FRAME_STATE_BIT(54)
+
+
 #define NS_STATE_IS_HORIZONTAL                      NS_FRAME_STATE_BIT(22)
 #define NS_STATE_IS_DIRECTION_NORMAL                NS_FRAME_STATE_BIT(31)
 
