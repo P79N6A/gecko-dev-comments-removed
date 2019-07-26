@@ -149,6 +149,17 @@ xpc_ActivateDebugMode();
 
 class XPCStringConvert
 {
+    
+    
+    
+    
+    
+    struct ZoneStringCache
+    {
+        nsStringBuffer* mBuffer;
+        JSString* mString;
+    };
+
 public:
 
     
@@ -162,10 +173,12 @@ public:
     StringBufferToJSVal(JSContext* cx, nsStringBuffer* buf, uint32_t length,
                         JS::MutableHandleValue rval, bool* sharedBuffer)
     {
-        if (buf == sCachedBuffer &&
-            JS::GetGCThingZone(sCachedString) == js::GetContextZone(cx))
-        {
-            rval.set(JS::StringValue(sCachedString));
+        JS::Zone *zone = js::GetContextZone(cx);
+        ZoneStringCache *cache = static_cast<ZoneStringCache*>(JS_GetZoneUserData(zone));
+        if (cache && buf == cache->mBuffer) {
+            MOZ_ASSERT(JS::GetGCThingZone(cache->mString) == zone);
+            JS::MarkStringAsLive(zone, cache->mString);
+            rval.setString(cache->mString);
             *sharedBuffer = false;
             return true;
         }
@@ -177,17 +190,20 @@ public:
             return false;
         }
         rval.setString(str);
-        sCachedString = str;
-        sCachedBuffer = buf;
+        if (!cache) {
+            cache = new ZoneStringCache();
+            JS_SetZoneUserData(zone, cache);
+        }
+        cache->mBuffer = buf;
+        cache->mString = str;
         *sharedBuffer = true;
         return true;
     }
 
-    static void ClearCache();
+    static void FreeZoneCache(JS::Zone *zone);
+    static void ClearZoneCache(JS::Zone *zone);
 
 private:
-    static nsStringBuffer* sCachedBuffer;
-    static JSString* sCachedString;
     static const JSStringFinalizer sDOMStringFinalizer;
 
     static void FinalizeDOMString(const JSStringFinalizer *fin, jschar *chars);

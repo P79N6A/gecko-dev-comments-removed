@@ -26,21 +26,26 @@
 
 
 
-
-
-
-nsStringBuffer* XPCStringConvert::sCachedBuffer = nullptr;
-JSString* XPCStringConvert::sCachedString = nullptr;
-
-
+void
+XPCStringConvert::FreeZoneCache(JS::Zone *zone)
+{
+    
+    
+    nsAutoPtr<ZoneStringCache> cache(static_cast<ZoneStringCache*>(JS_GetZoneUserData(zone)));
+    JS_SetZoneUserData(zone, nullptr);
+}
 
 
 void
-XPCStringConvert::ClearCache()
+XPCStringConvert::ClearZoneCache(JS::Zone *zone)
 {
-    sCachedBuffer = nullptr;
-    sCachedString = nullptr;
+    ZoneStringCache *cache = static_cast<ZoneStringCache*>(JS_GetZoneUserData(zone));
+    if (cache) {
+        cache->mBuffer = nullptr;
+        cache->mString = nullptr;
+    }
 }
+
 
 void
 XPCStringConvert::FinalizeDOMString(const JSStringFinalizer *fin, jschar *chars)
