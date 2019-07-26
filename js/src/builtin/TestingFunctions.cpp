@@ -903,6 +903,12 @@ DumpHeapComplete(JSContext *cx, unsigned argc, jsval *vp)
 static bool
 Terminate(JSContext *cx, unsigned arg, jsval *vp)
 {
+#ifdef JS_MORE_DETERMINISTIC
+    
+    
+    fprintf(stderr, "terminate called\n");
+#endif
+
     JS_ClearPendingException(cx);
     return false;
 }
