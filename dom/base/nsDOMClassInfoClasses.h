@@ -323,10 +323,6 @@ DOMCI_CLASS(HTMLSourceElement)
 DOMCI_CLASS(MediaError)
 DOMCI_CLASS(HTMLAudioElement)
 DOMCI_CLASS(TimeRanges)
-
-
-DOMCI_CLASS(MediaStream)
-DOMCI_CLASS(LocalMediaStream)
 #endif
 
 

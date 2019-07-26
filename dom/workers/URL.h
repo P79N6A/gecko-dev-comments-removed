@@ -22,6 +22,11 @@ public:
                   nsString& aResult, ErrorResult& aRv);
 
   static void
+  CreateObjectURL(const WorkerGlobalObject& aGlobal,
+                  JSObject& aArg, const objectURLOptionsWorkers& aOptions,
+                  nsString& aResult, ErrorResult& aRv);
+
+  static void
   RevokeObjectURL(const WorkerGlobalObject& aGlobal, const nsAString& aUrl);
 };
 

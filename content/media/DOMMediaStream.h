@@ -7,9 +7,10 @@
 #define NSDOMMEDIASTREAM_H_
 
 #include "nsIDOMMediaStream.h"
-#include "MediaStreamGraph.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIPrincipal.h"
+#include "nsWrapperCache.h"
+#include "nsIDOMWindow.h"
 
 class nsXPCClassInfo;
 
@@ -20,26 +21,41 @@ class nsXPCClassInfo;
 #undef GetCurrentTime
 #endif
 
+#ifdef CurrentTime
+#undef CurrentTime
+#endif
+
 namespace mozilla {
 
+class MediaStream;
 
 
 
-class DOMMediaStream : public nsIDOMMediaStream
+
+class DOMMediaStream : public nsIDOMMediaStream,
+                       public nsWrapperCache
 {
   friend class DOMLocalMediaStream;
 
 public:
-  DOMMediaStream() : mStream(nullptr), mHintContents(0) {}
+  DOMMediaStream() : mStream(nullptr), mHintContents(0)
+  {
+    SetIsDOMBinding();
+  }
   virtual ~DOMMediaStream();
 
-  NS_DECL_CYCLE_COLLECTION_CLASS(DOMMediaStream)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMMediaStream)
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
-  NS_DECL_NSIDOMMEDIASTREAM
+  nsIDOMWindow* GetParentObject() const
+  {
+    return mWindow;
+  }
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
 
+  double CurrentTime();
   MediaStream* GetStream() { return mStream; }
-  bool IsFinished() { return !mStream || mStream->IsFinished(); }
+  bool IsFinished();
   
 
 
@@ -57,7 +73,8 @@ public:
   
 
 
-  static already_AddRefed<DOMMediaStream> CreateSourceStream(uint32_t aHintContents);
+  static already_AddRefed<DOMMediaStream>
+  CreateSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
 
   
   
@@ -71,21 +88,15 @@ public:
   
 
 
-  static already_AddRefed<DOMMediaStream> CreateTrackUnionStream(uint32_t aHintContents = 0);
+  static already_AddRefed<DOMMediaStream>
+  CreateTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents = 0);
 
 protected:
-  void InitSourceStream(uint32_t aHintContents)
-  {
-    SetHintContents(aHintContents);
-    MediaStreamGraph* gm = MediaStreamGraph::GetInstance();
-    mStream = gm->CreateSourceStream(this);
-  }
-  void InitTrackUnionStream(uint32_t aHintContents)
-  {
-    SetHintContents(aHintContents);
-    MediaStreamGraph* gm = MediaStreamGraph::GetInstance();
-    mStream = gm->CreateTrackUnionStream(this);
-  }
+  void InitSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
+  void InitTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
+
+  
+  nsCOMPtr<nsIDOMWindow> mWindow;
 
   
   
@@ -108,19 +119,22 @@ public:
 
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DOMLocalMediaStream, DOMMediaStream)
-  NS_DECL_NSIDOMLOCALMEDIASTREAM
 
-  NS_FORWARD_NSIDOMMEDIASTREAM(DOMMediaStream::)
+  virtual JSObject* WrapObject(JSContext* aCx, JSObject* aScope, bool* aTriedToWrap);
 
-  
-
-
-  static already_AddRefed<DOMLocalMediaStream> CreateSourceStream(uint32_t aHintContents);
+  virtual void Stop();
 
   
 
 
-  static already_AddRefed<DOMLocalMediaStream> CreateTrackUnionStream(uint32_t aHintContents = 0);
+  static already_AddRefed<DOMLocalMediaStream>
+  CreateSourceStream(nsIDOMWindow* aWindow, uint32_t aHintContents);
+
+  
+
+
+  static already_AddRefed<DOMLocalMediaStream>
+  CreateTrackUnionStream(nsIDOMWindow* aWindow, uint32_t aHintContents = 0);
 };
 
 }
