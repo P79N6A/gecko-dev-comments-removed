@@ -140,7 +140,7 @@ IonFrameIterator::isFunctionFrame() const
 bool
 IonFrameIterator::isEntryJSFrame() const
 {
-    if (prevType() == IonFrame_OptimizedJS || prevType() == IonFrame_Bailed_JS)
+    if (prevType() == IonFrame_OptimizedJS || prevType() == IonFrame_Unwound_OptimizedJS)
         return false;
 
     if (prevType() == IonFrame_Entry)
@@ -185,7 +185,7 @@ IonFrameIterator::prevFp() const
     
     
     
-    if (prevType() == IonFrame_Bailed_Rectifier || prevType() == IonFrame_Bailed_JS) {
+    if (prevType() == IonFrame_Unwound_Rectifier || prevType() == IonFrame_Unwound_OptimizedJS) {
         JS_ASSERT(type_ == IonFrame_Exit);
         currentSize = SizeOfFramePrefix(IonFrame_OptimizedJS);
     }
@@ -212,7 +212,7 @@ IonFrameIterator::operator++()
     
     uint8_t *prev = prevFp();
     type_ = current()->prevType();
-    if (type_ == IonFrame_Bailed_JS)
+    if (type_ == IonFrame_Unwound_OptimizedJS)
         type_ = IonFrame_OptimizedJS;
     returnAddressToFp_ = current()->returnAddress();
     current_ = prev;
@@ -347,6 +347,28 @@ ion::HandleException(ResumeFromException *rfe)
         cx->runtime->takeIonReturnOverride();
 
     rfe->stackPointer = iter.fp();
+}
+
+void
+ion::EnsureExitFrame(IonCommonFrameLayout *frame)
+{
+    if (frame->prevType() == IonFrame_Entry) {
+        
+        
+        return;
+    }
+
+    if (frame->prevType() == IonFrame_Rectifier) {
+        
+        
+        
+        
+        frame->changePrevType(IonFrame_Unwound_Rectifier);
+        return;
+    }
+
+    JS_ASSERT(frame->prevType() == IonFrame_OptimizedJS);
+    frame->changePrevType(IonFrame_Unwound_OptimizedJS);
 }
 
 void
@@ -634,11 +656,11 @@ MarkIonActivation(JSTracer *trc, const IonActivationIterator &activations)
           case IonFrame_OptimizedJS:
             MarkIonJSFrame(trc, frames);
             break;
-          case IonFrame_Bailed_JS:
+          case IonFrame_Unwound_OptimizedJS:
             JS_NOT_REACHED("invalid");
             break;
           case IonFrame_Rectifier:
-          case IonFrame_Bailed_Rectifier:
+          case IonFrame_Unwound_Rectifier:
             break;
           case IonFrame_Osr:
             
@@ -1126,12 +1148,12 @@ IonFrameIterator::dump() const
         break;
       }
       case IonFrame_Rectifier:
-      case IonFrame_Bailed_Rectifier:
+      case IonFrame_Unwound_Rectifier:
         fprintf(stderr, " Rectifier frame\n");
         fprintf(stderr, "  Frame size: %u\n", unsigned(current()->prevFrameLocalSize()));
         break;
-      case IonFrame_Bailed_JS:
-        fprintf(stderr, "Warning! Bailed JS frames are not observable.\n");
+      case IonFrame_Unwound_OptimizedJS:
+        fprintf(stderr, "Warning! Unwound JS frames are not observable.\n");
         break;
       case IonFrame_Exit:
         break;

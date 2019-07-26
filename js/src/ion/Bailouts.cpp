@@ -344,28 +344,6 @@ ConvertFrames(JSContext *cx, IonActivation *activation, IonBailoutIterator &it)
     return BAILOUT_RETURN_FATAL_ERROR;
 }
 
-static inline void
-EnsureExitFrame(IonCommonFrameLayout *frame)
-{
-    if (frame->prevType() == IonFrame_Entry) {
-        
-        
-        return;
-    }
-
-    if (frame->prevType() == IonFrame_Rectifier) {
-        
-        
-        
-        
-        frame->changePrevType(IonFrame_Bailed_Rectifier);
-        return;
-    }
-
-    JS_ASSERT(frame->prevType() == IonFrame_OptimizedJS);
-    frame->changePrevType(IonFrame_Bailed_JS);
-}
-
 uint32_t
 ion::Bailout(BailoutStack *sp)
 {

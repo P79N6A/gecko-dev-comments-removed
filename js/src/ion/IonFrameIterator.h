@@ -34,11 +34,12 @@ enum FrameType
 
     
     
-    IonFrame_Bailed_JS,
+    
+    IonFrame_Unwound_OptimizedJS,
 
     
     
-    IonFrame_Bailed_Rectifier,
+    IonFrame_Unwound_Rectifier,
 
     
     
