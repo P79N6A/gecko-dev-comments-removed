@@ -22,13 +22,18 @@ public:
 
 
 
-    static void DrawMissingGlyph(gfxContext *aContext, const gfxRect& aRect,
-                                 uint32_t aChar);
+
+
+    static void DrawMissingGlyph(gfxContext    *aContext,
+                                 const gfxRect& aRect,
+                                 uint32_t       aChar,
+                                 uint32_t       aAppUnitsPerDevPixel);
     
 
 
 
-    static gfxFloat GetDesiredMinWidth(uint32_t aChar);
+    static gfxFloat GetDesiredMinWidth(uint32_t aChar,
+                                       uint32_t aAppUnitsPerDevUnit);
 };
 
 #endif
