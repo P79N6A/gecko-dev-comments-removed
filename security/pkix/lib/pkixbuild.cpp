@@ -206,21 +206,20 @@ BuildForward(TrustDomain& trustDomain,
   Result rv;
 
   TrustDomain::TrustLevel trustLevel;
-  bool expiredEndEntity = false;
+  
+  
+  
   rv = CheckIssuerIndependentProperties(trustDomain, subject, time,
                                         endEntityOrCA,
                                         requiredKeyUsagesIfPresent,
                                         requiredEKUIfPresent, requiredPolicy,
                                         subCACount, &trustLevel);
+  PRErrorCode deferredEndEntityError = 0;
   if (rv != Success) {
-    
-    
-    
-    
-    expiredEndEntity = endEntityOrCA == MustBeEndEntity &&
-                       trustLevel != TrustDomain::TrustAnchor &&
-                       PR_GetError() == SEC_ERROR_EXPIRED_CERTIFICATE;
-    if (!expiredEndEntity) {
+    if (endEntityOrCA == MustBeEndEntity &&
+        trustLevel != TrustDomain::TrustAnchor) {
+      deferredEndEntityError = PR_GetError();
+    } else {
       return rv;
     }
   }
@@ -256,12 +255,11 @@ BuildForward(TrustDomain& trustDomain,
                            n->cert, stapledOCSPResponse, subCACount,
                            results);
     if (rv == Success) {
-      if (expiredEndEntity) {
-        
-        
-        
-        PR_SetError(SEC_ERROR_EXPIRED_CERTIFICATE, 0);
-        return RecoverableError;
+      
+      
+      if (deferredEndEntityError != 0) {
+        PR_SetError(deferredEndEntityError, 0);
+        return FatalError;
       }
 
       SECStatus srv = trustDomain.CheckRevocation(endEntityOrCA,

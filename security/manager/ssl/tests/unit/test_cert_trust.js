@@ -79,7 +79,13 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
                                                  : 0,
                          certificateUsageVerifyCA);
-  check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
+  
+  
+  
+  
+  check_cert_err_generic(ee_cert, (!isRootCA && useMozillaPKIX)
+                                    ? SEC_ERROR_UNTRUSTED_ISSUER
+                                    : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
 
 
@@ -137,7 +143,13 @@ function test_ca_distrust(ee_cert, cert_to_modify_trust, isRootCA, useMozillaPKI
   check_cert_err_generic(ee_cert, useMozillaPKIX ? SEC_ERROR_CA_CERT_INVALID
                                                  : 0,
                          certificateUsageVerifyCA);
-  check_cert_err_generic(ee_cert, SEC_ERROR_INADEQUATE_CERT_TYPE,
+  
+  
+  
+  
+  check_cert_err_generic(ee_cert, (!isRootCA && useMozillaPKIX)
+                                    ? SEC_ERROR_UNTRUSTED_ISSUER
+                                    : SEC_ERROR_INADEQUATE_CERT_TYPE,
                          certificateUsageStatusResponder);
 
   
