@@ -4,7 +4,7 @@
 
 
 
-#include "wmf.h"
+#include "WMF.h"
 #include "WMFDecoderModule.h"
 #include "WMFDecoder.h"
 #include "WMFVideoDecoder.h"
