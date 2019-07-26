@@ -131,6 +131,11 @@ using mozilla::unused;
 
 #include <stdlib.h>
 
+
+#if !defined(MOZ_MEMORY) && defined(__NetBSD__)
+#include <sys/param.h>
+#endif
+
 #ifdef XP_UNIX
 #include <sys/stat.h>
 #include <unistd.h>
@@ -3824,7 +3829,8 @@ XREMain::XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
   ScopedLogging log;
 
 #if defined(MOZ_WIDGET_GTK)
-#ifdef MOZ_MEMORY
+#if defined(MOZ_MEMORY) || defined(__FreeBSD__) \
+  || defined(__NetBSD__) && __NetBSD_Version__ >= 500000000
   
   
   
