@@ -76,7 +76,10 @@ public:
   virtual bool
   RecvChildAsyncMessages(const InfallibleTArray<AsyncChildMessageData>& aMessages) MOZ_OVERRIDE;
 
-  bool RecvStop() MOZ_OVERRIDE;
+  
+  virtual bool RecvWillStop() MOZ_OVERRIDE;
+  
+  virtual bool RecvStop() MOZ_OVERRIDE;
 
   MessageLoop * GetMessageLoop();
 
