@@ -2,7 +2,7 @@
 
 
 
-Cu.import("resource://gre/modules/commonjs/sdk/core/promise.js");
+Cu.import("resource://gre/modules/Promise.jsm");
 
 let cs = Cc["@mozilla.org/consoleservice;1"].
   getService(Ci.nsIConsoleService);
