@@ -95,7 +95,7 @@ exports.testSettingActiveWindowDoesNotIgnorePrivateWindow = function(assert, don
     
     if (isWindowPBSupported) {
       assert.ok(isPrivate(window), "window is private");
-      assert.notDeepEqual(windowUtils.activeBrowserWindow, browserWindow);
+      assert.notStrictEqual(windowUtils.activeBrowserWindow, browserWindow);
     }
     
     else {
@@ -127,18 +127,18 @@ exports.testSettingActiveWindowDoesNotIgnorePrivateWindow = function(assert, don
       
       return onFocus(windowUtils.activeWindow = window);
     }).then(function() {
-      assert.deepEqual(windowUtils.activeBrowserWindow, window,
-                       "Correct active browser window [3]");
-      assert.deepEqual(windowUtils.activeWindow, window,
-                       "Correct active window [3]");
+      assert.strictEqual(windowUtils.activeBrowserWindow, window,
+                         "Correct active browser window [3]");
+      assert.strictEqual(windowUtils.activeWindow, window,
+                         "Correct active window [3]");
 
       
       return onFocus(windowUtils.activeWindow = browserWindow);
     }).then(_ => {
-      assert.deepEqual(windowUtils.activeBrowserWindow, browserWindow,
-                       "Correct active browser window when pb mode is supported [4]");
-      assert.deepEqual(windowUtils.activeWindow, browserWindow,
-                       "Correct active window when pb mode is supported [4]");
+      assert.strictEqual(windowUtils.activeBrowserWindow, browserWindow,
+                         "Correct active browser window when pb mode is supported [4]");
+      assert.strictEqual(windowUtils.activeWindow, browserWindow,
+                         "Correct active window when pb mode is supported [4]");
 
       return close(window);
     })
