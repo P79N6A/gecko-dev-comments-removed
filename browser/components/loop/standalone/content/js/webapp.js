@@ -32,12 +32,6 @@ loop.webapp = (function($, OT, webl10n) {
   
 
 
-
-  var conversation;
-
-  
-
-
   var HomeView = sharedViews.BaseView.extend({
     el: "#home"
   });
@@ -105,87 +99,34 @@ loop.webapp = (function($, OT, webl10n) {
   
 
 
-
-
-
-  var WebappRouter = loop.shared.router.BaseRouter.extend({
-    
-
-
-
-    _conversation: undefined,
-
-    
-
-
-
-    _notifier: undefined,
-
+  var WebappRouter = loop.shared.router.BaseConversationRouter.extend({
     routes: {
       "": "home",
       "call/ongoing": "conversation",
       "call/:token": "initiate"
     },
 
-    initialize: function(options) {
-      options = options || {};
-      if (!options.conversation) {
-        throw new Error("missing required conversation");
-      }
-      this._conversation = options.conversation;
-
-      if (!options.notifier) {
-        throw new Error("missing required notifier");
-      }
-      this._notifier = options.notifier;
-
-      this.listenTo(this._conversation, "session:ready", this._onSessionReady);
-      this.listenTo(this._conversation, "session:ended", this._endCall);
-      this.listenTo(this._conversation, "session:peer-hungup",
-                                        this._onPeerHungup);
-      this.listenTo(this._conversation, "session:network-disconnected",
-                                        this._onNetworkDisconnected);
-
+    initialize: function() {
       
       this.loadView(new HomeView());
-    },
-
-    _endCall: function() {
-      var route = "home";
-      if (this._conversation.get("loopToken")) {
-        route = "call/" + this._conversation.get("loopToken");
-      }
-      this.navigate(route, {trigger: true});
     },
 
     
 
 
-    _onSessionReady: function() {
+    startCall: function() {
       this.navigate("call/ongoing", {trigger: true});
     },
 
     
 
 
-
-
-
-
-
-
-    _onPeerHungup: function(event) {
-      this._notifier.warn(__("peer_ended_conversation"));
-      this._endCall();
-    },
-
-    
-
-
-
-    _onNetworkDisconnected: function() {
-      this._notifier.warn(__("network_disconnected"));
-      this._endCall();
+    endCall: function() {
+      var route = "home";
+      if (this._conversation.get("loopToken")) {
+        route = "call/" + this._conversation.get("loopToken");
+      }
+      this.navigate(route, {trigger: true});
     },
 
     
@@ -234,9 +175,8 @@ loop.webapp = (function($, OT, webl10n) {
 
 
   function init() {
-    conversation = new sharedModels.ConversationModel();
     router = new WebappRouter({
-      conversation: conversation,
+      conversation: new sharedModels.ConversationModel(),
       notifier: new sharedViews.NotificationListView({el: "#messages"})
     });
     Backbone.history.start();
