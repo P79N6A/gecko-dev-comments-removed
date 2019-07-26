@@ -258,7 +258,11 @@ RootActor.prototype = {
       }
 
       
-      this._createExtraActors(this._parameters.globalActorFactories, newActorPool);
+      if (!this._globalActorPool) {
+        this._globalActorPool = new ActorPool(this.conn);
+        this._createExtraActors(this._parameters.globalActorFactories, this._globalActorPool);
+        this.conn.addActorPool(this._globalActorPool);
+      }
 
       
 
