@@ -59,7 +59,6 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/WidgetTraceEvent.h"
 #include "nsDebug.h"
-#include "MainThreadUtils.h"
 #include <limits.h>
 #include <prenv.h>
 #include <prinrval.h>
@@ -77,17 +76,14 @@ using mozilla::TimeStamp;
 using mozilla::FireAndWaitForTracerEvent;
 
 namespace {
-  struct TracerStartClosure {
-    mozilla::Atomic<bool> mLogTracing;
-    mozilla::Atomic<int32_t> mThresholdInterval;
-  };
-}
 
+PRThread* sTracerThread = nullptr;
+bool sExit = false;
 
-static PRThread* sTracerThread = nullptr;
-static mozilla::Atomic<bool> sExit(0);
-static int sStartCount = 0;
-static TracerStartClosure *sTracerStartClosure = nullptr;
+struct TracerStartClosure {
+  bool mLogTracing;
+  int32_t mThresholdInterval;
+};
 
 #ifdef MOZ_WIDGET_GONK
 class EventLoopLagDispatcher : public nsRunnable
@@ -124,7 +120,7 @@ class EventLoopLagDispatcher : public nsRunnable
 
 
 
-static void TracerThread(void *arg)
+void TracerThread(void *arg)
 {
   PR_SetCurrentThreadName("Event Tracer");
 
@@ -144,9 +140,8 @@ static void TracerThread(void *arg)
   if (envfile) {
     log = fopen(envfile, "w");
   }
-  if (log == nullptr) {
+  if (log == nullptr)
     log = stdout;
-  }
 
   char* thresholdenv = PR_GetEnv("MOZ_INSTRUMENT_EVENT_LOOP_THRESHOLD");
   if (thresholdenv && *thresholdenv) {
@@ -211,52 +206,40 @@ static void TracerThread(void *arg)
     fprintf(log, "MOZ_EVENT_TRACE stop %llu\n", now);
   }
 
-  if (log != stdout) {
+  if (log != stdout)
     fclose(log);
-  }
 
   delete threadArgs;
 }
+
+} 
 
 namespace mozilla {
 
 bool InitEventTracing(bool aLog)
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  
-  sStartCount++;
-
-  
-  
-  if (sTracerThread) {
-    if (aLog) {
-      sTracerStartClosure->mLogTracing = true;
-    }
+  if (sTracerThread)
     return true;
-  }
 
   
-  if (!InitWidgetTracing()) {
+  if (!InitWidgetTracing())
     return false;
-  }
 
   
-  sTracerStartClosure = new TracerStartClosure();
-  sTracerStartClosure->mLogTracing = aLog;
+  TracerStartClosure* args = new TracerStartClosure();
+  args->mLogTracing = aLog;
 
   
   int32_t thresholdInterval = 20;
   Preferences::GetInt("devtools.eventlooplag.threshold", &thresholdInterval);
-  sTracerStartClosure->mThresholdInterval = thresholdInterval;
+  args->mThresholdInterval = thresholdInterval;
 
   
   
   NS_ABORT_IF_FALSE(!sTracerThread, "Event tracing already initialized!");
   sTracerThread = PR_CreateThread(PR_USER_THREAD,
                                   TracerThread,
-                                  sTracerStartClosure,
+                                  args,
                                   PR_PRIORITY_NORMAL,
                                   PR_GLOBAL_THREAD,
                                   PR_JOINABLE_THREAD,
@@ -266,30 +249,16 @@ bool InitEventTracing(bool aLog)
 
 void ShutdownEventTracing()
 {
-  MOZ_ASSERT(NS_IsMainThread());
-
-  
-  sStartCount--;
-  if (sStartCount > 0) {
+  if (!sTracerThread)
     return;
-  }
-
-  
-  MOZ_ASSERT(sStartCount == 0);
-
-  if (!sTracerThread) {
-    return;
-  }
 
   sExit = true;
   
   SignalTracerThread();
 
-  if (sTracerThread) {
+  if (sTracerThread)
     PR_JoinThread(sTracerThread);
-  }
   sTracerThread = nullptr;
-  sTracerStartClosure = nullptr;
 
   
   CleanUpWidgetTracing();
