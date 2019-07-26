@@ -176,8 +176,7 @@ public:
 
   void SetTitle(const nsAString& aTitle) { mTitle = aTitle; }
   void SetMedia(nsMediaList* aMedia);
-  void SetOwningNode(nsIDOMNode* aOwningNode) { mOwningNode = aOwningNode;  }
-  nsIDOMNode* GetOwningNode() const { return mOwningNode; }
+  void SetOwningNode(nsINode* aOwningNode) { mOwningNode = aOwningNode;  }
 
   void SetOwnerRule(mozilla::css::ImportRule* aOwnerRule) { mOwnerRule = aOwnerRule;  }
   mozilla::css::ImportRule* GetOwnerRule() const { return mOwnerRule; }
@@ -187,7 +186,7 @@ public:
   already_AddRefed<nsCSSStyleSheet> Clone(nsCSSStyleSheet* aCloneParent,
                                           mozilla::css::ImportRule* aCloneOwnerRule,
                                           nsIDocument* aCloneDocument,
-                                          nsIDOMNode* aCloneOwningNode) const;
+                                          nsINode* aCloneOwningNode) const;
 
   bool IsModified() const { return mDirty; }
 
@@ -255,12 +254,56 @@ public:
     mScopeElement = aScopeElement;
   }
 
+  
+  
+  
+  void GetType(nsString& aType) {
+    const_cast<const nsCSSStyleSheet*>(this)->GetType(aType);
+  }
+  
+  nsINode* GetOwnerNode() const { return mOwningNode; }
+  nsCSSStyleSheet* GetParentStyleSheet() const { return mParent; }
+  
+  
+  void GetTitle(nsString& aTitle) {
+    const_cast<const nsCSSStyleSheet*>(this)->GetTitle(aTitle);
+  }
+  nsIDOMMediaList* Media();
+  bool Disabled() const { return mDisabled; }
+  
+
+  
+  
+  
+  
+  nsIDOMCSSRule* GetDOMOwnerRule() const;
+  nsIDOMCSSRuleList* GetCssRules(mozilla::ErrorResult& aRv);
+  uint32_t InsertRule(const nsAString& aRule, uint32_t aIndex,
+                      mozilla::ErrorResult& aRv) {
+    uint32_t retval;
+    aRv = InsertRule(aRule, aIndex, &retval);
+    return retval;
+  }
+  void DeleteRule(uint32_t aIndex, mozilla::ErrorResult& aRv) {
+    aRv = DeleteRule(aIndex);
+  }
+
+  
+  mozilla::dom::ParentObject GetParentObject() const {
+    if (mOwningNode) {
+      return mozilla::dom::ParentObject(mOwningNode);
+    }
+
+    return mozilla::dom::ParentObject(static_cast<nsIStyleSheet*>(mParent),
+                                      mParent);
+  }
+
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
                   nsCSSStyleSheet* aParentToUse,
                   mozilla::css::ImportRule* aOwnerRuleToUse,
                   nsIDocument* aDocumentToUse,
-                  nsIDOMNode* aOwningNodeToUse);
+                  nsINode* aOwningNodeToUse);
 
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy) MOZ_DELETE;
   nsCSSStyleSheet& operator=(const nsCSSStyleSheet& aCopy) MOZ_DELETE;
@@ -302,7 +345,7 @@ protected:
 
   nsRefPtr<CSSRuleListImpl> mRuleCollection;
   nsIDocument*          mDocument; 
-  nsIDOMNode*           mOwningNode; 
+  nsINode*              mOwningNode; 
   bool                  mDisabled;
   bool                  mDirty; 
   nsRefPtr<mozilla::dom::Element> mScopeElement;

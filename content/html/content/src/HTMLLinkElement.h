@@ -92,8 +92,8 @@ public:
   void CreateAndDispatchEvent(nsIDocument* aDoc, const nsAString& aEventName);
 
   
-  bool GetDisabled(ErrorResult& aRv);
-  void SetDisabled(bool aDisabled, ErrorResult& aRv);
+  bool Disabled();
+  void SetDisabled(bool aDisabled);
   
   void SetHref(const nsAString& aHref, ErrorResult& aRv)
   {

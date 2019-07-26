@@ -2424,7 +2424,7 @@ CountSheetMemory(URIPrincipalAndCORSModeHashKey* ,
   
   
   
-  if (aSheet->GetOwningNode() || aSheet->GetParentSheet()) {
+  if (aSheet->GetOwnerNode() || aSheet->GetParentSheet()) {
     return 0;
   }
   return aSheet->SizeOfIncludingThis(aMallocSizeOf);
