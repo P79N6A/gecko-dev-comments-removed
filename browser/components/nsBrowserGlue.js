@@ -82,7 +82,7 @@ const PREF_PLUGINS_UPDATEURL  = "plugins.update.url";
 
 
 
-const BOOKMARKS_BACKUP_IDLE_TIME = 15 * 60;
+const BOOKMARKS_BACKUP_IDLE_TIME = 10 * 60;
 
 const BOOKMARKS_BACKUP_INTERVAL = 86400 * 1000;
 
@@ -257,8 +257,7 @@ BrowserGlue.prototype = {
         this._onPlacesShutdown();
         break;
       case "idle":
-        if ((this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000) &&
-             this._shouldBackupBookmarks())
+        if (this._idleService.idleTime > BOOKMARKS_BACKUP_IDLE_TIME * 1000)
           this._backupBookmarks();
         break;
       case "distribution-customization-complete":
@@ -1049,8 +1048,7 @@ BrowserGlue.prototype = {
           Services.prefs.getBoolPref("browser.bookmarks.restore_default_bookmarks");
         if (restoreDefaultBookmarks) {
           
-          if (this._shouldBackupBookmarks())
-            yield this._backupBookmarks();
+          yield this._backupBookmarks();
           importBookmarks = true;
         }
       } catch(ex) {}
@@ -1059,7 +1057,7 @@ BrowserGlue.prototype = {
       
       if (importBookmarks && !restoreDefaultBookmarks && !importBookmarksHTML) {
         
-        var bookmarksBackupFile = PlacesBackups.getMostRecent("json");
+        var bookmarksBackupFile = yield PlacesBackups.getMostRecent("json");
         if (bookmarksBackupFile) {
           
           yield BookmarkJSONUtils.importFromFile(bookmarksBackupFile, true);
@@ -1183,22 +1181,19 @@ BrowserGlue.prototype = {
     }
 
     let waitingForBackupToComplete = true;
-    if (this._shouldBackupBookmarks()) {
-      waitingForBackupToComplete = false;
-      this._backupBookmarks().then(
-        function onSuccess() {
-          waitingForBackupToComplete = true;
-        },
-        function onFailure() {
-          Cu.reportError("Unable to backup bookmarks.");
-          waitingForBackupToComplete = true;
-        }
-      );
-    }
+    this._backupBookmarks().then(
+      function onSuccess() {
+        waitingForBackupToComplete = false;
+      },
+      function onFailure() {
+        Cu.reportError("Unable to backup bookmarks.");
+        waitingForBackupToComplete = false;
+      }
+    );
 
     
     
-    let waitingForHTMLExportToComplete = true;
+    let waitingForHTMLExportToComplete = false;
     
     if (Services.prefs.getBoolPref("browser.bookmarks.autoExportHTML")) {
       
@@ -1207,20 +1202,22 @@ BrowserGlue.prototype = {
       
       
       
-      waitingForHTMLExportToComplete = false;
+      waitingForHTMLExportToComplete = true;
       BookmarkHTMLUtils.exportToFile(Services.dirsvc.get("BMarks", Ci.nsIFile)).then(
         function onSuccess() {
-          waitingForHTMLExportToComplete = true;
+          waitingForHTMLExportToComplete = false;
         },
         function onFailure() {
           Cu.reportError("Unable to auto export html.");
-          waitingForHTMLExportToComplete = true;
+          waitingForHTMLExportToComplete = false;
         }
       );
     }
 
+    
+    
     let thread = Services.tm.currentThread;
-    while (!waitingForBackupToComplete || !waitingForHTMLExportToComplete) {
+    while (waitingForBackupToComplete || waitingForHTMLExportToComplete) {
       thread.processNextEvent(true);
     }
   },
@@ -1228,30 +1225,21 @@ BrowserGlue.prototype = {
   
 
 
-
-  _shouldBackupBookmarks: function BG__shouldBackupBookmarks() {
-    let lastBackupFile = PlacesBackups.getMostRecent();
-
-    
-    
-    return (!lastBackupFile ||
-            new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL);
-  },
-
-  
-
-
   _backupBookmarks: function BG__backupBookmarks() {
     return Task.spawn(function() {
+      let lastBackupFile = yield PlacesBackups.getMostRecentBackup();
       
       
-      let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
-      try {
-        maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
-      }
-      catch(ex) {  }
+      if (!lastBackupFile ||
+          new Date() - PlacesBackups.getDateForFile(lastBackupFile) > BOOKMARKS_BACKUP_INTERVAL) {
+        let maxBackups = BOOKMARKS_BACKUP_MAX_BACKUPS;
+        try {
+          maxBackups = Services.prefs.getIntPref("browser.bookmarks.max_backups");
+        }
+        catch(ex) {  }
 
-      yield PlacesBackups.create(maxBackups); 
+        yield PlacesBackups.create(maxBackups); 
+      }
     });
   },
 
