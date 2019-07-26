@@ -272,8 +272,10 @@ Range::intersect(const Range *lhs, const Range *rhs, bool *nullRange)
     
     
     
-    if (r.upper_ < r.lower_)
+    if (r.upper_ < r.lower_) {
+        *nullRange = true;
         r.makeRangeInfinite();
+    }
     return r;
 }
 
