@@ -294,6 +294,24 @@ this.FxAccountsClient.prototype = {
 
 
 
+  accountStatus: function(uid) {
+    return this._request("/account/status?uid="+uid, "GET").then(
+      (result) => {
+        return result.exists;
+      },
+      (error) => {
+        log.error("accountStatus failed with: " + error);
+        return Promise.reject(error);
+      }
+    );
+  },
+
+  
+
+
+
+
+
 
 
 
