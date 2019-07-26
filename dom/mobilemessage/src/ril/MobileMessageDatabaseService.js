@@ -825,7 +825,10 @@ MobileMessageDatabaseService.prototype = {
     
     
 
-    let request = aParticipantStore.index("addresses").get(aAddress);
+    
+    let normalizedAddress = PhoneNumberUtils.normalize(aAddress, false);
+
+    let request = aParticipantStore.index("addresses").get(normalizedAddress);
     request.onsuccess = (function (event) {
       let participantRecord = event.target.result;
       
@@ -840,7 +843,7 @@ MobileMessageDatabaseService.prototype = {
       }
 
       
-      let parsedAddress = PhoneNumberUtils.parseWithMCC(aAddress, null);
+      let parsedAddress = PhoneNumberUtils.parseWithMCC(normalizedAddress, null);
       
       aParticipantStore.openCursor().onsuccess = (function (event) {
         let cursor = event.target.result;
@@ -851,7 +854,7 @@ MobileMessageDatabaseService.prototype = {
             return;
           }
 
-          let participantRecord = { addresses: [aAddress] };
+          let participantRecord = { addresses: [normalizedAddress] };
           let addRequest = aParticipantStore.add(participantRecord);
           addRequest.onsuccess = function (event) {
             participantRecord.id = event.target.result;
@@ -882,7 +885,7 @@ MobileMessageDatabaseService.prototype = {
             let parsedStoredAddress =
               PhoneNumberUtils.parseWithMCC(storedAddress, null);
             if (parsedStoredAddress
-                && aAddress.endsWith(parsedStoredAddress.nationalNumber)) {
+                && normalizedAddress.endsWith(parsedStoredAddress.nationalNumber)) {
               match = true;
             }
           }
@@ -895,7 +898,7 @@ MobileMessageDatabaseService.prototype = {
           if (aCreate) {
             
             
-            participantRecord.addresses.push(aAddress);
+            participantRecord.addresses.push(normalizedAddress);
             cursor.update(participantRecord);
           }
           if (DEBUG) {
