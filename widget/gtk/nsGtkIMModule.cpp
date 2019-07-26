@@ -60,7 +60,10 @@ GetEnabledStateName(uint32_t aState)
 }
 #endif
 
+const static bool kUseSimpleContextDefault = MOZ_WIDGET_GTK == 2;
+
 nsGtkIMModule* nsGtkIMModule::sLastFocusedModule = nullptr;
+bool nsGtkIMModule::sUseSimpleContext;
 
 nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
     mOwnerWindow(aOwnerWindow), mLastFocusedWindow(nullptr),
@@ -77,6 +80,14 @@ nsGtkIMModule::nsGtkIMModule(nsWindow* aOwnerWindow) :
         gGtkIMLog = PR_NewLogModule("nsGtkIMModuleWidgets");
     }
 #endif
+    static bool sFirstInstance = true;
+    if (sFirstInstance) {
+        sFirstInstance = false;
+        sUseSimpleContext =
+            Preferences::GetBool(
+                "intl.ime.use_simple_context_on_password_field",
+                kUseSimpleContextDefault);
+    }
     Init();
 }
 
@@ -117,26 +128,28 @@ nsGtkIMModule::Init()
                      this);
 
     
-    mSimpleContext = gtk_im_context_simple_new();
-    gtk_im_context_set_client_window(mSimpleContext, gdkWindow);
-    g_signal_connect(mSimpleContext, "preedit_changed",
-                     G_CALLBACK(&nsGtkIMModule::OnChangeCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "retrieve_surrounding",
-                     G_CALLBACK(&nsGtkIMModule::OnRetrieveSurroundingCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "delete_surrounding",
-                     G_CALLBACK(&nsGtkIMModule::OnDeleteSurroundingCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "commit",
-                     G_CALLBACK(&nsGtkIMModule::OnCommitCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "preedit_start",
-                     G_CALLBACK(nsGtkIMModule::OnStartCompositionCallback),
-                     this);
-    g_signal_connect(mSimpleContext, "preedit_end",
-                     G_CALLBACK(nsGtkIMModule::OnEndCompositionCallback),
-                     this);
+    if (sUseSimpleContext) {
+        mSimpleContext = gtk_im_context_simple_new();
+        gtk_im_context_set_client_window(mSimpleContext, gdkWindow);
+        g_signal_connect(mSimpleContext, "preedit_changed",
+            G_CALLBACK(&nsGtkIMModule::OnChangeCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "retrieve_surrounding",
+            G_CALLBACK(&nsGtkIMModule::OnRetrieveSurroundingCallback),
+            this);
+        g_signal_connect(mSimpleContext, "delete_surrounding",
+            G_CALLBACK(&nsGtkIMModule::OnDeleteSurroundingCallback),
+            this);
+        g_signal_connect(mSimpleContext, "commit",
+            G_CALLBACK(&nsGtkIMModule::OnCommitCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "preedit_start",
+            G_CALLBACK(nsGtkIMModule::OnStartCompositionCallback),
+            this);
+        g_signal_connect(mSimpleContext, "preedit_end",
+            G_CALLBACK(nsGtkIMModule::OnEndCompositionCallback),
+            this);
+    }
 
     
     mDummyContext = gtk_im_multicontext_new();
@@ -568,7 +581,25 @@ nsGtkIMModule::SetInputContext(nsWindow* aCaller,
             if (context) {
                 GtkInputPurpose purpose = GTK_INPUT_PURPOSE_FREE_FORM;
                 const nsString& inputType = mInputContext.mHTMLInputType;
-                if (inputType.EqualsLiteral("password")) {
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                if (mInputContext.mIMEState.mEnabled == IMEState::PASSWORD) {
                     purpose = GTK_INPUT_PURPOSE_PASSWORD;
                 } else if (inputType.EqualsLiteral("email")) {
                     purpose = GTK_INPUT_PURPOSE_EMAIL;
@@ -626,7 +657,9 @@ bool
 nsGtkIMModule::IsEnabled()
 {
     return mInputContext.mIMEState.mEnabled == IMEState::ENABLED ||
-           mInputContext.mIMEState.mEnabled == IMEState::PLUGIN;
+           mInputContext.mIMEState.mEnabled == IMEState::PLUGIN ||
+           (!sUseSimpleContext &&
+            mInputContext.mIMEState.mEnabled == IMEState::PASSWORD);
 }
 
 bool

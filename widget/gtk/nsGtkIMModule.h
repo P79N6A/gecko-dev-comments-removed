@@ -205,6 +205,11 @@ protected:
 
     
     
+    
+    static bool sUseSimpleContext;
+
+    
+    
     static gboolean OnRetrieveSurroundingCallback(GtkIMContext  *aContext,
                                                   nsGtkIMModule *aModule);
     static gboolean OnDeleteSurroundingCallback(GtkIMContext  *aContext,
