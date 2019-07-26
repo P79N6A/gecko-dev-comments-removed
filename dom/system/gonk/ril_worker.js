@@ -3807,7 +3807,9 @@ let RIL = {
   },
 
   _processSuppSvcNotification: function(info) {
-    debug("handle supp svc notification: " + JSON.stringify(info));
+    if (DEBUG) {
+      debug("handle supp svc notification: " + JSON.stringify(info));
+    }
 
     let notification = null;
     let callIndex = -1;
@@ -6217,12 +6219,9 @@ RIL[UNSOLICITED_NITZ_TIME_RECEIVED] = function UNSOLICITED_NITZ_TIME_RECEIVED() 
   
   
   
-
-  
-  
   
 
-  debug("DateTimeZone string " + dateString);
+  if (DEBUG) debug("DateTimeZone string " + dateString);
 
   let now = Date.now();
 
@@ -13905,5 +13904,5 @@ onmessage = function onmessage(event) {
 };
 
 onerror = function onerror(event) {
-  debug("RIL Worker error" + event.message + "\n");
+  if (DEBUG) debug("RIL Worker error" + event.message + "\n");
 };
