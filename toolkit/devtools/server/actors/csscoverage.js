@@ -341,6 +341,16 @@ let UsageReportActor = protocol.ActorClass({
 
 
 
+
+
+
+
+
+
+
+
+
+
   createPageReport: method(function() {
     if (this._running) {
       throw new Error(l10n.lookup("csscoverageRunningError"));
@@ -351,51 +361,75 @@ let UsageReportActor = protocol.ActorClass({
     }
 
     
-    const ruleToRuleReport = function(ruleId, ruleData) {
-      let { url, line, column } = deconstructRuleId(ruleId);
+    const ruleToRuleReport = function(rule, ruleData) {
       return {
-        url: url,
-        shortHref: url.split("/").slice(-1),
-        start: { line: line, column: column },
+        url: rule.url,
+        shortUrl: rule.url.split("/").slice(-1),
+        start: { line: rule.line, column: rule.column },
         selectorText: ruleData.selectorText,
         formattedCssText: prettifyCSS(ruleData.cssText)
       };
     }
 
-    let pages = [];
-    let unusedRules = [];
+    
+    let summary = { used: 0, unused: 0, preload: 0 };
 
     
+    let unusedMap = new Map();
     for (let [ruleId, ruleData] of this._knownRules) {
-      if (!ruleData.isUsed) {
-        let ruleReport = ruleToRuleReport(ruleId, ruleData);
-        unusedRules.push(ruleReport);
+      let rule = deconstructRuleId(ruleId);
+      let rules = unusedMap.get(rule.url)
+      if (rules == null) {
+        rules = [];
+        unusedMap.set(rule.url, rules);
       }
+      if (!ruleData.isUsed) {
+        let ruleReport = ruleToRuleReport(rule, ruleData);
+        rules.push(ruleReport);
+      }
+      else {
+        summary.unused++;
+      }
+    }
+    let unused = [];
+    for (let [url, rules] of unusedMap) {
+      unused.push({
+        url: url,
+        shortUrl: url.split("/").slice(-1),
+        rules: rules
+      });
     }
 
     
+    let preload = [];
     for (let url of this._visitedPages) {
       let page = {
         url: url,
-        shortHref: url.split("/").slice(-1),
-        preloadRules: []
+        shortUrl: url.split("/").slice(-1),
+        rules: []
       };
 
       for (let [ruleId, ruleData] of this._knownRules) {
         if (ruleData.preLoadOn.has(url)) {
-          let ruleReport = ruleToRuleReport(ruleId, ruleData);
-          page.preloadRules.push(ruleReport);
+          let rule = deconstructRuleId(ruleId);
+          let ruleReport = ruleToRuleReport(rule, ruleData);
+          page.rules.push(ruleReport);
+          summary.preload++;
+        }
+        else {
+          summary.used++;
         }
       }
 
-      if (page.preloadRules.length > 0) {
-        pages.push(page);
+      if (page.rules.length > 0) {
+        preload.push(page);
       }
     }
 
     return {
-      pages: pages,
-      unusedRules: unusedRules
+      summary: summary,
+      preload: preload,
+      unused: unused
     };
   }, {
     response: RetVal("json")
@@ -658,12 +692,15 @@ const UsageReportFront = protocol.FrontClass(UsageReportActor, {
     this.manage(this);
   },
 
+  
+
+
   start: custom(function(chromeWindow, target) {
     if (chromeWindow != null) {
       let gnb = chromeWindow.document.getElementById("global-notificationbox");
-      let notification = gnb.getNotificationWithValue("csscoverage-running");
+      this.notification = gnb.getNotificationWithValue("csscoverage-running");
 
-      if (!notification) {
+      if (this.notification == null) {
         let notifyStop = ev => {
           if (ev == "removed") {
             this.stop();
@@ -671,19 +708,34 @@ const UsageReportFront = protocol.FrontClass(UsageReportActor, {
           }
         };
 
-        gnb.appendNotification(l10n.lookup("csscoverageRunningReply"),
-                               "csscoverage-running",
-                               "", 
-                               gnb.PRIORITY_INFO_HIGH,
-                               null, 
-                               notifyStop);
+        let msg = l10n.lookup("csscoverageRunningReply");
+        this.notification = gnb.appendNotification(msg,
+                                                   "csscoverage-running",
+                                                   "", 
+                                                   gnb.PRIORITY_INFO_HIGH,
+                                                   null, 
+                                                   notifyStop);
       }
     }
 
     return this._start();
   }, {
     impl: "_start"
-  })
+  }),
+
+  
+
+
+  stop: custom(function() {
+    if (this.notification != null) {
+      this.notification.remove();
+      this.notification = undefined;
+    }
+
+    return this._stop();
+  }, {
+    impl: "_stop"
+  }),
 });
 
 exports.UsageReportFront = UsageReportFront;
