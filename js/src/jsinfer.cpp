@@ -3806,16 +3806,18 @@ ExclusiveContext::getNewType(const Class *clasp, TaggedProto proto_, JSFunction 
 
     AutoEnterAnalysis enter(this);
 
-    
-
-
-
-
     if (proto.isObject()) {
         RootedObject obj(this, proto.toObject());
 
         if (fun)
             CheckNewScriptProperties(asJSContext(), type, fun);
+
+        
+
+
+
+
+
 
         if (obj->is<RegExpObject>()) {
             AddTypeProperty(this, type, "source", types::Type::StringType());
