@@ -186,6 +186,9 @@ public:
 
     void Unlink();
 
+    
+    void TraceAllScripts(JSTracer* aTrc);
+
     nsPrototypeArray         mChildren;
 
     nsCOMPtr<nsINodeInfo>    mNodeInfo;           
