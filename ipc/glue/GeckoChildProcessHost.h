@@ -177,12 +177,6 @@ private:
   bool RunPerformAsyncLaunch(StringVector aExtraOpts=StringVector(),
 			     base::ProcessArchitecture aArch=base::GetCurrentProcessArchitecture());
 
-  inline void SetErrorState() {
-    MonitorAutoLock lock(mMonitor);
-    mProcessState = PROCESS_ERROR;
-    lock.Notify();
-  }
-
   
   
   
