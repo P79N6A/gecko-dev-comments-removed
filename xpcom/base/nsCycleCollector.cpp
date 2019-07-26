@@ -613,7 +613,9 @@ public:
 class NodePool
 {
 private:
-  enum { BlockSize = 8 * 1024 }; 
+  
+  
+  enum { BlockSize = 8 * 1024 - 2 };
 
   struct Block
   {
@@ -623,6 +625,13 @@ private:
     Block()
     {
       NS_NOTREACHED("should never be called");
+
+      
+      static_assert(
+        sizeof(Block) == 163824 ||      
+        sizeof(Block) == 262120,        
+        "ill-sized NodePool::Block"
+      );
     }
     ~Block()
     {
