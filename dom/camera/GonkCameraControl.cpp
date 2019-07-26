@@ -714,17 +714,21 @@ nsGonkCameraControl::StartRecordingImpl(StartRecordingTask* aStartRecording)
 
 
 
+
+
+
+
   nsCOMPtr<nsIFile> filename;
   aStartRecording->mStorageArea->GetRootDirectory(getter_AddRefs(filename));
-  filename->Append(aStartRecording->mFilename);
+  filename->AppendRelativePath(aStartRecording->mFilename);
 
-  nsAutoCString pathname;
-  filename->GetNativePath(pathname);
-  DOM_CAMERA_LOGI("Video pathname is '%s'\n", pathname.get());
+  nsAutoCString nativeFilename;
+  filename->GetNativePath(nativeFilename);
+  DOM_CAMERA_LOGI("Video filename is '%s'\n", nativeFilename.get());
 
-  int fd = open(pathname.get(), O_RDWR | O_CREAT, 0644);
+  int fd = open(nativeFilename.get(), O_RDWR | O_CREAT, 0644);
   if (fd < 0) {
-    DOM_CAMERA_LOGE("Couldn't create file '%s' with error (%d) %s\n", pathname.get(), errno, strerror(errno));
+    DOM_CAMERA_LOGE("Couldn't create file '%s': (%d) %s\n", nativeFilename.get(), errno, strerror(errno));
     return NS_ERROR_FAILURE;
   }
 
