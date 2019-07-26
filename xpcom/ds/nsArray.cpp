@@ -179,7 +179,7 @@ FindElementCallback(void *aElement, void* aClosure)
 
     nsISupports* element =
         static_cast<nsISupports*>(aElement);
-    
+
     
     if (closure->resultIndex >= closure->startIndex &&
         element == closure->targetElement) {
@@ -197,7 +197,7 @@ nsArray::XPCOMConstructor(nsISupports *aOuter, const nsIID& aIID, void **aResult
         return NS_ERROR_NO_AGGREGATION;
 
     nsCOMPtr<nsIMutableArray> inst = Create();
-    return inst->QueryInterface(aIID, aResult); 
+    return inst->QueryInterface(aIID, aResult);
 }
 
 already_AddRefed<nsIMutableArray>
