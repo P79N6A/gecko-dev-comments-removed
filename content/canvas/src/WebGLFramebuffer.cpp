@@ -379,6 +379,11 @@ WebGLFramebuffer::CheckAndInitializeRenderbuffers()
     if (HasIncompleteAttachment())
         return false;
 
+    mContext->MakeContextCurrent();
+
+    
+    FinalizeAttachments();
+
     size_t colorAttachmentCount = size_t(mColorAttachments.Length());
 
     {
@@ -403,11 +408,6 @@ WebGLFramebuffer::CheckAndInitializeRenderbuffers()
         !rect->Width() ||
         !rect->Height())
         return false;
-
-    mContext->MakeContextCurrent();
-
-    
-    FinalizeAttachments();
 
     GLenum status = mContext->CheckFramebufferStatus(LOCAL_GL_FRAMEBUFFER);
     if (status != LOCAL_GL_FRAMEBUFFER_COMPLETE)
