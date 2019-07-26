@@ -259,7 +259,7 @@ protected:
     void GetCompositionString(nsAString &aCompositionString);
 
     
-    void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
+    void SetTextRangeList(nsTArray<mozilla::TextRange>& aTextRangeList);
 
     
     void SetCursorPosition(uint32_t aTargetOffset);

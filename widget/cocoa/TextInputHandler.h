@@ -1071,7 +1071,7 @@ private:
 
 
 
-  void SetTextRangeList(nsTArray<nsTextRange>& aTextRangeList,
+  void SetTextRangeList(nsTArray<TextRange>& aTextRangeList,
                         NSAttributedString *aAttrString,
                         NSRange& aSelectedRange);
 

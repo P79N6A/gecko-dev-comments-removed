@@ -466,7 +466,7 @@ protected:
     
     nsString mData;
     
-    nsTArray<nsTextRange> mRanges;
+    nsTArray<mozilla::TextRange> mRanges;
     
     bool mSelectionReversed;
   };
