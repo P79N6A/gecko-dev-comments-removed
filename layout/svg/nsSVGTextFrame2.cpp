@@ -2222,6 +2222,7 @@ private:
       mGlyphStartTextElementCharIndex = mTextElementCharIndex;
     }
   }
+
   
 
 
@@ -3067,7 +3068,7 @@ nsSVGTextFrame2::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    ReflowSVGNonDisplayText();
+    ScheduleReflowSVGNonDisplayText();
   }
 }
 
@@ -3090,6 +3091,51 @@ nsSVGTextFrame2::ReflowSVGNonDisplayText()
   
   
   nsSVGEffects::InvalidateRenderingObservers(this);
+
+  
+  
+  
+  MaybeReflowAnonymousBlockChild();
+  UpdateGlyphPositioning();
+}
+
+void
+nsSVGTextFrame2::ScheduleReflowSVGNonDisplayText()
+{
+  MOZ_ASSERT(!nsSVGUtils::OuterSVGIsCallingReflowSVG(this),
+             "do not call ScheduleReflowSVGNonDisplayText when the outer SVG "
+             "frame is under ReflowSVG");
+
+  nsSVGOuterSVGFrame* outerSVGFrame = nullptr;
+
+  nsIFrame* f = GetParent();
+  while (f) {
+    if (f->GetStateBits() & NS_STATE_IS_OUTER_SVG) {
+      outerSVGFrame = static_cast<nsSVGOuterSVGFrame*>(f);
+      break;
+    }
+    if (!(f->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
+      
+      
+      
+      
+      if (NS_SUBTREE_DIRTY(f)) {
+        return;
+      }
+      f->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+    }
+    f = f->GetParent();
+  }
+
+  NS_ABORT_IF_FALSE(outerSVGFrame &&
+                    outerSVGFrame->GetType() == nsGkAtoms::svgOuterSVGFrame,
+                    "Did not find nsSVGOuterSVGFrame!");
+  NS_ABORT_IF_FALSE(!(outerSVGFrame->GetStateBits() & NS_FRAME_IN_REFLOW),
+                    "should not call ScheduleReflowSVGNonDisplayText under "
+                    "nsSVGOuterSVGFrame::Reflow");
+
+  PresContext()->PresShell()->FrameNeedsReflow(
+    outerSVGFrame, nsIPresShell::eResize, NS_FRAME_HAS_DIRTY_CHILDREN);
 }
 
 NS_IMPL_ISUPPORTS1(nsSVGTextFrame2::MutationObserver, nsIMutationObserver)
@@ -3208,6 +3254,7 @@ nsSVGTextFrame2::FindCloserFrameForSelection(
   if (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD) {
     return;
   }
+
   UpdateGlyphPositioning();
 
   nsPresContext* presContext = PresContext();
@@ -3515,7 +3562,7 @@ nsSVGTextFrame2::ReflowSVG()
     return;
   }
 
-  
+  MaybeReflowAnonymousBlockChild();
   UpdateGlyphPositioning();
 
   nsPresContext* presContext = PresContext();
@@ -4821,13 +4868,27 @@ void
 nsSVGTextFrame2::UpdateGlyphPositioning()
 {
   nsIFrame* kid = GetFirstPrincipalChild();
+  if (!kid) {
+    return;
+  }
+
+  if (mPositioningDirty) {
+    MOZ_ASSERT(!NS_SUBTREE_DIRTY(kid), "should have already reflowed the kid");
+    DoGlyphPositioning();
+  }
+}
+
+void
+nsSVGTextFrame2::MaybeReflowAnonymousBlockChild()
+{
+  nsIFrame* kid = GetFirstPrincipalChild();
   if (!kid)
     return;
 
   NS_ASSERTION(!(kid->GetStateBits() & NS_FRAME_IN_REFLOW),
                "should not be in reflow when about to reflow again");
 
-  if (mState & (NS_FRAME_IS_DIRTY | NS_FRAME_HAS_DIRTY_CHILDREN)) {
+  if (NS_SUBTREE_DIRTY(this)) {
     if (mState & NS_FRAME_IS_DIRTY) {
       
       
@@ -4839,10 +4900,6 @@ nsSVGTextFrame2::UpdateGlyphPositioning()
                "should be under ReflowSVG");
     nsPresContext::InterruptPreventer noInterrupts(PresContext());
     DoReflow();
-  }
-
-  if (mPositioningDirty) {
-    DoGlyphPositioning();
   }
 }
 

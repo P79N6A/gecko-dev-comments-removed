@@ -300,7 +300,26 @@ public:
 
 
 
+
+
+
+
   void ReflowSVGNonDisplayText();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  void ScheduleReflowSVGNonDisplayText();
 
   
 
@@ -352,7 +371,6 @@ private:
     }
     ~AutoCanvasTMForMarker()
     {
-      
       mFrame->mGetCanvasTMForFlag = mOldFor;
     }
   private:
@@ -401,14 +419,16 @@ private:
   
 
 
+
+  void MaybeReflowAnonymousBlockChild();
+
+  
+
+
   void DoReflow();
 
   
 
-
-  void RequestReflow(nsIPresShell::IntrinsicDirty aType, uint32_t aBit);
-
-  
 
 
   void UpdateGlyphPositioning();
