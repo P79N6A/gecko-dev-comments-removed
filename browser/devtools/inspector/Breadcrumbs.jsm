@@ -9,6 +9,7 @@ const Cu = Components.utils;
 const Ci = Components.interfaces;
 
 const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
+const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
 
 this.EXPORTED_SYMBOLS = ["HTMLBreadcrumbs"];
 
@@ -27,6 +28,8 @@ const LOW_PRIORITY_ELEMENTS = {
   "STYLE": true,
   "TITLE": true,
 };
+
+
 
 
 
@@ -128,16 +131,16 @@ HTMLBreadcrumbs.prototype = {
     let fragment = this.chromeDoc.createDocumentFragment();
 
     let tagLabel = this.chromeDoc.createElement("label");
-    tagLabel.className = "inspector-breadcrumbs-tag plain";
+    tagLabel.className = "breadcrumbs-widget-item-tag plain";
 
     let idLabel = this.chromeDoc.createElement("label");
-    idLabel.className = "inspector-breadcrumbs-id plain";
+    idLabel.className = "breadcrumbs-widget-item-id plain";
 
     let classesLabel = this.chromeDoc.createElement("label");
-    classesLabel.className = "inspector-breadcrumbs-classes plain";
+    classesLabel.className = "breadcrumbs-widget-item-classes plain";
 
     let pseudosLabel = this.chromeDoc.createElement("label");
-    pseudosLabel.className = "inspector-breadcrumbs-pseudo-classes plain";
+    pseudosLabel.className = "breadcrumbs-widget-item-pseudo-classes plain";
 
     tagLabel.textContent = aNode.tagName.toLowerCase();
     idLabel.textContent = aNode.id ? ("#" + aNode.id) : "";
@@ -389,7 +392,7 @@ HTMLBreadcrumbs.prototype = {
   {
     let button = this.chromeDoc.createElement("button");
     button.appendChild(this.prettyPrintNodeAsXUL(aNode));
-    button.className = "inspector-breadcrumbs-button";
+    button.className = "breadcrumbs-widget-item";
 
     button.setAttribute("tooltiptext", this.prettyPrintNodeAsText(aNode));
 
@@ -515,7 +518,13 @@ HTMLBreadcrumbs.prototype = {
 
     let scrollbox = this.container;
     let element = this.nodeHierarchy[this.currentIndex].button;
-    scrollbox.ensureElementIsVisible(element);
+
+    
+    
+    this.chromeWin.clearTimeout(this._ensureVisibleTimeout);
+    this._ensureVisibleTimeout = this.chromeWin.setTimeout(function() {
+      scrollbox.ensureElementIsVisible(element);
+    }, ENSURE_SELECTION_VISIBLE_DELAY);
   },
 
   updateSelectors: function BC_updateSelectors()
@@ -578,11 +587,10 @@ HTMLBreadcrumbs.prototype = {
     }
     
     this.ensureFirstChild();
+    this.updateSelectors();
 
     
     this.scroll();
-
-    this.updateSelectors();
   },
 }
 

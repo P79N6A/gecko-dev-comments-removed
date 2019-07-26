@@ -8,68 +8,112 @@
 
 
 
-function BreakpointsView() {
-  dumpn("BreakpointsView was instantiated");
-  MenuContainer.call(this);
-  this._createItemView = this._createItemView.bind(this);
+function SourcesView() {
+  dumpn("SourcesView was instantiated");
+
+  this._breakpointsCache = new Map(); 
   this._onBreakpointRemoved = this._onBreakpointRemoved.bind(this);
   this._onEditorLoad = this._onEditorLoad.bind(this);
   this._onEditorUnload = this._onEditorUnload.bind(this);
   this._onEditorSelection = this._onEditorSelection.bind(this);
   this._onEditorContextMenu = this._onEditorContextMenu.bind(this);
-  this._onEditorContextMenuPopupHidden = this._onEditorContextMenuPopupHidden.bind(this);
+  this._onSourceMouseDown = this._onSourceMouseDown.bind(this);
+  this._onSourceSelect = this._onSourceSelect.bind(this);
+  this._onSourceClick = this._onSourceClick.bind(this);
   this._onBreakpointClick = this._onBreakpointClick.bind(this);
-  this._onCheckboxClick = this._onCheckboxClick.bind(this);
+  this._onBreakpointCheckboxClick = this._onBreakpointCheckboxClick.bind(this);
   this._onConditionalPopupShowing = this._onConditionalPopupShowing.bind(this);
   this._onConditionalPopupShown = this._onConditionalPopupShown.bind(this);
   this._onConditionalPopupHiding = this._onConditionalPopupHiding.bind(this);
+  this._onConditionalTextboxInput = this._onConditionalTextboxInput.bind(this);
   this._onConditionalTextboxKeyPress = this._onConditionalTextboxKeyPress.bind(this);
 }
 
-create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
+create({ constructor: SourcesView, proto: MenuContainer.prototype }, {
   
 
 
-  initialize: function DVB_initialize() {
-    dumpn("Initializing the BreakpointsView");
-    this.node = new StackList(document.getElementById("breakpoints"));
+  initialize: function DVS_initialize() {
+    dumpn("Initializing the SourcesView");
+
+    this.node = new SideMenuWidget(document.getElementById("sources"));
+    this.emptyText = L10N.getStr("noSourcesText");
+    this.unavailableText = L10N.getStr("noMatchingSourcesText");
+
     this._commandset = document.getElementById("debuggerCommands");
     this._popupset = document.getElementById("debuggerPopupset");
     this._cmPopup = document.getElementById("sourceEditorContextMenu");
     this._cbPanel = document.getElementById("conditional-breakpoint-panel");
-    this._cbTextbox = document.getElementById("conditional-breakpoint-textbox");
-
-    this.node.emptyText = L10N.getStr("emptyBreakpointsText");
-    this.node.itemFactory = this._createItemView;
-    this.node.uniquenessQualifier = 2;
+    this._cbTextbox = document.getElementById("conditional-breakpoint-panel-textbox");
 
     window.addEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
     window.addEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
-    this.node.addEventListener("click", this._onBreakpointClick, false);
-    this._cmPopup.addEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
+    this.node.addEventListener("mousedown", this._onSourceMouseDown, false);
+    this.node.addEventListener("select", this._onSourceSelect, false);
+    this.node.addEventListener("click", this._onSourceClick, false);
     this._cbPanel.addEventListener("popupshowing", this._onConditionalPopupShowing, false);
     this._cbPanel.addEventListener("popupshown", this._onConditionalPopupShown, false);
     this._cbPanel.addEventListener("popuphiding", this._onConditionalPopupHiding, false);
+    this._cbTextbox.addEventListener("input", this._onConditionalTextboxInput, false);
     this._cbTextbox.addEventListener("keypress", this._onConditionalTextboxKeyPress, false);
 
-    this._cache = new Map();
+    
+    this.empty();
   },
 
   
 
 
-  destroy: function DVB_destroy() {
-    dumpn("Destroying the BreakpointsView");
+  destroy: function DVS_destroy() {
+    dumpn("Destroying the SourcesView");
+
     window.removeEventListener("Debugger:EditorLoaded", this._onEditorLoad, false);
     window.removeEventListener("Debugger:EditorUnloaded", this._onEditorUnload, false);
-    this.node.removeEventListener("click", this._onBreakpointClick, false);
-    this._cmPopup.removeEventListener("popuphidden", this._onEditorContextMenuPopupHidden, false);
+    this.node.removeEventListener("mousedown", this._onSourceMouseDown, false);
+    this.node.removeEventListener("select", this._onSourceSelect, false);
+    this.node.removeEventListener("click", this._onSourceClick, false);
     this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShowing, false);
-    this._cbPanel.removeEventListener("popupshown", this._onConditionalPopupShown, false);
+    this._cbPanel.removeEventListener("popupshowing", this._onConditionalPopupShown, false);
     this._cbPanel.removeEventListener("popuphiding", this._onConditionalPopupHiding, false);
+    this._cbTextbox.removeEventListener("input", this._onConditionalTextboxInput, false);
     this._cbTextbox.removeEventListener("keypress", this._onConditionalTextboxKeyPress, false);
+  },
 
-    this._cbPanel.hidePopup();
+  
+
+
+
+  set preferredSource(aSourceLocation) {
+    this._preferredValue = aSourceLocation;
+
+    
+    
+    if (this.containsValue(aSourceLocation)) {
+      this.selectedValue = aSourceLocation;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  addSource: function DVS_addSource(aSource, aOptions = {}) {
+    let url = aSource.url;
+    let label = SourceUtils.getSourceLabel(url);
+    let group = SourceUtils.getSourceGroup(url);
+
+    
+    let sourceItem = this.push([label, url, group], {
+      staged: aOptions.staged, 
+      attachment: {
+        source: aSource
+      }
+    });
   },
 
   
@@ -88,41 +132,43 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-
-
-  addBreakpoint: function DVB_addBreakpoint(aSourceLocation, aLineNumber,
-                                            aActor, aLineInfo, aLineText,
-                                            aConditionalFlag, aOpenPopupFlag) {
-    
-    let breakpointItem = this.push([aLineInfo.trim(), aLineText.trim()], {
-      attachment: {
-        enabled: true,
-        sourceLocation: aSourceLocation,
-        lineNumber: aLineNumber,
-        isConditional: aConditionalFlag
-      }
-    });
+  addBreakpoint: function DVS_addBreakpoint(aOptions) {
+    let { sourceLocation: url, lineNumber: line } = aOptions;
 
     
-    if (!breakpointItem) {
-      this.enableBreakpoint(aSourceLocation, aLineNumber, { id: aActor });
+    
+    if (this.getBreakpoint(url, line)) {
+      this.enableBreakpoint(url, line, { id: aOptions.actor });
       return;
     }
 
-    let element = breakpointItem.target;
-    element.id = "breakpoint-" + aActor;
-    element.className = "dbg-breakpoint list-item";
-    element.infoNode.className = "dbg-breakpoint-info plain";
-    element.textNode.className = "dbg-breakpoint-text plain";
-    element.setAttribute("contextmenu", this._createContextMenu(element));
+    
+    let sourceItem = this.getItemByValue(url);
 
-    breakpointItem.finalize = this._onBreakpointRemoved;
-    this._cache.set(this._key(aSourceLocation, aLineNumber), breakpointItem);
+    
+    let breakpointView = this._createBreakpointView.call(this, aOptions);
+    let contextMenu = this._createContextMenu.call(this, aOptions);
+
+    
+    let breakpointItem = sourceItem.append(breakpointView.container, {
+      attachment: Object.create(aOptions, {
+        view: { value: breakpointView },
+        popup: { value: contextMenu }
+      }),
+      attributes: [
+        ["contextmenu", contextMenu.menupopupId]
+      ],
+      
+      
+      finalize: this._onBreakpointRemoved
+    });
+
+    this._breakpointsCache.set(this._getBreakpointKey(url, line), breakpointItem);
 
     
     
-    if (aConditionalFlag && aOpenPopupFlag) {
-      this.highlightBreakpoint(aSourceLocation, aLineNumber, { openPopup: true });
+    if (aOptions.openPopupFlag) {
+      this.highlightBreakpoint(url, line, { openPopup: true });
     }
   },
 
@@ -134,12 +180,38 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  removeBreakpoint: function DVB_removeBreakpoint(aSourceLocation, aLineNumber) {
-    let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
-    if (breakpointItem) {
-      this.remove(breakpointItem);
-      this._cache.delete(this._key(aSourceLocation, aLineNumber));
+  removeBreakpoint: function DVS_removeBreakpoint(aSourceLocation, aLineNumber) {
+    
+    
+    let sourceItem = this.getItemByValue(aSourceLocation);
+    if (!sourceItem) {
+      return;
     }
+    let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
+    if (!breakpointItem) {
+      return;
+    }
+
+    sourceItem.remove(breakpointItem);
+
+    if (this._selectedBreakpoint == breakpointItem) {
+      this._selectedBreakpoint = null;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getBreakpoint: function DVS_getBreakpoint(aSourceLocation, aLineNumber) {
+    let breakpointKey = this._getBreakpointKey(aSourceLocation, aLineNumber);
+    return this._breakpointsCache.get(breakpointKey);
   },
 
   
@@ -160,30 +232,33 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
   enableBreakpoint:
-  function DVB_enableBreakpoint(aSourceLocation, aLineNumber, aOptions = {}) {
+  function DVS_enableBreakpoint(aSourceLocation, aLineNumber, aOptions = {}) {
     let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
-    if (breakpointItem) {
-      
-      if (aOptions.id) {
-        breakpointItem.target.id = "breakpoint-" + aOptions.id;
-      }
-
-      
-      if (!aOptions.silent) {
-        breakpointItem.target.checkbox.setAttribute("checked", "true");
-      }
-
-      let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-      let breakpointLocation = { url: url, line: line };
-      DebuggerController.Breakpoints.addBreakpoint(breakpointLocation, aOptions.callback, {
-        noPaneUpdate: true
-      });
-
-      
-      breakpointItem.attachment.enabled = true;
-      return true;
+    if (!breakpointItem) {
+      return false;
     }
-    return false;
+
+    
+    if (aOptions.id) {
+      breakpointItem.attachment.view.container.id = "breakpoint-" + aOptions.id;
+    }
+
+    
+    if (!aOptions.silent) {
+      breakpointItem.attachment.view.checkbox.setAttribute("checked", "true");
+    }
+
+    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+    let breakpointLocation = { url: url, line: line };
+    DebuggerController.Breakpoints.addBreakpoint(breakpointLocation, aOptions.callback, {
+      noPaneUpdate: true,
+      noPaneHighlight: true,
+      conditionalExpression: breakpointItem.attachment.conditionalExpression
+    });
+
+    
+    breakpointItem.attachment.disabled = false;
+    return true;
   },
 
   
@@ -203,25 +278,29 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
   disableBreakpoint:
-  function DVB_disableBreakpoint(aSourceLocation, aLineNumber, aOptions = {}) {
+  function DVS_disableBreakpoint(aSourceLocation, aLineNumber, aOptions = {}) {
     let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
-    if (breakpointItem) {
-      
-      if (!aOptions.silent) {
-        breakpointItem.target.checkbox.removeAttribute("checked");
-      }
-
-      let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
-      DebuggerController.Breakpoints.removeBreakpoint(breakpointClient, aOptions.callback, {
-        noPaneUpdate: true
-      });
-
-      
-      breakpointItem.attachment.enabled = false;
-      return true;
+    if (!breakpointItem) {
+      return false;
     }
-    return false;
+
+    
+    if (!aOptions.silent) {
+      breakpointItem.attachment.view.checkbox.removeAttribute("checked");
+    }
+
+    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+    let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
+    DebuggerController.Breakpoints.removeBreakpoint(breakpointClient, aOptions.callback, {
+      noPaneUpdate: true
+    });
+
+    
+    breakpointItem.attachment.conditionalExpression = breakpointClient.conditionalExpression;
+
+    
+    breakpointItem.attachment.disabled = true;
+    return true;
   },
 
   
@@ -237,75 +316,51 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
   highlightBreakpoint:
-  function DVB_highlightBreakpoint(aSourceLocation, aLineNumber, aFlags = {}) {
+  function DVS_highlightBreakpoint(aSourceLocation, aLineNumber, aFlags = {}) {
     let breakpointItem = this.getBreakpoint(aSourceLocation, aLineNumber);
-    if (breakpointItem) {
-      
-      if (aFlags.updateEditor) {
-        DebuggerView.updateEditor(aSourceLocation, aLineNumber, { noDebug: true });
-      }
-
-      
-      
-      if (aFlags.openPopup && breakpointItem.attachment.isConditional) {
-        let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-        let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
-
-        
-        DebuggerView.showPanesSoon(function() {
-          
-          if (this.getBreakpoint(aSourceLocation, aLineNumber)) {
-            this._cbTextbox.value = breakpointClient.conditionalExpression || "";
-            this._cbPanel.openPopup(breakpointItem.target,
-              BREAKPOINT_CONDITIONAL_POPUP_POSITION,
-              BREAKPOINT_CONDITIONAL_POPUP_OFFSET);
-          }
-        }.bind(this));
-      } else {
-        this._cbPanel.hidePopup();
-      }
-
-      
-      this.selectedItem = breakpointItem;
+    if (!breakpointItem) {
+      return;
     }
+
     
-    else {
-      this.selectedItem = null;
-      this._cbPanel.hidePopup();
+    this._selectBreakpoint(breakpointItem);
+
+    
+    if (aFlags.updateEditor) {
+      DebuggerView.updateEditor(aSourceLocation, aLineNumber, { noDebug: true });
+    }
+
+    
+    
+    if (aFlags.openPopup) {
+      this._openConditionalPopup();
+    } else {
+      this._hideConditionalPopup();
     }
   },
 
   
 
 
-  unhighlightBreakpoint: function DVB_highlightBreakpoint() {
-    this.highlightBreakpoint(null);
+  unhighlightBreakpoint: function DVS_unhighlightBreakpoint() {
+    this._unselectBreakpoint();
+    this._hideConditionalPopup();
   },
 
   
 
 
 
-
-
-
-
-
-
-
-
-  getBreakpoint: function DVB_getBreakpoint(aSourceLocation, aLineNumber) {
-    return this._cache.get(this._key(aSourceLocation, aLineNumber));
-  },
+  get selectedBreakpoint() this._selectedBreakpoint,
 
   
 
 
 
   get selectedClient() {
-    let selectedItem = this.selectedItem;
-    if (selectedItem) {
-      let { sourceLocation: url, lineNumber: line } = selectedItem.attachment;
+    let breakpointItem = this._selectedBreakpoint;
+    if (breakpointItem) {
+      let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
       return DebuggerController.Breakpoints.getBreakpoint(url, line);
     }
     return null;
@@ -317,42 +372,54 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
+  _selectBreakpoint: function DVS__selectBreakpoint(aItem) {
+    if (this._selectedBreakpoint == aItem) {
+      return;
+    }
+    this._unselectBreakpoint();
+    this._selectedBreakpoint = aItem;
+    this._selectedBreakpoint.markSelected();
+
+    
+    this.node.ensureElementIsVisible(aItem.target);
+  },
+
+  
 
 
+  _unselectBreakpoint: function DVS__unselectBreakpoint() {
+    if (this._selectedBreakpoint) {
+      this._selectedBreakpoint.markDeselected();
+      this._selectedBreakpoint = null;
+    }
+  },
+
+  
 
 
-  _createItemView: function DVB__createItemView(aElementNode, aInfo, aText) {
-    let checkbox = document.createElement("checkbox");
-    checkbox.setAttribute("checked", "true");
-    checkbox.addEventListener("click", this._onCheckboxClick, false);
+  _openConditionalPopup: function DVS__openConditionalPopup() {
+    let selectedBreakpoint = this.selectedBreakpoint;
+    let selectedClient = this.selectedClient;
 
-    let lineInfo = document.createElement("label");
-    lineInfo.setAttribute("value", aInfo);
-    lineInfo.setAttribute("crop", "end");
+    if (selectedClient.conditionalExpression === undefined) {
+      this._cbTextbox.value = selectedClient.conditionalExpression = "";
+    } else {
+      this._cbTextbox.value = selectedClient.conditionalExpression;
+    }
 
-    let lineText = document.createElement("label");
-    lineText.setAttribute("value", aText);
-    lineText.setAttribute("crop", "end");
-    lineText.setAttribute("tooltiptext",
-      aText.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH));
+    this._cbPanel.hidden = false;
+    this._cbPanel.openPopup(this.selectedBreakpoint.attachment.view.lineNumber,
+      BREAKPOINT_CONDITIONAL_POPUP_POSITION,
+      BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X,
+      BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y);
+  },
 
-    let state = document.createElement("vbox");
-    state.className = "state";
-    state.setAttribute("pack", "center");
-    state.appendChild(checkbox);
+  
 
-    let content = document.createElement("vbox");
-    content.className = "content";
-    content.setAttribute("flex", "1");
-    content.appendChild(lineInfo);
-    content.appendChild(lineText);
 
-    aElementNode.appendChild(state);
-    aElementNode.appendChild(content);
-
-    aElementNode.checkbox = checkbox;
-    aElementNode.infoNode = lineInfo;
-    aElementNode.textNode = lineText;
+  _hideConditionalPopup: function DVS__hideConditionalPopup() {
+    this._cbPanel.hidden = true;
+    this._cbPanel.hidePopup();
   },
 
   
@@ -363,37 +430,91 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _createContextMenu: function DVB__createContextMenu(aElementNode) {
-    let breakpointId = aElementNode.id;
-    let commandsetId = "breakpointCommandset-" + breakpointId;
-    let menupopupId = "breakpointMenupopup-" + breakpointId;
+
+
+
+
+
+  _createBreakpointView: function DVS_createBreakpointView(aOptions) {
+    let { lineNumber, lineText } = aOptions;
+
+    let checkbox = document.createElement("checkbox");
+    checkbox.setAttribute("checked", "true");
+
+    let lineNumberNode = document.createElement("label");
+    lineNumberNode.className = "plain dbg-breakpoint-line";
+    lineNumberNode.setAttribute("value", lineNumber);
+
+    let lineTextNode = document.createElement("label");
+    lineTextNode.className = "plain dbg-breakpoint-text";
+    lineTextNode.setAttribute("value", lineText);
+    lineTextNode.setAttribute("crop", "end");
+    lineTextNode.setAttribute("flex", "1");
+    lineTextNode.setAttribute("tooltiptext",
+      lineText.substr(0, BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH));
+
+    let container = document.createElement("hbox");
+    container.id = "breakpoint-" + aOptions.actor;
+    container.className = "dbg-breakpoint side-menu-widget-item-other";
+    container.setAttribute("align", "center");
+    container.setAttribute("flex", "1");
+
+    container.addEventListener("click", this._onBreakpointClick, false);
+    checkbox.addEventListener("click", this._onBreakpointCheckboxClick, false);
+
+    container.appendChild(checkbox);
+    container.appendChild(lineNumberNode);
+    container.appendChild(lineTextNode);
+
+    return {
+      container: container,
+      checkbox: checkbox,
+      lineNumber: lineNumberNode,
+      lineText: lineTextNode
+    };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  _createContextMenu: function DVS__createContextMenu(aOptions) {
+    let commandsetId = "bp-cSet-" + aOptions.actor;
+    let menupopupId = "bp-mPop-" + aOptions.actor;
 
     let commandset = document.createElement("commandset");
     let menupopup = document.createElement("menupopup");
-    commandset.setAttribute("id", commandsetId);
-    menupopup.setAttribute("id", menupopupId);
+    commandset.id = commandsetId;
+    menupopup.id = menupopupId;
 
-    createMenuItem.call(this, "deleteAll");
+    createMenuItem.call(this, "enableSelf", true);
+    createMenuItem.call(this, "disableSelf");
+    createMenuItem.call(this, "deleteSelf");
     createMenuSeparator();
-    createMenuItem.call(this, "enableAll");
-    createMenuItem.call(this, "disableAll");
+    createMenuItem.call(this, "setConditional");
     createMenuSeparator();
     createMenuItem.call(this, "enableOthers");
     createMenuItem.call(this, "disableOthers");
     createMenuItem.call(this, "deleteOthers");
     createMenuSeparator();
-    createMenuItem.call(this, "setConditional");
+    createMenuItem.call(this, "enableAll");
+    createMenuItem.call(this, "disableAll");
     createMenuSeparator();
-    createMenuItem.call(this, "enableSelf", true);
-    createMenuItem.call(this, "disableSelf");
-    createMenuItem.call(this, "deleteSelf");
+    createMenuItem.call(this, "deleteAll");
 
     this._popupset.appendChild(menupopup);
     this._commandset.appendChild(commandset);
 
-    aElementNode.commandset = commandset;
-    aElementNode.menupopup = menupopup;
-    return menupopupId;
+    return {
+      commandsetId: commandsetId,
+      menupopupId: menupopupId
+    };
 
     
 
@@ -409,23 +530,23 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
       let command = document.createElement("command");
 
       let prefix = "bp-cMenu-"; 
-      let commandId = prefix + aName + "-" + breakpointId + "-command";
-      let menuitemId = prefix + aName + "-" + breakpointId + "-menuitem";
+      let commandId = prefix + aName + "-" + aOptions.actor + "-command";
+      let menuitemId = prefix + aName + "-" + aOptions.actor + "-menuitem";
 
       let label = L10N.getStr("breakpointMenuItem." + aName);
       let func = this["_on" + aName.charAt(0).toUpperCase() + aName.slice(1)];
 
-      command.setAttribute("id", commandId);
+      command.id = commandId;
       command.setAttribute("label", label);
-      command.addEventListener("command", func.bind(this, aElementNode), false);
+      command.addEventListener("command", func.bind(this, aOptions), false);
 
-      menuitem.setAttribute("id", menuitemId);
+      menuitem.id = menuitemId;
+      menuitem.setAttribute("command", commandId);
       menuitem.setAttribute("command", commandId);
       menuitem.setAttribute("hidden", aHiddenFlag);
 
       commandset.appendChild(command);
       menupopup.appendChild(menuitem);
-      aElementNode[aName] = { menuitem: menuitem, command: command };
     }
 
     
@@ -444,10 +565,12 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _destroyContextMenu: function DVB__destroyContextMenu(aElementNode) {
-    let commandset = aElementNode.commandset;
-    let menupopup = aElementNode.menupopup;
+  _destroyContextMenu: function DVS__destroyContextMenu(aContextMenu) {
+    dumpn("Destroying context menu: " +
+      aContextMenu.commandsetId + " & " + aContextMenu.menupopupId);
 
+    let commandset = document.getElementById(aContextMenu.commandsetId);
+    let menupopup = document.getElementById(aContextMenu.menupopupId);
     commandset.parentNode.removeChild(commandset);
     menupopup.parentNode.removeChild(menupopup);
   },
@@ -455,14 +578,21 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onBreakpointRemoved: function DVB__onBreakpointRemoved(aItem) {
-    this._destroyContextMenu(aItem.target);
+
+
+
+  _onBreakpointRemoved: function DVS__onBreakpointRemoved(aItem) {
+    dumpn("Finalizing breakpoint item: " + aItem);
+
+    let { sourceLocation: url, lineNumber: line, popup } = aItem.attachment;
+    this._destroyContextMenu(popup);
+    this._breakpointsCache.delete(this._getBreakpointKey(url, line));
   },
 
   
 
 
-  _onEditorLoad: function DVB__onEditorLoad({ detail: editor }) {
+  _onEditorLoad: function DVS__onEditorLoad({ detail: editor }) {
     editor.addEventListener("Selection", this._onEditorSelection, false);
     editor.addEventListener("ContextMenu", this._onEditorContextMenu, false);
   },
@@ -470,7 +600,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onEditorUnload: function DVB__onEditorUnload({ detail: editor }) {
+  _onEditorUnload: function DVS__onEditorUnload({ detail: editor }) {
     editor.removeEventListener("Selection", this._onEditorSelection, false);
     editor.removeEventListener("ContextMenu", this._onEditorContextMenu, false);
   },
@@ -478,10 +608,10 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onEditorSelection: function DVB__onEditorSelection(e) {
+  _onEditorSelection: function DVS__onEditorSelection(e) {
     let { start, end } = e.newValue;
 
-    let sourceLocation = DebuggerView.Sources.selectedValue;
+    let sourceLocation = this.selectedValue;
     let lineStart = DebuggerView.editor.getLineAtOffset(start) + 1;
     let lineEnd = DebuggerView.editor.getLineAtOffset(end) + 1;
 
@@ -495,7 +625,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onEditorContextMenu: function DVB__onEditorContextMenu({ x, y }) {
+  _onEditorContextMenu: function DVS__onEditorContextMenu({ x, y }) {
     let offset = DebuggerView.editor.getOffsetAtLocation(x, y);
     let line = DebuggerView.editor.getLineAtOffset(offset);
     this._editorContextMenuLineNumber = line;
@@ -504,8 +634,105 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onEditorContextMenuPopupHidden: function DVB__onEditorContextMenuPopupHidden() {
-    this._editorContextMenuLineNumber = -1;
+  _onSourceMouseDown: function DVS__onSourceMouseDown(e) {
+    let item = this.getItemForElement(e.target);
+    if (item) {
+      
+      this.selectedItem = item;
+    }
+  },
+
+  
+
+
+  _onSourceSelect: function DVS__onSourceSelect() {
+    if (!this.refresh()) {
+      return;
+    }
+
+    let selectedSource = this.selectedItem.attachment.source;
+    if (DebuggerView.editorSource != selectedSource) {
+      DebuggerView.editorSource = selectedSource;
+    }
+  },
+
+  
+
+
+  _onSourceClick: function DVS__onSourceClick() {
+    
+    DebuggerView.Filtering.target = this;
+  },
+
+  
+
+
+  _onBreakpointClick: function DVS__onBreakpointClick(e) {
+    let sourceItem = this.getItemForElement(e.target);
+    let breakpointItem = this.getItemForElement.call(sourceItem, e.target);
+    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+    let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
+    let conditionalExpression = (breakpointClient || {}).conditionalExpression;
+
+    this.highlightBreakpoint(url, line, {
+      updateEditor: true,
+      openPopup: conditionalExpression !== undefined && e.button == 0
+    });
+  },
+
+  
+
+
+  _onBreakpointCheckboxClick: function DVS__onBreakpointCheckboxClick(e) {
+    let sourceItem = this.getItemForElement(e.target);
+    let breakpointItem = this.getItemForElement.call(sourceItem, e.target);
+    let { sourceLocation: url, lineNumber: line, disabled } = breakpointItem.attachment;
+
+    this[disabled ? "enableBreakpoint" : "disableBreakpoint"](url, line, {
+      silent: true
+    });
+
+    
+    e.preventDefault();
+    e.stopPropagation();
+  },
+
+  
+
+
+  _onConditionalPopupShowing: function DVS__onConditionalPopupShowing() {
+    this._conditionalPopupVisible = true;
+  },
+
+  
+
+
+  _onConditionalPopupShown: function DVS__onConditionalPopupShown() {
+    this._cbTextbox.focus();
+    this._cbTextbox.select();
+  },
+
+  
+
+
+  _onConditionalPopupHiding: function DVS__onConditionalPopupHiding() {
+    this._conditionalPopupVisible = false;
+  },
+
+  
+
+
+  _onConditionalTextboxInput: function DVS__onConditionalTextboxInput() {
+    this.selectedClient.conditionalExpression = this._cbTextbox.value;
+  },
+
+  
+
+
+  _onConditionalTextboxKeyPress: function DVS__onConditionalTextboxKeyPress(e) {
+    if (e.keyCode == e.DOM_VK_RETURN || e.keyCode == e.DOM_VK_ENTER) {
+      this._hideConditionalPopup();
+    }
   },
 
   
@@ -526,9 +753,8 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
     
     if (breakpointItem) {
-      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line)
+      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
       DebuggerController.Breakpoints.removeBreakpoint(breakpointClient);
-      DebuggerView.Breakpoints.unhighlightBreakpoint();
     }
     
     else {
@@ -555,8 +781,7 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
     
     if (breakpointItem) {
-      breakpointItem.attachment.isConditional = true;
-      this.selectedClient.conditionalExpression = "";
+      let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
       this.highlightBreakpoint(url, line, { openPopup: true });
     }
     
@@ -571,79 +796,12 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
   
 
 
-  _onConditionalPopupShowing: function DVB__onConditionalPopupShowing() {
-    this._popupShown = true;
-  },
-
-  
-
-
-  _onConditionalPopupShown: function DVB__onConditionalPopupShown() {
-    this._cbTextbox.focus();
-    this._cbTextbox.select();
-  },
-
-  
-
-
-  _onConditionalPopupHiding: function DVB__onConditionalPopupHiding() {
-    this._popupShown = false;
-    this.selectedClient.conditionalExpression = this._cbTextbox.value;
-  },
-
-  
-
-
-  _onConditionalTextboxKeyPress: function DVB__onConditionalTextboxKeyPress(e) {
-    if (e.keyCode == e.DOM_VK_RETURN || e.keyCode == e.DOM_VK_ENTER) {
-      this._cbPanel.hidePopup();
-    }
-  },
-
-  
-
-
-  _onBreakpointClick: function DVB__onBreakpointClick(e) {
-    let breakpointItem = this.getItemForElement(e.target);
-    if (!breakpointItem) {
-      
-      return;
-    }
-    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-    this.highlightBreakpoint(url, line, { updateEditor: true, openPopup: e.button == 0 });
-  },
-
-  
-
-
-  _onCheckboxClick: function DVB__onCheckboxClick(e) {
-    let breakpointItem = this.getItemForElement(e.target);
-    if (!breakpointItem) {
-      
-      return;
-    }
-    let { sourceLocation: url, lineNumber: line, enabled } = breakpointItem.attachment;
-    this[enabled ? "disableBreakpoint" : "enableBreakpoint"](url, line, { silent: true });
-
-    
-    e.preventDefault();
-    e.stopPropagation();
-  },
-
-  
 
 
 
-
-
-  _onSetConditional: function DVB__onSetConditional(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    let breakpointItem = this.getItemForElement(aTarget);
-    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
-
-    breakpointItem.attachment.isConditional = true;
+  _onSetConditional: function DVS__onSetConditional(aDetails) {
+    let { sourceLocation: url, lineNumber: line, actor } = aDetails;
+    let breakpointItem = this.getBreakpoint(url, line);
     this.highlightBreakpoint(url, line, { openPopup: true });
   },
 
@@ -653,16 +811,15 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onEnableSelf: function DVB__onEnableSelf(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    let breakpointItem = this.getItemForElement(aTarget);
-    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+  _onEnableSelf: function DVS__onEnableSelf(aDetails) {
+    let { sourceLocation: url, lineNumber: line, actor } = aDetails;
 
     if (this.enableBreakpoint(url, line)) {
-      aTarget.enableSelf.menuitem.setAttribute("hidden", "true");
-      aTarget.disableSelf.menuitem.removeAttribute("hidden");
+      let prefix = "bp-cMenu-"; 
+      let enableSelfId = prefix + "enableSelf-" + actor + "-menuitem";
+      let disableSelfId = prefix + "disableSelf-" + actor + "-menuitem";
+      document.getElementById(enableSelfId).setAttribute("hidden", "true");
+      document.getElementById(disableSelfId).removeAttribute("hidden");
     }
   },
 
@@ -672,16 +829,15 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDisableSelf: function DVB__onDisableSelf(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    let breakpointItem = this.getItemForElement(aTarget);
-    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+  _onDisableSelf: function DVS__onDisableSelf(aDetails) {
+    let { sourceLocation: url, lineNumber: line, actor } = aDetails;
 
     if (this.disableBreakpoint(url, line)) {
-      aTarget.enableSelf.menuitem.removeAttribute("hidden");
-      aTarget.disableSelf.menuitem.setAttribute("hidden", "true");
+      let prefix = "bp-cMenu-"; 
+      let enableSelfId = prefix + "enableSelf-" + actor + "-menuitem";
+      let disableSelfId = prefix + "disableSelf-" + actor + "-menuitem";
+      document.getElementById(enableSelfId).removeAttribute("hidden");
+      document.getElementById(disableSelfId).setAttribute("hidden", "true");
     }
   },
 
@@ -691,12 +847,8 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDeleteSelf: function DVB__onDeleteSelf(aTarget) {
-    if (!aTarget) {
-      return;
-    }
-    let breakpointItem = this.getItemForElement(aTarget);
-    let { sourceLocation: url, lineNumber: line } = breakpointItem.attachment;
+  _onDeleteSelf: function DVS__onDeleteSelf(aDetails) {
+    let { sourceLocation: url, lineNumber: line } = aDetails;
     let breakpointClient = DebuggerController.Breakpoints.getBreakpoint(url, line);
 
     this.removeBreakpoint(url, line);
@@ -709,10 +861,10 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onEnableOthers: function DVB__onEnableOthers(aTarget) {
-    for (let item in this) {
-      if (item.target != aTarget) {
-        this._onEnableSelf(item.target);
+  _onEnableOthers: function DVS__onEnableOthers(aDetails) {
+    for (let [, item] of this._breakpointsCache) {
+      if (item.attachment.actor != aDetails.actor) {
+        this._onEnableSelf(item.attachment);
       }
     }
   },
@@ -723,10 +875,10 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDisableOthers: function DVB__onDisableOthers(aTarget) {
-    for (let item in this) {
-      if (item.target != aTarget) {
-        this._onDisableSelf(item.target);
+  _onDisableOthers: function DVS__onDisableOthers(aDetails) {
+    for (let [, item] of this._breakpointsCache) {
+      if (item.attachment.actor != aDetails.actor) {
+        this._onDisableSelf(item.attachment);
       }
     }
   },
@@ -737,10 +889,10 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDeleteOthers: function DVB__onDeleteOthers(aTarget) {
-    for (let item in this) {
-      if (item.target != aTarget) {
-        this._onDeleteSelf(item.target);
+  _onDeleteOthers: function DVS__onDeleteOthers(aDetails) {
+    for (let [, item] of this._breakpointsCache) {
+      if (item.attachment.actor != aDetails.actor) {
+        this._onDeleteSelf(item.attachment);
       }
     }
   },
@@ -751,9 +903,9 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onEnableAll: function DVB__onEnableAll(aTarget) {
-    this._onEnableOthers(aTarget);
-    this._onEnableSelf(aTarget);
+  _onEnableAll: function DVS__onEnableAll(aDetails) {
+    this._onEnableOthers(aDetails);
+    this._onEnableSelf(aDetails);
   },
 
   
@@ -762,9 +914,9 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDisableAll: function DVB__onDisableAll(aTarget) {
-    this._onDisableOthers(aTarget);
-    this._onDisableSelf(aTarget);
+  _onDisableAll: function DVS__onDisableAll(aDetails) {
+    this._onDisableOthers(aDetails);
+    this._onDisableSelf(aDetails);
   },
 
   
@@ -773,35 +925,304 @@ create({ constructor: BreakpointsView, proto: MenuContainer.prototype }, {
 
 
 
-  _onDeleteAll: function DVB__onDeleteAll(aTarget) {
-    this._onDeleteOthers(aTarget);
-    this._onDeleteSelf(aTarget);
+  _onDeleteAll: function DVS__onDeleteAll(aDetails) {
+    this._onDeleteOthers(aDetails);
+    this._onDeleteSelf(aDetails);
   },
 
   
 
 
 
-  _key: function DVB__key(aSourceLocation, aLineNumber) {
-    return aSourceLocation + aLineNumber;
+
+
+
+
+
+
+  _getBreakpointKey: function DVS__getBreakpointKey(aSourceLocation, aLineNumber) {
+    return [aSourceLocation, aLineNumber].join();
   },
 
-  _popupset: null,
+  _breakpointsCache: null,
   _commandset: null,
+  _popupset: null,
   _cmPopup: null,
   _cbPanel: null,
   _cbTextbox: null,
-  _popupShown: false,
-  _cache: null,
-  _editorContextMenuLineNumber: -1
+  _selectedBreakpoint: null,
+  _editorContextMenuLineNumber: -1,
+  _conditionalPopupVisible: false
 });
+
+
+
+
+let SourceUtils = {
+  _labelsCache: new Map(),
+  _groupsCache: new Map(),
+
+  
+
+
+
+
+  clearCache: function SU_clearCache() {
+    this._labelsCache = new Map();
+    this._groupsCache = new Map();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  getSourceLabel: function SU_getSourceLabel(aUrl, aLength, aSection) {
+    aLength = aLength || SOURCE_URL_DEFAULT_MAX_LENGTH;
+    aSection = aSection || "end";
+    let id = [aUrl, aLength, aSection].join();
+    let cachedLabel = this._labelsCache.get(id);
+    if (cachedLabel) {
+      return cachedLabel;
+    }
+
+    let sourceLabel = this.trimUrlLength(this.trimUrl(aUrl), aLength, aSection);
+    let unicodeLabel = this.convertToUnicode(window.unescape(sourceLabel));
+    this._labelsCache.set(id, unicodeLabel);
+    return unicodeLabel;
+  },
+
+  
+
+
+
+
+
+
+
+
+  getSourceGroup: function SU_getSourceGroup(aUrl) {
+    let cachedGroup = this._groupsCache.get(aUrl);
+    if (cachedGroup) {
+      return cachedGroup;
+    }
+
+    try {
+      
+      var uri = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+    } catch (e) {
+      
+      return "";
+    }
+
+    let { scheme, hostPort, directory, fileName } = uri;
+    let lastDir = directory.split("/").reverse()[1];
+    let group = [];
+
+    
+    if (scheme != "http") {
+      group.push(scheme);
+    }
+    
+    
+    if (hostPort) {
+      
+      group.push(hostPort.split(".").slice(0, 2).join("."));
+    }
+    
+    
+    if (fileName) {
+      group.push(lastDir);
+    }
+
+    let groupLabel = group.join(" ");
+    let unicodeLabel = this.convertToUnicode(window.unescape(groupLabel));
+    this._groupsCache.set(aUrl, unicodeLabel)
+    return unicodeLabel;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  trimUrlLength: function SU_trimUrlLength(aUrl, aLength, aSection) {
+    aLength = aLength || SOURCE_URL_DEFAULT_MAX_LENGTH;
+    aSection = aSection || "end";
+
+    if (aUrl.length > aLength) {
+      switch (aSection) {
+        case "start":
+          return L10N.ellipsis + aUrl.slice(-aLength);
+          break;
+        case "center":
+          return aUrl.substr(0, aLength / 2 - 1) + L10N.ellipsis + aUrl.slice(-aLength / 2 + 1);
+          break;
+        case "end":
+          return aUrl.substr(0, aLength) + L10N.ellipsis;
+          break;
+      }
+    }
+    return aUrl;
+  },
+
+  
+
+
+
+
+
+
+
+  trimUrlQuery: function SU_trimUrlQuery(aUrl) {
+    let length = aUrl.length;
+    let q1 = aUrl.indexOf('?');
+    let q2 = aUrl.indexOf('&');
+    let q3 = aUrl.indexOf('#');
+    let q = Math.min(q1 != -1 ? q1 : length,
+                     q2 != -1 ? q2 : length,
+                     q3 != -1 ? q3 : length);
+
+    return aUrl.slice(0, q);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  trimUrl: function SU_trimUrl(aUrl, aLabel, aSeq) {
+    if (!(aUrl instanceof Ci.nsIURL)) {
+      try {
+        
+        aUrl = Services.io.newURI(aUrl, null, null).QueryInterface(Ci.nsIURL);
+      } catch (e) {
+        
+        return aUrl;
+      }
+    }
+    if (!aSeq) {
+      let name = aUrl.fileName;
+      if (name) {
+        
+        
+
+        
+        
+        aLabel = aUrl.fileName.replace(/\&.*/, "");
+      } else {
+        
+        
+        aLabel = "";
+      }
+      aSeq = 1;
+    }
+
+    
+    if (aLabel && aLabel.indexOf("?") != 0) {
+      
+      
+      if (!DebuggerView.Sources.containsLabel(aLabel)) {
+        return aLabel;
+      }
+    }
+
+    
+    if (aSeq == 1) {
+      let query = aUrl.query;
+      if (query) {
+        return this.trimUrl(aUrl, aLabel + "?" + query, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq == 2) {
+      let ref = aUrl.ref;
+      if (ref) {
+        return this.trimUrl(aUrl, aLabel + "#" + aUrl.ref, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq == 3) {
+      let dir = aUrl.directory;
+      if (dir) {
+        return this.trimUrl(aUrl, dir.replace(/^\//, "") + aLabel, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq == 4) {
+      let host = aUrl.hostPort;
+      if (host) {
+        return this.trimUrl(aUrl, host + "/" + aLabel, aSeq + 1);
+      }
+      aSeq++;
+    }
+    
+    if (aSeq == 5) {
+      return this.trimUrl(aUrl, aUrl.specIgnoringRef, aSeq + 1);
+    }
+    
+    return aUrl.spec;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  convertToUnicode: function SU_convertToUnicode(aString, aCharset) {
+    
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+        .createInstance(Ci.nsIScriptableUnicodeConverter);
+
+    try {
+      if (aCharset) {
+        converter.charset = aCharset;
+      }
+      return converter.ConvertToUnicode(aString);
+    } catch(e) {
+      return aString;
+    }
+  }
+};
 
 
 
 
 function WatchExpressionsView() {
   dumpn("WatchExpressionsView was instantiated");
-  MenuContainer.call(this);
+
+  this._cache = []; 
   this.switchExpression = this.switchExpression.bind(this);
   this.deleteExpression = this.deleteExpression.bind(this);
   this._createItemView = this._createItemView.bind(this);
@@ -817,15 +1238,14 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   initialize: function DVWE_initialize() {
     dumpn("Initializing the WatchExpressionsView");
-    this.node = new StackList(document.getElementById("expressions"));
+
+    this.node = new ListWidget(document.getElementById("expressions"));
     this._variables = document.getElementById("variables");
 
-    this.node.setAttribute("context", "debuggerWatchExpressionsContextMenu");
     this.node.permaText = L10N.getStr("addWatchExpressionText");
     this.node.itemFactory = this._createItemView;
+    this.node.setAttribute("context", "debuggerWatchExpressionsContextMenu");
     this.node.addEventListener("click", this._onClick, false);
-
-    this._cache = [];
   },
 
   
@@ -833,6 +1253,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   destroy: function DVWE_destroy() {
     dumpn("Destroying the WatchExpressionsView");
+
     this.node.removeEventListener("click", this._onClick, false);
   },
 
@@ -844,31 +1265,22 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
   addExpression: function DVWE_addExpression(aExpression = "") {
     
-    DebuggerView.showPanesSoon();
+    DebuggerView.showInstrumentsPane();
 
     
     let expressionItem = this.push([, aExpression], {
-      index: FIRST, 
+      index: 0, 
       relaxed: true, 
       attachment: {
-        currentExpression: "",
         initialExpression: aExpression,
+        currentExpression: "",
         id: this._generateId()
       }
     });
 
-    let element = expressionItem.target;
-    element.id = "expression-" + expressionItem.attachment.id;
-    element.className = "dbg-expression list-item";
-    element.arrowNode.className = "dbg-expression-arrow";
-    element.inputNode.className = "dbg-expression-input plain";
-    element.closeNode.className = "dbg-expression-delete plain devtools-closebutton";
-
     
-    
-    element.inputNode.value = aExpression;
-    element.inputNode.select();
-    element.inputNode.focus();
+    expressionItem.attachment.inputNode.select();
+    expressionItem.attachment.inputNode.focus();
     this._variables.scrollTop = 0;
 
     this._cache.splice(0, 0, expressionItem);
@@ -893,6 +1305,8 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
 
 
+
+
   switchExpression: function DVWE_switchExpression(aVar, aExpression) {
     let expressionItem =
       [i for (i of this._cache) if (i.attachment.currentExpression == aVar.name)][0];
@@ -905,13 +1319,15 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
     
     expressionItem.attachment.currentExpression = aExpression;
-    expressionItem.target.inputNode.value = aExpression;
+    expressionItem.attachment.inputNode.value = aExpression;
 
     
     DebuggerController.StackFrames.syncWatchExpressions();
   },
 
   
+
+
 
 
 
@@ -958,24 +1374,32 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
 
 
-  _createItemView: function DVWE__createItemView(aElementNode, aExpression) {
+  _createItemView: function DVWE__createItemView(aElementNode, aAttachment) {
     let arrowNode = document.createElement("box");
-    let inputNode = document.createElement("textbox");
-    let closeNode = document.createElement("toolbarbutton");
+    arrowNode.className = "dbg-expression-arrow";
 
-    inputNode.setAttribute("value", aExpression);
+    let inputNode = document.createElement("textbox");
+    inputNode.className = "plain dbg-expression-input";
+    inputNode.setAttribute("value", aAttachment.initialExpression);
     inputNode.setAttribute("flex", "1");
+
+    let closeNode = document.createElement("toolbarbutton");
+    closeNode.className = "plain variables-view-delete";
 
     closeNode.addEventListener("click", this._onClose, false);
     inputNode.addEventListener("blur", this._onBlur, false);
     inputNode.addEventListener("keypress", this._onKeyPress, false);
 
+    aElementNode.id = "expression-" + aAttachment.id;
+    aElementNode.className = "dbg-expression title";
+
     aElementNode.appendChild(arrowNode);
     aElementNode.appendChild(inputNode);
     aElementNode.appendChild(closeNode);
-    aElementNode.arrowNode = arrowNode;
-    aElementNode.inputNode = inputNode;
-    aElementNode.closeNode = closeNode;
+
+    aAttachment.arrowNode = arrowNode;
+    aAttachment.inputNode = inputNode;
+    aAttachment.closeNode = closeNode;
   },
 
   
@@ -994,7 +1418,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
   _onCmdRemoveAllExpressions: function BP__onCmdRemoveAllExpressions() {
     
     this.empty();
-    this._cache = [];
+    this._cache.length = 0;
 
     
     DebuggerController.StackFrames.syncWatchExpressions();
@@ -1025,6 +1449,7 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
     
     DebuggerController.StackFrames.syncWatchExpressions();
 
+    
     e.preventDefault();
     e.stopPropagation();
   },
@@ -1087,7 +1512,8 @@ create({ constructor: WatchExpressionsView, proto: MenuContainer.prototype }, {
 
 function GlobalSearchView() {
   dumpn("GlobalSearchView was instantiated");
-  MenuContainer.call(this);
+
+  this._cache = new Map();
   this._startSearch = this._startSearch.bind(this);
   this._onFetchSourceFinished = this._onFetchSourceFinished.bind(this);
   this._onFetchSourceTimeout = this._onFetchSourceTimeout.bind(this);
@@ -1105,14 +1531,13 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   initialize: function DVGS_initialize() {
     dumpn("Initializing the GlobalSearchView");
-    this.node = new StackList(document.getElementById("globalsearch"));
-    this._splitter = document.getElementById("globalsearch-splitter");
+
+    this.node = new ListWidget(document.getElementById("globalsearch"));
+    this._splitter = document.querySelector("#globalsearch + .devtools-horizontal-splitter");
 
     this.node.emptyText = L10N.getStr("noMatchingStringsText");
     this.node.itemFactory = this._createItemView;
     this.node.addEventListener("scroll", this._onScroll, false);
-
-    this._cache = new Map();
   },
 
   
@@ -1120,6 +1545,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   destroy: function DVGS_destroy() {
     dumpn("Destroying the GlobalSearchView");
+
     this.node.removeEventListener("scroll", this._onScroll, false);
   },
 
@@ -1127,7 +1553,9 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
 
-  get hidden() this.node.getAttribute("hidden") == "true",
+  get hidden()
+    this.node.getAttribute("hidden") == "true" ||
+    this._splitter.getAttribute("hidden") == "true",
 
   
 
@@ -1144,7 +1572,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   clearView: function DVGS_clearView() {
     this.hidden = true;
     this.empty();
-    window.dispatchEvent("Debugger:GlobalSearch:ViewCleared");
+    window.dispatchEvent(document, "Debugger:GlobalSearch:ViewCleared");
   },
 
   
@@ -1152,7 +1580,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
   clearCache: function DVGS_clearCache() {
     this._cache = new Map();
-    window.dispatchEvent("Debugger:GlobalSearch:CacheCleared");
+    window.dispatchEvent(document, "Debugger:GlobalSearch:CacheCleared");
   },
 
   
@@ -1265,7 +1693,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
         continue;
       }
       let sourceItem = DebuggerView.Sources.getItemByValue(location);
-      let sourceObject = sourceItem.attachment;
+      let sourceObject = sourceItem.attachment.source;
       DebuggerController.SourceScripts.getText(sourceObject, onFetch, onTimeout);
     }
   },
@@ -1325,7 +1753,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
     
     if (!token) {
       this.clearView();
-      window.dispatchEvent("Debugger:GlobalSearch:TokenEmpty");
+      window.dispatchEvent(document, "Debugger:GlobalSearch:TokenEmpty");
       return;
     }
 
@@ -1391,9 +1819,9 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
       this.hidden = false;
       this._currentlyFocusedMatch = -1;
       this._createGlobalResultsUI(globalResults);
-      window.dispatchEvent("Debugger:GlobalSearch:MatchFound");
+      window.dispatchEvent(document, "Debugger:GlobalSearch:MatchFound");
     } else {
-      window.dispatchEvent("Debugger:GlobalSearch:MatchNotFound");
+      window.dispatchEvent(document, "Debugger:GlobalSearch:MatchNotFound");
     }
   },
 
@@ -1433,7 +1861,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
   function DVGS__createSourceResultsUI(aLocation, aSourceResults, aExpandFlag) {
     
     let sourceResultsItem = this.push([aLocation, aSourceResults.matchCount], {
-      index: LAST, 
+      index: -1, 
       relaxed: true, 
       attachment: {
         sourceResults: aSourceResults,
@@ -1455,7 +1883,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
   _createItemView:
-  function DVGS__createItemView(aElementNode, aLocation, aMatchCount, aAttachment) {
+  function DVGS__createItemView(aElementNode, aAttachment, aLocation, aMatchCount) {
     let { sourceResults, expandFlag } = aAttachment;
 
     sourceResults.createView(aElementNode, aLocation, aMatchCount, expandFlag, {
@@ -1544,20 +1972,8 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
 
 
   _scrollMatchIntoViewIfNeeded:  function DVGS__scrollMatchIntoViewIfNeeded(aMatch) {
-    let { top, height } = aMatch.getBoundingClientRect();
-    let { clientHeight } = this.node._parent;
-
-    let style = window.getComputedStyle(aMatch);
-    let topBorderSize = window.parseInt(style.getPropertyValue("border-top-width"));
-    let bottomBorderSize = window.parseInt(style.getPropertyValue("border-bottom-width"));
-
-    let marginY = top - (height + topBorderSize + bottomBorderSize) * 2;
-    if (marginY <= 0) {
-      this.node._parent.scrollTop += marginY;
-    }
-    if (marginY + height > clientHeight) {
-      this.node._parent.scrollTop += height - (clientHeight - marginY);
-    }
+    let boxObject = this.node._parent.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+    boxObject.ensureElementIsVisible(aMatch);
   },
 
   
@@ -1574,6 +1990,7 @@ create({ constructor: GlobalSearchView, proto: MenuContainer.prototype }, {
       });
       aMatch.setAttribute("focused", "");
     }}, 0);
+    aMatch.setAttribute("focusing", "");
   },
 
   _splitter: null,
@@ -1647,24 +2064,16 @@ SourceResults.prototype = {
   
 
 
-
-
-
-  expand: function SR_expand(aSkipAnimationFlag) {
-    this._target.resultsContainer.setAttribute("open", "");
+  expand: function SR_expand() {
+    this._target.resultsContainer.removeAttribute("hidden")
     this._target.arrow.setAttribute("open", "");
-
-    if (!aSkipAnimationFlag) {
-      this._target.resultsContainer.setAttribute("animated", "");
-    }
   },
 
   
 
 
   collapse: function SR_collapse() {
-    this._target.resultsContainer.removeAttribute("animated");
-    this._target.resultsContainer.removeAttribute("open");
+    this._target.resultsContainer.setAttribute("hidden", "true");
     this._target.arrow.removeAttribute("open");
   },
 
@@ -1687,7 +2096,9 @@ SourceResults.prototype = {
 
 
 
-  get expanded() this._target.resultsContainer.hasAttribute("open"),
+  get expanded()
+    this._target.resultsContainer.getAttribute("hidden") != "true" &&
+    this._target.arrow.hasAttribute("open"),
 
   
 
@@ -1731,11 +2142,11 @@ SourceResults.prototype = {
     arrow.className = "arrow";
 
     let locationNode = document.createElement("label");
-    locationNode.className = "plain location";
+    locationNode.className = "plain dbg-results-header-location";
     locationNode.setAttribute("value", SourceUtils.trimUrlLength(aLocation));
 
     let matchCountNode = document.createElement("label");
-    matchCountNode.className = "plain match-count";
+    matchCountNode.className = "plain dbg-results-header-match-count";
     matchCountNode.setAttribute("value", "(" + aMatchCount + ")");
 
     let resultsHeader = document.createElement("hbox");
@@ -1748,6 +2159,7 @@ SourceResults.prototype = {
 
     let resultsContainer = document.createElement("vbox");
     resultsContainer.className = "dbg-results-container";
+    resultsContainer.setAttribute("hidden", "true");
 
     for (let [lineNumber, lineResults] of this._store) {
       lineResults.createView(resultsContainer, lineNumber, aCallbacks)
@@ -1838,9 +2250,9 @@ LineResults.prototype = {
     let lineLength = 0;
     let firstMatch = null;
 
-    lineNumberNode.className = "plain line-number";
+    lineNumberNode.className = "plain dbg-results-line-number";
     lineNumberNode.setAttribute("value", aLineNumber + 1);
-    lineContentsNode.className = "line-contents";
+    lineContentsNode.className = "light list-widget-item dbg-results-line-contents";
     lineContentsNode.setAttribute("flex", "1");
 
     for (let chunk of this._store) {
@@ -1849,7 +2261,7 @@ LineResults.prototype = {
       lineLength += string.length;
 
       let label = document.createElement("label");
-      label.className = "plain string";
+      label.className = "plain dbg-results-line-contents-string";
       label.setAttribute("value", lineString);
       label.setAttribute("match", match);
       lineContentsNode.appendChild(label);
@@ -1905,7 +2317,7 @@ LineResults.prototype = {
 
   _ellipsis: (function() {
     let label = document.createElement("label");
-    label.className = "plain string";
+    label.className = "plain dbg-results-line-contents-string";
     label.setAttribute("value", L10N.ellipsis);
     return label;
   })(),
@@ -1953,6 +2365,7 @@ LineResults.getElementAtIndex = function DVGS_getElementAtIndex(aIndex) {
       return element;
     }
   }
+  return null;
 };
 
 
@@ -1997,7 +2410,6 @@ LineResults.size = function DVGS_size() {
 
 
 
-DebuggerView.StackFrames = new StackFramesView();
-DebuggerView.Breakpoints = new BreakpointsView();
+DebuggerView.Sources = new SourcesView();
 DebuggerView.WatchExpressions = new WatchExpressionsView();
 DebuggerView.GlobalSearch = new GlobalSearchView();

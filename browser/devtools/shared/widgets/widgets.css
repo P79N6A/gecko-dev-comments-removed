@@ -1,0 +1,43 @@
+
+
+
+
+
+
+
+.breadcrumbs-widget-item {
+  direction: ltr;
+}
+
+
+
+.side-menu-widget-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.side-menu-widget-group[name=""] > .side-menu-widget-group-title {
+  display: none;
+}
+
+
+
+.variables-view-container {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+.variables-view-element-details:not([open]) {
+  display: none;
+}
+
+.variables-view-scope,
+.variable-or-property {
+  -moz-user-focus: normal;
+}
+
+.variables-view-scope[non-header] > .title,
+.variable-or-property[non-header] > .title,
+.variable-or-property[non-match] > .title {
+  display: none;
+}

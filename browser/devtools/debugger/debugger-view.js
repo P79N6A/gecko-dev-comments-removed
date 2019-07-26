@@ -14,9 +14,9 @@ const STACK_FRAMES_POPUP_SOURCE_URL_TRIM_SECTION = "center";
 const STACK_FRAMES_SCROLL_DELAY = 100; 
 const PANES_APPEARANCE_DELAY = 50; 
 const BREAKPOINT_LINE_TOOLTIP_MAX_LENGTH = 1000; 
-const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "after_start";
-const BREAKPOINT_CONDITIONAL_POPUP_OFFSET = 50; 
-const FILTERED_SOURCES_POPUP_POSITION = "before_start";
+const BREAKPOINT_CONDITIONAL_POPUP_POSITION = "before_start";
+const BREAKPOINT_CONDITIONAL_POPUP_OFFSET_X = 7; 
+const BREAKPOINT_CONDITIONAL_POPUP_OFFSET_Y = -3; 
 const FILTERED_SOURCES_MAX_RESULTS = 10;
 const GLOBAL_SEARCH_EXPAND_MAX_RESULTS = 50;
 const GLOBAL_SEARCH_LINE_MAX_LENGTH = 300; 
@@ -44,12 +44,11 @@ let DebuggerView = {
 
     this.Toolbar.initialize();
     this.Options.initialize();
-    this.ChromeGlobals.initialize();
-    this.Sources.initialize();
     this.Filtering.initialize();
     this.FilteredSources.initialize();
+    this.ChromeGlobals.initialize();
     this.StackFrames.initialize();
-    this.Breakpoints.initialize();
+    this.Sources.initialize();
     this.WatchExpressions.initialize();
     this.GlobalSearch.initialize();
 
@@ -75,12 +74,11 @@ let DebuggerView = {
 
     this.Toolbar.destroy();
     this.Options.destroy();
-    this.ChromeGlobals.destroy();
-    this.Sources.destroy();
     this.Filtering.destroy();
     this.FilteredSources.destroy();
+    this.ChromeGlobals.destroy();
     this.StackFrames.destroy();
-    this.Breakpoints.destroy();
+    this.Sources.destroy();
     this.WatchExpressions.destroy();
     this.GlobalSearch.destroy();
 
@@ -131,16 +129,16 @@ let DebuggerView = {
   _initializePanes: function DV__initializePanes() {
     dumpn("Initializing the DebuggerView panes");
 
-    this._togglePanesButton = document.getElementById("toggle-panes");
-    this._stackframesAndBreakpoints = document.getElementById("stackframes+breakpoints");
-    this._variablesAndExpressions = document.getElementById("variables+expressions");
+    this._sourcesPane = document.getElementById("sources-pane");
+    this._instrumentsPane = document.getElementById("instruments-pane");
+    this._instrumentsPaneToggleButton = document.getElementById("instruments-pane-toggle");
 
-    this._stackframesAndBreakpoints.setAttribute("width", Prefs.stackframesWidth);
-    this._variablesAndExpressions.setAttribute("width", Prefs.variablesWidth);
-    this.togglePanes({
-      visible: Prefs.panesVisibleOnStartup,
-      animated: false
-    });
+    this._collapsePaneString = L10N.getStr("collapsePanes");
+    this._expandPaneString = L10N.getStr("expandPanes");
+
+    this._sourcesPane.setAttribute("width", Prefs.sourcesWidth);
+    this._instrumentsPane.setAttribute("width", Prefs.instrumentsWidth);
+    this.toggleInstrumentsPane({ visible: Prefs.panesVisibleOnStartup });
   },
 
   
@@ -149,12 +147,12 @@ let DebuggerView = {
   _destroyPanes: function DV__destroyPanes() {
     dumpn("Destroying the DebuggerView panes");
 
-    Prefs.stackframesWidth = this._stackframesAndBreakpoints.getAttribute("width");
-    Prefs.variablesWidth = this._variablesAndExpressions.getAttribute("width");
+    Prefs.sourcesWidth = this._sourcesPane.getAttribute("width");
+    Prefs.instrumentsWidth = this._instrumentsPane.getAttribute("width");
 
-    this._togglePanesButton = null;
-    this._stackframesAndBreakpoints = null;
-    this._variablesAndExpressions = null;
+    this._sourcesPane = null;
+    this._instrumentsPane = null;
+    this._instrumentsPaneToggleButton = null;
   },
 
   
@@ -177,6 +175,7 @@ let DebuggerView = {
 
     this.editor = new SourceEditor();
     this.editor.init(placeholder, config, function() {
+      this._loadingText = L10N.getStr("loadingText");
       this._onEditorLoad();
       aCallback();
     }.bind(this));
@@ -190,7 +189,7 @@ let DebuggerView = {
     dumpn("Finished loading the DebuggerView editor");
 
     DebuggerController.Breakpoints.initialize();
-    window.dispatchEvent("Debugger:EditorLoaded", this.editor);
+    window.dispatchEvent(document, "Debugger:EditorLoaded", this.editor);
     this.editor.focus();
   },
 
@@ -202,8 +201,7 @@ let DebuggerView = {
     dumpn("Destroying the DebuggerView editor");
 
     DebuggerController.Breakpoints.destroy();
-    window.dispatchEvent("Debugger:EditorUnloaded", this.editor);
-    this.editor = null;
+    window.dispatchEvent(document, "Debugger:EditorUnloaded", this.editor);
   },
 
   
@@ -217,14 +215,7 @@ let DebuggerView = {
 
 
 
-  setEditorMode:
-  function DV_setEditorMode(aUrl, aContentType = "", aTextContent = "") {
-    if (!this.editor) {
-      return;
-    }
-    dumpn("Setting the DebuggerView editor mode: " + aUrl +
-          ", content type: " + aContentType);
-
+  setEditorMode: function DV_setEditorMode(aUrl, aContentType = "", aTextContent = "") {
     if (aContentType) {
       if (/javascript/.test(aContentType)) {
         this.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
@@ -254,60 +245,66 @@ let DebuggerView = {
 
 
 
-
-
-  setEditorSource: function DV_setEditorSource(aSource, aOptions = {}) {
-    if (!this.editor) {
+  set editorSource(aSource) {
+    if (!this._isInitialized || this._isDestroyed || this._editorSource == aSource) {
       return;
     }
 
-    dumpn("Setting the DebuggerView editor source: " + aSource.source.url +
-          ", loaded: " + aSource.loaded +
-          ", options: " + aOptions.toSource());
+    dumpn("Setting the DebuggerView editor source: " + aSource.url +
+          ", loaded: " + aSource.loaded);
+
+    this.editor.setMode(SourceEditor.MODES.TEXT);
+    this.editor.setText(L10N.getStr("loadingText"));
+    this.editor.resetUndo();
+    this._editorSource = aSource;
 
     
     if (!aSource.loaded) {
-      this.editor.setMode(SourceEditor.MODES.TEXT);
-      this.editor.setText(L10N.getStr("loadingText"));
-      this.editor.resetUndo();
-
-      
-      DebuggerController.SourceScripts.getText(aSource, function(aUrl, aText) {
-        this.setEditorSource(aSource, aOptions);
-      }.bind(this));
+      DebuggerController.SourceScripts.getText(aSource, set.bind(this, aSource));
     }
     
     else {
+      set.call(this, aSource);
+    }
+
+    
+    
+    function set(aSource) {
+      
+      
       if (this._editorSource != aSource) {
-        
-        if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
-          this.setEditorMode(aSource.source.url, aSource.contentType, aSource.text);
-        } else {
-          this.editor.setMode(SourceEditor.MODES.TEXT);
-        }
-        this.editor.setText(aSource.text);
-        this.editor.resetUndo();
+        return;
       }
-      this._editorSource = aSource;
+
+      
+      if (aSource.text.length < SOURCE_SYNTAX_HIGHLIGHT_MAX_FILE_SIZE) {
+        this.setEditorMode(aSource.url, aSource.contentType, aSource.text);
+      } else {
+        this.editor.setMode(SourceEditor.MODES.TEXT);
+      }
+      this.editor.setText(aSource.text);
+      this.editor.resetUndo();
+
+      
+      
       this.updateEditor();
 
-      DebuggerView.Sources.selectedValue = aSource.source.url;
+      
+      DebuggerView.Sources.selectedValue = aSource.url;
       DebuggerController.Breakpoints.updateEditorBreakpoints();
 
       
-      if (aOptions.caretLine) {
-        editor.setCaretPosition(aOptions.caretLine - 1);
-      }
-      if (aOptions.debugLine) {
-        editor.setDebugLocation(aOptions.debugLine - 1);
-      }
-      if (aOptions.callback) {
-        aOptions.callback(aSource);
-      }
-      
-      window.dispatchEvent("Debugger:SourceShown", aSource);
+      window.dispatchEvent(document, "Debugger:SourceShown", aSource);
     }
   },
+
+  
+
+
+
+
+
+  get editorSource() this._editorSource,
 
   
 
@@ -324,8 +321,11 @@ let DebuggerView = {
 
 
 
+
+
+
   updateEditor: function DV_updateEditor(aUrl, aLine, aFlags = {}) {
-    if (!this.editor) {
+    if (!this._isInitialized || this._isDestroyed) {
       return;
     }
     
@@ -346,26 +346,35 @@ let DebuggerView = {
 
     
     if (this.Sources.selectedValue == aUrl) {
-      updateLine(aLine);
+      set(aLine);
     }
     
     else if (this.Sources.containsValue(aUrl) && !aFlags.noSwitch) {
       this.Sources.selectedValue = aUrl;
-      updateLine(aLine);
+      set(aLine);
     }
     
     else {
-      updateLine(0);
+      set(0);
     }
 
     
     
-    function updateLine(aLine) {
+    function set(aLine) {
+      let editor = DebuggerView.editor;
+
+      
+      if (aFlags.charOffset) {
+        aLine += editor.getLineAtOffset(aFlags.charOffset);
+      }
+      if (aFlags.lineOffset) {
+        aLine += aFlags.lineOffset;
+      }
       if (!aFlags.noCaret) {
-        DebuggerView.editor.setCaretPosition(aLine - 1);
+        editor.setCaretPosition(aLine - 1);
       }
       if (!aFlags.noDebug) {
-        DebuggerView.editor.setDebugLocation(aLine - 1);
+        editor.setDebugLocation(aLine - 1);
       }
     }
   },
@@ -390,8 +399,8 @@ let DebuggerView = {
 
 
 
-  get panesHidden()
-    this._togglePanesButton.hasAttribute("panesHidden"),
+  get instrumentsPaneHidden()
+    this._instrumentsPaneToggleButton.hasAttribute("toggled"),
 
   
 
@@ -403,9 +412,9 @@ let DebuggerView = {
 
 
 
-  togglePanes: function DV__togglePanes(aFlags = {}) {
+  toggleInstrumentsPane: function DV__toggleInstrumentsPane(aFlags = {}) {
     
-    if (aFlags.visible == !this.panesHidden) {
+    if (aFlags.visible == !this.instrumentsPaneHidden) {
       if (aFlags.callback) aFlags.callback();
       return;
     }
@@ -413,17 +422,16 @@ let DebuggerView = {
     
     function set() {
       if (aFlags.visible) {
-        this._stackframesAndBreakpoints.style.marginLeft = "0";
-        this._variablesAndExpressions.style.marginRight = "0";
-        this._togglePanesButton.removeAttribute("panesHidden");
-        this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("collapsePanes"));
+        this._instrumentsPane.style.marginLeft = "0";
+        this._instrumentsPane.style.marginRight = "0";
+        this._instrumentsPaneToggleButton.removeAttribute("toggled");
+        this._instrumentsPaneToggleButton.setAttribute("tooltiptext", this._collapsePaneString);
       } else {
-        let marginL = ~~(this._stackframesAndBreakpoints.getAttribute("width")) + 1;
-        let marginR = ~~(this._variablesAndExpressions.getAttribute("width")) + 1;
-        this._stackframesAndBreakpoints.style.marginLeft = -marginL + "px";
-        this._variablesAndExpressions.style.marginRight = -marginR + "px";
-        this._togglePanesButton.setAttribute("panesHidden", "true");
-        this._togglePanesButton.setAttribute("tooltiptext", L10N.getStr("expandPanes"));
+        let margin = ~~(this._instrumentsPane.getAttribute("width")) + 1;
+        this._instrumentsPane.style.marginLeft = -margin + "px";
+        this._instrumentsPane.style.marginRight = -margin + "px";
+        this._instrumentsPaneToggleButton.setAttribute("toggled", "true");
+        this._instrumentsPaneToggleButton.setAttribute("tooltiptext", this._expandPaneString);
       }
 
       if (aFlags.animated) {
@@ -444,11 +452,9 @@ let DebuggerView = {
     }
 
     if (aFlags.animated) {
-      this._stackframesAndBreakpoints.setAttribute("animated", "");
-      this._variablesAndExpressions.setAttribute("animated", "");
+      this._instrumentsPane.setAttribute("animated", "");
     } else {
-      this._stackframesAndBreakpoints.removeAttribute("animated");
-      this._variablesAndExpressions.removeAttribute("animated");
+      this._instrumentsPane.removeAttribute("animated");
     }
 
     if (aFlags.delayed) {
@@ -464,16 +470,13 @@ let DebuggerView = {
 
 
 
-  showPanesSoon: function DV__showPanesSoon(aCallback) {
-    
-    window.setTimeout(function() {
-      DebuggerView.togglePanes({
-        visible: true,
-        animated: true,
-        delayed: true,
-        callback: aCallback
-      });
-    }, PANES_APPEARANCE_DELAY);
+  showInstrumentsPane: function DV__showInstrumentsPane(aCallback) {
+    DebuggerView.toggleInstrumentsPane({
+      visible: true,
+      animated: true,
+      delayed: true,
+      callback: aCallback
+    });
   },
 
   
@@ -482,16 +485,14 @@ let DebuggerView = {
   _handleTabNavigation: function DV__handleTabNavigation() {
     dumpn("Handling tab navigation in the DebuggerView");
 
-    this.ChromeGlobals.empty();
-    this.Sources.empty();
     this.Filtering.clearSearch();
     this.GlobalSearch.clearView();
     this.GlobalSearch.clearCache();
+    this.ChromeGlobals.empty();
     this.StackFrames.empty();
-    this.Breakpoints.empty();
-    this.Breakpoints.unhighlightBreakpoint();
+    this.Sources.empty();
     this.Variables.empty();
-    SourceUtils.clearLabelsCache();
+    SourceUtils.clearCache();
 
     if (this.editor) {
       this.editor.setText("");
@@ -502,18 +503,22 @@ let DebuggerView = {
 
   Toolbar: null,
   Options: null,
-  ChromeGlobals: null,
-  Sources: null,
   Filtering: null,
+  FilteredSources: null,
+  ChromeGlobals: null,
   StackFrames: null,
-  Breakpoints: null,
+  Sources: null,
+  WatchExpressions: null,
   GlobalSearch: null,
   Variables: null,
   _editor: null,
   _editorSource: null,
-  _togglePanesButton: null,
-  _stackframesAndBreakpoints: null,
-  _variablesAndExpressions: null,
+  _loadingText: "",
+  _sourcesPane: null,
+  _instrumentsPane: null,
+  _instrumentsPaneToggleButton: null,
+  _collapsePaneString: "",
+  _expandPaneString: "",
   _isInitialized: false,
   _isDestroyed: false
 };
@@ -531,692 +536,10 @@ let DebuggerView = {
 
 
 
-function MenuItem(aLabel, aValue, aDescription, aAttachment) {
-  this._label = aLabel + "";
-  this._value = aValue + "";
-  this._description = aDescription + "";
-  this.attachment = aAttachment;
-}
 
-MenuItem.prototype = {
-  
 
 
-
-  get label() this._label,
-
-  
-
-
-
-  get value() this._value,
-
-  
-
-
-
-  get description() this._description,
-
-  
-
-
-
-  get target() this._target,
-
-  _label: "",
-  _value: "",
-  _description: "",
-  _target: null,
-  finalize: null,
-  attachment: null
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function MenuContainer() {}
-const FIRST = 0;
-const LAST = -1;
-
-MenuContainer.prototype = {
-  
-
-
-
-  set node(aWidget) {
-    this._container = aWidget;
-    this._stagedItems = [];
-    this._itemsByLabel = new Map();
-    this._itemsByValue = new Map();
-    this._itemsByElement = new Map();
-  },
-
-  
-
-
-
-  get node() this._container,
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  push: function DVMC_push(aContents, aOptions = {}) {
-    if (aContents instanceof Node || aContents instanceof Element) {
-      aOptions.nsIDOMNode = aContents;
-      aContents = [];
-    }
-
-    let [label, value, description] = aContents;
-    let item = new MenuItem(label, value, description || "", aOptions.attachment);
-
-    
-    if (aOptions.staged) {
-      this._stagedItems.push({ item: item, options: aOptions });
-    }
-    
-    else if (!("index" in aOptions)) {
-      return this._insertItemAt(this._findExpectedIndex(label), item, aOptions);
-    }
-    
-    
-    else {
-      return this._insertItemAt(aOptions.index, item, aOptions);
-    }
-  },
-
-  
-
-
-
-
-
-
-  commit: function DVMC_commit(aOptions = {}) {
-    let stagedItems = this._stagedItems;
-
-    
-    if (aOptions.sorted) {
-      stagedItems.sort(function(a, b) a.item.label.toLowerCase() >
-                                      b.item.label.toLowerCase());
-    }
-    
-    for (let { item, options } of stagedItems) {
-      this._insertItemAt(LAST, item, options);
-    }
-    
-    this._stagedItems = [];
-  },
-
-  
-
-
-
-
-
-
-  refresh: function DVMC_refresh() {
-    let selectedValue = this.selectedValue;
-    if (!selectedValue) {
-      return false;
-    }
-
-    let entangledLabel = this.getItemByValue(selectedValue).label;
-
-    this._container.setAttribute("label", entangledLabel);
-    this._container.setAttribute("tooltiptext", selectedValue);
-    return true;
-  },
-
-  
-
-
-
-
-
-  remove: function DVMC__remove(aItem) {
-    if (!aItem) {
-      return;
-    }
-    this._container.removeChild(aItem.target);
-    this._untangleItem(aItem);
-  },
-
-  
-
-
-  empty: function DVMC_empty() {
-    this._preferredValue = this.selectedValue;
-    this._container.selectedItem = null;
-    this._container.removeAllItems();
-    this._container.setAttribute("label", this._emptyLabel);
-    this._container.removeAttribute("tooltiptext");
-
-    for (let [, item] of this._itemsByElement) {
-      this._untangleItem(item);
-    }
-
-    this._itemsByLabel = new Map();
-    this._itemsByValue = new Map();
-    this._itemsByElement = new Map();
-    this._stagedItems = [];
-  },
-
-  
-
-
-
-  setUnavailable: function DVMC_setUnavailable() {
-    this._container.setAttribute("label", this._unavailableLabel);
-    this._container.removeAttribute("tooltiptext");
-  },
-
-  
-
-
-
-  _emptyLabel: "",
-
-  
-
-
-  _unavailableLabel: "",
-
-  
-
-
-
-
-
-  toggleContents: function DVMC_toggleContents(aVisibleFlag) {
-    for (let [, item] of this._itemsByElement) {
-      item.target.hidden = !aVisibleFlag;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-  containsLabel: function DVMC_containsLabel(aLabel) {
-    return this._itemsByLabel.has(aLabel) ||
-           this._stagedItems.some(function({item}) item.label == aLabel);
-  },
-
-  
-
-
-
-
-
-
-
-
-  containsValue: function DVMC_containsValue(aValue) {
-    return this._itemsByValue.has(aValue) ||
-           this._stagedItems.some(function({item}) item.value == aValue);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  containsTrimmedValue: function DVMC_containsTrimmedValue(aValue, aTrim) {
-    let trimmedValue = aTrim(aValue);
-
-    for (let [value] of this._itemsByValue) {
-      if (aTrim(value) == trimmedValue) {
-        return true;
-      }
-    }
-    return this._stagedItems.some(function({item}) aTrim(item.value) == trimmedValue);
-  },
-
-  
-
-
-
-  get preferredValue() this._preferredValue,
-
-  
-
-
-
-  get selectedIndex()
-    this._container.selectedItem ?
-    this.indexOfItem(this.selectedItem) : -1,
-
-  
-
-
-
-  get selectedItem()
-    this._container.selectedItem ?
-    this._itemsByElement.get(this._container.selectedItem) : null,
-
-  
-
-
-
-  get selectedLabel()
-    this._container.selectedItem ?
-    this._itemsByElement.get(this._container.selectedItem).label : null,
-
-  
-
-
-
-  get selectedValue()
-    this._container.selectedItem ?
-    this._itemsByElement.get(this._container.selectedItem).value : null,
-
-  
-
-
-
-  set selectedIndex(aIndex)
-    this._container.selectedItem = this._container.getItemAtIndex(aIndex),
-
-  
-
-
-
-  set selectedItem(aItem)
-    this._container.selectedItem = aItem ? aItem.target : null,
-
-  
-
-
-
-  set selectedLabel(aLabel) {
-    let item = this._itemsByLabel.get(aLabel);
-    if (item) {
-      this._container.selectedItem = item.target;
-    }
-  },
-
-  
-
-
-
-  set selectedValue(aValue) {
-    let item = this._itemsByValue.get(aValue);
-    if (item) {
-      this._container.selectedItem = item.target;
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  getItemAtIndex: function DVMC_getItemAtIndex(aIndex) {
-    return this.getItemForElement(this._container.getItemAtIndex(aIndex));
-  },
-
-  
-
-
-
-
-
-
-
-  getItemByLabel: function DVMC_getItemByLabel(aLabel) {
-    return this._itemsByLabel.get(aLabel);
-  },
-
-  
-
-
-
-
-
-
-
-  getItemByValue: function DVMC_getItemByValue(aValue) {
-    return this._itemsByValue.get(aValue);
-  },
-
-  
-
-
-
-
-
-
-
-  getItemForElement: function DVMC_getItemForElement(aElement) {
-    while (aElement) {
-      let item = this._itemsByElement.get(aElement);
-      if (item) {
-        return item;
-      }
-      aElement = aElement.parentNode;
-    }
-    return null;
-  },
-
-  
-
-
-
-
-
-
-
-  indexOfItem: function indexOfItem({target}) {
-    let itemCount = this._itemsByElement.size;
-
-    for (let i = 0; i < itemCount; i++) {
-      if (this._container.getItemAtIndex(i) == target) {
-        return i;
-      }
-    }
-    return -1;
-  },
-
-  
-
-
-
-  get labels() {
-    let labels = [];
-    for (let [label] of this._itemsByLabel) {
-      labels.push(label);
-    }
-    return labels;
-  },
-
-  
-
-
-
-  get values() {
-    let values = [];
-    for (let [value] of this._itemsByValue) {
-      values.push(value);
-    }
-    return values;
-  },
-
-  
-
-
-
-  get itemCount() this._itemsByElement.size,
-
-  
-
-
-
-  get visibleItems() {
-    let items = [];
-    for (let [element, item] of this._itemsByElement) {
-      if (!element.hidden) {
-        items.push(item);
-      }
-    }
-    return items;
-  },
-
-  
-
-
-
-
-
-
-
-  uniquenessQualifier: 1,
-
-  
-
-
-
-
-
-
-
-  isUnique: function DVMC_isUnique(aItem) {
-    switch (this.uniquenessQualifier) {
-      case 1:
-        return !this._itemsByLabel.has(aItem.label) &&
-               !this._itemsByValue.has(aItem.value);
-      case 2:
-        return !this._itemsByLabel.has(aItem.label) ||
-               !this._itemsByValue.has(aItem.value);
-      case 3:
-        return !this._itemsByLabel.has(aItem.label);
-      case 4:
-        return !this._itemsByValue.has(aItem.value);
-    }
-    return false;
-  },
-
-  
-
-
-
-
-
-
-
-  isEligible: function DVMC_isEligible(aItem) {
-    return this.isUnique(aItem) &&
-           aItem.label != "undefined" && aItem.label != "null" &&
-           aItem.value != "undefined" && aItem.value != "null";
-  },
-
-  
-
-
-
-
-
-
-
-  _findExpectedIndex: function DVMC__findExpectedIndex(aLabel) {
-    let container = this._container;
-    let itemCount = this.itemCount;
-
-    for (let i = 0; i < itemCount; i++) {
-      if (this.getItemAtIndex(i).label > aLabel) {
-        return i;
-      }
-    }
-    return itemCount;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  _insertItemAt: function DVMC__insertItemAt(aIndex, aItem, aOptions) {
-    if (!aOptions.relaxed && !this.isEligible(aItem)) {
-      return null;
-    }
-
-    this._entangleItem(aItem, this._container.insertItemAt(aIndex,
-      aOptions.nsIDOMNode || aItem.label,
-      aItem.value,
-      aItem.description,
-      aOptions.attachment));
-
-    
-    if (aOptions.tooltip) {
-      aItem._target.setAttribute("tooltiptext", aOptions.tooltip);
-    }
-
-    
-    return aItem;
-  },
-
-  
-
-
-
-
-
-
-
-  _entangleItem: function DVMC__entangleItem(aItem, aElement) {
-    this._itemsByLabel.set(aItem.label, aItem);
-    this._itemsByValue.set(aItem.value, aItem);
-    this._itemsByElement.set(aElement, aItem);
-
-    aItem._target = aElement;
-  },
-
-  
-
-
-
-
-
-  _untangleItem: function DVMC__untangleItem(aItem) {
-    if (aItem.finalize instanceof Function) {
-      aItem.finalize(aItem);
-    }
-
-    this._itemsByLabel.delete(aItem.label);
-    this._itemsByValue.delete(aItem.value);
-    this._itemsByElement.delete(aItem.target);
-
-    aItem._target = null;
-  },
-
-  
-
-
-
-
-
-
-
-  decorateWidgetMethods: function DVMC_decorateWidgetMethods(aTarget) {
-    let widget = this.node;
-    let targetNode = widget[aTarget];
-
-    widget.getAttribute = targetNode.getAttribute.bind(targetNode);
-    widget.setAttribute = targetNode.setAttribute.bind(targetNode);
-    widget.removeAttribute = targetNode.removeAttribute.bind(targetNode);
-    widget.addEventListener = targetNode.addEventListener.bind(targetNode);
-    widget.removeEventListener = targetNode.removeEventListener.bind(targetNode);
-  },
-
-  
-
-
-  __iterator__: function DVMC_iterator() {
-    for (let [, item] of this._itemsByElement) {
-      yield item;
-    }
-  },
-
-  _container: null,
-  _stagedItems: null,
-  _itemsByLabel: null,
-  _itemsByValue: null,
-  _itemsByElement: null,
-  _preferredValue: null
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-function StackList(aAssociatedNode) {
+function ListWidget(aAssociatedNode) {
   this._parent = aAssociatedNode;
 
   
@@ -1225,10 +548,29 @@ function StackList(aAssociatedNode) {
 
   
   
-  MenuContainer.prototype.decorateWidgetMethods.call({ node: this }, "_parent");
+  ViewHelpers.delegateWidgetAttributeMethods(this, aAssociatedNode);
+  ViewHelpers.delegateWidgetEventMethods(this, aAssociatedNode);
 }
 
-StackList.prototype = {
+ListWidget.prototype = {
+  
+
+
+
+  itemType: "hbox",
+
+  
+
+
+
+
+
+
+
+
+
+  itemFactory: null,
+
   
 
 
@@ -1251,9 +593,10 @@ StackList.prototype = {
     let childNodes = list.childNodes;
 
     let element = document.createElement(this.itemType);
-    this.itemFactory(element, aLabel, aValue, aAttachment);
+    this.itemFactory(element, aAttachment, aLabel, aValue, aDescription);
     this._removeEmptyNotice();
 
+    element.classList.add("list-widget-item");
     return list.insertBefore(element, childNodes[aIndex]);
   },
 
@@ -1294,7 +637,7 @@ StackList.prototype = {
     let list = this._list;
     let firstChild;
 
-    while (firstChild = list.firstChild) {
+    while ((firstChild = list.firstChild)) {
       list.removeChild(firstChild);
     }
     parent.scrollTop = 0;
@@ -1357,31 +700,13 @@ StackList.prototype = {
   
 
 
-
-  itemType: "hbox",
-
-  
-
-
-
-
-
-
-
-
-
-  itemFactory: null,
-
-  
-
-
   _appendPermaNotice: function DVSL__appendPermaNotice() {
     if (this._permaTextNode || !this._permaTextValue) {
       return;
     }
 
     let label = document.createElement("label");
-    label.className = "empty list-item";
+    label.className = "empty list-widget-item";
     label.setAttribute("value", this._permaTextValue);
 
     this._parent.insertBefore(label, this._list);
@@ -1397,7 +722,7 @@ StackList.prototype = {
     }
 
     let label = document.createElement("label");
-    label.className = "empty list-item";
+    label.className = "empty list-widget-item";
     label.setAttribute("value", this._emptyTextValue);
 
     this._parent.appendChild(label);

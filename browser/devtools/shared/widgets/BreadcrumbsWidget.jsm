@@ -5,9 +5,28 @@
 
 "use strict";
 
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
 const ENSURE_SELECTION_VISIBLE_DELAY = 50; 
 
+Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
+
 this.EXPORTED_SYMBOLS = ["BreadcrumbsWidget"];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -20,7 +39,7 @@ this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
 
   
   this._list = this.document.createElement("arrowscrollbox");
-  this._list.id = "inspector-breadcrumbs";
+  this._list.className = "breadcrumbs-widget-container";
   this._list.setAttribute("flex", "1");
   this._list.setAttribute("orient", "horizontal");
   this._list.setAttribute("clicktoscroll", "true")
@@ -30,11 +49,19 @@ this.BreadcrumbsWidget = function BreadcrumbsWidget(aNode) {
   
   this._list._scrollButtonUp.collapsed = true;
   this._list._scrollButtonDown.collapsed = true;
-  this._list.addEventListener("underflow", this._onUnderflow, false);
-  this._list.addEventListener("overflow", this._onOverflow, false);
+  this._list.addEventListener("underflow", this._onUnderflow.bind(this), false);
+  this._list.addEventListener("overflow", this._onOverflow.bind(this), false);
+
+  
+  
+  ViewHelpers.delegateWidgetAttributeMethods(this, aNode);
+  ViewHelpers.delegateWidgetEventMethods(this, aNode);
 };
 
 BreadcrumbsWidget.prototype = {
+  get document() this._parent.ownerDocument,
+  get window() this.document.defaultView,
+
   
 
 
@@ -47,10 +74,8 @@ BreadcrumbsWidget.prototype = {
 
   insertItemAt: function BCW_insertItemAt(aIndex, aContents) {
     let list = this._list;
-    let breadcrumb = new Breadcrumb(this);
-    breadcrumb.contents = aContents;
-
-    return list.insertBefore(breadcrumb.target, list.childNodes[aIndex]);
+    let breadcrumb = new Breadcrumb(this, aContents);
+    return list.insertBefore(breadcrumb._target, list.childNodes[aIndex]);
   },
 
   
@@ -112,11 +137,9 @@ BreadcrumbsWidget.prototype = {
     for (let node of childNodes) {
       if (node == aChild) {
         node.setAttribute("checked", "");
-        node.classList.add("selected");
         this._selectedItem = node;
       } else {
         node.removeAttribute("checked");
-        node.classList.remove("selected");
       }
     }
 
@@ -124,7 +147,6 @@ BreadcrumbsWidget.prototype = {
     
     this.window.clearTimeout(this._ensureVisibleTimeout);
     this._ensureVisibleTimeout = this.window.setTimeout(function() {
-      
       if (this._selectedItem) {
         this._list.ensureElementIsVisible(this._selectedItem);
       }
@@ -135,6 +157,9 @@ BreadcrumbsWidget.prototype = {
 
 
   _onUnderflow: function BCW__onUnderflow({target}) {
+    if (target != this._list) {
+      return;
+    }
     target._scrollButtonUp.collapsed = true;
     target._scrollButtonDown.collapsed = true;
     target.removeAttribute("overflows");
@@ -144,32 +169,18 @@ BreadcrumbsWidget.prototype = {
 
 
   _onOverflow: function BCW__onOverflow({target}) {
+    if (target != this._list) {
+      return;
+    }
     target._scrollButtonUp.collapsed = false;
     target._scrollButtonDown.collapsed = false;
     target.setAttribute("overflows", "");
   },
 
-  
-
-
-
-  get parentNode() this._parent,
-
-  
-
-
-
-  get document() this._parent.ownerDocument,
-
-  
-
-
-
-  get window() this.document.defaultView,
-
   _parent: null,
   _list: null,
-  _selectedItem: null
+  _selectedItem: null,
+  _ensureVisibleTimeout: null
 };
 
 
@@ -178,15 +189,21 @@ BreadcrumbsWidget.prototype = {
 
 
 
-function Breadcrumb(aWidget) {
+
+
+function Breadcrumb(aWidget, aContents) {
   this.ownerView = aWidget;
 
-  this._target = this.document.createElement("button");
-  this._target.className = "inspector-breadcrumbs-button";
-  this.parentNode.appendChild(this._target);
+  this._target = this.document.createElement("hbox");
+  this._target.className = "breadcrumbs-widget-item";
+  this._target.setAttribute("align", "center");
+  this.contents = aContents;
 }
 
 Breadcrumb.prototype = {
+  get document() this.ownerView.document,
+  get window() this.document.defaultView,
+
   
 
 
@@ -210,30 +227,6 @@ Breadcrumb.prototype = {
     
     this._target.appendChild(aContents);
   },
-
-  
-
-
-
-  get target() this._target,
-
-  
-
-
-
-  get parentNode() this.ownerView._list,
-
-  
-
-
-
-  get document() this.ownerView.document,
-
-  
-
-
-
-  get window() this.ownerView.window,
 
   ownerView: null,
   _target: null

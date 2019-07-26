@@ -34,7 +34,9 @@ Cu.import("resource://gre/modules/devtools/dbg-client.jsm");
 Cu.import("resource:///modules/source-editor.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
 Cu.import("resource:///modules/devtools/BreadcrumbsWidget.jsm");
+Cu.import("resource:///modules/devtools/SideMenuWidget.jsm");
 Cu.import("resource:///modules/devtools/VariablesView.jsm");
+Cu.import("resource:///modules/devtools/ViewHelpers.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this,
   "Reflect", "resource://gre/modules/reflect.jsm");
@@ -48,12 +50,13 @@ let DebuggerController = {
 
   initialize: function DC_initialize() {
     dumpn("Initializing the DebuggerController");
+
     this._startupDebugger = this._startupDebugger.bind(this);
     this._shutdownDebugger = this._shutdownDebugger.bind(this);
     this._onTabNavigated = this._onTabNavigated.bind(this);
     this._onTabDetached = this._onTabDetached.bind(this);
 
-    window.addEventListener("load", this._startupDebugger, true);
+    window.addEventListener("DOMContentLoaded", this._startupDebugger, true);
     window.addEventListener("unload", this._shutdownDebugger, true);
   },
 
@@ -65,12 +68,12 @@ let DebuggerController = {
       return;
     }
     this._isInitialized = true;
-    window.removeEventListener("load", this._startupDebugger, true);
+    window.removeEventListener("DOMContentLoaded", this._startupDebugger, true);
 
     DebuggerView.initialize(function() {
       DebuggerView._isInitialized = true;
 
-      window.dispatchEvent("Debugger:Loaded");
+      window.dispatchEvent(document, "Debugger:Loaded");
       this._connect();
     }.bind(this));
   },
@@ -92,7 +95,7 @@ let DebuggerController = {
       this.ThreadState.disconnect();
 
       this._disconnect();
-      window.dispatchEvent("Debugger:Unloaded");
+      window.dispatchEvent(document, "Debugger:Unloaded");
       window._isChromeDebugger && this._quitApp();
     }.bind(this));
   },
@@ -163,7 +166,7 @@ let DebuggerController = {
 
   _connect: function DC__connect() {
     function callback() {
-      window.dispatchEvent("Debugger:Connected");
+      window.dispatchEvent(document, "Debugger:Connected");
     }
 
     if (!window._isChromeDebugger) {
@@ -331,20 +334,6 @@ let DebuggerController = {
       return;
     }
     Services.startup.quit(Ci.nsIAppStartup.eAttemptQuit);
-  },
-
-  
-
-
-
-
-
-
-
-  dispatchEvent: function DC_dispatchEvent(aType, aDetail) {
-    let evt = document.createEvent("CustomEvent");
-    evt.initCustomEvent(aType, true, false, aDetail);
-    document.documentElement.dispatchEvent(evt);
   }
 };
 
@@ -366,7 +355,6 @@ ThreadState.prototype = {
     dumpn("ThreadState is connecting...");
     this.activeThread.addListener("paused", this._update);
     this.activeThread.addListener("resumed", this._update);
-    this.activeThread.addListener("detached", this._update);
     this.activeThread.pauseOnExceptions(Prefs.pauseOnExceptions);
     this._handleTabNavigation();
   },
@@ -381,7 +369,6 @@ ThreadState.prototype = {
     dumpn("ThreadState is disconnecting...");
     this.activeThread.removeListener("paused", this._update);
     this.activeThread.removeListener("resumed", this._update);
-    this.activeThread.removeListener("detached", this._update);
   },
 
   
@@ -392,7 +379,7 @@ ThreadState.prototype = {
       return;
     }
     dumpn("Handling tab navigation in the ThreadState");
-    this._update(this.activeThread.state);
+    this._update();
   },
 
   
@@ -401,8 +388,7 @@ ThreadState.prototype = {
   _update: function TS__update(aEvent) {
     DebuggerView.Toolbar.toggleResumeButtonState(this.activeThread.state);
 
-    if (DebuggerController._target &&
-        (aEvent == "paused" || aEvent == "resumed")) {
+    if (DebuggerController._target && (aEvent == "paused" || aEvent == "resumed")) {
       DebuggerController._target.emit("thread-" + aEvent);
     }
   }
@@ -575,7 +561,7 @@ StackFrames.prototype = {
 
 
     
-    DebuggerView.showPanesSoon();
+    DebuggerView.showInstrumentsPane();
 
     
     DebuggerView.StackFrames.empty();
@@ -616,10 +602,10 @@ StackFrames.prototype = {
       return;
     }
     DebuggerView.StackFrames.empty();
-    DebuggerView.Variables.empty(0);
-    DebuggerView.Breakpoints.unhighlightBreakpoint();
+    DebuggerView.Sources.unhighlightBreakpoint();
     DebuggerView.WatchExpressions.toggleContents(true);
-    window.dispatchEvent("Debugger:AfterFramesCleared");
+    DebuggerView.Variables.empty(0);
+    window.dispatchEvent(document, "Debugger:AfterFramesCleared");
   },
 
   
@@ -647,7 +633,7 @@ StackFrames.prototype = {
     
     DebuggerView.StackFrames.highlightFrame(aDepth);
     
-    DebuggerView.Breakpoints.highlightBreakpoint(url, line);
+    DebuggerView.Sources.highlightBreakpoint(url, line);
     
     DebuggerView.WatchExpressions.toggleContents(false);
     
@@ -691,10 +677,10 @@ StackFrames.prototype = {
         this._addScopeExpander(scope, environment);
         this.autoScopeExpand && scope.expand();
       }
-    } while (environment = environment.parent);
+    } while ((environment = environment.parent));
 
     
-    window.dispatchEvent("Debugger:FetchedVariables");
+    window.dispatchEvent(document, "Debugger:FetchedVariables");
     DebuggerView.Variables.commitHierarchy();
   },
 
@@ -775,7 +761,7 @@ StackFrames.prototype = {
       }
 
       
-      window.dispatchEvent("Debugger:FetchedWatchExpressions");
+      window.dispatchEvent(document, "Debugger:FetchedWatchExpressions");
       DebuggerView.Variables.commitHierarchy();
     }.bind(this));
   },
@@ -803,7 +789,7 @@ StackFrames.prototype = {
           this._insertScopeVariables(aResponse.ownProperties, aScope);
 
           
-          window.dispatchEvent("Debugger:FetchedVariables");
+          window.dispatchEvent(document, "Debugger:FetchedVariables");
           DebuggerView.Variables.commitHierarchy();
         }.bind(this));
         break;
@@ -930,7 +916,7 @@ StackFrames.prototype = {
       aVar._retrieved = true;
 
       
-      window.dispatchEvent("Debugger:FetchedProperties");
+      window.dispatchEvent(document, "Debugger:FetchedProperties");
       DebuggerView.Variables.commitHierarchy();
     }.bind(this));
   },
@@ -944,9 +930,10 @@ StackFrames.prototype = {
   _addFrame: function SF__addFrame(aFrame) {
     let depth = aFrame.depth;
     let { url, line } = aFrame.where;
+    let frameLocation = SourceUtils.convertToUnicode(window.unescape(url));
     let frameTitle = StackFrameUtils.getFrameTitle(aFrame);
 
-    DebuggerView.StackFrames.addFrame(frameTitle, url, line, depth);
+    DebuggerView.StackFrames.addFrame(frameTitle, frameLocation, line, depth);
   },
 
   
@@ -1030,6 +1017,7 @@ function SourceScripts() {
 SourceScripts.prototype = {
   get activeThread() DebuggerController.activeThread,
   get debuggerClient() DebuggerController.client,
+  _newSourceTimeout: null,
 
   
 
@@ -1072,25 +1060,28 @@ SourceScripts.prototype = {
   
 
 
+  _onNewGlobal: function SS__onNewGlobal(aNotification, aPacket) {
+    
+    
+  },
+
+  
+
+
   _onNewSource: function SS__onNewSource(aNotification, aPacket) {
     
-    if (NEW_SOURCE_IGNORED_URLS.indexOf(aPacket.url) != -1) {
+    if (NEW_SOURCE_IGNORED_URLS.indexOf(aPacket.source.url) != -1) {
       return;
     }
 
     
-    this._addSource({
-      url: aPacket.source.url,
-      source: aPacket.source
-    }, {
-      staged: false
-    });
+    DebuggerView.Sources.addSource(aPacket.source, { staged: false });
 
     let container = DebuggerView.Sources;
     let preferredValue = container.preferredValue;
 
     
-    if (aPacket.url == preferredValue) {
+    if (aPacket.source.url == preferredValue) {
       container.selectedValue = preferredValue;
     }
     
@@ -1111,15 +1102,7 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    window.dispatchEvent("Debugger:AfterNewScript");
-  },
-
-  
-
-
-  _onNewGlobal: function SS__onNewGlobal(aNotification, aPacket) {
-    
-    
+    window.dispatchEvent(document, "Debugger:AfterNewSource");
   },
 
   
@@ -1127,7 +1110,7 @@ SourceScripts.prototype = {
 
   _onSourcesAdded: function SS__onSourcesAdded(aResponse) {
     if (aResponse.error) {
-      Cu.reportError(new Error("Error getting sources: " + aResponse.error));
+      Cu.reportError("Error getting sources: " + aResponse.error);
       return;
     }
 
@@ -1137,12 +1120,7 @@ SourceScripts.prototype = {
       if (NEW_SOURCE_IGNORED_URLS.indexOf(source.url) != -1) {
         continue;
       }
-      this._addSource({
-        url: source.url,
-        source: source
-      }, {
-        staged: true
-      });
+      DebuggerView.Sources.addSource(source, { staged: true });
     }
 
     let container = DebuggerView.Sources;
@@ -1166,27 +1144,7 @@ SourceScripts.prototype = {
     DebuggerController.Breakpoints.updatePaneBreakpoints();
 
     
-    window.dispatchEvent("Debugger:AfterSourcesAdded");
-  },
-
-  
-
-
-
-
-
-
-
-
-  _addSource: function SS__addSource(aSource, aOptions = {}) {
-    let url = aSource.url;
-    let staged = aOptions.staged;
-
-    DebuggerView.Sources.push([SourceUtils.getSourceLabel(url), url], {
-      staged: staged, 
-      tooltip: url,
-      attachment: aSource
-    });
+    window.dispatchEvent(document, "Debugger:AfterSourcesAdded");
   },
 
   
@@ -1202,7 +1160,7 @@ SourceScripts.prototype = {
   getText: function SS_getText(aSource, aCallback, aOnTimeout) {
     
     if (aSource.loaded) {
-      aCallback(aSource.source.url, aSource.text);
+      aCallback(aSource.url, aSource.text);
       return;
     }
 
@@ -1213,17 +1171,16 @@ SourceScripts.prototype = {
     }
 
     
-    this.activeThread.source(aSource.source).source(function(aResponse) {
+    this.activeThread.source(aSource).source(function(aResponse) {
       window.clearTimeout(fetchTimeout);
 
       if (aResponse.error) {
-        Cu.reportError("Error loading " + aSource.source.url + "\n" + aResponse.error);
-        aCallback(aSource.source.url, "");
-        return;
+        Cu.reportError("Error loading: " + aSource.url + "\n" + aResponse.error);
+        return void aCallback(aSource.url, "");
       }
       aSource.loaded = true;
       aSource.text = aResponse.source;
-      aCallback(aSource.source.url, aResponse.source);
+      aCallback(aSource.url, aResponse.source);
     });
   }
 };
@@ -1433,8 +1390,7 @@ Breakpoints.prototype = {
 
       
       
-      aBreakpointClient.lineText = DebuggerView.getEditorLine(line - 1);
-      aBreakpointClient.lineInfo = SourceUtils.getSourceLabel(url) + ":" + line;
+      aBreakpointClient.lineText = DebuggerView.getEditorLine(line - 1).trim();
 
       
       this._showBreakpoint(aBreakpointClient, aFlags);
@@ -1500,16 +1456,17 @@ Breakpoints.prototype = {
     }
     
     if (!aFlags.noPaneUpdate) {
-      let { lineText, lineInfo, actor } = aBreakpointClient;
-      let conditionalFlag = aBreakpointClient.conditionalExpression !== undefined;
-      let openPopupFlag = aFlags.openPopup;
-
-      DebuggerView.Breakpoints.addBreakpoint(
-        url, line, actor, lineInfo, lineText, conditionalFlag, openPopupFlag);
+      DebuggerView.Sources.addBreakpoint({
+        sourceLocation: url,
+        lineNumber: line,
+        lineText: aBreakpointClient.lineText,
+        actor: aBreakpointClient.actor,
+        openPopupFlag: aFlags.openPopup
+      });
     }
     
     if (!aFlags.noPaneHighlight) {
-      DebuggerView.Breakpoints.highlightBreakpoint(url, line);
+      DebuggerView.Sources.highlightBreakpoint(url, line, aFlags);
     }
   },
 
@@ -1535,7 +1492,7 @@ Breakpoints.prototype = {
     }
     
     if (!aFlags.noPaneUpdate) {
-      DebuggerView.Breakpoints.removeBreakpoint(url, line);
+      DebuggerView.Sources.removeBreakpoint(url, line);
     }
   },
 
@@ -1643,8 +1600,8 @@ Prefs.map("Int", "windowX", "devtools.debugger.ui.win-x");
 Prefs.map("Int", "windowY", "devtools.debugger.ui.win-y");
 Prefs.map("Int", "windowWidth", "devtools.debugger.ui.win-width");
 Prefs.map("Int", "windowHeight", "devtools.debugger.ui.win-height");
-Prefs.map("Int", "stackframesWidth", "devtools.debugger.ui.stackframes-width");
-Prefs.map("Int", "variablesWidth", "devtools.debugger.ui.variables-width");
+Prefs.map("Int", "sourcesWidth", "devtools.debugger.ui.panes-sources-width");
+Prefs.map("Int", "instrumentsWidth", "devtools.debugger.ui.panes-instruments-width");
 Prefs.map("Bool", "pauseOnExceptions", "devtools.debugger.ui.pause-on-exceptions");
 Prefs.map("Bool", "panesVisibleOnStartup", "devtools.debugger.ui.panes-visible-on-startup");
 Prefs.map("Bool", "variablesSortingEnabled", "devtools.debugger.ui.variables-sorting-enabled");
@@ -1689,6 +1646,15 @@ DebuggerController.Breakpoints = new Breakpoints();
 
 
 Object.defineProperties(window, {
+  "create": {
+    get: function() ViewHelpers.create,
+  },
+  "dispatchEvent": {
+    get: function() ViewHelpers.dispatchEvent,
+  },
+  "editor": {
+    get: function() DebuggerView.editor
+  },
   "gClient": {
     get: function() DebuggerController.client
   },
@@ -1712,12 +1678,6 @@ Object.defineProperties(window, {
   },
   "gCallStackPageSize": {
     get: function() CALL_STACK_PAGE_SIZE,
-  },
-  "dispatchEvent": {
-    get: function() DebuggerController.dispatchEvent,
-  },
-  "editor": {
-    get: function() DebuggerView.editor
   }
 });
 

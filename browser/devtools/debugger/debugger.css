@@ -6,32 +6,10 @@
 
 
 
-
-
 #globalsearch {
   overflow-x: hidden;
   overflow-y: auto;
 }
-
-.dbg-results-container:not([open]) {
-  display: none;
-}
-
-
-
-
-
-#breakpoints {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-.dbg-breakpoint > .state,
-.dbg-breakpoint > .content {
-  overflow: hidden;
-}
-
-
 
 
 
@@ -39,39 +17,6 @@
   overflow-x: hidden;
   overflow-y: auto;
 }
-
-
-
-
-
-#variables {
-  overflow-x: hidden;
-  overflow-y: auto;
-}
-
-
-
-
-
-.details:not([open]) {
-  display: none;
-}
-
-.scope,
-.variable,
-.property {
-  -moz-user-focus: normal;
-}
-
-.scope[non-header] > .title,
-.variable[non-header] > .title,
-.variable[non-match] > .title,
-.property[non-header] > .title,
-.property[non-match] > .title {
-  display: none;
-}
-
-
 
 
 
