@@ -409,6 +409,7 @@ class ForkJoinShared : public TaskExecutor, public Monitor
 
     JSRuntime *runtime() { return cx_->runtime(); }
     JS::Zone *zone() { return cx_->zone(); }
+    JSCompartment *compartment() { return cx_->compartment(); }
 
     JSContext *acquireContext() { PR_Lock(cxLock_); return cx_; }
     void releaseContext() { PR_Unlock(cxLock_); }
@@ -1689,6 +1690,13 @@ ForkJoinSlice::ForkJoinSlice(PerThreadData *perThreadData,
 
 
     zone_ = shared->zone();
+
+    
+
+
+
+    compartment_ = shared->compartment();
+
     allocator_ = allocator;
 }
 
