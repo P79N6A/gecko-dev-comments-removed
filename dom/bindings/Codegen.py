@@ -9124,7 +9124,7 @@ class CGExampleRoot(CGThing):
                                 "nsContentUtils.h" ], "", self.root);
 
         
-        self.root = CGWrapper(self.root, declarePre="#pragma once\n\n")
+        self.root = CGIncludeGuard(interfaceName, self.root)
 
         
         self.root = CGWrapper(self.root, pre="""/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
