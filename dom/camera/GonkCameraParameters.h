@@ -94,6 +94,7 @@ protected:
   
   double mExposureCompensationMin;
   double mExposureCompensationStep;
+  nsTArray<int> mZoomRatios;
 
   
   
