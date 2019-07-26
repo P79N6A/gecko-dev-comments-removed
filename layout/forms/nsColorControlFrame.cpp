@@ -12,6 +12,7 @@
 #include "nsGkAtoms.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNode.h"
+#include "nsIFormControl.h"
 #include "nsStyleSet.h"
 
 nsColorControlFrame::nsColorControlFrame(nsStyleContext* aContext):
@@ -118,7 +119,11 @@ nsColorControlFrame::AttributeChanged(int32_t  aNameSpaceID,
   NS_ASSERTION(mColorContent, "The color div must exist");
 
   
-  if (aNameSpaceID == kNameSpaceID_None && nsGkAtoms::value == aAttribute) {
+  
+  
+  nsCOMPtr<nsIFormControl> fctrl = do_QueryInterface(GetContent());
+  if (fctrl->GetType() == NS_FORM_INPUT_COLOR &&
+      aNameSpaceID == kNameSpaceID_None && nsGkAtoms::value == aAttribute) {
     UpdateColor();
   }
   return nsColorControlFrameSuper::AttributeChanged(aNameSpaceID, aAttribute,
