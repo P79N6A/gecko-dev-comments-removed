@@ -394,17 +394,27 @@ APZCTreeManager::ReceiveInputEvent(const InputData& aEvent,
         
         mTouchCount = multiTouchInput.mTouches.Length();
         mInOverscrolledApzc = false;
-        mApzcForInputBlock = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
-                                           &mInOverscrolledApzc);
+        nsRefPtr<AsyncPanZoomController> apzc = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[0].mScreenPoint),
+                                                                          &mInOverscrolledApzc);
         for (size_t i = 1; i < multiTouchInput.mTouches.Length(); i++) {
           nsRefPtr<AsyncPanZoomController> apzc2 = GetTargetAPZC(ScreenPoint(multiTouchInput.mTouches[i].mScreenPoint),
                                                                  &mInOverscrolledApzc);
-          mApzcForInputBlock = CommonAncestor(mApzcForInputBlock.get(), apzc2.get());
+          apzc = CommonAncestor(mApzcForInputBlock.get(), apzc2.get());
           APZCTM_LOG("Using APZC %p as the common ancestor\n", mApzcForInputBlock.get());
           
           
-          mApzcForInputBlock = RootAPZCForLayersId(mApzcForInputBlock);
+          apzc = RootAPZCForLayersId(mApzcForInputBlock);
           APZCTM_LOG("Using APZC %p as the root APZC for multi-touch\n", mApzcForInputBlock.get());
+        }
+        if (apzc != mApzcForInputBlock) {
+          
+          
+          
+          if (mApzcForInputBlock) {
+            MultiTouchInput cancel(MultiTouchInput::MULTITOUCH_CANCEL, 0, TimeStamp::Now(), 0);
+            mApzcForInputBlock->ReceiveInputEvent(cancel);
+          }
+          mApzcForInputBlock = apzc;
         }
 
         
@@ -589,7 +599,19 @@ APZCTreeManager::ProcessTouchEvent(WidgetTouchEvent& aEvent,
     
     mTouchCount = aEvent.touches.Length();
     mInOverscrolledApzc = false;
-    mApzcForInputBlock = GetTouchInputBlockAPZC(aEvent, &mInOverscrolledApzc);
+
+    nsRefPtr<AsyncPanZoomController> apzc = GetTouchInputBlockAPZC(aEvent, &mInOverscrolledApzc);
+    if (apzc != mApzcForInputBlock) {
+      
+      
+      
+      if (mApzcForInputBlock) {
+        MultiTouchInput cancel(MultiTouchInput::MULTITOUCH_CANCEL, 0, TimeStamp::Now(), 0);
+        mApzcForInputBlock->ReceiveInputEvent(cancel);
+      }
+      mApzcForInputBlock = apzc;
+    }
+
     if (mApzcForInputBlock) {
       
       gfx3DMatrix transformToGecko;
