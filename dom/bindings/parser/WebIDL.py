@@ -269,6 +269,14 @@ class IDLScope(IDLObject):
                 % (identifier.name,
                     originalObject.location, newObject.location), [])
 
+        if (isinstance(originalObject, IDLDictionary) or
+            isinstance(newObject, IDLDictionary)):
+            raise WebIDLError(
+                "Name collision between dictionary declarations for "
+                "identifier '%s'.\n%s\n%s"
+                % (identifier.name,
+                   originalObject.location, newObject.location), [])
+
         
         
         
