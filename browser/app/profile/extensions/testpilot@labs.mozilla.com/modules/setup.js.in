@@ -1,6 +1,6 @@
-
-
-
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 EXPORTED_SYMBOLS = ["TestPilotSetup", "POPUP_SHOW_ON_NEW",
                     "POPUP_SHOW_ON_FINISH", "POPUP_SHOW_ON_RESULTS",
@@ -31,11 +31,11 @@ let TestPilotSetup = {
   startupComplete: false,
   _shortTimer: null,
   _longTimer: null,
-  _remoteExperimentLoader: null, 
+  _remoteExperimentLoader: null, // TODO make this a lazy initializer too?
   taskList: [],
   version: "",
 
-  
+  // Lazy initializers:
   __application: null,
   get _application() {
     if (this.__application == null) {
@@ -98,8 +98,8 @@ let TestPilotSetup = {
 
   __logRepo: null,
   get _logRepo() {
-    
-    
+    // Note: This hits the disk so it's an expensive operation; don't call it
+    // on startup.
     if (this.__logRepo == null) {
       let Log4MozModule = {};
       Cu.import("resource://testpilot/modules/log4moz.js", Log4MozModule);
@@ -154,8 +154,8 @@ let TestPilotSetup = {
   },
 
   globalStartup: function TPS__doGlobalSetup() {
-    
-    
+    // Only ever run this stuff ONCE, on the first window restore.
+    // Should get called by the Test Pilot component.
     let logger = this._logger;
     logger.trace("TestPilotSetup.globalStartup was called.");
 
@@ -165,19 +165,21 @@ let TestPilotSetup = {
       return;
     }
 
-    
+    // Set up observation for task state changes
     var self = this;
     this._obs.add("testpilot:task:changed", this.onTaskStatusChanged, self);
     this._obs.add(
       "testpilot:task:dataAutoSubmitted", this._onTaskDataAutoSubmitted, self);
-    
+    // Set up observation for application shutdown.
     this._obs.add("quit-application", this.globalShutdown, self);
-    
+#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
+    // Set up observation for enter/exit private browsing:
     this._obs.add("private-browsing", this.onPrivateBrowsingMode, self);
+#endif
 
-    
-    
-    
+    // Set up timers to remind user x minutes after startup
+    // and once per day thereafter.  Use nsITimer so it doesn't belong to
+    // any one window.
     logger.trace("Setting interval for showing reminders...");
 
     this._shortTimer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
@@ -196,8 +198,8 @@ let TestPilotSetup = {
       Ci.nsITimer.TYPE_REPEATING_SLACK);
 
       this.getVersion(function() {
-        
-
+        /* Show first run page (in front window) only the first time after install;
+         * Don't show first run page in Feedback UI version. */
         if ((self._prefs.getValue(VERSION_PREF, "") == "") &&
            (!TestPilotUIBuilder.channelUsesFeedback())) {
             self._prefs.setValue(VERSION_PREF, self.version);
@@ -207,20 +209,20 @@ let TestPilotSetup = {
             browser.selectedTab = tab;
         }
 
-        
-        
+        // Install tasks. (This requires knowing the version, so it is
+        // inside the callback from getVersion.)
         self.checkForTasks(function() {
-          
-
+          /* Callback to complete startup after we finish
+           * checking for tasks. */
          self.startupComplete = true;
          logger.trace("I'm in the callback from checkForTasks.");
-         
+         // Send startup message to each task:
          for (let i = 0; i < self.taskList.length; i++) {
            self.taskList[i].onAppStartup();
          }
          self._obs.notify("testpilot:startup:complete", "", null);
-         
-
+         /* onWindowLoad gets called once for each window,
+          * but only after we fire this notification. */
          logger.trace("Testpilot startup complete.");
       });
     });
@@ -243,7 +245,9 @@ let TestPilotSetup = {
     this._obs.remove(
       "testpilot:task:dataAutoSubmitted", this._onTaskDataAutoSubmitted, self);
     this._obs.remove("quit-application", this.globalShutdown, self);
+#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
     this._obs.remove("private-browsing", this.onPrivateBrowsingMode, self);
+#endif
     this._loader.unload();
     this._shortTimer.cancel();
     this._longTimer.cancel();
@@ -253,10 +257,11 @@ let TestPilotSetup = {
   _getFrontBrowserWindow: function TPS__getFrontWindow() {
     let wm = Cc["@mozilla.org/appshell/window-mediator;1"].
                getService(Ci.nsIWindowMediator);
-    
+    // TODO Is "most recent" the same as "front"?
     return wm.getMostRecentWindow("navigator:browser");
   },
 
+#ifndef MOZ_PER_WINDOW_PRIVATE_BROWSING
   onPrivateBrowsingMode: function TPS_onPrivateBrowsingMode(topic, data) {
     for (let i = 0; i < this.taskList.length; i++) {
       if (data == "enter") {
@@ -266,6 +271,7 @@ let TestPilotSetup = {
       }
     }
   },
+#endif
 
   onWindowUnload: function TPS__onWindowRegistered(window) {
     this._logger.trace("Called TestPilotSetup.onWindow unload!");
@@ -276,11 +282,11 @@ let TestPilotSetup = {
 
   onWindowLoad: function TPS_onWindowLoad(window) {
     this._logger.trace("Called TestPilotSetup.onWindowLoad!");
-    
+    // Run this stuff once per window...
     let self = this;
 
-    
-    
+    // Register listener for URL loads, that will notify all tasks about
+    // new page:
     let appcontent = window.document.getElementById("appcontent");
     if (appcontent) {
       appcontent.addEventListener("DOMContentLoaded", function(event) {
@@ -292,15 +298,15 @@ let TestPilotSetup = {
       }, true);
     }
 
-    
+    // Let each task know about the new window.
     for (let i = 0; i < this.taskList.length; i++) {
       this.taskList[i].onNewWindow(window);
     }
   },
 
   addTask: function TPS_addTask(testPilotTask) {
-    
-    
+    // TODO raise some kind of exception if a task with the same ID already
+    // exists.  No excuse to ever be running two copies of the same task.
     this.taskList.push(testPilotTask);
   },
 
@@ -310,30 +316,30 @@ let TestPilotSetup = {
                                                     linkText, linkUrl,
 						    isExtensionUpdate,
                                                     onCloseCallback) {
-    
+    /* TODO: Refactor the arguments of this function, it's getting really
+     * unweildly.... maybe pass in an object, or even make a notification an
+     * object that you create and then call .show() on. */
 
-
-
-    
-    
+    // If there are multiple windows, show notifications in the frontmost
+    // window.
     let window = this._getFrontBrowserWindow();
     let doc = window.document;
     let popup = doc.getElementById("pilot-notification-popup");
 
     let anchor, xOffset;
     if (TestPilotUIBuilder.channelUsesFeedback()) {
-      
-
-
+      /* If we're in the Ffx4Beta version, popups hang down from the feedback
+       * button. In the standalone extension version, they hang down from
+       * a temporary Test Pilot icon that appears in the toolbar. */
       anchor = doc.getElementById("feedback-menu-button");
       xOffset = 0;
     } else {
       anchor = doc.getElementById("tp-notification-popup-icon");
       anchor.hidden = false;
-      
-
-
-
+      /* By default, right edge of notification will line up with right edge of anchor.
+       * That looks fine for feedback button, but the test pilot icon is narrower and
+       * this alignment causes the pointy part of the arrow to miss the icon.  Fix this
+       * by shifting the notification to the right 24 pixels. */
       xOffset = 24;
     }
     let textLabel = doc.getElementById("pilot-notification-text");
@@ -346,7 +352,7 @@ let TestPilotSetup = {
       doc.getElementById("pilot-notification-always-submit-checkbox");
     let self = this;
 
-    
+    // Set all appropriate attributes on popup:
     if (isExtensionUpdate) {
       popup.setAttribute("tpisextensionupdate", "true");
     }
@@ -357,7 +363,7 @@ let TestPilotSetup = {
     }
     textLabel.appendChild(doc.createTextNode(text));
     if (iconClass) {
-      
+      // css will set the image url based on the class.
       icon.setAttribute("class", iconClass);
     }
 
@@ -374,7 +380,7 @@ let TestPilotSetup = {
       } else {
         submitBtn.setAttribute("label",
 	  this._stringBundle.GetStringFromName("testpilot.submit"));
-        
+        // Functionality for submit button:
         submitBtn.onclick = function() {
           self._hideNotification(window, onCloseCallback);
           if (showAlwaysSubmitCheckbox && alwaysSubmitCheckbox.checked) {
@@ -392,7 +398,7 @@ let TestPilotSetup = {
                 self._stringBundle.GetStringFromName("testpilot.moreInfo"),
 		task.defaultUrl);
             } else {
-              
+              // TODO any point in showing an error message here?
             }
           });
         };
@@ -400,7 +406,7 @@ let TestPilotSetup = {
     }
     submitBtn.setAttribute("hidden", !showSubmit);
 
-    
+    // Create the link if specified:
     if (linkText && (linkUrl || task)) {
       link.setAttribute("value", linkText);
       link.onclick = function(event) {
@@ -422,7 +428,7 @@ let TestPilotSetup = {
       self._hideNotification(window, onCloseCallback);
     };
 
-    
+    // Show the popup:
     popup.hidden = false;
     popup.setAttribute("open", "true");
     popup.openPopup( anchor, "after_end", xOffset, 0);
@@ -434,10 +440,10 @@ let TestPilotSetup = {
   },
 
   _hideNotification: function TPS__hideNotification(window, onCloseCallback) {
-    
-
-
-
+    /* Note - we take window as an argument instead of just using the frontmost
+     * window because the window order might have changed since the notification
+     * appeared and we want to be sure we close the notification in the same
+     * window as we opened it in! */
     let popup = window.document.getElementById("pilot-notification-popup");
     popup.hidden = true;
     popup.setAttribute("open", "false");
@@ -445,7 +451,7 @@ let TestPilotSetup = {
     popup.hidePopup();
 
     if (!TestPilotUIBuilder.channelUsesFeedback()) {
-      
+      // If we're using the temporary test pilot icon as an anchor, hide it now
       let icon = window.document.getElementById("tp-notification-popup-icon");
       icon.hidden = true;
     }
@@ -462,17 +468,17 @@ let TestPilotSetup = {
   },
 
   _notifyUserOfTasks: function TPS__notifyUser() {
-    
-    
+    // Check whether there are tasks needing attention, and if any are
+    // found, show the popup door-hanger thingy.
     let i, task;
     let TaskConstants = this._taskModule.TaskConstants;
 
-    
+    // if showing extension update notification, don't do anything.
     if (this._isShowingUpdateNotification()) {
       return;
     }
 
-    
+    // Highest priority is if there is a finished test (needs a decision)
     if (this._prefs.getValue(POPUP_SHOW_ON_FINISH, false)) {
       for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
@@ -488,16 +494,16 @@ let TestPilotSetup = {
 	      "study-finished", true, true,
 	      this._stringBundle.GetStringFromName("testpilot.moreInfo"),
 	      task.defaultUrl);
-            
-            
+            // We return after showing something, because it only makes
+            // sense to show one notification at a time!
             return;
           }
         }
       }
     }
 
-    
-    
+    // If there's no finished test, next highest priority is new tests that
+    // are starting...
     if (this._prefs.getValue(POPUP_SHOW_ON_NEW, false)) {
       for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
@@ -514,8 +520,8 @@ let TestPilotSetup = {
 	      "new-study", false, false,
 	      this._stringBundle.GetStringFromName("testpilot.moreInfo"),
 	      task.defaultUrl, false, function() {
-                
-
+                /* on close callback (Bug 575767) -- when the "new study
+                 * starting" popup is dismissed, then the study can start. */
                 task.changeStatus(TaskConstants.STATUS_STARTING, true);
                 TestPilotSetup.reloadRemoteExperiments();
               });
@@ -525,7 +531,7 @@ let TestPilotSetup = {
 	      task, false,
 	      this._stringBundle.formatStringFromName(
 		"testpilot.notification.newTestPilotSurvey.message",
-    
+    // in task.js summary falls back to title if undefined or empty, but we double make sure :)
 		[task.summary || task.title],1),
               this._stringBundle.GetStringFromName(
 		"testpilot.notification.newTestPilotSurvey"),
@@ -539,7 +545,7 @@ let TestPilotSetup = {
       }
     }
 
-    
+    // And finally, new experiment results:
     if (this._prefs.getValue(POPUP_SHOW_ON_RESULTS, false)) {
       for (let i = 0; i < this.taskList.length; i++) {
         task = this.taskList[i];
@@ -555,8 +561,8 @@ let TestPilotSetup = {
 	    "new-results", false, false,
 	    this._stringBundle.GetStringFromName("testpilot.moreInfo"),
 	    task.defaultUrl);
-          
-          
+          // Having shown the notification, advance the status of the
+          // results, so that this notification won't be shown again
           task.changeStatus(TaskConstants.STATUS_ARCHIVED, true);
           return;
         }
@@ -565,12 +571,12 @@ let TestPilotSetup = {
   },
 
   _doHousekeeping: function TPS__doHousekeeping() {
-    
+    // check date on all tasks:
     for (let i = 0; i < this.taskList.length; i++) {
       let task = this.taskList[i];
       task.checkDate();
     }
-    
+    // Do a full reminder -- but at most once per browser session
     if (!this.didReminderAfterStartup) {
       this._logger.trace("Doing reminder after startup...");
       this.didReminderAfterStartup = true;
@@ -596,9 +602,9 @@ let TestPilotSetup = {
   },
 
   getVersion: function TPS_getVersion(callback) {
-    
-    
-    
+    // Application.extensions undefined in Firefox 4; will use the new
+    // asynchrounous API, store string in this.version, and call the
+    // callback when done.
     if (this._application.extensions) {
       this.version = this._application.extensions.get(EXTENSION_ID).version;
       callback();
@@ -616,9 +622,9 @@ let TestPilotSetup = {
                    .getService(Ci.nsIVersionComparator)
                    .compare(this.version, versionString);
     if (result < 0) {
-      return true; 
+      return true; // versionString is newer than my version
     } else {
-      return false; 
+      return false; // versionString is the same as or older than my version
     }
   },
 
@@ -627,30 +633,30 @@ let TestPilotSetup = {
                    .getService(Ci.nsIVersionComparator)
                    .compare(this._application.version, versionString);
     if (result < 0) {
-      return true; 
+      return true; // versionString is newer than Firefox
     } else {
-      return false; 
+      return false; // versionString is the same as or older than Firefox
     }
   },
 
   _checkExperimentRequirements: function TPS__requirementsMet(experiment, callback) {
-    
-
-
-
-
-
-
+    /* Async.
+     * Calls callback with a true if we we meet the requirements to run this
+     * experiment (e.g. meet the minimum Test Pilot version and Firefox version)
+     * calls callback with a false if not.
+     * All of the requirements that a study can specify - firefox version, test pilot
+     * version, filter function etc - default to true if not provided. callback(true)
+     * UNLESS the study specifies a requirement that we don't meet. */
     let logger = this._logger;
     try {
       let minTpVer, minFxVer, expName, filterFunc, randomDeployment;
-      
-
+      /* Could be an experiment, which specifies experimentInfo, or survey,
+       * which specifies surveyInfo. */
       let info = experiment.experimentInfo ?
                    experiment.experimentInfo :
                    experiment.surveyInfo;
       if (!info) {
-        
+        // If neither one is supplied, study lacks metadata required to run
         logger.warn("Study lacks minimum metadata to run.");
         callback(false);
         return;
@@ -661,12 +667,12 @@ let TestPilotSetup = {
       filterFunc = info.filter;
       randomDeployment = info.randomDeployment;
 
-      
+      // Minimum test pilot version:
       if (minTpVer && this._isNewerThanMe(minTpVer)) {
         logger.warn("Not loading " + expName);
         logger.warn("Because it requires Test Pilot version " + minTpVer);
 
-        
+        // Let user know there is a newer version of Test Pilot available:
         if (!this._isShowingUpdateNotification()) {
           this._showNotification(
 	    null, false,
@@ -680,7 +686,7 @@ let TestPilotSetup = {
         return;
       }
 
-      
+      // Minimum firefox version:
       if (minFxVer && this._isNewerThanFirefox(minFxVer)) {
         logger.warn("Not loading " + expName);
         logger.warn("Because it requires Firefox version " + minFxVer);
@@ -688,20 +694,20 @@ let TestPilotSetup = {
         return;
       }
 
-      
+      // Random deployment (used to give study to random subsample of users)
       if (randomDeployment) {
-        
-
-
-
-
+        /* Roll a 100*uniform_random. Remember what we roll for later reference or reuse.  A study
+         * using random subsample deployment will provide a range (say, 0 ~ 30) which means
+         * only users who roll not outside that range (inclusive) will run the study.
+         * ie., [0,1.5] -> 1.5% prob
+         */
         let prefName = RANDOM_DEPLOY_PREFIX + "." + randomDeployment.rolloutCode;
         let myRoll = this._prefs.getValue(prefName, null);
         if (myRoll == null) {
           myRoll = Math.random()*100;
           this._prefs.setValue(prefName, JSON.stringify(myRoll));
         } else {
-          myRoll = Number(myRoll);  
+          myRoll = Number(myRoll);  // cast it
         }
         if (myRoll < randomDeployment.minRoll) {
           callback(false);
@@ -713,15 +719,15 @@ let TestPilotSetup = {
         }
       }
 
-      
-
+      /* The all-purpose, arbitrary code "Should this study run?" function - if
+       * provided, use it.  (filterFunc must be asynchronous too!)*/
       if (filterFunc) {
         filterFunc(callback);
         return;
       }
     } catch (e) {
       logger.warn("Error in requirements check " +  e);
-      callback(false); 
+      callback(false); // if something went wrong, err on the side of not running the study
     }
     callback(true);
   },
@@ -740,8 +746,8 @@ let TestPilotSetup = {
     this._remoteExperimentLoader.checkForUpdates(
       function(success) {
         logger.info("Getting updated experiments... Success? " + success);
-        
-        
+        // Actually, we do exactly the same thing whether we succeeded in
+        // downloading new contents or not...
         let experiments = self._remoteExperimentLoader.getExperiments();
 
         let numExperimentsProcessed = 0;
@@ -750,22 +756,22 @@ let TestPilotSetup = {
           self._checkExperimentRequirements(experiments[filename], function(requirementsMet) {
             if (requirementsMet) {
               try {
-                
-
+                /* The try-catch ensures that if something goes wrong in loading one
+                 * experiment, the other experiments after that one still get loaded. */
                 logger.trace("Attempting to load experiment " + filename);
                 let task;
-                
+                // Could be a survey: check if surveyInfo is exported:
                 if (experiments[filename].surveyInfo != undefined) {
                   let sInfo = experiments[filename].surveyInfo;
-                  
-                  
+                  // If it supplies questions, it's a built-in survey.
+                  // If not, it's a web-based survey.
                   if (!sInfo.surveyQuestions) {
                     task = new self._taskModule.TestPilotWebSurvey(sInfo);
                   } else {
                     task = new self._taskModule.TestPilotBuiltinSurvey(sInfo);
                   }
                 } else {
-                  
+                  // This one must be an experiment.
                   let expInfo = experiments[filename].experimentInfo;
                   let dsInfo = experiments[filename].dataStoreInfo;
                   let dataStore = new self._dataStoreModule.ExperimentDataStore(
@@ -781,34 +787,34 @@ let TestPilotSetup = {
               } catch (e) {
                 logger.warn("Failed to load task " + filename + ": " + e);
               }
-            } 
-            
+            } // end if requirements met
+            // whether loading succeeded or failed, we're done processing that one; increment the count:
             numExperimentsProcessed ++;
             if (numExperimentsProcessed == numExperiments) {
-              
+              // all done with experiments -- do results and legacy studies:
               let results = self._remoteExperimentLoader.getStudyResults();
               for (let r in results) {
                 let studyResult = new self._taskModule.TestPilotStudyResults(results[r]);
                 self.addTask(studyResult);
               }
 
-              
-
+              /* Legacy studies = stuff we no longer have the code for, but
+               * if the user participated in it we want to keep that metadata. */
               let legacyStudies = self._remoteExperimentLoader.getLegacyStudies();
               for (let l in legacyStudies) {
                 let legacyStudy = new self._taskModule.TestPilotLegacyStudy(legacyStudies[l]);
                 self.addTask(legacyStudy);
               }
 
-              
+              // Finally, call the callback if there is one
               if (callback) {
                 callback();
               }
-            } 
-          }); 
-        } 
+            } // end of if all experiments are processed
+          }); // end of call to check experiment requirements
+        } // end for filename in experiments
       }
-    ); 
+    ); // end of call to checkForUpdates
   },
 
   reloadRemoteExperiments: function TPS_reloadRemoteExperiments(callback) {
