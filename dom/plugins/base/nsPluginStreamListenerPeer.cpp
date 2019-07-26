@@ -1183,8 +1183,7 @@ nsresult nsPluginStreamListenerPeer::SetUpStreamListener(nsIRequest *request,
       PR_ParseTimeString(lastModified.get(), true, &time64);  
       
       
-      double fpTime;
-      LL_L2D(fpTime, time64);
+      double fpTime = double(time64);
       mModified = (uint32_t)(fpTime * 1e-6 + 0.5);
     }
   }
