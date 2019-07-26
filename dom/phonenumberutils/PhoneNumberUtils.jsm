@@ -44,7 +44,8 @@ this.PhoneNumberUtils = {
 
 #ifdef MOZ_B2G_RIL
     
-    let voice = mobileConnection.voiceConnectionInfo;
+    
+    let voice = mobileConnection.getVoiceConnectionInfo(0);
     if (voice && voice.network && voice.network.mcc) {
       mcc = voice.network.mcc;
     }
