@@ -800,21 +800,10 @@ public:
                    uint32_t aUnicode, uint32_t aVarSelector = 0);
 
 #ifdef XP_WIN
-
-    
-    
-    
-    
-    
-    static nsresult
-    MakeEOTHeader(const uint8_t *aFontData, uint32_t aFontDataLength,
-                  FallibleTArray<uint8_t> *aHeader, FontDataOverlay *aOverlay);
-
     
     
     static bool
-    IsCffFont(const uint8_t* aFontData, bool& hasVertical);
-
+    IsCffFont(const uint8_t* aFontData);
 #endif
 
     
