@@ -26,6 +26,12 @@
 
 
 
+#toolbar-menubar:not([autohide="true"]) + #TabsToolbar > .titlebar-placeholder[type="caption-buttons"] {
+  display: none;
+}
+
+
+
 
 #toolbar-menubar:not([autohide="true"]) ~ #TabsToolbar,
 #toolbar-menubar[autohide="true"]:not([inactive]) ~ #TabsToolbar {
