@@ -979,61 +979,63 @@ class JavaPanZoomController
             return true;
         }
 
-        float spanRatio = detector.getCurrentSpan() / prevSpan;
-
-        
-
-
-
-        float resistance = Math.min(mX.getEdgeResistance(true), mY.getEdgeResistance(true));
-        if (spanRatio > 1.0f)
-            spanRatio = 1.0f + (spanRatio - 1.0f) * resistance;
-        else
-            spanRatio = 1.0f - (1.0f - spanRatio) * resistance;
-
         synchronized (mTarget.getLock()) {
-            float newZoomFactor = getMetrics().zoomFactor * spanRatio;
-            float minZoomFactor = 0.0f;
-            float maxZoomFactor = MAX_ZOOM;
-
-            ZoomConstraints constraints = mTarget.getZoomConstraints();
-
-            if (constraints.getMinZoom() > 0)
-                minZoomFactor = constraints.getMinZoom();
-            if (constraints.getMaxZoom() > 0)
-                maxZoomFactor = constraints.getMaxZoom();
-
-            if (newZoomFactor < minZoomFactor) {
-                
-                
-                
-                final float rate = 0.5f; 
-                float excessZoom = minZoomFactor - newZoomFactor;
-                excessZoom = 1.0f - (float)Math.exp(-excessZoom * rate);
-                newZoomFactor = minZoomFactor * (1.0f - excessZoom / 2.0f);
-            }
-
-            if (newZoomFactor > maxZoomFactor) {
-                
-                
-                
-                float excessZoom = newZoomFactor - maxZoomFactor;
-                excessZoom = 1.0f - (float)Math.exp(-excessZoom);
-                newZoomFactor = maxZoomFactor + excessZoom;
-            }
-
+            float zoomFactor = getAdjustedZoomFactor(detector.getCurrentSpan() / prevSpan);
             scrollBy(mLastZoomFocus.x - detector.getFocusX(),
                      mLastZoomFocus.y - detector.getFocusY());
-            PointF focus = new PointF(detector.getFocusX(), detector.getFocusY());
-            scaleWithFocus(newZoomFactor, focus);
+            mLastZoomFocus.set(detector.getFocusX(), detector.getFocusY());
+            ImmutableViewportMetrics target = getMetrics().scaleTo(zoomFactor, mLastZoomFocus);
+            mTarget.setViewportMetrics(target);
         }
-
-        mLastZoomFocus.set(detector.getFocusX(), detector.getFocusY());
 
         GeckoEvent event = GeckoEvent.createNativeGestureEvent(GeckoEvent.ACTION_MAGNIFY, mLastZoomFocus, getMetrics().zoomFactor);
         GeckoAppShell.sendEventToGecko(event);
 
         return true;
+    }
+
+    private float getAdjustedZoomFactor(float zoomRatio) {
+        
+
+
+
+        float resistance = Math.min(mX.getEdgeResistance(true), mY.getEdgeResistance(true));
+        if (zoomRatio > 1.0f)
+            zoomRatio = 1.0f + (zoomRatio - 1.0f) * resistance;
+        else
+            zoomRatio = 1.0f - (1.0f - zoomRatio) * resistance;
+
+        float newZoomFactor = getMetrics().zoomFactor * zoomRatio;
+        float minZoomFactor = 0.0f;
+        float maxZoomFactor = MAX_ZOOM;
+
+        ZoomConstraints constraints = mTarget.getZoomConstraints();
+
+        if (constraints.getMinZoom() > 0)
+            minZoomFactor = constraints.getMinZoom();
+        if (constraints.getMaxZoom() > 0)
+            maxZoomFactor = constraints.getMaxZoom();
+
+        if (newZoomFactor < minZoomFactor) {
+            
+            
+            
+            final float rate = 0.5f; 
+            float excessZoom = minZoomFactor - newZoomFactor;
+            excessZoom = 1.0f - (float)Math.exp(-excessZoom * rate);
+            newZoomFactor = minZoomFactor * (1.0f - excessZoom / 2.0f);
+        }
+
+        if (newZoomFactor > maxZoomFactor) {
+            
+            
+            
+            float excessZoom = newZoomFactor - maxZoomFactor;
+            excessZoom = 1.0f - (float)Math.exp(-excessZoom);
+            newZoomFactor = maxZoomFactor + excessZoom;
+        }
+
+        return newZoomFactor;
     }
 
     @Override
@@ -1055,16 +1057,6 @@ class JavaPanZoomController
         }
 
         GeckoAppShell.sendEventToGecko(event);
-    }
-
-    
-
-
-
-    private void scaleWithFocus(float zoomFactor, PointF focus) {
-        ImmutableViewportMetrics viewportMetrics = getMetrics();
-        viewportMetrics = viewportMetrics.scaleTo(zoomFactor, focus);
-        mTarget.setViewportMetrics(viewportMetrics);
     }
 
     @Override
