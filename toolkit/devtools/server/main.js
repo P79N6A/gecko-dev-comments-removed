@@ -803,7 +803,8 @@ ActorPool.prototype = {
     if (!aActor.actorID) {
       let prefix = aActor.actorPrefix;
       if (typeof aActor == "function") {
-        prefix = aActor.prototype.actorPrefix;
+        
+        prefix = aActor.prototype.actorPrefix || aActor.prototype.typeName;
       }
       aActor.actorID = this.conn.allocID(prefix || undefined);
     }
