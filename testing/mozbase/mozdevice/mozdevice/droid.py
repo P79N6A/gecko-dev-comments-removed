@@ -100,7 +100,7 @@ class DroidSUT(DeviceManagerSUT, DroidMixin):
         
         
         
-        if not hasattr(self, 'userSerial'):
+        if not hasattr(self, '_userSerial'):
             infoDict = self.getInfo(directive="sutuserinfo")
             if infoDict.get('sutuserinfo') and \
                     len(infoDict['sutuserinfo']) > 0:
@@ -108,12 +108,14 @@ class DroidSUT(DeviceManagerSUT, DroidMixin):
                
                m = re.match('User Serial:([0-9]+)', userSerialString)
                if m:
-                   self.userSerial = m.group(1)
+                   self._userSerial = m.group(1)
                else:
-                   self.userSerial = None
+                   self._userSerial = None
+            else:
+                self._userSerial = None
 
-        if self.userSerial is not None:
-            return [ "--user", self.userSerial ]
+        if self._userSerial is not None:
+            return [ "--user", self._userSerial ]
 
         return []
 
