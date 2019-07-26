@@ -139,10 +139,10 @@ function migrateSettings() {
       if (!Services.prefs.prefHasUserValue(prefname)) {
         
         
-        let manifest = JSON.parse(MANIFEST_PREFS.getComplexValue(prefname, Ci.nsISupportsString).data);
+        let manifest = JSON.parse(Services.prefs.getComplexValue(prefname, Ci.nsISupportsString).data);
         
-        if (manifest.builtin)
-          delete manifest.builtin;
+        
+        delete manifest.builtin;
 
         let string = Cc["@mozilla.org/supports-string;1"].
                      createInstance(Ci.nsISupportsString);
@@ -170,11 +170,13 @@ function migrateSettings() {
       let manifest = JSON.parse(manifestPrefs.getComplexValue(pref, Ci.nsISupportsString).data);
       if (manifest && typeof(manifest) == "object" && manifest.origin) {
         
-        if (manifest.builtin)
-          delete manifest.builtin;
+        
+        delete manifest.builtin;
+
         let string = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
         string.data = JSON.stringify(manifest);
-        Services.prefs.setComplexValue(pref, Ci.nsISupportsString, string);
+        
+        Services.prefs.setComplexValue("social.manifest." + pref, Ci.nsISupportsString, string);
         ActiveProviders.add(manifest.origin);
         ActiveProviders.flush();
         
