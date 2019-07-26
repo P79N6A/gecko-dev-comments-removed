@@ -118,6 +118,8 @@ function MediaStreamPlayback(mediaElement, mediaStream) {
     
     setTimeout(function() {
       if(!canPlayThroughFired) {
+        self.mediaElement.removeEventListener('canplaythrough',
+          canPlayThroughCallback, false);
         ok(false, "canplaythrough event never fired");
         onError();
       }
