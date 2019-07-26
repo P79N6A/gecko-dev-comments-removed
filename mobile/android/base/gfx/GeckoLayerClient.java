@@ -58,7 +58,7 @@ public class GeckoLayerClient
 
 
 
-    private ViewportMetrics mGeckoViewport;
+    private ImmutableViewportMetrics mGeckoViewport;
 
     
 
@@ -275,7 +275,7 @@ public class GeckoLayerClient
         }
 
         mDisplayPort = displayPort;
-        mGeckoViewport = new ViewportMetrics(clampedMetrics);
+        mGeckoViewport = clampedMetrics;
 
         if (mRecordDrawTimes) {
             mDrawTimingQueue.add(displayPort);
@@ -308,15 +308,15 @@ public class GeckoLayerClient
     
     private DisplayPortMetrics handleViewportMessage(ViewportMetrics messageMetrics, ViewportMessageType type) {
         synchronized (this) {
-            final ViewportMetrics newMetrics;
+            ViewportMetrics metrics;
             ImmutableViewportMetrics oldMetrics = getViewportMetrics();
 
             switch (type) {
             default:
             case UPDATE:
-                newMetrics = messageMetrics;
+                metrics = messageMetrics;
                 
-                newMetrics.setSize(oldMetrics.getSize());
+                metrics.setSize(oldMetrics.getSize());
                 abortPanZoomAnimation();
                 break;
             case PAGE_SIZE:
@@ -324,17 +324,18 @@ public class GeckoLayerClient
                 
                 
                 float scaleFactor = oldMetrics.zoomFactor / messageMetrics.getZoomFactor();
-                newMetrics = new ViewportMetrics(oldMetrics);
-                newMetrics.setPageRect(RectUtils.scale(messageMetrics.getPageRect(), scaleFactor), messageMetrics.getCssPageRect());
+                metrics = new ViewportMetrics(oldMetrics);
+                metrics.setPageRect(RectUtils.scale(messageMetrics.getPageRect(), scaleFactor), messageMetrics.getCssPageRect());
                 break;
             }
 
+            final ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(metrics);
             post(new Runnable() {
                 public void run() {
                     mGeckoViewport = newMetrics;
                 }
             });
-            setViewportMetrics(new ImmutableViewportMetrics(newMetrics), type == ViewportMessageType.UPDATE);
+            setViewportMetrics(newMetrics, type == ViewportMessageType.UPDATE);
             mDisplayPort = DisplayPortCalculator.calculate(getViewportMetrics(), null);
         }
         return mDisplayPort;
@@ -467,21 +468,22 @@ public class GeckoLayerClient
             float pageLeft, float pageTop, float pageRight, float pageBottom,
             float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (this) {
-            final ViewportMetrics currentMetrics = new ViewportMetrics(getViewportMetrics());
+            ViewportMetrics currentMetrics = new ViewportMetrics(getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
             currentMetrics.setPageRect(new RectF(pageLeft, pageTop, pageRight, pageBottom),
                                        new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom));
+            final ImmutableViewportMetrics newMetrics = new ImmutableViewportMetrics(currentMetrics);
             
             
             
             
             post(new Runnable() {
                 public void run() {
-                    mGeckoViewport = currentMetrics;
+                    mGeckoViewport = newMetrics;
                 }
             });
-            setViewportMetrics(new ImmutableViewportMetrics(currentMetrics));
+            setViewportMetrics(newMetrics);
 
             Tab tab = Tabs.getInstance().getSelectedTab();
             mView.setCheckerboardColor(tab.getCheckerboardColor());
@@ -719,9 +721,9 @@ public class GeckoLayerClient
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
         PointF origin = viewportMetrics.getOrigin();
         float zoom = viewportMetrics.zoomFactor;
-        ViewportMetrics geckoViewport = mGeckoViewport;
+        ImmutableViewportMetrics geckoViewport = mGeckoViewport;
         PointF geckoOrigin = geckoViewport.getOrigin();
-        float geckoZoom = geckoViewport.getZoomFactor();
+        float geckoZoom = geckoViewport.zoomFactor;
 
         
         
