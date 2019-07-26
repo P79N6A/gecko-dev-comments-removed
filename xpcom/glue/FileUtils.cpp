@@ -117,7 +117,10 @@ mozilla::fallocate(PRFileDesc *aFD, int64_t aLength)
   return false;
 }
 
-#ifdef MOZ_WIDGET_GONK
+
+
+
+#if defined(MOZ_WIDGET_GONK) || defined(DEBUG)
 
 #undef TEMP_FAILURE_RETRY
 #define TEMP_FAILURE_RETRY(exp) (__extension__({ \
