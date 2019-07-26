@@ -1292,8 +1292,6 @@ public:
 
 class BlockGroup : public BlockGroupKey
 {
-  friend class FrameGroup;      
-
   
   
   mutable uint32_t  mNumBlocks;     
@@ -1305,6 +1303,8 @@ public:
       mNumBlocks(0),
       mGroupSize()
   {}
+
+  uint32_t NumBlocks() const { return mNumBlocks; }
 
   const GroupSize& GetGroupSize() const { return mGroupSize; }
 
@@ -1408,9 +1408,9 @@ public:
   
   void Add(const BlockGroup& aBg) const
   {
-    mNumBlocks += aBg.mNumBlocks;
+    mNumBlocks += aBg.NumBlocks();
     mNumBlockGroups++;
-    mGroupSize.Add(aBg.mGroupSize);
+    mGroupSize.Add(aBg.GetGroupSize());
   }
 
   void Print(const Writer& aWriter, LocationService* aLocService,
