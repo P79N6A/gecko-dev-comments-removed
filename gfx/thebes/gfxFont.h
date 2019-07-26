@@ -3512,6 +3512,9 @@ public:
     void SetTextPerfMetrics(gfxTextPerfMetrics *aTextPerf) { mTextPerf = aTextPerf; }
 
     
+    void SetUserFontSet(gfxUserFontSet *aUserFontSet);
+
+    
     
     virtual void UpdateFontList();
 
@@ -3566,10 +3569,6 @@ protected:
     gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags);
     gfxTextRun *MakeBlankTextRun(uint32_t aLength,
                                  const Parameters *aParams, uint32_t aFlags);
-
-    
-    
-    void SetUserFontSet(gfxUserFontSet *aUserFontSet);
 
     
     void BuildFontList();

@@ -4062,11 +4062,14 @@ gfxFontGroup::gfxFontGroup(const nsAString& aFamilies,
     , mStyle(*aStyle)
     , mUnderlineOffset(UNDERLINE_OFFSET_NOT_SET)
     , mHyphenWidth(-1)
+    , mUserFontSet(aUserFontSet)
     , mTextPerf(nullptr)
     , mPageLang(gfxPlatform::GetFontPrefLangFor(aStyle->language))
     , mSkipDrawing(false)
 {
-    SetUserFontSet(aUserFontSet);
+    
+    
+    mCurrGeneration = GetGeneration();
     BuildFontList();
 }
 
@@ -5108,8 +5111,12 @@ gfxFontGroup::GetUserFontSet()
 void 
 gfxFontGroup::SetUserFontSet(gfxUserFontSet *aUserFontSet)
 {
+    if (aUserFontSet == mUserFontSet) {
+        return;
+    }
     mUserFontSet = aUserFontSet;
-    mCurrGeneration = GetGeneration();
+    mCurrGeneration = GetGeneration() - 1;
+    UpdateFontList();
 }
 
 uint64_t
@@ -5123,7 +5130,7 @@ gfxFontGroup::GetGeneration()
 void
 gfxFontGroup::UpdateFontList()
 {
-    if (mUserFontSet && mCurrGeneration != GetGeneration()) {
+    if (mCurrGeneration != GetGeneration()) {
         
         mFonts.Clear();
         mUnderlineOffset = UNDERLINE_OFFSET_NOT_SET;
