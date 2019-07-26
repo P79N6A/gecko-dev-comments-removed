@@ -18,6 +18,7 @@
 
 
 
+
 def parseManifest(fd):
     def parseReftestLine(chunks):
         assert len(chunks) % 2 == 0
@@ -43,19 +44,23 @@ def parseManifest(fd):
         if chunks[0] == "MANIFEST":
             raise Exception("MANIFEST listed on line " + line)
 
-        if chunks[0] == "dir" or (chunks[0] == "support" and chunks[1] == "dir"):
-            dirs.append(chunks[1]);
+        if chunks[0] == "dir":
+            dirs.append(chunks[1])
+        elif chunks[0] == "support" and chunks[1] == "dir":
+            dirs.append(chunks[1])
         elif chunks[0] == "ref":
             if len(chunks) % 2:
                 raise Exception("Missing chunk in line " + line)
             reftests.extend(parseReftestLine(chunks))
         elif chunks[0] == "support":
             supportfiles.append(chunks[1])
-        elif chunks[0] in ["manual", "parser"]:
+        elif chunks[0] in ["manual", "parser", "http"]:
             othertests.append(chunks[1])
-        else: 
+        else:
+            
             autotests.append(chunks[0])
     return dirs, autotests, reftests, othertests, supportfiles
+
 
 def parseManifestFile(path):
     fp = open(path)
