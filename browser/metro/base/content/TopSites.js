@@ -6,6 +6,7 @@
  let prefs = Components.classes["@mozilla.org/preferences-service;1"].
       getService(Components.interfaces.nsIPrefBranch);
 Cu.import("resource://gre/modules/PageThumbs.jsm");
+Cu.import("resource:///modules/colorUtils.jsm");
 
 
 
@@ -223,6 +224,22 @@ TopSitesView.prototype = {
   },
 
   updateTile: function(aTileNode, aSite, aArrangeGrid) {
+    PlacesUtils.favicons.getFaviconURLForPage(Util.makeURI(aSite.url), function(iconURLfromSiteURL) {
+      if (!iconURLfromSiteURL) {
+        return;
+      }
+      aTileNode.iconSrc = iconURLfromSiteURL;
+      let faviconURL = (PlacesUtils.favicons.getFaviconLinkForIcon(iconURLfromSiteURL)).spec;
+      let xpFaviconURI = Util.makeURI(faviconURL.replace("moz-anno:favicon:",""));
+      ColorUtils.getForegroundAndBackgroundIconColors(xpFaviconURI, function(foreground, background) {
+        aTileNode.style.color = foreground; 
+        aTileNode.setAttribute("customColor", background);
+        if (aTileNode.refresh) {
+          aTileNode.refresh();
+        }
+      });
+    });
+
     if (this._useThumbs) {
       aSite.backgroundImage = 'url("'+PageThumbs.getThumbnailURL(aSite.url)+'")';
     } else {
