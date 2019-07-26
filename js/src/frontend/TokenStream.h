@@ -123,11 +123,11 @@ enum TokenKind {
     TOK_URSH,
     TOK_SHIFTOP_LAST = TOK_URSH,
 
-    TOK_PLUS,                      
-    TOK_MINUS,                     
-    TOK_STAR,                      
-    TOK_DIV,                       
-    TOK_MOD,                       
+    TOK_ADD,
+    TOK_SUB,
+    TOK_MUL,
+    TOK_DIV,
+    TOK_MOD,
     TOK_BINOP_LAST = TOK_MOD,
 
     
