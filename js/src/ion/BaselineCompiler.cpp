@@ -512,7 +512,12 @@ BaselineCompiler::emitBody()
         
         
         
-        if (isJumpTarget || canResumeAfterPrevious || op == JSOP_ENTERBLOCK || debugMode_) {
+        
+        
+        if (isJumpTarget || canResumeAfterPrevious ||
+            op == JSOP_ENTERBLOCK || op == JSOP_CALLPROP ||
+            debugMode_)
+        {
             if (!addPCMappingEntry())
                 return Method_Error;
         }
