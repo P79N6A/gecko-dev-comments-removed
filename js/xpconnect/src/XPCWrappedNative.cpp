@@ -24,6 +24,7 @@
 
 #include "mozilla/StandardInteger.h"
 #include "mozilla/Util.h"
+#include "mozilla/Likely.h"
 
 using namespace xpc;
 
@@ -1759,6 +1760,20 @@ XPCWrappedNative::RescueOrphans(XPCCallContext& ccx)
     if (!parentObj)
         return NS_OK; 
     parentObj = js::UnwrapObject(parentObj,  false);
+
+    
+    
+    
+    
+    
+    
+    
+    if (MOZ_UNLIKELY(JS_IsDeadWrapper(parentObj))) {
+        rv = mScriptableInfo->GetCallback()->PreCreate(mIdentity, ccx,
+                                                       GetScope()->GetGlobalJSObject(),
+                                                       &parentObj);
+        NS_ENSURE_SUCCESS(rv, rv);
+    }
 
     
     MOZ_ASSERT(IS_WRAPPER_CLASS(js::GetObjectClass(parentObj)));
