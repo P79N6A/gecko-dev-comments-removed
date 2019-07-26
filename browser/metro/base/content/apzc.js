@@ -28,8 +28,7 @@ var APZCObserver = {
     }
 
     let os = Services.obs;
-    os.addObserver(this, "apzc-handle-pan-begin", false);
-    os.addObserver(this, "apzc-handle-pan-end", false);
+    os.addObserver(this, "apzc-transform-begin", false);
 
     
     window.addEventListener("SizeChanged", this, true);
@@ -45,8 +44,7 @@ var APZCObserver = {
     }
 
     let os = Services.obs;
-    os.removeObserver(this, "apzc-handle-pan-begin");
-    os.removeObserver(this, "apzc-handle-pan-end");
+    os.removeObserver(this, "apzc-transform-begin");
 
     window.removeEventListener("SizeChanged", this, true);
 
@@ -86,7 +84,7 @@ var APZCObserver = {
   },
 
   observe: function ao_observe(aSubject, aTopic, aData) {
-    if (aTopic == "apzc-handle-pan-begin") {
+    if (aTopic == "apzc-transform-begin") {
       
       
       

@@ -79,12 +79,10 @@ public:
   
 
 
-  virtual void HandlePanBegin() {}
-
-  
 
 
-  virtual void HandlePanEnd() {}
+  virtual void NotifyTransformBegin() {}
+  virtual void NotifyTransformEnd() {}
 
   GeckoContentController() {}
   virtual ~GeckoContentController() {}

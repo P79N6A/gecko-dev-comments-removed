@@ -319,16 +319,42 @@ APZController::PostDelayedTask(Task* aTask, int aDelayMs)
 
 
 
-void
-APZController::HandlePanBegin()
+class TransformedStartEvent : public nsRunnable
 {
-  MetroUtils::FireObserver("apzc-handle-pan-begin", L"");
+  NS_IMETHOD Run() {
+    MetroUtils::FireObserver("apzc-transform-start", L"");
+    return NS_OK;
+  }
+};
+
+class TransformedEndEvent : public nsRunnable
+{
+  NS_IMETHOD Run() {
+    MetroUtils::FireObserver("apzc-transform-end", L"");
+    return NS_OK;
+  }
+};
+
+void
+APZController::NotifyTransformBegin()
+{
+  if (NS_IsMainThread()) {
+    MetroUtils::FireObserver("apzc-transform-begin", L"");
+    return;
+  }
+  nsCOMPtr<nsIRunnable> runnable = new TransformedStartEvent();
+  NS_DispatchToMainThread(runnable);
 }
 
 void
-APZController::HandlePanEnd()
+APZController::NotifyTransformEnd()
 {
-  MetroUtils::FireObserver("apzc-handle-pan-end", L"");
+  if (NS_IsMainThread()) {
+    MetroUtils::FireObserver("apzc-transform-end", L"");
+    return;
+  }
+  nsCOMPtr<nsIRunnable> runnable = new TransformedEndEvent();
+  NS_DispatchToMainThread(runnable);
 }
 
 } } }

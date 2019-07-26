@@ -510,14 +510,6 @@ private:
 
   };
 
-  enum AxisLockMode {
-    FREE,     
-    STANDARD, 
-    STICKY,   
-  };
-
-  static AxisLockMode GetAxisLockMode();
-
   
 
 
@@ -525,7 +517,19 @@ private:
 
   void SetState(PanZoomState aState);
 
+  
+
+
+  bool IsTransformingState(PanZoomState aState);
   bool IsPanningState(PanZoomState mState);
+
+  enum AxisLockMode {
+    FREE,     
+    STANDARD, 
+    STICKY,   
+  };
+
+  static AxisLockMode GetAxisLockMode();
 
   uint64_t mLayersId;
   nsRefPtr<CompositorParent> mCompositorParent;
