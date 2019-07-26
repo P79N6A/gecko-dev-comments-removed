@@ -6,7 +6,9 @@
 package org.mozilla.gecko.home;
 
 import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
 import org.mozilla.gecko.util.GeckoEventListener;
+import org.mozilla.gecko.util.ThreadUtils;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,7 +21,11 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class PanelManager implements GeckoEventListener {
     private static final String LOGTAG = "GeckoPanelManager";
@@ -34,40 +40,32 @@ public class PanelManager implements GeckoEventListener {
         }
     }
 
-    private final Context mContext;
-
-    public PanelManager(Context context) {
-        mContext = context;
-
-        
-        GeckoAppShell.getEventDispatcher().registerEventListener("HomePanels:Added", this);
+    public interface RequestCallback {
+        public void onComplete(List<PanelInfo> panelInfos);
     }
+
+    private static AtomicInteger sRequestId = new AtomicInteger(0);
+
+    
+    private static final Map<Integer, RequestCallback> sCallbacks = Collections.synchronizedMap(new HashMap<Integer, RequestCallback>());
 
     
 
 
 
 
-    public List<PanelInfo> getPanelInfos() {
-        final ArrayList<PanelInfo> panelInfos = new ArrayList<PanelInfo>();
+    public void requestAvailablePanels(RequestCallback callback) {
+        final int requestId = sRequestId.getAndIncrement();
 
-        
-        final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(mContext);
-        final String prefValue = prefs.getString("home_lists", "");
-
-        if (!TextUtils.isEmpty(prefValue)) {
-            try {
-                final JSONArray lists = new JSONArray(prefValue);
-                for (int i = 0; i < lists.length(); i++) {
-                    final JSONObject list = lists.getJSONObject(i);
-                    final PanelInfo info = new PanelInfo(list.getString("id"), list.getString("title"));
-                    panelInfos.add(info);
-                }
-            } catch (JSONException e) {
-                Log.e(LOGTAG, "Exception getting list info", e);
+        synchronized(sCallbacks) {
+            
+            if (sCallbacks.isEmpty()) {
+                GeckoAppShell.getEventDispatcher().registerEventListener("HomePanels:Data", this);
             }
+            sCallbacks.put(requestId, callback);
         }
-        return panelInfos;
+
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("HomePanels:Get", Integer.toString(requestId)));
     }
 
     
@@ -75,13 +73,40 @@ public class PanelManager implements GeckoEventListener {
 
     @Override
     public void handleMessage(String event, JSONObject message) {
+        final ArrayList<PanelInfo> panelInfos = new ArrayList<PanelInfo>();
+
         try {
-            final PanelInfo info = new PanelInfo(message.getString("id"), message.getString("title"));
+            final JSONArray panels = message.getJSONArray("panels");
+            final int count = panels.length();
+            for (int i = 0; i < count; i++) {
+                final PanelInfo panelInfo = getPanelInfoFromJSON(panels.getJSONObject(i));
+                panelInfos.add(panelInfo);
+            }
 
-            
+            final RequestCallback callback;
+            final int requestId = message.getInt("requestId");
 
+            synchronized(sCallbacks) {
+                callback = sCallbacks.remove(requestId);
+
+                
+                if (sCallbacks.isEmpty()) {
+                    GeckoAppShell.getEventDispatcher().unregisterEventListener("HomePanels:Data", this);
+                }
+            }
+
+            ThreadUtils.postToUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    callback.onComplete(panelInfos);
+                }
+            });
         } catch (JSONException e) {
             Log.e(LOGTAG, "Exception handling " + event + " message", e);
         }
+    }
+
+    private PanelInfo getPanelInfoFromJSON(JSONObject jsonPanelInfo) throws JSONException {
+        return new PanelInfo(jsonPanelInfo.getString("id"), jsonPanelInfo.getString("title"));
     }
 }
