@@ -21,22 +21,27 @@ let Prefs = new ViewHelpers.Prefs("devtools.debugger", {
   chromeDebuggingPort: ["Int", "chrome-debugging-port"]
 });
 
+let gToolbox, gClient;
 
-let transport = debuggerSocketConnect(
-  Prefs.chromeDebuggingHost,
-  Prefs.chromeDebuggingPort
-);
-let client = new DebuggerClient(transport);
-client.connect(() => {
-  client.listTabs(openToolbox);
-});
+function connect() {
+  window.removeEventListener("load", connect);
+  
+  let transport = debuggerSocketConnect(
+    Prefs.chromeDebuggingHost,
+    Prefs.chromeDebuggingPort
+  );
+  gClient = new DebuggerClient(transport);
+  gClient.connect(() => {
+    gClient.listTabs(openToolbox);
+  });
+}
 
-let gToolbox;
+window.addEventListener("load", connect);
 
 function openToolbox(form) {
   let options = {
     form: form,
-    client: client,
+    client: gClient,
     chrome: true
   };
   devtools.TargetFactory.forRemoteTab(options).then(target => {
