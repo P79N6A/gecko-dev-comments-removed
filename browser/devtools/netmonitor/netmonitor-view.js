@@ -1103,9 +1103,7 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
 
     let timingsNode = $(".requests-menu-timings", target);
-    let startCapNode = $(".requests-menu-timings-cap.start", timingsNode);
-    let endCapNode = $(".requests-menu-timings-cap.end", timingsNode);
-    let firstBox;
+    let timingsTotal = $(".requests-menu-timings-total", timingsNode);
 
     
     for (let key of sections) {
@@ -1117,22 +1115,9 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
         let timingBox = document.createElement("hbox");
         timingBox.className = "requests-menu-timings-box " + key;
         timingBox.setAttribute("width", width);
-        timingsNode.insertBefore(timingBox, endCapNode);
-
-        
-        if (!firstBox) {
-          firstBox = timingBox;
-          startCapNode.classList.add(key);
-        }
-        
-        endCapNode.classList.add(key);
+        timingsNode.insertBefore(timingBox, timingsTotal);
       }
     }
-
-    
-    
-    startCapNode.hidden = false;
-    endCapNode.hidden = false;
 
     
     if (NetMonitorView.currentFrontendMode != "network-inspector-view") {
@@ -1174,8 +1159,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
     
     for (let { target, attachment } of this) {
       let timingsNode = $(".requests-menu-timings", target);
-      let startCapNode = $(".requests-menu-timings-cap.start", target);
-      let endCapNode = $(".requests-menu-timings-cap.end", target);
       let totalNode = $(".requests-menu-timings-total", target);
       let direction = window.isRTL ? -1 : 1;
 
@@ -1192,8 +1175,6 @@ RequestsMenuView.prototype = Heritage.extend(WidgetMethods, {
       let revScaleX = "scaleX(" + (1 / scale) + ")";
 
       timingsNode.style.transform = scaleX + " " + translateX;
-      startCapNode.style.transform = revScaleX + " translateX(" + (direction * 0.5) + "px)";
-      endCapNode.style.transform = revScaleX + " translateX(" + (direction * -0.5) + "px)";
       totalNode.style.transform = revScaleX;
     }
   },
