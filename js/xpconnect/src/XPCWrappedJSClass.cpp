@@ -475,26 +475,20 @@ GetContextFromObjectOrDefault(nsXPCWrappedJS* wrapper)
 {
     
     XPCJSContextStack* stack = XPCJSRuntime::Get()->GetJSContextStack();
-    if (stack && stack->Peek())
+    if (stack->Peek())
         return stack->Peek();
 
     
-    XPCCallContext ccx(NATIVE_CALLER);
-    if (!ccx.IsValid())
-        return nullptr;
-
-    RootedObject obj(ccx, wrapper->GetJSObject());
-    JSAutoCompartment ac(ccx, obj);
-    XPCWrappedNativeScope* scope = GetObjectScope(obj);
-    XPCContext *xpcc = scope->GetContext();
-
+    JSCompartment *c = js::GetObjectCompartment(wrapper->GetJSObject());
+    XPCContext *xpcc = EnsureCompartmentPrivate(c)->scope->GetContext();
     if (xpcc) {
         JSContext *cx = xpcc->GetJSContext();
         JS_AbortIfWrongThread(JS_GetRuntime(cx));
         return cx;
     }
 
-    return XPCCallContext::GetDefaultJSContext();
+    
+    return stack->GetSafeJSContext();
 }
 
 class SameOriginCheckedComponent MOZ_FINAL : public nsISecurityCheckedComponent
