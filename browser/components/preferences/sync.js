@@ -127,13 +127,23 @@ let gSyncPane = {
           fxaLoginStatus.selectedIndex = FXA_LOGIN_UNVERIFIED;
           enginesListDisabled = true;
         
-        } else if (Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
-          fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
-          enginesListDisabled = true;
+        
         
         } else {
-          fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
-          enginesListDisabled = false;
+          
+          
+          if (Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
+            Weave.Service.verifyLogin();
+          }
+          if (Weave.Service.identity.readyToAuthenticate &&
+              Weave.Status.login != Weave.LOGIN_SUCCEEDED) {
+            fxaLoginStatus.selectedIndex = FXA_LOGIN_FAILED;
+            enginesListDisabled = true;
+          
+          } else {
+            fxaLoginStatus.selectedIndex = FXA_LOGIN_VERIFIED;
+            enginesListDisabled = false;
+          }
         }
         document.getElementById("fxaEmailAddress1").textContent = data.email;
         document.getElementById("fxaEmailAddress2").textContent = data.email;

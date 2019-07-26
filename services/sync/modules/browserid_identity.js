@@ -95,7 +95,6 @@ this.BrowserIDManager.prototype = {
     
     this.whenReadyToAuthenticate = Promise.defer();
     this._shouldHaveSyncKeyBundle = false;
-    this.username = ""; 
 
     return fxAccounts.getSignedInUser().then(accountData => {
       if (!accountData) {
