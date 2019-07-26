@@ -382,11 +382,19 @@ SessionStore.prototype = {
     } else {
       
       let entries = [];
+      let index = history.index + 1;
       for (let i = 0; i < history.count; i++) {
-        let entry = this._serializeHistoryEntry(history.getEntryAtIndex(i, false));
+        let historyEntry = history.getEntryAtIndex(i, false);
+        
+        if (historyEntry.URI.schemeIs("wyciwyg")) {
+          
+          if (i <= history.index)
+            index--;
+          continue;
+        }
+        let entry = this._serializeHistoryEntry(historyEntry);
         entries.push(entry);
       }
-      let index = history.index + 1;
       let data = { entries: entries, index: index };
 
       delete aBrowser.__SS_data;
