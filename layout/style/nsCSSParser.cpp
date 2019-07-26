@@ -233,6 +233,12 @@ protected:
   class nsAutoParseCompoundProperty;
   friend class nsAutoParseCompoundProperty;
 
+  class nsAutoParseCompoundProperty;
+  friend class nsAutoParseCompoundProperty;
+
+  class nsAutoSuppressErrors;
+  friend class nsAutoSuppressErrors;
+
   void AppendRule(css::Rule* aRule);
   friend void AppendRuleToSheet(css::Rule*, void*); 
 
@@ -256,6 +262,58 @@ protected:
       }
     private:
       CSSParserImpl* mParser;
+  };
+
+  
+
+
+
+
+
+  class nsAutoFailingSupportsRule {
+    public:
+      nsAutoFailingSupportsRule(CSSParserImpl* aParser,
+                                bool aCondition)
+        : mParser(aParser),
+          mOriginalValue(aParser->mInFailingSupportsRule)
+      {
+        if (!aCondition) {
+          mParser->mInFailingSupportsRule = true;
+        }
+      }
+
+      ~nsAutoFailingSupportsRule()
+      {
+        mParser->mInFailingSupportsRule = mOriginalValue;
+      }
+
+    private:
+      CSSParserImpl* mParser;
+      bool mOriginalValue;
+  };
+
+  
+
+
+
+  class nsAutoSuppressErrors {
+    public:
+      nsAutoSuppressErrors(CSSParserImpl* aParser,
+                           bool aSuppressErrors)
+        : mParser(aParser),
+          mOriginalValue(aParser->mSuppressErrors)
+      {
+        mParser->mSuppressErrors = aSuppressErrors;
+      }
+
+      ~nsAutoSuppressErrors()
+      {
+        mParser->mSuppressErrors = mOriginalValue;
+      }
+
+    private:
+      CSSParserImpl* mParser;
+      bool mOriginalValue;
   };
 
   
@@ -690,6 +748,15 @@ protected:
   bool          mParsingCompoundProperty : 1;
 
   
+  
+  bool mInFailingSupportsRule : 1;
+
+  
+  
+  
+  bool mSuppressErrors : 1;
+
+  
   InfallibleTArray<nsRefPtr<css::GroupRule> > mGroupStack;
 
   
@@ -719,16 +786,16 @@ static void AppendRuleToSheet(css::Rule* aRule, void* aParser)
 }
 
 #define REPORT_UNEXPECTED(msg_) \
-  mReporter->ReportUnexpected(#msg_)
+  { if (!mSuppressErrors) mReporter->ReportUnexpected(#msg_); }
 
 #define REPORT_UNEXPECTED_P(msg_, param_) \
-  mReporter->ReportUnexpected(#msg_, param_)
+  { if (!mSuppressErrors) mReporter->ReportUnexpected(#msg_, param_); }
 
 #define REPORT_UNEXPECTED_TOKEN(msg_) \
-  mReporter->ReportUnexpected(#msg_, mToken)
+  { if (!mSuppressErrors) mReporter->ReportUnexpected(#msg_, mToken); }
 
 #define REPORT_UNEXPECTED_TOKEN_CHAR(msg_, ch_) \
-  mReporter->ReportUnexpected(#msg_, mToken, ch_)
+  { if (!mSuppressErrors) mReporter->ReportUnexpected(#msg_, mToken, ch_); }
 
 #define REPORT_UNEXPECTED_EOF(lf_) \
   mReporter->ReportUnexpectedEOF(#lf_)
@@ -756,6 +823,8 @@ CSSParserImpl::CSSParserImpl()
     mUnsafeRulesEnabled(false),
     mHTMLMediaMode(false),
     mParsingCompoundProperty(false),
+    mInFailingSupportsRule(false),
+    mSuppressErrors(false),
     mNextFree(nullptr)
 {
 }
@@ -2374,6 +2443,10 @@ CSSParserImpl::ParseSupportsRule(RuleAppendFunc aAppendFunc, void* aProcessData)
 
   
   condition.Trim(" ", true, true, false);
+
+  
+  
+  nsAutoFailingSupportsRule failing(this, conditionMet);
 
   nsRefPtr<css::GroupRule> rule = new CSSSupportsRule(conditionMet, condition);
   return ParseGroupRule(rule, aAppendFunc, aProcessData);
@@ -4308,6 +4381,10 @@ CSSParserImpl::ParseDeclaration(css::Declaration* aDeclaration,
     UngetToken();
     return false;
   }
+
+  
+  
+  nsAutoSuppressErrors suppressErrors(this, mInFailingSupportsRule);
 
   
   nsCSSProperty propID = nsCSSProps::LookupProperty(propertyName,
