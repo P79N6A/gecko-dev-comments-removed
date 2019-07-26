@@ -43,6 +43,10 @@ FTPChannelChild::FTPChannelChild(nsIURI* uri)
   NS_ADDREF(gFtpHandler);
   SetURI(uri);
   mEventQ = new ChannelEventQueue(static_cast<nsIFTPChannel*>(this));
+
+  
+  
+  DisallowThreadRetargeting();
 }
 
 FTPChannelChild::~FTPChannelChild()
