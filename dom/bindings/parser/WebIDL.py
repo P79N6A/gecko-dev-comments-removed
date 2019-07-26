@@ -2228,7 +2228,10 @@ class IDLValue(IDLObject):
             return self 
 
         
-        if type.nullable():
+        
+        
+        
+        if type.nullable() and not type.isEnum():
             innerValue = self.coerceToType(type.inner, location)
             return IDLValue(self.location, type, innerValue.value)
 
@@ -2253,10 +2256,11 @@ class IDLValue(IDLObject):
                                   (self.value, type), [location])
         elif self.type.isString() and type.isEnum():
             
-            if self.value not in type.inner.values():
+            enum = type.unroll().inner
+            if self.value not in enum.values():
                 raise WebIDLError("'%s' is not a valid default value for enum %s"
-                                  % (self.value, type.inner.identifier.name),
-                                  [location, type.inner.location])
+                                  % (self.value, enum.identifier.name),
+                                  [location, enum.location])
             return self
         elif self.type.isFloat() and type.isFloat():
             if (not type.isUnrestricted() and
