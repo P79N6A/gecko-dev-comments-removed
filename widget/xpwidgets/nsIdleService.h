@@ -185,7 +185,7 @@ private:
   
 
 
-  bool mAnyObserverIdle;
+  uint32_t mIdleObserverCount;
 
   
 
