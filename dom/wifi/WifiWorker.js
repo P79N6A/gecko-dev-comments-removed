@@ -3205,7 +3205,6 @@ WifiWorker.prototype = {
     
     
     this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] = true;
-    this._oldWifiTetheringEnabledState = true;
     gSettingsService.createLock().set(
       SETTINGS_WIFI_TETHERING_ENABLED, true, null, "fromInternalSetting");
     
@@ -3217,7 +3216,6 @@ WifiWorker.prototype = {
     
     
     this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED] = false;
-    this._oldWifiTetheringEnabledState = false;
     gSettingsService.createLock().set(
       SETTINGS_WIFI_TETHERING_ENABLED, false, null, "fromInternalSetting");
     
@@ -3335,7 +3333,6 @@ WifiWorker.prototype = {
           break;
         }
 
-        this._oldWifiTetheringEnabledState = this.tetheringSettings[SETTINGS_WIFI_TETHERING_ENABLED];
         this.handleWifiTetheringEnabled(aResult)
         break;
     };
