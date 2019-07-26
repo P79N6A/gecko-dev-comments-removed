@@ -93,7 +93,6 @@ public class EnvironmentBuilder {
     e.isBlocklistEnabled = (info.isBlocklistEnabled() ? 1 : 0);
 
     
-    
     e.isTelemetryEnabled = (info.isTelemetryEnabled() ? 1 : 0);
 
     e.extensionCount = 0;
