@@ -878,6 +878,10 @@ nsAppShell::Init()
         android::FakeSurfaceComposer::instantiate();
 #endif
         GonkPermissionService::instantiate();
+
+        
+        
+        hal::SetTimezone(hal::GetTimezone());
     }
 
     nsCOMPtr<nsIObserverService> obsServ = GetObserverService();

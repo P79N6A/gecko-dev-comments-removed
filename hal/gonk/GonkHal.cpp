@@ -759,10 +759,38 @@ GetTimezoneOffset()
   return -(offset / 60);
 }
 
+static int32_t sKernelTimezoneOffset = 0;
+
+static void
+UpdateKernelTimezone(int32_t timezoneOffset)
+{
+  if (sKernelTimezoneOffset == timezoneOffset) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  struct timezone tz;
+  memset(&tz, 0, sizeof(tz));
+  tz.tz_minuteswest = timezoneOffset;
+  settimeofday(nullptr, &tz);
+  sKernelTimezoneOffset = timezoneOffset;
+}
+
 void
 SetTimezone(const nsCString& aTimezoneSpec)
 {
   if (aTimezoneSpec.Equals(GetTimezone())) {
+    
+    
+    
+    
+    UpdateKernelTimezone(GetTimezoneOffset());
     return;
   }
 
@@ -772,6 +800,7 @@ SetTimezone(const nsCString& aTimezoneSpec)
   
   tzset();
   int32_t newTimezoneOffsetMinutes = GetTimezoneOffset();
+  UpdateKernelTimezone(newTimezoneOffsetMinutes);
   hal::NotifySystemTimezoneChange(
     hal::SystemTimezoneChangeInformation(
       oldTimezoneOffsetMinutes, newTimezoneOffsetMinutes));
