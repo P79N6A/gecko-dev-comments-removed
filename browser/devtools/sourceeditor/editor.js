@@ -84,7 +84,7 @@ const CM_MAPPING = [
 
 const CM_JUMP_DIALOG = [
   L10N.GetStringFromName("gotoLineCmd.promptTitle")
-    + " <input type=text style='width: 10em'/>"
+    + " <input class=jumptoline type=text style='width: 10em'/>"
 ];
 
 const { cssProperties, cssValues, cssColors } = getCSSKeywords();
@@ -191,10 +191,14 @@ Editor.prototype = {
 
 
 
-  appendTo: function (el) {
+
+  appendTo: function (el, env) {
     let def = promise.defer();
     let cm  = editors.get(this);
-    let env = el.ownerDocument.createElement("iframe");
+
+    if (!env)
+      env = el.ownerDocument.createElementNS(XUL_NS, "iframe");
+
     env.flex = 1;
 
     if (cm)
@@ -503,10 +507,11 @@ Editor.prototype = {
   hasLineClass: function (line, className) {
     let cm = editors.get(this);
     let info = cm.lineInfo(line);
-    if (!info)
+
+    if (!info || !info.wrapClass)
       return false;
 
-    return info.wrapClass == className;
+    return info.wrapClass.split(" ").indexOf(className) != -1;
   },
 
   
