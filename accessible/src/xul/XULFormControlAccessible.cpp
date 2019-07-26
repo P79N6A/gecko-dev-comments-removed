@@ -817,10 +817,17 @@ XULTextFieldAccessible::CacheChildren()
   if (!inputContent)
     return;
 
+  
+  
+  
   TreeWalker walker(this, inputContent);
-
   Accessible* child = nullptr;
-  while ((child = walker.NextChild()) && AppendChild(child));
+  while ((child = walker.NextChild())) {
+    if (child->IsTextLeaf())
+      AppendChild(child);
+    else
+      Document()->UnbindFromDocument(child);
+  }
 }
 
 
