@@ -3791,8 +3791,6 @@ class EmitLevelManager
 static bool
 EmitCatch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
-    ptrdiff_t guardJump;
-
     
 
 
@@ -3842,15 +3840,48 @@ EmitCatch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     }
 
     
+    
     if (pn->pn_kid2) {
         if (!EmitTree(cx, bce, pn->pn_kid2))
             return false;
 
         
-        guardJump = EmitJump(cx, bce, JSOP_IFEQ, 0);
+        
+        
+        ptrdiff_t guardCheck = EmitJump(cx, bce, JSOP_IFNE, 0);
+        if (guardCheck < 0)
+            return false;
+
+#ifdef DEBUG
+        uint32_t blockScopeIndex = bce->topStmt->blockScopeIndex;
+        uint32_t blockObjIndex = bce->blockScopeList.list[blockScopeIndex].index;
+        ObjectBox *blockObjBox = bce->objectList.find(blockObjIndex);
+        StaticBlockObject *blockObj = &blockObjBox->object->as<StaticBlockObject>();
+        JS_ASSERT(blockObj == bce->blockChain);
+#endif
+
+        
+        int savedDepth = bce->stackDepth;
+
+        
+        
+        if (Emit1(cx, bce, JSOP_THROWING) < 0)
+            return false;
+
+        
+        if (Emit1(cx, bce, JSOP_DEBUGLEAVEBLOCK) < 0)
+            return false;
+        EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, bce->blockChain->slotCount());
+
+        
+        ptrdiff_t guardJump = EmitJump(cx, bce, JSOP_GOTO, 0);
         if (guardJump < 0)
             return false;
         stmt->guardJump() = guardJump;
+
+        
+        bce->stackDepth = savedDepth;
+        SetJumpOffsetAt(bce, guardCheck);
 
         
         if (Emit1(cx, bce, JSOP_POP) < 0)
@@ -3864,32 +3895,29 @@ EmitCatch(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-
 MOZ_NEVER_INLINE static bool
 EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
     StmtInfoBCE stmtInfo(cx);
 
     
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
     PushStatementBCE(bce, &stmtInfo, pn->pn_kid3 ? STMT_FINALLY : STMT_TRY, bce->offset());
 
     
-
-
-
-
-
-
-
-
+    
+    
+    
+    
+    
+    
+    
     int depth = bce->stackDepth;
 
     
@@ -3919,67 +3947,37 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
     ptrdiff_t tryEnd = bce->offset();
 
     
-    ParseNode *lastCatch = nullptr;
     if (ParseNode *pn2 = pn->pn_kid2) {
-        unsigned count = 0;    
-
         
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         for (ParseNode *pn3 = pn2->pn_head; pn3; pn3 = pn3->pn_next) {
-            ptrdiff_t guardJump;
-
             JS_ASSERT(bce->stackDepth == depth);
-            guardJump = stmtInfo.guardJump();
-            if (guardJump != -1) {
-                
-                SetJumpOffsetAt(bce, guardJump);
-
-                
-
-
-
-
-                bce->stackDepth = depth + count + 1;
-
-                
-
-
-
-                if (Emit1(cx, bce, JSOP_THROWING) < 0)
-                    return false;
-                if (Emit1(cx, bce, JSOP_DEBUGLEAVEBLOCK) < 0)
-                    return false;
-                EMIT_UINT16_IMM_OP(JSOP_LEAVEBLOCK, count);
-                JS_ASSERT(bce->stackDepth == depth);
-            }
 
             
-
-
-
-
             JS_ASSERT(pn3->isKind(PNK_LEXICALSCOPE));
-            count = pn3->pn_objbox->object->as<StaticBlockObject>().slotCount();
             if (!EmitTree(cx, bce, pn3))
                 return false;
 
@@ -3991,50 +3989,35 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
             }
 
             
-
-
-
+            
             if (EmitBackPatchOp(cx, bce, &catchJump) < 0)
                 return false;
 
             
+            
+            if (stmtInfo.guardJump() != -1) {
+                SetJumpOffsetAt(bce, stmtInfo.guardJump());
+                stmtInfo.guardJump() = -1;
 
-
-
-            lastCatch = pn3->expr();
+                
+                
+                if (!pn3->pn_next) {
+                    if (Emit1(cx, bce, JSOP_EXCEPTION) < 0)
+                        return false;
+                    if (Emit1(cx, bce, JSOP_THROW) < 0)
+                        return false;
+                }
+            }
         }
-    }
-
-    
-
-
-
-
-
-    if (lastCatch && lastCatch->pn_kid2) {
-        SetJumpOffsetAt(bce, stmtInfo.guardJump());
-
-        
-        JS_ASSERT(bce->stackDepth == depth);
-        bce->stackDepth = depth + 1;
-
-        
-
-
-
-        if (Emit1(cx, bce, JSOP_THROW) < 0)
-            return false;
     }
 
     JS_ASSERT(bce->stackDepth == depth);
 
     
-    ptrdiff_t finallyStart = 0;   
+    ptrdiff_t finallyStart = 0;
     if (pn->pn_kid3) {
         
-
-
-
+        
         if (!BackPatch(cx, bce, stmtInfo.gosubs(), bce->code().end(), JSOP_GOSUB))
             return false;
 
@@ -4064,17 +4047,13 @@ EmitTry(ExclusiveContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         return false;
 
     
-
-
-
+    
     if (pn->pn_kid2 && !bce->tryNoteList.append(JSTRY_CATCH, depth, tryStart, tryEnd))
         return false;
 
     
-
-
-
-
+    
+    
     if (pn->pn_kid3 && !bce->tryNoteList.append(JSTRY_FINALLY, depth, tryStart, finallyStart))
         return false;
 
@@ -6888,6 +6867,16 @@ CGObjectList::finish(ObjectArray *array)
         *cursor = objbox->object;
     } while ((objbox = objbox->emitLink) != nullptr);
     JS_ASSERT(cursor == array->vector);
+}
+
+ObjectBox*
+CGObjectList::find(uint32_t index)
+{
+    JS_ASSERT(index < length);
+    ObjectBox *box = lastbox;
+    for (unsigned n = length - 1; n > index; n--)
+        box = box->emitLink;
+    return box;
 }
 
 bool
