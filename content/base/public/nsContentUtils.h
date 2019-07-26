@@ -438,6 +438,13 @@ public:
   
   static nsIPrincipal* GetSubjectPrincipal();
 
+  
+  
+  
+  
+  
+  static nsIPrincipal* GetObjectPrincipal(JSObject* aObj);
+
   static nsresult GenerateStateKey(nsIContent* aContent,
                                    const nsIDocument* aDocument,
                                    nsACString& aKey);

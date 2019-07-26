@@ -2331,6 +2331,17 @@ nsContentUtils::GetSubjectPrincipal()
 }
 
 
+nsIPrincipal*
+nsContentUtils::GetObjectPrincipal(JSObject* aObj)
+{
+  
+  
+  JSCompartment *compartment = js::GetObjectCompartment(aObj);
+  JSPrincipals *principals = JS_GetCompartmentPrincipals(compartment);
+  return nsJSPrincipals::get(principals);
+}
+
+
 nsresult
 nsContentUtils::NewURIWithDocumentCharset(nsIURI** aResult,
                                           const nsAString& aSpec,
