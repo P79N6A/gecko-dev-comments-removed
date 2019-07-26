@@ -48,6 +48,7 @@ namespace layers {
 
 class Animation;
 class AnimationData;
+class AsyncPanZoomController;
 class CommonLayerAttributes;
 class Layer;
 class ThebesLayer;
@@ -895,6 +896,11 @@ public:
   gfxPoint GetFixedPositionAnchor() { return mAnchor; }
   const gfx::Margin& GetFixedPositionMargins() { return mMargins; }
   Layer* GetMaskLayer() { return mMaskLayer; }
+
+  
+  
+  void SetAsyncPanZoomController(AsyncPanZoomController *controller);
+  AsyncPanZoomController* GetAsyncPanZoomController();
 
   
   

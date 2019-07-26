@@ -67,18 +67,6 @@ struct LayerTreeState {
   TargetConfig mTargetConfig;
 };
 
-static uint8_t sPanZoomUserDataKey;
-struct PanZoomUserData : public LayerUserData {
-  PanZoomUserData(AsyncPanZoomController* aController)
-    : mController(aController)
-  { }
-
-  
-  
-  
-  AsyncPanZoomController* mController;
-};
-
 
 
 
@@ -504,12 +492,11 @@ private:
           if (OP == Resolve) {
             ref->ConnectReferentLayer(referent);
             if (AsyncPanZoomController* apzc = state->mController) {
-              referent->SetUserData(&sPanZoomUserDataKey,
-                                    new PanZoomUserData(apzc));
+              referent->SetAsyncPanZoomController(apzc);
             }
           } else {
             ref->DetachReferentLayer(referent);
-            referent->RemoveUserData(&sPanZoomUserDataKey);
+            referent->SetAsyncPanZoomController(nullptr);
           }
         }
       }
@@ -855,13 +842,7 @@ CompositorParent::ApplyAsyncContentTransformToTree(TimeStamp aCurrentFrame,
     return appliedTransform;
   }
 
-  AsyncPanZoomController* controller = nullptr;
-  
-  if (LayerUserData* data = aLayer->GetUserData(&sPanZoomUserDataKey)) {
-    controller = static_cast<PanZoomUserData*>(data)->mController;
-  }
-
-  if (controller) {
+  if (AsyncPanZoomController* controller = aLayer->GetAsyncPanZoomController()) {
     ShadowLayer* shadow = aLayer->AsShadowLayer();
 
     ViewTransform treeTransform;
