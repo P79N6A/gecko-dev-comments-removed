@@ -50,7 +50,8 @@ function test() {
 
       testOnePreset(c - 1);
     }
-    testOnePreset(instance.menulist.firstChild.childNodes.length - 1);
+    
+    testOnePreset(instance.menulist.firstChild.childNodes.length - 4);
   }
 
   function extractSizeFromString(str) {
