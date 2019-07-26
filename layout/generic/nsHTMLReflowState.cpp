@@ -1186,7 +1186,7 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
       if (mStyleDisplay->IsOriginalDisplayInlineOutsideStyle()) {
         
         
-        aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+        aHypotheticalBox.mTop = lineBox->GetPhysicalBounds().y + blockYOffset;
       } else {
         
         
@@ -1211,11 +1211,11 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
             
             
             
-            aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+            aHypotheticalBox.mTop = lineBox->GetPhysicalBounds().y + blockYOffset;
           } else {
             
             
-            aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
+            aHypotheticalBox.mTop = lineBox->GetPhysicalBounds().YMost() + blockYOffset;
           }
         } else {
           

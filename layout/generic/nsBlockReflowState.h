@@ -188,6 +188,7 @@ public:
   
   
   nsRect mContentArea;
+  nscoord mContainerWidth;
 
   
   

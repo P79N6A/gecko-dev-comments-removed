@@ -245,7 +245,8 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
     mY = ty = mSpace.y + mTopMargin.get() + aClearance;
 
     if ((mFrame->GetStateBits() & NS_BLOCK_FLOAT_MGR) == 0)
-      aFrameRS.mBlockDelta = mOuterReflowState.mBlockDelta + ty - aLine->mBounds.y;
+      aFrameRS.mBlockDelta =
+        mOuterReflowState.mBlockDelta + ty - aLine->BStart();
   }
 
   
@@ -310,13 +311,13 @@ nsBlockReflowContext::ReflowBlock(const nsRect&       aSpace,
 
 
 bool
-nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
-                                 bool                     aForceFit,
-                                 nsLineBox*               aLine,
-                                 nsCollapsingMargin&      aBottomMarginResult,
-                                 nsRect&                  aInFlowBounds,
-                                 nsOverflowAreas&         aOverflowAreas,
-                                 nsReflowStatus           aReflowStatus)
+nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState&  aReflowState,
+                                 bool                      aForceFit,
+                                 nsLineBox*                aLine,
+                                 nsCollapsingMargin&       aBottomMarginResult,
+                                 nsOverflowAreas&          aOverflowAreas,
+                                 nsReflowStatus            aReflowStatus,
+                                 nscoord                   aContainerWidth)
 {
   
   if (NS_FRAME_IS_COMPLETE(aReflowStatus)) {
@@ -386,11 +387,15 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
     }
   }
 
-  aInFlowBounds = nsRect(position.x, position.y - backupContainingBlockAdvance,
-                         mMetrics.Width(), mMetrics.Height());
-  
+  aLine->SetBounds(aReflowState.GetWritingMode(),
+                   nsRect(position.x,
+                          position.y - backupContainingBlockAdvance,
+                          mMetrics.Width(),
+                          mMetrics.Height()),
+                   aContainerWidth);
+
   aReflowState.ApplyRelativePositioning(&position);
-  
+
   
   nsContainerFrame::FinishReflowChild(mFrame, mPresContext, mMetrics,
                                       &aReflowState, position.x, position.y, 0);
