@@ -18,19 +18,12 @@ namespace dom {
 class TimeRanges;
 }
 
-class RequestSampleCallback;
-
-
-
 
 
 
 
 class MediaDecoderReader {
 public:
-
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MediaDecoderReader)
-
   MediaDecoderReader(AbstractMediaDecoder* aDecoder);
   virtual ~MediaDecoderReader();
 
@@ -43,29 +36,10 @@ public:
   
   virtual bool IsDormantNeeded() { return false; }
   
-  
   virtual void ReleaseMediaResources() {};
   
-  
-  
-  virtual void BreakCycles();
+  virtual void ReleaseDecoder() {};
 
-  
-  
-  
-  virtual void Shutdown();
-
-  virtual void SetCallback(RequestSampleCallback* aDecodedSampleCallback);
-  virtual void SetTaskQueue(MediaTaskQueue* aTaskQueue);
-
-  
-  
-  
-  
-  
-  
-  
-  
   
   virtual nsresult ResetDecode();
 
@@ -73,18 +47,13 @@ public:
   
   
   
-  
-  virtual void RequestAudioData();
+  virtual bool DecodeAudioData() = 0;
 
   
   
   
-  
-  
-  
-  
-  virtual void RequestVideoData(bool aSkipToNextKeyframe,
-                                int64_t aTimeThreshold);
+  virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
+                                int64_t aTimeThreshold) = 0;
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
@@ -96,7 +65,6 @@ public:
   virtual nsresult ReadMetadata(MediaInfo* aInfo,
                                 MetadataTags** aTags) = 0;
 
-  
   
   
   
@@ -130,6 +98,22 @@ public:
     mIgnoreAudioOutputFormat = true;
   }
 
+protected:
+  
+  
+  MediaQueue<AudioData> mAudioQueue;
+
+  
+  
+  MediaQueue<VideoData> mVideoQueue;
+
+  
+  
+  
+  
+  AudioCompactor mAudioCompactor;
+
+public:
   
   
   
@@ -172,50 +156,14 @@ public:
   AudioData* DecodeToFirstAudioData();
   VideoData* DecodeToFirstVideoData();
 
+  
+  
+  
+  nsresult DecodeToTarget(int64_t aTarget);
+
   MediaInfo GetMediaInfo() { return mInfo; }
 
 protected:
-
-  
-  
-  
-  
-  
-  virtual bool DecodeAudioData() {
-    return false;
-  }
-
-  
-  
-  
-  
-  
-  virtual bool DecodeVideoFrame(bool &aKeyframeSkip, int64_t aTimeThreshold) {
-    return false;
-  }
-
-  RequestSampleCallback* GetCallback() {
-    MOZ_ASSERT(mSampleDecodedCallback);
-    return mSampleDecodedCallback;
-  }
-
-  virtual MediaTaskQueue* GetTaskQueue() {
-    return mTaskQueue;
-  }
-
-  
-  
-  MediaQueue<AudioData> mAudioQueue;
-
-  
-  
-  MediaQueue<VideoData> mVideoQueue;
-
-  
-  
-  
-  
-  AudioCompactor mAudioCompactor;
 
   
   AbstractMediaDecoder* mDecoder;
@@ -227,82 +175,6 @@ protected:
   
   
   bool mIgnoreAudioOutputFormat;
-
-private:
-
-  nsRefPtr<RequestSampleCallback> mSampleDecodedCallback;
-
-  nsRefPtr<MediaTaskQueue> mTaskQueue;
-
-  
-  
-  bool mAudioDiscontinuity;
-  bool mVideoDiscontinuity;
-};
-
-
-
-
-
-class RequestSampleCallback {
-public:
-  NS_INLINE_DECL_THREADSAFE_REFCOUNTING(RequestSampleCallback)
-
-  
-  virtual void OnAudioDecoded(AudioData* aSample) = 0;
-
-  
-  
-  virtual void OnAudioEOS() = 0;
-
-  
-  virtual void OnVideoDecoded(VideoData* aSample) = 0;
-
-  
-  
-  virtual void OnVideoEOS() = 0;
-
-  
-  
-  virtual void OnDecodeError() = 0;
-
-  
-  virtual void BreakCycles() = 0;
-
-  virtual ~RequestSampleCallback() {}
-};
-
-
-
-
-
-class AudioDecodeRendezvous : public RequestSampleCallback {
-public:
-  AudioDecodeRendezvous();
-  ~AudioDecodeRendezvous();
-
-  
-  
-  virtual void OnAudioDecoded(AudioData* aSample) MOZ_OVERRIDE;
-  virtual void OnAudioEOS() MOZ_OVERRIDE;
-  virtual void OnVideoDecoded(VideoData* aSample) MOZ_OVERRIDE {}
-  virtual void OnVideoEOS() MOZ_OVERRIDE {}
-  virtual void OnDecodeError() MOZ_OVERRIDE;
-  virtual void BreakCycles() MOZ_OVERRIDE {};
-  void Reset();
-
-  
-  
-  nsresult Await(nsAutoPtr<AudioData>& aSample);
-
-  
-  void Cancel();
-
-private:
-  Monitor mMonitor;
-  nsresult mStatus;
-  nsAutoPtr<AudioData> mSample;
-  bool mHaveResult;
 };
 
 } 

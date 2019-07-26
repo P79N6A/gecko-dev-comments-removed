@@ -73,12 +73,6 @@
 
 
 
-
-
-
-
-
-
 #if !defined(MediaDecoderStateMachine_h__)
 #define MediaDecoderStateMachine_h__
 
@@ -89,7 +83,6 @@
 #include "MediaDecoderReader.h"
 #include "MediaDecoderOwner.h"
 #include "MediaMetadataManager.h"
-#include "MediaDataDecodedListener.h"
 
 class nsITimer;
 
@@ -319,9 +312,10 @@ public:
   void SetFragmentEndTime(int64_t aEndTime);
 
   
-  void BreakCycles() {
+  void ReleaseDecoder() {
+    MOZ_ASSERT(mReader);
     if (mReader) {
-      mReader->BreakCycles();
+      mReader->ReleaseDecoder();
     }
     mDecoder = nullptr;
   }
@@ -363,21 +357,10 @@ public:
   
   void SetMinimizePrerollUntilPlaybackStarts();
 
-  void OnAudioDecoded(AudioData* aSample);
-  void OnAudioEOS();
-  void OnVideoDecoded(VideoData* aSample);
-  void OnVideoEOS();
-  void OnDecodeError();
-
 protected:
   virtual ~MediaDecoderStateMachine();
 
   void AssertCurrentThreadInMonitor() const { mDecoder->GetReentrantMonitor().AssertCurrentThreadIn(); }
-
-  
-  
-  void Push(AudioData* aSample);
-  void Push(VideoData* aSample);
 
   class WakeDecoderRunnable : public nsRunnable {
   public:
@@ -414,14 +397,8 @@ protected:
   };
   WakeDecoderRunnable* GetWakeDecoderRunnable();
 
-  MediaQueue<AudioData>& AudioQueue() { return mAudioQueue; }
-  MediaQueue<VideoData>& VideoQueue() { return mVideoQueue; }
-
-  nsresult FinishDecodeMetadata();
-
-  RefPtr<MediaDataDecodedListener<MediaDecoderStateMachine>> mMediaDecodedListener;
-
-  nsAutoPtr<MetadataTags> mMetadataTags;
+  MediaQueue<AudioData>& AudioQueue() { return mReader->AudioQueue(); }
+  MediaQueue<VideoData>& VideoQueue() { return mReader->VideoQueue(); }
 
   
   
@@ -491,10 +468,11 @@ protected:
   
   int64_t GetClock();
 
-  nsresult DropAudioUpToSeekTarget(AudioData* aSample);
-  nsresult DropVideoUpToSeekTarget(VideoData* aSample);
-
-  void SetStartTime(int64_t aStartTimeUsecs);
+  
+  
+  
+  
+  VideoData* FindStartTime();
 
   
   
@@ -566,10 +544,6 @@ protected:
   
   nsresult EnqueueDecodeMetadataTask();
 
-  
-  
-  nsresult EnqueueDecodeSeekTask();
-
   nsresult DispatchAudioDecodeTaskIfNeeded();
 
   
@@ -589,6 +563,10 @@ protected:
 
   
   
+  nsresult EnqueueDecodeSeekTask();
+
+  
+  
   void SetReaderIdle();
 
   
@@ -596,6 +574,12 @@ protected:
   
   
   void DispatchDecodeTasksIfNeeded();
+
+  
+  
+  
+  
+  void CheckIfDecodeComplete();
 
   
   
@@ -621,28 +605,14 @@ protected:
   nsresult DecodeMetadata();
 
   
-  void CallDecodeMetadata();
-
-  
-  
-  void MaybeFinishDecodeMetadata();
-
-  
   
   void DecodeSeek();
 
-  void CheckIfSeekComplete();
-  bool IsAudioSeekComplete();
-  bool IsVideoSeekComplete();
+  
+  
+  void DecodeLoop();
 
-  
-  void SeekCompleted();
-
-  
-  
-  
-  
-  void CheckIfDecodeComplete();
+  void CallDecodeMetadata();
 
   
   
@@ -669,11 +639,6 @@ protected:
 
   
   
-  bool IsAudioDecoding();
-  bool IsVideoDecoding();
-
-  
-  
   
   
   
@@ -682,19 +647,6 @@ protected:
   
   
   nsRefPtr<MediaDecoder> mDecoder;
-
-  
-  
-  
-  TimeStamp mVideoDecodeStartTime;
-
-  
-  
-  MediaQueue<AudioData> mAudioQueue;
-
-  
-  
-  MediaQueue<VideoData> mVideoQueue;
 
   
   
@@ -768,14 +720,6 @@ protected:
   SeekTarget mSeekTarget;
 
   
-  
-  
-  
-  
-  
-  SeekTarget mCurrentSeekTarget;
-
-  
   int64_t mFragmentEndTime;
 
   
@@ -786,7 +730,8 @@ protected:
 
   
   
-  nsRefPtr<MediaDecoderReader> mReader;
+  
+  nsAutoPtr<MediaDecoderReader> mReader;
 
   
   
@@ -876,12 +821,6 @@ protected:
   
   
   
-  nsAutoPtr<VideoData> mFirstVideoFrameAfterSeek;
-
-  
-  
-  
-  
   
   
   
@@ -899,9 +838,17 @@ protected:
 
   
   
+  bool mDispatchedAudioDecodeTask;
+
   
-  bool mAudioRequestPending;
-  bool mVideoRequestPending;
+  
+  bool mDispatchedVideoDecodeTask;
+
+  
+  
+  
+  
+  bool mSkipToNextKeyFrame;
 
   
   
@@ -980,13 +927,7 @@ protected:
   
   
   
-  
-  bool mDropAudioUntilNextDiscontinuity;
-  bool mDropVideoUntilNextDiscontinuity;
-
-  
-  
-  bool mDecodeToSeekTarget;
+  bool mDispatchedDecodeSeekTask;
 
   
   

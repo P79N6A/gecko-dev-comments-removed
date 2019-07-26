@@ -234,11 +234,6 @@ struct SeekTarget {
     , mType(aType)
   {
   }
-  SeekTarget(const SeekTarget& aOther)
-    : mTime(aOther.mTime)
-    , mType(aOther.mType)
-  {
-  }
   bool IsValid() const {
     return mType != SeekTarget::Invalid;
   }
@@ -829,7 +824,7 @@ public:
   MediaDecoderStateMachine* GetStateMachine() const;
 
   
-  virtual void BreakCycles();
+  virtual void ReleaseStateMachine();
 
   
   virtual void DecodeError();

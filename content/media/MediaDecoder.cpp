@@ -1528,7 +1528,7 @@ int64_t MediaDecoder::GetEndMediaTime() const {
 }
 
 
-void MediaDecoder::BreakCycles() {
+void MediaDecoder::ReleaseStateMachine() {
   mDecoderStateMachine = nullptr;
 }
 
