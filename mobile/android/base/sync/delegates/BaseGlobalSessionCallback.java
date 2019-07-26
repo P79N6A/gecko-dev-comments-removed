@@ -32,5 +32,11 @@ public interface BaseGlobalSessionCallback {
   void handleSuccess(GlobalSession globalSession);
   void handleStageCompleted(Stage currentState, GlobalSession globalSession);
 
-  boolean shouldBackOff();
+  
+
+
+
+
+
+  boolean shouldBackOffStorage();
 }
