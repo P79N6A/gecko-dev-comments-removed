@@ -176,12 +176,13 @@ function uninstallFakePAC() {
 
 
 
-
-function ensureStartOverKeepsIdentity() {
+function setDefaultIdentityConfig() {
   Cu.import("resource://gre/modules/Services.jsm");
+  Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", false);
   Services.prefs.setBoolPref("services.sync-testing.startOverKeepIdentity", true);
   do_register_cleanup(function() {
+    Services.prefs.clearUserPref("services.sync.fxaccounts.enabled");
     Services.prefs.clearUserPref("services.sync-testing.startOverKeepIdentity");
   });
 }
-ensureStartOverKeepsIdentity();
+setDefaultIdentityConfig();

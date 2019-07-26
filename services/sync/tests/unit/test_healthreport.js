@@ -14,6 +14,15 @@ Cu.import("resource://testing-common/services/healthreport/utils.jsm", this);
 function run_test() {
   initTestLogging();
 
+  
+  
+  
+  
+  
+  let branch = new Preferences("services.sync.");
+  Assert.ok(branch.isSet("fxaccounts.enabled"), "Check precondition");
+  branch.reset("fxaccounts.enabled");
+
   run_next_test();
 }
 

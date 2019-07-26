@@ -98,14 +98,23 @@ WeaveService.prototype = {
 
 
   get fxAccountsEnabled() {
+    
+    
+    let fxAccountsEnabled;
     try {
-      
-      
-      let username = Services.prefs.getCharPref(SYNC_PREFS_BRANCH + "username");
-      return !username || username.contains('@');
+      fxAccountsEnabled = Services.prefs.getBoolPref("services.sync.fxaccounts.enabled");
     } catch (_) {
-      return true; 
+      
+      
+      
+      let prefs = Services.prefs.getBranch(SYNC_PREFS_BRANCH);
+      fxAccountsEnabled = !prefs.prefHasUserValue("username");
+      Services.prefs.setBoolPref("services.sync.fxaccounts.enabled", fxAccountsEnabled);
     }
+    
+    
+    
+    return fxAccountsEnabled;
   },
 
   
