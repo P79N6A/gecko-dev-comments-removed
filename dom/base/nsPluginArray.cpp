@@ -211,7 +211,7 @@ nsPluginArray::Refresh(bool aReloadDocuments)
   if(mPluginHost) {
     res = GetLength(&currentPluginCount);
     NS_ENSURE_SUCCESS(res, res);
-    nsresult reloadResult = mPluginHost->ReloadPlugins(aReloadDocuments);
+    nsresult reloadResult = mPluginHost->ReloadPlugins();
     
     
     pluginsNotChanged = (reloadResult == NS_ERROR_PLUGINS_PLUGINSNOTCHANGED &&

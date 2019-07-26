@@ -57,7 +57,7 @@ nsWebNavigationInfo::IsTypeSupported(const nsACString& aType,
   if (pluginHost) {
     
     
-    rv = pluginHost->ReloadPlugins(false);
+    rv = pluginHost->ReloadPlugins();
     if (NS_SUCCEEDED(rv)) {
       
       
