@@ -1705,6 +1705,14 @@ MmsService.prototype = {
       return;
     }
 
+    
+    
+    if ((retrievalMode == RETRIEVAL_MODE_AUTOMATIC ||
+         retrievalMode == RETRIEVAL_MODE_AUTOMATIC_HOME) &&
+        mmsConnection.serviceId != this.mmsDefaultServiceId) {
+      retrievalMode = RETRIEVAL_MODE_MANUAL;
+    }
+
     if (RETRIEVAL_MODE_MANUAL === retrievalMode ||
         RETRIEVAL_MODE_NEVER === retrievalMode) {
       let mmsStatus = RETRIEVAL_MODE_NEVER === retrievalMode
@@ -1722,6 +1730,7 @@ MmsService.prototype = {
       transaction.run();
       return;
     }
+
     let url = savableMessage.headers["x-mms-content-location"].uri;
 
     
@@ -2184,6 +2193,15 @@ MmsService.prototype = {
       } catch (e) {
         if (DEBUG) debug("RIL service is not available for ICC ID.");
         aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NO_SIM_CARD_ERROR);
+        return;
+      }
+
+      
+      
+      
+      if (serviceId != this.mmsDefaultServiceId) {
+        if (DEBUG) debug("RIL service is not active to retrieve MMS.");
+        aRequest.notifyGetMessageFailed(Ci.nsIMobileMessageCallback.NON_ACTIVE_SIM_CARD_ERROR);
         return;
       }
 
