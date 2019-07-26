@@ -174,6 +174,16 @@ IsElementClickable(nsIFrame* aFrame, nsIAtom* stopAt = nullptr)
           tag == nsGkAtoms::label) {
         return true;
       }
+      
+      
+      
+      if (tag == nsGkAtoms::iframe &&
+          content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::mozbrowser,
+                               nsGkAtoms::_true, eIgnoreCase) &&
+          content->AttrValueIs(kNameSpaceID_None, nsGkAtoms::Remote,
+                               nsGkAtoms::_true, eIgnoreCase)) {
+        return true;
+      }
     } else if (content->IsXUL()) {
       nsIAtom* tag = content->Tag();
       
