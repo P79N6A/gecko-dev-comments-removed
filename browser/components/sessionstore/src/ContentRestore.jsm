@@ -13,6 +13,8 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm", this);
 
 XPCOMUtils.defineLazyModuleGetter(this, "DocShellCapabilities",
   "resource:///modules/sessionstore/DocShellCapabilities.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "FormData",
+  "resource:///modules/sessionstore/FormData.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "PageStyle",
   "resource:///modules/sessionstore/PageStyle.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "ScrollPosition",
@@ -21,8 +23,6 @@ XPCOMUtils.defineLazyModuleGetter(this, "SessionHistory",
   "resource:///modules/sessionstore/SessionHistory.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
   "resource:///modules/sessionstore/SessionStorage.jsm");
-XPCOMUtils.defineLazyModuleGetter(this, "TextAndScrollData",
-  "resource:///modules/sessionstore/TextAndScrollData.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "Utils",
   "resource:///modules/sessionstore/Utils.jsm");
 
@@ -207,6 +207,7 @@ ContentRestoreInternal.prototype = {
         
         let activeIndex = tabData.index - 1;
         this._restoringDocument = {entry: tabData.entries[activeIndex] || {},
+                                   formdata: tabData.formdata || {},
                                    pageStyle: tabData.pageStyle || {},
                                    scrollPositions: tabData.scroll || {}};
 
@@ -277,7 +278,7 @@ ContentRestoreInternal.prototype = {
     if (!this._restoringDocument) {
       return;
     }
-    let {entry, pageStyle, scrollPositions} = this._restoringDocument;
+    let {entry, pageStyle, formdata, scrollPositions} = this._restoringDocument;
     this._restoringDocument = null;
 
     let window = this.docShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindow);
@@ -290,8 +291,24 @@ ContentRestoreInternal.prototype = {
       PageStyle.restoreTree(this.docShell, pageStyle);
     }
 
+    FormData.restoreTree(window, formdata);
     ScrollPosition.restoreTree(window, scrollPositions);
-    TextAndScrollData.restore(frameList);
+
+    
+    for (let [frame, data] of frameList) {
+      if (data.hasOwnProperty("formdata") || data.hasOwnProperty("innerHTML")) {
+        let formdata = data.formdata || {};
+        formdata.url = data.url;
+
+        if (data.hasOwnProperty("innerHTML")) {
+          formdata.innerHTML = data.innerHTML;
+        }
+
+        FormData.restore(frame, formdata);
+      }
+
+      ScrollPosition.restore(frame, data.scroll || "");
+    }
   },
 
   

@@ -55,11 +55,6 @@ const MESSAGES = [
   
   
   
-  "SessionStore:input",
-
-  
-  
-  
   "SessionStore:pageshow",
 
   
@@ -613,9 +608,6 @@ let SessionStoreInternal = {
     switch (aMessage.name) {
       case "SessionStore:pageshow":
         this.onTabLoad(win, browser);
-        break;
-      case "SessionStore:input":
-        this.onTabInput(win, browser);
         break;
       case "SessionStore:loadStart":
         TabStateCache.delete(browser);
@@ -1442,18 +1434,6 @@ let SessionStoreInternal = {
 
     
     this._updateCrashReportURL(aWindow);
-  },
-
-  
-
-
-
-
-
-
-  onTabInput: function ssi_onTabInput(aWindow, aBrowser) {
-    TabStateCache.delete(aBrowser);
-    this.saveStateDelayed(aWindow);
   },
 
   
@@ -2739,6 +2719,7 @@ let SessionStoreInternal = {
       TabStateCache.updatePersistent(browser, {
         scroll: tabData.scroll || null,
         storage: tabData.storage || null,
+        formdata: tabData.formdata || null,
         disallow: tabData.disallow || null,
         pageStyle: tabData.pageStyle || null
       });
