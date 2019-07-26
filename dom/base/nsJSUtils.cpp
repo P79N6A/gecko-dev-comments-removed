@@ -120,12 +120,6 @@ nsJSUtils::ReportPendingException(JSContext *aContext)
       JS::Rooted<JSObject*> scope(aContext);
       scope = scx ? scx->GetWindowProxy()
                   : js::DefaultObjectForContextOrNull(aContext);
-      if (!scope) {
-        
-        MOZ_ASSERT(NS_IsMainThread());
-        MOZ_ASSERT(aContext == nsContentUtils::GetSafeJSContext());
-        scope = xpc::GetSafeJSContextGlobal();
-      }
       JSAutoCompartment ac(aContext, scope);
       JS_ReportPendingException(aContext);
     }
