@@ -976,7 +976,7 @@ protected:
 
 
 
-  virtual mozilla::dom::Element* GetOffsetRect(nsRect& aRect);
+  mozilla::dom::Element* GetOffsetRect(nsRect& aRect);
 
   
 

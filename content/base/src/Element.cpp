@@ -486,32 +486,6 @@ Element::GetStyledFrame()
   return frame ? nsLayoutUtils::GetStyleFrame(frame) : nullptr;
 }
 
-Element*
-Element::GetOffsetRect(nsRect& aRect)
-{
-  aRect = nsRect();
-
-  nsIFrame* frame = GetStyledFrame();
-  if (!frame) {
-    return nullptr;
-  }
-
-  nsPoint origin = frame->GetPosition();
-  aRect.x = nsPresContext::AppUnitsToIntCSSPixels(origin.x);
-  aRect.y = nsPresContext::AppUnitsToIntCSSPixels(origin.y);
-
-  
-  
-  
-  
-  nsIFrame* parent = frame->GetParent() ? frame->GetParent() : frame;
-  nsRect rcFrame = nsLayoutUtils::GetAllInFlowRectsUnion(frame, parent);
-  aRect.width = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.width);
-  aRect.height = nsPresContext::AppUnitsToIntCSSPixels(rcFrame.height);
-
-  return nullptr;
-}
-
 nsIScrollableFrame*
 Element::GetScrollFrame(nsIFrame **aStyledFrame)
 {

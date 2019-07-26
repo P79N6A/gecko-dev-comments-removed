@@ -115,8 +115,8 @@ class UndoManager;
 
 
 #define NS_ELEMENT_IID \
-{ 0xcae9f7e7, 0x6163, 0x47b5, \
- { 0xa1, 0x63, 0x30, 0xc8, 0x1d, 0x2d, 0x79, 0x39 } }
+{ 0xec962aa7, 0x53ee, 0x46ff, \
+  { 0x90, 0x34, 0x68, 0xea, 0x79, 0x9d, 0x7d, 0xf7 } }
 
 class Element : public FragmentOrElement
 {
@@ -1053,14 +1053,6 @@ protected:
 
 
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
-
-  
-
-
-
-
-
-  virtual Element* GetOffsetRect(nsRect& aRect);
 
   nsIFrame* GetStyledFrame();
 
