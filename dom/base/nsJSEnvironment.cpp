@@ -1236,7 +1236,7 @@ nsJSContext::EvaluateString(const nsAString& aScript,
                             JS::Value& aRetValue)
 {
   SAMPLE_LABEL("JS", "EvaluateString");
-
+  MOZ_ASSERT_IF(aOptions.versionSet, aOptions.version != JSVERSION_UNKNOWN);
   NS_ENSURE_TRUE(mIsInitialized, NS_ERROR_NOT_INITIALIZED);
   aRetValue = JSVAL_VOID;
 
@@ -1255,19 +1255,15 @@ nsJSContext::EvaluateString(const nsAString& aScript,
   aOptions.setPrincipals(p);
 
   bool ok = false;
-
   nsresult rv = sSecurityManager->CanExecuteScripts(mContext, nsJSPrincipals::get(p), &ok);
-  if (NS_FAILED(rv)) {
-    return NS_ERROR_FAILURE;
-  }
+  NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(ok, NS_OK);
 
   nsJSContext::TerminationFuncHolder holder(this);
 
   
   
-  
-  if (ok && !(aOptions.versionSet && aOptions.version == JSVERSION_UNKNOWN)) {
-
+  {
     XPCAutoRequest ar(mContext);
     JSAutoCompartment ac(mContext, &aScopeObject);
 
@@ -1283,22 +1279,21 @@ nsJSContext::EvaluateString(const nsAString& aScript,
       aRetValue = ok ? JS::StringValue(str) : JSVAL_VOID;
     }
     --mExecuteDepth;
+  }
 
-    if (!ok) {
-      
-      
-      
+  if (!ok) {
+    
+    
+    
 
-      ReportPendingException();
-    }
+    ReportPendingException();
   }
 
   
   pusher.Pop();
   ScriptEvaluated(true);
 
-  return rv;
-
+  return NS_OK;
 }
 
 nsIScriptObjectPrincipal*
