@@ -426,21 +426,22 @@ AnyKidsNeedBlockParent(nsIFrame *aFrameList)
 
 
 static void
-ReparentFrame(nsFrameManager* aFrameManager,
+ReparentFrame(RestyleManager* aRestyleManager,
               nsIFrame* aNewParentFrame,
               nsIFrame* aFrame)
 {
   aFrame->SetParent(aNewParentFrame);
-  aFrameManager->ReparentStyleContext(aFrame);
+  aRestyleManager->ReparentStyleContext(aFrame);
 }
 
 static void
-ReparentFrames(nsFrameManager* aFrameManager,
+ReparentFrames(nsCSSFrameConstructor* aFrameConstructor,
                nsIFrame* aNewParentFrame,
                const nsFrameList& aFrameList)
 {
+  RestyleManager* restyleManager = aFrameConstructor->RestyleManager();
   for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    ReparentFrame(aFrameManager, aNewParentFrame, e.get());
+    ReparentFrame(restyleManager, aNewParentFrame, e.get());
   }
 }
 

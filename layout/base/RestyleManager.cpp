@@ -12,6 +12,7 @@
 #include "nsLayoutUtils.h"
 #include "GeckoProfiler.h"
 #include "nsStyleChangeList.h"
+#include "nsRuleProcessorData.h"
 #include "nsStyleUtil.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsSVGEffects.h"
@@ -21,13 +22,19 @@
 #include "nsViewManager.h"
 #include "nsRenderingContext.h"
 #include "nsSVGIntegrationUtils.h"
+#include "nsCSSAnonBoxes.h"
 #include "nsContainerFrame.h"
 #include "nsPlaceholderFrame.h"
+#include "nsBlockFrame.h"
 #include "nsViewportFrame.h"
 #include "nsSVGTextFrame2.h"
 #include "nsSVGTextPathFrame.h"
 #include "nsIRootBox.h"
 #include "nsIDOMMutationEvent.h"
+
+#ifdef ACCESSIBILITY
+#include "nsAccessibilityService.h"
+#endif
 
 namespace mozilla {
 
@@ -610,7 +617,7 @@ RestyleManager::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
           !nsTransitionManager::ContentOrAncestorHasTransition(changeData->mContent)) {
         nsIFrame* frame = changeData->mContent->GetPrimaryFrame();
         if (frame) {
-          FrameConstructor()->DebugVerifyStyleTree(frame);
+          DebugVerifyStyleTree(frame);
         }
       }
     } else if (!changeData->mFrame ||
@@ -666,7 +673,6 @@ RestyleManager::RestyleElement(Element*        aElement,
     FrameConstructor()->RecreateFramesForContent(aElement, false);
   } else if (aPrimaryFrame) {
     nsStyleChangeList changeList;
-    FrameConstructor()-> 
     ComputeStyleChangeFor(aPrimaryFrame, &changeList, aMinHint,
                           aRestyleTracker, aRestyleDescendants);
     ProcessRestyledFrames(changeList);
@@ -1178,7 +1184,6 @@ RestyleManager::DoRebuildAllStyleData(RestyleTracker& aRestyleTracker,
   
   
   
-  FrameConstructor()-> 
   ComputeStyleChangeFor(mPresContext->PresShell()->GetRootFrame(),
                         &changeList, aExtraHint,
                         aRestyleTracker, true);
@@ -1451,6 +1456,1232 @@ RestyleManager::RecomputePosition(nsIFrame* aFrame)
   
   StyleChangeReflow(aFrame, nsChangeHint_NeedReflow);
   return false;
+}
+
+#ifdef DEBUG
+static void
+DumpContext(nsIFrame* aFrame, nsStyleContext* aContext)
+{
+  if (aFrame) {
+    fputs("frame: ", stdout);
+    nsAutoString  name;
+    aFrame->GetFrameName(name);
+    fputs(NS_LossyConvertUTF16toASCII(name).get(), stdout);
+    fprintf(stdout, " (%p)", static_cast<void*>(aFrame));
+  }
+  if (aContext) {
+    fprintf(stdout, " style: %p ", static_cast<void*>(aContext));
+
+    nsIAtom* pseudoTag = aContext->GetPseudo();
+    if (pseudoTag) {
+      nsAutoString  buffer;
+      pseudoTag->ToString(buffer);
+      fputs(NS_LossyConvertUTF16toASCII(buffer).get(), stdout);
+      fputs(" ", stdout);
+    }
+    fputs("{}\n", stdout);
+  }
+}
+
+static void
+VerifySameTree(nsStyleContext* aContext1, nsStyleContext* aContext2)
+{
+  nsStyleContext* top1 = aContext1;
+  nsStyleContext* top2 = aContext2;
+  nsStyleContext* parent;
+  for (;;) {
+    parent = top1->GetParent();
+    if (!parent)
+      break;
+    top1 = parent;
+  }
+  for (;;) {
+    parent = top2->GetParent();
+    if (!parent)
+      break;
+    top2 = parent;
+  }
+  NS_ASSERTION(top1 == top2,
+               "Style contexts are not in the same style context tree");
+}
+
+static void
+VerifyContextParent(nsPresContext* aPresContext, nsIFrame* aFrame,
+                    nsStyleContext* aContext, nsStyleContext* aParentContext)
+{
+  
+  if (!aContext) {
+    aContext = aFrame->StyleContext();
+  }
+
+  if (!aParentContext) {
+    
+    
+    
+
+    
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+    if (providerFrame)
+      aParentContext = providerFrame->StyleContext();
+    
+  }
+
+  NS_ASSERTION(aContext, "Failure to get required contexts");
+  nsStyleContext* actualParentContext = aContext->GetParent();
+
+  if (aParentContext) {
+    if (aParentContext != actualParentContext) {
+      DumpContext(aFrame, aContext);
+      if (aContext == aParentContext) {
+        NS_ERROR("Using parent's style context");
+      }
+      else {
+        NS_ERROR("Wrong parent style context");
+        fputs("Wrong parent style context: ", stdout);
+        DumpContext(nullptr, actualParentContext);
+        fputs("should be using: ", stdout);
+        DumpContext(nullptr, aParentContext);
+        VerifySameTree(actualParentContext, aParentContext);
+        fputs("\n", stdout);
+      }
+    }
+
+  }
+  else {
+    if (actualParentContext) {
+      NS_ERROR("Have parent context and shouldn't");
+      DumpContext(aFrame, aContext);
+      fputs("Has parent context: ", stdout);
+      DumpContext(nullptr, actualParentContext);
+      fputs("Should be null\n\n", stdout);
+    }
+  }
+
+  nsStyleContext* childStyleIfVisited = aContext->GetStyleIfVisited();
+  
+  
+  
+  if (childStyleIfVisited &&
+      !((childStyleIfVisited->RuleNode() != aContext->RuleNode() &&
+         childStyleIfVisited->GetParent() == aContext->GetParent()) ||
+        childStyleIfVisited->GetParent() ==
+          aContext->GetParent()->GetStyleIfVisited())) {
+    NS_ERROR("Visited style has wrong parent");
+    DumpContext(aFrame, aContext);
+    fputs("\n", stdout);
+  }
+}
+
+static void
+VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
+                nsStyleContext* aParentContext)
+{
+  nsStyleContext*  context = aFrame->StyleContext();
+  VerifyContextParent(aPresContext, aFrame, context, nullptr);
+
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
+      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+        
+        if (nsGkAtoms::placeholderFrame == child->GetType()) {
+          
+          
+          nsIFrame* outOfFlowFrame =
+            nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
+
+          
+          do {
+            VerifyStyleTree(aPresContext, outOfFlowFrame, nullptr);
+          } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
+
+          
+          
+          VerifyContextParent(aPresContext, child, nullptr, nullptr);
+        }
+        else { 
+          VerifyStyleTree(aPresContext, child, nullptr);
+        }
+      }
+    }
+  }
+
+  
+  int32_t contextIndex = -1;
+  while (1) {
+    nsStyleContext* extraContext = aFrame->GetAdditionalStyleContext(++contextIndex);
+    if (extraContext) {
+      VerifyContextParent(aPresContext, aFrame, extraContext, context);
+    }
+    else {
+      break;
+    }
+  }
+}
+
+void
+RestyleManager::DebugVerifyStyleTree(nsIFrame* aFrame)
+{
+  if (aFrame) {
+    nsStyleContext* context = aFrame->StyleContext();
+    nsStyleContext* parentContext = context->GetParent();
+    VerifyStyleTree(mPresContext, aFrame, parentContext);
+  }
+}
+
+#endif 
+
+
+
+static void
+TryStartingTransition(nsPresContext *aPresContext, nsIContent *aContent,
+                      nsStyleContext *aOldStyleContext,
+                      nsRefPtr<nsStyleContext> *aNewStyleContext )
+{
+  if (!aContent || !aContent->IsElement()) {
+    return;
+  }
+
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIStyleRule> coverRule =
+    aPresContext->TransitionManager()->StyleContextChanged(
+      aContent->AsElement(), aOldStyleContext, *aNewStyleContext);
+  if (coverRule) {
+    nsCOMArray<nsIStyleRule> rules;
+    rules.AppendObject(coverRule);
+    *aNewStyleContext = aPresContext->StyleSet()->
+                          ResolveStyleByAddingRules(*aNewStyleContext, rules);
+  }
+}
+
+static inline dom::Element*
+ElementForStyleContext(nsIContent* aParentContent,
+                       nsIFrame* aFrame,
+                       nsCSSPseudoElements::Type aPseudoType)
+{
+  
+  NS_PRECONDITION(aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement ||
+                  aPseudoType == nsCSSPseudoElements::ePseudo_AnonBox ||
+                  aPseudoType < nsCSSPseudoElements::ePseudo_PseudoElementCount,
+                  "Unexpected pseudo");
+  
+  
+  if (aPseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement) {
+    return aFrame->GetContent()->AsElement();
+  }
+
+  if (aPseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
+    return nullptr;
+  }
+
+  if (aPseudoType == nsCSSPseudoElements::ePseudo_firstLetter) {
+    NS_ASSERTION(aFrame->GetType() == nsGkAtoms::letterFrame,
+                 "firstLetter pseudoTag without a nsFirstLetterFrame");
+    nsBlockFrame* block = nsBlockFrame::GetNearestAncestorBlock(aFrame);
+    return block->GetContent()->AsElement();
+  }
+
+  nsIContent* content = aParentContent ? aParentContent : aFrame->GetContent();
+  return content->AsElement();
+}
+
+static nsIFrame*
+GetPrevContinuationWithPossiblySameStyle(nsIFrame* aFrame)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+  if (!prevContinuation && (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+    
+    
+    prevContinuation = static_cast<nsIFrame*>(
+      aFrame->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+    if (prevContinuation) {
+      prevContinuation = static_cast<nsIFrame*>(
+        prevContinuation->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+    }
+  }
+  return prevContinuation;
+}
+
+nsresult
+RestyleManager::ReparentStyleContext(nsIFrame* aFrame)
+{
+  if (nsGkAtoms::placeholderFrame == aFrame->GetType()) {
+    
+    nsIFrame* outOfFlow =
+      nsPlaceholderFrame::GetRealFrameForPlaceholder(aFrame);
+    NS_ASSERTION(outOfFlow, "no out-of-flow frame");
+    do {
+      ReparentStyleContext(outOfFlow);
+    } while ((outOfFlow = outOfFlow->GetNextContinuation()));
+  }
+
+  
+  
+  nsStyleContext* oldContext = aFrame->StyleContext();
+  
+  if (oldContext) {
+    nsRefPtr<nsStyleContext> newContext;
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+    bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
+    nsStyleContext* newParentContext = nullptr;
+    nsIFrame* providerChild = nullptr;
+    if (isChild) {
+      ReparentStyleContext(providerFrame);
+      newParentContext = providerFrame->StyleContext();
+      providerChild = providerFrame;
+    } else if (providerFrame) {
+      newParentContext = providerFrame->StyleContext();
+    } else {
+      NS_NOTREACHED("Reparenting something that has no usable parent? "
+                    "Shouldn't happen!");
+    }
+    
+    
+    
+    
+    
+
+#ifdef DEBUG
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame *nextContinuation = aFrame->GetNextContinuation();
+      if (nextContinuation) {
+        nsStyleContext *nextContinuationContext =
+          nextContinuation->StyleContext();
+        NS_ASSERTION(oldContext == nextContinuationContext ||
+                     oldContext->GetPseudo() !=
+                       nextContinuationContext->GetPseudo() ||
+                     oldContext->GetParent() !=
+                       nextContinuationContext->GetParent(),
+                     "continuations should have the same style context");
+      }
+    }
+#endif
+
+    nsIFrame *prevContinuation =
+      GetPrevContinuationWithPossiblySameStyle(aFrame);
+    nsStyleContext *prevContinuationContext;
+    bool copyFromContinuation =
+      prevContinuation &&
+      (prevContinuationContext = prevContinuation->StyleContext())
+        ->GetPseudo() == oldContext->GetPseudo() &&
+       prevContinuationContext->GetParent() == newParentContext;
+    if (copyFromContinuation) {
+      
+      
+      
+      
+      newContext = prevContinuationContext;
+    } else {
+      nsIFrame* parentFrame = aFrame->GetParent();
+      Element* element =
+        ElementForStyleContext(parentFrame ? parentFrame->GetContent() : nullptr,
+                               aFrame,
+                               oldContext->GetPseudoType());
+      newContext = mPresContext->StyleSet()->
+                     ReparentStyleContext(oldContext, newParentContext, element);
+    }
+
+    if (newContext) {
+      if (newContext != oldContext) {
+        
+        
+        
+        
+        
+#if 0
+        if (!copyFromContinuation) {
+          TryStartingTransition(mPresContext, aFrame->GetContent(),
+                                oldContext, &newContext);
+        }
+#endif
+
+        
+        
+        DebugOnly<nsChangeHint> styleChange =
+          oldContext->CalcStyleDifference(newContext, nsChangeHint(0));
+        
+        
+        
+        
+        NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                     "Our frame tree is likely to be bogus!");
+
+        aFrame->SetStyleContext(newContext);
+
+        nsIFrame::ChildListIterator lists(aFrame);
+        for (; !lists.IsDone(); lists.Next()) {
+          nsFrameList::Enumerator childFrames(lists.CurrentList());
+          for (; !childFrames.AtEnd(); childFrames.Next()) {
+            nsIFrame* child = childFrames.get();
+            
+            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
+                child != providerChild) {
+#ifdef DEBUG
+              if (nsGkAtoms::placeholderFrame == child->GetType()) {
+                nsIFrame* outOfFlowFrame =
+                  nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
+                NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
+
+                NS_ASSERTION(outOfFlowFrame != providerChild,
+                             "Out of flow provider?");
+              }
+#endif
+              ReparentStyleContext(child);
+            }
+          }
+        }
+
+        
+        
+        
+        
+        
+        
+        if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+            !aFrame->GetPrevContinuation()) {
+          nsIFrame* sib = static_cast<nsIFrame*>
+            (aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+          if (sib) {
+            ReparentStyleContext(sib);
+          }
+        }
+
+        
+        int32_t contextIndex = -1;
+        while (1) {
+          nsStyleContext* oldExtraContext =
+            aFrame->GetAdditionalStyleContext(++contextIndex);
+          if (oldExtraContext) {
+            nsRefPtr<nsStyleContext> newExtraContext;
+            newExtraContext = mPresContext->StyleSet()->
+                                ReparentStyleContext(oldExtraContext,
+                                                     newContext, nullptr);
+            if (newExtraContext) {
+              if (newExtraContext != oldExtraContext) {
+                
+                
+                
+                styleChange =
+                  oldExtraContext->CalcStyleDifference(newExtraContext,
+                                                       nsChangeHint(0));
+                
+                
+                
+                
+                
+                NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
+                             "Our frame tree is likely to be bogus!");
+              }
+
+              aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
+            }
+          }
+          else {
+            break;
+          }
+        }
+#ifdef DEBUG
+        VerifyStyleTree(mPresContext, aFrame, newParentContext);
+#endif
+      }
+    }
+  }
+  return NS_OK;
+}
+
+static void
+CaptureChange(nsStyleContext* aOldContext, nsStyleContext* aNewContext,
+              nsIFrame* aFrame, nsIContent* aContent,
+              nsStyleChangeList* aChangeList,
+              nsChangeHint &aMinChange,
+              nsChangeHint aParentHintsNotHandledForDescendants,
+              nsChangeHint &aHintsNotHandledForDescendants,
+              nsChangeHint aChangeToAssume)
+{
+  nsChangeHint ourChange = aOldContext->CalcStyleDifference(aNewContext,
+                             aParentHintsNotHandledForDescendants);
+  NS_ASSERTION(!(ourChange & nsChangeHint_AllReflowHints) ||
+               (ourChange & nsChangeHint_NeedReflow),
+               "Reflow hint bits set without actually asking for a reflow");
+
+  
+  
+  
+  if ((ourChange & nsChangeHint_UpdateEffects) &&
+      aContent && !aContent->IsElement()) {
+    ourChange = NS_SubtractHint(ourChange, nsChangeHint_UpdateEffects);
+  }
+
+  NS_UpdateHint(ourChange, aChangeToAssume);
+  if (NS_UpdateHint(aMinChange, ourChange)) {
+    if (!(ourChange & nsChangeHint_ReconstructFrame) || aContent) {
+      aChangeList->AppendChange(aFrame, aContent, ourChange);
+    }
+  }
+  aHintsNotHandledForDescendants = NS_HintsNotHandledForDescendantsIn(ourChange);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+nsChangeHint
+RestyleManager::ReResolveStyleContext(nsPresContext     *aPresContext,
+                                      nsIFrame          *aFrame,
+                                      nsIContent        *aParentContent,
+                                      nsStyleChangeList *aChangeList,
+                                      nsChangeHint       aMinChange,
+                                      nsChangeHint       aParentFrameHintsNotHandledForDescendants,
+                                      nsRestyleHint      aRestyleHint,
+                                      RestyleTracker&    aRestyleTracker,
+                                      DesiredA11yNotifications aDesiredA11yNotifications,
+                                      nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
+                                      TreeMatchContext &aTreeMatchContext)
+{
+  
+  
+  
+  aMinChange = NS_SubtractHint(aMinChange, NS_HintsNotHandledForDescendantsIn(aMinChange));
+
+  
+  
+  
+  
+  
+  
+  
+  NS_ASSERTION(aFrame->GetContent() || !aParentContent ||
+               !aParentContent->GetParent(),
+               "frame must have content (unless at the top of the tree)");
+  
+  
+  
+
+  
+  
+  
+
+  nsChangeHint assumeDifferenceHint = NS_STYLE_HINT_NONE;
+  
+  nsStyleContext* oldContext = aFrame->StyleContext();
+  nsStyleSet* styleSet = aPresContext->StyleSet();
+
+  
+  
+  if (oldContext) {
+    oldContext->AddRef();
+
+#ifdef ACCESSIBILITY
+    bool wasFrameVisible = nsIPresShell::IsAccessibilityActive() ?
+      oldContext->StyleVisibility()->IsVisible() : false;
+#endif
+
+    nsIAtom* const pseudoTag = oldContext->GetPseudo();
+    const nsCSSPseudoElements::Type pseudoType = oldContext->GetPseudoType();
+    nsIContent* localContent = aFrame->GetContent();
+    
+    
+    
+    
+    
+    nsIContent* content = localContent ? localContent : aParentContent;
+
+    if (content && content->IsElement()) {
+      content->OwnerDoc()->FlushPendingLinkUpdates();
+      RestyleTracker::RestyleData restyleData;
+      if (aRestyleTracker.GetRestyleData(content->AsElement(), &restyleData)) {
+        if (NS_UpdateHint(aMinChange, restyleData.mChangeHint)) {
+          aChangeList->AppendChange(aFrame, content, restyleData.mChangeHint);
+        }
+        aRestyleHint = nsRestyleHint(aRestyleHint | restyleData.mRestyleHint);
+      }
+    }
+
+    nsRestyleHint childRestyleHint = aRestyleHint;
+
+    if (childRestyleHint == eRestyle_Self) {
+      childRestyleHint = nsRestyleHint(0);
+    }
+
+    nsStyleContext* parentContext;
+    nsIFrame* resolvedChild = nullptr;
+    
+    
+    nsIFrame* providerFrame = aFrame->GetParentStyleContextFrame();
+    bool isChild = providerFrame && providerFrame->GetParent() == aFrame;
+    if (!isChild) {
+      if (providerFrame)
+        parentContext = providerFrame->StyleContext();
+      else
+        parentContext = nullptr;
+    }
+    else {
+      MOZ_ASSERT(providerFrame->GetContent() == aFrame->GetContent(),
+                 "Postcondition for GetParentStyleContextFrame() violated. "
+                 "That means we need to add the current element to the "
+                 "ancestor filter.");
+
+      
+
+      
+      
+      
+      
+      
+      
+
+      assumeDifferenceHint = ReResolveStyleContext(aPresContext, providerFrame,
+                                                   aParentContent, aChangeList,
+                                                   aMinChange,
+                                                   nsChangeHint_Hints_NotHandledForDescendants,
+                                                   aRestyleHint,
+                                                   aRestyleTracker,
+                                                   aDesiredA11yNotifications,
+                                                   aVisibleKidsOfHiddenElement,
+                                                   aTreeMatchContext);
+
+      
+      
+      parentContext = providerFrame->StyleContext();
+      
+      
+      resolvedChild = providerFrame;
+    }
+
+    if (providerFrame != aFrame->GetParent()) {
+      
+      
+      aParentFrameHintsNotHandledForDescendants =
+        nsChangeHint_Hints_NotHandledForDescendants;
+    }
+
+#ifdef DEBUG
+    {
+      
+      
+      
+      
+      
+      
+      
+      
+      nsIFrame *nextContinuation = aFrame->GetNextContinuation();
+      if (nextContinuation) {
+        nsStyleContext *nextContinuationContext =
+          nextContinuation->StyleContext();
+        NS_ASSERTION(oldContext == nextContinuationContext ||
+                     oldContext->GetPseudo() !=
+                       nextContinuationContext->GetPseudo() ||
+                     oldContext->GetParent() !=
+                       nextContinuationContext->GetParent(),
+                     "continuations should have the same style context");
+      }
+      
+      
+      
+      if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+          !aFrame->GetPrevContinuation()) {
+        nsIFrame *nextIBSibling = static_cast<nsIFrame*>(
+          aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+        if (nextIBSibling) {
+          nextIBSibling = static_cast<nsIFrame*>(
+            nextIBSibling->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+        }
+        if (nextIBSibling) {
+          nsStyleContext *nextIBSiblingContext =
+            nextIBSibling->StyleContext();
+          NS_ASSERTION(oldContext == nextIBSiblingContext ||
+                       oldContext->GetPseudo() !=
+                         nextIBSiblingContext->GetPseudo() ||
+                       oldContext->GetParent() !=
+                         nextIBSiblingContext->GetParent(),
+                       "continuations should have the same style context");
+        }
+      }
+    }
+#endif
+
+    
+    nsRefPtr<nsStyleContext> newContext;
+    nsChangeHint nonInheritedHints = nsChangeHint(0);
+    nsIFrame *prevContinuation =
+      GetPrevContinuationWithPossiblySameStyle(aFrame);
+    nsStyleContext *prevContinuationContext;
+    bool copyFromContinuation =
+      prevContinuation &&
+      (prevContinuationContext = prevContinuation->StyleContext())
+        ->GetPseudo() == oldContext->GetPseudo() &&
+       prevContinuationContext->GetParent() == parentContext;
+    if (copyFromContinuation) {
+      
+      
+      
+      
+      newContext = prevContinuationContext;
+    }
+    else if (pseudoTag == nsCSSAnonBoxes::mozNonElement) {
+      NS_ASSERTION(localContent,
+                   "non pseudo-element frame without content node");
+      newContext = styleSet->ResolveStyleForNonElement(parentContext);
+    }
+    else if (!aRestyleHint && !prevContinuation) {
+      
+      
+      
+      
+      
+      
+      
+      
+      newContext =
+        styleSet->ReparentStyleContext(oldContext, parentContext,
+                                       ElementForStyleContext(aParentContent,
+                                                              aFrame,
+                                                              pseudoType));
+    } else if (pseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
+      newContext = styleSet->ResolveAnonymousBoxStyle(pseudoTag,
+                                                      parentContext);
+    }
+    else {
+      Element* element = ElementForStyleContext(aParentContent,
+                                                aFrame,
+                                                pseudoType);
+      if (pseudoTag) {
+        if (pseudoTag == nsCSSPseudoElements::before ||
+            pseudoTag == nsCSSPseudoElements::after) {
+          
+          newContext = styleSet->ProbePseudoElementStyle(element,
+                                                         pseudoType,
+                                                         parentContext,
+                                                         aTreeMatchContext);
+          if (!newContext) {
+            
+            NS_UpdateHint(aMinChange, nsChangeHint_ReconstructFrame);
+            aChangeList->AppendChange(aFrame, element,
+                                      nsChangeHint_ReconstructFrame);
+            
+            newContext = oldContext;
+          }
+        } else {
+          
+          
+          NS_ASSERTION(pseudoType <
+                         nsCSSPseudoElements::ePseudo_PseudoElementCount,
+                       "Unexpected pseudo type");
+          newContext = styleSet->ResolvePseudoElementStyle(element,
+                                                           pseudoType,
+                                                           parentContext);
+        }
+      }
+      else {
+        NS_ASSERTION(localContent,
+                     "non pseudo-element frame without content node");
+        
+        TreeMatchContext::AutoFlexItemStyleFixupSkipper
+          flexFixupSkipper(aTreeMatchContext,
+                           element->IsRootOfNativeAnonymousSubtree());
+        newContext = styleSet->ResolveStyleFor(element, parentContext,
+                                               aTreeMatchContext);
+      }
+    }
+
+    NS_ASSERTION(newContext, "failed to get new style context");
+    if (newContext) {
+      if (!parentContext) {
+        if (oldContext->RuleNode() == newContext->RuleNode() &&
+            oldContext->IsLinkContext() == newContext->IsLinkContext() &&
+            oldContext->RelevantLinkVisited() ==
+              newContext->RelevantLinkVisited()) {
+          
+          
+          
+          
+          
+          newContext = oldContext;
+        }
+      }
+
+      if (newContext != oldContext) {
+        if (!copyFromContinuation) {
+          TryStartingTransition(aPresContext, aFrame->GetContent(),
+                                oldContext, &newContext);
+        }
+
+        CaptureChange(oldContext, newContext, aFrame, content, aChangeList,
+                      aMinChange, aParentFrameHintsNotHandledForDescendants,
+                      nonInheritedHints, assumeDifferenceHint);
+        if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+          
+          aFrame->SetStyleContext(newContext);
+        }
+      }
+      oldContext->Release();
+    }
+    else {
+      NS_ERROR("resolve style context failed");
+      newContext = oldContext;  
+    }
+
+    
+    
+    
+    int32_t contextIndex = -1;
+    while (1 == 1) {
+      nsStyleContext* oldExtraContext = nullptr;
+      oldExtraContext = aFrame->GetAdditionalStyleContext(++contextIndex);
+      if (oldExtraContext) {
+        nsRefPtr<nsStyleContext> newExtraContext;
+        nsIAtom* const extraPseudoTag = oldExtraContext->GetPseudo();
+        const nsCSSPseudoElements::Type extraPseudoType =
+          oldExtraContext->GetPseudoType();
+        NS_ASSERTION(extraPseudoTag &&
+                     extraPseudoTag != nsCSSAnonBoxes::mozNonElement,
+                     "extra style context is not pseudo element");
+        if (extraPseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
+          newExtraContext = styleSet->ResolveAnonymousBoxStyle(extraPseudoTag,
+                                                               newContext);
+        }
+        else {
+          
+          
+          NS_ASSERTION(extraPseudoType <
+                         nsCSSPseudoElements::ePseudo_PseudoElementCount,
+                       "Unexpected type");
+          newExtraContext = styleSet->ResolvePseudoElementStyle(content->AsElement(),
+                                                                extraPseudoType,
+                                                                newContext);
+        }
+        if (newExtraContext) {
+          if (oldExtraContext != newExtraContext) {
+            nsChangeHint extraHintsNotHandledForDescendants = nsChangeHint(0);
+            CaptureChange(oldExtraContext, newExtraContext, aFrame, content,
+                          aChangeList, aMinChange,
+                          aParentFrameHintsNotHandledForDescendants,
+                          extraHintsNotHandledForDescendants,
+                          assumeDifferenceHint);
+            NS_UpdateHint(nonInheritedHints, extraHintsNotHandledForDescendants);
+            if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+              aFrame->SetAdditionalStyleContext(contextIndex, newExtraContext);
+            }
+          }
+        }
+      }
+      else {
+        break;
+      }
+    }
+
+    
+
+    
+    
+    
+    bool checkUndisplayed;
+    nsIContent* undisplayedParent;
+    nsCSSFrameConstructor* frameConstructor = FrameConstructor();
+    if (pseudoTag) {
+      checkUndisplayed = aFrame == frameConstructor->
+                                     GetDocElementContainingBlock();
+      undisplayedParent = nullptr;
+    } else {
+      checkUndisplayed = !!localContent;
+      undisplayedParent = localContent;
+    }
+    if (checkUndisplayed) {
+      UndisplayedNode* undisplayed =
+        frameConstructor->GetAllUndisplayedContentIn(undisplayedParent);
+      for (TreeMatchContext::AutoAncestorPusher
+             pushAncestor(undisplayed, aTreeMatchContext,
+                          undisplayedParent ? undisplayedParent->AsElement()
+                                            : nullptr);
+           undisplayed; undisplayed = undisplayed->mNext) {
+        NS_ASSERTION(undisplayedParent ||
+                     undisplayed->mContent ==
+                       mPresContext->Document()->GetRootElement(),
+                     "undisplayed node child of null must be root");
+        NS_ASSERTION(!undisplayed->mStyle->GetPseudo(),
+                     "Shouldn't have random pseudo style contexts in the "
+                     "undisplayed map");
+
+        
+        
+        
+        nsIContent* parent = undisplayed->mContent->GetParent();
+        bool pushInsertionPoint = parent && parent->IsActiveChildrenElement();
+        TreeMatchContext::AutoAncestorPusher
+          insertionPointPusher(pushInsertionPoint,
+                               aTreeMatchContext,
+                               parent && parent->IsElement() ? parent->AsElement() : nullptr);
+
+        nsRestyleHint thisChildHint = childRestyleHint;
+        RestyleTracker::RestyleData undisplayedRestyleData;
+        if (aRestyleTracker.GetRestyleData(undisplayed->mContent->AsElement(),
+                                           &undisplayedRestyleData)) {
+          thisChildHint =
+            nsRestyleHint(thisChildHint | undisplayedRestyleData.mRestyleHint);
+        }
+        nsRefPtr<nsStyleContext> undisplayedContext;
+        if (thisChildHint) {
+          undisplayedContext =
+            styleSet->ResolveStyleFor(undisplayed->mContent->AsElement(),
+                                      newContext,
+                                      aTreeMatchContext);
+        } else {
+          undisplayedContext =
+            styleSet->ReparentStyleContext(undisplayed->mStyle, newContext,
+                                           undisplayed->mContent->AsElement());
+        }
+        if (undisplayedContext) {
+          const nsStyleDisplay* display = undisplayedContext->StyleDisplay();
+          if (display->mDisplay != NS_STYLE_DISPLAY_NONE) {
+            NS_ASSERTION(undisplayed->mContent,
+                         "Must have undisplayed content");
+            aChangeList->AppendChange(nullptr, undisplayed->mContent,
+                                      NS_STYLE_HINT_FRAMECHANGE);
+            
+            
+          } else {
+            
+            undisplayed->mStyle = undisplayedContext;
+          }
+        }
+      }
+    }
+
+    
+    
+    
+    if (!(aMinChange & nsChangeHint_ReconstructFrame) &&
+        childRestyleHint) {
+      
+      
+      if (!pseudoTag &&
+          ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+           
+           (aFrame->GetContentInsertionFrame()->GetStateBits() &
+            NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+        
+        
+        nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
+        if (!prevContinuation) {
+          
+          
+          if (!nsLayoutUtils::GetBeforeFrame(aFrame) &&
+              nsLayoutUtils::HasPseudoStyle(localContent, newContext,
+                                            nsCSSPseudoElements::ePseudo_before,
+                                            aPresContext)) {
+            
+            NS_UpdateHint(aMinChange, nsChangeHint_ReconstructFrame);
+            aChangeList->AppendChange(aFrame, content,
+                                      nsChangeHint_ReconstructFrame);
+          }
+        }
+      }
+    }
+
+    
+    
+    
+    if (!(aMinChange & nsChangeHint_ReconstructFrame) &&
+        childRestyleHint) {
+      
+      
+      if (!pseudoTag &&
+          ((aFrame->GetStateBits() & NS_FRAME_MAY_HAVE_GENERATED_CONTENT) ||
+           
+           (aFrame->GetContentInsertionFrame()->GetStateBits() &
+            NS_FRAME_MAY_HAVE_GENERATED_CONTENT))) {
+        
+        
+        nsIFrame* nextContinuation = aFrame->GetNextContinuation();
+
+        if (!nextContinuation) {
+          
+          
+          if (nsLayoutUtils::HasPseudoStyle(localContent, newContext,
+                                            nsCSSPseudoElements::ePseudo_after,
+                                            aPresContext) &&
+              !nsLayoutUtils::GetAfterFrame(aFrame)) {
+            
+            NS_UpdateHint(aMinChange, nsChangeHint_ReconstructFrame);
+            aChangeList->AppendChange(aFrame, content,
+                                      nsChangeHint_ReconstructFrame);
+          }
+        }
+      }
+    }
+
+    
+    
+    
+    
+    
+    if (!(aMinChange & nsChangeHint_ReconstructFrame)) {
+
+      DesiredA11yNotifications kidsDesiredA11yNotification =
+        aDesiredA11yNotifications;
+#ifdef ACCESSIBILITY
+      A11yNotificationType ourA11yNotification = eDontNotify;
+      
+      
+      
+      if (nsIPresShell::IsAccessibilityActive() &&
+          !aFrame->GetPrevContinuation() &&
+          !nsLayoutUtils::FrameIsNonFirstInIBSplit(aFrame)) {
+        if (aDesiredA11yNotifications == eSendAllNotifications) {
+          bool isFrameVisible = newContext->StyleVisibility()->IsVisible();
+          if (isFrameVisible != wasFrameVisible) {
+            if (isFrameVisible) {
+              
+              
+              
+              kidsDesiredA11yNotification = eSkipNotifications;
+              ourA11yNotification = eNotifyShown;
+            } else {
+              
+              
+              
+              
+              
+              kidsDesiredA11yNotification = eNotifyIfShown;
+              ourA11yNotification = eNotifyHidden;
+            }
+          }
+        } else if (aDesiredA11yNotifications == eNotifyIfShown &&
+                   newContext->StyleVisibility()->IsVisible()) {
+          
+          
+          aVisibleKidsOfHiddenElement.AppendElement(aFrame->GetContent());
+          kidsDesiredA11yNotification = eSkipNotifications;
+        }
+      }
+#endif
+
+      
+      nsIFrame::ChildListIterator lists(aFrame);
+      for (TreeMatchContext::AutoAncestorPusher
+             pushAncestor(!lists.IsDone(),
+                          aTreeMatchContext,
+                          content && content->IsElement() ? content->AsElement()
+                                                          : nullptr);
+           !lists.IsDone(); lists.Next()) {
+        nsFrameList::Enumerator childFrames(lists.CurrentList());
+        for (; !childFrames.AtEnd(); childFrames.Next()) {
+          nsIFrame* child = childFrames.get();
+          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
+            
+            
+            
+
+            
+            
+            nsIContent* parent = child->GetContent() ? child->GetContent()->GetParent() : nullptr;
+            bool pushInsertionPoint = parent && parent->IsActiveChildrenElement();
+            TreeMatchContext::AutoAncestorPusher
+              insertionPointPusher(pushInsertionPoint, aTreeMatchContext,
+                                   parent && parent->IsElement() ? parent->AsElement() : nullptr);
+
+            
+            if (nsGkAtoms::placeholderFrame == child->GetType()) { 
+              
+              nsIFrame* outOfFlowFrame =
+                nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
+              NS_ASSERTION(outOfFlowFrame, "no out-of-flow frame");
+              NS_ASSERTION(outOfFlowFrame != resolvedChild,
+                           "out-of-flow frame not a true descendant");
+
+              
+              
+              
+              
+              
+              
+              
+              
+              
+              
+
+              
+              
+              do {
+                ReResolveStyleContext(aPresContext, outOfFlowFrame,
+                                      content, aChangeList,
+                                      NS_SubtractHint(aMinChange,
+                                                      nsChangeHint_AllReflowHints),
+                                      nonInheritedHints,
+                                      childRestyleHint,
+                                      aRestyleTracker,
+                                      kidsDesiredA11yNotification,
+                                      aVisibleKidsOfHiddenElement,
+                                      aTreeMatchContext);
+              } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
+
+              
+              
+              ReResolveStyleContext(aPresContext, child, content,
+                                    aChangeList, aMinChange,
+                                    nonInheritedHints,
+                                    childRestyleHint,
+                                    aRestyleTracker,
+                                    kidsDesiredA11yNotification,
+                                    aVisibleKidsOfHiddenElement,
+                                    aTreeMatchContext);
+            }
+            else {  
+              if (child != resolvedChild) {
+                ReResolveStyleContext(aPresContext, child, content,
+                                      aChangeList, aMinChange,
+                                      nonInheritedHints,
+                                      childRestyleHint,
+                                      aRestyleTracker,
+                                      kidsDesiredA11yNotification,
+                                      aVisibleKidsOfHiddenElement,
+                                      aTreeMatchContext);
+              }
+            }
+          }
+        }
+      }
+      
+
+#ifdef ACCESSIBILITY
+      
+      if (ourA11yNotification == eNotifyShown) {
+        nsAccessibilityService* accService = nsIPresShell::AccService();
+        if (accService) {
+          nsIPresShell* presShell = aFrame->PresContext()->GetPresShell();
+          nsIContent* content = aFrame->GetContent();
+
+          accService->ContentRangeInserted(presShell, content->GetParent(),
+                                           content,
+                                           content->GetNextSibling());
+        }
+      } else if (ourA11yNotification == eNotifyHidden) {
+        nsAccessibilityService* accService = nsIPresShell::AccService();
+        if (accService) {
+          nsIPresShell* presShell = aFrame->PresContext()->GetPresShell();
+          nsIContent* content = aFrame->GetContent();
+          accService->ContentRemoved(presShell, content->GetParent(), content);
+
+          
+          uint32_t visibleContentCount = aVisibleKidsOfHiddenElement.Length();
+          for (uint32_t idx = 0; idx < visibleContentCount; idx++) {
+            nsIContent* content = aVisibleKidsOfHiddenElement[idx];
+            accService->ContentRangeInserted(presShell, content->GetParent(),
+                                             content, content->GetNextSibling());
+          }
+          aVisibleKidsOfHiddenElement.Clear();
+        }
+      }
+#endif
+    }
+  }
+
+  return aMinChange;
+}
+
+void
+RestyleManager::ComputeStyleChangeFor(nsIFrame*          aFrame,
+                                      nsStyleChangeList* aChangeList,
+                                      nsChangeHint       aMinChange,
+                                      RestyleTracker&    aRestyleTracker,
+                                      bool               aRestyleDescendants)
+{
+  PROFILER_LABEL("CSS", "ComputeStyleChangeFor");
+
+  nsIContent *content = aFrame->GetContent();
+  if (aMinChange) {
+    aChangeList->AppendChange(aFrame, content, aMinChange);
+  }
+
+  nsIFrame* frame = aFrame;
+  nsIFrame* frame2 = aFrame;
+
+  NS_ASSERTION(!frame->GetPrevContinuation(), "must start with the first in flow");
+
+  
+  
+  
+
+  FramePropertyTable* propTable = mPresContext->PropertyTable();
+
+  TreeMatchContext treeMatchContext(true,
+                                    nsRuleWalker::eRelevantLinkUnvisited,
+                                    mPresContext->Document());
+  nsIContent *parent = content ? content->GetParent() : nullptr;
+  Element *parentElement =
+    parent && parent->IsElement() ? parent->AsElement() : nullptr;
+  treeMatchContext.InitAncestors(parentElement);
+  nsTArray<nsIContent*> visibleKidsOfHiddenElement;
+  do {
+    
+    do {
+      
+      nsChangeHint frameChange =
+        ReResolveStyleContext(mPresContext, frame, nullptr,
+                              aChangeList, aMinChange, nsChangeHint(0),
+                              aRestyleDescendants ?
+                                eRestyle_Subtree : eRestyle_Self,
+                              aRestyleTracker,
+                              eSendAllNotifications,
+                              visibleKidsOfHiddenElement,
+                              treeMatchContext);
+
+      if (frameChange & nsChangeHint_ReconstructFrame) {
+        
+        
+        
+        NS_ASSERTION(!frame->GetPrevContinuation(),
+                     "continuing frame had more severe impact than first-in-flow");
+        return;
+      }
+
+      frame = frame->GetNextContinuation();
+    } while (frame);
+
+    
+    if (!(frame2->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+      
+      return;
+    }
+
+    frame2 = static_cast<nsIFrame*>
+      (propTable->Get(frame2, nsIFrame::IBSplitSpecialSibling()));
+    frame = frame2;
+  } while (frame2);
 }
 
 } 

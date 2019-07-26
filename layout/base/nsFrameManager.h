@@ -25,8 +25,6 @@
 #include "nsFrameManagerBase.h"
 
 namespace mozilla {
-class RestyleTracker;
-
 
 
 
@@ -61,8 +59,6 @@ struct UndisplayedNode {
 
 } 
 
-struct TreeMatchContext;
-
 
 
 
@@ -76,7 +72,6 @@ struct TreeMatchContext;
 
 class nsFrameManager : public nsFrameManagerBase
 {
-  typedef mozilla::RestyleTracker RestyleTracker;
   typedef nsIFrame::ChildListID ChildListID;
 
 public:
@@ -144,28 +139,6 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) ReparentStyleContext(nsIFrame* aFrame);
-
-  
-
-
-
-
-  NS_HIDDEN_(void)
-    ComputeStyleChangeFor(nsIFrame* aFrame,
-                          nsStyleChangeList* aChangeList,
-                          nsChangeHint aMinChange,
-                          RestyleTracker& aRestyleTracker,
-                          bool aRestyleDescendants);
-
-  
-
-
-
-
-
-
-
 
   NS_HIDDEN_(void) CaptureFrameState(nsIFrame*              aFrame,
                                      nsILayoutHistoryState* aState);
@@ -182,48 +155,10 @@ public:
   NS_HIDDEN_(void) RestoreFrameStateFor(nsIFrame*              aFrame,
                                         nsILayoutHistoryState* aState);
 
-#ifdef DEBUG
-  
-
-
-  NS_HIDDEN_(void) DebugVerifyStyleTree(nsIFrame* aFrame);
-#endif
-
   NS_HIDDEN_(nsIPresShell*) GetPresShell() const { return mPresShell; }
   NS_HIDDEN_(nsPresContext*) GetPresContext() const {
     return mPresShell->GetPresContext();
   }
-
-private:
-  enum DesiredA11yNotifications {
-    eSkipNotifications,
-    eSendAllNotifications,
-    eNotifyIfShown
-  };
-
-  enum A11yNotificationType {
-    eDontNotify,
-    eNotifyShown,
-    eNotifyHidden
-  };
-
-  
-  
-  
-  
-  
-  NS_HIDDEN_(nsChangeHint)
-    ReResolveStyleContext(nsPresContext    *aPresContext,
-                          nsIFrame          *aFrame,
-                          nsIContent        *aParentContent,
-                          nsStyleChangeList *aChangeList, 
-                          nsChangeHint       aMinChange,
-                          nsChangeHint       aParentFrameHintsNotHandledForDescendants,
-                          nsRestyleHint      aRestyleHint,
-                          RestyleTracker&    aRestyleTracker,
-                          DesiredA11yNotifications aDesiredA11yNotifications,
-                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
-                          TreeMatchContext &aTreeMatchContext);
 };
 
 #endif

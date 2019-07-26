@@ -18,6 +18,7 @@
 
 class nsRefreshDriver;
 class nsIFrame;
+struct TreeMatchContext;
 
 namespace mozilla {
 
@@ -76,6 +77,35 @@ public:
   
   
   uint64_t GetAnimationGeneration() const { return mAnimationGeneration; }
+
+  
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) ReparentStyleContext(nsIFrame* aFrame);
+
+  
+
+
+
+
+  NS_HIDDEN_(void)
+    ComputeStyleChangeFor(nsIFrame* aFrame,
+                          nsStyleChangeList* aChangeList,
+                          nsChangeHint aMinChange,
+                          RestyleTracker& aRestyleTracker,
+                          bool aRestyleDescendants);
+
+#ifdef DEBUG
+  
+
+
+  NS_HIDDEN_(void) DebugVerifyStyleTree(nsIFrame* aFrame);
+#endif
 
   
   
@@ -155,6 +185,36 @@ public:
   }
 
 private:
+  enum DesiredA11yNotifications {
+    eSkipNotifications,
+    eSendAllNotifications,
+    eNotifyIfShown
+  };
+
+  enum A11yNotificationType {
+    eDontNotify,
+    eNotifyShown,
+    eNotifyHidden
+  };
+
+  
+  
+  
+  
+  
+  NS_HIDDEN_(nsChangeHint)
+    ReResolveStyleContext(nsPresContext* aPresContext,
+                          nsIFrame* aFrame,
+                          nsIContent* aParentContent,
+                          nsStyleChangeList* aChangeList,
+                          nsChangeHint aMinChange,
+                          nsChangeHint aParentFrameHintsNotHandledForDescendants,
+                          nsRestyleHint aRestyleHint,
+                          RestyleTracker& aRestyleTracker,
+                          DesiredA11yNotifications aDesiredA11yNotifications,
+                          nsTArray<nsIContent*>& aVisibleKidsOfHiddenElement,
+                          TreeMatchContext& aTreeMatchContext);
+
   
 
 
@@ -234,4 +294,4 @@ private:
 
 } 
 
-#endif 
+#endif
