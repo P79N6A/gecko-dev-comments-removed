@@ -395,8 +395,7 @@ private:
   bool HasLowUndecodedData() const;
 
   
-  
-  int64_t GetUndecodedData() const;
+  bool HasLowUndecodedData(double aUsecs) const;
 
   
   
