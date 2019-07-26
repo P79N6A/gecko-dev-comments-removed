@@ -300,7 +300,8 @@ imgStatusTracker::imgStatusTracker(Image* aImage)
     mState(0),
     mImageStatus(imgIRequest::STATUS_NONE),
     mIsMultipart(false),
-    mHadLastPart(false)
+    mHadLastPart(false),
+    mHasBeenDecoded(false)
 {
   mTrackerObserver = new imgStatusTrackerObserver(this);
 }
@@ -534,7 +535,6 @@ imgStatusTracker::CalculateAndApplyDifference(imgStatusTracker* other)
   
 
   
-  diff.mInvalidRect = mInvalidRect.Union(other->mInvalidRect);
   mState |= diff.mDiffState | loadState;
   if (diff.mUnblockedOnload) {
     mState &= ~stateBlockingOnload;
@@ -543,6 +543,7 @@ imgStatusTracker::CalculateAndApplyDifference(imgStatusTracker* other)
   mIsMultipart = other->mIsMultipart;
   mHadLastPart = other->mHadLastPart;
   mImageStatus |= other->mImageStatus;
+  mHasBeenDecoded = mHasBeenDecoded || other->mHasBeenDecoded;
 
   
   if (mImageStatus & imgIRequest::STATUS_ERROR) {
@@ -555,8 +556,18 @@ imgStatusTracker::CalculateAndApplyDifference(imgStatusTracker* other)
   }
 
   
-  other->mInvalidRect.SetEmpty();
-  mInvalidRect.SetEmpty();
+  
+  
+  bool doInvalidations  = !mHasBeenDecoded
+                       || mImageStatus & imgIRequest::STATUS_ERROR
+                       || mImageStatus & imgIRequest::STATUS_DECODE_COMPLETE;
+
+  
+  if (doInvalidations) {
+    diff.mInvalidRect = mInvalidRect.Union(other->mInvalidRect);
+    other->mInvalidRect.SetEmpty();
+    mInvalidRect.SetEmpty();
+  }
 
   return diff;
 }
@@ -768,6 +779,7 @@ imgStatusTracker::RecordStopDecode(nsresult aStatus)
   if (NS_SUCCEEDED(aStatus) && mImageStatus != imgIRequest::STATUS_ERROR) {
     mImageStatus |= imgIRequest::STATUS_DECODE_COMPLETE;
     mImageStatus &= ~imgIRequest::STATUS_DECODE_STARTED;
+    mHasBeenDecoded = true;
   
   } else {
     mImageStatus = imgIRequest::STATUS_ERROR;
