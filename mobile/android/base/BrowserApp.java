@@ -263,7 +263,8 @@ abstract public class BrowserApp extends GeckoApp
 
     
     
-    @Override void initializeChrome(String uri, Boolean isExternalURL) {
+    @Override
+    protected void initializeChrome(String uri, Boolean isExternalURL) {
         mBrowserToolbar.updateBackButton(false);
         mBrowserToolbar.updateForwardButton(false);
 
@@ -278,21 +279,17 @@ abstract public class BrowserApp extends GeckoApp
             }
         }
 
-        if (uri != null && uri.length() > 0) {
-            mBrowserToolbar.setTitle(uri);
-        }
-
         if (!isExternalURL) {
             
             if (mRestoreMode == GeckoAppShell.RESTORE_NONE) {
-                mBrowserToolbar.updateTabCount(1);
+                Tab tab = Tabs.getInstance().loadUrl("about:home", Tabs.LOADURL_NEW_TAB);
+                tab.updateTitle(null);
                 showAboutHome();
             }
         } else {
-            mBrowserToolbar.updateTabCount(1);
+            hideAboutHome();
+            Tabs.getInstance().loadUrl(uri, Tabs.LOADURL_NEW_TAB | Tabs.LOADURL_USER_ENTERED);
         }
-
-        mBrowserToolbar.setProgressVisibility(isExternalURL || (mRestoreMode != GeckoAppShell.RESTORE_NONE));
 
         mDoorHangerPopup = new DoorHangerPopup(this, mBrowserToolbar.mFavicon);
     }

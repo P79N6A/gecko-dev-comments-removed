@@ -636,11 +636,6 @@ public class BrowserToolbar implements ViewSwitcher.ViewFactory,
         Tab tab = Tabs.getInstance().getSelectedTab();
 
         
-        
-        if (tab != null && "about:empty".equals(tab.getURL()))
-            return;
-
-        
         if (tab != null && tab.isEnteringReaderMode())
             return;
 
