@@ -1,7 +1,7 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
 
 #include "ipc/AutoOpenSurface.h"
 #include "mozilla/layers/PLayers.h"
@@ -88,7 +88,7 @@ MakeIOSurfaceTexture(void* aCGIOSurfaceContext, mozilla::gl::GLContext* aGL)
 
   return ioSurfaceTexture;
 }
-#endif // XP_MACOSX
+#endif 
 
 void
 CanvasLayerOGL::Destroy()
@@ -121,7 +121,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
     return;
   } else if (aData.mDrawTarget) {
     mDrawTarget = aData.mDrawTarget;
-    mCanvasSurface = gfxPlatform::GetPlatform()->GetThebesSurfaceForDrawTarget(mDrawTarget);
+    mCanvasSurface = gfxPlatform::GetPlatform()->CreateThebesSurfaceAliasForDrawTarget_hack(mDrawTarget);
     mNeedsYFlip = false;
   } else if (aData.mSurface) {
     mCanvasSurface = aData.mSurface;
@@ -146,7 +146,7 @@ CanvasLayerOGL::Initialize(const Data& aData)
     mIsGLAlphaPremult = aData.mIsGLAlphaPremult;
     mNeedsYFlip = true;
 
-    // [OGL Layers, MTC] WebGL layer init.
+    
 
     GLScreenBuffer* screen = mGLContext->Screen();
     SurfaceStreamType streamType =
@@ -167,24 +167,24 @@ CanvasLayerOGL::Initialize(const Data& aData)
 
   mBounds.SetRect(0, 0, aData.mSize.width, aData.mSize.height);
       
-  // Check the maximum texture size supported by GL. glTexImage2D supports
-  // images of up to 2 + GL_MAX_TEXTURE_SIZE
+  
+  
   GLint texSize;
   gl()->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &texSize);
   if (mBounds.width > (2 + texSize) || mBounds.height > (2 + texSize)) {
     mDelayedUpdates = true;
     MakeTextureIfNeeded(gl(), mUploadTexture);
-    // This should only ever occur with 2d canvas, WebGL can't already have a texture
-    // of this size can it?
+    
+    
     NS_ABORT_IF_FALSE(mCanvasSurface || mDrawTarget, 
                       "Invalid texture size when WebGL surface already exists at that size?");
   }
 }
 
-/**
- * Following UpdateSurface(), mTexture on context this->gl() should contain the data we want,
- * unless mDelayedUpdates is true because of a too-large surface.
- */
+
+
+
+
 void
 CanvasLayerOGL::UpdateSurface()
 {
@@ -253,7 +253,7 @@ CanvasLayerOGL::UpdateSurface()
     mLayerProgram = gl()->UploadSurfaceToTexture(updatedSurface,
                                                  mBounds,
                                                  mUploadTexture,
-                                                 true,//false,
+                                                 true,
                                                  nsIntPoint(0, 0));
     mTexture = mUploadTexture;
 
@@ -277,9 +277,9 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
 
   mOGLManager->MakeCurrent();
 
-  // XXX We're going to need a different program depending on if
-  // mGLBufferIsPremultiplied is TRUE or not.  The RGBLayerProgram
-  // assumes that it's true.
+  
+  
+  
 
   gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
 
@@ -318,7 +318,7 @@ CanvasLayerOGL::RenderLayer(int aPreviousDestination,
 
   program->Activate();
   if (mLayerProgram == gl::RGBARectLayerProgramType) {
-    // This is used by IOSurface that use 0,0...w,h coordinate rather then 0,0..1,1.
+    
     program->SetTexCoordMultiplier(mDrawTarget->GetSize().width, mDrawTarget->GetSize().height);
   }
   program->SetLayerQuadRect(drawRect);
@@ -439,7 +439,7 @@ ShadowCanvasLayerOGL::Swap(const CanvasSurface& aNewFront,
     mFrontBufferDescriptor = aNewFront;
     mNeedsYFlip = needYFlip;
   } else if (IsValidSurfaceStreamDescriptor(frontDesc)) {
-    // Check our previous desc.
+    
     if (!IsValidSurfaceStreamDescriptor(mFrontBufferDescriptor)) {
       SurfaceStreamHandle handle = (SurfaceStreamHandle)nullptr;
       mFrontBufferDescriptor = SurfaceStreamDescriptor(handle, false);
@@ -484,7 +484,7 @@ ShadowCanvasLayerOGL::DestroyFrontBuffer()
   }
 
   if (IsValidSurfaceStreamDescriptor(mFrontBufferDescriptor)) {
-    // Nothing needed.
+    
     mFrontBufferDescriptor = SurfaceDescriptor();
   } else if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
     mAllocator->DestroySharedSurface(&mFrontBufferDescriptor);
@@ -538,14 +538,14 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
   }
   mOGLManager->MakeCurrent();
   gl()->EmptyTexGarbageBin();
-  //ScopedBindTexture autoTex(gl());
+  
 
   gfx3DMatrix effectiveTransform = GetEffectiveTransform();
   gfxPattern::GraphicsFilter filter = mFilter;
 #ifdef ANDROID
-  // Bug 691354
-  // Using the LINEAR filter we get unexplained artifacts.
-  // Use NEAREST when no scaling is required.
+  
+  
+  
   gfxMatrix matrix;
   bool is2D = GetEffectiveTransform().Is2D(&matrix);
   if (is2D && !matrix.HasNonTranslationOrFlip()) {
@@ -563,7 +563,7 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
     sharedSurf = surfStream->SwapConsumer();
     if (!sharedSurf) {
-      // We don't have a valid surf to show yet.
+      
       return;
     }
 
@@ -601,7 +601,7 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
     }
 
     if (toUpload) {
-      // mBounds seems to end up as (0,0,0,0) a lot, so don't use it?
+      
       nsIntSize size(toUpload->GetSize());
       nsIntRect rect(nsIntPoint(0,0), size);
       nsIntRegion bounds(rect);
@@ -646,24 +646,24 @@ ShadowCanvasLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
     gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, 0);
   } else {
-    // Tiled texture image rendering path
+    
     mTexImage->SetFilter(filter);
     mTexImage->BeginTileIteration();
     if (gl()->CanUploadNonPowerOfTwo()) {
       do {
         TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
         program->SetLayerQuadRect(mTexImage->GetTileRect());
-        mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); // FIXME flip order of tiles?
+        mOGLManager->BindAndDrawQuad(program, mNeedsYFlip); 
       } while (mTexImage->NextTile());
     } else {
       do {
         TextureImage::ScopedBindTextureAndApplyFilter texBind(mTexImage, LOCAL_GL_TEXTURE0);
         program->SetLayerQuadRect(mTexImage->GetTileRect());
-        // We can't use BindAndDrawQuad because that always uploads the whole texture from 0.0f -> 1.0f
-        // in x and y. We use BindAndDrawQuadWithTextureRect to actually draw a subrect of the texture
-        // We need to reset the origin to 0,0 from the tile rect because the tile originates at 0,0 in the
-        // actual texture, even though its origin in the composed (tiled) texture is not 0,0
-        // FIXME: we need to handle mNeedsYFlip, Bug #728625
+        
+        
+        
+        
+        
         mOGLManager->BindAndDrawQuadWithTextureRect(program,
                                                     nsIntRect(0, 0, mTexImage->GetTileRect().width,
                                                                     mTexImage->GetTileRect().height),
