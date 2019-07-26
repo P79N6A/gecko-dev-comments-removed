@@ -145,6 +145,19 @@ public:
   {
     MOZ_ASSERT(NS_IsMainThread());
 
+    
+    
+    
+    
+    
+    
+    
+#if defined(MOZ_WIDGET_GONK)
+    if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
+      BT_WARNING("Failed to set bluetooth enabled property");
+    }
+#endif
+
     NS_ENSURE_TRUE(sBluetoothService, NS_OK);
 
     if (sInShutdown) {
@@ -214,19 +227,6 @@ public:
         }
       }
     }
-
-    
-    
-    
-    
-    
-    
-    
-#if defined(MOZ_WIDGET_GONK)
-    if (property_set(PROP_BLUETOOTH_ENABLED, mEnabled ? "true" : "false") != 0) {
-      BT_WARNING("Failed to set bluetooth enabled property");
-    }
-#endif
 
     nsCOMPtr<nsIRunnable> ackTask = new BluetoothService::ToggleBtAck(mEnabled);
     if (NS_FAILED(NS_DispatchToMainThread(ackTask))) {
