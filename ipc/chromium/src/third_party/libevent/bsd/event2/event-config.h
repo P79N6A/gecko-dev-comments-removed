@@ -184,7 +184,7 @@
 #define _EVENT_HAVE_SELECT 1
 
 
-
+#define _EVENT_HAVE_SENDFILE 1
 
 
 #define _EVENT_HAVE_SETENV 1
