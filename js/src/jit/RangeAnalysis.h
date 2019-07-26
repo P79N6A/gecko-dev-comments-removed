@@ -359,11 +359,15 @@ class Range : public TempObject {
         return exponent() + 1; 
     }
 
+    
     int32_t lower() const {
+        JS_ASSERT(hasInt32LowerBound());
         return lower_;
     }
 
+    
     int32_t upper() const {
+        JS_ASSERT(hasInt32UpperBound());
         return upper_;
     }
 
