@@ -68,9 +68,11 @@ var Browser = {
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/SelectionHandler.js", true);
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/ContextMenuHandler.js", true);
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/FindHandler.js", true);
-      
-      
       messageManager.loadFrameScript("chrome://browser/content/contenthandlers/ConsoleAPIObserver.js", true);
+      if (!Services.prefs.getBoolPref(kAsyncPanZoomEnabled)) {
+        messageManager.loadFrameScript("chrome://global/content/BrowserElementPanning.js", true);
+      }
+      
       
     } catch (e) {
       
