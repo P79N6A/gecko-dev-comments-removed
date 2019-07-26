@@ -2834,6 +2834,14 @@ public:
 
         virtual void GetSpacing(uint32_t aStart, uint32_t aLength,
                                 Spacing *aSpacing) = 0;
+
+        
+        
+        virtual already_AddRefed<gfxContext> GetContext() = 0;
+
+        
+        
+        virtual uint32_t GetAppUnitsPerDevUnit() = 0;
     };
 
     class ClusterIterator {
@@ -3433,7 +3441,7 @@ public:
 
 
 
-    gfxFloat GetHyphenWidth(gfxContext *aCtx, uint32_t aAppUnitsPerDevUnit);
+    gfxFloat GetHyphenWidth(gfxTextRun::PropertyProvider* aProvider);
 
     
 
