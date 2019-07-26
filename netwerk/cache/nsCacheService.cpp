@@ -21,7 +21,6 @@
 #include "nsDiskCacheDevice.h"
 #include "nsDiskCacheDeviceSQL.h"
 
-#include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
@@ -1071,26 +1070,6 @@ private:
 
 nsCacheService *   nsCacheService::gService = nullptr;
 
-static nsCOMPtr<nsIMemoryReporter> MemoryCacheReporter = nullptr;
-
-NS_THREADSAFE_MEMORY_REPORTER_IMPLEMENT(NetworkMemoryCache,
-    "explicit/network/memory-cache",
-    KIND_HEAP,
-    UNITS_BYTES,
-    nsCacheService::MemoryDeviceSize,
-    "Memory used by the network memory cache.")
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(NetworkDiskCacheMallocSizeOf)
-
-static nsCOMPtr<nsIMemoryReporter> DiskCacheReporter = nullptr;
-
-NS_THREADSAFE_MEMORY_REPORTER_IMPLEMENT(NetworkDiskCache,
-    "explicit/network/disk-cache",
-    KIND_HEAP,
-    UNITS_BYTES,
-    nsCacheService::DiskDeviceHeapSize,
-    "Memory used by the network disk cache.")
-
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsCacheService, nsICacheService)
 
 nsCacheService::nsCacheService()
@@ -1244,14 +1223,6 @@ nsCacheService::Shutdown()
         
         parentDir = mObserver->DiskCacheParentDirectory();
         shouldSanitize = mObserver->SanitizeAtShutdown();
-        
-        
-        
-        NS_UnregisterMemoryReporter(MemoryCacheReporter);
-        MemoryCacheReporter = nullptr;
-
-        NS_UnregisterMemoryReporter(DiskCacheReporter);
-        DiskCacheReporter = nullptr;
 
         
         delete mMemoryDevice;
@@ -1566,7 +1537,7 @@ nsCacheService::CreateDiskDevice()
     mDiskDevice->SetCacheParentDirectory(mObserver->DiskCacheParentDirectory());
     mDiskDevice->SetCapacity(mObserver->DiskCacheCapacity());
     mDiskDevice->SetMaxEntrySize(mObserver->DiskCacheMaxEntrySize());
-    
+
     nsresult rv = mDiskDevice->Init();
     if (NS_FAILED(rv)) {
 #if DEBUG
@@ -1575,7 +1546,7 @@ nsCacheService::CreateDiskDevice()
                static_cast<uint32_t>(rv));
         printf("###    - disabling disk cache for this session.\n");
         printf("###\n");
-#endif        
+#endif
         mEnableDiskDevice = false;
         delete mDiskDevice;
         mDiskDevice = nullptr;
@@ -1604,9 +1575,6 @@ nsCacheService::CreateDiskDevice()
     }
     
     
-
-    DiskCacheReporter = new NS_MEMORY_REPORTER_NAME(NetworkDiskCache);
-    NS_RegisterMemoryReporter(DiskCacheReporter);
 
     return NS_OK;
 }
@@ -1772,10 +1740,6 @@ nsCacheService::CreateMemoryDevice()
         delete mMemoryDevice;
         mMemoryDevice = nullptr;
     }
-
-    MemoryCacheReporter =
-        new NS_MEMORY_REPORTER_NAME(NetworkMemoryCache);
-    NS_RegisterMemoryReporter(MemoryCacheReporter);
 
     return rv;
 }
@@ -2272,21 +2236,6 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
     if (device) 
         entry->SetCacheDevice(device);
     return device;
-}
-
-int64_t
-nsCacheService::MemoryDeviceSize()
-{
-    nsMemoryCacheDevice *memoryDevice = GlobalInstance()->mMemoryDevice;
-    return memoryDevice ? memoryDevice->TotalSize() : 0;
-}
-
-int64_t
-nsCacheService::DiskDeviceHeapSize()
-{
-    nsCacheServiceAutoLock lock(LOCK_TELEM(NSCACHESERVICE_DISKDEVICEHEAPSIZE));
-    nsDiskCacheDevice *diskDevice = GlobalInstance()->mDiskDevice;
-    return (int64_t)(diskDevice ? diskDevice->SizeOfIncludingThis(NetworkDiskCacheMallocSizeOf) : 0);
 }
 
 nsresult

@@ -78,6 +78,7 @@ private:
 
 class nsIScriptContext;
 class nsICategoryManager;
+class nsIMemoryReporter;
 class GlobalNameMapEntry;
 
 
@@ -191,6 +192,8 @@ private:
   PLDHashTable mNavigatorNames;
 
   bool mIsInitialized;
+
+  nsCOMPtr<nsIMemoryReporter> mReporter;
 };
 
 #endif 

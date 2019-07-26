@@ -1067,8 +1067,8 @@ NS_IMETHODIMP nsMemoryReporter::GetKind(int32_t *aKind)
 
 NS_IMETHODIMP nsMemoryReporter::GetUnits(int32_t *aUnits)
 {
-  *aUnits = mUnits;
-  return NS_OK;
+    *aUnits = mUnits;
+    return NS_OK;
 }
 
 NS_IMETHODIMP nsMemoryReporter::GetAmount(int64_t *aAmount)
@@ -1082,6 +1082,11 @@ NS_IMETHODIMP nsMemoryReporter::GetDescription(nsACString &aDescription)
     aDescription.Assign(mDesc);
     return NS_OK;
 }
+
+
+
+
+NS_IMPL_THREADSAFE_ISUPPORTS1(MemoryReporterBase, nsIMemoryReporter)
 
 nsresult
 NS_RegisterMemoryReporter (nsIMemoryReporter *reporter)

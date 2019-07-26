@@ -175,24 +175,6 @@ static bool sNeedsFullCC = false;
 static nsJSContext *sContextList = nullptr;
 
 static nsScriptNameSpaceManager *gNameSpaceManager;
-static nsIMemoryReporter *gReporter;
-
-NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(ScriptNameSpaceManagerMallocSizeOf)
-
-static int64_t
-GetScriptNameSpaceManagerSize()
-{
-  MOZ_ASSERT(gNameSpaceManager);
-  return gNameSpaceManager->SizeOfIncludingThis(
-             ScriptNameSpaceManagerMallocSizeOf);
-}
-
-NS_MEMORY_REPORTER_IMPLEMENT(ScriptNameSpaceManager,
-    "explicit/script-namespace-manager",
-    KIND_HEAP,
-    nsIMemoryReporter::UNITS_BYTES,
-    GetScriptNameSpaceManagerSize,
-    "Memory used for the script namespace manager.")
 
 static nsIJSRuntimeService *sRuntimeService;
 JSRuntime *nsJSRuntime::sRuntime;
@@ -1135,7 +1117,6 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime, bool aGCOnDestruction,
   mOperationCallbackTime = 0;
   mModalStateTime = 0;
   mModalStateDepth = 0;
-  mProcessingScriptTag = false;
 }
 
 nsJSContext::~nsJSContext()
@@ -2889,18 +2870,6 @@ nsJSContext::SetScriptsEnabled(bool aEnabled, bool aFireTimeouts)
 
 
 bool
-nsJSContext::GetProcessingScriptTag()
-{
-  return mProcessingScriptTag;
-}
-
-void
-nsJSContext::SetProcessingScriptTag(bool aFlag)
-{
-  mProcessingScriptTag = aFlag;
-}
-
-bool
 nsJSContext::GetExecutingScript()
 {
   return JS_IsRunning(mContext) || mExecuteDepth > 0;
@@ -3742,7 +3711,6 @@ nsJSRuntime::Startup()
   sDisableExplicitCompartmentGC = false;
   sNeedsFullCC = false;
   gNameSpaceManager = nullptr;
-  gReporter = nullptr;
   sRuntimeService = nullptr;
   sRuntime = nullptr;
   sIsInitialized = false;
@@ -4085,9 +4053,6 @@ nsJSRuntime::GetNameSpaceManager()
 
     nsresult rv = gNameSpaceManager->Init();
     NS_ENSURE_SUCCESS(rv, nullptr);
-
-    gReporter = new NS_MEMORY_REPORTER_NAME(ScriptNameSpaceManager);
-    NS_RegisterMemoryReporter(gReporter);
   }
 
   return gNameSpaceManager;
@@ -4104,10 +4069,6 @@ nsJSRuntime::Shutdown()
   nsJSContext::KillInterSliceGCTimer();
 
   NS_IF_RELEASE(gNameSpaceManager);
-  if (gReporter) {
-    (void)::NS_UnregisterMemoryReporter(gReporter);
-    gReporter = nullptr;
-  }
 
   if (!sContextCount) {
     

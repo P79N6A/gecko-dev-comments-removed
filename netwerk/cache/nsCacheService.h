@@ -4,7 +4,6 @@
 
 
 
-
 #ifndef _nsCacheService_h_
 #define _nsCacheService_h_
 
@@ -66,7 +65,7 @@ class nsCacheService : public nsICacheService
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSICACHESERVICE
-    
+
     nsCacheService();
     virtual ~nsCacheService();
 
@@ -130,10 +129,6 @@ public:
     static
     nsCacheService * GlobalInstance()   { return gService; }
 
-    static int64_t   MemoryDeviceSize();
-
-    static int64_t   DiskDeviceHeapSize();
-    
     static nsresult  DoomEntry(nsCacheEntry * entry);
 
     static bool      IsStorageEnabledForPolicy_Locked(nsCacheStoragePolicy policy);
@@ -316,9 +311,9 @@ private:
 
 
     static nsCacheService *         gService;  
-    
+
     nsCacheProfilePrefObserver *    mObserver;
-    
+
     mozilla::Mutex                  mLock;
     mozilla::CondVar                mCondVar;
 
@@ -326,10 +321,10 @@ private:
 
     nsTArray<nsISupports*>          mDoomedObjects;
     nsCOMPtr<nsITimer>              mSmartSizeTimer;
-    
+
     bool                            mInitialized;
     bool                            mClearingEntries;
-    
+
     bool                            mEnableMemoryDevice;
     bool                            mEnableDiskDevice;
     bool                            mEnableOfflineDevice;
@@ -344,7 +339,7 @@ private:
     PRCList                         mDoomedEntries;
 
     
-    
+
     uint32_t                        mTotalEntries;
     uint32_t                        mCacheHits;
     uint32_t                        mCacheMisses;

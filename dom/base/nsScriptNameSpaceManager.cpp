@@ -3,6 +3,7 @@
 
 
 
+
 #include "nsScriptNameSpaceManager.h"
 #include "nsCOMPtr.h"
 #include "nsIComponentManager.h"
@@ -111,6 +112,24 @@ GlobalNameHashInitEntry(PLDHashTable *table, PLDHashEntryHdr *entry,
   return true;
 }
 
+class ScriptNameSpaceManagerReporter MOZ_FINAL : public MemoryReporterBase
+{
+public:
+  ScriptNameSpaceManagerReporter(nsScriptNameSpaceManager* aManager)
+    : MemoryReporterBase(
+        "explicit/script-namespace-manager",
+        KIND_HEAP,
+        nsIMemoryReporter::UNITS_BYTES,
+        "Memory used for the script namespace manager.")
+    , mManager(aManager)
+  {}
+
+private:
+  int64_t Amount() { return mManager->SizeOfIncludingThis(MallocSizeOf); }
+
+  nsScriptNameSpaceManager* mManager;
+};
+
 NS_IMPL_ISUPPORTS2(nsScriptNameSpaceManager,
                    nsIObserver,
                    nsISupportsWeakReference)
@@ -124,6 +143,7 @@ nsScriptNameSpaceManager::nsScriptNameSpaceManager()
 nsScriptNameSpaceManager::~nsScriptNameSpaceManager()
 {
   if (mIsInitialized) {
+    NS_UnregisterMemoryReporter(mReporter);
     
     PL_DHashTableFinish(&mGlobalNames);
     PL_DHashTableFinish(&mNavigatorNames);
@@ -397,6 +417,9 @@ nsScriptNameSpaceManager::Init()
 
     return NS_ERROR_OUT_OF_MEMORY;
   }
+
+  mReporter = new ScriptNameSpaceManagerReporter(this);
+  NS_RegisterMemoryReporter(mReporter);
 
   nsresult rv = NS_OK;
 
