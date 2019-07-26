@@ -686,6 +686,15 @@ public:
   nsRect GetRectRelativeToSelf() const {
     return nsRect(nsPoint(0, 0), mRect.Size());
   }
+  
+
+
+  mozilla::LogicalRect GetLogicalRect(nscoord aContainerWidth) const {
+    return mozilla::LogicalRect(GetWritingMode(), GetRect(), aContainerWidth);
+  }
+  mozilla::LogicalPoint GetLogicalPosition(nscoord aContainerWidth) const {
+    return GetLogicalRect(aContainerWidth).Origin(GetWritingMode());
+  }
 
   
 
@@ -702,6 +711,22 @@ public:
     } else {
       mRect = aRect;
     }
+  }
+  
+
+
+  void SetRectFromLogicalRect(const mozilla::LogicalRect& aRect,
+                              nscoord aContainerWidth) {
+    SetRectFromLogicalRect(GetWritingMode(), aRect, aContainerWidth);
+  }
+  
+
+
+
+  void SetRectFromLogicalRect(mozilla::WritingMode aWritingMode,
+                              const mozilla::LogicalRect& aRect,
+                              nscoord aContainerWidth) {
+    SetRect(aRect.GetPhysicalRect(aWritingMode, aContainerWidth));
   }
   void SetSize(const nsSize& aSize) {
     SetRect(nsRect(mRect.TopLeft(), aSize));
