@@ -216,8 +216,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), mGetterText->GetLineNumber())
-             .setVersion(JSVERSION_LATEST)
-             .setUserBit(true); 
+             .setVersion(JSVERSION_LATEST);
       nsCString name = NS_LITERAL_CSTRING("get_") + NS_ConvertUTF16toUTF8(mName);
       JS::RootedObject rootedNull(cx, nullptr); 
       JS::RootedObject getterObject(cx);
@@ -265,8 +264,7 @@ nsXBLProtoImplProperty::CompileMember(nsIScriptContext* aContext, const nsCStrin
       JSAutoCompartment ac(cx, aClassObject);
       JS::CompileOptions options(cx);
       options.setFileAndLine(functionUri.get(), mSetterText->GetLineNumber())
-             .setVersion(JSVERSION_LATEST)
-             .setUserBit(true); 
+             .setVersion(JSVERSION_LATEST);
       nsCString name = NS_LITERAL_CSTRING("set_") + NS_ConvertUTF16toUTF8(mName);
       JS::RootedObject rootedNull(cx, nullptr); 
       JS::RootedObject setterObject(cx);
