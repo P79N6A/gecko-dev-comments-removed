@@ -198,6 +198,9 @@ AliasAnalysis::analyze()
             }
         }
 
+        
+        block->lastIns()->setId(newId++);
+
         if (block->isLoopBackedge()) {
             JS_ASSERT(loop_->loopHeader() == block->loopHeaderOfBackedge());
             IonSpew(IonSpew_Alias, "Processing loop backedge %d (header %d)", block->id(),
