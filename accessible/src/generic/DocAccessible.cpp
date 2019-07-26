@@ -1732,7 +1732,8 @@ DocAccessible::ProcessContentInserted(Accessible* aContainer,
       
       
       
-      aContainer->UpdateChildren();
+      aContainer->InvalidateChildren();
+      CacheChildrenInSubtree(aContainer);
     }
 
     UpdateTree(aContainer, aInsertedContent->ElementAt(idx), true);
