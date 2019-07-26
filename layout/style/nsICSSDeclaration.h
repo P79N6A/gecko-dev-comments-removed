@@ -94,7 +94,7 @@ public:
     
     GetCssText(static_cast<nsAString&>(aString));
   }
-  uint32_t GetLength() {
+  uint32_t Length() {
     uint32_t length;
     GetLength(&length);
     return length;

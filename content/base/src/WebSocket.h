@@ -133,10 +133,10 @@ public:
   void GetUrl(nsAString& aResult);
 
   
-  uint16_t GetReadyState() { return (uint16_t)mReadyState; }
+  uint16_t ReadyState() const { return mReadyState; }
 
   
-  uint32_t GetBufferedAmount() { return (uint32_t) mOutgoingBufferedAmount; }
+  uint32_t BufferedAmount() const { return mOutgoingBufferedAmount; }
 
   
   IMPL_EVENT_HANDLER(open)
@@ -162,8 +162,8 @@ public:
   IMPL_EVENT_HANDLER(message)
 
   
-  BinaryType GetBinaryType() { return mBinaryType; }
-  void SetBinaryType(BinaryType aData) { mBinaryType = aData; }
+  dom::BinaryType BinaryType() const { return mBinaryType; }
+  void SetBinaryType(dom::BinaryType aData) { mBinaryType = aData; }
 
   
   void Send(const nsAString& aData,
@@ -279,7 +279,7 @@ protected:
 
   uint32_t mOutgoingBufferedAmount;
 
-  BinaryType mBinaryType;
+  dom::BinaryType mBinaryType;
 
   
   
