@@ -242,6 +242,15 @@ public:
       return;
     }
 
+    nsCOMPtr<imgIContainer> image = f->GetImage();
+    if (aBuilder->ShouldSyncDecodeImages() && image && !image->IsDecoded()) {
+      
+      
+      
+      bool snap;
+      aInvalidRegion->Or(*aInvalidRegion, GetBounds(aBuilder, &snap));
+    }
+
     return nsDisplayItem::ComputeInvalidationRegion(aBuilder, aGeometry, aInvalidRegion);
   }
 };
@@ -1612,6 +1621,18 @@ nsBulletFrame::SetFontSizeInflation(float aInflation)
   VoidPtrOrFloat u;
   u.f = aInflation;
   Properties().Set(FontSizeInflationProperty(), u.p);
+}
+
+already_AddRefed<imgIContainer>
+nsBulletFrame::GetImage() const
+{
+  if (mImageRequest && StyleList()->GetListStyleImage()) {
+    nsCOMPtr<imgIContainer> imageCon;
+    mImageRequest->GetImage(getter_AddRefs(imageCon));
+    return imageCon.forget();
+  }
+
+  return nullptr;
 }
 
 nscoord
