@@ -138,17 +138,6 @@ SpeechRecognition::ProcessEvent(SpeechEvent* aEvent)
          GetName(aEvent),
          GetName(mCurrentState));
 
-  
-  for (uint32_t i = 0; i < mPriorityEvents.Length(); ++i) {
-    nsRefPtr<SpeechEvent> event = mPriorityEvents[i];
-
-    SR_LOG("Processing priority %s", GetName(event));
-    Transition(event);
-  }
-
-  mPriorityEvents.Clear();
-
-  SR_LOG("Processing %s received as argument", GetName(aEvent));
   Transition(aEvent);
 }
 
