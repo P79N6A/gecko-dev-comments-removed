@@ -50,7 +50,6 @@ function test()
       inspector = aInspector;
       
       inspector.toolbox.highlighter.showBoxModel(getNodeFront(doc.body)).then(() => {
-        getHighlighterOutline().setAttribute("disable-transitions", "true");
         runTests();
       });
     });
