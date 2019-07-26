@@ -38,6 +38,9 @@ const CDMA_SECOND_CALL_INDEX = 2;
 const DIAL_ERROR_INVALID_STATE_ERROR = "InvalidStateError";
 const DIAL_ERROR_OTHER_CONNECTION_IN_USE = "OtherConnectionInUse";
 
+
+const OUTGOING_PLACEHOLDER_CALL_INDEX = 0xffffffff;
+
 let DEBUG;
 function debug(s) {
   dump("TelephonyProvider: " + s + "\n");
@@ -821,6 +824,14 @@ TelephonyProvider.prototype = {
                           aCall.isSwitchable : true;
       call.isMergeable = aCall.isMergeable != null ?
                          aCall.isMergeable : true;
+
+      
+      if (this._currentCalls[aClientId][OUTGOING_PLACEHOLDER_CALL_INDEX] &&
+          call.callIndex != OUTGOING_PLACEHOLDER_CALL_INDEX &&
+          call.isOutgoing) {
+        delete this._currentCalls[aClientId][OUTGOING_PLACEHOLDER_CALL_INDEX];
+      }
+
       this._currentCalls[aClientId][aCall.callIndex] = call;
     }
 

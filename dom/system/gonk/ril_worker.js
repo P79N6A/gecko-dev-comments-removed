@@ -76,6 +76,9 @@ const MMI_MAX_LENGTH_SHORT_CODE = 2;
 
 const MMI_END_OF_USSD = "#";
 
+
+const OUTGOING_PLACEHOLDER_CALL_INDEX = 0xffffffff;
+
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32;
 
 
@@ -3701,11 +3704,17 @@ RilObject.prototype = {
   _processCalls: function(newCalls) {
     let conferenceChanged = false;
     let clearConferenceRequest = false;
+    let pendingOutgoingCall = null;
 
     
     
     
     for each (let currentCall in this.currentCalls) {
+      if (currentCall.callIndex == OUTGOING_PLACEHOLDER_CALL_INDEX) {
+        pendingOutgoingCall = currentCall;
+        continue;
+      }
+
       let newCall;
       if (newCalls) {
         newCall = newCalls[currentCall.callIndex];
@@ -3818,6 +3827,17 @@ RilObject.prototype = {
         currentCall.isMpty = newCall.isMpty;
         conferenceChanged = true;
       }
+    }
+
+    if (pendingOutgoingCall) {
+      
+      if (!newCalls || Object.keys(newCalls).length === 0) {
+        this.context.debug("Disconnect pending outgoing call");
+        pendingOutgoingCall.failCause = GECKO_CALL_ERROR_UNSPECIFIED;
+        this._handleDisconnectedCall(pendingOutgoingCall);
+      }
+
+      delete this.currentCalls[OUTGOING_PLACEHOLDER_CALL_INDEX];
     }
 
     
@@ -5265,6 +5285,14 @@ RilObject.prototype[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
   options.success = (options.rilRequestError === 0);
   if (options.success) {
     this.sendChromeMessage(options);
+
+    
+    this.context.debug("Create a pending outgoing call.");
+    this._addNewVoiceCall({
+      number: options.number,
+      state: CALL_STATE_DIALING,
+      callIndex: OUTGOING_PLACEHOLDER_CALL_INDEX
+    });
   } else {
     this.getFailCauseCode((function(options, failCause) {
       options.errorMsg = failCause;
