@@ -78,6 +78,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       
       eFallbackUserDisabled = nsIObjectLoadingContent::PLUGIN_USER_DISABLED,
       
+      
+      
       eFallbackClickToPlay = nsIObjectLoadingContent::PLUGIN_CLICK_TO_PLAY,
       
       eFallbackVulnerableUpdatable = nsIObjectLoadingContent::PLUGIN_VULNERABLE_UPDATABLE,
@@ -222,7 +224,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eParamChannelChanged     = PR_BIT(0),
       
       
-      eParamStateChanged       = PR_BIT(1)
+      eParamStateChanged       = PR_BIT(1),
+      
+      
+      
+      
+      
+      
+      eParamContentTypeChanged = PR_BIT(2)
     };
 
     

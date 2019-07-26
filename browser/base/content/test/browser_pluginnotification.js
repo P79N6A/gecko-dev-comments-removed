@@ -911,5 +911,66 @@ function test21e() {
     ok(objLoadingContent.activated, "Test 21e, Plugin with id=" + plugin.id + " should be activated");
   }
 
+  Services.prefs.setBoolPref("plugins.click_to_play", true);
+  prepareTest(test22, gTestRoot + "plugin_test.html");
+}
+
+
+function test22() {
+  ok(PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser), "Test 22, Should have a click-to-play notification");
+
+  
+  var pluginNode = gTestBrowser.contentDocument.getElementById("test");
+  ok(pluginNode, "Test 22, Found plugin in page");
+  var objLoadingContent = pluginNode.QueryInterface(Ci.nsIObjectLoadingContent);
+  is(objLoadingContent.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY, "Test 22, plugin fallback type should be PLUGIN_CLICK_TO_PLAY");
+
+  
+  objLoadingContent.playPlugin();
+  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_PLUGIN, "Test 22, plugin should have started");
+  ok(pluginNode.activated, "Test 22, plugin should be activated");
+
+  
+  var oldVal = pluginNode.getObjectValue();
+  pluginNode.src = pluginNode.src;
+  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_PLUGIN, "Test 22, Plugin should have retained activated state");
+  ok(pluginNode.activated, "Test 22, plugin should have remained activated");
+  
+  var pluginsDiffer;
+  try {
+    pluginNode.checkObjectValue(oldVal);
+  } catch (e) {
+    pluginsDiffer = true;
+  }
+  ok(pluginsDiffer, "Test 22, plugin should have reloaded");
+
+  prepareTest(test23, gTestRoot + "plugin_test.html");
+}
+
+
+function test23() {
+  ok(PopupNotifications.getNotification("click-to-play-plugins", gTestBrowser), "Test 23, Should have a click-to-play notification");
+
+  
+  var pluginNode = gTestBrowser.contentDocument.getElementById("test");
+  ok(pluginNode, "Test 23, Found plugin in page");
+  var objLoadingContent = pluginNode.QueryInterface(Ci.nsIObjectLoadingContent);
+  is(objLoadingContent.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY, "Test 23, plugin fallback type should be PLUGIN_CLICK_TO_PLAY");
+
+  
+  objLoadingContent.playPlugin();
+  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_PLUGIN, "Test 23, plugin should have started");
+  ok(pluginNode.activated, "Test 23, plugin should be activated");
+
+  
+  pluginNode.type = null;
+  pluginNode.src = pluginNode.src; 
+  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_NULL, "Test 23, plugin should be unloaded");
+  pluginNode.type = "application/x-test";
+  pluginNode.src = pluginNode.src;
+  is(objLoadingContent.displayedType, Ci.nsIObjectLoadingContent.TYPE_NULL, "Test 23, Plugin should not have activated");
+  is(objLoadingContent.pluginFallbackType, Ci.nsIObjectLoadingContent.PLUGIN_CLICK_TO_PLAY, "Test 23, Plugin should be click-to-play");
+  ok(!pluginNode.activated, "Test 23, plugin node should not be activated");
+
   finishTest();
 }
