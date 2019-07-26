@@ -33,6 +33,7 @@
 #include "jsalloc.h"
 #include "js/Vector.h"
 #include "js/HashTable.h"
+#include "js/CharacterEncoding.h"
 
 
 
@@ -6153,6 +6154,14 @@ JS_SetParallelCompilationEnabled(JSContext *cx, bool enabled);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IndexToId(JSContext *cx, uint32_t index, jsid *id);
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_CharsToId(JSContext* cx, JS::TwoByteChars chars, jsid *idp);
 
 
 
