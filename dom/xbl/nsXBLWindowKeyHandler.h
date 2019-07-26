@@ -31,9 +31,6 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMEVENTLISTENER
 
-  
-  static NS_HIDDEN_(void) ShutDown();
-
 protected:
   nsresult WalkHandlers(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType);
 
@@ -49,7 +46,7 @@ protected:
 
   
   
-  nsresult EnsureHandlers(bool *aIsEditor);
+  nsresult EnsureHandlers();
 
   
   bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
@@ -57,7 +54,7 @@ protected:
                       bool aIgnoreShiftKey);
 
   
-  bool IsEditor() ;
+  bool IsHTMLEditableFieldFocused();
 
   
   
