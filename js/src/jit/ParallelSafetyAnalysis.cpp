@@ -586,7 +586,7 @@ ParallelSafetyVisitor::visitNewDerivedTypedObject(MNewDerivedTypedObject *ins)
     
     
     
-    if (ins->useCount() == 0)
+    if (!ins->hasUses())
         return true;
 
     SpewMIR(ins, "visitNewDerivedTypedObject");

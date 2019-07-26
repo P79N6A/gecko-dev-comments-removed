@@ -587,12 +587,18 @@ class MDefinition : public MNode
         uses_.remove(use);
     }
 
+#ifdef DEBUG
+    
+    
     
     size_t useCount() const;
 
     
     
+    
+    
     size_t defUseCount() const;
+#endif
 
     
     bool hasOneUse() const;
