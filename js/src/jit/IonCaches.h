@@ -201,7 +201,7 @@ class IonCache
 
     virtual void emitInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
     virtual void bindInitialJump(MacroAssembler &masm, AddCacheState &addState) = 0;
-    virtual void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+    virtual void updateBaseAddress(JitCode *code, MacroAssembler &masm);
 
     
     
@@ -230,10 +230,10 @@ class IonCache
     
     
     
-    LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, IonCode **code);
+    LinkStatus linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, JitCode **code);
     
     
-    void attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<IonCode *> code);
+    void attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<JitCode *> code);
 
     
     
@@ -380,7 +380,7 @@ class RepatchIonCache : public IonCache
     void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
 
     
-    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
 };
 
 
@@ -478,7 +478,7 @@ class DispatchIonCache : public IonCache
     void bindInitialJump(MacroAssembler &masm, AddCacheState &addState);
 
     
-    void updateBaseAddress(IonCode *code, MacroAssembler &masm);
+    void updateBaseAddress(JitCode *code, MacroAssembler &masm);
 };
 
 

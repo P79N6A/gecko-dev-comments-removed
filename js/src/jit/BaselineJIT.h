@@ -102,7 +102,7 @@ struct BaselineScript
 
   private:
     
-    HeapPtr<IonCode> method_;
+    HeapPtr<JitCode> method_;
 
     
     
@@ -232,10 +232,10 @@ struct BaselineScript
         return &fallbackStubSpace_;
     }
 
-    IonCode *method() const {
+    JitCode *method() const {
         return method_;
     }
-    void setMethod(IonCode *code) {
+    void setMethod(JitCode *code) {
         JS_ASSERT(!method_);
         method_ = code;
     }

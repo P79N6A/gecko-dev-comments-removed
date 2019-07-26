@@ -326,8 +326,8 @@ CodeGeneratorX86Shared::generateOutOfLineCode()
         
         masm.push(Imm32(frameSize()));
 
-        IonCode *handler = gen->jitRuntime()->getGenericBailoutHandler();
-        masm.jmp(ImmPtr(handler->raw()), Relocation::IONCODE);
+        JitCode *handler = gen->jitRuntime()->getGenericBailoutHandler();
+        masm.jmp(ImmPtr(handler->raw()), Relocation::JITCODE);
     }
 
     return true;
@@ -1763,7 +1763,7 @@ CodeGeneratorX86Shared::generateInvalidateEpilogue()
 
     
     invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
-    IonCode *thunk = gen->jitRuntime()->getInvalidationThunk();
+    JitCode *thunk = gen->jitRuntime()->getInvalidationThunk();
 
     masm.call(thunk);
 

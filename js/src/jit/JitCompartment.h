@@ -53,7 +53,7 @@ struct EnterJitData
     bool constructing;
 };
 
-typedef void (*EnterIonCode)(void *code, unsigned argc, Value *argv, StackFrame *fp,
+typedef void (*EnterJitCode)(void *code, unsigned argc, Value *argv, StackFrame *fp,
                              CalleeToken calleeToken, JSObject *scopeChain,
                              size_t numStackValues, Value *vp);
 
@@ -156,43 +156,43 @@ class JitRuntime
     JSC::ExecutableAllocator *ionAlloc_;
 
     
-    IonCode *exceptionTail_;
+    JitCode *exceptionTail_;
 
     
-    IonCode *bailoutTail_;
+    JitCode *bailoutTail_;
 
     
-    IonCode *enterJIT_;
+    JitCode *enterJIT_;
 
     
-    IonCode *enterBaselineJIT_;
+    JitCode *enterBaselineJIT_;
 
     
-    Vector<IonCode*, 4, SystemAllocPolicy> bailoutTables_;
+    Vector<JitCode*, 4, SystemAllocPolicy> bailoutTables_;
 
     
-    IonCode *bailoutHandler_;
+    JitCode *bailoutHandler_;
 
     
     
-    IonCode *argumentsRectifier_;
+    JitCode *argumentsRectifier_;
     void *argumentsRectifierReturnAddr_;
 
     
-    IonCode *parallelArgumentsRectifier_;
+    JitCode *parallelArgumentsRectifier_;
 
     
-    IonCode *invalidator_;
+    JitCode *invalidator_;
 
     
-    IonCode *valuePreBarrier_;
-    IonCode *shapePreBarrier_;
+    JitCode *valuePreBarrier_;
+    JitCode *shapePreBarrier_;
 
     
-    IonCode *debugTrapHandler_;
+    JitCode *debugTrapHandler_;
 
     
-    typedef WeakCache<const VMFunction *, IonCode *> VMWrapperMap;
+    typedef WeakCache<const VMFunction *, JitCode *> VMWrapperMap;
     VMWrapperMap *functionWrappers_;
 
     
@@ -212,16 +212,16 @@ class JitRuntime
     InlineList<PatchableBackedge> backedgeList_;
 
   private:
-    IonCode *generateExceptionTailStub(JSContext *cx);
-    IonCode *generateBailoutTailStub(JSContext *cx);
-    IonCode *generateEnterJIT(JSContext *cx, EnterJitType type);
-    IonCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
-    IonCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
-    IonCode *generateBailoutHandler(JSContext *cx);
-    IonCode *generateInvalidator(JSContext *cx);
-    IonCode *generatePreBarrier(JSContext *cx, MIRType type);
-    IonCode *generateDebugTrapHandler(JSContext *cx);
-    IonCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
+    JitCode *generateExceptionTailStub(JSContext *cx);
+    JitCode *generateBailoutTailStub(JSContext *cx);
+    JitCode *generateEnterJIT(JSContext *cx, EnterJitType type);
+    JitCode *generateArgumentsRectifier(JSContext *cx, ExecutionMode mode, void **returnAddrOut);
+    JitCode *generateBailoutTable(JSContext *cx, uint32_t frameClass);
+    JitCode *generateBailoutHandler(JSContext *cx);
+    JitCode *generateInvalidator(JSContext *cx);
+    JitCode *generatePreBarrier(JSContext *cx, MIRType type);
+    JitCode *generateDebugTrapHandler(JSContext *cx);
+    JitCode *generateVMWrapper(JSContext *cx, const VMFunction &f);
 
     JSC::ExecutableAllocator *createIonAlloc(JSContext *cx);
 
@@ -275,24 +275,24 @@ class JitRuntime
 
     bool handleAccessViolation(JSRuntime *rt, void *faultingAddress);
 
-    IonCode *getVMWrapper(const VMFunction &f) const;
-    IonCode *debugTrapHandler(JSContext *cx);
+    JitCode *getVMWrapper(const VMFunction &f) const;
+    JitCode *debugTrapHandler(JSContext *cx);
 
-    IonCode *getGenericBailoutHandler() const {
+    JitCode *getGenericBailoutHandler() const {
         return bailoutHandler_;
     }
 
-    IonCode *getExceptionTail() const {
+    JitCode *getExceptionTail() const {
         return exceptionTail_;
     }
 
-    IonCode *getBailoutTail() const {
+    JitCode *getBailoutTail() const {
         return bailoutTail_;
     }
 
-    IonCode *getBailoutTable(const FrameSizeClass &frameClass) const;
+    JitCode *getBailoutTable(const FrameSizeClass &frameClass) const;
 
-    IonCode *getArgumentsRectifier(ExecutionMode mode) const {
+    JitCode *getArgumentsRectifier(ExecutionMode mode) const {
         switch (mode) {
           case SequentialExecution: return argumentsRectifier_;
           case ParallelExecution:   return parallelArgumentsRectifier_;
@@ -304,23 +304,23 @@ class JitRuntime
         return argumentsRectifierReturnAddr_;
     }
 
-    IonCode *getInvalidationThunk() const {
+    JitCode *getInvalidationThunk() const {
         return invalidator_;
     }
 
-    EnterIonCode enterIon() const {
-        return enterJIT_->as<EnterIonCode>();
+    EnterJitCode enterIon() const {
+        return enterJIT_->as<EnterJitCode>();
     }
 
-    EnterIonCode enterBaseline() const {
-        return enterBaselineJIT_->as<EnterIonCode>();
+    EnterJitCode enterBaseline() const {
+        return enterBaselineJIT_->as<EnterJitCode>();
     }
 
-    IonCode *valuePreBarrier() const {
+    JitCode *valuePreBarrier() const {
         return valuePreBarrier_;
     }
 
-    IonCode *shapePreBarrier() const {
+    JitCode *shapePreBarrier() const {
         return shapePreBarrier_;
     }
 };
@@ -339,7 +339,7 @@ class JitCompartment
     OffThreadCompilationVector finishedOffThreadCompilations_;
 
     
-    typedef WeakValueCache<uint32_t, ReadBarriered<IonCode> > ICStubCodeMap;
+    typedef WeakValueCache<uint32_t, ReadBarriered<JitCode> > ICStubCodeMap;
     ICStubCodeMap *stubCodes_;
 
     
@@ -355,23 +355,23 @@ class JitCompartment
     
     
     
-    ReadBarriered<IonCode> stringConcatStub_;
-    ReadBarriered<IonCode> parallelStringConcatStub_;
+    ReadBarriered<JitCode> stringConcatStub_;
+    ReadBarriered<JitCode> parallelStringConcatStub_;
 
-    IonCode *generateStringConcatStub(JSContext *cx, ExecutionMode mode);
+    JitCode *generateStringConcatStub(JSContext *cx, ExecutionMode mode);
 
   public:
     OffThreadCompilationVector &finishedOffThreadCompilations() {
         return finishedOffThreadCompilations_;
     }
 
-    IonCode *getStubCode(uint32_t key) {
+    JitCode *getStubCode(uint32_t key) {
         ICStubCodeMap::AddPtr p = stubCodes_->lookupForAdd(key);
         if (p)
             return p->value();
         return nullptr;
     }
-    bool putStubCode(uint32_t key, Handle<IonCode *> stubCode) {
+    bool putStubCode(uint32_t key, Handle<JitCode *> stubCode) {
         
         
         
@@ -424,7 +424,7 @@ class JitCompartment
         return rt->execAlloc_;
     }
 
-    IonCode *stringConcatStub(ExecutionMode mode) const {
+    JitCode *stringConcatStub(ExecutionMode mode) const {
         switch (mode) {
           case SequentialExecution: return stringConcatStub_;
           case ParallelExecution:   return parallelStringConcatStub_;

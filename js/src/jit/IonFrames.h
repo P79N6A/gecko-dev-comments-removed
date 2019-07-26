@@ -295,12 +295,12 @@ GetTopIonJSScript(uint8_t *ionTop, void **returnAddrOut, ExecutionMode mode)
     return iter.script();
 }
 
-static IonCode *const ION_FRAME_DOMGETTER       = (IonCode *)0x1;
-static IonCode *const ION_FRAME_DOMSETTER       = (IonCode *)0x2;
-static IonCode *const ION_FRAME_DOMMETHOD       = (IonCode *)0x3;
-static IonCode *const ION_FRAME_OOL_NATIVE      = (IonCode *)0x4;
-static IonCode *const ION_FRAME_OOL_PROPERTY_OP = (IonCode *)0x5;
-static IonCode *const ION_FRAME_OOL_PROXY       = (IonCode *)0x6;
+static JitCode *const ION_FRAME_DOMGETTER       = (JitCode *)0x1;
+static JitCode *const ION_FRAME_DOMSETTER       = (JitCode *)0x2;
+static JitCode *const ION_FRAME_DOMMETHOD       = (JitCode *)0x3;
+static JitCode *const ION_FRAME_OOL_NATIVE      = (JitCode *)0x4;
+static JitCode *const ION_FRAME_OOL_PROPERTY_OP = (JitCode *)0x5;
+static JitCode *const ION_FRAME_OOL_PROXY       = (JitCode *)0x6;
 
 
 
@@ -425,17 +425,17 @@ class IonUnwoundRectifierFrameLayout : public IonRectifierFrameLayout
 class IonExitFooterFrame
 {
     const VMFunction *function_;
-    IonCode *ionCode_;
+    JitCode *jitCode_;
 
   public:
     static inline size_t Size() {
         return sizeof(IonExitFooterFrame);
     }
-    inline IonCode *ionCode() const {
-        return ionCode_;
+    inline JitCode *jitCode() const {
+        return jitCode_;
     }
-    inline IonCode **addressOfIonCode() {
-        return &ionCode_;
+    inline JitCode **addressOfJitCode() {
+        return &jitCode_;
     }
     inline const VMFunction *function() const {
         return function_;
@@ -478,7 +478,7 @@ class IonExitFrameLayout : public IonCommonFrameLayout
     
     
     inline uint8_t *argBase() {
-        JS_ASSERT(footer()->ionCode() != nullptr);
+        JS_ASSERT(footer()->jitCode() != nullptr);
         return top();
     }
 
@@ -486,19 +486,19 @@ class IonExitFrameLayout : public IonCommonFrameLayout
         return footer()->function() != nullptr;
     }
     inline bool isNativeExit() {
-        return footer()->ionCode() == nullptr;
+        return footer()->jitCode() == nullptr;
     }
     inline bool isOOLNativeExit() {
-        return footer()->ionCode() == ION_FRAME_OOL_NATIVE;
+        return footer()->jitCode() == ION_FRAME_OOL_NATIVE;
     }
     inline bool isOOLPropertyOpExit() {
-        return footer()->ionCode() == ION_FRAME_OOL_PROPERTY_OP;
+        return footer()->jitCode() == ION_FRAME_OOL_PROPERTY_OP;
     }
     inline bool isOOLProxyExit() {
-        return footer()->ionCode() == ION_FRAME_OOL_PROXY;
+        return footer()->jitCode() == ION_FRAME_OOL_PROXY;
     }
     inline bool isDomExit() {
-        IonCode *code = footer()->ionCode();
+        JitCode *code = footer()->jitCode();
         return
             code == ION_FRAME_DOMGETTER ||
             code == ION_FRAME_DOMSETTER ||
@@ -565,7 +565,7 @@ class IonOOLNativeExitFrameLayout
     IonExitFrameLayout exit_;
 
     
-    IonCode *stubCode_;
+    JitCode *stubCode_;
 
     uintptr_t argc_;
 
@@ -588,7 +588,7 @@ class IonOOLNativeExitFrameLayout
         return offsetof(IonOOLNativeExitFrameLayout, loCalleeResult_);
     }
 
-    inline IonCode **stubCode() {
+    inline JitCode **stubCode() {
         return &stubCode_;
     }
     inline Value *vp() {
@@ -620,7 +620,7 @@ class IonOOLPropertyOpExitFrameLayout
     uint32_t vp1_;
 
     
-    IonCode *stubCode_;
+    JitCode *stubCode_;
 
   public:
     static inline size_t Size() {
@@ -631,7 +631,7 @@ class IonOOLPropertyOpExitFrameLayout
         return offsetof(IonOOLPropertyOpExitFrameLayout, vp0_);
     }
 
-    inline IonCode **stubCode() {
+    inline JitCode **stubCode() {
         return &stubCode_;
     }
     inline Value *vp() {
@@ -670,7 +670,7 @@ class IonOOLProxyExitFrameLayout
     uint32_t vp1_;
 
     
-    IonCode *stubCode_;
+    JitCode *stubCode_;
 
   public:
     static inline size_t Size() {
@@ -681,7 +681,7 @@ class IonOOLProxyExitFrameLayout
         return offsetof(IonOOLProxyExitFrameLayout, vp0_);
     }
 
-    inline IonCode **stubCode() {
+    inline JitCode **stubCode() {
         return &stubCode_;
     }
     inline Value *vp() {
@@ -725,7 +725,7 @@ class IonDOMExitFrameLayout
         return &thisObj;
     }
     inline bool isMethodFrame() {
-        return footer_.ionCode() == ION_FRAME_DOMMETHOD;
+        return footer_.jitCode() == ION_FRAME_DOMMETHOD;
     }
 };
 

@@ -39,7 +39,7 @@ class MacroAssembler;
 class CodeOffsetLabel;
 class PatchableBackedge;
 
-class IonCode : public gc::BarrieredCell<IonCode>
+class JitCode : public gc::BarrieredCell<JitCode>
 {
   protected:
     uint8_t *code_;
@@ -58,11 +58,11 @@ class IonCode : public gc::BarrieredCell<IonCode>
     uint32_t padding_;
 #endif
 
-    IonCode()
+    JitCode()
       : code_(nullptr),
         pool_(nullptr)
     { }
-    IonCode(uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool)
+    JitCode(uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool)
       : code_(code),
         pool_(pool),
         bufferSize_(bufferSize),
@@ -115,14 +115,14 @@ class IonCode : public gc::BarrieredCell<IonCode>
 
     void copyFrom(MacroAssembler &masm);
 
-    static IonCode *FromExecutable(uint8_t *buffer) {
-        IonCode *code = *(IonCode **)(buffer - sizeof(IonCode *));
+    static JitCode *FromExecutable(uint8_t *buffer) {
+        JitCode *code = *(JitCode **)(buffer - sizeof(JitCode *));
         JS_ASSERT(code->raw() == buffer);
         return code;
     }
 
     static size_t offsetOfCode() {
-        return offsetof(IonCode, code_);
+        return offsetof(JitCode, code_);
     }
 
     uint8_t *jumpRelocTable() {
@@ -133,10 +133,10 @@ class IonCode : public gc::BarrieredCell<IonCode>
     
     
     template <AllowGC allowGC>
-    static IonCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool);
+    static JitCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool);
 
   public:
-    static inline ThingRootKind rootKind() { return THING_ROOT_ION_CODE; }
+    static inline ThingRootKind rootKind() { return THING_ROOT_JIT_CODE; }
 };
 
 class SnapshotWriter;
@@ -165,10 +165,10 @@ struct IonScript
 {
   private:
     
-    EncapsulatedPtr<IonCode> method_;
+    EncapsulatedPtr<JitCode> method_;
 
     
-    EncapsulatedPtr<IonCode> deoptTable_;
+    EncapsulatedPtr<JitCode> deoptTable_;
 
     
     jsbytecode *osrPc_;
@@ -357,14 +357,14 @@ struct IonScript
     }
 
   public:
-    IonCode *method() const {
+    JitCode *method() const {
         return method_;
     }
-    void setMethod(IonCode *code) {
+    void setMethod(JitCode *code) {
         JS_ASSERT(!invalidated());
         method_ = code;
     }
-    void setDeoptTable(IonCode *code) {
+    void setDeoptTable(JitCode *code) {
         deoptTable_ = code;
     }
     void setOsrPc(jsbytecode *osrPc) {
@@ -512,7 +512,7 @@ struct IonScript
     void copyCacheEntries(const uint32_t *caches, MacroAssembler &masm);
     void copySafepoints(const SafepointWriter *writer);
     void copyCallTargetEntries(JSScript **callTargets);
-    void copyPatchableBackedges(JSContext *cx, IonCode *code,
+    void copyPatchableBackedges(JSContext *cx, JitCode *code,
                                 PatchableBackedgeInfo *backedges);
 
     bool invalidated() const {

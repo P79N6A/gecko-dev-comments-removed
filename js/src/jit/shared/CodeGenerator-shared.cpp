@@ -661,7 +661,7 @@ CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins, const Regi
 #endif
 
     
-    IonCode *wrapper = gen->jitRuntime()->getVMWrapper(fun);
+    JitCode *wrapper = gen->jitRuntime()->getVMWrapper(fun);
     if (!wrapper)
         return false;
 

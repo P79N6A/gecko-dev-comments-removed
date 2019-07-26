@@ -546,9 +546,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         movePtr(imm, CallReg);
         call(CallReg);
     }
-    void call(IonCode *c) {
+    void call(JitCode *c) {
         BufferOffset bo = m_buffer.nextOffset();
-        addPendingJump(bo, ImmPtr(c->raw()), Relocation::IONCODE);
+        addPendingJump(bo, ImmPtr(c->raw()), Relocation::JITCODE);
         RelocStyle rs;
         if (hasMOVWT())
             rs = L_MOVWT;
@@ -558,9 +558,9 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_movPatchable(ImmPtr(c->raw()), ScratchRegister, Always, rs);
         ma_callIonHalfPush(ScratchRegister);
     }
-    void branch(IonCode *c) {
+    void branch(JitCode *c) {
         BufferOffset bo = m_buffer.nextOffset();
-        addPendingJump(bo, ImmPtr(c->raw()), Relocation::IONCODE);
+        addPendingJump(bo, ImmPtr(c->raw()), Relocation::JITCODE);
         RelocStyle rs;
         if (hasMOVWT())
             rs = L_MOVWT;
@@ -634,7 +634,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 
     
     
-    CodeOffsetLabel toggledCall(IonCode *target, bool enabled);
+    CodeOffsetLabel toggledCall(JitCode *target, bool enabled);
 
     static size_t ToggledCallSize() {
         if (hasMOVWT())
@@ -1202,8 +1202,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     bool buildFakeExitFrame(const Register &scratch, uint32_t *offset);
 
-    void callWithExitFrame(IonCode *target);
-    void callWithExitFrame(IonCode *target, Register dynStack);
+    void callWithExitFrame(JitCode *target);
+    void callWithExitFrame(JitCode *target, Register dynStack);
 
     
     

@@ -637,7 +637,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         computeEffectiveAddress(address, PreBarrierReg);
 
         const JitRuntime *rt = GetIonContext()->runtime->jitRuntime();
-        IonCode *preBarrier = (type == MIRType_Shape)
+        JitCode *preBarrier = (type == MIRType_Shape)
                               ? rt->shapePreBarrier()
                               : rt->valuePreBarrier();
 
@@ -811,7 +811,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         
         Push(ImmPtr(f));
     }
-    void enterFakeExitFrame(IonCode *codeVal = nullptr) {
+    void enterFakeExitFrame(JitCode *codeVal = nullptr) {
         linkExitFrame();
         Push(ImmPtr(codeVal));
         Push(ImmPtr(nullptr));
@@ -827,11 +827,11 @@ class MacroAssembler : public MacroAssemblerSpecific
                                       ExecutionMode executionMode);
 
     void enterFakeParallelExitFrame(Register slice, Register scratch,
-                                    IonCode *codeVal = nullptr);
+                                    JitCode *codeVal = nullptr);
 
     void enterFakeExitFrame(Register cxReg, Register scratch,
                             ExecutionMode executionMode,
-                            IonCode *codeVal = nullptr);
+                            JitCode *codeVal = nullptr);
 
     void leaveExitFrame() {
         freeStack(IonExitFooterFrame::Size());
@@ -841,7 +841,7 @@ class MacroAssembler : public MacroAssemblerSpecific
         return exitCodePatch_.offset() != 0;
     }
 
-    void link(IonCode *code) {
+    void link(JitCode *code) {
         JS_ASSERT(!oom());
         
         
@@ -886,7 +886,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    uint32_t callWithExitFrame(IonCode *target) {
+    uint32_t callWithExitFrame(JitCode *target) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithExitFrame(target);
         uint32_t ret = currentOffset();
@@ -895,7 +895,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    uint32_t callWithExitFrame(IonCode *target, Register dynStack) {
+    uint32_t callWithExitFrame(JitCode *target, Register dynStack) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithExitFrame(target, dynStack);
         uint32_t ret = currentOffset();

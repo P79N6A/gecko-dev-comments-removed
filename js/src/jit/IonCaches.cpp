@@ -35,7 +35,7 @@ using mozilla::DebugOnly;
 using mozilla::tl::FloorLog2;
 
 void
-CodeLocationJump::repoint(IonCode *code, MacroAssembler *masm)
+CodeLocationJump::repoint(JitCode *code, MacroAssembler *masm)
 {
     JS_ASSERT(state_ == Relative);
     size_t new_off = (size_t)raw_;
@@ -59,7 +59,7 @@ CodeLocationJump::repoint(IonCode *code, MacroAssembler *masm)
 }
 
 void
-CodeLocationLabel::repoint(IonCode *code, MacroAssembler *masm)
+CodeLocationLabel::repoint(JitCode *code, MacroAssembler *masm)
 {
      JS_ASSERT(state_ == Relative);
      size_t new_off = (size_t)raw_;
@@ -103,7 +103,7 @@ IonCache::CacheName(IonCache::Kind kind)
 }
 
 IonCache::LinkStatus
-IonCache::linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, IonCode **code)
+IonCache::linkCode(JSContext *cx, MacroAssembler &masm, IonScript *ion, JitCode **code)
 {
     Linker linker(masm);
     *code = linker.newCode<CanGC>(cx, JSC::ION_CODE);
@@ -236,13 +236,13 @@ class IonCache::StubAttacher
         hasStubCodePatchOffset_ = true;
     }
 
-    void patchRejoinJump(MacroAssembler &masm, IonCode *code) {
+    void patchRejoinJump(MacroAssembler &masm, JitCode *code) {
         rejoinOffset_.fixup(&masm);
         CodeLocationJump rejoinJump(code, rejoinOffset_);
         PatchJump(rejoinJump, rejoinLabel_);
     }
 
-    void patchStubCodePointer(MacroAssembler &masm, IonCode *code) {
+    void patchStubCodePointer(MacroAssembler &masm, JitCode *code) {
         if (hasStubCodePatchOffset_) {
             stubCodePatchOffset_.fixup(&masm);
             Assembler::patchDataWithValueCheck(CodeLocationLabel(code, stubCodePatchOffset_),
@@ -250,7 +250,7 @@ class IonCache::StubAttacher
         }
     }
 
-    virtual void patchNextStubJump(MacroAssembler &masm, IonCode *code) = 0;
+    virtual void patchNextStubJump(MacroAssembler &masm, JitCode *code) = 0;
 };
 
 const ImmPtr IonCache::StubAttacher::STUB_ADDR = ImmPtr((void*)0xdeadc0de);
@@ -266,7 +266,7 @@ class RepatchIonCache::RepatchStubAppender : public IonCache::StubAttacher
     {
     }
 
-    void patchNextStubJump(MacroAssembler &masm, IonCode *code) {
+    void patchNextStubJump(MacroAssembler &masm, JitCode *code) {
         
         
         PatchJump(cache_.lastJump_, CodeLocationLabel(code));
@@ -308,7 +308,7 @@ RepatchIonCache::bindInitialJump(MacroAssembler &masm, AddCacheState &addState)
 }
 
 void
-RepatchIonCache::updateBaseAddress(IonCode *code, MacroAssembler &masm)
+RepatchIonCache::updateBaseAddress(JitCode *code, MacroAssembler &masm)
 {
     IonCache::updateBaseAddress(code, masm);
     initialJump_.repoint(code, &masm);
@@ -326,7 +326,7 @@ class DispatchIonCache::DispatchStubPrepender : public IonCache::StubAttacher
     {
     }
 
-    void patchNextStubJump(MacroAssembler &masm, IonCode *code) {
+    void patchNextStubJump(MacroAssembler &masm, JitCode *code) {
         JS_ASSERT(hasNextStubOffset_);
 
         
@@ -365,7 +365,7 @@ DispatchIonCache::bindInitialJump(MacroAssembler &masm, AddCacheState &addState)
 }
 
 void
-DispatchIonCache::updateBaseAddress(IonCode *code, MacroAssembler &masm)
+DispatchIonCache::updateBaseAddress(JitCode *code, MacroAssembler &masm)
 {
     
     JS_ASSERT(uintptr_t(&firstStub_) % sizeof(uintptr_t) == 0);
@@ -380,7 +380,7 @@ DispatchIonCache::updateBaseAddress(IonCode *code, MacroAssembler &masm)
 }
 
 void
-IonCache::attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<IonCode *> code)
+IonCache::attachStub(MacroAssembler &masm, StubAttacher &attacher, Handle<JitCode *> code)
 {
     JS_ASSERT(canAttachStub());
     incrementStubCount();
@@ -401,7 +401,7 @@ bool
 IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &attacher,
                             IonScript *ion, const char *attachKind)
 {
-    Rooted<IonCode *> code(cx);
+    Rooted<JitCode *> code(cx);
     LinkStatus status = linkCode(cx, masm, ion, code.address());
     if (status != LINK_GOOD)
         return status != LINK_ERROR;
@@ -418,14 +418,14 @@ IonCache::linkAndAttachStub(JSContext *cx, MacroAssembler &masm, StubAttacher &a
     }
 
 #ifdef JS_ION_PERF
-    writePerfSpewerIonCodeProfile(code, "IonCache");
+    writePerfSpewerJitCodeProfile(code, "IonCache");
 #endif
 
     return true;
 }
 
 void
-IonCache::updateBaseAddress(IonCode *code, MacroAssembler &masm)
+IonCache::updateBaseAddress(JitCode *code, MacroAssembler &masm)
 {
     fallbackLabel_.repoint(code, &masm);
 }

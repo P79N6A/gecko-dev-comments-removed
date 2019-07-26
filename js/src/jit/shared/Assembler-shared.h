@@ -277,7 +277,7 @@ class Relocation {
 
         
         
-        IONCODE
+        JITCODE
     };
 };
 
@@ -556,7 +556,7 @@ class CodeLocationJump
         jumpTableEntry_ = (uint8_t *) 0xdeadab1e;
 #endif
     }
-    CodeLocationJump(IonCode *code, CodeOffsetJump base) {
+    CodeLocationJump(JitCode *code, CodeOffsetJump base) {
         *this = base;
         repoint(code);
     }
@@ -569,7 +569,7 @@ class CodeLocationJump
 #endif
     }
 
-    void repoint(IonCode *code, MacroAssembler* masm = nullptr);
+    void repoint(JitCode *code, MacroAssembler* masm = nullptr);
 
     uint8_t *raw() const {
         JS_ASSERT(state_ == Absolute);
@@ -617,11 +617,11 @@ class CodeLocationLabel
         raw_ = nullptr;
         setUninitialized();
     }
-    CodeLocationLabel(IonCode *code, CodeOffsetLabel base) {
+    CodeLocationLabel(JitCode *code, CodeOffsetLabel base) {
         *this = base;
         repoint(code);
     }
-    CodeLocationLabel(IonCode *code) {
+    CodeLocationLabel(JitCode *code) {
         raw_ = code->raw();
         setAbsolute();
     }
@@ -638,7 +638,7 @@ class CodeLocationLabel
         return raw_ - other.raw_;
     }
 
-    void repoint(IonCode *code, MacroAssembler *masm = nullptr);
+    void repoint(JitCode *code, MacroAssembler *masm = nullptr);
 
 #ifdef DEBUG
     bool isSet() const {
