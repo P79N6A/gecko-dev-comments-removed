@@ -649,8 +649,10 @@ function test_info() {
   let stop = new Date();
 
   
-  let startMs = start.getTime() - 1000;
-  let stopMs  = stop.getTime() + 1000;
+  
+  
+  let startMs = start.getTime() - 2500;
+  let stopMs  = stop.getTime() + 2500;
 
   (function() {
     let birth;
