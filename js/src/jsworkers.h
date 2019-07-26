@@ -104,13 +104,19 @@ struct WorkerThread
 
 
 
-bool StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder);
+bool
+StartOffThreadIonCompile(JSContext *cx, ion::IonBuilder *builder);
 
 
 
 
 
-void CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
+void
+CancelOffThreadIonCompile(JSCompartment *compartment, JSScript *script);
+
+
+bool
+OffThreadCompilationAvailable(JSContext *cx);
 
 class AutoLockWorkerThreadState
 {
