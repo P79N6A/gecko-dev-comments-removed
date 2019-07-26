@@ -328,10 +328,20 @@ const DownloadsIndicatorView = {
       return;
     }
 
-    
-    
     let anchor = DownloadsButton._placeholder;
+    let widgetGroup = CustomizableUI.getWidget("downloads-button");
+    let widgetInWindow = widgetGroup.forWindow(window);
+    if (widgetInWindow.overflowed || widgetGroup.areaType == CustomizableUI.TYPE_MENU_PANEL) {
+      if (anchor && isElementVisible(anchor.parentNode)) {
+        
+        return;
+      }
+
+      
+      anchor = widgetInWindow.anchor;
+    }
     if (!anchor || !isElementVisible(anchor.parentNode)) {
+      
       return;
     }
 
