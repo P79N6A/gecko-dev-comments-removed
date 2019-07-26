@@ -44,7 +44,21 @@ const REGEX_MATCH_FUNCTION_NAME = /^\(?function\s+([^(\s]+)\s*\(/;
 
 const REGEX_MATCH_FUNCTION_ARGS = /^\(?function\s*[^\s(]*\s*\((.+?)\)/;
 
+const TYPES = { OBJECT: 0,
+                FUNCTION: 1,
+                ARRAY: 2,
+                OTHER: 3,
+                ITERATOR: 4,
+                GETTER: 5,
+                GENERATOR: 6,
+                STRING: 7
+              };
+
+var gObjectId = 0;
+
 var WebConsoleUtils = {
+  TYPES: TYPES,
+
   
 
 
@@ -348,6 +362,103 @@ var WebConsoleUtils = {
 
 
 
+
+
+
+
+
+
+  presentableValueFor: function WCU_presentableValueFor(aObject)
+  {
+    let type = this.getResultType(aObject);
+    let presentable;
+
+    switch (type) {
+      case "undefined":
+      case "null":
+        return {
+          type: TYPES.OTHER,
+          display: type
+        };
+
+      case "array":
+        return {
+          type: TYPES.ARRAY,
+          display: "Array"
+        };
+
+      case "string":
+        return {
+          type: TYPES.STRING,
+          display: "\"" + aObject + "\""
+        };
+
+      case "date":
+      case "regexp":
+      case "number":
+      case "boolean":
+        return {
+          type: TYPES.OTHER,
+          display: aObject.toString()
+        };
+
+      case "iterator":
+        return {
+          type: TYPES.ITERATOR,
+          display: "Iterator"
+        };
+
+      case "function":
+        presentable = aObject.toString();
+        return {
+          type: TYPES.FUNCTION,
+          display: presentable.substring(0, presentable.indexOf(')') + 1)
+        };
+
+      default:
+        presentable = String(aObject);
+        let m = /^\[object (\S+)\]/.exec(presentable);
+
+        try {
+          if (typeof aObject == "object" && typeof aObject.next == "function" &&
+              m && m[1] == "Generator") {
+            return {
+              type: TYPES.GENERATOR,
+              display: m[1]
+            };
+          }
+        }
+        catch (ex) {
+          
+          return {
+            type: TYPES.OBJECT,
+            display: m ? m[1] : "Object"
+          };
+        }
+
+        if (typeof aObject == "object" &&
+            typeof aObject.__iterator__ == "function") {
+          return {
+            type: TYPES.ITERATOR,
+            display: "Iterator"
+          };
+        }
+
+        return {
+          type: TYPES.OBJECT,
+          display: m ? m[1] : "Object"
+        };
+    }
+  },
+
+  
+
+
+
+
+
+
+
   isNativeFunction: function WCU_isNativeFunction(aFunction)
   {
     return typeof aFunction == "function" && !("prototype" in aFunction);
@@ -406,6 +517,95 @@ var WebConsoleUtils = {
       }
     }
     return desc;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  namesAndValuesOf: function WCU_namesAndValuesOf(aObject, aObjectCache)
+  {
+    let pairs = [];
+    let value, presentable;
+
+    let isDOMDocument = aObject instanceof Ci.nsIDOMDocument;
+    let deprecated = ["width", "height", "inputEncoding"];
+
+    for (let propName in aObject) {
+      
+      if (isDOMDocument && deprecated.indexOf(propName) > -1) {
+        continue;
+      }
+
+      
+      if (this.isNonNativeGetter(aObject, propName)) {
+        value = "";
+        presentable = {type: TYPES.GETTER, display: "Getter"};
+      }
+      else {
+        try {
+          value = aObject[propName];
+          presentable = this.presentableValueFor(value);
+        }
+        catch (ex) {
+          continue;
+        }
+      }
+
+      let pair = {};
+      pair.name = propName;
+      pair.value = presentable.display;
+      pair.inspectable = false;
+      pair.type = presentable.type;
+
+      switch (presentable.type) {
+        case TYPES.GETTER:
+        case TYPES.ITERATOR:
+        case TYPES.GENERATOR:
+        case TYPES.STRING:
+          break;
+        default:
+          try {
+            for (let p in value) {
+              pair.inspectable = true;
+              break;
+            }
+          }
+          catch (ex) { }
+          break;
+      }
+
+      
+      if (pair.inspectable && aObjectCache) {
+        pair.objectId = ++gObjectId;
+        aObjectCache[pair.objectId] = value;
+      }
+
+      pairs.push(pair);
+    }
+
+    pairs.sort(this.propertiesSort);
+
+    return pairs;
   },
 
   
@@ -1168,7 +1368,7 @@ function getMatchedProps(aObj, aOptions = {matchProp: ""})
     aObj = aObj.constructor.prototype;
   }
   let c = MAX_COMPLETIONS;
-  let names = Object.create(null);   
+  let names = {};   
 
   
   let ownNames = null;
@@ -1178,7 +1378,7 @@ function getMatchedProps(aObj, aOptions = {matchProp: ""})
       
       
       if (ownNames[i].indexOf(aOptions.matchProp) != 0 ||
-          ownNames[i] in names) {
+          names[ownNames[i]] == true) {
         continue;
       }
       c--;

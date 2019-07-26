@@ -58,6 +58,9 @@ const MINIMUM_PAGE_HEIGHT = 50;
 const DEFAULT_CONSOLE_HEIGHT = 0.33;
 
 
+const CONTENT_SCRIPT_URL = "chrome://browser/content/devtools/HUDService-content.js";
+
+
 const UI_IFRAME_URL = "chrome://browser/content/devtools/webconsole.xul";
 
 
@@ -497,11 +500,9 @@ HUD_SERVICE.prototype =
 function WebConsole(aTab)
 {
   this.tab = aTab;
-  this.chromeDocument = this.tab.ownerDocument;
-  this.chromeWindow = this.chromeDocument.defaultView;
-  this.hudId = "hud_" + this.tab.linkedPanel;
   this._onIframeLoad = this._onIframeLoad.bind(this);
-  this._initUI();
+  this._asyncRequests = {};
+  this._init();
 }
 
 WebConsole.prototype = {
@@ -511,9 +512,6 @@ WebConsole.prototype = {
 
   tab: null,
 
-  chromeWindow: null,
-  chromeDocument: null,
-
   
 
 
@@ -521,6 +519,15 @@ WebConsole.prototype = {
 
 
   get lastFinishedRequestCallback() HUDService.lastFinishedRequestCallback,
+
+  
+
+
+
+
+
+
+  _asyncRequests: null,
 
   
 
@@ -547,6 +554,22 @@ WebConsole.prototype = {
   },
 
   get gViewSourceUtils() this.chromeWindow.gViewSourceUtils,
+
+  
+
+
+
+  _init: function WC__init()
+  {
+    this.chromeDocument = this.tab.ownerDocument;
+    this.chromeWindow = this.chromeDocument.defaultView;
+    this.messageManager = this.tab.linkedBrowser.messageManager;
+    this.hudId = "hud_" + this.tab.linkedPanel;
+    this.notificationBox = this.chromeDocument
+                           .getElementById(this.tab.linkedPanel);
+
+    this._initUI();
+  },
 
   
 
@@ -760,7 +783,7 @@ WebConsole.prototype = {
 
     
     let nodeIdx = this.positions[aPosition];
-    let nBox = this.chromeDocument.getElementById(this.tab.linkedPanel);
+    let nBox = this.notificationBox;
     let node = nBox.childNodes[nodeIdx];
 
     
@@ -862,6 +885,92 @@ WebConsole.prototype = {
   _onClearButton: function WC__onClearButton()
   {
     this.chromeWindow.DeveloperToolbar.resetErrorsCount(this.tab);
+  },
+
+  
+
+
+
+
+
+
+  _setupMessageManager: function WC__setupMessageManager()
+  {
+    this.messageManager.loadFrameScript(CONTENT_SCRIPT_URL, true);
+
+    this._messageListeners.forEach(function(aName) {
+      this.messageManager.addMessageListener(aName, this.ui);
+    }, this);
+
+    let message = {
+      features: ["NetworkMonitor", "LocationChange"],
+      NetworkMonitor: { monitorFileActivity: true },
+      preferences: {
+        "NetworkMonitor.saveRequestAndResponseBodies":
+          this.ui.saveRequestAndResponseBodies,
+      },
+    };
+
+    this.sendMessageToContent("WebConsole:Init", message);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  _receiveMessageWithCallback:
+  function WC__receiveMessageWithCallback(aResponse)
+  {
+    if (aResponse.id in this._asyncRequests) {
+      let request = this._asyncRequests[aResponse.id];
+      request.callback(aResponse, request.message);
+      delete this._asyncRequests[aResponse.id];
+    }
+    else {
+      Cu.reportError("receiveMessageWithCallback response for stale request " +
+                     "ID " + aResponse.id);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  sendMessageToContent:
+  function WC_sendMessageToContent(aName, aMessage, aCallback)
+  {
+    aMessage.hudId = this.hudId;
+    if (!("id" in aMessage)) {
+      aMessage.id = "HUDChrome-" + HUDService.sequenceId();
+    }
+
+    if (aCallback) {
+      this._asyncRequests[aMessage.id] = {
+        name: aName,
+        message: aMessage,
+        callback: aCallback,
+      };
+    }
+    this.messageManager.sendAsyncMessage(aName, aMessage);
   },
 
   
