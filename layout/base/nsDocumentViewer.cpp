@@ -1869,19 +1869,9 @@ DocumentViewerImpl::SetBounds(const nsIntRect& aBounds)
 
   mBounds = aBounds;
   if (mWindow) {
-    
-    
-    
-    
-    if (mAttachedToParent) {
-      if (aBounds.x != 0 || aBounds.y != 0) {
-        mWindow->ResizeClient(aBounds.x, aBounds.y,
-                              aBounds.width, aBounds.height,
-                              false);
-      } else {
-        mWindow->ResizeClient(aBounds.width, aBounds.height, false);
-      }
-    } else {
+    if (!mAttachedToParent) {
+      
+      
       mWindow->Resize(aBounds.x, aBounds.y,
                       aBounds.width, aBounds.height,
                       false);
