@@ -7,6 +7,8 @@
 
 #include "vm/ErrorObject.h"
 
+#include "jsexn.h"
+
 #include "vm/GlobalObject.h"
 
 #include "jsobjinlines.h"
@@ -14,6 +16,7 @@
 #include "vm/Shape-inl.h"
 
 using namespace js;
+using mozilla::PodZero;
 
  Shape *
 js::ErrorObject::assignInitialShape(ExclusiveContext *cx, Handle<ErrorObject*> obj)
@@ -103,4 +106,46 @@ js::ErrorObject::create(JSContext *cx, JSExnType errorType, HandleString stack,
     }
 
     return errObject;
+}
+
+JSErrorReport *
+js::ErrorObject::getOrCreateErrorReport(JSContext *cx)
+{
+    if (JSErrorReport *r = getErrorReport())
+        return r;
+
+    
+    
+    JSErrorReport report;
+    PodZero(&report);
+
+    
+    JSExnType type_ = type();
+    report.exnType = type_;
+
+    
+    JSAutoByteString filenameStr;
+    if (!filenameStr.encodeLatin1(cx, fileName()))
+        return nullptr;
+    report.filename = filenameStr.ptr();
+
+    
+    report.lineno = lineNumber();
+    report.column = columnNumber();
+
+    
+    
+    RootedString message(cx, getMessage());
+    if (!message)
+        message = cx->runtime()->emptyString;
+    if (!message->ensureStable(cx))
+        return nullptr;
+    report.ucmessage = message->asStable().chars().get();
+
+    
+    JSErrorReport *copy = CopyErrorReport(cx, &report);
+    if (!copy)
+        return nullptr;
+    setReservedSlot(ERROR_REPORT_SLOT, PrivateValue(copy));
+    return copy;
 }

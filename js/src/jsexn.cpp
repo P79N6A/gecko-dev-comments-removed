@@ -61,8 +61,8 @@ const Class ErrorObject::class_ = {
     nullptr                  
 };
 
-static JSErrorReport *
-CopyErrorReport(JSContext *cx, JSErrorReport *report)
+JSErrorReport *
+js::CopyErrorReport(JSContext *cx, JSErrorReport *report)
 {
     
 
@@ -282,7 +282,7 @@ js_ErrorFromException(JSContext *cx, HandleObject objArg)
     if (!obj->is<ErrorObject>())
         return nullptr;
 
-    return obj->as<ErrorObject>().getErrorReport();
+    return obj->as<ErrorObject>().getOrCreateErrorReport(cx);
 }
 
 static bool
@@ -753,10 +753,12 @@ js_ReportUncaughtException(JSContext *cx)
 
     JSErrorReport report;
 
+    
+    
+    
     const char *filename_str = js_fileName_str;
     JSAutoByteString filename;
-    if (!reportp && exnObject &&
-        (exnObject->is<ErrorObject>() || IsDuckTypedErrorObject(cx, exnObject, &filename_str)))
+    if (!reportp && exnObject && IsDuckTypedErrorObject(cx, exnObject, &filename_str))
     {
         RootedString name(cx);
         if (JS_GetProperty(cx, exnObject, js_name_str, roots.handleAt(2)) && roots[2].isString())
