@@ -2468,19 +2468,6 @@ nsHttpChannel::OnOfflineCacheEntryAvailable(nsICacheEntryDescriptor *aEntry,
     return OpenNormalCacheEntry(usingSSL);
 }
 
-static void
-GetAppInfo(nsIChannel* aChannel, uint32_t* aAppId, bool* aIsInBrowser)
-{
-    nsCOMPtr<nsILoadContext> loadContext;
-    NS_QueryNotificationCallbacks(aChannel, loadContext);
-    *aAppId = NECKO_NO_APP_ID;
-    *aIsInBrowser = false;
-    if (loadContext) {
-        loadContext->GetAppId(aAppId);
-        loadContext->GetIsInBrowserElement(aIsInBrowser);
-    }
-}
-
 nsresult
 nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
 {
@@ -2488,9 +2475,9 @@ nsHttpChannel::OpenNormalCacheEntry(bool usingSSL)
 
     nsresult rv;
 
-    uint32_t appId;
-    bool isInBrowser;
-    GetAppInfo(this, &appId, &isInBrowser);
+    uint32_t appId = NECKO_NO_APP_ID;
+    bool isInBrowser = false;
+    NS_GetAppInfo(this, &appId, &isInBrowser);
 
     nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
     nsAutoCString clientID;
@@ -5861,9 +5848,9 @@ nsHttpChannel::DoInvalidateCacheEntry(const nsCString &key)
     
     
 
-    uint32_t appId;
-    bool isInBrowser;
-    GetAppInfo(this, &appId, &isInBrowser);
+    uint32_t appId = NECKO_NO_APP_ID;
+    bool isInBrowser = false;
+    NS_GetAppInfo(this, &appId, &isInBrowser);
 
     
     nsCacheStoragePolicy storagePolicy = DetermineStoragePolicy();
