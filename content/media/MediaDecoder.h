@@ -903,6 +903,11 @@ public:
 
   
   
+  double mInitialPlaybackRate;
+  bool mInitialPreservesPitch;
+
+  
+  
   
   
   
