@@ -691,12 +691,14 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
     nsStyleAnimation::Interpolate(aProperty, pt.mStartValue, pt.mEndValue,
                                   0.5, dummyValue);
 
+  bool haveCurrentTransition = false;
   uint32_t currentIndex = nsTArray<ElementPropertyTransition>::NoIndex;
   if (aElementTransitions) {
     nsTArray<ElementPropertyTransition> &pts =
       aElementTransitions->mPropertyTransitions;
     for (uint32_t i = 0, i_end = pts.Length(); i < i_end; ++i) {
       if (pts[i].mProperty == aProperty) {
+        haveCurrentTransition = true;
         currentIndex = i;
         break;
       }
@@ -708,7 +710,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
   if (!shouldAnimate) {
     nsTArray<ElementPropertyTransition> &pts =
       aElementTransitions->mPropertyTransitions;
-    if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex &&
+    if (haveCurrentTransition &&
         (!haveValues || pts[currentIndex].mEndValue != pt.mEndValue)) {
       
       
@@ -747,7 +749,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
 
   
   
-  if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
+  if (haveCurrentTransition) {
     const ElementPropertyTransition &oldPT =
       aElementTransitions->mPropertyTransitions[currentIndex];
 
@@ -818,7 +820,7 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
                       "duplicate transitions for property");
   }
 #endif
-  if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
+  if (haveCurrentTransition) {
     pts[currentIndex] = pt;
   } else {
     if (!pts.AppendElement(pt)) {
