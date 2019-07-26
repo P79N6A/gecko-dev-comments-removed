@@ -224,14 +224,8 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
         self.log.info("TEST-INFO | %s | environment: %s" % (name, self.env))
 
     def setupLeakLogging(self):
-        
-        
-
-        
-        
-        
-        leakLogFile = ""
-        return leakLogFile
+        self.env["XPCOM_MEM_LEAK_LOG"] = self.remoteJoin(self.profileDir, "leaks.log")
+        return self.env["XPCOM_MEM_LEAK_LOG"]
 
     def setLD_LIBRARY_PATH(self, env):
         env["LD_LIBRARY_PATH"]=self.remoteBinDir
@@ -260,6 +254,7 @@ class XPCShellRemote(xpcshell.XPCShellTests, object):
 
     def buildEnvironment(self):
         self.env = {}
+        self.buildCoreEnvironment()
         self.setLD_LIBRARY_PATH(self.env)
         self.env["MOZ_LINKER_CACHE"]=self.remoteBinDir
         if self.options.localAPK and self.appRoot:
