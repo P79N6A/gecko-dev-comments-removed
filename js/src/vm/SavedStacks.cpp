@@ -9,6 +9,7 @@
 
 #include "jsapi.h"
 #include "jscompartment.h"
+#include "jsfriendapi.h"
 #include "jsnum.h"
 
 #include "vm/GlobalObject.h"
@@ -424,6 +425,14 @@ SavedStacks::insertFrames(JSContext *cx, ScriptFrameIter &iter, MutableHandle<Sa
         frame.set(nullptr);
         return true;
     }
+
+    
+    
+    
+    
+    
+    
+    JS_CHECK_RECURSION_DONT_REPORT(cx, return false);
 
     ScriptFrameIter thisFrame(iter);
     Rooted<SavedFrame*> parentFrame(cx);
