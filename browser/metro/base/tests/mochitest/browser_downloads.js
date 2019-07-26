@@ -342,3 +342,48 @@ gTests.push({
       and the existence of the downloaded file.");
   }
 });
+
+
+
+
+gTests.push({
+  desc: "Download notifications in closed tabs",
+  setUp: function() {
+    
+    let notificationBox = Browser.getNotificationBox();
+    notificationBox.appendNotification("not important", "low-priority-thing", "", notificationBox.PRIORITY_INFO_LOW, []);
+    notificationBox.appendNotification("so important", "high-priority-thing", "", notificationBox.PRIORITY_CRITICAL_HIGH, []);
+
+    
+    yield addTab("about:mozilla");
+  },
+  run: function(){
+    let notificationBox = Browser.getNotificationBox();
+    let notn = MetroDownloadsView.showNotification("download-progress", "test message", [],
+           notificationBox.PRIORITY_WARNING_LOW);
+    Browser.closeTab(Browser.selectedTab);
+
+    yield waitForEvent(Elements.tabList, "TabRemove");
+
+    
+    
+    
+    
+    let nextBox = Browser.getNotificationBox();
+    let currentNotification;
+
+    ok(nextBox.getNotificationWithValue("download-progress"), "notification was moved to next tab");
+
+    currentNotification = nextBox.currentNotification;
+    is(currentNotification.value, "high-priority-thing", "high priority notification is current");
+    currentNotification.close();
+
+    currentNotification = nextBox.currentNotification;
+    is(currentNotification.value, "download-progress", "download notification is next");
+    currentNotification.close();
+
+    currentNotification = nextBox.currentNotification;
+    is(currentNotification.value, "low-priority-thing", "low priority notification is next");
+    currentNotification.close();
+  }
+});
