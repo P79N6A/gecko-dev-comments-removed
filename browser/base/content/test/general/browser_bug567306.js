@@ -2,10 +2,7 @@
 
 
 
-const {Ci: interfaces, Cc: classes} = Components;
-
-let Clipboard = Cc["@mozilla.org/widget/clipboard;1"].getService(Ci.nsIClipboard);
-let HasFindClipboard = Clipboard.supportsFindClipboard();
+let Ci = Components.interfaces;
 
 function test() {
   waitForExplicitFinish();
@@ -40,10 +37,7 @@ function onFocus(win) {
   let findBar = win.gFindBar;
   selectText(win.content);
   findBar.onFindCommand();
-  
-  
-  if (!HasFindClipboard)
-    is(findBar._findField.value, "Select Me", "Findbar is initialized with selection");
+  is(findBar._findField.value, "Select Me", "Findbar is initialized with selection");
   findBar.close();
   win.close();
   finish();
