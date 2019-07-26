@@ -48,9 +48,7 @@ struct InefficientNonFlatteningStringHashPolicy
 
 struct ZoneStatsPod
 {
-    ZoneStatsPod() {
-        mozilla::PodZero(this);
-    }
+    ZoneStatsPod() { mozilla::PodZero(this); }
 
     void add(const ZoneStatsPod &other) {
         #define ADD(x)  this->x += other.x
@@ -109,7 +107,7 @@ struct ObjectsExtraSizes
     size_t propertyIteratorData;
     size_t ctypesData;
 
-    ObjectsExtraSizes() { memset(this, 0, sizeof(ObjectsExtraSizes)); }
+    ObjectsExtraSizes() { mozilla::PodZero(this); }
 
     void add(ObjectsExtraSizes &sizes) {
         this->slots                += sizes.slots;
@@ -135,7 +133,7 @@ struct TypeInferenceSizes
     size_t arrayTypeTables;
     size_t objectTypeTables;
 
-    TypeInferenceSizes() { memset(this, 0, sizeof(TypeInferenceSizes)); }
+    TypeInferenceSizes() { mozilla::PodZero(this); }
 
     void add(TypeInferenceSizes &sizes) {
         this->typeScripts          += sizes.typeScripts;
@@ -156,7 +154,7 @@ struct CodeSizes
     size_t other;
     size_t unused;
 
-    CodeSizes() { memset(this, 0, sizeof(CodeSizes)); }
+    CodeSizes() { mozilla::PodZero(this); }
 };
 
 
@@ -248,7 +246,7 @@ struct NotableStringInfo : public StringInfo
 
 struct RuntimeSizes
 {
-    RuntimeSizes() { memset(this, 0, sizeof(RuntimeSizes)); }
+    RuntimeSizes() { mozilla::PodZero(this); }
 
     size_t object;
     size_t atomsTable;
