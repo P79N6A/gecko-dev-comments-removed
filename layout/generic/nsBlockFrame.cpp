@@ -907,6 +907,9 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 #endif
 
   const nsHTMLReflowState *reflowState = &aReflowState;
+  nscoord consumedHeight = GetConsumedHeight();
+  nscoord effectiveComputedHeight = GetEffectiveComputedHeight(aReflowState,
+                                                               consumedHeight);
   Maybe<nsHTMLReflowState> mutableReflowState;
   
   
@@ -922,7 +925,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
       heightExtras.top += aReflowState.mComputedMargin.top;
     }
 
-    if (GetEffectiveComputedHeight(aReflowState) + heightExtras.TopBottom() <=
+    if (effectiveComputedHeight + heightExtras.TopBottom() <=
         aReflowState.availableHeight) {
       mutableReflowState.construct(aReflowState);
       mutableReflowState.ref().availableHeight = NS_UNCONSTRAINEDSIZE;
@@ -957,8 +960,12 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
 
   bool topMarginRoot, bottomMarginRoot;
   IsMarginRoot(&topMarginRoot, &bottomMarginRoot);
+
+  
+  
   nsBlockReflowState state(*reflowState, aPresContext, this,
-                           topMarginRoot, bottomMarginRoot, needFloatManager);
+                           topMarginRoot, bottomMarginRoot, needFloatManager,
+                           consumedHeight);
 
 #ifdef IBMBIDI
   if (GetStateBits() & NS_BLOCK_NEEDS_BIDI_RESOLUTION)
@@ -7076,26 +7083,6 @@ nsBlockFrame::GetNearestAncestorBlock(nsIFrame* aCandidate)
   }
   NS_NOTREACHED("Fell off frame tree looking for ancestor block!");
   return nullptr;
-}
-
-nscoord
-nsBlockFrame::GetEffectiveComputedHeight(const nsHTMLReflowState& aReflowState) const
-{
-  nscoord height = aReflowState.ComputedHeight();
-  NS_ABORT_IF_FALSE(height != NS_UNCONSTRAINEDSIZE, "Don't call me!");
-
-  if (GetPrevInFlow()) {
-    
-    for (nsIFrame* prev = GetPrevInFlow(); prev; prev = prev->GetPrevInFlow()) {
-      height -= prev->GetRect().height;
-    }
-    
-    
-    height += aReflowState.mComputedBorderPadding.top;
-    
-    height = std::max(0, height);
-  }
-  return height;
 }
 
 #ifdef IBMBIDI
