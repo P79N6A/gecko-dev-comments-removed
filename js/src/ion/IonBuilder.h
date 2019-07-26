@@ -53,6 +53,13 @@ namespace ion {
 
 class IonBuilder : public MIRGenerator
 {
+    enum InlinePolymorphism {
+        Inline_Monomorphic,       
+        Inline_Polymorphic,       
+        Inline_PolymorphicFinal   
+                                  
+    };
+
     enum ControlStatus {
         ControlStatus_Error,
         ControlStatus_Ended,        
@@ -198,7 +205,8 @@ class IonBuilder : public MIRGenerator
 
     bool build();
     bool buildInline(IonBuilder *callerBuilder, MResumePoint *callerResumePoint,
-                     MDefinition *thisDefn, MDefinitionVector &args, int polymorphic);
+                     MDefinition *thisDefn, MDefinitionVector &args,
+                     InlinePolymorphism polymorphism);
 
   private:
     bool traverseBytecode();
@@ -411,11 +419,11 @@ class IonBuilder : public MIRGenerator
                           MConstant *constFun, MResumePoint *inlineResumePoint,
                           MDefinitionVector &argv, MBasicBlock *bottom,
                           Vector<MDefinition *, 8, IonAllocPolicy> &retvalDefns,
-                          int polymorphic);
+                          InlinePolymorphism polymorphism);
     bool inlineScriptedCall(AutoObjectVector &targets, uint32 argc, bool constructing);
     bool makeInliningDecision(AutoObjectVector &targets);
 
-    bool jsop_call_fun_barrier(AutoObjectVector &targets, int numTargets,
+    bool jsop_call_fun_barrier(AutoObjectVector &targets, uint32_t numTargets,
                                uint32 argc, 
                                bool constructing,
                                types::TypeSet *types,
