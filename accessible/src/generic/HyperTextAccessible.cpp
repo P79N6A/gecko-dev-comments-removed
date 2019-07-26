@@ -3,6 +3,7 @@
 
 
 
+
 #include "HyperTextAccessible.h"
 
 #include "Accessible-inl.h"
@@ -1273,26 +1274,47 @@ HyperTextAccessible::NativeAttributes()
 
   
   
-  
-  
-  if (mContent->Tag() == nsGkAtoms::nav)
+  nsIAtom* tag = mContent->Tag();
+  if (tag == nsGkAtoms::nav) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("navigation"));
-  else if (mContent->Tag() == nsGkAtoms::section) 
+  } else if (tag == nsGkAtoms::section)  {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("region"));
-  else if (mContent->Tag() == nsGkAtoms::footer) 
+  } else if (tag == nsGkAtoms::header || tag == nsGkAtoms::footer) {
+    
+    
+    nsIContent* parent = mContent->GetParent();
+    while (parent) {
+      if (parent->Tag() == nsGkAtoms::article ||
+          parent->Tag() == nsGkAtoms::section)
+        break;
+      parent = parent->GetParent();
+    }
+
+    
+    if (!parent) {
+      if (tag == nsGkAtoms::header) {
+        nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
+                               NS_LITERAL_STRING("banner"));
+      } else if (tag == nsGkAtoms::footer) {
+        nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
+                               NS_LITERAL_STRING("contentinfo"));
+      }
+    }
+  } else if (tag == nsGkAtoms::footer) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("contentinfo"));
-  else if (mContent->Tag() == nsGkAtoms::aside) 
+  } else if (tag == nsGkAtoms::aside) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("complementary"));
-  else if (mContent->Tag() == nsGkAtoms::article)
+  } else if (tag == nsGkAtoms::article) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("article"));
-  else if (mContent->Tag() == nsGkAtoms::main)
+  } else if (tag == nsGkAtoms::main) {
     nsAccUtils::SetAccAttr(attributes, nsGkAtoms::xmlroles,
                            NS_LITERAL_STRING("main"));
+  }
 
   return attributes.forget();
 }
