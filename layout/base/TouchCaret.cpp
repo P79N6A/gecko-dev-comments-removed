@@ -112,6 +112,12 @@ TouchCaret::SetVisibility(bool aVisible)
                                          err);
   
   mVisible ? LaunchExpirationTimer() : CancelExpirationTimer();
+
+  
+  
+  
+  
+  presShell->SetMayHaveTouchCaret(mVisible);
 }
 
 nsRect

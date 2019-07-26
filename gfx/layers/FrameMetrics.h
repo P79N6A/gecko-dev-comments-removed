@@ -81,6 +81,7 @@ public:
     , mTransformScale(1)
     , mDevPixelsPerCSSPixel(1)
     , mMayHaveTouchListeners(false)
+    , mMayHaveTouchCaret(false)
     , mIsRoot(false)
     , mHasScrollgrab(false)
     , mScrollId(NULL_SCROLL_ID)
@@ -113,6 +114,7 @@ public:
            mCumulativeResolution == aOther.mCumulativeResolution &&
            mDevPixelsPerCSSPixel == aOther.mDevPixelsPerCSSPixel &&
            mMayHaveTouchListeners == aOther.mMayHaveTouchListeners &&
+           mMayHaveTouchCaret == aOther.mMayHaveTouchCaret &&
            mPresShellId == aOther.mPresShellId &&
            mIsRoot == aOther.mIsRoot &&
            mScrollId == aOther.mScrollId &&
@@ -343,6 +345,9 @@ public:
 
   
   bool mMayHaveTouchListeners;
+
+  
+  bool mMayHaveTouchCaret;
 
   
   bool mIsRoot;

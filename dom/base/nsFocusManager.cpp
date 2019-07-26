@@ -2166,8 +2166,12 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
     nsISelection* domSelection = docFrameSelection->
       GetSelection(nsISelectionController::SELECTION_NORMAL);
     if (domSelection) {
+      nsCOMPtr<nsISelectionController> selCon(do_QueryInterface(aPresShell));
+      if (!selCon) {
+        return NS_ERROR_FAILURE;
+      }
       
-      caret->SetCaretVisible(false);
+      selCon->SetCaretEnabled(false);
 
       
       caret->SetIgnoreUserModify(true);
@@ -2178,13 +2182,8 @@ nsFocusManager::SetCaretVisible(nsIPresShell* aPresShell,
       
       
 
-      nsCOMPtr<nsISelectionController> selCon(do_QueryInterface(aPresShell));
-      if (!selCon)
-        return NS_ERROR_FAILURE;
-
       selCon->SetCaretReadOnly(false);
       selCon->SetCaretEnabled(aVisible);
-      caret->SetCaretVisible(aVisible);
     }
   }
 

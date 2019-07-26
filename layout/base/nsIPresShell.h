@@ -56,6 +56,9 @@ class nsIPageSequenceFrame;
 class nsCanvasFrame;
 class nsAString;
 class nsCaret;
+namespace mozilla {
+class TouchCaret;
+} 
 class nsFrameSelection;
 class nsFrameManager;
 class nsILayoutHistoryState;
@@ -135,8 +138,8 @@ typedef struct CapturingContentInfo {
 
 
 #define NS_IPRESSHELL_IID \
-{ 0x61e60df7, 0x128a, 0x4cdd, \
-  {0xa6, 0x84, 0x5f, 0x0b, 0xd2, 0xce, 0xb6, 0x1f}}
+{ 0xa4e5ff3a, 0xdc5c, 0x4b3a, \
+  {0xa6, 0x25, 0xd1, 0x64, 0xa9, 0xe5, 0x06, 0x19}}
 
 
 #define VERIFY_REFLOW_ON                    0x01
@@ -745,7 +748,23 @@ public:
   
 
 
+  virtual already_AddRefed<mozilla::TouchCaret> GetTouchCaret() const = 0;
+
+  
+
+
   virtual mozilla::dom::Element* GetTouchCaretElement() const = 0;
+
+  
+
+
+
+  virtual void SetMayHaveTouchCaret(bool aSet) = 0;
+
+  
+
+
+  virtual bool MayHaveTouchCaret() = 0;
 
   
 
