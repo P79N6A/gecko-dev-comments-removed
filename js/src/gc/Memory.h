@@ -15,30 +15,23 @@ namespace gc {
 
 
 
-void
-InitMemorySubsystem(JSRuntime *rt);
+void InitMemorySubsystem();
 
 
-void *
-MapAlignedPages(JSRuntime *rt, size_t size, size_t alignment);
-
-void
-UnmapPages(JSRuntime *rt, void *p, size_t size);
+void *MapAlignedPages(size_t size, size_t alignment);
+void UnmapPages(void *p, size_t size);
 
 
 
-bool
-MarkPagesUnused(JSRuntime *rt, void *p, size_t size);
+bool MarkPagesUnused(void *p, size_t size);
 
 
 
 
-bool
-MarkPagesInUse(JSRuntime *rt, void *p, size_t size);
+bool MarkPagesInUse(void *p, size_t size);
 
 
-size_t
-GetPageFaultCount();
+size_t GetPageFaultCount();
 
 } 
 } 

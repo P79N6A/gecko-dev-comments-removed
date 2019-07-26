@@ -90,9 +90,6 @@ class AsmJSActivation
 };
 
 
-const size_t AsmJSPageSize = 4096;
-
-
 static const size_t AsmJSAllocationGranularity = 4096;
 
 #ifdef JS_CPU_X64

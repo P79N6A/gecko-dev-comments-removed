@@ -1139,15 +1139,6 @@ struct JSRuntime : public JS::shadow::Runtime,
     js::AutoGCRooter   *autoGCRooters;
 
     
-
-
-
-    size_t              gcSystemPageSize;
-
-    
-    size_t              gcSystemAllocGranularity;
-
-    
     js::ScriptAndCountsVector *scriptAndCountsVector;
 
     
