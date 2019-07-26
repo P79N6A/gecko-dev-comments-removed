@@ -117,7 +117,7 @@ public:
   void HandleChildReports(
     const uint32_t& generation,
     const InfallibleTArray<mozilla::dom::MemoryReport>& aChildReports);
-  nsresult FinishReporting();
+  void FinishReporting();
 
   
   

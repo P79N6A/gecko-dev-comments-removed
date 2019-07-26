@@ -1050,7 +1050,7 @@ nsMemoryReporterManager::StartGettingReports()
 
   
   return (s->mNumChildProcesses == 0)
-    ? FinishReporting()
+    ? s->mFinishReporting->Callback(s->mFinishReportingData)
     : NS_OK;
 }
 
@@ -1206,7 +1206,7 @@ nsMemoryReporterManager::TimeoutCallback(nsITimer* aTimer, void* aData)
   mgr->FinishReporting();
 }
 
-nsresult
+void
 nsMemoryReporterManager::FinishReporting()
 {
   
@@ -1221,12 +1221,11 @@ nsMemoryReporterManager::FinishReporting()
   
   
   
-  nsresult rv = mGetReportsState->mFinishReporting->Callback(
+  (void)mGetReportsState->mFinishReporting->Callback(
     mGetReportsState->mFinishReportingData);
 
   delete mGetReportsState;
   mGetReportsState = nullptr;
-  return rv;
 }
 
 static void
