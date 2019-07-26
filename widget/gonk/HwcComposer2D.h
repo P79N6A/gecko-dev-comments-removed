@@ -75,6 +75,7 @@ private:
     nsIntRect               mScreenRect;
     int                     mMaxLayerCount;
     bool                    mColorFill;
+    bool                    mRBSwapSupport;
     
     
     std::list<RectVector>   mVisibleRegions;
