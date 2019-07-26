@@ -275,10 +275,8 @@ WeaveSvc.prototype = {
 
   handleFetchedKeys: function handleFetchedKeys(syncKey, cryptoKeys, skipReset) {
     
-    
-    
-    let wasBlank = CollectionKeys.isClear;
-    let keysChanged = CollectionKeys.updateContents(syncKey, cryptoKeys);
+    let wasBlank = this.collectionKeys.isClear;
+    let keysChanged = this.collectionKeys.updateContents(syncKey, cryptoKeys);
 
     if (keysChanged && !wasBlank) {
       this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
@@ -317,6 +315,8 @@ WeaveSvc.prototype = {
     }
 
     this.identity = Status._authManager;
+
+    this.collectionKeys = new CollectionKeyManager();
 
     this.errorHandler = new ErrorHandler(this);
 
@@ -560,8 +560,8 @@ WeaveSvc.prototype = {
 
       this._log.info("Testing info/collections: " + JSON.stringify(infoCollections));
 
-      if (CollectionKeys.updateNeeded(infoCollections)) {
-        this._log.info("CollectionKeys reports that a key update is needed.");
+      if (this.collectionKeys.updateNeeded(infoCollections)) {
+        this._log.info("collection keys reports that a key update is needed.");
 
         
 
@@ -730,7 +730,7 @@ WeaveSvc.prototype = {
 
   generateNewSymmetricKeys: function generateNewSymmetricKeys() {
     this._log.info("Generating new keys WBO...");
-    let wbo = CollectionKeys.generateNewKeysWBO();
+    let wbo = this.collectionKeys.generateNewKeysWBO();
     this._log.info("Encrypting new key bundle.");
     wbo.encrypt(this.identity.syncKeyBundle);
 
@@ -818,7 +818,7 @@ WeaveSvc.prototype = {
 
       
       this.resetClient();
-      CollectionKeys.clear();
+      this.collectionKeys.clear();
 
       
       this.sync();
@@ -859,7 +859,7 @@ WeaveSvc.prototype = {
 
     
     this.resetClient();
-    CollectionKeys.clear();
+    this.collectionKeys.clear();
     Status.resetBackoff();
 
     
@@ -1074,7 +1074,7 @@ WeaveSvc.prototype = {
 
       this._log.info("Sync IDs differ. Local is " + this.syncID + ", remote is " + meta.payload.syncID);
       this.resetClient();
-      CollectionKeys.clear();
+      this.collectionKeys.clear();
       this.syncID = meta.payload.syncID;
       this._log.debug("Clear cached values and take syncId: " + this.syncID);
 
@@ -1236,7 +1236,7 @@ WeaveSvc.prototype = {
   _freshStart: function _freshStart() {
     this._log.info("Fresh start. Resetting client and considering key upgrade.");
     this.resetClient();
-    CollectionKeys.clear();
+    this.collectionKeys.clear();
     this.upgradeSyncKey(this.syncID);
 
     

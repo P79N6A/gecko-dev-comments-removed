@@ -71,8 +71,8 @@ function setUp() {
                                 "abcdeabcdeabcdeabcdeabcdea");
   
   
-  generateNewKeys();
-  let serverKeys = CollectionKeys.asWBO("crypto", "keys");
+  generateNewKeys(Service.collectionKeys);
+  let serverKeys = Service.collectionKeys.asWBO("crypto", "keys");
   serverKeys.encrypt(Service.identity.syncKeyBundle);
   return serverKeys.upload(Service.resource(Service.cryptoKeysURL)).success;
 }
@@ -254,7 +254,7 @@ add_test(function test_enabledRemotely() {
   
   try {
     _("Upload some keys to avoid a fresh start.");
-    let wbo = CollectionKeys.generateNewKeysWBO();
+    let wbo = Service.collectionKeys.generateNewKeysWBO();
     wbo.encrypt(Service.identity.syncKeyBundle);
     do_check_eq(200, wbo.upload(Service.resource(Service.cryptoKeysURL)).status);
 

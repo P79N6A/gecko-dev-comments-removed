@@ -50,7 +50,7 @@ function createServerAndConfigureClient() {
 }
 
 function run_test() {
-  generateNewKeys();
+  generateNewKeys(Service.collectionKeys);
   Svc.Prefs.set("log.logger.engine.rotary", "Trace");
   run_next_test();
 }
@@ -226,7 +226,7 @@ add_test(function test_processIncoming_createFromServer() {
   Service.clusterURL = TEST_CLUSTER_URL;
   Service.identity.username = "foo";
 
-  generateNewKeys();
+  generateNewKeys(Service.collectionKeys);
 
   
   let collection = new ServerCollection();
@@ -1329,7 +1329,7 @@ add_test(function test_uploadOutgoing_toEmptyServer() {
       "/1.1/foo/storage/rotary/flying": collection.wbo("flying").handler(),
       "/1.1/foo/storage/rotary/scotsman": collection.wbo("scotsman").handler()
   });
-  generateNewKeys();
+  generateNewKeys(Service.collectionKeys);
 
   let engine = makeRotaryEngine();
   engine.lastSync = 123; 
@@ -1636,7 +1636,7 @@ add_test(function test_sync_partialUpload() {
   let server = sync_httpd_setup({
       "/1.1/foo/storage/rotary": collection.handler()
   });
-  generateNewKeys();
+  generateNewKeys(Service.collectionKeys);
 
   let engine = makeRotaryEngine();
   engine.lastSync = 123; 
@@ -1708,7 +1708,7 @@ add_test(function test_canDecrypt_noCryptoKeys() {
   Service.identity.username = "foo";
 
   
-  CollectionKeys.clear();
+  Service.collectionKeys.clear();
 
   let collection = new ServerCollection();
   collection._wbos.flying = new ServerWBO(
@@ -1736,8 +1736,7 @@ add_test(function test_canDecrypt_true() {
   Service.clusterURL = TEST_CLUSTER_URL;
   Service.identity.username = "foo";
 
-  
-  generateNewKeys();
+  generateNewKeys(Service.collectionKeys);
 
   let collection = new ServerCollection();
   collection._wbos.flying = new ServerWBO(
