@@ -788,7 +788,7 @@ class OrderedHashSet
 
 
 bool
-HashableValue::setValue(JSContext *cx, const Value &v)
+HashableValue::setValue(JSContext *cx, HandleValue v)
 {
     if (v.isString()) {
         
