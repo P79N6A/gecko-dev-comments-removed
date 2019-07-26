@@ -531,9 +531,11 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
                    "newRotation out of bounds");
       int32_t xBoundary = destBufferRect.XMost() - newRotation.x;
       int32_t yBoundary = destBufferRect.YMost() - newRotation.y;
-      if ((drawBounds.x < xBoundary && xBoundary < drawBounds.XMost()) ||
-          (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost()) ||
+      bool drawWrapsBuffer = (drawBounds.x < xBoundary && xBoundary < drawBounds.XMost()) ||
+                             (drawBounds.y < yBoundary && yBoundary < drawBounds.YMost());
+      if ((drawWrapsBuffer && !(aFlags & PAINT_CAN_DRAW_ROTATED)) ||
           (newRotation != nsIntPoint(0,0) && !canHaveRotation)) {
+        
         
         
         
@@ -674,19 +676,44 @@ RotatedContentBuffer::BeginPaint(ThebesLayer* aLayer,
 }
 
 DrawTarget*
-RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                                  const PaintState& aPaintState)
+RotatedContentBuffer::BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                                  DrawIterator* aIter )
 {
   if (aPaintState.mMode == SurfaceMode::SURFACE_NONE) {
     return nullptr;
   }
 
-  DrawTarget* result = BorrowDrawTargetForQuadrantUpdate(aPaintState.mRegionToDraw.GetBounds(),
+  const nsIntRegion* drawPtr;
+  if (aIter) {
+    
+    
+    
+    
+    
+    aIter->mDrawRegion.SetEmpty();
+    while (aIter->mCount < 4) {
+      nsIntRect quadrant = GetQuadrantRectangle((aIter->mCount & 1) ? LEFT : RIGHT,
+                                                (aIter->mCount & 2) ? TOP : BOTTOM);
+      aIter->mDrawRegion.And(aPaintState.mRegionToDraw, quadrant);
+      aIter->mCount++;
+      if (!aIter->mDrawRegion.IsEmpty()) {
+        break;
+      }
+    }
+    if (aIter->mDrawRegion.IsEmpty()) {
+      return nullptr;
+    }
+    drawPtr = &aIter->mDrawRegion;
+  } else {
+    drawPtr = &aPaintState.mRegionToDraw;
+  }
+
+  DrawTarget* result = BorrowDrawTargetForQuadrantUpdate(drawPtr->GetBounds(),
                                                          BUFFER_BOTH);
 
   if (aPaintState.mMode == SurfaceMode::SURFACE_COMPONENT_ALPHA) {
     MOZ_ASSERT(mDTBuffer && mDTBufferOnWhite);
-    nsIntRegionRectIterator iter(aPaintState.mRegionToDraw);
+    nsIntRegionRectIterator iter(*drawPtr);
     const nsIntRect *iterRect;
     while ((iterRect = iter.Next())) {
       mDTBuffer->FillRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height),
@@ -696,7 +723,7 @@ RotatedContentBuffer::BorrowDrawTargetForPainting(ThebesLayer* aLayer,
     }
   } else if (aPaintState.mContentType == gfxContentType::COLOR_ALPHA && HaveBuffer()) {
     
-    nsIntRegionRectIterator iter(aPaintState.mRegionToDraw);
+    nsIntRegionRectIterator iter(*drawPtr);
     const nsIntRect *iterRect;
     while ((iterRect = iter.Next())) {
       result->ClearRect(Rect(iterRect->x, iterRect->y, iterRect->width, iterRect->height));

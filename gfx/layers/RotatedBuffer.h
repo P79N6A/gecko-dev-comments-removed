@@ -223,9 +223,14 @@ public:
 
   enum {
     PAINT_WILL_RESAMPLE = 0x01,
-    PAINT_NO_ROTATION = 0x02
+    PAINT_NO_ROTATION = 0x02,
+    PAINT_CAN_DRAW_ROTATED = 0x04
   };
   
+
+
+
+
 
 
 
@@ -244,14 +249,36 @@ public:
   PaintState BeginPaint(ThebesLayer* aLayer,
                         uint32_t aFlags);
 
+  struct DrawIterator {
+    friend class RotatedContentBuffer;
+    friend class ContentClientIncremental;
+    DrawIterator()
+      : mCount(0)
+    {}
+
+    nsIntRegion mDrawRegion;
+
+  private:
+    uint32_t mCount;
+  };
+
   
 
 
 
 
 
-  gfx::DrawTarget* BorrowDrawTargetForPainting(ThebesLayer* aLayer,
-                                               const PaintState& aPaintState);
+
+
+
+
+
+
+
+
+
+  gfx::DrawTarget* BorrowDrawTargetForPainting(const PaintState& aPaintState,
+                                               DrawIterator* aIter = nullptr);
 
   enum {
     ALLOW_REPEAT = 0x01,

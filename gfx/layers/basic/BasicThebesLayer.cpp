@@ -186,7 +186,7 @@ BasicThebesLayer::Validate(LayerManager::DrawThebesLayerCallback aCallback,
     mContentClient->BeginPaintBuffer(this, flags);
   mValidRegion.Sub(mValidRegion, state.mRegionToInvalidate);
 
-  if (DrawTarget* target = mContentClient->BorrowDrawTargetForPainting(this, state)) {
+  if (DrawTarget* target = mContentClient->BorrowDrawTargetForPainting(state)) {
     
     
     
