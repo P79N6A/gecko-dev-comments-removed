@@ -147,7 +147,7 @@ pref("app.update.silent", false);
 
 
 
-pref("app.update.stage.enabled", true);
+pref("app.update.staging.enabled", true);
 
 
 pref("app.update.url", "https://aus3.mozilla.org/update/3/%PRODUCT%/%VERSION%/%BUILD_ID%/%BUILD_TARGET%/%LOCALE%/%CHANNEL%/%OS_VERSION%/%DISTRIBUTION%/%DISTRIBUTION_VERSION%/update.xml");
