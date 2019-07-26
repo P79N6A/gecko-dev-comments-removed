@@ -691,7 +691,13 @@ struct JSRuntime : public JS::shadow::Runtime,
 
 
 
-    volatile int32_t    interrupt;
+#ifdef JS_THREADSAFE
+    mozilla::Atomic<int32_t> interrupt;
+    static_assert(sizeof(interrupt) == sizeof(int32_t),
+                  "|interrupt| must be ABI-compatible with int32_t for JIT.");
+#else
+    int32_t interrupt;
+#endif
 
     
     JSOperationCallback operationCallback;
