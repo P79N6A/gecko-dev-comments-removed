@@ -1131,6 +1131,8 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
         offset = AdjustCaretOffset(offset);
 
       
+      
+      
       *aStartOffset = FindLineBoundary(offset, eDirPrevious, eSelectBeginLine);
       *aEndOffset = FindLineBoundary(offset, eDirNext, eSelectLine);
       int32_t tmpOffset = FindLineBoundary(*aEndOffset, eDirPrevious, eSelectBeginLine);
@@ -1154,6 +1156,8 @@ HyperTextAccessible::GetTextAtOffset(int32_t aOffset,
       if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET)
         offset = AdjustCaretOffset(offset);
 
+      
+      
       
       
       *aEndOffset = FindLineBoundary(offset, eDirNext, eSelectEndLine);
