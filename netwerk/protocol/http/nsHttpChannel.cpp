@@ -4321,17 +4321,11 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
     if (!mProxyInfo && NS_SUCCEEDED(ResolveProxy()))
         return NS_OK;
 
-    
-    
     rv = BeginConnect();
-    if (NS_FAILED(rv)) {
-        LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
-        AsyncAbort(rv);
-    }
+    if (NS_FAILED(rv))
+        ReleaseListeners();
 
-    
-    
-    return NS_OK;
+    return rv;
 }
 
 nsresult
@@ -4441,15 +4435,15 @@ nsHttpChannel::BeginConnect()
     else
         rv = Connect();
     if (NS_FAILED(rv)) {
+        LOG(("Calling AsyncAbort [rv=%x mCanceled=%i]\n", rv, mCanceled));
         CloseCacheEntry(true);
-        return rv;
+        AsyncAbort(rv);
     } else if (mLoadFlags & LOAD_CLASSIFY_URI) {
         nsRefPtr<nsChannelClassifier> classifier = new nsChannelClassifier();
         rv = classifier->Start(this);
         if (NS_FAILED(rv)) {
-            
             Cancel(rv);
-            return NS_OK;
+            return rv;
         }
     }
 
@@ -4521,6 +4515,7 @@ nsHttpChannel::OnProxyAvailable(nsICancelable *request, nsIURI *uri,
     }
 
     if (NS_FAILED(rv)) {
+        Cancel(rv);
         DoNotifyListener();
     }
     return NS_OK;
