@@ -207,14 +207,12 @@ private:
     nsresult AddTransaction(nsAHttpTransaction *, int32_t);
 
     
-    void ReportDataUsage(bool);
-
-    
     
     nsresult StartShortLivedTCPKeepalives();
     nsresult StartLongLivedTCPKeepalives();
     nsresult DisableTCPKeepalives();
 
+private:
     nsCOMPtr<nsISocketTransport>    mSocketTransport;
     nsCOMPtr<nsIAsyncInputStream>   mSocketIn;
     nsCOMPtr<nsIAsyncOutputStream>  mSocketOut;
@@ -246,10 +244,6 @@ private:
     int64_t                         mMaxBytesRead;       
     int64_t                         mTotalBytesRead;     
     int64_t                         mTotalBytesWritten;  
-
-    
-    uint64_t                        mUnreportedBytesRead;     
-    uint64_t                        mUnreportedBytesWritten;  
 
     nsRefPtr<nsIAsyncInputStream>   mInputOverflow;
 
