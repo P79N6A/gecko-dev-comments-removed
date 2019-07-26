@@ -1308,7 +1308,7 @@ let RIL = {
 
 
 
-  getICCContacts: function getICCContacts(options) {
+  readICCContacts: function readICCContacts(options) {
     if (!this.appType) {
       options.rilMessageType = "icccontacts";
       options.errorMsg = GECKO_ERROR_REQUEST_NOT_SUPPORTED;
@@ -11308,7 +11308,7 @@ let ICCContactHelper = {
 
   readICCContacts: function readICCContacts(appType, contactType, onsuccess, onerror) {
     switch (contactType) {
-      case "ADN":
+      case "adn":
         switch (appType) {
           case CARD_APPTYPE_SIM:
             ICCRecordHelper.readADNLike(ICC_EF_ADN, onsuccess, onerror);
@@ -11318,7 +11318,7 @@ let ICCContactHelper = {
             break;
         }
         break;
-      case "FDN":
+      case "fdn":
         ICCRecordHelper.readADNLike(ICC_EF_FDN, onsuccess, onerror);
         break;
     }
@@ -11334,7 +11334,7 @@ let ICCContactHelper = {
 
   findFreeICCContact: function findFreeICCContact(appType, contactType, onsuccess, onerror) {
     switch (contactType) {
-      case "ADN":
+      case "adn":
         switch (appType) {
           case CARD_APPTYPE_SIM:
             ICCRecordHelper.getFreeRecordId(ICC_EF_ADN, onsuccess, onerror);
@@ -11350,7 +11350,7 @@ let ICCContactHelper = {
             break;
         }
         break;
-      case "FDN":
+      case "fdn":
         ICCRecordHelper.getFreeRecordId(ICC_EF_FDN, onsuccess, onerror);
         break;
       default:
@@ -11393,7 +11393,7 @@ let ICCContactHelper = {
 
   updateICCContact: function updateICCContact(appType, contactType, contact, pin2, onsuccess, onerror) {
     switch (contactType) {
-      case "ADN":
+      case "adn":
         switch (appType) {
           case CARD_APPTYPE_SIM:
             ICCRecordHelper.updateADNLike(ICC_EF_ADN, contact, null, onsuccess, onerror);
@@ -11403,7 +11403,7 @@ let ICCContactHelper = {
             break;
         }
         break;
-      case "FDN":
+      case "fdn":
         ICCRecordHelper.updateADNLike(ICC_EF_FDN, contact, pin2, onsuccess, onerror);
         break;
       default:
