@@ -31,6 +31,7 @@
 typedef int16_t DownloadState;
 typedef int16_t DownloadType;
 
+class nsIArray;
 class nsDownload;
 
 #ifdef DOWNLOAD_SCANNER
@@ -426,6 +427,12 @@ private:
 
 
   nsAutoCString mHash;
+
+  
+
+
+
+  nsCOMPtr<nsIArray> mSignatureInfo;
 
   friend class nsDownloadManager;
 };
