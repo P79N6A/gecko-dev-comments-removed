@@ -1106,6 +1106,10 @@ CustomizeMode.prototype = {
         }
 
         CustomizableUI.removeWidgetFromArea(aDraggedItemId);
+        
+        if (CustomizableUI.isSpecialWidget(aDraggedItemId)) {
+          return;
+        }
       }
       draggedItem = draggedItem.parentNode;
 
