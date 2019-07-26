@@ -23,6 +23,10 @@ Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/identity/IdentityUtils.jsm");
 
+XPCOMUtils.defineLazyServiceGetter(this, "uuidgen",
+                                   "@mozilla.org/uuid-generator;1",
+                                   "nsIUUIDGenerator");
+
 
 XPCOMUtils.defineLazyServiceGetter(this, "cpmm",
                                    "@mozilla.org/childprocessmessagemanager;1",
@@ -372,7 +376,10 @@ nsDOMIdentity.prototype = {
     
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
-    this._id = util.outerWindowID;
+
+    
+    
+    this._id = this._identityInternal._id;
   },
 
   
@@ -590,14 +597,21 @@ nsDOMIdentityInternal.prototype = {
       Services.prefs.getPrefType(PREF_DEBUG) == Ci.nsIPrefBranch.PREF_BOOL
       && Services.prefs.getBoolPref(PREF_DEBUG);
 
-    this._identity = new nsDOMIdentity(this);
-
-    this._identity._init(aWindow);
-
     let util = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
                       .getInterface(Ci.nsIDOMWindowUtils);
-    this._id = util.outerWindowID;
+
+    
+    
+    
+    
+    
+    this._id = uuidgen.generateUUID().toString();
     this._innerWindowID = util.currentInnerWindowID;
+
+    
+    
+    this._identity = new nsDOMIdentity(this);
+    this._identity._init(aWindow);
 
     this._log("init was called from " + aWindow.document.location);
 
