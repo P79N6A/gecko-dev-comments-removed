@@ -132,7 +132,11 @@ struct BaselineScript
 
         
         
-        MODIFIES_ARGUMENTS = 1 << 2
+        MODIFIES_ARGUMENTS = 1 << 2,
+
+        
+        
+        DEBUG_MODE = 1 << 3
     };
 
   private:
@@ -199,6 +203,13 @@ struct BaselineScript
     }
     bool modifiesArguments() {
         return flags_ & MODIFIES_ARGUMENTS;
+    }
+
+    void setDebugMode() {
+        flags_ |= DEBUG_MODE;
+    }
+    bool debugMode() const {
+        return flags_ & DEBUG_MODE;
     }
 
     uint32_t prologueOffset() const {
