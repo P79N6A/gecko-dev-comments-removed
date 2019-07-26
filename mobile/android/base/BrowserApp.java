@@ -168,6 +168,9 @@ abstract public class BrowserApp extends GeckoApp
     private BrowserHealthReporter mBrowserHealthReporter;
 
     
+    private Integer mTargetTabForEditingMode = null;
+
+    
     
     
     
@@ -487,6 +490,8 @@ abstract public class BrowserApp extends GeckoApp
 
         mBrowserToolbar.setOnStopEditingListener(new BrowserToolbar.OnStopEditingListener() {
             public void onStopEditing() {
+                selectTargetTabForEditingMode();
+
                 
                 mDoorHangerPopup.enable();
             }
@@ -1311,7 +1316,10 @@ abstract public class BrowserApp extends GeckoApp
         if (tabs.isSelectedTabId(tabId)) {
             hideHomePager();
         } else {
-            tabs.selectTab(tabId);
+            
+            
+            mTargetTabForEditingMode = null;
+            Tabs.getInstance().selectTab(tabId);
         }
 
         hideBrowserSearch();
@@ -1425,6 +1433,9 @@ abstract public class BrowserApp extends GeckoApp
             throw new IllegalArgumentException("Cannot handle null URLs in enterEditingMode");
         }
 
+        final Tab selectedTab = Tabs.getInstance().getSelectedTab();
+        mTargetTabForEditingMode = (selectedTab != null ? selectedTab.getId() : null);
+
         final PropertyAnimator animator = new PropertyAnimator(250);
         animator.setUseHardwareLayer(false);
 
@@ -1535,6 +1546,22 @@ abstract public class BrowserApp extends GeckoApp
             mHomePager.setVisibility(View.INVISIBLE);
             mBrowserSearch.filter(searchTerm, handler);
         }
+    }
+
+    
+
+
+
+
+
+
+
+    private void selectTargetTabForEditingMode() {
+        if (mTargetTabForEditingMode != null) {
+            Tabs.getInstance().selectTab(mTargetTabForEditingMode);
+        }
+
+        mTargetTabForEditingMode = null;
     }
 
     
