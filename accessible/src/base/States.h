@@ -272,6 +272,11 @@ namespace states {
 
 
   const uint64_t EXPANDABLE = ((uint64_t) 0x1) << 46;
+
+  
+
+
+  const uint64_t PINNED = ((uint64_t) 0x1) << 47;
 } 
 } 
 } 

@@ -34,6 +34,8 @@
 
 
 
+
+
 enum EStateMapEntryType {
   kMapDirectly,
   kMapOpposite,   
@@ -108,5 +110,6 @@ static const AtkStateMap gAtkStateMap[] = {
   { ATK_STATE_ENABLED,                        kMapDirectly },   
   { ATK_STATE_SENSITIVE,                      kMapDirectly },   
   { ATK_STATE_EXPANDABLE,                     kMapDirectly },   
+  { kNone,                                    kMapDirectly },   
   { kNone,                                    kNoSuchState },   
 };
