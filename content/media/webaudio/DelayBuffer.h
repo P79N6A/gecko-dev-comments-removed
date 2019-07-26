@@ -8,52 +8,87 @@
 #define DelayBuffer_h_
 
 #include "nsTArray.h"
+#include "AudioSegment.h"
+#include "mozilla/dom/AudioNodeBinding.h" 
 
 namespace mozilla {
 
 class DelayBuffer {
+  typedef dom::ChannelInterpretation ChannelInterpretation;
+
 public:
   
   
-  DelayBuffer(int aMaxDelayFrames, double aSmoothingRate)
+  DelayBuffer(int aMaxDelayTicks, double aSmoothingRate)
     : mSmoothingRate(aSmoothingRate)
-    , mCurrentDelay(0.)
-    , mMaxDelayFrames(aMaxDelayFrames)
-    , mWriteIndex(0)
+    , mCurrentDelay(-1.0)
+    , mMaxDelayTicks(aMaxDelayTicks)
+    , mCurrentChunk(0)
+    
   {
   }
 
   
-  
-  void Process(const double *aPerFrameDelays,
-               const float* const* aInputChannels,
-               float* const* aOutputChannels,
-               int aChannelCount, int aFramesToProcess);
+  void Write(const AudioChunk& aInputChunk);
 
   
   
-  void Process(double aDelayFrames, const float* const* aInputChannels,
-               float* const* aOutputChannels, int aChannelCount,
-               int aFramesToProcess);
+  void Read(const double aPerFrameDelays[WEBAUDIO_BLOCK_SIZE],
+            AudioChunk* aOutputChunk,
+            ChannelInterpretation aChannelInterpretation);
+  
+  
+  void Read(double aDelayTicks, AudioChunk* aOutputChunk,
+            ChannelInterpretation aChannelInterpretation);
 
-  void Reset() { mBuffer.Clear(); };
+  
+  
+  
+  
+  void ReadChannel(const double aPerFrameDelays[WEBAUDIO_BLOCK_SIZE],
+                   const AudioChunk* aOutputChunk, uint32_t aChannel,
+                   ChannelInterpretation aChannelInterpretation);
 
-  int MaxDelayFrames() const { return mMaxDelayFrames; }
-  int ChannelCount() const { return mBuffer.Length(); }
+  
+  void NextBlock()
+  {
+    mCurrentChunk = (mCurrentChunk + 1) % mChunks.Length();
+  }
+
+  void Reset() {
+    mChunks.Clear();
+    mCurrentDelay = -1.0;
+  };
+
+  int MaxDelayTicks() const { return mMaxDelayTicks; }
 
 private:
-  bool EnsureBuffer(uint32_t aNumberOfChannels);
+  void ReadChannels(const double aPerFrameDelays[WEBAUDIO_BLOCK_SIZE],
+                    const AudioChunk* aOutputChunk,
+                    uint32_t aFirstChannel, uint32_t aNumChannelsToRead,
+                    ChannelInterpretation aChannelInterpretation);
+  bool EnsureBuffer();
+  int PositionForDelay(int aDelay);
+  int ChunkForPosition(int aPosition);
+  int OffsetForPosition(int aPosition);
+  int ChunkForDelay(int aDelay);
+  void UpdateUpmixChannels(int aNewReadChunk, uint32_t channelCount,
+                           ChannelInterpretation aChannelInterpretation);
 
   
-  AutoFallibleTArray<FallibleTArray<float>, 2> mBuffer;
+  FallibleTArray<AudioChunk> mChunks;
+  
+  nsAutoTArray<const void*,GUESS_AUDIO_CHANNELS> mUpmixChannels;
   double mSmoothingRate;
   
   double mCurrentDelay;
   
-  int mMaxDelayFrames;
+  int mMaxDelayTicks;
   
   
-  int mWriteIndex;
+  int mCurrentChunk;
+  
+  int mLastReadChunk;
 };
 
 } 

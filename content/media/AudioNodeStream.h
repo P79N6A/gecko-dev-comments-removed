@@ -33,6 +33,9 @@ class AudioNodeEngine;
 
 
 class AudioNodeStream : public ProcessedMediaStream {
+  typedef dom::ChannelCountMode ChannelCountMode;
+  typedef dom::ChannelInterpretation ChannelInterpretation;
+
 public:
   typedef mozilla::dom::AudioContext AudioContext;
 
@@ -56,8 +59,8 @@ public:
       mMuted(false)
   {
     MOZ_ASSERT(NS_IsMainThread());
-    mChannelCountMode = dom::ChannelCountMode::Max;
-    mChannelInterpretation = dom::ChannelInterpretation::Speakers;
+    mChannelCountMode = ChannelCountMode::Max;
+    mChannelInterpretation = ChannelInterpretation::Speakers;
     
     mHasCurrentData = true;
     MOZ_COUNT_CTOR(AudioNodeStream);
@@ -79,8 +82,13 @@ public:
   
   void SetRawArrayData(nsTArray<float>& aData);
   void SetChannelMixingParameters(uint32_t aNumberOfChannels,
-                                  dom::ChannelCountMode aChannelCountMoe,
-                                  dom::ChannelInterpretation aChannelInterpretation);
+                                  ChannelCountMode aChannelCountMoe,
+                                  ChannelInterpretation aChannelInterpretation);
+  ChannelInterpretation GetChannelInterpretation()
+  {
+    return mChannelInterpretation;
+  }
+
   void SetAudioParamHelperStream()
   {
     MOZ_ASSERT(!mAudioParamStream, "Can only do this once");
@@ -93,8 +101,8 @@ public:
   void SetStreamTimeParameterImpl(uint32_t aIndex, MediaStream* aRelativeToStream,
                                   double aStreamTime);
   void SetChannelMixingParametersImpl(uint32_t aNumberOfChannels,
-                                      dom::ChannelCountMode aChannelCountMoe,
-                                      dom::ChannelInterpretation aChannelInterpretation);
+                                      ChannelCountMode aChannelCountMoe,
+                                      ChannelInterpretation aChannelInterpretation);
   virtual void ProduceOutput(GraphTime aFrom, GraphTime aTo, uint32_t aFlags) MOZ_OVERRIDE;
   TrackTicks GetCurrentPosition();
   bool IsAudioParamStream() const
@@ -171,8 +179,8 @@ protected:
   
   uint32_t mNumberOfInputChannels;
   
-  dom::ChannelCountMode mChannelCountMode;
-  dom::ChannelInterpretation mChannelInterpretation;
+  ChannelCountMode mChannelCountMode;
+  ChannelInterpretation mChannelInterpretation;
   
   
   bool mMarkAsFinishedAfterThisBlock;

@@ -99,6 +99,7 @@ struct AudioChunk {
     mDuration = aDuration;
     mVolume = 1.0f;
   }
+  int ChannelCount() const { return mChannelData.Length(); }
 
   TrackTicks mDuration; 
   nsRefPtr<ThreadSharedObject> mBuffer; 
