@@ -40,15 +40,15 @@ NS_IMETHODIMP
 nsControllerCommandTable::RegisterCommand(const char * aCommandName, nsIControllerCommand *aCommand)
 {
   NS_ENSURE_TRUE(mMutable, NS_ERROR_FAILURE);
-  
+
   nsCStringKey commandKey(aCommandName);
-  
+
   if (mCommandsTable.Put(&commandKey, aCommand))
   {
 #if DEBUG
     NS_WARNING("Replacing existing command -- ");
 #endif
-  }  
+  }
   return NS_OK;
 }
 
@@ -69,13 +69,13 @@ NS_IMETHODIMP
 nsControllerCommandTable::FindCommandHandler(const char * aCommandName, nsIControllerCommand **outCommand)
 {
   NS_ENSURE_ARG_POINTER(outCommand);
-  
+
   *outCommand = nullptr;
-  
+
   nsCStringKey commandKey(aCommandName);
   nsISupports* foundCommand = mCommandsTable.Get(&commandKey);
   if (!foundCommand) return NS_ERROR_FAILURE;
-  
+
   
   *outCommand = reinterpret_cast<nsIControllerCommand*>(foundCommand);
   return NS_OK;
@@ -90,18 +90,18 @@ nsControllerCommandTable::IsCommandEnabled(const char * aCommandName, nsISupport
   NS_ENSURE_ARG_POINTER(aResult);
 
   *aResult = false;
-      
+
   
   nsCOMPtr<nsIControllerCommand> commandHandler;
-  FindCommandHandler(aCommandName, getter_AddRefs(commandHandler));  
-  if (!commandHandler) 
+  FindCommandHandler(aCommandName, getter_AddRefs(commandHandler));
+  if (!commandHandler)
   {
 #if DEBUG
     NS_WARNING("Controller command table asked about a command that it does not handle -- ");
 #endif
     return NS_OK;    
   }
-  
+
   return commandHandler->IsCommandEnabled(aCommandName, aCommandRefCon, aResult);
 }
 
@@ -111,7 +111,7 @@ nsControllerCommandTable::UpdateCommandState(const char * aCommandName, nsISuppo
 {
   
   nsCOMPtr<nsIControllerCommand> commandHandler;
-  FindCommandHandler(aCommandName, getter_AddRefs(commandHandler));  
+  FindCommandHandler(aCommandName, getter_AddRefs(commandHandler));
   if (!commandHandler)
   {
 #if DEBUG
@@ -119,7 +119,7 @@ nsControllerCommandTable::UpdateCommandState(const char * aCommandName, nsISuppo
 #endif
     return NS_OK;    
   }
-  
+
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -131,7 +131,7 @@ nsControllerCommandTable::SupportsCommand(const char * aCommandName, nsISupports
   
 
   *aResult = false;
-  
+
   
   nsCOMPtr<nsIControllerCommand> commandHandler;
   FindCommandHandler(aCommandName, getter_AddRefs(commandHandler));
@@ -154,7 +154,7 @@ nsControllerCommandTable::DoCommand(const char * aCommandName, nsISupports *aCom
 #endif
     return NS_OK;    
   }
-  
+
   return commandHandler->DoCommand(aCommandName, aCommandRefCon);
 }
 
@@ -207,6 +207,3 @@ NS_NewControllerCommandTable(nsIControllerCommandTable** aResult)
   *aResult = newCommandTable;
   return NS_OK;
 }
-
-
-
