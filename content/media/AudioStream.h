@@ -181,9 +181,6 @@ public:
 
   
   
-  
-  static void InitPreferredSampleRate();
-  
   static int PreferredSampleRate();
 
   AudioStream();
