@@ -764,15 +764,6 @@ nsDOMEvent::GetEventPopupControlState(WidgetEvent* aEvent)
       }
     }
     break;
-  case NS_SCRIPT_ERROR_EVENT :
-    switch(aEvent->message) {
-    case NS_LOAD_ERROR :
-      
-      if (::PopupAllowedForEvent("error"))
-        abuse = openControlled;
-      break;
-    }
-    break;
   case NS_FORM_EVENT :
     
     
