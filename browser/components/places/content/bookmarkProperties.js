@@ -572,7 +572,7 @@ var BookmarkPropertiesPanel = {
 
     
     if (this._charSet && !PrivateBrowsingUtils.isWindowPrivate(window))
-      PlacesUtils.history.setCharsetForURI(this._uri, this._charSet);
+      PlacesUtils.setCharsetForURI(this._uri, this._charSet);
 
     let createTxn = new PlacesCreateBookmarkTransaction(this._uri,
                                                         aContainer,
