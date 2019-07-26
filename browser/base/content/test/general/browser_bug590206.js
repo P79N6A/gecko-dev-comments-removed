@@ -64,13 +64,13 @@ function test_chrome() {
   
   
   loadNewTab("chrome://mozapps/content/extensions/extensions.xul", function(aNewTab) {
-    is(getIdentityMode(), "unknownIdentity", "Identity should be chrome");
+    is(getIdentityMode(), "unknownIdentity", "Identity should be unknown");
 
     gBrowser.selectedTab = oldTab;
     is(getIdentityMode(), "unknownIdentity", "Identity should be unknown");
 
     gBrowser.selectedTab = aNewTab;
-    is(getIdentityMode(), "unknownIdentity", "Identity should be chrome");
+    is(getIdentityMode(), "unknownIdentity", "Identity should be unknown");
 
     gBrowser.removeTab(aNewTab);
 
