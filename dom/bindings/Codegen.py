@@ -527,18 +527,14 @@ class CGIncludeGuard(CGWrapper):
                            declarePre='#ifndef %s\n#define %s\n\n' % (define, define),
                            declarePost='\n#endif // %s\n' % define)
 
-def getRelevantProviders(descriptor, dictionary, config):
-    assert not descriptor or not dictionary
+def getRelevantProviders(descriptor, config):
     if descriptor is not None:
         return [descriptor]
-    if dictionary is not None:
-        
-        return [
-            config.getDescriptorProvider(False),
-            config.getDescriptorProvider(True)
-            ]
     
-    return [ config.getDescriptorProvider(False) ]
+    return [
+        config.getDescriptorProvider(False),
+        config.getDescriptorProvider(True)
+        ]
 
 
 def getAllTypes(descriptors, dictionaries, callbacks):
@@ -654,8 +650,7 @@ class CGHeaders(CGWrapper):
                         headerSet = bindingHeaders
                     headerSet.add("mozilla/dom/TypedArray.h")
                 else:
-                    providers = getRelevantProviders(descriptor, dictionary,
-                                                     config)
+                    providers = getRelevantProviders(descriptor, config)
                     for p in providers:
                         try:
                             typeDesc = p.getDescriptor(unrolled.inner.identifier.name)
@@ -808,8 +803,7 @@ def UnionTypes(descriptors, dictionaries, callbacks, config):
             return
         name = str(t)
         if not name in unionStructs:
-            providers = getRelevantProviders(descriptor, dictionary,
-                                             config)
+            providers = getRelevantProviders(descriptor, config)
             
             unionStructs[name] = CGUnionStruct(t, providers[0])
             owningUnionStructs[name] = CGUnionStruct(t, providers[0],
@@ -863,8 +857,7 @@ def UnionConversions(descriptors, dictionaries, callbacks, config):
             return
         name = str(t)
         if not name in unionConversions:
-            providers = getRelevantProviders(descriptor, dictionary,
-                                             config)
+            providers = getRelevantProviders(descriptor, config)
             unionConversions[name] = CGUnionConversionStruct(t, providers[0])
             for f in t.flatMemberTypes:
                 f = f.unroll()
@@ -8864,15 +8857,15 @@ class CGBindingRoot(CGThing):
                                                lambda d: d.identifier.name)])
 
         
-        
-        
         cgthings.extend(CGCallbackFunction(c, config.getDescriptorProvider(False))
                         for c in mainCallbacks)
+
+        cgthings.extend(CGCallbackFunction(c, config.getDescriptorProvider(True))
+                        for c in workerCallbacks if c not in mainCallbacks)
 
         
         cgthings.extend([CGDescriptor(x) for x in descriptors])
 
-        
         
         cgthings.extend([CGCallbackInterface(x) for x in callbackDescriptors if
                          not x.workers])
@@ -9866,8 +9859,6 @@ class CGCallback(CGClass):
         self.baseName = baseName
         self._deps = idlObject.getDeps()
         name = idlObject.identifier.name
-        if descriptorProvider.workers:
-            name += "Workers"
         if isJSImplementedDescriptor(descriptorProvider):
             name = jsImplName(name)
         
