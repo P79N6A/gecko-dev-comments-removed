@@ -1105,8 +1105,23 @@ nsContainerFrame::ReflowOverflowContainerChildren(nsPresContext*           aPres
     }
   }
 
-  if (!overflowContainers)
+  
+  
+  nsFrameList* selfExcessOCFrames =
+    RemovePropTableFrames(aPresContext, ExcessOverflowContainersProperty());
+  if (selfExcessOCFrames) {
+    if (overflowContainers) {
+      overflowContainers->AppendFrames(nullptr, *selfExcessOCFrames);
+      delete selfExcessOCFrames;
+    } else {
+      overflowContainers = selfExcessOCFrames;
+      SetPropTableFrames(aPresContext, overflowContainers,
+                         OverflowContainersProperty());
+    }
+  }
+  if (!overflowContainers) {
     return NS_OK; 
+  }
 
   nsOverflowContinuationTracker tracker(aPresContext, this, false, false);
   bool shouldReflowAllKids = aReflowState.ShouldReflowAllKids();
@@ -1655,7 +1670,17 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
   nsresult rv = NS_OK;
   bool reparented = false;
   nsPresContext* presContext = aOverflowCont->PresContext();
-  const bool addToList = !mSentry || aOverflowCont != mSentry->GetNextInFlow();
+  bool addToList = !mSentry || aOverflowCont != mSentry->GetNextInFlow();
+
+  
+  
+  if (addToList && aOverflowCont->GetParent() == mParent &&
+      (aOverflowCont->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) &&
+      mOverflowContList && mOverflowContList->ContainsFrame(aOverflowCont)) {
+    addToList = false;
+    mPrevOverflowCont = aOverflowCont->GetPrevSibling();
+  }
+
   if (addToList) {
     if (aOverflowCont->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
       
@@ -1682,6 +1707,27 @@ nsOverflowContinuationTracker::Insert(nsIFrame*       aOverflowCont,
                                           mParent);
       reparented = true;
     }
+
+    
+    
+    
+    nsIFrame* pif = aOverflowCont->GetPrevInFlow();
+    nsIFrame* nif = aOverflowCont->GetNextInFlow();
+    if ((pif && pif->GetParent() == mParent && pif != mPrevOverflowCont) ||
+        (nif && nif->GetParent() == mParent && mPrevOverflowCont)) {
+      for (nsFrameList::Enumerator e(*mOverflowContList); !e.AtEnd(); e.Next()) {
+        nsIFrame* f = e.get();
+        if (f == pif) {
+          mPrevOverflowCont = pif;
+          break;
+        }
+        if (f == nif) {
+          mPrevOverflowCont = f->GetPrevSibling();
+          break;
+        }
+      }
+    }
+
     mOverflowContList->InsertFrame(mParent, mPrevOverflowCont, aOverflowCont);
     aReflowStatus |= NS_FRAME_REFLOW_NEXTINFLOW;
   }
