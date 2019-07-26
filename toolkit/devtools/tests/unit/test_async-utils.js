@@ -8,8 +8,10 @@ const {Task} = Cu.import("resource://gre/modules/Task.jsm", {});
 
 
 
-let {Promise} = Cu.import("resource://gre/modules/Promise.jsm", {});
-Object.freeze(Promise);
+Object.defineProperty(this, "Promise", {
+  value: Cu.import("resource://gre/modules/Promise.jsm", {}).Promise,
+  writable: false, configurable: false
+});
 const {require} = Cu.import("resource://gre/modules/devtools/Loader.jsm", {}).devtools;
 const {async, asyncOnce, promiseInvoke, promiseCall} = require("devtools/async-utils");
 
