@@ -336,8 +336,7 @@ protected:
                             bool               aBorderCollapse,
                             nsHTMLReflowState& aReflowState);
   
-  
-  virtual int GetSkipSides() const;
+  virtual int GetSkipSides() const MOZ_OVERRIDE;
 
   void PlaceChild(nsPresContext*         aPresContext,
                   nsRowGroupReflowState& aReflowState,

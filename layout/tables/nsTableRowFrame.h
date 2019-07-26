@@ -244,8 +244,7 @@ protected:
                             bool                    aBorderCollapse,
                             nsTableCellReflowState& aReflowState);
   
-  
-  virtual int GetSkipSides() const;
+  virtual int GetSkipSides() const MOZ_OVERRIDE;
 
   
 

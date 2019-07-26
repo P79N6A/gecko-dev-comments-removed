@@ -207,8 +207,7 @@ protected:
   void InsertColsReflow(int32_t                   aColIndex,
                         const nsFrameList::Slice& aCols);
 
-  
-  virtual int GetSkipSides() const;
+  virtual int GetSkipSides() const MOZ_OVERRIDE;
 
   
   int32_t mColCount;

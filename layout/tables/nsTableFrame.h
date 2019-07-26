@@ -502,8 +502,7 @@ protected:
 
   void InitChildReflowState(nsHTMLReflowState& aReflowState);
 
-  
-  virtual int GetSkipSides() const;
+  virtual int GetSkipSides() const MOZ_OVERRIDE;
 
 public:
   bool IsRowInserted() const;
