@@ -512,14 +512,7 @@ nsCategoryManager::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
 {
   size_t n = aMallocSizeOf(this);
 
-  
-  
-  
-  const PLArena *arena = mArena.first.next;
-  while (arena) {
-    n += aMallocSizeOf(arena);
-    arena = arena->next;
-  }
+  n += PL_SizeOfArenaPoolExcludingPool(&mArena, aMallocSizeOf);
 
   n += mTable.SizeOfExcludingThis(SizeOfCategoryManagerTableEntryExcludingThis,
                                   aMallocSizeOf);

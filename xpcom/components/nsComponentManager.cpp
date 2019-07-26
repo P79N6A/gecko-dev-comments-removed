@@ -1680,14 +1680,7 @@ nsComponentManagerImpl::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
     n += mKnownStaticModules.SizeOfExcludingThis(aMallocSizeOf);
     n += mKnownModules.SizeOfExcludingThis(nullptr, aMallocSizeOf);
 
-    
-    
-    
-    const PLArena *arena = mArena.first.next;
-    while (arena) {
-        n += aMallocSizeOf(arena);
-        arena = arena->next;
-    }
+    n += PL_SizeOfArenaPoolExcludingPool(&mArena, aMallocSizeOf);
 
     n += mPendingServices.SizeOfExcludingThis(aMallocSizeOf);
 

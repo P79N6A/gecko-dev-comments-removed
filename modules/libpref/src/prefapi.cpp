@@ -809,14 +809,7 @@ nsresult pref_HashPref(const char *key, PrefValue value, PrefType type, uint32_t
 size_t
 pref_SizeOfPrivateData(nsMallocSizeOfFun aMallocSizeOf)
 {
-    size_t n = 0;
-    
-    
-    const PLArena* arena = gPrefNameArena.first.next;
-    while (arena) {
-        n += aMallocSizeOf(arena);
-        arena = arena->next;
-    }
+    size_t n = PL_SizeOfArenaPoolExcludingPool(&gPrefNameArena, aMallocSizeOf);
     for (struct CallbackNode* node = gCallbacks; node; node = node->next) {
         n += aMallocSizeOf(node);
         n += aMallocSizeOf(node->domain);
