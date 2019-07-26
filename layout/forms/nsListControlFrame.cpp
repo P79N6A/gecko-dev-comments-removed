@@ -465,7 +465,8 @@ nsListControlFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
-  nsHTMLScrollFrame::DidReflow(aPresContext, &state, aStatus);
+  nsHTMLScrollFrame::DidReflow(aPresContext, &state,
+                               NS_FRAME_REFLOW_FINISHED);
 
   
   nscoord computedHeight = CalcIntrinsicHeight(HeightOfARow(), length); 
@@ -546,7 +547,8 @@ nsListControlFrame::ReflowAsDropdown(nsPresContext*           aPresContext,
   
   
   
-  nsHTMLScrollFrame::DidReflow(aPresContext, &state, aStatus);
+  nsHTMLScrollFrame::DidReflow(aPresContext, &state,
+                               NS_FRAME_REFLOW_FINISHED);
 
   
   
