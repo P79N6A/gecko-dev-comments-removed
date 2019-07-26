@@ -9,6 +9,10 @@
 
 
 
+
+
+
+
 this.EXPORTED_SYMBOLS = ["JNI"];
 
 Components.utils.import("resource://gre/modules/ctypes.jsm")
@@ -81,7 +85,7 @@ JNI.prototype = {
   },
 
   get _getStaticMethodID() {
-    delete this._getStatisMethodID;
+    delete this._getStaticMethodID;
     return this._getStaticMethodID = this.lib.declare("jsjni_GetStaticMethodID",
                                                       ctypes.default_abi,
                                                       this.types.jmethodID,
