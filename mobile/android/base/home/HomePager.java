@@ -61,6 +61,9 @@ public class HomePager extends ViewPager {
         adapter.addTab(Page.BOOKMARKS, BookmarksPage.class, null, getContext().getString(R.string.bookmarks_title));
 
         setAdapter(adapter);
+
+        
+        setCurrentItem(1, false);
         setVisibility(VISIBLE);
     }
 
