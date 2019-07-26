@@ -356,37 +356,55 @@ DownloadElementShell.prototype = {
         return s.stateScanning;
       }
 
-      let [displayHost, fullHost] =
-        DownloadUtils.getURIHost(this._dataItem.referrer ||
-                                 this._dataItem.uri);
-
-      let end = new Date(this.dataItem.endTime);
-      let [displayDate, fullDate] = DownloadUtils.getReadableDates(end);
-      return s.statusSeparator(fullHost, fullDate);
+      throw new Error("_getStatusText called with a bogus download state");
     }
 
+    
+    let stateLabel = "";
     switch (this.getDownloadState()) {
       case nsIDM.DOWNLOAD_FAILED:
-        return s.stateFailed;
+        stateLabel = s.stateFailed;
+        break;
       case nsIDM.DOWNLOAD_CANCELED:
-        return s.stateCanceled;
+        stateLabel = s.stateCanceled;
+        break;
       case nsIDM.DOWNLOAD_BLOCKED_PARENTAL:
-        return s.stateBlockedParentalControls;
+        stateLabel = s.stateBlockedParentalControls;
+        break;
       case nsIDM.DOWNLOAD_BLOCKED_POLICY:
-        return s.stateBlockedPolicy;
+        stateLabel = s.stateBlockedPolicy;
+        break;
       case nsIDM.DOWNLOAD_DIRTY:
-        return s.stateDirty;
+        stateLabel = s.stateDirty;
+        break;
       case nsIDM.DOWNLOAD_FINISHED:{
         
         if (this._targetFileInfoFetched && this._targetFileExists) {
           let [size, unit] = DownloadUtils.convertByteUnits(this._targetFileSize);
-          return s.sizeWithUnits(size, unit);
+          stateLabel = s.sizeWithUnits(size, unit);
+          break;
         }
-        break;
+        
       }
+      default:
+        stateLabel = s.sizeUnknown;
+        break;
     }
 
-    return s.sizeUnknown;
+    
+    let referrer = this._dataItem && this._dataItem.referrer ||
+                   this.downloadURI;
+    let [displayHost, fullHost] = DownloadUtils.getURIHost(referrer);
+
+    
+    let date = this._dataItem && this._dataItem.endTime ||
+               (this._placesNode.time / 1000);
+    let [displayDate, fullDate] = DownloadUtils.getReadableDates(new Date(date));
+
+    
+    
+    let firstPart = s.statusSeparator(stateLabel, displayHost);
+    return s.statusSeparator(firstPart, displayDate);
   },
 
   
