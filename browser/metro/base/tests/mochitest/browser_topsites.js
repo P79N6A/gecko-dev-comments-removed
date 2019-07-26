@@ -9,14 +9,20 @@
 
 
 let TopSitesTestHelper = {
+  get grid() {
+    return Browser.selectedBrowser.contentDocument.getElementById("start-topsites-grid");
+  },
+  get document() {
+    return Browser.selectedBrowser.contentDocument;
+  },
   setup: function() {
     return Task.spawn(function(){
-      if (StartUI.isStartPageVisible)
+      if (BrowserUI.isStartTabVisible)
         return;
 
       yield addTab("about:start");
 
-      yield waitForCondition(() => StartUI.isStartPageVisible);
+      yield waitForCondition(() => BrowserUI.isStartTabVisible);
     });
   },
   mockLinks: function th_mockLinks(aLinks) {
@@ -176,18 +182,18 @@ gTests.push({
   desc: "load and display top sites",
   setUp: function() {
     yield TopSitesTestHelper.setup();
-    let grid = document.getElementById("start-topsites-grid");
+    let grid = TopSitesTestHelper.grid;
 
     
     yield TopSitesTestHelper.setLinks("brian,dougal,dylan,ermintrude,florence,moose,sgtsam,train,zebedee,zeebad");
 
     let arrangedPromise = waitForEvent(grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
-    yield arrangedPromise;
     
+    yield arrangedPromise;
   },
   run: function() {
-    let grid = document.getElementById("start-topsites-grid");
+    let grid = TopSitesTestHelper.grid;
     let items = grid.children;
     is(items.length, 8, "should be 8 topsites"); 
     if(items.length) {
@@ -217,17 +223,17 @@ gTests.push({
       this.pins
     );
     
-    let arrangedPromise = waitForEvent(document.getElementById("start-topsites-grid"), "arranged");
+    let arrangedPromise = waitForEvent(TopSitesTestHelper.grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
     yield arrangedPromise;
   },
   run: function() {
     
     let pins = this.pins.split(",");
-    let items = document.getElementById("start-topsites-grid").children;
+    let items = TopSitesTestHelper.grid.children;
     is(items.length, 8, "should be 8 topsites in the grid");
 
-    is(document.querySelectorAll("#start-topsites-grid > [pinned]").length, 3, "should be 3 children with 'pinned' attribute");
+    is(TopSitesTestHelper.document.querySelectorAll("#start-topsites-grid > [pinned]").length, 3, "should be 3 children with 'pinned' attribute");
     try {
       Array.forEach(items, function(aItem, aIndex){
         
@@ -258,7 +264,7 @@ gTests.push({
     
     yield TopSitesTestHelper.setLinks("sgtsam,train,zebedee,zeebad", []); 
     
-    let arrangedPromise = waitForEvent(document.getElementById("start-topsites-grid"), "arranged");
+    let arrangedPromise = waitForEvent(TopSitesTestHelper.grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
     yield arrangedPromise;
   },
@@ -266,7 +272,7 @@ gTests.push({
     
     
     
-    let grid = document.getElementById("start-topsites-grid"),
+    let grid = TopSitesTestHelper.grid,
         items = grid.children;
     is(items.length, 4, this.desc + ": should be 4 topsites");
 
@@ -315,14 +321,14 @@ gTests.push({
       this.pins
     );
     
-    let arrangedPromise = waitForEvent(document.getElementById("start-topsites-grid"), "arranged");
+    let arrangedPromise = waitForEvent(TopSitesTestHelper.grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
     yield arrangedPromise;
   },
   run: function() {
     
     
-    let grid = document.getElementById("start-topsites-grid"),
+    let grid = TopSitesTestHelper.grid,
         items = grid.children;
     is(items.length, 8, this.desc + ": should be 8 topsites");
     let site = {
@@ -356,7 +362,7 @@ gTests.push({
       ",dougal"
     );
     
-    let arrangedPromise = waitForEvent(document.getElementById("start-topsites-grid"), "arranged");
+    let arrangedPromise = waitForEvent(TopSitesTestHelper.grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
     yield arrangedPromise;
   },
@@ -364,7 +370,7 @@ gTests.push({
     try {
       
       
-      let grid = document.getElementById("start-topsites-grid"),
+      let grid = TopSitesTestHelper.grid,
           items = grid.children;
       is(items.length, 8, this.desc + ": should be 8 topsites");
 
@@ -444,14 +450,14 @@ gTests.push({
       this.pins
     );
     
-    let arrangedPromise = waitForEvent(document.getElementById("start-topsites-grid"), "arranged");
+    let arrangedPromise = waitForEvent(TopSitesTestHelper.grid, "arranged");
     yield TopSitesTestHelper.updatePagesAndWait();
     yield arrangedPromise;
   },
   run: function() {
     
     
-    let grid = document.getElementById("start-topsites-grid"),
+    let grid = TopSitesTestHelper.grid,
         items = grid.children;
     is(items.length, 4, this.desc + ": should be 4 topsites");
 
