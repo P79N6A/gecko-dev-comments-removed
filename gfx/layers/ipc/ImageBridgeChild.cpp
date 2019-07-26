@@ -370,7 +370,7 @@ ImageBridgeChild::AllocSurfaceDescriptorGrallocNow(const gfxIntSize& aSize,
   GrallocBufferActor* gba = static_cast<GrallocBufferActor*>(gc);
   gba->InitFromHandle(handle.get_MagicGrallocBufferHandle());
 
-  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc,  false);
+  *aBuffer = SurfaceDescriptorGralloc(nullptr, gc, aSize,  false);
   return true;
 #else
   NS_RUNTIMEABORT("No gralloc buffers for you");
