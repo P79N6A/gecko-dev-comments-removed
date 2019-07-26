@@ -102,7 +102,7 @@ class LinearScanAllocator : public LiveRangeAllocator<LinearScanVirtualRegister>
     
     void enqueueVirtualRegisterIntervals();
 
-    uint32 allocateSlotFor(const LiveInterval *interval);
+    uint32_t allocateSlotFor(const LiveInterval *interval);
     bool splitInterval(LiveInterval *interval, CodePosition pos);
     bool splitBlockingIntervals(LAllocation allocation);
     bool assign(LAllocation allocation);

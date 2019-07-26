@@ -22,9 +22,9 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     bool inCall_;
-    uint32 args_;
-    uint32 passedArgs_;
-    uint32 stackForCall_;
+    uint32_t args_;
+    uint32_t passedArgs_;
+    uint32_t stackForCall_;
     bool dynamicAlignment_;
     bool enoughMemory_;
 
@@ -42,7 +42,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         return Operand(address.base, address.index, address.scale, address.offset + 4);
     }
 
-    void setupABICall(uint32 args);
+    void setupABICall(uint32_t args);
 
   public:
     using MacroAssemblerX86Shared::Push;
@@ -354,12 +354,12 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     
-    void reserveStack(uint32 amount) {
+    void reserveStack(uint32_t amount) {
         if (amount)
             subl(Imm32(amount), StackPointer);
         framePushed_ += amount;
     }
-    void freeStack(uint32 amount) {
+    void freeStack(uint32_t amount) {
         JS_ASSERT(amount <= framePushed_);
         if (amount)
             addl(Imm32(amount), StackPointer);
@@ -459,7 +459,7 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
         movl(src, Operand(address));
     }
 
-    void setStackArg(const Register &reg, uint32 arg) {
+    void setStackArg(const Register &reg, uint32_t arg) {
         movl(reg, Operand(esp, arg * STACK_SLOT_SIZE));
     }
 
@@ -698,11 +698,11 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
     
     
     
-    void setupAlignedABICall(uint32 args);
+    void setupAlignedABICall(uint32_t args);
 
     
     
-    void setupUnalignedABICall(uint32 args, const Register &scratch);
+    void setupUnalignedABICall(uint32_t args, const Register &scratch);
 
     
     

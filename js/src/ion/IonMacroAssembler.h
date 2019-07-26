@@ -551,28 +551,28 @@ class MacroAssembler : public MacroAssemblerSpecific
     }
 
     
-    uint32 callIon(const Register &callee) {
+    uint32_t callIon(const Register &callee) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callIon(callee);
-        uint32 ret = currentOffset();
+        uint32_t ret = currentOffset();
         reenterSPSFrame();
         return ret;
     }
 
     
-    uint32 callWithExitFrame(IonCode *target) {
+    uint32_t callWithExitFrame(IonCode *target) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithExitFrame(target);
-        uint32 ret = currentOffset();
+        uint32_t ret = currentOffset();
         reenterSPSFrame();
         return ret;
     }
 
     
-    uint32 callWithExitFrame(IonCode *target, Register dynStack) {
+    uint32_t callWithExitFrame(IonCode *target, Register dynStack) {
         leaveSPSFrame();
         MacroAssemblerSpecific::callWithExitFrame(target, dynStack);
-        uint32 ret = currentOffset();
+        uint32_t ret = currentOffset();
         reenterSPSFrame();
         return ret;
     }

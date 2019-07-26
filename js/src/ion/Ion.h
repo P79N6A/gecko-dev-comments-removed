@@ -82,38 +82,29 @@ struct IonOptions
     
     
     
-    uint32 usesBeforeCompile;
+    uint32_t usesBeforeCompile;
 
     
     
     
     
-    uint32 usesBeforeCompileNoJaeger;
+    uint32_t usesBeforeCompileNoJaeger;
 
     
     
     
     
-    uint32 usesBeforeInlining;
+    uint32_t usesBeforeInlining;
 
     
     
     
-    uint32 maxStackArgs;
+    uint32_t maxStackArgs;
 
     
     
     
-    uint32 maxInlineDepth;
-
-    
-    
-    
-    
-    
-    
-    
-    uint32 smallFunctionMaxBytecodeLength;
+    uint32_t maxInlineDepth;
 
     
     
@@ -122,23 +113,32 @@ struct IonOptions
     
     
     
-    uint32 smallFunctionUsesBeforeInlining;
-
-    
-    
-    
-    uint32 polyInlineMax;
-
-    
-    
-    
-    uint32 inlineMaxTotalBytecodeLength;
+    uint32_t smallFunctionMaxBytecodeLength;
 
     
     
     
     
-    uint32 inlineUseCountRatio;
+    
+    
+    
+    uint32_t smallFunctionUsesBeforeInlining;
+
+    
+    
+    
+    uint32_t polyInlineMax;
+
+    
+    
+    
+    uint32_t inlineMaxTotalBytecodeLength;
+
+    
+    
+    
+    
+    uint32_t inlineUseCountRatio;
 
     
     
@@ -148,14 +148,14 @@ struct IonOptions
     
     
     
-    uint32 slowCallLimit;
+    uint32_t slowCallLimit;
 
     
     
     
     
     
-    uint32 slowCallIncUseCount;
+    uint32_t slowCallIncUseCount;
 
     void setEagerCompilation() {
         eagerCompilation = true;

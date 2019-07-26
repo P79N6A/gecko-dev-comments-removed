@@ -223,7 +223,7 @@ class MacroAssemblerARM : public Assembler
 
     
     
-    void ma_mod_mask(Register src, Register dest, Register hold, int32 shift);
+    void ma_mod_mask(Register src, Register dest, Register hold, int32_t shift);
 
     
     
@@ -313,7 +313,7 @@ class MacroAssemblerARM : public Assembler
     void ma_vstr(VFPRegister src, VFPAddr addr, Condition cc = Always);
     void ma_vstr(VFPRegister src, const Operand &addr, Condition cc = Always);
 
-    void ma_vstr(VFPRegister src, Register base, Register index, int32 shift = defaultShift, Condition cc = Always);
+    void ma_vstr(VFPRegister src, Register base, Register index, int32_t shift = defaultShift, Condition cc = Always);
     
     void ma_callIon(const Register reg);
     
@@ -329,10 +329,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     bool inCall_;
-    uint32 args_;
+    uint32_t args_;
     
     
-    uint32 passedArgs_;
+    uint32_t passedArgs_;
 
     
     
@@ -340,7 +340,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    uint32 usedSlots_;
+    uint32_t usedSlots_;
     bool dynamicAlignment_;
 
     bool enoughMemory_;
@@ -350,7 +350,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    void setupABICall(uint32 arg);
+    void setupABICall(uint32_t arg);
 
   protected:
     MoveResolver moveResolver_;
@@ -360,7 +360,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    uint32 framePushed_;
+    uint32_t framePushed_;
     void adjustFrame(int value) {
         setFramePushed(framePushed_ + value);
     }
@@ -432,13 +432,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void call(IonCode *c) {
         BufferOffset bo = m_buffer.nextOffset();
         addPendingJump(bo, c->raw(), Relocation::IONCODE);
-        ma_mov(Imm32((uint32)c->raw()), ScratchRegister);
+        ma_mov(Imm32((uint32_t)c->raw()), ScratchRegister);
         ma_callIonHalfPush(ScratchRegister);
     }
     void branch(IonCode *c) {
         BufferOffset bo = m_buffer.nextOffset();
         addPendingJump(bo, c->raw(), Relocation::IONCODE);
-        ma_mov(Imm32((uint32)c->raw()), ScratchRegister);
+        ma_mov(Imm32((uint32_t)c->raw()), ScratchRegister);
         ma_bx(ScratchRegister);
     }
     void nop() {
@@ -591,7 +591,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void int32ValueToDouble(const ValueOperand &operand, const FloatRegister &dest);
     void loadInt32OrDouble(const Operand &src, const FloatRegister &dest);
     void loadInt32OrDouble(Register base, Register index,
-                           const FloatRegister &dest, int32 shift = defaultShift);
+                           const FloatRegister &dest, int32_t shift = defaultShift);
     void loadStaticDouble(const double *dp, const FloatRegister &dest);
     void loadConstantDouble(double dp, const FloatRegister &dest);
     
@@ -759,7 +759,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void moveValue(const Value &val, const ValueOperand &dest);
 
     void storeValue(ValueOperand val, Operand dst);
-    void storeValue(ValueOperand val, Register base, Register index, int32 shift = defaultShift);
+    void storeValue(ValueOperand val, Register base, Register index, int32_t shift = defaultShift);
     void storeValue(ValueOperand val, const Address &dest) {
         storeValue(val, Operand(dest));
     }
@@ -822,10 +822,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     void storePayload(const Value &val, Operand dest);
     void storePayload(Register src, Operand dest);
-    void storePayload(const Value &val, Register base, Register index, int32 shift = defaultShift);
-    void storePayload(Register src, Register base, Register index, int32 shift = defaultShift);
+    void storePayload(const Value &val, Register base, Register index, int32_t shift = defaultShift);
+    void storePayload(Register src, Register base, Register index, int32_t shift = defaultShift);
     void storeTypeTag(ImmTag tag, Operand dest);
-    void storeTypeTag(ImmTag tag, Register base, Register index, int32 shift = defaultShift);
+    void storeTypeTag(ImmTag tag, Register base, Register index, int32_t shift = defaultShift);
 
     void makeFrameDescriptor(Register frameSizeReg, FrameType type) {
         ma_lsl(Imm32(FRAMESIZE_SHIFT), frameSizeReg, frameSizeReg);
@@ -881,20 +881,20 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_pop(reg);
         adjustFrame(-STACK_SLOT_SIZE);
     }
-    void implicitPop(uint32 args) {
+    void implicitPop(uint32_t args) {
         JS_ASSERT(args % STACK_SLOT_SIZE == 0);
         adjustFrame(-args);
     }
-    uint32 framePushed() const {
+    uint32_t framePushed() const {
         return framePushed_;
     }
-    void setFramePushed(uint32 framePushed) {
+    void setFramePushed(uint32_t framePushed) {
         framePushed_ = framePushed;
     }
 
     
     
-    bool buildFakeExitFrame(const Register &scratch, uint32 *offset);
+    bool buildFakeExitFrame(const Register &scratch, uint32_t *offset);
     bool buildOOLFakeExitFrame(void *fakeReturnAddr);
 
     void callWithExitFrame(IonCode *target);
@@ -904,8 +904,8 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     void callIon(const Register &callee);
 
-    void reserveStack(uint32 amount);
-    void freeStack(uint32 amount);
+    void reserveStack(uint32_t amount);
+    void freeStack(uint32_t amount);
     void freeStack(Register amount);
 
     void add32(Imm32 imm, Register dest);
@@ -979,7 +979,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void storeDouble(FloatRegister src, BaseIndex addr) {
         
         JS_ASSERT(addr.offset == 0);
-        uint32 scale = Imm32::ShiftOf(addr.scale).value;
+        uint32_t scale = Imm32::ShiftOf(addr.scale).value;
         ma_vstr(src, addr.base, addr.index, scale);
     }
 
@@ -989,7 +989,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void storeFloat(FloatRegister src, BaseIndex addr) {
         
         JS_ASSERT(addr.offset == 0);
-        uint32 scale = Imm32::ShiftOf(addr.scale).value;
+        uint32_t scale = Imm32::ShiftOf(addr.scale).value;
         ma_vstr(VFPRegister(src).singleOverlay(), addr.base, addr.index, scale);
     }
 
@@ -1019,7 +1019,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         addPtr(Imm32(imm.value), dest);
     }
 
-    void setStackArg(const Register &reg, uint32 arg);
+    void setStackArg(const Register &reg, uint32_t arg);
 
     void breakpoint();
 
@@ -1043,11 +1043,11 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    void setupAlignedABICall(uint32 args);
+    void setupAlignedABICall(uint32_t args);
 
     
     
-    void setupUnalignedABICall(uint32 args, const Register &scratch);
+    void setupUnalignedABICall(uint32_t args, const Register &scratch);
 
     
     

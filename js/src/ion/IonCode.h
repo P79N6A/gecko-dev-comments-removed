@@ -26,11 +26,11 @@ namespace ion {
 
 
 
-static const uint32 MAX_BUFFER_SIZE = (1 << 30) - 1;
+static const uint32_t MAX_BUFFER_SIZE = (1 << 30) - 1;
 
 
-static const uint32 SNAPSHOT_MAX_NARGS = 127;
-static const uint32 SNAPSHOT_MAX_STACK = 127;
+static const uint32_t SNAPSHOT_MAX_NARGS = 127;
+static const uint32_t SNAPSHOT_MAX_STACK = 127;
 
 class MacroAssembler;
 class CodeOffsetLabel;
@@ -38,13 +38,13 @@ class CodeOffsetLabel;
 class IonCode : public gc::Cell
 {
   protected:
-    uint8 *code_;
+    uint8_t *code_;
     JSC::ExecutablePool *pool_;
-    uint32 bufferSize_;             
-    uint32 insnSize_;               
-    uint32 dataSize_;               
-    uint32 jumpRelocTableBytes_;    
-    uint32 dataRelocTableBytes_;    
+    uint32_t bufferSize_;             
+    uint32_t insnSize_;               
+    uint32_t dataSize_;               
+    uint32_t jumpRelocTableBytes_;    
+    uint32_t dataRelocTableBytes_;    
     JSBool invalidated_;            
                                     
 
@@ -52,7 +52,7 @@ class IonCode : public gc::Cell
       : code_(NULL),
         pool_(NULL)
     { }
-    IonCode(uint8 *code, uint32 bufferSize, JSC::ExecutablePool *pool)
+    IonCode(uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool)
       : code_(code),
         pool_(pool),
         bufferSize_(bufferSize),
@@ -63,18 +63,18 @@ class IonCode : public gc::Cell
         invalidated_(false)
     { }
 
-    uint32 dataOffset() const {
+    uint32_t dataOffset() const {
         return insnSize_;
     }
-    uint32 jumpRelocTableOffset() const {
+    uint32_t jumpRelocTableOffset() const {
         return dataOffset() + dataSize_;
     }
-    uint32 dataRelocTableOffset() const {
+    uint32_t dataRelocTableOffset() const {
         return jumpRelocTableOffset() + jumpRelocTableBytes_;
     }
 
   public:
-    uint8 *raw() const {
+    uint8_t *raw() const {
         return code_;
     }
     size_t instructionsSize() const {
@@ -99,7 +99,7 @@ class IonCode : public gc::Cell
 
     void copyFrom(MacroAssembler &masm);
 
-    static IonCode *FromExecutable(uint8 *buffer) {
+    static IonCode *FromExecutable(uint8_t *buffer) {
         IonCode *code = *(IonCode **)(buffer - sizeof(IonCode *));
         JS_ASSERT(code->raw() == buffer);
         return code;
@@ -109,14 +109,14 @@ class IonCode : public gc::Cell
         return offsetof(IonCode, code_);
     }
 
-    uint8 *jumpRelocTable() {
+    uint8_t *jumpRelocTable() {
         return code_ + jumpRelocTableOffset();
     }
 
     
     
     
-    static IonCode *New(JSContext *cx, uint8 *code, uint32 bufferSize, JSC::ExecutablePool *pool);
+    static IonCode *New(JSContext *cx, uint8_t *code, uint32_t bufferSize, JSC::ExecutablePool *pool);
 
   public:
     static void readBarrier(IonCode *code);
@@ -144,64 +144,64 @@ struct IonScript
     jsbytecode *osrPc_;
 
     
-    uint32 osrEntryOffset_;
+    uint32_t osrEntryOffset_;
 
     
     
-    uint32 invalidateEpilogueOffset_;
+    uint32_t invalidateEpilogueOffset_;
 
     
     
     
     
-    uint32 invalidateEpilogueDataOffset_;
+    uint32_t invalidateEpilogueDataOffset_;
 
     
     bool bailoutExpected_;
 
     
-    uint32 snapshots_;
-    uint32 snapshotsSize_;
+    uint32_t snapshots_;
+    uint32_t snapshotsSize_;
 
     
-    uint32 bailoutTable_;
-    uint32 bailoutEntries_;
+    uint32_t bailoutTable_;
+    uint32_t bailoutEntries_;
 
     
-    uint32 constantTable_;
-    uint32 constantEntries_;
+    uint32_t constantTable_;
+    uint32_t constantEntries_;
 
     
-    uint32 safepointIndexOffset_;
-    uint32 safepointIndexEntries_;
-
-    
-    
-    uint32 frameSlots_;
+    uint32_t safepointIndexOffset_;
+    uint32_t safepointIndexEntries_;
 
     
     
-    uint32 frameSize_;
+    uint32_t frameSlots_;
 
     
-    uint32 osiIndexOffset_;
-    uint32 osiIndexEntries_;
+    
+    uint32_t frameSize_;
 
     
-    uint32 cacheList_;
-    uint32 cacheEntries_;
+    uint32_t osiIndexOffset_;
+    uint32_t osiIndexEntries_;
 
     
-    uint32 prebarrierList_;
-    uint32 prebarrierEntries_;
+    uint32_t cacheList_;
+    uint32_t cacheEntries_;
 
     
-    uint32 safepointsStart_;
-    uint32 safepointsSize_;
+    uint32_t prebarrierList_;
+    uint32_t prebarrierEntries_;
 
     
-    uint32 scriptList_;
-    uint32 scriptEntries_;
+    uint32_t safepointsStart_;
+    uint32_t safepointsSize_;
+
+    
+    uint32_t scriptList_;
+    uint32_t scriptEntries_;
 
     
     size_t refcount_;
@@ -210,34 +210,34 @@ struct IonScript
 
   public:
     
-    uint32 slowCallCount;
+    uint32_t slowCallCount;
 
     SnapshotOffset *bailoutTable() {
-        return (SnapshotOffset *)(reinterpret_cast<uint8 *>(this) + bailoutTable_);
+        return (SnapshotOffset *)(reinterpret_cast<uint8_t *>(this) + bailoutTable_);
     }
     HeapValue *constants() {
-        return (HeapValue *)(reinterpret_cast<uint8 *>(this) + constantTable_);
+        return (HeapValue *)(reinterpret_cast<uint8_t *>(this) + constantTable_);
     }
     const SafepointIndex *safepointIndices() const {
         return const_cast<IonScript *>(this)->safepointIndices();
     }
     SafepointIndex *safepointIndices() {
-        return (SafepointIndex *)(reinterpret_cast<uint8 *>(this) + safepointIndexOffset_);
+        return (SafepointIndex *)(reinterpret_cast<uint8_t *>(this) + safepointIndexOffset_);
     }
     const OsiIndex *osiIndices() const {
         return const_cast<IonScript *>(this)->osiIndices();
     }
     OsiIndex *osiIndices() {
-        return (OsiIndex *)(reinterpret_cast<uint8 *>(this) + osiIndexOffset_);
+        return (OsiIndex *)(reinterpret_cast<uint8_t *>(this) + osiIndexOffset_);
     }
     IonCache *cacheList() {
-        return (IonCache *)(reinterpret_cast<uint8 *>(this) + cacheList_);
+        return (IonCache *)(reinterpret_cast<uint8_t *>(this) + cacheList_);
     }
     CodeOffsetLabel *prebarrierList() {
-        return (CodeOffsetLabel *)(reinterpret_cast<uint8 *>(this) + prebarrierList_);
+        return (CodeOffsetLabel *)(reinterpret_cast<uint8_t *>(this) + prebarrierList_);
     }
     JSScript **scriptList() const {
-        return (JSScript **)(reinterpret_cast<const uint8 *>(this) + scriptList_);
+        return (JSScript **)(reinterpret_cast<const uint8_t *>(this) + scriptList_);
     }
 
   private:
@@ -247,7 +247,7 @@ struct IonScript
     
     IonScript();
 
-    static IonScript *New(JSContext *cx, uint32 frameLocals, uint32 frameSize,
+    static IonScript *New(JSContext *cx, uint32_t frameLocals, uint32_t frameSize,
                           size_t snapshotsSize, size_t snapshotEntries,
                           size_t constants, size_t safepointIndexEntries, size_t osiIndexEntries,
                           size_t cacheEntries, size_t prebarrierEntries, size_t safepointsSize,
@@ -279,34 +279,34 @@ struct IonScript
     jsbytecode *osrPc() const {
         return osrPc_;
     }
-    void setOsrEntryOffset(uint32 offset) {
+    void setOsrEntryOffset(uint32_t offset) {
         JS_ASSERT(!osrEntryOffset_);
         osrEntryOffset_ = offset;
     }
-    uint32 osrEntryOffset() const {
+    uint32_t osrEntryOffset() const {
         return osrEntryOffset_;
     }
-    bool containsCodeAddress(uint8 *addr) const {
+    bool containsCodeAddress(uint8_t *addr) const {
         return method()->raw() <= addr && addr <= method()->raw() + method()->instructionsSize();
     }
-    bool containsReturnAddress(uint8 *addr) const {
+    bool containsReturnAddress(uint8_t *addr) const {
         
         
         return method()->raw() <= addr && addr <= method()->raw() + method()->instructionsSize();
     }
-    void setInvalidationEpilogueOffset(uint32 offset) {
+    void setInvalidationEpilogueOffset(uint32_t offset) {
         JS_ASSERT(!invalidateEpilogueOffset_);
         invalidateEpilogueOffset_ = offset;
     }
-    uint32 invalidateEpilogueOffset() const {
+    uint32_t invalidateEpilogueOffset() const {
         JS_ASSERT(invalidateEpilogueOffset_);
         return invalidateEpilogueOffset_;
     }
-    void setInvalidationEpilogueDataOffset(uint32 offset) {
+    void setInvalidationEpilogueDataOffset(uint32_t offset) {
         JS_ASSERT(!invalidateEpilogueDataOffset_);
         invalidateEpilogueDataOffset_ = offset;
     }
-    uint32 invalidateEpilogueDataOffset() const {
+    uint32_t invalidateEpilogueDataOffset() const {
         JS_ASSERT(invalidateEpilogueDataOffset_);
         return invalidateEpilogueDataOffset_;
     }
@@ -316,14 +316,14 @@ struct IonScript
     bool bailoutExpected() const {
         return bailoutExpected_;
     }
-    const uint8 *snapshots() const {
-        return reinterpret_cast<const uint8 *>(this) + snapshots_;
+    const uint8_t *snapshots() const {
+        return reinterpret_cast<const uint8_t *>(this) + snapshots_;
     }
     size_t snapshotsSize() const {
         return snapshotsSize_;
     }
-    const uint8 *safepoints() const {
-        return reinterpret_cast<const uint8 *>(this) + safepointsStart_;
+    const uint8_t *safepoints() const {
+        return reinterpret_cast<const uint8_t *>(this) + safepointsStart_;
     }
     size_t safepointsSize() const {
         return safepointsSize_;
@@ -345,23 +345,23 @@ struct IonScript
     size_t numConstants() const {
         return constantEntries_;
     }
-    uint32 frameSlots() const {
+    uint32_t frameSlots() const {
         return frameSlots_;
     }
-    uint32 frameSize() const {
+    uint32_t frameSize() const {
         return frameSize_;
     }
-    SnapshotOffset bailoutToSnapshot(uint32 bailoutId) {
+    SnapshotOffset bailoutToSnapshot(uint32_t bailoutId) {
         JS_ASSERT(bailoutId < bailoutEntries_);
         return bailoutTable()[bailoutId];
     }
-    const SafepointIndex *getSafepointIndex(uint32 disp) const;
-    const SafepointIndex *getSafepointIndex(uint8 *retAddr) const {
+    const SafepointIndex *getSafepointIndex(uint32_t disp) const;
+    const SafepointIndex *getSafepointIndex(uint8_t *retAddr) const {
         JS_ASSERT(containsCodeAddress(retAddr));
         return getSafepointIndex(retAddr - method()->raw());
     }
-    const OsiIndex *getOsiIndex(uint32 disp) const;
-    const OsiIndex *getOsiIndex(uint8 *retAddr) const;
+    const OsiIndex *getOsiIndex(uint32_t disp) const;
+    const OsiIndex *getOsiIndex(uint8_t *retAddr) const;
     inline IonCache &getCache(size_t index);
     size_t numCaches() const {
         return cacheEntries_;
@@ -407,35 +407,35 @@ struct IonScript
 struct IonBlockCounts
 {
   private:
-    uint32 id_;
+    uint32_t id_;
 
     
     
-    uint32 offset_;
+    uint32_t offset_;
 
     
-    uint32 numSuccessors_;
-    uint32 *successors_;
+    uint32_t numSuccessors_;
+    uint32_t *successors_;
 
     
-    uint64 hitCount_;
+    uint64_t hitCount_;
 
     
     char *code_;
 
     
     
-    uint32 instructionBytes_;
-    uint32 spillBytes_;
+    uint32_t instructionBytes_;
+    uint32_t spillBytes_;
 
   public:
 
-    bool init(uint32 id, uint32 offset, uint32 numSuccessors) {
+    bool init(uint32_t id, uint32_t offset, uint32_t numSuccessors) {
         id_ = id;
         offset_ = offset;
         numSuccessors_ = numSuccessors;
         if (numSuccessors) {
-            successors_ = (uint32 *) js_calloc(numSuccessors * sizeof(uint32));
+            successors_ = (uint32_t *) js_calloc(numSuccessors * sizeof(uint32_t));
             if (!successors_)
                 return false;
         }
@@ -449,11 +449,11 @@ struct IonBlockCounts
             js_free(code_);
     }
 
-    uint32 id() const {
+    uint32_t id() const {
         return id_;
     }
 
-    uint32 offset() const {
+    uint32_t offset() const {
         return offset_;
     }
 
@@ -461,21 +461,21 @@ struct IonBlockCounts
         return numSuccessors_;
     }
 
-    void setSuccessor(size_t i, uint32 id) {
+    void setSuccessor(size_t i, uint32_t id) {
         JS_ASSERT(i < numSuccessors_);
         successors_[i] = id;
     }
 
-    uint32 successor(size_t i) const {
+    uint32_t successor(size_t i) const {
         JS_ASSERT(i < numSuccessors_);
         return successors_[i];
     }
 
-    uint64 *addressOfHitCount() {
+    uint64_t *addressOfHitCount() {
         return &hitCount_;
     }
 
-    uint64 hitCount() const {
+    uint64_t hitCount() const {
         return hitCount_;
     }
 
@@ -491,19 +491,19 @@ struct IonBlockCounts
         return code_;
     }
 
-    void setInstructionBytes(uint32 bytes) {
+    void setInstructionBytes(uint32_t bytes) {
         instructionBytes_ = bytes;
     }
 
-    uint32 instructionBytes() const {
+    uint32_t instructionBytes() const {
         return instructionBytes_;
     }
 
-    void setSpillBytes(uint32 bytes) {
+    void setSpillBytes(uint32_t bytes) {
         spillBytes_ = bytes;
     }
 
-    uint32 spillBytes() const {
+    uint32_t spillBytes() const {
         return spillBytes_;
     }
 };

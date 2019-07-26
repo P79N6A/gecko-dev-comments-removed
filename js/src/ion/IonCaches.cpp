@@ -470,7 +470,7 @@ struct GetNativePropertyStub
         JS_ASSERT_IF(!callNative, IsCacheableGetPropCallPropertyOp(obj, holder, shape));
 
         
-        DebugOnly<uint32> initialStack = masm.framePushed();
+        DebugOnly<uint32_t> initialStack = masm.framePushed();
 
         Label success, exception;
 
@@ -1019,7 +1019,7 @@ IonCacheSetProperty::attachSetterCall(JSContext *cx, IonScript *ion,
     Register argVpReg        = regSet.takeGeneral();
 
     
-    DebugOnly<uint32> initialStack = masm.framePushed();
+    DebugOnly<uint32_t> initialStack = masm.framePushed();
 
     Label success, exception;
 

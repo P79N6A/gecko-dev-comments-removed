@@ -42,7 +42,7 @@ LIRGeneratorShared::define(LInstructionHelper<1, X, Y> *lir, MDefinition *mir, c
     
     JS_ASSERT(!lir->isCall());
 
-    uint32 vreg = getVirtualRegister();
+    uint32_t vreg = getVirtualRegister();
     if (vreg >= MAX_VIRTUAL_REGISTERS)
         return false;
 
@@ -76,7 +76,7 @@ LIRGeneratorShared::defineFixed(LInstructionHelper<1, X, Y> *lir, MDefinition *m
 }
 
 template <size_t Ops, size_t Temps> bool
-LIRGeneratorShared::defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir, uint32 operand)
+LIRGeneratorShared::defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir, uint32_t operand)
 {
     
     JS_ASSERT(lir->getOperand(operand)->toUse()->usedAtStart());
@@ -96,7 +96,7 @@ LIRGeneratorShared::defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, M
     
     JS_ASSERT(!lir->isCall());
 
-    uint32 vreg = getVirtualRegister();
+    uint32_t vreg = getVirtualRegister();
     if (vreg >= MAX_VIRTUAL_REGISTERS)
         return false;
 
@@ -121,7 +121,7 @@ LIRGeneratorShared::defineReturn(LInstructionHelper<Defs, Ops, Temps> *lir, MDef
 
     JS_ASSERT(lir->isCall());
 
-    uint32 vreg = getVirtualRegister();
+    uint32_t vreg = getVirtualRegister();
     if (vreg >= MAX_VIRTUAL_REGISTERS)
         return false;
 
@@ -182,7 +182,7 @@ LIRGeneratorShared::redefine(MDefinition *def, MDefinition *as)
 bool
 LIRGeneratorShared::defineAs(LInstruction *outLir, MDefinition *outMir, MDefinition *inMir)
 {
-    uint32 vreg = inMir->virtualRegister();
+    uint32_t vreg = inMir->virtualRegister();
     LDefinition::Policy policy = LDefinition::PASSTHROUGH;
 
     if (outMir->type() == MIRType_Value) {
@@ -319,7 +319,7 @@ LIRGeneratorShared::useFixed(MDefinition *mir, FloatRegister reg)
 LDefinition
 LIRGeneratorShared::temp(LDefinition::Type type, LDefinition::Policy policy)
 {
-    uint32 vreg = getVirtualRegister();
+    uint32_t vreg = getVirtualRegister();
     if (vreg >= MAX_VIRTUAL_REGISTERS) {
         gen->abort("max virtual registers");
         return LDefinition();
@@ -342,7 +342,7 @@ LIRGeneratorShared::tempFloat()
 }
 
 LDefinition
-LIRGeneratorShared::tempCopy(MDefinition *input, uint32 reusedInput)
+LIRGeneratorShared::tempCopy(MDefinition *input, uint32_t reusedInput)
 {
     JS_ASSERT(input->virtualRegister());
     LDefinition t = temp(LDefinition::TypeFrom(input->type()), LDefinition::MUST_REUSE_INPUT);
@@ -372,7 +372,7 @@ LIRGeneratorShared::add(T *ins, MInstruction *mir)
 
 
 
-static inline uint32
+static inline uint32_t
 VirtualRegisterOfPayload(MDefinition *mir)
 {
     if (mir->isBox()) {

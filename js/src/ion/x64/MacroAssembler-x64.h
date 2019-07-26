@@ -39,14 +39,14 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     bool inCall_;
-    uint32 args_;
-    uint32 passedIntArgs_;
-    uint32 passedFloatArgs_;
-    uint32 stackForCall_;
+    uint32_t args_;
+    uint32_t passedIntArgs_;
+    uint32_t passedFloatArgs_;
+    uint32_t stackForCall_;
     bool dynamicAlignment_;
     bool enoughMemory_;
 
-    void setupABICall(uint32 arg);
+    void setupABICall(uint32_t arg);
 
   protected:
     MoveResolver moveResolver_;
@@ -370,12 +370,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     
-    void reserveStack(uint32 amount) {
+    void reserveStack(uint32_t amount) {
         if (amount)
             subq(Imm32(amount), StackPointer);
         framePushed_ += amount;
     }
-    void freeStack(uint32 amount) {
+    void freeStack(uint32_t amount) {
         JS_ASSERT(amount <= framePushed_);
         if (amount)
             addq(Imm32(amount), StackPointer);
@@ -838,11 +838,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared
     
     
     
-    void setupAlignedABICall(uint32 args);
+    void setupAlignedABICall(uint32_t args);
 
     
     
-    void setupUnalignedABICall(uint32 args, const Register &scratch);
+    void setupUnalignedABICall(uint32_t args, const Register &scratch);
 
     
     

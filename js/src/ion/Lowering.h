@@ -34,9 +34,9 @@ class LIRGenerator : public LIRGeneratorSpecific
     void updateResumeState(MBasicBlock *block);
 
     
-    uint32 argslots_;
+    uint32_t argslots_;
     
-    uint32 maxargslots_;
+    uint32_t maxargslots_;
 
   public:
     LIRGenerator(MIRGenerator *gen, MIRGraph &graph, LIRGraph &lirGraph)
@@ -60,13 +60,13 @@ class LIRGenerator : public LIRGeneratorSpecific
     bool definePhis();
 
     
-    void allocateArguments(uint32 argc);
+    void allocateArguments(uint32_t argc);
     
     
-    uint32 getArgumentSlot(uint32 argnum);
-    uint32 getArgumentSlotForCall() { return argslots_; }
+    uint32_t getArgumentSlot(uint32_t argnum);
+    uint32_t getArgumentSlotForCall() { return argslots_; }
     
-    void freeArguments(uint32 argc);
+    void freeArguments(uint32_t argc);
 
   public:
     bool visitInstruction(MInstruction *ins);

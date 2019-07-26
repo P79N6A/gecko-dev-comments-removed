@@ -25,13 +25,13 @@ class MoveEmitterX86
     MacroAssemblerSpecific &masm;
 
     
-    uint32 pushedAtStart_;
+    uint32_t pushedAtStart_;
 
     
     
     
-    int32 pushedAtCycle_;
-    int32 pushedAtSpill_;
+    int32_t pushedAtCycle_;
+    int32_t pushedAtSpill_;
 
     
     
