@@ -543,6 +543,14 @@ gfxDWriteFontEntry::ReadCMAP(FontInfoData *aFontInfoData)
 
     mHasCmapTable = NS_SUCCEEDED(rv);
     if (mHasCmapTable) {
+        
+        
+        
+        
+        if (FamilyName().EqualsLiteral("Segoe UI")) {
+            charmap->clear(0x25b6);
+            charmap->clear(0x25c0);
+        }
         gfxPlatformFontList *pfl = gfxPlatformFontList::PlatformFontList();
         mCharacterMap = pfl->FindCharMap(charmap);
     } else {
