@@ -73,6 +73,9 @@ public:
   void CancelAndAbort(nsresult aStatus);
 
   
+  void ContinueCancel(nsresult aStatus);
+
+  
   
   nsresult LockImage();
   nsresult UnlockImage();
