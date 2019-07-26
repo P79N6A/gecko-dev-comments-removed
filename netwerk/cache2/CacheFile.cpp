@@ -8,7 +8,6 @@
 #include "CacheFileChunk.h"
 #include "CacheFileInputStream.h"
 #include "CacheFileOutputStream.h"
-#include "CacheIndex.h"
 #include "nsThreadUtils.h"
 #include "mozilla/DebugOnly.h"
 #include <algorithm>
@@ -237,33 +236,8 @@ CacheFile::Init(const nsACString &aKey,
       mMetadata = new CacheFileMetadata(mOpenAsMemoryOnly, mKey);
       mReady = true;
       mDataSize = mMetadata->Offset();
-    }
-    else {
+    } else {
       flags = CacheFileIOManager::CREATE;
-
-      
-      
-      CacheIndex::EntryStatus status;
-      rv = CacheIndex::HasEntry(mKey, &status);
-      if (status == CacheIndex::DOES_NOT_EXIST) {
-        LOG(("CacheFile::Init() - Forcing CREATE_NEW flag since we don't have"
-             " this entry according to index"));
-        flags = CacheFileIOManager::CREATE_NEW;
-
-        
-        mMetadata = new CacheFileMetadata(mOpenAsMemoryOnly, mKey);
-        mReady = true;
-        mDataSize = mMetadata->Offset();
-
-        
-        
-        nsRefPtr<NotifyCacheFileListenerEvent> ev;
-        ev = new NotifyCacheFileListenerEvent(aCallback, NS_OK, true);
-        rv = NS_DispatchToCurrentThread(ev);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        aCallback = nullptr;
-      }
     }
 
     if (aPriority)
