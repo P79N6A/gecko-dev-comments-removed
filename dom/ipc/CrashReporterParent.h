@@ -3,6 +3,10 @@
 
 
 
+
+#ifndef mozilla_dom_CrashReporterParent_h
+#define mozilla_dom_CrashReporterParent_h
+
 #include "mozilla/dom/PCrashReporterParent.h"
 #include "mozilla/dom/TabMessageUtils.h"
 #include "nsIFile.h"
@@ -152,3 +156,5 @@ CrashReporterParent::CreateCrashReporter(Toplevel* actor)
 
 } 
 } 
+
+#endif 
