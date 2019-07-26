@@ -3717,6 +3717,65 @@ nsCookieService::GetCookiesFromHost(const nsACString     &aHost,
   return NS_NewArrayEnumerator(aEnumerator, cookieList);
 }
 
+namespace {
+
+
+
+
+
+
+
+struct GetCookiesForAppStruct {
+  uint32_t              appId;
+  bool                  onlyBrowserElement;
+  nsCOMArray<nsICookie> cookies;
+
+  GetCookiesForAppStruct() MOZ_DELETE;
+  GetCookiesForAppStruct(uint32_t aAppId, bool aOnlyBrowserElement)
+    : appId(aAppId)
+    , onlyBrowserElement(aOnlyBrowserElement)
+  {}
+};
+
+} 
+
+ PLDHashOperator
+nsCookieService::GetCookiesForApp(nsCookieEntry* entry, void* arg)
+{
+  GetCookiesForAppStruct* data = static_cast<GetCookiesForAppStruct*>(arg);
+
+  if (entry->mAppId != data->appId ||
+      (data->onlyBrowserElement && !entry->mInBrowserElement)) {
+    return PL_DHASH_NEXT;
+  }
+
+  const nsCookieEntry::ArrayType& cookies = entry->GetCookies();
+
+  for (nsCookieEntry::IndexType i = 0; i < cookies.Length(); ++i) {
+    data->cookies.AppendObject(cookies[i]);
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+NS_IMETHODIMP
+nsCookieService::GetCookiesForApp(uint32_t aAppId, bool aOnlyBrowserElement,
+                                  nsISimpleEnumerator** aEnumerator)
+{
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  NS_ENSURE_TRUE(aAppId != NECKO_NO_APP_ID && aAppId != NECKO_UNKNOWN_APP_ID,
+                 NS_ERROR_INVALID_ARG);
+
+  GetCookiesForAppStruct data(aAppId, aOnlyBrowserElement);
+  mDBState->hostTable.EnumerateEntries(GetCookiesForApp, &data);
+
+  return NS_NewArrayEnumerator(aEnumerator, data.cookies);
+}
+
 
 bool
 nsCookieService::FindCookie(const nsCookieKey    &aKey,

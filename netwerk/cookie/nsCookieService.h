@@ -283,6 +283,12 @@ class nsCookieService : public nsICookieService
     void                          NotifyPurged(nsICookie2* aCookie);
     already_AddRefed<nsIArray>    CreatePurgeList(nsICookie2* aCookie);
 
+    
+
+
+
+    static PLDHashOperator GetCookiesForApp(nsCookieEntry* entry, void* arg);
+
   protected:
     
     nsCOMPtr<nsIObserverService>     mObserverService;
