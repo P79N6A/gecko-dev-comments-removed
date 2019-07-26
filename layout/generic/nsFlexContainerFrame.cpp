@@ -565,6 +565,16 @@ nsFlexContainerFrame::AppendFlexItemForChild(
 
       
       
+      
+      
+      
+      
+      rv = aChildFrame->DidReflow(aPresContext, &childRSForMeasuringHeight,
+                                  NS_FRAME_REFLOW_FINISHED);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
       nscoord childDesiredHeight = childDesiredSize.height -
         childRS.mComputedBorderPadding.TopBottom();
       childDesiredHeight = NS_MAX(0, childDesiredHeight);
