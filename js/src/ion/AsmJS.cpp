@@ -5728,14 +5728,14 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
     unsigned argBytes = 3 * sizeof(size_t) + (1 + exit.argTypes().length()) * sizeof(Value);
     unsigned extraBytes = 0;
 #if defined(JS_CPU_ARM)
-    extraBytes = sizeof(size_t);
+    extraBytes += sizeof(size_t);
 #endif
     unsigned stackDec = StackDecrementForCall(masm, emptyVector, argBytes + extraBytes);
     masm.reserveStack(stackDec - extraBytes);
 
     
     uint32_t descriptor = MakeFrameDescriptor(masm.framePushed() + extraBytes, IonFrame_Entry);
-    masm.store32(Imm32(descriptor), Address(StackPointer, 0));
+    masm.storePtr(ImmWord(uintptr_t(descriptor)), Address(StackPointer, 0));
 
     
     Register callee = ABIArgGenerator::NonArgReturnVolatileReg0;
@@ -5761,7 +5761,7 @@ GenerateFFIIonExit(ModuleCompiler &m, const ModuleCompiler::ExitDescriptor &exit
 
     
     unsigned argc = exit.argTypes().length();
-    masm.store32(Imm32(argc), Address(StackPointer, 2 * sizeof(size_t)));
+    masm.storePtr(ImmWord(uintptr_t(argc)), Address(StackPointer, 2 * sizeof(size_t)));
 
     
     masm.storeValue(UndefinedValue(), Address(StackPointer, 3 * sizeof(size_t)));
